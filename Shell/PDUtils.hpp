@@ -28,6 +28,12 @@ public:
 
   static bool isDefinitionHead(Literal* l);
 
+  static bool isUnitAtom(FormulaUnit* unit, Formula*& atom);
+
+  static bool isAtomBinaryFormula(FormulaUnit* unit, Connective& con, Formula*& f1, Formula*& f2);
+  static bool isAtomEquivalence(FormulaUnit* unit, Formula*& f1, Formula*& f2);
+  static bool isAtomEquivalence(FormulaUnit* unit, Literal*& l1, Literal*& l2);
+
   static bool isPredicateEquivalence(FormulaUnit* u);
   static bool isPredicateEquivalence(FormulaUnit* u, unsigned& pred1, unsigned& pred2);
   static bool isPredicateEquivalence(FormulaUnit* u, Literal*& lit1, Literal*& lit2);

@@ -19,6 +19,7 @@
 #include "SAT/TWLSolver.hpp"
 
 #include "EquivalenceDiscoverer.hpp"
+#include "Flattening.hpp"
 #include "PDInliner.hpp"
 #include "PDUtils.hpp"
 #include "Preprocess.hpp"
@@ -461,6 +462,133 @@ UnitList* EquivalenceDiscoverer::getEquivalences(UnitList* units, const Options*
   return getEquivalences(prb.clauseIterator());
 }
 
+
+//////////////////////////////////////
+// FormulaEquivalenceDiscoverer
+//
+
+UnitList* FormulaEquivalenceDiscoverer::getEquivalences(UnitList* units, const Options* opts)
+{
+  CALL("FormulaEquivalenceDiscoverer::getEquivalences");
+
+  _fresh.use();
+
+  UnitList* namedUnits = units->copy();
+  _adi.apply(namedUnits);
+  UnitList* foundEquivs = _ed.getEquivalences(namedUnits, opts);
+
+  UnitList* res = collectOuterEquivalences(foundEquivs);
+
+  //TODO: we leak the created units
+  namedUnits->destroy();
+  foundEquivs->destroy();
+
+  return res;
+}
+
+/**
+ * Try to convert inner formula to outer, expanding the introduced names.
+ *
+ * If a particular conversion is not supported, return 0.
+ *
+ * Now the function converts TRUE, FALSE (as they need no conversion)
+ * and LITERALs that either aren't introduced names (and need no conversion),
+ * or are the exact literals that were introduced by the naming rule
+ * (no instantiation is done).
+ */
+Formula* FormulaEquivalenceDiscoverer::inner2Outer(Formula* inner, UnitStack& premAcc)
+{
+  CALL("FormulaEquivalenceDiscoverer::inner2Outer");
+
+  Connective con = inner->connective();
+
+  if(con==TRUE || con==FALSE) {
+    return inner;
+  }
+  if(con!=LITERAL) {
+    return 0;
+  }
+
+  Literal* lit = inner->literal();
+  unsigned pred = lit->functor();
+
+
+  Unit* prem = 0;
+  if(!_adi.introducedPreds().contains(pred)) {
+    return inner;
+  }
+  Formula* res = _adi.getNamedFormula(lit, prem);
+  if(!res) {
+    //cannot translate the name, so we skip this equivalence
+    return 0;
+  }
+  ASS(prem);
+  premAcc.push(prem);
+  return res;
+}
+
+UnitList* FormulaEquivalenceDiscoverer::collectOuterEquivalences(UnitList* namedEqs)
+{
+  CALL("FormulaEquivalenceDiscoverer::collectOuterEquivalences");
+
+  static UnitStack prems;
+
+  UnitList* res = 0;
+  UnitList::Iterator uit(namedEqs);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    ASS(!u->isClause());
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    Formula* f1;
+    Formula* f2;
+    Connective con;
+    if(!PDUtils::isAtomBinaryFormula(fu, con, f1, f2)) {
+      ALWAYS(PDUtils::isUnitAtom(fu, f1));
+      f2 = Formula::trueFormula();
+      con = IFF;
+    }
+
+    prems.reset();
+    Formula* f1o = inner2Outer(f1, prems);
+    Formula* f2o = inner2Outer(f2, prems);
+
+    if(!f1o || !f2o) {
+      //couldn't translate the introduced names, so we skip this equivalence
+      LOG_UNIT("pp_ed_form_failed", u);
+      continue;
+    }
+    if(f1o==f1 && f2o==f2) {
+      //no need to translate, we just use the original equivalence
+      UnitList::push(u, res);
+      LOG_UNIT("pp_ed_form_res_direct", u);
+      continue;
+    }
+    ASS(prems.isNonEmpty());
+    prems.push(u);
+
+    Formula* eqForm;
+    if(con==IFF && f2o->connective()==TRUE) {
+      //we handle the case of getting an unit atom from the original formula
+      eqForm = f1o;
+    }
+    else {
+      eqForm = new BinaryFormula(con, f1o, f2o);
+    }
+    eqForm = Formula::quantify(eqForm);
+    eqForm = Flattening::flatten(eqForm);
+
+    UnitList* premLst = 0;
+    UnitList::pushFromIterator(UnitStack::Iterator(prems), premLst);
+    Inference* inf = new InferenceMany(Inference::DEFINITION_UNFOLDING, premLst);
+    FormulaUnit* newUnit = new FormulaUnit(eqForm, inf, Unit::getInputType(premLst));
+
+
+    UnitList::push(newUnit,res);
+    LOG_UNIT("pp_ed_form_res_translated", newUnit);
+  }
+  return res;
+}
+
 //////////////////////////////////////
 // EquivalenceDiscoveringTransformer
 //
@@ -486,6 +614,8 @@ bool EquivalenceDiscoveringTransformer::apply(UnitList*& units)
 {
   CALL("EquivalenceDiscoveringTransformer::apply(UnitList*&)");
 
+  bool formulaDiscovery = false;
+
   EquivalenceDiscoverer::CandidateRestriction restr;
   switch(_opts.predicateEquivalenceDiscovery()) {
   case Options::PED_ALL_ATOMS:
@@ -497,6 +627,10 @@ bool EquivalenceDiscoveringTransformer::apply(UnitList*& units)
   case Options::PED_ON:
     restr = EquivalenceDiscoverer::CR_EQUIVALENCES;
     break;
+  case Options::PED_ALL_FORMULAS:
+    restr = EquivalenceDiscoverer::CR_NONE;
+    formulaDiscovery = true;
+    break;
   case Options::PED_OFF:
   default:
     ASSERTION_VIOLATION;
@@ -504,7 +638,15 @@ bool EquivalenceDiscoveringTransformer::apply(UnitList*& units)
 
   EquivalenceDiscoverer eqd(true, _opts.predicateEquivalenceDiscoverySatConflictLimit(), restr,
       _opts.predicateEquivalenceDiscoveryAddImplications());
-  UnitList* equivs = eqd.getEquivalences(units, &_opts);
+  UnitList* equivs;
+
+  if(formulaDiscovery) {
+    FormulaEquivalenceDiscoverer fed(eqd);
+    equivs = fed.getEquivalences(units, &_opts);
+  }
+  else {
+    equivs = eqd.getEquivalences(units, &_opts);
+  }
   if(!equivs) {
     return false;
   }

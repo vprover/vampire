@@ -651,6 +651,7 @@ NameArray Options::Constants::sSplittingNonsplittableComponentsValues(_sSplittin
 
 const char* Options::Constants::_predicateEquivalenceDiscoveryModeValues[] = {
   "all_atoms",
+  "all_formulas",
   "definitions",
   "off",
   "on"};

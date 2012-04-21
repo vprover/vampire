@@ -20,6 +20,7 @@
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATSolver.hpp"
 
+#include "AIGDefinitionIntroducer.hpp"
 #include "Options.hpp"
 #include "Preprocess.hpp"
 
@@ -94,6 +95,23 @@ public:
 
   UnitList* getEquivalences(ClauseIterator clauses);
   UnitList* getEquivalences(UnitList* units, const Options* opts=0);
+};
+
+class FormulaEquivalenceDiscoverer
+{
+public:
+  FormulaEquivalenceDiscoverer(EquivalenceDiscoverer& ed) : _adi(1), _ed(ed) {}
+
+  UnitList* getEquivalences(UnitList* units, const Options* opts=0);
+
+private:
+
+  UnitList* collectOuterEquivalences(UnitList* namedEqs);
+  Formula* inner2Outer(Formula* f, UnitStack& premAcc);
+
+  FreshnessGuard _fresh;
+  AIGDefinitionIntroducer _adi;
+  EquivalenceDiscoverer& _ed;
 };
 
 class EquivalenceDiscoveringTransformer {

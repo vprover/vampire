@@ -597,6 +597,25 @@ void Logging::doTagDeclarations()
       DOC("discovered implications"),
       PARENT("pp_ed",1),
       UNIT_TAG);
+  DECL("pp_ed_form",
+      DOC("formula equivalence discovery"),
+      PARENT("pp_ed",0));
+  DECL("pp_ed_form_res",
+      DOC("formula equivalence discovery results"),
+      PARENT("pp_ed_form",1),
+      UNIT_TAG);
+  DECL("pp_ed_form_res_direct",
+      DOC("formula equivalence discovery results that did not need translation of intorduced names"),
+      PARENT("pp_ed_form_res",0),
+      UNIT_TAG);
+  DECL("pp_ed_form_res_translated",
+      DOC("formula equivalence discovery results went through name introduction"),
+      PARENT("pp_ed_form_res",0),
+      UNIT_TAG);
+  DECL("pp_ed_form_failed",
+      DOC("equivalences that could not be translated to the outer problem"),
+      PARENT("pp_ed_form",1),
+      UNIT_TAG);
 
   DECL("pp_aig",
       DOC("aig sub-formula sharing"),

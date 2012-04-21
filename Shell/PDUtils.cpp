@@ -37,6 +37,83 @@ bool PDUtils::isDefinitionHead(Literal* l)
   return true;
 }
 
+/**
+ * Return true if unit is an equivalence between atoms with
+ * all variables quantified on the top level.
+ */
+bool PDUtils::isAtomEquivalence(FormulaUnit* unit, Literal*& lit1, Literal*& lit2)
+{
+  CALL("PDUtils::isAtomEquivalence(FormulaUnit*,Literal*&,Literal*&)");
+
+  Formula* f1;
+  Formula* f2;
+  if(!isAtomEquivalence(unit, f1, f2)) {
+    return false;
+  }
+  lit1 = f1->literal();
+  lit2 = f2->literal();
+  return true;
+}
+
+bool PDUtils::isUnitAtom(FormulaUnit* unit, Formula*& atom)
+{
+  CALL("PDUtils::isUnitAtom");
+
+  Formula* f = unit->formula();
+  if(f->connective()==FORALL) {
+    f = f->qarg();
+  }
+  if(f->connective()!=LITERAL) {
+    return false;
+  }
+  atom = f;
+  return true;
+}
+
+/**
+ * Return true if unit is an equivalence, implication or XOR between atoms with
+ * all variables quantified at the top level.
+ */
+bool PDUtils::isAtomBinaryFormula(FormulaUnit* unit, Connective& con, Formula*& f1, Formula*& f2)
+{
+  CALL("PDUtils::isAtomBinaryFormula");
+
+  Formula* f = unit->formula();
+  if(f->connective()==FORALL) {
+    f = f->qarg();
+  }
+  Connective c = f->connective();
+  if(c!=IFF && c!=IMP && c!=XOR) {
+    return false;
+  }
+  if(f->left()->connective()!=LITERAL || f->right()->connective()!=LITERAL) {
+    return false;
+  }
+
+  con = c;
+  f1 = f->left();
+  f2 = f->right();
+  return true;
+}
+
+/**
+ * Return true if unit is an equivalence between atoms with
+ * all variables quantified at the top level.
+ */
+bool PDUtils::isAtomEquivalence(FormulaUnit* unit, Formula*& f1, Formula*& f2)
+{
+  CALL("PDUtils::isAtomEquivalence");
+
+  Formula* auxF1;
+  Formula* auxF2;
+  Connective con;
+  if(!isAtomBinaryFormula(unit, con, auxF1, auxF2) || con!=IFF) {
+    return false;
+  }
+  f1 = auxF1;
+  f2 = auxF2;
+  return true;
+}
 
 bool PDUtils::isPredicateEquivalence(FormulaUnit* unit)
 {

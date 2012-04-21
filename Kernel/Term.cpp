@@ -278,14 +278,21 @@ bool TermList::containsAllVariablesOf(TermList t)
 bool Term::containsAllVariablesOf(Term* t)
 {
   CALL("Term::containsAllVariablesOf");
-  Set<TermList> vars;
-  VariableIterator oldVars(this);
-  while(oldVars.hasNext()) {
-    vars.insert(oldVars.next());
+  static DHSet<TermList> vars;
+  vars.reset();
+
+  static VariableIterator vit;
+
+  //collect own vars
+  vit.reset(this);
+  while(vit.hasNext()) {
+    vars.insert(vit.next());
   }
-  VariableIterator newVars(t);
-  while(newVars.hasNext()) {
-    if(!vars.contains(newVars.next())) {
+
+  //check t's vars are among collected
+  vit.reset(this);
+  while(vit.hasNext()) {
+    if(!vars.contains(vit.next())) {
       return false;
     }
   }

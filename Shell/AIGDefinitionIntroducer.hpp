@@ -66,7 +66,7 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
   unsigned _namingRefCntThreshold;
   unsigned _mergeEquivDefs;
 
-  AIGFormulaSharer _fsh;
+  mutable AIGFormulaSharer _fsh;
   AIGRewriter _arwr;
 
   typedef Stack<AIGRef> TopLevelStack;
@@ -92,7 +92,17 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
    */
   AIGRewriter::RefMap _defsSaturated;
 
+  /** Newly introduced definitions */
   Stack<FormulaUnit*> _newDefs;
+
+
+
+  //these aren't used by the algorithm but are exposed by the interface
+  /** Newly introduced predicates */
+  DHSet<unsigned> _introducedPreds;
+  /** Maps introduced atoms (positive) to original AIGs */
+  DHMap<Literal*,AIGRef> _introducedAtoms;
+
 
   AIGRef getPreNamingAig(unsigned aigStackIdx);
 
@@ -128,7 +138,10 @@ public:
 
   virtual UnitList* getIntroducedFormulas();
 
-//  Formula* apply(Formula* f, UnitList*& introducedDefs);
+  /** Name predicates introduced by the algorithm */
+  const DHSet<unsigned>& introducedPreds() const { return _introducedPreds; }
+  /** Positive name atoms introduced by the algorithm */
+  Formula* getNamedFormula(Literal* nameAtom, Unit*& premise) const;
 protected:
   virtual void updateModifiedProblem(Problem& prb);
 };

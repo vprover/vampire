@@ -435,9 +435,10 @@ public:
 
   enum PredicateEquivalenceDiscoveryMode {
     PED_ALL_ATOMS = 0,
-    PED_DEFINITIONS = 1,
-    PED_OFF = 2,
-    PED_ON = 3,
+    PED_ALL_FORMULAS = 1,
+    PED_DEFINITIONS = 2,
+    PED_OFF = 3,
+    PED_ON = 4
   };
 
 public:

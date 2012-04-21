@@ -263,6 +263,10 @@ Literal* AIGDefinitionIntroducer::getNameLiteral(unsigned aigStackIdx)
   }
 
   Literal* res = Literal::create(pred, arity, true, false, args.begin());
+
+  _introducedPreds.insert(pred);
+  _introducedAtoms.insert(res, a);
+
   return res;
 }
 
@@ -499,4 +503,32 @@ void AIGDefinitionIntroducer::updateModifiedProblem(Problem& prb)
   prb.invalidateProperty();
 }
 
+/**
+ * Return formula named by literal @c nameAtom. If unsuccessful, return 0.
+ *
+ * Literal must be the very same as produced by naming, the function does
+ * not perform instantiation.
+ */
+Formula* AIGDefinitionIntroducer::getNamedFormula(Literal* nameAtom, Unit*& premise) const
+{
+  CALL("AIGDefinitionIntroducer::getNamedFormula");
+
+  bool neg = nameAtom->isNegative();
+  nameAtom = Literal::positiveLiteral(nameAtom);
+
+  AIGRef tgt;
+  if(!_introducedAtoms.find(nameAtom, tgt)) {
+    return 0;
+  }
+  unsigned tgtIdx = _aigIndexes.get(tgt);
+
+  ASS(_refAIGInfos[tgtIdx]._namingUnit);
+  premise = _refAIGInfos[tgtIdx]._namingUnit;
+
+  if(neg) { tgt = tgt.neg(); }
+  return _fsh.aigToFormula(tgt);
 }
+
+
+}
+
