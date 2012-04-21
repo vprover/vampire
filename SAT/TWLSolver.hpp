@@ -55,6 +55,7 @@ public:
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var);
   virtual void collectZeroImplied(SATLiteralStack& acc);
+  virtual SATClause* getZeroImpliedCertificate(unsigned var);
 
   virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
   virtual void retractAllAssumptions();
@@ -196,9 +197,10 @@ private:
   DArray<unsigned> _assignmentLevels;
 
   /**
-   * If a clause was determined at a choice point, its entry
-   * is 0, otherwise it's the Clause that led to the assignment
-   * by unit propagation.
+   * For each var, if non-zero, contains clause that lead to the
+   * assignment of the variable by unit propagation. If zero and
+   * _assignmentLevels[var]==1, variable is an assumption, if
+   * _assignmentLevels[var]>1, it is a choice point.
    */
   DArray<SATClause*> _assignmentPremises;
 

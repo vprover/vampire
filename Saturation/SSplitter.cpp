@@ -397,7 +397,6 @@ void SSplitter::addSATClause(SATClause* cl, bool branchRefutation)
 {
   CALL("SSplitter::addSATClause");
 
-  //TODO: push this kind of preprocessing into the SAT solver
   cl = Preprocess::removeDuplicateLiterals(cl);
   if(!cl) {
     return;

@@ -1137,6 +1137,76 @@ void TWLSolver::collectZeroImplied(SATLiteralStack& acc)
   }
 }
 
+/**
+ * Return a valid clause that contains the zero-implied literal
+ * and possibly the assumptions that implied it. Return 0 if @c var
+ * was an assumption itself.
+ * If called on a proof producing solver, the clause will have
+ * a proper proof history.
+ */
+SATClause* TWLSolver::getZeroImpliedCertificate(unsigned var)
+{
+  CALL("TWLSolver::getZeroImpliedCertificate");
+  ASS(isZeroImplied(var));
+  ASS(_assignmentLevels[var]==1);
+
+  if(_assignmentPremises[var]==0) {
+    //variable itself is an assumption
+    return 0;
+  }
+
+
+  static ArraySet seen;
+  seen.ensure(_varCnt);
+  seen.reset();
+  static Stack<unsigned> toDo;
+  toDo.reset();
+  static SATClauseStack prems;
+  static SATLiteralStack resLits;
+  resLits.reset();
+
+  seen.insert(var);
+  resLits.push(SATLiteral(var, _assignment[var])); //assignment values, even though ternary, translate well to boolean polarity
+
+  SATClause* prem = _assignmentPremises[var];
+  for(;;) {
+    prems.push(prem);
+    SATClause::Iterator pit(*prem);
+    while(pit.hasNext()) {
+      SATLiteral pl = pit.next();
+      unsigned pvar = pl.var();
+      if(seen.find(pvar)) {
+	continue;
+      }
+      seen.insert(pvar);
+      toDo.push(pvar);
+    }
+
+    while(toDo.isNonEmpty() && !_assignmentPremises[toDo.top()]) {
+      //we have an assumption
+      unsigned currVar = toDo.pop();
+      ASS_NEQ(_assignment[currVar],AS_UNDEFINED);
+      ASS_EQ(_assignmentLevels[currVar],1);
+      resLits.push(SATLiteral(currVar, !_assignment[currVar])); //we add negations of assumed literals
+    }
+    if(toDo.isEmpty()) {
+      break;
+    }
+    unsigned currVar = toDo.pop();
+    prem = _assignmentPremises[currVar];
+    ASS(prem);
+  }
+
+  SATClause* res = SATClause::fromStack(resLits);
+  if(_generateProofs) {
+    SATClauseList* premLst = 0;
+    SATClauseList::pushFromIterator(SATClauseStack::Iterator(prems), premLst);
+    SATInference* inf = new PropInference(premLst);
+    res->setInference(inf);
+  }
+  return res;
+}
+
 void TWLSolver::printAssignment()
 {
   CALL("TWLSolver::printAssignment");

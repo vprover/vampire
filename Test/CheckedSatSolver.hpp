@@ -32,6 +32,7 @@ public:
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var) { return _inner->isZeroImplied(var); }
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
+  virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
   virtual void ensureVarCnt(unsigned newVarCnt);
 
   virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);

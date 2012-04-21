@@ -30,6 +30,7 @@ public:
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var) { return _inner->isZeroImplied(var); } //TODO: not quite sure wether this is right
+  virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
 
   virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);

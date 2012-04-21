@@ -64,6 +64,14 @@ public:
    * @see isZeroImplied()
    */
   virtual void collectZeroImplied(SATLiteralStack& acc) = 0;
+  /**
+   * Return a valid clause that contains the zero-implied literal
+   * and possibly the assumptions that implied it. Return 0 if @c var
+   * was an assumption itself.
+   * If called on a proof producing solver, the clause will have
+   * a proper proof history.
+   */
+  virtual SATClause* getZeroImpliedCertificate(unsigned var) = 0;
 
   virtual void ensureVarCnt(unsigned newVarCnt) {}
 
