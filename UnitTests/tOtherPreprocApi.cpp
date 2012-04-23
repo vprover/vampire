@@ -63,18 +63,44 @@ TEST_FUN(preprapiPredIndexing)
 TEST_FUN(preprapiPredEqDiscovery)
 {
   Problem::PreprocessingOptions popts;
-  popts.predicateEquivalenceDiscovery = true;
+  popts.equivalenceDiscovery = Problem::ED_PREDICATE_EQUIVALENCES;
 
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, p(a) & q(a)).");
   assertEarlyPreprocActive(popts, true, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, ~p(X) | q(X) ). fof(a,axiom, p(a) & q(a)).");
 
-  popts.predicateEquivalenceDiscoverySatConflictLimit = 3;
+  popts.equivalenceDiscoverySatConflictLimit = 3;
   assertEarlyPreprocActive(popts, true, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, ~p(X) | q(X) ). fof(a,axiom, p(a) & q(a)).");
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, ?[X]: (~p(X) | q(X)) ). fof(a,axiom, p(a) & q(a)).");
 
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(a,X) | ~q(a,X) ). fof(a,axiom, ~p(a,X) | q(a,X) ). fof(a,axiom, p(a,b) & q(a,b)).");
-  popts.predicateEquivalenceDiscoveryPredicateEquivalencesOnly = false;
+  popts.equivalenceDiscovery = Problem::ED_ATOM_EQUIVALENCES;
   assertEarlyPreprocActive(popts, true, "fof(a,axiom, p(a,X) | ~q(a,X) ). fof(a,axiom, ~p(a,X) | q(a,X) ). fof(a,axiom, p(a,b) & q(a,b)).");
+}
+
+TEST_FUN(preprapiPredDefDiscovery)
+{
+  Problem::PreprocessingOptions popts;
+
+  const char* prb = "fof(a,axiom, p(X) | ~q(a) ). fof(a,axiom, ~p(X) | q(a) ). fof(a,axiom, p(b) & q(b)).";
+
+  popts.equivalenceDiscovery = Problem::ED_PREDICATE_EQUIVALENCES;
+  assertEarlyPreprocActive(popts, false, prb);
+  popts.equivalenceDiscovery = Problem::ED_PREDICATE_DEFINITIONS;
+  assertEarlyPreprocActive(popts, true, prb);
+  popts.equivalenceDiscovery = Problem::ED_ATOM_EQUIVALENCES;
+  assertEarlyPreprocActive(popts, true, prb);
+}
+
+TEST_FUN(preprapiFormulaEqDiscovery)
+{
+  Problem::PreprocessingOptions popts;
+
+  const char* prb = "fof(a,axiom, (p(c)&q(c)) | ~(p(d)&q(d)) ). fof(a,axiom, ~(p(c)&q(c)) | (p(d)&q(d)) ). fof(a,axiom, p(a) & q(a)).";
+
+  popts.equivalenceDiscovery = Problem::ED_ATOM_EQUIVALENCES;
+  assertEarlyPreprocActive(popts, false, prb);
+  popts.equivalenceDiscovery = Problem::ED_FORMULA_EQUIVALENCES;
+  assertEarlyPreprocActive(popts, true, prb);
 }
 
 TEST_FUN(preprapiRestrictedPredEqDiscovery)
@@ -89,7 +115,7 @@ TEST_FUN(preprapiRestrictedPredEqDiscovery)
   Formula qX = api.formula(q, x);
 
   Problem::PreprocessingOptions popts;
-  popts.predicateEquivalenceDiscovery = true;
+  popts.equivalenceDiscovery = Problem::ED_PREDICATE_EQUIVALENCES;
   popts.restrictPredicateEquivalenceDiscovery(1, &pX, 1, &qX);
 
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, p(a) & q(a)).");

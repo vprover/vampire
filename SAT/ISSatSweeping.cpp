@@ -11,33 +11,33 @@
 namespace SAT
 {
 
-/**
- * @param varCnt maximal SAT variable number increased by one
- * @param solver SATSolver object whose state should we sweep for literal
- * 	equivalences. This solver should be in a satisfiable state without
- * 	any assumptions. We will add assumptions to probe for equivalences
- * 	and then retract them in the end.
- */
-ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver)
-: _varCnt(varCnt),
-  _interestingVarsSet(varCnt),
-  _probingGroupIndex(0),
-  _probingElementIndex(0),
-  _conflictCountLimit(0),
-  _candidateVarPolarities(varCnt),
-  _candidateGroupIndexes(varCnt),
-  _equivalentVars(varCnt),
-  _solver(solver)
-{
-  CALL("ISSatSweeping::ISSatSweeping");
-  ASS_EQ(solver.getStatus(),SATSolver::SATISFIABLE);
-  ASS(!solver.hasAssumptions());
-
-  _interestingVars.loadFromIterator(getRangeIterator(1u,varCnt));
-  _interestingVarsSet.insertFromIterator(getRangeIterator(1u,varCnt));
-
-  run();
-}
+///**
+// * @param varCnt maximal SAT variable number increased by one
+// * @param solver SATSolver object whose state should we sweep for literal
+// * 	equivalences. This solver should be in a satisfiable state without
+// * 	any assumptions. We will add assumptions to probe for equivalences
+// * 	and then retract them in the end.
+// */
+//ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver)
+//: _varCnt(varCnt),
+//  _interestingVarsSet(varCnt),
+//  _probingGroupIndex(0),
+//  _probingElementIndex(0),
+//  _conflictCountLimit(0),
+//  _candidateVarPolarities(varCnt),
+//  _candidateGroupIndexes(varCnt),
+//  _equivalentVars(varCnt),
+//  _solver(solver)
+//{
+//  CALL("ISSatSweeping::ISSatSweeping");
+//  ASS_EQ(solver.getStatus(),SATSolver::SATISFIABLE);
+//  ASS(!solver.hasAssumptions());
+//
+//  _interestingVars.loadFromIterator(getRangeIterator(1u,varCnt));
+//  _interestingVarsSet.insertFromIterator(getRangeIterator(1u,varCnt));
+//
+//  run();
+//}
 
 /**
  * @param varCnt maximal SAT variable number increased by one
@@ -48,12 +48,16 @@ ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver)
  * @param interestingVarIterator iterator on variables that are to be
  * 	examined for equivalences. Each variable can appear at most once.
  */
-ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver, VirtualIterator<int> interestingVarIterator)
-: _varCnt(varCnt),
+ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver, IntIterator interestingVarIterator,
+    bool doRandomSimulation, unsigned conflictLimit)
+: _doRandomSimulation(doRandomSimulation),
+  _conflictUpperLimit(conflictLimit),
+  _varCnt(varCnt),
   _interestingVarsSet(varCnt),
   _probingGroupIndex(0),
   _probingElementIndex(0),
   _conflictCountLimit(0),
+  _reachedUpperConflictLimit(false),
   _candidateVarPolarities(varCnt),
   _candidateGroupIndexes(varCnt),
   _equivalentVars(varCnt),
@@ -63,8 +67,12 @@ ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver, VirtualIterator
   ASS_EQ(solver.getStatus(),SATSolver::SATISFIABLE);
   ASS(!solver.hasAssumptions());
 
+  if(interestingVarIterator.isInvalid()) {
+    interestingVarIterator = pvi(getRangeIterator(1,static_cast<int>(varCnt)));
+  }
+
   _interestingVars.loadFromIterator(interestingVarIterator);
-  _interestingVarsSet.insertFromIterator(interestingVarIterator);
+  _interestingVarsSet.insertFromIterator(Stack<unsigned>::Iterator(_interestingVars));
 
   run();
 }
@@ -331,7 +339,6 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
       ASS_EQ(lit.polarity(),probedLit.polarity()^assignedOpposite);
       continue;
     }
-    bool asgnPos = lit.polarity();
     SATLiteral candLit = SATLiteral(litVar, _candidateVarPolarities[litVar]);
     bool candidateLitTrue = lit==candLit;
     LOG("sat_iss_impl_scan","have propagation implied: "<<lit<<" candidate was "<<candLit);
@@ -507,6 +514,9 @@ bool ISSatSweeping::nextRotation()
   else {
     _conflictCountLimit++;
   }
+  if(_conflictCountLimit>_conflictUpperLimit) {
+    _reachedUpperConflictLimit = true;
+  }
   return true;
 }
 
@@ -633,15 +643,17 @@ void ISSatSweeping::run()
 
   createCandidates();
 
-  tryRandomSimulation();
+  if(_doRandomSimulation) {
+    tryRandomSimulation();
+  }
 
   //do the actual proving
 
-  while(doOneProbing()) { }
+  while(!_reachedUpperConflictLimit && doOneProbing()) { }
 
   //and now extract the results
 
-  ASS(_candidateGroups.isEmpty());
+  ASS(_reachedUpperConflictLimit || _candidateGroups.isEmpty());
 
   ASS(_equivStack.isEmpty());
 
@@ -669,36 +681,6 @@ void ISSatSweeping::run()
   }
 }
 
-//void ISSatSweeping::doOneLitProbing(SATLiteral lit)
-//{
-//  CALL("ISSatSweeping::doOneLitProbing");
-//  ASS(!_solver.hasAssumptions());
-//
-//  bool foundEquiv = false;
-//  _solver.addAssumption(lit.opposite());
-//  SATSolver::Status status = _solver.getStatus();
-//  if(status==SATSolver::UNSATISFIABLE) {
-//    addTrueLit(lit);
-//  }
-//  else {
-//    ASS_EQ(status, SATSolver::SATISFIABLE);
-//    splitGroupsByCurrAssignment();
-//    lookForImplications(lit, true, foundEquiv);
-//  }
-//  _solver.retractAllAssumptions();
-//
-//  if(foundEquiv || status==SATSolver::UNSATISFIABLE) {
-//    return;
-//  }
-//
-//  _solver.addAssumption(lit);
-//  status = _solver.getStatus();
-//  ASS_EQ(status, SATSolver::SATISFIABLE);
-//  splitGroupsByCurrAssignment();
-//  lookForImplications(lit, false, foundEquiv);
-//  _solver.retractAllAssumptions();
-//
-//}
 
 
 

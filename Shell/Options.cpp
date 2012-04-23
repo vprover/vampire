@@ -190,6 +190,7 @@ const char* Options::Constants::_optionNames[] = {
   "predicate_definition_merging",
   "predicate_equivalence_discovery",
   "predicate_equivalence_discovery_add_implications",
+  "predicate_equivalence_discovery_random_simulation",
   "predicate_equivalence_discovery_sat_conflict_limit",
   "predicate_index_introduction",
   "problem_name",
@@ -756,7 +757,8 @@ Options::Options ()
   _predicateDefinitionMerging(false),
   _predicateEquivalenceDiscovery(PED_OFF),
   _predicateEquivalenceDiscoveryAddImplications(false),
-  _predicateEquivalenceDiscoverySatConflictLimit(0),
+  _predicateEquivalenceDiscoveryRandomSimulation(true),
+  _predicateEquivalenceDiscoverySatConflictLimit(-1),
   _predicateIndexIntroduction(false),
   _problemName("unknown"),
   _proof(PROOF_ON),
@@ -1198,9 +1200,12 @@ void Options::set(const char* name,const char* value, int index)
     case PREDICATE_EQUIVALENCE_DISCOVERY_ADD_IMPLICATIONS:
       _predicateEquivalenceDiscoveryAddImplications = onOffToBool(value,name);
       return;
+    case PREDICATE_EQUIVALENCE_DISCOVERY_RANDOM_SIMULATION:
+      _predicateEquivalenceDiscoveryRandomSimulation = onOffToBool(value,name);
+      return;
     case PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_predicateEquivalenceDiscoverySatConflictLimit = unsignedValue;
+      if (Int::stringToInt(value,intValue)) {
+	_predicateEquivalenceDiscoverySatConflictLimit = intValue;
 	return;
       }
       break;
@@ -2026,6 +2031,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case PREDICATE_EQUIVALENCE_DISCOVERY_ADD_IMPLICATIONS:
     str << boolToOnOff(_predicateEquivalenceDiscoveryAddImplications);
+    return;
+  case PREDICATE_EQUIVALENCE_DISCOVERY_RANDOM_SIMULATION:
+    str << boolToOnOff(_predicateEquivalenceDiscoveryRandomSimulation);
     return;
   case PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT:
     str << _predicateEquivalenceDiscoverySatConflictLimit;

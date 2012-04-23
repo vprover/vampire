@@ -31,10 +31,11 @@ using namespace Kernel;
 using namespace SAT;
 
 EquivalenceDiscoverer::EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit,
-    CandidateRestriction restriction, bool discoverImplications)
+    CandidateRestriction restriction, bool discoverImplications, bool doRandomSimulation)
     : _satConflictCountLimit(satConflictCountLimit),
       _restriction(restriction),
       _discoverImplications(discoverImplications),
+      _doRandomSimulation(doRandomSimulation),
       _restrictedRange(false),
       _gnd(normalizeForSAT),
       _maxSatVar(0)
@@ -105,6 +106,19 @@ bool EquivalenceDiscoverer::isEligible(Literal* l)
   return true;
 }
 
+bool EquivalenceDiscoverer::isPredDefinition(Literal* lhs, Literal* rhs)
+{
+  CALL("EquivalenceDiscoverer::isPredDefinition");
+
+  if(!PDUtils::isDefinitionHead(lhs)) {
+    return false;
+  }
+  if(!lhs->containsAllVariablesOf(rhs)) {
+    return false;
+  }
+  return true;
+}
+
 /**
  * Return true if equivalence or implication between l1 and l2 can be
  * added to the problem.
@@ -134,12 +148,17 @@ bool EquivalenceDiscoverer::isEligiblePair(Literal* l1, Literal* l2)
     //these follow from the restriction in isEligible
     ASS(PDUtils::isDefinitionHead(l1));
     ASS(PDUtils::isDefinitionHead(l2));
-    break;
-  case CR_DEFINITIONS:
-    if(!PDUtils::isDefinitionHead(l1) && !PDUtils::isDefinitionHead(l2)) {
+    if(!l1->containsAllVariablesOf(l2) || !l2->containsAllVariablesOf(l1)) {
       return false;
     }
     break;
+  case CR_DEFINITIONS:
+  {
+    if(!isPredDefinition(l1, l2) && !isPredDefinition(l2, l1)) {
+      return false;
+    }
+    break;
+  }
   case CR_NONE:
     break;
   }
@@ -311,7 +330,8 @@ void EquivalenceDiscoverer::doISSatDiscovery(UnitList*& res)
   ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
 
   ISSatSweeping sswp(_maxSatVar+1, *_solver,
-      pvi( getMappingIteratorKnownRes<int>(SATLiteralStack::ConstIterator(_eligibleSatLits), satLiteralVar) ));
+      pvi( getMappingIteratorKnownRes<int>(SATLiteralStack::ConstIterator(_eligibleSatLits), satLiteralVar) ),
+      _doRandomSimulation, _satConflictCountLimit);
 
   Stack<ISSatSweeping::Equiv>::ConstIterator eqIt(sswp.getEquivalences());
   while(eqIt.hasNext()) {
@@ -637,7 +657,8 @@ bool EquivalenceDiscoveringTransformer::apply(UnitList*& units)
   }
 
   EquivalenceDiscoverer eqd(true, _opts.predicateEquivalenceDiscoverySatConflictLimit(), restr,
-      _opts.predicateEquivalenceDiscoveryAddImplications());
+      _opts.predicateEquivalenceDiscoveryAddImplications(),
+      _opts.predicateEquivalenceDiscoveryRandomSimulation());
   UnitList* equivs;
 
   if(formulaDiscovery) {

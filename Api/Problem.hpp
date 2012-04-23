@@ -75,6 +75,36 @@ public:
     INL_NON_GROWING = 6
   };
 
+  enum EquivalenceDiscovery {
+    ED_NONE,
+    /**
+     * Attempts to discover equivalences in the shape
+     * p(X1,...,XN) <=> q(Y1,...,YN)
+     * where X1,...,XN are distinct variables and a permutation of Y1,...,YN.
+     *
+     * This is the fastest option as it restricts the set of candidates the most.
+     */
+    ED_PREDICATE_EQUIVALENCES,
+    /**
+     * Attempts to discover equivalences in the shape
+     * p(X1,...,XN) <=> q(t1,...,tM)
+     * where X1,...,XN are distinct variables and t1,...,tM terms which contain
+     * only variables X1,...,XN.
+     *
+     * All results of this discovery can be inlined (unless several definitions
+     * of one predicate are discovered).
+     */
+    ED_PREDICATE_DEFINITIONS,
+    /**
+     * Attempts to discover equivalences between any two atoms.
+     */
+    ED_ATOM_EQUIVALENCES,
+    /**
+     * Attempts to discover equivalences between any two formulas.
+     */
+    ED_FORMULA_EQUIVALENCES
+  };
+
   enum PreprocessingMode {
     /**
      * This mode performs only Sine axiom selection (if it is enabled)
@@ -230,24 +260,38 @@ public:
     bool flatteningTopLevelConjunctions;
 
     /**
-     * Use SAT solver to attempt to discover predicate equivalences
+     * Use SAT solver to attempt to discover equivalences, see documentation of
+     * @c EquivalenceDiscovery for description of possible values.
+     *
+     * Default value is ED_NONE which does not do any discovery.
      */
-    bool predicateEquivalenceDiscovery;
+    EquivalenceDiscovery equivalenceDiscovery;
     /**
      * Limit on the number of SAT conflicts in each equivalence check.
-     * Default is 0 which stands for unit propagation only, UINT_MAX
-     * means unlimited.
+     * Default is UINT_MAX which stands for unlimited, 0 will restrict equivalence
+     * discovery to unit propagation.
+     *
+     * Implementation:
+     * The implicative sat sweeping has an internal conflict count limit which always
+     * starts with zero and is increased geometrically until it reaches the limit set
+     * by this value.
      */
-    unsigned predicateEquivalenceDiscoverySatConflictLimit;
+    unsigned equivalenceDiscoverySatConflictLimit;
 
     /**
-     * If true, the predicate equivalence search will be restricted to atoms
-     * in the shape of predicate definition heads. Otherwise we will look for
-     * equivalences between any pairs of atoms.
+     * If true, the predicate equivalence will add also implications.
+     *
+     * Default value is false.
+     */
+    bool equivalenceDiscoveryAddImplications;
+
+    /**
+     * If true, the predicate equivalence will first do several loops of random
+     * simulation to restrict the space of candidate equivalences.
      *
      * Default value is true.
      */
-    bool predicateEquivalenceDiscoveryPredicateEquivalencesOnly;
+    bool equivalenceDiscoveryRandomSimulation;
 
     /**
      * Full inlining using AIG with BDD-sweeping simplifications

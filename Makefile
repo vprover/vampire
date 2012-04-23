@@ -451,6 +451,8 @@ all:#default make disabled
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 
 
+.svn/entries:
+
 version.cpp: .svn/entries Makefile
 	echo "//Automatically generated file, see Makefile for details" > version.cpp
 	svn info | (grep Revision || echo "Revision: unknown") | sed 's|Revision: \(.*\)|const char* VERSION_STRING = "Vampire 1.8 (revision \1)";|' >> version.cpp
@@ -536,6 +538,8 @@ clausify_src:
 	tar cf - $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) | (cd $@ ; tar xvf -) 2>/dev/null
 	cp Makefile Makefile_depend $@
 	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
+	rm -f $@.tgz
+	tar -czf $@.tgz $@
 
 api_src:
 	rm -rf $@

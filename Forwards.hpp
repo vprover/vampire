@@ -25,6 +25,10 @@ struct PtrIdentityHash;
 
 
 template<typename T> class VirtualIterator;
+
+typedef VirtualIterator<int> IntIterator;
+typedef VirtualIterator<unsigned> UnsignedIterator;
+
 template<typename T> class ScopedPtr;
 template<typename T> class SmartPtr;
 template<typename T> class SingleParamEvent;

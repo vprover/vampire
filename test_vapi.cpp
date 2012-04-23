@@ -122,10 +122,8 @@ void inlineTest(const char* fname)
   m_PreprocessOpts.aigInlining = false;
   m_PreprocessOpts.aigBddSweeping = true;
   m_PreprocessOpts.aigDefinitionIntroduction = false;
-  m_PreprocessOpts.predicateEquivalenceDiscovery = true;
-  m_PreprocessOpts.predicateEquivalenceDiscoverySatConflictLimit = 0;
-//  m_PreprocessOpts.predicateEquivalenceDiscoveryPredicateEquivalencesOnly = false;
-  m_PreprocessOpts.predicateEquivalenceDiscoveryPredicateEquivalencesOnly = true;
+  m_PreprocessOpts.equivalenceDiscovery = Problem::ED_PREDICATE_EQUIVALENCES;
+  m_PreprocessOpts.equivalenceDiscoverySatConflictLimit = 0;
   m_PreprocessOpts.variableEqualityPropagation = true;
 
   cout << "\nSecond stage of clausification... "<<endl;

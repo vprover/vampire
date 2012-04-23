@@ -132,9 +132,10 @@ Problem::PreprocessingOptions::PreprocessingOptions(
   traceUnusedPredicateDefinitionRemoval(traceUnusedPredicateDefinitionRemoval),
   predicateIndexIntroduction(false),
   flatteningTopLevelConjunctions(false),
-  predicateEquivalenceDiscovery(false),
-  predicateEquivalenceDiscoverySatConflictLimit(0),
-  predicateEquivalenceDiscoveryPredicateEquivalencesOnly(true),
+  equivalenceDiscovery(ED_NONE),
+  equivalenceDiscoverySatConflictLimit(UINT_MAX),
+  equivalenceDiscoveryAddImplications(false),
+  equivalenceDiscoveryRandomSimulation(true),
   aigInlining(false),
   aigBddSweeping(false),
   aigDefinitionIntroduction(false),
@@ -1055,9 +1056,11 @@ protected:
 class Problem::PredicateEquivalenceDiscoverer
 {
 public:
-  PredicateEquivalenceDiscoverer(unsigned satConflictCountLimit, bool predEquivsOnly,
+  PredicateEquivalenceDiscoverer(EquivalenceDiscovery mode, unsigned satConflictCountLimit,
+      bool doRandomSimulation, bool addImplications,
       bool restricted, Stack<Kernel::Literal*>& restrSet1, Stack<Kernel::Literal*>& restrSet2)
-  : _satConflictCountLimit(satConflictCountLimit), _predEquivsOnly(predEquivsOnly),
+  : _mode(mode), _satConflictCountLimit(satConflictCountLimit), _doRandomSimulation(doRandomSimulation),
+    _addImplications(addImplications),
     _restricted(restricted), _restrSet1(restrSet1), _restrSet2(restrSet2) {}
 
   Problem transform(Problem p)
@@ -1076,14 +1079,44 @@ public:
       Kernel::UnitList::push(f.unit, units);
     }
 
-    EquivalenceDiscoverer::CandidateRestriction restr =
-	_predEquivsOnly ? EquivalenceDiscoverer::CR_EQUIVALENCES : EquivalenceDiscoverer::CR_NONE;
-    EquivalenceDiscoverer ed(true, _satConflictCountLimit, restr, false);
-    if(_restricted) {
-      ed.setRestrictedRange(pvi( Stack<Kernel::Literal*>::Iterator(_restrSet1) ),
-	  pvi( Stack<Kernel::Literal*>::Iterator(_restrSet2)) );
+    bool formulaDiscovery = false;
+    EquivalenceDiscoverer::CandidateRestriction restr;
+    switch(_mode) {
+    case ED_NONE:
+      ASSERTION_VIOLATION;
+      break;
+    case ED_PREDICATE_EQUIVALENCES:
+      restr = EquivalenceDiscoverer::CR_EQUIVALENCES;
+      break;
+    case ED_PREDICATE_DEFINITIONS:
+      restr = EquivalenceDiscoverer::CR_DEFINITIONS;
+      break;
+    case ED_ATOM_EQUIVALENCES:
+      restr = EquivalenceDiscoverer::CR_NONE;
+      break;
+    case ED_FORMULA_EQUIVALENCES:
+      restr = EquivalenceDiscoverer::CR_NONE;
+      formulaDiscovery = true;
+      if(_restricted) {
+	throw ApiException("cannot use atom restriction for formula equivalence discovery (ED_FORMULA_EQUIVALENCES)");
+      }
+      break;
     }
-    Kernel::UnitList* eqs = ed.getEquivalences(units);
+
+    Kernel::UnitList* eqs;
+
+    EquivalenceDiscoverer ed(true, _satConflictCountLimit, restr, _addImplications, _doRandomSimulation);
+    if(formulaDiscovery) {
+      FormulaEquivalenceDiscoverer fed(ed);
+      eqs = fed.getEquivalences(units);
+    }
+    else {
+      if(_restricted) {
+	ed.setRestrictedRange(pvi( Stack<Kernel::Literal*>::Iterator(_restrSet1) ),
+	    pvi( Stack<Kernel::Literal*>::Iterator(_restrSet2)) );
+      }
+      eqs = ed.getEquivalences(units);
+    }
     units->destroy();
 
     if(!eqs) { return p; }
@@ -1096,12 +1129,14 @@ public:
       LOG("api_prb_transf","discovered predicate equivalence: "<<af);
     }
 
-    return PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY, false).transform(p);
+    return PredicateDefinitionInliner(INL_NON_GROWING, false).transform(p);
   }
 
 private:
+  EquivalenceDiscovery _mode;
   unsigned _satConflictCountLimit;
-  bool _predEquivsOnly;
+  bool _doRandomSimulation;
+  bool _addImplications;
 
   bool _restricted;
   Stack<Kernel::Literal*>& _restrSet1;
@@ -1318,10 +1353,11 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
     res = PredicateDefinitionMerger(options.tracePredicateDefinitionMerging).transform(res);
   }
 
-  if(options.predicateEquivalenceDiscovery) {
+  if(options.equivalenceDiscovery!=ED_NONE) {
     LOG("api_prb_prepr_progress","predicate equivalence discovery");
-    res = PredicateEquivalenceDiscoverer(options.predicateEquivalenceDiscoverySatConflictLimit,
-	options.predicateEquivalenceDiscoveryPredicateEquivalencesOnly,
+    res = PredicateEquivalenceDiscoverer(options.equivalenceDiscovery,
+	options.equivalenceDiscoverySatConflictLimit, options.equivalenceDiscoveryRandomSimulation,
+	options.equivalenceDiscoveryAddImplications,
 	options._predicateEquivalenceDiscoveryRestricted,
 	*options._ods.pedSet1,*options._ods.pedSet2).transform(res);
   }

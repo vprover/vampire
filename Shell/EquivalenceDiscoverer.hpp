@@ -45,6 +45,7 @@ private:
   unsigned _satConflictCountLimit;
   CandidateRestriction _restriction;
   bool _discoverImplications;
+  bool _doRandomSimulation;
 
   /** A getEquivalences function can be called only once on the object.
    * This object enforces this restriction. */
@@ -80,6 +81,8 @@ private:
   bool isEligible(Literal* l);
   bool isEligiblePair(Literal* l1, Literal* l2);
 
+  bool isPredDefinition(Literal* lhs, Literal* rhs);
+
   bool handleTrueLiteral(SATLiteral l, UnitList*& eqAcc);
   bool handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc);
   bool handleImplication(SATLiteral lhs, SATLiteral rhs, UnitList*& eqAcc);
@@ -89,7 +92,7 @@ private:
   static int satLiteralVar(SATLiteral l) { return l.var(); }
 public:
   EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit,
-      CandidateRestriction restriction, bool discoverImplications);
+      CandidateRestriction restriction, bool discoverImplications, bool doRandomSimulation);
 
   void setRestrictedRange(LiteralIterator set1, LiteralIterator set2);
 

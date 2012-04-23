@@ -125,6 +125,12 @@ public:
     return inst;
   }
 
+  /** Return an invalid iterator */
+  static VirtualIterator getInvalid()
+  {
+    return VirtualIterator();
+  }
+
   /**
    * Create an uninitialized object
    *
@@ -259,6 +265,11 @@ public:
 
     return _core->size();
   }
+
+  /**
+   * Return true if the object is invalid (i.e. uninitialized to any IteratorCore)
+   */
+  bool isInvalid() { return !_core; }
 private:
   /** The polymorphous core of this @b VirtualIterator object */
   IteratorCore<T>* _core;

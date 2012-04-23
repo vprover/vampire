@@ -133,6 +133,7 @@ public:
     /** Determines whether SAT solver will be used to discover equivalent predicates */
     PREDICATE_EQUIVALENCE_DISCOVERY,
     PREDICATE_EQUIVALENCE_DISCOVERY_ADD_IMPLICATIONS,
+    PREDICATE_EQUIVALENCE_DISCOVERY_RANDOM_SIMULATION,
     PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT,
     PREDICATE_INDEX_INTRODUCTION,
     PROBLEM_NAME,
@@ -479,7 +480,8 @@ public:
   PredicateEquivalenceDiscoveryMode predicateEquivalenceDiscovery() const { return _predicateEquivalenceDiscovery; }
   void setPredicateEquivalenceDiscovery(PredicateEquivalenceDiscoveryMode newValue) { _predicateEquivalenceDiscovery = newValue; }
   bool predicateEquivalenceDiscoveryAddImplications() const { return _predicateEquivalenceDiscoveryAddImplications; }
-  unsigned predicateEquivalenceDiscoverySatConflictLimit() const { return _predicateEquivalenceDiscoverySatConflictLimit; }
+  bool predicateEquivalenceDiscoveryRandomSimulation() const { return _predicateEquivalenceDiscoveryRandomSimulation; }
+  int predicateEquivalenceDiscoverySatConflictLimit() const { return _predicateEquivalenceDiscoverySatConflictLimit; }
   bool predicateIndexIntroduction() const { return _predicateIndexIntroduction; }
   void setPredicateIndexIntroduction(bool newValue) { _predicateIndexIntroduction = newValue; }
   bool aigBddSweeping() const { return _aigBddSweeping; }
@@ -790,7 +792,8 @@ private:
   bool _predicateDefinitionMerging;
   PredicateEquivalenceDiscoveryMode _predicateEquivalenceDiscovery;
   bool _predicateEquivalenceDiscoveryAddImplications;
-  unsigned _predicateEquivalenceDiscoverySatConflictLimit;
+  bool _predicateEquivalenceDiscoveryRandomSimulation;
+  int _predicateEquivalenceDiscoverySatConflictLimit;
   bool _predicateIndexIntroduction;
   string _problemName;
   Proof _proof;

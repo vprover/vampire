@@ -29,8 +29,9 @@ public:
   typedef pair<SATLiteral,SATLiteral> Impl;
   typedef pair<SATLiteral,SATLiteral> Equiv;
 
-  ISSatSweeping(unsigned varCnt, SATSolver& solver);
-  ISSatSweeping(unsigned varCnt, SATSolver& solver, VirtualIterator<int> interestingVarIterator);
+  ISSatSweeping(unsigned varCnt, SATSolver& solver,
+      IntIterator interestingVarIterator = IntIterator::getInvalid(),
+      bool doRandomSimulation = true, unsigned conflictLimit = UINT_MAX);
 
 
   const DHSet<Impl>& getImplications() const { return _implications; }
@@ -78,6 +79,11 @@ private:
 
   void run();
 
+  //options
+  bool _doRandomSimulation;
+  bool _conflictUpperLimit;
+
+
   unsigned _varCnt;
   Stack<unsigned> _interestingVars;
   ArraySet _interestingVarsSet;
@@ -101,6 +107,12 @@ private:
    */
   unsigned _conflictCountLimit;
 
+  /**
+   * If _conflictUpperLimit is set to less than UINT_MAX, will be set to true
+   * when the _conflictCountLimit goes over the upper limit value. This will
+   * terminate the probing in the run() function.
+   */
+  bool _reachedUpperConflictLimit;
 
   /**
    * Polarities of candidate literals.
