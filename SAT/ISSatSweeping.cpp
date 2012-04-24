@@ -348,7 +348,7 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
       //We assert the below non-equality because we assume
       //splitGroupsByCurrAssignment() to have been already
       //called on the current assignment.
-      ASS_REP2(!sameCandGroup(litVar,probedVar), lit, probedLit);
+      ASS_REP2(_solver.getStatus()==SATSolver::UNKNOWN || !sameCandGroup(litVar,probedVar), lit, probedLit);
       Impl imp;
       if(assignedOpposite) {
 	//~p --> c
