@@ -582,6 +582,9 @@ void Logging::doTagDeclarations()
   DECL("pp_ed",
       DOC("equivalence discovery"),
       PARENT("pp",1));
+  DECL("pp_ed_lits",
+      DOC("corrspondence of sat and FO literals in the equivalence discovery algorithm"),
+      PARENT("pp_ed",2));
   DECL("pp_ed_progress",
       DOC("progress of the equivalence discovery algorithm"),
       PARENT("pp_ed",0));
@@ -884,6 +887,9 @@ void Logging::doTagDeclarations()
   DECL("sat_iss",
       DOC("implicative simultaneous sat sweeping"),
       PARENT("sat",1));
+  DECL("sat_iss_init_cands",
+      DOC("initial candidates"),
+      PARENT("sat_iss",2));
   DECL("sat_iss_rand_sim",
       DOC("random simulation"),
       PARENT("sat_iss",1));

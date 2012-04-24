@@ -129,8 +129,10 @@ void ISSatSweeping::createCandidates()
     SATLiteral candLit = SATLiteral(i, candPolarity);
     if(_solver.isZeroImplied(i)) {
       addTrueLit(candLit);
+      LOG("sat_iss_init_cands", "discovered true literal: "<<candLit);
     }
     else {
+      LOG("sat_iss_init_cands", "added candidate literal: "<<candLit);
       candGrp.push(candLit);
       _candidateGroupIndexes.insert(i, 0);
     }

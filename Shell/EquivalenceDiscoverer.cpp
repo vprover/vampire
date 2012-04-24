@@ -13,6 +13,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
+#include "SAT/SATLiteral.hpp"
 #include "SAT/ISSatSweeping.hpp"
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
@@ -195,6 +196,8 @@ void EquivalenceDiscoverer::collectRelevantLits()
       if(!isEligible(npLit)) { continue; }
 
       _eligibleSatLits.push(slit);
+
+      LOG("pp_ed_lits", "pp_ed_lits:  fo: "<<(*npLit)<<"  sat: "<<slit.toString());
     }
   }
 }
