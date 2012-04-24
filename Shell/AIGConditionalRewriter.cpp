@@ -3,6 +3,8 @@
  * Implements class AIGConditionalRewriter.
  */
 
+#include <algorithm>
+
 #include "AIGSubst.hpp"
 
 #include "AIGConditionalRewriter.hpp"
