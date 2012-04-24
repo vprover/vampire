@@ -238,6 +238,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
 
 VS_OBJ = Shell/AIG.o\
          Shell/AIGCompressor.o\
+         Shell/AIGConditionalRewriter.o\
          Shell/AIGDefinitionIntroducer.o\
          Shell/AIGInliner.o\
          Shell/AIGRewriter.o\
@@ -528,7 +529,7 @@ vapi vapi_dbg vapi_rel: $(VAPI_OBJ) $(EXEC_DEF_PREREQ)
 libvapi libvapi_dbg: $(LIBVAPI_OBJ) $(EXEC_DEF_PREREQ)
 	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,libvapi.so -o libvapi.so $(filter %.o, $^) -lc
 
-test_vapi: $(CONF_ID)/test_vapi.o $(EXEC_DEF_PREREQ)
+test_libvapi: $(CONF_ID)/test_libvapi.o $(EXEC_DEF_PREREQ)
 	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ -lvapi -L. -Wl,-R,\$$ORIGIN
 
 clausify_src:

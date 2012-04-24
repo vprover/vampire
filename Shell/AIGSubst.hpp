@@ -126,6 +126,11 @@ private:
   AIG& _aig;
 };
 
+/**
+ * Return variables that occur in the terms introduced by the substitution.
+ * This will be the set of free variables of the result of application of
+ * @c apl on @c aig.
+ */
 template<class Applicator>
 AIGSubst::VarSet* AIGSubst::getSubstFreeVars(Applicator apl, AIGRef aig)
 {
@@ -150,6 +155,10 @@ AIGSubst::VarSet* AIGSubst::getSubstFreeVars(Applicator apl, AIGRef aig)
   return VarSet::getFromIterator(Stack<unsigned>::Iterator(varStack));
 }
 
+/**
+ * Collect variables that occur in quantifiers within @c aig, and add them to @c res.
+ */
+inline
 void AIGSubst::getQuantVars(AIGRef aig, DHSet<unsigned>& res)
 {
   CALL("AIGSubst::getQuantVars");
@@ -165,6 +174,10 @@ void AIGSubst::getQuantVars(AIGRef aig, DHSet<unsigned>& res)
   }
 }
 
+/**
+ * Create a renaming for @c quantVars so that they do not collide with @c substFreeVars.
+ */
+inline
 void AIGSubst::buildQuantRenaming(VarSet* substFreeVars, const DHSet<unsigned>& quantVars,
     DHMap<unsigned,unsigned>& res)
 {
@@ -185,6 +198,10 @@ void AIGSubst::buildQuantRenaming(VarSet* substFreeVars, const DHSet<unsigned>& 
   }
 }
 
+/**
+ * Transform @c vs using @c map and return the result.
+ */
+inline
 AIGSubst::VarSet* AIGSubst::mapVarSet(VarSet* vs, const DHMap<unsigned,unsigned>& map)
 {
   CALL("AIGSubst::mapVarSet");
