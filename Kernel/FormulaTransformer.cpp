@@ -93,6 +93,8 @@ Formula* FormulaTransformer::applyJunction(Formula* f)
 {
   CALL("FormulaTransformer::applyJunction");
 
+  Connective con = f->connective();
+
   FormulaList* resArgs = 0;
   bool modified = false;
   FormulaList::Iterator fs(f->args());
@@ -100,15 +102,23 @@ Formula* FormulaTransformer::applyJunction(Formula* f)
     Formula* arg = fs.next();
     Formula* newArg = apply(arg);
     if(arg!=newArg) {
-	modified = true;
+      modified = true;
     }
-    FormulaList::push(newArg, resArgs);
+    if(newArg->connective()==con) {
+      //we flatten the two junctions
+      FormulaList::pushFromIterator(FormulaList::Iterator(newArg->args()), resArgs);
+    }
+    else {
+      FormulaList::push(newArg, resArgs);
+    }
   }
   if(!modified) {
     resArgs->destroy();
     return f;
   }
-  return new JunctionFormula(f->connective(), resArgs);
+  //we want to keep arguments in the same order as the input ones
+  resArgs = resArgs->reverse();
+  return new JunctionFormula(con, resArgs);
 }
 
 Formula* FormulaTransformer::applyNot(Formula* f)
@@ -118,6 +128,9 @@ Formula* FormulaTransformer::applyNot(Formula* f)
   Formula* newArg = apply(f->uarg());
   if(newArg==f->uarg()) {
     return f;
+  }
+  if(newArg->connective()==NOT) {
+    return newArg->uarg();
   }
   return new NegatedFormula(newArg);
 }

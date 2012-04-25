@@ -5,6 +5,11 @@
 
 #include <algorithm>
 
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Problem.hpp"
+#include "Kernel/Unit.hpp"
+#include "Kernel/SubstHelper.hpp"
+
 #include "AIGSubst.hpp"
 
 #include "AIGConditionalRewriter.hpp"
@@ -104,19 +109,171 @@ void AIGPrenexTransformer::collectQuants(AIGRef a, QIStack& quants, AIGRef& inne
   sortQuantSegments(quants);
 }
 
-void AIGPrenexTransformer::unifyQuants(AIGRef a1, const QIStack& q1, AIGRef a2, const QIStack& q2,
+
+struct AIGPrenexTransformer::QuantUnifier
+{
+public:
+  QuantUnifier(AIG& aig, AIG::VarSet* freeVars, AIGRef a1, const QIStack& q1, AIGRef a2, const QIStack& q2)
+   : _nextAvailVar(0),
+     _aig(aig), _a1(a1), _q1(q1), _a2(a2), _q2(q2)
+  {
+    CALL("AIGPrenexTransformer::QuantUnifier::QuantUnifier");
+
+    LOG("pp_aig_pren_qu", "QuantUnifier init");
+
+    _usedVars.loadFromIterator(AIG::VarSet::Iterator(*freeVars));
+
+    process();
+  }
+
+
+  AIGRef getResultingInnerAig1() const { return _a1res; }
+  AIGRef getResultingInnerAig2() const { return _a2res; }
+  const QIStack& getResQuantInfo() const { return _qres; }
+
+private:
+
+  void addResultingQuantifier(QuantInfo q1, QuantInfo q2)
+  {
+    CALL("AIGPrenexTransformer::QuantUnifier::getResult");
+    ASS(q1.isValid() || q2.isValid());
+    ASS(!q1.isValid() || !q2.isValid() || q1.univ==q2.univ);
+
+    bool univ = q1.isValid() ? q1.univ : q2.univ;
+    unsigned tgtVar = q1.isValid() ? q1.var : q2.var;
+    if(!_usedVars.insert(tgtVar)) {
+      tgtVar = getNextFreshVar();
+    }
+
+    if(q1.isValid() && tgtVar!=q1.var) {
+      ALWAYS(_rnm1.insert(q1.var, TermList(tgtVar, false)));
+      LOG("pp_aig_pren_qu", "adding rewrite to 1: "<< q1.var << " --> "<<tgtVar);
+    }
+    if(q2.isValid() && tgtVar!=q2.var) {
+      ALWAYS(_rnm2.insert(q2.var, TermList(tgtVar, false)));
+      LOG("pp_aig_pren_qu", "adding rewrite to 2: "<< q2.var << " --> "<<tgtVar);
+    }
+
+    _qres.push(QuantInfo(tgtVar, univ));
+  }
+
+
+  void process()
+  {
+    CALL("AIGPrenexTransformer::QuantUnifier::process");
+
+    unsigned qidx1 = 0;
+    unsigned qidx2 = 0;
+
+    for(;;) {
+      while(qidx1<_q1.size() && qidx2<_q2.size() && _q1[qidx1].univ==_q2[qidx2].univ) {
+	addResultingQuantifier(_q1[qidx1],_q2[qidx2]);
+	qidx1++; qidx2++;
+      }
+      while(qidx1<_q1.size() && !_q1[qidx1].univ) {
+	addResultingQuantifier(_q1[qidx1],QuantInfo());
+	qidx1++;
+      }
+      while(qidx2<_q2.size() && !_q2[qidx2].univ) {
+	addResultingQuantifier(QuantInfo(),_q2[qidx2]);
+	qidx2++;
+      }
+      if(qidx1==_q1.size() || qidx2==_q2.size()) {
+	break;
+      }
+    }
+
+    while(qidx1<_q1.size()) {
+      addResultingQuantifier(_q1[qidx1],QuantInfo());
+      qidx1++;
+    }
+    while(qidx2<_q2.size()) {
+      addResultingQuantifier(QuantInfo(),_q2[qidx2]);
+      qidx2++;
+    }
+
+    sortQuantSegments(_qres);
+
+    _a1res = AIGSubst(_aig).apply(SubstHelper::getMapApplicator(&_rnm1), _a1);
+    _a2res = AIGSubst(_aig).apply(SubstHelper::getMapApplicator(&_rnm2), _a2);
+  }
+
+
+  unsigned getNextFreshVar()
+  {
+    CALL("AIGPrenexTransformer::QuantUnifier::getNextFreshVar");
+
+    while(_usedVars.find(_nextAvailVar)) {
+      _nextAvailVar++;
+    }
+    unsigned res = _nextAvailVar++;
+    ALWAYS(_usedVars.insert(res));
+    return res;
+  }
+
+  DHSet<unsigned> _usedVars;
+  unsigned _nextAvailVar;
+
+  DHMap<unsigned,TermList> _rnm1;
+  DHMap<unsigned,TermList> _rnm2;
+
+  AIG& _aig;
+  AIG::VarSet* _freeVars;
+  AIGRef _a1;
+  const QIStack& _q1;
+  AIGRef _a2;
+  const QIStack& _q2;
+  AIGRef _a1res;
+  AIGRef _a2res;
+  QIStack _qres;
+};
+
+
+/**
+ *
+ * @param freeVars is union of free variables of a1 and a2 after
+ *        quantification, and these should not be renamed
+ */
+void AIGPrenexTransformer::unifyQuants(AIG::VarSet* freeVars, AIGRef a1, const QIStack& q1, AIGRef a2, const QIStack& q2,
       AIGRef& a1res, AIGRef& a2res, QIStack& qres)
 {
   CALL("AIGPrenexTransformer::unifyQuants");
 
-  static DHMap<unsigned,unsigned> rnm1;
-  static DHMap<unsigned,unsigned> rnm2;
-  rnm1.reset();
-  rnm2.reset();
+  QuantUnifier qu(_aig, freeVars, a1, q1, a2, q2);
 
+  a1res = qu.getResultingInnerAig1();
+  a2res = qu.getResultingInnerAig2();
+  qres = qu.getResQuantInfo();
+}
 
+AIGRef AIGPrenexTransformer::quantifyBySpec(const QIStack& qs, AIGRef inner)
+{
+  CALL("AIGPrenexTransformer::quantifyBySpec");
 
-  NOT_IMPLEMENTED;
+  if(qs.isEmpty()) {
+    return inner;
+  }
+
+  static Stack<unsigned> currVars;
+  currVars.reset();
+  bool currIsUniv = qs.top().univ; //actualy the initial value doesn't matter
+
+  QIStack::TopFirstIterator qit(qs);
+  while(qit.hasNext()) {
+    QuantInfo qi = qit.next();
+    if(qi.univ!=currIsUniv) {
+      ASS(currVars.isNonEmpty());
+      AIG::VarSet* varSet = AIG::VarSet::getFromArray(currVars.begin(), currVars.size());
+      inner = _aig.getQuant(!currIsUniv, varSet, inner);
+      currVars.reset();
+      currIsUniv = qi.univ;
+    }
+    currVars.push(qi.var);
+  }
+  AIG::VarSet* varSet = AIG::VarSet::getFromArray(currVars.begin(), currVars.size());
+  inner = _aig.getQuant(!currIsUniv, varSet, inner);
+
+  return inner;
 }
 
 AIGRef AIGPrenexTransformer::processConjunction(AIGRef a)
@@ -146,9 +303,15 @@ AIGRef AIGPrenexTransformer::processConjunction(AIGRef a)
   static QIStack unifQuants;
   unifQuants.reset();
 
+  AIGRef inner1Transf;
+  AIGRef inner2Transf;
+  unifyQuants(a.getFreeVars(), inner1, p1Quants, inner2, p2Quants, inner1Transf, inner2Transf, unifQuants);
 
+  AIGRef resConj = _aig.getConj(inner1Transf, inner2Transf);
 
-  NOT_IMPLEMENTED;
+  AIGRef res = quantifyBySpec(unifQuants, resConj);
+
+  return res;
 }
 
 AIGRef AIGPrenexTransformer::apply(AIGRef a0)
@@ -188,6 +351,49 @@ AIGRef AIGPrenexTransformer::apply(AIGRef a0)
 ///////////////////////////
 // AIGConditionalRewriter
 //
+
+AIGConditionalRewriter::AIGConditionalRewriter()
+ : _aig(_afs.aig())
+{
+  CALL("AIGConditionalRewriter::AIGConditionalRewriter");
+}
+
+void AIGConditionalRewriter::apply(Problem& prb)
+{
+  CALL("AIGConditionalRewriter::apply(Problem&)");
+
+  apply(prb.units());
+}
+
+void AIGConditionalRewriter::apply(UnitList*& units)
+{
+  CALL("AIGConditionalRewriter::apply(UnitList*&)");
+
+  AIGRef conj = _aig.getTrue();
+
+  UnitList::Iterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    if(u->isClause()) { continue; }
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    AIGRef unitAig = _afs.apply(fu->formula()).second;
+    conj = _aig.getConj(conj, unitAig);
+  }
+
+  AIGRef conjTransf = apply(conj);
+  LOG("bug","pre:  "<<conj);
+  LOG("bug","post: "<<conjTransf);
+}
+
+AIGRef AIGConditionalRewriter::apply(AIGRef a0)
+{
+  CALL("AIGConditionalRewriter::apply");
+
+  //TODO: finish
+  AIGPrenexTransformer apt(_aig);
+  AIGRef aPrenex = apt.apply(a0);
+  return aPrenex;
+}
 
 
 }

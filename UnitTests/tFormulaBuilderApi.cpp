@@ -411,13 +411,13 @@ TEST_FUN(fbapiSorts)
     OutputOptions::setSortedEquality(false);
     cout<<fzEQz<<endl;
 
+    OutputOptions::setTffFormulas(true);
     Problem prb;
     prb.addFormula(af);
     prb.addFormula(af2);
     cout<<"Orig:"<<endl<<af<<af2<<endl;
     prb.outputTypeDefinitions(cout);
 
-    OutputOptions::setTffFormulas(true);
     cout<<"Clausified:"<<endl;
     Problem cprb = prb.clausify(4,true,Problem::INL_OFF,false);
     AnnotatedFormulaIterator afit=cprb.formulas();

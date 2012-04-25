@@ -541,6 +541,10 @@ void Logging::doTagDeclarations()
   DECL("pp_inl_step",
       DOC("inlining step"),
       PARENT("pp_inl",1));
+  DECL("pp_inl_arg",
+      DOC("non-definition formulas to which inlining is applied"),
+      PARENT("pp_inl",1),
+      UNIT_TAG);
   DECL("pp_inl_substep",
       DOC("inlining substeps"),
       PARENT("pp_inl_step",1));
@@ -683,6 +687,9 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_compr_lookup_hit",
       DOC("hit of BDD look-up table"),
       PARENT("pp_aig_compr_lookup",1));
+  DECL("pp_aig_compr_lookup_added",
+      DOC("added entry to BDD look-up table"),
+      PARENT("pp_aig_compr_lookup",2));
   DECL("pp_aig_compr_lookup_improvement",
       DOC("improvement for BDD look-up"),
       PARENT("pp_aig_compr_lookup",1));
@@ -707,6 +714,14 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_compr_atom",
       DOC("units modified by aig compression"),
       PARENT("pp_aig_compr",3));
+
+  DECL("pp_aig_pren",
+      DOC("aig prenex transformation"),
+      PARENT("pp_aig",1));
+  DECL("pp_aig_pren_qu",
+      DOC("merging of quantifiers in conjunctions"),
+      PARENT("pp_aig_pren",1));
+
 
   DECL("pp_aiginl",
       DOC("AIG based inlining"),

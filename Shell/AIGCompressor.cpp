@@ -423,9 +423,22 @@ AIGCompressor::~AIGCompressor()
 
 size_t AIGCompressor::getAIGDagSize(AIGRef aig)
 {
+  CALL("AIGCompressor::getAIGDagSize");
+
+  if(!aig.polarity()) {
+    aig = aig.neg();
+  }
+
+  size_t* cacheEntry;
+  if(!_aigDagSizeCache.getValuePtr(aig, cacheEntry)) {
+    return *cacheEntry;
+  }
+
   static AIGInsideOutPosIterator it;
   it.reset(aig);
-  return countIteratorElements<AIGInsideOutPosIterator&>(it);
+  size_t res = countIteratorElements<AIGInsideOutPosIterator&>(it);
+  *cacheEntry = res;
+  return res;
 }
 
 AIGRef AIGCompressor::compress(AIGRef aig)
@@ -443,19 +456,18 @@ AIGRef AIGCompressor::compress(AIGRef aig)
  *
  * Otherwise, the smaller AIG is better.
  */
-bool AIGCompressor::tryCompareAIGGoodness(AIGWithSize a1, AIGWithSize a2, Comparison& res)
+bool AIGCompressor::tryCompareAIGGoodness(AIGRef a1, AIGRef a2, Comparison& res)
 {
   CALL("AIGCompressor::compareAIGGoodness");
 
-  if(a1.first==a2.first) {
-    ASS_EQ(a1.second, a2.second);
+  if(a1==a2) {
     res = EQUAL;
     return true;
   }
   bool canBeGreater = true;
   bool canBeLess = true;
-  Color clr1 = a1.first.getColor();
-  Color clr2 = a2.first.getColor();
+  Color clr1 = a1.getColor();
+  Color clr2 = a2.getColor();
   if(clr1!=clr2) {
     if(clr1==COLOR_TRANSPARENT || clr2==COLOR_INVALID) {
       canBeLess = false;
@@ -469,8 +481,8 @@ bool AIGCompressor::tryCompareAIGGoodness(AIGWithSize a1, AIGWithSize a2, Compar
       return false;
     }
   }
-  AIG::VarSet* fv1 = a1.first.getFreeVars();
-  AIG::VarSet* fv2 = a2.first.getFreeVars();
+  AIG::VarSet* fv1 = a1.getFreeVars();
+  AIG::VarSet* fv2 = a2.getFreeVars();
   if(fv1==fv2) {
     if(!canBeGreater) {
       ASS(canBeLess);
@@ -480,7 +492,13 @@ bool AIGCompressor::tryCompareAIGGoodness(AIGWithSize a1, AIGWithSize a2, Compar
       res = GREATER;
     }
     else {
-      res = Int::compare(a2.second, a1.second);
+      size_t a1Sz = getAIGDagSize(a1);
+      size_t a2Sz = getAIGDagSize(a1);
+      res = Int::compare(a2Sz, a1Sz);
+      if(res==EQUAL) {
+	//we want equal only on equal nodes
+	res = Int::compare(a2.nodeIndex(), a1.nodeIndex());
+      }
     }
     return true;
   }
@@ -515,93 +533,147 @@ bool AIGCompressor::tryCompareAIGGoodness(AIGWithSize a1, AIGWithSize a2, Compar
  * To know that we need to make this final improving pass, we keep the
  * boolean variable _lookUpNeedsImprovement.
  */
-bool AIGCompressor::doHistoryLookUp(AIGRef aig, unsigned aigSz, BDDNode* bdd, AIGRef& tgt)
+bool AIGCompressor::doHistoryLookUp(AIGRef aig, BDDNode* bdd, AIGRef& tgt)
 {
   CALL("AIGCompressor::doHistoryLookUp");
 
-  AIGWithSize curr(aig,aigSz);
-
-  AIGWithSize* lookupEntry;
+  AIGRef* lookupEntry;
   if(_lookUp.getValuePtr(bdd, lookupEntry)) {
-    *lookupEntry = curr;
+    *lookupEntry = aig;
+    LOG("pp_aig_compr_lookup_added", "added lookup for "<<bdd<<" to be "<<aig);
     return false;
   }
-  if(aig==lookupEntry->first) {
+  AIGRef lookupBase = *lookupEntry;
+  if(aig==lookupBase) {
     return false;
   }
+  ASS(!_lookUpImprovement.find(lookupBase.getPositive())); //we have the best target
 
   Comparison atCmpResult;
-  bool atComparable = tryCompareAIGGoodness(curr, *lookupEntry, atCmpResult);
+  bool atComparable = tryCompareAIGGoodness(aig, lookupBase, atCmpResult);
 
   if(!atComparable) {
-    AIGWithSize impr;
-    if(!_lookUpImprovement.find(bdd, impr)) {
-      return false;
-    }
-    Comparison aiCmpResult;
-    bool aiComparable = tryCompareAIGGoodness(curr, impr, aiCmpResult);
-    if(!aiComparable) {
-      return false;
-    }
-    if(aiCmpResult==LESS) {
-      _lookUpImprovement.set(bdd, curr);
-      LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-	  <<"  src: "<<lookupEntry->first<<endl
-	  <<"  tgt: "<<aig);
-    }
+    return false;
   }
-  else if(atCmpResult==LESS) {
-    AIGWithSize* improvementEntry;
-    if(_lookUpImprovement.getValuePtr(bdd, improvementEntry)) {
-      *improvementEntry = curr;
-      LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-	<<"  src: "<<lookupEntry->first<<endl
-	<<"  tgt: "<<aig);
-    }
-    else {
-      Comparison aiCmpResult;
-      ALWAYS(tryCompareAIGGoodness(curr, *improvementEntry, aiCmpResult));
-      if(aiCmpResult==LESS) {
-	*improvementEntry = curr;
-	LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-	  <<"  src: "<<lookupEntry->first<<endl
-	  <<"  tgt: "<<aig);
-      }
-    }
+  ASS_REP2(atCmpResult!=EQUAL, aig, lookupBase);
+  if(atCmpResult==LESS) {
+    tgt = lookupBase;
+    LOG("pp_aig_compr_lookup_hit", "bdd look-up hit:"<<endl
+  	  <<"  src: "<<aig<<endl
+  	  <<"  tgt: "<<tgt);
+    return true;
+  }
+  ASS_EQ(atCmpResult,GREATER);
+
+  AIGRef imprTgt = _atr.lev0Deref(aig, _lookUpImprovement);
+
+  _lookUpNeedsImprovement = true;
+  ALWAYS(_lookUpImprovement.insert(lookupBase, imprTgt));
+  *lookupEntry = imprTgt;
+
+  LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
+    <<"  src: "<<lookupBase<<endl
+    <<"  tgt: "<<imprTgt);
+
+  if(aig!=imprTgt) {
+    LOG("pp_aig_compr_lookup_hit", "bdd look-up improvement from improvement map:"<<endl
+  	  <<"  src: "<<aig<<endl
+  	  <<"  tgt: "<<tgt);
+    tgt = imprTgt;
+    return true;
   }
 
-  tgt = lookupEntry->first;
-  LOG("pp_aig_compr_lookup_hit", "bdd look-up hit:"<<endl
-	  <<"  src: "<<lookupEntry->first<<endl
-	  <<"  tgt: "<<aig);
+  return false;
 
-  if(!_lookUpNeedsImprovement) {
-    _lookUpNeedsImprovement = _lookUpImprovement.find(bdd);
-  }
-  return true;
+//  if(atCmpResult==LESS) {
+//      AIGWithSize* improvementEntry;
+//      if(_lookUpImprovement.getValuePtr(bdd, improvementEntry)) {
+//        *improvementEntry = curr;
+//        LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
+//  	<<"  src: "<<lookupEntry->first<<endl
+//  	<<"  tgt: "<<aig);
+//      }
+//      else {
+//        Comparison aiCmpResult;
+//        ALWAYS(tryCompareAIGGoodness(curr, *improvementEntry, aiCmpResult));
+//        if(aiCmpResult==LESS) {
+//  	*improvementEntry = curr;
+//  	LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
+//  	  <<"  src: "<<lookupEntry->first<<endl
+//  	  <<"  tgt: "<<aig);
+//        }
+//      }
+//    }
+//
+//  if(!atComparable) {
+//    AIGRef impr = _atr.lev0Deref(*lookupEntry, _lookUpImprovement);
+//    if(!_lookUpImprovement.find(bdd, impr)) {
+//      return false;
+//    }
+//    Comparison aiCmpResult;
+//    bool aiComparable = tryCompareAIGGoodness(aig, impr, aiCmpResult);
+//    if(!aiComparable) {
+//      return false;
+//    }
+//    if(aiCmpResult==LESS) {
+//      _lookUpImprovement.set(bdd, curr);
+//      LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
+//	  <<"  src: "<<lookupEntry->first<<endl
+//	  <<"  tgt: "<<aig);
+//    }
+//  }
+//  else if(atCmpResult==LESS) {
+//    AIGWithSize* improvementEntry;
+//    if(_lookUpImprovement.getValuePtr(bdd, improvementEntry)) {
+//      *improvementEntry = curr;
+//      LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
+//	<<"  src: "<<lookupEntry->first<<endl
+//	<<"  tgt: "<<aig);
+//    }
+//    else {
+//      Comparison aiCmpResult;
+//      ALWAYS(tryCompareAIGGoodness(curr, *improvementEntry, aiCmpResult));
+//      if(aiCmpResult==LESS) {
+//	*improvementEntry = curr;
+//	LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
+//	  <<"  src: "<<lookupEntry->first<<endl
+//	  <<"  tgt: "<<aig);
+//      }
+//    }
+//  }
+//
+//  tgt = lookupEntry->first;
+//  LOG("pp_aig_compr_lookup_hit", "bdd look-up hit:"<<endl
+//	  <<"  src: "<<lookupEntry->first<<endl
+//	  <<"  tgt: "<<aig);
+//
+//  if(!_lookUpNeedsImprovement) {
+//    _lookUpNeedsImprovement = _lookUpImprovement.find(bdd);
+//  }
+//  return true;
 }
 
 void AIGCompressor::doLookUpImprovement(AIGTransformer::RefMap& mapToFix)
 {
   CALL("AIGCompressor::doLookUpImprovement");
 
-  static AIGTransformer::RefMap improvementMap;
-  improvementMap.reset();
-
-  LookUpMap::Iterator imit(_lookUpImprovement);
-  while(imit.hasNext()) {
-    BDDNode* src;
-    AIGWithSize tgt;
-    imit.next(src, tgt);
-
-    AIGRef oldRef;
-    AIGWithSize* lookupEntry;
-    NEVER(_lookUp.getValuePtr(src, lookupEntry));
-    oldRef = lookupEntry->first;
-    *lookupEntry = tgt;
-
-    improvementMap.insert(oldRef, tgt.first);
-  }
+//  static AIGTransformer::RefMap improvementMap;
+//  improvementMap.reset();
+//
+//  LookUpMap::Iterator imit(_lookUpImprovement);
+//  while(imit.hasNext()) {
+//    BDDNode* src;
+//    AIGWithSize tgt;
+//    imit.next(src, tgt);
+//
+//    AIGRef oldRef;
+//    AIGWithSize* lookupEntry;
+//    NEVER(_lookUp.getValuePtr(src, lookupEntry));
+//    oldRef = lookupEntry->first;
+//    *lookupEntry = tgt;
+//
+//    improvementMap.insert(oldRef, tgt.first);
+//  }
 
   static AIGInsideOutPosIterator mapRangeIt;
   mapRangeIt.reset();
@@ -617,7 +689,7 @@ void AIGCompressor::doLookUpImprovement(AIGTransformer::RefMap& mapToFix)
   while(mapRangeIt.hasNext()) {
     AIGRef tgt = mapRangeIt.next();
 
-    AIGRef imprTgt = AIGTransformer::lev0Deref(tgt, improvementMap);
+    AIGRef imprTgt = AIGTransformer::lev0Deref(tgt, _lookUpImprovement);
     if(imprTgt==tgt) {
       imprTgt = _atr.lev1Deref(tgt, improvementFullMap);
       COND_LOG("pp_aig_compr_lookup_map_improvement", imprTgt!=tgt, "bdd look-up deref1 improvement in map:"<<endl
@@ -685,7 +757,7 @@ bool AIGCompressor::localCompressByBDD(AIGRef aig, AIGRef& tgt, bool historyLook
   if(comprSz>=origSz) {
     if(historyLookUp) {
       usedLookUp = true;
-      return doHistoryLookUp(aig, origSz, bRep, tgt);
+      return doHistoryLookUp(aig, bRep, tgt);
     }
     return false;
   }
@@ -747,6 +819,97 @@ AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
   }
 }
 
+AIGCompressor::USharedSet* AIGCompressor::getUnsplittableSet(AIGRef a0, UnsplittableSetMap& cache)
+{
+  CALL("AIGCompressor::getUnsplittableSet");
+
+  USharedSet* res;
+  if(tryGetUnsplittableSetLocally(a0, cache, res, true)) {
+    return res;
+  }
+
+  ASS(a0.isConjunction());
+
+  static DHSet<AIGRef> seen;
+  seen.reset();
+  static Stack<AIGRef> toDo;
+  toDo.push(a0.parent(0));
+  toDo.push(a0.parent(1));
+  while(toDo.isNonEmpty()) {
+    AIGRef a = toDo.top();
+    USharedSet* dummy;
+    if(tryGetUnsplittableSetLocally(a, cache, dummy, true)) {
+      toDo.pop();
+      continue;
+    }
+    toDo.push(a.parent(0));
+    toDo.push(a.parent(1));
+  }
+  ALWAYS(tryGetUnsplittableSetLocally(a0, cache, res, true));
+  return res;
+}
+
+AIGCompressor::USharedSet* AIGCompressor::conjGetUnsplittableSet(USharedSet* p1set, USharedSet* p2set)
+{
+  CALL("AIGCompressor::conjGetUnsplittableSet");
+
+  USharedSet* res;
+  if(p1set && p2set) {
+    res = p1set->getUnion(p2set);
+    if(res->size()>_maxBDDVarCnt) {
+      res = 0;
+    }
+  }
+  else {
+    res = 0;
+  }
+  return res;
+}
+
+bool AIGCompressor::tryGetUnsplittableSetLocally(AIGRef a, UnsplittableSetMap& cache, USharedSet*& res, bool doOneUnfolding)
+{
+  CALL("AIGCompressor::tryGetUnsplittableSetLocally");
+
+  if(a.isPropConst()) {
+    res = USharedSet::getEmpty();
+    return true;
+  }
+  else if(a.isAtom() || a.isQuantifier()) {
+    res = USharedSet::getSingleton(a.nodeIndex());
+    return true;
+  }
+
+  a = a.getPositive();
+
+  if(cache.find(a, res)) {
+    return true;
+  }
+
+  if(!doOneUnfolding) {
+    return false;
+  }
+
+
+  ASS(a.isConjunction());
+  AIGRef p1 = a.parent(0);
+  AIGRef pp1 = p1.getPositive();
+  AIGRef p2 = a.parent(1);
+  AIGRef pp2 = p2.getPositive();
+
+  USharedSet* pp1r;
+  if(!tryGetUnsplittableSetLocally(pp1, cache, pp1r, false)) {
+    return false;
+  }
+  USharedSet* pp2r;
+  if(!tryGetUnsplittableSetLocally(pp2, cache, pp2r, false)) {
+    return false;
+  }
+
+  res = conjGetUnsplittableSet(pp1r, pp2r);
+  cache.insert(a, res);
+  return true;
+}
+
 void AIGCompressor::populateBDDCompressingMap(AIGInsideOutPosIterator& aigIt, AIGTransformer::RefMap& map)
 {
   CALL("AIGCompressor::populateBDDCompressingMap");
@@ -771,42 +934,19 @@ void AIGCompressor::populateBDDCompressingMap(AIGInsideOutPosIterator& aigIt, AI
       tgt = tryCompressAtom(tgt);
     }
 
-    if(tgt.isPropConst()) {
-      ref = USharedSet::getEmpty();
-    }
-    else if(tgt.isAtom()) {
-      ref = USharedSet::getSingleton(tgt.nodeIndex());
-    } else if(tgt.isQuantifier()) {
-      ref = USharedSet::getSingleton(tgt.nodeIndex());
-    }
-    else {
-      ASS(tgt.isConjunction());
-      AIGRef p1 = tgt.parent(0);
-      AIGRef pp1 = p1.getPositive();
-      USharedSet* pp1r = refAtoms.get(pp1);
-      AIGRef p2 = tgt.parent(1);
-      AIGRef pp2 = p2.getPositive();
-      USharedSet* pp2r = refAtoms.get(pp2);
-      if(pp1r && pp2r) {
-	ref = pp1r->getUnion(pp2r);
-	if(ref->size()>_maxBDDVarCnt) {
-	  ref = 0;
-	}
-      }
-      else {
-	ref = 0;
-      }
-      if(ref) {
-	bool usedLookUp;
-	AIGRef lcTgt;
-	localCompressByBDD(tgt, tgt, true, usedLookUp);
-      }
+    ref = getUnsplittableSet(tgt, refAtoms);
+
+    //non-zero ref at this point means that the AIG is simple enough to perform BDD sweeping on it
+    if(tgt.isConjunction() && ref) {
+      bool usedLookUp;
+      AIGRef lcTgt;
+      localCompressByBDD(tgt, tgt, true, usedLookUp);
+//      localCompressByBDD(tgt, tgt, false, usedLookUp);
     }
     if(a!=tgt) {
       map.insert(a, tgt);
       aigIt.addToTraversal(tgt);
     }
-    ALWAYS(refAtoms.insert(a, ref));
   }
 
   if(_lookUpNeedsImprovement) {
@@ -864,7 +1004,7 @@ AIGRef AIGCompressor::compressByBDD(AIGRef aig)
 //
 
 AIGCompressingTransformer::AIGCompressingTransformer()
- : _compr(_fsh.aig(),5,4)
+ : _compr(_fsh.aig(),1,1)
 {
   CALL("AIGCompressingTransformer::AIGCompressingTransformer");
 }

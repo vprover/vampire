@@ -13,6 +13,16 @@
 
 namespace Kernel {
 
+/**
+ * A convenient base class for formula transforming classes.
+ *
+ * The default implementations of transformers for particular
+ * connectives calls the "apply" function recursively and then
+ * build a resulting formula, reusing old formula objects if
+ * the recursive calls did not change their arguments.
+ *
+ * It also does flattening of AND and OR formulas, as well as of negations.
+ */
 class FormulaTransformer {
 public:
   /**

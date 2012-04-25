@@ -406,7 +406,7 @@ void Property::scan(Literal* lit)
       _maxPredArity = arity;
     }
     PredicateType* type = env.signature->getPredicate(lit->functor())->predType();
-    for(unsigned i=0; i<arity; i++) {
+    for(int i=0; i<arity; i++) {
       scanSort(type->arg(i));
     }
   }
@@ -510,7 +510,6 @@ void Property::scanSpecialTerm(Term* t)
     aux[0].makeEmpty();
     aux[1] = sd->getRhsTerm();
     aux[2] = sd->getLhsTerm();
-    bool dummy;
     scan(aux+2);
     scan(t->args());
     break;

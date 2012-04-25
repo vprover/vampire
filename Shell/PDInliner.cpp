@@ -998,7 +998,7 @@ FormulaUnit* PDInliner::apply(FormulaUnit* unit)
 {
   CALL("PDInliner::apply(FormulaUnit*)");
 
-  LOG("pp_inl_substep","Inlining into "<<(*unit));
+  LOG_UNIT("pp_inl_arg",unit);
 
   static InliningState inlState;
   inlState.reset();

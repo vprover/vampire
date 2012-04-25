@@ -141,7 +141,13 @@ public:
   {
   public:
     MapApplicator(Map* map) : _map(map) {}
-    TermList apply(unsigned var) { return _map->get(var); }
+    TermList apply(unsigned var) {
+      TermList res;
+      if(!_map->find(var, res)) {
+	res = TermList(var, false);
+      }
+      return res;
+    }
   private:
     Map* _map;
   };

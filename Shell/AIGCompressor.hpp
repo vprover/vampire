@@ -8,6 +8,8 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/SharedSet.hpp"
+
 #include "Kernel/BDD.hpp"
 
 #include "AIG.hpp"
@@ -60,6 +62,8 @@ private:
 
 class AIGCompressor {
 public:
+  typedef AIGTransformer::RefMap RefMap;
+
   AIGCompressor(AIG& aig, unsigned reqFactorNum=1, unsigned reqFactorDenom=1);
   ~AIGCompressor();
 
@@ -71,16 +75,29 @@ public:
 private:
   AIGRef tryCompressAtom(AIGRef atom);
 
-  typedef pair<AIGRef,size_t> AIGWithSize;
-  typedef DHMap<BDDNode*,AIGWithSize> LookUpMap;
 
-  bool tryCompareAIGGoodness(AIGWithSize a1, AIGWithSize a2, Comparison& res);
-  bool doHistoryLookUp(AIGRef aig, unsigned aigSz, BDDNode* bdd, AIGRef& tgt);
+  bool tryCompareAIGGoodness(AIGRef a1, AIGRef a2, Comparison& res);
+  bool doHistoryLookUp(AIGRef aig, BDDNode* bdd, AIGRef& tgt);
   void doLookUpImprovement(AIGTransformer::RefMap& mapToFix);
 
   bool localCompressByBDD(AIGRef aig, AIGRef& tgt, bool historyLookUp, bool& usedLookUp);
   AIGRef attemptCompressByBDD(AIGRef aig);
+
+  DHMap<AIGRef, size_t> _aigDagSizeCache;
+
   size_t getAIGDagSize(AIGRef aig);
+
+
+  typedef SharedSet<unsigned> USharedSet;
+  /**
+   * Map that assigns AIG nodes a set of nodes they contain that are unsplittable
+   * for the purpose of conversion to BDDs.
+   */
+  typedef DHMap<AIGRef,USharedSet*> UnsplittableSetMap;
+  USharedSet* conjGetUnsplittableSet(USharedSet* p1set, USharedSet* p2set);
+  bool tryGetUnsplittableSetLocally(AIGRef a, UnsplittableSetMap& cache, USharedSet*& res, bool doOneUnfolding);
+  USharedSet* getUnsplittableSet(AIGRef a, UnsplittableSetMap& cache);
+
 
 
   /** Maximal number of BDD variables we want to use (to stay safe from blow-up) */
@@ -89,12 +106,13 @@ private:
   unsigned _reqFactorDenom;
 
 
+  typedef DHMap<BDDNode*,AIGRef> LookUpMap;
   /** If BDD didn't compress an AIG, we store the AIG here,
    * so next time we see the same BDD, we know there is something
    * equivalent to it */
   LookUpMap _lookUp;
   /** If we have found a better AIG for AIG present in the _lookUp map */
-  LookUpMap _lookUpImprovement;
+  RefMap _lookUpImprovement;
   bool _lookUpNeedsImprovement;
 
   AIG& _aig;

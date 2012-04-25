@@ -15,6 +15,7 @@
 
 #include "AIG.hpp"
 #include "AIGCompressor.hpp"
+#include "AIGConditionalRewriter.hpp"
 #include "AIGDefinitionIntroducer.hpp"
 #include "AIGInliner.hpp"
 #include "AnswerExtractor.hpp"
@@ -231,6 +232,10 @@ void Preprocess::preprocess (Problem& prb)
 
   if(_options.aigInliner()) {
     AIGInliner().apply(prb);
+  }
+
+  if(_options.aigConditionalRewriting()) {
+    AIGConditionalRewriter().apply(prb);
   }
 
   if(_options.aigDefinitionIntroduction()) {

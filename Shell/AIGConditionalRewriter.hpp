@@ -26,7 +26,10 @@ public:
 private:
 
   struct QuantInfo {
+    QuantInfo() : var(UINT_MAX) {}
     QuantInfo(unsigned var, bool univ) : var(var), univ(univ) {}
+
+    bool isValid() const { return var!=UINT_MAX; }
 
     static bool compareVars(QuantInfo qi1, QuantInfo qi2) { return qi1.var < qi2.var; }
 
@@ -38,10 +41,13 @@ private:
    * Sequences of variables of the same kind are sorted by the variable number */
   typedef Stack<QuantInfo> QIStack;
 
-  void sortQuantSegments(QIStack& qs);
+  struct QuantUnifier;
+
+  static void sortQuantSegments(QIStack& qs);
   void collectQuants(AIGRef a, QIStack& quants, AIGRef& inner);
-  void unifyQuants(AIGRef a1, const QIStack& q1, AIGRef a2, const QIStack& q2,
+  void unifyQuants(AIG::VarSet* freeVars, AIGRef a1, const QIStack& q1, AIGRef a2, const QIStack& q2,
       AIGRef& a1res, AIGRef& a2res, QIStack& qres);
+  AIGRef quantifyBySpec(const QIStack& qs, AIGRef inner);
   AIGRef processConjunction(AIGRef a);
 
   AIGInsideOutPosIterator _buildingIterator;
@@ -51,8 +57,18 @@ private:
   AIGTransformer _atr;
 };
 
-class AIGConditionalRewriter {
+class AIGConditionalRewriter
+{
+public:
+  AIGConditionalRewriter();
 
+  void apply(Problem& prb);
+  void apply(UnitList*& units);
+  AIGRef apply(AIGRef a);
+
+private:
+  AIGFormulaSharer _afs;
+  AIG& _aig;
 };
 
 }

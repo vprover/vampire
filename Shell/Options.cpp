@@ -108,6 +108,7 @@ const char* Options::Constants::_optionNames[] = {
   "abstraction",
   "age_weight_ratio",
   "aig_bdd_sweeping",
+  "aig_conditional_rewriting",
   "aig_definition_introduction",
   "aig_definition_introduction_threshold",
   "aig_formula_sharing",
@@ -672,6 +673,7 @@ Options::Options ()
   _ageRatio(1),
   _weightRatio(1),
   _aigBddSweeping(false),
+  _aigConditionalRewriting(false),
   _aigDefinitionIntroduction(false),
   _aigDefinitionIntroductionThreshold(4),
   _aigFormulaSharing(false),
@@ -913,6 +915,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case AIG_BDD_SWEEPING:
       _aigBddSweeping = onOffToBool(value,name);
+      return;
+    case AIG_CONDITIONAL_REWRITING:
+      _aigConditionalRewriting = onOffToBool(value,name);
       return;
     case AIG_DEFINITION_INTRODUCTION:
       _aigDefinitionIntroduction = onOffToBool(value,name);
@@ -1812,6 +1817,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case AIG_BDD_SWEEPING:
     str << boolToOnOff(_aigBddSweeping);
+    return;
+  case AIG_CONDITIONAL_REWRITING:
+    str << boolToOnOff(_aigConditionalRewriting);
     return;
   case AIG_DEFINITION_INTRODUCTION:
     str << boolToOnOff(_aigDefinitionIntroduction);

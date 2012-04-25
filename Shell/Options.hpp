@@ -31,6 +31,7 @@ public:
     ABSTRACTION,
     AGE_WEIGHT_RATIO,
     AIG_BDD_SWEEPING,
+    AIG_CONDITIONAL_REWRITING,
     AIG_DEFINITION_INTRODUCTION,
     AIG_DEFINITION_INTRODUCTION_THRESHOLD,
     AIG_FORMULA_SHARING,
@@ -485,6 +486,7 @@ public:
   bool predicateIndexIntroduction() const { return _predicateIndexIntroduction; }
   void setPredicateIndexIntroduction(bool newValue) { _predicateIndexIntroduction = newValue; }
   bool aigBddSweeping() const { return _aigBddSweeping; }
+  bool aigConditionalRewriting() const { return _aigConditionalRewriting; }
   bool aigDefinitionIntroduction() const { return _aigDefinitionIntroduction; }
   unsigned aigDefinitionIntroductionThreshold() const { return _aigDefinitionIntroductionThreshold; }
   bool aigFormulaSharing() const { return _aigFormulaSharing; }
@@ -705,6 +707,7 @@ private:
   int _ageRatio;
   int _weightRatio;
   bool _aigBddSweeping;
+  bool _aigConditionalRewriting;
   bool _aigDefinitionIntroduction;
   unsigned _aigDefinitionIntroductionThreshold;
   bool _aigFormulaSharing;

@@ -88,10 +88,10 @@ void inlineTest(const char* fname)
   Problem::PreprocessingOptions m_PreprocessOpts;
 
   // default is 8; 32 showed good results on some of the examples but caused
-  // generation of too many clauses in primnary_chain
+  // genration of too many clauses in primnary_chain
   m_PreprocessOpts.namingThreshold = 8;
-  m_PreprocessOpts.sineSelection = false;
-  m_PreprocessOpts.sineTolerance = 0; // started with 1.5
+  m_PreprocessOpts.sineSelection = false; // set to true
+  m_PreprocessOpts.sineTolerance = 0; // started with 1.5 (set to FOF size + 1
   m_PreprocessOpts.sineDepthLimit = 0; // started with 2
 
   // do preliminary pre-processing in order to simplify the instance by
@@ -104,34 +104,41 @@ void inlineTest(const char* fname)
   m_PreprocessOpts.predicateDefinitionMerging = false;
   m_PreprocessOpts.variableEqualityPropagation = false;
 
-  cout << "\nFirst stage of clausification... "<<endl;
+  cout << "\nFirst stage of clausification... ";
   p = p.preprocess(m_PreprocessOpts);
- cout << "  ...done\n";
-//
-// return;
+  cout << "  ...done\n";
 
   // now perform the rest of pre-processing and clausification
   m_PreprocessOpts.unusedPredicateDefinitionRemoval = true;
   m_PreprocessOpts.preserveEpr = true;
   m_PreprocessOpts.eprSkolemization = true;
-  m_PreprocessOpts.mode = Problem::PM_CLAUSIFY;
+//  m_PreprocessOpts.mode = Problem::PM_CLAUSIFY;
+  m_PreprocessOpts.mode = Problem::PM_EARLY_PREPROCESSING;
   m_PreprocessOpts.predicateDefinitionInlining = Problem::INL_EPR_RESTORING;
   m_PreprocessOpts.predicateDefinitionMerging = true;
   m_PreprocessOpts.predicateIndexIntroduction = true;
   m_PreprocessOpts.flatteningTopLevelConjunctions = true;
-  m_PreprocessOpts.aigInlining = false;
+  m_PreprocessOpts.aigInlining = true;
   m_PreprocessOpts.aigBddSweeping = true;
   m_PreprocessOpts.aigDefinitionIntroduction = false;
-  m_PreprocessOpts.equivalenceDiscovery = Problem::ED_PREDICATE_EQUIVALENCES;
-  m_PreprocessOpts.equivalenceDiscoverySatConflictLimit = 0;
-  m_PreprocessOpts.variableEqualityPropagation = true;
+  // m_PreprocessOpts.predicateEquivalenceDiscovery = true;
+  // m_PreprocessOpts.predicateEquivalenceDiscoverySatConflictLimit = 0;
+  // m_PreprocessOpts.predicateEquivalenceDiscoveryPredicateEquivalencesOnly = false;
+  m_PreprocessOpts.variableEqualityPropagation = false;
+
+//  m_PreprocessOpts.equivalenceDiscovery = Problem::ED_FORMULA_EQUIVALENCES;
+  m_PreprocessOpts.equivalenceDiscovery = Problem::ED_NONE;
+  m_PreprocessOpts.equivalenceDiscoverySatConflictLimit = UINT_MAX;
+  m_PreprocessOpts.equivalenceDiscoveryAddImplications = true;
+  m_PreprocessOpts.equivalenceDiscoveryRandomSimulation = true;
+
 
   cout << "\nSecond stage of clausification... "<<endl;
   p = p.preprocess(m_PreprocessOpts);
   cout << "  ...done\n";
 #endif
 
-  p.output(cout, true, false);
+//  p.output(cout, true, false);
 }
 
 void assymmetricRewriteTest(const char* fname)
@@ -295,8 +302,8 @@ int main(int argc, char* argv [])
   readAndFilterGlobalOpts(args);
 
   if(args.size()==2) {
-    assymmetricRewriteTest(args[1]);
-//    inlineTest(args[1]);
+//    assymmetricRewriteTest(args[1]);
+    inlineTest(args[1]);
     return 0;
   }
 
