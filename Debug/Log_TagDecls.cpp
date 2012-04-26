@@ -485,6 +485,17 @@ void Logging::doTagDeclarations()
       DOC("print-out the final cnf of the problem after preprocessing"),
       PARENT("pp",1));
 
+  DECL("pp_flt",
+      DOC("flattening"),
+      PARENT("pp",1));
+  DECL("pp_flt_inp",
+      DOC("flattening inputs"),
+      PARENT("pp_flt",1),
+      UNIT_TAG);
+  DECL("pp_flt_out",
+      DOC("flattening outputs (only modified ones)"),
+      PARENT("pp_flt",1),
+      UNIT_TAG);
 
   DECL("pp_sk",
       DOC("solemization"),

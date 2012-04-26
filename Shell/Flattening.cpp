@@ -51,6 +51,7 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   CALL("Flattening::flatten (Unit*)");
   ASS(! unit->isClause());
 
+  LOG_UNIT("pp_flt_inp", unit);
   Formula* f = unit->formula();
   Formula* g = flatten(f);
   if (f == g) { // not changed
@@ -63,6 +64,7 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   if(unit->included()) {
     res->markIncluded();
   }
+  LOG_UNIT("pp_flt_out", res);
   return res;
 } // Flattening::flatten
 
