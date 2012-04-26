@@ -318,10 +318,10 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
   if(trm1->vars()!=trm2->vars()) {
     return trm1->vars()>trm2->vars();
   }
-  //we did all we could to compare the two terms deterministicaly
-  //(and efficiently), but they're too alike, so that we have to
-  //compare their addresses to distinguish between them.
-  return t1.content()>t2.content();
+//  //we did all we could to compare the two terms deterministicaly
+//  //(and efficiently), but they're too alike, so that we have to
+//  //compare their addresses to distinguish between them.
+//  return t1.content()>t2.content();
 
   //To avoid non-determinism, now we'll compare the terms lexicographicaly.
   static DisagreementSetIterator dsit;
