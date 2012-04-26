@@ -226,7 +226,7 @@ public:
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
 
     WEIGHT_INCREMENT,
-
+    WHILE_NUMBER,
     XML_OUTPUT,
 
     NUMBER_OF_OPTIONS // must be the last one!
@@ -666,7 +666,7 @@ public:
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds = newVal; }
 
   string traceSpecString() const { return _traces; }
-
+  int getWhileNumber(){return _whileNumber;}
 //   // standard ways of creating options
   XMLElement toXML() const;
   bool outputSuppressed() const;
@@ -891,7 +891,7 @@ private:
   bool _weightIncrement;
 
   string _xmlOutput;
-
+  int _whileNumber;
 
   int _nonGoalWeightCoeffitientNumerator;
   int _nonGoalWeightCoeffitientDenominator;

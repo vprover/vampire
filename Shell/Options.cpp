@@ -280,7 +280,7 @@ const char* Options::Constants::_optionNames[] = {
   "unused_predicate_definition_removal",
 
   "weight_increment",
-
+  "while_number",
   "xml_output"};
 
 /** Names for all options */
@@ -360,7 +360,8 @@ const char* Options::Constants::_shortNames[] = {
   "tr",
   "updr",
   "urr",
-  "wi"};
+  "wi",
+  "wno"};
 
 /** Short names for all options */
 NameArray Options::Constants::shortNames(_shortNames,
@@ -439,7 +440,8 @@ int Options::Constants::shortNameIndexes[] = {
   TRACES,
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
   UNIT_RESULTING_RESOLUTION,
-  WEIGHT_INCREMENT};
+  WEIGHT_INCREMENT,
+  WHILE_NUMBER};
 
 const char* Options::Constants::_statisticsValues[] = {
   "brief",
@@ -851,7 +853,7 @@ Options::Options ()
   _unusedPredicateDefinitionRemoval(true),
 
   _weightIncrement(false),
-
+  _whileNumber(1),
   _xmlOutput("off"),
 
   _nonGoalWeightCoeffitientNumerator(1),
@@ -1526,6 +1528,11 @@ void Options::set(const char* name,const char* value, int index)
     case XML_OUTPUT:
       _xmlOutput = value;
       return;
+
+    case WHILE_NUMBER:
+       if (Int::stringToInt(value,intValue))
+       _whileNumber = intValue;
+       return;
 
 #if VDEBUG
     default:
@@ -2305,7 +2312,8 @@ void Options::outputValue (ostream& str,int optionTag) const
   case XML_OUTPUT:
     str << _xmlOutput;
     return;
-
+  case WHILE_NUMBER:
+    str << _whileNumber;
 #if VDEBUG
   default:
     ASS_REP(false, Constants::optionNames[optionTag]);

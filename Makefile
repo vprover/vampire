@@ -14,7 +14,7 @@
 
 DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 # debugging for spider 
 REL_FLAGS = -O6 -DVDEBUG=0 # no debugging 
-
+LLVM_FLAGS = -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
 XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
@@ -64,8 +64,20 @@ ifneq (,$(filter libvapi_dbg,$(MAKECMDGOALS)))
 XFLAGS = $(DBG_FLAGS) -DVAPI_LIBRARY=1 -fPIC
 endif
 
+INCLUDES = -I.
+
+ifneq (,$(filter vanalyze_rel,$(MAKECMDGOALS)))
+XFLAGS = $(REL_FLAGS) $(LLVM_FLAGS)
+INCLUDES = -I. -ISrcInclude -IBuildInclude
+endif
+
+ifneq (,$(filter vanalyze,$(MAKECMDGOALS)))
+XFLAGS = $(DBG_FLAGS) $(LLVM_FLAGS)
+INCLUDES = -I. -ISrcInclude -IBuildInclude
+endif
+
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -I.
+CXXFLAGS = $(XFLAGS) -Wall $(INCLUDES)
 
 ################################################################
 
@@ -331,7 +343,12 @@ VPROG_OBJ = Program/Type.o\
 VTAB_OBJ = Tabulation/Producer.o\
            Tabulation/TabulationAlgorithm.o\
            Tabulation/TabulationContainers.o
-
+           
+TRANSLATOR_OBJ = \
+	Translator/CollectionOfObjects.o\
+	Translator/MyASTConsumer.o\
+	Translator/NewTranslator.o
+	
 # testing procedures
 VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/CheckedSatSolver.o\
@@ -420,7 +437,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/VariableSelector.o
 
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB SAT Saturation Tabulation Test UnitTests VUtils Program Parse
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse 
 
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o 
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
@@ -439,6 +456,7 @@ LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(VCLAUSIFY_BASIC) Global.o
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 VGROUND_DEP = $(VAMP_BASIC) Global.o vground.o
+VANALYZE_DEP = $(VD_OBJ) $(VL_OBJ) $(LIBVAPI_DEP) $(VPROG_OBJ) $(TRANSLATOR_OBJ) vanalyze.o
 
 all:#default make disabled
 
@@ -489,6 +507,8 @@ VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
 LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
 VGROUND_OBJ := $(addprefix $(CONF_ID)/, $(VGROUND_DEP))
+VANALYZE_OBJ := $(addprefix $(CONF_ID)/, $(VANALYZE_DEP))
+
 
 define COMPILE_CMD
 $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@
@@ -496,11 +516,56 @@ $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@
 @#strip $@
 endef
 
+ifneq (,$(filter vanalyze% ,$(MAKECMDGOALS)))
+CLANGLIBS := /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangFrontend.a \
+    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangParse.a \
+    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangSema.a \
+    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangAnalysis.a \
+    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangAST.a \
+    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangLex.a \
+    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangBasic.a \
+    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangDriver.a \
+    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangSerialization.a \
+    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libLLVMSupport.a \
+    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libLLVMMC.a \
+    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libLLVMCppBackend.a \
+    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libLLVMCore.a
+    
+    
+RELCLANG := /usr/local/lib/libclangFrontend.a \
+    /usr/local/lib/libclangParse.a \
+    /usr/local/lib/libclangSema.a \
+   /usr/local/lib/libclangAnalysis.a \
+   /usr/local/lib/libclangAST.a \
+    /usr/local/lib/libclangLex.a \
+    /usr/local/lib/libclangBasic.a \
+    /usr/local/lib/libclangDriver.a \
+    /usr/local/lib/libclangSerialization.a \
+    /usr/local/lib/libLLVMMC.a \
+    /usr/local/lib/libLLVMCppBackend.a \
+   /usr/local/lib/libLLVMCore.a \
+   /usr/local/lib/libLLVMSupport.a 
+   
+ #  -lpthread \
+ #  -ldl
+
+-lpthread:
+-ldl: 
+define LLVM_COMPILE_CMD
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(RELCLANG) -lpthread -ldl
+@#$(CXX) $(filter %.o, $^) -o $@ $(CLANGLIBS) $(shell /home/ioan/proseed/proseed/llvm/build/Debug/bin/llvm-config --ldflags --libs cppbackend)
+@#strip $@
+endef
+endif
+
 .LIBPATTERNS =
 
 -lmemcached:
 
 EXEC_DEF_PREREQ = Makefile
+
+vanalyze vanalyze_rel: $(VANALYZE_OBJ) $(EXEC_DEF_PREREQ)
+	$(LLVM_COMPILE_CMD)
 
 vampire vampire_rel vampire_dbg: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
