@@ -57,6 +57,23 @@ private:
   AIGTransformer _atr;
 };
 
+class AIGMiniscopingTransformer
+{
+public:
+  AIGMiniscopingTransformer(AIG& aig) : _aig(aig), _atr(aig) {}
+
+  AIGRef apply(AIGRef a0);
+private:
+
+  AIGRef processQuantifier(AIGRef a);
+
+  AIGInsideOutPosIterator _buildingIterator;
+  DHMap<AIGRef,AIGRef> _transfCache;
+
+  AIG& _aig;
+  AIGTransformer _atr;
+};
+
 class AIGConditionalRewriter
 {
 public:

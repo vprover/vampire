@@ -717,7 +717,7 @@ void Signature::Symbol::addColor(Color color)
   ASS_G(color,0);
   ASS(env.colorUsed);
 
-  if (_color && color != _color) {
+  if (_color && color != static_cast<Color>(_color)) {
     USER_ERROR("A symbol cannot have two colors");
   }
   _color = color;

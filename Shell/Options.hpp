@@ -227,6 +227,7 @@ public:
 
     WEIGHT_INCREMENT,
     WHILE_NUMBER,
+
     XML_OUTPUT,
 
     NUMBER_OF_OPTIONS // must be the last one!
@@ -889,9 +890,9 @@ private:
   bool _unusedPredicateDefinitionRemoval;
 
   bool _weightIncrement;
+  int _whileNumber;
 
   string _xmlOutput;
-  int _whileNumber;
 
   int _nonGoalWeightCoeffitientNumerator;
   int _nonGoalWeightCoeffitientDenominator;

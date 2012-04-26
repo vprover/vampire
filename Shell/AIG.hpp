@@ -183,6 +183,8 @@ private:
   bool tryO3ConjSimpl(Ref& par1, Ref& par2);
   bool tryO3AsymetricConjSimpl(Ref& par1, Ref& par2);
   bool tryO4ConjSimpl(Ref& par1, Ref& par2);
+
+  Ref getUnivQuant(VarSet* vars, Ref par);
 public:
   AIG();
   ~AIG();

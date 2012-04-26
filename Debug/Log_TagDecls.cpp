@@ -718,10 +718,22 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_pren",
       DOC("aig prenex transformation"),
       PARENT("pp_aig",1));
+  DECL("pp_aig_pren_conj",
+      DOC("conjunction processing"),
+      PARENT("pp_aig_pren",1));
+  DECL("pp_aig_pren_conj_res",
+      DOC("resuts of conjunction processing"),
+      PARENT("pp_aig_pren_conj",1));
   DECL("pp_aig_pren_qu",
       DOC("merging of quantifiers in conjunctions"),
-      PARENT("pp_aig_pren",1));
+      PARENT("pp_aig_pren_conj",1));
 
+  DECL("pp_aig_minis",
+      DOC("aig miniscoping transformation"),
+      PARENT("pp_aig",1));
+  DECL("pp_aig_minis_step",
+      DOC("inner miniscoping step"),
+      PARENT("pp_aig_minis",1));
 
   DECL("pp_aiginl",
       DOC("AIG based inlining"),

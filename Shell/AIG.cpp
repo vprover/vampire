@@ -604,24 +604,38 @@ AIG::Ref AIG::getQuant(bool exQuant, Formula::VarList* vars, Ref par)
   return getQuant(exQuant, vs, par);
 }
 
-AIG::Ref AIG::getQuant(bool exQuant, VarSet* vars0, Ref par)
+AIG::Ref AIG::getUnivQuant(VarSet* vars0, Ref par)
 {
-  CALL("AIG::getQuant(bool,VarSet*,Ref)");
+  CALL("AIG::getUnivQuant");
+
+  //we try to merge quantifiers where possible
+  if(par.isQuantifier() && par.polarity()) {
+    VarSet* vars = vars0->getUnion(par.getQuantifierVars());
+    //this seems possibly recursive, but we can do this recursive call at most once
+    return getUnivQuant(vars, par.parent(0));
+  }
 
   VarSet* vars = vars0->getIntersection(par.getFreeVars());
+
   COND_LOG("pp_quant_simpl", vars!=vars0, "quentifier simplified:"<<endl
       <<"  vars0: "<<vars0->toString()<<endl
       <<"  vars: "<<vars->toString()<<endl
       <<"  par: "<<par);
 
   if(vars->isEmpty()) { return par; }
-  if(par.isPropConst()) { return par; }
+
+  return Ref(univQuantNode(vars, par), true);
+}
+
+AIG::Ref AIG::getQuant(bool exQuant, VarSet* vars0, Ref par)
+{
+  CALL("AIG::getQuant(bool,VarSet*,Ref)");
 
   if(exQuant) {
-    return Ref(univQuantNode(vars, par.neg()), false);
+    return getUnivQuant(vars0, par.neg()).neg();
   }
   else {
-    return Ref(univQuantNode(vars, par), true);
+    return getUnivQuant(vars0, par);
   }
 }
 

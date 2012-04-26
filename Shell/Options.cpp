@@ -281,6 +281,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "weight_increment",
   "while_number",
+
   "xml_output"};
 
 /** Names for all options */
@@ -854,6 +855,7 @@ Options::Options ()
 
   _weightIncrement(false),
   _whileNumber(1),
+
   _xmlOutput("off"),
 
   _nonGoalWeightCoeffitientNumerator(1),
@@ -1524,15 +1526,15 @@ void Options::set(const char* name,const char* value, int index)
     case WEIGHT_INCREMENT:
       _weightIncrement = onOffToBool(value,name);
       return;
+    case WHILE_NUMBER:
+       if (Int::stringToInt(value,intValue))
+       _whileNumber = intValue;
+       return;
 
     case XML_OUTPUT:
       _xmlOutput = value;
       return;
 
-    case WHILE_NUMBER:
-       if (Int::stringToInt(value,intValue))
-       _whileNumber = intValue;
-       return;
 
 #if VDEBUG
     default:
@@ -2308,12 +2310,14 @@ void Options::outputValue (ostream& str,int optionTag) const
   case WEIGHT_INCREMENT:
     str << boolToOnOff(_weightIncrement);
     return;
+  case WHILE_NUMBER:
+    str << _whileNumber;
+    return;
 
   case XML_OUTPUT:
     str << _xmlOutput;
     return;
-  case WHILE_NUMBER:
-    str << _whileNumber;
+
 #if VDEBUG
   default:
     ASS_REP(false, Constants::optionNames[optionTag]);

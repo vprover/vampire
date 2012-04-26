@@ -88,7 +88,7 @@ void SymElOutput::onParenthood(Clause* cl, Clause* parent)
   CALL("SymElOutput::onParenthood");
 
   Color pcol=parent->color();
-  Clause::Store pstore=parent->store();
+//  Clause::Store pstore=parent->store();
 
   if(pcol!=COLOR_TRANSPARENT && cl->color()==COLOR_TRANSPARENT) {
     onSymbolElimination(parent->color(), cl);

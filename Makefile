@@ -15,6 +15,7 @@
 DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 # debugging for spider 
 REL_FLAGS = -O6 -DVDEBUG=0 # no debugging 
 LLVM_FLAGS = -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
+
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
 XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
@@ -57,6 +58,12 @@ endif
 ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS)
 endif
+
+
+################################################################
+# Specific build options for some targets
+#
+
 ifneq (,$(filter libvapi,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS) -DVAPI_LIBRARY=1 -fPIC
 endif
@@ -65,16 +72,17 @@ XFLAGS = $(DBG_FLAGS) -DVAPI_LIBRARY=1 -fPIC
 endif
 
 INCLUDES = -I.
-
 ifneq (,$(filter vanalyze_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS) $(LLVM_FLAGS)
 INCLUDES = -I. -ISrcInclude -IBuildInclude
 endif
-
 ifneq (,$(filter vanalyze,$(MAKECMDGOALS)))
 XFLAGS = $(DBG_FLAGS) $(LLVM_FLAGS)
 INCLUDES = -I. -ISrcInclude -IBuildInclude
 endif
+
+
+################################################################
 
 CXX = g++
 CXXFLAGS = $(XFLAGS) -Wall $(INCLUDES)
@@ -516,6 +524,10 @@ $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@
 @#strip $@
 endef
 
+
+################################################################
+# LLVM external dependencies and build commands
+
 ifneq (,$(filter vanalyze% ,$(MAKECMDGOALS)))
 CLANGLIBS := /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangFrontend.a \
     /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangParse.a \
@@ -557,6 +569,9 @@ $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(RELCLANG) -lpthre
 @#strip $@
 endef
 endif
+
+################################################################
+# definitions of targets
 
 .LIBPATTERNS =
 

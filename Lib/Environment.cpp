@@ -91,7 +91,7 @@ Environment::~Environment()
  */
 bool Environment::timeLimitReached() const
 {
-  CALL("ProofAttempt::timeLimitReached");
+  CALL("Environment::timeLimitReached");
 
   if (options->timeLimitInDeciseconds() &&
       timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {

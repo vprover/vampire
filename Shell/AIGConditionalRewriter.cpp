@@ -30,10 +30,10 @@ bool AIGPrenexTransformer::containsQuant(AIGRef a0)
   while(ait.hasNext()) {
     AIGRef a = ait.next();
     if(a.isQuantifier()) {
-      return false;
+      return true;
     }
   }
-  return true;
+  return false;
 }
 
 bool AIGPrenexTransformer::isPrenex(AIGRef a)
@@ -98,7 +98,11 @@ void AIGPrenexTransformer::collectQuants(AIGRef a, QIStack& quants, AIGRef& inne
     }
     a = a.parent(0);
   }
+  if(!pol) {
+    a = a.neg();
+  }
   inner = a;
+
 
   //The requirement on QIStack is that variables in a block
   //of quantifiers of the same kind are sorted.
@@ -282,8 +286,8 @@ AIGRef AIGPrenexTransformer::processConjunction(AIGRef a)
   ASS(a.isConjunction());
   ASS_EQ(a.parentCnt(),2);
 
-  AIGRef p1 = a.parent(0);
-  AIGRef p2 = a.parent(1);
+  AIGRef p1 = _atr.lev0Deref(a.parent(0), _transfCache);
+  AIGRef p2 = _atr.lev0Deref(a.parent(1), _transfCache);
 
   static QIStack p1Quants;
   static QIStack p2Quants;
@@ -310,6 +314,10 @@ AIGRef AIGPrenexTransformer::processConjunction(AIGRef a)
   AIGRef resConj = _aig.getConj(inner1Transf, inner2Transf);
 
   AIGRef res = quantifyBySpec(unifQuants, resConj);
+
+  LOG("pp_aig_pren_conj_res", "conj prenex transform:"<<endl<<
+      "  src: "<<a<<endl<<
+      "  tgt: "<<res);
 
   return res;
 }
@@ -340,12 +348,100 @@ AIGRef AIGPrenexTransformer::apply(AIGRef a0)
 
   AIGRef res = _atr.lev0Deref(a0, _transfCache);
 
-  ASS(isPrenex(res));
+  ASS_REP2(isPrenex(res), a0, res);
 
   return res;
 }
 
+//////////////////////////////
+// AIGMiniscopingTransformer
+//
 
+AIGRef AIGMiniscopingTransformer::processQuantifier(AIGRef a)
+{
+  CALL("AIGMiniscopingTransformer::processQuantifier");
+  ASS(a.polarity());
+  ASS(a.isQuantifier());
+
+  AIGRef qarg = a.parent(0);
+  AIG::VarSet* qargVars = a.getQuantifierVars();
+
+  AIGRef res;
+  if(qarg.isConjunction()) {
+    AIGRef carg1 =qarg.parent(0);
+    AIGRef carg2 =qarg.parent(1);
+    if(qarg.polarity()) {
+      //we have ![X]: (A & B) which we can simplify to (![X]: A) & (![X]: B)
+
+      //AIG::getQuant takes care of removing vars which don't occur in the quantifier body as free
+      AIGRef qcarg1 = _aig.getQuant(false, qargVars, carg1);
+      AIGRef qcarg2 = _aig.getQuant(false, qargVars, carg2);
+
+      res = _aig.getConj(qcarg1, qcarg2);
+    }
+    else {
+      //we have ![X,X1,X2]: (A[X,X1] | B[X,X2]) which we can simplify to ![X]: ((![X1]: A) | (![X2]: B))
+      AIG::VarSet* a1qvars = qargVars->getIntersection(carg1.getFreeVars());
+      AIG::VarSet* a2qvars = qargVars->getIntersection(carg2.getFreeVars());
+      ASS(a1qvars->getUnion(a2qvars)==qargVars);
+      if(a1qvars!=a2qvars) {
+	AIG::VarSet* intersVars = a1qvars->getIntersection(a2qvars);
+	AIG::VarSet* a1only = a1qvars->subtract(intersVars);
+	AIG::VarSet* a2only = a2qvars->subtract(intersVars);
+
+	AIGRef qcarg1 = _aig.getQuant(false, a1only, carg1.neg());
+	AIGRef qcarg2 = _aig.getQuant(false, a2only, carg2.neg());
+	AIGRef conj = _aig.getConj(qcarg1.neg(), qcarg2.neg());
+
+	res = _aig.getQuant(false, intersVars, conj.neg());
+      }
+      else {
+	//we cannot do anything here
+	res = a;
+      }
+    }
+  }
+  else {
+    res = a;
+  }
+  COND_LOG("pp_aig_minis_step", res!=a,"miniscoping step:"<<endl<<
+      "  src: "<<a<<endl<<
+      "  tgt: "<<res);
+  return res;
+}
+
+AIGRef AIGMiniscopingTransformer::apply(AIGRef a0)
+{
+  CALL("AIGMiniscopingTransformer::apply");
+
+  _buildingIterator.addToTraversal(a0);
+
+  while(_buildingIterator.hasNext()) {
+    AIGRef src = _buildingIterator.next();
+    AIGRef tgt;
+    if(src.isAtom() || src.isPropConst()) {
+      tgt = src;
+    }
+    else if(src.isConjunction()) {
+      tgt = _atr.lev1Deref(src, _transfCache);
+    }
+    else {
+      ASS(src.isQuantifier());
+      ASS(src.polarity()); //this follows from the behavior of AIGInsideOutPosIterator
+      tgt = _atr.lev1Deref(src, _transfCache);
+      tgt = processQuantifier(tgt);
+
+      _buildingIterator.addToTraversal(tgt);
+    }
+    if(src!=tgt) {
+      _transfCache.insert(src, tgt);
+    }
+  }
+
+  AIGRef res = _atr.lev0Deref(a0, _transfCache);
+
+  return res;
+}
 
 
 ///////////////////////////
@@ -381,8 +477,6 @@ void AIGConditionalRewriter::apply(UnitList*& units)
   }
 
   AIGRef conjTransf = apply(conj);
-  LOG("bug","pre:  "<<conj);
-  LOG("bug","post: "<<conjTransf);
 }
 
 AIGRef AIGConditionalRewriter::apply(AIGRef a0)
@@ -392,6 +486,15 @@ AIGRef AIGConditionalRewriter::apply(AIGRef a0)
   //TODO: finish
   AIGPrenexTransformer apt(_aig);
   AIGRef aPrenex = apt.apply(a0);
+
+
+  AIGMiniscopingTransformer minis(_aig);
+  AIGRef aMinis = minis.apply(aPrenex);
+
+  LOG("bug","init:  "<<a0);
+  LOG("bug","pren: "<<aPrenex);
+  LOG("bug","mnsc: "<<aMinis);
+
   return aPrenex;
 }
 
