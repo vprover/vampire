@@ -54,6 +54,8 @@ public:
   static unsigned hash(const std::string& str)
   { return hash(str.c_str()); }
 
+  static unsigned hash(Kernel::Unit* u);
+
   template<typename T>
   static unsigned hash(Stack<T> obj)
   { return StackHash<Hash>::hash(obj); }

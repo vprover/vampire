@@ -7,13 +7,25 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
-#include "Hash.hpp"
+#include "Kernel/Unit.hpp"
+
 #include "Portability.hpp"
+
+#include "Hash.hpp"
+
 
 namespace Lib
 {
 
 using namespace std;
+
+unsigned Hash::hash(Kernel::Unit* u)
+{
+  if(!u) {
+    return 75663234u; //an arbitrary number as a has for a null unit pointer
+  }
+  return hash(u->number());
+}
 
 /**
  * The FNV-hashing.
