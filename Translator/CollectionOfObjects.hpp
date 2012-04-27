@@ -19,38 +19,49 @@
 #include "Lib/Array.hpp"
 #include "Lib/Map.hpp"
 
+#include "Shell/Options.hpp"
+#include "Shell/Property.hpp"
+#include "Shell/Preprocess.hpp"
+
 #include <iostream>
 
 #include "Forwards.hpp"
 
-namespace translator{
-  
-  using namespace Program; 
-  using namespace std;
-  using namespace Lib;
-  
+namespace Translator
+{
+
+using namespace Program;
+using namespace std;
+using namespace Lib;
+
 class collectionOfObjects {
 public:
   collectionOfObjects();
 
-  bool insertVariableExpression(std::string key, Program::VariableExpression* obj);
-  void insertConstantIntegerExpr(int val, Program::ConstantIntegerExpression* obj);
+  bool insertVariableExpression(std::string key,
+	  Program::VariableExpression* obj);
+  void insertConstantIntegerExpr(int val,
+	  Program::ConstantIntegerExpression* obj);
   void insertAssignment(std::string key, Program::Assignment* obj);
   void insertBlock(std::string key, Program::Block* obj);
-  void insertFunctionApplication(std::string key, Program::FunctionApplicationExpression* obj);
-  void insertArrayApplication(std::string key, Program::ArrayApplicationExpression* obj);
+  void insertFunctionApplication(std::string key,
+	  Program::FunctionApplicationExpression* obj);
+  void insertArrayApplication(std::string key,
+	  Program::ArrayApplicationExpression* obj);
   void insertWhileDo(std::string key, Program::WhileDo* obj);
   void insertIfThenElse(std::string key, Program::IfThenElse* obj);
-  
+
   Program::Assignment* getAssignment(std::string key);
   Program::Block* getBlock(std::string key);
   Program::VariableExpression* getVarExpression(std::string key);
   Program::ConstantIntegerExpression* getConstantIntegerExpr(int key);
-  Program::FunctionApplicationExpression* getFunctionApplicationExpression(std::string key);
-  Program::ArrayApplicationExpression* getArrayApplicationExpression(std::string key);
+  Program::FunctionApplicationExpression* getFunctionApplicationExpression(
+	  std::string key);
+  Program::ArrayApplicationExpression* getArrayApplicationExpression(
+	  std::string key);
   Program::WhileDo* getWhile(std::string key);
   Program::IfThenElse* getIfThenElse(std::string key);
-  
+
   bool findAssignemt(std::string key);
   bool findBlock(std::string key);
   bool findVarExpression(std::string key);
@@ -59,7 +70,7 @@ public:
   bool findArrayApplication(std::string key);
   bool findWhileDo(std::string key);
   bool findIfThenElse(std::string key);
-  void insertMainProgramStatement(int number,Program::Statement* stmt);
+  void insertMainProgramStatement(int number, Program::Statement* stmt);
   void insertMainProgramStatement(Program::Statement* stmt);
   void insertVariable(std::string key, Program::Variable* obj);
   bool findVariable(std::string key);
@@ -74,19 +85,17 @@ public:
   int chekMaps(std::string key);
 private:
 
-   Lib::Map<std::string, Program::Block*>_mapOfBlocks;
-   Lib::Map<std::string, Program::ArrayApplicationExpression*>_mapOfArrayApplic;
-   Lib::Map<std::string, Program::Assignment*>_mapOfAssignments;
-   Lib::Map<std::string, Program::FunctionApplicationExpression*>_mapOfFcApplic;
-   Lib::Map<std::string, Program::VariableExpression*>_mapOfVariableExpr;
-   Lib::Map<int, Program::ConstantIntegerExpression*>_mapOfIntegers;
-   Lib::Map<std::string, Program::Variable*>_mapOfVariables;
+  Lib::Map<std::string, Program::Block*> _mapOfBlocks;
+  Lib::Map<std::string, Program::ArrayApplicationExpression*> _mapOfArrayApplic;
+  Lib::Map<std::string, Program::Assignment*> _mapOfAssignments;
+  Lib::Map<std::string, Program::FunctionApplicationExpression*> _mapOfFcApplic;
+  Lib::Map<std::string, Program::VariableExpression*> _mapOfVariableExpr;
+  Lib::Map<int, Program::ConstantIntegerExpression*> _mapOfIntegers;
+  Lib::Map<std::string, Program::Variable*> _mapOfVariables;
 
-   Lib::Map<std::string, Program::WhileDo*>_mapOfWhile;
-   Lib::Map<std::string, Program::IfThenElse*>_mapOfThenElse;
-   Lib::Map<int , Program::Statement*>_mapOfMainProgramStatements;
-   
-  
+  Lib::Map<std::string, Program::WhileDo*> _mapOfWhile;
+  Lib::Map<std::string, Program::IfThenElse*> _mapOfThenElse;
+  Lib::Map<int, Program::Statement*> _mapOfMainProgramStatements;
 
 };
 

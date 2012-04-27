@@ -64,7 +64,7 @@ using namespace Shell;
 using namespace Shell::CASC;
 using namespace VUtils;
 
-char* filename="";
+
 void runParsingAndAnalysis(const char* file)
 {
 	using clang::CompilerInstance;
@@ -88,7 +88,7 @@ void runParsingAndAnalysis(const char* file)
 	ci.createSourceManager(ci.getFileManager());
 	ci.createPreprocessor();
 	ci.getPreprocessorOpts().UsePredefines = false;
-	translator::MyASTConsumer *astConsumer = new translator::MyASTConsumer();
+	Translator::MyASTConsumer *astConsumer = new Translator::MyASTConsumer();
 	astConsumer->SetWhileNumber(env.options->getWhileNumber());
 	ci.setASTConsumer(astConsumer);
 
@@ -111,7 +111,7 @@ void explainException (Exception& exception)
 
 void readAndFilterGlobalOpts(Stack<char*>& args) {
   Stack<char*>::StableDelIterator it(args);
-
+  char* filename;
   //skip the first item which is the executable name
   ALWAYS(it.hasNext());
   it.next();
@@ -183,9 +183,7 @@ int main(int argc, char* argv [])
   Api::ResourceLimits::disableLimits();
    // create random seed for the random number generation
   Lib::Random::setSeed(123456);
-  /*Stack<char*> args;
-  args.loadFromIterator(getArrayishObjectIterator(argv, argc));
-*/
+
   Shell::CommandLine cl(argc,argv);
   cl.interpret(*env.options);
 
@@ -196,29 +194,18 @@ int main(int argc, char* argv [])
 
     Allocator::setMemoryLimit(1024u*1048576ul);
 
-  //  readAndFilterGlobalOpts(args);
-/*
-    if(args.size()<2) {
-      USER_ERROR("missing name of the vutil module to be run (vutil requires at least one command line argument)");
+    string inputFile = env.options->inputFile();
+    if(inputFile=="") {
+      USER_ERROR("Cannot open problem file: "+inputFile);
     }
-    else{
-    	Stack<char*>::Iterator ita(args);
-    	while(ita.hasNext())
-    		cout<<ita.next()<<"ici"<<endl;
-    }*/
-    //cout<<args[1]<<args[2]<<args[3];
-    //string module=args[1];
- //   if(args.size()!=0){
- //   	if(filename=="")
+    else {
+     runParsingAndAnalysis(inputFile.c_str());
+    }
+/*
        const char *fim;
        string opt = env.options->inputFile();
        fim = opt.c_str();
-        //fim=(env.options->inputFile().c_str());
-    	runParsingAndAnalysis(fim);
-   /* }
-    else {
-    //  USER_ERROR("unknown vutil module name: "+module);
-    }*/
+       runParsingAndAnalysis(fim);*/
   }
 #if VDEBUG
   catch (Debug::AssertionViolationException& exception) {

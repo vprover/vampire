@@ -18,25 +18,31 @@
 #include "clang/Parse/Parser.h"
 #include "clang/Parse/ParseAST.h"
 
-namespace translator{
+namespace Translator{
 using namespace clang;
 
 class MyASTConsumer: public ASTConsumer {
 private:
-	clang::SourceManager* source_manager;
-	clang::ASTContext *ctx;
-	int _whileToAnalyze;
+  clang::SourceManager* source_manager;
+  clang::ASTContext *ctx;
+  int _whileToAnalyze;
 
 public:
-	MyASTConsumer() : ASTConsumer() {
-	}
-	virtual ~MyASTConsumer() {
-	}
+  MyASTConsumer() :
+    ASTConsumer()
+  {
+  }
+  virtual ~MyASTConsumer()
+  {
+  }
 
-	void Initialize(ASTContext& context);
-	void SetWhileNumber(int wno){_whileToAnalyze=wno;}
+  void Initialize(ASTContext& context);
+  void SetWhileNumber(int wno)
+  {
+    _whileToAnalyze = wno;
+  }
 
-	virtual void HandleTopLevelDecl(DeclGroupRef d);
+  virtual void HandleTopLevelDecl(DeclGroupRef d);
 };
 }
 

@@ -23,37 +23,40 @@
 
 #include <iostream>
 
-namespace translator{
+namespace Translator{
 
-void MyASTConsumer::Initialize(clang::ASTContext& context) {
-	ctx = &context;
-	source_manager = &(context.getSourceManager());
+void MyASTConsumer::Initialize(clang::ASTContext& context)
+{
+  ctx = &context;
+  source_manager = &(context.getSourceManager());
 }
 
-void MyASTConsumer::HandleTopLevelDecl(clang::DeclGroupRef d) {
+void MyASTConsumer::HandleTopLevelDecl(clang::DeclGroupRef d)
+{
 
-	clang::DeclGroupRef::iterator it;
-	for (it = d.begin(); it != d.end(); it++) {
+  clang::DeclGroupRef::iterator it;
+  for (it = d.begin(); it != d.end(); it++) {
 
-		clang::Decl* declaration = *it;
+    clang::Decl* declaration = *it;
 
-		if (clang::FunctionDecl::classof(declaration)) {
-			::clang::FunctionDecl* function_declaration =
-					(::clang::FunctionDecl*) declaration;
-			if (function_declaration->hasBody()) {
+    if (clang::FunctionDecl::classof(declaration)) {
+      ::clang::FunctionDecl* function_declaration =
+	      (::clang::FunctionDecl*) declaration;
+      if (function_declaration->hasBody()) {
 
-				// do an analysis
-				::clang::Stmt* body = declaration->getBody();
-				::std::cout<<"Analyze function " <<function_declaration->getDeclName().getAsString() <<"; \n";
-				newTranslator cc(body, ctx);
-				cc.SetWhileToAnalyze(_whileToAnalyze);
-				cc.RunRewriting();
-                                                               
-			}
+	// do an analysis
+	::clang::Stmt* body = declaration->getBody();
+	::std::cout << "Analyze function "
+		<< function_declaration->getDeclName().getAsString() << "; \n";
+	newTranslator cc(body, ctx);
+	cc.SetWhileToAnalyze(_whileToAnalyze);
+	cc.RunRewriting();
 
-		}
+      }
 
-	}
+    }
+
+  }
 
 }
 }
