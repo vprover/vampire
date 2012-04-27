@@ -125,7 +125,11 @@ timer_sigalrm_handler (int sig)
       System::terminateImmediately(1);
     }
   }
-  ASS_GE(timer_sigalrm_counter,0);
+  if(timer_sigalrm_counter<0) {
+    cout << "Timer value became negative!" <<endl;
+    cout << "Actual time:" << guaranteedMilliseconds() <<endl;
+    System::terminateImmediately(1);
+  }
 #endif
 
 
