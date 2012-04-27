@@ -23,7 +23,7 @@ public:
   AIGRef apply(AIGRef a);
   static bool containsQuant(AIGRef a);
   static bool isPrenex(AIGRef a);
-private:
+
 
   struct QuantInfo {
     QuantInfo() : var(UINT_MAX) {}
@@ -41,13 +41,18 @@ private:
    * Sequences of variables of the same kind are sorted by the variable number */
   typedef Stack<QuantInfo> QIStack;
 
+  void collectQuants(AIGRef a, QIStack& quants, AIGRef& inner);
+  AIGRef quantifyBySpec(const QIStack& qs, AIGRef inner);
+
+private:
+
+
+
   struct QuantUnifier;
 
   static void sortQuantSegments(QIStack& qs);
-  void collectQuants(AIGRef a, QIStack& quants, AIGRef& inner);
   void unifyQuants(AIG::VarSet* freeVars, AIGRef a1, const QIStack& q1, AIGRef a2, const QIStack& q2,
       AIGRef& a1res, AIGRef& a2res, QIStack& qres);
-  AIGRef quantifyBySpec(const QIStack& qs, AIGRef inner);
   AIGRef processConjunction(AIGRef a);
 
   AIGInsideOutPosIterator _buildingIterator;
@@ -77,13 +82,88 @@ private:
 class AIGConditionalRewriter
 {
 public:
+
   AIGConditionalRewriter();
 
   void apply(Problem& prb);
   void apply(UnitList*& units);
   AIGRef apply(AIGRef a);
 
+
 private:
+
+  /**
+   * Represents normalized implication
+   */
+  struct Impl {
+    Impl() {}
+    Impl(AIGRef lhs_, AIGRef rhs_) : lhs(lhs_), rhs(rhs_)
+    {
+      CALL("AIGConditionalRewriter::Impl::Impl");
+      ASS_NEQ(lhs.getPositive(), rhs.getPositive());
+
+      bool shouldSwap = false;
+      if(!lhs.polarity() && !rhs.polarity()) {
+	shouldSwap = true;
+      }
+      if(lhs.polarity()!=rhs.polarity()) {
+	//we cannot normalize the polarity by swapping, so we normalize the order
+	//of aigs
+	if(lhs.nodeIndex()>rhs.nodeIndex()) {
+	  shouldSwap = true;
+	}
+      }
+      if(shouldSwap) {
+	//~a -> ~b  ==>  b -> a
+	swap(lhs, rhs);
+	lhs = lhs.neg();
+	rhs = rhs.neg();
+      }
+    }
+    AIGRef lhs;
+    AIGRef rhs;
+  };
+
+  /**
+   * Represents normalized equivalence
+   */
+  struct Equiv {
+    Equiv() {}
+    Equiv(AIGRef first_, AIGRef second_) : first(first_), second(second_)
+    {
+      CALL("AIGConditionalRewriter::Equiv::Equiv");
+      ASS_NEQ(first.getPositive(), second.getPositive());
+
+      if(first.nodeIndex()>second.nodeIndex()) {
+	swap(first,second);
+      }
+
+      if(!first.polarity()) {
+	first = first.neg();
+	second = second.neg();
+      }
+    }
+
+    string toString() const { return "EQ: "+first.toString()+" <=> "+second.toString(); }
+
+    AIGRef first;
+    AIGRef second;
+  };
+
+  typedef Stack<AIGRef> AIGStack;
+  typedef Stack<Equiv> EquivStack;
+
+  AIGRef getOppositeImpl(AIGRef a);
+  void collectConjuncts(AIGRef aig, AIGStack& res);
+  bool isDisjEquiv(AIGRef a, Equiv& eq);
+
+
+
+  void collectConjEquivs(AIGStack& conjStack, EquivStack& res);
+  void collectEquivs(AIGStack& conjStack, EquivStack& res);
+
+
+
   AIGFormulaSharer _afs;
   AIG& _aig;
 };

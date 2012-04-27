@@ -169,8 +169,9 @@ private:
     unsigned qidx1 = 0;
     unsigned qidx2 = 0;
 
-    for(;;) {
-      while(qidx1<_q1.size() && qidx2<_q2.size() && _q1[qidx1].univ==_q2[qidx2].univ) {
+    //we merge universal quantifiers and transfer the existential without merging
+    while(qidx1<_q1.size() && qidx2<_q2.size()) {
+      while(qidx1<_q1.size() && qidx2<_q2.size() && _q1[qidx1].univ && _q2[qidx2].univ) {
 	addResultingQuantifier(_q1[qidx1],_q2[qidx2]);
 	qidx1++; qidx2++;
       }
@@ -182,11 +183,8 @@ private:
 	addResultingQuantifier(QuantInfo(),_q2[qidx2]);
 	qidx2++;
       }
-      if(qidx1==_q1.size() || qidx2==_q2.size()) {
-	break;
-      }
     }
-
+    //when there is nothing left to merge, we just transfer the remaining quantifiers
     while(qidx1<_q1.size()) {
       addResultingQuantifier(_q1[qidx1],QuantInfo());
       qidx1++;
@@ -479,6 +477,131 @@ void AIGConditionalRewriter::apply(UnitList*& units)
   AIGRef conjTransf = apply(conj);
 }
 
+void AIGConditionalRewriter::collectConjuncts(AIGRef aig, AIGStack& res)
+{
+  CALL("AIGConditionalRewriter::collectConjuncts");
+  ASS(res.isEmpty());
+
+  static AIGStack toDo;
+  toDo.reset();
+  toDo.push(aig);
+  while(toDo.isNonEmpty()) {
+    AIGRef a = toDo.pop();
+    if(!a.polarity() || !a.isConjunction()) {
+      res.push(a);
+      continue;
+    }
+    toDo.push(a.parent(0));
+    toDo.push(a.parent(1));
+  }
+}
+
+/**
+ * Check for equivalence in the form
+ * (a /\ b) \/ (~a /\ ~b)
+ * in the term of AIGs written as ~and(~and(a,b),~and(~a,~b)).
+ * They are called disjunction equivalences, as they have disjunction
+ * at the top level.
+ */
+bool AIGConditionalRewriter::isDisjEquiv(AIGRef a, Equiv& eq)
+{
+  CALL("AIGConditionalRewriter::isDisjEquiv");
+
+  if(!a.isConjunction() || a.polarity()) { return false; }
+
+  AIGRef p1 = a.parent(0);
+  AIGRef p2 = a.parent(1);
+  if(p1.polarity() || p2.polarity() || !p1.isConjunction() || !p2.isConjunction()) { return false; }
+
+  if( (p1.parent(0)==p2.parent(0).neg() && p1.parent(1)==p2.parent(1).neg()) ||
+      (p1.parent(0)==p2.parent(1).neg() && p1.parent(1)==p2.parent(0).neg()) ) {
+    eq.first = p1.parent(0);
+    eq.second = p1.parent(1);
+
+    if(!eq.first.polarity()) {
+      eq.first = eq.first.neg();
+      eq.second = eq.second.neg();
+    }
+    return true;
+  }
+  return false;
+}
+
+AIGRef AIGConditionalRewriter::getOppositeImpl(AIGRef a)
+{
+  CALL("AIGConditionalRewriter::getOppositeImpl");
+  ASS(a.isConjunction());
+  ASS(!a.polarity());
+
+  return _aig.getConj(a.parent(0).neg(), a.parent(1).neg()).neg();
+}
+
+/**
+ * Check for equivalence in the form
+ * (a \/ ~b) /\ (~a \/ b)
+ * in the term of AIGs written as and(~and(~a,b),~and(a,~b)).
+ * They are called disjunction equivalences, as they have disjunction
+ * at the top level.
+ */
+void AIGConditionalRewriter::collectConjEquivs(AIGStack& conjStack, EquivStack& res)
+{
+  CALL("AIGConditionalRewriter::collectConjEquivs");
+
+  //implications present in the conjunction
+  static DHSet<AIGRef> impls;
+  //implications that are captured by the discovered equivalences
+  static DHSet<AIGRef> eqImpls;
+
+  impls.reset();
+  eqImpls.reset();
+
+  AIGStack::Iterator implScanIt(conjStack);
+  while(implScanIt.hasNext()) {
+    AIGRef a = implScanIt.next();
+    if(!a.isConjunction()) {
+      continue;
+    }
+    ASS(!a.polarity()); //we're travensing a conjunct stack, so positive conjunctiona have been splitted
+
+    AIGRef aOpp = getOppositeImpl(a);
+    if(impls.contains(aOpp)) {
+      res.push(Equiv(a.parent(0), a.parent(1).neg()));
+      eqImpls.insert(a);
+      eqImpls.insert(aOpp);
+      continue;
+    }
+
+    impls.insert(a);
+  }
+
+  AIGStack::DelIterator cleaningIt(conjStack);
+  while(cleaningIt.hasNext()) {
+    AIGRef a = cleaningIt.next();
+    if(eqImpls.contains(a)) {
+      cleaningIt.del();
+    }
+  }
+}
+
+void AIGConditionalRewriter::collectEquivs(AIGStack& conjStack, EquivStack& res)
+{
+  CALL("AIGConditionalRewriter::collectEquivs");
+
+  //first collect disjunction equivalences
+  AIGStack::DelIterator dEqColIt(conjStack);
+  while(dEqColIt.hasNext()) {
+    AIGRef a = dEqColIt.next();
+    Equiv eq;
+    if(isDisjEquiv(a, eq)) {
+      res.push(eq);
+      dEqColIt.del();
+    }
+  }
+
+  //and now conjunction equivalences
+  collectConjEquivs(conjStack, res);
+}
+
 AIGRef AIGConditionalRewriter::apply(AIGRef a0)
 {
   CALL("AIGConditionalRewriter::apply");
@@ -494,6 +617,41 @@ AIGRef AIGConditionalRewriter::apply(AIGRef a0)
   LOG("bug","init:  "<<a0);
   LOG("bug","pren: "<<aPrenex);
   LOG("bug","mnsc: "<<aMinis);
+
+  AIGPrenexTransformer::QIStack quants;
+  AIGRef prenexInner;
+  apt.collectQuants(aPrenex, quants, prenexInner);
+
+  LOG("bug","-----------------------");
+  LOG("bug","-----------------------");
+  LOG("bug","-----------------------");
+
+  AIGStack conjs;
+  collectConjuncts(prenexInner, conjs);
+
+  EquivStack eqs;
+  collectEquivs(conjs, eqs);
+
+  LOGV("bug",conjs.size());
+
+  while(conjs.isNonEmpty()) {
+    LOGV("bug", conjs.pop());
+  }
+
+  while(eqs.isNonEmpty()) {
+    LOGV("bug", eqs.pop().toString());
+  }
+
+  LOG("bug","-----------------------");
+  LOG("bug","-----------------------");
+  LOG("bug","-----------------------");
+
+  collectConjuncts(aMinis, conjs);
+  LOGV("bug",conjs.size());
+
+  while(conjs.isNonEmpty()) {
+    LOGV("bug", conjs.pop());
+  }
 
   return aPrenex;
 }

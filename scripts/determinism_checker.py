@@ -127,8 +127,8 @@ try:
 except Finished as e:
     print e.msg
 finally:
-    if not vp1.poll():
+    if vp1.poll()==None:
         vp1.kill()
-    if not vp2.poll():
+    if vp2.poll()==None:
         vp2.kill()
 
