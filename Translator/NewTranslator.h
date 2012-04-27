@@ -135,6 +135,7 @@ protected:
   //flag is the indicator if the loop/if construction is in the outermost structure
   //or is in the body of some construction
   bool flag;
+  uint innerWhile;
 
 private:
   collectionOfObjects* colect;

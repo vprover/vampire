@@ -1,0 +1,20 @@
+In order to compile and use clang and LLVM you have to perform the following:
+
+1. download llvm and clang distributions - in order to make sure the code behaves as expected, please use RELEASE_30 (revision 155707). The llvm distribution can be downloaded using svn co http://llvm.org/svn/llvm-project/llvm/trunk . Let's call the directory where you downloaded this distribution $LLVM_ROOT. Now you have to download the clang distribution.
+2. Download it into $LLVM_ROOT/tools/clang using svn from: svn co http://llvm.org/svn/llvm-project/cfe/trunk - take care for the revision number. IT IS IMPORTANT TO HAVE THE SAME RELEASE_30 (revision 155707). 
+Once the download is done, you can start building the sistem - depending on the hardware you have, it might take a while (aprox. 30-40 min).
+
+3. Create the directory $LLVM_SRC_ROOT/../build (let's call it $LLVM_OBJ_ROOT).
+4. cd $LLVM_OBJ_ROOT
+5. $LLVM_SRC_ROOT/configure
+6. make
+
+NOTE that the in order to perform all the above steps one needs to have several software packages installed. More details can be found here: http://llvm.org/docs/GettingStarted.html#requirements
+Also more details about compilation and installation of llvm and clang can be found here: http://clang.llvm.org/get_started.html
+
+Now that you have build the llvm+clang system, you still have to install it. For this purpose run make install.
+
+In order to compile correctly the project, one has to create three symbolic links: 
+1. RelClang - to the directory where you installed the llvm+clang ( linux default: /usr/local/lib/ )  
+2. SrcInclude - should link to the $LLVM_SRC_ROOT/include
+3. BuildInclude - should link to $LLVM_OBJ_ROOT/include

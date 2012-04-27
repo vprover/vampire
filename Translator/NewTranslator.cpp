@@ -39,7 +39,7 @@ using namespace llvm;
 using namespace std;
 
 newTranslator::newTranslator(::clang::Stmt* body, ::clang::ASTContext* CTX) :
-  decl_body(body), ctx(CTX)
+  decl_body(body), ctx(CTX), innerWhile(99)
 {
   colect = new collectionOfObjects();
 }
@@ -178,6 +178,7 @@ void newTranslator::VisitStmt(const Stmt* stmt)
 	Visit(ws->getBody());
 	Body.insert(Body.end(), "end_while");
 	writeWhileStatments();
+	bac=Body[Body.size()-1];
 	Body = back;
 	Body.insert(Body.end(), bac);
 
@@ -787,12 +788,14 @@ void newTranslator::writeWhileStatments()
       }
 
       //condition, body
+      innerWhile++;
       Program::FunctionApplicationExpression* condit =
 	      colect->getFunctionApplicationExpression(Body[b_while + 1]);
       whileDoS = new Program::WhileDo(condit, wBlock);
-      colect->insertWhileDo("Whl_" + Body[b_while + 1], whileDoS);
+
+      colect->insertWhileDo("Whl_" + Body[b_while + 1]+noToString(innerWhile), whileDoS);
       no = e_while - b_while;
-      Body[b_while++] = "Whl_" + Body[b_while + 1];
+      Body[b_while++] = "Whl_" + Body[b_while + 1]+noToString(innerWhile);
 
       for (j = e_while + 1; j < Body.size(); j++)
 	Body[b_while++] = Body[j];
@@ -816,16 +819,17 @@ void newTranslator::writeWhileStatments()
       else
 	wBlock->setStatement(j, colect->getWhile(Body[j]));
     }
-    colect->insertBlock("loop" + _mainProgram[_mainProgram.size() - 1], wBlock);
+
+    string condName = _mainProgram[_mainProgram.size()-1].substr(4);
+    string whileName = condName+ noToString(_mainProgram.size());
+     _mainProgram[_mainProgram.size()-1]= whileName;
+    colect->insertBlock("loop" + whileName, wBlock);
     while (!Body.empty())
       Body.pop_back();
-
     Program::FunctionApplicationExpression* condit =
-	    colect->getFunctionApplicationExpression(
-		    _mainProgram[_mainProgram.size() - 1].substr(4));
+	    colect->getFunctionApplicationExpression(condName);
     whileDoS = new Program::WhileDo(condit, wBlock);
-
-    colect->insertWhileDo(_mainProgram[_mainProgram.size() - 1], whileDoS);
+    colect->insertWhileDo(whileName, whileDoS);
     colect->insertMainProgramStatement(whileDoS);
   }
 
@@ -836,8 +840,7 @@ void newTranslator::writeIfStatments(string att)
   CALL("newTranslator::writeIfStatements");
   int b_then = -1, b_else = -1, e_then = -1, e_else = -1;
   uint i;
-  //go to first then - outer if
-
+    //go to first then - outer if
   int b_inIf = -1, e_inIf = -1;
   std::vector<string> backup;
   for (i = 0; i < Body.size(); i++) {

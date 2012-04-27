@@ -529,7 +529,7 @@ endef
 # LLVM external dependencies and build commands
 
 ifneq (,$(filter vanalyze% ,$(MAKECMDGOALS)))
-CLANGLIBS := /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangFrontend.a \
+#CLANGLIBS := /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangFrontend.a \
     /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangParse.a \
     /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangSema.a \
     /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangAnalysis.a \
@@ -544,23 +544,20 @@ CLANGLIBS := /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangFrontend.a 
     /home/ioan/proseed/proseed/llvm/build/Debug/lib/libLLVMCore.a
     
     
-RELCLANG := /usr/local/lib/libclangFrontend.a \
-    /usr/local/lib/libclangParse.a \
-    /usr/local/lib/libclangSema.a \
-   /usr/local/lib/libclangAnalysis.a \
-   /usr/local/lib/libclangAST.a \
-    /usr/local/lib/libclangLex.a \
-    /usr/local/lib/libclangBasic.a \
-    /usr/local/lib/libclangDriver.a \
-    /usr/local/lib/libclangSerialization.a \
-    /usr/local/lib/libLLVMMC.a \
-    /usr/local/lib/libLLVMCppBackend.a \
-   /usr/local/lib/libLLVMCore.a \
-   /usr/local/lib/libLLVMSupport.a 
+RELCLANG := RelClang/libclangFrontend.a \
+    RelClang/libclangParse.a \
+    RelClang/libclangSema.a \
+    RelClang/libclangAnalysis.a \
+   	RelClang/libclangAST.a \
+    RelClang/libclangLex.a \
+    RelClang/libclangBasic.a \
+    RelClang/libclangDriver.a \
+    RelClang/libclangSerialization.a \
+    RelClang/libLLVMMC.a \
+    RelClang/libLLVMCppBackend.a \
+    RelClang/libLLVMCore.a \
+    RelClang/libLLVMSupport.a 
    
- #  -lpthread \
- #  -ldl
-
 -lpthread:
 -ldl: 
 define LLVM_COMPILE_CMD

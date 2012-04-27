@@ -205,7 +205,6 @@ bool collectionOfObjects::multipleLoops(Program::Statement* s)
 void collectionOfObjects::runAnalysis(int whileNumber)
 {
   CALL("collectionOfObjects::runAnalysis");
-
   if (_mapOfWhile.numberOfElements() < whileNumber || whileNumber <= 0)
     USER_ERROR("you have less whiles than the number introduced! take care @ -wno option!");
   else {
@@ -227,9 +226,10 @@ void collectionOfObjects::runAnalysis(int whileNumber)
 	  whileNo++;
       }
     }
-    /*	  if(whileNo<=whileNumber)
-     USER_ERROR("less whiles than the number introduced!");*/
+    	  if(whileNo<=whileNumber)
+     USER_ERROR("less whiles than the number introduced!");
   }
+
 
 }
 
