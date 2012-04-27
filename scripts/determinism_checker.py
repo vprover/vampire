@@ -9,9 +9,6 @@ import tempfile
 import os
 import math
 
-tmpDataFile = tempfile.NamedTemporaryFile()
-tmpHistFiles = []
-
 vampCmdLine = None
 printTraces = False
 altExecutable = None

@@ -137,6 +137,14 @@ timer_sigalrm_handler (int sig)
   if(Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
     timeLimitReached();
   }
+
+#if DEBUG_TIMER_CHANGES
+  if(timer_sigalrm_counter<0) {
+    cout << "Timer value became negative after increase: " << timer_sigalrm_counter <<endl;
+    System::terminateImmediately(1);
+  }
+#endif
+
 }
 
 /** number of miliseconds (of CPU time) passed since some moment */
