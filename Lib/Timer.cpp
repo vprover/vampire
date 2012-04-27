@@ -108,6 +108,27 @@ void timeLimitReached()
 void
 timer_sigalrm_handler (int sig)
 {
+#if DEBUG_TIMER_CHANGES
+  static bool initialized = false;
+  static int preInt;
+  static int postInt;
+  if(!initialized) {
+    initialized = true;
+    preInt = (&timer_sigalrm_counter)[-1];
+    postInt = (&timer_sigalrm_counter)[1];
+  }
+  else {
+    if(preInt!=(&timer_sigalrm_counter)[-1] || postInt!=(&timer_sigalrm_counter)[1]) {
+      cout <<endl<< "pre: "<<preInt<<"   "<<(&timer_sigalrm_counter)[-1]<<endl;
+      cout <<endl<< "tmr: "<<timer_sigalrm_counter<<endl;
+      cout <<endl<< "pst: "<<postInt<<"   "<<(&timer_sigalrm_counter)[1]<<endl;
+      System::terminateImmediately(1);
+    }
+  }
+  ASS_GE(timer_sigalrm_counter,0);
+#endif
+
+
   timer_sigalrm_counter++;
 
   if(Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
