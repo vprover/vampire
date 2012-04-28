@@ -79,6 +79,34 @@ private:
   AIGTransformer _atr;
 };
 
+class AIGFactorizingTransformer
+{
+public:
+  AIGFactorizingTransformer(AIG& aig) : _aig(aig), _atr(aig) {}
+
+  AIGRef apply(AIGRef a0);
+private:
+  typedef AIGTransformer::RefMap RefMap;
+  struct RecursiveVisitor;
+  struct LocalFactorizer;
+
+  void doLocalFactorization(AIGStack& conj);
+
+  RefMap _transfCache;
+
+  AIG& _aig;
+  AIGTransformer _atr;
+};
+
+//class AIGInferenceEngine
+//{
+//public:
+//  void addValidNode(AIGRef node);
+//  void removeValidNode(AIGRef node);
+//
+//  AIGRef simplify(AIGRef a, AIGStack* premises);
+//};
+
 class AIGConditionalRewriter
 {
 public:
@@ -154,7 +182,6 @@ private:
   typedef Stack<Equiv> EquivStack;
 
   AIGRef getOppositeImpl(AIGRef a);
-  void collectConjuncts(AIGRef aig, AIGStack& res);
   bool isDisjEquiv(AIGRef a, Equiv& eq);
 
 

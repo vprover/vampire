@@ -1487,7 +1487,7 @@ MainLoopResult SaturationAlgorithm::runImpl()
       }
     }
   }
-  catch(ThrowableBase)
+  catch(ThrowableBase&)
   {
     tryUpdateFinalClauseCount();
     throw;

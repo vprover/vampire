@@ -190,7 +190,7 @@ public:
    *  this key has to be present.
    */
   inline
-  Val get(Key key) const
+  const Val& get(Key key) const
   {
     const Entry* e=findEntry(key);
     ASS(e);

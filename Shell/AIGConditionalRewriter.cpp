@@ -5,11 +5,14 @@
 
 #include <algorithm>
 
+#include "Lib/SafeRecursion.hpp"
+
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/SubstHelper.hpp"
 
+#include "AIGCompressor.hpp"
 #include "AIGSubst.hpp"
 
 #include "AIGConditionalRewriter.hpp"
@@ -441,6 +444,237 @@ AIGRef AIGMiniscopingTransformer::apply(AIGRef a0)
   return res;
 }
 
+//////////////////////////////
+// AIGFactorizingTransformer
+//
+
+struct AIGFactorizingTransformer::LocalFactorizer
+{
+  LocalFactorizer(AIGFactorizingTransformer& parent) : _parent(parent), _aig(parent._aig) {}
+
+  static AIGRef getSiblingDisjunct(AIGRef disjunction, AIGRef oneChild)
+  {
+    CALL("AIGFactorizingTransformer::LocalFactorizer::getSiblingDisjunct");
+    ASS(disjunction.isConjunction());
+    ASS(!disjunction.polarity());
+    if(disjunction.parent(0).neg()==oneChild) {
+      return disjunction.parent(1).neg();
+    }
+    ASS_EQ(disjunction.parent(1).neg(),oneChild);
+    return disjunction.parent(0).neg();
+  }
+
+  AIGRef getFactoredDisjunctionAndUpdateOccData(AIGRef factoredChild, const AIGStack& disjunctionStack)
+  {
+    CALL("AIGFactorizingTransformer::LocalFactorizer::getFactoredDisjunctionAndUpdateOccData");
+
+    static AIGStack conjuncts;
+    conjuncts.reset();
+    AIGStack::ConstIterator dit(disjunctionStack);
+    while(dit.hasNext()) {
+      AIGRef disj = dit.next();
+      AIGRef conjunct = getSiblingDisjunct(disj, factoredChild);
+      conjuncts.push(conjunct);
+
+      AIGStack& updatedOccStack = _occMap.get(conjunct);
+      ASS_NEQ(&updatedOccStack, &disjunctionStack);
+      updatedOccStack.remove(disj);  //can cause quadratic behavior
+      if(updatedOccStack.size()<2) {
+	_subAigs.remove(conjunct);   //can cause quadratic behavior
+      }
+    }
+    AIGRef subConj = _aig.makeConjunction(conjuncts);
+    AIGRef res = _aig.getDisj(factoredChild, subConj);
+    return res;
+  }
+
+  void apply(AIGStack& conjs)
+  {
+    CALL("AIGFactorizingTransformer::LocalFactorizer::apply");
+    _subAigs.reset();
+    _occMap.reset();
+
+    scan(conjs);
+
+    static DHSet<AIGRef> removedConjs;
+    removedConjs.reset();
+
+    while(_subAigs.isNonEmpty()) {
+      AIGRef fdisj = getMostFactorableDisjunct();
+
+      AIGStack& occStack= _occMap.get(fdisj);
+      ASS_GE(occStack.size(),2);
+
+      AIGRef mergedDisj = getFactoredDisjunctionAndUpdateOccData(fdisj, occStack);
+      removedConjs.loadFromIterator(AIGStack::ConstIterator(occStack));
+      conjs.push(mergedDisj);
+      occStack.reset();
+      ALWAYS(_subAigs.remove(fdisj));   //can cause quadratic behavior
+    }
+
+    AIGStack::DelIterator cleaningIt(conjs);
+    while(cleaningIt.hasNext()) {
+      AIGRef a = cleaningIt.next();
+      if(removedConjs.contains(a)) {
+	cleaningIt.del();
+      }
+    }
+  }
+
+private:
+
+  void scanOccurrence(AIGRef conjunct, AIGRef subDisjunct)
+  {
+    CALL("AIGFactorizingTransformer::LocalFactorizer::scanOccurrence");
+
+    AIGStack* occStackPtr;
+    _occMap.getValuePtr(subDisjunct, occStackPtr, AIGStack());
+    occStackPtr->push(conjunct);
+    if(occStackPtr->size()==2) {
+      _subAigs.push(subDisjunct);
+    }
+  }
+
+  void scan(const AIGStack& conjs)
+  {
+    CALL("AIGFactorizingTransformer::LocalFactorizer::scan");
+
+    AIGStack::ConstIterator scanIt(conjs);
+    while(scanIt.hasNext()) {
+      AIGRef a = scanIt.next();
+      if(!a.isConjunction()) {
+        continue;
+      }
+      ASS(!a.polarity()); //positive conjunctions were split by AIG::collectConjuncts
+
+      scanOccurrence(a, a.parent(0).neg());
+      scanOccurrence(a, a.parent(1).neg());
+    }
+  }
+
+  AIGRef getMostFactorableDisjunct()
+  {
+    CALL("AIGFactorizingTransformer::LocalFactorizer::getMostFactorableDisjunct");
+    ASS(_subAigs.isNonEmpty());
+
+    unsigned mostOcc = 0;
+    AIGRef res;
+
+    AIGStack::ConstIterator sit(_subAigs);
+    while(sit.hasNext()) {
+      AIGRef sAig = sit.next();
+      unsigned occCnt = _occMap.get(sAig).size();
+      if(occCnt>mostOcc) {
+	mostOcc = occCnt;
+	res = sAig;
+      }
+    }
+    ASS_GE(mostOcc, 2);
+    return res;
+  }
+
+  /** sub-disjuncts which can be potentially factored out (i.e. occur in at least two conjuncts) */
+  AIGStack _subAigs;
+  /**
+   * Map of sub-disjuncts to conjuncts in which they occur
+   */
+  DHMap<AIGRef,AIGStack> _occMap;
+
+  AIGFactorizingTransformer& _parent;
+  AIG& _aig;
+};
+
+void AIGFactorizingTransformer::doLocalFactorization(AIGStack& conj)
+{
+  CALL("AIGFactorizingTransformer::doLocalFactorization");
+
+  LocalFactorizer fact(*this);
+  fact.apply(conj);
+}
+
+/**
+ * Visitor for use in the SafeRecursion object
+ */
+struct AIGFactorizingTransformer::RecursiveVisitor
+{
+  RecursiveVisitor(AIGFactorizingTransformer& parent)
+      : _parent(parent), _aig(parent._aig), _transfCache(parent._transfCache) {}
+
+  template<class ChildCallback>
+  void pre(AIGRef obj, ChildCallback fn)
+  {
+    CALL("AIGFactorizingTransformer::RecursiveVisitor::pre");
+
+    if(obj.isAtom()) {
+      return;
+    }
+    if(_transfCache.find(obj.getPositive())) {
+      return;
+    }
+
+    if(obj.isQuantifier()) {
+      fn(obj.parent(0));
+      return;
+    }
+    ASS(obj.isConjunction());
+    static AIGStack conjuncts;
+    conjuncts.reset();
+    _aig.collectConjuncts(obj.getPositive(), conjuncts);
+    while(conjuncts.isNonEmpty()) {
+      fn(conjuncts.pop());
+    }
+  }
+
+  AIGRef post(AIGRef obj, size_t childCnt, AIGRef* childRes)
+  {
+    CALL("AIGFactorizingTransformer::RecursiveVisitor::post");
+
+    if(obj.isAtom()) {
+      ASS_EQ(childCnt,0);
+      return obj;
+    }
+    AIGRef res;
+    if(_transfCache.find(obj.getPositive(), res)) {
+      ASS_EQ(childCnt,0);
+      return AIGTransformer::lev0Deref(obj, _transfCache);
+    }
+
+    AIGRef posRes;
+    if(obj.isQuantifier()) {
+      ASS_EQ(childCnt,1);
+      if(childRes[0]==obj.parent(0)) {
+	return obj;
+      }
+      posRes = _aig.getQuant(false, obj.getQuantifierVars(), childRes[0]);
+    }
+    else {
+      ASS(obj.isConjunction());
+
+      static AIGStack childNodes;
+      childNodes.reset();
+      childNodes.loadFromIterator(getArrayishObjectIterator(childRes, childCnt));
+      _parent.doLocalFactorization(childNodes);
+      posRes = _aig.makeConjunction(childNodes);
+    }
+
+    ALWAYS(_transfCache.insert(obj.getPositive(), posRes));
+    return obj.polarity() ? posRes : posRes.neg();
+  }
+
+  AIGFactorizingTransformer& _parent;
+  AIG& _aig;
+  RefMap& _transfCache;
+};
+
+AIGRef AIGFactorizingTransformer::apply(AIGRef a0)
+{
+  CALL("AIGFactorizingTransformer::apply");
+
+  RecursiveVisitor visitor(*this);
+  SafeRecursion<AIGRef,AIGRef,RecursiveVisitor> safeRec(visitor);
+  return safeRec(a0);
+}
+
 
 ///////////////////////////
 // AIGConditionalRewriter
@@ -475,25 +709,6 @@ void AIGConditionalRewriter::apply(UnitList*& units)
   }
 
   AIGRef conjTransf = apply(conj);
-}
-
-void AIGConditionalRewriter::collectConjuncts(AIGRef aig, AIGStack& res)
-{
-  CALL("AIGConditionalRewriter::collectConjuncts");
-  ASS(res.isEmpty());
-
-  static AIGStack toDo;
-  toDo.reset();
-  toDo.push(aig);
-  while(toDo.isNonEmpty()) {
-    AIGRef a = toDo.pop();
-    if(!a.polarity() || !a.isConjunction()) {
-      res.push(a);
-      continue;
-    }
-    toDo.push(a.parent(0));
-    toDo.push(a.parent(1));
-  }
 }
 
 /**
@@ -610,48 +825,62 @@ AIGRef AIGConditionalRewriter::apply(AIGRef a0)
   AIGPrenexTransformer apt(_aig);
   AIGRef aPrenex = apt.apply(a0);
 
+  AIGFactorizingTransformer factor(_aig);
+  AIGRef aFactor = factor.apply(aPrenex);
 
   AIGMiniscopingTransformer minis(_aig);
-  AIGRef aMinis = minis.apply(aPrenex);
+  AIGRef aMinis = minis.apply(aFactor);
 
-  LOG("bug","init:  "<<a0);
-  LOG("bug","pren: "<<aPrenex);
-  LOG("bug","mnsc: "<<aMinis);
+
+//  LOG("bug","init:  "<<a0);
+//  LOG("bug","pren: "<<aPrenex);
+//  LOG("bug","fact: "<<aFactor);
+//  LOG("bug","mnsc: "<<aMinis);
+
+
 
   AIGPrenexTransformer::QIStack quants;
-  AIGRef prenexInner;
-  apt.collectQuants(aPrenex, quants, prenexInner);
+  AIGRef factInner;
+  apt.collectQuants(aFactor, quants, factInner);
+
 
   LOG("bug","-----------------------");
   LOG("bug","-----------------------");
   LOG("bug","-----------------------");
 
   AIGStack conjs;
-  collectConjuncts(prenexInner, conjs);
+  _aig.collectConjuncts(factInner, conjs);
 
   EquivStack eqs;
   collectEquivs(conjs, eqs);
 
   LOGV("bug",conjs.size());
 
+  AIGCompressor aCompr(_aig);
+
   while(conjs.isNonEmpty()) {
-    LOGV("bug", conjs.pop());
+    AIGRef conjunct = conjs.pop();
+    AIGRef conjSimp = aCompr.compress(conjunct);
+    LOGV("bug", conjunct);
+    if(conjunct!=conjSimp) {
+      LOGV("bug", conjSimp);
+    }
   }
 
   while(eqs.isNonEmpty()) {
     LOGV("bug", eqs.pop().toString());
   }
 
-  LOG("bug","-----------------------");
-  LOG("bug","-----------------------");
-  LOG("bug","-----------------------");
-
-  collectConjuncts(aMinis, conjs);
-  LOGV("bug",conjs.size());
-
-  while(conjs.isNonEmpty()) {
-    LOGV("bug", conjs.pop());
-  }
+//  LOG("bug","-----------------------");
+//  LOG("bug","-----------------------");
+//  LOG("bug","-----------------------");
+//
+//  _aig.collectConjuncts(aMinis, conjs);
+//  LOGV("bug",conjs.size());
+//
+//  while(conjs.isNonEmpty()) {
+//    LOGV("bug", conjs.pop());
+//  }
 
   return aPrenex;
 }

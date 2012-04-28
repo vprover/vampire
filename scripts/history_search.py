@@ -144,3 +144,25 @@ switchToRevision(firstRevision)
 if not checkSuccess():
     print ("The fist revision %s did not succeed" % firstRevision)
     sys.exit(1)
+
+minRev = firstRevision
+maxRev = lastRevision-1
+while minRev!=maxRev:
+    assert minRev<maxRev
+    mid = (minRev+maxRev+1)//2
+    assert mid<=maxRev
+    assert mid>minRev
+    
+    swithToRevision(mid)
+    if checkSuccess():
+        minRev = mid
+    else:
+        maxRev = mid-1
+assert minRev==maxRev
+resultRev = minRev
+if getCurrentRevision()!=resultRev:
+    switchToRevision(resultRev)
+print('The last revision where regex "%s" is in outputs of %s is %d' % 
+      (desiredRE.pattern, buildTgt, resultRev))
+    
+    

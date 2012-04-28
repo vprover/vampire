@@ -125,6 +125,8 @@ public:
       return res;
     }
   };
+
+  typedef Stack<Ref> AIGStack;
 private:
   /** Proxy object for Ref which is without constructor so can be used inside a union */
   struct RefProxy {
@@ -200,12 +202,15 @@ public:
 
   Ref getInvalid() const { return Ref::getInvalid(); }
 
+  void collectConjuncts(Ref aig, AIGStack& res);
+  Ref makeConjunction(const AIGStack& conjuncts);
+
   static VarSet* getTermFreeVars(Term* lit);
   static bool hasPositivePolarity(Ref r) { return r.polarity(); }
 };
 
 typedef AIG::Ref AIGRef;
-typedef Stack<AIGRef> AIGStack;
+typedef AIG::AIGStack AIGStack;
 
 inline
 std::ostream& operator<< (ostream& out, const AIGRef& f)

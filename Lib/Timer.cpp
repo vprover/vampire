@@ -180,6 +180,12 @@ int Lib::Timer::guaranteedMilliseconds()
 {
   tms aux;
   clock_t ticks=times(&aux);
+#if DEBUG_TIMER_CHANGES
+  if(ticks==((clock_t)-1)) {
+    cout << "clock value -1 returned by times()" <<endl;
+    System::terminateImmediately(1);
+  }
+#endif
   return static_cast<long long>(ticks*1000)/s_ticksPerSec;
 }
 

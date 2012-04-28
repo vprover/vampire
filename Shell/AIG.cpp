@@ -787,6 +787,46 @@ bool AIG::tryO4ConjSimpl(Ref& par1, Ref& par2)
   NOT_IMPLEMENTED;
 }
 
+void AIG::collectConjuncts(AIGRef aig, AIGStack& res)
+{
+  CALL("AIG::collectConjuncts");
+  ASS(res.isEmpty());
+
+  static AIGStack toDo;
+  toDo.reset();
+  toDo.push(aig);
+  while(toDo.isNonEmpty()) {
+    AIGRef a = toDo.pop();
+    if(!a.polarity() || !a.isConjunction()) {
+      res.push(a);
+      continue;
+    }
+    toDo.push(a.parent(0));
+    toDo.push(a.parent(1));
+  }
+}
+
+AIGRef AIG::makeConjunction(const AIGStack& conjuncts)
+{
+  CALL("AIG::makeConjunction");
+
+  if(conjuncts.isEmpty()) {
+    return getTrue();
+  }
+
+  static AIGStack conjNorm;
+  conjNorm = conjuncts;
+
+  std::sort(conjNorm.begin(), conjNorm.end());
+
+  AIGRef res = conjNorm.pop();
+  while(conjNorm.isNonEmpty()) {
+    res = getConj(res, conjNorm.pop());
+  }
+  return res;
+}
+
+
 ////////////////////////////
 // AIGInsideOutPosIterator
 //
