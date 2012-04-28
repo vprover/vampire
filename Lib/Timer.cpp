@@ -186,6 +186,9 @@ int Lib::Timer::guaranteedMilliseconds()
     System::terminateImmediately(1);
   }
 #endif
+  if(ticks==((clock_t)-1)) {
+    return -1;
+  }
   return static_cast<long long>(ticks)*1000/s_ticksPerSec;
 }
 
@@ -245,7 +248,27 @@ void Lib::Timer::ensureTimerInitialized()
 
 void Lib::Timer::syncClock()
 {
-  int newVal=guaranteedMilliseconds()-s_initGuarantedMiliseconds;
+  if(s_initGuarantedMiliseconds==-1) {
+    //we're unable to sync clock as we weren't able to obtain number of ticks in the beginning
+    bool reportedProblem = false;
+    if(!reportedProblem) {
+      reportedProblem = true;
+      cerr << "cannot syncronize clock as times() initially returned -1" << endl;
+    }
+    return;
+  }
+  int newMilliseconds = guaranteedMilliseconds();
+  if(newMilliseconds==-1) {
+    //we're unable to sync clock as we cannot get the current time
+    bool reportedProblem = false;
+    if(!reportedProblem) {
+      reportedProblem = true;
+      cerr << "could not syncronize clock as times() returned -1" << endl;
+    }
+    return;
+  }
+
+  int newVal=newMilliseconds-s_initGuarantedMiliseconds;
   if(abs(newVal-timer_sigalrm_counter)>20) {
     timer_sigalrm_counter=newVal;
   }
