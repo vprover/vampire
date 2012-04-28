@@ -19,7 +19,7 @@
 
 #include "Timer.hpp"
 
-#define DEBUG_TIMER_CHANGES 1
+#define DEBUG_TIMER_CHANGES 0
 
 using namespace std;
 using namespace Lib;
