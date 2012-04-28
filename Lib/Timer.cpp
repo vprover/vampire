@@ -186,7 +186,7 @@ int Lib::Timer::guaranteedMilliseconds()
     System::terminateImmediately(1);
   }
 #endif
-  return static_cast<long long>(ticks*1000)/s_ticksPerSec;
+  return static_cast<long long>(ticks)*1000/s_ticksPerSec;
 }
 
 void Lib::Timer::suspendTimerBeforeFork()
