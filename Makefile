@@ -260,6 +260,7 @@ VS_OBJ = Shell/AIG.o\
          Shell/AIGCompressor.o\
          Shell/AIGConditionalRewriter.o\
          Shell/AIGDefinitionIntroducer.o\
+         Shell/AIGInferenceEngine.o\
          Shell/AIGInliner.o\
          Shell/AIGRewriter.o\
          Shell/AnswerExtractor.o\

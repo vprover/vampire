@@ -98,15 +98,6 @@ private:
   AIGTransformer _atr;
 };
 
-//class AIGInferenceEngine
-//{
-//public:
-//  void addValidNode(AIGRef node);
-//  void removeValidNode(AIGRef node);
-//
-//  AIGRef simplify(AIGRef a, AIGStack* premises);
-//};
-
 class AIGConditionalRewriter
 {
 public:
