@@ -10,7 +10,7 @@
 
 #include "Lib/DHSet.hpp"
 
-#include "Aig.hpp"
+#include "AIG.hpp"
 
 
 namespace Shell {

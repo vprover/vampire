@@ -118,7 +118,7 @@ def switchToRevision(revNum):
         raise Failure("failed: svn update")
     if not execCmd(["make","depend"], True):
         raise Failure("failed: svn update")
-    if not execCmd(["make",buildTgt], True):
+    if not execCmd(["make","-j","2",buildTgt], True):
         raise Failure("failed: make %s" % buildTgt)
 
 def checkSuccess():
