@@ -153,7 +153,7 @@ while minRev!=maxRev:
     assert mid<=maxRev
     assert mid>minRev
     
-    swithToRevision(mid)
+    switchToRevision(mid)
     if checkSuccess():
         minRev = mid
     else:
