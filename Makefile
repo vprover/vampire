@@ -412,7 +412,8 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
 	  Shell/GlobalOptions.o\
-	  ClausifierDependencyFix.o
+	  ClausifierDependencyFix.o\
+          version.o
 
 OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Indexing/LiteralSubstitutionTree.o\

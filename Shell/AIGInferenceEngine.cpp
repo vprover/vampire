@@ -27,9 +27,16 @@ AIGRef BottomUpAIGEngine::apply(AIGRef a, AIGStack* premises)
   _buildingIterator.reset(a);
   while(_buildingIterator.hasNext()) {
     AIGRef cur = _buildingIterator.next();
+    AIGRef curDer = level1Deref(cur);
+    AIGRef curRes = applyImpl(curDer);
+    if(cur!=curRes) {
+      _localCache.insert(cur, curRes);
+    }
   }
 
   NOT_IMPLEMENTED;
+  AIGRef res = level0Deref(a);
+  return res;
 }
 
 AIGRef BottomUpAIGEngine::level0Deref(AIGRef a)
