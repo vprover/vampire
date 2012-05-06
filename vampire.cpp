@@ -427,7 +427,21 @@ int main(int argc, char* argv [])
       vampireMode();
       break;
     case Options::MODE_CASC:
-      if(Shell::CASC::CASCMode::perform(argc, argv)) {
+      if(Shell::CASC::CASCMode::perform(argc,argv)) {
+	//casc mode succeeded in solving the problem, so we return zero
+	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
+      break;
+    case Options::MODE_CASC_SAT:
+      Shell::CASC::CASCMode::makeSat();
+      if(Shell::CASC::CASCMode::perform(argc,argv)) {
+	//casc mode succeeded in solving the problem, so we return zero
+	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
+      break;
+    case Options::MODE_CASC_EPR:
+      Shell::CASC::CASCMode::makeEPR();
+      if(Shell::CASC::CASCMode::perform(argc,argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }

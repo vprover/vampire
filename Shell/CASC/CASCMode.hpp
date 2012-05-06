@@ -30,7 +30,11 @@ public:
 
   typedef Stack<string> Schedule;
   static void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
+  static void getSchedulesSat(Property& prop, Schedule& quick, Schedule& fallback);
+  static void getSchedulesEPR(Property& prop, Schedule& quick, Schedule& fallback);
   static unsigned getSliceTime(string sliceCode,string& chopped);
+  static void makeSat() {_sat=true;}
+  static void makeEPR() {_epr=true;}
 protected:
   /**
    * Run a slice correponding to the options.
@@ -42,6 +46,10 @@ protected:
 
   /** The problem property, computed once in the parent process */
   Property* _property;
+  /** True if satisfiability checking */
+  static bool _sat;
+  /** True if EPR formulas */
+  static bool _epr;
 
 private:
   typedef Set<string> StrategySet;
