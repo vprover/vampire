@@ -634,7 +634,7 @@ bool EquivalenceDiscoveringTransformer::apply(Problem& prb)
   CALL("EquivalenceDiscoveringTransformer::apply(Problem&)");
 
   if(apply(prb.units())) {
-    prb.invalidateProperty();
+    prb.invalidateEverything();
     return true;
   }
   return false;
