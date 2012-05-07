@@ -22,6 +22,7 @@ public:
   typedef SATClause::ActivityType ActivityType;
 
   ClauseDisposer(TWLSolver& solver) : _solver(solver) {}
+  virtual ~ClauseDisposer() {}
 
   /**
    * This is a point at which it is safe to remove learnt

@@ -19,6 +19,7 @@ class VariableSelector
 {
 public:
   VariableSelector(TWLSolver& solver) : _solver(solver) {}
+  virtual ~VariableSelector() {}
 
   /**
    * If possible, assign @c var to be the variable of the next decision point

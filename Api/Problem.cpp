@@ -159,15 +159,23 @@ void Problem::PreprocessingOptions::addAsymmetricRewritingRule(Formula lhs,
   _ods.dblRhs->push(dblRhs);
 }
 
+/**
+ * Functor that extracts atoms from Api formulas that are aither atoms or negations of atoms.
+ */
 struct Problem::PreprocessingOptions::Atom2LitFn
 {
   DECL_RETURN_TYPE(Kernel::Literal*);
   OWN_RETURN_TYPE operator()(Formula f) {
     CALL("Problem::PreprocessingOptions::Atom2LitFn::operator()");
-    if(f.form->connective()!=Kernel::LITERAL) {
-      throw ApiException("Formulas passed to PreprocessingOptions::restrictPredicateEquivalenceDiscovery must be atoms");
+
+    Kernel::Formula* form = f.form;
+    while(form->connective()==Kernel::NOT) {
+      form = form->uarg();
     }
-    return f.form->literal();
+    if(form->connective()!=Kernel::LITERAL) {
+      throw ApiException("Formulas passed to PreprocessingOptions::restrictPredicateEquivalenceDiscovery must be atoms or negations of atoms");
+    }
+    return form->literal();
   }
 };
 
@@ -1354,7 +1362,7 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
   }
 
   if(options.equivalenceDiscovery!=ED_NONE) {
-    LOG("api_prb_prepr_progress","predicate equivalence discovery");
+    LOG("api_prb_prepr_progress","equivalence discovery (SAT sweeping)");
     res = PredicateEquivalenceDiscoverer(options.equivalenceDiscovery,
 	options.equivalenceDiscoverySatConflictLimit, options.equivalenceDiscoveryRandomSimulation,
 	options.equivalenceDiscoveryAddImplications,
