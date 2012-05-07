@@ -426,7 +426,7 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
 bool ISSatSweeping::tryProvingImplication(Impl imp, bool& foundEquivalence)
 {
   CALL("ISSatSweeping::tryProvingImplication");
-  ASS_NEQ(_equivalentVars.root(imp.first.var()), _equivalentVars.root(imp.second.var()));
+//  ASS_NEQ(_equivalentVars.root(imp.first.var()), _equivalentVars.root(imp.second.var()));
 
   if(_implications.find(imp)) {
     LOG("sat_iss_try_impl","implication found in look-up: "<<imp.first<<" -> "<<imp.second);
@@ -509,6 +509,7 @@ bool ISSatSweeping::doOneProbing()
   if(!getProbingCandidates(cand1, cand2)) {
     return false;
   }
+  ASS_NEQ(_equivalentVars.root(cand1.var()), _equivalentVars.root(cand2.var()));
 
   bool foundEquivalence = false;
   if(tryProvingImplication(Impl(cand1, cand2), foundEquivalence) && !foundEquivalence) {
