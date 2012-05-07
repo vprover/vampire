@@ -31,7 +31,7 @@ public:
 
   ISSatSweeping(unsigned varCnt, SATSolver& solver,
       IntIterator interestingVarIterator = IntIterator::getInvalid(),
-      bool doRandomSimulation = true, unsigned conflictLimit = UINT_MAX);
+      bool doRandomSimulation = true, unsigned conflictLimit = UINT_MAX, bool collectImplications=true);
 
 
   const DHSet<Impl>& getImplications() const { return _implications; }
@@ -63,6 +63,8 @@ private:
   void lookForImplications(SATLiteral probedLit, bool assignedOpposite,
       bool& foundEquivalence);
   void addImplication(Impl i, bool& foundEquivalence);
+  void onRedundantImplicationDiscovered();
+  void doRedundantImplicationSweeping();
 
   bool tryProvingImplicationInner(Impl imp, bool& foundEquivalence);
   bool tryProvingImplication(Impl imp, bool& foundEquivalence);
@@ -82,6 +84,7 @@ private:
   //options
   bool _doRandomSimulation;
   bool _conflictUpperLimit;
+  bool _collectImplications;
 
 
   unsigned _varCnt;
@@ -150,6 +153,12 @@ private:
    * 	a negation of a candidate literal.
    */
   DHSet<Impl> _implications;
+
+  /**
+   * Used for scheduling calls to doRedundantImplicationSweeping() in
+   * onRedundantImplicationDiscovered().
+   */
+  size_t _lastSweepingImplicationCnt;
 
   Stack<Equiv> _equivStack;
 

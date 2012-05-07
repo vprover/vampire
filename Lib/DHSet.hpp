@@ -161,6 +161,18 @@ public:
   private:
     typename InnerMap::Iterator _mit;
   };
+  class DelIterator
+  {
+  public:
+    DelIterator(DHSet& parent) : _mit(parent._map) {}
+
+    bool hasNext() { return _mit.hasNext(); }
+    Val next() { return _mit.nextKey(); }
+    void del() { _mit.del(); }
+
+  private:
+    typename InnerMap::DelIterator _mit;
+  };
 }; // class DHSet
 
 }

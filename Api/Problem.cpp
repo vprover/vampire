@@ -133,6 +133,7 @@ Problem::PreprocessingOptions::PreprocessingOptions(
   predicateIndexIntroduction(false),
   flatteningTopLevelConjunctions(false),
   equivalenceDiscovery(ED_NONE),
+  equivalenceDiscoveryRetrievePremises(true),
   equivalenceDiscoverySatConflictLimit(UINT_MAX),
   equivalenceDiscoveryAddImplications(false),
   equivalenceDiscoveryRandomSimulation(true),
@@ -1065,10 +1066,10 @@ class Problem::PredicateEquivalenceDiscoverer
 {
 public:
   PredicateEquivalenceDiscoverer(EquivalenceDiscovery mode, unsigned satConflictCountLimit,
-      bool doRandomSimulation, bool addImplications,
+      bool doRandomSimulation, bool addImplications, bool retrievePremises,
       bool restricted, Stack<Kernel::Literal*>& restrSet1, Stack<Kernel::Literal*>& restrSet2)
   : _mode(mode), _satConflictCountLimit(satConflictCountLimit), _doRandomSimulation(doRandomSimulation),
-    _addImplications(addImplications),
+    _addImplications(addImplications), _retrievePremises(retrievePremises),
     _restricted(restricted), _restrSet1(restrSet1), _restrSet2(restrSet2) {}
 
   Problem transform(Problem p)
@@ -1113,7 +1114,8 @@ public:
 
     Kernel::UnitList* eqs;
 
-    EquivalenceDiscoverer ed(true, _satConflictCountLimit, restr, _addImplications, _doRandomSimulation);
+    EquivalenceDiscoverer ed(true, _satConflictCountLimit, restr, _addImplications, _doRandomSimulation,
+	_retrievePremises);
     if(formulaDiscovery) {
       FormulaEquivalenceDiscoverer fed(ed);
       eqs = fed.getEquivalences(units);
@@ -1145,6 +1147,7 @@ private:
   unsigned _satConflictCountLimit;
   bool _doRandomSimulation;
   bool _addImplications;
+  bool _retrievePremises;
 
   bool _restricted;
   Stack<Kernel::Literal*>& _restrSet1;
@@ -1366,6 +1369,7 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
     res = PredicateEquivalenceDiscoverer(options.equivalenceDiscovery,
 	options.equivalenceDiscoverySatConflictLimit, options.equivalenceDiscoveryRandomSimulation,
 	options.equivalenceDiscoveryAddImplications,
+	options.equivalenceDiscoveryRetrievePremises,
 	options._predicateEquivalenceDiscoveryRestricted,
 	*options._ods.pedSet1,*options._ods.pedSet2).transform(res);
   }

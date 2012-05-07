@@ -49,9 +49,10 @@ namespace SAT
  * 	examined for equivalences. Each variable can appear at most once.
  */
 ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver, IntIterator interestingVarIterator,
-    bool doRandomSimulation, unsigned conflictLimit)
+    bool doRandomSimulation, unsigned conflictLimit, bool collectImplications)
 : _doRandomSimulation(doRandomSimulation),
   _conflictUpperLimit(conflictLimit),
+  _collectImplications(collectImplications),
   _varCnt(varCnt),
   _interestingVarsSet(varCnt),
   _probingGroupIndex(0),
@@ -61,6 +62,7 @@ ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver, IntIterator int
   _candidateVarPolarities(varCnt),
   _candidateGroupIndexes(varCnt),
   _equivalentVars(varCnt),
+  _lastSweepingImplicationCnt(0),
   _solver(solver)
 {
   CALL("ISSatSweeping::ISSatSweeping");
@@ -304,10 +306,49 @@ void ISSatSweeping::addImplication(Impl imp, bool& foundEquivalence)
     foundEquivalence = _equivalentVars.doUnion(imp.first.var(), imp.second.var());
     COND_LOG("sat_iss_equiv", foundEquivalence, "discovered equivalence: "<<imp.first<<" <-> "<<imp.second);
     COND_LOG("sat_iss_impl", !foundEquivalence, "equivalence discovered again: "<<imp.first<<" <-> "<<imp.second);
+    _implications.remove(rev);
+    onRedundantImplicationDiscovered();
   }
   else {
     _implications.insert(imp);
   }
+}
+
+void ISSatSweeping::onRedundantImplicationDiscovered()
+{
+  CALL("ISSatSweeping::onRedundantImplicationDiscovered");
+
+  if(_implications.size()>1000 && _implications.size()>_lastSweepingImplicationCnt*2) {
+    doRedundantImplicationSweeping();
+    _lastSweepingImplicationCnt = _implications.size();
+  }
+}
+
+void ISSatSweeping::doRedundantImplicationSweeping()
+{
+  CALL("ISSatSweeping::doRedundantImplicationSweeping");
+
+  size_t removedCnt = 0;
+  DHSet<Impl>::DelIterator implIt(_implications);
+  while(implIt.hasNext()) {
+    Impl imp = implIt.next();
+    unsigned v1 = imp.first.var();
+    unsigned v2 = imp.second.var();
+    if(_equivalentVars.root(v1)!=_equivalentVars.root(v2)) {
+      //implication is not implied by equivalences
+
+      //if variables are in different candidate groups, we can throw them out, unless
+      //we are interested in collecting all implications
+      if(_collectImplications || sameCandGroup(v1,v2)) {
+	continue;
+      }
+    }
+    LOG("sat_redundant_impl_removed","removed impl: "<<imp.first<<" -> "<<imp.second);
+    implIt.del();
+    removedCnt++;
+  }
+
+  LOG("sat_redundant_impl_removal","removed "<<removedCnt<<" redundant implications, remained "<<_implications.size());
 }
 
 void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOpposite,
@@ -336,7 +377,9 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
     if(!_interestingVarsSet.find(litVar)) {
       continue;
     }
-
+    if(!_collectImplications && !sameCandGroup(litVar,probedVar)) {
+      continue;
+    }
     if(litVar==probedVar) {
       ASS_EQ(lit.polarity(),probedLit.polarity()^assignedOpposite);
       continue;
@@ -383,6 +426,7 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
 bool ISSatSweeping::tryProvingImplication(Impl imp, bool& foundEquivalence)
 {
   CALL("ISSatSweeping::tryProvingImplication");
+  ASS_NEQ(_equivalentVars.root(imp.first.var()), _equivalentVars.root(imp.second.var()));
 
   if(_implications.find(imp)) {
     LOG("sat_iss_try_impl","implication found in look-up: "<<imp.first<<" -> "<<imp.second);

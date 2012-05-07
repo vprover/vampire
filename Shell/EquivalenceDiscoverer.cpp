@@ -32,11 +32,13 @@ using namespace Kernel;
 using namespace SAT;
 
 EquivalenceDiscoverer::EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit,
-    CandidateRestriction restriction, bool discoverImplications, bool doRandomSimulation)
+    CandidateRestriction restriction, bool discoverImplications, bool doRandomSimulation,
+    bool proofTracing)
     : _satConflictCountLimit(satConflictCountLimit),
       _restriction(restriction),
       _discoverImplications(discoverImplications),
       _doRandomSimulation(doRandomSimulation),
+      _proofTracing(proofTracing),
       _restrictedRange(false),
       _gnd(normalizeForSAT),
       _maxSatVar(0)
@@ -283,6 +285,11 @@ void EquivalenceDiscoverer::getImplicationPremises(SATLiteral l1, SATLiteral l2,
   CALL("EquivalenceDiscoverer::getImplicationPremises");
   ASS(l2!=SATLiteral::dummy())
 
+  if(!_proofTracing) {
+    //we don't add any premises to the stack
+    return;
+  }
+
   SATSolver& ps = getProofRecordingSolver();
   ASS(!ps.hasAssumptions());
 
@@ -334,7 +341,7 @@ void EquivalenceDiscoverer::doISSatDiscovery(UnitList*& res)
 
   ISSatSweeping sswp(_maxSatVar+1, *_solver,
       pvi( getMappingIteratorKnownRes<int>(SATLiteralStack::ConstIterator(_eligibleSatLits), satLiteralVar) ),
-      _doRandomSimulation, _satConflictCountLimit);
+      _doRandomSimulation, _satConflictCountLimit, _discoverImplications);
 
   Stack<ISSatSweeping::Equiv>::ConstIterator eqIt(sswp.getEquivalences());
   while(eqIt.hasNext()) {
@@ -661,7 +668,7 @@ bool EquivalenceDiscoveringTransformer::apply(UnitList*& units)
 
   EquivalenceDiscoverer eqd(true, _opts.predicateEquivalenceDiscoverySatConflictLimit(), restr,
       _opts.predicateEquivalenceDiscoveryAddImplications(),
-      _opts.predicateEquivalenceDiscoveryRandomSimulation());
+      _opts.predicateEquivalenceDiscoveryRandomSimulation(), true);
   UnitList* equivs;
 
   if(formulaDiscovery) {

@@ -957,6 +957,12 @@ void Logging::doTagDeclarations()
       DOC("sizes of final equivalence classes larger than 1"),
       PARENT("sat_iss",1),
       INT_TAG);
+  DECL("sat_redundant_impl_removal",
+      DOC("removal of implications that follow from discovered equivalences"),
+      PARENT("sat_iss",2));
+  DECL("sat_redundant_impl_removed",
+      DOC("implications that were removed as not useful"),
+      PARENT("sat_redundant_impl_removal",2));
 
 
   //

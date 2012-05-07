@@ -46,6 +46,7 @@ private:
   CandidateRestriction _restriction;
   bool _discoverImplications;
   bool _doRandomSimulation;
+  bool _proofTracing;
 
   /** A getEquivalences function can be called only once on the object.
    * This object enforces this restriction. */
@@ -92,7 +93,8 @@ private:
   static int satLiteralVar(SATLiteral l) { return l.var(); }
 public:
   EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit,
-      CandidateRestriction restriction, bool discoverImplications, bool doRandomSimulation);
+      CandidateRestriction restriction, bool discoverImplications, bool doRandomSimulation,
+      bool proofTracing);
 
   void setRestrictedRange(LiteralIterator set1, LiteralIterator set2);
 

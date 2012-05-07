@@ -267,6 +267,13 @@ public:
      */
     EquivalenceDiscovery equivalenceDiscovery;
     /**
+     * If true, premises will be retrieved for discovered equivalences. This may take
+     * some time for big problems.
+     *
+     * Default value is true.
+     */
+    bool equivalenceDiscoveryRetrievePremises;
+    /**
      * Limit on the number of SAT conflicts in each equivalence check.
      * Default is UINT_MAX which stands for unlimited, 0 will restrict equivalence
      * discovery to unit propagation.
