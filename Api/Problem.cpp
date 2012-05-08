@@ -16,8 +16,10 @@
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
+#include "Lib/OptionsReader.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
@@ -106,44 +108,123 @@ Problem::PreprocessingOptions::OptDataStore::~OptDataStore()
   delete pedSet2;
 }
 
-
-Problem::PreprocessingOptions::PreprocessingOptions(
-    PreprocessingMode mode,
-    int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining,
-    bool unusedPredicateDefinitionRemoval, bool showNonConstantSkolemFunctionTrace,
-    bool traceInlining, bool sineSelection, float sineTolerance, unsigned sineDepthLimit,
-    bool variableEqualityPropagation, bool traceVariableEqualityPropagation,
-    bool eprSkolemization, bool traceEPRSkolemization,
-    bool predicateDefinitionMerging, bool tracePredicateDefinitionMerging,
-    bool traceClausification, bool traceUnusedPredicateDefinitionRemoval)
-: mode(mode), namingThreshold(namingThreshold), preserveEpr(preserveEpr),
-  predicateDefinitionInlining(predicateDefinitionInlining),
-  unusedPredicateDefinitionRemoval(unusedPredicateDefinitionRemoval),
-  showNonConstantSkolemFunctionTrace(showNonConstantSkolemFunctionTrace),
-  traceInlining(traceInlining), sineSelection(sineSelection),
-  sineTolerance(sineTolerance), sineDepthLimit(sineDepthLimit),
-  variableEqualityPropagation(variableEqualityPropagation),
-  traceVariableEqualityPropagation(traceVariableEqualityPropagation),
-  eprSkolemization(eprSkolemization),
-  traceEPRSkolemization(traceEPRSkolemization),
-  predicateDefinitionMerging(predicateDefinitionMerging),
-  tracePredicateDefinitionMerging(tracePredicateDefinitionMerging),
-  traceClausification(traceClausification),
-  traceUnusedPredicateDefinitionRemoval(traceUnusedPredicateDefinitionRemoval),
-  predicateIndexIntroduction(false),
-  flatteningTopLevelConjunctions(false),
-  equivalenceDiscovery(ED_NONE),
-  equivalenceDiscoveryRetrievePremises(true),
-  equivalenceDiscoverySatConflictLimit(UINT_MAX),
-  equivalenceDiscoveryAddImplications(false),
-  equivalenceDiscoveryRandomSimulation(true),
-  aigInlining(false),
-  aigBddSweeping(false),
-  aigDefinitionIntroduction(false),
-
-  _predicateEquivalenceDiscoveryRestricted(false)
+void Problem::PreprocessingOptions::OptDataStore::setDefaults()
 {
-  CALL("Problem::PreprocessingOptions::PreprocessingOptions");
+  CALL("Problem::PreprocessingOptions::OptDataStore::setDefaults");
+
+  lhs->reset();
+  posRhs->reset();
+  negRhs->reset();
+  dblRhs->reset();
+  pedSet1->reset();
+  pedSet2->reset();
+}
+
+
+Problem::PreprocessingOptions::PreprocessingOptions()
+{
+  CALL("Problem::PreprocessingOptions::PreprocessingOptions/0");
+
+  setDefaults();
+}
+
+Problem::PreprocessingOptions::PreprocessingOptions(string spec)
+{
+  CALL("Problem::PreprocessingOptions::PreprocessingOptions/1");
+
+  setDefaults();
+
+  OptionsReader optReader;
+  prepareOptionsReader(optReader);
+  if(!optReader.readOptions(spec)) {
+    throw ApiException("Invalid preprocessing specification string: \""+spec+"\"");
+  }
+}
+
+void Problem::PreprocessingOptions::prepareOptionsReader(OptionsReader& rdr)
+{
+  CALL("Problem::PreprocessingOptions::prepareOptionsReader");
+
+  EnumReader<PreprocessingMode> enumPreprMode;
+  enumPreprMode.addVal("selection_only", PM_SELECTION_ONLY);
+  enumPreprMode.addVal("early_preprocessing", PM_EARLY_PREPROCESSING);
+  enumPreprMode.addVal("skolemize", PM_SKOLEMIZE);
+  enumPreprMode.addVal("clausify", PM_CLAUSIFY);
+
+  EnumReader<InliningMode> enumInliningMode;
+  enumInliningMode.addVal("off", INL_OFF);
+  enumInliningMode.addVal("on", INL_ON);
+  enumInliningMode.addVal("axioms_only", INL_AXIOMS_ONLY);
+  enumInliningMode.addVal("epr_restoring", INL_EPR_RESTORING);
+  enumInliningMode.addVal("predicate_equivalences_only", INL_PREDICATE_EQUIVALENCES_ONLY);
+  enumInliningMode.addVal("no_discovered_defs", INL_NO_DISCOVERED_DEFS);
+  enumInliningMode.addVal("non_growing", INL_NON_GROWING);
+
+  EnumReader<EquivalenceDiscovery> enumEquivalenceDiscovery;
+  enumEquivalenceDiscovery.addVal("none", ED_NONE);
+  enumEquivalenceDiscovery.addVal("predicate_equivalences", ED_PREDICATE_EQUIVALENCES);
+  enumEquivalenceDiscovery.addVal("predicate_definitions", ED_PREDICATE_DEFINITIONS);
+  enumEquivalenceDiscovery.addVal("atom_equivalences", ED_ATOM_EQUIVALENCES);
+  enumEquivalenceDiscovery.addVal("formula_equivalences", ED_FORMULA_EQUIVALENCES);
+
+  rdr.registerEnumOption(&mode, enumPreprMode, "preprocessing_mode", "pm");
+  rdr.registerIntOption(&namingThreshold, "naming_treshold", "nt");
+  rdr.registerBoolOption(&preserveEpr, "preserve_epr", "pe");
+  rdr.registerEnumOption(&predicateDefinitionInlining, enumInliningMode, "predicate_definition_inlining", "pdi");
+  rdr.registerBoolOption(&unusedPredicateDefinitionRemoval, "unused_predicate_definition_removal", "updr");
+  rdr.registerBoolOption(&sineSelection, "sine_selection", "ss");
+  rdr.registerFloatOption(&sineTolerance, "sine_tolerance", "st");
+  rdr.registerUnsignedOption(&sineDepthLimit, "sine_depth_limit", "sdl");
+  rdr.registerBoolOption(&variableEqualityPropagation, "variable_equality_propagation", "vep");
+  rdr.registerBoolOption(&eprSkolemization, "epr_skolemization", "es");
+  rdr.registerBoolOption(&predicateDefinitionMerging, "predicate_definition_merging", "pdm");
+  rdr.registerBoolOption(&predicateIndexIntroduction, "predicate_index_introduction", "pii");
+  rdr.registerBoolOption(&flatteningTopLevelConjunctions, "flattening_top_level_conjunctions", "ftlc");
+  rdr.registerEnumOption(&equivalenceDiscovery, enumEquivalenceDiscovery, "equivalence_discovery", "ed");
+  rdr.registerBoolOption(&equivalenceDiscoveryRetrievePremises, "equivalence_discovery_retrieve_premises", "edrp");
+  rdr.registerUnsignedOption(&equivalenceDiscoverySatConflictLimit, "equivalence_discovery_sat_conflict_limit", "edscl");
+  rdr.registerBoolOption(&equivalenceDiscoveryAddImplications, "equivalence_discovery_add_implications", "edai");
+  rdr.registerBoolOption(&equivalenceDiscoveryRandomSimulation, "equivalence_discovery_random_simulation", "edrs");
+  rdr.registerBoolOption(&aigInlining, "aig_inlining", "ai");
+  rdr.registerBoolOption(&aigBddSweeping, "aig_bdd_sweeping", "abs");
+  rdr.registerBoolOption(&aigDefinitionIntroduction, "aig_definition_introduction", "adi");
+}
+
+void Problem::PreprocessingOptions::setDefaults()
+{
+  CALL("Problem::PreprocessingOptions::setDefaults");
+
+  mode = PM_CLAUSIFY;
+  namingThreshold = 8;
+  preserveEpr = false;
+  predicateDefinitionInlining = INL_OFF;
+  unusedPredicateDefinitionRemoval = true;
+  showNonConstantSkolemFunctionTrace = false;
+  traceInlining = false;
+  sineSelection = false;
+  sineTolerance = 1.0f;
+  sineDepthLimit = 0;
+  variableEqualityPropagation = false;
+  traceVariableEqualityPropagation = false;
+  eprSkolemization = false;
+  traceEPRSkolemization = false;
+  predicateDefinitionMerging = false;
+  tracePredicateDefinitionMerging = false;
+  traceClausification = false;
+  traceUnusedPredicateDefinitionRemoval = false;
+  predicateIndexIntroduction = false;
+  flatteningTopLevelConjunctions = false;
+  equivalenceDiscovery = ED_NONE;
+  equivalenceDiscoveryRetrievePremises = true;
+  equivalenceDiscoverySatConflictLimit = UINT_MAX;
+  equivalenceDiscoveryAddImplications = false;
+  equivalenceDiscoveryRandomSimulation = true;
+  aigInlining = false;
+  aigBddSweeping = false;
+  aigDefinitionIntroduction = false;
+
+  _predicateEquivalenceDiscoveryRestricted = false;
+  _ods.setDefaults();
 }
 
 void Problem::PreprocessingOptions::addAsymmetricRewritingRule(Formula lhs,
@@ -1326,6 +1407,54 @@ Problem Problem::removeUnusedPredicateDefinitions()
   opts.unusedPredicateDefinitionRemoval = true;
 
   return preprocess(opts);
+}
+
+Problem Problem::preprocessInStages(size_t stageCount, const PreprocessingOptions* stageSpecs)
+{
+  CALL("Problem::preprocessInStages");
+
+  Problem res = *this;
+  for(size_t idx=0; idx<stageCount; idx++) {
+    res = res.preprocess(stageSpecs[idx]);
+  }
+  return res;
+}
+
+void Problem::readStageSpecs(string stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs)
+{
+  CALL("Problem::readStageSpecs");
+
+  Stack<string> singleSpecs;
+  StringUtils::splitStr(stagesStr.c_str(), ';', singleSpecs);
+
+  stageCnt = singleSpecs.size();
+  stageSpecs = new PreprocessingOptions[stageCnt];
+
+  unsigned idx = 0;
+
+  Stack<string>::BottomFirstIterator specIt(singleSpecs);
+  while(specIt.hasNext()) {
+    string spec = specIt.next();
+    stageSpecs[idx] = PreprocessingOptions(spec);
+    idx++;
+  }
+  ASS_EQ(idx,stageCnt);
+}
+
+
+Problem Problem::preprocessInStages(string stagesStr)
+{
+  CALL("Problem::preprocessInStages");
+
+  size_t stageCnt;
+  PreprocessingOptions* stageSpecs;
+
+  readStageSpecs(stagesStr, stageCnt, stageSpecs);
+
+  Problem res = preprocessInStages(stageCnt, stageSpecs);
+
+  delete[] stageSpecs;
+  return res;
 }
 
 Problem Problem::preprocess(const PreprocessingOptions& options)

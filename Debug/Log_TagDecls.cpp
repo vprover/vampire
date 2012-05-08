@@ -1113,6 +1113,15 @@ void Logging::doTagDeclarations()
       DOC("logs when property of a problem needs to be updated by traversing through the problem"),
       PARENT("prb",0));
 
+  DECL("or",
+      DOC("OptionsReader"));
+  DECL("or_set",
+      DOC("successfully set options"),
+      PARENT("or",1));
+  DECL("or_fail",
+      DOC("failures in option reading"),
+      PARENT("or",0));
+
   DECL("tu",
       DOC("TestUtils traces"));
   DECL("tu_uf",

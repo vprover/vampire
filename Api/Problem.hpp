@@ -123,25 +123,8 @@ public:
    */
   struct PreprocessingOptions
   {
-    PreprocessingOptions(
-	PreprocessingMode mode=PM_CLAUSIFY,
-	int namingThreshold=8,
-	bool preserveEpr=false,
-	InliningMode predicateDefinitionInlining=INL_OFF,
-	bool unusedPredicateDefinitionRemoval=true,
-	bool showNonConstantSkolemFunctionTrace=false,
-	bool traceInlining=false,
-	bool sineSelection=false,
-	float sineTolerance=1.0f,
-	unsigned sineDepthLimit=0,
-	bool variableEqualityPropagation=false,
-	bool traceVariableEqualityPropagation=false,
-	bool eprSkolemization=false,
-	bool traceEPRSkolemization=false,
-	bool predicateDefinitionMerging=false,
-	bool tracePredicateDefinitionMerging=false,
-	bool traceClausification=false,
-	bool traceUnusedPredicateDefinitionRemoval=false);
+    PreprocessingOptions();
+    PreprocessingOptions(string spec);
 
     PreprocessingMode mode;
     /**
@@ -333,6 +316,9 @@ public:
     friend class Problem;
     void validate() const;
 
+    void prepareOptionsReader(OptionsReader& rdr);
+    void setDefaults();
+
     struct Atom2LitFn;
 
     struct OptDataStore {
@@ -340,6 +326,9 @@ public:
       OptDataStore(const OptDataStore& o);
       OptDataStore& operator=(const OptDataStore& o);
       ~OptDataStore();
+
+      void setDefaults();
+
 
       //pointers in order to avoid dependency on the Stack class definition here
       Stack<Formula>* lhs;
@@ -419,6 +408,25 @@ public:
    * Preprocess the problem according to @c options.
    */
   Problem preprocess(const PreprocessingOptions& options);
+
+  /**
+   * Creates array of PreprocessingOptions specifying the stages to be performed.
+   * It is caller's responsibility to call delete[] stageSpecs.
+   *
+   * Format of the string should be
+   * <stage1 spec>[;<stage2 spec>[;<stage3 spec>[;...]]]
+   * where <stageX spec> is
+   * <option1>=<value1>[:<option2>=<value2>[:...]]
+   */
+  void readStageSpecs(string stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs);
+
+  /**
+   * Perform sequence of preprocessing according to array of options @c stageSpecs with
+   * length stageCount. Preprocessing specified by stageSpecs[0] is performed as the first.
+   *
+   */
+  Problem preprocessInStages(size_t stageCount, const PreprocessingOptions* stageSpecs);
+  Problem preprocessInStages(string stagesStr);
 
   /**
    * Rewrite occurrences of @c lhs in the problem by posRhs, negRhs or dblRhs,

@@ -4,6 +4,8 @@
  */
 
 #include "DArray.hpp"
+#include "DHMap.hpp"
+#include "Stack.hpp"
 
 #include "StringUtils.hpp"
 
@@ -114,6 +116,67 @@ bool StringUtils::isPositiveDecimal(string str)
     else if(str[i]<'0' || str[i]>'9') {
       return false;
     }
+  }
+  return true;
+}
+
+void StringUtils::splitStr(const char* str, char delimiter, Stack<string>& strings)
+{
+  CALL("StringUtils::splitStr");
+
+  static Stack<char> currPart;
+  currPart.reset();
+
+  const char* curr = str;
+  while(*curr) {
+    if(*curr==delimiter) {
+      currPart.push(0);
+      strings.push(currPart.begin());
+      currPart.reset();
+    }
+    else {
+      currPart.push(*curr);
+    }
+    curr++;
+  }
+  currPart.push(0);
+  strings.push(currPart.begin());
+}
+
+bool StringUtils::readEquality(const char* str, char eqChar, string& lhs, string& rhs)
+{
+  CALL("StringUtils::readEquality");
+
+  static Stack<string> parts;
+  parts.reset();
+  splitStr(str, eqChar, parts);
+  if(parts.size()!=2) {
+    return false;
+  }
+  lhs = parts[0];
+  rhs = parts[1];
+  return true;
+}
+
+/**
+ * If str doesn't contain equalities, false is returned and the content of pairs is undefined.
+ */
+bool StringUtils::readEqualities(const char* str, char delimiter, char eqChar, DHMap<string,string>& pairs)
+{
+  CALL("StringUtils::readEqualities");
+
+  static Stack<string> parts;
+  parts.reset();
+  splitStr(str, delimiter, parts);
+
+  Stack<string>::TopFirstIterator pit(parts);
+  while(pit.hasNext()) {
+    string part = pit.next();
+    string lhs, rhs;
+    if(!readEquality(part.c_str(), eqChar, lhs, rhs)) {
+      return false;
+    }
+    pairs.set(lhs, rhs);
   }
   return true;
 }

@@ -97,10 +97,16 @@ TEST_FUN(preprapiFormulaEqDiscovery)
 
   const char* prb = "fof(a,axiom, (p(c)&q(c)) | ~(p(d)&q(d)) ). fof(a,axiom, ~(p(c)&q(c)) | (p(d)&q(d)) ). fof(a,axiom, p(a) & q(a)).";
 
-  popts.equivalenceDiscovery = Problem::ED_ATOM_EQUIVALENCES;
-  assertEarlyPreprocActive(popts, false, prb);
-  popts.equivalenceDiscovery = Problem::ED_FORMULA_EQUIVALENCES;
-  assertEarlyPreprocActive(popts, true, prb);
+
+  try {
+    popts = Problem::PreprocessingOptions("ed=atom_equivalences");
+    assertEarlyPreprocActive(popts, false, prb);
+    popts = Problem::PreprocessingOptions("ed=formula_equivalences");
+    assertEarlyPreprocActive(popts, true, prb);
+  } catch(ApiException& e) {
+    cerr << "ApiException: " << e.msg() << endl;
+    throw;
+  }
 }
 
 TEST_FUN(preprapiRestrictedPredEqDiscovery)
@@ -114,8 +120,7 @@ TEST_FUN(preprapiRestrictedPredEqDiscovery)
   Formula pX = api.formula(p, x);
   Formula qX = api.formula(q, x);
 
-  Problem::PreprocessingOptions popts;
-  popts.equivalenceDiscovery = Problem::ED_PREDICATE_EQUIVALENCES;
+  Problem::PreprocessingOptions popts("ed=predicate_equivalences");
   popts.restrictPredicateEquivalenceDiscovery(1, &pX, 1, &qX);
 
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, p(a) & q(a)).");
@@ -126,8 +131,7 @@ TEST_FUN(preprapiRestrictedPredEqDiscovery)
 
 TEST_FUN(preprapiTopLevelFlatten)
 {
-  Problem::PreprocessingOptions popts;
-  popts.flatteningTopLevelConjunctions = true;
+  Problem::PreprocessingOptions popts("ftlc=on");
 
   assertEarlyPreprocActive(popts, true, "fof(a,axiom, p & q).");
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, ?[X]: (p(X) & q(X))).");
@@ -135,8 +139,7 @@ TEST_FUN(preprapiTopLevelFlatten)
 
 TEST_FUN(preprapiBDDSweeping)
 {
-  Problem::PreprocessingOptions popts;
-  popts.aigBddSweeping = true;
+  Problem::PreprocessingOptions popts("abs=on");
 
   assertEarlyPreprocActive(popts, true, "fof(a,axiom, p & (q | (r | ((p & b) | ~q))) & (a => a1) & (a1=>a2) & (a2=>b) & a ).");
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) & ?[X]: (p(X) & q(X))).");
@@ -144,8 +147,7 @@ TEST_FUN(preprapiBDDSweeping)
 
 TEST_FUN(preprapiAIGInlining)
 {
-  Problem::PreprocessingOptions popts;
-  popts.aigInlining = true;
+  Problem::PreprocessingOptions popts("ai=on");
 
   assertEarlyPreprocActive(popts, true, "fof(a,axiom, p & (q | (r | ((p & b) | ~q))) & (a => a1) & (a1=>a2) & (a2=>b) & a ).");
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) & ?[X]: (p(X) & q(X))).");
@@ -153,8 +155,7 @@ TEST_FUN(preprapiAIGInlining)
 
 TEST_FUN(preprapiAIGDefIntroduction)
 {
-  Problem::PreprocessingOptions popts;
-  popts.aigDefinitionIntroduction = true;
+  Problem::PreprocessingOptions popts("adi=on");
 
   assertEarlyPreprocActive(popts, true, "fof(a,axiom, p1 | (a & b)).fof(a,axiom, p2 | (a & b)).fof(a,axiom, p3 | (a & b)).fof(a,axiom, p4 | (a & b)).");
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) & ?[X]: (p(X) & q(X))).");

@@ -28,7 +28,8 @@
 /** maximal size of allocated multi-page (in pages) */
 //TODO: increased as needed by dis+1_3_bs=off_ep=RST_fsr=off_fde=none_lcm=kinky_nwc=1.2_1200 BOO046-1
 //#define MAX_PAGES 4096
-#define MAX_PAGES 8192
+//#define MAX_PAGES 8192
+#define MAX_PAGES 32768
 /** Any memory piece of this or larger size will be allocated as a page
  *  or contiguous sequence of pages */
 #define REQUIRES_PAGE (PAGE_SIZE/2)

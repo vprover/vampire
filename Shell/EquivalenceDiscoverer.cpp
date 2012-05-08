@@ -24,6 +24,7 @@
 #include "PDInliner.hpp"
 #include "PDUtils.hpp"
 #include "Preprocess.hpp"
+#include "Property.hpp"
 
 namespace Shell
 {
@@ -686,6 +687,7 @@ bool EquivalenceDiscoveringTransformer::apply(UnitList*& units)
 
   PDInliner inl;
   inl.apply(units, true);
+
   return true;
 }
 
