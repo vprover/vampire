@@ -91,6 +91,14 @@ private:
   bool eliminatingTermIte() const { return _letStack.isEmpty(); }
 
   UnitList* _defs;
+
+  /**
+   * Variable sorts of the currently processed FormulaUnit
+   *
+   * Populated in apply(FormulaUnit*).
+   */
+  DHMap<unsigned,unsigned> _currentFormulaVarSorts;
+
   /**
    * For each let...in expression we put an entry on the stack and traverse its body
    * once with it on the stack and then when we remove it from the stack. When the

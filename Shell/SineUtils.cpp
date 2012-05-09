@@ -227,7 +227,7 @@ SineSelector::SineSelector(bool onIncluded, float tolerance, unsigned depthLimit
 void SineSelector::init()
 {
   CALL("SineSelector::init");
-  ASS_GE(_tolerance, 1.0f);
+  ASS(_tolerance>=1.0f || _tolerance==-1);
 
   _strict=_tolerance==1.0f;
 }
@@ -288,6 +288,9 @@ void SineSelector::updateDefRelation(Unit* u)
   }
   else {
     unsigned generalityLimit=static_cast<int>(leastGenVal*_tolerance);
+    if(_tolerance==-1.0f) {
+      generalityLimit = UINT_MAX;
+    }
 
     //if the generalityLimit is under _genThreshold, all suitable symbols are already added
     if(generalityLimit>_genThreshold) {

@@ -622,54 +622,61 @@ MainLoopResult IGAlgorithm::runImpl()
     }
     _doingSatisfiabilityCheck = false;
     if(_unprocessed.isEmpty()) {
-      TRACE("ig_final_sat_model",
-	  tout<<"abc"<<endl;
-	  LiteralIterator litIt = _gnd.groundedLits();
-	  while(litIt.hasNext()) {
-	    Literal* l = litIt.next();
-	    SATLiteral sl = _gnd.ground(l);
-	    ASS_EQ(sl.polarity(),true);
-	    SATSolver::VarAssignment asgn = _satSolver->getAssignment(sl.var());
-	    tout << "asgn: ";
-	    switch(asgn) {
-	    case SATSolver::TRUE:
-	      tout << "1";
-	      break;
-	    case SATSolver::FALSE:
-	      tout << "0";
-	      break;
-	    case SATSolver::DONT_CARE:
-	      tout << "?";
-	      break;
-	    default:
-	      ASSERTION_VIOLATION;
-	    }
-	    tout << " - " << (*l) << endl;
-	  }
-	);
-      if(_opt.complete(_prb)) {
-	if(_opt.proof()!=Options::PROOF_OFF) {
-	  if(UIHelper::cascMode) {
-	    env.beginOutput();
-	    env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-		<< " for " << _opt.problemName() << endl << flush;
-	    env.endOutput();
-	    UIHelper::satisfiableStatusWasAlreadyOutput = true;
-	  }
+      return onModelFound();
+    }
+  }
+}
 
+MainLoopResult IGAlgorithm::onModelFound()
+{
+  CALL("IGAlgorithm::onModelFound");
 
-	  stringstream modelStm;
-	  bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
-	  if(modelAvailable) {
-	    env.statistics->model = modelStm.str();
-	  }
+  TRACE("ig_final_sat_model",
+      tout<<"abc"<<endl;
+      LiteralIterator litIt = _gnd.groundedLits();
+      while(litIt.hasNext()) {
+	Literal* l = litIt.next();
+	SATLiteral sl = _gnd.ground(l);
+	ASS_EQ(sl.polarity(),true);
+	SATSolver::VarAssignment asgn = _satSolver->getAssignment(sl.var());
+	tout << "asgn: ";
+	switch(asgn) {
+	case SATSolver::TRUE:
+	  tout << "1";
+	  break;
+	case SATSolver::FALSE:
+	  tout << "0";
+	  break;
+	case SATSolver::DONT_CARE:
+	  tout << "?";
+	  break;
+	default:
+	  ASSERTION_VIOLATION;
 	}
-	return MainLoopResult(Statistics::SATISFIABLE);
+	tout << " - " << (*l) << endl;
       }
-      else {
-	return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
+    );
+  if(_opt.complete(_prb)) {
+    if(_opt.proof()!=Options::PROOF_OFF) {
+      if(UIHelper::cascMode) {
+	env.beginOutput();
+	env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+	    << " for " << _opt.problemName() << endl << flush;
+	env.endOutput();
+	UIHelper::satisfiableStatusWasAlreadyOutput = true;
+      }
+
+
+      stringstream modelStm;
+      bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
+      if(modelAvailable) {
+	env.statistics->model = modelStm.str();
       }
     }
+    return MainLoopResult(Statistics::SATISFIABLE);
+  }
+  else {
+    return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
   }
 }
 

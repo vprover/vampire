@@ -91,7 +91,7 @@ void runParsingAndAnalysis(const char* file)
 	Translator::MyASTConsumer *astConsumer = new Translator::MyASTConsumer();
 	astConsumer->SetWhileNumber(env.options->getWhileNumber());
 	ci.setASTConsumer(astConsumer);
-
+	
 	ci.createASTContext();
 
 	const FileEntry *pFile = ci.getFileManager().getFile(file);
@@ -186,7 +186,7 @@ int main(int argc, char* argv [])
 
   Shell::CommandLine cl(argc,argv);
   cl.interpret(*env.options);
-
+  
   try {
     env.options->setMode(Options::MODE_VAMPIRE);
     env.options->setTimeLimitInDeciseconds(0);

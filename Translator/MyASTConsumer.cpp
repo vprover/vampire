@@ -21,6 +21,9 @@
 #include "clang/Parse/ParseAST.h"
 #include "llvm/Support/Host.h"
 
+#include "Lib/List.hpp"
+#include "Program/Variable.hpp"
+
 #include <iostream>
 
 namespace Translator{

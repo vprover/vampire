@@ -129,6 +129,10 @@ FormulaUnit* SpecialTermElimination::apply(FormulaUnit* fu0)
   FormulaUnit* fu = Rectify::rectify(fu0);
 
   Formula* f = fu->formula();
+
+  _currentFormulaVarSorts.reset();
+  SortHelper::collectVariableSorts(f, _currentFormulaVarSorts);
+
   Formula* g = process(f);
   if(f==g) {
     return fu;
@@ -475,27 +479,37 @@ Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList the
   //TODO: add reusing of definitions belonging to simple formulas
 
   unsigned varUpperBound = 0;
+  Stack<unsigned> argSorts;
   Stack<TermList> args;
   while(freeVars) {
     unsigned v = Formula::VarList::pop(freeVars);
     if(v>=varUpperBound) {
       varUpperBound = v;
     }
+    argSorts.push(_currentFormulaVarSorts.get(v));
     args.push(TermList(v, false));
   }
 
-  unsigned fnArity = args.size()+2;
-  unsigned fnNum = env.signature->addIteFunction(fnArity);
+  unsigned thenSort = SortHelper::getResultSort(thenBranch, _currentFormulaVarSorts);
+  unsigned elseSort = SortHelper::getResultSort(elseBranch, _currentFormulaVarSorts);
+  ASS_EQ(thenSort, elseSort);
 
   //first build and add definition
 
   TermList z1(varUpperBound, false);
   TermList z2(varUpperBound+1, false);
   args.push(z1);
+  argSorts.push(thenSort);
   args.push(z2);
+  argSorts.push(thenSort);
+
+  ASS_EQ(argSorts.size(),args.size());
+
+  unsigned fnArity = args.size();
+  unsigned fnNum = env.signature->addIteFunction(fnArity, argSorts.begin(), thenSort);
   TermList func = TermList(Term::create(fnNum, fnArity, args.begin()));
 
-  //TODO: proprly determine sort of the ITE term
+  //TODO: properly determine sort of the ITE term
   unsigned iteSort = SortHelper::getResultSort(func.term());
 
   Literal* eqThen = Literal::createEquality(true, func, z1, iteSort);

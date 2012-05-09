@@ -692,12 +692,20 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
 
 /**
  * Return number of a new function to be used in if-then-else elimination
+ *
+ * @c argSorts and @c resSort specifies the sort of the arguments and of the result
+ * of the function.
  */
-unsigned Signature::addIteFunction(unsigned arity)
+unsigned Signature::addIteFunction(unsigned arity, unsigned* argSorts, unsigned resSort)
 {
   CALL("Signature::addIteFunction");
 
-  return addFreshFunction(arity, "sG");
+  unsigned res = addFreshFunction(arity, "sG");
+
+  BaseType* type = BaseType::makeType(arity, argSorts, resSort);
+  getFunction(res)->setType(type);
+
+  return res;
 }
 
 /**

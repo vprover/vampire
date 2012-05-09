@@ -13,11 +13,15 @@
 #include "Program/Variable.hpp"
 #include "Program/Expression.hpp"
 #include "Program/Statement.hpp"
+
 #include "Lib/List.hpp"
 #include "Lib/Vector.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Map.hpp"
+#include "Lib/Environment.hpp"
+
+#include "Kernel/Unit.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -37,7 +41,7 @@ using namespace Lib;
 class collectionOfObjects {
 public:
   collectionOfObjects();
-
+  void trySEI(Program::Statement* s);
   bool insertVariableExpression(std::string key,
 	  Program::VariableExpression* obj);
   void insertConstantIntegerExpr(int val,
@@ -83,6 +87,7 @@ public:
   void runAnalysis(int n);
   bool testASS(std::string key);
   int chekMaps(std::string key);
+  Lib::Stack<Program::VariableExpression*> getVarExpStack();
 private:
 
   Lib::Map<std::string, Program::Block*> _mapOfBlocks;

@@ -43,6 +43,7 @@ class LoopAnalyzer
 public:
   LoopAnalyzer(WhileDo* loop);
   void analyze();
+  List<Unit* >* getUnits() {return _units;}
 private:
   /** For every variable, this structure stores information used to
    * write down formulas containing the variable */
@@ -93,8 +94,9 @@ private:
   void generateValueFunctionRelationsOfVariables();
   void generateLoopConditionProperty();
   void generateIterationDefinition();
+  void simpleSEIProblem();
 
-  unsigned getIntFunction(string name, unsigned arity);
+  unsigned getIntFunction(string name, unsigned arity, bool setColor=false);
   unsigned getIntConstant(string name) { return getIntFunction(name, 0); }
   Literal* createIntEquality(bool polarity, TermList arg1, TermList arg2)
   { return Literal::createEquality(polarity, arg1, arg2, Sorts::SRT_INTEGER); }

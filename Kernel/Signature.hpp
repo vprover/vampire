@@ -282,7 +282,7 @@ class Signature
 
 
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addIteFunction(unsigned arity);
+  unsigned addIteFunction(unsigned arity, unsigned* argSorts, unsigned resSort);
   unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
 
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);

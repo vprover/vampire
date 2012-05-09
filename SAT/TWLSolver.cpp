@@ -312,7 +312,7 @@ unsigned TWLSolver::getBacktrackLevel(SATClause* conflictClause)
       unsigned lvar=(*ccl)[i].var();
 
       ASS(!isUndefined(lvar));
-      if(_assignmentLevels[lvar]<=btLev+1) {
+      if(getAssignmentLevel(lvar)<=btLev+1) {
 	continue;
       }
       if(!checked.insert(lvar, true)) {
@@ -325,7 +325,7 @@ unsigned TWLSolver::getBacktrackLevel(SATClause* conflictClause)
 	  confCls.push(icl);
 	}
       } else {
-	btLev=max(btLev, _assignmentLevels[lvar]-1);
+	btLev=max(btLev, getAssignmentLevel(lvar)-1);
       }
     }
   }
@@ -981,7 +981,7 @@ void TWLSolver::assertValid()
 
   for(unsigned i=0;i<_varCnt;i++) {
     if(_assignment[i]!=AS_UNDEFINED) {
-      ASS_LE(_assignmentLevels[i],_level);
+      ASS_LE(getAssignmentLevel(i),_level);
     }
   }
 
@@ -1148,7 +1148,7 @@ SATClause* TWLSolver::getZeroImpliedCertificate(unsigned var)
 {
   CALL("TWLSolver::getZeroImpliedCertificate");
   ASS(isZeroImplied(var));
-  ASS(_assignmentLevels[var]==1);
+  ASS_EQ(getAssignmentLevel(var),1);
 
   if(_assignmentPremises[var]==0) {
     //variable itself is an assumption
@@ -1186,7 +1186,7 @@ SATClause* TWLSolver::getZeroImpliedCertificate(unsigned var)
       //we have an assumption
       unsigned currVar = toDo.pop();
       ASS_NEQ(_assignment[currVar],AS_UNDEFINED);
-      ASS_EQ(_assignmentLevels[currVar],1);
+      ASS_EQ(getAssignmentLevel(currVar),1);
       resLits.push(SATLiteral(currVar, !_assignment[currVar])); //we add negations of assumed literals
     }
     if(toDo.isEmpty()) {
@@ -1215,7 +1215,7 @@ void TWLSolver::printAssignment()
     if(_assignment[i]==AS_UNDEFINED) {
       cout<<i<<"\t"<<static_cast<AsgnVal>(_assignment[i])<<endl;
     } else {
-      cout<<i<<"\t"<<static_cast<AsgnVal>(_assignment[i])<<"\t"<<_assignmentLevels[i];
+      cout<<i<<"\t"<<static_cast<AsgnVal>(_assignment[i])<<"\t"<<getAssignmentLevel(i);
       if(_assignmentPremises[i]) {
 	cout<<"\t"<<(*_assignmentPremises[i])<<"\t"<<_assignmentPremises[i];
       }

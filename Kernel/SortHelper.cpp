@@ -67,6 +67,22 @@ bool SortHelper::tryGetResultSort(TermList t, unsigned& result)
 }
 
 /**
+ * This function works also for special terms
+ */
+unsigned SortHelper::getResultSort(TermList t, DHMap<unsigned,unsigned>& varSorts)
+{
+  CALL("SortHelper::getResultSort");
+
+  unsigned res;
+  TermList masterVar;
+  if(!getResultSortOrMasterVariable(t, res, masterVar)) {
+    ASS(masterVar.isOrdinaryVar());
+    res = varSorts.get(masterVar.var());
+  }
+  return res;
+}
+
+/**
  * If sort of term @c t depends on a variable, assign the variable into
  * @c resultVar and return false. Otherwise assign the sort of the term
  * into @c resultSort and return true.
@@ -252,13 +268,12 @@ void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
 {
   CALL("SortHelper::collectVariableSorts(Term*,...)");
 
-  if(t0->ground()) {
+  if(t0->shared() && t0->ground()) {
     return;
   }
 
   NonVariableIterator sit(t0);
   Term* t = t0;
-
   //in the first iteration, t is equal to t0, in subsequent ones
   //we iterate through its non-ground non-variable subterms
   for(;;) {
@@ -282,7 +297,7 @@ void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
         return;
       }
       t = sit.next().term();
-      if(t->ground()) {
+      if(t->shared() && t->ground()) {
 	sit.right();
       }
       else {

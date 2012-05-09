@@ -34,7 +34,15 @@ bool OptionsReader::readOption(string name, string value) const
     return Int::stringToInt(value, *_intOptTargets.get(name));
   }
   else if(_unsignedOptTargets.find(name)) {
-    return Int::stringToUnsignedInt(value, *_unsignedOptTargets.get(name));
+    unsigned& tgt = *_unsignedOptTargets.get(name);
+    if(Int::stringToUnsignedInt(value, tgt)) {
+      return true;
+    }
+    else if(value=="UINT_MAX") {
+      tgt = UINT_MAX;
+      return true;
+    }
+    return false;
   }
   else if(_floatOptTargets.find(name)) {
     return Int::stringToFloat(value.c_str(), *_floatOptTargets.get(name));

@@ -81,6 +81,10 @@ XFLAGS = $(DBG_FLAGS) $(LLVM_FLAGS)
 INCLUDES = -I. -ISrcInclude -IBuildInclude
 endif
 
+ifneq (,$(filter vanalyze_dbg,$(MAKECMDGOALS)))
+XFLAGS = $(DBG_FLAGS) $(LLVM_FLAGS)
+INCLUDES = -I. -ISrcInclude -IBuildInclude
+endif
 
 ################################################################
 
@@ -467,7 +471,8 @@ LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(VCLAUSIFY_BASIC) Global.o
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 VGROUND_DEP = $(VAMP_BASIC) Global.o vground.o
-VANALYZE_DEP = $(VD_OBJ) $(VL_OBJ) $(LIBVAPI_DEP) $(VPROG_OBJ) $(TRANSLATOR_OBJ) vanalyze.o
+VANALYZE_DEP = $(API_OBJ) $(VAMP_BASIC) Saturation/ProvingHelper.o $(TRANSLATOR_OBJ) Global.o vanalyze.o
+#$(LIBVAPI_DEP) Saturation/ProvingHelper.o $(VPROG_OBJ) $(TRANSLATOR_OBJ)
 
 all:#default make disabled
 
@@ -579,7 +584,7 @@ endif
 
 EXEC_DEF_PREREQ = Makefile
 
-vanalyze vanalyze_rel: $(VANALYZE_OBJ) $(EXEC_DEF_PREREQ)
+vanalyze vanalyze_rel vanalyze_dbg: $(VANALYZE_OBJ) $(EXEC_DEF_PREREQ)
 	$(LLVM_COMPILE_CMD)
 
 vampire vampire_rel vampire_dbg: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)

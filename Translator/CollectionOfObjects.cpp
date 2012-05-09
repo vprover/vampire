@@ -17,6 +17,9 @@
 #include "Lib/Vector.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/ScopedPtr.hpp"
+#include "Lib/Environment.hpp"
+
+#include "Kernel/Unit.hpp"
 
 #include "Debug/Tracer.hpp"
 #include "Forwards.hpp"
@@ -202,9 +205,27 @@ bool collectionOfObjects::multipleLoops(Program::Statement* s)
       return true;
   return false;
 }
-void collectionOfObjects::runAnalysis(int whileNumber)
+
+void collectionOfObjects::trySEI(Program::Statement* s){
+  CALL("collectionOfObjects::trySEI");
+
+  //set the symbol elimination mod on;
+  env.options->setSEI(true);
+
+  Lib::List<Kernel::Unit *>* unitList;
+
+  Program::Analyze analyzer(s);
+  analyzer.analyze();
+
+
+
+}
+
+void collectionOfObjects::runAnalysis(int wN)
 {
   CALL("collectionOfObjects::runAnalysis");
+  cout<<"se ajunge si aici"<<endl;
+  int whileNumber= env.options->getWhileNumber();
   if (_mapOfWhile.numberOfElements() < whileNumber || whileNumber <= 0)
     USER_ERROR("you have less whiles than the number introduced! take care @ -wno option!");
   else {
@@ -219,14 +240,16 @@ void collectionOfObjects::runAnalysis(int whileNumber)
 	  if (multipleLoops(s)) {
 	    USER_ERROR("We do not handle nested whiles yet!");
 	  }
+	 /* cout<<env.options->showSymbolElimination()<<" SEI"<<endl;
 	  Program::Analyze analyzer(s);
-	  analyzer.analyze();
+	  analyzer.analyze();*/
+	  trySEI(s);
 	  break;
 	} else
 	  whileNo++;
       }
     }
-    	  if(whileNo<=whileNumber)
+    	  if(whileNo<whileNumber)
      USER_ERROR("less whiles than the number introduced!");
   }
 

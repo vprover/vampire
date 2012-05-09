@@ -18,6 +18,10 @@
 #include "clang/Parse/Parser.h"
 #include "clang/Parse/ParseAST.h"
 
+#include "Lib/List.hpp"
+#include "Program/Variable.hpp"
+#include "Program/Expression.hpp"
+
 namespace Translator{
 using namespace clang;
 

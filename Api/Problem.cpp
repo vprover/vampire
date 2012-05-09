@@ -167,7 +167,11 @@ void Problem::PreprocessingOptions::prepareOptionsReader(OptionsReader& rdr)
   enumEquivalenceDiscovery.addVal("atom_equivalences", ED_ATOM_EQUIVALENCES);
   enumEquivalenceDiscovery.addVal("formula_equivalences", ED_FORMULA_EQUIVALENCES);
 
-  rdr.registerEnumOption(&mode, enumPreprMode, "preprocessing_mode", "pm");
+  EnumReader<FixpointCheck> enumFixpointCheck;
+  enumFixpointCheck.addVal("none", FC_NONE);
+  enumFixpointCheck.addVal("formula_count", FC_FORMULA_COUNT);
+
+  rdr.registerEnumOption(&mode, enumPreprMode, "preprocessing_mode", "m");
   rdr.registerIntOption(&namingThreshold, "naming_treshold", "nt");
   rdr.registerBoolOption(&preserveEpr, "preserve_epr", "pe");
   rdr.registerEnumOption(&predicateDefinitionInlining, enumInliningMode, "predicate_definition_inlining", "pdi");
@@ -188,6 +192,8 @@ void Problem::PreprocessingOptions::prepareOptionsReader(OptionsReader& rdr)
   rdr.registerBoolOption(&aigInlining, "aig_inlining", "ai");
   rdr.registerBoolOption(&aigBddSweeping, "aig_bdd_sweeping", "abs");
   rdr.registerBoolOption(&aigDefinitionIntroduction, "aig_definition_introduction", "adi");
+  rdr.registerUnsignedOption(&repetitionCount, "repetition_count", "rc");
+  rdr.registerEnumOption(&repetitionEarlyTermination, enumFixpointCheck, "repetition_early_termination", "ret");
 }
 
 void Problem::PreprocessingOptions::setDefaults()
@@ -222,6 +228,8 @@ void Problem::PreprocessingOptions::setDefaults()
   aigInlining = false;
   aigBddSweeping = false;
   aigDefinitionIntroduction = false;
+  repetitionCount = 1;
+  repetitionEarlyTermination = FC_NONE;
 
   _predicateEquivalenceDiscoveryRestricted = false;
   _ods.setDefaults();
@@ -239,6 +247,16 @@ void Problem::PreprocessingOptions::addAsymmetricRewritingRule(Formula lhs,
   _ods.posRhs->push(posRhs);
   _ods.negRhs->push(negRhs);
   _ods.dblRhs->push(dblRhs);
+}
+
+void Problem::PreprocessingOptions::importAssymmetricRulesFrom(const PreprocessingOptions& src)
+{
+  CALL("Problem::PreprocessingOptions::importAssymmetricRulesFrom");
+
+  _ods.lhs = src._ods.lhs;
+  _ods.posRhs = src._ods.posRhs;
+  _ods.negRhs = src._ods.negRhs;
+  _ods.dblRhs = src._ods.dblRhs;
 }
 
 /**
@@ -281,8 +299,8 @@ void Problem::PreprocessingOptions::validate() const
     throw new ApiException("namingThreshold must be in the range [0,32767]");
   }
 
-  if(sineSelection && sineTolerance<1.0f) {
-    throw new ApiException("sineTolerance must be greater than or equal to 1");
+  if(sineSelection && (sineTolerance<1.0f && sineTolerance!=-1.0f)) {
+    throw new ApiException("sineTolerance must be greater than or equal to 1 or equal to -1");
   }
 }
 
@@ -1415,7 +1433,9 @@ Problem Problem::preprocessInStages(size_t stageCount, const PreprocessingOption
 
   Problem res = *this;
   for(size_t idx=0; idx<stageCount; idx++) {
+    LOG("api_prb_prepr_progress", "running preprocessing stage number "<<idx);
     res = res.preprocess(stageSpecs[idx]);
+    LOG("api_prb_prepr_progress", "preprocessing stage number "<<idx<<" finished");
   }
   return res;
 }
@@ -1457,17 +1477,11 @@ Problem Problem::preprocessInStages(string stagesStr)
   return res;
 }
 
-Problem Problem::preprocess(const PreprocessingOptions& options)
+Problem Problem::singlePreprocessingIteration(const PreprocessingOptions& options)
 {
-  CALL("Problem::preprocess");
-  options.validate();
+  CALL("Problem::singlePreprocessingIteration");
 
   Problem res = *this;
-
-  LOG("api_prb_prepr_progress","preprocess function called");
-
-  LOG("api_prb_prepr_progress","initial preprocessing");
-  res = Preprocessor1().transform(res);
 
   if(options.sineSelection) {
     LOG("api_prb_prepr_progress","sine selection");
@@ -1570,9 +1584,55 @@ inlining:
   res = Clausifier(options.namingThreshold, options.preserveEpr, options.mode==PM_SKOLEMIZE, options.traceClausification).transform(res);
 
   env.options->setShowNonconstantSkolemFunctionTrace(oldTraceVal);
+}
 
+Problem Problem::preprocess(const PreprocessingOptions& options)
+{
+  CALL("Problem::preprocess");
+  options.validate();
+
+  LOG("api_prb_prepr_progress","preprocess function called");
+
+  Problem res = *this;
+
+  LOG("api_prb_prepr_progress","initial preprocessing");
+  res = Preprocessor1().transform(res);
+
+  unsigned iterIdx = 0;
+  for(;;) {
+    if(options.repetitionCount && iterIdx>=options.repetitionCount) {
+      break;
+    }
+
+    Problem old = res;
+
+    LOG("api_prb_prepr_progress","running iteration "<<iterIdx);
+    res = res.singlePreprocessingIteration(options);
+
+    if(fixpointReached(options.repetitionEarlyTermination, old, res)) {
+      LOG("api_prb_prepr_progress","early termination due to reached fixpoint");
+      break;
+    }
+
+    iterIdx++;
+  }
   LOG("api_prb_prepr_progress","preprocess function finished");
+
   return res;
+}
+
+bool Problem::fixpointReached(FixpointCheck fc, Problem& oldPrb, Problem& newPrb)
+{
+  CALL("Problem::fixpointReached");
+
+  switch(fc) {
+  case FC_NONE:
+    return false;
+  case FC_FORMULA_COUNT:
+    return oldPrb.size()==newPrb.size();
+  default:
+    ASSERTION_VIOLATION;
+  }
 }
 
 Problem Problem::performAsymetricRewriting(Formula lhs, Formula posRhs, Formula negRhs, Formula dblRhs)

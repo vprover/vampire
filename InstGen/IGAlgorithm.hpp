@@ -91,6 +91,9 @@ private:
   void onResolutionClauseDerived(Clause* cl);
   void doResolutionStep();
 
+
+  MainLoopResult onModelFound();
+
   /**
    * True if we're running freshly restarted instantiation
    * to see if new clauses are generated, or we have a

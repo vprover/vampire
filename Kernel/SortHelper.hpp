@@ -17,6 +17,7 @@ namespace Kernel {
 class SortHelper {
 public:
   static unsigned getResultSort(Term* t);
+  static unsigned getResultSort(TermList t, DHMap<unsigned,unsigned>& varSorts);
   static unsigned getArgSort(Term* t, unsigned argIndex);
 
   static bool tryGetResultSort(Term* t, unsigned& result);

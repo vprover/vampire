@@ -119,11 +119,26 @@ public:
   };
 
   /**
+   * If there are multiple runs for the preprocessing segment, the runs may
+   * be made to terminate early by setting one of these checks.
+   */
+  enum FixpointCheck {
+    FC_NONE,
+    /**
+     * Will terminate if the formula count does not decrease
+     */
+    FC_FORMULA_COUNT
+  };
+
+  /**
    * Options for the @c preprocess() function.
    */
   struct PreprocessingOptions
   {
     PreprocessingOptions();
+    /**
+     * Read options from a string.
+     */
     PreprocessingOptions(string spec);
 
     PreprocessingMode mode;
@@ -150,8 +165,8 @@ public:
     /**
      * Sine tolerance parameter.
      *
-     * Must be greater than or equal to 1. More axioms are selected for
-     * greater numbers.
+     * Must be greater than or equal to 1 or equal to -1. More axioms are selected for
+     * greater numbers. -1 means unlimited tolerance.
      *
      * Value has effect only when @c sineSelection is true.
      */
@@ -299,12 +314,31 @@ public:
     bool aigDefinitionIntroduction;
 
     /**
+     * How many times we will iterate this preprocessing strategy
+     *
+     * Default value is 1, 0 means unlimited.
+     */
+    unsigned repetitionCount;
+    /**
+     * Check that can gove early termination of the repetitions
+     *
+     * Default value is FC_NONE, if repetitionCount==1, the option has no effect.
+     */
+    FixpointCheck repetitionEarlyTermination;
+
+
+    /**
      * Add asymmetric rewriting rule to be used during preprocessing.
      *
      * For details on the requirements see documentation to the
      * @c Problem::performAsymetricRewriting() function.
      */
     void addAsymmetricRewritingRule(Formula lhs, Formula posRhs, Formula negRhs, Formula dblRhs=Formula());
+
+    /**
+     * Takes assymmetric rules from @c src.
+     */
+    void importAssymmetricRulesFrom(const PreprocessingOptions& src);
     /**
      * Restrict equivalence discovery to equivalences between atoms from
      * set1 and set2
@@ -495,6 +529,10 @@ public:
    */
   void outputStatistics(ostream& out);
 private:
+
+  Problem singlePreprocessingIteration(const PreprocessingOptions& options);
+  bool fixpointReached(FixpointCheck fc, Problem& oldPrb, Problem& newPrb);
+
   class PData;
   class ProblemTransformer;
 
