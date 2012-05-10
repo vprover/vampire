@@ -8,7 +8,11 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/FreshnessGuard.hpp"
+#include "Lib/ScopedPtr.hpp"
+
 #include "AIG.hpp"
+#include "AIGInferenceEngine.hpp"
 
 namespace Shell {
 
@@ -111,6 +115,8 @@ public:
 
 private:
 
+  AIGRef applyInner(AIGRef a);
+
   /**
    * Represents normalized implication
    */
@@ -165,6 +171,12 @@ private:
 
     string toString() const { return "EQ: "+first.toString()+" <=> "+second.toString(); }
 
+    AIGRef getDisjunctiveRepr(AIG& aig)
+    {
+      CALL("AIGConditionalRewriter::Equiv::getDisjunctiveRepr");
+      return aig.getDisj(aig.getConj(first, second), aig.getConj(first.neg(), second.neg()));
+    }
+
     AIGRef first;
     AIGRef second;
   };
@@ -181,6 +193,12 @@ private:
   void collectEquivs(AIGStack& conjStack, EquivStack& res);
 
 
+  AIGPrenexTransformer::QIStack _prenexQuantifiers;
+
+  //object can be used only once
+  FreshnessGuard _freshnessGuard;
+
+  ScopedPtr<AIGInferenceEngine> _engine;
 
   AIGFormulaSharer _afs;
   AIG& _aig;

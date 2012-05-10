@@ -26,6 +26,7 @@
 
 #include "Shell/AIGCompressor.hpp"
 #include "Shell/AIGDefinitionIntroducer.hpp"
+#include "Shell/AIGConditionalRewriter.hpp"
 #include "Shell/AIGInliner.hpp"
 #include "Shell/CNF.hpp"
 #include "Shell/EPRInlining.hpp"
@@ -192,6 +193,8 @@ void Problem::PreprocessingOptions::prepareOptionsReader(OptionsReader& rdr)
   rdr.registerBoolOption(&aigInlining, "aig_inlining", "ai");
   rdr.registerBoolOption(&aigBddSweeping, "aig_bdd_sweeping", "abs");
   rdr.registerBoolOption(&aigDefinitionIntroduction, "aig_definition_introduction", "adi");
+  rdr.registerBoolOption(&aigConditionalRewriting, "aig_conditional_rewriting", "acr");
+
   rdr.registerUnsignedOption(&repetitionCount, "repetition_count", "rc");
   rdr.registerEnumOption(&repetitionEarlyTermination, enumFixpointCheck, "repetition_early_termination", "ret");
 }
@@ -228,6 +231,7 @@ void Problem::PreprocessingOptions::setDefaults()
   aigInlining = false;
   aigBddSweeping = false;
   aigDefinitionIntroduction = false;
+  aigConditionalRewriting = false;
   repetitionCount = 1;
   repetitionEarlyTermination = FC_NONE;
 
@@ -766,6 +770,38 @@ protected:
   Shell::AIGDefinitionIntroducer _adi;
 };
 
+class Problem::AIGConditionalRewriter
+{
+public:
+  Problem transform(Problem p)
+  {
+    CALL("AIGConditionalRewriter::transform");
+
+    Kernel::UnitList* units = 0;
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      Kernel::UnitList::push(f.unit, units);
+    }
+
+    Shell::AIGConditionalRewriter acr;
+    acr.apply(units);
+
+    Problem res;
+
+    if(!units) {
+      return res;
+    }
+
+    while(units) {
+      Kernel::Unit* u = Kernel::UnitList::pop(units);
+      AnnotatedFormula af(u, p._data->getApiHelper());
+      res.addFormula(af);
+    }
+    return res;
+  }
+};
 
 class Problem::PredicateIndexIntroducer : public ProblemTransformer
 {
@@ -1555,6 +1591,11 @@ inlining:
     res = AIGInliner().transform(res);
   }
 
+  if(options.aigConditionalRewriting) {
+    LOG("api_prb_prepr_progress","AIG conditional inlining");
+    res = AIGConditionalRewriter().transform(res);
+  }
+
   if(options.aigDefinitionIntroduction) {
     LOG("api_prb_prepr_progress","AIG definition introduction");
     res = AIGDefinitionIntroducer().transform(res);
@@ -1584,6 +1625,7 @@ inlining:
   res = Clausifier(options.namingThreshold, options.preserveEpr, options.mode==PM_SKOLEMIZE, options.traceClausification).transform(res);
 
   env.options->setShowNonconstantSkolemFunctionTrace(oldTraceVal);
+  return res;
 }
 
 Problem Problem::preprocess(const PreprocessingOptions& options)

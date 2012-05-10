@@ -502,7 +502,7 @@ struct InferenceStore::ProofPrinter
     else {
       ASS(bdd->isFalse(cs.prop()));
       FormulaUnit* fu=static_cast<FormulaUnit*>(cs.unit());
-      out << fu->formula()->toString();
+      out << fu->formula()->toString() << ' ';
     }
 
     out <<"["<<Inference::ruleName(rule);

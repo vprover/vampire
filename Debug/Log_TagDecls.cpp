@@ -196,6 +196,13 @@ void Logging::doTagDeclarations()
       DOC("model generation for inst-gen"),
       PARENT("ig", 1));
 
+  DECL("ig_inproc",
+      DOC("inprocessing in inst_gen"),
+      PARENT("ig", 1));
+  DECL("ig_inproc_equivs",
+      DOC("equivalences discovered in inprocessing"),
+      PARENT("ig_inproc", 1));
+
 
   //
   // Inferences
@@ -497,6 +504,10 @@ void Logging::doTagDeclarations()
       PARENT("pp_flt",1),
       UNIT_TAG);
 
+  DECL("pp_fite",
+      DOC("formula ite expander"),
+      PARENT("pp",1));
+
   DECL("pp_sk",
       DOC("solemization"),
       PARENT("pp",1));
@@ -745,6 +756,25 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_minis_step",
       DOC("inner miniscoping step"),
       PARENT("pp_aig_minis",1));
+
+  DECL("pp_aig_cr",
+      DOC("aig conditional rewriting"),
+      PARENT("pp_aig",1));
+  DECL("pp_aig_cr_engine_step",
+      DOC("single step of the rewriting engine"),
+      PARENT("pp_aig_cr",2));
+  DECL("pp_aig_cr_inner_step",
+      DOC("single step of the conditional rewriting"),
+      PARENT("pp_aig_cr",3));
+  DECL("pp_aig_cr_equiv",
+      DOC("local equivalences"),
+      PARENT("pp_aig_cr",2));
+  DECL("pp_aig_cr_inp",
+      DOC("units entering conditional rewriting"),
+      PARENT("pp_aig_cr",1));
+  DECL("pp_aig_cr_out",
+      DOC("units output by conditional rewriting"),
+      PARENT("pp_aig_cr",1));
 
   DECL("pp_aiginl",
       DOC("AIG based inlining"),

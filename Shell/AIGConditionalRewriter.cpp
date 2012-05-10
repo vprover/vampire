@@ -7,6 +7,7 @@
 
 #include "Lib/SafeRecursion.hpp"
 
+#include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
@@ -14,6 +15,7 @@
 
 #include "AIGCompressor.hpp"
 #include "AIGSubst.hpp"
+#include "Flattening.hpp"
 
 #include "AIGConditionalRewriter.hpp"
 
@@ -605,7 +607,7 @@ struct AIGFactorizingTransformer::RecursiveVisitor
   {
     CALL("AIGFactorizingTransformer::RecursiveVisitor::pre");
 
-    if(obj.isAtom()) {
+    if(obj.isAtom() || obj.isPropConst()) {
       return;
     }
     if(_transfCache.find(obj.getPositive())) {
@@ -616,7 +618,7 @@ struct AIGFactorizingTransformer::RecursiveVisitor
       fn(obj.parent(0));
       return;
     }
-    ASS(obj.isConjunction());
+    ASS_REP(obj.isConjunction(), obj);
     static AIGStack conjuncts;
     conjuncts.reset();
     _aig.collectConjuncts(obj.getPositive(), conjuncts);
@@ -629,7 +631,7 @@ struct AIGFactorizingTransformer::RecursiveVisitor
   {
     CALL("AIGFactorizingTransformer::RecursiveVisitor::post");
 
-    if(obj.isAtom()) {
+    if(obj.isAtom() || obj.isPropConst()) {
       ASS_EQ(childCnt,0);
       return obj;
     }
@@ -653,6 +655,7 @@ struct AIGFactorizingTransformer::RecursiveVisitor
       static AIGStack childNodes;
       childNodes.reset();
       childNodes.loadFromIterator(getArrayishObjectIterator(childRes, childCnt));
+      _aig.flattenConjuncts(childNodes);
       _parent.doLocalFactorization(childNodes);
       posRes = _aig.makeConjunction(childNodes);
     }
@@ -684,6 +687,8 @@ AIGConditionalRewriter::AIGConditionalRewriter()
  : _aig(_afs.aig())
 {
   CALL("AIGConditionalRewriter::AIGConditionalRewriter");
+
+  _engine = new AIGInliningEngine(_aig);
 }
 
 void AIGConditionalRewriter::apply(Problem& prb)
@@ -691,6 +696,7 @@ void AIGConditionalRewriter::apply(Problem& prb)
   CALL("AIGConditionalRewriter::apply(Problem&)");
 
   apply(prb.units());
+  prb.invalidateEverything();
 }
 
 void AIGConditionalRewriter::apply(UnitList*& units)
@@ -698,17 +704,47 @@ void AIGConditionalRewriter::apply(UnitList*& units)
   CALL("AIGConditionalRewriter::apply(UnitList*&)");
 
   AIGRef conj = _aig.getTrue();
+  UnitStack leftAside;
 
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
-    if(u->isClause()) { continue; }
-    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-    AIGRef unitAig = _afs.apply(fu->formula()).second;
+    if(u->inputType()!=Unit::AXIOM) {
+      leftAside.push(u);
+      continue;
+    }
+    LOG_UNIT("pp_aig_cr_inp", u);
+    AIGRef unitAig;
+    if(u->isClause()) {
+      Clause* cl = static_cast<Clause*>(u);
+      unitAig = _afs.getAIG(cl);
+    }
+    else {
+      FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+      unitAig = _afs.apply(fu->formula()).second;
+    }
     conj = _aig.getConj(conj, unitAig);
   }
 
   AIGRef conjTransf = apply(conj);
+
+  Formula* baseForm = _afs.aigToFormula(conjTransf);
+  FormulaUnit* fu = new FormulaUnit(baseForm, new Inference(Inference::LOCAL_SIMPLIFICATION), Unit::AXIOM);
+  fu = Flattening::flatten(fu);
+  units->destroy();
+  units = 0;
+  UnitList::pushFromIterator(UnitStack::Iterator(leftAside), units);
+  UnitList::push(fu, units);
+
+  TopLevelFlatten().apply(units);
+
+  TRACE("pp_aig_cr_out",
+      UnitList::Iterator uit(units);
+      while(uit.hasNext()) {
+	Unit* u = uit.next();
+	TRACE_OUTPUT_UNIT(u);
+      }
+      );
 }
 
 /**
@@ -817,72 +853,160 @@ void AIGConditionalRewriter::collectEquivs(AIGStack& conjStack, EquivStack& res)
   collectConjEquivs(conjStack, res);
 }
 
+AIGRef AIGConditionalRewriter::applyInner(AIGRef a0)
+{
+  CALL("AIGConditionalRewriter::applyInner");
+
+  AIGStack premises;
+  AIGRef a = _engine->apply(a0, &premises);
+//  AIGRef a = a0;
+  COND_TRACE("pp_aig_cr_engine_step", a!=a0,
+      tout << "pp_aig_cr_engine_step"<<endl;
+      tout << "  src: "<<a0<<endl;
+      tout << "  tgt: "<<a<<endl;
+      AIGStack::ConstIterator pit(premises);
+      while(pit.hasNext()) {
+	tout << "  prem: " << pit.next() << endl;
+      }
+      );
+
+  if(!a.isConjunction()) {
+    return a;
+  }
+
+  AIGStack conjs;
+  _aig.collectConjuncts(a, conjs);
+
+  if(conjs.size()>2) {
+    //we want to merge equivalences expressed as two conjuncts into a single disjunction.
+    //This however makes sense only if there is more conjuncts than just the two
+    //(in this case we'd also get an infinite recursion...)
+    EquivStack eqs;
+    collectEquivs(conjs, eqs);
+    while(eqs.isNonEmpty()) {
+      Equiv eq = eqs.pop();
+      LOG("pp_aig_cr_equiv", "pp_aig_cr_equiv: "<< eq.toString());
+      conjs.push(eq.getDisjunctiveRepr(_aig));
+    }
+  }
+
+
+  AIGStack::ConstIterator citPre(conjs);
+  while(citPre.hasNext()) {
+    AIGRef cur = citPre.next();
+    _engine->addValidNode(cur);
+  }
+
+
+  AIGStack::DelIterator citInner(conjs);
+  while(citInner.hasNext()) {
+    AIGRef cur = citInner.next();
+    _engine->removeValidNode(cur);
+
+    AIGRef curProcessed;
+    if(cur.isConjunction()) {
+      ASS(!cur.polarity());
+      curProcessed = applyInner(cur.neg()).neg();
+    }
+    else {
+      curProcessed = applyInner(cur);
+    }
+
+    ASS(!cur.isConjunction() || !cur.polarity());
+
+    if(curProcessed!=cur) {
+      citInner.replace(curProcessed);
+    }
+
+    _engine->addValidNode(curProcessed);
+  }
+
+  AIGStack::ConstIterator citPost(conjs);
+  while(citPost.hasNext()) {
+    AIGRef cur = citPost.next();
+    _engine->removeValidNode(cur);
+  }
+
+  AIGRef res = _aig.makeConjunction(conjs);
+
+  COND_LOG("pp_aig_cr_inner_step", a0!=res,
+	 "pp_aig_cr_inner_step"<<endl
+      << "  src: "<<a0<<endl
+      << "  tgt: "<<res);
+
+  return res;
+}
+
 AIGRef AIGConditionalRewriter::apply(AIGRef a0)
 {
   CALL("AIGConditionalRewriter::apply");
 
-  //TODO: finish
+  _freshnessGuard.use();
+
   AIGPrenexTransformer apt(_aig);
   AIGRef aPrenex = apt.apply(a0);
 
   AIGFactorizingTransformer factor(_aig);
   AIGRef aFactor = factor.apply(aPrenex);
 
+  AIGRef factInner;
+  apt.collectQuants(aFactor, _prenexQuantifiers, factInner);
+
+  AIGRef processedInner = applyInner(factInner);
+  AIGRef compInner = AIGCompressor(_aig).compress(processedInner);
+
+  AIGRef processed = apt.quantifyBySpec(_prenexQuantifiers, compInner);
+
+
   AIGMiniscopingTransformer minis(_aig);
-  AIGRef aMinis = minis.apply(aFactor);
+  AIGRef res = minis.apply(processed);
+
+  return res;
 
 
 //  LOG("bug","init:  "<<a0);
 //  LOG("bug","pren: "<<aPrenex);
 //  LOG("bug","fact: "<<aFactor);
 //  LOG("bug","mnsc: "<<aMinis);
-
-
-
-  AIGPrenexTransformer::QIStack quants;
-  AIGRef factInner;
-  apt.collectQuants(aFactor, quants, factInner);
-
-
-  LOG("bug","-----------------------");
-  LOG("bug","-----------------------");
-  LOG("bug","-----------------------");
-
-  AIGStack conjs;
-  _aig.collectConjuncts(factInner, conjs);
-
-  EquivStack eqs;
-  collectEquivs(conjs, eqs);
-
-  LOGV("bug",conjs.size());
-
-  AIGCompressor aCompr(_aig);
-
-  while(conjs.isNonEmpty()) {
-    AIGRef conjunct = conjs.pop();
-    AIGRef conjSimp = aCompr.compress(conjunct);
-    LOGV("bug", conjunct);
-    if(conjunct!=conjSimp) {
-      LOGV("bug", conjSimp);
-    }
-  }
-
-  while(eqs.isNonEmpty()) {
-    LOGV("bug", eqs.pop().toString());
-  }
-
 //  LOG("bug","-----------------------");
 //  LOG("bug","-----------------------");
 //  LOG("bug","-----------------------");
 //
-//  _aig.collectConjuncts(aMinis, conjs);
+//  AIGStack conjs;
+//  _aig.collectConjuncts(factInner, conjs);
+//
+//  EquivStack eqs;
+//  collectEquivs(conjs, eqs);
+//
 //  LOGV("bug",conjs.size());
 //
+//  AIGCompressor aCompr(_aig);
+//
 //  while(conjs.isNonEmpty()) {
-//    LOGV("bug", conjs.pop());
+//    AIGRef conjunct = conjs.pop();
+//    AIGRef conjSimp = aCompr.compress(conjunct);
+//    LOGV("bug", conjunct);
+//    if(conjunct!=conjSimp) {
+//      LOGV("bug", conjSimp);
+//    }
 //  }
-
-  return aPrenex;
+//
+//  while(eqs.isNonEmpty()) {
+//    LOGV("bug", eqs.pop().toString());
+//  }
+//
+////  LOG("bug","-----------------------");
+////  LOG("bug","-----------------------");
+////  LOG("bug","-----------------------");
+////
+////  _aig.collectConjuncts(aMinis, conjs);
+////  LOGV("bug",conjs.size());
+////
+////  while(conjs.isNonEmpty()) {
+////    LOGV("bug", conjs.pop());
+////  }
+//
+//  return aPrenex;
 }
 
 

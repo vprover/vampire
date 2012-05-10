@@ -158,6 +158,8 @@ const char* Options::Constants::_optionNames[] = {
   "input_file",
   "input_syntax",
   "inst_gen_big_restart_ratio",
+  "inst_gen_inprocessing",
+  "inst_gen_passive_reactivation",
   "inst_gen_resolution_ratio",
   "inst_gen_restart_period",
   "inst_gen_restart_period_quotient",
@@ -725,6 +727,8 @@ Options::Options ()
   _inputFile(""),
   _inputSyntax(IS_TPTP),
   _instGenBigRestartRatio(0.0f),
+  _instGenInprocessing(false),
+  _instGenPassiveReactivation(false),
   _instGenResolutionRatioInstGen(1),
   _instGenResolutionRatioResolution(1),
   _instGenRestartPeriod(1000),
@@ -1080,6 +1084,12 @@ void Options::set(const char* name,const char* value, int index)
 	return;
       }
       break;
+    case INST_GEN_INPROCESSING:
+      _instGenInprocessing = onOffToBool(value,name);
+      return;
+    case INST_GEN_PASSIVE_REACTIVATION:
+      _instGenPassiveReactivation = onOffToBool(value,name);
+      return;
     case INST_GEN_RESOLUTION_RATIO:
       readAgeWeightRatio(value, _instGenResolutionRatioInstGen, _instGenResolutionRatioResolution, '/');
       return;
@@ -1545,7 +1555,7 @@ void Options::set(const char* name,const char* value, int index)
     }
     throw ValueNotFoundException();
   }
-  catch(ValueNotFoundException) {
+  catch(ValueNotFoundException&) {
     USER_ERROR((string)"wrong value (" + value + ") for " + name);
   }
 
@@ -1961,6 +1971,12 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case INST_GEN_BIG_RESTART_RATIO:
     str << _instGenBigRestartRatio;
+    return;
+  case INST_GEN_INPROCESSING:
+    str << boolToOnOff(_instGenInprocessing);
+    return;
+  case INST_GEN_PASSIVE_REACTIVATION:
+    str << boolToOnOff(_instGenPassiveReactivation);
     return;
   case INST_GEN_RESOLUTION_RATIO:
     str << _instGenResolutionRatioInstGen << ':' << _instGenResolutionRatioResolution;

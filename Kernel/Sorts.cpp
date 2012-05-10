@@ -178,13 +178,13 @@ BaseType::~BaseType()
   }
 }
 
-bool BaseType::isAllDefault() const
+bool BaseType::isSingleSortType(unsigned srt) const
 {
   CALL("BaseType::isAllDefault");
 
   unsigned len = arity();
   for(unsigned i=0; i<len; i++) {
-    if(arg(i)!=Sorts::SRT_DEFAULT) {
+    if(arg(i)!=srt) {
       return false;
     }
   }
@@ -254,14 +254,14 @@ FunctionType::FunctionType(unsigned arity)
   _result = Sorts::SRT_DEFAULT;
 }
 
-bool FunctionType::isAllDefault() const
+bool FunctionType::isSingleSortType(unsigned srt) const
 {
   CALL("FunctionType::isAllDefault");
 
-  if(result()!=Sorts::SRT_DEFAULT) {
+  if(result()!=srt) {
     return false;
   }
-  return BaseType::isAllDefault();
+  return BaseType::isSingleSortType(srt);
 }
 
 

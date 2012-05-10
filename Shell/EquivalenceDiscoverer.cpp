@@ -392,6 +392,12 @@ bool EquivalenceDiscoverer::handleTrueLiteral(SATLiteral l, UnitList*& eqAcc)
 
   Literal* fl = getFOLit(l);
 
+  if(_restriction==CR_DEFINITIONS) {
+    if(!PDUtils::isDefinitionHead(fl)) {
+      return false;
+    }
+  }
+
   Formula* atomForm = new AtomicFormula(fl);
   Formula::VarList* freeVars = atomForm->freeVariables();
   if(freeVars) {

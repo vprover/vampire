@@ -787,10 +787,9 @@ bool AIG::tryO4ConjSimpl(Ref& par1, Ref& par2)
   NOT_IMPLEMENTED;
 }
 
-void AIG::collectConjuncts(AIGRef aig, AIGStack& res)
+void AIG::collectConjuncts(AIGRef aig, AIGStack& acc)
 {
   CALL("AIG::collectConjuncts");
-  ASS(res.isEmpty());
 
   static AIGStack toDo;
   toDo.reset();
@@ -798,11 +797,32 @@ void AIG::collectConjuncts(AIGRef aig, AIGStack& res)
   while(toDo.isNonEmpty()) {
     AIGRef a = toDo.pop();
     if(!a.polarity() || !a.isConjunction()) {
-      res.push(a);
+      acc.push(a);
       continue;
     }
     toDo.push(a.parent(0));
     toDo.push(a.parent(1));
+  }
+}
+
+void AIG::flattenConjuncts(AIGStack& conjuncts)
+{
+  CALL("AIG::flattenConjuncts");
+
+  static AIGStack unprocessed;
+  unprocessed.reset();
+
+  AIGStack::DelIterator ait(conjuncts);
+  while(ait.hasNext()) {
+    AIGRef cur = ait.next();
+    if(cur.isConjunction() && cur.polarity()) {
+      unprocessed.push(cur);
+      ait.del();
+    }
+  }
+
+  while(unprocessed.isNonEmpty()) {
+    collectConjuncts(unprocessed.pop(), conjuncts);
   }
 }
 
@@ -1761,6 +1781,7 @@ AIGRef AIGFormulaSharer::getAIG(Clause* cl)
     Literal* l = cit.next();
     res = _aig.getDisj(res, apply(l));
   }
+  res = _aig.getQuant(false, res.getFreeVars(), res);
   return res;
 }
 

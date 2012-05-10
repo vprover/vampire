@@ -139,7 +139,7 @@ public:
     /**
      * Read options from a string.
      */
-    PreprocessingOptions(string spec);
+    explicit PreprocessingOptions(string spec);
 
     PreprocessingMode mode;
     /**
@@ -312,6 +312,11 @@ public:
      * BDD-sweeping simplification of AIG representation of the problem
      */
     bool aigDefinitionIntroduction;
+
+    /**
+     * Conditional rewriting on the AIG of the problem
+     */
+    bool aigConditionalRewriting;
 
     /**
      * How many times we will iterate this preprocessing strategy
@@ -542,6 +547,7 @@ private:
   class BDDSweeper;
   class AIGInliner;
   class AIGDefinitionIntroducer;
+  class AIGConditionalRewriter;
   class PredicateIndexIntroducer;
   class PredicateEquivalenceDiscoverer;
   class PredicateDefinitionMerger;

@@ -29,6 +29,13 @@ public:
     _s.push(cl);
   }
 
+  void pushWithoutInc(Clause* cl)
+  {
+    CALL("RCClauseStack::push");
+
+    _s.push(cl);
+  }
+
   Clause* pop()
   {
     CALL("RCClauseStack::pop");
@@ -46,7 +53,7 @@ public:
   {
     CALL("RCClauseStack::popWithoutDec");
 
-    return _s.pop();;
+    return _s.pop();
   }
 
   bool isEmpty() { return _s.isEmpty(); }
@@ -69,13 +76,41 @@ public:
   public:
     DECL_ELEMENT_TYPE(Clause*);
 
-    Iterator(RCClauseStack& s) : _inner(s._s) {}
+    Iterator(const RCClauseStack& s) : _inner(s._s) {}
 
     bool hasNext() { return _inner.hasNext(); }
     Clause* next() { return _inner.next(); }
 
   private:
-    ClauseStack::Iterator _inner;
+    ClauseStack::ConstIterator _inner;
+  };
+
+  class DelIterator
+  {
+  public:
+    DECL_ELEMENT_TYPE(Clause*);
+
+    DelIterator(RCClauseStack& s) : _inner(s._s) {}
+
+    bool hasNext() { return _inner.hasNext(); }
+    Clause* next() {
+      curr = _inner.next();
+      return curr;
+    }
+    void del() {
+      _inner.del();
+      curr->decRefCnt();
+    }
+    void replace(Clause* replacement) {
+      _inner.replace(replacement);
+      replacement->incRefCnt();
+      curr->decRefCnt();
+      curr = replacement;
+    }
+
+  private:
+    ClauseStack::DelIterator _inner;
+    Clause* curr;
   };
 
 private:

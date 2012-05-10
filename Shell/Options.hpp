@@ -98,6 +98,8 @@ public:
     INPUT_FILE,
     INPUT_SYNTAX,
     INST_GEN_BIG_RESTART_RATIO,
+    INST_GEN_INPROCESSING,
+    INST_GEN_PASSIVE_REACTIVATION,
     INST_GEN_RESOLUTION_RATIO,
     INST_GEN_RESTART_PERIOD,
     INST_GEN_RESTART_PERIOD_QUOTIENT,
@@ -642,6 +644,8 @@ public:
   int tabulationLemmaWeightRatio() const { return _tabulationLemmaWeightRatio; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio; }
+  bool instGenInprocessing() const { return _instGenInprocessing; }
+  bool instGenPassiveReactivation() const { return _instGenPassiveReactivation; }
   int instGenResolutionRatioInstGen() const { return _instGenResolutionRatioInstGen; }
   int instGenResolutionRatioResolution() const { return _instGenResolutionRatioResolution; }
   int instGenRestartPeriod() const { return _instGenRestartPeriod; }
@@ -764,6 +768,8 @@ private:
   string _inputFile;
   InputSyntax _inputSyntax;
   float _instGenBigRestartRatio;
+  bool _instGenInprocessing;
+  bool _instGenPassiveReactivation;
   int _instGenResolutionRatioInstGen;
   int _instGenResolutionRatioResolution;
   int _instGenRestartPeriod;

@@ -98,6 +98,7 @@ private:
 
   unsigned getIntFunction(string name, unsigned arity, bool setColor=false);
   unsigned getIntConstant(string name) { return getIntFunction(name, 0); }
+  unsigned getIntPredicate(string name, unsigned arity, bool setColor);
   Literal* createIntEquality(bool polarity, TermList arg1, TermList arg2)
   { return Literal::createEquality(polarity, arg1, arg2, Sorts::SRT_INTEGER); }
 

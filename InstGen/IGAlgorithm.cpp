@@ -15,6 +15,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/RCClauseStack.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "Indexing/LiteralSubstitutionTree.hpp"
@@ -25,8 +26,10 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/EquivalenceDiscoverer.hpp"
 #include "Shell/EqualityAxiomatizer.hpp"
 #include "Shell/EqualityProxy.hpp"
+#include "Shell/PDInliner.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -456,9 +459,9 @@ void IGAlgorithm::deactivate(Clause* cl)
   }
 }
 
-void IGAlgorithm::doReactivation()
+void IGAlgorithm::doImmediateReactivation()
 {
-  CALL("IGAlgorithm::doReactivation");
+  CALL("IGAlgorithm::doImmediateReactivation");
 
   static ClauseStack toActivate;
   toActivate.reset();
@@ -467,7 +470,7 @@ void IGAlgorithm::doReactivation()
   while(dit.hasNext()) {
     Clause* cl = dit.next();
     removeFromIndex(cl);
-    selectAndAddToIndex(cl);
+//    selectAndAddToIndex(cl);
     toActivate.push(cl);
   }
 
@@ -477,6 +480,29 @@ void IGAlgorithm::doReactivation()
     Clause* cl = toActivate.pop();
     activate(cl, true);
   }
+}
+
+void IGAlgorithm::doPassiveReactivation()
+{
+  CALL("IGAlgorithm::doPassiveReactivation");
+
+  static ClauseStack toActivate;
+  toActivate.reset();
+
+  RCClauseStack::DelIterator ait(_active);
+  while(ait.hasNext()) {
+    Clause* cl = ait.next();
+    if(!_deactivatedSet.contains(cl)) {
+      continue;
+    }
+    removeFromIndex(cl);
+    _passive.add(cl);
+    cl->incRefCnt(); //corresponds to addition to passive
+    ait.del();
+  }
+
+  _deactivated.reset();
+  _deactivatedSet.reset();
 }
 
 void IGAlgorithm::wipeIndexes()
@@ -492,29 +518,79 @@ void IGAlgorithm::wipeIndexes()
   _selected = new LiteralSubstitutionTree();
 }
 
+void IGAlgorithm::doInprocessing(RCClauseStack& clauses)
+{
+  CALL("IGAlgorithm::doInprocessing");
+
+  LOG("ig_inproc", "inprocessing started");
+
+  EquivalenceDiscoverer ed(true, UINT_MAX, EquivalenceDiscoverer::CR_DEFINITIONS, false, true, true);
+  UnitList* equivs = ed.getEquivalences(pvi(RCClauseStack::Iterator(clauses)));
+
+  TRACE("ig_inproc_equivs",
+      UnitList::Iterator eit(equivs);
+      while(eit.hasNext()) {
+	Unit* u = eit.next();
+	TRACE_OUTPUT_UNIT(u);
+      }
+      );
+
+  if(!equivs) {
+    LOG("ig_inproc", "inprocessing finished");
+    return;
+  }
+
+  PDInliner pdi;
+  pdi.scanAndRemoveDefinitions(equivs, false);
+
+  RCClauseStack::DelIterator cit(clauses);
+  while(cit.hasNext()) {
+    Clause* cl = cit.next();
+    Unit* aplResU = pdi.apply(cl);
+    if(!aplResU) {
+      cl->decRefCnt();
+      cit.del();
+    }
+    else {
+      ASS(aplResU->isClause());
+      Clause* aplRes = static_cast<Clause*>(aplResU);
+      if(aplRes!=cl) {
+	cl->decRefCnt();
+	aplRes->incRefCnt();
+	cit.replace(aplRes);
+      }
+    }
+  }
+  LOG("ig_inproc", "inprocessing finished");
+}
+
 void IGAlgorithm::restartWithCurrentClauses()
 {
   CALL("IGAlgorithm::restartWithCurrentClauses");
 
   LOG("ig_restarts", "restart with current clauses");
 
-  static ClauseStack allClauses;
+  static RCClauseStack allClauses;
   allClauses.reset();
 
   while(_active.isNonEmpty()) {
-    allClauses.push(_active.popWithoutDec());
+    allClauses.pushWithoutInc(_active.popWithoutDec());
   }
   while(!_passive.isEmpty()) {
-    allClauses.push(_passive.popSelected());
+    allClauses.pushWithoutInc(_passive.popSelected());
   }
   while(_unprocessed.isNonEmpty()) {
-    allClauses.push(_unprocessed.popWithoutDec());
+    allClauses.pushWithoutInc(_unprocessed.popWithoutDec());
   }
 
   wipeIndexes();
 
+  if(!_doingSatisfiabilityCheck && _opt.instGenInprocessing()) {
+    doInprocessing(allClauses);
+  }
+
   while(allClauses.isNonEmpty()) {
-    Clause* cl = allClauses.pop();
+    Clause* cl = allClauses.popWithoutDec();
     addClause(cl);
     cl->decRefCnt();//corresponds to the removal from the active and passive container
   }
@@ -583,12 +659,17 @@ MainLoopResult IGAlgorithm::runImpl()
 	  break;
 	}
       }
-
-      doReactivation();
-
       if(restarting) {
 	break;
       }
+
+      if(_opt.instGenPassiveReactivation()) {
+	doPassiveReactivation();
+      }
+      else {
+	doImmediateReactivation();
+      }
+
 
       while(_instGenResolutionRatio.shouldDoSecond()) {
 	_instGenResolutionRatio.doSecond();
@@ -612,17 +693,18 @@ MainLoopResult IGAlgorithm::runImpl()
     }
     else {
       //we're here because there were no more clauses to activate
+      LOG("ig_restarts", "restarting to check for actual satisfiability");
       restartWithCurrentClauses();
       _doingSatisfiabilityCheck = true;
-    }
-    processUnprocessed();
-    while(!_passive.isEmpty()) {
-      Clause* given = _passive.popSelected();
-      activate(given);
-    }
-    _doingSatisfiabilityCheck = false;
-    if(_unprocessed.isEmpty()) {
-      return onModelFound();
+      processUnprocessed();
+      while(!_passive.isEmpty() && _unprocessed.isEmpty()) {
+        Clause* given = _passive.popSelected();
+        activate(given);
+      }
+      _doingSatisfiabilityCheck = false;
+      if(_unprocessed.isEmpty()) {
+        return onModelFound();
+      }
     }
   }
 }

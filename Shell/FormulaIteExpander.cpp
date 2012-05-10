@@ -56,7 +56,7 @@ bool FormulaIteExpander::apply(UnitList*& units)
       modified = true;
     }
   }
-  ASS_EQ(_defs!=0, modified);
+  ASS(_defs==0 || modified);
   units = UnitList::concat(_defs, units);
   _defs=0;
 #if 0
@@ -176,9 +176,12 @@ Formula* FormulaIteExpander::apply(Formula* f)
 	c = c->uarg();
         std::swap(t,e);
       }
-
       if(c->connective()!=LITERAL) {
 	c = introduceDefinition(c);
+	LOG("pp_fite","processing ite "<<(*f)<<" with introduced definition "<<(*c));
+      }
+      else {
+	LOG("pp_fite","processing ite "<<(*f)<<" without definition introduction");
       }
       ASS(c->connective()==LITERAL)
 

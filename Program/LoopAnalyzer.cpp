@@ -1075,10 +1075,7 @@ Formula* LoopAnalyzer::updatePredicateOfArray2(Path* path, Path::Iterator &sit, 
 		      TermList x0;
 		      x0.makeVar(0);//variable for loop iteration
 		      env.colorUsed=true;
-		      unsigned iterPred = env.signature->addPredicate("iter",1);
-		      Signature::Symbol *symb= env.signature->getPredicate(iterPred);
-		      symb->addColor(COLOR_LEFT);
-
+		      unsigned iterPred = getIntPredicate("iter",1, true);
 
 		      Literal* iter = Literal::create1(iterPred,true,x0);
 		      //create iter(X0) && updatedPosition
@@ -1162,9 +1159,7 @@ Formula* LoopAnalyzer::updatePredicateOfArray3(Path* path, Path::Iterator &sit, 
 		      x0.makeVar(0);//variable for loop iteration
 		      env.colorUsed=true;
 		      Signature::Symbol* sym;
-		      unsigned iterPred = env.signature->addPredicate("iter",1);
-		      sym=env.signature->getPredicate(iterPred);
-		      sym->addColor(COLOR_LEFT);
+		      unsigned iterPred = getIntPredicate("iter",1, true);
 		      Literal* iter = Literal::create1(iterPred,true,x0);
 		      //compute the update value wrt lets
 		      Path::Iterator vit(path);
@@ -1265,9 +1260,7 @@ Formula* LoopAnalyzer::stabilityProperty(Literal* updPred, string array, TermLis
   //create formula  (iter(ITERATION) => ~UpdPred(ITERATION,POSITION))
   env.colorUsed=true;
   Signature::Symbol* sym;
-  unsigned iter = env.signature->addPredicate("iter",1);
-  sym=env.signature->getPredicate(iter);
-  sym->addColor(COLOR_LEFT);
+  unsigned iter = getIntPredicate("iter",1, true);
   Literal* iterPred = Literal::create1(iter,true,iteration);
   Formula* stabilityCondition = new BinaryFormula(IMP,new AtomicFormula(iterPred), new NegatedFormula(new AtomicFormula(updPred)));
   //create stability property
@@ -1329,12 +1322,8 @@ void LoopAnalyzer::generateUpdatePredicates()
      x3.makeVar(3);//variable for value of update
      env.colorUsed=true;
      Signature::Symbol* sym, *symb;
-     unsigned updFun1 = env.signature->addPredicate(updName,2);
-     sym = env.signature->getPredicate(updFun1);
-     unsigned updFun2 = env.signature->addPredicate(updName,3);
-     symb= env.signature->getPredicate(updFun2);
-     sym->addColor(COLOR_LEFT);
-     symb->addColor(COLOR_LEFT);
+     unsigned updFun1 = getIntPredicate(updName,2, true);
+     unsigned updFun2 = getIntPredicate(updName,3, true);
      // term updV(x0,x2) 
      Literal* upd1 = Literal::create2(updFun1,true,x0,x2);
      // term updV(x0,x2,x3)
@@ -1456,9 +1445,7 @@ void LoopAnalyzer::generateLoopConditionProperty()
   TermList x0;
   x0.makeVar(0);
   env.colorUsed=true;
-  unsigned iter = env.signature->addPredicate("iter",1);
-  Signature::Symbol* sym= env.signature->getPredicate(iter);
-  sym->addColor(COLOR_LEFT);
+  unsigned iter = getIntPredicate("iter",1, true);
   Literal* iterPred = Literal::create1(iter,true,x0);
   Formula* loopConditionProp = new BinaryFormula(IMP,new AtomicFormula(iterPred),condition);
    _units = _units->cons(new FormulaUnit(loopConditionProp,
@@ -1477,9 +1464,7 @@ void LoopAnalyzer::generateIterationDefinition()
   TermList x0;
   x0.makeVar(0);
   env.colorUsed=true;
-  unsigned iter = env.signature->addPredicate("iter",1);
-  Signature::Symbol* sym= env.signature->getPredicate(iter);
-  sym->addColor(COLOR_LEFT);
+  unsigned iter = getIntPredicate("iter",1,true);
   Literal* iterPred = Literal::create1(iter,true,x0);
   Theory* theory = Theory::instance();
   TermList zero(theory->representConstant(IntegerConstantType(0)));
@@ -1760,30 +1745,53 @@ Term* LoopAnalyzer::relativize(Expression* expr)
 
 unsigned LoopAnalyzer::getIntFunction(string name, unsigned arity, bool setColor)
 {
+  CALL("LoopAnalyzer::getIntFunction");
+
   bool added;
-  unsigned res;
+  unsigned res = env.signature->addFunction(name, arity, added);
+  Signature::Symbol* symb = env.signature->getFunction(res);
+
   if(setColor){
-  env.colorUsed=true;
-  Signature::Symbol* symb;
-  res = env.signature->addFunction(name, arity, added);
-  symb= env.signature->getFunction(res);
-  symb->addColor(COLOR_LEFT);
+    env.colorUsed=true;
+    symb->addColor(COLOR_LEFT);
   }
-  else
-    res = env.signature->addFunction(name, arity, added);
 
   if(added) {
     static DArray<unsigned> domSorts;
     domSorts.init(arity, Sorts::SRT_INTEGER);
-    env.signature->getFunction(res)->setType(BaseType::makeType(arity, domSorts.array(), Sorts::SRT_INTEGER));
+    symb->setType(BaseType::makeType(arity, domSorts.array(), Sorts::SRT_INTEGER));
   }
 #if VDEBUG
   else {
-    Kernel::FunctionType* t = env.signature->getFunction(res)->fnType();
-    ASS_EQ(t->result(), Sorts::SRT_INTEGER);
-    for(unsigned i=0; i<arity; ++i) {
-      ASS_EQ(t->arg(i), Sorts::SRT_INTEGER);
-    }
+    Kernel::FunctionType* t = symb->fnType();
+    ASS(t->isSingleSortType(Sorts::SRT_INTEGER));
+  }
+#endif
+  return res;
+}
+
+unsigned LoopAnalyzer::getIntPredicate(string name, unsigned arity, bool setColor)
+{
+  CALL("LoopAnalyzer::getIntPredicate");
+
+  bool added;
+  unsigned res = env.signature->addPredicate(name, arity, added);
+  Signature::Symbol* symb = env.signature->getPredicate(res);
+
+  if(setColor){
+    env.colorUsed=true;
+    symb->addColor(COLOR_LEFT);
+  }
+
+  if(added) {
+    static DArray<unsigned> domSorts;
+    domSorts.init(arity, Sorts::SRT_INTEGER);
+    symb->setType(BaseType::makeType(arity, domSorts.array(), Sorts::SRT_BOOL));
+  }
+#if VDEBUG
+  else {
+    Kernel::PredicateType* t = symb->predType();
+    ASS(t->isSingleSortType(Sorts::SRT_INTEGER));
   }
 #endif
   return res;

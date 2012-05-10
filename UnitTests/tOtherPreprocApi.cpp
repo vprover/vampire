@@ -51,19 +51,61 @@ void assertEarlyPreprocActive(Problem::PreprocessingOptions popts, bool shouldPe
   }
 }
 
+TEST_FUN(preprapiSine)
+{
+  Problem::PreprocessingOptions popts("ss=on:st=-1");
+
+  string prbNoConj =
+      "fof(a,axiom, p)."
+      "fof(a,axiom, q).";
+  string prbSelected =
+      "fof(a,conjecture, p|q)."
+      "fof(a,axiom, q).";
+  string prbNotSelectedForTolerance1 =
+      "fof(a,conjecture, p|q)."
+      "fof(a,axiom, q|r)."
+      "fof(a,axiom, q|s).";
+
+  assertEarlyPreprocActive(popts, true, prbNoConj);
+  assertEarlyPreprocActive(popts, false, prbSelected);
+  assertEarlyPreprocActive(popts, false, prbNotSelectedForTolerance1);
+
+  popts = Problem::PreprocessingOptions("ss=on:st=1");
+  assertEarlyPreprocActive(popts, true, prbNoConj);
+  assertEarlyPreprocActive(popts, false, prbSelected);
+  assertEarlyPreprocActive(popts, true, prbNotSelectedForTolerance1);
+}
+
 TEST_FUN(preprapiPredIndexing)
 {
-  Problem::PreprocessingOptions popts;
-  popts.predicateIndexIntroduction = true;
+  Problem::PreprocessingOptions popts("pii=on");
 
   assertEarlyPreprocActive(popts, true, "fof(a,axiom, p(a,X)). fof(a,axiom, p(a,b)).");
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(a,X)). fof(a,axiom, p(b,b)).");
 }
 
+TEST_FUN(preprapiAigConditionalRewriting)
+{
+  Problem::PreprocessingOptions popts("acr=on");
+
+  string prb1 =
+      "fof(a,axiom, p=>(a<=>b))."
+      "fof(a,axiom, p=>(a))."
+      "fof(a,axiom, p=>(b))."
+      ;
+  string prb2 =
+      "fof(a,axiom, p=>(a<=>b))."
+      "fof(a,axiom, q=>(a))."
+      "fof(a,axiom, r=>(b))."
+      ;
+
+  assertEarlyPreprocActive(popts, true, prb1);
+  assertEarlyPreprocActive(popts, false, prb2);
+}
+
 TEST_FUN(preprapiPredEqDiscovery)
 {
-  Problem::PreprocessingOptions popts;
-  popts.equivalenceDiscovery = Problem::ED_PREDICATE_EQUIVALENCES;
+  Problem::PreprocessingOptions popts("ed=predicate_equivalences:edscl=UINT_MAX");
 
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, p(a) & q(a)).");
   assertEarlyPreprocActive(popts, true, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, ~p(X) | q(X) ). fof(a,axiom, p(a) & q(a)).");

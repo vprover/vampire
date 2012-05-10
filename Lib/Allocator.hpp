@@ -39,7 +39,7 @@
 #define MAX_SKIP_HEIGHT 32
 
 /** The largest piece of memory that can be allocated at once */
-#define MAXIMAL_ALLOCATION (PAGE_SIZE*MAX_PAGES)
+#define MAXIMAL_ALLOCATION (static_cast<unsigned long long>(PAGE_SIZE)*MAX_PAGES)
 
 //this macro is undefine at the end of the file
 #if defined(__GNUC__) && !defined(__ICC) && (__GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ > 2)

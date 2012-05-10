@@ -108,7 +108,7 @@ void Preprocess::preprocess (Problem& prb)
 //       }
 //     }
 //   }
-
+  LOG("pp","preprocessing started");
   TRACE("pp_input",
       UnitList::Iterator uit(prb.units());
       while(uit.hasNext()) {
@@ -359,7 +359,7 @@ void Preprocess::preprocess (Problem& prb)
        }
        );
 
-
+   LOG("pp","preprocessing finished");
 } // Preprocess::preprocess ()
 
 

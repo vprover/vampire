@@ -80,7 +80,8 @@ public:
   }
 
   unsigned arity() const { return _args ? _args->length() : 0; }
-  virtual bool isAllDefault() const;
+  virtual bool isSingleSortType(unsigned sort) const;
+  bool isAllDefault() const { return isSingleSortType(Sorts::SRT_DEFAULT); }
 
   virtual bool isFunctionType() const { return false; }
 
@@ -122,7 +123,7 @@ public:
 
   unsigned result() const { return _result; }
 
-  virtual bool isAllDefault() const;
+  virtual bool isSingleSortType(unsigned sort) const;
   virtual bool isFunctionType() const { return true; }
 
   virtual string toString() const;

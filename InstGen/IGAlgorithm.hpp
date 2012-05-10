@@ -65,6 +65,8 @@ private:
 
   void addClause(Clause* cl);
 
+  void doInprocessing(RCClauseStack& clauses);
+
   void restartWithCurrentClauses();
   void restartFromBeginning();
 
@@ -75,7 +77,8 @@ private:
   void activate(Clause* cl, bool wasDeactivated=false);
 
   void deactivate(Clause* cl);
-  void doReactivation();
+  void doImmediateReactivation();
+  void doPassiveReactivation();
 
   void selectAndAddToIndex(Clause* cl);
   void removeFromIndex(Clause* cl);

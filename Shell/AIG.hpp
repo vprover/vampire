@@ -203,6 +203,7 @@ public:
   Ref getInvalid() const { return Ref::getInvalid(); }
 
   void collectConjuncts(Ref aig, AIGStack& res);
+  void flattenConjuncts(AIGStack& conjuncts);
   Ref makeConjunction(const AIGStack& conjuncts);
 
   static VarSet* getTermFreeVars(Term* lit);
