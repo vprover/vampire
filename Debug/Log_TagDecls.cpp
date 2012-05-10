@@ -677,6 +677,19 @@ void Logging::doTagDeclarations()
       DOC("quantifier transformations by substitutions"),
       PARENT("pp_aig_subst",1));
 
+  DECL("pp_aig_a2f",
+      DOC("conversion of AIGs to formulas"),
+      PARENT("pp_aig",1));
+  DECL("pp_aig_a2f_new",
+      DOC("aigs that have formula newly created"),
+      PARENT("pp_aig_a2f",1));
+  DECL("pp_aig_a2f_sharing",
+      DOC("pair (aig,formula) added to sharing"),
+      PARENT("pp_aig_a2f",1));
+  DECL("pp_aig_a2f_cached",
+      DOC("aigs that have formula already cached"),
+      PARENT("pp_aig_a2f",2));
+
   DECL("pp_aigtr",
       DOC("AIGTransformer"),
       PARENT("pp_aig",1),

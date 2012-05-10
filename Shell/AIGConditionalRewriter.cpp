@@ -949,14 +949,18 @@ AIGRef AIGConditionalRewriter::apply(AIGRef a0)
   AIGFactorizingTransformer factor(_aig);
   AIGRef aFactor = factor.apply(aPrenex);
 
-  AIGRef factInner;
-  apt.collectQuants(aFactor, _prenexQuantifiers, factInner);
+  AIGRef inner;
+  apt.collectQuants(aFactor, _prenexQuantifiers, inner);
 
-  AIGRef processedInner = applyInner(factInner);
-  AIGRef compInner = AIGCompressor(_aig).compress(processedInner);
+  AIGCompressor acr(_aig);
+  AIGRef prev;
+  do {
+    prev = inner;
+    inner = applyInner(inner);
+    inner = acr.compress(inner);
+  } while(prev!=inner);
 
-  AIGRef processed = apt.quantifyBySpec(_prenexQuantifiers, compInner);
-
+  AIGRef processed = apt.quantifyBySpec(_prenexQuantifiers, inner);
 
   AIGMiniscopingTransformer minis(_aig);
   AIGRef res = minis.apply(processed);

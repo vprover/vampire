@@ -22,6 +22,7 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "PDUtils.hpp"
+#include "SimplifyFalseTrue.hpp"
 
 #include "AIG.hpp"
 
@@ -1309,6 +1310,9 @@ Formula* AIGFormulaSharer::shareFormula(Formula* f, AIGRef aig)
 
   Formula** pRes;
   if(_formReprs.getValuePtr(aig, pRes)) {
+    LOG("pp_aig_a2f_sharing", "(aig,formula) pair added to sharing:"<<endl<<
+	"  aig: "<<aig<<endl<<
+	"  frm: "<<(*f));
     *pRes = f;
     ALWAYS(_formAIGs.insert(f, aig));
   }
@@ -1475,6 +1479,7 @@ Formula* AIGFormulaSharer::aigToFormula(AIGRef aig0)
 
   Formula* res;
   if(_formReprs.find(aig0, res)) {
+    LOG("pp_aig_a2f_cached","whole aig with cached formula: "<<aig0<<" --> "<<(*res));
     return res;
   }
 
@@ -1486,6 +1491,7 @@ Formula* AIGFormulaSharer::aigToFormula(AIGRef aig0)
     AIGRef a = toBuild.pop();
 
     if(_formReprs.find(a)) {
+      LOG("pp_aig_a2f_cached","aig with cached formula: "<<a<<" --> "<<(*_formReprs.get(a)));
       continue;
     }
 
@@ -1520,6 +1526,7 @@ Formula* AIGFormulaSharer::aigToFormula(AIGRef aig0)
     if(a.isPropConst()) {
       form = a.polarity() ? Formula::trueFormula() : Formula::falseFormula();
     }
+    LOG("pp_aig_a2f_new","aig with newly created formula: "<<a<<" --> "<<(*form));
     shareFormula(form, a);
 
   }
@@ -1595,6 +1602,8 @@ AIGFormulaSharer::ARes AIGFormulaSharer::getSharedFormula(Formula* f)
   }
 
   LOG("pp_aig_subformula_nodes", "SFN: "<< (*f) << " has AIG node " << res.second.toString());
+
+  res.first = SimplifyFalseTrue::simplify(res.first);
 
   res = ARes(shareFormula(res.first,res.second), res.second);
 
