@@ -42,13 +42,22 @@ bool OptionsReader::readOption(string name, string value) const
       tgt = UINT_MAX;
       return true;
     }
+    LOG("or_fail","wrong int value: "<<name<<" = "<<value);
     return false;
   }
   else if(_floatOptTargets.find(name)) {
-    return Int::stringToFloat(value.c_str(), *_floatOptTargets.get(name));
+    if(!Int::stringToFloat(value.c_str(), *_floatOptTargets.get(name))) {
+      LOG("or_fail","wrong float value: "<<name<<" = "<<value);
+      return false;
+    }
+    return true;
   }
   else if(_boolOptTargets.find(name)) {
-    return tryReadBool(value, *_boolOptTargets.get(name));
+    if(!tryReadBool(value, *_boolOptTargets.get(name))) {
+      LOG("or_fail","wrong boolean value: "<<name<<" = "<<value);
+      return false;
+    }
+    return true;
   }
   else if(_enumOptTargets.find(name)) {
     int* tgt = _enumOptTargets.get(name);
@@ -69,7 +78,10 @@ bool OptionsReader::readOptions(string str) const
   CALL("OptionsReader::readOptions");
 
   DHMap<string,string> optVals;
-  StringUtils::readEqualities(str.c_str(), ':', '=', optVals);
+  if(!StringUtils::readEqualities(str.c_str(), ':', '=', optVals)) {
+    LOG("or_fail","wrong sequence of equalities: "<<str);
+    return false;
+  }
 
   DHMap<string,string>::Iterator oit(optVals);
   while(oit.hasNext()) {
@@ -84,5 +96,11 @@ bool OptionsReader::readOptions(string str) const
   return true;
 }
 
+void OptionsReader::printOptionValue(string name, ostream& out)
+{
+  CALL("OptionsReader::printOptionValue");
+
+  NOT_IMPLEMENTED;
+}
 
 }

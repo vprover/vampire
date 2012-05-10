@@ -92,7 +92,8 @@ void inlineTest(const char* fname)
   // m_PreprocessOpts.predicateEquivalenceDiscovery = true;
   // m_PreprocessOpts.predicateEquivalenceDiscoverySatConflictLimit = 0;
   // m_PreprocessOpts.predicateEquivalenceDiscoveryPredicateEquivalencesOnly = false;
-  m_PreprocessOpts.variableEqualityPropagation = false;
+  m_PreprocessOpts.variableEqualityPropagation = true;
+  m_PreprocessOpts.aigConditionalRewriting = true;
 
   // equivalence discovery options; the enum below describes the options.
   m_PreprocessOpts.equivalenceDiscovery = Problem::ED_FORMULA_EQUIVALENCES;

@@ -343,12 +343,12 @@ void ISSatSweeping::doRedundantImplicationSweeping()
 	continue;
       }
     }
-    LOG("sat_redundant_impl_removed","removed impl: "<<imp.first<<" -> "<<imp.second);
+    LOG("sat_iss_redundant_impl_removed","removed impl: "<<imp.first<<" -> "<<imp.second);
     implIt.del();
     removedCnt++;
   }
 
-  LOG("sat_redundant_impl_removal","removed "<<removedCnt<<" redundant implications, remained "<<_implications.size());
+  LOG("sat_iss_redundant_impl_removal","removed "<<removedCnt<<" redundant implications, remained "<<_implications.size());
 }
 
 void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOpposite,

@@ -203,4 +203,16 @@ TEST_FUN(preprapiAIGDefIntroduction)
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) & ?[X]: (p(X) & q(X))).");
 }
 
-
+TEST_FUN(preprapiOptionStringErrors)
+{
+  try {
+    Problem::PreprocessingOptions popts("adi=odsd");
+    ASSERTION_VIOLATION;
+  } catch(ApiException&)
+  {}
+  try {
+    Problem::PreprocessingOptions popts("adi=on,ai=off");
+    ASSERTION_VIOLATION;
+  } catch(ApiException&)
+  {}
+}

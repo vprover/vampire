@@ -1592,7 +1592,7 @@ inlining:
   }
 
   if(options.aigConditionalRewriting) {
-    LOG("api_prb_prepr_progress","AIG conditional inlining");
+    LOG("api_prb_prepr_progress","AIG conditional rewriting");
     res = AIGConditionalRewriter().transform(res);
   }
 

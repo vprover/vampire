@@ -369,6 +369,7 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/CompitOutput.o\
          Test/Compit2Output.o\
          Test/Output.o\
+         Test/RecordingSatSolver.o\
          Test/TestUtils.o\
          Test/UnitTesting.o
 
@@ -449,7 +450,8 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/SATInference.o\
 	       SAT/SATLiteral.o\
 	       SAT/TWLSolver.o\
-	       SAT/VariableSelector.o
+	       SAT/VariableSelector.o\
+	       Test/RecordingSatSolver.o
 
 
 VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse 

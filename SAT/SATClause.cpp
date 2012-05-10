@@ -253,6 +253,10 @@ string SATClause::toDIMACSString() const
 {
   CALL("SATClause::toDIMACSString");
 
+  if(_length==0) {
+    return "0";
+  }
+
   string result;
   for(unsigned i=0;i<_length;i++) {
     ASS_G(_literals[i].var(),0);

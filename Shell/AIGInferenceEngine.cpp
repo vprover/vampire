@@ -178,6 +178,10 @@ void AIGInliningEngine::addValidNodeImpl(AIGRef node)
     AIGRef lhs = eq.first;
     AIGRef rhs = eq.second;
     orientEquivalence(lhs, rhs);
+    if(!lhs.polarity()) {
+      lhs = lhs.neg();
+      rhs = rhs.neg();
+    }
     addRewrite(lhs, rhs, node);
   }
 }

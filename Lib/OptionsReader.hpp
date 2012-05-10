@@ -18,7 +18,7 @@ using namespace std;
 class EnumReaderBase {
 public:
   EnumReaderBase()
-   : _vals(new DHMap<string,int>())
+   : _vals(new DHMap<string,int>()), _names(new DHMap<int,string>())
   {
   }
 
@@ -26,11 +26,15 @@ public:
   {
     CALL("EnumReaderBase::addVal");
     ALWAYS(_vals->insert(name, val));
+    ALWAYS(_names->insert(val, name));
   }
   bool tryRead(string name, int& val) const
   {
     CALL("EnumReaderBase::tryRead");
     return _vals->find(name, val);
+  }
+  string getValName(int val) const {
+    return _names->get(val);
   }
 
   string toString() const {
@@ -49,6 +53,7 @@ public:
 
 private:
   SmartPtr<DHMap<string,int> > _vals;
+  SmartPtr<DHMap<int,string> > _names;
 };
 
 template<typename Enum>
@@ -113,6 +118,8 @@ public:
 
   bool readOption(string name, string value) const;
   bool readOptions(string str) const;
+
+  void printOptionValue(string name, ostream& out);
 
   static bool tryReadBool(string val, bool& tgt);
 
