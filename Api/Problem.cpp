@@ -1563,7 +1563,7 @@ inlining:
       res = EPRRestoringInliner(options.traceInlining).transform(res);
     }
     else {
-      LOG("api_prb_prepr_progress","predicate definition inlining");
+      LOG("api_prb_prepr_progress","api_prb_prepr_progress: predicate definition inlining");
       res = PredicateDefinitionInliner(options.predicateDefinitionInlining,options.traceInlining).transform(res);
     }
   }

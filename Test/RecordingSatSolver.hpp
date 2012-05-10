@@ -9,6 +9,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/ScopedPtr.hpp"
+#include "Lib/OptionsReader.hpp"
 
 #include "SAT/SATSolver.hpp"
 
@@ -41,6 +42,25 @@ private:
   string getHdr() const;
 
   SATSolverSCP _inner;
+};
+
+
+class SolverReplayer {
+public:
+  SolverReplayer(SATSolver& solver) : _solver(solver) {}
+
+  enum ReplayAction {
+    RA_ADD_CLAUSES,
+    RA_ADD_ASSUMPTION,
+    RA_RANDOMIZE_ASSIGNMENT,
+    RA_ENSURE_VAR_CNT,
+    RA_RETRACT_ALL_ASSUMPTIONS
+  };
+
+  static const EnumReader<ReplayAction>& getReplayActionReader();
+
+private:
+  SATSolver& _solver;
 };
 
 }

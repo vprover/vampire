@@ -15,6 +15,10 @@
 namespace Test
 {
 
+///////////////////////
+// RecordingSatSolver
+//
+
 #define REC(x) LOG("sat_recorder",getHdr()<<x)
 
 /**
@@ -85,6 +89,30 @@ void RecordingSatSolver::retractAllAssumptions()
 
   _inner->retractAllAssumptions();
 }
+
+
+///////////////////////
+// SolverReplayer
+//
+
+const EnumReader<SolverReplayer::ReplayAction>& SolverReplayer::getReplayActionReader()
+{
+  CALL("SolverReplayer::getReplayActionReader");
+
+  static bool initialized = false;
+  static EnumReader<ReplayAction> rdr;
+  if(!initialized) {
+    initialized = true;
+    rdr.addVal("ac", RA_ADD_CLAUSES);
+    rdr.addVal("aa", RA_ADD_ASSUMPTION);
+    rdr.addVal("ra", RA_RANDOMIZE_ASSIGNMENT);
+    rdr.addVal("evc", RA_ENSURE_VAR_CNT);
+    rdr.addVal("raa", RA_RETRACT_ALL_ASSUMPTIONS);
+  }
+  return rdr;
+}
+
+
 
 
 }

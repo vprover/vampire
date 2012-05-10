@@ -268,6 +268,10 @@ void PDMerger::processDefinition(FormulaUnit* unit0)
 
   unit = _inliner.apply(unit);
 
+  if(!PDUtils::hasDefinitionShape(unit)) {
+    return;
+  }
+
   Normalizer norm;
   FTFormulaUnitTransformer<Normalizer> unitNorm(Inference::NORMALIZATION, norm);
   unit = unitNorm.transform(unit);
@@ -317,13 +321,15 @@ void PDMerger::processDefinition(FormulaUnit* unit0)
     LOG("pp_pdm", "Predicate equivalence discovered\n- " << qres.unit->toString()
 	  << "\n- " << unit->toString() << "\n- resulting into " << premise->toString());
 
-#if 0
+#if 1
     if(!_inliner.tryGetDef(premise, substLhs, resRhs)) {
-      cerr<<"cannot process definition "<<premise->toString()<<endl;
-      cerr<<"coming from "<<unit->toString()<<endl;
-      cerr<<"the original formula was "<<unit->toString()<<endl;
-      cerr<<"definition lhs: "<<substLhs->toString()<<endl;
-      cerr<<"definition rhs: "<<resRhs->toString()<<endl;
+      LOG("bug",
+	"cannot process definition "<<(*premise)<<endl<<
+	"coming from "<<(*unit)<<endl<<
+	"the original formula was "<<(*unit0)<<endl<<
+	"definition with equivalent body "<<(*qres.unit)<<endl<<
+	"definition lhs: "<<(*substLhs)<<endl<<
+	"definition rhs: "<<(*resRhs));
       ASSERTION_VIOLATION;
     }
 #else
