@@ -512,11 +512,38 @@ TEST_FUN(fbapiAttributes)
     prb.output(cout,true, true);
 
 
-  } catch (ApiException e) {
+  } catch (ApiException& e) {
     cout<<"Exception: "<<e.msg()<<endl;
     throw;
   }
 }
+
+TEST_FUN(fbapiAttributePreserval)
+{
+  try {
+    FormulaBuilder api;
+
+    Predicate p=api.predicate("p",0);
+
+    api.addAttribute(p, "a1", "v1");
+
+    Problem prb;
+    Formula f=api.formula(p);
+    AnnotatedFormula af = api.annotatedFormula(f, FormulaBuilder::AXIOM, "ax1");
+    prb.addFormula(af);
+    prb.output(cout,true, true);
+
+    Problem::PreprocessingOptions opts("updr=off:acr=on");
+    prb = prb.preprocess(opts);
+
+    prb.output(cout, true, true);
+
+  } catch (ApiException& e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
+
 
 TEST_FUN(fbapiInts)
 {
@@ -596,7 +623,7 @@ TEST_FUN(fbapiDummyNames)
     cprb.output(cout, true);
     OutputOptions::setTffFormulas(false);
 
-  } catch (ApiException e) {
+  } catch (ApiException& e) {
     cout<<"Exception: "<<e.msg()<<endl;
     throw;
   }

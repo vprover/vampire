@@ -94,7 +94,8 @@ void EPRRestoringScanner::computeEprResults(Problem& prb)
   LOG("vu_ers", "Ordinary preprocessing finished, clause count: " << _baseClauseCnt <<" non-epr: " << _baseNonEPRClauseCnt);
 
   {
-    EquivalenceDiscoverer ed(_useVariableNormalizationForSatEqDiscovery, _useUnitPropagationForSatEqDiscovery ? 0 : UINT_MAX, true);
+    EquivalenceDiscoverer ed(_useVariableNormalizationForSatEqDiscovery,
+	_useUnitPropagationForSatEqDiscovery ? 0 : UINT_MAX, EquivalenceDiscoverer::CR_EQUIVALENCES, false, true, true);
     _satDiscovered0 = ed.getEquivalences(prbCl.clauseIterator())->length();
     LOG("vu_ers", "Sat solver discoveder: " << _satDiscovered0 <<" equivlences in the unprocessed problem");
   }
@@ -188,7 +189,8 @@ start:
     LOG("vu_ers", "Non-growing inlining and merging clause count: " << _ngmClauseCnt <<" non-epr: " << _ngmNonEPRClauseCnt);
   }
 
-  EquivalenceDiscoverer ed(_useVariableNormalizationForSatEqDiscovery, _useUnitPropagationForSatEqDiscovery ? 0 : UINT_MAX, true);
+  EquivalenceDiscoverer ed(_useVariableNormalizationForSatEqDiscovery,
+	_useUnitPropagationForSatEqDiscovery ? 0 : UINT_MAX, EquivalenceDiscoverer::CR_EQUIVALENCES, false, true, true);
   UnitList* equivs = ed.getEquivalences(prbCl.clauseIterator());
   unsigned currentlyDiscovered = equivs->length();
   if(firstIteration) {
