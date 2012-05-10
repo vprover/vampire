@@ -493,6 +493,9 @@ struct AIGFactorizingTransformer::LocalFactorizer
   void apply(AIGStack& conjs)
   {
     CALL("AIGFactorizingTransformer::LocalFactorizer::apply");
+
+    LOG("pp_aig_fact_lcl_steps","local factorization call started");
+
     _subAigs.reset();
     _occMap.reset();
 
@@ -508,6 +511,16 @@ struct AIGFactorizingTransformer::LocalFactorizer
       ASS_GE(occStack.size(),2);
 
       AIGRef mergedDisj = getFactoredDisjunctionAndUpdateOccData(fdisj, occStack);
+      TRACE("pp_aig_fact_lcl_steps",
+	  tout<<"local factorization step:"<<endl<<
+	    "  disjunct: "<<fdisj<<endl<<
+	    "  merged:   "<<mergedDisj<<endl;
+	  AIGStack::ConstIterator rmIt(occStack);
+	  while(rmIt.hasNext()) {
+	    tout << "  removed:  " << rmIt.next()<<endl;
+	  }
+      );
+
       removedConjs.loadFromIterator(AIGStack::ConstIterator(occStack));
       conjs.push(mergedDisj);
       occStack.reset();
@@ -521,6 +534,7 @@ struct AIGFactorizingTransformer::LocalFactorizer
 	cleaningIt.del();
       }
     }
+    LOG("pp_aig_fact_lcl_steps","local factorization call finished");
   }
 
 private:
@@ -658,6 +672,10 @@ struct AIGFactorizingTransformer::RecursiveVisitor
       _aig.flattenConjuncts(childNodes);
       _parent.doLocalFactorization(childNodes);
       posRes = _aig.makeConjunction(childNodes);
+
+      COND_LOG("pp_aig_fact_conj_transf", obj.getPositive()!=posRes, "factor tranfs:"<<endl<<
+	  "  src: "<<obj.getPositive()<<endl<<
+	  "  tgt: "<<posRes);
     }
 
     ALWAYS(_transfCache.insert(obj.getPositive(), posRes));
@@ -943,14 +961,16 @@ AIGRef AIGConditionalRewriter::apply(AIGRef a0)
 
   _freshnessGuard.use();
 
+  AIGRef outer = a0;
+
   AIGPrenexTransformer apt(_aig);
-  AIGRef aPrenex = apt.apply(a0);
+  outer = apt.apply(outer);
 
   AIGFactorizingTransformer factor(_aig);
-  AIGRef aFactor = factor.apply(aPrenex);
+  outer = factor.apply(outer);
 
   AIGRef inner;
-  apt.collectQuants(aFactor, _prenexQuantifiers, inner);
+  apt.collectQuants(outer, _prenexQuantifiers, inner);
 
   AIGCompressor acr(_aig);
   AIGRef prev;
@@ -960,12 +980,12 @@ AIGRef AIGConditionalRewriter::apply(AIGRef a0)
     inner = acr.compress(inner);
   } while(prev!=inner);
 
-  AIGRef processed = apt.quantifyBySpec(_prenexQuantifiers, inner);
+  outer = apt.quantifyBySpec(_prenexQuantifiers, inner);
 
   AIGMiniscopingTransformer minis(_aig);
-  AIGRef res = minis.apply(processed);
+  outer = minis.apply(outer);
 
-  return res;
+  return outer;
 
 
 //  LOG("bug","init:  "<<a0);

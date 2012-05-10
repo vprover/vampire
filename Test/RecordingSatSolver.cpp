@@ -45,7 +45,7 @@ void RecordingSatSolver::addClauses(SATClauseIterator cit0, bool onlyPropagate)
     }
   }
 
-  REC("act=ac:op="<<onlyPropagate<<":clauses="<<clausesStm);
+  REC("act=ac:op="<<onlyPropagate<<":clauses="<<clausesStm.str());
 
   _inner->addClauses(pvi(SATClauseList::DestructiveIterator(clauses)), onlyPropagate);
 }

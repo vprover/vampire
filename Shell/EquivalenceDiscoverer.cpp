@@ -19,6 +19,8 @@
 #include "SAT/SATInference.hpp"
 #include "SAT/TWLSolver.hpp"
 
+#include "Test/RecordingSatSolver.hpp"
+
 #include "EquivalenceDiscoverer.hpp"
 #include "Flattening.hpp"
 #include "PDInliner.hpp"
@@ -268,7 +270,12 @@ SATSolver& EquivalenceDiscoverer::getProofRecordingSolver()
       clauseCopies.push(clCopy);
     }
 
-    _proofRecordingSolver = new TWLSolver(*env.options, true);
+    if(TAG_ENABLED("sat_recorder")) {
+      _proofRecordingSolver = new Test::RecordingSatSolver(new TWLSolver(*env.options, true));
+    }
+    else {
+      _proofRecordingSolver = new TWLSolver(*env.options, true);
+    }
     _proofRecordingSolver->ensureVarCnt(_maxSatVar+1);
     _proofRecordingSolver->addClauses(pvi(SATClauseStack::Iterator(clauseCopies)), true);
   }

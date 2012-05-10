@@ -1351,14 +1351,13 @@ protected:
     CALL("Problem::Clausifier::transformImpl");
 
     using namespace Shell;
+    CONDITIONAL_SCOPED_TRACE_TAG(trace,"api_prb_clausifier");
 
     if(unit->isClause()) {
       addUnit(unit);
       return;
     }
-    if(trace) {
-      cerr << "Clausifying formula: " << unit->toString() << endl;
-    }
+    LOG("api_prb_clausifier","Clausifying formula: "<<(*unit));
 
     Kernel::FormulaUnit* fu = static_cast<Kernel::FormulaUnit*>(unit);
 
@@ -1387,9 +1386,7 @@ protected:
       cnf.clausify(fu,auxClauseStack);
       while (! auxClauseStack.isEmpty()) {
 	Unit* cl = auxClauseStack.pop();
-	if(trace) {
-	  cerr << "Generated clause: " << cl->toString() << endl;
-	}
+	LOG("api_prb_clausifier","Generated clause: "<<(*cl));
 	addUnit(cl);
       }
     }
@@ -1469,9 +1466,9 @@ Problem Problem::preprocessInStages(size_t stageCount, const PreprocessingOption
 
   Problem res = *this;
   for(size_t idx=0; idx<stageCount; idx++) {
-    LOG("api_prb_prepr_progress", "running preprocessing stage number "<<idx);
+    LOG("api_prb_prepr_progress", "api_prb_prepr_progress: running preprocessing stage number "<<idx);
     res = res.preprocess(stageSpecs[idx]);
-    LOG("api_prb_prepr_progress", "preprocessing stage number "<<idx<<" finished");
+    LOG("api_prb_prepr_progress", "api_prb_prepr_progress: preprocessing stage number "<<idx<<" finished");
   }
   return res;
 }
@@ -1520,31 +1517,31 @@ Problem Problem::singlePreprocessingIteration(const PreprocessingOptions& option
   Problem res = *this;
 
   if(options.sineSelection) {
-    LOG("api_prb_prepr_progress","sine selection");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: sine selection");
     res = SineSelector(options.sineTolerance, options.sineDepthLimit).transform(res);
   }
   if(options.mode==PM_SELECTION_ONLY) {
-    LOG("api_prb_prepr_progress","PM_SELECTION_ONLY finished");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: PM_SELECTION_ONLY finished");
     return res;
   }
 
   if(options.variableEqualityPropagation) {
-    LOG("api_prb_prepr_progress","variable equality propagation");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: variable equality propagation");
     res = VariableEqualityPropagator(options.traceVariableEqualityPropagation).transform(res);
   }
 
   if(options.predicateIndexIntroduction) {
-    LOG("api_prb_prepr_progress","predicate index introduction");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: predicate index introduction");
     res = PredicateIndexIntroducer().transform(res);
   }
 
   if(options.predicateDefinitionMerging) {
-    LOG("api_prb_prepr_progress","predicate definition merging");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: predicate definition merging");
     res = PredicateDefinitionMerger(options.tracePredicateDefinitionMerging).transform(res);
   }
 
   if(options.equivalenceDiscovery!=ED_NONE) {
-    LOG("api_prb_prepr_progress","equivalence discovery (SAT sweeping)");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: equivalence discovery (SAT sweeping)");
     res = PredicateEquivalenceDiscoverer(options.equivalenceDiscovery,
 	options.equivalenceDiscoverySatConflictLimit, options.equivalenceDiscoveryRandomSimulation,
 	options.equivalenceDiscoveryAddImplications,
@@ -1554,7 +1551,7 @@ Problem Problem::singlePreprocessingIteration(const PreprocessingOptions& option
   }
 
   if(options.eprSkolemization) {
-    LOG("api_prb_prepr_progress","epr skolemization");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: epr skolemization");
     res = EPRSkolemizer(options.traceEPRSkolemization).transform(res);
   }
 
@@ -1562,7 +1559,7 @@ inlining:
 
   if(options.predicateDefinitionInlining!=INL_OFF) {
     if(options.predicateDefinitionInlining==INL_EPR_RESTORING) {
-      LOG("api_prb_prepr_progress","EPR restoring inlining");
+      LOG("api_prb_prepr_progress","api_prb_prepr_progress: EPR restoring inlining");
       res = EPRRestoringInliner(options.traceInlining).transform(res);
     }
     else {
@@ -1572,56 +1569,56 @@ inlining:
   }
 
   if(options.flatteningTopLevelConjunctions) {
-    LOG("api_prb_prepr_progress","flattening top-level conjunctions");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: flattening top-level conjunctions");
     size_t sz0 = res.size();
     res = TopLevelFlattener().transform(res);
     if(res.size()!=sz0) {
-      LOG("api_prb_prepr_progress","conjunctions flattened, retrying inlining");
+      LOG("api_prb_prepr_progress","api_prb_prepr_progress: conjunctions flattened, retrying inlining");
       goto inlining;
     }
   }
 
   if(options.aigBddSweeping) {
-    LOG("api_prb_prepr_progress","bdd sweeping");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: bdd sweeping");
     res = BDDSweeper().transform(res);
   }
 
   if(options.aigInlining) {
-    LOG("api_prb_prepr_progress","AIG inlining");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: AIG inlining");
     res = AIGInliner().transform(res);
   }
 
   if(options.aigConditionalRewriting) {
-    LOG("api_prb_prepr_progress","AIG conditional rewriting");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: AIG conditional rewriting");
     res = AIGConditionalRewriter().transform(res);
   }
 
   if(options.aigDefinitionIntroduction) {
-    LOG("api_prb_prepr_progress","AIG definition introduction");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: AIG definition introduction");
     res = AIGDefinitionIntroducer().transform(res);
   }
 
   if(options.unusedPredicateDefinitionRemoval) {
-    LOG("api_prb_prepr_progress","unused predicate definition removal");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: unused predicate definition removal");
     res = UnusedPredicateDefinitionRemover(options.traceUnusedPredicateDefinitionRemoval).transform(res);
   }
 
   unsigned arCnt = options._ods.lhs->size();
   if(arCnt>0) {
-    LOG("api_prb_prepr_progress","asymmetric rewriting");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: asymmetric rewriting");
     res = res.performAsymetricRewriting(arCnt, options._ods.lhs->begin(), options._ods.posRhs->begin(),
 	options._ods.negRhs->begin(), options._ods.dblRhs->begin());
   }
 
   if(options.mode==PM_EARLY_PREPROCESSING) {
-    LOG("api_prb_prepr_progress","PM_EARLY_PREPROCESSING finished");
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: PM_EARLY_PREPROCESSING finished");
     return res;
   }
 
   bool oldTraceVal = env.options->showNonconstantSkolemFunctionTrace();
   env.options->setShowNonconstantSkolemFunctionTrace(options.showNonConstantSkolemFunctionTrace);
 
-  LOG("api_prb_prepr_progress","clausification");
+  LOG("api_prb_prepr_progress","api_prb_prepr_progress: clausification");
   res = Clausifier(options.namingThreshold, options.preserveEpr, options.mode==PM_SKOLEMIZE, options.traceClausification).transform(res);
 
   env.options->setShowNonconstantSkolemFunctionTrace(oldTraceVal);
@@ -1633,11 +1630,11 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
   CALL("Problem::preprocess");
   options.validate();
 
-  LOG("api_prb_prepr_progress","preprocess function called");
+  LOG("api_prb_prepr_progress","api_prb_prepr_progress: preprocess function called");
 
   Problem res = *this;
 
-  LOG("api_prb_prepr_progress","initial preprocessing");
+  LOG("api_prb_prepr_progress","api_prb_prepr_progress: initial preprocessing");
   res = Preprocessor1().transform(res);
 
   unsigned iterIdx = 0;
@@ -1648,17 +1645,17 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
 
     Problem old = res;
 
-    LOG("api_prb_prepr_progress","running iteration "<<iterIdx);
+    LOG("api_prb_prepr_progress","api_prb_prepr_progress: running iteration "<<iterIdx);
     res = res.singlePreprocessingIteration(options);
 
     if(fixpointReached(options.repetitionEarlyTermination, old, res)) {
-      LOG("api_prb_prepr_progress","early termination due to reached fixpoint");
+      LOG("api_prb_prepr_progress","api_prb_prepr_progress: early termination due to reached fixpoint");
       break;
     }
 
     iterIdx++;
   }
-  LOG("api_prb_prepr_progress","preprocess function finished");
+  LOG("api_prb_prepr_progress","api_prb_prepr_progress: preprocess function finished");
 
   return res;
 }

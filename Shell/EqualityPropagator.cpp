@@ -392,6 +392,8 @@ Unit* EqualityPropagator::apply(Unit* u)
 FormulaUnit* EqualityPropagator::apply(FormulaUnit* u)
 {
   CALL("EqualityPropagator::apply(FormulaUnit*)");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_ep")
+
   ASS(!u->isClause());
   LOG_UNIT("pp_ep_args",u);
 
@@ -400,9 +402,7 @@ FormulaUnit* EqualityPropagator::apply(FormulaUnit* u)
 
   if(form!=newForm) {
     env.statistics->propagatedEqualities++;
-    if(_trace) {
-      cerr << "Equality propagator transformed\n  "<<form->toString()<<" into\n  "<<newForm->toString()<<endl;
-    }
+    LOG("pp_ep", "Equality propagator transformed\n  "<<(*form)<<" into\n  "<<(*newForm));
   }
 
   static SingletonVariableRemover svr;
@@ -410,9 +410,7 @@ FormulaUnit* EqualityPropagator::apply(FormulaUnit* u)
 
   if(newForm!=svrForm) {
     env.statistics->removedSingletonVariables++;
-    if(_trace) {
-      cerr << "Singleton varible remover transformed\n  "<<newForm->toString()<<" into\n  "<<svrForm->toString()<<endl;
-    }
+    LOG("pp_ep", "Singleton varible remover transformed\n  "<<(*newForm)<<" into\n  "<<(*svrForm));
   }
 
   if(form==svrForm) {

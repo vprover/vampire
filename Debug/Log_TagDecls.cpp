@@ -580,6 +580,11 @@ void Logging::doTagDeclarations()
       DOC("dependencies of an entry expanded"),
       PARENT("pp_inl_dep",1));
 
+  DECL("pp_einl",
+      DOC("EPR restoring inlining"),
+      PARENT("pp_inl",0),
+      PARENT("pp",1));
+
   DECL("pp_pdm",
       DOC("predicate definition merging"),
       PARENT("pp",1));
@@ -762,6 +767,16 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_pren_qu",
       DOC("merging of quantifiers in conjunctions"),
       PARENT("pp_aig_pren_conj",1));
+
+  DECL("pp_aig_fact",
+      DOC("aig factoring transformation"),
+      PARENT("pp_aig",1));
+  DECL("pp_aig_fact_conj_transf",
+      DOC("aig factoring transformation"),
+      PARENT("pp_aig_fact",2));
+  DECL("pp_aig_fact_lcl_steps",
+      DOC("local steps of aig factoring transformation"),
+      PARENT("pp_aig_fact",1));
 
   DECL("pp_aig_minis",
       DOC("aig miniscoping transformation"),
@@ -1036,6 +1051,9 @@ void Logging::doTagDeclarations()
   DECL("api_prb",
       DOC("traces related to Vampire API for problems"),
       PARENT("api",0));
+  DECL("api_prb_clausifier",
+      DOC("traces related to Vampire API clausification"),
+      PARENT("api_prb",1));
   DECL("api_prb_transf",
       DOC("traces related to Vampire API problem transformations"),
       PARENT("api_prb",2));

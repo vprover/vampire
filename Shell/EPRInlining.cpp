@@ -41,6 +41,7 @@ namespace Shell
 void EPRRestoring::scan(UnitList* units)
 {
   CALL("EPRRestoring::scan");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_einl");
 
   UnitList::Iterator it(units);
   while(it.hasNext()) {
@@ -113,9 +114,7 @@ void EPRRestoring::performClosure()
     MapToLIFOGraph<unsigned> gr(dependencies);
     SCCAnalyzer<MapToLIFOGraph<unsigned> > scca(gr);
     if(scca.breakingNodes().isNonEmpty()) {
-      if(_trace) {
-        cerr << "Cycle among definitions detected" << endl;
-      }
+      LOG("pp_einl","Cycle among definitions detected");
       Stack<unsigned>::ConstIterator bpIt1(scca.breakingNodes());
       while(bpIt1.hasNext()) {
 	unsigned breakingPred = bpIt1.next();
@@ -124,9 +123,7 @@ void EPRRestoring::performClosure()
       Stack<unsigned>::ConstIterator bpIt(scca.breakingNodes());
       while(bpIt.hasNext()) {
 	unsigned breakingPred = bpIt.next(); //cycle-breaking predicate (will be removed to break cycle)
-	if(_trace) {
-	  cerr << " - breaking cycle by ignoring definition "<< _nonEprDefs[breakingPred]->toString() << endl;
-	}
+	LOG("pp_einl"," - breaking cycle by ignoring definition "<< _nonEprDefs[breakingPred]->toString());
 
 	MapToLIFO<unsigned,unsigned>::ValList::Iterator depIt=dependencies.keyIterator(breakingPred);
 	while(depIt.hasNext()) {
@@ -146,9 +143,7 @@ void EPRRestoring::performClosure()
     _activeUnits.insert(u);
     _activePreds.push(p);
 
-    if(_trace) {
-      cerr<<"Unit "<<u->toString()<<" activated"<<endl;
-    }
+    LOG("pp_einl","Unit "<<(*u)<<" activated");
 
     MapToLIFO<unsigned,unsigned>::ValList::Iterator depIt=dependencies.keyIterator(p);
     while(depIt.hasNext()) {
@@ -167,10 +162,8 @@ bool EPRRestoring::addNEDef(FormulaUnit* unit, unsigned pred, int polarity)
 
   if(_nonEprDefs[pred]) {
     if(_nonEprDefs[pred]!=unit) {
-      if(_trace) {
-        cerr<<"Unit "<<unit->toString()<<" identified as EPR violating definition and ignored "
-            "because there is already such definition for the predicate"<<endl;
-      }
+      LOG("pp_einl","Unit "<<(*unit)<<" identified as EPR violating definition and ignored "
+            "because there is already such definition for the predicate");
       //we already have a different non-epr definition, so we'll ignore this one
       return false;
     }
@@ -181,9 +174,7 @@ bool EPRRestoring::addNEDef(FormulaUnit* unit, unsigned pred, int polarity)
     _nonEprDefPolarities[pred] = newPolarity;
   }
   else {
-    if(_trace) {
-      cerr<<"Unit "<<unit->toString()<<" identified as EPR violating definition"<<endl;
-    }
+    LOG("pp_einl","Unit "<<(*unit)<<" identified as EPR violating definition");
     _nonEprDefs[pred] = unit;
     _nonEprDefPolarities[pred] = polarity;
     _nonEprPreds.push(pred);
@@ -286,11 +277,13 @@ void EPRInlining::apply(Problem& prb)
 bool EPRInlining::apply(UnitList*& units)
 {
   CALL("EPRInlining::apply");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_einl");
 
   bool modified = false;
 
   {
     //remove predicate equivalences
+    CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_inl");
     PDInliner pdi(false);
     bool eqInlinerModified = pdi.apply(units, true);
     modified |= eqInlinerModified;
@@ -320,7 +313,8 @@ void EPRInlining::processActiveDefinitions(UnitList* units)
 {
   CALL("EPRInlining::processActiveDefinitions");
 
-  PDInliner defInliner(false, _trace);
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_inl");
+  PDInliner defInliner(false);
 
   Stack<unsigned>::BottomFirstIterator apit(_activePreds);
   while(apit.hasNext()) {
@@ -354,6 +348,7 @@ void EPRInlining::processActiveDefinitions(UnitList* units)
 Unit* EPRInlining::apply(Unit* unit)
 {
   CALL("EPRInlining::apply");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_einl");
 
   if(_activeUnits.find(unit)) {
     unsigned pred = _defPreds.get(unit);

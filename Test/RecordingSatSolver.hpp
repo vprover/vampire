@@ -33,6 +33,8 @@ public:
   virtual bool isZeroImplied(unsigned var) { return _inner->isZeroImplied(var); }
   virtual void collectZeroImplied(SATLiteralStack& acc) { return _inner->collectZeroImplied(acc); }
   virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
+  virtual bool hasAssumptions() const { return _inner->hasAssumptions(); }
+  virtual SATClause* getRefutation() { return _inner->getRefutation(); }
 
 private:
 
