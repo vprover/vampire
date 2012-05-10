@@ -499,6 +499,10 @@ struct AIGFactorizingTransformer::LocalFactorizer
     _subAigs.reset();
     _occMap.reset();
 
+    size_t conjCnt0 = conjs.size();
+    makeUnique(conjs);
+    COND_LOG("pp_aig_fact_lcl_steps",conjCnt0!=conjs.size(),
+	"removed duplicate conjuncts, cnt0="<<conjCnt0<<" cnt="<<conjs.size());
     scan(conjs);
 
     static DHSet<AIGRef> removedConjs;
@@ -520,6 +524,13 @@ struct AIGFactorizingTransformer::LocalFactorizer
 	    tout << "  removed:  " << rmIt.next()<<endl;
 	  }
       );
+      DEBUG_CODE(
+	  AIGStack::ConstIterator rmIt(occStack);
+	  while(rmIt.hasNext()) {
+	    AIGRef removed = rmIt.next();
+	    ASS_NEQ(removed, mergedDisj);
+	  }
+	);
 
       removedConjs.loadFromIterator(AIGStack::ConstIterator(occStack));
       conjs.push(mergedDisj);
@@ -673,7 +684,7 @@ struct AIGFactorizingTransformer::RecursiveVisitor
       _parent.doLocalFactorization(childNodes);
       posRes = _aig.makeConjunction(childNodes);
 
-      COND_LOG("pp_aig_fact_conj_transf", obj.getPositive()!=posRes, "factor tranfs:"<<endl<<
+      COND_LOG("pp_aig_fact_conj_transf", obj.getPositive()!=posRes, "factor transf:"<<endl<<
 	  "  src: "<<obj.getPositive()<<endl<<
 	  "  tgt: "<<posRes);
     }
