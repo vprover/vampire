@@ -18,7 +18,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaTransformer.hpp"
 
-#define DEBUG_AIG_REF_MEMORY 1
+#define DEBUG_AIG_REF_MEMORY 0
 
 namespace Shell {
 

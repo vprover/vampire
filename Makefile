@@ -384,6 +384,7 @@ VUTIL_OBJ = VUtils/AnnotationColoring.o\
             VUtils/PreprocessingEvaluator.o\
             VUtils/ProblemColoring.o\
             VUtils/RangeColoring.o\
+            VUtils/SATReplayer.o\
             VUtils/SimpleSMT.o\
             VUtils/SMTLIBConcat.o\
             VUtils/Z3InterpolantExtractor.o

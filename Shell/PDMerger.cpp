@@ -321,7 +321,7 @@ void PDMerger::processDefinition(FormulaUnit* unit0)
     LOG("pp_pdm", "Predicate equivalence discovered\n- " << qres.unit->toString()
 	  << "\n- " << unit->toString() << "\n- resulting into " << premise->toString());
 
-#if 1
+#if 0
     if(!_inliner.tryGetDef(premise, substLhs, resRhs)) {
       LOG("bug",
 	"cannot process definition "<<(*premise)<<endl<<

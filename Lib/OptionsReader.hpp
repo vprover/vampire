@@ -78,12 +78,20 @@ public:
 
 class OptionsReader {
 public:
+  void registerStringOption(string* tgt, string name, string shortName=string()) {
+    ALWAYS(_stringOptTargets.insert(name, tgt));
+    if(shortName!="") {
+      ALWAYS(_stringOptTargets.insert(shortName, tgt));
+    }
+  }
+
   void registerIntOption(int* tgt, string name, string shortName=string()) {
     ALWAYS(_intOptTargets.insert(name, tgt));
     if(shortName!="") {
       ALWAYS(_intOptTargets.insert(shortName, tgt));
     }
   }
+
   void registerUnsignedOption(unsigned* tgt, string name, string shortName=string()) {
     ALWAYS(_unsignedOptTargets.insert(name, tgt));
     if(shortName!="") {
@@ -124,6 +132,7 @@ public:
   static bool tryReadBool(string val, bool& tgt);
 
 private:
+  DHMap<string,string*> _stringOptTargets;
   DHMap<string,int*> _intOptTargets;
   DHMap<string,unsigned*> _unsignedOptTargets;
   DHMap<string,float*> _floatOptTargets;

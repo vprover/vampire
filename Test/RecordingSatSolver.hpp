@@ -58,6 +58,34 @@ public:
   };
 
   static const EnumReader<ReplayAction>& getReplayActionReader();
+  struct ActionSpec {
+    ActionSpec();
+
+    ReplayAction action;
+    unsigned acOnlyPropagate;
+    string acClausesStr;
+    SATClauseStack acClauses;
+    unsigned evcVarCnt;
+    unsigned aaLitVar;
+    unsigned aaLitPolarity;
+    SATLiteral aaLit;
+    unsigned aaConflictCountLimit;
+
+    OptionsReader rdr;
+
+
+    void readCommand(string str);
+
+    SATClauseIterator getClauses() {
+      ASS_EQ(action, RA_ADD_CLAUSES);
+      return pvi(SATClauseStack::BottomFirstIterator(acClauses));
+    }
+  private:
+    SATClause* readClause(string str);
+  };
+
+  void performStep(string cmd);
+  void runFromStream(istream& stm, string prefix);
 
 private:
   SATSolver& _solver;

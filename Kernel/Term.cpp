@@ -290,7 +290,7 @@ bool Term::containsAllVariablesOf(Term* t)
   }
 
   //check t's vars are among collected
-  vit.reset(this);
+  vit.reset(t);
   while(vit.hasNext()) {
     if(!vars.contains(vit.next())) {
       return false;

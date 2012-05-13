@@ -30,6 +30,7 @@
 #include "VUtils/FOEquivalenceDiscovery.hpp"
 #include "VUtils/PreprocessingEvaluator.hpp"
 #include "VUtils/ProblemColoring.hpp"
+#include "VUtils/SatReplayer.hpp"
 #include "VUtils/SimpleSMT.hpp"
 #include "VUtils/SMTLIBConcat.hpp"
 #include "VUtils/Z3InterpolantExtractor.hpp"
@@ -143,6 +144,9 @@ int main(int argc, char* argv [])
     }
     else if(module=="dpt") {
       resultValue=DPTester().perform(args.size(), args.begin());
+    }
+    else if(module=="sr") {
+      resultValue=SATReplayer().perform(args.size(), args.begin());
     }
     else if(module=="vamp_casc") {
       Shell::CommandLine cl(args.size()-1, args.begin()+1);

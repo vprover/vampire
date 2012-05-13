@@ -7,6 +7,7 @@
 
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "SAT/SATClause.hpp"
 
@@ -95,6 +96,70 @@ void RecordingSatSolver::retractAllAssumptions()
 // SolverReplayer
 //
 
+SolverReplayer::ActionSpec::ActionSpec()
+{
+  CALL("SolverReplayer::ActionSpec::ActionSpec");
+
+  rdr.registerEnumOption(&action, getReplayActionReader(), "act");
+  rdr.registerUnsignedOption(&acOnlyPropagate, "op");
+  rdr.registerStringOption(&acClausesStr, "clauses");
+  rdr.registerUnsignedOption(&evcVarCnt, "nwc");
+  rdr.registerUnsignedOption(&aaLitVar, "litVar");
+  rdr.registerUnsignedOption(&aaLitPolarity, "litPol");
+  rdr.registerUnsignedOption(&aaConflictCountLimit, "ccl");
+}
+
+SATClause* SolverReplayer::ActionSpec::readClause(string str)
+{
+  CALL("SolverReplayer::ActionSpec::readClause");
+
+  static StringStack varStrings;
+  varStrings.reset();
+  StringUtils::splitStr(str.c_str(), ' ', varStrings);
+  ASS_EQ(varStrings.top(), "0");
+  varStrings.pop();
+
+  static SATLiteralStack clauseLits;
+  clauseLits.reset();
+
+  StringStack::BottomFirstIterator vsit(varStrings);
+  while(vsit.hasNext()) {
+    string varSpec = vsit.next();
+    int val;
+    ALWAYS(Int::stringToInt(varSpec, val));
+    clauseLits.push(SATLiteral(abs(val), val>0));
+  }
+
+  SATClause* res = SATClause::fromStack(clauseLits);
+  return res;
+}
+
+void SolverReplayer::ActionSpec::readCommand(string str)
+{
+  CALL("SolverReplayer::ActionSpec::readCommand");
+
+  if(!rdr.readOptions(str)) {
+    LOG("bug","Invalid command string: "<<str);
+    ASSERTION_VIOLATION;
+  }
+
+  if(action==RA_ADD_CLAUSES) {
+    static StringStack clauseStrings;
+    clauseStrings.reset();
+    StringUtils::splitStr(acClausesStr.c_str(), '|', clauseStrings);
+    StringStack::BottomFirstIterator csit(clauseStrings);
+
+    acClauses.reset();
+    while(csit.hasNext()) {
+      string clauseString = csit.next();
+      acClauses.push(readClause(clauseString));
+    }
+  }
+  else if(action==RA_ADD_ASSUMPTION) {
+    aaLit = SATLiteral(aaLitVar, aaLitPolarity==1);
+  }
+}
+
 const EnumReader<SolverReplayer::ReplayAction>& SolverReplayer::getReplayActionReader()
 {
   CALL("SolverReplayer::getReplayActionReader");
@@ -112,7 +177,47 @@ const EnumReader<SolverReplayer::ReplayAction>& SolverReplayer::getReplayActionR
   return rdr;
 }
 
+void SolverReplayer::performStep(string cmd)
+{
+  CALL("SolverReplayer::performStep");
 
+  static ActionSpec aspec;
+  aspec.readCommand(cmd);
+  switch(aspec.action) {
+  case RA_ADD_ASSUMPTION:
+    _solver.addAssumption(aspec.aaLit, aspec.aaConflictCountLimit);
+    break;
+  case RA_ADD_CLAUSES:
+    _solver.addClauses(aspec.getClauses(), aspec.acOnlyPropagate!=0);
+    break;
+  case RA_ENSURE_VAR_CNT:
+    _solver.ensureVarCnt(aspec.evcVarCnt);
+    break;
+  case RA_RANDOMIZE_ASSIGNMENT:
+    _solver.randomizeAssignment();
+    break;
+  case RA_RETRACT_ALL_ASSUMPTIONS:
+    _solver.retractAllAssumptions();
+    break;
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
 
+void SolverReplayer::runFromStream(istream& stm, string prefix)
+{
+  CALL("SolverReplayer::runFromStream");
+
+  size_t prefLen = prefix.length();
+  do {
+    string line;
+    getline(stm, line);
+    if(line.substr(0,prefLen)!=prefix) {
+      continue;
+    }
+    string cmd = line.substr(prefLen);
+    performStep(cmd);
+  } while(!stm.eof());
+}
 
 }
