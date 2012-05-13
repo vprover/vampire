@@ -416,7 +416,7 @@ void System::registerForSIGHUPOnParentDeath()
 void System::readCmdArgs(int argc, char* argv[], StringStack& res)
 {
   CALL("System::readCmdArgs");
-  ASS_G(argc,1);
+  ASS_GE(argc,1);
   ASS(res.isEmpty()); //just to avoid any confusion, if it causes problems, the assumption can be removed
 
   registerArgv0(argv[0]);

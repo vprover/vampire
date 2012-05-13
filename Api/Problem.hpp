@@ -351,6 +351,11 @@ public:
      * Formulas in arrays set1 and set2 must be atoms.
      */
     void restrictPredicateEquivalenceDiscovery(size_t set1Sz, Formula* set1, size_t set2Sz, Formula* set2);
+
+    /**
+     * Print values of current option settings, marking options that have their default value
+     */
+    void printOptionValues(ostream& out);
   private:
     friend class Problem;
     void validate() const;

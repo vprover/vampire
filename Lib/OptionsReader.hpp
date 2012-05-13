@@ -10,6 +10,7 @@
 
 #include "DHMap.hpp"
 #include "SmartPtr.hpp"
+#include "Stack.hpp"
 
 namespace Lib {
 
@@ -79,6 +80,7 @@ public:
 class OptionsReader {
 public:
   void registerStringOption(string* tgt, string name, string shortName=string()) {
+    _longNames.push(name);
     ALWAYS(_stringOptTargets.insert(name, tgt));
     if(shortName!="") {
       ALWAYS(_stringOptTargets.insert(shortName, tgt));
@@ -86,6 +88,7 @@ public:
   }
 
   void registerIntOption(int* tgt, string name, string shortName=string()) {
+    _longNames.push(name);
     ALWAYS(_intOptTargets.insert(name, tgt));
     if(shortName!="") {
       ALWAYS(_intOptTargets.insert(shortName, tgt));
@@ -93,6 +96,7 @@ public:
   }
 
   void registerUnsignedOption(unsigned* tgt, string name, string shortName=string()) {
+    _longNames.push(name);
     ALWAYS(_unsignedOptTargets.insert(name, tgt));
     if(shortName!="") {
       ALWAYS(_unsignedOptTargets.insert(shortName, tgt));
@@ -100,6 +104,7 @@ public:
   }
 
   void registerFloatOption(float* tgt,string name, string shortName=string()) {
+    _longNames.push(name);
     ALWAYS(_floatOptTargets.insert(name, tgt));
     if(shortName!="") {
       ALWAYS(_floatOptTargets.insert(shortName, tgt));
@@ -107,6 +112,7 @@ public:
   }
 
   void registerBoolOption(bool* tgt,string name, string shortName=string()) {
+    _longNames.push(name);
     ALWAYS(_boolOptTargets.insert(name, tgt));
     if(shortName!="") {
       ALWAYS(_boolOptTargets.insert(shortName, tgt));
@@ -115,6 +121,7 @@ public:
 
   template<typename Enum>
   void registerEnumOption(Enum* tgt, EnumReaderBase enumVals, string name, string shortName=string()) {
+    _longNames.push(name);
     int* intTgt = reinterpret_cast<int*>(tgt);
     ALWAYS(_enumOptTargets.insert(name, intTgt));
     ALWAYS(_enumOptVals.insert(name, enumVals));
@@ -128,10 +135,14 @@ public:
   bool readOptions(string str) const;
 
   void printOptionValue(string name, ostream& out);
+  string getOptionStringValue(string optName);
+  void printOptionValues(ostream& out, OptionsReader* defOpts=0, string linePrefix=string());
 
   static bool tryReadBool(string val, bool& tgt);
 
 private:
+  StringStack _longNames;
+
   DHMap<string,string*> _stringOptTargets;
   DHMap<string,int*> _intOptTargets;
   DHMap<string,unsigned*> _unsignedOptTargets;

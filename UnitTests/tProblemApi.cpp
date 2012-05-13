@@ -173,7 +173,7 @@ TEST_FUN(papiSine)
     Problem prb2 = prb.preprocess(opts);
     prb2.output(cout, false);
 
-  } catch (ApiException e) {
+  } catch (ApiException& e) {
     cout<<"Exception: "<<e.msg()<<endl;
     throw;
   }
@@ -198,5 +198,11 @@ TEST_FUN(papiEmptyPrb)
   prb.addFormula(af);
   Problem cprb = prb.clausify();
   cprb.output(cout);
+}
+
+TEST_FUN(papiPreprocOpts)
+{
+  Problem::PreprocessingOptions opts("m=early_preprocessing:ed=predicate_definitions:acr=on");
+  opts.printOptionValues(cout);
 }
 

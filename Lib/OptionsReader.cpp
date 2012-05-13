@@ -3,6 +3,8 @@
  * Implements class OptionsReader.
  */
 
+#include <sstream>
+
 #include "Int.hpp"
 #include "StringUtils.hpp"
 
@@ -113,33 +115,47 @@ void OptionsReader::printOptionValue(string name, ostream& out)
   else if(_unsignedOptTargets.find(name)) {
     out << *_unsignedOptTargets.get(name);
   }
-//  else if(_floatOptTargets.find(name)) {
-//    if(!Int::stringToFloat(value.c_str(), *_floatOptTargets.get(name))) {
-//      LOG("or_fail","wrong float value: "<<name<<" = "<<value);
-//      return false;
-//    }
-//    return true;
-//  }
-//  else if(_boolOptTargets.find(name)) {
-//    if(!tryReadBool(value, *_boolOptTargets.get(name))) {
-//      LOG("or_fail","wrong boolean value: "<<name<<" = "<<value);
-//      return false;
-//    }
-//    return true;
-//  }
-//  else if(_enumOptTargets.find(name)) {
-//    int* tgt = _enumOptTargets.get(name);
-//    const EnumReaderBase& rdr = _enumOptVals.get(name);
-//    if(!rdr.tryRead(value, *tgt)) {
-//      LOG("or_fail","bad enum value: "<<name<<" = "<<value);
-//      LOG("or_fail","possible values: "<<rdr.toString());
-//      return false;
-//    }
-//    return true;
-//  }
-//  LOG("or_fail","unknown option name: "<<name<<" = "<<value);
-//  return false;
-  NOT_IMPLEMENTED;
+  else if(_floatOptTargets.find(name)) {
+    out << *_floatOptTargets.get(name);
+  }
+  else if(_boolOptTargets.find(name)) {
+    out << ((*_boolOptTargets.get(name)) ? "on" : "off");
+  }
+  else if(_enumOptTargets.find(name)) {
+    const EnumReaderBase& rdr = _enumOptVals.get(name);
+    out << rdr.getValName(*_enumOptTargets.get(name));
+  }
+  else {
+    ASSERTION_VIOLATION;
+  }
+}
+
+string OptionsReader::getOptionStringValue(string optName)
+{
+  CALL("OptionsReader::getOptionStringValue");
+
+  stringstream stm;
+  printOptionValue(optName, stm);
+  return stm.str();
+}
+
+void OptionsReader::printOptionValues(ostream& out, OptionsReader* defOpts, string linePrefix)
+{
+  CALL("OptionsReader::printOptionValues");
+
+  StringStack::BottomFirstIterator nameIt(_longNames);
+  while(nameIt.hasNext()) {
+    string nm = nameIt.next();
+
+    out << linePrefix << nm << ": ";
+    printOptionValue(nm, out);
+    if(defOpts) {
+      if(getOptionStringValue(nm)==defOpts->getOptionStringValue(nm)) {
+	out << " [default]";
+      }
+    }
+    out << endl;
+  }
 }
 
 }

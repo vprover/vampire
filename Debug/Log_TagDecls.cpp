@@ -938,6 +938,10 @@ void Logging::doTagDeclarations()
       DOC("decisions and backtracking in SAT solver"),
       PARENT("sat",1));
 
+  DECL("sat_prop",
+      DOC("unit propagation in SAT solver"),
+      PARENT("sat",2));
+
   DECL("sat_learnt",
       DOC("learnt clauses in SAT solver"),
       PARENT("sat",1));

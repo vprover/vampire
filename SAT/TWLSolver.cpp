@@ -292,45 +292,69 @@ void TWLSolver::backtrack(unsigned tgtLevel)
 #endif
 }
 
+/**
+ * Get two highest assignment levels of an non-unit clause
+ * (these levels can also be equal).
+ */
+void TWLSolver::getTwoHighestAssignmentLevels(SATClause* cl, unsigned& highestAL, unsigned& secondHighestAL)
+{
+  CALL("TWLSolver::getTwoHighestAssignmentLevels");
+  ASS_G(cl->length(),1);
+  ASSERT_VALID(*this);
+
+  highestAL = 1;
+  secondHighestAL = 1;
+
+  SATClause::Iterator ccit(*cl);
+  while(ccit.hasNext()) {
+    SATLiteral lit = ccit.next();
+    ASS(isFalse(lit));
+    unsigned varAL = getAssignmentLevel(lit);
+    if(varAL>highestAL) {
+      secondHighestAL = highestAL;
+      highestAL = varAL;
+    }
+    else if(varAL>secondHighestAL) {
+      secondHighestAL = varAL;
+    }
+  }
+  ASS_GE(highestAL, secondHighestAL);
+}
+
+/**
+ * If @c conflictClause can be used for unit propagation,
+ * return the lowest level where @c learntClause can be done. Otherwise return
+ * the highest level where the clause is valid.
+ */
 unsigned TWLSolver::getBacktrackLevel(SATClause* conflictClause)
 {
   CALL("TWLSolver::getBacktrackLevel");
-  ASSERT_VALID(*this);
+  ASS_G(conflictClause->length(),1);
 
-  unsigned btLev=0;
-  static Stack<SATClause*> confCls;
-  static DHMap<unsigned,bool,IdentityHash> checked;
-  confCls.reset();
-  checked.reset();
-
-  confCls.push(conflictClause);
-
-  while(confCls.isNonEmpty()) {
-    SATClause* ccl=confCls.pop();
-    unsigned cclen=ccl->length();
-    for(unsigned i=0; i<cclen; i++) {
-      unsigned lvar=(*ccl)[i].var();
-
-      ASS(!isUndefined(lvar));
-      if(getAssignmentLevel(lvar)<=btLev+1) {
-	continue;
-      }
-      if(!checked.insert(lvar, true)) {
-	//we've already visited this variable
-	continue;
-      }
-      SATClause* icl=_assignmentPremises[lvar];
-      if(icl) {
-	if(icl!=ccl) {
-	  confCls.push(icl);
-	}
-      } else {
-	btLev=max(btLev, getAssignmentLevel(lvar)-1);
-      }
-    }
+  unsigned al1, al2;
+  getTwoHighestAssignmentLevels(conflictClause, al1, al2);
+  if(al1==al2) {
+    return al1-1;
   }
-  ASS_L(btLev, _level);
-  return btLev;
+  return al2;
+}
+
+/**
+ * Return the lowest level where @c learntClause can be used for unit propagation
+ */
+unsigned TWLSolver::getLearntBacktrackLevel(SATClause* learntClause)
+{
+  CALL("TWLSolver::getLearntBacktrackLevel");
+  ASS_G(learntClause->length(),1);
+
+  unsigned al1, al2;
+  getTwoHighestAssignmentLevels(learntClause, al1, al2);
+  if(al1==al2) {
+    ASS_EQ(al1,1);
+    return 0;
+  }
+  ASS_G(al1,al2);
+  return al2;
 }
 
 void TWLSolver::doSubsumptionResolution(SATLiteralStack& lits, SATClauseList*& premises)
@@ -650,8 +674,9 @@ TWLSolver::ClauseVisitResult TWLSolver::visitWatchedClause(Watch watch, unsigned
 SATClause* TWLSolver::propagate(unsigned var)
 {
   CALL("TWLSolver::propagate");
-
   ASS(!isUndefined(var));
+
+  LOG("sat_prop", "propagating "<<var<<" with assignment "<<((int)_assignment[var])<<" on level "<<_level);
 
   //we go through the watch stack of literal opposite to the assigned value
 //  WatchStack::Iterator wit(getTriggeredWatchStack(var, _assignment[var]));
@@ -673,11 +698,13 @@ SATClause* TWLSolver::propagate(unsigned var)
       break;
     }
     case VR_CONFLICT:
+      LOG("sat_prop", "propagating "<<var<<" gave conflict "<<(*cl));
       return cl;
     case VR_PROPAGATE:
     {
       //So let's unit-propagate...
       SATLiteral undefLit=(*cl)[litIndex];
+      LOG("sat_prop", "propagating "<<var<<" forced "<<undefLit<<" by "<<(*cl));
       makeForcedAssignment(undefLit, cl);
       break;
     }
@@ -1289,6 +1316,7 @@ TWLSolver::SatLoopResult TWLSolver::runSatLoop(unsigned conflictCountLimit)
 
     SATClause* conflict = propagate(propagatedVar);
     while(conflict) {
+      ASS_REP(isFalse(conflict),conflict);
       if(conflictsBeforeRestart==0) {
 	restartASAP = true;
       }
@@ -1301,7 +1329,11 @@ TWLSolver::SatLoopResult TWLSolver::runSatLoop(unsigned conflictCountLimit)
       _variableSelector->onConflict();
       _clauseDisposer->onConflict();
       SATClause* learnt = getLearntClause(conflict);
+      ASS_REP(isFalse(learnt),learnt);
 
+      if(learnt->length()==0) {
+	throw UnsatException(learnt);
+      }
       if(learnt->length()==1) {
 	SATLiteral lit = (*learnt)[0];
 	unsigned lvar = lit.var();
@@ -1317,7 +1349,7 @@ TWLSolver::SatLoopResult TWLSolver::runSatLoop(unsigned conflictCountLimit)
 
       unsigned nonFalseLitCnt;
       do {
-	unsigned propBtLev = getBacktrackLevel(learnt);
+	unsigned propBtLev = getLearntBacktrackLevel(learnt);
 	if(propBtLev==0) {
 	  handleTopLevelConflict(learnt);
 	}

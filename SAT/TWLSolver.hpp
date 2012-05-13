@@ -148,7 +148,9 @@ private:
 
   SATClause* propagate(unsigned var);
 
+  void getTwoHighestAssignmentLevels(SATClause* cl, unsigned& highestAL, unsigned& secondHighestAL);
   unsigned getBacktrackLevel(SATClause* conflictClause);
+  unsigned getLearntBacktrackLevel(SATClause* conflictClause);
 
   void doSubsumptionResolution(SATLiteralStack& lits, SATClauseList*& premises);
   void doShallowMinimize(SATLiteralStack& lits, ArraySet& seenVars);

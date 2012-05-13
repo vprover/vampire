@@ -239,6 +239,20 @@ void Problem::PreprocessingOptions::setDefaults()
   _ods.setDefaults();
 }
 
+void Problem::PreprocessingOptions::printOptionValues(ostream& out)
+{
+  CALL("Problem::PreprocessingOptions::printOptionValues");
+
+  OptionsReader curRdr;
+  prepareOptionsReader(curRdr);
+
+  OptionsReader defRdr;
+  PreprocessingOptions def;
+  def.prepareOptionsReader(defRdr);
+
+  curRdr.printOptionValues(out, &defRdr, "option value ");
+}
+
 void Problem::PreprocessingOptions::addAsymmetricRewritingRule(Formula lhs,
     Formula posRhs, Formula negRhs, Formula dblRhs)
 {
