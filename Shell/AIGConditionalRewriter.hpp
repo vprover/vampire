@@ -14,6 +14,8 @@
 #include "AIG.hpp"
 #include "AIGInferenceEngine.hpp"
 
+#define OLD_PRENEX 0
+
 namespace Shell {
 
 /**
@@ -26,6 +28,7 @@ public:
 
   AIGRef apply(AIGRef a);
   static bool containsQuant(AIGRef a);
+  static AIGRef getInner(AIGRef a);
   static bool isPrenex(AIGRef a);
 
 
@@ -36,6 +39,7 @@ public:
     bool isValid() const { return var!=UINT_MAX; }
 
     static bool compareVars(QuantInfo qi1, QuantInfo qi2) { return qi1.var < qi2.var; }
+    static unsigned getVar(QuantInfo qi) { return qi.var; }
 
     unsigned var;
     bool univ;
@@ -44,20 +48,31 @@ public:
   /** Contains collected quantifiers, the top-most are at the bottom of the stack.
    * Sequences of variables of the same kind are sorted by the variable number */
   typedef Stack<QuantInfo> QIStack;
+  /**
+   * Quantified AIG, first being the inner AIG and QIStack the quantifiers
+   */
+  typedef pair<AIGRef,QIStack> QuantAIG;
 
-  void collectQuants(AIGRef a, QIStack& quants, AIGRef& inner);
+  static void swapPolarity(QIStack& quants);
+
+  static void collectQuants(AIGRef a, QIStack& quants, AIGRef& inner);
   AIGRef quantifyBySpec(const QIStack& qs, AIGRef inner);
 
 private:
+  static void sortQuantSegments(QIStack& qs);
 
 
-
+#if OLD_PRENEX
   struct QuantUnifier;
 
-  static void sortQuantSegments(QIStack& qs);
   void unifyQuants(AIG::VarSet* freeVars, AIGRef a1, const QIStack& q1, AIGRef a2, const QIStack& q2,
       AIGRef& a1res, AIGRef& a2res, QIStack& qres);
   AIGRef processConjunction(AIGRef a);
+#else
+  struct QuantUnifierN;
+  struct RecursiveVisitor;
+#endif
+
 
   AIGInsideOutPosIterator _buildingIterator;
   DHMap<AIGRef,AIGRef> _transfCache;

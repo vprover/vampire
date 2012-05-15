@@ -106,9 +106,11 @@ public:
       return s;
     }
 
+    bool p1Superset = true;
+    bool p2Superset = true;
 
     static ItemStack acc;
-    ASS(acc.isEmpty());
+    acc.reset();
 
     T* p1=_items;
     T* p2=s->_items;
@@ -124,25 +126,36 @@ public:
       else if(*p1>*p2) {
 	acc.push(*p2);
 	p2++;
+	p1Superset = false;
       }
       else {
 	ASS_L(*p1,*p2);
 	acc.push(*p1);
 	p1++;
+	p2Superset = false;
       }
     }
 
     while(p1!=p1e) {
       acc.push(*p1);
       p1++;
+      p2Superset = false;
     }
     while(p2!=p2e) {
       acc.push(*p2);
       p2++;
+      p1Superset = false;
+    }
+
+    ASS(!p1Superset || !p2Superset);
+    if(p1Superset) {
+      return this;
+    }
+    if(p2Superset) {
+      return s;
     }
 
     SharedSet* res=create(acc);
-    acc.reset();
     return res;
   }
 

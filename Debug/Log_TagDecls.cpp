@@ -767,6 +767,9 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_pren_qu",
       DOC("merging of quantifiers in conjunctions"),
       PARENT("pp_aig_pren_conj",1));
+  DECL("pp_aig_pren_qu_args",
+      DOC("arguments to quantifier merging"),
+      PARENT("pp_aig_pren_qu",1));
 
   DECL("pp_aig_fact",
       DOC("aig factoring transformation"),

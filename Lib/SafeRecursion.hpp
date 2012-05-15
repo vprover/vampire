@@ -26,6 +26,8 @@ namespace Lib {
  *
  * The ChildCallback fn is a functor that is to be called with children of obj.
  *
+ * The @c post function is allowed to modify the childResArray.
+ *
  */
 template<typename Arg, typename Res, class Worker>
 struct SafeRecursion

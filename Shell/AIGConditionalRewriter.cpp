@@ -26,6 +26,19 @@ namespace Shell
 // AIGPrenexTransformer
 //
 
+/**
+ * Return the inner AIG of @c a after skipping outer quantifiers.
+ */
+AIGRef AIGPrenexTransformer::getInner(AIGRef a)
+{
+  CALL("AIGPrenexTransformer::getInner");
+
+  while(a.isQuantifier()) {
+    a = a.parent(0);
+  }
+  return a;
+}
+
 bool AIGPrenexTransformer::containsQuant(AIGRef a0)
 {
   CALL("AIGPrenexTransformer::containsQuant");
@@ -45,10 +58,18 @@ bool AIGPrenexTransformer::isPrenex(AIGRef a)
 {
   CALL("AIGPrenexTransformer::isPrenex");
 
-  while(a.isQuantifier()) {
-    a = a.parent(0);
-  }
+  a = getInner(a);
   return !containsQuant(a);
+}
+
+void AIGPrenexTransformer::swapPolarity(QIStack& quants)
+{
+  CALL("AIGPrenexTransformer::swapPolarity");
+
+  size_t cnt = quants.size();
+  for(unsigned i=0; i<cnt; i++) {
+    quants[i].univ = !quants[i].univ;
+  }
 }
 
 /**
@@ -80,6 +101,14 @@ void AIGPrenexTransformer::sortQuantSegments(QIStack& qs)
     segStart = i;
     segUnsorted = false;
   }
+
+  //this makes sure that variables in qs are unique
+  DEBUG_CODE(
+      DHSet<unsigned> vars;
+      vars.loadFromIterator(getMappingIteratorKnownRes<unsigned>(QIStack::ConstIterator(qs), QuantInfo::getVar));
+      ASS_EQ(vars.size(), qs.size());
+      );
+
 }
 
 /**
@@ -118,6 +147,7 @@ void AIGPrenexTransformer::collectQuants(AIGRef a, QIStack& quants, AIGRef& inne
   sortQuantSegments(quants);
 }
 
+#if OLD_PRENEX
 
 struct AIGPrenexTransformer::QuantUnifier
 {
@@ -235,7 +265,6 @@ private:
   QIStack _qres;
 };
 
-
 /**
  *
  * @param freeVars is union of free variables of a1 and a2 after
@@ -251,36 +280,6 @@ void AIGPrenexTransformer::unifyQuants(AIG::VarSet* freeVars, AIGRef a1, const Q
   a1res = qu.getResultingInnerAig1();
   a2res = qu.getResultingInnerAig2();
   qres = qu.getResQuantInfo();
-}
-
-AIGRef AIGPrenexTransformer::quantifyBySpec(const QIStack& qs, AIGRef inner)
-{
-  CALL("AIGPrenexTransformer::quantifyBySpec");
-
-  if(qs.isEmpty()) {
-    return inner;
-  }
-
-  static Stack<unsigned> currVars;
-  currVars.reset();
-  bool currIsUniv = qs.top().univ; //actualy the initial value doesn't matter
-
-  QIStack::TopFirstIterator qit(qs);
-  while(qit.hasNext()) {
-    QuantInfo qi = qit.next();
-    if(qi.univ!=currIsUniv) {
-      ASS(currVars.isNonEmpty());
-      AIG::VarSet* varSet = AIG::VarSet::getFromArray(currVars.begin(), currVars.size());
-      inner = _aig.getQuant(!currIsUniv, varSet, inner);
-      currVars.reset();
-      currIsUniv = qi.univ;
-    }
-    currVars.push(qi.var);
-  }
-  AIG::VarSet* varSet = AIG::VarSet::getFromArray(currVars.begin(), currVars.size());
-  inner = _aig.getQuant(!currIsUniv, varSet, inner);
-
-  return inner;
 }
 
 AIGRef AIGPrenexTransformer::processConjunction(AIGRef a)
@@ -325,10 +324,295 @@ AIGRef AIGPrenexTransformer::processConjunction(AIGRef a)
   return res;
 }
 
+#else
+
+struct AIGPrenexTransformer::QuantUnifierN
+{
+public:
+  QuantUnifierN(AIG& aig, AIG::VarSet* freeVars, size_t aigCnt, QuantAIG* aigs)
+   : _aig(aig), _nextAvailVar(0), _rnm(aigCnt), _aigCnt(aigCnt), _aigs(aigs)
+  {
+    CALL("AIGPrenexTransformer::QuantUnifier::QuantUnifier");
+
+    LOG("pp_aig_pren_qu", "QuantUnifier init, freeVars: "<<freeVars->toString()<<" aigCnt: "<<aigCnt);
+    TRACE("pp_aig_pren_qu_args", tout << "  quantifier blocks:" <<endl;
+	for(size_t i=0; i<aigCnt; i++) {
+	  tout << "  aig "<<i<<":" <<endl;
+	  QIStack::BottomFirstIterator qit(aigs[i].second);
+	  while(qit.hasNext()) {
+	    QuantInfo qi = qit.next();
+	    tout << "    "<<(qi.univ ? "un " : "ex ")<<qi.var<<endl;
+	  }
+	}
+    );
+
+
+    _usedVars.loadFromIterator(AIG::VarSet::Iterator(*freeVars));
+    process();
+  }
+
+
+  AIGStack getResultingInnerAigs() const { return _ares; }
+  const QIStack& getResQuantInfo() const { return _qres; }
+
+private:
+
+  void addExQuantifier(QuantInfo q, size_t aigIdx)
+  {
+    CALL("addExQuantifier");
+    ASS(!q.univ);
+
+    unsigned tgtVar = q.var;
+    if(!_usedVars.insert(tgtVar)) {
+      tgtVar = getNextFreshVar();
+    }
+    LOG("pp_aig_pren_qu","added exQuant for aig "<<aigIdx<<" locVar: "<< q.var <<" globVar: "<<tgtVar);
+    if(tgtVar!=q.var) {
+      ALWAYS(_rnm[aigIdx].insert(q.var, TermList(tgtVar, false)));
+    }
+    _qres.push(QuantInfo(tgtVar, false));
+  }
+
+  void addUnivQuantifier(const QIStack& aigQuants, const Stack<size_t>& aigIndexes)
+  {
+    CALL("addExQuantifier");
+    ASS_EQ(aigQuants.size(), aigIndexes.size());
+    ASS(aigQuants.isNonEmpty());
+
+    unsigned tgtVar = aigQuants.top().var;
+    if(!_usedVars.insert(tgtVar)) {
+      tgtVar = getNextFreshVar();
+    }
+
+    LOG("pp_aig_pren_qu","added univQuant, globVar: "<<tgtVar);
+    size_t cnt = aigQuants.size();
+    for(size_t i=0; i<cnt; i++) {
+      ASS(aigQuants[i].univ);
+      unsigned locVar = aigQuants[i].var;
+      LOG("pp_aig_pren_qu","  in aig "<<aigIndexes[i]<<" locVar: "<< locVar);
+      if(tgtVar!=locVar) {
+	size_t locIdx = aigIndexes[i];
+        ALWAYS(_rnm[locIdx].insert(locVar, TermList(tgtVar, false)));
+      }
+    }
+    _qres.push(QuantInfo(tgtVar, true));
+  }
+
+  void process()
+  {
+    CALL("AIGPrenexTransformer::QuantUnifier::process");
+
+    DArray<size_t> qIndexes;
+    qIndexes.init(_aigCnt, 0);
+    Stack<size_t> liveAigIndexes;
+    liveAigIndexes.loadFromIterator(getRangeIterator(static_cast<size_t>(0), _aigCnt));
+
+    for(;;) {
+      Stack<size_t>::DelIterator laiIt(liveAigIndexes);
+      while(laiIt.hasNext()) {
+	size_t aIdx = laiIt.next();
+	QIStack& quants = _aigs[aIdx].second;
+	size_t& qIdx = qIndexes[aIdx];
+	while(qIdx<quants.size() && !quants[qIdx].univ) {
+	  LOG("pp_aig_pren_qu","ex aIdx: "<<aIdx<<" var: "<<quants[qIdx].var<<" qIdx: "<< qIdx);
+	  addExQuantifier(quants[qIdx], aIdx);
+	  qIdx++;
+	}
+	if(qIdx>=quants.size()) {
+	  laiIt.del();
+	}
+      }
+
+      if(liveAigIndexes.isEmpty()) {
+	break;
+      }
+      //here all alive have one universal quantifier in front
+
+      static QIStack univQuants;
+      univQuants.reset();
+
+      Stack<size_t>::BottomFirstIterator laiUnivIt(liveAigIndexes);
+      while(laiUnivIt.hasNext()) {
+	size_t aIdx = laiUnivIt.next();
+	QIStack& quants = _aigs[aIdx].second;
+	size_t& qIdx = qIndexes[aIdx];
+	ASS_L(qIdx,quants.size());
+	ASS(quants[qIdx].univ);
+
+	LOG("pp_aig_pren_qu","un aIdx: "<<aIdx<<" var: "<<quants[qIdx].var<<" qIdx: "<< qIdx);
+	univQuants.push(quants[qIdx]);
+	qIdx++;
+      }
+
+      ASS_EQ(univQuants.size(), liveAigIndexes.size());
+      addUnivQuantifier(univQuants, liveAigIndexes);
+    }
+
+    sortQuantSegments(_qres);
+
+    for(size_t idx=0; idx<_aigCnt; idx++) {
+      AIGRef renAig;
+      if(_rnm[idx].isEmpty()) {
+	renAig = _aigs[idx].first;
+      }
+      else {
+	renAig = AIGSubst(_aig).apply(SubstHelper::getMapApplicator(&_rnm[idx]), _aigs[idx].first);
+      }
+      _ares.push(renAig);
+
+    }
+  }
+
+  unsigned getNextFreshVar()
+  {
+    CALL("AIGPrenexTransformer::QuantUnifier::getNextFreshVar");
+
+    while(_usedVars.find(_nextAvailVar)) {
+      _nextAvailVar++;
+    }
+    unsigned res = _nextAvailVar++;
+    ALWAYS(_usedVars.insert(res));
+    return res;
+  }
+
+  AIG& _aig;
+
+  DHSet<unsigned> _usedVars;
+  unsigned _nextAvailVar;
+
+  DArray<DHMap<unsigned,TermList> > _rnm;
+
+  size_t _aigCnt;
+  QuantAIG* _aigs;
+
+  AIGStack _ares;
+  QIStack _qres;
+};
+
+
+/**
+ * Visitor for use in the SafeRecursion object
+ */
+struct AIGPrenexTransformer::RecursiveVisitor
+{
+  RecursiveVisitor(AIGPrenexTransformer& parent)
+      : _parent(parent), _aig(parent._aig) {}
+
+  template<class ChildCallback>
+  void pre(AIGRef obj, ChildCallback fn)
+  {
+    CALL("AIGPrenexTransformer::RecursiveVisitor::pre");
+
+    if(obj.isAtom() || obj.isPropConst()) {
+      return;
+    }
+    if(_transfCache.find(obj.getPositive())) {
+      return;
+    }
+
+    if(obj.isQuantifier()) {
+      fn(getInner(obj));
+      return;
+    }
+    ASS_REP(obj.isConjunction(), obj);
+    static AIGStack conjuncts;
+    conjuncts.reset();
+    _aig.collectConjuncts(obj.getPositive(), conjuncts);
+    while(conjuncts.isNonEmpty()) {
+      fn(conjuncts.pop());
+    }
+  }
+
+  QuantAIG post(AIGRef obj, size_t childCnt, QuantAIG* childRes)
+  {
+    CALL("AIGPrenexTransformer::RecursiveVisitor::post");
+
+    if(obj.isAtom() || obj.isPropConst()) {
+      ASS_EQ(childCnt,0);
+      return QuantAIG(obj,QIStack());
+    }
+    AIGRef objPos = obj.getPositive();
+    QuantAIG posRes;
+    bool cached = false;
+    if(_transfCache.find(obj.getPositive(), posRes)) {
+      cached = true;
+    }
+    else if(objPos.isQuantifier()) {
+      ASS_EQ(childCnt,1);
+      QuantAIG& child = childRes[0];
+      posRes.first = child.first;
+      AIGRef aux;
+      collectQuants(objPos, posRes.second, aux);
+      posRes.second.loadFromIterator(QIStack::BottomFirstIterator(child.second));
+    }
+    else {
+      ASS(objPos.isConjunction());
+
+      QuantUnifierN qu(_aig, objPos.getFreeVars(), childCnt, childRes);
+      posRes.first =_aig.makeConjunction(qu.getResultingInnerAigs());
+      posRes.second = qu.getResQuantInfo();
+
+      LOG("pp_aig_pren_conj_res", "conj prenex transform:"<<endl<<
+          "  src: "<<objPos<<endl<<
+          "  tgt: "<<_parent.quantifyBySpec(posRes.second, posRes.first));
+    }
+
+    if(!cached) {
+      ALWAYS(_transfCache.insert(objPos, posRes));
+    }
+
+    QuantAIG res(posRes);
+    if(!obj.polarity()) {
+      res.first = res.first.neg();
+      swapPolarity(res.second);
+    }
+    return res;
+  }
+
+  AIGPrenexTransformer& _parent;
+  AIG& _aig;
+  DHMap<AIGRef,QuantAIG> _transfCache;
+};
+
+#endif
+
+
+AIGRef AIGPrenexTransformer::quantifyBySpec(const QIStack& qs, AIGRef inner)
+{
+  CALL("AIGPrenexTransformer::quantifyBySpec");
+
+  if(qs.isEmpty()) {
+    return inner;
+  }
+
+  static Stack<unsigned> currVars;
+  currVars.reset();
+  bool currIsUniv = qs.top().univ; //actualy the initial value doesn't matter
+
+  QIStack::TopFirstIterator qit(qs);
+  while(qit.hasNext()) {
+    QuantInfo qi = qit.next();
+    if(qi.univ!=currIsUniv) {
+      ASS(currVars.isNonEmpty());
+      AIG::VarSet* varSet = AIG::VarSet::getFromArray(currVars.begin(), currVars.size());
+      inner = _aig.getQuant(!currIsUniv, varSet, inner);
+      currVars.reset();
+      currIsUniv = qi.univ;
+    }
+    currVars.push(qi.var);
+  }
+  AIG::VarSet* varSet = AIG::VarSet::getFromArray(currVars.begin(), currVars.size());
+  inner = _aig.getQuant(!currIsUniv, varSet, inner);
+
+  return inner;
+}
+
+
 AIGRef AIGPrenexTransformer::apply(AIGRef a0)
 {
   CALL("AIGPrenexTransformer::apply");
 
+#if OLD_PRENEX
   _buildingIterator.addToTraversal(a0);
 
   while(_buildingIterator.hasNext()) {
@@ -354,6 +638,15 @@ AIGRef AIGPrenexTransformer::apply(AIGRef a0)
   ASS_REP2(isPrenex(res), a0, res);
 
   return res;
+#else
+  RecursiveVisitor visitor(*this);
+  SafeRecursion<AIGRef, QuantAIG, RecursiveVisitor> srec(visitor);
+  QuantAIG resQ = srec(a0);
+
+  AIGRef res = quantifyBySpec(resQ.second, resQ.first);
+
+  return res;
+#endif
 }
 
 //////////////////////////////
