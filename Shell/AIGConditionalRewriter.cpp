@@ -506,12 +506,16 @@ struct AIGPrenexTransformer::RecursiveVisitor
     if(obj.isAtom() || obj.isPropConst()) {
       return;
     }
-    if(_transfCache.find(obj.getPositive())) {
+    AIGRef objPos = obj.getPositive();
+    if(_transfCache.find(objPos)) {
       return;
     }
 
     if(obj.isQuantifier()) {
-      fn(getInner(obj));
+      QIStack quants;
+      AIGRef inner;
+      collectQuants(objPos, quants, inner);
+      fn(inner);
       return;
     }
     ASS_REP(obj.isConjunction(), obj);
@@ -801,6 +805,9 @@ struct AIGFactorizingTransformer::LocalFactorizer
     static DHSet<AIGRef> removedConjs;
     removedConjs.reset();
 
+    static AIGStack addedConjs;
+    addedConjs.reset();
+
     while(_subAigs.isNonEmpty()) {
       AIGRef fdisj = getMostFactorableDisjunct();
 
@@ -817,16 +824,9 @@ struct AIGFactorizingTransformer::LocalFactorizer
 	    tout << "  removed:  " << rmIt.next()<<endl;
 	  }
       );
-      DEBUG_CODE(
-	  AIGStack::ConstIterator rmIt(occStack);
-	  while(rmIt.hasNext()) {
-	    AIGRef removed = rmIt.next();
-	    ASS_NEQ(removed, mergedDisj);
-	  }
-	);
 
       removedConjs.loadFromIterator(AIGStack::ConstIterator(occStack));
-      conjs.push(mergedDisj);
+      addedConjs.push(mergedDisj);
       occStack.reset();
       ALWAYS(_subAigs.remove(fdisj));   //can cause quadratic behavior
     }
@@ -838,6 +838,7 @@ struct AIGFactorizingTransformer::LocalFactorizer
 	cleaningIt.del();
       }
     }
+    conjs.loadFromIterator(AIGStack::ConstIterator(addedConjs));
     LOG("pp_aig_fact_lcl_steps","local factorization call finished");
   }
 

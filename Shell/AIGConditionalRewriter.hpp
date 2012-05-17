@@ -68,14 +68,15 @@ private:
   void unifyQuants(AIG::VarSet* freeVars, AIGRef a1, const QIStack& q1, AIGRef a2, const QIStack& q2,
       AIGRef& a1res, AIGRef& a2res, QIStack& qres);
   AIGRef processConjunction(AIGRef a);
+
+  AIGInsideOutPosIterator _buildingIterator;
+  DHMap<AIGRef,AIGRef> _transfCache;
 #else
   struct QuantUnifierN;
   struct RecursiveVisitor;
 #endif
 
 
-  AIGInsideOutPosIterator _buildingIterator;
-  DHMap<AIGRef,AIGRef> _transfCache;
 
   AIG& _aig;
   AIGTransformer _atr;

@@ -249,8 +249,7 @@ namespace Shell {
 class AIGInsideOutPosIterator
 {
 public:
-  /** When this constructor is used, reset() must be called before anything else */
-  AIGInsideOutPosIterator() {}
+  AIGInsideOutPosIterator() { reset(); }
   AIGInsideOutPosIterator(AIGRef a) { reset(a); }
   void reset(AIGRef a=AIGRef::getInvalid());
   void addToTraversal(AIGRef a);

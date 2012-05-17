@@ -289,7 +289,6 @@ public:
       if(*p1==*p2) {
 	p1++;
 	p2++;
-	return true;
       }
       else if(*p1>*p2) {
 	p2++;
