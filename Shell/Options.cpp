@@ -196,6 +196,7 @@ const char* Options::Constants::_optionNames[] = {
   "predicate_equivalence_discovery_random_simulation",
   "predicate_equivalence_discovery_sat_conflict_limit",
   "predicate_index_introduction",
+  "print_clausifier_premises",
   "problem_name",
   "proof",
   "proof_checking",
@@ -771,6 +772,7 @@ Options::Options ()
   _predicateEquivalenceDiscoveryRandomSimulation(true),
   _predicateEquivalenceDiscoverySatConflictLimit(-1),
   _predicateIndexIntroduction(false),
+  _printClausifierPremises(false),
   _problemName("unknown"),
   _proof(PROOF_ON),
   _proofChecking(false),
@@ -1232,6 +1234,9 @@ void Options::set(const char* name,const char* value, int index)
       break;
     case PREDICATE_INDEX_INTRODUCTION:
       _predicateIndexIntroduction = onOffToBool(value,name);
+      return;
+    case PRINT_CLAUSIFIER_PREMISES:
+      _printClausifierPremises = onOffToBool(value,name);
       return;
     case PROOF:
       _proof = (Proof)Constants::proofValues.find(value);
@@ -2075,6 +2080,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case PREDICATE_INDEX_INTRODUCTION:
     str << boolToOnOff(_predicateIndexIntroduction);
+    return;
+  case PRINT_CLAUSIFIER_PREMISES:
+    str << boolToOnOff(_printClausifierPremises);
     return;
   case PROBLEM_NAME:
     str << _problemName;

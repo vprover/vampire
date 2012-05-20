@@ -49,6 +49,9 @@ void UIHelper::outputAllPremises(ostream& out, UnitList* units, string prefix)
 {
   CALL("UIHelper::outputAllPremises");
 
+#if 1
+  InferenceStore::instance()->outputProof(cerr, units);
+#else
   Stack<UnitSpec> prems;
   Stack<UnitSpec> toDo;
   DHSet<UnitSpec> seen;
@@ -81,6 +84,7 @@ void UIHelper::outputAllPremises(ostream& out, UnitList* units, string prefix)
     UnitSpec prem = premIt.next();
     out << prefix << prem.toString() << endl;
   }
+#endif
 }
 
 /**

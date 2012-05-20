@@ -139,6 +139,7 @@ public:
     PREDICATE_EQUIVALENCE_DISCOVERY_RANDOM_SIMULATION,
     PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT,
     PREDICATE_INDEX_INTRODUCTION,
+    PRINT_CLAUSIFIER_PREMISES,
     PROBLEM_NAME,
     PROOF,
     PROOF_CHECKING,
@@ -510,6 +511,7 @@ public:
   int randomSeed() const { return _randomSeed; }
   int rowVariableMaxLength() const { return _rowVariableMaxLength; }
   void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
+  bool printClausifierPremises() const { return _printClausifierPremises; }
   bool showActive() const { return _showActive; }
   bool showBlocked() const { return _showBlocked; }
   bool showDefinitions() const { return _showDefinitions; }
@@ -807,6 +809,7 @@ private:
   bool _predicateEquivalenceDiscoveryRandomSimulation;
   int _predicateEquivalenceDiscoverySatConflictLimit;
   bool _predicateIndexIntroduction;
+  bool _printClausifierPremises;
   string _problemName;
   Proof _proof;
   bool _proofChecking;

@@ -152,6 +152,7 @@ public:
   void recordBddizeVars(Clause* cl, IntList* vars);
 
   void outputProof(ostream& out, Unit* refutation);
+  void outputProof(ostream& out, UnitList* units);
 
   UnitSpecIterator getParents(UnitSpec us, Inference::Rule& rule);
   UnitSpecIterator getParents(UnitSpec us);
@@ -178,6 +179,8 @@ private:
   struct ProofPrinter;
   struct TPTPProofPrinter;
   struct ProofCheckPrinter;
+
+  ProofPrinter* createProofPrinter(ostream& out);
 
   /**
    * A map that for a clause specified by its non-prop. part

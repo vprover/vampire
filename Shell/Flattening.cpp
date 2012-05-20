@@ -178,6 +178,45 @@ FormulaList* Flattening::flatten (FormulaList* fs,
   CALL("Flattening::flatten (FormulaList*...)");
   ASS(con == OR || con == AND);
 
+#if 1
+  if(!fs) {
+    return 0;
+  }
+
+  FormulaList* fs0 = fs;
+
+  bool modified = false;
+  Stack<Formula*> res(8);
+  Stack<FormulaList*> toDo(8);
+  for(;;) {
+    if(fs->head()->connective()==con) {
+      modified = true;
+      if(fs->tail()) {
+	toDo.push(fs->tail());
+      }
+      fs = fs->head()->args();
+      continue;
+    }
+    Formula* hdRes = flatten(fs->head());
+    if(hdRes!=fs->head()) {
+      modified = true;
+    }
+    res.push(hdRes);
+    fs = fs->tail();
+    if(!fs) {
+      if(toDo.isEmpty()) {
+	break;
+      }
+      fs = toDo.pop();
+    }
+  }
+  if(!modified) {
+    return fs0;
+  }
+  FormulaList* resLst = 0;
+  FormulaList::pushFromIterator(Stack<Formula*>::TopFirstIterator(res), resLst);
+  return resLst;
+#else
   if (fs->isEmpty()) {
     return fs;
   }
@@ -192,6 +231,7 @@ FormulaList* Flattening::flatten (FormulaList* fs,
     return fs;
   }
   return new FormulaList(head,tail);
+#endif
 } // Flattening::flatten
 
 

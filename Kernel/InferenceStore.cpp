@@ -7,6 +7,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/ScopedPtr.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/StringUtils.hpp"
@@ -414,20 +415,38 @@ string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 
 struct InferenceStore::ProofPrinter
 {
-  ProofPrinter(Unit* refutation, ostream& out, InferenceStore* is)
+  ProofPrinter(ostream& out, InferenceStore* is)
   : is(is), out(out), bdd(BDD::instance())
   {
     CALL("InferenceStore::ProofPrinter::ProofPrinter");
 
     outputAxiomNames=env.options->outputAxiomNames();
+  }
 
-    UnitSpec us(refutation, false);
+  void scheduleForPrinting(UnitSpec us)
+  {
+    CALL("InferenceStore::ProofPrinter::scheduleForPrinting");
+
     outKernel.push(us);
     handledKernel.insert(us);
   }
 
+
   virtual ~ProofPrinter() {}
 
+  virtual void print()
+  {
+    CALL("InferenceStore::ProofPrinter::print");
+
+    while(outKernel.isNonEmpty()) {
+      UnitSpec cs=outKernel.pop();
+      bdd->allowDefinitionOutput(false);
+      handleStep(cs);
+      bdd->allowDefinitionOutput(true);
+    }
+  }
+
+protected:
   virtual void handleSplitting(SplittingRecord* sr)
   {
     requestProofStep(sr->premise);
@@ -559,17 +578,6 @@ struct InferenceStore::ProofPrinter
     }
   }
 
-  virtual void print()
-  {
-    CALL("InferenceStore::ProofPrinter::print");
-
-    while(outKernel.isNonEmpty()) {
-      UnitSpec cs=outKernel.pop();
-      bdd->allowDefinitionOutput(false);
-      handleStep(cs);
-      bdd->allowDefinitionOutput(true);
-    }
-  }
 
   /** Clauses that have propositional part assigned are put here
    * to be output as an inference step */
@@ -586,9 +594,10 @@ struct InferenceStore::ProofPrinter
 struct InferenceStore::TPTPProofPrinter
 : public InferenceStore::ProofPrinter
 {
-  TPTPProofPrinter(Unit* refutation, ostream& out, InferenceStore* is)
-  : ProofPrinter(refutation, out, is) {}
+  TPTPProofPrinter(ostream& out, InferenceStore* is)
+  : ProofPrinter(out, is) {}
 
+protected:
   //overrides ProofPrinter::specialTreatment
   bool specialTreatment(UnitSpec cs, Inference::Rule rule)
   {
@@ -1042,9 +1051,10 @@ const char* InferenceStore::TPTPProofPrinter::splitPrefix = "$spl";
 struct InferenceStore::ProofCheckPrinter
 : public InferenceStore::ProofPrinter
 {
-  ProofCheckPrinter(Unit* refutation, ostream& out, InferenceStore* is)
-  : ProofPrinter(refutation, out, is) {}
+  ProofCheckPrinter(ostream& out, InferenceStore* is)
+  : ProofPrinter(out, is) {}
 
+protected:
   string bddToString(BDDNode* node)
   {
     return bdd->toTPTPString(node, "bddPred");
@@ -1136,36 +1146,53 @@ struct InferenceStore::ProofCheckPrinter
   }
 };
 
-
-
-void InferenceStore::outputProof(ostream& out, Unit* refutation)
+InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
 {
-  CALL("InferenceStore::outputProof");
+  CALL("InferenceStore::createProofPrinter");
 
   switch(env.options->proof()) {
   case Options::PROOF_ON:
-  {
-    ProofPrinter pp(refutation, out, this);
-    pp.print();
-    return;
-  }
+    return new ProofPrinter(out, this);
   case Options::PROOF_PROOFCHECK:
-  {
-    ProofCheckPrinter pp(refutation, out, this);
-    pp.print();
-    return;
-  }
+    return new ProofCheckPrinter(out, this);
+    break;
   case Options::PROOF_TPTP:
-  {
-    TPTPProofPrinter pp(refutation, out, this);
-    pp.print();
-    return;
-  }
+    return new TPTPProofPrinter(out, this);
+    break;
   case Options::PROOF_OFF:
-    return;
+    return 0;
+  default:
+    ASSERTION_VIOLATION;
   }
 }
 
+void InferenceStore::outputProof(ostream& out, Unit* refutation)
+{
+  CALL("InferenceStore::outputProof(ostream&,Unit*)");
+
+  ScopedPtr<ProofPrinter> pp(createProofPrinter(out));
+  if(!pp) {
+    return;
+  }
+  pp->scheduleForPrinting(UnitSpec(refutation));
+  pp->print();
+}
+
+void InferenceStore::outputProof(ostream& out, UnitList* units)
+{
+  CALL("InferenceStore::outputProof(ostream&,UnitList*)");
+
+  ScopedPtr<ProofPrinter> pp(createProofPrinter(out));
+  if(!pp) {
+    return;
+  }
+  UnitList::Iterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    pp->scheduleForPrinting(UnitSpec(u));
+  }
+  pp->print();
+}
 
 InferenceStore* InferenceStore::instance()
 {

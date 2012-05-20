@@ -53,7 +53,8 @@
 #include "TheoryAxioms.hpp"
 #include "TrivialPredicateRemover.hpp"
 
-// #include "Lib/Sort.hpp"
+#include "UIHelper.hpp"
+
 // #include "ClausalDefinition.hpp"
 // #include "Definition.hpp"
 // #include "Environment.hpp"
@@ -358,6 +359,10 @@ void Preprocess::preprocess (Problem& prb)
  	TRACE_OUTPUT_UNIT(u);
        }
        );
+
+   if(_options.printClausifierPremises()) {
+     UIHelper::outputAllPremises(cerr, prb.units());
+   }
 
    LOG("pp","preprocessing finished");
 } // Preprocess::preprocess ()
