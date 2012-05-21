@@ -1440,6 +1440,40 @@ void AIGFormulaSharer::buildConjAigFormulaRepr(AIGRef a, Stack<AIGRef>& toBuild)
   }
 
   bool pol = a.polarity();
+#if 1
+  static AIGStack members;
+  members.reset();
+  _aig.collectConjuncts(a.getPositive(), members);
+
+  static FormulaStack forms;
+  forms.reset();
+  bool someMissing = false;
+
+  AIGStack::Iterator mit(members);
+  while(mit.hasNext()) {
+    AIGRef mBase = mit.next();
+    AIGRef member = pol ? mBase : mBase.neg();
+
+    Formula* form;
+    if(_formReprs.find(member, form)) {
+      forms.push(form);
+    }
+    else {
+      if(!someMissing) {
+	toBuild.push(a);
+	someMissing = true;
+      }
+      toBuild.push(member);
+    }
+  }
+
+  if(someMissing) {
+    return;
+  }
+
+  FormulaList* args = 0;
+  FormulaList::pushFromIterator(FormulaStack::TopFirstIterator(forms), args);
+#else
   AIG::Node* n = a.node();
   ASS_EQ(n->kind(), AIG::Node::CONJ);
 
@@ -1469,6 +1503,7 @@ void AIGFormulaSharer::buildConjAigFormulaRepr(AIGRef a, Stack<AIGRef>& toBuild)
     return;
   }
   FormulaList* args = new FormulaList(subForms[0], new FormulaList(subForms[1], 0));
+#endif
   shareFormula(new JunctionFormula(pol ? AND : OR, args), a);
 }
 
