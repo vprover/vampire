@@ -31,6 +31,7 @@
 
 #include "Shell/Property.hpp"
 #include "Shell/TPTP.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "Statistics.hpp"
 
@@ -139,6 +140,13 @@ void BFNTMainLoop::runChild(size_t modelSize)
     }
   }
 
+  if(innerRes.terminationReason==Statistics::SATISFIABLE) {
+    env.beginOutput();
+    UIHelper::outputSatisfiableResult(env.out());
+    env.endOutput();
+    UIHelper::satisfiableStatusWasAlreadyOutput = true;
+  }
+
   switch(innerRes.terminationReason) {
   case Statistics::SATISFIABLE:
     exit(BFNT_CHILD_RESULT_SAT);
@@ -194,6 +202,7 @@ MainLoopResult BFNTMainLoop::spawnChild(size_t modelSize)
   if(WIFEXITED(status)) {
     switch(WEXITSTATUS(status)) {
     case BFNT_CHILD_RESULT_SAT:
+      UIHelper::satisfiableStatusWasAlreadyOutput = true;
       return MainLoopResult(Statistics::SATISFIABLE);
     case BFNT_CHILD_RESULT_UNSAT:
       return MainLoopResult(Statistics::REFUTATION);

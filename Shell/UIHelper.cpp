@@ -87,6 +87,20 @@ void UIHelper::outputAllPremises(ostream& out, UnitList* units, string prefix)
 #endif
 }
 
+void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
+{
+  CALL("UIHelper::outputSaturatedSet");
+
+  out<<"# SZS output start Saturation."<<endl;
+
+  while(uit.hasNext()) {
+    Unit* cl = uit.next();
+    out << TPTP::toString(cl) << endl;
+  }
+
+  out<<"# SZS output end Saturation."<<endl;
+}
+
 /**
  * Return problem object with units obtained according to the content of
  * @b env.options
@@ -237,22 +251,7 @@ void UIHelper::outputResult(ostream& out)
     }
     break;
   case Statistics::SATISFIABLE:
-    out << "Satisfiable!\n";
-#if SATISFIABLE_IS_SUCCESS
-    if(cascMode && !satisfiableStatusWasAlreadyOutput) {
-      out << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-	  <<" for "<<env.options->problemName()<<endl;
-    }
-    if(!env.statistics->model.empty()) {
-      if(cascMode) {
-	out<<"% SZS output start FiniteModel for "<<env.options->problemName()<<endl;
-      }
-      out << env.statistics->model;
-      if(cascMode) {
-	out<<"% SZS output end FiniteModel for "<<env.options->problemName()<<endl;
-      }
-    }
-#endif
+    outputSatisfiableResult(out);
     break;
   case Statistics::UNKNOWN:
     out << "Unknown reason of termination!\n";
@@ -261,6 +260,31 @@ void UIHelper::outputResult(ostream& out)
     ASSERTION_VIOLATION;
   }
   env.statistics->print(out);
+}
+
+void UIHelper::outputSatisfiableResult(ostream& out)
+{
+  CALL("UIHelper::outputSatisfiableResult");
+
+  out << "Satisfiable!\n";
+#if SATISFIABLE_IS_SUCCESS
+  if(cascMode && !satisfiableStatusWasAlreadyOutput) {
+    out << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+	  <<" for "<<env.options->problemName()<<endl;
+  }
+  if(!env.statistics->model.empty()) {
+    if(cascMode) {
+	out<<"% SZS output start FiniteModel for "<<env.options->problemName()<<endl;
+    }
+    out << env.statistics->model;
+    if(cascMode) {
+	out<<"% SZS output end FiniteModel for "<<env.options->problemName()<<endl;
+    }
+  }
+  else if(env.statistics->saturatedSet) {
+    outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
+  }
+#endif
 }
 
 void UIHelper::outputIntroducedSymbolDeclarations(ostream& out)

@@ -28,14 +28,15 @@ struct MainLoopResult
   typedef Statistics::TerminationReason TerminationReason;
 
   MainLoopResult(TerminationReason reason)
-  : terminationReason(reason) {}
+  : terminationReason(reason), saturatedSet(0) {}
   MainLoopResult(TerminationReason reason, Clause* ref)
-  : terminationReason(reason), refutation(ref) {}
+  : terminationReason(reason), refutation(ref), saturatedSet(0) {}
 
   void updateStatistics();
 
   TerminationReason terminationReason;
   Clause* refutation;
+  UnitList* saturatedSet;
 };
 
 

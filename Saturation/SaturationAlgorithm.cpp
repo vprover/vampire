@@ -94,6 +94,7 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
  */
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
+    _mergedBddEmptyClause(0),
     _limits(opt),
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
@@ -970,52 +971,50 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
 
   if(_opt.satSolverForEmptyClause()) {
     static BDDConjunction ecProp(_opt);
-    static Stack<UnitSpec> emptyClauses;
 
     onNonRedundantClause(cl);
     onNewUsefulPropositionalClause(cl);
     ecProp.addNode(cl->prop());
     if(ecProp.isFalse()) {
-      InferenceStore::instance()->recordMerge(cl, cl->prop(), emptyClauses.begin(),
-	      emptyClauses.size(), bdd->getFalse());
+      InferenceStore::instance()->recordMerge(cl, cl->prop(), _bddSatSolverEmptyClauses.begin(),
+	  _bddSatSolverEmptyClauses.size(), bdd->getFalse());
       cl->setProp(bdd->getFalse());
       onNewUsefulPropositionalClause(cl);
       onNonRedundantClause(cl);
       throw RefutationFoundException(cl);
     } else {
       cl->incRefCnt();
-      emptyClauses.push(UnitSpec(cl));
+      _bddSatSolverEmptyClauses.push(UnitSpec(cl));
       return;
     }
   } else {
-    static Clause* accumulator=0;
-    if(accumulator==0) {
+    if(_mergedBddEmptyClause==0) {
       cl->incRefCnt();
       onNonRedundantClause(cl);
-      accumulator=cl;
+      _mergedBddEmptyClause=cl;
       onNewUsefulPropositionalClause(cl);
       return;
     }
-    BDDNode* newProp=bdd->conjunction(accumulator->prop(), cl->prop());
-    if(newProp!=accumulator->prop()) {
+    BDDNode* newProp=bdd->conjunction(_mergedBddEmptyClause->prop(), cl->prop());
+    if(newProp!=_mergedBddEmptyClause->prop()) {
       onNonRedundantClause(cl);
       onNewUsefulPropositionalClause(cl);
     }
     if(bdd->isFalse(newProp)) {
-      InferenceStore::instance()->recordMerge(cl, cl->prop(), accumulator, newProp);
+      InferenceStore::instance()->recordMerge(cl, cl->prop(), _mergedBddEmptyClause, newProp);
       cl->setProp(newProp);
       onNonRedundantClause(cl);
       onNewUsefulPropositionalClause(cl);
       throw RefutationFoundException(cl);
     }
-    if(newProp!=accumulator->prop()) {
-      InferenceStore::instance()->recordMerge(accumulator, accumulator->prop(), cl, newProp);
-      accumulator->setProp(newProp);
-      onNonRedundantClause(accumulator);
+    if(newProp!=_mergedBddEmptyClause->prop()) {
+      InferenceStore::instance()->recordMerge(_mergedBddEmptyClause, _mergedBddEmptyClause->prop(), cl, newProp);
+      _mergedBddEmptyClause->setProp(newProp);
+      onNonRedundantClause(_mergedBddEmptyClause);
     } else {
       env.statistics->subsumedEmptyClauses++;
       if(_opt.emptyClauseSubsumption()) {
-	performEmptyClauseParentSubsumption(cl, accumulator->prop());
+	performEmptyClauseParentSubsumption(cl, _mergedBddEmptyClause->prop());
       }
     }
   }
@@ -1431,6 +1430,88 @@ void SaturationAlgorithm::initAlgorithmRun()
   init();
 }
 
+
+UnitList* SaturationAlgorithm::collectSaturatedSet()
+{
+  CALL("SaturationAlgorithm::collectSaturatedSet");
+
+  LiteralIndexingStructure* gis=getIndexManager()->getGeneratingLiteralIndexingStructure();
+
+  UnitList* res = 0;
+  SLQueryResultIterator qrit = gis->getAll();
+  while(qrit.hasNext()) {
+    SLQueryResult qres = qrit.next();
+    UnitList::push(qres.clause, res);
+    qres.clause->incRefCnt();
+  }
+
+  if(getOptions().propositionalToBDD()) {
+    BDD& _bdd = *BDD::instance();
+    if(getOptions().satSolverForEmptyClause()) {
+      Stack<UnitSpec>::ConstIterator ecit(_bddSatSolverEmptyClauses);
+      while(ecit.hasNext()) {
+	UnitSpec us = ecit.next();
+	Clause* cl = Clause::fromClause(us.cl());
+	cl->setProp(us.prop());
+
+	InferenceStore::FullInference* finf = new(1) InferenceStore::FullInference(1);
+	finf->rule = Inference::REORDER_LITERALS;
+	finf->premises[0] = us;
+	finf->increasePremiseRefCounters();
+	InferenceStore::instance()->recordInference(UnitSpec(cl), finf);
+
+	UnitList::push(cl, res);
+	cl->incRefCnt();
+      }
+    }
+    else {
+      if(_mergedBddEmptyClause) {
+	UnitList::push(_mergedBddEmptyClause, res);
+	_mergedBddEmptyClause->incRefCnt();
+      }
+    }
+
+    const Problem::BDDVarMeaningMap& bvm = getProblem().getBDDVarMeanings();
+    Problem::BDDVarMeaningMap::Iterator bvmIt(bvm);
+    while(bvmIt.hasNext()) {
+      unsigned var;
+      Problem::BDDMeaningSpec spec;
+      bvmIt.next(var, spec);
+
+      Literal* namedLit;
+
+      if(spec.first) {
+        ASS(!spec.second);
+
+        namedLit = spec.first;
+      }
+      else {
+	unsigned newPred = env.signature->addFreshPredicate(0, "bddAux");
+	namedLit = Literal::create(newPred, 0, true, false, 0);
+
+	Formula* clForm = spec.second->getFormula(_bdd.getFalse());
+	Formula* namingForm = new BinaryFormula(IFF, new AtomicFormula(namedLit), clForm);
+	FormulaUnit* namingFU = new FormulaUnit(namingForm, new Inference(Inference::PREDICATE_DEFINITION), Unit::AXIOM);
+	UnitList::push(namingFU, res);
+      }
+      Clause* posNm = Clause::fromIterator(getSingletonIterator(namedLit),
+	  Unit::AXIOM, new Inference(Inference::PREDICATE_DEFINITION));
+      posNm->setProp(_bdd.getAtomic(var, true));
+      UnitList::push(posNm, res);
+      posNm->incRefCnt();
+
+      Clause* negNm = Clause::fromIterator(
+	  getSingletonIterator(Literal::complementaryLiteral(namedLit)),
+	  Unit::AXIOM, new Inference(Inference::PREDICATE_DEFINITION));
+      negNm->setProp(_bdd.getAtomic(var, false));
+      UnitList::push(negNm, res);
+      negNm->incRefCnt();
+    }
+  }
+
+  return res;
+}
+
 /**
  *
  * This function may throw RefutationFoundException and TimeLimitExceededException.
@@ -1444,7 +1525,11 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   if(_passive->isEmpty()) {
     MainLoopResult::TerminationReason termReason =
 	isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND;
-    throw MainLoopFinishedException(MainLoopResult(termReason));
+    MainLoopResult res(termReason);
+    if(termReason == Statistics::SATISFIABLE && getOptions().proof()!=Options::PROOF_OFF) {
+      res.saturatedSet = collectSaturatedSet();
+    }
+    throw MainLoopFinishedException(res);
   }
 
   Clause* cl = _passive->popSelected();

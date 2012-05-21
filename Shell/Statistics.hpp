@@ -207,6 +207,8 @@ public:
   TerminationReason terminationReason;
   /** refutation, if any */
   Kernel::Unit* refutation;
+  /** the saturated set of clauses, if any */
+  Kernel::UnitList* saturatedSet;
   /** if problem is satisfiable and we obtained a model, contains its
    * representation; otherwise it is an empty string */
   string model;

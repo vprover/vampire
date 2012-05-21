@@ -32,6 +32,10 @@ public:
 
   static void outputAllPremises(ostream& out, UnitList* units, string prefix="");
 
+
+  static void outputSatisfiableResult(ostream& out);
+  static void outputSaturatedSet(ostream& out, UnitIterator uit);
+
   static void outputIntroducedSymbolDeclarations(ostream& out);
   static void outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, unsigned symNumber);
 

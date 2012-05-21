@@ -112,6 +112,7 @@ Statistics::Statistics()
     satPureVarsEliminated(0),
     terminationReason(UNKNOWN),
     refutation(0),
+    saturatedSet(0),
     phase(INITIALIZATION)
 {
 } // Statistics::Statistics

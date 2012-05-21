@@ -51,6 +51,8 @@ public:
   void initAlgorithmRun();
   void doOneAlgorithmStep();
 
+  UnitList* collectSaturatedSet();
+
   void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
 
@@ -158,6 +160,18 @@ private:
   Clause* doImmediateSimplification(Clause* cl);
 
   MainLoopResult saturateImpl();
+
+  /**
+   * This member contains derived empty clauses if propositionalToBdd is on and
+   * satSolverForEmptyClause is on.
+   */
+  Stack<UnitSpec> _bddSatSolverEmptyClauses;
+  /**
+   * This member contains merge of derived empty clauses if propositionalToBdd is on and
+   * satSolverForEmptyClause is off.
+   */
+  Clause* _mergedBddEmptyClause;
+
 
   Limits _limits;
   SmartPtr<IndexManager> _imgr;

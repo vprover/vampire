@@ -739,6 +739,7 @@ MainLoopResult IGAlgorithm::onModelFound()
       }
     );
   if(_opt.complete(_prb)) {
+    MainLoopResult res(Statistics::SATISFIABLE);
     if(_opt.proof()!=Options::PROOF_OFF) {
       if(UIHelper::cascMode) {
 	env.beginOutput();
@@ -754,8 +755,12 @@ MainLoopResult IGAlgorithm::onModelFound()
       if(modelAvailable) {
 	env.statistics->model = modelStm.str();
       }
+      else {
+	res.saturatedSet = 0;
+	UnitList::pushFromIterator( RCClauseStack::Iterator(_active) , res.saturatedSet);
+      }
     }
-    return MainLoopResult(Statistics::SATISFIABLE);
+    return res;
   }
   else {
     return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);

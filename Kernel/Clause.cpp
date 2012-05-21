@@ -384,6 +384,8 @@ string Clause::nonPropToString() const
 
 /**
  * Convert the clause to the TPTP-compatible string representation.
+ *
+ * The split history is omitted.
  */
 string Clause::toTPTPString() const
 {
