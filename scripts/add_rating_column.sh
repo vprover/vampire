@@ -7,11 +7,22 @@
 SCR_DIR=`dirname $0`
 TPTP_PRB_DIR="$SCR_DIR/../Problems"
 
+if [ "$1" == "-f" ]; then
+	FULL=1
+	shift
+else
+	FULL=0
+fi
+
 F=$1
 
 cat $F | while read L
 do
-   PRB=`echo $L | sed "s|^\(...\)\([^[:space:]]*\).*|$TPTP_PRB_DIR/\1/\1\2.p|"`
+	if [ "$FULL" == "1" ]; then
+		PRB=`echo $L | sed "s|^\([^[:space:]]*\) *|$TPTP_PRB_DIR/../\1/\1\2.p|"`
+	else
+		PRB=`echo $L | sed "s|^\(...\)\([^[:space:]]*\).*|$TPTP_PRB_DIR/\1/\1\2.p|"`
+	fi
    RTG=`grep '^. Rating' "$PRB" | sed 's/^. Rating   : \(.\...\).*$/\1/'`
    echo -e "$L\t$RTG"
 done

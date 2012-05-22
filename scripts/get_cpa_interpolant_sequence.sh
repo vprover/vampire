@@ -73,6 +73,5 @@ for LEFT_CNT in $LEFT_CNTS; do
         echo "========"
 done
 
-
 rm -r $AUX_DIR
 
