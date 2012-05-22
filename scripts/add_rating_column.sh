@@ -19,7 +19,7 @@ F=$1
 cat $F | while read L
 do
 	if [ "$FULL" == "1" ]; then
-		PRB=`echo $L | sed "s|^\([^[:space:]]*\) *|$TPTP_PRB_DIR/../\1|"`
+		PRB=`echo $L | sed "s|^\([^[:space:]]*\) *$|$TPTP_PRB_DIR/../\1|"`
 	else
 		PRB=`echo $L | sed "s|^\(...\)\([^[:space:]]*\).*|$TPTP_PRB_DIR/\1/\1\2.p|"`
 	fi
