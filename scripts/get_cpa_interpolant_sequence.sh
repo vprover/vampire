@@ -50,8 +50,17 @@ PRB_FILE="$AUX_DIR/prb.smt2"
 Z3_OUT="$AUX_DIR/z3_out.txt"
 PROOF_FILE="$AUX_DIR/proof.txt"
 
-$VUTIL_EXEC sc $* | fold -w 200 -s >$PRB_FILE
-$Z3_CMD $PRB_FILE >$Z3_OUT 2>&1
+(ulimit -St $TIME_LIMIT; $VUTIL_EXEC sc $* ) | fold -w 200 -s >$PRB_FILE
+
+if grep -q "^User error:" $PRB_FILE; then
+        exit 0
+fi
+
+(ulimit -St $TIME_LIMIT; $Z3_CMD $PRB_FILE) >$Z3_OUT 2>&1
+
+if grep -q "^sat$" $Z3_OUT; then
+        exit 0
+fi
 
 if ! grep -q "^unsat" $Z3_OUT; then
         echo "on $BASE"
@@ -69,7 +78,7 @@ LEFT_CNTS="`eval echo {1..$(($#-1))}`"
 
 for LEFT_CNT in $LEFT_CNTS; do
         echo "results for $BASE $LEFT_CNT"
-        cat $PROOF_FILE | $VUTIL_EXEC zie $LEFT_CNT $*
+        cat $PROOF_FILE | (ulimit -St $TIME_LIMIT; $VUTIL_EXEC zie -q $LEFT_CNT $* )
         echo "========"
 done
 

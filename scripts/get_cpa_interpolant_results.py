@@ -87,7 +87,7 @@ class LookAheadIterator(object):
         def peek(self):
                 if self.reserve:
                         return self.reserve[-1]
-                res = next()
+                res = self.next()
                 self.reserve.append(res)
                 return res
                         
@@ -226,12 +226,17 @@ class Bench(object):
                         self.__dict__[valName] = (resVal, approx)
                         return
                 raise IncompleteBenchmark()
-        def acceptInterpolant(self, iter, valRegex):
+        def tryAcceptInterpolant(self, iter, valRegex):
                 approx = False
-                line = iter.next()
+                if not iter.hasNext():
+                    return False
+                line = iter.peek()
                 self.checkForResLimits(line)
                 if not valRegex.match(line):
-                        raise ProcError("expected '"+valRegex.pattern+"' line: "+line)
+                        return False
+                        #raise ProcError("expected '"+valRegex.pattern+"' line: "+line)
+                iter.next()
+                return True
         def readName(self, line):
                 nameMatch = reName.match(line)
                 if not nameMatch:
@@ -248,14 +253,13 @@ class Bench(object):
                         if reIgnoredName.match(self.name):
                                 raise IncompleteBenchmark()
                         
-                        while lineIt.hasNext() and not reOldItp.match(lineIt.peek()):
+                        while lineIt.hasNext() and not reOldItp.match(lineIt.peek()) and not reOrigWeight.match(lineIt.peek()):
                                 lineIt.next()
                                 
                         if not lineIt.hasNext():
                                 raise EarlyRecEnd(trNotSolved)
                         
-                        self.acceptInterpolant(lineIt, reOldItp)
-                                
+                        self.tryAcceptInterpolant(lineIt, reOldItp)
                         self.readValue(lineIt, reOrigWeight, "origSz")
                         self.readValue(lineIt, reMinWeight, "minSz")
                         self.readValue(lineIt, reOrigCount, "origCnt")
@@ -263,9 +267,9 @@ class Bench(object):
                         self.readValue(lineIt, reOrigQuant, "origQuant")
                         self.readValue(lineIt, reMinQuant, "minQuant")
 
-                        self.acceptInterpolant(lineIt, reSzMinItp)
-                        self.acceptInterpolant(lineIt, reCntMinItp)
-                        self.acceptInterpolant(lineIt, reQuantMinItp)
+                        self.tryAcceptInterpolant(lineIt, reSzMinItp)
+                        self.tryAcceptInterpolant(lineIt, reCntMinItp)
+                        self.tryAcceptInterpolant(lineIt, reQuantMinItp)
                 except StopIteration:
                         raise IncompleteBenchmark()
                 except EarlyRecEnd as ere:
@@ -498,6 +502,7 @@ for line in fileinput.input():
                                 for o in observers:
                                         o.observe(currBench)
                                 benchs.append(currBench)
+                                #print currBench.name+"\t"+str(currBench.origSz)+" "+str(currBench.minSz)
                         except ProcError as err:
                                 currBench.error = err
                                 onInvalidBench(currBench)

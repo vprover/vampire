@@ -50,6 +50,9 @@ LExpr* SMTLIBConcat::extrafuns2decl(LExpr* expr)
       << tlRdr.readAtom();
   res << (LispListWriter())
       << tlRdr.readAtom();
+  if(tlRdr.hasNext()) {
+    USER_ERROR("non-constant functions not supported: "+expr->toString());
+  }
   tlRdr.acceptEOL();
   return res.get();
 }
