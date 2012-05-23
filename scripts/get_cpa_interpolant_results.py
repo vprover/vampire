@@ -4,7 +4,8 @@ import fileinput
 import os
 import re
 
-printLatex = True
+
+printLatex = os.getenv("PRINT_LATEX", "ON")=="ON"
 
 
 reIgnoredLine = re.compile("(%)|(sh: line 1: .* Alarm clock)|(Unknown reason of termination!)|(Alarm clock)")
@@ -323,11 +324,11 @@ class GroupingPostprocessor(object):
                 if num<501:
                         return "101 -- 500"
                 if num<1001:
-                        return "501 -- 1.000"
+                        return "501 -- 1,000"
                 if num<10001:
-                        return "1.000 -- 10.000"
+                        return "1,000 -- 10,000"
                 else:
-                        return ">10.000"
+                        return ">10,000"
                 
         def __call__(self,map):
                 keys = list(map.keys())
