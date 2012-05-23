@@ -102,6 +102,8 @@ private:
   Literal* createIntEquality(bool polarity, TermList arg1, TermList arg2)
   { return Literal::createEquality(polarity, arg1, arg2, Sorts::SRT_INTEGER); }
 
+  Problem* getPreprocessedProblem();
+  void setEnvironmentOptions();
   /** the loop being analyzed */
   WhileDo* _loop;
   /** all variables updated by this loop */
