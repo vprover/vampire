@@ -8,7 +8,7 @@
 
 #include "Forwards.hpp"
 
-
+#include "Debug/Tracer.hpp"
 
 namespace Lib {
 

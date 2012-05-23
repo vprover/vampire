@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# Compares Vampire's solutions of given problems with and without 
-# particular preprocessing enabled.
-# Usage:
-# eval_preprocessing.sh <vampire executable> <time> <file with problem file names, separated by white-space> <... arguments to compare with>
-
 CL_EXEC=$1
 shift
 EXEC=$1
