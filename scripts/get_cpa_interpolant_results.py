@@ -49,6 +49,7 @@ trCannotColor = "CCL"
 trMinimFail = "Fail"
 trSolvSegf = "SlvSEG"
 trNotSolved = "NS"
+trAprox = "Aprox"
 
 class IncompleteBenchmark(Exception):
         pass
@@ -413,9 +414,9 @@ class MinGate(object):
                 if oVal==None:
                         raise ProcError("oval none")
                 if oVal[1]:
-                        return None 
+                        return trAprox 
                 if self.ignoreApprox and mVal[1]:
-                        return None
+                        return trAprox
                 oNum = oVal[0]
                 mNum = mVal[0]
                 if oNum<mNum:
@@ -436,7 +437,7 @@ complYicesFailPostpr = MergingPostprocessor("Fail",[None,"mFail"])
 pproc = CompoundPostprocessor([clrFailRemover,complYicesFailPostpr])
 
 pproc = NullPostprocessor()
-pproc = CompoundPostprocessor([GroupingPostprocessor(),MergingPostprocessor("TO",["NS","mTO"])])
+pproc = CompoundPostprocessor([GroupingPostprocessor(),MergingPostprocessor("TO",["NS","mTO", trAprox])])
 
 class ObserverMaster(object):
         def __init__(self):
