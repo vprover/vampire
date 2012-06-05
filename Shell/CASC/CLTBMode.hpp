@@ -58,6 +58,7 @@ private:
   typedef Stack<StringPair> StringPairStack;
 
   string category;
+  /** in seconds */
   int problemTimeLimit;
 //  int overallTimeLimit;
   bool questionAnswering;

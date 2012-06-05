@@ -220,7 +220,7 @@ void AIGInliner::addRelevant(Formula* f)
 
 void AIGInliner::collectDefinitionsAndRelevant(UnitList* units)
 {
-  CALL("AIGInliner::collectDefinitions");
+  CALL("AIGInliner::collectDefinitionsAndRelevant");
 
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {

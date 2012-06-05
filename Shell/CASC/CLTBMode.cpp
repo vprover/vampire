@@ -16,6 +16,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Lib/System.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
@@ -87,20 +88,36 @@ void CLTBMode::perform(istream& batchFile)
 {
   CALL("CLTBMode::perform");
 
+
   readInput(batchFile);
+
+  bool noProblemLimit = false;
+  if(problemTimeLimit==0) {
+    //problem time is unlimited, we need to keep updating it based on the overall
+    //limit and remaining problems
+    noProblemLimit = true;
+  }
+  else {
+    //we have a problem time limit, so we don't use the overall limit
 //  env.options->setTimeLimitInSeconds(overallTimeLimit);
-  env.options->setTimeLimitInSeconds(0);
+    env.options->setTimeLimitInSeconds(0);
+  }
 
   loadIncludes();
 
   int solvedCnt=0;
 
+  int remainingCnt = problemFiles.size();
   StringPairStack::BottomFirstIterator probs(problemFiles);
   while(probs.hasNext()) {
     StringPair res=probs.next();
 
     string probFile=res.first;
     string outFile=res.second;
+
+    if(noProblemLimit) {
+      problemTimeLimit = (env.remainingTime()/1000+1)/remainingCnt;
+    }
 
     env.beginOutput();
     env.out().flush();
@@ -142,6 +159,8 @@ void CLTBMode::perform(istream& batchFile)
     env.endOutput();
 
     Timer::syncClock();
+
+    remainingCnt--;
   }
   env.beginOutput();
   env.out()<<"Solved "<<solvedCnt<<" out of "<<problemFiles.size()<<endl;
@@ -199,50 +218,58 @@ void CLTBMode::readInput(istream& in)
     USER_ERROR("\"% SZS start BatchConfiguration\" expected, \""+line+"\" found.");
   }
 
-  in>>word;
-  if(word!="division.category") {
-    USER_ERROR("\"division.category\" expected, \""+word+"\" found.");
-  }
-  in>>category;
-
-  in>>word;
-  if(word!="output.required") {
-    USER_ERROR("\"output.required\" expected, \""+word+"\" found.");
-  }
-  for(in>>word; word!="output.desired"; in>>word) {}
-
-  if(word!="output.desired") {
-    USER_ERROR("\"output.desired\" expected.");
-  }
-  questionAnswering = false;
-  for(in>>word; word!="limit.time.problem.wc"; in>>word) {
-    if(word=="Answer") {
-      questionAnswering = true;
-    }
-  }
-  if(questionAnswering) {
-    env.options->setQuestionAnswering(Options::QA_ANSWER_LITERAL);
-  }
-  else {
-    env.options->setQuestionAnswering(Options::QA_OFF);
-  }
-
-  if(word!="limit.time.problem.wc") {
-    USER_ERROR("\"limit.time.problem.wc\" expected.");
-  }
-  in>>problemTimeLimit;
-
-//  in>>word;
-//  if(word!="limit.time.overall.wc") {
-//    USER_ERROR("\"limit.time.overall.wc\" expected, \""+word+"\" found.");
-//  }
-//  in>>overallTimeLimit;
-
   std::getline(in, line);
-  while(!in.eof() && line=="") { std::getline(in, line); }
+
+  questionAnswering = false;
+  problemTimeLimit = -1;
+  category = "";
+
+  StringStack lineSegments;
+  while(!in.eof() && line!="% SZS end BatchConfiguration") {
+    lineSegments.reset();
+    StringUtils::splitStr(line.c_str(), ' ', lineSegments);
+    string param = lineSegments[0];
+    if(param=="division.category") {
+      if(lineSegments.size()!=2) {
+	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
+      }
+      category = lineSegments[1];
+      LOG("ltb_conf","ltb_conf: "<<param<<" = "<<category);
+    }
+    else if(param=="output.required" || param=="output.desired") {
+      if(lineSegments.find("Answer")) {
+	questionAnswering = true;
+	LOG("ltb_conf","ltb_conf: enabled question answering");
+      }
+    }
+    else if(param=="execution.order") {
+      //we ignore this for now and always execute in order
+    }
+    else if(param=="limit.time.problem.wc") {
+      if(lineSegments.size()!=2 || !Int::stringToInt(lineSegments[1], problemTimeLimit)) {
+	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
+      }
+      LOG("ltb_conf","ltb_conf: "<<param<<" = "<<problemTimeLimit);
+    }
+    else {
+      USER_ERROR("unknown batch configuration parameter: \""+line+"\"");
+    }
+
+    std::getline(in, line);
+  }
+
+  if(category=="") {
+    USER_ERROR("category must be specified");
+  }
+
+  if(problemTimeLimit==-1) {
+    USER_ERROR("problem time limit must be specified");
+  }
+
   if(line!="% SZS end BatchConfiguration") {
     USER_ERROR("\"% SZS end BatchConfiguration\" expected, \""+line+"\" found.");
   }
+
   std::getline(in, line);
   if(line!="% SZS start BatchIncludes") {
     USER_ERROR("\"% SZS start BatchIncludes\" expected, \""+line+"\" found.");

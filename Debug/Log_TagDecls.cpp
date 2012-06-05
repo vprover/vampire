@@ -1178,6 +1178,12 @@ void Logging::doTagDeclarations()
       DOC("aigs involved in proof simplifier"),
       PARENT("pt",2));
 
+  DECL("ltb",
+      DOC("casc_ltb mode"));
+  DECL("ltb_conf",
+      DOC("casc_ltb mode configuration"),
+      PARENT("ltb",1));
+
   DECL("prb",
       DOC("Object Kernel::Problem"));
   DECL("prb_prop_refresh",
