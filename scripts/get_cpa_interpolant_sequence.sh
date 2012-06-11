@@ -78,7 +78,7 @@ LEFT_CNTS="`eval echo {1..$(($#-1))}`"
 
 for LEFT_CNT in $LEFT_CNTS; do
         echo "results for $BASE $LEFT_CNT"
-        cat $PROOF_FILE | (ulimit -St $TIME_LIMIT; $VUTIL_EXEC zie -q $LEFT_CNT $* )
+        cat $PROOF_FILE | (ulimit -St $TIME_LIMIT; $VUTIL_EXEC zie -b -q $LEFT_CNT $* )
         echo "========"
 done
 
