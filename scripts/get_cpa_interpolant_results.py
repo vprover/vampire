@@ -7,6 +7,9 @@ import re
 
 printLatex = os.getenv("PRINT_LATEX", "ON")=="ON"
 
+#if variable is set, benchmark names will be restricted only to those appearing in the specified file
+restrFName = os.getenv("RESTRICTING_FILE", "")
+
 
 reIgnoredLine = re.compile("(%)|(sh: line 1: .* Alarm clock)|(Unknown reason of termination!)|(Alarm clock)")
 benchSep = re.compile("========$")
@@ -42,6 +45,7 @@ reMinQuant = re.compile("Minimized interpolant quantifiers cost: ([0-9]*)$")
 
 intInfty = 10000000000000000
 
+trSkipped = "Skipped"
 trTimeOut = "TO"
 trOutOfMem = "MO"
 trCannotMakeLocal = "CML"
@@ -181,7 +185,17 @@ def printTable(labels,maps,lblCnt=1):
                 outputTableLatex(labels,maps,lblCnt,keyLst)
         else:
                 outputTable(labels,maps,lblCnt,keyLst)
-                        
+
+restrNameSet = None
+if restrFName:
+    restrNameSet = sets.Set()
+    f = open(restrFName, 'r')
+    for line in f:
+        restrNameSet.add(line);
+def isNameAllowed(nm):
+    if not restrNameSet:
+        return True
+    return nm in restrNameSet
 
 class Bench(object):
         def __init__(self):
@@ -247,6 +261,8 @@ class Bench(object):
                 kindMatch = reKindExtractor.match(self.name)
                 if kindMatch:
                         self.kind = kindMatch.group(1)
+                if not isNameAllowed(self.name):
+                    EarlyRecEnd(trSkipped)
         def process(self):
                 try:
                         lineIt = LookAheadIterator(self.lines)
