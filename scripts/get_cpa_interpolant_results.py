@@ -188,11 +188,12 @@ def printTable(labels,maps,lblCnt=1):
 
 restrNameSet = None
 if restrFName:
-    restrNameSet = sets.Set()
+    restrNameSet = set()
     f = open(restrFName, 'r')
     for line in f:
-        restrNameSet.add(line);
-def isNameAllowed(nm):
+        line = line.strip('\n')
+        restrNameSet.add(line)
+def isHeadLineAllowed(nm):
     if not restrNameSet:
         return True
     return nm in restrNameSet
@@ -261,8 +262,8 @@ class Bench(object):
                 kindMatch = reKindExtractor.match(self.name)
                 if kindMatch:
                         self.kind = kindMatch.group(1)
-                if not isNameAllowed(self.name):
-                    EarlyRecEnd(trSkipped)
+                if not isHeadLineAllowed(line):
+                    raise EarlyRecEnd(trSkipped)
         def process(self):
                 try:
                         lineIt = LookAheadIterator(self.lines)
@@ -317,10 +318,11 @@ class MergingPostprocessor(object):
         def __call__(self,map):
                 for k in self.mergedFlds:
                         if k in map:
-                                if self.masterFld in map:
-                                        map[self.masterFld] += map[k]
-                                else:
-                                        map[self.masterFld] = map[k]
+                                if self.masterFld!=False:
+                                        if self.masterFld in map:
+                                                map[self.masterFld] += map[k]
+                                        else:
+                                                map[self.masterFld] = map[k]
                                 del map[k]
 class GroupingPostprocessor(object):
         def getTgt(self,num):
@@ -453,7 +455,7 @@ complYicesFailPostpr = MergingPostprocessor("Fail",[None,"mFail"])
 pproc = CompoundPostprocessor([clrFailRemover,complYicesFailPostpr])
 
 pproc = NullPostprocessor()
-pproc = CompoundPostprocessor([GroupingPostprocessor(),MergingPostprocessor("TO",["NS","mTO", trAprox])])
+pproc = CompoundPostprocessor([GroupingPostprocessor(),MergingPostprocessor("TO",["NS","mTO", trAprox]),MergingPostprocessor(False,[trSkipped])])
 
 class ObserverMaster(object):
         def __init__(self):
