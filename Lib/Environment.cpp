@@ -50,6 +50,7 @@ Environment::Environment()
     ordering(0),
     colorUsed(false),
     _outputDepth(0),
+    _priorityOutput(0),
     _pipe(0)
 {
   options = new Options;
@@ -170,7 +171,10 @@ ostream& Environment::out()
   static nullstream ns;
   return ns;
 #else
-  if(_pipe) {
+  if(_priorityOutput) {
+    return *_priorityOutput;
+  }
+  else if(_pipe) {
     return _pipe->out();
   }
   else {
@@ -190,6 +194,15 @@ void Environment::setPipeOutput(SyncPipe* pipe)
   ASS(!haveOutput());
 
   _pipe=pipe;
+}
+
+void Environment::setPriorityOutput(ostream* stm)
+{
+  CALL("Environment::setPriorityOutput");
+  ASS(!_priorityOutput);
+
+  _priorityOutput=stm;
+
 }
 
 }

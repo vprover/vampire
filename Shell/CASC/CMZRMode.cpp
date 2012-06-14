@@ -1,6 +1,6 @@
 /**
- * @file CLTBMode.cpp
- * Implements class CLTBMode.
+ * @file CMZRMode.cpp
+ * Implements class CMZRMode.
  */
 
 #include <fstream>
@@ -34,7 +34,7 @@
 
 #include "CASCMode.hpp"
 
-#include "CLTBMode.hpp"
+#include "CMZRMode.hpp"
 
 #define SLOWNESS 1.15
 
@@ -44,12 +44,37 @@ using namespace Lib;
 using namespace Lib::Sys;
 using namespace Saturation;
 
-void CLTBMode::perform()
+CMZRMode::CMZRMode()
 {
-  CALL("CLTBMode::perform");
+  CALL("CMZRMode::CMZRMode");
+
+  int parallelProcesses;
+#if __APPLE__
+  //the core retrieval on mac is not implemented yet, hence this quick hack
+  unsigned coreNumber = 2;
+#else
+  unsigned coreNumber = System::getNumberOfCores();
+#endif
+  if(coreNumber<=1) {
+    parallelProcesses = 1;
+  }
+  else if(coreNumber>=8) {
+    parallelProcesses = coreNumber-2;
+  }
+  else {
+    parallelProcesses = coreNumber-1;
+  }
+  _availCoreCnt = parallelProcesses;
+}
+
+void CMZRMode::perform()
+{
+  CALL("CMZRMode::perform");
+
+  UIHelper::cascMode = true;
 
   if(env.options->inputFile()=="") {
-    USER_ERROR("Input file must be specified for cltb mode");
+    USER_ERROR("Input file must be specified for CMZR mode");
   }
 
   string line;
@@ -71,10 +96,184 @@ void CLTBMode::perform()
       }
     }
     if(!ready) { break; }
-    Shell::CASC::CLTBMode ltbm;
+    Shell::CASC::CMZRMode ltbm;
     stringstream childInp(singleInst.str());
     ltbm.perform(childInp);
   }
+}
+
+void CMZRMode::loadProblems()
+{
+  CALL("CMZRMode::loadProblems");
+
+  Stack<ProblemInfo>::DelIterator pit(_problems);
+  while(pit.hasNext()) {
+    ProblemInfo& pi = pit.next();
+
+    string fname = pi.inputFName;
+    cout<<"% SZS status Started for "<<fname<<endl;;
+
+    ifstream inp(fname.c_str());
+    if(inp.fail()) {
+      USER_ERROR("Cannot open problem file: "+fname);
+    }
+    Parse::TPTP parser(inp);
+
+    List<string>::Iterator iit(theoryIncludes);
+    while (iit.hasNext()) {
+      parser.addForbiddenInclude(iit.next());
+    }
+
+    parser.parse();
+
+    pi.specificFormulas = parser.units();
+    pi.hasConjecture = parser.containsConjecture();
+    pi.property = new Property(*_axiomProperty);
+    pi.property->add(pi.specificFormulas);
+
+    getStrategy(*pi.property, pi.schedule);
+
+    ofstream outFile(pi.outputFName.c_str());
+    outFile << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!"<<endl;
+    outFile.close();
+  }
+}
+
+void CMZRMode::attemptProblem(unsigned idx)
+{
+  CALL("CMZRMode::attemptProblem");
+  ASS_G(_availCoreCnt,0);
+
+  string strategy = _problems[idx].schedule.pop();
+  startStrategyRun(idx, strategy);
+  if(_availCoreCnt==0) {
+    waitForOneFinished();
+  }
+}
+
+void CMZRMode::waitForOneFinished()
+{
+  CALL("CMZRMode::waitForOneFinished");
+  ASS(!_processProblems.isEmpty());
+  ASS_G(_unsolvedCnt,0);
+
+  int resValue;
+  pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+
+  unsigned prbIdx = _processProblems.get(finishedChild);
+  _processProblems.remove(finishedChild);
+  _availCoreCnt++;
+
+  ProblemInfo& pi = _problems[prbIdx];
+  pi.runningProcessPID = -1;
+  if(!resValue) {
+    pi.solved = true;
+    _unsolvedCnt--;
+    cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (success)"<<endl;
+    cout<<"% SZS status Theorem for "<<pi.inputFName<<endl;
+    cout<<"% SZS status Ended for "<<pi.inputFName<<endl;
+  }
+
+  cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (fail)"<<endl;
+  cout.flush();
+}
+
+void CMZRMode::startStrategyRun(unsigned prbIdx, string strategy)
+{
+  CALL("CMZRMode::startStrategyRun");
+  ASS_G(_availCoreCnt,0);
+
+  _availCoreCnt--;
+
+  pid_t childId=Multiprocessing::instance()->fork();
+  ASS_NEQ(childId,-1);
+  if(!childId) {
+    //we're in a proving child
+    strategyRunChild(prbIdx,strategy); //start proving
+    ASSERTION_VIOLATION; //the runChild function should never return
+  }
+  Timer::syncClock();
+
+  ALWAYS(_processProblems.insert(childId, prbIdx));
+  _problems[prbIdx].runningProcessPID = childId;
+
+  cout<<"started slice pid "<<childId<<" "<<strategy<<" on "<<_problems[prbIdx].inputFName<<endl;
+}
+
+void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy)
+{
+  CALL("CMZRMode::strategyRunChild");
+
+  Timer::setTimeLimitEnforcement(true);
+
+  ProblemInfo& pi = _problems[prbIdx];
+  ofstream outFile(pi.outputFName.c_str(), ios_base::app);
+  env.setPriorityOutput(&outFile);
+
+  Options opt=*env.options;
+  opt.readFromTestId(strategy);
+
+  int rtl = static_cast<int>(opt.timeLimitInDeciseconds() * SLOWNESS);
+  if (rtl < 10) {
+    rtl++;
+  }
+  //now the time limit is the overall limit for the whole batch
+  if(env.remainingTime()<rtl*100) {
+    rtl = env.remainingTime()/100;
+  }
+  opt.setTimeLimitInDeciseconds(rtl);
+  int stl = opt.simulatedTimeLimit();
+  if(stl) {
+    opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
+  }
+
+  System::registerForSIGHUPOnParentDeath();
+
+  UIHelper::cascModeChild=true;
+
+  int resultValue=1;
+  env.timer->reset();
+  env.timer->start();
+  TimeCounter::reinitialize();
+  Timer::setTimeLimitEnforcement(true);
+
+  //we have already performed the normalization
+  opt.setForcedOptionValues();
+  opt.checkGlobalOptionConstraints();
+  //here we make the strategy options drive vampire, particularly
+  //we replace the global time limit by the strategy time limit.
+  *env.options = opt;
+
+  env.beginOutput();
+  env.out()<<opt.testId()<<" on "<<opt.problemName()<<endl;
+  env.endOutput();
+
+  UIHelper::setConjecturePresence(pi.hasConjecture);
+
+  baseProblem->addUnits(pi.specificFormulas);
+  ProvingHelper::runVampire(*baseProblem, opt);
+
+  //set return value to zero if we were successful
+  if(env.statistics->terminationReason==Statistics::REFUTATION) {
+    resultValue=0;
+  }
+
+  env.beginOutput();
+  UIHelper::outputResult(env.out());
+  env.endOutput();
+
+  env.setPriorityOutput(0);
+  outFile.close();
+
+  exit(resultValue);
+}
+
+bool CMZRMode::canAttemptProblem(unsigned idx) const
+{
+  CALL("CMZRMode::canAttemptProblem");
+
+  const ProblemInfo& pi = _problems[idx];
+  return !pi.solved && pi.runningProcessPID==-1 && pi.schedule.isNonEmpty();
 }
 
 /**
@@ -85,10 +284,9 @@ void CLTBMode::perform()
  * 2) load the common axioms and put them into a SInE selector
  * 3) run a child master process for each problem (sequentially)
  */
-void CLTBMode::perform(istream& batchFile)
+void CMZRMode::perform(istream& batchFile)
 {
-  CALL("CLTBMode::perform");
-
+  CALL("CMZRMode::perform");
 
   readInput(batchFile);
 
@@ -105,72 +303,53 @@ void CLTBMode::perform(istream& batchFile)
   }
 
   loadIncludes();
+  loadProblems();
 
-  int solvedCnt=0;
+  Timer::setTimeLimitEnforcement(false);
 
-  int remainingCnt = problemFiles.size();
-  StringPairStack::BottomFirstIterator probs(problemFiles);
-  while(probs.hasNext()) {
-    StringPair res=probs.next();
-
-    string probFile=res.first;
-    string outFile=res.second;
-
-    if(noProblemLimit) {
-      problemTimeLimit = (env.remainingTime()/1000+1)/remainingCnt;
+  unsigned prbCnt = _problems.size();
+  _unsolvedCnt = prbCnt;
+  unsigned nextProblemIdx = 0;
+  for(;;) {
+    if(env.timeLimitReached()) {
+      break;
     }
-
-    env.beginOutput();
-    env.out().flush();
-    env.out()<<endl<<"% SZS status Started for "<<probFile<<endl;
-    env.out().flush();
-    env.endOutput();
-
-    pid_t child=Multiprocessing::instance()->fork();
-    if(!child) {
-      CLTBProblem prob(this, probFile, outFile);
-      prob.perform();
-
-      //the prob.perform() function should never return
-      ASSERTION_VIOLATION;
+    unsigned startIdx = nextProblemIdx;
+    while(_problems[nextProblemIdx].solved || _problems[nextProblemIdx].runningProcessPID!=-1) {
+      nextProblemIdx = (nextProblemIdx+1)%prbCnt;
+      if(nextProblemIdx==startIdx) {
+	if(_processProblems.isEmpty()) {
+	  goto fin;
+	}
+	waitForOneFinished();
+      }
     }
-    env.beginOutput();
-    env.out()<<"solver pid "<<child<<endl;
-    env.endOutput();
-    int resValue;
-    try {
-      pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
-      ASS_EQ(finishedChild, child);
-    } catch(SystemFailException& ex) {
-      cerr << "SystemFailException at batch level" << endl;
-      ex.cry(cerr);
-    }
-
-    env.beginOutput();
-    if(!resValue) {
-      env.out()<<"% SZS status Theorem for "<<probFile<<endl;
-      solvedCnt++;
-    }
-    else {
-      env.out()<<"% SZS status GaveUp for "<<probFile<<endl;
-    }
-    env.out().flush();
-    env.out()<<endl<<"% SZS status Ended for "<<probFile<<endl;
-    env.out().flush();
-    env.endOutput();
-
-    Timer::syncClock();
-
-    remainingCnt--;
+    attemptProblem(nextProblemIdx);
+    nextProblemIdx = (nextProblemIdx+1)%prbCnt;
   }
-  env.beginOutput();
-  env.out()<<"Solved "<<solvedCnt<<" out of "<<problemFiles.size()<<endl;
-  env.endOutput();
+
+fin:
+
+  while(!_processProblems.isEmpty()) {
+    waitForOneFinished();
+  }
+
+  for(unsigned i=0; i<prbCnt; i++) {
+    if(_problems[i].solved) {
+      continue;
+    }
+    ofstream outFile(_problems[i].outputFName.c_str(), ios_base::app);
+    outFile<<"% SZS status Timeout for "<<_problems[i].inputFName<<endl;
+    cout<<"% SZS status Ended for "<<_problems[i].inputFName<<endl;
+  }
+
+  unsigned solvedCnt = prbCnt - _unsolvedCnt;
+  cout<<"Solved "<<solvedCnt<<" out of "<<prbCnt<<endl;
 }
 
-void CLTBMode::loadIncludes()
+void CMZRMode::loadIncludes()
 {
-  CALL("CLTBMode::loadIncludes");
+  CALL("CMZRMode::loadIncludes");
 
   UnitList* theoryAxioms=0;
   {
@@ -203,14 +382,15 @@ void CLTBMode::loadIncludes()
 
   //ensure we scan the theory axioms for property here, so we don't need to
   //do it afterward in each problem
-  baseProblem->getProperty();
+
+  _axiomProperty = new Property(*baseProblem->getProperty());
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 }
 
-void CLTBMode::readInput(istream& in)
+void CMZRMode::readInput(istream& in)
 {
-  CALL("CLTBMode::readInput");
+  CALL("CMZRMode::readInput");
 
   string line, word;
 
@@ -305,7 +485,7 @@ void CLTBMode::readInput(istream& in)
     }
     string inp=line.substr(0,spc);
     string outp=line.substr(spc+1, lastSpc-spc-1);
-    problemFiles.push(make_pair(inp, outp));
+    _problems.push(ProblemInfo(inp, outp));
   }
 
   while(!in.eof() && line=="") { std::getline(in, line); }
@@ -315,47 +495,24 @@ void CLTBMode::readInput(istream& in)
 }
 
 
-//////////////////////////////////////////
-// CLTBProblem
-//////////////////////////////////////////
 
-string CLTBProblem::problemFinishedString = "##Problem finished##vn;3-d-ca-12=1;'";
-
-CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)
-: parent(parent), problemFile(problemFile), outFile(outFile),
-  prb(*parent->baseProblem)
-{
-}
+///////////////////////
+// strategy selector
+//
 
 /**
- * This function should use the runSchedule function to prove the problem.
- * Once the problem is proved, the @b runSchedule function does not return
- * and the process terminates.
- *
- * The properties of the problem are in the @b property field.
- * The name of problem category (MZR, SMO or CYC) is in @b parent->category.
- *
- * If a slice contains sine_selection value different from off, theory axioms
- * will be selected using SInE from the common axioms included in the batch file
- * (all problem axioms, including the included ones, will be used as a base
- * for this selection).
- *
- * If the sine_selection is off, all the common axioms will be just added to the
- * problem axioms. All this is done in the @b runChild(Options&) function.
+ * Add strategies for @c property to @c res so that the first strategy to try is
+ * res[0].
  */
-void CLTBProblem::performStrategy()
+void CMZRMode::getStrategy(Property& property, StringStack& res)
 {
-  CALL("CLTBProblem::performStrategy");
-
-  Property& property = *prb.getProperty();
+  CALL("CMZRMode::getStrategy");
 
   unsigned atoms = property.atoms();
   unsigned prop = property.props();
-  cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
-  Schedule quick;
-  Schedule fallback;
-  StrategySet usedSlices;
+  StringStack quick;
+  StringStack fallback;
 
   fallback.push("dis+1_1_bd=off:bs=unit_only:bsr=on:ep=on:fde=none:gsp=input_only:lcm=predicate:nwc=2:ptb=off:ssec=off:sswn=on:sd=1:ss=included:sos=on:sagn=off:sac=on:sgo=on:sio=off:spl=backtracking_600");
   fallback.push("ott-1002_28_bd=off:bs=unit_only:bsr=unit_only:ep=on:flr=on:fde=none:lcm=predicate:nwc=5:ptb=off:ssec=off:sio=off:spl=backtracking:sfv=off:sp=reverse_arity_600");
@@ -903,391 +1060,9 @@ void CLTBProblem::performStrategy()
       quick.push("dis+1011_2_bs=off:flr=on:gsp=input_only:gs=on:lcm=predicate:nwc=1:ptb=off:ssec=off:sos=on:sac=on:sgo=on:sio=off:spo=on:swb=on:sp=occurrence:updr=off_1");
   }
 
-  int remainingTime=env.remainingTime()/100;
-  if(remainingTime<=0) {
-    return;
-  }
-  if (runSchedule(quick,usedSlices,false)) {
-    return;
-  }
-  remainingTime=env.remainingTime()/100;
-  if(remainingTime<=0) {
-    return;
-  }
-  runSchedule(fallback,usedSlices,true);
+  res = fallback;
+  res.loadFromIterator(StringStack::BottomFirstIterator(quick));
 }
 
-void CLTBProblem::perform()
-{
-  CALL("CLTBProblem::perform");
-
-  System::registerForSIGHUPOnParentDeath();
-
-  env.timer->reset();
-  env.timer->start();
-  env.timer->makeChildrenIncluded();
-  TimeCounter::reinitialize();
-
-  env.options->setTimeLimitInSeconds(parent->problemTimeLimit);
-  env.options->setInputFile(problemFile);
-
-  {
-    TimeCounter tc(TC_PARSING);
-    env.statistics->phase=Statistics::PARSING;
-
-    ifstream inp(problemFile.c_str());
-    if(inp.fail()) {
-      USER_ERROR("Cannot open problem file: "+problemFile);
-    }
-    Parse::TPTP parser(inp);
-    List<string>::Iterator iit(parent->theoryIncludes);
-    while (iit.hasNext()) {
-      parser.addForbiddenInclude(iit.next());
-    }
-    parser.parse();
-    UnitList* probUnits = parser.units();
-    UIHelper::setConjecturePresence(parser.containsConjecture());
-
-    prb.addUnits(probUnits);
-  }
-
-  if(prb.getProperty()->atoms()<=1000000) {
-    TimeCounter tc(TC_PREPROCESSING);
-    env.statistics->phase=Statistics::NORMALIZATION;
-    Normalisation norm;
-    norm.normalise(prb);
-  }
-
-  env.statistics->phase=Statistics::UNKNOWN_PHASE;
-
-  //now all the cpu usage will be in children, we'll just be waiting for them
-  Timer::setTimeLimitEnforcement(false);
-
-  //fork off the writer child process
-  writerChildPid=Multiprocessing::instance()->fork();
-  if(!writerChildPid) {
-    runWriterChild();
-    ASSERTION_VIOLATION; // the runWriterChild() function should never return
-  }
-  cout<<"writer pid "<<writerChildPid<<endl;
-  cout.flush();
-
-  //when the pipe will be closed, we want the process to terminate properly
-  signal(SIGPIPE, &terminatingSignalHandler);
-
-  //only the writer child is reading from the pipe (and it is now forked off)
-  childOutputPipe.neverRead();
-
-  env.setPipeOutput(&childOutputPipe); //direct output into the pipe
-  UIHelper::cascMode=true;
-
-  performStrategy();
-
-  exitOnNoSuccess();
-  ASSERTION_VIOLATION; //the exitOnNoSuccess() function should never return
-}
-
-/**
- * This function exits the problem master process if the problem
- * was not solved
- *
- * The unsuccessful problem master process does not have to
- * necessarily call this function to exit.
- */
-void CLTBProblem::exitOnNoSuccess()
-{
-  CALL("CLTBProblem::exitOnNoSuccess");
-
-  env.beginOutput();
-  env.out()<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
-  if(env.remainingTime()/100>0) {
-    env.out()<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
-  }
-  else {
-    //From time to time we may also be terminating in the timeLimitReached()
-    //function in Lib/Timer.cpp in case the time runs out. We, however, output
-    //the same string there as well.
-    env.out()<<"% SZS status Timeout for "<<env.options->problemName()<<endl;
-  }
-  env.endOutput();
-
-  env.setPipeOutput(0);
-  //This should make the writer child terminate.
-  childOutputPipe.neverWrite();
-
-  try {
-    int writerResult;
-    Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
-    ASS_EQ(writerResult,0);
-  } catch(SystemFailException& ex) {
-    //it may happen that the writer process has already exitted
-    if(ex.err!=ECHILD) {
-	throw;
-    }
-  }
-
-
-  cout<<"terminated solver pid "<<getpid()<<" (fail)"<<endl;
-  cout.flush();
-
-  System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
-}
-
-/**
- * Run schedule in @b sliceCodes. Terminate the process with 0 exit status
- * if proof was found, otherwise return false.
- */
-bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback)
-{
-  CALL("CLTBProblem::runSchedule");
-
-  int parallelProcesses;
-  unsigned coreNumber = System::getNumberOfCores();
-  if(coreNumber<=1) {
-    parallelProcesses = 1;
-  }
-  else if(coreNumber>=8) {
-    parallelProcesses = coreNumber-2;
-  }
-  else {
-    parallelProcesses = coreNumber-1;
-  }
-
-  int processesLeft=parallelProcesses;
-  Schedule::Iterator it(schedule);
- 
-  while(it.hasNext()) {
-    while(it.hasNext() && processesLeft) {
-      ASS_G(processesLeft,0);
-
-      int remainingTime = env.remainingTime()/100;
-      if(remainingTime<=0) {
-        return false;
-      }
- 
-      string sliceCode = it.next();
-      string chopped;
-      int sliceTime = getSliceTime(sliceCode,chopped);
-      if (fallback && used.contains(chopped)) {
-	continue;
-      }
-      used.insert(chopped);
-      if(sliceTime>remainingTime) {
-	sliceTime=remainingTime;
-      }
-
-      pid_t childId=Multiprocessing::instance()->fork();
-      ASS_NEQ(childId,-1);
-      if(!childId) {
-	//we're in a proving child
-	runChild(sliceCode,sliceTime); //start proving
-	ASSERTION_VIOLATION; //the runChild function should never return
-      }
-      Timer::syncClock();
-
-      ASS(childIds.insert(childId));
-
-      cout << "slice pid "<< childId << " slice: " << sliceCode << " time: " << sliceTime << endl << flush;
-      processesLeft--;
-    }
-
-    if(processesLeft==0) {
-      waitForChildAndExitWhenProofFound();
-      processesLeft++;
-    }
-  }
-
-  while(parallelProcesses!=processesLeft) {
-    ASS_L(processesLeft, parallelProcesses);
-    waitForChildAndExitWhenProofFound();
-    processesLeft++;
-    Timer::syncClock();
-  }
-  return false;
-}
-
-/**
- * Wait for termination of a child and terminate the process with a zero status
- * if a proof was found. If the child didn't find the proof, just return.
- */
-void CLTBProblem::waitForChildAndExitWhenProofFound()
-{
-  CALL("CLTBProblem::waitForChildAndExitWhenProofFound");
-  ASS(!childIds.isEmpty());
-
-  int resValue;
-  pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
-  if(finishedChild==writerChildPid) {
-    finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
-  }
-#if VDEBUG
-  ALWAYS(childIds.remove(finishedChild));
-#endif
-  if(!resValue) {
-    //we have found the proof. It has been already written down by the writter child,
-    //so we can just terminate
-    cout<<"terminated slice pid "<<finishedChild<<" (success)"<<endl;
-    cout.flush();
-    int writerResult;
-    try {
-      Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
-    } catch(SystemFailException& ex) {
-      //it may happen that the writer process has already exitted
-      if(ex.err!=ECHILD) {
-	throw;
-      }
-    }
-    System::terminateImmediately(0);
-  }
-  cout<<"terminated slice pid "<<finishedChild<<" (fail)"<<endl;
-  cout.flush();
-}
-
-ofstream* CLTBProblem::writerFileStream = 0;
-
-/**
- * Read everything from the pipe and write it into the output file.
- * Terminate after all writing ends of the pipe are closed.
- *
- * This function is to be run in a forked-off process
- */
-void CLTBProblem::runWriterChild()
-{
-  CALL("CLTBProblem::runWriterChild");
-
-  System::registerForSIGHUPOnParentDeath();
-  signal(SIGHUP, &terminatingSignalHandler);
-//  Timer::setTimeLimitEnforcement(false);
-
-  Timer::setTimeLimitEnforcement(true);
-  int writerLimit = parent->problemTimeLimit+env.timer->elapsedSeconds()+2;
-  env.options->setTimeLimitInSeconds(writerLimit);
-
-
-  //we're in the child that writes down the output of other children
-  childOutputPipe.neverWrite();
-
-  ofstream out(outFile.c_str());
-
-  writerFileStream = &out;
-
-  childOutputPipe.acquireRead();
-
-  while(!childOutputPipe.in().eof()) {
-    string line;
-    getline(childOutputPipe.in(), line);
-    if(line==problemFinishedString) {
-      break;
-    }
-    out<<line<<endl<<flush;
-  }
-  out.close();
-  writerFileStream = 0;
-
-  childOutputPipe.releaseRead();
-
-  System::terminateImmediately(0);
-}
-
-void CLTBProblem::terminatingSignalHandler(int sigNum)
-{
-  if(writerFileStream) {
-    writerFileStream->close();
-  }
-  System::terminateImmediately(0);
-}
-
-void CLTBProblem::runChild(string slice, unsigned ds)
-{
-  CALL("CLTBProblem::runChild");
-
-  Options opt=*env.options;
-  opt.readFromTestId(slice);
-  opt.setTimeLimitInDeciseconds(ds);
-  int stl = opt.simulatedTimeLimit();
-  if(stl) {
-    opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
-  }
-  runChild(opt);
-}
-
-/**
- * Do the theorem proving in a forked-off process
- */
-void CLTBProblem::runChild(Options& strategyOpt)
-{
-  CALL("CLTBProblem::runChild");
-
-  System::registerForSIGHUPOnParentDeath();
-
-  UIHelper::cascModeChild=true;
-
-  int resultValue=1;
-  env.timer->reset();
-  env.timer->start();
-  TimeCounter::reinitialize();
-  Timer::setTimeLimitEnforcement(true);
-
-  Options opt = strategyOpt;
-  //we have already performed the normalization
-  opt.setNormalize(false);
-  opt.setForcedOptionValues();
-  opt.checkGlobalOptionConstraints();
-  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
-
-//  if(env.options->sineSelection()!=Options::SS_OFF) {
-//    //add selected axioms from the theory
-//    parent->theorySelector.perform(probUnits);
-//
-//    env.options->setSineSelection(Options::SS_OFF);
-//    env.options->forceIncompleteness();
-//  }
-//  else {
-//    //if there wasn't any sine selection, just put in all theory axioms
-//    probUnits=UnitList::concat(probUnits, parent->theoryAxioms);
-//  }
-
-  env.beginOutput();
-  env.out()<<opt.testId()<<" on "<<opt.problemName()<<endl;
-  env.endOutput();
-
-  ProvingHelper::runVampire(prb, opt);
-
-  //set return value to zero if we were successful
-  if(env.statistics->terminationReason==Statistics::REFUTATION) {
-    resultValue=0;
-  }
-
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  if(resultValue==0) {
-    env.out()<<problemFinishedString<<endl;
-  }
-  env.endOutput();
-
-  exit(resultValue);
-}
-
-/**
- * Return intended slice time in deciseconds and assign the slice string with
- * chopped time to @b chopped.
- */
-unsigned CLTBProblem::getSliceTime(string sliceCode,string& chopped)
-{
-  CALL("CASCMode::getSliceTime");
-
-  unsigned pos=sliceCode.find_last_of('_');
-  string sliceTimeStr=sliceCode.substr(pos+1);
-  chopped.assign(sliceCode.substr(0,pos));
-  unsigned sliceTime;
-  ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
-  ASS_G(sliceTime,0); //strategies with zero time don't make sense
-
-  unsigned time = (unsigned)(sliceTime * SLOWNESS) + 1;
-  if (time < 10) {
-    time++;
-  }
-  return time;
-}
 
 #endif //!COMPILER_MSVC

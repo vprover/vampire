@@ -741,6 +741,7 @@ MainLoopResult IGAlgorithm::onModelFound()
   if(_opt.complete(_prb)) {
     MainLoopResult res(Statistics::SATISFIABLE);
     if(_opt.proof()!=Options::PROOF_OFF) {
+      //we need to print this early because model generating can take some time
       if(UIHelper::cascMode) {
 	env.beginOutput();
 	env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )

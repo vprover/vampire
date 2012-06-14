@@ -43,6 +43,7 @@
 
 #include "Shell/CASC/CASCMode.hpp"
 #include "Shell/CASC/CLTBMode.hpp"
+#include "Shell/CASC/CMZRMode.hpp"
 #include "Shell/CASC/SimpleLTBMode.hpp"
 #include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
@@ -457,6 +458,13 @@ int main(int argc, char* argv [])
     case Options::MODE_CASC_LTB:
     {
       Shell::CASC::CLTBMode::perform();
+      //we have processed the ltb batch file, so we can return zero
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      break;
+    }
+    case Options::MODE_CASC_MZR:
+    {
+      Shell::CASC::CMZRMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;

@@ -53,6 +53,9 @@ public:
   void setPipeOutput(SyncPipe* pipe);
   SyncPipe* getOutputPipe() { return _pipe; }
 
+  void setPriorityOutput(ostream* stm);
+  ostream* getPriorityOutput() { return _priorityOutput; }
+
   bool timeLimitReached() const;
 
   template<int Period>
@@ -78,6 +81,8 @@ public:
 
 private:
   int _outputDepth;
+  /** if non-zero, all output will go here */
+  ostream* _priorityOutput;
   SyncPipe* _pipe;
 }; // class Environment
 

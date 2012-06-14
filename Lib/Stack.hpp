@@ -380,7 +380,7 @@ public:
 
     /** return the next element */
     inline
-    C next()
+    C& next()
     {
       ASS(_pointer > _stack._stack);
       ASS(_last == 2);

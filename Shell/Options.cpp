@@ -579,6 +579,7 @@ const char* Options::Constants::_modeValues[] = {
   "casc",
   "casc_epr",
   "casc_ltb",
+  "casc_mzr",
   "casc_sat",
   "casc_simple_ltb",
   "clausify",
