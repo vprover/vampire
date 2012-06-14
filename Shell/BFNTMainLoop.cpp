@@ -140,7 +140,7 @@ void BFNTMainLoop::runChild(size_t modelSize)
     }
   }
 
-  if(innerRes.terminationReason==Statistics::SATISFIABLE) {
+  if(env.options->mode()!=Options::MODE_SPIDER && innerRes.terminationReason==Statistics::SATISFIABLE) {
     env.beginOutput();
     UIHelper::outputSatisfiableResult(env.out());
     env.endOutput();
