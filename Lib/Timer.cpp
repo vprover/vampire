@@ -109,24 +109,8 @@ void
 timer_sigalrm_handler (int sig)
 {
 #if DEBUG_TIMER_CHANGES
-  static bool initialized = false;
-  static int preInt;
-  static int postInt;
-  if(!initialized) {
-    initialized = true;
-    preInt = (&timer_sigalrm_counter)[-1];
-    postInt = (&timer_sigalrm_counter)[1];
-  }
-  else {
-    if(preInt!=(&timer_sigalrm_counter)[-1] || postInt!=(&timer_sigalrm_counter)[1]) {
-      cout <<endl<< "pre: "<<preInt<<"   "<<(&timer_sigalrm_counter)[-1]<<endl;
-      cout <<endl<< "tmr: "<<timer_sigalrm_counter<<endl;
-      cout <<endl<< "pst: "<<postInt<<"   "<<(&timer_sigalrm_counter)[1]<<endl;
-      System::terminateImmediately(1);
-    }
-  }
   if(timer_sigalrm_counter<0) {
-    cout << "Timer value became negative: " << timer_sigalrm_counter <<endl;
+    cout << "Timer value became negative in timer_sigalrm_handler: " << timer_sigalrm_counter <<endl;
     System::terminateImmediately(1);
   }
 #endif
@@ -151,26 +135,6 @@ timer_sigalrm_handler (int sig)
 int Lib::Timer::miliseconds()
 {
   CALL("Timer::miliseconds");
-
-#if DEBUG_TIMER_CHANGES
-  static bool initialized = false;
-  static int preInt;
-  static int postInt;
-  if(!initialized) {
-    initialized = true;
-    preInt = (&timer_sigalrm_counter)[-1];
-    postInt = (&timer_sigalrm_counter)[1];
-  }
-  else {
-    if(preInt!=(&timer_sigalrm_counter)[-1] || postInt!=(&timer_sigalrm_counter)[1]) {
-      cout <<endl<< "pre: "<<preInt<<"   "<<(&timer_sigalrm_counter)[-1]<<endl;
-      cout <<endl<< "tmr: "<<timer_sigalrm_counter<<endl;
-      cout <<endl<< "pst: "<<postInt<<"   "<<(&timer_sigalrm_counter)[1]<<endl;
-      System::terminateImmediately(1);
-    }
-  }
-#endif
-
   ASS_GE(timer_sigalrm_counter, 0);
 
   return timer_sigalrm_counter;
