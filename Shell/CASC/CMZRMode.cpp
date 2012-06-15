@@ -365,6 +365,9 @@ void CMZRMode::perform(istream& batchFile)
 	waitForOneFinished();
       }
     }
+    if(env.timeLimitReached()) {
+      break;
+    }
     attemptProblem(nextProblemIdx);
     nextProblemIdx = (nextProblemIdx+1)%prbCnt;
   }
