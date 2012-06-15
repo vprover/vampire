@@ -18,6 +18,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Multiprocessing.hpp"
 
@@ -115,7 +116,52 @@ pid_t Multiprocessing::waitForChildTermination(int& resValue)
     errno=0;
     childPid = wait(&status);
     if(childPid==-1) {
+      SYSTEM_FAIL("Call to wait() function failed.", errno);
+    }
+  } while(WIFSTOPPED(status));
+
+  if(WIFEXITED(status)) {
+    resValue = WEXITSTATUS(status);
+    LOG("mp_wait","child process " << childPid << " terminated with status " << resValue);
+  }
+  else {
+    ASS(WIFSIGNALED(status));
+    LOG("mp_wait","child process " << childPid << " terminated by signal " << WTERMSIG(status));
+    resValue = WTERMSIG(status)+256;
+  }
+  return childPid;
+#endif
+}
+
+/**
+ * Wait for termination of a child or until timeMs elapses. If the later happens,
+ * return 0 instead of process pid.
+ */
+pid_t Multiprocessing::waitForChildTerminationOrTime(unsigned timeMs,int& resValue)
+{
+  CALL("Multiprocessing::waitForChildTerminationOrTime");
+
+#if COMPILER_MSVC
+  INVALID_OPERATION("waitpid() is not supported on Windows");
+#else
+
+  int status;
+  pid_t childPid;
+
+  int dueTime = env.timer->elapsedMilliseconds()+timeMs;
+
+  do {
+    errno=0;
+    childPid = waitpid(WAIT_ANY,&status,WNOHANG);
+    if(childPid==-1) {
       SYSTEM_FAIL("Call to waitpid() function failed.", errno);
+    }
+    if(childPid==0) {
+      if(dueTime<=env.timer->elapsedMilliseconds()) {
+	return 0;
+      }
+      sleep(50);
+      continue;
     }
   } while(WIFSTOPPED(status));
 

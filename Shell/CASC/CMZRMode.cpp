@@ -165,19 +165,44 @@ void CMZRMode::waitForOneFinished()
   ASS(!_processProblems.isEmpty());
   ASS_G(_unsolvedCnt,0);
 
+  unsigned lowestDueTime = UINT_MAX;
+  unsigned lowestDuePrb = UINT_MAX;
+
+  unsigned currTime = env.timer->elapsedMilliseconds();
+
   ProcessMap::Iterator pit(_processProblems);
   while(pit.hasNext()) {
     unsigned prbIdx = pit.next();
     const ProblemInfo& pi = _problems[prbIdx];
     ASS_NEQ(pi.runningProcessPID,-1);
-    if(pi.processDueTime<env.timer->elapsedMilliseconds()) {
+    if(pi.processDueTime<currTime) {
       cout<<"killed overdue pid "<<pi.runningProcessPID<<" at "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
       kill(pi.runningProcessPID,SIGKILL);
     }
+    if(pi.processDueTime<lowestDueTime) {
+      lowestDueTime = pi.processDueTime;
+      lowestDuePrb = prbIdx;
+    }
   }
 
+  pid_t finishedChild;
   int resValue;
-  pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+  if(lowestDueTime>currTime) {
+    unsigned waitingTime = lowestDueTime-currTime;
+    finishedChild=Multiprocessing::instance()->waitForChildTerminationOrTime(waitingTime,resValue);
+
+    if(!finishedChild) {
+      const ProblemInfo& pi = _problems[lowestDuePrb];
+      cout<<"killed overdue pid "<<pi.runningProcessPID<<" at "<<env.timer->elapsedMilliseconds()<<" ms after a wait"<<endl;
+      kill(pi.runningProcessPID,SIGKILL);
+
+      finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+    }
+  }
+  else {
+    finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+  }
+  ASS(finishedChild);
 
   unsigned prbIdx = _processProblems.get(finishedChild);
   _processProblems.remove(finishedChild);
@@ -345,16 +370,6 @@ void CMZRMode::perform(istream& batchFile)
   }
 
 fin:
-
-  for(unsigned i=0; i<prbCnt; i++) {
-    ProblemInfo& pi = _problems[i];
-
-    if(pi.runningProcessPID==-1) {
-      continue;
-    }
-    kill(pi.runningProcessPID,SIGKILL);
-    cout << "Kiling child "<<pi.runningProcessPID<<endl;
-  }
 
   while(!_processProblems.isEmpty()) {
     waitForOneFinished();
