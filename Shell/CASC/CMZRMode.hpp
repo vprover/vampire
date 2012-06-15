@@ -116,6 +116,7 @@ private:
   void startStrategyRun(unsigned prbIdx, string strategy, unsigned timeMs);
   void strategyRunChild(unsigned prbIdx, string strategy, unsigned timeMs) NO_RETURN;
 
+  unsigned _parallelProcesses;
   unsigned _availCoreCnt;
   unsigned _unsolvedCnt;
 

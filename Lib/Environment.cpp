@@ -199,7 +199,7 @@ void Environment::setPipeOutput(SyncPipe* pipe)
 void Environment::setPriorityOutput(ostream* stm)
 {
   CALL("Environment::setPriorityOutput");
-  ASS(!_priorityOutput);
+  ASS(!_priorityOutput || !stm);
 
   _priorityOutput=stm;
 

@@ -48,7 +48,6 @@ CMZRMode::CMZRMode()
 {
   CALL("CMZRMode::CMZRMode");
 
-  int parallelProcesses;
 #if __APPLE__
   //the core retrieval on mac is not implemented yet, hence this quick hack
   unsigned coreNumber = 2;
@@ -56,15 +55,15 @@ CMZRMode::CMZRMode()
   unsigned coreNumber = System::getNumberOfCores();
 #endif
   if(coreNumber<=1) {
-    parallelProcesses = 1;
+    _parallelProcesses = 1;
   }
   else if(coreNumber>=8) {
-    parallelProcesses = coreNumber-2;
+    _parallelProcesses = coreNumber-2;
   }
   else {
-    parallelProcesses = coreNumber-1;
+    _parallelProcesses = coreNumber-1;
   }
-  _availCoreCnt = parallelProcesses;
+  _availCoreCnt = _parallelProcesses;
 }
 
 void CMZRMode::perform()
@@ -146,9 +145,15 @@ void CMZRMode::attemptProblem(unsigned idx)
 
   string strategy = _problems[idx].schedule.pop();
   unsigned timeMs = getSliceTime(strategy);
+  LOG("bug","planned: "<<timeMs);
 
+  if(env.remainingTime()*_parallelProcesses<timeMs*_unsolvedCnt) {
+    timeMs = (env.remainingTime()*_parallelProcesses)/_unsolvedCnt;
+    LOG("bug","proportional: "<<timeMs);
+  }
   if(env.remainingTime()<timeMs) {
     timeMs = env.remainingTime();
+    LOG("bug","safe: "<<timeMs);
   }
 
   startStrategyRun(idx, strategy,timeMs);
@@ -169,6 +174,7 @@ void CMZRMode::waitForOneFinished()
     const ProblemInfo& pi = _problems[prbIdx];
     ASS_NEQ(pi.runningProcessPID,-1);
     if(pi.processDueTime<env.timer->elapsedMilliseconds()) {
+      cout<<"killed overdue pid "<<pi.runningProcessPID<<" at "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
       kill(pi.runningProcessPID,SIGKILL);
     }
   }
@@ -185,12 +191,12 @@ void CMZRMode::waitForOneFinished()
   if(!resValue) {
     pi.solved = true;
     _unsolvedCnt--;
-    cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (success)"<<endl;
+    cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (success) at "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
     cout<<"% SZS status Theorem for "<<pi.inputFName<<endl;
     cout<<"% SZS status Ended for "<<pi.inputFName<<endl;
   }
 
-  cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (fail)"<<endl;
+  cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (fail) at "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
   cout.flush();
 }
 
@@ -214,7 +220,8 @@ void CMZRMode::startStrategyRun(unsigned prbIdx, string strategy, unsigned timeM
   _problems[prbIdx].runningProcessPID = childId;
   _problems[prbIdx].processDueTime = env.timer->elapsedMilliseconds()+timeMs+100;
 
-  cout<<"started slice pid "<<childId<<" "<<strategy<<" on "<<_problems[prbIdx].inputFName<<endl;
+  cout<<"started slice pid "<<childId<<" "<<strategy<<" on "<<_problems[prbIdx].inputFName
+      <<" for "<<timeMs<<" ms"<<endl;
 }
 
 void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy, unsigned timeMs)
@@ -231,11 +238,11 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy, unsigned timeM
   Options opt=*env.options;
   opt.readFromTestId(strategy);
 
-  int rtl = static_cast<int>(opt.timeLimitInDeciseconds() * SLOWNESS);
-  if (rtl < 10) {
-    rtl++;
+  unsigned dsTime = timeMs/100;
+  if(dsTime==0) {
+    dsTime = 1;
   }
-  opt.setTimeLimitInDeciseconds(timeMs/100);
+  opt.setTimeLimitInDeciseconds(dsTime);
   int stl = opt.simulatedTimeLimit();
   if(stl) {
     opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
@@ -368,7 +375,7 @@ fin:
   }
 
   unsigned solvedCnt = prbCnt - _unsolvedCnt;
-  cout<<"Solved "<<solvedCnt<<" out of "<<prbCnt<<endl;
+  cout<<"Solved "<<solvedCnt<<" out of "<<prbCnt<<" in "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
 }
 
 void CMZRMode::loadIncludes()
@@ -531,7 +538,6 @@ unsigned CMZRMode::getSliceTime(string sliceCode)
   unsigned sliceTime;
   ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
   ASS_G(sliceTime,0); //strategies with zero time don't make sense
-
   unsigned time = (unsigned)(sliceTime*100 * SLOWNESS) + 100;
   if (time < 1000) {
     time += 100;
