@@ -235,7 +235,6 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy)
   env.timer->reset();
   env.timer->start();
   TimeCounter::reinitialize();
-  Timer::setTimeLimitEnforcement(true);
 
   //we have already performed the normalization
   opt.setForcedOptionValues();
@@ -245,7 +244,7 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy)
   *env.options = opt;
 
   env.beginOutput();
-  env.out()<<opt.testId()<<" on "<<opt.problemName()<<endl;
+  env.out()<<opt.testId()<<" on "<<opt.problemName()<<" for "<<env.remainingTime()<<" ms"<<endl;
   env.endOutput();
 
   UIHelper::setConjecturePresence(pi.hasConjecture);
