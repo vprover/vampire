@@ -145,15 +145,12 @@ void CMZRMode::attemptProblem(unsigned idx)
 
   string strategy = _problems[idx].schedule.pop();
   unsigned timeMs = getSliceTime(strategy);
-  LOG("bug","planned: "<<timeMs);
 
   if(env.remainingTime()*_parallelProcesses<timeMs*_unsolvedCnt) {
     timeMs = (env.remainingTime()*_parallelProcesses)/_unsolvedCnt;
-    LOG("bug","proportional: "<<timeMs);
   }
   if(env.remainingTime()<timeMs) {
     timeMs = env.remainingTime();
-    LOG("bug","safe: "<<timeMs);
   }
 
   startStrategyRun(idx, strategy,timeMs);
