@@ -329,17 +329,29 @@ void CMZRMode::perform(istream& batchFile)
 
 fin:
 
+  for(unsigned i=0; i<prbCnt; i++) {
+    ProblemInfo& pi = _problems[i];
+
+    if(pi.runningProcessPID==-1) {
+      continue;
+    }
+    kill(pi.runningProcessPID,SIGKILL);
+    cout << "Kiling child "<<pi.runningProcessPID<<endl;
+  }
+
   while(!_processProblems.isEmpty()) {
     waitForOneFinished();
   }
 
   for(unsigned i=0; i<prbCnt; i++) {
-    if(_problems[i].solved) {
+    ProblemInfo& pi = _problems[i];
+
+    if(pi.solved) {
       continue;
     }
-    ofstream outFile(_problems[i].outputFName.c_str(), ios_base::app);
-    outFile<<"% SZS status Timeout for "<<_problems[i].inputFName<<endl;
-    cout<<"% SZS status Ended for "<<_problems[i].inputFName<<endl;
+    ofstream outFile(pi.outputFName.c_str(), ios_base::app);
+    outFile<<"% SZS status Timeout for "<<pi.inputFName<<endl;
+    cout<<"% SZS status Ended for "<<pi.inputFName<<endl;
   }
 
   unsigned solvedCnt = prbCnt - _unsolvedCnt;
