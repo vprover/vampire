@@ -57,6 +57,7 @@ private:
 
   typedef Stack<string> StringStack;
 
+  unsigned getSliceTime(string sliceCode);
   void getStrategy(Property& property, StringStack& res);
 
   struct ProblemInfo {
@@ -79,6 +80,8 @@ private:
     bool solved;
     /** pid of process that is currently solving the problem or -1 if there is none */
     int runningProcessPID;
+    /** the time when the child process should terminate */
+    unsigned processDueTime;
   };
 
 
@@ -110,13 +113,15 @@ private:
   void attemptProblem(unsigned idx);
   void waitForOneFinished();
 
-  void startStrategyRun(unsigned prbIdx, string strategy);
-  void strategyRunChild(unsigned prbIdx, string strategy) NO_RETURN;
+  void startStrategyRun(unsigned prbIdx, string strategy, unsigned timeMs);
+  void strategyRunChild(unsigned prbIdx, string strategy, unsigned timeMs) NO_RETURN;
 
   unsigned _availCoreCnt;
   unsigned _unsolvedCnt;
+
+  typedef DHMap<pid_t,unsigned> ProcessMap;
   /** map from process IDs to problems they are solving */
-  DHMap<pid_t,unsigned> _processProblems;
+  ProcessMap _processProblems;
 
   friend class CMZRProblem;
 };

@@ -145,7 +145,13 @@ void CMZRMode::attemptProblem(unsigned idx)
   ASS_G(_availCoreCnt,0);
 
   string strategy = _problems[idx].schedule.pop();
-  startStrategyRun(idx, strategy);
+  unsigned timeMs = getSliceTime(strategy);
+
+  if(env.remainingTime()<timeMs) {
+    timeMs = env.remainingTime();
+  }
+
+  startStrategyRun(idx, strategy,timeMs);
   if(_availCoreCnt==0) {
     waitForOneFinished();
   }
@@ -156,6 +162,16 @@ void CMZRMode::waitForOneFinished()
   CALL("CMZRMode::waitForOneFinished");
   ASS(!_processProblems.isEmpty());
   ASS_G(_unsolvedCnt,0);
+
+  ProcessMap::Iterator pit(_processProblems);
+  while(pit.hasNext()) {
+    unsigned prbIdx = pit.next();
+    const ProblemInfo& pi = _problems[prbIdx];
+    ASS_NEQ(pi.runningProcessPID,-1);
+    if(pi.processDueTime<env.timer->elapsedMilliseconds()) {
+      kill(pi.runningProcessPID,SIGKILL);
+    }
+  }
 
   int resValue;
   pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
@@ -178,7 +194,7 @@ void CMZRMode::waitForOneFinished()
   cout.flush();
 }
 
-void CMZRMode::startStrategyRun(unsigned prbIdx, string strategy)
+void CMZRMode::startStrategyRun(unsigned prbIdx, string strategy, unsigned timeMs)
 {
   CALL("CMZRMode::startStrategyRun");
   ASS_G(_availCoreCnt,0);
@@ -189,22 +205,24 @@ void CMZRMode::startStrategyRun(unsigned prbIdx, string strategy)
   ASS_NEQ(childId,-1);
   if(!childId) {
     //we're in a proving child
-    strategyRunChild(prbIdx,strategy); //start proving
+    strategyRunChild(prbIdx,strategy, timeMs); //start proving
     ASSERTION_VIOLATION; //the runChild function should never return
   }
   Timer::syncClock();
 
   ALWAYS(_processProblems.insert(childId, prbIdx));
   _problems[prbIdx].runningProcessPID = childId;
+  _problems[prbIdx].processDueTime = env.timer->elapsedMilliseconds()+timeMs+100;
 
   cout<<"started slice pid "<<childId<<" "<<strategy<<" on "<<_problems[prbIdx].inputFName<<endl;
 }
 
-void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy)
+void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy, unsigned timeMs)
 {
   CALL("CMZRMode::strategyRunChild");
 
   Timer::setTimeLimitEnforcement(true);
+  UIHelper::cascModeChild=true;
 
   ProblemInfo& pi = _problems[prbIdx];
   ofstream outFile(pi.outputFName.c_str(), ios_base::app);
@@ -217,11 +235,7 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy)
   if (rtl < 10) {
     rtl++;
   }
-  //now the time limit is the overall limit for the whole batch
-  if(env.remainingTime()<rtl*100) {
-    rtl = env.remainingTime()/100;
-  }
-  opt.setTimeLimitInDeciseconds(rtl);
+  opt.setTimeLimitInDeciseconds(timeMs/100);
   int stl = opt.simulatedTimeLimit();
   if(stl) {
     opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
@@ -229,7 +243,6 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy)
 
   System::registerForSIGHUPOnParentDeath();
 
-  UIHelper::cascModeChild=true;
 
   int resultValue=1;
   env.timer->reset();
@@ -505,6 +518,26 @@ void CMZRMode::readInput(istream& in)
   }
 }
 
+/**
+ * Return intended slice time in milliseconds and assign the slice string with
+ * chopped time to @b chopped.
+ */
+unsigned CMZRMode::getSliceTime(string sliceCode)
+{
+  CALL("CASCMode::getSliceTime");
+
+  unsigned pos=sliceCode.find_last_of('_');
+  string sliceTimeStr=sliceCode.substr(pos+1);
+  unsigned sliceTime;
+  ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
+  ASS_G(sliceTime,0); //strategies with zero time don't make sense
+
+  unsigned time = (unsigned)(sliceTime*100 * SLOWNESS) + 100;
+  if (time < 1000) {
+    time += 100;
+  }
+  return time;
+}
 
 
 ///////////////////////
