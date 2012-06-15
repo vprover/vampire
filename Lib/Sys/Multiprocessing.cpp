@@ -150,7 +150,7 @@ pid_t Multiprocessing::waitForChildTerminationOrTime(unsigned timeMs,int& resVal
 
   int dueTime = env.timer->elapsedMilliseconds()+timeMs;
 
-  do {
+  for(;;) {
     errno=0;
     childPid = waitpid(WAIT_ANY,&status,WNOHANG);
     if(childPid==-1) {
@@ -163,7 +163,12 @@ pid_t Multiprocessing::waitForChildTerminationOrTime(unsigned timeMs,int& resVal
       sleep(50);
       continue;
     }
-  } while(WIFSTOPPED(status));
+    else {
+      if(!WIFSTOPPED(status)) {
+	break;
+      }
+    }
+  }
 
   if(WIFEXITED(status)) {
     resValue = WEXITSTATUS(status);
@@ -222,14 +227,15 @@ void Multiprocessing::sleep(unsigned ms)
   INVALID_OPERATION("sleep() is not supported on Windows");
 #else
 
+  timespec init;
   timespec ts;
   timespec remaining;
-  ts.tv_nsec = (ms%1000)*1000000;
-  ts.tv_sec = ms/1000;
-
+  init.tv_nsec = (ms%1000)*1000000;
+  init.tv_sec = ms/1000;
+  ts = init;
   for(;;) {
     int res = nanosleep(&ts, &remaining);
-    if(!res) {
+    if(!res || remaining.tv_sec>init.tv_sec) { //the latter statement covers remaining time underflow
       return;
     }
     ASS_EQ(res,-1);

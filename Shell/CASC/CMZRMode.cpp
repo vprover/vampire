@@ -146,11 +146,14 @@ void CMZRMode::attemptProblem(unsigned idx)
   string strategy = _problems[idx].schedule.pop();
   unsigned timeMs = getSliceTime(strategy);
 
+  LOG("bug","planned: "<<timeMs<<" remaining: "<<env.remainingTime());
   if(env.remainingTime()*_parallelProcesses<timeMs*_unsolvedCnt) {
     timeMs = (env.remainingTime()*_parallelProcesses)/_unsolvedCnt;
+    LOG("bug","fair: "<<timeMs);
   }
   if(env.remainingTime()<timeMs) {
     timeMs = env.remainingTime();
+    LOG("bug","truncated: "<<timeMs);
   }
 
   startStrategyRun(idx, strategy,timeMs);
