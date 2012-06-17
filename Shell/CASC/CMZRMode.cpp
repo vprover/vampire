@@ -258,6 +258,7 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy, unsigned timeM
   env.setPriorityOutput(&outFile);
 
   Options opt=*env.options;
+  opt.setProblemName(pi.inputFName);
   opt.readFromTestId(strategy);
 
   unsigned dsTime = timeMs/100;

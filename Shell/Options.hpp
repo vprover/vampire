@@ -463,7 +463,16 @@ public:
 
   void forceIncompleteness() { _forceIncompleteness=true; }
 
-  string problemName () const;
+  /**
+   * Return the problem name
+   *
+   * The problem name is computed from the input file name in
+   * the @b setInputFile function. If the input file is not set,
+   * the problem name is equal to "unknown". The problem name can
+   * be set to a specific value using setProblemName().
+   */
+  string problemName () const { return _problemName; }
+  void setProblemName(string str) { _problemName = str; }
 
   string forcedOptions() const { return _forcedOptions; }
   string forbiddenOptions() const { return _forbiddenOptions; }

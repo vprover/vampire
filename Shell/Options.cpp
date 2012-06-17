@@ -2352,24 +2352,6 @@ void Options::outputValue (ostream& str,int optionTag) const
   }
 } // Options::outputValue
 
-
-/**
- * Return the problem name
- *
- * The problem name is computed from the input file name in
- * the @b setInputFile function. If the input file is not set,
- * the problem name is equal to "unknown".
- *
- */
-string Options::problemName () const
-{
-  //Tracing removed as this function is called by assertion
-  //violation reporting and it influenced the output.
-//  CALL("Options::problemName");
-
-  return _problemName;
-} // const char* Options::problemName () const
-
 /**
  * Set input file and also update problemName if it was not
  * set before
