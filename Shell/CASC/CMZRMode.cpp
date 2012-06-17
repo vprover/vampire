@@ -331,18 +331,6 @@ void CMZRMode::perform(istream& batchFile)
 
   readInput(batchFile);
 
-  bool noProblemLimit = false;
-  if(problemTimeLimit==0) {
-    //problem time is unlimited, we need to keep updating it based on the overall
-    //limit and remaining problems
-    noProblemLimit = true;
-  }
-  else {
-    //we have a problem time limit, so we don't use the overall limit
-//  env.options->setTimeLimitInSeconds(overallTimeLimit);
-    env.options->setTimeLimitInSeconds(0);
-  }
-
   loadIncludes();
   loadProblems();
 
