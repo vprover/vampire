@@ -1430,8 +1430,9 @@ bool CASCMode::runSchedule(Schedule& schedule,unsigned ds,StrategySet& ss,bool f
 {
   CALL("CASCMode::runSchedule");
 
-  while (!schedule.isEmpty()) {
-    string sliceCode = schedule.pop();
+  Schedule::BottomFirstIterator sit(schedule);
+  while (sit.hasNext()) {
+    string sliceCode = sit.next();
     string chopped;
     unsigned sliceTime = getSliceTime(sliceCode,chopped);
     if (fallback && ss.contains(chopped)) {
