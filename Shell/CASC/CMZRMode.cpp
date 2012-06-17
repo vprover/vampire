@@ -36,7 +36,7 @@
 
 #include "CMZRMode.hpp"
 
-#define SLOWNESS 1.15
+#define SLOWNESS 1.5
 
 using namespace Shell::CASC;
 using namespace std;
