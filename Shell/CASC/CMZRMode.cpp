@@ -555,7 +555,7 @@ unsigned CMZRMode::getSliceTime(string sliceCode)
 
 /**
  * Add strategies for @c property to @c res so that the first strategy to try is
- * res[0].
+ * res[res.size()-1].
  */
 void CMZRMode::getStrategy(Property& property, StringStack& res)
 {
