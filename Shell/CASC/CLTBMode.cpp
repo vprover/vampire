@@ -270,6 +270,9 @@ void CLTBMode::readInput(istream& in)
   if(line!="% SZS end BatchConfiguration") {
     USER_ERROR("\"% SZS end BatchConfiguration\" expected, \""+line+"\" found.");
   }
+  if(questionAnswering) {
+    env.options->setQuestionAnswering(Options::QA_ANSWER_LITERAL);
+  }
 
   std::getline(in, line);
   if(line!="% SZS start BatchIncludes") {
