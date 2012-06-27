@@ -144,7 +144,7 @@ def addDataPoint(lbl, t, v):
     type = idxTypes[idx]
     if type=="num":
         if v!="?":
-            data[t][idx]=int(v)
+            data[t][idx]=float(v)
     elif type=="hist":
         data[t][idx]=readHistData(idx,v)
     else:
