@@ -563,14 +563,22 @@ string FBHelperCore::getVarName(Var v) const
     return res;
   }
   else {
-    Map<Var,string>::Iterator it(varNames);
-    while(it.hasNext()) {
-      string v;
-      unsigned k;
-      it.next(k,v);
-      cout<<k<<" "<<v<<endl;
+    static bool seen = false;
+    if(!seen) {
+      seen = true;
+      LOG("api_prb_transf","detected variable without a stored name: "<<v
+	  <<" (using preprocessing which does not support variable name preservation)");
     }
-    throw FormulaBuilderException("Var object was used in FormulaBuilder object which did not create it");
+    return "X"+Int::toString(v);
+
+//    Map<Var,string>::Iterator it(varNames);
+//    while(it.hasNext()) {
+//      string v;
+//      unsigned k;
+//      it.next(k,v);
+//      cout<<k<<" "<<v<<endl;
+//    }
+//    throw FormulaBuilderException("Var object was used in FormulaBuilder object which did not create it");
   }
 }
 

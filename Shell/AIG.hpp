@@ -83,6 +83,7 @@ public:
     VarSet* getQuantifierVars() const;
 
     VarSet* getFreeVars() const;
+    unsigned getVarSort(unsigned var) const;
     /**
      * Return color of the AIG. The color can be also COLOR_INVALID,
      * in case the AIG mixes colors.

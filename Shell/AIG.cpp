@@ -18,6 +18,7 @@
 #include "Kernel/FormulaVarIterator.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
@@ -301,6 +302,57 @@ AIG::VarSet* AIG::Ref::getFreeVars() const
   CALL("AIG::Ref::getFreeVars");
   return node()->getFreeVars();
 }
+
+/**
+ * Return sort of a variable in the AIG.
+ * Variable must appear in the AIG.
+ * Careful, time may be linear with the depth of the AIG.
+ */
+unsigned AIG::Ref::getVarSort(unsigned var) const
+{
+  CALL("AIG::Ref::getVarSort");
+  ASS(getFreeVars()->member(var));
+
+  AIGRef a = *this;
+  while(!a.isAtom()) {
+    switch(node()->kind()) {
+    case Node::QUANT:
+      a = a.parent(0);
+      break;
+    case Node::CONJ:
+    {
+      AIGRef p1 = a.parent(0);
+      AIGRef p2 = a.parent(1);
+      bool firstHas = p1.getFreeVars()->member(var);
+      bool secondHas = p2.getFreeVars()->member(var);
+      if(!firstHas) {
+	ASS(secondHas);
+	a = p2;
+      }
+      else if(!secondHas) {
+	a = p1;
+      }
+      else {
+	//both have the variable, so we just take the more convenient one
+	//(nodes with lower indexes are somehow expected to be simpler)
+	if(p1.isAtom() || p1.nodeIndex()<p2.nodeIndex()) {
+	  a = p1;
+	}
+	else {
+	  a = p2;
+	}
+      }
+      break;
+    }
+    case Node::ATOM:
+    case Node::TRUE_CONST:
+    default:
+      ASSERTION_VIOLATION;
+    }
+  }
+  return SortHelper::getVariableSort(TermList(var,false),a.getPositiveAtom());
+}
+
 
 Color AIG::Ref::getColor() const
 {

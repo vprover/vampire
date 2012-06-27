@@ -76,10 +76,14 @@ private:
   struct RecursiveVisitor;
 #endif
 
-
+  unsigned getVarSort(AIGRef a, unsigned var);
 
   AIG& _aig;
   AIGTransformer _atr;
+
+  typedef pair<AIGRef,unsigned> VarSortCacheKey;
+  /** Map from (positive aig,variable number) to sort number */
+  DHMap<VarSortCacheKey,unsigned> _varSorts;
 };
 
 class AIGMiniscopingTransformer

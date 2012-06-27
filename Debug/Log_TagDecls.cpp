@@ -551,6 +551,16 @@ void Logging::doTagDeclarations()
       DOC("horn revealer"),
       PARENT("pp",1));
 
+  DECL("pp_fde",
+      DOC("functino definition elimination"),
+      PARENT("pp",1));
+  DECL("pp_fde_defs",
+      DOC("functino definition elimination aplications"),
+      PARENT("pp_fde",1));
+  DECL("pp_fde_applications",
+      DOC("functino definition elimination aplications"),
+      PARENT("pp_fde",1));
+
   DECL("pp_inl",
       DOC("predicate definition inlining"),
       PARENT("pp",1));

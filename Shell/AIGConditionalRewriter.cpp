@@ -147,6 +147,20 @@ void AIGPrenexTransformer::collectQuants(AIGRef a, QIStack& quants, AIGRef& inne
   sortQuantSegments(quants);
 }
 
+unsigned AIGPrenexTransformer::getVarSort(AIGRef a, unsigned var)
+{
+  CALL("AIGPrenexTransformer::getVarSort");
+
+  VarSortCacheKey key(a,var);
+  unsigned res;
+  if(_varSorts.find(key,res)) {
+    return res;
+  }
+  res = a.getVarSort(var);
+  _varSorts.insert(key,res);
+  return res;
+}
+
 #if OLD_PRENEX
 
 struct AIGPrenexTransformer::QuantUnifier
@@ -329,8 +343,8 @@ AIGRef AIGPrenexTransformer::processConjunction(AIGRef a)
 struct AIGPrenexTransformer::QuantUnifierN
 {
 public:
-  QuantUnifierN(AIG& aig, AIG::VarSet* freeVars, size_t aigCnt, QuantAIG* aigs)
-   : _aig(aig), _nextAvailVar(0), _rnm(aigCnt), _aigCnt(aigCnt), _aigs(aigs)
+  QuantUnifierN(AIGPrenexTransformer& parent, AIG::VarSet* freeVars, size_t aigCnt, QuantAIG* aigs)
+   : _parent(parent), _aig(parent._aig), _nextAvailVar(0), _rnm(aigCnt), _aigCnt(aigCnt), _aigs(aigs)
   {
     CALL("AIGPrenexTransformer::QuantUnifier::QuantUnifier");
 
@@ -375,7 +389,63 @@ private:
 
   void addUnivQuantifier(const QIStack& aigQuants, const Stack<size_t>& aigIndexes)
   {
-    CALL("addExQuantifier");
+    CALL("AIGPrenexTransformer::QuantUnifier::addUnivQuantifier");
+    ASS_EQ(aigQuants.size(), aigIndexes.size());
+    ASS(aigQuants.isNonEmpty());
+
+    unsigned cnt = aigQuants.size();
+    if(cnt==1) {
+      addUnivQuantifierForSameSortedVars(aigQuants, aigIndexes);
+      return;
+    }
+    bool sameSort = true;
+    unsigned firstSort = _aigs[aigIndexes[0]].first.getVarSort(aigQuants[0].var);
+    for(unsigned i=1; i<cnt; i++) {
+      unsigned srt = _aigs[aigIndexes[i]].first.getVarSort(aigQuants[i].var);
+      if(firstSort!=srt) {
+	sameSort = false;
+	break;
+      }
+    }
+    if(sameSort) {
+      addUnivQuantifierForSameSortedVars(aigQuants, aigIndexes);
+      return;
+    }
+
+    QIStack aigQuantsRemaining = aigQuants;
+    Stack<size_t> aigIndexesRemaining = aigIndexes;
+
+    QIStack aigQuantsCurrent;
+    Stack<size_t> aigIndexesCurrent;
+
+    while(aigQuantsRemaining.isNonEmpty()) {
+      ASS(aigIndexesRemaining.isNonEmpty());
+      aigQuantsCurrent.reset();
+      aigIndexesCurrent.reset();
+      unsigned firstSort = _aigs[aigIndexesRemaining[0]].first.getVarSort(aigQuantsRemaining[0].var);
+      QIStack::StableDelIterator qdit(aigQuantsRemaining);
+      Stack<size_t>::StableDelIterator idit(aigIndexesRemaining);
+      while(qdit.hasNext()) {
+	ALWAYS(idit.hasNext());
+	QuantInfo currQuant = qdit.next();
+	size_t currIdx = idit.next();
+	unsigned srt = _aigs[currIdx].first.getVarSort(currQuant.var);
+	if(srt==firstSort) {
+	  aigQuantsCurrent.push(currQuant);
+	  aigIndexesCurrent.push(currIdx);
+	  qdit.del();
+	  idit.del();
+	}
+      }
+      ASS_EQ(aigQuantsCurrent.size(),aigIndexesCurrent.size());
+      ASS(aigQuantsCurrent.isNonEmpty());
+      addUnivQuantifierForSameSortedVars(aigQuantsCurrent, aigIndexesCurrent);
+    }
+  }
+
+  void addUnivQuantifierForSameSortedVars(const QIStack& aigQuants, const Stack<size_t>& aigIndexes)
+  {
+    CALL("AIGPrenexTransformer::QuantUnifier::addUnivQuantifierForSameSortedVars");
     ASS_EQ(aigQuants.size(), aigIndexes.size());
     ASS(aigQuants.isNonEmpty());
 
@@ -475,6 +545,7 @@ private:
     return res;
   }
 
+  AIGPrenexTransformer& _parent;
   AIG& _aig;
 
   DHSet<unsigned> _usedVars;
@@ -552,7 +623,7 @@ struct AIGPrenexTransformer::RecursiveVisitor
     else {
       ASS(objPos.isConjunction());
 
-      QuantUnifierN qu(_aig, objPos.getFreeVars(), childCnt, childRes);
+      QuantUnifierN qu(_parent, objPos.getFreeVars(), childCnt, childRes);
       posRes.first =_aig.makeConjunction(qu.getResultingInnerAigs());
       posRes.second = qu.getResQuantInfo();
 

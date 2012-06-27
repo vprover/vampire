@@ -315,6 +315,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
       _processedProblem->addEliminatedFunction(d->fun, (*d->defCl)[0]);
     }
 
+    LOG("pp_fde_defs","fn def discovered: "<<(*d->defCl)<<"\n  unfolded: "<<(*d->rhs));
     env.statistics->functionDefinitions++;
   }
 
@@ -511,6 +512,7 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 {
   CALL("FunctionDefinition::applyDefinitions");
 
+  LOG("pp_fde_applications","applyting function definitions to literal "<<(*lit));
   BindingMap bindings;
   UnfoldedSet unfolded;
   unsigned nextDefIndex=1;
@@ -607,6 +609,7 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
     if( !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED) {
       ASS_EQ(d->mark, Def::UNFOLDED);
       usedDefs->push(d);
+      LOG("pp_fde_applications","definition of "<<(*t)<<"\n  expanded to "<<(*d->rhs));
 
       defIndex=nextDefIndex++;
 
