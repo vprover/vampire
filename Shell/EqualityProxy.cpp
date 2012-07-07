@@ -7,7 +7,10 @@
 #include "Lib/List.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
@@ -24,7 +27,9 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-ZIArray<unsigned> EqualityProxy::s_proxyPredicates = 0;
+ZIArray<unsigned> EqualityProxy::s_proxyPredicates;
+DHMap<unsigned,unsigned> EqualityProxy::s_proxyPredicateSorts;
+ZIArray<Unit*> EqualityProxy::s_proxyPremises;
 
 EqualityProxy::EqualityProxy(Options::EqualityProxy opt)
 : _opt(opt)
@@ -107,29 +112,29 @@ void EqualityProxy::addLocalAxioms(UnitList*& units, unsigned sort)
   CALL("EqualityProxy::addLocalAxioms");
 
   {
-    Clause* axR = new(1) Clause(1, Clause::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM1));
-    (*axR)[0]=makeProxyLiteral(true,TermList(0,false),TermList(0,false), sort);
+    Literal* l1 = makeProxyLiteral(true,TermList(0,false),TermList(0,false), sort);
+    Clause* axR = createEqProxyAxiom(ti(l1));
     UnitList::push(axR,units);
   }
 
   if(_opt==Options::EP_RS || _opt==Options::EP_RST || _opt==Options::EP_RSTC) {
-    Clause* axS = new(2) Clause(2, Clause::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
-    (*axS)[0]=makeProxyLiteral(false,TermList(0,false),TermList(1,false), sort);
-    (*axS)[1]=makeProxyLiteral(true,TermList(1,false),TermList(0,false), sort);
+    Literal* l1 = makeProxyLiteral(false,TermList(0,false),TermList(1,false), sort);
+    Literal* l2 = makeProxyLiteral(true,TermList(1,false),TermList(0,false), sort);
+    Clause* axS = createEqProxyAxiom(ti(l1, l2));
     UnitList::push(axS,units);
   }
   if(_opt==Options::EP_RST || _opt==Options::EP_RSTC) {
-    Clause* axT = new(3) Clause(3, Clause::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
-    (*axT)[0]=makeProxyLiteral(false,TermList(0,false),TermList(1,false), sort);
-    (*axT)[1]=makeProxyLiteral(false,TermList(1,false),TermList(2,false), sort);
-    (*axT)[2]=makeProxyLiteral(true,TermList(0,false),TermList(2,false), sort);
+    Literal* l1 = makeProxyLiteral(false,TermList(0,false),TermList(1,false), sort);
+    Literal* l2 = makeProxyLiteral(false,TermList(1,false),TermList(2,false), sort);
+    Literal* l3 = makeProxyLiteral(true,TermList(0,false),TermList(2,false), sort);
+    Clause* axT = createEqProxyAxiom(ti(l1, l2, l3));
     UnitList::push(axT,units);
   }
 
   if(!_rst) {
-    Clause* axE = new(2) Clause(2, Clause::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
-    (*axE)[0]=makeProxyLiteral(false,TermList(0,false),TermList(1,false), sort);
-    (*axE)[1]=Literal::createEquality(true,TermList(0,false),TermList(1,false), sort);
+    Literal* l1 = makeProxyLiteral(false,TermList(0,false),TermList(1,false), sort);
+    Literal* l2 = Literal::createEquality(true,TermList(0,false),TermList(1,false), sort);
+    Clause* axE = createEqProxyAxiom(ti(l1, l2));
     UnitList::push(axE,units);
   }
 }
@@ -215,7 +220,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
     Term* t2 = Term::create(i, arity, vars2.begin());
     lits.push(makeProxyLiteral(true, TermList(t1), TermList(t2), fnType->result()));
 
-    Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
+    Clause* cl = createEqProxyAxiom(lits);
     UnitList::push(cl,units);
   }
 
@@ -232,7 +237,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
     lits.push(Literal::create(i, arity, false, false, vars1.begin()));
     lits.push(Literal::create(i, arity, true, false, vars2.begin()));
 
-    Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
+    Clause* cl = createEqProxyAxiom(lits);
     UnitList::push(cl,units);
   }
 }
@@ -244,7 +249,9 @@ Clause* EqualityProxy::apply(Clause* cl)
 
   unsigned clen=cl->length();
 
+  static UnitStack proxyPremises;
   static Stack<Literal*> resLits(8);
+  proxyPremises.reset();
   resLits.reset();
 
   bool modified=false;
@@ -252,13 +259,29 @@ Clause* EqualityProxy::apply(Clause* cl)
     Literal* lit=(*cl)[i];
     Literal* rlit=apply(lit);
     resLits.push(rlit);
-    modified|= rlit!=lit;
+    if(rlit!=lit) {
+      ASS(lit->isEquality());
+      modified = true;
+      unsigned srt = s_proxyPredicateSorts.get(rlit->functor());
+      Unit* prem = s_proxyPremises[srt];
+      proxyPremises.push(prem);
+    }
   }
   if(!modified) {
     return cl;
   }
 
-  Inference* inf = new Inference1(Inference::EQUALITY_PROXY_REPLACEMENT, cl);
+  Inference* inf;
+  ASS(proxyPremises.isNonEmpty());
+  if(proxyPremises.size()==1) {
+    inf = new Inference2(Inference::EQUALITY_PROXY_REPLACEMENT, cl, proxyPremises.top());
+  }
+  else {
+    UnitList* prems = 0;
+    UnitList::pushFromIterator(UnitStack::ConstIterator(proxyPremises),prems);
+    UnitList::push(cl,prems);
+    inf = new InferenceMany(Inference::EQUALITY_PROXY_REPLACEMENT, prems);
+  }
 
   Clause* res = new(clen) Clause(clen, cl->inputType(), inf);
   res->setAge(cl->age());
@@ -309,7 +332,59 @@ unsigned EqualityProxy::getProxyPredicate(unsigned sort)
   predSym->markEqualityProxy();
 
   s_proxyPredicates[sort] = newPred;
+  s_proxyPredicateSorts.insert(newPred,sort);
+
+  Literal* proxyLit = Literal::create2(newPred,true,TermList(0,false),TermList(1,false));
+  Literal* eqLit = Literal::createEquality(true,TermList(0,false),TermList(1,false),sort);
+  Formula* defForm = new BinaryFormula(IFF, new AtomicFormula(proxyLit), new AtomicFormula(eqLit));
+  Formula* quantDefForm = Formula::quantify(defForm);
+
+  Inference* inf = new Inference(Inference::EQUALITY_PROXY_AXIOM1);
+  FormulaUnit* defUnit = new FormulaUnit(quantDefForm, inf, Unit::AXIOM);
+
+  s_proxyPremises[sort] = defUnit;
+  InferenceStore::instance()->recordIntroducedSymbol(defUnit, false, newPred);
+
   return newPred;
+}
+
+Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
+{
+  CALL("EqualityProxy::createEqProxyAxiom(const LiteralStack&,unsigned)");
+
+  static DHSet<unsigned> sorts;
+  sorts.reset();
+
+  UnitList* prems = 0;
+
+  LiteralStack::ConstIterator it(literalStack);
+  while(it.hasNext()) {
+    Literal* l = it.next();
+    unsigned srt;
+    if(!s_proxyPredicateSorts.find(l->functor(),srt)) {
+      continue;
+    }
+    if(!sorts.insert(srt)) {
+      continue;
+    }
+    Unit* prem = s_proxyPremises[srt];
+    ASS(prem);
+    UnitList::push(prem, prems);
+  }
+  ASS(prems);
+  Inference* inf = new InferenceMany(Inference::EQUALITY_PROXY_AXIOM2, prems);
+  Clause* res = Clause::fromStack(literalStack, Unit::AXIOM, inf);
+  return res;
+}
+
+Clause* EqualityProxy::createEqProxyAxiom(LiteralIterator literalIt)
+{
+  CALL("EqualityProxy::createEqProxyAxiom(LiteralIterator,unsigned)");
+
+  static LiteralStack stack;
+  stack.reset();
+  stack.loadFromIterator(literalIt);
+  return createEqProxyAxiom(stack);
 }
 
 Literal* EqualityProxy::makeProxyLiteral(bool polarity, TermList arg0, TermList arg1)

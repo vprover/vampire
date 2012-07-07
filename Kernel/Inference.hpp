@@ -122,9 +122,9 @@ public:
     RESOLUTION,
     /** equality proxy replacement */
     EQUALITY_PROXY_REPLACEMENT,
-    /** equality proxy axiom E(x,x) */
+    /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */
     EQUALITY_PROXY_AXIOM1,
-    /** equality proxy axiom ~E(x,y) \/ x=y */
+    /** equality proxy axioms such as E(x,x) or ~E(x,y) \/ x=y */
     EQUALITY_PROXY_AXIOM2,
     /** unfolding by definitions f(x1,...,xn)=t */
     DEFINITION_UNFOLDING,
@@ -211,6 +211,10 @@ public:
     BACKTRACKING_SPLITTING_COMPONENT,
     /** refutation of a backtracking splitting branch */
     BACKTRACKING_SPLIT_REFUTATION,
+    /** component introduced by backtracking splitting */
+    SAT_SPLITTING_COMPONENT,
+    /** refutation of a backtracking splitting branch */
+    SAT_SPLITTING_REFUTATION,
     /** result of general splitting */
     GENERAL_SPLITTING,
     /** component introduced by general splitting */

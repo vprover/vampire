@@ -86,7 +86,7 @@ void SSplittingBranchSelector::handleSatRefutation(SATClause* ref)
   CALL("SSplittingBranchSelector::handleSatRefutation");
 
   UnitList* prems = SATInference::getFOPremises(ref);
-  Inference* foInf = new InferenceMany(Inference::SPLITTING, prems);
+  Inference* foInf = new InferenceMany(Inference::SAT_SPLITTING_REFUTATION, prems);
   Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
   throw MainLoop::RefutationFoundException(foRef);
 }
@@ -643,7 +643,7 @@ Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size,
   ASS_EQ(_db[name],0);
 
   Unit::InputType inpType = orig ? orig->inputType() : Unit::AXIOM;
-  Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, new Inference(Inference::SPLITTING_COMPONENT));
+  Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, new Inference(Inference::SAT_SPLITTING_COMPONENT));
 
   _db[name] = new SplitRecord(compCl);
 

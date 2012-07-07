@@ -12,6 +12,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Unit.hpp"
@@ -254,6 +255,7 @@ Formula* FormulaIteExpander::introduceDefinition(Formula* f)
     def=new QuantifiedFormula(FORALL, fv, def);
   }
   Unit* dunit=new FormulaUnit(def, new Inference(Inference::PREDICATE_DEFINITION), Unit::AXIOM);
+  InferenceStore::instance()->recordIntroducedSymbol(dunit,false,dpred);
   UnitList::push(dunit, _defs);
 
   return datom;

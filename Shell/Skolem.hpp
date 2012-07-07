@@ -62,6 +62,8 @@ private:
   /** map var --> sort */
   DHMap<unsigned,unsigned> _varSorts;
 
+  Stack<unsigned> _introducedSkolemFuns;
+
   FormulaUnit* _beingSkolemised;
 }; // class Skolem
 

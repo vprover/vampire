@@ -90,7 +90,7 @@ public:
   void* operator new(size_t,unsigned length);
   void operator delete(void* ptr,unsigned length);
 
-  static Clause* fromStack(Stack<Literal*>& lits, InputType it, Inference* inf);
+  static Clause* fromStack(const Stack<Literal*>& lits, InputType it, Inference* inf);
 
   template<class Iter>
   static Clause* fromIterator(Iter litit, InputType it, Inference* inf)

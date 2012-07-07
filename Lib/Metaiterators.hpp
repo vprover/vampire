@@ -41,6 +41,29 @@ ITERATOR_TYPE(C) getContentIterator(C& c)
 }
 
 /**
+ * Iterator class that iterates an array and never stops. This iterator
+ * needs to be used e.g. inside a WhileLimitedIterator.
+ */
+template<class El>
+class InfiniteArrayIterator
+{
+public:
+  DECL_ELEMENT_TYPE(El);
+  InfiniteArrayIterator(const El* ptr) : _nextPtr(ptr) {}
+  inline bool hasNext() { return true; }
+  inline OWN_ELEMENT_TYPE next() { return *(_nextPtr++); }
+private:
+  const El* _nextPtr;
+};
+
+template<class El>
+InfiniteArrayIterator<El> getInfiniteArrayIterator(const El* ptr)
+{
+  CALL("getInfiniteArrayIterator");
+  return InfiniteArrayIterator<El>(ptr);
+}
+
+/**
  * Iterator class for types whose elements are accessible by
  * @b operator[](size_t) with the first element at the index 0
  * and the others at consecutive indexes
@@ -83,6 +106,33 @@ ArrayishObjectIterator<Arr> getArrayishObjectIterator(Arr& arr)
   CALL("getArrayishObjectIterator");
   return ArrayishObjectIterator<Arr>(arr);
 }
+
+/**
+ * Reads given number of values from an input stream.
+ *
+ * Assumes that the input stream has enough values for that!
+ */
+template<typename T>
+class InputIterator
+{
+public:
+  DECL_ELEMENT_TYPE(T);
+  InputIterator(istream& inp, size_t cnt) : _inp(inp), _remaining(cnt) {}
+
+  bool hasNext() const { return _remaining>0; }
+  T next() {
+    CALL("InputIterator::next");
+    ASS_G(_remaining,0);
+    _remaining--;
+    T res;
+    _inp >> res;
+    return res;
+  }
+
+private:
+  istream& _inp;
+  size_t _remaining;
+};
 
 /**
  * Iterator class for pointers
@@ -159,6 +209,28 @@ inline
 SingletonIterator<T> getSingletonIterator(T el)
 {
   return SingletonIterator<T>(el);
+}
+
+/**
+ * sequence of functions for creating tuple iterators
+ */
+template<typename T>
+VirtualIterator<T> ti(T el)
+{
+  return pvi( getSingletonIterator(el) );
+}
+
+template<typename T>
+VirtualIterator<T> ti(T el1, T el2)
+{
+  return pvi( getConcatenatedIterator(getSingletonIterator(el1),getSingletonIterator(el2)) );
+}
+
+template<typename T>
+VirtualIterator<T> ti(T el1, T el2, T el3)
+{
+  return pvi( getConcatenatedIterator(getSingletonIterator(el1),
+      getConcatenatedIterator(getSingletonIterator(el2),getSingletonIterator(el3))) );
 }
 
 /**
@@ -1233,6 +1305,35 @@ ELEMENT_TYPE(It) getFirstTrue(It it, Pred pred)
   ASSERTION_VIOLATION;
 }
 
+/**
+ * Split iterator @c it into two iterators in the element satisfying
+ * the @c edge predicate. If there is no element satisfying @c edge,
+ * return false, put the original iterator into res1 and make res2 empty.
+ * The first element for which edge succeeded is not present in any
+ * of the resulting iterators.
+ */
+template<class It, class Pred>
+bool splitIterator(It it, Pred edge, VirtualIterator<ELEMENT_TYPE(It)>& res1, VirtualIterator<ELEMENT_TYPE(It)>& res2)
+{
+  CALL("splitIterator");
+
+  typedef ELEMENT_TYPE(It) T;
+
+  bool success = false;
+  List<T>* firstPart = 0;
+  while(it.hasNext()) {
+    T itm = it.next();
+    if(edge(itm)) {
+      success = true;
+      break;
+    }
+    List<T>::push(itm, firstPart);
+  }
+  firstPart = firstPart->reverse();
+  res1 = fpvi(typename List<T>::DestructiveIterator(firstPart));
+  res2 = pvi(it);
+  return success;
+}
 
 template<typename Inner>
 struct NegPred
@@ -1249,6 +1350,23 @@ template<typename Inner>
 NegPred<Inner> negPred(Inner inner) {
   return NegPred<Inner>(inner);
 }
+
+template<typename T>
+struct ConstEqPred
+{
+  DECL_RETURN_TYPE(bool);
+  ConstEqPred(const T& val) : _val(val) {}
+  template<typename Arg>
+  bool operator()(Arg a) { return a==_val; }
+private:
+  T _val;
+};
+
+template<typename T>
+ConstEqPred<T> constEqPred(const T& val) {
+  return ConstEqPred<T>(val);
+}
+
 
 
 template<class P>

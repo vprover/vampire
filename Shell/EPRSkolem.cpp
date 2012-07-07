@@ -15,6 +15,7 @@
 #include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -73,6 +74,8 @@ private:
 
   typedef DHMap<unsigned,TermList> BindingMap;
   BindingMap _binding;
+
+  Stack<unsigned> _introducedSkolemFuns;
 };
 
 bool EPRSkolem::ConstantSkolemizer::transform(UnitList*& units)
@@ -102,6 +105,7 @@ FormulaUnit* EPRSkolem::ConstantSkolemizer::transform(FormulaUnit* fu)
   CALL("EPRSkolem::ConstantSkolemizer::transform(FormulaUnit*)");
   LOG_UNIT("pp_esk_cs_args", fu);
 
+  ASS(_introducedSkolemFuns.isEmpty());
   Formula* form = fu->formula();
   Formula* newForm = transform(form);
   if(form==newForm) {
@@ -109,6 +113,11 @@ FormulaUnit* EPRSkolem::ConstantSkolemizer::transform(FormulaUnit* fu)
   }
   Inference* inf = new Inference1(Inference::SKOLEMIZE, fu);
   FormulaUnit* res = new FormulaUnit(newForm, inf, fu->inputType());
+  ASS(_introducedSkolemFuns.isNonEmpty());
+  while(_introducedSkolemFuns.isNonEmpty()) {
+    unsigned fn = _introducedSkolemFuns.pop();
+    InferenceStore::instance()->recordIntroducedSymbol(res, true, fn);
+  }
 
   LOG("pp_esk","Constant skolemizer:\n  from: " << (*fu) << "\n  to:   " << (*res));
 
@@ -150,6 +159,7 @@ Formula* EPRSkolem::ConstantSkolemizer::applyQuantified(Formula* f)
     unsigned var = vit.next();
     unsigned skFunRangeSort = getVarSort(var);
     unsigned skFun = Skolem::addSkolemFunction(0, 0, skFunRangeSort, var);
+    _introducedSkolemFuns.push(skFun);
 
     TermList skTerm = TermList( Term::createConstant(skFun) );
     _binding.insert(var, skTerm);

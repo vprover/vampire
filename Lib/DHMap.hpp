@@ -366,7 +366,8 @@ public:
 
   /**
    * Assign pointer to value stored under @b key into @b pval.
-   * If nothing was previously stored under @b key, return true.
+   * If nothing was previously stored under @b key, return true
+   * and recreate the value object default constructor.
    * Otherwise, return false.
    */
   bool getValuePtr(Key key, Val*& pval)

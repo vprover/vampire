@@ -14,6 +14,7 @@
 
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
@@ -557,6 +558,9 @@ Formula* Naming::introduceDefinition (Formula* f,bool iff)
   }
   Inference* inf = new Inference(Inference::PREDICATE_DEFINITION);
   Unit* definition = new FormulaUnit(def,inf,Unit::AXIOM);
+
+  InferenceStore::instance()->recordIntroducedSymbol(definition,false,atom->functor());
+
   env.statistics->formulaNames++;
   UnitList::push(definition,_defs);
 

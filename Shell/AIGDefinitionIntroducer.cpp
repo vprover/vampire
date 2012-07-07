@@ -9,6 +9,7 @@
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -346,8 +347,8 @@ FormulaUnit* AIGDefinitionIntroducer::createNameUnit(AIGRef rhs, AIGRef atomName
     atomName = atomName.neg();
     rhs = rhs.neg();
   }
-
-  Formula* lhsForm = new AtomicFormula(atomName.getPositiveAtom());
+  Literal* nameLit = atomName.getPositiveAtom();
+  Formula* lhsForm = new AtomicFormula(nameLit);
   Formula* rhsForm = _fsh.aigToFormula(rhs);
   //TODO: weaken definition based on the way subformula occurrs
   Formula* equiv = new BinaryFormula(IFF, lhsForm, rhsForm);
@@ -358,6 +359,7 @@ FormulaUnit* AIGDefinitionIntroducer::createNameUnit(AIGRef rhs, AIGRef atomName
   }
   ASS_REP(equiv->freeVariables()->isEmpty(), *equiv);
   FormulaUnit* def = new FormulaUnit(equiv, new Inference(Inference::PREDICATE_DEFINITION), Unit::AXIOM);
+  InferenceStore::instance()->recordIntroducedSymbol(def,false,nameLit->functor());
   _newDefs.push(def);
 
   LOG_UNIT("pp_aigdef_intro", def);

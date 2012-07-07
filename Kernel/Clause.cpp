@@ -126,7 +126,7 @@ void Clause::destroyExceptInferenceObject()
 }
 
 
-Clause* Clause::fromStack(Stack<Literal*>& lits, InputType it, Inference* inf)
+Clause* Clause::fromStack(const Stack<Literal*>& lits, InputType it, Inference* inf)
 {
   CALL("Clause::fromStack");
 

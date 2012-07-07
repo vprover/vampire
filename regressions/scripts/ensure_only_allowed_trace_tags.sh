@@ -22,7 +22,7 @@ USED_FILE=`mktemp -t eoa_used_XXXXX`
 
 grep 'DECL(".*"' "$LOG_DECL_FILE" | sed 's/.*DECL("\([^"]*\)".*$/\1/' | sort >$ALLOWED_FILE 
 
-egrep -h "($LOG_MACROS)"'[ ]*\("[^"]*"' $SRC_FILES | grep -v "^\s*//" | sed -E 's/^.*('"$LOG_MACROS"')[ ]*\("([^"]*)".*$/\2/' | sort -u >$USED_FILE
+grep -h -v '^ *//' $SRC_FILES | egrep "($LOG_MACROS)"'[ ]*\("[^"]*"' | grep -v "^\s*//" | sed -E 's/^.*('"$LOG_MACROS"')[ ]*\("([^"]*)".*$/\2/' | sort -u >$USED_FILE
 
 EXTRA=`join -v 2 $ALLOWED_FILE $USED_FILE`
 

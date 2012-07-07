@@ -66,6 +66,9 @@ private:
   bool haveProxyPredicate(unsigned sort) const;
   unsigned getProxyPredicate(unsigned sort);
 
+  Clause* createEqProxyAxiom(const LiteralStack& literalIt);
+  Clause* createEqProxyAxiom(LiteralIterator literalIt);
+
   Options::EqualityProxy _opt;
 
   /**
@@ -74,6 +77,9 @@ private:
    * added yet.
    */
   static ZIArray<unsigned> s_proxyPredicates;
+  static DHMap<unsigned,unsigned> s_proxyPredicateSorts;
+  static ZIArray<Unit*> s_proxyPremises;
+
   bool _rst;
 };
 

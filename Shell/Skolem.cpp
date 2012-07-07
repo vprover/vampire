@@ -8,6 +8,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
@@ -56,6 +57,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
 {
   CALL("Skolem::skolemiseImpl(FormulaUnit*)");
 
+  ASS(_introducedSkolemFuns.isEmpty());
   _beingSkolemised=unit;
 
   Formula* f = unit->formula();
@@ -66,9 +68,16 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   if (f == g) { // not changed
     return unit;
   }
-  return new FormulaUnit(g,
-			 new Inference1(Inference::SKOLEMIZE,unit),
-			 unit->inputType());
+  Inference* inf = new Inference1(Inference::SKOLEMIZE,unit);
+  FormulaUnit* res = new FormulaUnit(g, inf, unit->inputType());
+
+  ASS(_introducedSkolemFuns.isNonEmpty());
+  while(_introducedSkolemFuns.isNonEmpty()) {
+    unsigned fn = _introducedSkolemFuns.pop();
+    InferenceStore::instance()->recordIntroducedSymbol(res,true,fn);
+  }
+
+  return res;
 }
 
 
@@ -136,6 +145,7 @@ Term* Skolem::createSkolemTerm(unsigned var)
   }
 
   unsigned fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
+  _introducedSkolemFuns.push(fun);
 
   return Term::create(fun, arity, fnArgs.begin());
 }

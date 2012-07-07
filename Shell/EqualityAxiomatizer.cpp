@@ -141,7 +141,7 @@ void EqualityAxiomatizer::addLocalAxioms(UnitList*& units, unsigned sort)
   CALL("EqualityAxiomatizer::addLocalAxioms");
 
   {
-    Clause* axR = new(1) Clause(1, Clause::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM1));
+    Clause* axR = new(1) Clause(1, Clause::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
     (*axR)[0]=Literal::createEquality(true,TermList(0,false),TermList(0,false), sort);
     UnitList::push(axR,units);
   }
