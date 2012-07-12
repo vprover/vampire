@@ -499,8 +499,10 @@ UnitList* EquivalenceDiscoverer::getEquivalences(UnitList* units, const Options*
 
   Problem prb(units->copy());
 
+  LOG("pp_progress","--- preprocessing for equivalence discovery started ---");
   Preprocess prepr(prepOpts);
   prepr.preprocess(prb);
+  LOG("pp_progress","--- preprocessing for equivalence discovery finished ---");
   //TODO: we will leak the results of this preprocessing iteration
 
   return getEquivalences(prb.clauseIterator());
