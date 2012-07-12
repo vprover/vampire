@@ -1339,12 +1339,15 @@ AIGRef AIGConditionalRewriter::apply(AIGRef a0)
 
   AIGRef outer = a0;
 
+  LOG("pp_aig_cr_progress","prenex transformation");
   AIGPrenexTransformer apt(_aig);
   outer = apt.apply(outer);
 
+  LOG("pp_aig_cr_progress","factorization");
   AIGFactorizingTransformer factor(_aig);
   outer = factor.apply(outer);
 
+  LOG("pp_aig_cr_progress","inner conditional rewriting");
   AIGRef inner;
   apt.collectQuants(outer, _prenexQuantifiers, inner);
 
@@ -1358,6 +1361,7 @@ AIGRef AIGConditionalRewriter::apply(AIGRef a0)
 
   outer = apt.quantifyBySpec(_prenexQuantifiers, inner);
 
+  LOG("pp_aig_cr_progress","miniscoping");
   AIGMiniscopingTransformer minis(_aig);
   outer = minis.apply(outer);
 

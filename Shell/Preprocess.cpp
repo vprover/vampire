@@ -128,32 +128,38 @@ void Preprocess::preprocess (Problem& prb)
   }
 
   if(prb.hasSpecialTermsOrLets()) {
+    LOG("pp_progress","special term elimination");
     SpecialTermElimination().apply(prb);
   }
 
   // reorder units
   if (_options.normalize()) {
     env.statistics->phase=Statistics::NORMALIZATION;
+    LOG("pp_progress","normalization");
     Normalisation().normalise(prb);
   }
 
   if(_options.sineSelection()!=Options::SS_OFF) {
     env.statistics->phase=Statistics::SINE_SELECTION;
+    LOG("pp_progress","sine selection");
     SineSelector(_options).perform(prb);
   }
 
   if(_options.questionAnswering()==Options::QA_ANSWER_LITERAL) {
     env.statistics->phase=Statistics::UNKNOWN_PHASE;
+    LOG("pp_progress","answer literal addition");
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
   if(prb.hasInterpretedOperations() && _options.theoryAxioms()) {
     InterpretedNormalizer().apply(prb);
     env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+    LOG("pp_progress","adding theory axioms");
     TheoryAxioms().apply(prb);
   }
 
   if(prb.mayHaveFormulas()) {
+    LOG("pp_progress","preprocess1 (rectify, simplify false true, flatten)");
     preprocess1(prb);
   }
 
@@ -162,6 +168,7 @@ void Preprocess::preprocess (Problem& prb)
 //   theoryFinder.search();
 
   if(prb.hasFormulaItes()){
+    LOG("pp_progress","expand ite formulas");
     FormulaIteExpander().apply(prb);
   }
 
@@ -171,21 +178,26 @@ void Preprocess::preprocess (Problem& prb)
     //Here we're trying to propagate equalities as well because that might
     //reveal some more formulas to be definitions.
     env.statistics->phase=Statistics::EQUALITY_PROPAGATION;
+    LOG("pp_progress","equality propagation");
     EqualityPropagator().apply(prb);
   }
 
   if (_options.predicateIndexIntroduction()) {
+    LOG("pp_progress","predicate index introduction");
     PredicateIndexIntroducer().apply(prb);
   }
 
   if (_options.predicateDefinitionInlining()!=Options::INL_OFF) {
     env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
+    LOG("pp_progress","inlining");
     PDInliner pdInliner(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY, false,
 	_options.predicateDefinitionInlining()==Options::INL_NON_GROWING);
     pdInliner.apply(prb);
 
     if(_options.flattenTopLevelConjunctions()) {
+	LOG("pp_progress","flattening top-level conjunctions");
         if(TopLevelFlatten().apply(prb)) {
+          LOG("pp_progress","inlining");
           PDInliner pdInliner2(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY, false,
               _options.predicateDefinitionInlining()==Options::INL_NON_GROWING);
           pdInliner2.apply(prb);
@@ -193,81 +205,99 @@ void Preprocess::preprocess (Problem& prb)
     }
   }
   else if(_options.flattenTopLevelConjunctions()) {
+    LOG("pp_progress","flattening top-level conjunctions");
     TopLevelFlatten().apply(prb);
   }
 
   if(_options.distinctProcessor()) {
+    LOG("pp_progress","processing distinct declarations");
     DistinctProcessor().apply(prb);
   }
 
   if(_options.predicateEquivalenceDiscovery()!=Options::PED_OFF) {
+    LOG("pp_progress","equivalence discovery");
     EquivalenceDiscoveringTransformer(_options).apply(prb);
   }
 
   if(_options.aigFormulaSharing()) {
+    LOG("pp_progress","aig formula sharing");
     AIGFormulaSharer().apply(prb);
   }
 
   if (_options.predicateDefinitionMerging()) {
     env.statistics->phase=Statistics::PREDIACTE_DEFINITION_MERGING;
+    LOG("pp_progress","predicate definition merging");
     PDMerger().apply(prb);
   }
 
   if (_options.eprPreservingSkolemization()) {
     env.statistics->phase=Statistics::EPR_PRESERVING_SKOLEMIZATION;
+    LOG("pp_progress","epr skolemization");
     EPRSkolem().apply(prb);
   }
 
   if (_options.eprRestoringInlining()) {
     env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
+    LOG("pp_progress","epr restoring inlining");
     EPRInlining().apply(prb);
   }
 
   if(_options.aigBddSweeping()) {
+    LOG("pp_progress","bdd sweeping");
     AIGCompressingTransformer().apply(prb);
   }
 
   if(_options.flattenTopLevelConjunctions()) {
+    LOG("pp_progress","flatten top-level conjunctions");
     TopLevelFlatten().apply(prb);
   }
 
   if(_options.aigInliner()) {
+    LOG("pp_progress","aig inlining");
     AIGInliner().apply(prb);
   }
 
   if(_options.aigConditionalRewriting()) {
+    LOG("pp_progress","aig conditional rewriting");
     AIGConditionalRewriter().apply(prb);
   }
 
   if(_options.aigDefinitionIntroduction()) {
+    LOG("pp_progress","aig definition introduction");
     AIGDefinitionIntroducer(_options.aigDefinitionIntroductionThreshold()).apply(prb);
   }
 
   if (_options.unusedPredicateDefinitionRemoval()) {
     env.statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
+    LOG("pp_progress","unused predicate definition removal");
     PredicateDefinition pdRemover;
     pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
   }
 
   if (prb.mayHaveFormulas()) {
+    LOG("pp_progress","preprocess 2 (ennf,flatten)");
     preprocess2(prb);
   }
 
   if (_options.equalityPropagation() && prb.mayHaveEquality()) {
     env.statistics->phase=Statistics::EQUALITY_PROPAGATION;
+    LOG("pp_progress","equality propagation");
     EqualityPropagator().apply(prb);
   }
 
   if (prb.mayHaveFormulas() && _options.naming()) {
+    LOG("pp_progress","naming");
     naming(prb);
   }
 
   if (prb.mayHaveFormulas()) {
+    LOG("pp_progress","preprocess3 (nnf, flatten, skolemize)");
     preprocess3(prb);
   }
 
   //we redo the naming if the last naming was restricted by preserving EPR
   if (prb.mayHaveFormulas() && _options.naming() && _options.eprPreservingNaming()) {
+    LOG("pp_progress","stage 2 of epr preserving naming");
     secondStageEprPreservingNaming(prb);
   }
 
@@ -282,11 +312,13 @@ void Preprocess::preprocess (Problem& prb)
 //   }
 
   if (prb.mayHaveFormulas()) {
+    LOG("pp_progress","clausify");
     clausify(prb);
   }
 
   if(prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
+    LOG("pp_progress","function definition elimination");
     if(_options.functionDefinitionElimination() == Options::FDE_ALL) {
       FunctionDefinition fd;
       fd.removeAllDefinitions(prb);
@@ -298,6 +330,7 @@ void Preprocess::preprocess (Problem& prb)
 
 
   if (prb.mayHaveEquality() && _options.inequalitySplitting() != 0) {
+    LOG("pp_progress","inequality splitting");
     env.statistics->phase=Statistics::INEQUALITY_SPLITTING;
     InequalitySplitting is(_options);
     is.perform(prb);
@@ -324,23 +357,27 @@ void Preprocess::preprocess (Problem& prb)
    if (_options.equalityResolutionWithDeletion()!=Options::RA_OFF &&
 	   prb.mayHaveInequalityResolvableWithDeletion() ) {
      env.statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
+     LOG("pp_progress","equality resolution with deletion");
      EqResWithDeletion resolver;
      resolver.apply(prb);
    }
 
    if(_options.trivialPredicateRemoval()) {
      env.statistics->phase=Statistics::UNKNOWN_PHASE;
+     LOG("pp_progress","trivial predicate removal");
      TrivialPredicateRemover().apply(prb);
    }
 
    if (_options.generalSplitting()!=Options::RA_OFF) {
      env.statistics->phase=Statistics::GENERAL_SPLITTING;
+     LOG("pp_progress","general splitting");
      GeneralSplitting gs;
      gs.apply(prb);
    }
 
    if(_options.hornRevealing()) {
      env.statistics->phase=Statistics::HORN_REVEALING;
+     LOG("pp_progress","horn revealing");
      HornRevealer hr(_options);
      hr.apply(prb);
    }
@@ -348,6 +385,7 @@ void Preprocess::preprocess (Problem& prb)
    if(_options.equalityProxy()!=Options::EP_OFF && prb.mayHaveEquality() &&
 	   (prb.mayHaveXEqualsY() || _options.equalityProxy()!=Options::EP_ON) ) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
+     LOG("pp_progress","equality proxy");
      EqualityProxy proxy(_options.equalityProxy());
      proxy.apply(prb);
    }

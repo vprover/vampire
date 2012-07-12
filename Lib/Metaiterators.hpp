@@ -1306,6 +1306,74 @@ ELEMENT_TYPE(It) getFirstTrue(It it, Pred pred)
 }
 
 /**
+ * Do folding on iterator it using fn which is a function taking
+ * iterator element as first argument and the intermediate result
+ * as the second.
+ */
+template<class It, typename Fun, typename Res>
+Res fold(It it, Fun fn, Res init)
+{
+  CALL("fold/3");
+  Res res = init;
+  while(it.hasNext()) {
+    res = fn(it.next(), res);
+  }
+  return res;
+}
+
+/**
+ * Do folding on iterator it using fn which is a function taking
+ * iterator element as first argument and the intermediate result
+ * as the second.
+ * it must be a non-empty iterator.
+ */
+template<class It, typename Fun>
+ELEMENT_TYPE(It) fold(It it, Fun fn)
+{
+  CALL("fold/2");
+
+  ALWAYS(it.hasNext());
+  ELEMENT_TYPE(It) init = it.next();
+  return fold(it,fn,init);
+}
+
+/** sum function, useful for fold */
+template<typename T>
+T sumFn(T a1, T a2) { return a1+a2; }
+
+/** max function, useful for fold */
+template<typename T>
+T maxFn(T a1, T a2) { return max(a1,a2); }
+
+
+template<class It>
+struct StmJoinAuxStruct
+{
+  StmJoinAuxStruct(string glue, It it) : _glue(glue), _it(it) {}
+  string _glue;
+  It _it;
+};
+
+template<class It>
+StmJoinAuxStruct<It> join(string glue, It it)
+{
+  return StmJoinAuxStruct<It>(glue, it);
+}
+template<typename It>
+std::ostream& operator<< (ostream& out, const StmJoinAuxStruct<It>& info )
+{
+  It it = info._it;
+  while(it.hasNext()) {
+    out << it.next();
+    if(it.hasNext()) {
+      out << info._glue;
+    }
+  }
+  return out;
+}
+
+
+/**
  * Split iterator @c it into two iterators in the element satisfying
  * the @c edge predicate. If there is no element satisfying @c edge,
  * return false, put the original iterator into res1 and make res2 empty.
@@ -1367,7 +1435,27 @@ ConstEqPred<T> constEqPred(const T& val) {
   return ConstEqPred<T>(val);
 }
 
+template<typename OuterFn, typename InnerFn>
+struct CompositionFn {
+  DECL_RETURN_TYPE(RETURN_TYPE(OuterFn));
+  CompositionFn(OuterFn outer, InnerFn inner)
+   : _outer(outer), _inner(inner) { }
 
+  template<typename Arg>
+  OWN_RETURN_TYPE operator()(Arg a) {
+    return _outer(_inner(a));
+  }
+private:
+  OuterFn _outer;
+  InnerFn _inner;
+};
+
+template<typename OuterFn, typename InnerFn>
+CompositionFn<OuterFn,InnerFn> getCompositionFn(OuterFn outer, InnerFn inner)
+{
+  CALL("getCompositionFn");
+  return CompositionFn<OuterFn,InnerFn>(outer,inner);
+}
 
 template<class P>
 struct GetFirstOfPair {

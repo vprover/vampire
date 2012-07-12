@@ -474,6 +474,9 @@ void Logging::doTagDeclarations()
 
   DECL("pp",
       DOC("preprocessing traces"));
+  DECL("pp_progress",
+      DOC("progress of preprocessing, shows which rule is being currently executed"),
+      PARENT("pp",1));
 
   DECL("pp_input",
       DOC("print-out the problem as received from the parser"),
@@ -801,6 +804,10 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_cr",
       DOC("aig conditional rewriting"),
       PARENT("pp_aig",1));
+  DECL("pp_aig_cr_progress",
+      DOC("high-level steps done within the conditional rewriting rule"),
+      PARENT("pp_aig_cr",1),
+      PARENT("pp_progress",1));
   DECL("pp_aig_cr_engine_step",
       DOC("single step of the rewriting engine"),
       PARENT("pp_aig_cr",2));
