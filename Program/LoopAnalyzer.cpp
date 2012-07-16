@@ -22,7 +22,7 @@
 #include "Api/Problem.hpp"
 #include "Kernel/Problem.hpp"
 
-
+#include "InvariantHelper.h"
 #include "Variable.hpp"
 #include "Expression.hpp"
 #include "Statement.hpp"
@@ -44,12 +44,26 @@ using namespace Kernel;
 using namespace Program;
 using namespace Shell;
 using namespace Saturation;
+#define NN false
 
 /** Constructor, just saves the program */
 LoopAnalyzer::LoopAnalyzer(WhileDo* loop)
   : _loop(loop),
     _units(0)
-{}
+{
+  //just for testing pupropse
+#if NN
+  _n=Term::createConstant(getIntConstant("n"));
+#endif
+  }
+
+unsigned LoopAnalyzer::getIntConstant(string name){
+#if !NN
+  return getIntFunction(name, 0);
+#else
+  return (name=="n"? getIntFunction(name, 0, true) :getIntFunction(name, 0, false));
+#endif
+}
 
 /**
  * Simple loop analysis. Does the following:
@@ -62,8 +76,6 @@ LoopAnalyzer::LoopAnalyzer(WhileDo* loop)
 void LoopAnalyzer::analyze()
 {
   CALL("LoopAnalyzer::analyze");
-
-  cout <<"env.showSymbolElimination "<<(env.options->showSymbolElimination()==true? "on":"off")<<endl;
   cout << "Analyzing loop...\n";
   cout << "---------------------\n";
   _loop->prettyPrint(cout);
@@ -74,6 +86,7 @@ void LoopAnalyzer::analyze()
   cout << "\nCollecting paths...\n";
   cout << "---------------------\n";
   collectPaths();
+  TermList n(Term::createConstant(getIntFunction("n",0,true)));
   // output paths
   Stack<Path*>::Iterator it(_paths);
    //cout << "number of paths: " <<length<<"\n";
@@ -89,20 +102,22 @@ void LoopAnalyzer::analyze()
   generateUpdatePredicates();
   cout << "\nGenerate correspondence between final (initial) values and final (initial) functions of variables...\n";
   cout << "---------------------\n";
-  generateValueFunctionRelationsOfVariables();
+  generateValueFunctionRelationsOfVariables(n);
   cout << "\nGenerate loop condition property...\n";
   cout << "---------------------\n";
   generateLoopConditionProperty();
   cout << "\nCollected first-order loop properties...\n";
   cout << "---------------------\n";
-  generateIterationDefinition();
+  generateIterationDefinition(n);
+  setEnvironmentOptions();
   UnitList::Iterator units(_units);
   while (units.hasNext()) {
     cout <<units.next()->toString() << "\n";
    }
   cout<<"\nGenerationg the SEI problem ... \n"<<endl;
   cout << "---------------------\n";
-  simpleSEIProblem();
+  InvariantHelper ih(_units, 10);
+  ih.run();
 
 }
 
@@ -114,33 +129,46 @@ void LoopAnalyzer::setEnvironmentOptions()
   //set the color of the reserved variable n to LEFT
   env.colorUsed = true;
   Signature::Symbol* sym;
-  for (unsigned int i = 1; i < env.signature->functions(); i++) {
+  for (unsigned int i = 0; i < env.signature->functions(); i++) {
     if (env.signature->getFunction(i)->name() == "n") {
       sym = env.signature->getFunction(i);
+      sym->addColor(COLOR_LEFT);
       break;
     }
   }
-  sym->addColor(COLOR_LEFT);
 
-  //set the options for symbol elimination
-  env.options->set("splitting", "off");
-  env.options->set("show_symbol_elimination", "on");
+  VariableInfo* ff;
+  Variable* v;
+  Set<Variable*>::Iterator ite(_updatedVariables);
+  while(ite.hasNext()){
+     v=ite.next();
+    _variableInfo.find(v, ff);
 
-  //cout<<"time limit"<< env.options->timeLimitInDeciseconds()/10<<endl;
-  if (env.options->timeLimitInDeciseconds() == 0)
-    env.options->set("time_limit", "10");
-
-  env.options->setNaming(32000);
+    cout<<v->name()<<"  sca "<<ff->scalar<<" co "<<ff->counter<<ff->extraSignatureNumber<<endl;}
+     //cout<<_variableInfo.find(ite.next()) <<endl;
 }
 
 Problem* LoopAnalyzer::getPreprocessedProblem()
 {
   CALL("LoopAnalyzer::getPreprocessedProblem");
   Problem* prb = new Problem(_units);
-
+/*
+  UnitList::Iterator uite(prb->units());
+  while(uite.hasNext())
+    cout<<uite.next()->toString()<<endl;
+*/
   Preprocess p(*env.options);
   p.preprocess(*prb);
 
+  /*cout<<"PREPROCESSED PROBLEM: "<<endl;
+
+  UnitList *ul = prb->units();
+  UnitList::Iterator ite(ul);
+  while(ite.hasNext())
+    cout<<ite.next()->toString()<<endl;
+
+  cout<<"--------------------------------------------"<<endl;
+*/
   return prb;
 }
 
@@ -156,15 +184,23 @@ void LoopAnalyzer::simpleSEIProblem()
   setEnvironmentOptions();
   ScopedPtr<Problem> problem(getPreprocessedProblem());
 
- /* Preprocess p(*env.options);
+ Preprocess p(*env.options);
   p.preprocess(*problem);
 
+  UnitList::Iterator ite(problem->units());
+  while(ite.hasNext())
+    cout<<ite.next()->toString()<<endl;
+
+  cout<<"--------------------------------------------"<<endl;
+
+/*
   if(problem->hasInterpretedOperations()) {
      InterpretedNormalizer().apply(*problem);
      TheoryAxioms().apply(*problem);
    }
   */
-   ProvingHelper::runVampireSaturation(*problem, *env.options);
+
+  // ProvingHelper::runVampireSaturation(*problem, *env.options);
   //ProvingHelper::runVampireSaturation(*problem, *env.options);
   //clear the signature - this feature seems to be needed if one has more
   //than one loop to analyze in the same .c file
@@ -298,12 +334,13 @@ void LoopAnalyzer::analyzeVariables()
     // adding the symbol to the signature
     unsigned arity = vinfo->scalar ? 0 : 1;
     string name(v->name());
-    vinfo->signatureNumber = getIntFunction(name,arity);
+    vinfo->signatureNumber = getIntFunction(name,arity,false);
     if (arity == 0) {
       vinfo->constant = Term::create(vinfo->signatureNumber,0,0);
     }
     if (vinfo->updated) {
-      vinfo->extraSignatureNumber = getIntFunction(name,arity+1, true);
+      vinfo->extraSignatureNumber = getIntFunction(name,arity+1,true);
+      _updatedVariables.insert(v);
       // cout << "variable: "<<name <<" with: "<<vinfo->extraSignatureNumber<< " with arity: "<< arity+1<<"\n";
     }
     
@@ -407,7 +444,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
        //create term for array variable
        Expression*  expArray=  static_cast<ArrayApplicationExpression*>(exp)->array();
        string varName=expArray->toString();
-       unsigned arrayFct=getIntFunction(varName,1);
+       unsigned arrayFct=getIntFunction(varName,1,false);
        //create term represenation for array arguments
        Expression*  expArrayArguments=  static_cast<ArrayApplicationExpression*>(exp)->argument();
        TermList varArg= expressionToTerm(expArrayArguments);
@@ -475,7 +512,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
 		     //create term for uninterpreted function
 		     Expression*  uiFct=  app->function();
 		     string uiFctName=uiFct->toString();
-		     unsigned uiFctNameTerm=getIntFunction(uiFctName,1);
+		     unsigned uiFctNameTerm=getIntFunction(uiFctName,1,false);
 		     //create term representation for arguments e1
 		     Expression* e1 = app->getArgument(0);
 		     TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
@@ -599,7 +636,7 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
 		   Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 		   TermList argTerms = expressionToTerm(lhsArrayArguments);
 		   string arrayName=lhsArray->toString();
-		   unsigned arrayFct1=getIntFunction(arrayName,1);
+		   unsigned arrayFct1=getIntFunction(arrayName,1,false);
 		   TermList x1;
 		   x1.makeVar(1);
 		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
@@ -641,7 +678,7 @@ Formula* LoopAnalyzer::letTranslationOfVar(VariableMap::Iterator& varit, Formula
       if (winfo->counter) { // do this only for updated scalar variables
 	string warName=w->name();
 	TermList war(Term::createConstant(getIntConstant(warName)));
-	unsigned warFun = getIntFunction(warName,1);
+	unsigned warFun = getIntFunction(warName,1,false);
 	// term x0
 	TermList x0;
 	x0.makeVar(0);
@@ -673,8 +710,8 @@ Formula* LoopAnalyzer::letTranslationOfArray(Map<Variable*,bool>::Iterator &sit,
       bool array = (v->vtype()->kind() == Type::ARRAY);
       if (updated & array) {//it is an updated array
 	      string varName=v->name();
-	      unsigned arrayFct1=getIntFunction(varName,1);
-	      unsigned arrayFct2=getIntFunction(varName,2);
+	      unsigned arrayFct1=getIntFunction(varName,1,false);
+	      unsigned arrayFct2=getIntFunction(varName,2,true);
 	      // term x0
 	      TermList x0;
 	      x0.makeVar(0);
@@ -721,7 +758,7 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
 		   Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 		   TermList argTerms = expressionToTerm(lhsArrayArguments);
 		   string arrayName=lhsArray->toString();
-		   unsigned arrayFct1=getIntFunction(arrayName,1);
+		   unsigned arrayFct1=getIntFunction(arrayName,1,false);
 		   TermList x1;
 		   x1.makeVar(1);
 		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
@@ -819,7 +856,7 @@ void LoopAnalyzer::generateLetExpressions()
 	   TermList scalarVar(Term::createConstant(getIntConstant(varName)));
 	   var =scalarVar;
 	   //create Vampire terms for variable v:  v(X0+1)
-	   unsigned varFun = getIntFunction(varName,1);
+	   unsigned varFun = getIntFunction(varName,1,true);
 	   // term v(x0)
 	   // TermList varX0(Term::create(varFun,1,&x0));
 	   //term v(x0+1)
@@ -829,8 +866,8 @@ void LoopAnalyzer::generateLetExpressions()
 	 if (array)
 	   {
 	     //create Vampire terms for array V: V(X1), V(X0+1,X1)
-	      unsigned varFun1 = getIntFunction(varName,1);
-	      unsigned varFun2 = getIntFunction(varName,2);
+	      unsigned varFun1 = getIntFunction(varName,1,false);
+	      unsigned varFun2 = getIntFunction(varName,2,true);
 	      // term x1
 	      TermList x1;
 	      x1.makeVar(1);
@@ -902,7 +939,7 @@ TermList LoopAnalyzer::arrayUpdateValue(Path::Iterator &sit, TermList exp, int p
 		   Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 		   TermList argTerms = expressionToTerm(lhsArrayArguments);
 		   string arrayName=lhsArray->toString();
-		   unsigned arrayFct1=getIntFunction(arrayName,1);
+		   unsigned arrayFct1=getIntFunction(arrayName,1,false);
 		   TermList x1;
 		   x1.makeVar(1);
 		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
@@ -995,7 +1032,7 @@ TermList LoopAnalyzer::arrayUpdatePosition(Path::Iterator &sit, TermList updPosE
 		   Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 		   TermList argTerms = expressionToTerm(lhsArrayArguments);
 		   string arrayName=lhsArray->toString();
-		   unsigned arrayFct1=getIntFunction(arrayName,1);
+		   unsigned arrayFct1=getIntFunction(arrayName,1,false);
 		   TermList x1;
 		   x1.makeVar(1);
 		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
@@ -1111,7 +1148,6 @@ Formula* LoopAnalyzer::updatePredicateOfArray2(Path* path, Path::Iterator &sit, 
 		      //create iteration predicate of one argument
 		      TermList x0;
 		      x0.makeVar(0);//variable for loop iteration
-		      env.colorUsed=true;
 		      unsigned iterPred = getIntPredicate("iter",1, true);
 
 		      Literal* iter = Literal::create1(iterPred,true,x0);
@@ -1194,8 +1230,6 @@ Formula* LoopAnalyzer::updatePredicateOfArray3(Path* path, Path::Iterator &sit, 
 		      //create iteration predicate of one argument
 		      TermList x0;
 		      x0.makeVar(0);//variable for loop iteration
-		      env.colorUsed=true;
-		      Signature::Symbol* sym;
 		      unsigned iterPred = getIntPredicate("iter",1, true);
 		      Literal* iter = Literal::create1(iterPred,true,x0);
 		      //compute the update value wrt lets
@@ -1393,11 +1427,14 @@ void LoopAnalyzer::generateUpdatePredicates()
  * V(n,P) = V(P) and V(zero,P)=V0(P), for any updated array V
  * v(n)=v and v(zero)=v0, for any updated scalar
  */
-void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
+void LoopAnalyzer::generateValueFunctionRelationsOfVariables(TermList n)
 {
    CALL("LoopAnalyzer::generateValueFunctionRelationsOfVariables");
-   //create loop counter n and position x2
+   //create loop counter n and position x2 //test purpose
+#if NN
+   TermList n(_n);//Term::createConstant(getIntConstant("n")));
    TermList n(Term::createConstant(getIntConstant("n")));
+#endif
    TermList x2;
    x2.makeVar(2);
    Theory* theory = Theory::instance();
@@ -1494,7 +1531,7 @@ void LoopAnalyzer::generateLoopConditionProperty()
  *Generate the definition of iteration:
  * iter(X) <=> geq(X,0) && greater(n,X)
  */
-void LoopAnalyzer::generateIterationDefinition()
+void LoopAnalyzer::generateIterationDefinition(TermList n)
 {
   CALL("LoopAnalyzer::generateIterationDefinition");
   //iter(X0)
@@ -1507,8 +1544,14 @@ void LoopAnalyzer::generateIterationDefinition()
   TermList zero(theory->representConstant(IntegerConstantType(0)));
   //0<= X0
   Formula* ineqXZero = new AtomicFormula(theory->pred2(Theory::INT_LESS_EQUAL,true,zero,x0));
+  //test something
+  Expression* condE = _loop->condition();
   //X0<n
+#if NN
+  TermList n(_n);
+
   TermList n(Term::createConstant(getIntConstant("n")));
+#endif
   Formula* ineqXn = new AtomicFormula(theory->pred2(Theory::INT_LESS,true,x0,n));
   //0<= X0 && X0<n
   Formula* iterDef =  new JunctionFormula(AND, ((new FormulaList(ineqXn)) -> cons(ineqXZero)));
@@ -1743,8 +1786,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
 
 
 
-
-
 /**
  * Convert a program expression into a Vampire expression and relativize it to
  * the loop counter. This means that every updatable program variable gets an
@@ -1787,14 +1828,14 @@ unsigned LoopAnalyzer::getIntFunction(string name, unsigned arity, bool setColor
   bool added;
   unsigned res = env.signature->addFunction(name, arity, added);
   Signature::Symbol* symb = env.signature->getFunction(res);
-
-  env.colorUsed=true;
-  if(setColor)
-    symb->addColor(COLOR_LEFT);
-  else
-    symb->markSkip();
-
   if(added) {
+    env.colorUsed=true;
+    if(setColor)
+    {
+        symb->addColor(COLOR_LEFT);
+        symb->markIntroduced();
+    }
+
     static DArray<unsigned> domSorts;
     domSorts.init(arity, Sorts::SRT_INTEGER);
     symb->setType(BaseType::makeType(arity, domSorts.array(), Sorts::SRT_INTEGER));
@@ -1816,12 +1857,12 @@ unsigned LoopAnalyzer::getIntPredicate(string name, unsigned arity, bool setColo
   unsigned res = env.signature->addPredicate(name, arity, added);
   Signature::Symbol* symb = env.signature->getPredicate(res);
 
-  if(setColor){
-    env.colorUsed=true;
-    symb->addColor(COLOR_LEFT);
-  }
-
   if(added) {
+    if(setColor){
+      env.colorUsed=true;
+      symb->addColor(COLOR_LEFT);
+    }
+
     static DArray<unsigned> domSorts;
     domSorts.init(arity, Sorts::SRT_INTEGER);
     symb->setType(BaseType::makeType(arity, domSorts.array(), Sorts::SRT_BOOL));

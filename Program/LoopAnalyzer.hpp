@@ -65,7 +65,6 @@ private:
   typedef Map<Variable*,VariableInfo*> VariableMap;
   /** map from constant scalar variables to the corresponding terms */
   VariableMap _variableInfo;
-
   Variable* isScalarAssignment(const Statement* st);
   static int isScalarIncrement(const Assignment* ass);
   void analyzeVariables();
@@ -91,13 +90,13 @@ private:
   TermList arrayUpdateValue(Path::Iterator &sit, TermList exp, int posCnt, int currentCnt);
   Formula* lastUpdateProperty(Literal* updPred, string array, TermList position, TermList updValue);
   Formula* stabilityProperty(Literal* updPred, string array, TermList position, TermList iteration);
-  void generateValueFunctionRelationsOfVariables();
+  void generateValueFunctionRelationsOfVariables(TermList n);
   void generateLoopConditionProperty();
-  void generateIterationDefinition();
+  void generateIterationDefinition(TermList n);
   void simpleSEIProblem();
 
   unsigned getIntFunction(string name, unsigned arity, bool setColor=false);
-  unsigned getIntConstant(string name) { return getIntFunction(name, 0); }
+  unsigned getIntConstant(string name);
   unsigned getIntPredicate(string name, unsigned arity, bool setColor);
   Literal* createIntEquality(bool polarity, TermList arg1, TermList arg2)
   { return Literal::createEquality(polarity, arg1, arg2, Sorts::SRT_INTEGER); }
@@ -112,6 +111,7 @@ private:
   Stack<Path*> _paths;
   /** all generated units */
   List<Unit*>* _units;
+  Term* _n;
 
   
 }; // class Analyze
