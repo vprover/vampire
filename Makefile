@@ -353,7 +353,8 @@ VPROG_OBJ = Program/Type.o\
            Program/Path.o\
            Program/Expression.o\
            Program/Statement.o\
-           Program/Variable.o
+           Program/Variable.o\
+	   Program/InvariantHelper.o
 
 VTAB_OBJ = Tabulation/Producer.o\
            Tabulation/TabulationAlgorithm.o\

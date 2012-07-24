@@ -22,7 +22,7 @@
 #include "Api/Problem.hpp"
 #include "Kernel/Problem.hpp"
 
-#include "InvariantHelper.h"
+#include "InvariantHelper.hpp"
 #include "Variable.hpp"
 #include "Expression.hpp"
 #include "Statement.hpp"

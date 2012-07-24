@@ -48,9 +48,7 @@ using namespace Saturation;
 
 namespace Program
 {
-
-InvariantHelper::~InvariantHelper(){}
-
+  InvariantHelper::~InvariantHelper(){}
 void InvariantHelper::setSEIOptions(int timeLimit)
 {
   CALL("InvariantHelper::setSEIOptions");
