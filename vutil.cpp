@@ -30,7 +30,7 @@
 #include "VUtils/FOEquivalenceDiscovery.hpp"
 #include "VUtils/PreprocessingEvaluator.hpp"
 #include "VUtils/ProblemColoring.hpp"
-#include "VUtils/SatReplayer.hpp"
+#include "VUtils/SATReplayer.hpp"
 #include "VUtils/SimpleSMT.hpp"
 #include "VUtils/SMTLIBConcat.hpp"
 #include "VUtils/Z3InterpolantExtractor.hpp"
