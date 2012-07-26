@@ -155,6 +155,8 @@ public:
 class SMTSolver
 {
 public:
+  virtual ~SMTSolver() {}
+
   void run(SMTBenchmark& problem, SMTSolverResult& res)
   {
     run(problem, res, 0);

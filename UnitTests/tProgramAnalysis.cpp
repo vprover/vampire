@@ -40,7 +40,7 @@ using namespace Program;
 //13   }
 //14 }
 
-TEST_FUN(canonical)
+TEST_FUN(canonical1)
 {
   Variable* va = new Variable("a",Type::integerType());
   Variable* vb = new Variable("b",Type::integerType());
