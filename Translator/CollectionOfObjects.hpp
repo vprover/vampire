@@ -54,7 +54,7 @@ public:
 	  Program::ArrayApplicationExpression* obj);
   void insertWhileDo(std::string key, Program::WhileDo* obj);
   void insertIfThenElse(std::string key, Program::IfThenElse* obj);
-
+  void insertIfThen(std::string key, Program::IfThen* obj);
   Program::Assignment* getAssignment(std::string key);
   Program::Block* getBlock(std::string key);
   Program::VariableExpression* getVarExpression(std::string key);
@@ -65,7 +65,7 @@ public:
 	  std::string key);
   Program::WhileDo* getWhile(std::string key);
   Program::IfThenElse* getIfThenElse(std::string key);
-
+  Program::IfThen* getIfThen(std::string key);
   bool findAssignemt(std::string key);
   bool findBlock(std::string key);
   bool findVarExpression(std::string key);
@@ -74,6 +74,7 @@ public:
   bool findArrayApplication(std::string key);
   bool findWhileDo(std::string key);
   bool findIfThenElse(std::string key);
+  bool findIfThen(std::string key);
   void insertMainProgramStatement(int number, Program::Statement* stmt);
   void insertMainProgramStatement(Program::Statement* stmt);
   void insertVariable(std::string key, Program::Variable* obj);
@@ -100,6 +101,7 @@ private:
 
   Lib::Map<std::string, Program::WhileDo*> _mapOfWhile;
   Lib::Map<std::string, Program::IfThenElse*> _mapOfThenElse;
+  Lib::Map<std::string, Program::IfThen*> _mapOfIfThen;
   Lib::Map<int, Program::Statement*> _mapOfMainProgramStatements;
 
 };

@@ -30,11 +30,15 @@ private:
   clang::SourceManager* source_manager;
   clang::ASTContext *ctx;
   int _whileToAnalyze;
+  int _functionNumber;
+  int _timeLimit;
+  unsigned int function_number;
 
 public:
   MyASTConsumer() :
     ASTConsumer()
   {
+    function_number = 0;
   }
   virtual ~MyASTConsumer()
   {
@@ -46,6 +50,9 @@ public:
     _whileToAnalyze = wno;
   }
 
+  void SetFunctionNumber(int no){
+    _functionNumber=no;
+  }
   virtual void HandleTopLevelDecl(DeclGroupRef d);
 };
 }

@@ -156,8 +156,14 @@ void newTranslator::VisitStmt(const Stmt* stmt)
 
     //case the statement is a while statement
     if (::clang::WhileStmt::classof(*it)) {
-
       const ::clang::WhileStmt *ws = (const ::clang::WhileStmt *) (*it);
+      clang::SourceLocation sl = ws->getWhileLoc();
+      //sl.dump(ctx->getSourceManager());
+      clang::SourceManager &sm = ctx->getSourceManager();
+      clang::FullSourceLoc fsl(sl, sm);
+      if(_whileToAnalyze == -1){
+      cout << "WHILE LOCATION: " << fsl.getSpellingLineNumber()<<endl;
+      }
       Visit(ws->getCond());
       if (flag == true) {
 	addToMainProgram("Whl_" + numeUitat);
@@ -225,7 +231,9 @@ void newTranslator::VisitStmt(const Stmt* stmt)
       if (flag == false)
 	Body.insert(Body.end(), bac);
       else
+	if (_else!=NULL)
 	colect->insertMainProgramStatement(colect->getIfThenElse(bac));
+	else colect->insertMainProgramStatement(colect->getIfThen(bac));
 
     } else {
       //all the other cases (assignments, initialization expressions)
@@ -257,6 +265,7 @@ void newTranslator::VisitWhileStmt(const ::clang::WhileStmt *stmt)
 {
   CALL("newTranslator::VisitWhileStmt");
   Visit(stmt->getCond());
+  stmt->getWhileLoc().dump(ctx->getSourceManager());
   Visit(stmt->getBody());
 
 }
@@ -736,16 +745,19 @@ void newTranslator::RunRewriting()
       mainBlock->setStatement(i, colect->getIfThenElse(_mainProgram[i]));
       // colect->insertMainProgramStatement(i, colect->getIfThenElse(_mainProgram[i]));
       break;
+    case 4:
+      mainBlock->setStatement(i, colect->getIfThen(_mainProgram[i]));
+      break;
     default:
       ASSERTION_VIOLATION
       ;
       break;
     };
   }
-
   colect->insertBlock("main_", mainBlock);
-  // mainBlock->prettyPrint(cout, 4);
-  colect->runAnalysis(_whileToAnalyze);
+  if(_whileToAnalyze!=-1);
+   colect->runAnalysis(_whileToAnalyze);
+
 
 }
 
@@ -782,6 +794,8 @@ void newTranslator::writeWhileStatments()
 	  wBlock->setStatement(j - b_while - 2, colect->getWhile(Body[j]));
 	else if (colect->findIfThenElse(Body[j]))
 	  wBlock->setStatement(j - b_while - 2, colect->getIfThenElse(Body[j]));
+	else if (colect->findIfThen(Body[j]))
+	  wBlock->setStatement(j-b_while-2, colect->getIfThen(Body[j]));
 	else {
 	  ASSERTION_VIOLATION;
 	}
@@ -816,6 +830,8 @@ void newTranslator::writeWhileStatments()
 	wBlock->setStatement(j, colect->getAssignment(Body[j]));
       else if (colect->findIfThenElse(Body[j]))
 	wBlock->setStatement(j, colect->getIfThenElse(Body[j]));
+      else if (colect->findIfThen(Body[j]))
+	wBlock->setStatement(j, colect->getIfThen(Body[j]));
       else
 	wBlock->setStatement(j, colect->getWhile(Body[j]));
     }
@@ -835,6 +851,9 @@ void newTranslator::writeWhileStatments()
 
 }
 
+///TODO: add the appropriate behaviour for if cond then ; else statements
+//one idea would be to negate the condition and create an IfThen* structure
+//with then branch as the else
 void newTranslator::writeIfStatments(string att)
 {
   CALL("newTranslator::writeIfStatements");
@@ -883,7 +902,7 @@ void newTranslator::writeIfStatments(string att)
   ::std::string _then, _else;
   n = (e_then - b_then - 1);
 
-  Program::IfThenElse* ite;
+
   Program::Block* _thenP, *_elseP;
 
   _thenP = new Program::Block(n);
@@ -905,6 +924,7 @@ void newTranslator::writeIfStatments(string att)
 
 
   n = (e_else - b_else - 1);
+  if (n>0){
   _elseP = new Program::Block(n);
   if (b_else != -1 && e_else != -1) {
     for (i = b_else + 1; i < e_else; i++) {
@@ -919,7 +939,7 @@ void newTranslator::writeIfStatments(string att)
       colect->insertBlock(_else, _elseP);
   } else
     _else = "NULL";
-
+  }
   int c = b_inIf;
 
   for (i = e_inIf + 1; i < Body.size(); i++) {
@@ -928,10 +948,19 @@ void newTranslator::writeIfStatments(string att)
   }
 
   ::std::string st = "if_" + Body[b_inIf + 1];
-
-  ite = new Program::IfThenElse(colect->getFunctionApplicationExpression(
+  if (n>0)
+    {
+    Program::IfThenElse* ite;
+    ite = new Program::IfThenElse(colect->getFunctionApplicationExpression(
 	  Body[b_inIf + 1]), _thenP, _elseP);
-  colect->insertIfThenElse("if_" + Body[b_inIf + 1], ite);
+    colect->insertIfThenElse("if_" + Body[b_inIf + 1], ite);
+    }
+  else
+    {
+    Program::IfThen* ift = new Program::IfThen(colect->getFunctionApplicationExpression(Body[b_inIf+1]), _thenP);
+    colect->insertIfThen("if_"+ Body[b_inIf+1],ift);
+    }
+
   Body.clear();
 
   Body = backup;
@@ -957,9 +986,12 @@ const ::clang::VarDecl * newTranslator::GetVarDecl(const ::clang::Expr* expr)
     const ValueDecl* val_decl = ((const DeclRefExpr*) expr)->getDecl();
     if (VarDecl::classof(val_decl)) {
       var_decl = (const VarDecl*) val_decl;
+
     }
   }
 
+  //clang::QualType type = var_decl->getType();
+  //cout<<"cuala tip"<< clang::QualType::getAsString(type.split())<<endl;
   return var_decl;
 
 }
@@ -1363,7 +1395,7 @@ std::string newTranslator::simpleExpression(const clang::Expr* exp)
     }
 
     if (::clang::ImplicitCastExpr::classof(exp)) {
-      const ::clang::ImplicitCastExpr *e = dyn_cast< ::clang::ImplicitCastExpr> (exp);
+      const ::clang::ImplicitCastExpr *e = dyn_cast<::clang::ImplicitCastExpr> (exp);
       ::std::string composition = "", idx = "", nme = "";
       Program::ArrayApplicationExpression* arrApp;
 

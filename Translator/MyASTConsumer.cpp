@@ -36,21 +36,23 @@ void MyASTConsumer::Initialize(clang::ASTContext& context)
 
 void MyASTConsumer::HandleTopLevelDecl(clang::DeclGroupRef d)
 {
-
   clang::DeclGroupRef::iterator it;
   for (it = d.begin(); it != d.end(); it++) {
 
     clang::Decl* declaration = *it;
 
     if (clang::FunctionDecl::classof(declaration)) {
+      function_number++;
+      cout << "Function number: "<<function_number<<endl;
       ::clang::FunctionDecl* function_declaration =
 	      (::clang::FunctionDecl*) declaration;
-      if (function_declaration->hasBody()) {
-
+      if (function_declaration->hasBody() && (_functionNumber == function_number || _whileToAnalyze==-1 || _functionNumber == 0)) {
+	const clang::SourceLocation sl = function_declaration->getLocStart();
+	//sl.dump(*source_manager);
 	// do an analysis
 	::clang::Stmt* body = declaration->getBody();
-	::std::cout << "Analyze function "
-		<< function_declaration->getDeclName().getAsString() << "; \n";
+	//::std::cout << "Analyze function "
+	//	<< function_declaration->getDeclName().getAsString() << "; \n";
 	newTranslator cc(body, ctx);
 	cc.SetWhileToAnalyze(_whileToAnalyze);
 	cc.RunRewriting();
@@ -58,8 +60,8 @@ void MyASTConsumer::HandleTopLevelDecl(clang::DeclGroupRef d)
       }
 
     }
-
   }
+
 
 }
 }

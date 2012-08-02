@@ -130,8 +130,11 @@ Program::FunctionApplicationExpression* collectionOfObjects::getFunctionApplicat
 void collectionOfObjects::insertWhileDo(std::string key, Program::WhileDo* obj)
 {
   CALL("insertWhileDo");
+  if(env.options->getWhileNumber()==-1)
+    obj->prettyPrint(cout);
   if (_mapOfWhile.find(key) != 1)
     _mapOfWhile.insert(key, obj);
+
 }
 
 void collectionOfObjects::insertIfThenElse(std::string key,
@@ -142,12 +145,27 @@ void collectionOfObjects::insertIfThenElse(std::string key,
     _mapOfThenElse.insert(key, obj);
 }
 
+void collectionOfObjects::insertIfThen(std::string key,
+	Program::IfThen* obj)
+{
+  CALL("insertIfThen");
+  if(_mapOfIfThen.find(key)!=1)
+    _mapOfIfThen.insert(key, obj);
+}
+
 Program::IfThenElse* collectionOfObjects::getIfThenElse(std::string key)
 {
   CALL("getIfThenElse");
   Program::IfThenElse* ite = NULL;
   _mapOfThenElse.find(key, ite);
   return ite;
+}
+Program::IfThen* collectionOfObjects::getIfThen(std::string key)
+{
+   CALL("collectionOfObjects::getIfThen");
+   Program::IfThen* it = NULL;
+   _mapOfIfThen.find(key, it);
+   return it;
 }
 
 Program::WhileDo* collectionOfObjects::getWhile(std::string key)
@@ -183,6 +201,8 @@ int collectionOfObjects::chekMaps(std::string key)
     return 2;
   else if (_mapOfThenElse.find(key))
     return 3;
+  else if (_mapOfIfThen.find(key))
+    return 4;
   /*  else if(_mapOfFcApplic.find(key)) return 4;
 
    if(_mapOfBlocks.find(key)) return 5;
@@ -210,10 +230,8 @@ void collectionOfObjects::trySEI(Program::Statement* s){
   CALL("collectionOfObjects::trySEI");
 
   //set the symbol elimination mod on;
-  env.options->setSEI(true);
 
   Lib::List<Kernel::Unit *>* unitList;
-
   Program::Analyze analyzer(s);
   analyzer.analyze();
 
@@ -224,10 +242,11 @@ void collectionOfObjects::trySEI(Program::Statement* s){
 void collectionOfObjects::runAnalysis(int wN)
 {
   CALL("collectionOfObjects::runAnalysis");
-  cout<<"se ajunge si aici"<<endl;
+
   int whileNumber= env.options->getWhileNumber();
-  if (_mapOfWhile.numberOfElements() < whileNumber || whileNumber <= 0)
+  if (_mapOfWhile.numberOfElements() < whileNumber ){
     USER_ERROR("you have less whiles than the number introduced! take care @ -wno option!");
+    }
   else {
     int whileNo = 1;
     Program::Statement* s;
@@ -338,4 +357,9 @@ bool collectionOfObjects::findIfThenElse(std::string key)
   return _mapOfThenElse.find(key);
 }
 
+bool collectionOfObjects::findIfThen(std::string key)
+{
+   CALL("collectionOfObjects::findIfThen");
+   return _mapOfIfThen.find(key);
+}
 }
