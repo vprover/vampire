@@ -1395,7 +1395,7 @@ std::string newTranslator::simpleExpression(const clang::Expr* exp)
     }
 
     if (::clang::ImplicitCastExpr::classof(exp)) {
-      const ::clang::ImplicitCastExpr *e = dyn_cast<::clang::ImplicitCastExpr> (exp);
+      const ::clang::ImplicitCastExpr *e = dyn_cast< ::clang::ImplicitCastExpr> (exp);
       ::std::string composition = "", idx = "", nme = "";
       Program::ArrayApplicationExpression* arrApp;
 
