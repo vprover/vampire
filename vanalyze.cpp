@@ -67,40 +67,41 @@ using namespace VUtils;
 
 void runParsingAndAnalysis(const char* file)
 {
-	using clang::CompilerInstance;
-	using clang::TargetOptions;
-	using clang::TargetInfo;
-	using clang::FileEntry;
-	using clang::Token;
-	using clang::ASTContext;
-	using clang::ASTConsumer;
-	using clang::Parser;
+  using clang::CompilerInstance;
+  using clang::TargetOptions;
+  using clang::TargetInfo;
+  using clang::FileEntry;
+  using clang::Token;
+  using clang::ASTContext;
+  using clang::ASTConsumer;
+  using clang::Parser;
 
-	CompilerInstance ci;
-	ci.createDiagnostics(0, NULL);
+  CompilerInstance ci;
+  ci.createDiagnostics(0, NULL);
 
-	TargetOptions to;
-	to.Triple = llvm::sys::getHostTriple();
-	TargetInfo *pti = TargetInfo::CreateTargetInfo(ci.getDiagnostics(), to);
-	ci.setTarget(pti);
+  TargetOptions to;
+  to.Triple = llvm::sys::getHostTriple();
+  TargetInfo *pti = TargetInfo::CreateTargetInfo(ci.getDiagnostics(), to);
+  ci.setTarget(pti);
 
-	ci.createFileManager();
-	ci.createSourceManager(ci.getFileManager());
-	ci.createPreprocessor();
-	ci.getPreprocessorOpts().UsePredefines = false;
-	Translator::MyASTConsumer *astConsumer = new Translator::MyASTConsumer();
-	astConsumer->SetWhileNumber(env.options->getWhileNumber());
-	ci.setASTConsumer(astConsumer);
-	
-	ci.createASTContext();
+  ci.createFileManager();
+  ci.createSourceManager(ci.getFileManager());
+  ci.createPreprocessor();
+  ci.getPreprocessorOpts().UsePredefines = false;
+  Translator::MyASTConsumer *astConsumer = new Translator::MyASTConsumer();
+  astConsumer->SetWhileNumber(env.options->getWhileNumber());
+  astConsumer->SetFunctionNumber(env.options->getFunctionNumber());
+  ci.setASTConsumer(astConsumer);
 
-	const FileEntry *pFile = ci.getFileManager().getFile(file);
-	ci.getSourceManager().createMainFileID(pFile);
-	ci.getDiagnosticClient().BeginSourceFile(ci.getLangOpts(),
-						&ci.getPreprocessor());
-	clang::ParseAST(ci.getPreprocessor(), astConsumer, ci.getASTContext());
-	ci.getDiagnosticClient().EndSourceFile();
-	}
+  ci.createASTContext();
+
+  const FileEntry *pFile = ci.getFileManager().getFile(file);
+  ci.getSourceManager().createMainFileID(pFile);
+  ci.getDiagnosticClient().BeginSourceFile(ci.getLangOpts(),
+	  &ci.getPreprocessor());
+  clang::ParseAST(ci.getPreprocessor(), astConsumer, ci.getASTContext());
+  ci.getDiagnosticClient().EndSourceFile();
+}
 
 void explainException (Exception& exception)
 {
@@ -186,11 +187,15 @@ int main(int argc, char* argv [])
 
   Shell::CommandLine cl(argc,argv);
   cl.interpret(*env.options);
-  
+  int time = env.options->timeLimitInDeciseconds();
+  //readAndFilterGlobalOpts()
+
   try {
     env.options->setMode(Options::MODE_VAMPIRE);
-    env.options->setTimeLimitInDeciseconds(0);
+   // env.options->setTimeLimitInDeciseconds(0);
 
+    PROCESS_TRACE_SPEC_STRING(env.options->traceSpecString());
+    env.options->enableTracesAccordingToOptions();
 
     Allocator::setMemoryLimit(1024u*1048576ul);
 
@@ -199,6 +204,9 @@ int main(int argc, char* argv [])
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
     else {
+      //default time limit 10 seconds
+      if(time == 0 )
+	  env.options->setTimeLimitInDeciseconds(100);
      runParsingAndAnalysis(inputFile.c_str());
     }
 /*
@@ -212,6 +220,13 @@ int main(int argc, char* argv [])
     reportSpiderFail();
   }
 #endif
+  catch(TimeLimitExceededException& exception){
+    env.statistics->terminationReason=Statistics::TIME_LIMIT;
+    env.beginOutput();
+    explainException(exception);
+    env.statistics->print(env.out());
+    env.endOutput();
+  }
   catch (UserErrorException& exception) {
     reportSpiderFail();
     explainException(exception);
