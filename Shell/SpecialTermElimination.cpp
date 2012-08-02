@@ -94,13 +94,6 @@ void SpecialTermElimination::apply(UnitList*& units)
   units = UnitList::concat(_defs, units);
   _defs = 0;
 
-#if 0
-  UnitList::Iterator puit(units); //printing unit iterator
-  while(puit.hasNext()) {
-    Unit* u = puit.next();
-    cout<<u->toString()<<endl;
-  }
-#endif
 }
 
 /**
@@ -183,6 +176,7 @@ TermList SpecialTermElimination::processSpecialTerm(Term* t)
     else if(cond!=newCond || thenBranch!=*t->nthArgument(0) || elseBranch!=*t->nthArgument(1)) {
       t = Term::createTermITE(newCond, thenBranch, elseBranch);
     }
+
     return TermList(t);
   }
   else {
@@ -467,7 +461,7 @@ FormulaList* SpecialTermElimination::process(FormulaList* fs)
 
 
 /**
- * Eliminate term ITE expression @b t and resurn the resulting term.
+ * Eliminate term ITE expression @b t and return the resulting term.
  * Add the definition for introduced function into the @b _defs list.
  */
 Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList thenBranch, TermList elseBranch)
@@ -508,7 +502,6 @@ Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList the
   unsigned fnArity = args.size();
   unsigned fnNum = env.signature->addIteFunction(fnArity, argSorts.begin(), thenSort);
   TermList func = TermList(Term::create(fnNum, fnArity, args.begin()));
-
   //TODO: properly determine sort of the ITE term
   unsigned iteSort = SortHelper::getResultSort(func.term());
 
@@ -518,7 +511,6 @@ Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList the
   Formula* def = new IteFormula(condition, new AtomicFormula(eqThen), new AtomicFormula(eqElse));
   FormulaUnit* defUnit = new FormulaUnit(def, new Inference(Inference::TERM_IF_THEN_ELSE_DEFINITION), Unit::AXIOM);
   UnitList::push(defUnit, _defs);
-
   if(_currentPrb) {
     _currentPrb->reportEqualityAdded(true);
     _currentPrb->reportFormulaIteAdded();

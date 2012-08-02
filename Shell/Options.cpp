@@ -142,10 +142,11 @@ const char* Options::Constants::_optionNames[] = {
   "forced_options",
   "forward_demodulation",
   "forward_literal_rewriting",
+
   "forward_subsumption",
   "forward_subsumption_resolution",
   "function_definition_elimination",
-
+  "function_number",
   "general_splitting",
   "global_subsumption",
 
@@ -307,6 +308,7 @@ const char* Options::Constants::_shortNames[] = {
   "fd",
   "fde",
   "flr",
+  "fno",
   "fs",
   "fsr",
   "gs",
@@ -386,9 +388,13 @@ int Options::Constants::shortNameIndexes[] = {
   EQUALITY_RESOLUTION_WITH_DELETION,
   FORWARD_DEMODULATION,
   FUNCTION_DEFINITION_ELIMINATION,
+
   FORWARD_LITERAL_REWRITING,
+  FUNCTION_NUMBER,
   FORWARD_SUBSUMPTION,
+
   FORWARD_SUBSUMPTION_RESOLUTION,
+
   GLOBAL_SUBSUMPTION,
   GENERAL_SPLITTING,
   INST_GEN_BIG_RESTART_RATIO,
@@ -864,6 +870,7 @@ Options::Options ()
 
   _weightIncrement(false),
   _whileNumber(1),
+  _functionNumber(1),
 
   _xmlOutput("off"),
 
@@ -1549,6 +1556,10 @@ void Options::set(const char* name,const char* value, int index)
        _whileNumber = intValue;
        return;
 
+    case FUNCTION_NUMBER:
+      if(Int::stringToInt(value,intValue))
+	_functionNumber= intValue;
+      return;
     case XML_OUTPUT:
       _xmlOutput = value;
       return;
@@ -2339,6 +2350,10 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case WHILE_NUMBER:
     str << _whileNumber;
+    return;
+
+  case FUNCTION_NUMBER:
+    str<<_functionNumber;
     return;
 
   case XML_OUTPUT:

@@ -131,7 +131,14 @@ void Preprocess::preprocess (Problem& prb)
     LOG("pp_progress","special term elimination");
     SpecialTermElimination().apply(prb);
   }
-
+#if 0
+  //this has to be removed
+  UnitList::Iterator uit(prb.units());
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    cout<<u->toString()<<endl;
+  }
+#endif
   // reorder units
   if (_options.normalize()) {
     env.statistics->phase=Statistics::NORMALIZATION;

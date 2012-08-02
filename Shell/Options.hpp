@@ -81,7 +81,7 @@ public:
     FORWARD_SUBSUMPTION_RESOLUTION,
     /** All literals of set-of-support clauses will be selected */
     FUNCTION_DEFINITION_ELIMINATION,
-
+    FUNCTION_NUMBER,
     GENERAL_SPLITTING,
     GLOBAL_SUBSUMPTION,
 
@@ -683,9 +683,10 @@ public:
   void setInputFile(const string& newVal);
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds = newVal; }
-
+  int getTimeLimit(){return _timeLimitInDeciseconds;}
   string traceSpecString() const { return _traces; }
   int getWhileNumber(){return _whileNumber;}
+  int getFunctionNumber(){return _functionNumber;}
 //   // standard ways of creating options
   XMLElement toXML() const;
   bool outputSuppressed() const;
@@ -912,6 +913,7 @@ private:
 
   bool _weightIncrement;
   int _whileNumber;
+  int _functionNumber;
 
   string _xmlOutput;
 
