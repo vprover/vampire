@@ -90,10 +90,9 @@ private:
   TermList arrayUpdateValue(Path::Iterator &sit, TermList exp, int posCnt, int currentCnt);
   Formula* lastUpdateProperty(Literal* updPred, string array, TermList position, TermList updValue);
   Formula* stabilityProperty(Literal* updPred, string array, TermList position, TermList iteration);
-  void generateValueFunctionRelationsOfVariables(TermList n);
+  void generateValueFunctionRelationsOfVariables();//TermList n);
   void generateLoopConditionProperty();
-  void generateIterationDefinition(TermList n);
-  void simpleSEIProblem();
+  void generateIterationDefinition();//TermList n);
 
   unsigned getIntFunction(string name, unsigned arity, bool setColor=false);
   unsigned getIntConstant(string name);
@@ -101,8 +100,6 @@ private:
   Literal* createIntEquality(bool polarity, TermList arg1, TermList arg2)
   { return Literal::createEquality(polarity, arg1, arg2, Sorts::SRT_INTEGER); }
 
-  Problem* getPreprocessedProblem();
-  void setEnvironmentOptions();
   /** the loop being analyzed */
   WhileDo* _loop;
   /** all variables updated by this loop */

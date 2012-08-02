@@ -29,9 +29,9 @@ class Statement
 {
 public:
   /**
-   * Class for itering over all substatements of a statement. It is
-   * guaranteed that a stamenet is always returned before any of
-   * its proper substatements.
+   * Class for iterating over all sub-statements of a statement. It is
+   * guaranteed that a statement is always returned before any of
+   * its proper sub-statements.
    */
   class SubstatementIterator {
   public:
@@ -58,6 +58,8 @@ public:
     BLOCK,
     /* if-then-else */
     ITE,
+    /**if then statement*/
+    ITS,
     /** while-do */
     WHILE_DO,
     /** expression, e.g., function call */
@@ -185,6 +187,32 @@ protected:
   /** the else-part */
   Statement* _elsePart;
 }; // class IfThenElse
+
+
+/**
+ * if-then statement
+ * @since 07.2012, Vienna
+ */
+class IfThen
+  : public Statement
+{
+public:
+    IfThen(Expression* condition, Statement* thenPart)
+      :Statement(ITS),
+       _condition(condition),
+       _thenPart(thenPart)
+    {}
+    /**the condition*/
+    Expression* condition() const{return _condition;}
+    /**the then-part*/
+    Statement* thenPart() const {return _thenPart;}
+    virtual void prettyPrint(ostream& str, unsigned indent=0);
+protected:
+     /**the condition*/
+    Expression* _condition;
+    /**the then-part*/
+    Statement* _thenPart;
+};//class IfThen
 
 /**
  * while-do

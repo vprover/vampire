@@ -52,13 +52,13 @@ LoopAnalyzer::LoopAnalyzer(WhileDo* loop)
     _units(0)
 {
   //just for testing pupropse
-#if NN
+#if !NN
   _n=Term::createConstant(getIntConstant("n"));
 #endif
   }
 
 unsigned LoopAnalyzer::getIntConstant(string name){
-#if !NN
+#if NN
   return getIntFunction(name, 0);
 #else
   return (name=="n"? getIntFunction(name, 0, true) :getIntFunction(name, 0, false));
@@ -86,7 +86,7 @@ void LoopAnalyzer::analyze()
   cout << "\nCollecting paths...\n";
   cout << "---------------------\n";
   collectPaths();
-  TermList n(Term::createConstant(getIntFunction("n",0,true)));
+  //TermList n(Term::createConstant(getIntFunction("n",0,true)));
   // output paths
   Stack<Path*>::Iterator it(_paths);
    //cout << "number of paths: " <<length<<"\n";
@@ -102,115 +102,24 @@ void LoopAnalyzer::analyze()
   generateUpdatePredicates();
   cout << "\nGenerate correspondence between final (initial) values and final (initial) functions of variables...\n";
   cout << "---------------------\n";
-  generateValueFunctionRelationsOfVariables(n);
+  generateValueFunctionRelationsOfVariables();
   cout << "\nGenerate loop condition property...\n";
   cout << "---------------------\n";
   generateLoopConditionProperty();
   cout << "\nCollected first-order loop properties...\n";
   cout << "---------------------\n";
-  generateIterationDefinition(n);
-  setEnvironmentOptions();
+  generateIterationDefinition();
   UnitList::Iterator units(_units);
   while (units.hasNext()) {
     cout <<units.next()->toString() << "\n";
    }
   cout<<"\nGenerationg the SEI problem ... \n"<<endl;
   cout << "---------------------\n";
-  InvariantHelper ih(_units, 10);
+
+  InvariantHelper ih(_units);
   ih.run();
 
 }
-
-//TODO move this functionality in another class
-
-void LoopAnalyzer::setEnvironmentOptions()
-{
-  CALL("LoopAnalyzer::setEnvironmentOptions");
-  //set the color of the reserved variable n to LEFT
-  env.colorUsed = true;
-  Signature::Symbol* sym;
-  for (unsigned int i = 0; i < env.signature->functions(); i++) {
-    if (env.signature->getFunction(i)->name() == "n") {
-      sym = env.signature->getFunction(i);
-      sym->addColor(COLOR_LEFT);
-      break;
-    }
-  }
-
-  VariableInfo* ff;
-  Variable* v;
-  Set<Variable*>::Iterator ite(_updatedVariables);
-  while(ite.hasNext()){
-     v=ite.next();
-    _variableInfo.find(v, ff);
-
-    cout<<v->name()<<"  sca "<<ff->scalar<<" co "<<ff->counter<<ff->extraSignatureNumber<<endl;}
-     //cout<<_variableInfo.find(ite.next()) <<endl;
-}
-
-Problem* LoopAnalyzer::getPreprocessedProblem()
-{
-  CALL("LoopAnalyzer::getPreprocessedProblem");
-  Problem* prb = new Problem(_units);
-/*
-  UnitList::Iterator uite(prb->units());
-  while(uite.hasNext())
-    cout<<uite.next()->toString()<<endl;
-*/
-  Preprocess p(*env.options);
-  p.preprocess(*prb);
-
-  /*cout<<"PREPROCESSED PROBLEM: "<<endl;
-
-  UnitList *ul = prb->units();
-  UnitList::Iterator ite(ul);
-  while(ite.hasNext())
-    cout<<ite.next()->toString()<<endl;
-
-  cout<<"--------------------------------------------"<<endl;
-*/
-  return prb;
-}
-
-/**
- * This function is meant to create a problem for vampire to run on in
- * Symbol elimination mode
- * -function only for making sure that everything works as intended
- */
-void LoopAnalyzer::simpleSEIProblem()
-{
-  CALL("LoopAnalyzer::simpleSEIProblem");
-
-  setEnvironmentOptions();
-  ScopedPtr<Problem> problem(getPreprocessedProblem());
-
- Preprocess p(*env.options);
-  p.preprocess(*problem);
-
-  UnitList::Iterator ite(problem->units());
-  while(ite.hasNext())
-    cout<<ite.next()->toString()<<endl;
-
-  cout<<"--------------------------------------------"<<endl;
-
-/*
-  if(problem->hasInterpretedOperations()) {
-     InterpretedNormalizer().apply(*problem);
-     TheoryAxioms().apply(*problem);
-   }
-  */
-
-  // ProvingHelper::runVampireSaturation(*problem, *env.options);
-  //ProvingHelper::runVampireSaturation(*problem, *env.options);
-  //clear the signature - this feature seems to be needed if one has more
-  //than one loop to analyze in the same .c file
-  //should be done as follows: first delete all the new introduced symbols -
-  //take care of function symbols
-  //take care of predicates
-  //integers do not make any difference
-  // ProvingHelper::runVampire(*problem, *env.options);
-
-  }
 
 /**
  * If the assignment has the form x = x + c, where x is an integer variable
@@ -385,7 +294,16 @@ void LoopAnalyzer::collectPaths()
 	stat = stat->nextStatement();
       }
       break;
-
+    case Statement::ITS:
+      {
+	path = path->add(stat);
+	IfThen* ift = static_cast<IfThen*>(stat);
+	//since there is no else part, just carry on with the then-part
+	stat = ift->thenPart();
+	path = path->add(stat);
+	stat = stat->nextStatement();
+      }
+      break;
     case Statement::WHILE_DO:
       ASS(false); // cannot yet work with embedded loops
     case Statement::EXPRESSION:
@@ -656,6 +574,9 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
 	   case Statement::ITE: {
 	        return exp; 
 	   }
+	   case Statement::ITS: {
+	     return exp;
+	   }
 	    break;
 	   }
     }
@@ -773,6 +694,8 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
 	      break;
 	   case Statement::ITE: 
 	    break;
+	   case Statement::ITS:
+	     break;
 	   return letCondition(sit,condition, condPos, currPos+1);
       }
     }
@@ -805,6 +728,13 @@ Formula* LoopAnalyzer::letTranslationOfGuards(Path* path, Path::Iterator &sit, F
 	     conditions.push(condition);		     
 	   }
 	    break;
+	   case Statement::ITS:{
+	     IfThen* ift = static_cast<IfThen*>(stat);
+	     Formula* condition = expressionToPred(ift->condition());
+	     Path::Iterator pit(path);
+	     condition = letCondition(pit, condition, condPos,0);
+	     conditions.push(condition);
+	   }
 	}
 	condPos = condPos+1;
       }
@@ -959,6 +889,10 @@ TermList LoopAnalyzer::arrayUpdateValue(Path::Iterator &sit, TermList exp, int p
 	   case Statement::ITE: {
 	        return exp; 
 	   }
+	   break;
+	   case Statement::ITS:{
+	       return exp;
+	     }
 	    break;
 	   }
     }
@@ -992,6 +926,8 @@ int LoopAnalyzer::arrayIsUpdatedOnPath(Path* path, Variable *v)
     case Statement::BLOCK:
      break;
     case Statement::ITE:
+      break;
+    case Statement::ITS:
       break;
     case Statement::WHILE_DO:
       ASS(false); // cannot yet work with embedded loops
@@ -1047,6 +983,8 @@ TermList LoopAnalyzer::arrayUpdatePosition(Path::Iterator &sit, TermList updPosE
 	      break;
 	   case Statement::ITE: 
 	    break;
+	   case Statement::ITS:
+	     break;
 	   case Statement::WHILE_DO:
 	     ASS(false); // cannot yet work with embedded loops
            case Statement::EXPRESSION:
@@ -1085,6 +1023,15 @@ Formula* LoopAnalyzer::arrayUpdateCondition(Path* path, Path::Iterator &sit, int
        		 Path::Iterator pit(path);
 	     	 condition = letCondition(pit,condition,currentCnt,0);
 		 conditions.push(condition);
+	     }
+	     break;
+           case Statement::ITS:
+	     {
+	       IfThen* ift = static_cast<IfThen*>(stat);
+	       Formula* condition = expressionToPred(ift->condition());
+	       Path::Iterator pit(path);
+	       condition = letCondition(pit, condition, currentCnt,0);
+	       conditions.push(condition);
 	     }
 	     break;
 	   case Statement::WHILE_DO:
@@ -1171,6 +1118,8 @@ Formula* LoopAnalyzer::updatePredicateOfArray2(Path* path, Path::Iterator &sit, 
 	       break;
 	   case Statement::ITE: 		     
 	    break;
+	   case Statement::ITS:
+	     break;
 	}
 	updPos = updPos+1;
       }
@@ -1258,6 +1207,8 @@ Formula* LoopAnalyzer::updatePredicateOfArray3(Path* path, Path::Iterator &sit, 
 	       break;
 	   case Statement::ITE: 		     
 	    break;
+	   case Statement::ITS:
+	     break;
 	}
 	updPos = updPos+1;
       }
@@ -1427,12 +1378,14 @@ void LoopAnalyzer::generateUpdatePredicates()
  * V(n,P) = V(P) and V(zero,P)=V0(P), for any updated array V
  * v(n)=v and v(zero)=v0, for any updated scalar
  */
-void LoopAnalyzer::generateValueFunctionRelationsOfVariables(TermList n)
+void LoopAnalyzer::generateValueFunctionRelationsOfVariables()//TermList n)
 {
    CALL("LoopAnalyzer::generateValueFunctionRelationsOfVariables");
    //create loop counter n and position x2 //test purpose
-#if NN
-   TermList n(_n);//Term::createConstant(getIntConstant("n")));
+#if !NN
+ //  TermList n(_n);//Term::createConstant(getIntConstant("n")));
+   TermList n(Term::createConstant(getIntConstant("n")));
+#else
    TermList n(Term::createConstant(getIntConstant("n")));
 #endif
    TermList x2;
@@ -1531,7 +1484,7 @@ void LoopAnalyzer::generateLoopConditionProperty()
  *Generate the definition of iteration:
  * iter(X) <=> geq(X,0) && greater(n,X)
  */
-void LoopAnalyzer::generateIterationDefinition(TermList n)
+void LoopAnalyzer::generateIterationDefinition()//TermList n)
 {
   CALL("LoopAnalyzer::generateIterationDefinition");
   //iter(X0)
@@ -1547,9 +1500,11 @@ void LoopAnalyzer::generateIterationDefinition(TermList n)
   //test something
   Expression* condE = _loop->condition();
   //X0<n
-#if NN
-  TermList n(_n);
+#if !NN
+//  TermList n(_n);
 
+  TermList n(Term::createConstant(getIntConstant("n")));
+#else
   TermList n(Term::createConstant(getIntConstant("n")));
 #endif
   Formula* ineqXn = new AtomicFormula(theory->pred2(Theory::INT_LESS,true,x0,n));

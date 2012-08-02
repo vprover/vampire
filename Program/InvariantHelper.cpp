@@ -40,6 +40,7 @@
 #include "Shell/TheoryAxioms.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Forwards.hpp"
 
 using namespace Kernel;
 using namespace Program;
@@ -48,19 +49,22 @@ using namespace Saturation;
 
 namespace Program
 {
-  InvariantHelper::~InvariantHelper(){}
-void InvariantHelper::setSEIOptions(int timeLimit)
+
+InvariantHelper::~InvariantHelper(){}
+void InvariantHelper::setSEIOptions()
 {
   CALL("InvariantHelper::setSEIOptions");
+
 
   env.options->set("splitting", "off");
   env.options->set("show_symbol_elimination", "on");
   env.options->set("unused_predicate_definition_removal", "off");
   env.options->set("propositional_to_bdd","off");
 
-  if (env.options->timeLimitInDeciseconds() == 0)
-    env.options->set("time_limit", "10");
-
+ if (env.options->timeLimitInDeciseconds() == 0)
+   {
+   env.options->setTimeLimitInDeciseconds(_timeLimit);
+   }
   env.options->setNaming(32000);
 }
 
@@ -126,15 +130,15 @@ void InvariantHelper::runSEI()
             UIHelper::outputIntroducedSymbolDeclarations(tout);
             env.endOutput();
         );
-  setSEIOptions(_timeLimit);
+  setSEIOptions();
 
 #if false
   Problem* prb = preprocessUnits();
   showSignature();
 #endif
 #if true
-   //ProvingHelper::runVampireSaturationN(*prb,*env.options);
-  runVampireSaturationN(*prb);
+  ProvingHelper::runVampireSaturation(*prb,*env.options);
+  //runVampireSaturationN(*prb);
 #else
   ProvingHelper::runVampire(*prb, *env.options);
 #endif

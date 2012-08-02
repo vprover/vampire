@@ -34,7 +34,6 @@ Analyze::Analyze(Statement* program)
 void Analyze::analyze()
 {
   CALL("Analyze::analyze/0");
-
   analyzeSubstatements(_program);
   cout << "Loops found: " << _loops.size() << "\n";
   Set<WhileDo*>::Iterator loops(_loops);
@@ -63,6 +62,7 @@ void Analyze::analyzeSubstatements(Statement* statement)
   Statement::SubstatementIterator sit(statement);
   while (sit.hasNext()) {
     statement = sit.next();
+    statement->prettyPrint(cout,4);
     switch (statement->kind()) {
     case Statement::ASSIGNMENT:
       {
@@ -109,10 +109,21 @@ void Analyze::analyzeSubstatements(Statement* statement)
       }
       break;
 
+    case Statement::ITS:
+     {
+        IfThen* it = static_cast<IfThen*>(statement);
+   	Statement* thenPart = it->thenPart();
+   	thenPart->setNextStatement(it->nextStatement());
+   	thenPart->setContainingStatement(statement);
+   	thenPart->setContainingLoop(statement->containingLoop());
+ 	addExpressionVariables(it->condition(),it);
+      }
+      break;
+
     case Statement::WHILE_DO:
       {
-	// WhileDo* loop = static_cast<WhileDo*>(statement); // to please my EMACS
-	WhileDo* loop = (WhileDo*)statement;
+	WhileDo* loop = static_cast<WhileDo*>(statement); // to please my EMACS
+	//WhileDo* loop = (WhileDo*)statement;
 	Statement* body = loop->body();
 	body->setNextStatement(loop);
 	body->setContainingStatement(statement);
@@ -121,7 +132,7 @@ void Analyze::analyzeSubstatements(Statement* statement)
 	addExpressionVariables(loop->condition(),loop);
       }
       break;
-	
+
     case Statement::EXPRESSION:
       // cannot yet handle procedure calls
       ASS(false);

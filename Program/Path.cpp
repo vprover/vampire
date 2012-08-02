@@ -33,6 +33,14 @@ void Path::prettyPrint(ostream& str)
 	    << ite->condition()->toString() << "\n";
       }
       break;
+    case Statement::ITS:
+      {
+	IfThen* iT = static_cast<IfThen*>(stat);
+	str << " "
+	    << (it.next() == iT->thenPart()? "true: ":"")
+	    << (iT->condition()->toString())<< "\n";
+      }
+      break;
     case Statement::BLOCK:
     case Statement::WHILE_DO:
       break;

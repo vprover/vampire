@@ -98,6 +98,14 @@ void IfThenElse::prettyPrint(ostream& str,unsigned indent)
   _elsePart->prettyPrint(str,indent+2);
 }
 
+
+/** pretty print the statement to a stream with a given indentation */
+void IfThen::prettyPrint(ostream& str, unsigned int indent)
+{
+  for( int i = indent; i>0 ;i--) str<<' ';
+  str<<"if ("<<_condition->toString() << ")\n";
+  _thenPart->prettyPrint(str, indent+2);
+}
 /** pretty-print the statement to a stream with a given indentation */
 void WhileDo::prettyPrint(ostream& str,unsigned indent)
 {
@@ -129,6 +137,12 @@ Statement* Statement::SubstatementIterator::next()
       IfThenElse* ite = static_cast<IfThenElse*>(stat);
       _stack.push(ite->thenPart());
       _stack.push(ite->elsePart());
+    }
+    break;
+  case ITS:
+    {
+     IfThen* it = static_cast<IfThen*>(stat);
+     _stack.push(it->thenPart());
     }
     break;
   case WHILE_DO:

@@ -32,11 +32,11 @@ namespace Program
 
 class InvariantHelper {
 public:
-  InvariantHelper(List<Unit*>* un, int timeLim=10):_units(un),_timeLimit(timeLim){};
+  InvariantHelper(List<Unit*>* un, int timeLim=10):_units(un){_timeLimit=timeLim;}
   virtual ~InvariantHelper();
   void run();
 private:
-  void setSEIOptions(int timelimit=10);
+  void setSEIOptions();
   void preprocessUnits(Problem& prb);
   Problem* preprocessUnits();
   //void createProblem();
