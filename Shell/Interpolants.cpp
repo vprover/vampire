@@ -192,14 +192,16 @@ Formula* Interpolants::getInterpolant(Unit* unit)
       ASS_NEQ(st.inheritedColor, COLOR_INVALID);
     }
 #if ALLOW_SURPRISING_COLORS
-    //we set inherited color to the color of the unit.
-    //in the case of clause being conclusion of
-    //transparent parents, the assigned color should be
-    //transparent as well, but there are some corner cases
-    //coming from proof transformations which can yield us
-    //a colored clause in such case (when the colored premise
-    //was removed by the transformation).
-    st.inheritedColor=st.usColor();
+    else {
+      //we set inherited color to the color of the unit.
+      //in the case of clause being conclusion of
+      //transparent parents, the assigned color should be
+      //transparent as well, but there are some corner cases
+      //coming from proof transformations which can yield us
+      //a colored clause in such case (when the colored premise
+      //was removed by the transformation).
+      st.inheritedColor=st.usColor();
+    }
 #else
     else if(!st.processed && !st.pars.hasNext()) {
       //we have unit without any parents. This case is reserved for

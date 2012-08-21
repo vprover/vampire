@@ -1,0 +1,101 @@
+#!/bin/bash
+
+VAMPIRE=$1
+TMP=`mktemp -d /tmp/symel.XXXXX`
+#TMP=aux
+
+if [ "$3" == "" ]; then
+    CFTIME=20
+else
+    CFTIME=$3
+fi
+
+function doConseqEl()
+{
+# <input file> <output file> <additional arguments>
+# This function requires the file $TMP/theory to contain theory axioms
+    
+    rm -rf $TMP/ce
+    mkdir $TMP/ce
+    local CTMP=$TMP/ce
+
+    cp $1 $CTMP/allInv
+
+#prepare Vampire input
+    #cp $TMP/theory $CTMP/consElInp
+    cat $CTMP/allInv >> $CTMP/consElInp
+
+
+#find consequences
+    $VAMPIRE -t $CFTIME $3 --mode consequence_elimination -ptb off -spl off -updr off  <$CTMP/consElInp | awk '
+/^Pure cf clause/ { cl=$0; clN=NR }
+/^Consequence found/ { print cl }
+{ if(NR!=clN) { print; fflush() } }
+' | tee $CTMP/consElOut >&2
+
+#select non-consequences
+    if grep 'Consequence found' $CTMP/consElOut >/dev/null; then
+	cat $CTMP/allInv |egrep -v '('`grep 'Consequence found' $CTMP/consElOut | sed 's/^.*: //' | tr '\n' '|' | sed 's/|/,|/g' | sed 's/|$//'`')' > $2
+    else
+	cp $CTMP/allInv $2
+    fi
+    echo "Strategy \"$3\" eliminated" `grep 'Consequence found' $CTMP/consElOut | wc -l` >&2
+}
+
+echo "Extracting type information...">&2
+
+grep tff $2 > $TMP/theory
+
+
+#echo "
+#import tptp
+#tptp.collect_formulas(\"$2\")
+#" | python >>$TMP/theory
+
+#if [ "${PIPESTATUS[1]}" != "0" ]; then
+#    echo 'Axiom extraction error!' >&2
+#    exit 1
+#fi
+
+cat $TMP/theory >&2
+
+echo "Obtaining symbol eliminating inferences...">&2
+$VAMPIRE --show_skolemisations on < $2 | tee $TMP/out >&2
+
+echo "Prepare consequence elimination task...">&2
+
+#filter symbol eliminating inferences
+grep tff $TMP/out > $TMP/symelFof
+
+#cat  $TMP/theory $TMP/symelFof > $TMP/symelAll
+cat  $TMP/symelFof > $TMP/symelAll
+
+echo "Start consequence elimination on SEI...">&2
+
+#several attempts to eliminate consequences
+
+cp $TMP/symelAll $TMP/symel_nonred
+
+doConseqEl $TMP/symel_nonred $TMP/symel_nonred "-s 1003 -sa discount -bsr on -cond on"
+doConseqEl $TMP/symel_nonred $TMP/symel_nonred "-sa discount -flr on -bsr on -cond on"
+doConseqEl $TMP/symel_nonred $TMP/symel_nonred "-s 1003 -sa discount"
+doConseqEl $TMP/symel_nonred $TMP/symel_nonred "-s -1 -sa discount -flr on"
+
+
+#print statistics
+STAT="% "`grep 'tff(inv.*)\.' $TMP/out | wc -l`" symbol eliminating formulas, "`grep 'tff(inv.*)\.' $TMP/symel_nonred|wc -l`" non-redundant ones"
+echo $STAT
+echo
+echo $STAT >&2
+
+#print info on skolemization as TPTP comment
+grep Skolem $TMP/out | sed 's/^/%/'
+echo
+
+#print non-consequences
+grep 'tff(inv.*)\.' $TMP/symel_nonred
+
+#clean up
+rm -rf $TMP
+
+echo "Done." >&2
