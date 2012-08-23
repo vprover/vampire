@@ -33,7 +33,7 @@ void Unit::onPreprocessingEnd()
   CALL("Unit::onPreprocessingEnd");
   ASS(!_firstNonPreprocessingNumber);
 
-  _firstNonPreprocessingNumber=_lastNumber;
+  _firstNonPreprocessingNumber=_lastNumber+1;
 }
 
 

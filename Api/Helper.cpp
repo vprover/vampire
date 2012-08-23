@@ -264,7 +264,13 @@ string DefaultHelperCore::toString(const Kernel::Formula* f0) const
 	result += " : ";
 	unsigned sort;
 	if(isFBHelper()) {
-	  sort = static_cast<const FBHelperCore*>(this)->getVarSort(var);
+	  Sort srt = static_cast<const FBHelperCore*>(this)->getVarSort(var);
+	  if(srt.isValid()) {
+	    sort = srt;
+	  }
+	  else if(!SortHelper::tryGetVariableSort(var, f->qarg(), sort)) {
+	    sort = Sorts::SRT_DEFAULT;
+	  }
 	}
 	else {
 	  if(!SortHelper::tryGetVariableSort(var, f->qarg(), sort)) {
@@ -534,8 +540,11 @@ void FBHelperCore::ensureArgumentsSortsMatch(BaseType* type, const Api::Term* ar
   unsigned arity = type->arity();
   for(unsigned i=0; i<arity; i++) {
     unsigned parentSort = type->arg(i);
-    unsigned argSort = getSort(args[i]);
-    if(parentSort!=argSort) {
+    Sort argSort = getSort(args[i]);
+    if(!argSort.isValid()) {
+      LOG("api_prb_transf","found term whose sort cannot be determined!!");
+    }
+    else if(parentSort!=argSort) {
       throw SortMismatchException("Unexpected sort of term " + args[i].toString());
     }
   }
@@ -545,7 +554,13 @@ void FBHelperCore::ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const
 {
   CALL("FBHelperCore::ensureEqualityArgumentsSortsMatch");
 
-  if(getSort(arg1)!=getSort(arg2)) {
+  Sort s1 = getSort(arg1);
+  Sort s2 = getSort(arg2);
+  if(!s1.isValid() || !s2.isValid()) {
+    LOG("api_prb_transf","found term whose sort cannot be determined!!");
+  }
+
+  if(s1!=s2) {
     throw SortMismatchException("Different sorts of equality arguments: " + arg1.toString() + " and " + arg2.toString());
   }
 }
@@ -591,7 +606,9 @@ Sort FBHelperCore::getVarSort(Var v) const
     return res;
   }
   else {
-    throw FormulaBuilderException("Var object was used in FormulaBuilder object which did not create it");
+    LOG("api_prb_transf","Cannot determine sort of variable number "<<v<<" !!!");
+    return Sort::getInvalid();
+//    throw FormulaBuilderException("Var object was used in FormulaBuilder object which did not create it");
   }
 }
 
@@ -604,6 +621,7 @@ unsigned FBHelperCore::getVar(string varName, Sort varSort)
     //TODO: add further checks
   }
 
+  COND_LOG("api_prb_transf",!varSort.isValid(),"Adding variable with unknown sort: "<<varName<<" !!!");
   unsigned res=vars.insert(varName, nextVar);
   if(res==nextVar) {
     nextVar++;
@@ -612,8 +630,15 @@ unsigned FBHelperCore::getVar(string varName, Sort varSort)
   }
   else {
     Sort oldSort = varSorts.get(res);
-    if(oldSort!=varSort) {
-      throw FormulaBuilderException("Existing variable with different sort requested");
+    if(!oldSort.isValid()) {
+      if(varSort.isValid()) {
+	varSorts.replace(res, varSort);
+      }
+    }
+    else {
+      if(varSort.isValid() && oldSort!=varSort) {
+	throw FormulaBuilderException("Existing variable with different sort requested");
+      }
     }
   }
   ASS_L(res, nextVar);

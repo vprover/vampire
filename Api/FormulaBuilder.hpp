@@ -443,6 +443,9 @@ public:
   Sort() {}
   explicit Sort(unsigned num) : _num(num) {}
   operator unsigned() const { return _num; }
+
+  static Sort getInvalid() { return Sort(UINT_MAX); }
+  bool isValid() const { return _num!=UINT_MAX; }
 private:
   unsigned _num;
 };

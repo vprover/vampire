@@ -914,7 +914,11 @@ Sort Term::sort() const
   if(!_aux->isFBHelper()) {
     throw ApiException("Sort can be retrieved only for terms created by the FormulaBuilder");
   }
-  return static_cast<FBHelperCore*>(*_aux)->getSort(*this);
+  Sort res = static_cast<FBHelperCore*>(*_aux)->getSort(*this);
+  if(!res.isValid()) {
+    throw ApiException("Cannot determine sort of a term");
+  }
+  return res;
 }
 
 Term::operator Kernel::TermList() const

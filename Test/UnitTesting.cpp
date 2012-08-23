@@ -99,7 +99,7 @@ void UnitTesting::runTest(TestUnit* unit, ostream& out)
     out.flush();
     {
       CALL(t.name);
-      t.proc();
+      spawnTest(t.proc);
     }
     out<<"OK"<<endl;
   }
@@ -110,11 +110,11 @@ void UnitTesting::runTest(TestUnit* unit, ostream& out)
  *
  * This is to provide isolation when running multiple tests in one go.
  */
-void UnitTesting::spawnTest(TestUnit* unit, ostream& out)
+void UnitTesting::spawnTest(TestProc proc)
 {
   pid_t fres = Multiprocessing::instance()->fork();
   if(!fres) {
-    runTest(unit, out);
+    proc();
     exit(0);
   }
   int childRes;
@@ -129,7 +129,7 @@ void UnitTesting::runAllTests(ostream& out)
 {
   TestUnitList::Iterator tuit(_units);
   while(tuit.hasNext()) {
-    spawnTest(tuit.next(), out);
+    runTest(tuit.next(), out);
     if(tuit.hasNext()) {
       out<<endl;
     }

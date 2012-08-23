@@ -141,7 +141,7 @@ private:
   TestUnit* get(const char* name);
 
   void runTest(TestUnit* unit, ostream& out);
-  void spawnTest(TestUnit* unit, ostream& out);
+  void spawnTest(TestProc proc);
 
   TestUnitList* _units;
 };
