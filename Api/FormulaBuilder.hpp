@@ -8,6 +8,7 @@
 
 #include <string>
 #include <ostream>
+#include <climits>
 
 #include "Helper.hpp"
 
