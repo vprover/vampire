@@ -672,16 +672,29 @@ Unit* ZIE::getZ3Refutation()
 
   env.colorUsed = true;
 
+  //get the Z3 proof in the form of lisp expressions
   LExpr* inp = getInput();
 
   LExpr* proofExpr;
+  //get the only child of the lisp expression
   if(!inp->getSingleton(proofExpr)) { LISP_ERROR("invalid proof", inp); }
 
+
+  //read let expressions into internal structure
+
+  //this one fills _letRecords, in proofExpr will remain the proof expression
+  //without the lets that were around it
   while(readLet(proofExpr, proofExpr)) {}
 
+  //this one fills _termAssignments and _proofAssignments based on _letRecords
   processLets();
 
+
+  //this converts the proof into Vampire's structure
+  //ProofObject is an Unit* object together with list of assumptions on which
+  //it depends.
   ProofObject pobj = readProofObject(proofExpr);
+  //The root proof node should not depend on any assumptions.
   if(pobj.hypotheses) {
     USER_ERROR("unresolved hypotheses: " + pobj.hypothesesToString());
   }
