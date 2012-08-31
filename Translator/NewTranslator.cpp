@@ -164,8 +164,8 @@ void newTranslator::VisitStmt(const Stmt* stmt)
       if(_whileToAnalyze == -1){
       cout << "WHILE LOCATION: " << fsl.getSpellingLineNumber()<<endl;
       }
-      Visit(ws->getCond());
       if (flag == true) {
+	Visit(ws->getCond());
 	addToMainProgram("Whl_" + numeUitat);
 	numeUitat = "";
 	flag = false;
@@ -173,6 +173,7 @@ void newTranslator::VisitStmt(const Stmt* stmt)
 	flag = true;
 	writeWhileStatments();
       } else {
+	Visit(ws->getCond());
 	string bac = "Whl_" + numeUitat;
 	std::vector<std::string> back = Body;
 	Body.clear();
@@ -265,6 +266,7 @@ void newTranslator::VisitWhileStmt(const ::clang::WhileStmt *stmt)
 {
   CALL("newTranslator::VisitWhileStmt");
   Visit(stmt->getCond());
+  cout<<numeUitat<<endl;
   stmt->getWhileLoc().dump(ctx->getSourceManager());
   Visit(stmt->getBody());
 
@@ -296,6 +298,10 @@ void newTranslator::VisitBinAssign(const BinaryOperator* bop)
 
     if (!colect->findAssignemt(name))
       colect->insertAssignment(name, ass);
+    else {
+      name = name+ "_@1";
+      colect->insertAssignment(name,ass);
+    }
     numeUitat = name;
     if (flag == false)
       Body.insert(Body.end(), numeUitat);
@@ -319,9 +325,10 @@ void newTranslator::VisitBinEQ(const BinaryOperator* bop)
 void newTranslator::VisitBinNE(const BinaryOperator* bop)
 {
   CALL("newTranslator::VisitBinNE");
-  cout << "Operation not supported : BINARY INEQUALITY";
+  treatSimpleBinaryOperation(bop->getLHS(), bop->getRHS(), "integerNEq");
+  /*cout << "Operation not supported : BINARY INEQUALITY";
   exit(1);
-  /*
+
    treatSimpleBinaryOperation(bop->getLHS(), bop->getRHS(), "integerEq");
 
    ::std::string name = "integerNegation_", label;
@@ -403,8 +410,20 @@ void newTranslator::VisitBinAdd(const BinaryOperator* bop)
 void newTranslator::VisitUnaryLNot(const ::clang::UnaryOperator* uop)
 {
   CALL("newTranslator::VisitUnaryLNot");
-  cout << "not supported Unary Not" << endl;
-  exit(1);
+  treatSimpleBinaryOperation(uop->getSubExpr(), NULL, "booleanNeg");
+  /*Visit(uop->getSubExpr());
+  ::std::string name = "booleanNegation_" + numeUitat;
+  Program::FunctionApplicationExpression* neg =
+	  new Program::FunctionApplicationExpression(
+		  Program::ConstantFunctionExpression::booleanNeg());
+  neg->setArgument(0, colect->getFunctionApplicationExpression(numeUitat));
+  if (!colect->findFunctionApplication(name))
+    colect->insertFunctionApplication(name, neg);
+    Body.insert(Body.end(), name);
+    cout<<"THRE "<<name<<endl;
+    numeUitat="GOE"+numeUitat;
+*/
+
 }
 
 void newTranslator::VisitUnaryMinus(const UnaryOperator* op)
@@ -472,8 +491,7 @@ void newTranslator::VisitBinShr(const BinaryOperator* bop)
 void newTranslator::VisitBinAnd(const BinaryOperator* bop)
 {
   CALL("newTranslator::VisitBinAnd");
-  Visit(bop->getLHS());
-  Visit(bop->getRHS());
+  treatSimpleBinaryOperation(bop->getLHS(), bop->getRHS(), "booleanAnd");
 }
 
 void newTranslator::VisitBinXor(const BinaryOperator* bop)
@@ -486,8 +504,7 @@ void newTranslator::VisitBinXor(const BinaryOperator* bop)
 void newTranslator::VisitBinOr(const BinaryOperator* bop)
 {
   CALL("newTranslator::VisitBinOr");
-  cout << "Logical operations not supported" << endl;
-  exit(1);
+  treatSimpleBinaryOperation(bop->getLHS(), bop->getRHS(), "booleanOr");
 }
 
 void newTranslator::VisitBinLOr(const BinaryOperator* bop)
@@ -729,7 +746,7 @@ void newTranslator::RunRewriting()
   CALL("newTranslator::RunRewriting");
   flag = true;
   getVariables(decl_body);
-  //write the main program body
+ /* //write the main program body
   Program::Block* mainBlock = new Program::Block(_mainProgram.size());//_mainProgram.size(); i++)
   for (uint i = 0; i < _mainProgram.size(); i++) {
     switch (colect->chekMaps(_mainProgram[i])) {
@@ -749,12 +766,13 @@ void newTranslator::RunRewriting()
       mainBlock->setStatement(i, colect->getIfThen(_mainProgram[i]));
       break;
     default:
-      ASSERTION_VIOLATION
-      ;
+    //  ASSERTION_VIOLATION
+      //;
       break;
     };
   }
   colect->insertBlock("main_", mainBlock);
+  mainBlock->prettyPrint(cout);*/
   if(_whileToAnalyze!=-1);
    colect->runAnalysis(_whileToAnalyze);
 
@@ -1566,7 +1584,7 @@ Program::ConstantFunctionExpression* newTranslator::getConstFunction(
 	std::string op)
 {
   CALL("newTranslator::getCosntFunction");
-  if (op == "integerEq")
+  if (op == "integerEq" || op == "integerNEq")
     return Program::ConstantFunctionExpression::integerEq();
   else if (op == "integerGreater")
     return Program::ConstantFunctionExpression::integerGreater();
@@ -1582,6 +1600,12 @@ Program::ConstantFunctionExpression* newTranslator::getConstFunction(
     return Program::ConstantFunctionExpression::integerMult();
   else if (op == "integerPlus")
     return Program::ConstantFunctionExpression::integerPlus();
+  else if (op == "booleanAnd")
+    return Program::ConstantFunctionExpression::booleanAnd();
+  else if (op == "booleanOr")
+    return Program::ConstantFunctionExpression::booleanOr();
+  else if (op == "booleanNeg")
+    return Program::ConstantFunctionExpression::booleanNeg();
   return NULL;
 }
 
@@ -1612,7 +1636,7 @@ std::string newTranslator::treatSimpleBinaryOperation(const clang::Expr* lhs,
 
   } else
     fcapp->setArgument(0, colect->getFunctionApplicationExpression(name));
-
+ if(rhs!=NULL){
   flg = false;
   if (isSimpleExpression(rhs)) {
     flg = true;
@@ -1633,10 +1657,20 @@ std::string newTranslator::treatSimpleBinaryOperation(const clang::Expr* lhs,
 
   } else
     fcapp->setArgument(1, colect->getFunctionApplicationExpression(namer));
+ }
   numeUitat = name + "_" + op + "_" + namer;
-  if (!colect->findFunctionApplication(numeUitat))
-    colect->insertFunctionApplication(numeUitat, fcapp);
 
+  if(op == "integerNEq"){
+    numeUitat = "negation_"+numeUitat;
+    Program::FunctionApplicationExpression* fcneg =
+	    new Program::FunctionApplicationExpression(Program::ConstantFunctionExpression::booleanNeg());
+    fcneg->setArgument(0,fcapp);
+    if(!colect->findFunctionApplication(numeUitat));
+      colect->insertFunctionApplication(numeUitat, fcneg);
+  }
+  else
+    if (!colect->findFunctionApplication(numeUitat))
+        colect->insertFunctionApplication(numeUitat, fcapp);
   return numeUitat;
 }
 

@@ -203,8 +203,8 @@ int collectionOfObjects::chekMaps(std::string key)
     return 3;
   else if (_mapOfIfThen.find(key))
     return 4;
-  /*  else if(_mapOfFcApplic.find(key)) return 4;
-
+  //else if(_mapOfFcApplic.find(key)) return 5;
+/*
    if(_mapOfBlocks.find(key)) return 5;
    */
   return 0;

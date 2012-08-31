@@ -31,6 +31,10 @@ public:
   void analyze();
 private:
   void analyzeSubstatements(Statement* statement);
+  void preprocessStatement(Statement* statement);
+  bool checkForIf(Statement* statement);
+  Statement* concatenateStatements(Statement* block, List<Statement* >* list);
+  Expression* treatCondition(Expression* condition, List<Statement* >* list);
   static void addExpressionVariables(Expression* exp,Statement* st);
   
   /** the program being analyzed */

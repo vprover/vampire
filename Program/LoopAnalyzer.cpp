@@ -79,6 +79,7 @@ void LoopAnalyzer::analyze()
   cout << "Analyzing loop...\n";
   cout << "---------------------\n";
   _loop->prettyPrint(cout);
+
   cout << "---------------------\n";
   cout << "Analyzing variables...\n";
   cout << "---------------------\n";
@@ -86,20 +87,20 @@ void LoopAnalyzer::analyze()
   cout << "\nCollecting paths...\n";
   cout << "---------------------\n";
   collectPaths();
-  //TermList n(Term::createConstant(getIntFunction("n",0,true)));
-  // output paths
   Stack<Path*>::Iterator it(_paths);
-   //cout << "number of paths: " <<length<<"\n";
   while (it.hasNext()) {
     it.next()->prettyPrint(cout);
   }
   generateAxiomsForCounters();
+
   cout << "\nGenerate Let...In expressions for  next states...\n";
   cout << "---------------------\n";
   generateLetExpressions();
+
   cout << "\nGenerate update predicates of arrays...\n";
   cout << "---------------------\n";
   generateUpdatePredicates();
+
   cout << "\nGenerate correspondence between final (initial) values and final (initial) functions of variables...\n";
   cout << "---------------------\n";
   generateValueFunctionRelationsOfVariables();
@@ -274,7 +275,8 @@ void LoopAnalyzer::collectPaths()
   for (;;) {
     switch (stat->kind()) {
     case Statement::ASSIGNMENT:
-      { path = path->add(stat);
+      {
+	path = path->add(stat);
         stat = stat->nextStatement();
       }
       break;
@@ -306,8 +308,13 @@ void LoopAnalyzer::collectPaths()
       break;
     case Statement::WHILE_DO:
       ASS(false); // cannot yet work with embedded loops
+      break;
     case Statement::EXPRESSION:
       ASS(false); // cannot yet work with procedure calls
+      break;
+    default:
+      ASS(false);
+      break;
     } //end of switch
     if (stat != _loop) { // end of the body not reached
       continue;
@@ -353,7 +360,6 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
       Variable* expVar=  static_cast<VariableExpression*>(exp)->variable();
       string expName=expVar->name() ;
       TermList var(Term::createConstant(getIntConstant(expName)));
-      //cout << "expression "<< exp->toString()<< " over variable "<<expName <<" translated to Vampire term "<< var<<"\n";
       return var;
     }
    break;
@@ -378,7 +384,6 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
     {
       //cout<<"function application in rhs of Vampire term: "<<exp->toString()<<"\n";
       FunctionApplicationExpression* app = static_cast<FunctionApplicationExpression*>(exp);
-      //cout<<"function: "<<(app->function())->toString()<<"\n";
       //switch on app->function did not work (error on non-integer value in switch), so used nested IF
       if ( app->function() == ConstantFunctionExpression::integerPlus() )
 	{
@@ -464,9 +469,10 @@ Formula* LoopAnalyzer::expressionToPred(Expression* exp)
     Expression* e1 = app->getArgument(0);
     Expression* e2 = app->getArgument(1);
     TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
-    TermList e2Term=expressionToTerm(e2);		
+    TermList e2Term=expressionToTerm(e2);
     Theory* theory = Theory::instance();
-    Formula* predTerm = new AtomicFormula(theory->pred2(Theory::EQUAL,true,e1Term,e2Term));
+    Formula* predTerm = new AtomicFormula(Literal::createEquality(true, e1Term, e2Term ,Sorts::SRT_INTEGER));
+    //theory->pred2(Theory::EQUAL,true,e1Term,e2Term));
     return predTerm;
   }
   if ( app->function() == ConstantFunctionExpression::integerLess() )
@@ -479,46 +485,62 @@ Formula* LoopAnalyzer::expressionToPred(Expression* exp)
     Formula* predTerm= new AtomicFormula(theory->pred2(Theory::INT_LESS,true,e1Term,e2Term));
     return predTerm;
   }
-  if ( app->function() == ConstantFunctionExpression::integerLessEq() )
-  {
+  if (app->function() == ConstantFunctionExpression::integerLessEq()) {
     Expression* e1 = app->getArgument(0);
     Expression* e2 = app->getArgument(1);
-    TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
-    TermList e2Term=expressionToTerm(e2);		
+    TermList e1Term = expressionToTerm(e1); //make recursive call on function arguments
+    TermList e2Term = expressionToTerm(e2);
     Theory* theory = Theory::instance();
-    Formula* predTerm= new AtomicFormula(theory->pred2(Theory::INT_LESS_EQUAL,true,e1Term,e2Term));
+    Formula* predTerm = new AtomicFormula(theory->pred2(Theory::INT_LESS_EQUAL,
+	    true, e1Term, e2Term));
     return predTerm;
   }
-  if ( app->function() == ConstantFunctionExpression::integerGreater() )
-  {
+  if (app->function() == ConstantFunctionExpression::integerGreater()) {
     Expression* e1 = app->getArgument(0);
     Expression* e2 = app->getArgument(1);
-    TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
-    TermList e2Term=expressionToTerm(e2);		
+    TermList e1Term = expressionToTerm(e1); //make recursive call on function arguments
+    TermList e2Term = expressionToTerm(e2);
     Theory* theory = Theory::instance();
-    Formula* predTerm= new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,e1Term,e2Term));
+    Formula* predTerm = new AtomicFormula(theory->pred2(Theory::INT_GREATER,
+	    true, e1Term, e2Term));
     return predTerm;
-   }
-   if ( app->function() == ConstantFunctionExpression::integerGreaterEq() ) 
-   {
-     Expression* e1 = app->getArgument(0);
-     Expression* e2 = app->getArgument(1);
-     TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
-     TermList e2Term=expressionToTerm(e2);		
-     Theory* theory = Theory::instance();
-     Formula* predTerm= new AtomicFormula(theory->pred2(Theory::INT_GREATER_EQUAL,true,e1Term,e2Term));
-     return predTerm;
-   }
-   //if ( app->function() == AND )
-   //{
-   // Expression* e1 = app->getArgument(0);
-   //  Expression* e2 = app->getArgument(1);
-   //  Formula* e1Pred= expressionToPred(e1); //make recursive call on function arguments
-   //  Formula* e2Pred=expressionToPred(e2);		
-   //  Theory* theory = Theory::instance();
-   //  Formula* predTerm= new BinaryFormula(AND,e1Pred,e2Pred);
-   //  return predTerm;
-   // }
+  }
+  if (app->function() == ConstantFunctionExpression::integerGreaterEq()) {
+    Expression* e1 = app->getArgument(0);
+    Expression* e2 = app->getArgument(1);
+    TermList e1Term = expressionToTerm(e1); //make recursive call on function arguments
+    TermList e2Term = expressionToTerm(e2);
+    Theory* theory = Theory::instance();
+    Formula* predTerm = new AtomicFormula(theory->pred2(
+	    Theory::INT_GREATER_EQUAL, true, e1Term, e2Term));
+    return predTerm;
+  }
+  if (app->function() == ConstantFunctionExpression::booleanAnd()) {
+    Expression* e1 = app->getArgument(0);
+    Expression* e2 = app->getArgument(1);
+    Formula* e1Pred = expressionToPred(e1); //make recursive call on function arguments
+    Formula* e2Pred = expressionToPred(e2);
+    Theory* theory = Theory::instance();
+    FormulaList* fl= (new FormulaList(e1Pred))->cons(e2Pred);
+    Formula* predTerm = new JunctionFormula(AND, fl);
+    return predTerm;
+  }
+  if (app->function() == ConstantFunctionExpression::booleanOr()) {
+    Expression* e1 = app->getArgument(0);
+    Expression* e2 = app->getArgument(1);
+    Formula* e1Pred = expressionToPred(e1); //make recursive call on function arguments
+    Formula* e2Pred = expressionToPred(e2);
+    Theory* theory = Theory::instance();
+    FormulaList* fl = (new FormulaList(e1Pred))->cons(e2Pred);
+    Formula* predTerm = new JunctionFormula(OR, fl);
+    return predTerm;
+  }
+  if(app->function() == ConstantFunctionExpression::booleanNeg()){
+    Expression* e = app->getArgument(0);
+    Formula* ePred = expressionToPred(e);
+    Formula* predTerm = new NegatedFormula(ePred);
+    return predTerm;
+  }
 }
 
 
@@ -530,6 +552,7 @@ Formula* LoopAnalyzer::expressionToPred(Expression* exp)
 
 TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
 {
+  CALL("LoopAnalyzer::letTranslationOfPath");
   if (!sit.hasNext()) // end of the recursion
     {return exp;}
   else //make recursive call
@@ -538,7 +561,7 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
       exp = letTranslationOfPath(sit,exp);
       switch (stat->kind()) {
 	   case Statement::ASSIGNMENT:
-	      { 
+	      {
 		Expression* lhs = static_cast<Assignment*>(stat)->lhs();
 	        Expression* rhs = static_cast<Assignment*>(stat)->rhs();
 	        if (lhs->kind() == Expression::VARIABLE) 
@@ -574,6 +597,7 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
 	   case Statement::ITE: {
 	        return exp; 
 	   }
+	     break;
 	   case Statement::ITS: {
 	     return exp;
 	   }
@@ -589,6 +613,7 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
 
 Formula* LoopAnalyzer::letTranslationOfVar(VariableMap::Iterator& varit, Formula* letFormula)
 {
+  CALL("LoopAnalyzer::letTranslationOfVar");
   if (!varit.hasNext()) //end of the recursion
     {return letFormula;}
   else
@@ -621,6 +646,7 @@ Formula* LoopAnalyzer::letTranslationOfVar(VariableMap::Iterator& varit, Formula
 
 Formula* LoopAnalyzer::letTranslationOfArray(Map<Variable*,bool>::Iterator &sit, Formula* exp)
 {
+  CALL("LoopAnalyzer::letTranslationOfArray");
   if (!sit.hasNext()) // end of the recursion
     {return exp;}
   else //make recursive call
@@ -656,8 +682,9 @@ Formula* LoopAnalyzer::letTranslationOfArray(Map<Variable*,bool>::Iterator &sit,
  */
 Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int condPos, int currPos)
 {
+  CALL("LoopAnalyzer::letCondition");
    if (condPos == currPos)  // current statement is the condition we searched, so stop
-    { return condition;  }
+     return condition;
   else //search for the condition
     {
       Statement* stat=sit.next();
@@ -670,7 +697,7 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
 		   {
 		     TermList lhsTerm=expressionToTerm(lhs);
 		     TermList rhsTerm=expressionToTerm(rhs);	
-		     condition=new TermLetFormula(lhsTerm, rhsTerm, condition);
+		     condition=static_cast<Formula* >(new TermLetFormula(lhsTerm, rhsTerm, condition));
 		   }
 		 if (lhs->kind() == Expression::ARRAY_APPLICATION)
 		 { 
@@ -686,17 +713,17 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
 		   Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
 		   TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
 		   TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
-		    condition=new TermLetFormula(lhsTerm, arrayITE, condition); 
+		   condition=new TermLetFormula(lhsTerm, arrayITE, condition);
 		 }
+		 return letCondition(sit,condition, condPos, currPos+1);
 	      }
 	      break;
 	   case Statement::BLOCK:
-	      break;
+	   case Statement::WHILE_DO:
 	   case Statement::ITE: 
-	    break;
 	   case Statement::ITS:
-	     break;
-	   return letCondition(sit,condition, condPos, currPos+1);
+	     return letCondition(sit,condition, condPos, currPos+1);
+	   default: break;
       }
     }
 }
@@ -708,14 +735,14 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
 
 Formula* LoopAnalyzer::letTranslationOfGuards(Path* path, Path::Iterator &sit, Formula* letFormula)
 {
+  CALL("LoopAnalyzer::letTranslationOfGurads");
     Stack<Formula*> conditions;
     int condPos =0;
-    while (sit.hasNext() )
+    while (sit.hasNext())
       {
 	Statement* stat=sit.next();
 	switch (stat->kind()) {
 	   case Statement::ASSIGNMENT:
-	       break;
 	   case Statement::BLOCK:
 	       break;
 	   case Statement::ITE: {
@@ -725,16 +752,18 @@ Formula* LoopAnalyzer::letTranslationOfGuards(Path* path, Path::Iterator &sit, F
 	     if (elsePart==(sit.next())) {condition = new NegatedFormula(condition);}
 	     Path::Iterator pit(path);
 	     condition = letCondition(pit,condition,condPos,0);
-	     conditions.push(condition);		     
+	     conditions.push(condition);
 	   }
 	    break;
 	   case Statement::ITS:{
 	     IfThen* ift = static_cast<IfThen*>(stat);
 	     Formula* condition = expressionToPred(ift->condition());
 	     Path::Iterator pit(path);
+	     Path::Iterator p(path);
 	     condition = letCondition(pit, condition, condPos,0);
 	     conditions.push(condition);
 	   }
+	   break;
 	}
 	condPos = condPos+1;
       }
@@ -819,7 +848,7 @@ void LoopAnalyzer::generateLetExpressions()
 	 Formula* letFormula = new AtomicFormula(createIntEquality(true, varX01, letInBody));
 	 //collect and add conditions from path to the letFormula, so we have cond=>letFormula
 	 Path::Iterator pathCondit(path);
-	 letFormula = letTranslationOfGuards(path, pathCondit, letFormula);				       
+	 letFormula = letTranslationOfGuards(path, pathCondit, letFormula);
 	 //make sequence of let v=v(x) in...letInBody for all vars
 	 //process first updated array vars
 	 Map<Variable*,bool>::Iterator vars(*_loop->variables());
@@ -831,6 +860,7 @@ void LoopAnalyzer::generateLetExpressions()
 	 _units = _units->cons(new FormulaUnit(letFormula,
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));
+
       }
    }
 }
@@ -929,10 +959,11 @@ int LoopAnalyzer::arrayIsUpdatedOnPath(Path* path, Variable *v)
       break;
     case Statement::ITS:
       break;
-    case Statement::WHILE_DO:
-      ASS(false); // cannot yet work with embedded loops
+    case Statement::WHILE_DO: // cannot yet work with embedded loops
     case Statement::EXPRESSION:
+    default:
       ASS(false); // cannot yet work with procedure calls
+      break;
     }
   }
   return updated;
@@ -986,9 +1017,11 @@ TermList LoopAnalyzer::arrayUpdatePosition(Path::Iterator &sit, TermList updPosE
 	   case Statement::ITS:
 	     break;
 	   case Statement::WHILE_DO:
-	     ASS(false); // cannot yet work with embedded loops
+	     ASS(false);
+	     break;// cannot yet work with embedded loops
            case Statement::EXPRESSION:
-             ASS(false); // cannot yet work with procedure calls
+             ASS(false);
+             break;// cannot yet work with procedure calls
       }
       return arrayUpdatePosition(sit, updPosExp, posCnt, currentCnt+1);
     }
@@ -1036,8 +1069,10 @@ Formula* LoopAnalyzer::arrayUpdateCondition(Path* path, Path::Iterator &sit, int
 	     break;
 	   case Statement::WHILE_DO:
 	     ASS(false); // cannot yet work with embedded loops
+	     break;
            case Statement::EXPRESSION:
              ASS(false); // cannot yet work with procedure calls
+             break;
       }
       currentCnt=currentCnt+1;
     }
@@ -1758,6 +1793,7 @@ Term* LoopAnalyzer::relativize(Expression* expr)
       Theory* theory = Theory::instance();
       return theory->representConstant(IntegerConstantType(val));
     }
+    break;
   
   case Expression::VARIABLE:
     {
@@ -1766,6 +1802,7 @@ Term* LoopAnalyzer::relativize(Expression* expr)
       ASS(vexp->etype()->kind() == Type::INT);
       // if (_updatedVariables.contains(
     }
+    break;
 
   case Expression::FUNCTION_APPLICATION:
   case Expression::ARRAY_APPLICATION:
@@ -1773,6 +1810,7 @@ Term* LoopAnalyzer::relativize(Expression* expr)
 
   case Expression::CONSTANT_FUNCTION:
     ASS(false);
+    break;
   }
 }
 

@@ -125,6 +125,9 @@ public:
   static ConstantFunctionExpression* integerMinus(); 
   static ConstantFunctionExpression* integerNegation();
   static ConstantFunctionExpression* integerMult(); 
+  static ConstantFunctionExpression* booleanAnd();
+  static ConstantFunctionExpression* booleanOr();
+  static ConstantFunctionExpression* booleanNeg();
 protected:
   /** the name of this expression */
   string _name;
@@ -155,6 +158,11 @@ private:
   static ConstantFunctionExpression* _integerNegation;
   /** integer product */
   static ConstantFunctionExpression* _integerMult;
+  /** boolean AND*/
+  static ConstantFunctionExpression* _booleanAnd;
+  static ConstantFunctionExpression* _booleanOr;
+  static ConstantFunctionExpression* _booleanNeg;
+
 }; // class ConstantFunctionExpression
 
 /**

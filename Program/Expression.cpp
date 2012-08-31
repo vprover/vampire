@@ -24,6 +24,9 @@ ConstantFunctionExpression* ConstantFunctionExpression::_integerPlus = 0;
 ConstantFunctionExpression* ConstantFunctionExpression::_integerMinus = 0;
 ConstantFunctionExpression* ConstantFunctionExpression::_integerNegation = 0;
 ConstantFunctionExpression* ConstantFunctionExpression::_integerMult = 0;
+ConstantFunctionExpression* ConstantFunctionExpression::_booleanAnd = 0;
+ConstantFunctionExpression* ConstantFunctionExpression::_booleanOr = 0;
+ConstantFunctionExpression* ConstantFunctionExpression::_booleanNeg = 0;
 
 /** Build a constant integer expression out of an integer */
 ConstantIntegerExpression::ConstantIntegerExpression(int val)
@@ -87,6 +90,13 @@ void ConstantFunctionExpression::initialize()
   FunctionType* iii = new FunctionType(2,intType);
   iii->setArgumentType(0,intType);
   iii->setArgumentType(1,intType);
+  //bool*bool -> bool
+  FunctionType* bbb = new FunctionType(2, boolType);
+  bbb->setArgumentType(0, boolType);
+  bbb->setArgumentType(1, boolType);
+  //bool->bool
+  FunctionType* bn = new FunctionType(1, boolType);
+  bn->setArgumentType(0, boolType);
 
   _integerEq = new ConstantFunctionExpression("==",iib,2);
   _integerLess = new ConstantFunctionExpression("<",iib,2);
@@ -97,8 +107,29 @@ void ConstantFunctionExpression::initialize()
   _integerMinus = new ConstantFunctionExpression("-",iii,4);
   _integerNegation = new ConstantFunctionExpression("-",ii,1);
   _integerMult = new ConstantFunctionExpression("*",iii,3);
-
+  _booleanAnd = new ConstantFunctionExpression("&&", bbb, 2);
+  _booleanOr = new ConstantFunctionExpression("||",bbb,2);
+  _booleanNeg = new ConstantFunctionExpression("!", bn, 1);
   _initialized = true;
+}
+
+/**Boolean negation*/
+
+ConstantFunctionExpression* ConstantFunctionExpression::booleanNeg(){
+  if (! _initialized) initialize();
+  return _booleanNeg;
+}
+
+/** Boolean and*/
+ConstantFunctionExpression* ConstantFunctionExpression::booleanAnd(){
+  if (!_initialized) initialize();
+  return _booleanAnd;
+}
+
+/** boolean or*/
+ConstantFunctionExpression* ConstantFunctionExpression::booleanOr(){
+  if (!_initialized) initialize();
+  return _booleanOr;
 }
 
 /** integer equality */
