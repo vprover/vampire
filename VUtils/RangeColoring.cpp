@@ -78,7 +78,6 @@ TermList TermColoring::applyToTerm(TermList trm)
   res = TermList(resTerm);
 
   ALWAYS(_cache.insert(trm, res));
-
   return res;
 }
 
@@ -251,18 +250,30 @@ Color RangeColoring::getColor(TermList term)
 // NameMapColoring
 //
 
+string NameMapColoring::normalizeName(string str)
+{
+  CALL("NameMapColoring::normalizeName");
+
+  if(str[0]=='\'') {
+    str = str.substr(1,str.size()-2);
+  }
+  return str;
+}
+
 bool NameMapColoring::isColoredFunction(unsigned func)
 {
   CALL("NameMapColoring::isColoredFunction");
 
-  return _funcColors.find(env.signature->functionName(func));
+  string nm = normalizeName(env.signature->functionName(func));
+  return _funcColors.find(nm);
 }
 Color NameMapColoring::getColor(TermList term)
 {
   CALL("NameMapColoring::getColor");
   ASS(term.isTerm());
 
-  return _funcColors.get(term.term()->functionName());
+  string nm = normalizeName(term.term()->functionName());
+  return _funcColors.get(nm);
 }
 
 

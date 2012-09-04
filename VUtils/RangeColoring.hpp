@@ -61,6 +61,8 @@ protected:
   virtual bool isColoredFunction(unsigned func);
   virtual Color getColor(TermList term);
 private:
+  static string normalizeName(string str);
+
   DHMap<string,Color> _funcColors;
 
 };
