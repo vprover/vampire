@@ -79,7 +79,6 @@ void LoopAnalyzer::analyze()
   cout << "Analyzing loop...\n";
   cout << "---------------------\n";
   _loop->prettyPrint(cout);
-
   cout << "---------------------\n";
   cout << "Analyzing variables...\n";
   cout << "---------------------\n";
@@ -210,6 +209,7 @@ void LoopAnalyzer::analyzeVariables()
     Variable* var;
     bool updated;
     vars.next(var,updated);
+    cout<<var->name()<<updated<<endl;
     VariableInfo* vinfo = new VariableInfo;
     _variableInfo.insert(var,vinfo);
     cout << "Variable: " << var->name() << ": " << (updated ? "(updated)" : "constant") << "\n";
@@ -442,7 +442,6 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
 		     //create term representation of f(e1)
 		     TermList fctTerm=TermList(Term::create1(uiFctNameTerm,e1Term));
 		     return fctTerm;
-		     //string testName="toDo";
 		     // TermList fctTerm(Term::createConstant(testName)); 
 		     //return fctTerm;
 		   }
@@ -1625,16 +1624,26 @@ void LoopAnalyzer::generateAxiomsForCounters()
  * @param max the maximal increment of the counter over all paths
  * @param gcd greatest common divisor of all increments of the counter over all paths
  */
+
 void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int gcd)
 {
   CALL("LoopAnalyzer::generateCounterAxiom");
-
+  /*
+   * Modified: added the following : ~iter(x0) | Formula generated. To revert at the previous version
+   * one has to uncomment the _units = _units->cons(..) and comment the part from FormulaList to
+   * _units = _units->cons(new..);
+   */
   // value of the counter at position 0
   TermList c(Term::createConstant(getIntConstant(name + Int::toString(0))));
   unsigned fun = getIntFunction(name,1);
   // term x0
   TermList x0;
   x0.makeVar(0);
+  //create iter(X0) predicate
+  unsigned iter = getIntPredicate("iter", 1, true);
+  Literal* iterPred = Literal::create1(iter, true, x0);
+  //create ~iter(x0)
+  Formula* nf = new NegatedFormula(new AtomicFormula(iterPred));
   // term c(x0)
   TermList cx0(Term::create(fun,1,&x0));
   Theory* theory = Theory::instance();
@@ -1658,7 +1667,10 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
       eq = createIntEquality(true,cx0,sum);
     }
     (*cls)[0] = eq;
-    _units = _units->cons(cls);
+    FormulaList* args = (new FormulaList(new AtomicFormula(eq)))->cons(nf);
+    _units = _units->cons(new FormulaUnit(new JunctionFormula(OR, args),
+			  new Inference(Inference::PROGRAM_ANALYSIS),
+			   Unit::ASSUMPTION));
     return;
   }
 
@@ -1668,14 +1680,21 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
     Literal* ineq = theory->pred2(Theory::INT_LESS_EQUAL,true,cx0,c);
     Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
-    _units = _units->cons(cls);
+    FormulaList* args = (new FormulaList(new AtomicFormula(ineq)))->cons(nf);
+    _units = _units->cons(new FormulaUnit(new JunctionFormula(OR, args),
+    			  new Inference(Inference::PROGRAM_ANALYSIS),
+    			   Unit::ASSUMPTION));
+    //_units = _units->cons(cls);
   }
   else if (max == 1 || max == -1) { // c(x0) <= c +- x_0
     TermList sum(theory->fun2(max == 1 ? Theory::INT_PLUS : Theory::INT_MINUS,c,x0));
     Literal* ineq = theory->pred2(Theory::INT_LESS_EQUAL,true,cx0,sum);
     Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
-    _units = _units->cons(cls);
+    FormulaList* args = (new FormulaList(new AtomicFormula(ineq)))->cons(nf);
+    _units = _units->cons(new FormulaUnit(new JunctionFormula(OR, args),
+	    new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
+    //_units = _units->cons(cls);
   }
   else {
     TermList c_max(theory->representConstant(IntegerConstantType(max)));
@@ -1685,7 +1704,10 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
     Literal* ineq = theory->pred2(Theory::INT_LESS_EQUAL,true,cx0,sum);
     Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
-    _units = _units->cons(cls);
+    FormulaList* args = (new FormulaList(new AtomicFormula(ineq)))->cons(nf);
+    _units = _units->cons(new FormulaUnit(new JunctionFormula(OR, args),
+	    new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
+    //_units = _units->cons(cls);
   }
 
   // and the lower bound axiom c(x0) >= c + min*x_0
@@ -1693,14 +1715,20 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
     Literal* ineq = theory->pred2(Theory::INT_GREATER_EQUAL,true,cx0,c);
     Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
-    _units = _units->cons(cls);
+    FormulaList* args = (new FormulaList(new AtomicFormula(ineq)))->cons(nf);
+    _units = _units->cons(new FormulaUnit(new JunctionFormula(OR, args),
+	    new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
+    //_units = _units->cons(cls);
   }
   else if (min == 1 || min == -1) { // c(x0) >= c +- x_0
     TermList sum(theory->fun2(min == 1 ? Theory::INT_PLUS : Theory::INT_MINUS,c,x0));
     Literal* ineq = theory->pred2(Theory::INT_GREATER_EQUAL,true,cx0,sum);
     Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
-    _units = _units->cons(cls);
+    FormulaList* args = (new FormulaList(new AtomicFormula(ineq)))->cons(nf);
+    _units = _units->cons(new FormulaUnit(new JunctionFormula(OR, args),
+	    new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
+    //_units = _units->cons(cls);
   }
   else {
     TermList c_min(theory->representConstant(IntegerConstantType(min)));
@@ -1710,7 +1738,10 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
     Literal* ineq = theory->pred2(Theory::INT_GREATER_EQUAL,true,cx0,sum);
     Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
-    _units = _units->cons(cls);
+    FormulaList* args = (new FormulaList(new AtomicFormula(ineq)))->cons(nf);
+    _units = _units->cons(new FormulaUnit(new JunctionFormula(OR, args),
+	    new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
+    //_units = _units->cons(cls);
   }
 
   // generate density axioms
