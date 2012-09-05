@@ -1456,7 +1456,8 @@ void TPTP::lettf()
 
 /**
  * Process $select1 term
- * @since 3/09/2012 Vienna
+ * @author Laura Kovacs
+ * @since 31/08/2012, Vienna
  */
 void TPTP::select1()
 {
@@ -1475,6 +1476,7 @@ void TPTP::select1()
 
 /**
  * Process $select2 term
+ * @author Laura Kovacs
  * @since 3/09/2012 Vienna
  */
 void TPTP::select2()
@@ -1494,6 +1496,7 @@ void TPTP::select2()
 
 /**
  * Process $store1 term
+ * @author Laura Kovacs
  * @since 3/09/2012 Vienna
  */
 void TPTP::store1()
@@ -1515,6 +1518,7 @@ void TPTP::store1()
 
 /**
  * Process $store2 term
+ * @author Laura Kovacs
  * @since 3/09/2012 Vienna
  */
 void TPTP::store2()
@@ -1639,6 +1643,7 @@ void TPTP::endLettt()
 
 /**
  * Process the end of the select1() term
+ * @author Laura Kovacs
  * @since 3/09/2012 Vienna
  */
 void TPTP::endSelect1()
@@ -1668,6 +1673,7 @@ void TPTP::endSelect1()
 
 /**
  * Process the end of the select2() term
+ * @author Laura Kovacs
  * @since 3/09/2012 Vienna
  */
 void TPTP::endSelect2()
@@ -1697,6 +1703,7 @@ void TPTP::endSelect2()
 
 /**
  * Process the end of the store1() term
+ * @author Laura Kovacs
  * @since 3/09/2012 Vienna
  */
 void TPTP::endStore1()
@@ -1729,6 +1736,7 @@ void TPTP::endStore1()
 
 /**
  * Process the end of the store2() term
+ * @author Laura Kovacs
  * @since 3/09/2012 Vienna
  */
 void TPTP::endStore2()

@@ -367,6 +367,8 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
     
 /**
  * Adds the select axiom of arrays (of type array1 or array2), 
+ * @author Laura Kovacs
+ * @since 31/08/2012, Vienna
  */
     
 void TheoryAxioms::addArraySelectAxioms(Interpretation select, UnitList*& units)
@@ -399,6 +401,8 @@ void TheoryAxioms::addArraySelectAxioms(Interpretation select, UnitList*& units)
 
 /**
 * Adds the extensionality axiom of arrays (of type array1 or array2), 
+ * @author Laura Kovacs
+ * @since 31/08/2012, Vienna
 */
     
 void TheoryAxioms::addArrayExtensionalityAxioms(Interpretation select, Interpretation store, UnitList*& units)
@@ -443,6 +447,8 @@ void TheoryAxioms::addArrayExtensionalityAxioms(Interpretation select, Interpret
 
 /**
 * Adds the write axiom of arrays (of type array1 or array2), 
+ * @author Laura Kovacs
+ * @since 31/08/2012, Vienna
 */
     
 void TheoryAxioms::addArrayWriteAxioms(Interpretation select, Interpretation store, UnitList*& units)

@@ -728,6 +728,11 @@ Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned first
   return res;
 }
 
+    
+/**parse Select/Store terms
+ * @author Krystof Hoder and Laura Kovacs
+ * since 31/08/2012 Vienna
+*/
 unsigned SMTLIB::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermStack& args)
 {
   CALL("SMTLIB::tryReadTermSelectOrStoreFn");

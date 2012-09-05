@@ -793,28 +793,32 @@ bool Theory::isConversionOperation(Interpretation i)
 
     
 /**
-  * Return true if interpreted function @c i is an array operation.
-*/
+ * Return true if interpreted function @c i is an array operation.
+ * @author Laura Kovacs
+ * @since 31/08/2012, Vienna
+ */
 bool Theory::isArrayOperation(Interpretation i)
-    {
-        CALL("Theory::isArrayFunction");
+{
+  CALL("Theory::isArrayFunction");
         
-        switch(i) {
-            case SELECT1_INT:
-            case SELECT2_INT:          
-            case STORE1_INT:
-            case STORE2_INT:
-                return true;
-            default:
-                return false;
-        }
-    }
+  switch(i) {
+    case SELECT1_INT:
+    case SELECT2_INT:          
+    case STORE1_INT:
+    case STORE2_INT:
+      return true;
+    default:
+      return false;
+  }
+}
    
     
     
 /**
 * This function can be called for array operations 
 * it returns the range domain (the sort of the output) of select and store
+* @author Laura Kovacs
+* @since 31/08/2012, Vienna
 */
 unsigned Theory::getArrayOperationSort(Interpretation i)
 {
@@ -839,6 +843,8 @@ unsigned Theory::getArrayOperationSort(Interpretation i)
     
 /**
 * This function returns the domain of array indexes (SRT_INT)
+* @author Laura Kovacs
+* @since 31/08/2012, Vienna
 */
 unsigned Theory::getArrayDomainSort(Interpretation i)
 {
@@ -907,6 +913,8 @@ FunctionType* Theory::getConversionOperationType(Interpretation i)
  * This function creates a type for array operation function @c i.
  *
  * @c i must be an array operation.
+ * @author Laura Kovacs
+ * @since 31/08/2012, Vienna
 */
 FunctionType* Theory::getArrayOperationType(Interpretation i)
 {
