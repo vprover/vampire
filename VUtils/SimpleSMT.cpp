@@ -102,7 +102,7 @@ void SimpleSMT::initSATSolver(SATClauseIterator clauseIterator)
 void SimpleSMT::preprocessProblem(int argc, char** argv)
 {
   CALL("SimpleSMT::preprocessProblem")
-
+    
   string fname;
   if (argc < 3) {
     fname = "";
@@ -121,15 +121,23 @@ void SimpleSMT::preprocessProblem(int argc, char** argv)
   env.options->set("distinct_processor","on");
   env.options->set("inequality_splitting","0");
   Problem* prb = UIHelper::getInputProblem(*env.options);
-
   TimeCounter tc2(TC_PREPROCESSING);
+  
+  
 
   Shell::Preprocess prepro(*env.options);
+  
+  
+    
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(*prb);
 
+  
+  
   SAT::SATClauseIterator clauseIterator = (initSATClauses(prb->clauseIterator()));
+  
   initSATSolver(clauseIterator); 
+  
 }
 
 
@@ -293,6 +301,7 @@ int SimpleSMT::perform(int argc, char** argv)
 {
   CALL("SimpleSMT::perform");
   //preprocess the problem and initialize the SAT solver for this problem
+
   preprocessProblem(argc, argv);
   
   switch (compute()) {

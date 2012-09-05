@@ -1021,6 +1021,7 @@ Formula* AIGCompressingTransformer::apply(Formula* f)
     return f;
   }
 
+  
   AIGRef fAig = _fsh.apply(f).second;
   AIGRef simpl = _compr.compress(fAig);
   if(simpl==fAig) {

@@ -140,6 +140,18 @@ public:
     /** $real */
     T_REAL_TYPE,
     /** $fot, probably useless */
+    T_ARRAY1_TYPE,
+    /** $array1 type*/
+    T_ARRAY2_TYPE,
+    /** $array2 type*/
+    T_SELECT1,
+    /** array select1 on terms (int, array1)*/
+    T_SELECT2,
+    /** array select2 on terms (int, array2)*/
+    T_STORE1,
+    /** array store1  on terms (array1, int, int)*/
+    T_STORE2,
+    /** array store2 on terms (array2, int, int)*/
     T_FOT,
     /** $fof, probably useless */
     T_FOF,
@@ -233,6 +245,23 @@ public:
     END_LETFT,
     /** end of $letff formula */
     END_LETFF,
+    /** select1 on array1 term*/
+    SELECT1, 
+    /** end of select1 array terms */
+    END_SELECT1,
+    /** select1 on array2 term*/
+    SELECT2, 
+    /** end of select2 array terms */
+    END_SELECT2,
+    /** store1 on array1 term*/
+    STORE1, 
+    /** end of store1 array terms */
+    END_STORE1,
+    /** store2 on array2 term*/
+    STORE2, 
+    /** end of store2 on array terms */
+    END_STORE2,
+
   };
 
   /** token */
@@ -583,6 +612,10 @@ private:
   void type();
   void itef();
   void itet();
+  void select1();
+  void select2();
+  void store1();
+  void store2();
   void endItef();
   void endItet();
   void letff();
@@ -591,6 +624,10 @@ private:
   void endLetft();
   void endLettf();
   void endLettt();
+  void endSelect1();
+  void endSelect2();
+  void endStore1();
+  void endStore2();
   void addTagState(Tag);
   static void checkFlat(const TermList& t);
   static void checkFlat(const Term* t);
@@ -609,6 +646,7 @@ private:
   unsigned addOverloadedPredicate(string name,int arity,int symbolArity,bool& added,TermList& arg,
 				  Theory::Interpretation integer,Theory::Interpretation rational,
 				  Theory::Interpretation real);
+ // unsigned addOverloadedArrayFunction(string name,int arity,int symbolArity,bool& added,TermList& arg,Theory::Interpretation array_select);
   unsigned addIntegerConstant(const string&);
   unsigned addRationalConstant(const string&);
   unsigned addRealConstant(const string&);

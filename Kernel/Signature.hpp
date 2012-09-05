@@ -128,7 +128,7 @@ class Signature
     /** Return true if symbol is a real constant */
     inline bool realConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_REAL; }
-
+          
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const
     { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
@@ -240,7 +240,7 @@ class Signature
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
   };
-
+    
   //////////////////////////////////////
   // Uninterpreted symbol declarations
   //

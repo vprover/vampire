@@ -46,6 +46,11 @@ private:
   void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation lessEqual,
       UnitList*& units);
 
+  void addArraySelectAxioms(Interpretation select, UnitList*& units);
+  void addArrayExtensionalityAxioms(Interpretation select, Interpretation store, UnitList*& units);
+  void addArrayWriteAxioms(Interpretation select, Interpretation store, UnitList*& units);
+
+
   void addTheoryUnit(Literal* lit, UnitList*& units);
   void addTheoryClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3=0);
 };

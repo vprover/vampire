@@ -141,6 +141,7 @@ int main(int argc, char* argv [])
     }
     else if(module=="smt") {
       resultValue=SimpleSMT().perform(args.size(), args.begin());
+      
     }
     else if(module=="dpt") {
       resultValue=DPTester().perform(args.size(), args.begin());

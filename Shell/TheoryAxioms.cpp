@@ -363,7 +363,126 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
   Literal* lt1POne2 = Literal::create2(lePred, true, v1POne, v2);
   addTheoryClause(units, le21, lt1POne2);
 }
+    
+    
+/**
+ * Adds the select axiom of arrays (of type array1 or array2), 
+ */
+    
+void TheoryAxioms::addArraySelectAxioms(Interpretation select, UnitList*& units)
+    {
+        CALL("TheoryAxioms::addArraySelectAxioms");
+        
+        ASS(theory->isFunction(select));
+        ASS(theory->isArrayOperation(select));
+        ASS_EQ(theory->getArity(select),2);
+        
+        
+        unsigned func = env.signature->getInterpretingSymbol(select);
+        unsigned rangeSort = theory->getArrayOperationSort(select);
+        unsigned domainSort = theory->getArrayDomainSort(select);
+        
+        //axiom (!A:rangeSort, !I,J: domainSort: (I=J ->  select(A,I) = select(A,J)))
+        
+        TermList i(0,false);
+        TermList j(1,false);
+        TermList a(2,false);
+        TermList aI(Term::create2(func, a, i)); //select(A,I)
+        TermList aJ(Term::create2(func, a, j)); //select(A,J)
 
+        Literal* indexEq = Literal::createEquality(false, i, j, domainSort);//!(I=J)
+        Literal* selectEq = Literal::createEquality(true, aI, aJ, rangeSort);//aI=aJ
+        addTheoryClause(units, indexEq, selectEq);
+
+}
+    
+
+/**
+* Adds the extensionality axiom of arrays (of type array1 or array2), 
+*/
+    
+void TheoryAxioms::addArrayExtensionalityAxioms(Interpretation select, Interpretation store, UnitList*& units)
+{
+    CALL("TheoryAxioms::addArrayExtenstionalityAxioms");
+        
+    ASS(theory->isFunction(select));
+    ASS(theory->isArrayOperation(select));
+    ASS_EQ(theory->getArity(select),2);
+        
+        
+    unsigned func = env.signature->getInterpretingSymbol(select);
+    unsigned rangeSort = theory->getArrayOperationSort(select);
+   // unsigned domainSort = theory->getArrayDomainSort(select);
+    unsigned arraySort = theory->getArrayOperationSort(store);
+        
+    //axiom (!A,B:arraySort, !I:domainSort: (select(A,I) = select(B,I)) <-> A=B ) will be splitted in two
+    
+        
+    TermList i(0,false);
+    TermList a(1,false);
+    TermList b(2,false);
+
+    TermList aI(Term::create2(func, a, i)); //select(A,I)
+    TermList bI(Term::create2(func, b, i)); //select(B,I)
+    
+    
+    //bulid first part of the axiom 
+    //!A,B:arraySort, !I: (select(A,I) = select(B,I)) -> A=B )
+    Literal* arrayEq1 = Literal::createEquality(true, a, b, arraySort);//A=B       
+    Literal* selectEq1 = Literal::createEquality(false, aI, bI, rangeSort);// !(select(A,I) = select(B,I))
+    addTheoryClause(units, arrayEq1, selectEq1);
+    
+    //bulid second part of the axiom 
+    //!A,B:arraySort, !I: A=B ->(select(A,I) = select(B,I)))
+    Literal* arrayEq2 = Literal::createEquality(false, a, b, arraySort);//!(A=B)
+    Literal* selectEq2 = Literal::createEquality(true, aI, bI, rangeSort);// !(select(A,I) = select(B,I))
+    addTheoryClause(units, arrayEq2, selectEq2);
+    
+}
+    
+
+/**
+* Adds the write axiom of arrays (of type array1 or array2), 
+*/
+    
+void TheoryAxioms::addArrayWriteAxioms(Interpretation select, Interpretation store, UnitList*& units)
+    {
+        CALL("TheoryAxioms::addArrayExtenstionalityAxioms");
+        
+        ASS(theory->isFunction(select));
+        ASS(theory->isArrayOperation(select));
+        ASS_EQ(theory->getArity(select),2);
+        
+        
+        unsigned func_select = env.signature->getInterpretingSymbol(select);
+        unsigned func_store = env.signature->getInterpretingSymbol(store);
+
+        unsigned rangeSort = theory->getArrayOperationSort(select);
+        unsigned domainSort = theory->getArrayDomainSort(select);
+        //unsigned arraySort = theory->getOperationSort(store);
+        
+        TermList i(0,false);
+        TermList j(1,false);
+        TermList v(2,false);
+        TermList a(3,false);
+        TermList args[] = {a, i, v};
+        
+        //axiom (!A: arraySort, !I:domainSort, !V:rangeSort: (select(store(A,I,V), I) = V
+        TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,V)
+        TermList sWI(Term::create2(func_select, wAIV,i)); //select(wAIV,I)
+        Literal* ax = Literal::createEquality(true, sWI, v, rangeSort);
+        addTheoryUnit(ax, units);
+
+        //axiom (!A: arraySort, !I,J:domainSort, !V:rangeSort: (I!=J)->(select(store(A,I,V), J) = select(A,J)
+        TermList sWJ(Term::create2(func_select, wAIV,j)); //select(wAIV,J)
+        TermList sAJ(Term::create2(func_select, a, j)); //select(A,J)
+        
+        Literal* indexEq = Literal::createEquality(true, i, j, domainSort);//!(!(I=J)) === I=J
+        Literal* writeEq = Literal::createEquality(true, sWJ, sAJ, rangeSort);//(select(store(A,I,V), J) = select(A,J)
+        addTheoryClause(units, indexEq, writeEq);                      
+    }
+
+    
 //Axioms for integer division that hven't been implemented yet
 //
 //axiom( (ige(X0,zero) & igt(X1,zero)) --> ( ilt(X0-X1, idiv(X0,X1)*X1) & ile(idiv(X0,X1)*X1, X0) ) );
@@ -399,6 +518,7 @@ void TheoryAxioms::apply(Problem& prb)
 bool TheoryAxioms::apply(UnitList*& units, Property* prop)
 {
   CALL("TheoryAxioms::apply");
+  
 
   bool modified = false;
   {
@@ -424,6 +544,7 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
       modified = true;
     }
   }
+    
 
   {
     bool haveRatPlus =
@@ -448,6 +569,9 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     }
   }
 
+   
+
+    
   {
     bool haveRealPlus =
 	prop->hasInterpretedOperation(Theory::REAL_PLUS) ||
@@ -469,6 +593,24 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
       }
       modified = true;
     }
+  }
+
+    
+  {
+    bool haveSelectArray1= prop->hasInterpretedOperation(Theory::SELECT1_INT);
+    bool haveSelectArray2= prop->hasInterpretedOperation(Theory::SELECT2_INT);
+    bool haveStoreArray1= prop->hasInterpretedOperation(Theory::STORE1_INT);
+    bool haveStoreArray2= prop->hasInterpretedOperation(Theory::STORE2_INT);
+    
+    if (haveSelectArray1) {addArraySelectAxioms(Theory::SELECT1_INT,units);}
+    if (haveSelectArray2) {addArraySelectAxioms(Theory::SELECT2_INT,units);}
+      
+    if (haveStoreArray1) {addArrayExtensionalityAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, units);
+                          addArrayWriteAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, units);}
+    if (haveStoreArray2) {addArrayExtensionalityAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, units);
+                          addArrayWriteAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, units);}
+
+
   }
   return modified;
 }

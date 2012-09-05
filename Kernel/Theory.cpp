@@ -550,7 +550,14 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_MINUS:
   case REAL_MULTIPLY:
   case REAL_DIVIDE:
+  case SELECT1_INT:
+  case SELECT2_INT:
     return 2;
+          
+  case STORE1_INT:
+  case STORE2_INT: 
+    return 3;
+          
   default:
     ASSERTION_VIOLATION;
   }
@@ -596,6 +603,11 @@ bool Theory::isFunction(Interpretation i)
   case REAL_MINUS:
   case REAL_MULTIPLY:
   case REAL_DIVIDE:
+          
+  case SELECT1_INT:
+  case SELECT2_INT:          
+  case STORE1_INT:
+  case STORE2_INT:
     return true;
 
   case EQUAL:
@@ -694,6 +706,8 @@ bool Theory::hasSingleSort(Interpretation i)
 unsigned Theory::getOperationSort(Interpretation i)
 {
   CALL("Theory::getOperationSort");
+
+  
   ASS(hasSingleSort(i));
   ASS_LE(i,MAX_INTERPRETED_ELEMENT);
 
@@ -755,6 +769,8 @@ unsigned Theory::getOperationSort(Interpretation i)
     ASSERTION_VIOLATION;
   }
 }
+    
+        
 
 bool Theory::isConversionOperation(Interpretation i)
 {
@@ -775,6 +791,74 @@ bool Theory::isConversionOperation(Interpretation i)
   }
 }
 
+    
+/**
+  * Return true if interpreted function @c i is an array operation.
+*/
+bool Theory::isArrayOperation(Interpretation i)
+    {
+        CALL("Theory::isArrayFunction");
+        
+        switch(i) {
+            case SELECT1_INT:
+            case SELECT2_INT:          
+            case STORE1_INT:
+            case STORE2_INT:
+                return true;
+            default:
+                return false;
+        }
+    }
+   
+    
+    
+/**
+* This function can be called for array operations 
+* it returns the range domain (the sort of the output) of select and store
+*/
+unsigned Theory::getArrayOperationSort(Interpretation i)
+{
+    CALL("Theory::getArrayOperationSort");
+    ASS(isArrayOperation(i));
+    
+    switch(i) {
+        case SELECT1_INT:
+            return Sorts::SRT_INTEGER;
+        case SELECT2_INT:
+            return Sorts::SRT_ARRAY1;
+        case STORE1_INT:
+            return Sorts::SRT_ARRAY1;
+        case STORE2_INT:
+            return Sorts::SRT_ARRAY2;
+        default:
+            ASSERTION_VIOLATION;
+    }
+}
+    
+        
+    
+/**
+* This function returns the domain of array indexes (SRT_INT)
+*/
+unsigned Theory::getArrayDomainSort(Interpretation i)
+{
+    CALL("Theory::getArrayDomainSort");
+    ASS(isArrayOperation(i));
+        
+    switch(i) {
+        case SELECT1_INT:
+        case SELECT2_INT:
+        case STORE1_INT:
+        case STORE2_INT:
+            return Sorts::SRT_INTEGER;
+        default:
+            ASSERTION_VIOLATION;
+        }
+}
+
+    
+
+    
 /**
  * This function creates a type for converion function @c i.
  *
@@ -817,6 +901,49 @@ FunctionType* Theory::getConversionOperationType(Interpretation i)
   ASS(res->isFunctionType());
   return static_cast<FunctionType*>(res);
 }
+    
+    
+/**
+ * This function creates a type for array operation function @c i.
+ *
+ * @c i must be an array operation.
+*/
+FunctionType* Theory::getArrayOperationType(Interpretation i)
+{
+    CALL("Theory::getArrayOperationType");
+    ASS(isArrayOperation(i));
+    
+    unsigned arrSort, indexSort, valueSort;
+    BaseType* res;
+    indexSort = getArrayDomainSort(i);
+    switch(i) {
+        case SELECT1_INT: 
+            valueSort=Sorts::SRT_INTEGER;//we only handle arrays of int, for now
+            arrSort=Sorts::SRT_ARRAY1;
+            res= BaseType::makeType2(arrSort, indexSort, valueSort);
+            break;
+        case SELECT2_INT:
+            arrSort=Sorts::SRT_ARRAY2;
+            valueSort=Sorts::SRT_ARRAY1;
+            res= BaseType::makeType2(arrSort, indexSort, valueSort);
+            break;
+        case STORE1_INT:
+            arrSort=Sorts::SRT_ARRAY1;
+            valueSort=Sorts::SRT_INTEGER;//we only handle arrays of int, for now
+            res= BaseType::makeType3(arrSort, indexSort, valueSort, arrSort);
+            break;
+        case STORE2_INT:
+            arrSort=Sorts::SRT_ARRAY2;
+            valueSort=Sorts::SRT_ARRAY1;
+            res= BaseType::makeType3(arrSort, indexSort, valueSort, arrSort);
+            break;
+        default:
+            ASSERTION_VIOLATION;
+    }
+    ASS(res->isFunctionType());
+    return static_cast<FunctionType*>(res);
+    
+}
 
 /**
  * Return type of the function representing interpreted function/predicate @c i.
@@ -829,17 +956,24 @@ BaseType* Theory::getOperationType(Interpretation i)
   if(isConversionOperation(i)) {
     return getConversionOperationType(i);
   }
-  ASS(hasSingleSort(i));
+   
+  if (isArrayOperation(i))
+     { return getArrayOperationType(i);}
+  
+    unsigned sort;  
+    ASS(hasSingleSort(i));
+    sort = getOperationSort(i);
 
-  unsigned sort = getOperationSort(i);
+    
   unsigned arity = getArity(i);
-
+    
   static DArray<unsigned> domainSorts;
   domainSorts.init(arity, sort);
-
+    
   unsigned resSort = isFunction(i) ? sort : Sorts::SRT_BOOL;
-
+    
   return BaseType::makeType(arity, domainSorts.array(), resSort);
+
 }
 
 bool Theory::isInterpretedConstant(unsigned func)
@@ -1144,6 +1278,26 @@ Term* Theory::fun2(Interpretation itp, TermList arg1, TermList arg2)
   return Term::create(fn, 2, args);
 }
 
+    
+/**
+* Return term containing trenary function interpreted as @b itp with
+* arguments @b arg1 ,  @b arg2, @b arg3
+*/
+Term* Theory::fun3(Interpretation itp, TermList arg1, TermList arg2, TermList arg3)
+    {
+        CALL("Theory::fun3");
+        ASS(isFunction(itp));
+        ASS_EQ(getArity(itp), 3);
+        
+        TermList args[]= {arg1, arg2, arg3};
+        
+        unsigned fn=theory->getFnNum(itp);
+        return Term::create(fn, 3, args);
+    }
+
+
+    
+    
 /**
  * Return literal containing binary predicate interpreted as @b itp with
  * arguments @b arg1 and @b arg2

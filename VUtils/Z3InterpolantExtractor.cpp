@@ -54,6 +54,7 @@ LExpr* ZIE::getInput()
   LispLexer lex(cin);
 //  ifstream fin("/work/smt/ticket3i_1_e7_1669.ec.smt2.24");
 //  LispLexer lex(fin);
+ 
   LispParser parser(lex);
   return parser.parse();
 }
@@ -673,11 +674,15 @@ Unit* ZIE::getZ3Refutation()
   env.colorUsed = true;
 
   //get the Z3 proof in the form of lisp expressions
+    
+
   LExpr* inp = getInput();
 
+    
   LExpr* proofExpr;
   //get the only child of the lisp expression
   if(!inp->getSingleton(proofExpr)) { LISP_ERROR("invalid proof", inp); }
+
 
 
   //read let expressions into internal structure
@@ -748,9 +753,10 @@ int ZIE::perform(int argc, char** argv)
   }
 
 
-
   getZ3Refutation();
-
+  
+    
+    
   ScopedPtr<TermColoring> colorer(createColorer(argc-2, argv+2));
 
   if(!colorProof(*colorer, _allUnits, _allUnitsColored)) {

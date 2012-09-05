@@ -219,7 +219,6 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
   }
 
   string symbolKey = name+"_i"+Int::toString(interpretation);
-
   ASS(!_funNames.find(symbolKey));
 
   unsigned fnNum = _funs.length();
@@ -227,10 +226,13 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
   _funs.push(sym);
   _funNames.insert(symbolKey, fnNum);
   ALWAYS(_iSymbols.insert(interpretation, fnNum));
-  BaseType* fnType = Theory::getOperationType(interpretation);
+    BaseType* fnType;
+  if (Theory::isArrayOperation(interpretation)) 
+    { fnType = Theory::getArrayOperationType(interpretation);}
+  else 
+    {fnType = Theory::getOperationType(interpretation);}
   ASS(fnType->isFunctionType());
   sym->setType(fnType);
-
   return fnNum;
 }
 
@@ -350,7 +352,8 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
 unsigned Signature::getInterpretingSymbol(Interpretation interp)
 {
   CALL("Signature::getInterpretingSymbol");
-
+  
+    
   unsigned res;
   if(_iSymbols.find(interp, res)) {
     return res;
@@ -437,12 +440,24 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::REAL_TO_REAL:
     name="$to_real";
     break;
+  case Theory::SELECT1_INT:
+    name = "$select1";
+    break;
+  case Theory::SELECT2_INT:
+    name="$select2";
+    break;
+  case Theory::STORE1_INT:
+    name="$store1";
+    break;
+  case Theory::STORE2_INT:
+    name="$store2";
+    break;
   default:
     ASSERTION_VIOLATION;
   }
 
   unsigned arity = Theory::getArity(interp);
-
+  
   if(Theory::isFunction(interp)) {
     if(functionExists(name, arity)) {
       int i=0;

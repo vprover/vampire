@@ -16,6 +16,10 @@ namespace Kernel
 //const unsigned Sorts::SRT_RATIONAL = 3;
 //const unsigned Sorts::SRT_REAL = 4;
 //const unsigned Sorts::FIRST_USER_SORT = 5;
+//const unsigned Sorts::SRT_ARRAY1 = 6;
+//const unsigned Sorts::SRT_ARRAY2 = 7;
+
+    
 
 
 Sorts::Sorts()
@@ -38,8 +42,17 @@ Sorts::Sorts()
 
   aux = addSort("$real");
   ASS_EQ(aux, SRT_REAL);
-
-  _hasSort = false;
+  
+  aux =addSort("$fus");
+  ASS_EQ(aux,FIRST_USER_SORT);
+    
+  aux = addSort("$array1");
+  ASS_EQ(aux, SRT_ARRAY1);
+    
+  aux = addSort("$array2");
+  ASS_EQ(aux, SRT_ARRAY2);
+  
+ _hasSort = false;
 }
 
 Sorts::~Sorts()

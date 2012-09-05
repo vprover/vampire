@@ -68,6 +68,7 @@ void SMTLIB::parse(istream& str)
 void SMTLIB::parse(LExpr* bench)
 {
   CALL("SMTLIB::parse(LExpr*)");
+
   ASS(!_haveParsed);
   ASS(bench->isList());
 #if VDEBUG
@@ -75,23 +76,30 @@ void SMTLIB::parse(LExpr* bench)
 #endif
 
   readBenchmark(bench->list);
+ 
 
   if(_mode==READ_BENCHMARK) { return; }
 
   doSortDeclarations();
-
+  
+ 
   if(_mode==DECLARE_SORTS) { return; }
 
+    
   doFunctionDeclarations();
-
+ 
   if(_mode==DECLARE_SYMBOLS) { return; }
   ASS(_mode==BUILD_FORMULA);
+
+
+ 
 
   buildFormula();
 }
 
 void SMTLIB::readBenchmark(LExprList* bench)
 {
+
   LispListReader bRdr(bench);
   bRdr.acceptAtom("benchmark");
   _benchName = bRdr.readAtom();
@@ -167,18 +175,47 @@ void SMTLIB::readFunction(LExprList* decl)
 {
   CALL("SMTLIB::declareFunction");
 
+
   LispListReader dRdr(decl);
   string name = dRdr.readAtom();
-
+  
+  LExpr* nextSym = dRdr.readNext();
+  
   static Stack<string> argSorts;
   argSorts.reset();
-  argSorts.push(dRdr.readAtom());
-  while(dRdr.hasNext()) {
-    argSorts.push(dRdr.readAtom());
+
+    
+  if (nextSym->isAtom()) {
+     string type = nextSym->str;
+     argSorts.push(type);
+     while(dRdr.hasNext()) {
+          argSorts.push(dRdr.readAtom());
+      }
   }
-
-  string domainSort = argSorts.pop();
-
+  else {if (nextSym->isList()) {
+        //for now we only treat one-dimensional integer arrays, given in SMT as (Array Int Int)
+        LExprList* l= nextSym->list;
+        string type = l->head()->toString();
+        if (type != "Array") {USER_ERROR("unknown non-atomic sort (we only handle arrays)");}
+        type = "Array1";
+        //type 1
+        if (!l->tail()) {	USER_ERROR("non-atomic sort has no domain and range");}
+        l=l->tail();
+        string tmpArg1 = l->head()->toString();
+      if (tmpArg1!= "Int") {USER_ERROR("Array indeces are not int");}
+        if (!l->tail()) {	USER_ERROR("non-atomic sort has no range sort");}
+        l=l->tail();
+        string tmpArg2 = l->head()->toString();
+      if (tmpArg2!= "Int") {USER_ERROR("Array elements are not int (we only handle arrays of int)");}
+        argSorts.push(type);
+        //read the leftover declaration
+        while(dRdr.hasNext()) {
+          argSorts.push(dRdr.readAtom());
+       }
+        //argSorts.push(tmpArg2);
+    }
+  }
+    string domainSort = argSorts.pop();  
   _funcs.push(FunctionInfo(name, argSorts, domainSort));
 }
 
@@ -201,17 +238,17 @@ void SMTLIB::readPredicate(LExprList* decl)
 unsigned SMTLIB::getSort(BuiltInSorts srt)
 {
   CALL("SMTLIB::getSort(BuiltInSorts)");
-
+  
   switch(srt) {
   case BS_ARRAY1:
     if(!_array1Sort) {
-      _array1Sort = env.sorts->addSort("$array1");
-      ASS(_array1Sort);
+        _array1Sort = Sorts::SRT_ARRAY1;//env.sorts->addSort("$array1");
+        ASS(_array1Sort);
     }
     return _array1Sort;
   case BS_ARRAY2:
     if(!_array2Sort) {
-      _array2Sort = env.sorts->addSort("$array2");
+        _array2Sort = Sorts::SRT_ARRAY2;//env.sorts->addSort("$array2");
       ASS(_array2Sort);
     }
     return _array2Sort;
@@ -229,8 +266,9 @@ unsigned SMTLIB::getSort(BuiltInSorts srt)
 unsigned SMTLIB::getSort(string name)
 {
   CALL("SMTLIB::getSort");
-
+    
   BuiltInSorts bsym = getBuiltInSort(name);
+
   if(bsym==BS_INVALID) {
     unsigned idx;
     if(!env.sorts->findSort(name, idx)) {
@@ -246,7 +284,7 @@ unsigned SMTLIB::getSort(string name)
 void SMTLIB::doSortDeclarations()
 {
   CALL("SMTLIB::doSortDeclarations");
-
+    
   Stack<string>::Iterator srtIt(_userSorts);
   while(srtIt.hasNext()) {
     string sortName = srtIt.next();
@@ -257,6 +295,7 @@ void SMTLIB::doSortDeclarations()
 BaseType* SMTLIB::getSymbolType(const FunctionInfo& fnInfo)
 {
   CALL("SMTLIB::getSymbolType");
+  
 
   unsigned arity = fnInfo.argSorts.size();
   unsigned rangeSort = getSort(fnInfo.rangeSort);
@@ -277,13 +316,12 @@ BaseType* SMTLIB::getSymbolType(const FunctionInfo& fnInfo)
 void SMTLIB::doFunctionDeclarations()
 {
   CALL("SMTLIB::doFunctionDeclarations");
-
+    
   unsigned funCnt = _funcs.size();
   for(unsigned i=0; i<funCnt; i++) {
     FunctionInfo& fnInfo = _funcs[i];
-
     unsigned arity = fnInfo.argSorts.size();
-
+    
     BaseType* type = getSymbolType(fnInfo);
     bool isPred = !type->isFunctionType();
 
@@ -303,7 +341,7 @@ void SMTLIB::doFunctionDeclarations()
       }
     }
     else {
-      bool added;
+     bool added;
       symNum = env.signature->addFunction(fnInfo.name, arity, added);
       sym = env.signature->getFunction(symNum);
       if(added) {
@@ -333,7 +371,7 @@ const char * SMTLIB::s_builtInSortNameStrings[] = {
 SMTLIB::BuiltInSorts SMTLIB::getBuiltInSort(string str)
 {
   CALL("SMTLIB::getBuiltInSort");
-
+    
   static NameArray builtInSortNames(s_builtInSortNameStrings, sizeof(s_builtInSortNameStrings)/sizeof(char*));
   ASS_EQ(builtInSortNames.length, BS_INVALID);
 
@@ -487,6 +525,7 @@ TermList SMTLIB::readTermFromAtom(string str)
     if(!_termVars.find(str, res)) {
       USER_ERROR("undefined term variable: "+str);
     }
+    
     return res;
   }
 
@@ -693,6 +732,9 @@ unsigned SMTLIB::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermSta
 {
   CALL("SMTLIB::tryReadTermSelectOrStoreFn");
   ASS(tsym==TS_SELECT || tsym==TS_STORE);
+    
+
+//  Interpretation array_ax_interp = Theory::INVALID_INTERPRETATION;
 
   unsigned arity = args.size();
   if(tsym==TS_SELECT) {
@@ -702,18 +744,19 @@ unsigned SMTLIB::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermSta
   }
   else {
     ASS_EQ(tsym,TS_STORE);
-    if(arity!=3) {
+      if(arity!=3) {
       USER_ERROR("store should be a ternary function: "+e->toString());
     }
   }
 
+  string arrayName=e->list->tail()->head()->toString();
   unsigned arrSort = getSort(args[0]);
 
   unsigned arrDomainSort;
   unsigned arrRangeSort;
   if(_array1Sort && arrSort==_array1Sort) {
     arrDomainSort = getSort(BS_INT);
-    arrRangeSort = getSort(BS_REAL);
+    arrRangeSort = getSort(BS_INT); //change the arrRangeSort from BS_REAL to BS_INT, as for now we only handle arrays of Int
   }
   else if(_array2Sort && arrSort==_array2Sort) {
     arrDomainSort = getSort(BS_INT);
@@ -730,30 +773,44 @@ unsigned SMTLIB::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermSta
     USER_ERROR("invalid third argument sort: "+env.sorts->sortName(getSort(args[2]))+" in "+e->toString());
   }
 
-  BaseType* type;
-  string baseName;
+//  BaseType* type;
+  unsigned res;
 
   if(tsym==TS_STORE) {
-    baseName = "$store";
-    type = BaseType::makeType3(arrSort, arrDomainSort, arrRangeSort, arrSort);
+//    type = BaseType::makeType3(arrSort, arrDomainSort, arrRangeSort, arrSort);
+     if (arrSort == Sorts::SRT_ARRAY1) {res=Theory::instance()->getFnNum(Theory::STORE1_INT);}
+     else //this is an array2
+     {res=Theory::instance()->getFnNum(Theory::STORE2_INT);}  
   }
-  else {
-    baseName = "$select";
-    type = BaseType::makeType2(arrSort, arrDomainSort, arrRangeSort);
+  else {   
+    //  type = BaseType::makeType2(arrSort, arrDomainSort, arrRangeSort);
+    if (arrSort == Sorts::SRT_ARRAY1) {
+        res= Theory::instance()->getFnNum(Theory::SELECT1_INT);}
+      else //this is an array2
+      {res=  Theory::instance()->getFnNum(Theory::SELECT2_INT);}  
   }
+  
+  //string name = baseName + "_" + StringUtils::sanitizeSuffix(env.sorts->sortName(arrSort)
+    
+  //bool added;
+  //unsigned res = env.signature->addFunction(baseName, arity, added);
+      
+  //if(added) {
+  //      env.signature->getFunction(res)->setType(type); 
+  // }
+  // else {
+  //      ASS(*type==*env.signature->getFunction(res)->fnType());
+ 
 
-  string name = baseName + "_" + StringUtils::sanitizeSuffix(env.sorts->sortName(arrSort));
-  bool added;
-  unsigned res = env.signature->addFunction(name, arity, added);
-  if(added) {
-    env.signature->getFunction(res)->setType(type);
-  }
-  else {
-    ASS(*type==*env.signature->getFunction(res)->fnType());
-    delete type;
-  }
-  return res;
+  //    delete type;
+   // }
+    return res;
+    
+
+    
 }
+    
+    
 
 bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
 {
@@ -768,6 +825,7 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
   LispListReader rdr(e);
   string fnName = rdr.readAtom();
   TermSymbol ts = getTermSymbol(fnName, arity);
+  
 
   if(ts==TS_ITE) {
     return tryReadTermIte(e, res);
@@ -807,6 +865,7 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
   ASS_EQ(env.signature->functionArity(fnNum), args.size());
   ensureArgumentSorts(false, fnNum, args.begin());
   res = TermList(Term::create(fnNum, arity, args.begin()));
+  
   return true;
 }
 
@@ -1254,31 +1313,37 @@ void SMTLIB::requestSubexpressionProcessing(LExpr* subExpr, bool formula)
 void SMTLIB::buildFormula()
 {
   CALL("SMTLIB::buildFormula");
-
+  
+    
   {
     Formula* f = readFormula(_lispFormula);
     FormulaUnit* fu = new FormulaUnit(f, new Inference(Inference::INPUT), Unit::CONJECTURE);
     UnitList::push(fu, _formulas);
   }
+ 
 
   LExprList::Iterator asIt(_lispAssumptions);
   while(asIt.hasNext()) {
+   
     LExpr* lispF = asIt.next();
     Formula* f = readFormula(lispF);
     FormulaUnit* fu = new FormulaUnit(f, new Inference(Inference::INPUT), Unit::AXIOM);
     UnitList::push(fu, _formulas);
   }
 
+ 
   if(_introduceAigNames) {
     introduceAigNames(_formulas);
   }
-
+ 
   _formulas = UnitList::concat(_formulas, _definitions->copy());
 }
 
 Formula* SMTLIB::readFormula(LExpr* e)
 {
   CALL("SMTLIB::readFormula");
+
+
   ASS(_formVars.isEmpty());
   ASS(_termVars.isEmpty());
 
@@ -1337,10 +1402,15 @@ void SMTLIB::introduceAigNames(UnitList*& forms)
 {
   CALL("SMTLIB::introduceAigNames");
 
+    
   AIGCompressingTransformer act;
   AIGDefinitionIntroducer adi(_defIntroThreshold);
 
+
+
   act.apply(forms);
+    
+
   adi.scan(forms);
 
   UnitList::DelIterator uit(forms);

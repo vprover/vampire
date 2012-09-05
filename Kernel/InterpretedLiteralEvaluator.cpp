@@ -151,6 +151,13 @@ public:
   {
     CALL("InterpretedLiteralEvaluator::TypedEvaluator::canEvaluate");
 
+    //only interpreted operations with non-single argument sort are array operations
+    if(theory->isArrayOperation(interp))
+    {
+        unsigned opSort = theory->getArrayOperationSort(interp);
+        return opSort==T::getSort();
+    }
+    
     if(!theory->hasSingleSort(interp)) { return false; } //there are other rules to evaluate equality
 
     unsigned opSort = theory->getOperationSort(interp);

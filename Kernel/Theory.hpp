@@ -206,7 +206,7 @@ public:
     REAL_DIVIDES,
 
 
-    //functions
+    //numeric functions
 
     INT_SUCCESSOR,
     INT_UNARY_MINUS,
@@ -239,6 +239,14 @@ public:
     REAL_TO_INT,
     REAL_TO_RAT,
     REAL_TO_REAL,
+    
+    //array functions for array1 of INT->INT
+    SELECT1_INT,
+    STORE1_INT,
+      
+    //array functions for array2 of INT->INT
+    SELECT2_INT,
+    STORE2_INT, 
 
     /**
      * Maximal element number in the enum Interpretation
@@ -246,7 +254,7 @@ public:
      * At some points we make use of the fact that we can iterate through all
      * interpretations by going through the set {0,...,MAX_INTERPRETED_ELEMENT}.
      */
-    MAX_INTERPRETED_ELEMENT = REAL_TO_REAL,
+    MAX_INTERPRETED_ELEMENT = STORE2_INT,
     INVALID_INTERPRETATION
   };
   static unsigned getArity(Interpretation i);
@@ -256,8 +264,13 @@ public:
   static bool hasSingleSort(Interpretation i);
   static unsigned getOperationSort(Interpretation i);
   static bool isConversionOperation(Interpretation i);
+    
+  static FunctionType* getArrayOperationType(Interpretation i);
 
-
+  static bool isArrayOperation(Interpretation i);
+  static unsigned getArrayOperationSort(Interpretation i);
+  static unsigned  getArrayDomainSort(Interpretation i);
+    
   static Theory* instance();
 
   bool isInterpretedConstant(unsigned func);
@@ -285,7 +298,9 @@ public:
 
   Term* fun1(Interpretation itp, TermList arg);
   Term* fun2(Interpretation itp, TermList arg1, TermList arg2);
+  Term* fun3(Interpretation itp, TermList arg1, TermList arg2, TermList arg3);
 
+    
   Literal* pred2(Interpretation itp, bool polarity, TermList arg1, TermList arg2);
 
 
@@ -303,6 +318,8 @@ private:
   Theory();
 
   static FunctionType* getConversionOperationType(Interpretation i);
+  
+
 
 };
 

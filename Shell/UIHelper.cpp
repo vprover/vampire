@@ -111,6 +111,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 {
   CALL("UIHelper::getInputProblem");
 
+    
   TimeCounter tc1(TC_PARSING);
   env.statistics->phase=Statistics::PARSING;
 
@@ -149,6 +150,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   break;
   case Options::IS_SMTLIB:
   {
+
     Parse::SMTLIB parser(opts);
     parser.parse(*input);
     units = parser.getFormulas();

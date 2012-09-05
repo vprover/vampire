@@ -59,6 +59,7 @@ TermSharing::~TermSharing()
  */
 Term* TermSharing::insert(Term* t)
 {
+
   CALL("TermSharing::insert(Term*)");
   ASS(!t->isLiteral());
   ASS(!t->isSpecial());
@@ -78,7 +79,7 @@ Term* TermSharing::insert(Term* t)
 
   _termInsertions++;
   Term* s = _terms.insert(t);
-  if (s == t) {
+   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
@@ -86,22 +87,24 @@ Term* TermSharing::insert(Term* t)
     Color color = COLOR_TRANSPARENT;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
-	ASS(tt->isOrdinaryVar());
-	vars++;
-	weight += 1;
+          ASS(tt->isOrdinaryVar());
+          vars++;
+          weight += 1;
       }
-      else {
-	ASS(tt->term()->shared());
-
-	Term* r = tt->term();
-	vars += r->vars();
-	weight += r->weight();
-	if (env.colorUsed) {
-	  color = static_cast<Color>(color | r->color());
-	}
-	if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
-	  hasInterpretedConstants=true;
-	}
+      else 
+      {
+          ASS(tt->term()->shared());
+          
+          Term* r = tt->term();
+    
+          vars += r->vars();
+          weight += r->weight();
+          if (env.colorUsed) {
+              color = static_cast<Color>(color | r->color());
+          }
+          if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
+              hasInterpretedConstants=true; 
+          }
       }
     }
     t->markShared();
@@ -112,9 +115,11 @@ Term* TermSharing::insert(Term* t)
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
+      
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalTerms++;
-
+     
+    if (!SortHelper::areImmediateSortsValid(t)){USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");}
     ASS_REP(SortHelper::areImmediateSortsValid(t), t->toString());
   }
   else {

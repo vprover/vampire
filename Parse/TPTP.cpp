@@ -83,7 +83,6 @@ void TPTP::parse()
   while (!_states.isEmpty()) {
     State s = _states.pop();
 #if DEBUG_SHOW_TOKENS
-    cout << toString(s) << "\n";
 #endif
     switch (s) {
     case UNIT_LIST:
@@ -187,6 +186,30 @@ void TPTP::parse()
       break;
     case END_LETFF:
       endLetff();
+      break;
+    case SELECT1:
+      select1();
+      break;
+    case END_SELECT1:
+      endSelect1();
+      break;
+    case SELECT2:
+      select2();
+      break;
+    case END_SELECT2:
+      endSelect2();
+      break;
+    case STORE1:
+      store1();
+      break;
+    case END_STORE1:
+      endStore1();
+      break;
+    case STORE2:
+      store2();
+      break;
+    case END_STORE2:
+      endStore2();
       break;
     default:
 #if VDEBUG
@@ -303,6 +326,18 @@ string TPTP::toString(Tag tag)
     return "$real";
   case T_INTEGER_TYPE:
     return "$int";
+  case T_ARRAY1_TYPE:
+    return "$array1";
+  case T_ARRAY2_TYPE:
+    return "$array2";
+  case T_SELECT1:
+    return "$select1";
+  case T_SELECT2:
+    return "$select2";
+  case T_STORE1:
+    return "$store1";
+  case T_STORE2:
+    return "$store2";
   case T_FOT:
     return "$fot";
   case T_FOF:
@@ -874,6 +909,24 @@ void TPTP::readReserved(Token& tok)
   else if (tok.content == "$real") {
     tok.tag = T_REAL_TYPE;
   }
+  else if (tok.content == "$array1") {
+      tok.tag = T_ARRAY1_TYPE;
+  }
+  else if (tok.content == "$array2") {
+      tok.tag = T_ARRAY2_TYPE;
+  }
+  else if (tok.content == "$select1"){
+      tok.tag = T_SELECT1;
+  }
+  else if (tok.content == "$select2"){
+      tok.tag = T_SELECT2;
+  }
+  else if (tok.content == "$store1"){
+      tok.tag = T_STORE1;
+  }
+  else if (tok.content == "$store2"){
+      tok.tag = T_STORE2;
+  }
   else if (tok.content == "$fot") {
     tok.tag = T_FOT;
   }
@@ -1130,7 +1183,7 @@ void TPTP::unitList()
     return;
   }
   if (name == "fof") {
-    _states.push(FOF);
+      _states.push(FOF);
     resetToks();
     return;
   }
@@ -1167,6 +1220,7 @@ void TPTP::fof(bool fo)
 {
   CALL("TPTP::fof");
 
+  
   _bools.push(fo);
   consumeToken(T_LPAR);
   // save the name of this unit
@@ -1188,6 +1242,9 @@ void TPTP::fof(bool fo)
   tok = getTok(0);
   int start = tok.start;
   string tp = name();
+    
+  
+  
   _isQuestion = false;
   if (tp == "axiom" || tp == "plain") {
     _lastInputType = Unit::AXIOM;
@@ -1398,6 +1455,85 @@ void TPTP::lettf()
 } // lettf()
 
 /**
+ * Process $select1 term
+ * @since 3/09/2012 Vienna
+ */
+void TPTP::select1()
+{
+    CALL("TPTP::select1");
+    
+    resetToks();
+    consumeToken(T_LPAR);
+    
+    _states.push(END_SELECT1);
+    addTagState(T_RPAR);
+    _states.push(TERM);
+    addTagState(T_COMMA);
+    _states.push(TERM);
+} // select1()
+
+
+/**
+ * Process $select2 term
+ * @since 3/09/2012 Vienna
+ */
+void TPTP::select2()
+{
+    CALL("TPTP::select2");
+    
+    resetToks();
+    consumeToken(T_LPAR);
+    
+    _states.push(END_SELECT1);
+    addTagState(T_RPAR);
+    _states.push(TERM);
+    addTagState(T_COMMA);
+    _states.push(TERM);
+} // select2()
+
+
+/**
+ * Process $store1 term
+ * @since 3/09/2012 Vienna
+ */
+void TPTP::store1()
+{
+    CALL("TPTP::store1");
+    
+    resetToks();
+    consumeToken(T_LPAR);
+    
+    _states.push(END_STORE1);
+    addTagState(T_RPAR);
+    _states.push(TERM);
+    addTagState(T_COMMA);
+    _states.push(TERM);
+    addTagState(T_COMMA);
+    _states.push(TERM);
+} // store1()
+
+
+/**
+ * Process $store2 term
+ * @since 3/09/2012 Vienna
+ */
+void TPTP::store2()
+{
+    CALL("TPTP::store2");
+    
+    resetToks();
+    consumeToken(T_LPAR);
+    
+    _states.push(END_STORE1);
+    addTagState(T_RPAR);
+    _states.push(TERM);
+    addTagState(T_COMMA);
+    _states.push(TERM);
+    addTagState(T_COMMA);
+    _states.push(TERM);
+} // store2()
+
+/**
  * Process the end of the itef() formula
  * @since 27/07/2011 Manchester
  */
@@ -1500,6 +1636,128 @@ void TPTP::endLettt()
   _termLists.push(ts);
 } // endLettt
 
+
+/**
+ * Process the end of the select1() term
+ * @since 3/09/2012 Vienna
+ */
+void TPTP::endSelect1()
+{
+    CALL("TPTP::endSelect1");
+    
+    
+    TermList index = _termLists.pop();
+    TermList array = _termLists.pop();
+    
+    
+    if (sortOf(index) != Sorts::SRT_INTEGER) {
+        USER_ERROR((string)"sort of the array index is not INT");
+    }
+    
+    if (sortOf(array) != Sorts::SRT_ARRAY1) {
+        USER_ERROR((string)"sort of the array  is not ARRAY1");
+    }
+    
+    unsigned func = env.signature->getInterpretingSymbol(Theory::SELECT1_INT);
+    TermList ts(Term::create2(func, array, index));
+    
+    _termLists.push(ts);
+    
+} // endSelect1
+
+
+/**
+ * Process the end of the select2() term
+ * @since 3/09/2012 Vienna
+ */
+void TPTP::endSelect2()
+{
+    CALL("TPTP::endSelect2");
+    
+    
+    TermList index = _termLists.pop();
+    TermList array = _termLists.pop();
+    
+    
+    if (sortOf(index) != Sorts::SRT_INTEGER) {
+        USER_ERROR((string)"sort of the array index is not INT");
+    }
+    
+    if (sortOf(array) != Sorts::SRT_ARRAY2) {
+        USER_ERROR((string)"sort of the array  is not ARRAY2");
+    }
+    
+    unsigned func = env.signature->getInterpretingSymbol(Theory::SELECT2_INT);
+    TermList ts(Term::create2(func, array, index));
+    
+    _termLists.push(ts);
+   
+} // endSelect2
+
+
+/**
+ * Process the end of the store1() term
+ * @since 3/09/2012 Vienna
+ */
+void TPTP::endStore1()
+{
+    CALL("TPTP::endStore1");
+    
+    TermList value = _termLists.pop();
+    TermList index = _termLists.pop();
+    TermList array = _termLists.pop();
+    
+    if (sortOf(value) != Sorts::SRT_INTEGER)
+    {USER_ERROR((string)"sort of the array elements is not INT");}
+
+    if (sortOf(index) != Sorts::SRT_INTEGER) {
+        USER_ERROR((string)"sort of the array index is not INT");
+    }
+    
+    if (sortOf(array) != Sorts::SRT_ARRAY1) {
+        USER_ERROR((string)"sort of the array  is not ARRAY1");
+    }
+    
+    unsigned func = env.signature->getInterpretingSymbol(Theory::STORE1_INT);
+    TermList args[] = {array, index, value};
+    TermList ts(Term::create(func, 3, args));
+    
+    _termLists.push(ts);
+   
+} // endStore1
+
+
+/**
+ * Process the end of the store2() term
+ * @since 3/09/2012 Vienna
+ */
+void TPTP::endStore2()
+{
+    CALL("TPTP::endStore2");
+    
+    TermList value = _termLists.pop();
+    TermList index = _termLists.pop();
+    TermList array = _termLists.pop();
+    
+    if (sortOf(value) != Sorts::SRT_ARRAY1)
+    {USER_ERROR((string)"sort of the array elements is not ARRAY1");}
+
+    if (sortOf(index) != Sorts::SRT_INTEGER) {
+    USER_ERROR((string)"sort of the array index is not INT");
+   }
+
+   if (sortOf(array) != Sorts::SRT_ARRAY2) {
+      USER_ERROR((string)"sort of the array  is not ARRAY2");
+   }
+
+   unsigned func = env.signature->getInterpretingSymbol(Theory::STORE2_INT);
+   TermList args[] = {array, index, value};
+   TermList ts(Term::create(func, 3, args));
+
+   _termLists.push(ts);
+} // endStore2
+
+
 /**
  * Check that a term used in the lhs of a let() definition is flat. If not, raise
  * an exception.
@@ -1523,7 +1781,7 @@ void TPTP::checkFlat(const TermList& ts)
 void TPTP::checkFlat(const Term* t)
 {
   CALL("TPTP::checkFlat(Term*)");
-
+      
   Set<int> vs;
   for (const TermList* ts = t->args(); !ts->isEmpty(); ts = ts->next()) {
     if (!ts->isVar() || vs.contains(ts->var())) {
@@ -1541,8 +1799,8 @@ void TPTP::checkFlat(const Term* t)
 void TPTP::checkFlat(const Literal* l)
 {
   CALL("TPTP::checkFlat(Literal*)");
-
-  Set<int> vs;
+    
+   Set<int> vs;
   for (const TermList* ts = l->args(); !ts->isEmpty(); ts = ts->next()) {
     if (!ts->isVar() || vs.contains(ts->var())) {
       reportNonFlat(l->toString());
@@ -1667,11 +1925,11 @@ void TPTP::consumeToken(Tag t)
 void TPTP::formula()
 {
   CALL("TPTP::formula");
-
+ 
   _connectives.push(-1);
   _states.push(END_FORMULA);
-  _states.push(SIMPLE_FORMULA);
-} // formula
+   _states.push(SIMPLE_FORMULA);
+  } // formula
 
 /**
  * Read a formula and save it on the stack of formulas.
@@ -1694,10 +1952,9 @@ void TPTP::type()
 void TPTP::atom()
 {
   CALL("TPTP::atom");
-
-  // remember the name
+    // remember the name
   Token& tok = getTok(0);
-  ASS(tok.tag == T_NAME);
+   ASS(tok.tag == T_NAME);
   _strings.push(tok.content);
   resetToks();
   _states.push(MID_ATOM);
@@ -1721,7 +1978,6 @@ void TPTP::atom()
 void TPTP::args()
 {
   CALL("TPTP::args");
-
   _states.push(END_ARGS);
   _states.push(TERM);
 } // args
@@ -1733,8 +1989,7 @@ void TPTP::args()
 void TPTP::endArgs()
 {
   CALL("TPTP::endArgs");
-
-  // check if there is any other term in the argument list
+ // check if there is any other term in the argument list
   Token tok = getTok(0);
   switch (tok.tag) {
   case T_COMMA:
@@ -1758,7 +2013,7 @@ void TPTP::endArgs()
 void TPTP::bindVariable(int var,unsigned sortNumber)
 {
   CALL("TPTP::bindVariable");
-
+ 
   SortList* bindings;
   if (_variableSorts.find(var,bindings)) {
     _variableSorts.replace(var,new SortList(sortNumber,bindings));
@@ -1776,10 +2031,11 @@ void TPTP::bindVariable(int var,unsigned sortNumber)
 void TPTP::varList()
 {
   CALL("TPTP::varList");
-
+  
   Stack<int> vars;
   for (;;) {
     Token& tok = getTok(0);
+     
     if (tok.tag != T_VAR) {
       throw Exception("variable expected",tok);
     }
@@ -1834,7 +2090,6 @@ void TPTP::varList()
 void TPTP::term()
 {
   CALL("TPTP::term");
-
   Token& tok = getTok(0);
   Tag tag = tok.tag;
   switch (tag) {
@@ -1954,7 +2209,57 @@ void TPTP::term()
       _states.push(SIMPLE_FORMULA);
       return;
     }
-  default:
+  case T_SELECT1:
+      {
+         
+          resetToks();
+          consumeToken(T_LPAR);
+          _states.push(END_SELECT1);
+          addTagState(T_RPAR);
+          _states.push(TERM);
+          addTagState(T_COMMA);
+          _states.push(TERM);
+          return;
+      }
+  case T_SELECT2:
+    {
+          resetToks();
+          consumeToken(T_LPAR);
+          _states.push(END_SELECT2);
+          addTagState(T_RPAR);
+          _states.push(TERM);
+          addTagState(T_COMMA);
+          _states.push(TERM);
+          return;
+    }
+  case T_STORE1:
+      {
+          resetToks();
+          consumeToken(T_LPAR);
+          _states.push(END_STORE1);
+          addTagState(T_RPAR);
+          _states.push(TERM);
+          addTagState(T_COMMA);
+          _states.push(TERM);
+          addTagState(T_COMMA);
+          _states.push(TERM);
+          return;
+      }
+  case T_STORE2:
+      {
+          resetToks();
+          consumeToken(T_LPAR);
+          _states.push(END_STORE2);
+          addTagState(T_RPAR);
+          _states.push(TERM);
+          addTagState(T_COMMA);
+          _states.push(TERM);
+          addTagState(T_COMMA);
+          _states.push(TERM);
+          return;
+      }
+          
+ default:
     throw Exception("term expected",tok);
   }
 } // term
@@ -1972,6 +2277,7 @@ void TPTP::endTerm()
   bool dummy;
   unsigned fun;
   if (arity > 0) {
+      
     fun = addFunction(_strings.pop(),arity,dummy,_termLists.top());
   }
   else {
@@ -2052,11 +2358,15 @@ void TPTP::midAtom()
 void TPTP::endEquality()
 {
   CALL("TPTP::endEquality");
-
+    
+ 
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
+
+  if (sortOf(rhs) != sortOf(lhs)) {USER_ERROR("Cannot create equality between terms of different types.");}
+
   Literal* l = createEquality(_bools.pop(),lhs,rhs);
-  _formulas.push(new AtomicFormula(l));
+   _formulas.push(new AtomicFormula(l));
 } // endEquality
 
 /**
@@ -2103,6 +2413,7 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
       sortNumber = Sorts::SRT_DEFAULT;
     }
   }
+
   return Literal::createEquality(polarity,lhs,rhs,sortNumber);
 } // TPTP::createEquality
 
@@ -2490,6 +2801,8 @@ void TPTP::endTff()
     USER_ERROR("product types are not supported");
   }
 
+    
+  //atomic types: 0-ary predicates (propositions) and constants (0-ary functions, eg. int constant, array1 constants)
   if (t->tag() == TT_ATOMIC) {
     unsigned sortNumber = static_cast<AtomicType*>(t)->sortNumber();
     bool added;
@@ -2509,6 +2822,7 @@ void TPTP::endTff()
     return;
   }
 
+  //non-atomic types, i.e. with arrows  
   ASS(t->tag() == TT_ARROW);
   ArrowType* at = static_cast<ArrowType*>(t);
   Type* rhs = at->returnType();
@@ -2603,8 +2917,10 @@ void TPTP::simpleFormula()
 {
   CALL("TPTP::simpleFormula");
 
+
   Token& tok = getTok(0);
   Tag tag = tok.tag;
+    
   switch (tag) {
   case T_NOT:
     resetToks();
@@ -2637,6 +2953,30 @@ void TPTP::simpleFormula()
   case T_ITET:
   case T_LETTT:
   case T_LETFT:
+    _states.push(END_EQ);
+    _states.push(TERM);
+    _states.push(MID_EQ);
+    _states.push(TERM);
+    return;
+  case T_SELECT1:
+     _states.push(END_EQ);
+    _states.push(TERM);
+    _states.push(MID_EQ);
+    _states.push(TERM);
+    return;
+  case T_SELECT2:
+    _states.push(END_EQ);
+    _states.push(TERM);
+    _states.push(MID_EQ);
+    _states.push(TERM);
+    return;
+  case T_STORE1:
+    _states.push(END_EQ);
+    _states.push(TERM);
+    _states.push(MID_EQ);
+    _states.push(TERM);
+    return;
+  case T_STORE2:
     _states.push(END_EQ);
     _states.push(TERM);
     _states.push(MID_EQ);
@@ -2747,6 +3087,14 @@ unsigned TPTP::readSort(bool newSortExpected)
   case T_REAL_TYPE:
     resetToks();
     return Sorts::SRT_REAL;
+
+  case T_ARRAY1_TYPE:
+    resetToks();
+    return Sorts::SRT_ARRAY1;
+
+  case T_ARRAY2_TYPE:
+    resetToks();
+    return Sorts::SRT_ARRAY2;
 
   default:
     throw Exception("sort expected",tok);
@@ -2867,6 +3215,7 @@ Formula* TPTP::makeJunction (Connective c,Formula* lhs,Formula* rhs)
 unsigned TPTP::addFunction(string name,int arity,bool& added,TermList& arg)
 {
   CALL("TPTP::addFunction");
+   
 
   if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
     if (arity > 0) {
@@ -2916,6 +3265,11 @@ unsigned TPTP::addFunction(string name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_TO_REAL,
 				 Theory::REAL_TO_REAL);
   }
+  //if (name == "$select1") {
+  //      return addOverloadedArrayFunction(name,arity,2,added,arg,
+   //                                  Theory::SELECT1_INT
+   //                                 );
+   // }
 
   USER_ERROR((string)"Invalid function name: " + name);
 } // addFunction
@@ -2977,6 +3331,31 @@ int TPTP::addPredicate(string name,int arity,bool& added,TermList& arg)
   }
   USER_ERROR((string)"Invalid predicate name: " + name);
 } // addPredicate
+
+
+//unsigned TPTP::addOverloadedArrayFunction(string name,int arity,int symbolArity,bool& added,TermList& arg,
+//                                     Theory::Interpretation array_select)
+//{
+//    CALL("TPTP::addOverloadedArrayFunction");
+//    
+//    
+//    if (arity != symbolArity) {
+//        USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
+//    }
+//    unsigned srt = sortOf(arg);
+//    cout<<"with argument sort: "<<srt<<endl;
+//    if (srt == Sorts::SRT_ARRAY1) {
+//        return env.signature->addInterpretedFunction(array_select,name);
+//    }
+//    if (srt == Sorts::SRT_ARRAY2) {
+//        return env.signature->addInterpretedFunction(array_select,name);
+//    } 
+//The first argument of select is an INT
+//    if (srt == Sorts::SRT_INTEGER) {
+//        return env.signature->addInterpretedFunction(array_select,name);
+//    }
+//    USER_ERROR((string)"The array operation symbol " + name + " is used with a non-array type");
+//} // addOverloadedArrayFunction
 
 unsigned TPTP::addOverloadedFunction(string name,int arity,int symbolArity,bool& added,TermList& arg,
 				     Theory::Interpretation integer,Theory::Interpretation rational,
@@ -3076,6 +3455,7 @@ unsigned TPTP::addIntegerConstant(const string& name)
   }
 } // TPTP::addIntegerConstant
 
+
 /**
  * Add an rational constant by reading it from the string name.
  * If it overflows, create an uninterpreted constant of the
@@ -3136,6 +3516,7 @@ unsigned TPTP::addRealConstant(const string& name)
     return fun;
   }
 } // TPTP::addRealConstant
+
 
 /**
  * Add an uninterpreted constant by reading it from the string name.
@@ -3320,6 +3701,22 @@ const char* TPTP::toString(State s)
     return "ITEF";
   case END_ITEF:
     return "END_ITEF";
+  case SELECT1:
+    return "SELECT1";
+  case END_SELECT1:
+    return "END_SELECT1";
+  case SELECT2:
+    return "SELECT2";
+  case END_SELECT2:
+    return "END_SELECT2";
+  case STORE1:
+    return "STORE1";
+  case END_STORE1:
+    return "END_STORE1";
+  case STORE2:
+    return "STORE2";
+  case END_STORE2:
+    return "END_STORE2";
   case END_ITET:
     return "END_ITET";
   case END_ARGS:

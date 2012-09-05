@@ -106,6 +106,11 @@ void Property::add(UnitList* units)
   if (env.sorts->hasSort()) {
     addProp(PR_SORTS);
   }
+    
+  // information about sorts is read from the environment, not from the problem
+  if (env.sorts->haveSort("$array1")) {
+     addProp(PR_HAS_ARRAYS1);
+  }
   // information about interpreted constant is read from the signature
   if (env.signature->strings()) {
     addProp(PR_HAS_STRINGS);
@@ -381,6 +386,13 @@ void Property::scanSort(unsigned sort)
   case Sorts::SRT_REAL:
     addProp(PR_HAS_REALS);
     break;
+  case Sorts::SRT_ARRAY1:
+    addProp(PR_HAS_ARRAYS1);
+    break;
+  case Sorts::SRT_ARRAY2:
+    addProp(PR_HAS_ARRAYS2);
+    break;
+          
   }
 }
 

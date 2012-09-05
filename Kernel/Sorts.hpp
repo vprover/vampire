@@ -25,7 +25,9 @@ public:
     SRT_INTEGER = 2,
     SRT_RATIONAL = 3,
     SRT_REAL = 4,
-    FIRST_USER_SORT = 5
+    FIRST_USER_SORT = 5,
+    SRT_ARRAY1 = 6,
+    SRT_ARRAY2 = 7
   };
 
   Sorts();
