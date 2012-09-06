@@ -72,16 +72,16 @@ XFLAGS = $(DBG_FLAGS) -DVAPI_LIBRARY=1 -fPIC
 endif
 
 INCLUDES = -I.
-ifneq (,$(filter vanalyze_rel,$(MAKECMDGOALS)))
+ifneq (,$(filter lingva_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS) $(LLVM_FLAGS)
 INCLUDES = -I. -ISrcInclude -IBuildInclude
 endif
-ifneq (,$(filter vanalyze,$(MAKECMDGOALS)))
+ifneq (,$(filter lingva,$(MAKECMDGOALS)))
 XFLAGS = $(DBG_FLAGS) $(LLVM_FLAGS)
 INCLUDES = -I. -ISrcInclude -IBuildInclude
 endif
 
-ifneq (,$(filter vanalyze_dbg,$(MAKECMDGOALS)))
+ifneq (,$(filter lingva_dbg,$(MAKECMDGOALS)))
 XFLAGS = $(DBG_FLAGS) $(LLVM_FLAGS)
 INCLUDES = -I. -ISrcInclude -IBuildInclude
 endif
@@ -354,7 +354,7 @@ VPROG_OBJ = Program/Type.o\
            Program/Expression.o\
            Program/Statement.o\
            Program/Variable.o\
-	   Program/InvariantHelper.o
+           Program/InvariantHelper.o
 
 VTAB_OBJ = Tabulation/Producer.o\
            Tabulation/TabulationAlgorithm.o\
@@ -476,7 +476,7 @@ LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(VCLAUSIFY_BASIC) Global.o
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 VGROUND_DEP = $(VAMP_BASIC) Global.o vground.o
-VANALYZE_DEP = $(API_OBJ) $(VAMP_BASIC) Saturation/ProvingHelper.o $(TRANSLATOR_OBJ) Global.o vanalyze.o
+LINGVA_DEP = $(API_OBJ) $(VAMP_BASIC) Saturation/ProvingHelper.o Global.o $(TRANSLATOR_OBJ) lingva.o
 #$(LIBVAPI_DEP) Saturation/ProvingHelper.o $(VPROG_OBJ) $(TRANSLATOR_OBJ)
 
 all:#default make disabled
@@ -528,7 +528,7 @@ VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
 LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
 VGROUND_OBJ := $(addprefix $(CONF_ID)/, $(VGROUND_DEP))
-VANALYZE_OBJ := $(addprefix $(CONF_ID)/, $(VANALYZE_DEP))
+LINGVA_OBJ := $(addprefix $(CONF_ID)/, $(LINGVA_DEP))
 
 
 define COMPILE_CMD
@@ -541,7 +541,7 @@ endef
 ################################################################
 # LLVM external dependencies and build commands
 
-ifneq (,$(filter vanalyze% ,$(MAKECMDGOALS)))
+ifneq (,$(filter lingva% ,$(MAKECMDGOALS)))
 #CLANGLIBS := /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangFrontend.a \
     /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangParse.a \
     /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangSema.a \
@@ -589,7 +589,7 @@ endif
 
 EXEC_DEF_PREREQ = Makefile
 
-vanalyze vanalyze_rel vanalyze_dbg: $(VANALYZE_OBJ) $(EXEC_DEF_PREREQ)
+lingva lingva_rel lingva_dbg: $(LINGVA_OBJ) $(EXEC_DEF_PREREQ)
 	$(LLVM_COMPILE_CMD)
 
 vampire vampire_rel vampire_dbg: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
