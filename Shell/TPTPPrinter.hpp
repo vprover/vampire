@@ -30,6 +30,7 @@ private:
   void ensureHeadersPrinted(Unit* u);
   void outputSymbolTypeDefinitions(unsigned symNumber, bool function);
 
+  void ensureNecesarySorts();
   void printTffWrapper(Unit* u, string bodyStr);
 
   void beginOutput();

@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "Lib/DHMap.hpp"
+#include "Lib/Map.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/SharedSet.hpp"
 
@@ -16,6 +17,8 @@
 #include "Parse/TPTP.hpp"
 
 #include "TPTPPrinter.hpp"
+
+#include "Forwards.hpp"
 
 namespace Shell
 {
@@ -193,6 +196,57 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
   tgt() << " )." << endl;
 }
 
+/**
+ * Print only the necessary headers for the sorts. This is needed in order to avoid
+ * having in the TPTP problem sorts that are not used
+ * @since 08/10/2012, Vienna
+ */
+void TPTPPrinter::ensureNecesarySorts()
+{
+  CALL("TPTPPrinter::ensureNecesarySorts");
+  if (_headersPrinted) {
+    return;
+  }
+  unsigned i;
+  typedef DHMap<unsigned, unsigned> SortList;
+  static SortList _uSorts;
+  _uSorts.reset();
+  BaseType* type;
+  Signature::Symbol* sym;
+  unsigned sorts = env.sorts->sorts();
+  //check the sorts of the function symbols and collect information about used sorts
+  unsigned funs = env.signature->functions();
+  for (i = 0; i < funs; i++) {
+    sym = env.signature->getFunction(i);
+    type = static_cast<BaseType*>(sym->fnType());
+    unsigned arity = sym->arity();
+    if (arity > 0) {
+      for (unsigned i = 0; i < arity; i++) {
+	if(_uSorts.find(type->arg(i))==false)
+	  _uSorts.insert(type->arg(i),type->arg(i));
+      }
+    }
+  }
+  //check the sorts of the predicates and collect information about used sorts
+  unsigned preds = env.signature->predicates();
+  for (i = 1; i < preds; i++) {
+    sym = env.signature->getFunction(i);
+    type = static_cast<BaseType*>(sym->predType());
+    unsigned arity = sym->arity();
+    if (arity > 0) {
+      for (unsigned i = 0; i < arity; i++) {
+	if (_uSorts.find(type->arg(i))==false)
+	  _uSorts.insert(type->arg(i),type->arg(i));
+      }
+    }
+  }
+  //output the sort definition for the used sorts, but not for the built-in sorts
+  for (i = Sorts::FIRST_USER_SORT; i < sorts; i++) {
+    if (_uSorts.find(i))
+      tgt() << "tff(sortTZZ_def_" << i << ",type, " << env.sorts->sortName(i)
+      	      << ": $tType" << " )." << endl;
+  }
+}
 
 void TPTPPrinter::ensureHeadersPrinted(Unit* u)
 {
@@ -203,11 +257,7 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
   }
 
   //TODO: print only necessary headers
-  unsigned sorts = env.sorts->sorts();
-  for(unsigned i=Sorts::FIRST_USER_SORT; i<sorts; i++) {
-    tgt() << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i) << ": $tType" << " )." << endl;
-  }
-
+  ensureNecesarySorts();
 
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
