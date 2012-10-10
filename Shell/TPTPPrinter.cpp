@@ -6,7 +6,6 @@
 #include <sstream>
 
 #include "Lib/DHMap.hpp"
-#include "Lib/Map.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/SharedSet.hpp"
 
@@ -200,6 +199,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
  * Print only the necessary headers for the sorts. This is needed in order to avoid
  * having in the TPTP problem sorts that are not used
  * @since 08/10/2012, Vienna
+ * @author Ioan Dragan
  */
 void TPTPPrinter::ensureNecesarySorts()
 {
@@ -208,9 +208,7 @@ void TPTPPrinter::ensureNecesarySorts()
     return;
   }
   unsigned i;
-  typedef DHMap<unsigned, unsigned> SortList;
-  static SortList _uSorts;
-  _uSorts.reset();
+  List<unsigned> *_usedSorts(0);
   BaseType* type;
   Signature::Symbol* sym;
   unsigned sorts = env.sorts->sorts();
@@ -222,8 +220,8 @@ void TPTPPrinter::ensureNecesarySorts()
     unsigned arity = sym->arity();
     if (arity > 0) {
       for (unsigned i = 0; i < arity; i++) {
-	if(_uSorts.find(type->arg(i))==false)
-	  _uSorts.insert(type->arg(i),type->arg(i));
+	if( _usedSorts->member(type->arg(i))==false)
+	 _usedSorts = _usedSorts->cons(type->arg(i));
       }
     }
   }
@@ -235,16 +233,17 @@ void TPTPPrinter::ensureNecesarySorts()
     unsigned arity = sym->arity();
     if (arity > 0) {
       for (unsigned i = 0; i < arity; i++) {
-	if (_uSorts.find(type->arg(i))==false)
-	  _uSorts.insert(type->arg(i),type->arg(i));
+	if( _usedSorts->member(type->arg(i))==false)
+		  _usedSorts = _usedSorts->cons(type->arg(i));
       }
     }
   }
   //output the sort definition for the used sorts, but not for the built-in sorts
   for (i = Sorts::FIRST_USER_SORT; i < sorts; i++) {
-    if (_uSorts.find(i))
-      tgt() << "tff(sortTZZ_def_" << i << ",type, " << env.sorts->sortName(i)
-      	      << ": $tType" << " )." << endl;
+    if (_usedSorts->member(i))
+      tgt() << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i)
+            	      << ": $tType" << " )." << endl;
+
   }
 }
 
