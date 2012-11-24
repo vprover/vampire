@@ -1,4 +1,27 @@
 #!/usr/bin/python
+"""
+Will run two vampires in parallel and compare their output.
+Attempts to change the memory alignment of the second vampire by
+creating a lot of environment variables (this should make stack start
+from a different place in memory).
+
+Command line:
+[-p] [-a alternative_executable] executable arg1 ...
+
+default alternative_executable is the same as executable
+
+Runs in parallel
+executable arg1 ...
+alternative_executable arg1 ...
+and prints out a message when their outputs start to differ.
+
+This script is particularly useful in combination with the "-tr"
+options of Vampire which enable tracing ouputs. For example,
+"-tr sa" prints out details of all newly generated, processed, 
+activated and simplified clauses. List of all possible arguments
+to the "-tr" option can be obtained by running "-tr help".
+
+"""
 
 import sys
 import platform
