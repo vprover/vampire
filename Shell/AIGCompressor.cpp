@@ -404,7 +404,7 @@ AIGRef BDDAIG::b2a(BDDNode* b)
 // AIGCompressor
 //
 
-AIGCompressor::AIGCompressor(AIG& aig, unsigned reqFactorNum, unsigned reqFactorDenom)
+AIGCompressor::AIGCompressor(AIG& aig, unsigned reqFactorNum, unsigned reqFactorDenom, unsigned maxBddVarCnt)
  : _reqFactorNum(reqFactorNum), _reqFactorDenom(reqFactorDenom),
    _lookUpNeedsImprovement(false),
    _aig(aig), _atr(aig), _ba(aig),
@@ -412,7 +412,7 @@ AIGCompressor::AIGCompressor(AIG& aig, unsigned reqFactorNum, unsigned reqFactor
 {
   CALL("AIGCompressor::AIGCompressor");
 
-  _maxBDDVarCnt = 16;
+  _maxBDDVarCnt = maxBddVarCnt;
 }
 
 AIGCompressor::~AIGCompressor()
@@ -1003,8 +1003,8 @@ AIGRef AIGCompressor::compressByBDD(AIGRef aig)
 // AIGCompressingTransformer
 //
 
-AIGCompressingTransformer::AIGCompressingTransformer()
- : _compr(_fsh.aig(),1,1)
+AIGCompressingTransformer::AIGCompressingTransformer(unsigned maxBddVarCnt)
+ : _compr(_fsh.aig(),1,1,maxBddVarCnt)
 {
   CALL("AIGCompressingTransformer::AIGCompressingTransformer");
 }

@@ -64,7 +64,7 @@ class AIGCompressor {
 public:
   typedef AIGTransformer::RefMap RefMap;
 
-  AIGCompressor(AIG& aig, unsigned reqFactorNum=1, unsigned reqFactorDenom=1);
+  AIGCompressor(AIG& aig, unsigned reqFactorNum=1, unsigned reqFactorDenom=1, unsigned maxBddVarCnt=16);
   ~AIGCompressor();
 
   AIGRef compress(AIGRef aig);
@@ -124,7 +124,7 @@ private:
 
 class AIGCompressingTransformer : public ScanAndApplyFormulaUnitTransformer {
 public:
-  AIGCompressingTransformer();
+  AIGCompressingTransformer(unsigned maxBddVarCnt=16);
 
   using ScanAndApplyFormulaUnitTransformer::apply;
   Formula* apply(Formula* f);

@@ -309,6 +309,13 @@ public:
     bool aigBddSweeping;
 
     /**
+     * Maximal number of atoms for which BDDs are built during the sweeping process
+     *
+     * Default value is 16, which gives upper bound on the BDD size in the order of 2^16.
+     */
+    unsigned aigBddSweepingMaximumBddAtomCount;
+
+    /**
      * BDD-sweeping simplification of AIG representation of the problem
      */
     bool aigDefinitionIntroduction;

@@ -2,6 +2,17 @@
 #!/usr/bin/python
 """
 Will find a svn revision that is the last to give a specified output
+
+Command line:
+[-f first_revision] [-l last_revision] [-d regex] executable arg1 ...
+
+default first_revision is 1500
+default last_revision is the current one
+default regex is "Refutation found."
+
+Looks for the latest revision for which the output of
+executable arg1 ...
+contains line that matches regex.
 """
 
 import sys

@@ -192,6 +192,7 @@ void Problem::PreprocessingOptions::prepareOptionsReader(OptionsReader& rdr)
   rdr.registerBoolOption(&equivalenceDiscoveryRandomSimulation, "equivalence_discovery_random_simulation", "edrs");
   rdr.registerBoolOption(&aigInlining, "aig_inlining", "ai");
   rdr.registerBoolOption(&aigBddSweeping, "aig_bdd_sweeping", "abs");
+  rdr.registerUnsignedOption(&aigBddSweepingMaximumBddAtomCount, "aig_bdd_sweeping_maximum_bdd_atom_count", "absmbac");
   rdr.registerBoolOption(&aigDefinitionIntroduction, "aig_definition_introduction", "adi");
   rdr.registerBoolOption(&aigConditionalRewriting, "aig_conditional_rewriting", "acr");
 
@@ -230,6 +231,7 @@ void Problem::PreprocessingOptions::setDefaults()
   equivalenceDiscoveryRandomSimulation = true;
   aigInlining = false;
   aigBddSweeping = false;
+  aigBddSweepingMaximumBddAtomCount = 16;
   aigDefinitionIntroduction = false;
   aigConditionalRewriting = false;
   repetitionCount = 1;
@@ -666,6 +668,8 @@ protected:
 
 class Problem::BDDSweeper : public ProblemTransformer
 {
+public:
+  BDDSweeper(unsigned maxBddVarCnt=16) : _act(maxBddVarCnt) {}
 protected:
   void transformImpl(Kernel::Unit* unit)
   {
@@ -1594,7 +1598,7 @@ inlining:
 
   if(options.aigBddSweeping) {
     LOG("api_prb_prepr_progress","api_prb_prepr_progress: bdd sweeping");
-    res = BDDSweeper().transform(res);
+    res = BDDSweeper(options.aigBddSweepingMaximumBddAtomCount).transform(res);
   }
 
   if(options.aigInlining) {
