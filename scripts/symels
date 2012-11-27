@@ -1,5 +1,17 @@
 #!/bin/bash
 
+#
+# runs vampire for symbol eliminating inference discovery, followed by consequence elimination to
+# eliminate redundant symbol-eliminating clauses
+#
+# usage:
+# symels vampire_executable problem_file [conseq_el_timeout]
+#
+# conseq_el_timeout is the time in seconds to be spent in a single call to 
+#   consequence elinimation. Default is 20s and four calls with different 
+#   strategies are made (see calls to doConseqEl later in this file)
+#
+
 VAMPIRE=$1
 TMP=`mktemp -d /tmp/symel.XXXXX`
 #TMP=aux
