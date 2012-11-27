@@ -8,7 +8,7 @@
 #script should be updated to handle it.
 #
 
-LOG_MACROS="LOG|TRACE|COND_TRACE|LOGV|LOG_UNIT"
+LOG_MACROS="LOG|TRACE|LOGV|LOG_UNIT|LOG_INT"
 
 SELF_DIR=`dirname $0`
 SRC_DIR="$SELF_DIR/../.."

@@ -1,6 +1,19 @@
 #!/bin/bash
 
 #
+# A simple proof checker, not particularly smart, e.g. reports an error in 
+# the "negated conjecture" step as result of this step is not a conclusion of
+# the premise but rather its negation. However it can still be helpul for 
+# debugging...
+#
+# usage:
+# proofcheck <the usual vampire arguments>
+#
+# The arguments to the script are passed to vampire_rel (which must therefore 
+# be present). One should not pass the option "--proof" as the script sets the
+# proof output to "proofcheck" which is specially designed to work well with 
+# this script.
+#
 
 SCRIPT_DIR=`dirname $0`
 BASE_DIR="$SCRIPT_DIR/.."
