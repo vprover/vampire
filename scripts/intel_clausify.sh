@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#
+# clausifies a file in the special intel fof BMC format
+#
 #usage:
 # cat file.fof | ./intel_clausify.sh {clausifier exec} {clausifier args...}
 

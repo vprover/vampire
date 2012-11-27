@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#
+#transforms file in the special intel FO BMC format to the usual TPTP
+#
 #usage:
 # cat file.fof | ./intel2fo.sh | ...
 

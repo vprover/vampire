@@ -1,5 +1,12 @@
 #!/bin/bash
 
+#
+# verifies whether a computed interpolant is really an interpolant
+#
+# usage:
+# interpolant_verifier.sh problem_name.p
+#
+
 if [ "$1" == "" ]; then
 	PROBLEM=`mktemp -t ivXXXXX`
 	TEMPORARY=1

@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
+#
+# see https://docs.google.com/document/pub?id=1vsmC80shh7qCpwgaNTrLzRyz61I0BZWJFvIqiE9yIG8
+# for documentation
+#
+
 import sys
 import platform
 import subprocess
