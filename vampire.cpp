@@ -87,8 +87,7 @@ Problem* globProblem=0;
  * either found refutation or established satisfiability.
  *
  *
- * If Vampire was interupted by a SIGINT, value
- * VAMP_RESULT_STATUS_SIGINT is returned,
+ * If Vampire was interupted by a SIGINT, value VAMP_RESULT_STATUS_SIGINT is returned,
  * and in case of other signal we return VAMP_RESULT_STATUS_OTHER_SIGNAL. For implementation
  * of these return values see Lib/System.hpp.
  *
