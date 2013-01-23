@@ -53,7 +53,7 @@ LoopAnalyzer::LoopAnalyzer(WhileDo* loop)
 {
   //just for testing pupropse
 #if !NN
-  _n=Term::createConstant(getIntConstant("n"));
+  _n=Term::createConstant(getIntConstant("$counter"));
 #endif
   }
 
@@ -209,7 +209,6 @@ void LoopAnalyzer::analyzeVariables()
     Variable* var;
     bool updated;
     vars.next(var,updated);
-    cout<<var->name()<<updated<<endl;
     VariableInfo* vinfo = new VariableInfo;
     _variableInfo.insert(var,vinfo);
     cout << "Variable: " << var->name() << ": " << (updated ? "(updated)" : "constant") << "\n";

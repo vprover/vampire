@@ -719,6 +719,11 @@ unsigned Signature::addIteFunction(unsigned arity, unsigned* argSorts, unsigned 
 
   BaseType* type = BaseType::makeType(arity, argSorts, resSort);
   getFunction(res)->setType(type);
+  
+  //TODO find a better way to get rid of the sG functions!
+  //this is a quick fix for the elimination of sG from the invariants
+  env.colorUsed = true; 
+  getFunction(res)->addColor(COLOR_LEFT);
 
   return res;
 }
