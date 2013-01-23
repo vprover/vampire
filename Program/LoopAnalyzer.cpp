@@ -51,18 +51,14 @@ LoopAnalyzer::LoopAnalyzer(WhileDo* loop)
   : _loop(loop),
     _units(0)
 {
-  //just for testing pupropse
-#if !NN
+    //create the internal counter once and mark it as left
   _n=Term::createConstant(getIntConstant("$counter"));
-#endif
-  }
+}
 
 unsigned LoopAnalyzer::getIntConstant(string name){
-#if NN
-  return getIntFunction(name, 0);
-#else
-  return (name=="n"? getIntFunction(name, 0, true) :getIntFunction(name, 0, false));
-#endif
+  //if the constant to be inserted is the internal counter mark it for elimination 
+  return ("$counter"==name? getIntFunction(name,0,true):getIntFunction(name, 0));
+
 }
 
 /**
@@ -449,6 +445,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
 	}
     }
       break;
+  default: break;
   }
     
 }
@@ -470,7 +467,7 @@ Formula* LoopAnalyzer::expressionToPred(Expression* exp)
     TermList e2Term=expressionToTerm(e2);
     Theory* theory = Theory::instance();
     Formula* predTerm = new AtomicFormula(Literal::createEquality(true, e1Term, e2Term ,Sorts::SRT_INTEGER));
-    //theory->pred2(Theory::EQUAL,true,e1Term,e2Term));
+    //theory->pred2(Theory::EQUAL,true,e1Term,e2Term);
     return predTerm;
   }
   if ( app->function() == ConstantFunctionExpression::integerLess() )
@@ -588,14 +585,7 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
               }
 	      break;
 	   case Statement::BLOCK:
-	     {
-	       	return exp;
-	     }
-	        break;
-	   case Statement::ITE: {
-	        return exp; 
-	   }
-	     break;
+	   case Statement::ITE: 
 	   case Statement::ITS: {
 	     return exp;
 	   }
@@ -1416,8 +1406,8 @@ void LoopAnalyzer::generateValueFunctionRelationsOfVariables()//TermList n)
    CALL("LoopAnalyzer::generateValueFunctionRelationsOfVariables");
    //create loop counter n and position x2 //test purpose
 #if !NN
- //  TermList n(_n);//Term::createConstant(getIntConstant("n")));
-   TermList n(Term::createConstant(getIntConstant("n")));
+   TermList n(_n);
+  // TermList n(Term::createConstant(getIntConstant("n")));
 #else
    TermList n(Term::createConstant(getIntConstant("n")));
 #endif
@@ -1534,9 +1524,8 @@ void LoopAnalyzer::generateIterationDefinition()//TermList n)
   Expression* condE = _loop->condition();
   //X0<n
 #if !NN
-//  TermList n(_n);
-
-  TermList n(Term::createConstant(getIntConstant("n")));
+  TermList n(_n);
+  //TermList n(Term::createConstant(getIntConstant("n")));
 #else
   TermList n(Term::createConstant(getIntConstant("n")));
 #endif
