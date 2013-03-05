@@ -64,7 +64,9 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#if IS_LINGVA
 #include "Program/Lingva.hpp"
+#endif
 
 #if CHECK_LEAKS
 #include "Lib/MemoryLeak.hpp"
@@ -184,7 +186,9 @@ void programAnalysisMode()
   CParser parser(progString.c_str());
   parser.tokenize();
   //  parser.output(cout);
-#else
+#endif
+
+#if IS_LINGVA
   Lib::Random::setSeed(123456);
 
   int time = env.options->timeLimitInDeciseconds();
@@ -201,8 +205,8 @@ void programAnalysisMode()
     Program::RunLingva lingva(inputFile.c_str());
     lingva.run();
   }
-
-//  INVALID_OPERATION("program analysis currently not supported");
+#else
+  INVALID_OPERATION("program analysis currently not supported");
 #endif
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // programAnalysisMode

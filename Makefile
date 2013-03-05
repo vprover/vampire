@@ -10,15 +10,15 @@
 #   VTEST            - testing procedures will also be compiled
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   UNIX_USE_SIGALRM - the SIGALRM timer will be used even in debug mode
-#	
+#	IS_LINGVA 		 - this allows the compilation of lingva. 
 
-DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 # debugging for spider 
-REL_FLAGS = -O6 -DVDEBUG=0 # no debugging 
+DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1# debugging for spider 
+REL_FLAGS = -O6 -DVDEBUG=0# no debugging 
 LLVM_FLAGS = -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DIS_LINGVA=0# standard debugging only
 #XFLAGS = $(REL_FLAGS)
 
 #XFLAGS = -O6 -DVDEBUG=0 -march=native -mtune=native # no debugging 
@@ -53,10 +53,10 @@ XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
 ifneq (,$(filter %_dbg,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS)
+XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0
 endif
 ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS)
+XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0
 endif
 
 
@@ -65,24 +65,24 @@ endif
 #
 
 ifneq (,$(filter libvapi,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) -DVAPI_LIBRARY=1 -fPIC
+XFLAGS = $(REL_FLAGS) -DVAPI_LIBRARY=1 -DIS_LINGVA=0-fPIC
 endif
 ifneq (,$(filter libvapi_dbg,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) -DVAPI_LIBRARY=1 -fPIC
+XFLAGS = $(DBG_FLAGS) -DVAPI_LIBRARY=1 -DIS_LINGVA=0 -fPIC 
 endif
 
 INCLUDES = -I.
 ifneq (,$(filter lingva_rel,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) $(LLVM_FLAGS)
+XFLAGS = $(REL_FLAGS) $(LLVM_FLAGS) -DIS_LINGVA=1
 INCLUDES = -I. -ISrcInclude -IBuildInclude
 endif
 ifneq (,$(filter lingva,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) $(LLVM_FLAGS)
+XFLAGS = $(DBG_FLAGS) $(LLVM_FLAGS) -DIS_LINGVA=1
 INCLUDES = -I. -ISrcInclude -IBuildInclude
 endif
 
 ifneq (,$(filter lingva_dbg,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) $(LLVM_FLAGS)
+XFLAGS = $(DBG_FLAGS) $(LLVM_FLAGS) -DIS_LINGVA=1
 INCLUDES = -I. -ISrcInclude -IBuildInclude
 endif
 
@@ -355,7 +355,8 @@ VPROG_OBJ = Program/Type.o\
            Program/Statement.o\
            Program/Variable.o\
            Program/InvariantHelper.o\
-           Program/Lingva.o
+		   Program/Lingva.o
+           
 
 VTAB_OBJ = Tabulation/Producer.o\
            Tabulation/TabulationAlgorithm.o\
@@ -460,7 +461,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 
 VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse 
 
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
+VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
 VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o Shell/BFNTMainLoop.o, $(VS_OBJ)) $(PARSE_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) Test/CheckedSatSolver.o $(LIB_DEP)
@@ -477,7 +478,7 @@ LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(VCLAUSIFY_BASIC) Global.o
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 VGROUND_DEP = $(VAMP_BASIC) Global.o vground.o
-LINGVA_DEP = $(API_OBJ) $(VAMP_BASIC) $(CASC_OBJ) Saturation/ProvingHelper.o Global.o $(TRANSLATOR_OBJ) vampire.o 
+LINGVA_DEP = $(API_OBJ) $(VAMP_BASIC) $(CASC_OBJ) Saturation/ProvingHelper.o Global.o  $(VPROG_OBJ) $(TRANSLATOR_OBJ) vampire.o 
 #$(LIBVAPI_DEP) Saturation/ProvingHelper.o $(VPROG_OBJ) $(TRANSLATOR_OBJ)
 
 all:#default make disabled
