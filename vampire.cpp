@@ -64,6 +64,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Program/Lingva.hpp"
 
 #if CHECK_LEAKS
 #include "Lib/MemoryLeak.hpp"
@@ -78,7 +79,7 @@ using namespace Saturation;
 using namespace Inferences;
 using namespace InstGen;
 
-Problem* globProblem=0;
+Problem* globProblem = 0;
 
 /**
  * Return value is non-zero unless we were successful.
@@ -103,18 +104,25 @@ int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
 Problem* getPreprocessedProblem()
 {
   CALL("getInputClauses");
-  
-  Problem* prb=UIHelper::getInputProblem(*env.options);
+
+  Problem* prb = UIHelper::getInputProblem(*env.options);
 
   TimeCounter tc2(TC_PREPROCESSING);
 
   Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(*prb);
-  globProblem=prb;
+  globProblem = prb;
 
   return prb;
 }
+
+void explainException(Exception& exception)
+{
+  env.beginOutput();
+  exception.cry(env.out());
+  env.endOutput();
+} // explainException
 
 void doProving()
 {
@@ -139,18 +147,35 @@ void profileMode()
   tf.search();
 
   env.beginOutput();
-  env.out() << property->categoryString() << ' '
-       << property->props() << ' '
-       << property->atoms() << "\n";
+  env.out() << property->categoryString() << ' ' << property->props() << ' '
+	  << property->atoms() << "\n";
   env.endOutput();
 
   //we have succeeded with the profile mode, so we'll terminate with zero return value
-  vampireReturnValue=VAMP_RESULT_STATUS_SUCCESS;
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // profileMode
 
 void programAnalysisMode()
 {
   CALL("programAnalysisMode()");
+
+  // create random seed for the random number generation
+  Lib::Random::setSeed(123456);
+
+  int time = env.options->timeLimitInDeciseconds();
+  env.options->setMode(Options::MODE_VAMPIRE);
+  Allocator::setMemoryLimit(1024u * 1048576ul);
+
+  string inputFile = env.options->inputFile();
+  if (inputFile == "") {
+    USER_ERROR("Cannot open problem file: "+inputFile);
+  } else {
+    //default time limit 10 seconds
+    if (time == 0)
+      env.options->setTimeLimitInDeciseconds(100);
+    runLingva lingva(inputFile.c_str());
+    lingva.run();
+  }
 
 #if 0
   string inputFile = env.options->inputFile();
@@ -178,26 +203,25 @@ void programAnalysisMode()
 #else
   INVALID_OPERATION("program analysis currently not supported");
 #endif
-  vampireReturnValue=VAMP_RESULT_STATUS_SUCCESS;
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // programAnalysisMode
 
 void vampireMode()
 {
   CALL("vampireMode()");
 
-  if(env.options->mode()==Options::MODE_CONSEQUENCE_ELIMINATION) {
+  if (env.options->mode() == Options::MODE_CONSEQUENCE_ELIMINATION) {
     env.options->setUnusedPredicateDefinitionRemoval(false);
     env.options->setPropositionalToBDD(false);
   }
 
   string inputFile = env.options->inputFile();
   istream* input;
-  if(inputFile=="") {
-    input=&cin;
-  }
-  else {
-    input=new ifstream(inputFile.c_str());
-    if(input->fail()) {
+  if (inputFile == "") {
+    input = &cin;
+  } else {
+    input = new ifstream(inputFile.c_str());
+    if (input->fail()) {
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
   }
@@ -209,8 +233,8 @@ void vampireMode()
   env.endOutput();
 
 #if SATISFIABLE_IS_SUCCESS
-  if(env.statistics->terminationReason==Statistics::REFUTATION ||
-      env.statistics->terminationReason==Statistics::SATISFIABLE) {
+  if (env.statistics->terminationReason == Statistics::REFUTATION
+	  || env.statistics->terminationReason == Statistics::SATISFIABLE) {
 #else
     if(env.statistics->terminationReason==Statistics::REFUTATION) {
 #endif
@@ -218,20 +242,18 @@ void vampireMode()
   }
 } // vampireMode
 
-
 void spiderMode()
 {
   CALL("spiderMode()");
-  bool noException=true;
+  bool noException = true;
   try {
     doProving();
-  }
-  catch(...) {
-    noException=false;
+  } catch (...) {
+    noException = false;
   }
 
   env.beginOutput();
-  if(noException) {
+  if (noException) {
     switch (env.statistics->terminationReason) {
     case Statistics::REFUTATION:
       reportSpiderStatus('+');
@@ -253,8 +275,7 @@ void spiderMode()
       ASSERTION_VIOLATION;
     }
     env.statistics->print(env.out());
-  }
-  else {
+  } else {
     reportSpiderFail();
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
   }
@@ -277,9 +298,9 @@ void clausifyMode()
 
   ClauseIterator cit = prb->clauseIterator();
   while (cit.hasNext()) {
-    Clause* cl=cit.next();
-    cl=simplifier.simplify(cl);
-    if(!cl) {
+    Clause* cl = cit.next();
+    cl = simplifier.simplify(cl);
+    if (!cl) {
       continue;
     }
     env.out() << TPTP::toString(cl) << "\n";
@@ -298,26 +319,26 @@ void axiomSelectionMode()
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
-  if(prb->hasSpecialTermsOrLets()) {
+  if (prb->hasSpecialTermsOrLets()) {
     SpecialTermElimination().apply(*prb);
   }
 
   // reorder units
   if (env.options->normalize()) {
-    env.statistics->phase=Statistics::NORMALIZATION;
+    env.statistics->phase = Statistics::NORMALIZATION;
     Normalisation norm;
     norm.normalise(*prb);
   }
 
-  env.statistics->phase=Statistics::SINE_SELECTION;
+  env.statistics->phase = Statistics::SINE_SELECTION;
   SineSelector(*env.options).perform(*prb);
 
-  env.statistics->phase=Statistics::FINALIZATION;
+  env.statistics->phase = Statistics::FINALIZATION;
 
   UnitList::Iterator uit(prb->units());
   env.beginOutput();
   while (uit.hasNext()) {
-    Unit* u=uit.next();
+    Unit* u = uit.next();
     env.out() << TPTP::toString(u) << "\n";
   }
   env.endOutput();
@@ -336,23 +357,26 @@ void groundingMode()
     Preprocess prepro(*env.options);
     prepro.preprocess(*prb);
 
-    ClauseIterator clauses=prb->clauseIterator();
+    ClauseIterator clauses = prb->clauseIterator();
 
-    if(prb->hasEquality()) {
-      ClauseList* eqAxioms=Grounding::getEqualityAxioms(prb->getProperty()->positiveEqualityAtoms()!=0);
-      clauses=pvi(getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms),clauses));
+    if (prb->hasEquality()) {
+      ClauseList* eqAxioms = Grounding::getEqualityAxioms(
+	      prb->getProperty()->positiveEqualityAtoms() != 0);
+      clauses = pvi(
+	      getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms),
+		      clauses));
     }
 
     MapToLIFO<Clause*, SATClause*> insts;
     Grounding gnd;
     SATClause::NamingContext nameCtx;
 
-    while(clauses.hasNext()) {
-      Clause* cl=clauses.next();
-      ClauseList* grounded=gnd.ground(cl);
-      SATClauseList* sGrounded=0;
-      while(grounded) {
-	Clause* gcl=ClauseList::pop(grounded);
+    while (clauses.hasNext()) {
+      Clause* cl = clauses.next();
+      ClauseList* grounded = gnd.ground(cl);
+      SATClauseList* sGrounded = 0;
+      while (grounded) {
+	Clause* gcl = ClauseList::pop(grounded);
 	SATClauseList::push(SATClause::fromFOClause(nameCtx, gcl), sGrounded);
       }
       insts.pushManyToKey(cl, sGrounded);
@@ -361,58 +385,52 @@ void groundingMode()
     DIMACS::outputGroundedProblem(insts, nameCtx, env.out());
     env.endOutput();
 
-  } catch(MemoryLimitExceededException) {
+  } catch (MemoryLimitExceededException) {
     env.beginOutput();
-    env.out()<<"Memory limit exceeded\n";
+    env.out() << "Memory limit exceeded\n";
     env.endOutput();
-  } catch(TimeLimitExceededException) {
+  } catch (TimeLimitExceededException) {
     env.beginOutput();
-    env.out()<<"Time limit exceeded\n";
+    env.out() << "Time limit exceeded\n";
     env.endOutput();
   }
 } // groundingMode
 
-void explainException (Exception& exception)
-{
-  env.beginOutput();
-  exception.cry(env.out());
-  env.endOutput();
-} // explainException
-
 /**
  * The main function.
-  * @since 03/12/2003 many changes related to logging
-  *        and exception handling.
-  * @since 10/09/2004, Manchester changed to use knowledge bases
-  */
-int main(int argc, char* argv [])
+ * @since 03/12/2003 many changes related to logging
+ *        and exception handling.
+ * @since 10/09/2004, Manchester changed to use knowledge bases
+ */
+int main(int argc, char* argv[])
 {
   CALL ("main");
+  //the following hack is just for lingva.
+  env.options->setMode(Options::MODE_PROGRAM_ANALYSIS);
 
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
-   // create random seed for the random number generation
+  // create random seed for the random number generation
   Lib::Random::setSeed(123456);
 
   try {
     // read the command line and interpret it
-    Shell::CommandLine cl(argc,argv);
+    Shell::CommandLine cl(argc, argv);
     cl.interpret(*env.options);
 
     PROCESS_TRACE_SPEC_STRING(env.options->traceSpecString());
     env.options->enableTracesAccordingToOptions();
 
-    if(env.options->showOptions()) {
+    if (env.options->showOptions()) {
       env.beginOutput();
       env.options->output(env.out());
       env.endOutput();
     }
 
-    Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
+    Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
 
-    switch (env.options->mode())
-    {
+    switch (env.options->mode()) {
     case Options::MODE_AXIOM_SELECTION:
       axiomSelectionMode();
       break;
@@ -427,42 +445,39 @@ int main(int argc, char* argv [])
       vampireMode();
       break;
     case Options::MODE_CASC:
-      if(Shell::CASC::CASCMode::perform(argc,argv)) {
+      if (Shell::CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
     case Options::MODE_CASC_SAT:
       Shell::CASC::CASCMode::makeSat();
-      if(Shell::CASC::CASCMode::perform(argc,argv)) {
+      if (Shell::CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
     case Options::MODE_CASC_EPR:
       Shell::CASC::CASCMode::makeEPR();
-      if(Shell::CASC::CASCMode::perform(argc,argv)) {
+      if (Shell::CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
-    case Options::MODE_CASC_SIMPLE_LTB:
-    {
+    case Options::MODE_CASC_SIMPLE_LTB: {
       Shell::CASC::SimpleLTBMode sltbm;
       sltbm.perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-    case Options::MODE_CASC_LTB:
-    {
+    case Options::MODE_CASC_LTB: {
       Shell::CASC::CLTBMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-    case Options::MODE_CASC_MZR:
-    {
+    case Options::MODE_CASC_MZR: {
       Shell::CASC::CMZRMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -505,8 +520,7 @@ int main(int argc, char* argv [])
     MemoryLeak::cancelReport();
 #endif
     explainException(exception);
-  }
-  catch (Exception& exception) {
+  } catch (Exception& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
 #if CHECK_LEAKS
@@ -516,8 +530,7 @@ int main(int argc, char* argv [])
     explainException(exception);
     env.statistics->print(env.out());
     env.endOutput();
-  }
-  catch (std::bad_alloc& _) {
+  } catch (std::bad_alloc& _) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
 #if CHECK_LEAKS

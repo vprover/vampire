@@ -354,7 +354,8 @@ VPROG_OBJ = Program/Type.o\
            Program/Expression.o\
            Program/Statement.o\
            Program/Variable.o\
-           Program/InvariantHelper.o
+           Program/InvariantHelper.o\
+           Program/Lingva.o
 
 VTAB_OBJ = Tabulation/Producer.o\
            Tabulation/TabulationAlgorithm.o\
@@ -476,7 +477,7 @@ LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(VCLAUSIFY_BASIC) Global.o
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 VGROUND_DEP = $(VAMP_BASIC) Global.o vground.o
-LINGVA_DEP = $(API_OBJ) $(VAMP_BASIC) Saturation/ProvingHelper.o Global.o $(TRANSLATOR_OBJ) lingva.o
+LINGVA_DEP = $(API_OBJ) $(VAMP_BASIC) $(CASC_OBJ) Saturation/ProvingHelper.o Global.o $(TRANSLATOR_OBJ) vampire.o 
 #$(LIBVAPI_DEP) Saturation/ProvingHelper.o $(VPROG_OBJ) $(TRANSLATOR_OBJ)
 
 all:#default make disabled
