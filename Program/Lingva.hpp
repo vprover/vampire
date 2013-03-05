@@ -63,13 +63,30 @@ using namespace Shell;
 using namespace Shell::CASC;
 using namespace VUtils;
 
-class runLingva{
+namespace Program{
+
+/**
+ * Defines utilities for program analysis. This class
+ * is the interface between vampire main file and the
+ * clang/llvm parser and the program analysis mode.
+ *
+ */
+
+class RunLingva{
 public:
-  runLingva(const char* fileName): _file(fileName) {};
+  /**
+   * Call the parser on @param fileName and than call the
+   * analyzer on this file, according to the setted options.
+   * */
+  RunLingva(const char* fileName): _file(fileName) {};
   void run();
 private:
+  /**
+   * This is actually where we initialize the clang infrastructure
+   * and set the options in order to get correct answers.
+   * */
   void runParsingAndAnalysis();
   const char* _file;
 };
-
+};
 #endif /* LINGVA_V1_HPP_ */

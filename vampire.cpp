@@ -173,7 +173,7 @@ void programAnalysisMode()
     //default time limit 10 seconds
     if (time == 0)
       env.options->setTimeLimitInDeciseconds(100);
-    runLingva lingva(inputFile.c_str());
+    Program::RunLingva lingva(inputFile.c_str());
     lingva.run();
   }
 

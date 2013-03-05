@@ -6,14 +6,15 @@
  */
 
 #include "Lingva.hpp"
+namespace Program{
 
-void runLingva::run()
+void RunLingva::run()
 {
   CALL("runLingva::run()");
   runParsingAndAnalysis();
 }
 
-void runLingva::runParsingAndAnalysis()
+void RunLingva::runParsingAndAnalysis()
 {
   CALL("runLingva::runParsingAndAnalysis");
   using clang::CompilerInstance;
@@ -52,3 +53,4 @@ void runLingva::runParsingAndAnalysis()
   ci.getDiagnosticClient().EndSourceFile();
 }
 
+};
