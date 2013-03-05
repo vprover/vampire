@@ -85,7 +85,8 @@ Statement* Analyze::concatenateStatements(Statement* block, List<Statement* >* l
 
 }
 /**
- * should introduce the updated values into the condition. TODO implement the actual rewriting of
+ * should introduce the updated values into the condition.
+ * TODO implement the actual rewriting of
  * of the condition
  */
 Expression* Analyze::treatCondition(Expression* condition, List<Statement* >* list){

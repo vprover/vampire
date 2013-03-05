@@ -40,6 +40,7 @@
 #include "Shell/TheoryAxioms.hpp"
 
 #include "Saturation/ProvingHelper.hpp"
+
 using namespace Kernel;
 using namespace Program;
 using namespace Shell;
