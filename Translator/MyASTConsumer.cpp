@@ -44,8 +44,10 @@ void MyASTConsumer::HandleTopLevelDecl(clang::DeclGroupRef d)
     if (clang::FunctionDecl::classof(declaration)) {
       function_number++;
       cout << "Function number: "<<function_number<<endl;
+
       ::clang::FunctionDecl* function_declaration =
 	      (::clang::FunctionDecl*) declaration;
+      cout<< "Function Name : " <<function_declaration->getDeclName().getAsString()<<endl;
       if (function_declaration->hasBody() && (_functionNumber == function_number || _whileToAnalyze==-1 || _functionNumber == 0)) {
 	const clang::SourceLocation sl = function_declaration->getLocStart();
 	//sl.dump(*source_manager);

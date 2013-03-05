@@ -26,6 +26,7 @@
 #include "clang/AST/ASTConsumer.h"
 #include "clang/Parse/Parser.h"
 #include "clang/Parse/ParseAST.h"
+
 #include "Forwards.hpp"
 
 #include "Debug/Log.hpp"
@@ -47,21 +48,9 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/CASC/CASCMode.hpp"
 
-#include "VUtils/AnnotationColoring.hpp"
-#include "VUtils/CPAInterpolator.hpp"
-#include "VUtils/DPTester.hpp"
-#include "VUtils/EPRRestoringScanner.hpp"
-#include "VUtils/FOEquivalenceDiscovery.hpp"
-#include "VUtils/PreprocessingEvaluator.hpp"
-#include "VUtils/ProblemColoring.hpp"
-#include "VUtils/SimpleSMT.hpp"
-#include "VUtils/SMTLIBConcat.hpp"
-#include "VUtils/Z3InterpolantExtractor.hpp"
-
 using namespace Lib;
 using namespace Shell;
 using namespace Shell::CASC;
-using namespace VUtils;
 
 namespace Program{
 
@@ -86,7 +75,11 @@ private:
    * and set the options in order to get correct answers.
    * */
   void runParsingAndAnalysis();
+  /**
+   * Input filename. The other way of doing this can be by simply
+   * by accessing the env.options->inputFile();
+   */
   const char* _file;
 };
 };
-#endif /* LINGVA_V1_HPP_ */
+#endif /* LINGVA_HPP_ */

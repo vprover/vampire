@@ -1,11 +1,14 @@
 /*
  * Lingva.cpp
  *
+ * Implementation of the RunLingva class.
+ *
  *  Created on: Mar 4, 2013
  *      Author: ioan
  */
 
 #include "Lingva.hpp"
+
 namespace Program{
 
 void RunLingva::run()

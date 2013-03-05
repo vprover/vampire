@@ -160,22 +160,6 @@ void programAnalysisMode()
   CALL("programAnalysisMode()");
 
   // create random seed for the random number generation
-  Lib::Random::setSeed(123456);
-
-  int time = env.options->timeLimitInDeciseconds();
-  env.options->setMode(Options::MODE_VAMPIRE);
-  Allocator::setMemoryLimit(1024u * 1048576ul);
-
-  string inputFile = env.options->inputFile();
-  if (inputFile == "") {
-    USER_ERROR("Cannot open problem file: "+inputFile);
-  } else {
-    //default time limit 10 seconds
-    if (time == 0)
-      env.options->setTimeLimitInDeciseconds(100);
-    Program::RunLingva lingva(inputFile.c_str());
-    lingva.run();
-  }
 
 #if 0
   string inputFile = env.options->inputFile();
@@ -201,7 +185,24 @@ void programAnalysisMode()
   parser.tokenize();
   //  parser.output(cout);
 #else
-  INVALID_OPERATION("program analysis currently not supported");
+  Lib::Random::setSeed(123456);
+
+  int time = env.options->timeLimitInDeciseconds();
+  env.options->setMode(Options::MODE_VAMPIRE);
+  Allocator::setMemoryLimit(1024u * 1048576ul);
+
+  string inputFile = env.options->inputFile();
+  if (inputFile == "") {
+    USER_ERROR("Cannot open problem file: "+inputFile);
+  } else {
+    //default time limit 10 seconds
+    if (time == 0)
+      env.options->setTimeLimitInDeciseconds(100);
+    Program::RunLingva lingva(inputFile.c_str());
+    lingva.run();
+  }
+
+//  INVALID_OPERATION("program analysis currently not supported");
 #endif
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // programAnalysisMode
