@@ -969,116 +969,32 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   ASS(!bdd->isFalse(cl->prop()));
   env.statistics->bddPropClauses++;
 
-  if (_opt.satSolverForEmptyClause()) {
-    static BDDConjunction ecProp(_opt);
-
+  if (_mergedBddEmptyClause==0) {
+    cl->incRefCnt();
+    onNonRedundantClause(cl);
+    _mergedBddEmptyClause=cl;
+    onNewUsefulPropositionalClause(cl);
+    return;
+  }
+  BDDNode* newProp=bdd->conjunction(_mergedBddEmptyClause->prop(), cl->prop());
+  if (newProp!=_mergedBddEmptyClause->prop()) {
     onNonRedundantClause(cl);
     onNewUsefulPropositionalClause(cl);
-    ecProp.addNode(cl->prop());
-    if (ecProp.isFalse()) {
-      InferenceStore::instance()->recordMerge(cl, cl->prop(), _bddSatSolverEmptyClauses.begin(),
-	  _bddSatSolverEmptyClauses.size(), bdd->getFalse());
-      cl->setProp(bdd->getFalse());
-      onNewUsefulPropositionalClause(cl);
-      onNonRedundantClause(cl);
-      throw RefutationFoundException(cl);
-    } else {
-      cl->incRefCnt();
-      _bddSatSolverEmptyClauses.push(UnitSpec(cl));
-      return;
-    }
-  } else {
-    if (_mergedBddEmptyClause==0) {
-      cl->incRefCnt();
-      onNonRedundantClause(cl);
-      _mergedBddEmptyClause=cl;
-      onNewUsefulPropositionalClause(cl);
-      return;
-    }
-    BDDNode* newProp=bdd->conjunction(_mergedBddEmptyClause->prop(), cl->prop());
-    if (newProp!=_mergedBddEmptyClause->prop()) {
-      onNonRedundantClause(cl);
-      onNewUsefulPropositionalClause(cl);
-    }
-    if (bdd->isFalse(newProp)) {
-      InferenceStore::instance()->recordMerge(cl, cl->prop(), _mergedBddEmptyClause, newProp);
-      cl->setProp(newProp);
-      onNonRedundantClause(cl);
-      onNewUsefulPropositionalClause(cl);
-      throw RefutationFoundException(cl);
-    }
-    if (newProp!=_mergedBddEmptyClause->prop()) {
-      InferenceStore::instance()->recordMerge(_mergedBddEmptyClause, _mergedBddEmptyClause->prop(), cl, newProp);
-      _mergedBddEmptyClause->setProp(newProp);
-      onNonRedundantClause(_mergedBddEmptyClause);
-    } else {
-      env.statistics->subsumedEmptyClauses++;
-      if (_opt.emptyClauseSubsumption()) {
-	performEmptyClauseParentSubsumption(cl, _mergedBddEmptyClause->prop());
-      }
-    }
+  }
+  if (bdd->isFalse(newProp)) {
+    InferenceStore::instance()->recordMerge(cl, cl->prop(), _mergedBddEmptyClause, newProp);
+    cl->setProp(newProp);
+    onNonRedundantClause(cl);
+    onNewUsefulPropositionalClause(cl);
+    throw RefutationFoundException(cl);
+  }
+  if (newProp!=_mergedBddEmptyClause->prop()) {
+    InferenceStore::instance()->recordMerge(_mergedBddEmptyClause, _mergedBddEmptyClause->prop(), cl, newProp);
+    _mergedBddEmptyClause->setProp(newProp);
+    onNonRedundantClause(_mergedBddEmptyClause);
+    return;
   }
 }
-
-/**
- * Perform a kind of backward subsumption by an empty clause, assuming that
- * the propositional part of the empty clause is @b emptyClauseProp.
- *
- * The subsumption checks only clauses that are ancestors of @b cl. First
- * its parents is checked for being subsumed, and if some is, its parents
- * are checked as well etc...
- *
- * The deletion of subsumed clauses is performed by the @b removeBackwardSimplifiedClause
- * function. As the @b performEmptyClauseSubsumption is to be called during
- * clause activation, when some indexes are being traversed (and so cannot
- * be modified), the clause deletion is postponed by the @b removeBackwardSimplifiedClause
- * until the clause activation is over.
- */
-void SaturationAlgorithm::performEmptyClauseParentSubsumption(Clause* cl0, BDDNode* emptyClauseProp)
-{
-  CALL("SaturationAlgorithm::performEmptyClauseSubsumption");
-  ASS(cl0->isEmpty());
-
-  BDD* bdd=BDD::instance();
-
-  static Stack<Clause*> parentsToCheck;
-  ASS(parentsToCheck.isEmpty());
-
-  Clause* cl=cl0;
-  for(;;) {
-    UnitSpecIterator parents=
-	InferenceStore::instance()->getParents(UnitSpec(cl, false));
-
-    while(parents.hasNext()) {
-      Clause* par=parents.next().cl();
-      if (par->store()!=Clause::ACTIVE &&
-	  par->store()!=Clause::PASSIVE &&
-	  par->store()!=Clause::REACTIVATED) {
-	continue;
-      }
-      if (!par->prop() || bdd->isTrue(par->prop())) {
-	continue;
-      }
-      //TODO: maybe a simple equality check can be used here, as child prop part is a disjunction of its parents (at least usually)
-      if (!bdd->isXOrNonYConstant(par->prop(), emptyClauseProp, true)) {
-	continue;
-      }
-      par->setProp(bdd->getTrue());
-      removeActiveOrPassiveClause(par);
-      env.statistics->emptyClauseSubsumptions++;
-      //Here we assume that the clause object did not get deleted!
-      //(it is fine at the time of writing this function,
-      //as we now do not delete any clause objects)
-      parentsToCheck.push(par);
-    }
-
-    if (parentsToCheck.isEmpty()) {
-      break;
-    }
-    cl=parentsToCheck.pop();
-  }
-}
-
 
 /**
  * Reanimace clause @b cl

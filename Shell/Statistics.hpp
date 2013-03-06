@@ -124,10 +124,6 @@ public:
   unsigned forwardSubsumed;
   /** number of backward subsumed clauses */
   unsigned backwardSubsumed;
-  /** number of subsumed empty clauses */
-  unsigned subsumedEmptyClauses;
-  /** number of empty clause subsumptions */
-  unsigned emptyClauseSubsumptions;
   /** number of empty clause subsumptions by BDD marking*/
   unsigned subsumedByMarking;
 

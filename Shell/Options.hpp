@@ -52,7 +52,6 @@ public:
     DEMODULATION_REDUNDANCY_CHECK,
     DISTINCT_PROCESSOR,
 
-    EMPTY_CLAUSE_SUBSUMPTION,
     EPR_PRESERVING_NAMING,
     EPR_PRESERVING_SKOLEMIZATION,
     EPR_RESTORING_INLINING,
@@ -162,7 +161,6 @@ public:
     SAT_RESTART_MINISAT_INCREASE,
     SAT_RESTART_MINISAT_INIT,
     SAT_RESTART_STRATEGY,
-    SAT_SOLVER_FOR_EMPTY_CLAUSE,
     SAT_SOLVER_WITH_NAMING,
     SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION,
     SAT_VAR_ACTIVITY_DECAY,
@@ -609,10 +607,8 @@ public:
   RuleActivity generalSplitting() const { return _generalSplitting; }
   string namePrefix() const { return _namePrefix; }
   bool timeStatistics() const { return _timeStatistics; }
-  bool satSolverForEmptyClause() const { return _satSolverForEmptyClause; }
   bool satSolverWithNaming() const { return _satSolverWithNaming; }
   bool satSolverWithSubsumptionResolution() const { return _satSolverWithSubsumptionResolution; }
-  bool emptyClauseSubsumption() const { return _emptyClauseSubsumption; }
   bool splitAddGroundNegation() const { return _splitAddGroundNegation; }
   bool splitAtActivation() const { return _splitAtActivation; }
   bool splitGoalOnly() const { return _splitGoalOnly; }
@@ -741,7 +737,6 @@ private:
   bool _demodulationRedundancyCheck;
   bool _distinctProcessor;
 
-  bool _emptyClauseSubsumption;
   bool _eprPreservingNaming;
   bool _eprPreservingSkolemization;
   bool _eprRestoringInlining;
@@ -836,7 +831,6 @@ private:
   float _satRestartMinisatIncrease;
   int _satRestartMinisatInit;
   SatRestartStrategy _satRestartStrategy;
-  bool _satSolverForEmptyClause;
   bool _satSolverWithNaming;
   bool _satSolverWithSubsumptionResolution;
   float _satVarActivityDecay;

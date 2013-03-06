@@ -128,7 +128,6 @@ const char* Options::Constants::_optionNames[] = {
   "demodulation_redundancy_check",
   "distinct_processor",
 
-  "empty_clause_subsumption",
   "epr_preserving_naming",
   "epr_preserving_skolemization",
   "epr_restoring_inlining",
@@ -218,7 +217,6 @@ const char* Options::Constants::_optionNames[] = {
   "sat_restart_minisat_increase",
   "sat_restart_minisat_init",
   "sat_restart_strategy",
-  "sat_solver_for_empty_clause",
   "sat_solver_with_naming",
   "sat_solver_with_subsumption_resolution",
   "sat_var_activity_decay",
@@ -380,7 +378,6 @@ int Options::Constants::shortNameIndexes[] = {
   BACKWARD_SUBSUMPTION_RESOLUTION,
   CONDENSATION,
   DEMODULATION_REDUNDANCY_CHECK,
-  EMPTY_CLAUSE_SUBSUMPTION,
   EQUALITY_PROXY,
   EQUALITY_RESOLUTION_WITH_DELETION,
   FORWARD_DEMODULATION,
@@ -426,7 +423,6 @@ int Options::Constants::shortNameIndexes[] = {
   SINE_SELECTION,
   SSPLITTING_ADD_COMPLEMENTARY,
   SSPLITTING_CONGRUENCE_CLOSURE,
-  SAT_SOLVER_FOR_EMPTY_CLAUSE,
   SSPLITTING_EAGER_REMOVAL,
   SSPLITTING_FLUSH_PERIOD,
   SSPLITTING_FLUSH_QUOTIENT,
@@ -703,7 +699,6 @@ Options::Options ()
   _demodulationRedundancyCheck(true),
   _distinctProcessor(false),
 
-  _emptyClauseSubsumption(false),
   _eprPreservingNaming(false),
   _eprPreservingSkolemization(false),
   _eprRestoringInlining(false),
@@ -796,7 +791,6 @@ Options::Options ()
   _satRestartMinisatIncrease(1.1f),
   _satRestartMinisatInit(100),
   _satRestartStrategy(SRS_LUBY),
-  _satSolverForEmptyClause(true),
   _satSolverWithNaming(false),
   _satSolverWithSubsumptionResolution(false),
   _satVarActivityDecay(1.05f),
@@ -938,7 +932,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case AIG_DEFINITION_INTRODUCTION_THRESHOLD:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	if(unsignedValue==0) {
+	if (unsignedValue==0) {
 	  USER_ERROR("aig_definition_introduction_threshold must be non-zero");
 	}
 	_aigDefinitionIntroductionThreshold = unsignedValue;
@@ -989,9 +983,6 @@ void Options::set(const char* name,const char* value, int index)
       _distinctProcessor = onOffToBool(value,name);
       return;
 
-    case EMPTY_CLAUSE_SUBSUMPTION:
-      _emptyClauseSubsumption = onOffToBool(value,name);
-      return;
     case EPR_PRESERVING_NAMING:
       _eprPreservingNaming = onOffToBool(value,name);
       return;
@@ -1009,7 +1000,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case EQUALITY_RESOLUTION_WITH_DELETION:
       _equalityResolutionWithDeletion = (RuleActivity)Constants::ruleActivityValues.find(value);
-      if(_equalityResolutionWithDeletion==RA_ON) {
+      if (_equalityResolutionWithDeletion==RA_ON) {
 	USER_ERROR("equality_resolution_with_deletion is not implemented for value \"on\"");
       }
       return;
@@ -1043,7 +1034,7 @@ void Options::set(const char* name,const char* value, int index)
 
     case GENERAL_SPLITTING:
       _generalSplitting = (RuleActivity)Constants::ruleActivityValues.find(value);
-      if(_generalSplitting==RA_ON) {
+      if (_generalSplitting==RA_ON) {
 	USER_ERROR("general_splitting is not implemented for value \"on\"");
       }
       return;
@@ -1078,7 +1069,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case INST_GEN_BIG_RESTART_RATIO:
       if (Int::stringToFloat(value,floatValue)) {
-	if(floatValue<0.0f || floatValue>1.0f) {
+	if (floatValue<0.0f || floatValue>1.0f) {
 	  USER_ERROR("inst_gen_big_restart_ratio must be a number between 0 and 1 (inclusive)");
 	}
 	_instGenBigRestartRatio = floatValue;
@@ -1102,7 +1093,7 @@ void Options::set(const char* name,const char* value, int index)
       break;
     case INST_GEN_RESTART_PERIOD_QUOTIENT:
       if (Int::stringToFloat(value,floatValue)) {
-	if(floatValue<1.0f) {
+	if (floatValue<1.0f) {
 	  USER_ERROR("inst_gen_restart_period_quotient must be a number at least 1");
 	}
 	_instGenRestartPeriodQuotient = floatValue;
@@ -1266,7 +1257,7 @@ void Options::set(const char* name,const char* value, int index)
 
     case SAT_CLAUSE_ACTIVITY_DECAY:
       if (Int::stringToFloat(value,floatValue)) {
-	if(floatValue<=1.0f) {
+	if (floatValue<=1.0f) {
 	  USER_ERROR("sat_clause_activity_decay must be a number greater than 1");
 	}
 	_satClauseActivityDecay = floatValue;
@@ -1290,7 +1281,7 @@ void Options::set(const char* name,const char* value, int index)
       break;
     case SAT_RESTART_GEOMETRIC_INCREASE:
       if (Int::stringToFloat(value,floatValue)) {
-	if(floatValue<=1.0f) {
+	if (floatValue<=1.0f) {
 	  USER_ERROR("sat_restart_geometric_increase must be a number greater than 1");
 	}
 	_satRestartGeometricIncrease = floatValue;
@@ -1311,7 +1302,7 @@ void Options::set(const char* name,const char* value, int index)
       break;
     case SAT_RESTART_MINISAT_INCREASE:
       if (Int::stringToFloat(value,floatValue)) {
-	if(floatValue<=1.0f) {
+	if (floatValue<=1.0f) {
 	  USER_ERROR("sat_restart_minisat_increase must be a number greater than 1");
 	}
 	_satRestartMinisatIncrease = floatValue;
@@ -1327,9 +1318,6 @@ void Options::set(const char* name,const char* value, int index)
     case SAT_RESTART_STRATEGY:
       _satRestartStrategy = (SatRestartStrategy)Constants::satRestartStrategyValues.find(value);
       return;
-    case SAT_SOLVER_FOR_EMPTY_CLAUSE:
-      _satSolverForEmptyClause = onOffToBool(value,name);
-      return;
     case SAT_SOLVER_WITH_NAMING:
       _satSolverWithNaming = onOffToBool(value,name);
       return;
@@ -1338,7 +1326,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case SAT_VAR_ACTIVITY_DECAY:
       if (Int::stringToFloat(value,floatValue)) {
-	if(floatValue<=1.0f) {
+	if (floatValue<=1.0f) {
 	  USER_ERROR("sat_var_activity_decay must be a number greater than 1");
 	}
 	_satVarActivityDecay = floatValue;
@@ -1413,7 +1401,7 @@ void Options::set(const char* name,const char* value, int index)
 	(SineSelection)Constants::sineSelectionValues.find(value);
       return;
     case SINE_TOLERANCE:
-      if(!Int::stringToFloat(value,floatValue) || (floatValue!=0.0f && floatValue<1.0f)) {
+      if (!Int::stringToFloat(value,floatValue) || (floatValue!=0.0f && floatValue<1.0f)) {
 	USER_ERROR("sine_tolerance value must be a float number greater than or equal to 1");
       }
       _sineTolerance = floatValue;
@@ -1470,7 +1458,7 @@ void Options::set(const char* name,const char* value, int index)
       }
       break;
     case SSPLITTING_FLUSH_QUOTIENT:
-      if(!Int::stringToFloat(value,floatValue) || (floatValue<1.0f)) {
+      if (!Int::stringToFloat(value,floatValue) || (floatValue<1.0f)) {
 	USER_ERROR("ssplitting_flush_quotient must greater than or equal to 1");
       }
       _ssplittingFlushQuotient = floatValue;
@@ -1545,7 +1533,7 @@ void Options::set(const char* name,const char* value, int index)
        return;
 
     case FUNCTION_NUMBER:
-      if(Int::stringToInt(value,intValue))
+      if (Int::stringToInt(value,intValue))
 	_functionNumber= intValue;
       return;
     case XML_OUTPUT:
@@ -1771,7 +1759,7 @@ string Options::includeFileName (const string& relativeName)
     return relativeName;
   }
 
-  if(System::fileExists(relativeName)) {
+  if (System::fileExists(relativeName)) {
     return relativeName;
   }
 
@@ -1895,9 +1883,6 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_distinctProcessor);
     return;
 
-  case EMPTY_CLAUSE_SUBSUMPTION:
-    str << boolToOnOff(_emptyClauseSubsumption);
-    return;
   case EPR_PRESERVING_NAMING:
     str << boolToOnOff(_eprPreservingNaming);
     return;
@@ -2138,9 +2123,6 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SAT_RESTART_STRATEGY:
     str << Constants::satRestartStrategyValues[_satRestartStrategy];
     return;
-  case SAT_SOLVER_FOR_EMPTY_CLAUSE:
-    str << boolToOnOff(_satSolverForEmptyClause);
-    return;
   case SAT_SOLVER_WITH_NAMING:
     str << boolToOnOff(_satSolverWithNaming);
     return;
@@ -2359,7 +2341,7 @@ void Options::setInputFile(const string& inputFile)
 
   _inputFile = inputFile;
 
-  if(inputFile=="") {
+  if (inputFile=="") {
     return;
   }
 
@@ -2531,7 +2513,7 @@ void Options::readOptionsString(string testId, OptionSpecStack& assignments)
 
     string param = testId.substr(0,index1);
     string value;
-    if(index==string::npos) {
+    if (index==string::npos) {
       value = testId.substr(index1+1);
     }
     else {
@@ -2539,7 +2521,7 @@ void Options::readOptionsString(string testId, OptionSpecStack& assignments)
     }
     assignments.push(OptionSpec(param, value));
 
-    if(index==string::npos) {
+    if (index==string::npos) {
       break;
     }
     testId = testId.substr(index+1);
@@ -2567,7 +2549,7 @@ void Options::readOptionsString(string testId)
 
     string param = testId.substr(0,index1);
     string value;
-    if(index==string::npos) {
+    if (index==string::npos) {
       value = testId.substr(index1+1);
     }
     else {
@@ -2575,7 +2557,7 @@ void Options::readOptionsString(string testId)
     }
     setShort(param.c_str(),value.c_str());
 
-    if(index==string::npos) {
+    if (index==string::npos) {
       break;
     }
     testId = testId.substr(index+1);
@@ -2649,7 +2631,7 @@ void Options::readFromTestId (string testId)
   index = testId.find('_');
   string awr = testId.substr(0,index);
   readAgeWeightRatio(awr.c_str(), _ageRatio, _weightRatio);
-  if(index==string::npos) {
+  if (index==string::npos) {
     //there are no extra options
     return;
   }
@@ -2682,7 +2664,7 @@ string Options::generateTestId() const
   res<<"_";
 
   //age-weight ratio
-  if(ageRatio()!=1) {
+  if (ageRatio()!=1) {
     res<<ageRatio()<<":";
   }
   res<<weightRatio();
@@ -2697,7 +2679,7 @@ string Options::generateTestId() const
 
   static Set<Tag> forbidden;
   //we initialize the set if there's nothing inside
-  if(forbidden.size()==0) {
+  if (forbidden.size()==0) {
     //things we output elsewhere
     forbidden.insert(SATURATION_ALGORITHM);
     forbidden.insert(SELECTION);
@@ -2714,17 +2696,17 @@ string Options::generateTestId() const
 
   for(int i=0;i<Constants::shortNames.length;i++) {
     Tag t=static_cast<Tag>(Constants::shortNameIndexes[i]);
-    if(forbidden.contains(t)) {
+    if (forbidden.contains(t)) {
       continue;
     }
     stringstream valCur;
     stringstream valDef;
     cur.outputValue(valCur, t);
     def.outputValue(valDef, t);
-    if(valCur.str()==valDef.str()) {
+    if (valCur.str()==valDef.str()) {
       continue;
     }
-    if(!first) {
+    if (!first) {
       res<<":";
     }
     else {
@@ -2737,17 +2719,17 @@ string Options::generateTestId() const
 
   for(int i=0;i<NUMBER_OF_OPTIONS;i++) {
     Tag t=static_cast<Tag>(i);
-    if(forbidden.contains(t)) {
+    if (forbidden.contains(t)) {
       continue;
     }
     stringstream valCur;
     stringstream valDef;
     cur.outputValue(valCur, t);
     def.outputValue(valDef, t);
-    if(valCur.str()==valDef.str()) {
+    if (valCur.str()==valDef.str()) {
       continue;
     }
-    if(!first) {
+    if (!first) {
       res<<":";
     }
     else {
@@ -2756,7 +2738,7 @@ string Options::generateTestId() const
     res<<Constants::optionNames[i]<<"="<<valCur.str();
   }
 
-  if(!first) {
+  if (!first) {
     res<<"_";
   }
 
@@ -2811,7 +2793,7 @@ bool Options::complete(const Problem& prb) const
 
   //we did some transformation that made us lose completeness
   //(e.g. equality proxy replacing equality for reflexive predicate)
-  if(prb.hadIncompleteTransformation()) {
+  if (prb.hadIncompleteTransformation()) {
     return false;
   }
 
@@ -2910,13 +2892,10 @@ bool Options::completeForNNE() const
  */
 void Options::checkGlobalOptionConstraints() const
 {
-  if(satSolverForEmptyClause() && emptyClauseSubsumption()) {
-    USER_ERROR("Empty clause subsumption cannot be performed when SAT solver is used for handling empty clauses");
-  }
-  if(splitting()!=SM_NOBACKTRACKING && splittingWithBlocking()) {
+  if (splitting()!=SM_NOBACKTRACKING && splittingWithBlocking()) {
     USER_ERROR("Splitting with blocking can be used only with splitting without backtracking");
   }
-  if(showInterpolant()!=INTERP_OFF && splitting()==SM_BACKTRACKING) {
+  if (showInterpolant()!=INTERP_OFF && splitting()==SM_BACKTRACKING) {
     USER_ERROR("Cannot output interpolant with backtracking splitting");
   }
   if (_bfnt && !completeForNNE()) {
@@ -2946,14 +2925,12 @@ void Options::enableTracesAccordingToOptions() const
 {
   CALL("Options::enableTracesAccordingToOptions");
 
-  if(showActive()) { ENABLE_TAG("active_clauses"); }
-  if(showPassive()) { ENABLE_TAG("passive_clauses"); }
-  if(showNew()) { ENABLE_TAG("new_clauses"); }
-  if(showNewPropositional()) { ENABLE_TAG("new_prop_clauses"); }
-  if(showSkolemisations()) { ENABLE_TAG("pp_sk_funs"); }
-  if(showNonconstantSkolemFunctionTrace()) { ENABLE_TAG("pp_sk_nonconst_intr"); }
-  if(showDefinitions()) { ENABLE_TAG("definitions"); }
-  if(showPreprocessingFormulas()) { ENABLE_TAG("preproc_forms"); }
-
-//  SHOW_BLOCKED,
+  if (showActive()) { ENABLE_TAG("active_clauses"); }
+  if (showPassive()) { ENABLE_TAG("passive_clauses"); }
+  if (showNew()) { ENABLE_TAG("new_clauses"); }
+  if (showNewPropositional()) { ENABLE_TAG("new_prop_clauses"); }
+  if (showSkolemisations()) { ENABLE_TAG("pp_sk_funs"); }
+  if (showNonconstantSkolemFunctionTrace()) { ENABLE_TAG("pp_sk_nonconst_intr"); }
+  if (showDefinitions()) { ENABLE_TAG("definitions"); }
+  if (showPreprocessingFormulas()) { ENABLE_TAG("preproc_forms"); }
 }

@@ -149,16 +149,12 @@ protected:
 private:
   void passiveRemovedHandler(Clause* cl);
   void activeRemovedHandler(Clause* cl);
-
   void addInputClause(Clause* cl);
 
   LiteralSelector& getSosLiteralSelector();
 
   void handleEmptyClause(Clause* cl);
-  void performEmptyClauseParentSubsumption(Clause* cl, BDDNode* emptyClauseProp);
-
   Clause* doImmediateSimplification(Clause* cl);
-
   MainLoopResult saturateImpl();
 
   /**
