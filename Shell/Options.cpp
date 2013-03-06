@@ -292,13 +292,11 @@ const char* Options::Constants::_shortNames[] = {
   "awr",
   "bd",
   "bfnt",
-  "bms",
   "br",
   "bs",
   "bsr",
   "cond",
   "drc",
-  "ecs",
   "ep",
   "erd",
   "fd",
@@ -325,7 +323,6 @@ const char* Options::Constants::_shortNames[] = {
   "nwc",
   "p",
   "pc",
-  "ptb",
   "s",
   "sa",
   "sac",
@@ -342,7 +339,6 @@ const char* Options::Constants::_shortNames[] = {
   "ss",
   "ssac",
   "sscc",
-  "ssec",
   "sser",
   "ssfp",
   "ssfq",
@@ -1551,7 +1547,6 @@ void Options::set(const char* name,const char* value, int index)
   catch(ValueNotFoundException&) {
     USER_ERROR((string)"wrong value (" + value + ") for " + name);
   }
-
 } // Options::set
 
 

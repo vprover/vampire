@@ -13,12 +13,12 @@
 #	IS_LINGVA 		 - this allows the compilation of lingva. 
 
 DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1# debugging for spider 
-REL_FLAGS = -O6 -DVDEBUG=0# no debugging 
+REL_FLAGS = -O6 -DVDEBUG=0 # no debugging 
 LLVM_FLAGS = -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DIS_LINGVA=0# standard debugging only
+XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DIS_LINGVA=0 # standard debugging only
 #XFLAGS = $(REL_FLAGS)
 
 #XFLAGS = -O6 -DVDEBUG=0 -march=native -mtune=native # no debugging 
@@ -355,18 +355,17 @@ VPROG_OBJ = Program/Type.o\
            Program/Statement.o\
            Program/Variable.o\
            Program/InvariantHelper.o\
-		   Program/Lingva.o
-           
+           Program/Lingva.o
 
 VTAB_OBJ = Tabulation/Producer.o\
            Tabulation/TabulationAlgorithm.o\
            Tabulation/TabulationContainers.o
-           
+
 TRANSLATOR_OBJ = \
 	Translator/CollectionOfObjects.o\
 	Translator/MyASTConsumer.o\
 	Translator/NewTranslator.o
-	
+
 # testing procedures
 VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/CheckedSatSolver.o\
@@ -557,13 +556,12 @@ ifneq (,$(filter lingva% ,$(MAKECMDGOALS)))
     /home/ioan/proseed/proseed/llvm/build/Debug/lib/libLLVMMC.a \
     /home/ioan/proseed/proseed/llvm/build/Debug/lib/libLLVMCppBackend.a \
     /home/ioan/proseed/proseed/llvm/build/Debug/lib/libLLVMCore.a
-    
-    
+
 RELCLANG := RelClang/libclangFrontend.a \
     RelClang/libclangParse.a \
     RelClang/libclangSema.a \
     RelClang/libclangAnalysis.a \
-   	RelClang/libclangAST.a \
+    RelClang/libclangAST.a \
     RelClang/libclangLex.a \
     RelClang/libclangBasic.a \
     RelClang/libclangDriver.a \
@@ -572,7 +570,7 @@ RELCLANG := RelClang/libclangFrontend.a \
     RelClang/libLLVMCppBackend.a \
     RelClang/libLLVMCore.a \
     RelClang/libLLVMSupport.a 
-   
+
 -lpthread:
 -ldl: 
 define LLVM_COMPILE_CMD

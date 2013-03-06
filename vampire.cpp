@@ -409,8 +409,6 @@ void groundingMode()
 int main(int argc, char* argv[])
 {
   CALL ("main");
-  //the following hack is just for lingva.
-  env.options->setMode(Options::MODE_PROGRAM_ANALYSIS);
 
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
