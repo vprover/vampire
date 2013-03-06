@@ -213,9 +213,7 @@ protected:
 
   ConsequenceFinder* _consFinder;
   SymElOutput* _symEl;
-
   BDDMarkingSubsumption* _bddMarkingSubsumption;
-
   AnswerLiteralManager* _answerLiteralManager;
 
   /** Index that takes care of the sharing and merging of clauses */

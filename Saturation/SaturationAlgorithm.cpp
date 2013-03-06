@@ -106,13 +106,13 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
-  if(!Ordering::trySetGlobalOrdering(_ordering)) {
+  if (!Ordering::trySetGlobalOrdering(_ordering)) {
     //this is not an error, it may just lead to lower performance (and most likely not significantly lower)
     cerr << "SaturationAlgorithm cannot set its ordering as global" << endl;
   }
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.selection());
 
-  _propToBDD = opt.propositionalToBDD();
+  _propToBDD = false;
   _completeOptionSettings = opt.complete(prb);
 
   _unprocessed = new UnprocessedClauseContainer();
@@ -131,7 +131,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
   _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
 
-  if(opt.maxWeight()) {
+  if (opt.maxWeight()) {
     _limits.setLimits(0,opt.maxWeight());
   }
 
@@ -148,26 +148,26 @@ SaturationAlgorithm::~SaturationAlgorithm()
 
   s_instance=0;
 
-  if(_splitter) {
+  if (_splitter) {
     delete _splitter;
   }
-  if(_consFinder) {
+  if (_consFinder) {
     delete _consFinder;
   }
-  if(_symEl) {
+  if (_symEl) {
     delete _symEl;
   }
-  if(_bddMarkingSubsumption) {
+  if (_bddMarkingSubsumption) {
     delete _bddMarkingSubsumption;
   }
 
   _active->detach();
   _passive->detach();
 
-  if(_generator) {
+  if (_generator) {
     _generator->detach();
   }
-  if(_immediateSimplifier) {
+  if (_immediateSimplifier) {
     _immediateSimplifier->detach();
   }
 
@@ -192,7 +192,7 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
   CALL("SaturationAlgorithm::tryUpdateFinalClauseCount");
 
   SaturationAlgorithm* inst = tryGetInstance();
-  if(!inst) {
+  if (!inst) {
     return;
   }
   env.statistics->finalActiveClauses = inst->_active->size();
@@ -253,12 +253,12 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
   ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED ||
       c->store()==Clause::SELECTED_REACTIVATED);
 
-  if(c->store()==Clause::ACTIVE) {
+  if (c->store()==Clause::ACTIVE) {
     c->setStore(Clause::NONE);
     //at this point the c object may be deleted
-  } else if(c->store()==Clause::REACTIVATED) {
+  } else if (c->store()==Clause::REACTIVATED) {
     c->setStore(Clause::PASSIVE);
-  } else if(c->store()==Clause::SELECTED_REACTIVATED) {
+  } else if (c->store()==Clause::SELECTED_REACTIVATED) {
     c->setStore(Clause::SELECTED);
   }
 #if VDEBUG
@@ -273,19 +273,19 @@ void SaturationAlgorithm::onAllProcessed()
   CALL("SaturationAlgorithm::onAllProcessed");
   ASS(clausesFlushed());
 
-  if(_symEl) {
+  if (_symEl) {
     _symEl->onAllProcessed();
   }
 
-  if(_splitter) {
+  if (_splitter) {
     _splitter->onAllProcessed();
   }
 
-  if(_bddMarkingSubsumption) {
+  if (_bddMarkingSubsumption) {
     _bddMarkingSubsumption->onAllProcessed();
   }
 
-  if(_consFinder) {
+  if (_consFinder) {
     _consFinder->onAllProcessed();
   }
 }
@@ -317,10 +317,10 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 
   ASS(c->store()==Clause::PASSIVE || c->store()==Clause::REACTIVATED)
 
-  if(c->store()==Clause::PASSIVE) {
+  if (c->store()==Clause::PASSIVE) {
     c->setStore(Clause::NONE);
     //at this point the c object can be deleted
-  } else if(c->store()==Clause::REACTIVATED) {
+  } else if (c->store()==Clause::REACTIVATED) {
     c->setStore(Clause::ACTIVE);
   }
 #if VDEBUG
@@ -371,11 +371,11 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::onNewClause");
 
-  if(_splitter) {
+  if (_splitter) {
     _splitter->onNewClause(cl);
   }
 
-  if(!cl->prop()) {
+  if (!cl->prop()) {
     BDD* bdd=BDD::instance();
     BDDNode* prop=bdd->getFalse();
 
@@ -383,12 +383,12 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     Inference::Iterator it=inf->iterator();
     while(inf->hasNext(it)) {
       Unit* premu=inf->next(it);
-      if(!premu->isClause()) {
+      if (!premu->isClause()) {
 	//the premise comes from preprocessing
 	continue;
       }
       Clause* prem=static_cast<Clause*>(premu);
-      if(!prem->prop()) {
+      if (!prem->prop()) {
 	//the premise comes from preprocessing
 	continue;
       }
@@ -397,18 +397,18 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     }
 
     cl->initProp(prop);
-    if(!bdd->isTrue(prop)) {
+    if (!bdd->isTrue(prop)) {
       InferenceStore::instance()->recordNonPropInference(cl);
     }
   }
 
   LOG_UNIT("sa_new_clause", cl);
 
-  if(!_propToBDD && cl->isPropositional()) {
+  if (!_propToBDD && cl->isPropositional()) {
     onNewUsefulPropositionalClause(cl);
   }
 
-  if(_answerLiteralManager) {
+  if (_answerLiteralManager) {
     _answerLiteralManager->onNewClause(cl);
   }
 }
@@ -420,11 +420,11 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
 
   LOG_UNIT("sa_new_prop_clause", c);
 
-  if(_bddMarkingSubsumption) {
+  if (_bddMarkingSubsumption) {
     _bddMarkingSubsumption->onNewPropositionalClause(c);
   }
 
-  if(_consFinder) {
+  if (_consFinder) {
     _consFinder->onNewPropositionalClause(c);
   }
 }
@@ -455,11 +455,11 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
 
   ClauseIterator premises;
   
-  if(reductionPremise) {
+  if (reductionPremise) {
     ASS(premise);
     premises = pvi( getConcatenatedIterator(getSingletonIterator(premise), getSingletonIterator(reductionPremise)) );
   }
-  else if(premise) {
+  else if (premise) {
     premises = pvi( getSingletonIterator(premise) );
   }
   else {
@@ -475,7 +475,7 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
   CALL("SaturationAlgorithm::onClauseReduction/4");
   ASS(cl);
 
-  if(replacement && BDD::instance()->isTrue(replacement->prop())) {
+  if (replacement && BDD::instance()->isTrue(replacement->prop())) {
     //clause was rewritten into tautology, so we look at it as if
     //it was just deleted
     replacement=0;
@@ -485,11 +485,11 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
   premStack.reset();
   premStack.loadFromIterator(premises);
 
-  if(_splitter) {
+  if (_splitter) {
     _splitter->onClauseReduction(cl, pvi( ClauseStack::Iterator(premStack) ), replacement);
   }
 
-  if(replacement) {
+  if (replacement) {
     onParenthood(replacement, cl);
     while(premStack.isNonEmpty()) {
       onParenthood(replacement, premStack.pop());
@@ -502,7 +502,7 @@ void SaturationAlgorithm::onNonRedundantClause(Clause* c)
 {
   CALL("SaturationAlgorithm::onNonRedundantClause");
 
-  if(_symEl) {
+  if (_symEl) {
     _symEl->onNonRedundantClause(c);
   }
 }
@@ -519,7 +519,7 @@ void SaturationAlgorithm::onParenthood(Clause* cl, Clause* parent)
 {
   CALL("SaturationAlgorithm::onParenthood");
 
-  if(_symEl) {
+  if (_symEl) {
     _symEl->onParenthood(cl, parent);
   }
 }
@@ -571,19 +571,19 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   cl->markInput();
   cl->initProp(BDD::instance()->getFalse());
 
-  if(_symEl) {
+  if (_symEl) {
     _symEl->onInputClause(cl);
   }
 
-  if(_propToBDD) {
+  if (_propToBDD) {
     //put propositional predicates into BDD part
     cl=_propToBDDConv.simplify(cl);
-    if(!cl) {
+    if (!cl) {
       return;
     }
   }
 
-  if(_opt.sos() != Options::SOS_OFF && cl->inputType()==Clause::AXIOM) {
+  if (_opt.sos() != Options::SOS_OFF && cl->inputType()==Clause::AXIOM) {
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -599,8 +599,8 @@ LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
 {
   CALL("SaturationAlgorithm::getSosLiteralSelector");
 
-  if(_opt.sos() == Options::SOS_ALL) {
-    if(!_sosLiteralSelector) {
+  if (_opt.sos() == Options::SOS_ALL) {
+    if (!_sosLiteralSelector) {
       _sosLiteralSelector = new TotalLiteralSelector(getOrdering(), getOptions());
     }
     return *_sosLiteralSelector;
@@ -627,8 +627,8 @@ void SaturationAlgorithm::addInputSOSClause(Clause* cl)
 simpl_start:
 
   Clause* simplCl=_immediateSimplifier->simplify(cl);
-  if(simplCl!=cl) {
-    if(!simplCl) {
+  if (simplCl!=cl) {
+    if (!simplCl) {
       onClauseReduction(cl, 0, 0);
       goto fin;
     }
@@ -642,7 +642,7 @@ simpl_start:
     goto simpl_start;
   }
 
-  if(cl->isEmpty()) {
+  if (cl->isEmpty()) {
     addNewClause(cl);
     goto fin;
   }
@@ -680,16 +680,16 @@ void SaturationAlgorithm::init()
   }
 
   _sharing.init(this);
-  if(_splitter) {
+  if (_splitter) {
     _splitter->init(this);
   }
-  if(_consFinder) {
+  if (_consFinder) {
     _consFinder->init(this);
   }
-  if(_symEl) {
+  if (_symEl) {
     _symEl->init(this);
   }
-  if(_bddMarkingSubsumption) {
+  if (_bddMarkingSubsumption) {
     _bddMarkingSubsumption->init(this);
   }
 
@@ -733,7 +733,7 @@ public:
 	premises=pvi( ClauseList::DestructiveIterator(lst) );
     );
 
-    if(replacement) {
+    if (replacement) {
       replacement->initProp(oldClProp);
       InferenceStore::instance()->recordNonPropInference(replacement);
       _sa->addNewClause(replacement);
@@ -745,7 +745,7 @@ public:
     _cl=0;
 
     TRACE("sa_fw_simpl",
-	if(replacement) {
+	if (replacement) {
 	  tout << "+" << (*replacement) << endl;
 	}
 	tout << "removed\n";
@@ -758,16 +758,16 @@ public:
     CALL("TotalSimplificationPerformer::willPerform");
     ASS(_cl);
 
-    if(!premise) {
+    if (!premise) {
       return true;
     }
 
-    if( !ColorHelper::compatible(_cl->color(), premise->color()) ) {
+    if ( !ColorHelper::compatible(_cl->color(), premise->color()) ) {
       return false;
     }
 
     BDD* bdd=BDD::instance();
-    if(!bdd->isXOrNonYConstant(_cl->prop(), premise->prop(), true)) {
+    if (!bdd->isXOrNonYConstant(_cl->prop(), premise->prop(), true)) {
       return false;
     }
     return true;
@@ -789,15 +789,15 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
   Clause* cl=cl0;
 
   Clause* simplCl=_immediateSimplifier->simplify(cl);
-  if(simplCl!=cl) {
-    if(simplCl) {
+  if (simplCl!=cl) {
+    if (simplCl) {
       addNewClause(simplCl);
     }
     onClauseReduction(cl, simplCl, 0);
     return 0;
   }
 
-  if(cl!=cl0 && cl0->isInput()) {
+  if (cl!=cl0 && cl0->isInput()) {
     //immediate simplifications maintain the state of a clause as input
     cl->markInput();
   }
@@ -822,22 +822,22 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
   //so we'd better not assume on what's happening out there)
   cl->incRefCnt();
 
-  if(_opt.abstraction() && cl->number()%100000==(24788+(env.statistics->inputClauses%50000)) && env.statistics->inputClauses%3==0) {
+  if (_opt.abstraction() && cl->number()%100000==(24788+(env.statistics->inputClauses%50000)) && env.statistics->inputClauses%3==0) {
     Clause* newCl = 0;
-    if(cl->length()>1) {
+    if (cl->length()>1) {
       LiteralStack lits;
       lits.loadFromIterator(Clause::Iterator(*cl));
       newCl = Clause::fromStack(lits, cl->inputType(), cl->inference());
     }
-    else if(cl->length()==1) {
+    else if (cl->length()==1) {
       Literal* lit = (*cl)[0];
-      if(lit->arity()) {
+      if (lit->arity()) {
 	TermList orig = *lit->nthArgument(0);
 	Literal* newLit = EqHelper::replace(lit, orig, TermList(lit->vars(), false));
 	newCl = Clause::fromIterator(getSingletonIterator(newLit), cl->inputType(), cl->inference());
       }
     }
-    if(newCl) {
+    if (newCl) {
       cl->incRefCnt();
       newCl->incRefCnt();
       cl=newCl;
@@ -861,7 +861,7 @@ void SaturationAlgorithm::newClausesToUnprocessed()
   while(_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
 
-    if(BDD::instance()->isTrue(cl->prop())) {
+    if (BDD::instance()->isTrue(cl->prop())) {
       continue;
     }
 
@@ -923,17 +923,17 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   env.checkTimeSometime<64>();
 
-  if(_bddMarkingSubsumption && _bddMarkingSubsumption->subsumed(cl)) {
+  if (_bddMarkingSubsumption && _bddMarkingSubsumption->subsumed(cl)) {
     return;
   }
 
   cl=doImmediateSimplification(cl);
-  if(!cl) {
+  if (!cl) {
     return;
   }
   ASS(!bdd->isTrue(cl->prop()));
 
-  if(cl->isEmpty()) {
+  if (cl->isEmpty()) {
     handleEmptyClause(cl);
     return;
   }
@@ -955,12 +955,12 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   CALL("SaturationAlgorithm::handleEmptyClause");
   ASS(cl->isEmpty());
 
-  if(isRefutation(cl)) {
+  if (isRefutation(cl)) {
     onNonRedundantClause(cl);
     throw RefutationFoundException(cl);
   }
 
-  if(_splitter && _splitter->handleEmptyClause(cl)) {
+  if (_splitter && _splitter->handleEmptyClause(cl)) {
     return;
   }
 
@@ -969,13 +969,13 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   ASS(!bdd->isFalse(cl->prop()));
   env.statistics->bddPropClauses++;
 
-  if(_opt.satSolverForEmptyClause()) {
+  if (_opt.satSolverForEmptyClause()) {
     static BDDConjunction ecProp(_opt);
 
     onNonRedundantClause(cl);
     onNewUsefulPropositionalClause(cl);
     ecProp.addNode(cl->prop());
-    if(ecProp.isFalse()) {
+    if (ecProp.isFalse()) {
       InferenceStore::instance()->recordMerge(cl, cl->prop(), _bddSatSolverEmptyClauses.begin(),
 	  _bddSatSolverEmptyClauses.size(), bdd->getFalse());
       cl->setProp(bdd->getFalse());
@@ -988,7 +988,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       return;
     }
   } else {
-    if(_mergedBddEmptyClause==0) {
+    if (_mergedBddEmptyClause==0) {
       cl->incRefCnt();
       onNonRedundantClause(cl);
       _mergedBddEmptyClause=cl;
@@ -996,24 +996,24 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       return;
     }
     BDDNode* newProp=bdd->conjunction(_mergedBddEmptyClause->prop(), cl->prop());
-    if(newProp!=_mergedBddEmptyClause->prop()) {
+    if (newProp!=_mergedBddEmptyClause->prop()) {
       onNonRedundantClause(cl);
       onNewUsefulPropositionalClause(cl);
     }
-    if(bdd->isFalse(newProp)) {
+    if (bdd->isFalse(newProp)) {
       InferenceStore::instance()->recordMerge(cl, cl->prop(), _mergedBddEmptyClause, newProp);
       cl->setProp(newProp);
       onNonRedundantClause(cl);
       onNewUsefulPropositionalClause(cl);
       throw RefutationFoundException(cl);
     }
-    if(newProp!=_mergedBddEmptyClause->prop()) {
+    if (newProp!=_mergedBddEmptyClause->prop()) {
       InferenceStore::instance()->recordMerge(_mergedBddEmptyClause, _mergedBddEmptyClause->prop(), cl, newProp);
       _mergedBddEmptyClause->setProp(newProp);
       onNonRedundantClause(_mergedBddEmptyClause);
     } else {
       env.statistics->subsumedEmptyClauses++;
-      if(_opt.emptyClauseSubsumption()) {
+      if (_opt.emptyClauseSubsumption()) {
 	performEmptyClauseParentSubsumption(cl, _mergedBddEmptyClause->prop());
       }
     }
@@ -1051,16 +1051,16 @@ void SaturationAlgorithm::performEmptyClauseParentSubsumption(Clause* cl0, BDDNo
 
     while(parents.hasNext()) {
       Clause* par=parents.next().cl();
-      if(par->store()!=Clause::ACTIVE &&
+      if (par->store()!=Clause::ACTIVE &&
 	  par->store()!=Clause::PASSIVE &&
 	  par->store()!=Clause::REACTIVATED) {
 	continue;
       }
-      if(!par->prop() || bdd->isTrue(par->prop())) {
+      if (!par->prop() || bdd->isTrue(par->prop())) {
 	continue;
       }
       //TODO: maybe a simple equality check can be used here, as child prop part is a disjunction of its parents (at least usually)
-      if(!bdd->isXOrNonYConstant(par->prop(), emptyClauseProp, true)) {
+      if (!bdd->isXOrNonYConstant(par->prop(), emptyClauseProp, true)) {
 	continue;
       }
       par->setProp(bdd->getTrue());
@@ -1072,7 +1072,7 @@ void SaturationAlgorithm::performEmptyClauseParentSubsumption(Clause* cl0, BDDNo
       parentsToCheck.push(par);
     }
 
-    if(parentsToCheck.isEmpty()) {
+    if (parentsToCheck.isEmpty()) {
       break;
     }
     cl=parentsToCheck.pop();
@@ -1110,11 +1110,11 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::forwardSimplify");
 
-  if(cl->store()==Clause::REACTIVATED || cl->store()==Clause::SELECTED_REACTIVATED) {
+  if (cl->store()==Clause::REACTIVATED || cl->store()==Clause::SELECTED_REACTIVATED) {
     return true;
   }
 
-  if(!getLimits()->fulfillsLimits(cl)) {
+  if (!getLimits()->fulfillsLimits(cl)) {
     RSTAT_CTR_INC("clauses discarded by weight limit in forward simplification");
     env.statistics->discardedNonRedundantClauses++;
     return false;
@@ -1128,23 +1128,23 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     ForwardSimplificationEngine* fse=fsit.next();
 
     fse->perform(cl, &performer);
-    if(!performer.clauseKept()) {
+    if (!performer.clauseKept()) {
       break;
     }
   }
 
   //TODO: hack that only clauses deleted by forward simplification can be destroyed (other destruction needs debugging)
-  if(performer.clauseKept()) {
+  if (performer.clauseKept()) {
     cl->incRefCnt();
   }
 
-  if(!performer.clauseKept()) {
+  if (!performer.clauseKept()) {
     return false;
   }
 
 
-  if( _splitter && !_opt.splitAtActivation() ) {
-    if(_splitter->doSplitting(cl)) {
+  if ( _splitter && !_opt.splitAtActivation() ) {
+    if (_splitter->doSplitting(cl)) {
       return false;
     }
   }
@@ -1174,14 +1174,14 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 
       BDDNode* oldRedundantProp=redundant->prop();
 
-      if( !bdd->isXOrNonYConstant(oldRedundantProp, cl->prop(), true) ) {
+      if ( !bdd->isXOrNonYConstant(oldRedundantProp, cl->prop(), true) ) {
 	//TODO: here the srec.replacement should probably be deleted
 	continue;
       }
 
       Clause* replacement=srec.replacement;
 
-      if(replacement) {
+      if (replacement) {
 	addNewClause(replacement);
       }
       LOG_UNIT("sa_bw_simpl_red_clause",redundant);
@@ -1204,7 +1204,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	tout << "-<<--------\n";
 	tout << ":" << (*cl) << endl;
 	tout << "-" << (*redundant) << endl;
-	if(replacement) {
+	if (replacement) {
 	  tout << "+" << (*replacement) << endl;
 	}
 	tout << "removed\n";
@@ -1230,7 +1230,7 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::removeBackwardSimplifiedClause");
 
-  if(_clauseActivationInProgress) {
+  if (_clauseActivationInProgress) {
     //we cannot remove clause now, as there indexes might be traversed now,
     //and so we cannot modify them
     _postponedClauseRemovals.push(cl);
@@ -1285,27 +1285,27 @@ bool SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
 
-  if(_bddMarkingSubsumption && _bddMarkingSubsumption->subsumed(cl)) {
+  if (_bddMarkingSubsumption && _bddMarkingSubsumption->subsumed(cl)) {
     return false;
   }
 
-  if(_consFinder && _consFinder->isRedundant(cl)) {
+  if (_consFinder && _consFinder->isRedundant(cl)) {
     return false;
   }
 
-  if(_splitter && _opt.splitAtActivation()) {
-    if(_splitter->doSplitting(cl)) {
+  if (_splitter && _opt.splitAtActivation()) {
+    if (_splitter->doSplitting(cl)) {
       return false;
     }
   }
 
   _clauseActivationInProgress=true;
 
-  if(!cl->selected()) {
+  if (!cl->selected()) {
     _selector->select(cl);
   }
 
-  if(cl->store()==Clause::SELECTED_REACTIVATED) {
+  if (cl->store()==Clause::SELECTED_REACTIVATED) {
     cl->setStore(Clause::ACTIVE);
     env.statistics->reactivatedClauses++;
     LOG_UNIT("sa_reanimated", cl);
@@ -1341,7 +1341,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
   //now we remove clauses that could not be removed during the clause activation process
   while(_postponedClauseRemovals.isNonEmpty()) {
     Clause* cl=_postponedClauseRemovals.pop();
-    if(cl->store()!=Clause::ACTIVE &&
+    if (cl->store()!=Clause::ACTIVE &&
 	cl->store()!=Clause::PASSIVE &&
 	cl->store()!=Clause::REACTIVATED &&
 	cl->store()!=Clause::SELECTED_REACTIVATED) {
@@ -1368,7 +1368,7 @@ start:
     Clause* c = _unprocessed->pop();
     ASS(!isRefutation(c));
 
-    if(forwardSimplify(c)) {
+    if (forwardSimplify(c)) {
       onClauseRetained(c);
       addToPassive(c);
       ASS_EQ(c->store(), Clause::PASSIVE);
@@ -1380,14 +1380,14 @@ start:
 
     newClausesToUnprocessed();
 
-    if(env.timeLimitReached()) {
+    if (env.timeLimitReached()) {
       throw TimeLimitExceededException();
     }
   }
 
   ASS(clausesFlushed());
   onAllProcessed();
-  if(!clausesFlushed()) {
+  if (!clausesFlushed()) {
     //there were some new clauses added, so let's process them
     goto start;
   }
@@ -1398,7 +1398,7 @@ void SaturationAlgorithm::handleUnsuccessfulActivation(Clause* cl)
 {
   CALL("SaturationAlgorithm::handleUnsuccessfulActivation");
 
-  if(cl->store()==Clause::SELECTED_REACTIVATED) {
+  if (cl->store()==Clause::SELECTED_REACTIVATED) {
     cl->setStore(Clause::ACTIVE);
   }
   else {
@@ -1444,71 +1444,6 @@ UnitList* SaturationAlgorithm::collectSaturatedSet()
     UnitList::push(qres.clause, res);
     qres.clause->incRefCnt();
   }
-
-  if(getOptions().propositionalToBDD()) {
-    BDD& _bdd = *BDD::instance();
-    if(getOptions().satSolverForEmptyClause()) {
-      Stack<UnitSpec>::ConstIterator ecit(_bddSatSolverEmptyClauses);
-      while(ecit.hasNext()) {
-	UnitSpec us = ecit.next();
-	Clause* cl = Clause::fromClause(us.cl());
-	cl->setProp(us.prop());
-
-	InferenceStore::FullInference* finf = new(1) InferenceStore::FullInference(1);
-	finf->rule = Inference::REORDER_LITERALS;
-	finf->premises[0] = us;
-	finf->increasePremiseRefCounters();
-	InferenceStore::instance()->recordInference(UnitSpec(cl), finf);
-
-	UnitList::push(cl, res);
-	cl->incRefCnt();
-      }
-    }
-    else {
-      if(_mergedBddEmptyClause) {
-	UnitList::push(_mergedBddEmptyClause, res);
-	_mergedBddEmptyClause->incRefCnt();
-      }
-    }
-
-    const Problem::BDDVarMeaningMap& bvm = getProblem().getBDDVarMeanings();
-    Problem::BDDVarMeaningMap::Iterator bvmIt(bvm);
-    while(bvmIt.hasNext()) {
-      unsigned var;
-      Problem::BDDMeaningSpec spec;
-      bvmIt.next(var, spec);
-
-      Literal* namedLit;
-
-      if(spec.first) {
-        ASS(!spec.second);
-
-        namedLit = spec.first;
-      }
-      else {
-	unsigned newPred = env.signature->addFreshPredicate(0, "bddAux");
-	namedLit = Literal::create(newPred, 0, true, false, 0);
-
-	Formula* clForm = spec.second->getFormula(_bdd.getFalse());
-	Formula* namingForm = new BinaryFormula(IFF, new AtomicFormula(namedLit), clForm);
-	FormulaUnit* namingFU = new FormulaUnit(namingForm, new Inference(Inference::PREDICATE_DEFINITION), Unit::AXIOM);
-	UnitList::push(namingFU, res);
-      }
-      Clause* posNm = Clause::fromIterator(getSingletonIterator(namedLit),
-	  Unit::AXIOM, new Inference(Inference::PREDICATE_DEFINITION));
-      posNm->setProp(_bdd.getAtomic(var, true));
-      UnitList::push(posNm, res);
-      posNm->incRefCnt();
-
-      Clause* negNm = Clause::fromIterator(
-	  getSingletonIterator(Literal::complementaryLiteral(namedLit)),
-	  Unit::AXIOM, new Inference(Inference::PREDICATE_DEFINITION));
-      negNm->setProp(_bdd.getAtomic(var, false));
-      UnitList::push(negNm, res);
-      negNm->incRefCnt();
-    }
-  }
-
   return res;
 }
 
@@ -1522,11 +1457,11 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 
   doUnprocessedLoop();
 
-  if(_passive->isEmpty()) {
+  if (_passive->isEmpty()) {
     MainLoopResult::TerminationReason termReason =
 	isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND;
     MainLoopResult res(termReason);
-    if(termReason == Statistics::SATISFIABLE && getOptions().proof()!=Options::PROOF_OFF) {
+    if (termReason == Statistics::SATISFIABLE && getOptions().proof()!=Options::PROOF_OFF) {
       res.saturatedSet = collectSaturatedSet();
     }
     throw MainLoopFinishedException(res);
@@ -1534,7 +1469,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 
   Clause* cl = _passive->popSelected();
 
-  if(cl->store()==Clause::REACTIVATED) {
+  if (cl->store()==Clause::REACTIVATED) {
     cl->setStore(Clause::SELECTED_REACTIVATED);
   }
   else {
@@ -1542,12 +1477,12 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     cl->setStore(Clause::SELECTED);
   }
 
-  if(!handleClauseBeforeActivation(cl)) {
+  if (!handleClauseBeforeActivation(cl)) {
     return;
   }
 
   bool isActivated=activate(cl);
-  if(!isActivated) {
+  if (!isActivated) {
     handleUnsuccessfulActivation(cl);
   }
 }
@@ -1567,7 +1502,7 @@ MainLoopResult SaturationAlgorithm::runImpl()
       doOneAlgorithmStep();
 
       Timer::syncClock();
-      if(env.timeLimitReached()) {
+      if (env.timeLimitReached()) {
         throw TimeLimitExceededException();
       }
     }
@@ -1663,7 +1598,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   default:
     NOT_IMPLEMENTED;
   }
-  if(indexMgr) {
+  if (indexMgr) {
     res->_imgr = SmartPtr<IndexManager>(indexMgr, true);
     indexMgr->setSaturationAlgorithm(res);
   }
@@ -1673,16 +1608,16 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
-  if(prb.hasEquality()) {
+  if (prb.hasEquality()) {
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());
     gie->addFront(new Superposition());
   }
   gie->addFront(new Factoring());
-  if(opt.binaryResolution()) {
+  if (opt.binaryResolution()) {
     gie->addFront(new BinaryResolution());
   }
-  if(opt.unitResultingResolution()!=Options::URR_OFF) {
+  if (opt.unitResultingResolution()!=Options::URR_OFF) {
     gie->addFront(new URResolution());
   }
   res->setGeneratingInferenceEngine(gie);
@@ -1690,16 +1625,16 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   res->setImmediateSimplificationEngine(createISE(prb, opt));
 
   // create forward simplification engine
-  if(opt.hyperSuperposition()) {
+  if (opt.hyperSuperposition()) {
     res->addForwardSimplifierToFront(new HyperSuperposition());
   }
-  if(opt.globalSubsumption()) {
+  if (opt.globalSubsumption()) {
     res->addForwardSimplifierToFront(new GlobalSubsumption());
   }
-  if(opt.forwardLiteralRewriting()) {
+  if (opt.forwardLiteralRewriting()) {
     res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
   }
-  if(prb.hasEquality()) {
+  if (prb.hasEquality()) {
     switch(opt.forwardDemodulation()) {
     case Options::DEMODULATION_ALL:
     case Options::DEMODULATION_PREORDERED:
@@ -1714,7 +1649,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
   if (opt.forwardSubsumption()) {
-    if(opt.forwardSubsumptionResolution()) {
+    if (opt.forwardSubsumptionResolution()) {
       res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
     }
     else {
@@ -1726,7 +1661,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   // create backward simplification engine
-  if(prb.hasEquality()) {
+  if (prb.hasEquality()) {
     switch(opt.backwardDemodulation()) {
     case Options::DEMODULATION_ALL:
     case Options::DEMODULATION_PREORDERED:
@@ -1740,19 +1675,19 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if(opt.backwardSubsumption()!=Options::SUBSUMPTION_OFF) {
+  if (opt.backwardSubsumption()!=Options::SUBSUMPTION_OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::SUBSUMPTION_UNIT_ONLY;
     res->addBackwardSimplifierToFront(new SLQueryBackwardSubsumption(byUnitsOnly));
   }
-  if(opt.backwardSubsumptionResolution()!=Options::SUBSUMPTION_OFF) {
+  if (opt.backwardSubsumptionResolution()!=Options::SUBSUMPTION_OFF) {
     bool byUnitsOnly=opt.backwardSubsumptionResolution()==Options::SUBSUMPTION_UNIT_ONLY;
     res->addBackwardSimplifierToFront(new BackwardSubsumptionResolution(byUnitsOnly));
   }
 
-  if(opt.mode()==Options::MODE_CONSEQUENCE_ELIMINATION) {
+  if (opt.mode()==Options::MODE_CONSEQUENCE_ELIMINATION) {
     res->_consFinder=new ConsequenceFinder();
   }
-  if(opt.showSymbolElimination()) {
+  if (opt.showSymbolElimination()) {
     res->_symEl=new SymElOutput();
   }
 
@@ -1763,12 +1698,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_splitter=new BSplitter();
     break;
   case Options::SM_NOBACKTRACKING:
-    if(opt.propositionalToBDD()) {
-      res->_splitter=new SWBSplitterWithBDDs();
-    }
-    else {
-      res->_splitter=new SWBSplitterWithoutBDDs();
-    }
+    res->_splitter=new SWBSplitterWithoutBDDs();
     break;
   case Options::SM_SAT:
     res->_splitter = new SSplitter();
@@ -1778,11 +1708,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
 
-  if(opt.bddMarkingSubsumption()) {
-    res->_bddMarkingSubsumption=new BDDMarkingSubsumption();
-  }
-
-  if(opt.questionAnswering()==Options::QA_ANSWER_LITERAL) {
+  if (opt.questionAnswering()==Options::QA_ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();
   }
   return res;

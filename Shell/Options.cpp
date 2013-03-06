@@ -118,7 +118,6 @@ const char* Options::Constants::_optionNames[] = {
   "backward_demodulation",
   "backward_subsumption",
   "backward_subsumption_resolution",
-  "bdd_marking_subsumption",
   "bfnt",
   "binary_resolution",
 
@@ -201,7 +200,6 @@ const char* Options::Constants::_optionNames[] = {
   "problem_name",
   "proof",
   "proof_checking",
-  "propositional_to_bdd",
   "protected_prefix",
 
   "question_answering",
@@ -377,7 +375,6 @@ int Options::Constants::shortNameIndexes[] = {
   AGE_WEIGHT_RATIO,
   BACKWARD_DEMODULATION,
   BFNT,
-  BDD_MARKING_SUBSUMPTION,
   BINARY_RESOLUTION,
   BACKWARD_SUBSUMPTION,
   BACKWARD_SUBSUMPTION_RESOLUTION,
@@ -413,7 +410,6 @@ int Options::Constants::shortNameIndexes[] = {
   NONGOAL_WEIGHT_COEFFICIENT,
   PROOF,
   PROOF_CHECKING,
-  PROPOSITIONAL_TO_BDD,
   SELECTION,
   SATURATION_ALGORITHM,
   SPLIT_AT_ACTIVATION,
@@ -698,7 +694,6 @@ Options::Options ()
   _backwardDemodulation(DEMODULATION_ALL),
   _backwardSubsumption(SUBSUMPTION_ON),
   _backwardSubsumptionResolution(SUBSUMPTION_OFF),
-  _bddMarkingSubsumption(false),
   _bfnt(false),
   _binaryResolution(true),
 
@@ -783,7 +778,6 @@ Options::Options ()
   _problemName("unknown"),
   _proof(PROOF_ON),
   _proofChecking(false),
-  _propositionalToBDD(true),
   _protectedPrefix(""),
 
   _questionAnswering(QA_OFF),
@@ -969,9 +963,6 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case BACKWARD_SUBSUMPTION_RESOLUTION:
       _backwardSubsumptionResolution = (Subsumption)Constants::subsumptionValues.find(value);
-      return;
-    case BDD_MARKING_SUBSUMPTION:
-      _bddMarkingSubsumption = onOffToBool(value,name);
       return;
     case BFNT:
       _bfnt = onOffToBool(value,name);
@@ -1251,9 +1242,6 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case PROOF_CHECKING:
       _proofChecking = onOffToBool(value,name);
-      return;
-    case PROPOSITIONAL_TO_BDD:
-      _propositionalToBDD = onOffToBool(value,name);
       return;
     case PROTECTED_PREFIX:
       _protectedPrefix = value;
@@ -1884,9 +1872,6 @@ void Options::outputValue (ostream& str,int optionTag) const
   case BACKWARD_SUBSUMPTION_RESOLUTION:
     str << Constants::subsumptionValues[_backwardSubsumptionResolution];
     return;
-  case BDD_MARKING_SUBSUMPTION:
-    str << boolToOnOff(_bddMarkingSubsumption);
-    return;
   case BFNT:
     str << boolToOnOff(_bfnt);
     return;
@@ -2104,9 +2089,6 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case PROOF_CHECKING:
     str << boolToOnOff(_proofChecking);
-    return;
-  case PROPOSITIONAL_TO_BDD:
-    str << boolToOnOff(_propositionalToBDD);
     return;
   case PROTECTED_PREFIX:
     str << _protectedPrefix;
@@ -2931,20 +2913,8 @@ void Options::checkGlobalOptionConstraints() const
   if(satSolverForEmptyClause() && emptyClauseSubsumption()) {
     USER_ERROR("Empty clause subsumption cannot be performed when SAT solver is used for handling empty clauses");
   }
-  if(!propositionalToBDD() && bddMarkingSubsumption()) {
-    USER_ERROR("BDD marking subsumption cannot be used without BDDs enabled (the \"propositional_to_bdd\" option)");
-  }
-  if(propositionalToBDD() && splittingWithBlocking()) {
-    USER_ERROR("Splitting with blocking cannot be used with BDDs enabled (the \"propositional_to_bdd\" option)");
-  }
   if(splitting()!=SM_NOBACKTRACKING && splittingWithBlocking()) {
     USER_ERROR("Splitting with blocking can be used only with splitting without backtracking");
-  }
-  if(splitting()==SM_BACKTRACKING && propositionalToBDD()) {
-    USER_ERROR("Backtracking splitting cannot be used unless all BDD related options are disabled");
-  }
-  if(splitting()==SM_SAT && propositionalToBDD()) {
-    USER_ERROR("Sat splitting cannot be used unless all BDD related options are disabled");
   }
   if(showInterpolant()!=INTERP_OFF && splitting()==SM_BACKTRACKING) {
     USER_ERROR("Cannot output interpolant with backtracking splitting");

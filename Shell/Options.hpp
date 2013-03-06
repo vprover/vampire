@@ -41,7 +41,6 @@ public:
     BACKWARD_DEMODULATION,
     BACKWARD_SUBSUMPTION,
     BACKWARD_SUBSUMPTION_RESOLUTION,
-    BDD_MARKING_SUBSUMPTION,
     BFNT,
     BINARY_RESOLUTION,
 
@@ -143,7 +142,6 @@ public:
     PROBLEM_NAME,
     PROOF,
     PROOF_CHECKING,
-    PROPOSITIONAL_TO_BDD,
     /** if non-empty, symbols with this prefix will not be subject to any kind of elimination in preprocessing */
     PROTECTED_PREFIX,
 
@@ -615,8 +613,6 @@ public:
   bool satSolverWithNaming() const { return _satSolverWithNaming; }
   bool satSolverWithSubsumptionResolution() const { return _satSolverWithSubsumptionResolution; }
   bool emptyClauseSubsumption() const { return _emptyClauseSubsumption; }
-  bool propositionalToBDD() const { return _propositionalToBDD; }
-  void setPropositionalToBDD(bool value) { _propositionalToBDD = value; }
   bool splitAddGroundNegation() const { return _splitAddGroundNegation; }
   bool splitAtActivation() const { return _splitAtActivation; }
   bool splitGoalOnly() const { return _splitGoalOnly; }
@@ -625,7 +621,6 @@ public:
   SplittingMode splitting() const { return _splitting; }
   void setSplitting(SplittingMode newVal) { _splitting = newVal; }
   bool splittingWithBlocking() const { return _splittingWithBlocking; }
-  bool bddMarkingSubsumption() const { return _bddMarkingSubsumption; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
 
   unsigned sineDepth() const { return _sineDepth; }
@@ -737,7 +732,6 @@ private:
   Demodulation _backwardDemodulation;
   Subsumption _backwardSubsumption;
   Subsumption _backwardSubsumptionResolution;
-  bool _bddMarkingSubsumption;
   bool _bfnt;
   bool _binaryResolution;
 
@@ -824,7 +818,6 @@ private:
   string _problemName;
   Proof _proof;
   bool _proofChecking;
-  bool _propositionalToBDD;
   string _protectedPrefix;
 
   QuestionAnsweringMode _questionAnswering;

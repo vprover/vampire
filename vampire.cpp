@@ -217,7 +217,6 @@ void vampireMode()
 
   if (env.options->mode() == Options::MODE_CONSEQUENCE_ELIMINATION) {
     env.options->setUnusedPredicateDefinitionRemoval(false);
-    env.options->setPropositionalToBDD(false);
   }
 
   string inputFile = env.options->inputFile();
