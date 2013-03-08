@@ -59,7 +59,7 @@ void InvariantHelper::setSEIOptions()
   env.options->set("splitting", "off");
   env.options->set("show_symbol_elimination", "on");
   env.options->set("unused_predicate_definition_removal", "off");
-  env.options->set("propositional_to_bdd","off");
+  // env.options->set("propositional_to_bdd","off");
 
  if (env.options->timeLimitInDeciseconds() == 0)
    {
