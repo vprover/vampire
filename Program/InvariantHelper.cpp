@@ -81,7 +81,8 @@ void InvariantHelper::runVampireSaturationN(Problem& prb){
   try{
     Unit::onPreprocessingEnd();
 
-    TRACE("preproc_forms",
+    LOG("pp_output","onPreprocessingEnd(), InvariantHelper::runVampireSaturationN()");
+    TRACE("pp_output",
         env.beginOutput();
         UIHelper::outputAllPremises(cout, prb.units(), "New: ");
         env.endOutput();
@@ -114,20 +115,21 @@ Problem* InvariantHelper::preprocessUnits()
   Problem* prb = new Problem(_units);
   Preprocess p(*env.options);
   p.preprocess(*prb);
-  p.preprocess1(*prb);
+  //p.preprocess1(*prb);
   return prb;
 
 }
 void InvariantHelper::runSEI()
 {
   CALL("InvariantHelper::runSEI");
+
   Problem* prb = new Problem(_units);
   preprocessUnits(*prb);
 
-  TRACE("preproc_forms",
+  LOG("pp_output","onPreprocessingEnd(), InvariantHelper");
+  TRACE("pp_output",
             env.beginOutput();
             UIHelper::outputAllPremises(tout, (*prb).units(), "New: ");
-            UIHelper::outputIntroducedSymbolDeclarations(tout);
             env.endOutput();
         );
   setSEIOptions();

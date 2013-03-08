@@ -107,8 +107,8 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   CALL("ProvingHelper::runVampireSaturationImpl");
 
   Unit::onPreprocessingEnd();
-
-  TRACE("preproc_forms",
+  LOG("pp_output", "onPreprocessingEnd(), Proving Helper");
+  TRACE("pp_output",
       env.beginOutput();
       UIHelper::outputAllPremises(tout, prb.units(), "New: ");
       env.endOutput();

@@ -31,9 +31,6 @@ void Logging::doTagDeclarations()
   DECL("new_prop_clauses",
       DOC("displays newly derived propositional clauses"));
 
-  DECL("preproc_forms",
-      DOC("prints clauses after preprocessing, just before they are put into the main loop"));
-
   DECL("definitions");
 
   DECL("ls",
@@ -478,9 +475,14 @@ void Logging::doTagDeclarations()
       DOC("progress of preprocessing, shows which rule is being currently executed"),
       PARENT("pp",1));
 
+
   DECL("pp_input",
       DOC("print-out the problem as received from the parser"),
       PARENT("pp",1));
+
+  DECL("pp_output",
+       DOC("prints clauses after preprocessing, just before they are put into the main loop"),
+       PARENT("pp",1));
 
   DECL("pp_pre_ennf",
       DOC("print-out the problem just before conversion to ennf"),
@@ -876,6 +878,17 @@ void Logging::doTagDeclarations()
   DECL("pp_pii_rwr",
       DOC("rewrites of eliminated predicates into indexed"),
       PARENT("pp_pii", 2));
+
+  DECL("pp_ste",
+      DOC("special term elimination"),
+      PARENT("pp",1));
+
+  DECL("pp_ste_if",
+      DOC("special term if then else"),
+      PARENT("pp_ste",0));
+  DECL("pp_ste_let",
+      DOC("special term let in elimination"),
+      PARENT("pp_ste",0));
 
   DECL("pp_ep",
       DOC("equality propagation"),

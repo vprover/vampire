@@ -55,6 +55,7 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   Formula* f = unit->formula();
   Formula* g = flatten(f);
   if (f == g) { // not changed
+    LOG_UNIT("pp_flt_out", unit);
     return unit;
   }
 

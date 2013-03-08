@@ -134,8 +134,8 @@ FormulaUnit* SpecialTermElimination::apply(FormulaUnit* fu0)
   if(fu0->included()) {
     res->markIncluded();
   }
-//  LOGV(fu0->toString());
-//  LOGV(res->toString());
+  LOG("pp",fu0->toString());
+  LOG("pp",res->toString());
   return res;
 }
 
@@ -171,7 +171,9 @@ TermList SpecialTermElimination::processSpecialTerm(Term* t)
     TermList thenBranch = process(*t->nthArgument(0));
     TermList elseBranch = process(*t->nthArgument(1));
     if(eliminatingTermIte()) {
+      TRACE("pp_ste_if",tout<<t->toString(););
       t = eliminateTermIte(newCond, thenBranch, elseBranch);
+      TRACE("pp_ste_if",tout<<"\n After elimination of ite:"<<t->toString(););
     }
     else if(cond!=newCond || thenBranch!=*t->nthArgument(0) || elseBranch!=*t->nthArgument(1)) {
       t = Term::createTermITE(newCond, thenBranch, elseBranch);
@@ -408,6 +410,8 @@ Formula* SpecialTermElimination::process(Formula* f)
     if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
       return f;
     }
+    IteFormula* formula = new IteFormula(c,t,e);
+    LOG("pp", formula->toString());
     return new IteFormula(c,t,e);
   }
 
@@ -469,9 +473,9 @@ Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList the
   CALL("SpecialTermElimination::eliminateTermIte");
 
   Formula::VarList* freeVars = condition->freeVariables();
-
   //TODO: add reusing of definitions belonging to simple formulas
-
+  TRACE("pp_ste_if", tout<<"\n condition "<<condition->toString(),tout<<"\n then "<<thenBranch.toString(),
+	  tout<<"\n else "<<elseBranch.toString(););
   unsigned varUpperBound = 0;
   Stack<unsigned> argSorts;
   Stack<TermList> args;
@@ -508,7 +512,11 @@ Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList the
   Literal* eqThen = Literal::createEquality(true, func, z1, iteSort);
   Literal* eqElse = Literal::createEquality(true, func, z2, iteSort);
 
+  TRACE("pp_ste_if", tout<<"\n eqThen "<<eqThen->toString(), tout<<"\n eqElse "<<eqElse->toString(););
+
   Formula* def = new IteFormula(condition, new AtomicFormula(eqThen), new AtomicFormula(eqElse));
+  TRACE("pp_ste_if", tout<<"\n new iteFormula"<<def->toString(););
+
   FormulaUnit* defUnit = new FormulaUnit(def, new Inference(Inference::TERM_IF_THEN_ELSE_DEFINITION), Unit::AXIOM);
   UnitList::push(defUnit, _defs);
   if(_currentPrb) {
