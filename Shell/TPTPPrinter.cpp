@@ -34,6 +34,9 @@ TPTPPrinter::TPTPPrinter(ostream* tgtStream)
   CALL("TPTPPrinter::TPTPPrinter");
 }
 
+/**
+ * Print the Unit @param u to the desired output
+ */
 void TPTPPrinter::print(Unit* u)
 {
   CALL("TPTPPrinter::print");
@@ -45,8 +48,11 @@ void TPTPPrinter::print(Unit* u)
   printTffWrapper(u, body);
   endOutput();
 }
+
 /**
- * Print on the desired output the the Unit as a claim, with specified name
+ * Print on the desired output the Unit @param u with the specified name @param name
+ * @param name
+ * @param u
  */
 void TPTPPrinter::printAsClaim(string name, Unit* u)
 {
@@ -62,6 +68,11 @@ void TPTPPrinter::printAsClaim(string name, Unit* u)
   endOutput();
 }
 
+/**
+ * Return as a string the body of the Unit u
+ * @param u
+ * @return the body string
+ */
 string TPTPPrinter::getBodyStr(Unit* u)
 {
   CALL("TPTPPrinter::getBodyStr");
@@ -127,6 +138,11 @@ string TPTPPrinter::getBodyStr(Unit* u)
   return res.str();
 }
 
+/**
+ * Surround by tff() the body of the unit u
+ * @param u
+ * @param bodyStr
+ */
 void TPTPPrinter::printTffWrapper(Unit* u, string bodyStr)
 {
   CALL("TPTPPrinter::printTffWrapper");
@@ -155,6 +171,11 @@ void TPTPPrinter::printTffWrapper(Unit* u, string bodyStr)
   tgt() << ", " << endl << "    " << bodyStr << " )." << endl;
 }
 
+/**
+ * Output the symbol @param symNumber definition
+ * @param symNumber
+ * @param function - true if the symbol is a function symbol
+ */
 void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
 {
   CALL("TPTPPrinter::outputSymbolTypeDefinitions");
@@ -258,7 +279,7 @@ void TPTPPrinter::ensureNecesarySorts()
 }
 
 /**
- * Makes sure that only the needed headers are printed out on the output
+ * Makes sure that only the needed headers in the @param u are printed out on the output
  */
 void TPTPPrinter::ensureHeadersPrinted(Unit* u)
 {
@@ -282,6 +303,9 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
   _headersPrinted = true;
 }
 
+/**
+ * Retrieve the output stream to which vampire prints out
+ */
 ostream& TPTPPrinter::tgt()
 {
   CALL("TPTPPrinter::tgt");
@@ -294,6 +318,10 @@ ostream& TPTPPrinter::tgt()
   }
 }
 
+/**
+ * In case there is no specified output stream, than print to the one
+ * specified in the env.beginOutput();
+ */
 void TPTPPrinter::beginOutput()
 {
   CALL("TPTPPrinter::beginOutput");
@@ -309,8 +337,8 @@ void TPTPPrinter::endOutput()
 }
 
 /**
- * return the string representing the Formula* f.
-  */
+ * Return the string representing the formula @param f.
+ */
 string TPTPPrinter::toString(const Formula* f)
 {
   CALL("TPTPPrinter::toString(const Formula*)");
@@ -371,7 +399,7 @@ string TPTPPrinter::toString(const Formula* f)
 }
 
 /**
- * Output unit in TPTP format as a string
+ * Output unit @param unit in TPTP format as a string
  *
  * If the unit is a formula of type @b CONJECTURE, output the
  * negation of Vampire's internal representation with the
@@ -448,6 +476,13 @@ string TPTPPrinter::toString (const Unit* unit)
 }
 
 
+string TPTPPrinter::toString(const Term* t){
+  NOT_IMPLEMENTED;
+}
+
+string TPTPPrinter::toString(const Literal* l){
+  NOT_IMPLEMENTED;
+}
 
 
 FramaCPrinter::FramaCPrinter(ostream* tgtStream)

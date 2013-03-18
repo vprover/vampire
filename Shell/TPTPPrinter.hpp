@@ -16,6 +16,11 @@ namespace Shell {
 
 using namespace Kernel;
 
+/**
+ * All purpose TPTP printer class. It has two major roles:
+ * 1. returns as a tptp string a Unit/Formula
+ * 2. it outputs to the desired output stream any Unit specified
+ */
 class TPTPPrinter {
 public:
   TPTPPrinter(ostream* tgtStream=0);
@@ -49,7 +54,9 @@ private:
 };
 
 /**
- * The intended meaning of this class is to print the outputed invariants in FramaC syntax.
+ * The intended meaning of this class is to print the output invariants in FramaC syntax.
+ * This class is not fully implemented. Nor tested
+ * TODO framaCPrinter
  */
 
 class FramaCPrinter {
