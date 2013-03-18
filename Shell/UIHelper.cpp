@@ -26,7 +26,7 @@
 #include "Options.hpp"
 #include "SimplifyProver.hpp"
 #include "Statistics.hpp"
-#include "TPTP.hpp"
+#include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
 
 namespace Shell
@@ -95,7 +95,7 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
 
   while(uit.hasNext()) {
     Unit* cl = uit.next();
-    out << TPTP::toString(cl) << endl;
+    out << TPTPPrinter::toString(cl) << endl;
   }
 
   out<<"# SZS output end Saturation."<<endl;
@@ -224,10 +224,10 @@ void UIHelper::outputResult(ostream& out)
       InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      out << "Old interpolant: " << TPTP::toString(oldInterpolant) << endl;
-      out << "Interpolant: " << TPTP::toString(interpolant) << endl;
-      out << "Count minimized interpolant: " << TPTP::toString(cntInterpolant) << endl;
-      out << "Quantifiers minimized interpolant: " << TPTP::toString(quantInterpolant) << endl;
+      out << "Old interpolant: " << TPTPPrinter::toString(oldInterpolant) << endl;
+      out << "Interpolant: " << TPTPPrinter::toString(interpolant) << endl;
+      out << "Count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
+      out << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
     }
     if(env.options->latexOutput()!="off") {
       ofstream latexOut(env.options->latexOutput().c_str());

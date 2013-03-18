@@ -47,6 +47,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/CASC/CASCMode.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "VUtils/AnnotationColoring.hpp"
 #include "VUtils/CPAInterpolator.hpp"
@@ -58,6 +59,7 @@
 #include "VUtils/SimpleSMT.hpp"
 #include "VUtils/SMTLIBConcat.hpp"
 #include "VUtils/Z3InterpolantExtractor.hpp"
+
 
 using namespace Lib;
 using namespace Shell;
@@ -245,6 +247,19 @@ int main(int argc, char* argv [])
     env.endOutput();
   }
 //   delete env.allocator;
+
+ env.beginOutput();
+  UIHelper::outputResult(env.out());
+  env.endOutput();
+
+#if SATISFIABLE_IS_SUCCESS
+  if(env.statistics->terminationReason==Statistics::REFUTATION ||
+      env.statistics->terminationReason==Statistics::SATISFIABLE) {
+#else
+    if(env.statistics->terminationReason==Statistics::REFUTATION) {
+#endif
+    resultValue = VAMP_RESULT_STATUS_SUCCESS;
+  }
 
   return resultValue;
 } // main

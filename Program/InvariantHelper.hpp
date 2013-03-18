@@ -32,7 +32,7 @@ namespace Program
 
 class InvariantHelper {
 public:
-  InvariantHelper(List<Unit*>* un, int timeLim=10):_units(un){_timeLimit=timeLim;}
+  InvariantHelper(List<Unit*>* un, int timeLim=10):_units(un), _timeLimit(timeLim){};
   virtual ~InvariantHelper();
   void run();
 private:

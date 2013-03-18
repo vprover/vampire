@@ -58,7 +58,7 @@ void MyASTConsumer::HandleTopLevelDecl(clang::DeclGroupRef d)
 	newTranslator cc(body, ctx);
 	cc.SetWhileToAnalyze(_whileToAnalyze);
 	cc.RunRewriting();
-
+        
       }
 
     }

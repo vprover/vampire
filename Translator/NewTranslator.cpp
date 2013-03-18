@@ -44,9 +44,6 @@ newTranslator::newTranslator(::clang::Stmt* body, ::clang::ASTContext* CTX) :
   colect = new collectionOfObjects();
 }
 
-newTranslator::~newTranslator()
-{
-}
 
 void newTranslator::VisitReturnStmt(const clang::ReturnStmt* stmt)
 {

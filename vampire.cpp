@@ -56,7 +56,7 @@
 #include "Shell/Preprocess.hpp"
 #include "Shell/Refutation.hpp"
 #include "Shell/TheoryFinder.hpp"
-#include "Shell/TPTP.hpp"
+#include "Shell/TPTPPrinter.hpp"
 #include "Parse/TPTP.hpp"
 #include "Shell/SpecialTermElimination.hpp"
 #include "Shell/Statistics.hpp"
@@ -307,7 +307,7 @@ void clausifyMode()
     if (!cl) {
       continue;
     }
-    env.out() << TPTP::toString(cl) << "\n";
+    env.out() << TPTPPrinter::toString(cl) << "\n";
   }
   env.endOutput();
 
@@ -343,7 +343,7 @@ void axiomSelectionMode()
   env.beginOutput();
   while (uit.hasNext()) {
     Unit* u = uit.next();
-    env.out() << TPTP::toString(u) << "\n";
+    env.out() << TPTPPrinter::toString(u) << "\n";
   }
   env.endOutput();
 

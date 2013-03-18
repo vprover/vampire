@@ -581,7 +581,7 @@ protected:
   friend class MatchTag;
   friend class Indexing::TermSharing;
   friend class Ordering;
-private:
+public:
   string specialTermToString() const;
 
 public:

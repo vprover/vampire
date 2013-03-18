@@ -15,6 +15,13 @@
 
 #include "Parse/TPTP.hpp"
 
+#include "Kernel/Term.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Unit.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Clause.hpp"
+
 #include "TPTPPrinter.hpp"
 
 #include "Forwards.hpp"
@@ -38,9 +45,12 @@ void TPTPPrinter::print(Unit* u)
   printTffWrapper(u, body);
   endOutput();
 }
-
+/**
+ * Print on the desired output the the Unit as a claim, with specified name
+ */
 void TPTPPrinter::printAsClaim(string name, Unit* u)
 {
+  CALL("TPTPPrinter::printAsClaim");
   string body = getBodyStr(u);
 
   beginOutput();
@@ -247,6 +257,9 @@ void TPTPPrinter::ensureNecesarySorts()
   }
 }
 
+/**
+ * Makes sure that only the needed headers are printed out on the output
+ */
 void TPTPPrinter::ensureHeadersPrinted(Unit* u)
 {
   CALL("TPTPPrinter::ensureHeadersPrinted");
@@ -255,7 +268,6 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
     return;
   }
 
-  //TODO: print only necessary headers
   ensureNecesarySorts();
 
   unsigned funs = env.signature->functions();
@@ -296,5 +308,454 @@ void TPTPPrinter::endOutput()
   if(!_tgtStream) { env.endOutput(); }
 }
 
+/**
+ * return the string representing the Formula* f.
+  */
+string TPTPPrinter::toString(const Formula* f)
+{
+  CALL("TPTPPrinter::toString(const Formula*)");
+  static string names [] =
+    { "", " & ", " | ", " => ", " <=> ", " <~> ",
+      "~", "!", "?", "", "", "", "$false", "$true"};
+  ASS_EQ(sizeof(names)/sizeof(string), TRUE+1);
+  Connective c = f->connective();
+  string con = names[(int)c];
+  switch (c) {
+  case LITERAL:
+    return f->literal()->toString();
+  case AND:
+  case OR:
+    {
+      const FormulaList* fs = f->args();
+      string result = "(" + toString(fs->head());
+      fs = fs->tail();
+      while (! fs->isEmpty()) {
+	result += con + toString(fs->head());
+	fs = fs->tail();
+      }
+      return result + ")";
+    }
 
+  case IMP:
+  case IFF:
+  case XOR:
+    return string("(") + toString(f->left()) +
+           con + toString(f->right()) + ")";
+
+  case NOT:
+    return string("(") + con + toString(f->uarg()) + ")";
+
+  case FORALL:
+  case EXISTS:
+    {
+      string result = string("(") + con + "[";
+      const Formula::VarList* vars = f->vars();
+      result += 'X';
+      result += Int::toString(vars->head());
+      vars = vars->tail();
+      while (! vars->isEmpty()) {
+	result += ',';
+	result += 'X';
+	result += Int::toString(vars->head());
+	vars = vars->tail();
+      }
+      return result + "] : (" + toString(f->qarg()) + ") )";
+    }
+  case FALSE:
+  case TRUE:
+    return con;
+  default:
+    ASSERTION_VIOLATION;
+  }
+  return "formula";
+}
+
+/**
+ * Output unit in TPTP format as a string
+ *
+ * If the unit is a formula of type @b CONJECTURE, output the
+ * negation of Vampire's internal representation with the
+ * TPTP role conjecture. If it is a clause, just output it as
+ * is, with the role negated_conjecture.
+ */
+string TPTPPrinter::toString (const Unit* unit)
+{
+  CALL("TPTPPrinter::toString(const Unit*)");
+//  const Inference* inf = unit->inference();
+//  Inference::Rule rule = inf->rule();
+
+  string prefix;
+  string main = "";
+
+  bool negate_formula = false;
+  string kind;
+  switch (unit->inputType()) {
+  case Unit::ASSUMPTION:
+    kind = "hypothesis";
+    break;
+
+  case Unit::CONJECTURE:
+    if(unit->isClause()) {
+      kind = "negated_conjecture";
+    }
+    else {
+      negate_formula = true;
+      kind = "conjecture";
+    }
+    break;
+
+  default:
+    kind = "axiom";
+    break;
+  }
+
+  if (unit->isClause()) {
+    prefix = "cnf";
+    main = static_cast<const Clause*>(unit)->toTPTPString();
+  }
+  else {
+    prefix = "fof";
+    const Formula* f = static_cast<const FormulaUnit*>(unit)->formula();
+    if(negate_formula) {
+      Formula* quant=Formula::quantify(const_cast<Formula*>(f));
+      if(quant->connective()==NOT) {
+	ASS_EQ(quant, f);
+	main = toString(quant->uarg());
+      }
+      else {
+	Formula* neg=new NegatedFormula(quant);
+	main = toString(neg);
+	neg->destroy();
+      }
+      if(quant!=f) {
+	ASS_EQ(quant->connective(),FORALL);
+	static_cast<QuantifiedFormula*>(quant)->vars()->destroy();
+	quant->destroy();
+      }
+    }
+    else {
+      main = toString(f);
+    }
+  }
+
+  string unitName;
+  if(!Parse::TPTP::findAxiomName(unit, unitName)) {
+    unitName="u" + Int::toString(unit->number());
+  }
+
+  return prefix + "(" + unitName + "," + kind + ",\n"
+    + "    " + main + ").\n";
+}
+
+
+
+
+FramaCPrinter::FramaCPrinter(ostream* tgtStream)
+: _tgtStream(tgtStream), _headersPrinted(false)
+{
+  CALL("FramaCPrinter::FramaCPrinter");
+}
+
+void FramaCPrinter::printFramaWrapper(Unit* u, string bodyStr){
+  CALL("FramaCPrinter::printFramaWratpper");
+
+}
+
+void FramaCPrinter::print(Unit* u){
+  CALL("FramaCPrinter::print(Unit* u)");
+
+  string body = getBodyString(u);
+
+  beginOutput();
+  printFramaWrapper(u, body);
+  endOutput();
+
+}
+
+void FramaCPrinter::printAsClaim(string name, Unit* u){
+  CALL("FramaCPrinter::printAsClaim");
+
+  string body = getBodyString(u);
+
+  beginOutput();
+
+  //we have to make sure this is in framaC format
+  tgt() << "loop invariant\n " << name << ", claim, " << body << ";" << endl;
+
+  endOutput();
+}
+
+
+string FramaCPrinter::termListToString(const TermList tl){
+  CALL("FramaCPrinter::termListToString");
+
+  if(tl.isEmpty())
+  {
+    return "<empty TermList>";
+  }
+
+  if(tl.isVar()){
+    return Term::variableToString(tl);
+  }
+
+  if(tl.term()->isSpecial()) {
+     return tl.term()->specialTermToString();
+   }
+
+   Stack<const TermList*> stack(64);
+   string s="";
+   if(tl.term()->isLiteral()){
+    const Literal* l = static_cast<const Literal*> (tl.term());
+    cerr<<"prediacte : "<<l->predicateName()<<endl;;
+   }
+   else
+     cerr<<"function name: "<<tl.term()->functionName()<<endl;
+
+   //string s = tl.term()->isLiteral() ? static_cast<const Literal *>(tl.term())->predicateName() : tl.term()->functionName();
+   if (tl.term()->arity()) {
+     s += '(';
+     stack.push(tl.term()->args());
+     argsToString(stack);
+   }
+   return s;
+/*
+  if(isEmpty()) {
+      return "<empty TermList>";
+    }
+    if (isVar()) {
+      return Term::variableToString(*this);
+    }
+    return term()->toString();
+  return s;*/
+}
+
+string FramaCPrinter::literalToString(Literal* lit){
+  CALL("FramaCPrinter::literalToString");
+
+  if (lit->isEquality()) {
+    const TermList* lhs = lit->args();
+    string s = lhs->toString();
+    if (lit->isPositive()) {
+      s += " = ";
+    }
+    else {
+      s += " != ";
+    }
+    /*const TermList* tlhs(lhs->next());
+    const Term* t = tlhs->term();
+    */
+    if(lhs->isVar())
+      s += Term::variableToString(*lhs);
+    else
+    {
+     s += lhs->next()->toString();
+     const TermList* tll(lhs->next());
+
+     //s += termListToString(lhs->next());
+     cerr << "OUTPUT termListToString() "<<termListToString(*tll)<<tll->toString()<<endl;
+    }
+    return s;// + lhs->next()->toString();
+  }
+
+  Stack<const TermList*> stack(64);
+  string s="";
+
+  //this takes care of the !$lesseq or !$geq
+  if(!lit->polarity()){
+    if(lit->predicateName()=="$lesseq")
+          s += ">=";
+      else
+        if(lit->predicateName()=="$greatereq")
+          s += "<=";
+        else
+          if (lit->predicateName()=="$less")
+            s += ">";
+          else if(lit->predicateName()=="$greater")
+            s += "<";
+
+  }
+  else {
+  //string s = lit->polarity() ? "" : "!";
+  //s += lit->predicateName();
+  if(lit->predicateName()=="$lesseq")
+      s += "<=";
+  else
+    if(lit->predicateName()=="$greatereq")
+              s += ">=";
+            else
+              if (lit->predicateName()=="$less")
+                s += "<";
+              else if(lit->predicateName()=="$greater")
+                s += ">";
+  }
+  //cerr << "Spredicate: "<< lit->predicateName()<<endl;
+
+  if (lit->arity()) {
+    s += '(';
+    stack.push(lit->args());
+    //here we should implement our own argsToString(stack);
+    //TermList::argsToString(stack,s);
+    s += argsToString(stack);
+  }
+  return s;
+}
+
+string FramaCPrinter::argsToString(Stack<const TermList*>& stack){
+  CALL("FramaCPrinter::argsToString");
+  string s ="";
+  while (stack.isNonEmpty()) {
+      const TermList* ts = stack.pop();
+      if (! ts) { // comma
+        s += ' ';
+        continue;
+      }
+      if (ts->isEmpty()) {
+        s += ')';
+        continue;
+      }
+      const TermList* tail = ts->next();
+      stack.push(tail);
+      if (! tail->isEmpty()) {
+        stack.push(0);
+      }
+      if (ts->isVar()) {
+        s += Term::variableToString(*ts);
+        continue;
+      }
+      const Term* t = ts->term();
+      if(t->isSpecial()) {
+        cerr <<t->specialTermToString()<<endl;
+        s+=t->specialTermToString();
+        continue;
+      }
+      if(t->functionName()=="$sum")
+	s+= "+";
+      else
+	if(t->functionName()=="$uminus")
+	  s+="-";
+	else if(t->functionName()=="$minus")
+	  s += "-";
+	else
+	{
+	  cerr<< "the magic: "<<t->functionName()<<endl;
+	  s += t->functionName();
+	}
+      //s += t->functionName();
+      if (t->arity()) {
+        cerr << "function: "<< t->functionName()<<endl;
+        s += '(';
+        stack.push(t->args());
+      }
+  }
+  return s;
+}
+
+string FramaCPrinter::getBodyString(Unit* u){
+  CALL("FramaCPrinter::getBodyString");
+
+  stringstream res;
+
+   typedef DHMap<unsigned,unsigned> SortMap;
+   static SortMap varSorts;
+   varSorts.reset();
+   SortHelper::collectVariableSorts(u, varSorts);
+
+   if(u->isClause()) {
+     SortMap::Iterator vit(varSorts);
+     bool quantified = vit.hasNext();
+     //handle the forall quantifier
+     if(quantified) {
+       res << "\\forall ";
+       while(vit.hasNext()) {
+ 	unsigned var, varSort;
+ 	vit.next(var, varSort);
+
+ 	//handle the sort of each new quantified variable
+ 	if(varSort!=Sorts::SRT_DEFAULT) {
+ 	  switch(varSort){
+ 	  case Sorts::SRT_BOOL:{
+  	   res << "boolean ";
+  	   res << 'X' << var <<", ";
+  	    break;
+  	    }
+ 	  case Sorts::SRT_INTEGER:{
+  	   res << "integer ";
+  	   res << 'X' << var <<", ";
+  	    break;
+  	    }
+ 	  case Sorts::SRT_RATIONAL:
+ 	  case Sorts::SRT_REAL:{
+ 	    res<< "real ";
+ 	    res<< "X" << var <<", ";
+ 	    break;
+ 	  }
+ 	  default:{
+ 	     res << env.sorts->sortName(varSort);
+ 	     break;
+ 	    }
+ 	  }
+
+ 	}
+ 	if(!vit.hasNext()) {
+ 	  res << '\b';
+ 	}
+       }
+       res << "\b : (";
+     }
+
+     Clause* cl = static_cast<Clause*>(u);
+     Clause::Iterator cit(*cl);
+     if(!cit.hasNext()) {
+       res << "$false";
+     }
+     while(cit.hasNext()) {
+       Literal* lit = cit.next();
+       res << "literal: "<<literalToString(lit);//->toString();
+       if(cit.hasNext()) {
+ 	res << " || ";
+       }
+     }
+
+     if(quantified) {
+       res << ')';
+     }
+
+     if(!cl->noProp()) {
+       res << " | toTPTP " << BDD::instance()->toTPTPString(cl->prop());
+     }
+     if(!cl->noSplits()) {
+       SplitSet::Iterator sit(*cl->splits());
+       while(sit.hasNext()) {
+ 	SplitLevel split = sit.next();
+ 	res << " | " << "$splitLevel" << split;
+       }
+     }
+   }
+   else {
+     NOT_IMPLEMENTED;
+   }
+   return res.str();
+
+}
+ostream& FramaCPrinter::tgt(){
+  CALL("FramaCPrinter::tgt");
+  if(_tgtStream){
+    return *_tgtStream;
+  }
+  else{
+    return env.out();
+  }
+}
+
+void FramaCPrinter::beginOutput(){
+  CALL("FramaCPrinter::beginOutput");
+
+  if(!_tgtStream) { env.beginOutput(); }
+}
+
+void FramaCPrinter::endOutput(){
+  CALL("FramaCPrinter::endOutput");
+
+  if(!_tgtStream) { env.endOutput(); }
+}
 }

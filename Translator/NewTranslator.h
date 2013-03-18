@@ -36,12 +36,9 @@ using namespace Lib;
 class newTranslator: public ConstStmtVisitor<newTranslator, void> {
 public:
   newTranslator(Stmt* body, ASTContext* ctx);
-  ~newTranslator();
+  ~newTranslator(){};
 
-  void SetWhileToAnalyze(int n)
-  {
-    _whileToAnalyze = n;
-  }
+  void SetWhileToAnalyze(int n){ _whileToAnalyze = n; };
   void RunRewriting();
   void GetVariableDecl();
 

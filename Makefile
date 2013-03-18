@@ -323,7 +323,6 @@ VS_OBJ = Shell/AIG.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
          Shell/Token.o\
-         Shell/TPTP.o\
          Shell/TPTPPrinter.o\
          Shell/TrivialPredicateRemover.o\
          Shell/UIHelper.o\

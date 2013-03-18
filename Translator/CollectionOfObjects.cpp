@@ -268,7 +268,7 @@ void collectionOfObjects::runAnalysis(int wN)
 	  whileNo++;
       }
     }
-    	  if(whileNo<whileNumber)
+   if(whileNo<whileNumber)
      USER_ERROR("less whiles than the number introduced!");
   }
 
