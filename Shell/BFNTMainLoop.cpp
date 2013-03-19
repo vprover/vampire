@@ -30,7 +30,7 @@
 #include "Kernel/Unit.hpp"
 
 #include "Shell/Property.hpp"
-#include "Shell/TPTP.hpp"
+#include "Shell/TPTPPrinter.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include "Statistics.hpp"
