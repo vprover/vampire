@@ -39,6 +39,14 @@ enum PartialComparison
 // probably eventually get rid of the static comparators, to make the
 // code more consistent.
 //
+struct DefaultComparatorTKV
+{
+  template<typename T>
+  inline static Comparison compare(T o1, T o2)
+  {
+    return o1>o2 ? GREATER : (o1==o2 ? EQUAL : LESS);
+  }
+};
 
 
 template<class Comp>

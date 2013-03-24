@@ -11,14 +11,15 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   UNIX_USE_SIGALRM - the SIGALRM timer will be used even in debug mode
 #	IS_LINGVA 		 - this allows the compilation of lingva. 
-
-DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1# debugging for spider 
-REL_FLAGS = -O6 -DVDEBUG=0 # no debugging 
-LLVM_FLAGS = -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
+#   GNUMP            - this option allows us to compile with bound propagation or without it
+GNUMPF = 0
+DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
+REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
+LLVM_FLAGS = -D_GNU_SOURCE -DGNUMP=$(GNUMPF) -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DIS_LINGVA=0 # standard debugging only
+XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DIS_LINGVA=0 -DGNUMP=$(GNUMPF)# standard debugging only
 #XFLAGS = $(REL_FLAGS)
 
 #XFLAGS = -O6 -DVDEBUG=0 -march=native -mtune=native # no debugging 
@@ -92,7 +93,6 @@ CXX = g++
 CXXFLAGS = $(XFLAGS) -Wall $(INCLUDES)
 
 ################################################################
-
 API_OBJ = Api/FormulaBuilder.o\
 	  Api/Helper.o\
 	  Api/Problem.o\
@@ -169,7 +169,12 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/TermIterators.o\
         Kernel/TermTransformer.o\
         Kernel/Theory.o\
-        Kernel/Unit.o
+        Kernel/Assignment.o\
+        Kernel/Constraint.o\
+         Kernel/Number.o\
+         Kernel/V2CIndex.o\
+         Kernel/Signature.o\
+         Kernel/Unit.o
 
 ALG_OBJ = Kernel/Algebra/ArithmeticKB.o\
           Kernel/Algebra/Constraint.o\
@@ -327,6 +332,17 @@ VS_OBJ = Shell/AIG.o\
          Shell/TrivialPredicateRemover.o\
          Shell/UIHelper.o\
          Shell/VarManager.o\
+         Shell/ConstantRemover.o\
+         Shell/ConstraintReaderBack.o\
+         Shell/EqualityVariableRemover.o\
+         Shell/EquivalentVariableRemover.o\
+         Shell/HalfBoundingRemover.o\
+         Shell/Lexer.o\
+         Shell/PARSER_TKV.o\
+         Shell/Preprocess.o\
+         Shell/SMTLEX.o\
+         Shell/SMTPAR.o\
+ 	 Shell/SubsumptionRemover.o\
          version.o
 
 PARSE_OBJ = Parse/SMTLIB.o\
@@ -456,11 +472,96 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/TWLSolver.o\
 	       SAT/VariableSelector.o\
 	       Test/RecordingSatSolver.o
+#VSOL_OBJ = Solving/AssignmentSelector.o\
+           Solving/BoundsArray.o\
+           Solving/BoundPropagator.o\
+           Solving/ConflictSelector.o\
+           Solving/ConflictingVariableSelector.o\
+           Solving/DecisionStack.o\
+           Solving/GraphPropagator.o\
+           Solving/LookAheadVariableSelector.o\
+           Solving/Solver.o\
+           Solving/VariableSelector.o
 
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse 
+BP_VD_OBJ = Debug/Assertion.o\
+         Debug/Log.o\
+         Debug/RuntimeStatistics.o\
+         Debug/Tracer.o
 
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
+BP_VK_OBJ = Kernel/Assignment.o\
+         Kernel/Constraint.o\
+         Kernel/Number.o\
+         Kernel/V2CIndex.o\
+         Kernel/Signature.o
+
+BP_VL_OBJ= Lib/Allocator.o\
+        Lib/DHMap.o\
+        Lib/Environment.o\
+        Lib/Event.o\
+        Lib/Exception.o\
+        Lib/Graph.o\
+        Lib/Hash.o\
+        Lib/Int.o\
+        Lib/IntNameTable.o\
+        Lib/IntUnionFind.o\
+        Lib/MemoryLeak.o\
+        Lib/MultiCounter.o\
+        Lib/NameArray.o\
+        Lib/Random.o\
+        Lib/StringUtils.o\
+        Lib/System.o\
+        Lib/TimeCounter.o\
+        Lib/Timer.o
+
+BP_VLS_OBJ= Lib/Sys/Multiprocessing.o\
+         Lib/Sys/Semaphore.o\
+         Lib/Sys/SyncPipe.o
+
+         #Shell/ConstraintReader.o\
+BP_VS_OBJ = Shell/CommandLine.o\
+         Shell/ConstantRemover.o\
+         Shell/EqualityVariableRemover.o\
+         Shell/EquivalentVariableRemover.o\
+         Shell/HalfBoundingRemover.o\
+         Shell/Lexer.o\
+         Shell/Options.o\
+         Shell/Parser.o\
+         Shell/Preprocess.o\
+         Shell/SMTLexer.o\
+         Shell/SMTParser.o\
+ 	 Shell/Statistics.o\
+ 	 Shell/SubsumptionRemover.o\
+         Shell/Token.o\
+         Shell/UIHelper.o
+
+BP_VSOL_OBJ = Solving/AssignmentSelector.o\
+           Solving/BoundsArray.o\
+           Solving/BoundPropagator.o\
+           Solving/ConflictSelector.o\
+           Solving/ConflictingVariableSelector.o\
+           Solving/DecisionStack.o\
+           Solving/GraphPropagator.o\
+           Solving/LookAheadVariableSelector.o\
+           Solving/Solver.o\
+           Solving/VariableSelector.o
+
+BP_MPS_OBJ = MPSLib/Gmputils.o\
+	MPSLib/Model.o\
+	MPSLib/Mpsinput.o
+	#MPSLib/MpsConstraintReader.o
+# testing procedures
+BP_VT_OBJ = Test/UnitTesting.o
+
+BP_VUT_OBJ = UnitTests/tBinaryHeap.o\
+		  UnitTests/tDHMap.o\
+		  UnitTests/tDHMultiset.o\
+		  UnitTests/tSkipList.o
+
+
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Solving Shell Shell/CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib
+
+VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
 VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o Shell/BFNTMainLoop.o, $(VS_OBJ)) $(PARSE_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) Test/CheckedSatSolver.o $(LIB_DEP)
@@ -479,6 +580,10 @@ VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 VGROUND_DEP = $(VAMP_BASIC) Global.o vground.o
 LINGVA_DEP = $(API_OBJ) $(VAMP_BASIC) $(CASC_OBJ) Saturation/ProvingHelper.o Global.o $(VPROG_OBL) $(VPROG_OBJ) $(TRANSLATOR_OBJ) vampire.o 
 #$(LIBVAPI_DEP) Saturation/ProvingHelper.o $(VPROG_OBJ) $(TRANSLATOR_OBJ)
+
+TKV_BASIC := $(VAMP_BASIC) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) 
+
+TKV_DEP := $(TKV_BASIC) Global.o tkv.o
 
 all:#default make disabled
 
@@ -530,32 +635,29 @@ VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
 LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
 VGROUND_OBJ := $(addprefix $(CONF_ID)/, $(VGROUND_DEP))
 LINGVA_OBJ := $(addprefix $(CONF_ID)/, $(LINGVA_DEP))
+TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
-
+LGMP = 
+ifneq (,$(filter 1,$(GNUMPF)))
+-lgmp:
+-lgmpxx: 
+LGMP = -lgmp -lgmpxx
+endif 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(LGMP)
 @#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
 @#strip $@
 endef
 
-
+define COMPILE_CMD_TKV
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ -lgmp -lgmpxx
+@#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
+@#strip $@
+endef
 ################################################################
 # LLVM external dependencies and build commands
 
 ifneq (,$(filter lingva% ,$(MAKECMDGOALS)))
-#CLANGLIBS := /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangFrontend.a \
-    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangParse.a \
-    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangSema.a \
-    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangAnalysis.a \
-    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangAST.a \
-    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangLex.a \
-    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangBasic.a \
-    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangDriver.a \
-    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libclangSerialization.a \
-    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libLLVMSupport.a \
-    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libLLVMMC.a \
-    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libLLVMCppBackend.a \
-    /home/ioan/proseed/proseed/llvm/build/Debug/lib/libLLVMCore.a
 
 RELCLANG := RelClang/libclangFrontend.a \
     RelClang/libclangParse.a \
@@ -574,7 +676,7 @@ RELCLANG := RelClang/libclangFrontend.a \
 -lpthread:
 -ldl: 
 define LLVM_COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(RELCLANG) -lpthread -ldl
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(RELCLANG) -lpthread -ldl -lgmp -lgmpxx
 @#$(CXX) $(filter %.o, $^) -o $@ $(CLANGLIBS) $(shell /home/ioan/proseed/proseed/llvm/build/Debug/bin/llvm-config --ldflags --libs cppbackend)
 @#strip $@
 endef
@@ -621,6 +723,10 @@ libvapi libvapi_dbg: $(LIBVAPI_OBJ) $(EXEC_DEF_PREREQ)
 
 test_libvapi: $(CONF_ID)/test_libvapi.o $(EXEC_DEF_PREREQ)
 	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ -lvapi -L. -Wl,-R,\$$ORIGIN
+	
+
+tkv tkv_rel tkv_dbg: $(TKV_OBJ) $(EXEC_DEF_PREREQ)
+	$(COMPILE_CMD_TKV)
 
 clausify_src:
 	rm -rf $@

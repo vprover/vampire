@@ -32,6 +32,18 @@ IntUnionFind::~IntUnionFind()
   DEALLOC_KNOWN(_data, _cnt*sizeof(int), "IntUnionFind");
 }
 
+
+void IntUnionFind::reset()
+{
+  CALL("IntUnionFind::reset");
+
+  for(int i=0;i<_cnt;i++) {
+    _parents[i]=-1;
+  }
+  _modified = true;
+}
+
+
 /**
  * Make sure c1 and c2 are in the same class. If c1 and c2 already
  * were in the same class, return false, otherwise return true.

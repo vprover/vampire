@@ -79,6 +79,8 @@ public:
 
   static unsigned hash(const unsigned char*,size_t length);
   static unsigned hash(const unsigned char*,size_t length,unsigned begin);
+  
+  static unsigned combineHashes(unsigned h1, unsigned h2);
 };
 
 struct IdentityHash
@@ -113,6 +115,20 @@ struct IntPairSimpleHash {
     return static_cast<unsigned>(pp.first^pp.second^(pp.first<<1));
   }
 };
+
+template<class ElHash>
+struct ContainerHash {
+  template<typename T>
+  static unsigned hash(const T& cont) {
+    unsigned res = 2166136261u; //the FNV prime, don't know wheher it works well here:)
+    size_t sz = cont.size();
+    for(size_t i=0; i!=sz; i++) {
+      res = Hash::combineHashes(res, ElHash::hash(cont[i]));
+    }
+    return res;
+  }
+};
+
 
 template<typename T>
 struct FirstHashTypeInfo {

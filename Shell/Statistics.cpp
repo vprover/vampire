@@ -15,7 +15,10 @@
 #include "Lib/Timer.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
-
+#if GNUMP
+#include "Kernel/Assignment.hpp"
+#include "Kernel/Constraint.hpp"
+#endif
 #include "Options.hpp"
 
 #include "Statistics.hpp"
@@ -27,7 +30,7 @@ using namespace Saturation;
 using namespace Shell;
 
 /**
- * Iniitalise statistics.
+ * Initialise statistics.
  * @since 02/01/2008 Manchester
  */
 Statistics::Statistics()
@@ -327,6 +330,10 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Finalization";
   case UNKNOWN_PHASE:
     return "Unknown";
+  case PREPROCESSING: 
+    return "BP Preprocessing ";
+  case SOLVING:
+    return "Solving";
   default:
     ASSERTION_VIOLATION;
     return "Invalid ExecutionPhase value";

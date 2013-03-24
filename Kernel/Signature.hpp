@@ -150,6 +150,23 @@ class Signature
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
 
+  
+  class VarSymbol{
+  protected:
+    /** print name*/
+    string _name;
+  public: 
+    /**Standard Constructor*/
+    VarSymbol(const string& nm);
+    
+    /** Return the name of the symbol*/
+    inline const string& name() const {return _name;}
+    
+    CLASS_NAME("Signature::VarSymbol");
+    USE_ALLOCATOR(VarSymbol);
+  };//class VarSymbol
+  
+  
   class InterpretedSymbol
   : public Symbol
   {
@@ -241,6 +258,36 @@ class Signature
     USE_ALLOCATOR(RealSymbol);
   };
     
+  //////////////////////////////////////
+  // Variable Symbol declarations
+  //
+  
+  /**
+   * If a variable with this name and arity exists, return its number 
+   * Otherwise, add a new one and return its number 
+   */
+  unsigned addVar(const string& name){
+    CALL("Signature::addVar");
+    bool added;
+    return addVar(name, added);
+  }
+  
+  const string& varName(Var number){
+    return _vars[number]->name();
+  }
+  
+  /**return the number of functions */
+  size_t vars() const {return _vars.length(); }
+  
+  
+  /**return the function symbol by its number*/
+  inline VarSymbol* getVar(unsigned n){
+    CALL("Signature::getVar");
+    ASS(n<vars());
+    return _vars[n];
+  }
+  
+  unsigned addVar(const string& name, bool& added);
   //////////////////////////////////////
   // Uninterpreted symbol declarations
   //
@@ -419,7 +466,8 @@ private:
   static bool isProtectedName(string name);
   static bool symbolNeedsQuoting(string name, bool interpreted, unsigned arity, bool stringConstant);
   static bool charNeedsQuoting(char c, bool first);
-
+  /** Stack of function symbols -- used for bound propagation*/
+  Stack<VarSymbol*> _vars;
   /** Stack of function symbols */
   Stack<Symbol*> _funs;
   /** Stack of predicate symbols */
@@ -438,6 +486,9 @@ private:
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
 
+  /** Map from symbol names to variable numbers*/
+  SymbolMap _varNames;
+  
   Stack<Unit*> _distinctGroupPremises;
 
   /**

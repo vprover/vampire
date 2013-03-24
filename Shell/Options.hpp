@@ -37,6 +37,7 @@ public:
     AIG_FORMULA_SHARING,
     AIG_INLINER,
     ARITY_CHECK,
+    ASSIGNMENT_SELECTOR,
 
     BACKWARD_DEMODULATION,
     BACKWARD_SUBSUMPTION,
@@ -44,9 +45,16 @@ public:
     BFNT,
     BINARY_RESOLUTION,
 
+    BP_ALMOST_HALF_BOUND_REMOVER,
+    BP_ALLOWED_FM_BALANCE,
+    BP_FM_ELIMINATION,
+    BP_MAX_PROP_LENGTH,
+    BP_UPDATE_BY_ONE_CONSTRAINT,
+
     COLOR_UNBLOCKING,
     CONDENSATION,
 
+    CONFLICT_SELECTOR,
     /** Decode test id */
     DECODE,
     DEMODULATION_REDUNDANCY_CHECK,
@@ -203,6 +211,7 @@ public:
     SSPLITTING_FLUSH_PERIOD,
     SSPLITTING_FLUSH_QUOTIENT,
     SSPLITTING_NONSPLITTABLE_COMPONENTS,
+    START_WITH_PRECISE,
     STATISTICS,
     SUPERPOSITION_FROM_VARIABLES,
     SYMBOL_PRECEDENCE,
@@ -224,6 +233,7 @@ public:
     UNIT_RESULTING_RESOLUTION,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
 
+    VARIABLE_SELECTOR,
     WEIGHT_INCREMENT,
     WHILE_NUMBER,
 
@@ -235,7 +245,44 @@ public:
 public:
   class StringInt;
   class StringIntMap;
+  
+  //enums for the bound propagation purpose
+  enum AlmostHalfBoundingRemoval {
+    AHR_BOUNDS_ONLY = 0,
+    AHR_OFF = 1,
+    AHR_ON = 2
+  };
 
+  enum AssignmentSelector{
+    ASG_ALTERNATIVE = 0,
+    ASG_BMP = 1,
+    ASG_LOWER = 2,
+    ASG_MIDDLE = 3,
+    ASG_RANDOM = 4,
+    ASG_SMALLEST = 5,
+    ASG_TIGHT = 6,
+    ASG_TIGHTISH = 7,
+    ASG_BIGGEST = 8,
+    ASG_UPPER = 9
+  };
+  
+  enum ConflictSelector{
+    CS_LEAST_RECENT = 0, 
+    CS_MOST_RECENT = 1, 
+    CS_SHORTEST_CONSTRAINT = 2
+  };
+  
+  enum VariableSelector{
+    VS_CONFLICTING = 0, 
+    VS_CONFLICTING_AND_COLLAPSING = 1, 
+    VS_FIRST = 2, 
+    VS_LOOK_AHEAD =3, 
+    VS_RANDOM = 4, 
+    VS_RECENTLY_CONFLICTING = 5,
+    VS_RECENTLY_COLLAPSING = 6,
+    VS_TIGHTEST_BOUND = 7
+
+  };
   /**
    * Possible values for function_definition_elimination.
    * @since 29/05/2004 Manchester
@@ -255,8 +302,12 @@ public:
     IS_SIMPLIFY = 0,
     /** syntax of SMTLIB1.2 */
     IS_SMTLIB = 1,
+    IS_SMTLIB2 = 2,
     /** syntax of the TPTP prover */
-    IS_TPTP = 2
+    IS_TPTP = 3, 
+    IS_HUMAN = 4, 
+    IS_MPS = 5, 
+    IS_NETLIB = 6
   };
 
   /**
@@ -265,6 +316,7 @@ public:
    */
   enum Mode {
     MODE_AXIOM_SELECTION,
+    MODE_SOLVER,
     MODE_CASC,
     MODE_CASC_EPR,
     MODE_CASC_LTB,
@@ -276,11 +328,12 @@ public:
     MODE_GROUNDING,
     MODE_LTB_BUILD,
     MODE_LTB_SOLVE,
+    MODE_PREPROCESS,
     MODE_PROFILE,
-    MODE_PROGRAM_ANALYSIS,
+    MODE_PROGRAM_ANALYSIS,    
     MODE_SPIDER,
     MODE_VAMPIRE
-  };
+};
 
   /** Various options for the output of statistics in Vampire */
   enum Statistics {
@@ -626,6 +679,7 @@ public:
   float sineTolerance() const { return _sineTolerance; }
 
   bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal; }
+  void setSmtlibConsiderIntsReal( bool newVal ) { _smtlibConsiderIntsReal = newVal; }
   bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition; }
   bool smtlibIntroduceAIGNames() const { return _smtlibIntroduceAIGNames; }
 
@@ -700,6 +754,23 @@ public:
 
   void enableTracesAccordingToOptions() const;
 
+  void setProof(Proof p) { _proof = p; }
+  bool equivalentVariableRemoval() const { return _equivalentVariableRemoval; }
+  unsigned maximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength; }
+  AlmostHalfBoundingRemoval almostHalfBoundingRemoval() const {return _almostHalfBoundingRemoval;}
+  bool fmElimination () const {return _fmElimination;}
+  unsigned allowedFMBalance() const { return _allowedFMBalance; }
+  AssignmentSelector assignmentSelector() const {return _assignmentSelector; }
+  bool collapsingBoundPropagation() const {return _collapsingBoundPropagation; }
+  unsigned updatesByOneConstraint() const {return _updatesByOneConstraint; }
+  bool conservativeAssignmentSelection() const {return _conservativeAssignmentSelection; }
+  ConflictSelector conflictSelector() const {return _conflictSelector; }
+  bool backjumpTargetIsDecisionPoint() const { return _backjumpTargetIsDecisionPoint; }
+  bool propagateAfterConflict() const {return _propagateAfterConflict; }
+  VariableSelector variableSelector() const {return _variableSelector; }
+  bool selectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst; }
+  bool startWithPrecise() const { return _startWithPrecise; }
+  
   CLASS_NAME(Options);
   USE_ALLOCATOR(Options);
 
@@ -714,6 +785,8 @@ private:
 private:
   class Constants;
 
+  bool _startWithPrecise;
+  bool _selectUnusedVariablesFirst;
   bool _abstraction;
   int _ageRatio;
   int _weightRatio;
@@ -724,15 +797,23 @@ private:
   bool _aigFormulaSharing;
   bool _aigInliner;
   bool _arityCheck;
-
+  
+  AssignmentSelector _assignmentSelector;
+  unsigned _allowedFMBalance;
+  AlmostHalfBoundingRemoval _almostHalfBoundingRemoval;
+  
+  bool _backjumpTargetIsDecisionPoint;
   Demodulation _backwardDemodulation;
   Subsumption _backwardSubsumption;
   Subsumption _backwardSubsumptionResolution;
   bool _bfnt;
   bool _binaryResolution;
 
+  bool _collapsingBoundPropagation;
   bool _colorUnblocking;
   Condensation _condensation;
+  ConflictSelector _conflictSelector;
+  bool _conservativeAssignmentSelection;
 
   bool _demodulationRedundancyCheck;
   bool _distinctProcessor;
@@ -744,6 +825,7 @@ private:
   EqualityProxy _equalityProxy;
   RuleActivity _equalityResolutionWithDeletion;
 
+  bool _equivalentVariableRemoval;
   bool _flattenTopLevelConjunctions;
   string _forbiddenOptions;
   string _forcedOptions;
@@ -753,6 +835,8 @@ private:
   bool _forwardSubsumptionResolution;
   FunctionDefinitionElimination _functionDefinitionElimination;
 
+  bool _fmElimination;
+  
   RuleActivity _generalSplitting;
   bool _globalSubsumption;
 
@@ -791,6 +875,9 @@ private:
   int _maxInferenceDepth;
   long _maxPassive;
   int _maxWeight;
+  
+  unsigned _maximalPropagatedEqualityLength;
+  
   size_t _memoryLimit;
   Mode _mode;
 
@@ -813,6 +900,9 @@ private:
   string _problemName;
   Proof _proof;
   bool _proofChecking;
+  bool _propagateAfterConflict;
+  
+  bool _propositionalToBDD;
   string _protectedPrefix;
 
   QuestionAnsweringMode _questionAnswering;
@@ -897,10 +987,11 @@ private:
 
   URResolution _unitResultingResolution;
   bool _unusedPredicateDefinitionRemoval;
-
+  unsigned _updatesByOneConstraint;
   bool _weightIncrement;
   int _whileNumber;
   int _functionNumber;
+  VariableSelector _variableSelector;
 
   string _xmlOutput;
 

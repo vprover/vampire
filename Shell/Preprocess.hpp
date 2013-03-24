@@ -8,6 +8,7 @@
 #define __Preprocess__
 
 #include "Kernel/Unit.hpp"
+#include "Forwards.hpp"
 
 namespace Shell {
 
@@ -28,6 +29,10 @@ public:
     : _options(options)
   {}
   void preprocess(Problem& prb);
+#if GNUMP
+  void preprocess(ConstraintRCList*& constraints);
+#endif
+
   void preprocess1(Problem& prb);
 private:
   void preprocess2(Problem& prb);
@@ -39,6 +44,9 @@ private:
 
   /** Options used in the normalisation */
   const Options& _options;
+#if GNUMP
+  void unfoldEqualities(ConstraintRCList*& constraints);
+#endif
 }; // class Preprocess
 
 

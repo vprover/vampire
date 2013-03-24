@@ -17,7 +17,24 @@ typedef void (*VoidFunc)();
 namespace Lib
 {
 
+template<typename C>
+struct Relocator
+{
+  static void relocate(C* oldAddr, void* newAddr)
+  {
+    new(newAddr) C( *oldAddr );
+    oldAddr->~C();
+  }
+  
+};
+  
 struct EmptyStruct {};
+
+
+struct DefaultEq {
+  template<typename T>
+  static bool equals(T o1, T o2) { return o1==o2; }
+};
 
 class Hash;
 struct IdentityHash;
@@ -31,6 +48,9 @@ typedef VirtualIterator<unsigned> UnsignedIterator;
 
 template<typename T> class ScopedPtr;
 template<typename T> class SmartPtr;
+
+template<class T> class RCPtr;
+
 template<typename T> class SingleParamEvent;
 template<class C> class DArray;
 template<class C> class Stack;
@@ -42,7 +62,6 @@ template <typename Key, typename Val,class Hash=Lib::Hash> class Map;
 
 
 template<typename T> class ArrayishObjectIterator;
-
 template<typename T> class ArrayMap;
 template<typename C> class Vector;
 
@@ -103,12 +122,43 @@ class IntegerConstantType;
 class RationalConstantType;
 class RealConstantType;
 
+/** Index of a variable */
+typedef unsigned Var;
+
+struct BoundId
+{
+  Var var;
+  bool left;
+
+  /** Create uninitialized BoundId */
+  BoundId() {}
+  BoundId(Var var, bool left) : var(var), left(left) {}
+
+  BoundId operator-() const { return BoundId(var, !left); }
+};
+
+class CoeffNumber;
+class BoundNumber;
+
+class Constraint;
+class Assignment;
+
+class V2CIndex;
+
 class Sorts;
 class Signature;
 
 class BaseType;
 class FunctionType;
 class PredicateType;
+
+typedef VirtualIterator<Var> VarIterator;
+typedef RCPtr<Constraint> ConstraintRCPtr;
+typedef List<Constraint*> ConstraintList;
+typedef List<ConstraintRCPtr> ConstraintRCList;
+typedef VirtualIterator<Constraint*> ConstraintIterator;
+typedef Stack<Constraint*> ConstraintStack;
+typedef Stack<ConstraintRCPtr> ConstraintRCStack;
 
 class TermList;
 typedef VirtualIterator<TermList> TermIterator;
@@ -370,21 +420,24 @@ template<class T> inline void checked_delete(T * x)
     delete x;
 }
 
-
-namespace Lib
+namespace Solving
 {
+using namespace Lib;
 
-template<typename C>
-struct Relocator
-{
-  static void relocate(C* oldAddr, void* newAddr)
-  {
-    new(newAddr) C( *oldAddr );
-    oldAddr->~C();
-  }
-};
+/**
+ * Represents number of decision points at a given moment.
+ * Negative values have special meaning depending on where they occur.
+ */
+typedef int DecisionLevel;
 
+class AssignmentSelector;
+class VariableSelector;
+class Solver;
+class BoundsArray;
+class BoundInfo;
 
+typedef Stack<BoundInfo> BoundStack;
 }
+
 
 #endif /* __Forwards__ */

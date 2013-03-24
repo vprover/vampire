@@ -94,9 +94,34 @@ public:
     ASS_L(n,_size);
     return _array[n];
   }
+ /**
+   * Set array's size to @b s. @b s must be smaller or equal to the
+   * current array size.
+   */
+  inline void shrink(size_t s)
+  {
+    CALL("DArray::shrink");
+    ASS_LE(s,_size);
+
+    _size = s;
+  }
+  
+  inline bool operator==(const DArray& o) const
+  {
+    CALL("DArray::operator==");
+    if(size()!=o.size()) { return false; }
+    size_t sz = size();
+    for(size_t i=0; i<sz; i++) {
+      if(!((*this)[i]==o[i])) { return false; }
+    }
+    return true;
+  }
+
+  inline bool operator!=(const DArray& o) const { return !(*this==o); }
 
   /** return the standard array represented by this DArray */
-  inline C* array () { return _array; }
+  inline C* array() { return _array; }
+  inline const C* array() const { return _array; }
 
   inline C* begin() { return _array; }
   inline C* end() { return _array+_size; }
@@ -225,6 +250,15 @@ public:
   template<typename Arr>
   void initFromArray(size_t count, const Arr& src) {
     CALL("DArray::initFromArray");
+
+    ensure(count);
+    C* ptr=_array+count;
+    while(count) {
+      *(--ptr)=src[--count];
+    }
+  }
+  void initFromArray(size_t count, const C* src) {
+    CALL("DArrayTKV::initFromArray");
 
     ensure(count);
     C* ptr=_array+count;
@@ -385,8 +419,21 @@ public:
     inline bool hasNext() { return _next!=_afterLast; }
     inline C next() { return *(_next++); }
   private:
-    C* _next;
-    C* _afterLast;
+   C* _next;
+   C* _afterLast;
+  };
+  class ConstIterator
+  {
+  public:
+    DECL_ELEMENT_TYPE(C);
+    inline ConstIterator() : _next(0), _afterLast(0) {}
+    inline ConstIterator(const DArray& arr) : _next(arr._array),
+    _afterLast(arr._array+arr._size) {}
+    inline bool hasNext() { return _next!=_afterLast; }
+    inline const C& next() { return *(_next++); }
+  private:
+   const C* _next;
+   const C* _afterLast;
   };
   class ReversedIterator
   {

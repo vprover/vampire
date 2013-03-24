@@ -354,8 +354,6 @@ void Logging::doTagDeclarations()
   DECL("smt_confl_detail",
       DOC("details of smt conflicts"),
       PARENT("smt",1));
-
-
   //
   // Splitting with backtracking
   //
@@ -1229,6 +1227,52 @@ void Logging::doTagDeclarations()
       DOC("failures in option reading"),
       PARENT("or",0));
 
+  DECL("tkv", 
+       DOC("tkv general loging"));
+
+  DECL("tkv_bK",
+      DOC("for debug purpose"),
+      PARENT("tkv",1));
+
+  DECL("tkv_collapsing",
+      DOC("tkv collapsing inequalities"), 
+      PARENT("tkv",1));
+  DECL("tkv_colapsing",
+	  DOC("tkv col"),
+	  PARENT("tkv",1));
+  DECL("tkv_colapse",
+      DOC("tkv colapse "),
+      PARENT("tkv_collapsing",2));
+  DECL("tkv_level", 
+      DOC("tkv bound at level"), 
+      PARENT("tkv",1));
+  DECL("tkv_bklevel",
+      DOC("tkv backtracking level"), 
+      PARENT("tkv",0));
+  DECL("tkv_decission", 
+      DOC("tkv decision point creation"), 
+      PARENT("tkv",1));
+  DECL("tkv_conflict",
+      DOC("conflict selection "),
+      PARENT("tkv",1));
+  DECL("tkv_vselect",
+      DOC("variable selector"),
+      PARENT("tkv",1));
+  DECL("tkv_alive",
+      DOC("alive constraints"),
+      PARENT("tkv",1));
+  DECL("tkv_assignment",
+       DOC("assignment value"),
+       PARENT("tkv",1));
+  DECL("tkv_constraint",
+      DOC("constraints on which we propagate"),
+      PARENT("tkv",1));
+  DECL("bp_colapsing",
+      DOC("bound prop colapsing"),
+      PARENT("tkv",1));
+  
+
+  
   DECL("tu",
       DOC("TestUtils traces"));
   DECL("tu_uf",

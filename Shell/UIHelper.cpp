@@ -6,6 +6,9 @@
 #include <string>
 #include <fstream>
 
+#include <stdlib.h>
+#include <iostream>
+
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
@@ -29,12 +32,36 @@
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
 
+#include "Lib/RCPtr.hpp"
+#include "Lib/List.hpp"
+#include "Lib/ScopedPtr.hpp"
+
+#if GNUMP
+#include "Kernel/Assignment.hpp"
+#include "Kernel/Constraint.hpp"
+#include "Kernel/Signature.hpp"
+
+#include "ConstraintReaderBack.hpp"
+#include "Shell/SMTLEX.hpp"
+#include "Shell/SMTPAR.hpp"
+#include "Preprocess.hpp"
+
+#include "MPSLib/Gmputils.h"
+#include "MPSLib/Model.h"
+#include "MPSLib/Mpsinput.h"
+
+#include <algorithm>
+#include <vector>
+#include <list>
+#endif
+
 namespace Shell
 {
 
 using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
+using namespace std;
 
 bool UIHelper::s_haveConjecture=false;
 
@@ -157,6 +184,20 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     s_haveConjecture=true;
   }
   break;
+  
+  case Options::IS_MPS:
+  {
+    break;
+  } 
+  break;
+  case Options::IS_NETLIB:
+  case Options::IS_SMTLIB2:
+  case Options::IS_HUMAN:
+  {
+    cout<<"This is not supported yet";
+    NOT_IMPLEMENTED;
+   }
+   break;
   }
 
   if(inputFile!="") {
@@ -358,4 +399,420 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   out << " )." << endl;
 }
 
+#if GNUMP
+/**
+ * de aici am pus pentru bound propagation 
+ */
+
+/**
+ * Add input constraints into the empty @c constraints list.
+ */
+ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
+{
+  CALL("UIHelper::getInputConstraints");
+
+  TimeCounter tc(TC_PARSING);
+  env.statistics->phase = Statistics::PARSING;
+
+  string inputFile = env.options->inputFile();
+
+  ScopedPtr<std::ifstream> inputScoped;
+  istream * input;
+  if(inputFile=="") {
+     input=&cin;
+   } else {
+     inputScoped=new ifstream(inputFile.c_str());
+     input = inputScoped.ptr();
+     if(input->fail()) {
+       USER_ERROR("Cannot open problem file: "+inputFile);
+     }
+   }
+
+  ConstraintRCList* res;
+
+  switch(env.options->inputSyntax()) {
+  case Options::IS_TPTP:
+    break;
+#if 0
+  case Options::IS_SMTLIB:
+  case Options::IS_SMTLIB2:
+  {
+    Parse::SMTLIB parser(opts);
+    parser.parse(*input);
+    UnitList* ulist = parser.getFormulas();
+    UnitList::Iterator ite(ulist);
+    while(ite.hasNext())
+    {
+      Unit* u = ite.next();
+      if ( !u->isClause()) {
+	Formula* f = u->getFormula();
+	std::cout<<f->toString();
+      }
+
+
+    }
+    ASSERTION_VIOLATION;
+    s_haveConjecture=true;
+    SMTConstraintReader rdr(parser);
+    res = rdr.constraints();
+    break;
+    
+    /*
+    std::cout<<"doing the constraint reading"<<std::endl;
+    Parse::SMTLIB parser1(*env.options);
+  
+    string inputFile = env.options->inputFile();
+    std::cout<<inputFile<<std::endl;
+    istream* input;
+    if(inputFile=="") {
+      input=&cin;
+    } else {
+      input=new ifstream(inputFile.c_str());
+      if(input->fail()) {
+	USER_ERROR("Cannot open problem file: "+inputFile);
+      }
+    }
+  
+    parser1.parse(*input);
+    std::cout<<parser1.getLispFormula()->toString()<<std::endl;
+     */
+  }
+#endif
+  case Options::IS_SMTLIB:
+  case Options::IS_SMTLIB2:
+  {
+    SMTLexer lex(*input);
+    SMTParser parser(lex);
+    ConstraintReader rdr(parser);
+    res = rdr.constraints();
+
+    break;
+  }
+  case Options::IS_MPS:
+  {
+    Model* m = new Model; 
+    MpsInput* mpsin = new MpsInput;
+        
+    bool success = mpsin->readMps(env.options->inputFile().c_str(), m);
+   // m->print(std::cout);
+
+    ASS_EQ(success,true);
+    MpsConstraintReader creader(*m);
+    res = creader.constraints();
+
+#if 0
+    ConstraintRCList::Iterator ite(res);
+    while(ite.hasNext())
+	std::cout<<ite.next()->toString()<<std::endl;
+    throw TimeLimitExceededException();
+    ASSERTION_VIOLATION;
+#endif 
+    break;
+  }
+  case Options::IS_HUMAN:
+    USER_ERROR("human syntax is not supported as input syntax");
+  case Options::IS_NETLIB:
+ // case Options::IS_SMTLIB2:
+    NOT_IMPLEMENTED;
+  default:
+    ASSERTION_VIOLATION;
+  }
+
+  env.statistics->inputConstraints = res->length();
+  env.statistics->inputVariables = env.signature->vars();
+
+  return res;
+}
+
+/**
+ * Preprocess @c inputConstraints into @c constraints.
+ */
+ConstraintRCList* UIHelper::getPreprocessedConstraints(const ConstraintRCList* inputConstraints)
+{
+  CALL("UIHelper::getPreprocessedConstraints/2");
+
+  TimeCounter tc(TC_PREPROCESSING);
+  env.statistics->phase = Statistics::PREPROCESSING;
+
+  Preprocess prepr(*env.options);
+  ConstraintRCList* constraints = inputConstraints->copy();
+  prepr.preprocess(constraints);
+  
+  return constraints;
+}
+
+/**
+ * Add preprocessed input constraints into the empty @c constraints list.
+ */
+ConstraintRCList* UIHelper::getPreprocessedConstraints(const Options& opts)
+{
+  CALL("UIHelper::getPreprocessedConstraints/1");
+
+  ConstraintRCList* inpConstraints(getInputConstraints(opts));
+  return getPreprocessedConstraints(inpConstraints);
+}
+
+/**
+ * Into stream @c out output @c constraint in format @b syntax.
+ */
+void UIHelper::outputConstraint(const Constraint& constraint, ostream& out, Options::InputSyntax syntax)
+{
+  CALL("UIHelper::outputConstraint");
+
+  switch(syntax) {
+  case Options::IS_HUMAN:
+    outputConstraintInHumanFormat(constraint, out);
+    // outputConstraintInSMTFormat(constraint,out);
+    return;
+  case Options::IS_SMTLIB:
+      outputConstraintInSMTFormat(constraint,out);
+      return;
+  case Options::IS_MPS:
+  case Options::IS_NETLIB:
+  case Options::IS_SMTLIB2:
+    NOT_IMPLEMENTED;
+  default:
+    ASSERTION_VIOLATION;
+  }
+
+}
+
+void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostream& out)
+{
+  CALL("UIHelper::outputConstraintInHumanFormat");
+
+  /* 
+   * Constraint::CoeffIterator coeffs = constraint.coeffs();
+ 
+
+  switch(constraint.type()) {
+  case CT_EQ:
+    out << "( = "; break;
+  case CT_GR:
+    out << "( >"; break;
+  case CT_GREQ:
+    out << "( >="; break;
+  }
+  
+  unsigned closedP = 0; 
+  if (constraint.freeCoeff() != CoeffNumber::zero() && constraint.type()!= CT_EQ) 
+  {
+    out << " (+";
+    closedP ++;
+    if(constraint.freeCoeff().isNegativeAssumingNonzero())
+	out<< " " << -constraint.freeCoeff().native() <<" ";
+    if(constraint.freeCoeff().isPositiveAssumingNonzero()) 
+	out<< " (~ " << constraint.freeCoeff().native() <<")";
+  }
+    
+  while(coeffs.hasNext()) {
+    Constraint::Coeff coeff = coeffs.next();
+     if(coeffs.hasNext()) {
+	out << " (+ ";
+	closedP++;
+    }
+    if(coeff.value<CoeffNumber::zero()) {
+	out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
+    }
+    else {
+	out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
+    }
+   
+  }
+  
+  if (constraint.freeCoeff() != CoeffNumber::zero() && constraint.type()!= CT_EQ )
+      out<< "";
+  
+  while(closedP!=0)
+  {
+    out<< ")"; 
+    closedP--;
+    }
+   out << " 0 )";
+  
+ */ 
+  Constraint::CoeffIterator coeffs = constraint.coeffs();
+  if(!coeffs.hasNext()) {
+    out << "0 ";
+  }
+  while(coeffs.hasNext()) {
+    Constraint::Coeff coeff = coeffs.next();
+    if(coeff.value<CoeffNumber::zero()) {
+	out << "(" << coeff.value << "*" << env.signature->varName(coeff.var) << ") ";
+    }
+    else {
+	out << coeff.value << "*" << env.signature->varName(coeff.var) << " ";
+    }
+    if(coeffs.hasNext()) {
+	out << "+ ";
+    }
+  }
+  switch(constraint.type()) {
+  case CT_EQ:
+    out << "="; break;
+  case CT_GR:
+    out << ">"; break;
+  case CT_GREQ:
+    out << ">="; break;
+  }
+  out << " " << constraint.freeCoeff(); 
+}
+
+
+void UIHelper::outputConstraintInSMTFormat(const Constraint& constraint, ostream& out)
+{
+  CALL("UIHelper::outputConstraintInSMTFormat");
+
+  Constraint::CoeffIterator coeffs = constraint.coeffs();
+  
+ /* 
+  if(!coeffs.hasNext()) {
+    out << " 0 ";
+  }
+  */
+  switch(constraint.type()) {
+  case CT_EQ:
+    out << "( = "; break;
+  case CT_GR:
+    out << "( >"; break;
+  case CT_GREQ:
+    out << "( >="; break;
+  }
+  
+  unsigned closedP = 0; 
+  if (constraint.freeCoeff() != CoeffNumber::zero() && constraint.type()!= CT_EQ) 
+  {
+    out << " (+";
+    closedP ++;
+    if(constraint.freeCoeff().isNegativeAssumingNonzero())
+	out<< " " << -constraint.freeCoeff().native() <<" ";
+    if(constraint.freeCoeff().isPositiveAssumingNonzero()) 
+	out<< " (~ " << constraint.freeCoeff().native() <<")";
+  }
+    
+  while(coeffs.hasNext()) {
+    Constraint::Coeff coeff = coeffs.next();
+     if(coeffs.hasNext()) {
+	out << " (+ ";
+	closedP++;
+	 
+    }
+    
+    if(coeff.value<CoeffNumber::zero()) {
+	
+	out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
+    }
+    else {
+	out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
+    }
+   
+  }
+  
+  if (constraint.freeCoeff() != CoeffNumber::zero() && constraint.type()!= CT_EQ )
+      out<< "";
+  
+  while(closedP!=0)
+  {
+    out<< ")"; 
+    closedP--;
+    }
+   out << " 0 )";
+  
+ /* if(constraint.freeCoeff().isNegative() || constraint.freeCoeff() == CoeffNumber::zero() )
+    out << "(~" << -constraint.freeCoeff() <<") )";
+  else 
+    out << " " << constraint.freeCoeff() <<" )";*/
+}
+
+/**
+ * Into stream @c out output @c constraints in format @b syntax.
+ */
+void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Options::InputSyntax syntax)
+{ 
+  CALL("UIHelper::outputConstraints");
+
+  switch(syntax) {
+  case Options::IS_HUMAN:
+  {
+    ConstraintList::Iterator ite(constraints);
+    while(ite.hasNext())
+    {
+	outputConstraint(*ite.next(), out, syntax);
+	out<<endl;
+    }
+    return;
+  }
+  case Options::IS_SMTLIB:
+  {
+     out<<" (benchmark  SOMENAME"<<endl;
+    out<<" :source {converted from MIPLIB} "<<endl;
+    out<<" :status unknown "<<endl;
+    out<<" :category { industrial } "<<endl;
+    out<<" :logic QF_LRA "<<endl;
+    
+    ConstraintList::Iterator fun(constraints);
+    std::list<std::string> uni;
+
+    while(fun.hasNext())
+    {
+	Constraint::CoeffIterator coeffs = fun.next()->coeffs();
+	 while(coeffs.hasNext()) {
+	     env.signature->varName(coeffs.next().var);
+	     uni.push_back(env.signature->varName(coeffs.next().var));
+	  //out << ":extrafuns ((" << env.signature->varName(coeffs.next().var) << " Real )) " << endl; 
+	}
+	
+    }
+
+    std::vector<std::string> myvector (uni.begin(),uni.end());
+    std::vector<std::string>::iterator ite;
+    ite = unique(myvector.begin(),myvector.end());
+    myvector.resize( ite - myvector.begin() );
+    for (ite=myvector.begin(); ite!=myvector.end(); ++ite)
+	out << " " << *ite;
+    
+    out << ":formula (and "; 
+    ConstraintList::Iterator it(constraints);
+    while(it.hasNext()) {
+      outputConstraint(*it.next(), out, syntax);
+      out << " \n";
+    }
+    
+    out<< ") )"<< endl;
+    return;
+  }
+  
+  case Options::IS_MPS:
+  case Options::IS_NETLIB:
+  case Options::IS_SMTLIB2:
+    NOT_IMPLEMENTED;
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
+void UIHelper::outputAssignment(Assignment& assignemt, ostream& out, Shell::Options::InputSyntax syntax)
+{
+  CALL("UIHelper::outputAssignment");
+
+  switch(syntax) {
+  case Options::IS_HUMAN:
+  case Options::IS_MPS:
+  case Options::IS_SMTLIB:
+  {
+    VarIterator vars = assignemt.getAssignedVars();
+    while(vars.hasNext()) {
+      Var v = vars.next();
+      out << env.signature->varName(v) << ": " << assignemt[v] << endl;
+    }
+    return;
+  }
+  case Options::IS_NETLIB:
+  case Options::IS_SMTLIB2:
+    NOT_IMPLEMENTED;
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+#endif //GNUMP
 }

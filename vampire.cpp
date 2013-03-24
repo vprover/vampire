@@ -25,6 +25,9 @@
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
 
+#include "Lib/RCPtr.hpp"
+
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -68,6 +71,13 @@
 #include "Program/Lingva.hpp"
 #endif
 
+#if GNUMP
+#include "Solving/Solver.hpp"
+
+using namespace Shell;
+using namespace Solving;
+#endif
+
 #if CHECK_LEAKS
 #include "Lib/MemoryLeak.hpp"
 #endif
@@ -90,7 +100,8 @@ Problem* globProblem = 0;
  * either found refutation or established satisfiability.
  *
  *
- * If Vampire was interupted by a SIGINT, value VAMP_RESULT_STATUS_SIGINT is returned,
+ * If Vampire was interupted by a SIGINT, value
+ * VAMP_RESULT_STATUS_SIGINT is returned,
  * and in case of other signal we return VAMP_RESULT_STATUS_OTHER_SIGNAL. For implementation
  * of these return values see Lib/System.hpp.
  *
@@ -102,6 +113,22 @@ Problem* globProblem = 0;
  * (we terminate by a call to the @b abort() function in this case).
  */
 int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
+
+/**
+ * Return value is non-zero unless we were successful.
+ *
+ * Being successful for modes that involve proving means that we have
+ * either found refutation or established satisfiability.
+ *
+ *
+ * If execution was interupted by a SIGINT, value 3 is returned,
+ * and in case of other signal we return 2. For implementation
+ * of these return values see Lib/System.hpp.
+ *
+ * In case execution was terminated by the timer, return value is 1.
+ * (see @c timeLimitReached() in Lib/Timer.cpp)
+ */
+int g_returnValue = 1;
 
 Problem* getPreprocessedProblem()
 {
@@ -198,11 +225,13 @@ void programAnalysisMode()
   string inputFile = env.options->inputFile();
   if (inputFile == "") {
     USER_ERROR("Cannot open problem file: "+inputFile);
-  } else {
+  }
+  else {
     //default time limit 10 seconds
-    if (time == 0)
+    if (time == 0) {
       env.options->setTimeLimitInDeciseconds(100);
-    Program::RunLingva lingva(inputFile.c_str());
+    }
+    Program::RunLingva lingva;
     lingva.run();
   }
 #else
@@ -210,6 +239,133 @@ void programAnalysisMode()
 #endif
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // programAnalysisMode
+
+
+void outputResult(ostream& out) {
+  CALL("outputResult");
+
+  switch(env.statistics->terminationReason) {
+  case Statistics::UNKNOWN:
+    cout<<"unknown"<<endl;
+    break;
+  case Statistics::SATISFIABLE:
+    cout<<"sat"<<endl;
+#if GNUMP
+    UIHelper::outputAssignment(*env.statistics->satisfyingAssigment, cout);
+#endif //GNUMPr
+    break;
+  case Statistics::REFUTATION:
+    cout<<"unsat"<<endl;
+    break;
+  case Statistics::TIME_LIMIT:
+  case Statistics::MEMORY_LIMIT:
+  case Statistics::REFUTATION_NOT_FOUND:
+    ASSERTION_VIOLATION; //these outcomes are not reachable with the current implementation
+    break;
+  }
+  env.statistics->print(env.out());
+}
+
+
+
+void boundPropagationMode(){
+#if GNUMP
+  CALL("boundPropagationMode::doSolving()");
+
+  if(env.options->startWithPrecise()) {
+    switchToPreciseNumbers();
+  }
+  //ConstraintRCList* constraints(UIHelper::getInputConstraints(*env.options));
+  ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env.options));
+
+#if 0 
+  ConstraintRCList::Iterator ite(constraints);
+  while(ite.hasNext())
+      std::cout<<ite.next()->toString()<<"\n";
+#endif
+      
+  start:
+  try
+  {
+    env.statistics->phase = Statistics::SOLVING;
+    TimeCounter tc(TC_SOLVING);
+    Solver solver(env.signature->vars(), *env.options, *env.statistics);
+    solver.load(constraints);
+    solver.solve();
+  }
+  catch (Solver::NumberImprecisionException) {
+    if(usingPreciseNumbers()) {
+      INVALID_OPERATION("Imprecision error when using precise numbers.");
+    }
+    else {
+      env.statistics->switchToPreciseTimeInMs = env.timer->elapsedMilliseconds();
+      switchToPreciseNumbers();
+      ASS(usingPreciseNumbers());
+      goto start;
+    }
+  }
+  catch (TimeLimitExceededException){
+      env.statistics->phase = Statistics::FINALIZATION;
+      env.statistics->terminationReason = Statistics::TIME_LIMIT;
+    }
+  env.statistics->phase = Statistics::FINALIZATION;
+#endif
+}
+
+void solverMode()
+{
+  CALL("solverMode()");
+#if GNUMP
+  //set the options such that we are ok
+  //set the proof mode off
+  if ( env.options->proof() == env.options->PROOF_ON ) {
+    env.options->setProof(env.options->PROOF_OFF);
+  }
+
+  //set the default input syntax to be smtlib TODO fix this to work properly
+  //this is a hack so that we do not interffer with vampire defaults.
+  //TODO FIRST PRIORITY @until Monday make it true that the TPTP input is accepted
+  if ( env.options->inputSyntax() == env.options->IS_TPTP ) {
+    env.options->setInputSyntax( env.options->IS_SMTLIB );
+  }
+
+  //this ensures the fact that ints read in smtlib file are treated as reals
+  env.options->setSmtlibConsiderIntsReal(true);
+
+  boundPropagationMode();
+
+  env.beginOutput();
+  outputResult(env.out());
+  env.endOutput();
+
+  if(env.statistics->terminationReason==Statistics::REFUTATION
+      || env.statistics->terminationReason==Statistics::SATISFIABLE) {
+    g_returnValue=0;
+  }
+#endif
+}
+
+/**
+ * Perform just preprocessing and output the resulting constraints
+ */
+void preprocessMode()
+{
+  CALL("preprocessMode()");
+#if GNUMP
+  ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env.options));
+
+  env.statistics->phase = Statistics::FINALIZATION;
+
+  ConstraintList* constraintLst(ConstraintRCPtr::unRCList(constraints));
+
+  env.beginOutput();
+  UIHelper::outputConstraints(constraintLst, env.out());
+  env.endOutput();
+
+  //we have successfully output all clauses, so we'll terminate with zero return value
+  g_returnValue=0;
+#endif
+} // clausifyMode
 
 void vampireMode()
 {
@@ -429,15 +585,27 @@ int main(int argc, char* argv[])
       env.endOutput();
     }
 
+#if IS_LINGVA
+    env.options->setMode(Options::MODE_PROGRAM_ANALYSIS);
+#endif
+
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
 
-    switch (env.options->mode()) {
+    switch (env.options->mode())
+    {
     case Options::MODE_AXIOM_SELECTION:
       axiomSelectionMode();
       break;
     case Options::MODE_GROUNDING:
       groundingMode();
+      break;
+    case Options::MODE_SOLVER:
+#if GNUMP
+     solverMode();
+#else
+     NOT_IMPLEMENTED;
+#endif
       break;
     case Options::MODE_SPIDER:
       spiderMode();
@@ -492,7 +660,16 @@ int main(int argc, char* argv[])
       profileMode();
       break;
     case Options::MODE_PROGRAM_ANALYSIS:
+      std::cout<<"Program analysis mode "<<std::endl;
       programAnalysisMode();
+      break;
+   
+    case Options::MODE_PREPROCESS:
+#if GNUMP
+     preprocessMode();
+#else
+     NOT_IMPLEMENTED;
+#endif
       break;
     default:
       USER_ERROR("Unsupported mode");

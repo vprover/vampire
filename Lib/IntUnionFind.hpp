@@ -17,7 +17,7 @@ public:
   ~IntUnionFind();
   bool doUnion(int c1, int c2);
   int root(int c) const;
-
+  void reset();
   void evalComponents();
   int getComponentCount();
 private:

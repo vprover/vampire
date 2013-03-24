@@ -67,7 +67,10 @@ public:
   static const char* _sSplittingAddComplementaryValues[];
   static const char* _sSplittingNonsplittableComponentsValues[];
   static const char* _predicateEquivalenceDiscoveryModeValues[];
-
+  static const char* _assignmentSelectorValues[];
+  static const char* _variableSelectorValues[];
+  static const char* _conflictSelectorValues[];
+  static const char* _almostHalfBoundingRemovalValues[];
   static int shortNameIndexes[];
 
   static NameArray optionNames;
@@ -100,6 +103,10 @@ public:
   static NameArray sSplittingAddComplementaryValues;
   static NameArray sSplittingNonsplittableComponentsValues;
   static NameArray predicateEquivalenceDiscoveryModeValues;
+  static NameArray assignmentSelectorValues;
+  static NameArray variableSelectorValues;
+  static NameArray conflictSelectorValues;
+  static NameArray almostHalfBoundingRemovalValues;
 }; // class Options::Constants
 
 
@@ -114,6 +121,7 @@ const char* Options::Constants::_optionNames[] = {
   "aig_formula_sharing",
   "aig_inliner",
   "arity_check",
+  "assignment_slector",
 
   "backward_demodulation",
   "backward_subsumption",
@@ -121,8 +129,15 @@ const char* Options::Constants::_optionNames[] = {
   "bfnt",
   "binary_resolution",
 
+  "bp_almost_half_bounding_removal",
+  "bp_fm_balance",
+  "bp_fm_elimination",
+  "bp_max_prop_legnth",
+  "bp_update_by_one_constraint",
+
   "color_unblocking",
   "condensation",
+  "conflict_selection",
 
   "decode",
   "demodulation_redundancy_check",
@@ -258,6 +273,7 @@ const char* Options::Constants::_optionNames[] = {
   "ssplitting_flush_period",
   "ssplitting_flush_quotient",
   "ssplitting_nonsplittable_components",
+  "start_with_precise",
   "statistics",
   "superposition_from_variables",
   "symbol_precedence",
@@ -278,7 +294,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "unit_resulting_resolution",
   "unused_predicate_definition_removal",
-
+  "variable_selector",
   "weight_increment",
   "while_number",
 
@@ -289,6 +305,7 @@ NameArray Options::Constants::optionNames(_optionNames,
 					  sizeof(_optionNames)/sizeof(char*));
 
 const char* Options::Constants::_shortNames[] = {
+  "as",
   "awr",
   "bd",
   "bfnt",
@@ -296,6 +313,7 @@ const char* Options::Constants::_shortNames[] = {
   "bs",
   "bsr",
   "cond",
+  "cs",
   "drc",
   "ep",
   "erd",
@@ -347,6 +365,7 @@ const char* Options::Constants::_shortNames[] = {
   "sswsr",
   "st",
   "stl",
+  "stp",
   "swb",
   "t",
   "tbsr",
@@ -358,6 +377,7 @@ const char* Options::Constants::_shortNames[] = {
   "tr",
   "updr",
   "urr",
+  "vs",
   "wi",
   "wno"};
 
@@ -366,6 +386,7 @@ NameArray Options::Constants::shortNames(_shortNames,
 					  sizeof(_shortNames)/sizeof(char*));
 
 int Options::Constants::shortNameIndexes[] = {
+  ASSIGNMENT_SELECTOR,
   AGE_WEIGHT_RATIO,
   BACKWARD_DEMODULATION,
   BFNT,
@@ -373,6 +394,7 @@ int Options::Constants::shortNameIndexes[] = {
   BACKWARD_SUBSUMPTION,
   BACKWARD_SUBSUMPTION_RESOLUTION,
   CONDENSATION,
+  CONFLICT_SELECTOR,
   DEMODULATION_REDUNDANCY_CHECK,
   EQUALITY_PROXY,
   EQUALITY_RESOLUTION_WITH_DELETION,
@@ -427,6 +449,7 @@ int Options::Constants::shortNameIndexes[] = {
   SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION,
   SINE_TOLERANCE,
   SIMULATED_TIME_LIMIT,
+  START_WITH_PRECISE,
   SPLITTING_WITH_BLOCKING,
   TIME_LIMIT,
   TABULATION_BW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS,
@@ -438,6 +461,7 @@ int Options::Constants::shortNameIndexes[] = {
   TRACES,
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
   UNIT_RESULTING_RESOLUTION,
+  VARIABLE_SELECTOR,
   WEIGHT_INCREMENT,
   WHILE_NUMBER};
 
@@ -564,12 +588,18 @@ NameArray Options::Constants::tcValues(_tcValues,
 const char* Options::Constants::_inputSyntaxValues[] = {
   "simplify",
   "smtlib",
-  "tptp"};
+  "smtlib2",
+  "tptp",
+  "xhuman",
+  "xmps", 
+  "xnetlib"
+};
 NameArray Options::Constants::inputSyntaxValues(_inputSyntaxValues,
 						sizeof(_inputSyntaxValues)/sizeof(char*));
 
 const char* Options::Constants::_modeValues[] = {
   "axiom_selection",
+  "bpa", 
   "casc",
   "casc_epr",
   "casc_ltb",
@@ -581,10 +611,13 @@ const char* Options::Constants::_modeValues[] = {
   "grounding",
   "ltb_build",
   "ltb_solve",
+  "preprocess",
   "profile",
   "program_analysis",
+  
   "spider",
-  "vampire"};
+  "vampire"
+};
 NameArray Options::Constants::modeValues(_modeValues,
 					 sizeof(_modeValues)/sizeof(char*));
 
@@ -660,10 +693,54 @@ const char* Options::Constants::_predicateEquivalenceDiscoveryModeValues[] = {
   "definitions",
   "off",
   "on"};
+
 NameArray Options::Constants::predicateEquivalenceDiscoveryModeValues(_predicateEquivalenceDiscoveryModeValues,
 					  sizeof(_predicateEquivalenceDiscoveryModeValues)/sizeof(char*));
 
+const char* Options::Constants::_assignmentSelectorValues[] {
+	"alternative",
+	"bmp",
+	"lower_bound",
+	"middle",
+	"random",
+	"smallest",
+	"tight",
+	"tightish",
+	"upper_bound"
+};
+NameArray Options::Constants::assignmentSelectorValues(_assignmentSelectorValues,
+	sizeof(_assignmentSelectorValues)/sizeof(char*));
 
+const char* Options::Constants::_variableSelectorValues[] {
+	"conflicting",
+	"conflicting_and_collapsing",
+	"first",
+	"look_ahead",
+	"random",
+	"recently_collapsing",
+	"recently_conflicting",
+	"tightest_bound"
+};
+
+NameArray Options::Constants::variableSelectorValues(_variableSelectorValues,
+	sizeof(_variableSelectorValues)/sizeof(char*));
+
+const char* Options::Constants::_conflictSelectorValues[] {
+	"least_recent",
+	"most_recent",
+	"shortest"
+};
+NameArray Options::Constants::conflictSelectorValues(_conflictSelectorValues,
+	sizeof(_conflictSelectorValues)/sizeof(char*));
+
+const char* Options::Constants::_almostHalfBoundingRemovalValues[] {
+  "bounds_on",
+  "off",
+  "on"
+};
+
+NameArray Options::Constants::almostHalfBoundingRemovalValues(_almostHalfBoundingRemovalValues,
+	sizeof(_almostHalfBoundingRemovalValues)/sizeof(char*));
 
 /**
  * Initialize options to the default values.
@@ -672,6 +749,20 @@ NameArray Options::Constants::predicateEquivalenceDiscoveryModeValues(_predicate
  */
 Options::Options ()
   :
+  _allowedFMBalance(0),
+  _almostHalfBoundingRemoval(AHR_ON),
+  _assignmentSelector(ASG_RANDOM),
+  _backjumpTargetIsDecisionPoint(true),
+  _collapsingBoundPropagation(false),
+  _equivalentVariableRemoval(true),
+  _fmElimination(true),
+  _conflictSelector(CS_MOST_RECENT),
+  _maximalPropagatedEqualityLength(5),
+  _conservativeAssignmentSelection(false),
+  _selectUnusedVariablesFirst(false),
+  _updatesByOneConstraint(3),
+  _variableSelector(VS_TIGHTEST_BOUND),
+  
   _abstraction(false),
   _ageRatio(1),
   _weightRatio(1),
@@ -699,9 +790,9 @@ Options::Options ()
   _eprPreservingSkolemization(false),
   _eprRestoringInlining(false),
   _equalityPropagation(false),
-  _equalityProxy(EP_OFF),
+  _equalityProxy(EP_OFF), 
   _equalityResolutionWithDeletion(RA_INPUT_ONLY),
-
+  
   _flattenTopLevelConjunctions(false),
   _forwardDemodulation(DEMODULATION_ALL),
   _forwardLiteralRewriting(false),
@@ -771,6 +862,7 @@ Options::Options ()
   _proofChecking(false),
   _protectedPrefix(""),
 
+  _propagateAfterConflict(true),
   _questionAnswering(QA_OFF),
 
   _randomSeed(Random::seed()),
@@ -810,7 +902,7 @@ Options::Options ()
   _sineGeneralityThreshold(0),
   _sineSelection(SS_OFF),
   _sineTolerance(1.0f),
-  _smtlibConsiderIntsReal(false),
+  _smtlibConsiderIntsReal(true),
   _smtlibFletAsDefinition(false),
   _smtlibIntroduceAIGNames(true),
   _sos(SOS_OFF),
@@ -828,6 +920,7 @@ Options::Options ()
   _ssplittingFlushPeriod(0),
   _ssplittingFlushQuotient(1.5f),
   _ssplittingNonsplittableComponents(SSNS_KNOWN),
+  _startWithPrecise(false),
   _statistics(STATISTICS_FULL),
   _superpositionFromVariables(true),
   _symbolPrecedence(BY_ARITY),
@@ -945,6 +1038,10 @@ void Options::set(const char* name,const char* value, int index)
       _arityCheck = onOffToBool(value,name);
       return;
 
+    case ASSIGNMENT_SELECTOR:
+      _assignmentSelector = (AssignmentSelector)Constants::assignmentSelectorValues.find(value);
+      return;
+
     case BACKWARD_DEMODULATION:
       _backwardDemodulation = (Demodulation)Constants::demodulationValues.find(value);
       return;
@@ -961,12 +1058,44 @@ void Options::set(const char* name,const char* value, int index)
       _binaryResolution = onOffToBool(value,name);
       return;
 
+    case BP_ALLOWED_FM_BALANCE: {
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+      _allowedFMBalance = unsignedValue;
+      }
+      else {
+	USER_ERROR("The value must be an integer");
+      }
+      return;
+    }
+    case BP_ALMOST_HALF_BOUND_REMOVER:
+      _almostHalfBoundingRemoval = (AlmostHalfBoundingRemoval)Constants::almostHalfBoundingRemovalValues.find(value);
+      return;
+    case BP_FM_ELIMINATION:
+      _fmElimination = onOffToBool(value,name);
+      return;
+    case BP_MAX_PROP_LENGTH:
+      if ( Int::stringToUnsignedInt(value, unsignedValue)) {
+	_maximalPropagatedEqualityLength = unsignedValue;
+      }
+      else {
+	USER_ERROR("the value must be an integer");
+      }
+      return;
+    case BP_UPDATE_BY_ONE_CONSTRAINT:
+      if ( Int::stringToUnsignedInt(value, unsignedValue)) {
+	_updatesByOneConstraint = unsignedValue;
+      }
+      else USER_ERROR("The value must be an integer");
+      return;
     case COLOR_UNBLOCKING:
       _colorUnblocking = onOffToBool(value,name);
       return;
     case CONDENSATION:
       _condensation =
 	(Condensation)Constants::condensationValues.find(value);
+      return;
+    case CONFLICT_SELECTOR:
+      _conflictSelector = (ConflictSelector)Constants::conflictSelectorValues.find(value);
       return;
 
     case DECODE:
@@ -1462,6 +1591,11 @@ void Options::set(const char* name,const char* value, int index)
     case SSPLITTING_NONSPLITTABLE_COMPONENTS:
       _ssplittingNonsplittableComponents = (SSplittingNonsplittableComponents)Constants::sSplittingNonsplittableComponentsValues.find(value);
       return;
+    
+    case START_WITH_PRECISE:
+	_startWithPrecise = onOffToBool(value, name);
+	return;
+      
     case STATISTICS:
       _statistics = (Statistics)Constants::statisticsValues.find(value);
       return;
@@ -1520,6 +1654,9 @@ void Options::set(const char* name,const char* value, int index)
       _unusedPredicateDefinitionRemoval = onOffToBool(value,name);
       return;
 
+    case VARIABLE_SELECTOR:
+      _variableSelector = (VariableSelector)Constants::variableSelectorValues.find(value);
+      return;
     case WEIGHT_INCREMENT:
       _weightIncrement = onOffToBool(value,name);
       return;
@@ -1845,7 +1982,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case ARITY_CHECK:
     str << boolToOnOff(_arityCheck);
     return;
-
+  case ASSIGNMENT_SELECTOR:
+    str << Constants::assignmentSelectorValues[_assignmentSelector];
+    return;
   case BACKWARD_DEMODULATION:
     str << Constants::demodulationValues[_backwardDemodulation];
     return;
@@ -1861,12 +2000,31 @@ void Options::outputValue (ostream& str,int optionTag) const
   case BINARY_RESOLUTION:
     str << boolToOnOff(_binaryResolution);
     return;
+  case BP_ALLOWED_FM_BALANCE:
+    str << _allowedFMBalance;
+    return;
+  case BP_ALMOST_HALF_BOUND_REMOVER:
+    str << Constants::almostHalfBoundingRemovalValues[_almostHalfBoundingRemoval];
+    return;
+  case BP_FM_ELIMINATION:
+    str << boolToOnOff(_fmElimination);
+    return;
+  case BP_MAX_PROP_LENGTH:
+    str << _maximalPropagatedEqualityLength;
+    return;
+  case BP_UPDATE_BY_ONE_CONSTRAINT:
+    str << _updatesByOneConstraint;
+    return;
 
   case COLOR_UNBLOCKING:
     str << boolToOnOff(_colorUnblocking);
     return;
   case CONDENSATION:
     str << Constants::condensationValues[_condensation];
+    return;
+
+  case CONFLICT_SELECTOR:
+    str << Constants::conflictSelectorValues[_conflictSelector];
     return;
 
   case DECODE: // no output for DECODE
@@ -2302,6 +2460,10 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
     str << boolToOnOff(_unusedPredicateDefinitionRemoval);
+    return;
+
+  case VARIABLE_SELECTOR:
+    str << Constants::variableSelectorValues[_variableSelector];
     return;
 
   case WEIGHT_INCREMENT:

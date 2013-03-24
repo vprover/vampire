@@ -10,6 +10,14 @@
 
 #include <ostream>
 
+#include "Forwards.hpp"
+
+#include "Lib/RCPtr.hpp"
+#include "Lib/ScopedPtr.hpp"
+
+//#include "Kernel/Assignment.hpp"
+//#include "Kernel/Constraint.hpp"
+
 extern const char* VERSION_STRING;
 
 namespace Kernel {
@@ -19,6 +27,8 @@ namespace Kernel {
 namespace Shell {
 
 using namespace std;
+using namespace Kernel;
+using namespace Solving;
 
 /**
  * Class Statistics
@@ -184,6 +194,94 @@ public:
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated;
 
+#if GNUMP
+  /**
+   * added for the purpose of Bound porpagation
+   * @since 25.10.2012 Vienna
+   * @author Ioan Dragan
+   */
+  
+  // Input
+  /** number of input constraints */
+  unsigned inputConstraints;
+  /** number of input variables */
+  unsigned inputVariables;
+  /** number of constraints after preprocessing */
+  unsigned preprocessedConstraints;
+  /** number of variables after preprocessing */
+  unsigned preprocessedVariables;
+
+  // Preprocessing
+  /** number of variables that were equivalent to some other
+   * variable and were eliminated */
+  unsigned equivalentVariables;
+  /** number of variables eliminated by equality propagation */
+  unsigned equalityPropagationVariables;
+  /** number of constraints affected by equality propagation */
+  unsigned equalityPropagationConstraints;
+  /** number of eliminated constant variables */
+  unsigned constantVariables;
+  /** number of constraints updated by constant propagation */
+  unsigned updatedByConstantPropagation;
+  /** number of subsumed constraints */
+  unsigned subsumedConstraints;
+  /** number of variables appearing either only positively or only
+   * negatively */
+  unsigned halfBoundingVariables;
+  /** number of constraints deleted due to half-bounding variables */
+  unsigned halfBoundingConstraints;
+  /** number of variables appearing either only positively or only
+   * negatively except for one constraint */
+  unsigned almostHalfBoundingVariables;
+  /** number of constraints removed or replaced due to almost half-bounding variables */
+  unsigned almostHalfBoundingConstraints;
+  /** number of variables that were eliminated by Fourier-Motzkin because the
+   * elimination introduced allowed amount of clauses */
+  unsigned fmRemovedVariables;
+  /** number of constraints introduced by Fourier-Motzkin variable elimination
+   * in preprocessing */
+  unsigned preprocessingFMIntroduced;
+  /** number of constraints removed by Fourier-Motzkin variable elimination
+   * in preprocessing */
+  unsigned preprocessingFMRemoved;
+
+  // Solving
+  /** number of decision points where the variable was picked by heuristics */
+  unsigned freeDecisionPoints;
+  /** number of decision points where the variable was predetermined */
+  unsigned forcedDecisionPoints;
+  /** maximal number of decision points at a moment*/
+  DecisionLevel maxDecisionDepth;
+  /** number of backtracks */
+  unsigned backtracks;
+  /** number of backtracks by more than one decision level */
+  unsigned longBacktracks;
+  /** number of propagated bounds */
+  unsigned propagatedBounds;
+  /** number of generated conflict clauses */
+  unsigned conflictClauses;
+  /** how many times the conservative assigment selector reused previous assignment */
+  unsigned assignmentsReusedByConservative;
+  /** number of selected conflict that were not the most recent conflicts available */
+  unsigned nonRecentConflicts;
+  /** number of collapsing clauses that we retained for bound propagation */
+  unsigned retainedConstraints;
+
+  //Number representation
+  /** True if native numbers were used during computation */
+  bool nativeUsed;
+  /** True if precise numbers were used during computation */
+  bool preciseUsed;
+  /** Time (in ms) when we switched from native to precise numbers */
+  unsigned switchToPreciseTimeInMs;
+
+  /** refutation if @c terminationReason==REFUTATION */
+  ConstraintRCPtr bpRefutation;
+  /** satisfying assignment if @c terminationReason==SATISFIABLE */
+  ScopedPtr<Assignment> satisfyingAssigment;
+
+#endif //GNUMP
+  
   /** termination reason */
   enum TerminationReason {
     /** refutation found */
@@ -236,6 +334,9 @@ public:
     HORN_REVEALING,
     /** The actual run of the saturation algorithm */
     SATURATION,
+    /** The actual run of the conflict resolution algorithm */
+    SOLVING,
+    PREPROCESSING,
     /** Whatever happens after the saturation algorithm finishes */
     FINALIZATION,
     UNKNOWN_PHASE

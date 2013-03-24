@@ -200,6 +200,9 @@ Signature::~Signature ()
   for (int i = _preds.length()-1;i >= 0;i--) {
     _preds[i]->destroyPredSymbol();
   }
+  for (int i = _vars.length()-1; i>= 0 ; i--){
+    delete _vars[i];
+  }
 } // Signature::~Signature
 
 /**
@@ -719,7 +722,6 @@ unsigned Signature::addIteFunction(unsigned arity, unsigned* argSorts, unsigned 
 
   BaseType* type = BaseType::makeType(arity, argSorts, resSort);
   getFunction(res)->setType(type);
-  
   //TODO find a better way to get rid of the sG functions!
   //this is a quick fix for the elimination of sG from the invariants
   env.colorUsed = true;
@@ -859,6 +861,57 @@ bool Signature::symbolNeedsQuoting(string name, bool interpreted, unsigned arity
   }
   return true;
 }
+
+/** standard constructor for VarSymbol*/
+Signature::VarSymbol::VarSymbol(const string& nm)
+  : _name(nm)
+{
+
+  //handle quoting
+  const char* c=_name.c_str();
+  bool quote=charNeedsQuoting(*c, true);
+  c++;
+  while(*c) {
+    if(charNeedsQuoting(*c, false)) {
+      quote=true;
+      break;
+    }
+    c++;
+  }
+  if(quote) {
+    _name="'"+_name+"'";
+  }
+}
+
+/**
+ * If a variable with this name and arity exists, return its number.
+ * Otherwise, add a new one and return its number.
+ *
+ * @param name name of the symbol
+ * @param added will be set to true if the function did not exist
+ */
+unsigned Signature::addVar (const string& name,
+				 bool& added)
+{
+  CALL("Signature::addFunction - tkv");
+
+#if VDEBUG
+  unsigned result = 0;
+#else
+  unsigned result;
+#endif
+  if (_varNames.find(name,result)) {
+    added = false;
+    return result;
+  }
+
+  result = _vars.length();
+  _vars.push(new VarSymbol(name));
+  _varNames.insert(name,result);
+  added = true;
+  return result;
+} // Signature::addFunction
+
 
 /**
  * Return true if the name containing che character must be quoted

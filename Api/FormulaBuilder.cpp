@@ -32,7 +32,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/SpecialTermElimination.hpp"
-#include "Shell/TPTP.hpp"
+#include "Shell/TPTPPrinter.hpp"
 
 
 

@@ -9,6 +9,7 @@
 #include <ostream>
 
 #include "Forwards.hpp"
+#include "Options.hpp"
 
 namespace Shell {
 
@@ -55,10 +56,31 @@ public:
    * IGAlgorithm, before we start generating model)
    */
   static bool satisfiableStatusWasAlreadyOutput;
+#if GNUMP
+  static ConstraintRCList* getInputConstraints(const Options& opts);
+  static ConstraintRCList* getPreprocessedConstraints(const ConstraintRCList* inputConstraints);
+  static ConstraintRCList* getPreprocessedConstraints(const Options& opts);
+  
+  static void outputConstraint(const Constraint& constraint, ostream& out, Options::InputSyntax syntax = Options::IS_HUMAN);
+  static void outputConstraints(ConstraintList* constraints, ostream& out, Options::InputSyntax syntax=Options::IS_HUMAN);
+  
+  static void outputAssignment(Assignment& assignemt, ostream& out, Options::InputSyntax syntax=Options::IS_HUMAN);
+#endif //GNUMP
+  
 private:
+#if GNUMP
+  static void outputConstraintInHumanFormat(const Constraint& constraint, ostream& out);
+  
+  static void outputConstraintInSMTFormat(const Constraint& constraint, ostream& out);
+#endif //GNUMP
+
   static bool unitSpecNumberComparator(UnitSpec us1, UnitSpec us2);
 
   static bool s_haveConjecture;
+#if VDEBUG
+  static bool _inputHasBeenRead;
+#endif
+  
 };
 
 }

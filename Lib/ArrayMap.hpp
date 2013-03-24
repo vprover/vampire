@@ -60,7 +60,7 @@ public:
     _timestamp++;
     if(_timestamp==0) {
       Entry* nptr=DArray<Entry>::_array;
-      Entry* afterLast=DArray<Entry>::_array+DArray<Entry>::_capacity;
+      Entry* afterLast=DArray<Entry>::_array +DArray<Entry>::_capacity;
       while(nptr!=afterLast) {
         (nptr++)->_timestamp=0;
       }

@@ -78,4 +78,11 @@ unsigned Hash::hash (const unsigned char* val,size_t size,unsigned hash)
   return hash;
 } // Hash::hash(const char* str)
 
+unsigned Hash::combineHashes(unsigned h1, unsigned h2){
+  CALL("Hash::combineHashes");
+  //not sure how well it behaves, just took the two FNV primes and
+  //did something with them:)
+  return (h1* 16777619u) ^ ( h2 + 2166136261u);
+}
+
 }

@@ -1,12 +1,12 @@
-/*
- * Lingva.hpp
- *
- *  Created on: Mar 4, 2013
- *      Author: ioan
+/**
+ * @file: Lingva.hpp
+ * Interface for running clang parsing as front-end for program analysis
+ * @since: Mar 4, 2013, Vienna
+ * @author: ioan
  */
 
-#ifndef LINGVA_HPP_
-#define LINGVA_HPP_
+#ifndef __LINGVA_HPP__
+#define __LINGVA_HPP__
 
 #include <string>
 #include <iostream>
@@ -63,23 +63,10 @@ namespace Program{
 
 class RunLingva{
 public:
-  /**
-   * Call the parser on @param fileName and than call the
-   * analyzer on this file, according to the setted options.
-   * */
-  RunLingva(const char* fileName): _file(fileName) {};
+  RunLingva(){}
   void run();
 private:
-  /**
-   * This is actually where we initialize the clang infrastructure
-   * and set the options in order to get correct answers.
-   * */
   void runParsingAndAnalysis();
-  /**
-   * Input filename. The other way of doing this can be by simply
-   * by accessing the env.options->inputFile();
-   */
-  const char* _file;
 };
 };
-#endif /* LINGVA_HPP_ */
+#endif /* __LINGVA_HPP__ */

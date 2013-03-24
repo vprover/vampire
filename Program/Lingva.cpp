@@ -17,6 +17,10 @@ void RunLingva::run()
   runParsingAndAnalysis();
 }
 
+/**
+ * This is actually where we initialize the clang infrastructure
+ * and set the options in order to get correct answers.
+ * */
 void RunLingva::runParsingAndAnalysis()
 {
   CALL("runLingva::runParsingAndAnalysis");
@@ -29,29 +33,42 @@ void RunLingva::runParsingAndAnalysis()
   using clang::ASTConsumer;
   using clang::Parser;
 
+  // create a clang compiler instance
   CompilerInstance ci;
   ci.createDiagnostics(0, NULL);
 
+  //create the target options
   TargetOptions to;
+  //get the system options
   to.Triple = llvm::sys::getHostTriple();
+  //create the target information
   TargetInfo *pti = TargetInfo::CreateTargetInfo(ci.getDiagnostics(), to);
+  //set the target in the compiler instance
   ci.setTarget(pti);
 
+  //create a file manager in the compiler instance
   ci.createFileManager();
+  //create the source manager from the fileManager
   ci.createSourceManager(ci.getFileManager());
+  //create the preprocessor
   ci.createPreprocessor();
   ci.getPreprocessorOpts().UsePredefines = false;
+  //create the ASTConsumer
   Translator::MyASTConsumer *astConsumer = new Translator::MyASTConsumer();
+  //pass to the ASTConsumer the while of interest
   astConsumer->SetWhileNumber(env.options->getWhileNumber());
+  //pass to the consumer the function of interest
   astConsumer->SetFunctionNumber(env.options->getFunctionNumber());
   ci.setASTConsumer(astConsumer);
 
   ci.createASTContext();
 
-  const FileEntry *pFile = ci.getFileManager().getFile(_file);
+  //open the C file
+  const FileEntry *pFile = ci.getFileManager().getFile(env.options->inputFile().c_str());
   ci.getSourceManager().createMainFileID(pFile);
   ci.getDiagnosticClient().BeginSourceFile(ci.getLangOpts(),
 	  &ci.getPreprocessor());
+  //parse the file using the previously defined options
   clang::ParseAST(ci.getPreprocessor(), astConsumer, ci.getASTContext());
   ci.getDiagnosticClient().EndSourceFile();
 }

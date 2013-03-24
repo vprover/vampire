@@ -46,6 +46,10 @@ class Random
   static inline int getInteger (int modulus)
   { return getInteger () % modulus; }
 
+  /** Return a new random double */
+  static double getDouble(double min, double max);
+  static long double getDouble(long double min , long double max);
+  
   /**
    * Return a random bit. The function is optimized so it does not generates
    * a new integer upon every call.

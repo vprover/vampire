@@ -202,6 +202,24 @@ public:
     return res;
   }
 
+   /**
+   * Pop an element from the back of the deque
+   */
+  inline
+  C& back() const
+  {
+    CALL("Deque::back");
+    ASS(isNonEmpty());
+
+    C* res = _back;
+    if(res==_data) {
+      res=_end;
+    }
+    res--;
+    return *res;
+  }
+
+  
   /**
    * Pop an element from the back of the deque
    */
@@ -251,6 +269,17 @@ public:
     }
   }
 
+   /**
+   * Put all elements of an iterator to the front of the stack.
+   */
+  template<class It>
+  void pushFrontFromIterator(It it) {
+    CALL("Deque::pushFrontFromIterator");
+
+    while(it.hasNext()) {
+      push_front(it.next());
+    }
+  }
 
   /** Return the number of elements in the deque */
   inline
@@ -261,7 +290,6 @@ public:
     }
     return _back - _front;
   }
-
 
   friend class Iterator;
 
@@ -306,6 +334,94 @@ public:
     C* _end;
     C* _afterLast;
   };
+  
+    /**
+   * Iterator iterates over the elements of a deque from front to back.
+   *
+   *  @warning The contents of the stack should not be changed by
+   *           other operations when a stack is traversed using an
+   *           iterator
+   */
+  class FrontToBackIterator {
+  public:
+    DECL_ELEMENT_TYPE(C);
+    /** create an iterator for @b d */
+    inline
+    explicit FrontToBackIterator (Deque& d)
+      : _pointer(d._front), _begin(d._data), _end(d._end), _afterLast(d._back)
+    {
+    }
+
+    /** true if there exists the next element */
+    inline
+    bool hasNext() const
+    {
+      return _pointer != _afterLast;
+    }
+
+    /** return the next element */
+    inline
+    const C& next()
+    {
+      ASS(hasNext());
+      C* res=_pointer;
+      _pointer++;
+      if(_pointer==_end) {
+	_pointer=_begin;
+      }
+      return *res;
+    }
+
+  private:
+    C* _pointer;
+    C* _begin;
+    C* _end;
+    C* _afterLast;
+  };
+
+  /**
+   * Iterator iterates over the elements of a deque from back to front.
+   *
+   *  @warning The contents of the stack should not be changed by
+   *           other operations when a stack is traversed using an
+   *           iterator
+   */
+  class BackToFrontIterator {
+  public:
+    DECL_ELEMENT_TYPE(C);
+    /** create an iterator for @b d */
+    inline
+    explicit BackToFrontIterator (Deque& d)
+      : _pointer(d._back), _begin(d._data), _end(d._end), _last(d._front)
+    {
+    }
+
+    /** true if there exists the next element */
+    inline
+    bool hasNext() const
+    {
+      return _pointer != _last;
+    }
+
+    /** return the next element */
+    inline
+    const C& next()
+    {
+      ASS(hasNext());
+      if(_pointer==_begin) {
+	_pointer=_end;
+      }
+      _pointer--;
+      return *_pointer;
+    }
+
+  private:
+    C* _pointer;
+    C* _begin;
+    C* _end;
+    C* _last;
+  };
+
 
 protected:
   /** Capacity of the stack */

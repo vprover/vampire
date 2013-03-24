@@ -25,7 +25,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
-#include "Shell/TPTP.hpp"
+#include "Shell/TPTPPrinter.hpp"
 #include "Shell/VarManager.hpp"
 
 namespace Api {

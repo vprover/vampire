@@ -280,6 +280,44 @@ protected:
 #endif
   } // Map::replace
 
+  
+  /**
+   * Assign pointer to value stored under @b key into @b pval.
+   * If nothing was previously stored under @b key, initialize
+   * the value with @b initial, and return true. Otherwise,
+   * return false.
+   */
+  bool getValuePtr(Key key, Val*& pval, const Val& initial)
+  {
+    CALL("Map::getValuePtr");
+
+    if (_noOfEntries >= _maxEntries) { // too many entries
+      expand();
+    }
+    unsigned code = Hash::hash(key);
+    if (code == 0) {
+      code = 1;
+    }
+    Entry* entry;
+    for (entry = firstEntryForCode(code);
+	 entry->occupied();
+	 entry = nextEntry(entry)) {
+      if (entry->code == code &&
+	  Lib::DefaultEq::equals(entry->key, key)) {
+	pval = &entry->value;
+	return false;
+      }
+    }
+    // entry is not occupied
+    _noOfEntries++;
+    entry->key = key;
+    entry->value = initial;
+    entry->code = code;
+    pval = &entry->value;
+    return true;
+  }
+  
+  
   /**
    * Delete all entries.
    * @since 07/08/2005 Redmond
