@@ -252,7 +252,7 @@ void outputResult(ostream& out) {
     cout<<"sat"<<endl;
 #if GNUMP
     UIHelper::outputAssignment(*env.statistics->satisfyingAssigment, cout);
-#endif //GNUMPr
+#endif //GNUMP
     break;
   case Statistics::REFUTATION:
     cout<<"unsat"<<endl;
