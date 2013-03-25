@@ -34,7 +34,7 @@ using namespace Shell;
  * Base class for assignment selectors that decide only based on the value
  * of the upper and lower bound
  *
- * The implmentor must override either @c getAnyAssignment() or all of
+ * The implementor must override either @c getAnyAssignment() or all of
  * @c getBoundedAssignment(), @c getLeftBoundedAssignment(),
  * @c getRightBoundedAssignment() and @c getUnboundedAssignment().
  */
