@@ -14,7 +14,8 @@
 #include "Lib/Stack.hpp"
 
 #include "Kernel/V2CIndex.hpp"
-
+#include "Lib/Environment.hpp"
+#include "Kernel/Signature.hpp"
 #include "BoundsArray.hpp"
 
 namespace Solving {

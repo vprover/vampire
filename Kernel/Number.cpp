@@ -139,6 +139,120 @@ void reduceIntNumbers(size_t cnt, long double** vals)
   }
 }
 
+/**
+ * Given a double number count how many decimals appear on the right hand side
+ * of the "." The counting is done up to maximum MAX_DP precission. Default value
+ * is 7, but precission can be increased if needed.
+ * @param c dbVal - the double to count precision for
+ */
+int getDecimalPlaces(double dbVal)
+{
+  dbVal = fmod(dbVal, 1); /* NO NEED TO CONSIDER NUMBERS TO THE LEFT OF THE DECIMAL */
+  static const int MAX_DP = 7;
+  double THRES = pow(0.1, MAX_DP);
+  if (dbVal == 0.0)
+    return 0;
+  int nDecimal = 0;
+
+  /* MUST CHECK CEIL AND FLOOR DIFFERENCES */
+  while (dbVal - floor(dbVal) > THRES &&
+	 ceil(dbVal) - dbVal > THRES &&
+	 nDecimal < MAX_DP)
+    {
+      dbVal *= 10.0;
+      THRES *= 10.0; /* THRES MUST INCREASE AS THE NUMBER INCREASES */
+      nDecimal++;
+    }
+  return nDecimal;
+}
+
+/**
+ * Converts the value of
+ * @param dbVal - the double to convert
+ * into the rational number with
+ * @param num - numerator
+ * @param den - denominator .
+ */
+void doubleToRational(double dbVal, long long* num, long long* den){
+	int noDec;
+	noDec = getDecimalPlaces(dbVal);
+	//if the number has no values after '.' than just set the denominator to 1
+	//and the numerator to the casted value of the double
+	if (noDec == 0){
+		*den = 1;
+		*num = (long long)dbVal;
+		return;
+	}
+	//this approach does not normalize the rational number. An improvement would
+	//be to divide both numbers by the gcd(den,num)
+	*den = pow(10,noDec);
+	dbVal = dbVal * (*den);
+	//cut the integer part and store it into a temp
+	long double temp;
+	modf(dbVal, &temp);
+	//cast and store the actual denominator
+	*num = (long long)temp;
+}
+
+/**
+ * Using the continuous fraction decomposition compute the number in the interval
+ * [@param lhs, @param rhs]. And return a long double representation of the chosen
+ * number
+ */
+long double getDoubleNumber(double lhs, double rhs) {
+	long long numLhs, numRhs, denLhs, denRhs;
+	//compute the rational numbers for lhs and rhs
+	doubleToRational(lhs, &numLhs, &denLhs);
+	doubleToRational(rhs, &numRhs, &denRhs);
+	//if either of them is 0 then return 0 - this should never happen
+	if ( nativeEqual(rhs,0) || nativeEqual(lhs,0) )
+		return 0.0;
+	//if the values are equal then return one of them
+	if( nativeEqual(lhs,rhs))
+		return lhs;
+
+	int noIntegerParts = 0;
+	//intermediate integer part
+	Array<long long> res;
+	//temporary results;
+	long long tempA, tempDenA, tempB, tempDenB;
+	do {
+		tempA = numLhs / denLhs;
+		tempDenA = numLhs % denLhs;
+		tempB = numRhs / denRhs;
+		tempDenB = numRhs % denRhs;
+		numLhs = denLhs;
+		denLhs = tempDenA;
+		numRhs = denRhs;
+		denRhs = tempDenB;
+		res[noIntegerParts++] = tempA;
+	} while (tempA == tempB && denLhs != 0 && denRhs !=0);
+	long long den = 1, num = 1;
+	//we managed to find the first two different integer parts
+	//now pick the smallest one and add 1
+	if (tempA > tempB) {
+		//take tempB
+		den = tempB + den;
+	} else {
+		//take tempA
+		den = tempA + den;
+	}
+
+	//construct the new rational number
+	for (int i = noIntegerParts - 2; i > 0; i--) {
+		long long tempDen = den;
+		den = (res[i] * den) + num;
+		num = tempDen;
+	}
+	//add the initial integer part
+	num = res[0] * den + num;
+	long double result;
+	//compute the actual value
+	result = (long double) num / den;
+	return result;
+}
+
+
 }
 
 using namespace Lib;
@@ -242,30 +356,39 @@ BoundNumber BoundNumber::getRandomValue(const BoundNumber& min, const BoundNumbe
   }
 }
 
+/**
+ * get a number in the interval from this and the rhs. The value is compted
+ * using the continued fraction decomposition algorithm.
+ * details about the algorithm:
+ * @href http://en.wikipedia.org/wiki/Continued_fraction
+ */
 BoundNumber BoundNumber::getMagicNumber(BoundNumber& rhs){
 	CALL("BoundNumber::getMagicNumber");
 	if (this->usePrecise()){
-	    mpz_class intA(getPrecise().get_num()),
-	    		intB(rhs.getPrecise().get_num()),
-	    		decA(getPrecise().get_den()),
-	    		decB(rhs.getPrecise().get_den());
+		if(mpq_cmp( this->getPrecise().__get_mp(), rhs.getPrecise().__get_mp()))
+			return rhs;
+
+	    mpz_class numLhs(getPrecise().get_num()),
+	    		numRhs(rhs.getPrecise().get_num()),
+	    		denLhs(getPrecise().get_den()),
+	    		denRhs(rhs.getPrecise().get_den());
 		//intermediate integer part
-	    int numb = 0;
+	    int noIntegerParts = 0;
 	    Array<mpz_class>res;
 	    //temporary results;
 	    mpz_class tempA, tempDenA, tempB, tempDenB;
 
 	    do{
-	    	tempA = intA / decA;
-	    	tempDenA = intA % decA;
-	    	tempB = intB / decB;
-	    	tempDenB = intB % decB;
-	    	intA = decA;
-	    	decA = tempDenA;
-	    	intB = decB;
-	    	decB = tempDenB;
-	    	res[numb++] = tempA;
-	    	}while(!mpz_cmp(tempA.__get_mp(), tempB.__get_mp()));
+	    	tempA = numLhs / denLhs;
+	    	tempDenA = numLhs % denLhs;
+	    	tempB = numRhs / denRhs;
+	    	tempDenB = numRhs % denRhs;
+	    	numLhs = denLhs;
+	    	denLhs = tempDenA;
+	    	numRhs = denRhs;
+	    	denRhs = tempDenB;
+	    	res[noIntegerParts++] = tempA;
+	    	}while(!mpz_cmp(tempA.__get_mp(), tempB.__get_mp()) && !mpz_cmp(denLhs.__get_mp(), 0) && !mpz_cmp(denRhs.__get_mp(),0));
 
 	    mpz_class den(1),num(1);
 	    if(mpz_cmp(tempA.__get_mp(),tempB.__get_mp())>0){
@@ -276,7 +399,7 @@ BoundNumber BoundNumber::getMagicNumber(BoundNumber& rhs){
 	    	den = tempA + den;
 	    }
 
-	    for (int i = numb-2; i>0 ; i--) {
+	    for (int i = noIntegerParts-2; i>0 ; i--) {
 	    	mpz_class tempDen = den;
 	    	den = (res[i] * den) + num;
 	    	num = tempDen;
@@ -287,9 +410,11 @@ BoundNumber BoundNumber::getMagicNumber(BoundNumber& rhs){
 	}
 	//if we are here that means we do not have to use precise representation
 	ASS(!usePrecise());
-    //this means we can pick any random value in the interval .. this is not the way it should be
-	//but it serves the purpose of testing the precise pick of rational value
-    return getRandomValue(BoundNumber(getNative()), rhs);
+	NativeNumber left, right;
+	left = getNative();
+	right = rhs.getNative();
+
+    return BoundNumber(getDoubleNumber((double)left,(double)right));
 
 
 }

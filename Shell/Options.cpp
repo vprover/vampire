@@ -138,6 +138,8 @@ const char* Options::Constants::_optionNames[] = {
   "color_unblocking",
   "condensation",
   "conflict_selection",
+  "cons_a_s",
+  "cons_c_p",
 
   "decode",
   "demodulation_redundancy_check",
@@ -314,6 +316,8 @@ const char* Options::Constants::_shortNames[] = {
   "bsr",
   "cond",
   "cs",
+  "cas",
+  "cup",
   "drc",
   "ep",
   "erd",
@@ -395,6 +399,8 @@ int Options::Constants::shortNameIndexes[] = {
   BACKWARD_SUBSUMPTION_RESOLUTION,
   CONDENSATION,
   CONFLICT_SELECTOR,
+  CONSERVATIVE_ASSIGNMENT_SELECTOR,
+  CONSERVATIVE_COLLAPSING_PROPAGATION,
   DEMODULATION_REDUNDANCY_CHECK,
   EQUALITY_PROXY,
   EQUALITY_RESOLUTION_WITH_DELETION,
@@ -754,12 +760,12 @@ Options::Options ()
   _almostHalfBoundingRemoval(AHR_ON),
   _assignmentSelector(ASG_RANDOM),
   _backjumpTargetIsDecisionPoint(true),
-  _collapsingBoundPropagation(true),
+  _collapsingBoundPropagation(false),
   _equivalentVariableRemoval(true),
   _fmElimination(true),
   _conflictSelector(CS_MOST_RECENT),
   _maximalPropagatedEqualityLength(5),
-  _conservativeAssignmentSelection(false),
+  _conservativeAssignmentSelection(true),
   _selectUnusedVariablesFirst(false),
   _updatesByOneConstraint(3),
   _variableSelector(VS_TIGHTEST_BOUND),
@@ -1098,6 +1104,13 @@ void Options::set(const char* name,const char* value, int index)
     case CONFLICT_SELECTOR:
       _conflictSelector = (ConflictSelector)Constants::conflictSelectorValues.find(value);
       return;
+
+    case CONSERVATIVE_ASSIGNMENT_SELECTOR:
+    	_conservativeAssignmentSelection = onOffToBool(value,name);
+    	return;
+    case CONSERVATIVE_COLLAPSING_PROPAGATION:
+    	_collapsingBoundPropagation = onOffToBool(value,name);
+    	return;
 
     case DECODE:
       readFromTestId(value);
@@ -2028,6 +2041,12 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << Constants::conflictSelectorValues[_conflictSelector];
     return;
 
+  case CONSERVATIVE_ASSIGNMENT_SELECTOR:
+	str << boolToOnOff(_conservativeAssignmentSelection);
+	return;
+  case CONSERVATIVE_COLLAPSING_PROPAGATION:
+	str << boolToOnOff(_collapsingBoundPropagation);
+	return;
   case DECODE: // no output for DECODE
     return;
   case DEMODULATION_REDUNDANCY_CHECK:

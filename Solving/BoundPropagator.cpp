@@ -13,7 +13,6 @@
 #include "Shell/Statistics.hpp"
 
 #include "Solver.hpp"
-
 #include "BoundPropagator.hpp"
 
 #undef LOGGING
@@ -263,13 +262,13 @@ BoundSuggestionResult BoundPropagator::propagateBounds(Constraint& constr, Var v
     }
     nonStrict &= !boundStrict;
     boundValue -= boundVal*coeff.value;
-    LOG("tkv_bK", "value "<<currVar<<" " <<boundValue);
+    LOG("tkv_bK", "value "<<env.signature->varName(currVar)<<" " <<boundValue);
 
     ASS(_bounds.getBounds(srcBound).isNonEmpty());
     size_t boundIndex = _bounds.getBounds(srcBound).size()-1;
     boundSpecs.push(BoundSpec(srcBound, boundIndex));
   }
-  LOG("tkv_bK","before the ASS_NEQ "<<constr.toString());
+
   ASS_NEQ(vCoeff, CoeffNumber::zero());
 
   BoundId newBoundId(v, resultLeft);

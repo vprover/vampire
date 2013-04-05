@@ -165,16 +165,50 @@ protected:
 		return;
 		}
 	if(_rightBound.isPositive() && _leftBound.isNegative()){
-		result = BoundNumber::zero();
+		if(Random::getBit()){
+			result = BoundNumber::zero();
+		}
+		else {
+			result = BoundNumber::getRandomValue(_leftBound, _rightBound);
+		}
 		return;
 	}
 
 	if(_rightBound.isZero()){
-		result = BoundNumber::getRandomValue(_leftBound, BoundNumber::zero());
+		if (_rightStrict){
+			result = BoundNumber::getRandomValue(_leftBound, BoundNumber::zero());
+			return;
+		}
+		if (Random::getBit()){
+			result = _rightBound;
+		}
+		else {
+			if(_leftStrict){
+				result = BoundNumber::getRandomValue(_leftBound, _rightBound);
+				return;
+			}
+			result = _leftBound;
+			return;
+		}
 		return;
 	}
 	if (_leftBound.isZero()){
-		result = BoundNumber::getRandomValue(BoundNumber::zero(), _rightBound);
+		if (_leftStrict){
+			result = BoundNumber::getRandomValue(BoundNumber::zero(), _rightBound);
+			return;
+		}
+		if (_rightStrict){
+			result = BoundNumber::getRandomValue(_leftBound, _rightBound);
+			return;
+		}
+		if (Random::getBit()){
+			result=_rightBound;
+			return;
+		}
+		else{
+			result = _leftBound;
+			return;
+		}
 		return;
 	}
 
@@ -769,8 +803,9 @@ protected:
   if ( usingPreciseNumbers() ) {
     //in case we are already using precise numbers, than simply pick a random value
     // in the interval
-    result = BoundNumber::getRandomValue(_leftBound, _rightBound);
-    return ;
+    //result = BoundNumber::getRandomValue(_leftBound, _rightBound);
+    getMiddlePoint(_leftBound.floor(), _rightBound.ceil(),result);
+    return;
   }
   //in the case where we use long doubles
   ASS( !usingPreciseNumbers() );
