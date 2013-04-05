@@ -232,7 +232,7 @@ protected:
 		result = _leftBound;
 	}
 	else{
-		result = _leftBound + ( _leftBound.abs()/BoundNumber(1000) );
+		result = _leftBound + ( _leftBound.abs()/BoundNumber(10) );
 	}
 
 	}
@@ -243,7 +243,7 @@ protected:
 		result = _rightBound;
 	}
 	else {
-		result = _rightBound - ( _rightBound.abs()/BoundNumber(1000) );
+		result = _rightBound - ( _rightBound.abs()/BoundNumber(10) );
 	}
 	}
 
@@ -312,15 +312,27 @@ public:
 protected:
   virtual void getBoundedAssignment(BoundNumber& result){
   CALL("UpperBoundAssignmentSelector:getBoundedAssignment");
+  //right bound is not strict => pick it!
   if(!_rightStrict) {
     result = _rightBound;
-  }
+    return;
+  } //right bound is strict
   else {
-	  if (!_leftStrict){
-		  result = _leftBound;
+	  //randomly choos to either pick right bound - some value or the left bound
+	  if (Random::getBit()){
+		  result = _rightBound - (_rightBound.abs()+_leftBound.abs())/BoundNumber::two();
+		  return;
 	  }
-	  else
-		  result = _rightBound - (BoundNumber(0.100));
+	  else {
+		  if (!_leftStrict){
+			  result = _leftBound;
+			  return;
+		  }
+		  else {
+			  result = _rightBound - (_rightBound.abs()+_leftBound.abs())/BoundNumber::two();
+			  return;
+		  }
+	  }
   }
   }
 
@@ -328,9 +340,10 @@ protected:
     CALL("UpperBoundAssignmentSelector:getLeftBoundedAssignment");
     if( !_leftStrict ) {
       result = _leftBound;
+      return;
     }
     else {
-      result = _leftBound + BoundNumber(0.001);
+      result = _leftBound + BoundNumber(0.125);
     }
   }
 
@@ -340,7 +353,7 @@ protected:
       result = _rightBound;
     }
     else {
-      result = _rightBound - BoundNumber(0.001);
+      result = _rightBound - BoundNumber(0.125);
     }
   }
   virtual void getUnboundedAssignment(BoundNumber& result){
@@ -364,7 +377,7 @@ protected:
     result = _leftBound;
   }
   else {
-    result = _leftBound + (_rightBound - _leftBound)/BoundNumber::two();
+    result = _leftBound + (_leftBound.abs())/BoundNumber::two();
     }
   }
 
@@ -374,7 +387,7 @@ protected:
       result = _leftBound;
     }
     else {
-      result = _leftBound + BoundNumber(0.001);
+      result = _leftBound + BoundNumber(0.125);
     }
   }
   virtual void getRightBoundedAssignment(BoundNumber& result){
@@ -383,7 +396,7 @@ protected:
       result = _rightBound;
     }
     else {
-      result = _rightBound - BoundNumber(0.001);
+      result = _rightBound - BoundNumber(0.125);
     }
   }
   virtual void getUnboundedAssignment(BoundNumber& result){
@@ -408,7 +421,7 @@ protected:
       result = _rightBound;
     }
     else {
-      result = _rightBound - BoundNumber(0.05);
+      result = _rightBound - BoundNumber(0.125);
     }
     _upper = false;
   }
@@ -418,7 +431,7 @@ protected:
       result = _leftBound;
     }
     else {
-      result = _leftBound + BoundNumber(0.05);
+      result = _leftBound + BoundNumber(0.125);
     }
     _upper = true;
   }
@@ -431,7 +444,7 @@ protected:
       result = _leftBound;
     }
     else {
-      result = _leftBound + BoundNumber(0.05);
+      result = _leftBound + BoundNumber(0.00125);
     }
   }
 
@@ -441,12 +454,19 @@ protected:
       result = _rightBound;
     }
     else {
-      result = _rightBound - BoundNumber(0.05);
+      result = _rightBound - BoundNumber(0.125);
     }
   }
   virtual void getUnboundedAssignment(BoundNumber& result){
     CALL("AlternativeAssignmentSelector:getUnboundedAssignment");
-    result = BoundNumber::getRandomValue(BoundNumber(-100),BoundNumber(100));
+    if (Random::getBit()){
+    	result = BoundNumber::getRandomValue(BoundNumber(-100),BoundNumber(100));
+    	return;
+    }
+    else {
+    	result = BoundNumber::zero();
+    	return;
+    }
   }
 private:
   bool _upper;
