@@ -162,14 +162,24 @@ public:
 
   /**Ceil of the number*/
   T ceil() const {
-     ASS(!usePrecise());
-     return T(ceill(native()));
+	  if(usePrecise()){
+		  return T(::abs(::ceil((mpf_class)(precise()))));
+	  }
+	  else {
+		  ASS(!usePrecise());
+		  return T(ceill(native()));
+	  }
   }
 
   /**Floor of the number*/
   T floor() const {
-    ASS(!usePrecise());
-    return T(floorl(native()));
+	  if(usePrecise()){
+	  		  return T(::abs(::floor((mpf_class)(precise()))));
+	  	  }
+	  else {
+	  	  ASS(!usePrecise());
+	  	  return T(floorl(native()));
+	  }
   }
   //useful constants
   static const T& zero() { static T res(0); return res; }

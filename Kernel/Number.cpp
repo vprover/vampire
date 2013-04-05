@@ -23,14 +23,12 @@ namespace Kernel
 
 namespace __Aux_Number
 {
-#define NOIT 20000000
 
 bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2)
 {
   CALL("nativeEqual");
 
   NativeNumber diff=fabs(n1-n2);
-//  return diff<=0.01;
   if(n1>1) {
     return diff<=(fabs(n1)*1E-11);
   }
