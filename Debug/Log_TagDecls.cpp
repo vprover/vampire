@@ -1267,6 +1267,9 @@ void Logging::doTagDeclarations()
   DECL("tkv_constraint",
       DOC("constraints on which we propagate"),
       PARENT("tkv",1));
+  DECL("tkv_precise",
+		  DOC("traces when we switch to precise"),
+		  PARENT("tkv",1));
   DECL("bp_colapsing",
       DOC("bound prop colapsing"),
       PARENT("tkv",1));

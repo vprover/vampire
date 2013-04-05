@@ -15,7 +15,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Stack.hpp"
-
+#include "Lib/Array.hpp"
 #include "Number.hpp"
 
 namespace Kernel
@@ -23,6 +23,7 @@ namespace Kernel
 
 namespace __Aux_Number
 {
+#define NOIT 20000000
 
 bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2)
 {
@@ -243,6 +244,58 @@ BoundNumber BoundNumber::getRandomValue(const BoundNumber& min, const BoundNumbe
   }
 }
 
+BoundNumber BoundNumber::getMagicNumber(BoundNumber& rhs){
+	CALL("BoundNumber::getMagicNumber");
+	if (this->usePrecise()){
+	    mpz_class intA(getPrecise().get_num()),
+	    		intB(rhs.getPrecise().get_num()),
+	    		decA(getPrecise().get_den()),
+	    		decB(rhs.getPrecise().get_den());
+		//intermediate integer part
+	    int numb = 0;
+	    Array<mpz_class>res;
+	    //temporary results;
+	    mpz_class tempA, tempDenA, tempB, tempDenB;
+
+	    do{
+	    	tempA = intA / decA;
+	    	tempDenA = intA % decA;
+	    	tempB = intB / decB;
+	    	tempDenB = intB % decB;
+	    	intA = decA;
+	    	decA = tempDenA;
+	    	intB = decB;
+	    	decB = tempDenB;
+	    	res[numb++] = tempA;
+	    	}while(!mpz_cmp(tempA.__get_mp(), tempB.__get_mp()));
+
+	    mpz_class den(1),num(1);
+	    if(mpz_cmp(tempA.__get_mp(),tempB.__get_mp())>0){
+	    	//take tempB
+	    	den = tempB + den;
+	    } else {
+	    	//take tempA
+	    	den = tempA + den;
+	    }
+
+	    for (int i = numb-2; i>0 ; i--) {
+	    	mpz_class tempDen = den;
+	    	den = (res[i] * den) + num;
+	    	num = tempDen;
+	    	}
+	    num = res[0]*den + num;
+	    mpq_class result(num, den);
+	    return BoundNumber(result);
+	}
+	//if we are here that means we do not have to use precise representation
+	ASS(!usePrecise());
+    //this means we can pick any random value in the interval .. this is not the way it should be
+	//but it serves the purpose of testing the precise pick of rational value
+    return getRandomValue(BoundNumber(getNative()), rhs);
+
+
+}
+
 bool usingPreciseNumbers()
 {
   CALL("usingPreciseNumbers");
@@ -261,7 +314,7 @@ void switchToPreciseNumbers()
 {
   CALL("switchToPreciseNumbers");
   ASS(!CommonNumberBase::usePrecise());
-
+  LOG("tkv_precise","Switched to precise");
   CommonNumberBase::switchToPreciseNumbers();
   ASS(CommonNumberBase::usePrecise());
 }

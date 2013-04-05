@@ -703,6 +703,7 @@ const char* Options::Constants::_assignmentSelectorValues[] {
 	"lower_bound",
 	"middle",
 	"random",
+	"rational",
 	"smallest",
 	"tight",
 	"tightish",

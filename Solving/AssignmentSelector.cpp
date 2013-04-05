@@ -5,6 +5,7 @@
 #if GNUMP
 
 #include "Lib/ArrayMap.hpp"
+#include "Lib/Array.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Random.hpp"
@@ -19,6 +20,8 @@
 #include "Solver.hpp"
 
 #include "AssignmentSelector.hpp"
+
+#include <cmath>
 
 #undef LOGGING
 #define LOGGING 0
@@ -53,17 +56,17 @@ public:
 
     if(_hasLeft) {
       if(_leftStrict) {
-	if(num<=_leftBound) { return false; }
+    	  if(num<=_leftBound) { return false; }
       }
       else {
-	if(num<_leftBound) { return false; }
+    	  if(num<_leftBound) { return false; }
       }
     }
     if(_hasRight) {
       if(_rightStrict) {
 	if(num>=_rightBound) {
-		LOG("tkv","upper bound fail");
-		return false; }
+		return false;
+		}
       }
       else {
 	if(num>_rightBound) { return false; }
@@ -152,20 +155,39 @@ class RationalAssignmentSelector : public ConvenientAssignmentSelector
 public:
 	RationalAssignmentSelector(Solver& s) : ConvenientAssignmentSelector(s) {}
 protected:
-	void getMagicNumber(BoundNumber& result){
-	CALL("RationalAssignmentSelector:getMagicNumber");
 
-
-	}
 	//perform the selection algorithm
 	virtual void getBoundedAssignment(BoundNumber& result){
 	CALL("RationalAssignmentSelector:getBoundedAssignment");
 	//if the bounds are equal than just pick one
-	if (_rightBound == _leftBound){
+	if (_rightBound.abs() == _leftBound.abs() ){
 		result = _rightBound;
+		return;
 		}
+	if(_rightBound.isPositive() && _leftBound.isNegative()){
+		result = BoundNumber::zero();
+		return;
+	}
+
+	if(_rightBound.isZero()){
+		result = BoundNumber::getRandomValue(_leftBound, BoundNumber::zero());
+		return;
+	}
+	if (_leftBound.isZero()){
+		result = BoundNumber::getRandomValue(BoundNumber::zero(), _rightBound);
+		return;
+	}
+
+	if(_leftBound.isNegative() && _rightBound.isNegative()){
+		//we play nicely with the positive values
+		BoundNumber absl = _leftBound.abs();
+		BoundNumber absr = _rightBound.abs();
+		result = -(absl.getMagicNumber(absr));
+		return;
+	}
 	else {
-		getMagicNumber(result);
+		result = _leftBound.getMagicNumber(_rightBound);
+		return;
 	}
 
 	}
@@ -176,7 +198,7 @@ protected:
 		result = _leftBound;
 	}
 	else{
-		result = _leftBound + ( _leftBound.abs()/BoundNumber(100) );
+		result = _leftBound + ( _leftBound.abs()/BoundNumber(1000) );
 	}
 
 	}
@@ -187,7 +209,7 @@ protected:
 		result = _rightBound;
 	}
 	else {
-		result = _rightBound - ( _rightBound.abs()/BoundNumber(100) );
+		result = _rightBound - ( _rightBound.abs()/BoundNumber(1000) );
 	}
 	}
 
@@ -198,7 +220,7 @@ protected:
 		result = BoundNumber::zero();
 	}
 	else {
-		result = BoundNumber::getRandomValue(BoundNumber(-100), BoundNumber(100));
+		result = BoundNumber::getRandomValue(BoundNumber(-1000), BoundNumber(1000));
 	}
 
 	}
@@ -845,6 +867,9 @@ AssignmentSelector* AssignmentSelector::create(Solver& s, Options& opt)
   case Options::ASG_RANDOM:
     res = new RandomAssignmentSelector(s);
     break;
+  case Options::ASG_RATIONAL:
+	res = new RationalAssignmentSelector(s);
+	break;
   case Options::ASG_SMALLEST:
     res = new SmallestAssignmentSelector(s);
     break;

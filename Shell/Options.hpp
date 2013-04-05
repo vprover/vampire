@@ -259,11 +259,12 @@ public:
     ASG_LOWER = 2,
     ASG_MIDDLE = 3,
     ASG_RANDOM = 4,
-    ASG_SMALLEST = 5,
-    ASG_TIGHT = 6,
-    ASG_TIGHTISH = 7,
-    ASG_BIGGEST = 8,
-    ASG_UPPER = 9
+    ASG_RATIONAL = 5,
+    ASG_SMALLEST = 6,
+    ASG_TIGHT = 7,
+    ASG_TIGHTISH = 8,
+    ASG_BIGGEST = 9,
+    ASG_UPPER = 10
   };
   
   enum ConflictSelector{

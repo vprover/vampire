@@ -12,7 +12,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Exception.hpp"
-#include "cmath"
+#include <cmath>
 
 namespace Kernel {
 
@@ -359,7 +359,9 @@ public:
     }
     return *this;
   }
-
+  BoundNumber getMagicNumber(BoundNumber& rhs);
+  NativeNumber getNative() {ASS(!usePrecise()); return native();}
+  Precise& getPrecise() {ASS(usePrecise()); return precise();}
 };
 
 void switchToPreciseNumbers();
