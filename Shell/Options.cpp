@@ -760,7 +760,7 @@ Options::Options ()
   _almostHalfBoundingRemoval(AHR_ON),
   _assignmentSelector(ASG_RANDOM),
   _backjumpTargetIsDecisionPoint(true),
-  _collapsingBoundPropagation(true),
+  _collapsingBoundPropagation(false),
   _equivalentVariableRemoval(true),
   _fmElimination(true),
   _conflictSelector(CS_MOST_RECENT),
