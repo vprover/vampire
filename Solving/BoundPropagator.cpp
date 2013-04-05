@@ -264,6 +264,7 @@ BoundSuggestionResult BoundPropagator::propagateBounds(Constraint& constr, Var v
     boundValue -= boundVal*coeff.value;
     LOG("tkv_bK", "value "<<env.signature->varName(currVar)<<" " <<boundValue);
 
+
     ASS(_bounds.getBounds(srcBound).isNonEmpty());
     size_t boundIndex = _bounds.getBounds(srcBound).size()-1;
     boundSpecs.push(BoundSpec(srcBound, boundIndex));

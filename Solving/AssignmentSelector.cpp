@@ -232,7 +232,7 @@ protected:
 		result = _leftBound;
 	}
 	else{
-		result = _leftBound + ( _leftBound.abs()/BoundNumber(100) );
+		result = _leftBound + ( _leftBound.abs()/BoundNumber(1000) );
 	}
 
 	}
@@ -243,7 +243,7 @@ protected:
 		result = _rightBound;
 	}
 	else {
-		result = _rightBound - ( _rightBound.abs()/BoundNumber(100) );
+		result = _rightBound - ( _rightBound.abs()/BoundNumber(1000) );
 	}
 	}
 
@@ -254,7 +254,7 @@ protected:
 		result = BoundNumber::zero();
 	}
 	else {
-		result = BoundNumber::getRandomValue(BoundNumber(-100), BoundNumber(100));
+		result = BoundNumber::getRandomValue(BoundNumber(-1000), BoundNumber(1000));
 	}
 
 	}

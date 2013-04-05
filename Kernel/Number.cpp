@@ -23,6 +23,7 @@ namespace Kernel
 
 namespace __Aux_Number
 {
+#define NOIT 20000000
 
 bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2)
 {
@@ -415,7 +416,6 @@ BoundNumber BoundNumber::getMagicNumber(BoundNumber& rhs){
 	right = rhs.getNative();
 
     return BoundNumber(getDoubleNumber((double)left,(double)right));
-
 
 }
 
