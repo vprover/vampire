@@ -165,7 +165,12 @@ protected:
 		return;
 		}
 	if(_rightBound.isPositive() && _leftBound.isNegative()){
-		result = BoundNumber::zero();
+		if(Random::getBit()){
+			result = BoundNumber::zero();
+		}
+		else {
+			result = BoundNumber::getRandomValue(_leftBound, _rightBound);
+		}
 		return;
 	}
 
