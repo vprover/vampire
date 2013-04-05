@@ -472,17 +472,6 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/TWLSolver.o\
 	       SAT/VariableSelector.o\
 	       Test/RecordingSatSolver.o
-#VSOL_OBJ = Solving/AssignmentSelector.o\
-           Solving/BoundsArray.o\
-           Solving/BoundPropagator.o\
-           Solving/ConflictSelector.o\
-           Solving/ConflictingVariableSelector.o\
-           Solving/DecisionStack.o\
-           Solving/GraphPropagator.o\
-           Solving/LookAheadVariableSelector.o\
-           Solving/Solver.o\
-           Solving/VariableSelector.o
-
 
 BP_VD_OBJ = Debug/Assertion.o\
          Debug/Log.o\
@@ -518,37 +507,20 @@ BP_VLS_OBJ= Lib/Sys/Multiprocessing.o\
          Lib/Sys/Semaphore.o\
          Lib/Sys/SyncPipe.o
 
-         #Shell/ConstraintReader.o\
-BP_VS_OBJ = Shell/CommandLine.o\
-         Shell/ConstantRemover.o\
-         Shell/EqualityVariableRemover.o\
-         Shell/EquivalentVariableRemover.o\
-         Shell/HalfBoundingRemover.o\
-         Shell/Lexer.o\
-         Shell/Options.o\
-         Shell/Parser.o\
-         Shell/Preprocess.o\
-         Shell/SMTLexer.o\
-         Shell/SMTParser.o\
- 	 Shell/Statistics.o\
- 	 Shell/SubsumptionRemover.o\
-         Shell/Token.o\
-         Shell/UIHelper.o
-
 BP_VSOL_OBJ = Solving/AssignmentSelector.o\
            Solving/BoundsArray.o\
            Solving/BoundPropagator.o\
            Solving/ConflictSelector.o\
            Solving/ConflictingVariableSelector.o\
            Solving/DecisionStack.o\
-           Solving/LookAheadVariableSelector.o\
            Solving/Solver.o\
+           Solving/LookAheadVariableSelector.o\
            Solving/VariableSelector.o
 
 BP_MPS_OBJ = MPSLib/Gmputils.o\
 	MPSLib/Model.o\
 	MPSLib/Mpsinput.o
-	#MPSLib/MpsConstraintReader.o
+
 # testing procedures
 BP_VT_OBJ = Test/UnitTesting.o
 
