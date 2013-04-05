@@ -258,7 +258,7 @@ protected:
 		result = BoundNumber::zero();
 	}
 	else {
-		result = BoundNumber::getRandomValue(BoundNumber(-1000), BoundNumber(1000));
+		result = BoundNumber::getRandomValue(BoundNumber(-100), BoundNumber(100));
 	}
 
 	}
