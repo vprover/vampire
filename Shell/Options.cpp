@@ -132,7 +132,7 @@ const char* Options::Constants::_optionNames[] = {
   "bp_almost_half_bounding_removal",
   "bp_fm_balance",
   "bp_fm_elimination",
-  "bp_max_prop_legnth",
+  "bp_max_prop_length",
   "bp_update_by_one_constraint",
 
   "color_unblocking",
@@ -753,7 +753,7 @@ Options::Options ()
   _almostHalfBoundingRemoval(AHR_ON),
   _assignmentSelector(ASG_RANDOM),
   _backjumpTargetIsDecisionPoint(true),
-  _collapsingBoundPropagation(false),
+  _collapsingBoundPropagation(true),
   _equivalentVariableRemoval(true),
   _fmElimination(true),
   _conflictSelector(CS_MOST_RECENT),
@@ -1083,7 +1083,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case BP_UPDATE_BY_ONE_CONSTRAINT:
       if ( Int::stringToUnsignedInt(value, unsignedValue)) {
-	_updatesByOneConstraint = unsignedValue;
+    	  _updatesByOneConstraint = unsignedValue;
       }
       else USER_ERROR("The value must be an integer");
       return;

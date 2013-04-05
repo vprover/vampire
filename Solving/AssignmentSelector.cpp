@@ -61,7 +61,9 @@ public:
     }
     if(_hasRight) {
       if(_rightStrict) {
-	if(num>=_rightBound) { return false; }
+	if(num>=_rightBound) {
+		LOG("tkv","upper bound fail");
+		return false; }
       }
       else {
 	if(num>_rightBound) { return false; }
@@ -143,6 +145,66 @@ protected:
 };
 
 /**
+ * Assignment selector that picks the number based of the rational decomposition
+ */
+class RationalAssignmentSelector : public ConvenientAssignmentSelector
+{
+public:
+	RationalAssignmentSelector(Solver& s) : ConvenientAssignmentSelector(s) {}
+protected:
+	void getMagicNumber(BoundNumber& result){
+	CALL("RationalAssignmentSelector:getMagicNumber");
+
+
+	}
+	//perform the selection algorithm
+	virtual void getBoundedAssignment(BoundNumber& result){
+	CALL("RationalAssignmentSelector:getBoundedAssignment");
+	//if the bounds are equal than just pick one
+	if (_rightBound == _leftBound){
+		result = _rightBound;
+		}
+	else {
+		getMagicNumber(result);
+	}
+
+	}
+	//if the left bound is not strict, than pick it
+	virtual void getLeftBoundedAssignment(BoundNumber& result){
+	CALL("RationalAssignmentSelector:getLeftBoundedAssignment");
+	if (!_leftStrict) {
+		result = _leftBound;
+	}
+	else{
+		result = _leftBound + ( _leftBound.abs()/BoundNumber(100) );
+	}
+
+	}
+	//if the right bound is not strict, than pick it
+	virtual void getRightBoundeAssignment(BoundNumber& result){
+	CALL("RationalAssignmentSelector:getRightBoundedAssignment");
+	if (!_rightStrict){
+		result = _rightBound;
+	}
+	else {
+		result = _rightBound - ( _rightBound.abs()/BoundNumber(100) );
+	}
+	}
+
+	//pick the bound number 0 or a random number between [-100,100]
+	virtual void getUnboundedAssignment(BoundNumber& result){
+	CALL("RationalAssignmentSelector:getUnboundedAssignment");
+	if (Random::getBit()) {
+		result = BoundNumber::zero();
+	}
+	else {
+		result = BoundNumber::getRandomValue(BoundNumber(-100), BoundNumber(100));
+	}
+
+	}
+};
+
+/**
  * Assignment selector which picks the middle of the interval.
  */
 
@@ -198,7 +260,11 @@ protected:
     result = _rightBound;
   }
   else {
-    result = _rightBound - BoundNumber(0.001);
+	  if (!_leftStrict){
+		  result = _leftBound;
+	  }
+	  else
+		  result = _rightBound - (BoundNumber(0.100));
   }
   }
 
@@ -242,7 +308,7 @@ protected:
     result = _leftBound;
   }
   else {
-    result = _leftBound + BoundNumber(0.001);
+    result = _leftBound + (_rightBound - _leftBound)/BoundNumber::two();
     }
   }
 
