@@ -148,7 +148,7 @@ void reduceIntNumbers(size_t cnt, long double** vals)
 int getDecimalPlaces(double dbVal)
 {
   dbVal = fmod(dbVal, 1); /* NO NEED TO CONSIDER NUMBERS TO THE LEFT OF THE DECIMAL */
-  static const int MAX_DP = 7;
+  static const int MAX_DP = 24;
   double THRES = pow(0.1, MAX_DP);
   if (dbVal == 0.0)
     return 0;
@@ -205,11 +205,17 @@ long double getDoubleNumber(double lhs, double rhs) {
 	doubleToRational(lhs, &numLhs, &denLhs);
 	doubleToRational(rhs, &numRhs, &denRhs);
 	//if either of them is 0 then return 0 - this should never happen
-	if ( nativeEqual(rhs,0) || nativeEqual(lhs,0) )
+	if ( nativeEqual(rhs,0) || nativeEqual(lhs,0) ){
 		return 0.0;
+	}
 	//if the values are equal then return one of them
-	if( nativeEqual(lhs,rhs))
+	if( nativeEqual(lhs,rhs)){
 		return lhs;
+	}
+	//if the numbers have nothing after '.' do the mean
+	if(denLhs==1 || denRhs==1){
+		return (long double) (lhs+rhs)/2;
+	}
 
 	int noIntegerParts = 0;
 	//intermediate integer part
@@ -227,8 +233,15 @@ long double getDoubleNumber(double lhs, double rhs) {
 		denRhs = tempDenB;
 		res[noIntegerParts++] = tempA;
 	} while (tempA == tempB && denLhs != 0 && denRhs !=0);
+	if (denLhs == 0 || denRhs==0){
+		return (long double)(lhs+rhs)/2;
+	}
 	long long den = 1, num = 1;
 	//we managed to find the first two different integer parts
+	//if the difference occurs on the first step just do the mean
+	if (noIntegerParts==1){
+		return (long double)(rhs+lhs)/2;
+	}
 	//now pick the smallest one and add 1
 	if (tempA > tempB) {
 		//take tempB
@@ -238,6 +251,7 @@ long double getDoubleNumber(double lhs, double rhs) {
 		den = tempA + den;
 	}
 
+	long double result;
 	//construct the new rational number
 	for (int i = noIntegerParts - 2; i > 0; i--) {
 		long long tempDen = den;
@@ -246,7 +260,6 @@ long double getDoubleNumber(double lhs, double rhs) {
 	}
 	//add the initial integer part
 	num = res[0] * den + num;
-	long double result;
 	//compute the actual value
 	result = (long double) num / den;
 	return result;
@@ -373,6 +386,11 @@ BoundNumber BoundNumber::getMagicNumber(BoundNumber& rhs){
 	    		denLhs(getPrecise().get_den()),
 	    		denRhs(rhs.getPrecise().get_den());
 		//intermediate integer part
+	    if( !cmp(denLhs,1) || !cmp(denRhs,1)){
+	    	mpq_class result(mpz_class(numLhs+numRhs),2);
+	    	return BoundNumber(result);
+	    }
+
 	    int noIntegerParts = 0;
 	    Array<mpz_class>res;
 	    //temporary results;
@@ -389,6 +407,13 @@ BoundNumber BoundNumber::getMagicNumber(BoundNumber& rhs){
 	    	denRhs = tempDenB;
 	    	res[noIntegerParts++] = tempA;
 	    	}while(!mpz_cmp(tempA.__get_mp(), tempB.__get_mp()) && !mpz_cmp(denLhs.__get_mp(), 0) && !mpz_cmp(denRhs.__get_mp(),0));
+	    if(!cmp(denRhs,0) || !cmp(denLhs,0)){
+	    	return BoundNumber(mpq_class(getPrecise()+rhs.getPrecise())/2);
+	    }
+	    //special case if we manage to do only one computation, that means we differ at first division
+	    if( noIntegerParts==1 ){
+	    	return BoundNumber(mpq_class(getPrecise()+rhs.getPrecise())/2);
+	    }
 
 	    mpz_class den(1),num(1);
 	    if(mpz_cmp(tempA.__get_mp(),tempB.__get_mp())>0){

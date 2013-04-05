@@ -175,6 +175,7 @@ protected:
 	}
 
 	if(_rightBound.isZero()){
+		/*
 		if (_rightStrict){
 			result = BoundNumber::getRandomValue(_leftBound, BoundNumber::zero());
 			return;
@@ -189,11 +190,13 @@ protected:
 			}
 			result = _leftBound;
 			return;
-		}
+		}*/
+		result = BoundNumber::getRandomValue(_rightBound,BoundNumber::zero());
+
 		return;
 	}
 	if (_leftBound.isZero()){
-		if (_leftStrict){
+		/*if (_leftStrict){
 			result = BoundNumber::getRandomValue(BoundNumber::zero(), _rightBound);
 			return;
 		}
@@ -208,7 +211,8 @@ protected:
 		else{
 			result = _leftBound;
 			return;
-		}
+		}*/
+		result = BoundNumber::getRandomValue(BoundNumber::zero(),_rightBound);
 		return;
 	}
 
@@ -237,7 +241,7 @@ protected:
 
 	}
 	//if the right bound is not strict, than pick it
-	virtual void getRightBoundeAssignment(BoundNumber& result){
+	virtual void getRightBoundedAssignment(BoundNumber& result){
 	CALL("RationalAssignmentSelector:getRightBoundedAssignment");
 	if (!_rightStrict){
 		result = _rightBound;
