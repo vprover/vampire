@@ -23,6 +23,7 @@ namespace Kernel
 
 namespace __Aux_Number
 {
+#define NOIT 20000000
 
 bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2)
 {
