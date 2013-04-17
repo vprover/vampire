@@ -184,13 +184,15 @@ protected:
 		Rational result(_den, _num);
 		return result;
 	}
+
 	Rational canonical();
 
 private:
 	//numerator and denominator
 	long long _num;
 	//keeping the denominator as unsigned long long might get us in trouble for overflow
-	//detection. This is due to the size of this representation.
+	//detection. This is due to the size for this representation. So it is better to just
+	//store it as a long long and not have any problems
 	long long _den;
 };
 
