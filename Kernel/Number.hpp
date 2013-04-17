@@ -248,7 +248,7 @@ public:
     precise() = static_cast<double>(val); //GMP does not accept long double
   }
   
-  NativeNumber native() const { ASS(!usePrecise()); return _native; }
+  const NativeNumber native() const { ASS(!usePrecise()); return _native; }
   const Precise& precise() const { return const_cast<NumberBase&>(*this).precise(); }
 protected:
   NativeNumber& native() { ASS(!usePrecise()); return _native; }
@@ -370,8 +370,8 @@ public:
     return *this;
   }
   BoundNumber getMagicNumber(BoundNumber& rhs);
-  NativeNumber getNative() {ASS(!usePrecise()); return native();}
-  Precise& getPrecise() {ASS(usePrecise()); return precise();}
+  const NativeNumber getNative() const {ASS(!usePrecise()); return native();}
+  const Precise& getPrecise() const {ASS(usePrecise()); return precise();}
 };
 
 void switchToPreciseNumbers();

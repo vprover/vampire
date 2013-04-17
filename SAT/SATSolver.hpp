@@ -35,7 +35,7 @@ public:
   /**
    * Can be called only when all assumptions are retracted
    *
-   * A requirement is that in each clause, each variable occurrs at most once.
+   * A requirement is that in each clause, each variable occurs at most once.
    */
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate=false) = 0;
   virtual Status getStatus() = 0;

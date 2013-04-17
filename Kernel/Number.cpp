@@ -142,7 +142,7 @@ void reduceIntNumbers(size_t cnt, long double** vals)
 /**
  * Given a double number count how many decimals appear on the right hand side
  * of the "." The counting is done up to maximum MAX_DP precission. Default value
- * is 7, but precission can be increased if needed.
+ * is 24, but precision can be increased if needed.
  * @param c dbVal - the double to count precision for
  */
 int getDecimalPlaces(double dbVal)
@@ -356,7 +356,7 @@ void CoeffNumber::reduceNumbers(size_t cnt, CoeffNumber** vals, bool allowDecima
 BoundNumber BoundNumber::getRandomValue(const BoundNumber& min, const BoundNumber& max)
 {
   CALL("BoundNumber::getRandomValue");
-
+  if (min == max) { return min; }
   ASS_L(min,max);
   if(usePrecise()) {
     static const unsigned randomDivisor = 64;

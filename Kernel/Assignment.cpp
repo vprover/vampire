@@ -18,7 +18,7 @@ VarIterator Assignment::getAssignedVars() const
 }
 
 /**
- * Evaluate sum of coeffitients in the @c coeffs iterator
+ * Evaluate sum of coefficients in the @c coeffs iterator
  *
  * All variables in the @c coeffs iterator must be present in the assignment.
  */
