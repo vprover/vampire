@@ -12,6 +12,9 @@
 #include "Forwards.hpp"
 
 #include "Lib/Exception.hpp"
+#include "Lib/Int.hpp"
+#include "Rational.hpp"
+
 #include <cmath>
 
 namespace Kernel {
@@ -20,6 +23,8 @@ namespace __Aux_Number
 {
 
 typedef long double NativeNumber;
+typedef Rational NativeRational;
+
 
 bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2);
 
@@ -28,11 +33,19 @@ class CommonNumberBase
 public:
   static bool usePrecise() { return _usePrecise; }
   static void switchToPreciseNumbers() { _usePrecise = true; }
+  static void switchToRational() { _useRationalRep = true; }
+  static bool useRational() { return _useRationalRep;}
 
 protected:
 
-  static NativeNumber parseString(string str);
+  static NativeNumber parseString(string str){
+  	  CALL("CommonNumberBase::parseString");
+  	    double dbl;
+  	    Int::stringToDouble(str.c_str(), dbl);
+  	    return dbl;
+  }
 
+  static bool _useRationalRep;
   static bool _usePrecise;
 };
 
@@ -46,9 +59,9 @@ public:
   typedef PrecCl Precise;
 
   /** Created uninitialized number */
-  NumberBase() : _isPrecise(false) {}
+  NumberBase() : _isPrecise(false), _isRational(false) {}
 
-  explicit NumberBase(NativeNumber val) : _isPrecise(false) {
+  explicit NumberBase(NativeNumber val) : _isPrecise(false), _isRational(false) {
     if(usePrecise()) {
       initPrecise();
       precise() = static_cast<double>(val);
@@ -57,13 +70,13 @@ public:
       native() = val;
     }
   }
-  explicit NumberBase(const Precise& val) : _isPrecise(false) {
+  explicit NumberBase(const Precise& val) : _isPrecise(false), _isRational(false) {
     ASS(usePrecise());
     initPrecise();
     precise() = val;
   }
   template<class T2, class Prec2>
-  explicit NumberBase(const NumberBase<T2,Prec2>& val) : _isPrecise(false) {
+  explicit NumberBase(const NumberBase<T2,Prec2>& val) : _isPrecise(false), _isRational(false) {
     if(usePrecise()) {
       initPrecise();
       precise() = val.precise();
@@ -72,7 +85,7 @@ public:
       native() = val.native();
     }
   }
-  NumberBase(const NumberBase& val) : _isPrecise(false) {
+  NumberBase(const NumberBase& val) : _isPrecise(false), _isRational(false) {
     if(usePrecise()) {
       initPrecise();
       precise() = val.precise();
@@ -84,6 +97,9 @@ public:
   ~NumberBase() {
     if(_isPrecise) {
       destroyPrecise();
+    }
+    if(_isRational){
+    	destroyRational();
     }
   }
 
@@ -248,6 +264,17 @@ public:
     precise() = static_cast<double>(val); //GMP does not accept long double
   }
   
+  void transitionNativeToRational()
+  {
+	  CALL("NumberBase::transitionNativeToRational");
+	  ASS(useRational());
+
+	  NativeNumber val = _native;
+	  initRational();
+	  //just fake
+	  rational() = Rational(val, 1);
+  }
+
   const NativeNumber native() const { ASS(!usePrecise()); return _native; }
   const Precise& precise() const { return const_cast<NumberBase&>(*this).precise(); }
 protected:
@@ -259,6 +286,29 @@ protected:
     _isPrecise = true;
     new(&precise()) Precise();
   }
+
+  void initRational(){
+	  CALL("NumberBase::initRational");
+
+	  _isRational = true;
+	  new(&rational()) NativeRational();
+  }
+
+  void destroyRational(){
+	  CALL("NumberBase::destroyRational");
+	  ASS(_isRational);
+
+	  rational().~Rational();
+  }
+
+  NativeRational& rational(){
+	  ASS(useRational());
+	  if(!_isRational){
+		  transitionNativeToRational();
+	  }
+	  return *reinterpret_cast<Rational*>(_rational);
+  }
+
   void destroyPrecise() {
     CALL("NumberBase::destroyPrecise")
     ASS(_isPrecise);
@@ -276,11 +326,13 @@ protected:
 
 private:
   //It is important that the placeholder is an array of chars -- otherwise
-  //we would break aliasing assumpions made by the compiler.
+  //we would break aliasing assumptions made by the compiler.
   typedef char PrecisePlaceholder[sizeof(Precise)];
+  typedef double NativePlaceholder[sizeof(NativeRational)];
 
   union {
     NativeNumber _native;
+    NativePlaceholder _rational;
     /**
      * The precise number usually has a constructor and therefore
      * cannot be used inside a union. To go around this limitation
@@ -290,6 +342,7 @@ private:
     PrecisePlaceholder _precise;
   };
   bool _isPrecise;
+  bool _isRational;
 };
 
 typedef NumberBase<CoeffNumber, mpz_class> CoeffNumberBase;
@@ -375,6 +428,7 @@ public:
 };
 
 void switchToPreciseNumbers();
+void switchToRationalNumbers();
 bool usingPreciseNumbers();
 
 std::ostream& operator<< (ostream& out, const CoeffNumber& num);

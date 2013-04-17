@@ -21,14 +21,14 @@
 
 using namespace std;
 
-Variable::Variable(const char* _name, VarType _type, const Rational& _lb, const Rational& _ub, const Rational& _obj)
+Variable::Variable(const char* _name, VarType _type, const gmpRational& _lb, const gmpRational& _ub, const gmpRational& _obj)
    : name(_name), type(_type), lb(_lb), ub(_ub), objCoef(_obj) {}
 
-bool Variable::checkBounds(const Rational& boundTolerance) const
+bool Variable::checkBounds(const gmpRational& boundTolerance) const
 {
-   Rational relaxedLb(lb);
+   gmpRational relaxedLb(lb);
    relaxedLb -= boundTolerance; 
-   Rational relaxedUb(ub);
+   gmpRational relaxedUb(ub);
    relaxedUb += boundTolerance; 
    if( (value < relaxedLb) || (value > relaxedUb) )
    {
@@ -40,7 +40,7 @@ bool Variable::checkBounds(const Rational& boundTolerance) const
    return true;
 }
 
-bool Variable::checkIntegrality(const Rational& intTolerance) const
+bool Variable::checkIntegrality(const gmpRational& intTolerance) const
 {
    if( (type != CONTINUOUS) && !value.isInteger(intTolerance) )
    {
@@ -52,10 +52,10 @@ bool Variable::checkIntegrality(const Rational& intTolerance) const
    return true;
 }
 
-void Variable::boundsViolation(Rational& boundViol) const
+void Variable::boundsViolation(gmpRational& boundViol) const
 {
-   Rational lbViol;
-   Rational ubViol;
+   gmpRational lbViol;
+   gmpRational ubViol;
    sub(lbViol, lb, value);
    if( lbViol.isNegative() ) lbViol.toZero();
    sub(ubViol, value, ub);
@@ -63,7 +63,7 @@ void Variable::boundsViolation(Rational& boundViol) const
    max(boundViol, lbViol, ubViol);
 }
 
-void Variable::integralityViolation(Rational& intViol) const
+void Variable::integralityViolation(gmpRational& intViol) const
 {
    intViol.toZero();
    if( type == CONTINUOUS ) return;
@@ -75,7 +75,7 @@ void Variable::print(std::ostream& out) const
 
   if(lb.toDouble() != -INFBOUND)
   {
-  Rational a = lb;
+  gmpRational a = lb;
   a.abs();
   if(lb.toDouble()<0)
    out << "(>= (+ "<< abs(a.toDouble())<<"(*  1 " << name << " ) ) 0)\n";
@@ -88,7 +88,7 @@ void Variable::print(std::ostream& out) const
   }
   if(ub.toDouble() != INFBOUND)
   {
-  Rational a = ub;
+  gmpRational a = ub;
   a.abs();
 
   if(ub.toDouble()>0)
@@ -122,26 +122,26 @@ void Variable::print(std::ostream& out) const
 BaseConstraint::BaseConstraint(const char* _name, bool _redundant)
    : name(_name), type("<unknown>"), redundant(_redundant) {}
 
-LinearConstraint::LinearConstraint(const char* _name, LinearType _lintype, const Rational& _lhs, const Rational& _rhs, bool _redundant)
+LinearConstraint::LinearConstraint(const char* _name, LinearType _lintype, const gmpRational& _lhs, const gmpRational& _rhs, bool _redundant)
    : BaseConstraint(_name, _redundant), lintype(_lintype), lhs(_lhs), rhs(_rhs)
 {
    type = "<linear>";
 }
 
-void LinearConstraint::push(Variable* v, const Rational& c)
+void LinearConstraint::push(Variable* v, const gmpRational& c)
 {
    vars.push_back(v);
    coefs.push_back(c);
 }
 
-bool LinearConstraint::check(const Rational& tolerance) const
+bool LinearConstraint::check(const gmpRational& tolerance) const
 {
    // compute row activity
-   Rational relaxedLhs(lhs);
+   gmpRational relaxedLhs(lhs);
    relaxedLhs -= tolerance; 
-   Rational relaxedRhs(rhs);
+   gmpRational relaxedRhs(rhs);
    relaxedRhs += tolerance;
-   Rational activity;
+   gmpRational activity;
    for( unsigned int i = 0; i < vars.size(); ++i )
       activity.addProduct(coefs[i], vars[i]->value);
    // check lhs and rhs
@@ -156,15 +156,15 @@ bool LinearConstraint::check(const Rational& tolerance) const
    return true;
 }
 
-void LinearConstraint::violation(Rational& viol) const
+void LinearConstraint::violation(gmpRational& viol) const
 {
    // compute row activity
-   Rational activity;
+   gmpRational activity;
    for( unsigned int i = 0; i < vars.size(); ++i )
       activity.addProduct(coefs[i], vars[i]->value);
    // check lhs and rhs
-   Rational lhsViol;
-   Rational rhsViol;
+   gmpRational lhsViol;
+   gmpRational rhsViol;
    sub(lhsViol, lhs, activity);
    if( lhsViol.isNegative() ) lhsViol.toZero();
    sub(rhsViol, activity, rhs);
@@ -174,7 +174,7 @@ void LinearConstraint::violation(Rational& viol) const
 
 void LinearConstraint::print(std::ostream& out) const
 {
-  Rational ab;
+  gmpRational ab;
      switch(lintype){
          case LESS_THAN:
          {
@@ -341,7 +341,7 @@ void SOSConstraint::push(Variable* v)
    vars.push_back(v);
 }
 
-bool SOSConstraint::check(const Rational& tolerance) const
+bool SOSConstraint::check(const gmpRational& tolerance) const
 {
    switch(sostype)
    {
@@ -355,7 +355,7 @@ bool SOSConstraint::check(const Rational& tolerance) const
    return false;
 }
 
-void SOSConstraint::violation(Rational& viol) const
+void SOSConstraint::violation(gmpRational& viol) const
 {
    viol.toZero();
 }
@@ -371,11 +371,11 @@ void SOSConstraint::print(std::ostream& out) const
    }
 }
 
-bool SOSConstraint::checkType1(const Rational& tolerance) const
+bool SOSConstraint::checkType1(const gmpRational& tolerance) const
 {
    int cnt = 0;
-   Rational lb;
-   Rational ub;
+   gmpRational lb;
+   gmpRational ub;
    lb -= tolerance;
    ub += tolerance;
    // count number of non-zero variables
@@ -387,11 +387,11 @@ bool SOSConstraint::checkType1(const Rational& tolerance) const
    return (cnt <= 1);
 }
 
-bool SOSConstraint::checkType2(const Rational& tolerance) const
+bool SOSConstraint::checkType2(const gmpRational& tolerance) const
 {
    int cnt = 0;
-   Rational lb;
-   Rational ub;
+   gmpRational lb;
+   gmpRational ub;
    lb -= tolerance;
    ub += tolerance;
    const unsigned int noIndex = -1;
@@ -533,7 +533,7 @@ bool Model::readSol(const char* filename)
          Variable* var = getVar(varname);
          if( var == NULL ) std::cerr << "unexpected variable<" << varname << "> in solution file" << std::endl;
          assert( var != NULL );
-         Rational value;
+         gmpRational value;
          value.fromString(valuep);
          var->value = value;
          hasVarValue = true;
@@ -548,8 +548,8 @@ bool Model::readSol(const char* filename)
 }
 
 void Model::check(
-   const Rational& intTolerance,
-   const Rational& linearTolerance,
+   const gmpRational& intTolerance,
+   const gmpRational& linearTolerance,
    bool& intFeasible,
    bool& linearFeasible,
    bool& correctObj) const
@@ -579,7 +579,7 @@ void Model::check(
    // then check objective function
    if( hasObjectiveValue )
    {
-      Rational objVal;
+      gmpRational objVal;
       bool isMIP = false;
       
       vitr = vars.begin();
@@ -589,16 +589,16 @@ void Model::check(
          if( vitr->second->type == Variable::CONTINUOUS ) isMIP = true;
          ++vitr;
       }
-      Rational diff;
+      gmpRational diff;
       sub(diff, objVal, objectiveValue);
       diff.abs();
       if( diff > linearTolerance )
       {
          // try a relative error of 10^-7
-         Rational one(1, 1);
-         Rational relTol(1, 10000000);
-         Rational magnitude(objVal);
-         Rational relErr;
+         gmpRational one(1, 1);
+         gmpRational relTol(1, 10000000);
+         gmpRational magnitude(objVal);
+         gmpRational relErr;
          magnitude.abs();
          max(magnitude, one, magnitude);
          div(relErr, diff, magnitude);
@@ -623,9 +623,9 @@ void Model::check(
 }
 
 void Model::maxViolations(
-   Rational& intViol,
-   Rational& linearViol,
-   Rational& objViol) const
+   gmpRational& intViol,
+   gmpRational& linearViol,
+   gmpRational& objViol) const
 {
    // check vars first
    intViol.toZero();
@@ -635,7 +635,7 @@ void Model::maxViolations(
    std::map<std::string, Variable*>::const_iterator vend = vars.end();
    while( vitr != vend )
    {
-      Rational viol;
+      gmpRational viol;
       vitr->second->boundsViolation(viol);
       max(linearViol, viol, linearViol);
       vitr->second->integralityViolation(viol);
@@ -647,7 +647,7 @@ void Model::maxViolations(
    std::map<std::string, BaseConstraint*>::const_iterator cend = conss.end();
    while( citr != cend )
    {
-      Rational viol;
+      gmpRational viol;
       citr->second->violation(viol);
       max(linearViol, viol, linearViol);
       ++citr;
@@ -655,7 +655,7 @@ void Model::maxViolations(
    // check objective
    if( hasObjectiveValue )
    {
-      Rational objVal;
+      gmpRational objVal;
       vitr = vars.begin();
       while( vitr != vend )
       {
@@ -670,8 +670,8 @@ void Model::maxViolations(
 void Model::checkWrtExact(
    const std::string& solverStatus,
    const std::string& exactStatus,
-   const Rational& exactObjVal,
-   const Rational& linearTolerance,
+   const gmpRational& exactObjVal,
+   const gmpRational& linearTolerance,
    bool& feasibility,
    bool& objective) const
 {
@@ -688,7 +688,7 @@ void Model::checkWrtExact(
    // now we can check the objective value
    if( hasObjectiveValue )
    {
-      Rational objVal;
+      gmpRational objVal;
       bool isMIP = false;
       
       std::map<std::string, Variable*>::const_iterator vitr = vars.begin();
@@ -698,7 +698,7 @@ void Model::checkWrtExact(
          if( vitr->second->type == Variable::CONTINUOUS ) isMIP = true;
          ++vitr;
       }
-      Rational diff;
+      gmpRational diff;
       sub(diff, exactObjVal, objectiveValue);
       diff.abs();
       if( diff > linearTolerance )
@@ -706,14 +706,14 @@ void Model::checkWrtExact(
          std::cerr << "Failed absolute objective value check: if this is a MIP we will try something weaker"
                    << std::endl;
          // if error is greater than 0.1 fail in any case
-         Rational maxAbsDiff(1, 10);
+         gmpRational maxAbsDiff(1, 10);
          if( diff > maxAbsDiff ) objective = false;
          else
          {
             // try a relative error of 10^-7 (but only if this is not a pure integer problem!)
-            Rational one(1, 1);
-            Rational relErr(1, 10000000);
-            Rational magnitude(exactObjVal);
+            gmpRational one(1, 1);
+            gmpRational relErr(1, 10000000);
+            gmpRational magnitude(exactObjVal);
             magnitude.abs();
             max(magnitude, one, magnitude);
             mult(relErr, magnitude, relErr);
@@ -781,7 +781,7 @@ void Model::print(std::ostream& out) const
    {
        if(vi->second->objCoef.toDouble() != 0 && vi->second->objCoef != INFBOUND && vi->second->objCoef !=-INFBOUND)
        {
-       Rational a = vi->second->objCoef;
+       gmpRational a = vi->second->objCoef;
        a.abs();
        out << " (+ ";
        par++;
@@ -848,12 +848,12 @@ void Model::print(std::ostream& out) const
       LinearConstraint* lcons = static_cast<LinearConstraint*>(citr->second);
       out<< lcons->lintype<<std::endl;
       std::vector<Variable*> variables(lcons->vars);
-      std::vector<Rational> coef(lcons->coefs);
+      std::vector<gmpRational> coef(lcons->coefs);
       std::vector<Variable*>::const_iterator varCite=variables.begin();
       std::vector<Variable*>::const_iterator varEnd =variables.end();
       for (int i = 0 ; i < variables.size() ; ++i) 
       {
-	Rational r = variables[i]->value;
+	gmpRational r = variables[i]->value;
 	out<<coef[i].toString()<<"*"<<variables[i]->name<<" "<<r.toString()<<std::endl;
       }
       lcons->print(out);

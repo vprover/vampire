@@ -275,6 +275,7 @@ void boundPropagationMode(){
   if(env.options->startWithPrecise()) {
     switchToPreciseNumbers();
   }
+  switchToRationalNumbers();
   //ConstraintRCList* constraints(UIHelper::getInputConstraints(*env.options));
   ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env.options));
 

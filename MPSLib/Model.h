@@ -42,14 +42,14 @@ public:
     * @param _ub global upper bound
     * @param _obj objective coefficent
     */
-   Variable(const char* _name, VarType _type, const Rational& _lb, const Rational& _ub, const Rational& _obj);
+   Variable(const char* _name, VarType _type, const gmpRational& _lb, const gmpRational& _ub, const gmpRational& _obj);
    
    /**
     * Check if the current value of the variable is within its bounds.
     * @param boundTolerance tolerance for bounds check
     * @return true if the variable satisfies its bounds, false otherwise
     */
-   bool checkBounds(const Rational& boundTolerance) const;
+   bool checkBounds(const gmpRational& boundTolerance) const;
 
    /**
     * Check if the current value of the variable satisfies the integrality requirement.
@@ -57,19 +57,19 @@ public:
     * @param intTolerance tolerance for integrality check
     * @return true if the value is integral or the variable is continuous, false otherwise
     */
-   bool checkIntegrality(const Rational& intTolerance) const;
+   bool checkIntegrality(const gmpRational& intTolerance) const;
    
    /**
     * Calculate the bounds violation of the variable (0 if not violated).
     * Return value is in @param boundViol
     */
-   void boundsViolation(Rational& boundViol) const;
+   void boundsViolation(gmpRational& boundViol) const;
 
    /**
     * Calculate the integrality violation of the variable (0 if not violated).
     * Return value is in @param intViol
     */
-   void integralityViolation(Rational& intViol) const;
+   void integralityViolation(gmpRational& intViol) const;
    
    /**
     * Print a description of the variable to an output stream
@@ -80,10 +80,10 @@ public:
    // \{
    std::string name; //< name of the variable
    VarType type; //< type of domain
-   Rational lb; //< global lower bound
-   Rational ub; //< global upper bound
-   Rational objCoef; //< objective coefficent
-   Rational value; //< solution value (default is zero)
+   gmpRational lb; //< global lower bound
+   gmpRational ub; //< global upper bound
+   gmpRational objCoef; //< objective coefficent
+   gmpRational value; //< solution value (default is zero)
    // \}
 };
 
@@ -112,13 +112,13 @@ public:
 	 * @param tolerance tolerance for checking feasibility
 	 * @return true if the constraint is satisfied, false otherwise.
 	 */
-	virtual bool check(const Rational& tolerance) const =0;
+	virtual bool check(const gmpRational& tolerance) const =0;
 	
 	/**
     * Calculate the constraint violation
     * Return value is in @param viol
     */
-   virtual void violation(Rational& viol) const =0;
+   virtual void violation(gmpRational& viol) const =0;
 
 	/**
 	 * Print a description of the constraint to an output stream
@@ -161,27 +161,27 @@ public:
     * @param _rhs right hand side of the constraint
     * @param _redundant this flag is true if the constraint is redundant for the problems (e.g. is a cutting plane)
     */
-   LinearConstraint(const char* _name, LinearType _lintype, const Rational& _lhs, const Rational& _rhs, bool _redundant = false);
+   LinearConstraint(const char* _name, LinearType _lintype, const gmpRational& _lhs, const gmpRational& _rhs, bool _redundant = false);
    
    /**
     * Add a variable to the constraint. Does NOT check for duplicates.
     * @param v pointer to variable object
     * @param c coefficient of the variable in the constraint
     */
-   void push(Variable* v, const Rational& c);
+   void push(Variable* v, const gmpRational& c);
    
    /**
     * Check if the constraint is satisfied by the current values of its variables.
     * @param tolerance tolerance for checking feasibility
     * @return true if the constraint is satisfied, false otherwise.
     */
-   bool check(const Rational& tolerance) const;
+   bool check(const gmpRational& tolerance) const;
    
    /**
     * Calculate the constraint violation
     * Return value is in @param viol
     */
-   void violation(Rational& viol) const;
+   void violation(gmpRational& viol) const;
    
    /**
     * Print a description of the constraint to an output stream
@@ -192,9 +192,9 @@ public:
    // \{
    LinearType lintype; //< constraint type
    std::vector<Variable*> vars; //< list of variables 
-   std::vector<Rational> coefs; //< list of corresponding coefficients
-   Rational lhs; //< left hand side
-   Rational rhs; //< right hand side
+   std::vector<gmpRational> coefs; //< list of corresponding coefficients
+   gmpRational lhs; //< left hand side
+   gmpRational rhs; //< right hand side
    // \}
 };
 
@@ -235,14 +235,14 @@ public:
     * @param tolerance tolerance for checking feasibility
     * @return true if the constraint is satisfied, false otherwise.
     */
-   bool check(const Rational& tolerance) const;
+   bool check(const gmpRational& tolerance) const;
    
    /**
     * Calculate the constraint violation
     * Since this is a "combinatorial" constraint, we always return 0 for now...FIXME
     * Return value is in @param viol
     */
-   void violation(Rational& viol) const;
+   void violation(gmpRational& viol) const;
    
    /**
     * Print a description of the constraint to an output stream
@@ -256,8 +256,8 @@ public:
    // \}
 protected:
    // helpers
-   bool checkType1(const Rational& tolerance) const;
-   bool checkType2(const Rational& tolerance) const;
+   bool checkType1(const gmpRational& tolerance) const;
+   bool checkType2(const gmpRational& tolerance) const;
 };
 
 /**
@@ -346,8 +346,8 @@ public:
     * @param correctObj stores if the objective value computed by the solver is correct
     */
    void check(
-      const Rational& intTolerance,
-      const Rational& linearTolerance,
+      const gmpRational& intTolerance,
+      const gmpRational& linearTolerance,
       bool& intFeasible,
       bool& linearFeasible,
       bool& correctObj) const;
@@ -357,9 +357,9 @@ public:
     * current values of the variables
     */
    void maxViolations(
-      Rational& intViol,
-      Rational& linearViol,
-      Rational& objViol) const;
+      gmpRational& intViol,
+      gmpRational& linearViol,
+      gmpRational& objViol) const;
    
    /**
     * Check w.r.t. exact solver information
@@ -367,8 +367,8 @@ public:
    void checkWrtExact(
       const std::string& solverStatus,
       const std::string& exactStatus,
-      const Rational& exactObjVal,
-      const Rational& linearTolerance,
+      const gmpRational& exactObjVal,
+      const gmpRational& linearTolerance,
       bool& feasibility,
       bool& objective) const;
    
@@ -388,7 +388,7 @@ public:
    std::string objName; //< name of the objective function
    ObjSense objSense; //< optimization direction
    bool hasObjectiveValue; //< do we have the objective value of the solution as reported by the solver?
-   Rational objectiveValue; //< objective value of the solution as reported by the solver
+   gmpRational objectiveValue; //< objective value of the solution as reported by the solver
    // \}
    
    std::map<std::string, Variable*> vars; //< set of variables

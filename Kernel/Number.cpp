@@ -18,9 +18,9 @@
 #include "Lib/Array.hpp"
 #include "Number.hpp"
 
+
 namespace Kernel
 {
-
 namespace __Aux_Number
 {
 
@@ -272,17 +272,9 @@ using namespace Lib;
 using namespace __Aux_Number;
 
 
+
 bool CommonNumberBase::_usePrecise = false;
-
-NativeNumber CommonNumberBase::parseString(string str)
-{
-  CALL("CommonNumberBase::parseString");
-
-  double dbl;
-  Int::stringToDouble(str.c_str(), dbl);
-  //ALWAYS(Int::stringToDouble(str.c_str(), dbl));
-  return dbl;
-}
+bool CommonNumberBase::_useRationalRep = false;
 
 unsigned CoeffNumber::hash(const CoeffNumber& n)
 {
@@ -370,7 +362,7 @@ BoundNumber BoundNumber::getRandomValue(const BoundNumber& min, const BoundNumbe
 }
 
 /**
- * get a number in the interval from this and the rhs. The value is compted
+ * get a number in the interval from this and the rhs. The value is computed
  * using the continued fraction decomposition algorithm.
  * details about the algorithm:
  * @href http://en.wikipedia.org/wiki/Continued_fraction
@@ -450,6 +442,7 @@ bool usingPreciseNumbers()
   return CommonNumberBase::usePrecise();
 }
 
+
 /**
  * Switch from native number representation to a precise one.
  *
@@ -464,6 +457,14 @@ void switchToPreciseNumbers()
   LOG("tkv_precise","Switched to precise");
   CommonNumberBase::switchToPreciseNumbers();
   ASS(CommonNumberBase::usePrecise());
+}
+
+void switchToRationalNumbers(){
+	CALL("switchToRationalNumbers()");
+	ASS(!CommonNumberBase::useRational());
+	LOG("tkv_precise", "switched to rational");
+	CommonNumberBase::switchToRational();
+	ASS(CommonNumberBase::useRational());
 }
 
 std::ostream& operator<< (ostream& out, const CoeffNumber& num)

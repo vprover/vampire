@@ -404,8 +404,8 @@ void MpsInput::readRows()
       {
          bool redundant = (section == MPS_USERCUTS);
          LinearConstraint::LinearType ctype;
-         Rational clb; // default to zero
-         Rational cub; // default to zero
+         gmpRational clb; // default to zero
+         gmpRational cub; // default to zero
 
          switch(*f1)
          {
@@ -466,7 +466,7 @@ void MpsInput::readCols()
    
       Variable* var = model->getVar(colname);
       assert( var != NULL );
-      Rational val;
+      gmpRational val;
       val.fromString(f3);
 
       if( std::string(f2) == model->objName )
@@ -502,7 +502,7 @@ void MpsInput::readCols()
 void MpsInput::readRhs()
 {
    char rhsname[MPS_MAX_NAMELEN] = { '\0' };
-   Rational val;
+   gmpRational val;
 
    while( readLine() )
    {
@@ -580,7 +580,7 @@ void MpsInput::readRhs()
 void MpsInput::readRanges()
 {
    char     rngname[MPS_MAX_NAMELEN] = { '\0' };
-   Rational val;
+   gmpRational val;
 
    while( readLine() )
    {
@@ -675,9 +675,9 @@ void MpsInput::readRanges()
 void MpsInput::readBounds()
 {
    char bndname[MPS_MAX_NAMELEN] = { '\0' };
-   Rational val;
-   Rational zero;
-   Rational one(1);
+   gmpRational val;
+   gmpRational zero;
+   gmpRational one(1);
    bool shifted;
 
    while( readLine() )

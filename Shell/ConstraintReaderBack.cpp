@@ -189,7 +189,7 @@ ConstraintRCList* MpsConstraintReader::constraints(){
    {
       LinearConstraint* lcons = static_cast<LinearConstraint*>(citr->second);
       std::vector<Variable*> variables(lcons->vars);
-      std::vector<Rational> coef(lcons->coefs);
+      std::vector<gmpRational> coef(lcons->coefs);
 
       for (unsigned i = 0 ; i < variables.size() ; ++i)
       {

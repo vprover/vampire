@@ -1,6 +1,6 @@
 /**
  * @file Gmputils.h
- * @brief Basic classes to for rational arithmetic
+ * @brief Basic classes to for gmpRational arithmetic
  *
  * @author Domenico Salvagnin
  */
@@ -19,39 +19,39 @@
  * process (and as few dependencies as possible).
  */
  
-class Rational
+class gmpRational
 {
 public:
    /** @name constructors & destructor */
    // \{
 
    /**
-    * Construct a rational corresponding to num/den.
+    * Construct a gmpRational corresponding to num/den.
     * Acts also as default constructor (for the value zero).
     * @param num signed integer as numerator
     * @param den signed integer as denominator
     */
-   Rational(int num = 0, int den = 1);
+   gmpRational(int num = 0, int den = 1);
 
    /**
-    * Construct a rational from a double.
+    * Construct a gmpRational from a double.
     * Note that the conversion is exact, so it may not be what you want...
     * @param val floating value to construct from
     */
-   Rational(double val);
+   gmpRational(double val);
 
    /** Copy Constructor */
-   Rational(const Rational& rhs);
+   gmpRational(const gmpRational& rhs);
    
    /** Destructor */
-   ~Rational();
+   ~gmpRational();
    // \}
    
-   Rational& operator=(const Rational& rhs);
+   gmpRational& operator=(const gmpRational& rhs);
    
    /**
     * Convert to a double, truncating if necessary
-    * @return the rational number as a float
+    * @return the gmpRational number as a float
     */
    double toDouble() const;
    
@@ -59,26 +59,26 @@ public:
    // \{
    
    /** equal operator */ 
-   bool operator==(const Rational& rhs) const;
+   bool operator==(const gmpRational& rhs) const;
    
    /** not-equal operator */ 
-   bool operator!=(const Rational& rhs) const;
+   bool operator!=(const gmpRational& rhs) const;
    
    /** greater-than operator */ 
-   bool operator>(const Rational& rhs) const;
+   bool operator>(const gmpRational& rhs) const;
    
    /** less-than operator */
-   bool operator<(const Rational& rhs) const;
+   bool operator<(const gmpRational& rhs) const;
    // \}
    
    /** @name arithmetic operators */
    // \{
       
    /** compound plus operator: self = self + op */
-   Rational& operator+=(const Rational& op);
+   gmpRational& operator+=(const gmpRational& op);
    
    /** compound minus operator: self = self - op */
-   Rational& operator-=(const Rational& op);
+   gmpRational& operator-=(const gmpRational& op);
    
    /**
     * Add to the current value the product op1 * op2.
@@ -88,7 +88,7 @@ public:
     * @param op1 first operand of the product
     * @param op2 second operand of the product
     */
-   void addProduct(const Rational& op1, const Rational& op2);
+   void addProduct(const gmpRational& op1, const gmpRational& op2);
    
    /**
     * Replaces the current value with its absolute value (inline operator)
@@ -98,7 +98,7 @@ public:
    /**
     * Calculate the integrality violation of a given number
     */
-   void integralityViolation(Rational& violation) const;
+   void integralityViolation(gmpRational& violation) const;
    
    /**
     * Zero out number (i.e. set it to zero)
@@ -111,29 +111,29 @@ public:
    // \{
    
    /** Addition: res = op1 + op2 */
-   friend void add(Rational& res, const Rational& op1, const Rational& op2);
+   friend void add(gmpRational& res, const gmpRational& op1, const gmpRational& op2);
    
    /** Subtraction: res = op1 - op2 */
-   friend void sub(Rational& res, const Rational& op1, const Rational& op2);
+   friend void sub(gmpRational& res, const gmpRational& op1, const gmpRational& op2);
    
    /** Multiplication: res = op1 * op2 */
-   friend void mult(Rational& res, const Rational& op1, const Rational& op2);
+   friend void mult(gmpRational& res, const gmpRational& op1, const gmpRational& op2);
 
    /** Division: res = op1 / op2 */
-   friend void div(Rational& res, const Rational& op1, const Rational& op2);
+   friend void div(gmpRational& res, const gmpRational& op1, const gmpRational& op2);
    
    /** Min: res = min(op1, op2) */
-   friend void min(Rational& res, const Rational& op1, const Rational& op2);
+   friend void min(gmpRational& res, const gmpRational& op1, const gmpRational& op2);
    
    /** Max: res = max(op1, op2) */
-   friend void max(Rational& res, const Rational& op1, const Rational& op2);
+   friend void max(gmpRational& res, const gmpRational& op1, const gmpRational& op2);
    // \}
    
    /** @name test operators */
    // \{
    
    /** Test if a number is integer (up to a given tolerance)  */
-   bool isInteger(const Rational& tolerance) const;
+   bool isInteger(const gmpRational& tolerance) const;
    
    /** Test if a number is positive (exact, no tolerances) */
    bool isPositive() const;
@@ -149,7 +149,7 @@ public:
    // \{
       
    /**
-    * Read a rational number from a string representation.
+    * Read a gmpRational number from a string representation.
     * This functions essentially parses a number of the form
     * [+|-]?[0-9]*.[0-9]+[[e|E][+|-][0-9]+]?
     * and generates the corresponding fraction.
@@ -157,14 +157,14 @@ public:
    void fromString(const char* str);
    
    /**
-    * Convert a rational number to a string representation.
+    * Convert a gmpRational number to a string representation.
     * Note that the format is [+|-]?[0-9]+/[0-9]+.
     * Useful for printing.
     */
    std::string toString() const;
    // \}
 protected:
-   mpq_t number; //< rational value
+   mpq_t number; //< gmpRational value
 private:
    /**
     * static buffer for I/O operations

@@ -1,6 +1,6 @@
 /**
  * @file gmputils.cpp
- * @brief Basic classes to for rational arithmetic
+ * @brief Basic classes to for gmpRational arithmetic
  *
  * @author Domenico Salvagnin
  * @author Thorsten Koch
@@ -12,80 +12,80 @@
 #include <stdlib.h>
 #include <assert.h>
 
-char Rational::buffer[] = {'\0'};
+char gmpRational::buffer[] = {'\0'};
 
-Rational::Rational(int num, int den)
+gmpRational::gmpRational(int num, int den)
 {
    mpq_init(number);
    mpq_set_si(number, num, den);
    mpq_canonicalize(number);
 }
 
-Rational::Rational(double val)
+gmpRational::gmpRational(double val)
 {
    mpq_init(number);
    mpq_set_d(number, val);
    mpq_canonicalize(number);
 }
 
-Rational::Rational(const Rational& rhs)
+gmpRational::gmpRational(const gmpRational& rhs)
 {
    mpq_init(number);
    mpq_set(number, rhs.number);
 }
 
-Rational::~Rational()
+gmpRational::~gmpRational()
 {
    mpq_clear(number);
 }
 
-Rational& Rational::operator=(const Rational& rhs)
+gmpRational& gmpRational::operator=(const gmpRational& rhs)
 {
    if (this != &rhs)
       mpq_set(number, rhs.number);
    return *this;
 }
 
-double Rational::toDouble() const
+double gmpRational::toDouble() const
 {
    return mpq_get_d(number);
 }
 
-bool Rational::operator==(const Rational& rhs) const
+bool gmpRational::operator==(const gmpRational& rhs) const
 {
    return (mpq_equal(number, rhs.number) != 0);
 }
 
-bool Rational::operator!=(const Rational& rhs) const
+bool gmpRational::operator!=(const gmpRational& rhs) const
 {
    return (mpq_equal(number, rhs.number) == 0);
 }
 
-bool Rational::operator>(const Rational& rhs) const
+bool gmpRational::operator>(const gmpRational& rhs) const
 {
    return (mpq_cmp(number, rhs.number) > 0);
 }
 
-bool Rational::operator<(const Rational& rhs) const
+bool gmpRational::operator<(const gmpRational& rhs) const
 {
    return (mpq_cmp(number, rhs.number) < 0);
 }
 
-Rational& Rational::operator+=(const Rational& rhs)
+gmpRational& gmpRational::operator+=(const gmpRational& rhs)
 {
    mpq_add(number, number, rhs.number);
    mpq_canonicalize(number);
    return *this;
 }
 
-Rational& Rational::operator-=(const Rational& rhs)
+gmpRational& gmpRational::operator-=(const gmpRational& rhs)
 {
    mpq_sub(number, number, rhs.number);
    mpq_canonicalize(number);
    return *this;
 }
 
-void Rational::addProduct(const Rational& op1, const Rational& op2)
+void gmpRational::addProduct(const gmpRational& op1, const gmpRational& op2)
 {
    mpq_t prod;
    mpq_init(prod);
@@ -95,12 +95,12 @@ void Rational::addProduct(const Rational& op1, const Rational& op2)
    mpq_clear(prod);
 }
 
-void Rational::abs()
+void gmpRational::abs()
 {
    mpq_abs(number, number);
 }
 
-void Rational::integralityViolation(Rational& violation) const
+void gmpRational::integralityViolation(gmpRational& violation) const
 {
    // if denominator is 1, then there is no integrality violation for sure
    if( mpz_cmp_ui(mpq_denref(number), 1) == 0 )
@@ -118,22 +118,22 @@ void Rational::integralityViolation(Rational& violation) const
    mpq_set_num(violation.number, r);
    mpz_clear(r);
    // then integrality violation
-   if( violation > Rational(1, 2) )
-      sub(violation, Rational(1,1), violation);
+   if( violation > gmpRational(1, 2) )
+      sub(violation, gmpRational(1,1), violation);
 }
 
-void Rational::toZero()
+void gmpRational::toZero()
 {
    mpq_set_ui(number, 0, 1);
 }
 
-bool Rational::isInteger(const Rational& tolerance) const
+bool gmpRational::isInteger(const gmpRational& tolerance) const
 {  
    // if denominator is 1, then it is an integer for sure
    if (mpz_cmp_ui(mpq_denref(number), 1) == 0) return true;
    // otherwise, we must check w.r.t. the given tolerance
    // first calculate the fractional part 
-   Rational viol(*this);
+   gmpRational viol(*this);
    viol.abs();
    mpz_t r;
    mpz_init(r);
@@ -141,27 +141,27 @@ bool Rational::isInteger(const Rational& tolerance) const
    mpq_set_num(viol.number, r);
    mpz_clear(r);
    // then integrality violation
-   if( viol > Rational(1, 2) )
-      sub(viol, Rational(1,1), viol);
+   if( viol > gmpRational(1, 2) )
+      sub(viol, gmpRational(1,1), viol);
    return !(viol > tolerance);
 }
 
-bool Rational::isPositive() const
+bool gmpRational::isPositive() const
 {
    return (mpq_sgn(number) > 0);
 }
 
-bool Rational::isNegative() const
+bool gmpRational::isNegative() const
 {
    return (mpq_sgn(number) < 0);
 }
 
-bool Rational::isZero() const
+bool gmpRational::isZero() const
 {
    return (mpq_sgn(number) == 0);
 }
 
-void Rational::fromString(const char* num)
+void gmpRational::fromString(const char* num)
 {
    char* tmp = &buffer[0];
    int   k = 0;
@@ -215,7 +215,7 @@ void Rational::fromString(const char* num)
    mpq_canonicalize(number);
 }
 
-std::string Rational::toString() const
+std::string gmpRational::toString() const
 {
    // assure the buffer is big enough to store the result
    assert( mpz_sizeinbase(mpq_numref(number), 10 ) + mpz_sizeinbase(mpq_denref(number), 10) + 3 < 1024 );
@@ -224,31 +224,31 @@ std::string Rational::toString() const
    return std::string(buffer);
 }
 
-void add(Rational& res, const Rational& op1, const Rational& op2)
+void add(gmpRational& res, const gmpRational& op1, const gmpRational& op2)
 {
    mpq_add(res.number, op1.number, op2.number);
    mpq_canonicalize(res.number);
 }
 
-void sub(Rational& res, const Rational& op1, const Rational& op2)
+void sub(gmpRational& res, const gmpRational& op1, const gmpRational& op2)
 {
    mpq_sub(res.number, op1.number, op2.number);
    mpq_canonicalize(res.number);
 }
 
-void mult(Rational& res, const Rational& op1, const Rational& op2)
+void mult(gmpRational& res, const gmpRational& op1, const gmpRational& op2)
 {
    mpq_mul(res.number, op1.number, op2.number);
    mpq_canonicalize(res.number);
 }
 
-void div(Rational& res, const Rational& op1, const Rational& op2)
+void div(gmpRational& res, const gmpRational& op1, const gmpRational& op2)
 {
    mpq_div(res.number, op1.number, op2.number);
    mpq_canonicalize(res.number);
 }
 
-void min(Rational& res, const Rational& op1, const Rational& op2)
+void min(gmpRational& res, const gmpRational& op1, const gmpRational& op2)
 {
    if( mpq_cmp(op1.number, op2.number) < 0 )
       res = op1;
@@ -256,7 +256,7 @@ void min(Rational& res, const Rational& op1, const Rational& op2)
       res = op2;
 }
 
-void max(Rational& res, const Rational& op1, const Rational& op2)
+void max(gmpRational& res, const gmpRational& op1, const gmpRational& op2)
 {
    if( mpq_cmp(op1.number, op2.number) > 0 )
       res = op1;
