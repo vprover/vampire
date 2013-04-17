@@ -159,6 +159,8 @@ protected:
 private:
 	//numerator and denominator
 	long long _num;
+	//keeping the denominator as unsigned long long might get us in trouble for overflow
+	//detection. This is due to the size of this representation.
 	unsigned long long _den;
 };
 
@@ -170,6 +172,7 @@ inline bool subtractionOverflow(long long n1, long long n2);
 inline bool multiplicationOverflow(long long n1, long long n2);
 inline bool divisionOverflow(long long numerator, long long denominator);
 inline bool moduloOverflow(long long numerator, long long denominator);
+
 } //__Aux_Number
 } //Kernel
 #endif //GNUMP
