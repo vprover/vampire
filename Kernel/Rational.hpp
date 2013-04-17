@@ -141,10 +141,10 @@ public:
 	static const Rational& minusOne(){static Rational res(-1,1); return res;}
 	static const Rational& two(){static Rational res(2,1);return res;}
 
-	bool isPositive() const{ return *this >= zero();}
-	bool isPositiveNonZero() const{return *this > zero();}
+	bool isPositive() const{ return this->_num >= 0;}
+	bool isPositiveNonZero() const{return this->_num > 0;}
 
-	bool isNegative() const{ return *this <= zero();}
+	bool isNegative() const{ return this->_num <= 0;}
 	bool isNegativeNonZero() const{ return *this < zero();}
 
 	bool isZero() const{ return *this == zero(); }
@@ -165,7 +165,8 @@ public:
 	operator float() const {return float(_num / _den);}
 
 	friend ostream& operator<< (ostream &out, Rational &val){
-		out << val._num << " / " << val._den;
+		CALL("Rational::operator<<");
+		out << val.toString();
 		return out;
 	}
 
