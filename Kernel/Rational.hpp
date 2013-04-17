@@ -21,6 +21,26 @@ namespace Kernel{
 
 namespace __Aux_Number{
 
+unsigned long long GCD(long long n1, long long n2);
+
+//overflow check functions
+bool additionOverflow(long long n1, long long n2);
+bool subtractionOverflow(long long n1, long long n2);
+bool multiplicationOverflow(long long n1, long long n2);
+bool divisionOverflow(long long numerator, long long denominator);
+bool moduloOverflow(long long numerator, long long denominator);
+
+//addition with overflow check
+long long safeAdd(long long n1, long long n2);
+//subtraction with overflow check
+long long safeSub(long long n1, long long n2);
+//multiplication with overflow check
+long long safeMul(long long n1, long long n2);
+//division with overflow check
+long long safeDiv(long long n1, long long n2);
+//modulo operator with overflow check
+long long safeModulo(long long n1, long long n2);
+
 /**
  * Class designed in order to represent rational numbers. This should be used as
  * an alternative to the NativeNumber (long double) representation of numbers for
@@ -38,11 +58,12 @@ public:
 		public:
 		NumberImprecisionException() {}
 	};
-
+	//default constructor creates the number 1/1
 	Rational(): _num(1), _den(1){}
-	Rational(long long value){_num = static_cast<double>(value); _den=1;}
-
-	Rational(double num, double den){
+	//construct a number which has denominator 1
+	Rational(long long value){_num = value; _den=1;}
+	//explicit creation
+	Rational(long long num, long long den){
 		ASS(den!=0);
 		if (den < 0 && num >0 ){
 			_num = -_num;
@@ -57,6 +78,11 @@ public:
 		}
 
 	}
+	//create a rational number from a string
+	Rational(string value);
+	//create a rational number from a double value
+	Rational(double value);
+	Rational(long double value);
 
 	~Rational(){}
 	Rational& operator=(const Rational& o){
@@ -107,6 +133,8 @@ public:
 	double toDouble() const{
 		return static_cast<double>((*this)._num/(*this)._den);
 	}
+
+	string toString();
 	//useful numbers
 	static const Rational& zero(){static Rational res(0,1); return res;}
 	static const Rational& one(){static Rational res(1,1); return res;}
@@ -131,7 +159,8 @@ public:
 	long long Numerator() const {return _num;}
 	long long Denomination() const {return _den;}
 
-	//cast operators
+	//cast operators this operators are not protected from overflow!
+	//it might be a problem
 	operator double() const {return double(_num / _den);}
 	operator float() const {return float(_num / _den);}
 
@@ -161,17 +190,8 @@ private:
 	long long _num;
 	//keeping the denominator as unsigned long long might get us in trouble for overflow
 	//detection. This is due to the size of this representation.
-	unsigned long long _den;
+	long long _den;
 };
-
-unsigned long long GCD(long long n1, unsigned long long n2);
-
-//overflow check functions
-inline bool additionOverflow(long long n1, long long n2);
-inline bool subtractionOverflow(long long n1, long long n2);
-inline bool multiplicationOverflow(long long n1, long long n2);
-inline bool divisionOverflow(long long numerator, long long denominator);
-inline bool moduloOverflow(long long numerator, long long denominator);
 
 } //__Aux_Number
 } //Kernel

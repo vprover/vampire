@@ -12,7 +12,7 @@
 #   UNIX_USE_SIGALRM - the SIGALRM timer will be used even in debug mode
 #   IS_LINGVA 	     - this allows the compilation of lingva. 
 #   GNUMPF           - this option allows us to compile with bound propagation or without it ( value 1 or 0 ) 
-GNUMPF = 0
+GNUMPF = 1
 DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
 LLVM_FLAGS = -D_GNU_SOURCE -DGNUMP=$(GNUMPF) -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
@@ -172,7 +172,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Assignment.o\
         Kernel/Constraint.o\
          Kernel/Number.o\
-	 Kernel/Rational.o\
+         Kernel/Rational.o\
          Kernel/V2CIndex.o\
          Kernel/Signature.o\
          Kernel/Unit.o
@@ -481,7 +481,6 @@ BP_VD_OBJ = Debug/Assertion.o\
 
 BP_VK_OBJ = Kernel/Assignment.o\
          Kernel/Constraint.o\
-         Kernel/Rational.o\
          Kernel/Number.o\
          Kernel/V2CIndex.o\
          Kernel/Signature.o
