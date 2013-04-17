@@ -121,7 +121,7 @@ const char* Options::Constants::_optionNames[] = {
   "aig_formula_sharing",
   "aig_inliner",
   "arity_check",
-  "assignment_slector",
+
 
   "backward_demodulation",
   "backward_subsumption",
@@ -130,16 +130,20 @@ const char* Options::Constants::_optionNames[] = {
   "binary_resolution",
 
   "bp_almost_half_bounding_removal",
+  "bp_assignment_selector",
+  "bp_collapsing_used",
+  "bp_conflict_selection",
+  "bp_conservative_as",
   "bp_fm_balance",
   "bp_fm_elimination",
   "bp_max_prop_length",
+  "bp_start_with_precise",
   "bp_update_by_one_constraint",
+  "bp_variable_selector",
 
   "color_unblocking",
   "condensation",
-  "conflict_selection",
-  "cons_a_s",
-  "cons_c_p",
+
 
   "decode",
   "demodulation_redundancy_check",
@@ -275,7 +279,7 @@ const char* Options::Constants::_optionNames[] = {
   "ssplitting_flush_period",
   "ssplitting_flush_quotient",
   "ssplitting_nonsplittable_components",
-  "start_with_precise",
+
   "statistics",
   "superposition_from_variables",
   "symbol_precedence",
@@ -296,7 +300,6 @@ const char* Options::Constants::_optionNames[] = {
 
   "unit_resulting_resolution",
   "unused_predicate_definition_removal",
-  "variable_selector",
   "weight_increment",
   "while_number",
 
@@ -757,22 +760,12 @@ NameArray Options::Constants::almostHalfBoundingRemovalValues(_almostHalfBoundin
  */
 Options::Options ()
   :
+  _abstraction(false),
+  _ageRatio(1),
   _allowedFMBalance(0),
   _almostHalfBoundingRemoval(AHR_ON),
   _assignmentSelector(ASG_RANDOM),
-  _backjumpTargetIsDecisionPoint(true),
-  _collapsingBoundPropagation(false),
-  _equivalentVariableRemoval(true),
-  _fmElimination(true),
-  _conflictSelector(CS_MOST_RECENT),
-  _maximalPropagatedEqualityLength(5),
-  _conservativeAssignmentSelection(true),
-  _selectUnusedVariablesFirst(false),
-  _updatesByOneConstraint(3),
-  _variableSelector(VS_TIGHTEST_BOUND),
-  
-  _abstraction(false),
-  _ageRatio(1),
+
   _weightRatio(1),
   _aigBddSweeping(false),
   _aigConditionalRewriting(false),
@@ -782,6 +775,7 @@ Options::Options ()
   _aigInliner(false),
   _arityCheck(false),
 
+  _backjumpTargetIsDecisionPoint(true),
   _backwardDemodulation(DEMODULATION_ALL),
   _backwardSubsumption(SUBSUMPTION_ON),
   _backwardSubsumptionResolution(SUBSUMPTION_OFF),
@@ -789,7 +783,10 @@ Options::Options ()
   _binaryResolution(true),
 
   _colorUnblocking(false),
+  _collapsingBoundPropagation(false),
   _condensation(CONDENSATION_OFF),
+  _conflictSelector(CS_MOST_RECENT),
+  _conservativeAssignmentSelection(true),
 
   _demodulationRedundancyCheck(true),
   _distinctProcessor(false),
@@ -800,13 +797,16 @@ Options::Options ()
   _equalityPropagation(false),
   _equalityProxy(EP_OFF), 
   _equalityResolutionWithDeletion(RA_INPUT_ONLY),
+  _equivalentVariableRemoval(true),
   
   _flattenTopLevelConjunctions(false),
+  _fmElimination(true),
   _forwardDemodulation(DEMODULATION_ALL),
   _forwardLiteralRewriting(false),
   _forwardSubsumption(true),
   _forwardSubsumptionResolution(true),
   _functionDefinitionElimination(FDE_ALL),
+  _functionNumber(1),
 
   _generalSplitting(RA_OFF),
   _globalSubsumption(false),
@@ -836,6 +836,7 @@ Options::Options ()
   _lrsFirstTimeCheck(5),
   _lrsWeightLimitOnly(false),
 
+  _maximalPropagatedEqualityLength(5),
   _maxActive(0),
   _maxAnswers(1),
   _maxInferenceDepth(0),
@@ -893,6 +894,7 @@ Options::Options ()
   _satVarSelector(SVS_ACTIVE),
   _saturationAlgorithm(LRS),
   _selection(10),
+  _selectUnusedVariablesFirst(false),
   _showActive(false),
   _showBlocked(false),
   _showDefinitions(false),
@@ -952,10 +954,11 @@ Options::Options ()
 
   _unitResultingResolution(URR_OFF),
   _unusedPredicateDefinitionRemoval(true),
+  _updatesByOneConstraint(3),
 
+  _variableSelector(VS_TIGHTEST_BOUND),
   _weightIncrement(false),
   _whileNumber(1),
-  _functionNumber(1),
 
   _xmlOutput("off"),
 

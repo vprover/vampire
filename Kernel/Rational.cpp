@@ -20,94 +20,122 @@
 #include "Lib/Array.hpp"
 #include "Number.hpp"
 
-using namespace Kernel;
-using namespace __Aux_Number;
+namespace Kernel
+{
+namespace __Aux_Number
+{
 
-Rational Rational::operator*(const Rational& o){
+Rational Rational::operator*(const Rational& o) const{
 	CALL("Rational operator*");
-	Rational result((*this)._num*o._num, (*this)._den*o._den);
-	result = canonical(result);
+	Rational result(_num*o._num, _den*o._den);
+	result = result.canonical();
 	return result;
 }
 
-Rational Rational::operator/(const Rational& o){
+
+Rational Rational::operator/(const Rational& o) const{
 	CALL("Rational::operator/");
-	return canonical(Rational((*this)._num*o._den, (*this)._den*o._num));
+	//must take care of the sign first
+	long long num1, num2;
+	if ( (o._num < 0 && _num < 0) || o._num < 0 )
+	{
+		num1 = -_num;
+		num2 = -o._num;
+	}
+	else {
+		num1 = _num;
+		num2 = o._num;
+	}
+	Rational r1 = Rational(num1, num2).canonical();
+	Rational r2 = Rational(_den, o._den).canonical();
+	return (r1*r2);
 }
 
-Rational Rational::operator+(const Rational& o){
+Rational Rational::operator+(const Rational& o) const{
 	CALL("Rational::operator+");
-	//if
-	if ( (*this)._den == o._den){
-		return canonical(Rational((*this)._num+o._num, o._den));
+	if ( _den == o._den){
+		Rational result(_num+o._num, o._den);
+		result = result.canonical();
+		return result;
 	}
 
-	Rational result((*this)._num, (*this)._den);
+	Rational result(_num, _den);
 	result._den= result._den*o._den;
 	result._num = result._num*o._den + o._num*result._den;
-	result = canonical(result);
+	result = result.canonical();
 	return result;
 }
 
-Rational& Rational::operator-(){
+Rational Rational::operator-() const{
 	CALL("Rational::operator-(unary)");
-	(*this)._num=-(*this)._num;
-	return (*this);
+	Rational result;
+	result._den = _den;
+	result._num = -_num;
+	return result;
 }
 
-Rational Rational::operator-(const Rational& o){
+Rational Rational::operator-(const Rational& o) const{
 	CALL("Rational::operator-(Rational )");
 	double den, num;
-	if ((*this)._den == o._den){
-		return canonical(Rational(((*this)._num-o._num), o._den));
+	if (_den == o._den){
+		return Rational((_num-o._num), o._den).canonical();
 	}
 
-	den = ((*this)._den)*o._num - ((*this)._num)*o._den;
-	num = ((*this)._den*o._den);
-	return canonical(Rational(num, den));
+	den = (_den)*o._num - (_num)*o._den;
+	num = (_den*o._den);
+	return Rational(num, den).canonical();
 }
 
 Rational& Rational::operator+=(const Rational& o){
 	CALL("Rational::operator+=");
 	if(sameDenominator(*this, o)){
-		*this = canonical(Rational((*this)._num+o._num,o._den));
-		return *this;
+		*this = Rational(_num+o._num,o._den).canonical();
+		return static_cast<Rational&>(*this);
 	}
-	return *this;
+	else {
+		_num = _num* o._num + _den*o._num;
+		_den = _den*o._den;
+		*this = (*this).canonical();
+		return static_cast<Rational&>(*this);
+	}
 }
 
 Rational& Rational::operator-=(const Rational& o){
 	CALL("Rational::operator-=");
 	if(sameDenominator(*this, o)){
-			*this = canonical(Rational((*this)._num-o._num,o._den));
-			return *this;
+			*this = Rational((*this)._num-o._num,o._den).canonical();
+			return static_cast<Rational&>(*this);
 		}
-	return *this;
+	else {
+		_num = _num*o._den - _den*o._num;
+		_den = _den*o._den;
+		*this = (*this).canonical();
+		return static_cast<Rational&>(*this);
+	}
 }
 
 Rational& Rational::operator*=(const Rational& o){
 	CALL("Rational::operator*=");
-	*this = canonical((*this)*o);
-	return *this;
+	*this = Rational((*this)*o).canonical();
+	return static_cast<Rational&>(*this);
 }
 
 Rational& Rational::operator/=(const Rational& o){
 	CALL( "Rational::operator/=");
 	Rational v(*this);
-	*this = canonical(v* o.inverse());
-	return *this;
+	*this = Rational(v* o.inverse()).canonical();
+	return static_cast<Rational&>(*this);
 }
 
 Rational& Rational::operator++(){
 	CALL("Rational::operator++");
-	*this = canonical((*this)+Rational::one());
-	return *this;
+	*this = Rational((*this)+Rational::one());
+	return static_cast<Rational&>(*this);
 }
-
 Rational& Rational::operator--(){
 	CALL("Rational::operator--");
-	*this = canonical((*this)-Rational::one());
-	return *this;
+	*this = Rational((*this)-Rational::one());
+	return static_cast<Rational&>(*this);
 }
 
 bool Rational::operator >(const Rational& o ) const{
@@ -147,33 +175,127 @@ bool Rational::operator <=(const Rational& o) const{
 }
 
 //this should divide both numerator and denominator by the gcd and return the obtained values
-Rational Rational::canonical(const Rational& o){
+Rational Rational::canonical(){
 	CALL("Rational::canonical");
 	Rational result;
-	bool isNegative = o.isNegative();
-	result = o.abs();
-	long long a, b;
-	a = static_cast<long long>(result._num);
-	b = static_cast<long long>(result._den);
+	bool isNeg = isNegative();
+	result = abs();
+	long long a;
+	unsigned long long b;
+	a = result._num;
+	b = result._den;
+	unsigned long long tmp = GCD(a,b);
 
-	long long tmp;
-	  while (b) {
-	    tmp = b;
-	    b = a % b;
-	    a = tmp;
-	  }
+	result = Rational(result._num / tmp, result._den / tmp);
 
-	result = Rational(result._num / a, result._den/b);
-	//the special case when they are both negative => make the number positive
-	if (o._den < 0 && o._num < 0) return result;
-	if (o._den < 0 && o._num > 0) {
-		result._num = - result._num;
-		result._den = - result._den;
-		return result;
-	}
-	return isNegative ? -result : result;
+	return isNeg ? -result : result;
 
 }
+
+
+unsigned long long GCD(long long n1, unsigned long long n2){
+
+	CALL("GCD(long long , unsigned long long )");
+	ASS(n1 != 0 && n2 != 0);
+	unsigned long long a, b;
+	if (n1 < 0) {
+		a = -(n1);
+	}
+	else {
+		a = n1;
+	}
+	b = n2;
+
+	unsigned long long tmp;
+	while(b) {
+		tmp = b;
+		b = a % b;
+		a = tmp;
+	}
+	return tmp;
+}
+
+//this solution is based on the #include <climits>
+/**
+ * Function for testing if by adding the numbers @b n1
+ * and @b n2 produces an overflow. Returns true if the overflow is possible
+ */
+bool additionOverflow(long long n1, long long n2){
+	return (((n2>0) && (n1 > (LLONG_MAX-n2)))
+			 || ((n2<0) && (n1 < (LLONG_MIN-n2))));
+}
+
+/**
+ * Function for testing if by subtracting @b n1 - @b n2 produces an overflow.
+ * Returns true if this is the case.
+ */
+bool subtractionOverflow(long long n1, long long n2){
+	return ((n2 > 0 && n1 < LLONG_MIN + n2) ||
+		    (n2 < 0 && n1 > LLONG_MAX + n2));
+}
+
+/**
+ * Function for testing if by the multiplication of @b n1 * @b n2 produces
+ * overflow. Returns true if this is the case.
+ */
+bool multiplicationOverflow(long long n1, long long n2){
+	if (n1 > 0){  /* n1 is positive */
+	  if (n2 > 0) {  /* n1 and n2 are positive */
+	    if (n1 > (LLONG_MAX / n2)) {
+	      /* Handle error condition */
+	    	return true;
+	    }
+	  } /* end if n1 and n2 are positive */
+	  else { /* n1 positive, n2 non-positive */
+	    if (n2 < (LLONG_MIN / n1)) {
+	        /* Handle error condition */
+	    	return true;
+	    }
+	  } /* n1 positive, n2 non-positive */
+	} /* end if n1 is positive */
+	else { /* n1 is non-positive */
+	  if (n2 > 0) { /* n1 is non-positive, n2 is positive */
+	    if (n1 < (LLONG_MIN / n2)) {
+	      /* Handle error condition */
+	    	return true;
+	    }
+	  } /* end if n1 is non-positive, n2 is positive */
+	  else { /* n1 and n2 are non-positive */
+	    if ( (n1 != 0) && (n2 < (LLONG_MAX / n1))) {
+	      /* Handle error condition */
+	    	return true;
+	    }
+	  } /* end if n1 and n2 are non-positive */
+	} /* end if n1 */
+	return false;
+}
+
+/**
+ * Helping function which returns true if the long long division might overflow.
+ * Order of the parameters is important, since we also consider the case of
+ * division by zero.
+ * @b numerator takes the numerator of the fraction
+ * @b denominator takes the denominator of the fraction
+ * Return true if the overflow occurs.
+ */
+bool divisionOverflow(long long numerator, long long denominator){
+	return ( (denominator == 0) || ( (numerator == LLONG_MIN) && (denominator == -1) ) );
+}
+
+/**
+ * Overflow can occur during a modulo operation when the dividend is equal to the
+ * minimum (negative) value for the signed integer type and the divisor is equal to −1.
+ * This occurs despite that the result of such a modulo operation should theoretically be 0.
+ * Again order of the parameters matters so we have @b numerator % @b denominator.
+ * Return true if the overflow occurs.
+ * */
+bool moduloOverflow(long long numerator, long long denominator){
+	return ((denominator == 0) || ((numerator == LLONG_MIN) && (denominator == -1)));
+}
+
+}//__AUX_NUMBER
+
+}//Kernel
 
 #endif //GNUMP
 

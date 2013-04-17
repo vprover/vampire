@@ -66,10 +66,21 @@ public:
       initPrecise();
       precise() = static_cast<double>(val);
     }
-    else {
+    else if(!useRational()) {
       native() = val;
     }
+    else {
+    	initRational();
+    	rational() = Rational(val);
+    }
   }
+
+  explicit NumberBase(const Rational& val) : _isPrecise(false), _isRational(false){
+	 ASS(useRational());
+	 initRational();
+	 rational();
+  }
+
   explicit NumberBase(const Precise& val) : _isPrecise(false), _isRational(false) {
     ASS(usePrecise());
     initPrecise();
@@ -271,7 +282,7 @@ public:
 
 	  NativeNumber val = _native;
 	  initRational();
-	  //just fake
+	  //TODO do it in an appropriate way
 	  rational() = Rational(val, 1);
   }
 

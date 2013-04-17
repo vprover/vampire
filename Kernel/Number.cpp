@@ -17,6 +17,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Array.hpp"
 #include "Number.hpp"
+#include "Rational.hpp"
 
 
 namespace Kernel
@@ -364,7 +365,7 @@ BoundNumber BoundNumber::getRandomValue(const BoundNumber& min, const BoundNumbe
 /**
  * get a number in the interval from this and the rhs. The value is computed
  * using the continued fraction decomposition algorithm.
- * details about the algorithm:
+ * details about the  algorithm:
  * @href http://en.wikipedia.org/wiki/Continued_fraction
  */
 BoundNumber BoundNumber::getMagicNumber(BoundNumber& rhs){
@@ -490,6 +491,7 @@ std::ostream& operator<< (ostream& out, const BoundNumber& num)
   else {
     out<<num.native();
   }
+
   return out;
 }
 

@@ -32,11 +32,17 @@ namespace __Aux_Number{
  * 	- canonical takes care of the placing the sign at the numerator
  */
 class Rational{
+
 public:
-	Rational(){_num=1, _den=1;}
+	class NumberImprecisionException {
+		public:
+		NumberImprecisionException() {}
+	};
+
+	Rational(): _num(1), _den(1){}
 	Rational(long long value){_num = static_cast<double>(value); _den=1;}
-	Rational(double val){_den=1; _num=val;}
-	Rational(double num, double den): _num(num), _den(den){
+
+	Rational(double num, double den){
 		ASS(den!=0);
 		if (den < 0 && num >0 ){
 			_num = -_num;
@@ -56,23 +62,23 @@ public:
 	Rational& operator=(const Rational& o){
 		(*this)._den = o._den;
 		(*this)._num = o._num;
-		return *this;
+		return static_cast<Rational&>(*this);
 	}
 
 	//assign in place
 	Rational& assign(double num, double den){
-		this->_den=den;
-		this->_num=num;
-		return *this;
+		_den=den;
+		_num=num;
+		return static_cast<Rational&>(*this);
 	}
 
-	Rational operator+(const Rational& o);
+	Rational operator+(const Rational& o) const;
 	//unary minus
-	Rational& operator-();
-	Rational operator-(const Rational& o);
+	Rational operator-() const;
+	Rational operator-(const Rational& o) const;
 
-	Rational operator*(const Rational& o);
-	Rational operator/(const Rational& o);
+	Rational operator*(const Rational& o) const;
+	Rational operator/(const Rational& o) const;
 
 	Rational& operator+=(const Rational& o);
 	Rational& operator-=(const Rational& o);
@@ -97,7 +103,7 @@ public:
 	bool operator>=(const Rational& o) const;
 	bool operator<=(const Rational& o) const;
 
-	Rational canonical(const Rational& o);
+
 	double toDouble() const{
 		return static_cast<double>((*this)._num/(*this)._den);
 	}
@@ -119,15 +125,20 @@ public:
 		if ((*this).isNegative()){
 			return Rational( -(*this)._num, (*this)._den);
 		}
-		return (*this);
+		return static_cast<Rational>(*this);
 	}
 
-	double Numerator() {return _num;}
-	double Denomination() {return _den;}
+	long long Numerator() const {return _num;}
+	long long Denomination() const {return _den;}
 
 	//cast operators
 	operator double() const {return double(_num / _den);}
 	operator float() const {return float(_num / _den);}
+
+	friend ostream& operator<< (ostream &out, Rational &val){
+		out << val._num << " / " << val._den;
+		return out;
+	}
 
 protected:
 	bool sameDenominator(const Rational& a , const Rational& b) const{
@@ -137,17 +148,28 @@ protected:
 
 	Rational inverse() const{
 		CALL("Rational::inverse");
-		if ((*this).isZero()){
+		if (isZero()){
 			return zero();
 		}
-		Rational result((*this)._den, (*this)._num);
+		Rational result(_den, _num);
 		return result;
 	}
+	Rational canonical();
+
 private:
 	//numerator and denominator
-	double _num, _den;
+	long long _num;
+	unsigned long long _den;
 };
 
+unsigned long long GCD(long long n1, unsigned long long n2);
+
+//overflow check functions
+inline bool additionOverflow(long long n1, long long n2);
+inline bool subtractionOverflow(long long n1, long long n2);
+inline bool multiplicationOverflow(long long n1, long long n2);
+inline bool divisionOverflow(long long numerator, long long denominator);
+inline bool moduloOverflow(long long numerator, long long denominator);
 } //__Aux_Number
 } //Kernel
 #endif //GNUMP
