@@ -30,6 +30,8 @@ bool multiplicationOverflow(long long n1, long long n2);
 bool divisionOverflow(long long numerator, long long denominator);
 bool moduloOverflow(long long numerator, long long denominator);
 
+double safeConversionToDouble(long long number);
+float safeConversionToFloat(long long number);
 //addition with overflow check
 long long safeAdd(long long n1, long long n2);
 //subtraction with overflow check
@@ -61,23 +63,9 @@ public:
 	//default constructor creates the number 1/1
 	Rational(): _num(1), _den(1){}
 	//construct a number which has denominator 1
-	Rational(long long value){_num = value; _den=1;}
+	Rational(long long value):_num(value),_den(1){}
 	//explicit creation
-	Rational(long long num, long long den){
-		ASS(den!=0);
-		if (den < 0 && num >0 ){
-			_num = -_num;
-		}
-		if (den < 0 && num < 0) {
-			_num = -_num;
-			_den = -_den;
-		}
-		if ( num == 0 ) {
-			_num = 0;
-			_den = 1;
-		}
-
-	}
+	Rational(long long num, long long den);
 	//create a rational number from a string
 	Rational(string value);
 	//create a rational number from a double value
@@ -111,12 +99,16 @@ public:
 	Rational& operator*=(const Rational& o);
 	Rational& operator/=(const Rational& o);
 
+	//prefix operators
 	Rational& operator++();
 	Rational& operator--();
+	//postfix operators
+	Rational operator++(int);
+	Rational operator--(int);
+
 
 	//comparators
 	bool operator==(const Rational& o) const {
-		CALL("Rational::operator==");
 		//assumes that the rational numbers are canonicalized
 		return ((*this)._num == o._num && (*this)._den == o._den);
 
@@ -131,23 +123,19 @@ public:
 
 
 	double toDouble() const{
-		return static_cast<double>((*this)._num/(*this)._den);
+		double res = (double)_num/_den;
+		return res;
 	}
 
 	string toString();
-	//useful numbers
-	static const Rational& zero(){static Rational res(0,1); return res;}
-	static const Rational& one(){static Rational res(1,1); return res;}
-	static const Rational& minusOne(){static Rational res(-1,1); return res;}
-	static const Rational& two(){static Rational res(2,1);return res;}
 
 	bool isPositive() const{ return this->_num >= 0;}
 	bool isPositiveNonZero() const{return this->_num > 0;}
 
 	bool isNegative() const{ return this->_num <= 0;}
-	bool isNegativeNonZero() const{ return *this < zero();}
+	bool isNegativeNonZero() const{ return this->_num < 0;}
 
-	bool isZero() const{ return *this == zero(); }
+	bool isZero() const{ return this->_num == 0; }
 
 	Rational abs() const{
 		if ((*this).isNegative()){
@@ -161,25 +149,22 @@ public:
 
 	//cast operators this operators are not protected from overflow!
 	//it might be a problem
-	operator double() const {return double(_num / _den);}
-	operator float() const {return float(_num / _den);}
+	operator double() const {return safeConversionToDouble(_num) / safeConversionToDouble(_den);}
+	operator float() const {return safeConversionToFloat(_num) / safeConversionToFloat(_den);}
 
 	friend ostream& operator<< (ostream &out, Rational &val){
-		CALL("Rational::operator<<");
 		out << val.toString();
 		return out;
 	}
 
 protected:
 	bool sameDenominator(const Rational& a , const Rational& b) const{
-		CALL("Rational::sameDenominator");
 		return (a._den == b._den);
 	}
 
 	Rational inverse() const{
-		CALL("Rational::inverse");
 		if (isZero()){
-			return zero();
+			return Rational(0,1);
 		}
 		Rational result(_den, _num);
 		return result;

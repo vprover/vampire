@@ -25,6 +25,27 @@ namespace Kernel
 {
 namespace __Aux_Number
 {
+Rational::Rational(long long num, long long den):_num(num),_den(den){
+	ASS(den!=0);
+	if (den < 0 && num >0 ){
+		_num = -_num;
+		_den = -_den;
+	}
+	else if (den < 0 && num < 0) {
+		_num = -_num;
+		_den = -_den;
+	}
+	else if ( num == 0 ) {
+		_num = 0;
+		_den = 1;
+	}
+	else {
+		long long gcd = GCD(_num, _den);
+		_num = safeDiv(_num, gcd);
+		_den = safeDiv(_den, gcd);
+	}
+
+}
 /**
  * Constructor that initializes the rational number from a double value
  * @b value
@@ -89,8 +110,11 @@ Rational::Rational(string value){
 
 Rational Rational::operator*(const Rational& o) const{
 	CALL("Rational operator*");
-	Rational result(safeMul(_num,o._num), safeMul(_den,o._den));
-	result = result.canonical();
+	//a/b * c/d = canonical(a/d) *canonical(c/b)
+	//first create the canonical version of a/d , then c/b
+	Rational r1(_num,o._den);
+	Rational r2(o._num, _den);
+ 	Rational result(safeMul(r1._num,r2._num), safeMul(r1._den,r2._den));
 	return result;
 }
 
@@ -108,8 +132,8 @@ Rational Rational::operator/(const Rational& o) const{
 		num1 = _num;
 		num2 = o._num;
 	}
-	Rational r1 = Rational(num1, num2).canonical();
-	Rational r2 = Rational(_den, o._den).canonical();
+	Rational r1 = Rational(num1, _den);
+	Rational r2 = Rational(o._den, num2);
 	return (r1*r2);
 }
 
@@ -117,14 +141,17 @@ Rational Rational::operator+(const Rational& o) const{
 	CALL("Rational::operator+");
 	if ( _den == o._den){
 		Rational result(safeAdd(_num,o._num), o._den);
-		result = result.canonical();
 		return result;
 	}
 
-	Rational result(_num, _den);
-	result._den= safeMul(result._den,o._den);
-	result._num = safeAdd( safeMul(result._num,o._den) , safeMul(o._num,result._den));
-	result = result.canonical();
+	long long num, den;
+	long long gcd = GCD(_den, o._den);
+	long long mul1, mul2;
+	mul1= safeDiv(_den,gcd);
+	mul2 = safeDiv(o._den,gcd);
+	den= safeMul(mul1,mul2);
+	num = safeAdd( safeMul(_num,mul2) , safeMul(o._num,mul1));
+	Rational result(num,den);
 	return result;
 }
 
@@ -138,66 +165,88 @@ Rational Rational::operator-() const{
 
 Rational Rational::operator-(const Rational& o) const{
 	CALL("Rational::operator-(Rational )");
-	double den, num;
 	if (_den == o._den){
 		return Rational(safeSub(_num,o._num), o._den).canonical();
 	}
 
-	den = safeSub(safeMul((_den),o._num) , safeMul((_num),o._den));
-	num = safeMul(_den,o._den);
-	return Rational(num, den).canonical();
+	long long gcd = GCD(_den, o._den);
+	long long mul1, mul2;
+	mul1= safeDiv(_den,gcd);
+	mul2 = safeDiv(o._den,gcd);
+	long long num, den;
+	den= safeMul(mul1,mul2);
+	num = safeSub( safeMul(_num,mul2) , safeMul(o._num,mul1));
+	Rational result(num,den);
+	return Rational(num, den);
 }
 
 Rational& Rational::operator+=(const Rational& o){
 	CALL("Rational::operator+=");
+	Rational result;
 	if(sameDenominator(*this, o)){
-		*this = Rational(safeAdd(_num,o._num),o._den).canonical();
-		return static_cast<Rational&>(*this);
+		result = Rational(safeAdd(_num,o._num),o._den);
+		*this = result;
+		return *this;
 	}
 	else {
-		_num = safeAdd(safeMul(_num, o._num),safeMul(_den,o._num));
-		_den = safeMul(_den,o._den);
-		*this = (*this).canonical();
-		return static_cast<Rational&>(*this);
+		result = (*this)+o;
+		*this = result;
+		return (*this);
 	}
 }
 
 Rational& Rational::operator-=(const Rational& o){
 	CALL("Rational::operator-=");
+	Rational result;
 	if(sameDenominator(*this, o)){
-			*this = Rational(safeSub((*this)._num,o._num),o._den).canonical();
-			return static_cast<Rational&>(*this);
+			result = Rational(safeSub(_num,o._num),o._den);
+			*this = result;
+			return *this;
 		}
-	else {
-		_num = safeSub(safeMul(_num,o._den), safeMul(_den,o._num));
-		_den = safeMul(_den,o._den);
-		*this = (*this).canonical();
-		return static_cast<Rational&>(*this);
-	}
+		else {
+			result = (*this)-o;
+			*this = result;
+			return (*this);
+		}
 }
 
 Rational& Rational::operator*=(const Rational& o){
 	CALL("Rational::operator*=");
-	*this = Rational((*this)*o).canonical();
-	return static_cast<Rational&>(*this);
+	Rational result=(*this)*o;
+	*this = result;
+	return (*this);
 }
 
 Rational& Rational::operator/=(const Rational& o){
 	CALL( "Rational::operator/=");
 	Rational v(*this);
-	*this = Rational(v* o.inverse()).canonical();
+	*this = Rational(v* o.inverse());
 	return static_cast<Rational&>(*this);
 }
 
 Rational& Rational::operator++(){
 	CALL("Rational::operator++");
-	*this = Rational((*this)+Rational::one());
-	return static_cast<Rational&>(*this);
+	++(this->_num);
+	return *this;
 }
 Rational& Rational::operator--(){
 	CALL("Rational::operator--");
-	*this = Rational((*this)-Rational::one());
-	return static_cast<Rational&>(*this);
+	--(this->_num);
+	return *this;
+}
+
+Rational Rational::operator++(int){
+	CALL("Rational::operator++ postfix");
+	Rational temp = *this;
+	this->_num+=1;
+	return *this;
+}
+
+Rational Rational::operator--(int){
+	CALL("Rational::operator-- postfix");
+	Rational temp = *this;
+	this->_num-=1;
+	return *this;
 }
 
 bool Rational::operator >(const Rational& o ) const{
@@ -406,6 +455,19 @@ long long safeModulo(long long n1, long long n2) {
 	return n1 % n2;
 }
 
+
+double safeConversionToDouble(long long number){
+	if(number < DBL_MIN || number > DBL_MAX){
+		throw Rational::NumberImprecisionException();
+	}
+	return double(number);
+}
+float safeConversionToFloat(long long number){
+	if(number < FLT_MIN || number > FLT_MAX){
+		throw Rational::NumberImprecisionException();
+	}
+	return float(number);
+}
 }//__AUX_NUMBER
 }//Kernel
 
