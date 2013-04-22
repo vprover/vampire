@@ -99,8 +99,8 @@ TEST_FUN(iteTerm)
   Literal* x0EQx1=Literal::createEquality(true, x0, x1, Sorts::SRT_DEFAULT);
   Formula* fletTgt = new BinaryFormula(IMP, new AtomicFormula(p01), new AtomicFormula(x0EQx1));
   Formula* flet = new FormulaLetFormula(p01, fletTgt, new AtomicFormula(x0EQtlet));  //formula let in formula
-
   Formula* flet2 = new TermLetFormula(g1, x1, flet);  //term let in formula
+
   cout << flet2->toString() <<endl;
 
 

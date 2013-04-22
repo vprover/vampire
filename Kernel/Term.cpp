@@ -445,13 +445,13 @@ void TermList::argsToString(Stack<const TermList*>& stack,string& s)
     }
     const Term* t = ts->term();
     if(t->isSpecial()) {
-      cerr << t->specialTermToString()<<endl;
+      //cerr << t->specialTermToString()<<endl;
       s+=t->specialTermToString();
       continue;
     }
     s += t->functionName();
     if (t->arity()) {
-      cerr << "function: "<< t->functionName()<<endl;
+      //cerr << "function: "<< t->functionName()<<endl;
       s += '(';
       stack.push(t->args());
     }
@@ -499,7 +499,7 @@ string Literal::toString() const
   Stack<const TermList*> stack(64);
   string s = polarity() ? "" : "~";
   s += predicateName();
-  cerr << "predicate: "<< predicateName()<<endl;
+  //cerr << "predicate: "<< predicateName()<<endl;
   if (_arity) {
     s += '(';
     stack.push(args());
