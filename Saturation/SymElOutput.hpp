@@ -67,8 +67,7 @@ private:
 
   SaturationAlgorithm* _sa;
 
-  TPTPPrinter _printer1;
-  FramaCPrinter _printer;
+  TPTPPrinter _printer;
 };
 
 }
