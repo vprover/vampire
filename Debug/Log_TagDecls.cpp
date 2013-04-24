@@ -1275,7 +1275,32 @@ void Logging::doTagDeclarations()
       PARENT("tkv",1));
   
 
-  
+  //lingva tracing tags
+
+	DECL("lin", DOC("tracing for lingva"));
+	DECL("lin_initial",
+		DOC("tace the initial and final for the array"), PARENT("lin",1));
+	DECL("lin_lCond",
+		DOC("trace the loop condition as let--in construct"), PARENT("lin",1));
+	DECL("lin_ite",
+		DOC("trace the iteration definition construction"), PARENT("lin",1));
+	DECL("lin_counter",
+		DOC("trace the axiom generation for counters"), PARENT("lin",1));
+	DECL("lin_density",
+		DOC("trace the density axioms generation"), PARENT("lin",1));
+	DECL("lin_stability",
+		DOC("trace the stability properties"), PARENT("lin",1));
+	DECL("lin_letCondition",
+		DOC("let in condition translation -- recursive construct"), PARENT("lin",1));
+	DECL("lin_letTransG",
+		DOC("let translation of guards "), PARENT("lin",1));
+	DECL("lin_let",
+		DOC("let generation of let expressions"),PARENT("lin",1));
+	DECL("lin_arrayUpdateCond",
+		DOC("array update condition "), PARENT("lin",1));
+	DECL("lin_arrayUpdPred",
+		DOC("array update predicate"), PARENT("lin",1));
+
   DECL("tu",
       DOC("TestUtils traces"));
   DECL("tu_uf",
