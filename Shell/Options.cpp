@@ -1098,6 +1098,9 @@ void Options::set(const char* name,const char* value, int index)
       }
       else USER_ERROR("The value must be an integer");
       return;
+    case START_WITH_PRECISE:
+	_startWithPrecise = onOffToBool(value, name);
+	return;
     case COLOR_UNBLOCKING:
       _colorUnblocking = onOffToBool(value,name);
       return;
@@ -1609,10 +1612,6 @@ void Options::set(const char* name,const char* value, int index)
     case SSPLITTING_NONSPLITTABLE_COMPONENTS:
       _ssplittingNonsplittableComponents = (SSplittingNonsplittableComponents)Constants::sSplittingNonsplittableComponentsValues.find(value);
       return;
-    
-    case START_WITH_PRECISE:
-	_startWithPrecise = onOffToBool(value, name);
-	return;
       
     case STATISTICS:
       _statistics = (Statistics)Constants::statisticsValues.find(value);
@@ -2033,6 +2032,10 @@ void Options::outputValue (ostream& str,int optionTag) const
   case BP_UPDATE_BY_ONE_CONSTRAINT:
     str << _updatesByOneConstraint;
     return;
+
+  case START_WITH_PRECISE:
+	str << boolToOnOff(_startWithPrecise);
+	return;
 
   case COLOR_UNBLOCKING:
     str << boolToOnOff(_colorUnblocking);
@@ -3113,5 +3116,5 @@ void Options::enableTracesAccordingToOptions() const
   if (showSkolemisations()) { ENABLE_TAG("pp_sk_funs"); }
   if (showNonconstantSkolemFunctionTrace()) { ENABLE_TAG("pp_sk_nonconst_intr"); }
   if (showDefinitions()) { ENABLE_TAG("definitions"); }
-  if (showPreprocessingFormulas()) { ENABLE_TAG("preproc_forms"); }
+  if (showPreprocessingFormulas()) { ENABLE_TAG("pp"); }
 }
