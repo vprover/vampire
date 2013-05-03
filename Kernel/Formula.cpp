@@ -299,7 +299,7 @@ string Formula::toString () const
     }
 
   case ITE:
-    return "$itef(" + condArg()->toStringInScopeOf(c) + "," + thenArg()->toStringInScopeOf(c) + "," +
+    return "$ite_f(" + condArg()->toStringInScopeOf(c) + "," + thenArg()->toStringInScopeOf(c) + "," +
            elseArg()->toStringInScopeOf(c) + ")";
 
   case FORMULA_LET:
@@ -320,7 +320,6 @@ string Formula::toString () const
 #endif
   }
 } // Formula::toString
-
 
 /**
  * True if the formula needs parentheses around itself

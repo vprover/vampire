@@ -71,7 +71,6 @@ private:
   void collectPaths();
   void generateAxiomsForCounters();
   void generateCounterAxiom(const string& name,int min,int max,int gcd);
-  Term* relativize(Expression* expr);
   void generateLetExpressions();
   TermList expressionToTerm(Expression* exp);
   Formula*  expressionToPred(Expression* exp);

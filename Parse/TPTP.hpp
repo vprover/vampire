@@ -161,17 +161,17 @@ public:
     T_THF,
     /** anything that begins with $$ */
     T_DOLLARS,
-    /** $itef: if-then-else on formulas */
+    /** $ite_f: if-then-else on formulas */
     T_ITEF,
-    /** $itet: if-then-else on terms */
+    /** $ite_t: if-then-else on terms */
     T_ITET,
-    /** $lettt: a form of $let */
+    /** $let_tt: a form of $let */
     T_LETTT,
-    /** $lettf: a form of $let */
+    /** $let_tf: a form of $let */
     T_LETTF,
-    /** $letft: a form of $let */
+    /** $let_ft: a form of $let */
     T_LETFT,
-    /** $letff: a form of $let */
+    /** $let_ff: a form of $let */
     T_LETFF,
   };
 
@@ -454,7 +454,10 @@ private:
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
   int _lastInputType;
   /** true if the last read unit is a question */ 
-  int _isQuestion;
+  bool _isQuestion;
+  /** true if the last read unit is fof() or cnf() due to a subtle difference
+   * between fof() and tff() in treating numeric constants */ 
+  bool _isFof;
   /** various strings saved during parsing */
   Stack<string> _strings;
   /** various connectives saved during parsing */ // they must be int, since non-existing value -1 can be used

@@ -2,37 +2,38 @@
  * @file DecisionProcedure.hpp
  * Defines class DecisionProcedure.
  */
-
 #ifndef __DecisionProcedure__
 #define __DecisionProcedure__
 
 #include "Forwards.hpp"
-
 #include "Kernel/Term.hpp"
-
-
 
 namespace DP {
 
 using namespace Lib;
 using namespace Kernel;
 
+/**
+ * A pure virtual class implementing decision procedures.
+ */
 class DecisionProcedure {
 public:
   enum Status {
+    /** satisfiable */
     SATISFIABLE,
+    /** unsatisfiable */
     UNSATISFIABLE,
-    /**
+    /** 
      * When the decision procedure cannot determine
      * the satisfiability status of the literal set
      */
-    UNKNOWN
+    UNKNOWN,
   };
 
   virtual ~DecisionProcedure() {}
-
+  /** add literals */
   virtual void addLiterals(LiteralIterator lits) = 0;
-
+  /** return the result */
   virtual Status getStatus(bool getMultipleCores=false) = 0;
 
   /**
@@ -44,15 +45,8 @@ public:
    */
   virtual unsigned getUnsatCoreCount() = 0;
   virtual void getUnsatCore(LiteralStack& res, unsigned coreIndex=0) = 0;
-
   /** reset decision procedure object into state equivalent to its initial state */
   virtual void reset() = 0;
-};
-
-class ScopedDecisionProcedure : public DecisionProcedure {
-public:
-  virtual void push() = 0;
-  virtual void pop(unsigned scopeCount) = 0;
 };
 
 }

@@ -71,7 +71,7 @@ bool Splitter::splitPositive()
 
 /**
  * Return true if @b cl fulfills the constraints for clauses
- * to be splitted.
+ * to be split.
  */
 bool Splitter::splittingAllowed(Clause* cl)
 {
@@ -148,7 +148,7 @@ bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTo
   static DHMap<unsigned, unsigned, IdentityHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
-  //index of one literal that cannot be splitted-out, or -1 if there isn't any
+  //index of one literal that cannot be split-out, or -1 if there isn't any
   int coloredMaster=-1;
 
   for(unsigned i=0;i<clen;i++) {

@@ -384,7 +384,7 @@ void Logging::doTagDeclarations()
       DOC("performed splits"),
       PARENT("sspl",0));
   DECL("sspl_nonsplits",
-      DOC("not splitted clauses"),
+      DOC("not split clauses"),
       PARENT("sspl",3),
       UNIT_TAG);
   DECL("sspl_confl",

@@ -1,6 +1,6 @@
 /**
  * @file Signature.hpp
- * Defines class Signature consisting of predicate and function symbols
+ * Defines class Signature for handling signatures
  *
  * @since 07/05/2007 Manchester, created anew instead of the old overcomplicated
  *        Signature
@@ -30,7 +30,7 @@ using namespace std;
 using namespace Lib;
 
 /**
- * Class representing signatures.
+ * Class implementing signatures
  */
 class Signature
 {
@@ -53,16 +53,14 @@ class Signature
     /** marks propositional predicate symbols that are to
         be used as names during consequence finding */
     unsigned _cfName : 1;
-    /** marks propositional predicate symbols that are to
-        be used as names for splitting without backtracking
-        when BDDs are not used */
-    unsigned _swbName : 1;
     /** marks predicates that are equality proxy */
     unsigned _equalityProxy : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
     /** marks distinct string constants */
     unsigned _stringConstant : 1;
+    /** marks numeric constants, they are only used in TPTP's fof declarations */
+    unsigned _numericConstant : 1;
     /** predicate introduced for query answering */
     unsigned _answerPredicate : 1;
     /** Either a FunctionType of a PredicateType object */
@@ -73,7 +71,7 @@ class Signature
     ~Symbol();
   public:
     /** standard constructor */
-    Symbol(const string& nm,unsigned arity, bool interpreted=false, bool stringConstant=false);
+    Symbol(const string& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false);
     void destroyFnSymbol();
     void destroyPredSymbol();
 
@@ -86,8 +84,6 @@ class Signature
     void markSkip() { _skip=1; }
     /** mark the symbol as name for consequence finding */
     void markCFName() { ASS_EQ(arity(), 0); _cfName=1; markProtected(); }
-    /** mark the symbol as name for splitting without backtracking */
-    void markSWBName() { ASS_EQ(arity(), 0); _swbName=1; }
     /** mark symbol to be an answer predicate */
     void markAnswerPredicate() { _answerPredicate=1; markProtected(); }
     /** mark predicate to be an equality proxy */
@@ -97,9 +93,6 @@ class Signature
     /** return true iff the symbol is marked as name predicate
         for consequence finding */
     bool cfName() const { return _cfName; }
-    /** return true iff the symbol is marked as name predicate
-        for splitting without backtracking */
-    bool swbName() const { return _swbName; }
     /** return the colour of the symbol */
     Color color() const { return static_cast<Color>(_color); }
     /** Return the arity of the symbol */
@@ -114,6 +107,8 @@ class Signature
     inline bool protectedSymbol() const { return _protected; }
     /** Return true iff symbol is a distinct string constant */
     inline bool stringConstant() const { return _stringConstant; }
+    /** Return true iff symbol is a numeric constant */
+    inline bool numericConstant() const { return _numericConstant; }
     /** Return true iff symbol is an answer predicate */
     inline bool answerPredicate() const { return _answerPredicate; }
     /** Return true iff symbol is an equality proxy */
@@ -326,26 +321,20 @@ class Signature
    * The added constant is of sort Sorts::SRT_DEFAULT.
    */
   unsigned addStringConstant(const string& name);
-
-
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addIteFunction(unsigned arity, unsigned* argSorts, unsigned resSort);
   unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
-
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
 
-
-  ////////////////////////////////////
   // Interpreted symbol declarations
-  //
 
   unsigned addInterpretedFunction(Interpretation itp, const string& name);
   unsigned addInterpretedPredicate(Interpretation itp, const string& name);
 
-  unsigned addIntegerConstant(const string& number);
-  unsigned addRationalConstant(const string& numerator, const string& denominator);
-  unsigned addRealConstant(const string& number);
+  unsigned addIntegerConstant(const string& number,bool defaultSort);
+  unsigned addRationalConstant(const string& numerator, const string& denominator,bool defaultSort);
+  unsigned addRealConstant(const string& number,bool defaultSort);
 
   unsigned addIntegerConstant(const IntegerConstantType& number);
   unsigned addRationalConstant(const RationalConstantType& number);
@@ -454,17 +443,15 @@ class Signature
   /** the number of real constants */
   unsigned reals() const {return _reals;}
 
-
   static const unsigned STRING_DISTINCT_GROUP;
   static const unsigned INTEGER_DISTINCT_GROUP;
   static const unsigned RATIONAL_DISTINCT_GROUP;
   static const unsigned REAL_DISTINCT_GROUP;
   static const unsigned LAST_BUILT_IN_DISTINCT_GROUP;
+
 private:
-
-
   static bool isProtectedName(string name);
-  static bool symbolNeedsQuoting(string name, bool interpreted, unsigned arity, bool stringConstant);
+  static bool symbolNeedsQuoting(string name, bool interpreted, unsigned arity);
   static bool charNeedsQuoting(char c, bool first);
   /** Stack of function symbols -- used for bound propagation*/
   Stack<VarSymbol*> _vars;

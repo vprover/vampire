@@ -17,6 +17,9 @@ namespace Shell
 
 //TODO: add expansion of non-top-level and negative distinct predicates
 
+/**
+ * True if 
+ */
 bool DistinctProcessor::isDistinctPred(Literal* l)
 {
   CALL("DistinctProcessor::isDistinctPred");

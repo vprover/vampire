@@ -25,29 +25,30 @@ using namespace Shell;
 using namespace SAT;
 using namespace DP;
 
+/**
+ * A simple SMT solver call: read a problem from the input file or stdin, solve
+ * it and print the result (satisfiable, unsatisfiable or unknown). 
+ */
 class SimpleSMT {
-  public:
-    int perform(int argc, char** argv);
-    SimpleSMT();
-    ~SimpleSMT(){};
-  protected:
-    void initializeSATSolver(ClauseIterator clite);
-    void preprocessProblem(int argc, char** argv);
-    void initSATSolver(SATClauseIterator clauseIterator);
-    void addClausesToSAT(SATClauseStack& clauses);
-    DecisionProcedure::Status addTheoryConflicts(LiteralStack& assignment);
-    DecisionProcedure::Status compute();
-    SATClauseIterator initSATClauses(ClauseIterator clite);
-    SATClause* convertSATtoFO(LiteralStack *litAsgn);
-
-  private:
-    unsigned _conflictIndex;
-
-    SAT2FO _map;
-
-    ScopedPtr<SATSolver> _solver;
-    ScopedPtr<DecisionProcedure> _dp;
-};
+public:
+  int perform(int argc, char** argv);
+  SimpleSMT();
+  ~SimpleSMT(){};
+private:
+  void initializeSATSolver(ClauseIterator clite);
+  void preprocessProblem(int argc, char** argv);
+  void initSATSolver(SATClauseIterator clauseIterator);
+  void addClausesToSAT(SATClauseStack& clauses);
+  DecisionProcedure::Status addTheoryConflicts(LiteralStack& assignment);
+  DecisionProcedure::Status compute();
+  SATClauseIterator initSATClauses(ClauseIterator clite);
+  SATClause* convertSATtoFO(LiteralStack *litAsgn);
+  
+  unsigned _conflictIndex;
+  SAT2FO _map;
+  ScopedPtr<SATSolver> _solver;
+  ScopedPtr<DecisionProcedure> _dp;
+}; // simpleSMT
 
 }
 

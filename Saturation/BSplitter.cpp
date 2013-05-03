@@ -173,7 +173,7 @@ void BSplitter::SplitRecord::addReduced(Clause* cl)
 
 /**
  * Return the component that should be refuted if the clause @b icl
- * should be splitted or 0 otherwise
+ * should be split or 0 otherwise
  *
  * The other component is not explicitly returned. Its literals are
  * those of @b icl that are not present in the result clause. It is
@@ -197,7 +197,7 @@ Clause* BSplitter::getComponent(Clause* cl)
   varMasters.reset();
   IntUnionFind components(clen);
 
-  //TODO:Should we avoid colored literals to be in the splitted-out component?
+  //TODO:Should we avoid colored literals to be in the split-out component?
 
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
@@ -428,7 +428,7 @@ start:
 #endif
 
   SplitSet* altSplitSet;
-  //add the other component of the splitted clause (plus possibly some other clauses)
+  //add the other component of the split clause (plus possibly some other clauses)
   getAlternativeClauses(_db[refLvl]->base, _db[refLvl]->component, cl, refLvl, restored, altSplitSet);
 
 

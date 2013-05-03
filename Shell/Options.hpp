@@ -38,24 +38,23 @@ public:
     AIG_INLINER,
     ARITY_CHECK,
 
-
     BACKWARD_DEMODULATION,
     BACKWARD_SUBSUMPTION,
     BACKWARD_SUBSUMPTION_RESOLUTION,
     BFNT,
     BINARY_RESOLUTION,
-
-    BP_ALMOST_HALF_BOUND_REMOVER,
-    ASSIGNMENT_SELECTOR,
-    CONSERVATIVE_COLLAPSING_PROPAGATION,
-    CONFLICT_SELECTOR,
-    CONSERVATIVE_ASSIGNMENT_SELECTOR,
     BP_ALLOWED_FM_BALANCE,
+    BP_ALMOST_HALF_BOUND_REMOVER,
+    BP_ASSIGNMENT_SELECTOR,
+    BP_COLLAPSING_PROPAGATION,
+    BP_CONFLICT_SELECTOR,
+    BP_CONSERVATIVE_ASSIGNMENT_SELECTION,
     BP_FM_ELIMINATION,
     BP_MAX_PROP_LENGTH,
-    START_WITH_PRECISE,
+    BP_PROPAGATE_AFTER_CONFLICT,
+    BP_START_WITH_PRECISE,
     BP_UPDATE_BY_ONE_CONSTRAINT,
-    VARIABLE_SELECTOR,
+    BP_VARIABLE_SELECTOR,
 
     COLOR_UNBLOCKING,
     CONDENSATION,
@@ -177,7 +176,7 @@ public:
     SAT_SOLVER_WITH_NAMING,
     SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION,
     SAT_VAR_ACTIVITY_DECAY,
-    SAT_VAR_SELETOR,
+    SAT_VAR_SELECTOR,
     /** !!! saturation algorithm: lrs, otter, or discount, inst_gen or tabulation */
     SATURATION_ALGORITHM,
     SELECTION,
@@ -208,7 +207,6 @@ public:
     SPLIT_INPUT_ONLY,
     SPLIT_POSITIVE,
     SPLITTING,
-    SPLITTING_WITH_BLOCKING,
     SSPLITTING_ADD_COMPLEMENTARY,
     SSPLITTING_COMPONENT_SWEEPING,
     SSPLITTING_CONGRUENCE_CLOSURE,
@@ -251,13 +249,13 @@ public:
   class StringIntMap;
   
   //enums for the bound propagation purpose
-  enum AlmostHalfBoundingRemoval {
+  enum BPAlmostHalfBoundingRemoval {
     AHR_BOUNDS_ONLY = 0,
     AHR_OFF = 1,
     AHR_ON = 2
   };
 
-  enum AssignmentSelector{
+  enum BPAssignmentSelector{
     ASG_ALTERNATIVE = 0,
     ASG_BMP = 1,
     ASG_LOWER = 2,
@@ -271,13 +269,13 @@ public:
     ASG_UPPER = 10
   };
   
-  enum ConflictSelector{
+  enum BPConflictSelector{
     CS_LEAST_RECENT = 0, 
     CS_MOST_RECENT = 1, 
     CS_SHORTEST_CONSTRAINT = 2
   };
   
-  enum VariableSelector{
+  enum BPVariableSelector{
     VS_CONFLICTING = 0, 
     VS_CONFLICTING_AND_COLLAPSING = 1, 
     VS_FIRST = 2, 
@@ -674,7 +672,6 @@ public:
   bool splitPositive() const { return _splitPositive; }
   SplittingMode splitting() const { return _splitting; }
   void setSplitting(SplittingMode newVal) { _splitting = newVal; }
-  bool splittingWithBlocking() const { return _splittingWithBlocking; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
 
   unsigned sineDepth() const { return _sineDepth; }
@@ -689,9 +686,7 @@ public:
   bool smtlibIntroduceAIGNames() const { return _smtlibIntroduceAIGNames; }
 
   bool colorUnblocking() const { return _colorUnblocking; }
-
   bool distinctProcessor() const { return _distinctProcessor; }
-
   bool hornRevealing() const { return _hornRevealing; }
   bool trivialPredicateRemoval() const { return _trivialPredicateRemoval; }
 
@@ -762,19 +757,19 @@ public:
   void setProof(Proof p) { _proof = p; }
   bool equivalentVariableRemoval() const { return _equivalentVariableRemoval; }
   unsigned maximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength; }
-  AlmostHalfBoundingRemoval almostHalfBoundingRemoval() const {return _almostHalfBoundingRemoval;}
-  bool fmElimination () const {return _fmElimination;}
-  unsigned allowedFMBalance() const { return _allowedFMBalance; }
-  AssignmentSelector assignmentSelector() const {return _assignmentSelector; }
-  bool collapsingBoundPropagation() const {return _collapsingBoundPropagation; }
+  BPAlmostHalfBoundingRemoval bpAlmostHalfBoundingRemoval() const {return _bpAlmostHalfBoundingRemoval;}
+  bool bpFmElimination () const {return _bpFmElimination;}
+  unsigned bpAllowedFMBalance() const { return _bpAllowedFMBalance; }
+  BPAssignmentSelector bpAssignmentSelector() const {return _bpAssignmentSelector; }
+  bool bpCollapsingPropagation() const {return _bpCollapsingPropagation; }
   unsigned updatesByOneConstraint() const {return _updatesByOneConstraint; }
-  bool conservativeAssignmentSelection() const {return _conservativeAssignmentSelection; }
-  ConflictSelector conflictSelector() const {return _conflictSelector; }
+  bool bpConservativeAssignmentSelection() const {return _bpConservativeAssignmentSelection; }
+  BPConflictSelector bpConflictSelector() const {return _bpConflictSelector; }
   bool backjumpTargetIsDecisionPoint() const { return _backjumpTargetIsDecisionPoint; }
-  bool propagateAfterConflict() const {return _propagateAfterConflict; }
-  VariableSelector variableSelector() const {return _variableSelector; }
+  bool bpPropagateAfterConflict() const {return _bpPropagateAfterConflict; }
+  BPVariableSelector bpVariableSelector() const {return _bpVariableSelector; }
   bool selectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst; }
-  bool startWithPrecise() const { return _startWithPrecise; }
+  bool bpStartWithPrecise() const { return _bpStartWithPrecise; }
   
   CLASS_NAME(Options);
   USE_ALLOCATOR(Options);
@@ -790,11 +785,8 @@ private:
 private:
   class Constants;
 
-  bool _startWithPrecise;
-  bool _selectUnusedVariablesFirst;
   bool _abstraction;
   int _ageRatio;
-  int _weightRatio;
   bool _aigBddSweeping;
   bool _aigConditionalRewriting;
   bool _aigDefinitionIntroduction;
@@ -803,22 +795,24 @@ private:
   bool _aigInliner;
   bool _arityCheck;
   
-  AssignmentSelector _assignmentSelector;
-  unsigned _allowedFMBalance;
-  AlmostHalfBoundingRemoval _almostHalfBoundingRemoval;
-  
   bool _backjumpTargetIsDecisionPoint;
   Demodulation _backwardDemodulation;
   Subsumption _backwardSubsumption;
   Subsumption _backwardSubsumptionResolution;
   bool _bfnt;
   bool _binaryResolution;
+  unsigned _bpAllowedFMBalance;
+  BPAlmostHalfBoundingRemoval _bpAlmostHalfBoundingRemoval;
+  BPAssignmentSelector _bpAssignmentSelector;
+  bool _bpCollapsingPropagation;
+  BPConflictSelector _bpConflictSelector;
+  bool _bpConservativeAssignmentSelection;
+  bool _bpPropagateAfterConflict;
+  bool _bpStartWithPrecise;
+  BPVariableSelector _bpVariableSelector;
 
-  bool _collapsingBoundPropagation;
   bool _colorUnblocking;
   Condensation _condensation;
-  ConflictSelector _conflictSelector;
-  bool _conservativeAssignmentSelection;
 
   bool _demodulationRedundancyCheck;
   bool _distinctProcessor;
@@ -832,15 +826,16 @@ private:
 
   bool _equivalentVariableRemoval;
   bool _flattenTopLevelConjunctions;
+  bool _bpFmElimination;
   string _forbiddenOptions;
+  bool _forceIncompleteness;
   string _forcedOptions;
   Demodulation _forwardDemodulation;
   bool _forwardLiteralRewriting;
   bool _forwardSubsumption;
   bool _forwardSubsumptionResolution;
   FunctionDefinitionElimination _functionDefinitionElimination;
-
-  bool _fmElimination;
+  int _functionNumber;
   
   RuleActivity _generalSplitting;
   bool _globalSubsumption;
@@ -880,15 +875,15 @@ private:
   int _maxInferenceDepth;
   long _maxPassive;
   int _maxWeight;
-  
   unsigned _maximalPropagatedEqualityLength;
-  
   size_t _memoryLimit;
   Mode _mode;
 
   string _namePrefix;
   int _naming;
   float _nongoalWeightCoefficient;
+  int _nonGoalWeightCoeffitientDenominator;
+  int _nonGoalWeightCoeffitientNumerator;
   bool _nonliteralsInClauseWeight;
   bool _normalize;
 
@@ -905,7 +900,6 @@ private:
   string _problemName;
   Proof _proof;
   bool _proofChecking;
-  bool _propagateAfterConflict;
   
   bool _propositionalToBDD;
   string _protectedPrefix;
@@ -932,6 +926,7 @@ private:
   SatVarSelector _satVarSelector;
   SaturationAlgorithm _saturationAlgorithm;
   int _selection;
+  bool _selectUnusedVariablesFirst;
   bool _showActive;
   bool _showBlocked;
   bool _showDefinitions;
@@ -959,7 +954,6 @@ private:
   bool _splitInputOnly;
   bool _splitPositive;
   SplittingMode _splitting;
-  bool _splittingWithBlocking;
   SSplittingAddComplementary _ssplittingAddComplementary;
   SSplittingComponentSweeping _ssplittingComponentSweeping;
   bool _ssplittingCongruenceClosure;
@@ -970,7 +964,6 @@ private:
   Statistics _statistics;
   bool _superpositionFromVariables;
   SymbolPrecedence _symbolPrecedence;
-
 
   int _tabulationBwRuleSubsumptionResolutionByLemmas;
   int _tabulationFwRuleSubsumptionResolutionByLemmas;
@@ -994,22 +987,15 @@ private:
   bool _unusedPredicateDefinitionRemoval;
   unsigned _updatesByOneConstraint;
   bool _weightIncrement;
+  int _weightRatio;
   int _whileNumber;
-  int _functionNumber;
-  VariableSelector _variableSelector;
 
   string _xmlOutput;
-
-  int _nonGoalWeightCoeffitientNumerator;
-  int _nonGoalWeightCoeffitientDenominator;
-
-  bool _forceIncompleteness;
 
   // various read-from-string-write options
   static void readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio, char separator=':');
   static string boolToOnOff(bool);
   void outputValue(ostream& str,int optionTag) const;
-
   friend class Shell::LTB::Builder;
 
 public:

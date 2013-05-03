@@ -283,7 +283,7 @@ private:
 
   struct SplitClauseFilterObserver : public MetaObserver {
     SplitClauseFilterObserver(StatObserver* inner, bool mustHaveSplit)
-    : MetaObserver(inner,mustHaveSplit ? "splitted" : "non-splitted"),
+    : MetaObserver(inner,mustHaveSplit ? "split" : "non-split"),
       _mustHaveSplit(mustHaveSplit) {}
 
     virtual void onUnit(Unit* unit) {

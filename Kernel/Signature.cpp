@@ -1,6 +1,6 @@
 /**
  * @file Signature.cpp
- * Implements class Signature consisting of predicate and function symbols
+ * Implements class Signature for handling signatures
  */
 
 #include "Lib/Environment.hpp"
@@ -17,8 +17,12 @@ const unsigned Signature::RATIONAL_DISTINCT_GROUP = 2;
 const unsigned Signature::REAL_DISTINCT_GROUP = 3;
 const unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 3;
 
-/** standard constructor */
-Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted, bool stringConstant)
+/**
+ * Standard constructor.
+ * @since 03/05/2013 train London-Manchester, argument numericConstant added
+ * @author Andrei Voronkov
+ */
+Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted, bool stringConstant,bool numericConstant)
   : _name(nm),
     _arity(arity),
     _interpreted(interpreted ? 1 : 0),
@@ -26,10 +30,10 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted, boo
     _protected(0),
     _skip(0),
     _cfName(0),
-    _swbName(0),
     _equalityProxy(0),
     _color(COLOR_TRANSPARENT),
     _stringConstant(stringConstant ? 1: 0),
+    _numericConstant(numericConstant ? 1: 0),
     _answerPredicate(0),
     _type(0),
     _distinctGroups(0)
@@ -37,19 +41,19 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted, boo
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
 
-  if(symbolNeedsQuoting(_name, interpreted, arity, stringConstant)) {
+  if (!stringConstant && !numericConstant && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }
-  if(_interpreted || isProtectedName(nm)) {
+  if (_interpreted || isProtectedName(nm)) {
     markProtected();
   }
-}
+} // Symbol::Symbol
 
 Signature::Symbol::~Symbol()
 {
   CALL("Signature::Symbol::~Symbol");
 
-  if(_type) {
+  if (_type) {
     delete _type;
   }
 }
@@ -61,16 +65,16 @@ void Signature::Symbol::destroyFnSymbol()
 {
   CALL("Signature::Symbol::destroyFnSymbol");
 
-  if(integerConstant()) {
+  if (integerConstant()) {
     delete static_cast<IntegerSymbol*>(this);
   }
-  else if(rationalConstant()) {
+  else if (rationalConstant()) {
     delete static_cast<RationalSymbol*>(this);
   }
-  else if(realConstant()) {
+  else if (realConstant()) {
     delete static_cast<RealSymbol*>(this);
   }
-  else if(interpreted()) {
+  else if (interpreted()) {
     delete static_cast<InterpretedSymbol*>(this);
   }
   else {
@@ -85,7 +89,7 @@ void Signature::Symbol::destroyPredSymbol()
 {
   CALL("Signature::Symbol::destroyPredSymbol");
 
-  if(interpreted()) {
+  if (interpreted()) {
     delete static_cast<InterpretedSymbol*>(this);
   }
   else {
@@ -107,7 +111,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group)
   ASS(!_distinctGroups->member(group))
 
   List<unsigned>::push(group, _distinctGroups);
-}
+} // addToDistinctGroup
 
 /**
  * Set type of the symbol
@@ -134,7 +138,7 @@ FunctionType* Signature::Symbol::fnType() const
 {
   CALL("Signature::Symbol::fnType");
 
-  if(!_type) {
+  if (!_type) {
     _type = new FunctionType(arity());
   }
   return static_cast<FunctionType*>(_type);
@@ -150,7 +154,7 @@ PredicateType* Signature::Symbol::predType() const
 {
   CALL("Signature::Symbol::predType");
 
-  if(!_type) {
+  if (!_type) {
     _type = new PredicateType(arity());
   }
   return static_cast<PredicateType*>(_type);
@@ -214,8 +218,8 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
   ASS(Theory::isFunction(interpretation));
 
   unsigned res;
-  if(_iSymbols.find(interpretation,res)) { // already declared
-    if(name!=functionName(res)) {
+  if (_iSymbols.find(interpretation,res)) { // already declared
+    if (name!=functionName(res)) {
       USER_ERROR("Interpreted function '"+functionName(res)+"' has the same interpretation as '"+name+"' should have");
     }
     return res;
@@ -237,7 +241,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
   ASS(fnType->isFunctionType());
   sym->setType(fnType);
   return fnNum;
-}
+} // Signature::addInterpretedFunction
 
 /**
  * Add interpreted predicate
@@ -248,8 +252,8 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
   ASS(!Theory::isFunction(interpretation));
 
   unsigned res;
-  if(_iSymbols.find(interpretation,res)) { // already declared
-    if(name!=predicateName(res)) {
+  if (_iSymbols.find(interpretation,res)) { // already declared
+    if (name!=predicateName(res)) {
       USER_ERROR("Interpreted predicate '"+predicateName(res)+"' has the same interpretation as '"+name+"' should have");
     }
     return res;
@@ -264,48 +268,96 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
   _preds.push(sym);
   _predNames.insert(symbolKey,predNum);
   ALWAYS(_iSymbols.insert(interpretation, predNum));
-  if(predNum!=0) {
+  if (predNum!=0) {
     BaseType* predType = Theory::getOperationType(interpretation);
     ASS(!predType->isFunctionType());
     sym->setType(predType);
   }
   return predNum;
-}
+} // Signature::addInterpretedPredicate
 
-
-
-unsigned Signature::addIntegerConstant(const string& number)
+/**
+ * Add an integer constant to the signature. If defaultSort is true, treat it as
+ * a term of the default sort, otherwise as an interepreted integer value.
+ * @since 03/05/2013 train Manchester-London
+ * @author Andrei Voronkov
+ */
+unsigned Signature::addIntegerConstant(const string& number,bool defaultSort)
 {
   CALL("Signature::addIntegerConstant(string)");
 
-  IntegerConstantType value(number);
-  return addIntegerConstant(value);
-}
+  if (!defaultSort) {
+    IntegerConstantType value(number);
+    return addIntegerConstant(value);
+  }
 
+  // default sort should be used
+  string symbolKey = number + "_n";
+  unsigned result;
+  if (_funNames.find(symbolKey,result)) {
+    return result;
+  }
+
+  _integers++;
+  result = _funs.length();
+  Symbol* sym = new Symbol(number,0,false,false,true);
+  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP);
+  _funs.push(sym);
+  _funNames.insert(symbolKey,result);
+  return result;
+} // Signature::addIntegerConstant
+
+/**
+ * Add an integer constant to the signature.
+ * @todo something smarter, so that we don't need to convert all values to string
+ */
 unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
 {
   CALL("Signature::addIntegerConstant");
 
-  //TODO: something smarter, so that we don't need to convert all values to string
   string key = value.toString() + "_n";
   unsigned result;
-  if(_funNames.find(key, result)) {
+  if (_funNames.find(key, result)) {
     return result;
   }
   _integers++;
   result = _funs.length();
   _funs.push(new IntegerSymbol(value));
-  _funNames.insert(key, result);
+  _funNames.insert(key,result);
   return result;
-}
+} // addIntegerConstant
 
-unsigned Signature::addRationalConstant(const string& numerator, const string& denominator)
+/**
+ * Add a rational constant to the signature. If defaultSort is true, treat it as
+ * a term of the default sort, otherwise as an interepreted rational value.
+ * @since 03/05/2013 London
+ * @author Andrei Voronkov
+ */
+unsigned Signature::addRationalConstant(const string& numerator, const string& denominator,bool defaultSort)
 {
   CALL("Signature::addRationalConstant(string,string)");
 
-  RationalConstantType value(numerator, denominator);
-  return addRationalConstant(value);
-}
+  if (!defaultSort) {
+    RationalConstantType value(numerator, denominator);
+    return addRationalConstant(value);
+  }
+
+  string name = numerator + "/" + denominator;
+  string key = name + "_q";
+  unsigned result;
+  if (_funNames.find(key,result)) {
+    return result;
+  }
+  _rationals++;
+  result = _funs.length();
+  Symbol* sym = new Symbol(name,0,false,false,true);
+  // integer distinct group here is intentional, since rationals are distinct
+  // from integers (maybe)
+  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP);
+  _funs.push(sym);
+  _funNames.insert(key,result);
+  return result;
+} // addRatonalConstant
 
 unsigned Signature::addRationalConstant(const RationalConstantType& value)
 {
@@ -313,7 +365,7 @@ unsigned Signature::addRationalConstant(const RationalConstantType& value)
 
   string key = value.toString() + "_q";
   unsigned result;
-  if(_funNames.find(key, result)) {
+  if (_funNames.find(key, result)) {
     return result;
   }
   _rationals++;
@@ -321,15 +373,37 @@ unsigned Signature::addRationalConstant(const RationalConstantType& value)
   _funs.push(new RationalSymbol(value));
   _funNames.insert(key, result);
   return result;
-}
+} // Signature::addRationalConstant
 
-unsigned Signature::addRealConstant(const string& number)
+/**
+ * Add a real constant to the signature. If defaultSort is true, treat it as
+ * a term of the default sort, otherwise as an interepreted real value.
+ * @since 03/05/2013 London
+ * @author Andrei Voronkov
+ */
+unsigned Signature::addRealConstant(const string& number,bool defaultSort)
 {
   CALL("Signature::addRealConstant(string)");
 
-  RealConstantType value(number);
-  return addRealConstant(value);
-}
+  if (!defaultSort) {
+    RealConstantType value(number);
+    return addRealConstant(value);
+  }
+  string key = number + "_r";
+  unsigned result;
+  if (_funNames.find(key,result)) {
+    return result;
+  }
+  _reals++;
+  result = _funs.length();
+  Symbol* sym = new Symbol(number,0,false,false,true);
+  // integer distinct group here is intentional, since rationals are distinct
+  // from integers (maybe)
+  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP);
+  _funs.push(sym);
+  _funNames.insert(key,result);
+  return result;
+} // addRealConstant
 
 unsigned Signature::addRealConstant(const RealConstantType& value)
 {
@@ -337,7 +411,7 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
 
   string key = value.toString() + "_r";
   unsigned result;
-  if(_funNames.find(key, result)) {
+  if (_funNames.find(key, result)) {
     return result;
   }
   _reals++;
@@ -358,7 +432,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   
     
   unsigned res;
-  if(_iSymbols.find(interp, res)) {
+  if (_iSymbols.find(interp, res)) {
     return res;
   }
   string name;
@@ -461,8 +535,8 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
 
   unsigned arity = Theory::getArity(interp);
   
-  if(Theory::isFunction(interp)) {
-    if(functionExists(name, arity)) {
+  if (Theory::isFunction(interp)) {
+    if (functionExists(name, arity)) {
       int i=0;
       while(functionExists(name+Int::toString(i), arity)) {
         i++;
@@ -472,7 +546,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
     addInterpretedFunction(interp, name);
   }
   else {
-    if(predicateExists(name, arity)) {
+    if (predicateExists(name, arity)) {
       int i=0;
       while(predicateExists(name+Int::toString(i), arity)) {
         i++;
@@ -523,11 +597,7 @@ unsigned Signature::addFunction (const string& name,
   CALL("Signature::addFunction");
 
   string symbolKey = key(name,arity);
-#if VDEBUG
-  unsigned result = 0;
-#else
   unsigned result;
-#endif
   if (_funNames.find(symbolKey,result)) {
     added = false;
     return result;
@@ -552,16 +622,17 @@ unsigned Signature::addFunction (const string& name,
   return result;
 } // Signature::addFunction
 
+/**
+ * Add a string constant to the signature. This constant will automatically be
+ * added to the distinct group STRING_DISTINCT_GROUP.
+ * @author Andrei Voronkov
+ */
 unsigned Signature::addStringConstant(const string& name)
 {
   CALL("Signature::addStringConstant");
 
   string symbolKey = name + "_c";
-#if VDEBUG
-  unsigned result = 0;
-#else
   unsigned result;
-#endif
   if (_funNames.find(symbolKey,result)) {
     return result;
   }
@@ -574,7 +645,7 @@ unsigned Signature::addStringConstant(const string& name)
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
-}
+} // addStringConstant
 
 /**
  * If a predicate with this name and arity exists, return its number.
@@ -587,6 +658,7 @@ unsigned Signature::addStringConstant(const string& name)
  * @since 07/05/2007 Manchester
  * @since 08/07/2007 Manchester, adds parameter added
  * @since 06/12/2009 Haifa, arity check added
+ * @author Andrei Voronkov
  */
 unsigned Signature::addPredicate (const string& name,
 				  unsigned arity,
@@ -595,11 +667,7 @@ unsigned Signature::addPredicate (const string& name,
   CALL("Signature::addPredicate");
 
   string symbolKey = key(name,arity);
-#if VDEBUG
-  unsigned result = 0;
-#else
   unsigned result;
-#endif
   if (_predNames.find(symbolKey,result)) {
     added = false;
     return result;
@@ -681,7 +749,7 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
   //commented out because it could lead to introduction of function with the same name
   //that differ only in arity (which is OK with tptp, but iProver was complaining when
   //using Vampire as clausifier)
-//  if(suffix) {
+//  if (suffix) {
 //    result = addPredicate(pref+suf,arity,added);
 //  }
 //  if (!added) {
@@ -728,11 +796,15 @@ unsigned Signature::addIteFunction(unsigned arity, unsigned* argSorts, unsigned 
   getFunction(res)->addColor(COLOR_LEFT);
 
   return res;
-}
+} // addIteFunction
 
 /**
- * Return the key "name_arity" used for hashing.
+ * Return the key "name_arity" used for hashing. This key is obtained by
+ * concatenating the name, underscore character and the arity. The key is
+ * created in such a way that it does not collide with special keys, such as
+ * those for string constants.
  * @since 27/02/2006 Redmond
+ * @author Andrei Voronkov
  */
 string Signature::key(const string& name,int arity)
 {
@@ -793,31 +865,32 @@ bool Signature::isProtectedName(string name)
 {
   CALL("Signature::isProtectedName");
 
-  if(name=="$distinct") {
+  if (name=="$distinct") {
     //TODO: remove this hack once we properly support the $distinct predicate
     return true;
   }
 
   string protectedPrefix = env.options->protectedPrefix();
-  if(protectedPrefix.size()==0) {
+  if (protectedPrefix.size()==0) {
     return false;
   }
-  if(name.substr(0, protectedPrefix.size())==protectedPrefix) {
+  if (name.substr(0, protectedPrefix.size())==protectedPrefix) {
     return true;
   }
   return false;
 }
 
 /**
- * Return true if specified symbol should be quoted
+ * Return true if specified symbol should be quoted in the TPTP syntax.
+ * This function does not apply to integer or string constants. It only
+ * applies during parsing, it is not used when the symbol is printed:
+ * when it is printed, its saved name will already be quoted.
  *
  * The function charNeedsQuoting determines characters whose presence in
  * the symbol name implies that they should be quoted. There are however
  * several exceptions to it:
  *
  * Equality is not quoted
- *
- * String constants are not quoted (they are already in the double quotes)
  *
  * Numbers are not quoted. However names that just look like numbers
  * are quoted (the distinction is that these are not interpreted)
@@ -826,25 +899,28 @@ bool Signature::isProtectedName(string name)
  *
  * For interpreted symbols its legal to start with $
  *
- * It's legal for symbols to start with $$
+ * It's legal for symbols to start with $$.
+ *
+ * @since 03/05/2013 train Manchester-London
  */
-bool Signature::symbolNeedsQuoting(string name, bool interpreted, unsigned arity, bool stringConstant)
+bool Signature::symbolNeedsQuoting(string name, bool interpreted, unsigned arity)
 {
   CALL("Signature::symbolNeedsQuoting");
   ASS_G(name.length(),0);
 
-  if(stringConstant) { return false; }
-  if(interpreted && (name=="=" || arity==0)) { return false; }
+  if (interpreted && (name=="=" || arity==0)) {
+    return false;
+  }
 
   const char* c = name.c_str();
   bool quote = false;
   bool first = true;
-  if(*c=='$') {
-    if(*(c+1)=='$') {
+  if (*c=='$') {
+    if (*(c+1)=='$') {
       c+=2; //skip the initial $$
       first = false;
     }
-    else if(interpreted) {
+    else if (interpreted) {
       c++; //skip the initial $ for interpreted
       first = false;
     }
@@ -854,13 +930,13 @@ bool Signature::symbolNeedsQuoting(string name, bool interpreted, unsigned arity
     first = false;
     c++;
   }
-  if(!quote) { return false; }
-  if(name=="$distinct") {
+  if (!quote) { return false; }
+  if (name=="$distinct") {
     //TODO: remove this once we properly support the $distinct predicate and quoting
     return false;
   }
   return true;
-}
+} // Signature::symbolNeedsQuoting
 
 /** standard constructor for VarSymbol*/
 Signature::VarSymbol::VarSymbol(const string& nm)

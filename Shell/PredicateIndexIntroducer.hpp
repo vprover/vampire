@@ -73,7 +73,6 @@ private:
 
   /** Key to the indexed predicate map */
   typedef pair<unsigned,TermStack> IdxPredKey;
-
   DHMap<IdxPredKey,unsigned> _idxPreds;
 };
 

@@ -89,12 +89,15 @@ void TPTP::parse()
       unitList();
       break;
     case FOF:
+      _isFof = true;
       fof(true);
       break;
     case TFF:
+      _isFof = false;
       tff();
       break;
     case CNF:
+      _isFof = true;
       fof(false);
       break;
     case FORMULA:
@@ -347,17 +350,17 @@ string TPTP::toString(Tag tag)
   case T_THF:
     return "$thf";
   case T_ITET:
-    return "$itet";
+    return "$ite_t";
   case T_ITEF:
-    return "$itef";
+    return "$ite_f";
   case T_LETTT:
-    return "$lettt";
+    return "$let_tt";
   case T_LETTF:
-    return "$lettf";
+    return "$let_tf";
   case T_LETFT:
-    return "$letft";
+    return "$let_ft";
   case T_LETFF:
-    return "$letff";
+    return "$let_ff";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -873,22 +876,22 @@ void TPTP::readReserved(Token& tok)
   else if (tok.content == "$false") {
     tok.tag = T_FALSE;
   }
-  else if (tok.content == "$itef") {
+  else if (tok.content == "$ite_f") {
     tok.tag = T_ITEF;
   }
-  else if (tok.content == "$itet" || tok.content == "$itetf" || tok.content == "$itett") {
+  else if (tok.content == "$ite_t") {
     tok.tag = T_ITET;
   }
-  else if (tok.content == "$lettt") {
+  else if (tok.content == "$let_tt") {
     tok.tag = T_LETTT;
   }
-  else if (tok.content == "$lettf") {
+  else if (tok.content == "$let_tf") {
     tok.tag = T_LETTF;
   }
-  else if (tok.content == "$letft") {
+  else if (tok.content == "$let_ft") {
     tok.tag = T_LETFT;
   }
-  else if (tok.content == "$letff") {
+  else if (tok.content == "$let_ff") {
     tok.tag = T_LETFF;
   }
   else if (tok.content == "$tType") {
@@ -1220,7 +1223,6 @@ void TPTP::fof(bool fo)
 {
   CALL("TPTP::fof");
 
-  
   _bools.push(fo);
   consumeToken(T_LPAR);
   // save the name of this unit
@@ -1242,9 +1244,7 @@ void TPTP::fof(bool fo)
   tok = getTok(0);
   int start = tok.start;
   string tp = name();
-    
-  
-  
+   
   _isQuestion = false;
   if (tp == "axiom" || tp == "plain") {
     _lastInputType = Unit::AXIOM;
@@ -1415,7 +1415,7 @@ void TPTP::itef()
 } // itef()
 
 /**
- * Process $letff declaration
+ * Process $let_ff declaration
  * @since 27/07/2011 Manchester
  */
 void TPTP::letff()
@@ -1435,7 +1435,7 @@ void TPTP::letff()
 } // letff()
 
 /**
- * Process $lettf declaration
+ * Process $let_tf declaration
  * @since 27/07/2011 Manchester
  */
 void TPTP::lettf()
@@ -1650,26 +1650,19 @@ void TPTP::endSelect1()
 {
     CALL("TPTP::endSelect1");
     
-    
     TermList index = _termLists.pop();
     TermList array = _termLists.pop();
     
-    
     if (sortOf(index) != Sorts::SRT_INTEGER) {
-        USER_ERROR((string)"sort of the array index is not INT");
+      USER_ERROR((string)"sort of the array index is not INT");
     }
-    
     if (sortOf(array) != Sorts::SRT_ARRAY1) {
-        USER_ERROR((string)"sort of the array  is not ARRAY1");
+      USER_ERROR((string)"sort of the array  is not ARRAY1");
     }
-    
     unsigned func = env.signature->getInterpretingSymbol(Theory::SELECT1_INT);
     TermList ts(Term::create2(func, array, index));
-    
     _termLists.push(ts);
-    
 } // endSelect1
-
 
 /**
  * Process the end of the select2() term
@@ -1678,28 +1671,20 @@ void TPTP::endSelect1()
  */
 void TPTP::endSelect2()
 {
-    CALL("TPTP::endSelect2");
-    
-    
+    CALL("TPTP::endSelect2");    
+
     TermList index = _termLists.pop();
-    TermList array = _termLists.pop();
-    
-    
+    TermList array = _termLists.pop();    
     if (sortOf(index) != Sorts::SRT_INTEGER) {
         USER_ERROR((string)"sort of the array index is not INT");
     }
-    
     if (sortOf(array) != Sorts::SRT_ARRAY2) {
         USER_ERROR((string)"sort of the array  is not ARRAY2");
     }
-    
     unsigned func = env.signature->getInterpretingSymbol(Theory::SELECT2_INT);
     TermList ts(Term::create2(func, array, index));
-    
     _termLists.push(ts);
-   
 } // endSelect2
-
 
 /**
  * Process the end of the store1() term
@@ -1714,25 +1699,22 @@ void TPTP::endStore1()
     TermList index = _termLists.pop();
     TermList array = _termLists.pop();
     
-    if (sortOf(value) != Sorts::SRT_INTEGER)
-    {USER_ERROR((string)"sort of the array elements is not INT");}
-
+    if (sortOf(value) != Sorts::SRT_INTEGER) {
+      USER_ERROR((string)"sort of the array elements is not INT");
+    }
     if (sortOf(index) != Sorts::SRT_INTEGER) {
-        USER_ERROR((string)"sort of the array index is not INT");
+      USER_ERROR((string)"sort of the array index is not INT");
     }
-    
     if (sortOf(array) != Sorts::SRT_ARRAY1) {
-        USER_ERROR((string)"sort of the array  is not ARRAY1");
+      USER_ERROR((string)"sort of the array  is not ARRAY1");
     }
-    
+
     unsigned func = env.signature->getInterpretingSymbol(Theory::STORE1_INT);
     TermList args[] = {array, index, value};
     TermList ts(Term::create(func, 3, args));
-    
-    _termLists.push(ts);
-   
-} // endStore1
 
+    _termLists.push(ts);   
+} // endStore1
 
 /**
  * Process the end of the store2() term
@@ -2365,13 +2347,14 @@ void TPTP::midAtom()
  */
 void TPTP::endEquality()
 {
-  CALL("TPTP::endEquality");
-    
+  CALL("TPTP::endEquality");  
  
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
 
-  if (sortOf(rhs) != sortOf(lhs)) {USER_ERROR("Cannot create equality between terms of different types.");}
+  if (sortOf(rhs) != sortOf(lhs)) {
+    USER_ERROR("Cannot create equality between terms of different types.");
+  }
 
   Literal* l = createEquality(_bools.pop(),lhs,rhs);
    _formulas.push(new AtomicFormula(l));
@@ -2403,16 +2386,17 @@ void TPTP::midEquality()
  * Creates an equality literal and takes care of its sort when it
  * is an equality between two variables.
  * @since 21/07/2011 Manchester
+ * @since 03/05/2013 Train Manchester-London, bug fix
  */
 Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
 {
   TermList masterVar;
   unsigned sortNumber;
-  if(!SortHelper::getResultSortOrMasterVariable(lhs, sortNumber, masterVar)) {
-    //Master variable is a variable whose sort determines the sort of a term.
-    //If term is a variable, the master variable is the variable itself. The
-    //trickier case is when we have an if-then-else expression with variable
-    //arguments.
+  if (!SortHelper::getResultSortOrMasterVariable(lhs, sortNumber, masterVar)) {
+    // Master variable is a variable whose sort determines the sort of a term.
+    // If term is a variable, the master variable is the variable itself. The
+    // trickier case is when we have an if-then-else expression with variable
+    // arguments.
     SortList* vs;
     if (_variableSorts.find(masterVar.var(),vs) && vs) {
       sortNumber = vs->head();
@@ -2749,7 +2733,7 @@ void TPTP::endFof()
     {
       bool added;
       unsigned pred = env.signature->addPredicate(nm,0,added);
-      if(!added) {
+      if (!added) {
 	USER_ERROR("Names of claims must be unique: "+nm);
       }
       env.signature->getPredicate(pred)->markCFName();
@@ -2816,14 +2800,14 @@ void TPTP::endTff()
     bool added;
     if (sortNumber == Sorts::SRT_BOOL) {
       env.signature->addPredicate(name,0,added);
-      if(!added) {
+      if (!added) {
 	USER_ERROR("Predicate symbol type is declared after its use: " + name);
       }
       return;
     }
     // a constant
     unsigned fun = addUninterpretedConstant(name,added);
-    if(!added) {
+    if (!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
     env.signature->getFunction(fun)->setType(BaseType::makeType(0,0,sortNumber));
@@ -2867,7 +2851,7 @@ void TPTP::endTff()
   Signature::Symbol* symbol;
   if (returnSortNumber == Sorts::SRT_BOOL) {
     unsigned pred = env.signature->addPredicate(name,arity,added);
-    if(!added) {
+    if (!added) {
       USER_ERROR("Predicate symbol type is declared after its use: " + name);
     }
     symbol = env.signature->getPredicate(pred);
@@ -2876,7 +2860,7 @@ void TPTP::endTff()
     unsigned fun = arity == 0
                    ? addUninterpretedConstant(name,added)
                    : env.signature->addFunction(name,arity,added);
-    if(!added) {
+    if (!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
     symbol = env.signature->getFunction(fun);
@@ -3410,8 +3394,10 @@ unsigned TPTP::addOverloadedPredicate(string name,int arity,int symbolArity,bool
 } // addOverloadedPredicate
 
 /**
- * Return the sort of the term. 
+ * Return the sort of the term.
  * @since 29/07/2011 Manchester
+ * @since 03/05/2013 train Manchester-London bug fix
+ * @author Andrei Voronkov
  */
 unsigned TPTP::sortOf(TermList& t)
 {
@@ -3420,9 +3406,13 @@ unsigned TPTP::sortOf(TermList& t)
   for (;;) {
     if (t.isVar()) {
       SortList* sorts;
-      ALWAYS(_variableSorts.find(t.var(),sorts));
-      ASS(sorts);
-      return sorts->head();
+      if (_variableSorts.find(t.var(),sorts)) {
+	return sorts->head();
+      }
+      // there might be variables whose sort is undeclared,
+      // in this case they have the default sort
+      bindVariable(t.var(),Sorts::SRT_DEFAULT);
+      return Sorts::SRT_DEFAULT;
     }
     Term* s = t.term();
     if (s->isSpecial()) {
@@ -3440,21 +3430,25 @@ unsigned TPTP::sortOf(TermList& t)
  * integer type and the name 'name'. Check that the name of the constant
  * does not collide with user-introduced names of uninterpreted constants.
  * @since 22/07/2011 Manchester
+ * @since 03/05/2013 train Manchester-London, bug fix: integers are treated
+ *   as terms of the default sort when fof() or cnf() is used
+ * @author Andrei Voronkov
  */
 unsigned TPTP::addIntegerConstant(const string& name)
 {
   CALL("TPTP::addIntegerConstant");
 
   try {
-    return env.signature->addIntegerConstant(name);
+    return env.signature->addIntegerConstant(name,_isFof);
   }
-  catch(Kernel::ArithmeticException&) {
+  catch (Kernel::ArithmeticException&) {
     bool added;
     unsigned fun = env.signature->addFunction(name,0,added);
     if (added) {
       _overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(BaseType::makeType(0,0,Sorts::SRT_INTEGER));
+      symbol->setType(BaseType::makeType(0,0,
+					 _isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_INTEGER));
     }
     else if (!_overflow.contains(name)) {
       USER_ERROR((string)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
@@ -3463,13 +3457,15 @@ unsigned TPTP::addIntegerConstant(const string& name)
   }
 } // TPTP::addIntegerConstant
 
-
 /**
  * Add an rational constant by reading it from the string name.
  * If it overflows, create an uninterpreted constant of the
  * rational type and the name 'name'. Check that the name of the constant
  * does not collide with user-introduced names of uninterpreted constants.
  * @since 22/07/2011 Manchester
+ * @since 03/05/2013 train Manchester-London, fix to handle difference
+ *    between treating rationals using fof() and tff()
+ * @author Andrei Voronkov
  */
 unsigned TPTP::addRationalConstant(const string& name)
 {
@@ -3479,7 +3475,8 @@ unsigned TPTP::addRationalConstant(const string& name)
   ASS(i != string::npos);
   try {
     return env.signature->addRationalConstant(name.substr(0,i),
-					      name.substr(i+1));
+					      name.substr(i+1),
+					      _isFof);
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
@@ -3487,7 +3484,7 @@ unsigned TPTP::addRationalConstant(const string& name)
     if (added) {
       _overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(BaseType::makeType(0,0,Sorts::SRT_RATIONAL));
+      symbol->setType(BaseType::makeType(0,0,_isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_RATIONAL));
     }
     else if (!_overflow.contains(name)) {
       USER_ERROR((string)"Cannot use name '" + name + "' as an atom name since it collides with an rational number");
@@ -3502,13 +3499,16 @@ unsigned TPTP::addRationalConstant(const string& name)
  * real type and the name 'name'. Check that the name of the constant
  * does not collide with user-introduced names of uninterpreted constants.
  * @since 22/07/2011 Manchester
+ * @since 03/05/2013 train Manchester-London, fix to handle difference
+ *    between treating rationals using fof() and tff()
+ * @author Andrei Voronkov
  */
 unsigned TPTP::addRealConstant(const string& name)
 {
   CALL("TPTP::addRealConstant");
 
   try {
-    return env.signature->addRealConstant(name);
+    return env.signature->addRealConstant(name,_isFof);
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
@@ -3516,7 +3516,7 @@ unsigned TPTP::addRealConstant(const string& name)
     if (added) {
       _overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(BaseType::makeType(0,0,Sorts::SRT_REAL));
+      symbol->setType(BaseType::makeType(0,0,_isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_REAL));
     }
     else if (!_overflow.contains(name)) {
       USER_ERROR((string)"Cannot use name '" + name + "' as an atom name since it collides with an real number");
@@ -3752,14 +3752,4 @@ const char* TPTP::toString(State s)
   }
 }
 #endif
-
-/*
-$let
-$itef
-$itett
-$itetf
-
-$distinct
-*/
-
 

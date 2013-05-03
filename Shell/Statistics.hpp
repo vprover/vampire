@@ -53,7 +53,7 @@ public:
   /** number of initial clauses */
   unsigned initialClauses;
   /** number of inequality splittings performed */
-  unsigned splittedInequalities;
+  unsigned splitInequalities;
   /** number of formulas with propagated variable equalities */
   unsigned propagatedEqualities;
   /** number of formulas with removed variables which occurred only once and that was in equality */

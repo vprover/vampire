@@ -27,7 +27,7 @@ using namespace Kernel;
  *
  * Definition removal:
  *
- * Definition is a formula \forall \vec{X}: p(\vec{X}) <=> F[\vec{X}]
+ * Definition is a formula forall X: p(X) <=> F[X]
  */
 class PredicateDefinition
 {

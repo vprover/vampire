@@ -1206,7 +1206,7 @@ void AIGConditionalRewriter::collectConjEquivs(AIGStack& conjStack, EquivStack& 
     if(!a.isConjunction()) {
       continue;
     }
-    ASS(!a.polarity()); //we're travensing a conjunct stack, so positive conjunctiona have been splitted
+    ASS(!a.polarity()); //we're travensing a conjunct stack, so positive conjunctiona have been split
 
     AIGRef aOpp = getOppositeImpl(a);
     if(impls.contains(aOpp)) {

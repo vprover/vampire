@@ -240,7 +240,6 @@ void SLTBProblem::performStrategy()
   CALL("SLTBProblem::performStrategy");
 
   Property::Category cat = property->category();
-  unsigned prop = property->props();
   unsigned atoms = property->atoms();
 
   cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
@@ -478,6 +477,10 @@ void SLTBProblem::performStrategy()
     quickSlices = quick;
     break;
   }
+#if VDEBUG
+  default:
+    ASSERTION_VIOLATION;
+#endif 
   }
 
   int remainingTime=env.remainingTime()/100;

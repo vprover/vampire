@@ -41,13 +41,11 @@
 
 #include "PreprocessingEvaluator.hpp"
 
-namespace VUtils {
-
+using namespace VUtils;
 using namespace Shell;
 using namespace Kernel;
 using namespace SAT;
 using namespace DP;
-
 
 SimpleSMT::SimpleSMT()
 : _conflictIndex(0)
@@ -81,8 +79,7 @@ SATClauseIterator SimpleSMT::initSATClauses(ClauseIterator clite)
     COND_LOG("smt_sat_clauses", satCl==0, "sat tautology: "<<cl->toString());
   }
   return pvi(SATClauseList::DestructiveIterator(clauses));
-}
-
+} // SimpleSMT::initSATClauses
 
 void SimpleSMT::initSATSolver(SATClauseIterator clauseIterator)
 {
@@ -90,14 +87,13 @@ void SimpleSMT::initSATSolver(SATClauseIterator clauseIterator)
 
   _solver->ensureVarCnt(_map.maxSATVar() + 1);
   _solver->addClauses(clauseIterator, false);
-}
+} // SimpleSMT::initSATSolver
 
 
 /**
- * Preprocess the problem to be solved and initializes the sat solver
- * @param argc 
- * @param argv 
- *
+ * Preprocess the problem to be solved and initializes the sat solver.
+ * The input file name is passed in the command line. If none, will read from
+ * stdin.
  */
 void SimpleSMT::preprocessProblem(int argc, char** argv)
 {
@@ -106,12 +102,14 @@ void SimpleSMT::preprocessProblem(int argc, char** argv)
   string fname;
   if (argc < 3) {
     fname = "";
-  } else {
+  }
+  else {
     fname = argv[2];
   }
 
-  if (fname.substr(fname.size() - 4) == ".smt")
+  if (fname.substr(fname.size() - 4) == ".smt") {
     env.options->setInputSyntax(Options::IS_SMTLIB);
+  }
 
   cout << "Now we should be solving " << fname << endl;
 
@@ -122,34 +120,21 @@ void SimpleSMT::preprocessProblem(int argc, char** argv)
   env.options->set("inequality_splitting","0");
   Problem* prb = UIHelper::getInputProblem(*env.options);
   TimeCounter tc2(TC_PREPROCESSING);
-  
-  
 
   Shell::Preprocess prepro(*env.options);
-  
-  
-    
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(*prb);
-
-  
-  
   SAT::SATClauseIterator clauseIterator = (initSATClauses(prb->clauseIterator()));
-  
   initSATSolver(clauseIterator); 
-  
-}
-
+} // preprocessProblem
 
 DecisionProcedure::Status SimpleSMT::addTheoryConflicts(LiteralStack& assignment)
 {
   CALL("SimpleSMT::checkTheoryStatus");
 
   _dp->reset();
-
   _dp->addLiterals(pvi(LiteralStack::Iterator(assignment)));
   DP::DecisionProcedure::Status status; // = DP::DecisionProcedure::UNSATISFIABLE;
-
   status = _dp->getStatus(true);
   if (status == DP::DecisionProcedure::SATISFIABLE || status == DP::DecisionProcedure::UNKNOWN) {
     LOG("smt_dp_status",(status == DP::DecisionProcedure::SATISFIABLE ? "DP::SATISFIABLE" : "DP::UNKNOWN"));
@@ -252,10 +237,11 @@ void SimpleSMT::addClausesToSAT(SATClauseStack& clauses)
   //conflict clauses should never have duplicate variables,
   //so we don't need to do duplicate variable removal
   _solver->addClauses(pvi(SATClauseStack::Iterator(clauses)), false);
-
 }
 
-
+/**
+ * Call a preprocessed problem.
+ */ 
 DecisionProcedure::Status SimpleSMT::compute()
 {
   CALL("SimpleSMT::compute");
@@ -295,30 +281,32 @@ DecisionProcedure::Status SimpleSMT::compute()
 //  } while (statusSAT == SAT::SATSolver::SATISFIABLE && CClosureStatus == 1);
 //
 //  return CClosureStatus;
-}
+} // compute
 
+/**
+ * A simple SMT solver call: read a problem from the input file or stdin, solve
+ * it and print the result (satisfiable, unsatisfiable or unknown)
+ */
 int SimpleSMT::perform(int argc, char** argv)
 {
   CALL("SimpleSMT::perform");
-  //preprocess the problem and initialize the SAT solver for this problem
 
+  //preprocess the problem and initialize the SAT solver for this problem
   preprocessProblem(argc, argv);
-  
   switch (compute()) {
-      case DecisionProcedure::SATISFIABLE:
-        cout<<"SATISFIABLE"<<endl;
-        break;
-      case DecisionProcedure::UNSATISFIABLE:
-        cout << "UNSATISFIABLE" << endl;
-        break;
-      case DecisionProcedure::UNKNOWN:
-        cout << "UNKNOWN: \n";
-        break;
-      default: break;
-      }
+  case DecisionProcedure::SATISFIABLE:
+    cout<<"SATISFIABLE"<<endl;
+    break;
+  case DecisionProcedure::UNSATISFIABLE:
+    cout << "UNSATISFIABLE" << endl;
+    break;
+  case DecisionProcedure::UNKNOWN:
+    cout << "UNKNOWN: \n";
+    break;
+  default:
+    break;
+  }
   env.statistics->phase = Statistics::FINALIZATION;
   env.statistics->print(cout);
   return 0;
-}
-
-}
+} // perform

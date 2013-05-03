@@ -33,7 +33,7 @@ bool HalfBoundingRemover::apply(ConstraintRCList*& lst)
 
   anyRemoved |= applyHalfBoundingRemoval(lst);
 
-  if(anyRemoved) {
+  if (anyRemoved) {
     reset();
     return true;
   }
@@ -42,21 +42,21 @@ bool HalfBoundingRemover::apply(ConstraintRCList*& lst)
   //on content of _posVars and _negVars which gets invalidated by every change
   //of the constraint list
 
-  if(env.options->almostHalfBoundingRemoval()!=Options::AHR_OFF) {
+  if (env.options->almostHalfBoundingRemoval()!=Options::AHR_OFF) {
     anyRemoved |= applyAlmostHalfBoundingRemoval(lst,
-	env.options->almostHalfBoundingRemoval()==Options::AHR_BOUNDS_ONLY);
+						 env.options->almostHalfBoundingRemoval()==Options::AHR_BOUNDS_ONLY);
   }
 
-  if(anyRemoved) {
+  if (anyRemoved) {
     reset();
     return true;
   }
 
-  if(env.options->fmElimination()) {
+  if (env.options->fmElimination()) {
     anyRemoved |= applyFMElimination(lst);
   }
 
-  if(anyRemoved) {
+  if (anyRemoved) {
     reset();
     return true;
   }
@@ -76,7 +76,7 @@ bool HalfBoundingRemover::applyHalfBoundingRemoval(ConstraintRCList*& lst)
   for(Var v=0; v<varCnt; v++) {
     size_t posCnt = _v2c.getConstraintCnt(BoundId(v, true));
     size_t negCnt = _v2c.getConstraintCnt(BoundId(v, false));
-    if( (posCnt==0) != (negCnt==0) ) {
+    if ( (posCnt==0) != (negCnt==0) ) {
       halfBounding.insert(v);
       env.statistics->halfBoundingVariables++;
     }
@@ -92,12 +92,12 @@ bool HalfBoundingRemover::applyHalfBoundingRemoval(ConstraintRCList*& lst)
     Constraint::CoeffIterator coeffIt(c.coeffs());
     while(coeffIt.hasNext()) {
       const Constraint::Coeff& coeff = coeffIt.next();
-      if(halfBounding.find(coeff.var)) {
+      if (halfBounding.find(coeff.var)) {
 	hasHalfBounding = true;
       }
     }
 
-    if(hasHalfBounding) {
+    if (hasHalfBounding) {
       cit.del();
       env.statistics->halfBoundingConstraints++;
       anyRemoved = true;
@@ -122,10 +122,10 @@ bool HalfBoundingRemover::applyAlmostHalfBoundingRemoval(ConstraintRCList*& lst,
   for(Var v=0; v<varCnt; v++) {
     Constraint* posSingleton = _v2c.getOnlyConstraint(BoundId(v, true));
     Constraint* negSingleton = _v2c.getOnlyConstraint(BoundId(v, false));
-    if(!posSingleton && !negSingleton) {
+    if (!posSingleton && !negSingleton) {
       continue;
     }
-    if(boundsOnly
+    if (boundsOnly
        && !( (posSingleton && posSingleton->coeffCnt()==1)
 	     || (negSingleton && negSingleton->coeffCnt()==1) )) {
       continue;
@@ -153,10 +153,10 @@ bool HalfBoundingRemover::applyFMElimination(ConstraintRCList*& lst)
   for(Var v=0; v<varCnt; v++) {
     size_t posCnt = _v2c.getConstraintCnt(BoundId(v, true));
     size_t negCnt = _v2c.getConstraintCnt(BoundId(v, false));
-    if(posCnt==0 && negCnt==0) {
+    if (posCnt==0 && negCnt==0) {
       continue;
     }
-    if(posCnt*negCnt-posCnt-negCnt>allowedBalance) {
+    if (posCnt*negCnt-posCnt-negCnt>allowedBalance) {
       continue;
     }
     env.statistics->fmRemovedVariables++;
@@ -181,7 +181,7 @@ void HalfBoundingRemover::doFMReduction(Var v, ConstraintRCList*& constraints)
       Constraint& negConstr = *nit.next();
 
       ConstraintRCPtr newConstr(Constraint::resolve(v, posConstr, negConstr, false));
-      if(!newConstr->isTautology()) {
+      if (!newConstr->isTautology()) {
 	ConstraintRCList::push(newConstr, constraints);
 	env.statistics->preprocessingFMIntroduced++;
       }
@@ -197,7 +197,7 @@ void HalfBoundingRemover::doFMReduction(Var v, ConstraintRCList*& constraints)
   ConstraintRCList::DelIterator cit(constraints);
   while(cit.hasNext()) {
     Constraint* c = cit.next().ptr();
-    if(toRemove.contains(c)) {
+    if (toRemove.contains(c)) {
       cit.del();
     }
   }
@@ -206,7 +206,6 @@ void HalfBoundingRemover::doFMReduction(Var v, ConstraintRCList*& constraints)
 void HalfBoundingRemover::reset()
 {
   CALL("HalfBoundingRemover::reset");
-
   _v2c.reset();
 }
 

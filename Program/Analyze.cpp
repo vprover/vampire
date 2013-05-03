@@ -89,36 +89,35 @@ Statement* Analyze::concatenateStatements(Statement* block, List<Statement* >* l
  * TODO implement the actual rewriting of
  * of the condition
  */
-Expression* Analyze::treatCondition(Expression* condition, List<Statement* >* list){
+Expression* Analyze::treatCondition(Expression* condition, List<Statement* >* list)
+{
   CALL("Analyze::treatCondition");
 
-  List<Variable* >* variableList(0);
-  List<Statement* >::Iterator ite(list);
-  while(ite.hasNext())
-  {
-    Statement* s = ite.next();
-    switch(s->kind()){
-    case Statement::ASSIGNMENT:
-      {
-	Assignment* ass = static_cast<Assignment* >(s);
-	Expression* lhs = ass->lhs();
+  // List<Variable* >* variableList(0);
+  // List<Statement* >::Iterator ite(list);
+  // while(ite.hasNext())
+  // {
+  //   Statement* s = ite.next();
+  //   switch(s->kind()){
+  //   case Statement::ASSIGNMENT:
+  //     {
+  // 	Assignment* ass = static_cast<Assignment* >(s);
+  // 	Expression* lhs = ass->lhs();
+  //     }
+  //     break;
+  //   default:
+  //     ASS(false);
+  //     break;
 
-      }
-      break;
-    default:
-      ASS(false);
-      break;
-
-    }
-  }
+  //   }
+  // }
   return condition;
 }
 /**
  * IMPORTANT! the preprocessing of a statement is not fully implemented, hence cannot be used yet.
  * Instead we handle this into the LoopAnalyzer. This is still under consideration if is needed or not.
  *
- *
- * This does the preprocessing  needed in order for the loop analyzer to function correctly.
+ * This does the preprocessing needed in order for the loop analyzer to function correctly.
  * Does the following: retrieve the loop body and check if it starts with an if structure.
  * If this is the case, then nothing is done. Otherwise, we rewrite the body such that it
  * starts with a if statement -- in case it containes one --( take all statements which
@@ -128,34 +127,36 @@ Expression* Analyze::treatCondition(Expression* condition, List<Statement* >* li
 void Analyze::preprocessStatement(Statement* statement)
 {
   CALL("Analyze::preprocessStatement");
-
+  
   if (statement->kind() == Statement::WHILE_DO) {
     WhileDo* wh = static_cast<WhileDo*>(statement);
     Statement* body = wh->body();
     switch (body->kind()) {
     case Statement::BLOCK: { //aici trebuie sa muncim!
       Block* block = static_cast<Block* >(body);
-      if(!checkForIf(static_cast<Statement* >(body)))
+      if (!checkForIf(static_cast<Statement* >(body)))
 	break;
       unsigned length = block->length();
-      if (length == 1)
+      if (length == 1) {
 	break;
+      }
       List<Statement* >* statements(0);
-
       unsigned ifPosition;
       for (unsigned i = 0; i < length; i++) {
 	Statement* s = block->getStatement(i);
 	if (s->kind() == Statement::ITE || s->kind() == Statement::ITS) {
 	  ifPosition = i;
 	  break;
-	} else
+	}
+	else {
 	  statements = statements->addLast(s);
+	}
       }
 
-      //get the if and rewrite it so that it comply with what we want
-      //TODO this can be written as a separate function!
+      // get the if and rewrite it so that it comply with what we want
+      // TODO this can be written as a separate function!
       Statement* ifS = block->getStatement(ifPosition);
-      switch(ifS->kind()){
+      switch (ifS->kind()) {
       case Statement::ITE:
 	{
 	  IfThenElse* ite = static_cast<IfThenElse* >(ifS);
@@ -170,16 +171,14 @@ void Analyze::preprocessStatement(Statement* statement)
 	break;
       case Statement::ITS:
 	break;
-      default: ASS(false);
-      break;
+      default:
+	ASSERTION_VIOLATION;
       }
-
     }
       break;
     default:
       break;
     }
-
   }
 }
 
@@ -204,39 +203,44 @@ void Analyze::analyzeSubstatements(Statement* statement)
   while (sit.hasNext()) {
     statement = sit.next();
     switch (statement->kind()) {
-    case Statement::ASSIGNMENT: {
-      Assignment* ass = static_cast<Assignment*>(statement);
-      // find the variable of this assignment
-      Variable* v = ass->variable();
-      Statement* st = statement;
-      if (!st->variables()->replaceOrInsert(v, true))
-	while (st->containingStatement()) {
-	  st = st->containingStatement();
-	  if (st->variables()->replaceOrInsert(v, true))
-	    break;
+    case Statement::ASSIGNMENT:
+      {
+	Assignment* ass = static_cast<Assignment*>(statement);
+	// find the variable of this assignment
+	Variable* v = ass->variable();
+	Statement* st = statement;
+	if (!st->variables()->replaceOrInsert(v, true)) {
+	  while (st->containingStatement()) {
+	    st = st->containingStatement();
+	    if (st->variables()->replaceOrInsert(v, true)) {
+	      break;
+	    }
+	  }
 	}
-      //Add the variable to the containigLoop as well
-      //in case we don't add this we mess up for mixed statements (ex: ass, if, ass)
-      if (statement->containingLoop())
-	statement->containingLoop()->variables()->replaceOrInsert(v, true);
-      addExpressionVariables(ass->lhs(), ass);
-      addExpressionVariables(ass->rhs(), ass);
-    }
+	//Add the variable to the containigLoop as well
+	//in case we don't add this we mess up for mixed statements (ex: ass, if, ass)
+	if (statement->containingLoop()) {
+	  statement->containingLoop()->variables()->replaceOrInsert(v, true);
+	}
+	addExpressionVariables(ass->lhs(), ass);
+	addExpressionVariables(ass->rhs(), ass);
+      }
       break;
 
-    case Statement::BLOCK: {
-      Block* block = static_cast<Block*>(statement);
-      unsigned length = block->length();
-      for (unsigned i = 0; i < length; i++) {
-	Statement* st = block->getStatement(i);
-	st->setNextStatement(
-		i == length - 1 ? block->nextStatement() :
-			block->getStatement(i + 1));
+    case Statement::BLOCK: 
+      {
+	Block* block = static_cast<Block*>(statement);
+	unsigned length = block->length();
+	for (unsigned i = 0; i < length; i++) {
+	  Statement* st = block->getStatement(i);
+	  st->setNextStatement(i == length - 1
+			         ? block->nextStatement()
+			         : block->getStatement(i + 1));
 	st->setContainingStatement(statement);
 	st->setContainingLoop(statement->containingLoop());
+	}
+	block->setNextStatement(block->getStatement(0));
       }
-      block->setNextStatement(block->getStatement(0));
-    }
       break;
     case Statement::ITE: {
       IfThenElse* ite = static_cast<IfThenElse*>(statement);
@@ -245,7 +249,7 @@ void Analyze::analyzeSubstatements(Statement* statement)
       thenPart->setContainingStatement(statement);
       thenPart->setContainingLoop(statement->containingLoop());
       Statement* elsePart = ite->elsePart();
-      Block* block = static_cast<Block*>(elsePart);
+      // Block* block = static_cast<Block*>(elsePart);
       elsePart->setNextStatement(ite->nextStatement());
       elsePart->setContainingStatement(statement);
       elsePart->setContainingLoop(statement->containingLoop());

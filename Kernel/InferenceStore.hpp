@@ -125,7 +125,7 @@ public:
   class SplittingRecord
   {
   public:
-    SplittingRecord(Clause* splittedClause) : namedComps(1), premise(UnitSpec(splittedClause)) {}
+    SplittingRecord(Clause* splitClause) : namedComps(1), premise(UnitSpec(splitClause)) {}
 
     Stack<pair<int,Clause*> > namedComps;
     UnitSpec premise;

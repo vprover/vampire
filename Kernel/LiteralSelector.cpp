@@ -69,12 +69,6 @@ int LiteralSelector::getSelectionPriority(Literal* l) const
   CALL("LiteralSelector::getSelectionPriority");
 
   Signature::Symbol* psym=env.signature->getPredicate(l->functor());
-  if(psym->swbName()) {
-    if(l->isPositive() && _opt.splittingWithBlocking()) {
-      return 1;
-    }
-    return -1;
-  }
   if(psym->cfName() || psym->answerPredicate()) {
     return -2;
   }

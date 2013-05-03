@@ -1,6 +1,6 @@
 /**
  * @file SimpleCongruenceClosure.hpp
- * Defines class SimpleCongruenceClosure.
+ * Defines class SimpleCongruenceClosure for implementing conguence closure
  */
 
 #ifndef __SimpleCongruenceClosure__
@@ -22,8 +22,9 @@ namespace DP {
 using namespace Lib;
 using namespace Kernel;
 
-
-
+/**
+ * Implementation of congruence closure.
+ */
 class SimpleCongruenceClosure : public DecisionProcedure
 {
 public:
@@ -109,7 +110,6 @@ private:
   unsigned getProofDepth(unsigned c);
   void collectUnifyingPath(unsigned c1, unsigned c2, Stack<unsigned>& path);
 
-
   static const unsigned NO_SIG_SYMBOL;
   struct ConstInfo
   {
@@ -120,7 +120,6 @@ private:
     void assertValid(SimpleCongruenceClosure& parent, unsigned selfIndex) const;
 #endif
 
-
     /** If NO_SIG_SYMBOL, the constant doesn't represent a non-constant signature symbol */
     unsigned sigSymbol;
     bool sigSymIsFunct;
@@ -130,7 +129,6 @@ private:
     Literal* lit;
     /** (0,0) means the constant doesn't name a pair */
     CPair namedPair;
-
 
     /** 0 means the symbol is its own representant */
     unsigned reprConst;
@@ -192,11 +190,8 @@ private:
    * Equality that caused unsatisfiability; if CEq::isInvalid(), there isn't such.
    */
   Stack<CEq> _unsatEqs;
-
   Deque<CEq> _pendingEqualities;
-
   Stack<CEq> _negEqualities;
-
 
   struct DistinctEntry
   {
@@ -214,7 +209,7 @@ private:
    * this would cause problems with term caches upon reset.
    */
   bool _hadPropagated;
-};
+}; // class SimpleCongruenceClosure
 
 }
 

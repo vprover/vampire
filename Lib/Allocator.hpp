@@ -266,9 +266,14 @@ private:
 static Allocator::Initialiser _____;
 
 /**
- * Allocate an array of objects of type @b T that has length @b length
+ * Initialise an array of objects of type @b T that has length @b length
  * starting at @b placement, and return a pointer to its first element
- * (whose value is equal to @b placement)
+ * (whose value is equal to @b placement). This function is required when
+ * we use an allocated piece of memory an array of elements of type @b T -
+ * in this case we also have to initialise every array cell by applying
+ * the constructor of T.
+ * @author Krystof Hoder
+ * @author Andrei Voronkov (documentation)
  */
 template<typename T>
 T* array_new(void* placement, size_t length)
@@ -283,11 +288,14 @@ T* array_new(void* placement, size_t length)
     ::new(static_cast<void*>(p++)) T();
   }
   return res;
-}
+} // array_new
 
 /**
- * Destroy the array @b array of objects of type @b T and that has length
- * @b length
+ * Apply the destructor of T to each element of the array @b array of objects
+ * of type @b T and that has length @b length.
+ * @see array_new() for more information.
+ * @author Krystof Hoder
+ * @author Andrei Voronkov (documentation)
  */
 template<typename T>
 void array_delete(T* array, size_t length)

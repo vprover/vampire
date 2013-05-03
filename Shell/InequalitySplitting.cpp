@@ -145,7 +145,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
   predSym->setType(type);
 
   TermList s;
-  TermList t; //the ground inequality argument, that'll be splitted out
+  TermList t; //the ground inequality argument, that'll be split out
   if( isSplittableEqualitySide(*lit->nthArgument(0)) ) {
     s=*lit->nthArgument(1);
     t=*lit->nthArgument(0);
@@ -172,7 +172,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
 
   premise=defCl;
 
-  env.statistics->splittedInequalities++;
+  env.statistics->splitInequalities++;
 
   return makeNameLiteral(predNum, s, true);
 

@@ -39,7 +39,7 @@ using namespace Inferences;
  * When true is returned, the clause @b cl should not be kept in the
  * run of the saturation algorithm.
  *
- * The splitted components (or the clause replacement) are added to the
+ * The split components (or the clause replacement) are added to the
  * @b SaturationAlgorithm object through the @b addNewClause function,
  * also the functions @b onParenthood and @b onClauseReduction are
  * called when appropriate.
@@ -65,7 +65,7 @@ bool SWBSplitter::doSplitting(Clause* cl)
   static DHMap<unsigned, unsigned, IdentityHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
-  //index of one literal that cannot be splitted-out, or -1 if there isn't any
+  //index of one literal that cannot be split-out, or -1 if there isn't any
   int coloredMaster=-1;
 
   for(unsigned i=0;i<clen;i++) {

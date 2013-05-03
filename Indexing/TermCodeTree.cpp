@@ -29,8 +29,6 @@ TermCodeTree::TermCodeTree()
   _clauseCodeTree=false;
 }
 
-//////////////// insertion ////////////////////
-
 void TermCodeTree::insert(TermInfo* ti)
 {
   CALL("TermCodeTree::insert");
@@ -40,7 +38,7 @@ void TermCodeTree::insert(TermInfo* ti)
 
 
   TermList t=ti->t;
-  if(t.isVar()) {
+  if (t.isVar()) {
     code.push(CodeOp::getTermOp(ASSIGN_VAR,0));
   }
   else {
@@ -53,10 +51,7 @@ void TermCodeTree::insert(TermInfo* ti)
   }
 
   code.push(CodeOp::getSuccess(ti));
-
-
-  incorporate(code);
-  
+  incorporate(code);  
   //@b incorporate should empty the code stack
   ASS(code.isEmpty());
 }
@@ -67,7 +62,6 @@ void TermCodeTree::remove(const TermInfo& ti)
 {
   CALL("TermCodeTree::remove");
   
-  /**/
   static RemovingTermMatcher rtm;
   static Stack<CodeOp*> firstsInBlocks;
   firstsInBlocks.reset();
@@ -77,13 +71,13 @@ void TermCodeTree::remove(const TermInfo& ti)
   
   TermInfo* rti;
   for(;;) {
-    if(!rtm.next()) {
+    if (!rtm.next()) {
       ASSERTION_VIOLATION;
       INVALID_OPERATION("term being removed was not found");
     }
     ASS(rtm.op->isSuccess());
     rti=static_cast<TermInfo*>(rtm.op->getSuccessResult());
-    if(*rti==ti) {
+    if (*rti==ti) {
       break;
     }
   }
@@ -94,7 +88,7 @@ void TermCodeTree::remove(const TermInfo& ti)
   ft->destroy();
   
   optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
-  /*/
+  /*
   
   static TermMatcher tm;
 
@@ -102,10 +96,10 @@ void TermCodeTree::remove(const TermInfo& ti)
 
   for(;;) {
     TermInfo* found=tm.next();
-    if(!found) {
+    if (!found) {
       INVALID_OPERATION("term being removed was not found");
     }
-    if(*found==ti) {
+    if (*found==ti) {
       tm.op->makeFail();
       delete found;
       break;
@@ -113,11 +107,11 @@ void TermCodeTree::remove(const TermInfo& ti)
   }
 
   tm.deinit();
-  /**/
-}
+  */
+} // TermCodeTree::remove
 
 void TermCodeTree::RemovingTermMatcher::init(FlatTerm* ft_, 
-	TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
+					     TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
   CALL("TermCodeTree::RemovingTermMatcher::init");
   
@@ -169,13 +163,13 @@ TermCodeTree::TermInfo* TermCodeTree::TermMatcher::next()
 {
   CALL("TermCodeTree::TermMatcher::next");
   
-  if(finished()) {
+  if (finished()) {
     //all possible matches are exhausted
     return 0;
   }
   
   _matched=execute();
-  if(!_matched) {
+  if (!_matched) {
     return 0;
   }
 

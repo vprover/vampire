@@ -79,15 +79,14 @@
 #include "HalfBoundingRemover.hpp"
 #include "SubsumptionRemover.hpp"
 
-
-
 using namespace Shell;
 #if GNUMP
 /**
  * Bound propagation preprocessing steps. Takes as argumet @c constraints the list of constraints
  * 
  */
-void Preprocess::preprocess(ConstraintRCList*& constraints){
+void Preprocess::preprocess(ConstraintRCList*& constraints)
+{
   CALL("Preprocess::preprocess(ConstraintRCList *& )");
 
   unfoldEqualities(constraints);
@@ -102,17 +101,18 @@ void Preprocess::preprocess(ConstraintRCList*& constraints){
     do {
       anyChange = false;
 
-      if(_options.equivalentVariableRemoval()) {
+      if (_options.equivalentVariableRemoval()) {
 	anyChange |= evRemover.apply(constraints);
       }
       anyChange |= hbRemover.apply(constraints);
       anyChange |= constantRemover.apply(constraints);
       anyChange |= eqRemover.apply(constraints);
 
-    } while(anyChange);
+    }
+    while(anyChange);
     anyChange |= subsRemover.apply(constraints);
-  } while(anyChange);
-  
+  } 
+  while(anyChange);
 } // Preprocess::preprocess ()
 
 /**
@@ -125,16 +125,15 @@ void Preprocess::unfoldEqualities(ConstraintRCList*& constraints)
   ConstraintRCList::DelIterator cit(constraints);
   while(cit.hasNext()) {
     Constraint& c = *cit.next();
-    if(c.type()!=CT_EQ) {
+    if (c.type()!=CT_EQ) {
       continue;
     }
    
     ConstraintRCPtr gc(Constraint::clone(c));
-
     gc->setType(CT_GREQ);
     ConstraintRCPtr lc(Constraint::clone(*gc));
     lc->multiplyCoeffs(CoeffNumber::minusOne());
-
+    
     cit.replace(gc);
     cit.insert(lc);
   }
@@ -194,11 +193,11 @@ void Preprocess::preprocess (Problem& prb)
   //enough
   prb.getProperty();
 
-  if(prb.hasInterpretedOperations()) {
+  if (prb.hasInterpretedOperations()) {
     env.interpretedOperationsUsed = true;
   }
 
-  if(prb.hasSpecialTermsOrLets()) {
+  if (prb.hasSpecialTermsOrLets()) {
     LOG("pp_progress","special term elimination");
     SpecialTermElimination().apply(prb);
   }
@@ -210,26 +209,26 @@ void Preprocess::preprocess (Problem& prb)
     Normalisation().normalise(prb);
   }
 
-  if(_options.sineSelection()!=Options::SS_OFF) {
+  if (_options.sineSelection()!=Options::SS_OFF) {
     env.statistics->phase=Statistics::SINE_SELECTION;
     LOG("pp_progress","sine selection");
     SineSelector(_options).perform(prb);
   }
 
-  if(_options.questionAnswering()==Options::QA_ANSWER_LITERAL) {
+  if (_options.questionAnswering()==Options::QA_ANSWER_LITERAL) {
     env.statistics->phase=Statistics::UNKNOWN_PHASE;
     LOG("pp_progress","answer literal addition");
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
-  if(prb.hasInterpretedOperations() && _options.theoryAxioms()) {
+  if (prb.hasInterpretedOperations() && _options.theoryAxioms()) {
     InterpretedNormalizer().apply(prb);
     env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
     LOG("pp_progress","adding theory axioms");
     TheoryAxioms().apply(prb);
   }
 
-  if(prb.mayHaveFormulas()) {
+  if (prb.mayHaveFormulas()) {
     LOG("pp_progress","preprocess1 (rectify, simplify false true, flatten)");
     preprocess1(prb);
   }
@@ -238,7 +237,7 @@ void Preprocess::preprocess (Problem& prb)
 //   TheoryFinder theoryFinder(_problem,0);
 //   theoryFinder.search();
 
-  if(prb.hasFormulaItes()){
+  if (prb.hasFormulaItes()){
     LOG("pp_progress","expand ite formulas");
     FormulaIteExpander().apply(prb);
   }
@@ -265,9 +264,9 @@ void Preprocess::preprocess (Problem& prb)
 	_options.predicateDefinitionInlining()==Options::INL_NON_GROWING);
     pdInliner.apply(prb);
 
-    if(_options.flattenTopLevelConjunctions()) {
+    if (_options.flattenTopLevelConjunctions()) {
 	LOG("pp_progress","flattening top-level conjunctions");
-        if(TopLevelFlatten().apply(prb)) {
+        if (TopLevelFlatten().apply(prb)) {
           LOG("pp_progress","inlining");
           PDInliner pdInliner2(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY, false,
               _options.predicateDefinitionInlining()==Options::INL_NON_GROWING);
@@ -275,22 +274,22 @@ void Preprocess::preprocess (Problem& prb)
         }
     }
   }
-  else if(_options.flattenTopLevelConjunctions()) {
+  else if (_options.flattenTopLevelConjunctions()) {
     LOG("pp_progress","flattening top-level conjunctions");
     TopLevelFlatten().apply(prb);
   }
 
-  if(_options.distinctProcessor()) {
+  if (_options.distinctProcessor()) {
     LOG("pp_progress","processing distinct declarations");
     DistinctProcessor().apply(prb);
   }
 
-  if(_options.predicateEquivalenceDiscovery()!=Options::PED_OFF) {
+  if (_options.predicateEquivalenceDiscovery()!=Options::PED_OFF) {
     LOG("pp_progress","equivalence discovery");
     EquivalenceDiscoveringTransformer(_options).apply(prb);
   }
 
-  if(_options.aigFormulaSharing()) {
+  if (_options.aigFormulaSharing()) {
     LOG("pp_progress","aig formula sharing");
     AIGFormulaSharer().apply(prb);
   }
@@ -313,27 +312,27 @@ void Preprocess::preprocess (Problem& prb)
     EPRInlining().apply(prb);
   }
 
-  if(_options.aigBddSweeping()) {
+  if (_options.aigBddSweeping()) {
     LOG("pp_progress","bdd sweeping");
     AIGCompressingTransformer().apply(prb);
   }
 
-  if(_options.flattenTopLevelConjunctions()) {
+  if (_options.flattenTopLevelConjunctions()) {
     LOG("pp_progress","flatten top-level conjunctions");
     TopLevelFlatten().apply(prb);
   }
 
-  if(_options.aigInliner()) {
+  if (_options.aigInliner()) {
     LOG("pp_progress","aig inlining");
     AIGInliner().apply(prb);
   }
 
-  if(_options.aigConditionalRewriting()) {
+  if (_options.aigConditionalRewriting()) {
     LOG("pp_progress","aig conditional rewriting");
     AIGConditionalRewriter().apply(prb);
   }
 
-  if(_options.aigDefinitionIntroduction()) {
+  if (_options.aigDefinitionIntroduction()) {
     LOG("pp_progress","aig definition introduction");
     AIGDefinitionIntroducer(_options.aigDefinitionIntroductionThreshold()).apply(prb);
   }
@@ -387,14 +386,14 @@ void Preprocess::preprocess (Problem& prb)
     clausify(prb);
   }
 
-  if(prb.mayHaveFunctionDefinitions()) {
+  if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
     LOG("pp_progress","function definition elimination");
-    if(_options.functionDefinitionElimination() == Options::FDE_ALL) {
+    if (_options.functionDefinitionElimination() == Options::FDE_ALL) {
       FunctionDefinition fd;
       fd.removeAllDefinitions(prb);
     }
-    else if(_options.functionDefinitionElimination() == Options::FDE_UNUSED) {
+    else if (_options.functionDefinitionElimination() == Options::FDE_UNUSED) {
       FunctionDefinition::removeUnusedDefinitions(prb);
     }
   }
@@ -433,7 +432,7 @@ void Preprocess::preprocess (Problem& prb)
      resolver.apply(prb);
    }
 
-   if(_options.trivialPredicateRemoval()) {
+   if (_options.trivialPredicateRemoval()) {
      env.statistics->phase=Statistics::UNKNOWN_PHASE;
      LOG("pp_progress","trivial predicate removal");
      TrivialPredicateRemover().apply(prb);
@@ -446,14 +445,14 @@ void Preprocess::preprocess (Problem& prb)
      gs.apply(prb);
    }
 
-   if(_options.hornRevealing()) {
+   if (_options.hornRevealing()) {
      env.statistics->phase=Statistics::HORN_REVEALING;
      LOG("pp_progress","horn revealing");
      HornRevealer hr(_options);
      hr.apply(prb);
    }
 
-   if(_options.equalityProxy()!=Options::EP_OFF && prb.mayHaveEquality() &&
+   if (_options.equalityProxy()!=Options::EP_OFF && prb.mayHaveEquality() &&
 	   (prb.mayHaveXEqualsY() || _options.equalityProxy()!=Options::EP_ON) ) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      LOG("pp_progress","equality proxy");
@@ -469,7 +468,7 @@ void Preprocess::preprocess (Problem& prb)
        }
        );
 
-   if(_options.printClausifierPremises()) {
+   if (_options.printClausifierPremises()) {
      UIHelper::outputAllPremises(cerr, prb.units());
    }
 
@@ -504,7 +503,7 @@ void Preprocess::preprocess1 (Problem& prb)
   UnitList::DelIterator us(units);
   while (us.hasNext()) {
     Unit* u = us.next();
-    if(u->isClause()) {
+    if (u->isClause()) {
       continue;
     }
 
@@ -515,7 +514,7 @@ void Preprocess::preprocess1 (Problem& prb)
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
     fu = SimplifyFalseTrue::simplify(fu);
-    if(fu!=rectFu) {
+    if (fu!=rectFu) {
       formulasSimplified = true;
     }
     fu = Flattening::flatten(fu);
@@ -525,7 +524,7 @@ void Preprocess::preprocess1 (Problem& prb)
     }
   }
 
-  if(formulasSimplified) {
+  if (formulasSimplified) {
     prb.invalidateByRemoval();
   }
 }
@@ -551,7 +550,7 @@ void Preprocess::preprocess2(Problem& prb)
   while (us.hasNext()) {
     Unit* u = us.next();
     LOG_UNIT("pp_pre_ennf",u);
-    if(u->isClause()) {
+    if (u->isClause()) {
 	continue;
     }
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
@@ -630,7 +629,7 @@ void Preprocess::secondStageEprPreservingNaming(Problem& prb)
     }
   }
 
-  if(modified) {
+  if (modified) {
     prb.invalidateProperty();
   }
 }
@@ -696,7 +695,7 @@ void Preprocess::preprocess3 (Problem& prb)
     }
   }
 
-  if(modified) {
+  if (modified) {
     prb.invalidateProperty();
   }
 } // Preprocess::preprocess3
@@ -719,7 +718,7 @@ void Preprocess::clausify(Problem& prb)
     Unit* u = us.next();
     LOG_UNIT("pp_pre_cl", u);
     if (u->isClause()) {
-      if(static_cast<Clause*>(u)->isEmpty()) {
+      if (static_cast<Clause*>(u)->isEmpty()) {
 	emptyClause = u;
 	break;
       }
@@ -729,7 +728,7 @@ void Preprocess::clausify(Problem& prb)
     cnf.clausify(u,clauses);
     while (! clauses.isEmpty()) {
       Unit* u = clauses.pop();
-      if(static_cast<Clause*>(u)->isEmpty()) {
+      if (static_cast<Clause*>(u)->isEmpty()) {
 	emptyClause = u;
 	goto fin;
       }
@@ -738,12 +737,12 @@ void Preprocess::clausify(Problem& prb)
     us.del();
   }
 fin:
-  if(emptyClause) {
+  if (emptyClause) {
     prb.units()->destroy();
     prb.units() = 0;
     UnitList::push(emptyClause, prb.units());
   }
-  if(modified) {
+  if (modified) {
     prb.invalidateProperty();
   }
   prb.reportFormulasEliminated();

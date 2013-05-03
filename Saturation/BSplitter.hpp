@@ -77,7 +77,7 @@ private:
 
   bool stackSplitting() { return false; }
 
-  bool canBeSplitted(Clause* cl) { return true; }
+  bool canBeSplit(Clause* cl) { return true; }
   Clause* getComponent(Clause* icl);
 
   SplitSet* getNewClauseSplitSet(Clause* cl);

@@ -1,6 +1,7 @@
 /**
  * @file Vector.hpp
- * Defines a class of variable-size generic vectors
+ * Defines a class of constant-size generic vectors. The size is given as an
+ * argument when we allocate the vector.
  *
  * @since 01/02/2008 Manchester
  */
@@ -20,7 +21,9 @@ namespace Lib {
 using namespace std;
 
 /**
- * Class of variable-size generic vectors
+ * Class of constant size generic vectors. The size of a vector is fixed when it
+ * is allocated and cannot change, unlike that of arrays. Vectors of size 0 are
+ * not allowed.
  * @since 01/02/2008 Manchester
  */
 template<typename C>
@@ -48,17 +51,15 @@ public:
   static Vector* allocate(size_t length)
   {
     CALL("Vector::allocate");
+    ASS_G(length,0);
 
-    //We have to get sizeof(Vector) + (_length-1)*sizeof(C)
-    //this way, because _length-1 wouldn't behave well for
-    //_length==0 on x64 platform.
-    size_t sz=sizeof(Vector) + length*sizeof(C);
-    sz-=sizeof(C);
-
-    Vector* v = reinterpret_cast<Vector*>(ALLOC_KNOWN(sz, "Vector"));
+    size_t sz=sizeof(Vector) + (length-1)*sizeof(C);
+    Vector* v = reinterpret_cast<Vector*>(ALLOC_KNOWN(sz,"Vector"));
     v->_length = length;
     C* arr = v->_array;
-    array_new<C>(arr, length);
+    // in the case C is a class with an initialiser, apply the constructor of it
+    // to every element of the allocated array
+    array_new<C>(arr,length);
     return v;
   } // allocate
 
@@ -67,38 +68,34 @@ public:
   {
     CALL("Vector::deallocate");
 
+    // in the case C is a class with an initialiser, apply the destructor of it
+    // to every element of the allocated array
     array_delete(_array, _length);
-
-    //We have to get sizeof(Vector) + (_length-1)*sizeof(C)
-    //this way, because _length-1 wouldn't behave well for
-    //_length==0 on x64 platform.
-    size_t sz=sizeof(Vector) + _length*sizeof(C);
-    sz-=sizeof(C);
-
+    size_t sz=sizeof(Vector) + (_length-1)*sizeof(C);
     DEALLOC_KNOWN(this,sz,"Vector");
   } // deallocate
 
-
+  /**
+   * Convert the vector to its string representation. To use this function,
+   * elements must have a toString() function too.
+   */
   string toString()
   {
     string res;
     for(size_t i=0;i<_length;i++) {
-      if(i>0) {
+      if (i>0) {
 	res+=",";
       }
       res+=(*this)[i].toString();
     }
     return res;
-  }
+  } // toString
 
   friend class Indexing::CodeTree;
   friend class Indexing::ClauseCodeTree;
 
   /**
    * Iterator that deallocates the vector when it yields the last value.
-   *
-   * @warning if the Vector is of length zero, it is deallocated in the
-   *   	      constructor of the iterator.
    */
   class DestructiveIterator
   {
@@ -108,7 +105,7 @@ public:
     DestructiveIterator(Vector& v)
     : cur(v._array), afterLast(v._array+v.length()), vec(&v)
     {
-      if(cur==afterLast) {
+      if (cur==afterLast) {
 	vec->deallocate();
       }
     }
@@ -125,7 +122,7 @@ public:
 
       C res=*cur;
       cur++;
-      if(cur==afterLast) {
+      if (cur==afterLast) {
 	vec->deallocate();
       }
       return res;
@@ -134,18 +131,21 @@ public:
     C* cur;
     C* afterLast;
     Vector* vec;
-  };
+  }; // Vector::DestructiveIterator
 protected:
   /** array's length */
   size_t _length;
   /** array's content */
   C _array[1];
 private:
+  /** declared but not defined to prevent its use */
   void* operator new(size_t,size_t length);
+  /** not used, will cause an assertion violation */
   void operator delete(void*)
   {
     ASSERTION_VIOLATION
   }
+  /** declared but not defined to prevent its use */
   Vector();
 }; // class Vector
 

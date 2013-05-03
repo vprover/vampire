@@ -54,10 +54,10 @@ CMZRMode::CMZRMode()
 #else
   unsigned coreNumber = System::getNumberOfCores();
 #endif
-  if(coreNumber<=1) {
+  if (coreNumber<=1) {
     _parallelProcesses = 1;
   }
-  else if(coreNumber>=8) {
+  else if (coreNumber>=8) {
     _parallelProcesses = coreNumber-2;
   }
   else {
@@ -72,29 +72,29 @@ void CMZRMode::perform()
 
   UIHelper::cascMode = true;
 
-  if(env.options->inputFile()=="") {
+  if (env.options->inputFile()=="") {
     USER_ERROR("Input file must be specified for CMZR mode");
   }
 
   string line;
   ifstream in(env.options->inputFile().c_str());
-  if(in.fail()) {
+  if (in.fail()) {
     USER_ERROR("Cannot open input file: "+env.options->inputFile());
   }
 
   //support several batches in one file
-  while(!in.eof()) {
+  while (!in.eof()) {
     stringstream singleInst;
     bool ready = false;
-    while(!in.eof()) {
+    while (!in.eof()) {
       std::getline(in, line);
       singleInst<<line<<endl;
-      if(line=="% SZS end BatchProblems") {
+      if (line=="% SZS end BatchProblems") {
 	ready = true;
 	break;
       }
     }
-    if(!ready) { break; }
+    if (!ready) { break; }
     Shell::CASC::CMZRMode ltbm;
     stringstream childInp(singleInst.str());
     ltbm.perform(childInp);
@@ -106,14 +106,14 @@ void CMZRMode::loadProblems()
   CALL("CMZRMode::loadProblems");
 
   Stack<ProblemInfo>::DelIterator pit(_problems);
-  while(pit.hasNext()) {
+  while (pit.hasNext()) {
     ProblemInfo& pi = pit.next();
 
     string fname = pi.inputFName;
     cout<<"% SZS status Started for "<<fname<<endl;;
 
     ifstream inp(fname.c_str());
-    if(inp.fail()) {
+    if (inp.fail()) {
       USER_ERROR("Cannot open problem file: "+fname);
     }
     Parse::TPTP parser(inp);
@@ -146,15 +146,15 @@ void CMZRMode::attemptProblem(unsigned idx)
   string strategy = _problems[idx].schedule.pop();
   unsigned timeMs = getSliceTime(strategy);
 
-  if(env.remainingTime()*_parallelProcesses<timeMs*_unsolvedCnt) {
+  if (env.remainingTime()*_parallelProcesses < timeMs*_unsolvedCnt) {
     timeMs = (env.remainingTime()*_parallelProcesses)/_unsolvedCnt;
   }
-  if(env.remainingTime()<timeMs) {
+  if (env.remainingTime() < (int)timeMs) {
     timeMs = env.remainingTime();
   }
 
   startStrategyRun(idx, strategy,timeMs);
-  if(_availCoreCnt==0) {
+  if (_availCoreCnt==0) {
     waitForOneFinished();
   }
 }
@@ -171,15 +171,15 @@ void CMZRMode::waitForOneFinished()
   unsigned currTime = env.timer->elapsedMilliseconds();
 
   ProcessMap::Iterator pit(_processProblems);
-  while(pit.hasNext()) {
+  while (pit.hasNext()) {
     unsigned prbIdx = pit.next();
     const ProblemInfo& pi = _problems[prbIdx];
     ASS_NEQ(pi.runningProcessPID,-1);
-    if(pi.processDueTime<currTime) {
+    if (pi.processDueTime<currTime) {
       cout<<"killed overdue pid "<<pi.runningProcessPID<<" at "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
       kill(pi.runningProcessPID,SIGKILL);
     }
-    if(pi.processDueTime<lowestDueTime) {
+    if (pi.processDueTime<lowestDueTime) {
       lowestDueTime = pi.processDueTime;
       lowestDuePrb = prbIdx;
     }
@@ -187,11 +187,11 @@ void CMZRMode::waitForOneFinished()
 
   pid_t finishedChild;
   int resValue;
-  if(lowestDueTime>currTime) {
+  if (lowestDueTime>currTime) {
     unsigned waitingTime = lowestDueTime-currTime;
     finishedChild=Multiprocessing::instance()->waitForChildTerminationOrTime(waitingTime,resValue);
 
-    if(!finishedChild) {
+    if (!finishedChild) {
       const ProblemInfo& pi = _problems[lowestDuePrb];
       cout<<"killed overdue pid "<<pi.runningProcessPID<<" at "<<env.timer->elapsedMilliseconds()<<" ms after a wait"<<endl;
       kill(pi.runningProcessPID,SIGKILL);
@@ -210,7 +210,7 @@ void CMZRMode::waitForOneFinished()
 
   ProblemInfo& pi = _problems[prbIdx];
   pi.runningProcessPID = -1;
-  if(!resValue) {
+  if (!resValue) {
     pi.solved = true;
     _unsolvedCnt--;
     cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (success) at "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
@@ -231,7 +231,7 @@ void CMZRMode::startStrategyRun(unsigned prbIdx, string strategy, unsigned timeM
 
   pid_t childId=Multiprocessing::instance()->fork();
   ASS_NEQ(childId,-1);
-  if(!childId) {
+  if (!childId) {
     //we're in a proving child
     strategyRunChild(prbIdx,strategy, timeMs); //start proving
     ASSERTION_VIOLATION; //the runChild function should never return
@@ -262,12 +262,12 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy, unsigned timeM
   opt.readFromTestId(strategy);
 
   unsigned dsTime = timeMs/100;
-  if(dsTime==0) {
+  if (dsTime==0) {
     dsTime = 1;
   }
   opt.setTimeLimitInDeciseconds(dsTime);
   int stl = opt.simulatedTimeLimit();
-  if(stl) {
+  if (stl) {
     opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
   }
 
@@ -296,7 +296,7 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy, unsigned timeM
   ProvingHelper::runVampire(*baseProblem, opt);
 
   //set return value to zero if we were successful
-  if(env.statistics->terminationReason==Statistics::REFUTATION) {
+  if (env.statistics->terminationReason==Statistics::REFUTATION) {
     resultValue=0;
   }
 
@@ -340,21 +340,21 @@ void CMZRMode::perform(istream& batchFile)
   unsigned prbCnt = _problems.size();
   _unsolvedCnt = prbCnt;
   unsigned nextProblemIdx = 0;
-  for(;;) {
-    if(env.timeLimitReached()) {
+  for (;;) {
+    if (env.timeLimitReached()) {
       break;
     }
     unsigned startIdx = nextProblemIdx;
-    while(_problems[nextProblemIdx].solved || _problems[nextProblemIdx].runningProcessPID!=-1) {
+    while (_problems[nextProblemIdx].solved || _problems[nextProblemIdx].runningProcessPID!=-1) {
       nextProblemIdx = (nextProblemIdx+1)%prbCnt;
-      if(nextProblemIdx==startIdx) {
-	if(_processProblems.isEmpty()) {
+      if (nextProblemIdx==startIdx) {
+	if (_processProblems.isEmpty()) {
 	  goto fin;
 	}
 	waitForOneFinished();
       }
     }
-    if(env.timeLimitReached()) {
+    if (env.timeLimitReached()) {
       break;
     }
     attemptProblem(nextProblemIdx);
@@ -363,14 +363,14 @@ void CMZRMode::perform(istream& batchFile)
 
 fin:
 
-  while(!_processProblems.isEmpty()) {
+  while (!_processProblems.isEmpty()) {
     waitForOneFinished();
   }
 
-  for(unsigned i=0; i<prbCnt; i++) {
+  for (unsigned i=0; i<prbCnt; i++) {
     ProblemInfo& pi = _problems[i];
 
-    if(pi.solved) {
+    if (pi.solved) {
       continue;
     }
     ofstream outFile(pi.outputFName.c_str(), ios_base::app);
@@ -392,21 +392,21 @@ void CMZRMode::loadIncludes()
     env.statistics->phase=Statistics::PARSING;
 
     StringList::Iterator iit(theoryIncludes);
-    while(iit.hasNext()) {
+    while (iit.hasNext()) {
       string fname=env.options->includeFileName(iit.next());
       ifstream inp(fname.c_str());
-      if(inp.fail()) {
+      if (inp.fail()) {
         USER_ERROR("Cannot open included file: "+fname);
       }
       Parse::TPTP parser(inp);
       parser.parse();
       UnitList* funits = parser.units();
-      if(parser.containsConjecture()) {
+      if (parser.containsConjecture()) {
 	USER_ERROR("Axiom file "+fname+" contains a conjecture.");
       }
 
       UnitList::Iterator fuit(funits);
-      while(fuit.hasNext()) {
+      while (fuit.hasNext()) {
 	fuit.next()->markIncluded();
       }
       theoryAxioms=UnitList::concat(funits,theoryAxioms);
@@ -430,7 +430,7 @@ void CMZRMode::readInput(istream& in)
   string line, word;
 
   std::getline(in, line);
-  if(line!="% SZS start BatchConfiguration") {
+  if (line!="% SZS start BatchConfiguration") {
     USER_ERROR("\"% SZS start BatchConfiguration\" expected, \""+line+"\" found.");
   }
 
@@ -441,28 +441,28 @@ void CMZRMode::readInput(istream& in)
   category = "";
 
   StringStack lineSegments;
-  while(!in.eof() && line!="% SZS end BatchConfiguration") {
+  while (!in.eof() && line!="% SZS end BatchConfiguration") {
     lineSegments.reset();
     StringUtils::splitStr(line.c_str(), ' ', lineSegments);
     string param = lineSegments[0];
-    if(param=="division.category") {
-      if(lineSegments.size()!=2) {
+    if (param=="division.category") {
+      if (lineSegments.size()!=2) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
       category = lineSegments[1];
       LOG("ltb_conf","ltb_conf: "<<param<<" = "<<category);
     }
-    else if(param=="output.required" || param=="output.desired") {
-      if(lineSegments.find("Answer")) {
+    else if (param=="output.required" || param=="output.desired") {
+      if (lineSegments.find("Answer")) {
 	questionAnswering = true;
 	LOG("ltb_conf","ltb_conf: enabled question answering");
       }
     }
-    else if(param=="execution.order") {
+    else if (param=="execution.order") {
       //we ignore this for now and always execute in order
     }
-    else if(param=="limit.time.problem.wc") {
-      if(lineSegments.size()!=2 || !Int::stringToInt(lineSegments[1], problemTimeLimit)) {
+    else if (param=="limit.time.problem.wc") {
+      if (lineSegments.size()!=2 || !Int::stringToInt(lineSegments[1], problemTimeLimit)) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
       LOG("ltb_conf","ltb_conf: "<<param<<" = "<<problemTimeLimit);
@@ -474,28 +474,28 @@ void CMZRMode::readInput(istream& in)
     std::getline(in, line);
   }
 
-  if(category=="") {
+  if (category=="") {
     USER_ERROR("category must be specified");
   }
 
-  if(problemTimeLimit==-1) {
+  if (problemTimeLimit==-1) {
     USER_ERROR("problem time limit must be specified");
   }
 
-  if(line!="% SZS end BatchConfiguration") {
+  if (line!="% SZS end BatchConfiguration") {
     USER_ERROR("\"% SZS end BatchConfiguration\" expected, \""+line+"\" found.");
   }
 
   std::getline(in, line);
-  if(line!="% SZS start BatchIncludes") {
+  if (line!="% SZS start BatchIncludes") {
     USER_ERROR("\"% SZS start BatchIncludes\" expected, \""+line+"\" found.");
   }
 
   theoryIncludes=0;
-  for(std::getline(in, line); line[0]!='%' && !in.eof(); std::getline(in, line)) {
+  for (std::getline(in, line); line[0]!='%' && !in.eof(); std::getline(in, line)) {
     size_t first=line.find_first_of('\'');
     size_t last=line.find_last_of('\'');
-    if(first==string::npos || first==last) {
+    if (first==string::npos || first==last) {
       USER_ERROR("Include specification must contain the file name enclosed in the ' characters:\""+line+"\".");
     }
     ASS_G(last,first);
@@ -503,19 +503,19 @@ void CMZRMode::readInput(istream& in)
     StringList::push(fname, theoryIncludes);
   }
 
-  while(!in.eof() && line=="") { std::getline(in, line); }
-  if(line!="% SZS end BatchIncludes") {
+  while (!in.eof() && line=="") { std::getline(in, line); }
+  if (line!="% SZS end BatchIncludes") {
     USER_ERROR("\"% SZS end BatchIncludes\" expected, \""+line+"\" found.");
   }
   std::getline(in, line);
-  if(line!="% SZS start BatchProblems") {
+  if (line!="% SZS start BatchProblems") {
     USER_ERROR("\"% SZS start BatchProblems\" expected, \""+line+"\" found.");
   }
 
-  for(std::getline(in, line); line[0]!='%' && !in.eof(); std::getline(in, line)) {
+  for (std::getline(in, line); line[0]!='%' && !in.eof(); std::getline(in, line)) {
     size_t spc=line.find(' ');
     size_t lastSpc=line.find(' ', spc+1);
-    if(spc==string::npos || spc==0 || spc==line.length()-1) {
+    if (spc==string::npos || spc==0 || spc==line.length()-1) {
       USER_ERROR("Two file names separated by a single space expected:\""+line+"\".");
     }
     string inp=line.substr(0,spc);
@@ -523,8 +523,8 @@ void CMZRMode::readInput(istream& in)
     _problems.push(ProblemInfo(inp, outp));
   }
 
-  while(!in.eof() && line=="") { std::getline(in, line); }
-  if(line!="% SZS end BatchProblems") {
+  while (!in.eof() && line=="") { std::getline(in, line); }
+  if (line!="% SZS end BatchProblems") {
     USER_ERROR("\"% SZS end BatchProblems\" expected, \""+line+"\" found.");
   }
 }

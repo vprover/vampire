@@ -67,10 +67,10 @@ public:
   static const char* _sSplittingAddComplementaryValues[];
   static const char* _sSplittingNonsplittableComponentsValues[];
   static const char* _predicateEquivalenceDiscoveryModeValues[];
-  static const char* _assignmentSelectorValues[];
-  static const char* _variableSelectorValues[];
-  static const char* _conflictSelectorValues[];
-  static const char* _almostHalfBoundingRemovalValues[];
+  static const char* _bpAssignmentSelectorValues[];
+  static const char* _bpVariableSelectorValues[];
+  static const char* _bpConflictSelectorValues[];
+  static const char* _bpAlmostHalfBoundingRemovalValues[];
   static int shortNameIndexes[];
 
   static NameArray optionNames;
@@ -103,10 +103,10 @@ public:
   static NameArray sSplittingAddComplementaryValues;
   static NameArray sSplittingNonsplittableComponentsValues;
   static NameArray predicateEquivalenceDiscoveryModeValues;
-  static NameArray assignmentSelectorValues;
-  static NameArray variableSelectorValues;
-  static NameArray conflictSelectorValues;
-  static NameArray almostHalfBoundingRemovalValues;
+  static NameArray bpAssignmentSelectorValues;
+  static NameArray bpVariableSelectorValues;
+  static NameArray bpConflictSelectorValues;
+  static NameArray bpAlmostHalfBoundingRemovalValues;
 }; // class Options::Constants
 
 
@@ -122,28 +122,26 @@ const char* Options::Constants::_optionNames[] = {
   "aig_inliner",
   "arity_check",
 
-
   "backward_demodulation",
   "backward_subsumption",
   "backward_subsumption_resolution",
   "bfnt",
   "binary_resolution",
-
+  "bp_allowed_fm_balance",
   "bp_almost_half_bounding_removal",
   "bp_assignment_selector",
-  "bp_collapsing_used",
-  "bp_conflict_selection",
-  "bp_conservative_as",
-  "bp_fm_balance",
+  "bp_collapsing_propagation",
+  "bp_conflict_selector",
+  "bp_conservative_assignment_selection",
   "bp_fm_elimination",
   "bp_max_prop_length",
+  "bp_propagate_after_conflict",
   "bp_start_with_precise",
   "bp_update_by_one_constraint",
   "bp_variable_selector",
 
   "color_unblocking",
   "condensation",
-
 
   "decode",
   "demodulation_redundancy_check",
@@ -161,11 +159,11 @@ const char* Options::Constants::_optionNames[] = {
   "forced_options",
   "forward_demodulation",
   "forward_literal_rewriting",
-
   "forward_subsumption",
   "forward_subsumption_resolution",
   "function_definition_elimination",
   "function_number",
+
   "general_splitting",
   "global_subsumption",
 
@@ -271,7 +269,6 @@ const char* Options::Constants::_optionNames[] = {
   "split_input_only",
   "split_positive",
   "splitting",
-  "splitting_with_blocking",
   "ssplitting_add_complementary",
   "ssplitting_component_sweeping",
   "ssplitting_congruence_closure",
@@ -279,7 +276,6 @@ const char* Options::Constants::_optionNames[] = {
   "ssplitting_flush_period",
   "ssplitting_flush_quotient",
   "ssplitting_nonsplittable_components",
-
   "statistics",
   "superposition_from_variables",
   "symbol_precedence",
@@ -317,6 +313,7 @@ const char* Options::Constants::_shortNames[] = {
   "br",
   "bs",
   "bsr",
+
   "cas",
   "cond",
   "cs",
@@ -393,18 +390,17 @@ NameArray Options::Constants::shortNames(_shortNames,
 					  sizeof(_shortNames)/sizeof(char*));
 
 int Options::Constants::shortNameIndexes[] = {
-  ASSIGNMENT_SELECTOR,
   AGE_WEIGHT_RATIO,
   BACKWARD_DEMODULATION,
+
   BFNT,
   BINARY_RESOLUTION,
   BACKWARD_SUBSUMPTION,
   BACKWARD_SUBSUMPTION_RESOLUTION,
+  BP_CONFLICT_SELECTOR,
+  BP_COLLAPSING_PROPAGATION,
 
-  CONSERVATIVE_ASSIGNMENT_SELECTOR,
   CONDENSATION,
-  CONFLICT_SELECTOR,
-  CONSERVATIVE_COLLAPSING_PROPAGATION,
   DEMODULATION_REDUNDANCY_CHECK,
   EQUALITY_PROXY,
   EQUALITY_RESOLUTION_WITH_DELETION,
@@ -459,8 +455,6 @@ int Options::Constants::shortNameIndexes[] = {
   SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION,
   SINE_TOLERANCE,
   SIMULATED_TIME_LIMIT,
-  START_WITH_PRECISE,
-  SPLITTING_WITH_BLOCKING,
   TIME_LIMIT,
   TABULATION_BW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS,
   TABULATION_FW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS,
@@ -471,7 +465,6 @@ int Options::Constants::shortNameIndexes[] = {
   TRACES,
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
   UNIT_RESULTING_RESOLUTION,
-  VARIABLE_SELECTOR,
   WEIGHT_INCREMENT,
   WHILE_NUMBER};
 
@@ -705,53 +698,53 @@ const char* Options::Constants::_predicateEquivalenceDiscoveryModeValues[] = {
   "on"};
 
 NameArray Options::Constants::predicateEquivalenceDiscoveryModeValues(_predicateEquivalenceDiscoveryModeValues,
-					  sizeof(_predicateEquivalenceDiscoveryModeValues)/sizeof(char*));
+								      sizeof(_predicateEquivalenceDiscoveryModeValues)/sizeof(char*));
 
-const char* Options::Constants::_assignmentSelectorValues[] {
-	"alternative",
-	"bmp",
-	"lower_bound",
-	"middle",
-	"random",
-	"rational",
-	"smallest",
-	"tight",
-	"tightish",
-	"upper_bound"
+const char* Options::Constants::_bpAssignmentSelectorValues[] = {
+  "alternative",
+  "bmp",
+  "lower_bound",
+  "middle",
+  "random",
+  "rational",
+  "smallest",
+  "tight",
+  "tightish",
+  "upper_bound"};
+
+NameArray Options::Constants::bpAssignmentSelectorValues(_bpAssignmentSelectorValues,
+							 sizeof(_bpAssignmentSelectorValues)/sizeof(char*));
+
+const char* Options::Constants::_bpVariableSelectorValues[] = {
+  "conflicting",
+  "conflicting_and_collapsing",
+  "first",
+  "look_ahead",
+  "random",
+  "recently_collapsing",
+  "recently_conflicting",
+  "tightest_bound"
 };
-NameArray Options::Constants::assignmentSelectorValues(_assignmentSelectorValues,
-	sizeof(_assignmentSelectorValues)/sizeof(char*));
 
-const char* Options::Constants::_variableSelectorValues[] {
-	"conflicting",
-	"conflicting_and_collapsing",
-	"first",
-	"look_ahead",
-	"random",
-	"recently_collapsing",
-	"recently_conflicting",
-	"tightest_bound"
+NameArray Options::Constants::bpVariableSelectorValues(_bpVariableSelectorValues,
+						       sizeof(_bpVariableSelectorValues)/sizeof(char*));
+
+const char* Options::Constants::_bpConflictSelectorValues[] = {
+  "least_recent",
+  "most_recent",
+  "shortest"
 };
+NameArray Options::Constants::bpConflictSelectorValues(_bpConflictSelectorValues,
+						       sizeof(_bpConflictSelectorValues)/sizeof(char*));
 
-NameArray Options::Constants::variableSelectorValues(_variableSelectorValues,
-	sizeof(_variableSelectorValues)/sizeof(char*));
-
-const char* Options::Constants::_conflictSelectorValues[] {
-	"least_recent",
-	"most_recent",
-	"shortest"
-};
-NameArray Options::Constants::conflictSelectorValues(_conflictSelectorValues,
-	sizeof(_conflictSelectorValues)/sizeof(char*));
-
-const char* Options::Constants::_almostHalfBoundingRemovalValues[] {
+const char* Options::Constants::_bpAlmostHalfBoundingRemovalValues[] = {
   "bounds_on",
   "off",
   "on"
 };
 
-NameArray Options::Constants::almostHalfBoundingRemovalValues(_almostHalfBoundingRemovalValues,
-	sizeof(_almostHalfBoundingRemovalValues)/sizeof(char*));
+NameArray Options::Constants::bpAlmostHalfBoundingRemovalValues(_bpAlmostHalfBoundingRemovalValues,
+								sizeof(_bpAlmostHalfBoundingRemovalValues)/sizeof(char*));
 
 /**
  * Initialize options to the default values.
@@ -762,11 +755,7 @@ Options::Options ()
   :
   _abstraction(false),
   _ageRatio(1),
-  _allowedFMBalance(0),
-  _almostHalfBoundingRemoval(AHR_ON),
-  _assignmentSelector(ASG_RANDOM),
 
-  _weightRatio(1),
   _aigBddSweeping(false),
   _aigConditionalRewriting(false),
   _aigDefinitionIntroduction(false),
@@ -781,12 +770,19 @@ Options::Options ()
   _backwardSubsumptionResolution(SUBSUMPTION_OFF),
   _bfnt(false),
   _binaryResolution(true),
+  _bpAllowedFMBalance(0),
+  _bpAlmostHalfBoundingRemoval(AHR_ON),
+  _bpAssignmentSelector(ASG_RANDOM),
+  _bpCollapsingPropagation(false),
+  _bpConflictSelector(CS_MOST_RECENT),
+  _bpConservativeAssignmentSelection(true),
+  _bpFmElimination(true),
+  _bpPropagateAfterConflict(true),
+  _bpStartWithPrecise(false),
+  _bpVariableSelector(VS_TIGHTEST_BOUND),
 
   _colorUnblocking(false),
-  _collapsingBoundPropagation(false),
   _condensation(CONDENSATION_OFF),
-  _conflictSelector(CS_MOST_RECENT),
-  _conservativeAssignmentSelection(true),
 
   _demodulationRedundancyCheck(true),
   _distinctProcessor(false),
@@ -800,7 +796,7 @@ Options::Options ()
   _equivalentVariableRemoval(true),
   
   _flattenTopLevelConjunctions(false),
-  _fmElimination(true),
+  _forceIncompleteness(false),
   _forwardDemodulation(DEMODULATION_ALL),
   _forwardLiteralRewriting(false),
   _forwardSubsumption(true),
@@ -836,12 +832,12 @@ Options::Options ()
   _lrsFirstTimeCheck(5),
   _lrsWeightLimitOnly(false),
 
-  _maximalPropagatedEqualityLength(5),
   _maxActive(0),
   _maxAnswers(1),
   _maxInferenceDepth(0),
   _maxPassive(0),
   _maxWeight(0),
+  _maximalPropagatedEqualityLength(5),
 #if VDEBUG
   _memoryLimit(1000),
 #else
@@ -853,6 +849,8 @@ Options::Options ()
   _naming(8),
 
   _nongoalWeightCoefficient(1.0),
+  _nonGoalWeightCoeffitientDenominator(1),
+  _nonGoalWeightCoeffitientNumerator(1),
   _nonliteralsInClauseWeight(false),
   _normalize(false),
 
@@ -871,7 +869,6 @@ Options::Options ()
   _proofChecking(false),
   _protectedPrefix(""),
 
-  _propagateAfterConflict(true),
   _questionAnswering(QA_OFF),
 
   _randomSeed(Random::seed()),
@@ -922,7 +919,6 @@ Options::Options ()
   _splitInputOnly(true),
   _splitPositive(false),
   _splitting(SM_NOBACKTRACKING),
-  _splittingWithBlocking(false),
   _ssplittingAddComplementary(SSAC_GROUND),
   _ssplittingComponentSweeping(SSCS_ITERATED),
   _ssplittingCongruenceClosure(false),
@@ -930,7 +926,6 @@ Options::Options ()
   _ssplittingFlushPeriod(0),
   _ssplittingFlushQuotient(1.5f),
   _ssplittingNonsplittableComponents(SSNS_KNOWN),
-  _startWithPrecise(false),
   _statistics(STATISTICS_FULL),
   _superpositionFromVariables(true),
   _symbolPrecedence(BY_ARITY),
@@ -956,15 +951,11 @@ Options::Options ()
   _unusedPredicateDefinitionRemoval(true),
   _updatesByOneConstraint(3),
 
-  _variableSelector(VS_TIGHTEST_BOUND),
   _weightIncrement(false),
+  _weightRatio(1),
   _whileNumber(1),
 
-  _xmlOutput("off"),
-
-  _nonGoalWeightCoeffitientNumerator(1),
-  _nonGoalWeightCoeffitientDenominator(1),
-  _forceIncompleteness(false)
+  _xmlOutput("off")
 {
   CALL("Options::Options");
 } // Options::Options
@@ -978,10 +969,10 @@ void Options::set(const char* name,const char* value)
 {
   CALL ("Options::set/2");
 
-  try{
+  try {
     set(name,value,Constants::optionNames.find(name));
   }
-  catch(const ValueNotFoundException&) {
+  catch (const ValueNotFoundException&) {
     USER_ERROR((string)name + " is not a valid option");
   }
 } // Options::set/2
@@ -1049,10 +1040,6 @@ void Options::set(const char* name,const char* value, int index)
       _arityCheck = onOffToBool(value,name);
       return;
 
-    case ASSIGNMENT_SELECTOR:
-      _assignmentSelector = (AssignmentSelector)Constants::assignmentSelectorValues.find(value);
-      return;
-
     case BACKWARD_DEMODULATION:
       _backwardDemodulation = (Demodulation)Constants::demodulationValues.find(value);
       return;
@@ -1068,10 +1055,9 @@ void Options::set(const char* name,const char* value, int index)
     case BINARY_RESOLUTION:
       _binaryResolution = onOffToBool(value,name);
       return;
-
     case BP_ALLOWED_FM_BALANCE: {
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
-      _allowedFMBalance = unsignedValue;
+	_bpAllowedFMBalance = unsignedValue;
       }
       else {
 	USER_ERROR("The value must be an integer");
@@ -1079,10 +1065,22 @@ void Options::set(const char* name,const char* value, int index)
       return;
     }
     case BP_ALMOST_HALF_BOUND_REMOVER:
-      _almostHalfBoundingRemoval = (AlmostHalfBoundingRemoval)Constants::almostHalfBoundingRemovalValues.find(value);
+      _bpAlmostHalfBoundingRemoval = (BPAlmostHalfBoundingRemoval)Constants::bpAlmostHalfBoundingRemovalValues.find(value);
+      return;
+    case BP_ASSIGNMENT_SELECTOR:
+      _bpAssignmentSelector = (BPAssignmentSelector)Constants::bpAssignmentSelectorValues.find(value);
+      return;
+    case BP_COLLAPSING_PROPAGATION:
+      _bpCollapsingPropagation = onOffToBool(value,name);
+      return;
+    case BP_CONFLICT_SELECTOR:
+      _bpConflictSelector = (BPConflictSelector)Constants::bpConflictSelectorValues.find(value);
+      return;
+    case BP_CONSERVATIVE_ASSIGNMENT_SELECTION:
+      _bpConservativeAssignmentSelection = onOffToBool(value,name);
       return;
     case BP_FM_ELIMINATION:
-      _fmElimination = onOffToBool(value,name);
+      _bpFmElimination = onOffToBool(value,name);
       return;
     case BP_MAX_PROP_LENGTH:
       if ( Int::stringToUnsignedInt(value, unsignedValue)) {
@@ -1092,15 +1090,19 @@ void Options::set(const char* name,const char* value, int index)
 	USER_ERROR("the value must be an integer");
       }
       return;
+    case BP_START_WITH_PRECISE:
+      _bpStartWithPrecise = onOffToBool(value,name);
+      return;
     case BP_UPDATE_BY_ONE_CONSTRAINT:
       if ( Int::stringToUnsignedInt(value, unsignedValue)) {
-    	  _updatesByOneConstraint = unsignedValue;
+	_updatesByOneConstraint = unsignedValue;
       }
       else USER_ERROR("The value must be an integer");
       return;
-    case START_WITH_PRECISE:
-	_startWithPrecise = onOffToBool(value, name);
-	return;
+    case BP_VARIABLE_SELECTOR:
+      _bpVariableSelector = (BPVariableSelector)Constants::bpVariableSelectorValues.find(value);
+      return;
+
     case COLOR_UNBLOCKING:
       _colorUnblocking = onOffToBool(value,name);
       return;
@@ -1108,16 +1110,6 @@ void Options::set(const char* name,const char* value, int index)
       _condensation =
 	(Condensation)Constants::condensationValues.find(value);
       return;
-    case CONFLICT_SELECTOR:
-      _conflictSelector = (ConflictSelector)Constants::conflictSelectorValues.find(value);
-      return;
-
-    case CONSERVATIVE_ASSIGNMENT_SELECTOR:
-    	_conservativeAssignmentSelection = onOffToBool(value,name);
-    	return;
-    case CONSERVATIVE_COLLAPSING_PROPAGATION:
-    	_collapsingBoundPropagation = onOffToBool(value,name);
-    	return;
 
     case DECODE:
       readFromTestId(value);
@@ -1176,6 +1168,10 @@ void Options::set(const char* name,const char* value, int index)
     case FUNCTION_DEFINITION_ELIMINATION:
       _functionDefinitionElimination =
 	(FunctionDefinitionElimination)Constants::fdeValues.find(value);
+      return;
+    case FUNCTION_NUMBER:
+      if (Int::stringToInt(value,intValue))
+	_functionNumber= intValue;
       return;
 
     case GENERAL_SPLITTING:
@@ -1258,7 +1254,6 @@ void Options::set(const char* name,const char* value, int index)
     case INTERPRETED_SIMPLIFICATION:
       _interpretedSimplification = onOffToBool(value,name);
       return;
-
 
     case LATEX_OUTPUT:
       _latexOutput = value;
@@ -1479,7 +1474,7 @@ void Options::set(const char* name,const char* value, int index)
 	return;
       }
       break;
-    case SAT_VAR_SELETOR:
+    case SAT_VAR_SELECTOR:
       _satVarSelector = (SatVarSelector)Constants::satVarSelectorValues.find(value);
       return;
     case SATURATION_ALGORITHM:
@@ -1582,9 +1577,6 @@ void Options::set(const char* name,const char* value, int index)
     case SPLITTING:
       _splitting = (SplittingMode)Constants::splittingModeValues.find(value);
       return;
-    case SPLITTING_WITH_BLOCKING:
-      _splittingWithBlocking = onOffToBool(value,name);
-      return;
     case SSPLITTING_ADD_COMPLEMENTARY:
       _ssplittingAddComplementary = (SSplittingAddComplementary)Constants::sSplittingAddComplementaryValues.find(value);
       return;
@@ -1671,9 +1663,6 @@ void Options::set(const char* name,const char* value, int index)
       _unusedPredicateDefinitionRemoval = onOffToBool(value,name);
       return;
 
-    case VARIABLE_SELECTOR:
-      _variableSelector = (VariableSelector)Constants::variableSelectorValues.find(value);
-      return;
     case WEIGHT_INCREMENT:
       _weightIncrement = onOffToBool(value,name);
       return;
@@ -1682,10 +1671,6 @@ void Options::set(const char* name,const char* value, int index)
        _whileNumber = intValue;
        return;
 
-    case FUNCTION_NUMBER:
-      if (Int::stringToInt(value,intValue))
-	_functionNumber= intValue;
-      return;
     case XML_OUTPUT:
       _xmlOutput = value;
       return;
@@ -1960,7 +1945,6 @@ void Options::output (ostream& str) const
   str << "======= End of options =======\n";
 } // Options::output (ostream& str) const
 
-
 /**
  * Output the value of an option with a given tag to the output stream
  * str.
@@ -1999,9 +1983,6 @@ void Options::outputValue (ostream& str,int optionTag) const
   case ARITY_CHECK:
     str << boolToOnOff(_arityCheck);
     return;
-  case ASSIGNMENT_SELECTOR:
-    str << Constants::assignmentSelectorValues[_assignmentSelector];
-    return;
   case BACKWARD_DEMODULATION:
     str << Constants::demodulationValues[_backwardDemodulation];
     return;
@@ -2018,24 +1999,38 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_binaryResolution);
     return;
   case BP_ALLOWED_FM_BALANCE:
-    str << _allowedFMBalance;
+    str << _bpAllowedFMBalance;
     return;
   case BP_ALMOST_HALF_BOUND_REMOVER:
-    str << Constants::almostHalfBoundingRemovalValues[_almostHalfBoundingRemoval];
+    str << Constants::bpAlmostHalfBoundingRemovalValues[_bpAlmostHalfBoundingRemoval];
+    return;
+  case BP_ASSIGNMENT_SELECTOR:
+    str << Constants::bpAssignmentSelectorValues[_bpAssignmentSelector];
+    return;
+  case BP_CONFLICT_SELECTOR:
+    str << Constants::bpConflictSelectorValues[_bpConflictSelector];
+    return;
+  case BP_CONSERVATIVE_ASSIGNMENT_SELECTION:
+    str << boolToOnOff(_bpConservativeAssignmentSelection);
+    return;
+  case BP_COLLAPSING_PROPAGATION:
+    str << boolToOnOff(_bpCollapsingPropagation);
     return;
   case BP_FM_ELIMINATION:
-    str << boolToOnOff(_fmElimination);
+    str << boolToOnOff(_bpFmElimination);
     return;
   case BP_MAX_PROP_LENGTH:
     str << _maximalPropagatedEqualityLength;
     return;
+  case BP_START_WITH_PRECISE:
+    str << boolToOnOff(_bpStartWithPrecise);
+    return;
   case BP_UPDATE_BY_ONE_CONSTRAINT:
     str << _updatesByOneConstraint;
     return;
-
-  case START_WITH_PRECISE:
-	str << boolToOnOff(_startWithPrecise);
-	return;
+  case BP_VARIABLE_SELECTOR:
+    str << Constants::bpVariableSelectorValues[_bpVariableSelector];
+    return;
 
   case COLOR_UNBLOCKING:
     str << boolToOnOff(_colorUnblocking);
@@ -2043,17 +2038,6 @@ void Options::outputValue (ostream& str,int optionTag) const
   case CONDENSATION:
     str << Constants::condensationValues[_condensation];
     return;
-
-  case CONFLICT_SELECTOR:
-    str << Constants::conflictSelectorValues[_conflictSelector];
-    return;
-
-  case CONSERVATIVE_ASSIGNMENT_SELECTOR:
-	str << boolToOnOff(_conservativeAssignmentSelection);
-	return;
-  case CONSERVATIVE_COLLAPSING_PROPAGATION:
-	str << boolToOnOff(_collapsingBoundPropagation);
-	return;
   case DECODE: // no output for DECODE
     return;
   case DEMODULATION_REDUNDANCY_CHECK:
@@ -2312,7 +2296,7 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SAT_VAR_ACTIVITY_DECAY:
     str << _satVarActivityDecay;
     return;
-  case SAT_VAR_SELETOR:
+  case SAT_VAR_SELECTOR:
     str << Constants::satVarSelectorValues[_satVarSelector];
     return;
   case SATURATION_ALGORITHM:
@@ -2405,9 +2389,6 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SPLITTING:
     str << Constants::splittingModeValues[_splitting];
     return;
-  case SPLITTING_WITH_BLOCKING:
-    str << boolToOnOff(_splittingWithBlocking);
-    return;
   case SSPLITTING_ADD_COMPLEMENTARY:
     str << Constants::sSplittingAddComplementaryValues[_ssplittingAddComplementary];
     return;
@@ -2487,10 +2468,6 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
     str << boolToOnOff(_unusedPredicateDefinitionRemoval);
-    return;
-
-  case VARIABLE_SELECTOR:
-    str << Constants::variableSelectorValues[_variableSelector];
     return;
 
   case WEIGHT_INCREMENT:
@@ -2714,7 +2691,7 @@ void Options::readOptionsString(string testId, OptionSpecStack& assignments)
 
 /**
  * Assign option values according to the argument in the format
- * <opt1>=<val1>:<opt2>=<val2>:...:<optn>=<valN>
+ * opt1=val1:opt2=val2:...:optn=valN
  */
 void Options::readOptionsString(string testId)
 {
@@ -2839,28 +2816,25 @@ string Options::generateTestId() const
   CALL("Options::generateTestId");
 
   stringstream res;
-
   //saturation algorithm
-  res<<( (saturationAlgorithm()==DISCOUNT) ? "dis" : ( (saturationAlgorithm()==LRS) ? "lrs" : "ott") );
+  res << ( (saturationAlgorithm()==DISCOUNT) ? "dis" : ( (saturationAlgorithm()==LRS) ? "lrs" : "ott") );
 
   //selection function
-  res<< ( (selection()<0) ? "-" : "+" ) << abs(selection());
-  res<<"_";
+  res << (selection() < 0 ? "-" : "+") << abs(selection());
+  res << "_";
 
   //age-weight ratio
   if (ageRatio()!=1) {
-    res<<ageRatio()<<":";
+    res << ageRatio() << ":";
   }
-  res<<weightRatio();
-  res<<"_";
+  res << weightRatio();
+  res << "_";
 
   Options def;
   //Initially contains current values. The values that we have output
   //as short options we set to default.
   Options cur=*this;
-
   bool first=true;
-
   static Set<Tag> forbidden;
   //we initialize the set if there's nothing inside
   if (forbidden.size()==0) {
@@ -2878,7 +2852,7 @@ string Options::generateTestId() const
     forbidden.insert(INPUT_FILE);
   }
 
-  for(int i=0;i<Constants::shortNames.length;i++) {
+  for (int i=0;i<Constants::shortNames.length;i++) {
     Tag t=static_cast<Tag>(Constants::shortNameIndexes[i]);
     if (forbidden.contains(t)) {
       continue;
@@ -2891,17 +2865,17 @@ string Options::generateTestId() const
       continue;
     }
     if (!first) {
-      res<<":";
+      res << ":";
     }
     else {
       first=false;
     }
     string name=Constants::shortNames[i];
-    res<<name<<"="<<valCur.str();
+    res << name << "=" << valCur.str();
     cur.set(name.c_str(), valDef.str().c_str(), t);
   }
 
-  for(int i=0;i<NUMBER_OF_OPTIONS;i++) {
+  for (int i=0;i<NUMBER_OF_OPTIONS;i++) {
     Tag t=static_cast<Tag>(i);
     if (forbidden.contains(t)) {
       continue;
@@ -2914,19 +2888,19 @@ string Options::generateTestId() const
       continue;
     }
     if (!first) {
-      res<<":";
+      res << ":";
     }
     else {
       first=false;
     }
-    res<<Constants::optionNames[i]<<"="<<valCur.str();
+    res << Constants::optionNames[i] << "=" << valCur.str();
   }
 
   if (!first) {
-    res<<"_";
+    res << "_";
   }
 
-  res<<timeLimitInDeciseconds();
+  res << timeLimitInDeciseconds();
   return res.str();
 }
 
@@ -3076,9 +3050,6 @@ bool Options::completeForNNE() const
  */
 void Options::checkGlobalOptionConstraints() const
 {
-  if (splitting()!=SM_NOBACKTRACKING && splittingWithBlocking()) {
-    USER_ERROR("Splitting with blocking can be used only with splitting without backtracking");
-  }
   if (showInterpolant()!=INTERP_OFF && splitting()==SM_BACKTRACKING) {
     USER_ERROR("Cannot output interpolant with backtracking splitting");
   }

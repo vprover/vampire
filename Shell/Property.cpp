@@ -400,7 +400,6 @@ void Property::scanSort(unsigned sort)
  * Scan a literal.
  *
  * @param lit the literal
- * @param isGround will be set to false if the literal contains a variable
  * @since 29/06/2002 Manchester
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
@@ -434,14 +433,13 @@ void Property::scan(Literal* lit)
 	 !lit->nthArgument(0)->containsSubterm(*lit->nthArgument(1)) ))) {
     addProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION);
   }
-} // Property::scan(const Atom& term, bool& isGround)
+} // Property::scan(Literal* lit)
 
 
 /**
  * Scan a term arguments.
  *
  * @param ts the list of terms
- * @param isGround will be set to false if the term contains a variable
  * @since 29/06/2002 Manchester
  * @since 17/07/2003 Manchester, changed to non-pointer types,
  *        also NUMERIC case added

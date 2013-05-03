@@ -814,29 +814,25 @@ void InterpolantMinimizer::traverse(Unit* refutationUnit)
 
 }
 
-///////////////////////////////
-// Construction & destruction
-//
-
 /**
  * Create InterpolantMinimizer object
  *
- * @param minimizeComponentCount If true, we minimize the number of distinct
- * components in the interpolant, otherwise we minimize the sum of the weight
- * of the distinct components.
+ * @param target optimiziation target, determines what should be optimised.
  *
  * @param noSlicing If true, we forbid all slicing of proof nodes. This simulates
  * the original algorithm which didn't use minimization.
  *
  * @param showStats Value of the cost function is output
  *
- * @param starsPrefix The value of the cost function is output on line starting
+ * @param statsPrefix The value of the cost function is output on line starting
  * with statsPrefix + " cost: "
  */
 InterpolantMinimizer::InterpolantMinimizer(OptimizationTarget target, bool noSlicing,
-    bool showStats, string statsPrefix)
-: _optTarget(target), _noSlicing(noSlicing),
-  _showStats(showStats), _statsPrefix(statsPrefix)
+					   bool showStats, string statsPrefix)
+  : _optTarget(target),
+    _noSlicing(noSlicing),
+    _showStats(showStats),
+    _statsPrefix(statsPrefix)
 {
   CALL("InterpolantMinimizer::InterpolantMinimizer");
 

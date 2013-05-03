@@ -41,10 +41,10 @@ an assertion must be violated or an exception thrown.
 A sample test file:
 
 <code><tt>
-#include "Debug/Assertion.hpp"<br/>
-#include "Test/UnitTesting.hpp"<br/>
+\#include "Debug/Assertion.hpp"<br/>
+\#include "Test/UnitTesting.hpp"<br/>
 <br/>
-#define UNIT_ID test1  //the UNIT_ID must be a valid variable name<br/>
+\#define UNIT_ID test1  //the UNIT_ID must be a valid variable name<br/>
 UT_CREATE;<br/>
 <br/>
 TEST_FUN(commTest)<br/>

@@ -1233,9 +1233,6 @@ unsigned CASCMode::getSliceTime(string sliceCode,string& chopped)
 void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fallback)
 {
   Property::Category cat = property.category();
-  unsigned prop = property.props();
-  unsigned atoms = property.atoms();
-
   switch (cat) {
   case Property::NEQ:
     quick.push("dis+1_24_bs=off:cond=on:fde=none:nwc=1.5:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=occurrence_31");
@@ -1394,10 +1391,6 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
  */
 void CASCMode::getSchedulesEPR(Property& property, Schedule& quick, Schedule& fallback)
 {
-  Property::Category cat = property.category();
-  unsigned prop = property.props();
-  unsigned atoms = property.atoms();
-
   quick.push("ott+11_12_bs=off:gs=on:nwc=1:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.1:ssnc=none:updr=off_3");
   quick.push("ott+10_8:1_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=1.5:nicw=on:ptb=off:ssec=off:spo=on:spl=sat:sser=off:ssnc=none:urr=on_166");
   quick.push("ins+11_14_bs=off:flr=on:gsp=input_only:igbrr=0.7:igrr=1/8:igrp=4000:igrpq=1.5:igwr=on:lcm=predicate:nwc=3:ptb=off:ssec=off:spl=off:urr=on_55");

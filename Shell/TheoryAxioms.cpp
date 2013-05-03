@@ -419,7 +419,7 @@ void TheoryAxioms::addArrayExtensionalityAxioms(Interpretation select, Interpret
    // unsigned domainSort = theory->getArrayDomainSort(select);
     unsigned arraySort = theory->getArrayOperationSort(store);
         
-    //axiom (!A,B:arraySort, !I:domainSort: (select(A,I) = select(B,I)) <-> A=B ) will be splitted in two
+    //axiom (!A,B:arraySort, !I:domainSort: (select(A,I) = select(B,I)) <-> A=B ) will be split in two
     
         
     TermList i(0,false);

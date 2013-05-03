@@ -38,7 +38,7 @@ Statistics::Statistics()
     inputFormulas(0),
     formulaNames(0),
     initialClauses(0),
-    splittedInequalities(0),
+    splitInequalities(0),
     propagatedEqualities(0),
     removedSingletonVariables(0),
     purePredicates(0),
@@ -190,7 +190,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Function definitions", functionDefinitions);
   COND_OUT("Selected by SInE selection", selectedBySine);
   COND_OUT("SInE iterations", sineIterations);
-  COND_OUT("Splitted inequalities", splittedInequalities);
+  COND_OUT("Split inequalities", splitInequalities);
   COND_OUT("Propagated equalities", propagatedEqualities);
   COND_OUT("Removed singleton variables", removedSingletonVariables);
   SEPARATOR;
