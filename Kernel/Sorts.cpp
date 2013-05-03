@@ -19,9 +19,11 @@ namespace Kernel
 //const unsigned Sorts::SRT_ARRAY1 = 6;
 //const unsigned Sorts::SRT_ARRAY2 = 7;
 
-    
-
-
+/**
+ * Initialise sorts by adding the default sort
+ * @since 04/05/2013 Manchester, adding all other built-in sorts removed
+ * @author Andrei Voronkov
+ */
 Sorts::Sorts()
 {
   CALL("Sorts::Sorts");
@@ -31,26 +33,26 @@ Sorts::Sorts()
   aux = addSort("$i");
   ASS_EQ(aux, SRT_DEFAULT);
 
-  aux = addSort("$o");
-  ASS_EQ(aux, SRT_BOOL);
+  // aux = addSort("$o");
+  // ASS_EQ(aux, SRT_BOOL);
 
-  aux = addSort("$int");
-  ASS_EQ(aux, SRT_INTEGER);
+  // aux = addSort("$int");
+  // ASS_EQ(aux, SRT_INTEGER);
 
-  aux = addSort("$rat");
-  ASS_EQ(aux, SRT_RATIONAL);
+  // aux = addSort("$rat");
+  // ASS_EQ(aux, SRT_RATIONAL);
 
-  aux = addSort("$real");
-  ASS_EQ(aux, SRT_REAL);
+  // aux = addSort("$real");
+  // ASS_EQ(aux, SRT_REAL);
   
-  aux =addSort("$fus");
-  ASS_EQ(aux,FIRST_USER_SORT);
+  // aux = addSort("$fus");
+  // ASS_EQ(aux,FIRST_USER_SORT);
     
-  aux = addSort("$array1");
-  ASS_EQ(aux, SRT_ARRAY1);
+  // aux = addSort("$array1");
+  // ASS_EQ(aux, SRT_ARRAY1);
     
-  aux = addSort("$array2");
-  ASS_EQ(aux, SRT_ARRAY2);
+  // aux = addSort("$array2");
+  // ASS_EQ(aux, SRT_ARRAY2);
   
  _hasSort = false;
 }
