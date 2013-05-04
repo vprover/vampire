@@ -106,10 +106,6 @@ public:
   static const unsigned PR_HAS_REALS = 2097152u; // 2^21
   /** Has sort declarations */
   static const unsigned PR_SORTS = 4194304u; // 2^22
-  /** Has array1 sorts and operations*/
-  static const unsigned PR_HAS_ARRAYS1 = 8388608u; // 2^23
-  /** Has array2 sorts and operations*/
-  static const unsigned PR_HAS_ARRAYS2 = 16777216u; // 2^24
 // 33554432u; // 2^25
 // 67108864u; // 2^26
 // 134217728u; // 2^27

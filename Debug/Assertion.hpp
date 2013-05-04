@@ -159,13 +159,11 @@ private:
     throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
   }
 
-
-
 #define ASS_ALLOC_TYPE(PTR,TYPE)						\
   Debug::Assertion::checkType(__FILE__,__LINE__,(PTR),(TYPE), #PTR)
 
 #define ASS_METHOD(OBJ,METHOD)							\
-  if(! ((OBJ).METHOD) ) {							\
+  if (! ((OBJ).METHOD) ) {							\
     Debug::Assertion::violatedMethod(__FILE__,__LINE__,(OBJ), #OBJ, #METHOD,"");\
     throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
   }
@@ -199,10 +197,8 @@ private:
 #define ASS_GE(VAL1,VAL2)
 #define ASS_LE(VAL1,VAL2)
 
-
 #define ASS_ALLOC_TYPE(PTR,TYPE)
 #define ASS_METHOD(OBJ,METHOD)
-
 
 #define ASSERTION_VIOLATION
 #define ASSERTION_VIOLATION_REP(Val)
@@ -223,11 +219,11 @@ void Debug::Assertion::violated (const char* file,int line,const char* cond,
 
   _violated = true;
   reportSpiderFail();
-  if(outputAllowed()) {
+  if (outputAllowed()) {
     cout << "Condition in file " << file << ", line " << line
-	<< " violated:\n" << cond << "\n"
-	<< "Value of " << repStr << " is: " << rep
-	<< "\n----- stack dump -----\n";
+	 << " violated:\n" << cond << "\n"
+	 << "Value of " << repStr << " is: " << rep
+	 << "\n----- stack dump -----\n";
     Tracer::printStack(cout);
     cout << "----- end of stack dump -----\n";
   }
@@ -243,7 +239,7 @@ void Debug::Assertion::violated (const char* file,int line,const char* cond,
 
   _violated = true;
   reportSpiderFail();
-  if(outputAllowed()) {
+  if (outputAllowed()) {
     cout << "Condition in file " << file << ", line " << line
 	<< " violated:\n" << cond << "\n"
 	<< "Value of " << repStr << " is: " << rep << "\n"
@@ -264,10 +260,11 @@ void Debug::Assertion::violatedEquality(const char* file,int line,const char* va
 
   _violated = true;
   reportSpiderFail();
-  if(outputAllowed()) {
-    std::cout << "Condition "<<val1Str<<" == "<<val2Str<<" in file " << file << ", line " << line
-	<< " was violated, as:\n" << val1Str<<" == "<<val1 <<"\n" << val2Str<<" == "<<val2 << "\n"
-	<< "----- stack dump -----\n";
+  if (outputAllowed()) {
+    std::cout << "Condition " << val1Str << " == " << val2Str << " in file " << file << ", line " << line
+	      << " was violated, as:\n" << val1Str << " == " << val1 << "\n"
+	      << val2Str << " == " << val2 << "\n"
+	      << "----- stack dump -----\n";
     Tracer::printStack(cout);
     std::cout << "----- end of stack dump -----\n";
   }
@@ -284,10 +281,10 @@ void Debug::Assertion::violatedNonequality(const char* file,int line,const char*
 
   _violated = true;
   reportSpiderFail();
-  if(outputAllowed()) {
-    std::cout << "Condition "<<val1Str<<" != "<<val2Str<<" in file " << file << ", line " << line
-	<< " was violated, as:\n" << val1Str<<" == "<<val1 <<"\n" << val2Str<<" == "<<val2 << "\n"
-	<< "----- stack dump -----\n";
+  if (outputAllowed()) {
+    std::cout << "Condition " << val1Str << " != " << val2Str << " in file " << file << ", line " << line
+	      << " was violated, as:\n" << val1Str << " == " << val1 <<"\n" << val2Str << " == " << val2 << "\n"
+	      << "----- stack dump -----\n";
     Tracer::printStack(cout);
     std::cout << "----- end of stack dump -----\n";
   }
@@ -304,26 +301,27 @@ void Debug::Assertion::violatedComparison(const char* file,int line,const char* 
 
   _violated = true;
   reportSpiderFail();
-  if(outputAllowed()) {
-    std::cout << "Condition "<<val1Str;
-    if(strict) {
-      if(greater) {
-	std::cout<<" > ";
-      } else {
-	std::cout<<" < ";
+  if (outputAllowed()) {
+    std::cout << "Condition " << val1Str;
+    if (strict) {
+      if (greater) {
+	std::cout << " > ";
       }
-    } else {
-      if(greater) {
-	std::cout<<" >= ";
-      } else {
-	std::cout<<" <= ";
+      else {
+	std::cout << " < ";
       }
     }
+    else if (greater) {
+      std::cout << " >= ";
+    }
+    else {
+      std::cout << " <= ";
+    }
 
-
-    std::cout<<val2Str<<" in file " << file << ", line " << line
-	<< " was violated, as:\n" << val1Str<<" == "<<val1 <<"\n" << val2Str<<" == "<<val2 << "\n"
-	<< "----- stack dump -----\n";
+    std::cout << val2Str << " in file " << file << ", line " << line
+	      << " was violated, as:\n" << val1Str<<" == " << val1 << "\n"
+	      << val2Str <<" == " << val2 << "\n"
+	      << "----- stack dump -----\n";
     Tracer::printStack(cout);
     std::cout << "----- end of stack dump -----\n";
   }
@@ -339,11 +337,11 @@ void Debug::Assertion::violatedMethod(const char* file,int line,const T& obj,
 
   _violated = true;
   reportSpiderFail();
-  if(outputAllowed()) {
-    std::cout << "Condition "<<prefix<<"("<<objStr<<")."<<methodStr<<" in file "
-	  << file << ", line " << line << " was violated for:\n"
-	  << objStr << " == " << obj << "\n"
-	  << "----- stack dump -----\n";
+  if (outputAllowed()) {
+    std::cout << "Condition " << prefix << "(" << objStr << ")." << methodStr << " in file "
+	      << file << ", line " << line << " was violated for:\n"
+	      << objStr << " == " << obj << "\n"
+	      << "----- stack dump -----\n";
     Tracer::printStack(cout);
     std::cout << "----- end of stack dump -----\n";
   }

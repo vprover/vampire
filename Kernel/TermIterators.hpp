@@ -128,7 +128,7 @@ struct OrdVarNumberExtractorFn
  * of @b term in DFS left to right order.
  */
 class SubtermIterator
-: public IteratorCore<TermList>
+  : public IteratorCore<TermList>
 {
 public:
   SubtermIterator(const Term* term) : _used(false)
@@ -244,35 +244,42 @@ private:
 };
 
 /**
- * Iterator that yields non-variable proper subterms
+ * Iterator that yields non-variable subterms
  * of specified @b term in DFS left to right order.
  */
 class NonVariableIterator
-: public IteratorCore<TermList>
+  : public IteratorCore<TermList>
 {
 public:
-  NonVariableIterator(const Term* term) : _stack(8), _used(false)
+  NonVariableIterator(const NonVariableIterator&);
+  /**
+   * Create an iterator. If @c includeSelf is false, then only proper subterms
+   * of @c term will be included.
+   * @since 04/05/2013 Manchester, argument includeSelf added
+   * @author Andrei Voronkov
+   */
+  NonVariableIterator(Term* term,bool includeSelf=false)
+  : _stack(8),
+    _added(0)
   {
-    pushNextNonVar(term->args());
+    CALL("NonVariableIterator::NonVariableIterator");
+    _stack.push(term);
+    if (!includeSelf) {
+      next();
+    }
   }
+  // NonVariableIterator(TermList ts);
 
-  bool hasNext();
-  /** Return next non-variable subterm.
-   * @warning hasNext() must have been called before */
-  TermList next()
-  {
-    ASS(!_used && !_stack.top()->isVar());
-    _used=true;
-    return *_stack.top();
-  }
-
+  /** true if there exists at least one subterm */
+  bool hasNext() { return !_stack.isEmpty(); }
+  TermList next();
   void right();
 private:
-  void pushNextNonVar(const TermList* t);
-
-  Stack<const TermList*> _stack;
-  bool _used;
-};
+  /** available non-variable subterms */
+  Stack<Term*> _stack;
+  /** the number of non-variable subterms added at the last iteration, used by right() */
+  int _added;
+}; // NonVariableIterator
 
 /**
  * Iterator that iterator over disagreement set of two terms

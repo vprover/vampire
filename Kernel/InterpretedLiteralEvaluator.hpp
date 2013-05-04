@@ -15,15 +15,14 @@
 
 namespace Kernel {
 
-class InterpretedLiteralEvaluator :  private TermTransformer
+class InterpretedLiteralEvaluator
+  :  private TermTransformer
 {
 public:
   InterpretedLiteralEvaluator();
-
   ~InterpretedLiteralEvaluator();
 
   bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst);
-
 protected:
   class Evaluator;
   class ConversionEvaluator;
@@ -33,13 +32,9 @@ protected:
   class RealEvaluator;
 
   typedef Stack<Evaluator*> EvalStack;
-
   virtual TermList transformSubterm(TermList trm);
-
   Evaluator* getFuncEvaluator(unsigned func);
-
   Evaluator* getPredEvaluator(unsigned pred);
-
   EvalStack _evals;
   DArray<Evaluator*> _funEvaluators;
   DArray<Evaluator*> _predEvaluators;

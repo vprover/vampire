@@ -107,10 +107,6 @@ void Property::add(UnitList* units)
     addProp(PR_SORTS);
   }
     
-  // information about sorts is read from the environment, not from the problem
-  if (env.sorts->haveSort("$array1")) {
-     addProp(PR_HAS_ARRAYS1);
-  }
   // information about interpreted constant is read from the signature
   if (env.signature->strings()) {
     addProp(PR_HAS_STRINGS);
@@ -355,7 +351,7 @@ void Property::scan(Formula* formula)
 	  _positiveEqualityAtoms++;
 	}
       }
-      if(!lit->shared()) {
+      if (!lit->shared()) {
 	_hasSpecialTermsOrLets = true;
       }
       scan(lit);
@@ -367,12 +363,16 @@ void Property::scan(Formula* formula)
   }
 } // Property::scan(const Formula&)
 
-
+/**
+ * If the sort is recognised by the properties, add information about it to the properties.
+ * @since 04/05/2013 Manchester, array sorts removed
+ * @author Andrei Voronkov
+ */
 void Property::scanSort(unsigned sort)
 {
   CALL("Property::scanSort");
 
-  if(sort==Sorts::SRT_DEFAULT) {
+  if (sort==Sorts::SRT_DEFAULT) {
     return;
   }
   _hasNonDefaultSorts = true;
@@ -385,14 +385,7 @@ void Property::scanSort(unsigned sort)
     break;
   case Sorts::SRT_REAL:
     addProp(PR_HAS_REALS);
-    break;
-  case Sorts::SRT_ARRAY1:
-    addProp(PR_HAS_ARRAYS1);
-    break;
-  case Sorts::SRT_ARRAY2:
-    addProp(PR_HAS_ARRAYS2);
-    break;
-          
+    break;          
   }
 }
 
@@ -408,7 +401,7 @@ void Property::scan(Literal* lit)
 {
   CALL("Property::scan(const Literal*...)");
 
-  if(lit->isEquality()) {
+  if (lit->isEquality()) {
     scanSort(SortHelper::getEqualityArgumentSort(lit));
   }
   else {
@@ -417,7 +410,7 @@ void Property::scan(Literal* lit)
       _maxPredArity = arity;
     }
     PredicateType* type = env.signature->getPredicate(lit->functor())->predType();
-    for(int i=0; i<arity; i++) {
+    for (int i=0; i<arity; i++) {
       scanSort(type->arg(i));
     }
   }
@@ -425,7 +418,7 @@ void Property::scan(Literal* lit)
   scanForInterpreted(lit);
   scan(lit->args());
 
-  if(!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality() && lit->shared()
+  if (!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality() && lit->shared()
      && lit->isNegative() && !lit->ground() &&
      ( ( lit->nthArgument(0)->isVar() &&
 	 !lit->nthArgument(1)->containsSubterm(*lit->nthArgument(0)) ) ||
@@ -467,7 +460,7 @@ void Property::scan(TermList* ts)
     }
     else { // ts is a reference to a complex term
       Term* t = ts->term();
-      if(t->isSpecial()) {
+      if (t->isSpecial()) {
 	scanSpecialTerm(t);
       }
       else {
@@ -475,7 +468,7 @@ void Property::scan(TermList* ts)
 
 	int arity = t->arity();
 	FunctionType* type = env.signature->getFunction(t->functor())->fnType();
-	for(int i=0; i<arity; i++) {
+	for (int i=0; i<arity; i++) {
 	  scanSort(type->arg(i));
 	}
 
@@ -534,17 +527,17 @@ void Property::scanForInterpreted(Term* t)
   CALL("Property::scanInterpretation");
 
   Interpretation itp;
-  if(t->isLiteral()) {
+  if (t->isLiteral()) {
     Literal* lit = static_cast<Literal*>(t);
-    if(!theory->isInterpretedPredicate(lit)) { return; }
+    if (!theory->isInterpretedPredicate(lit)) { return; }
     itp = theory->interpretPredicate(lit);
   }
   else {
-    if(!theory->isInterpretedFunction(t)) { return; }
+    if (!theory->isInterpretedFunction(t)) { return; }
     itp = theory->interpretFunction(t);
   }
   _interpretationPresence[itp] = true;
-  if(itp!=Theory::EQUAL) {
+  if (itp!=Theory::EQUAL) {
     _hasInterpreted = true;
   }
 }

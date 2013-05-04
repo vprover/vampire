@@ -637,7 +637,7 @@ private:
   static void checkFlat(const Literal* t);
   static void reportNonFlat(string);
 
-  unsigned readSort(bool newSortExpected);
+  unsigned readSort();
   void bindVariable(int var,unsigned sortNumber);
   void unbindVariables();
   void skipToRPAR();

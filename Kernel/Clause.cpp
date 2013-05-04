@@ -110,7 +110,7 @@ void Clause::operator delete(void* ptr,unsigned length)
 
 void Clause::destroyExceptInferenceObject()
 {
-  if(_literalPositions) {
+  if (_literalPositions) {
     delete _literalPositions;
   }
 
@@ -183,7 +183,7 @@ void Clause::setProp(BDDNode* prop)
 {
   CALL("Clause::setProp");
 
-  if(prop==_prop) {
+  if (prop==_prop) {
     return;
   }
 
@@ -212,7 +212,7 @@ bool Clause::shouldBeDestroyed()
  */
 void Clause::destroyIfUnnecessary()
 {
-  if(shouldBeDestroyed()) {
+  if (shouldBeDestroyed()) {
     destroy();
   }
 }
@@ -230,20 +230,20 @@ void Clause::destroy()
   Clause* cl = this;
   for(;;) {
     Inference::Iterator it = cl->_inference->iterator();
-    while(cl->_inference->hasNext(it)) {
+    while (cl->_inference->hasNext(it)) {
       Unit* refU = cl->_inference->next(it);
-      if(!refU->isClause()) {
+      if (!refU->isClause()) {
 	continue;
       }
       Clause* refCl = static_cast<Clause*> (refU);
       refCl->_inferenceRefCnt--;
-      if(refCl->shouldBeDestroyed()) {
+      if (refCl->shouldBeDestroyed()) {
 	toDestroy.push(refCl);
       }
     }
     delete cl->_inference;
     cl->destroyExceptInferenceObject();
-    if(toDestroy.isEmpty()) {
+    if (toDestroy.isEmpty()) {
       break;
     }
     cl = toDestroy.pop();
@@ -261,11 +261,11 @@ void Clause::setStore(Store s)
 #if VDEBUG
   //assure there is one selected clause
   static Clause* selected=0;
-  if(_store==SELECTED || _store==SELECTED_REACTIVATED) {
+  if (_store==SELECTED || _store==SELECTED_REACTIVATED) {
     ASS_EQ(selected, this);
     selected=0;
   }
-  if(s==SELECTED || s==SELECTED_REACTIVATED) {
+  if (s==SELECTED || s==SELECTED_REACTIVATED) {
     ASS_EQ(selected, 0);
     selected=this;
   }
@@ -282,8 +282,8 @@ bool Clause::isGround()
   CALL("Clause::isGround");
 
   Iterator it(*this);
-  while(it.hasNext()) {
-    if(!it.next()->ground()) {
+  while (it.hasNext()) {
+    if (!it.next()->ground()) {
       return false;
     }
   }
@@ -298,8 +298,8 @@ bool Clause::isPropositional()
   CALL("Clause::isPropositional");
 
   Iterator it(*this);
-  while(it.hasNext()) {
-    if(it.next()->arity() > 0) {
+  while (it.hasNext()) {
+    if (it.next()->arity() > 0) {
       return false;
     }
   }
@@ -315,9 +315,9 @@ bool Clause::isHorn()
 
   bool posFound=false;
   Iterator it(*this);
-  while(it.hasNext()) {
-    if(it.next()->isPositive()) {
-      if(posFound) {
+  while (it.hasNext()) {
+    if (it.next()->isPositive()) {
+      if (posFound) {
         return false;
       }
       else {
@@ -369,7 +369,7 @@ string Clause::nonPropToString() const
 {
   CALL("Clause::nonPropToString");
 
-  if(_length == 0) {
+  if (_length == 0) {
     return "$false";
   } else {
     string result;
@@ -393,7 +393,7 @@ string Clause::toTPTPString() const
 
   string result = nonPropToString();
 
-  if(prop() && !BDD::instance()->isFalse(prop())) {
+  if (prop() && !BDD::instance()->isFalse(prop())) {
     result += " | " + BDD::instance()->toTPTPString(prop());
   }
 
@@ -409,11 +409,11 @@ string Clause::toNiceString() const
 
   string result = nonPropToString();
 
-  if(prop() && !BDD::instance()->isFalse(prop())) {
+  if (prop() && !BDD::instance()->isFalse(prop())) {
     result += " | " + BDD::instance()->toString(prop());
   }
 
-  if(splits() && !splits()->isEmpty()) {
+  if (splits() && !splits()->isEmpty()) {
     result += string(" {") + splits()->toString() + "}";
   }
 
@@ -430,16 +430,16 @@ string Clause::toString(BDDNode* propPart) const
 
   string result = Int::toString(_number) + ". " + nonPropToString();
 
-  if(propPart && !BDD::instance()->isFalse(propPart)) {
+  if (propPart && !BDD::instance()->isFalse(propPart)) {
     result += " | " + BDD::instance()->toString(propPart);
   }
 
-  if(splits() && !splits()->isEmpty()) {
+  if (splits() && !splits()->isEmpty()) {
     result += string(" {") + splits()->toString() + "}";
   }
 
   result += string(" (") + Int::toString(_age) + ':' + Int::toString(weight());
-  if(selected()>0) {
+  if (selected()>0) {
     result += ':' + Int::toString(selected());
   }
   result += ") " + inferenceAsString(propPart);
@@ -466,10 +466,10 @@ VirtualIterator<string> Clause::toSimpleClauseStrings()
 {
   CALL("toSimpleClauseStrings");
   BDD* bdd = BDD::instance();
-  if(bdd->isTrue(prop())) {
+  if (bdd->isTrue(prop())) {
     return VirtualIterator<string>::getEmpty();
   }
-  if(bdd->isFalse(prop())) {
+  if (bdd->isFalse(prop())) {
     return pvi(getSingletonIterator(nonPropToString()));
   }
 
@@ -481,20 +481,20 @@ VirtualIterator<string> Clause::toSimpleClauseStrings()
   clausifier.clausify(prop(), sclAcc);
   List<string>* res = 0;
 
-  while(sclAcc.isNonEmpty()) {
+  while (sclAcc.isNonEmpty()) {
     SATClause* sc = sclAcc.pop();
     string rstr(np);
 
     for(unsigned i = 0; i < sc->length(); i++) {
-      if(i) {
+      if (i) {
 	rstr += " | ";
       }
-      if(!(*sc)[i].polarity()) {
+      if (!(*sc)[i].polarity()) {
 	rstr += '~';
       }
       unsigned bddVar = (*sc)[i].var();
       string varName;
-      if(!bdd->getNiceName(bddVar, varName)) {
+      if (!bdd->getNiceName(bddVar, varName)) {
 	varName = bdd->getPropositionalPredicateName(bddVar);
       }
       rstr += varName;
@@ -516,7 +516,7 @@ bool Clause::skip() const
   unsigned clen = length();
   for(unsigned i = 0; i < clen; i++) {
     const Literal* lit = (*this)[i];
-    if(!lit->skip()) {
+    if (!lit->skip()) {
       return false;
     }
   }
@@ -534,7 +534,7 @@ void Clause::computeColor() const
 
   Color color = COLOR_TRANSPARENT;
 
-  if(env.colorUsed) {
+  if (env.colorUsed) {
     unsigned clen=length();
     for(unsigned i=0;i<clen;i++) {
       color = static_cast<Color>(color | (*this)[i]->color());
@@ -589,6 +589,8 @@ unsigned Clause::splitWeight() const
  * binary sizes of all integers occurring in this clause.
  * @warning Each call to this function recomputes the numeral weight, so the call may
  *          potentially result in traversing the whole clause
+ * @since 04/05/2013 Manchester, updated to use new NonVariableIterator
+ * @author Andrei Voronkov
  */
 unsigned Clause::getNumeralWeight()
 {
@@ -596,52 +598,48 @@ unsigned Clause::getNumeralWeight()
 
   unsigned res=0;
   Iterator litIt(*this);
-  while(litIt.hasNext()) {
+  while (litIt.hasNext()) {
     Literal* lit=litIt.next();
-    if(!lit->hasInterpretedConstants()) {
+    if (!lit->hasInterpretedConstants()) {
       continue;
     }
     NonVariableIterator nvi(lit);
-    while(nvi.hasNext()) {
-      TermList tl=nvi.next();
-      Term* t=tl.term();
-      if(!t->hasInterpretedConstants()) {
-	nvi.right();
-	continue;
-      }
-      if(t->arity()!=0) {
+    while (nvi.hasNext()) {
+      const Term* t = nvi.next().term();
+      if (t->arity() != 0) {
 	continue;
       }
       IntegerConstantType intVal;
-      if(theory->tryInterpretConstant(tl, intVal)) {
-	int w=BitUtils::log2(abs(intVal.toInt()))-1;
-	if(w>0) {
-	  res+=w;
+      if (theory->tryInterpretConstant(t,intVal)) {
+	int w = BitUtils::log2(abs(intVal.toInt()))-1;
+	if (w > 0) {
+	  res += w;
 	}
+	continue;
       }
-      else {
-	RationalConstantType ratVal;
-	RealConstantType realVal;
-	bool haveRat = false;
-	if(theory->tryInterpretConstant(tl, ratVal)) {
-	  haveRat = true;
-	} else if(theory->tryInterpretConstant(tl, realVal)) {
-	  ratVal = RationalConstantType(realVal);
-	  haveRat = true;
-	}
-	if(haveRat) {
-	  int wN=BitUtils::log2(abs(ratVal.numerator().toInt()))-1;
-	  int wD=BitUtils::log2(abs(ratVal.denominator().toInt()))-1;
-	  int w = wN+wD;
-	  if(w>0) {
-	    res+=w;
-	  }
-	}
+      RationalConstantType ratVal;
+      RealConstantType realVal;
+      bool haveRat = false;
+      if (theory->tryInterpretConstant(t,ratVal)) {
+	haveRat = true;
+      }
+      else if (theory->tryInterpretConstant(t,realVal)) {
+	ratVal = RationalConstantType(realVal);
+	haveRat = true;
+      }
+      if (!haveRat) {
+	continue;
+      }
+      int wN = BitUtils::log2(abs(ratVal.numerator().toInt()))-1;
+      int wD = BitUtils::log2(abs(ratVal.denominator().toInt()))-1;
+      int v = wN + wD;
+      if (v > 0) {
+	res += v;
       }
     }
   }
   return res;
-}
+} // getNumeralWeight
 
 /**
  * Return effective weight of the clause (i.e. weight multiplied
@@ -654,10 +652,10 @@ float Clause::getEffectiveWeight(const Options& opt)
   static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
 
   unsigned w=weight();
-  if(opt.nonliteralsInClauseWeight()) {
+  if (opt.nonliteralsInClauseWeight()) {
     w+=propWeight()+splitWeight();
   }
-  if(opt.increasedNumeralWeight()) {
+  if (opt.increasedNumeralWeight()) {
     return (2*w+getNumeralWeight()) * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
   }
   else {
@@ -670,10 +668,10 @@ void Clause::collectVars(DHSet<unsigned>& acc)
   CALL("Clause::collectVars");
 
   Iterator it(*this);
-  while(it.hasNext()) {
+  while (it.hasNext()) {
     Literal* lit = it.next();
     VariableIterator vit(lit);
-    while(vit.hasNext()) {
+    while (vit.hasNext()) {
       TermList var = vit.next();
       ASS(var.isOrdinaryVar());
       acc.insert(var.var());
@@ -703,16 +701,16 @@ unsigned Clause::getLiteralPosition(Literal* lit)
     ASS_EQ(lit,(*this)[0]);
     return 0;
   case 2:
-    if(lit==(*this)[0]) {
+    if (lit==(*this)[0]) {
       return 0;
     } else {
       ASS_EQ(lit,(*this)[1]);
       return 1;
     }
   case 3:
-    if(lit==(*this)[0]) {
+    if (lit==(*this)[0]) {
       return 0;
-    } else if(lit==(*this)[1]) {
+    } else if (lit==(*this)[1]) {
       return 1;
     } else {
       ASS_EQ(lit,(*this)[2]);
@@ -723,7 +721,7 @@ unsigned Clause::getLiteralPosition(Literal* lit)
     ASSERTION_VIOLATION;
 #endif
   default:
-    if(!_literalPositions) {
+    if (!_literalPositions) {
       _literalPositions=new InverseLookup<Literal>(_literals,length());
     }
     return static_cast<unsigned>(_literalPositions->get(lit));
@@ -738,7 +736,7 @@ unsigned Clause::getLiteralPosition(Literal* lit)
 void Clause::notifyLiteralReorder()
 {
   CALL("Clause::notifyLiteralReorder");
-  if(_literalPositions) {
+  if (_literalPositions) {
     _literalPositions->update(_literals);
   }
 }
@@ -748,7 +746,7 @@ void Clause::notifyLiteralReorder()
 void Clause::assertValid()
 {
   ASS_ALLOC_TYPE(this, "Clause");
-  if(_literalPositions) {
+  if (_literalPositions) {
     unsigned clen=length();
     for (unsigned i = 0; i<clen; i++) {
       ASS_EQ(getLiteralPosition((*this)[i]),i);
@@ -759,7 +757,7 @@ void Clause::assertValid()
 bool Clause::contains(Literal* lit)
 {
   for (int i = _length-1; i >= 0; i--) {
-    if(_literals[i]==lit) {
+    if (_literals[i]==lit) {
       return true;
     }
   }

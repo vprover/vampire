@@ -48,26 +48,30 @@ SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
   return max(env.signature->predicates()*2-1, env.signature->functions()*2);
 }
 
-void SineSymbolExtractor::addSymIds(Literal* lit, int polarity, Stack<SymId>& ids) const
+/**
+ * Add all occurrences of symbol ids of symbols occurring in the the literal to @c ids.
+ * @since 04/05/2013 Manchester, argument polarity removed
+ * @author Andrei Voronkov
+ */
+void SineSymbolExtractor::addSymIds(Literal* lit,Stack<SymId>& ids) const
 {
   CALL("SineSymbolExtractor::addSymIds");
 
   SymId predId=lit->functor()*2;
   ids.push(predId);
 
-  if(!lit->shared()) {
+  if (!lit->shared()) {
     //TODO: add handling of special terms
     return;
   }
 
   NonVariableIterator nvi(lit);
-  while(nvi.hasNext()) {
+  while (nvi.hasNext()) {
     Term* t=nvi.next().term();
-
     SymId funId=t->functor()*2+1;
     ids.push(funId);
   }
-}
+} // addSymIds
 
 void SineSymbolExtractor::decodeSymId(SymId s, bool& pred, unsigned& functor)
 {
@@ -82,82 +86,82 @@ bool SineSymbolExtractor::validSymId(SymId s)
   bool pred;
   unsigned functor;
   decodeSymId(s, pred, functor);
-  if(pred) {
-    if(functor>=static_cast<unsigned>(env.signature->predicates())) {
+  if (pred) {
+    if (functor>=static_cast<unsigned>(env.signature->predicates())) {
       return false;
     }
   }
   else {
-    if(functor>=static_cast<unsigned>(env.signature->functions())) {
+    if (functor>=static_cast<unsigned>(env.signature->functions())) {
       return false;
     }
   }
   return true;
 }
 
-void SineSymbolExtractor::extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms)
+/**
+ * Add all occurrences of symbol ids of symbols occurring in the formula to @c ids.
+ * @since 04/05/2013 Manchester, argument polarity removed, made non-recursive
+ * @author Andrei Voronkov
+ */
+void SineSymbolExtractor::extractFormulaSymbols(Formula* f,Stack<SymId>& itms)
 {
   CALL("SineSymbolExtractor::extractFormulaSymbols");
-
-  switch (f->connective()) {
+  Stack<Formula*> fs;
+  fs.push(f);
+  while (!fs.isEmpty()) {
+    Formula* f = fs.pop();
+    switch (f->connective()) {
     case LITERAL:
-      addSymIds(f->literal(), polarity, itms);
-      return;
-
+      addSymIds(f->literal(),itms);
+      break;
     case AND:
-    case OR: {
-      FormulaList::Iterator fs(f->args());
-      while (fs.hasNext()) {
-	extractFormulaSymbols (fs.next(),polarity,itms);
+    case OR:
+      {
+	FormulaList::Iterator args(f->args());
+	while (args.hasNext()) {
+	  fs.push(args.next());
+	}
       }
-      return;
-    }
-
+      break;
     case IMP:
-      extractFormulaSymbols (f->left(), -polarity, itms);
-      extractFormulaSymbols (f->right(), polarity, itms);
-      return;
-
-    case NOT:
-      extractFormulaSymbols (f->uarg(), -polarity, itms);
-      return;
-
     case IFF:
     case XOR:
-      extractFormulaSymbols (f->left(), 0, itms);
-      extractFormulaSymbols (f->right(), 0, itms);
-      return;
-
+      fs.push(f->left());
+      fs.push(f->right());
+      break;
+    case NOT:
+      fs.push(f->uarg());
+      break;
     case FORALL:
     case EXISTS:
-      extractFormulaSymbols (f->qarg(), polarity, itms);
-      return;
-
+      fs.push(f->qarg());
+      break;
     case ITE:
-      extractFormulaSymbols (f->condArg(), 0, itms);
-      extractFormulaSymbols (f->thenArg(), polarity, itms);
-      extractFormulaSymbols (f->elseArg(), polarity, itms);
-      return;
+      fs.push(f->condArg());
+      fs.push(f->thenArg());
+      fs.push(f->elseArg());
+      break;
     case TERM_LET:
       //TODO: add handling of terms in TERM_LET
-      extractFormulaSymbols (f->letBody(), polarity, itms);
-      return;
+      fs.push(f->letBody());
+      break;
     case FORMULA_LET:
-      extractFormulaSymbols (f->letBody(), polarity, itms);
-      addSymIds(f->formulaLetLhs(), 0, itms);
-      extractFormulaSymbols (f->formulaLetRhs(), 0, itms);
-      return;
-
+      fs.push(f->letBody());
+      addSymIds(f->formulaLetLhs(),itms);
+      fs.push(f->formulaLetRhs());
+      break;
     case TRUE:
     case FALSE:
-      return;
+      break;
 #if VDEBUG
     default:
       ASSERTION_VIOLATION;
       return;
 #endif
+    }
   }
-}
+} // SineSymbolExtractor::extractFormulaSymbols
 
 /**
  * Return iterator that yields SymIds of symbols in a unit.
@@ -170,16 +174,16 @@ SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
   static Stack<SymId> itms;
   itms.reset();
 
-  if(u->isClause()) {
+  if (u->isClause()) {
     Clause* cl=static_cast<Clause*>(u);
     unsigned clen=cl->length();
-    for(unsigned i=0;i<clen;i++) {
+    for (unsigned i=0;i<clen;i++) {
       Literal* lit=(*cl)[i];
-      addSymIds(lit, 1, itms);
+      addSymIds(lit,itms);
     }
   } else {
     FormulaUnit* fu=static_cast<FormulaUnit*>(u);
-    extractFormulaSymbols(fu->formula(), 1, itms);
+    extractFormulaSymbols(fu->formula(),itms);
   }
   return pvi( getUniquePersistentIterator(Stack<SymId>::Iterator(itms)) );
 }
@@ -192,10 +196,10 @@ void SineBase::initGeneralityFunction(UnitList* units)
   _gen.init(symIdBound,0);
 
   UnitList::Iterator uit(units);
-  while(uit.hasNext()) {
+  while (uit.hasNext()) {
     Unit* u=uit.next();
     SymIdIterator sit=_symExtr.extractSymIds(u);
-    while(sit.hasNext()) {
+    while (sit.hasNext()) {
       SymId sid=sit.next();
       _gen[sid]++;
     }
@@ -241,7 +245,7 @@ void SineSelector::updateDefRelation(Unit* u)
 
   SymIdIterator sit=_symExtr.extractSymIds(u);
 
-  if(!sit.hasNext()) {
+  if (!sit.hasNext()) {
     _unitsWithoutSymbols.push(u);
     return;
   }
@@ -253,53 +257,53 @@ void SineSelector::updateDefRelation(Unit* u)
   unsigned leastGenVal=_gen[leastGenSym];
 
   //it a symbol fits under _genThreshold, add it immediately [into the relation]
-  if(leastGenVal<=_genThreshold) {
+  if (leastGenVal<=_genThreshold) {
     UnitList::push(u,_def[leastGenSym]);
   }
 
-  while(sit.hasNext()) {
+  while (sit.hasNext()) {
     SymId sym=sit.next();
     unsigned val=_gen[sym];
     ASS_G(val,0);
 
     //it a symbol fits under _genThreshold, add it immediately [into the relation]
-    if(val<=_genThreshold) {
+    if (val<=_genThreshold) {
       UnitList::push(u,_def[sym]);
     }
 
-    if(val<leastGenVal) {
+    if (val<leastGenVal) {
       leastGenSym=sym;
       leastGenVal=val;
       equalGenerality.reset();
-    } else if(val==leastGenVal) {
+    } else if (val==leastGenVal) {
       equalGenerality.push(sym);
     }
   }
 
 
-  if(_strict) {
+  if (_strict) {
     //only if the least general symbol is over _genThreshold; otherwise it is already added
-    if(leastGenVal>_genThreshold) {
+    if (leastGenVal>_genThreshold) {
       UnitList::push(u,_def[leastGenSym]);
-      while(equalGenerality.isNonEmpty()) {
+      while (equalGenerality.isNonEmpty()) {
         UnitList::push(u,_def[equalGenerality.pop()]);
       }
     }
   }
   else {
     unsigned generalityLimit=static_cast<int>(leastGenVal*_tolerance);
-    if(_tolerance==-1.0f) {
+    if (_tolerance==-1.0f) {
       generalityLimit = UINT_MAX;
     }
 
     //if the generalityLimit is under _genThreshold, all suitable symbols are already added
-    if(generalityLimit>_genThreshold) {
+    if (generalityLimit>_genThreshold) {
       sit=_symExtr.extractSymIds(u);
-      while(sit.hasNext()) {
+      while (sit.hasNext()) {
 	SymId sym=sit.next();
 	unsigned val=_gen[sym];
 	//only if the symbol is over _genThreshold; otherwise it is already added
-	if(val>_genThreshold && val<=generalityLimit) {
+	if (val>_genThreshold && val<=generalityLimit) {
 	  UnitList::push(u,_def[sym]);
 	}
       }
@@ -333,10 +337,10 @@ void SineSelector::perform(UnitList*& units)
   //build the D-relation and select the non-axiom formulas
   _def.init(symIdBound,0);
   UnitList::Iterator uit2(units);
-  while(uit2.hasNext()) {
+  while (uit2.hasNext()) {
     Unit* u=uit2.next();
     bool performSelection= _onIncluded ? u->included() : (u->inputType()==Unit::AXIOM);
-    if(performSelection) {
+    if (performSelection) {
       updateDefRelation(u);
     }
     else {
@@ -350,18 +354,18 @@ void SineSelector::perform(UnitList*& units)
   newlySelected.push_back(0);
 
   //select required axiom formulas
-  while(newlySelected.isNonEmpty()) {
+  while (newlySelected.isNonEmpty()) {
     Unit* u=newlySelected.pop_front();
 
-    if(!u) {
+    if (!u) {
       //next selected formulas will be one step further from the original formulas
       depth++;
-      if(_depthLimit && depth==_depthLimit) {
+      if (_depthLimit && depth==_depthLimit) {
 	break;
       }
       ASS(!_depthLimit || depth<_depthLimit);
 
-      if(newlySelected.isNonEmpty()) {
+      if (newlySelected.isNonEmpty()) {
 	//we must push another mark if we're not done yet
 	newlySelected.push_back(0);
       }
@@ -369,12 +373,12 @@ void SineSelector::perform(UnitList*& units)
     }
 
     SymIdIterator sit=_symExtr.extractSymIds(u);
-    while(sit.hasNext()) {
+    while (sit.hasNext()) {
       SymId sym=sit.next();
       UnitList::Iterator defUnits(_def[sym]);
-      while(defUnits.hasNext()) {
+      while (defUnits.hasNext()) {
 	Unit* du=defUnits.next();
-	if(selected.contains(du)) {
+	if (selected.contains(du)) {
 	  continue;
 	}
 	selected.insert(du);
@@ -395,13 +399,13 @@ void SineSelector::perform(UnitList*& units)
   units->destroy();
   units=0;
   UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), units);
-  while(selectedStack.isNonEmpty()) {
+  while (selectedStack.isNonEmpty()) {
     UnitList::push(selectedStack.pop(), units);
   }
 
 #if SINE_PRINT_SELECTED
   UnitList::Iterator selIt(units);
-  while(selIt.hasNext()) {
+  while (selIt.hasNext()) {
     cout<<'#'<<selIt.next()->toString()<<endl;
   }
 #endif
@@ -425,14 +429,14 @@ void SineTheorySelector::handlePossibleSignatureChange()
   size_t oldSize=_def.size();
   ASS_EQ(_gen.size(), oldSize);
 
-  if(symIdBound==oldSize) {
+  if (symIdBound==oldSize) {
     return;
   }
   ASS_G(symIdBound, oldSize);
 
   _gen.expand(symIdBound);
   _def.expand(symIdBound);
-  for(size_t i=oldSize;i<symIdBound;i++) {
+  for (size_t i=oldSize;i<symIdBound;i++) {
     _gen[i]=0;
     _def[i]=0;
   }
@@ -447,7 +451,7 @@ void SineTheorySelector::updateDefRelation(Unit* u)
 
   SymIdIterator sit0=_symExtr.extractSymIds(u);
 
-  if(!sit0.hasNext()) {
+  if (!sit0.hasNext()) {
     _unitsWithoutSymbols.push(u);
     return;
   }
@@ -461,12 +465,12 @@ void SineTheorySelector::updateDefRelation(Unit* u)
   ALWAYS(sit.hasNext());
   unsigned leastGenVal=_gen[sit.next()];
 
-  while(sit.hasNext()) {
+  while (sit.hasNext()) {
     SymId sym=sit.next();
     unsigned val=_gen[sym];
     ASS_G(val,0);
 
-    if(val<leastGenVal) {
+    if (val<leastGenVal) {
       leastGenVal=val;
     }
   }
@@ -474,15 +478,15 @@ void SineTheorySelector::updateDefRelation(Unit* u)
   unsigned generalityLimit=leastGenVal*(maxTolerance/strictTolerance);
 
   Stack<SymId>::Iterator sit2(symIds);
-  while(sit2.hasNext()) {
+  while (sit2.hasNext()) {
     SymId sym=sit2.next();
     unsigned val=_gen[sym];
 
-    if(val<=_genThreshold) {
+    if (val<=_genThreshold) {
       //if a symbol fits under _genThreshold, add it into the relation
       DEntryList::push(DEntry(strictTolerance,u),_def[sym]);
     }
-    else if(val<=generalityLimit) {
+    else if (val<=generalityLimit) {
       unsigned short minTolerance=(val*strictTolerance)/leastGenVal;
       //only if the symbol is over _genThreshold; otherwise it is already added
       DEntryList::push(DEntry(minTolerance,u),_def[sym]);
@@ -513,7 +517,7 @@ void SineTheorySelector::initSelectionStructure(UnitList* units)
   //build the D-relation
   _def.init(symIdBound,0);
   UnitList::Iterator uit(units);
-  while(uit.hasNext()) {
+  while (uit.hasNext()) {
     Unit* u=uit.next();
     updateDefRelation(u);
   }
@@ -529,10 +533,10 @@ void SineTheorySelector::perform(UnitList*& units)
   handlePossibleSignatureChange();
 
   UnitList::Iterator uit(units);
-  while(uit.hasNext()) {
+  while (uit.hasNext()) {
     Unit* u=uit.next();
     SymIdIterator sit=_symExtr.extractSymIds(u);
-    while(sit.hasNext()) {
+    while (sit.hasNext()) {
       SymId sid=sit.next();
       _gen[sid]++;
     }
@@ -547,10 +551,10 @@ void SineTheorySelector::perform(UnitList*& units)
 
   //build the D-relation and select the non-axiom formulas
   UnitList::Iterator uit2(units);
-  while(uit2.hasNext()) {
+  while (uit2.hasNext()) {
     Unit* u=uit2.next();
     bool performSelection= sineOnIncluded ? u->included() : (u->inputType()==Unit::AXIOM);
-    if(performSelection) {
+    if (performSelection) {
       updateDefRelation(u);
     }
     else {
@@ -568,18 +572,18 @@ void SineTheorySelector::perform(UnitList*& units)
   newlySelected.push_back(0);
 
   //select required axiom formulas
-  while(newlySelected.isNonEmpty()) {
+  while (newlySelected.isNonEmpty()) {
     Unit* u=newlySelected.pop_front();
 
-    if(!u) {
+    if (!u) {
       //next selected formulas will be one step further from the original formulas
       depth++;
-      if(depthLimit && depth==depthLimit) {
+      if (depthLimit && depth==depthLimit) {
 	break;
       }
       ASS(!depthLimit || depth<depthLimit);
 
-      if(newlySelected.isNonEmpty()) {
+      if (newlySelected.isNonEmpty()) {
 	//we must push another mark if we're not done yet
 	newlySelected.push_back(0);
       }
@@ -587,17 +591,17 @@ void SineTheorySelector::perform(UnitList*& units)
     }
 
     SymIdIterator sit=_symExtr.extractSymIds(u);
-    while(sit.hasNext()) {
+    while (sit.hasNext()) {
       SymId sym=sit.next();
-      if(!addedSymIds.insert(sym)) {
+      if (!addedSymIds.insert(sym)) {
 	//we already added units belonging to this symbol
 	continue;
       }
       DEntryList::Iterator defUnits(_def[sym]);
-      while(defUnits.hasNext()) {
+      while (defUnits.hasNext()) {
 	DEntry de=defUnits.next();
 
-	if(de.minTolerance>intTolerance || !selected.insert(de.unit)) {
+	if (de.minTolerance>intTolerance || !selected.insert(de.unit)) {
 	  continue;
 	}
 	UnitList::push(de.unit,res);
@@ -617,7 +621,7 @@ void SineTheorySelector::perform(UnitList*& units)
 
 #if SINE_PRINT_SELECTED
   UnitList::Iterator selIt(units);
-  while(selIt.hasNext()) {
+  while (selIt.hasNext()) {
     cout<<'#'<<selIt.next()->toString()<<endl;
   }
 #endif

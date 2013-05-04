@@ -11,9 +11,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
-
 #include "TermIndexingStructure.hpp"
-
 #include "TermIndex.hpp"
 
 using namespace Lib;
@@ -52,19 +50,19 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   TimeCounter tc(TC_BACKWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
   unsigned selCnt=c->selected();
-  for(unsigned i=0; i<selCnt; i++) {
+  for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit, _ord);
-    while(rsti.hasNext()) {
-      if(adding) {
+    TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit,_ord);
+    while (rsti.hasNext()) {
+      if (adding) {
 	_is->insert(rsti.next(), lit, c);
-      } else {
+      }
+      else {
 	_is->remove(rsti.next(), lit, c);
       }
     }
   }
 }
-
 
 void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 {
@@ -73,14 +71,15 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
   unsigned selCnt=c->selected();
-  for(unsigned i=0; i<selCnt; i++) {
+  for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
     TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
-    while(lhsi.hasNext()) {
+    while (lhsi.hasNext()) {
       TermList lhs=lhsi.next();
-      if(adding) {
+      if (adding) {
 	_is->insert(lhs, lit, c);
-      } else {
+      }
+      else {
 	_is->remove(lhs, lit, c);
       }
     }
@@ -96,22 +95,23 @@ void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
   static DHSet<TermList> inserted;
 
   unsigned cLen=c->length();
-  for(unsigned i=0; i<cLen; i++) {
+  for (unsigned i=0; i<cLen; i++) {
     inserted.reset();
     Literal* lit=(*c)[i];
     NonVariableIterator nvi(lit);
-    while(nvi.hasNext()) {
+    while (nvi.hasNext()) {
       TermList t=nvi.next();
-      if(!inserted.insert(t)) {
+      if (!inserted.insert(t)) {
 	//It is enough to insert a term only once per clause.
 	//Also, once we know term was inserted, we know that all its
 	//subterms were inserted as well, so we can skip them.
 	nvi.right();
 	continue;
       }
-      if(adding) {
+      if (adding) {
 	_is->insert(t, lit, c);
-      } else {
+      }
+      else {
 	_is->remove(t, lit, c);
       }
     }
@@ -123,7 +123,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
   CALL("DemodulationLHSIndex::handleClause");
 
-  if(c->length()!=1) {
+  if (c->length()!=1) {
     return;
   }
 
@@ -131,10 +131,11 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 
   Literal* lit=(*c)[0];
   TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
-  while(lhsi.hasNext()) {
-    if(adding) {
+  while (lhsi.hasNext()) {
+    if (adding) {
       _is->insert(lhsi.next(), lit, c);
-    } else {
+    }
+    else {
       _is->remove(lhsi.next(), lit, c);
     }
   }

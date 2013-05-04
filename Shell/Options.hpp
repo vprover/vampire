@@ -807,6 +807,7 @@ private:
   bool _bpCollapsingPropagation;
   BPConflictSelector _bpConflictSelector;
   bool _bpConservativeAssignmentSelection;
+  bool _bpFmElimination;
   bool _bpPropagateAfterConflict;
   bool _bpStartWithPrecise;
   BPVariableSelector _bpVariableSelector;
@@ -826,7 +827,6 @@ private:
 
   bool _equivalentVariableRemoval;
   bool _flattenTopLevelConjunctions;
-  bool _bpFmElimination;
   string _forbiddenOptions;
   bool _forceIncompleteness;
   string _forcedOptions;

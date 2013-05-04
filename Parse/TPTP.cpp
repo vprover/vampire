@@ -1136,7 +1136,6 @@ int TPTP::positiveDecimal(int pos)
     throw Exception("wrong number format",_gpos);
   }
 
-
   int c;
   do {
     c = getChar(++pos);
@@ -1294,6 +1293,7 @@ void TPTP::fof(bool fo)
  *  <li>adds to _bools true, if fof and false, if cnf</li>
  * </ol>
  * @since 10/04/2011 Manchester
+ * @author Andrei Voronkov
  */
 void TPTP::tff()
 {
@@ -1317,7 +1317,10 @@ void TPTP::tff()
   int start = tok.start;
   string tp = name();
   if (tp == "type") {
-    // type declaration
+    // Read a TPTP type declaration. These declarations are ambiguous: they can
+    // either be new type declarations, as in tff(1,type,(t: $ttype)) or sort
+    // declarations: tff(2,type,(c:t)). What exactly they represent will be known
+    // when $ttype is expected.
     consumeToken(T_COMMA);
     // TPTP syntax allows for an arbitrary number of parentheses around a type
     // declaration
@@ -1334,6 +1337,7 @@ void TPTP::tff()
     consumeToken(T_COLON);
     tok = getTok(0);
     if (tok.tag == T_TTYPE) {
+      // now we know that this is a new type declaration
       bool added;
       env.sorts->addSort(nm,added);
       if (!added) {
@@ -1347,7 +1351,9 @@ void TPTP::tff()
       consumeToken(T_DOT);
       return;
     }
+    // the matching number of rpars will be read
     _ints.push(lpars);
+    // remember type name
     _strings.push(nm);
     _states.push(END_TFF);
     _states.push(TYPE);
@@ -1640,7 +1646,6 @@ void TPTP::endLettt()
   _termLists.push(ts);
 } // endLettt
 
-
 /**
  * Process the end of the select1() term
  * @author Laura Kovacs
@@ -1922,9 +1927,9 @@ void TPTP::formula()
   } // formula
 
 /**
- * Read a formula and save it on the stack of formulas.
- * Adds to _states END_SIMPLE_FORMULA,SIMPLE_FORMULA
+ * Read a TPTP type expression
  * @since 10/04/2011 Manchester
+ * @author Andrei Voronkov
  */
 void TPTP::type()
 {
@@ -2041,7 +2046,7 @@ void TPTP::varList()
 	throw Exception("two declarations of variable sort",tok);
       }
       resetToks();
-      bindVariable(var,readSort(false));
+      bindVariable(var,readSort());
       sortDeclared = true;
       goto afterVar;
 
@@ -2353,6 +2358,7 @@ void TPTP::endEquality()
   TermList lhs = _termLists.pop();
 
   if (sortOf(rhs) != sortOf(lhs)) {
+    
     USER_ERROR("Cannot create equality between terms of different types.");
   }
 
@@ -3031,7 +3037,7 @@ void TPTP::simpleType()
     _states.push(TYPE);
     return;
   }
-  _types.push(new AtomicType(readSort(true)));
+  _types.push(new AtomicType(readSort()));
 } // simpleType
 
 /**
@@ -3040,7 +3046,7 @@ void TPTP::simpleType()
  * declared and newSortExpected is false.
  * @since 14/07/2011 Manchester
  */
-unsigned TPTP::readSort(bool newSortExpected)
+unsigned TPTP::readSort()
 {
   CALL("TPTP::readSort");
 
@@ -3051,12 +3057,9 @@ unsigned TPTP::readSort(bool newSortExpected)
       resetToks();
       bool added;
       unsigned sortNumber = env.sorts->addSort(tok.content,added);
-      // if (added && !newSortExpected) {
-      // 	throw Exception("undeclared sort",tok);
-      // }
-      // if (!added && newSortExpected) {
-      // 	throw Exception(string("sort ") + tok.content + " was been declared previously",tok);
-      // }
+      if (added) {
+      	throw Exception("undeclared sort",tok);
+      }
       return sortNumber;
     }
 

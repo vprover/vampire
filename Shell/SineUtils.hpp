@@ -3,7 +3,6 @@
  * Defines class SineUtils.
  */
 
-
 #ifndef __SineUtils__
 #define __SineUtils__
 
@@ -30,9 +29,8 @@ public:
   void decodeSymId(SymId s, bool& pred, unsigned& functor);
   bool validSymId(SymId s);
 private:
-  void addSymIds(Literal* lit, int polarity, Stack<SymId>& ids) const;
-
-  void extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms);
+  void addSymIds(Literal* lit,Stack<SymId>& ids) const;
+  void extractFormulaSymbols(Formula* f,Stack<SymId>& itms);
 };
 
 
@@ -54,7 +52,7 @@ protected:
  * Class that performs the SInE axiom selection on a single problem
  */
 class SineSelector
-: public SineBase
+  : public SineBase
 {
 public:
   SineSelector(const Options& opt);

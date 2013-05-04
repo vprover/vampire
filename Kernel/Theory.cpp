@@ -28,7 +28,7 @@ IntegerConstantType::IntegerConstantType(const string& str)
 {
   CALL("IntegerConstantType::IntegerConstantType(string)");
 
-  if(!Int::stringToInt(str, _val)) {
+  if (!Int::stringToInt(str, _val)) {
     //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
     throw ArithmeticException();
   }
@@ -39,7 +39,7 @@ IntegerConstantType IntegerConstantType::operator+(const IntegerConstantType& nu
   CALL("IntegerConstantType::operator+");
 
   InnerType res;
-  if(!Int::safePlus(_val, num._val, res)) {
+  if (!Int::safePlus(_val, num._val, res)) {
     throw ArithmeticException();
   }
   return IntegerConstantType(res);
@@ -50,7 +50,7 @@ IntegerConstantType IntegerConstantType::operator-(const IntegerConstantType& nu
   CALL("IntegerConstantType::operator-/1");
 
   InnerType res;
-  if(!Int::safeMinus(_val, num._val, res)) {
+  if (!Int::safeMinus(_val, num._val, res)) {
     throw ArithmeticException();
   }
   return IntegerConstantType(res);
@@ -61,7 +61,7 @@ IntegerConstantType IntegerConstantType::operator-() const
   CALL("IntegerConstantType::operator-/0");
 
   InnerType res;
-  if(!Int::safeUnaryMinus(_val, res)) {
+  if (!Int::safeUnaryMinus(_val, res)) {
     throw ArithmeticException();
   }
   return IntegerConstantType(res);
@@ -72,7 +72,7 @@ IntegerConstantType IntegerConstantType::operator*(const IntegerConstantType& nu
   CALL("IntegerConstantType::operator*");
 
   InnerType res;
-  if(!Int::safeMultiply(_val, num._val, res)) {
+  if (!Int::safeMultiply(_val, num._val, res)) {
     throw ArithmeticException();
   }
   return IntegerConstantType(res);
@@ -83,7 +83,7 @@ IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& nu
   CALL("IntegerConstantType::operator/");
 
   //TODO: check if division corresponds to the TPTP semantic
-  if(num._val==0) {
+  if (num._val==0) {
     throw ArithmeticException();
   }
   return IntegerConstantType(_val/num._val);
@@ -94,7 +94,7 @@ IntegerConstantType IntegerConstantType::operator%(const IntegerConstantType& nu
   CALL("IntegerConstantType::operator%");
 
   //TODO: check if modulo corresponds to the TPTP semantic
-  if(num._val==0) {
+  if (num._val==0) {
     throw ArithmeticException();
   }
   return IntegerConstantType(_val%num._val);
@@ -122,13 +122,13 @@ IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
   IntegerConstantType denom = rat.denominator();
   ASS_REP(denom>0, denom.toString());
 
-  if(numer>0) {
+  if (numer>0) {
     return numer/denom;
   }
 
   IntegerConstantType numerAbs = (numer>=0) ? numer : -numer;
   IntegerConstantType absRes = numerAbs/denom;
-  if(numer%denom!=0) {
+  if (numer%denom!=0) {
     absRes = absRes+1;
   }
   return -absRes;
@@ -140,19 +140,19 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
   try {
     bool invert = false;
     Comparison res;
-    if(n1<0 && n2>=0) {
+    if (n1<0 && n2>=0) {
       swap(n1, n2);
       invert = true;
     }
 
-    if(n1>=0) {
-      if(n2>=0) {
+    if (n1>=0) {
+      if (n2>=0) {
 	return Int::compare(n1.toInt(), n2.toInt());
       }
       else {
 	//we invert numbers to become negative, because this prevents overflows
 	IntegerConstantType negN1 = -n1;
-	if(negN1==n2) {
+	if (negN1==n2) {
 	  res = LESS;
 	}
 	else {
@@ -166,7 +166,7 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
       res = Int::compare(n2.toInt(), n1.toInt());
     }
 
-    if(invert) { res = static_cast<Comparison>(-res); }
+    if (invert) { res = static_cast<Comparison>(-res); }
     return res;
   }
   catch(ArithmeticException) {
@@ -213,7 +213,7 @@ RationalConstantType RationalConstantType::operator+(const RationalConstantType&
 {
   CALL("RationalConstantType::operator+");
 
-  if(_den==o._den) {
+  if (_den==o._den) {
     return RationalConstantType(_num + o._num, _den);
   }
   return RationalConstantType(_num*o._den + o._num*_den, _den*o._den);
@@ -289,11 +289,11 @@ void RationalConstantType::cannonize()
   CALL("RationalConstantType::cannonize");
 
   int gcd = Int::gcd(_num.toInt(), _den.toInt());
-  if(gcd!=1) {
+  if (gcd!=1) {
     _num = _num/InnerType(gcd);
     _den = _den/InnerType(gcd);
   }
-  if(_den<0) {
+  if (_den<0) {
     _num = -_num;
     _den = -_den;
   }
@@ -304,7 +304,7 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
   CALL("RationalConstantType::comparePrecedence");
   try {
 
-    if(n1==n2) { return EQUAL; }
+    if (n1==n2) { return EQUAL; }
 
     bool haveRepr1 = true;
     bool haveRepr2 = true;
@@ -323,18 +323,18 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
       haveRepr2 = false;
     }
 
-    if(haveRepr1 && haveRepr2) {
+    if (haveRepr1 && haveRepr2) {
       Comparison res = IntegerConstantType::comparePrecedence(repr1, repr2);
-      if(res==EQUAL) {
+      if (res==EQUAL) {
 	res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
       }
       ASS_NEQ(res, EQUAL);
       return res;
     }
-    if(haveRepr1 && !haveRepr2) {
+    if (haveRepr1 && !haveRepr2) {
       return LESS;
     }
-    if(!haveRepr1 && haveRepr2) {
+    if (!haveRepr1 && haveRepr2) {
       return GREATER;
     }
 
@@ -342,7 +342,7 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
     ASS(!haveRepr2);
 
     Comparison res = IntegerConstantType::comparePrecedence(n1.denominator(), n2.denominator());
-    if(res==EQUAL) {
+    if (res==EQUAL) {
       res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
     }
     ASS_NEQ(res, EQUAL);
@@ -377,23 +377,23 @@ bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
     bool neg = false;
     size_t nlen = num.size();
     for(size_t i=0; i<nlen; i++) {
-      if(num[i]=='.') {
-	if(haveDecimal) {
+      if (num[i]=='.') {
+	if (haveDecimal) {
 	  return false;
 	}
 	haveDecimal = true;
       }
-      else if(i==0 && num[i]=='-') {
+      else if (i==0 && num[i]=='-') {
 	neg = true;
       }
-      else if(num[i]>='0' && num[i]<='9') {
-	if(newNum=="0") {
+      else if (num[i]>='0' && num[i]<='9') {
+	if (newNum=="0") {
 	  newNum = num[i];
 	}
 	else {
 	  newNum += num[i];
 	}
-	if(haveDecimal) {
+	if (haveDecimal) {
 	  denominator = denominator * 10;
 	}
       }
@@ -401,7 +401,7 @@ bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
 	return false;
       }
     }
-    if(neg) {
+    if (neg) {
       newNum = '-'+newNum;
     }
     IntegerConstantType numerator(newNum);
@@ -418,13 +418,13 @@ RealConstantType::RealConstantType(const string& number)
   CALL("RealConstantType::RealConstantType");
 
   RationalConstantType value;
-  if(parseDouble(number, value)) {
+  if (parseDouble(number, value)) {
     init(value.numerator(), value.denominator());
     return;
   }
 
   double numDbl;
-  if(!Int::stringToDouble(number, numDbl)) {
+  if (!Int::stringToDouble(number, numDbl)) {
     //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
     throw ArithmeticException();
   }
@@ -436,7 +436,7 @@ RealConstantType::RealConstantType(const string& number)
   }
 
   InnerType::InnerType numerator = static_cast<InnerType::InnerType>(numDbl);
-  if(numerator!=numDbl) {
+  if (numerator!=numDbl) {
     //the numerator part of double doesn't fit inside the inner integer type
     throw ArithmeticException();
   }
@@ -447,7 +447,7 @@ string RealConstantType::toNiceString() const
 {
   CALL("RealConstantType::toNiceString");
 
-  if(denominator().toInt()==1) {
+  if (denominator().toInt()==1) {
     return numerator().toString()+".0";
   }
   return toString();
@@ -961,7 +961,7 @@ BaseType* Theory::getOperationType(Interpretation i)
   CALL("Theory::getOperationType");
   ASS_NEQ(i, EQUAL);
 
-  if(isConversionOperation(i)) {
+  if (isConversionOperation(i)) {
     return getConversionOperationType(i);
   }
    
@@ -988,7 +988,7 @@ bool Theory::isInterpretedConstant(unsigned func)
 {
   CALL("Theory::isInterpretedConstant");
 
-  if(func>=Term::SPECIAL_FUNCTOR_LOWER_BOUND) {
+  if (func>=Term::SPECIAL_FUNCTOR_LOWER_BOUND) {
     return false;
   }
 
@@ -1002,7 +1002,7 @@ bool Theory::isInterpretedConstant(Term* t)
 {
   CALL("Theory::isInterpretedConstant(Term*)");
 
-  if(t->isSpecial()) { return false; }
+  if (t->isSpecial()) { return false; }
 
   return t->arity()==0 && env.signature->getFunction(t->functor())->interpreted();
 }
@@ -1053,7 +1053,7 @@ bool Theory::isInterpretedFunction(unsigned func)
 {
   CALL("Theory::isInterpretedFunction(unsigned)");
 
-  if(func>=Term::SPECIAL_FUNCTOR_LOWER_BOUND) {
+  if (func>=Term::SPECIAL_FUNCTOR_LOWER_BOUND) {
     return false;
   }
 
@@ -1160,47 +1160,74 @@ Interpretation Theory::interpretPredicate(Literal* lit)
   return interpretPredicate(lit->functor());
 }
 
-bool Theory::tryInterpretConstant(TermList trm, IntegerConstantType& res)
+/**
+ * Try to interpret the term as an integer constant. If it is an
+ * integer constant, return true and save the constant in @c res, otherwise
+ * return false.
+ * @since 04/05/2013 Manchester
+ * @author Andrei Voronkov
+ */
+bool Theory::tryInterpretConstant(const Term* t, IntegerConstantType& res)
 {
-  CALL("Theory::tryInterpretConstant(TermList,IntegerConstantType)");
+  CALL("Theory::tryInterpretConstant(Term*,IntegerConstantType)");
 
-  if(!trm.isTerm()) { return false; }
-  Term* t = trm.term();
-  if(trm.term()->arity()!=0 || t->isSpecial()) { return false; }
+  if (t->arity() != 0 || t->isSpecial()) {
+    return false;
+  }
   unsigned func = t->functor();
   Signature::Symbol* sym = env.signature->getFunction(func);
-  if(!sym->integerConstant()) { return false; }
+  if (!sym->integerConstant()) {
+    return false;
+  }
   res = sym->integerValue();
   return true;
-}
+} // Theory::tryInterpretConstant
 
-bool Theory::tryInterpretConstant(TermList trm, RationalConstantType& res)
+/**
+ * Try to interpret the term as an rational constant. If it is an
+ * rational constant, return true and save the constant in @c res, otherwise
+ * return false.
+ * @since 04/05/2013 Manchester
+ * @author Andrei Voronkov
+ */
+bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
 {
-  CALL("Theory::tryInterpretConstant(TermList,RationalConstantType)");
+  CALL("Theory::tryInterpretConstant(Term*,RationalConstantType)");
 
-  if(!trm.isTerm()) { return false; }
-  Term* t = trm.term();
-  if(trm.term()->arity()!=0 || t->isSpecial()) { return false; }
+  if (t->arity() != 0 || t->isSpecial()) {
+    return false;
+  }
   unsigned func = t->functor();
   Signature::Symbol* sym = env.signature->getFunction(func);
-  if(!sym->rationalConstant()) { return false; }
+  if (!sym->rationalConstant()) {
+    return false;
+  }
   res = sym->rationalValue();
   return true;
-}
+} // Theory::tryInterpretConstant 
 
-bool Theory::tryInterpretConstant(TermList trm, RealConstantType& res)
+/**
+ * Try to interpret the term as a real constant. If it is an
+ * real constant, return true and save the constant in @c res, otherwise
+ * return false.
+ * @since 04/05/2013 Manchester
+ * @author Andrei Voronkov
+ */
+bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
 {
-  CALL("Theory::tryInterpretConstant(TermList,RealConstantType)");
+  CALL("Theory::tryInterpretConstant(Term*,RealConstantType)");
 
-  if(!trm.isTerm()) { return false; }
-  Term* t = trm.term();
-  if(trm.term()->arity()!=0 || t->isSpecial()) { return false; }
+  if (t->arity() != 0 || t->isSpecial()) {
+    return false;
+  }
   unsigned func = t->functor();
   Signature::Symbol* sym = env.signature->getFunction(func);
-  if(!sym->realConstant()) { return false; }
+  if (!sym->realConstant()) {
+    return false;
+  }
   res = sym->realValue();
   return true;
-}
+} // // Theory::tryInterpretConstant
 
 Term* Theory::representConstant(const IntegerConstantType& num)
 {
@@ -1232,11 +1259,12 @@ Term* Theory::representIntegerConstant(string str)
 
   try {
     return Theory::instance()->representConstant(IntegerConstantType(str));
-  } catch(ArithmeticException&) {
+  }
+  catch(ArithmeticException&) {
     NOT_IMPLEMENTED;
 //    bool added;
 //    unsigned fnNum = env.signature->addFunction(str, 0, added);
-//    if(added) {
+//    if (added) {
 //      env.signature->getFunction(fnNum)->setType(BaseType::makeType0(Sorts::SRT_INTEGER));
 //      env.signature->addToDistinctGroup(fnNum, Signature::INTEGER_DISTINCT_GROUP);
 //    }

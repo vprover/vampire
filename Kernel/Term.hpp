@@ -66,9 +66,10 @@ public:
    * special variables and ordinary variables have an empty intersection */
   TermList(unsigned var, bool special)
   {
-    if(special) {
+    if (special) {
       makeSpecialVar(var);
-    } else {
+    }
+    else {
       makeVar(var);
     }
   }
@@ -585,6 +586,9 @@ public:
   string specialTermToString() const;
 
 public:
+  /**
+   * Iterator returning arguments of a term left-to-right.
+   */
   class Iterator
   {
   public:
@@ -601,7 +605,7 @@ public:
     }
   private:
     TermList* _next;
-  };
+  }; // Term::Iterator
 }; // class Term
 
 /**

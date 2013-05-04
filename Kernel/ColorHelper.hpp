@@ -24,7 +24,8 @@ public:
   /**
    * The result may be COLOR_INVALID
    */
-  static Color combine(Color c1, Color c2) {
+  static Color combine(Color c1, Color c2)
+  {
     CALL("ColorHelper::combine");
     ASS(env.colorUsed || (c1|c2)!=COLOR_INVALID);
     return static_cast<Color>(c1|c2);
@@ -44,7 +45,6 @@ public:
 
   static bool isTransparent(bool predicate, unsigned functor);
   static bool hasColoredPredicates(Clause* c);
-  static bool hasOnlyColoredConstants(Clause* c);
   static Clause* skolemizeColoredConstants(Clause* c);
   static Clause* skolemizeColoredTerms(Clause* c);
 
@@ -57,7 +57,6 @@ private:
   static void collectSkolemReplacements(Clause* c, TermMap& map);
 
   static Term* applyReplacement(Term* t, TermMap& map);
-
   static void collectColoredConstants(Clause* c, Stack<Term*>& acc);
 };
 

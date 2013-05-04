@@ -25,13 +25,12 @@ TermList EqHelper::getOtherEqualitySide(Literal* eq, TermList lhs)
   CALL("EqHelper::getOtherEqualitySide");
   ASS(eq->isEquality());
 
-  if(*eq->nthArgument(0)==lhs) {
+  if (*eq->nthArgument(0) == lhs) {
     return *eq->nthArgument(1);
-  } else {
-    ASS(*eq->nthArgument(1)==lhs);
-    return *eq->nthArgument(0);
   }
-}
+  ASS(*eq->nthArgument(1) == lhs);
+  return *eq->nthArgument(0);
+} // getOtherEqualitySide
 
 Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)
 {
@@ -63,17 +62,17 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   modified.push(false);
   toDo.push(trm0->args());
 
-  for(;;) {
+  for (;;) {
     TermList* tt=toDo.pop();
-    if(tt->isEmpty()) {
-      if(terms.isEmpty()) {
+    if (tt->isEmpty()) {
+      if (terms.isEmpty()) {
 	//we're done, args stack contains modified arguments
 	//of the literal.
 	ASS(toDo.isEmpty());
 	break;
       }
       Term* orig=terms.pop();
-      if(!modified.pop()) {
+      if (!modified.pop()) {
 	args.truncate(args.length() - orig->arity());
 	args.push(TermList(orig));
 	continue;
@@ -87,17 +86,16 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
       args.push(TermList(Term::create(orig,argLst)));
       modified.setTop(true);
       continue;
-    } else {
-      toDo.push(tt->next());
     }
+    toDo.push(tt->next());
 
     TermList tl=*tt;
-    if(tl==tSrc) {
+    if (tl == tSrc) {
       args.push(tDest);
       modified.setTop(true);
       continue;
     }
-    if(tl.isVar()) {
+    if (tl.isVar()) {
       args.push(tl);
       continue;
     }
@@ -112,26 +110,23 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   ASS_EQ(modified.length(),1);
   ASS_EQ(args.length(),trm0->arity());
 
-  if(!modified.pop()) {
+  if (!modified.pop()) {
     //we call replace in superposition only if we already know,
     //there is something to be replaced.
     ASSERTION_VIOLATION;
     return trm0;
   }
 
-  //here we assume, that stack is an array with
-  //second topmost element as &top()-1, third at
-  //&top()-2, etc...
+  // here we assume, that stack is an array with
+  // second topmost element as &top()-1, third at
+  // &top()-2, etc...
   TermList* argLst=&args.top() - (trm0->arity()-1);
-
-  if(trm0->isLiteral()) {
+  if (trm0->isLiteral()) {
     Literal* lit = static_cast<Literal*>(trm0);
     ASS_EQ(args.size(), lit->arity());
     return Literal::create(lit,argLst);
   }
-  else {
-    return Term::create(trm0,argLst);
-  }
+  return Term::create(trm0,argLst);
 }
 
 /**
@@ -142,19 +137,18 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
 {
   CALL("EqHelper::getRewritableSubtermIterator");
 
-//  if(lit->isEquality()) {
-//    if(lit->isNegative()) {
+//  if (lit->isEquality()) {
+//    if (lit->isNegative()) {
 //      return TermIterator::getEmpty();
 //    }
-  if(lit->isEquality() && lit->isPositive()) {
+  if (lit->isEquality() && lit->isPositive()) {
     TermList sel;
-    switch(ord.getEqualityArgumentOrder(lit))
-    {
+    switch(ord.getEqualityArgumentOrder(lit)) {
     case Ordering::INCOMPARABLE:
-    {
-      NonVariableIterator nvi(lit);
-      return getUniquePersistentIteratorFromPtr(&nvi);
-    }
+      {
+	NonVariableIterator nvi(lit);
+	return getUniquePersistentIteratorFromPtr(&nvi);
+      }
     case Ordering::EQUAL:
     case Ordering::GREATER:
     case Ordering::GREATER_EQ:
@@ -163,22 +157,21 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
     case Ordering::LESS:
     case Ordering::LESS_EQ:
       sel=*lit->nthArgument(1);
-#if VDEBUG
       break;
+#if VDEBUG
     default:
       ASSERTION_VIOLATION;
 #endif
     }
-    if(!sel.isTerm()) {
+    if (!sel.isTerm()) {
       return TermIterator::getEmpty();
     }
-    return getUniquePersistentIterator(
-	    getConcatenatedIterator(getSingletonIterator(sel),
-	    vi( new NonVariableIterator(sel.term()) )) );
-  } else {
-    NonVariableIterator nvi(lit);
-    return getUniquePersistentIteratorFromPtr(&nvi);
+    return getUniquePersistentIterator(getConcatenatedIterator(getSingletonIterator(sel),
+							       vi(new NonVariableIterator(sel.term()))));
   }
+
+  NonVariableIterator nvi(lit);
+  return getUniquePersistentIteratorFromPtr(&nvi);
 }
 
 /**
@@ -191,8 +184,8 @@ TermIterator EqHelper::getLHSIterator(Literal* lit, const Ordering& ord)
 {
   CALL("EqHelper::getLHSIterator");
 
-  if(lit->isEquality()) {
-    if(lit->isNegative()) {
+  if (lit->isEquality()) {
+    if (lit->isNegative()) {
       return TermIterator::getEmpty();
     }
     TermList t0=*lit->nthArgument(0);
@@ -241,7 +234,7 @@ TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit, const Ordering&
 {
   CALL("EqHelper::getSuperpositionLHSIterator");
 
-  if(opt.superpositionFromVariables()) {
+  if (opt.superpositionFromVariables()) {
     return getLHSIterator(lit, ord);
   }
   else {
@@ -259,8 +252,8 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
 {
   CALL("EqHelper::getDemodulationLHSIterator");
 
-  if(lit->isEquality()) {
-    if(lit->isNegative()) {
+  if (lit->isEquality()) {
+    if (lit->isNegative()) {
       return TermIterator::getEmpty();
     }
     TermList t0=*lit->nthArgument(0);
@@ -268,18 +261,18 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:
-      if( forward ? (opt.forwardDemodulation()==Options::DEMODULATION_PREORDERED)
-		  : (opt.backwardDemodulation()==Options::DEMODULATION_PREORDERED) ) {
+      if ( forward ? (opt.forwardDemodulation() == Options::DEMODULATION_PREORDERED)
+		  : (opt.backwardDemodulation() == Options::DEMODULATION_PREORDERED) ) {
 	return TermIterator::getEmpty();
       }
-      if(t0.containsAllVariablesOf(t1)) {
-	if(t1.containsAllVariablesOf(t0)) {
+      if (t0.containsAllVariablesOf(t1)) {
+	if (t1.containsAllVariablesOf(t0)) {
 	  return pvi( getConcatenatedIterator(getSingletonIterator(t0),
 	      getSingletonIterator(t1)) );
 	}
 	return pvi( getSingletonIterator(t0) );
       }
-      if(t1.containsAllVariablesOf(t0)) {
+      if (t1.containsAllVariablesOf(t0)) {
 	return pvi( getSingletonIterator(t1) );
       }
       break;

@@ -84,7 +84,7 @@ void Term::destroyNonShared()
 {
   CALL("Term::destroyNonShared");
 
-  if(shared()) {
+  if (shared()) {
     return;
   }
   TermList selfRef;
@@ -94,19 +94,19 @@ void Term::destroyNonShared()
   static Stack<Term*> deletingStack(8);
 
   for(;;) {
-    if(ts->tag()==REF && !ts->term()->shared()) {
+    if (ts->tag()==REF && !ts->term()->shared()) {
       stack.push(ts->term()->args());
       deletingStack.push(ts->term());
     }
-    if(stack.isEmpty()) {
+    if (stack.isEmpty()) {
       break;
     }
     ts=stack.pop();
-    if(!ts->next()->isEmpty()) {
+    if (!ts->next()->isEmpty()) {
       stack.push(ts->next());
     }
   }
-  while(!deletingStack.isEmpty()) {
+  while (!deletingStack.isEmpty()) {
     deletingStack.pop()->destroy();
   }
 }
@@ -165,26 +165,27 @@ bool TermList::equals(TermList t1, TermList t2)
   TermList* ss=&t1;
   TermList* tt=&t2;
   for(;;) {
-    if(ss->isTerm() && tt->isTerm() && (!ss->term()->shared() || !tt->term()->shared())) {
+    if (ss->isTerm() && tt->isTerm() && (!ss->term()->shared() || !tt->term()->shared())) {
       Term* s=ss->term();
       Term* t=tt->term();
-      if(s->functor()!=t->functor()) {
+      if (s->functor()!=t->functor()) {
 	stack.reset();
 	return false;
       }
       stack.push(s->args());
       stack.push(t->args());
-    } else if(ss->content()!=tt->content()) {
+    }
+    else if (ss->content()!=tt->content()) {
       stack.reset();
       return false;
     }
 
-    if(stack.isEmpty()) {
+    if (stack.isEmpty()) {
       break;
     }
     tt=stack.pop();
     ss=stack.pop();
-    if(!tt->next()->isEmpty()) {
+    if (!tt->next()->isEmpty()) {
       stack.push(ss->next());
       stack.push(tt->next());
     }
@@ -197,8 +198,8 @@ bool TermList::equals(TermList t1, TermList t2)
  */
 bool TermList::allShared(TermList* args)
 {
-  while(args->isNonEmpty()) {
-    if(args->isTerm() && !args->term()->shared()) {
+  while (args->isNonEmpty()) {
+    if (args->isTerm() && !args->term()->shared()) {
       return false;
     }
     args = args->next();
@@ -215,7 +216,7 @@ bool TermList::containsSubterm(TermList trm)
 {
   CALL("Term::containsSubterm");
 
-  if(!isTerm()) {
+  if (!isTerm()) {
     return trm==*this;
   }
   return term()->containsSubterm(trm);
@@ -227,11 +228,11 @@ bool Term::containsSubterm(TermList trm)
   ASS(!trm.isTerm() || trm.term()->shared());
   ASS(shared());
 
-  if(trm.isTerm() && trm.term()==this) {
+  if (trm.isTerm() && trm.term()==this) {
     ASS(!isLiteral());
     return true;
   }
-  if(arity()==0) {
+  if (arity()==0) {
     return false;
   }
 
@@ -239,19 +240,19 @@ bool Term::containsSubterm(TermList trm)
   static Stack<TermList*> stack(4);
   stack.reset();
   for(;;) {
-    if(*ts==trm) {
+    if (*ts==trm) {
       return true;
     }
-    if(!ts->next()->isEmpty()) {
+    if (!ts->next()->isEmpty()) {
       stack.push(ts->next());
     }
-    if(ts->isTerm()) {
+    if (ts->isTerm()) {
       ASSERT_VALID(*ts->term());
-      if(ts->term()->arity()) {
+      if (ts->term()->arity()) {
 	stack.push(ts->term()->args());
       }
     }
-    if(stack.isEmpty()) {
+    if (stack.isEmpty()) {
       return false;
     }
     ts=stack.pop();
@@ -263,12 +264,12 @@ bool TermList::containsAllVariablesOf(TermList t)
   CALL("Term::containsAllVariablesOf");
   Set<TermList> vars;
   TermIterator oldVars=Term::getVariableIterator(*this);
-  while(oldVars.hasNext()) {
+  while (oldVars.hasNext()) {
     vars.insert(oldVars.next());
   }
   TermIterator newVars=Term::getVariableIterator(t);
-  while(newVars.hasNext()) {
-    if(!vars.contains(newVars.next())) {
+  while (newVars.hasNext()) {
+    if (!vars.contains(newVars.next())) {
       return false;
     }
   }
@@ -285,14 +286,14 @@ bool Term::containsAllVariablesOf(Term* t)
 
   //collect own vars
   vit.reset(this);
-  while(vit.hasNext()) {
+  while (vit.hasNext()) {
     vars.insert(vit.next());
   }
 
   //check t's vars are among collected
   vit.reset(t);
-  while(vit.hasNext()) {
-    if(!vars.contains(vit.next())) {
+  while (vit.hasNext()) {
+    if (!vars.contains(vit.next())) {
       return false;
     }
   }
@@ -304,8 +305,8 @@ bool Term::isShallow() const
   CALL("Term::isShallow");
 
   const TermList* t = args();
-  while(!t->isEmpty()) {
-    if(t->isTerm() && t->term()->arity()>0) {
+  while (!t->isEmpty()) {
+    if (t->isTerm() && t->term()->arity()>0) {
       return false;
     }
     t = t->next();
@@ -317,7 +318,7 @@ TermIterator Term::getVariableIterator(TermList tl)
 {
   CALL("Term::getVariableIterator");
 
-  if(tl.isVar()) {
+  if (tl.isVar()) {
     return pvi( getSingletonIterator(tl) );
   }
   ASS(tl.isTerm());
@@ -345,9 +346,10 @@ string Term::variableToString(TermList var)
   CALL("Term::variableToString");
   ASS(var.isVar());
 
-  if(var.isOrdinaryVar()) {
+  if (var.isOrdinaryVar()) {
     return (string)"X" + Int::toString(var.var());
-  } else {
+  }
+  else {
     return (string)"S" + Int::toString(var.var());
   }
 } // variableToString
@@ -400,7 +402,7 @@ string Term::toString() const
 {
   CALL("Term::toString");
 
-  if(isSpecial()) {
+  if (isSpecial()) {
     return specialTermToString();
   }
 
@@ -444,7 +446,7 @@ void TermList::argsToString(Stack<const TermList*>& stack,string& s)
       continue;
     }
     const Term* t = ts->term();
-    if(t->isSpecial()) {
+    if (t->isSpecial()) {
       //cerr << t->specialTermToString()<<endl;
       s+=t->specialTermToString();
       continue;
@@ -466,7 +468,7 @@ string TermList::toString() const
 {
   CALL("TermList::toString");
 
-  if(isEmpty()) {
+  if (isEmpty()) {
     return "<empty TermList>";
   }
   if (isVar()) {
@@ -519,7 +521,7 @@ const string& Term::functionName() const
 
 #if VDEBUG
   static string nonexisting("<function does not exists>");
-  if(_functor>=static_cast<unsigned>(env.signature->functions())) {
+  if (_functor>=static_cast<unsigned>(env.signature->functions())) {
     return nonexisting;
   }
 #endif
@@ -537,7 +539,7 @@ const string& Literal::predicateName() const
 
 #if VDEBUG
   static string nonexisting("<predicate does not exists>");
-  if(_functor>=static_cast<unsigned>(env.signature->predicates())) {
+  if (_functor>=static_cast<unsigned>(env.signature->predicates())) {
     return nonexisting;
   }
 #endif
@@ -627,7 +629,7 @@ unsigned Literal::oppositeHash() const
 Literal* Literal::complementaryLiteral(Literal* l)
 {
   Literal* res=env.sharing->tryGetOpposite(l);
-  if(!res) {
+  if (!res) {
     res=create(l,!l->polarity());
   }
   return res;
@@ -651,11 +653,11 @@ Term* Term::create(Term* t,TermList* args)
   for (int i = 0;i < arity;i++) {
     ASS(!args[i].isEmpty());
     *ss-- = args[i];
-    if(!args[i].isSafe()) {
+    if (!args[i].isSafe()) {
       share = false;
     }
   }
-  if(share) {
+  if (share) {
     s = env.sharing->insert(s);
   }
   return s;
@@ -677,15 +679,15 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
 
   TermList* curArg = args;
   TermList* argStopper = args+arity;
-  while(curArg!=argStopper) {
+  while (curArg!=argStopper) {
     *ss = *curArg;
     --ss;
-    if(!curArg->isSafe()) {
+    if (!curArg->isSafe()) {
       share = false;
     }
     ++curArg;
   }
-  if(share) {
+  if (share) {
     s = env.sharing->insert(s);
   }
   return s;
@@ -829,7 +831,7 @@ unsigned Term::computeDistinctVars() const
 {
   Set<unsigned> vars;
   VariableIterator vit(this);
-  while(vit.hasNext()) {
+  while (vit.hasNext()) {
     vars.insert(vit.next().var());
   }
   return vars.size();
@@ -842,35 +844,42 @@ bool Term::hasOnlyDistinctVariableArgs() const
 {
   CALL("Term::hasOnlyDistinctVariableArgs");
 
-  if(getDistinctVars()!=arity()) {
+  if (getDistinctVars()!=arity()) {
     return false;
   }
-  if(weight()!=arity()+1) {
+  if (weight()!=arity()+1) {
     return false;
   }
   return true;
 }
 
+/**
+ * True if each function and predicate symbols in this term or literal are
+ * marked as skip for the purpose of symbol elimination.
+ * @since 04/05/2013 Manchester, changed to use the new NonVariable Iterator
+ * @author Andrei Voronkov
+ */
 bool Term::skip() const
 {
-  if(isLiteral()) {
-    if(!env.signature->getPredicate(functor())->skip()) {
-      return false;
-    }
-  } else {
-    if(!env.signature->getFunction(functor())->skip()) {
+  if (isLiteral()) {
+    if (!env.signature->getPredicate(functor())->skip()) {
       return false;
     }
   }
-  NonVariableIterator nvi(this);
-  while(nvi.hasNext()) {
+  else {
+    if (!env.signature->getFunction(functor())->skip()) {
+      return false;
+    }
+  }
+  NonVariableIterator nvi(const_cast<Term*>(this));
+  while (nvi.hasNext()) {
     unsigned func=nvi.next().term()->functor();
-    if(!env.signature->getFunction(func)->skip()) {
+    if (!env.signature->getFunction(func)->skip()) {
       return false;
     }
   }
   return true;
-}
+} // skip
 
 /**
  * Return true iff headers of literals match each other. We check also whether
@@ -879,11 +888,11 @@ bool Term::skip() const
 bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
 {
   CALL("Literal::headersMatch");
-  if(l1->_functor!=l2->_functor || (complementary?1:0)!=(l1->polarity()!=l2->polarity())) {
+  if (l1->_functor!=l2->_functor || (complementary?1:0)!=(l1->polarity()!=l2->polarity())) {
     return false;
   }
-  if(l1->isEquality()) {
-    if(SortHelper::getEqualityArgumentSort(l1)!=SortHelper::getEqualityArgumentSort(l2)) {
+  if (l1->isEquality()) {
+    if (SortHelper::getEqualityArgumentSort(l1)!=SortHelper::getEqualityArgumentSort(l2)) {
       return false;
     }
   }
@@ -906,11 +915,11 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
   TermList* ss = l->args();
   for (unsigned i = 0;i < arity;i++) {
     *ss-- = args[i];
-    if(!args[i].isSafe()) {
+    if (!args[i].isSafe()) {
       share = false;
     }
   }
-  if(share) {
+  if (share) {
     l = env.sharing->insert(l);
   }
   return l;
@@ -926,7 +935,7 @@ Literal* Literal::create(Literal* l,bool polarity)
   CALL("Literal::create(Literal*,bool)");
   ASS_EQ(l->getPreDataSize(), 0);
 
-  if(l->isEquality()) {
+  if (l->isEquality()) {
     return createEquality(polarity, *l->nthArgument(0), *l->nthArgument(1), SortHelper::getEqualityArgumentSort(l));
   }
 
@@ -936,11 +945,11 @@ Literal* Literal::create(Literal* l,bool polarity)
 
   TermList* ts = m->args();
   TermList* ss = l->args();
-  while(ss->isNonEmpty()) {
+  while (ss->isNonEmpty()) {
     *ts-- = *ss--;
   }
-  if(l->shared()) {
-    if(l->isTwoVarEquality()) {
+  if (l->shared()) {
+    if (l->isTwoVarEquality()) {
       m = env.sharing->insertVariableEquality(m, l->twoVarEqSort());
     }
     else {
@@ -960,7 +969,7 @@ Literal* Literal::create(Literal* l,TermList* args)
   CALL("Literal::create(Literal*,TermList*)");
   ASS_EQ(l->getPreDataSize(), 0);
 
-  if(l->isEquality()) {
+  if (l->isEquality()) {
     return createEquality(l->polarity(), args[0], args[1], SortHelper::getEqualityArgumentSort(l));
   }
 
@@ -971,11 +980,11 @@ Literal* Literal::create(Literal* l,TermList* args)
   TermList* ts = m->args();
   for (int i = 0;i < arity;i++) {
     *ts-- = args[i];
-    if(!args[i].isSafe()) {
+    if (!args[i].isSafe()) {
       share = false;
     }
   }
-  if(share) {
+  if (share) {
     m = env.sharing->insert(m);
   }
   return m;
@@ -995,21 +1004,19 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
 
    unsigned srt1, srt2;
 
-   if(!SortHelper::tryGetResultSort(arg1, srt1)) {
-     if(!SortHelper::tryGetResultSort(arg2, srt2)) {
-       if(arg1.isVar() && arg2.isVar()) {
+   if (!SortHelper::tryGetResultSort(arg1, srt1)) {
+     if (!SortHelper::tryGetResultSort(arg2, srt2)) {
+       if (arg1.isVar() && arg2.isVar()) {
 	 return createVariableEquality(polarity, arg1, arg2, sort);
        }
-       else {
-	 return createSpecialTermVariableEquality(polarity, arg1, arg2, sort);
-       }
+       return createSpecialTermVariableEquality(polarity, arg1, arg2, sort);
      }
      ASS_EQ(srt2, sort);
    }
    else {
      ASS_EQ(srt1, sort);
 #if VDEBUG
-     if(SortHelper::tryGetResultSort(arg2, srt2)) {
+     if (SortHelper::tryGetResultSort(arg2, srt2)) {
        ASS_EQ(srt2, sort);
      }
 #endif
@@ -1017,7 +1024,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
    Literal* lit=new(2) Literal(0,2,polarity,true);
    *lit->nthArgument(0)=arg1;
    *lit->nthArgument(1)=arg2;
-   if(arg1.isSafe() && arg2.isSafe()) {
+   if (arg1.isSafe() && arg2.isSafe()) {
      lit = env.sharing->insert(lit);
    }
    return lit;
@@ -1163,7 +1170,7 @@ void Term::assertValid() const
 
 void TermList::assertValid() const
 {
-  if(this->isTerm()) {
+  if (this->isTerm()) {
     ASS_ALLOC_TYPE(_term, "Term");
     ASS_EQ(_term->_args[0]._info.tag, FUN);
   }
@@ -1173,14 +1180,15 @@ void TermList::assertValid() const
 
 std::ostream& Kernel::operator<< (ostream& out, TermList tl )
 {
-  if(tl.isEmpty()) {
+  if (tl.isEmpty()) {
     return out<<"<empty TermList>";
-  } else if(tl.isVar()) {
-    return out<<Term::variableToString(tl);
-  } else {
-    return out<<tl.term()->toString();
   }
+  if (tl.isVar()) {
+    return out<<Term::variableToString(tl);
+  }
+  return out<<tl.term()->toString();
 }
+
 std::ostream& Kernel::operator<< (ostream& out, const Term& t )
 {
   return out<<t.toString();

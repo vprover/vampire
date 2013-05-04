@@ -18,16 +18,24 @@ namespace Kernel {
 
 class Sorts {
 public:
-  /** The default sort that is to be used when no sort is declared */
+  /** Various pre-defined sort */
   enum DefaultSorts {
+    /** The default sort of all individuals, always in the non-sorted case */
     SRT_DEFAULT = 0,
+    /** Boolean sort */
     SRT_BOOL = 1,
+    /** sort of integers */
     SRT_INTEGER = 2,
+    /** sort of rationals */
     SRT_RATIONAL = 3,
+    /** sort of reals */
     SRT_REAL = 4,
-    FIRST_USER_SORT = 5,
-    SRT_ARRAY1 = 6,
-    SRT_ARRAY2 = 7
+    /** array of integers */
+    SRT_ARRAY1 = 5,
+    /** array of arrays of integers ??? */
+    SRT_ARRAY2 = 6,
+    /** this is not a sort, it is just used to denote the first index of a user-define sort */
+    FIRST_USER_SORT = 7
   };
 
   Sorts();
@@ -37,7 +45,7 @@ public:
   {
   public:
     SortInfo(const string& name) : _name(name) {}
-
+    
     const string& name() const { return _name; }
   private:
     string _name;
@@ -68,7 +76,6 @@ private:
   /** true if there is a sort different from built-ins */
   bool _hasSort;
 };
-
 
 class BaseType
 {

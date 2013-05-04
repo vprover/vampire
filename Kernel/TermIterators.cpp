@@ -116,60 +116,93 @@ bool PolishSubtermIterator::hasNext()
   return !_stack.isEmpty();
 }
 
-
-///////////////////////////////////////////
-
 /**
- * True if there exists next non-variable subterm
+ * Return the next non-variable subterm.
+ * @since 04/05/2013 Manchester
+ * @author Andrei Voronkov
  */
-bool NonVariableIterator::hasNext()
+TermList NonVariableIterator::next()
 {
-  CALL("NonVariableIterator::hasNext");
+  CALL("NonVariableIterator::next");
 
-  if(_stack.isEmpty()) {
-    return false;
+  Term* t = _stack.pop();
+  _added = 0;
+  Term::Iterator ts(t);
+  for (const TermList* ts = t->args();!ts->isEmpty();ts = ts->next()) {
+    if (ts->isTerm()) {
+      _stack.push(const_cast<Term*>(ts->term()));
+      _added++;
+    }
   }
-  ASS(_stack.top()->isTerm());
-  if(!_used) {
-    return true;
-  }
-  _used=false;
-  const TermList* t=_stack.pop();
-  pushNextNonVar(t->next());
-  pushNextNonVar(t->term()->args());
-  return !_stack.isEmpty();
-}
+  return TermList(t);
+} // NonVariableIterator::next
 
 /**
- * Skip subterms of the term just returned by the @b next function
- *
- * Must be called after the @b next function before the @b hasNext
- * function is called again.
+ * Skip all subterms of the terms returned by the last call to next()
+ * @since 04/05/2013 Manchester
+ * @author Andrei Voronkov
  */
 void NonVariableIterator::right()
 {
   CALL("NonVariableIterator::right");
-  ASS(_stack.isNonEmpty());
-  ASS(_used);
 
-  _used=false;
-  const TermList* t=_stack.pop();
-  pushNextNonVar(t->next());
-
-  //we did here the same as in the hasNext function, we only didn't call
-  //the pushNextNonVar function on arguments of t
-}
-
-void NonVariableIterator::pushNextNonVar(const TermList* t)
-{
-  while(t->isVar()) {
-    t=t->next();
+  while (_added > 0) {
+    _added--;
+    _stack.pop();
   }
-  if(!t->isEmpty()) {
-    ASS(t->isTerm());
-    _stack.push(t);
-  }
-}
+} // NonVariableIterator::right
+
+/**
+ * True if there exists next non-variable subterm
+ */
+// bool NonVariableIterator::hasNext()
+// {
+//   CALL("NonVariableIterator::hasNext");
+
+//   if(_stack.isEmpty()) {
+//     return false;
+//   }
+//   ASS(_stack.top()->isTerm());
+//   if(!_used) {
+//     return true;
+//   }
+//   _used=false;
+//   const TermList* t=_stack.pop();
+//   pushNextNonVar(t->next());
+//   pushNextNonVar(t->term()->args());
+//   return !_stack.isEmpty();
+// }
+
+// /**
+//  * Skip subterms of the term just returned by the @b next function
+//  *
+//  * Must be called after the @b next function before the @b hasNext
+//  * function is called again.
+//  */
+// void NonVariableIterator::right()
+// {
+//   CALL("NonVariableIterator::right");
+//   ASS(_stack.isNonEmpty());
+//   ASS(_used);
+
+//   _used=false;
+//   const TermList* t=_stack.pop();
+//   pushNextNonVar(t->next());
+
+//   //we did here the same as in the hasNext function, we only didn't call
+//   //the pushNextNonVar function on arguments of t
+// }
+
+// void NonVariableIterator::pushNextNonVar(const TermList* t)
+// {
+//   while(t->isVar()) {
+//     t=t->next();
+//   }
+//   if(!t->isEmpty()) {
+//     ASS(t->isTerm());
+//     _stack.push(t);
+//   }
+// }
 
 
 ///////////////////////////////////////////

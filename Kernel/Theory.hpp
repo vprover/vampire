@@ -299,14 +299,50 @@ public:
   Term* fun1(Interpretation itp, TermList arg);
   Term* fun2(Interpretation itp, TermList arg1, TermList arg2);
   Term* fun3(Interpretation itp, TermList arg1, TermList arg2, TermList arg3);
-
-    
   Literal* pred2(Interpretation itp, bool polarity, TermList arg1, TermList arg2);
 
-
-  bool tryInterpretConstant(TermList trm, IntegerConstantType& res);
-  bool tryInterpretConstant(TermList trm, RationalConstantType& res);
-  bool tryInterpretConstant(TermList trm, RealConstantType& res);
+  /**
+   * Try to interpret the term list as an integer constant. If it is an
+   * integer constant, return true and save the constant in @c res, otherwise
+   * return false.
+   */
+  bool tryInterpretConstant(TermList trm, IntegerConstantType& res)
+  {
+    CALL("Theory::tryInterpretConstant(TermList,IntegerConstantType)");
+    if (!trm.isTerm()) {
+      return false;
+    }
+    return tryInterpretConstant(trm.term(),res);
+  }
+  bool tryInterpretConstant(const Term* t, IntegerConstantType& res);
+  /**
+   * Try to interpret the term list as an rational constant. If it is an
+   * rational constant, return true and save the constant in @c res, otherwise
+   * return false.
+   */
+  bool tryInterpretConstant(TermList trm, RationalConstantType& res)
+  {
+    CALL("Theory::tryInterpretConstant(TermList,RationalConstantType)");
+    if (!trm.isTerm()) {
+      return false;
+    }
+    return tryInterpretConstant(trm.term(),res);
+  }
+  bool tryInterpretConstant(const Term* t, RationalConstantType& res);
+  /**
+   * Try to interpret the term list as an real constant. If it is an
+   * real constant, return true and save the constant in @c res, otherwise
+   * return false.
+   */
+  bool tryInterpretConstant(TermList trm, RealConstantType& res)
+  {
+    CALL("Theory::tryInterpretConstant(TermList,RealConstantType)");
+    if (!trm.isTerm()) {
+      return false;
+    }
+    return tryInterpretConstant(trm.term(),res);
+  }
+  bool tryInterpretConstant(const Term* t, RealConstantType& res);
 
   Term* representConstant(const IntegerConstantType& num);
   Term* representConstant(const RationalConstantType& num);
@@ -316,11 +352,7 @@ public:
   Term* representRealConstant(string str);
 private:
   Theory();
-
   static FunctionType* getConversionOperationType(Interpretation i);
-  
-
-
 };
 
 typedef Theory::Interpretation Interpretation;
@@ -329,7 +361,6 @@ typedef Theory::Interpretation Interpretation;
  * Pointer to the singleton Theory instance
  */
 extern Theory* theory;
-
 }
 
 #endif // __Theory__
