@@ -173,8 +173,6 @@ public:
     SAT_RESTART_MINISAT_INCREASE,
     SAT_RESTART_MINISAT_INIT,
     SAT_RESTART_STRATEGY,
-    SAT_SOLVER_WITH_NAMING,
-    SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION,
     SAT_VAR_ACTIVITY_DECAY,
     SAT_VAR_SELECTOR,
     /** !!! saturation algorithm: lrs, otter, or discount, inst_gen or tabulation */
@@ -381,14 +379,6 @@ public:
     INTERP_MINIMIZED = 0,
     INTERP_OFF = 1,
     INTERP_ON = 2
-  };
-
-  /** Possible values for splitting */
-  enum SplittingMode {
-    SM_BACKTRACKING = 0,
-    SM_NOBACKTRACKING = 1,
-    SM_OFF = 2,
-    SM_SAT = 3
   };
 
   enum LiteralComparisonMode {
@@ -663,15 +653,13 @@ public:
   RuleActivity generalSplitting() const { return _generalSplitting; }
   string namePrefix() const { return _namePrefix; }
   bool timeStatistics() const { return _timeStatistics; }
-  bool satSolverWithNaming() const { return _satSolverWithNaming; }
-  bool satSolverWithSubsumptionResolution() const { return _satSolverWithSubsumptionResolution; }
   bool splitAddGroundNegation() const { return _splitAddGroundNegation; }
   bool splitAtActivation() const { return _splitAtActivation; }
   bool splitGoalOnly() const { return _splitGoalOnly; }
   bool splitInputOnly() const { return _splitInputOnly; }
   bool splitPositive() const { return _splitPositive; }
-  SplittingMode splitting() const { return _splitting; }
-  void setSplitting(SplittingMode newVal) { _splitting = newVal; }
+  bool splitting() const { return _splitting; }
+  void setSplitting(bool newVal) { _splitting = newVal; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
 
   unsigned sineDepth() const { return _sineDepth; }
@@ -920,8 +908,6 @@ private:
   float _satRestartMinisatIncrease;
   int _satRestartMinisatInit;
   SatRestartStrategy _satRestartStrategy;
-  bool _satSolverWithNaming;
-  bool _satSolverWithSubsumptionResolution;
   float _satVarActivityDecay;
   SatVarSelector _satVarSelector;
   SaturationAlgorithm _saturationAlgorithm;
@@ -953,7 +939,7 @@ private:
   bool _splitGoalOnly;
   bool _splitInputOnly;
   bool _splitPositive;
-  SplittingMode _splitting;
+  bool _splitting;
   SSplittingAddComplementary _ssplittingAddComplementary;
   SSplittingComponentSweeping _ssplittingComponentSweeping;
   bool _ssplittingCongruenceClosure;

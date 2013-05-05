@@ -11,15 +11,18 @@
 #include "Shell/Options.hpp"
 
 #include "BDD.hpp"
-
 #include "BDDConjunction.hpp"
 
-namespace Kernel
-{
+using namespace Kernel;
 
+/**
+ * @since 05/05/2013 references to removed sat solver options removed
+ * @author Andrei Voronkov
+ */
 BDDConjunction::BDDConjunction(const Options& opt)
 : _isFalse(false),
-  _clausifier(opt.satSolverWithSubsumptionResolution(), opt.satSolverWithNaming()),
+  // _clausifier(opt.satSolverWithSubsumptionResolution(), opt.satSolverWithNaming()),
+  _clausifier(false,false),
   _solver(new TWLSolver(opt))
 {
 }
@@ -68,6 +71,4 @@ void BDDConjunction::addNode(BDDNode* n)
   }
 
   return;
-}
-
 }

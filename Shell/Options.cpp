@@ -44,7 +44,6 @@ public:
   static const char* _demodulationValues[];
   static const char* _subsumptionValues[];
   static const char* _urResolutionValues[];
-  static const char* _splittingModeValues[];
   static const char* _fdeValues[];
   static const char* _lcmValues[];
   static const char* _satAlgValues[];
@@ -80,7 +79,6 @@ public:
   static NameArray demodulationValues;
   static NameArray subsumptionValues;
   static NameArray urResolutionValues;
-  static NameArray splittingModeValues;
   static NameArray fdeValues;
   static NameArray lcmValues;
   static NameArray satAlgValues;
@@ -236,8 +234,6 @@ const char* Options::Constants::_optionNames[] = {
   "sat_restart_minisat_increase",
   "sat_restart_minisat_init",
   "sat_restart_strategy",
-  "sat_solver_with_naming",
-  "sat_solver_with_subsumption_resolution",
   "sat_var_activity_decay",
   "sat_var_selector",
   "saturation_algorithm",
@@ -451,8 +447,6 @@ int Options::Constants::shortNameIndexes[] = {
   SSPLITTING_FLUSH_PERIOD,
   SSPLITTING_FLUSH_QUOTIENT,
   SSPLITTING_NONSPLITTABLE_COMPONENTS,
-  SAT_SOLVER_WITH_NAMING,
-  SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION,
   SINE_TOLERANCE,
   SIMULATED_TIME_LIMIT,
   TIME_LIMIT,
@@ -502,14 +496,6 @@ const char* Options::Constants::_urResolutionValues[] = {
   "on"};
 NameArray Options::Constants::urResolutionValues(_urResolutionValues,
 						 sizeof(_urResolutionValues)/sizeof(char*));
-
-const char* Options::Constants::_splittingModeValues[] = {
-  "backtracking",
-  "nobacktracking",
-  "off",
-  "sat"};
-NameArray Options::Constants::splittingModeValues(_splittingModeValues,
-					sizeof(_splittingModeValues)/sizeof(char*));
 
 const char* Options::Constants::_fdeValues[] = {
   "all",
@@ -885,8 +871,6 @@ Options::Options ()
   _satRestartMinisatIncrease(1.1f),
   _satRestartMinisatInit(100),
   _satRestartStrategy(SRS_LUBY),
-  _satSolverWithNaming(false),
-  _satSolverWithSubsumptionResolution(false),
   _satVarActivityDecay(1.05f),
   _satVarSelector(SVS_ACTIVE),
   _saturationAlgorithm(LRS),
@@ -918,7 +902,7 @@ Options::Options ()
   _splitGoalOnly(false),
   _splitInputOnly(true),
   _splitPositive(false),
-  _splitting(SM_NOBACKTRACKING),
+  _splitting(true),
   _ssplittingAddComplementary(SSAC_GROUND),
   _ssplittingComponentSweeping(SSCS_ITERATED),
   _ssplittingCongruenceClosure(false),
@@ -1459,12 +1443,6 @@ void Options::set(const char* name,const char* value, int index)
     case SAT_RESTART_STRATEGY:
       _satRestartStrategy = (SatRestartStrategy)Constants::satRestartStrategyValues.find(value);
       return;
-    case SAT_SOLVER_WITH_NAMING:
-      _satSolverWithNaming = onOffToBool(value,name);
-      return;
-    case SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION:
-      _satSolverWithSubsumptionResolution = onOffToBool(value,name);
-      return;
     case SAT_VAR_ACTIVITY_DECAY:
       if (Int::stringToFloat(value,floatValue)) {
 	if (floatValue<=1.0f) {
@@ -1575,7 +1553,7 @@ void Options::set(const char* name,const char* value, int index)
       _splitPositive = onOffToBool(value,name);
       return;
     case SPLITTING:
-      _splitting = (SplittingMode)Constants::splittingModeValues.find(value);
+      _splitting = onOffToBool(value,name);
       return;
     case SSPLITTING_ADD_COMPLEMENTARY:
       _ssplittingAddComplementary = (SSplittingAddComplementary)Constants::sSplittingAddComplementaryValues.find(value);
@@ -2287,12 +2265,6 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SAT_RESTART_STRATEGY:
     str << Constants::satRestartStrategyValues[_satRestartStrategy];
     return;
-  case SAT_SOLVER_WITH_NAMING:
-    str << boolToOnOff(_satSolverWithNaming);
-    return;
-  case SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION:
-    str << boolToOnOff(_satSolverWithSubsumptionResolution);
-    return;
   case SAT_VAR_ACTIVITY_DECAY:
     str << _satVarActivityDecay;
     return;
@@ -2387,7 +2359,7 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_splitPositive);
     return;
   case SPLITTING:
-    str << Constants::splittingModeValues[_splitting];
+    str << boolToOnOff(_splitting);
     return;
   case SSPLITTING_ADD_COMPLEMENTARY:
     str << Constants::sSplittingAddComplementaryValues[_ssplittingAddComplementary];
@@ -3050,9 +3022,6 @@ bool Options::completeForNNE() const
  */
 void Options::checkGlobalOptionConstraints() const
 {
-  if (showInterpolant()!=INTERP_OFF && splitting()==SM_BACKTRACKING) {
-    USER_ERROR("Cannot output interpolant with backtracking splitting");
-  }
   if (_bfnt && !completeForNNE()) {
     USER_ERROR("The bfnt option can only be used with a strategy complete for non-Horn problems without equality");
   }
