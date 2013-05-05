@@ -381,6 +381,13 @@ public:
     INTERP_ON = 2
   };
 
+  /** Possible values for splitting */
+  enum SplittingMode {
+    SM_INPUT = 0,
+    SM_OFF = 1,
+    SM_SAT = 2
+  };
+
   enum LiteralComparisonMode {
     LCM_PREDICATE = 0,
     LCM_REVERSE = 1,

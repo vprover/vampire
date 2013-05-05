@@ -1497,7 +1497,7 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
 }
 
 /**
- * @since 05/05/2013 code related to old splitting options removed
+ * @since 05/05/2013 Manchester, splitting changed to new values
  * @author Andrei Voronkov
  */
 SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr)
@@ -1611,23 +1611,16 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_symEl=new SymElOutput();
   }
 
-  // switch(opt.splitting()) {
-  // case Options::SM_OFF:
-  //   break;
+  switch(opt.splitting()) {
+  case Options::SM_OFF:
+    break;
   // case Options::SM_BACKTRACKING:
   //   res->_splitter=new BSplitter();
   //   break;
-  // case Options::SM_NOBACKTRACKING:
-  //   res->_splitter=new SWBSplitterWithoutBDDs();
-  //   break;
-  // case Options::SM_SAT:
-  //   res->_splitter = new SSplitter();
-  //   break;
-  // default:
-  //   ASSERTION_VIOLATION;
-  // }
-
-  if (opt.splitting()) {
+  case Options::SM_INPUT:
+    res->_splitter=new SWBSplitterWithoutBDDs();
+    break;
+  case Options::SM_SAT:
     res->_splitter = new SSplitter();
   }
   if (opt.questionAnswering()==Options::QA_ANSWER_LITERAL) {

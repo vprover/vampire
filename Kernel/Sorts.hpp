@@ -32,7 +32,7 @@ public:
     SRT_REAL = 4,
     /** array of integers */
     SRT_ARRAY1 = 5,
-    /** array of arrays of integers ??? */
+    /** array of arrays of integers */
     SRT_ARRAY2 = 6,
     /** this is not a sort, it is just used to denote the first index of a user-define sort */
     FIRST_USER_SORT = 7

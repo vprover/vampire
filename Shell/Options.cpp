@@ -44,6 +44,7 @@ public:
   static const char* _demodulationValues[];
   static const char* _subsumptionValues[];
   static const char* _urResolutionValues[];
+  static const char* _splittingModeValues[];
   static const char* _fdeValues[];
   static const char* _lcmValues[];
   static const char* _satAlgValues[];
@@ -79,6 +80,7 @@ public:
   static NameArray demodulationValues;
   static NameArray subsumptionValues;
   static NameArray urResolutionValues;
+  static NameArray splittingModeValues;
   static NameArray fdeValues;
   static NameArray lcmValues;
   static NameArray satAlgValues;
@@ -497,6 +499,13 @@ const char* Options::Constants::_urResolutionValues[] = {
 NameArray Options::Constants::urResolutionValues(_urResolutionValues,
 						 sizeof(_urResolutionValues)/sizeof(char*));
 
+const char* Options::Constants::_splittingModeValues[] = {
+  "input",
+  "off",
+  "sat"};
+NameArray Options::Constants::splittingModeValues(_splittingModeValues,
+					sizeof(_splittingModeValues)/sizeof(char*));
+
 const char* Options::Constants::_fdeValues[] = {
   "all",
   "none",
@@ -902,7 +911,7 @@ Options::Options ()
   _splitGoalOnly(false),
   _splitInputOnly(true),
   _splitPositive(false),
-  _splitting(true),
+  _splitting(SM_INPUT),
   _ssplittingAddComplementary(SSAC_GROUND),
   _ssplittingComponentSweeping(SSCS_ITERATED),
   _ssplittingCongruenceClosure(false),
@@ -3025,7 +3034,9 @@ void Options::checkGlobalOptionConstraints() const
   if (_bfnt && !completeForNNE()) {
     USER_ERROR("The bfnt option can only be used with a strategy complete for non-Horn problems without equality");
   }
-
+  if (_splitting == SM_SAT && _saturationAlgorithm == INST_GEN) {
+    USER_ERROR("saturation algorithm inst_gen cannot be used with sat splitting");
+  }
   //TODO:implement forbidden options
 }
 
