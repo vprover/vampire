@@ -1562,7 +1562,7 @@ void Options::set(const char* name,const char* value, int index)
       _splitPositive = onOffToBool(value,name);
       return;
     case SPLITTING:
-      _splitting = onOffToBool(value,name);
+      _splitting = (SplittingMode)Constants::splittingModeValues.find(value);
       return;
     case SSPLITTING_ADD_COMPLEMENTARY:
       _ssplittingAddComplementary = (SSplittingAddComplementary)Constants::sSplittingAddComplementaryValues.find(value);
@@ -2368,7 +2368,7 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_splitPositive);
     return;
   case SPLITTING:
-    str << boolToOnOff(_splitting);
+    str << Constants::splittingModeValues[_splitting];
     return;
   case SSPLITTING_ADD_COMPLEMENTARY:
     str << Constants::sSplittingAddComplementaryValues[_ssplittingAddComplementary];
