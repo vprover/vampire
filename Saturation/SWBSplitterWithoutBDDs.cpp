@@ -166,8 +166,14 @@ SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::createNamedComponent
  */
 int SWBSplitterWithoutBDDs::getNewName()
 {
-  ASSERTION_VIOLATION;
-  return -1;
+  CALL("SWBSplitterWithoutBDDs::getNewName");
+
+  unsigned res=env.signature->addNamePredicate(0);
+  env.signature->getPredicate(res)->markSWBName();
+
+  env.statistics->splittingNamesIntroduced++;
+
+  return res;
 }
 
 /**
