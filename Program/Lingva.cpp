@@ -8,13 +8,34 @@
  */
 
 #include "Lingva.hpp"
+#include "Shell/UIHelper.hpp"
 
 namespace Program{
 
 void RunLingva::run()
 {
   CALL("runLingva::run()");
-  runParsingAndAnalysis();
+  try{
+	  runParsingAndAnalysis();
+  } catch (MemoryLimitExceededException) {
+	    env.beginOutput();
+	    env.out() << "Memory limit exceeded\n";
+	    env.endOutput();
+	  } catch (TimeLimitExceededException) {
+	    env.beginOutput();
+	    env.out() << "Time limit exceeded\n";
+	    env.endOutput();
+	  }
+	if (env.statistics->terminationReason == Statistics::REFUTATION){
+		SYSTEM_FAIL("If you see this message something went terribely wrong!", 0);
+		ASSERTION_VIOLATION;
+	}
+	if (env.statistics->terminationReason == Statistics::SATISFIABLE){
+		env.beginOutput();
+		UIHelper::outputResult(env.out());
+		env.endOutput();
+	}
+
 }
 
 /**

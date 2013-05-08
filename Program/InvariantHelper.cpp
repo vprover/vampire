@@ -150,6 +150,7 @@ void InvariantHelper::runSEI()
 void InvariantHelper::showSignature()
 {
   CALL("InvariantHelper::showSignature");
+
   for (unsigned int i = 0; i < env.signature->functions(); i++)
     cout << env.signature->getFunction(i)->name() << " "
 	    << (env.signature->getFunction(i)->color() == COLOR_LEFT ? " left "
@@ -161,6 +162,7 @@ void InvariantHelper::showSignature()
 	    << (env.signature->getPredicate(i)->color() == COLOR_LEFT ? " left "
 		    : " other") << env.signature->getPredicate(i)->arity()
 	    << endl;
+
 
 }
 
