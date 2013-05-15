@@ -304,18 +304,20 @@ NameArray Options::Constants::optionNames(_optionNames,
 					  sizeof(_optionNames)/sizeof(char*));
 
 const char* Options::Constants::_shortNames[] = {
-  "as",
   "awr",
   "bd",
   "bfnt",
+
+  "bpas",
+  "bpcas",
+  "bpcp",
+  "bpcs",
+  "bpvs",
+
   "br",
   "bs",
   "bsr",
-
-  "cas",
   "cond",
-  "cs",
-  "cup",
   "drc",
   "ep",
   "erd",
@@ -363,12 +365,10 @@ const char* Options::Constants::_shortNames[] = {
   "ssfp",
   "ssfq",
   "ssnc",
-  "sswn",
-  "sswsr",
+
   "st",
   "stl",
-  "stp",
-  "swb",
+
   "t",
   "tbsr",
   "tfsr",
@@ -379,7 +379,6 @@ const char* Options::Constants::_shortNames[] = {
   "tr",
   "updr",
   "urr",
-  "vs",
   "wi",
   "wno"};
 
@@ -390,13 +389,17 @@ NameArray Options::Constants::shortNames(_shortNames,
 int Options::Constants::shortNameIndexes[] = {
   AGE_WEIGHT_RATIO,
   BACKWARD_DEMODULATION,
-
   BFNT,
+
+  BP_ASSIGNMENT_SELECTOR,
+  BP_CONSERVATIVE_ASSIGNMENT_SELECTION,
+  BP_COLLAPSING_PROPAGATION,
+  BP_CONFLICT_SELECTOR,
+  BP_VARIABLE_SELECTOR,
+
   BINARY_RESOLUTION,
   BACKWARD_SUBSUMPTION,
   BACKWARD_SUBSUMPTION_RESOLUTION,
-  BP_CONFLICT_SELECTOR,
-  BP_COLLAPSING_PROPAGATION,
 
   CONDENSATION,
   DEMODULATION_REDUNDANCY_CHECK,
@@ -1083,6 +1086,9 @@ void Options::set(const char* name,const char* value, int index)
 	USER_ERROR("the value must be an integer");
       }
       return;
+    case BP_PROPAGATE_AFTER_CONFLICT:
+      _bpPropagateAfterConflict = onOffToBool(value, name);
+      return;
     case BP_START_WITH_PRECISE:
       _bpStartWithPrecise = onOffToBool(value,name);
       return;
@@ -1164,7 +1170,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case FUNCTION_NUMBER:
       if (Int::stringToInt(value,intValue))
-	_functionNumber= intValue;
+    	  _functionNumber= intValue;
       return;
 
     case GENERAL_SPLITTING:
@@ -2009,6 +2015,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case BP_MAX_PROP_LENGTH:
     str << _maximalPropagatedEqualityLength;
     return;
+  case BP_PROPAGATE_AFTER_CONFLICT:
+	str << boolToOnOff(_bpPropagateAfterConflict);
+	return;
   case BP_START_WITH_PRECISE:
     str << boolToOnOff(_bpStartWithPrecise);
     return;
