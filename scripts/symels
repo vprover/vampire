@@ -39,7 +39,9 @@ function doConseqEl()
 
 
 #find consequences
-    $VAMPIRE -t $CFTIME $3 --mode consequence_elimination -ptb off -spl off -updr off  <$CTMP/consElInp | awk '
+#    $VAMPIRE -t $CFTIME $3 --mode consequence_elimination -ptb off -spl off -updr off  <$CTMP/consElInp | awk '
+    $VAMPIRE --time_limit $CFTIME $3 --mode consequence_elimination --splitting off --unused_predicate_definition_removal off  <$CTMP/consElInp | awk '
+
 /^Pure cf clause/ { cl=$0; clN=NR }
 /^Consequence found/ { print cl }
 { if(NR!=clN) { print; fflush() } }
@@ -72,15 +74,17 @@ grep tff $2 > $TMP/theory
 cat $TMP/theory >&2
 
 echo "Obtaining symbol eliminating inferences...">&2
-$VAMPIRE --show_skolemisations on < $2 | tee $TMP/out >&2
+$VAMPIRE --show_skolemisations on --time_limit 3 < $2 | tee $TMP/out >&2
 
 echo "Prepare consequence elimination task...">&2
 
 #filter symbol eliminating inferences
 grep tff $TMP/out > $TMP/symelFof
 
+cat $TMP/symelFof
+
 #cat  $TMP/theory $TMP/symelFof > $TMP/symelAll
-cat  $TMP/symelFof > $TMP/symelAll
+cat  $TMP/symelFof $TMP/theory > $TMP/symelAll
 
 echo "Start consequence elimination on SEI...">&2
 
@@ -88,10 +92,10 @@ echo "Start consequence elimination on SEI...">&2
 
 cp $TMP/symelAll $TMP/symel_nonred
 
-doConseqEl $TMP/symel_nonred $TMP/symel_nonred "-s 1003 -sa discount -bsr on -cond on"
-doConseqEl $TMP/symel_nonred $TMP/symel_nonred "-sa discount -flr on -bsr on -cond on"
-doConseqEl $TMP/symel_nonred $TMP/symel_nonred "-s 1003 -sa discount"
-doConseqEl $TMP/symel_nonred $TMP/symel_nonred "-s -1 -sa discount -flr on"
+doConseqEl $TMP/symel_nonred $TMP/symel_nonred "--selection 1003 --saturation_algorithm discount --backward_subsumption_resolution on --condensation on"
+doConseqEl $TMP/symel_nonred $TMP/symel_nonred "--saturation_algorithm discount --forward_literal_rewriting on --backward_subsumption_resolution on --condensation on"
+doConseqEl $TMP/symel_nonred $TMP/symel_nonred "--selection 1003 --saturation_algorithm discount"
+doConseqEl $TMP/symel_nonred $TMP/symel_nonred "--selection -1 --saturation_algorithm discount --forward_literal_rewriting on"
 
 
 #print statistics

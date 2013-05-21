@@ -70,10 +70,12 @@ private:
   void analyzeVariables();
   void collectPaths();
   void generateAxiomsForCounters();
-  void generateCounterAxiom(const string& name,int min,int max,int gcd);
+  Formula* getBranchCondition(Variable* v);
+  Formula* getGeneralUpdateCondition(Path* path, Path::Iterator& pite, int conditionNumber);
+  void generateCounterAxiom(const string& name,int min,int max,int gcd, Formula* branch);
   void generateLetExpressions();
-  TermList expressionToTerm(Expression* exp);
-  Formula*  expressionToPred(Expression* exp);
+  TermList expressionToTerm(Expression* exp, bool magic=false);
+  Formula*  expressionToPred(Expression* exp,bool magic=false);
   TermList letTranslationOfPath(Path::Iterator& sit, TermList variable);
   Formula* letTranslationOfVar(VariableMap::Iterator& vit, Formula* letFormula); // VariableMap::Iterator&
   Formula* letTranslationOfArray(Map<Variable*,bool>::Iterator &sit, Formula* exp);

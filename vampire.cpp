@@ -567,6 +567,10 @@ int main(int argc, char* argv[])
 {
   CALL ("main");
 
+#if IS_LINGVA
+    env.options->setMode(Options::MODE_PROGRAM_ANALYSIS);
+#endif
+
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
   // create random seed for the random number generation
@@ -586,9 +590,6 @@ int main(int argc, char* argv[])
       env.endOutput();
     }
 
-#if IS_LINGVA
-    env.options->setMode(Options::MODE_PROGRAM_ANALYSIS);
-#endif
 
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());

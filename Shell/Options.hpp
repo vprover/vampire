@@ -118,6 +118,9 @@ public:
     INTERPRETED_SIMPLIFICATION,
 
     LATEX_OUTPUT,
+
+    LINGVA_ADDITIONAL_INVARIANTS,
+
     LITERAL_COMPARISON_MODE,
     LOG_FILE,
     LRS_FIRST_TIME_CHECK,
@@ -612,6 +615,9 @@ public:
   Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution; }
   bool forwardSubsumption() const { return _forwardSubsumption; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting; }
+
+  string lingvaAdditionalInv() const {return _linAdditionalInvariants; }
+
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly; }
   bool setLrsFirstTimeCheck(int newVal);
@@ -860,6 +866,9 @@ private:
   bool _interpretedSimplification;
 
   string _latexOutput;
+
+  string _linAdditionalInvariants;
+
   LiteralComparisonMode _literalComparisonMode;
   string _logFile;
   int _lrsFirstTimeCheck;

@@ -41,6 +41,12 @@
 
 #include "Saturation/ProvingHelper.hpp"
 
+#include "Parse/TPTP.hpp"
+
+#include <string>
+#include <fstream>
+#include <iostream>
+
 using namespace Kernel;
 using namespace Program;
 using namespace Shell;
@@ -106,10 +112,28 @@ void LoopAnalyzer::analyze()
   cout << "\nCollected first-order loop properties...\n";
   cout << "---------------------\n";
   generateIterationDefinition();
+
+  //check if we have additional information to be added to the units
+  string additionalInvariants = env.options->lingvaAdditionalInv();
+  if( additionalInvariants != "")
+    {
+      //retrieve the file containing the additional information
+      istream* additional = new ifstream(additionalInvariants.c_str());
+      //use the TPTP parser to retrieve the additional information
+      Parse::TPTP parser(*additional);
+      parser.parse();
+      //retrieve the information from the file
+      UnitList* additionalUnits = parser.units();
+      //concatenate the generated information with the information
+      //provided by the user
+      _units = _units->concat(_units, additionalUnits);
+    }
+  //print the SEI problem
   UnitList::Iterator units(_units);
   while (units.hasNext()) {
     cout <<units.next()->toString() << "\n";
    }
+
   cout<<"\nGenerationg the SEI problem ... \n"<<endl;
   cout << "---------------------\n";
 
@@ -338,7 +362,7 @@ void LoopAnalyzer::collectPaths()
  * Translate program term-expressions into Vampire terms (termlists)
 */
 
-TermList LoopAnalyzer::expressionToTerm(Expression* exp)
+TermList LoopAnalyzer::expressionToTerm(Expression* exp, bool magic)
 {
   CALL("LoopAnalyzer::expressionToTerm");
   switch (exp->kind()) {
@@ -352,10 +376,21 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
    }
   case Expression::VARIABLE:
     {
+
       Variable* expVar=  static_cast<VariableExpression*>(exp)->variable();
       string expName=expVar->name() ;
-      TermList var(Term::createConstant(getIntConstant(expName)));
-      return var;
+      if (!magic)
+        {
+          TermList var(Term::createConstant(getIntConstant(expName)));
+          return var;
+        }
+      else {
+          TermList var;
+          var.makeVar(99);
+          TermList varF = TermList(Term::create1(getIntFunction(expName,1,true),var));
+          return varF;
+      }
+
     }
    case Expression::ARRAY_APPLICATION:
      {
@@ -365,7 +400,8 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
        unsigned arrayFct=getIntFunction(varName,1,false);
        //create term represenation for array arguments
        Expression*  expArrayArguments=  static_cast<ArrayApplicationExpression*>(exp)->argument();
-       TermList varArg= expressionToTerm(expArrayArguments);
+
+       TermList varArg= expressionToTerm(expArrayArguments,magic);
        //create term for array application
        TermList varArray=TermList(Term::create1(arrayFct, varArg));
        return varArray;
@@ -429,7 +465,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
 /**
  * Translate program predicate-expressions into Vampire literals (termlists)
  */
-Formula* LoopAnalyzer::expressionToPred(Expression* exp)
+Formula* LoopAnalyzer::expressionToPred(Expression* exp, bool magic)
 {
   CALL("LoopAnalyzer::expressionToPred");
   FunctionApplicationExpression* app = static_cast<FunctionApplicationExpression*>(exp);
@@ -464,8 +500,8 @@ Formula* LoopAnalyzer::expressionToPred(Expression* exp)
   if (app->function() == ConstantFunctionExpression::integerGreater()) {
     Expression* e1 = app->getArgument(0);
     Expression* e2 = app->getArgument(1);
-    TermList e1Term = expressionToTerm(e1); //make recursive call on function arguments
-    TermList e2Term = expressionToTerm(e2);
+    TermList e1Term = expressionToTerm(e1,magic); //make recursive call on function arguments
+    TermList e2Term = expressionToTerm(e2,magic);
     Theory* theory = Theory::instance();
     Formula* predTerm = new AtomicFormula(theory->pred2(Theory::INT_GREATER,
 	    true, e1Term, e2Term));
@@ -474,8 +510,8 @@ Formula* LoopAnalyzer::expressionToPred(Expression* exp)
   if (app->function() == ConstantFunctionExpression::integerGreaterEq()) {
     Expression* e1 = app->getArgument(0);
     Expression* e2 = app->getArgument(1);
-    TermList e1Term = expressionToTerm(e1); //make recursive call on function arguments
-    TermList e2Term = expressionToTerm(e2);
+    TermList e1Term = expressionToTerm(e1,magic); //make recursive call on function arguments
+    TermList e2Term = expressionToTerm(e2,magic);
     Theory* theory = Theory::instance();
     Formula* predTerm = new AtomicFormula(theory->pred2(
 	    Theory::INT_GREATER_EQUAL, true, e1Term, e2Term));
@@ -1027,7 +1063,7 @@ Formula* LoopAnalyzer::arrayUpdateCondition(Path* path, Path::Iterator &sit, int
 
 Formula* LoopAnalyzer::updatePredicateOfArray2(Path* path, Path::Iterator &sit, Variable* v)
 {
-  CALL("LoopAnalyzer::arrayPredicateOfArray2");
+  CALL("LoopAnalyzer::updatePredicateOfArray2");
   Stack<Formula*> updPredicates;
   int updPos =0;
   Formula* arrayUpdPredicate; 
@@ -1041,8 +1077,8 @@ Formula* LoopAnalyzer::updatePredicateOfArray2(Path* path, Path::Iterator &sit, 
     case Statement::ASSIGNMENT:
       {
 	Expression* lhs = static_cast<Assignment*>(stat)->lhs();
-	Expression* rhs = static_cast<Assignment*>(stat)->rhs();
-	TermList rhsTerm=expressionToTerm(rhs);
+	//Expression* rhs = static_cast<Assignment*>(stat)->rhs();
+	//TermList rhsTerm=expressionToTerm(rhs);
 	if (lhs->kind()==Expression::ARRAY_APPLICATION) { 
 	  Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
 	  Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
@@ -1519,6 +1555,122 @@ void LoopAnalyzer::generateIterationDefinition()//TermList n)
 }
 
 /**
+ * Generate the generalized update condition
+ * @since 17.05.2013 Vienna
+ */
+
+Formula* LoopAnalyzer::getGeneralUpdateCondition(Path* path, Path::Iterator& pite, int conditionNumber){
+  CALL("LoopAnalyzer::getGeneralUpdateCondition");
+  Stack<Formula*> conditions;
+    int currentCnt=0;
+    int firstCondition=1;
+    Formula* arrayUpdCondition;
+    while (conditionNumber != currentCnt) {
+      Statement* stat = pite.next();
+      switch (stat->kind()) {
+      case Statement::ASSIGNMENT:
+      case Statement::BLOCK:
+        break;
+      case Statement::ITE: //condition is found on path
+        {
+          IfThenElse* ite = static_cast<IfThenElse*>(stat);
+          Formula* condition = expressionToPred(ite->condition(),true);
+          Statement* elsePart = ite->elsePart();
+          if (elsePart == (pite.next())) {
+            condition = new NegatedFormula(condition);
+          }
+          conditions.push(condition);
+        }
+        break;
+      case Statement::ITS:
+        {
+          IfThen* ift = static_cast<IfThen*>(stat);
+          Formula* condition = expressionToPred(ift->condition(),true);
+          conditions.push(condition);
+        }
+        break;
+      case Statement::WHILE_DO:   // cannot yet work with embedded loops
+      case Statement::EXPRESSION: // cannot yet work with procedure calls
+        ASSERTION_VIOLATION;
+      }
+      currentCnt=currentCnt+1;
+    }
+
+    while (!(conditions.isEmpty())) {
+      Formula* condition= conditions.pop();
+      if (firstCondition) {
+        arrayUpdCondition = condition;
+        firstCondition=0;
+      }
+      else {
+        FormulaList* interForm = (new FormulaList(arrayUpdCondition)) -> cons(condition);
+        arrayUpdCondition = new JunctionFormula(AND,interForm);
+      }
+    }
+
+    return arrayUpdCondition;
+}
+
+/**
+ * TODO : this code is just for testing, so for release version it has to be
+ * better commented or removed
+ * Generate branch information in the form of a let in formula
+ * Given a counter variable, find the path on which is updated and generate let in formula
+ */
+Formula* LoopAnalyzer::getBranchCondition(Variable* v){
+  CALL("LoopAnalyzer::getBranchCondition");
+  Formula* letIn;
+  Stack<Path*>::Iterator pit(_paths);
+  Path* pathOfInterest;
+  //iterate over all paths
+  int condNo = 0;
+  bool pathFound = false;
+  while(pit.hasNext() && !pathFound){
+      condNo++;
+      Path* path = pit.next();
+      Path::Iterator sit(path);
+      //check if the variable is updated on this path
+      while(sit.hasNext() && !pathFound){
+          Statement* s = sit.next();
+          //if the vriable is not updated in this statement continue
+          if(v != isScalarAssignment(s)){
+              continue;
+          }
+          pathFound = true;
+          pathOfInterest=path;
+      }
+  }
+  //we have found the first path on which the variable v is updated.
+  //find the array which is updated on this path
+  Variable* array;
+  Map<Variable*,bool>::Iterator vars(*_loop->variables());
+  while(vars.hasNext()){
+      Variable* x;
+      bool updated;
+      vars.next(x, updated);
+
+      if (x->vtype()->kind() == Type::ARRAY && arrayIsUpdatedOnPath(pathOfInterest, x)){
+          array = x;
+          break;
+      }
+  }
+  Path::Iterator iPath(pathOfInterest);
+  letIn = arrayUpdateCondition(pathOfInterest,iPath,condNo);
+  Path::Iterator pire(pathOfInterest);
+  //letIn = updatePredicateOfArray2(pathOfInterest, iPath,array);
+  Stack<Formula*> letUp;
+  letUp.push(letIn);
+  //create iter(X0) predicate
+  unsigned iter = getIntPredicate("iter", 1, true);
+  TermList x0;
+  x0.makeVar(99);
+  Literal* iterPred = Literal::create1(iter, true, x0);
+  Formula* nf = (new AtomicFormula(iterPred));
+  Formula* final = getGeneralUpdateCondition(pathOfInterest,pire, condNo);//updPredicateStack(letUp);
+  FormulaList* fl = (new FormulaList(nf))->cons(final);
+  return final;
+}
+/**
  * Generate axioms for counters.
  */
 void LoopAnalyzer::generateAxiomsForCounters()
@@ -1576,11 +1728,14 @@ void LoopAnalyzer::generateAxiomsForCounters()
       if (inc > 0) {
 	gcd = Int::gcd(gcd,inc);
       }
-      else if (inc < 0) {
-	gcd = Int::gcd(gcd,-inc);
-      }
+      else if (inc < 0)
+       {
+              gcd = Int::gcd(gcd, -inc);
+       }
       cout << "Counter " << v->name() << ": " << min << " min, " << max << " max, " << gcd << " gcd\n";
-      generateCounterAxiom(v->name(),min,max,gcd);
+      Formula* branch = getBranchCondition(v);
+
+      generateCounterAxiom(v->name(), min, max, gcd, branch);
     }
   }
 }
@@ -1593,26 +1748,18 @@ void LoopAnalyzer::generateAxiomsForCounters()
  * @param gcd greatest common divisor of all increments of the counter over all paths
  *
  * Multiple modifications. Last ones are related to (*) c(x) >= c0 c(x) <= c0 + x they have
- * to be translated instead into x >= y => c(x) >= c(y) c(x + y) <= c(x) + y
- *
- *  This has to be changed in the morning and send the results to Laura and Andrei.
- *  This changes are supposed to give us enough information and also should allow us to
- *  work with decreasing counters.
+ * to be translated instead into x >= y => c(x) >= c(y)  c(x + y) <= c(x) + y
  *
  *  From properties like (*) one can derive in one step that c0 + x >= c0, and after
  *  we can derive x >= 0 . That means all the integer numbers are positive (false).
  *
- *  Last change: ioan, 28.04.2013
+ * Added the branch formula, this can be removed if not necessary
+ *  Last change: ioan, 21.05.2013
  */
 
 void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
-		int gcd) {
+		int gcd, Formula* branch) {
 	CALL("LoopAnalyzer::generateCounterAxiom");
-	/*
-	 * Modified: added the following : ~iter(x0) | Formula generated. To revert at the previous version
-	 * one has to uncomment the _units = _units->cons(..) and comment the part from FormulaList to
-	 * _units = _units->cons(new..);
-	 */
 	// value of the counter at position 0
 	TermList c(Term::createConstant(getIntConstant(name + Int::toString(0))));
 	unsigned fun = getIntFunction(name, 1);
@@ -1620,10 +1767,10 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
 	TermList x0;
 	x0.makeVar(0);
 	//create iter(X0) predicate
-	unsigned iter = getIntPredicate("iter", 1, true);
-	Literal* iterPred = Literal::create1(iter, true, x0);
+	//unsigned iter = getIntPredicate("iter", 1, true);
+	//Literal* iterPred = Literal::create1(iter, true, x0);
 	//create ~iter(x0)
-	Formula* nf = (new AtomicFormula(iterPred));
+	//Formula* nf = (new AtomicFormula(iterPred));
 	// term c(x0)
 	TermList cx0(Term::create(fun, 1, &x0));
 	Theory* theory = Theory::instance();
@@ -1828,17 +1975,26 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
 	// generate density axioms
 	if (max == 1) {
 		// generate J > I & c(J) > V & V > c(I) -> (E K)(J > K & K > I & c(K) = V)
-		TermList I;
-		I.makeVar(0);
+	        // slight modification could be adding the branch information to this density axiom
+
+	   	TermList I;
+		I.makeVar(4);
 		TermList J;
-		J.makeVar(1);
+		J.makeVar(5);
 		TermList K;
-		K.makeVar(2);
+		K.makeVar(99);
 		TermList V;
 		V.makeVar(3);
 		TermList cI(Term::create(fun, 1, &I));
 		TermList cJ(Term::create(fun, 1, &J));
 		TermList cK(Term::create(fun, 1, &K));
+		/**
+		 * TODO remove the code if not necessary
+		 */
+		unsigned iter = getIntPredicate("iter", 1, true);
+		Literal* iterPred = Literal::create1(iter, true, K);
+		Formula* nf = (new AtomicFormula(iterPred));
+		//up to here
 		Formula* JgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, J, I));
 		Formula* cJgreaterV = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, cJ, V));
 		Formula* VgreatercI = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, V, cI));
@@ -1849,16 +2005,19 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
 		Formula* KgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, K, I));
 		Formula* cKequalV = new AtomicFormula(createIntEquality(true, cK, V));
 		FormulaList* right =(new FormulaList(JgreaterK))->cons(KgreaterI)->cons(cKequalV);
-		Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(2),
+		//->cons(branch)->cons(nf);
+		Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(99),
 									new JunctionFormula(AND, right));
 		LOG("lin_density","density axioms: "<<lhs->toString()<<" => "<< rhs->toString());
 		_units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs),
 						new Inference(Inference::PROGRAM_ANALYSIS),
 						Unit::ASSUMPTION));
+
 	}
 	if (min == -1) {
 		// generate J > I & c(J) < V & V < c(I) -> (E K)(J > K & K > I & c(K) = V)
-		TermList I;
+	        // slight modification could be adding branch information to this density axiom
+	        TermList I;
 		I.makeVar(0);
 		TermList J;
 		J.makeVar(1);

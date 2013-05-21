@@ -186,6 +186,9 @@ const char* Options::Constants::_optionNames[] = {
   "interpreted_simplification",
 
   "latex_output",
+
+  "lingva_additional_inv",
+
   "literal_comparison_mode",
   "log_file",
   "lrs_first_time_check",
@@ -423,6 +426,7 @@ int Options::Constants::shortNameIndexes[] = {
   INST_GEN_WITH_RESOLUTION,
   INEQUALITY_SPLITTING,
   LOG_FILE,
+
   LITERAL_COMPARISON_MODE,
   LRS_WEIGHT_LIMIT_ONLY,
   MEMORY_LIMIT,
@@ -825,6 +829,7 @@ Options::Options ()
   _interpretedSimplification(false),
 
   _latexOutput("off"),
+  _linAdditionalInvariants(""),
   _literalComparisonMode(LCM_STANDARD),
   _logFile("off"),
   _lrsFirstTimeCheck(5),
@@ -1257,6 +1262,11 @@ void Options::set(const char* name,const char* value, int index)
     case LATEX_OUTPUT:
       _latexOutput = value;
       return;
+
+    case LINGVA_ADDITIONAL_INVARIANTS:
+      _linAdditionalInvariants = value;
+      return;
+
     case LITERAL_COMPARISON_MODE:
       _literalComparisonMode =
 	(LiteralComparisonMode)Constants::lcmValues.find(value);
@@ -2147,6 +2157,11 @@ void Options::outputValue (ostream& str,int optionTag) const
   case LATEX_OUTPUT:
     str << _latexOutput;
     return;
+
+  case LINGVA_ADDITIONAL_INVARIANTS:
+    str << _linAdditionalInvariants;
+    return;
+
   case LITERAL_COMPARISON_MODE:
     str << Constants::lcmValues[_literalComparisonMode];
     return;

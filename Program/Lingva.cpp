@@ -27,6 +27,9 @@ void RunLingva::run()
 	    env.endOutput();
 	  }
 	if (env.statistics->terminationReason == Statistics::REFUTATION){
+	    env.beginOutput();
+	    UIHelper::outputResult(env.out());
+	    env.endOutput();
 		SYSTEM_FAIL("If you see this message something went terribely wrong!", 0);
 		ASSERTION_VIOLATION;
 	}
