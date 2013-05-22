@@ -1510,6 +1510,7 @@ void LoopAnalyzer::generateLoopConditionProperty()
   Literal* iterPred = Literal::create1(iter,true,x0);
   Formula* loopConditionProp =
     new BinaryFormula(IMP,new AtomicFormula(iterPred),condition);
+    
 
   LOG("lin_lCond","loop condition: "<< loopConditionProp->toString());
 
@@ -1553,6 +1554,34 @@ void LoopAnalyzer::generateIterationDefinition()//TermList n)
 					new Inference(Inference::PROGRAM_ANALYSIS),
 					Unit::AXIOM));
 }
+
+
+/**
+ * This function is called only for multi-path loops
+ * The path condition is relativized wrt to a loop iteration. 
+ * that is, if the path condition is v<M, 
+ * where v is a loop variable and M a constant, 
+ * then the property at iteration X should be: v(X0)<M
+ * We use let...in constructs, so the property is:  let v:=v(X0) in v<M
+ */
+Formula* LoopAnalyzer::relativePathCondition(Formula* condition)
+{
+    CALL("LoopAnalyzer::relativePathCondition");
+    //make sequence of let v=v(x) in...CONDITION for all vars
+    //process first updated array vars
+    Map<Variable*,bool>::Iterator vars(*_loop->variables());
+    Formula* relativeCondition  = letTranslationOfArray(vars, condition);
+    //process updated scalars 
+    VariableMap::Iterator varit(_variableInfo);
+    relativeCondition = letTranslationOfVar(varit,condition);
+    
+    
+    //LK: Ioan, pls check/update the LOG, so the line below works
+    //LOG("lin_relativePath","relative path condition: "<< relativeCondition->toString());
+    
+    return relativeCondition;
+}
+
 
 /**
  * Generate the generalized update condition
@@ -1607,7 +1636,7 @@ Formula* LoopAnalyzer::getGeneralUpdateCondition(Path* path, Path::Iterator& pit
         arrayUpdCondition = new JunctionFormula(AND,interForm);
       }
     }
-
+    cout<<"ArrayUpdCondition: "<<arrayUpdCondition->toString()<<"\n";
     return arrayUpdCondition;
 }
 
@@ -1616,10 +1645,12 @@ Formula* LoopAnalyzer::getGeneralUpdateCondition(Path* path, Path::Iterator& pit
  * better commented or removed
  * Generate branch information in the form of a let in formula
  * Given a counter variable, find the path on which is updated and generate let in formula
+ * 
+ * LK: the let-in formula should be generated when scalar properties are constructed, using loop iteratin variables
  */
 Formula* LoopAnalyzer::getBranchCondition(Variable* v){
   CALL("LoopAnalyzer::getBranchCondition");
-  Formula* letIn;
+  Formula* branchCondition;
   Stack<Path*>::Iterator pit(_paths);
   Path* pathOfInterest;
   //iterate over all paths
@@ -1641,35 +1672,13 @@ Formula* LoopAnalyzer::getBranchCondition(Variable* v){
       }
   }
   //we have found the first path on which the variable v is updated.
-  //find the array which is updated on this path
-  Variable* array;
-  Map<Variable*,bool>::Iterator vars(*_loop->variables());
-  while(vars.hasNext()){
-      Variable* x;
-      bool updated;
-      vars.next(x, updated);
-
-      if (x->vtype()->kind() == Type::ARRAY && arrayIsUpdatedOnPath(pathOfInterest, x)){
-          array = x;
-          break;
-      }
-  }
   Path::Iterator iPath(pathOfInterest);
-  letIn = arrayUpdateCondition(pathOfInterest,iPath,condNo);
-  Path::Iterator pire(pathOfInterest);
-  //letIn = updatePredicateOfArray2(pathOfInterest, iPath,array);
-  Stack<Formula*> letUp;
-  letUp.push(letIn);
-  //create iter(X0) predicate
-  unsigned iter = getIntPredicate("iter", 1, true);
-  TermList x0;
-  x0.makeVar(99);
-  Literal* iterPred = Literal::create1(iter, true, x0);
-  Formula* nf = (new AtomicFormula(iterPred));
-  Formula* final = getGeneralUpdateCondition(pathOfInterest,pire, condNo);//updPredicateStack(letUp);
-  FormulaList* fl = (new FormulaList(nf))->cons(final);
-  return final;
+  branchCondition = arrayUpdateCondition(pathOfInterest,iPath,condNo);
+  return branchCondition;
 }
+
+
+
 /**
  * Generate axioms for counters.
  */
@@ -1734,7 +1743,6 @@ void LoopAnalyzer::generateAxiomsForCounters()
        }
       cout << "Counter " << v->name() << ": " << min << " min, " << max << " max, " << gcd << " gcd\n";
       Formula* branch = getBranchCondition(v);
-
       generateCounterAxiom(v->name(), min, max, gcd, branch);
     }
   }
@@ -1781,7 +1789,7 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
 		if (gcd == 1 || gcd == -1) {
 			// c +- x0
 			TermList sum(theory->fun2(gcd == 1 ? Theory::INT_PLUS : Theory::INT_MINUS, c, x0));
-			// create c(x0) = c + x_0
+			// create c(x0) = c0 + x_0
 			eq = createIntEquality(true, cx0, sum);
 		} else {
 			// gcd != 1
@@ -1974,41 +1982,52 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
 
 	// generate density axioms
 	if (max == 1) {
-		// generate J > I & c(J) > V & V > c(I) -> (E K)(J > K & K > I & c(K) = V)
-	        // slight modification could be adding the branch information to this density axiom
-
+		// generate J > I & c(J) > V & V >= c(I) -> (E K)(J > K & K >= I & c(K) = V & iter(K))
+        // slight modification could be adding the branch information to this density axiom
+        
+         //LK: now it is c0<=V<c -> (E K)(iter(K) & c(K) = V & path_condition(K))
+        
+        cout<<"Density axiom for "<<name<<"\n";
 	   	TermList I;
-		I.makeVar(4);
+		I.makeVar(3);
 		TermList J;
-		J.makeVar(5);
-		TermList K;
-		K.makeVar(99);
+		J.makeVar(2);
 		TermList V;
-		V.makeVar(3);
-		TermList cI(Term::create(fun, 1, &I));
-		TermList cJ(Term::create(fun, 1, &J));
+		V.makeVar(1);
+        TermList K;
+		K.makeVar(0);
+		//TermList cI(Term::create(fun, 1, &I));
+		//TermList cJ(Term::create(fun, 1, &J));
 		TermList cK(Term::create(fun, 1, &K));
-		/**
-		 * TODO remove the code if not necessary
-		 */
-		unsigned iter = getIntPredicate("iter", 1, true);
-		Literal* iterPred = Literal::create1(iter, true, K);
-		Formula* nf = (new AtomicFormula(iterPred));
-		//up to here
-		Formula* JgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, J, I));
-		Formula* cJgreaterV = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, cJ, V));
-		Formula* VgreatercI = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, V, cI));
-		FormulaList* left = (new FormulaList(VgreatercI))->cons(cJgreaterV)->cons(
-							JgreaterI);
+        TermList cFinal(Term::createConstant(getIntConstant(name)));
+
+        unsigned iter = getIntPredicate("iter", 1, true);
+		Literal* iterPredK = Literal::create1(iter, true, K);
+		Formula* nfK = (new AtomicFormula(iterPredK));
+		
+		//Formula* JgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, J, I));
+		//Formula* cJgreaterV = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, cJ, V));
+		//Formula* VgreatercI = new AtomicFormula(theory->pred2(Theory::INT_GREATER_EQUAL, true, V, c));
+		
+        //LK change I<=V< J into c0<=V<c
+        Formula* cgreaterV = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, cFinal, V));
+		Formula* Vgreaterc0 = new AtomicFormula(theory->pred2(Theory::INT_GREATER_EQUAL, true, V, c));
+		        
+        FormulaList* left = (new FormulaList(Vgreaterc0))->cons(cgreaterV);
 		Formula* lhs = new JunctionFormula(AND, left);
-		Formula* JgreaterK = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, J, K));
-		Formula* KgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, K, I));
+		//Formula* JgreaterK = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, J, K));
+		//Formula* KgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER_EQUAL, true, K, I));
 		Formula* cKequalV = new AtomicFormula(createIntEquality(true, cK, V));
-		FormulaList* right =(new FormulaList(JgreaterK))->cons(KgreaterI)->cons(cKequalV);
-		//->cons(branch)->cons(nf);
-		Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(99),
+		//FormulaList* right =(new FormulaList(JgreaterK))->cons(KgreaterI)->cons(cKequalV)->cons(nfK);
+        
+        Formula* condition_with_iteration = relativePathCondition(branch);
+        
+        FormulaList* right =(new FormulaList(cKequalV))->cons(nfK)->cons(condition_with_iteration);
+		        
+		Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
 									new JunctionFormula(AND, right));
 		LOG("lin_density","density axioms: "<<lhs->toString()<<" => "<< rhs->toString());
+        
 		_units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs),
 						new Inference(Inference::PROGRAM_ANALYSIS),
 						Unit::ASSUMPTION));
@@ -2016,28 +2035,39 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
 	}
 	if (min == -1) {
 		// generate J > I & c(J) < V & V < c(I) -> (E K)(J > K & K > I & c(K) = V)
-	        // slight modification could be adding branch information to this density axiom
-	        TermList I;
-		I.makeVar(0);
-		TermList J;
-		J.makeVar(1);
-		TermList K;
-		K.makeVar(2);
+        // slight modification could be adding branch information to this density axiom
+        
+        //LK: now it is c<V<=c0 -> (E K)(iter(K) & c(K) = V & path_condition(K))
+        
+        //TermList I;
+		//I.makeVar(3);
+		//TermList J;
+		//J.makeVar(2);
 		TermList V;
-		V.makeVar(3);
-		TermList cI(Term::create(fun, 1, &I));
-		TermList cJ(Term::create(fun, 1, &J));
+		V.makeVar(1);
+        TermList K;
+		K.makeVar(0);
+		//TermList cI(Term::create(fun, 1, &I));
+		//TermList cJ(Term::create(fun, 1, &J));
 		TermList cK(Term::create(fun, 1, &K));
-		Formula* JgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, J, I));
-		Formula* cJlessV = new AtomicFormula(theory->pred2(Theory::INT_LESS, true, cJ, V));
-		Formula* VlesscI = new AtomicFormula(theory->pred2(Theory::INT_LESS, true, V, cI));
-		FormulaList* left = (new FormulaList(VlesscI))->cons(cJlessV)->cons(JgreaterI);
+        TermList cFinal(Term::createConstant(getIntConstant(name)));
+
+        unsigned iter = getIntPredicate("iter", 1, true);
+		Literal* iterPredK = Literal::create1(iter, true, K);
+		Formula* nfK = (new AtomicFormula(iterPredK));
+        
+		//Formula* JgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, J, I));
+		Formula* clessV = new AtomicFormula(theory->pred2(Theory::INT_LESS, true, cFinal, V));
+		Formula* Vlessc0 = new AtomicFormula(theory->pred2(Theory::INT_LESS, true, V, c));
+		FormulaList* left = (new FormulaList(Vlessc0))->cons(clessV);//->cons(JgreaterI);
 		Formula* lhs = new JunctionFormula(AND, left);
-		Formula* JgreaterK = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, J, K));
-		Formula* KgreaterI = new AtomicFormula(	theory->pred2(Theory::INT_GREATER, true, K, I));
+		//Formula* JgreaterK = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, J, K));
+		//Formula* KgreaterI = new AtomicFormula(	theory->pred2(Theory::INT_GREATER, true, K, I));
 		Formula* cKequalV = new AtomicFormula(createIntEquality(true, cK, V));
-		FormulaList* right =(new FormulaList(JgreaterK))->cons(KgreaterI)->cons(cKequalV);
-		Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(2),
+        Formula* condition_with_iteration = relativePathCondition(branch);
+        FormulaList* right =(new FormulaList(cKequalV))->cons(nfK)->cons(condition_with_iteration);
+        
+		Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
 								new JunctionFormula(AND, right));
 		LOG("lin_density","density axioms: "<<lhs->toString()<<" => "<<rhs->toString());
 		_units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs),

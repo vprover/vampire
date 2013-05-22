@@ -41,7 +41,7 @@ using namespace Program;
 //14 }
 
 
-TEST_FUN(canonical1)
+TEST_FUN(partition)
 {
   Variable* va = new Variable("a",Type::integerType());
   Variable* vb = new Variable("b",Type::integerType());

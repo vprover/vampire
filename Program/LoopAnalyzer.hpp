@@ -94,6 +94,7 @@ private:
   void generateValueFunctionRelationsOfVariables();//TermList n);
   void generateLoopConditionProperty();
   void generateIterationDefinition();//TermList n);
+  Formula* relativePathCondition(Formula* condition);
 
   unsigned getIntFunction(string name, unsigned arity, bool setColor=false);
   unsigned getIntConstant(string name);
