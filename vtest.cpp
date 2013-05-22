@@ -63,7 +63,17 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
       string traceStr(it.next());
       it.del();
       PROCESS_TRACE_SPEC_STRING(traceStr);
-    }
+    } 
+    //this part is added just for testing
+    else if(arg == "-t") {
+	it.del();
+	if(!it.hasNext()){
+	    USER_ERROR("value for timelimit expected");
+	}
+	int seconds;
+	Int::stringToInt(it.next(), seconds);
+	Api::ResourceLimits::setLimits(0,seconds*10);
+	}
     else {
       break;
     }
@@ -80,7 +90,7 @@ int main(int argc, char* argv [])
   Api::ResourceLimits::disableLimits();
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
-   // create random seed for the random number generation
+  // create random seed for the random number generation
   Lib::Random::setSeed(123456);
 
   Stack<char*> args;
@@ -89,17 +99,15 @@ int main(int argc, char* argv [])
 
   try {
 
-
-
     if(args.size()==1) {
       UnitTesting::instance()->runAllTests(cout);
     }
-    else if(args.size()==2) {
+    else if(args.size()==2 || args.size() == 3) {
       if(!strcmp(args[1],"-l")) {
 	UnitTesting::instance()->printTestNames(cout);
       }
       else {
-	if(!UnitTesting::instance()->runTest(args[1],cout)) {
+	if(!UnitTesting::instance()->runTest(args[args.size()-1],cout)) {
 	  cout<<"Unknown test name: "<<args[1]<<endl;
 	  cout<<"Run \""<<args[0]<<" -l\" for the list of available tests."<<endl;
 	}
