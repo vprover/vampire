@@ -55,6 +55,7 @@ TPTP::TPTP(istream& in)
   : _containsConjecture(false),
     _allowedNames(0),
     _in(&in),
+    _includeDirectory(""),
     _currentColor(COLOR_TRANSPARENT)
 {
 } // TPTP::TPTP
@@ -1169,6 +1170,7 @@ void TPTP::unitList()
     resetChars();
     delete _in;
     _in = _inputs.pop();
+    _includeDirectory = _includeDirectories.pop();
     delete _allowedNames;
     _allowedNames = _allowedNamesStack.pop();
     _states.push(UNIT_LIST);
@@ -1833,6 +1835,7 @@ void TPTP::include()
     _allowedNamesStack.push(_allowedNames);
     _allowedNames = 0;
     _inputs.push(_in);
+    _includeDirectories.push(_includeDirectory);
   }
 
   tok = getTok(0);
@@ -1866,6 +1869,9 @@ void TPTP::include()
   if (ignore) {
     return;
   }
+  // here should be a computation of the new include directory according to
+  // the TPTP standard, so far we just set it to ""
+  _includeDirectory = "";
   string fileName(env.options->includeFileName(relativeName));
   _in = new ifstream(fileName.c_str());
   if (!*_in) {

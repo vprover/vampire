@@ -20,7 +20,6 @@
 #include "Shell/Property.hpp"
 #include "Shell/SineUtils.hpp"
 
-namespace Shell {
 namespace CASC {
 
 using namespace std;
@@ -97,7 +96,6 @@ private:
 
 #endif //!COMPILER_MSVC
 
-}
 }
 
 #endif // __SimpleLTBMode__

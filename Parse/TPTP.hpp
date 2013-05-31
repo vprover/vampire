@@ -437,6 +437,13 @@ private:
   istream* _in;
   /** in the case include() is used, previous streams will be saved here */
   Stack<istream*> _inputs;
+  /** the current include directory */
+  string _includeDirectory;
+  /** in the case include() is used, previous sequence of directories will be
+   * saved here, this is required since TPTP requires the directory to be
+   * relative to the "current directory, that is, the directory used by the last include()
+   */
+  Stack<string> _includeDirectories;
   /** input characters */
   Array<char> _chars;
   /** position in the input stream of the 0th characater in _chars[] */

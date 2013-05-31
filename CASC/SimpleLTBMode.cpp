@@ -37,15 +37,11 @@
 
 #define SLOWNESS 1.15
 
-namespace Shell
-{
-namespace CASC
-{
-
 using namespace std;
 using namespace Lib;
 using namespace Lib::Sys;
 using namespace Saturation;
+using namespace CASC;
 
 /**
  * This function runs the batch master process and spawns the child master processes
@@ -812,10 +808,6 @@ unsigned SLTBProblem::getSliceTime(string sliceCode)
     time++;
   }
   return time;
-}
-
-
-}
 }
 
 #endif //!COMPILER_MSVC

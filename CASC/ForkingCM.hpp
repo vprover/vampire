@@ -15,8 +15,6 @@
 
 #include "CASCMode.hpp"
 
-namespace Shell
-{
 namespace CASC
 {
 
@@ -50,7 +48,6 @@ private:
 
 #endif
 
-}
 }
 
 #endif // __ForkingCM__

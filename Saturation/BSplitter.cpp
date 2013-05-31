@@ -58,13 +58,13 @@ bool BSplitter::doSplitting(Clause* cl)
 {
   CALL("BSplitter::doSplitting");
 
-  if(!splittingAllowed(cl)) {
+  if (!splittingAllowed(cl)) {
     return false;
   }
 
   Clause* comp;
   comp=getComponent(cl);
-  if(!comp) {
+  if (!comp) {
     return false;
   }
 #if VDEBUG
@@ -76,7 +76,7 @@ bool BSplitter::doSplitting(Clause* cl)
 
   //update "dependent" field of base SplitRecords
   SplitSet::Iterator bsit(*cl->splits());
-  while(bsit.hasNext()) {
+  while (bsit.hasNext()) {
     SplitLevel blev=bsit.next();
     _db[blev]->dependent.push(lev);
   }
@@ -92,7 +92,6 @@ bool BSplitter::doSplitting(Clause* cl)
   cout<<"Splitting "<<(*cl)<<" into level "<<lev<<", first component "<<(*comp)<<endl;
 #endif
 
-
   env.statistics->backtrackingSplits++;
   return true;
 }
@@ -105,18 +104,18 @@ void BSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
   CALL("BSplitter::onClauseReduction");
   ASS(cl);
 
-  if(!premises.hasNext()) {
+  if (!premises.hasNext()) {
     ASS(!replacement || cl->splits()==replacement->splits());
     return;
   }
 
   SplitSet* diff=premises.next()->splits();
-  while(premises.hasNext()) {
+  while (premises.hasNext()) {
     Clause* premise=premises.next();
     ASS(premise);
     diff=diff->getUnion(premise->splits());
   }
-  if(replacement) {
+  if (replacement) {
     diff=diff->getUnion(replacement->splits());
   }
   diff=diff->subtract(cl->splits());
@@ -129,7 +128,7 @@ void BSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
   cout<<"Reduced "<<(*cl)<<". Added to reduced stack on levels {"<<diff->toString()<<"}."<<endl;
 #endif
 
-  if(diff->isEmpty()) {
+  if (diff->isEmpty()) {
     return;
   }
 
@@ -137,7 +136,7 @@ void BSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
   //BDDs are disabled when we do backtracking splitting so they can only contain false
   ASS(BDD::instance()->isFalse(cl->prop()));
   SplitSet::Iterator dit(*diff);
-  while(dit.hasNext()) {
+  while (dit.hasNext()) {
     SplitLevel slev=dit.next();
     _db[slev]->addReduced(cl);
   }
@@ -147,7 +146,7 @@ void BSplitter::onNewClause(Clause* cl)
 {
   CALL("BSplitter::onNewClause");
 
-  if(!cl->splits()) {
+  if (!cl->splits()) {
     SplitSet* splits=getNewClauseSplitSet(cl);
     assignClauseSplitSet(cl, splits);
 #if SP_REPORTS==2
@@ -185,7 +184,7 @@ Clause* BSplitter::getComponent(Clause* cl)
   CALL("BSplitter::getComponent");
 
   unsigned clen=cl->length();
-  if(clen<=1) {
+  if (clen<=1) {
     return 0;
   }
 
@@ -199,15 +198,15 @@ Clause* BSplitter::getComponent(Clause* cl)
 
   //TODO:Should we avoid colored literals to be in the split-out component?
 
-  for(unsigned i=0;i<clen;i++) {
+  for (unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
-    if(lit->isPositive()) {
+    if (lit->isPositive()) {
       posLits++;
     }
     VariableIterator vit(lit);
-    while(vit.hasNext()) {
+    while (vit.hasNext()) {
       unsigned master=varMasters.findOrInsert(vit.next().var(), i);
-      if(master!=i) {
+      if (master!=i) {
 	components.doUnion(master, i);
       }
     }
@@ -216,7 +215,7 @@ Clause* BSplitter::getComponent(Clause* cl)
 
   int compCnt=components.getComponentCount();
 
-  if(compCnt==1 || (splitPositive() && posLits<=1)) {
+  if (compCnt==1 || (splitPositive() && posLits<=1)) {
     return 0;
   }
 
@@ -226,7 +225,7 @@ Clause* BSplitter::getComponent(Clause* cl)
 
 
 compAssemblyStart:
-  if(!cit.hasNext()) {
+  if (!cit.hasNext()) {
     return 0;
   }
   lits.reset();
@@ -234,23 +233,23 @@ compAssemblyStart:
   IntUnionFind::ElementIterator elit=cit.next();
 
   unsigned compPosLits=0;
-  while(elit.hasNext()) {
+  while (elit.hasNext()) {
     int litIndex=elit.next();
     Literal* lit=(*cl)[litIndex];
     lits.push(lit);
-    if(lit->isPositive()) {
+    if (lit->isPositive()) {
       compPosLits++;
     }
-    if(isAnswerLiteral(lit) || lit->color()!=COLOR_TRANSPARENT) {
+    if (isAnswerLiteral(lit) || lit->color()!=COLOR_TRANSPARENT) {
       //we don't split out answer literals and colored literals, so the next component has to be attempted
       goto compAssemblyStart;
     }
   }
-  if(splitPositive()) {
-    if(compPosLits==posLits) {
+  if (splitPositive()) {
+    if (compPosLits==posLits) {
       return 0;
     }
-    if(compPosLits==0) {
+    if (compPosLits==0) {
       goto compAssemblyStart; //try next component
     }
   }
@@ -275,17 +274,17 @@ SplitSet* BSplitter::getNewClauseSplitSet(Clause* cl)
   Inference* inf=cl->inference();
   Inference::Iterator it=inf->iterator();
 
-  if(!stackSplitting()) {
+  if (!stackSplitting()) {
     res=SplitSet::getEmpty();
 
-    while(inf->hasNext(it)) {
+    while (inf->hasNext(it)) {
       Unit* premu=inf->next(it);
-      if(!premu->isClause()) {
+      if (!premu->isClause()) {
 	//the premise comes from preprocessing
 	continue;
       }
       Clause* prem=static_cast<Clause*>(premu);
-      if(!prem->splits()) {
+      if (!prem->splits()) {
 	//the premise comes from preprocessing
 	continue;
       }
@@ -296,24 +295,24 @@ SplitSet* BSplitter::getNewClauseSplitSet(Clause* cl)
   else {
     SplitLevel maxLev=0;
 
-    while(inf->hasNext(it)) {
+    while (inf->hasNext(it)) {
       Unit* premu=inf->next(it);
-      if(!premu->isClause()) {
+      if (!premu->isClause()) {
 	//the premise comes from preprocessing
 	continue;
       }
       Clause* prem=static_cast<Clause*>(premu);
-      if(!prem->splits()) {
+      if (!prem->splits()) {
 	//the premise comes from preprocessing
 	continue;
       }
 
-      if(!prem->splits()->isEmpty()) {
+      if (!prem->splits()->isEmpty()) {
 	maxLev=max(maxLev,prem->splits()->sval());
       }
     }
 
-    if(maxLev) {
+    if (maxLev) {
       res=SplitSet::getSingleton(maxLev);
     }
     else {
@@ -335,7 +334,7 @@ void BSplitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
 
   //update "children" field of relevant SplitRecords
   SplitSet::Iterator bsit(*splits);
-  while(bsit.hasNext()) {
+  while (bsit.hasNext()) {
     SplitLevel slev=bsit.next();
     _db[slev]->children.push(cl);
     cl->incRefCnt();
@@ -346,7 +345,7 @@ bool BSplitter::handleEmptyClause(Clause* cl)
 {
   CALL("BSplitter::handleEmptyClause");
 
-  if(cl->splits()->isEmpty()) {
+  if (cl->splits()->isEmpty()) {
     return false;
   }
   ASS(BDD::instance()->isFalse(cl->prop()));
@@ -360,7 +359,7 @@ void BSplitter::onAllProcessed()
   CALL("BSplitter::onAllProcessed");
   ASS(_sa->clausesFlushed());
 
-  if(_splitRefutations.isNonEmpty()) {
+  if (_splitRefutations.isNonEmpty()) {
     backtrack(pvi( RCClauseStack::Iterator(_splitRefutations) ));
     _splitRefutations.reset();
   }
@@ -403,7 +402,7 @@ start:
 #endif
 
   SplitSet* backtracked;
-  if(stackSplitting()) {
+  if (stackSplitting()) {
     NOT_IMPLEMENTED;
     backtracked=SplitSet::getRange(refLvl,_nextLev);
   }
@@ -413,9 +412,9 @@ start:
 
 
   ClauseStack::Iterator tdit(toDo);
-  while(tdit.hasNext()) {
+  while (tdit.hasNext()) {
     Clause* ecl=tdit.next();
-    if(ecl->splits()->hasIntersection(backtracked)) {
+    if (ecl->splits()->hasIntersection(backtracked)) {
       tdit.del();
     }
   }
@@ -433,15 +432,15 @@ start:
 
 
   SplitSet::Iterator blit(*backtracked);
-  while(blit.hasNext()) {
+  while (blit.hasNext()) {
     SplitLevel bl=blit.next();
     SplitRecord* sr=_db[bl];
 
-    while(sr->children.isNonEmpty()) {
+    while (sr->children.isNonEmpty()) {
       Clause* ccl=sr->children.pop();
-      if(!ccl->hasAux()) {
+      if (!ccl->hasAux()) {
 	ASS(ccl->splits()->member(bl));
-	if(ccl->store()!=Clause::BACKTRACKED) {
+	if (ccl->store()!=Clause::BACKTRACKED) {
 	  trashed.push(ccl);
 	  LOG_UNIT("bspl_rm_backtracked",ccl);
 	}
@@ -452,12 +451,12 @@ start:
   }
 
   SplitSet::Iterator blit2(*backtracked);
-  while(blit2.hasNext()) {
+  while (blit2.hasNext()) {
     SplitLevel bl=blit2.next();
     SplitRecord* sr=_db[bl];
 
     Clause* bcl=sr->base;
-    if(bl!=refLvl) {
+    if (bl!=refLvl) {
       restored.push(bcl);
     }
     else {
@@ -465,10 +464,10 @@ start:
       //clause, we should restore the base clause when backtracking
       //those extra levels.
       SplitSet* difSet=altSplitSet->subtract(bcl->splits());
-      if(!difSet->isEmpty()) {
+      if (!difSet->isEmpty()) {
 	SplitSet::Iterator dsit(*difSet);
 	bcl->incReductionTimestamp();
-	while(dsit.hasNext()) {
+	while (dsit.hasNext()) {
 	  SplitLevel slev=dsit.next();
 	  ASS(_db[slev]);
 	  _db[slev]->addReduced(bcl);
@@ -476,10 +475,10 @@ start:
       }
     }
 
-    while(sr->reduced.isNonEmpty()) {
+    while (sr->reduced.isNonEmpty()) {
       ReductionRecord rrec=sr->reduced.pop();
       Clause* rcl=rrec.clause;
-      if(rrec.timestamp==rcl->getReductionTimestamp()) {
+      if (rrec.timestamp==rcl->getReductionTimestamp()) {
 	restored.push(rcl);
       }
       LOG_UNIT("bspl_rm_restored",rcl);
@@ -490,9 +489,9 @@ start:
     delete sr;
   }
 
-  while(trashed.isNonEmpty()) {
+  while (trashed.isNonEmpty()) {
     Clause* tcl=trashed.popWithoutDec();
-    if(tcl->store()!=Clause::NONE) {
+    if (tcl->store()!=Clause::NONE) {
       _sa->removeActiveOrPassiveClause(tcl);
       ASS_EQ(tcl->store(), Clause::NONE);
     }
@@ -500,13 +499,13 @@ start:
     tcl->decRefCnt(); //belongs to trashed.popWithoutDec()
   }
 
-  if(toDo.isNonEmpty()) {
+  if (toDo.isNonEmpty()) {
     goto start; //////goto start here///////
   }
 
-  while(restored.isNonEmpty()) {
+  while (restored.isNonEmpty()) {
     Clause* rcl=restored.popWithoutDec();
-    if(!rcl->hasAux() && rcl->store()!=Clause::BACKTRACKED) {
+    if (!rcl->hasAux() && rcl->store()!=Clause::BACKTRACKED) {
       ASS(!rcl->splits()->hasIntersection(backtracked));
       rcl->setAux(0);
       ASS_EQ(rcl->store(), Clause::NONE);
@@ -560,7 +559,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
   altSplitSet=resSplits;
 
   env.statistics->backtrackingSplitsRefuted++;
-  if(resSplits->isEmpty()) {
+  if (resSplits->isEmpty()) {
     env.statistics->backtrackingSplitsRefutedZeroLevel++;
   }
 
@@ -572,9 +571,9 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
 
   firstLits.loadFromIterator(Clause::Iterator(*firstComp));
   Clause::Iterator bit(*base);
-  while(bit.hasNext()) {
+  while (bit.hasNext()) {
     Literal* l=bit.next();
-    if(!firstLits.find(l)) {
+    if (!firstLits.find(l)) {
       secLits.push(l);
     }
   }
@@ -590,11 +589,11 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
   cout<<"sp add "<<(*scl)<<endl;
 #endif
 
-  if(_addGroundNegation && firstComp->isGround()) {
+  if (_addGroundNegation && firstComp->isGround()) {
     //if the first component is ground, add its negation
     SplitSet* gndResSplits=refutation->splits()->subtract(SplitSet::getSingleton(refLvl));
     Clause::Iterator fcit(*firstComp);
-    while(fcit.hasNext()) {
+    while (fcit.hasNext()) {
       Literal* glit=fcit.next();
       Inference* ginf=getAlternativeClauseInference(base, firstComp, refutation);
       Clause* gcl=Clause::fromIterator(getSingletonIterator(Literal::complementaryLiteral(glit)), inp, ginf);
@@ -628,16 +627,16 @@ SplitSet* BSplitter::getTransitivelyDependentLevels(SplitLevel lev)
 
   toDo.push(lev);
   depSet.insert(lev);
-  while(toDo.isNonEmpty()) {
+  while (toDo.isNonEmpty()) {
     SplitLevel l=toDo.pop();
-    if(!_db[l]) {
+    if (!_db[l]) {
       continue;
     }
     depStack.push(l);
     LevelStack::Iterator dit(_db[l]->dependent);
-    while(dit.hasNext()) {
+    while (dit.hasNext()) {
       SplitLevel dl=dit.next();
-      if(!depSet.find(dl)) {
+      if (!depSet.find(dl)) {
 	toDo.push(dl);
 	depSet.insert(dl);
       }
@@ -653,7 +652,7 @@ void BSplitter::assertSplitLevelsExist(SplitSet* s)
   CALL("BSplitter::assertSplitLevelsExist");
 
   SplitSet::Iterator sit(*s);
-  while(sit.hasNext()) {
+  while (sit.hasNext()) {
     SplitLevel lev=sit.next();
     ASS_REP(_db[lev]!=0, lev);
   }

@@ -19,10 +19,7 @@
 
 #include "SpawningCM.hpp"
 
-namespace Shell
-{
-namespace CASC
-{
+using namespace CASC;
 
 SpawningCM::SpawningCM(string executable)
 : _executable(executable)
@@ -97,5 +94,3 @@ bool SpawningCM::runSlice(Options& opt)
   return false;
 }
 
-}
-}

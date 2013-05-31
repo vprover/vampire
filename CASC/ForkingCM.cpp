@@ -35,8 +35,6 @@
 
 #include "ForkingCM.hpp"
 
-namespace Shell
-{
 namespace CASC
 {
 
@@ -156,7 +154,6 @@ void ForkingCM::childRun(Options& strategyOpt)
   exit(resultValue);
 }
 
-}
 }
 
 #endif // !COMPILER_MSVC

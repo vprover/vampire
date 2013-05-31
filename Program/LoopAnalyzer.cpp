@@ -114,25 +114,24 @@ void LoopAnalyzer::analyze()
   generateIterationDefinition();
 
   //check if we have additional information to be added to the units
-  string additionalInvariants = env.options->lingvaAdditionalInv();
-  if( additionalInvariants != "")
-    {
-      //retrieve the file containing the additional information
-      istream* additional = new ifstream(additionalInvariants.c_str());
-      //use the TPTP parser to retrieve the additional information
-      Parse::TPTP parser(*additional);
-      parser.parse();
-      //retrieve the information from the file
-      UnitList* additionalUnits = parser.units();
-      //concatenate the generated information with the information
-      //provided by the user
-      _units = _units->concat(_units, additionalUnits);
-    }
+  string additionalInvariants = env.options->lingvaAdditionalInvariants();
+  if ( additionalInvariants != "") {
+    //retrieve the file containing the additional information
+    istream* additional = new ifstream(additionalInvariants.c_str());
+    //use the TPTP parser to retrieve the additional information
+    Parse::TPTP parser(*additional);
+    parser.parse();
+    //retrieve the information from the file
+    UnitList* additionalUnits = parser.units();
+    //concatenate the generated information with the information
+    //provided by the user
+    _units = _units->concat(_units, additionalUnits);
+  }
   //print the SEI problem
   UnitList::Iterator units(_units);
   while (units.hasNext()) {
     cout <<units.next()->toString() << "\n";
-   }
+   } 
 
   cout<<"\nGenerationg the SEI problem ... \n"<<endl;
   cout << "---------------------\n";
@@ -1393,7 +1392,7 @@ void LoopAnalyzer::generateUpdatePredicates()
  * modified 24.Apr.2013 by ioan
  * changed the construction of V(zero) = V0 to V(zero, P) = V0(P)
  */
-void LoopAnalyzer::generateValueFunctionRelationsOfVariables()//TermList n)
+void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
 {
    CALL("LoopAnalyzer::generateValueFunctionRelationsOfVariables");
    //create loop counter n and position x2 //test purpose
@@ -1558,16 +1557,16 @@ void LoopAnalyzer::generateIterationDefinition()//TermList n)
  */
 Formula* LoopAnalyzer::relativePathCondition(Formula* condition)
 {
-    CALL("LoopAnalyzer::relativePathCondition");
-    //make sequence of let v=v(x) in...CONDITION for all vars
-    //process first updated array vars
-    Map<Variable*,bool>::Iterator vars(*_loop->variables());
-    Formula* relativeCondition  = letTranslationOfArray(vars, condition);
-    //process updated scalars 
-    VariableMap::Iterator varit(_variableInfo);
-    relativeCondition = letTranslationOfVar(varit,condition);    
-    LOG("lin_relativePath","relative path condition: "<< relativeCondition->toString());
-    return relativeCondition;
+  CALL("LoopAnalyzer::relativePathCondition");
+  //make sequence of let v=v(x) in...CONDITION for all vars
+  //process first updated array vars
+  Map<Variable*,bool>::Iterator vars(*_loop->variables());
+  Formula* relativeCondition  = letTranslationOfArray(vars, condition);
+  //process updated scalars 
+  VariableMap::Iterator varit(_variableInfo);
+  relativeCondition = letTranslationOfVar(varit,condition);    
+  LOG("lin_relativePath","relative path condition: "<< relativeCondition->toString());
+  return relativeCondition;
 }
 
 
@@ -1637,7 +1636,8 @@ Formula* LoopAnalyzer::getGeneralUpdateCondition(Path* path, Path::Iterator& pit
  * LK: the let-in formula should be generated when scalar properties are constructed, 
  * using loop iteration variables
  */
-Formula* LoopAnalyzer::getBranchCondition(Variable* v){
+Formula* LoopAnalyzer::getBranchCondition(Variable* v)
+{
   CALL("LoopAnalyzer::getBranchCondition");
   Formula* branchCondition;
   Stack<Path*>::Iterator pit(_paths);
@@ -1645,20 +1645,20 @@ Formula* LoopAnalyzer::getBranchCondition(Variable* v){
   //iterate over all paths
   int condNo = 0;
   bool pathFound = false;
-  while(pit.hasNext() && !pathFound){
-      condNo++;
-      Path* path = pit.next();
-      Path::Iterator sit(path);
-      //check if the variable is updated on this path
-      while(sit.hasNext() && !pathFound){
-          Statement* s = sit.next();
-          //if the vriable is not updated in this statement continue
-          if(v != isScalarAssignment(s)){
-              continue;
-          }
-          pathFound = true;
-          pathOfInterest=path;
+  while (pit.hasNext() && !pathFound) {
+    condNo++;
+    Path* path = pit.next();
+    Path::Iterator sit(path);
+    //check if the variable is updated on this path
+    while(sit.hasNext() && !pathFound){
+      Statement* s = sit.next();
+      //if the vriable is not updated in this statement continue
+      if (v != isScalarAssignment(s)){
+	continue;
       }
+      pathFound = true;
+      pathOfInterest=path;
+    }
   }
   //we have found the first path on which the variable v is updated.
   Path::Iterator iPath(pathOfInterest);

@@ -13,8 +13,6 @@
 #include "CASCMode.hpp"
 
 
-namespace Shell
-{
 namespace CASC
 {
 
@@ -36,7 +34,6 @@ private:
   string _inputFile;
 };
 
-}
-}
+} // nameSpace CASC
 
 #endif // __SpawningCM__

@@ -1,132 +1,575 @@
 /**
- * @file CASCMode.cpp
- * Implements class CASCMode.
+ * @file CMZRMode.cpp
+ * Implements class CMZRMode.
  */
 
-#include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
+#include <fstream>
+#include <cstdlib>
+#include <csignal>
+#include <sstream>
+
 #include "Lib/Portability.hpp"
-#include "Lib/Stack.hpp"
+
+#if !COMPILER_MSVC
+
+#include "Lib/DHSet.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Lib/System.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 
+#include "Lib/Sys/Multiprocessing.hpp"
+#include "Lib/Sys/SyncPipe.hpp"
+
 #include "Shell/Options.hpp"
+#include "Shell/Normalisation.hpp"
+#include "Saturation/ProvingHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 
-#include "ForkingCM.hpp"
-#include "SpawningCM.hpp"
+#include "Parse/TPTP.hpp"
 
 #include "CASCMode.hpp"
 
-#define SLOWNESS 1.25
+#include "CMZRMode.hpp"
 
-namespace Shell
-{
-namespace CASC
-{
+#define SLOWNESS 1.5
 
+using namespace CASC;
+using namespace std;
 using namespace Lib;
+using namespace Lib::Sys;
+using namespace Saturation;
 
-bool CASCMode::_sat = false;
-bool CASCMode::_epr = false;
-
-bool CASCMode::perform(int argc, char* argv [])
+CMZRMode::CMZRMode()
 {
-  CALL("CASCMode::perform/2");
+  CALL("CMZRMode::CMZRMode");
 
-  UIHelper::cascMode=true;
-
-  env.timer->makeChildrenIncluded();
-
-#if COMPILER_MSVC
-  SpawningCM cm(argv[0]);
+#if __APPLE__
+  //the core retrieval on mac is not implemented yet, hence this quick hack
+  unsigned coreNumber = 2;
 #else
-  ForkingCM cm;
+  unsigned coreNumber = System::getNumberOfCores();
 #endif
-
-  bool res=cm.perform();
-
-  env.beginOutput();
-  if(res) {
-    env.out()<<"% Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+  if (coreNumber<=1) {
+    _parallelProcesses = 1;
+  }
+  else if (coreNumber>=8) {
+    _parallelProcesses = coreNumber-2;
   }
   else {
-    env.out()<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
-    if(env.remainingTime()/100>0) {
-      env.out()<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
-    }
-    else {
-      //From time to time we may also be terminating in the timeLimitReached()
-      //function in Lib/Timer.cpp in case the time runs out. We, however, output
-      //the same string there as well.
-      env.out()<<"% SZS status Timeout for "<<env.options->problemName()<<endl;
-    }
+    _parallelProcesses = coreNumber-1;
   }
-  if(env.options && env.options->timeStatistics()) {
-    TimeCounter::printReport(env.out());
-  }
-  env.endOutput();
-
-  return res;
+  _availCoreCnt = _parallelProcesses;
 }
 
-void CASCMode::handleSIGINT()
+void CMZRMode::perform()
 {
-  CALL("CASCMode::handleSIGINT");
+  CALL("CMZRMode::perform");
 
-  env.beginOutput();
-  env.out()<<"% Terminated by SIGINT!"<<endl;
-  env.out()<<"% SZS status User for "<<env.options->problemName() <<endl;
-  env.statistics->print(env.out());
-  env.endOutput();
-  exit(VAMP_RESULT_STATUS_SIGINT);
+  UIHelper::cascMode = true;
+
+  if (env.options->inputFile()=="") {
+    USER_ERROR("Input file must be specified for CMZR mode");
+  }
+
+  string line;
+  ifstream in(env.options->inputFile().c_str());
+  if (in.fail()) {
+    USER_ERROR("Cannot open input file: "+env.options->inputFile());
+  }
+
+  //support several batches in one file
+  while (!in.eof()) {
+    stringstream singleInst;
+    bool ready = false;
+    while (!in.eof()) {
+      std::getline(in, line);
+      singleInst<<line<<endl;
+      if (line=="% SZS end BatchProblems") {
+	ready = true;
+	break;
+      }
+    }
+    if (!ready) {
+      break;
+    }
+    CMZRMode ltbm;
+    stringstream childInp(singleInst.str());
+    ltbm.perform(childInp);
+  }
 }
 
-bool CASCMode::perform()
+void CMZRMode::loadProblems()
 {
-  CALL("CASCMode::perform/0");
+  CALL("CMZRMode::loadProblems");
 
-  cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
+  Stack<ProblemInfo>::DelIterator pit(_problems);
+  while (pit.hasNext()) {
+    ProblemInfo& pi = pit.next();
 
-  Schedule quick;
-  Schedule fallback;
+    string fname = pi.inputFName;
+    cout<<"% SZS status Started for "<<fname<<endl;;
 
-  if (_sat) {
-    getSchedulesSat(*_property, quick, fallback);
+    ifstream inp(fname.c_str());
+    if (inp.fail()) {
+      USER_ERROR("Cannot open problem file: "+fname);
+    }
+    Parse::TPTP parser(inp);
+
+    List<string>::Iterator iit(theoryIncludes);
+    while (iit.hasNext()) {
+      parser.addForbiddenInclude(iit.next());
+    }
+
+    parser.parse();
+
+    pi.specificFormulas = parser.units();
+    pi.hasConjecture = parser.containsConjecture();
+    pi.property = new Property(*_axiomProperty);
+    pi.property->add(pi.specificFormulas);
+
+    getStrategy(*pi.property, pi.schedule);
+
+    ofstream outFile(pi.outputFName.c_str());
+    outFile << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!"<<endl;
+    outFile.close();
   }
-  else if (_epr) {
-    getSchedulesEPR(*_property, quick, fallback);
+}
+
+void CMZRMode::attemptProblem(unsigned idx)
+{
+  CALL("CMZRMode::attemptProblem");
+  ASS_G(_availCoreCnt,0);
+
+  string strategy = _problems[idx].schedule.pop();
+  unsigned timeMs = getSliceTime(strategy);
+
+  if (env.remainingTime()*_parallelProcesses < timeMs*_unsolvedCnt) {
+    timeMs = (env.remainingTime()*_parallelProcesses)/_unsolvedCnt;
+  }
+  if (env.remainingTime() < (int)timeMs) {
+    timeMs = env.remainingTime();
+  }
+
+  startStrategyRun(idx, strategy,timeMs);
+  if (_availCoreCnt==0) {
+    waitForOneFinished();
+  }
+}
+
+void CMZRMode::waitForOneFinished()
+{
+  CALL("CMZRMode::waitForOneFinished");
+  ASS(!_processProblems.isEmpty());
+  ASS_G(_unsolvedCnt,0);
+
+  unsigned lowestDueTime = UINT_MAX;
+  unsigned lowestDuePrb = UINT_MAX;
+
+  unsigned currTime = env.timer->elapsedMilliseconds();
+
+  ProcessMap::Iterator pit(_processProblems);
+  while (pit.hasNext()) {
+    unsigned prbIdx = pit.next();
+    const ProblemInfo& pi = _problems[prbIdx];
+    ASS_NEQ(pi.runningProcessPID,-1);
+    if (pi.processDueTime<currTime) {
+      cout<<"killed overdue pid "<<pi.runningProcessPID<<" at "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
+      kill(pi.runningProcessPID,SIGKILL);
+    }
+    if (pi.processDueTime<lowestDueTime) {
+      lowestDueTime = pi.processDueTime;
+      lowestDuePrb = prbIdx;
+    }
+  }
+
+  pid_t finishedChild;
+  int resValue;
+  if (lowestDueTime>currTime) {
+    unsigned waitingTime = lowestDueTime-currTime;
+    finishedChild=Multiprocessing::instance()->waitForChildTerminationOrTime(waitingTime,resValue);
+
+    if (!finishedChild) {
+      const ProblemInfo& pi = _problems[lowestDuePrb];
+      cout<<"killed overdue pid "<<pi.runningProcessPID<<" at "<<env.timer->elapsedMilliseconds()<<" ms after a wait"<<endl;
+      kill(pi.runningProcessPID,SIGKILL);
+
+      finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+    }
   }
   else {
-    getSchedules(*_property, quick, fallback);
+    finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+  }
+  ASS(finishedChild);
+
+  unsigned prbIdx = _processProblems.get(finishedChild);
+  _processProblems.remove(finishedChild);
+  _availCoreCnt++;
+
+  ProblemInfo& pi = _problems[prbIdx];
+  pi.runningProcessPID = -1;
+  if (!resValue) {
+    pi.solved = true;
+    _unsolvedCnt--;
+    cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (success) at "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
+    cout<<"% SZS status Theorem for "<<pi.inputFName<<endl;
+    cout<<"% SZS status Ended for "<<pi.inputFName<<endl;
   }
 
-  int remainingTime=env.remainingTime()/100;
-  if(remainingTime<=0) {
-    return false;
+  cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (fail) at "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
+  cout.flush();
+}
+
+void CMZRMode::startStrategyRun(unsigned prbIdx, string strategy, unsigned timeMs)
+{
+  CALL("CMZRMode::startStrategyRun");
+  ASS_G(_availCoreCnt,0);
+
+  _availCoreCnt--;
+
+  pid_t childId=Multiprocessing::instance()->fork();
+  ASS_NEQ(childId,-1);
+  if (!childId) {
+    //we're in a proving child
+    strategyRunChild(prbIdx,strategy, timeMs); //start proving
+    ASSERTION_VIOLATION; //the runChild function should never return
   }
-  StrategySet used;
-  if (runSchedule(quick,remainingTime,used,false)) {
-    return true;
+  Timer::syncClock();
+
+  ALWAYS(_processProblems.insert(childId, prbIdx));
+  _problems[prbIdx].runningProcessPID = childId;
+  _problems[prbIdx].processDueTime = env.timer->elapsedMilliseconds()+timeMs+100;
+
+  cout<<"started slice pid "<<childId<<" "<<strategy<<" on "<<_problems[prbIdx].inputFName
+      <<" for "<<timeMs<<" ms"<<endl;
+}
+
+void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy, unsigned timeMs)
+{
+  CALL("CMZRMode::strategyRunChild");
+
+  Timer::setTimeLimitEnforcement(true);
+  UIHelper::cascModeChild=true;
+
+  ProblemInfo& pi = _problems[prbIdx];
+  ofstream outFile(pi.outputFName.c_str(), ios_base::app);
+  env.setPriorityOutput(&outFile);
+
+  Options opt=*env.options;
+  opt.setProblemName(pi.inputFName);
+  opt.readFromTestId(strategy);
+
+  unsigned dsTime = timeMs/100;
+  if (dsTime==0) {
+    dsTime = 1;
   }
-  remainingTime=env.remainingTime()/100;
-  if(remainingTime<=0) {
-    return false;
+  opt.setTimeLimitInDeciseconds(dsTime);
+  int stl = opt.simulatedTimeLimit();
+  if (stl) {
+    opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
   }
-  return runSchedule(fallback,remainingTime,used,true);
+
+  System::registerForSIGHUPOnParentDeath();
+
+
+  int resultValue=1;
+  env.timer->reset();
+  env.timer->start();
+  TimeCounter::reinitialize();
+
+  //we have already performed the normalization
+  opt.setForcedOptionValues();
+  opt.checkGlobalOptionConstraints();
+  //here we make the strategy options drive vampire, particularly
+  //we replace the global time limit by the strategy time limit.
+  *env.options = opt;
+
+  env.beginOutput();
+  env.out()<<opt.testId()<<" on "<<opt.problemName()<<" for "<<env.remainingTime()<<" ms"<<endl;
+  env.endOutput();
+
+  UIHelper::setConjecturePresence(pi.hasConjecture);
+
+  baseProblem->addUnits(pi.specificFormulas);
+  ProvingHelper::runVampire(*baseProblem, opt);
+
+  //set return value to zero if we were successful
+  if (env.statistics->terminationReason==Statistics::REFUTATION) {
+    resultValue=0;
+  }
+
+  env.beginOutput();
+  UIHelper::outputResult(env.out());
+  env.endOutput();
+
+  env.setPriorityOutput(0);
+  outFile.close();
+
+  exit(resultValue);
+}
+
+bool CMZRMode::canAttemptProblem(unsigned idx) const
+{
+  CALL("CMZRMode::canAttemptProblem");
+
+  const ProblemInfo& pi = _problems[idx];
+  return !pi.solved && pi.runningProcessPID==-1 && pi.schedule.isNonEmpty();
 }
 
 /**
- * Get schedules for a problem of given property.
- * The schedules are to be executed from the toop of the stack,
+ * This function runs the batch master process and spawns the child master processes
+ *
+ * In this function we:
+ * 1) read the batch file
+ * 2) load the common axioms and put them into a SInE selector
+ * 3) run a child master process for each problem (sequentially)
  */
-void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallback)
+void CMZRMode::perform(istream& batchFile)
 {
+  CALL("CMZRMode::perform");
+
+  readInput(batchFile);
+
+  loadIncludes();
+  loadProblems();
+
+  Timer::setTimeLimitEnforcement(false);
+
+  unsigned prbCnt = _problems.size();
+  _unsolvedCnt = prbCnt;
+  unsigned nextProblemIdx = 0;
+  for (;;) {
+    if (env.timeLimitReached()) {
+      break;
+    }
+    unsigned startIdx = nextProblemIdx;
+    while (_problems[nextProblemIdx].solved || _problems[nextProblemIdx].runningProcessPID!=-1) {
+      nextProblemIdx = (nextProblemIdx+1)%prbCnt;
+      if (nextProblemIdx==startIdx) {
+	if (_processProblems.isEmpty()) {
+	  goto fin;
+	}
+	waitForOneFinished();
+      }
+    }
+    if (env.timeLimitReached()) {
+      break;
+    }
+    attemptProblem(nextProblemIdx);
+    nextProblemIdx = (nextProblemIdx+1)%prbCnt;
+  }
+
+fin:
+
+  while (!_processProblems.isEmpty()) {
+    waitForOneFinished();
+  }
+
+  for (unsigned i=0; i<prbCnt; i++) {
+    ProblemInfo& pi = _problems[i];
+
+    if (pi.solved) {
+      continue;
+    }
+    ofstream outFile(pi.outputFName.c_str(), ios_base::app);
+    outFile<<"% SZS status Timeout for "<<pi.inputFName<<endl;
+    cout<<"% SZS status Ended for "<<pi.inputFName<<endl;
+  }
+
+  unsigned solvedCnt = prbCnt - _unsolvedCnt;
+  cout<<"Solved "<<solvedCnt<<" out of "<<prbCnt<<" in "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
+}
+
+void CMZRMode::loadIncludes()
+{
+  CALL("CMZRMode::loadIncludes");
+
+  UnitList* theoryAxioms=0;
+  {
+    TimeCounter tc(TC_PARSING);
+    env.statistics->phase=Statistics::PARSING;
+
+    StringList::Iterator iit(theoryIncludes);
+    while (iit.hasNext()) {
+      string fname=env.options->includeFileName(iit.next());
+      ifstream inp(fname.c_str());
+      if (inp.fail()) {
+        USER_ERROR("Cannot open included file: "+fname);
+      }
+      Parse::TPTP parser(inp);
+      parser.parse();
+      UnitList* funits = parser.units();
+      if (parser.containsConjecture()) {
+	USER_ERROR("Axiom file "+fname+" contains a conjecture.");
+      }
+
+      UnitList::Iterator fuit(funits);
+      while (fuit.hasNext()) {
+	fuit.next()->markIncluded();
+      }
+      theoryAxioms=UnitList::concat(funits,theoryAxioms);
+    }
+  }
+
+  baseProblem = new Problem(theoryAxioms);
+
+  //ensure we scan the theory axioms for property here, so we don't need to
+  //do it afterward in each problem
+
+  _axiomProperty = new Property(*baseProblem->getProperty());
+
+  env.statistics->phase=Statistics::UNKNOWN_PHASE;
+}
+
+void CMZRMode::readInput(istream& in)
+{
+  CALL("CMZRMode::readInput");
+
+  string line, word;
+
+  std::getline(in, line);
+  if (line!="% SZS start BatchConfiguration") {
+    USER_ERROR("\"% SZS start BatchConfiguration\" expected, \""+line+"\" found.");
+  }
+
+  std::getline(in, line);
+
+  questionAnswering = false;
+  problemTimeLimit = -1;
+  category = "";
+
+  StringStack lineSegments;
+  while (!in.eof() && line!="% SZS end BatchConfiguration") {
+    lineSegments.reset();
+    StringUtils::splitStr(line.c_str(), ' ', lineSegments);
+    string param = lineSegments[0];
+    if (param=="division.category") {
+      if (lineSegments.size()!=2) {
+	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
+      }
+      category = lineSegments[1];
+      LOG("ltb_conf","ltb_conf: "<<param<<" = "<<category);
+    }
+    else if (param=="output.required" || param=="output.desired") {
+      if (lineSegments.find("Answer")) {
+	questionAnswering = true;
+	LOG("ltb_conf","ltb_conf: enabled question answering");
+      }
+    }
+    else if (param=="execution.order") {
+      //we ignore this for now and always execute in order
+    }
+    else if (param=="limit.time.problem.wc") {
+      if (lineSegments.size()!=2 || !Int::stringToInt(lineSegments[1], problemTimeLimit)) {
+	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
+      }
+      LOG("ltb_conf","ltb_conf: "<<param<<" = "<<problemTimeLimit);
+    }
+    else {
+      USER_ERROR("unknown batch configuration parameter: \""+line+"\"");
+    }
+
+    std::getline(in, line);
+  }
+
+  if (category=="") {
+    USER_ERROR("category must be specified");
+  }
+
+  if (problemTimeLimit==-1) {
+    USER_ERROR("problem time limit must be specified");
+  }
+
+  if (line!="% SZS end BatchConfiguration") {
+    USER_ERROR("\"% SZS end BatchConfiguration\" expected, \""+line+"\" found.");
+  }
+
+  std::getline(in, line);
+  if (line!="% SZS start BatchIncludes") {
+    USER_ERROR("\"% SZS start BatchIncludes\" expected, \""+line+"\" found.");
+  }
+
+  theoryIncludes=0;
+  for (std::getline(in, line); line[0]!='%' && !in.eof(); std::getline(in, line)) {
+    size_t first=line.find_first_of('\'');
+    size_t last=line.find_last_of('\'');
+    if (first==string::npos || first==last) {
+      USER_ERROR("Include specification must contain the file name enclosed in the ' characters:\""+line+"\".");
+    }
+    ASS_G(last,first);
+    string fname=line.substr(first+1, last-first-1);
+    StringList::push(fname, theoryIncludes);
+  }
+
+  while (!in.eof() && line=="") { std::getline(in, line); }
+  if (line!="% SZS end BatchIncludes") {
+    USER_ERROR("\"% SZS end BatchIncludes\" expected, \""+line+"\" found.");
+  }
+  std::getline(in, line);
+  if (line!="% SZS start BatchProblems") {
+    USER_ERROR("\"% SZS start BatchProblems\" expected, \""+line+"\" found.");
+  }
+
+  for (std::getline(in, line); line[0]!='%' && !in.eof(); std::getline(in, line)) {
+    size_t spc=line.find(' ');
+    size_t lastSpc=line.find(' ', spc+1);
+    if (spc==string::npos || spc==0 || spc==line.length()-1) {
+      USER_ERROR("Two file names separated by a single space expected:\""+line+"\".");
+    }
+    string inp=line.substr(0,spc);
+    string outp=line.substr(spc+1, lastSpc-spc-1);
+    _problems.push(ProblemInfo(inp, outp));
+  }
+
+  while (!in.eof() && line=="") { std::getline(in, line); }
+  if (line!="% SZS end BatchProblems") {
+    USER_ERROR("\"% SZS end BatchProblems\" expected, \""+line+"\" found.");
+  }
+}
+
+/**
+ * Return intended slice time in milliseconds and assign the slice string with
+ * chopped time to @b chopped.
+ */
+unsigned CMZRMode::getSliceTime(string sliceCode)
+{
+  CALL("CASCMode::getSliceTime");
+
+  unsigned pos=sliceCode.find_last_of('_');
+  string sliceTimeStr=sliceCode.substr(pos+1);
+  unsigned sliceTime;
+  ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
+  ASS_G(sliceTime,0); //strategies with zero time don't make sense
+  unsigned time = (unsigned)(sliceTime*100 * SLOWNESS) + 100;
+  if (time < 1000) {
+    time += 100;
+  }
+  return time;
+}
+
+
+///////////////////////
+// strategy selector
+//
+
+/**
+ * Add strategies for @c property to @c res so that the first strategy to try is
+ * res[res.size()-1].
+ */
+void CMZRMode::getStrategy(Property& property, StringStack& res)
+{
+  CALL("CMZRMode::getStrategy");
+
   Property::Category cat = property.category();
-  unsigned prop = property.props();
   unsigned atoms = property.atoms();
+  unsigned prop = property.props();
+
+  StringStack quick;
+  StringStack fallback;
 
   switch (cat) {
   case Property::NEQ:
@@ -291,7 +734,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("dis+11_7_bs=off:drc=off:lcm=reverse:nwc=5:ssec=off:sio=off:spl=off:updr=off_116");
     }
     break;
-    
+
   case Property::PEQ:
     if (prop == 0) {
       if (atoms > 15) {
@@ -838,7 +1281,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     quick.push("ins+1_5_bs=off:bsr=on:drc=off:gs=on:igbrr=0.0:igrr=1/32:igrp=400:igrpq=2.0:igwr=on:lcm=predicate:nwc=2:ptb=off:ssec=off:sio=off:spl=off:sp=reverse_arity:urr=on:updr=off_264");
     quick.push("dis+3_10_bs=off:drc=off:ecs=on:fsr=off:nwc=1.2:nicw=on:ssec=off:sio=off:spl=off_477");
     break;
- 
+
   case Property::UEQ:
     if (prop == 0) {
       if (atoms > 11) {
@@ -999,8 +1442,8 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ins+11_50_bs=off:drc=off:fde=none:igbrr=0.7:igrr=1/32:igrp=700:igrpq=1.2:igwr=on:nwc=3:ptb=off:sio=off:spl=off:sp=reverse_arity_1200");
     break;
 
-  case Property::HNE: 
-  case Property::NNE: 
+  case Property::HNE:
+  case Property::NNE:
     fallback.push("ott+4_6_bs=off:bsr=unit_only:cond=fast:nwc=1.2:nicw=on:ptb=off:ssec=off:sio=off:spo=on:spl=sat_300");
     fallback.push("dis+1011_64_bs=off:nwc=1.7:ptb=off:ssec=off:spl=sat_300");
     fallback.push("dis+1011_20_bs=off:fsr=off:nwc=2:sio=off:spl=off_300");
@@ -1033,7 +1476,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("lrs+1011_64_bs=unit_only:bsr=unit_only:cond=fast:flr=on:nwc=1:ptb=off:sio=off:spo=on:spl=backtracking_1800");
     break;
 
-  case Property::FEQ: 
+  case Property::FEQ:
     fallback.push("dis+1011_14_bd=off:bs=off:drc=off:nwc=4:ptb=off:ssec=off:sswn=on:sac=on:spl=sat:sp=occurrence_300");
     fallback.push("ott+1011_8:1_bs=off:bsr=unit_only:drc=off:ep=on:fde=none:nwc=1.3:ptb=off:sd=2:ss=axioms:sos=all:spl=sat:sser=off:ssfq=1.0:ssnc=none:sfv=off_300");
     fallback.push("dis+1010_24_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=2.5:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=occurrence_300");
@@ -1206,263 +1649,14 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ott+10_1_bs=off:drc=off:fsr=off:gsp=input_only:nwc=1.3_600");
     break;
   }
+
+//  res = fallback;
+//  res.loadFromIterator(StringStack::BottomFirstIterator(quick));
+
+  res.reset();
+  res.loadFromIterator(StringStack::TopFirstIterator(fallback));
+  res.loadFromIterator(StringStack::TopFirstIterator(quick));
 }
 
-unsigned CASCMode::getSliceTime(string sliceCode,string& chopped)
-{
-  CALL("CASCMode::getSliceTime");
 
-  unsigned pos=sliceCode.find_last_of('_');
-  string sliceTimeStr=sliceCode.substr(pos+1);
-  chopped.assign(sliceCode.substr(0,pos));
-  unsigned sliceTime;
-  ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
-  ASS_G(sliceTime,0); //strategies with zero time don't make sense
-
-  unsigned time = (unsigned)(sliceTime * SLOWNESS) + 1;
-  if (time < 10) {
-    time++;
-  }
-  return time;
-}
-
-/**
- * Get schedules for a problem of given property for satisfiability checking.
- * The schedules are to be executed from the toop of the stack,
- */
-void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fallback)
-{
-  Property::Category cat = property.category();
-  switch (cat) {
-  case Property::NEQ:
-    quick.push("dis+1_24_bs=off:cond=on:fde=none:nwc=1.5:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=occurrence_31");
-    quick.push("dis+11_64_bs=off:bfnt=on:cond=fast:gs=on:lcm=predicate:nwc=1.7:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=reverse_arity_1");
-    quick.push("dis+1_128_bs=off:bfnt=on:cond=fast:lcm=predicate:nwc=4:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=reverse_arity_3");
-    quick.push("dis-11_1024_bs=off:bfnt=on:gs=on:lcm=predicate:nwc=10:nicw=on:ptb=off:ssec=off:sio=off:spl=sat:sp=occurrence_12");
-    quick.push("dis+1_5:4_cond=fast:ep=RSTC:fsr=off:gs=on:lcm=predicate:nwc=1.5:nicw=on:ptb=off:ssec=off:spl=sat:sp=occurrence:urr=on_43");
-    quick.push("dis+1_24_bs=off:bfnt=on:cond=fast:lcm=predicate:nwc=10:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=reverse_arity_164");
-    quick.push("ott+10_3_bs=off:bfnt=on:lcm=predicate:nwc=1.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=reverse_arity_88");
-    break;
-
-  case Property::HEQ:
-    quick.push("dis+1_14_bs=off:cond=fast:ecs=on:fde=none:gs=on:lcm=predicate:nwc=2:ssec=off:sac=on:sio=off:spo=on:sp=occurrence_1");
-    quick.push("dis+2_5:1_bs=off:bfnt=on:lcm=predicate:nwc=2:ptb=off:ssec=off:sio=off:spl=sat:sp=reverse_arity_2");
-    quick.push("ott+3_1024_bs=off:bfnt=on:nwc=10:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spo=on:spl=sat_12");
-    quick.push("ins+4_12_bs=off:bfnt=on:cond=fast:igbrr=0.8:igrr=128/1:igrp=4000:igrpq=1.5:lcm=predicate:nwc=2:ptb=off:ssec=off:spl=off:sp=occurrence_67");
-    quick.push("dis+2_1024_bd=off:bs=off:cond=fast:fsr=off:nwc=4:ptb=off:ssec=off:spl=backtracking_844");
-    break;
-    
-  case Property::PEQ:
-    quick.push("dis+10_40_bs=off:cond=fast:fde=none:gsp=input_only:nwc=1.5:nicw=on:ptb=off:ssec=off:sio=off:spo=on:spl=sat:sp=reverse_arity_3");
-    quick.push("ott+11_8_bs=off:bfnt=on:fde=none:gs=on:nwc=4:ptb=off:ssec=off:sac=on:sio=off:spo=on:spl=sat:sp=occurrence_4");
-    quick.push("ins+1011_4:1_bs=off:bfnt=on:igbrr=0.8:igrr=2/1:igrp=100:igrpq=2.0:igwr=on:nwc=2.5:ptb=off:ssec=off:sos=all:spl=off_3");
-    quick.push("dis+2_3_bs=unit_only:ep=on:fsr=off:gs=on:nwc=3:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:urr=on:updr=off_357");
-    quick.push("ins+1_6_bs=off:bfnt=on:br=off:cond=fast:igbrr=0.0:igrr=1/2:igrp=400:igrpq=2.0:igwr=on:nwc=1.1:ptb=off:ssec=off:spl=off:urr=on_61");
-    break;
-
-  case Property::HNE:
-    quick.push("dis+3_6_bs=off:cond=fast:gs=on:nwc=1.2:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat:sp=occurrence_1");
-    quick.push("dis+10_64_bs=off:bfnt=on:cond=fast:ecs=on:gs=on:lcm=predicate:nwc=1:ssec=off:sp=occurrence_2");
-    quick.push("dis+10_10_bs=off:bms=on:cond=fast:gsp=input_only:nwc=5:ssec=off:sac=on:sio=off:spo=on_1");
-    quick.push("dis+11_20_bs=off:cond=fast:nwc=1.3:nicw=on:sac=on:sio=off_4");
-    quick.push("dis-11_32_bs=off:nwc=2.5:ptb=off:ssec=off:sio=off:spl=off_24");
-    break;
-
-  case Property::NNE:
-    quick.push("dis+11_4_bs=off:cond=fast:gs=on:lcm=predicate:nwc=1.5:nicw=on:ptb=off:ssec=off:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=all_dependent:sp=occurrence_2");
-    quick.push("dis+11_16_bs=off:bfnt=on:cond=on:gsp=input_only:gs=on:lcm=predicate:nwc=1.2:ptb=off:ssec=off:sac=on:sio=off:spl=sat_13");
-    quick.push("ins+11_12_bs=off:bfnt=on:gsp=input_only:igbrr=0.9:igrr=4/1:igrp=400:igrpq=1.5:nwc=5:ptb=off:ssec=off:sos=on:spl=off_188");
-    quick.push("dis+4_14_bs=off:cond=on:gs=on:lcm=predicate:nwc=5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat_96");
-    break;
-
-  case Property::FEQ:
-    quick.push("dis+3_2:3_bs=off:cond=fast:gs=on:nwc=2:ptb=off:ssec=off:sio=off_1");
-    quick.push("dis+1_1024_bs=off:bfnt=on:fde=none:gs=on:lcm=predicate:nwc=1.2:ptb=off:ssec=off:sac=on:sio=off:spo=on:spl=sat_47");
-    quick.push("ott+11_1024_bs=off:bms=on:lcm=predicate:nwc=5:sio=off_44");
-    quick.push("ins-2_3:1_bs=off:bsr=unit_only:ep=RSTC:gs=on:igbrr=0.5:igrr=1/64:igrpq=1.2:igwr=on:lcm=predicate:nwc=5:ptb=off:ssec=off:sos=on:sio=off:spl=off:urr=on_1");
-    quick.push("ins-3_4:1_bs=off:bsr=unit_only:bfnt=on:cond=on:fsr=off:gs=on:igbrr=0.2:igrp=2000:igrpq=2.0:nwc=2.5:ptb=off:ssec=off:sio=off:spl=off_48");
-    quick.push("dis+3_1024_bs=off:bfnt=on:gs=on:nwc=4:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking_541");
-    quick.push("dis+4_40_bs=off:bfnt=on:cond=on:gsp=input_only:nwc=1:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spo=on:spl=backtracking:urr=on_285");
-    quick.push("dis+11_1024_bs=off:bfnt=on:cond=on:gsp=input_only:gs=on:nwc=1.7:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:urr=on_132");
-    quick.push("dis+1_7_bfnt=on:cond=on:fde=none:lcm=predicate:nwc=2:nicw=on:ptb=off:ssec=off:sio=off:spl=sat:sp=occurrence:urr=on:updr=off_272");
-    quick.push("ins+1_40_bs=off:bsr=unit_only:bfnt=on:cond=on:ep=RSTC:igbrr=0.5:igrr=128/1:igrp=100:igrpq=1.5:igwr=on:nwc=1.7:ptb=off:ssec=off:sos=on:sio=off:spl=off_27");
-    break;
-
-  case Property::FNE:
-    quick.push("dis+1_32_bs=off:bfnt=on:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:ptb=off:ssec=off:sgo=on:sio=off:spo=on:spl=sat:sp=occurrence_51");
-    quick.push("ins+3_28_bs=off:bfnt=on:br=off:igbrr=0.6:igrr=1/128:igrp=200:igrpq=2.0:igwr=on:nwc=4:ptb=off:ssec=off:sos=all:spl=off:urr=on_31");
-    quick.push("dis+11_12_bs=off:cond=fast:gs=on:lcm=predicate:nwc=5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat:sp=reverse_arity_41");
-    quick.push("dis-11_12_bs=off:bms=on:bfnt=on:cond=fast:ecs=on:lcm=predicate:nwc=4:nicw=on:ssec=off:sio=off:spl=off:sp=occurrence_199");
-    quick.push("dis+3_2:3_bs=off:bfnt=on:fsr=off:gs=on:nwc=1.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat:urr=on_30");
-    quick.push("dis+2_1024_bs=off:ecs=on:fsr=off:gsp=input_only:nwc=5:ssec=off:sio=off:spl=off_431");
-    quick.push("ott+1_1024_bs=off:lcm=predicate:nwc=2.5:ptb=off:ssec=off:sac=on:spl=sat:updr=off_241");
-    quick.push("ins+3_40_bs=off:bfnt=on:igbrr=0.4:igrr=128/1:igrp=200:igrpq=1.5:igwr=on:nwc=4:ptb=off:ssec=off:sos=on:spl=off_123");
-    break;
-
-  case Property::EPR:
-    quick.push("ott+11_12_bs=off:gs=on:nwc=1:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.1:ssnc=none:updr=off_33");
-    quick.push("ins+1003_4:1_bs=off:bsr=on:flr=on:fsr=off:igbrr=0.0:igrp=2000:igrpq=1.3:nwc=5:ptb=off:ssec=off:sio=off:spl=off_1");
-    quick.push("ott+2_40_bs=off:gs=on:nwc=1.5:nicw=on:ptb=off:ssec=off:sio=off:spl=sat_37");
-    quick.push("ott+1_24_bs=off:cond=fast:nwc=1.3:nicw=on:ptb=off:ssec=off:sac=on:spo=on:spl=sat:urr=on_268");
-    break;
- 
-  case Property::UEQ:
-    quick.push("dis+10_2:1_bs=off:bsr=unit_only:fsr=off:nwc=3:sp=occurrence_1");
-    quick.push("dis+10_20_bs=off:bfnt=on:cond=on:fsr=off:fde=none:gs=on:lcm=predicate:nwc=4:ptb=off:ssec=off:sio=off:spo=on:spl=sat:sp=reverse_arity_67");
-    quick.push("ins+3_6_bs=off:bfnt=on:br=off:fsr=off:igbrr=0.9:igrp=100:igrpq=1.5:igwr=on:nwc=4:ptb=off:ssec=off:spl=off:urr=on_41");
-    quick.push("ott+1_128_bfnt=on:cond=fast:lcm=predicate:nwc=1.1:nicw=on:ptb=off:ssec=off:sio=off:spo=on:spl=sat:sp=occurrence:urr=on_124");
-    break;
-  }
-
-  switch (cat) {
-  case Property::NEQ:
-  case Property::HEQ:
-  case Property::PEQ:
-  case Property::EPR:
-  case Property::HNE: 
-  case Property::NNE: 
-  case Property::UEQ:
-    break;
-
-  case Property::FEQ: 
-    fallback.push("ott+11_12_bs=off:gs=on:nwc=1:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.1:ssnc=none:updr=off_300");
-    fallback.push("ins+11_12_bs=off:bfnt=on:gsp=input_only:igbrr=0.9:igrr=4/1:igrp=400:igrpq=1.5:nwc=5:ptb=off:ssec=off:sos=on:spl=off_300");
-    fallback.push("dis+1_1024_bs=off:bfnt=on:lcm=predicate:nwc=1.2:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat:sp=reverse_arity_300");
-    fallback.push("dis+2_3_bs=unit_only:ep=on:fsr=off:gs=on:nwc=3:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:urr=on:updr=off_600");
-    fallback.push("ins+4_12_bs=off:bfnt=on:cond=fast:igbrr=0.8:igrr=128/1:igrp=4000:igrpq=1.5:lcm=predicate:nwc=2:ptb=off:ssec=off:spl=off:sp=occurrence_300");
-    fallback.push("ott+1_128_bfnt=on:cond=fast:lcm=predicate:nwc=1.1:nicw=on:ptb=off:ssec=off:sio=off:spo=on:spl=sat:sp=occurrence:urr=on_300");
-    fallback.push("dis-11_32_bs=off:nwc=2.5:ptb=off:ssec=off:sio=off:spl=off_300");
-    fallback.push("dis+11_16_bs=off:bfnt=on:cond=on:gsp=input_only:gs=on:lcm=predicate:nwc=1.2:ptb=off:ssec=off:sac=on:sio=off:spl=sat_300");
-    fallback.push("dis+1_14_bs=off:cond=fast:ecs=on:fde=none:gs=on:lcm=predicate:nwc=2:ssec=off:sac=on:sio=off:spo=on:sp=occurrence_300");
-    fallback.push("dis+1_24_bs=off:bfnt=on:cond=fast:lcm=predicate:nwc=10:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=reverse_arity_300");
-    fallback.push("dis+2_5:1_bs=off:bfnt=on:lcm=predicate:nwc=2:ptb=off:ssec=off:sio=off:spl=sat:sp=reverse_arity_300");
-    fallback.push("ins+1_6_bs=off:bfnt=on:br=off:cond=fast:igbrr=0.0:igrr=1/2:igrp=400:igrpq=2.0:igwr=on:nwc=1.1:ptb=off:ssec=off:spl=off:urr=on_300");
-    fallback.push("dis+3_6_bs=off:cond=fast:gs=on:nwc=1.2:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat:sp=occurrence_300");
-    fallback.push("dis+1_24_bs=off:cond=on:fde=none:nwc=1.5:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=occurrence_300");
-    fallback.push("dis-11_1024_bs=off:bfnt=on:gs=on:lcm=predicate:nwc=10:nicw=on:ptb=off:ssec=off:sio=off:spl=sat:sp=occurrence_300");
-    fallback.push("dis+1_5:4_cond=fast:ep=RSTC:fsr=off:gs=on:lcm=predicate:nwc=1.5:nicw=on:ptb=off:ssec=off:spl=sat:sp=occurrence:urr=on_300");
-    fallback.push("dis+10_2:1_bs=off:bsr=unit_only:fsr=off:nwc=3:sp=occurrence_300");
-    fallback.push("dis+4_14_bs=off:cond=on:gs=on:lcm=predicate:nwc=5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat_300");
-    fallback.push("dis+11_64_bs=off:bfnt=on:cond=fast:gs=on:lcm=predicate:nwc=1.7:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=reverse_arity_300");
-    fallback.push("ott+3_1024_bs=off:bfnt=on:nwc=10:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spo=on:spl=sat_300");
-    fallback.push("ott+1_24_bs=off:cond=fast:nwc=1.3:nicw=on:ptb=off:ssec=off:sac=on:spo=on:spl=sat:urr=on_300");
-    fallback.push("ins+1003_4:1_bs=off:bsr=on:flr=on:fsr=off:igbrr=0.0:igrp=2000:igrpq=1.3:nwc=5:ptb=off:ssec=off:sio=off:spl=off_300");
-    fallback.push("dis+10_64_bs=off:bfnt=on:cond=fast:ecs=on:gs=on:lcm=predicate:nwc=1:ssec=off:sp=occurrence_300");
-    fallback.push("ott+11_8_bs=off:bfnt=on:fde=none:gs=on:nwc=4:ptb=off:ssec=off:sac=on:sio=off:spo=on:spl=sat:sp=occurrence_300");
-    fallback.push("ott+10_3_bs=off:bfnt=on:lcm=predicate:nwc=1.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=reverse_arity_300");
-    fallback.push("dis+11_4_bs=off:cond=fast:gs=on:lcm=predicate:nwc=1.5:nicw=on:ptb=off:ssec=off:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=all_dependent:sp=occurrence_100");
-    fallback.push("ins+3_6_bs=off:bfnt=on:br=off:fsr=off:igbrr=0.9:igrp=100:igrpq=1.5:igwr=on:nwc=4:ptb=off:ssec=off:spl=off:urr=on_300");
-    fallback.push("ott+2_40_bs=off:gs=on:nwc=1.5:nicw=on:ptb=off:ssec=off:sio=off:spl=sat_300");
-    fallback.push("dis+10_10_bs=off:bms=on:cond=fast:gsp=input_only:nwc=5:ssec=off:sac=on:sio=off:spo=on_200");
-    fallback.push("dis+10_40_bs=off:cond=fast:fde=none:gsp=input_only:nwc=1.5:nicw=on:ptb=off:ssec=off:sio=off:spo=on:spl=sat:sp=reverse_arity_300");
-    fallback.push("dis+1_128_bs=off:bfnt=on:cond=fast:lcm=predicate:nwc=4:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=reverse_arity_300");
-    fallback.push("dis+11_20_bs=off:cond=fast:nwc=1.3:nicw=on:sac=on:sio=off_300");
-    fallback.push("ins+1011_4:1_bs=off:bfnt=on:igbrr=0.8:igrr=2/1:igrp=100:igrpq=2.0:igwr=on:nwc=2.5:ptb=off:ssec=off:sos=all:spl=off_300");
-    fallback.push("dis+10_20_bs=off:bfnt=on:cond=on:fsr=off:fde=none:gs=on:lcm=predicate:nwc=4:ptb=off:ssec=off:sio=off:spo=on:spl=sat:sp=reverse_arity_300");
-    fallback.push("dis+2_1024_bd=off:bs=off:cond=fast:fsr=off:nwc=4:ptb=off:ssec=off:spl=backtracking_900");
-    break;
-
-  case Property::FNE:
-    fallback.push("dis+1_32_bs=off:bfnt=on:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:ptb=off:ssec=off:sgo=on:sio=off:spo=on:spl=sat:sp=occurrence_300");
-    fallback.push("dis+1_1024_bs=off:bfnt=on:fde=none:gs=on:lcm=predicate:nwc=1.2:ptb=off:ssec=off:sac=on:sio=off:spo=on:spl=sat_300");
-    fallback.push("dis+11_12_bs=off:cond=fast:gs=on:lcm=predicate:nwc=5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat:sp=reverse_arity_300");
-    fallback.push("ins+3_40_bs=off:bfnt=on:igbrr=0.4:igrr=128/1:igrp=200:igrpq=1.5:igwr=on:nwc=4:ptb=off:ssec=off:sos=on:spl=off_300");
-    fallback.push("dis+3_1024_bs=off:bfnt=on:gs=on:nwc=4:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking_600");
-    fallback.push("ott+11_1024_bs=off:bms=on:lcm=predicate:nwc=5:sio=off_300");
-    fallback.push("dis-11_12_bs=off:bms=on:bfnt=on:cond=fast:ecs=on:lcm=predicate:nwc=4:nicw=on:ssec=off:sio=off:spl=off:sp=occurrence_300");
-    fallback.push("dis+2_1024_bs=off:ecs=on:fsr=off:gsp=input_only:nwc=5:ssec=off:sio=off:spl=off_600");
-    fallback.push("dis+4_40_bs=off:bfnt=on:cond=on:gsp=input_only:nwc=1:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spo=on:spl=backtracking:urr=on_300");
-    fallback.push("ins-3_4:1_bs=off:bsr=unit_only:bfnt=on:cond=on:fsr=off:gs=on:igbrr=0.2:igrp=2000:igrpq=2.0:nwc=2.5:ptb=off:ssec=off:sio=off:spl=off_300");
-    fallback.push("ott+1_1024_bs=off:lcm=predicate:nwc=2.5:ptb=off:ssec=off:sac=on:spl=sat:updr=off_300");
-    fallback.push("dis+1_7_bfnt=on:cond=on:fde=none:lcm=predicate:nwc=2:nicw=on:ptb=off:ssec=off:sio=off:spl=sat:sp=occurrence:urr=on:updr=off_300");
-    fallback.push("ins-2_3:1_bs=off:bsr=unit_only:ep=RSTC:gs=on:igbrr=0.5:igrr=1/64:igrpq=1.2:igwr=on:lcm=predicate:nwc=5:ptb=off:ssec=off:sos=on:sio=off:spl=off:urr=on_300");
-    fallback.push("dis+3_2:3_bs=off:bfnt=on:fsr=off:gs=on:nwc=1.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat:urr=on_300");
-    fallback.push("dis+3_2:3_bs=off:cond=fast:gs=on:nwc=2:ptb=off:ssec=off:sio=off_300");
-    fallback.push("ins+3_28_bs=off:bfnt=on:br=off:igbrr=0.6:igrr=1/128:igrp=200:igrpq=2.0:igwr=on:nwc=4:ptb=off:ssec=off:sos=all:spl=off:urr=on_300");
-    fallback.push("dis+11_1024_bs=off:bfnt=on:cond=on:gsp=input_only:gs=on:nwc=1.7:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:urr=on_300");
-    break;
-  }
-} // getSchedulesSat
-
-/**
- * Get schedules for a problem of given property for EPR problems (both
- * satisfiability and unsatisfiability checking).
- * The schedules are to be executed from the toop of the stack,
- */
-void CASCMode::getSchedulesEPR(Property& property, Schedule& quick, Schedule& fallback)
-{
-  quick.push("ott+11_12_bs=off:gs=on:nwc=1:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.1:ssnc=none:updr=off_3");
-  quick.push("ott+10_8:1_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=1.5:nicw=on:ptb=off:ssec=off:spo=on:spl=sat:sser=off:ssnc=none:urr=on_166");
-  quick.push("ins+11_14_bs=off:flr=on:gsp=input_only:igbrr=0.7:igrr=1/8:igrp=4000:igrpq=1.5:igwr=on:lcm=predicate:nwc=3:ptb=off:ssec=off:spl=off:urr=on_55");
-  quick.push("ins+1003_4:1_bs=off:bsr=on:flr=on:fsr=off:igbrr=0.0:igrp=2000:igrpq=1.3:nwc=5:ptb=off:ssec=off:sio=off:spl=off_1");
-  quick.push("ins+4_14_bs=off:cond=on:flr=on:igbrr=0.2:igrr=1/128:igrp=700:igrpq=1.2:igwr=on:nwc=1:ptb=off:ssec=off:spl=off:urr=on_41");
-  quick.push("dis+1_8:1_bs=off:drc=off:flr=on:nwc=1.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=sat:sser=off:ssfp=40000:ssfq=1.2_164");
-  quick.push("ott+2_40_bs=off:gs=on:nwc=1.5:nicw=on:ptb=off:ssec=off:sio=off:spl=sat_26");
-  quick.push("dis+1_20_bs=off:nwc=4:ptb=off:ssec=off:sac=on:sio=off:spo=on:spl=sat:ssfp=4000:ssfq=1.1:sp=occurrence:updr=off_285");
-  quick.push("ott+1_24_bs=off:cond=fast:nwc=1.3:nicw=on:ptb=off:ssec=off:sac=on:spo=on:spl=sat:urr=on_268");
-  quick.push("ins+1_5_bs=off:bsr=on:drc=off:gs=on:igbrr=0.0:igrr=1/32:igrp=400:igrpq=2.0:igwr=on:lcm=predicate:nwc=2:ptb=off:ssec=off:sio=off:spl=off:sp=reverse_arity:urr=on:updr=off_264");
-  quick.push("dis+3_10_bs=off:drc=off:ecs=on:fsr=off:nwc=1.2:nicw=on:ssec=off:sio=off:spl=off_477");
-} // getSchedulesEPR
-
-/**
- * Run strategies from the null-terminated array @b strategies,
- * so that the sequence would not take longer tham @b ds deciseconds
- *
- * The remaining time is always split between the remaining strategies
- * in the ratio of their hard-coded time (the last number in the
- * slice string).
- *
- * Return true iff the proof or satisfiability was found.
- *
- * For each strategy code, this code stripped off the time information will
- * be saved in ss.
- * If fallback is true and the code was previously in ss, the strategy will
- * not be run
- */
-bool CASCMode::runSchedule(Schedule& schedule,unsigned ds,StrategySet& ss,bool fallback)
-{
-  CALL("CASCMode::runSchedule");
-
-  Schedule::BottomFirstIterator sit(schedule);
-  while (sit.hasNext()) {
-    string sliceCode = sit.next();
-    string chopped;
-    unsigned sliceTime = getSliceTime(sliceCode,chopped);
-    if (fallback && ss.contains(chopped)) {
-      continue;
-    }
-    ss.insert(chopped);
-    int remainingTime = env.remainingTime()/100;
-    if(remainingTime<=0) {
-      return false;
-    }
-    // cast to unsigned is OK since realTimeRemaining is positive
-    if(sliceTime > (unsigned)remainingTime) {
-      sliceTime = remainingTime;
-    }
-    env.beginOutput();
-    env.out()<<"% remaining time: "<<remainingTime<<" next slice time: "<<sliceTime<<endl;
-    env.endOutput();
-    if(runSlice(sliceCode,sliceTime)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool CASCMode::runSlice(string slice, unsigned ds)
-{
-  CALL("CASCMode::runSlice");
-
-  Options opt=*env.options;
-  opt.readFromTestId(slice);
-  opt.setTimeLimitInDeciseconds(ds);
-  int stl = opt.simulatedTimeLimit();
-  if (stl) {
-    opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
-  }
-  return runSlice(opt);
-}
-
-}
-}
+#endif //!COMPILER_MSVC

@@ -44,10 +44,10 @@
 
 #include "SAT/DIMACS.hpp"
 
-#include "Shell/CASC/CASCMode.hpp"
-#include "Shell/CASC/CLTBMode.hpp"
-#include "Shell/CASC/CMZRMode.hpp"
-#include "Shell/CASC/SimpleLTBMode.hpp"
+#include "CASC/CASCMode.hpp"
+#include "CASC/CLTBMode.hpp"
+#include "CASC/CMZRMode.hpp"
+#include "CASC/SimpleLTBMode.hpp"
 #include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/EqualityProxy.hpp"
@@ -617,40 +617,40 @@ int main(int argc, char* argv[])
       vampireMode();
       break;
     case Options::MODE_CASC:
-      if (Shell::CASC::CASCMode::perform(argc, argv)) {
+      if (CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
     case Options::MODE_CASC_SAT:
-      Shell::CASC::CASCMode::makeSat();
-      if (Shell::CASC::CASCMode::perform(argc, argv)) {
+      CASC::CASCMode::makeSat();
+      if (CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
     case Options::MODE_CASC_EPR:
-      Shell::CASC::CASCMode::makeEPR();
-      if (Shell::CASC::CASCMode::perform(argc, argv)) {
+      CASC::CASCMode::makeEPR();
+      if (CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
     case Options::MODE_CASC_SIMPLE_LTB: {
-      Shell::CASC::SimpleLTBMode sltbm;
+      CASC::SimpleLTBMode sltbm;
       sltbm.perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
     case Options::MODE_CASC_LTB: {
-      Shell::CASC::CLTBMode::perform();
+      CASC::CLTBMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
     case Options::MODE_CASC_MZR: {
-      Shell::CASC::CMZRMode::perform();
+      CASC::CMZRMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;

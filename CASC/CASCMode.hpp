@@ -17,11 +17,12 @@
 
 #include "Shell/Property.hpp"
 
-namespace Shell {
 namespace CASC
 {
 
 using namespace std;
+using namespace Lib;
+using namespace Shell;
 
 class CASCMode {
 public:
@@ -58,7 +59,6 @@ private:
   bool runSlice(string sliceCode, unsigned ds);
 };
 
-}
 }
 
 #endif // __CASCMode__

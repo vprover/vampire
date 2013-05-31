@@ -186,8 +186,7 @@ const char* Options::Constants::_optionNames[] = {
   "interpreted_simplification",
 
   "latex_output",
-
-  "lingva_additional_inv",
+  "lingva_additional_invariants",
 
   "literal_comparison_mode",
   "log_file",
@@ -308,46 +307,46 @@ NameArray Options::Constants::optionNames(_optionNames,
 
 const char* Options::Constants::_shortNames[] = {
   "awr",
+
   "bd",
   "bfnt",
-
-  "bpas",
-  "bpcas",
-  "bpcp",
-  "bpcs",
-  "bpvs",
-
   "br",
   "bs",
   "bsr",
+
   "cond",
+
   "drc",
+
   "ep",
   "erd",
+
   "fd",
   "fde",
   "flr",
-  "fno",
   "fs",
   "fsr",
+
   "gs",
   "gsp",
+
   "igbrr",
   "igrp",
   "igrpq",
   "igrr",
   "igwr",
-  "is",
-  "l",
+  "ins",
+
   "lcm",
-  "lwlo",
+
   "m",
-  "n",
+
   "nicw",
   "nm",
   "nwc",
+
   "p",
-  "pc",
+
   "s",
   "sa",
   "sac",
@@ -368,7 +367,6 @@ const char* Options::Constants::_shortNames[] = {
   "ssfp",
   "ssfq",
   "ssnc",
-
   "st",
   "stl",
 
@@ -379,11 +377,10 @@ const char* Options::Constants::_shortNames[] = {
   "tglr",
   "tipr",
   "tlawr",
-  "tr",
+
   "updr",
-  "urr",
-  "wi",
-  "wno"};
+  "urr"
+};
 
 /** Short names for all options */
 NameArray Options::Constants::shortNames(_shortNames,
@@ -391,51 +388,46 @@ NameArray Options::Constants::shortNames(_shortNames,
 
 int Options::Constants::shortNameIndexes[] = {
   AGE_WEIGHT_RATIO,
+
   BACKWARD_DEMODULATION,
   BFNT,
-
-  BP_ASSIGNMENT_SELECTOR,
-  BP_CONSERVATIVE_ASSIGNMENT_SELECTION,
-  BP_COLLAPSING_PROPAGATION,
-  BP_CONFLICT_SELECTOR,
-  BP_VARIABLE_SELECTOR,
-
   BINARY_RESOLUTION,
   BACKWARD_SUBSUMPTION,
   BACKWARD_SUBSUMPTION_RESOLUTION,
 
   CONDENSATION,
+
   DEMODULATION_REDUNDANCY_CHECK,
+
   EQUALITY_PROXY,
   EQUALITY_RESOLUTION_WITH_DELETION,
+
   FORWARD_DEMODULATION,
   FUNCTION_DEFINITION_ELIMINATION,
-
   FORWARD_LITERAL_REWRITING,
-  FUNCTION_NUMBER,
   FORWARD_SUBSUMPTION,
-
   FORWARD_SUBSUMPTION_RESOLUTION,
 
   GLOBAL_SUBSUMPTION,
   GENERAL_SPLITTING,
+
   INST_GEN_BIG_RESTART_RATIO,
   INST_GEN_RESTART_PERIOD,
   INST_GEN_RESTART_PERIOD_QUOTIENT,
   INST_GEN_RESOLUTION_RATIO,
   INST_GEN_WITH_RESOLUTION,
   INEQUALITY_SPLITTING,
-  LOG_FILE,
 
   LITERAL_COMPARISON_MODE,
-  LRS_WEIGHT_LIMIT_ONLY,
+
   MEMORY_LIMIT,
-  NORMALIZE,
+
   NONLITERALS_IN_CLAUSE_WEIGHT,
   NAMING,
   NONGOAL_WEIGHT_COEFFICIENT,
+
   PROOF,
-  PROOF_CHECKING,
+
   SELECTION,
   SATURATION_ALGORITHM,
   SPLIT_AT_ACTIVATION,
@@ -450,6 +442,7 @@ int Options::Constants::shortNameIndexes[] = {
   SPLITTING,
   SPLIT_POSITIVE,
   SINE_SELECTION,
+
   SSPLITTING_ADD_COMPLEMENTARY,
   SSPLITTING_CONGRUENCE_CLOSURE,
   SSPLITTING_EAGER_REMOVAL,
@@ -458,6 +451,7 @@ int Options::Constants::shortNameIndexes[] = {
   SSPLITTING_NONSPLITTABLE_COMPONENTS,
   SINE_TOLERANCE,
   SIMULATED_TIME_LIMIT,
+
   TIME_LIMIT,
   TABULATION_BW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS,
   TABULATION_FW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS,
@@ -465,11 +459,10 @@ int Options::Constants::shortNameIndexes[] = {
   TABULATION_GOAL_LEMMA_RATIO,
   TABULATION_INSTANTIATE_PRODUCING_RULES,
   TABULATION_LEMMA_AWR,
-  TRACES,
+
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
-  UNIT_RESULTING_RESOLUTION,
-  WEIGHT_INCREMENT,
-  WHILE_NUMBER};
+  UNIT_RESULTING_RESOLUTION
+};
 
 const char* Options::Constants::_statisticsValues[] = {
   "brief",
@@ -829,7 +822,7 @@ Options::Options ()
   _interpretedSimplification(false),
 
   _latexOutput("off"),
-  _linAdditionalInvariants(""),
+  _lingvaAdditionalInvariants(""),
   _literalComparisonMode(LCM_STANDARD),
   _logFile("off"),
   _lrsFirstTimeCheck(5),
@@ -1264,7 +1257,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
 
     case LINGVA_ADDITIONAL_INVARIANTS:
-      _linAdditionalInvariants = value;
+      _lingvaAdditionalInvariants = value;
       return;
 
     case LITERAL_COMPARISON_MODE:
@@ -2157,11 +2150,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case LATEX_OUTPUT:
     str << _latexOutput;
     return;
-
   case LINGVA_ADDITIONAL_INVARIANTS:
-    str << _linAdditionalInvariants;
+    str << _lingvaAdditionalInvariants;
     return;
-
   case LITERAL_COMPARISON_MODE:
     str << Constants::lcmValues[_literalComparisonMode];
     return;

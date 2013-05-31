@@ -343,7 +343,7 @@ VS_OBJ = Shell/AIG.o\
          Shell/Preprocess.o\
          Shell/SMTLEX.o\
          Shell/SMTPAR.o\
- 	 Shell/SubsumptionRemover.o\
+	 Shell/SubsumptionRemover.o\
          version.o
 
 PARSE_OBJ = Parse/SMTLIB.o\
@@ -356,12 +356,12 @@ LTB_OBJ = Shell/LTB/Builder.o\
           Shell/LTB/Selector.o\
           Shell/LTB/Storage.o
 
-CASC_OBJ = Shell/CASC/CASCMode.o\
-           Shell/CASC/CLTBMode.o\
-           Shell/CASC/CMZRMode.o\
-           Shell/CASC/ForkingCM.o\
-           Shell/CASC/SimpleLTBMode.o\
-           Shell/CASC/SpawningCM.o
+CASC_OBJ = CASC/CASCMode.o\
+           CASC/CLTBMode.o\
+           CASC/CMZRMode.o\
+           CASC/ForkingCM.o\
+           CASC/SimpleLTBMode.o\
+           CASC/SpawningCM.o
 
 VPROG_OBJ = Program/Type.o\
            Program/LoopAnalyzer.o\
@@ -531,7 +531,7 @@ BP_VUT_OBJ = UnitTests/tBinaryHeap.o\
 		  UnitTests/tSkipList.o
 
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Solving Shell Shell/CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Solving Shell CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib
 
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
@@ -695,7 +695,7 @@ libvapi libvapi_dbg: $(LIBVAPI_OBJ) $(EXEC_DEF_PREREQ)
 
 test_libvapi: $(CONF_ID)/test_libvapi.o $(EXEC_DEF_PREREQ)
 	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ -lvapi -L. -Wl,-R,\$$ORIGIN
-	
+
 
 tkv tkv_rel tkv_dbg: $(TKV_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD_TKV)

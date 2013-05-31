@@ -38,7 +38,7 @@
 
 #define SLOWNESS 1.15
 
-using namespace Shell::CASC;
+using namespace CASC;
 using namespace std;
 using namespace Lib;
 using namespace Lib::Sys;
@@ -48,30 +48,32 @@ void CLTBMode::perform()
 {
   CALL("CLTBMode::perform");
 
-  if(env.options->inputFile()=="") {
+  if (env.options->inputFile()=="") {
     USER_ERROR("Input file must be specified for cltb mode");
   }
 
   string line;
   ifstream in(env.options->inputFile().c_str());
-  if(in.fail()) {
+  if (in.fail()) {
     USER_ERROR("Cannot open input file: "+env.options->inputFile());
   }
 
   //support several batches in one file
-  while(!in.eof()) {
+  while (!in.eof()) {
     stringstream singleInst;
     bool ready = false;
-    while(!in.eof()) {
-      std::getline(in, line);
+    while (!in.eof()) {
+      getline(in, line);
       singleInst<<line<<endl;
-      if(line=="% SZS end BatchProblems") {
+      if (line=="% SZS end BatchProblems") {
 	ready = true;
 	break;
       }
     }
-    if(!ready) { break; }
-    Shell::CASC::CLTBMode ltbm;
+    if (!ready) {
+      break;
+    }
+    CLTBMode ltbm;
     stringstream childInp(singleInst.str());
     ltbm.perform(childInp);
   }
@@ -93,7 +95,7 @@ void CLTBMode::perform(istream& batchFile)
   readInput(batchFile);
 
   bool noProblemLimit = false;
-  if(problemTimeLimit==0) {
+  if (problemTimeLimit==0) {
     //problem time is unlimited, we need to keep updating it based on the overall
     //limit and remaining problems
     noProblemLimit = true;
@@ -110,13 +112,13 @@ void CLTBMode::perform(istream& batchFile)
 
   int remainingCnt = problemFiles.size();
   StringPairStack::BottomFirstIterator probs(problemFiles);
-  while(probs.hasNext()) {
+  while (probs.hasNext()) {
     StringPair res=probs.next();
 
     string probFile=res.first;
     string outFile=res.second;
 
-    if(noProblemLimit) {
+    if (noProblemLimit) {
       problemTimeLimit = (env.remainingTime()/1000+1)/remainingCnt;
     }
 
@@ -127,7 +129,7 @@ void CLTBMode::perform(istream& batchFile)
     env.endOutput();
 
     pid_t child=Multiprocessing::instance()->fork();
-    if(!child) {
+    if (!child) {
       CLTBProblem prob(this, probFile, outFile);
       prob.perform();
 
@@ -147,7 +149,7 @@ void CLTBMode::perform(istream& batchFile)
     }
 
     env.beginOutput();
-    if(!resValue) {
+    if (!resValue) {
       env.out()<<"% SZS status Theorem for "<<probFile<<endl;
       solvedCnt++;
     }
@@ -178,21 +180,21 @@ void CLTBMode::loadIncludes()
     env.statistics->phase=Statistics::PARSING;
 
     StringList::Iterator iit(theoryIncludes);
-    while(iit.hasNext()) {
+    while (iit.hasNext()) {
       string fname=env.options->includeFileName(iit.next());
       ifstream inp(fname.c_str());
-      if(inp.fail()) {
+      if (inp.fail()) {
         USER_ERROR("Cannot open included file: "+fname);
       }
       Parse::TPTP parser(inp);
       parser.parse();
       UnitList* funits = parser.units();
-      if(parser.containsConjecture()) {
+      if (parser.containsConjecture()) {
 	USER_ERROR("Axiom file "+fname+" contains a conjecture.");
       }
 
       UnitList::Iterator fuit(funits);
-      while(fuit.hasNext()) {
+      while (fuit.hasNext()) {
 	fuit.next()->markIncluded();
       }
       theoryAxioms=UnitList::concat(funits,theoryAxioms);
@@ -214,40 +216,40 @@ void CLTBMode::readInput(istream& in)
 
   string line, word;
 
-  std::getline(in, line);
-  if(line!="% SZS start BatchConfiguration") {
+  getline(in, line);
+  if (line!="% SZS start BatchConfiguration") {
     USER_ERROR("\"% SZS start BatchConfiguration\" expected, \""+line+"\" found.");
   }
 
-  std::getline(in, line);
+  getline(in, line);
 
   questionAnswering = false;
   problemTimeLimit = -1;
   category = "";
 
   StringStack lineSegments;
-  while(!in.eof() && line!="% SZS end BatchConfiguration") {
+  while (!in.eof() && line!="% SZS end BatchConfiguration") {
     lineSegments.reset();
     StringUtils::splitStr(line.c_str(), ' ', lineSegments);
     string param = lineSegments[0];
-    if(param=="division.category") {
-      if(lineSegments.size()!=2) {
+    if (param=="division.category") {
+      if (lineSegments.size()!=2) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
       category = lineSegments[1];
       LOG("ltb_conf","ltb_conf: "<<param<<" = "<<category);
     }
-    else if(param=="output.required" || param=="output.desired") {
-      if(lineSegments.find("Answer")) {
+    else if (param=="output.required" || param=="output.desired") {
+      if (lineSegments.find("Answer")) {
 	questionAnswering = true;
 	LOG("ltb_conf","ltb_conf: enabled question answering");
       }
     }
-    else if(param=="execution.order") {
+    else if (param=="execution.order") {
       //we ignore this for now and always execute in order
     }
-    else if(param=="limit.time.problem.wc") {
-      if(lineSegments.size()!=2 || !Int::stringToInt(lineSegments[1], problemTimeLimit)) {
+    else if (param=="limit.time.problem.wc") {
+      if (lineSegments.size()!=2 || !Int::stringToInt(lineSegments[1], problemTimeLimit)) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
       LOG("ltb_conf","ltb_conf: "<<param<<" = "<<problemTimeLimit);
@@ -256,34 +258,34 @@ void CLTBMode::readInput(istream& in)
       USER_ERROR("unknown batch configuration parameter: \""+line+"\"");
     }
 
-    std::getline(in, line);
+    getline(in, line);
   }
 
-  if(category=="") {
+  if (category=="") {
     USER_ERROR("category must be specified");
   }
 
-  if(problemTimeLimit==-1) {
+  if (problemTimeLimit==-1) {
     USER_ERROR("problem time limit must be specified");
   }
 
-  if(line!="% SZS end BatchConfiguration") {
+  if (line!="% SZS end BatchConfiguration") {
     USER_ERROR("\"% SZS end BatchConfiguration\" expected, \""+line+"\" found.");
   }
-  if(questionAnswering) {
+  if (questionAnswering) {
     env.options->setQuestionAnswering(Options::QA_ANSWER_LITERAL);
   }
 
-  std::getline(in, line);
-  if(line!="% SZS start BatchIncludes") {
+  getline(in, line);
+  if (line!="% SZS start BatchIncludes") {
     USER_ERROR("\"% SZS start BatchIncludes\" expected, \""+line+"\" found.");
   }
 
   theoryIncludes=0;
-  for(std::getline(in, line); line[0]!='%' && !in.eof(); std::getline(in, line)) {
+  for (getline(in, line); line[0]!='%' && !in.eof(); getline(in, line)) {
     size_t first=line.find_first_of('\'');
     size_t last=line.find_last_of('\'');
-    if(first==string::npos || first==last) {
+    if (first==string::npos || first==last) {
       USER_ERROR("Include specification must contain the file name enclosed in the ' characters:\""+line+"\".");
     }
     ASS_G(last,first);
@@ -291,19 +293,19 @@ void CLTBMode::readInput(istream& in)
     StringList::push(fname, theoryIncludes);
   }
 
-  while(!in.eof() && line=="") { std::getline(in, line); }
-  if(line!="% SZS end BatchIncludes") {
+  while (!in.eof() && line=="") { getline(in, line); }
+  if (line!="% SZS end BatchIncludes") {
     USER_ERROR("\"% SZS end BatchIncludes\" expected, \""+line+"\" found.");
   }
-  std::getline(in, line);
-  if(line!="% SZS start BatchProblems") {
+  getline(in, line);
+  if (line!="% SZS start BatchProblems") {
     USER_ERROR("\"% SZS start BatchProblems\" expected, \""+line+"\" found.");
   }
 
-  for(std::getline(in, line); line[0]!='%' && !in.eof(); std::getline(in, line)) {
+  for (getline(in, line); line[0]!='%' && !in.eof(); getline(in, line)) {
     size_t spc=line.find(' ');
     size_t lastSpc=line.find(' ', spc+1);
-    if(spc==string::npos || spc==0 || spc==line.length()-1) {
+    if (spc==string::npos || spc==0 || spc==line.length()-1) {
       USER_ERROR("Two file names separated by a single space expected:\""+line+"\".");
     }
     string inp=line.substr(0,spc);
@@ -311,8 +313,10 @@ void CLTBMode::readInput(istream& in)
     problemFiles.push(make_pair(inp, outp));
   }
 
-  while(!in.eof() && line=="") { std::getline(in, line); }
-  if(line!="% SZS end BatchProblems") {
+  while (!in.eof() && line=="") {
+    getline(in, line);
+  }
+  if (line!="% SZS end BatchProblems") {
     USER_ERROR("\"% SZS end BatchProblems\" expected, \""+line+"\" found.");
   }
 }
@@ -1440,7 +1444,7 @@ void CLTBProblem::performStrategy()
   }
 
   int remainingTime=env.remainingTime()/100;
-  if(remainingTime<=0) {
+  if (remainingTime<=0) {
     return;
   }
   StrategySet usedSlices;
@@ -1448,7 +1452,7 @@ void CLTBProblem::performStrategy()
     return;
   }
   remainingTime=env.remainingTime()/100;
-  if(remainingTime<=0) {
+  if (remainingTime<=0) {
     return;
   }
   runSchedule(fallback,usedSlices,true);
@@ -1473,7 +1477,7 @@ void CLTBProblem::perform()
     env.statistics->phase=Statistics::PARSING;
 
     ifstream inp(problemFile.c_str());
-    if(inp.fail()) {
+    if (inp.fail()) {
       USER_ERROR("Cannot open problem file: "+problemFile);
     }
     Parse::TPTP parser(inp);
@@ -1488,7 +1492,7 @@ void CLTBProblem::perform()
     prb.addUnits(probUnits);
   }
 
-  if(prb.getProperty()->atoms()<=1000000) {
+  if (prb.getProperty()->atoms()<=1000000) {
     TimeCounter tc(TC_PREPROCESSING);
     env.statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;
@@ -1502,7 +1506,7 @@ void CLTBProblem::perform()
 
   //fork off the writer child process
   writerChildPid=Multiprocessing::instance()->fork();
-  if(!writerChildPid) {
+  if (!writerChildPid) {
     runWriterChild();
     ASSERTION_VIOLATION; // the runWriterChild() function should never return
   }
@@ -1537,7 +1541,7 @@ void CLTBProblem::exitOnNoSuccess()
 
   env.beginOutput();
   env.out()<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
-  if(env.remainingTime()/100>0) {
+  if (env.remainingTime()/100>0) {
     env.out()<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
   }
   else {
@@ -1558,7 +1562,7 @@ void CLTBProblem::exitOnNoSuccess()
     ASS_EQ(writerResult,0);
   } catch(SystemFailException& ex) {
     //it may happen that the writer process has already exitted
-    if(ex.err!=ECHILD) {
+    if (ex.err!=ECHILD) {
 	throw;
     }
   }
@@ -1580,10 +1584,10 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
 
   int parallelProcesses;
   unsigned coreNumber = System::getNumberOfCores();
-  if(coreNumber<=1) {
+  if (coreNumber<=1) {
     parallelProcesses = 1;
   }
-  else if(coreNumber>=8) {
+  else if (coreNumber>=8) {
     parallelProcesses = coreNumber-2;
   }
   else {
@@ -1593,12 +1597,12 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
   int processesLeft=parallelProcesses;
   Schedule::TopFirstIterator it(schedule);
  
-  while(it.hasNext()) {
-    while(it.hasNext() && processesLeft) {
+  while (it.hasNext()) {
+    while (it.hasNext() && processesLeft) {
       ASS_G(processesLeft,0);
 
       int remainingTime = env.remainingTime()/100;
-      if(remainingTime<=0) {
+      if (remainingTime<=0) {
         return false;
       }
  
@@ -1609,13 +1613,13 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
 	continue;
       }
       used.insert(chopped);
-      if(sliceTime>remainingTime) {
+      if (sliceTime>remainingTime) {
 	sliceTime=remainingTime;
       }
 
       pid_t childId=Multiprocessing::instance()->fork();
       ASS_NEQ(childId,-1);
-      if(!childId) {
+      if (!childId) {
 	//we're in a proving child
 	runChild(sliceCode,sliceTime); //start proving
 	ASSERTION_VIOLATION; //the runChild function should never return
@@ -1628,13 +1632,13 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       processesLeft--;
     }
 
-    if(processesLeft==0) {
+    if (processesLeft==0) {
       waitForChildAndExitWhenProofFound();
       processesLeft++;
     }
   }
 
-  while(parallelProcesses!=processesLeft) {
+  while (parallelProcesses!=processesLeft) {
     ASS_L(processesLeft, parallelProcesses);
     waitForChildAndExitWhenProofFound();
     processesLeft++;
@@ -1654,13 +1658,13 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
 
   int resValue;
   pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
-  if(finishedChild==writerChildPid) {
+  if (finishedChild==writerChildPid) {
     finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
   }
 #if VDEBUG
   ALWAYS(childIds.remove(finishedChild));
 #endif
-  if(!resValue) {
+  if (!resValue) {
     //we have found the proof. It has been already written down by the writter child,
     //so we can just terminate
     cout<<"terminated slice pid "<<finishedChild<<" (success)"<<endl;
@@ -1670,7 +1674,7 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
       Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
     } catch(SystemFailException& ex) {
       //it may happen that the writer process has already exitted
-      if(ex.err!=ECHILD) {
+      if (ex.err!=ECHILD) {
 	throw;
       }
     }
@@ -1710,10 +1714,10 @@ void CLTBProblem::runWriterChild()
 
   childOutputPipe.acquireRead();
 
-  while(!childOutputPipe.in().eof()) {
+  while (!childOutputPipe.in().eof()) {
     string line;
     getline(childOutputPipe.in(), line);
-    if(line==problemFinishedString) {
+    if (line==problemFinishedString) {
       break;
     }
     out<<line<<endl<<flush;
@@ -1728,7 +1732,7 @@ void CLTBProblem::runWriterChild()
 
 void CLTBProblem::terminatingSignalHandler(int sigNum)
 {
-  if(writerFileStream) {
+  if (writerFileStream) {
     writerFileStream->close();
   }
   System::terminateImmediately(0);
@@ -1742,7 +1746,7 @@ void CLTBProblem::runChild(string slice, unsigned ds)
   opt.readFromTestId(slice);
   opt.setTimeLimitInDeciseconds(ds);
   int stl = opt.simulatedTimeLimit();
-  if(stl) {
+  if (stl) {
     opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
   }
   runChild(opt);
@@ -1773,7 +1777,7 @@ void CLTBProblem::runChild(Options& strategyOpt)
   opt.setProblemName(problemFile);
   *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
 
-//  if(env.options->sineSelection()!=Options::SS_OFF) {
+//  if (env.options->sineSelection()!=Options::SS_OFF) {
 //    //add selected axioms from the theory
 //    parent->theorySelector.perform(probUnits);
 //
@@ -1792,13 +1796,13 @@ void CLTBProblem::runChild(Options& strategyOpt)
   ProvingHelper::runVampire(prb, opt);
 
   //set return value to zero if we were successful
-  if(env.statistics->terminationReason==Statistics::REFUTATION) {
+  if (env.statistics->terminationReason==Statistics::REFUTATION) {
     resultValue=0;
   }
 
   env.beginOutput();
   UIHelper::outputResult(env.out());
-  if(resultValue==0) {
+  if (resultValue==0) {
     env.out()<<problemFinishedString<<endl;
   }
   env.endOutput();
