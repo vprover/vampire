@@ -20,7 +20,7 @@
 
 #include "CASCMode.hpp"
 
-#define SLOWNESS 1.1
+#define SLOWNESS 1.2
 
 using namespace Lib;
 using namespace CASC;
