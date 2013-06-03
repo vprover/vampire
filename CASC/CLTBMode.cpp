@@ -1,6 +1,7 @@
 /**
  * @file CLTBMode.cpp
  * Implements class CLTBMode.
+ * @since 03/06/2013 updated to conform to the CASC-J6 specification
  */
 
 #include <fstream>
@@ -64,7 +65,7 @@ void CLTBMode::perform()
     bool ready = false;
     while (!in.eof()) {
       getline(in, line);
-      singleInst<<line<<endl;
+      singleInst << line << endl;
       if (line=="% SZS end BatchProblems") {
 	ready = true;
 	break;
@@ -124,7 +125,7 @@ void CLTBMode::perform(istream& batchFile)
 
     env.beginOutput();
     env.out().flush();
-    env.out()<<endl<<"% SZS status Started for "<<probFile<<endl;
+    env.out() << endl << "% SZS status Started for " << probFile << endl;
     env.out().flush();
     env.endOutput();
 
@@ -137,7 +138,7 @@ void CLTBMode::perform(istream& batchFile)
       ASSERTION_VIOLATION;
     }
     env.beginOutput();
-    env.out()<<"solver pid "<<child<<endl;
+    env.out() << "solver pid " << child << endl;
     env.endOutput();
     int resValue;
     try {
@@ -150,14 +151,14 @@ void CLTBMode::perform(istream& batchFile)
 
     env.beginOutput();
     if (!resValue) {
-      env.out()<<"% SZS status Theorem for "<<probFile<<endl;
+      env.out() << "% SZS status Theorem for " << probFile << endl;
       solvedCnt++;
     }
     else {
-      env.out()<<"% SZS status GaveUp for "<<probFile<<endl;
+      env.out() << "% SZS status GaveUp for " << probFile << endl;
     }
     env.out().flush();
-    env.out()<<endl<<"% SZS status Ended for "<<probFile<<endl;
+    env.out() << endl << "% SZS status Ended for " << probFile << endl;
     env.out().flush();
     env.endOutput();
 
@@ -166,7 +167,7 @@ void CLTBMode::perform(istream& batchFile)
     remainingCnt--;
   }
   env.beginOutput();
-  env.out()<<"Solved "<<solvedCnt<<" out of "<<problemFiles.size()<<endl;
+  env.out() << "Solved " << solvedCnt << " out of " << problemFiles.size() << endl;
   env.endOutput();
 }
 
@@ -221,7 +222,6 @@ void CLTBMode::readInput(istream& in)
   }
   while (line.find("division.category") != string::npos);
 
-  getline(in, line);
   if (line!="% SZS start BatchConfiguration") {
     USER_ERROR("\"% SZS start BatchConfiguration\" expected, \""+line+"\" found.");
   }
@@ -242,7 +242,7 @@ void CLTBMode::readInput(istream& in)
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
       category = lineSegments[1];
-      LOG("ltb_conf","ltb_conf: "<<param<<" = "<<category);
+      LOG("ltb_conf","ltb_conf: " << param << " = " << category);
     }
     else if (param=="output.required" || param=="output.desired") {
       if (lineSegments.find("Answer")) {
@@ -257,7 +257,13 @@ void CLTBMode::readInput(istream& in)
       if (lineSegments.size()!=2 || !Int::stringToInt(lineSegments[1], problemTimeLimit)) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
-      LOG("ltb_conf","ltb_conf: "<<param<<" = "<<problemTimeLimit);
+      LOG("ltb_conf","ltb_conf: " << param << " = " << problemTimeLimit);
+    }
+    else if (param=="limit.time.overall.wc") {
+      // if (lineSegments.size()!=2 || !Int::stringToInt(lineSegments[1], problemTimeLimit)) {
+      // 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
+      // }
+      // LOG("ltb_conf","ltb_conf: " << param << " = " << problemTimeLimit);
     }
     else {
       USER_ERROR("unknown batch configuration parameter: \""+line+"\"");
@@ -266,9 +272,9 @@ void CLTBMode::readInput(istream& in)
     getline(in, line);
   }
 
-  if (category=="") {
-    USER_ERROR("category must be specified");
-  }
+  // if (category=="") {
+  //   USER_ERROR("category must be specified");
+  // }
 
   if (problemTimeLimit==-1) {
     USER_ERROR("problem time limit must be specified");
@@ -1511,7 +1517,7 @@ void CLTBProblem::perform()
     runWriterChild();
     ASSERTION_VIOLATION; // the runWriterChild() function should never return
   }
-  cout<<"writer pid "<<writerChildPid<<endl;
+  cout << "writer pid " << writerChildPid << endl;
   cout.flush();
 
   //when the pipe will be closed, we want the process to terminate properly
@@ -1541,15 +1547,15 @@ void CLTBProblem::exitOnNoSuccess()
   CALL("CLTBProblem::exitOnNoSuccess");
 
   env.beginOutput();
-  env.out()<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+  env.out() << "% Proof not found in time " << Timer::msToSecondsString(env.timer->elapsedMilliseconds()) << endl;
   if (env.remainingTime()/100>0) {
-    env.out()<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
+    env.out() << "% SZS status GaveUp for " << env.options->problemName() << endl;
   }
   else {
     //From time to time we may also be terminating in the timeLimitReached()
     //function in Lib/Timer.cpp in case the time runs out. We, however, output
     //the same string there as well.
-    env.out()<<"% SZS status Timeout for "<<env.options->problemName()<<endl;
+    env.out() << "% SZS status Timeout for " << env.options->problemName() << endl;
   }
   env.endOutput();
 
@@ -1569,7 +1575,7 @@ void CLTBProblem::exitOnNoSuccess()
   }
 
 
-  cout<<"terminated solver pid "<<getpid()<<" (fail)"<<endl;
+  cout << "terminated solver pid " << getpid() << " (fail)" << endl;
   cout.flush();
 
   System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
@@ -1668,7 +1674,7 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
   if (!resValue) {
     //we have found the proof. It has been already written down by the writter child,
     //so we can just terminate
-    cout<<"terminated slice pid "<<finishedChild<<" (success)"<<endl;
+    cout << "terminated slice pid " << finishedChild << " (success)" << endl;
     cout.flush();
     int writerResult;
     try {
@@ -1681,7 +1687,7 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
     }
     System::terminateImmediately(0);
   }
-  cout<<"terminated slice pid "<<finishedChild<<" (fail)"<<endl;
+  cout << "terminated slice pid " << finishedChild << " (fail)" << endl;
   cout.flush();
 }
 
@@ -1721,7 +1727,7 @@ void CLTBProblem::runWriterChild()
     if (line==problemFinishedString) {
       break;
     }
-    out<<line<<endl<<flush;
+    out << line << endl << flush;
   }
   out.close();
   writerFileStream = 0;
@@ -1791,7 +1797,7 @@ void CLTBProblem::runChild(Options& strategyOpt)
 //  }
 
   env.beginOutput();
-  env.out()<<opt.testId()<<" on "<<opt.problemName()<<endl;
+  env.out() << opt.testId() << " on " << opt.problemName() << endl;
   env.endOutput();
 
   ProvingHelper::runVampire(prb, opt);
@@ -1804,7 +1810,7 @@ void CLTBProblem::runChild(Options& strategyOpt)
   env.beginOutput();
   UIHelper::outputResult(env.out());
   if (resultValue==0) {
-    env.out()<<problemFinishedString<<endl;
+    env.out() << problemFinishedString << endl;
   }
   env.endOutput();
 
