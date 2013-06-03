@@ -322,10 +322,6 @@ void CLTBMode::readInput(istream& in)
 }
 
 
-//////////////////////////////////////////
-// CLTBProblem
-//////////////////////////////////////////
-
 string CLTBProblem::problemFinishedString = "##Problem finished##vn;3-d-ca-12=1;'";
 
 CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)

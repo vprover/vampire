@@ -603,7 +603,6 @@ const char* Options::Constants::_modeValues[] = {
   "casc_ltb",
   "casc_mzr",
   "casc_sat",
-  "casc_simple_ltb",
   "clausify",
   "consequence_elimination",
   "grounding",

@@ -360,7 +360,6 @@ CASC_OBJ = CASC/CASCMode.o\
            CASC/CLTBMode.o\
            CASC/CMZRMode.o\
            CASC/ForkingCM.o\
-           CASC/SimpleLTBMode.o\
            CASC/SpawningCM.o
 
 VPROG_OBJ = Program/Type.o\

@@ -47,7 +47,6 @@
 #include "CASC/CASCMode.hpp"
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CMZRMode.hpp"
-#include "CASC/SimpleLTBMode.hpp"
 #include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/EqualityProxy.hpp"
@@ -636,13 +635,6 @@ int main(int argc, char* argv[])
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
-    case Options::MODE_CASC_SIMPLE_LTB: {
-      CASC::SimpleLTBMode sltbm;
-      sltbm.perform();
-      //we have processed the ltb batch file, so we can return zero
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      break;
-    }
     case Options::MODE_CASC_LTB: {
       CASC::CLTBMode::perform();
       //we have processed the ltb batch file, so we can return zero
