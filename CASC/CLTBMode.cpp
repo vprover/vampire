@@ -217,6 +217,10 @@ void CLTBMode::readInput(istream& in)
   string line, word;
 
   getline(in, line);
+  while (line.find("division.category") != string::npos) {
+  }
+
+  getline(in, line);
   if (line!="% SZS start BatchConfiguration") {
     USER_ERROR("\"% SZS start BatchConfiguration\" expected, \""+line+"\" found.");
   }
