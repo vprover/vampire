@@ -55,9 +55,7 @@
 #include <list>
 #endif
 
-namespace Shell
-{
-
+using namespace Shell;
 using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
@@ -71,6 +69,18 @@ bool UIHelper::unitSpecNumberComparator(UnitSpec us1, UnitSpec us2)
 
   return us1.unit()->number() < us2.unit()->number();
 }
+
+/**
+ * In the CASC mode output "% " so that the following line will be considered a comment.
+ * @author Andrei Voronkov
+ * @since 03/06/2012 Manchester
+ */
+void UIHelper::addCommentIfCASC(ostream& out)
+{
+  if (cascMode) {
+    out << "% ";
+  }
+} // UIHelper::addCommentIfCASC
 
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, string prefix)
 {
@@ -107,7 +117,7 @@ void UIHelper::outputAllPremises(ostream& out, UnitList* units, string prefix)
   std::sort(prems.begin(), prems.end(), UIHelper::unitSpecNumberComparator);
 
   Stack<UnitSpec>::BottomFirstIterator premIt(prems);
-  while(premIt.hasNext()) {
+  while (premIt.hasNext()) {
     UnitSpec prem = premIt.next();
     out << prefix << prem.toString() << endl;
   }
@@ -118,15 +128,17 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
 {
   CALL("UIHelper::outputSaturatedSet");
 
-  out<<"# SZS output start Saturation."<<endl;
+  addCommentIfCASC(out);
+  out << "# SZS output start Saturation." << endl;
 
   while(uit.hasNext()) {
     Unit* cl = uit.next();
     out << TPTPPrinter::toString(cl) << endl;
   }
 
-  out<<"# SZS output end Saturation."<<endl;
-}
+  addCommentIfCASC(out);
+  out << "# SZS output end Saturation." << endl;
+} // outputSaturatedSet
 
 /**
  * Return problem object with units obtained according to the content of
@@ -140,7 +152,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
     
   TimeCounter tc1(TC_PARSING);
-  env.statistics->phase=Statistics::PARSING;
+  env.statistics->phase = Statistics::PARSING;
 
 
   string inputFile = opts.inputFile();
@@ -194,7 +206,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   case Options::IS_SMTLIB2:
   case Options::IS_HUMAN:
   {
-    cout<<"This is not supported yet";
+    cout << "This is not supported yet";
     NOT_IMPLEMENTED;
    }
    break;
@@ -225,26 +237,24 @@ void UIHelper::outputResult(ostream& out)
 
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
+    addCommentIfCASC(out);
     out << "Refutation found. Thanks to "
-	      << env.options->thanks() << "!\n";
+	<< env.options->thanks() << "!\n";
     if (cascMode) {
-      out<<"% SZS status "<<( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
-	  <<" for "<<env.options->problemName()<<endl;
+      out << "% SZS status " << ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
+	  << " for " << env.options->problemName() << endl;
     }
     if (env.options->questionAnswering()!=Options::QA_OFF) {
       ASS(env.statistics->refutation->isClause());
       AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
     }
     if (env.options->proof() != Options::PROOF_OFF) {
-//	Shell::Refutation refutation(env.statistics->refutation,
-//		env.options->proof() == Options::PROOF_ON);
-//	refutation.output(out);
       if (cascMode) {
-	out<<"% SZS output start Proof for "<<env.options->problemName()<<endl;
+	out << "% SZS output start Proof for " << env.options->problemName() << endl;
       }
       InferenceStore::instance()->outputProof(out, env.statistics->refutation);
       if (cascMode) {
-	out<<"% SZS output end Proof for "<<env.options->problemName()<<endl<<flush;
+	out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
     }
     if (env.options->showInterpolant()==Options::INTERP_ON) {
@@ -270,26 +280,30 @@ void UIHelper::outputResult(ostream& out)
       out << "Count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
       out << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
     }
-    if (env.options->latexOutput()!="off") {
+    if (env.options->latexOutput() != "off") {
       ofstream latexOut(env.options->latexOutput().c_str());
 
       LaTeX formatter;
-      latexOut<<formatter.refutationToString(env.statistics->refutation);
+      latexOut << formatter.refutationToString(env.statistics->refutation);
     }
     break;
   case Statistics::TIME_LIMIT:
+    addCommentIfCASC(out);
     out << "Time limit reached!\n";
     break;
   case Statistics::MEMORY_LIMIT:
 #if VDEBUG
     Allocator::reportUsageByClasses();
 #endif
+    addCommentIfCASC(out);
     out << "Memory limit exceeded!\n";
     break;
   case Statistics::REFUTATION_NOT_FOUND:
+    addCommentIfCASC(out);
     if (env.statistics->discardedNonRedundantClauses) {
       out << "Refutation not found, non-redundant clauses discarded\n";
-    } else {
+    }
+    else {
       out << "Refutation not found, incomplete strategy\n";
     }
     break;
@@ -297,6 +311,7 @@ void UIHelper::outputResult(ostream& out)
     outputSatisfiableResult(out);
     break;
   case Statistics::UNKNOWN:
+  addCommentIfCASC(out);
     out << "Unknown reason of termination!\n";
     break;
   default:
@@ -312,16 +327,16 @@ void UIHelper::outputSatisfiableResult(ostream& out)
   out << "Satisfiable!\n";
 #if SATISFIABLE_IS_SUCCESS
   if (cascMode && !satisfiableStatusWasAlreadyOutput) {
-    out << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-	  <<" for "<<env.options->problemName()<<endl;
+    out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+	  <<" for " << env.options->problemName() << endl;
   }
   if (!env.statistics->model.empty()) {
     if (cascMode) {
-	out<<"% SZS output start FiniteModel for "<<env.options->problemName()<<endl;
+	out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
     }
     out << env.statistics->model;
     if (cascMode) {
-	out<<"% SZS output end FiniteModel for "<<env.options->problemName()<<endl;
+	out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
     }
   }
   else if (env.statistics->saturatedSet) {
@@ -446,7 +461,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
       Unit* u = ite.next();
       if ( !u->isClause()) {
 	Formula* f = u->getFormula();
-	std::cout<<f->toString();
+	std::cout << f->toString();
       }
 
 
@@ -458,11 +473,11 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     break;
     
     /*
-    std::cout<<"doing the constraint reading"<<std::endl;
+    std::cout << "doing the constraint reading" << std::endl;
     Parse::SMTLIB parser1(*env.options);
   
     string inputFile = env.options->inputFile();
-    std::cout<<inputFile<<std::endl;
+    std::cout << inputFile << std::endl;
     istream* input;
     if (inputFile=="") {
       input=&cin;
@@ -474,7 +489,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     }
   
     parser1.parse(*input);
-    std::cout<<parser1.getLispFormula()->toString()<<std::endl;
+    std::cout << parser1.getLispFormula()->toString() << std::endl;
      */
   }
 #endif
@@ -503,7 +518,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
 #if 0
     ConstraintRCList::Iterator ite(res);
     while(ite.hasNext())
-	std::cout<<ite.next()->toString()<<std::endl;
+	std::cout << ite.next()->toString() << std::endl;
     throw TimeLimitExceededException();
     ASSERTION_VIOLATION;
 #endif 
@@ -621,11 +636,11 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
   }
   
   if (constraint.freeCoeff() != CoeffNumber::zero() && constraint.type()!= CT_EQ )
-      out<< "";
+      out <<  "";
   
   while(closedP!=0)
   {
-    out<< ")"; 
+    out <<  ")"; 
     closedP--;
     }
    out << " 0 )";
@@ -685,9 +700,9 @@ void UIHelper::outputConstraintInSMTFormat(const Constraint& constraint, ostream
     out << " (+";
     closedP ++;
     if (constraint.freeCoeff().isNegativeAssumingNonzero())
-	out<< " " << -constraint.freeCoeff().native() <<" ";
+	out <<  " " << -constraint.freeCoeff().native()  << " ";
     if (constraint.freeCoeff().isPositiveAssumingNonzero()) 
-	out<< " (~ " << constraint.freeCoeff().native() <<")";
+	out <<  " (~ " << constraint.freeCoeff().native()  << ")";
   }
     
   while(coeffs.hasNext()) {
@@ -709,11 +724,11 @@ void UIHelper::outputConstraintInSMTFormat(const Constraint& constraint, ostream
   }
   
   if (constraint.freeCoeff() != CoeffNumber::zero() && constraint.type()!= CT_EQ )
-      out<< "";
+      out <<  "";
   
   while(closedP!=0)
   {
-    out<< ")"; 
+    out <<  ")"; 
     closedP--;
     }
    out << " 0 )";
@@ -738,17 +753,17 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     while(ite.hasNext())
     {
 	outputConstraint(*ite.next(), out, syntax);
-	out<<endl;
+	out << endl;
     }
     return;
   }
   case Options::IS_SMTLIB:
   {
-     out<<" (benchmark  SOMENAME"<<endl;
-    out<<" :source {converted from MIPLIB} "<<endl;
-    out<<" :status unknown "<<endl;
-    out<<" :category { industrial } "<<endl;
-    out<<" :logic QF_LRA "<<endl;
+     out << " (benchmark  SOMENAME" << endl;
+    out << " :source {converted from MIPLIB} " << endl;
+    out << " :status unknown " << endl;
+    out << " :category { industrial } " << endl;
+    out << " :logic QF_LRA " << endl;
     
     ConstraintList::Iterator fun(constraints);
     std::list<std::string> uni;
@@ -778,7 +793,7 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
       out << " \n";
     }
     
-    out<< ") )"<< endl;
+    out <<  ") )"<< endl;
     return;
   }
   
@@ -815,4 +830,3 @@ void UIHelper::outputAssignment(Assignment& assignemt, ostream& out, Shell::Opti
   }
 }
 #endif //GNUMP
-}

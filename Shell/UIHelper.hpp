@@ -70,11 +70,11 @@ public:
 private:
 #if GNUMP
   static void outputConstraintInHumanFormat(const Constraint& constraint, ostream& out);
-  
   static void outputConstraintInSMTFormat(const Constraint& constraint, ostream& out);
 #endif //GNUMP
 
   static bool unitSpecNumberComparator(UnitSpec us1, UnitSpec us2);
+  static void addCommentIfCASC(ostream&); 
 
   static bool s_haveConjecture;
 #if VDEBUG

@@ -345,6 +345,7 @@ public:
   ExecutionPhase phase;
 
 private:
+  static void addCommentIfCASC(ostream&); 
   static const char* phaseToString(ExecutionPhase p);
 }; // class Statistics
 

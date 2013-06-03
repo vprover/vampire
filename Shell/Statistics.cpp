@@ -14,13 +14,16 @@
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 
+#include "Shell/UIHelper.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
+
 #if GNUMP
 #include "Kernel/Assignment.hpp"
 #include "Kernel/Constraint.hpp"
 #endif
-#include "Options.hpp"
 
+#include "Options.hpp"
 #include "Statistics.hpp"
 
 
@@ -118,22 +121,36 @@ Statistics::Statistics()
 {
 } // Statistics::Statistics
 
+/**
+ * In the CASC mode output "% " so that the following line will be considered a comment.
+ * @author Andrei Voronkov
+ * @since 03/06/2012 Manchester
+ */
+void Statistics::addCommentIfCASC(ostream& out)
+{
+  if (UIHelper::cascMode) {
+    out << "% ";
+  }
+} // Statistics::addCommentIfCASC
 
 void Statistics::print(ostream& out)
 {
-  if(env.options->statistics()==Options::STATISTICS_NONE) {
+  if (env.options->statistics()==Options::STATISTICS_NONE) {
     return;
   }
 
   SaturationAlgorithm::tryUpdateFinalClauseCount();
 
   bool separable=false;
-#define COND_OUT(text, num) if(num) { out<<(text)<<": "<<(num)<<endl; separable=true; }
-#define SEPARATOR if(separable) { out<<endl; separable=false; }
+#define COND_OUT(text, num) if (num) { addCommentIfCASC(out); out << (text) << ": " << (num) << endl; separable = true; }
+#define SEPARATOR if (separable) {   addCommentIfCASC(out); out << endl; separable = false; }
 
+  addCommentIfCASC(out);
   out << "------------------------------\n";
+  addCommentIfCASC(out);
   out << "Version: " << VERSION_STRING << endl;
 
+  addCommentIfCASC(out);
   out << "Termination reason: ";
   switch(terminationReason) {
   case Statistics::REFUTATION:
@@ -146,9 +163,10 @@ void Statistics::print(ostream& out)
     out << "Memory limit";
     break;
   case Statistics::REFUTATION_NOT_FOUND:
-    if(env.statistics->discardedNonRedundantClauses) {
+    if (env.statistics->discardedNonRedundantClauses) {
       out << "Refutation not found, non-redundant clauses discarded";
-    } else {
+    }
+    else {
       out << "Refutation not found, incomplete strategy";
     }
     break;
@@ -162,7 +180,8 @@ void Statistics::print(ostream& out)
     ASSERTION_VIOLATION;
   }
   out << endl;
-  if(phase!=FINALIZATION) {
+  if (phase!=FINALIZATION) {
+    addCommentIfCASC(out);
     out << "Termination phase: " << phaseToString(phase) << endl;
   }
   out << endl;
@@ -248,15 +267,11 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
-
   COND_OUT("InstGen generated clauses", instGenGeneratedClauses);
   COND_OUT("InstGen redundant clauses", instGenRedundantClauses);
   COND_OUT("InstGen kept clauses", instGenKeptClauses);
   COND_OUT("InstGen iterations", instGenIterations);
-
   COND_OUT("Max BFNT model size", maxBFNTModelSize);
-
-
   SEPARATOR;
 
   COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
@@ -272,7 +287,7 @@ void Statistics::print(ostream& out)
 #undef SEPARATOR
 #undef COND_OUT
 
-  if(env.options && env.options->timeStatistics()) {
+  if (env.options && env.options->timeStatistics()) {
     TimeCounter::printReport(out);
   }
 }

@@ -53,6 +53,9 @@ void CLTBMode::perform()
     USER_ERROR("Input file must be specified for cltb mode");
   }
 
+  UIHelper::cascMode = true;
+  env.options->setProof(Options::PROOF_TPTP);
+
   string line;
   ifstream in(env.options->inputFile().c_str());
   if (in.fail()) {
@@ -1588,9 +1591,7 @@ void CLTBProblem::perform()
 
   //only the writer child is reading from the pipe (and it is now forked off)
   childOutputPipe.neverRead();
-
   env.setPipeOutput(&childOutputPipe); //direct output into the pipe
-  UIHelper::cascMode=true;
 
   performStrategy();
 
@@ -1728,7 +1729,7 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
 
   int resValue;
   pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
-  if (finishedChild==writerChildPid) {
+  if (finishedChild == writerChildPid) {
     finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
   }
 #if VDEBUG
@@ -1871,7 +1872,6 @@ void CLTBProblem::runChild(Options& strategyOpt)
   }
 
   env.beginOutput();
-  UIHelper::cascMode = true;
   UIHelper::outputResult(env.out());
   if (resultValue==0) {
     env.out() << "% " << problemFinishedString << endl;
