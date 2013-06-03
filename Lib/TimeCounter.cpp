@@ -11,14 +11,13 @@
 #include "Lib/Timer.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "TimeCounter.hpp"
 
-namespace Lib {
-
 using namespace std;
 using namespace Shell;
-
+using namespace Lib;
 
 bool TimeCounter::s_measuring = true;
 bool TimeCounter::s_initialized = false;
@@ -132,8 +131,14 @@ void TimeCounter::stopMeasuring()
 
 void TimeCounter::printReport(ostream& out)
 {
-  out<<"Time measurement results:"<<endl;
-  for(int i=0; i<__TC_ELEMENT_COUNT; i++) {
+  if (UIHelper::cascMode) {
+    out << "% ";
+  }
+  out << "Time measurement results:" << endl;
+  if (UIHelper::cascMode) {
+    out << "% ";
+  }
+  for (int i=0; i<__TC_ELEMENT_COUNT; i++) {
     outputSingleStat(static_cast<TimeCounterUnit>(i), out);
   }
   out<<endl;
@@ -141,8 +146,12 @@ void TimeCounter::printReport(ostream& out)
 
 void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
 {
-  if(s_measureInitTimes[tcu]==-1 && !s_measuredTimes[tcu]) {
+  if (s_measureInitTimes[tcu]==-1 && !s_measuredTimes[tcu]) {
     return;
+  }
+
+  if (UIHelper::cascMode) {
+    out << "% ";
   }
   switch(tcu) {
   case TC_BACKWARD_DEMODULATION:
@@ -303,4 +312,3 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   out<<endl;
 }
 
-};

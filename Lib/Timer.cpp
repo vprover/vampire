@@ -87,8 +87,11 @@ void timeLimitReached()
   env.beginOutput();
   reportSpiderStatus('?');
   if(!inSpiderMode()) {
+    if (Shell::UIHelper::cascMode) {
+      env.out() << "% ";
+    }
     env.out() << "Time limit reached!\n";
-    if(Shell::UIHelper::cascMode && !Shell::UIHelper::cascModeChild) {
+    if (Shell::UIHelper::cascMode && !Shell::UIHelper::cascModeChild) {
       env.out() << "% Proof not found in time ";
       Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
       env.out() << endl;

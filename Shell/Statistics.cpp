@@ -275,13 +275,17 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
+
+  addCommentIfCASC(out);
   out << "Time elapsed: ";
   Timer::printMSString(out,env.timer->elapsedMilliseconds());
   out << endl;
+  addCommentIfCASC(out);
   out << "------------------------------\n";
 
   RSTAT_PRINT(out);
   DISPLAY_TRACE_STATS(out);
+  addCommentIfCASC(out);
   out << "------------------------------\n";
 
 #undef SEPARATOR
