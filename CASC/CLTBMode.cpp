@@ -1665,7 +1665,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
   }
 
   int processesLeft=parallelProcesses;
-  Schedule::TopFirstIterator it(schedule);
+  Schedule::BottomFirstIterator it(schedule);
  
   while (it.hasNext()) {
     while (it.hasNext() && processesLeft) {
