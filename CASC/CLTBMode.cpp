@@ -138,7 +138,7 @@ void CLTBMode::perform(istream& batchFile)
       ASSERTION_VIOLATION;
     }
     env.beginOutput();
-    env.out() << "solver pid " << child << endl;
+    env.out() << "% solver pid " << child << endl;
     env.endOutput();
     int resValue;
     try {
@@ -167,7 +167,7 @@ void CLTBMode::perform(istream& batchFile)
     remainingCnt--;
   }
   env.beginOutput();
-  env.out() << "Solved " << solvedCnt << " out of " << problemFiles.size() << endl;
+  env.out() << "% Solved " << solvedCnt << " out of " << problemFiles.size() << endl;
   env.endOutput();
 }
 
@@ -367,7 +367,7 @@ void CLTBProblem::performStrategy()
   Property::Category cat = property.category();
   unsigned atoms = property.atoms();
   unsigned prop = property.props();
-  cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
+  cout << "% Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
   Schedule quick;
   Schedule fallback;
@@ -1580,7 +1580,7 @@ void CLTBProblem::perform()
     runWriterChild();
     ASSERTION_VIOLATION; // the runWriterChild() function should never return
   }
-  cout << "writer pid " << writerChildPid << endl;
+  cout << "% writer pid " << writerChildPid << endl;
   cout.flush();
 
   //when the pipe will be closed, we want the process to terminate properly
@@ -1638,7 +1638,7 @@ void CLTBProblem::exitOnNoSuccess()
   }
 
 
-  cout << "terminated solver pid " << getpid() << " (fail)" << endl;
+  cout << "% terminated solver pid " << getpid() << " (fail)" << endl;
   cout.flush();
 
   System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
@@ -1698,7 +1698,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
 
       ASS(childIds.insert(childId));
 
-      cout << "slice pid "<< childId << " slice: " << sliceCode << " time: " << sliceTime << endl << flush;
+      cout << "% slice pid "<< childId << " slice: " << sliceCode << " time: " << sliceTime << endl << flush;
       processesLeft--;
     }
 
@@ -1737,7 +1737,7 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
   if (!resValue) {
     //we have found the proof. It has been already written down by the writter child,
     //so we can just terminate
-    cout << "terminated slice pid " << finishedChild << " (success)" << endl;
+    cout << "% terminated slice pid " << finishedChild << " (success)" << endl;
     cout.flush();
     int writerResult;
     try {
@@ -1750,7 +1750,7 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
     }
     System::terminateImmediately(0);
   }
-  cout << "terminated slice pid " << finishedChild << " (fail)" << endl;
+  cout << "% terminated slice pid " << finishedChild << " (fail)" << endl;
   cout.flush();
 }
 
@@ -1860,7 +1860,7 @@ void CLTBProblem::runChild(Options& strategyOpt)
 //  }
 
   env.beginOutput();
-  env.out() << opt.testId() << " on " << opt.problemName() << endl;
+  env.out() << "% " << opt.testId() << " on " << opt.problemName() << endl;
   env.endOutput();
 
   ProvingHelper::runVampire(prb, opt);
@@ -1871,9 +1871,10 @@ void CLTBProblem::runChild(Options& strategyOpt)
   }
 
   env.beginOutput();
+  UIHelper::cascMode = true;
   UIHelper::outputResult(env.out());
   if (resultValue==0) {
-    env.out() << problemFinishedString << endl;
+    env.out() << "% " << problemFinishedString << endl;
   }
   env.endOutput();
 

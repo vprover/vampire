@@ -95,7 +95,7 @@ void UIHelper::outputAllPremises(ostream& out, UnitList* units, string prefix)
     UnitSpecIterator pars = InferenceStore::instance()->getParents(us);
     while(pars.hasNext()) {
       UnitSpec par = pars.next();
-      if(seen.contains(par)) {
+      if (seen.contains(par)) {
 	continue;
       }
       prems.push(par);
@@ -146,11 +146,11 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   string inputFile = opts.inputFile();
 
   istream* input;
-  if(inputFile=="") {
+  if (inputFile=="") {
     input=&cin;
   } else {
     input=new ifstream(inputFile.c_str());
-    if(input->fail()) {
+    if (input->fail()) {
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
   }
@@ -200,7 +200,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
    break;
   }
 
-  if(inputFile!="") {
+  if (inputFile!="") {
     delete static_cast<ifstream*>(input);
     input=0;
   }
@@ -227,11 +227,11 @@ void UIHelper::outputResult(ostream& out)
   case Statistics::REFUTATION:
     out << "Refutation found. Thanks to "
 	      << env.options->thanks() << "!\n";
-    if(cascMode) {
+    if (cascMode) {
       out<<"% SZS status "<<( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
 	  <<" for "<<env.options->problemName()<<endl;
     }
-    if(env.options->questionAnswering()!=Options::QA_OFF) {
+    if (env.options->questionAnswering()!=Options::QA_OFF) {
       ASS(env.statistics->refutation->isClause());
       AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
     }
@@ -239,20 +239,20 @@ void UIHelper::outputResult(ostream& out)
 //	Shell::Refutation refutation(env.statistics->refutation,
 //		env.options->proof() == Options::PROOF_ON);
 //	refutation.output(out);
-      if(cascMode) {
+      if (cascMode) {
 	out<<"% SZS output start Proof for "<<env.options->problemName()<<endl;
       }
       InferenceStore::instance()->outputProof(out, env.statistics->refutation);
-      if(cascMode) {
+      if (cascMode) {
 	out<<"% SZS output end Proof for "<<env.options->problemName()<<endl<<flush;
       }
     }
-    if(env.options->showInterpolant()==Options::INTERP_ON) {
+    if (env.options->showInterpolant()==Options::INTERP_ON) {
       ASS(env.statistics->refutation->isClause());
       Formula* interpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       out << "Interpolant: " << interpolant->toString() << endl;
     }
-    if(env.options->showInterpolant()==Options::INTERP_MINIMIZED) {
+    if (env.options->showInterpolant()==Options::INTERP_MINIMIZED) {
       ASS(env.statistics->refutation->isClause());
 //      {
 //	Formula* oldInterpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
@@ -270,7 +270,7 @@ void UIHelper::outputResult(ostream& out)
       out << "Count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
       out << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
     }
-    if(env.options->latexOutput()!="off") {
+    if (env.options->latexOutput()!="off") {
       ofstream latexOut(env.options->latexOutput().c_str());
 
       LaTeX formatter;
@@ -287,7 +287,7 @@ void UIHelper::outputResult(ostream& out)
     out << "Memory limit exceeded!\n";
     break;
   case Statistics::REFUTATION_NOT_FOUND:
-    if(env.statistics->discardedNonRedundantClauses) {
+    if (env.statistics->discardedNonRedundantClauses) {
       out << "Refutation not found, non-redundant clauses discarded\n";
     } else {
       out << "Refutation not found, incomplete strategy\n";
@@ -311,20 +311,20 @@ void UIHelper::outputSatisfiableResult(ostream& out)
 
   out << "Satisfiable!\n";
 #if SATISFIABLE_IS_SUCCESS
-  if(cascMode && !satisfiableStatusWasAlreadyOutput) {
+  if (cascMode && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for "<<env.options->problemName()<<endl;
   }
-  if(!env.statistics->model.empty()) {
-    if(cascMode) {
+  if (!env.statistics->model.empty()) {
+    if (cascMode) {
 	out<<"% SZS output start FiniteModel for "<<env.options->problemName()<<endl;
     }
     out << env.statistics->model;
-    if(cascMode) {
+    if (cascMode) {
 	out<<"% SZS output end FiniteModel for "<<env.options->problemName()<<endl;
     }
   }
-  else if(env.statistics->saturatedSet) {
+  else if (env.statistics->saturatedSet) {
     outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
   }
 #endif
@@ -338,14 +338,14 @@ void UIHelper::outputIntroducedSymbolDeclarations(ostream& out)
 
   unsigned funcs = sig.functions();
   for(unsigned i=0; i<funcs; ++i) {
-    if(!sig.getFunction(i)->introduced()) {
+    if (!sig.getFunction(i)->introduced()) {
       continue;
     }
     outputSymbolTypeDeclarationIfNeeded(out, true, i);
   }
   unsigned preds = sig.predicates();
   for(unsigned i=0; i<preds; ++i) {
-    if(!sig.getPredicate(i)->introduced()) {
+    if (!sig.getPredicate(i)->introduced()) {
       continue;
     }
     outputSymbolTypeDeclarationIfNeeded(out, false, i);
@@ -359,14 +359,14 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   Signature::Symbol* sym = function ?
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
 
-  if(sym->interpreted()) {
+  if (sym->interpreted()) {
     //there is no need to output type definitions for interpreted symbols
     return;
   }
 
   BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : sym->predType();
 
-  if(type->isAllDefault()) {
+  if (type->isAllDefault()) {
     return;
   }
 
@@ -374,14 +374,14 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
       << sym->name() << ": ";
 
   unsigned arity = sym->arity();
-  if(arity>0) {
-    if(arity==1) {
+  if (arity>0) {
+    if (arity==1) {
       out << env.sorts->sortName(type->arg(0));
     }
     else {
       out << "(";
       for(unsigned i=0; i<arity; i++) {
-	if(i>0) {
+	if (i>0) {
 	  out << " * ";
 	}
 	out << env.sorts->sortName(type->arg(i));
@@ -390,7 +390,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     }
     out << " > ";
   }
-  if(function) {
+  if (function) {
     out << env.sorts->sortName(sym->fnType()->result());
   }
   else {
@@ -418,12 +418,12 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
 
   ScopedPtr<std::ifstream> inputScoped;
   istream * input;
-  if(inputFile=="") {
+  if (inputFile=="") {
      input=&cin;
    } else {
      inputScoped=new ifstream(inputFile.c_str());
      input = inputScoped.ptr();
-     if(input->fail()) {
+     if (input->fail()) {
        USER_ERROR("Cannot open problem file: "+inputFile);
      }
    }
@@ -464,11 +464,11 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     string inputFile = env.options->inputFile();
     std::cout<<inputFile<<std::endl;
     istream* input;
-    if(inputFile=="") {
+    if (inputFile=="") {
       input=&cin;
     } else {
       input=new ifstream(inputFile.c_str());
-      if(input->fail()) {
+      if (input->fail()) {
 	USER_ERROR("Cannot open problem file: "+inputFile);
       }
     }
@@ -599,19 +599,19 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
   {
     out << " (+";
     closedP ++;
-    if(constraint.freeCoeff().isNegativeAssumingNonzero())
+    if (constraint.freeCoeff().isNegativeAssumingNonzero())
 	out<< " " << -constraint.freeCoeff().native() <<" ";
-    if(constraint.freeCoeff().isPositiveAssumingNonzero()) 
+    if (constraint.freeCoeff().isPositiveAssumingNonzero()) 
 	out<< " (~ " << constraint.freeCoeff().native() <<")";
   }
     
   while(coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
-     if(coeffs.hasNext()) {
+     if (coeffs.hasNext()) {
 	out << " (+ ";
 	closedP++;
     }
-    if(coeff.value<CoeffNumber::zero()) {
+    if (coeff.value<CoeffNumber::zero()) {
 	out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
     }
     else {
@@ -632,18 +632,18 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
   
  */ 
   Constraint::CoeffIterator coeffs = constraint.coeffs();
-  if(!coeffs.hasNext()) {
+  if (!coeffs.hasNext()) {
     out << "0 ";
   }
   while(coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
-    if(coeff.value<CoeffNumber::zero()) {
+    if (coeff.value<CoeffNumber::zero()) {
 	out << "(" << coeff.value << "*" << env.signature->varName(coeff.var) << ") ";
     }
     else {
 	out << coeff.value << "*" << env.signature->varName(coeff.var) << " ";
     }
-    if(coeffs.hasNext()) {
+    if (coeffs.hasNext()) {
 	out << "+ ";
     }
   }
@@ -666,7 +666,7 @@ void UIHelper::outputConstraintInSMTFormat(const Constraint& constraint, ostream
   Constraint::CoeffIterator coeffs = constraint.coeffs();
   
  /* 
-  if(!coeffs.hasNext()) {
+  if (!coeffs.hasNext()) {
     out << " 0 ";
   }
   */
@@ -684,21 +684,21 @@ void UIHelper::outputConstraintInSMTFormat(const Constraint& constraint, ostream
   {
     out << " (+";
     closedP ++;
-    if(constraint.freeCoeff().isNegativeAssumingNonzero())
+    if (constraint.freeCoeff().isNegativeAssumingNonzero())
 	out<< " " << -constraint.freeCoeff().native() <<" ";
-    if(constraint.freeCoeff().isPositiveAssumingNonzero()) 
+    if (constraint.freeCoeff().isPositiveAssumingNonzero()) 
 	out<< " (~ " << constraint.freeCoeff().native() <<")";
   }
     
   while(coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
-     if(coeffs.hasNext()) {
+     if (coeffs.hasNext()) {
 	out << " (+ ";
 	closedP++;
 	 
     }
     
-    if(coeff.value<CoeffNumber::zero()) {
+    if (coeff.value<CoeffNumber::zero()) {
 	
 	out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
     }
@@ -718,7 +718,7 @@ void UIHelper::outputConstraintInSMTFormat(const Constraint& constraint, ostream
     }
    out << " 0 )";
   
- /* if(constraint.freeCoeff().isNegative() || constraint.freeCoeff() == CoeffNumber::zero() )
+ /* if (constraint.freeCoeff().isNegative() || constraint.freeCoeff() == CoeffNumber::zero() )
     out << "(~" << -constraint.freeCoeff() <<") )";
   else 
     out << " " << constraint.freeCoeff() <<" )";*/
