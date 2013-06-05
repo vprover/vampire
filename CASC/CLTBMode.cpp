@@ -149,10 +149,8 @@ void CLTBMode::perform(istream& batchFile)
     env.out().flush();
     env.endOutput();
 
-    cout << "!!!" << env.timer->elapsedMilliseconds() << endl;
     pid_t child = Multiprocessing::instance()->fork();
     if (!child) {
-      cout << "???" << env.timer->elapsedMilliseconds() << endl;
       // child process
       CLTBProblem prob(this, probFile, outFile);
       prob.perform(problemTerminationTime);
@@ -1980,7 +1978,7 @@ unsigned CLTBProblem::getSliceTime(string sliceCode,string& chopped)
 ostream& CLTBMode::lineOutput()
 {
   CALL("CLTBMode::lineOutput");
-  env.out() << "% (" << env.timer->elapsedMilliseconds() << ") ";
+  env.out() << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
   return env.out();
 } // CLTBMode::lineOutput
 
@@ -1993,7 +1991,7 @@ ostream& CLTBMode::lineOutput()
 ostream& CLTBMode::coutLineOutput()
 {
   CALL("CLTBMode::lineOutput");
-  cout << "% (" << env.timer->elapsedMilliseconds() << ") ";
+  cout << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
   return cout;
 } // CLTBMode::coutLineOutput
 
