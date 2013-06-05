@@ -149,8 +149,10 @@ void CLTBMode::perform(istream& batchFile)
     env.out().flush();
     env.endOutput();
 
+    cout << "!!!" << env.timer->elapsedMilliseconds() << endl;
     pid_t child = Multiprocessing::instance()->fork();
     if (!child) {
+      cout << "???" << env.timer->elapsedMilliseconds() << endl;
       // child process
       CLTBProblem prob(this, probFile, outFile);
       prob.perform(problemTerminationTime);

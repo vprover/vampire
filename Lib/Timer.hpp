@@ -68,6 +68,22 @@ public:
     _start = miliseconds();
   } // start
 
+  /**
+   * Add to elapsed time. Useful when running a child process and adding
+   * time spent by the parent to its elapsed time.
+   * @since 05/06/2013 Vienna
+   * @author Andrei Voronkov
+   */
+  inline void addToElapsedTime(int milliseconds)
+  {
+    if (_running) {
+      _start -= milliseconds;
+    }
+    else {
+      _elapsed += milliseconds;
+    }
+  } // addToElapsedTime
+
   /** elapsed time in seconds */
   int elapsedSeconds()
   {
