@@ -1590,7 +1590,6 @@ void CLTBProblem::perform(int terminationTime)
 
   System::registerForSIGHUPOnParentDeath();
 
-  env.timer->reset();
   env.timer->start();
   env.timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
@@ -1899,7 +1898,6 @@ void CLTBProblem::runSlice(Options& strategyOpt)
   UIHelper::cascModeChild=true;
 
   int resultValue=1;
-  env.timer->reset();
   env.timer->start();
   TimeCounter::reinitialize();
   Timer::setTimeLimitEnforcement(true);
