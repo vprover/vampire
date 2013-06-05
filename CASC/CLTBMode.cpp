@@ -1750,7 +1750,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       }
       Timer::syncClock();
       ASS(childIds.insert(childId));
-      cout << "% slice pid "<< childId << " slice: " << sliceCode << " time: " << (sliceTime/1000) << endl << flush;
+      cout << "% slice pid "<< childId << " slice: " << sliceCode << " time: " << (sliceTime/100)/10.0 << endl << flush;
       processesLeft--;
     }
 
