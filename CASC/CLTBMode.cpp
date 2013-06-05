@@ -109,6 +109,7 @@ void CLTBMode::perform(istream& batchFile)
 
   // this is the time in milliseconds since the start when this batch file should terminate
   _timeUsedByPreviousBatches = env.timer->elapsedMilliseconds();
+  coutLineOutput() << "Starting Vampire on the batch file " << "\n";
   int terminationTime = readInput(batchFile);
   loadIncludes();
 
@@ -124,7 +125,9 @@ void CLTBMode::perform(istream& batchFile)
     // calculate the next problem time limit in milliseconds
     int elapsedTime = env.timer->elapsedMilliseconds();
     int timeRemainingForThisBatch = terminationTime - elapsedTime;
+    coutLineOutput() << "time remaining for this batch " << timeRemainingForThisBatch << endl;
     int remainingBatchTimeForThisProblem = timeRemainingForThisBatch / remainingCnt;
+    coutLineOutput() << "remaining batch time for this problem " << remainingBatchTimeForThisProblem << endl;
     int nextProblemTimeLimit;
     if (!_problemTimeLimit) {
       nextProblemTimeLimit = remainingBatchTimeForThisProblem;
@@ -137,6 +140,7 @@ void CLTBMode::perform(istream& batchFile)
     }
     // time in milliseconds when the current problem should terminate
     int problemTerminationTime = elapsedTime + nextProblemTimeLimit;
+    coutLineOutput() << "problem termination time " << problemTerminationTime << endl;
 
     env.beginOutput();
     env.out().flush();
