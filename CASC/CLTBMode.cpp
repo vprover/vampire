@@ -140,7 +140,8 @@ void CLTBMode::perform(istream& batchFile)
 
     env.beginOutput();
     env.out().flush();
-    env.out() << endl << "% SZS status Started for " << probFile << endl;
+    env.out() << "%" << endl;
+    lineOutput() << "SZS status Started for " << probFile << endl;
     env.out().flush();
     env.endOutput();
 
@@ -152,8 +153,9 @@ void CLTBMode::perform(istream& batchFile)
       //the prob.perform() function should never return
       ASSERTION_VIOLATION;
     }
+
     env.beginOutput();
-    env.out() << "% solver pid " << child << endl;
+    lineOutput() << "solver pid " << child << endl;
     env.endOutput();
     int resValue;
     // wait until the child terminates
@@ -169,14 +171,15 @@ void CLTBMode::perform(istream& batchFile)
     // output the result depending on the termination code
     env.beginOutput();
     if (!resValue) {
-      env.out() << "% SZS status Theorem for " << probFile << endl;
+      lineOutput() << "SZS status Theorem for " << probFile << endl;
       solvedCnt++;
     }
     else {
-      env.out() << "% SZS status GaveUp for " << probFile << endl;
+      lineOutput() << "SZS status GaveUp for " << probFile << endl;
     }
     env.out().flush();
-    env.out() << endl << "% SZS status Ended for " << probFile << endl;
+    env.out() << '%' << endl;
+    lineOutput() << "% SZS status Ended for " << probFile << endl;
     env.out().flush();
     env.endOutput();
 
@@ -185,7 +188,7 @@ void CLTBMode::perform(istream& batchFile)
     remainingCnt--;
   }
   env.beginOutput();
-  env.out() << "% Solved " << solvedCnt << " out of " << problemFiles.size() << endl;
+  lineOutput() << "Solved " << solvedCnt << " out of " << problemFiles.size() << endl;
   env.endOutput();
 } // CLTBMode::perform(batchFile)
 
@@ -1627,7 +1630,7 @@ void CLTBProblem::perform(int terminationTime)
     runWriterChild();
     ASSERTION_VIOLATION; // the runWriterChild() function should never return
   }
-  cout << "% writer pid " << writerChildPid << endl;
+  CLTBMode::coutLineOutput() << "writer pid " << writerChildPid << endl;
   cout.flush();
 
   //when the pipe will be closed, we want the process to terminate properly
@@ -1654,15 +1657,15 @@ void CLTBProblem::exitOnNoSuccess()
   CALL("CLTBProblem::exitOnNoSuccess");
 
   env.beginOutput();
-  env.out() << "% Proof not found in time " << Timer::msToSecondsString(env.timer->elapsedMilliseconds()) << endl;
+  CLTBMode::lineOutput() << "Proof not found in time " << Timer::msToSecondsString(env.timer->elapsedMilliseconds()) << endl;
   if (env.remainingTime()/100>0) {
-    env.out() << "% SZS status GaveUp for " << env.options->problemName() << endl;
+    CLTBMode::lineOutput() << "SZS status GaveUp for " << env.options->problemName() << endl;
   }
   else {
     //From time to time we may also be terminating in the timeLimitReached()
     //function in Lib/Timer.cpp in case the time runs out. We, however, output
     //the same string there as well.
-    env.out() << "% SZS status Timeout for " << env.options->problemName() << endl;
+    CLTBMode::lineOutput() << "SZS status Timeout for " << env.options->problemName() << endl;
   }
   env.endOutput();
 
@@ -1674,14 +1677,15 @@ void CLTBProblem::exitOnNoSuccess()
     int writerResult;
     Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
     ASS_EQ(writerResult,0);
-  } catch(SystemFailException& ex) {
+  }
+  catch(SystemFailException& ex) {
     //it may happen that the writer process has already exitted
     if (ex.err!=ECHILD) {
-	throw;
+      throw;
     }
   }
 
-  cout << "% terminated solver pid " << getpid() << " (fail)" << endl;
+  CLTBMode::coutLineOutput() << "terminated solver pid " << getpid() << " (fail)" << endl;
   cout.flush();
 
   System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
@@ -1750,7 +1754,8 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       }
       Timer::syncClock();
       ASS(childIds.insert(childId));
-      cout << "% slice pid "<< childId << " slice: " << sliceCode << " time: " << (sliceTime/100)/10.0 << endl << flush;
+      CLTBMode::coutLineOutput() << "slice pid "<< childId << " slice: " << sliceCode
+				 << " time: " << (sliceTime/100)/10.0 << endl << flush;
       processesLeft--;
     }
 
@@ -1789,7 +1794,7 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
   if (!resValue) {
     //we have found the proof. It has been already written down by the writter child,
     //so we can just terminate
-    cout << "% terminated slice pid " << finishedChild << " (success)" << endl;
+    CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (success)" << endl;
     cout.flush();
     int writerResult;
     try {
@@ -1802,7 +1807,7 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
     }
     System::terminateImmediately(0);
   }
-  cout << "% terminated slice pid " << finishedChild << " (fail)" << endl;
+  CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (fail)" << endl;
   cout.flush();
 }
 
@@ -1916,20 +1921,20 @@ void CLTBProblem::runSlice(Options& strategyOpt)
 //  }
 
   env.beginOutput();
-  env.out() << "% " << opt.testId() << " on " << opt.problemName() << endl;
+  CLTBMode::lineOutput() << opt.testId() << " on " << opt.problemName() << endl;
   env.endOutput();
 
   ProvingHelper::runVampire(prb, opt);
 
   //set return value to zero if we were successful
-  if (env.statistics->terminationReason==Statistics::REFUTATION) {
+  if (env.statistics->terminationReason == Statistics::REFUTATION) {
     resultValue=0;
   }
 
   env.beginOutput();
   UIHelper::outputResult(env.out());
   if (resultValue==0) {
-    env.out() << "% " << problemFinishedString << endl;
+    CLTBMode::lineOutput() << problemFinishedString << endl;
   }
   env.endOutput();
   exit(resultValue);
@@ -1959,5 +1964,31 @@ unsigned CLTBProblem::getSliceTime(string sliceCode,string& chopped)
   // convert deciseconds to milliseconds
   return time * 100;
 } // getSliceTime
+
+/**
+ * Start line output by writing the TPTP comment sign and the current
+ * elapsed time in milliseconds to env.out(). Returns env.out()
+ * @since 05/06/2013 Vienna
+ * @author Andrei Voronkov
+ */
+ostream& CLTBMode::lineOutput()
+{
+  CALL("CLTBMode::lineOutput");
+  env.out() << "% (" << env.timer->elapsedMilliseconds() << ") ";
+  return env.out();
+} // CLTBMode::lineOutput
+
+/**
+ * Start line output by writing the TPTP comment sign and the current
+ * elapsed time in milliseconds to cout. Returns cout
+ * @since 05/06/2013 Vienna
+ * @author Andrei Voronkov
+ */
+ostream& CLTBMode::coutLineOutput()
+{
+  CALL("CLTBMode::lineOutput");
+  cout << "% (" << env.timer->elapsedMilliseconds() << ") ";
+  return cout;
+} // CLTBMode::coutLineOutput
 
 #endif //!COMPILER_MSVC

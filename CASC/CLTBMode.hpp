@@ -48,7 +48,8 @@ public:
 private:
   void perform(istream& batchFile);
   int readInput(istream& batchFile);
-
+  static ostream& lineOutput();
+  static ostream& coutLineOutput();
   void loadIncludes();
 
   typedef List<string> StringList;
