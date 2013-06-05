@@ -47,7 +47,7 @@ public:
   static void perform();
 private:
   void perform(istream& batchFile);
-  void readInput(istream& batchFile);
+  int readInput(istream& batchFile);
 
   void loadIncludes();
 
@@ -57,22 +57,22 @@ private:
   typedef Stack<StringPair> StringPairStack;
 
   string category;
-  /** in seconds */
-  int problemTimeLimit;
-//  int overallTimeLimit;
-  bool questionAnswering;
+  /** per-problem time limit, in milliseconds */
+  int _problemTimeLimit;
+  /** true if question answers should be given */
+  bool _questionAnswering;
+  /** total time used by batches before this one, in milliseconds */
+  int _timeUsedByPreviousBatches;
 
-  StringList* theoryIncludes;
+  /** files to be included */
+  StringList* _theoryIncludes;
+
   /** The first string in the pair is problem file, the second
    * one is output file. The problemFiles[0] is the first
    * problem that should be attempted. */
   StringPairStack problemFiles;
 
-//  SineTheorySelector theorySelector;
-
-  ScopedPtr<Problem> baseProblem;
-//  UnitList* theoryAxioms;
-//  Property* property;
+  ScopedPtr<Problem> _baseProblem;
 
   friend class CLTBProblem;
 };
@@ -83,22 +83,22 @@ class CLTBProblem
 public:
   CLTBProblem(CLTBMode* parent, string problemFile, string outFile);
 
-  void perform() __attribute__((noreturn));
+  void perform(int terminationTime) __attribute__((noreturn));
 private:
   typedef Set<string> StrategySet;
   typedef Stack<string> Schedule;
-  bool runSchedule(Schedule&,StrategySet& remember,bool fallback);
+  bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime);
   unsigned getSliceTime(string sliceCode,string& chopped);
 
-  void performStrategy();
+  void performStrategy(int terminationTime);
   void waitForChildAndExitWhenProofFound();
   void exitOnNoSuccess() __attribute__((noreturn));
 
   static ofstream* writerFileStream;
   static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
   void runWriterChild() __attribute__((noreturn));
-  void runChild(string slice, unsigned ds) __attribute__((noreturn));
-  void runChild(Options& strategyOpt) __attribute__((noreturn));
+  void runSlice(string slice, unsigned milliseconds) __attribute__((noreturn));
+  void runSlice(Options& strategyOpt) __attribute__((noreturn));
 
   static string problemFinishedString;
 

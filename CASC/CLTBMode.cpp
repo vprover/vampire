@@ -2,8 +2,8 @@
  * @file CLTBMode.cpp
  * Implements class CLTBMode.
  * @since 03/06/2013 updated to conform to the CASC-J6 specification
+ * @author Andrei Voronkov
  */
-
 #include <fstream>
 #include <cstdlib>
 #include <csignal>
@@ -45,11 +45,17 @@ using namespace Lib;
 using namespace Lib::Sys;
 using namespace Saturation;
 
+/**
+ * The function that does all the job: reads the input files and runs
+ * Vampires to solve problems.
+ * @since 05/06/2013 Vienna, adapted for CASC-J6
+ * @author Andrei Voronkov
+ */
 void CLTBMode::perform()
 {
   CALL("CLTBMode::perform");
 
-  if (env.options->inputFile()=="") {
+  if (env.options->inputFile() == "") {
     USER_ERROR("Input file must be specified for cltb mode");
   }
 
@@ -59,7 +65,7 @@ void CLTBMode::perform()
   string line;
   ifstream in(env.options->inputFile().c_str());
   if (in.fail()) {
-    USER_ERROR("Cannot open input file: "+env.options->inputFile());
+    USER_ERROR("Cannot open input file: " + env.options->inputFile());
   }
 
   //support several batches in one file
@@ -69,7 +75,7 @@ void CLTBMode::perform()
     while (!in.eof()) {
       getline(in, line);
       singleInst << line << endl;
-      if (line=="% SZS end BatchProblems") {
+      if (line == "% SZS end BatchProblems") {
 	ready = true;
 	break;
       }
@@ -81,39 +87,32 @@ void CLTBMode::perform()
     stringstream childInp(singleInst.str());
     ltbm.perform(childInp);
   }
-}
+} // CLTBMode::perform
 
 /**
- * This function runs the batch master process and spawns the child master processes
- *
- * In this function we:
- * 1) read the batch file
- * 2) load the common axioms and put them into a SInE selector
- * 3) run a child master process for each problem (sequentially)
+ * This function processes a single batch in a batch file. It makes the following
+ * steps: 
+ * <ol><li>read the batch file</li>
+ * <li>load the common axioms and put them into a SInE selector</li>
+ * <li>spawn child processes that try to prove a problem by calling
+ *     CLTBProblem::perform(). These processes are run sequentially and the time
+ *     limit for each one is computed depending on the per-problem time limit,
+ *     batch time limit, and time spent on this batch so far. The termination
+ *     time for the proof search for a problem will be passed to
+ *     CLTBProblem::perform() as an argument.</li></ol>
+ * @author Andrei Voronkov
+ * @since 04/06/2013 flight Manchester-Frankfurt
  */
 void CLTBMode::perform(istream& batchFile)
 {
   CALL("CLTBMode::perform");
 
-
-  readInput(batchFile);
-
-  bool noProblemLimit = false;
-  if (problemTimeLimit==0) {
-    //problem time is unlimited, we need to keep updating it based on the overall
-    //limit and remaining problems
-    noProblemLimit = true;
-  }
-  else {
-    //we have a problem time limit, so we don't use the overall limit
-//  env.options->setTimeLimitInSeconds(overallTimeLimit);
-    env.options->setTimeLimitInSeconds(0);
-  }
-
+  // this is the time in milliseconds since the start when this batch file should terminate
+  _timeUsedByPreviousBatches = env.timer->elapsedMilliseconds();
+  int terminationTime = readInput(batchFile);
   loadIncludes();
 
   int solvedCnt=0;
-
   int remainingCnt = problemFiles.size();
   StringPairStack::BottomFirstIterator probs(problemFiles);
   while (probs.hasNext()) {
@@ -122,9 +121,22 @@ void CLTBMode::perform(istream& batchFile)
     string probFile=res.first;
     string outFile=res.second;
 
-    if (noProblemLimit) {
-      problemTimeLimit = (env.remainingTime()/1000+1)/remainingCnt;
+    // calculate the next problem time limit in milliseconds
+    int elapsedTime = env.timer->elapsedMilliseconds();
+    int timeRemainingForThisBatch = terminationTime - elapsedTime;
+    int remainingBatchTimeForThisProblem = timeRemainingForThisBatch / remainingCnt;
+    int nextProblemTimeLimit;
+    if (!_problemTimeLimit) {
+      nextProblemTimeLimit = remainingBatchTimeForThisProblem;
     }
+    else if (remainingBatchTimeForThisProblem > _problemTimeLimit) {
+      nextProblemTimeLimit = _problemTimeLimit;
+    }
+    else {
+      nextProblemTimeLimit = remainingBatchTimeForThisProblem;
+    }
+    // time in milliseconds when the current problem should terminate
+    int problemTerminationTime = elapsedTime + nextProblemTimeLimit;
 
     env.beginOutput();
     env.out().flush();
@@ -132,11 +144,11 @@ void CLTBMode::perform(istream& batchFile)
     env.out().flush();
     env.endOutput();
 
-    pid_t child=Multiprocessing::instance()->fork();
+    pid_t child = Multiprocessing::instance()->fork();
     if (!child) {
+      // child process
       CLTBProblem prob(this, probFile, outFile);
-      prob.perform();
-
+      prob.perform(problemTerminationTime);
       //the prob.perform() function should never return
       ASSERTION_VIOLATION;
     }
@@ -144,14 +156,17 @@ void CLTBMode::perform(istream& batchFile)
     env.out() << "% solver pid " << child << endl;
     env.endOutput();
     int resValue;
+    // wait until the child terminates
     try {
-      pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+      pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
       ASS_EQ(finishedChild, child);
-    } catch(SystemFailException& ex) {
-      cerr << "SystemFailException at batch level" << endl;
+    }
+    catch(SystemFailException& ex) {
+      cerr << "% SystemFailException at batch level" << endl;
       ex.cry(cerr);
     }
 
+    // output the result depending on the termination code
     env.beginOutput();
     if (!resValue) {
       env.out() << "% SZS status Theorem for " << probFile << endl;
@@ -172,7 +187,7 @@ void CLTBMode::perform(istream& batchFile)
   env.beginOutput();
   env.out() << "% Solved " << solvedCnt << " out of " << problemFiles.size() << endl;
   env.endOutput();
-}
+} // CLTBMode::perform(batchFile)
 
 void CLTBMode::loadIncludes()
 {
@@ -183,7 +198,7 @@ void CLTBMode::loadIncludes()
     TimeCounter tc(TC_PARSING);
     env.statistics->phase=Statistics::PARSING;
 
-    StringList::Iterator iit(theoryIncludes);
+    StringList::Iterator iit(_theoryIncludes);
     while (iit.hasNext()) {
       string fname=env.options->includeFileName(iit.next());
 
@@ -206,21 +221,30 @@ void CLTBMode::loadIncludes()
     }
   }
 
-  baseProblem = new Problem(theoryAxioms);
+  _baseProblem = new Problem(theoryAxioms);
 
   //ensure we scan the theory axioms for property here, so we don't need to
   //do it afterward in each problem
-  baseProblem->getProperty();
+  _baseProblem->getProperty();
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 }
 
-void CLTBMode::readInput(istream& in)
+/**
+ * Read a single batch file from @b in. Return the time in milliseconds since
+ * the start, when the process should terminate. If the batch contains no overall
+ * time limit, return a very large integer value.
+ * Set _problemTimeLimit to the per-problem time limit from
+ * the batch file.
+ * @since 04/06/2013 flight Manchester-Frankfurt
+ * @author Andrei Voronkov
+ */
+int CLTBMode::readInput(istream& in)
 {
   CALL("CLTBMode::readInput");
 
+  // ignore any lines describing the division or the category
   string line, word;
-
   do {
     getline(in, line);
   }
@@ -232,8 +256,9 @@ void CLTBMode::readInput(istream& in)
 
   getline(in, line);
 
-  questionAnswering = false;
-  problemTimeLimit = -1;
+  _questionAnswering = false;
+  _problemTimeLimit = -1;
+  int batchTimeLimit = -1;
   category = "";
 
   StringStack lineSegments;
@@ -241,33 +266,37 @@ void CLTBMode::readInput(istream& in)
     lineSegments.reset();
     StringUtils::splitStr(line.c_str(), ' ', lineSegments);
     string param = lineSegments[0];
-    if (param=="division.category") {
+    if (param == "division.category") {
       if (lineSegments.size()!=2) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
       category = lineSegments[1];
       LOG("ltb_conf","ltb_conf: " << param << " = " << category);
     }
-    else if (param=="output.required" || param=="output.desired") {
+    else if (param == "output.required" || param == "output.desired") {
       if (lineSegments.find("Answer")) {
-	questionAnswering = true;
+	_questionAnswering = true;
 	LOG("ltb_conf","ltb_conf: enabled question answering");
       }
     }
-    else if (param=="execution.order") {
-      //we ignore this for now and always execute in order
+    else if (param == "execution.order") {
+      // we ignore this for now and always execute in order
     }
-    else if (param=="limit.time.problem.wc") {
-      if (lineSegments.size()!=2 || !Int::stringToInt(lineSegments[1], problemTimeLimit)) {
+    else if (param == "limit.time.problem.wc") {
+      if (lineSegments.size() != 2 ||
+	  !Int::stringToInt(lineSegments[1], _problemTimeLimit)) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
-      LOG("ltb_conf","ltb_conf: " << param << " = " << problemTimeLimit);
+      LOG("ltb_conf","ltb_conf: " << param << " = " << _problemTimeLimit);
+      _problemTimeLimit = 1000 * _problemTimeLimit;
     }
-    else if (param=="limit.time.overall.wc") {
-      // if (lineSegments.size()!=2 || !Int::stringToInt(lineSegments[1], problemTimeLimit)) {
-      // 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
-      // }
-      // LOG("ltb_conf","ltb_conf: " << param << " = " << problemTimeLimit);
+    else if (param == "limit.time.overall.wc") {
+      if (lineSegments.size() != 2 ||
+	  !Int::stringToInt(lineSegments[1], batchTimeLimit)) {
+	USER_ERROR("unexpected \"" + param + "\" specification: \""+ line +"\"");
+      }
+      LOG("ltb_conf","ltb_conf: " << param << " = " << batchTimeLimit);
+      batchTimeLimit = 1000 * batchTimeLimit;
     }
     else {
       USER_ERROR("unknown batch configuration parameter: \""+line+"\"");
@@ -276,18 +305,10 @@ void CLTBMode::readInput(istream& in)
     getline(in, line);
   }
 
-  // if (category=="") {
-  //   USER_ERROR("category must be specified");
-  // }
-
-  if (problemTimeLimit==-1) {
-    USER_ERROR("problem time limit must be specified");
+  if (line != "% SZS end BatchConfiguration") {
+    USER_ERROR("\"% SZS end BatchConfiguration\" expected, \"" + line + "\" found.");
   }
-
-  if (line!="% SZS end BatchConfiguration") {
-    USER_ERROR("\"% SZS end BatchConfiguration\" expected, \""+line+"\" found.");
-  }
-  if (questionAnswering) {
+  if (_questionAnswering) {
     env.options->setQuestionAnswering(Options::QA_ANSWER_LITERAL);
   }
 
@@ -296,19 +317,19 @@ void CLTBMode::readInput(istream& in)
     USER_ERROR("\"% SZS start BatchIncludes\" expected, \""+line+"\" found.");
   }
 
-  theoryIncludes=0;
+  _theoryIncludes=0;
   for (getline(in, line); line[0]!='%' && !in.eof(); getline(in, line)) {
     size_t first=line.find_first_of('\'');
     size_t last=line.find_last_of('\'');
-    if (first==string::npos || first==last) {
+    if (first == string::npos || first == last) {
       USER_ERROR("Include specification must contain the file name enclosed in the ' characters:\""+line+"\".");
     }
     ASS_G(last,first);
     string fname=line.substr(first+1, last-first-1);
-    StringList::push(fname, theoryIncludes);
+    StringList::push(fname, _theoryIncludes);
   }
 
-  while (!in.eof() && line=="") { getline(in, line); }
+  while (!in.eof() && line == "") { getline(in, line); }
   if (line!="% SZS end BatchIncludes") {
     USER_ERROR("\"% SZS end BatchIncludes\" expected, \""+line+"\" found.");
   }
@@ -320,7 +341,7 @@ void CLTBMode::readInput(istream& in)
   for (getline(in, line); line[0]!='%' && !in.eof(); getline(in, line)) {
     size_t spc=line.find(' ');
     size_t lastSpc=line.find(' ', spc+1);
-    if (spc==string::npos || spc==0 || spc==line.length()-1) {
+    if (spc == string::npos || spc == 0 || spc == line.length()-1) {
       USER_ERROR("Two file names separated by a single space expected:\""+line+"\".");
     }
     string inp=line.substr(0,spc);
@@ -328,30 +349,46 @@ void CLTBMode::readInput(istream& in)
     problemFiles.push(make_pair(inp, outp));
   }
 
-  while (!in.eof() && line=="") {
+  while (!in.eof() && line == "") {
     getline(in, line);
   }
   if (line!="% SZS end BatchProblems") {
     USER_ERROR("\"% SZS end BatchProblems\" expected, \""+line+"\" found.");
   }
-}
 
+  if (batchTimeLimit == -1) { // batch time limit is undefined
+    if (_problemTimeLimit == -1) {
+      USER_ERROR("either the problem time limit or the batch time limit must be specified");
+    }
+    // to avoid overflows when added to the current elapsed time, make it less than INT_MAX
+    return INT_MAX / 8;
+  }
+
+  // batch time limit is defined
+  if (_problemTimeLimit == -1) {
+    _problemTimeLimit = 0;
+  }
+  return _timeUsedByPreviousBatches + batchTimeLimit;
+} // CLTBMode::readInput
 
 string CLTBProblem::problemFinishedString = "##Problem finished##vn;3-d-ca-12=1;'";
 
 CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)
-: parent(parent), problemFile(problemFile), outFile(outFile),
-  prb(*parent->baseProblem)
+  : parent(parent), problemFile(problemFile), outFile(outFile),
+    prb(*parent->_baseProblem)
 {
 }
 
 /**
- * This function should use the runSchedule function to prove the problem.
- * Once the problem is proved, the @b runSchedule function does not return
+ * This function solves a single problem. It makes the following steps:
+ * <ol><li>find the main and the fallback schedules depending on the problem
+ *          properties</li>
+ *     <li>run the main schedule using runSchedule()</li>
+ *     <li>if the proof is not found, checks if all the remaining time
+ *         was used: if not, it runs the fallback strategy using
+ *         runSchedule() with the updated time limit</li></ol>
+ * Once the problem is proved, the runSchedule() function does not return
  * and the process terminates.
- *
- * The properties of the problem are in the @b property field.
- * The name of problem category (MZR, SMO or CYC) is in @b parent->category.
  *
  * If a slice contains sine_selection value different from off, theory axioms
  * will be selected using SInE from the common axioms included in the batch file
@@ -359,9 +396,14 @@ CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)
  * for this selection).
  *
  * If the sine_selection is off, all the common axioms will be just added to the
- * problem axioms. All this is done in the @b runChild(Options&) function.
+ * problem axioms. All this is done in the @b runSlice(Options&) function.
+ * @param terminationTime the time in milliseconds since the prover starts when
+ *        the strategy should terminate
+ * @author Krystof Hoder
+ * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
+ * @author Andrei Voronkov
  */
-void CLTBProblem::performStrategy()
+void CLTBProblem::performStrategy(int terminationTime)
 {
   CALL("CLTBProblem::performStrategy");
 
@@ -1516,22 +1558,26 @@ void CLTBProblem::performStrategy()
     break;
   }
 
-  int remainingTime=env.remainingTime()/100;
-  if (remainingTime<=0) {
-    return;
-  }
   StrategySet usedSlices;
-  if (runSchedule(quick,usedSlices,false)) {
+  if (runSchedule(quick,usedSlices,false,terminationTime)) {
     return;
   }
-  remainingTime=env.remainingTime()/100;
-  if (remainingTime<=0) {
+  if (env.timer->elapsedMilliseconds() >= terminationTime) {
     return;
   }
-  runSchedule(fallback,usedSlices,true);
-}
+  runSchedule(fallback,usedSlices,true,terminationTime);
+} // CLTBProblem::performStrategy(int terminationTime)
 
-void CLTBProblem::perform()
+/**
+ * This function solves a single problem. It parses the problem, spawns a
+ * writer process for output and creates a pipe to communicate with it.
+ * Then it calls performStrategy(terminationTime) that performs the
+ * actual proof search.
+ * @param terminationTime the time in milliseconds since the prover start
+ * @since 04/06/2013 flight Manchester-Frankfurt
+ * @author Andrei Voronkov
+ */
+void CLTBProblem::perform(int terminationTime)
 {
   CALL("CLTBProblem::perform");
 
@@ -1542,26 +1588,24 @@ void CLTBProblem::perform()
   env.timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
 
-  env.options->setTimeLimitInSeconds(parent->problemTimeLimit);
   env.options->setInputFile(problemFile);
-
+  // this local scope will delete a potentially large parser
   {
     TimeCounter tc(TC_PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     ifstream inp(problemFile.c_str());
     if (inp.fail()) {
-      USER_ERROR("Cannot open problem file: "+problemFile);
+      USER_ERROR("Cannot open problem file: " + problemFile);
     }
     Parse::TPTP parser(inp);
-    List<string>::Iterator iit(parent->theoryIncludes);
+    List<string>::Iterator iit(parent->_theoryIncludes);
     while (iit.hasNext()) {
       parser.addForbiddenInclude(iit.next());
     }
     parser.parse();
     UnitList* probUnits = parser.units();
     UIHelper::setConjecturePresence(parser.containsConjecture());
-
     prb.addUnits(probUnits);
   }
 
@@ -1574,12 +1618,12 @@ void CLTBProblem::perform()
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 
-  //now all the cpu usage will be in children, we'll just be waiting for them
+  // now all the cpu usage will be in children, we'll just be waiting for them
   Timer::setTimeLimitEnforcement(false);
 
   //fork off the writer child process
-  writerChildPid=Multiprocessing::instance()->fork();
-  if (!writerChildPid) {
+  writerChildPid = Multiprocessing::instance()->fork();
+  if (!writerChildPid) { // child process
     runWriterChild();
     ASSERTION_VIOLATION; // the runWriterChild() function should never return
   }
@@ -1593,11 +1637,10 @@ void CLTBProblem::perform()
   childOutputPipe.neverRead();
   env.setPipeOutput(&childOutputPipe); //direct output into the pipe
 
-  performStrategy();
-
+  performStrategy(terminationTime);
   exitOnNoSuccess();
-  ASSERTION_VIOLATION; //the exitOnNoSuccess() function should never return
-}
+  ASSERTION_VIOLATION; // the exitOnNoSuccess() function should never return
+} // CLTBProblem::perform
 
 /**
  * This function exits the problem master process if the problem
@@ -1638,7 +1681,6 @@ void CLTBProblem::exitOnNoSuccess()
     }
   }
 
-
   cout << "% terminated solver pid " << getpid() << " (fail)" << endl;
   cout.flush();
 
@@ -1646,16 +1688,22 @@ void CLTBProblem::exitOnNoSuccess()
 }
 
 /**
- * Run schedule in @b sliceCodes. Terminate the process with 0 exit status
- * if proof was found, otherwise return false.
+ * Run a schedule. Terminate the process with 0 exit status
+ * if a proof was found, otherwise return false. This function available cores:
+ * If the total number of cores @b n is 8 or more, then @b n-2, otherwise @b n-1.
+ * It spawns processes by calling runSlice()
+ * @author Andrei Voronkov
+ * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
  */
-bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback)
+bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback,int terminationTime)
 {
   CALL("CLTBProblem::runSchedule");
 
+  // compute the number of parallel processes depending on the
+  // number of available cores
   int parallelProcesses;
   unsigned coreNumber = System::getNumberOfCores();
-  if (coreNumber<=1) {
+  if (coreNumber <= 1) {
     parallelProcesses = 1;
   }
   else if (coreNumber>=8) {
@@ -1665,40 +1713,43 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
     parallelProcesses = coreNumber-1;
   }
 
-  int processesLeft=parallelProcesses;
+  int processesLeft = parallelProcesses;
   Schedule::BottomFirstIterator it(schedule);
  
   while (it.hasNext()) {
     while (it.hasNext() && processesLeft) {
       ASS_G(processesLeft,0);
 
-      int remainingTime = env.remainingTime()/100;
-      if (remainingTime<=0) {
+      int elapsedTime = env.timer->elapsedMilliseconds();
+      if (elapsedTime >= terminationTime) {
+	// time limit reached
         return false;
       }
  
       string sliceCode = it.next();
       string chopped;
+
+      // slice time in milliseconds
       int sliceTime = getSliceTime(sliceCode,chopped);
       if (fallback && used.contains(chopped)) {
+	// this slice was already used
 	continue;
       }
       used.insert(chopped);
-      if (sliceTime>remainingTime) {
-	sliceTime=remainingTime;
+      int remainingTime = terminationTime - elapsedTime;
+      if (sliceTime > remainingTime) {
+	sliceTime = remainingTime;
       }
 
       pid_t childId=Multiprocessing::instance()->fork();
       ASS_NEQ(childId,-1);
       if (!childId) {
 	//we're in a proving child
-	runChild(sliceCode,sliceTime); //start proving
-	ASSERTION_VIOLATION; //the runChild function should never return
+	runSlice(sliceCode,sliceTime); //start proving
+	ASSERTION_VIOLATION; //the runSlice function should never return
       }
       Timer::syncClock();
-
       ASS(childIds.insert(childId));
-
       cout << "% slice pid "<< childId << " slice: " << sliceCode << " time: " << sliceTime << endl << flush;
       processesLeft--;
     }
@@ -1716,7 +1767,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
     Timer::syncClock();
   }
   return false;
-}
+} // CLTBProblem::runSchedule
 
 /**
  * Wait for termination of a child and terminate the process with a zero status
@@ -1771,10 +1822,10 @@ void CLTBProblem::runWriterChild()
   signal(SIGHUP, &terminatingSignalHandler);
 //  Timer::setTimeLimitEnforcement(false);
 
-  Timer::setTimeLimitEnforcement(true);
-  int writerLimit = parent->problemTimeLimit+env.timer->elapsedSeconds()+2;
-  env.options->setTimeLimitInSeconds(writerLimit);
-
+  // This was the previous code, now removed: we assume that this child has all the time it needs
+  // Timer::setTimeLimitEnforcement(true);
+  // int writerLimit = parent->_problemTimeLimit+env.timer->elapsedSeconds()+2;
+  // env.options->setTimeLimitInSeconds(writerLimit);
 
   //we're in the child that writes down the output of other children
   childOutputPipe.neverWrite();
@@ -1782,7 +1833,6 @@ void CLTBProblem::runWriterChild()
   ofstream out(outFile.c_str());
 
   writerFileStream = &out;
-
   childOutputPipe.acquireRead();
 
   while (!childOutputPipe.in().eof()) {
@@ -1797,7 +1847,6 @@ void CLTBProblem::runWriterChild()
   writerFileStream = 0;
 
   childOutputPipe.releaseRead();
-
   System::terminateImmediately(0);
 }
 
@@ -1809,29 +1858,35 @@ void CLTBProblem::terminatingSignalHandler(int sigNum)
   System::terminateImmediately(0);
 }
 
-void CLTBProblem::runChild(string slice, unsigned ds)
+/**
+ * Run a slice given by its code using the specified time limit.
+ * @since 04/06/2013 flight Frankfurt-Vienna
+ * @author Andrei Voronkov
+ */
+void CLTBProblem::runSlice(string sliceCode, unsigned timeLimitInMilliseconds)
 {
-  CALL("CLTBProblem::runChild");
+  CALL("CLTBProblem::runSlice");
 
-  Options opt=*env.options;
-  opt.readFromTestId(slice);
-  opt.setTimeLimitInDeciseconds(ds);
+  Options opt = *env.options;
+  opt.readFromTestId(sliceCode);
+  opt.setTimeLimitInDeciseconds(SLOWNESS * timeLimitInMilliseconds/100);
   int stl = opt.simulatedTimeLimit();
   if (stl) {
     opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
   }
-  runChild(opt);
-}
+  runSlice(opt);
+} // runSlice
 
 /**
- * Do the theorem proving in a forked-off process
+ * Run a slice given by its options
+ * @since 04/06/2013 flight Frankfurt-Vienna
+ * @author Andrei Voronkov
  */
-void CLTBProblem::runChild(Options& strategyOpt)
+void CLTBProblem::runSlice(Options& strategyOpt)
 {
-  CALL("CLTBProblem::runChild");
+  CALL("CLTBProblem::runSlice(Option&)");
 
   System::registerForSIGHUPOnParentDeath();
-
   UIHelper::cascModeChild=true;
 
   int resultValue=1;
@@ -1877,20 +1932,21 @@ void CLTBProblem::runChild(Options& strategyOpt)
     env.out() << "% " << problemFinishedString << endl;
   }
   env.endOutput();
-
   exit(resultValue);
-}
+} // CLTBProblem::runSlice
 
 /**
- * Return intended slice time in deciseconds and assign the slice string with
- * chopped time to @b chopped.
+ * Return the intended slice time in milliseconds and assign the slice
+ * string with chopped time limit to @b chopped.
+ * @since 04/06/2013 flight Frankfurt-Vienna
+ * @author Andrei Voronkov
  */
 unsigned CLTBProblem::getSliceTime(string sliceCode,string& chopped)
 {
   CALL("CASCMode::getSliceTime");
 
-  unsigned pos=sliceCode.find_last_of('_');
-  string sliceTimeStr=sliceCode.substr(pos+1);
+  unsigned pos = sliceCode.find_last_of('_');
+  string sliceTimeStr = sliceCode.substr(pos+1);
   chopped.assign(sliceCode.substr(0,pos));
   unsigned sliceTime;
   ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
@@ -1900,7 +1956,8 @@ unsigned CLTBProblem::getSliceTime(string sliceCode,string& chopped)
   if (time < 10) {
     time++;
   }
-  return time;
-}
+  // convert deciseconds to milliseconds
+  return time * 100;
+} // getSliceTime
 
 #endif //!COMPILER_MSVC
