@@ -59,6 +59,9 @@ void CLTBMode::perform()
     USER_ERROR("Input file must be specified for cltb mode");
   }
 
+  // to prevent the main process from terminating by time limit
+  env.options->setTimeLimitInSeconds(1000000);
+
   UIHelper::cascMode = true;
   env.options->setProof(Options::PROOF_TPTP);
 
@@ -1801,7 +1804,8 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
     int writerResult;
     try {
       Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
-    } catch(SystemFailException& ex) {
+    }
+    catch(SystemFailException& ex) {
       //it may happen that the writer process has already exitted
       if (ex.err!=ECHILD) {
 	throw;
@@ -1811,7 +1815,7 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
   }
   CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (fail)" << endl;
   cout.flush();
-}
+} // CLTBProblem::waitForChildAndExitWhenProofFound
 
 ofstream* CLTBProblem::writerFileStream = 0;
 
