@@ -1689,11 +1689,11 @@ void CLTBProblem::exitOnNoSuccess()
     }
   }
 
-  CLTBMode::coutLineOutput() << "terminated solver pid " << getpid() << " (fail)" << endl;
+  CLTBMode::coutLineOutput() << "problem proof search terminated (fail)" << endl;
   cout.flush();
 
   System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
-}
+} // CLTBProblem::exitOnNoSuccess
 
 /**
  * Run a schedule. Terminate the process with 0 exit status
