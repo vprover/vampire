@@ -145,10 +145,8 @@ void CLTBMode::solveBatch(istream& batchFile)
     coutLineOutput() << "problem termination time " << problemTerminationTime << endl;
 
     env.beginOutput();
-    env.out().flush();
-    env.out() << "%" << endl;
-    lineOutput() << "SZS status Started for " << probFile << endl;
-    env.out().flush();
+    env.out() << flush << "%" << endl;
+    lineOutput() << "SZS status Started for " << probFile << endl << flush;
     env.endOutput();
 
     pid_t child = Multiprocessing::instance()->fork();
@@ -183,10 +181,8 @@ void CLTBMode::solveBatch(istream& batchFile)
     else {
       lineOutput() << "SZS status GaveUp for " << probFile << endl;
     }
-    env.out().flush();
-    env.out() << '%' << endl;
-    lineOutput() << "% SZS status Ended for " << probFile << endl;
-    env.out().flush();
+    env.out() << flush << '%' << endl;
+    lineOutput() << "% SZS status Ended for " << probFile << endl << flush;
     env.endOutput();
 
     Timer::syncClock();
@@ -1632,8 +1628,7 @@ void CLTBProblem::searchForProof(int terminationTime)
     runWriterChild();
     ASSERTION_VIOLATION; // the runWriterChild() function should never return
   }
-  CLTBMode::coutLineOutput() << "writer pid " << writerChildPid << endl;
-  cout.flush();
+  CLTBMode::coutLineOutput() << "writer pid " << writerChildPid << endl << flush;
 
   //when the pipe will be closed, we want the process to terminate properly
   signal(SIGPIPE, &terminatingSignalHandler);
@@ -1688,9 +1683,7 @@ void CLTBProblem::exitOnNoSuccess()
     }
   }
 
-  CLTBMode::coutLineOutput() << "problem proof search terminated (fail)" << endl;
-  cout.flush();
-
+  CLTBMode::coutLineOutput() << "problem proof search terminated (fail)" << endl << flush;
   System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
 } // CLTBProblem::exitOnNoSuccess
 
@@ -1799,8 +1792,7 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
   if (!resValue) {
     // we have found the proof. It has been already written down by the writter child,
     // so we can just terminate
-    CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (success)" << endl;
-    cout.flush();
+    CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (success)" << endl << flush;
     int writerResult;
     try {
       Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
@@ -1814,8 +1806,7 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
     System::terminateImmediately(0);
   }
   // proof not found
-  CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (fail)" << endl;
-  cout.flush();
+  CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (fail)" << endl << flush;
 } // waitForChildAndExitWhenProofFound
 
 ofstream* CLTBProblem::writerFileStream = 0;
