@@ -84,7 +84,7 @@ class CLTBProblem
 public:
   CLTBProblem(CLTBMode* parent, string problemFile, string outFile);
 
-  void perform(int terminationTime) __attribute__((noreturn));
+  void searchForProof(int terminationTime) __attribute__((noreturn));
 private:
   typedef Set<string> StrategySet;
   typedef Stack<string> Schedule;

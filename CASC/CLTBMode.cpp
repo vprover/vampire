@@ -101,13 +101,13 @@ void CLTBMode::perform()
  *     limit for each one is computed depending on the per-problem time limit,
  *     batch time limit, and time spent on this batch so far. The termination
  *     time for the proof search for a problem will be passed to
- *     CLTBProblem::perform() as an argument.</li></ol>
+ *     CLTBProblem::searchForProof() as an argument.</li></ol>
  * @author Andrei Voronkov
  * @since 04/06/2013 flight Manchester-Frankfurt
  */
 void CLTBMode::perform(istream& batchFile)
 {
-  CALL("CLTBMode::perform");
+  CALL("CLTBMode::perform(istream& batchfile)");
 
   // this is the time in milliseconds since the start when this batch file should terminate
   _timeUsedByPreviousBatches = env.timer->elapsedMilliseconds();
@@ -155,8 +155,8 @@ void CLTBMode::perform(istream& batchFile)
     if (!child) {
       // child process
       CLTBProblem prob(this, probFile, outFile);
-      prob.perform(problemTerminationTime);
-      //the prob.perform() function should never return
+      prob.searchForProof(problemTerminationTime);
+      // searchForProof() function should never return
       ASSERTION_VIOLATION;
     }
 
@@ -1586,9 +1586,9 @@ void CLTBProblem::performStrategy(int terminationTime)
  * @since 04/06/2013 flight Manchester-Frankfurt
  * @author Andrei Voronkov
  */
-void CLTBProblem::perform(int terminationTime)
+void CLTBProblem::searchForProof(int terminationTime)
 {
-  CALL("CLTBProblem::perform");
+  CALL("CLTBProblem::searchForProof");
 
   System::registerForSIGHUPOnParentDeath();
 
@@ -1765,6 +1765,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
 
     if (processesLeft==0) {
       waitForChildAndExitWhenProofFound();
+      // proof search failed
       processesLeft++;
     }
   }
@@ -1772,6 +1773,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
   while (parallelProcesses!=processesLeft) {
     ASS_L(processesLeft, parallelProcesses);
     waitForChildAndExitWhenProofFound();
+    // proof search failed
     processesLeft++;
     Timer::syncClock();
   }
@@ -1788,32 +1790,36 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
   ASS(!childIds.isEmpty());
 
   int resValue;
-  pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+  pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
   if (finishedChild == writerChildPid) {
-    finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+    finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
   }
 #if VDEBUG
   ALWAYS(childIds.remove(finishedChild));
 #endif
-  if (!resValue) {
-    //we have found the proof. It has been already written down by the writter child,
-    //so we can just terminate
-    CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (success)" << endl;
+  if (resValue) {
+    // proof not found
+    CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (fail)" << endl;
     cout.flush();
-    int writerResult;
-    try {
-      Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
-    } catch(SystemFailException& ex) {
-      //it may happen that the writer process has already exitted
-      if (ex.err!=ECHILD) {
-	throw;
-      }
-    }
-    System::terminateImmediately(0);
+    return;
   }
-  CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (fail)" << endl;
+
+  // we have found the proof. It has been already written down by the writter child,
+  // so we can just terminate
+  CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (success)" << endl;
   cout.flush();
-}
+  int writerResult;
+  try {
+    Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
+  }
+  catch (SystemFailException& ex) {
+    //it may happen that the writer process has already exitted
+    if (ex.err!=ECHILD) {
+      throw;
+    }
+  }
+  System::terminateImmediately(0);
+} // waitForChildAndExitWhenProofFound
 
 ofstream* CLTBProblem::writerFileStream = 0;
 
