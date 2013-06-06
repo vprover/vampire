@@ -1941,7 +1941,7 @@ void CLTBProblem::runSlice(Options& strategyOpt)
   env.beginOutput();
   UIHelper::outputResult(env.out());
   if (resultValue==0) {
-    env.out() << problemFinishedString << endl;
+    env.out() << endl << problemFinishedString << endl << flush;
   }
   env.endOutput();
   exit(resultValue);
