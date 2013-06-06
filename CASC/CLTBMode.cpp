@@ -1737,8 +1737,8 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       }
       used.insert(chopped);
       int remainingTime = terminationTime - elapsedTime;
-      if (sliceTime > remainingTime) {
-	sliceTime = remainingTime;
+      if (sliceTime * SLOWNESS > remainingTime) {
+	sliceTime = remainingTime / SLOWNESS;
       }
 
       pid_t childId=Multiprocessing::instance()->fork();
@@ -1955,7 +1955,7 @@ unsigned CLTBProblem::getSliceTime(string sliceCode,string& chopped)
   ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
   ASS_G(sliceTime,0); //strategies with zero time don't make sense
 
-  unsigned time = (unsigned)(sliceTime * SLOWNESS) + 1;
+  unsigned time = sliceTime + 1;
   if (time < 10) {
     time++;
   }
