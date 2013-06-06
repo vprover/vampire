@@ -1981,8 +1981,7 @@ unsigned CLTBProblem::getSliceTime(string sliceCode,string& chopped)
 ostream& CLTBMode::lineOutput()
 {
   CALL("CLTBMode::lineOutput");
-  env.out() << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
-  return env.out();
+  return env.out() << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
 } // CLTBMode::lineOutput
 
 /**
@@ -1994,8 +1993,7 @@ ostream& CLTBMode::lineOutput()
 ostream& CLTBMode::coutLineOutput()
 {
   CALL("CLTBMode::lineOutput");
-  cout << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
-  return cout;
+  return cout << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
 } // CLTBMode::coutLineOutput
 
 #endif //!COMPILER_MSVC
