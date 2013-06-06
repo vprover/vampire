@@ -46,7 +46,7 @@ class CLTBMode
 public:
   static void perform();
 private:
-  void perform(istream& batchFile);
+  void solveBatch(istream& batchFile);
   int readInput(istream& batchFile);
   static ostream& lineOutput();
   static ostream& coutLineOutput();
@@ -115,7 +115,7 @@ private:
    * Problem that is being solved.
    *
    * This is just a reference to parent's @c baseProblem object into which we
-   * add problem-specific axioms in the @c perform() function. We can do this,
+   * add problem-specific axioms in the @c searchForProof() function. We can do this,
    * because in the current process this child object is the only one that
    * will be using the problem object.
    */

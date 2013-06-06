@@ -87,7 +87,7 @@ void CLTBMode::perform()
     }
     CLTBMode ltbm;
     stringstream childInp(singleInst.str());
-    ltbm.perform(childInp);
+    ltbm.solveBatch(childInp);
   }
 } // CLTBMode::perform
 
@@ -97,7 +97,7 @@ void CLTBMode::perform()
  * <ol><li>read the batch file</li>
  * <li>load the common axioms and put them into a SInE selector</li>
  * <li>spawn child processes that try to prove a problem by calling
- *     CLTBProblem::perform(). These processes are run sequentially and the time
+ *     CLTBProblem::searchForProof(). These processes are run sequentially and the time
  *     limit for each one is computed depending on the per-problem time limit,
  *     batch time limit, and time spent on this batch so far. The termination
  *     time for the proof search for a problem will be passed to
@@ -105,9 +105,9 @@ void CLTBMode::perform()
  * @author Andrei Voronkov
  * @since 04/06/2013 flight Manchester-Frankfurt
  */
-void CLTBMode::perform(istream& batchFile)
+void CLTBMode::solveBatch(istream& batchFile)
 {
-  CALL("CLTBMode::perform(istream& batchfile)");
+  CALL("CLTBMode::solveBatch(istream& batchfile)");
 
   // this is the time in milliseconds since the start when this batch file should terminate
   _timeUsedByPreviousBatches = env.timer->elapsedMilliseconds();
@@ -196,7 +196,7 @@ void CLTBMode::perform(istream& batchFile)
   env.beginOutput();
   lineOutput() << "Solved " << solvedCnt << " out of " << problemFiles.size() << endl;
   env.endOutput();
-} // CLTBMode::perform(batchFile)
+} // CLTBMode::solveBatch(batchFile)
 
 void CLTBMode::loadIncludes()
 {
@@ -231,13 +231,11 @@ void CLTBMode::loadIncludes()
   }
 
   _baseProblem = new Problem(theoryAxioms);
-
   //ensure we scan the theory axioms for property here, so we don't need to
   //do it afterward in each problem
   _baseProblem->getProperty();
-
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
-}
+} // CLTBMode::loadIncludes
 
 /**
  * Read a single batch file from @b in. Return the time in milliseconds since
@@ -1643,6 +1641,7 @@ void CLTBProblem::searchForProof(int terminationTime)
   //only the writer child is reading from the pipe (and it is now forked off)
   childOutputPipe.neverRead();
   env.setPipeOutput(&childOutputPipe); //direct output into the pipe
+  UIHelper::cascMode=true;
 
   performStrategy(terminationTime);
   exitOnNoSuccess();
@@ -1797,28 +1796,26 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
 #if VDEBUG
   ALWAYS(childIds.remove(finishedChild));
 #endif
-  if (resValue) {
-    // proof not found
-    CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (fail)" << endl;
+  if (!resValue) {
+    // we have found the proof. It has been already written down by the writter child,
+    // so we can just terminate
+    CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (success)" << endl;
     cout.flush();
-    return;
-  }
-
-  // we have found the proof. It has been already written down by the writter child,
-  // so we can just terminate
-  CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (success)" << endl;
-  cout.flush();
-  int writerResult;
-  try {
-    Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
-  }
-  catch (SystemFailException& ex) {
-    //it may happen that the writer process has already exitted
-    if (ex.err!=ECHILD) {
-      throw;
+    int writerResult;
+    try {
+      Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
     }
+    catch (SystemFailException& ex) {
+      //it may happen that the writer process has already exitted
+      if (ex.err!=ECHILD) {
+	throw;
+      }
+    }
+    System::terminateImmediately(0);
   }
-  System::terminateImmediately(0);
+  // proof not found
+  CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (fail)" << endl;
+  cout.flush();
 } // waitForChildAndExitWhenProofFound
 
 ofstream* CLTBProblem::writerFileStream = 0;
@@ -1853,7 +1850,7 @@ void CLTBProblem::runWriterChild()
   while (!childOutputPipe.in().eof()) {
     string line;
     getline(childOutputPipe.in(), line);
-    if (line==problemFinishedString) {
+    if (line == problemFinishedString) {
       break;
     }
     out << line << endl << flush;
