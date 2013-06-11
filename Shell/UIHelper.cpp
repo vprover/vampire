@@ -288,7 +288,9 @@ void UIHelper::outputResult(ostream& out)
     }
     break;
   case Statistics::TIME_LIMIT:
-    addCommentIfCASC(out);
+    if (cascMode) {
+      out << "% (" << getpid() << ')';
+    }
     out << "Time limit reached!\n";
     break;
   case Statistics::MEMORY_LIMIT:

@@ -39,7 +39,8 @@ using namespace std;
 class Timer
 {
 public:
-  Timer(bool mustIncludeChildren=false) :
+  Timer(bool mustIncludeChildren=false)
+    :
     _mustIncludeChildren(mustIncludeChildren),
     _running(false),
     _elapsed(0)

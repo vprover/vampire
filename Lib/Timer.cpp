@@ -4,6 +4,8 @@
  */
 
 #include <ctime>
+#include <unistd.h>
+#include <sys/types.h>
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
@@ -86,9 +88,9 @@ void timeLimitReached()
 {
   env.beginOutput();
   reportSpiderStatus('?');
-  if(!inSpiderMode()) {
+  if (!inSpiderMode()) {
     if (Shell::UIHelper::cascMode) {
-      env.out() << "% ";
+      env.out() << "% (" << getpid() << ')';
     }
     env.out() << "Time limit reached!\n";
     if (Shell::UIHelper::cascMode && !Shell::UIHelper::cascModeChild) {

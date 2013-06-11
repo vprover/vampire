@@ -115,8 +115,8 @@ void CLTBMode::solveBatch(istream& batchFile)
   int terminationTime = readInput(batchFile);
   loadIncludes();
 
-  int solvedCnt=0;
-  int remainingCnt = problemFiles.size();
+  int solvedProblems = 0;
+  int remainingProblems = problemFiles.size();
   StringPairStack::BottomFirstIterator probs(problemFiles);
   while (probs.hasNext()) {
     StringPair res=probs.next();
@@ -128,7 +128,7 @@ void CLTBMode::solveBatch(istream& batchFile)
     int elapsedTime = env.timer->elapsedMilliseconds();
     int timeRemainingForThisBatch = terminationTime - elapsedTime;
     coutLineOutput() << "time remaining for this batch " << timeRemainingForThisBatch << endl;
-    int remainingBatchTimeForThisProblem = timeRemainingForThisBatch / remainingCnt;
+    int remainingBatchTimeForThisProblem = timeRemainingForThisBatch / remainingProblems;
     coutLineOutput() << "remaining batch time for this problem " << remainingBatchTimeForThisProblem << endl;
     int nextProblemTimeLimit;
     if (!_problemTimeLimit) {
@@ -176,7 +176,7 @@ void CLTBMode::solveBatch(istream& batchFile)
     env.beginOutput();
     if (!resValue) {
       lineOutput() << "SZS status Theorem for " << probFile << endl;
-      solvedCnt++;
+      solvedProblems++;
     }
     else {
       lineOutput() << "SZS status GaveUp for " << probFile << endl;
@@ -187,10 +187,10 @@ void CLTBMode::solveBatch(istream& batchFile)
 
     Timer::syncClock();
 
-    remainingCnt--;
+    remainingProblems--;
   }
   env.beginOutput();
-  lineOutput() << "Solved " << solvedCnt << " out of " << problemFiles.size() << endl;
+  lineOutput() << "Solved " << solvedProblems << " out of " << problemFiles.size() << endl;
   env.endOutput();
 } // CLTBMode::solveBatch(batchFile)
 
@@ -1676,7 +1676,7 @@ void CLTBProblem::exitOnNoSuccess()
     Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
     ASS_EQ(writerResult,0);
   }
-  catch(SystemFailException& ex) {
+  catch (SystemFailException& ex) {
     //it may happen that the writer process has already exitted
     if (ex.err!=ECHILD) {
       throw;
@@ -1730,15 +1730,15 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       string chopped;
 
       // slice time in milliseconds
-      int sliceTime = getSliceTime(sliceCode,chopped);
+      int sliceTime = SLOWNESS * getSliceTime(sliceCode,chopped);
       if (fallback && used.contains(chopped)) {
 	// this slice was already used
 	continue;
       }
       used.insert(chopped);
       int remainingTime = terminationTime - elapsedTime;
-      if (sliceTime * SLOWNESS > remainingTime) {
-	sliceTime = remainingTime / SLOWNESS;
+      if (sliceTime > remainingTime) {
+	sliceTime = remainingTime;
       }
 
       pid_t childId=Multiprocessing::instance()->fork();
@@ -1872,7 +1872,7 @@ void CLTBProblem::runSlice(string sliceCode, unsigned timeLimitInMilliseconds)
 
   Options opt = *env.options;
   opt.readFromTestId(sliceCode);
-  opt.setTimeLimitInDeciseconds(SLOWNESS * timeLimitInMilliseconds/100);
+  opt.setTimeLimitInDeciseconds(timeLimitInMilliseconds/100);
   int stl = opt.simulatedTimeLimit();
   if (stl) {
     opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
@@ -1931,7 +1931,7 @@ void CLTBProblem::runSlice(Options& strategyOpt)
 
   env.beginOutput();
   UIHelper::outputResult(env.out());
-  if (resultValue==0) {
+  if (resultValue == 0) {
     env.out() << endl << problemFinishedString << endl << flush;
   }
   env.endOutput();
