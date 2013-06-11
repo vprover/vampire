@@ -528,6 +528,7 @@ public:
   string testId() const { return _testId; }
   string protectedPrefix() const { return _protectedPrefix; }
   Statistics statistics() const { return _statistics; }
+  void setStatistics(Statistics newVal) { _statistics=newVal; }
   Proof proof() const { return _proof; }
   bool proofChecking() const { return _proofChecking; }
   int naming() const { return _naming; }

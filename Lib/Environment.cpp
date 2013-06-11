@@ -138,6 +138,7 @@ void Environment::endOutput()
   _outputDepth--;
   if(_outputDepth==0) {
     if(_pipe) {
+      cout.flush();
       _pipe->releaseWrite();
     }
     else {

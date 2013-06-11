@@ -63,6 +63,7 @@ void CLTBMode::perform()
 
   UIHelper::cascMode = true;
   env.options->setProof(Options::PROOF_TPTP);
+  env.options->setStatistics(Options::STATISTICS_NONE);
 
   string line;
   ifstream in(env.options->inputFile().c_str());
