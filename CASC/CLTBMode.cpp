@@ -1719,6 +1719,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
  
   while (it.hasNext()) {
     while (it.hasNext() && processesLeft) {
+      CLTBMode::coutLineOutput() << "Processes left: " << processesLeft << endl << flush;
       ASS_G(processesLeft,0);
 
       int elapsedTime = env.timer->elapsedMilliseconds();
@@ -1756,6 +1757,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       processesLeft--;
     }
 
+    CLTBMode::coutLineOutput() << "No processes left: " << endl << flush;
     if (processesLeft==0) {
       waitForChildAndExitWhenProofFound();
       // proof search failed
