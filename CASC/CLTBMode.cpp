@@ -1717,9 +1717,11 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
   int processesLeft = parallelProcesses;
   Schedule::BottomFirstIterator it(schedule);
  
+  int slices = schedule.length();
   while (it.hasNext()) {
-    while (it.hasNext() && processesLeft) {
-      CLTBMode::coutLineOutput() << "Processes left: " << processesLeft << endl << flush;
+    while (processesLeft) {
+      CLTBMode::coutLineOutput() << "Slices left: " << slices-- << endl;
+      CLTBMode::coutLineOutput() << "Processes available: " << processesLeft << endl << flush;
       ASS_G(processesLeft,0);
 
       int elapsedTime = env.timer->elapsedMilliseconds();
@@ -1755,9 +1757,12 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       CLTBMode::coutLineOutput() << "slice pid "<< childId << " slice: " << sliceCode
 				 << " time: " << (sliceTime/100)/10.0 << endl << flush;
       processesLeft--;
+      if (!it.hasNext()) {
+	break;
+      }
     }
 
-    CLTBMode::coutLineOutput() << "No processes left: " << endl << flush;
+    CLTBMode::coutLineOutput() << "No processes available: " << endl << flush;
     if (processesLeft==0) {
       waitForChildAndExitWhenProofFound();
       // proof search failed
