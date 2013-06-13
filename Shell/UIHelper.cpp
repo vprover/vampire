@@ -7,6 +7,8 @@
 #include <fstream>
 
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <iostream>
 
 #include "Forwards.hpp"
