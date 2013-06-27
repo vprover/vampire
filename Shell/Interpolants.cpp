@@ -242,6 +242,7 @@ Formula* Interpolants::getInterpolant(Unit* unit)
 	if(st.inheritedColor!=color || sts.isEmpty()) {
 	  //we either have a transparent clause justified by A or B, or the refutation
 //	  ASS_EQ(color,COLOR_TRANSPARENT);
+      //cout<<"generate interpolant of transparent clause: "<<st.us().toString()<<"\n";
 	  ASS_REP2(color==COLOR_TRANSPARENT, st.us().toString(), st.inheritedColor);
 	  generateInterpolant(st);
 	  LOG("itp_sub","intermediate interpolant for "<<st.us().toString()<<endl<<
@@ -294,7 +295,7 @@ void generateInterpolant(ItemState& st)
   Formula* interpolant;
   Formula* unitFormula=u->getFormula(st.us().prop());
 
-  // cout	<<"\n unitFormula: "<<unitFormula->toString();
+  //cout	<<"\n unitFormula: "<<unitFormula->toString()<<"\n";
 
   if(st.parCnt) {
     //interpolants from refutation proof with at least one inference (there are premises, i.e. parents)
