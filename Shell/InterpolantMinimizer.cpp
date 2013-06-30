@@ -31,11 +31,14 @@ using namespace Indexing;
 
 /**
  * Return minimized interpolant of @c refutation
+ * it traverses the proof and collects gery formulas.
+ * For each grey formula, it adds digest and fringe properties (with case distinction between leaves and non-leaves).
+ * Using these properties, the interpolant is minimized wrt its cost
  */
 Formula* InterpolantMinimizer::getInterpolant(Unit* refutation)
 {
   CALL("InterpolantMinimizer::getInterpolant");
-
+  
   traverse(refutation);
   addAllFormulas();
 
@@ -43,6 +46,7 @@ Formula* InterpolantMinimizer::getInterpolant(Unit* refutation)
   YicesSolver solver;
   YicesSolver::MinimizationResult mres = solver.minimize(_resBenchmark, costFunction(), res);
 
+    
   DHSet<UnitSpec> slicedOff;
 
   if(mres==SMTSolver::FAIL) {
@@ -74,6 +78,7 @@ void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, 
 {
   CALL("InterpolantMinimizer::collectSlicedOffNodes");
 
+    
   InfoMap::Iterator uit(_infos);
   while(uit.hasNext()) {
     UnitSpec unit;
@@ -118,7 +123,7 @@ void InterpolantMinimizer::addAllFormulas()
     uit.next(unit, info);
 
     if(info.color==COLOR_TRANSPARENT && info.leadsToColor) {
-      addNodeFormulas(unit);
+      addNodeFormulas(unit); 
     }
   }
 
@@ -163,7 +168,6 @@ void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
     ASS(psum.rParents.isEmpty());
     ASS(psum.bParents.isEmpty());
     ASS(psum.gParents.isEmpty());
-
     addLeafNodePropertiesFormula(uId);
   }
   else {
@@ -203,6 +207,7 @@ void InterpolantMinimizer::addFringeFormulas(UnitSpec u)
   CALL("InterpolantMinimizer::addFringeFormulas");
 
   string n = getUnitId(u);
+
 
   SMTFormula rcN = pred(RC, n);
   SMTFormula bcN = pred(BC, n);
@@ -387,8 +392,12 @@ private:
 void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<string>& atoms)
 {
   CALL("InterpolantMinimizer::collectAtoms(FormulaUnit*...)");
-
+  
   string key = f->formula()->toString();
+
+  
+  
+
   string id;
   if(!_formulaAtomIds.find(key, id)) {
     id = "f" + Int::toString(_formulaAtomIds.size());
@@ -397,6 +406,7 @@ void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<string>& atoms)
     _atomWeights.insert(id, weight);
     _unitsById.insert(id, UnitSpec(f));
   }
+  
   atoms.push(id);
 }
 
@@ -406,7 +416,6 @@ void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<string>& atoms)
 string InterpolantMinimizer::getComponentId(Clause* cl)
 {
   CALL("InterpolantMinimizer::getComponentId");
-
   string id;
   if(!_atomIds.find(cl, id)) {
     id = "c" + Int::toString(_atomIds.size());
@@ -421,6 +430,8 @@ string InterpolantMinimizer::getComponentId(Clause* cl)
 
 /**
  * Into @c atoms add IDs of components that appear in @c u
+ * If the formula is not a clause (i.e. conjunction of formulas), then the sub-formulas need to be traversed
+ * (though currently, conjunctions of clauses is treated one formula in interpolation)
  */
 void InterpolantMinimizer::collectAtoms(UnitSpec u, Stack<string>& atoms)
 {
@@ -431,7 +442,9 @@ void InterpolantMinimizer::collectAtoms(UnitSpec u, Stack<string>& atoms)
     return;
   }
 
+  
   Clause* cl = u.cl();
+    
   static ClauseStack components;
   components.reset();
   _splitter->getComponents(cl, components);
@@ -450,9 +463,11 @@ void InterpolantMinimizer::collectAtoms(UnitSpec u, Stack<string>& atoms)
 void InterpolantMinimizer::addAtomImplicationFormula(UnitSpec u)
 {
   CALL("InterpolantMinimizer::getAtomImplicationFormula");
-
+  
+  
   static Stack<string> atoms;
   atoms.reset();
+  
   collectAtoms(u, atoms);
 
   string uId = getUnitId(u);
@@ -460,6 +475,7 @@ void InterpolantMinimizer::addAtomImplicationFormula(UnitSpec u)
   SMTFormula cConj = SMTFormula::getTrue();
   Stack<string>::Iterator ait(atoms);
   while(ait.hasNext()) {
+    
     string atom = ait.next();
     cConj = cConj & pred(V, atom);
   }
@@ -616,7 +632,8 @@ void InterpolantMinimizer::addGreyNodePropertiesFormula(string n, ParentSummary&
 void InterpolantMinimizer::addLeafNodePropertiesFormula(string n)
 {
   CALL("InterpolantMinimizer::addLeafNodePropertiesFormula");
-
+ 
+    
   SMTFormula gN = pred(G, n);
   SMTFormula sN = pred(S, n);
   SMTFormula dN = pred(D, n);
