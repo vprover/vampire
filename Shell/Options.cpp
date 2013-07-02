@@ -903,7 +903,7 @@ Options::Options ()
   _sineGeneralityThreshold(0),
   _sineSelection(SS_OFF),
   _sineTolerance(1.0f),
-  _smtlibConsiderIntsReal(true),
+  _smtlibConsiderIntsReal(false),
   _smtlibFletAsDefinition(false),
   _smtlibIntroduceAIGNames(true),
   _sos(SOS_OFF),
