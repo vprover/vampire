@@ -228,6 +228,11 @@ void Preprocess::preprocess (Problem& prb)
     TheoryAxioms().apply(prb);
   }
 
+  // stop here if clausification is not required
+  if (!_clausify) {
+    return;
+  }
+
   if (prb.mayHaveFormulas()) {
     LOG("pp_progress","preprocess1 (rectify, simplify false true, flatten)");
     preprocess1(prb);

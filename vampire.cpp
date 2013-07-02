@@ -143,7 +143,7 @@ Problem* getPreprocessedProblem()
   globProblem = prb;
 
   return prb;
-}
+} // getPreprocessedProblem
 
 void explainException(Exception& exception)
 {
@@ -192,12 +192,12 @@ void programAnalysisMode()
 #if 0
   string inputFile = env.options->inputFile();
   istream* input;
-  if(inputFile=="") {
+  if (inputFile=="") {
     input=&cin;
   } else {
     cout << "Analyzing " << inputFile << "...\n";
     input=new ifstream(inputFile.c_str());
-    if(input->fail()) {
+    if (input->fail()) {
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
   }
@@ -271,7 +271,7 @@ void boundPropagationMode(){
 #if GNUMP
   CALL("boundPropagationMode::doSolving()");
 
-  if(env.options->startWithPrecise()) {
+  if (env.options->startWithPrecise()) {
     switchToPreciseNumbers();
   }
   //switchToRationalNumbers();
@@ -294,7 +294,7 @@ void boundPropagationMode(){
     solver.solve();
   }
   catch (Solver::NumberImprecisionException) {
-    if(usingPreciseNumbers()) {
+    if (usingPreciseNumbers()) {
       INVALID_OPERATION("Imprecision error when using precise numbers.");
     }
     else {
@@ -338,34 +338,71 @@ void solverMode()
   outputResult(env.out());
   env.endOutput();
 
-  if(env.statistics->terminationReason==Statistics::REFUTATION
+  if (env.statistics->terminationReason==Statistics::REFUTATION
       || env.statistics->terminationReason==Statistics::SATISFIABLE) {
     g_returnValue=0;
   }
 #endif
-}
+} // solverMode
 
 /**
- * Perform just preprocessing and output the resulting constraints
+ * This mode only preprocesses the input using the current preprocessing
+ * options and outputs it to stdout. It is useful for either preprocessing
+ * per se or also for converting one syntax to another. For the latter, the input
+ * and the output syntaxes must be set to different values. Note that for
+ * simply translating one syntax to another, output mode is the right one.
+ * 
+ * @author Andrei Voronkov
+ * @since 02/07/2013 Manchester
  */
 void preprocessMode()
 {
   CALL("preprocessMode()");
-#if GNUMP
-  ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env.options));
 
-  env.statistics->phase = Statistics::FINALIZATION;
+  Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  ConstraintList* constraintLst(ConstraintRCPtr::unRCList(constraints));
+  TimeCounter tc2(TC_PREPROCESSING);
+
+  // preprocess without clausification
+  Preprocess prepro(*env.options);
+  prepro.turnClausifierOff();
+  prepro.preprocess(*prb);
 
   env.beginOutput();
-  UIHelper::outputConstraints(constraintLst, env.out());
+  UnitList::Iterator units(prb->units());
+  while (units.hasNext()) {
+    Unit* u = units.next();
+    env.out() << TPTPPrinter::toString(u) << "\n";
+  }
   env.endOutput();
 
   //we have successfully output all clauses, so we'll terminate with zero return value
-  g_returnValue=0;
-#endif
-} // clausifyMode
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+} // preprocessMode
+
+/**
+ * This mode only outputs the input problem. It is useful for converting
+ * one syntax to another.
+ * @author Laura Kovacs and Andrei Voronkov
+ * @since 02/07/2013 Gothenburg and Manchester
+ */
+void outputMode()
+{
+  CALL("outputMode()");
+
+  Problem* prb = UIHelper::getInputProblem(*env.options);
+
+  env.beginOutput();
+  UnitList::Iterator units(prb->units());
+  while (units.hasNext()) {
+    Unit* u = units.next();
+    env.out() << TPTPPrinter::toString(u) << "\n";
+  }
+  env.endOutput();
+
+  //we have successfully output all clauses, so we'll terminate with zero return value
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+} // outputMode
 
 void vampireMode()
 {
@@ -394,11 +431,11 @@ void vampireMode()
 
 #if SATISFIABLE_IS_SUCCESS
   if (env.statistics->terminationReason == Statistics::REFUTATION
-	  || env.statistics->terminationReason == Statistics::SATISFIABLE) {
+      || env.statistics->terminationReason == Statistics::SATISFIABLE) {
 #else
-    if(env.statistics->terminationReason==Statistics::REFUTATION) {
+    if (env.statistics->terminationReason==Statistics::REFUTATION) {
 #endif
-    vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
   }
 } // vampireMode
 
@@ -647,24 +684,28 @@ int main(int argc, char* argv[])
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
+
     case Options::MODE_CLAUSIFY:
       clausifyMode();
       break;
+
+    case Options::MODE_OUTPUT:
+      outputMode();
+      break;
+
     case Options::MODE_PROFILE:
       profileMode();
       break;
+
     case Options::MODE_PROGRAM_ANALYSIS:
       std::cout<<"Program analysis mode "<<std::endl;
       programAnalysisMode();
       break;
    
     case Options::MODE_PREPROCESS:
-#if GNUMP
-     preprocessMode();
-#else
-     NOT_IMPLEMENTED;
-#endif
+      preprocessMode();
       break;
+
     default:
       USER_ERROR("Unsupported mode");
     }

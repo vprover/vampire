@@ -19,14 +19,17 @@ class Options;
 
 /**
  * Class implementing preprocessing-related procedures.
+ * @aauthor Andrei Voronkov
  * @since 16/04/2005 Manchester, made non-static
+ * @since 02/07/2013 Manchester, _clausify added to support the preprocess mode
  */
 class Preprocess
 {
 public:
   /** Initialise the preprocessor */
   explicit Preprocess(const Options& options)
-    : _options(options)
+  : _options(options),
+    _clausify(false)
   {}
   void preprocess(Problem& prb);
 #if GNUMP
@@ -34,6 +37,8 @@ public:
 #endif
 
   void preprocess1(Problem& prb);
+  /** turn off clausification, can be used when only preprocessing without clausification is needed */
+  void turnClausifierOff() {_clausify = false;}
 private:
   void preprocess2(Problem& prb);
   void naming(Problem& prb);
@@ -44,6 +49,8 @@ private:
 
   /** Options used in the normalisation */
   const Options& _options;
+  /** If true, clausification is included in preprocessing */
+  bool _clausify;
 #if GNUMP
   void unfoldEqualities(ConstraintRCList*& constraints);
 #endif

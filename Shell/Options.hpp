@@ -329,6 +329,8 @@ public:
     MODE_GROUNDING,
     MODE_LTB_BUILD,
     MODE_LTB_SOLVE,
+    /** this mode only outputs the input problem, without any preprocessing */
+    MODE_OUTPUT,
     MODE_PREPROCESS,
     MODE_PROFILE,
     MODE_PROGRAM_ANALYSIS,    

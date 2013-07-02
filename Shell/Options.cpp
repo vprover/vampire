@@ -608,6 +608,7 @@ const char* Options::Constants::_modeValues[] = {
   "grounding",
   "ltb_build",
   "ltb_solve",
+  "output",
   "preprocess",
   "profile",
   "program_analysis",
