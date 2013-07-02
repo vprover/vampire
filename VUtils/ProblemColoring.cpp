@@ -20,7 +20,7 @@
 #include "Kernel/Signature.hpp"
 
 #include "Shell/CommandLine.hpp"
-#include "Shell/TPTP.hpp"
+#include "Shell/TPTPPrinter.hpp"
 #include "Shell/UIHelper.hpp"
 
 
@@ -187,7 +187,7 @@ int ProblemColoring::perform(int argc, char** argv)
       if(getUnitColor(u)!=reqColor) {
 	continue;
       }
-      env.out()<<TPTP::toString(u)<<endl;
+      env.out()<<TPTPPrinter::toString(u)<<endl;
     }
     if(cIndex<2) {
       env.out()<<"vampire(end_formula)."<<endl<<endl<<endl;

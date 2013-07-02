@@ -21,7 +21,7 @@
 #include "Shell/CommandLine.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/CASC/CASCMode.hpp"
+#include "CASC/CASCMode.hpp"
 
 #include "VUtils/AnnotationColoring.hpp"
 #include "VUtils/CPAInterpolator.hpp"
@@ -37,7 +37,7 @@
 
 using namespace Lib;
 using namespace Shell;
-using namespace Shell::CASC;
+using namespace CASC;
 using namespace VUtils;
 
 
@@ -154,7 +154,7 @@ int main(int argc, char* argv [])
       cl.interpret(*env.options);
       Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
       Lib::Random::setSeed(env.options->randomSeed());
-      if(Shell::CASC::CASCMode::perform(args.size()-1, args.begin()+1)) {
+      if(CASC::CASCMode::perform(args.size()-1, args.begin()+1)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	resultValue = VAMP_RESULT_STATUS_SUCCESS;
       }

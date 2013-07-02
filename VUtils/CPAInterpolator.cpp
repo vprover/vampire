@@ -21,7 +21,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 
-#include "Shell/CASC/CASCMode.hpp"
+#include "CASC/CASCMode.hpp"
 
 #include "Shell/AIGInliner.hpp"
 #include "Shell/CommandLine.hpp"
@@ -32,7 +32,7 @@
 #include "Shell/ProofSimplifier.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
-#include "Shell/TPTP.hpp"
+#include "Shell/TPTPPrinter.hpp"
 
 #include "Saturation/ProvingHelper.hpp"
 
@@ -274,7 +274,7 @@ void CPAInterpolator::displayResult()
     inl.scan(_defs);
     oldItp = Flattening::flatten(inl.apply(oldItp,dummy));
   }
-  env.out() << "Old interpolant: " << TPTP::toString(oldItp) << endl;
+  env.out() << "Old interpolant: " << TPTPPrinter::toString(oldItp) << endl;
 
   Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(refutation);
   Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(refutation);
@@ -295,9 +295,9 @@ void CPAInterpolator::displayResult()
   cntInterpolant = inl.apply(cntInterpolant, dummy);
   quantInterpolant = inl.apply(quantInterpolant, dummy);
 
-  env.out() << "Interpolant: " << TPTP::toString(interpolant) << endl;
-  env.out() << "Count minimized interpolant: " << TPTP::toString(cntInterpolant) << endl;
-  env.out() << "Quantifiers minimized interpolant: " << TPTP::toString(quantInterpolant) << endl;
+  env.out() << "Interpolant: " << TPTPPrinter::toString(interpolant) << endl;
+  env.out() << "Count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
+  env.out() << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
 
   env.endOutput();
 }
@@ -309,14 +309,13 @@ void CPAInterpolator::displayResult()
 bool CPAInterpolator::tryMakeAdmissibleStrategy(Options& opt)
 {
   CALL("CPAInterpolator::admissibleStrategy");
-
+  /*
   if(opt.splitting()==Options::SM_BACKTRACKING) {
     return false;
-  }
+    }*/
   if(opt.saturationAlgorithm()==Options::INST_GEN) {
     return false;
   }
-
   return true;
 }
 

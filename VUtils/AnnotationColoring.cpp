@@ -11,7 +11,7 @@
 #include "Kernel/Signature.hpp"
 
 #include "Shell/CommandLine.hpp"
-#include "Shell/TPTP.hpp"
+#include "Shell/TPTPPrinter.hpp"
 #include "Shell/UIHelper.hpp"
 
 
@@ -129,7 +129,7 @@ int AnnotationColoring::perform(int argc, char** argv)
   Stack<Unit*>::BottomFirstIterator leftUnitIt(axiomStack);
   while(leftUnitIt.hasNext()) {
     Unit* u = leftUnitIt.next();
-    env.out()<<TPTP::toString(u)<<endl;
+    env.out()<<TPTPPrinter::toString(u)<<endl;
   }
   env.out()<<"vampire(end_formula)."<<endl<<endl<<endl;
 
@@ -137,7 +137,7 @@ int AnnotationColoring::perform(int argc, char** argv)
   Stack<Unit*>::BottomFirstIterator rightUnitIt(conjectureStack);
   while(rightUnitIt.hasNext()) {
     Unit* u = rightUnitIt.next();
-    env.out()<<TPTP::toString(u)<<endl;
+    env.out()<<TPTPPrinter::toString(u)<<endl;
   }
   env.out()<<"vampire(end_formula)."<<endl<<endl<<endl;
 

@@ -19,7 +19,7 @@
 #include "Shell/InterpolantMinimizer.hpp"
 #include "Shell/LispLexer.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/TPTP.hpp"
+#include "Shell/TPTPPrinter.hpp"
 
 
 #include "LocalityRestoring.hpp"
@@ -718,10 +718,10 @@ void ZIE::outputInterpolantStats(Unit* refutation)
   Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(refutation);
 
   if(_showInterpolants) {
-    cout << "Old interpolant: " << TPTP::toString(oldInterpolant) << endl;
-    cout << "Interpolant: " << TPTP::toString(interpolant) << endl;
-    cout << "Count minimized interpolant: " << TPTP::toString(cntInterpolant) << endl;
-    cout << "Quantifiers minimized interpolant: " << TPTP::toString(quantInterpolant) << endl;
+    cout << "Old interpolant: " << TPTPPrinter::toString(oldInterpolant) << endl;
+    cout << "Interpolant: " << TPTPPrinter::toString(interpolant) << endl;
+    cout << "Count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
+    cout << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
   }
 }
 
