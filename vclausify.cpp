@@ -97,7 +97,7 @@ void clausifyMode()
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   env.beginOutput();
-  UIHelper::outputIntroducedSymbolDeclarations(env.out());
+  UIHelper::outputSymbolDeclarations(env.out());
 
   ClauseIterator cit = prb->clauseIterator();
   while (cit.hasNext()) {

@@ -97,15 +97,15 @@ void UIHelper::outputAllPremises(ostream& out, UnitList* units, string prefix)
 
   //get the units to start with
   UnitList::Iterator uit(units);
-  while(uit.hasNext()) {
+  while (uit.hasNext()) {
     Unit* u = uit.next();
     toDo.push(UnitSpec(u));
   }
 
-  while(toDo.isNonEmpty()) {
+  while (toDo.isNonEmpty()) {
     UnitSpec us = toDo.pop();
     UnitSpecIterator pars = InferenceStore::instance()->getParents(us);
-    while(pars.hasNext()) {
+    while (pars.hasNext()) {
       UnitSpec par = pars.next();
       if (seen.contains(par)) {
 	continue;
@@ -133,7 +133,7 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
   addCommentIfCASC(out);
   out << "# SZS output start Saturation." << endl;
 
-  while(uit.hasNext()) {
+  while (uit.hasNext()) {
     Unit* cl = uit.next();
     out << TPTPPrinter::toString(cl) << endl;
   }
@@ -349,28 +349,34 @@ void UIHelper::outputSatisfiableResult(ostream& out)
 #endif
 }
 
-void UIHelper::outputIntroducedSymbolDeclarations(ostream& out)
+/**
+ * Output to @b out all symbol declarations for the current signature.
+ * Symbols having default types will not be output.
+ * @author Andrei Voronkov
+ * @since 03/07/2013 Manchester
+ */
+void UIHelper::outputSymbolDeclarations(ostream& out)
 {
-  CALL("UIHelper::outputIntroducedSymbolDeclarations");
+  CALL("UIHelper::outputSymbolDeclarations");
 
   Signature& sig = *env.signature;
 
   unsigned funcs = sig.functions();
-  for(unsigned i=0; i<funcs; ++i) {
-    if (!sig.getFunction(i)->introduced()) {
-      continue;
-    }
+  for (unsigned i=0; i<funcs; ++i) {
     outputSymbolTypeDeclarationIfNeeded(out, true, i);
   }
   unsigned preds = sig.predicates();
-  for(unsigned i=0; i<preds; ++i) {
-    if (!sig.getPredicate(i)->introduced()) {
-      continue;
-    }
+  for (unsigned i=0; i<preds; ++i) {
     outputSymbolTypeDeclarationIfNeeded(out, false, i);
   }
-}
+} // UIHelper::outputSymbolDeclarations
 
+/**
+ * Output to @b out a function or a predicate symbol declaration.
+ * Symbols having default types will not be output.
+ * @author Andrei Voronkov
+ * @since 03/07/2013 Manchester
+ */
 void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, unsigned symNumber)
 {
   CALL("UIHelper::outputSymbolTypeDeclarationIfNeeded");
@@ -399,7 +405,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     }
     else {
       out << "(";
-      for(unsigned i=0; i<arity; i++) {
+      for (unsigned i=0; i<arity; i++) {
 	if (i>0) {
 	  out << " * ";
 	}
@@ -460,7 +466,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     parser.parse(*input);
     UnitList* ulist = parser.getFormulas();
     UnitList::Iterator ite(ulist);
-    while(ite.hasNext())
+    while (ite.hasNext())
     {
       Unit* u = ite.next();
       if ( !u->isClause()) {
@@ -521,7 +527,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
 
 #if 0
     ConstraintRCList::Iterator ite(res);
-    while(ite.hasNext())
+    while (ite.hasNext())
 	std::cout << ite.next()->toString() << std::endl;
     throw TimeLimitExceededException();
     ASSERTION_VIOLATION;
@@ -624,7 +630,7 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
 	out<< " (~ " << constraint.freeCoeff().native() <<")";
   }
     
-  while(coeffs.hasNext()) {
+  while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
      if (coeffs.hasNext()) {
 	out << " (+ ";
@@ -642,7 +648,7 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
   if (constraint.freeCoeff() != CoeffNumber::zero() && constraint.type()!= CT_EQ )
       out <<  "";
   
-  while(closedP!=0)
+  while (closedP!=0)
   {
     out <<  ")"; 
     closedP--;
@@ -654,7 +660,7 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
   if (!coeffs.hasNext()) {
     out << "0 ";
   }
-  while(coeffs.hasNext()) {
+  while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
     if (coeff.value<CoeffNumber::zero()) {
 	out << "(" << coeff.value << "*" << env.signature->varName(coeff.var) << ") ";
@@ -709,7 +715,7 @@ void UIHelper::outputConstraintInSMTFormat(const Constraint& constraint, ostream
 	out <<  " (~ " << constraint.freeCoeff().native()  << ")";
   }
     
-  while(coeffs.hasNext()) {
+  while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
      if (coeffs.hasNext()) {
 	out << " (+ ";
@@ -730,7 +736,7 @@ void UIHelper::outputConstraintInSMTFormat(const Constraint& constraint, ostream
   if (constraint.freeCoeff() != CoeffNumber::zero() && constraint.type()!= CT_EQ )
       out <<  "";
   
-  while(closedP!=0)
+  while (closedP!=0)
   {
     out <<  ")"; 
     closedP--;
@@ -754,7 +760,7 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
   case Options::IS_HUMAN:
   {
     ConstraintList::Iterator ite(constraints);
-    while(ite.hasNext())
+    while (ite.hasNext())
     {
 	outputConstraint(*ite.next(), out, syntax);
 	out << endl;
@@ -772,10 +778,10 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     ConstraintList::Iterator fun(constraints);
     std::list<std::string> uni;
 
-    while(fun.hasNext())
+    while (fun.hasNext())
     {
 	Constraint::CoeffIterator coeffs = fun.next()->coeffs();
-	 while(coeffs.hasNext()) {
+	 while (coeffs.hasNext()) {
 	     env.signature->varName(coeffs.next().var);
 	     uni.push_back(env.signature->varName(coeffs.next().var));
 	  //out << ":extrafuns ((" << env.signature->varName(coeffs.next().var) << " Real )) " << endl; 
@@ -792,7 +798,7 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     
     out << ":formula (and "; 
     ConstraintList::Iterator it(constraints);
-    while(it.hasNext()) {
+    while (it.hasNext()) {
       outputConstraint(*it.next(), out, syntax);
       out << " \n";
     }
@@ -820,7 +826,7 @@ void UIHelper::outputAssignment(Assignment& assignemt, ostream& out, Shell::Opti
   case Options::IS_SMTLIB:
   {
     VarIterator vars = assignemt.getAssignedVars();
-    while(vars.hasNext()) {
+    while (vars.hasNext()) {
       Var v = vars.next();
       out << env.signature->varName(v) << ": " << assignemt[v] << endl;
     }

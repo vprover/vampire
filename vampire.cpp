@@ -369,6 +369,7 @@ void preprocessMode()
   prepro.preprocess(*prb);
 
   env.beginOutput();
+  UIHelper::outputSymbolDeclarations(env.out());
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
     Unit* u = units.next();
@@ -393,6 +394,7 @@ void outputMode()
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   env.beginOutput();
+  UIHelper::outputSymbolDeclarations(env.out());
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
     Unit* u = units.next();
@@ -491,7 +493,7 @@ void clausifyMode()
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   env.beginOutput();
-  UIHelper::outputIntroducedSymbolDeclarations(env.out());
+  UIHelper::outputSymbolDeclarations(env.out());
 
   ClauseIterator cit = prb->clauseIterator();
   while (cit.hasNext()) {

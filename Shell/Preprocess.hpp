@@ -19,10 +19,9 @@ class Options;
 
 /**
  * Class implementing preprocessing-related procedures.
- * @aauthor Andrei Voronkov
+ * @author Andrei Voronkov
  * @since 16/04/2005 Manchester, made non-static
  * @since 02/07/2013 Manchester, _clausify added to support the preprocess mode
- * @since 03/07/2013 Gothenburg, _clausify enabled to support the preprocess mode
  */
 class Preprocess
 {
