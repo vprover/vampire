@@ -442,7 +442,7 @@ string TPTPPrinter::toString (const Unit* unit)
     main = static_cast<const Clause*>(unit)->toTPTPString();
   }
   else {
-    prefix = "fof";
+    prefix = "tff";
     const Formula* f = static_cast<const FormulaUnit*>(unit)->formula();
     if(negate_formula) {
       Formula* quant=Formula::quantify(const_cast<Formula*>(f));
