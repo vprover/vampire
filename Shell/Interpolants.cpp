@@ -20,6 +20,8 @@
 
 #include "Interpolants.hpp"
 
+
+
 /** surprising colors occur when a clause which is a consequence of transparent clauses, is colored */
 #define ALLOW_SURPRISING_COLORS 1
 

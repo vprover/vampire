@@ -14,6 +14,10 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Problem.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Connective.hpp"
+#include "Kernel/MainLoop.hpp"
 
 #include "Indexing/ClauseVariantIndex.hpp"
 
@@ -24,10 +28,12 @@
 
 #include "InterpolantMinimizer.hpp"
 
+
 namespace Shell
 {
 
-using namespace Indexing;
+    using namespace Indexing;
+
 
 /**
  * Return minimized interpolant of @c refutation
@@ -67,8 +73,160 @@ Formula* InterpolantMinimizer::getInterpolant(Unit* refutation)
 
 just_generate_interpolant:
   Formula* interpolant = Interpolants(&slicedOff).getInterpolant(refutation);
+    
   return interpolant;
 }
+
+/*print formulas in SMT*/
+    
+void InterpolantMinimizer::prettyPrint(Formula* formula, ostream& out)
+{
+  CALL("SMTLibPrinter::prettyPrint");
+        
+  Signature *sig = env.signature;
+  unsigned symbNum;
+  Symbol* symb;
+  TermList* args;
+  FormulaList* fs;
+  switch (formula->connective()) {
+    case LITERAL:
+        symbNum = formula->literal()->functor();
+        symb = sig->getPredicate(symbNum);
+        
+        if(formula->literal()->args()->isNonEmpty())
+             out << "(";
+                
+        prettyPrint(symb, out);
+                
+        args = formula->literal()->args();
+        while(args->isNonEmpty()) {
+                out << " ";
+                if(args->isVar())
+                    out << "x" << args->var();
+                else
+                    prettyPrint(args->term(), out);
+                args = args->next();
+            }
+                
+        if(formula->literal()->args()->isNonEmpty())
+                out << ")";
+                
+        return;
+    case AND:
+    case OR:
+        if(formula->connective() == AND)
+            out << "(and ";
+        else
+            out << "(or ";
+                
+        for(fs = formula->args(); fs->isNonEmpty (); fs = fs->tail()) {
+            prettyPrint(fs->head(), out);
+            out << " ";
+        }
+                
+        out << ")";
+        return;
+    case IMP:
+    case IFF:
+    case XOR:
+        if(formula->connective() == IMP)
+                out << "(implies ";
+        else if(formula->connective() == IFF)
+            out << "(= ";
+        else
+            ASS(false);
+                
+        prettyPrint(formula->left(), out);
+        out << " ";
+        prettyPrint(formula->right(), out);
+        out << ")";
+        return;
+    case NOT:
+        out << "(not ";
+        prettyPrint(formula->uarg(), out);
+        out << ")";
+        return;
+    case FORALL:
+        return;
+    case EXISTS:
+        return;
+    case TRUE:
+        out << "true";
+        return;
+    case FALSE:
+        out << "false";
+        return;
+    default:
+        out << "WARNING!!! This is not a literal\n";
+        ASS(false);
+        return;
+    }
+}
+    
+
+    
+/*print terms in SMT*/    
+void InterpolantMinimizer::prettyPrint(Term* term, ostream& out)
+{
+    Signature *sig = env.signature;
+    unsigned int symbNum = term->functor();
+    Symbol* symb = sig->getFunction(symbNum);
+        
+    if(term->args()->isNonEmpty())
+        out << "(";
+        
+    prettyPrint(symb, out);
+        
+    TermList* args = term->args();
+    while(args->isNonEmpty()) {
+        out << " ";
+        if(args->isVar())
+            out << "x" << args->var();
+        else
+            prettyPrint(args->term(), out);
+        args = args->next();
+    }
+        
+    if(term->args()->isNonEmpty())
+            out << ")";
+}
+    
+/*print symbols in SMT*/
+//TODO: use builtin enumerator for builtin operators instead of this trick...
+//unfortunately I only discovered about those later..
+void InterpolantMinimizer::prettyPrint(Symbol* symb, ostream& out)
+{
+    string name = symb->name();
+    if(symb->interpreted()) {
+        if(name == "$less")
+        {out << "<";}
+        else if(name == "$lesseq")
+        {out << "<=";}
+        else if(name == "$greater")
+        {out << ">";}
+        else if(name == "$greatereq")
+        {out << ">=";}
+        else if(name == "=")
+        {out << "=";}
+        else if(name == "$plus")
+        {out << "+";}
+        else if(name == "$sum")
+        {out << "+";}
+        else if(name == "$times")
+        {out << "*";}
+        else if(name == "$product")
+        {out << "*";}
+        else if(name == "$uminus")
+        {out << "-";}
+        else 
+        {out << name;} //TODO: handle negative number and print them as (- N)
+    }
+    else{out<<name;}
+}
+
+    
+    
+    
 
 /**
  * Into @c acc add all units that are sliced off in the model given

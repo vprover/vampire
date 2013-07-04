@@ -37,6 +37,14 @@ public:
   typedef List<UnitSpec> USList;
 
   Formula* getInterpolant(Unit* refutation);
+    
+  typedef Signature::Symbol Symbol;
+    
+  void prettyPrint(Term* t, ostream& out);
+  void prettyPrint(Symbol* symb, ostream& out);
+  void prettyPrint(Formula* formula, ostream& out);
+
+
 
 private:
   //proof tree traversing
@@ -130,6 +138,7 @@ private:
   void addNodeFormulas(string n, ParentSummary& parents);
 
   void addFringeFormulas(UnitSpec u);
+    
 private:
   //generating the weight-minimizing part of the problem
 
