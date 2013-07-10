@@ -169,7 +169,8 @@ private:
     TS_SELECT,
     TS_STORE,
     TS_UMINUS,
-
+    TS_DIVIDE,
+      
     TS_USER_FUNCTION
   };
   static const char * s_termSymbolNameStrings[];

@@ -423,7 +423,8 @@ const char * SMTLIB::s_termSymbolNameStrings[] = {
     "ite",
     "select",
     "store",
-    "~"
+    "~",
+    "div"
 };
 
 
@@ -434,8 +435,10 @@ SMTLIB::TermSymbol SMTLIB::getTermSymbol(string str,unsigned arity)
   static NameArray termSymbolNames(s_termSymbolNameStrings, sizeof(s_termSymbolNameStrings)/sizeof(char*));
   ASS_EQ(termSymbolNames.length, TS_USER_FUNCTION);
 
+    
   int resInt = termSymbolNames.tryToFind(str.c_str());
   TermSymbol res;
+  
   if(resInt==-1) {
     res =TS_USER_FUNCTION;
   }
@@ -445,7 +448,8 @@ SMTLIB::TermSymbol SMTLIB::getTermSymbol(string str,unsigned arity)
   if(res==TS_MINUS && arity==1) {
     res = TS_UMINUS;
   }
-  return res;
+    
+return res;
 }
 
 /**
@@ -718,7 +722,19 @@ Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned first
       break;
     }
     break;
-
+  case TS_DIVIDE:
+    switch(firstArgSort) {
+    case Sorts::SRT_INTEGER:
+      res = Theory::INT_DIVIDE;
+      break;
+    case Sorts::SRT_REAL:
+      res = Theory::REAL_DIVIDE;
+      break;
+    default:
+      break;
+    }
+    break;
+          
   default:
     ASSERTION_VIOLATION_REP(ts);
   }
@@ -829,9 +845,9 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
   unsigned arity = e->list->length()-1;
   LispListReader rdr(e);
   string fnName = rdr.readAtom();
+    
   TermSymbol ts = getTermSymbol(fnName, arity);
-  
-
+    
   if(ts==TS_ITE) {
     return tryReadTermIte(e, res);
   }
