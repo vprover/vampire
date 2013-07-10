@@ -165,11 +165,11 @@ private:
     TS_MULTIPLY,
     TS_PLUS,
     TS_MINUS,
+    TS_DIVIDE,
     TS_ITE,
     TS_SELECT,
     TS_STORE,
     TS_UMINUS,
-    TS_DIVIDE,
       
     TS_USER_FUNCTION
   };

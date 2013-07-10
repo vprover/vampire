@@ -420,11 +420,11 @@ const char * SMTLIB::s_termSymbolNameStrings[] = {
     "*",
     "+",
     "-",
+    "div",
     "ite",
     "select",
     "store",
     "~",
-    "div"
 };
 
 
