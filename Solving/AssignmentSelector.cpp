@@ -17,7 +17,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "BoundsArray.hpp"
-#include "Solver.hpp"
+#include "Solver.hpp"	
 
 #include "AssignmentSelector.hpp"
 
@@ -413,19 +413,20 @@ protected:
  * Assignment selector, which keeps track of what was selected last time. The idea is to
  * alternate choosing the upper bound and lower bound
  */
-class AlternativeAssignmentSelector : public ConvenientAssignmentSelector {
+class AlternatingAssignmentSelector : public ConvenientAssignmentSelector {
 public:
-  AlternativeAssignmentSelector(Solver& s) : ConvenientAssignmentSelector(s), _upper(false) {}
+  AlternatingAssignmentSelector(Solver& s) : ConvenientAssignmentSelector(s), _upper(false) {}
 protected:
   virtual void getBoundedAssignment(BoundNumber& result){
-  CALL("AlternativeAssignmentSelector:getBoundedAssignment");
+  CALL("AlternatingAssignmentSelector:getBoundedAssignment");
+  BoundNumber delta = ( _rightBound.abs() + _leftBound.abs() ) / BoundNumber(32);
   if ( _upper ) {
     //pick the upper bound and set for future to select the lower bound
     if ( !_rightStrict ) {
       result = _rightBound;
     }
     else {
-      result = _rightBound - BoundNumber(0.125);
+      result = _rightBound - delta;
     }
     _upper = false;
   }
@@ -435,7 +436,7 @@ protected:
       result = _leftBound;
     }
     else {
-      result = _leftBound + BoundNumber(0.125);
+      result = _leftBound + delta;
     }
     _upper = true;
   }
@@ -458,7 +459,7 @@ protected:
       result = _rightBound;
     }
     else {
-      result = _rightBound - BoundNumber(0.125);
+      result = _rightBound - BoundNumber(0.00125);
     }
   }
   virtual void getUnboundedAssignment(BoundNumber& result){
@@ -541,7 +542,7 @@ protected:
   {
   CALL("ThightishAssignmentSelector:getBoundedAssignment");
 
-  BoundNumber delta = (_rightBound-_leftBound)/BoundNumber(10);
+  BoundNumber delta = (_rightBound-_leftBound)/BoundNumber(16);
   if(Random::getBit()) {
 
       result = _leftBound+delta;
@@ -916,9 +917,9 @@ AssignmentSelector* AssignmentSelector::create(Solver& s, Options& opt)
   CALL("AssignmentSelector::create");
 
   AssignmentSelector* res;
-  switch(opt.assignmentSelector()) {
+  switch(opt.bpAssignmentSelector()) {
   case Options::ASG_ALTERNATIVE:
-    res = new AlternativeAssignmentSelector(s);
+    res = new AlternatingAssignmentSelector(s);
     break;
   case Options::ASG_MIDDLE:
     res = new MiddleAssignmentSelector(s);
@@ -953,7 +954,7 @@ AssignmentSelector* AssignmentSelector::create(Solver& s, Options& opt)
   default:
     ASSERTION_VIOLATION;
   }
-  if(opt.conservativeAssignmentSelection()) {
+  if(opt.bpConservativeAssignmentSelection()) {
     res = new ConservativeAssignmentSelector(s, res);
   }
   return res;

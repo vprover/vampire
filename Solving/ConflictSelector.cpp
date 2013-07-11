@@ -199,7 +199,7 @@ ConflictSelector* ConflictSelector::create(Solver& s, Options& opt)
   CALL("ConflictSelector::create");
 
   ConflictSelector* res;
-  switch(opt.conflictSelector()) {
+  switch(opt.bpConflictSelector()) {
   case Options::CS_LEAST_RECENT:
     res = new LeastRecentConflictSelector(s);
 //    res = new TooEarlyConflictSelector(s);

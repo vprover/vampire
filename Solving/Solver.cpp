@@ -291,7 +291,7 @@ void Solver::handleConflicts()
   }
   ASS(propRes==BS_CONFLICT || _bounds.getConflictSet().isEmpty());
   if(propRes!=BS_CONFLICT &&
-      ( env.options->propagateAfterConflict() ||
+      ( env.options->bpPropagateAfterConflict() ||
        (_bounds.hasTightBound(lastDecVar) && haveFullAssignment()) ) ) {
 //  if(propRes!=BS_CONFLICT && _bounds.hasTightBound(lastDecVar)) {
     //Sometimes the collapsing constraint propagation may create a tight bound

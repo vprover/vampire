@@ -32,8 +32,8 @@ BoundPropagator* BoundPropagator::create(Solver& s, Options& opt)
 BoundPropagator::BoundPropagator(Solver& solver, Options& opt)
   : _solver(solver),
     _bounds(solver.getBounds()),
-    _useCollapsingConstraints(opt.collapsingBoundPropagation()),
-    _updatesByOneConstraint(opt.updatesByOneConstraint()),
+    _useCollapsingConstraints(opt.bpCollapsingPropagation()),
+    _updatesByOneConstraint(opt.bpUpdatesByOneConstraint()),
     _varCnt(solver.varCnt())
 {
   CALL("BoundPropagator::BoundPropagator");

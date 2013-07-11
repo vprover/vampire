@@ -196,7 +196,7 @@ private:
 VariableSelector* VariableSelector::create(Solver& s, Options& opt)
 {
   VariableSelector* res;
-  switch(opt.variableSelector()) {
+  switch(opt.bpVariableSelector()) {
   case Options::VS_CONFLICTING:
     res = new ConflictingVariableSelector(s, false);
     break;
@@ -224,7 +224,7 @@ VariableSelector* VariableSelector::create(Solver& s, Options& opt)
   default:
     ASSERTION_VIOLATION;
   }
-  if(opt.selectUnusedVariablesFirst()) {
+  if(opt.bpSelectUnusedVariablesFirst()) {
     res = new UnusedVariableSelector(s, res);
   }
   return res;
