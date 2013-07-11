@@ -185,7 +185,7 @@ bool EqualityVariableRemover::allowedEquality(Constraint& c)
   CALL("EqualityVariableRemover::allowedEquality");
 
 //  return true;
-  return c.coeffCnt()<=env.options->maximalPropagatedEqualityLength();
+  return c.coeffCnt()<=env.options->bpMaximalPropagatedEqualityLength();
 }
 
 void EqualityVariableRemover::scan(ConstraintRCList* lst)

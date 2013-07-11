@@ -8,7 +8,7 @@
 // Visual does not know the round function
 #include <cmath>
 #include <sstream>
-#include <cstring>
+#include <cstring> 
 
 #include "Forwards.hpp"
 
@@ -127,17 +127,17 @@ const char* Options::Constants::_optionNames[] = {
   "backward_subsumption_resolution",
   "bfnt",
   "binary_resolution",
+  "bp_add_collapsing_inequalities",
   "bp_allowed_fm_balance",
   "bp_almost_half_bounding_removal",
   "bp_assignment_selector",
-  "bp_collapsing_propagation",
+  "bp_bound_improvement_limit",
   "bp_conflict_selector",
   "bp_conservative_assignment_selection",
   "bp_fm_elimination",
   "bp_max_prop_length",
   "bp_propagate_after_conflict",
   "bp_start_with_precise",
-  "bp_update_by_one_constraint",
   "bp_variable_selector",
 
   "color_unblocking",
@@ -696,7 +696,7 @@ NameArray Options::Constants::predicateEquivalenceDiscoveryModeValues(_predicate
 								      sizeof(_predicateEquivalenceDiscoveryModeValues)/sizeof(char*));
 
 const char* Options::Constants::_bpAssignmentSelectorValues[] = {
-  "alternative",
+  "alternating",
   "bmp",
   "lower_bound",
   "middle",
@@ -716,8 +716,8 @@ const char* Options::Constants::_bpVariableSelectorValues[] = {
   "first",
   "look_ahead",
   "random",
-  "recently_collapsing",
-  "recently_conflicting",
+  "recent_collapsing",
+  "recent_conflicting",
   "tightest_bound"
 };
 

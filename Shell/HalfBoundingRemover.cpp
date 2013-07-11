@@ -40,11 +40,10 @@ bool HalfBoundingRemover::apply(ConstraintRCList*& lst)
 
   //now we need to apply eliminations one step at a time since they depend
   //on content of _posVars and _negVars which gets invalidated by every change
-  //of the constraint list
-
-  if (env.options->almostHalfBoundingRemoval()!=Options::AHR_OFF) {
+  //of the constraint list 
+  if (env.options->bpAlmostHalfBoundingRemoval()!=Options::AHR_OFF) {
     anyRemoved |= applyAlmostHalfBoundingRemoval(lst,
-						 env.options->almostHalfBoundingRemoval()==Options::AHR_BOUNDS_ONLY);
+						 env.options->bpAlmostHalfBoundingRemoval()==Options::AHR_BOUNDS_ONLY);
   }
 
   if (anyRemoved) {
@@ -52,7 +51,7 @@ bool HalfBoundingRemover::apply(ConstraintRCList*& lst)
     return true;
   }
 
-  if (env.options->fmElimination()) {
+  if (env.options->bpFmElimination()) {
     anyRemoved |= applyFMElimination(lst);
   }
 
@@ -148,7 +147,7 @@ bool HalfBoundingRemover::applyFMElimination(ConstraintRCList*& lst)
 {
   CALL("HalfBoundingRemover::applyFMElimination");
 
-  unsigned allowedBalance = env.options->allowedFMBalance();
+  unsigned allowedBalance = env.options->bpAllowedFMBalance();
   unsigned varCnt = env.signature->vars();
   for(Var v=0; v<varCnt; v++) {
     size_t posCnt = _v2c.getConstraintCnt(BoundId(v, true));

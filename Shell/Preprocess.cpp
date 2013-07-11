@@ -101,7 +101,7 @@ void Preprocess::preprocess(ConstraintRCList*& constraints)
     do {
       anyChange = false;
 
-      if (_options.equivalentVariableRemoval()) {
+      if (_options.bpEquivalentVariableRemoval()) {
 	anyChange |= evRemover.apply(constraints);
       }
       anyChange |= hbRemover.apply(constraints);

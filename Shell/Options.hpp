@@ -43,17 +43,18 @@ public:
     BACKWARD_SUBSUMPTION_RESOLUTION,
     BFNT,
     BINARY_RESOLUTION,
+    BP_COLLAPSING_PROPAGATION,
     BP_ALLOWED_FM_BALANCE,
     BP_ALMOST_HALF_BOUND_REMOVER,
     BP_ASSIGNMENT_SELECTOR,
-    BP_COLLAPSING_PROPAGATION,
+    BP_UPDATE_BY_ONE_CONSTRAINT,
     BP_CONFLICT_SELECTOR,
     BP_CONSERVATIVE_ASSIGNMENT_SELECTION,
     BP_FM_ELIMINATION,
     BP_MAX_PROP_LENGTH,
     BP_PROPAGATE_AFTER_CONFLICT,
     BP_START_WITH_PRECISE,
-    BP_UPDATE_BY_ONE_CONSTRAINT,
+
     BP_VARIABLE_SELECTOR,
 
     COLOR_UNBLOCKING,
@@ -755,20 +756,20 @@ public:
   void enableTracesAccordingToOptions() const;
 
   void setProof(Proof p) { _proof = p; }
-  bool equivalentVariableRemoval() const { return _equivalentVariableRemoval; }
-  unsigned maximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength; }
+  bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval; }
+  unsigned bpMaximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength; }
   BPAlmostHalfBoundingRemoval bpAlmostHalfBoundingRemoval() const {return _bpAlmostHalfBoundingRemoval;}
   bool bpFmElimination () const {return _bpFmElimination;}
   unsigned bpAllowedFMBalance() const { return _bpAllowedFMBalance; }
   BPAssignmentSelector bpAssignmentSelector() const {return _bpAssignmentSelector; }
   bool bpCollapsingPropagation() const {return _bpCollapsingPropagation; }
-  unsigned updatesByOneConstraint() const {return _updatesByOneConstraint; }
+  unsigned bpUpdatesByOneConstraint() const {return _updatesByOneConstraint; }
   bool bpConservativeAssignmentSelection() const {return _bpConservativeAssignmentSelection; }
   BPConflictSelector bpConflictSelector() const {return _bpConflictSelector; }
   bool backjumpTargetIsDecisionPoint() const { return _backjumpTargetIsDecisionPoint; }
   bool bpPropagateAfterConflict() const {return _bpPropagateAfterConflict; }
   BPVariableSelector bpVariableSelector() const {return _bpVariableSelector; }
-  bool selectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst; }
+  bool bpSelectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst; }
   bool bpStartWithPrecise() const { return _bpStartWithPrecise; }
   
   CLASS_NAME(Options);
