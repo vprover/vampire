@@ -68,6 +68,7 @@
 
 #if IS_LINGVA
 #include "Program/Lingva.hpp"
+#include "Program/MinimizeInvariants.hpp"
 #endif
 
 #if GNUMP
@@ -216,7 +217,6 @@ void programAnalysisMode()
 
 #if IS_LINGVA
   Lib::Random::setSeed(123456);
-
   int time = env.options->timeLimitInDeciseconds();
   env.options->setMode(Options::MODE_VAMPIRE);
   Allocator::setMemoryLimit(1024u * 1048576ul);
@@ -233,6 +233,7 @@ void programAnalysisMode()
     Program::RunLingva lingva;
     lingva.run();
   }
+
 #else
   INVALID_OPERATION("program analysis currently not supported");
 #endif
@@ -271,7 +272,7 @@ void boundPropagationMode(){
 #if GNUMP
   CALL("boundPropagationMode::doSolving()");
 
-  if (env.options->startWithPrecise()) {
+  if (env.options->bpStartWithPrecise()) {
     switchToPreciseNumbers();
   }
   //switchToRationalNumbers();
@@ -324,7 +325,6 @@ void solverMode()
 
   //set the default input syntax to be smtlib TODO fix this to work properly
   //this is a hack so that we do not interffer with vampire defaults.
-  //TODO FIRST PRIORITY @until Monday make it true that the TPTP input is accepted
   if ( env.options->inputSyntax() == env.options->IS_TPTP ) {
     env.options->setInputSyntax( env.options->IS_SMTLIB );
   }
@@ -605,9 +605,9 @@ int main(int argc, char* argv[])
 {
   CALL ("main");
 
-#if IS_LINGVA
-    env.options->setMode(Options::MODE_PROGRAM_ANALYSIS);
-#endif
+//#if IS_LINGVA
+//    env.options->setMode(Options::MODE_PROGRAM_ANALYSIS);
+//#endif
 
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
