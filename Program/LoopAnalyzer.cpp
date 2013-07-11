@@ -135,12 +135,14 @@ void LoopAnalyzer::analyze()
 
   cout<<"\nGenerationg the SEI problem ... \n"<<endl;
   cout << "---------------------\n";
-
-  InvariantHelper ih(_units);
-  ih.run();
-
 }
 
+
+void LoopAnalyzer::runSEI(){
+  CALL("LoopAnalyzer::runSEI");
+  InvariantHelper ih(_units);
+  ih.run();
+}
 /**
  * If the assignment has the form x = x + c, where x is an integer variable
  * and c an integer constant, return c. Otherwise, return 0.
@@ -1043,7 +1045,7 @@ Formula* LoopAnalyzer::arrayUpdateCondition(Path* path, Path::Iterator &sit, int
     }
   }
   
-  LOG("lin_arrayUpdateCond","array update condition"<<arrayUpdCondition->toString());
+  LOG("lin_arrayUpdateCond","array update condition: "<<arrayUpdCondition->toString());
   return arrayUpdCondition;
 }
 

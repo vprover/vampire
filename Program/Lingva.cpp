@@ -41,6 +41,16 @@ void RunLingva::run()
 
 }
 
+/*
+ * This function is here in order for us to call the clang parser and invariant generator
+ * The function returns the list of units on which we have to do symbol elimination.
+ **/
+List<Unit* >* RunLingva::getUnits(){
+  CALL("RunLingva::run1()");
+  Analyze analyzer(getWhileStatement());
+  return analyzer.getUnits();
+}
+
 /**
  * This is actually where we initialize the clang infrastructure
  * and set the options in order to get correct answers.
@@ -94,7 +104,62 @@ void RunLingva::runParsingAndAnalysis()
 	  &ci.getPreprocessor());
   //parse the file using the previously defined options
   clang::ParseAST(ci.getPreprocessor(), astConsumer, ci.getASTContext());
+  if(env.options->getWhileNumber() !=-1){
+    astConsumer->runAnalysis();
+  }
   ci.getDiagnosticClient().EndSourceFile();
+}
+
+Program::Statement* RunLingva::getWhileStatement(){
+  CALL("RunLingva::getWhileStatement");
+  using clang::CompilerInstance;
+   using clang::TargetOptions;
+   using clang::TargetInfo;
+   using clang::FileEntry;
+   using clang::Token;
+   using clang::ASTContext;
+   using clang::ASTConsumer;
+   using clang::Parser;
+
+   // create a clang compiler instance
+   CompilerInstance ci;
+   ci.createDiagnostics(0, NULL);
+
+   //create the target options
+   TargetOptions to;
+   //get the system options
+   to.Triple = llvm::sys::getHostTriple();
+   //create the target information
+   TargetInfo *pti = TargetInfo::CreateTargetInfo(ci.getDiagnostics(), to);
+   //set the target in the compiler instance
+   ci.setTarget(pti);
+
+   //create a file manager in the compiler instance
+   ci.createFileManager();
+   //create the source manager from the fileManager
+   ci.createSourceManager(ci.getFileManager());
+   //create the preprocessor
+   ci.createPreprocessor();
+   ci.getPreprocessorOpts().UsePredefines = false;
+   //create the ASTConsumer
+   Translator::MyASTConsumer *astConsumer = new Translator::MyASTConsumer();
+   //pass to the ASTConsumer the while of interest
+   astConsumer->SetWhileNumber(env.options->getWhileNumber());
+   //pass to the consumer the function of interest
+   astConsumer->SetFunctionNumber(env.options->getFunctionNumber());
+   ci.setASTConsumer(astConsumer);
+
+   ci.createASTContext();
+
+   //open the C file
+   const FileEntry *pFile = ci.getFileManager().getFile(env.options->inputFile().c_str());
+   ci.getSourceManager().createMainFileID(pFile);
+   ci.getDiagnosticClient().BeginSourceFile(ci.getLangOpts(),
+           &ci.getPreprocessor());
+   //parse the file using the previously defined options
+   clang::ParseAST(ci.getPreprocessor(), astConsumer, ci.getASTContext());
+   ci.getDiagnosticClient().EndSourceFile();
+   return astConsumer->getWhile();
 }
 
 

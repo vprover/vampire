@@ -11,7 +11,11 @@
 #include "Lib/Set.hpp"
 
 using namespace Lib;
+namespace Kernel{
+  class Unit;
+}
 
+using namespace Kernel;
 namespace Program {
 
 class Variable;
@@ -29,6 +33,7 @@ class Analyze
 public:
   Analyze(Statement* program);
   void analyze();
+  List<Kernel::Unit*>* getUnits();
 private:
   void analyzeSubstatements(Statement* statement);
   void preprocessStatement(Statement* statement);

@@ -6,6 +6,7 @@
  */
 
 #include "Lib/Stack.hpp"
+#include "Lib/List.hpp"
 #include "Variable.hpp"
 #include "Expression.hpp"
 #include "Statement.hpp"
@@ -13,7 +14,10 @@
 #include "LoopAnalyzer.hpp"
 
 using namespace Program;
-
+namespace Kernel{
+  class Unit;
+}
+using namespace Kernel;
 /** Constructor, just saves the program */
 Analyze::Analyze(Statement* program)
   : _program(program)
@@ -41,11 +45,25 @@ void Analyze::analyze()
     WhileDo* loop = loops.next();
     LoopAnalyzer lan(loop);
     lan.analyze();
+    lan.runSEI();
   }
 
 }
 
 
+List<Unit* >* Analyze::getUnits(){
+  CALL("Analyze::getUnits");
+  analyzeSubstatements(_program);
+  cout << "Loops found: " << _loops.size() << "\n";
+  Set<WhileDo*>::Iterator loops(_loops);
+  while (loops.hasNext()) {
+    WhileDo* loop = loops.next();
+    LoopAnalyzer lan(loop);
+    lan.analyze();
+    return lan.getUnits();
+  }
+
+}
 bool Analyze::checkForIf(Statement* statement)
 {
   CALL("Analyze::checkForIf");

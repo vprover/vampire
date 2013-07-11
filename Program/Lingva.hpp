@@ -46,11 +46,9 @@
 #include "Shell/CommandLine.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/CASC/CASCMode.hpp"
 
 using namespace Lib;
 using namespace Shell;
-using namespace Shell::CASC;
 
 namespace Program{
 
@@ -65,8 +63,10 @@ class RunLingva{
 public:
   RunLingva(){}
   void run();
+  List<Unit* >* getUnits();
 private:
   void runParsingAndAnalysis();
+  Program::Statement* getWhileStatement();
 };
 };
 #endif /* __LINGVA_HPP__ */

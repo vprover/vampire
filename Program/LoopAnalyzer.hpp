@@ -43,6 +43,7 @@ class LoopAnalyzer
 public:
   LoopAnalyzer(WhileDo* loop);
   void analyze();
+  void runSEI();
   List<Unit* >* getUnits() {return _units;}
 private:
   /** For every variable, this structure stores information used to
