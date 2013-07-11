@@ -21,6 +21,8 @@
 #include "Lib/List.hpp"
 #include "Program/Variable.hpp"
 #include "Program/Expression.hpp"
+#include "Program/Statement.hpp"
+#include "NewTranslator.h"
 
 namespace Translator{
 using namespace clang;
@@ -33,10 +35,10 @@ private:
   int _functionNumber;
   int _timeLimit;
   unsigned int function_number;
+  Translator::newTranslator* _cc;
 
 public:
-  MyASTConsumer() :
-    ASTConsumer()
+  MyASTConsumer() : ASTConsumer()
   {
     function_number = 0;
   }
@@ -54,6 +56,8 @@ public:
     _functionNumber=no;
   }
   virtual void HandleTopLevelDecl(DeclGroupRef d);
+  Program::Statement* getWhile();
+  void runAnalysis();
 };
 }
 

@@ -86,6 +86,7 @@ public:
   virtual ~collectionOfObjects();
 
   void runAnalysis(int n);
+  Statement* getWhile(int wNumber);
   bool testASS(std::string key);
   int chekMaps(std::string key);
   Lib::Stack<Program::VariableExpression*> getVarExpStack();

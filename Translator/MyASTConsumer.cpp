@@ -23,7 +23,7 @@
 
 #include "Lib/List.hpp"
 #include "Program/Variable.hpp"
-
+#include "Translator/NewTranslator.h"
 #include <iostream>
 
 namespace Translator{
@@ -37,6 +37,7 @@ void MyASTConsumer::Initialize(clang::ASTContext& context)
 void MyASTConsumer::HandleTopLevelDecl(clang::DeclGroupRef d)
 {
   clang::DeclGroupRef::iterator it;
+
   for (it = d.begin(); it != d.end(); it++) {
 
     clang::Decl* declaration = *it;
@@ -55,15 +56,31 @@ void MyASTConsumer::HandleTopLevelDecl(clang::DeclGroupRef d)
 	::clang::Stmt* body = declaration->getBody();
 	//::std::cout << "Analyze function "
 	//	<< function_declaration->getDeclName().getAsString() << "; \n";
-	newTranslator cc(body, ctx);
-	cc.SetWhileToAnalyze(_whileToAnalyze);
-	cc.RunRewriting();
-        
+	_cc = new newTranslator(body, ctx);
+	_cc->SetWhileToAnalyze(_whileToAnalyze);
+	if(_whileToAnalyze == -1)
+	  {
+	  _cc->RunRewriting();
+	  }
       }
 
     }
   }
+}
 
+Program::Statement* MyASTConsumer::getWhile(){
+  CALL("MyASTConsumer::getWhile()");
+  if(_functionNumber > function_number || _functionNumber <= 0)
+      USER_ERROR("There are fewer functions than you expect in the file! \n Check the function number you want to analyze!");
 
+  return _cc->getWhile(_whileToAnalyze);
+}
+
+void MyASTConsumer::runAnalysis(){
+  CALL("MyASTConsumer::runAnalysis");
+  if(_functionNumber > function_number || _functionNumber <= 0 )
+    USER_ERROR("There are fewer functions than you expect in the file! \n Check the function number you want to analyze!");
+
+  _cc->RunRewriting();
 }
 }

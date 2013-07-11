@@ -158,9 +158,11 @@ void newTranslator::VisitStmt(const Stmt* stmt)
       //sl.dump(ctx->getSourceManager());
       clang::SourceManager &sm = ctx->getSourceManager();
       clang::FullSourceLoc fsl(sl, sm);
+
       if(_whileToAnalyze == -1){
       cout << "WHILE LOCATION: " << fsl.getSpellingLineNumber()<<endl;
       }
+
       if (flag == true) {
 	Visit(ws->getCond());
 	addToMainProgram("Whl_" + numeUitat);
@@ -743,39 +745,19 @@ void newTranslator::RunRewriting()
   CALL("newTranslator::RunRewriting");
   flag = true;
   getVariables(decl_body);
- /* //write the main program body
-  Program::Block* mainBlock = new Program::Block(_mainProgram.size());//_mainProgram.size(); i++)
-  for (uint i = 0; i < _mainProgram.size(); i++) {
-    switch (colect->chekMaps(_mainProgram[i])) {
-    case 1:
-      mainBlock->setStatement(i, colect->getAssignment(_mainProgram[i]));
-      // colect->insertMainProgramStatement(i, colect->getAssignment(_mainProgram[i]));
-      break;
-    case 2:
-      mainBlock->setStatement(i, colect->getWhile(_mainProgram[i]));
-      // colect->insertMainProgramStatement(i, colect->getWhile(_mainProgram[i]));
-      break;
-    case 3:
-      mainBlock->setStatement(i, colect->getIfThenElse(_mainProgram[i]));
-      // colect->insertMainProgramStatement(i, colect->getIfThenElse(_mainProgram[i]));
-      break;
-    case 4:
-      mainBlock->setStatement(i, colect->getIfThen(_mainProgram[i]));
-      break;
-    default:
-    //  ASSERTION_VIOLATION
-      //;
-      break;
-    };
-  }
-  colect->insertBlock("main_", mainBlock);
-  mainBlock->prettyPrint(cout);*/
   if(_whileToAnalyze!=-1);
-   colect->runAnalysis(_whileToAnalyze);
-
+    colect->runAnalysis(_whileToAnalyze);
 
 }
 
+Program::Statement* newTranslator::getWhile(int n){
+  CALL("newTranslator::getWhile");
+  flag=true;
+  getVariables(decl_body);
+  if(_whileToAnalyze!=-1)
+    return colect->getWhile(n);
+  else USER_ERROR("The value should be positive");
+}
 //composes the statements to be written in the new program
 //and sorts them into the two main categories: outer most or inside of a construction
 

@@ -229,13 +229,9 @@ bool collectionOfObjects::multipleLoops(Program::Statement* s)
 void collectionOfObjects::trySEI(Program::Statement* s){
   CALL("collectionOfObjects::trySEI");
 
-  //set the symbol elimination mod on;
-
-  Lib::List<Kernel::Unit *>* unitList;
+  //set the symbol elimination mode on;
   Program::Analyze analyzer(s);
   analyzer.analyze();
-
-
 
 }
 
@@ -271,7 +267,39 @@ void collectionOfObjects::runAnalysis(int wN)
    if(whileNo<whileNumber)
      USER_ERROR("less whiles than the number introduced!");
   }
+}
 
+Statement* collectionOfObjects::getWhile(int wNumber){
+  CALL("collectionOfObjects::getWhile(int whileNumber)");
+
+  int whileNumber= env.options->getWhileNumber();
+  if (_mapOfWhile.numberOfElements() < whileNumber ){
+    USER_ERROR("you have less whiles than the number introduced! take care @ -wno option!");
+    }
+  else {
+    int whileNo = 1;
+    Program::Statement* s;
+    Lib::Map<int, Program::Statement*>::Iterator mpi(
+            _mapOfMainProgramStatements);
+    for (int i = 1; i <= _mapOfMainProgramStatements.numberOfElements(); i++) {
+      _mapOfMainProgramStatements.find(i, s);
+      if (s->kind() == Program::Statement::WHILE_DO) {
+        if (whileNumber == whileNo) {
+          if (multipleLoops(s)) {
+            USER_ERROR("We do not handle nested whiles yet!");
+          }
+         /* cout<<env.options->showSymbolElimination()<<" SEI"<<endl;
+          Program::Analyze analyzer(s);
+          analyzer.analyze();*/
+          return s;
+          break;
+        } else
+          whileNo++;
+      }
+    }
+   if(whileNo<whileNumber)
+     USER_ERROR("less whiles than the number introduced!");
+  }
 
 }
 

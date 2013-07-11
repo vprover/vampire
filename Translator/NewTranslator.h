@@ -40,6 +40,7 @@ public:
 
   void SetWhileToAnalyze(int n){ _whileToAnalyze = n; };
   void RunRewriting();
+  Program::Statement* getWhile(int n);
   void GetVariableDecl();
 
   virtual void VisitStmt(const Stmt* stmt);
