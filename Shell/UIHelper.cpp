@@ -33,6 +33,7 @@
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
+#include "SMTPrinter.hpp"
 
 #include "Lib/RCPtr.hpp"
 #include "Lib/List.hpp"
@@ -182,22 +183,21 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   }
   break;
   case Options::IS_TPTP:
-  {
-    Parse::TPTP parser(*input);
-    parser.parse();
-    units = parser.units();
-    s_haveConjecture=parser.containsConjecture();
-  }
-  break;
+    {
+      Parse::TPTP parser(*input);
+      parser.parse();
+      units = parser.units();
+      s_haveConjecture=parser.containsConjecture();
+    }
+    break;
   case Options::IS_SMTLIB:
-  {
-
-    Parse::SMTLIB parser(opts);
-    parser.parse(*input);
-    units = parser.getFormulas();
-    s_haveConjecture=true;
-  }
-  break;
+    {
+      Parse::SMTLIB parser(opts);
+      parser.parse(*input);
+      units = parser.getFormulas();
+      s_haveConjecture=true;
+    }
+    break;
   
   case Options::IS_MPS:
   {
@@ -278,19 +278,21 @@ void UIHelper::outputResult(ostream& out)
       Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       
-      InterpolantMinimizer printer;
+      SMTPrinter printer;
       out << "Old interpolant: " << TPTPPrinter::toString(oldInterpolant) << endl;
-      out << "Old interpolant in SMT format: "; printer.prettyPrint(oldInterpolant,out);out<<endl;
+      out << "Old interpolant in SMT format: "; 
+      printer.smtPrint(oldInterpolant,out);
+      out << endl;
         
       out << "Symbol minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
-      out << "Symbol minimized interpolant in SMT format: "; printer.prettyPrint(interpolant,out);out<<endl;
+      out << "Symbol minimized interpolant in SMT format: "; printer.smtPrint(interpolant,out);out<<endl;
 
       out << "Count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
-      out << "Count minimized interpolant in SMT format: "; printer.prettyPrint(cntInterpolant,out);out<<endl;
+      out << "Count minimized interpolant in SMT format: "; printer.smtPrint(cntInterpolant,out);out<<endl;
         
         
       out << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
-      out << "Quantifiers minimized interpolant in SMT format: "; printer.prettyPrint(quantInterpolant,out);out<<endl;
+      out << "Quantifiers minimized interpolant in SMT format: "; printer.smtPrint(quantInterpolant,out);out<<endl;
 
     }
     if (env.options->latexOutput() != "off") {

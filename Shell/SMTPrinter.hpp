@@ -1,0 +1,52 @@
+/**
+ * @file SMTPrinter.hpp
+ * Defines class SMTPrinter.
+ * translates Vampire formulas into SMT
+ */
+
+#ifndef __SMTPrinter__
+#define __SMTPrinter__
+
+#include <iosfwd>
+
+#include "Forwards.hpp"
+#include "SineUtils.hpp"
+
+
+#include "Kernel/Signature.hpp"
+
+
+namespace Shell {
+
+using namespace Kernel;
+
+/**
+ * All purpose SMT printer class. It has two major roles:
+ * 1. returns as an SMT  string a Unit/Formula
+ * 2. it outputs to the desired output stream any Unit specified
+ */
+class SMTPrinter {
+public:
+    
+  typedef Signature::Symbol Symbol;
+  
+  SMTPrinter();
+  void smtPrint(Formula* formula, ostream& out);
+  void smtPrint(Term* term, ostream& out);
+  void smtPrint(Symbol* symb, ostream& out);
+  void smtPrintName(const string& name, ostream& out);
+  void smtPrintSort(const string& sortName, ostream& out);  
+  void smtPrintDeclaration(Symbol* symb, ostream& out);
+
+private:
+
+  FormulaList* _formulas;
+  Set<Symbol*>* _symbols;
+  Set<Symbol*>* _predicates;
+  bool _getProof;
+  bool _smtlib2;
+};
+
+}
+
+#endif // __SMTPrinter__

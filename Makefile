@@ -323,6 +323,7 @@ VS_OBJ = Shell/AIG.o\
          Shell/SimplifyProver.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
+         Shell/SMTPrinter.o\
          Shell/SpecialTermElimination.o\
          Shell/Statistics.o\
          Shell/SymCounter.o\
