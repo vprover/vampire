@@ -3230,17 +3230,23 @@ unsigned TPTP::addFunction(string name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_PLUS,
 				 Theory::REAL_PLUS);
   }
+  if (name == "$difference") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+				 Theory::INT_MINUS,
+				 Theory::RAT_MINUS,
+				 Theory::REAL_MINUS);
+  }
   if (name == "$product") {
     return addOverloadedFunction(name,arity,2,added,arg,
 				 Theory::INT_MULTIPLY,
 				 Theory::RAT_MULTIPLY,
 				 Theory::REAL_MULTIPLY);
   }
-  if (name == "$difference") {
+  if (name == "$divide") {
     return addOverloadedFunction(name,arity,2,added,arg,
-				 Theory::INT_MINUS,
-				 Theory::RAT_MINUS,
-				 Theory::REAL_MINUS);
+				 Theory::INT_DIVIDE,
+				 Theory::RAT_DIVIDE,
+				 Theory::REAL_DIVIDE);
   }
   if (name == "$uminus") {
     return addOverloadedFunction(name,arity,1,added,arg,
