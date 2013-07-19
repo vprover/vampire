@@ -1,6 +1,9 @@
 /**
  * @file SMTPrinter.cpp
  * Implements class SMTPrinter.
+ * Prints Vampire native format into smtlib1.
+ * @author Laura Kovacs 
+ * @since 05/07/2013 Gothenburg 
  */
 
 #include <sstream>
@@ -57,24 +60,27 @@ void SMTPrinter::smtPrint(Formula* formula, ostream& out)
     symbNum = formula->literal()->functor();
     symb = sig->getPredicate(symbNum);
                 
-    if (formula->literal()->args()->isNonEmpty())
+    if (formula->literal()->args()->isNonEmpty()) {
       out << "(";
+    }
                 
     smtPrint(symb, out);
                 
     args = formula->literal()->args();
-    while(args->isNonEmpty()) {
+    while (args->isNonEmpty()) {
       out << " ";
-      if (args->isVar())
+      if (args->isVar()) {
 	out << "x" << args->var();
-      else
+      }
+      else {
 	smtPrint(args->term(), out);
+      }
       args = args->next();
     }
                 
-    if (formula->literal()->args()->isNonEmpty())
+    if (formula->literal()->args()->isNonEmpty()) {
       out << ")";
-                
+    }
     return;
   case AND:
   case OR:
@@ -85,7 +91,7 @@ void SMTPrinter::smtPrint(Formula* formula, ostream& out)
       out << "(or ";
     }
                 
-    for(fs = formula->args(); fs->isNonEmpty (); fs = fs->tail()) {
+    for (fs = formula->args(); fs->isNonEmpty (); fs = fs->tail()) {
       smtPrint(fs->head(), out);
       out << " ";
     }
@@ -95,13 +101,17 @@ void SMTPrinter::smtPrint(Formula* formula, ostream& out)
   case IMP:
   case IFF:
   case XOR:
-    if (formula->connective() == IMP)
+    if (formula->connective() == IMP) {
       out << "(implies ";
-    else if (formula->connective() == IFF)
-      out << "(= ";
-    else
+    }
+    else { 
+      if (formula->connective() == IFF) {
+        out << "(= ";
+      } 
+      else {
       ASS(false);
-                
+      }
+    }            
     smtPrint(formula->left(), out);
     out << " ";
     smtPrint(formula->right(), out);
@@ -129,67 +139,93 @@ void SMTPrinter::smtPrint(Formula* formula, ostream& out)
   }
 }
     
-    
-    
-/*print terms in SMT*/    
+/*print terms in SMT format*/    
 void SMTPrinter::smtPrint(Term* term, ostream& out)
 {
   Signature *sig = env.signature;
   unsigned int symbNum = term->functor();
   Symbol* symb = sig->getFunction(symbNum);
         
-  if (term->args()->isNonEmpty())
+  if (term->args()->isNonEmpty()) {
     out << "(";
+  }
         
   smtPrint(symb, out);
         
   TermList* args = term->args();
-  while(args->isNonEmpty()) {
+  while (args->isNonEmpty()) {
     out << " ";
-    if (args->isVar())
+    if (args->isVar()) {
       out << "x" << args->var();
-    else
+    }
+    else {
       smtPrint(args->term(), out);
+    }
     args = args->next();
   }
         
-  if (term->args()->isNonEmpty())
+  if (term->args()->isNonEmpty()) {
     out << ")";
+  }
 }
     
 /*print symbols in SMT*/
-//TODO: use builtin enumerator for builtin operators instead of this trick...
-//unfortunately I only discovered about those later..
 void SMTPrinter::smtPrint(Symbol* symb, ostream& out)
 {
   string name = symb->name();
-  if (symb->interpreted()) {
-    if (name == "$less")
-      {out << "<";}
-    else if (name == "$lesseq")
-      {out << "<=";}
-    else if (name == "$greater")
-      {out << ">";}
-    else if (name == "$greatereq")
-      {out << ">=";}
-    else if (name == "=")
-      {out << "=";}
-    else if (name == "$plus")
-      {out << "+";}
-    else if (name == "$sum")
-      {out << "+";}
-    else if (name == "$times")
-      {out << "*";}
-    else if (name == "$product")
-      {out << "*";}
-    else if (name == "$uminus")
-      {out << "-";}
-    else 
-      {out << name;} //TODO: handle negative number and print them as (- N)
+   if (symb->interpreted()) {
+    if (name == "$less") {
+      out << "<";
+      return;
+    }
+    if (name == "$lesseq") {
+      out << "<=";
+      return;
+    }
+    if (name == "$greater") {
+      out << ">";
+      return;
+    }
+    if (name == "$greatereq") {
+      out << ">=";
+      return;
+    }
+    if (name == "=") {
+      out << "=";
+      return;
+    }
+    if (name == "$plus") {
+      out << "+";
+      return;
+    }
+    if (name == "$sum") {
+      out << "+";
+      return;
+    }
+    if (name == "$times") {
+      out << "*";
+      return;
+    }
+    if (name == "$product") {
+      out << "*"; 
+      return;
+    }
+    if (name == "$uminus") {
+      out << "-";
+      return;
+    }
+    if (name == "$divide") {
+      out << "div";
+      return;
+    }
+    /* it is not an interpreted arithmetic predicate/function with non-zero arity, but it is an interpreted theory symbol, e.g. constant 0*/
+    out << name; 
   }
-  else{out<<name;}
+  else {
+    /*the symbol is uninterpreted*/
+   out<<name;
+   return;
+ }
 }
     
     
-
-

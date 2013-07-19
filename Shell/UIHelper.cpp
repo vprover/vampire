@@ -279,20 +279,26 @@ void UIHelper::outputResult(ostream& out)
       Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       
       SMTPrinter printer;
-      out << "Old interpolant: " << TPTPPrinter::toString(oldInterpolant) << endl;
-      out << "Old interpolant in SMT format: "; 
+      out << "Old interpolant (without minimization): " << TPTPPrinter::toString(oldInterpolant) << endl;
+      out << "Old interpolant in SMT format (without minimization): "; 
       printer.smtPrint(oldInterpolant,out);
       out << endl;
         
-      out << "Symbol minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
-      out << "Symbol minimized interpolant in SMT format: "; printer.smtPrint(interpolant,out);out<<endl;
+      out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
+      out << "Symbol-weight minimized interpolant in SMT format: "; 
+      printer.smtPrint(interpolant,out);
+      out<<endl;
 
-      out << "Count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
-      out << "Count minimized interpolant in SMT format: "; printer.smtPrint(cntInterpolant,out);out<<endl;
+      out << "Atom-count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
+      out << "Atom-count minimized interpolant in SMT format: "; 
+      printer.smtPrint(cntInterpolant,out);
+      out<<endl;
         
         
       out << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
-      out << "Quantifiers minimized interpolant in SMT format: "; printer.smtPrint(quantInterpolant,out);out<<endl;
+      out << "Quantifiers minimized interpolant in SMT format: "; 
+      printer.smtPrint(quantInterpolant,out);
+      out<<endl;
 
     }
     if (env.options->latexOutput() != "off") {

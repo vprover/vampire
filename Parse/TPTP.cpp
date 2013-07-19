@@ -3215,7 +3215,7 @@ Formula* TPTP::makeJunction (Connective c,Formula* lhs,Formula* rhs)
  */
 unsigned TPTP::addFunction(string name,int arity,bool& added,TermList& arg)
 {
-  CALL("TPTP::addFunction");
+  CALL("TPTP::aion");
    
 
   if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
