@@ -68,7 +68,6 @@
 
 #if IS_LINGVA
 #include "Program/Lingva.hpp"
-#include "Program/MinimizeInvariants.hpp"
 #endif
 
 #if GNUMP
@@ -275,8 +274,7 @@ void boundPropagationMode(){
   if (env.options->bpStartWithPrecise()) {
     switchToPreciseNumbers();
   }
-  //switchToRationalNumbers();
-  //ConstraintRCList* constraints(UIHelper::getInputConstraints(*env.options));
+
   ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env.options));
 
 #if 0 
@@ -317,19 +315,12 @@ void solverMode()
 {
   CALL("solverMode()");
 #if GNUMP
-  //set the options such that we are ok
-  //set the proof mode off
+  //adjust vampire options in order to serve the purpose of bound propagation
   if ( env.options->proof() == env.options->PROOF_ON ) {
     env.options->setProof(env.options->PROOF_OFF);
   }
 
-  //set the default input syntax to be smtlib TODO fix this to work properly
-  //this is a hack so that we do not interffer with vampire defaults.
-  if ( env.options->inputSyntax() == env.options->IS_TPTP ) {
-    env.options->setInputSyntax( env.options->IS_SMTLIB );
-  }
-
-  //this ensures the fact that ints read in smtlib file are treated as reals
+  //this ensures the fact that int's read in smtlib file are treated as reals
   env.options->setSmtlibConsiderIntsReal(true);
 
   boundPropagationMode();
