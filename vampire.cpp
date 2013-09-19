@@ -278,8 +278,6 @@ void boundPropagationMode(){
 	  switchToRationalNumbers();
   }
 
-  }
-
   ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env.options));
 
 #if 0
@@ -287,6 +285,7 @@ void boundPropagationMode(){
   while(ite.hasNext())
       std::cout<<"preproc: "<<ite.next()->toString()<<"\n";
 #endif
+
   start:
   try
   {
@@ -304,7 +303,6 @@ void boundPropagationMode(){
       env.statistics->switchToPreciseTimeInMs = env.timer->elapsedMilliseconds();
       switchToPreciseNumbers();
       //switchToRationalNumbers();
-      cout<<"Swapped to RATIONAL"<<endl;
       ASS(usingPreciseNumbers());
       goto start;
     }
