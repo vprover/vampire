@@ -272,7 +272,17 @@ void boundPropagationMode(){
   CALL("boundPropagationMode::doSolving()");
 
   if (env.options->bpStartWithPrecise()) {
+	if(env.options->bpStartWithRational()==true){
+		USER_ERROR("cannot start with both rational and precise in the same time!");
+	}
     switchToPreciseNumbers();
+  }
+  if (env.options->bpStartWithRational()){
+	  if(env.options->bpStartWithPrecise()==true){
+		  USER_ERROR("cannot start with both rational and precise in the same time!");
+	  }
+	  switchToRationalNumbers();
+
   }
 
   ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env.options));
@@ -282,7 +292,7 @@ void boundPropagationMode(){
   while(ite.hasNext())
       std::cout<<ite.next()->toString()<<"\n";
 #endif
-      
+
   start:
   try
   {

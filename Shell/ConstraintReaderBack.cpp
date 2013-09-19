@@ -72,6 +72,7 @@ ConstraintRCList* ConstraintReader::constraints()
     }
     SMTParser::Atom* atom = form->atom;
     CoeffNumber freeCoeff = CoeffNumber::zero();
+
     readCoefs(atom->args, coeffs, freeCoeff);
 
     ConstraintType constrType;
@@ -100,7 +101,7 @@ ConstraintRCList* ConstraintReader::constraints()
     coeffs.reset();
 
   }
-  
+
   return res;
 }
 

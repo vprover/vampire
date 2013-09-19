@@ -119,11 +119,10 @@ void Constraint::multiplyCoeffs(CoeffNumber num)
 {
   CALL("Constraint::multiplyCoeffs");
   ASS(!num.isZero());
-
   _freeCoeff *= num;
   size_t ccnt = coeffCnt();
   for(size_t i=0; i<ccnt; i++) {
-    _coeffs[i].value *= num;
+	  _coeffs[i].value *= num;
   }
 }
 

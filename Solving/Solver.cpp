@@ -120,12 +120,13 @@ void Solver::collectInputBounds()
   ConstraintList::Iterator cit(_inputConstraints);
   while(cit.hasNext()) {
     Constraint* c = cit.next();
+    cout<<c->toString()<<endl;
     ASS_NEQ(c->type(),CT_EQ);
 
     size_t coeffCnt = c->coeffCnt();
     if(coeffCnt==0) {
       if(c->isRefutation()) {
-	throw RefutationFoundException(c);
+    	  throw RefutationFoundException(c);
       }
       ASS(c->isTautology());
     }
@@ -138,7 +139,13 @@ void Solver::collectInputBounds()
       bool leftBound = coeff.isPositive();
       BoundId newBoundId(coeff.var, leftBound);
       ASS_NEQ(coeff.value, CoeffNumber::zero());
-      BoundNumber boundVal = BoundNumber(c->freeCoeff())/coeff.value;
+      BoundNumber boundVal;
+      if(c->freeCoeff()==CoeffNumber::zero() || coeff.value == CoeffNumber::zero()){
+    	  boundVal = BoundNumber(CoeffNumber::zero());
+      }
+      else{
+    	  BoundNumber boundVal = BoundNumber(c->freeCoeff())/coeff.value;
+      }
       BoundInfo bi(boundVal, c->type()==CT_GR);
       bi.justification().setParent(c);
       _bounds.suggestBound(newBoundId, bi);
@@ -147,6 +154,8 @@ void Solver::collectInputBounds()
       retainConstraint(c);
     }
   }
+  cout<<"finished collecting input"<<endl;
+  ASSERTION_VIOLATION;
 }
 
 void Solver::retainConstraint(Constraint* c)

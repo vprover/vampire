@@ -2,9 +2,7 @@
  * @file Number.cpp
  * Implements class Number.
  */
-
-#if GNUMP
-
+ 
 #include <stdlib.h>
 #include <cmath>
 #include <limits>
@@ -16,12 +14,12 @@
 #include "Lib/Random.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Array.hpp"
-#include "Number.hpp"
-#include "Rational.hpp"
 
+#include "Number.hpp"
 
 namespace Kernel
 {
+
 namespace __Aux_Number
 {
 
@@ -30,6 +28,7 @@ bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2)
   CALL("nativeEqual");
 
   NativeNumber diff=fabs(n1-n2);
+//  return diff<=0.01;
   if(n1>1) {
     return diff<=(fabs(n1)*1E-11);
   }
@@ -38,7 +37,7 @@ bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2)
   }
 }
 
-void reduceNumbers(size_t cnt, long double** vals)
+void reduceNumbers(size_t cnt, NativeNumber** vals)
 {
   CALL("reduceNumbers");
 
@@ -104,7 +103,7 @@ bool getIntFromDouble(long double val, long long& res)
   return false;
 }
 
-void reduceIntNumbers(size_t cnt, long double** vals)
+void reduceIntNumbers(size_t cnt, NativeNumber** vals)
 {
   CALL("reduceIntNumbers");
 
@@ -273,9 +272,17 @@ using namespace Lib;
 using namespace __Aux_Number;
 
 
-
 bool CommonNumberBase::_usePrecise = false;
-bool CommonNumberBase::_useRationalRep = false;
+bool CommonNumberBase::_useRational = false;
+
+NativeNumber CommonNumberBase::parseString(string str)
+{
+  CALL("CommonNumberBase::parseString");
+
+  double dbl;
+  ALWAYS(Int::stringToDouble(str.c_str(), dbl));
+  return dbl;
+}
 
 unsigned CoeffNumber::hash(const CoeffNumber& n)
 {
@@ -332,7 +339,7 @@ void CoeffNumber::reduceNumbers(size_t cnt, CoeffNumber** vals, bool allowDecima
     }
   }
   else {
-    static Stack<long double*> numPtrs;
+    static Stack<NativeNumber*> numPtrs;
     numPtrs.reset();
     for(size_t i=0; i<cnt; i++) {
       numPtrs.push(&(vals[i]->native()));
@@ -349,13 +356,29 @@ void CoeffNumber::reduceNumbers(size_t cnt, CoeffNumber** vals, bool allowDecima
 BoundNumber BoundNumber::getRandomValue(const BoundNumber& min, const BoundNumber& max)
 {
   CALL("BoundNumber::getRandomValue");
-  if (min == max) { return min; }
+
   ASS_L(min,max);
   if(usePrecise()) {
     static const unsigned randomDivisor = 64;
     Precise diff = max.precise()-min.precise();
     Precise part = (diff*(Random::getInteger(randomDivisor-2)+1))/randomDivisor;
     return BoundNumber(min.precise()+part);
+  }
+  else if(useRational()){
+	  long double den, num, den1, num1;
+	  den = (min.rational().Denomination());
+	  den1 = (max.rational().Denomination());
+	  num = (min.rational().Numerator());
+	  num1 = (max.rational().Numerator());
+	  if(den == den1 )
+		  return BoundNumber(Rational(Random::getDouble(num, num1),den));
+	  else
+	  {
+		  long double cden = den* den1;
+		  long double min = num*cden;
+		  long double max = num1*cden;
+		  return BoundNumber(Rational(Random::getDouble(min, max), cden));
+	  }
   }
   else {
     return BoundNumber(Random::getDouble(min.native(), max.native()));
@@ -370,18 +393,48 @@ BoundNumber BoundNumber::getRandomValue(const BoundNumber& min, const BoundNumbe
  */
 BoundNumber BoundNumber::getMagicNumber(BoundNumber& rhs){
 	CALL("BoundNumber::getMagicNumber");
-	if (this->usePrecise()){
-		if(mpq_cmp( this->getPrecise().__get_mp(), rhs.getPrecise().__get_mp()))
+	if (this->usePrecise() || this->useRational()){
+		//cout<<"use rat/precise"<<endl;
+		if(this->usePrecise() && mpq_cmp( this->getPrecise().__get_mp(), rhs.getPrecise().__get_mp()))
+		{	//cout<<"precise 1"<<endl;
 			return rhs;
-
+		}
+		if(this->useRational() && this->getRational() == rhs.getRational())
+		{	//cout<<"user bug"<<endl;
+			return rhs;
+		}
+		/*
 	    mpz_class numLhs(getPrecise().get_num()),
 	    		numRhs(rhs.getPrecise().get_num()),
 	    		denLhs(getPrecise().get_den()),
 	    		denRhs(rhs.getPrecise().get_den());
+		*/
+		mpz_class numLhs, numRhs, denLhs, denRhs;
+		if(this->useRational()){
+			numLhs = (unsigned long)this->getRational().Numerator();
+			numRhs = (unsigned long)rhs.getRational().Numerator();
+			denLhs = (unsigned long)this->getRational().Denomination();
+			denRhs = (unsigned long)rhs.getRational().Denomination();
+		}
+		else
+			{
+			numLhs = (getPrecise().get_num());
+			numRhs = (rhs.getPrecise().get_num());
+			denLhs = (getPrecise().get_den());
+			denRhs = (rhs.getPrecise().get_den());
+			}
 		//intermediate integer part
-	    if( !cmp(denLhs,1) || !cmp(denRhs,1)){
-	    	mpq_class result(mpz_class(numLhs+numRhs),2);
-	    	return BoundNumber(result);
+	    if( !cmp(denLhs,1) || !cmp(denRhs,1) ){
+	    	if(usePrecise()){
+	    		mpq_class result(mpz_class(numLhs+numRhs),2);
+	    		//cout<<"precise 2"<<endl;
+	    		return BoundNumber(result);
+	    	}
+	    	else{
+	    		//cout<<"here -1"<<endl;
+	    		Rational result = Rational((numLhs.get_ui()+numRhs.get_ui()),2);
+	    		return BoundNumber(result);
+	    	}
 	    }
 
 	    int noIntegerParts = 0;
@@ -401,12 +454,36 @@ BoundNumber BoundNumber::getMagicNumber(BoundNumber& rhs){
 	    	res[noIntegerParts++] = tempA;
 	    	}while(!mpz_cmp(tempA.__get_mp(), tempB.__get_mp()) && !mpz_cmp(denLhs.__get_mp(), 0) && !mpz_cmp(denRhs.__get_mp(),0));
 	    if(!cmp(denRhs,0) || !cmp(denLhs,0)){
-	    	return BoundNumber(mpq_class(getPrecise()+rhs.getPrecise())/2);
+	    	if(usePrecise()){
+	    		//cout<<"precise 2"<<endl;
+	    		return BoundNumber(mpq_class(getPrecise()+rhs.getPrecise())/2);
+	    	}
+	    	if(useRational()) {
+	    		Rational a = getRational();
+	    		Rational b = rhs.getRational();
+	    		Rational result = (a + b) / Rational(2);
+	    		//cout<<"here"<<endl;
+	    		return BoundNumber(result);
+	    	}
+	    	ASS(!useRational() || !usePrecise());
 	    }
 	    //special case if we manage to do only one computation, that means we differ at first division
-	    if( noIntegerParts==1 ){
-	    	return BoundNumber(mpq_class(getPrecise()+rhs.getPrecise())/2);
-	    }
+		if (noIntegerParts == 1) {
+			if (usePrecise()) {
+				//cout<<"precise 3"<<endl;
+				return BoundNumber(
+						mpq_class(getPrecise() + rhs.getPrecise()) / 2);
+			}
+			if(useRational()){
+				Rational a = getRational();
+				Rational b = rhs.getRational();
+				Rational result = (a+b)/Rational(2);
+				//cout<<"here 1"<<endl;
+				return BoundNumber(result);
+						//Rational((getRational + rhs.getRational())/ Rational(2)));
+			}
+			ASS(!useRational() || !usePrecise());
+		}
 
 	    mpz_class den(1),num(1);
 	    if(mpz_cmp(tempA.__get_mp(),tempB.__get_mp())>0){
@@ -423,18 +500,28 @@ BoundNumber BoundNumber::getMagicNumber(BoundNumber& rhs){
 	    	num = tempDen;
 	    	}
 	    num = res[0]*den + num;
-	    mpq_class result(num, den);
-	    return BoundNumber(result);
+	    if(usePrecise()){
+	    	mpq_class result(num, den);
+	    	//cout<<"precise 4"<<endl;
+	    	return BoundNumber(result);
+	    }
+	    if(useRational()) {
+	    	//cout<<"Nice here"<<endl;
+	    	Rational result(num.get_ui() ,den.get_ui());
+	    	return BoundNumber(result);
+	    }
+	    ASS(!useRational() || !usePrecise());
 	}
-	//if we are here that means we do not have to use precise representation
-	ASS(!usePrecise());
+
+	//if we are here that means we do not have to use precise representation or rational
+	ASS(!usePrecise() || !useRational());
 	NativeNumber left, right;
 	left = getNative();
 	right = rhs.getNative();
 
     return BoundNumber(getDoubleNumber((double)left,(double)right));
-
 }
+
 
 bool usingPreciseNumbers()
 {
@@ -443,7 +530,11 @@ bool usingPreciseNumbers()
   return CommonNumberBase::usePrecise();
 }
 
+bool usingRationalNumbers(){
+	CALL("usingRationalNumbers()");
 
+	return CommonNumberBase::useRational();
+}
 /**
  * Switch from native number representation to a precise one.
  *
@@ -455,16 +546,15 @@ void switchToPreciseNumbers()
 {
   CALL("switchToPreciseNumbers");
   ASS(!CommonNumberBase::usePrecise());
-  LOG("tkv_precise","Switched to precise");
   CommonNumberBase::switchToPreciseNumbers();
   ASS(CommonNumberBase::usePrecise());
 }
 
 void switchToRationalNumbers(){
-	CALL("switchToRationalNumbers()");
+	CALL("switchToRationalNumbers");
 	ASS(!CommonNumberBase::useRational());
-	LOG("tkv_precise", "switched to rational");
-	CommonNumberBase::switchToRational();
+
+	CommonNumberBase::switchToRationalNumbers();
 	ASS(CommonNumberBase::useRational());
 }
 
@@ -474,6 +564,10 @@ std::ostream& operator<< (ostream& out, const CoeffNumber& num)
 
   if(CommonNumberBase::usePrecise()) {
     out<<num.precise();
+  }
+  else if(CommonNumberBase::useRational()){
+	  Rational rat = num.rational();
+	  out<<rat.toString();
   }
   else {
     out<<num.native();
@@ -488,13 +582,14 @@ std::ostream& operator<< (ostream& out, const BoundNumber& num)
   if(CommonNumberBase::usePrecise()) {
     out<<num.precise();
   }
+  else if(CommonNumberBase::useRational()){
+	  Rational rat = num.rational();
+	  out<<rat.toString();
+  }
   else {
     out<<num.native();
   }
-
   return out;
 }
 
 }
-#endif
-

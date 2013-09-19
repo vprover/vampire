@@ -56,20 +56,26 @@ public:
 
     if(_hasLeft) {
       if(_leftStrict) {
-    	  if(num<=_leftBound) { return false; }
+    	  if(num <=_leftBound) {
+    		  cout<<"_left> num and strict"<<endl;
+    		  return false; }
       }
       else {
-    	  if(num<_leftBound) { return false; }
+    	  if(num<_leftBound) {cout<<"_left> num nonstrict"<<endl;
+    		  return false; }
       }
     }
     if(_hasRight) {
       if(_rightStrict) {
-	if(num>=_rightBound) {
-		return false;
+    	  if(num>=_rightBound) {
+    		  cout<<"_right < num strict"<<endl;
+    		  return false;
 		}
       }
       else {
-	if(num>_rightBound) { return false; }
+	if(num>_rightBound) {
+		cout<<"_right < num non strict"<<endl;
+		return false; }
       }
     }
     return true;
@@ -80,15 +86,19 @@ public:
     CALL("ConvenientAssignmentSelector::getAnyAssignment");
 
     if(!_hasLeft && !_hasRight) {
+    	cout<<"!left !right"<<endl;
       getUnboundedAssignment(result);
     }
     else if(!_hasLeft) {
+    	cout<<"!left"<<endl;
       getRightBoundedAssignment(result);
     }
     else if(!_hasRight) {
+    	cout<<"!right"<<endl;
       getLeftBoundedAssignment(result);
     }
     else {
+    	cout<<"getBounded stuff"<<endl;
       getBoundedAssignment(result);
     }
   }
@@ -104,6 +114,8 @@ public:
     _var = var;
     _hasLeft = _bounds.getBound(BoundId(_var, true), _leftBound, _leftStrict);
     _hasRight = _bounds.getBound(BoundId(_var, false), _rightBound, _rightStrict);
+    try{
+
 
     getAnyAssignment(result);
     if(!_hasLeft && !_hasRight) {
@@ -124,7 +136,11 @@ public:
     if(_hasRight && _rightStrict && !usingPreciseNumbers() && result==_rightBound) {
 	throw Solver::NumberImprecisionException();
     }
+    }catch(Rational::NumberImprecisionException){
+    	throw Solver::NumberImprecisionException();
+    }
 #if VDEBUG
+    cout<<result<<endl;
     ASS(withinBounds(result));
     _inUse = false;
 #endif
@@ -165,16 +181,12 @@ protected:
 		return;
 		}
 	if(_rightBound.isPositive() && _leftBound.isNegative()){
-		if(Random::getBit()){
-			result = BoundNumber::zero();
-		}
-		else {
-			result = BoundNumber::getRandomValue(_leftBound, _rightBound);
-		}
+		result = BoundNumber::zero();
 		return;
 	}
 
 	if(_rightBound.isZero()){
+		//cout<<"right is zero"<<endl;
 		/*
 		if (_rightStrict){
 			result = BoundNumber::getRandomValue(_leftBound, BoundNumber::zero());
@@ -191,11 +203,12 @@ protected:
 			result = _leftBound;
 			return;
 		}*/
-		result = BoundNumber::getRandomValue(_rightBound,BoundNumber::zero());
+		result = BoundNumber::getRandomValue(_leftBound,BoundNumber::zero());
 
 		return;
 	}
 	if (_leftBound.isZero()){
+		//cout<<"left is zero"<<endl;
 		/*if (_leftStrict){
 			result = BoundNumber::getRandomValue(BoundNumber::zero(), _rightBound);
 			return;
@@ -218,12 +231,14 @@ protected:
 
 	if(_leftBound.isNegative() && _rightBound.isNegative()){
 		//we play nicely with the positive values
+		//cout<<"both negative"<<endl;
 		BoundNumber absl = _leftBound.abs();
 		BoundNumber absr = _rightBound.abs();
 		result = -(absl.getMagicNumber(absr));
 		return;
 	}
 	else {
+		//cout<<"both positive"<<endl;
 		result = _leftBound.getMagicNumber(_rightBound);
 		return;
 	}
@@ -236,7 +251,7 @@ protected:
 		result = _leftBound;
 	}
 	else{
-		result = _leftBound + ( _leftBound.abs()/BoundNumber(10) );
+		result = _leftBound + BoundNumber::one();
 	}
 
 	}
@@ -247,7 +262,10 @@ protected:
 		result = _rightBound;
 	}
 	else {
-		result = _rightBound - ( _rightBound.abs()/BoundNumber(10) );
+		if(_rightBound.isNegative())
+			result = _rightBound + BoundNumber::one();
+		else
+			result = _rightBound - BoundNumber::one();
 	}
 	}
 
@@ -317,14 +335,31 @@ protected:
   virtual void getBoundedAssignment(BoundNumber& result){
   CALL("UpperBoundAssignmentSelector:getBoundedAssignment");
   //right bound is not strict => pick it!
-  if(!_rightStrict) {
+  if (!_rightStrict){
+	  result = _rightBound;
+	  return;
+  }
+  else {
+	  //it is strict so check is negative or positive
+	  if(_rightBound.isNegative()){
+		  result = _rightBound + (_leftBound-_rightBound)/BoundNumber::two();
+	  }else{
+		  if(_leftBound.isNegative()&& _rightBound!=BoundNumber::zero()){
+			  result = BoundNumber::zero();
+		  }
+		  else {
+			  result = _rightBound - (_rightBound-_leftBound)/BoundNumber::two();
+		  }
+	  }
+  }
+/*  if(!_rightStrict) {
     result = _rightBound;
     return;
   } //right bound is strict
   else {
 	  //randomly choos to either pick right bound - some value or the left bound
-	  if (Random::getBit()){
-		  result = _rightBound - (_rightBound.abs()+_leftBound.abs())/BoundNumber::two();
+	  //if (Random::getBit()){
+		  result = _rightBound - (_rightBound+_leftBound)/BoundNumber::two();
 		  return;
 	  }
 	  else {
@@ -337,7 +372,7 @@ protected:
 			  return;
 		  }
 	  }
-  }
+  }*/
   }
 
   virtual void getLeftBoundedAssignment(BoundNumber& result){
@@ -347,7 +382,14 @@ protected:
       return;
     }
     else {
-      result = _leftBound + BoundNumber(0.125);
+    	if(_leftBound.isNegative()){
+    		result = _leftBound - BoundNumber::one();
+    		return;
+    	}
+    	else {
+    		result = _leftBound + BoundNumber::one();
+    		return;
+    	}
     }
   }
 
@@ -355,9 +397,17 @@ protected:
     CALL("UpperBoundAssignmentSelector:getRightBoundedAssignment");
     if ( !_rightStrict ) {
       result = _rightBound;
+      return;
     }
     else {
-      result = _rightBound - BoundNumber(0.125);
+    	if(_rightBound.isNegative()){
+    		result = _rightBound + BoundNumber::one();
+    		return;
+    	}
+    	else {
+    		result = _rightBound - BoundNumber::one();
+    		return;
+    	}
     }
   }
   virtual void getUnboundedAssignment(BoundNumber& result){
@@ -381,7 +431,22 @@ protected:
     result = _leftBound;
   }
   else {
-    result = _leftBound + (_leftBound.abs())/BoundNumber::two();
+	  if(_leftBound.isNegative()){
+		  if(_rightBound.isNegative()){
+			  result = _leftBound - (_leftBound-_rightBound)/BoundNumber::two();
+		  }
+		  else
+		  {
+			  BoundNumber resultInt = (_rightBound.abs() - _leftBound.abs())/BoundNumber::two();
+			  if(!resultInt.isZero())
+				  result = _leftBound + resultInt;
+			  else
+				  result = BoundNumber::getRandomValue(_leftBound, _rightBound);
+		  }
+	  }
+	  else{
+		  result = _leftBound + (_rightBound - _leftBound)/BoundNumber::two();
+	  }
     }
   }
 
@@ -391,7 +456,12 @@ protected:
       result = _leftBound;
     }
     else {
-      result = _leftBound + BoundNumber(0.125);
+    	if (_leftBound.isNegative()){
+    		result = _leftBound + BoundNumber::one();
+    	}
+    	else{
+    		result = _leftBound + BoundNumber::one();
+    	}
     }
   }
   virtual void getRightBoundedAssignment(BoundNumber& result){
@@ -400,7 +470,13 @@ protected:
       result = _rightBound;
     }
     else {
-      result = _rightBound - BoundNumber(0.125);
+    	if(_rightBound.isNegative()){
+    		result = _rightBound-BoundNumber::one();
+    	}
+    	else
+    	{
+    		result = _rightBound - BoundNumber(0.125);
+    	}
     }
   }
   virtual void getUnboundedAssignment(BoundNumber& result){
@@ -419,19 +495,29 @@ public:
 protected:
   virtual void getBoundedAssignment(BoundNumber& result){
   CALL("AlternatingAssignmentSelector:getBoundedAssignment");
-  BoundNumber delta = ( _rightBound.abs() + _leftBound.abs() ) / BoundNumber(32);
+  BoundNumber delta;
+  if(_rightBound.abs()>_leftBound.abs()){
+	  delta = ( _rightBound.abs() - _leftBound.abs() ) / BoundNumber(32);
+  	  }
+  else if(_rightBound.abs()==_leftBound.abs()){
+	  delta = _rightBound.abs()/BoundNumber(32);
+  }
+  else{
+	  delta = (_leftBound.abs()-_rightBound.abs())/BoundNumber(32);
+  }
+
   if ( _upper ) {
     //pick the upper bound and set for future to select the lower bound
     if ( !_rightStrict ) {
       result = _rightBound;
     }
     else {
-      result = _rightBound - delta;
+    		result = _rightBound - delta;
     }
     _upper = false;
   }
   else {
-    //pick the lower bound and set for future step to select the upper bound
+	//pick the lower bound and set for future step to select the upper bound
     if ( !_leftStrict ) {
       result = _leftBound;
     }
@@ -449,7 +535,7 @@ protected:
       result = _leftBound;
     }
     else {
-      result = _leftBound + BoundNumber(0.00125);
+    	result = _leftBound + BoundNumber(0.00125);
     }
   }
 
@@ -829,11 +915,16 @@ protected:
     //in case we are already using precise numbers, than simply pick a random value
     // in the interval
     //result = BoundNumber::getRandomValue(_leftBound, _rightBound);
-    getMiddlePoint(_leftBound.floor(), _rightBound.ceil(),result);
+    getMiddlePoint(_leftBound, _rightBound,result);
     return;
   }
+
+  if(usingRationalNumbers()){
+	  getMiddlePoint(_leftBound, _rightBound, result);
+	  return;
+  }
   //in the case where we use long doubles
-  ASS( !usingPreciseNumbers() );
+  ASS( !usingPreciseNumbers() && !usingRationalNumbers() );
   getMiddlePoint(_leftBound.floor(), _rightBound.ceil(),result);
 
   }
@@ -848,7 +939,7 @@ protected:
   }
   virtual void getLeftBoundedAssignment(BoundNumber& result){
     CALL("BinaryMiddlePointSelector::getLeftBoundedAssignment");
-    if(_leftBound.isNegative()) {
+    if(_leftBound.isNegativeAssumingNonzero()) {
           result = BoundNumber::zero();
         }
         else if(!_leftStrict) {
@@ -865,7 +956,7 @@ protected:
    */
   virtual void getRightBoundedAssignment(BoundNumber& result){
     CALL("BinaryMiddlePointSelector::getRightBoundedAssignment");
-    if (_rightBound.isPositive()) {
+    if (_rightBound.isPositiveAssumingNonzero()) {
       result = BoundNumber::zero();
       return;
     }
@@ -883,6 +974,17 @@ private:
   void getMiddlePoint(BoundNumber f_left, BoundNumber c_right, BoundNumber& result)
   {
     CALL("BinaryMiddlePointSelector::getMiddlePoint");
+    if (usingPreciseNumbers()){
+    	result = BoundNumber::getRandomValue(f_left, c_right);
+    	return;
+    }
+
+    if( usingRationalNumbers()){
+    	//this is just an intermediat hack!!!!
+    	//TODO: fix this so that the Rational number representation works as desired!
+    	result = BoundNumber::zero();
+    	return;
+    }
     ASS( !usingPreciseNumbers() );
     //at this point we are assured that the leftBound != rightBound
     //this also means that floor != ceil
@@ -919,7 +1021,7 @@ AssignmentSelector* AssignmentSelector::create(Solver& s, Options& opt)
   AssignmentSelector* res;
   switch(opt.bpAssignmentSelector()) {
   case Options::ASG_ALTERNATIVE:
-    res = new AlternatingAssignmentSelector(s);
+   res = new AlternatingAssignmentSelector(s);
     break;
   case Options::ASG_MIDDLE:
     res = new MiddleAssignmentSelector(s);
@@ -933,9 +1035,11 @@ AssignmentSelector* AssignmentSelector::create(Solver& s, Options& opt)
   case Options::ASG_SMALLEST:
     res = new SmallestAssignmentSelector(s);
     break;
-  case Options::ASG_BIGGEST:
+/*  case Options::ASG_BIGGEST:
+	  //cout<<"biggest in use"<<endl;
     res = new BiggestAssignmentSelector(s);
     break;
+*/
   case Options::ASG_BMP:
     res = new BinaryMiddlePointSelector(s);
     break;

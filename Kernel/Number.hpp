@@ -8,23 +8,20 @@
 #if GNUMP
 #include <iosfwd>
 #include <gmpxx.h>
+#include <cmath>
 
 #include "Forwards.hpp"
 
 #include "Lib/Exception.hpp"
-#include "Lib/Int.hpp"
-#include "Rational.hpp"
 
-#include <cmath>
+#include "Kernel/Rational.hpp"
 
 namespace Kernel {
 
 namespace __Aux_Number
 {
 
-typedef long double NativeNumber;
-typedef Rational NativeRational;
-
+typedef double NativeNumber;
 
 bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2);
 
@@ -32,95 +29,107 @@ class CommonNumberBase
 {
 public:
   static bool usePrecise() { return _usePrecise; }
-  static void switchToPreciseNumbers() { _usePrecise = true; }
-  static void switchToRational() { _useRationalRep = true; }
-  static bool useRational() { return _useRationalRep;}
+  static void switchToPreciseNumbers() { _usePrecise = true; _useRational=false; }
 
+  static bool useRational() {return _useRational;}
+  static void switchToRationalNumbers() {_useRational = true; _usePrecise=false; }
 protected:
 
-  static NativeNumber parseString(string str){
-  	  CALL("CommonNumberBase::parseString");
-  	    double dbl;
-  	    Int::stringToDouble(str.c_str(), dbl);
-  	    return dbl;
-  }
+  static NativeNumber parseString(string str);
 
-  static bool _useRationalRep;
   static bool _usePrecise;
+  static bool _useRational;
 };
 
 /**
  * Flexible number representation.
  */
-template<class T, class PrecCl>
+template<class T, class Rat, class PrecCl>
 class NumberBase : protected CommonNumberBase
 {
 public:
   typedef PrecCl Precise;
+  typedef Rat NativeRational;
 
   /** Created uninitialized number */
-  NumberBase() : _isPrecise(false), _isRational(false) {}
+  NumberBase() : _isPrecise(false),_isRational(false) {}
 
-  explicit NumberBase(NativeNumber val) : _isPrecise(false), _isRational(false) {
-    if(usePrecise()) {
+  explicit NumberBase(const NativeNumber val) : _isPrecise(false), _isRational(false) {
+    CALL("NumberBase(Native)");
+	  if(usePrecise()) {
       initPrecise();
       precise() = static_cast<double>(val);
     }
-    else if(!useRational()) {
-      native() = val;
-    }
-    else {
+    else if(useRational()){
     	initRational();
     	rational() = Rational(val);
     }
+    else {
+      native() = val;
+    }
   }
-
-  explicit NumberBase(const Rational& val) : _isPrecise(false), _isRational(false){
-	 ASS(useRational());
-	 initRational();
-	 rational();
-  }
-
   explicit NumberBase(const Precise& val) : _isPrecise(false), _isRational(false) {
+    CALL("NumberBase(Precise)");
     ASS(usePrecise());
     initPrecise();
     precise() = val;
   }
-  template<class T2, class Prec2>
-  explicit NumberBase(const NumberBase<T2,Prec2>& val) : _isPrecise(false), _isRational(false) {
+  explicit NumberBase(const Rational& val) : _isPrecise(false), _isRational(false){
+	  CALL("NumberBase Rational");
+	  ASS(useRational());
+	  initRational();
+	  rational() = val;
+  }
+  template<class T2, class Ratio, class Prec2>
+  explicit NumberBase(const NumberBase<T2,Ratio,Prec2>& val) : _isPrecise(false),_isRational(false) {
+   CALL("NumberBase<template>");
+   if(usePrecise()) {
+      initPrecise();
+      precise() = val.precise();
+    }
+    else if(useRational()){
+    	initRational();
+    	rational() = val.rational();
+    }
+    else {
+    	native() = val.native();
+    }
+  }
+  NumberBase(const NumberBase& val) : _isPrecise(false),_isRational(false) {
+	  CALL("NumberBase(NumberBase)");
     if(usePrecise()) {
       initPrecise();
       precise() = val.precise();
+    }else if(useRational()){
+    	initRational();
+    	rational() = val.rational();
     }
     else {
       native() = val.native();
     }
   }
-  NumberBase(const NumberBase& val) : _isPrecise(false), _isRational(false) {
-    if(usePrecise()) {
-      initPrecise();
-      precise() = val.precise();
-    }
-    else {
-      native() = val.native();
-    }
-  }
+
   ~NumberBase() {
     if(_isPrecise) {
       destroyPrecise();
     }
-    if(_isRational){
-    	destroyRational();
-    }
+
   }
+
 
 
   NumberBase& operator=(const NumberBase& val) {
     if(usePrecise()) {
       if(!_isPrecise) {
-	initPrecise();
+    	  initPrecise();
       }
       precise() = val.precise();
+    }
+    else if(useRational()){
+    	if(!_isRational){
+    		initRational();
+    	}
+    	rational() = val.rational();
     }
     else {
       native() = val.native();
@@ -133,6 +142,9 @@ public:
     if(usePrecise()) {
       return T(precise()+o.precise());
     }
+    else if(useRational()){
+    	return T(rational()+o.rational());
+    }
     else {
       return T(native()+o.native());
     }
@@ -140,6 +152,9 @@ public:
   T operator-() const {
     if(usePrecise()) {
       return T(-precise());
+    }
+    else if(useRational()){
+    	return T(-rational());
     }
     else {
       return T(-native());
@@ -149,6 +164,9 @@ public:
     if(usePrecise()) {
       return T(precise()-o.precise());
     }
+    else if(useRational()){
+    	return T(rational()-o.rational());
+    }
     else {
       return T(native()-o.native());
     }
@@ -156,6 +174,9 @@ public:
   T operator*(const T& o) const {
     if(usePrecise()) {
       return T(precise()*o.precise());
+    }
+    else if(useRational()){
+    	return T(rational()*o.rational());
     }
     else {
       return T(native()*o.native());
@@ -165,6 +186,9 @@ public:
     if(usePrecise()) {
       return precise()==o.precise();
     }
+    else if(useRational()){
+    	return rational()==o.rational();
+    }
     else {
       return nativeEqual(native(), o.native());
     }
@@ -172,6 +196,9 @@ public:
   bool operator>(const T& o) const {
     if(usePrecise()) {
       return precise()>o.precise();
+    }
+    else if(useRational()){
+    	return rational()>o.rational();
     }
     else {
       return (*this)!=o && native()>o.native();
@@ -182,15 +209,22 @@ public:
     if(usePrecise()) {
       return T(::abs(precise()));
     }
+    else if(useRational()){
+    	return T(rational().isNegative() ? (-rational()) : rational());
+
+    }
     else {
       return T((native()<0) ? (-native()) : native());
     }
   }
-
   /**Ceil of the number*/
   T ceil() const {
 	  if(usePrecise()){
 		  return T(::abs(::ceil((mpf_class)(precise()))));
+	  }
+	  else if(useRational()){
+		  //check about ceil for rational numbers... this doesn't make sense
+		  return T(rational());
 	  }
 	  else {
 		  ASS(!usePrecise());
@@ -203,11 +237,15 @@ public:
 	  if(usePrecise()){
 	  		  return T(::abs(::floor((mpf_class)(precise()))));
 	  	  }
+	  else if(useRational()){
+		  return T(rational());
+	  }
 	  else {
 	  	  ASS(!usePrecise());
 	  	  return T(floorl(native()));
 	  }
   }
+
   //useful constants
   static const T& zero() { static T res(0); return res; }
   static const T& one() { static T res(1); return res; }
@@ -224,6 +262,9 @@ public:
     if(usePrecise()) {
       precise()+=o.precise();
     }
+    else if(useRational()){
+    	rational()+=o.rational();
+    }
     else {
       native()+=o.native();
     }
@@ -233,6 +274,9 @@ public:
     if(usePrecise()) {
       precise()-=o.precise();
     }
+    else if(useRational()){
+    	rational()-=o.rational();
+    }
     else {
       native()-=o.native();
     }
@@ -241,6 +285,9 @@ public:
   T& operator*=(const T& o) {
     if(usePrecise()) {
       precise()*=o.precise();
+    }
+    else if(useRational()){
+    	rational()*=o.rational();
     }
     else {
       native()*=o.native();
@@ -256,6 +303,9 @@ public:
     if(usePrecise()) {
       return precise()>0;
     }
+    else if(useRational()){
+    	return rational().isPositiveNonZero();
+    }
     else {
       return native()>0;
     }
@@ -269,25 +319,36 @@ public:
   {
     CALL("NumberBase::transitionNativeToPrecise");
     ASS(usePrecise());
+    if(!useRational()){
+    	NativeNumber val=_native;
+    	if(static_cast<double>(val)!=static_cast<double>(val)){
+    		cout<<_native<<static_cast<double>(val);
+    		ASSERTION_VIOLATION;
+    	}
+    	double intermediar = static_cast<double>(val);
 
-    NativeNumber val = _native;
-    initPrecise();
-    precise() = static_cast<double>(val); //GMP does not accept long double
+    	initPrecise();
+    	precise() = static_cast<double>(val); //GMP does not accept long double
+    }
+    else {
+    	cout<<"golane!!!!"<<endl;
+    	double val = double(_rational);
+    	initPrecise();
+    	precise() = val;
+    }
   }
-  
-  void transitionNativeToRational()
-  {
+  void transitionNativeToRational(){
 	  CALL("NumberBase::transitionNativeToRational");
 	  ASS(useRational());
-
 	  NativeNumber val = _native;
 	  initRational();
-	  //TODO do it in an appropriate way
-	  rational() = Rational(val, 1);
+	  rational() = static_cast<double>(val);
+
   }
 
   const NativeNumber native() const { ASS(!usePrecise()); return _native; }
   const Precise& precise() const { return const_cast<NumberBase&>(*this).precise(); }
+  const Rational& rational() const {return const_cast<NumberBase&>(*this).rational();}
 protected:
   NativeNumber& native() { ASS(!usePrecise()); return _native; }
 
@@ -295,36 +356,24 @@ protected:
     CALL("NumberBase::initPrecise");
 
     _isPrecise = true;
+    _isRational = false;
     new(&precise()) Precise();
   }
 
-  void initRational(){
+  void initRational() {
 	  CALL("NumberBase::initRational");
 
 	  _isRational = true;
+	  _isPrecise = false;
+
 	  new(&rational()) NativeRational();
+
   }
-
-  void destroyRational(){
-	  CALL("NumberBase::destroyRational");
-	  ASS(_isRational);
-
-	  rational().~Rational();
-  }
-
-  NativeRational& rational(){
-	  ASS(useRational());
-	  if(!_isRational){
-		  transitionNativeToRational();
-	  }
-	  return *reinterpret_cast<Rational*>(_rational);
-  }
-
   void destroyPrecise() {
     CALL("NumberBase::destroyPrecise")
     ASS(_isPrecise);
 
-    precise().~Precise();
+  //  precise().~Precise();
   }
 
   Precise& precise() {
@@ -332,32 +381,43 @@ protected:
     if(!_isPrecise) {
       transitionNativeToPrecise();
     }
-    return *reinterpret_cast<Precise*>(_precise);
+    return _precise;
+  }
+
+  NativeRational& rational(){
+	  ASS(useRational());
+	  if(!_isRational){
+		  initRational();
+		  rational() = _native;
+	  }
+	  return _rational;
   }
 
 private:
-  //It is important that the placeholder is an array of chars -- otherwise
-  //we would break aliasing assumptions made by the compiler.
+  /*//It is important that the placeholder is an array of chars -- otherwise
+  //we would break aliasing assumpions made by the compiler.
   typedef char PrecisePlaceholder[sizeof(Precise)];
-  typedef double NativePlaceholder[sizeof(NativeRational)];
 
   union {
     NativeNumber _native;
-    NativePlaceholder _rational;
-    /**
+    *
      * The precise number usually has a constructor and therefore
      * cannot be used inside a union. To go around this limitation
      * we have a placeholder and do the construction when it is
      * needed.
-     */
+
     PrecisePlaceholder _precise;
-  };
+  };*/
+  NativeNumber _native;
+  Precise _precise;
+  NativeRational _rational;
+
   bool _isPrecise;
   bool _isRational;
 };
 
-typedef NumberBase<CoeffNumber, mpz_class> CoeffNumberBase;
-typedef NumberBase<BoundNumber, mpq_class> BoundNumberBase;
+typedef NumberBase<CoeffNumber, Rational,  mpz_class> CoeffNumberBase;
+typedef NumberBase<BoundNumber, Rational, mpq_class> BoundNumberBase;
 
 }
 
@@ -369,7 +429,8 @@ class CoeffNumber : public CoeffNumberBase
 public:
   /** Created uninitialized number */
   CoeffNumber() {}
-  explicit CoeffNumber(NativeNumber val) : CoeffNumberBase(val) {}
+  explicit CoeffNumber(const NativeNumber val) : CoeffNumberBase(val) {}
+  explicit CoeffNumber(const NativeRational val) : CoeffNumberBase(val) {}
   explicit CoeffNumber(const Precise& val) : CoeffNumberBase(val) {}
   explicit CoeffNumber(string val) : CoeffNumberBase(parseString(val)) {}
 
@@ -383,18 +444,22 @@ class BoundNumber : public BoundNumberBase
 {
 public:
   BoundNumber() {}
-  explicit BoundNumber(NativeNumber val) : BoundNumberBase(val) {}
+  explicit BoundNumber(const NativeNumber val) : BoundNumberBase(val) {}
+  explicit BoundNumber(const NativeRational val) : BoundNumberBase(val){}
   explicit BoundNumber(const Precise& val) : BoundNumberBase(val) {}
   explicit BoundNumber(const CoeffNumber& val) : BoundNumberBase(val) {}
   explicit BoundNumber(string val) : BoundNumberBase(parseString(val)) {}
 
   static BoundNumber getRandomValue(const BoundNumber& min, const BoundNumber& max);
-
+  BoundNumber getMagicNumber(BoundNumber& rhs);
   using BoundNumberBase::operator*;
 
   BoundNumber operator*(const CoeffNumber& o) const {
     if(usePrecise()) {
       return BoundNumber(precise()*o.precise());
+    }
+    else if(useRational()){
+    	return BoundNumber(rational()*o.rational());
     }
     else {
       return BoundNumber(native()*o.native());
@@ -407,6 +472,9 @@ public:
     if(usePrecise()) {
       return BoundNumber(precise()/o.precise());
     }
+    else if(useRational()){
+    	return BoundNumber(rational()/o.rational());
+    }
     else {
       return BoundNumber(native()/o.native());
     }
@@ -418,6 +486,9 @@ public:
     if(usePrecise()) {
       return BoundNumber(precise()/o.precise());
     }
+    else if(useRational()){
+    	return BoundNumber(rational()/o.rational());
+    }
     else {
       return BoundNumber(native()/o.native());
     }
@@ -428,23 +499,28 @@ public:
     if(usePrecise()) {
       precise()/=o.precise();
     }
+    else if(useRational()){
+    	rational()/=o.rational();
+    }
     else {
       native()/=o.native();
     }
     return *this;
   }
-  BoundNumber getMagicNumber(BoundNumber& rhs);
-  const NativeNumber getNative() const {ASS(!usePrecise()); return native();}
-  const Precise& getPrecise() const {ASS(usePrecise()); return precise();}
+  NativeNumber getNative() const {ASS(!usePrecise() && !useRational()); return native();}
+  const Precise& getPrecise() const {ASS(usePrecise() && !useRational()); return precise();}
+  const Rational& getRational() const {ASS(useRational() && !usePrecise()); return rational();}
 };
 
 void switchToPreciseNumbers();
-void switchToRationalNumbers();
 bool usingPreciseNumbers();
+void switchToRationalNumbers();
+bool usingRationalNumbers();
 
 std::ostream& operator<< (ostream& out, const CoeffNumber& num);
 std::ostream& operator<< (ostream& out, const BoundNumber& num);
 
 }
-#endif
+
+#endif //IS_GNUMP
 #endif // __Number__

@@ -31,6 +31,7 @@ bool divisionOverflow(long long numerator, long long denominator);
 bool moduloOverflow(long long numerator, long long denominator);
 
 double safeConversionToDouble(long long number);
+double safeConversionToDouble(double number);
 float safeConversionToFloat(long long number);
 //addition with overflow check
 long long safeAdd(long long n1, long long n2);
@@ -71,6 +72,7 @@ public:
 	//create a rational number from a double value
 	Rational(double value);
 	Rational(long double value);
+	Rational(int value);
 
 	~Rational(){}
 	Rational& operator=(const Rational& o){
@@ -78,7 +80,20 @@ public:
 		(*this)._num = o._num;
 		return static_cast<Rational&>(*this);
 	}
-
+	Rational& operator=(const double val){
+		//ASSERTION_VIOLATION;
+		Rational r(val);
+		(*this)._den = r._den;
+		(*this)._num = r._num;
+		return static_cast<Rational&>(*this);
+	}
+	Rational& operator=(const long double val){
+		ASSERTION_VIOLATION;
+		Rational r(val);
+		(*this)._den = r._den;
+		(*this)._num = r._num;
+		return static_cast<Rational&>(*this);
+	}
 	//assign in place
 	Rational& assign(double num, double den){
 		_den=den;
@@ -127,7 +142,7 @@ public:
 		return res;
 	}
 
-	string toString();
+	string toString() const;
 
 	bool isPositive() const{ return this->_num >= 0;}
 	bool isPositiveNonZero() const{return this->_num > 0;}
@@ -143,7 +158,16 @@ public:
 		}
 		return static_cast<Rational>(*this);
 	}
+	Rational abs(Rational val){
+		if(val.isNegative()){
+			return -val;
+		}
+		else{
+			return val;
+		}
 
+
+	}
 	long long Numerator() const {return _num;}
 	long long Denomination() const {return _den;}
 
@@ -151,6 +175,7 @@ public:
 	//it might be a problem
 	operator double() const {return safeConversionToDouble(_num) / safeConversionToDouble(_den);}
 	operator float() const {return safeConversionToFloat(_num) / safeConversionToFloat(_den);}
+	operator long double() const {return safeConversionToDouble(_num) / safeConversionToDouble(_den);}
 
 	friend ostream& operator<< (ostream &out, Rational &val){
 		out << val.toString();

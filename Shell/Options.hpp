@@ -54,6 +54,7 @@ public:
     BP_MAX_PROP_LENGTH,
     BP_PROPAGATE_AFTER_CONFLICT,
     BP_START_WITH_PRECISE,
+    BP_START_WITH_RATIONAL,
 
     BP_VARIABLE_SELECTOR,
 
@@ -265,8 +266,7 @@ public:
     ASG_SMALLEST = 6,
     ASG_TIGHT = 7,
     ASG_TIGHTISH = 8,
-    ASG_BIGGEST = 9,
-    ASG_UPPER = 10
+    ASG_UPPER = 9
   };
   
   enum BPConflictSelector{
@@ -771,7 +771,8 @@ public:
   BPVariableSelector bpVariableSelector() const {return _bpVariableSelector; }
   bool bpSelectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst; }
   bool bpStartWithPrecise() const { return _bpStartWithPrecise; }
-  
+  bool bpStartWithRational() const {return _bpStartWithRational; }
+
   CLASS_NAME(Options);
   USE_ALLOCATOR(Options);
 
@@ -811,6 +812,8 @@ private:
   bool _bpFmElimination;
   bool _bpPropagateAfterConflict;
   bool _bpStartWithPrecise;
+  bool _bpStartWithRational;
+
   BPVariableSelector _bpVariableSelector;
 
   bool _colorUnblocking;

@@ -138,6 +138,7 @@ const char* Options::Constants::_optionNames[] = {
   "bp_max_prop_length",
   "bp_propagate_after_conflict",
   "bp_start_with_precise",
+  "bp_start_with_rational",
   "bp_variable_selector",
 
   "color_unblocking",
@@ -774,6 +775,7 @@ Options::Options ()
   _bpFmElimination(true),
   _bpPropagateAfterConflict(true),
   _bpStartWithPrecise(false),
+  _bpStartWithRational(false),
   _bpVariableSelector(VS_TIGHTEST_BOUND),
 
   _colorUnblocking(false),
@@ -1090,6 +1092,9 @@ void Options::set(const char* name,const char* value, int index)
     case BP_START_WITH_PRECISE:
       _bpStartWithPrecise = onOffToBool(value,name);
       return;
+    case BP_START_WITH_RATIONAL:
+    	_bpStartWithRational = onOffToBool(value,name);
+    	return;
     case BP_UPDATE_BY_ONE_CONSTRAINT:
       if ( Int::stringToUnsignedInt(value, unsignedValue)) {
 	_updatesByOneConstraint = unsignedValue;
@@ -2024,6 +2029,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case BP_START_WITH_PRECISE:
     str << boolToOnOff(_bpStartWithPrecise);
     return;
+  case BP_START_WITH_RATIONAL:
+	  str<<boolToOnOff(_bpStartWithRational);
+	  return;
   case BP_UPDATE_BY_ONE_CONSTRAINT:
     str << _updatesByOneConstraint;
     return;
