@@ -266,6 +266,7 @@ public:
     ASG_SMALLEST = 6,
     ASG_TIGHT = 7,
     ASG_TIGHTISH = 8,
+   // ASG_BIGGEST = 9,
     ASG_UPPER = 9
   };
   
@@ -771,8 +772,8 @@ public:
   BPVariableSelector bpVariableSelector() const {return _bpVariableSelector; }
   bool bpSelectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst; }
   bool bpStartWithPrecise() const { return _bpStartWithPrecise; }
-  bool bpStartWithRational() const {return _bpStartWithRational; }
-
+  bool bpStartWithRational() const { return _bpStartWithRational;}
+  
   CLASS_NAME(Options);
   USE_ALLOCATOR(Options);
 
@@ -813,7 +814,6 @@ private:
   bool _bpPropagateAfterConflict;
   bool _bpStartWithPrecise;
   bool _bpStartWithRational;
-
   BPVariableSelector _bpVariableSelector;
 
   bool _colorUnblocking;

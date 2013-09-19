@@ -20,6 +20,7 @@
 #include "Kernel/Problem.hpp"
 
 #include "Parse/SMTLIB.hpp"
+#include "Parse/SMTLIB2.hpp"
 #include "Parse/TPTP.hpp"
 
 #include "AnswerExtractor.hpp"
@@ -198,14 +199,21 @@ Problem* UIHelper::getInputProblem(const Options& opts)
       s_haveConjecture=true;
     }
     break;
-  
-  case Options::IS_MPS:
-  {
-    break;
-  } 
-  break;
-  case Options::IS_NETLIB:
   case Options::IS_SMTLIB2:
+  {
+	  Parse::SMTLIB2 parser(opts);
+	  parser.parse(*input);
+	  units = parser.getFormulas();
+	  UnitList::Iterator uite(units);
+	  while(uite.hasNext()){
+		  cout<<uite.next()->toString()<<endl;
+	  }
+	  s_haveConjecture=true;
+	  NOT_IMPLEMENTED;
+	  break;
+  }
+  case Options::IS_MPS:
+  case Options::IS_NETLIB:
   case Options::IS_HUMAN:
   {
     cout << "This is not supported yet";
@@ -445,10 +453,6 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
 
 #if GNUMP
 /**
- * de aici am pus pentru bound propagation 
- */
-
-/**
  * Add input constraints into the empty @c constraints list.
  */
 ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
@@ -476,6 +480,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
 
   switch(env.options->inputSyntax()) {
   case Options::IS_TPTP:
+    USER_ERROR("Format not supported for BPA");
     break;
 #if 0
   case Options::IS_SMTLIB:
@@ -523,15 +528,22 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
   }
 #endif
   case Options::IS_SMTLIB:
-  case Options::IS_SMTLIB2:
   {
     SMTLexer lex(*input);
     SMTParser parser(lex);
     ConstraintReader rdr(parser);
     res = rdr.constraints();
-
     break;
   }
+  case Options::IS_SMTLIB2:
+    {
+      Parse::SMTLIB2 parser(opts, Parse::SMTLIB2::DECLARE_SYMBOLS);
+      parser.parse(*input);
+      SMTLib2ConstraintReader rdr(parser);
+      res = rdr.constraints();
+      break;
+
+    }
   case Options::IS_MPS:
   {
     Model* m = new Model; 

@@ -811,7 +811,12 @@ Options::Options ()
   _increasedNumeralWeight(false),
   _inequalitySplitting(3),
   _inputFile(""),
+  //in case we compile vampire with bpa, then the default input syntax is smtlib
+#if !GNUMP
   _inputSyntax(IS_TPTP),
+#else
+  _inputSyntax(IS_SMTLIB),
+#endif
   _instGenBigRestartRatio(0.0f),
   _instGenInprocessing(false),
   _instGenPassiveReactivation(false),
@@ -1093,7 +1098,7 @@ void Options::set(const char* name,const char* value, int index)
       _bpStartWithPrecise = onOffToBool(value,name);
       return;
     case BP_START_WITH_RATIONAL:
-    	_bpStartWithRational = onOffToBool(value,name);
+    	_bpStartWithRational = onOffToBool(value, name);
     	return;
     case BP_UPDATE_BY_ONE_CONSTRAINT:
       if ( Int::stringToUnsignedInt(value, unsignedValue)) {
@@ -2030,7 +2035,7 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_bpStartWithPrecise);
     return;
   case BP_START_WITH_RATIONAL:
-	  str<<boolToOnOff(_bpStartWithRational);
+	  str<< boolToOnOff(_bpStartWithRational);
 	  return;
   case BP_UPDATE_BY_ONE_CONSTRAINT:
     str << _updatesByOneConstraint;

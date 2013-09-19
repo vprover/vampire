@@ -6,6 +6,9 @@
 
 #include <string>
 #include <fstream>
+#include <iostream>
+
+#include <Forwards.hpp>
 
 #include "Lib/Environment.hpp"
 #include "Lib/RCPtr.hpp"
@@ -16,9 +19,12 @@
 #include "Lib/Stack.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/Connective.hpp"
 
 #include "SMTPAR.hpp"
 #include "Parse/SMTLIB.hpp"
+#include "Parse/SMTLIB2.hpp"
 #include "ConstraintReaderBack.hpp"
 
 namespace Shell
@@ -27,6 +33,203 @@ namespace Shell
 using namespace Kernel;
 using namespace Parse;
 using namespace std;
+
+SMTLib2ConstraintReader::SMTLib2ConstraintReader(Parse::SMTLIB2& parser)
+  :_sig(*env.signature), _parser(parser) {
+  CALL("SMTLib2ConstraintReader::SMTLib2ConstraintReader(Parse::SMTLIB2)");
+}
+
+ConstraintRCList* SMTLib2ConstraintReader::constraints(){
+  CALL("SMTLib2ConstraintReader::constraints()");
+  ConstraintRCList* res=0;
+  Stack<SMTLIB2::FunctionInfo> functions = _parser.getFuncInfos();
+
+  //add functions to the signature
+  for(unsigned index = 0; index < functions.size(); index++){
+      SMTLIB2::FunctionInfo fnInfo = functions[index];
+      _sig.addVar(fnInfo.name);
+  }
+
+  Formula* form = _parser.getFormula1();
+  if(form->connective()!= Kernel::AND){
+    USER_ERROR("and expected");
+  }
+
+  FormulaList* formList = form->args();
+  FormulaList::Iterator itef(formList);
+  //check if there exist other type of operation except &. If that is the case,
+  //report an user error and terminate the program
+  while(itef.hasNext())
+    {
+      Formula* f = itef.next();
+      if(!(f->connective() == Kernel::AND || f->connective() == Kernel::LITERAL)){
+          string s = "in "+f->toString()+" there is other connective than and! \n This is not supported! ";
+          USER_ERROR(s);
+      }
+    }
+  //collect all the atoms from the formula
+  Stack<Literal*> litStack;
+  form->collectAtoms(litStack);
+
+  for(unsigned idx = 0 ; idx < litStack.size(); idx++){
+      ConstraintRCPtr constraint = getConstraint(litStack[idx]);
+      ConstraintRCList::push(constraint, res);
+  }
+
+  return res;
+}
+
+ConstraintRCPtr SMTLib2ConstraintReader::getConstraint(Literal* literal) {
+	CALL("SMTLib2ConstraintReader::getConstraint(Literal* )");
+	ConstraintType constraintType = CT_EQ;
+	string predName = literal->predicateName();
+	if (predName == "$greatereq") {
+		constraintType = CT_GREQ;
+	} else {
+		if (predName == "=") {
+			constraintType == CT_EQ;
+		} else if (predName == "$greater") {
+			constraintType = CT_GR;
+		} else {
+			USER_ERROR("predicate >, >= or = expected");
+		}
+	}
+
+	Term* term(literal);
+	CoefficientStack cStack;
+	CoeffNumber freeCoef = CoeffNumber::zero();
+
+	ASS(term->arity()==2);
+	Term::Iterator tit(term);
+	TermList lhs = tit.next();
+	TermList rhs = tit.next();
+
+	if (isNumber(lhs.toString())) {
+		if (lhs.term()->functionName() == "$uminus") {
+			freeCoef = freeCoef - CoeffNumber(lhs.term()->args()->toString());
+		} else {
+			freeCoef = freeCoef + CoeffNumber(lhs.toString());
+		}
+		readCoefficients(rhs.term(), cStack, freeCoef, CoeffNumber(-1));
+	} else {
+		if (isNumber(rhs.toString())) {
+			readCoefficients(lhs.term(), cStack, freeCoef);
+			if (rhs.term()->functionName() == "$uminus") {
+				freeCoef = freeCoef
+						+ CoeffNumber(rhs.term()->args()->toString());
+			} else {
+				freeCoef = freeCoef - CoeffNumber(rhs.toString());
+			}
+		} else {
+			readCoefficients(lhs.term(), cStack, freeCoef);
+			CoeffNumber secondFree = CoeffNumber::zero();
+			readCoefficients(rhs.term(),cStack, secondFree, CoeffNumber(-1));
+			freeCoef = freeCoef - secondFree;
+		}
+
+	}
+	//create the constraint from the stack of coefficients
+	ConstraintRCPtr crp(
+			Constraint::fromIterator(constraintType,
+					pvi(CoefficientStack::Iterator(cStack)), freeCoef));
+	return crp;
+}
+
+void SMTLib2ConstraintReader::readCoefficients(Term* term,
+		CoefficientStack& coeff, CoeffNumber& freeCoef, CoeffNumber value) {
+	CALL("SMTLib2ConstraintReader::readCoefficients()");
+
+	//this means we have only a single variable as a constraint
+	if (term->functionName() == "$sum") {
+		ASS(term->args()!=0);
+		Term::Iterator tit(term);
+		while (tit.hasNext()) {
+			TermList tl = tit.next();
+			Term* tt = tl.term();
+			readCoefficients(tt, coeff, freeCoef);
+		}
+	} else {
+		if (term->functionName() == "$product") {
+			ASS(term->arity()==2);
+
+			TermList* tl = term->args();
+			TermList* val = tl->next();
+			Var var;
+			CoeffNumber coef;
+			if (tl->term()->functionName() == "$uminus") {
+				coef = CoeffNumber(-1)
+						* CoeffNumber(tl->term()->args()->toString());
+				var = _sig.addVar(val->toString());
+			} else if (val->term()->functionName() == "$uminus") {
+				coef = CoeffNumber(-1)
+						* CoeffNumber(val->term()->args()->toString());
+				var = _sig.addVar(tl->toString());
+			} else {
+				if (isNumber(tl->toString())) {
+					coef = readNumber(tl->term());
+					var = _sig.addVar(val->toString());
+				} else {
+					coef = readNumber(val->term());
+					var = _sig.addVar(tl->toString());
+				}
+			}
+			coeff.push(Constraint::Coeff(var, value*coef));
+
+		} else {
+			if (isNumber(term->toString())) {
+				freeCoef = freeCoef + readNumber(term);
+			} else {
+				Var var = _sig.addVar(term->toString());
+				coeff.push(Constraint::Coeff(var, value*CoeffNumber(1)));
+			}
+		}
+	}
+}
+
+/**
+ * Helping function which decides whether a string represents a number or not.
+ * This function is not intended to work with hexadecimal numbers!
+ * @param term the string to be checked if it is a number
+ * @return true if the string is a number and false otherwise
+ **/
+
+bool SMTLib2ConstraintReader::isNumber(string term) {
+	CALL("SMTLIB2ConstraintReader::isNumber");
+
+	const char* str = term.c_str();
+	int withDecimal = 0, isNegative = 0, i = 0;
+	int len = strlen(str);
+
+	for (i = 0; i < len; i++) {
+		if (!isdigit(str[i])) //if1
+				{
+			if (str[i] == '.') {
+				if (withDecimal) {
+					return 0;
+				}
+				withDecimal = 1;
+			} else if (str[i] == '-') {
+				if (isNegative) {
+					return 0;
+				}
+				if (i == 0) {
+					isNegative = 1;
+				} else {
+					return 0;
+				}
+
+			} else {
+				return 0;
+			}
+		} //end if1
+	} // end for
+	return 1;
+}
+
+CoeffNumber SMTLib2ConstraintReader::readNumber(Term* term){
+	CALL("SMTLib2ConstraintReader::readNumber()");
+	return CoeffNumber(term->toString());
+}
 
 SMTConstraintReader::SMTConstraintReader(SMTLIB& parser)
 : _parser(parser){}
@@ -75,7 +278,7 @@ ConstraintRCList* ConstraintReader::constraints()
 
     readCoefs(atom->args, coeffs, freeCoeff);
 
-    ConstraintType constrType;
+    ConstraintType constrType=CT_EQ;
     if (atom->pred == ">="){
       constrType = CT_GREQ;
     }
@@ -141,13 +344,13 @@ void ConstraintReader::readCoefs(SMTParser::Term* term, CoeffStack& coeffs, Coef
       Var var = _sig.addVar(varTerm->fun);
       coeffs.push(Constraint::Coeff(var, coeffVal));
       if (term->next != 0){
-	readCoefs(term->next, coeffs, freeCoeff);
+          readCoefs(term->next, coeffs, freeCoeff);
       }
     }
     else{
       freeCoeff += readNumber(term);
       if (term->next != 0){
-	readCoefs(term->next, coeffs, freeCoeff);
+          readCoefs(term->next, coeffs, freeCoeff);
       }
     }
   }

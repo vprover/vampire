@@ -130,7 +130,7 @@ public:
     /** next subformula, if this term is part of a list */
     Term* next;
     /** build a new term with a given kind and function symbol, empty
-     *  arguments and nul next term */
+     *  arguments and null next term */
     /** occasional annotation(s) */
     Annotation* annotations;
     Term(TermType tt,string str)
