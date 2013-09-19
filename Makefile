@@ -348,6 +348,7 @@ VS_OBJ = Shell/AIG.o\
          version.o
 
 PARSE_OBJ = Parse/SMTLIB.o\
+			Parse/SMTLIB2.o\
             Parse/TPTP.o
 
 DP_OBJ = DP/ShortConflictMetaDP.o\
@@ -370,7 +371,7 @@ VPROG_OBJ = Program/Type.o\
            Program/Expression.o\
            Program/Statement.o\
            Program/Variable.o\
-           Program/InvariantHelper.o
+           Program/InvariantHelper.o           
 
 VPROG_OBL = Program/Lingva.o
 
@@ -648,7 +649,7 @@ RELCLANG := RelClang/libclangFrontend.a \
 -lpthread:
 -ldl: 
 define LLVM_COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(RELCLANG) -lpthread -ldl -lgmp -lgmpxx
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(RELCLANG) -lpthread -ldl -lgmp -lgmpxx 
 @#$(CXX) $(filter %.o, $^) -o $@ $(CLANGLIBS) $(shell /home/ioan/proseed/proseed/llvm/build/Debug/bin/llvm-config --ldflags --libs cppbackend)
 @#strip $@
 endef
