@@ -272,27 +272,21 @@ void boundPropagationMode(){
   CALL("boundPropagationMode::doSolving()");
 
   if (env.options->bpStartWithPrecise()) {
-	if(env.options->bpStartWithRational()==true){
-		USER_ERROR("cannot start with both rational and precise in the same time!");
-	}
-    switchToPreciseNumbers();
+	  switchToPreciseNumbers();
   }
   if (env.options->bpStartWithRational()){
-	  if(env.options->bpStartWithPrecise()==true){
-		  USER_ERROR("cannot start with both rational and precise in the same time!");
-	  }
 	  switchToRationalNumbers();
+  }
 
   }
 
   ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env.options));
 
-#if 0 
+#if 0
   ConstraintRCList::Iterator ite(constraints);
   while(ite.hasNext())
-      std::cout<<ite.next()->toString()<<"\n";
+      std::cout<<"preproc: "<<ite.next()->toString()<<"\n";
 #endif
-
   start:
   try
   {
@@ -309,6 +303,8 @@ void boundPropagationMode(){
     else {
       env.statistics->switchToPreciseTimeInMs = env.timer->elapsedMilliseconds();
       switchToPreciseNumbers();
+      //switchToRationalNumbers();
+      cout<<"Swapped to RATIONAL"<<endl;
       ASS(usingPreciseNumbers());
       goto start;
     }
