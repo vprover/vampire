@@ -120,7 +120,6 @@ void Solver::collectInputBounds()
   ConstraintList::Iterator cit(_inputConstraints);
   while(cit.hasNext()) {
     Constraint* c = cit.next();
-    cout<<c->toString()<<endl;
     ASS_NEQ(c->type(),CT_EQ);
 
     size_t coeffCnt = c->coeffCnt();
@@ -154,8 +153,7 @@ void Solver::collectInputBounds()
       retainConstraint(c);
     }
   }
-  cout<<"finished collecting input"<<endl;
-  ASSERTION_VIOLATION;
+
 }
 
 void Solver::retainConstraint(Constraint* c)
