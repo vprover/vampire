@@ -3,6 +3,7 @@
  * Implements class Number.
  */
  
+#if GNUMP
 #include <stdlib.h>
 #include <cmath>
 #include <limits>
@@ -14,14 +15,17 @@
 #include "Lib/Random.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Array.hpp"
-
 #include "Number.hpp"
+#include "Rational.hpp"
+
+
 
 namespace Kernel
 {
 
 namespace __Aux_Number
 {
+
 
 bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2)
 {
@@ -37,7 +41,7 @@ bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2)
   }
 }
 
-void reduceNumbers(size_t cnt, NativeNumber** vals)
+void reduceNumbers(size_t cnt, long double** vals)
 {
   CALL("reduceNumbers");
 
@@ -103,7 +107,7 @@ bool getIntFromDouble(long double val, long long& res)
   return false;
 }
 
-void reduceIntNumbers(size_t cnt, NativeNumber** vals)
+void reduceIntNumbers(size_t cnt, long double** vals)
 {
   CALL("reduceIntNumbers");
 
@@ -275,7 +279,7 @@ using namespace __Aux_Number;
 bool CommonNumberBase::_usePrecise = false;
 bool CommonNumberBase::_useRational = false;
 
-NativeNumber CommonNumberBase::parseString(string str)
+long double CommonNumberBase::parseString(string str)
 {
   CALL("CommonNumberBase::parseString");
 
@@ -593,3 +597,4 @@ std::ostream& operator<< (ostream& out, const BoundNumber& num)
 }
 
 }
+#endif//GNUMP

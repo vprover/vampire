@@ -8,20 +8,22 @@
 #if GNUMP
 #include <iosfwd>
 #include <gmpxx.h>
-#include <cmath>
 
 #include "Forwards.hpp"
 
 #include "Lib/Exception.hpp"
+#include "Lib/Int.hpp"
+#include "Rational.hpp"
 
-#include "Kernel/Rational.hpp"
+#include <cmath>
+
 
 namespace Kernel {
 
 namespace __Aux_Number
 {
 
-typedef double NativeNumber;
+typedef long double NativeNumber;
 
 bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2);
 
