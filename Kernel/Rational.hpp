@@ -80,15 +80,7 @@ public:
 		(*this)._num = o._num;
 		return static_cast<Rational&>(*this);
 	}
-	Rational& operator=(const double val){
-		//ASSERTION_VIOLATION;
-		Rational r(val);
-		(*this)._den = r._den;
-		(*this)._num = r._num;
-		return static_cast<Rational&>(*this);
-	}
 	Rational& operator=(const long double val){
-		ASSERTION_VIOLATION;
 		Rational r(val);
 		(*this)._den = r._den;
 		(*this)._num = r._num;
