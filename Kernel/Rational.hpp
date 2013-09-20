@@ -190,11 +190,12 @@ protected:
 	Rational canonical();
 
 private:
-	//numerator and denominator
+	//numerator
 	long long _num;
 	//keeping the denominator as unsigned long long might get us in trouble for overflow
 	//detection. This is due to the size for this representation. So it is better to just
 	//store it as a long long and not have any problems
+	//denominator
 	long long _den;
 };
 

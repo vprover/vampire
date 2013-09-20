@@ -57,24 +57,24 @@ public:
     if(_hasLeft) {
       if(_leftStrict) {
     	  if(num <=_leftBound) {
-    		  cout<<"_left> num and strict"<<endl;
+    		  //cout<<"_left> num and strict"<<endl;
     		  return false; }
       }
       else {
-    	  if(num<_leftBound) {cout<<"_left> num nonstrict"<<endl;
+    	  if(num<_leftBound) {//cout<<"_left> num nonstrict"<<endl;
     		  return false; }
       }
     }
     if(_hasRight) {
       if(_rightStrict) {
     	  if(num>=_rightBound) {
-    		  cout<<"_right < num strict"<<endl;
+    		  //cout<<"_right < num strict"<<endl;
     		  return false;
 		}
       }
       else {
 	if(num>_rightBound) {
-		cout<<"_right < num non strict"<<endl;
+		//cout<<"_right < num non strict"<<endl;
 		return false; }
       }
     }
@@ -86,19 +86,19 @@ public:
     CALL("ConvenientAssignmentSelector::getAnyAssignment");
 
     if(!_hasLeft && !_hasRight) {
-    	cout<<"!left !right"<<endl;
+    	//cout<<"!left !right"<<endl;
       getUnboundedAssignment(result);
     }
     else if(!_hasLeft) {
-    	cout<<"!left"<<endl;
+    	//cout<<"!left"<<endl;
       getRightBoundedAssignment(result);
     }
     else if(!_hasRight) {
-    	cout<<"!right"<<endl;
+    	//cout<<"!right"<<endl;
       getLeftBoundedAssignment(result);
     }
     else {
-    	cout<<"getBounded stuff"<<endl;
+    	//cout<<"getBounded stuff"<<endl;
       getBoundedAssignment(result);
     }
   }
@@ -140,7 +140,7 @@ public:
     	throw Solver::NumberImprecisionException();
     }
 #if VDEBUG
-    cout<<result<<endl;
+    //cout<<result<<endl;
     ASS(withinBounds(result));
     _inUse = false;
 #endif

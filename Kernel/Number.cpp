@@ -41,7 +41,7 @@ bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2)
   }
 }
 
-void reduceNumbers(size_t cnt, long double** vals)
+void reduceNumbers(size_t cnt, NativeNumber** vals)
 {
   CALL("reduceNumbers");
 
@@ -95,7 +95,7 @@ long long intGcd(long long a, long long b)
   return a;
 }
 
-bool getIntFromDouble(long double val, long long& res)
+bool getIntFromDouble(NativeNumber val, NativeNumber& res)
 {
   CALL("getIntFromDouble");
 
@@ -107,7 +107,7 @@ bool getIntFromDouble(long double val, long long& res)
   return false;
 }
 
-void reduceIntNumbers(size_t cnt, long double** vals)
+void reduceIntNumbers(size_t cnt, NativeNumber** vals)
 {
   CALL("reduceIntNumbers");
 
@@ -118,7 +118,7 @@ void reduceIntNumbers(size_t cnt, long double** vals)
     return;
   }
 
-  long long ival;
+  NativeNumber ival;
   if(!getIntFromDouble(*vals[i], ival)) {
     return;
   }
@@ -279,7 +279,7 @@ using namespace __Aux_Number;
 bool CommonNumberBase::_usePrecise = false;
 bool CommonNumberBase::_useRational = false;
 
-long double CommonNumberBase::parseString(string str)
+NativeNumber CommonNumberBase::parseString(string str)
 {
   CALL("CommonNumberBase::parseString");
 
@@ -296,6 +296,13 @@ unsigned CoeffNumber::hash(const CoeffNumber& n)
     string str = n.precise().get_str(16);
     return Hash::hash(str);
   }
+  if(useRational()){
+	  if(n.isZero()){
+		  return 12345;
+	  }
+	  float lowerPrec = static_cast<float>(n.rational().toDouble());
+	  return Hash::hash(lowerPrec);
+  }
   else {
     if(n.isZero()) {
       return 1234; //some arbitrary number
@@ -309,7 +316,7 @@ unsigned CoeffNumber::hash(const CoeffNumber& n)
 }
 
 /**
- * If @c alowDecimal is true, the reduction of numbers may produce decimal numbers
+
  * if the imprecise representation is used.
  */
 void CoeffNumber::reduceNumbers(size_t cnt, CoeffNumber** vals, bool allowDecimal)
@@ -342,6 +349,9 @@ void CoeffNumber::reduceNumbers(size_t cnt, CoeffNumber** vals, bool allowDecima
       vals[i]->precise()/=gcd_val;
     }
   }
+  else if(useRational()){
+;
+  }
   else {
     static Stack<NativeNumber*> numPtrs;
     numPtrs.reset();
@@ -369,7 +379,7 @@ BoundNumber BoundNumber::getRandomValue(const BoundNumber& min, const BoundNumbe
     return BoundNumber(min.precise()+part);
   }
   else if(useRational()){
-	  long double den, num, den1, num1;
+	  double den, num, den1, num1;
 	  den = (min.rational().Denomination());
 	  den1 = (max.rational().Denomination());
 	  num = (min.rational().Numerator());
@@ -378,9 +388,9 @@ BoundNumber BoundNumber::getRandomValue(const BoundNumber& min, const BoundNumbe
 		  return BoundNumber(Rational(Random::getDouble(num, num1),den));
 	  else
 	  {
-		  long double cden = den* den1;
-		  long double min = num*cden;
-		  long double max = num1*cden;
+		  double cden = den* den1;
+		  double min = num*cden;
+		  double max = num1*cden;
 		  return BoundNumber(Rational(Random::getDouble(min, max), cden));
 	  }
   }

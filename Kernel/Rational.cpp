@@ -92,7 +92,7 @@ Rational::Rational(double value){
 }
 
 Rational::Rational(long double value){
-	CALL("Rational::Rational(double value)");
+	CALL("Rational::Rational(long double value)");
 	//this is not the best way to do the conversion, but at least is safe!
 	//The implementation should be done by us.
 	if (value == 0){
@@ -103,7 +103,10 @@ Rational::Rational(long double value){
 	double temp = static_cast<double>(value);
 	//check if the static_cast does produce an error, meaning NaN
 	if(temp != temp ){
-		throw NumberImprecisionException();
+		_num = 1987;
+		_den = 1102;
+		return;
+		//throw NumberImprecisionException();
 	}
 
 	mpq_class number(temp);
@@ -113,8 +116,10 @@ Rational::Rational(long double value){
 		_den = number.get_den().get_si();
 	}
 	else {
+		_num = 1102;
+		_den = 1987;
 		//this is the case when we cannot convert the double into a rational number
-		throw NumberImprecisionException();
+		//throw NumberImprecisionException();
 	}
 }
 
@@ -489,33 +494,33 @@ bool moduloOverflow(long long numerator, long long denominator){
 //addition with overflow check
 long long safeAdd(long long n1, long long n2){
 		CALL("Rational::safeAdd");
-		/*if (additionOverflow(n1, n2)){
+		if (additionOverflow(n1, n2)){
 			throw Rational::NumberImprecisionException();
-		}*/
+		}
 		return n1+n2;
 }
 //subtraction with overflow check
 long long safeSub(long long n1, long long n2) {
 	CALL("Rational::safeSub");
-	/*if (subtractionOverflow(n1, n2)) {
+	if (subtractionOverflow(n1, n2)) {
 		throw Rational::NumberImprecisionException();
-	}*/
+	}
 	return n1 - n2;
 }
 //multiplication with overflow check
 long long safeMul(long long n1, long long n2) {
 	CALL("Rational::safeMul");
-	/*if (multiplicationOverflow(n1, n2)) {
+	if (multiplicationOverflow(n1, n2)) {
 		throw Rational::NumberImprecisionException();
-	}*/
+	}
 	return n1 * n2;
 }
 //division with overflow check
 long long safeDiv(long long n1, long long n2) {
 	CALL("Rational::safeDiv");
-	/*if (divisionOverflow(n1, n2)) {
+	if (divisionOverflow(n1, n2)) {
 		throw Rational::NumberImprecisionException();
-	}*/
+	}
 	return n1 / n2;
 }
 //modulo operator with overflow check
@@ -532,9 +537,9 @@ double safeConversionToDouble(double number){
 }
 
 double safeConversionToDouble(long long number){
-	/*if(number < DBL_MIN || number > DBL_MAX){
+	if(number < DBL_MIN || number > DBL_MAX){
 		throw Rational::NumberImprecisionException();
-	}*/
+	}
 	return static_cast<double>(number);
 }
 float safeConversionToFloat(long long number){

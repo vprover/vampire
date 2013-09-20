@@ -1273,6 +1273,9 @@ void Logging::doTagDeclarations()
   DECL("bp_colapsing",
       DOC("bound prop colapsing"),
       PARENT("tkv",1));
+  DECL("tkv_test",
+		  DOC("for bp debugging "),
+		  PARENT("tkv",1));
   
 
   //lingva tracing tags

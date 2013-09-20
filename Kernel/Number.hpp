@@ -23,7 +23,7 @@ namespace Kernel {
 namespace __Aux_Number
 {
 
-typedef long double NativeNumber;
+typedef double NativeNumber;
 
 bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2);
 
@@ -117,8 +117,6 @@ public:
     }
 
   }
-
-
 
   NumberBase& operator=(const NumberBase& val) {
     if(usePrecise()) {
@@ -325,6 +323,7 @@ public:
     	NativeNumber val=_native;
     	if(static_cast<double>(val)!=static_cast<double>(val)){
     		cout<<_native<<static_cast<double>(val);
+    		cout<<_native<<endl;
     		ASSERTION_VIOLATION;
     	}
     	double intermediar = static_cast<double>(val);
@@ -333,7 +332,6 @@ public:
     	precise() = static_cast<double>(val); //GMP does not accept long double
     }
     else {
-    	cout<<"golane!!!!"<<endl;
     	double val = double(_rational);
     	initPrecise();
     	precise() = val;
