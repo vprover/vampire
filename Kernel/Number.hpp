@@ -23,7 +23,7 @@ namespace Kernel {
 namespace __Aux_Number
 {
 
-typedef double NativeNumber;
+typedef long double NativeNumber;
 
 bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2);
 
@@ -64,11 +64,12 @@ public:
     }
     else if(useRational()){
     	initRational();
-    	rational() = Rational(val);
+    	rational() = val;
     }
     else {
       native() = val;
     }
+
   }
   explicit NumberBase(const Precise& val) : _isPrecise(false), _isRational(false) {
     CALL("NumberBase(Precise)");
@@ -76,29 +77,26 @@ public:
     initPrecise();
     precise() = val;
   }
-  explicit NumberBase(const Rational& val) : _isPrecise(false), _isRational(false){
-	  CALL("NumberBase Rational");
+  explicit NumberBase(Rational val) : _isPrecise(false), _isRational(false){
 	  ASS(useRational());
 	  initRational();
 	  rational() = val;
   }
   template<class T2, class Ratio, class Prec2>
   explicit NumberBase(const NumberBase<T2,Ratio,Prec2>& val) : _isPrecise(false),_isRational(false) {
-   CALL("NumberBase<template>");
-   if(usePrecise()) {
+    if(usePrecise()) {
       initPrecise();
       precise() = val.precise();
     }
     else if(useRational()){
     	initRational();
-    	rational() = val.rational();
+    	rational() = val.native();
     }
     else {
     	native() = val.native();
     }
   }
   NumberBase(const NumberBase& val) : _isPrecise(false),_isRational(false) {
-	  CALL("NumberBase(NumberBase)");
     if(usePrecise()) {
       initPrecise();
       precise() = val.precise();
@@ -112,10 +110,9 @@ public:
   }
 
   ~NumberBase() {
-    if(_isPrecise) {
+  /*  if(_isPrecise) {
       destroyPrecise();
-    }
-
+  */
   }
 
   NumberBase& operator=(const NumberBase& val) {
@@ -346,7 +343,7 @@ public:
 
   }
 
-  const NativeNumber native() const { ASS(!usePrecise()); return _native; }
+  NativeNumber native() const { ASS(!usePrecise()); return _native; }
   const Precise& precise() const { return const_cast<NumberBase&>(*this).precise(); }
   const Rational& rational() const {return const_cast<NumberBase&>(*this).rational();}
 protected:
@@ -507,7 +504,7 @@ public:
     }
     return *this;
   }
-  NativeNumber getNative() const {ASS(!usePrecise() && !useRational()); return native();}
+  const NativeNumber getNative() const {ASS(!usePrecise() && !useRational()); return native();}
   const Precise& getPrecise() const {ASS(usePrecise() && !useRational()); return precise();}
   const Rational& getRational() const {ASS(useRational() && !usePrecise()); return rational();}
 };

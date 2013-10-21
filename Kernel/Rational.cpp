@@ -95,11 +95,6 @@ Rational::Rational(long double value){
 	CALL("Rational::Rational(long double value)");
 	//this is not the best way to do the conversion, but at least is safe!
 	//The implementation should be done by us.
-	if (value == 0){
-		_num = 0;
-		_den = 1;
-		return ;
-	}
 	double temp = static_cast<double>(value);
 	//check if the static_cast does produce an error, meaning NaN
 	if(temp != temp ){

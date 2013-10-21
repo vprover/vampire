@@ -140,7 +140,7 @@ public:
 #if VDEBUG
     for(size_t i=0; i<res->_coeffs.size(); i++) {
       if(i>0) {
-	ASS_G(res->_coeffs[i].var, res->_coeffs[i-1].var);
+          ASS_G(res->_coeffs[i].var,res->_coeffs[i-1].var);
       }
       ASS_REP2(!res->_coeffs[i].value.isZero(), res->toString(), i);
     }
