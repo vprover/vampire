@@ -25,6 +25,7 @@
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/TWLSolver.hpp"
+#include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinimizingSolver.hpp"
 
 #include "DP/ShortConflictMetaDP.hpp"
@@ -58,7 +59,7 @@ void SSplittingBranchSelector::init()
   _eagerRemoval = _parent.getOptions().ssplittingEagerRemoval();
 //  _sweepingMode = _parent.getOptions().ssplittingComponentSweeping();
 
-  _solver = new MinimizingSolver(new TWLSolver(_parent.getOptions(), true));
+  _solver = (new SAT::LingelingInterfacing(_parent.getOptions(), true));
 #if DEBUG_MIN_SOLVER
   _solver = new Test::CheckedSatSolver(_solver.release());
 #endif

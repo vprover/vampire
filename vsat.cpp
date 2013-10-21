@@ -11,12 +11,14 @@
 #include "Lib/System.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/Int.hpp"
 
 #include "SAT/DIMACS.hpp"
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/Preprocess.hpp"
 #include "SAT/SingleWatchSAT.hpp"
 #include "SAT/TWLSolver.hpp"
+#include "SAT/LingelingInterfacing.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -37,6 +39,7 @@ struct SatOptions
   bool simulateIncremental;
   bool minimizingSolver;
   bool checkingSolver;
+  bool testLingeling;
   string fileName;
 
   SatOptions()
@@ -66,7 +69,6 @@ void preprocessClauses(unsigned varCnt, SATClauseList*& clauses)
   CALL("getInputClauses");
 
   Preprocess::filterPureLiterals(varCnt, clauses);
-
 //  SATClauseIterator cl = pvi( SATClauseList::DestructiveIterator(clauses));
 //  SATClauseIterator units, nonUnits;
 //  Preprocess::propagateUnits(cl, units, nonUnits);
@@ -82,7 +84,6 @@ SATClauseList* getPreprocessedClauses(const char* fname, unsigned& varCnt)
   preprocessClauses(varCnt, clauses);
   return clauses;
 }
-
 
 
 SATSolver::Status runSolverIncrementally(SATSolver& solver, unsigned varCnt, SATClauseList* clauses)
@@ -131,7 +132,7 @@ SATSolver::Status runSolverIncrementally(SATSolver& solver, unsigned varCnt, SAT
 	SATClause* cl = uit0.next();
 	solver.addAssumption((*cl)[0].opposite());
       }
-      solver.retractAllAssumptions();
+      //solver.retractAllAssumptions();
 
       SATClauseStack::Iterator uit(units);
       while(uit.hasNext()) {
@@ -141,7 +142,7 @@ SATSolver::Status runSolverIncrementally(SATSolver& solver, unsigned varCnt, SAT
 	solverStatus = solver.getStatus();
 	if(solverStatus!=SATSolver::SATISFIABLE) { return solverStatus; }
       }
-      solver.retractAllAssumptions();
+      //solver.retractAllAssumptions();
     }
 
     while(units.isNonEmpty()) {
@@ -161,37 +162,71 @@ SATSolver::Status runSolver(SATSolver& solver, unsigned varCnt, SATClauseList* c
 {
   CALL("runSolver");
 
-  solver.ensureVarCnt(varCnt);
+  /*solver.ensureVarCnt(varCnt);
   solver.addClauses(pvi( SATClauseList::Iterator(clauses)));
+  return solver.getStatus();
+  */
+  solver.addClauses(pvi(SATClauseList::Iterator(clauses)));
   return solver.getStatus();
 }
 
 void satSolverMode(SatOptions& opts)
 {
-  CALL("satSolverMode");
+	CALL("satSolverMode");
 
   env.statistics->phase = Statistics::PARSING;
   unsigned varCnt;
   SATClauseList* clauses;
+
   if(opts.fileName.empty()) {
-    clauses = getPreprocessedClauses(0, varCnt);
+	  clauses = getInputClauses(0,varCnt);
+	  //clauses = getPreprocessedClauses(0, varCnt);
   }
   else {
-    clauses = getPreprocessedClauses(opts.fileName.c_str(), varCnt);
+	  clauses = getInputClauses(opts.fileName.c_str(), varCnt);
+    //clauses = getPreprocessedClauses(opts.fileName.c_str(), varCnt);
   }
 
-  env.statistics->phase = Statistics::SATURATION;
+  /*
+  if (opts.testLingeling){
+	  env.statistics->phase = Statistics::SATURATION;
+    SATSolverSCP solver(new LingelingInterfacing(*env.options, false));
+    SATClauseList* iclause; 
+    unsigned variableCount;
+    iclause = getInputClauses(opts.fileName.c_str(),variableCount);
 
-  cout<<"-start varcnt "<<varCnt<<"\n";
+    solver->addClauses(pvi(SATClauseList::Iterator(iclause)));
+    SATSolver::Status result = solver->getStatus();
+    env.statistics->phase = Statistics::FINALIZATION;
+    switch(result) {
+    case SATSolver::SATISFIABLE:
+      cout<<"SATISFIABLE\n";
+      env.statistics->terminationReason = Statistics::SATISFIABLE;
+      break;
+    case SATSolver::UNSATISFIABLE:
+      cout<<"UNSATISFIABLE\n";
+      env.statistics->terminationReason = Statistics::REFUTATION;
+      break;
+    default:
+      ASSERTION_VIOLATION;
+    }
+    return;
+  }
+  */
+  env.statistics->phase = Statistics::SAT_SOLVING;
 
-  SATSolverSCP solver(new TWLSolver(*env.options, true));
+  cout<<"start varcnt :"<<varCnt-1<<"\n";
 
-  if(opts.minimizingSolver) {
+  //SATSolverSCP solver(new TWLSolver(*env.options, true));
+  SATSolverSCP solver(new LingelingInterfacing(*env.options, false));
+
+  /*if(opts.minimizingSolver) {
     solver = new MinimizingSolver(solver.release());
   }
   if(opts.checkingSolver) {
     solver = new CheckedSatSolver(solver.release());
   }
+  */
 
   SATSolver::Status res;
   if(opts.simulateIncremental) {
@@ -206,9 +241,11 @@ void satSolverMode(SatOptions& opts)
   switch(res) {
   case SATSolver::SATISFIABLE:
     cout<<"SATISFIABLE\n";
+    env.statistics->terminationReason = Statistics::SATISFIABLE;
     break;
   case SATSolver::UNSATISFIABLE:
     cout<<"UNSATISFIABLE\n";
+    env.statistics->terminationReason = Statistics::REFUTATION;
     break;
   default:
     ASSERTION_VIOLATION;
@@ -217,15 +254,19 @@ void satSolverMode(SatOptions& opts)
   clauses->destroy();
 }
 
-void processArgs(StringStack& args, SatOptions& opts)
+bool processArgs(StringStack& args, SatOptions& opts)
 {
   CALL("processArgs");
-
+  bool flag=true;
   StringStack::StableDelIterator it(args);
   while(it.hasNext()) {
     string arg = it.next();
     if(arg=="-incr") {
       opts.simulateIncremental = true;
+      it.del();
+    }
+    else if(arg == "-ling"){
+      opts.testLingeling = true; 
       it.del();
     }
     else if(arg=="-minim") {
@@ -245,6 +286,19 @@ void processArgs(StringStack& args, SatOptions& opts)
       it.del();
       PROCESS_TRACE_SPEC_STRING(traceStr);
     }
+    else if(arg == "-t"){
+    	it.del();
+    	if(!it.hasNext()){
+    		USER_ERROR("value for -t option expected");
+    	}
+    	string timelimit(it.next());
+    	it.del();
+    	int timeout;
+    	Lib::Int::stringToInt(timelimit, timeout);
+
+    	env.options->setTimeLimitInSeconds(timeout);
+    	flag=false;
+    }
   }
   if(args.size()>1) {
     while(args.isNonEmpty()) {
@@ -255,12 +309,17 @@ void processArgs(StringStack& args, SatOptions& opts)
   if(args.isNonEmpty()) {
     opts.fileName = args.pop();
   }
+  return flag;
 }
 
 int main(int argc, char* argv [])
 {
   CALL("main");
-
+  ScopedPtr<SATSolver> solver;
+  solver = new LingelingInterfacing(*env.options, false);
+  //LingelingInterfacing* solver(new LingelingInterfacing(*env.options, false));
+  solver->getRefutation();
+/*
   try {
     System::registerArgv0(argv[0]);
     Random::setSeed(1);
@@ -271,32 +330,35 @@ int main(int argc, char* argv [])
     System::readCmdArgs(argc, argv, args);
 
     SatOptions opts;
-    processArgs(args, opts);
+    if (processArgs(args, opts)){
+    	env.options->setTimeLimitInDeciseconds(3600);
+    	}
 
     Lib::Random::setSeed(env.options->randomSeed());
-
-    env.options->setTimeLimitInSeconds(3600);
 
     satSolverMode(opts);
   }
   catch(MemoryLimitExceededException&)
   {
     cerr<<"Memory limit exceeded\n";
+    env.statistics->terminationReason = Statistics::MEMORY_LIMIT;
     cout<<"-MEMORY_LIMIT\n";
   }
   catch(TimeLimitExceededException&)
   {
+    env.statistics->terminationReason = Statistics::TIME_LIMIT;
     cout<<"TIME LIMIT\n";
   }
   catch(UserErrorException& e)
   {
+
     cout<<"USER ERROR: ";
     e.cry(cout);
     cout<<"\n";
   }
 
   env.statistics->print(cout);
-
+*/
   return 0;
 }
 

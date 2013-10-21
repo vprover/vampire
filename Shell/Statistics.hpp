@@ -336,6 +336,8 @@ public:
     SATURATION,
     /** The actual run of the conflict resolution algorithm */
     SOLVING,
+    /** The actual run of the SAT solver*/
+    SAT_SOLVING,
     PREPROCESSING,
     /** Whatever happens after the saturation algorithm finishes */
     FINALIZATION,

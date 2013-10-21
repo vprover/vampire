@@ -353,6 +353,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "BP Preprocessing ";
   case SOLVING:
     return "Solving";
+  case SAT_SOLVING:
+	  return "SAT Solving";
   default:
     ASSERTION_VIOLATION;
     return "Invalid ExecutionPhase value";

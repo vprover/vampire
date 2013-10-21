@@ -92,6 +92,9 @@ endif
 CXX = g++
 CXXFLAGS = $(XFLAGS) -Wall $(INCLUDES)
 
+CC = gcc 
+CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT
+
 ################################################################
 API_OBJ = Api/FormulaBuilder.o\
 	  Api/Helper.o\
@@ -247,6 +250,8 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/TransparentSolver.o\
          SAT/TWLSolver.o\
          SAT/VariableSelector.o\
+         SAT/LingelingInterfacing.o\
+         SAT/lglib.o
 #         SAT/SATClauseSharing.o\
 #         SAT/SingleWatchSAT.o
 
@@ -593,6 +598,10 @@ obj/%X: | obj
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp
+
+%.o : %.c 
+$(CONF_ID)/%.o : %.c | $(CONF_ID)
+	$(CC) $(CCFLAGS) -c -o $@ $*.c
 
 ################################################################
 # targets for executables
