@@ -56,7 +56,7 @@ public:
 
     if(_hasLeft) {
       if(_leftStrict) {
-    	  if(num <=_leftBound) {
+    	  if(num<=_leftBound) {
     		  //cout<<"_left> num and strict"<<endl;
     		  return false; }
       }
@@ -344,7 +344,7 @@ protected:
 	  if(_rightBound.isNegative()){
 		  result = _rightBound + (_leftBound-_rightBound)/BoundNumber::two();
 	  }else{
-		  if(_leftBound.isNegative()&& _rightBound!=BoundNumber::zero()){
+		  if(_leftBound.isNegative()){
 			  result = BoundNumber::zero();
 		  }
 		  else {
@@ -433,15 +433,12 @@ protected:
   else {
 	  if(_leftBound.isNegative()){
 		  if(_rightBound.isNegative()){
+			  //cout<<_leftBound<<"< x< "<<_rightBound<<endl;
 			  result = _leftBound - (_leftBound-_rightBound)/BoundNumber::two();
 		  }
 		  else
 		  {
-			  BoundNumber resultInt = (_rightBound.abs() - _leftBound.abs())/BoundNumber::two();
-			  if(!resultInt.isZero())
-				  result = _leftBound + resultInt;
-			  else
-				  result = BoundNumber::getRandomValue(_leftBound, _rightBound);
+		  result = _leftBound + (_rightBound.abs() - _leftBound.abs())/BoundNumber::two();
 		  }
 	  }
 	  else{

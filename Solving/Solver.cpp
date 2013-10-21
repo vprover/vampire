@@ -116,7 +116,6 @@ void Solver::load(ConstraintRCList* constraints)
 void Solver::collectInputBounds()
 {
   CALL("Solver::collectInputBounds");
-
   ConstraintList::Iterator cit(_inputConstraints);
   while(cit.hasNext()) {
     Constraint* c = cit.next();
@@ -141,13 +140,12 @@ void Solver::collectInputBounds()
       BoundId newBoundId(coeff.var, leftBound);
       LOG("tkv_test",newBoundId.var<<" "<<newBoundId.left);
       ASS_NEQ(coeff.value, CoeffNumber::zero());
+
       BoundNumber boundVal;
-      if(c->freeCoeff()==CoeffNumber::zero() || coeff.value == CoeffNumber::zero()){
-    	  boundVal = BoundNumber(CoeffNumber::zero());
-      }
-      else{
-    	  BoundNumber boundVal = BoundNumber(c->freeCoeff())/coeff.value;
-     }
+      if(c->freeCoeff().isZero())
+    	  boundVal = BoundNumber::zero();
+      else
+    	  BoundNumber boundVal = BoundNumber(c->freeCoeff())/BoundNumber(coeff.value);
       BoundInfo bi(boundVal, c->type()==CT_GR);
       bi.justification().setParent(c);
       _bounds.suggestBound(newBoundId, bi);
@@ -390,7 +388,7 @@ void Solver::solve() {
   else {
     _stats.nativeUsed = true;
   }
-
+step1:
   try {
     collectInputBounds();
     _propagator->propagate();
@@ -430,7 +428,13 @@ void Solver::solve() {
   catch(TimeLimitExceededException e) {
       _stats.terminationReason = Statistics::TIME_LIMIT;
       return;
-}
+  }
+  catch(Rational::NumberImprecisionException){
+	  cout<<"this is an issue "<<endl;
+	  switchToPreciseNumbers();
+	  env.statistics->switchToPreciseTimeInMs = env.timer->elapsedMilliseconds();
+//	  goto step1;
+ }
   size_t vcnt = varCnt();
   Assignment* asgn = new Assignment(vcnt);
   for(Var v=0; v<vcnt; v++) {
