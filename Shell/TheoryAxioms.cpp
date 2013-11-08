@@ -432,15 +432,24 @@ void TheoryAxioms::addArrayExtensionalityAxioms(Interpretation select, Interpret
     
     //bulid first part of the axiom 
     //!A,B:arraySort, !I: (select(A,I) = select(B,I)) -> A=B )
-    Literal* arrayEq1 = Literal::createEquality(true, a, b, arraySort);//A=B       
-    Literal* selectEq1 = Literal::createEquality(false, aI, bI, rangeSort);// !(select(A,I) = select(B,I))
-    addTheoryClause(units, arrayEq1, selectEq1);
+    //Literal* arrayEq1 = Literal::createEquality(true, a, b, arraySort);//A=B       
+    //Literal* selectEq1 = Literal::createEquality(false, aI, bI, rangeSort);// !(select(A,I) = select(B,I))
+    //addTheoryClause(units, arrayEq1, selectEq1);
     
     //bulid second part of the axiom 
     //!A,B:arraySort, !I: A=B ->(select(A,I) = select(B,I)))
-    Literal* arrayEq2 = Literal::createEquality(false, a, b, arraySort);//!(A=B)
-    Literal* selectEq2 = Literal::createEquality(true, aI, bI, rangeSort);// !(select(A,I) = select(B,I))
-    addTheoryClause(units, arrayEq2, selectEq2);
+    //Literal* arrayEq2 = Literal::createEquality(false, a, b, arraySort);//!(A=B)
+    //Literal* selectEq2 = Literal::createEquality(true, aI, bI, rangeSort);// !(select(A,I) = select(B,I))
+    //addTheoryClause(units, arrayEq2, selectEq2);
+    
+    //changes fixed by Bernhard Kragl, November 8, 2013, buggy Extensionality Axiom
+    //not CNF format: !A,B:arraySort, !I: (select(A,I) = select(B,I)) -> A=B )
+    Literal* arrayEq = Literal::createEquality(true, a, b, arraySort); //A=B       
+    Literal* selectEq = Literal::createEquality(true, aI, bI, rangeSort); // select(A,I) = select(B,I)
+    Formula* allIndicesEq = new QuantifiedFormula(FORALL, new Formula::VarList(0), new AtomicFormula(selectEq));
+    Formula* axiom = new BinaryFormula(IFF, new AtomicFormula(arrayEq), allIndicesEq);
+    FormulaUnit* axiomUnit = new FormulaUnit(axiom, new Inference(Inference::THEORY), Unit::AXIOM);
+    UnitList::push(axiomUnit, units);
     
 }
     
