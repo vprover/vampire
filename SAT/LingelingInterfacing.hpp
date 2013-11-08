@@ -47,6 +47,7 @@ public:
 	*/
 	virtual Status getStatus(){
 		CALL("LingelingInterfacing::getStatus()");
+		printLingelingStatistics();
 		return _status;
 	};
 
@@ -67,7 +68,7 @@ public:
 	* return 1.  
 	* 
 	*/
-	virtual bool isZeroImplied(unsigned var){}
+	virtual bool isZeroImplied(unsigned var){ return false;}
 
 	/**
 	* collect all the zero-implied variables 
@@ -82,7 +83,7 @@ public:
    	* If called on a proof producing solver, the clause will have
    	* a proper proof history.
    	*/
-	virtual SATClause* getZeroImpliedCertificate(unsigned var){}
+	virtual SATClause* getZeroImpliedCertificate(unsigned var){ return 0;}
 
 	/**
 	* in the original solver this function took care of increasing the memory allocated for the
@@ -97,7 +98,7 @@ public:
 	* if the value is in between, then simply set that as the upper bound on conflictCountLimit
 	*/
 	virtual void addAssumption(SATLiteral literal, unsigned conflictCountLimit);
-
+	void addCAssumption(SATClause* clause, unsigned conflictingCountLimit);
 	/**
 	* Retracts all the assumption made until now.
 	*/
@@ -116,10 +117,20 @@ public:
 
 	void testLingeling();
 
+	void printLingelingStatistics();
+	void printAssignment();
 
 private: 
 	virtual void addClausesToLingeling(SATClauseIterator iterator);
 	void setSolverStatus(unsigned status);
+
+	 enum AsgnVal {
+    //the true and false value also correspond to positive
+    //and negative literal polarity values
+   		AS_FALSE = 0u,
+    	AS_TRUE = 1u,
+    	AS_UNDEFINED = 2u
+  	};
 	/**
 	* Status of the solver 
 	*/
@@ -127,10 +138,19 @@ private:
 	/**
 	* flag which enables proof generation
 	*/
+	SATClause* _refutation; 
 	bool _generateProofs;
 	bool _hasAssumptions;
+	//keep track of the assumptions done until now
+	List<SATLiteral>* _assumptions;
 	//scoped pointer to the incremental lingleling 
 	LGL * _solver;
+
+	struct UnsatException : public Exception
+  	{
+    	UnsatException(SATClause* refutation=0) : refutation(refutation) {}
+    	SATClause* refutation;
+  	};
 };
 
 }//end SAT namespace

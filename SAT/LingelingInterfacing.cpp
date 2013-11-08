@@ -41,29 +41,47 @@ static void catchlrm(int sig) {
 		caughtalarm = 1;
 		throw TimeLimitExceededException();
 		}
-}
+} 
 
 static int checkalarm(void * ptr){
 	ASS(ptr == (void*) &caughtalarm);
 	return caughtalarm;
-}
+}	//do the set-up of sat solver according to environment options
 	LingelingInterfacing::LingelingInterfacing(const Options& opt, bool generateProofs) : 
 		_generateProofs(generateProofs), _hasAssumptions(false){
 			CALL("LingelingInterfacing::LingelingInterfacing");
 			//here we should take care of all the options passed from the caller 
+			TimeCounter ntc(TC_SAT_SOLVER);
 			Options _opts(opt);
 			_solver = lglinit();
+
+			//for debugging 
+			lglsetopt(_solver, "verbose",-1);
+			lglsetopt(_solver, "plain",1);
+			//lglsetopt(_solver, "");
+			//lglsetopt(_solver, "dlim",0);
+			lglsetopt(_solver, "memlim", env.options->memoryLimit());
 
 			//set the alarm handlers for sat solver
 			lglseterm(_solver, checkalarm, &caughtalarm);
 			sig_alrm_handler = signal (SIGALRM, catchlrm);
 
 			//check how much time we spent already and set the maximum allowed for sat
-			int current = env.timer->elapsedMilliseconds();
-			int remaining = opt.timeLimitInDeciseconds()-current;
-			if (remaining < 10)
-				remaining = 10;
-			alarm((remaining/10));
+			int remaining = env.remainingTime();
+			//in general Vampire uses miliseconds. But lingeling uses seconds. 
+			//this means, if we have less than a second left for SAT solving, allow 
+			//one second run time.
+			if (remaining < 1000)
+				remaining = 1000;
+			//convert the remaining time from miliseconds to seconds
+			alarm((remaining/1000));
+
+			//set the conflict limit -1 => unlimited
+			lglsetopt(_solver, "clim", -1 );
+			//set the decision limit default -1 => unlimited 
+			lglsetopt(_solver, "dlim", -1 );
+			//set the propagation limit default value -1 => thousands 
+			lglsetopt(_solver, "plim", -1);
 
 			//here we should use more than this
 			//see picosat.h lines 85-..
@@ -73,12 +91,26 @@ static int checkalarm(void * ptr){
 		CALL("LingelingInterfacing::~LingelingInterfacing");
 		//release the memory used by lingeling
 		lglrelease(_solver);
-	}
+	} 
 
 	void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator, bool onlyPropagate){
 		CALL("LingelingInterfacing::addClause(SatClauseIte, bool onlyPropagate)");
 		//TAKE CARE HOW ONE ADDS CLAUSES. a call to lgladd(_solver, 0) terminates the cluase
-		addClausesToLingeling(clauseIterator);
+		TimeCounter tc(TC_SAT_SOLVER);
+		//iterate over all the clauses from the problem
+		//if the solver is in UNSATISFIABLE state, adding a new clause keeps it unsat
+		if(_status == SATSolver::UNSATISFIABLE){
+			return;
+		}
+		try{
+			
+			addClausesToLingeling(clauseIterator);
+
+		}catch(const UnsatException& e){
+			_status = SATSolver::UNSATISFIABLE;
+			_refutation = e.refutation;
+		}
+
 	}
 
 	void LingelingInterfacing::setSolverStatus(unsigned int status){
@@ -88,30 +120,28 @@ static int checkalarm(void * ptr){
 		case LGL_UNKNOWN : _status = SATSolver::UNKNOWN; break;
 		case LGL_SATISFIABLE : _status = SATSolver::SATISFIABLE; break;
 		case LGL_UNSATISFIABLE : _status = SATSolver::UNSATISFIABLE; break;
-		default: ASSERTION_VIOLATION; break;
+		default:
+			ASSERTION_VIOLATION; break;
 		}
 	}
 
 	void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator){
 		CALL("LingelingInterfacing::addClauses(SATClauseIterator iterator)");
-		TimeCounter tc(TC_SAT_SOLVER);
-		//iterate over all the clauses from the problem
+		List<unsigned>* varList = 0; 
+
 		while(iterator.hasNext()){
 			SATClause * currentClause = iterator.next();
 			//treat each of the clauses individually. 
 			unsigned clauseLength = currentClause->length();
-			ASS_G(clauseLength, 1);
-
+			ASS_GE(clauseLength, 1);
 			for (unsigned idx = 0; idx < clauseLength ; idx++){
-				//treat each of the literals individually 
+			//treat each of the literals individually 
 				SATLiteral sLit = (*currentClause)[idx];
 				unsigned currVar = sLit.var();
-				ASS(lglusable(_solver, currVar));
+				if(!varList->member(currVar))
+					varList = varList->cons(sLit.var());
 				//in case our literal is with positive polarity
-				if(sLit.polarity() == 1)
-					lgladd(_solver, currVar);
-				else 
-					lgladd(_solver, -currVar);
+				lgladd(_solver, (sLit.polarity() ==1 ? currVar : -currVar));
 				//TODO freezing of all the literals might not be a good idea!
 				//why not reuse here instead of freezing the literals?
 				lglfreeze(_solver, currVar);
@@ -119,10 +149,68 @@ static int checkalarm(void * ptr){
 			//add the marker for clause termination 
 			lgladd(_solver, 0);
 		}
-
 		unsigned int result = lglsat(_solver);
 		setSolverStatus(result);
+		#if VDEBUG
+		if(result == LGL_SATISFIABLE){
+			printAssignment();
+		}
+		#endif
+			
+		if(result == LGL_UNSATISFIABLE){
+			throw UnsatException();
+			}
+			
+	
+	}
 
+	void LingelingInterfacing::printAssignment(){
+		CALL("LingelingInterfacing::printAssignment");
+		ASS(_status == SATSolver::SATISFIABLE);
+		DArray<AsgnVal>_assignm;
+		int maxVar = lglmaxvar(_solver);
+		_assignm.expand(maxVar, AS_UNDEFINED);
+		for (int idx = 1 ; idx <= maxVar; idx++){
+			int val;
+			val = lglderef(_solver, idx);
+			//val = lglfixed(_solver, idx);
+			//val = lglfailed(_solver, idx);
+			switch (val){
+				case -1 : _assignm[idx-1] = AS_FALSE; break;
+					// _res=_res->addLast(AS_FALSE); break;
+				case 1 : _assignm[idx-1] = AS_TRUE; break;
+					//_res=_res->addLast(AS_TRUE);break;
+				case 0 : _assignm[idx-1] = AS_UNDEFINED; break;
+					//_res=_res->addLast(AS_UNDEFINED);break;
+				default : ASSERTION_VIOLATION;
+				}
+			}
+		#if VDEBUG 
+		for (int idx = 0; idx < maxVar ; idx++){
+			AsgnVal val = _assignm[idx];
+			switch(val){
+				case AS_FALSE : cout<<idx+1<<" false\n"; break;
+				case AS_TRUE : cout<<idx+1<<" true\n"; break;
+				case AS_UNDEFINED: cout<<idx+1 << " any value \n"; break;
+				default: ASSERTION_VIOLATION;
+				}
+			}
+		#endif
+		/*
+		List<AsgnVal>::Iterator ite(_res);
+		int idx = 0;
+		while(ite.hasNext()){
+			AsgnVal v = ite.next();
+			switch(v){
+				case AS_FALSE : cout<<idx+1<<" false\n"; break;
+				case AS_TRUE : cout<<idx+1<<" true\n"; break;
+				case AS_UNDEFINED: cout<<idx+1 << " any value \n"; break;
+				default: 
+					ASSERTION_VIOLATION;
+				}
+				idx++;
+			}
+			*/
 	}
 
 	//as this function is used, we only assume single units
@@ -139,9 +227,31 @@ static int checkalarm(void * ptr){
 		flag = flag * (literal.polarity() == 1 ? 1:-1);
 		//assume the literal
 		lglassume(_solver, (flag*literal.var()));
+		_assumptions = _assumptions->cons(literal);
 		_hasAssumptions = true;
 	}
 
+	//since lingeling allows assumption of clauses, let's have a function which does that
+	void LingelingInterfacing::addCAssumption(SATClause* clause, unsigned conflictCountLimit){
+		CALL("LingelingInterfacing::addaCAssumption");
+		if(_status == SATSolver::UNSATISFIABLE){
+			LOG("sat_asmp", "assumption ignored due to unsat state in CAssumption");
+			return;
+		}
+		unsigned clauseLength = clause->length();
+
+		for(unsigned idx = 0; idx < clauseLength ; idx++){
+			SATLiteral sLit = (*clause)[idx];
+			unsigned currVar = sLit.var();
+			//take care of the polarity of each of the literals
+			int polarity = (sLit.polarity() == 1 ? 1 : -1);
+			//assume each of them with the right polarity 
+			lglcassume(_solver, polarity*currVar);
+			//add the end of lglcassume 
+			lglcassume(_solver, 0);
+		}
+		//something we could do is book-keeping of what we add and which fails!
+	}
 	SATSolver::VarAssignment LingelingInterfacing::getAssignment(unsigned var){
 		CALL("LingelingInterfacing::getAssignment(var)");
 		ASS(_status == SATISFIABLE);
@@ -149,7 +259,7 @@ static int checkalarm(void * ptr){
 		val = lglderef(_solver, var);
 		switch (val){
 		case -1 : return SATSolver::FALSE;
-		case 1 : return SATSolver::TRUE;
+		case 1 : return SATSolver::TRUE;   
 		case 0 : return SATSolver::DONT_CARE;
 		default : ASSERTION_VIOLATION;
 		}
@@ -158,7 +268,12 @@ static int checkalarm(void * ptr){
 
 	void LingelingInterfacing::retractAllAssumptions(){
 		CALL("LingelingInterfacing::retractAllAssumptions()");
+		//in the case of Lingeling all the assumptions are valid only until the next lslsat/lglsimp
+		//so we do not have to worry about retracting assumptions. 
+		//but we still have to mark that at this point there are no more assumptions 
 
+		_hasAssumptions = false;
+		_assumptions->destroy();
 	}
 
 	bool LingelingInterfacing::hasAssumptions() const{
@@ -168,18 +283,27 @@ static int checkalarm(void * ptr){
 
 	SATClause* LingelingInterfacing::getRefutation(){
 		CALL("LingelingInterfacing::getRefutation");
-		testLingeling();
-		USER_ERROR("not yet implemented");
-		return 0;
+		ASS(_status == SATSolver::UNSATISFIABLE);
+		return _refutation;
 	
 	}
 
 	void LingelingInterfacing::randomizeAssignment(){
 		CALL("LingelingInterfacing::randomizeAssignment()");
-		std::cout<<"randomize assignment";
+		//here we should find a way to randomize the assignment
 
 	}
 
+	void LingelingInterfacing::printLingelingStatistics(){
+		CALL("LingelingInterfacing::printLingelingStatistics");
+		lglstats(_solver);
+		cout<<"conflicts :" <<lglgetconfs(_solver)<<endl;
+		cout<<"memory MB: "<<lglmb(_solver)<<endl;
+		cout<<"memory Bytes: "<<lglbytes(_solver)<<endl;
+		cout<<"seconds : "<<lglsec(_solver)<<endl;
+		cout<<"processtime: "<<lglprocesstime()<<endl;
+
+	}
 	void LingelingInterfacing::testLingeling(){
 		CALL("testLingleing");
 		LGL * lgl = lglinit ();
