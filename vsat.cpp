@@ -219,6 +219,8 @@ void satSolverMode(SatOptions& opts)
 
   //SATSolverSCP solver(new TWLSolver(*env.options, true));
   SATSolverSCP solver(new LingelingInterfacing(*env.options, false));
+  //for the minimized case
+  //solver = new MinimizingSolver(solver.release());
 
   /*if(opts.minimizingSolver) {
     solver = new MinimizingSolver(solver.release());
@@ -247,11 +249,15 @@ void satSolverMode(SatOptions& opts)
     cout<<"UNSATISFIABLE\n";
     env.statistics->terminationReason = Statistics::REFUTATION;
     break;
+  case SATSolver::UNKNOWN:
+    cout<<"Unknown\n";
+    break;
   default:
+    cout<<res<<endl;
     ASSERTION_VIOLATION;
   }
 
-  clauses->destroy();
+  //clauses->destroy();
 }
 
 bool processArgs(StringStack& args, SatOptions& opts)
@@ -315,11 +321,10 @@ bool processArgs(StringStack& args, SatOptions& opts)
 int main(int argc, char* argv [])
 {
   CALL("main");
-  ScopedPtr<SATSolver> solver;
-  solver = new LingelingInterfacing(*env.options, false);
+  //ScopedPtr<SATSolver> solver;
+  //solver = new LingelingInterfacing(*env.options, false);
   //LingelingInterfacing* solver(new LingelingInterfacing(*env.options, false));
-  solver->getRefutation();
-/*
+ 
   try {
     System::registerArgv0(argv[0]);
     Random::setSeed(1);
@@ -358,7 +363,7 @@ int main(int argc, char* argv [])
   }
 
   env.statistics->print(cout);
-*/
+
   return 0;
 }
 

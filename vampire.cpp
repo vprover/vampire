@@ -66,6 +66,8 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "SAT/LingelingInterfacing.hpp"
+
 #if IS_LINGVA
 #include "Program/Lingva.hpp"
 #endif
@@ -401,6 +403,67 @@ void outputMode()
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // outputMode
 
+SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
+{
+  CALL("getInputClauses");
+  TimeCounter tc(TC_PREPROCESSING);
+  unsigned maxVar;
+  SATClauseIterator cit=( DIMACS::parse(fname, maxVar) );
+  varCnt=maxVar+1;
+
+  SATClauseList* clauses = 0;
+  SATClauseList::pushFromIterator(cit, clauses);
+  return clauses;
+}
+
+void satSolverMode()
+{
+  CALL("satSolverMode()");
+  TimeCounter tc(TC_SAT_SOLVER);
+  SATSolverSCP solver(new LingelingInterfacing(*env.options, false));
+
+  //get the clauses; 
+  SATClauseList* clauses;
+  unsigned varCnt=0;
+
+  SATSolver::Status res; 
+  
+  clauses = getInputClauses(env.options->inputFile().c_str(), varCnt);
+  cout<<"we have : "<<varCnt << " variables\n";
+
+  //add all the clauses to the solver 
+  solver->addClauses(pvi(SATClauseList::Iterator(clauses)));
+  res = solver->getStatus();
+
+  env.statistics->phase = Statistics::FINALIZATION;
+
+  switch(res) {
+  case SATSolver::SATISFIABLE:
+    cout<<"SATISFIABLE\n";
+    env.statistics->terminationReason = Statistics::SAT_SATISFIABLE;
+    break;
+  case SATSolver::UNSATISFIABLE:
+    cout<<"UNSATISFIABLE\n";
+    env.statistics->terminationReason = Statistics::SAT_UNSATISFIABLE;
+    break;
+  case SATSolver::UNKNOWN:
+    cout<<"Unknown\n";
+    break;
+  }
+
+  env.beginOutput();
+  UIHelper::outputResult(env.out());
+  env.endOutput();
+#if SATISFIABLE_IS_SUCCESS
+  if (env.statistics->terminationReason == Statistics::SAT_UNSATISFIABLE
+      || env.statistics->terminationReason == Statistics::SAT_SATISFIABLE) {
+#else
+    if (env.statistics->terminationReason==Statistics:SAT_UNSATISFIABLE) {
+#endif
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+  }
+
+}
 void vampireMode()
 {
   CALL("vampireMode()");
@@ -701,6 +764,10 @@ int main(int argc, char* argv[])
    
     case Options::MODE_PREPROCESS:
       preprocessMode();
+      break;
+
+    case Options::MODE_SAT:
+      satSolverMode();
       break;
 
     default:
