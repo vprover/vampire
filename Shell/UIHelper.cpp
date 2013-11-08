@@ -341,6 +341,12 @@ void UIHelper::outputResult(ostream& out)
   case Statistics::SATISFIABLE:
     outputSatisfiableResult(out);
     break;
+  case Statistics::SAT_SATISFIABLE:
+    outputSatisfiableResult(out);
+    break;
+  case Statistics::SAT_UNSATISFIABLE:
+    out<<"good job\n";
+    break;
   case Statistics::UNKNOWN:
   addCommentIfCASC(out);
     out << "Unknown reason of termination!\n";

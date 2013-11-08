@@ -286,8 +286,12 @@ public:
   enum TerminationReason {
     /** refutation found */
     REFUTATION,
+    /** SAT SATISFIABLE */
+    SAT_SATISFIABLE, 
     /** satisfiability detected (saturated set built) */
     SATISFIABLE,
+    /** sat solver Unsatisfiable */
+    SAT_UNSATISFIABLE,
     /** saturation terminated but an incomplete strategy was used */
     REFUTATION_NOT_FOUND,
     /** unknown termination reason */

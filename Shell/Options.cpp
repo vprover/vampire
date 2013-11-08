@@ -613,7 +613,10 @@ const char* Options::Constants::_modeValues[] = {
   "preprocess",
   "profile",
   "program_analysis",
-  
+  //runs the sat solver from vampire
+  //Added for developement reasons, Ioan Oct. 2013
+  "sat_solver",
+
   "spider",
   "vampire"
 };
