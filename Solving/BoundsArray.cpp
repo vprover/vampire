@@ -388,7 +388,7 @@ void BoundsArray::getConflictCollapsingInequality(Var v, size_t leftIdx, size_t 
   }
   else if(!collapsingRight) {
     result = collapsingLeft;
-  }
+    }
   else {
     TRACE("tkv_collapsing",tout<<"Conflict Collapsing for "<<env.signature->varName(v)<<
 	" :\nleft:\t"<<collapsingLeft->toString()<<"\nright:\t"<<collapsingRight->toString(););

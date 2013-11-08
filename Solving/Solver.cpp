@@ -119,7 +119,8 @@ void Solver::collectInputBounds()
   ConstraintList::Iterator cit(_inputConstraints);
   while(cit.hasNext()) {
     Constraint* c = cit.next();
-    LOG("tkv_test","working on: "<<c->toString());
+    //cout<<c->toString()<<" <- constraint\n";
+    //LOG("tkv_test","working on: "<<c->toString());
     ASS_NEQ(c->type(),CT_EQ);
 
     size_t coeffCnt = c->coeffCnt();
@@ -136,16 +137,17 @@ void Solver::collectInputBounds()
       ASS(!coeffIt.hasNext());
 
       bool leftBound = coeff.isPositive();
-      LOG("tkv_test",leftBound<<"  "<<c->toString());
+      //LOG("tkv_test",leftBound<<"  "<<c->toString());
       BoundId newBoundId(coeff.var, leftBound);
-      LOG("tkv_test",newBoundId.var<<" "<<newBoundId.left);
+      //cout<<newBoundId.var<<" <- var newBoundId->"<<newBoundId.left;
+      //LOG("tkv_test",newBoundId.var<<" "<<newBoundId.left);
       ASS_NEQ(coeff.value, CoeffNumber::zero());
 
-      BoundNumber boundVal;
-      if(c->freeCoeff().isZero())
-    	  boundVal = BoundNumber::zero();
-      else
-    	  BoundNumber boundVal = BoundNumber(c->freeCoeff())/BoundNumber(coeff.value);
+      BoundNumber boundVal = BoundNumber(c->freeCoeff())/coeff.value;
+      //if(c->freeCoeff().isZero())
+    	//  boundVal = BoundNumber::zero();
+      //else
+    	//  BoundNumber boundVal = BoundNumber(c->freeCoeff())/BoundNumber(coeff.value);
       BoundInfo bi(boundVal, c->type()==CT_GR);
       bi.justification().setParent(c);
       _bounds.suggestBound(newBoundId, bi);
@@ -237,12 +239,9 @@ void Solver::handleConflicts()
     LOG("tkv_conflict","Collapsing inequality: "<<colConstr->toString());
 
    TRACE("tkv_conflict", tout<<colConstr->toString(););
-    if(colConstr->isTautology()) {
-      LOG("tkv_conflict","Collapsing inequality is a tautology!");
-      throw NumberImprecisionException();
-    }
     if(colConstr->isRefutation()) {
       //std::cout<<colConstr->toString()<<std::endl;
+      LOG("tkv_conflict", "Collapsing inequality is a tautology!");
       throw RefutationFoundException(colConstr);
     }
     ASS_REP(colConstr->coeffCnt()>0, colConstr->toString());
@@ -395,25 +394,25 @@ step1:
     handleConflicts();
 
     BoundNumber nextDecisionValue;
-    LOG("tkv_test","decision value "<<nextDecisionValue);
+    //LOG("tkv_test","decision value "<<nextDecisionValue);
     while(!haveFullAssignment()) {
       Var nextDecisionVar;
       if(!tryUseForcedDecision(nextDecisionVar)) {
 	TimeCounter tc(TC_VARIABLE_SELECTION);
 
 	nextDecisionVar = _varSelector->getNextVariable();
-	LOG("tkv_test","decision variable "<<nextDecisionVar);
+	//LOG("tkv_test","decision variable "<<nextDecisionVar);
 	_stats.freeDecisionPoints++;
 
       }
       _asgSelector->getAssignment(nextDecisionVar, nextDecisionValue);
-     LOG("tkv_test",nextDecisionVar<<" with bound "<<nextDecisionValue);
+     //LOG("tkv_test",nextDecisionVar<<" with bound "<<nextDecisionValue);
       TRACE("tkv_colapsing", tout<<nextDecisionVar<<endl;);
       makeDecisionPoint(nextDecisionVar, nextDecisionValue);
       _propagator->propagate();
-      LOG("tkv_test","we get after propagate");
+      //LOG("tkv_test","we get after propagate");
       handleConflicts();
-      LOG("tkv_test","after handling conflicts");
+      //LOG("tkv_test","after handling conflicts");
     }
 
   }
@@ -430,7 +429,7 @@ step1:
       return;
   }
   catch(Rational::NumberImprecisionException){
-	  cout<<"this is an issue "<<endl;
+	  //cout<<"this is an issue "<<endl;
 	  switchToPreciseNumbers();
 	  env.statistics->switchToPreciseTimeInMs = env.timer->elapsedMilliseconds();
 //	  goto step1;
@@ -445,6 +444,7 @@ step1:
 
   if(!usingPreciseNumbers() && !asgn->isSatisfied(inputConstraints())) {
     delete asgn;
+
     throw NumberImprecisionException();
   }
 

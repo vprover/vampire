@@ -20,18 +20,18 @@
 
 namespace Solving
 {
-
+ 
 using namespace Shell;
 
 ConflictSelector::ConflictSelector(Solver& s)
  : _solver(s), _bounds(s.getBounds())
 {
   CALL("ConflictSelector::ConflictSelector");
-}
+} 
 
 void ConflictSelector::getConflictIndexes(Var v, size_t& left, size_t& right)
 {
-  CALL("ConflictSelector::getConflictIndexes");
+  CALL("ConflictSelector::getConflictIndexes"); 
 
   BoundStack& leftBounds = _bounds.getBounds(BoundId(v, true));
   ASS(&leftBounds);	//when we have a conflict, there must be some bounds
@@ -49,7 +49,7 @@ void ConflictSelector::getConflictIndexes(Var v, size_t& left, size_t& right)
 class MostRecentConflictSelector : public ConflictSelector {
 public:
   MostRecentConflictSelector(Solver& s) : ConflictSelector(s) {}
-
+  ~MostRecentConflictSelector(){};
 protected:
   virtual void getConflictIndexes(Var v, const BoundStack& leftBounds,
       const BoundStack& rightBounds, size_t& left, size_t& right)
@@ -64,7 +64,7 @@ protected:
 class TooEarlyConflictSelector : public ConflictSelector {
 public:
   TooEarlyConflictSelector(Solver& s) : ConflictSelector(s) {}
-
+   ~TooEarlyConflictSelector(){};
 protected:
   virtual void getConflictIndexes(Var v, const BoundStack& leftBounds,
       const BoundStack& rightBounds, size_t& left, size_t& right)

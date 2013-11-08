@@ -22,6 +22,8 @@ public:
   void getConflictIndexes(Var v, size_t& left, size_t& right);
 
   static ConflictSelector* create(Solver& s, Options& opt);
+
+  virtual ~ConflictSelector(){};
 protected:
   virtual void getConflictIndexes(Var v, const BoundStack& leftBounds,
       const BoundStack& rightBounds, size_t& left, size_t& right) = 0;
