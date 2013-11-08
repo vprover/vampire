@@ -23,7 +23,7 @@ namespace Kernel {
 namespace __Aux_Number
 {
 
-typedef long double NativeNumber;
+typedef double NativeNumber;
 
 bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2);
 
@@ -323,8 +323,7 @@ public:
     		cout<<_native<<endl;
     		ASSERTION_VIOLATION;
     	}
-    	double intermediar = static_cast<double>(val);
-
+    	
     	initPrecise();
     	precise() = static_cast<double>(val); //GMP does not accept long double
     }

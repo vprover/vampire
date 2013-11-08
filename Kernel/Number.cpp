@@ -22,7 +22,7 @@
 
 namespace Kernel
 {
-
+ 
 namespace __Aux_Number
 {
 
@@ -38,7 +38,7 @@ bool nativeEqual(const NativeNumber& n1, const NativeNumber& n2)
   }
   else {
     return diff<=1E-11;
-  }
+  } 
 }
 
 void reduceNumbers(size_t cnt, NativeNumber** vals)

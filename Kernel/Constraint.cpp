@@ -234,31 +234,38 @@ Constraint* Constraint::resolve(Var resolvedVar, Constraint& c1, Constraint& c2,
   acc.reset();
 
   CoeffNumber val;
+
   while(otherC1.isNonEmpty() || otherC2.isNonEmpty()) {
     while(otherC1.isNonEmpty() && (otherC2.isEmpty() || otherC1.top().var>otherC2.top().var) ) {
       Var var = otherC1.top().var;
       val = c1Mul*otherC1.pop().value;
+      //cout<<"push var val "<<var<<val;
       ASS(!val.isZero());
       acc.push(Coeff(var, val));
     }
     while(otherC2.isNonEmpty() && (otherC1.isEmpty() || otherC2.top().var>otherC1.top().var) ) {
       Var var = otherC2.top().var;
       val = c2Mul*otherC2.pop().value;
+      //cout<<"push var val "<<var<<val;
       ASS(!val.isZero());
       acc.push(Coeff(var, val));
     }
     while(otherC1.isNonEmpty() && otherC2.isNonEmpty() && otherC1.top().var==otherC2.top().var) {
       Var var = otherC1.top().var;
       val = (c1Mul*otherC1.pop().value) + (c2Mul*otherC2.pop().value);
+      //cout<<"push var val last one"<<var<<val;
+      //ASS(!val.isZero());
       if(!val.isZero()) {
-	acc.push(Coeff(var, val));
+    	  acc.push(Coeff(var, val));
       }
     }
   }
 
   val = c1Mul*c1.freeCoeff() + c2Mul*c2.freeCoeff();
-
+  //cout<<"coeff value"<< val<<endl;
   Constraint* res = fromSortedIterator(resType, pvi( CoeffStack::TopFirstIterator(acc) ), val);
+  //cout<<res->toString()<<endl;
+  //cout<<c1.toString()<<" and "<<c2.toString()<<endl;
   res->reduce(allowDecimalCoeffitiets);
   return res;
 }
