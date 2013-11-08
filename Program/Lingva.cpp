@@ -20,7 +20,7 @@ void RunLingva::run()
   } catch (MemoryLimitExceededException) {
 	    env.beginOutput();
 	    env.out() << "Memory limit exceeded\n";
-	    env.endOutput();
+	    env.endOutput(); 
 	  } catch (TimeLimitExceededException) {
 	    env.beginOutput();
 	    env.out() << "Time limit exceeded\n";
