@@ -1906,7 +1906,7 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
 	Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
 					     new JunctionFormula(AND, right));
 	LOG("lin_density","density axioms: "<<lhs->toString()<<" => "<< rhs->toString());
-        	_units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs), new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
+    _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs), new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
 
 	}
 	if (min == -1) {
@@ -1927,8 +1927,8 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
 	FormulaList* left = (new FormulaList(Vlessc0))->cons(clessV);//->cons(JgreaterI);
 	Formula* lhs = new JunctionFormula(AND, left);
 	Formula* cKequalV = new AtomicFormula(createIntEquality(true, cK, V));
-        Formula* condition_with_iteration = relativePathCondition(branch);
-        FormulaList* right =(new FormulaList(cKequalV))->cons(nfK)->cons(condition_with_iteration);
+    Formula* condition_with_iteration = relativePathCondition(branch);
+    FormulaList* right =(new FormulaList(cKequalV))->cons(nfK)->cons(condition_with_iteration);
         
 	Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
 							new JunctionFormula(AND, right));
