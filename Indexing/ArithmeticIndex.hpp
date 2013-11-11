@@ -12,8 +12,6 @@
 
 #include "Kernel/Theory.hpp"
 
-#include "Kernel/Algebra/ArithmeticKB.hpp"
-
 #include "Index.hpp"
 
 namespace Indexing {
@@ -22,7 +20,6 @@ namespace Indexing {
 
 using namespace Lib;
 using namespace Kernel;
-using namespace Kernel::Algebra;
 
 class ConstraintDatabase
 : public ArithmeticKB

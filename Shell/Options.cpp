@@ -255,6 +255,7 @@ const char* Options::Constants::_optionNames[] = {
   "show_preprocessing_formulas",
   "show_skolemisations",
   "show_symbol_elimination",
+  "show_theory_axioms",
   "simulated_time_limit",
   "sine_depth",
   "sine_generality_threshold",
@@ -908,6 +909,7 @@ Options::Options ()
   _showPreprocessingFormulas(false),
   _showSkolemisations(false),
   _showSymbolElimination(false),
+  _showTheoryAxioms(false),
   _simulatedTimeLimit(0),
   _sineDepth(0),
   _sineGeneralityThreshold(0),
@@ -1530,6 +1532,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case SHOW_SYMBOL_ELIMINATION:
       _showSymbolElimination = onOffToBool(value,name);
+      return;
+    case SHOW_THEORY_AXIOMS:
+      _showTheoryAxioms = onOffToBool(value,name);
       return;
     case SIMULATED_TIME_LIMIT:
       _simulatedTimeLimit = readTimeLimit(value);
@@ -2352,6 +2357,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SHOW_SYMBOL_ELIMINATION:
     str << boolToOnOff(_showSymbolElimination);
+    return;
+  case SHOW_THEORY_AXIOMS:
+    str << boolToOnOff(_showTheoryAxioms);
     return;
   case SIMULATED_TIME_LIMIT:
     str << _simulatedTimeLimit/10;

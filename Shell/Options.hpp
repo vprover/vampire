@@ -193,6 +193,7 @@ public:
     SHOW_PREPROCESSING_FORMULAS,
     SHOW_SKOLEMISATIONS,
     SHOW_SYMBOL_ELIMINATION,
+    SHOW_THEORY_AXIOMS,
     SIMULATED_TIME_LIMIT,
     SINE_DEPTH,
     SINE_GENERALITY_THRESHOLD,
@@ -590,6 +591,7 @@ public:
   bool showPreprocessingFormulas() const { return _showPreprocessingFormulas; }
   bool showSkolemisations() const { return _showSkolemisations; }
   bool showSymbolElimination() const { return _showSymbolElimination; }
+  bool showTheoryAxioms() const { return _showTheoryAxioms; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval = newVal; }
   bool weightIncrement() const { return _weightIncrement; }
@@ -944,6 +946,7 @@ private:
   bool _showPreprocessingFormulas;
   bool _showSkolemisations;
   bool _showSymbolElimination;
+  bool _showTheoryAxioms;
   int _simulatedTimeLimit;
   unsigned _sineDepth;
   unsigned _sineGeneralityThreshold;

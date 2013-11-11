@@ -20,10 +20,6 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 
-#include "Kernel/Algebra/ArithmeticKB.hpp"
-#include "Kernel/Algebra/Constraint.hpp"
-#include "Kernel/Algebra/Polynomial.hpp"
-
 #include "Indexing/ArithmeticIndex.hpp"
 #include "Indexing/IndexManager.hpp"
 
@@ -40,7 +36,6 @@ namespace Inferences
 
 using namespace Lib;
 using namespace Kernel;
-using namespace Kernel::Algebra;
 using namespace Indexing;
 
 class InterpretedSimplifier::ClauseSimplifier

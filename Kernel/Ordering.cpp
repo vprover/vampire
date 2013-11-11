@@ -13,8 +13,6 @@
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
 
-#include "Test/DiffOrdering.hpp"
-
 #include "Problem.hpp"
 #include "KBO.hpp"
 #include "KBOForEPR.hpp"
@@ -95,7 +93,6 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   CALL("Ordering::create");
 
   if(prb.getProperty()->maxFunArity()==0) {
-//    s_instance=OrderingSP(new Test::DiffOrdering(OrderingSP(new KBOForEPR),OrderingSP(new KBO)));
     return new KBOForEPR(prb, opt);
   }
   else {
