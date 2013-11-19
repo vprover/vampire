@@ -387,8 +387,8 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
 }
     
 /**
- * Adds the extensionality axiom of arrays (of type array1 or array2): <br/>
- * ((!z)s(x,z) = s(y,z)) -> x=y
+ * Adds the extensionality axiom of arrays (of type array1 or array2): 
+ * ( (!z) select(x,z) = select(y,z)) -> x=y
  *
  * @author Laura Kovacs
  * @since 31/08/2012, Vienna
@@ -403,19 +403,19 @@ void TheoryAxioms::addArrayExtensionalityAxioms(Interpretation select, Interpret
   ASS(theory->isArrayOperation(select));
   ASS_EQ(theory->getArity(select),2);
               
-  unsigned s = env.signature->getInterpretingSymbol(select);
+  unsigned s = env.signature->getInterpretingSymbol(select); // function s stands for function select
   unsigned rangeSort = theory->getArrayOperationSort(select);
   unsigned arraySort = theory->getArrayOperationSort(store);
 
-  // * ((!z)s(x,z) = s(y,z)) -> x=y
+  // * ((!z) s(x,z) = s(y,z)) -> x=y
   TermList x(0,false);
   TermList y(1,false);
   TermList z(2,false);
 
-  TermList sxz(Term::create2(s,x,z));
-  TermList syz(Term::create2(s,y,z));
-  Formula* eq_xy = new AtomicFormula(Literal::createEquality(true,x,y,arraySort));
-  Literal* eq_sxz_syz = Literal::createEquality(true,sxz,syz,rangeSort);
+  TermList sxz(Term::create2(s,x,z)); //select(x,z)
+  TermList syz(Term::create2(s,y,z)); //select(y,z)
+  Formula* eq_xy = new AtomicFormula(Literal::createEquality(true,x,y,arraySort)); //x=y
+  Literal* eq_sxz_syz = Literal::createEquality(true,sxz,syz,rangeSort); //select(x,z)=select(y,z)
   Formula* Az_eq_sxz_syz = new QuantifiedFormula(FORALL,
 						 new Formula::VarList(2),
 						 new AtomicFormula(eq_sxz_syz));
