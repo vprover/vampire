@@ -37,9 +37,7 @@
 using namespace std;
 #endif
 
-namespace Inferences
-{
-
+using namespace Inferences;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -133,7 +131,7 @@ struct Superposition::BackwardResultFn
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
-    CALL("Superposition::ForwardResultFn::operator()");
+    CALL("Superposition::BackwardResultFn::operator()");
 
     if(_cl==arg.second.clause) {
       return 0;
@@ -396,7 +394,6 @@ Clause* Superposition::performSuperposition(
   unsigned eqLength = eqClause->length();
   int newAge=Int::max(rwClause->age(),eqClause->age())+1;
 
-
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
   int weightLimit = getWeightLimit(eqClause, rwClause, limits);
@@ -442,7 +439,6 @@ Clause* Superposition::performSuperposition(
   if(EqHelper::isEqTautology(tgtLitS)) {
     return 0;
   }
-
 
   unsigned newLength = rwLength+eqLength-1;
 
@@ -511,6 +507,4 @@ Clause* Superposition::performSuperposition(
   }
 
   return res;
-}
-
 }

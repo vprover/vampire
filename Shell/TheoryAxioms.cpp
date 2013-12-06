@@ -420,7 +420,8 @@ void TheoryAxioms::addArrayExtensionalityAxioms(Interpretation select, Interpret
 						 new Formula::VarList(2),
 						 new AtomicFormula(eq_sxz_syz));
   Formula* axiom = new BinaryFormula(IMP,Az_eq_sxz_syz,eq_xy);
-  addAndOutputTheoryUnit(new FormulaUnit(axiom, new Inference(Inference::THEORY),Unit::AXIOM),
+  addAndOutputTheoryUnit(new FormulaUnit(axiom,
+					 new Inference(Inference::THEORY),Unit::AXIOM),
 			 units);
 } // addArrayExtensionalityAxiom    
 
