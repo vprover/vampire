@@ -35,7 +35,7 @@ BaseType& SortHelper::getType(Term* t)
  */
 unsigned SortHelper::getResultSort(Term* t)
 {
-  CALL("SortHelper::getArgSort(Term*,unsigned)");
+  CALL("SortHelper::getResultSort(Term*)");
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
