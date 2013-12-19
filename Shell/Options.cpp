@@ -49,6 +49,7 @@ public:
   static const char* _lcmValues[];
   static const char* _satAlgValues[];
   static const char* _equalityProxyValues[];
+  static const char* _extensionalityInferenceValues[];
   static const char* _inputSyntaxValues[];
   static const char* _modeValues[];
   static const char* _ruleActivityValues[];
@@ -85,6 +86,7 @@ public:
   static NameArray lcmValues;
   static NameArray satAlgValues;
   static NameArray equalityProxyValues;
+  static NameArray extensionalityInferenceValues;
   static NameArray inputSyntaxValues;
   static NameArray modeValues;
   static NameArray ruleActivityValues;
@@ -154,6 +156,7 @@ const char* Options::Constants::_optionNames[] = {
   "equality_propagation",
   "equality_proxy",
   "equality_resolution_with_deletion",
+  "extensionality_inference",
 
   "flatten_top_level_conjunctions",
   "forbidden_options",
@@ -403,6 +406,7 @@ int Options::Constants::shortNameIndexes[] = {
 
   EQUALITY_PROXY,
   EQUALITY_RESOLUTION_WITH_DELETION,
+  EXTENSIONALITY_INFERENCE,
 
   FORWARD_DEMODULATION,
   FUNCTION_DEFINITION_ELIMINATION,
@@ -541,6 +545,13 @@ const char* Options::Constants::_equalityProxyValues[] = {
   "on"};
 NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,
 						  sizeof(_equalityProxyValues)/sizeof(char*));
+
+const char* Options::Constants::_extensionalityInferenceValues[] = {
+  "add",
+  "off",
+  "replace"};
+NameArray Options::Constants::extensionalityInferenceValues(_extensionalityInferenceValues,
+						  sizeof(_extensionalityInferenceValues)/sizeof(char*));
 
 const char* Options::Constants::_ruleActivityValues[] = {
   "input_only",
@@ -795,6 +806,7 @@ Options::Options ()
   _equalityProxy(EP_OFF), 
   _equalityResolutionWithDeletion(RA_INPUT_ONLY),
   _equivalentVariableRemoval(true),
+  _extensionalityInference(EI_OFF),
   
   _flattenTopLevelConjunctions(false),
   _forceIncompleteness(false),
@@ -1153,6 +1165,9 @@ void Options::set(const char* name,const char* value, int index)
       if (_equalityResolutionWithDeletion==RA_ON) {
 	USER_ERROR("equality_resolution_with_deletion is not implemented for value \"on\"");
       }
+      return;
+    case EXTENSIONALITY_INFERENCE:
+      _extensionalityInference = (ExtensionalityInference)Constants::extensionalityInferenceValues.find(value);
       return;
 
     case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
@@ -2084,6 +2099,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case EQUALITY_RESOLUTION_WITH_DELETION:
     str << Constants::ruleActivityValues[_equalityResolutionWithDeletion];
+    return;
+  case EXTENSIONALITY_INFERENCE:
+    str << Constants::extensionalityInferenceValues[_extensionalityInference];
     return;
 
   case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
