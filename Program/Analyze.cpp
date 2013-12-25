@@ -47,11 +47,14 @@ void Analyze::analyze()
     lan.analyze();
     lan.runSEI();
   }
-
 }
 
-
-List<Unit* >* Analyze::getUnits(){
+/**
+ * AV: somethings is wrong with this function. It iterates over loops, but uses only the
+ * first loop. Also, in the previous version it did not return if there were no loops.
+ */
+List<Unit* >* Analyze::getUnits()
+{
   CALL("Analyze::getUnits");
   analyzeSubstatements(_program);
   cout << "Loops found: " << _loops.size() << "\n";
@@ -62,8 +65,9 @@ List<Unit* >* Analyze::getUnits(){
     lan.analyze();
     return lan.getUnits();
   }
+  return 0;
+} // getUnits
 
-}
 bool Analyze::checkForIf(Statement* statement)
 {
   CALL("Analyze::checkForIf");

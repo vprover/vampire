@@ -268,8 +268,6 @@ bool BDD::findTrivial(BDDNode* n, bool& areImplied, Stack<BDDNode*>& acc)
     //from this point haveTrueAside and haveFalseAside will be updated to
     //reflect situation on the next level
 
-    bool haveSkipper = false;
-
     while(que.front()!=0) {
       BDDNode* curr = que.pop_front();
       ASS(curr);
@@ -300,7 +298,6 @@ bool BDD::findTrivial(BDDNode* n, bool& areImplied, Stack<BDDNode*>& acc)
       }
       else {
 	ASS_L(curr->getVar(),currVar);
-	haveSkipper = true;
 
 	canBeImpliedTrue = false;
 	canBeImpliedFalse = false;

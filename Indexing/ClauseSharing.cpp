@@ -73,7 +73,7 @@ Clause* ClauseSharing::tryGet(Literal* const * lits, unsigned len)
 
   ClauseIterator variants=_index.retrieveVariants(lits, len);
   if(!variants.hasNext()) {
-    return false;
+    return 0;
   }
   Clause* res=variants.next();
   ASS(!variants.hasNext());

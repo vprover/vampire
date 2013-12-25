@@ -675,8 +675,8 @@ public:
   bool splitGoalOnly() const { return _splitGoalOnly; }
   bool splitInputOnly() const { return _splitInputOnly; }
   bool splitPositive() const { return _splitPositive; }
-  bool splitting() const { return _splitting; }
-  void setSplitting(bool newVal) { _splitting = newVal; }
+  SplittingMode splitting() const { return _splitting; }
+  void setSplitting(SplittingMode newVal) { _splitting = newVal; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
 
   unsigned sineDepth() const { return _sineDepth; }
@@ -961,7 +961,7 @@ private:
   bool _splitGoalOnly;
   bool _splitInputOnly;
   bool _splitPositive;
-  bool _splitting;
+  SplittingMode _splitting;
   SSplittingAddComplementary _ssplittingAddComplementary;
   SSplittingComponentSweeping _ssplittingComponentSweeping;
   bool _ssplittingCongruenceClosure;

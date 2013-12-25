@@ -416,6 +416,8 @@ void IGAlgorithm::doResolutionStep()
     switch(e.result.terminationReason) {
     case Statistics::REFUTATION:
     case Statistics::SATISFIABLE:
+    case Statistics::SAT_SATISFIABLE:
+    case Statistics::SAT_UNSATISFIABLE:
       throw;
     case Statistics::REFUTATION_NOT_FOUND:
     case Statistics::UNKNOWN:

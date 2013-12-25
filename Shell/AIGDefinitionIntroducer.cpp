@@ -275,7 +275,6 @@ void AIGDefinitionIntroducer::introduceName(unsigned aigStackIdx)
 {
   CALL("AIGDefinitionIntroducer::introduceName");
 
-  AIGRef a = getPreNamingAig(aigStackIdx);
   NodeInfo& ni = _refAIGInfos[aigStackIdx];
   ASS(!ni._hasName);
 
