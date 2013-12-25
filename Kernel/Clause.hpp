@@ -182,6 +182,9 @@ public:
   }
   void computeColor() const;
 
+  bool isExtensionality() const { return _extensionality; }
+  void setExtensionality(bool e) { _extensionality = e; }
+
   bool skip() const;
 
   unsigned getLiteralPosition(Literal* lit);
@@ -335,6 +338,10 @@ protected:
   mutable unsigned _weight;
   /** storage class */
   Store _store;
+
+  // BK: should this be changed to a bitfield?
+  bool _extensionality;
+  
   /** number of references to this clause by inference rules */
   unsigned _inferenceRefCnt;
   /** timestamp marking when has the clause been reduced or restored by a backtracking splitting most recently */

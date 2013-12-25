@@ -24,6 +24,8 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/PropositionalToBDDISE.hpp"
 
+#include "Saturation/ExtensionalityClauseContainer.hpp"
+
 #include "Limits.hpp"
 
 #if VDEBUG
@@ -190,6 +192,7 @@ protected:
   UnprocessedClauseContainer* _unprocessed;
   PassiveClauseContainer* _passive;
   ActiveClauseContainer* _active;
+  ExtensionalityClauseContainer* _extensionality;
 
   ScopedPtr<GeneratingInferenceEngine> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;

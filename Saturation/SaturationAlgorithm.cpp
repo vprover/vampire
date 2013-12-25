@@ -53,6 +53,8 @@
 #include "Inferences/Superposition.hpp"
 #include "Inferences/URResolution.hpp"
 
+#include "Saturation/ExtensionalityClauseContainer.hpp"
+
 #include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -131,6 +133,13 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
   _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
 
+  if (opt.extensionalityInference() != Options::EI_OFF) {
+    _extensionality = new ExtensionalityClauseContainer();
+    _passive->addedEvent.subscribe(_extensionality, &ExtensionalityClauseContainer::addIfExtensionality);
+  } else {
+    _extensionality = 0;
+  }
+  
   if (opt.maxWeight()) {
     _limits.setLimits(0,opt.maxWeight());
   }
@@ -1151,6 +1160,10 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     //and so we cannot modify them
     _postponedClauseRemovals.push(cl);
     return;
+  }
+
+  if (cl->isExtensionality()) {
+    _extensionality->remove(cl);
   }
 
   switch(cl->store()) {

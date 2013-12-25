@@ -259,6 +259,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
+         Saturation/ExtensionalityClauseContainer.o\
          Saturation/Limits.o\
          Saturation/LRS.o\
          Saturation/Otter.o\

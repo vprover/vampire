@@ -841,10 +841,9 @@ private:
   bool _equalityPropagation;
   EqualityProxy _equalityProxy;
   RuleActivity _equalityResolutionWithDeletion;
-
-  ExtensionalityInference _extensionalityInference;
-
   bool _equivalentVariableRemoval;
+  ExtensionalityInference _extensionalityInference;
+  
   bool _flattenTopLevelConjunctions;
   string _forbiddenOptions;
   bool _forceIncompleteness;
