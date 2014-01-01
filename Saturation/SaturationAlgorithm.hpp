@@ -80,6 +80,7 @@ public:
 
   ClauseIterator activeClauses();
   ClauseIterator passiveClauses();
+  ExtensionalityClauseIterator extensionalityClauses();
   size_t activeClauseCount();
   size_t passiveClauseCount();
 

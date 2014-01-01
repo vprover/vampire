@@ -40,6 +40,7 @@
 #include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
+#include "Inferences/ExtensionalitySubstitution.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
@@ -227,6 +228,11 @@ ClauseIterator SaturationAlgorithm::activeClauses()
 ClauseIterator SaturationAlgorithm::passiveClauses()
 {
   return _passive->iterator();
+}
+
+ExtensionalityClauseIterator SaturationAlgorithm::extensionalityClauses()
+{
+  return _extensionality->iterator();
 }
 
 size_t SaturationAlgorithm::activeClauseCount()
@@ -1553,6 +1559,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.unitResultingResolution()!=Options::URR_OFF) {
     gie->addFront(new URResolution());
   }
+  if (opt.extensionalityInference() == Options::EI_ADD) {
+    gie->addFront(new ExtensionalitySubstitution());
+  }
+  
   res->setGeneratingInferenceEngine(gie);
 
   res->setImmediateSimplificationEngine(createISE(prb, opt));

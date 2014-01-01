@@ -1,4 +1,5 @@
 #include "Kernel/Clause.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
@@ -11,24 +12,55 @@ namespace Saturation
  * in extensionality container for additional inferences.
  */
 void ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
+  Literal* varEq = 0;
+  
   for (Clause::Iterator ci(*c); ci.hasNext(); ) {
     Literal* l = ci.next();
 
     if (l->isTwoVarEquality() && l->isPositive()) {
-      cout << c->toString() << endl;
-      c->setExtensionality(true);
-      add(c);
+      if (varEq != 0)
+	return;
+
+      varEq = l;
+    }
+  }
+
+  if (varEq != 0) {
+    c->setExtensionality(true);
+    add(ExtensionalityClause(c, varEq, SortHelper::getEqualityArgumentSort(varEq)));
+  }
+}
+
+void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
+  ExtensionalityClauseList::push(c, _clauses);
+}
+
+void ExtensionalityClauseContainer::remove(Clause* c) {
+  ExtensionalityClauseList::DelIterator it(_clauses);
+  while(it.hasNext()) {
+    if (it.next()._clause == c) {
+      it.del();
       break;
     }
   }
 }
 
-void ExtensionalityClauseContainer::add(Clause* c) {
-  ClauseList::push(c, _clauses);
+ExtensionalityClauseIterator ExtensionalityClauseContainer::iterator() {
+  return pvi(ExtensionalityClauseList::Iterator(_clauses));
 }
 
-void ExtensionalityClauseContainer::remove(Clause* c) {
-  _clauses = _clauses->remove(c);
+void ExtensionalityClauseContainer::print (ostream& out) {
+  out << "#####################" << endl;
+  ExtensionalityClauseList::Iterator it(_clauses);
+  
+  while(it.hasNext()) {
+    ExtensionalityClause c = it.next();
+    out	<< c._clause->toString() << endl
+	<< c._literal->toString() << endl
+	<< c._sort << endl;
+  }
+
+  out << "#####################" << endl;
 }
 
 }

@@ -218,6 +218,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/DistinctEqualitySimplifier.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
+         Inferences/ExtensionalitySubstitution.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
          Inferences/ForwardDemodulation.o\
