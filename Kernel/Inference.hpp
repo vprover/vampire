@@ -168,6 +168,8 @@ public:
     EQUALITY_FACTORING,
     /** equality resolution inference */
     EQUALITY_RESOLUTION,
+    /** redundant inference with extensionality-like clause */
+    EXTENSIONALITY_SUBSTITUTION,
     /** forward demodulation inference */
     FORWARD_DEMODULATION,
     /** backward demodulation inference */

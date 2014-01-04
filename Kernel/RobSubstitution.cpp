@@ -781,6 +781,7 @@ SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
   if( !Literal::headersMatch(l1,l2,complementary) ) {
     return SubstIterator::getEmpty();
   }
+  // BK: matching sorts for equalities is already check above in Literal::headersMatch
   if( l1->isEquality() &&
       SortHelper::getEqualityArgumentSort(l1)!=SortHelper::getEqualityArgumentSort(l2) ) {
     //the sorts of equalities don't match

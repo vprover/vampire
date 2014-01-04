@@ -15,6 +15,7 @@
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "Indexing/Index.hpp"
@@ -36,6 +37,10 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+/**
+ * Functor, computing if an extensionality clause has the same sort as some
+ * given literal.
+ */
 struct ExtensionalitySubstitution::MatchingSortFn
 {
   MatchingSortFn(Literal* lit)
@@ -43,15 +48,19 @@ struct ExtensionalitySubstitution::MatchingSortFn
   DECL_RETURN_TYPE(bool);
   bool operator()(ExtensionalityClause extCl)
   {
-    return extCl._sort == _sort;
+    return extCl.sort == _sort;
   }
 private:
   unsigned _sort;
 };
 
-struct ExtensionalitySubstitution::SubstitutionsFn
+/**
+ * Given a literal, this functor returns all extensionality clauses which can be
+ * used in extensionality inference.
+ */
+struct ExtensionalitySubstitution::PairingFn
 {
-  SubstitutionsFn (ExtensionalitySubstitution& parent)
+  PairingFn (ExtensionalitySubstitution& parent)
   : _parent(parent) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, ExtensionalityClause> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
@@ -71,28 +80,78 @@ private:
   ExtensionalitySubstitution& _parent;
 };
 
-struct ExtensionalitySubstitution::ResultFn
+/**
+ * This functor computes the unifications between the positive equality of an
+ * extensionality clause and the matching negative equality in the given clause.
+ */
+struct ExtensionalitySubstitution::UnificationsFn
 {
-  ResultFn(Clause* cl) : _cl(cl) {}
-  DECL_RETURN_TYPE(Clause*);
+  UnificationsFn() { _subst = RobSubstitutionSP(new RobSubstitution()); }
+  DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> >);
   OWN_RETURN_TYPE operator()(pair<Literal*, ExtensionalityClause> arg)
   {
-    ExtensionalityClause extCl = arg.second;
     Literal* trmEq = arg.first;
-    Literal* varEq = extCl._literal;
-    
-    // TODO:
-    // 1. unify varEq and trmEq
-    // 2. build result clause
+    Literal* varEq = arg.second.literal;
 
-    NOT_IMPLEMENTED;
+    SubstIterator unifs = _subst->unifiers(varEq,0,trmEq,1,true);
+    if(!unifs.hasNext()) {
+      return OWN_RETURN_TYPE::getEmpty();
+    }
+    return pvi(pushPairIntoRightIterator(arg, unifs));
+  }
+private:
+  RobSubstitutionSP _subst;
+};
+
+/**
+ * Generate the result clause of an extensionality inference.
+ */
+struct ExtensionalitySubstitution::ResultFn
+{
+  ResultFn(Clause* cl) : _cl(cl), _cLen(cl->length()) {}
+  DECL_RETURN_TYPE(Clause*);
+  OWN_RETURN_TYPE operator()(pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> arg)
+  {
+    RobSubstitution* subst = arg.second;
+    Literal* skipLitGiven = arg.first.first;
+    Literal* skipLitExt = arg.first.second.literal;
+    Clause* extCl = arg.first.second.clause;
+    unsigned extLen = extCl->length();
+
+    unsigned newLength = _cLen + extLen - 2;
+    Inference* inf = new Inference2(Inference::EXTENSIONALITY_SUBSTITUTION, extCl, _cl);
+    Clause* res = new(newLength) Clause(newLength, _cl->inputType(), inf);
+
+    unsigned next = 0;
+
+    for(unsigned i = 0; i < extLen; i++) {
+      Literal* curr = (*extCl)[i];
+      if(curr != skipLitExt) {
+	(*res)[next++] = subst->apply(curr, 0);
+      }
+    }
+
+    for(unsigned i = 0; i < _cLen; i++) {
+      Literal* curr = (*_cl)[i];
+      if(curr != skipLitGiven) {
+	(*res)[next++] = subst->apply(curr, 1);
+      }
+    }
     
-    return 0;
+    ASS_EQ(next,newLength);
+
+    cout << subst->toString(true) << endl;
+    cout << extCl->toString() << endl
+	 << _cl->toString() << endl
+	 << res->toString() << endl;
+
+    return res;
   }
 private:
   Clause* _cl;
+  unsigned _cLen;
 };
-
+  
 ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
 {
   CALL("ExtensionalitySubstitution::generateClauses");
@@ -100,8 +159,10 @@ ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
   return pvi(
     getMappingIterator(
       getMapAndFlattenIterator(
-	Clause::Iterator(*premise),
-	SubstitutionsFn(*this)),
+	getMapAndFlattenIterator(
+	  Clause::Iterator(*premise),
+	  PairingFn(*this)),
+	UnificationsFn()),
       ResultFn(premise)));
 }
 

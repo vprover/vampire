@@ -28,7 +28,8 @@ public:
 
 private:
   struct MatchingSortFn;
-  struct SubstitutionsFn;
+  struct PairingFn;
+  struct UnificationsFn;
   struct ResultFn;
 
   ExtensionalityClauseContainer* _extClauses;

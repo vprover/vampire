@@ -8,10 +8,18 @@ namespace Saturation
 {
 
 /**
- * Check if clause has positive equality between variables. If so, track
- * in extensionality container for additional inferences.
+ * Check if clause has exactly one positive equality between variables.
+ * If so, track in extensionality container for additional inferences.
+ * 
+ * Intended to be called when clause is added to the passive container.
+ * Extensionality bit in clause is used to check if clause is already
+ * in extensionality container (reactivation) or has to be removed
+ * (deletion from search space).
  */
 void ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
+  if (c->isExtensionality())
+    return;
+  
   Literal* varEq = 0;
   
   for (Clause::Iterator ci(*c); ci.hasNext(); ) {
@@ -35,10 +43,13 @@ void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
   ExtensionalityClauseList::push(c, _clauses);
 }
 
+/**
+ * Remove clause from extensionality container.
+ */
 void ExtensionalityClauseContainer::remove(Clause* c) {
   ExtensionalityClauseList::DelIterator it(_clauses);
   while(it.hasNext()) {
-    if (it.next()._clause == c) {
+    if (it.next().clause == c) {
       it.del();
       break;
     }
@@ -55,9 +66,9 @@ void ExtensionalityClauseContainer::print (ostream& out) {
   
   while(it.hasNext()) {
     ExtensionalityClause c = it.next();
-    out	<< c._clause->toString() << endl
-	<< c._literal->toString() << endl
-	<< c._sort << endl;
+    out	<< c.clause->toString() << endl
+	<< c.literal->toString() << endl
+	<< c.sort << endl;
   }
 
   out << "#####################" << endl;
