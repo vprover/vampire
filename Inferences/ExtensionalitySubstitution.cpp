@@ -140,10 +140,10 @@ struct ExtensionalitySubstitution::ResultFn
     
     ASS_EQ(next,newLength);
 
-    cout << subst->toString(true) << endl;
+    /*cout << subst->toString(true) << endl;
     cout << extCl->toString() << endl
 	 << _cl->toString() << endl
-	 << res->toString() << endl;
+	 << res->toString() << endl;*/
 
     return res;
   }
@@ -160,7 +160,7 @@ ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
     getMappingIterator(
       getMapAndFlattenIterator(
 	getMapAndFlattenIterator(
-	  Clause::Iterator(*premise),
+	  premise->getSelectedLiteralIterator(),
 	  PairingFn(*this)),
 	UnificationsFn()),
       ResultFn(premise)));
