@@ -40,37 +40,59 @@ void ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
 }
 
 void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
-  ExtensionalityClauseList::push(c, _clauses);
+  if(c.sort == Sorts::SRT_INTEGER) {
+    c.clause->setExtensionality(false);
+    return;
+  }
+  ExtensionalityClauseList::push(c, _clausesBySort[c.sort]);
 }
 
 /**
  * Remove clause from extensionality container.
  */
 void ExtensionalityClauseContainer::remove(Clause* c) {
-  ExtensionalityClauseList::DelIterator it(_clauses);
-  while(it.hasNext()) {
-    if (it.next().clause == c) {
-      it.del();
-      break;
+  c->setExtensionality(false);
+  
+  for(size_t i = 0; i < _clausesBySort.size(); ++i) {
+    ExtensionalityClauseList::DelIterator it(_clausesBySort[i]);
+    while(it.hasNext()) {
+      if (it.next().clause == c) {
+	it.del();
+	break;
+      }
     }
   }
 }
 
-ExtensionalityClauseIterator ExtensionalityClauseContainer::iterator() {
-  return pvi(ExtensionalityClauseList::Iterator(_clauses));
+struct ExtensionalityClauseContainer::ActiveFilterFn
+{
+  ActiveFilterFn() {}
+  DECL_RETURN_TYPE(bool);
+  bool operator()(ExtensionalityClause extCl)
+  {
+    return extCl.clause->store() == Clause::ACTIVE;
+  }
+};
+
+ExtensionalityClauseIterator ExtensionalityClauseContainer::activeIterator(unsigned sort) {
+  return pvi(getFilteredIterator(
+	       ExtensionalityClauseList::Iterator(_clausesBySort[sort]),
+	       ActiveFilterFn()));
 }
 
 void ExtensionalityClauseContainer::print (ostream& out) {
   out << "#####################" << endl;
-  ExtensionalityClauseList::Iterator it(_clauses);
-  
-  while(it.hasNext()) {
-    ExtensionalityClause c = it.next();
-    out	<< c.clause->toString() << endl
-	<< c.literal->toString() << endl
-	<< c.sort << endl;
-  }
 
+  for(size_t i = 0; i < _clausesBySort.size(); ++i) {
+    ExtensionalityClauseList::Iterator it(_clausesBySort[i]);
+    while(it.hasNext()) {
+      ExtensionalityClause c = it.next();
+      out << c.clause->toString() << endl
+	  << c.literal->toString() << endl
+	  << c.sort << endl;
+    }
+  }
+  
   out << "#####################" << endl;
 }
 

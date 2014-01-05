@@ -230,11 +230,6 @@ ClauseIterator SaturationAlgorithm::passiveClauses()
   return _passive->iterator();
 }
 
-ExtensionalityClauseIterator SaturationAlgorithm::extensionalityClauses()
-{
-  return _extensionality->iterator();
-}
-
 size_t SaturationAlgorithm::activeClauseCount()
 {
   return _active->size();

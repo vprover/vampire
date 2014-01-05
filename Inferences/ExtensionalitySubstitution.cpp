@@ -37,56 +37,41 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-/**
- * Functor, computing if an extensionality clause has the same sort as some
- * given literal.
- */
-struct ExtensionalitySubstitution::MatchingSortFn
-{
-  MatchingSortFn(Literal* lit)
-  : _sort(SortHelper::getEqualityArgumentSort(lit)) {}
-  DECL_RETURN_TYPE(bool);
-  bool operator()(ExtensionalityClause extCl)
-  {
-    return extCl.sort == _sort;
-  }
-private:
-  unsigned _sort;
-};
+/////////////////   Forward Extensionality   //////////////////////
 
 /**
- * Given a literal, this functor returns all extensionality clauses which can be
- * used in extensionality inference.
+ * Functor for pairing negative selected literals of the given clause with all
+ * sort-matching extensionality clauses for forward extensionality inferences.
  */
-struct ExtensionalitySubstitution::PairingFn
+struct ExtensionalitySubstitution::ForwardPairingFn
 {
-  PairingFn (ExtensionalitySubstitution& parent)
-  : _parent(parent) {}
+  ForwardPairingFn (ExtensionalityClauseContainer* extClauses)
+  : _extClauses(extClauses) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, ExtensionalityClause> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
     if(!lit->isEquality() || lit->isPositive()) {
       return OWN_RETURN_TYPE::getEmpty();
     }
+
+    unsigned s = SortHelper::getEqualityArgumentSort(lit);
     
     return pvi(
       pushPairIntoRightIterator(
 	lit,
-	getFilteredIterator(
-	  _parent._salg->extensionalityClauses(),
-	  MatchingSortFn(lit))));
+	_extClauses->activeIterator(s)));
   }
 private:
-  ExtensionalitySubstitution& _parent;
+  ExtensionalityClauseContainer* _extClauses;
 };
 
 /**
  * This functor computes the unifications between the positive equality of an
  * extensionality clause and the matching negative equality in the given clause.
  */
-struct ExtensionalitySubstitution::UnificationsFn
+struct ExtensionalitySubstitution::ForwardUnificationsFn
 {
-  UnificationsFn() { _subst = RobSubstitutionSP(new RobSubstitution()); }
+  ForwardUnificationsFn() { _subst = RobSubstitutionSP(new RobSubstitution()); }
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> >);
   OWN_RETURN_TYPE operator()(pair<Literal*, ExtensionalityClause> arg)
   {
@@ -104,66 +89,187 @@ private:
 };
 
 /**
- * Generate the result clause of an extensionality inference.
+ * Generate the result clause of a forward extensionality inference.
  */
-struct ExtensionalitySubstitution::ResultFn
+struct ExtensionalitySubstitution::ForwardResultFn
 {
-  ResultFn(Clause* cl) : _cl(cl), _cLen(cl->length()) {}
+  ForwardResultFn(Clause* otherCl) : _otherCl(otherCl) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> arg)
   {
     RobSubstitution* subst = arg.second;
-    Literal* skipLitGiven = arg.first.first;
-    Literal* skipLitExt = arg.first.second.literal;
+    Literal* otherLit = arg.first.first;
     Clause* extCl = arg.first.second.clause;
-    unsigned extLen = extCl->length();
+    Literal* extLit = arg.first.second.literal;
 
-    unsigned newLength = _cLen + extLen - 2;
-    Inference* inf = new Inference2(Inference::EXTENSIONALITY_SUBSTITUTION, extCl, _cl);
-    Clause* res = new(newLength) Clause(newLength, _cl->inputType(), inf);
-
-    unsigned next = 0;
-
-    for(unsigned i = 0; i < extLen; i++) {
-      Literal* curr = (*extCl)[i];
-      if(curr != skipLitExt) {
-	(*res)[next++] = subst->apply(curr, 0);
-      }
-    }
-
-    for(unsigned i = 0; i < _cLen; i++) {
-      Literal* curr = (*_cl)[i];
-      if(curr != skipLitGiven) {
-	(*res)[next++] = subst->apply(curr, 1);
-      }
-    }
-    
-    ASS_EQ(next,newLength);
-
-    /*cout << subst->toString(true) << endl;
-    cout << extCl->toString() << endl
-	 << _cl->toString() << endl
-	 << res->toString() << endl;*/
-
-    return res;
+    return performExtensionalitySubstitution(extCl, extLit, _otherCl, otherLit, subst);
   }
 private:
-  Clause* _cl;
-  unsigned _cLen;
+  Clause* _otherCl;
 };
+
+/////////////////   Backward Extensionality   //////////////////////
+
+/**
+ * Functor for filtering negative equality literals of particular sort.
+ */
+struct ExtensionalitySubstitution::NegEqSortFn
+{
+  NegEqSortFn (unsigned sort) : _sort(sort) {}
+  DECL_RETURN_TYPE(bool);
+  OWN_RETURN_TYPE operator()(Literal* lit)
+  {
+    return lit->isEquality() && lit->isNegative() &&
+      SortHelper::getEqualityArgumentSort(lit) == _sort;
+  }
+private:
+  unsigned _sort;
+};
+
+/**
+ * Functor for filtering selected negative literals of particular sort (the sort
+ * of the given extensionality clause) in active clauses.
+ */
+struct ExtensionalitySubstitution::BackwardPairingFn
+{
+  BackwardPairingFn (unsigned sort) : _sort(sort) {}
+  DECL_RETURN_TYPE(VirtualIterator<pair<Clause*, Literal*> >);
+  OWN_RETURN_TYPE operator()(Clause* cl)
+  {
+    return pvi(
+      pushPairIntoRightIterator(
+	cl,
+	getFilteredIterator(
+	  cl->getSelectedLiteralIterator(),
+	  NegEqSortFn(_sort))));
+  }
+private:
+  unsigned _sort;
+};
+
+/**
+ * This functor computes the unifications between the positive equality of the
+ * given extensionality clause and a matching negative equality in some active
+ * clause.
+ */
+struct ExtensionalitySubstitution::BackwardUnificationsFn
+{
+  BackwardUnificationsFn(Literal* extLit)
+  : _extLit (extLit) { _subst = RobSubstitutionSP(new RobSubstitution()); }
+  DECL_RETURN_TYPE(VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> >);
+  OWN_RETURN_TYPE operator()(pair<Clause*, Literal*> arg)
+  {
+    Literal* otherLit = arg.second;
+    
+    SubstIterator unifs = _subst->unifiers(_extLit,0,otherLit,1,true);
+    if(!unifs.hasNext()) {
+      return OWN_RETURN_TYPE::getEmpty();
+    }
+    return pvi(pushPairIntoRightIterator(arg, unifs));
+  }
+private:
+  Literal* _extLit;
+  RobSubstitutionSP _subst;
+};
+
+/**
+ * Generate the result clause of a backward extensionality inference.
+ */
+struct ExtensionalitySubstitution::BackwardResultFn
+{
+  BackwardResultFn(Clause* extCl, Literal* extLit) : _extCl(extCl), _extLit(extLit) {}
+  DECL_RETURN_TYPE(Clause*);
+  OWN_RETURN_TYPE operator()(pair<pair<Clause*, Literal*>, RobSubstitution*> arg)
+  {
+    RobSubstitution* subst = arg.second;
+    Clause* otherCl = arg.first.first;
+    Literal* otherLit = arg.first.second;
+
+    return performExtensionalitySubstitution(_extCl, _extLit, otherCl, otherLit, subst);
+  }
+private:
+  Clause* _extCl;
+  Literal* _extLit;
+};
+
+/////////////////   Extensionality   //////////////////////
+
+Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
+  Clause* extCl, Literal* extLit,
+  Clause* otherCl, Literal* otherLit,
+  RobSubstitution* subst)
+{
+  unsigned extLen = extCl->length();
+  unsigned otherLen = otherCl->length();
+  
+  unsigned newLength = otherLen + extLen - 2;
+  Inference* inf = new Inference2(Inference::EXTENSIONALITY_SUBSTITUTION, extCl, otherCl);
+  Clause* res = new(newLength) Clause(newLength, otherCl->inputType(), inf);
+
+  unsigned next = 0;
+
+  for(unsigned i = 0; i < extLen; i++) {
+    Literal* curr = (*extCl)[i];
+    if(curr != extLit) {
+      (*res)[next++] = subst->apply(curr, 0);
+    }
+  }
+
+  for(unsigned i = 0; i < otherLen; i++) {
+    Literal* curr = (*otherCl)[i];
+    if(curr != otherLit) {
+      (*res)[next++] = subst->apply(curr, 1);
+    }
+  }
+    
+  ASS_EQ(next,newLength);
+
+  /*cout << subst->toString(true) << endl;
+    cout << extCl->toString() << endl
+    << otherCl->toString() << endl
+    << res->toString() << endl;*/
+
+  return res;
+}
   
 ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
 {
   CALL("ExtensionalitySubstitution::generateClauses");
 
-  return pvi(
-    getMappingIterator(
-      getMapAndFlattenIterator(
+  ClauseIterator backwardIterator;
+  
+  if(premise->isExtensionality()) {
+    Literal* extLit;
+    for (Clause::Iterator ci(*premise); ci.hasNext(); ) {
+      extLit = ci.next();
+      if (extLit->isTwoVarEquality() && extLit->isPositive())
+	break;
+    }
+
+    unsigned sort = SortHelper::getEqualityArgumentSort(extLit);
+
+    backwardIterator = pvi(
+      getMappingIterator(
 	getMapAndFlattenIterator(
-	  premise->getSelectedLiteralIterator(),
-	  PairingFn(*this)),
-	UnificationsFn()),
-      ResultFn(premise)));
+	  getMapAndFlattenIterator(
+	    _salg->activeClauses(),
+	    BackwardPairingFn(sort)),
+	  BackwardUnificationsFn(extLit)),
+	BackwardResultFn(premise, extLit)));
+  } else {
+    backwardIterator = ClauseIterator::getEmpty();
+  }
+  
+  return pvi(
+    getConcatenatedIterator(
+      getMappingIterator(
+	getMapAndFlattenIterator(
+	  getMapAndFlattenIterator(
+	    premise->getSelectedLiteralIterator(),
+	    ForwardPairingFn(_salg->getExtensionalityClauseContainer())),
+	  ForwardUnificationsFn()),
+	ForwardResultFn(premise)),
+      backwardIterator));
 }
 
 }

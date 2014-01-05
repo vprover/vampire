@@ -77,10 +77,12 @@ public:
 
   virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
   virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
+  ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
+    return _extensionality;
+  }
 
   ClauseIterator activeClauses();
   ClauseIterator passiveClauses();
-  ExtensionalityClauseIterator extensionalityClauses();
   size_t activeClauseCount();
   size_t passiveClauseCount();
 

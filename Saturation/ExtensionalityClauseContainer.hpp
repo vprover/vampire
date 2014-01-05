@@ -3,6 +3,10 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/Sorts.hpp"
+
+#include "Lib/Environment.hpp"
+
 namespace Saturation
 {
 
@@ -33,14 +37,18 @@ typedef VirtualIterator<ExtensionalityClause> ExtensionalityClauseIterator;
 class ExtensionalityClauseContainer
 {
 public:
-  ExtensionalityClauseContainer() {}
+  ExtensionalityClauseContainer() {
+    _clausesBySort.init(env.sorts->sorts(), 0); 
+  }
   void addIfExtensionality(Clause* c);
   void remove(Clause* c);
-  ExtensionalityClauseIterator iterator();
+  ExtensionalityClauseIterator activeIterator(unsigned sort);
   void print(ostream& o);
 private:
-  ExtensionalityClauseList* _clauses;
+  DArray<ExtensionalityClauseList*> _clausesBySort;
   void add(ExtensionalityClause c);
+
+  struct ActiveFilterFn;
 };
 
 }

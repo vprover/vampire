@@ -26,11 +26,19 @@ public:
   
   ClauseIterator generateClauses(Clause* premise);
 
+  static Clause* performExtensionalitySubstitution(
+    Clause* extCl, Literal* extLit,
+    Clause* otherCl, Literal* otherLit,
+    RobSubstitution* subst);
 private:
-  struct MatchingSortFn;
-  struct PairingFn;
-  struct UnificationsFn;
-  struct ResultFn;
+  struct ForwardPairingFn;
+  struct ForwardUnificationsFn;
+  struct ForwardResultFn;
+
+  struct NegEqSortFn;
+  struct BackwardPairingFn;
+  struct BackwardUnificationsFn;
+  struct BackwardResultFn;
 
   ExtensionalityClauseContainer* _extClauses;
 };
