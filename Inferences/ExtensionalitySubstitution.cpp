@@ -246,14 +246,12 @@ ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
 	break;
     }
 
-    unsigned sort = SortHelper::getEqualityArgumentSort(extLit);
-
     backwardIterator = pvi(
       getMappingIterator(
 	getMapAndFlattenIterator(
 	  getMapAndFlattenIterator(
 	    _salg->activeClauses(),
-	    BackwardPairingFn(sort)),
+	    BackwardPairingFn(extLit->twoVarEqSort())),
 	  BackwardUnificationsFn(extLit)),
 	BackwardResultFn(premise, extLit)));
   } else {

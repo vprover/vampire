@@ -10,6 +10,9 @@ namespace Saturation
 /**
  * Check if clause has exactly one positive equality between variables.
  * If so, track in extensionality container for additional inferences.
+ *
+ * In addition, no inequality of the same sort as X=Y is allowed to exclude
+ * "constructor" axioms. Maybe we need a more sophisticated check.
  * 
  * Intended to be called when clause is added to the passive container.
  * Extensionality bit in clause is used to check if clause is already
@@ -19,8 +22,11 @@ namespace Saturation
 void ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
   if (c->isExtensionality())
     return;
-  
+
+  static DArray<bool> negEqSorts(_sortCnt);
+  negEqSorts.init(_sortCnt, false);
   Literal* varEq = 0;
+  unsigned sort;
   
   for (Clause::Iterator ci(*c); ci.hasNext(); ) {
     Literal* l = ci.next();
@@ -29,21 +35,31 @@ void ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
       if (varEq != 0)
 	return;
 
+      sort = l->twoVarEqSort();
+      if (negEqSorts[sort])
+	return;
+
       varEq = l;
+    } else if (l->isEquality() && l->isNegative()) {
+      unsigned negEqSort = SortHelper::getEqualityArgumentSort(l);
+      if (varEq == 0)
+	negEqSorts[negEqSort] = true;
+      else if (sort == negEqSort)
+	return;
     }
   }
 
   if (varEq != 0) {
     c->setExtensionality(true);
-    add(ExtensionalityClause(c, varEq, SortHelper::getEqualityArgumentSort(varEq)));
+    add(ExtensionalityClause(c, varEq, sort));
   }
 }
 
 void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
-  if(c.sort == Sorts::SRT_INTEGER) {
-    c.clause->setExtensionality(false);
-    return;
-  }
+  //if(c.sort == Sorts::SRT_INTEGER) {
+  //  c.clause->setExtensionality(false);
+  //  return;
+  //}
   ExtensionalityClauseList::push(c, _clausesBySort[c.sort]);
 }
 

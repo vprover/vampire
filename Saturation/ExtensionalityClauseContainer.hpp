@@ -38,13 +38,15 @@ class ExtensionalityClauseContainer
 {
 public:
   ExtensionalityClauseContainer() {
-    _clausesBySort.init(env.sorts->sorts(), 0); 
+    _sortCnt = env.sorts->sorts();
+    _clausesBySort.init(_sortCnt, 0);
   }
   void addIfExtensionality(Clause* c);
   void remove(Clause* c);
   ExtensionalityClauseIterator activeIterator(unsigned sort);
   void print(ostream& o);
 private:
+  unsigned _sortCnt;
   DArray<ExtensionalityClauseList*> _clausesBySort;
   void add(ExtensionalityClause c);
 
