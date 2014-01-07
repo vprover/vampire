@@ -203,8 +203,10 @@ Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
   unsigned otherLen = otherCl->length();
   
   unsigned newLength = otherLen + extLen - 2;
+  Unit::InputType newInputType = Unit::getInputType(extCl->inputType(), otherCl->inputType());
   Inference* inf = new Inference2(Inference::EXTENSIONALITY_SUBSTITUTION, extCl, otherCl);
-  Clause* res = new(newLength) Clause(newLength, otherCl->inputType(), inf);
+  Clause* res = new(newLength) Clause(newLength, newInputType, inf);
+  // BK: Should new weight be computed like in superposition? Which statistics to keep?
 
   unsigned next = 0;
 
