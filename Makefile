@@ -209,7 +209,8 @@ VI_OBJ = Indexing/ArithmeticIndex.o\
 VIG_OBJ = InstGen/IGAlgorithm.o\
           InstGen/ModelPrinter.o
 
-VINF_OBJ=Inferences/BackwardDemodulation.o\
+VINF_OBJ=Inferences/ArrayTheoryISE.o\
+         Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
          Inferences/BDDMarkingSubsumption.o\
          Inferences/BinaryResolution.o\

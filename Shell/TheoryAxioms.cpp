@@ -13,6 +13,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/Sorts.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
@@ -388,14 +389,20 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
     
 /**
  * Adds the extensionality axiom of arrays (of type array1 or array2): 
- * ( (!z) select(x,z) = select(y,z)) -> x=y
+ * select(X,sk(X,Y)) != select(Y,sk(X,Y)) | X = Y
  *
  * @author Laura Kovacs
  * @since 31/08/2012, Vienna
  * @since 11/11/2013 Manchester, updates
  * @author Andrei Voronkov
+ * @since 05/01/2014 Vienna, add axiom in clause form (we need skolem function in other places)
+ * @author Bernhard Kragl
 */
-void TheoryAxioms::addArrayExtensionalityAxioms(Interpretation select, Interpretation store, UnitList*& units)
+void TheoryAxioms::addArrayExtensionalityAxioms(
+  Interpretation select,
+  Interpretation store,
+  unsigned skolemFn,
+  UnitList*& units)
 {
   CALL("TheoryAxioms::addArrayExtenstionalityAxioms");
         
@@ -403,25 +410,20 @@ void TheoryAxioms::addArrayExtensionalityAxioms(Interpretation select, Interpret
   ASS(theory->isArrayOperation(select));
   ASS_EQ(theory->getArity(select),2);
               
-  unsigned s = env.signature->getInterpretingSymbol(select); // function s stands for function select
+  unsigned sel = env.signature->getInterpretingSymbol(select);
   unsigned rangeSort = theory->getArrayOperationSort(select);
   unsigned arraySort = theory->getArrayOperationSort(store);
 
-  // * ((!z) s(x,z) = s(y,z)) -> x=y
   TermList x(0,false);
   TermList y(1,false);
-  TermList z(2,false);
-
-  TermList sxz(Term::create2(s,x,z)); //select(x,z)
-  TermList syz(Term::create2(s,y,z)); //select(y,z)
-  Formula* eq_xy = new AtomicFormula(Literal::createEquality(true,x,y,arraySort)); //x=y
-  Literal* eq_sxz_syz = Literal::createEquality(true,sxz,syz,rangeSort); //select(x,z)=select(y,z)
-  Formula* Az_eq_sxz_syz = new QuantifiedFormula(FORALL,
-						 new Formula::VarList(2),
-						 new AtomicFormula(eq_sxz_syz));
-  Formula* axiom = new BinaryFormula(IMP,Az_eq_sxz_syz,eq_xy);
-  addAndOutputTheoryUnit(new FormulaUnit(axiom, new Inference(Inference::THEORY),Unit::AXIOM),
-			 units);
+  
+  TermList sk(Term::create2(skolemFn, x, y)); //sk(x,y)
+  TermList sel_x_sk(Term::create2(sel,x,sk)); //select(x,sk(x,y))
+  TermList sel_y_sk(Term::create2(sel,y,sk)); //select(y,sk(x,y))
+  Literal* eq = Literal::createEquality(true,x,y,arraySort); //x = y
+  Literal* ineq = Literal::createEquality(false,sel_x_sk,sel_y_sk,rangeSort); //select(x,sk(x,y) != select(y,z)
+  
+  addTheoryNonUnitClause(units, eq, ineq);
 } // addArrayExtensionalityAxiom    
 
 /**
@@ -572,21 +574,25 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
   bool haveStoreArray2= prop->hasInterpretedOperation(Theory::STORE2_INT);
   
   if (haveStoreArray1) { //addArraySelectAxioms(Theory::SELECT1_INT,units);
-    addArrayExtensionalityAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, units);
+    unsigned sk = theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY1);
+    addArrayExtensionalityAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, sk, units);
     addArrayWriteAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, units);
     modified = true;
   }
   else if (haveSelectArray1) {
-    addArrayExtensionalityAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, units);
+    unsigned sk = theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY1);
+    addArrayExtensionalityAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, sk, units);
     modified = true;
   }
   if (haveStoreArray2) {//addArraySelectAxioms(Theory::SELECT1_INT,units);
-    addArrayExtensionalityAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, units);
+    unsigned sk = theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY2);
+    addArrayExtensionalityAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, sk, units);
     addArrayWriteAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, units);
     modified = true;
   }
   else if (haveSelectArray2) {
-    addArrayExtensionalityAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, units);
+    unsigned sk = theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY2);
+    addArrayExtensionalityAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, sk, units);
     modified = true;
   }
   return modified;

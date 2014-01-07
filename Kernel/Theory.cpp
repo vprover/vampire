@@ -11,6 +11,8 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
+#include "Shell/Skolem.hpp"
+
 #include "Signature.hpp"
 
 #include "Theory.hpp"
@@ -475,6 +477,7 @@ Theory* Theory::instance()
  * The constructor is private, since Theory is a singleton class.
  */
 Theory::Theory()
+  : _array1SkolemFunction(0), _array2SkolemFunction(0)
 {
 
 }
@@ -862,7 +865,47 @@ unsigned Theory::getArrayDomainSort(Interpretation i)
         }
 }
 
-    
+/**
+ * Get the number of the skolem function symbol used in the clause form of the
+ * array extensionality axiom (of particular sort).
+ *
+ * select(X,sk(X,Y)) != select(Y,sk(X,Y)) | X = Y
+ * 
+ * If the symbol does not exist yet, it is added to the signature. We use 0 to
+ * represent that the symbol not yet exists, assuming that at call time of this
+ * method, at least the array function are already in the signature.
+ *
+ * We want to have this function available e.g. in simplification rules.
+ */
+unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
+  unsigned* ptr;
+  Interpretation store;
+  Interpretation select;
+  
+  switch(sort) {
+  case Sorts::SRT_ARRAY1:
+    ptr = &_array1SkolemFunction;
+    store = Theory::STORE1_INT;
+    select = Theory::SELECT1_INT;
+    break;
+  case Sorts::SRT_ARRAY2:
+    ptr = &_array2SkolemFunction;
+    store = Theory::STORE2_INT;
+    select = Theory::SELECT2_INT;
+    break;
+  default:
+    ASSERTION_VIOLATION;
+  }
+
+  if (*ptr == 0) {
+    unsigned arraySort = getArrayOperationSort(store);
+    unsigned indexSort = theory->getArrayOperationSort(select);
+    unsigned params[] = {arraySort, arraySort};
+    *ptr = Shell::Skolem::addSkolemFunction(2, params, indexSort, "arrayDiff");
+  }
+
+  return *ptr;
+}
 
     
 /**

@@ -27,15 +27,10 @@ using namespace Inferences;
 ArrayTermTransformer::ArrayTermTransformer() :
 	_select1Functor(env.signature->getInterpretingSymbol(Theory::SELECT1_INT)),
 	_store1Functor(env.signature->getInterpretingSymbol(Theory::STORE1_INT)),
-	_array1Sort(theory->getArrayOperationSort(Theory::STORE1_INT)),
-	_intSort(theory->getArrayOperationSort(Theory::SELECT1_INT))
-//_array1Sort(env.signature->getFunction(_store1Functor)->fnType()->result())
-{
-	unsigned params[] = {_array1Sort, _array1Sort};
-	// If this class is ever used, the skolem function from the array extensionality axiom
-	// has to be used here!!!
-	_arrayDiffSkolemFunction = Skolem::addSkolemFunction(2, params, _intSort, "arrayDiff");
-}
+	_array1Sort(Sorts::SRT_ARRAY1),
+	_intSort(Sorts::SRT_INTEGER),
+	_array1SkolemFunction(theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY1))
+{}
 
 ArrayTermTransformer::~ArrayTermTransformer() {}
 
@@ -103,7 +98,7 @@ Literal* ArrayTermTransformer::rewriteNegEqByExtensionality(Literal* l) {
 		// unsigned skolemFunction = Skolem::addSkolemFunction(0, 0, _intSort, "adiff");
 		// TermList skolemTerm(Term::create(skolemFunction, 0, 0));
 		TermList params[] = {*lhs, *rhs};
-		TermList skolemTerm(Term::create(_arrayDiffSkolemFunction, 2, params));
+		TermList skolemTerm(Term::create(_array1SkolemFunction, 2, params));
 		
 		TermList sel1(Term::create2(_select1Functor, *lhs, skolemTerm));
 		TermList sel2(Term::create2(_select1Functor, *rhs, skolemTerm));
