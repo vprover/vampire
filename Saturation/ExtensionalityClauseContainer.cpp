@@ -33,19 +33,19 @@ void ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
 
     if (l->isTwoVarEquality() && l->isPositive()) {
       if (varEq != 0)
-	return;
+        return;
 
       sort = l->twoVarEqSort();
       if (negEqSorts[sort])
-	return;
+        return;
 
       varEq = l;
     } else if (l->isEquality() && l->isNegative()) {
       unsigned negEqSort = SortHelper::getEqualityArgumentSort(l);
       if (varEq == 0)
-	negEqSorts[negEqSort] = true;
+        negEqSorts[negEqSort] = true;
       else if (sort == negEqSort)
-	return;
+        return;
     }
   }
 
@@ -73,8 +73,8 @@ void ExtensionalityClauseContainer::remove(Clause* c) {
     ExtensionalityClauseList::DelIterator it(_clausesBySort[i]);
     while(it.hasNext()) {
       if (it.next().clause == c) {
-	it.del();
-	break;
+        it.del();
+        break;
       }
     }
   }
@@ -92,8 +92,8 @@ struct ExtensionalityClauseContainer::ActiveFilterFn
 
 ExtensionalityClauseIterator ExtensionalityClauseContainer::activeIterator(unsigned sort) {
   return pvi(getFilteredIterator(
-	       ExtensionalityClauseList::Iterator(_clausesBySort[sort]),
-	       ActiveFilterFn()));
+               ExtensionalityClauseList::Iterator(_clausesBySort[sort]),
+               ActiveFilterFn()));
 }
 
 void ExtensionalityClauseContainer::print (ostream& out) {
@@ -104,8 +104,8 @@ void ExtensionalityClauseContainer::print (ostream& out) {
     while(it.hasNext()) {
       ExtensionalityClause c = it.next();
       out << c.clause->toString() << endl
-	  << c.literal->toString() << endl
-	  << c.sort << endl;
+          << c.literal->toString() << endl
+          << c.sort << endl;
     }
   }
   

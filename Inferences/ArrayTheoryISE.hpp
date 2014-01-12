@@ -13,30 +13,30 @@
 namespace Inferences {
 
 class ArrayTermTransformer
-	:  public TermTransformer
+  :  public TermTransformer
 {
 public:
-	ArrayTermTransformer();
-	~ArrayTermTransformer();
-	Literal* rewriteNegEqByExtensionality(Literal* l);
+  ArrayTermTransformer();
+  ~ArrayTermTransformer();
+  Literal* rewriteNegEqByExtensionality(Literal* l);
 protected:
-	TermList transformSubterm(TermList trm);
+  TermList transformSubterm(TermList trm);
 private:
-	unsigned _select1Functor;
-	unsigned _store1Functor;
-	unsigned _array1Sort;
-	unsigned _intSort;
-	unsigned _array1SkolemFunction;
+  unsigned _select1Functor;
+  unsigned _store1Functor;
+  unsigned _array1Sort;
+  unsigned _intSort;
+  unsigned _array1SkolemFunction;
 };
 
 class ArrayTheoryISE
-	: public ImmediateSimplificationEngine
+  : public ImmediateSimplificationEngine
 {
 public:
-	ArrayTheoryISE();
-	Clause* simplify(Clause* cl);
+  ArrayTheoryISE();
+  Clause* simplify(Clause* cl);
 private:
-	ArrayTermTransformer _transformer;
+  ArrayTermTransformer _transformer;
 };
 
 };

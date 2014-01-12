@@ -58,8 +58,8 @@ struct ExtensionalitySubstitution::ForwardPairingFn
     
     return pvi(
       pushPairIntoRightIterator(
-	lit,
-	_extClauses->activeIterator(s)));
+        lit,
+        _extClauses->activeIterator(s)));
   }
 private:
   ExtensionalityClauseContainer* _extClauses;
@@ -138,10 +138,10 @@ struct ExtensionalitySubstitution::BackwardPairingFn
   {
     return pvi(
       pushPairIntoRightIterator(
-	cl,
-	getFilteredIterator(
-	  cl->getSelectedLiteralIterator(),
-	  NegEqSortFn(_sort))));
+        cl,
+        getFilteredIterator(
+          cl->getSelectedLiteralIterator(),
+          NegEqSortFn(_sort))));
   }
 private:
   unsigned _sort;
@@ -226,10 +226,11 @@ Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
     
   ASS_EQ(next,newLength);
 
-  /*cout << subst->toString(true) << endl;
-    cout << extCl->toString() << endl
-    << otherCl->toString() << endl
-    << res->toString() << endl;*/
+  //cout << subst->toString(true) << endl;
+  /*cout << "######################" << endl
+       << extCl->toString() << endl
+       << otherCl->toString() << endl
+       << res->toString() << endl;*/
 
   return res;
 }
@@ -245,17 +246,17 @@ ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
     for (Clause::Iterator ci(*premise); ci.hasNext(); ) {
       extLit = ci.next();
       if (extLit->isTwoVarEquality() && extLit->isPositive())
-	break;
+        break;
     }
 
     backwardIterator = pvi(
       getMappingIterator(
-	getMapAndFlattenIterator(
-	  getMapAndFlattenIterator(
-	    _salg->activeClauses(),
-	    BackwardPairingFn(extLit->twoVarEqSort())),
-	  BackwardUnificationsFn(extLit)),
-	BackwardResultFn(premise, extLit)));
+        getMapAndFlattenIterator(
+          getMapAndFlattenIterator(
+            _salg->activeClauses(),
+            BackwardPairingFn(extLit->twoVarEqSort())),
+          BackwardUnificationsFn(extLit)),
+        BackwardResultFn(premise, extLit)));
   } else {
     backwardIterator = ClauseIterator::getEmpty();
   }
@@ -263,12 +264,12 @@ ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
   return pvi(
     getConcatenatedIterator(
       getMappingIterator(
-	getMapAndFlattenIterator(
-	  getMapAndFlattenIterator(
-	    premise->getSelectedLiteralIterator(),
-	    ForwardPairingFn(_salg->getExtensionalityClauseContainer())),
-	  ForwardUnificationsFn()),
-	ForwardResultFn(premise)),
+        getMapAndFlattenIterator(
+          getMapAndFlattenIterator(
+            premise->getSelectedLiteralIterator(),
+            ForwardPairingFn(_salg->getExtensionalityClauseContainer())),
+          ForwardUnificationsFn()),
+        ForwardResultFn(premise)),
       backwardIterator));
 }
 
