@@ -899,7 +899,7 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
 
   if (*ptr == 0) {
     unsigned arraySort = getArrayOperationSort(store);
-    unsigned indexSort = theory->getArrayOperationSort(select);
+    unsigned indexSort = theory->getArrayDomainSort(select);
     unsigned params[] = {arraySort, arraySort};
     *ptr = Shell::Skolem::addSkolemFunction(2, params, indexSort, "arrayDiff");
   }
