@@ -26,10 +26,9 @@ using namespace Inferences;
 
 ArrayTermTransformer::ArrayTermTransformer() :
   _select1Functor(env.signature->getInterpretingSymbol(Theory::SELECT1_INT)),
+  _select2Functor(env.signature->getInterpretingSymbol(Theory::SELECT2_INT)),
   _store1Functor(env.signature->getInterpretingSymbol(Theory::STORE1_INT)),
-  _array1Sort(Sorts::SRT_ARRAY1),
-  _intSort(Sorts::SRT_INTEGER),
-  _array1SkolemFunction(theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY1))
+  _store2Functor(env.signature->getInterpretingSymbol(Theory::STORE2_INT))
 {}
 
 ArrayTermTransformer::~ArrayTermTransformer() {}
@@ -42,10 +41,15 @@ TermList ArrayTermTransformer::transformSubterm(TermList trm)
   
   Term* term = trm.term();
   
-  if(term->functor() == _select1Functor) {
+  if (term->functor() == _select1Functor ||
+      term->functor() == _select2Functor)
+  {
     TermList* array = term->nthArgument(0);
     
-    if (array->isTerm() && array->term()->functor() == _store1Functor) {
+    if (array->isTerm() &&
+        (array->term()->functor() == _store1Functor ||
+         array->term()->functor() == _store2Functor))
+    {
       // r(w(A,I,V),I) => V
       Term* store = term->nthArgument(0)->term();
       
@@ -56,11 +60,16 @@ TermList ArrayTermTransformer::transformSubterm(TermList trm)
         return *store->nthArgument(2);
       }
     }
-  } else if(term->functor() == _store1Functor) {
+  } else if (term->functor() == _store1Functor ||
+             term->functor() == _store2Functor)
+  {
     TermList* array = term->nthArgument(0);
     TermList* value = term->nthArgument(2);
     
-    if (array->isTerm() && array->term()->functor() == _store1Functor) {
+    if (array->isTerm() &&
+        (array->term()->functor() == _store1Functor ||
+         array->term()->functor() == _store2Functor))
+    {
       // w(w(A,I,V1),I,V2) => w(A,I,V2)
       Term* store = array->term();
       TermList* outerIndex = term->nthArgument(1);
@@ -73,7 +82,10 @@ TermList ArrayTermTransformer::transformSubterm(TermList trm)
         args[2] = *value;
         return TermList(Term::create(term, args));
       }
-    } else if (value->isTerm() && value->term()->functor() == _select1Functor) {
+    } else if (value->isTerm() &&
+               (value->term()->functor() == _select1Functor ||
+                value->term()->functor() == _select2Functor))
+    {
       // w(A,I,r(A,I)) => A
       TermList* selectArray = value->term()->nthArgument(0);
       TermList* selectIndex = value->term()->nthArgument(1);
@@ -90,20 +102,35 @@ TermList ArrayTermTransformer::transformSubterm(TermList trm)
 }
 
 Literal* ArrayTermTransformer::rewriteNegEqByExtensionality(Literal* l) {
-  if (l->isEquality() && l->isNegative() && SortHelper::getEqualityArgumentSort(l) == _array1Sort) {
+  if (l->isEquality() && l->isNegative()) {
+    unsigned sort = SortHelper::getEqualityArgumentSort(l);
+    unsigned select;
+    unsigned valSort;
+
+    if (sort == Sorts::SRT_ARRAY1) {
+      select = _select1Functor;
+      valSort = Sorts::SRT_INTEGER;
+    } else if (sort == Sorts::SRT_ARRAY2) {
+      select = _select2Functor;
+      valSort = Sorts::SRT_ARRAY1;
+    } else {
+      return l;
+    }
+    
     //cout << l->toString() << endl;
     TermList* lhs = l->nthArgument(0);
     TermList* rhs = l->nthArgument(1);
     
-    // unsigned skolemFunction = Skolem::addSkolemFunction(0, 0, _intSort, "adiff");
+    // unsigned skolemFunction = Skolem::addSkolemFunction(0, 0, Sorts::SRT_INTEGER, "adiff");
     // TermList skolemTerm(Term::create(skolemFunction, 0, 0));
     TermList params[] = {*lhs, *rhs};
-    TermList skolemTerm(Term::create(_array1SkolemFunction, 2, params));
+    unsigned sk = theory->getArrayExtSkolemFunction(sort);
+    TermList skolemTerm(Term::create(sk, 2, params));
     
-    TermList sel1(Term::create2(_select1Functor, *lhs, skolemTerm));
-    TermList sel2(Term::create2(_select1Functor, *rhs, skolemTerm));
+    TermList sel1(Term::create2(select, *lhs, skolemTerm));
+    TermList sel2(Term::create2(select, *rhs, skolemTerm));
     
-    return Literal::createEquality(false, sel1, sel2, _intSort);
+    return Literal::createEquality(false, sel1, sel2, valSort);
   }
   
   return l;

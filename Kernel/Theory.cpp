@@ -794,6 +794,17 @@ bool Theory::isConversionOperation(Interpretation i)
   }
 }
 
+bool Theory::isArraySort(unsigned sort) {
+  CALL("Theory::isArraySort");
+  
+  switch(sort) {
+  case Sorts::SRT_ARRAY1:
+  case Sorts::SRT_ARRAY2:
+    return true;
+  default:
+    return false;
+  }
+}
     
 /**
  * Return true if interpreted function @c i is an array operation.
@@ -814,9 +825,33 @@ bool Theory::isArrayOperation(Interpretation i)
       return false;
   }
 }
-   
-    
-    
+
+unsigned Theory::getArraySelectFunctor(unsigned sort) {
+  CALL("Theory::getArraySelectFunctor");
+  
+  switch(sort) {
+  case Sorts::SRT_ARRAY1:
+    return env.signature->getInterpretingSymbol(Theory::SELECT1_INT);
+  case Sorts::SRT_ARRAY2:
+    return env.signature->getInterpretingSymbol(Theory::SELECT2_INT);
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
+unsigned Theory::getArrayStoreFunctor(unsigned sort) {
+  CALL("Theory::getArrayStoreFunctor");
+  
+  switch(sort) {
+  case Sorts::SRT_ARRAY1:
+    return env.signature->getInterpretingSymbol(Theory::STORE1_INT);
+  case Sorts::SRT_ARRAY2:
+    return env.signature->getInterpretingSymbol(Theory::STORE2_INT);
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
 /**
 * This function can be called for array operations 
 * it returns the range domain (the sort of the output) of select and store

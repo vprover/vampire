@@ -267,7 +267,10 @@ public:
     
   static FunctionType* getArrayOperationType(Interpretation i);
 
+  static bool isArraySort(unsigned sort);
   static bool isArrayOperation(Interpretation i);
+  static unsigned getArraySelectFunctor(unsigned sort);
+  static unsigned getArrayStoreFunctor(unsigned sort);
   static unsigned getArrayOperationSort(Interpretation i);
   static unsigned  getArrayDomainSort(Interpretation i);
 
