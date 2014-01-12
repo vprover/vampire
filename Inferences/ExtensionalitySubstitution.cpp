@@ -12,6 +12,7 @@
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
+// AV: why do you include ColorHelper here? 
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
@@ -29,9 +30,7 @@
 
 #include "ExtensionalitySubstitution.hpp"
 
-namespace Inferences
-{
-
+using namespace Inferences;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -42,6 +41,9 @@ using namespace Saturation;
 /**
  * Functor for pairing negative selected literals of the given clause with all
  * sort-matching extensionality clauses for forward extensionality inferences.
+ AV: comments, see below
+ * @since 05/01/2014
+ * @author Bernhard Kragl
  */
 struct ExtensionalitySubstitution::ForwardPairingFn
 {
@@ -50,7 +52,7 @@ struct ExtensionalitySubstitution::ForwardPairingFn
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, ExtensionalityClause> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
-    if(!lit->isEquality() || lit->isPositive()) {
+    if (!lit->isEquality() || lit->isPositive()) {
       return OWN_RETURN_TYPE::getEmpty();
     }
 
@@ -79,7 +81,7 @@ struct ExtensionalitySubstitution::ForwardUnificationsFn
     Literal* varEq = arg.second.literal;
 
     SubstIterator unifs = _subst->unifiers(varEq,0,trmEq,1,true);
-    if(!unifs.hasNext()) {
+    if (!unifs.hasNext()) {
       return OWN_RETURN_TYPE::getEmpty();
     }
     return pvi(pushPairIntoRightIterator(arg, unifs));
@@ -136,8 +138,7 @@ struct ExtensionalitySubstitution::BackwardPairingFn
   DECL_RETURN_TYPE(VirtualIterator<pair<Clause*, Literal*> >);
   OWN_RETURN_TYPE operator()(Clause* cl)
   {
-    return pvi(
-      pushPairIntoRightIterator(
+    return pvi(pushPairIntoRightIterator(
         cl,
         getFilteredIterator(
           cl->getSelectedLiteralIterator(),
@@ -162,7 +163,7 @@ struct ExtensionalitySubstitution::BackwardUnificationsFn
     Literal* otherLit = arg.second;
     
     SubstIterator unifs = _subst->unifiers(_extLit,0,otherLit,1,true);
-    if(!unifs.hasNext()) {
+    if (!unifs.hasNext()) {
       return OWN_RETURN_TYPE::getEmpty();
     }
     return pvi(pushPairIntoRightIterator(arg, unifs));
@@ -212,14 +213,14 @@ Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
 
   for(unsigned i = 0; i < extLen; i++) {
     Literal* curr = (*extCl)[i];
-    if(curr != extLit) {
+    if (curr != extLit) {
       (*res)[next++] = subst->apply(curr, 0);
     }
   }
 
   for(unsigned i = 0; i < otherLen; i++) {
     Literal* curr = (*otherCl)[i];
-    if(curr != otherLit) {
+    if (curr != otherLit) {
       (*res)[next++] = subst->apply(curr, 1);
     }
   }
@@ -235,16 +236,18 @@ Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
   return res;
 }
   
+// AV: comments?
 ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
 {
   CALL("ExtensionalitySubstitution::generateClauses");
 
   ClauseIterator backwardIterator;
   
-  if(premise->isExtensionality()) {
+  if (premise->isExtensionality()) {
     Literal* extLit;
     for (Clause::Iterator ci(*premise); ci.hasNext(); ) {
       extLit = ci.next();
+      // AV: style - all conditionals with parentheses
       if (extLit->isTwoVarEquality() && extLit->isPositive())
         break;
     }
@@ -261,6 +264,7 @@ ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
     backwardIterator = ClauseIterator::getEmpty();
   }
   
+  // AV: what does this expression do? - comments required
   return pvi(
     getConcatenatedIterator(
       getMappingIterator(
@@ -271,6 +275,4 @@ ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
           ForwardUnificationsFn()),
         ForwardResultFn(premise)),
       backwardIterator));
-}
-
-}
+} 

@@ -7,6 +7,7 @@
 #define __Multiprocessing__
 
 #include "Forwards.hpp"
+#include <unistd.h>
 
 namespace Lib {
 namespace Sys {
