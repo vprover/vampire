@@ -21,10 +21,10 @@
 
 #include "Indexing/ClauseVariantIndex.hpp"
 
-#include "Saturation/SWBSplitter.hpp"
-
 #include "Interpolants.hpp"
 #include "Options.hpp"
+
+#include "Saturation/SSplitter.hpp"
 
 #include "InterpolantMinimizer.hpp"
 
@@ -424,7 +424,7 @@ void InterpolantMinimizer::addFringeFormulas(UnitSpec u)
  * Class that splits a clause into components, faciliating also
  * sharing of the components
  */
-class InterpolantMinimizer::ClauseSplitter : protected Saturation::SWBSplitter
+class InterpolantMinimizer::ClauseSplitter : protected Saturation::SSplitter
 {
 public:
   ClauseSplitter() : _acc(0) {}

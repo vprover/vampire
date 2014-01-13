@@ -255,7 +255,6 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
 #         SAT/SingleWatchSAT.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
-         Saturation/BSplitter.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
@@ -266,9 +265,6 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SaturationAlgorithm.o\
          Saturation/Splitter.o\
          Saturation/SSplitter.o\
-         Saturation/SWBSplitter.o\
-         Saturation/SWBSplitterWithBDDs.o\
-         Saturation/SWBSplitterWithoutBDDs.o\
          Saturation/SymElOutput.o
 
 VS_OBJ = Shell/AIG.o\

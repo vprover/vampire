@@ -554,7 +554,7 @@ bool SSplitter::handleNonSplittable(Clause* cl)
       compCl->store()==Clause::PASSIVE || compCl->store()==Clause::UNPROCESSED, *compCl, compCl->store());
   if(nameRec.active && nameRec.component->store()==Clause::NONE) {
     //we need to make sure the clause naming the component is present in this case, as the
-    //following scenarion may lead to incompleteness:
+    //following scenario may lead to incompleteness:
     //  component C is selected and put to unprocessed
     //  clause C' syntactically equal to C is derived and put into simplification container
     //  component C is made redundant by C'
@@ -583,6 +583,7 @@ bool SSplitter::doSplitting(Clause* cl)
 
   static Stack<CompRec> comps;
   comps.reset();
+  // fills comps with components, returning if not splittable
   if(!getComponents(cl, comps, false)) {
     LOG_UNIT("sspl_nonsplits",cl);
     return handleNonSplittable(cl);
@@ -591,6 +592,7 @@ bool SSplitter::doSplitting(Clause* cl)
   static SATLiteralStack satClauseLits;
   satClauseLits.reset();
 
+  // If we've already made some choices then record these
   collectDependenceLits(cl->splits(), satClauseLits);
 
   ClauseList* namePremises = 0;
@@ -666,7 +668,8 @@ SplitLevel SSplitter::addNonGroundComponent(unsigned size, Literal* const * lits
   CALL("SSplitter::addNonGroundComponent");
   ASS_REP(_db.size()%2==0, _db.size());
   ASS_G(size,0);
-  ASS(getOptions().splitPositive() || forAll(getArrayishObjectIterator(lits, size), negPred(isGround))); //none of the literals can be ground
+  //ASS(getOptions().splitPositive() || forAll(getArrayishObjectIterator(lits, size), negPred(isGround))); //none of the literals can be ground
+  ASS(forAll(getArrayishObjectIterator(lits, size), negPred(isGround))); //none of the literals can be ground
 
   SATLiteral posLit(_sat2fo.createSpareSatVar(), true);
   SplitLevel compName = getNameFromLiteralUnsafe(posLit);
