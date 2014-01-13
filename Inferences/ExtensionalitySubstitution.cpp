@@ -6,22 +6,15 @@
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-// AV: why do you include ColorHelper here? 
-#include "Kernel/ColorHelper.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
-
-#include "Indexing/Index.hpp"
-#include "Indexing/LiteralIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -195,6 +188,10 @@ private:
 
 /////////////////   Extensionality   //////////////////////
 
+/**
+ * Generate clause by applying @c subst to all literals of @c extCl (except @c
+ * extLit) and all literals of @c otherCl (except @c otherLit).
+ */
 Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
   Clause* extCl, Literal* extLit,
   Clause* otherCl, Literal* otherLit,
@@ -228,15 +225,21 @@ Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
   ASS_EQ(next,newLength);
 
   //cout << subst->toString(true) << endl;
-  /*cout << "######################" << endl
-       << extCl->toString() << endl
-       << otherCl->toString() << endl
-       << res->toString() << endl;*/
-
+  
+  TRACE("inf_ext", tout
+        << "extensionality inference" << endl
+        << "ExtCl: " << extCl->toString() << endl
+        << "OthCl: " << otherCl->toString() << endl
+        << "Res:   " << res->toString() << endl;
+    );
+  
   return res;
 }
   
-// AV: comments?
+/**
+ * Construct iterator, returning the results for forward and backward
+ * extensionality on @c premise.
+ */
 ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
 {
   CALL("ExtensionalitySubstitution::generateClauses");
@@ -244,17 +247,26 @@ ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
   ClauseIterator backwardIterator;
   
   if (premise->isExtensionality()) {
+    // we have to search for the single positive variable equality
     Literal* extLit;
     for (Clause::Iterator ci(*premise); ci.hasNext(); ) {
       extLit = ci.next();
-      // AV: style - all conditionals with parentheses
-      if (extLit->isTwoVarEquality() && extLit->isPositive())
+      if (extLit->isTwoVarEquality() && extLit->isPositive()) {
         break;
+      }
     }
 
+    // Note: read comments inside out.
     backwardIterator = pvi(
+      // Construct result clause by applying substitution.
       getMappingIterator(
+        // For each <clause,literal> pair, we get 2 substitutions (by unifying
+        // X=Y from given extensionality clause and literal.
+        // Elements: <<clause,literal>,subst>
         getMapAndFlattenIterator(
+          // Get all <clause,literal> pairs, where clause is an active clause
+          // and literal a negative equality in clause of same sort as the given
+          // extensionality clause.
           getMapAndFlattenIterator(
             _salg->activeClauses(),
             BackwardPairingFn(extLit->twoVarEqSort())),
@@ -264,11 +276,21 @@ ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
     backwardIterator = ClauseIterator::getEmpty();
   }
   
-  // AV: what does this expression do? - comments required
+  // Note: read comments inside out.
   return pvi(
+    // Concatenate results from forward extensionality and (above constructed)
+    // backward extensionality.
     getConcatenatedIterator(
+      // Construct result clause by applying substitution.
       getMappingIterator(
+        // For each <literal,extClause> pair, we get 2 substitutions (by
+        // unifying literal and extClause.literal, i.e. the variable equality in
+        // extensionality clause).
+        // Elements: <<literal,extClause>,subst>
         getMapAndFlattenIterator(
+          // For each selected negative equality in given clause, find all
+          // active extensionality clauses of same sort.
+          // Elements: <literal,extClause>
           getMapAndFlattenIterator(
             premise->getSelectedLiteralIterator(),
             ForwardPairingFn(_salg->getExtensionalityClauseContainer())),

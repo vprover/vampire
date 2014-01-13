@@ -50,6 +50,7 @@ void ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
   }
 
   if (varEq != 0) {
+    LOG_UNIT("sa_ext_added", c);
     c->setExtensionality(true);
     add(ExtensionalityClause(c, varEq, sort));
   }
@@ -67,6 +68,7 @@ void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
  * Remove clause from extensionality container.
  */
 void ExtensionalityClauseContainer::remove(Clause* c) {
+  LOG_UNIT("sa_ext_removed", c);
   c->setExtensionality(false);
   
   for(size_t i = 0; i < _clausesBySort.size(); ++i) {
