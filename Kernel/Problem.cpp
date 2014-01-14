@@ -1,5 +1,5 @@
 /**
- * @file Problem.cpp
+ * @file Kernel/Problem.cpp
  * Implements class Problem.
  */
 
@@ -21,8 +21,7 @@
 #undef LOGGING
 #define LOGGING 0
 
-namespace Kernel
-{
+using namespace Kernel;
 
 /**
  * Create a problem object.
@@ -417,8 +416,4 @@ void Problem::assertValid()
     Unit* u = uit.next();
     ASSERT_VALID(*u);
   }
-}
-
-
-
 }

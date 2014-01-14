@@ -1,6 +1,6 @@
 /* 
- * File:   newTranslator.cpp
- * Author: ioan
+ * File: newTranslator.cpp
+ * Author: Ioan Dragan
  * 
  */
 
@@ -32,18 +32,15 @@
 
 #include "CollectionOfObjects.hpp"
 
-namespace Translator
-{
-
+using namespace Translator;
 using namespace llvm;
 using namespace std;
 
-newTranslator::newTranslator(::clang::Stmt* body, ::clang::ASTContext* CTX) :
-  decl_body(body), ctx(CTX), innerWhile(99)
+newTranslator::newTranslator(::clang::Stmt* body, ::clang::ASTContext* CTX)
+  : decl_body(body), ctx(CTX), innerWhile(99)
 {
   colect = new collectionOfObjects();
 }
-
 
 void newTranslator::VisitReturnStmt(const clang::ReturnStmt* stmt)
 {
@@ -54,8 +51,6 @@ void newTranslator::VisitReturnStmt(const clang::ReturnStmt* stmt)
 /**
  * treatSingleDeclaration: it treats the special case when the variables
  * are initialized in the declaration e.g int a=10;
- *
- *
  */
 void newTranslator::treatSingleDeclaration(const Decl* stmt)
 {
@@ -102,11 +97,9 @@ void newTranslator::treatSingleDeclaration(const Decl* stmt)
       if (flag)
 	colect->insertMainProgramStatement(ass);
 
-    } else {
-
-      /**
-       * TODO HANDLE CORRECLTLY THE CASE OF ARRAY DECLARATION AND VARIABLE DECLARATION
-       * */
+    }
+    else {
+      // TODO HANDLE CORRECLTLY THE CASE OF ARRAY DECLARATION AND VARIABLE DECLARATION
       /*	name = var_decl->getNameAsString();
        var_decl->dump();
        Program::VariableExpression* varE;
@@ -120,10 +113,7 @@ void newTranslator::treatSingleDeclaration(const Decl* stmt)
        }*/
     }
   }
-  /**
-   * TODO here one can add treatment for other types of declarations;
-   * */
-
+  // TODO here one can add treatment for other types of declarations;
 }
 
 void newTranslator::VisitDeclStmt(const DeclStmt* stmt)
@@ -1652,6 +1642,3 @@ std::string newTranslator::treatSimpleBinaryOperation(const clang::Expr* lhs,
         colect->insertFunctionApplication(numeUitat, fcapp);
   return numeUitat;
 }
-
-}
-/*namespace Translator*/

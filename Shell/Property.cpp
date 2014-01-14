@@ -667,8 +667,6 @@ bool Property::hasXEqualsY(const Clause* c)
  *
  * @warning Works correctly only with rectified formulas (closed or open)
  * @param f the formula
- * @param vc contains all universally quantified variables
- * @param polarity the polarity of this
  * @since 11/12/2004 Manchester, true and false added
  * @since 27/05/2007 flight Frankfurt-Lisbon, changed to new datastructures
  * @since 15/01/2014 Manchester, bug fix and improvement

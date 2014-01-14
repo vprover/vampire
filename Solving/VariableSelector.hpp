@@ -1,5 +1,5 @@
 /**
- * @file VariableSelector.hpp
+ * @file Solving/VariableSelector.hpp
  * Defines class VariableSelector.
  */
 

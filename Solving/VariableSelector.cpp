@@ -1,5 +1,5 @@
 /**
- * @file VariableSelector.cpp
+ * @file Solving/VariableSelector.cpp
  * Implements class VariableSelector.
  */
 #if GNUMP
@@ -22,9 +22,7 @@
 #undef LOGGING
 #define LOGGING 0
 
-namespace Solving
-{
-
+using namespace Solving;
 using namespace Lib;
 using namespace Shell;
 
@@ -230,7 +228,5 @@ VariableSelector* VariableSelector::create(Solver& s, Options& opt)
   return res;
 }
 
-
-}
 #endif //GNUMP
 

@@ -1,5 +1,5 @@
 /**
- * @file Problem.cpp
+ * @file Api/Problem.cpp
  * Implements class Problem.
  */
 
@@ -55,9 +55,7 @@
 
 #include "Parse/TPTP.hpp"
 
-namespace Api
-{
-
+using namespace Api;
 using namespace Lib;
 
 Problem::PreprocessingOptions::OptDataStore::OptDataStore()
@@ -1880,7 +1878,4 @@ AnnotatedFormulaIterator Problem::formulas()
   res.idata=&_data->forms();
   res.ready=true;
   return res;
-}
-
-
 }
