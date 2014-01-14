@@ -17,10 +17,6 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 
-namespace Lib {
-  class MultiCounter;
-}
-
 namespace Kernel {
   class Clause;
   class FormulaUnit;
@@ -177,8 +173,7 @@ public:
   explicit Property();
 
   static bool hasXEqualsY(const Clause* c);
-  static bool isXEqualsY(const Literal*,bool polarity);
-  static bool hasXEqualsY(const Formula*, MultiCounter&, int polarity);
+  static bool hasXEqualsY(const Formula*);
 
   // reading in properties of problems
   void scan(Unit*);
