@@ -55,7 +55,8 @@
 
 #include "Parse/TPTP.hpp"
 
-using namespace Api;
+namespace Api {
+
 using namespace Lib;
 
 Problem::PreprocessingOptions::OptDataStore::OptDataStore()
@@ -1879,3 +1880,5 @@ AnnotatedFormulaIterator Problem::formulas()
   res.ready=true;
   return res;
 }
+
+} // namespace Api

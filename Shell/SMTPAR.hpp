@@ -1,5 +1,5 @@
 /**
- * @file SMTParser.hpp
+ * @file SMTPAR.hpp
  * Defines class SMTParser for parsing SMT files.
  *
  * @since 22/01/2009 Manchester

@@ -1300,6 +1300,7 @@ void AIGTransformer::makeIdempotent(DHMap<Ref,Ref>& map, Stack<Ref>* finalDomain
  * If map is not acyclic, remove some rewrites to make it acyclic.
  * Domain of map must only contain AIGRefs with positive polarity.
  *
+ * @param map the map
  * @param finalDomain if non-zero, Refs that weren't eliminated from
  *                    the map wil be added into the stack.
  */
@@ -1892,9 +1893,12 @@ AIGRef AIGFormulaSharer::getAIG(Clause* cl)
  *
  * @param usedIdxAcc if non-zero, will receive indexes of rewrites that
  * 	  are being used. The indexes will be in topological order.
+ * @param cnt ???
+ * @param srcs ???
+ * @param tgts ???
  */
 void AIGFormulaSharer::addRewriteRules(unsigned cnt, Formula* const * srcs, Formula* const * tgts,
-    Stack<unsigned>* usedIdxAcc)
+				       Stack<unsigned>* usedIdxAcc)
 {
   CALL("AIGFormulaSharer::addRewriteRule");
   ASS(_rewrites.isEmpty());

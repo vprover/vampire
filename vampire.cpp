@@ -258,11 +258,10 @@ void outputResult(ostream& out) {
   case Statistics::REFUTATION:
     cout<<"unsat"<<endl;
     break;
-  case Statistics::TIME_LIMIT:
-  case Statistics::MEMORY_LIMIT:
-  case Statistics::REFUTATION_NOT_FOUND:
+#if VDEBUG
+  default:
     ASSERTION_VIOLATION; //these outcomes are not reachable with the current implementation
-    break;
+#endif
   }
   env.statistics->print(env.out());
 }

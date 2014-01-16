@@ -253,6 +253,7 @@ void AIGInliner::updateModifiedProblem(Problem& prb)
  * Try expanding atom using definitions
  *
  * @param atom Atom to be expanded. Must be an atom aig with positive polarity.
+ * @param res ???
  */
 bool AIGInliner::tryExpandAtom(AIGRef atom, PremRef& res)
 {

@@ -1,5 +1,5 @@
 /**
- * @file SMTParser.cpp
+ * @file SMTPAR.cpp
  * Implements class SMTParser
  *
  * @since 22/01/2009 Manchester
@@ -12,8 +12,7 @@
 
 using namespace Lib;
 using namespace Kernel;
-
-namespace Shell {
+using namespace Shell;
 
 /**
  * Initialise a SMT parser.
@@ -423,5 +422,3 @@ void SMTParser::term(SMTParser::Term** t)
   readToken();
 } // terms
 
-
-}

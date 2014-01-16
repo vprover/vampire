@@ -300,8 +300,6 @@ void ClauseCodeTree::RemovingLiteralMatcher::init(CodeOp* entry_, LitInfo* linfo
 }
 
 /**
- *
- *
  * The first operation of the CodeBlock containing @b op
  * must already be on the @b firstsInBlocks stack.
  */
@@ -329,11 +327,12 @@ bool ClauseCodeTree::removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeO
 ////////// LiteralMatcher
 
 /**
- * @param seekOnlySuccess if true, we will look only for immediate SUCCESS operations
- * 	and fail if there isn't any at the beginning (possibly also among alternatives).
+ * If @b seekOnlySuccess if true, we will look only for immediate SUCCESS operations
+ *  and fail if there isn't any at the beginning (possibly also among alternatives).
  */
 void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, CodeOp* entry_,
-	LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess)
+					  LitInfo* linfos_, size_t linfoCnt_,
+					  bool seekOnlySuccess)
 {
   CALL("ClauseCodeTree::LiteralMatcher::init");
   ASS_G(linfoCnt_,0);
@@ -471,9 +470,8 @@ void ClauseCodeTree::LiteralMatcher::recordMatch()
 
 /**
  * Initialize the ClauseMatcher to retrieve generalizetions
- * of the @b query_ clause
- *
- * @param sres if true, we perform subsumption resolution
+ * of the @b query_ clause.
+ * If @b sres_ if true, we perform subsumption resolution
  */
 void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, bool sres_)
 {
@@ -681,9 +679,10 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
 /**
  * Enter literal matching starting at @c entry.
  *
- * @params seekOnlySuccess if true, accept only SUCCESS operations
- * 	(this is to be used when all literals are matched so we want
- * 	to see just clauses that end at this point).
+ * @param entry the code tree node
+ * @param seekOnlySuccess if true, accept only SUCCESS operations
+ *   (this is to be used when all literals are matched so we want
+ *   to see just clauses that end at this point).
  */
 void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuccess)
 {

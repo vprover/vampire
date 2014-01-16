@@ -1,5 +1,5 @@
 /**
- * @file InterpolantMinimizer
+ * @file InterpolantMinimizer.cpp
  * Implements class InterpolantMinimizer.
  */
 
@@ -29,10 +29,8 @@
 #include "InterpolantMinimizer.hpp"
 
 
-namespace Shell
-{
-
-    using namespace Indexing;
+using namespace Shell;
+using namespace Indexing;
 
 
 /**
@@ -1019,7 +1017,4 @@ InterpolantMinimizer::~InterpolantMinimizer()
   CALL("InterpolantMinimizer::~InterpolantMinimizer");
 
   delete _splitter;
-}
-
-
 }

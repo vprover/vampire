@@ -191,6 +191,7 @@ protected:
   ScanAndApplyLiteralTransformer(Inference::Rule infRule) : _infRule(infRule) {}
 
   /**
+   * @param l the literal
    * @param premAcc premises of the transformation should be added on this stack
    */
   virtual Literal* apply(Literal* l, UnitStack& premAcc) = 0;

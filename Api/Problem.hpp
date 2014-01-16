@@ -427,6 +427,8 @@ public:
    *   generated clauses. If the value is 0, naming is disabled.
    * @param preserveEpr If true, names will not be introduced if it would
    *   lead to introduction of non-constant Skolem functions.
+   * @param predicateDefinitionInlining - use of predicate definition inlining
+   * @param unusedPredicateDefinitionRemoval - use of unused predicate definition removal
    */
   Problem clausify(int namingThreshold=8, bool preserveEpr=false, InliningMode predicateDefinitionInlining=INL_OFF,
       bool unusedPredicateDefinitionRemoval=true);
@@ -439,6 +441,8 @@ public:
    *   generated formulas. If the value is 0, naming is disabled.
    * @param preserveEpr If true, names will not be introduced if it would
    *   lead to introduction of non-constant Skolem functions.
+   * @param predicateDefinitionInlining - use of predicate definition inlining
+   * @param unusedPredicateDefinitionRemoval - use of unused predicate definition removal
    */
   Problem skolemize(int namingThreshold=8, bool preserveEpr=false, InliningMode predicateDefinitionInlining=INL_OFF,
       bool unusedPredicateDefinitionRemoval=true);
@@ -465,9 +469,9 @@ public:
    * It is caller's responsibility to call delete[] stageSpecs.
    *
    * Format of the string should be
-   * <stage1 spec>[;<stage2 spec>[;<stage3 spec>[;...]]]
-   * where <stageX spec> is
-   * <option1>=<value1>[:<option2>=<value2>[:...]]
+   * &lt;stage1 spec&gt;[;&lt;stage2 spec&gt;[;&lt;stage3 spec&gt;[;...]]]
+   * where &lt;stageX spec&gt; is
+   * &lt;option1&gt;=&lt;value1&gt;[:&lt;option2&gt;=&lt;value2&gt;[:...]]
    */
   void readStageSpecs(string stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs);
 

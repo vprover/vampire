@@ -1745,6 +1745,7 @@ void LoopAnalyzer::generateAxiomsForCounters()
  * @param min the minimal increment of the counter over all paths
  * @param max the maximal increment of the counter over all paths
  * @param gcd greatest common divisor of all increments of the counter over all paths
+ * @param branch ???
  *
  * Multiple modifications. Last ones are related to (*) c(x) >= c0 c(x) <= c0 + x they have
  * to be translated instead into x >= y => c(x) >= c(y)  c(x + y) <= c(x) + y
@@ -1757,186 +1758,189 @@ void LoopAnalyzer::generateAxiomsForCounters()
  */
 
 void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
-		int gcd, Formula* branch) {
-	CALL("LoopAnalyzer::generateCounterAxiom");
-	// value of the counter at position 0
-	TermList c(Term::createConstant(getIntConstant(name + Int::toString(0))));
-	unsigned fun = getIntFunction(name, 1);
-	// term x0
-	TermList x0;
-	x0.makeVar(0);
-	TermList cx0(Term::create(fun, 1, &x0));
-	Theory* theory = Theory::instance();
-	if (min == max) {
-		Clause* cls = new (1) Clause(1, Unit::ASSUMPTION,
-				new Inference(Inference::PROGRAM_ANALYSIS));
-		Literal* eq;
-		if (gcd == 1 || gcd == -1) {
-			// c +- x0
-			TermList sum(theory->fun2(gcd == 1 ? Theory::INT_PLUS : Theory::INT_MINUS, c, x0));
-			// create c(x0) = c0 + x_0
-			eq = createIntEquality(true, cx0, sum);
-		} else {
-			// gcd != 1
-			// term gcd*x0
-			TermList c_gcd(theory->representConstant(IntegerConstantType(gcd)));
-			TermList gcd_x0(theory->fun2(Theory::INT_MULTIPLY, c_gcd, x0));
-			// c +- gcd*x0
-			TermList sum(theory->fun2(gcd > 0 ? Theory::INT_PLUS : Theory::INT_MINUS, c, gcd_x0));
-			// create c(x0) = c + gcd*x_0
-			eq = createIntEquality(true, cx0, sum);
-		}
-		(*cls)[0] = eq;
-		LOG("lin_counter", "1 counter axiom: "<<cls->toString());
-		_units = _units->cons(cls);
-		return;
-	}
+					int gcd, Formula* branch) {
+  CALL("LoopAnalyzer::generateCounterAxiom");
+  // value of the counter at position 0
+  TermList c(Term::createConstant(getIntConstant(name + Int::toString(0))));
+  unsigned fun = getIntFunction(name, 1);
+  // term x0
+  TermList x0;
+  x0.makeVar(0);
+  TermList cx0(Term::create(fun, 1, &x0));
+  Theory* theory = Theory::instance();
+  if (min == max) {
+    Clause* cls = new (1) Clause(1, Unit::ASSUMPTION,
+				 new Inference(Inference::PROGRAM_ANALYSIS));
+    Literal* eq;
+    if (gcd == 1 || gcd == -1) {
+      // c +- x0
+      TermList sum(theory->fun2(gcd == 1 ? Theory::INT_PLUS : Theory::INT_MINUS, c, x0));
+      // create c(x0) = c0 + x_0
+      eq = createIntEquality(true, cx0, sum);
+    }
+    else {
+      // gcd != 1
+      // term gcd*x0
+      TermList c_gcd(theory->representConstant(IntegerConstantType(gcd)));
+      TermList gcd_x0(theory->fun2(Theory::INT_MULTIPLY, c_gcd, x0));
+      // c +- gcd*x0
+      TermList sum(theory->fun2(gcd > 0 ? Theory::INT_PLUS : Theory::INT_MINUS, c, gcd_x0));
+      // create c(x0) = c + gcd*x_0
+      eq = createIntEquality(true, cx0, sum);
+    }
+    (*cls)[0] = eq;
+    LOG("lin_counter", "1 counter axiom: "<<cls->toString());
+    _units = _units->cons(cls);
+    return;
+  }
+  
+  // min != max
+  // Generate the upper bound axiom c(x0) <= c + max*x_0
+  if (max == 0) { // c(x0) <= c
+    Literal* ineq = theory->pred2(Theory::INT_LESS_EQUAL, true, cx0, c);
+    Clause* cls = new (1) Clause(1, Unit::ASSUMPTION,
+				 new Inference(Inference::PROGRAM_ANALYSIS));
+    (*cls)[0] = ineq;
+    LOG("lin_counter", "2 counter axioms: "<<cls->toString());
+    _units = _units->cons(cls);
 
-	// min != max
-	// Generate the upper bound axiom c(x0) <= c + max*x_0
-	if (max == 0) { // c(x0) <= c
-		Literal* ineq = theory->pred2(Theory::INT_LESS_EQUAL, true, cx0, c);
-		Clause* cls = new (1) Clause(1, Unit::ASSUMPTION,
-				new Inference(Inference::PROGRAM_ANALYSIS));
-		(*cls)[0] = ineq;
-		LOG("lin_counter", "2 counter axioms: "<<cls->toString());
-		_units = _units->cons(cls);
+  }
+  else if (max == 1 || max == -1) { // c(x0) <= c +- x_0
+    TermList y;
+    y.makeVar(1);
+    TermList sum1(theory->fun2(max == 1 ? Theory::INT_PLUS : Theory::INT_MINUS,x0, y));
+    // create c(x+y)
+    TermList cXY(Term::create(fun, 1, &sum1));
+    TermList cX(Term::create(fun, 1, &x0));
+    TermList sum2(theory->fun2(max == 1 ? Theory::INT_PLUS : Theory::INT_MINUS, cX, y));
+    Literal* ineg = theory->pred2(Theory::INT_LESS_EQUAL, true, cXY, sum2);
+    _units = _units->cons(new FormulaUnit(new AtomicFormula(ineg),
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));
+    
+    LOG("lin_counter", "3 counter axioms: "<<ineg->toString());
+  }
+  else {
+    TermList c_max(theory->representConstant(IntegerConstantType(max)));
+    TermList max_x0(theory->fun2(Theory::INT_MULTIPLY, c_max, x0));
+    // c +- max*x0
+    TermList sum(theory->fun2(max > 0 ? Theory::INT_PLUS : Theory::INT_MINUS, c,
+			      max_x0));
+    
+    Literal* ineq = theory->pred2(Theory::INT_LESS_EQUAL, true, cx0, sum);
+    Clause* cls = new (1) Clause(1, Unit::ASSUMPTION,
+				 new Inference(Inference::PROGRAM_ANALYSIS));
+    (*cls)[0] = ineq;
+    LOG("lin_counter","4 counter axiom: "<<ineq->toString());
+    _units = _units->cons(cls);
+  }
 
-	} else if (max == 1 || max == -1) { // c(x0) <= c +- x_0
-		TermList y;
-		y.makeVar(1);
-		TermList sum1(theory->fun2(max == 1 ? Theory::INT_PLUS : Theory::INT_MINUS,x0, y));
-		// create c(x+y)
-		TermList cXY(Term::create(fun, 1, &sum1));
-		TermList cX(Term::create(fun, 1, &x0));
-		TermList sum2(theory->fun2(max == 1 ? Theory::INT_PLUS : Theory::INT_MINUS, cX, y));
-		Literal* ineg = theory->pred2(Theory::INT_LESS_EQUAL, true, cXY, sum2);
-		_units = _units->cons(new FormulaUnit(new AtomicFormula(ineg),
-				new Inference(Inference::PROGRAM_ANALYSIS),
-				Unit::ASSUMPTION));
-
-		LOG("lin_counter", "3 counter axioms: "<<ineg->toString());
-	} else {
-		TermList c_max(theory->representConstant(IntegerConstantType(max)));
-		TermList max_x0(theory->fun2(Theory::INT_MULTIPLY, c_max, x0));
-		// c +- max*x0
-		TermList sum(theory->fun2(max > 0 ? Theory::INT_PLUS : Theory::INT_MINUS, c,
-					max_x0));
-
-		Literal* ineq = theory->pred2(Theory::INT_LESS_EQUAL, true, cx0, sum);
-		Clause* cls = new (1) Clause(1, Unit::ASSUMPTION,
-				new Inference(Inference::PROGRAM_ANALYSIS));
-		(*cls)[0] = ineq;
-		LOG("lin_counter","4 counter axiom: "<<ineq->toString());
-		_units = _units->cons(cls);
-	}
-
-	// and the lower bound axiom c(x0) >= c + min*x_0
-	if (min == 0) { // c(x0) >= c
-		TermList yy;
-		yy.makeVar(1);
-		Literal* x0greq0 = theory->pred2(Theory::INT_GREATER_EQUAL, true, yy, x0);
-		TermList cx(Term::create(fun, 1, &yy));
-		Literal* ineqN = theory->pred2(Theory::INT_GREATER_EQUAL, true, cx, cx0);
-		BinaryFormula* res = new BinaryFormula(IMP, new AtomicFormula(x0greq0), new AtomicFormula(ineqN));
-		_units = _units->cons(new FormulaUnit(res, new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
-		LOG("lin_counter", "5 counter axiom: "<<res->toString());
-
-	} else if (min == 1 || min == -1) { // c(x0) >= c +- x_0
-		TermList yy;
-		yy.makeVar(1);
-		TermList sum1(theory->fun2(min == 1 ? Theory::INT_PLUS : Theory::INT_MINUS,
-					x0, yy));
-		TermList cX0(Term::create(fun, 1, &x0));
-		TermList cX0Y(Term::create(fun, 1, &sum1));
-		TermList sum2(theory->fun2(min == 1 ? Theory::INT_PLUS : Theory::INT_MINUS,
-					cX0, yy));
-		Literal* cX0YGsum = theory->pred2(Theory::INT_GREATER_EQUAL, true, cX0Y,
-										sum2);
-		LOG("lin_counter", "6 counter axiom: "<<cX0YGsum->toString());
-		_units = _units->cons(new FormulaUnit(new AtomicFormula(cX0YGsum),
-						new Inference(Inference::PROGRAM_ANALYSIS),
-						Unit::ASSUMPTION));
-	} else {
-		TermList c_min(theory->representConstant(IntegerConstantType(min)));
-		TermList min_x0(theory->fun2(Theory::INT_MULTIPLY, c_min, x0));
-		// c +- min*x0
-		TermList sum(theory->fun2(min > 0 ? Theory::INT_PLUS : Theory::INT_MINUS, c, min_x0));
-		Literal* ineq = theory->pred2(Theory::INT_GREATER_EQUAL, true, cx0, sum);
-		Clause* cls = new (1) Clause(1, Unit::ASSUMPTION, new Inference(Inference::PROGRAM_ANALYSIS));
-		(*cls)[0] = ineq;
-		LOG("lin_counter", "7 counter axiom: "<<ineq->toString());
-		_units = _units->cons(cls);
-	}
-
-	// generate density axioms
-	if (max == 1) {
-         //LK: now it is c0<=V<c -> (E K)(iter(K) & c(K) = V & path_condition(K))
+  // and the lower bound axiom c(x0) >= c + min*x_0
+  if (min == 0) { // c(x0) >= c
+    TermList yy;
+    yy.makeVar(1);
+    Literal* x0greq0 = theory->pred2(Theory::INT_GREATER_EQUAL, true, yy, x0);
+    TermList cx(Term::create(fun, 1, &yy));
+    Literal* ineqN = theory->pred2(Theory::INT_GREATER_EQUAL, true, cx, cx0);
+    BinaryFormula* res = new BinaryFormula(IMP, new AtomicFormula(x0greq0), new AtomicFormula(ineqN));
+    _units = _units->cons(new FormulaUnit(res, new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
+    LOG("lin_counter", "5 counter axiom: "<<res->toString());
+    
+  }
+  else if (min == 1 || min == -1) { // c(x0) >= c +- x_0
+    TermList yy;
+    yy.makeVar(1);
+    TermList sum1(theory->fun2(min == 1 ? Theory::INT_PLUS : Theory::INT_MINUS,
+			       x0, yy));
+    TermList cX0(Term::create(fun, 1, &x0));
+    TermList cX0Y(Term::create(fun, 1, &sum1));
+    TermList sum2(theory->fun2(min == 1 ? Theory::INT_PLUS : Theory::INT_MINUS,
+			       cX0, yy));
+    Literal* cX0YGsum = theory->pred2(Theory::INT_GREATER_EQUAL, true, cX0Y,
+				      sum2);
+    LOG("lin_counter", "6 counter axiom: "<<cX0YGsum->toString());
+    _units = _units->cons(new FormulaUnit(new AtomicFormula(cX0YGsum),
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));
+  }
+  else {
+    TermList c_min(theory->representConstant(IntegerConstantType(min)));
+    TermList min_x0(theory->fun2(Theory::INT_MULTIPLY, c_min, x0));
+    // c +- min*x0
+    TermList sum(theory->fun2(min > 0 ? Theory::INT_PLUS : Theory::INT_MINUS, c, min_x0));
+    Literal* ineq = theory->pred2(Theory::INT_GREATER_EQUAL, true, cx0, sum);
+    Clause* cls = new (1) Clause(1, Unit::ASSUMPTION, new Inference(Inference::PROGRAM_ANALYSIS));
+    (*cls)[0] = ineq;
+    LOG("lin_counter", "7 counter axiom: "<<ineq->toString());
+    _units = _units->cons(cls);
+  }
+  
+  // generate density axioms
+  if (max == 1) {
+    //LK: now it is c0<=V<c -> (E K)(iter(K) & c(K) = V & path_condition(K))
+    
+    cout << "Density axiom for " << name << "\n";
+    TermList I;
+    I.makeVar(3);
+    TermList J;
+    J.makeVar(2);
+    TermList V;
+    V.makeVar(1);
+    TermList K;
+    K.makeVar(0);
+    //TermList cI(Term::create(fun, 1, &I));
+    //TermList cJ(Term::create(fun, 1, &J));
+    TermList cK(Term::create(fun, 1, &K));
+    TermList cFinal(Term::createConstant(getIntConstant(name)));
+    
+    unsigned iter = getIntPredicate("iter", 1, true);
+    Literal* iterPredK = Literal::create1(iter, true, K);
+    Formula* nfK = (new AtomicFormula(iterPredK));
+    
+    //LK change I<=V< J into c0<=V<c
+    Formula* cgreaterV = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, cFinal, V));
+    Formula* Vgreaterc0 = new AtomicFormula(theory->pred2(Theory::INT_GREATER_EQUAL, true, V, c));
+    
+    FormulaList* left = (new FormulaList(Vgreaterc0))->cons(cgreaterV);
+    Formula* lhs = new JunctionFormula(AND, left);
+    Formula* cKequalV = new AtomicFormula(createIntEquality(true, cK, V));
+    
+    Formula* condition_with_iteration = relativePathCondition(branch);    
+    FormulaList* right = (new FormulaList(cKequalV))->cons(nfK)->cons(condition_with_iteration);
+    Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
+					 new JunctionFormula(AND, right));
+    LOG("lin_density","density axioms: " << lhs->toString() << " => "<< rhs->toString());
+    _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs),
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));
+  }
+  if (min == -1) {
+    //LK: now it is c<V<=c0 -> (E K)(iter(K) & c(K) = V & path_condition(K))
+    TermList V;
+    V.makeVar(1);
+    TermList K;
+    K.makeVar(0);
+    TermList cK(Term::create(fun, 1, &K));
+    TermList cFinal(Term::createConstant(getIntConstant(name)));
+    
+    unsigned iter = getIntPredicate("iter", 1, true);
+    Literal* iterPredK = Literal::create1(iter, true, K);
+    Formula* nfK = (new AtomicFormula(iterPredK));
         
-	cout<<"Density axiom for "<<name<<"\n";
-	TermList I;
-	I.makeVar(3);
-	TermList J;
-	J.makeVar(2);
-	TermList V;
-	V.makeVar(1);
-        TermList K;
-	K.makeVar(0);
-	//TermList cI(Term::create(fun, 1, &I));
-	//TermList cJ(Term::create(fun, 1, &J));
-	TermList cK(Term::create(fun, 1, &K));
-	TermList cFinal(Term::createConstant(getIntConstant(name)));
-
-	unsigned iter = getIntPredicate("iter", 1, true);
-	Literal* iterPredK = Literal::create1(iter, true, K);
-	Formula* nfK = (new AtomicFormula(iterPredK));
-		
-        //LK change I<=V< J into c0<=V<c
-	Formula* cgreaterV = new AtomicFormula(theory->pred2(Theory::INT_GREATER, true, cFinal, V));
-	Formula* Vgreaterc0 = new AtomicFormula(theory->pred2(Theory::INT_GREATER_EQUAL, true, V, c));
-		        
-	FormulaList* left = (new FormulaList(Vgreaterc0))->cons(cgreaterV);
-	Formula* lhs = new JunctionFormula(AND, left);
-	Formula* cKequalV = new AtomicFormula(createIntEquality(true, cK, V));
-	
-	Formula* condition_with_iteration = relativePathCondition(branch);
-        
-	FormulaList* right =(new FormulaList(cKequalV))->cons(nfK)->cons(condition_with_iteration);
-		        
-	Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
-					     new JunctionFormula(AND, right));
-	LOG("lin_density","density axioms: "<<lhs->toString()<<" => "<< rhs->toString());
-    _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs), new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
-
-	}
-	if (min == -1) {
-        //LK: now it is c<V<=c0 -> (E K)(iter(K) & c(K) = V & path_condition(K))
-        TermList V;
-	V.makeVar(1);
-        TermList K;
-	K.makeVar(0);
-	TermList cK(Term::create(fun, 1, &K));
-        TermList cFinal(Term::createConstant(getIntConstant(name)));
-
-        unsigned iter = getIntPredicate("iter", 1, true);
-	Literal* iterPredK = Literal::create1(iter, true, K);
-	Formula* nfK = (new AtomicFormula(iterPredK));
-        
-	Formula* clessV = new AtomicFormula(theory->pred2(Theory::INT_LESS, true, cFinal, V));
-	Formula* Vlessc0 = new AtomicFormula(theory->pred2(Theory::INT_LESS, true, V, c));
-	FormulaList* left = (new FormulaList(Vlessc0))->cons(clessV);//->cons(JgreaterI);
-	Formula* lhs = new JunctionFormula(AND, left);
-	Formula* cKequalV = new AtomicFormula(createIntEquality(true, cK, V));
+    Formula* clessV = new AtomicFormula(theory->pred2(Theory::INT_LESS, true, cFinal, V));
+    Formula* Vlessc0 = new AtomicFormula(theory->pred2(Theory::INT_LESS, true, V, c));
+    FormulaList* left = (new FormulaList(Vlessc0))->cons(clessV);//->cons(JgreaterI);
+    Formula* lhs = new JunctionFormula(AND, left);
+    Formula* cKequalV = new AtomicFormula(createIntEquality(true, cK, V));
     Formula* condition_with_iteration = relativePathCondition(branch);
     FormulaList* right =(new FormulaList(cKequalV))->cons(nfK)->cons(condition_with_iteration);
         
-	Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
-							new JunctionFormula(AND, right));
-	LOG("lin_density","density axioms: "<<lhs->toString()<<" => "<<rhs->toString());
-	_units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs), new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
-	}
+    Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
+					 new JunctionFormula(AND, right));
+    LOG("lin_density","density axioms: " << lhs->toString() << " => " << rhs->toString());
+    _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs), new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
+  }
 }
-
 
 unsigned LoopAnalyzer::getIntFunction(string name, unsigned arity, bool setColor)
 {
@@ -1947,10 +1951,9 @@ unsigned LoopAnalyzer::getIntFunction(string name, unsigned arity, bool setColor
   Signature::Symbol* symb = env.signature->getFunction(res);
   if (added) {
     env.colorUsed=true;
-    if (setColor)
-    {
-        symb->addColor(COLOR_LEFT);
-        symb->markIntroduced();
+    if (setColor) {
+      symb->addColor(COLOR_LEFT);
+      symb->markIntroduced();
     }
 
     static DArray<unsigned> domSorts;

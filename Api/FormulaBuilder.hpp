@@ -168,18 +168,19 @@ public:
    */
   Var var(const string& varName, Sort varSort);
 
-  /** create a function symbol using default sorts
-   *
-   * @param builtIn if true, symbol will not be eliminated during preprocessing
+  /**
+   * Create a function symbol using default sorts. If @b builtIn if true, the symbol will not be
+   * eliminated during preprocessing.
    *
    * @warning Functions of the same name and arity must have always
    * also the same type, even across different instances of the
-   * FormulaBuilder class. */
+   * FormulaBuilder class.
+   */
   Function function(const string& funName, unsigned arity, bool builtIn=false);
 
-  /** create a function symbol with specified range and domain sorts
-   *
-   * @param builtIn if true, symbol will not be eliminated during preprocessing
+  /**
+   * Create a function symbol with specified range and domain sorts. If @b builtIn is
+   * true, the symbol will not be eliminated during preprocessing.
    *
    * @warning Functions of the same name and arity must have always
    * also the same type, even across different instances of the
@@ -196,9 +197,9 @@ public:
    */
   Function integerConstant(string i);
 
-  /** create a predicate symbol using default sorts
-   *
-   * @param builtIn if true, symbol will not be eliminated during preprocessing
+  /**
+   * Create a predicate symbol using default sorts. If @b builtIn if true, the symbol will not be
+   * eliminated during preprocessing.
    *
    * @warning Predicates of the same name and arity must have always
    * also the same type, even across different instances of the
@@ -206,9 +207,8 @@ public:
   Predicate predicate(const string& predName, unsigned arity, bool builtIn=false);
 
   /**
-   * create a predicate symbol with specified domain sorts
-   *
-   * @param builtIn if true, symbol will not be eliminated during preprocessing
+   * Create a predicate symbol with specified domain sorts. If @b builtIn if true, the symbol will not be
+   * eliminated during preprocessing.
    *
    * @warning Predicates of the same name and arity must have always
    * also the same type, even across different instances of the

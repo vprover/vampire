@@ -184,6 +184,7 @@ void TransparentSolver::processUnprocessed()
 /**
  * @param eager if false, we return false after the first failure
  *        to move a clause elsewhere
+ * @param var ???
  */
 bool TransparentSolver::tryToSweepPure(unsigned var, bool eager)
 {

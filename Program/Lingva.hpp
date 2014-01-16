@@ -12,7 +12,7 @@
 #include <iostream>
 
 
-#include "Translator/MyASTConsumer.h"
+#include "Translator/MyASTConsumer.hpp"
 #include "llvm/Support/Host.h"
 
 #include "clang/Frontend/CompilerInstance.h"

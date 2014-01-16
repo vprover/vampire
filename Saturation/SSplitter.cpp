@@ -721,6 +721,8 @@ SplitLevel SSplitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& co
 /**
  * @param orig original clause used to determine input type of the component.
  *             Can be zero, in that case the input type is Unit::AXIOM
+ * @param comp ???
+ * @param compCl ???
  */
 SplitLevel SSplitter::getComponentName(const CompRec& comp, Clause* orig, Clause*& compCl)
 {
@@ -731,6 +733,9 @@ SplitLevel SSplitter::getComponentName(const CompRec& comp, Clause* orig, Clause
 /**
  * @param orig original clause used to determine input type of the component.
  *             Can be zero, in that case the input type is Unit::AXIOM
+ * @param size ???
+ * @param lits ???
+ * @param compCl ???
  */
 SplitLevel SSplitter::getComponentName(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl)
 {

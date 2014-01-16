@@ -1,5 +1,5 @@
 /**
- * @file Parser.hpp
+ * @file Parser_TKV.hpp
  * Defines class Parser for generic top-down parsers.
  *
  * @since 17/07/2004 Helsinki airport
