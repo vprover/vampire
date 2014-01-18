@@ -337,7 +337,7 @@ void TPTPPrinter::endOutput()
 }
 
 /**
- * Return the string representing the formula @param f.
+ * Return the string representing the formula f.
  */
 string TPTPPrinter::toString(const Formula* f)
 {

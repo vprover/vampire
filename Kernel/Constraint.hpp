@@ -1,5 +1,5 @@
 /**
- * @file Constraint.hpp
+ * @file Kernel/Constraint.hpp
  * Defines class Constraint.
  */
 

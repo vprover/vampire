@@ -333,6 +333,7 @@ void AIGRewriter::saturateOnTopSortedStack(const AIGStack& stack, RefMap& map)
  *
  * @param finalDomain if non-zero, Refs that weren't eliminated from
  *                    the map wil be added into the stack.
+ * @param map the map
  */
 void AIGRewriter::saturateMap(RefMap& map, Stack<Ref>* finalDomain)
 {

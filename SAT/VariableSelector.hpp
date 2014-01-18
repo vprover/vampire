@@ -1,5 +1,5 @@
 /**
- * @file VariableSelector.hpp
+ * @file SAT/VariableSelector.hpp
  * Defines class VariableSelector.
  */
 

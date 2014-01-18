@@ -1,12 +1,9 @@
-/*
- * MyASTConsumer.cpp
- *
- *      Author: ioan
+/**
+ * @file MyASTConsumer.cpp
+ * @author Ioan Dragan
  */
 
-
-#include "MyASTConsumer.h"
-#include "NewTranslator.h"
+#include <iostream>
 
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Basic/TargetOptions.h"
@@ -21,12 +18,12 @@
 #include "clang/Parse/ParseAST.h"
 #include "llvm/Support/Host.h"
 
+#include "MyASTConsumer.hpp"
+#include "NewTranslator.hpp"
 #include "Lib/List.hpp"
 #include "Program/Variable.hpp"
-#include "Translator/NewTranslator.h"
-#include <iostream>
 
-namespace Translator{
+using namespace Translator;
 
 void MyASTConsumer::Initialize(clang::ASTContext& context)
 {
@@ -82,5 +79,4 @@ void MyASTConsumer::runAnalysis(){
     USER_ERROR("There are fewer functions than you expect in the file! \n Check the function number you want to analyze!");
 
   _cc->RunRewriting();
-}
 }

@@ -11,34 +11,6 @@
 namespace SAT
 {
 
-///**
-// * @param varCnt maximal SAT variable number increased by one
-// * @param solver SATSolver object whose state should we sweep for literal
-// * 	equivalences. This solver should be in a satisfiable state without
-// * 	any assumptions. We will add assumptions to probe for equivalences
-// * 	and then retract them in the end.
-// */
-//ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver)
-//: _varCnt(varCnt),
-//  _interestingVarsSet(varCnt),
-//  _probingGroupIndex(0),
-//  _probingElementIndex(0),
-//  _conflictCountLimit(0),
-//  _candidateVarPolarities(varCnt),
-//  _candidateGroupIndexes(varCnt),
-//  _equivalentVars(varCnt),
-//  _solver(solver)
-//{
-//  CALL("ISSatSweeping::ISSatSweeping");
-//  ASS_EQ(solver.getStatus(),SATSolver::SATISFIABLE);
-//  ASS(!solver.hasAssumptions());
-//
-//  _interestingVars.loadFromIterator(getRangeIterator(1u,varCnt));
-//  _interestingVarsSet.insertFromIterator(getRangeIterator(1u,varCnt));
-//
-//  run();
-//}
-
 /**
  * @param varCnt maximal SAT variable number increased by one
  * @param solver SATSolver object whose state should we sweep for literal
@@ -47,9 +19,12 @@ namespace SAT
  * 	and then retract them in the end.
  * @param interestingVarIterator iterator on variables that are to be
  * 	examined for equivalences. Each variable can appear at most once.
+ * @param doRandomSimulation ???
+ * @param conflictLimit ???
+ * @param collectImplications ???
  */
 ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver, IntIterator interestingVarIterator,
-    bool doRandomSimulation, unsigned conflictLimit, bool collectImplications)
+			     bool doRandomSimulation, unsigned conflictLimit, bool collectImplications)
 : _doRandomSimulation(doRandomSimulation),
   _conflictUpperLimit(conflictLimit),
   _collectImplications(collectImplications),

@@ -297,6 +297,8 @@ void Property::scan(Clause* clause)
 /**
  * Scan a formula unit.
  * @since 27/05/2007 flight Manchester-Frankfurt
+ * @since 15/01/2014 Manchester, changed to use new hasXEqualsY
+ * @author Andrei Voronkov
  */
 void Property::scan(FormulaUnit* unit)
 {
@@ -311,8 +313,7 @@ void Property::scan(FormulaUnit* unit)
   Formula* f = unit->formula();
   scan(f);
   if (! hasProp(PR_HAS_X_EQUALS_Y)) {
-    MultiCounter vc;
-    if (hasXEqualsY(f,vc,1)) {
+    if (hasXEqualsY(f)) {
       addProp(PR_HAS_X_EQUALS_Y);
     }
   }
@@ -631,51 +632,33 @@ string Property::toString() const
  * True if the clause contains a positive literal X=Y.
  * @since 04/06/2004 Manchester
  * @since 27/05/2007 Frankfurt airport, changed to new datastructures
+ * @since 15/01/2014 Manchester, reimplemented
+ * @author Andrei Voronkov
  */
 bool Property::hasXEqualsY(const Clause* c)
 {
   CALL("Property::hasXEqualsY (const Clause*)");
 
   for (int i = c->length()-1; i >= 0; i--) {
-    if (isXEqualsY((*c)[i],true)) {
+    const Literal* lit = (*c)[i];
+    if (lit->isNegative()) {
+      continue;
+    }
+    if (!lit->isEquality()) {
+      continue;
+    }
+    const TermList* ts1 = lit->args();
+    if (!ts1->isVar()) {
+      continue;
+    }
+    const TermList* ts2 = ts1->next();
+    if (ts2->isVar() &&
+	ts1->var() != ts2->var()) {
       return true;
     }
   }
   return  false;
 } // Property::hasXEqualsY(const Clause*)
-
-
-/**
- * True is the atom has the form X=Y for X different from Y.
- * @since 22/05/2004 Manchester.
- * @since 27/05/2007 Frankfurt airport, changed to new datastructures
- */
-bool Property::isXEqualsY(const Literal* lit,bool polarity)
-{
-  CALL("Property::isXEqualsY");
-
-  if (! lit->isEquality()) {
-    return false;
-  }
-  if (lit->isPositive()) {
-    if (! polarity) {
-      return false;
-    }
-  }
-  else if (polarity) {
-    return false;
-  }
-
-  // lit is an equality of the right polarity
-  const TermList* ts1 = lit->args();
-  if (! ts1->isVar()) {
-    return false;
-  }
-  const TermList* ts2 = ts1->next();
-  return ts2->isVar() &&
-         ts1->var() != ts2->var();
-} // Property::isXEqualsY(const Literals&)
-
 
 /**
  * True if the subformula formula would have a literal X=Y
@@ -684,82 +667,144 @@ bool Property::isXEqualsY(const Literal* lit,bool polarity)
  *
  * @warning Works correctly only with rectified formulas (closed or open)
  * @param f the formula
- * @param vc contains all universally quantified variables
- * @param polarity the polarity of this
  * @since 11/12/2004 Manchester, true and false added
  * @since 27/05/2007 flight Frankfurt-Lisbon, changed to new datastructures
+ * @since 15/01/2014 Manchester, bug fix and improvement
+ * @author Andrei Voronkov
+ * @warning this function can be improved, but at a higher cost, it also does not treat let constructs
+ *          and if-then-else terms
  */
-bool Property::hasXEqualsY(const Formula* f, MultiCounter& vc, int polarity)
+bool Property::hasXEqualsY(const Formula* f)
 {
-  switch (f->connective()) {
-  case LITERAL:
-    return isXEqualsY(f->literal(),polarity);
+  CALL("Property::hasXEqualsY (const Formula*)");
 
-  case AND:
-  case OR:
-    {
-      FormulaList::Iterator fs(f->args());
-      while (fs.hasNext()) {
-	if (hasXEqualsY(fs.next(),vc,polarity)) {
+  MultiCounter posVars; // universally quantified variables in positive subformulas
+  MultiCounter negVars; // universally quantified variables in negative subformulas
+
+  Stack<const Formula*> forms;
+  Stack<int> pols; // polarities
+  forms.push(f);
+  pols.push(1);
+  while (!forms.isEmpty()) {
+    f = forms.pop();
+    int pol = pols.pop();
+
+    switch (f->connective()) {
+    case LITERAL:
+      {
+	const Literal* lit = f->literal();
+	if (lit->isNegative()) {
+	  break;
+	}
+	if (!lit->isEquality()) {
+	  break;
+	}
+	const TermList* ts1 = lit->args();
+	if (!ts1->isVar()) {
+	  break;
+	}
+	const TermList* ts2 = ts1->next();
+	if (!ts2->isVar()) {
+	  break;
+	}
+	Var v1 = ts1->var();
+	Var v2 = ts2->var();
+	if (v1 == v2) {
+	  break;
+	}
+	if (!lit->isPositive()) {
+	  pol = -pol;
+	}
+	if (pol >= 0 && posVars.get(v1) && posVars.get(v2)) {
+	  return true;
+	}
+	if (pol <= 0 && negVars.get(v1) && negVars.get(v2)) {
 	  return true;
 	}
       }
-      return false;
-    }
+      break;
 
-  case IMP:
-    return hasXEqualsY(f->left(),vc,-polarity) ||
-           hasXEqualsY(f->right(),vc,polarity);
-
-  case IFF:
-  case XOR:
-    return hasXEqualsY(f->left(),vc,0) ||
-           hasXEqualsY(f->right(),vc,0);
-
-  case NOT:
-    return hasXEqualsY(f->uarg(),vc,-polarity);
-
-  case FORALL:
-    // remember existentially quantified variables
-    if (polarity == -1) {
-      Formula::VarList::Iterator vs(f->vars());
-      while (vs.hasNext()) {
-	vc.inc(vs.next());
+    case AND:
+    case OR:
+      {
+	FormulaList::Iterator fs(f->args());
+	while (fs.hasNext()) {
+	  forms.push(fs.next());
+	  pols.push(pol);
+	}
       }
-    }
-    return hasXEqualsY(f->qarg(),vc,polarity);
+      break;
+
+    case IMP:
+      forms.push(f->left());
+      pols.push(-pol);
+      forms.push(f->right());
+      pols.push(pol);
+      break;
+
+    case IFF:
+    case XOR:
+      forms.push(f->left());
+      pols.push(0);
+      forms.push(f->right());
+      pols.push(0);
+      break;
+
+    case NOT:
+      forms.push(f->uarg());
+      pols.push(-pol);
+      break;
+
+    case FORALL:
+      // remember universally quantified variables
+      if (pol >= 0) {
+	Formula::VarList::Iterator vs(f->vars());
+	while (vs.hasNext()) {
+	  posVars.inc(vs.next());
+	}
+      }
+      forms.push(f->qarg());
+      pols.push(pol);
+      break;
 
   case EXISTS:
-    // remember existentially quantified variables
-    if (polarity == 1) {
-      Formula::VarList::Iterator vs(f->vars());
-      while (vs.hasNext()) {
-	vc.inc(vs.next());
+      // remember universally quantified variables
+      if (pol <= 0) {
+	Formula::VarList::Iterator vs(f->vars());
+	while (vs.hasNext()) {
+	  posVars.inc(vs.next());
+	}
       }
-    }
-    return hasXEqualsY(f->qarg(),vc,polarity);
+      forms.push(f->qarg());
+      pols.push(pol);
+      break;
 
-  case ITE:
-    return hasXEqualsY(f->condArg(),vc,0) ||
-           hasXEqualsY(f->thenArg(),vc,polarity) ||
-           hasXEqualsY(f->elseArg(),vc,polarity);
+    case ITE:
+      forms.push(f->condArg());
+      pols.push(0);
+      forms.push(f->thenArg());
+      pols.push(pol);
+      forms.push(f->elseArg());
+      pols.push(pol);
+      break;
 
-  case TERM_LET:
-  case FORMULA_LET:
-    //these two may introduce the X=Y literal but it would be too complicated to check for it
-    return true;
-
-  case TRUE:
-  case FALSE:
-    return false;
+    case TERM_LET:
+    case FORMULA_LET:
+      //these two may introduce the X=Y literal but it would be too complicated to check for it
+      break;
+      
+    case TRUE:
+    case FALSE:
+      break;
 
 #if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
+    default:
+      ASSERTION_VIOLATION;
 #endif
+    }
   }
-} // Property::hasXEqualsY(const Formula& f,...)
-
+  return false;
+} // Property::hasXEqualsY(const Formula* f)
 
 /**
  * Transforms the property to an SQL command asserting this

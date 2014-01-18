@@ -232,7 +232,7 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
   tabulationOpts.setSaturationAlgorithm(Options::TABULATION);
   Problem tabPrb(pvi( ClauseStack::Iterator(premiseClauses) ), true);
   Tabulation::TabulationAlgorithm talg(tabPrb, tabulationOpts);
-  MainLoopResult res = talg.run();
+  talg.run();
 
   LiteralIndexingStructure& lemmas = talg.getLemmaIndex();
 

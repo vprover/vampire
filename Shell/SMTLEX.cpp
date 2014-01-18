@@ -1,5 +1,5 @@
 /**
- * @file SMTLexer.cpp
+ * @file SMTLEX.cpp
  * Implements class SMTLexer
  *
  * @since 20/01/2009 Manchester
@@ -9,9 +9,7 @@
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
-
 #include "Lib/Exception.hpp"
-
 #include "SMTLEX.hpp"
 
 using namespace Shell;
@@ -24,7 +22,6 @@ SMTLexer::SMTLexer (istream& in)
   : Lexer (in)
 {
 } // SMTLexer::SMTLexer
-
 
 /**
  * Skip all whitespaces and comments. After this operation either
@@ -364,5 +361,3 @@ void SMTLexer::readUserValue (Token& token)
     }
   }
 } // SMTLexer::readUserValue
-
-

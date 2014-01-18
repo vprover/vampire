@@ -24,8 +24,7 @@
 
 #include "SMTLIB2.hpp"
 
-namespace Parse
-{
+using namespace Parse;
 
 SMTLIB2::SMTLIB2(const Options& opts, Mode mode)
 : _logicSet(false),
@@ -74,130 +73,100 @@ bool SMTLIB2::isEmpty(LExpr* list){
 }
 
 bool SMTLIB2::tryLispReading(LExpr* list)
-  {
-    CALL("SMTLIB2::tryLispReading");
+{
+  CALL("SMTLIB2::tryLispReading");
 
-    LispListReader ibRdr(list);
+  LispListReader ibRdr(list);
 
-    if (ibRdr.tryAcceptAtom("set-logic"))
-      {
-        if (_logicSet)
-          {
-            USER_ERROR("set-logic can appear only once in a problem");
-          }
-        _logicName = ibRdr.readAtom();
-        _logicSet = true;
-      }
-    //check for the information provided by user.
-    //store the information we want to keep track of.
-    else if (ibRdr.tryAcceptAtom("set-info"))
-      {
-        //this set-info can have user defined informations.
-        // predefined are: name, authors, status, version, reason-unknown.
-        if (ibRdr.tryAcceptAtom(":authors"))
-          {
-            ibRdr.readAtom();
-            ibRdr.acceptEOL();
-          }
-        else if (ibRdr.tryAcceptAtom(":status"))
-          {
-            //read the status string
-            _statusStr = ibRdr.readAtom();
-            ibRdr.acceptEOL();
-          }
-        else if (ibRdr.tryAcceptAtom(":source"))
-          {
-            _sourceInfo = ibRdr.readAtom();
-            ibRdr.acceptEOL();
-          }
-        else
-          {
-            //this handles the case where the user defines it's own information
-            ibRdr.readAtom();
-            ibRdr.readAtom();
-          }
-      }
-    //set the extra options
-    else if (ibRdr.tryAcceptAtom("set-option"))
-      {
-        //take care of this special options
-        //currently we do not handle anything.
-        //TODO add all the information from the Syntax file of smtlib2
-        ibRdr.readAtom();
-      }
-    /**Similar to function declaration, in smtlib2 we can define sorts
-     * */
-    else if (ibRdr.tryAcceptAtom("define-sort"))
-      {
-        LispListReader lir(ibRdr.readList());
-        while(lir.hasNext()){
-            readSort(lir.readAtom());
-        }
-
-      }
-    else if(ibRdr.tryAcceptAtom("declare-sort")){
-    	string sortName = ibRdr.readAtom();
-    	bool added;
-    	env.sorts->addSort(sortName, added);
-    	if(!added){
-    		throw Exception("Sort name must be unique");
-    	}
+  if (ibRdr.tryAcceptAtom("set-logic")) {
+    if (_logicSet) {
+      USER_ERROR("set-logic can appear only once in a problem");
     }
-    /* here we take care of function declaration
-     * in a similar manner with the one from smtlib1.2 :extra-funs
-     **/
-    else if (ibRdr.tryAcceptAtom("declare-fun"))
-      {
-        bool predicate=false;
-        LExprList* list(0);
-        LExpr* first = ibRdr.next();
-        list = list->addLast(first);
-        while(ibRdr.hasNext()){
-            LExpr* next = ibRdr.next();
-            if(!isEmpty(next)){
-              list = list->addLast(next);
-              predicate = true;
-            }
-        }
-        //if(predicate)
-          ;//readPredicate(list);
-        //else
-        readFunction(list);
-
-      }
-
-    /**
-     * This is where we actually read the formula.
-     * In case the problem is a benchmark, it means that only one assert can
-     * appear in a benchmark
-     * */
-    else if (ibRdr.tryAcceptAtom("assert"))
-      {
-        //just for benchmark we have to take care of having only one assertion
-        if(_lispFormula && _mode == READ_BENCHMARK){
-            USER_ERROR("two assert in a benchmark. This is not conform with standards");
-        }
-        _lispFormula = ibRdr.readNext();
-      }
-    /**
-     * In a benchmark check-sat can appear only once. If it appears multiple times
-     * an error must be raised
-     * */
-    else if (ibRdr.tryAcceptAtom("check-sat"))
-      {
-        return true;//ASS(ibRdr.hasNext());
-      }
-    /**
-     * This token signals the fact that we read the entire problem. The token
-     * must appear only once.
-     * */
-    else if (ibRdr.tryAcceptAtom("exit"))
-      {
-        ASS(!ibRdr.hasNext());
-      }
-
-    return true;
+    _logicName = ibRdr.readAtom();
+    _logicSet = true;
   }
+  //check for the information provided by user.
+  //store the information we want to keep track of.
+  else if (ibRdr.tryAcceptAtom("set-info")) {
+    //this set-info can have user defined informations.
+    // predefined are: name, authors, status, version, reason-unknown.
+    if (ibRdr.tryAcceptAtom(":authors")) {
+      ibRdr.readAtom();
+      ibRdr.acceptEOL();
+    }
+    else if (ibRdr.tryAcceptAtom(":status")) {
+      //read the status string
+      _statusStr = ibRdr.readAtom();
+      ibRdr.acceptEOL();
+    }
+    else if (ibRdr.tryAcceptAtom(":source")) {
+      _sourceInfo = ibRdr.readAtom();
+      ibRdr.acceptEOL();
+    }
+    else {
+      //this handles the case where the user defines it's own information
+      ibRdr.readAtom();
+      ibRdr.readAtom();
+    }
+  }
+  // set the extra options
+  else if (ibRdr.tryAcceptAtom("set-option")) {
+    //take care of this special options
+    //currently we do not handle anything.
+    //TODO add all the information from the Syntax file of smtlib2
+    ibRdr.readAtom();
+  }
+  // Similar to function declaration, in smtlib2 we can define sorts
+  else if (ibRdr.tryAcceptAtom("define-sort")) {
+    LispListReader lir(ibRdr.readList());
+    while (lir.hasNext()){
+      readSort(lir.readAtom());
+    }
+  }
+  else if(ibRdr.tryAcceptAtom("declare-sort")) {
+    string sortName = ibRdr.readAtom();
+    bool added;
+    env.sorts->addSort(sortName, added);
+    if (!added){
+      throw Exception("Sort name must be unique");
+    }
+  }
+  // here we take care of function declaration
+  // in a similar manner with the one from smtlib1.2 :extra-funs
+  else if (ibRdr.tryAcceptAtom("declare-fun")) {
+    LExprList* list(0);
+    LExpr* first = ibRdr.next();
+    list = list->addLast(first);
+    while (ibRdr.hasNext()){
+      LExpr* next = ibRdr.next();
+      if(!isEmpty(next)){
+	list = list->addLast(next);
+      }
+    }
+    readFunction(list);
+  }
+  // This is where we actually read the formula.
+  // In case the problem is a benchmark, it means that only one assert can
+  // appear in a benchmark
+  else if (ibRdr.tryAcceptAtom("assert")) {
+    //just for benchmark we have to take care of having only one assertion
+    if (_lispFormula && _mode == READ_BENCHMARK){
+      USER_ERROR("two assert in a benchmark. This is not conform with standards");
+    }
+    _lispFormula = ibRdr.readNext();
+  }
+  // In a benchmark check-sat can appear only once. If it appears multiple times
+  // an error must be raised
+  else if (ibRdr.tryAcceptAtom("check-sat")) {
+    return true;//ASS(ibRdr.hasNext());
+  }
+  // This token signals the fact that we read the entire problem. The token
+  // must appear only once.
+  else if (ibRdr.tryAcceptAtom("exit")) {
+    ASS(!ibRdr.hasNext());
+  }
+  return true;
+} 
 
 
 /**
@@ -1591,6 +1560,4 @@ Formula* SMTLIB2::nameFormula(Formula* f, string fletVarName)
   FormulaUnit* def = new FormulaUnit(df, new Inference(Inference::INPUT), Unit::AXIOM);
   UnitList::push(def, _definitions);
   return lhsF;
-}
-
 }

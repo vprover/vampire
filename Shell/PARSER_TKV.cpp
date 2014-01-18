@@ -1,5 +1,5 @@
 /**
- * @file Parser.cpp
+ * @file Parser_TKV.cpp
  * Implements class Parser
  *
  * @since 14/07/2004 Turku

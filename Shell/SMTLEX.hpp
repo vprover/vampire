@@ -1,5 +1,5 @@
 /**
- * @file SMTLexer.hpp
+ * @file SMTLEX.hpp
  * Defines class SMTLexer for lexical analysis of SMT files.
  *
  * @since 20/01/2009 Manchester

@@ -1,6 +1,6 @@
 /**
- * @file ConstraintReader.hpp
- * Defines class ConstraintReader.
+ * @file ConstraintReaderBack.hpp
+ * Defines class ConstraintReader and related classes
  */
 
 #ifndef __ConstraintReader__

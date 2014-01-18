@@ -1,5 +1,5 @@
 /**
- * @file VariableSelector.cpp
+ * @file SAT/VariableSelector.cpp
  * Implements class VariableSelector.
  */
 
@@ -8,11 +8,7 @@
 
 #include "VariableSelector.hpp"
 
-namespace SAT
-{
-
-/////////////////////
-// VariableSelector
+using namespace SAT;
 
 bool VariableSelector::isUndefined(unsigned var)
 {
@@ -20,10 +16,6 @@ bool VariableSelector::isUndefined(unsigned var)
 
   return _solver.isUndefined(var);
 }
-
-
-/////////////////////
-// ActiveVariableSelector
 
 bool ActiveVariableSelector::selectVariable(unsigned& var)
 {
@@ -143,5 +135,3 @@ bool RLCVariableSelector::selectVariable(unsigned& var)
   return ArrayActiveVariableSelector::selectVariable(var);
 }
 
-
-}

@@ -44,7 +44,7 @@ public:
   static const char* _demodulationValues[];
   static const char* _subsumptionValues[];
   static const char* _urResolutionValues[];
-  static const char* _splittingModeValues[];
+//  static const char* _splittingModeValues[];
   static const char* _fdeValues[];
   static const char* _lcmValues[];
   static const char* _satAlgValues[];
@@ -81,7 +81,7 @@ public:
   static NameArray demodulationValues;
   static NameArray subsumptionValues;
   static NameArray urResolutionValues;
-  static NameArray splittingModeValues;
+//  static NameArray splittingModeValues;
   static NameArray fdeValues;
   static NameArray lcmValues;
   static NameArray satAlgValues;
@@ -268,11 +268,11 @@ const char* Options::Constants::_optionNames[] = {
   "smtlib_flet_as_definition",
   "smtlib_introduce_aig_names",
   "sos",
-  "split_add_ground_negation",
+ // "split_add_ground_negation",
   "split_at_activation",
-  "split_goal_only",
-  "split_input_only",
-  "split_positive",
+ // "split_goal_only",
+ // "split_input_only",
+ // "split_positive",
   "splitting",
   "ssplitting_add_complementary",
   "ssplitting_component_sweeping",
@@ -355,16 +355,16 @@ const char* Options::Constants::_shortNames[] = {
   "s",
   "sa",
   "sac",
-  "sagn",
+  //"sagn",
   "sd",
   "sfv",
-  "sgo",
+  //"sgo",
   "sgt",
-  "sio",
+  //"sio",
   "sos",
   "sp",
   "spl",
-  "spo",
+  //"spo",
   "ss",
   "ssac",
   "sscc",
@@ -437,16 +437,16 @@ int Options::Constants::shortNameIndexes[] = {
   SELECTION,
   SATURATION_ALGORITHM,
   SPLIT_AT_ACTIVATION,
-  SPLIT_ADD_GROUND_NEGATION,
+  //SPLIT_ADD_GROUND_NEGATION,
   SINE_DEPTH,
   SUPERPOSITION_FROM_VARIABLES,
-  SPLIT_GOAL_ONLY,
+  //SPLIT_GOAL_ONLY,
   SINE_GENERALITY_THRESHOLD,
-  SPLIT_INPUT_ONLY,
+  //SPLIT_INPUT_ONLY,
   SOS,
   SYMBOL_PRECEDENCE,
   SPLITTING,
-  SPLIT_POSITIVE,
+  //SPLIT_POSITIVE,
   SINE_SELECTION,
 
   SSPLITTING_ADD_COMPLEMENTARY,
@@ -505,12 +505,12 @@ const char* Options::Constants::_urResolutionValues[] = {
 NameArray Options::Constants::urResolutionValues(_urResolutionValues,
 						 sizeof(_urResolutionValues)/sizeof(char*));
 
-const char* Options::Constants::_splittingModeValues[] = {
-  "input",
-  "off",
-  "sat"};
-NameArray Options::Constants::splittingModeValues(_splittingModeValues,
-					sizeof(_splittingModeValues)/sizeof(char*));
+//const char* Options::Constants::_splittingModeValues[] = {
+//  "input",
+//  "off",
+//  "sat"};
+//NameArray Options::Constants::splittingModeValues(_splittingModeValues,
+//					sizeof(_splittingModeValues)/sizeof(char*));
 
 const char* Options::Constants::_fdeValues[] = {
   "all",
@@ -931,12 +931,12 @@ Options::Options ()
   _smtlibFletAsDefinition(false),
   _smtlibIntroduceAIGNames(true),
   _sos(SOS_OFF),
-  _splitAddGroundNegation(true),
+ // _splitAddGroundNegation(true),
   _splitAtActivation(false),
-  _splitGoalOnly(false),
-  _splitInputOnly(true),
-  _splitPositive(false),
-  _splitting(SM_INPUT),
+ // _splitGoalOnly(false),
+ // _splitInputOnly(true),
+ // _splitPositive(false),
+  _splitting(true), // should splitting by on or off by default?
   _ssplittingAddComplementary(SSAC_GROUND),
   _ssplittingComponentSweeping(SSCS_ITERATED),
   _ssplittingCongruenceClosure(false),
@@ -1588,23 +1588,23 @@ void Options::set(const char* name,const char* value, int index)
     case SOS:
       _sos = (Sos)Constants::sosValues.find(value);
       return;
-    case SPLIT_ADD_GROUND_NEGATION:
-      _splitAddGroundNegation = onOffToBool(value,name);
-      return;
+//    case SPLIT_ADD_GROUND_NEGATION:
+//      _splitAddGroundNegation = onOffToBool(value,name);
+//      return;
     case SPLIT_AT_ACTIVATION:
       _splitAtActivation = onOffToBool(value,name);
       return;
-    case SPLIT_GOAL_ONLY:
-      _splitGoalOnly = onOffToBool(value,name);
-      return;
-    case SPLIT_INPUT_ONLY:
-      _splitInputOnly = onOffToBool(value,name);
-      return;
-    case SPLIT_POSITIVE:
-      _splitPositive = onOffToBool(value,name);
-      return;
+//    case SPLIT_GOAL_ONLY:
+//      _splitGoalOnly = onOffToBool(value,name);
+//      return;
+//    case SPLIT_INPUT_ONLY:
+//      _splitInputOnly = onOffToBool(value,name);
+//      return;
+//    case SPLIT_POSITIVE:
+//      _splitPositive = onOffToBool(value,name);
+//      return;
     case SPLITTING:
-      _splitting = (SplittingMode)Constants::splittingModeValues.find(value);
+      _splitting = onOffToBool(value,name);//(SplittingMode)Constants::splittingModeValues.find(value);
       return;
     case SSPLITTING_ADD_COMPLEMENTARY:
       _ssplittingAddComplementary = (SSplittingAddComplementary)Constants::sSplittingAddComplementaryValues.find(value);
@@ -2409,23 +2409,23 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SOS:
     str << Constants::sosValues[_sos];
     return;
-  case SPLIT_ADD_GROUND_NEGATION:
-    str << boolToOnOff(_splitAddGroundNegation);
-    return;
+//  case SPLIT_ADD_GROUND_NEGATION:
+//    str << boolToOnOff(_splitAddGroundNegation);
+//    return;
   case SPLIT_AT_ACTIVATION:
     str << boolToOnOff(_splitAtActivation);
     return;
-  case SPLIT_GOAL_ONLY:
-    str << boolToOnOff(_splitGoalOnly);
-    return;
-  case SPLIT_INPUT_ONLY:
-    str << boolToOnOff(_splitInputOnly);
-    return;
-  case SPLIT_POSITIVE:
-    str << boolToOnOff(_splitPositive);
-    return;
+//  case SPLIT_GOAL_ONLY:
+//    str << boolToOnOff(_splitGoalOnly);
+//    return;
+//  case SPLIT_INPUT_ONLY:
+//    str << boolToOnOff(_splitInputOnly);
+//    return;
+//  case SPLIT_POSITIVE:
+//    str << boolToOnOff(_splitPositive);
+//    return;
   case SPLITTING:
-    str << Constants::splittingModeValues[_splitting];
+    str << boolToOnOff(_splitting); //Constants::splittingModeValues[_splitting];
     return;
   case SSPLITTING_ADD_COMPLEMENTARY:
     str << Constants::sSplittingAddComplementaryValues[_ssplittingAddComplementary];
@@ -3091,7 +3091,7 @@ void Options::checkGlobalOptionConstraints() const
   if (_bfnt && !completeForNNE()) {
     USER_ERROR("The bfnt option can only be used with a strategy complete for non-Horn problems without equality");
   }
-  if (_splitting == SM_SAT && _saturationAlgorithm == INST_GEN) {
+  if (_splitting && _saturationAlgorithm == INST_GEN) {
     USER_ERROR("saturation algorithm inst_gen cannot be used with sat splitting");
   }
   //TODO:implement forbidden options

@@ -1,6 +1,6 @@
 /**
- * @file ConstraintReader.cpp
- * Implements class ConstraintReader.
+ * @file ConstraintReaderBack.cpp
+ * Implements ConstraintReader and related classes
  */
 #if GNUMP
 
@@ -27,9 +27,7 @@
 #include "Parse/SMTLIB2.hpp"
 #include "ConstraintReaderBack.hpp"
 
-namespace Shell
-{
-
+using namespace Shell;
 using namespace Kernel;
 using namespace Parse;
 using namespace std;
@@ -489,5 +487,4 @@ ConstraintRCList* MpsConstraintReader::constraints(){
     return res;
 }
 
-}
 #endif //GNUMP

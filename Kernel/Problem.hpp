@@ -1,5 +1,5 @@
 /**
- * @file Problem.hpp
+ * @file Kernel/Problem.hpp
  * Defines class Problem.
  */
 
@@ -10,8 +10,6 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/MaybeBool.hpp"
-
-
 
 namespace Kernel {
 

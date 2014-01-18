@@ -66,7 +66,7 @@ void Splitter::onClauseReduction(Clause* cl, Clause* premise, Clause* replacemen
  */
 bool Splitter::splitPositive()
 {
-  return getOptions().splitPositive();
+  return false;//getOptions().splitPositive(); - no longer an option, should remove this function
 }
 
 /**
@@ -77,13 +77,15 @@ bool Splitter::splittingAllowed(Clause* cl)
 {
   CALL("Splitter::splittingAllowed");
 
-  if(getOptions().splitInputOnly() && !cl->isInput()) {
-    return false;
-  }
+ // if(getOptions().splitInputOnly() && !cl->isInput()) {
+ //   return false;
+ // }
 
-  if(getOptions().splitGoalOnly() && cl->inputType()!=Unit::CONJECTURE) {
-    return false;
-  }
+ // if(getOptions().splitGoalOnly() && cl->inputType()!=Unit::CONJECTURE) {
+ //   return false;
+ // }
+
+ // both of these options have been removed - perhaps remove splittingAllowed 
 
   return true;
 }

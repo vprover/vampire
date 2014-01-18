@@ -221,7 +221,7 @@ bool BDD::parseAtomic(BDDNode* node, unsigned& var, bool& positive)
  *
  * @param n BDD to be examined. It must be non-atomic.
  *
- * @param wantImplied if true, we will look for implied variables, otherwise
+ * @param areImplied if true, we will look for implied variables, otherwise
  *             we will look for implying ones.
  *
  * @param acc where the trivial variables will be put in the form of atomic
@@ -268,8 +268,6 @@ bool BDD::findTrivial(BDDNode* n, bool& areImplied, Stack<BDDNode*>& acc)
     //from this point haveTrueAside and haveFalseAside will be updated to
     //reflect situation on the next level
 
-    bool haveSkipper = false;
-
     while(que.front()!=0) {
       BDDNode* curr = que.pop_front();
       ASS(curr);
@@ -300,7 +298,6 @@ bool BDD::findTrivial(BDDNode* n, bool& areImplied, Stack<BDDNode*>& acc)
       }
       else {
 	ASS_L(curr->getVar(),currVar);
-	haveSkipper = true;
 
 	canBeImpliedTrue = false;
 	canBeImpliedFalse = false;
@@ -691,8 +688,8 @@ BDDNode* BDD::XOrNonYFn::operator()(BDDNode* n1, BDDNode* n2)
 }
 
 /**
- * @param n1 the assigned variable, or false in case we're already
- *        below the assignment variable's level
+ * @b n1 is the assigned variable, or false in case we're already
+ *   below the assignment variable's level
  */
 BDDNode* BDD::AssignFn::operator()(BDDNode* n1, BDDNode* n2)
 {

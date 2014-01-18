@@ -282,6 +282,7 @@ bool TopLevelFlatten::apply(UnitList*& units)
  * add the formulas on @c acc and return true. Otherwise return false.
  *
  * @param fu input, must be flattenned.
+ * @param acc stack of previously accumulated units
  */
 bool TopLevelFlatten::apply(FormulaUnit* fu, Stack<FormulaUnit*>& acc)
 {

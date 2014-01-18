@@ -82,7 +82,7 @@ enum TokenType {
   /** end-of-file */
   TT_EOF,
   // KIF token types
-  /** '@...' */
+  /** '\@...' */
   TT_ROW_VARIABLE,
   /** "..." */
   TT_STRING,

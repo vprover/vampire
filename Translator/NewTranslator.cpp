@@ -1,10 +1,7 @@
-/* 
- * File:   newTranslator.cpp
- * Author: ioan
- * 
+/**
+ * @file newTranslator.cpp
+ * @author Ioan Dragan
  */
-
-#include "NewTranslator.h"
 
 #include "clang/AST/Decl.h"
 #include "clang/AST/Expr.h"
@@ -29,21 +26,18 @@
 #include "Debug/Assertion.hpp"
 
 #include "Forwards.hpp"
-
 #include "CollectionOfObjects.hpp"
+#include "NewTranslator.hpp"
 
-namespace Translator
-{
-
+using namespace Translator;
 using namespace llvm;
 using namespace std;
 
-newTranslator::newTranslator(::clang::Stmt* body, ::clang::ASTContext* CTX) :
-  decl_body(body), ctx(CTX), innerWhile(99)
+newTranslator::newTranslator(::clang::Stmt* body, ::clang::ASTContext* CTX)
+  : decl_body(body), ctx(CTX), innerWhile(99)
 {
   colect = new collectionOfObjects();
 }
-
 
 void newTranslator::VisitReturnStmt(const clang::ReturnStmt* stmt)
 {
@@ -54,13 +48,11 @@ void newTranslator::VisitReturnStmt(const clang::ReturnStmt* stmt)
 /**
  * treatSingleDeclaration: it treats the special case when the variables
  * are initialized in the declaration e.g int a=10;
- *
- *
  */
 void newTranslator::treatSingleDeclaration(const Decl* stmt)
 {
   CALL("newTranslator::treatSingleDeclaration");
-  ::std::string name = "", value = "", expr = "";
+  string name = "", value = "", expr = "";
 
   Program::VariableExpression* varE;
   Program::Assignment* ass;
@@ -102,11 +94,9 @@ void newTranslator::treatSingleDeclaration(const Decl* stmt)
       if (flag)
 	colect->insertMainProgramStatement(ass);
 
-    } else {
-
-      /**
-       * TODO HANDLE CORRECLTLY THE CASE OF ARRAY DECLARATION AND VARIABLE DECLARATION
-       * */
+    }
+    else {
+      // TODO HANDLE CORRECLTLY THE CASE OF ARRAY DECLARATION AND VARIABLE DECLARATION
       /*	name = var_decl->getNameAsString();
        var_decl->dump();
        Program::VariableExpression* varE;
@@ -120,17 +110,14 @@ void newTranslator::treatSingleDeclaration(const Decl* stmt)
        }*/
     }
   }
-  /**
-   * TODO here one can add treatment for other types of declarations;
-   * */
-
+  // TODO here one can add treatment for other types of declarations;
 }
 
 void newTranslator::VisitDeclStmt(const DeclStmt* stmt)
 {
   //stmt->dump();
   CALL("newTranslator::VisitDeclStmt");
-  ::std::string name = "", value = "", expr = "";
+  string name = "", value = "", expr = "";
   const Decl* decl;
   if (stmt->isSingleDecl()) {
     decl = stmt->getSingleDecl();
@@ -330,7 +317,7 @@ void newTranslator::VisitBinNE(const BinaryOperator* bop)
 
    treatSimpleBinaryOperation(bop->getLHS(), bop->getRHS(), "integerEq");
 
-   ::std::string name = "integerNegation_", label;
+   string name = "integerNegation_", label;
    label = numeUitat;
    name.append(label);
 
@@ -402,7 +389,7 @@ void newTranslator::VisitBinShrAssign(const BinaryOperator* bop)
 void newTranslator::VisitBinAdd(const BinaryOperator* bop)
 {
   CALL("newTranslator::VisitBinAdd");
-  ::std::string op = "integerPlus";
+  string op = "integerPlus";
   treatSimpleBinaryOperation(bop->getLHS(), bop->getRHS(), op);
 }
 
@@ -411,7 +398,7 @@ void newTranslator::VisitUnaryLNot(const ::clang::UnaryOperator* uop)
   CALL("newTranslator::VisitUnaryLNot");
   treatSimpleBinaryOperation(uop->getSubExpr(), NULL, "booleanNeg");
   /*Visit(uop->getSubExpr());
-  ::std::string name = "booleanNegation_" + numeUitat;
+  string name = "booleanNegation_" + numeUitat;
   Program::FunctionApplicationExpression* neg =
 	  new Program::FunctionApplicationExpression(
 		  Program::ConstantFunctionExpression::booleanNeg());
@@ -431,7 +418,7 @@ void newTranslator::VisitUnaryMinus(const UnaryOperator* op)
   ::clang::Expr *exp;
 
   exp = op->getSubExpr();
-  ::std::string name = "integerNegation_", label;
+  string name = "integerNegation_", label;
   label = simpleExpression(exp);
   Program::VariableExpression* varExp = colect->getVarExpression(label);
   name.append(label);
@@ -455,7 +442,7 @@ void newTranslator::VisitBinSub(const BinaryOperator* bop)
 {
   CALL("newTranslator::VisitBinSUb");
 
-  ::std::string op = "integerMinus";
+  string op = "integerMinus";
   treatSimpleBinaryOperation(bop->getLHS(), bop->getRHS(), "integerMinus");
 
 }
@@ -656,7 +643,7 @@ bool newTranslator::isSimpleExpression(const ::clang::Expr* exp)
   return false;
 }
 
-void newTranslator::AddVariableName(::std::string name)
+void newTranslator::AddVariableName(string name)
 {
   CALL("newTranslator::AddVariableName");
 
@@ -674,7 +661,7 @@ void newTranslator::AddVariableName(::std::string name)
  * adds the array name to the map of VariableExpressions* 
  * @param name - the name of the array found in the program
  */
-void newTranslator::AddArrayName(::std::string name)
+void newTranslator::AddArrayName(string name)
 {
   CALL("newTranslator::AddArrayName");
   if (!colect->findVarExpression(name)) {
@@ -713,11 +700,11 @@ void newTranslator::getVariables(const Stmt* stmt)
  * @param n integer value
  * @return a string
  */
-::std::string newTranslator::noToString(int n)
+string newTranslator::noToString(int n)
 {
   CALL("newTranslator::noToString");
-  ::std::string name = "";
-  ::std::stringstream ss;
+  string name = "";
+  stringstream ss;
   ss << n; //"   "<<l->getValue().getHashValue();
   name.append(ss.str());
   return name;
@@ -896,7 +883,7 @@ void newTranslator::writeIfStatments(string att)
       break;
     }
   int n;
-  ::std::string _then, _else;
+  string _then, _else;
   n = (e_then - b_then - 1);
 
 
@@ -906,36 +893,47 @@ void newTranslator::writeIfStatments(string att)
 
   if (b_then != -1 && e_then != -1) {
     for (i = b_then + 1; i < e_then; i++) {
-      if (colect->findAssignemt(Body[i]))
+      if (colect->findAssignemt(Body[i])) {
 	_thenP->setStatement(i - b_then - 1, colect->getAssignment(Body[i]));
-      else if (colect->findWhileDo(Body[i]))
+      }
+      else if (colect->findWhileDo(Body[i])) {
 	_thenP->setStatement(i - b_then - 1, colect->getWhile(Body[i]));
-      else
+      }
+      else {
 	_thenP->setStatement(i - b_then - 1, colect->getIfThenElse(Body[i]));
+      }
     }
-    if (!colect->findBlock(_then))
+    if (!colect->findBlock(_then)) {
       colect->insertBlock(_then, _thenP);
-  } else
+    }
+  }
+  else {
     _then = "NULL";
+  }
   //pe ramura lui else trebuie sa adaug null
 
-
   n = (e_else - b_else - 1);
-  if (n>0){
-  _elseP = new Program::Block(n);
-  if (b_else != -1 && e_else != -1) {
-    for (i = b_else + 1; i < e_else; i++) {
-      if (colect->findAssignemt(Body[i]))
-	_elseP->setStatement(i - b_else - 1, colect->getAssignment(Body[i]));
-      else if (colect->findWhileDo(Body[i]))
-	_elseP->setStatement(i - b_else - 1, colect->getWhile(Body[i]));
-      else
-	_elseP->setStatement(i - b_else - 1, colect->getIfThenElse(Body[i]));
+  if (n>0) {
+    _elseP = new Program::Block(n);
+    if (b_else != -1 && e_else != -1) {
+      for (i = b_else + 1; i < e_else; i++) {
+	if (colect->findAssignemt(Body[i])) {
+	  _elseP->setStatement(i - b_else - 1, colect->getAssignment(Body[i]));
+	}
+	else if (colect->findWhileDo(Body[i])) {
+	  _elseP->setStatement(i - b_else - 1, colect->getWhile(Body[i]));
+	}
+	else {
+	  _elseP->setStatement(i - b_else - 1, colect->getIfThenElse(Body[i]));
+	}
+      }
+      if (!colect->findBlock(_else)) {
+	colect->insertBlock(_else, _elseP);
+      }
     }
-    if (!colect->findBlock(_else))
-      colect->insertBlock(_else, _elseP);
-  } else
-    _else = "NULL";
+    else {
+      _else = "NULL";
+    }
   }
   int c = b_inIf;
 
@@ -944,33 +942,23 @@ void newTranslator::writeIfStatments(string att)
     Body[c++] = Body[i];
   }
 
-  ::std::string st = "if_" + Body[b_inIf + 1];
-  if (n>0)
-    {
+  string st = "if_" + Body[b_inIf + 1];
+  if (n>0) {
     Program::IfThenElse* ite;
     ite = new Program::IfThenElse(colect->getFunctionApplicationExpression(
-	  Body[b_inIf + 1]), _thenP, _elseP);
+									   Body[b_inIf + 1]), _thenP, _elseP);
     colect->insertIfThenElse("if_" + Body[b_inIf + 1], ite);
-    }
-  else
-    {
+  }
+  else {
     Program::IfThen* ift = new Program::IfThen(colect->getFunctionApplicationExpression(Body[b_inIf+1]), _thenP);
     colect->insertIfThen("if_"+ Body[b_inIf+1],ift);
-    }
-
+  }
   Body.clear();
-
   Body = backup;
-
 }
 
-//take each statement at a time and treat it, according to the defined rules
-
-
-//helping function which returns the declaration of a variable
 /**
  * function which returns the declaration of a variable
- * @param expr - constant clang expression
  * @return clang::VarDecl
  */
 const ::clang::VarDecl * newTranslator::GetVarDecl(const ::clang::Expr* expr)
@@ -979,18 +967,13 @@ const ::clang::VarDecl * newTranslator::GetVarDecl(const ::clang::Expr* expr)
   const VarDecl* var_decl = NULL;
 
   if (DeclRefExpr::classof(expr)) {
-    //
     const ValueDecl* val_decl = ((const DeclRefExpr*) expr)->getDecl();
     if (VarDecl::classof(val_decl)) {
       var_decl = (const VarDecl*) val_decl;
-
     }
   }
 
-  //clang::QualType type = var_decl->getType();
-  //cout<<"cuala tip"<< clang::QualType::getAsString(type.split())<<endl;
   return var_decl;
-
 }
 
 ///
@@ -998,11 +981,11 @@ const ::clang::VarDecl * newTranslator::GetVarDecl(const ::clang::Expr* expr)
 /// source code. It can be called when you are sure that there is an actual value
 ///
 
-::std::string newTranslator::getSignedValue(const ::clang::Expr *exp)
+string newTranslator::getSignedValue(const ::clang::Expr *exp)
 {
   CALL("newTranslator::getSignedValue");
-  ::std::string value = "";
-  ::std::stringstream ss;
+  string value = "";
+  stringstream ss;
 
   if (::clang::UnaryOperator::classof(exp)) {
     //on the signed values I have to take care of how we represent them in the program
@@ -1059,13 +1042,13 @@ const ::clang::VarDecl * newTranslator::GetVarDecl(const ::clang::Expr* expr)
 ///Returns the name of a variable from the expression being parsed
 ///
 
-::std::string newTranslator::getLiteralName(const ::clang::Expr *exp)
+string newTranslator::getLiteralName(const ::clang::Expr *exp)
 {
   CALL("newTranslator::GetLiteralName");
   return GetVarDecl(exp)->getNameAsString();
 }
 
-void newTranslator::addToMainProgram(::std::string exp)
+void newTranslator::addToMainProgram(string exp)
 {
   CALL("newTranslator::addToMainProgram");
 
@@ -1074,12 +1057,12 @@ void newTranslator::addToMainProgram(::std::string exp)
 }
 
 void newTranslator::treatSpecialCase(const ::clang::Expr *lhs,
-	::std::string operation)
+	string operation)
 {
   CALL("newTranslator::treatSpecialCase");
-  ::std::string construction = "";
-  ::std::string c0 = "", constr = "";
-  ::std::string newop;
+  string construction = "";
+  string c0 = "", constr = "";
+  string newop;
 
   c0 = simpleExpression(lhs);
   AddValues(1);
@@ -1127,12 +1110,12 @@ void newTranslator::treatSpecialCase(const ::clang::Expr *lhs,
 }
 
 void newTranslator::treatSpecial(const ::clang::Expr *lhs,
-	const ::clang::Expr *rhs, ::std::string operation)
+	const ::clang::Expr *rhs, string operation)
 {
   CALL("newTranslator::treatSpecial");
-  ::std::string construction = "";
-  ::std::string c0 = "", constr = "";
-  ::std::string newop;
+  string construction = "";
+  string c0 = "", constr = "";
+  string newop;
 
   if (operation == "PlusEq" || operation == "MinusEq" || operation == "MultEq") {
 
@@ -1143,8 +1126,8 @@ void newTranslator::treatSpecial(const ::clang::Expr *lhs,
     else
       newop = "integerMult";
 
-    ::std::string construction = "";
-    ::std::string c0 = "", constr = "";
+    string construction = "";
+    string c0 = "", constr = "";
     c0 = simpleExpression(lhs);
 
     Program::VariableExpression* variable;
@@ -1332,7 +1315,7 @@ std::string newTranslator::simpleExpression(const clang::Expr* exp)
       //aici se extrage numele arrayului
       base = s->getBase();
 
-      ::std::string composition = "", idx = "", nme = "";
+      string composition = "", idx = "", nme = "";
       if (::clang::ImplicitCastExpr::classof(base)) {
 	const ::clang::ImplicitCastExpr *ice = dyn_cast<
 		::clang::ImplicitCastExpr> (base);
@@ -1393,7 +1376,7 @@ std::string newTranslator::simpleExpression(const clang::Expr* exp)
 
     if (::clang::ImplicitCastExpr::classof(exp)) {
       const ::clang::ImplicitCastExpr *e = dyn_cast< ::clang::ImplicitCastExpr> (exp);
-      ::std::string composition = "", idx = "", nme = "";
+      string composition = "", idx = "", nme = "";
       Program::ArrayApplicationExpression* arrApp;
 
       if (::clang::ArraySubscriptExpr::classof(e->getSubExpr())) {
@@ -1471,8 +1454,9 @@ std::string newTranslator::simpleExpression(const clang::Expr* exp)
 
 }
 
-::std::string newTranslator::WriteSimpleStatement(const ::clang::Expr *lhs,
-	const ::clang::Expr *rhs, ::std::string operation)
+string newTranslator::WriteSimpleStatement(const ::clang::Expr *lhs,
+					   const ::clang::Expr *rhs,
+					   string operation)
 {
   CALL("newTranslator::WriteSimpleStatement");
   std::string name = "";
@@ -1652,6 +1636,3 @@ std::string newTranslator::treatSimpleBinaryOperation(const clang::Expr* lhs,
         colect->insertFunctionApplication(numeUitat, fcapp);
   return numeUitat;
 }
-
-}
-/*namespace Translator*/

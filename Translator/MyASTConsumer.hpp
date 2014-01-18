@@ -1,7 +1,6 @@
-/*
- * MyASTConsumer.h
- *
- *      Author: ioan
+/**
+ * @file MyASTConsumer.hpp
+ * @author Ioan Dragan
  */
 
 #include "llvm/Support/Host.h"
@@ -22,7 +21,7 @@
 #include "Program/Variable.hpp"
 #include "Program/Expression.hpp"
 #include "Program/Statement.hpp"
-#include "NewTranslator.h"
+#include "NewTranslator.hpp"
 
 namespace Translator{
 using namespace clang;

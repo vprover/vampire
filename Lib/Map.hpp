@@ -164,11 +164,12 @@ protected:
   } // nextEntry
 
   /**
-   * If no value under key @b key is not contained in the set, insert
-   * pair (key,value) in the map.
+   * If no value is stored under key @b key, insert pair (key,value) in the map.
    * Return the value stored under @b key.
    * @since 29/09/2002 Manchester
    * @since 09/12/2006 Manchester, reimplemented
+   * @since 23/12/2013 Manchester, documentation changed
+   * @author Andrei Voronkov
    */
   inline Val insert(const Key key,Val val)
   {
@@ -185,9 +186,13 @@ protected:
   } // Map::insert
 
   /**
-   * Insert a pair (key,value) with a given code in the set.
+   * If no value is stored under key @b key, insert pair (key,value) in the map.
+   * Return the value stored under @b key. @b code is the previously computed
+   * hash code of the value.
    * The set must have a sufficient capacity
    * @since 09/12/2006 Manchester, reimplemented
+   * @since 23/12/2013 Manchester, documentation changed
+   * @author Andrei Voronkov
    */
   Val insert(const Key key, Val val,unsigned code)
   {

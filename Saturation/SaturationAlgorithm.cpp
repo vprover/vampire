@@ -60,10 +60,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "BSplitter.hpp"
 #include "SSplitter.hpp"
-#include "SWBSplitterWithBDDs.hpp"
-#include "SWBSplitterWithoutBDDs.hpp"
 
 #include "ConsequenceFinder.hpp"
 #include "Splitter.hpp"
@@ -1629,16 +1626,18 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_symEl=new SymElOutput();
   }
 
-  switch(opt.splitting()) {
-  case Options::SM_OFF:
-    break;
+  // switch(opt.splitting()) {
+  // case Options::SM_OFF:
+  //  break;
   // case Options::SM_BACKTRACKING:
   //   res->_splitter=new BSplitter();
   //   break;
-  case Options::SM_INPUT:
-    res->_splitter=new SWBSplitterWithoutBDDs();
-    break;
-  case Options::SM_SAT:
+  //case Options::SM_INPUT:
+  //  res->_splitter=new SWBSplitterWithoutBDDs();
+  //  break;
+  //case Options::SM_SAT:
+  // Splitting is now either on or off. If on it using SSplitter
+  if(opt.splitting()){
     res->_splitter = new SSplitter();
   }
   if (opt.questionAnswering()==Options::QA_ANSWER_LITERAL) {

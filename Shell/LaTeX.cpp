@@ -147,10 +147,8 @@ string LaTeX::refutationToString(Unit* ref)
 
       res+=toStringAsInference(cl);
       Inference::Iterator it = inf->iterator();
-      bool first=true;
       while (inf->hasNext(it)) {
 	Unit* prem=inf->next(it);
-	first=false;
 	if(prem->isClause() && static_cast<Clause*>(prem)->prop()) {
 	  //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
 	  UnitSpec premCS=UnitSpec(prem, bdd->getFalse());
@@ -175,10 +173,8 @@ string LaTeX::refutationToString(Unit* ref)
 
     res+=toStringAsInference(unit);
     Inference::Iterator it = inf->iterator();
-    bool first=true;
     while (inf->hasNext(it)) {
       Unit* prem=inf->next(it);
-      first=false;
       if(!handledShell.contains(prem)) {
 	handledShell.insert(prem);
 	outShell.push(prem);
@@ -492,7 +488,7 @@ string LaTeX::toString (TermList* terms) const
     }
 
     t=t->next();
-    if(first) {
+    if (first) {
       first=false;
     }
     else if(t->isNonEmpty()){
@@ -501,7 +497,6 @@ string LaTeX::toString (TermList* terms) const
   }
   return result + ")";
 }
-
 
 
 // /**

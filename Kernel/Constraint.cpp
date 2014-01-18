@@ -1,5 +1,5 @@
 /**
- * @file Constraint.cpp
+ * @file Kernel/Constraint.cpp
  * Implements class Constraint.
  */
 #if GNUMP
@@ -16,9 +16,7 @@
 
 #include "Constraint.hpp"
 
-namespace Kernel
-{
-
+using namespace Kernel;
 using namespace std;
 using namespace Shell;
 
@@ -270,5 +268,4 @@ Constraint* Constraint::resolve(Var resolvedVar, Constraint& c1, Constraint& c2,
   return res;
 }
 
-}
 #endif //GNUMP

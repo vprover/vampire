@@ -1,5 +1,5 @@
 /**
- * @file Problem.cpp
+ * @file Api/Problem.cpp
  * Implements class Problem.
  */
 
@@ -55,8 +55,7 @@
 
 #include "Parse/TPTP.hpp"
 
-namespace Api
-{
+namespace Api {
 
 using namespace Lib;
 
@@ -1882,5 +1881,4 @@ AnnotatedFormulaIterator Problem::formulas()
   return res;
 }
 
-
-}
+} // namespace Api

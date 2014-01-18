@@ -24,8 +24,7 @@
 
 #include "Grounder.hpp"
 
-namespace Kernel
-{
+using namespace Kernel;
 
 Grounder::Grounder()
 : _nextSatVar(1)
@@ -64,6 +63,8 @@ SATClauseIterator Grounder::ground(Clause* cl)
  *
  * The order of literals in @c cl is preserved.
  *
+ * @param cl the clause
+ * @param acc previously accumulated literals
  * @param normLits if non-zero, array to receive normalized literals
  * (in the order of literals in the clause). Size of the array must be
  * at least equal to te size of the clause. There is one-to-one
@@ -98,6 +99,7 @@ void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc, Literal** normLit
  *
  * The order of literals in @c cl is preserved.
  *
+ * @param cl the clause
  * @param normLits if non-zero, array to receive normalized literals
  * (in the order of literals in the clause). Size of the array must be
  * at least equal to te size of the clause. There is one-to-one
@@ -299,4 +301,3 @@ void IGGrounder::normalize(unsigned cnt, Literal** lits)
   }
 }
 
-}

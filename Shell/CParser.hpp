@@ -154,7 +154,7 @@ public:
     LT_MULT,
     /** ... */
     LT_ELLIPSIS,
-    /** . */
+    /** dot */
     LT_DOT,
     /** >= */
     LT_GE_OP,

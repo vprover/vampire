@@ -85,8 +85,8 @@ struct EqualityFactoring::ResultFn
     ASS(fLit->isEquality());
 
     unsigned srt = SortHelper::getEqualityArgumentSort(sLit);
-    if(srt!=SortHelper::getEqualityArgumentSort(fLit)) {
-      return false;
+    if (srt!=SortHelper::getEqualityArgumentSort(fLit)) {
+      return 0;
     }
 
     TermList sLHS=arg.first.second;

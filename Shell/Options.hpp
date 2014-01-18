@@ -205,11 +205,11 @@ public:
     SMTLIB_FLET_AS_DEFINITION,
     SMTLIB_INTRODUCE_AIG_NAMES,
     SOS,
-    SPLIT_ADD_GROUND_NEGATION,
-    SPLIT_AT_ACTIVATION,
-    SPLIT_GOAL_ONLY,
-    SPLIT_INPUT_ONLY,
-    SPLIT_POSITIVE,
+    //SPLIT_ADD_GROUND_NEGATION,
+    SPLIT_AT_ACTIVATION, // should be checked
+    //SPLIT_GOAL_ONLY,
+    //SPLIT_INPUT_ONLY,
+    //SPLIT_POSITIVE,
     SPLITTING,
     SSPLITTING_ADD_COMPLEMENTARY,
     SSPLITTING_COMPONENT_SWEEPING,
@@ -390,11 +390,12 @@ public:
   };
 
   /** Possible values for splitting */
-  enum SplittingMode {
-    SM_INPUT = 0,
-    SM_OFF = 1,
-    SM_SAT = 2
-  };
+// Now just on or off
+//  enum SplittingMode {
+//    SM_INPUT = 0,
+//    SM_OFF = 1,
+//    SM_SAT = 2
+//  };
 
   enum LiteralComparisonMode {
     LCM_PREDICATE = 0,
@@ -680,13 +681,13 @@ public:
   RuleActivity generalSplitting() const { return _generalSplitting; }
   string namePrefix() const { return _namePrefix; }
   bool timeStatistics() const { return _timeStatistics; }
-  bool splitAddGroundNegation() const { return _splitAddGroundNegation; }
+//  bool splitAddGroundNegation() const { return _splitAddGroundNegation; }
   bool splitAtActivation() const { return _splitAtActivation; }
-  bool splitGoalOnly() const { return _splitGoalOnly; }
-  bool splitInputOnly() const { return _splitInputOnly; }
-  bool splitPositive() const { return _splitPositive; }
+//  bool splitGoalOnly() const { return _splitGoalOnly; }
+//  bool splitInputOnly() const { return _splitInputOnly; }
+//  bool splitPositive() const { return _splitPositive; }
   bool splitting() const { return _splitting; }
-  void setSplitting(bool newVal) { _splitting = newVal; }
+//  void setSplitting(SplittingMode newVal) { _splitting = newVal; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
 
   unsigned sineDepth() const { return _sineDepth; }
@@ -967,11 +968,11 @@ private:
   bool _smtlibFletAsDefinition;
   bool _smtlibIntroduceAIGNames;
   Sos _sos;
-  bool _splitAddGroundNegation;
+  //bool _splitAddGroundNegation;
   bool _splitAtActivation;
-  bool _splitGoalOnly;
-  bool _splitInputOnly;
-  bool _splitPositive;
+  //bool _splitGoalOnly;
+  //bool _splitInputOnly;
+  //bool _splitPositive;
   bool _splitting;
   SSplittingAddComplementary _ssplittingAddComplementary;
   SSplittingComponentSweeping _ssplittingComponentSweeping;

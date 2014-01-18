@@ -179,10 +179,6 @@ VK_OBJ= Kernel/BDD.o\
          Kernel/Signature.o\
          Kernel/Unit.o
 
-ALG_OBJ = Kernel/Algebra/ArithmeticKB.o\
-          Kernel/Algebra/Constraint.o\
-          Kernel/Algebra/Polynomial.o
-
 VI_OBJ = Indexing/ArithmeticIndex.o\
          Indexing/ClauseCodeTree.o\
          Indexing/ClauseSharing.o\
@@ -257,7 +253,6 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
 #         SAT/SingleWatchSAT.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
-         Saturation/BSplitter.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
@@ -269,9 +264,6 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SaturationAlgorithm.o\
          Saturation/Splitter.o\
          Saturation/SSplitter.o\
-         Saturation/SWBSplitter.o\
-         Saturation/SWBSplitterWithBDDs.o\
-         Saturation/SWBSplitterWithoutBDDs.o\
          Saturation/SymElOutput.o
 
 VS_OBJ = Shell/AIG.o\
@@ -539,7 +531,7 @@ BP_VUT_OBJ = UnitTests/tBinaryHeap.o\
 		  UnitTests/tSkipList.o
 
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Solving Shell CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Indexing Inferences InstGen Solving Shell CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib
 
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
