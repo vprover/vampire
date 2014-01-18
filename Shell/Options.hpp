@@ -104,6 +104,7 @@ public:
      * resolution) */
     HYPER_SUPERPOSITION,
 
+    IGNORE_MISSING,
     INCLUDE,
     INCREASED_NUMERAL_WEIGHT,
     INEQUALITY_SPLITTING,
@@ -662,6 +663,10 @@ public:
   string thanks() const { return _thanks; }
 
   bool globalSubsumption() const { return _globalSubsumption; }
+  /** true if calling set() on non-existing options does not result in a user error */
+  bool ignoreMissing() const { return _ignoreMissing; }
+  /** set the "ignore missing options" value to true or false */
+  void setIgnoreMissing(bool newVal) { _ignoreMissing = newVal; }
   bool increasedNumeralWeight() const { return _increasedNumeralWeight; }
   bool theoryAxioms() const { return _theoryAxioms; }
   void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
@@ -851,6 +856,8 @@ private:
   bool _hornRevealing;
   bool _hyperSuperposition;
 
+  /** if true, then calling set() on non-existing options will not result in a user error */
+  bool _ignoreMissing;
   string _include;
   /** if this option is true, Vampire will add the numeral weight of a clause
    * to its weight. The weight is defined as the sum of binary sizes of all
@@ -1009,7 +1016,7 @@ private:
 
 public:
   // the following two functions are used by Environment
-  static bool onOffToBool(const char* onOff,const char* option);
+  bool onOffToBool(const char* onOff,const char* option);
 }; // class Options
 
 }
