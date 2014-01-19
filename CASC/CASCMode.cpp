@@ -45,12 +45,12 @@ bool CASCMode::perform(int argc, char* argv [])
   bool res=cm.perform();
 
   env.beginOutput();
-  if(res) {
+  if (res) {
     env.out()<<"% Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
   }
   else {
     env.out()<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
-    if(env.remainingTime()/100>0) {
+    if (env.remainingTime()/100>0) {
       env.out()<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
     }
     else {
@@ -60,7 +60,7 @@ bool CASCMode::perform(int argc, char* argv [])
       env.out()<<"% SZS status Timeout for "<<env.options->problemName()<<endl;
     }
   }
-  if(env.options && env.options->timeStatistics()) {
+  if (env.options && env.options->timeStatistics()) {
     TimeCounter::printReport(env.out());
   }
   env.endOutput();
@@ -100,7 +100,7 @@ bool CASCMode::perform()
   }
 
   int remainingTime=env.remainingTime()/100;
-  if(remainingTime<=0) {
+  if (remainingTime<=0) {
     return false;
   }
   StrategySet used;
@@ -108,7 +108,7 @@ bool CASCMode::perform()
     return true;
   }
   remainingTime=env.remainingTime()/100;
-  if(remainingTime<=0) {
+  if (remainingTime<=0) {
     return false;
   }
   return runSchedule(fallback,remainingTime,used,true);
@@ -1596,22 +1596,22 @@ bool CASCMode::runSchedule(Schedule& schedule,unsigned ds,StrategySet& ss,bool f
     }
     ss.insert(chopped);
     int remainingTime = env.remainingTime()/100;
-    if(remainingTime<=0) {
+    if (remainingTime<=0) {
       return false;
     }
     // cast to unsigned is OK since realTimeRemaining is positive
-    if(sliceTime > (unsigned)remainingTime) {
+    if (sliceTime > (unsigned)remainingTime) {
       sliceTime = remainingTime;
     }
     env.beginOutput();
     env.out()<<"% remaining time: "<<remainingTime<<" next slice time: "<<sliceTime<<endl;
     env.endOutput();
-    if(runSlice(sliceCode,sliceTime)) {
+    if (runSlice(sliceCode,sliceTime)) {
       return true;
     }
   }
   return false;
-}
+} // runSchedule
 
 bool CASCMode::runSlice(string slice, unsigned ds)
 {

@@ -174,6 +174,7 @@ const char* Options::Constants::_optionNames[] = {
   "horn_revealing",
   "hyper_superposition",
 
+  "ignore_missing",
   "include",
   "increased_numeral_weight",
   "inequality_splitting",
@@ -823,6 +824,7 @@ Options::Options ()
   _hornRevealing(false),
   _hyperSuperposition(false),
 
+  _ignoreMissing(false),
   _include(""),
   _increasedNumeralWeight(false),
   _inequalitySplitting(3),
@@ -978,10 +980,11 @@ Options::Options ()
   CALL("Options::Options");
 } // Options::Options
 
-
 /**
  * Set option by its name and value.
  * @since 13/11/2004 Manchester
+ * @since 18/01/2014 Manchester, changed to use _ignoreMissing
+ * @author Andrei Voronkov
  */
 void Options::set(const char* name,const char* value)
 {
@@ -991,10 +994,11 @@ void Options::set(const char* name,const char* value)
     set(name,value,Constants::optionNames.find(name));
   }
   catch (const ValueNotFoundException&) {
-    USER_ERROR((string)name + " is not a valid option");
+    if (!_ignoreMissing) {
+      USER_ERROR((string)name + " is not a valid option");
+    }
   }
 } // Options::set/2
-
 
 /**
  * Set option by its name and value.
@@ -1003,10 +1007,8 @@ void Options::set(const char* name,const char* value)
 void Options::set(const string& name,const string& value)
 {
   CALL ("Options::set/3");
-
   set(name.c_str(),value.c_str());
 } // Options::set/3
-
 
 /**
  * Set option by its name, value, and index in the list of options.
@@ -1218,6 +1220,9 @@ void Options::set(const char* name,const char* value, int index)
       _hyperSuperposition = onOffToBool(value,name);
       return;
 
+    case IGNORE_MISSING:
+      _ignoreMissing = onOffToBool(value,name);
+      return;      
     case INCLUDE:
       _include = value;
       return;
@@ -1723,6 +1728,8 @@ void Options::set(const char* name,const char* value, int index)
  * exist, try to use the long name instead.
  *
  * @since 21/11/2004 Manchester
+ * @since 18/01/2014 Manchester, changed to use _ignoreMissing
+ * @author Andrei Voronkov
  */
 void Options::setShort(const char* name,const char* value)
 {
@@ -1733,22 +1740,18 @@ void Options::setShort(const char* name,const char* value)
     found = Constants::shortNameIndexes[Constants::shortNames.find(name)];
   }
   catch(ValueNotFoundException&) {
-    try {
-      found = Constants::optionNames.find(name);
-    }
-    catch(ValueNotFoundException&) {
-      USER_ERROR((string)name + " is not a valid option");
-    }
+    // try to set it as a long name
+    return set(name,value);
   }
-
   set(name,value,found);
 } // Options::setShort
-
 
 /**
  * Convert the string onOff to a boolean value. If onOff is not one
  * of "on" or "off", then raise a user error exception.
  * @since 15/11/2004 Manchester
+ * @since 18/01/2014 Manchester, changed to use _ignoreMissing for the splitting option
+ * @author Andrei Voronkov
  */
 bool Options::onOffToBool (const char* onOff,const char* option)
 {
@@ -1760,10 +1763,16 @@ bool Options::onOffToBool (const char* onOff,const char* option)
   if (! strcmp(onOff,"off")) {
     return false;
   }
-
+  if (_ignoreMissing) {
+    if (!strcmp(option,"splitting") || !strcmp(option,"spl")) {
+      if (! strcmp(onOff,"sat")) {
+	return true;
+      }
+    }
+  }
+  
   USER_ERROR((string)"wrong value for " + option + ": " + onOff);
 } // Options::onOffToBool
-
 
 /**
  * Convert a boolean value to the corresponding string "on"/"off"
@@ -2143,6 +2152,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_hyperSuperposition);
     return;
 
+  case IGNORE_MISSING:
+    str << boolToOnOff(_ignoreMissing);
+    return;
   case INCLUDE:
     str << _include;
     return;
@@ -2696,10 +2708,13 @@ int Options::readTimeLimit(const char* val)
 #endif
 } // Options::readTimeLimit(const char* val)
 
+/**
+ * Read 
+ */
 void Options::readOptionsString(string testId, OptionSpecStack& assignments)
 {
   CALL("Options::readOptionsString");
-
+  cout << testId << "\n";
   while (testId != "") {
     size_t index1 = testId.find('=');
     if (index1 == string::npos) {
@@ -2728,40 +2743,42 @@ void Options::readOptionsString(string testId, OptionSpecStack& assignments)
 }
 
 /**
- * Assign option values according to the argument in the format
- * opt1=val1:opt2=val2:...:optn=valN
+ * Assign option values as encoded in the option string.
+ * according to the argument in the format
+ * opt1=val1:opt2=val2:...:optn=valN,
+ * for example bs=off:cond=on:drc=off:nwc=1.5:nicw=on:sos=on:sio=off:spl=sat:ssnc=none
  */
-void Options::readOptionsString(string testId)
+void Options::readOptionsString(string optionsString)
 {
   CALL("Options::readOptionsString");
 
   // repeatedly look for param=value
-  while (testId != "") {
-    size_t index1 = testId.find('=');
+  while (optionsString != "") {
+    size_t index1 = optionsString.find('=');
     if (index1 == string::npos) {
-      error: USER_ERROR("bad option specification" + testId);
+      error: USER_ERROR("bad option specification" + optionsString);
     }
-    size_t index = testId.find(':');
+    size_t index = optionsString.find(':');
     if (index!=string::npos && index1 > index) {
       goto error;
     }
 
-    string param = testId.substr(0,index1);
+    string param = optionsString.substr(0,index1);
     string value;
     if (index==string::npos) {
-      value = testId.substr(index1+1);
+      value = optionsString.substr(index1+1);
     }
     else {
-      value = testId.substr(index1+1,index-index1-1);
+      value = optionsString.substr(index1+1,index-index1-1);
     }
     setShort(param.c_str(),value.c_str());
 
     if (index==string::npos) {
       break;
     }
-    testId = testId.substr(index+1);
+    optionsString = optionsString.substr(index+1);
   }
-}
+} // readOptionsString/1
 
 /**
  * Build options from a Spider test id.
