@@ -326,6 +326,7 @@ const char* Options::Constants::_shortNames[] = {
 
   "ep",
   "erd",
+  "ext",
 
   "fd",
   "fde",
