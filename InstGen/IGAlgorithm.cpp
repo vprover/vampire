@@ -382,7 +382,7 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
 {
   CALL("IGAlgorithm::onResolutionClauseDerived");
 
-  if(!cl->noProp() || !cl->noSplits()) {
+  if(!cl->noSplits()) {
     return;
   }
 

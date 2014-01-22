@@ -713,16 +713,12 @@ Formula* Formula::quantify(Formula* f)
   return f;
 }
 
-Formula* Formula::fromClause(Clause* cl)
-{
-  return fromClause(cl, cl->prop());
-}
 
 /**
- * Return formula equal to @b cl with propositional part @b prop
+ * Return formula equal to @b cl 
  * that has all variables quantified
  */
-Formula* Formula::fromClause(Clause* cl, BDDNode* prop)
+Formula* Formula::fromClause(Clause* cl)
 {
   CALL("Formula::fromClause");
   
@@ -733,10 +729,6 @@ Formula* Formula::fromClause(Clause* cl, BDDNode* prop)
     FormulaList::push(lf, resLst);
   }
 
-  if(prop && !BDD::instance()->isFalse(prop)) {
-    FormulaList::push(BDD::instance()->toFormula(prop), resLst);
-  }
-  
   Formula* res=JunctionFormula::generalJunction(OR, resLst);
   
   Set<unsigned> vars;

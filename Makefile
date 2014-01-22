@@ -207,7 +207,6 @@ VIG_OBJ = InstGen/IGAlgorithm.o\
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
-         Inferences/BDDMarkingSubsumption.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
          Inferences/CTFwSubsAndRes.o\
@@ -224,7 +223,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InferenceEngine.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/InterpretedSimplifier.o\
-         Inferences/PropositionalToBDDISE.o\
          Inferences/RefutationSeekerFSE.o\
          Inferences/SLQueryBackwardSubsumption.o\
          Inferences/SLQueryForwardSubsumption.o\

@@ -336,7 +336,6 @@ Inference* EquivalenceDiscoverer::getInference(SATLiteral l1, SATLiteral l2, boo
 
   while(premises.isNonEmpty()) {
     UnitSpec us = premises.pop();
-    ASS(us.withoutProp());
     UnitList::push(us.unit(), premLst);
   }
   return new InferenceMany(Inference::EQUIVALENCE_DISCOVERY, premLst);

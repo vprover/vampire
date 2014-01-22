@@ -71,12 +71,10 @@ void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseCla
     Inference::Rule infRule;
     UnitSpecIterator parents = is.getParents(curr, infRule);
     if(infRule==Inference::NEGATED_CONJECTURE) {
-      ASS(curr.withoutProp());
       conjectures.push(curr.unit());
     }
     if(infRule==Inference::CLAUSIFY ||
 	(curr.isClause() && (infRule==Inference::INPUT || infRule==Inference::NEGATED_CONJECTURE )) ){
-      ASS(curr.withoutProp());
       ASS(curr.isClause());
       premiseClauses.push(static_cast<Clause*>(curr.unit()));
     }
@@ -391,7 +389,7 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
 {
   CALL("AnswerLiteralManager::onNewClause");
 
-  if(!cl->noProp() || !cl->noSplits()) {
+  if(!cl->noSplits()) {
     return;
   }
 

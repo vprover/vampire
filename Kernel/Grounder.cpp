@@ -45,10 +45,6 @@ SATClauseIterator Grounder::ground(Clause* cl)
     NOT_IMPLEMENTED;
   }
 
-  if(!cl->noProp()) {
-    NOT_IMPLEMENTED;
-  }
-
   SATClause* gndNonProp = groundNonProp(cl);
 //  cout<<gndNonProp->toString()<<endl;
 

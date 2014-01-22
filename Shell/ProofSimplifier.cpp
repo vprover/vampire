@@ -148,7 +148,6 @@ bool ProofTransformer::isRefutation(UnitSpec u)
   CALL("ProofTransformer::isRefutation");
   ASS(!u.isEmpty());
 
-  if(!u.prop()->isFalse()) { return false; }
   if(u.isClause()) { return u.cl()->isEmpty(); }
   FormulaUnit* fu = static_cast<FormulaUnit*>(u.unit());
   return fu->formula()->connective()==FALSE;
@@ -201,7 +200,7 @@ AIGRef ProofSimplifier::getAIG(UnitSpec u)
 {
   CALL("ProofSimplifier::getAIG");
 
-  AIGRef bddA = _bddAig.b2a(u.prop());
+  //AIGRef bddA = _bddAig.b2a(u.prop());
 
   AIGRef formA;
   if(u.isClause()) {
@@ -212,7 +211,7 @@ AIGRef ProofSimplifier::getAIG(UnitSpec u)
     formA = _fsh.apply(fu->formula()).second;
   }
 
-  AIGRef a = _aig.getDisj(bddA, formA);
+  AIGRef a = formA; //_aig.getDisj(bddA, formA);
   return a;
 }
 

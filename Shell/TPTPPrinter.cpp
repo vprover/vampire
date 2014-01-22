@@ -121,9 +121,6 @@ string TPTPPrinter::getBodyStr(Unit* u)
       res << ')';
     }
 
-    if(!cl->noProp()) {
-      res << " | " << BDD::instance()->toTPTPString(cl->prop());
-    }
     if(!cl->noSplits()) {
       SplitSet::Iterator sit(*cl->splits());
       while(sit.hasNext()) {

@@ -78,8 +78,9 @@ bool MainLoop::isRefutation(Clause* cl)
 {
   CALL("MainLoop::isRefutation");
 
-  BDD* bdd=BDD::instance();
-  return cl->isEmpty() && (!cl->prop() || bdd->isFalse(cl->prop())) && cl->noSplits();
+  // No prop part
+  //BDD* bdd=BDD::instance();
+  return cl->isEmpty() && cl->noSplits(); //&& (!cl->prop() || bdd->isFalse(cl->prop()));
 }
 
 /**

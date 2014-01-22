@@ -295,7 +295,7 @@ void generateInterpolant(ItemState& st)
   ASS_EQ(color, COLOR_TRANSPARENT);
 
   Formula* interpolant;
-  Formula* unitFormula=u->getFormula(st.us().prop());
+  Formula* unitFormula=u->getFormula();//st.us().prop());
 
   //cout	<<"\n unitFormula: "<<unitFormula->toString()<<"\n";
 

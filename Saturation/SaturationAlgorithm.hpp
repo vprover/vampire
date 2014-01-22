@@ -22,7 +22,6 @@
 #include "Indexing/IndexManager.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-#include "Inferences/PropositionalToBDDISE.hpp"
 
 #include "Limits.hpp"
 
@@ -166,7 +165,8 @@ private:
    * This member contains merge of derived empty clauses if propositionalToBdd is on and
    * satSolverForEmptyClause is off.
    */
-  Clause* _mergedBddEmptyClause;
+  // no longer in use as propositionalToBdd is always off
+  //Clause* _mergedBddEmptyClause;
 
 
   Limits _limits;
@@ -205,11 +205,8 @@ protected:
 
   Splitter* _splitter;
 
-  PropositionalToBDDISE _propToBDDConv;
-
   ConsequenceFinder* _consFinder;
   SymElOutput* _symEl;
-  BDDMarkingSubsumption* _bddMarkingSubsumption;
   AnswerLiteralManager* _answerLiteralManager;
 
   /** Index that takes care of the sharing and merging of clauses */

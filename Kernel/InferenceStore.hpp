@@ -33,30 +33,32 @@ struct UnitSpec
   UnitSpec() {}
   explicit UnitSpec(Unit* u, bool ignoreProp=false) : _unit(u)
   {
-    if(u==0) {
-      _prop = 0;
-      return;
-    }
-    if(!ignoreProp && u->isClause() && static_cast<Clause*>(u)->prop()) {
-	_prop=static_cast<Clause*>(u)->prop();
-    }
-    else {
-	_prop=BDD::instance()->getFalse();
-    }
+   // if(u==0) {
+   //   _prop = 0;
+   //   return;
+   // }
+   // if(!ignoreProp && u->isClause() && static_cast<Clause*>(u)->prop()) {
+	//_prop=static_cast<Clause*>(u)->prop();
+   // }
+   // else {
+	//_prop=BDD::instance()->getFalse();
+   // }
   }
-  UnitSpec(Unit* u, BDDNode* prop) : _unit(u), _prop(prop) { ASS(prop); }
-  bool operator==(const UnitSpec& o) const { return _unit==o._unit && _prop==o._prop; }
+//  UnitSpec(Unit* u, BDDNode* prop) : _unit(u), _prop(prop) { ASS(prop); }
+  bool operator==(const UnitSpec& o) const { return _unit==o._unit;}// && _prop==o._prop; }
   bool operator!=(const UnitSpec& o) const { return !(*this==o); }
 
   static unsigned hash(const UnitSpec& o)
   {
-    return PtrPairSimpleHash::hash(make_pair(o._unit, o._prop));
+    //return PtrPairSimpleHash::hash(make_pair(o._unit, o._prop));
+    // I think PtrIdentityHash is a suitable replacement
+    return PtrIdentityHash::hash(o._unit);
   }
 
   bool isEmpty() const { return _unit==0; }
   bool isClause() const { ASS(!isEmpty()); return _unit->isClause(); }
-  bool isPropTautology() const { return BDD::instance()->isTrue(_prop); }
-  bool withoutProp() const { return BDD::instance()->isFalse(_prop); }
+ //bool isPropTautology() const { return BDD::instance()->isTrue(_prop); }
+ //bool withoutProp() const { return BDD::instance()->isFalse(_prop); }
 
   Clause* cl() const
   {
@@ -65,22 +67,23 @@ struct UnitSpec
     return static_cast<Clause*>(_unit);
   }
   Unit* unit() const { ASS(!isEmpty()); return _unit; }
-  BDDNode* prop() const { ASS(!isEmpty()); return _prop; }
+  //BDDNode* prop() const { ASS(!isEmpty()); return _prop; }
 
   string toString() const
   {
     if(isClause()) {
-	return cl()->toString(prop());
+	return cl()->toString();
     }
     else {
-	ASS(BDD::instance()->isFalse(prop()));
+	//ASS(BDD::instance()->isFalse(prop()));
 	return unit()->toString();
     }
+    
   }
 
 private:
   Unit* _unit;
-  BDDNode* _prop;
+ // BDDNode* _prop;
 };
 
 typedef VirtualIterator<UnitSpec> UnitSpecIterator;
@@ -137,19 +140,9 @@ public:
   };
 
   void recordInference(UnitSpec unit, FullInference* inf);
-  void recordNonPropInference(Clause* cl);
-  void recordNonPropInference(Clause* cl, Inference* inf);
-  void recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp);
-  void recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newProp, Inference::Rule rule);
-  void recordIntroduction(Clause* cl, BDDNode* prop, Inference::Rule rule);
-  void recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl, BDDNode* resultProp);
-  void recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedProp, BDDNode* resultProp);
-  void recordMerge(Clause* cl, BDDNode* oldClProp, UnitSpec* addedCls, int addedClsCnt, BDDNode* resultProp);
 
   void recordSplitting(SplittingRecord* srec, unsigned premCnt, UnitSpec* prems);
   void recordSplittingNameLiteral(UnitSpec us, Literal* lit);
-
-  void recordBddizeVars(Clause* cl, IntList* vars);
 
   void recordIntroducedSymbol(Unit* u, bool func, unsigned number);
 
@@ -158,8 +151,6 @@ public:
 
   UnitSpecIterator getParents(UnitSpec us, Inference::Rule& rule);
   UnitSpecIterator getParents(UnitSpec us);
-
-  void deleteClauseRecords(Clause* cl);
 
   std::string getUnitIdStr(UnitSpec cs);
   std::string getClauseIdSuffix(UnitSpec cs);

@@ -88,8 +88,8 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
   unsigned cl2Weight=cl2->weight();
 
   if(opt.nonliteralsInClauseWeight()) {
-    cl1Weight+= cl1->propWeight() + cl1->splitWeight();
-    cl2Weight+= cl2->propWeight() + cl2->splitWeight();
+    cl1Weight+= cl1->splitWeight(); // propWeight removed
+    cl2Weight+= cl2->splitWeight();
   }
 
   if(opt.increasedNumeralWeight()) {

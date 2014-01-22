@@ -15,8 +15,6 @@
 
 #include "Indexing/LiteralIndexingStructure.hpp"
 
-#include "Inferences/BDDMarkingSubsumption.hpp"
-
 #include "Kernel/BDD.hpp"
 #include "Kernel/BDDConjunction.hpp"
 #include "Kernel/Clause.hpp"
@@ -35,7 +33,6 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BackwardSubsumptionResolution.hpp"
-#include "Inferences/BDDMarkingSubsumption.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
@@ -91,12 +88,10 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
  */
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
-    _mergedBddEmptyClause(0),
     _limits(opt),
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
-    _propToBDDConv(this),
-    _consFinder(0), _symEl(0), _bddMarkingSubsumption(0), _answerLiteralManager(0),
+    _consFinder(0), _symEl(0), _answerLiteralManager(0),
     _generatedClauseCount(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
@@ -153,9 +148,6 @@ SaturationAlgorithm::~SaturationAlgorithm()
   }
   if (_symEl) {
     delete _symEl;
-  }
-  if (_bddMarkingSubsumption) {
-    delete _bddMarkingSubsumption;
   }
 
   _active->detach();
@@ -278,10 +270,6 @@ void SaturationAlgorithm::onAllProcessed()
     _splitter->onAllProcessed();
   }
 
-  if (_bddMarkingSubsumption) {
-    _bddMarkingSubsumption->onAllProcessed();
-  }
-
   if (_consFinder) {
     _consFinder->onAllProcessed();
   }
@@ -372,32 +360,37 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     _splitter->onNewClause(cl);
   }
 
-  if (!cl->prop()) {
-    BDD* bdd=BDD::instance();
-    BDDNode* prop=bdd->getFalse();
-
-    Inference* inf=cl->inference();
-    Inference::Iterator it=inf->iterator();
-    while(inf->hasNext(it)) {
-      Unit* premu=inf->next(it);
-      if (!premu->isClause()) {
-	//the premise comes from preprocessing
-	continue;
-      }
-      Clause* prem=static_cast<Clause*>(premu);
-      if (!prem->prop()) {
-	//the premise comes from preprocessing
-	continue;
-      }
-
-      prop=bdd->disjunction(prop, prem->prop());
-    }
-
-    cl->initProp(prop);
-    if (!bdd->isTrue(prop)) {
-      InferenceStore::instance()->recordNonPropInference(cl);
-    }
-  }
+// Giles.
+// Clauses no longer  have prop parts
+// This code used to add the disjunction of all prop parts of premises
+// 
+//
+//  if (!cl->prop()) {
+//    BDD* bdd=BDD::instance();
+//    BDDNode* prop=bdd->getFalse();
+//
+//    Inference* inf=cl->inference();
+//    Inference::Iterator it=inf->iterator();
+//    while(inf->hasNext(it)) {
+//      Unit* premu=inf->next(it);
+//      if (!premu->isClause()) {
+//	//the premise comes from preprocessing
+//	continue;
+//      }
+//      Clause* prem=static_cast<Clause*>(premu);
+//      if (!prem->prop()) {
+//	//the premise comes from preprocessing
+//	continue;
+//      }
+//
+//      prop=bdd->disjunction(prop, prem->prop());
+//    }
+//
+//    cl->initProp(prop);
+//    if (!bdd->isTrue(prop)) {
+//      InferenceStore::instance()->recordNonPropInference(cl);
+//    }
+//  }
 
   LOG_UNIT("sa_new_clause", cl);
 
@@ -416,10 +409,6 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
   ASS(c->isPropositional());
 
   LOG_UNIT("sa_new_prop_clause", c);
-
-  if (_bddMarkingSubsumption) {
-    _bddMarkingSubsumption->onNewPropositionalClause(c);
-  }
 
   if (_consFinder) {
     _consFinder->onNewPropositionalClause(c);
@@ -472,11 +461,6 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
   CALL("SaturationAlgorithm::onClauseReduction/4");
   ASS(cl);
 
-  if (replacement && BDD::instance()->isTrue(replacement->prop())) {
-    //clause was rewritten into tautology, so we look at it as if
-    //it was just deleted
-    replacement=0;
-  }
 
   static ClauseStack premStack;
   premStack.reset();
@@ -563,21 +547,11 @@ int SaturationAlgorithm::elapsedTime()
 void SaturationAlgorithm::addInputClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addInputClause");
-  ASS_EQ(cl->prop(),0);
 
   cl->markInput();
-  cl->initProp(BDD::instance()->getFalse());
 
   if (_symEl) {
     _symEl->onInputClause(cl);
-  }
-
-  if (_propToBDD) {
-    //put propositional predicates into BDD part
-    cl=_propToBDDConv.simplify(cl);
-    if (!cl) {
-      return;
-    }
   }
 
   if (_opt.sos() != Options::SOS_OFF && cl->inputType()==Clause::AXIOM) {
@@ -686,9 +660,6 @@ void SaturationAlgorithm::init()
   if (_symEl) {
     _symEl->init(this);
   }
-  if (_bddMarkingSubsumption) {
-    _bddMarkingSubsumption->init(this);
-  }
 
   _startTime=env.timer->elapsedMilliseconds();
 }
@@ -712,9 +683,7 @@ public:
     CALL("TotalSimplificationPerformer::perform");
     ASS(_cl);
 
-    BDD* bdd=BDD::instance();
-
-    BDDNode* oldClProp=_cl->prop();
+    //BDDNode* oldClProp=_cl->prop();
 
     LOG_UNIT("sa_fw_simpl_red_clause",_cl);
     TRACE("sa_fw_simpl",
@@ -731,14 +700,16 @@ public:
     );
 
     if (replacement) {
-      replacement->initProp(oldClProp);
-      InferenceStore::instance()->recordNonPropInference(replacement);
+    // No prop parts.
+    //  replacement->initProp(oldClProp);
+    //  InferenceStore::instance()->recordNonPropInference(replacement);
       _sa->addNewClause(replacement);
     }
     _sa->onClauseReduction(_cl, replacement, premises);
 
-    _cl->setProp(bdd->getTrue());
-    InferenceStore::instance()->recordPropReduce(_cl, oldClProp, bdd->getTrue());
+    // Remove clause - so no longer kept
+    //_cl->setProp(bdd->getTrue());
+    //InferenceStore::instance()->recordPropReduce(_cl, oldClProp, bdd->getTrue());
     _cl=0;
 
     TRACE("sa_fw_simpl",
@@ -763,10 +734,13 @@ public:
       return false;
     }
 
-    BDD* bdd=BDD::instance();
-    if (!bdd->isXOrNonYConstant(_cl->prop(), premise->prop(), true)) {
-      return false;
-    }
+    // I don't think this needs an equivalent check on literals
+    // Checks that premise->cl is not a true constant formula
+    // It cannot be as it is false. 
+    //BDD* bdd=BDD::instance();
+    //if (!bdd->isXOrNonYConstant(_cl->prop(), premise->prop(), true)) {
+    //  return false;
+    //}
     return true;
   }
 
@@ -774,6 +748,7 @@ public:
   { return _cl; }
 private:
   SaturationAlgorithm* _sa;
+  // clause being simplified
   Clause* _cl;
 };
 
@@ -781,7 +756,6 @@ private:
 Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
-  ASS(cl0->prop());
 
   Clause* cl=cl0;
 
@@ -843,7 +817,6 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 
   onNewClause(cl);
 
-  ASS(cl->prop());
 
   _newClauses.push(cl);
   //we can decrease the counter here -- it won't get deleted because
@@ -857,10 +830,6 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 
   while(_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
-
-    if (BDD::instance()->isTrue(cl->prop())) {
-      continue;
-    }
 
     switch(cl->store())
     {
@@ -910,25 +879,17 @@ bool SaturationAlgorithm::clausesFlushed()
 void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addUnprocessedClause");
-  ASS(cl->prop());
 
   _generatedClauseCount++;
   env.statistics->generatedClauses++;
 
-  BDD* bdd=BDD::instance();
-  ASS(!bdd->isTrue(cl->prop()));
-
   env.checkTimeSometime<64>();
 
-  if (_bddMarkingSubsumption && _bddMarkingSubsumption->subsumed(cl)) {
-    return;
-  }
 
   cl=doImmediateSimplification(cl);
   if (!cl) {
     return;
   }
-  ASS(!bdd->isTrue(cl->prop()));
 
   if (cl->isEmpty()) {
     handleEmptyClause(cl);
@@ -956,41 +917,18 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
     onNonRedundantClause(cl);
     throw RefutationFoundException(cl);
   }
+  // as Clauses no longer have prop parts the only reason for an empty 
+  // clause not being a refutation is if it has splits
 
   if (_splitter && _splitter->handleEmptyClause(cl)) {
     return;
   }
 
-  BDD* bdd=BDD::instance();
+  // splitter should only return false if splits isEmpty, which it cannot be
+  ASSERTION_VIOLATION;
+  // removed some code that dealt with the case where a clause is empty
+  // but as a non-empty bdd prop part
 
-  ASS(!bdd->isFalse(cl->prop()));
-  env.statistics->bddPropClauses++;
-
-  if (_mergedBddEmptyClause==0) {
-    cl->incRefCnt();
-    onNonRedundantClause(cl);
-    _mergedBddEmptyClause=cl;
-    onNewUsefulPropositionalClause(cl);
-    return;
-  }
-  BDDNode* newProp=bdd->conjunction(_mergedBddEmptyClause->prop(), cl->prop());
-  if (newProp!=_mergedBddEmptyClause->prop()) {
-    onNonRedundantClause(cl);
-    onNewUsefulPropositionalClause(cl);
-  }
-  if (bdd->isFalse(newProp)) {
-    InferenceStore::instance()->recordMerge(cl, cl->prop(), _mergedBddEmptyClause, newProp);
-    cl->setProp(newProp);
-    onNonRedundantClause(cl);
-    onNewUsefulPropositionalClause(cl);
-    throw RefutationFoundException(cl);
-  }
-  if (newProp!=_mergedBddEmptyClause->prop()) {
-    InferenceStore::instance()->recordMerge(_mergedBddEmptyClause, _mergedBddEmptyClause->prop(), cl, newProp);
-    _mergedBddEmptyClause->setProp(newProp);
-    onNonRedundantClause(_mergedBddEmptyClause);
-    return;
-  }
 }
 
 /**
@@ -1005,8 +943,6 @@ void SaturationAlgorithm::reanimate(Clause* cl)
 {
   CALL("SaturationAlgorithm::reanimate");
   ASS_EQ(cl->store(), Clause::ACTIVE);
-
-  ASS(!BDD::instance()->isTrue(cl->prop()));
 
   cl->setStore(Clause::REACTIVATED);
   _passive->add(cl);
@@ -1072,7 +1008,6 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::backwardSimplify");
 
-  BDD* bdd=BDD::instance();
 
   BwSimplList::Iterator bsit(_bwSimplifiers);
   while(bsit.hasNext()) {
@@ -1085,12 +1020,12 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       Clause* redundant=srec.toRemove;
       ASS_NEQ(redundant, cl);
 
-      BDDNode* oldRedundantProp=redundant->prop();
-
-      if ( !bdd->isXOrNonYConstant(oldRedundantProp, cl->prop(), true) ) {
+      // checks if y=>x is a true constant formula, it cannot be
+      //BDDNode* oldRedundantProp=redundant->prop();
+      //if ( !bdd->isXOrNonYConstant(oldRedundantProp, cl->prop(), true) ) {
 	//TODO: here the srec.replacement should probably be deleted
-	continue;
-      }
+        //continue;
+     // }
 
       Clause* replacement=srec.replacement;
 
@@ -1108,9 +1043,6 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       redundant->incRefCnt(); //we don't want the clause deleted before we record the simplification
 
       removeActiveOrPassiveClause(redundant);
-
-      redundant->setProp(bdd->getTrue());
-      InferenceStore::instance()->recordPropReduce(redundant, oldRedundantProp, bdd->getTrue());
 
 
       TRACE("sa_bw_simpl",
@@ -1198,9 +1130,6 @@ bool SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
 
-  if (_bddMarkingSubsumption && _bddMarkingSubsumption->subsumed(cl)) {
-    return false;
-  }
 
   if (_consFinder && _consFinder->isRedundant(cl)) {
     return false;

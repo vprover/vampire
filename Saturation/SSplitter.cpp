@@ -560,7 +560,7 @@ bool SSplitter::handleNonSplittable(Clause* cl)
     //  component C is made redundant by C'
     //  we name C' as C. The sat clause {C} won't lead to addition of C into FO as C is already selected.
 
-    compCl->setProp(BDD::instance()->getFalse());
+    //compCl->setProp(BDD::instance()->getFalse());
     compCl->incReductionTimestamp();
     _sa->addNewClause(compCl);
   }
@@ -819,7 +819,7 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
 
   cl->incReductionTimestamp();
   //BDDs are disabled when we do ssplitting so they can only contain false
-  ASS_REP(BDD::instance()->isFalse(cl->prop()), BDD::instance()->toString(cl->prop()));
+  //ASS_REP(BDD::instance()->isFalse(cl->prop()), BDD::instance()->toString(cl->prop()));
   SplitSet::Iterator dit(*diff);
   while(dit.hasNext()) {
     SplitLevel slev=dit.next();
@@ -918,7 +918,6 @@ bool SSplitter::handleEmptyClause(Clause* cl)
   if(cl->splits()->isEmpty()) {
     return false;
   }
-  ASS(BDD::instance()->isFalse(cl->prop()));
 
   static SATLiteralStack conflictLits;
   conflictLits.reset();
@@ -954,7 +953,8 @@ void SSplitter::addComponents(const SplitLevelStack& toAdd)
     sr->active = true;
     //simplifications may set prop part to true, but when we add the
     //clause, we cannot assume is it still simplified
-    sr->component->setProp(BDD::instance()->getFalse());
+    // Giles. simplifications no longer set prop part to true
+    //sr->component->setProp(BDD::instance()->getFalse());
 
     ASS(sr->children.isEmpty());
     //we need to put the component among children, so that it is backtracked
@@ -1033,7 +1033,7 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
       rcl->setAux(0);
       ASS_EQ(rcl->store(), Clause::NONE);
       rcl->incReductionTimestamp();
-      rcl->setProp(BDD::instance()->getFalse()); //we asserted it was false in onClauseReduction
+      //rcl->setProp(BDD::instance()->getFalse()); //we asserted it was false in onClauseReduction
       _sa->addNewClause(rcl);
   #if VDEBUG
       //check that restored clause does not depend on inactive splits

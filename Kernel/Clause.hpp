@@ -38,9 +38,14 @@ using namespace Lib;
  * - Assign Clause's non-propositional part if Clause appears in the
  *   SaturationAlgorithm loop
  * 	- should be done by the SaturationAlgorithm object
+ *   Giles. no longer do this - no prop part.
+ *
  * - Register Clause's inference in the InferenceStore by
  *   @code InferenceStore::instance()->recordNonPropInference(clause); @endcode
  * 	- should be done by the SaturationAlgorithm object
+ *   Giles. no longer do this - this was only required when clauses had
+ *   propositional parts.
+ *
  */
 class Clause
   : public Unit
@@ -139,7 +144,6 @@ public:
   string toString() const;
   string toTPTPString() const;
   string toNiceString() const;
-  string toString(BDDNode* propPart) const;
 
   /** Return the clause store */
   Store store() const { return _store; }
@@ -228,12 +232,6 @@ public:
   /** Clause is an input clause for the saturation algorithm */
   bool isInput() { return _input; }
 
-  /** Return the propositional part of the clause */
-  BDDNode* prop() const { return _prop; }
-  void initProp(BDDNode* prop);
-  void setProp(BDDNode* prop);
-  /** Return true if clause has either no propositional part, or one which is false */
-  bool noProp() const;
 
   SplitSet* splits() const { return _splits; }
   bool noSplits() const;
@@ -309,7 +307,6 @@ public:
 #endif
   }
 
-  unsigned propWeight() const;
   unsigned splitWeight() const;
   unsigned getNumeralWeight();
   float getEffectiveWeight(const Shell::Options& opt);
@@ -341,9 +338,6 @@ protected:
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
-
-  /** propositional part of the Clause */
-  BDDNode* _prop;
 
   SplitSet* _splits;
 

@@ -138,22 +138,13 @@ Clause* ClauseSharing::insert(Clause* cl, InsertionResult& res)
       return cl;
     }
 
-    ASS(!variants.hasNext());
+    // As clauses are (now) only represented by their literals, we should
+    // not be able to reach this part
+    ASSERTION_VIOLATION;
 
-    BDDNode* oldCompProp=comp->prop();
-    BDDNode* oldClProp=cl->prop();
-    BDDNode* newCompProp=BDD::instance()->conjunction(oldCompProp, oldClProp);
-
-    if(oldCompProp==newCompProp) {
-      res=OLD;
-      return comp;
-    }
-
-    comp->setProp( newCompProp );
-    InferenceStore::instance()->recordMerge(comp, oldCompProp, cl, newCompProp);
-
-    res=OLD_MODIFIED;
-    return comp;
+   // ASS(!variants.hasNext());
+   // To prevent a warning we need a return statement here
+   return cl;
 
   } else {
     insertNew(cl);

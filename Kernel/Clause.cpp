@@ -67,7 +67,6 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _inferenceRefCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
-    _prop(0),
     _splits(0),
     _auxTimestamp(0)
 {
@@ -156,7 +155,7 @@ Clause* Clause::fromClause(Clause* c)
   Clause* res = fromIterator(Clause::Iterator(*c), c->inputType(), inf);
 
   res->setAge(c->age());
-  res->setProp(c->prop());
+  //res->setProp(c->prop());
   res->setSplits(c->splits());
 
   return res;
@@ -170,34 +169,34 @@ Clause* Clause::fromClause(Clause* c)
  * affecting things such as the position of the clause in the passive clause
  * queue.
  */
-void Clause::initProp(BDDNode* prop)
-{
-  CALL("Clause::initProp");
-  ASS(!_prop);
-
-  _prop = prop;
-}
+//void Clause::initProp(BDDNode* prop)
+//{
+//  CALL("Clause::initProp");
+//  ASS(!_prop);
+//
+//  _prop = prop;
+//}
 
 /** Set the propositional part of the clause */
-void Clause::setProp(BDDNode* prop)
-{
-  CALL("Clause::setProp");
+//void Clause::setProp(BDDNode* prop)
+//{
+//  CALL("Clause::setProp");
+//
+//  if (prop==_prop) {
+//    return;
+//  }
+//
+//  beforePropChange.fire(this);
+//  _prop = prop;
+//  afterPropChange.fire(this);
+//}
 
-  if (prop==_prop) {
-    return;
-  }
-
-  beforePropChange.fire(this);
-  _prop = prop;
-  afterPropChange.fire(this);
-}
-
-bool Clause::noProp() const
-{
-  CALL("Clause::hasProp");
-
-  return !prop() || BDD::instance()->isFalse(prop());
-}
+//bool Clause::noProp() const
+//{
+//  CALL("Clause::hasProp");
+//
+//  return !prop() || BDD::instance()->isFalse(prop());
+//}
 
 bool Clause::shouldBeDestroyed()
 {
@@ -393,10 +392,6 @@ string Clause::toTPTPString() const
 
   string result = nonPropToString();
 
-  if (prop() && !BDD::instance()->isFalse(prop())) {
-    result += " | " + BDD::instance()->toTPTPString(prop());
-  }
-
   return result;
 }
 
@@ -409,10 +404,6 @@ string Clause::toNiceString() const
 
   string result = nonPropToString();
 
-  if (prop() && !BDD::instance()->isFalse(prop())) {
-    result += " | " + BDD::instance()->toString(prop());
-  }
-
   if (splits() && !splits()->isEmpty()) {
     result += string(" {") + splits()->toString() + "}";
   }
@@ -421,18 +412,14 @@ string Clause::toNiceString() const
 }
 
 /**
- * Convert the clause to the string representation, assuming its
- * propositional part is @b propPart.
+ * Convert the clause to the string representation
+ * Includes splitting, age, weight, selected and inference
  */
-string Clause::toString(BDDNode* propPart) const
+string Clause::toString() const
 {
-  CALL("Clause::toString(BDDNode*)");
+  CALL("Clause::toString()");
 
   string result = Int::toString(_number) + ". " + nonPropToString();
-
-  if (propPart && !BDD::instance()->isFalse(propPart)) {
-    result += " | " + BDD::instance()->toString(propPart);
-  }
 
   if (splits() && !splits()->isEmpty()) {
     result += string(" {") + splits()->toString() + "}";
@@ -442,69 +429,52 @@ string Clause::toString(BDDNode* propPart) const
   if (selected()>0) {
     result += ':' + Int::toString(selected());
   }
-  result += ") " + inferenceAsString(propPart);
+  result += ") " + inferenceAsString();
   return result;
 }
 
-/**
- * Convert the clause to the string representation.
- * @since 20/05/2007 Manchester
- */
-string Clause::toString() const
-{
-  CALL("Clause::toString()");
-
-  return toString(prop());
-} // Clause::toString
 
 /**
  * Convert the clause into sequence of strings, each containing
- * a proper clause (no BDDs). Also BDD variables corresponding to
- * propositional predicates are output as those predicates.
+ * a proper clause
  */
 VirtualIterator<string> Clause::toSimpleClauseStrings()
 {
   CALL("toSimpleClauseStrings");
-  BDD* bdd = BDD::instance();
-  if (bdd->isTrue(prop())) {
-    return VirtualIterator<string>::getEmpty();
-  }
-  if (bdd->isFalse(prop())) {
     return pvi(getSingletonIterator(nonPropToString()));
-  }
 
-  string np(length() ? (nonPropToString() + " | ") : string(""));
+ // string np(length() ? (nonPropToString() + " | ") : string(""));
 
-  static BDDClausifier clausifier(true, false);
-  static SATClauseStack sclAcc;
-  sclAcc.reset();
-  clausifier.clausify(prop(), sclAcc);
-  List<string>* res = 0;
+ // static BDDClausifier clausifier(true, false);
+ // static SATClauseStack sclAcc;
+ // sclAcc.reset();
+ // clausifier.clausify(prop(), sclAcc);
+ // List<string>* res = 0;
 
-  while (sclAcc.isNonEmpty()) {
-    SATClause* sc = sclAcc.pop();
-    string rstr(np);
+ // while (sclAcc.isNonEmpty()) {
+ //   SATClause* sc = sclAcc.pop();
+ //   string rstr(np);
 
-    for(unsigned i = 0; i < sc->length(); i++) {
-      if (i) {
-	rstr += " | ";
-      }
-      if (!(*sc)[i].polarity()) {
-	rstr += '~';
-      }
-      unsigned bddVar = (*sc)[i].var();
-      string varName;
-      if (!bdd->getNiceName(bddVar, varName)) {
-	varName = bdd->getPropositionalPredicateName(bddVar);
-      }
-      rstr += varName;
-    }
-
-    List<string>::push(rstr, res);
-    sc->destroy();
-  }
-
-  return pvi(List<string>::DestructiveIterator(res));
+ //   for(unsigned i = 0; i < sc->length(); i++) {
+ //     if (i) {
+//	rstr += " | ";
+//      }
+//      if (!(*sc)[i].polarity()) {
+//	rstr += '~';
+//      }
+//      unsigned bddVar = (*sc)[i].var();
+//      string varName;
+//      if (!bdd->getNiceName(bddVar, varName)) {
+//	varName = bdd->getPropositionalPredicateName(bddVar);
+//      }
+//      rstr += varName;
+//    }
+//
+//    List<string>::push(rstr, res);
+//    sc->destroy();
+//  }
+//
+//  return pvi(List<string>::DestructiveIterator(res));
 }
 
 /**
@@ -561,17 +531,6 @@ void Clause::computeWeight() const
   }
 } // Clause::computeWeight
 
-
-/**
- * Return weight of the propositional part of the clause
- *
- * This weight is not included in the number returned by the
- * @b weight() function.
- */
-unsigned Clause::propWeight() const
-{
-  return prop() ? prop()->depth() : 0;
-}
 
 /**
  * Return weight of the split part of the clause
@@ -653,7 +612,7 @@ float Clause::getEffectiveWeight(const Options& opt)
 
   unsigned w=weight();
   if (opt.nonliteralsInClauseWeight()) {
-    w+=propWeight()+splitWeight();
+    w+=+splitWeight(); // no longer includes propWeight
   }
   if (opt.increasedNumeralWeight()) {
     return (2*w+getNumeralWeight()) * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);

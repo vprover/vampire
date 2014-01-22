@@ -49,7 +49,6 @@ public:
   string toString(const Term&) const;
   string toString(const string& funOrPred,const TermList& args) const;
   string toString(Unit*);
-  string toString(Unit*,BDDNode*);
 private:
 //  /** options used for output */
 //  const Options& _options;
@@ -59,7 +58,6 @@ private:
   string toString(TermList*) const;
   string toString(Literal*) const;
   string toString(Clause*);
-  string toString(Clause*, BDDNode*);
   string toString(Formula*) const;
   string toString(Formula*, Connective c) const;
 

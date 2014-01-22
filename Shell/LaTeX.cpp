@@ -91,7 +91,6 @@ string LaTeX::refutationToString(Unit* ref)
     "\\begin{VampireProof}\n";
 
 
-  BDD* bdd=BDD::instance();
   InferenceStore* is=InferenceStore::instance();
 
   Stack<UnitSpec> outKernel;
@@ -99,9 +98,8 @@ string LaTeX::refutationToString(Unit* ref)
   Stack<Unit*> outShell;
   Set<Unit*> handledShell;
 
-  if( ref->isClause() && static_cast<Clause*>(ref)->prop() ) {
+  if( ref->isClause() ) {
     Clause* refCl=static_cast<Clause*>(ref);
-    ASS( bdd->isFalse(refCl->prop()) );
     UnitSpec cs=UnitSpec(refCl);
     outKernel.push(cs);
     handledKernel.insert(cs);
@@ -113,13 +111,10 @@ string LaTeX::refutationToString(Unit* ref)
   while(outKernel.isNonEmpty()) {
     UnitSpec cs=outKernel.pop();
     InferenceStore::FullInference* finf;
-    if(bdd->isTrue(cs.prop())) {
-      //tautologies should not be printed out
-      ASSERTION_VIOLATION;
-    } else if(is->findInference(cs, finf)) {
+    if(is->findInference(cs, finf)) {
       InferenceStore::SplittingRecord* srec;
       if(finf->rule==Inference::SPLITTING && is->findSplitting(cs, srec)) {
-	if(!bdd->isTrue(srec->premise.prop()) && !handledKernel.contains(srec->premise)) {
+	if(!handledKernel.contains(srec->premise)) {
 	  handledKernel.insert(srec->premise);
 	  outKernel.push(srec->premise);
 	}
@@ -132,10 +127,8 @@ string LaTeX::refutationToString(Unit* ref)
       for(unsigned i=0;i<finf->premCnt;i++) {
 	UnitSpec prem=finf->premises[i];
 	ASS(prem!=cs);
-	Clause* premCl=prem.cl();
-	ASS(premCl->prop());
 
-	if(!bdd->isTrue(prem.prop()) && !handledKernel.contains(prem)) {
+	if(!handledKernel.contains(prem)) {
 	  handledKernel.insert(prem);
 	  outKernel.push(prem);
 	}
@@ -149,9 +142,10 @@ string LaTeX::refutationToString(Unit* ref)
       Inference::Iterator it = inf->iterator();
       while (inf->hasNext(it)) {
 	Unit* prem=inf->next(it);
-	if(prem->isClause() && static_cast<Clause*>(prem)->prop()) {
+	if(prem->isClause() ) {
 	  //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
-	  UnitSpec premCS=UnitSpec(prem, bdd->getFalse());
+          //Giles. Removed bdds from this, but not sure if this is redundant anyway given the previous comment.
+	  UnitSpec premCS=UnitSpec(prem);
 
 	  if(!handledKernel.contains(premCS)) {
 	    handledKernel.insert(premCS);
@@ -205,17 +199,6 @@ string LaTeX::toString(Unit* u)
   }
 }
 
-string LaTeX::toString(Unit* u, BDDNode* prop)
-{
-  CALL("LaTeX::toString(Unit* u, BDDNode* prop)");
-
-  if(u->isClause()) {
-    return toString(static_cast<Clause*>(u), prop);
-  } else {
-    ASS(prop==0 || BDD::instance()->isFalse(prop));
-    return toString(static_cast<FormulaUnit*>(u)->formula());
-  }
-}
 
 /**
  * Convert the formula to LaTeX
@@ -305,19 +288,10 @@ string LaTeX::toString (Formula* f, Connective outer) const
 
 /**
  * Convert clause to LaTeX.
- */
-string LaTeX::toString (Clause* c)
-{
-  CALL("LaTeX::toString (Clause* c)");
-
-  return toString(c,c->prop());
-} // LaTeX::toString (const Clause& c)
-/**
- * Convert clause to LaTeX.
  * @since 23/10/2003 Manchester, implemented as stream output function
  * @since 09/12/2003 Manchester
  */
-string LaTeX::toString (Clause* c, BDDNode* prop)
+string LaTeX::toString (Clause* c)
 {
   CALL("LaTeX::toString (Clause* c)");
 
@@ -333,10 +307,6 @@ string LaTeX::toString (Clause* c, BDDNode* prop)
     for(unsigned i=1;i<clen;i++) {
       result += string(" \\Vor ") + toString((*c)[i]);
     }
-  }
-
-  if(prop && !BDD::instance()->isFalse(prop)) {
-    result += string(" \\Vor ") + toString(prop);
   }
 
   return result;
@@ -553,7 +523,7 @@ string LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* in
     for(unsigned i=0;i<inf->premCnt;i++) {
       UnitSpec prem=inf->premises[i];
       res += "\\begin{VampirePremise}%\n~~";
-      res += toString(prem.cl(),prem.prop());
+      res += toString(prem.cl());
       res += "\n\\end{VampirePremise}\n";
       if(i+1<inf->premCnt) {
 	res += "\\VPremiseSeparator\n";
@@ -564,7 +534,7 @@ string LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* in
 
   res += "\\begin{VampireConclusion}\n~~";
 
-  res += toString(cs.cl(),cs.prop());
+  res += toString(cs.cl());
 
   return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
 }
@@ -604,7 +574,7 @@ string LaTeX::toStringAsInference(Unit* unit)
     while (inf->hasNext(it)) {
 	Unit* prem=inf->next(it);
       res += "\\begin{VampirePremise}%\n~~";
-      res += toString(prem,0);
+      res += toString(prem);
       res += "\n\\end{VampirePremise}\n";
 	if(inf->hasNext(it)) {
 	  res += "\\VPremiseSeparator\n";
@@ -615,7 +585,7 @@ string LaTeX::toStringAsInference(Unit* unit)
 
   res += "\\begin{VampireConclusion}\n~~";
 
-  res += toString(unit,0);
+  res += toString(unit);
 
   return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
 }
@@ -640,7 +610,7 @@ string LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
   res += "\\[\\begin{VampireInference}\n";
 
   res += "\\begin{VampirePremise}%\n~~";
-  res += toString(sr->premise.cl(),sr->premise.prop());
+  res += toString(sr->premise.cl());
   res += "\n\\end{VampirePremise}\n";
 
   Stack<pair<int,Clause*> >::Iterator ncit2(sr->namedComps);
@@ -654,14 +624,14 @@ string LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
     else {
       res += "\\neg " + getBDDVarName(-nrec.first);
     }
-    res += "\\Viff" + toString(nrec.second,0);
+    res += "\\Viff" + toString(nrec.second);
     res += "\n\\end{VampirePremise}\n";
   }
   res += "\\VConclusionSeparator\n";
 
   res += "\\begin{VampireConclusion}\n~~";
 
-  res += toString(sr->result.cl(),sr->result.prop());
+  res += toString(sr->result.cl());
 
   return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
 }

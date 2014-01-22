@@ -110,10 +110,6 @@ Clause* GlobalSubsumption::perform(Clause* cl)
     return cl;
   }
 
-  if(cl->prop() && !BDD::instance()->isFalse(cl->prop())) {
-    //we don't have clausification of BDDs in the grounder yet
-    return cl;
-  }
 
   if(cl->color()==COLOR_LEFT) {
     return cl;

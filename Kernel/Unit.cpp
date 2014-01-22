@@ -164,14 +164,16 @@ unsigned Unit::varCnt()
 
 /**
  * Return quantified formula equivalent to the unit.
+ *
+ * @since 16/01/14, removed BDDNode prop, Giles.
  */
-Formula* Unit::getFormula(BDDNode* prop)
+Formula* Unit::getFormula()//BDDNode* prop)
 {
   if(isClause()) {
-    return Formula::fromClause(static_cast<Clause*>(this), prop);
+    return Formula::fromClause(static_cast<Clause*>(this));//, prop);
   }
   else {
-    ASS(BDD::instance()->isFalse(prop));
+    //ASS(BDD::instance()->isFalse(prop));
     return Formula::quantify(static_cast<FormulaUnit*>(this)->formula());
   }
 }
