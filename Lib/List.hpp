@@ -583,7 +583,7 @@ public:
   /** Iterator that allows one to delete the current element */
   class DelIterator {
    public:
-
+    DECL_ELEMENT_TYPE(C);
     inline DelIterator (List*& l)
       :
       _lst(l),

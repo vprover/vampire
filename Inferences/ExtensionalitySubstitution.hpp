@@ -29,7 +29,8 @@ public:
   static Clause* performExtensionalitySubstitution(
     Clause* extCl, Literal* extLit,
     Clause* otherCl, Literal* otherLit,
-    RobSubstitution* subst);
+    RobSubstitution* subst,
+    unsigned& counter);
 private:
   struct ForwardPairingFn;
   struct ForwardUnificationsFn;

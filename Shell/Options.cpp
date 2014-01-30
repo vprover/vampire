@@ -156,7 +156,10 @@ const char* Options::Constants::_optionNames[] = {
   "equality_propagation",
   "equality_proxy",
   "equality_resolution_with_deletion",
+  
+  "extensionality_allow_pos_eq",
   "extensionality_inference",
+  "extensionality_max_length",
 
   "flatten_top_level_conjunctions",
   "forbidden_options",
@@ -549,9 +552,9 @@ NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,
 						  sizeof(_equalityProxyValues)/sizeof(char*));
 
 const char* Options::Constants::_extensionalityInferenceValues[] = {
-  "add",
-  "off",
-  "replace"};
+  "filter",
+  "known",
+  "off"};
 NameArray Options::Constants::extensionalityInferenceValues(_extensionalityInferenceValues,
 						  sizeof(_extensionalityInferenceValues)/sizeof(char*));
 
@@ -809,6 +812,8 @@ Options::Options ()
   _equalityResolutionWithDeletion(RA_INPUT_ONLY),
   _equivalentVariableRemoval(true),
   _extensionalityInference(EI_OFF),
+  _extensionalityMaxLength(0),
+  _extensionalityAllowPosEq(false),
   
   _flattenTopLevelConjunctions(false),
   _forceIncompleteness(false),
@@ -1172,6 +1177,16 @@ void Options::set(const char* name,const char* value, int index)
     case EXTENSIONALITY_INFERENCE:
       _extensionalityInference = (ExtensionalityInference)Constants::extensionalityInferenceValues.find(value);
       return;
+    case EXTENSIONALITY_MAX_LENGTH:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_extensionalityMaxLength = unsignedValue;
+	return;
+      }
+      break;
+    case EXTENSIONALITY_ALLOW_POS_EQ:
+      _extensionalityAllowPosEq = onOffToBool(value,name);
+      return;
+      
 
     case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
       _flattenTopLevelConjunctions = onOffToBool(value,name);

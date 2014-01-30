@@ -153,6 +153,17 @@ public:
   unsigned objPos;
 }; // TheoryFinder::Backtrack
 
+bool TheoryFinder::matchCode(const void* obj,
+			     const unsigned char* code,
+			     unsigned prop)
+{
+  bool found = matchCode(obj, code);
+  if (found && prop) {
+    _property->addProp(prop);
+  }
+  return found;
+}
+
 /**
  * Match the code agains an object (a Formula,FormulaList,Literal,TermList or Term).
  *
@@ -161,8 +172,7 @@ public:
  * @since 28/07/2008 train Manchester-London
  */
 bool TheoryFinder::matchCode(const void* obj,
-			     const unsigned char* code,
-			     unsigned prop)
+			     const unsigned char* code)
 {
   CALL("TheoryFinder::matchCode");
 
@@ -193,9 +203,6 @@ bool TheoryFinder::matchCode(const void* obj,
 #endif
   switch (code[cp]) {
   case END:
-    if (prop) {
-      _property->addProp(prop);
-    }
     return true;
 
   case NEWVAR: {
@@ -1346,3 +1353,39 @@ bool TheoryFinder::matchAll (const Literal* lit)
 // #endif
 // } // TheoryFinder::analyse
 
+bool TheoryFinder::matchKnownExtensionality(const Clause* c) {
+  static const unsigned char setCode[] =
+    {CLS,
+     NLIT,0,
+      NEWPRED,0,2,                            // ~member(f(X,Y),X),
+      NEWFUN,1,2,NEWVAR,0,NEWVAR,1,OLDVAR,0,
+     NLIT,1,
+      OLDPRED,0,                              // ~member(f(X,Y),Y),
+      OLDFUN,1,OLDVAR,0,OLDVAR,1,OLDVAR,1,
+     PLIT,2,
+      EQL,OLDVAR,0,OLDVAR,1,END}; // X=Y
+  static const unsigned char arrayCode[] =
+    {CLS,
+     NLIT,0,
+      EQL,
+      NEWFUN,0,2,NEWVAR,0,NEWFUN,1,2,OLDVAR,0,NEWVAR,1,  // sel(X,sk(X,Y) != sel(Y,sk(X,Y)),
+      OLDFUN,0  ,OLDVAR,1,OLDFUN,1  ,OLDVAR,0,OLDVAR,1,
+     PLIT,1,
+      EQL,OLDVAR,0,OLDVAR,1,END}; // X=Y
+  static const unsigned char subsetCode[] =
+    {CLS,
+     NLIT,0,
+      NEWPRED,0,2,NEWVAR,0,NEWVAR,1,           // ~subseteq(X,Y),
+     NLIT,1,
+      OLDPRED,0,  OLDVAR,1,OLDVAR,0,           // ~subseteq(Y,X),
+     PLIT,2,
+      EQL,OLDVAR,0,OLDVAR,1,END}; // X=Y
+
+  if (matchCode(c, setCode) ||
+      matchCode(c, arrayCode) ||
+      matchCode(c, subsetCode)) {
+    return true;
+  }
+  
+  return false;
+}

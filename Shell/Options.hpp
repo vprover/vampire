@@ -81,7 +81,9 @@ public:
     EQUALITY_PROXY,
     EQUALITY_RESOLUTION_WITH_DELETION,
 
+    EXTENSIONALITY_ALLOW_POS_EQ,
     EXTENSIONALITY_INFERENCE,
+    EXTENSIONALITY_MAX_LENGTH,
 
     FLATTEN_TOP_LEVEL_CONJUNCTIONS,
     /** If some of the specified options are set to a forbidden state,
@@ -461,9 +463,9 @@ public:
 
   /** Values for --extensionality_inference */
   enum ExtensionalityInference {
-    EI_ADD = 0,
-    EI_OFF = 1,
-    EI_REPLACE = 2
+    EI_FILTER = 0,
+    EI_KNOWN = 1,
+    EI_OFF = 2
   };
 
   enum SatRestartStrategy {
@@ -646,7 +648,7 @@ public:
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds; }
   static int readTimeLimit(const char* val);
   size_t memoryLimit() const { return _memoryLimit; }
-  int inequalitySplitting() const { return _inequalitySplitting; }
+  int inequalitySplitting() const { return 0; /*_inequalitySplitting;*/ }
   long maxActive() const { return _maxActive; }
   long maxAnswers() const { return _maxAnswers; }
   void setMaxAnswers(int newVal) { _maxAnswers = newVal; }
@@ -660,6 +662,9 @@ public:
   EqualityProxy equalityProxy() const { return _equalityProxy; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion; }
   ExtensionalityInference extensionalityInference() const { return _extensionalityInference; }
+  unsigned extensionalityMaxLength() const { return _extensionalityMaxLength; }
+  bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq; }
+  
   float nongoalWeightCoefficient() const { return _nongoalWeightCoefficient; }
   bool setNongoalWeightCoefficient(float newVal);
   Sos sos() const { return _sos; }
@@ -849,6 +854,8 @@ private:
   RuleActivity _equalityResolutionWithDeletion;
   bool _equivalentVariableRemoval;
   ExtensionalityInference _extensionalityInference;
+  unsigned _extensionalityMaxLength;
+  bool _extensionalityAllowPosEq;
   
   bool _flattenTopLevelConjunctions;
   string _forbiddenOptions;

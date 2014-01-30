@@ -5,12 +5,15 @@
 
 #include "Kernel/Sorts.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "Lib/Environment.hpp"
 
 namespace Saturation
 {
 
 using namespace Kernel;
+using namespace Shell;
 
 /**
  * Structure to represent extensionality-like clauses, i.e. (1) a pointer to a
@@ -37,13 +40,19 @@ typedef VirtualIterator<ExtensionalityClause> ExtensionalityClauseIterator;
 class ExtensionalityClauseContainer
 {
 public:
-  ExtensionalityClauseContainer() {
+  ExtensionalityClauseContainer(const Options& opt)
+  : _size(0),
+    _maxLen(opt.extensionalityMaxLength()),
+    _allowPosEq(opt.extensionalityAllowPosEq())
+  {
+    _onlyKnown = (opt.extensionalityInference() == Options::EI_KNOWN);
     _sortCnt = env.sorts->sorts();
     _clausesBySort.init(_sortCnt, 0);
   }
-  void addIfExtensionality(Clause* c);
-  void remove(Clause* c);
+  Literal* addIfExtensionality(Clause* c);
+  static Literal* getSingleVarEq(Clause* c);
   ExtensionalityClauseIterator activeIterator(unsigned sort);
+  unsigned size() const { return _size; }
   void print(ostream& o);
 private:
   unsigned _sortCnt;
@@ -51,6 +60,12 @@ private:
   void add(ExtensionalityClause c);
 
   struct ActiveFilterFn;
+
+  unsigned _size;
+  
+  bool _onlyKnown;
+  unsigned _maxLen;
+  bool _allowPosEq;
 };
 
 }

@@ -97,7 +97,8 @@ struct ExtensionalitySubstitution::ForwardResultFn
     Clause* extCl = arg.first.second.clause;
     Literal* extLit = arg.first.second.literal;
 
-    return performExtensionalitySubstitution(extCl, extLit, _otherCl, otherLit, subst);
+    return performExtensionalitySubstitution(extCl, extLit, _otherCl, otherLit, subst,
+                                             env.statistics->forwardExtensionalityResolution);
   }
 private:
   Clause* _otherCl;
@@ -179,7 +180,8 @@ struct ExtensionalitySubstitution::BackwardResultFn
     Clause* otherCl = arg.first.first;
     Literal* otherLit = arg.first.second;
 
-    return performExtensionalitySubstitution(_extCl, _extLit, otherCl, otherLit, subst);
+    return performExtensionalitySubstitution(_extCl, _extLit, otherCl, otherLit, subst,
+                                             env.statistics->backwardExtensionalityResolution);
   }
 private:
   Clause* _extCl;
@@ -195,7 +197,8 @@ private:
 Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
   Clause* extCl, Literal* extLit,
   Clause* otherCl, Literal* otherLit,
-  RobSubstitution* subst)
+  RobSubstitution* subst,
+  unsigned& counter)
 {
   unsigned extLen = extCl->length();
   unsigned otherLen = otherCl->length();
@@ -204,7 +207,7 @@ Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
   Unit::InputType newInputType = Unit::getInputType(extCl->inputType(), otherCl->inputType());
   Inference* inf = new Inference2(Inference::EXTENSIONALITY_SUBSTITUTION, extCl, otherCl);
   Clause* res = new(newLength) Clause(newLength, newInputType, inf);
-  // BK: Should new weight be computed like in superposition? Which statistics to keep?
+  // BK: Should new weight be computed like in superposition?
 
   unsigned next = 0;
 
@@ -223,8 +226,7 @@ Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
   }
     
   ASS_EQ(next,newLength);
-
-  //cout << subst->toString(true) << endl;
+  counter++;
   
   TRACE("inf_ext", tout
         << "extensionality inference" << endl
@@ -244,18 +246,12 @@ ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
 {
   CALL("ExtensionalitySubstitution::generateClauses");
 
+  ExtensionalityClauseContainer* extClauses = _salg->getExtensionalityClauseContainer();
   ClauseIterator backwardIterator;
-  
-  if (premise->isExtensionality()) {
-    // we have to search for the single positive variable equality
-    Literal* extLit;
-    for (Clause::Iterator ci(*premise); ci.hasNext(); ) {
-      extLit = ci.next();
-      if (extLit->isTwoVarEquality() && extLit->isPositive()) {
-        break;
-      }
-    }
 
+  Literal* extLit = extClauses->addIfExtensionality(premise);
+  
+  if (extLit) {
     // Note: read comments inside out.
     backwardIterator = pvi(
       // Construct result clause by applying substitution.

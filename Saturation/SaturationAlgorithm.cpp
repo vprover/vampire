@@ -132,8 +132,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
 
   if (opt.extensionalityInference() != Options::EI_OFF) {
-    _extensionality = new ExtensionalityClauseContainer();
-    _passive->addedEvent.subscribe(_extensionality, &ExtensionalityClauseContainer::addIfExtensionality);
+    _extensionality = new ExtensionalityClauseContainer(opt);
+    //_active->addedEvent.subscribe(_extensionality, &ExtensionalityClauseContainer::addIfExtensionality);
   } else {
     _extensionality = 0;
   }
@@ -204,6 +204,9 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
   }
   env.statistics->finalActiveClauses = inst->_active->size();
   env.statistics->finalPassiveClauses = inst->_passive->size();
+  if (inst->_extensionality != 0) {
+    env.statistics->finalExtensionalityClauses = inst->_extensionality->size();
+  }
 }
 
 /**
@@ -1160,10 +1163,6 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     return;
   }
 
-  if (cl->isExtensionality()) {
-    _extensionality->remove(cl);
-  }
-
   switch(cl->store()) {
   case Clause::PASSIVE:
     _passive->remove(cl);
@@ -1551,7 +1550,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.unitResultingResolution()!=Options::URR_OFF) {
     gie->addFront(new URResolution());
   }
-  if (opt.extensionalityInference() == Options::EI_ADD) {
+  if (opt.extensionalityInference() != Options::EI_OFF) {
     gie->addFront(new ExtensionalitySubstitution());
   }
   

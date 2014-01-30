@@ -330,6 +330,11 @@ protected:
   mutable unsigned _color : 2;
   /** clause is an input clause for the saturation algorithm */
   unsigned _input : 1;
+  /** Clause was matched as extensionality and is tracked in the extensionality
+    * clause container. The matching happens at activation. If the clause
+    * becomes passive and is removed from the container, also this bit is unset.
+    */
+  unsigned _extensionality : 1;
   /** number of selected literals */
   unsigned _selected;
   /** age */
@@ -338,9 +343,6 @@ protected:
   mutable unsigned _weight;
   /** storage class */
   Store _store;
-
-  // BK: should this be changed to a bitfield?
-  bool _extensionality;
   
   /** number of references to this clause by inference rules */
   unsigned _inferenceRefCnt;
