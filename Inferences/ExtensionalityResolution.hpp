@@ -1,11 +1,11 @@
 /**
- * @file ExtensionalitySubstitution.hpp
- * Defines class ExtensionalitySubstitution
+ * @file ExtensionalityResolution.hpp
+ * Defines class ExtensionalityResolution
  *
  */
 
-#ifndef __ExtensionalitySubstitution__
-#define __ExtensionalitySubstitution__
+#ifndef __ExtensionalityResolution__
+#define __ExtensionalityResolution__
 
 #include "Forwards.hpp"
 
@@ -18,15 +18,15 @@ namespace Inferences
 
 using namespace Kernel;
 
-class ExtensionalitySubstitution
+class ExtensionalityResolution
 : public GeneratingInferenceEngine
 {
 public:
-  ExtensionalitySubstitution() {}
+  ExtensionalityResolution() {}
   
   ClauseIterator generateClauses(Clause* premise);
 
-  static Clause* performExtensionalitySubstitution(
+  static Clause* performExtensionalityResolution(
     Clause* extCl, Literal* extLit,
     Clause* otherCl, Literal* otherLit,
     RobSubstitution* subst,
@@ -46,4 +46,4 @@ private:
 
 };
 
-#endif /*__ExtensionalitySubstitution__*/
+#endif /*__ExtensionalityResolution__*/

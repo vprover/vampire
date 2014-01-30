@@ -1,6 +1,6 @@
 /**
- * @file ExtensionalitySubstitution.cpp
- * Implements class ExtensionalitySubstitution.
+ * @file ExtensionalityResolution.cpp
+ * Implements class ExtensionalityResolution.
  */
 
 #include "Debug/RuntimeStatistics.hpp"
@@ -21,7 +21,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "ExtensionalitySubstitution.hpp"
+#include "ExtensionalityResolution.hpp"
 
 using namespace Inferences;
 using namespace Lib;
@@ -38,7 +38,7 @@ using namespace Saturation;
  * @since 05/01/2014
  * @author Bernhard Kragl
  */
-struct ExtensionalitySubstitution::ForwardPairingFn
+struct ExtensionalityResolution::ForwardPairingFn
 {
   ForwardPairingFn (ExtensionalityClauseContainer* extClauses)
   : _extClauses(extClauses) {}
@@ -64,7 +64,7 @@ private:
  * This functor computes the unifications between the positive equality of an
  * extensionality clause and the matching negative equality in the given clause.
  */
-struct ExtensionalitySubstitution::ForwardUnificationsFn
+struct ExtensionalityResolution::ForwardUnificationsFn
 {
   ForwardUnificationsFn() { _subst = RobSubstitutionSP(new RobSubstitution()); }
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> >);
@@ -86,7 +86,7 @@ private:
 /**
  * Generate the result clause of a forward extensionality inference.
  */
-struct ExtensionalitySubstitution::ForwardResultFn
+struct ExtensionalityResolution::ForwardResultFn
 {
   ForwardResultFn(Clause* otherCl) : _otherCl(otherCl) {}
   DECL_RETURN_TYPE(Clause*);
@@ -97,7 +97,7 @@ struct ExtensionalitySubstitution::ForwardResultFn
     Clause* extCl = arg.first.second.clause;
     Literal* extLit = arg.first.second.literal;
 
-    return performExtensionalitySubstitution(extCl, extLit, _otherCl, otherLit, subst,
+    return performExtensionalityResolution(extCl, extLit, _otherCl, otherLit, subst,
                                              env.statistics->forwardExtensionalityResolution);
   }
 private:
@@ -109,7 +109,7 @@ private:
 /**
  * Functor for filtering negative equality literals of particular sort.
  */
-struct ExtensionalitySubstitution::NegEqSortFn
+struct ExtensionalityResolution::NegEqSortFn
 {
   NegEqSortFn (unsigned sort) : _sort(sort) {}
   DECL_RETURN_TYPE(bool);
@@ -126,7 +126,7 @@ private:
  * Functor for filtering selected negative literals of particular sort (the sort
  * of the given extensionality clause) in active clauses.
  */
-struct ExtensionalitySubstitution::BackwardPairingFn
+struct ExtensionalityResolution::BackwardPairingFn
 {
   BackwardPairingFn (unsigned sort) : _sort(sort) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<Clause*, Literal*> >);
@@ -147,7 +147,7 @@ private:
  * given extensionality clause and a matching negative equality in some active
  * clause.
  */
-struct ExtensionalitySubstitution::BackwardUnificationsFn
+struct ExtensionalityResolution::BackwardUnificationsFn
 {
   BackwardUnificationsFn(Literal* extLit)
   : _extLit (extLit) { _subst = RobSubstitutionSP(new RobSubstitution()); }
@@ -170,7 +170,7 @@ private:
 /**
  * Generate the result clause of a backward extensionality inference.
  */
-struct ExtensionalitySubstitution::BackwardResultFn
+struct ExtensionalityResolution::BackwardResultFn
 {
   BackwardResultFn(Clause* extCl, Literal* extLit) : _extCl(extCl), _extLit(extLit) {}
   DECL_RETURN_TYPE(Clause*);
@@ -180,7 +180,7 @@ struct ExtensionalitySubstitution::BackwardResultFn
     Clause* otherCl = arg.first.first;
     Literal* otherLit = arg.first.second;
 
-    return performExtensionalitySubstitution(_extCl, _extLit, otherCl, otherLit, subst,
+    return performExtensionalityResolution(_extCl, _extLit, otherCl, otherLit, subst,
                                              env.statistics->backwardExtensionalityResolution);
   }
 private:
@@ -194,7 +194,7 @@ private:
  * Generate clause by applying @c subst to all literals of @c extCl (except @c
  * extLit) and all literals of @c otherCl (except @c otherLit).
  */
-Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
+Clause* ExtensionalityResolution::performExtensionalityResolution(
   Clause* extCl, Literal* extLit,
   Clause* otherCl, Literal* otherLit,
   RobSubstitution* subst,
@@ -205,7 +205,7 @@ Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
   
   unsigned newLength = otherLen + extLen - 2;
   Unit::InputType newInputType = Unit::getInputType(extCl->inputType(), otherCl->inputType());
-  Inference* inf = new Inference2(Inference::EXTENSIONALITY_SUBSTITUTION, extCl, otherCl);
+  Inference* inf = new Inference2(Inference::EXTENSIONALITY_RESOLUTION, extCl, otherCl);
   Clause* res = new(newLength) Clause(newLength, newInputType, inf);
   // BK: Should new weight be computed like in superposition?
 
@@ -242,9 +242,9 @@ Clause* ExtensionalitySubstitution::performExtensionalitySubstitution(
  * Construct iterator, returning the results for forward and backward
  * extensionality on @c premise.
  */
-ClauseIterator ExtensionalitySubstitution::generateClauses(Clause* premise)
+ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
 {
-  CALL("ExtensionalitySubstitution::generateClauses");
+  CALL("ExtensionalityResolution::generateClauses");
 
   ExtensionalityClauseContainer* extClauses = _salg->getExtensionalityClauseContainer();
   ClauseIterator backwardIterator;

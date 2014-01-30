@@ -215,7 +215,7 @@ VINF_OBJ=Inferences/ArrayTheoryISE.o\
          Inferences/DistinctEqualitySimplifier.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
-         Inferences/ExtensionalitySubstitution.o\
+         Inferences/ExtensionalityResolution.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
          Inferences/ForwardDemodulation.o\

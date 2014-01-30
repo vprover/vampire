@@ -286,8 +286,8 @@ string Inference::ruleName(Rule rule)
     return "equality proxy definition";
   case EQUALITY_PROXY_AXIOM2:
     return "equality proxy axiom";
-  case EXTENSIONALITY_SUBSTITUTION:
-    return "extensionality substitution";
+  case EXTENSIONALITY_RESOLUTION:
+    return "extensionality resolution";
   case DEFINITION_UNFOLDING:
     return "definition unfolding";
   case DEFINITION_FOLDING:

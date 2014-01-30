@@ -169,7 +169,7 @@ public:
     /** equality resolution inference */
     EQUALITY_RESOLUTION,
     /** redundant inference with extensionality-like clause */
-    EXTENSIONALITY_SUBSTITUTION,
+    EXTENSIONALITY_RESOLUTION,
     /** forward demodulation inference */
     FORWARD_DEMODULATION,
     /** backward demodulation inference */

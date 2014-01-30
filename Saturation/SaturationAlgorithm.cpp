@@ -40,7 +40,7 @@
 #include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
-#include "Inferences/ExtensionalitySubstitution.hpp"
+#include "Inferences/ExtensionalityResolution.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
@@ -1551,7 +1551,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new URResolution());
   }
   if (opt.extensionalityInference() != Options::EI_OFF) {
-    gie->addFront(new ExtensionalitySubstitution());
+    gie->addFront(new ExtensionalityResolution());
   }
   
   res->setGeneratingInferenceEngine(gie);
