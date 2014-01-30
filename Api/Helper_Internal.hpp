@@ -14,7 +14,6 @@
 
 #include "Lib/Environment.hpp"
 
-#include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Connective.hpp"
 #include "Kernel/Formula.hpp"

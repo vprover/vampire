@@ -8,7 +8,6 @@
 
 #include "Lib/List.hpp"
 
-#include "Kernel/BDD.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
 
@@ -33,7 +32,7 @@ Formula* TestUtils::getUniqueFormula(UnitList* units)
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
-    Formula* form = u->getFormula(BDD::instance()->getFalse());
+    Formula* form = u->getFormula();
     FormulaList::push(form, forms);
   }
   Formula* conj;

@@ -10,7 +10,6 @@
 #include "Lib/TimeCounter.hpp"
 #include "Lib/VirtualIterator.hpp"
 
-#include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Grounder.hpp"
 #include "Kernel/Inference.hpp"

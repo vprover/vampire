@@ -17,7 +17,7 @@
 
 #include "Parse/TPTP.hpp"
 
-#include "BDD.hpp"
+#include "Signature.hpp"
 #include "Clause.hpp"
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
@@ -51,7 +51,6 @@ void InferenceStore::FullInference::increasePremiseRefCounters()
 
 
 InferenceStore::InferenceStore()
-: _bdd(BDD::instance())
 {
 }
 
@@ -272,7 +271,7 @@ string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 struct InferenceStore::ProofPrinter
 {
   ProofPrinter(ostream& out, InferenceStore* is)
-  : _is(is), out(out), bdd(BDD::instance())
+  : _is(is), out(out)
   {
     CALL("InferenceStore::ProofPrinter::ProofPrinter");
 
@@ -296,9 +295,9 @@ struct InferenceStore::ProofPrinter
 
     while(outKernel.isNonEmpty()) {
       UnitSpec cs=outKernel.pop();
-      bdd->allowDefinitionOutput(false);
+      //bdd->allowDefinitionOutput(false);
       handleStep(cs);
-      bdd->allowDefinitionOutput(true);
+      //bdd->allowDefinitionOutput(true);
     }
   }
 
@@ -334,12 +333,12 @@ protected:
 	out<<getQuantifiedStr(nrec.second);
       }
       out<<" <=> ";
-      if (nrec.first>0) {
-	out<<bdd->getPropositionalPredicateName(nrec.first);
-      }
-      else {
-        out<<"~"<<bdd->getPropositionalPredicateName(-nrec.first);
-      }
+      //if (nrec.first>0) {
+//	out<<bdd->getPropositionalPredicateName(nrec.first);
+  //    }
+  //    else {
+  //      out<<"~"<<bdd->getPropositionalPredicateName(-nrec.first);
+  //    }
       out<<" ["<<Inference::ruleName(Inference::SPLITTING_COMPONENT)<<"]\n";
     }
   }
@@ -490,12 +489,12 @@ protected:
     return unitIdToTptp(Int::toString(us.unit()->number())+"_D");
   }
 
-  string bddToString(BDDNode* prop)
-  {
-    CALL("InferenceStore::TPTPProofPrinter::bddToString");
+  //string bddToString(BDDNode* prop)
+  //{
+  //  CALL("InferenceStore::TPTPProofPrinter::bddToString");
 
-    return bdd->toTPTPString(prop,bddPrefix);
-  }
+  //  return bdd->toTPTPString(prop,bddPrefix);
+  //}
 
   string splitsToString(SplitSet* splits)
   {
@@ -920,7 +919,7 @@ protected:
 	continue;
       }
       string predName;
-      ALWAYS(bdd->getNiceName(var, predName));
+      //ALWAYS(bdd->getNiceName(var, predName));
       string defStr= predName+" <=> "+bddPrefix+Int::toString(var);
       out<<getFofString(defId, defStr, "introduced("+tptpRuleName(rule)+",[])", rule)<<endl;
     }
@@ -954,10 +953,10 @@ struct InferenceStore::ProofCheckPrinter
   : ProofPrinter(out, is) {}
 
 protected:
-  string bddToString(BDDNode* node)
-  {
-    return bdd->toTPTPString(node, "bddPred");
-  }
+  //string bddToString(BDDNode* node)
+  //{
+  //  return bdd->toTPTPString(node, "bddPred");
+  //}
 
   void printStep(UnitSpec cs)
   {

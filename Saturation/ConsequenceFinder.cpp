@@ -9,7 +9,6 @@
 #include "Lib/SkipList.hpp"
 #include "Lib/TimeCounter.hpp"
 
-#include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
 

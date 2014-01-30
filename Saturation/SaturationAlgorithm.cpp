@@ -623,7 +623,6 @@ void SaturationAlgorithm::init()
     addInputClause(cl);
   }
 
-  _sharing.init(this);
   if (_splitter) {
     _splitter->init(this);
   }

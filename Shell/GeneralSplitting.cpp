@@ -8,6 +8,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Set.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"

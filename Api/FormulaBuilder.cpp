@@ -15,7 +15,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
 
-#include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Connective.hpp"
 #include "Kernel/EqHelper.hpp"

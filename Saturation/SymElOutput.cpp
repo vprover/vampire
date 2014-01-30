@@ -5,7 +5,6 @@
 
 #include "Lib/Environment.hpp"
 
-#include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
@@ -132,7 +131,7 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
 
   env.beginOutput();
 
-  BDD::instance()->allowDefinitionOutput(false);
+  //BDD::instance()->allowDefinitionOutput(false);
   env.out()<<"%";
   if(eliminated==COLOR_LEFT) {
     env.out()<<"Left";
@@ -150,7 +149,7 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
 
   _printer.printAsClaim(cname, c);
 
-  BDD::instance()->allowDefinitionOutput(true);
+  //BDD::instance()->allowDefinitionOutput(true);
   _symElNextClauseNumber++;
 
   env.endOutput();

@@ -918,7 +918,6 @@ private:
   Proof _proof;
   bool _proofChecking;
   
-  bool _propositionalToBDD;
   string _protectedPrefix;
 
   QuestionAnsweringMode _questionAnswering;

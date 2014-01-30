@@ -12,7 +12,7 @@
 #include "Lib/SharedSet.hpp"
 #include "Lib/TimeCounter.hpp"
 
-#include "Kernel/BDD.hpp"
+#include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RCClauseStack.hpp"
@@ -628,6 +628,17 @@ bool SSplitter::doSplitting(Clause* cl)
   return true;
 }
 
+/**
+ * Uses _componentIdx to search for an existing name for the component represented by @b lits
+ *
+ * @param size number of literals in componenet
+ * @param lits literals of component
+ * @param comp the existing propositional name (SplitLevel) for this component - to be filled 
+ * @param compCl the existing clause for this component - to be filled
+ * @return True if the component already exists
+ *
+ * @author Giles
+ */
 bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits, SplitLevel& comp, Clause*& compCl)
 {
   CALL("SSplitter::tryGetExistingComponentName");
@@ -643,6 +654,21 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
   return true;
 }
 
+/**
+ * Records a new component. This involves
+ * - Building a new Clause for the component as a SAT_SPLITTING_COMPONENT
+ * - Create a SplitRecord for the component
+ * - Record the name in the splits of the clause
+ * - Insert the clause into _componentIdx for variant checking later
+ * - Insert the clause with the name into _compNames for lookup later
+ *
+ * @param name The propositional name for the component to add
+ * @param size The number of literals in the component to add
+ * @param lits The literals in the component to add
+ * @param orig The original clause i.e. the one that we are splitting
+ *
+ * @author Giles
+ */
 Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig)
 {
   CALL("SSplitter::buildAndInsertComponentClause");
@@ -719,10 +745,12 @@ SplitLevel SSplitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& co
 }
 
 /**
- * @param orig original clause used to determine input type of the component.
+ * @param orig original clause (one being split) used to determine input type of the component.
  *             Can be zero, in that case the input type is Unit::AXIOM
- * @param comp ???
- * @param compCl ???
+ * @param comp Component (Record) that we're geting the name for
+ * @param compCl The clause that will be used to represent this component - to be filled
+ *
+ * @return the propositional name for the Clause (to be passed to the SAT solver)
  */
 SplitLevel SSplitter::getComponentName(const CompRec& comp, Clause* orig, Clause*& compCl)
 {
@@ -731,11 +759,11 @@ SplitLevel SSplitter::getComponentName(const CompRec& comp, Clause* orig, Clause
 }
 
 /**
- * @param orig original clause used to determine input type of the component.
+ * @param orig original clause (one being split) used to determine input type of the component.
  *             Can be zero, in that case the input type is Unit::AXIOM
- * @param size ???
- * @param lits ???
- * @param compCl ???
+ * @param size The number of literals in the component
+ * @param lits The component to be named (as a set of literals)
+ * @param compCl The clause that will be used to represent this component - to be filled
  */
 SplitLevel SSplitter::getComponentName(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl)
 {

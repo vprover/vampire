@@ -9,7 +9,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/SharedSet.hpp"
 
-#include "Kernel/BDD.hpp"
+#include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 

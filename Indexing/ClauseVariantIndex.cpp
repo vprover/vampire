@@ -36,6 +36,10 @@ ClauseVariantIndex::~ClauseVariantIndex()
   }
 }
 
+/**
+ * Inserts a new Clause
+ *
+ */
 void ClauseVariantIndex::insert(Clause* cl)
 {
   CALL("ClauseVariantIndex::insert");

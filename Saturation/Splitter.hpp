@@ -43,6 +43,7 @@ protected:
   class CompRec
   {
     LiteralStack _lits;
+    // What does special mean? - putSpecialsTogether?
     bool _isSpecial;
   public:
     CompRec() {}

@@ -7,7 +7,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Kernel/BDD.hpp"
+#include "Kernel/Signature.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"

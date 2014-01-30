@@ -18,7 +18,6 @@
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/RCClauseStack.hpp"
 
-#include "Indexing/ClauseSharing.hpp"
 #include "Indexing/IndexManager.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
@@ -82,7 +81,6 @@ public:
 
   Limits* getLimits() { return &_limits; }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
-  ClauseSharing* getSharing() { return &_sharing; }
   AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
   Ordering& getOrdering() const { return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
@@ -180,8 +178,6 @@ protected:
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
 
-  /** Index that takes care of the sharing and merging of clauses */
-  ClauseSharing _sharing;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;

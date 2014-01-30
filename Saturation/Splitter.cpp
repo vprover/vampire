@@ -6,6 +6,7 @@
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
 
+#include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -129,6 +130,19 @@ bool Splitter::standAloneObligations()
 }
 
 
+/**
+ * Takes Clause cl and attempts to split it into Components i.e. produces C1...Cn = cl such that
+ * all Ci's have a pairwise disjoint set of variables and no Ci can be split further - the
+ * splitting is maximal.
+ *
+ * Returns true if this is possible and false otherwise. The result is placed in acc.
+ *
+ * The putSpecialsTogether option does not appear to be used. What does it do?
+ *
+ * This is implemented using the Union-Find algorithm.
+ *
+ * @author Giles
+ */
 bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTogether)
 {
   CALL("Splitter::doSplitting");
