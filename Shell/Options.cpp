@@ -3127,6 +3127,9 @@ void Options::checkGlobalOptionConstraints() const
   if (_splitting && _saturationAlgorithm == INST_GEN) {
     USER_ERROR("saturation algorithm inst_gen cannot be used with sat splitting");
   }
+  if (_extensionalityInference != EI_OFF && _inequalitySplitting) {
+    USER_ERROR("extensionality resolution can not be used together with inequality splitting");
+  }
   //TODO:implement forbidden options
 }
 
