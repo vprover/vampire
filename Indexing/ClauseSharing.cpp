@@ -25,7 +25,7 @@ void ClauseSharing::init(SaturationAlgorithm* sa)
 {
   CALL("ClauseSharing::init");
 
-  _sa=sa;
+  _sa = sa;
 }
 
 /**
@@ -38,25 +38,24 @@ bool ClauseSharing::doSharing(Clause* cl)
   CALL("ClauseSharing::doSharing");
 
   ClauseSharing::InsertionResult res;
-  Clause* shCl=insert(cl, res);
+  Clause* shCl = insert(cl,res);
 
-  if(cl!=shCl) {
-    if(res==ClauseSharing::OLD_MODIFIED) {
+  if (cl != shCl) {
+    if (res == ClauseSharing::OLD_MODIFIED) {
       _sa->addNewClause(shCl);
     }
     _sa->onParenthood(shCl, cl);
-    if(res==ClauseSharing::OLD) {
-	if(shCl->store()==Clause::ACTIVE || shCl->store()==Clause::PASSIVE) {
+    if (res == ClauseSharing::OLD) {
+	if (shCl->store() == Clause::ACTIVE || shCl->store() == Clause::PASSIVE) {
 	  _sa->onNonRedundantClause(shCl);
 	}
     }
-    ASS(res==ClauseSharing::OLD || res==ClauseSharing::OLD_MODIFIED);
+    ASS(res == ClauseSharing::OLD || res == ClauseSharing::OLD_MODIFIED);
     return true;
   }
-  ASS(res==ClauseSharing::INSERTED || res==ClauseSharing::ALREADY_THERE);
+  ASS(res == ClauseSharing::INSERTED || res == ClauseSharing::ALREADY_THERE);
   return false;
-
-}
+} // ClauseSharing::doSharing
 
 /**
  * If the sharing index contains a clause that is variant
@@ -70,11 +69,11 @@ Clause* ClauseSharing::tryGet(Literal* const * lits, unsigned len)
 {
   CALL("ClauseSharing::tryGet/2");
 
-  ClauseIterator variants=_index.retrieveVariants(lits, len);
-  if(!variants.hasNext()) {
+  ClauseIterator variants = _index.retrieveVariants(lits, len);
+  if (!variants.hasNext()) {
     return 0;
   }
-  Clause* res=variants.next();
+  Clause* res = variants.next();
   ASS(!variants.hasNext());
   return res;
 }
@@ -128,12 +127,12 @@ Clause* ClauseSharing::insert(Clause* cl, InsertionResult& res)
 {
   CALL("ClauseSharing::insert");
 
-  ClauseIterator variants=_index.retrieveVariants(cl->literals(), cl->length());
-  if(variants.hasNext()) {
-    Clause* comp=variants.next();
+  ClauseIterator variants = _index.retrieveVariants(cl->literals(), cl->length());
+  if (variants.hasNext()) {
+    Clause* comp = variants.next();
 
-    if(comp==cl) {
-      res=ALREADY_THERE;
+    if (comp == cl) {
+      res = ALREADY_THERE;
       return cl;
     }
 
@@ -148,7 +147,7 @@ Clause* ClauseSharing::insert(Clause* cl, InsertionResult& res)
   } else {
     insertNew(cl);
 
-    res=INSERTED;
+    res = INSERTED;
     return cl;
   }
 
