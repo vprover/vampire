@@ -179,8 +179,7 @@ VK_OBJ= Kernel/BDD.o\
          Kernel/Signature.o\
          Kernel/Unit.o
 
-VI_OBJ = Indexing/ArithmeticIndex.o\
-         Indexing/ClauseCodeTree.o\
+VI_OBJ = Indexing/ClauseCodeTree.o\
          Indexing/ClauseSharing.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
@@ -222,7 +221,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/HyperSuperposition.o\
          Inferences/InferenceEngine.o\
          Inferences/InterpretedEvaluation.o\
-         Inferences/InterpretedSimplifier.o\
          Inferences/RefutationSeekerFSE.o\
          Inferences/SLQueryBackwardSubsumption.o\
          Inferences/SLQueryForwardSubsumption.o\

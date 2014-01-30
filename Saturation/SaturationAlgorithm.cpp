@@ -15,8 +15,6 @@
 
 #include "Indexing/LiteralIndexingStructure.hpp"
 
-#include "Kernel/BDD.hpp"
-#include "Kernel/BDDConjunction.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
@@ -43,7 +41,6 @@
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HyperSuperposition.hpp"
-#include "Inferences/InterpretedSimplifier.hpp"
 #include "Inferences/RefutationSeekerFSE.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
@@ -104,7 +101,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   }
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.selection());
 
-  _propToBDD = false;
   _completeOptionSettings = opt.complete(prb);
 
   _unprocessed = new UnprocessedClauseContainer();
@@ -160,12 +156,12 @@ SaturationAlgorithm::~SaturationAlgorithm()
     _immediateSimplifier->detach();
   }
 
-  while(_fwSimplifiers) {
+  while (_fwSimplifiers) {
     ForwardSimplificationEngine* fse = FwSimplList::pop(_fwSimplifiers);
     fse->detach();
     delete fse;
   }
-  while(_bwSimplifiers) {
+  while (_bwSimplifiers) {
     BackwardSimplificationEngine* bse = BwSimplList::pop(_bwSimplifiers);
     bse->detach();
     delete bse;
@@ -239,22 +235,9 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
   LOG_UNIT("sa_active_removed", c);
   LOG_INT("sa_active_size", _active->size());
 
-  ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED ||
-      c->store()==Clause::SELECTED_REACTIVATED);
-
-  if (c->store()==Clause::ACTIVE) {
-    c->setStore(Clause::NONE);
-    //at this point the c object may be deleted
-  } else if (c->store()==Clause::REACTIVATED) {
-    c->setStore(Clause::PASSIVE);
-  } else if (c->store()==Clause::SELECTED_REACTIVATED) {
-    c->setStore(Clause::SELECTED);
-  }
-#if VDEBUG
-  else {
-    ASSERTION_VIOLATION;
-  }
-#endif
+  ASS(c->store()==Clause::ACTIVE);
+  c->setStore(Clause::NONE);
+  //at this point the c object may be deleted
 }
 
 void SaturationAlgorithm::onAllProcessed()
@@ -300,19 +283,9 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
   LOG_UNIT("sa_passive_removed", c);
   LOG_INT("sa_passive_size", _passive->size());
 
-  ASS(c->store()==Clause::PASSIVE || c->store()==Clause::REACTIVATED)
-
-  if (c->store()==Clause::PASSIVE) {
-    c->setStore(Clause::NONE);
-    //at this point the c object can be deleted
-  } else if (c->store()==Clause::REACTIVATED) {
-    c->setStore(Clause::ACTIVE);
-  }
-#if VDEBUG
-  else {
-    ASSERTION_VIOLATION;
-  }
-#endif
+  ASS(c->store()==Clause::PASSIVE);
+  c->setStore(Clause::NONE);
+  //at this point the c object can be deleted
 }
 
 /**
@@ -371,7 +344,7 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 //
 //    Inference* inf=cl->inference();
 //    Inference::Iterator it=inf->iterator();
-//    while(inf->hasNext(it)) {
+//    while (inf->hasNext(it)) {
 //      Unit* premu=inf->next(it);
 //      if (!premu->isClause()) {
 //	//the premise comes from preprocessing
@@ -394,7 +367,7 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 
   LOG_UNIT("sa_new_clause", cl);
 
-  if (!_propToBDD && cl->isPropositional()) {
+  if (cl->isPropositional()) {
     onNewUsefulPropositionalClause(cl);
   }
 
@@ -472,7 +445,7 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
 
   if (replacement) {
     onParenthood(replacement, cl);
-    while(premStack.isNonEmpty()) {
+    while (premStack.isNonEmpty()) {
       onParenthood(replacement, premStack.pop());
     }
   }
@@ -598,7 +571,7 @@ void SaturationAlgorithm::addInputSOSClause(Clause* cl)
 simpl_start:
 
   Clause* simplCl=_immediateSimplifier->simplify(cl);
-  if (simplCl!=cl) {
+  if (simplCl != cl) {
     if (!simplCl) {
       onClauseReduction(cl, 0, 0);
       goto fin;
@@ -645,7 +618,7 @@ void SaturationAlgorithm::init()
 
   ClauseIterator toAdd = _prb.clauseIterator();
 
-  while(toAdd.hasNext()) {
+  while (toAdd.hasNext()) {
     Clause* cl=toAdd.next();
     addInputClause(cl);
   }
@@ -689,7 +662,7 @@ public:
     TRACE("sa_fw_simpl",
 	tout << "->>--------\n";
 	ClauseList* lst=0;
-	while(premises.hasNext()) {
+	while (premises.hasNext()) {
 	  Clause* premise=premises.next();
 	  ASS(willPerform(premise));
 	  ClauseList::push(premise, lst);
@@ -760,7 +733,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
   Clause* cl=cl0;
 
   Clause* simplCl=_immediateSimplifier->simplify(cl);
-  if (simplCl!=cl) {
+  if (simplCl != cl) {
     if (simplCl) {
       addNewClause(simplCl);
     }
@@ -768,7 +741,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
     return 0;
   }
 
-  if (cl!=cl0 && cl0->isInput()) {
+  if (cl != cl0 && cl0->isInput()) {
     //immediate simplifications maintain the state of a clause as input
     cl->markInput();
   }
@@ -828,7 +801,7 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 {
   CALL("SaturationAlgorithm::newClausesToUnprocessed");
 
-  while(_newClauses.isNonEmpty()) {
+  while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
 
     switch(cl->store())
@@ -837,19 +810,14 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     case Clause::UNPROCESSED:
       break;
     case Clause::PASSIVE:
-    case Clause::REACTIVATED:
       onNonRedundantClause(cl);
-      break;
-    case Clause::ACTIVE:
-      ASS(!cl->isEmpty());
-      reanimate(cl);
       break;
     case Clause::NONE:
       addUnprocessedClause(cl);
       break;
 #if VDEBUG
     case Clause::SELECTED:
-    case Clause::SELECTED_REACTIVATED:
+    case Clause::ACTIVE:
       //such clauses should not appear as new ones
       ASSERTION_VIOLATION;
 #endif
@@ -928,24 +896,6 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   ASSERTION_VIOLATION;
   // removed some code that dealt with the case where a clause is empty
   // but as a non-empty bdd prop part
-
-}
-
-/**
- * Reanimace clause @b cl
- *
- * Reanimation of a clause means that an active clause is put into
- * the passive container, so that it will be used once again for
- * generating inferences. In the meantime the clause still remains
- * also in the active container, so that we save on index updates.
- */
-void SaturationAlgorithm::reanimate(Clause* cl)
-{
-  CALL("SaturationAlgorithm::reanimate");
-  ASS_EQ(cl->store(), Clause::ACTIVE);
-
-  cl->setStore(Clause::REACTIVATED);
-  _passive->add(cl);
 }
 
 /**
@@ -959,10 +909,6 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::forwardSimplify");
 
-  if (cl->store()==Clause::REACTIVATED || cl->store()==Clause::SELECTED_REACTIVATED) {
-    return true;
-  }
-
   if (!getLimits()->fulfillsLimits(cl)) {
     RSTAT_CTR_INC("clauses discarded by weight limit in forward simplification");
     env.statistics->discardedNonRedundantClauses++;
@@ -973,7 +919,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 
   FwSimplList::Iterator fsit(_fwSimplifiers);
 
-  while(fsit.hasNext()) {
+  while (fsit.hasNext()) {
     ForwardSimplificationEngine* fse=fsit.next();
 
     fse->perform(cl, &performer);
@@ -1010,12 +956,12 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 
 
   BwSimplList::Iterator bsit(_bwSimplifiers);
-  while(bsit.hasNext()) {
+  while (bsit.hasNext()) {
     BackwardSimplificationEngine* bse=bsit.next();
 
     BwSimplificationRecordIterator simplifications;
     bse->perform(cl,simplifications);
-    while(simplifications.hasNext()) {
+    while (simplifications.hasNext()) {
       BwSimplificationRecord srec=simplifications.next();
       Clause* redundant=srec.toRemove;
       ASS_NEQ(redundant, cl);
@@ -1087,11 +1033,6 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     _passive->remove(cl);
     break;
   case Clause::ACTIVE:
-  case Clause::SELECTED_REACTIVATED:
-    _active->remove(cl);
-    break;
-  case Clause::REACTIVATED:
-    _passive->remove(cl);
     _active->remove(cl);
     break;
   default:
@@ -1130,7 +1071,6 @@ bool SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
 
-
   if (_consFinder && _consFinder->isRedundant(cl)) {
     return false;
   }
@@ -1140,28 +1080,20 @@ bool SaturationAlgorithm::activate(Clause* cl)
       return false;
     }
   }
-
   _clauseActivationInProgress=true;
 
   if (!cl->selected()) {
     _selector->select(cl);
   }
 
-  if (cl->store()==Clause::SELECTED_REACTIVATED) {
-    cl->setStore(Clause::ACTIVE);
-    env.statistics->reactivatedClauses++;
-    LOG_UNIT("sa_reanimated", cl);
-  } else {
-    ASS_EQ(cl->store(), Clause::SELECTED);
-    cl->setStore(Clause::ACTIVE);
-    env.statistics->activeClauses++;
-
-    _active->add(cl);
-  }
+  ASS_EQ(cl->store(), Clause::SELECTED);
+  cl->setStore(Clause::ACTIVE);
+  env.statistics->activeClauses++;
+  _active->add(cl);
 
   ClauseIterator toAdd=_generator->generateClauses(cl);
 
-  while(toAdd.hasNext()) {
+  while (toAdd.hasNext()) {
     Clause* genCl=toAdd.next();
 
     addNewClause(genCl);
@@ -1169,7 +1101,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
     LOG_UNIT("sa_generated_clause", genCl);
 
     Inference::Iterator iit=genCl->inference()->iterator();
-    while(genCl->inference()->hasNext(iit)) {
+    while (genCl->inference()->hasNext(iit)) {
       Unit* premUnit=genCl->inference()->next(iit);
       ASS(premUnit->isClause());
       Clause* premCl=static_cast<Clause*>(premUnit);
@@ -1181,12 +1113,10 @@ bool SaturationAlgorithm::activate(Clause* cl)
   _clauseActivationInProgress=false;
 
   //now we remove clauses that could not be removed during the clause activation process
-  while(_postponedClauseRemovals.isNonEmpty()) {
+  while (_postponedClauseRemovals.isNonEmpty()) {
     Clause* cl=_postponedClauseRemovals.pop();
-    if (cl->store()!=Clause::ACTIVE &&
-	cl->store()!=Clause::PASSIVE &&
-	cl->store()!=Clause::REACTIVATED &&
-	cl->store()!=Clause::SELECTED_REACTIVATED) {
+    if (cl->store() != Clause::ACTIVE &&
+	cl->store() != Clause::PASSIVE) {
       continue;
     }
     removeActiveOrPassiveClause(cl);
@@ -1240,13 +1170,8 @@ void SaturationAlgorithm::handleUnsuccessfulActivation(Clause* cl)
 {
   CALL("SaturationAlgorithm::handleUnsuccessfulActivation");
 
-  if (cl->store()==Clause::SELECTED_REACTIVATED) {
-    cl->setStore(Clause::ACTIVE);
-  }
-  else {
-    ASS_EQ(cl->store(), Clause::SELECTED);
-    cl->setStore(Clause::NONE);
-  }
+  ASS_EQ(cl->store(), Clause::SELECTED);
+  cl->setStore(Clause::NONE);
 }
 
 /**
@@ -1281,7 +1206,7 @@ UnitList* SaturationAlgorithm::collectSaturatedSet()
 
   UnitList* res = 0;
   SLQueryResultIterator qrit = gis->getAll();
-  while(qrit.hasNext()) {
+  while (qrit.hasNext()) {
     SLQueryResult qres = qrit.next();
     UnitList::push(qres.clause, res);
     qres.clause->incRefCnt();
@@ -1303,21 +1228,15 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     MainLoopResult::TerminationReason termReason =
 	isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND;
     MainLoopResult res(termReason);
-    if (termReason == Statistics::SATISFIABLE && getOptions().proof()!=Options::PROOF_OFF) {
+    if (termReason == Statistics::SATISFIABLE && getOptions().proof() != Options::PROOF_OFF) {
       res.saturatedSet = collectSaturatedSet();
     }
     throw MainLoopFinishedException(res);
   }
 
   Clause* cl = _passive->popSelected();
-
-  if (cl->store()==Clause::REACTIVATED) {
-    cl->setStore(Clause::SELECTED_REACTIVATED);
-  }
-  else {
-    ASS_EQ(cl->store(),Clause::PASSIVE);
-    cl->setStore(Clause::SELECTED);
-  }
+  ASS_EQ(cl->store(),Clause::PASSIVE);
+  cl->setStore(Clause::SELECTED);
 
   if (!handleClauseBeforeActivation(cl)) {
     return;
@@ -1463,7 +1382,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.binaryResolution()) {
     gie->addFront(new BinaryResolution());
   }
-  if (opt.unitResultingResolution()!=Options::URR_OFF) {
+  if (opt.unitResultingResolution() != Options::URR_OFF) {
     gie->addFront(new URResolution());
   }
   res->setGeneratingInferenceEngine(gie);
@@ -1521,11 +1440,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if (opt.backwardSubsumption()!=Options::SUBSUMPTION_OFF) {
+  if (opt.backwardSubsumption() != Options::SUBSUMPTION_OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::SUBSUMPTION_UNIT_ONLY;
     res->addBackwardSimplifierToFront(new SLQueryBackwardSubsumption(byUnitsOnly));
   }
-  if (opt.backwardSubsumptionResolution()!=Options::SUBSUMPTION_OFF) {
+  if (opt.backwardSubsumptionResolution() != Options::SUBSUMPTION_OFF) {
     bool byUnitsOnly=opt.backwardSubsumptionResolution()==Options::SUBSUMPTION_UNIT_ONLY;
     res->addBackwardSimplifierToFront(new BackwardSubsumptionResolution(byUnitsOnly));
   }

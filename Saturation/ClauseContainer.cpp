@@ -30,7 +30,7 @@ using namespace Indexing;
 
 void ClauseContainer::addClauses(ClauseIterator cit)
 {
-  while(cit.hasNext()) {
+  while (cit.hasNext()) {
     add(cit.next());
   }
 }
@@ -40,7 +40,7 @@ void ClauseContainer::addClauses(ClauseIterator cit)
 
 void RandomAccessClauseContainer::removeClauses(ClauseIterator cit)
 {
-  while(cit.hasNext()) {
+  while (cit.hasNext()) {
     remove(cit.next());
   }
 }
@@ -82,7 +82,7 @@ UnprocessedClauseContainer::~UnprocessedClauseContainer()
 {
   CALL("UnprocessedClauseContainer::~UnprocessedClauseContainer");
 
-  while(!_data.isEmpty()) {
+  while (!_data.isEmpty()) {
     Clause* cl=_data.pop_back();
     ASS_EQ(cl->store(), Clause::UNPROCESSED);
     cl->setStore(Clause::NONE);
@@ -126,28 +126,27 @@ void ActiveClauseContainer::add(Clause* c)
  */
 void ActiveClauseContainer::remove(Clause* c)
 {
-  ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED || c->store()==Clause::SELECTED_REACTIVATED);
+  ASS(c->store()==Clause::ACTIVE);
 
   _size--;
-
   removedEvent.fire(c);
-}
+} // Active::ClauseContainer::remove
 
 void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 {
   CALL("ActiveClauseContainer::onLimitsUpdated");
 
-  if(change==LIMITS_LOOSENED) {
+  if (change==LIMITS_LOOSENED) {
     return;
   }
   LiteralIndexingStructure* gis=getSaturationAlgorithm()->getIndexManager()
       ->getGeneratingLiteralIndexingStructure();
-  if(!gis) {
+  if (!gis) {
     return;
   }
   Limits* limits=getSaturationAlgorithm()->getLimits();
 
-  if(!limits->ageLimited() || !limits->weightLimited()) {
+  if (!limits->ageLimited() || !limits->weightLimited()) {
     return;
   }
   int ageLimit=limits->ageLimit();
@@ -159,17 +158,18 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   toRemove.reset();
 
   SLQueryResultIterator rit=gis->getAll();
-  while(rit.hasNext()) {
+  while (rit.hasNext()) {
     Clause* cl=rit.next().clause;
-    if(cl->age()<ageLimit || checked.contains(cl)) {
+    if (cl->age()<ageLimit || checked.contains(cl)) {
       continue;
     }
     checked.insert(cl);
 
     bool shouldRemove;
-    if(cl->age()>ageLimit) {
+    if (cl->age()>ageLimit) {
       shouldRemove=cl->getEffectiveWeight(_opt)>weightLimit;
-    } else {
+    }
+    else {
       unsigned selCnt=cl->selected();
       unsigned maxSelWeight=0;
       for(unsigned i=0;i<selCnt;i++) {
@@ -178,33 +178,27 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
       shouldRemove=cl->weight()-(int)maxSelWeight>=weightLimit;
     }
 
-    if(shouldRemove) {
-      ASS(cl->store()==Clause::ACTIVE || cl->store()==Clause::REACTIVATED ||
-	  cl->store()==Clause::SELECTED_REACTIVATED);
+    if (shouldRemove) {
+      ASS(cl->store()==Clause::ACTIVE);
       toRemove.push(cl);
     }
   }
 
 #if OUTPUT_LRS_DETAILS
-  if(toRemove.isNonEmpty()) {
+  if (toRemove.isNonEmpty()) {
     cout<<toRemove.size()<<" active deleted\n";
   }
 #endif
 
-  while(toRemove.isNonEmpty()) {
+  while (toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
-    ASS(removed->store()==Clause::ACTIVE || removed->store()==Clause::REACTIVATED ||
-	removed->store()==Clause::SELECTED_REACTIVATED);
+    ASS(removed->store()==Clause::ACTIVE);
 
-    if(removed->store()!=Clause::REACTIVATED) {
-      RSTAT_CTR_INC("clauses discarded from active on weight limit update");
-      env.statistics->discardedNonRedundantClauses++;
-    }
+    RSTAT_CTR_INC("clauses discarded from active on weight limit update");
+    env.statistics->discardedNonRedundantClauses++;
 
     remove(removed);
     ASS_NEQ(removed->store(), Clause::ACTIVE);
-    ASS_NEQ(removed->store(), Clause::REACTIVATED);
-    ASS_NEQ(removed->store(), Clause::SELECTED_REACTIVATED);
   }
 }
 

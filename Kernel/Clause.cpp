@@ -260,11 +260,11 @@ void Clause::setStore(Store s)
 #if VDEBUG
   //assure there is one selected clause
   static Clause* selected=0;
-  if (_store==SELECTED || _store==SELECTED_REACTIVATED) {
+  if (_store==SELECTED) {
     ASS_EQ(selected, this);
     selected=0;
   }
-  if (s==SELECTED || s==SELECTED_REACTIVATED) {
+  if (s==SELECTED) {
     ASS_EQ(selected, 0);
     selected=this;
   }

@@ -101,31 +101,21 @@ public:
    * to the object; otherwise return zero.
    */
   static SaturationAlgorithm* tryGetInstance() { return s_instance; }
-
   static void tryUpdateFinalClauseCount();
 
 protected:
-
   virtual void init();
   virtual MainLoopResult runImpl();
-
   void doUnprocessedLoop();
   virtual void handleUnsuccessfulActivation(Clause* c);
-
   virtual bool handleClauseBeforeActivation(Clause* c);
-
   void addInputSOSClause(Clause* cl);
-
   void newClausesToUnprocessed();
-
   void addUnprocessedClause(Clause* cl);
-
   bool forwardSimplify(Clause* c);
   void backwardSimplify(Clause* c);
   void addToPassive(Clause* c);
-  void reanimate(Clause* c);
   bool activate(Clause* c);
-
   virtual void onSOSClauseAdded(Clause* c) {}
   void onActiveAdded(Clause* c);
   virtual void onActiveRemoved(Clause* c);
@@ -136,13 +126,9 @@ protected:
   void onUnprocessedRemoved(Clause* c);
   virtual void onUnprocessedSelected(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
-
   virtual void onClauseRetained(Clause* cl);
-
   void onAllProcessed();
-
   int elapsedTime();
-
   virtual bool isComplete();
 
 private:
@@ -155,20 +141,6 @@ private:
   void handleEmptyClause(Clause* cl);
   Clause* doImmediateSimplification(Clause* cl);
   MainLoopResult saturateImpl();
-
-  /**
-   * This member contains derived empty clauses if propositionalToBdd is on and
-   * satSolverForEmptyClause is on.
-   */
-  Stack<UnitSpec> _bddSatSolverEmptyClauses;
-  /**
-   * This member contains merge of derived empty clauses if propositionalToBdd is on and
-   * satSolverForEmptyClause is off.
-   */
-  // no longer in use as propositionalToBdd is always off
-  //Clause* _mergedBddEmptyClause;
-
-
   Limits _limits;
   SmartPtr<IndexManager> _imgr;
 
@@ -180,7 +152,6 @@ protected:
 
   bool _completeOptionSettings;
   int _startTime;
-  bool _propToBDD;
   bool _clauseActivationInProgress;
 
   RCClauseStack _newClauses;

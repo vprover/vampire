@@ -86,14 +86,9 @@ void Otter::handleUnsuccessfulActivation(Clause* c)
 {
   CALL("Otter::handleUnsuccessfulActivation");
 
-  if(c->store()==Clause::SELECTED_REACTIVATED) {
-    c->setStore(Clause::ACTIVE);
-  }
-  else {
-    ASS_EQ(c->store(), Clause::SELECTED);
-    _simplCont.remove(c);
-    c->setStore(Clause::NONE);
-  }
+  ASS_EQ(c->store(), Clause::SELECTED);
+  _simplCont.remove(c);
+  c->setStore(Clause::NONE);
 }
 
 }

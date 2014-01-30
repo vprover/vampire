@@ -28,9 +28,9 @@ void SATInference::collectFOPremises(SATClause* cl, Stack<UnitSpec>& acc)
   seen.reset();
 
   toDo.push(cl);
-  while(toDo.isNonEmpty()) {
+  while (toDo.isNonEmpty()) {
     SATClause* cur = toDo.pop();
-    if(!seen.insert(cur)) {
+    if (!seen.insert(cur)) {
       continue;
     }
     SATInference* sinf = cur->inference();
@@ -52,7 +52,7 @@ void SATInference::collectFOPremises(SATClause* cl, Stack<UnitSpec>& acc)
       FOSplittingInference* inf = static_cast<FOSplittingInference*>(sinf);
       acc.push(UnitSpec(inf->getOrigin()));
       ClauseList::Iterator cit(inf->getNames());
-      while(cit.hasNext()) {
+      while (cit.hasNext()) {
 	acc.push(UnitSpec(cit.next()));
       }
       break;
@@ -77,7 +77,7 @@ UnitList* SATInference::getFOPremises(SATClause* cl)
   collectFOPremises(cl, prems);
 
   UnitList* res = 0;
-  while(prems.isNonEmpty()) {
+  while (prems.isNonEmpty()) {
     UnitSpec us = prems.pop();
     ASSERTION_VIOLATION; // - removed assertion reported when BDD was False
     //ASS_REP(us.withoutProp() || BDD::instance()->isTrue(us.prop()), us.toString());
@@ -137,7 +137,7 @@ FOSplittingInference::FOSplittingInference(Clause* origin, ClauseList* names) : 
 
   _origin->incRefCnt();
   ClauseList::Iterator nit(_names);
-  while(nit.hasNext()) {
+  while (nit.hasNext()) {
     Clause* n = nit.next();
     n->incRefCnt();
   }
@@ -148,7 +148,7 @@ FOSplittingInference::~FOSplittingInference()
   CALL("FOSplittingInference::~FOSplittingInference");
 
   _origin->decRefCnt();
-  while(_names) {
+  while (_names) {
     Clause* n = ClauseList::pop(_names);
     n->decRefCnt();
   }

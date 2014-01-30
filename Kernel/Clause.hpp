@@ -73,20 +73,9 @@ public:
     NONE = 3u,
     /** clause removed by backtracking splitting */
     BACKTRACKED = 4u,
-    /**
-     * Active clause (it is in appropriate indexes) that is put to
-     * passive queue for another activation.
-     *
-     * This is intended for clauses whose propositional part has
-     * changed.
-     */
-    REACTIVATED = 5u,
     /** clause is selected from the passive container
      * and is not added to the active one yet */
-    SELECTED = 6u,
-    /** reactivated clause selected from the passive container
-     * for activation */
-    SELECTED_REACTIVATED = 7u
+    SELECTED = 5u
   };
 
   Clause(unsigned length,InputType it,Inference* inf);

@@ -48,18 +48,10 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
 AWPassiveClauseContainer::~AWPassiveClauseContainer()
 {
   ClauseQueue::Iterator cit(_ageQueue);
-  while(cit.hasNext()) {
+  while (cit.hasNext()) {
     Clause* cl=cit.next();
-    if(cl->store()==Clause::PASSIVE) {
-      cl->setStore(Clause::NONE);
-    } else if(cl->store()==Clause::REACTIVATED) {
-      cl->setStore(Clause::ACTIVE);
-    }
-#if VDEBUG
-    else {
-      ASSERTION_VIOLATION;
-    }
-#endif
+    ASS(cl->store()==Clause::PASSIVE);
+    cl->setStore(Clause::NONE);
   }
 
   ASS(!_beforeClausePropUpdateSD.isEmpty());
@@ -87,12 +79,12 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
   unsigned cl1Weight=cl1->weight();
   unsigned cl2Weight=cl2->weight();
 
-  if(opt.nonliteralsInClauseWeight()) {
+  if (opt.nonliteralsInClauseWeight()) {
     cl1Weight+= cl1->splitWeight(); // propWeight removed
     cl2Weight+= cl2->splitWeight();
   }
 
-  if(opt.increasedNumeralWeight()) {
+  if (opt.increasedNumeralWeight()) {
     cl1Weight=cl1Weight*2+cl1->getNumeralWeight();
     cl2Weight=cl2Weight*2+cl2->getNumeralWeight();
   }
@@ -100,9 +92,9 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
   int nwcNumer = opt.nonGoalWeightCoeffitientNumerator();
   int nwcDenom = opt.nonGoalWeightCoeffitientDenominator();
 
-  if(cl1->inputType()==0 && cl2->inputType()!=0) {
+  if (cl1->inputType()==0 && cl2->inputType()!=0) {
     return Int::compare(cl1Weight*nwcNumer, cl2Weight*nwcDenom);
-  } else if(cl1->inputType()!=0 && cl2->inputType()==0) {
+  } else if (cl1->inputType()!=0 && cl2->inputType()==0) {
     return Int::compare(cl1Weight*nwcDenom, cl2Weight*nwcNumer);
   }
   return Int::compare(cl1Weight, cl2Weight);
@@ -123,7 +115,7 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
   CALL("WeightQueue::lessThan");
 
   Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
-  if(weightCmp!=EQUAL) {
+  if (weightCmp!=EQUAL) {
     return weightCmp==LESS;
   }
 
@@ -165,7 +157,7 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
   }
 
   Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
-  if(weightCmp!=EQUAL) {
+  if (weightCmp!=EQUAL) {
     return weightCmp==LESS;
   }
 
@@ -194,9 +186,7 @@ void AWPassiveClauseContainer::add(Clause* cl)
     _weightQueue.insert(cl);
   }
   _size++;
-  if(cl->store()!=Clause::REACTIVATED) {
-    addedEvent.fire(cl);
-  }
+  addedEvent.fire(cl);
 } // AWPassiveClauseContainer::add
 
 /**
@@ -208,19 +198,19 @@ void AWPassiveClauseContainer::add(Clause* cl)
 void AWPassiveClauseContainer::remove(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::remove");
-  ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED);
+  ASS(cl->store()==Clause::PASSIVE);
 
-  if(_ageRatio) {
+  if (_ageRatio) {
     ALWAYS(_ageQueue.remove(cl));
   }
-  if(_weightRatio) {
+  if (_weightRatio) {
     ALWAYS(_weightQueue.remove(cl));
   }
   _size--;
 
   removedEvent.fire(cl);
 
-  ASS(cl->store()!=Clause::PASSIVE && cl->store()!=Clause::REACTIVATED);
+  ASS(cl->store()!=Clause::PASSIVE);
 }
 
 
@@ -270,7 +260,7 @@ void AWPassiveClauseContainer::beforeClausePropChange(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::beforeClausePropChange");
 
-  if( (cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED) && _opt.nonliteralsInClauseWeight() ) {
+  if (cl->store()==Clause::PASSIVE && _opt.nonliteralsInClauseWeight()) {
     beforePassiveClauseWeightChange(cl);
   }
 }
@@ -279,7 +269,7 @@ void AWPassiveClauseContainer::afterClausePropChange(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::afterClausePropChange");
 
-  if( (cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED) && _opt.nonliteralsInClauseWeight() ) {
+  if (cl->store()==Clause::PASSIVE && _opt.nonliteralsInClauseWeight()) {
     afterPassiveClauseWeightChange(cl);
   }
 }
@@ -304,9 +294,9 @@ void AWPassiveClauseContainer::beforePassiveClauseWeightChange(Clause* cl)
   _clauseHavingWeightChanged = cl;
 
   bool clauseWasPresent;
-  if(_ageRatio) {
+  if (_ageRatio) {
     clauseWasPresent = _ageQueue.remove(cl);
-    if(_weightRatio && clauseWasPresent) {
+    if (_weightRatio && clauseWasPresent) {
       ALWAYS(_weightQueue.remove(cl));
     }
   }
@@ -331,14 +321,14 @@ void AWPassiveClauseContainer::afterPassiveClauseWeightChange(Clause* cl)
   ASS_EQ(_clauseHavingWeightChanged, cl);
 
   _clauseHavingWeightChanged=0;
-  if(!_clauseHavingWeightChangedWasInContainer) {
+  if (!_clauseHavingWeightChangedWasInContainer) {
     return;
   }
 
-  if(_ageRatio) {
+  if (_ageRatio) {
     _ageQueue.insert(cl);
   }
-  if(_weightRatio) {
+  if (_weightRatio) {
     _weightQueue.insert(cl);
   }
 }
@@ -351,7 +341,7 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
 
   int maxAge, maxWeight;
 
-  if(estReachableCnt>static_cast<long long>(_size)) {
+  if (estReachableCnt>static_cast<long long>(_size)) {
     maxAge=-1;
     maxWeight=-1;
     goto fin;
@@ -361,7 +351,7 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
     ClauseQueue::Iterator wit(_weightQueue);
     ClauseQueue::Iterator ait(_ageQueue);
 
-    if(!wit.hasNext() && !ait.hasNext()) {
+    if (!wit.hasNext() && !ait.hasNext()) {
       //passive container is empty
       return;
     }
@@ -369,15 +359,15 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
     long long remains=estReachableCnt;
     Clause* wcl=0;
     Clause* acl=0;
-    if(_ageRatio==0 || (_opt.lrsWeightLimitOnly() && _weightRatio!=0) ) {
+    if (_ageRatio==0 || (_opt.lrsWeightLimitOnly() && _weightRatio!=0) ) {
       ASS(wit.hasNext());
-      while( remains && wit.hasNext() ) {
+      while ( remains && wit.hasNext() ) {
 	wcl=wit.next();
 	remains--;
       }
-    } else if(_weightRatio==0) {
+    } else if (_weightRatio==0) {
       ASS(ait.hasNext());
-      while( remains && ait.hasNext() ) {
+      while ( remains && ait.hasNext() ) {
 	acl=ait.next();
 	remains--;
       }
@@ -385,17 +375,17 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
       ASS(wit.hasNext()&&ait.hasNext());
 
       int balance=(_ageRatio<=_weightRatio)?1:0;
-      while(remains) {
+      while (remains) {
 	ASS_G(remains,0);
-	if( (balance>0 || !ait.hasNext()) && wit.hasNext()) {
+	if ( (balance>0 || !ait.hasNext()) && wit.hasNext()) {
 	  wcl=wit.next();
-	  if(!acl || _ageQueue.lessThan(acl, wcl)) {
+	  if (!acl || _ageQueue.lessThan(acl, wcl)) {
 	    balance-=_ageRatio;
 	    remains--;
 	  }
-	} else if(ait.hasNext()){
+	} else if (ait.hasNext()){
 	  acl=ait.next();
-	  if(!wcl || _weightQueue.lessThan(wcl, acl)) {
+	  if (!wcl || _weightQueue.lessThan(wcl, acl)) {
 	    balance+=_weightRatio;
 	    remains--;
 	  }
@@ -408,10 +398,10 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
     //when _ageRatio==0, the age limit can be set to zero, as age doesn't matter
     maxAge=(_ageRatio && acl!=0)?-1:0;
     maxWeight=(_weightRatio && wcl!=0)?-1:0;
-    if(acl!=0 && ait.hasNext()) {
+    if (acl!=0 && ait.hasNext()) {
       maxAge=acl->age();
     }
-    if(wcl!=0 && wit.hasNext()) {
+    if (wcl!=0 && wit.hasNext()) {
       maxWeight=static_cast<int>(ceil(wcl->getEffectiveWeight(_opt)));
     }
   }
@@ -428,12 +418,12 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 {
   CALL("AWPassiveClauseContainer::onLimitsUpdated");
 
-  if(change==LIMITS_LOOSENED) {
+  if (change==LIMITS_LOOSENED) {
     return;
   }
 
   Limits* limits=getSaturationAlgorithm()->getLimits();
-  if( (!limits->ageLimited() && _ageRatio) || (!limits->weightLimited() && _weightRatio) ) {
+  if ( (!limits->ageLimited() && _ageRatio) || (!limits->weightLimited() && _weightRatio) ) {
     return;
   }
 
@@ -447,16 +437,16 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 
   static Stack<Clause*> toRemove(256);
   ClauseQueue::Iterator wit(_weightQueue);
-  while(wit.hasNext()) {
+  while (wit.hasNext()) {
     Clause* cl=wit.next();
 //    bool shouldStay=limits->fulfillsLimits(cl);
     bool shouldStay=true;
-//    if(shouldStay && cl->age()==ageLimit) {
-    if(cl->age()>ageLimit) {
-      if(cl->getEffectiveWeight(_opt)>weightLimit) {
+//    if (shouldStay && cl->age()==ageLimit) {
+    if (cl->age()>ageLimit) {
+      if (cl->getEffectiveWeight(_opt)>weightLimit) {
         shouldStay=false;
       }
-    } else if(cl->age()==ageLimit) {
+    } else if (cl->age()==ageLimit) {
       //clauses inferred from the clause will be over age limit...
       unsigned clen=cl->length();
       int maxSelWeight=0;
@@ -465,45 +455,29 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
       }
       //here we don't use the effective weight, as from a nongoal clause
       //can be the goal one inferred.
-      if(cl->weight()-maxSelWeight>=weightLimit) {
+      if (cl->weight()-maxSelWeight>=weightLimit) {
 	//and also over weight limit
         shouldStay=false;
       }
     }
-    if(!shouldStay) {
+    if (!shouldStay) {
       toRemove.push(cl);
     }
   }
 
 #if OUTPUT_LRS_DETAILS
-  if(toRemove.isNonEmpty()) {
+  if (toRemove.isNonEmpty()) {
     cout<<toRemove.size()<<" passive deleted, "<< (size()-toRemove.size()) <<" remains\n";
   }
 #endif
 
-  while(toRemove.isNonEmpty()) {
+  while (toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
-
-    if(removed->store()!=Clause::REACTIVATED) {
-      RSTAT_CTR_INC("clauses discarded from passive on weight limit update");
-      env.statistics->discardedNonRedundantClauses++;
-    }
-
+    RSTAT_CTR_INC("clauses discarded from passive on weight limit update");
+    env.statistics->discardedNonRedundantClauses++;
     remove(removed);
   }
-
 }
-
-
-///////////////////////
-// AWPassiveClauseContainer
-//
-
-
-
-///////////////////////
-// AWClauseContainer
-//
 
 AWClauseContainer::AWClauseContainer(const Options& opt)
 : _ageQueue(opt), _weightQueue(opt), _ageRatio(1), _weightRatio(1), _balance(0), _size(0)
@@ -545,9 +519,9 @@ bool AWClauseContainer::remove(Clause* cl)
   CALL("AWClauseContainer::remove");
 
   bool removed;
-  if(_ageRatio) {
+  if (_ageRatio) {
     removed = _ageQueue.remove(cl);
-    if(_weightRatio) {
+    if (_weightRatio) {
       ALWAYS(_weightQueue.remove(cl)==removed);
     }
   }
@@ -556,7 +530,7 @@ bool AWClauseContainer::remove(Clause* cl)
     removed = _weightQueue.remove(cl);
   }
 
-  if(removed) {
+  if (removed) {
     _size--;
     removedEvent.fire(cl);
   }
