@@ -59,9 +59,16 @@ void SSplittingBranchSelector::init()
   _eagerRemoval = _parent.getOptions().ssplittingEagerRemoval();
   //  _sweepingMode = _parent.getOptions().ssplittingComponentSweeping();
 
-  //TODO original version : 
-   _solver = new MinimizingSolver(new TWLSolver(_parent.getOptions(), true));
-   //_solver = new MinimizingSolver(new SAT::LingelingInterfacing(_parent.getOptions(), true));
+  switch(_parent.getOptions().satSolver()){
+    case Options::TWL:  
+      _solver = new MinimizingSolver(new TWLSolver(_parent.getOptions(), true));
+      break;
+    case Options::LINGELING: 
+      _solver = new MinimizingSolver(new SAT::LingelingInterfacing(_parent.getOptions(), true));
+      break;
+    default:
+      ASSERTION_VIOLATION(_parent.getOptions().satSolver());
+  }
 
 #if DEBUG_MIN_SOLVER
   _solver = new Test::CheckedSatSolver(_solver.release());

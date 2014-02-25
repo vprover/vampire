@@ -177,6 +177,7 @@ public:
     SAT_RESTART_MINISAT_INCREASE,
     SAT_RESTART_MINISAT_INIT,
     SAT_RESTART_STRATEGY,
+    SAT_SOLVER,
     SAT_VAR_ACTIVITY_DECAY,
     SAT_VAR_SELECTOR,
     /** !!! saturation algorithm: lrs, otter, or discount, inst_gen or tabulation */
@@ -351,6 +352,12 @@ public:
     STATISTICS_FULL = 1,
     /** changed by the option "--statistics off" */
     STATISTICS_NONE = 2
+  };
+
+  /** Possible values for sat_solver */
+  enum SatSolver {
+     LINGELING = 0,
+     TWL = 1 
   };
 
   /** Possible values for saturation_algorithm */
@@ -597,6 +604,8 @@ public:
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval = newVal; }
   bool weightIncrement() const { return _weightIncrement; }
+  SatSolver satSolver() const { return _satSolver; }
+  void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm; }
   void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm = newVal; }
   int selection() const { return _selection; }
@@ -938,6 +947,7 @@ private:
   SatRestartStrategy _satRestartStrategy;
   float _satVarActivityDecay;
   SatVarSelector _satVarSelector;
+  SatSolver _satSolver;
   SaturationAlgorithm _saturationAlgorithm;
   int _selection;
   bool _selectUnusedVariablesFirst;

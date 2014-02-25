@@ -47,6 +47,7 @@ public:
 //  static const char* _splittingModeValues[];
   static const char* _fdeValues[];
   static const char* _lcmValues[];
+  static const char* _satSolverValues[];
   static const char* _satAlgValues[];
   static const char* _equalityProxyValues[];
   static const char* _inputSyntaxValues[];
@@ -83,6 +84,7 @@ public:
 //  static NameArray splittingModeValues;
   static NameArray fdeValues;
   static NameArray lcmValues;
+  static NameArray satSolverValues;
   static NameArray satAlgValues;
   static NameArray equalityProxyValues;
   static NameArray inputSyntaxValues;
@@ -353,6 +355,7 @@ const char* Options::Constants::_shortNames[] = {
   "s",
   "sa",
   "sac",
+  "sas",
   //"sagn",
   "sd",
   "sfv",
@@ -434,6 +437,7 @@ int Options::Constants::shortNameIndexes[] = {
   SELECTION,
   SATURATION_ALGORITHM,
   SPLIT_AT_ACTIVATION,
+  SAT_SOLVER,
   //SPLIT_ADD_GROUND_NEGATION,
   SINE_DEPTH,
   SUPERPOSITION_FROM_VARIABLES,
@@ -523,6 +527,13 @@ const char* Options::Constants::_lcmValues[] = {
 };
 NameArray Options::Constants::lcmValues(_lcmValues,
 					sizeof(_lcmValues)/sizeof(char*));
+
+const char* Options::Constants::_satSolverValues[] = {
+  "lingeling",
+  "twl"};
+NameArray Options::Constants::satSolverValues(_satSolverValues,
+                                              sizeof(_satSolverValues)/sizeof(char*));
+
 
 const char* Options::Constants::_satAlgValues[] = {
   "discount",
@@ -896,6 +907,7 @@ Options::Options ()
   _satRestartStrategy(SRS_LUBY),
   _satVarActivityDecay(1.05f),
   _satVarSelector(SVS_ACTIVE),
+  _satSolver(TWL),
   _saturationAlgorithm(LRS),
   _selection(10),
   _selectUnusedVariablesFirst(false),
@@ -1492,6 +1504,9 @@ void Options::set(const char* name,const char* value, int index)
       break;
     case SAT_VAR_SELECTOR:
       _satVarSelector = (SatVarSelector)Constants::satVarSelectorValues.find(value);
+      return;
+    case SAT_SOLVER:
+      _satSolver = (SatSolver) Constants::satSolverValues.find(value);
       return;
     case SATURATION_ALGORITHM:
       _saturationAlgorithm = (SaturationAlgorithm)Constants::satAlgValues.find(value);
@@ -2327,6 +2342,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SAT_VAR_SELECTOR:
     str << Constants::satVarSelectorValues[_satVarSelector];
+    return;
+  case SAT_SOLVER:
+    str << Constants::satSolverValues[_satSolver];
     return;
   case SATURATION_ALGORITHM:
     str << Constants::satAlgValues[_saturationAlgorithm];

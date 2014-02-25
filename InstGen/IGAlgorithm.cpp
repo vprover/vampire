@@ -662,6 +662,8 @@ MainLoopResult IGAlgorithm::runImpl()
 	}
       }
       if(restarting) {
+	// if we activate more than instGenRestartPeriod clauses then we 'restart'
+        // what does this entail?
 	break;
       }
 

@@ -374,6 +374,10 @@ Clause* Superposition::performSuperposition(
 	ResultSubstitutionSP subst, bool eqIsResult, Limits* limits)
 {
   CALL("Superposition::performSuperposition");
+  // we want the rwClause and eqClause to be active
+  ASS(rwClause->store()==Clause::ACTIVE);
+  ASS(eqClause->store()==Clause::ACTIVE);
+
 
   if(SortHelper::getTermSort(rwTerm, rwLit)!=SortHelper::getEqualityArgumentSort(eqLit)) {
     //cannot perform superposition because sorts don't match

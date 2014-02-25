@@ -149,6 +149,7 @@ Clause* GlobalSubsumption::tryResolvingAway(Clause* cl, unsigned litIdx, SATLite
   unsigned clen = cl->length();
   SATSolver& solver = _index->getSolver();
 
+  // for each literal except litIdx (resolved)
   for(unsigned i = 0; i<clen; i++) {
     if(i==litIdx) {
 	continue;

@@ -96,6 +96,7 @@ private:
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, Limits* limits)
 {
   CALL("BinaryResolution::generateClause");
+  ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
   if(!ColorHelper::compatible(queryCl->color(),qr.clause->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
