@@ -23,6 +23,7 @@
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/TWLSolver.hpp"
+#include "SAT/LingelingInterfacing.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -59,7 +60,17 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.instGenSelection());
 
   _passive.setAgeWeightRatio(_opt.ageRatio(), _opt.weightRatio());
-  _satSolver = new TWLSolver(opt, true);
+  
+  switch(opt.satSolver()){
+    case Options::TWL:
+      _satSolver = new TWLSolver(opt,true);
+      break;
+    case Options::LINGELING:
+      _satSolver = new LingelingInterfacing(opt,true);
+      break;
+    default:
+      ASSERTION_VIOLATION(opt.satSolver());
+  }
 
   if(_opt.globalSubsumption()) {
     _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder(), opt);

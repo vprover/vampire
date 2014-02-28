@@ -674,7 +674,6 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
  * @param lits The literals in the component to add
  * @param orig The original clause i.e. the one that we are splitting
  *
- * @author Giles
  */
 Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig)
 {

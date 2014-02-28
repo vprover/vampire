@@ -10,7 +10,11 @@
 #include "Kernel/Grounder.hpp"
 #include "Kernel/Inference.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "SAT/TWLSolver.hpp"
+#include "SAT/LingelingInterfacing.hpp"
+
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -22,7 +26,17 @@ GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
 {
   CALL("GroundingIndex::GroundingIndex");
 
-  _solver = new TWLSolver(opt, true);
+  switch(opt.satSolver()){
+    case Options::TWL:
+      _solver = new TWLSolver(opt,true);
+      break;
+    case Options::LINGELING:
+      _solver = new LingelingInterfacing(opt,true);
+      break;
+    default:
+      ASSERTION_VIOLATION(opt.satSolver());
+  }
+
 }
 
 void GroundingIndex::handleClause(Clause* c, bool adding)
