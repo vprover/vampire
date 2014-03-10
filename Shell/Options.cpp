@@ -1927,6 +1927,8 @@ string Options::includeFileName (const string& relativeName)
 {
   CALL("Options::includeFileName");
 
+  cout<<"includeFileName "+relativeName+"\n";
+
   if (relativeName[0] == '/') { // absolute name
     return relativeName;
   }
@@ -1939,15 +1941,27 @@ string Options::includeFileName (const string& relativeName)
   // Use the conventions of Vampire:
   // (a) first search the value of "include"
   string dir = include();
+
   if (dir == "") { // include undefined
-    // (b) search the value of the environment variable TPTP_DIR
+    // (b) search in the directory of the 'current file'
+    // i.e. the input file
+    string currentFile = inputFile();
+    System::extractDirNameFromPath(currentFile,dir); 
+    if(System::fileExists(dir+"/"+relativeName)){
+      return dir + "/" + relativeName;
+    }
+
+    // (c) search the value of the environment variable TPTP_DIR
     char* env = getenv("TPTP");
     if (env) {
       dir = env;
     }
     else {
+    // (d) use the current directory
       dir = ".";
     }
+    // we do not check (c) or (d) - an error will occur later
+    // if the file does not exist here
   }
   // now dir is the directory to search
   return dir + "/" + relativeName;
