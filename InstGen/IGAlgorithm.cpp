@@ -6,6 +6,8 @@
 #include <cmath>
 #include <sstream>
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Random.hpp"
@@ -19,11 +21,13 @@
 #include "Kernel/SortHelper.hpp"
 
 #include "Indexing/LiteralSubstitutionTree.hpp"
+#include "Indexing/LiteralIndex.hpp"
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/TWLSolver.hpp"
 #include "SAT/LingelingInterfacing.hpp"
+#include "SAT/BufferedSolver.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -59,11 +63,21 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
   _ordering = OrderingSP(Ordering::create(prb, opt));
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.instGenSelection());
 
+  _use_dm = opt.useDM();
+  _use_niceness = (opt.satVarSelector() == Options::SVS_NICENESS);
+
   _passive.setAgeWeightRatio(_opt.ageRatio(), _opt.weightRatio());
   
+  //TODO - Consider using MinimizingSolver here
   switch(opt.satSolver()){
-    case Options::TWL:
+    case Options::BUFFERED_VAMPIRE:
+      _satSolver = new BufferedSolver(new TWLSolver(opt,true));
+      break;
+    case Options::VAMPIRE:
       _satSolver = new TWLSolver(opt,true);
+      break;
+    case Options::BUFFERED_LINGELING:
+      _satSolver = new BufferedSolver(new LingelingInterfacing(opt,true));
       break;
     case Options::LINGELING:
       _satSolver = new LingelingInterfacing(opt,true);
@@ -225,7 +239,7 @@ void IGAlgorithm::processUnprocessed()
     LOG_UNIT("ig_passive_added", cl);
 
 
-    SATClauseIterator sc = _gnd.ground(cl);
+    SATClauseIterator sc = _gnd.ground(cl,_use_niceness);
     satClauses.loadFromIterator(sc);
   }
   _satSolver->ensureVarCnt(_gnd.satVarCnt());
@@ -247,7 +261,7 @@ bool IGAlgorithm::isSelected(Literal* lit)
 {
   CALL("IGAlgorithm::isSelected");
 
-  return _satSolver->trueInAssignment(_gnd.ground(lit));
+  return _satSolver->trueInAssignment(_gnd.ground(lit,_use_niceness));
 }
 
 /**
@@ -262,12 +276,30 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   static LiteralStack genLits;
   genLits.reset();
 
+  // We check and update the dismatching constraints associated
+  // with the clause being instantiated
+  DismatchingLiteralIndex* dmatch;
+  if(_use_dm){
+    dmatch = _dismatchMap.get(isQuery? orig : otherCl);
+    ASS(dmatch);
+  }
+
   bool properInstance = false;
   unsigned clen = orig->length();
   for(unsigned i=0; i<clen; i++) {
     Literal* olit = (*orig)[i];
     Literal* glit = isQuery ? subst.applyToQuery(olit) : subst.applyToResult(olit);
     genLits.push(glit);
+
+    // check dismatching constraint here
+    // if dmatch has a generalisation of glit then we do not
+    // satisfy the constraint
+    // Note: the true,false options indicate checking for complement and not retrieving subs
+    if(_use_dm && dmatch->getGeneralizations(glit,true,false).hasNext()){
+      RSTAT_CTR_INC("dismatch blocked");
+      return;
+    }
+
     if(olit!=glit) {
       properInstance = true;
     }
@@ -276,9 +308,13 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
     return;
   }
   Inference* inf = new Inference1(Inference::INSTANCE_GENERATION, orig);
+
   Clause* res = Clause::fromStack(genLits, orig->inputType(), inf);
   int newAge = max(orig->age(), otherCl->age())+1;
   res->setAge(newAge);
+
+  //Update dismatch constraints
+  if(_use_dm){ dmatch->handleClause(res,true);}
 
   LOG("ig_gen","inst_gen generated clause:"<<endl
       <<"  orig:  "<<(*orig)<<endl
@@ -397,7 +433,7 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
     return;
   }
 
-  SATClauseIterator scit = _gnd.ground(cl);
+  SATClauseIterator scit = _gnd.ground(cl,_use_niceness);
   scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
 
   LOG("ig_sat","Solver res clause propagation started");
@@ -448,6 +484,15 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
 
   selectAndAddToIndex(cl);
   LOG_UNIT("ig_active_added", cl);
+
+  // if cl does not have a dismatching index create one
+  // it might already have one if it was previously deactiviated
+  if(_use_dm && !_dismatchMap.find(cl)){
+    RSTAT_CTR_INC("dismatch created");
+    LiteralIndexingStructure * is = new LiteralSubstitutionTree();
+    DismatchingLiteralIndex* dismatchIndex = new DismatchingLiteralIndex(is);
+    _dismatchMap.insert(cl,dismatchIndex);
+  }
 
   unsigned clen = cl->length();
   for(unsigned i=0; i<clen; i++) {
@@ -733,7 +778,7 @@ MainLoopResult IGAlgorithm::onModelFound()
       LiteralIterator litIt = _gnd.groundedLits();
       while(litIt.hasNext()) {
 	Literal* l = litIt.next();
-	SATLiteral sl = _gnd.ground(l);
+	SATLiteral sl = _gnd.ground(l,_use_niceness);
 	ASS_EQ(sl.polarity(),true);
 	SATSolver::VarAssignment asgn = _satSolver->getAssignment(sl.var());
 	tout << "asgn: ";

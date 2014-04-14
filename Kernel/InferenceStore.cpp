@@ -358,8 +358,16 @@ protected:
 
   virtual void printStep(UnitSpec cs)
   {
+    CALL("InferenceStore::ProofPrinter::printStep");
     Inference::Rule rule;
     UnitSpecIterator parents=_is->getParents(cs, rule);
+
+    //cout << rule << " with parents ";
+    //while(parents.hasNext()){
+    //  cout << _is->getUnitIdStr(parents.next())<< " ";
+    //}
+    //cout<<"\n";
+    //parents = _is->getParents(cs,rule);
 
     out << _is->getUnitIdStr(cs) << ". ";
     if (cs.isClause()) {
@@ -408,6 +416,7 @@ protected:
 
   void handleStep(UnitSpec cs)
   {
+    CALL("InferenceStore::ProofPrinter::handleStep");
     Inference::Rule rule;
     UnitSpecIterator parents=_is->getParents(cs, rule);
 
@@ -425,6 +434,7 @@ protected:
       printStep(cs);
     }
   }
+
 
 
   /** Clauses that have propositional part assigned are put here
@@ -605,9 +615,9 @@ protected:
 
     switch(rule) {
     case Inference::SAT_SPLITTING_COMPONENT:
-    case Inference::BACKTRACKING_SPLITTING_COMPONENT:
-      printBacktrackingSplittingComponentIntroduction(us);
-      return;
+    //case Inference::BACKTRACKING_SPLITTING_COMPONENT:
+    //  printBacktrackingSplittingComponentIntroduction(us);
+    //  return;
     //case Inference::BACKTRACKING_SPLIT_REFUTATION:
     //  printBacktrackingSplittingComponentRefutation(us);
     //  return;
@@ -624,7 +634,9 @@ protected:
     case Inference::BDDZATION:
       printBddize(us);
       return;
-    default: ;
+    default:
+      //cout << "skip "<<rule<<"\n";
+    ;
     }
 
 
@@ -835,7 +847,7 @@ protected:
     out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
   }
 
-  void printBacktrackingSplittingComponentIntroduction(UnitSpec us)
+  /*void printBacktrackingSplittingComponentIntroduction(UnitSpec us)
   {
     CALL("InferenceStore::TPTPProofPrinter::printBacktrackingSplittingComponentIntroduction");
     ASS(us.isClause());
@@ -861,7 +873,7 @@ protected:
 
     out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
   }
-
+*/
 //  void printBacktrackingSplittingComponentRefutation(UnitSpec us)
 //  {
 //    CALL("InferenceStore::TPTPProofPrinter::printBacktrackingSplittingComponentRefutation");

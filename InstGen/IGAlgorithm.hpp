@@ -148,6 +148,11 @@ private:
   DuplicateLiteralRemovalISE _duplicateLiteralRemoval;
   TrivialInequalitiesRemovalISE _trivialInequalityRemoval;
   TautologyDeletionISE _tautologyDeletion;
+
+  bool _use_niceness;
+  bool _use_dm;
+  DHMap<Clause*,DismatchingLiteralIndex*> _dismatchMap;
+
 };
 
 }

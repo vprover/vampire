@@ -39,7 +39,11 @@ _windex(0), _varCnt(0), _level(1), _assumptionsAdded(false), _assumptionCnt(0), 
 {
   switch(opt.satVarSelector()) {
   case Options::SVS_ACTIVE:
-    _variableSelector = new ActiveVariableSelector(*this, opt.satVarActivityDecay());
+    _variableSelector = new ActiveVariableSelector(*this, Options::NICENESS_NONE, opt.satVarActivityDecay());
+    break;
+  case Options::SVS_NICENESS:
+    //_variableSelector = new ArrayNicenessVariableSelector(*this);
+    _variableSelector = new ActiveVariableSelector(*this, opt.nicenessOption(), opt.satVarActivityDecay());
     break;
   case Options::SVS_RECENTLY_LEARNT:
     _variableSelector = new RLCVariableSelector(*this);
@@ -511,7 +515,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   ASS(isFalse(conflictClause));
 
   //variables implied by the current conflict
-  //The learnt claue must contradict assignment
+  //The learnt clause must contradict assignment
   //to at least one of these variables.
   static ArraySet seenVars;
   seenVars.ensure(_varCnt);

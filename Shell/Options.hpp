@@ -137,6 +137,7 @@ public:
 
     NAME_PREFIX,
     NAMING,
+    NICENESS_OPTION,
     NONGOAL_WEIGHT_COEFFICIENT,
     NONLITERALS_IN_CLAUSE_WEIGHT,
     NORMALIZE,
@@ -239,6 +240,7 @@ public:
 
     UNIT_RESULTING_RESOLUTION,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
+    USEDM,
 
     WEIGHT_INCREMENT,
     WHILE_NUMBER,
@@ -356,8 +358,10 @@ public:
 
   /** Possible values for sat_solver */
   enum SatSolver {
-     LINGELING = 0,
-     TWL = 1 
+     BUFFERED_LINGELING = 0,
+     BUFFERED_VAMPIRE = 1,
+     LINGELING = 2,
+     VAMPIRE = 3 
   };
 
   /** Possible values for saturation_algorithm */
@@ -473,7 +477,15 @@ public:
 
   enum SatVarSelector {
     SVS_ACTIVE = 0,
-    SVS_RECENTLY_LEARNT = 1,
+    SVS_NICENESS = 1,
+    SVS_RECENTLY_LEARNT = 2,
+  };
+
+  enum NicenessOption{
+    NICENESS_AVERAGE = 0,
+    NICENESS_NONE=1,
+    NICENESS_SUM = 2,
+    NICENESS_TOP = 3,
   };
 
   enum SatClauseDisposer {
@@ -604,6 +616,7 @@ public:
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval = newVal; }
   bool weightIncrement() const { return _weightIncrement; }
+  bool useDM() const { return _use_dm; }
   SatSolver satSolver() const { return _satSolver; }
   void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm; }
@@ -743,6 +756,8 @@ public:
   SatRestartStrategy satRestartStrategy() const { return _satRestartStrategy; }
   float satVarActivityDecay() const { return _satVarActivityDecay; }
   SatVarSelector satVarSelector() const { return _satVarSelector; }
+
+  NicenessOption nicenessOption() const { return _nicenessOption; }
 
   void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal);
@@ -907,6 +922,7 @@ private:
 
   string _namePrefix;
   int _naming;
+  NicenessOption _nicenessOption;
   float _nongoalWeightCoefficient;
   int _nonGoalWeightCoeffitientDenominator;
   int _nonGoalWeightCoeffitientNumerator;
@@ -1011,6 +1027,7 @@ private:
   URResolution _unitResultingResolution;
   bool _unusedPredicateDefinitionRemoval;
   unsigned _updatesByOneConstraint;
+  bool _use_dm;
   bool _weightIncrement;
   int _weightRatio;
   int _whileNumber;

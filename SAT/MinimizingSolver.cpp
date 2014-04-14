@@ -197,7 +197,7 @@ void MinimizingSolver::processInnerAssignmentChanges()
 {
   CALL("MinimizingSolver::processInnerAssignmentChanges");
 
-  for(unsigned v=0; v<_varCnt; v++) {
+  for(unsigned v=1; v<_varCnt; v++) {
     VarAssignment va = _inner->getAssignment(v);
     bool changed;
     switch(va) {

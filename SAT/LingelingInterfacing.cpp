@@ -103,8 +103,15 @@ static int checkalarm(void * ptr){
 			return;
 		}
 		try{
-			
-			addClausesToLingeling(clauseIterator);
+			//Can we reuse an iterator? I think we need to store it in a Stack	
+			static SATClauseStack newClauses;
+			newClauses.reset();
+			newClauses.loadFromIterator(clauseIterator);
+
+			//store clauses in addedClauses
+			_addedClauses.loadFromIterator(SATClauseStack::Iterator(newClauses));
+
+			addClausesToLingeling(pvi(SATClauseStack::Iterator(newClauses)));
 
 		}catch(const UnsatException& e){
 			_status = SATSolver::UNSATISFIABLE;
@@ -151,11 +158,11 @@ static int checkalarm(void * ptr){
 		}
 		unsigned int result = lglsat(_solver);
 		setSolverStatus(result);
-		#if VDEBUG
-		if(result == LGL_SATISFIABLE){
-			printAssignment();
-		}
-		#endif
+		//#if VDEBUG
+		//if(result == LGL_SATISFIABLE){
+		//	printAssignment();
+		//}
+		//#endif
 			
 		if(result == LGL_UNSATISFIABLE){
 			throw UnsatException();
@@ -281,17 +288,34 @@ static int checkalarm(void * ptr){
 		return _hasAssumptions;
 	}
 
+       /**
+	*
+	* A very basic implementation of getRefutation that uses all clauses
+	* currently in the satSolver.
+	*
+	* @author Giles
+	*/
 	SATClause* LingelingInterfacing::getRefutation(){
 		CALL("LingelingInterfacing::getRefutation");
 		ASS(_status == SATSolver::UNSATISFIABLE);
-		return _refutation;
+
+		// Use *all* clauses in _addedClauses
+		SATClauseList* prems = 0;
+		SATClauseList::pushFromIterator(SATClauseStack::Iterator(_addedClauses),prems);
+		SATInference* inf = new PropInference(prems);
+		SATClause* dummy = new(0) SATClause(0);
+		dummy->setInference(inf);
+
+		return dummy;
 	
 	}
 
 	void LingelingInterfacing::randomizeAssignment(){
 		CALL("LingelingInterfacing::randomizeAssignment()");
 		//here we should find a way to randomize the assignment
-
+		
+		//TODO - why do we want to do this?
+		// We no longer randomize the assignment in SSplitter - this is not used
 	}
 
 	void LingelingInterfacing::printLingelingStatistics(){

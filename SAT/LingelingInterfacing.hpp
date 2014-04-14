@@ -47,7 +47,7 @@ public:
 	*/
 	virtual Status getStatus(){
 		CALL("LingelingInterfacing::getStatus()");
-		printLingelingStatistics();
+		//printLingelingStatistics();
 		return _status;
 	};
 
@@ -68,13 +68,15 @@ public:
 	* return 1.  
 	* 
 	*/
-	virtual bool isZeroImplied(unsigned var){ return false;}
+	virtual bool isZeroImplied(unsigned var){ return lglfixed(_solver,var);}
 
 	/**
 	* collect all the zero-implied variables 
 	* should be used only for SATISFIABLE or UNKNOWN
 	*/
-	virtual void collectZeroImplied(SATLiteralStack& acc){}
+	virtual void collectZeroImplied(SATLiteralStack& acc){
+		//ASSERTION_VIOLATION("Not implemented");
+	}
 
 	/**
    	* Return a valid clause that contains the zero-implied literal
@@ -83,7 +85,10 @@ public:
    	* If called on a proof producing solver, the clause will have
    	* a proper proof history.
    	*/
-	virtual SATClause* getZeroImpliedCertificate(unsigned var){ return 0;}
+	virtual SATClause* getZeroImpliedCertificate(unsigned var){
+		//ASSERTION_VIOLATION("Not implemented");	
+		return 0;
+	}
 
 	/**
 	* in the original solver this function took care of increasing the memory allocated for the
@@ -127,7 +132,7 @@ private:
 	 enum AsgnVal {
     //the true and false value also correspond to positive
     //and negative literal polarity values
-   		AS_FALSE = 0u,
+	AS_FALSE = 0u,
     	AS_TRUE = 1u,
     	AS_UNDEFINED = 2u
   	};
@@ -151,6 +156,13 @@ private:
     	UnsatException(SATClause* refutation=0) : refutation(refutation) {}
     	SATClause* refutation;
   	};
+
+	/**
+	* Test to see if we can use the set of added clauses to get a refutation clause
+	* @author Giles
+	*/
+	SATClauseStack _addedClauses;
+
 };
 
 }//end SAT namespace

@@ -31,7 +31,7 @@ class SplittingRecord;
 struct UnitSpec
 {
   UnitSpec() {}
-  explicit UnitSpec(Unit* u, bool ignoreProp=false) : _unit(u){}
+  explicit UnitSpec(Unit* u, bool ignoreProp=false) : _unit(u){tag=u->number();}
   bool operator==(const UnitSpec& o) const { return _unit==o._unit;}// && _prop==o._prop; }
   bool operator!=(const UnitSpec& o) const { return !(*this==o); }
 
@@ -64,9 +64,9 @@ struct UnitSpec
     }
     
   }
-
 private:
   Unit* _unit;
+  int tag;
 };
 
 typedef VirtualIterator<UnitSpec> UnitSpecIterator;

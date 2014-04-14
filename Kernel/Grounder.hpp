@@ -22,10 +22,10 @@ public:
   Grounder();
   virtual ~Grounder() {}
 
-  SATClauseIterator ground(Clause* cl);
-  SATClause* groundNonProp(Clause* cl, Literal** normLits=0);
-  void groundNonProp(Clause* cl, SATLiteralStack& acc, Literal** normLits=0);
-  SATLiteral ground(Literal* lit);
+  SATClauseIterator ground(Clause* cl,bool use_n);
+  SATClause* groundNonProp(Clause* cl, bool use_n, Literal** normLits=0);
+  void groundNonProp(Clause* cl, SATLiteralStack& acc, bool use_n, Literal** normLits=0);
+  SATLiteral ground(Literal* lit,bool use_n);
 
   unsigned satVarCnt() const { return _nextSatVar; }
 

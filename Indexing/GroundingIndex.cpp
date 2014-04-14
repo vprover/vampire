@@ -27,7 +27,7 @@ GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
   CALL("GroundingIndex::GroundingIndex");
 
   switch(opt.satSolver()){
-    case Options::TWL:
+    case Options::VAMPIRE:
       _solver = new TWLSolver(opt,true);
       break;
     case Options::LINGELING:

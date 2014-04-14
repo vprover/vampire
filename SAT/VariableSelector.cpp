@@ -36,6 +36,7 @@ void ActiveVariableSelector::ensureVarCnt(unsigned varCnt)
 
   VariableSelector::ensureVarCnt(varCnt);
   _activityHeap.ensureVarCnt(varCnt);
+  _niceness.expand(varCnt, 0);
 }
 
 void ActiveVariableSelector::onInputClauseAdded(SATClause* cl)
@@ -43,8 +44,15 @@ void ActiveVariableSelector::onInputClauseAdded(SATClause* cl)
   CALL("ActiveVariableSelector::onInputClauseAdded");
 
   unsigned clen = cl->length();
+
   for(unsigned i=0;i<clen;i++) {
-    unsigned var = (*cl)[i].var();
+    SATLiteral lit = (*cl)[i];
+    unsigned var = lit.var();
+    if(_niceness_option != Options::NICENESS_NONE ||
+       _niceness[var]==0){ //only need to getNiceness once
+      unsigned niceness = lit.getNiceness(_niceness_option);
+      _niceness[var] = niceness;
+    }
     _activityHeap.markActivity(var);
   }
 }
@@ -135,3 +143,25 @@ bool RLCVariableSelector::selectVariable(unsigned& var)
   return ArrayActiveVariableSelector::selectVariable(var);
 }
 
+/////////////////////////
+//  ArrayNicenessVariableSelector
+// 
+// Not used.
+//
+// @author Giles
+
+
+void ArrayNicenessVariableSelector::onInputClauseAdded(SATClause* cl)
+{
+  CALL("ArrayNicenessVariableSelector::onInputClauseAdded");
+
+  unsigned clen = cl->length();
+  for(unsigned i=0;i<clen;i++){
+    SATLiteral lit = (*cl)[i];
+    unsigned var = lit.var();
+    if(_niceness[var]==0){
+      unsigned niceness = lit.getNiceness(Options::NICENESS_TOP);
+      _niceness[var] = niceness;
+    }
+  }
+}

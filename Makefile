@@ -241,7 +241,8 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/TWLSolver.o\
          SAT/VariableSelector.o\
          SAT/LingelingInterfacing.o\
-         SAT/lglib.o
+         SAT/lglib.o\
+	 SAT/BufferedSolver.o
 #         SAT/SATClauseSharing.o\
 #         SAT/SingleWatchSAT.o
 

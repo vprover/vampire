@@ -357,10 +357,10 @@ string Inference::ruleName(Rule rule)
     return "splitting component introduction";
   case SPLITTING:
     return "splitting";
-  case BACKTRACKING_SPLITTING_COMPONENT:
-    return "backtracking splitting component";
-  case BACKTRACKING_SPLIT_REFUTATION:
-    return "backtracking split refutation";
+  //case BACKTRACKING_SPLITTING_COMPONENT:
+  //  return "backtracking splitting component";
+  //case BACKTRACKING_SPLIT_REFUTATION:
+  //  return "backtracking split refutation";
   case SAT_SPLITTING_COMPONENT:
     return "sat splitting component";
   case SAT_SPLITTING_REFUTATION:

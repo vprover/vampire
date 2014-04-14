@@ -219,6 +219,8 @@ public:
 #if VDEBUG
   bool contains(Literal* lit);
   void assertValid();
+  void incFreezeCount(){ _freeze_count++;}
+  int getFreezeCount(){ return _freeze_count;}
 #endif
 
   /** Mark clause as input clause for the saturation algorithm */
@@ -229,9 +231,9 @@ public:
 
   SplitSet* splits() const { return _splits; }
   bool noSplits() const;
-  void setSplits(SplitSet* splits) {
+  void setSplits(SplitSet* splits,bool replace=false) {
     CALL("Clause::setSplits");
-    ASS(!_splits);
+    ASS(replace || !_splits);
     _splits=splits;
   }
 
@@ -343,6 +345,7 @@ protected:
   static size_t _auxCurrTimestamp;
 #if VDEBUG
   static bool _auxInUse;
+  int _freeze_count;
 #endif
 
   /** Array of literals of this unit */

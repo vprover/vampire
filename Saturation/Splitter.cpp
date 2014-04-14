@@ -141,7 +141,7 @@ bool Splitter::standAloneObligations()
  *
  * This is implemented using the Union-Find algorithm.
  *
- * @author Giles
+ * Comment by Giles. 
  */
 bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTogether)
 {

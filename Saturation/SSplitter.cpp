@@ -27,6 +27,8 @@
 #include "SAT/TWLSolver.hpp"
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinimizingSolver.hpp"
+#include "SAT/BufferedSolver.hpp"
+
 
 #include "DP/ShortConflictMetaDP.hpp"
 #include "DP/SimpleCongruenceClosure.hpp"
@@ -60,11 +62,17 @@ void SSplittingBranchSelector::init()
   //  _sweepingMode = _parent.getOptions().ssplittingComponentSweeping();
 
   switch(_parent.getOptions().satSolver()){
-    case Options::TWL:  
+    case Options::BUFFERED_VAMPIRE:
+      _solver = new MinimizingSolver(new BufferedSolver(new TWLSolver(_parent.getOptions(),true)));
+      break;
+    case Options::VAMPIRE:  
       _solver = new MinimizingSolver(new TWLSolver(_parent.getOptions(), true));
       break;
+    case Options::BUFFERED_LINGELING: 
+      _solver = new MinimizingSolver(new BufferedSolver(new LingelingInterfacing(_parent.getOptions(), true)));
+      break;
     case Options::LINGELING: 
-      _solver = new MinimizingSolver(new SAT::LingelingInterfacing(_parent.getOptions(), true));
+      _solver = new MinimizingSolver(new LingelingInterfacing(_parent.getOptions(), true));
       break;
     default:
       ASSERTION_VIOLATION(_parent.getOptions().satSolver());
@@ -74,7 +82,9 @@ void SSplittingBranchSelector::init()
   _solver = new Test::CheckedSatSolver(_solver.release());
 #endif
 
+  //Giles. Currently false by default.
   if(_parent.getOptions().ssplittingCongruenceClosure()) {
+    //ASSERTION_VIOLATION("Is this ever turned on?");
     _dp = new ShortConflictMetaDP(new DP::SimpleCongruenceClosure(), _parent.satNaming(), *_solver);
   }
 }
@@ -280,11 +290,14 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
   oldselSet.reset();
 
   if(_solver->getStatus()==SATSolver::UNKNOWN) {
+    //why is this required twice?
     _solver->addClauses(SATClauseIterator::getEmpty(), false);
   }
+  // calling addClauses with false forces solver to run
+  // without only use propagation
   _solver->addClauses(SATClauseIterator::getEmpty(), false);
-  ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
-  _solver->randomizeAssignment();
+  ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
+  //_solver->randomizeAssignment(); //why do we do this?
 
   processDPConflicts();
   ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
@@ -599,7 +612,7 @@ bool SSplitter::doSplitting(Clause* cl)
   static SATLiteralStack satClauseLits;
   satClauseLits.reset();
 
-  // If we've already made some choices then record these
+  // Add literals for existing constraints 
   collectDependenceLits(cl->splits(), satClauseLits);
 
   ClauseList* namePremises = 0;
@@ -674,6 +687,7 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
  * @param lits The literals in the component to add
  * @param orig The original clause i.e. the one that we are splitting
  *
+ * Comment by Giles.
  */
 Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig)
 {
@@ -813,11 +827,16 @@ void SSplitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
 
 /**
  * Register the reduction of the @b cl clause
+ *
+ * Giles: at this stage we also check for zero-implied literals
+ *        and remove them if found
  */
 void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement)
 {
   CALL("SSplitter::onClauseReduction");
   ASS(cl);
+
+  _branchSelector.clearZeroImpliedSplits(cl);
 
   if(!premises.hasNext()) {
     ASS(!replacement || cl->splits()==replacement->splits());
@@ -833,10 +852,12 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
     Clause* premise=premises.next();
     LOG("sspl_reductions_prems","reduction premise: "<<(*premise));
     ASS(premise);
+    _branchSelector.clearZeroImpliedSplits(premise);
     diff=diff->getUnion(premise->splits());
   }
   if(replacement) {
     LOG("sspl_reductions_prems","reduction replacement: "<<(*replacement));
+    _branchSelector.clearZeroImpliedSplits(replacement);
     diff=diff->getUnion(replacement->splits());
   }
   diff=diff->subtract(cl->splits());
@@ -850,6 +871,12 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
   if(diff->isEmpty()) {
     return;
   }
+  // else freeze clause
+
+#if VDEBUG
+  cl->incFreezeCount();
+  RSTAT_MCTR_INC("frozen clauses",cl->getFreezeCount());
+#endif
 
   cl->incReductionTimestamp();
   //BDDs are disabled when we do ssplitting so they can only contain false
@@ -859,6 +886,28 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
     SplitLevel slev=dit.next();
     _db[slev]->addReduced(cl);
   }
+}
+
+void SSplittingBranchSelector::clearZeroImpliedSplits(Clause* cl)
+{/*
+ 
+  Currently switched off in trunk as not fully debuged
+
+
+  CALL("SSplitter::clearZeroImpliedSplits");
+  SplitSet* rem=SplitSet::getEmpty();
+  SplitSet::Iterator sit(*(cl->splits()));
+  while(sit.hasNext()){
+    SplitLevel l = sit.next();
+    if(_solver->isZeroImplied(l)){
+      //TODO use a stack for rem instead
+      rem = rem->getUnion(SplitSet::getSingleton(l));
+    }
+  }
+  if(!rem->isEmpty()){
+    RSTAT_CTR_INC("clearedZeroImpliedSplits");
+    cl->setSplits(cl->splits()->subtract(rem),true);
+  }*/
 }
 
 void SSplitter::assertSplitLevelsActive(SplitSet* s)
@@ -877,6 +926,17 @@ void SSplitter::assertSplitLevelsActive(SplitSet* s)
 void SSplitter::onNewClause(Clause* cl)
 {
   CALL("SSplitter::onNewClause");
+
+  //For now just record if cl is in the variant index
+  // i.e. is a componenent
+  //TODO - if it is then
+  // (a) if it is true it can be immediately frozen
+  // (b) if it is false it can be immediately passed to the SAT
+  //      solver and kill the current model
+  bool isComponenet = _componentIdx.retrieveVariants(cl).hasNext();
+  if(isComponenet){
+	RSTAT_CTR_INC("New Clause is Componenet");
+  }
 
   if(!cl->splits()) {
     SplitSet* splits=getNewClauseSplitSet(cl);
@@ -917,7 +977,7 @@ SplitSet* SSplitter::getNewClauseSplitSet(Clause* cl)
       //the premise comes from preprocessing
       continue;
     }
-
+    _branchSelector.clearZeroImpliedSplits(prem);
     res=res->getUnion(prem->splits());
   }
   return res;
@@ -1020,6 +1080,8 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
 
   LOG("sspl_rm","removal of splitting levels " << backtracked);
 
+  // ensure all children are backtracked
+  // i.e. removed from _sa and reference counter dec
   SplitSet::Iterator blit(*backtracked);
   while(blit.hasNext()) {
     SplitLevel bl=blit.next();
@@ -1042,6 +1104,9 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
     }
   }
 
+  // perform unfreezing
+
+  // add all reduced clauses to restored (if the record relates to most recent reduction)
   SplitSet::Iterator blit2(*backtracked);
   while(blit2.hasNext()) {
     SplitLevel bl=blit2.next();
@@ -1060,6 +1125,8 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
     sr->active = false;
   }
 
+
+  // add back to _sa using addNewClause - this will get put to unprocssed
   while(restored.isNonEmpty()) {
     Clause* rcl=restored.popWithoutDec();
     if(!rcl->hasAux()) {
@@ -1070,6 +1137,7 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
       //rcl->setProp(BDD::instance()->getFalse()); //we asserted it was false in onClauseReduction
       _sa->addNewClause(rcl);
   #if VDEBUG
+      RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
       //check that restored clause does not depend on inactive splits
       assertSplitLevelsActive(rcl->splits());
   #endif

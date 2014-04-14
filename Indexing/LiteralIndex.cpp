@@ -328,4 +328,29 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
 
 }
 
+
+/**
+ * 
+ * We assume the clause has already been instantiated
+ * Just add/remove each term to the indexing structure
+ *
+ * TODO - this should not be used with the general substitution tree
+ *        index as it is memory inefficient, and expensive to create
+ *
+ * @author Giles
+ */
+
+void DismatchingLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("DismatchingLiteralIndex::handleClause");
+
+  // Not sure what these timecounters are for - check and put the
+  // appropriate thing here
+  //TimeCounter tc(??);
+
+  unsigned clen=c->length();
+  for(unsigned i=0; i<clen; i++) {
+    handleLiteral((*c)[i], c, adding);
+  }
+}
 }

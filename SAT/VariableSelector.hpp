@@ -8,12 +8,15 @@
 
 #include "Forwards.hpp"
 
+#include "Shell/Options.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DynamicHeap.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/ScopedPtr.hpp"
 
 namespace SAT {
+
+using namespace Shell;
 
 class VariableSelector
 {
@@ -102,7 +105,10 @@ class ActiveVariableSelector : public VariableSelector
 public:
   typedef double CounterType;
 
-  ActiveVariableSelector(TWLSolver& solver, CounterType decayFactor = 1.05) : VariableSelector(solver), _activityHeap(decayFactor) {}
+  // decayFactor default previously 1.05
+  ActiveVariableSelector(TWLSolver& solver, Options::NicenessOption niceness_option, CounterType decayFactor) : 
+	VariableSelector(solver), _niceness_option(niceness_option),
+        _activityHeap(decayFactor,(niceness_option!=Options::NICENESS_NONE),*this) {}
 
   virtual bool selectVariable(unsigned& var);
   virtual void ensureVarCnt(unsigned varCnt);
@@ -135,8 +141,9 @@ protected:
     VariableActivityHeap(const VariableActivityHeap&);
     VariableActivityHeap& operator=(const VariableActivityHeap&);
   public:
-    VariableActivityHeap(CounterType decayFactor)
-    : _decayFactor(decayFactor), _inc(1e-30f), _heap(VAComparator(_activities)) {}
+    VariableActivityHeap(CounterType decayFactor, bool use_niceness, ActiveVariableSelector& parent)
+    : _use_niceness(use_niceness), _parent(parent), _decayFactor(decayFactor),
+      _inc(1e-30f), _heap(VAComparator(_activities)) {}
 
     void ensureVarCnt(unsigned varCnt)
     {
@@ -153,7 +160,11 @@ protected:
     {
       CALL("ActiveVariableSelector::VariableActivityHeap::markActivity");
 
-      _activities[var]+=_inc;
+      CounterType this_inc = _inc;
+      if(_use_niceness){
+        this_inc *= _parent._niceness[var];
+      }
+      _activities[var]+=this_inc;
       if(_heap.contains(var)) {
 	_heap.notifyDecrease(var);
       }
@@ -207,12 +218,17 @@ protected:
     };
 
 
+    bool _use_niceness;
+    ActiveVariableSelector& _parent;
+
     CounterType _decayFactor;
     CounterType _inc;
     CounterArr _activities;
     DynamicHeap<unsigned, VAComparator, ArrayMap<size_t> > _heap;
   };
 
+  Options::NicenessOption _niceness_option;
+  DArray<unsigned> _niceness;
   VariableActivityHeap _activityHeap;
 };
 
@@ -257,6 +273,33 @@ public:
   virtual bool selectVariable(unsigned& var);
 };
 
-}
 
+/**
+ * Variable selector that uses increments using niceness on conflict
+ * TODO - does not use niceness options, uses default
+ */
+class ArrayNicenessVariableSelector : public ArrayActiveVariableSelector {
+public:
+  ArrayNicenessVariableSelector(TWLSolver& solver) : ArrayActiveVariableSelector(solver) {}
+
+
+  virtual void onVariableInConflict(unsigned var)
+  {
+    CALL("ActiveVariableSelector::onVariableInConflict");
+    _activities[var]+=_niceness[var];
+  }
+
+  virtual void onInputClauseAdded(SATClause* cl);
+
+  virtual void ensureVarCnt(unsigned varCnt)
+  {
+    ArrayActiveVariableSelector::ensureVarCnt(varCnt);
+    _niceness.expand(varCnt, 0);
+  }
+
+private:
+  DArray<unsigned> _niceness;
+};
+
+}
 #endif // __VariableSelector__

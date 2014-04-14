@@ -60,7 +60,7 @@ public:
     _running = false;
   }
 
-  /** Start the timer. Precondition: the timer must be running */
+  /** Start the timer. Precondition: the timer must not be running */
   inline void start()
   {
     ASS(! _running);

@@ -79,7 +79,7 @@ void GlobalSubsumption::addClauseToIndex(Clause* cl)
 
   ASS_NEQ(solver.getStatus(),SATSolver::UNSATISFIABLE);
 
-  SATClauseIterator sclIt = grounder.ground(cl);
+  SATClauseIterator sclIt = grounder.ground(cl,false);
   solver.ensureVarCnt(grounder.satVarCnt());
   solver.addClauses(sclIt, true);
 
@@ -124,7 +124,7 @@ Clause* GlobalSubsumption::perform(Clause* cl)
   static SATLiteralStack slits;
   slits.reset();
 
-  grounder.groundNonProp(cl, slits);
+  grounder.groundNonProp(cl, slits, false);
 
   addClauseToIndex(cl);
 

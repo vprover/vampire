@@ -28,7 +28,7 @@ namespace Kernel
 
 /**
  * Array that for each predicate contains bol value determining whether
- * the polarituy of the predicate should be reversed for the purposes of
+ * the polarity of the predicate should be reversed for the purposes of
  * literal selection
  */
 ZIArray<bool> LiteralSelector::_reversePredicate;

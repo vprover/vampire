@@ -62,6 +62,7 @@ public:
   static const char* _proofValues[];
   static const char* _satRestartStrategyValues[];
   static const char* _satVarSelectorValues[];
+  static const char* _nicenessOptionValues[];
   static const char* _satClauseDisposerValues[];
   static const char* _sosValues[];
   static const char* _sSplittingComponentSweepingValues[];
@@ -99,6 +100,7 @@ public:
   static NameArray proofValues;
   static NameArray satRestartStrategyValues;
   static NameArray satVarSelectorValues;
+  static NameArray nicenessOptionValues;
   static NameArray satClauseDisposerValues;
   static NameArray sosValues;
   static NameArray sSplittingComponentSweepingValues;
@@ -207,6 +209,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "name_prefix",
   "naming",
+  "niceness_option",
   "nongoal_weight_coefficient",
   "nonliterals_in_clause_weight",
   "normalize",
@@ -242,6 +245,7 @@ const char* Options::Constants::_optionNames[] = {
   "sat_restart_minisat_increase",
   "sat_restart_minisat_init",
   "sat_restart_strategy",
+  "sat_solver",
   "sat_var_activity_decay",
   "sat_var_selector",
   "saturation_algorithm",
@@ -301,6 +305,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "unit_resulting_resolution",
   "unused_predicate_definition_removal",
+  "use_dismatching",
   "weight_increment",
   "while_number",
 
@@ -339,6 +344,7 @@ const char* Options::Constants::_shortNames[] = {
   "igrp",
   "igrpq",
   "igrr",
+  "igs",
   "igwr",
   "ins",
 
@@ -348,6 +354,7 @@ const char* Options::Constants::_shortNames[] = {
 
   "nicw",
   "nm",
+  "no",
   "nwc",
 
   "p",
@@ -375,6 +382,7 @@ const char* Options::Constants::_shortNames[] = {
   "ssnc",
   "st",
   "stl",
+  "svs",
 
   "t",
   "tbsr",
@@ -421,6 +429,7 @@ int Options::Constants::shortNameIndexes[] = {
   INST_GEN_RESTART_PERIOD,
   INST_GEN_RESTART_PERIOD_QUOTIENT,
   INST_GEN_RESOLUTION_RATIO,
+  INST_GEN_SELECTION,
   INST_GEN_WITH_RESOLUTION,
   INEQUALITY_SPLITTING,
 
@@ -430,6 +439,7 @@ int Options::Constants::shortNameIndexes[] = {
 
   NONLITERALS_IN_CLAUSE_WEIGHT,
   NAMING,
+  NICENESS_OPTION,
   NONGOAL_WEIGHT_COEFFICIENT,
 
   PROOF,
@@ -458,6 +468,8 @@ int Options::Constants::shortNameIndexes[] = {
   SSPLITTING_NONSPLITTABLE_COMPONENTS,
   SINE_TOLERANCE,
   SIMULATED_TIME_LIMIT,
+
+  SAT_VAR_SELECTOR,
 
   TIME_LIMIT,
   TABULATION_BW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS,
@@ -529,8 +541,10 @@ NameArray Options::Constants::lcmValues(_lcmValues,
 					sizeof(_lcmValues)/sizeof(char*));
 
 const char* Options::Constants::_satSolverValues[] = {
+  "buf_lingeling",
+  "buf_vampire",
   "lingeling",
-  "twl"};
+  "vampire"};
 NameArray Options::Constants::satSolverValues(_satSolverValues,
                                               sizeof(_satSolverValues)/sizeof(char*));
 
@@ -663,9 +677,19 @@ NameArray Options::Constants::satRestartStrategyValues(_satRestartStrategyValues
 
 const char* Options::Constants::_satVarSelectorValues[] = {
   "active",
+  "niceness",
   "recently_learnt"};
 NameArray Options::Constants::satVarSelectorValues(_satVarSelectorValues,
 					  sizeof(_satVarSelectorValues)/sizeof(char*));
+
+const char* Options::Constants::_nicenessOptionValues[] = {
+  "average",
+  "none",
+  "sum",
+  "top"
+  };
+NameArray Options::Constants::nicenessOptionValues(_nicenessOptionValues,
+					  sizeof(_nicenessOptionValues)/sizeof(char*));
 
 const char* Options::Constants::_satClauseDisposerValues[] = {
   "growing",
@@ -868,6 +892,8 @@ Options::Options ()
   _namePrefix(""),
   _naming(8),
 
+  _nicenessOption(NICENESS_AVERAGE),
+
   _nongoalWeightCoefficient(1.0),
   _nonGoalWeightCoeffitientDenominator(1),
   _nonGoalWeightCoeffitientNumerator(1),
@@ -907,7 +933,7 @@ Options::Options ()
   _satRestartStrategy(SRS_LUBY),
   _satVarActivityDecay(1.05f),
   _satVarSelector(SVS_ACTIVE),
-  _satSolver(TWL),
+  _satSolver(VAMPIRE),
   _saturationAlgorithm(LRS),
   _selection(10),
   _selectUnusedVariablesFirst(false),
@@ -933,11 +959,7 @@ Options::Options ()
   _smtlibFletAsDefinition(false),
   _smtlibIntroduceAIGNames(true),
   _sos(SOS_OFF),
- // _splitAddGroundNegation(true),
-  _splitAtActivation(false),
- // _splitGoalOnly(false),
- // _splitInputOnly(true),
- // _splitPositive(false),
+  _splitAtActivation(false), // is this even a valid option?
   _splitting(true), // should splitting by on or off by default?
   _ssplittingAddComplementary(SSAC_GROUND),
   _ssplittingComponentSweeping(SSCS_ITERATED),
@@ -970,6 +992,7 @@ Options::Options ()
   _unitResultingResolution(URR_OFF),
   _unusedPredicateDefinitionRemoval(true),
   _updatesByOneConstraint(3),
+  _use_dm(false),
 
   _weightIncrement(false),
   _weightRatio(1),
@@ -1505,6 +1528,9 @@ void Options::set(const char* name,const char* value, int index)
     case SAT_VAR_SELECTOR:
       _satVarSelector = (SatVarSelector)Constants::satVarSelectorValues.find(value);
       return;
+    case NICENESS_OPTION:
+      _nicenessOption = (NicenessOption)Constants::nicenessOptionValues.find(value);
+      return;
     case SAT_SOLVER:
       _satSolver = (SatSolver) Constants::satSolverValues.find(value);
       return;
@@ -1593,21 +1619,9 @@ void Options::set(const char* name,const char* value, int index)
     case SOS:
       _sos = (Sos)Constants::sosValues.find(value);
       return;
-//    case SPLIT_ADD_GROUND_NEGATION:
-//      _splitAddGroundNegation = onOffToBool(value,name);
-//      return;
     case SPLIT_AT_ACTIVATION:
       _splitAtActivation = onOffToBool(value,name);
       return;
-//    case SPLIT_GOAL_ONLY:
-//      _splitGoalOnly = onOffToBool(value,name);
-//      return;
-//    case SPLIT_INPUT_ONLY:
-//      _splitInputOnly = onOffToBool(value,name);
-//      return;
-//    case SPLIT_POSITIVE:
-//      _splitPositive = onOffToBool(value,name);
-//      return;
     case SPLITTING:
       _splitting = onOffToBool(value,name);//(SplittingMode)Constants::splittingModeValues.find(value);
       return;
@@ -1695,6 +1709,10 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case UNUSED_PREDICATE_DEFINITION_REMOVAL:
       _unusedPredicateDefinitionRemoval = onOffToBool(value,name);
+      return;
+
+    case USEDM:
+      _use_dm = onOffToBool(value,name);
       return;
 
     case WEIGHT_INCREMENT:
@@ -1926,8 +1944,6 @@ bool Options::setLrsFirstTimeCheck (int newVal)
 string Options::includeFileName (const string& relativeName)
 {
   CALL("Options::includeFileName");
-
-  cout<<"includeFileName "+relativeName+"\n";
 
   if (relativeName[0] == '/') { // absolute name
     return relativeName;
@@ -2357,6 +2373,8 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SAT_VAR_SELECTOR:
     str << Constants::satVarSelectorValues[_satVarSelector];
     return;
+  case NICENESS_OPTION:
+    str << Constants::nicenessOptionValues[_nicenessOption];
   case SAT_SOLVER:
     str << Constants::satSolverValues[_satSolver];
     return;

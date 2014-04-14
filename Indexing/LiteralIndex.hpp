@@ -115,6 +115,15 @@ private:
   Ordering& _ordering;
 };
 
+class DismatchingLiteralIndex
+: public LiteralIndex
+{
+public:
+  DismatchingLiteralIndex(LiteralIndexingStructure* is)
+  : LiteralIndex(is) {};
+  void handleClause(Clause* c, bool adding);
+};
+
 };
 
 #endif /* __LiteralIndex__ */

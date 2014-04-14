@@ -208,9 +208,9 @@ public:
     /** component introduced by splitting */
     SPLITTING_COMPONENT,
     /** component introduced by backtracking splitting */
-    BACKTRACKING_SPLITTING_COMPONENT,
+    //BACKTRACKING_SPLITTING_COMPONENT,
     /** refutation of a backtracking splitting branch */
-    BACKTRACKING_SPLIT_REFUTATION,
+    //BACKTRACKING_SPLIT_REFUTATION,
     /** component introduced by backtracking splitting */
     SAT_SPLITTING_COMPONENT,
     /** refutation of a backtracking splitting branch */

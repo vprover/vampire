@@ -50,6 +50,7 @@ public:
   void addSatClauses(const SATClauseStack& clauses, SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
+  void clearZeroImpliedSplits(Clause* cl);
 private:
 
   void processDPConflicts();
@@ -74,14 +75,18 @@ private:
 };
 
 /**
- *
- *
  * SplitLevel meanings:
  * even -- positive ground literals and non-ground components
  * odd -- negative ground literals (and possibly skolemized non-ground components -- not implemented yet)
  */
 class SSplitter : public Splitter {
 private:
+
+/**
+ * ReductionRecord - records information to do with a reduction
+ *
+ */
+
   struct ReductionRecord
   {
     ReductionRecord(unsigned timestamp, Clause* clause) : timestamp(timestamp), clause(clause) {}
@@ -89,6 +94,19 @@ private:
     Clause* clause;
   };
 
+/**
+ *
+ * SplitRecord - records the split information for the clause component
+ *
+ * Note, there is a SplitLevel associated with comp, which is _compNames.get(comp)
+ * A SplitRecord is added to _db[name] where name is the SAT name of comp
+ *
+ * children - Clauses that rely on name (of comp), should be backtracked
+ * reduced - The clauses that have been *conditionally* reduced by this clause (and are therefore frozen)
+ * active - true if currently frozen (maybe unfrozen, then frozen again) 
+ *
+ * Comment by Giles
+ */   
   struct SplitRecord
   {
     SplitRecord(Clause* comp)
