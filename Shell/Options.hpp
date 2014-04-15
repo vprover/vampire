@@ -648,7 +648,7 @@ public:
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds; }
   static int readTimeLimit(const char* val);
   size_t memoryLimit() const { return _memoryLimit; }
-  int inequalitySplitting() const { return 0; /*_inequalitySplitting;*/ }
+  int inequalitySplitting() const { _inequalitySplitting; }
   long maxActive() const { return _maxActive; }
   long maxAnswers() const { return _maxAnswers; }
   void setMaxAnswers(int newVal) { _maxAnswers = newVal; }
