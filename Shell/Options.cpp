@@ -1179,6 +1179,10 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case EXTENSIONALITY_MAX_LENGTH:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
+        // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
+        if (unsignedValue == 1) {
+          USER_ERROR("extensionality clauses have to be at least of size 2");
+        }
 	_extensionalityMaxLength = unsignedValue;
 	return;
       }
