@@ -46,7 +46,21 @@ static void catchlrm(int sig) {
 static int checkalarm(void * ptr){
 	ASS(ptr == (void*) &caughtalarm);
 	return caughtalarm;
-}	//do the set-up of sat solver according to environment options
+}
+
+/**
+ * For dealing with abort signals in lingeling
+ * TODO - update the signum used in lglib
+ */
+static int LING_SIG = 1;
+static void (*sig_abort_handler)(int);
+static void alert_abort(int sig){
+	if(sig==LING_SIG){
+		ASSERTION_VIOLATION("Lingeling internal error");
+	}
+}
+
+	//do the set-up of sat solver according to environment options
 	LingelingInterfacing::LingelingInterfacing(const Options& opt, bool generateProofs) : 
 		_generateProofs(generateProofs), _hasAssumptions(false){
 			CALL("LingelingInterfacing::LingelingInterfacing");
@@ -61,6 +75,9 @@ static int checkalarm(void * ptr){
 			//lglsetopt(_solver, "");
 			//lglsetopt(_solver, "dlim",0);
 			lglsetopt(_solver, "memlim", env.options->memoryLimit());
+
+			//set signal handler for ABORTIF
+			sig_abort_handler = signal(LING_SIG, alert_abort);
 
 			//set the alarm handlers for sat solver
 			lglseterm(_solver, checkalarm, &caughtalarm);
