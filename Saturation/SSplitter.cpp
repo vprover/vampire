@@ -367,6 +367,8 @@ void SSplitter::init(SaturationAlgorithm* sa)
   _flushThreshold = sa->getGeneratedClauseCount() + _flushPeriod;
 
   _congruenceClosure = opts.ssplittingCongruenceClosure();
+
+  _removeFrozen = opts.removeFrozen();
 }
 
 SplitLevel SSplitter::getNameFromLiteral(SATLiteral lit) const
@@ -830,8 +832,10 @@ void SSplitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
  *
  * Giles: at this stage we also check for zero-implied literals
  *        and remove them if found
+ *
+ * @return true if this clause should be removed from indexes
  */
-void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement)
+bool SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement)
 {
   CALL("SSplitter::onClauseReduction");
   ASS(cl);
@@ -840,7 +844,7 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
 
   if(!premises.hasNext()) {
     ASS(!replacement || cl->splits()==replacement->splits());
-    return;
+    return true;
   }
 
   LOG("sspl_reductions_prems","reduced clause: "<<(*cl));
@@ -869,11 +873,12 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
 #endif
 
   if(diff->isEmpty()) {
-    return;
+    return true; // no need to keep clause
   }
-  // else freeze clause
+  // else freeze clause cl as it depends on some choices that may be undone
 
 #if VDEBUG
+//Giles: record the number of times a clause is frozen
   cl->incFreezeCount();
   RSTAT_MCTR_INC("frozen clauses",cl->getFreezeCount());
 #endif
@@ -886,6 +891,8 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
     SplitLevel slev=dit.next();
     _db[slev]->addReduced(cl);
   }
+
+  return _removeFrozen;
 }
 
 void SSplittingBranchSelector::clearZeroImpliedSplits(Clause* cl)
@@ -1134,7 +1141,6 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
       rcl->setAux(0);
       ASS_EQ(rcl->store(), Clause::NONE);
       rcl->incReductionTimestamp();
-      //rcl->setProp(BDD::instance()->getFalse()); //we asserted it was false in onClauseReduction
       _sa->addNewClause(rcl);
   #if VDEBUG
       RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
