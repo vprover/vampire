@@ -156,7 +156,7 @@ public:
 
   bool doSplitting(Clause* cl);
 
-  void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
+  bool onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
   void onNewClause(Clause* cl);
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);
@@ -213,6 +213,7 @@ private:
   float _flushQuotient;
   bool _congruenceClosure;
   Options::SplittingDeleteDeactivated _deleteDeactivated;
+  bool _removeFrozen;
 
   //utility objects
   SplittingBranchSelector _branchSelector;

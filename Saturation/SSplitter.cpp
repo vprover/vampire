@@ -420,6 +420,7 @@ void Splitter::init(SaturationAlgorithm* sa)
   _congruenceClosure = opts.splittingCongruenceClosure();  
   _fastRestart = opts.splittingFastRestart();
   _deleteDeactivated = opts.splittingDeleteDeactivated();    
+  _removeFrozen = opts.removeFrozen();
 }
 
 SplitLevel Splitter::getNameFromLiteral(SATLiteral lit) const
@@ -1009,15 +1010,17 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
  *
  * At this stage we also check for zero-implied literals and remove
  * them if found, this is safe as we no longer rely on them
+
+ * @return true if this clause should be removed from indexes
  */
-void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement)
+bool SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement)
 {
   CALL("Splitter::onClauseReduction");
   ASS(cl);
 
   if(!premises.hasNext()) {
     ASS(!replacement || cl->splits()==replacement->splits());
-    return;
+    return true;
   }
 
   SplitSet* unionAll;
@@ -1058,12 +1061,13 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
       cl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
     }
         
-    return;
+    return true; // no need to keep clause
   }
-  // else freeze clause
+  // else freeze clause cl as it depends on some choices that may be undone
 
   // TODO: keep statistics in release ?
 //#if VDEBUG
+//Giles: record the number of times a clause is frozen
   cl->incFreezeCount();
   RSTAT_MCTR_INC("frozen clauses",cl->getFreezeCount());
   RSTAT_CTR_INC("total_frozen");
@@ -1075,6 +1079,8 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
     SplitLevel slev=dit.next();
     _db[slev]->addReduced(cl);
   }
+
+  return _removeFrozen;
 }
 
 bool Splitter::allSplitLevelsActive(SplitSet* s)
