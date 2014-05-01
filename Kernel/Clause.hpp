@@ -153,6 +153,10 @@ public:
     notifyLiteralReorder();
   }
 
+  /** Return whether this clause is in the passive index **/
+  bool in_passive() const {return _in_passive;}
+  /** Set _in_passive to false if true and vice versa **/
+  void toggle_in_passive() {_in_passive=!_in_passive;}
   /** Return whether this clause is in the active index **/
   bool in_active() const {return _in_active;}
   /** Set _in_active to false if true and vice versa **/
@@ -347,6 +351,8 @@ protected:
   mutable unsigned _weight;
   /** storage class */
   Store _store;
+  /** in passive index **/
+  bool _in_passive;
   /** in active index **/
   bool _in_active;
   /** number of references to this clause */

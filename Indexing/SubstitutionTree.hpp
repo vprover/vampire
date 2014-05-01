@@ -85,6 +85,25 @@ public:
   };
   typedef VirtualIterator<LeafData&> LDIterator;
 
+/**
+ * A functor that returns true iff its LeafData argument
+ * contains a clause with a store != NONE
+ *
+ * This allows us to filter out clauses that have been frozen
+ * and not removed from indices
+ *
+ * @author Giles
+ */
+  struct IsNonNoneClause
+  {
+    DECL_RETURN_TYPE(bool);
+    bool operator()(LeafData& ld)
+    { 
+      Clause* cl = ld.clause;
+      return cl->store()!=Clause::NONE; 
+    }
+  };
+
   class LDComparator
   {
   public:

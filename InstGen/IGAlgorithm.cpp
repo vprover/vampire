@@ -505,7 +505,8 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
   // if cl does not have a dismatching index create one
   // it might already have one if it was previously deactiviated
   if(_use_dm && !_dismatchMap.find(cl)){
-    RSTAT_CTR_INC("dismatch created");
+    RSTAT_CTR_INC("dismatch index created");
+    //TODO - replace with LiteralDiscriminationTree
     LiteralIndexingStructure * is = new LiteralSubstitutionTree();
     DismatchingLiteralIndex* dismatchIndex = new DismatchingLiteralIndex(is);
     _dismatchMap.insert(cl,dismatchIndex);
