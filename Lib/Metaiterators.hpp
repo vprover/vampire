@@ -372,6 +372,73 @@ FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
   return FilteredIterator<Inner,Functor>(inn, func);
 }
 
+/**
+ * Iterator class that returns elements of an inner iterator
+ * only until the specified functor returns false for some element
+ * (this element is already not returned)
+ */
+/**
+ * Iterator class that returns elements of the inner iterator
+ * for which the functor returns true
+ *
+ * @tparam Inner type of the inner iterator
+ * @tparam Functor type of the functor used for filtering the
+ *   elements returned by the inner iterator
+ *
+ * @author Giles
+ */
+template<class Inner, class Functor>
+class FilteredReferenceIterator
+{
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+
+  FilteredReferenceIterator(Inner inn, Functor func,OWN_ELEMENT_TYPE null_next)
+  : _func(func), _inn(inn), _next(null_next), _nextStored(false) {}
+  bool hasNext()
+  {
+    if(_nextStored) {
+      return true;
+    }
+    while(_inn.hasNext()) {
+      _next=_inn.next();
+      if(_func(_next)) {
+	_nextStored=true;
+	return true;
+      }
+    }
+    return false;
+  };
+  OWN_ELEMENT_TYPE next()
+  {
+    if(!_nextStored) {
+      ALWAYS(hasNext());
+      ASS(_nextStored);
+    }
+    _nextStored=false;
+    return _next;
+  };
+private:
+  Functor _func;
+  Inner _inn;
+  OWN_ELEMENT_TYPE _next;
+  bool _nextStored;
+};
+
+/**
+ * Return an iterator object that returns elements of the @b inn iterator
+ * for which the functor @b func returns true
+ *
+ * @see FilteredReferenceIterator
+ */
+template<class Inner, class Functor,class ElType>
+inline
+FilteredReferenceIterator<Inner,Functor> getFilteredReferenceIterator(Inner inn, Functor func, ElType& null_d)
+{
+  return FilteredReferenceIterator<Inner,Functor>(inn, func,null_d);
+}
+
+
 
 /**
  * Iterator class that returns elements of an inner iterator
