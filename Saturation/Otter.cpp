@@ -46,8 +46,9 @@ void Otter::onPassiveAdded(Clause* cl)
 
   SaturationAlgorithm::onPassiveAdded(cl);
 
-  if(cl->store()==Clause::PASSIVE) {
+  if(cl->store()==Clause::PASSIVE && !cl->in_simplifying()) {
     _simplCont.add(cl);
+    cl->toggle_in_simplifying();
   }
 }
 
@@ -56,7 +57,9 @@ void Otter::onPassiveRemoved(Clause* cl)
   CALL("Otter::onPassiveRemoved");
 
   if(cl->store()==Clause::PASSIVE) {
+    ASS(cl->in_simplifying());
     _simplCont.remove(cl);
+    cl->toggle_in_simplifying();
   }
 
   SaturationAlgorithm::onPassiveRemoved(cl);
