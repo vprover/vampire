@@ -48,16 +48,16 @@ const Options& Splitter::getOptions() const
 /**
  * Register the reduction of the @b cl clause
  */
-void Splitter::onClauseReduction(Clause* cl, Clause* premise, Clause* replacement)
+bool Splitter::onClauseReduction(Clause* cl, Clause* premise, Clause* replacement)
 {
   CALL("Splitter::onClauseReduction(Clause*,Clause*,Clause*)");
   
   if(!premise) {
     ASS(!replacement);
-    return;
+    return true;
   }
 
-  onClauseReduction(cl, pvi( getSingletonIterator(premise) ), replacement);
+  return onClauseReduction(cl, pvi( getSingletonIterator(premise) ), replacement);
 }
 
 /**

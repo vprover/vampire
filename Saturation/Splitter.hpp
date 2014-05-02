@@ -35,7 +35,7 @@ public:
 
   // return true if cl should be removed from indexes
   virtual bool onClauseReduction(Clause* cl, Clause* premise, Clause* replacement=0);
-  virtual bool onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement=0);
+  virtual bool onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement=0){NOT_IMPLEMENTED; return true;}
 
   virtual void onNewClause(Clause* cl) {}
   virtual void onAllProcessed() {}

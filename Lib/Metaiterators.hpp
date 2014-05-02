@@ -373,17 +373,16 @@ FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
 }
 
 /**
- * Iterator class that returns elements of an inner iterator
- * only until the specified functor returns false for some element
- * (this element is already not returned)
- */
-/**
  * Iterator class that returns elements of the inner iterator
  * for which the functor returns true
  *
  * @tparam Inner type of the inner iterator
  * @tparam Functor type of the functor used for filtering the
  *   elements returned by the inner iterator
+ *
+ * This differs from FilteredIterator as it allows OWN_ELEMENT_TYPE
+ * to be a reference type by providing a default object. Recall that
+ * references cannot be null.
  *
  * @author Giles
  */

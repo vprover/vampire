@@ -155,14 +155,21 @@ public:
     notifyLiteralReorder();
   }
 
-  /** Return whether this clause is in the passive index **/
-  bool in_passive() const {return _in_passive;}
-  /** Set _in_passive to false if true and vice versa **/
-  void toggle_in_passive() {_in_passive=!_in_passive;}
-  /** Return whether this clause is in the active index **/
-  bool in_active() const {return _in_active;}
-  /** Set _in_active to false if true and vice versa **/
-  void toggle_in_active() {_in_active=!_in_active;}
+  /** Return whether this clause is in a simplifying index 
+      We only use this if _in_generating does not imply _in_simplifying
+      i.e. in the case of Otter
+      Names may need updating then
+   **/
+  bool in_simplifying() const {return _in_simplifying;}
+  /** Set _in_simplifying to false if true and vice versa **/
+  void toggle_in_simplifying() {_in_simplifying=!_in_simplifying;}
+  /** Return whether this clause is in a generating index
+      Note that if a clause is in active it is in both simplifying
+      and generating indices
+   **/
+  bool in_generating() const {return _in_generating;}
+  /** Set _in_generating to false if true and vice versa **/
+  void toggle_in_generating() {_in_generating=!_in_generating;}
 
   /** Return the weight */
   int weight() const
@@ -332,10 +339,10 @@ protected:
   mutable unsigned _weight;
   /** storage class */
   Store _store;
-  /** in passive index **/
-  bool _in_passive;
-  /** in active index **/
-  bool _in_active;
+  /** in any simplifying index **/
+  bool _in_simplifying;
+  /** in any generating index **/
+  bool _in_generating;
   /** number of references to this clause by inference rules */
   unsigned _inferenceRefCnt;
   /** timestamp marking when has the clause been reduced or restored by a backtracking splitting most recently */
