@@ -579,7 +579,7 @@ VERSION_NUMBER = 3.0
 
 version.cpp: .git/HEAD .git/index Makefile
 	echo "//Automatically generated file, see Makefile for details" > $@
-	echo "const char* VERSION_STRING = \"Vampire $(VERSION_NUMBER) (commit $(shell git rev-parse HEAD || echo unknown))\";" >> $@
+	echo "const char* VERSION_STRING = \"Vampire $(VERSION_NUMBER) (commit $(shell git rev-parse --short HEAD || echo unknown))\";" >> $@
 
 ################################################################
 # separate directory for object files implementation
