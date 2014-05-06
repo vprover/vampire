@@ -1,0 +1,9 @@
+obj/
+doc/
+
+Makefile_depend*
+
+version.cpp
+
+vampire_dbg
+vampire_rel
