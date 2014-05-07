@@ -277,7 +277,7 @@ VS_OBJ = Shell/AIG.o\
          Shell/EPRInlining.o\
          Shell/EPRSkolem.o\
          Shell/EqResWithDeletion.o\
-	 Shell/EqualityAxiomatizer.o\
+         Shell/EqualityAxiomatizer.o\
          Shell/EqualityPropagator.o\
          Shell/EqualityProxy.o\
          Shell/EquivalenceDiscoverer.o\
@@ -336,11 +336,11 @@ VS_OBJ = Shell/AIG.o\
          Shell/Preprocess.o\
          Shell/SMTLEX.o\
          Shell/SMTPAR.o\
-	 Shell/SubsumptionRemover.o\
+         Shell/SubsumptionRemover.o\
          version.o
 
 PARSE_OBJ = Parse/SMTLIB.o\
-			Parse/SMTLIB2.o\
+            Parse/SMTLIB2.o\
             Parse/TPTP.o
 
 DP_OBJ = DP/ShortConflictMetaDP.o\
@@ -433,7 +433,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Statistics.o\
 	  Shell/GlobalOptions.o\
 	  ClausifierDependencyFix.o\
-          version.o
+	  version.o
 
 OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Indexing/LiteralSubstitutionTree.o\
@@ -578,8 +578,8 @@ VERSION_NUMBER = 3.0
 .git/index:
 
 version.cpp: .git/HEAD .git/index Makefile
-	echo "//Automatically generated file, see Makefile for details" > $@
-	echo "const char* VERSION_STRING = \"Vampire $(VERSION_NUMBER) (commit $(shell git rev-parse --short HEAD || echo unknown))\";" >> $@
+	@echo "//Automatically generated file, see Makefile for details" > $@
+	@echo "const char* VERSION_STRING = \"Vampire $(VERSION_NUMBER) (commit $(shell git log -1 --format=%h\ on\ %ci || echo unknown))\";" >> $@
 
 ################################################################
 # separate directory for object files implementation
