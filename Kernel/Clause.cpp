@@ -380,9 +380,11 @@ vstring Clause::nonPropToString() const
     return "$false";
   } else {
     vstring result;
+    ASS(_literals[0]);
     result += _literals[0]->toString();
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
+      ASS(_literals[i]);
       result += _literals[i]->toString();
     }
     return result;

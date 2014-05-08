@@ -355,6 +355,7 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
     unsigned boundVar=inode->childVar;
     TermList t = svBindings.get(boundVar);
 
+    //pnode must exist as ld exists in tree
     pnode=inode->childByTop(t,false);
     ASS(pnode);
 

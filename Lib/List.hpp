@@ -555,6 +555,16 @@ public:
       return result;
     }
 
+    /**
+     * Return the element that will be returned by next (therefore hasNexgt()
+     * must have returned true), but do not advance to a further element.
+     */
+    inline C& peekAtNext()
+    {
+      ASS_NEQ(_lst,0);
+      return _lst->_head;
+    }
+
     /** True if there is a next element. */
     inline bool hasNext() const
     { return _lst->isNonEmpty(); }

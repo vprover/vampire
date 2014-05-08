@@ -488,6 +488,7 @@ vstring Literal::toString() const
 
   if (isEquality()) {
     const TermList* lhs = args();
+    ASS(lhs);
     vstring s = lhs->toString();
     if (isPositive()) {
       s += " = ";
