@@ -380,9 +380,10 @@ FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
  * @tparam Functor type of the functor used for filtering the
  *   elements returned by the inner iterator
  *
- * This differs from FilteredIterator as it allows OWN_ELEMENT_TYPE
- * to be a reference type by providing a default object. Recall that
- * references cannot be null.
+ * FilteredIterator cannot be used with iterators over reference types
+ *
+ * This implementation relaxes this by assuming a peekAtNext operation
+ * on the iterator
  *
  * @author Giles
  */
@@ -392,36 +393,39 @@ class FilteredReferenceIterator
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
 
-  FilteredReferenceIterator(Inner inn, Functor func,OWN_ELEMENT_TYPE null_next)
-  : _func(func), _inn(inn), _next(null_next), _nextStored(false) {}
+  FilteredReferenceIterator(Inner inn, Functor func)
+  : _func(func), _inn(inn), _nextOkay(false) {}
   bool hasNext()
   {
-    if(_nextStored) {
+    CALL("FilteredReferenceIterator::hasNext");
+    if(_nextOkay) {
       return true;
     }
     while(_inn.hasNext()) {
-      _next=_inn.next();
-      if(_func(_next)) {
-	_nextStored=true;
+      OWN_ELEMENT_TYPE next = _inn.peekAtNext();
+      if(_func(next)) {
+        // peek at but do not return next
+	_nextOkay=true;
 	return true;
+      }
+      else{
+         _inn.next(); // next is not okay, progress iterator
       }
     }
     return false;
   };
   OWN_ELEMENT_TYPE next()
   {
-    if(!_nextStored) {
-      ALWAYS(hasNext());
-      ASS(_nextStored);
-    }
-    _nextStored=false;
-    return _next;
+    CALL("FilteredReferenceIterator::next");
+    ASS(_nextOkay);
+    _nextOkay=false;
+    OWN_ELEMENT_TYPE result = _inn.next();
+    return result;
   };
 private:
   Functor _func;
   Inner _inn;
-  OWN_ELEMENT_TYPE _next;
-  bool _nextStored;
+  bool _nextOkay;
 };
 
 /**
@@ -430,11 +434,11 @@ private:
  *
  * @see FilteredReferenceIterator
  */
-template<class Inner, class Functor,class ElType>
+template<class Inner, class Functor>
 inline
-FilteredReferenceIterator<Inner,Functor> getFilteredReferenceIterator(Inner inn, Functor func, ElType& null_d)
+FilteredReferenceIterator<Inner,Functor> getFilteredReferenceIterator(Inner inn, Functor func)
 {
-  return FilteredReferenceIterator<Inner,Functor>(inn, func,null_d);
+  return FilteredReferenceIterator<Inner,Functor>(inn, func);
 }
 
 

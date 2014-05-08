@@ -49,6 +49,8 @@ void Otter::onPassiveAdded(Clause* cl)
   if(cl->store()==Clause::PASSIVE && !cl->in_simplifying()) {
     _simplCont.add(cl);
     cl->toggle_in_simplifying();
+  }else{
+    cout << "Not added " << cl->getFreezeCount() << endl;
   }
 }
 

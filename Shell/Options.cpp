@@ -273,11 +273,7 @@ const char* Options::Constants::_optionNames[] = {
   "smtlib_flet_as_definition",
   "smtlib_introduce_aig_names",
   "sos",
- // "split_add_ground_negation",
   "split_at_activation",
- // "split_goal_only",
- // "split_input_only",
- // "split_positive",
   "splitting",
   "ssplitting_add_complementary",
   "ssplitting_component_sweeping",
@@ -924,7 +920,7 @@ Options::Options ()
   _questionAnswering(QA_OFF),
 
   _randomSeed(Random::seed()),
-  _removeFrozen(false),
+  _removeFrozen(true),
   _rowVariableMaxLength(2),
 
   _satClauseActivityDecay(1.001f),

@@ -598,10 +598,11 @@ bool SSplitter::doSplitting(Clause* cl)
 {
   CALL("SSplitter::doSplitting");
 
-  if(!splittingAllowed(cl)) {
-    LOG_UNIT("sspl_nonsplits",cl);
-    return false;
-  }
+  // No options to turn splitting off
+  //if(!splittingAllowed(cl)) {
+  //  LOG_UNIT("sspl_nonsplits",cl);
+  //  return false;
+  //}
 
   static Stack<CompRec> comps;
   comps.reset();

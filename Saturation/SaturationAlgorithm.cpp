@@ -445,6 +445,9 @@ bool SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
   if (_splitter) {
     //This might freeze cl
     removecl = _splitter->onClauseReduction(cl, pvi( ClauseStack::Iterator(premStack) ), replacement);
+    if(!removecl){
+      cout << "removecl is false!\n";
+    }
   }
 
   if (replacement) {
@@ -1000,8 +1003,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       else{
         // If we do not remove the clause we need to clear its status, which indicates
         // to the indices that it should not be used
-        // TODO - consider what should happen when readding clause, maybe we want to keep
-        //        a record of where cl has been added, and set a flag saying it is frozen instead
+	//TODO- Add assertion that cl is frozen
         cl->setStore(Clause::NONE);
       }
 

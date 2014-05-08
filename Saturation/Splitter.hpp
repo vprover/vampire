@@ -79,7 +79,7 @@ protected:
 
   bool splitPositive();
 
-  virtual bool splittingAllowed(Clause* cl);
+  //virtual bool splittingAllowed(Clause* cl);
 
   bool isAnswerLiteral(Literal* lit);
 

@@ -94,8 +94,17 @@ public:
     DECL_RETURN_TYPE(bool);
     bool operator()(LeafData& ld)
     { 
+      CALL("SubstitutionTree:IsNonNoneClause");
+      //cout <<"call\n";
       Clause* cl = ld.clause;
-      return cl->store()!=Clause::NONE; 
+      //cout << cl << endl;
+      if(cl){
+        //cout << cl->toString()<< endl;
+        return cl->store()!=Clause::NONE; 
+      }
+      //cout << "cl is 0\n";
+      //TODO - can LeafData have null cl? 
+      return true;
     }
   };
 
