@@ -17,6 +17,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/RCClauseStack.hpp"
+#include "Kernel/ConcurrentMainLoop.hpp"
 
 #include "Indexing/IndexManager.hpp"
 
@@ -36,7 +37,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Inferences;
 
-class SaturationAlgorithm : public MainLoop
+class SaturationAlgorithm : public MainLoop, public ConcurrentMainLoop
 {
 public:
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
