@@ -460,8 +460,8 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   size += PAGE_PREFIX_SIZE;
 
   Page* result;
-  size_t index = (size-1)/PAGE_SIZE;
-  size_t realSize = PAGE_SIZE*(index+1);
+  size_t index = (size-1)/PAGE_SIZE_;
+  size_t realSize = PAGE_SIZE_*(index+1);
 
   // check if the allocatio isn't too big
   if(index>=MAX_PAGES) {
@@ -600,7 +600,7 @@ void Allocator::deallocatePages(Page* page)
 #endif
 
   size_t size = page->size;
-  int index = (size-1)/PAGE_SIZE;
+  int index = (size-1)/PAGE_SIZE_;
 
   Page* next = page->next;
   if (next) {
@@ -748,7 +748,7 @@ char* Allocator::allocatePiece(size_t size)
 	_freeList[index] = save;
       }
       Page* page = allocatePages(0);
-      _reserveBytesAvailable = PAGE_SIZE-PAGE_PREFIX_SIZE;
+      _reserveBytesAvailable = PAGE_SIZE_-PAGE_PREFIX_SIZE;
       _nextAvailableReserve = reinterpret_cast<char*>(&page->content);
       goto use_reserve;
     }
