@@ -67,6 +67,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "SAT/LingelingInterfacing.hpp"
+#include "SAT/TWLSolver.hpp"
 
 #if IS_LINGVA
 #include "Program/Lingva.hpp"
@@ -420,7 +421,7 @@ void satSolverMode()
 {
   CALL("satSolverMode()");
   TimeCounter tc(TC_SAT_SOLVER);
-  SATSolverSCP solver(new LingelingInterfacing(*env.options, false));
+  SATSolverSCP solver(new TWLSolver(*env.options, false));
 
   //get the clauses; 
   SATClauseList* clauses;
@@ -430,7 +431,9 @@ void satSolverMode()
   
   clauses = getInputClauses(env.options->inputFile().c_str(), varCnt);
   cout<<"we have : "<<varCnt << " variables\n";
-
+  
+  solver->ensureVarCnt(varCnt);
+  
   //add all the clauses to the solver 
   solver->addClauses(pvi(SATClauseList::Iterator(clauses)));
   res = solver->getStatus();

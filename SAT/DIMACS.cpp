@@ -153,6 +153,9 @@ SATClauseIterator DIMACS::parse(const char* fname, unsigned& maxVar)
 	cout<<"Invalid input\n";
 	exit(0);
       }
+      if (abs(ivar) > (int)maxVar)
+        cout<<"Warning: variable index exceeds advertised max\n"; // either lies about max or contains "holes"
+      
       vars.push(ivar);
       inp>>ivar;
     }
