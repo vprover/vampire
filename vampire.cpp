@@ -407,14 +407,9 @@ void outputMode()
 SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
 {
   CALL("getInputClauses");
-  TimeCounter tc(TC_PREPROCESSING);
-  unsigned maxVar;
-  SATClauseIterator cit=( DIMACS::parse(fname, maxVar) );
-  varCnt=maxVar+1;
+  TimeCounter tc(TC_PARSING);
 
-  SATClauseList* clauses = 0;
-  SATClauseList::pushFromIterator(cit, clauses);
-  return clauses;
+  return DIMACS::parse(fname, varCnt);
 }
 
 void satSolverMode()
@@ -432,10 +427,10 @@ void satSolverMode()
   clauses = getInputClauses(env.options->inputFile().c_str(), varCnt);
   cout<<"we have : "<<varCnt << " variables\n";
   
-  solver->ensureVarCnt(varCnt);
+  solver->ensureVarCnt(varCnt+1);
   
   //add all the clauses to the solver 
-  solver->addClauses(pvi(SATClauseList::Iterator(clauses)));
+  solver->addClauses(pvi(SATClauseList::DestructiveIterator(clauses)));
   res = solver->getStatus();
 
   env.statistics->phase = Statistics::FINALIZATION;
