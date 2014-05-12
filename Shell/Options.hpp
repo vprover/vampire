@@ -595,6 +595,7 @@ public:
   string includeFileName (const string& relativeName);
   string logFile() const { return _logFile; }
   string inputFile() const { return _inputFile; }
+  string optionsFile() const { return _optionsFile;}
   int randomSeed() const { return _randomSeed; }
   int rowVariableMaxLength() const { return _rowVariableMaxLength; }
   void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
@@ -760,6 +761,7 @@ public:
   NicenessOption nicenessOption() const { return _nicenessOption; }
 
   void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
+  void setOptFileName(const string& newVal){ _optionsFile = newVal; }
   void setInputFile(const string& newVal);
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds = newVal; }
@@ -929,6 +931,7 @@ private:
   bool _nonliteralsInClauseWeight;
   bool _normalize;
 
+  string _optionsFile;
   bool _outputAxiomNames;
 
   InliningMode _predicateDefinitionInlining;

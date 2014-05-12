@@ -34,12 +34,16 @@ CommandLine::CommandLine (int argc, char* argv [])
  * @since 10/04/2005 Torrevieja, handling environment added
  * @since 14/04/2005 Manchester, handling special commands (bag) added
  * @since 06/05/2007 Manchester, simplified again
+ * @since 12/05/2014 Manchester, add optFile option
  */
 void CommandLine::interpret (Options& options)
 {
   CALL ("CommandLine::interpret");
 
   bool fileGiven = false;
+  bool optFileGiven = false;
+  bool optCmdsGiven = false;
+  
   while (_next != _last) {
     ASS(_next < _last);
     const char* arg = *_next++;
@@ -47,10 +51,21 @@ void CommandLine::interpret (Options& options)
       cout<<VERSION_STRING<<endl;
       exit(0);
     }
+    if (strcmp(arg, "--optfile")){
+      if(optCmdsGiven){
+        USER_ERROR("Cannot use options file and command line options");
+      }
+      optFileGiven=true;
+      options.setOptFileName(*_next);
+    }
     if (arg[0] == '-') {
       if (_next == _last) {
 	USER_ERROR((string)"no value specified for option " + arg);
       }
+      if(optFileGiven){
+        USER_ERROR("Cannot use options file and command line options");
+      }
+      optCmdsGiven = true;
       if (arg[1] == '-') {
 	options.set(arg+2,*_next);
       }
