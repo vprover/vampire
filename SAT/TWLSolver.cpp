@@ -96,7 +96,7 @@ TWLSolver::~TWLSolver()
 void TWLSolver::ensureVarCnt(unsigned newVarCnt)
 {
   CALL("TWLSolver::ensureVarCnt");
-
+  
   if(newVarCnt<=_varCnt) {
     return;
   }
@@ -648,7 +648,7 @@ TWLSolver::ClauseVisitResult TWLSolver::visitWatchedClause(Watch watch, unsigned
 /**
  * Perform unit propagation starting with variable @c var0.
  *
- * If conflict occurrs, return the clause that caused the conflict;
+ * If conflict occurs, return the clause that caused the conflict;
  * otherwise return 0.
  */
 SATClause* TWLSolver::propagate(unsigned var)

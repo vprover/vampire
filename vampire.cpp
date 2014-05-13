@@ -425,9 +425,8 @@ void satSolverMode()
   SATSolver::Status res; 
   
   clauses = getInputClauses(env.options->inputFile().c_str(), varCnt);
-  cout<<"we have : "<<varCnt << " variables\n";
   
-  solver->ensureVarCnt(varCnt+1);
+  solver->ensureVarCnt(varCnt+1); // allocates one extra slot for the dummy variable 0    
   
   //add all the clauses to the solver 
   solver->addClauses(pvi(SATClauseList::DestructiveIterator(clauses)));

@@ -51,6 +51,14 @@ public:
 
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
   virtual Status getStatus() { return _status; };
+  
+  /*
+   * Because variables are integers greater than zero and we use them for indexing,
+   * we always need one dummy variable slot for 0.
+   * 
+   * TODO: See whether the assumption about vars > 0 is essential in some way
+   * and if not update everything accordingly to save this slot.
+   */
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var);
