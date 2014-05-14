@@ -245,7 +245,7 @@ private:
    * Some unsatisfiable assumptions were added.
    *
    * This variable can be true even if @c _assumptionCnt is zero, since
-   * conflicting assumtions aren't added on the unit stack.
+   * conflicting assumptions aren't added on the unit stack.
    */
   bool _unsatisfiableAssumptions;
 

@@ -104,7 +104,7 @@ UnitList* globUnitList=0;
  * either found refutation or established satisfiability.
  *
  *
- * If Vampire was interupted by a SIGINT, value
+ * If Vampire was interrupted by a SIGINT, value
  * VAMP_RESULT_STATUS_SIGINT is returned,
  * and in case of other signal we return VAMP_RESULT_STATUS_OTHER_SIGNAL. For implementation
  * of these return values see Lib/System.hpp.
@@ -125,7 +125,7 @@ int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
  * either found refutation or established satisfiability.
  *
  *
- * If execution was interupted by a SIGINT, value 3 is returned,
+ * If execution was interrupted by a SIGINT, value 3 is returned,
  * and in case of other signal we return 2. For implementation
  * of these return values see Lib/System.hpp.
  *
