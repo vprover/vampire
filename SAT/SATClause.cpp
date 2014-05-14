@@ -35,6 +35,7 @@ void* SATClause::operator new(size_t sz,unsigned lits)
 {
   CALL("SATClause::operator new");
 
+  // TODO: isn't it ugly to update statistics inside operator new?
   env.statistics->satClauses++;
   if(lits==1) {
     env.statistics->unitSatClauses++;
