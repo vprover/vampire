@@ -68,6 +68,7 @@
 
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/TWLSolver.hpp"
+#include "SAT/Preprocess.hpp"
 
 #if IS_LINGVA
 #include "Program/Lingva.hpp"
@@ -141,7 +142,7 @@ Problem* getPreprocessedProblem()
 
   TimeCounter tc2(TC_PREPROCESSING);
 
-  Preprocess prepro(*env.options);
+  Shell::Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(*prb);
   globProblem = prb;
@@ -175,7 +176,7 @@ void profileMode()
 
   Property* property = prb->getProperty();
   TheoryFinder tf(prb->units(), property);
-  Preprocess prepro(*env.options);
+  Shell::Preprocess prepro(*env.options);
   tf.search();
 
   env.beginOutput();
@@ -362,7 +363,7 @@ void preprocessMode()
   TimeCounter tc2(TC_PREPROCESSING);
 
   // preprocess without clausification
-  Preprocess prepro(*env.options);
+  Shell::Preprocess prepro(*env.options);
   prepro.turnClausifierOff();
   prepro.preprocess(*prb);
 
@@ -404,12 +405,19 @@ void outputMode()
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // outputMode
 
-SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
+static SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
 {
   CALL("getInputClauses");
   TimeCounter tc(TC_PARSING);
 
   return DIMACS::parse(fname, varCnt);
+}
+
+static SATClauseIterator preprocessClauses(SATClauseList* clauses) {
+  CALL("preprocessClauses");
+  TimeCounter tc(TC_PREPROCESSING);
+  
+  return SAT::Preprocess::removeDuplicateLiterals(pvi(SATClauseList::DestructiveIterator(clauses)));
 }
 
 void satSolverMode()
@@ -428,8 +436,7 @@ void satSolverMode()
   
   solver->ensureVarCnt(varCnt+1); // allocates one extra slot for the dummy variable 0    
   
-  //add all the clauses to the solver 
-  solver->addClauses(pvi(SATClauseList::DestructiveIterator(clauses)));
+  solver->addClauses(preprocessClauses(clauses));
   res = solver->getStatus();
 
   env.statistics->phase = Statistics::FINALIZATION;
@@ -608,7 +615,7 @@ void groundingMode()
   try {
     ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
-    Preprocess prepro(*env.options);
+    Shell::Preprocess prepro(*env.options);
     prepro.preprocess(*prb);
 
     ClauseIterator clauses = prb->clauseIterator();
