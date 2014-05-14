@@ -68,6 +68,10 @@ void SATClause::destroy()
     delete _inference;
   }
 
+  // call a destructor on the literals
+  for (size_t i = 0; i < _length; i++)
+    _literals[i].~SATLiteral();
+  
   //We have to get sizeof(SATClause) + (_length-1)*sizeof(SATLiteral*)
   //this way, because _length-1 wouldn't behave well for
   //_length==0 on x64 platform.
