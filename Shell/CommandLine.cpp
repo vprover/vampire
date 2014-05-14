@@ -34,15 +34,17 @@ CommandLine::CommandLine (int argc, char* argv [])
  * @since 10/04/2005 Torrevieja, handling environment added
  * @since 14/04/2005 Manchester, handling special commands (bag) added
  * @since 06/05/2007 Manchester, simplified again
- * @since 12/05/2014 Manchester, add optFile option
+ * @since 12/05/2014 Manchester, extended to deal with multiple strategies 
  */
-void CommandLine::interpret (Options& options)
+void CommandLine::interpret (OptionsContainer* options)
 {
   CALL ("CommandLine::interpret");
 
+  //Expect to be called with an instance of Options
+  ASS(!options->isOptionsList());
+
   bool fileGiven = false;
-  bool optFileGiven = false;
-  bool optCmdsGiven = false;
+  unsigned strategies = 0; 
   
   while (_next != _last) {
     ASS(_next < _last);
@@ -51,26 +53,33 @@ void CommandLine::interpret (Options& options)
       cout<<VERSION_STRING<<endl;
       exit(0);
     }
-    if (strcmp(arg, "--optfile")){
-      if(optCmdsGiven){
-        USER_ERROR("Cannot use options file and command line options");
+    //On first loop decide if it is single strategy or not
+    if(strategies==0){
+      if (strcmp(arg, "--strategies")){
+        Int::stringToUnsignedInt(*_next,strategies);
+        options = new OptionsList(strategies);
+        //Continue to next option
+        _next++;
+        continue;
       }
-      optFileGiven=true;
-      options.setOptFileName(*_next);
+      else{
+        strategies=1;
+      }
     }
+    //If we get --strategies not in the first place this is an error
+    if(strcmp(arg,"--strategies")){
+      USER_ERROR("--strategies option must occur only once and at the beginning");
+    }
+    //Check if this is an option
     if (arg[0] == '-') {
       if (_next == _last) {
 	USER_ERROR((string)"no value specified for option " + arg);
       }
-      if(optFileGiven){
-        USER_ERROR("Cannot use options file and command line options");
-      }
-      optCmdsGiven = true;
       if (arg[1] == '-') {
-	options.set(arg+2,*_next);
+	options->set(arg+2,*_next);
       }
       else {
-	options.setShort(arg+1,*_next);
+	options->setShort(arg+1,*_next);
       }
       _next++;
     }
@@ -79,11 +88,11 @@ void CommandLine::interpret (Options& options)
 	USER_ERROR("two input file names specified");
       }
       fileGiven = true;
-      options.setInputFile(arg);
+      options->setInputFile(arg);
     }
   }
-  options.setForcedOptionValues();
-  options.checkGlobalOptionConstraints();
+  options->setForcedOptionValues();
+  options->checkGlobalOptionConstraints();
 } // CommandLine::interpret
 
 

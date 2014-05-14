@@ -674,7 +674,14 @@ int main(int argc, char* argv[])
   try {
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
-    cl.interpret(*env.options);
+    cl.interpret(env.optionsContainer);
+
+    //TODO - if env.optionsContainer != env.options
+    //       then we are in a multi-strategy case
+    //Currently we do not allow multi-strategy
+    if(env.options != env.optionsContainer){
+      USER_ERROR("We do not currently allow multi-strategy... coming soon!");
+    }
 
     PROCESS_TRACE_SPEC_STRING(env.options->traceSpecString());
     env.options->enableTracesAccordingToOptions();

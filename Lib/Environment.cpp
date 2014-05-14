@@ -54,6 +54,7 @@ Environment::Environment()
     _pipe(0)
 {
   options = new Options;
+  optionsContainer = options;
   statistics = new Statistics;
   timer = new Timer;
   sorts = new Sorts;
