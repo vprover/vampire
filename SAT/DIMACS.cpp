@@ -180,7 +180,6 @@ SATClauseList* DIMACS::parse(const char* fname, unsigned& maxVar)
     }
     ASS(vars.isEmpty());
 
-    cl->sort();
     SATClauseList::push(cl,res);
   }
 
