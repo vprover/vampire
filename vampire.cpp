@@ -93,6 +93,7 @@ using namespace Inferences;
 using namespace InstGen;
 
 Problem* globProblem = 0;
+UnitList* globUnitList=0;
 
 /**
  * Return value is non-zero unless we were successful.
