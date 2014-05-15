@@ -87,6 +87,10 @@ TWLSolver::~TWLSolver()
     SATClause* cl = _learntClauses.pop();
     cl->destroy();
   }
+  while(_addedClauses.isNonEmpty()) {
+    SATClause* cl = _addedClauses.pop();
+    cl->destroy();
+  }
 }
 
 /**
@@ -120,6 +124,8 @@ void TWLSolver::ensureVarCnt(unsigned newVarCnt)
  *
  * If @c onlyPropagate is true, only unit propagation is done. If
  * unsatisfiability isn't shown in this case, the status is set to UNKNOWN.
+ * 
+ * Memory-wise, the clauses are owned by the solver from now on.
  */
 void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 {
@@ -136,6 +142,9 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
       SATClause* cl=cit.next();
       ASS(cl->hasUniqueVariables());
       cl->setKept(true);
+      
+      _addedClauses.push(cl);
+      
       if(cl->length()==0) {
 	throw UnsatException(cl);
       }

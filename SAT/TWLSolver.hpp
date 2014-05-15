@@ -258,6 +258,13 @@ private:
    * The most recently learn clauses are at the top
    */
   SATClauseStack _learntClauses;
+  
+  /**
+   * Stack of added clauses
+   * 
+   * We remember them separately to delete them at the end.
+  */
+  SATClauseStack _addedClauses;
 
   ArrayMap<EmptyStruct> _propagationScheduled;
   Deque<unsigned> _toPropagate;
