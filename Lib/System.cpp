@@ -12,7 +12,7 @@
 #  include <process.h>
 #else
 #  include <unistd.h>
-#  if !__APPLE__
+#  if !__APPLE__ && !__CYGWIN__
 #    include <sys/prctl.h>
 #  endif
 #endif
@@ -99,7 +99,7 @@ unsigned Lib::System::getNumberOfCores()
 
 long long Lib::System::getSystemMemory()
 {
-#if __APPLE__
+#if __APPLE__ || __CYGWIN__
   NOT_IMPLEMENTED;
 #else
   long pages = sysconf(_SC_PHYS_PAGES);
@@ -110,7 +110,7 @@ long long Lib::System::getSystemMemory()
 
 unsigned Lib::System::getNumberOfCores()
 {
-#if __APPLE__
+#if __APPLE__ || __CYGWIN__
   NOT_IMPLEMENTED;
 #else
   return sysconf( _SC_NPROCESSORS_ONLN );
@@ -401,7 +401,7 @@ void System::terminateImmediately(int resultStatus)
  */
 void System::registerForSIGHUPOnParentDeath()
 {
-#if __APPLE__ || COMPILER_MSVC
+#if __APPLE__ || COMPILER_MSVC || __CYGWIN__
   cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
 //  NOT_IMPLEMENTED;
 #else
