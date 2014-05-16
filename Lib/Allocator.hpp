@@ -24,7 +24,7 @@
 #define USE_PRECISE_CLASS_NAMES 0
 
 /** Page size in bytes */
-#define PAGE_SIZE_ 131000
+#define VPAGE_SIZE 131000
 /** maximal size of allocated multi-page (in pages) */
 //TODO: increased as needed by dis+1_3_bs=off_ep=RST_fsr=off_fde=none_lcm=kinky_nwc=1.2_1200 BOO046-1
 //#define MAX_PAGES 4096
@@ -32,14 +32,14 @@
 #define MAX_PAGES 32768
 /** Any memory piece of this or larger size will be allocated as a page
  *  or contiguous sequence of pages */
-#define REQUIRES_PAGE (PAGE_SIZE_/2)
+#define REQUIRES_PAGE (VPAGE_SIZE/2)
 /** Maximal allowed number of allocators */
 #define MAX_ALLOCATORS 256
 /** Maximal height of skip lists */
 #define MAX_SKIP_HEIGHT 32
 
 /** The largest piece of memory that can be allocated at once */
-#define MAXIMAL_ALLOCATION (static_cast<unsigned long long>(PAGE_SIZE_)*MAX_PAGES)
+#define MAXIMAL_ALLOCATION (static_cast<unsigned long long>(VPAGE_SIZE)*MAX_PAGES)
 
 //this macro is undefine at the end of the file
 #if defined(__GNUC__) && !defined(__ICC) && (__GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ > 2)
