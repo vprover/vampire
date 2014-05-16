@@ -9,6 +9,7 @@
 #include <cmath>
 #include <sstream>
 #include <cstring> 
+#include <fstream>
 
 #include "Forwards.hpp"
 
@@ -23,6 +24,8 @@
 #include "Lib/Set.hpp"
 #include "Lib/System.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include "Kernel/Problem.hpp"
 
 #include "Options.hpp"
@@ -30,6 +33,7 @@
 
 using namespace Lib;
 using namespace Shell;
+using namespace Parse;
 
 /**
  * Class to hide various data used by class Options, mostly name arrays.
@@ -3176,6 +3180,37 @@ void Options::enableTracesAccordingToOptions() const
   if (showPreprocessingFormulas()) { ENABLE_TAG("pp"); }
 }
 
+
+/**
+ * Process an include file using TPTP parser
+ * Anything that is not a vampire directive causes an error
+ *
+ * @author Giles
+ */
+
+void OptionsList::include(const string& includeFile)
+{
+  CALL("OptionsList::include");
+
+  //We parse this file that must be relative to the current
+  //directory. If any units are extracted we have an error
+
+  istream* stream=new ifstream(includeFile.c_str());
+  if (stream->fail()) {
+      USER_ERROR("Cannot open problem file: "+includeFile);
+  }
+
+  UnitList* units = TPTP::parse(*stream);
+
+  delete static_cast<ifstream*>(stream);
+  stream=0;
+
+  if(!units->isEmpty()){
+     USER_ERROR("Options files must only contain options");
+  }
+
+}
+
 /**
  * Set global option in OptionsList
  * @author Giles
@@ -3183,6 +3218,10 @@ void Options::enableTracesAccordingToOptions() const
 void OptionsList::set(const char* name,const char* value)
 {
   CALL ("OptionsList::set/2");
+  if(strcmp(name,"--include_options")){
+    include(value);
+    return;
+  }
   Iterator it = this->getLive();
   while(it.hasNext()){
    it.next().set(name,value); 
@@ -3195,6 +3234,10 @@ void OptionsList::set(const char* name,const char* value)
 void OptionsList::set(const string& name,const string& value)
 {
   CALL ("OptionsList::set/2");
+  if(name.compare("--include_options")){
+    include(value);
+    return;
+  }
   Iterator it = this->getLive();
   while(it.hasNext()){
    it.next().set(name,value); 
@@ -3207,6 +3250,10 @@ void OptionsList::set(const string& name,const string& value)
 void OptionsList::setShort(const char* name,const char* value)
 {
   CALL ("OptionsList::setShort");
+  if(strcmp(name,"-incopt")){
+    include(value);
+    return;
+  }
   Iterator it = this->getLive();
   while(it.hasNext()){
    it.next().setShort(name,value); 

@@ -1127,6 +1127,11 @@ public:
     }
   }
 
+  /** Include a new options file
+      If this includes global options these will apply to
+      live strategies only **/
+  void include(const string& newVal);
+
   //Functions for setting global options
   void set(const string& name, const string& value);
   void set(const char* name, const char* value);
