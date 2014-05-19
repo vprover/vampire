@@ -645,6 +645,13 @@ public:
       return _cur->value;
     }
 
+    /** return the next element but do not remove it */
+    inline Value& peekAtNext()
+    {
+      ASS(_cur->nodes[0]);
+      return _cur->value;
+    }
+
     /** True if there is a next element. */
     inline bool hasNext() const
     { return _cur->nodes[0]; }

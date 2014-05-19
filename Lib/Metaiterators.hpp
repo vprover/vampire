@@ -372,6 +372,76 @@ FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
   return FilteredIterator<Inner,Functor>(inn, func);
 }
 
+/**
+ * Iterator class that returns elements of the inner iterator
+ * for which the functor returns true
+ *
+ * @tparam Inner type of the inner iterator
+ * @tparam Functor type of the functor used for filtering the
+ *   elements returned by the inner iterator
+ *
+ * FilteredIterator cannot be used with iterators over reference types
+ *
+ * This implementation relaxes this by assuming a peekAtNext operation
+ * on the iterator
+ *
+ * @author Giles
+ */
+template<class Inner, class Functor>
+class FilteredReferenceIterator
+{
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+
+  FilteredReferenceIterator(Inner inn, Functor func)
+  : _func(func), _inn(inn), _nextOkay(false) {}
+  bool hasNext()
+  {
+    CALL("FilteredReferenceIterator::hasNext");
+    if(_nextOkay) {
+      return true;
+    }
+    while(_inn.hasNext()) {
+      OWN_ELEMENT_TYPE next = _inn.peekAtNext();
+      if(_func(next)) {
+        // peek at but do not return next
+	_nextOkay=true;
+	return true;
+      }
+      else{
+         _inn.next(); // next is not okay, progress iterator
+      }
+    }
+    return false;
+  };
+  OWN_ELEMENT_TYPE next()
+  {
+    CALL("FilteredReferenceIterator::next");
+    ASS(_nextOkay);
+    _nextOkay=false;
+    OWN_ELEMENT_TYPE result = _inn.next();
+    return result;
+  };
+private:
+  Functor _func;
+  Inner _inn;
+  bool _nextOkay;
+};
+
+/**
+ * Return an iterator object that returns elements of the @b inn iterator
+ * for which the functor @b func returns true
+ *
+ * @see FilteredReferenceIterator
+ */
+template<class Inner, class Functor>
+inline
+FilteredReferenceIterator<Inner,Functor> getFilteredReferenceIterator(Inner inn, Functor func)
+{
+  return FilteredReferenceIterator<Inner,Functor>(inn, func);
+}
+
+
 
 /**
  * Iterator class that returns elements of an inner iterator

@@ -232,6 +232,7 @@ const char* Options::Constants::_optionNames[] = {
   "question_answering",
 
   "random_seed",
+  "remove_frozen",
   "row_variable_max_length",
 
   "sat_clause_activity_decay",
@@ -272,11 +273,7 @@ const char* Options::Constants::_optionNames[] = {
   "smtlib_flet_as_definition",
   "smtlib_introduce_aig_names",
   "sos",
- // "split_add_ground_negation",
   "split_at_activation",
- // "split_goal_only",
- // "split_input_only",
- // "split_positive",
   "splitting",
   "ssplitting_add_complementary",
   "ssplitting_component_sweeping",
@@ -315,6 +312,11 @@ const char* Options::Constants::_optionNames[] = {
 NameArray Options::Constants::optionNames(_optionNames,
 					  sizeof(_optionNames)/sizeof(char*));
 
+/**
+ * It is important that this is kept consistent with shortNameIndexes
+ *
+ * These must also be given in alphabetical order 
+ */
 const char* Options::Constants::_shortNames[] = {
   "awr",
 
@@ -918,6 +920,7 @@ Options::Options ()
   _questionAnswering(QA_OFF),
 
   _randomSeed(Random::seed()),
+  _removeFrozen(true),
   _rowVariableMaxLength(2),
 
   _satClauseActivityDecay(1.001f),
@@ -1381,6 +1384,9 @@ void Options::set(const char* name,const char* value, int index)
 	return;
       }
       break;
+    case NICENESS_OPTION:
+      _nicenessOption = (NicenessOption)Constants::nicenessOptionValues.find(value);
+      return;
     case NONGOAL_WEIGHT_COEFFICIENT:
       if (Int::stringToFloat(value,floatValue) &&
 	  setNongoalWeightCoefficient(floatValue)) {
@@ -1446,6 +1452,11 @@ void Options::set(const char* name,const char* value, int index)
 	return;
       }
       break;
+
+    case REMOVE_FROZEN:
+      _removeFrozen = onOffToBool(value,name);
+      return;
+
     case ROW_VARIABLE_MAX_LENGTH:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
 	_rowVariableMaxLength = unsignedValue;
@@ -1527,9 +1538,6 @@ void Options::set(const char* name,const char* value, int index)
       break;
     case SAT_VAR_SELECTOR:
       _satVarSelector = (SatVarSelector)Constants::satVarSelectorValues.find(value);
-      return;
-    case NICENESS_OPTION:
-      _nicenessOption = (NicenessOption)Constants::nicenessOptionValues.find(value);
       return;
     case SAT_SOLVER:
       _satSolver = (SatSolver) Constants::satSolverValues.find(value);

@@ -33,11 +33,15 @@ void Otter::onActiveRemoved(Clause* cl)
 {
   CALL("Otter::onActiveRemoved");
 
-  if(cl->store()==Clause::ACTIVE) {
+  if(cl->store()==Clause::ACTIVE && cl->in_simplifying()) {
     _simplCont.remove(cl);
+    cl->toggle_in_simplifying();
   }
 
   SaturationAlgorithm::onActiveRemoved(cl);
+
+  ASS(!cl->in_simplifying());
+  ASS(!cl->in_generating());
 }
 
 void Otter::onPassiveAdded(Clause* cl)
@@ -46,9 +50,11 @@ void Otter::onPassiveAdded(Clause* cl)
 
   SaturationAlgorithm::onPassiveAdded(cl);
 
-  if(cl->store()==Clause::PASSIVE) {
+  if(cl->store()==Clause::PASSIVE && !cl->in_simplifying()) {
     _simplCont.add(cl);
+    cl->toggle_in_simplifying();
   }
+  ASS(cl->in_simplifying());
 }
 
 void Otter::onPassiveRemoved(Clause* cl)
@@ -56,8 +62,11 @@ void Otter::onPassiveRemoved(Clause* cl)
   CALL("Otter::onPassiveRemoved");
 
   if(cl->store()==Clause::PASSIVE) {
+    ASS(cl->in_simplifying());
     _simplCont.remove(cl);
-  }
+    cl->toggle_in_simplifying();
+    ASS(!cl->in_simplifying());
+  }// else clause is active and we keep it in simplCont
 
   SaturationAlgorithm::onPassiveRemoved(cl);
 }
@@ -79,6 +88,8 @@ void Otter::onSOSClauseAdded(Clause* cl)
 
   SaturationAlgorithm::onSOSClauseAdded(cl);
 
+  ASS(!cl->in_simplifying());
+  cl->toggle_in_simplifying();
   _simplCont.add(cl);
 }
 
@@ -86,6 +97,7 @@ void Otter::handleUnsuccessfulActivation(Clause* c)
 {
   CALL("Otter::handleUnsuccessfulActivation");
 
+  //TODO update in_simplifying and in_generating appropriately
   ASS_EQ(c->store(), Clause::SELECTED);
   _simplCont.remove(c);
   c->setStore(Clause::NONE);

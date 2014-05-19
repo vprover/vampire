@@ -405,8 +405,10 @@ void SaturationAlgorithm::onClauseRetained(Clause* cl)
  * In case the deletion of clause @b cl is justified also by some other clause than
  * @b replacement and @b premise clauses, it should be passed as the @b reductionPremise.
  * Otherwise the @b reductionPremise should be 0.
+ *
+ * @return true if clause should also be removed from indexes (based on _splitter)
  */
-void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
+bool SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
     Clause* premise, Clause* reductionPremise, bool forward)
 {
   CALL("SaturationAlgorithm::onClauseReduction/5");
@@ -425,22 +427,27 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
     premises=ClauseIterator::getEmpty();
   }
 
-  onClauseReduction(cl, replacement, premises, forward);
+  return onClauseReduction(cl, replacement, premises, forward);
 }
 
-void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
+bool SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
     ClauseIterator premises, bool forward)
 {
   CALL("SaturationAlgorithm::onClauseReduction/4");
   ASS(cl);
 
+  bool removecl = true;
 
   static ClauseStack premStack;
   premStack.reset();
   premStack.loadFromIterator(premises);
 
   if (_splitter) {
-    _splitter->onClauseReduction(cl, pvi( ClauseStack::Iterator(premStack) ), replacement);
+    //This might freeze cl
+    removecl = _splitter->onClauseReduction(cl, pvi( ClauseStack::Iterator(premStack) ), replacement);
+    if(!removecl){
+      cout << "removecl is false!\n";
+    }
   }
 
   if (replacement) {
@@ -449,6 +456,7 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
       onParenthood(replacement, premStack.pop());
     }
   }
+  return removecl;
 }
 
 
@@ -978,7 +986,8 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	addNewClause(replacement);
       }
       LOG_UNIT("sa_bw_simpl_red_clause",redundant);
-      onClauseReduction(redundant, replacement, cl, 0, false);
+      
+      bool removecl = onClauseReduction(redundant, replacement, cl, 0, false);
 
 
       //we must remove the redundant clause before adding its replacement,
@@ -987,8 +996,16 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 
       redundant->incRefCnt(); //we don't want the clause deleted before we record the simplification
 
-      removeActiveOrPassiveClause(redundant);
-
+      // If removecl is false then it means that the clause has been frozen
+      if(removecl){
+        removeActiveOrPassiveClause(redundant);
+      }
+      else{
+        // If we do not remove the clause we need to clear its status, which indicates
+        // to the indices that it should not be used
+	//TODO- Add assertion that cl is frozen
+        cl->setStore(Clause::NONE);
+      }
 
       TRACE("sa_bw_simpl",
 	tout << "-<<--------\n";

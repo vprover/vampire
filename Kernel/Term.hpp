@@ -618,7 +618,11 @@ class Literal
 public:
   /** True if equality literal */
   bool isEquality() const
-  { return functor() == 0; }
+  {
+    //CALL("Literal::isEquality";
+    //cout << "iseq " << this << endl;
+    return functor() == 0; }
+
 
   Literal();
   explicit Literal(const Literal& l) throw();

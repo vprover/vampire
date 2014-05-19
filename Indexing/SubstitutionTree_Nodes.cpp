@@ -40,7 +40,8 @@ public:
   inline
   LDIterator allChildren()
   {
-    return pvi( LDList::RefIterator(_children) );
+    //return pvi( getFilteredReferenceIterator(LDList::RefIterator(_children),IsNonNoneClause()));
+    return pvi( LDList::RefIterator(_children));
   }
   inline
   void insert(LeafData ld)
@@ -84,7 +85,8 @@ public:
   inline
   LDIterator allChildren()
   {
-    return pvi( LDSkipList::RefIterator(_children) );
+    //return pvi( getFilteredReferenceIterator(LDSkipList::RefIterator(_children),IsNonNoneClause()));
+    return pvi( LDSkipList::RefIterator(_children));
   }
   void insert(LeafData ld) { _children.insert(ld); }
   void remove(LeafData ld) { _children.remove(ld); }

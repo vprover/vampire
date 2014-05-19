@@ -115,11 +115,13 @@ void ActiveClauseContainer::add(Clause* c)
   _size++;
 
   ASS(c->store()==Clause::ACTIVE);
-  if(!c->in_active()){
+  // Only add to active if clause not already added
+  // (only possible if c previously frozen)
+  if(!c->in_generating()){
     addedEvent.fire(c);
-    c->toggle_in_active();
+    c->toggle_in_generating();
   }
-  ASS(c->in_active());
+  ASS(c->in_generating());
 }
 
 /**
@@ -131,13 +133,12 @@ void ActiveClauseContainer::add(Clause* c)
 void ActiveClauseContainer::remove(Clause* c)
 {
   ASS(c->store()==Clause::ACTIVE);
-  ASS(c->in_active());
+  ASS(c->in_generating());
+
+  c->toggle_in_generating();
 
   _size--;
   removedEvent.fire(c);
-
-  c->toggle_in_active();
-  ASS(!c->in_active());
 
 } // Active::ClauseContainer::remove
 

@@ -64,7 +64,8 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _age(0),
     _weight(0),
     _store(NONE),
-    _in_active(0),
+    _in_simplifying(0),
+    _in_generating(0),
     _inferenceRefCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
@@ -376,9 +377,11 @@ string Clause::nonPropToString() const
     return "$false";
   } else {
     string result;
+    ASS(_literals[0]);
     result += _literals[0]->toString();
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
+      ASS(_literals[i]);
       result += _literals[i]->toString();
     }
     return result;
