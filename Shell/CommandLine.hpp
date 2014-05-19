@@ -10,7 +10,7 @@
 
 namespace Shell {
 
-class Options;
+class OptionsContainer;
 
 /**
  * Class CommandLine for processing command line.
@@ -21,7 +21,7 @@ class CommandLine
 {
 public:
   CommandLine(int argc, char* argv []);
-  void interpret(Options&);
+  void interpret(OptionsContainer*);
 private:
   /** Next string to process */
   char** _next;

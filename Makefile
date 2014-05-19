@@ -278,7 +278,7 @@ VS_OBJ = Shell/AIG.o\
          Shell/EPRInlining.o\
          Shell/EPRSkolem.o\
          Shell/EqResWithDeletion.o\
-	 Shell/EqualityAxiomatizer.o\
+         Shell/EqualityAxiomatizer.o\
          Shell/EqualityPropagator.o\
          Shell/EqualityProxy.o\
          Shell/EquivalenceDiscoverer.o\
@@ -337,11 +337,11 @@ VS_OBJ = Shell/AIG.o\
          Shell/Preprocess.o\
          Shell/SMTLEX.o\
          Shell/SMTPAR.o\
-	 Shell/SubsumptionRemover.o\
+         Shell/SubsumptionRemover.o\
          version.o
 
 PARSE_OBJ = Parse/SMTLIB.o\
-			Parse/SMTLIB2.o\
+            Parse/SMTLIB2.o\
             Parse/TPTP.o
 
 DP_OBJ = DP/ShortConflictMetaDP.o\
@@ -434,7 +434,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Statistics.o\
 	  Shell/GlobalOptions.o\
 	  ClausifierDependencyFix.o\
-          version.o
+	  version.o
 
 OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Indexing/LiteralSubstitutionTree.o\
@@ -559,15 +559,28 @@ all:#default make disabled
 
 ################################################################
 # automated generation of Vampire revision information
-#
+
+VERSION_NUMBER = 3.0
+
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 
 
-.svn/entries:
+#.svn/entries:
 
-version.cpp: .svn/entries Makefile
-	echo "//Automatically generated file, see Makefile for details" > version.cpp
-	svn info | (grep Revision || echo "Revision: unknown") | sed 's|Revision: \(.*\)|const char* VERSION_STRING = "Vampire 3.0 (revision \1)";|' >> version.cpp
+#version.cpp: .svn/entries Makefile
+#	echo "//Automatically generated file, see Makefile for details" > $@
+#	svn info | (grep Revision || echo "Revision: unknown") | sed 's|Revision: \(.*\)|const char* VERSION_STRING = "Vampire $(VERSION_NUMBER) (revision \1)";|' >> $@
+
+# Since we switched to Git we extract the commit hash.
+# The dependency on .git/HEAD tracks switching between branches,
+# the dependency on .git/index tracks new commits.
+
+.git/HEAD:
+.git/index:
+
+version.cpp: .git/HEAD .git/index Makefile
+	@echo "//Automatically generated file, see Makefile for details" > $@
+	@echo "const char* VERSION_STRING = \"Vampire $(VERSION_NUMBER) (commit $(shell git log -1 --format=%h\ on\ %ci || echo unknown))\";" >> $@
 
 ################################################################
 # separate directory for object files implementation
@@ -753,7 +766,7 @@ vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
 #	$(CXX) $(CXXFLAGS) $^ -o $@
 
 clean:
-	rm -rf obj
+	rm -rf obj version.cpp
 
 DEPEND_CMD = makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 -DUNIX_USE_SIGALRM=1 $(patsubst %, %/*.cpp, $(VAMP_DIRS)) *.cpp
 

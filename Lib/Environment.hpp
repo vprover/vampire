@@ -30,6 +30,9 @@ public:
   Environment();
   ~Environment();
 
+  /** options container for all proof attempts
+      if we have a single strategy this will = options **/
+  Shell::OptionsContainer* optionsContainer;
   /** options for the current proof attempt */
   Shell::Options* options;
   /** currently used sorts */

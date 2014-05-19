@@ -3588,20 +3588,72 @@ void TPTP::vampire()
   consumeToken(T_LPAR);
   string nm = name();
 
-  if (nm == "option") { // vampire(option,age_weight_ratio,3)
+/*
+ * There are now two options
+ * vampire("option",<option_name>,<option_value>)
+ * vampire("option",<strategy_number,<option_name,<option_value>)
+ *
+ * The first applies the option to all 'live' strategies, the second
+ * only to the specified strategy
+ *
+ * Note: only works if number of strategies fits into an unsigned int (check somewhere)
+ *
+ *@author Giles
+ */
+  if (nm == "option") {
     consumeToken(T_COMMA);
-    string opt = name();
-    consumeToken(T_COMMA);
-    Token tok = getTok(0);
-    switch (tok.tag) {
+    //Get the next token
+    Token first_tok = getTok(0);
+    int first_tag = first_tok.tag;
+    string first_content = first_tok.content;
+    resetToks();
+
+    //Declare things we might need below
+    Token second_tok;
+    Token third_tok;
+    unsigned strategy;
+    string opt;
+    OptionsList* olist;
+
+    switch(first_tag){
     case T_INT:
-    case T_REAL:
-    case T_NAME:
-      env.options->set(opt,tok.content);
+      strategy = atoi(first_content.c_str());
+      consumeToken(T_COMMA);
+      second_tok = getTok(0);
+      opt = second_tok.content;
       resetToks();
+      consumeToken(T_COMMA);
+      third_tok = getTok(0);
+      switch (third_tok.tag) {
+      case T_INT:
+      case T_REAL:
+      case T_NAME:
+        ASS(env.optionsContainer->isOptionsList());
+        olist = (OptionsList*) env.optionsContainer;
+        olist->set(strategy,opt,third_tok.content);
+        resetToks();
+        break;
+      default:
+        throw Exception("either atom or number expected as a value of a Vampire option",third_tok);
+      }
+      break;
+    case T_NAME:
+      opt = first_content;
+      consumeToken(T_COMMA);
+      second_tok = getTok(0);
+      switch (second_tok.tag) {
+      case T_INT:
+      case T_REAL:
+      case T_NAME:
+        env.options->set(opt,second_tok.content);
+        resetToks();
+        break;
+      default:
+        throw Exception("either atom or number expected as a value of a Vampire option",second_tok);
+      }
       break;
     default:
-      throw Exception("either atom or number expected as a value of a Vampire option",tok);
+      throw Exception("vampire option not specified correctly",first_tok);
     }
   }
   else if (nm == "symbol") {

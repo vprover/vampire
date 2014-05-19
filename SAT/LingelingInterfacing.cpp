@@ -56,7 +56,7 @@ static int LING_SIG = 1;
 static void (*sig_abort_handler)(int);
 static void alert_abort(int sig){
 	if(sig==LING_SIG){
-		ASSERTION_VIOLATION("Lingeling internal error");
+		ASSERTION_VIOLATION_REP("Lingeling internal error");
 	}
 }
 

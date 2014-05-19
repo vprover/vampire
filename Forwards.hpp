@@ -374,7 +374,9 @@ namespace Shell
 {
 class AnswerLiteralManager;
 class LaTeX;
+class OptionsContainer;
 class Options;
+class OptionsList;
 class Property;
 class Statistics;
 
