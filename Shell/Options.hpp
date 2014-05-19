@@ -23,39 +23,10 @@ class Property;
 /**
  * Class that represents Vampire's options.
  * 11/11/2004 Shrigley Hall, completely reimplemented
- *
- *
- * Note from Giles:
- *  To add a new option you must do the following
- *    - In Options.hpp
- *      - Add an entry for the option in Tag (must be alphabetical)
- *      - Add a class variable to store the value of the option
- *      - Add a getter function to get the value of the option
- *      - If the option has multiple choices add an enum for them 
- *    - In Options.cpp
- *      - Add an entry for option in optionNames (must correspond with place in Tag)
- *      - (optionally) add entry in shortNames and shortNamesIndex
- *      - If the option has multiple choices create a NameArray
- *      - Add your option to the switch in set, this will either set a bool or find
- *           a value in your NameArray
- *      - Set a default value in constructor
- *      - Add your option to the switch in outputValue
- *
- *  Then you can access the result of your option using opt.<optName>()
- *
- * Hint: for an example of what to do look at an existing option (i.e. 
- *
- *
- * TODO - consider enforcing a full description of options somewhere (Giles) 
  */
 class Options
 {
 public:
-
-  /**
-   * Note - this should be kept consistent with optionNames with Options.cpp
-   * it should also be in alphabetical order
-   */
   enum Tag {
     ABSTRACTION,
     AGE_WEIGHT_RATIO,
@@ -194,7 +165,6 @@ public:
     QUESTION_ANSWERING,
 
     RANDOM_SEED,
-    REMOVE_FROZEN, //Temp - to explore the effects of this opt
     ROW_VARIABLE_MAX_LENGTH,
 
     SAT_CLAUSE_ACTIVITY_DECAY,
@@ -236,7 +206,11 @@ public:
     SMTLIB_FLET_AS_DEFINITION,
     SMTLIB_INTRODUCE_AIG_NAMES,
     SOS,
+    //SPLIT_ADD_GROUND_NEGATION,
     SPLIT_AT_ACTIVATION, // should be checked
+    //SPLIT_GOAL_ONLY,
+    //SPLIT_INPUT_ONLY,
+    //SPLIT_POSITIVE,
     SPLITTING,
     SSPLITTING_ADD_COMPLEMENTARY,
     SSPLITTING_COMPONENT_SWEEPING,
@@ -266,7 +240,7 @@ public:
 
     UNIT_RESULTING_RESOLUTION,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
-    USEDM, // Temp - to study the effects of this opt
+    USEDM,
 
     WEIGHT_INCREMENT,
     WHILE_NUMBER,
@@ -382,11 +356,7 @@ public:
     STATISTICS_NONE = 2
   };
 
- /** Possible values for sat_solver
-  * The idea will be to test the buffered versions and then
-  * either remove them or replace the non-buffered versions with them
-  * @author Giles
-  */
+  /** Possible values for sat_solver */
   enum SatSolver {
      BUFFERED_LINGELING = 0,
      BUFFERED_VAMPIRE = 1,
@@ -626,7 +596,6 @@ public:
   string logFile() const { return _logFile; }
   string inputFile() const { return _inputFile; }
   int randomSeed() const { return _randomSeed; }
-  bool removeFrozen() const { return _removeFrozen;}
   int rowVariableMaxLength() const { return _rowVariableMaxLength; }
   void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
   bool printClausifierPremises() const { return _printClausifierPremises; }
@@ -979,7 +948,6 @@ private:
   QuestionAnsweringMode _questionAnswering;
 
   int _randomSeed;
-  bool _removeFrozen;
   int _rowVariableMaxLength;
 
   float _satClauseActivityDecay;
@@ -1021,7 +989,11 @@ private:
   bool _smtlibFletAsDefinition;
   bool _smtlibIntroduceAIGNames;
   Sos _sos;
+  //bool _splitAddGroundNegation;
   bool _splitAtActivation;
+  //bool _splitGoalOnly;
+  //bool _splitInputOnly;
+  //bool _splitPositive;
   bool _splitting;
   SSplittingAddComplementary _ssplittingAddComplementary;
   SSplittingComponentSweeping _ssplittingComponentSweeping;
@@ -1055,7 +1027,7 @@ private:
   URResolution _unitResultingResolution;
   bool _unusedPredicateDefinitionRemoval;
   unsigned _updatesByOneConstraint;
-  bool _use_dm; //Temp - for testing opt
+  bool _use_dm;
   bool _weightIncrement;
   int _weightRatio;
   int _whileNumber;

@@ -45,7 +45,6 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 {
   CALL("TermSubstitutionTree::handleTerm");
 
-  //cout << "Adding " << cls << endl;
   LeafData ld(cls, lit, t);
   if(t.isOrdinaryVar()) {
     if(insert) {

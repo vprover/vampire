@@ -367,8 +367,6 @@ void SSplitter::init(SaturationAlgorithm* sa)
   _flushThreshold = sa->getGeneratedClauseCount() + _flushPeriod;
 
   _congruenceClosure = opts.ssplittingCongruenceClosure();
-
-  _removeFrozen = opts.removeFrozen();
 }
 
 SplitLevel SSplitter::getNameFromLiteral(SATLiteral lit) const
@@ -598,11 +596,10 @@ bool SSplitter::doSplitting(Clause* cl)
 {
   CALL("SSplitter::doSplitting");
 
-  // No options to turn splitting off
-  //if(!splittingAllowed(cl)) {
-  //  LOG_UNIT("sspl_nonsplits",cl);
-  //  return false;
-  //}
+  if(!splittingAllowed(cl)) {
+    LOG_UNIT("sspl_nonsplits",cl);
+    return false;
+  }
 
   static Stack<CompRec> comps;
   comps.reset();
@@ -833,10 +830,8 @@ void SSplitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
  *
  * Giles: at this stage we also check for zero-implied literals
  *        and remove them if found
- *
- * @return true if this clause should be removed from indexes
  */
-bool SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement)
+void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement)
 {
   CALL("SSplitter::onClauseReduction");
   ASS(cl);
@@ -845,7 +840,7 @@ bool SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
 
   if(!premises.hasNext()) {
     ASS(!replacement || cl->splits()==replacement->splits());
-    return true;
+    return;
   }
 
   LOG("sspl_reductions_prems","reduced clause: "<<(*cl));
@@ -874,12 +869,11 @@ bool SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
 #endif
 
   if(diff->isEmpty()) {
-    return true; // no need to keep clause
+    return;
   }
-  // else freeze clause cl as it depends on some choices that may be undone
+  // else freeze clause
 
 #if VDEBUG
-//Giles: record the number of times a clause is frozen
   cl->incFreezeCount();
   RSTAT_MCTR_INC("frozen clauses",cl->getFreezeCount());
 #endif
@@ -892,8 +886,6 @@ bool SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
     SplitLevel slev=dit.next();
     _db[slev]->addReduced(cl);
   }
-
-  return _removeFrozen;
 }
 
 void SSplittingBranchSelector::clearZeroImpliedSplits(Clause* cl)
@@ -1142,6 +1134,7 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
       rcl->setAux(0);
       ASS_EQ(rcl->store(), Clause::NONE);
       rcl->incReductionTimestamp();
+      //rcl->setProp(BDD::instance()->getFalse()); //we asserted it was false in onClauseReduction
       _sa->addNewClause(rcl);
   #if VDEBUG
       RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());

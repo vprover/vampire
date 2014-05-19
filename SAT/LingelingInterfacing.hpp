@@ -157,7 +157,6 @@ private:
     	SATClause* refutation;
   	};
 
-
 	/**
 	* Test to see if we can use the set of added clauses to get a refutation clause
 	* @author Giles

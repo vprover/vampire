@@ -135,7 +135,7 @@ public:
 
   bool doSplitting(Clause* cl);
 
-  bool onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
+  void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
   void onNewClause(Clause* cl);
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);
@@ -192,7 +192,6 @@ private:
   unsigned _flushPeriod;
   float _flushQuotient;
   bool _congruenceClosure;
-  bool _removeFrozen;
 
   //utility objects
   SSplittingBranchSelector _branchSelector;

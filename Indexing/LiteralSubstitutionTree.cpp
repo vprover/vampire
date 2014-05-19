@@ -42,7 +42,6 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
 
   BindingMap svBindings;
   getBindings(normLit, svBindings);
-  //cout << "Adding "<<cls<<endl;
   if(insert) {
     SubstitutionTree::insert(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
   } else {

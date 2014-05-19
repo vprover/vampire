@@ -931,13 +931,13 @@ struct InterpolantMinimizer::TraverseStackEntry
       USList::push(unit, parInfo.transparentSuccessors);
     }
   }
+
   /**
    * The returned reference is valid only before updating
    * InterpolantMinimizer::_infos
    */
   UnitInfo& getInfo()
   {
-    CALL("InterpolantMinimizer::TraverseStackEntry::getInfo");
     return _im._infos.get(unit);
   }
 

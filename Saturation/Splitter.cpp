@@ -48,16 +48,16 @@ const Options& Splitter::getOptions() const
 /**
  * Register the reduction of the @b cl clause
  */
-bool Splitter::onClauseReduction(Clause* cl, Clause* premise, Clause* replacement)
+void Splitter::onClauseReduction(Clause* cl, Clause* premise, Clause* replacement)
 {
   CALL("Splitter::onClauseReduction(Clause*,Clause*,Clause*)");
   
   if(!premise) {
     ASS(!replacement);
-    return true;
+    return;
   }
 
-  return onClauseReduction(cl, pvi( getSingletonIterator(premise) ), replacement);
+  onClauseReduction(cl, pvi( getSingletonIterator(premise) ), replacement);
 }
 
 /**
@@ -74,9 +74,9 @@ bool Splitter::splitPositive()
  * Return true if @b cl fulfills the constraints for clauses
  * to be split.
  */
-//bool Splitter::splittingAllowed(Clause* cl)
-//{
-//  CALL("Splitter::splittingAllowed");
+bool Splitter::splittingAllowed(Clause* cl)
+{
+  CALL("Splitter::splittingAllowed");
 
  // if(getOptions().splitInputOnly() && !cl->isInput()) {
  //   return false;
@@ -86,10 +86,10 @@ bool Splitter::splitPositive()
  //   return false;
  // }
 
- // TODO - both of these options have been removed - perhaps remove splittingAllowed 
+ // both of these options have been removed - perhaps remove splittingAllowed 
 
-//  return true;
-//}
+  return true;
+}
 
 bool Splitter::isAnswerLiteral(Literal* lit)
 {
@@ -148,9 +148,9 @@ bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTo
   CALL("Splitter::doSplitting");
   ASS_EQ(acc.size(), 0);
 
-  //if(!splittingAllowed(cl)) {
-  //  return false;
-  //}
+  if(!splittingAllowed(cl)) {
+    return false;
+  }
 
   unsigned clen=cl->length();
   ASS_G(clen,0);

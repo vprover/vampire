@@ -55,11 +55,9 @@ static int checkalarm(void * ptr){
 static int LING_SIG = 1;
 static void (*sig_abort_handler)(int);
 static void alert_abort(int sig){
-#if VDEBUG
 	if(sig==LING_SIG){
 		ASSERTION_VIOLATION("Lingeling internal error");
 	}
-#endif
 }
 
 	//do the set-up of sat solver according to environment options

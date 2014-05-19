@@ -488,7 +488,6 @@ string Literal::toString() const
 
   if (isEquality()) {
     const TermList* lhs = args();
-    ASS(lhs);
     string s = lhs->toString();
     if (isPositive()) {
       s += " = ";
