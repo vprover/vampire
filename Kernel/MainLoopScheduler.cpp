@@ -7,6 +7,7 @@
 
 #include "MainLoopScheduler.hpp"
 #include "MainLoop.hpp"
+#include "MainLoopContext.hpp"
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Timer.hpp"
@@ -26,20 +27,20 @@ using namespace Shell;
 using namespace Saturation;
 //using namespace Tabulation;
 
-MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList* opts): _prb(prb), _opts(opts) {
+MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 
 	  CALL("MainLoopScheduler::MainLoopScheduler");
-	  ASS_G(opts -> length(), 0);
+	  ASS_G(opts.length(), 0);
 
-	  _mlaSize = opts -> length();
-	  _mla = static_cast<ConcurrentMainLoop**>(
-			  ALLOC_KNOWN(sizeof(ConcurrentMainLoop*)*_mlaSize,"ConcurrentMainLoop*"));
+	  _mlclSize = opts.length();
+	  _mlcl = static_cast<MainLoopContext**>(
+			  ALLOC_KNOWN(sizeof(MainLoopContext*)*_mlclSize,"MainLoopContext*"));//Lib::Array.hpp
 
-	  OptionsList::Iterator i(opts);
+	  OptionsList::Iterator i(&opts);
 	  unsigned int k = 0;
 	  while(i.hasNext()){
 
-		  //Options *opt = i.next();
+		  Options opt = *i.next();
 
 		  /*if(opt.bfnt()) {
 			_mla[k] = new BFNTMainLoop(prb, opt);
@@ -53,13 +54,15 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList* opts): _prb(prb)
 			_mla[k] = new IGAlgorithm(prb, opt);
 			break;
 		  default:*/
-			_mla[k] = SaturationAlgorithm::createFromOptions(prb, *i.next());
+			_mlcl[k] = new MainLoopContext(prb, opt);
+
+
 			/*break;
 		  }*/
 
 		  k++;
 	  }
-	  ASS_EQ(k, _mlaSize);
+	  ASS_EQ(k, _mlclSize);
 }
 
 MainLoopResult MainLoopScheduler::run() {
@@ -68,13 +71,13 @@ MainLoopResult MainLoopScheduler::run() {
 
 	try {
 
-		for(unsigned int k = 0; k < _mlaSize; k++) {
-			_mla[k] -> initAlgorithmRun();//TODO: it is assumed that timer is initialized inside. Make this consistent with time limit check.
+		for(unsigned int k = 0; k < _mlclSize; k++) {
+			_mlcl[k] -> init();//TODO: it is assumed that timer is initialized inside. Make this consistent with time limit check.
 		}
 
 		for(;;){
-			for(unsigned int k = 0; k < _mlaSize; k++) {
-				_mla[k] -> doOneAlgorithmStep();
+			for(unsigned int k = 0; k < _mlclSize; k++) {
+				_mlcl[k] -> doStep();
 				Timer::syncClock();
 				if (env.timeLimitReached()) {
 					return MainLoopResult(Statistics::TIME_LIMIT);
@@ -86,9 +89,9 @@ MainLoopResult MainLoopScheduler::run() {
 	catch(MainLoop::RefutationFoundException& rs) {
 		return MainLoopResult(Statistics::REFUTATION, rs.refutation);
 	}
-	/*catch(TimeLimitExceededException&) {
+	catch(TimeLimitExceededException&) {//We catch this since SaturationAlgorithm::doUnproceessedLoop throws it
 		return MainLoopResult(Statistics::TIME_LIMIT);
-	}*/
+	}
 	catch(MainLoop::MainLoopFinishedException& e) {
 		return e.result;
 	}
@@ -98,10 +101,10 @@ MainLoopScheduler::~MainLoopScheduler() {
 
 	CALL("MainLoopScheduler::~MainLoopScheduler");
 
-	for(unsigned int k = 0; k < _mlaSize; k++) {
-		delete _mla[k]; //TODO: should be DEALLOC_UNKNOWN but SaturationAlgorithm::createFromOptions allocates via "new"
+	for(unsigned int k = 0; k < _mlclSize; k++) {
+		delete _mlcl[k]; //TODO: should be DEALLOC_UNKNOWN but SaturationAlgorithm::createFromOptions allocates via "new"
 	}
-	DEALLOC_KNOWN(_mla, sizeof(ConcurrentMainLoop*)*_mlaSize, "ConcurrentMainLoop*");
+	DEALLOC_KNOWN(_mlcl, sizeof(MainLoopContext*)*_mlclSize, "ConcurrentMainLoop*");
 }
 
 /*static MainLoopScheduler* MainLoopScheduler::createFromOptions(Problem& prb, OptionsList* opts) {
