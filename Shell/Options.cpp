@@ -3200,6 +3200,7 @@ void OptionsList::include(const string& includeFile)
       USER_ERROR("Cannot open problem file: "+includeFile);
   }
 
+  cout << "Including options in " << includeFile << endl;
   UnitList* units = TPTP::parse(*stream);
 
   delete static_cast<ifstream*>(stream);
@@ -3218,7 +3219,7 @@ void OptionsList::include(const string& includeFile)
 void OptionsList::set(const char* name,const char* value)
 {
   CALL ("OptionsList::set/2");
-  if(strcmp(name,"--include_options")){
+  if(!strcmp(name,"include_options")){
     include(value);
     return;
   }
@@ -3234,7 +3235,7 @@ void OptionsList::set(const char* name,const char* value)
 void OptionsList::set(const string& name,const string& value)
 {
   CALL ("OptionsList::set/2");
-  if(name.compare("--include_options")){
+  if(name.compare("include_options")){
     include(value);
     return;
   }
@@ -3250,7 +3251,7 @@ void OptionsList::set(const string& name,const string& value)
 void OptionsList::setShort(const char* name,const char* value)
 {
   CALL ("OptionsList::setShort");
-  if(strcmp(name,"-incopt")){
+  if(!strcmp(name,"incopt")){
     include(value);
     return;
   }
@@ -3293,6 +3294,11 @@ void OptionsList::setForcedOptionValues()
 void OptionsList::checkGlobalOptionConstraints() 
 {
   CALL("OptionsList::checkGlobalOptionsConstraints");
+
+  if(_alive < _length){
+    cout << "Warning: " << _length << " strategies specified but only " << _alive << " used, others are default." << endl;
+  }
+
   Iterator it = this->getAll();
   while(it.hasNext()){
    Options opt = it.next();
