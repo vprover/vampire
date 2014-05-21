@@ -331,7 +331,7 @@ void System::addInitializationHandler(VoidFunc proc, unsigned priority)
  */
 void System::onInitialization()
 {
-  CALL("System::onTermination");
+  CALL("System::onInitialization");
   ASS(!s_initialized); //onInitialization can be called only once
 
   s_initialized=true;
