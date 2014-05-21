@@ -47,7 +47,15 @@ void* SATClause::operator new(size_t sz,unsigned lits)
   //this way, because _length-1 wouldn't behave well for
   //_length==0 on x64 platform.
   size_t size=sz+lits*sizeof(SATLiteral);
-  size-=sizeof(SATLiteral);
+  /*
+    it's not safe to save memory for the empty clause,
+    since the compiler wants to call a constructor 
+    on the only officially declared literal, see:
+  
+    SATLiteral _literals[1];
+  */
+  if (lits > 0)
+    size-=sizeof(SATLiteral);
 
   return ALLOC_KNOWN(size,"SATClause");
 }
@@ -77,7 +85,8 @@ void SATClause::destroy()
   //this way, because _length-1 wouldn't behave well for
   //_length==0 on x64 platform.
   size_t size=sizeof(SATClause)+_length*sizeof(SATLiteral);
-  size-=sizeof(SATLiteral);
+  if (_length > 0) // see comment in operator new(size_t sz,unsigned lits) above
+    size-=sizeof(SATLiteral);
 
   DEALLOC_KNOWN(this, size,"SATClause");
 } // SATClause::destroy
