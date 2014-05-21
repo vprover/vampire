@@ -89,6 +89,11 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
   return 0;
 }
 
+/**
+ * Get the single positive variable equality of an extensionality clause.
+ * Actually returns the first such equality and hence should be used only in
+ * places where we already know that @c c is an extensionality clause.
+ */
 Literal* ExtensionalityClauseContainer::getSingleVarEq(Clause* c) {
   for (unsigned i = 0; i < c->length(); ++i) {
     Literal* varEq = (*c)[i];
@@ -104,6 +109,10 @@ void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
   ExtensionalityClauseList::push(c, _clausesBySort[c.sort]);
 }
 
+/**
+ * Functor for lazily removing deleted extensionality clauses from the container.
+ * See activeIterator(unsigned sort).
+ */
 struct ExtensionalityClauseContainer::ActiveFilterFn
 {
   ActiveFilterFn(ExtensionalityClauseContainer& parent) : _parent(parent) {}
@@ -122,6 +131,14 @@ private:
   ExtensionalityClauseContainer& _parent;
 };
 
+/**
+ * Returns an iterator over the active extensionality clauses of a particular @c
+ * sort. Nonactive clauses in the container are removed during iteration.
+ * 
+ * In other words, if an extensionality clause gets deleted from the search
+ * space, we do not immediately remove it from the container. Instead we check
+ * this lazily during generating inferences.
+ */
 ExtensionalityClauseIterator ExtensionalityClauseContainer::activeIterator(unsigned sort) {
   return pvi(getFilteredDelIterator(
                ExtensionalityClauseList::DelIterator(_clausesBySort[sort]),

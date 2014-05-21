@@ -34,7 +34,6 @@ using namespace Saturation;
 /**
  * Functor for pairing negative selected literals of the given clause with all
  * sort-matching extensionality clauses for forward extensionality inferences.
- AV: comments, see below
  * @since 05/01/2014
  * @author Bernhard Kragl
  */
@@ -207,7 +206,6 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
   Unit::InputType newInputType = Unit::getInputType(extCl->inputType(), otherCl->inputType());
   Inference* inf = new Inference2(Inference::EXTENSIONALITY_RESOLUTION, extCl, otherCl);
   Clause* res = new(newLength) Clause(newLength, newInputType, inf);
-  // BK: Should new weight be computed like in superposition?
 
   unsigned next = 0;
 
