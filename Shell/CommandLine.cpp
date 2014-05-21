@@ -12,12 +12,15 @@
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Exception.hpp"
+#include "Lib/Environment.hpp"
 
 #include "CommandLine.hpp"
 #include "Options.hpp"
 #include "Statistics.hpp"
 
 namespace Shell {
+
+using namespace Lib;
 
 CommandLine::CommandLine (int argc, char* argv [])
   : _next(argv+1),
@@ -55,20 +58,28 @@ void CommandLine::interpret (OptionsContainer* options)
     }
     //On first loop decide if it is single strategy or not
     if(strategies==0){
-      if (strcmp(arg, "--strategies")){
-        Int::stringToUnsignedInt(*_next,strategies);
+      if (strcmp(arg, "--strategies")==0 || strcmp(arg,"-strategies")){
+
+        if(!Int::stringToUnsignedInt(*_next,strategies)){
+          USER_ERROR("Error parsing strategies");
+        }
         options = new OptionsList(strategies);
+        env.optionsContainer = options;
+        ASS(options->isOptionsList());
         //Continue to next option
         _next++;
         continue;
       }
       else{
+	cout << "no strategies" << endl;
         strategies=1;
       }
     }
-    //If we get --strategies not in the first place this is an error
-    if(strcmp(arg,"--strategies")){
-      USER_ERROR("--strategies option must occur only once and at the beginning");
+    else{
+      //If we get --strategies not in the first place this is an error
+      if(strcmp(arg,"--strategies")==0){
+        USER_ERROR("--strategies option must occur only once and at the beginning");
+      }
     }
     //Check if this is an option
     if (arg[0] == '-') {

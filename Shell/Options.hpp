@@ -1102,7 +1102,7 @@ public:
   bool isOptionsList() const { return true; }
 
   typedef ArrayishObjectIterator<OptionsList> Iterator;
-  DECL_ELEMENT_TYPE(Options);
+  DECL_ELEMENT_TYPE(Options&);
   DECL_ITERATOR_TYPE(Iterator);
 
   /** Return the number of strategies **/
@@ -1114,10 +1114,6 @@ public:
       If strategy n is live then all strategies m<n are live **/
   ArrayishObjectIterator<OptionsList> getLive() {
     return ArrayishObjectIterator<OptionsList>(*this,_alive);
-  }
-  /** Return an iterator for all strategies **/
-  ArrayishObjectIterator<OptionsList> getAll() {
-    return ArrayishObjectIterator<OptionsList>(*this,_length);
   }
 
   /** Update the number of live strategies **/
