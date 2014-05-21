@@ -3269,7 +3269,7 @@ void OptionsList::setShort(const char* name,const char* value)
 void OptionsList::setInputFile(const string& newVal)
 {
   CALL("OptionsList::setInputFile");
-  Iterator it = this->getAll();
+  Iterator it(*this);
   while(it.hasNext()){
    it.next().setInputFile(newVal); 
   }
@@ -3281,7 +3281,7 @@ void OptionsList::setInputFile(const string& newVal)
 void OptionsList::setForcedOptionValues()
 {
   CALL("OptionsList::setForcedOptionValues");
-  Iterator it = this->getAll();
+  Iterator it(*this);
   while(it.hasNext()){
    it.next().setForcedOptionValues(); 
   }
@@ -3299,9 +3299,9 @@ void OptionsList::checkGlobalOptionConstraints()
     cout << "Warning: " << _length << " strategies specified but only " << _alive << " used, others are default." << endl;
   }
 
-  Iterator it = this->getAll();
+  Iterator it(*this);
   while(it.hasNext()){
-   Options opt = it.next();
+   Options& opt = it.next();
   //TODO - check multi-strategey specific constraints
   // i.e. only allowed Vampire mode currently
    opt.checkGlobalOptionConstraints();
