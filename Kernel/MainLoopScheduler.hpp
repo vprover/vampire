@@ -23,7 +23,7 @@ namespace Kernel {
 
 using namespace Lib;
 
-typedef List<Options*> OptionsList;
+//typedef List<Options*> OptionsList;
 //typedef List<Problem*> ProblemList;
 //typedef List<MainLoopContext*> MainLoopContextList;
 

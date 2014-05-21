@@ -1106,7 +1106,7 @@ public:
   DECL_ITERATOR_TYPE(Iterator);
 
   /** Return the number of strategies **/
-  unsigned length() const {return _length;}
+  unsigned size() const {return _length;}
   /** Return the nth strategy **/
   Options& operator[](unsigned n) const { return _strategies[n]; }
   /** Return an iterator for the live strategies

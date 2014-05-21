@@ -30,17 +30,17 @@ using namespace Saturation;
 MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 
 	  CALL("MainLoopScheduler::MainLoopScheduler");
-	  ASS_G(opts.length(), 0);
+	  ASS_G(opts.size(), 0);
 
-	  _mlclSize = opts.length();
+	  _mlclSize = opts.size();
 	  _mlcl = static_cast<MainLoopContext**>(
 			  ALLOC_KNOWN(sizeof(MainLoopContext*)*_mlclSize,"MainLoopContext*"));//Lib::Array.hpp
 
-	  OptionsList::Iterator i(&opts);
+	  OptionsList::Iterator i(opts);
 	  unsigned int k = 0;
 	  while(i.hasNext()){
 
-		  Options opt = *i.next();
+		  Options opt = i.next();
 
 		  /*if(opt.bfnt()) {
 			_mla[k] = new BFNTMainLoop(prb, opt);
