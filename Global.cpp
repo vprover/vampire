@@ -42,7 +42,7 @@ string Kernel::Formula::_connectiveNames[] =
 
 Lib::ZIArray<Lib::List<VoidFunc>*> Lib::System::s_terminationHandlers(2);
 
-Lib::Environment Lib::env;
+Lib::Environment* Lib::env = 0;
 
 
 struct __Lib_System_Init_Invoker

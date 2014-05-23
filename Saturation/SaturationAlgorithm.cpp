@@ -180,8 +180,8 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
   if (!inst) {
     return;
   }
-  env.statistics->finalActiveClauses = inst->_active->size();
-  env.statistics->finalPassiveClauses = inst->_passive->size();
+  env -> statistics->finalActiveClauses = inst->_active->size();
+  env -> statistics->finalPassiveClauses = inst->_passive->size();
 }
 
 /**
@@ -507,7 +507,7 @@ void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
  */
 int SaturationAlgorithm::elapsedTime()
 {
-  return env.timer->elapsedMilliseconds()-_startTime;
+  return env -> timer->elapsedMilliseconds()-_startTime;
 }
 
 /**
@@ -533,7 +533,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     addNewClause(cl);
   }
 
-  env.statistics->initialClauses++;
+  env -> statistics->initialClauses++;
 }
 
 /**
@@ -598,7 +598,7 @@ simpl_start:
   }
 
   cl->setStore(Clause::ACTIVE);
-  env.statistics->activeClauses++;
+  env -> statistics->activeClauses++;
   _active->add(cl);
 
   onSOSClauseAdded(cl);
@@ -633,7 +633,7 @@ void SaturationAlgorithm::init()
     _symEl->init(this);
   }
 
-  _startTime=env.timer->elapsedMilliseconds();
+  _startTime=env -> timer->elapsedMilliseconds();
 }
 
 /**
@@ -765,7 +765,7 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
   //so we'd better not assume on what's happening out there)
   cl->incRefCnt();
 
-  if (_opt.abstraction() && cl->number()%100000==(24788+(env.statistics->inputClauses%50000)) && env.statistics->inputClauses%3==0) {
+  if (_opt.abstraction() && cl->number()%100000==(24788+(env -> statistics->inputClauses%50000)) && env -> statistics->inputClauses%3==0) {
     Clause* newCl = 0;
     if (cl->length()>1) {
       LiteralStack lits;
@@ -848,9 +848,9 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   CALL("SaturationAlgorithm::addUnprocessedClause");
 
   _generatedClauseCount++;
-  env.statistics->generatedClauses++;
+  env -> statistics->generatedClauses++;
 
-  env.checkTimeSometime<64>();
+  env -> checkTimeSometime<64>();
 
 
   cl=doImmediateSimplification(cl);
@@ -910,7 +910,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 
   if (!getLimits()->fulfillsLimits(cl)) {
     RSTAT_CTR_INC("clauses discarded by weight limit in forward simplification");
-    env.statistics->discardedNonRedundantClauses++;
+    env -> statistics->discardedNonRedundantClauses++;
     return false;
   }
 
@@ -1049,7 +1049,7 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   ASS_EQ(cl->store(), Clause::UNPROCESSED);
 
   cl->setStore(Clause::PASSIVE);
-  env.statistics->passiveClauses++;
+  env -> statistics->passiveClauses++;
 
   _passive->add(cl);
 }
@@ -1087,7 +1087,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
 
   ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::ACTIVE);
-  env.statistics->activeClauses++;
+  env -> statistics->activeClauses++;
   _active->add(cl);
 
   ClauseIterator toAdd=_generator->generateClauses(cl);
@@ -1151,7 +1151,7 @@ start:
 
     newClausesToUnprocessed();
 
-    if (env.timeLimitReached()) {
+    if (env -> timeLimitReached()) {
       throw TimeLimitExceededException();
     }
   }
@@ -1262,7 +1262,7 @@ MainLoopResult SaturationAlgorithm::runImpl()
       doOneAlgorithmStep();
 
       Timer::syncClock();
-      if (env.timeLimitReached()) {
+      if (env -> timeLimitReached()) {
         throw TimeLimitExceededException();
       }
     }

@@ -38,9 +38,9 @@ void MainLoopResult::updateStatistics()
 {
   CALL("MainLoopResult::updateStatistics");
 
-  env.statistics->terminationReason = terminationReason;
-  env.statistics->refutation = refutation;
-  env.statistics->saturatedSet = saturatedSet;
+  env -> statistics->terminationReason = terminationReason;
+  env -> statistics->refutation = refutation;
+  env -> statistics->saturatedSet = saturatedSet;
 }
 
 /**

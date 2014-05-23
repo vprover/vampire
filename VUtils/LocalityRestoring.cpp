@@ -133,7 +133,7 @@ Color LocalityRestoring::getColor(Unit* u)
 	continue;
       }
       unsigned func = trm.term()->functor();
-      Color tColor = env.signature->getFunction(func)->color();
+      Color tColor = env -> signature->getFunction(func)->color();
       if(tColor!=COLOR_TRANSPARENT) {
 	if(unitColor==COLOR_TRANSPARENT) {
 	  unitColor = tColor;
@@ -218,7 +218,7 @@ void LocalityRestoring::collectColoredTerms(Unit* u, TermStack& acc)
     while(stit.hasNext()) {
       TermList trm = stit.next();
       if(trm.isVar()) { continue; }
-      Color fnColor = env.signature->getFunction(trm.term()->functor())->color();
+      Color fnColor = env -> signature->getFunction(trm.term()->functor())->color();
       if(fnColor!=COLOR_TRANSPARENT) {
 	acc.push(trm);
       }
@@ -594,7 +594,7 @@ public:
 
     if(!trm.isTerm()) { return trm; }
     unsigned func = trm.term()->functor();
-    Color clr = env.signature->getFunction(func)->color();
+    Color clr = env -> signature->getFunction(func)->color();
     if(clr!=_parent._quantifiedColor) { return trm; }
     if(trm.term()->arity()!=0) {
       ASSERTION_VIOLATION;

@@ -275,7 +275,7 @@ struct InferenceStore::ProofPrinter
   {
     CALL("InferenceStore::ProofPrinter::ProofPrinter");
 
-    outputAxiomNames=env.options->outputAxiomNames();
+    outputAxiomNames=env -> options->outputAxiomNames();
   }
 
   void scheduleForPrinting(UnitSpec us)
@@ -587,10 +587,10 @@ protected:
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
       if (sym.first) {
-	symsStr << env.signature->functionName(sym.second);
+	symsStr << env -> signature->functionName(sym.second);
       }
       else {
-	symsStr << env.signature->predicateName(sym.second);
+	symsStr << env -> signature->predicateName(sym.second);
       }
       if (symIt.hasNext()) {
 	symsStr << ',';
@@ -649,11 +649,11 @@ protected:
     string inferenceStr;
     if (rule==Inference::INPUT) {
       string fileName;
-      if (env.options->inputFile()=="") {
+      if (env -> options->inputFile()=="") {
 	fileName="unknown";
       }
       else {
-	fileName="'"+env.options->inputFile()+"'";
+	fileName="'"+env -> options->inputFile()+"'";
       }
       string axiomName;
       if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us.unit(), axiomName)) {
@@ -1057,7 +1057,7 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
 {
   CALL("InferenceStore::createProofPrinter");
 
-  switch(env.options->proof()) {
+  switch(env -> options->proof()) {
   case Options::PROOF_ON:
     return new ProofPrinter(out, this);
   case Options::PROOF_PROOFCHECK:

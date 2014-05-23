@@ -105,7 +105,7 @@ BDD::~BDD()
 int BDD::getNewVar(unsigned pred)
 {
   CALL("BDD::getNewVar(unsigned)");
-  ASS_EQ(env.signature->predicateArity(pred), 0);
+  ASS_EQ(env -> signature->predicateArity(pred), 0);
 
   int res=getNewVar();
   _predicateSymbols.insert(res, pred);
@@ -123,13 +123,13 @@ string BDD::getPropositionalPredicateName(int var)
   string name;
   if(!getNiceName(var, name)) {
     string prefix(BDD_PREDICATE_PREFIX);
-    prefix+=env.options->namePrefix();
+    prefix+=env -> options->namePrefix();
     name = prefix + Int::toString(var);
 
     //We do not want the predicate to be already present!
     //(But we also don't want to insert it into signature,
     //as it would grow too much.)
-    ASS(!env.signature->isPredicateName(name, 0));
+    ASS(!env -> signature->isPredicateName(name, 0));
   }
 
   return name;
@@ -146,7 +146,7 @@ bool BDD::getNiceName(int var, string& res)
   unsigned pred;
   bool found=_predicateSymbols.find(var, pred);
   if(found) {
-    res=env.signature->predicateName(pred);
+    res=env -> signature->predicateName(pred);
   }
   return found;
 }
@@ -161,7 +161,7 @@ Signature::Symbol* BDD::getSymbol(int var)
 
   unsigned pred;
   if(_predicateSymbols.find(var, pred)) {
-    return env.signature->getPredicate(pred);
+    return env -> signature->getPredicate(pred);
   }
   return 0;
 }
@@ -474,7 +474,7 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
     if(counter==50000) {
       counter=0;
       //time to check if we aren't over the time limit
-      if(env.timeLimitReached()) {
+      if(env -> timeLimitReached()) {
 	throw TimeLimitExceededException();
       }
     }
@@ -581,7 +581,7 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
     if(counter==50000) {
       counter=0;
       //time to check if we aren't over the time limit
-      if(env.timeLimitReached()) {
+      if(env -> timeLimitReached()) {
 	throw TimeLimitExceededException();
       }
     }
@@ -733,7 +733,7 @@ BDDNode* BDD::getNode(int varNum, BDDNode* pos, BDDNode* neg)
 
   if(newNode==0) {
     newNode=new BDDNode();
-    env.statistics->bddMemoryUsage += sizeof(BDDNode);
+    env -> statistics->bddMemoryUsage += sizeof(BDDNode);
   }
 
   newNode->_var=varNum;
@@ -884,11 +884,11 @@ void BDD::allowDefinitionOutput(bool allow)
   _allowDefinitionOutput=allow;
   if(allow && _postponedDefinitions.isNonEmpty()) {
     unsigned stLen=_postponedDefinitions.size();
-    env.beginOutput();
+    env -> beginOutput();
     for(unsigned i=0;i<stLen;i++) {
-      env.out()<<_postponedDefinitions[i]<<endl;
+      env -> out()<<_postponedDefinitions[i]<<endl;
     }
-    env.endOutput();
+    env -> endOutput();
     _postponedDefinitions.reset();
   }
 }
@@ -896,9 +896,9 @@ void BDD::allowDefinitionOutput(bool allow)
 void BDD::outputDefinition(string def)
 {
   if(_allowDefinitionOutput) {
-    env.beginOutput();
-    env.out()<<def<<endl;
-    env.endOutput();
+    env -> beginOutput();
+    env -> out()<<def<<endl;
+    env -> endOutput();
   }
   else {
     _postponedDefinitions.push(def);
@@ -928,10 +928,10 @@ TermList BDD::getConstant(BDDNode* node)
     unsigned func;
     bool added;
 
-    func=env.signature->addFunction(name, 0, added);
+    func=env -> signature->addFunction(name, 0, added);
     while(!added) {
       name+="_1";
-      func=env.signature->addFunction(name, 0, added);
+      func=env -> signature->addFunction(name, 0, added);
       if(added) {
         string report="Name collision, BDD node now uses name "+name;
 	outputDefinition(report);
@@ -983,10 +983,10 @@ Formula* BDD::toFormula(BDDNode* node)
   if(!_bddEvalPredicate) {
     string name="$bddEval";
     bool added;
-    _bddEvalPredicate=env.signature->addPredicate(name, 1, added);
+    _bddEvalPredicate=env -> signature->addPredicate(name, 1, added);
     while(!added) {
       name+="_1";
-      _bddEvalPredicate=env.signature->addPredicate(name, 1, added);
+      _bddEvalPredicate=env -> signature->addPredicate(name, 1, added);
     }
     ASS(_bddEvalPredicate);
   }
@@ -999,7 +999,7 @@ Formula* BDD::toFormula(BDDNode* node)
   if(!_predicateSymbols.find(var, predNum)) {
     string name=getPropositionalPredicateName(var);
     bool added;
-    predNum=env.signature->addPredicate(name, 0, added);
+    predNum=env -> signature->addPredicate(name, 0, added);
     ASS(added);
     _predicateSymbols.insert(var, predNum);
   }

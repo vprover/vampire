@@ -13,6 +13,7 @@
 
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Timer.hpp"
 
 namespace Kernel {
 
@@ -23,20 +24,26 @@ using namespace Saturation;
 class MainLoopContext {
 public:
 	MainLoopContext(Problem& prb, Options& opt): _prb(prb), _opt(opt) {
+		CALL("MainLoopContext::MainLoopContext(Problem&, Options&)");
 
-		//_env = new Environment();
+		if(Lib::env) {
+			_env = new Environment(*Lib::env);
+		}else{
+			_env = new Environment();
+		}
 
 		init();
 	}
 
 	virtual ~MainLoopContext() {
+		CALL("MainLoopContext::~MainLoopContext()");
 
-		delete _ml;
-		//delete _env;
+		cleanUp();
+		delete _env;
 	}
 
 	virtual void init() {
-		CALL("MainLoopContext::init");
+		CALL("MainLoopContext::init()");
 
 		switchIn();
 
@@ -47,22 +54,34 @@ public:
 		switchOut();
 	}
 
+	virtual void cleanUp() {
+		CALL("MainLoopContext::cleanUp()");
+
+		delete _ml;
+	}
+
 	virtual void doStep() {
-		CALL("MainLoopContext::doStep");
+		CALL("MainLoopContext::doStep()");
 
 		switchIn();
 		_ml -> doOneAlgorithmStep();
+
+		Timer::syncClock();
+		if (env -> timeLimitReached()) {
+			throw  TimeLimitExceededException();
+		}
+
 		switchOut();
 	}
 
 	virtual void switchIn() {
-		CALL("MainLoopContext::switchContext");
+		CALL("MainLoopContext::switchIn()");
 
 		Lib::env = _env; //TODO: Potential change of context by other MainLoop
 	}
 
 	virtual void switchOut() {
-		CALL("MainLoopContext::saveContext");
+		CALL("MainLoopContext::switchOut()");
 
 		_env = Lib::env;
 	}
@@ -70,8 +89,18 @@ public:
 private:
 	Problem& _prb;
 	ConcurrentMainLoop* _ml;
-	Environment _env;
+	Environment* _env;
 	Options& _opt;
+
+/*	static void copy(Environment& to, Environment& from){
+		to.colorUsed = from.colorUsed;
+		to.options = from.options;
+		to.ordering = from.ordering;
+		to.property = from.property;
+		to.
+
+	}
+*/
 };
 
 } /* namespace Kernel */

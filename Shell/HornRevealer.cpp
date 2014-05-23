@@ -37,20 +37,20 @@ void HornRevealer::apply(UnitList*& units)
 
   buildSatProblem(units);
 
-  _solver.ensureVarCnt(env.signature->predicates()+1);
+  _solver.ensureVarCnt(env -> signature->predicates()+1);
   _solver.addClauses(pvi( SATClauseStack::Iterator(_satPrb) ), false);
 
   if(_solver.getStatus()==SATSolver::SATISFIABLE) {
     LOG("pp_hr","Horn discovered");
     discoverGoals(units);
 
-    unsigned preds = env.signature->predicates();
+    unsigned preds = env -> signature->predicates();
     for(unsigned i=0; i<preds; i++) {
       bool reversed = isReversed(i);
       if(reversed) {
-	LOG("pp_hr","reversed: " << env.signature->predicateName(i));
+	LOG("pp_hr","reversed: " << env -> signature->predicateName(i));
 	LiteralSelector::reversePredicatePolarity(i, true);
-	env.statistics->hornReversedPredicates++;
+	env -> statistics->hornReversedPredicates++;
       }
     }
   }

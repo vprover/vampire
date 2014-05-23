@@ -57,7 +57,7 @@ Sort FormulaBuilder::sort(const string& sortName)
 {
   CALL("FormulaBuilder::sort");
 
-  unsigned res = env.sorts->addSort(sortName);
+  unsigned res = env -> sorts->addSort(sortName);
   return Sort(res);
 }
 
@@ -94,7 +94,7 @@ string FormulaBuilder::getSortName(Sort s)
 {
   CALL("FormulaBuilder::getSortName");
 
-  return env.sorts->sortName(s);
+  return env -> sorts->sortName(s);
 }
 
 string FormulaBuilder::getPredicateName(Predicate p)
@@ -161,8 +161,8 @@ Function FormulaBuilder::function(const string& funName, unsigned arity, Sort ra
   }
 
   bool added;
-  unsigned res = env.signature->addFunction(funName, arity, added);
-  Kernel::Signature::Symbol* sym = env.signature->getFunction(res);
+  unsigned res = env -> signature->addFunction(funName, arity, added);
+  Kernel::Signature::Symbol* sym = env -> signature->getFunction(res);
 
   static DArray<unsigned> nativeSorts;
   nativeSorts.initFromArray(arity, domainSorts);
@@ -189,7 +189,7 @@ Function FormulaBuilder::integerConstant(int i)
 {
   CALL("FormulaBuilder::integerConstant");
 
-  unsigned fun = env.signature->addIntegerConstant(IntegerConstantType(i));
+  unsigned fun = env -> signature->addIntegerConstant(IntegerConstantType(i));
   return Function(fun);
 }
 
@@ -199,7 +199,7 @@ Function FormulaBuilder::integerConstant(string i)
 
   unsigned fun;
   try {
-    fun = env.signature->addIntegerConstant(IntegerConstantType(i));
+    fun = env -> signature->addIntegerConstant(IntegerConstantType(i));
   }
   catch (ArithmeticException) {
     throw FormulaBuilderException("Constant value invalid or does not fit into internal representation: " + i);
@@ -229,9 +229,9 @@ Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort
   }
 
   bool added;
-  unsigned res = env.signature->addPredicate(predName, arity, added);
+  unsigned res = env -> signature->addPredicate(predName, arity, added);
 
-  Kernel::Signature::Symbol* sym = env.signature->getPredicate(res);
+  Kernel::Signature::Symbol* sym = env -> signature->getPredicate(res);
 
   static DArray<unsigned> nativeSorts;
   nativeSorts.initFromArray(arity, domainSorts);
@@ -274,7 +274,7 @@ Predicate FormulaBuilder::interpretedPredicate(InterpretedPredicate symbol)
     break;
   }
 
-  unsigned res = env.signature->getInterpretingSymbol(itp);
+  unsigned res = env -> signature->getInterpretingSymbol(itp);
 
   return Predicate(res);
 }
@@ -437,14 +437,14 @@ Term FormulaBuilder::term(const Function& f,const Term* args)
 {
   CALL("FormulaBuilder::term");
 
-  return _aux->term(f,args,env.signature->functionArity(f));
+  return _aux->term(f,args,env -> signature->functionArity(f));
 }
 
 Formula FormulaBuilder::atom(const Predicate& p, const Term* args, bool positive)
 {
   CALL("FormulaBuilder::atom");
 
-  return _aux->atom(p,positive, args,env.signature->predicateArity(p));
+  return _aux->atom(p,positive, args,env -> signature->predicateArity(p));
 }
 
 Formula FormulaBuilder::equality(const Term& lhs,const Term& rhs, Sort sort, bool positive)
@@ -1245,7 +1245,7 @@ void OutputOptions::setAssignFormulaNames(bool newVal)
   CALL("OutputOptions::setAssignFormulaNames");
 
   _assignFormulaNames = newVal;
-  env.options->setOutputAxiomNames(newVal);
+  env -> options->setOutputAxiomNames(newVal);
 }
 
 
@@ -1331,7 +1331,7 @@ string StringIterator::next()
 std::ostream& operator<< (std::ostream& str,const Api::Sort& sort)
 {
   CALL("operator<< (ostream&,const Api::Sort&)");
-  return str<<env.sorts->sortName(sort);
+  return str<<env -> sorts->sortName(sort);
 }
 
 ostream& operator<< (ostream& str,const Api::Formula& f)

@@ -80,13 +80,13 @@ int CPAInterpolator::perform(unsigned argc, char** argv)
     _rightFNames.push(argv[argIdx]);
   }
 
-  env.options->set("smtlib_consider_ints_real", "on");
-  env.options->setTimeLimitInSeconds(60);
+  env -> options->set("smtlib_consider_ints_real", "on");
+  env -> options->setTimeLimitInSeconds(60);
   CommandLine cl(argc+1-argIdx,argv-1+argIdx);
-  cl.interpret(*env.options);
+  cl.interpret(*env -> options);
 
-  PROCESS_TRACE_SPEC_STRING(env.options->traceSpecString());
-  env.options->enableTracesAccordingToOptions();
+  PROCESS_TRACE_SPEC_STRING(env -> options->traceSpecString());
+  env -> options->enableTracesAccordingToOptions();
 
   if(_leftFNames.isNonEmpty() && _rightFNames.isNonEmpty()) {
     declareColors();
@@ -105,7 +105,7 @@ void CPAInterpolator::collectSMTLIBFileFunctions(string fname, FuncSet& acc)
 
   ifstream stm(fname.c_str());
 
-  Parse::SMTLIB pars(*env.options, Parse::SMTLIB::DECLARE_SORTS);
+  Parse::SMTLIB pars(*env -> options, Parse::SMTLIB::DECLARE_SORTS);
   pars.parse(stm);
   typedef Stack<Parse::SMTLIB::FunctionInfo> FIStack;
   const Stack<Parse::SMTLIB::FunctionInfo>& fnInfs = pars.getFuncInfos();
@@ -131,7 +131,7 @@ void CPAInterpolator::declareColors()
 {
   CALL("CPAInterpolator::declareColors");
 
-  env.colorUsed = true;
+  env -> colorUsed = true;
 
   FuncSet leftFuns;
   Stack<string>::Iterator lfIt(_leftFNames);
@@ -163,12 +163,12 @@ void CPAInterpolator::declareColors()
     Signature::Symbol* sym;
     bool added;
     if(isPred) {
-      symNum = env.signature->addPredicate(name, arity, added);
-      sym = env.signature->getPredicate(symNum);
+      symNum = env -> signature->addPredicate(name, arity, added);
+      sym = env -> signature->getPredicate(symNum);
     }
     else {
-      symNum = env.signature->addFunction(name, arity, added);
-      sym = env.signature->getFunction(symNum);
+      symNum = env -> signature->addFunction(name, arity, added);
+      sym = env -> signature->getFunction(symNum);
     }
     ASS(added);
     sym->setType(type);
@@ -203,7 +203,7 @@ void CPAInterpolator::loadFormula(string fname)
 
   ifstream stm(fname.c_str());
 
-  Parse::SMTLIB pars(*env.options);
+  Parse::SMTLIB pars(*env -> options);
   pars.parse(stm);
   _forms = UnitList::concat(pars.getFormulas(), _forms);
   _defs = UnitList::concat(pars.getDefinitions(), _defs);
@@ -215,7 +215,7 @@ void CPAInterpolator::doProving()
 {
   CALL("CPAInterpolator::doProving");
 
-  env.timer->makeChildrenIncluded();
+  env -> timer->makeChildrenIncluded();
 
   Schedule quick;
   Schedule fallback;
@@ -229,9 +229,9 @@ void CPAInterpolator::doProving()
   }
   if(!runSchedule(fallback, usedStrategies, true)) {
     if(fallback.isEmpty()) {
-      env.beginOutput();
-      env.out()<<"Ran out of schedules"<<endl;
-      env.endOutput();
+      env -> beginOutput();
+      env -> out()<<"Ran out of schedules"<<endl;
+      env -> endOutput();
     }
   }
 }
@@ -241,10 +241,10 @@ void CPAInterpolator::displayResult()
   CALL("CPAInterpolator::displayResult");
   AIGInliner::PremSet* dummy; //we don't care about premises here
 
-  env.options->set("show_interpolant","off");
+  env -> options->set("show_interpolant","off");
 
-  if(env.statistics->terminationReason==Statistics::REFUTATION) {
-    Unit* refutation = env.statistics->refutation;
+  if(env -> statistics->terminationReason==Statistics::REFUTATION) {
+    Unit* refutation = env -> statistics->refutation;
 
     ProofSimplifier simpl(_prb, UnitSpec(refutation), _defs);
     simpl.perform();
@@ -252,21 +252,21 @@ void CPAInterpolator::displayResult()
     ASS(newRef.withoutProp());
     refutation = newRef.unit();
 
-    env.statistics->refutation = refutation;
+    env -> statistics->refutation = refutation;
   }
 
 
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
+  env -> beginOutput();
+  UIHelper::outputResult(env -> out());
+  env -> endOutput();
 
-  if(env.statistics->terminationReason!=Statistics::REFUTATION) {
+  if(env -> statistics->terminationReason!=Statistics::REFUTATION) {
     return;
   }
 
-  Unit* refutation = env.statistics->refutation;
+  Unit* refutation = env -> statistics->refutation;
 
-  env.beginOutput();
+  env -> beginOutput();
   Formula* oldItp = Interpolants().getInterpolant(refutation);
   {
     AIGInliner inl;
@@ -274,7 +274,7 @@ void CPAInterpolator::displayResult()
     inl.scan(_defs);
     oldItp = Flattening::flatten(inl.apply(oldItp,dummy));
   }
-  env.out() << "Old interpolant: " << TPTPPrinter::toString(oldItp) << endl;
+  env -> out() << "Old interpolant: " << TPTPPrinter::toString(oldItp) << endl;
 
   Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(refutation);
   Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(refutation);
@@ -295,11 +295,11 @@ void CPAInterpolator::displayResult()
   cntInterpolant = inl.apply(cntInterpolant, dummy);
   quantInterpolant = inl.apply(quantInterpolant, dummy);
 
-  env.out() << "Interpolant: " << TPTPPrinter::toString(interpolant) << endl;
-  env.out() << "Count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
-  env.out() << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
+  env -> out() << "Interpolant: " << TPTPPrinter::toString(interpolant) << endl;
+  env -> out() << "Count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
+  env -> out() << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
 
-  env.endOutput();
+  env -> endOutput();
 }
 
 ///////////////////////
@@ -331,7 +331,7 @@ bool CPAInterpolator::runSchedule(Schedule& schedule,StrategySet& ss,bool fallba
       continue;
     }
     ss.insert(chopped);
-    int remainingTime = env.remainingTime()/100;
+    int remainingTime = env -> remainingTime()/100;
     if(remainingTime<=0) {
       return false;
     }
@@ -350,7 +350,7 @@ bool CPAInterpolator::runSlice(string slice, unsigned ds)
 {
   CALL("CPAInterpolator::runSlice/2");
 
-  Options opt=*env.options;
+  Options opt=*env -> options;
   opt.readFromTestId(slice);
   opt.setTimeLimitInDeciseconds(ds);
   int stl = opt.simulatedTimeLimit();
@@ -362,9 +362,9 @@ bool CPAInterpolator::runSlice(string slice, unsigned ds)
     return false;
   }
 
-  env.beginOutput();
-  env.out()<<"% slice "<<slice<<" for "<<ds<<" remaining "<<(env.remainingTime()/100)<<endl;
-  env.endOutput();
+  env -> beginOutput();
+  env -> out()<<"% slice "<<slice<<" for "<<ds<<" remaining "<<(env -> remainingTime()/100)<<endl;
+  env -> endOutput();
 
   return runSlice(opt);
 }
@@ -427,8 +427,8 @@ void CPAInterpolator::childRun(Options& strategyOpt)
 
   UIHelper::cascModeChild=true;
   int resultValue=1;
-  env.timer->reset();
-  env.timer->start();
+  env -> timer->reset();
+  env -> timer->start();
   TimeCounter::reinitialize();
 
   Options opt(strategyOpt);
@@ -437,12 +437,12 @@ void CPAInterpolator::childRun(Options& strategyOpt)
   opt.setNormalize(false);
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
-  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
-  env.options->setTimeLimitInDeciseconds(opt.timeLimitInDeciseconds());
+  *env -> options = opt; //just temporarily until we get rid of dependencies on env -> options in solving
+  env -> options->setTimeLimitInDeciseconds(opt.timeLimitInDeciseconds());
 
   ProvingHelper::runVampire(_prb,opt);
 
-  if(env.statistics->terminationReason==Statistics::REFUTATION) {
+  if(env -> statistics->terminationReason==Statistics::REFUTATION) {
     displayResult();
     resultValue = 0;
   }

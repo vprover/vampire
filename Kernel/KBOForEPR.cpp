@@ -59,7 +59,7 @@ Ordering::Result KBOForEPR::compare(Literal* l1, Literal* l2) const
 
   if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
 	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&
-	  l1==env.sharing->tryGetOpposite(l2)) {
+	  l1==env -> sharing->tryGetOpposite(l2)) {
     return l1->isNegative() ? LESS : GREATER;
   }
 

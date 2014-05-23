@@ -114,7 +114,7 @@ void LoopAnalyzer::analyze()
   generateIterationDefinition();
 
   //check if we have additional information to be added to the units
-  string additionalInvariants = env.options->lingvaAdditionalInvariants();
+  string additionalInvariants = env -> options->lingvaAdditionalInvariants();
   if ( additionalInvariants != "") {
     //retrieve the file containing the additional information
     istream* additional = new ifstream(additionalInvariants.c_str());
@@ -1284,7 +1284,7 @@ Formula* LoopAnalyzer::stabilityProperty(Literal* updPred, string array, TermLis
   //create formula ARRAY(POSITION) = ARRAY0(POSITION)
   Literal* stabilityImplication = createIntEquality(true,arrayFinalFct,arrayIniFct);
   //create formula  (iter(ITERATION) => ~UpdPred(ITERATION,POSITION))
-  env.colorUsed=true;
+  env -> colorUsed=true;
   unsigned iter = getIntPredicate("iter",1, true);
   Literal* iterPred = Literal::create1(iter,true,iteration);
   Formula* stabilityCondition = new BinaryFormula(IMP,new AtomicFormula(iterPred), new NegatedFormula(new AtomicFormula(updPred)));
@@ -1351,7 +1351,7 @@ void LoopAnalyzer::generateUpdatePredicates()
     x0.makeVar(0);//variable for loop iteration
     TermList x3;
     x3.makeVar(3);//variable for value of update
-    env.colorUsed=true;
+    env -> colorUsed=true;
     unsigned updFun1 = getIntPredicate(updName,2, true);
     unsigned updFun2 = getIntPredicate(updName,3, true);
     // term updV(x0,x2) 
@@ -1498,7 +1498,7 @@ void LoopAnalyzer::generateLoopConditionProperty()
   //create iter(X0)
   TermList x0;
   x0.makeVar(0);
-  env.colorUsed=true;
+  env -> colorUsed=true;
   unsigned iter = getIntPredicate("iter",1, true);
   Literal* iterPred = Literal::create1(iter,true,x0);
   Formula* loopConditionProp =
@@ -1522,7 +1522,7 @@ void LoopAnalyzer::generateIterationDefinition()//TermList n)
   //iter(X0)
   TermList x0;
   x0.makeVar(0);
-  env.colorUsed=true;
+  env -> colorUsed=true;
   unsigned iter = getIntPredicate("iter",1,true);
   Literal* iterPred = Literal::create1(iter,true,x0);
   Theory* theory = Theory::instance();
@@ -1947,10 +1947,10 @@ unsigned LoopAnalyzer::getIntFunction(string name, unsigned arity, bool setColor
   CALL("LoopAnalyzer::getIntFunction");
 
   bool added;
-  unsigned res = env.signature->addFunction(name, arity, added);
-  Signature::Symbol* symb = env.signature->getFunction(res);
+  unsigned res = env -> signature->addFunction(name, arity, added);
+  Signature::Symbol* symb = env -> signature->getFunction(res);
   if (added) {
-    env.colorUsed=true;
+    env -> colorUsed=true;
     if (setColor) {
       symb->addColor(COLOR_LEFT);
       symb->markIntroduced();
@@ -1974,12 +1974,12 @@ unsigned LoopAnalyzer::getIntPredicate(string name, unsigned arity, bool setColo
   CALL("LoopAnalyzer::getIntPredicate");
 
   bool added;
-  unsigned res = env.signature->addPredicate(name, arity, added);
-  Signature::Symbol* symb = env.signature->getPredicate(res);
+  unsigned res = env -> signature->addPredicate(name, arity, added);
+  Signature::Symbol* symb = env -> signature->getPredicate(res);
 
   if (added) {
     if (setColor){
-      env.colorUsed=true;
+      env -> colorUsed=true;
       symb->addColor(COLOR_LEFT);
     }
 

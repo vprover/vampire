@@ -64,7 +64,7 @@ void CommandLine::interpret (OptionsContainer* options)
           USER_ERROR("Error parsing strategies");
         }
         options = new OptionsList(strategies);
-        env.optionsContainer = options;
+        env -> optionsContainer = options;
         ASS(options->isOptionsList());
         //Continue to next option
         _next++;

@@ -130,7 +130,7 @@ Program::FunctionApplicationExpression* collectionOfObjects::getFunctionApplicat
 void collectionOfObjects::insertWhileDo(std::string key, Program::WhileDo* obj)
 {
   CALL("insertWhileDo");
-  if(env.options->getWhileNumber()==-1)
+  if(env -> options->getWhileNumber()==-1)
     obj->prettyPrint(cout);
   if (_mapOfWhile.find(key) != 1)
     _mapOfWhile.insert(key, obj);
@@ -239,7 +239,7 @@ void collectionOfObjects::runAnalysis(int wN)
 {
   CALL("collectionOfObjects::runAnalysis");
 
-  int whileNumber= env.options->getWhileNumber();
+  int whileNumber= env -> options->getWhileNumber();
   if (_mapOfWhile.numberOfElements() < whileNumber ){
     USER_ERROR("you have less whiles than the number introduced! take care @ -wno option!");
     }
@@ -255,7 +255,7 @@ void collectionOfObjects::runAnalysis(int wN)
 	  if (multipleLoops(s)) {
 	    USER_ERROR("We do not handle nested whiles yet!");
 	  }
-	 /* cout<<env.options->showSymbolElimination()<<" SEI"<<endl;
+	 /* cout<<env -> options->showSymbolElimination()<<" SEI"<<endl;
 	  Program::Analyze analyzer(s);
 	  analyzer.analyze();*/
 	  trySEI(s);
@@ -272,7 +272,7 @@ void collectionOfObjects::runAnalysis(int wN)
 Statement* collectionOfObjects::getWhile(int wNumber){
   CALL("collectionOfObjects::getWhile(int whileNumber)");
 
-  int whileNumber= env.options->getWhileNumber();
+  int whileNumber= env -> options->getWhileNumber();
   if (_mapOfWhile.numberOfElements() < whileNumber ){
     USER_ERROR("you have less whiles than the number introduced! take care @ -wno option!");
     }
@@ -288,7 +288,7 @@ Statement* collectionOfObjects::getWhile(int wNumber){
           if (multipleLoops(s)) {
             USER_ERROR("We do not handle nested whiles yet!");
           }
-         /* cout<<env.options->showSymbolElimination()<<" SEI"<<endl;
+         /* cout<<env -> options->showSymbolElimination()<<" SEI"<<endl;
           Program::Analyze analyzer(s);
           analyzer.analyze();*/
           return s;

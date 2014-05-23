@@ -69,9 +69,9 @@ void groundingMode()
   CALL("groundingMode()");
 
   try {
-    ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+    ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
 
-    Preprocess prepro(*env.options);
+    Preprocess prepro(*env -> options);
     prepro.preprocess(*prb);
 
     ClauseIterator clauses=prb->clauseIterator();
@@ -95,27 +95,27 @@ void groundingMode()
       }
       insts.pushManyToKey(cl, sGrounded);
     }
-    env.beginOutput();
-    DIMACS::outputGroundedProblem(insts, nameCtx, env.out());
-    env.endOutput();
+    env -> beginOutput();
+    DIMACS::outputGroundedProblem(insts, nameCtx, env -> out());
+    env -> endOutput();
 
   } catch(MemoryLimitExceededException) {
-    env.beginOutput();
-    env.out()<<"Memory limit exceeded\n";
-    env.endOutput();
+    env -> beginOutput();
+    env -> out()<<"Memory limit exceeded\n";
+    env -> endOutput();
   } catch(TimeLimitExceededException) {
-    env.beginOutput();
-    env.out()<<"Time limit exceeded\n";
-    env.endOutput();
+    env -> beginOutput();
+    env -> out()<<"Time limit exceeded\n";
+    env -> endOutput();
   }
 } // groundingMode
 
 
 void explainException (Exception& exception)
 {
-  env.beginOutput();
-  exception.cry(env.out());
-  env.endOutput();
+  env -> beginOutput();
+  exception.cry(env -> out());
+  env -> endOutput();
 } // explainException
 
 /**
@@ -143,12 +143,12 @@ int main(int argc, char* argv [])
 
     Timer timer;
     timer.start();
-    env.timer = &timer;
+    env -> timer = &timer;
     Indexing::TermSharing sharing;
-    env.sharing = &sharing;
-    env.options = &options;
+    env -> sharing = &sharing;
+    env -> options = &options;
     Shell::Statistics statistics;
-    env.statistics = &statistics;
+    env -> statistics = &statistics;
 
     if(options.mode()!=Options::MODE_GROUNDING) {
       USER_ERROR("Invalid mode: must be \"grouding\"");
@@ -161,8 +161,8 @@ int main(int argc, char* argv [])
       MemoryLeak leak;
       leak.release(globUnitList);
     }
-    delete env.signature;
-    env.signature = 0;
+    delete env -> signature;
+    env -> signature = 0;
 #endif
   }
 #if VDEBUG
@@ -182,20 +182,20 @@ int main(int argc, char* argv [])
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
-    env.beginOutput();
+    env -> beginOutput();
     explainException(exception);
-    env.statistics->print(env.out());
-    env.endOutput();
+    env -> statistics->print(env -> out());
+    env -> endOutput();
   }
   catch (std::bad_alloc& _) {
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
-    env.beginOutput();
-    env.out() << "Insufficient system memory" << '\n';
-    env.endOutput();
+    env -> beginOutput();
+    env -> out() << "Insufficient system memory" << '\n';
+    env -> endOutput();
   }
-//   delete env.allocator;
+//   delete env -> allocator;
 
   return EXIT_SUCCESS;
 } // main

@@ -68,7 +68,7 @@ public:
 
     Var res;
     ALWAYS(getNextEligibleVariable(0, res));
-    TRACE("tkv_vselect",tout<<"Picking variable "<<env.signature->varName(res)<<" as a decision point";);
+    TRACE("tkv_vselect",tout<<"Picking variable "<<env -> signature->varName(res)<<" as a decision point";);
     return res;
   }
 };
@@ -88,14 +88,14 @@ public:
     for(unsigned i=0; i<randomAttempts; i++) {
       res = Random::getInteger(varCnt);
       if(isEligible(res)) {
-	TRACE("tkv_vselect",tout<<"Randomly picking variable "<<env.signature->varName(res)<<" as a decision point";);
+	TRACE("tkv_vselect",tout<<"Randomly picking variable "<<env -> signature->varName(res)<<" as a decision point";);
 	return res;
       }
     }
     if(!getNextEligibleVariable(res, res)) {
       ALWAYS(getNextEligibleVariable(0, res));
     }
-    TRACE("tkv_vselect",tout<<"Picking variable "<<env.signature->varName(res)<<" as a decision point by linear search with random origin";);
+    TRACE("tkv_vselect",tout<<"Picking variable "<<env -> signature->varName(res)<<" as a decision point by linear search with random origin";);
     return res;
   }
 };
@@ -152,7 +152,7 @@ public:
     if(!foundFullyBound) {
       return notFullyBound;
     }
-    TRACE("tkv_vselect",tout<<"Tightest variable selection "<<env.signature->varName(best)<<" as the next variable\n";);
+    TRACE("tkv_vselect",tout<<"Tightest variable selection "<<env -> signature->varName(best)<<" as the next variable\n";);
     return best;
   }
 };
@@ -180,7 +180,7 @@ public:
       Var v = vit.next();
       if(isEligible(v)) {
 	vit.del();
-	TRACE("tkv_vselect",tout<<"Unused variable selected: "<< env.signature->varName(v)<<"\n";);
+	TRACE("tkv_vselect",tout<<"Unused variable selected: "<< env -> signature->varName(v)<<"\n";);
 	return v;
       }
     }

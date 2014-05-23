@@ -360,7 +360,7 @@ void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigne
   unsigned skFunSort = getVarSort(var);
   unsigned skFun = Skolem::addSkolemFunction(0, 0, skFunSort, suffix.c_str());
 
-  LOG("pp_esk","New Skolem function: " << env.signature->functionName(skFun) << " suffix: " << suffix);
+  LOG("pp_esk","New Skolem function: " << env -> signature->functionName(skFun) << " suffix: " << suffix);
 
 
   TermList skTerm = TermList(Term::createConstant(skFun));
@@ -412,8 +412,8 @@ Literal* EPRSkolem::Applicator::getSkolemLiteral(unsigned var)
   ASS_EQ(args.size(), arity);
   ASS_EQ(domainSorts.size(), arity);
 
-  unsigned pred = env.signature->addFreshPredicate(arity, "sP", nameSuffix.c_str());
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  unsigned pred = env -> signature->addFreshPredicate(arity, "sP", nameSuffix.c_str());
+  Signature::Symbol* predSym = env -> signature->getPredicate(pred);
   predSym->setType(new PredicateType(arity, domainSorts.begin()));
 
   LiteralStack::Iterator instIt(_lhsInstances);
@@ -603,7 +603,7 @@ void EPRSkolem::processActiveDefinitions(UnitList* units)
   while(apit2.hasNext()) {
     unsigned pred = apit2.next();
     FormulaUnit* def = _nonEprDefs[pred];
-    LOG("pp_esk","Processing definition of " << env.signature->predicateName(pred)<<": "
+    LOG("pp_esk","Processing definition of " << env -> signature->predicateName(pred)<<": "
 	   << (*def));
     processDefinition(def);
   }
@@ -800,7 +800,7 @@ string EPRSkolem::headerToString(unsigned header)
 {
   CALL("EPRSkolem::headerToString");
 
-  return ((header&1) ? "" : "~") + env.signature->predicateName(header>>1);
+  return ((header&1) ? "" : "~") + env -> signature->predicateName(header>>1);
 }
 
 

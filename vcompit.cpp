@@ -88,7 +88,7 @@ void readSymbolTable(FILE* in)
       symbolTable[(int)c].arity=arity;
       symbolTable[(int)c].used=true;
       char convArr[2]={c,0};
-      symbolTable[(int)c].num=env.signature->addFunction(convArr,arity);
+      symbolTable[(int)c].num=env -> signature->addFunction(convArr,arity);
       c=getc(in);
     }
   c=getc(in); // read newline after $
@@ -115,7 +115,7 @@ int main( int argc, char *argv[] )
   Lib::Random::resetSeed();
   Allocator::setMemoryLimit(1000000000); //memory limit set to 1g
 
-  env.options->setTimeLimitInDeciseconds(0);
+  env -> options->setTimeLimitInDeciseconds(0);
 
   readSymbolTable(in);
 
@@ -255,7 +255,7 @@ TermList MakeTerm(char* str)
       }
 
       TermList aux;
-      aux.setTerm(env.sharing->insert(trm));
+      aux.setTerm(env -> sharing->insert(trm));
       args.push(aux);
     }
   }

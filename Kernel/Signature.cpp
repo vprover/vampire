@@ -603,7 +603,7 @@ unsigned Signature::addFunction (const string& name,
     added = false;
     return result;
   }
-  if (env.options->arityCheck()) {
+  if (env -> options->arityCheck()) {
     unsigned prev;
     if (_arityCheck.find(name,prev)) {
       unsigned prevArity = prev/2;
@@ -673,7 +673,7 @@ unsigned Signature::addPredicate (const string& name,
     added = false;
     return result;
   }
-  if (env.options->arityCheck()) {
+  if (env -> options->arityCheck()) {
     unsigned prev;
     if (_arityCheck.find(name,prev)) {
       unsigned prevArity = prev/2;
@@ -793,7 +793,7 @@ unsigned Signature::addIteFunction(unsigned arity, unsigned* argSorts, unsigned 
   getFunction(res)->setType(type);
   //TODO find a better way to get rid of the sG functions!
   //this is a quick fix for the elimination of sG from the invariants
-  env.colorUsed = true;
+  env -> colorUsed = true;
   getFunction(res)->addColor(COLOR_LEFT);
 
   return res;
@@ -818,7 +818,7 @@ void Signature::Symbol::addColor(Color color)
 {
   ASS_L(color,3);
   ASS_G(color,0);
-  ASS(env.colorUsed);
+  ASS(env -> colorUsed);
 
   if (_color && color != static_cast<Color>(_color)) {
     USER_ERROR("A symbol cannot have two colors");
@@ -871,7 +871,7 @@ bool Signature::isProtectedName(string name)
     return true;
   }
 
-  string protectedPrefix = env.options->protectedPrefix();
+  string protectedPrefix = env -> options->protectedPrefix();
   if (protectedPrefix.size()==0) {
     return false;
   }

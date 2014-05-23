@@ -10,7 +10,6 @@
 #include "MainLoopContext.hpp"
 
 #include "Lib/Allocator.hpp"
-#include "Lib/Timer.hpp"
 
 //#include "InstGen/IGAlgorithm.hpp"
 
@@ -30,17 +29,20 @@ using namespace Saturation;
 MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 
 	  CALL("MainLoopScheduler::MainLoopScheduler");
-	  ASS_G(opts.size(), 0);
-
 	  _mlclSize = opts.size();
+
+	  ASS_G(_mlclSize, 0);
+	  //void* mem = ALLOC_KNOWN(_mlclSize*sizeof(MainLoopContext),"MainLoopScheduler");
+	  //_mlcl = array_new<MainLoopContext>(mem,_mlclSize);
+
 	  _mlcl = static_cast<MainLoopContext**>(
-			  ALLOC_KNOWN(sizeof(MainLoopContext*)*_mlclSize,"MainLoopContext*"));//Lib::Array.hpp
+	  		  ALLOC_KNOWN(sizeof(MainLoopContext*)*_mlclSize,"MainLoopContext*"));
 
 	  OptionsList::Iterator i(opts);
 	  unsigned int k = 0;
 	  while(i.hasNext()){
 
-		  Options opt = i.next();
+		  Options& opt = i.next();
 
 		  /*if(opt.bfnt()) {
 			_mla[k] = new BFNTMainLoop(prb, opt);
@@ -78,10 +80,11 @@ MainLoopResult MainLoopScheduler::run() {
 		for(;;){
 			for(unsigned int k = 0; k < _mlclSize; k++) {
 				_mlcl[k] -> doStep();
-				Timer::syncClock();
-				if (env.timeLimitReached()) {
+/*				Timer::syncClock();
+				if (env -> timeLimitReached()) {
 					return MainLoopResult(Statistics::TIME_LIMIT);
 				}
+*/
 			}
 		}
 		//Should never be here
@@ -99,12 +102,12 @@ MainLoopResult MainLoopScheduler::run() {
 
 MainLoopScheduler::~MainLoopScheduler() {
 
-	CALL("MainLoopScheduler::~MainLoopScheduler");
+	CALL("MainLoopScheduler::~MainLoopScheduler()");
 
 	for(unsigned int k = 0; k < _mlclSize; k++) {
 		delete _mlcl[k]; //TODO: should be DEALLOC_UNKNOWN but SaturationAlgorithm::createFromOptions allocates via "new"
 	}
-	DEALLOC_KNOWN(_mlcl, sizeof(MainLoopContext*)*_mlclSize, "ConcurrentMainLoop*");
+	DEALLOC_KNOWN(_mlcl, sizeof(MainLoopContext*)*_mlclSize, "MainLoopScheduler");
 }
 
 /*static MainLoopScheduler* MainLoopScheduler::createFromOptions(Problem& prb, OptionsList* opts) {

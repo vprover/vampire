@@ -1153,7 +1153,7 @@ int TPTP::positiveDecimal(int pos)
 void TPTP::unitList()
 {
   CALL("TPTP::unitList");
-  if (env.timeLimitReached()) {
+  if (env -> timeLimitReached()) {
     // empty states to avoid infinite loop
     while (!_states.isEmpty()) {
       _states.pop();
@@ -1341,7 +1341,7 @@ void TPTP::tff()
     if (tok.tag == T_TTYPE) {
       // now we know that this is a new type declaration
       bool added;
-      env.sorts->addSort(nm,added);
+      env -> sorts->addSort(nm,added);
       if (!added) {
 	throw Exception("Sort name must be unique",tok);
       }
@@ -1666,7 +1666,7 @@ void TPTP::endSelect1()
     if (sortOf(array) != Sorts::SRT_ARRAY1) {
       USER_ERROR((string)"sort of the array  is not ARRAY1");
     }
-    unsigned func = env.signature->getInterpretingSymbol(Theory::SELECT1_INT);
+    unsigned func = env -> signature->getInterpretingSymbol(Theory::SELECT1_INT);
     TermList ts(Term::create2(func, array, index));
     _termLists.push(ts);
 } // endSelect1
@@ -1688,7 +1688,7 @@ void TPTP::endSelect2()
     if (sortOf(array) != Sorts::SRT_ARRAY2) {
         USER_ERROR((string)"sort of the array  is not ARRAY2");
     }
-    unsigned func = env.signature->getInterpretingSymbol(Theory::SELECT2_INT);
+    unsigned func = env -> signature->getInterpretingSymbol(Theory::SELECT2_INT);
     TermList ts(Term::create2(func, array, index));
     _termLists.push(ts);
 } // endSelect2
@@ -1716,7 +1716,7 @@ void TPTP::endStore1()
       USER_ERROR((string)"sort of the array  is not ARRAY1");
     }
 
-    unsigned func = env.signature->getInterpretingSymbol(Theory::STORE1_INT);
+    unsigned func = env -> signature->getInterpretingSymbol(Theory::STORE1_INT);
     TermList args[] = {array, index, value};
     TermList ts(Term::create(func, 3, args));
 
@@ -1747,7 +1747,7 @@ void TPTP::endStore2()
       USER_ERROR((string)"sort of the array  is not ARRAY2");
    }
 
-   unsigned func = env.signature->getInterpretingSymbol(Theory::STORE2_INT);
+   unsigned func = env -> signature->getInterpretingSymbol(Theory::STORE2_INT);
    TermList args[] = {array, index, value};
    TermList ts(Term::create(func, 3, args));
 
@@ -1872,7 +1872,7 @@ void TPTP::include()
   // here should be a computation of the new include directory according to
   // the TPTP standard, so far we just set it to ""
   _includeDirectory = "";
-  string fileName(env.options->includeFileName(relativeName));
+  string fileName(env -> options->includeFileName(relativeName));
   _in = new ifstream(fileName.c_str());
   if (!*_in) {
     USER_ERROR((string)"cannot open file " + fileName);
@@ -2105,7 +2105,7 @@ void TPTP::term()
 	Term* t = new(0) Term;
 	bool dummy;
 	t->makeSymbol(addUninterpretedConstant(nm,dummy),0);
-	t = env.sharing->insert(t);
+	t = env -> sharing->insert(t);
 	ts.setTerm(t);
 	_termLists.push(ts);
 	return;
@@ -2131,8 +2131,8 @@ void TPTP::term()
     {
       TermList ts;
       Term* t = new(0) Term;
-      t->makeSymbol(env.signature->addStringConstant(tok.content),0);
-      t = env.sharing->insert(t);
+      t->makeSymbol(env -> signature->addStringConstant(tok.content),0);
+      t = env -> sharing->insert(t);
       ts.setTerm(t);
       _termLists.push(ts);
       resetToks();
@@ -2143,7 +2143,7 @@ void TPTP::term()
       TermList ts;
       Term* t = new(0) Term;
       t->makeSymbol(addIntegerConstant(tok.content),0);
-      t = env.sharing->insert(t);
+      t = env -> sharing->insert(t);
       ts.setTerm(t);
       _termLists.push(ts);
       resetToks();
@@ -2154,7 +2154,7 @@ void TPTP::term()
       TermList ts;
       Term* t = new(0) Term;
       t->makeSymbol(addRealConstant(tok.content),0);
-      t = env.sharing->insert(t);
+      t = env -> sharing->insert(t);
       ts.setTerm(t);
       _termLists.push(ts);
       resetToks();
@@ -2165,7 +2165,7 @@ void TPTP::term()
       TermList ts;
       Term* t = new(0) Term;
       t->makeSymbol(addRationalConstant(tok.content),0);
-      t = env.sharing->insert(t);
+      t = env -> sharing->insert(t);
       ts.setTerm(t);
       _termLists.push(ts);
       resetToks();
@@ -2293,7 +2293,7 @@ void TPTP::endTerm()
     safe = safe && ss.isSafe();
   }
   if (safe) {
-    t = env.sharing->insert(t);
+    t = env -> sharing->insert(t);
   }
   ts.setTerm(t);
   _termLists.push(ts);
@@ -2327,7 +2327,7 @@ void TPTP::midAtom()
 	pred = addPredicate(name,arity,dummy,_termLists.top());
       }
       else {
-	pred = env.signature->addPredicate(name,0);
+	pred = env -> signature->addPredicate(name,0);
       }
       if (pred == -1) { // equality
 	TermList rhs = _termLists.pop();
@@ -2344,7 +2344,7 @@ void TPTP::midAtom()
 	*(lit->nthArgument(i)) = ts;
       }
       if (safe) {
-	lit = env.sharing->insert(lit);
+	lit = env -> sharing->insert(lit);
       }
       _formulas.push(new AtomicFormula(lit));
       return;
@@ -2644,12 +2644,12 @@ void TPTP::endFof()
 
   Unit* unit;
   if (isFof) { // fof() or tff()
-    env.statistics->inputFormulas++;
+    env -> statistics->inputFormulas++;
     unit = new FormulaUnit(f,new Inference(Inference::INPUT),(Unit::InputType)_lastInputType);
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf()
-    env.statistics->inputClauses++;
+    env -> statistics->inputClauses++;
     // convert the input formula f to a clause
     Stack<Formula*> forms;
     Stack<Literal*> lits;
@@ -2695,7 +2695,7 @@ void TPTP::endFof()
     unit->setInheritedColor(_currentColor);
   }
 
-  if (env.options->outputAxiomNames()) {
+  if (env -> options->outputAxiomNames()) {
     assignAxiomName(unit,nm);
   }
 #if DEBUG_SHOW_UNITS
@@ -2707,19 +2707,19 @@ void TPTP::endFof()
 
   switch (_lastInputType) {
   case Unit::CONJECTURE:
-    if (_isQuestion && env.options->mode() == Options::MODE_CLAUSIFY && f->connective() == EXISTS) {
+    if (_isQuestion && env -> options->mode() == Options::MODE_CLAUSIFY && f->connective() == EXISTS) {
       // create an answer predicate
       QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
       int arity = g->vars()->length();
-      unsigned pred = env.signature->addPredicate("$$answer",arity);
-      env.signature->getPredicate(pred)->markAnswerPredicate();
+      unsigned pred = env -> signature->addPredicate("$$answer",arity);
+      env -> signature->getPredicate(pred)->markAnswerPredicate();
       Literal* a = new(arity) Literal(pred,arity,true,false);
       List<int>::Iterator vs(g->vars());
       int i = 0;
       while (vs.hasNext()) {
 	a->nthArgument(i++)->makeVar(vs.next());
       }
-      a = env.sharing->insert(a);
+      a = env -> sharing->insert(a);
       f = new QuantifiedFormula(FORALL,
 				g->vars(),
 				new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
@@ -2744,13 +2744,13 @@ void TPTP::endFof()
   case Unit::CLAIM:
     {
       bool added;
-      unsigned pred = env.signature->addPredicate(nm,0,added);
+      unsigned pred = env -> signature->addPredicate(nm,0,added);
       if (!added) {
 	USER_ERROR("Names of claims must be unique: "+nm);
       }
-      env.signature->getPredicate(pred)->markCFName();
+      env -> signature->getPredicate(pred)->markCFName();
       Literal* a = new(0) Literal(pred,0,true,false);
-      a = env.sharing->insert(a);
+      a = env -> sharing->insert(a);
       Formula* claim = new AtomicFormula(a);
       Formula::VarList* vs = f->freeVariables();
       if (!vs->isEmpty()) {
@@ -2811,7 +2811,7 @@ void TPTP::endTff()
     unsigned sortNumber = static_cast<AtomicType*>(t)->sortNumber();
     bool added;
     if (sortNumber == Sorts::SRT_BOOL) {
-      env.signature->addPredicate(name,0,added);
+      env -> signature->addPredicate(name,0,added);
       if (!added) {
 	USER_ERROR("Predicate symbol type is declared after its use: " + name);
       }
@@ -2822,7 +2822,7 @@ void TPTP::endTff()
     if (!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
-    env.signature->getFunction(fun)->setType(BaseType::makeType(0,0,sortNumber));
+    env -> signature->getFunction(fun)->setType(BaseType::makeType(0,0,sortNumber));
     return;
   }
 
@@ -2862,20 +2862,20 @@ void TPTP::endTff()
   bool added;
   Signature::Symbol* symbol;
   if (returnSortNumber == Sorts::SRT_BOOL) {
-    unsigned pred = env.signature->addPredicate(name,arity,added);
+    unsigned pred = env -> signature->addPredicate(name,arity,added);
     if (!added) {
       USER_ERROR("Predicate symbol type is declared after its use: " + name);
     }
-    symbol = env.signature->getPredicate(pred);
+    symbol = env -> signature->getPredicate(pred);
   }
   else {
     unsigned fun = arity == 0
                    ? addUninterpretedConstant(name,added)
-                   : env.signature->addFunction(name,arity,added);
+                   : env -> signature->addFunction(name,arity,added);
     if (!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
-    symbol = env.signature->getFunction(fun);
+    symbol = env -> signature->getFunction(fun);
   }
   symbol->setType(BaseType::makeType(arity,sorts.begin(),returnSortNumber));
 } // endTff
@@ -3062,7 +3062,7 @@ unsigned TPTP::readSort()
     {
       resetToks();
       bool added;
-      unsigned sortNumber = env.sorts->addSort(tok.content,added);
+      unsigned sortNumber = env -> sorts->addSort(tok.content,added);
       if (added) {
       	throw Exception("undeclared sort",tok);
       }
@@ -3113,10 +3113,10 @@ void TPTP::makeTerm(TermList& ts,Token& tok)
   switch (tok.tag) {
   case T_STRING:
     {
-      unsigned fun = env.signature->addStringConstant(tok.content);
+      unsigned fun = env -> signature->addStringConstant(tok.content);
       Term* t = new(0) Term;
       t->makeSymbol(fun,0);
-      t = env.sharing->insert(t);
+      t = env -> sharing->insert(t);
       ts.setTerm(t);
     }
     return;
@@ -3128,7 +3128,7 @@ void TPTP::makeTerm(TermList& ts,Token& tok)
       unsigned fun = addIntegerConstant(tok.content);
       Term* t = new(0) Term;
       t->makeSymbol(fun,0);
-      t = env.sharing->insert(t);
+      t = env -> sharing->insert(t);
       ts.setTerm(t);
     }
     return;
@@ -3137,7 +3137,7 @@ void TPTP::makeTerm(TermList& ts,Token& tok)
       unsigned fun = addRealConstant(tok.content);
       Term* t = new(0) Term;
       t->makeSymbol(fun,0);
-      t = env.sharing->insert(t);
+      t = env -> sharing->insert(t);
       ts.setTerm(t);
     }
     return;
@@ -3146,7 +3146,7 @@ void TPTP::makeTerm(TermList& ts,Token& tok)
       unsigned fun = addRationalConstant(tok.content);
       Term* t = new(0) Term;
       t->makeSymbol(fun,0);
-      t = env.sharing->insert(t);
+      t = env -> sharing->insert(t);
       ts.setTerm(t);
     }
     return;
@@ -3220,7 +3220,7 @@ unsigned TPTP::addFunction(string name,int arity,bool& added,TermList& arg)
 
   if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
     if (arity > 0) {
-      return env.signature->addFunction(name,arity,added);
+      return env -> signature->addFunction(name,arity,added);
     }
     return addUninterpretedConstant(name,added);
   }
@@ -3295,7 +3295,7 @@ int TPTP::addPredicate(string name,int arity,bool& added,TermList& arg)
   CALL("TPTP::addPredicate");
 
   if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
-    return env.signature->addPredicate(name,arity,added);
+    return env -> signature->addPredicate(name,arity,added);
   }
   if (name == "$evaleq" || name == "$equal") {
     return -1;
@@ -3352,14 +3352,14 @@ int TPTP::addPredicate(string name,int arity,bool& added,TermList& arg)
 //    unsigned srt = sortOf(arg);
 //    cout<<"with argument sort: "<<srt<<endl;
 //    if (srt == Sorts::SRT_ARRAY1) {
-//        return env.signature->addInterpretedFunction(array_select,name);
+//        return env -> signature->addInterpretedFunction(array_select,name);
 //    }
 //    if (srt == Sorts::SRT_ARRAY2) {
-//        return env.signature->addInterpretedFunction(array_select,name);
+//        return env -> signature->addInterpretedFunction(array_select,name);
 //    } 
 //The first argument of select is an INT
 //    if (srt == Sorts::SRT_INTEGER) {
-//        return env.signature->addInterpretedFunction(array_select,name);
+//        return env -> signature->addInterpretedFunction(array_select,name);
 //    }
 //    USER_ERROR((string)"The array operation symbol " + name + " is used with a non-array type");
 //} // addOverloadedArrayFunction
@@ -3375,13 +3375,13 @@ unsigned TPTP::addOverloadedFunction(string name,int arity,int symbolArity,bool&
   }
   unsigned srt = sortOf(arg);
   if (srt == Sorts::SRT_INTEGER) {
-    return env.signature->addInterpretedFunction(integer,name);
+    return env -> signature->addInterpretedFunction(integer,name);
   }
   if (srt == Sorts::SRT_RATIONAL) {
-    return env.signature->addInterpretedFunction(rational,name);
+    return env -> signature->addInterpretedFunction(rational,name);
   }
   if (srt == Sorts::SRT_REAL) {
-    return env.signature->addInterpretedFunction(real,name);
+    return env -> signature->addInterpretedFunction(real,name);
   }
   USER_ERROR((string)"The symbol " + name + " is used with a non-numeric type");
 } // addOverloadedFunction
@@ -3397,13 +3397,13 @@ unsigned TPTP::addOverloadedPredicate(string name,int arity,int symbolArity,bool
   }
   unsigned srt = sortOf(arg);
   if (srt == Sorts::SRT_INTEGER) {
-    return env.signature->addInterpretedPredicate(integer,name);
+    return env -> signature->addInterpretedPredicate(integer,name);
   }
   if (srt == Sorts::SRT_RATIONAL) {
-    return env.signature->addInterpretedPredicate(rational,name);
+    return env -> signature->addInterpretedPredicate(rational,name);
   }
   if (srt == Sorts::SRT_REAL) {
-    return env.signature->addInterpretedPredicate(real,name);
+    return env -> signature->addInterpretedPredicate(real,name);
   }
   USER_ERROR((string)"The symbol " + name + " is used with a non-numeric type");
 } // addOverloadedPredicate
@@ -3454,14 +3454,14 @@ unsigned TPTP::addIntegerConstant(const string& name)
   CALL("TPTP::addIntegerConstant");
 
   try {
-    return env.signature->addIntegerConstant(name,_isFof);
+    return env -> signature->addIntegerConstant(name,_isFof);
   }
   catch (Kernel::ArithmeticException&) {
     bool added;
-    unsigned fun = env.signature->addFunction(name,0,added);
+    unsigned fun = env -> signature->addFunction(name,0,added);
     if (added) {
       _overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
+      Signature::Symbol* symbol = env -> signature->getFunction(fun);
       symbol->setType(BaseType::makeType(0,0,
 					 _isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_INTEGER));
     }
@@ -3489,16 +3489,16 @@ unsigned TPTP::addRationalConstant(const string& name)
   size_t i = name.find_first_of("/");
   ASS(i != string::npos);
   try {
-    return env.signature->addRationalConstant(name.substr(0,i),
+    return env -> signature->addRationalConstant(name.substr(0,i),
 					      name.substr(i+1),
 					      _isFof);
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
-    unsigned fun = env.signature->addFunction(name,0,added);
+    unsigned fun = env -> signature->addFunction(name,0,added);
     if (added) {
       _overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
+      Signature::Symbol* symbol = env -> signature->getFunction(fun);
       symbol->setType(BaseType::makeType(0,0,_isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_RATIONAL));
     }
     else if (!_overflow.contains(name)) {
@@ -3523,14 +3523,14 @@ unsigned TPTP::addRealConstant(const string& name)
   CALL("TPTP::addRealConstant");
 
   try {
-    return env.signature->addRealConstant(name,_isFof);
+    return env -> signature->addRealConstant(name,_isFof);
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
-    unsigned fun = env.signature->addFunction(name,0,added);
+    unsigned fun = env -> signature->addFunction(name,0,added);
     if (added) {
       _overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
+      Signature::Symbol* symbol = env -> signature->getFunction(fun);
       symbol->setType(BaseType::makeType(0,0,_isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_REAL));
     }
     else if (!_overflow.contains(name)) {
@@ -3554,7 +3554,7 @@ unsigned TPTP::addUninterpretedConstant(const string& name,bool& added)
   if (_overflow.contains(name)) {
     USER_ERROR((string)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
   }
-  return env.signature->addFunction(name,0,added);
+  return env -> signature->addFunction(name,0,added);
 } // TPTP::addUninterpretedConstant
 
 /**
@@ -3628,8 +3628,8 @@ void TPTP::vampire()
       case T_INT:
       case T_REAL:
       case T_NAME:
-        ASS(env.optionsContainer->isOptionsList());
-        olist = (OptionsList*) env.optionsContainer;
+        ASS(env -> optionsContainer->isOptionsList());
+        olist = (OptionsList*) env -> optionsContainer;
         olist->set(strategy,opt,third_tok.content);
         resetToks();
         break;
@@ -3645,7 +3645,7 @@ void TPTP::vampire()
       case T_INT:
       case T_REAL:
       case T_NAME:
-        env.options->set(opt,second_tok.content);
+        env -> options->set(opt,second_tok.content);
         resetToks();
         break;
       default:
@@ -3697,10 +3697,10 @@ void TPTP::vampire()
     else {
       throw Exception("'left', 'right' or 'skip' expected",getTok(0));
     }
-    env.colorUsed = true;
+    env -> colorUsed = true;
     Signature::Symbol* sym = pred
-                             ? env.signature->getPredicate(env.signature->addPredicate(symb,arity))
-                             : env.signature->getFunction(env.signature->addFunction(symb,arity));
+                             ? env -> signature->getPredicate(env -> signature->addPredicate(symb,arity))
+                             : env -> signature->getFunction(env -> signature->addFunction(symb,arity));
     if (skip) {
       sym->markSkip();
     }

@@ -83,7 +83,7 @@ Term* TermSharing::insert(Term* t)
     unsigned weight = 1;
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
-	env.signature->getFunction(t->functor())->interpreted();
+	env -> signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
@@ -99,7 +99,7 @@ Term* TermSharing::insert(Term* t)
     
           vars += r->vars();
           weight += r->weight();
-          if (env.colorUsed) {
+          if (env -> colorUsed) {
               color = static_cast<Color>(color | r->color());
           }
           if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
@@ -110,8 +110,8 @@ Term* TermSharing::insert(Term* t)
     t->markShared();
     t->setVars(vars);
     t->setWeight(weight);
-    if (env.colorUsed) {
-      Color fcolor = env.signature->getFunction(t->functor())->color();
+    if (env -> colorUsed) {
+      Color fcolor = env -> signature->getFunction(t->functor())->color();
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
@@ -176,7 +176,7 @@ Literal* TermSharing::insert(Literal* t)
 	Term* r = tt->term();
 	vars += r->vars();
 	weight += r->weight();
-	if (env.colorUsed) {
+	if (env -> colorUsed) {
 	  ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
 	  color = static_cast<Color>(color | r->color());
 	}
@@ -188,8 +188,8 @@ Literal* TermSharing::insert(Literal* t)
     t->markShared();
     t->setVars(vars);
     t->setWeight(weight);
-    if (env.colorUsed) {
-      Color fcolor = env.signature->getPredicate(t->functor())->color();
+    if (env -> colorUsed) {
+      Color fcolor = env -> signature->getPredicate(t->functor())->color();
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
@@ -236,7 +236,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t,unsigned sort)
   if (s == t) {
     t->markShared();
     t->setWeight(3);
-    if (env.colorUsed) {
+    if (env -> colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }
     t->setInterpretedConstantsPresence(false);

@@ -331,8 +331,8 @@ TEST_FUN(eprUPDRBuiltInPreds)
       cout<<afit.next()<<endl;
     }
 
-    Predicate bPred = Predicate(env.signature->addPredicate("b", 0));
-    env.signature->getPredicate(bPred)->markProtected();
+    Predicate bPred = Predicate(env -> signature->addPredicate("b", 0));
+    env -> signature->getPredicate(bPred)->markProtected();
 
     Problem::PreprocessingOptions opts;
     opts.mode = Problem::PM_EARLY_PREPROCESSING;

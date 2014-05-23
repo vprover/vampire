@@ -40,7 +40,7 @@ TermBlock iConst(InterpretedType val)
 {
   CALL("AxGen::fun0");
 
-  return fun(env.signature->addInterpretedConstant(val), 0);
+  return fun(env -> signature->addInterpretedConstant(val), 0);
 }
 
 TermBlock fun0(Interpretation te)
@@ -84,7 +84,7 @@ TermBlock fun(Interpretation te, const TermBlock* args)
 {
   CALL("AxGen::fun(Interpretation...)");
 
-  return fun(env.signature->getInterpretingSymbol(te), args);
+  return fun(env -> signature->getInterpretingSymbol(te), args);
 }
 
 /**
@@ -98,7 +98,7 @@ FormBlock pred(Interpretation te, bool positive, const TermBlock* args)
 {
   CALL("AxGen::pred(Interpretation...)");
 
-  return pred(env.signature->getInterpretingSymbol(te), positive, args);
+  return pred(env -> signature->getInterpretingSymbol(te), positive, args);
 }
 
 TermBlock var(unsigned num)
@@ -112,7 +112,7 @@ TermBlock fun(unsigned fn, const TermBlock* args)
 {
   CALL("AxGen::fun(unsigned...)");
 
-  unsigned arity=env.signature->functionArity(fn);
+  unsigned arity=env -> signature->functionArity(fn);
 
   static DArray<TermList> targs;
   targs.ensure(arity);
@@ -129,7 +129,7 @@ FormBlock pred(unsigned pred, bool positive, const TermBlock* args)
 {
   CALL("AxGen::pred(unsigned...)");
 
-  unsigned arity=env.signature->predicateArity(pred);
+  unsigned arity=env -> signature->predicateArity(pred);
 
   Literal* lit;
   if(pred==0) {

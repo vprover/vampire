@@ -127,23 +127,23 @@ void BFNTMainLoop::runChild(size_t modelSize)
   LOG("bfnt_loop","Child termination reason: "
       << ((innerRes.terminationReason==Statistics::SATISFIABLE) ? "Satisfiable" :
 	  (innerRes.terminationReason==Statistics::REFUTATION) ? "Unsatisfiable" : "Unknown") );
-  COND_TRACE("bfnt_loop", env.statistics->model!="",
+  COND_TRACE("bfnt_loop", env -> statistics->model!="",
       tout << "Model: " << endl
-	   << env.statistics->model;
+	   << env -> statistics->model;
   );
 
-  if(env.options->mode()!=Options::MODE_SPIDER) {
+  if(env -> options->mode()!=Options::MODE_SPIDER) {
     if(innerRes.terminationReason==Statistics::SATISFIABLE || innerRes.terminationReason==Statistics::TIME_LIMIT) {
-      env.beginOutput();
-      env.statistics->print(env.out());
-      env.endOutput();
+      env -> beginOutput();
+      env -> statistics->print(env -> out());
+      env -> endOutput();
     }
   }
 
-  if(env.options->mode()!=Options::MODE_SPIDER && innerRes.terminationReason==Statistics::SATISFIABLE) {
-    env.beginOutput();
-    UIHelper::outputSatisfiableResult(env.out());
-    env.endOutput();
+  if(env -> options->mode()!=Options::MODE_SPIDER && innerRes.terminationReason==Statistics::SATISFIABLE) {
+    env -> beginOutput();
+    UIHelper::outputSatisfiableResult(env -> out());
+    env -> endOutput();
     UIHelper::satisfiableStatusWasAlreadyOutput = true;
   }
 
@@ -231,14 +231,14 @@ MainLoopResult BFNTMainLoop::runImpl()
   }
 
 
-  env.timer->makeChildrenIncluded();
+  env -> timer->makeChildrenIncluded();
 
   size_t modelSize = 1;
   for(;;) {
     Timer::syncClock();
-    if(env.timeLimitReached()) { return MainLoopResult(Statistics::TIME_LIMIT); }
+    if(env -> timeLimitReached()) { return MainLoopResult(Statistics::TIME_LIMIT); }
     LOG("bfnt_loop","Trying model size "<<modelSize);
-    env.statistics->maxBFNTModelSize = modelSize;
+    env -> statistics->maxBFNTModelSize = modelSize;
     MainLoopResult childResult = spawnChild(modelSize);
 
     if(childResult.terminationReason == Statistics::SATISFIABLE) {

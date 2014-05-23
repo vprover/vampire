@@ -33,7 +33,7 @@ int SATReplayer::perform(int argc, char** argv)
   string prefix = string(argv[2])+" ";
   ifstream inp(argv[3]);
 
-  TWLSolver solver(*env.options, true);
+  TWLSolver solver(*env -> options, true);
   Test::SolverReplayer replayer(solver);
   replayer.runFromStream(inp, prefix);
 

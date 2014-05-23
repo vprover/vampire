@@ -135,7 +135,7 @@ void Statistics::addCommentIfCASC(ostream& out)
 
 void Statistics::print(ostream& out)
 {
-  if (env.options->statistics()==Options::STATISTICS_NONE) {
+  if (env -> options->statistics()==Options::STATISTICS_NONE) {
     return;
   }
 
@@ -163,7 +163,7 @@ void Statistics::print(ostream& out)
     out << "Memory limit";
     break;
   case Statistics::REFUTATION_NOT_FOUND:
-    if (env.statistics->discardedNonRedundantClauses) {
+    if (env -> statistics->discardedNonRedundantClauses) {
       out << "Refutation not found, non-redundant clauses discarded";
     }
     else {
@@ -284,7 +284,7 @@ void Statistics::print(ostream& out)
 
   addCommentIfCASC(out);
   out << "Time elapsed: ";
-  Timer::printMSString(out,env.timer->elapsedMilliseconds());
+  Timer::printMSString(out,env -> timer->elapsedMilliseconds());
   out << endl;
   addCommentIfCASC(out);
   out << "------------------------------\n";
@@ -297,7 +297,7 @@ void Statistics::print(ostream& out)
 #undef SEPARATOR
 #undef COND_OUT
 
-  if (env.options && env.options->timeStatistics()) {
+  if (env -> options && env -> options->timeStatistics()) {
     TimeCounter::printReport(out);
   }
 }

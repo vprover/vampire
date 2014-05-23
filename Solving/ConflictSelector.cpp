@@ -73,7 +73,7 @@ protected:
 
     size_t curLeft = leftBounds.size()-1;
     size_t curRight = rightBounds.size()-1;
-    LOG("tkv_conflict","Conflict selection for "<<env.signature->varName(v));
+    LOG("tkv_conflict","Conflict selection for "<<env -> signature->varName(v));
     while(curLeft>0 && leftBounds[curLeft-1].hasConflictWith(rightBounds[curRight], true)) {
     TRACE("tkv_conflict",tout<<"Skipping left bound "<<leftBounds[curLeft].value()<<" justified by "
 	<<(leftBounds[curLeft].justification().parent()?leftBounds[curLeft].justification().parent()->toString():string("<decision point>")););
@@ -116,7 +116,7 @@ protected:
     size_t bestRight = curRight;
     Goodness bestGoodness; //we evaluate the goodness of candidates only if there are more than one
 
-    LOG("tkv_conflict","Conflict selection for "<<env.signature->varName(v));
+    LOG("tkv_conflict","Conflict selection for "<<env -> signature->varName(v));
     while(curLeft>0 && leftBounds[curLeft-1].hasConflictWith(rightBounds[curRight], true) && leftBounds[curLeft].justification().parent()) {
       if(onlyCandidate) {
 	bestGoodness = getGoodness(v, bestLeft, bestRight, leftBounds, rightBounds);
@@ -189,7 +189,7 @@ protected:
     ConstraintRCPtr conf;
     _bounds.getConflictCollapsingInequality(v, left, right, conf);
     Goodness res = conf->coeffCnt();
-//    cout<<env.signature->varName(v)<<": "<<res<<endl;
+//    cout<<env -> signature->varName(v)<<": "<<res<<endl;
     return res;
   }
 };

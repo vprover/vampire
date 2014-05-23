@@ -25,21 +25,21 @@ int PreprocessingEvaluator::perform(int argc, char** argv)
 {
   CALL("PreprocessingEvaluator::perform");
 
-  env.options->setTheoryAxioms(false);
+  env -> options->setTheoryAxioms(false);
   CommandLine cl(argc-1,argv+1);
-  cl.interpret(*env.options);
+  cl.interpret(*env -> options);
 
-  PROCESS_TRACE_SPEC_STRING(env.options->traceSpecString());
-  env.options->enableTracesAccordingToOptions();
+  PROCESS_TRACE_SPEC_STRING(env -> options->traceSpecString());
+  env -> options->enableTracesAccordingToOptions();
 
   _parsing.reset();
   _parsing.start();
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
   _parsing.stop();
 
   _preproc.reset();
   _preproc.start();
-  Preprocess pr(*env.options);
+  Preprocess pr(*env -> options);
   pr.preprocess(*prb);
   _preproc.stop();
 

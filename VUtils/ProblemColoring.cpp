@@ -67,9 +67,9 @@ int ProblemColoring::perform(int argc, char** argv)
   argc--; argv++;
 
   Shell::CommandLine cl(argc,argv);
-  cl.interpret(*env.options);
+  cl.interpret(*env -> options);
 
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
 
   DHMultiset<SymId> generality; //contains number of symbol occurences
 
@@ -142,7 +142,7 @@ int ProblemColoring::perform(int argc, char** argv)
 
   bool assignedToSome[2]={false, false};
 
-  env.beginOutput();
+  env -> beginOutput();
   for(int cIndex=0;cIndex<2;cIndex++) {
     string cstr=(cIndex==0)?"left":"right";
     Color reqCol=(cIndex==0)?LEFT:RIGHT;
@@ -159,26 +159,26 @@ int ProblemColoring::perform(int argc, char** argv)
       unsigned functor;
       symEx.decodeSymId(i, pred, functor);
       if(pred) {
-	env.out()<<"vampire(symbol,predicate,"
-	    <<env.signature->predicateName(functor)<<","
-	    <<env.signature->predicateArity(functor)<<","<<cstr<<")."<<endl;
+	env -> out()<<"vampire(symbol,predicate,"
+	    <<env -> signature->predicateName(functor)<<","
+	    <<env -> signature->predicateArity(functor)<<","<<cstr<<")."<<endl;
       }
       else {
-	env.out()<<"vampire(symbol,function,"
-	    <<env.signature->functionName(functor)<<","
-	    <<env.signature->functionArity(functor)<<","<<cstr<<")."<<endl;
+	env -> out()<<"vampire(symbol,function,"
+	    <<env -> signature->functionName(functor)<<","
+	    <<env -> signature->functionArity(functor)<<","<<cstr<<")."<<endl;
       }
     }
   }
 
-  env.out()<<endl;
+  env -> out()<<endl;
 
 
   for(int cIndex=0;cIndex<3;cIndex++) {
     Color reqColor=(cIndex==0)?LEFT:(cIndex==1?RIGHT:TRANSPARENT);
     if(cIndex<2) {
       string cstr=(cIndex==0)?"left":"right";
-      env.out()<<"vampire("<<cstr<<"_formula)."<<endl;
+      env -> out()<<"vampire("<<cstr<<"_formula)."<<endl;
     }
 
     uit=UnitList::Iterator(prb->units());
@@ -187,14 +187,14 @@ int ProblemColoring::perform(int argc, char** argv)
       if(getUnitColor(u)!=reqColor) {
 	continue;
       }
-      env.out()<<TPTPPrinter::toString(u)<<endl;
+      env -> out()<<TPTPPrinter::toString(u)<<endl;
     }
     if(cIndex<2) {
-      env.out()<<"vampire(end_formula)."<<endl<<endl<<endl;
+      env -> out()<<"vampire(end_formula)."<<endl<<endl<<endl;
     }
   }
 
-  env.endOutput();
+  env -> endOutput();
 
   return (assignedToSome[0] && assignedToSome[1]) ? 0 : 1;
 }

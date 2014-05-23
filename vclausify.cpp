@@ -73,11 +73,11 @@ Problem* getPreprocessedProblem()
 {
   CALL("getInputClauses");
 
-  Problem* prb=UIHelper::getInputProblem(*env.options);
+  Problem* prb=UIHelper::getInputProblem(*env -> options);
 
   TimeCounter tc2(TC_PREPROCESSING);
 
-  Preprocess prepro(*env.options);
+  Preprocess prepro(*env -> options);
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(*prb);
   globProblem=prb;
@@ -96,8 +96,8 @@ void clausifyMode()
 
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
-  env.beginOutput();
-  UIHelper::outputSymbolDeclarations(env.out());
+  env -> beginOutput();
+  UIHelper::outputSymbolDeclarations(env -> out());
 
   ClauseIterator cit = prb->clauseIterator();
   while (cit.hasNext()) {
@@ -106,9 +106,9 @@ void clausifyMode()
     if(!cl) {
       continue;
     }
-    env.out() << TPTP::toString(cl) << "\n";
+    env -> out() << TPTP::toString(cl) << "\n";
   }
-  env.endOutput();
+  env -> endOutput();
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -117,9 +117,9 @@ void clausifyMode()
 
 void explainException (Exception& exception)
 {
-  env.beginOutput();
-  exception.cry(env.out());
-  env.endOutput();
+  env -> beginOutput();
+  exception.cry(env -> out());
+  env -> endOutput();
 } // explainException
 
 /**
@@ -138,21 +138,21 @@ int main(int argc, char* argv [])
   Lib::Random::setSeed(123456);
 
   try {
-    env.options->setMode(Options::MODE_CLAUSIFY);
+    env -> options->setMode(Options::MODE_CLAUSIFY);
 
     // read the command line and interpret it
     Shell::CommandLine cl(argc,argv);
-    cl.interpret(*env.options);
+    cl.interpret(*env -> options);
 
-    PROCESS_TRACE_SPEC_STRING(env.options->traceSpecString());
-    env.options->enableTracesAccordingToOptions();
+    PROCESS_TRACE_SPEC_STRING(env -> options->traceSpecString());
+    env -> options->enableTracesAccordingToOptions();
 
-    if(env.options->mode()!=Options::MODE_CLAUSIFY) {
+    if(env -> options->mode()!=Options::MODE_CLAUSIFY) {
       USER_ERROR("Only the \"clausify\" mode is supported");
     }
 
-    Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
-    Lib::Random::setSeed(env.options->randomSeed());
+    Allocator::setMemoryLimit(env -> options->memoryLimit()*1048576ul);
+    Lib::Random::setSeed(env -> options->randomSeed());
 
     clausifyMode();
 
@@ -168,18 +168,18 @@ int main(int argc, char* argv [])
   }
   catch (Exception& exception) {
     reportSpiderFail();
-    env.beginOutput();
+    env -> beginOutput();
     explainException(exception);
-    env.statistics->print(env.out());
-    env.endOutput();
+    env -> statistics->print(env -> out());
+    env -> endOutput();
   }
   catch (std::bad_alloc& _) {
     reportSpiderFail();
-    env.beginOutput();
-    env.out() << "Insufficient system memory" << '\n';
-    env.endOutput();
+    env -> beginOutput();
+    env -> out() << "Insufficient system memory" << '\n';
+    env -> endOutput();
   }
-//   delete env.allocator;
+//   delete env -> allocator;
 
   return vampireReturnValue;
 } // main

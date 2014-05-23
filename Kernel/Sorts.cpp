@@ -303,7 +303,7 @@ string BaseType::argsToString() const
   unsigned ar = arity();
   ASS(ar);
   for (unsigned i = 0; i < ar; i++) {
-    res += env.sorts->sortName(arg(i));
+    res += env -> sorts->sortName(arg(i));
     if (i != ar-1) {
       res += " * ";
     }
@@ -329,7 +329,7 @@ string PredicateType::toString() const
 string FunctionType::toString() const
 {
   CALL("FunctionType::toString");
-  return argsToString() + " > " + env.sorts->sortName(result());
+  return argsToString() + " > " + env -> sorts->sortName(result());
 } // FunctionType::toString
 
 /**

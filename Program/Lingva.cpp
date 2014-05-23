@@ -18,25 +18,25 @@ void RunLingva::run()
   try{
 	  runParsingAndAnalysis();
   } catch (MemoryLimitExceededException) {
-	    env.beginOutput();
-	    env.out() << "Memory limit exceeded\n";
-	    env.endOutput(); 
+	    env -> beginOutput();
+	    env -> out() << "Memory limit exceeded\n";
+	    env -> endOutput(); 
 	  } catch (TimeLimitExceededException) {
-	    env.beginOutput();
-	    env.out() << "Time limit exceeded\n";
-	    env.endOutput();
+	    env -> beginOutput();
+	    env -> out() << "Time limit exceeded\n";
+	    env -> endOutput();
 	  }
-	if (env.statistics->terminationReason == Statistics::REFUTATION){
-	    env.beginOutput();
-	    UIHelper::outputResult(env.out());
-	    env.endOutput();
+	if (env -> statistics->terminationReason == Statistics::REFUTATION){
+	    env -> beginOutput();
+	    UIHelper::outputResult(env -> out());
+	    env -> endOutput();
 		SYSTEM_FAIL("If you see this message something went terribely wrong!", 0);
 		ASSERTION_VIOLATION;
 	}
-	if (env.statistics->terminationReason == Statistics::SATISFIABLE){
-		env.beginOutput();
-		UIHelper::outputResult(env.out());
-		env.endOutput();
+	if (env -> statistics->terminationReason == Statistics::SATISFIABLE){
+		env -> beginOutput();
+		UIHelper::outputResult(env -> out());
+		env -> endOutput();
 	}
 
 }
@@ -90,21 +90,21 @@ void RunLingva::runParsingAndAnalysis()
   //create the ASTConsumer
   Translator::MyASTConsumer *astConsumer = new Translator::MyASTConsumer();
   //pass to the ASTConsumer the while of interest
-  astConsumer->SetWhileNumber(env.options->getWhileNumber());
+  astConsumer->SetWhileNumber(env -> options->getWhileNumber());
   //pass to the consumer the function of interest
-  astConsumer->SetFunctionNumber(env.options->getFunctionNumber());
+  astConsumer->SetFunctionNumber(env -> options->getFunctionNumber());
   ci.setASTConsumer(astConsumer);
 
   ci.createASTContext();
 
   //open the C file
-  const FileEntry *pFile = ci.getFileManager().getFile(env.options->inputFile().c_str());
+  const FileEntry *pFile = ci.getFileManager().getFile(env -> options->inputFile().c_str());
   ci.getSourceManager().createMainFileID(pFile);
   ci.getDiagnosticClient().BeginSourceFile(ci.getLangOpts(),
 	  &ci.getPreprocessor());
   //parse the file using the previously defined options
   clang::ParseAST(ci.getPreprocessor(), astConsumer, ci.getASTContext());
-  if(env.options->getWhileNumber() !=-1){
+  if(env -> options->getWhileNumber() !=-1){
     astConsumer->runAnalysis();
   }
   ci.getDiagnosticClient().EndSourceFile();
@@ -144,15 +144,15 @@ Program::Statement* RunLingva::getWhileStatement(){
    //create the ASTConsumer
    Translator::MyASTConsumer *astConsumer = new Translator::MyASTConsumer();
    //pass to the ASTConsumer the while of interest
-   astConsumer->SetWhileNumber(env.options->getWhileNumber());
+   astConsumer->SetWhileNumber(env -> options->getWhileNumber());
    //pass to the consumer the function of interest
-   astConsumer->SetFunctionNumber(env.options->getFunctionNumber());
+   astConsumer->SetFunctionNumber(env -> options->getFunctionNumber());
    ci.setASTConsumer(astConsumer);
 
    ci.createASTContext();
 
    //open the C file
-   const FileEntry *pFile = ci.getFileManager().getFile(env.options->inputFile().c_str());
+   const FileEntry *pFile = ci.getFileManager().getFile(env -> options->inputFile().c_str());
    ci.getSourceManager().createMainFileID(pFile);
    ci.getDiagnosticClient().BeginSourceFile(ci.getLangOpts(),
            &ci.getPreprocessor());

@@ -256,8 +256,8 @@ Literal* AIGDefinitionIntroducer::getNameLiteral(unsigned aigStackIdx)
   }
 
   unsigned arity = args.size();
-  unsigned pred = env.signature->addFreshPredicate(arity, "sP","aig_name");
-  Signature::Symbol* psym = env.signature->getPredicate(pred);
+  unsigned pred = env -> signature->addFreshPredicate(arity, "sP","aig_name");
+  Signature::Symbol* psym = env -> signature->getPredicate(pred);
   psym->setType(PredicateType::makeType(arity, argSorts.begin(), Sorts::SRT_BOOL));
   if(ni._clr!=COLOR_TRANSPARENT) {
     psym->addColor(ni._clr);

@@ -30,15 +30,15 @@ bool Compit2Output::signaturePrinted=false;
 void Compit2Output::printSignature()
 {
   CALL("Compit2Output::printSignature");
-  ASS_L(env.signature->functions(), numeric_limits<WORD>::max());
+  ASS_L(env -> signature->functions(), numeric_limits<WORD>::max());
 
-  unsigned fCnt=env.signature->functions();
+  unsigned fCnt=env -> signature->functions();
   WORD* buf=new WORD[2+fCnt];
   buf[0]=(WORD)fCnt;
   buf[1]=(WORD)fCnt;
   int pos=2;
   for(unsigned fn=0;fn<fCnt; fn++) {
-    buf[pos++]=(WORD)env.signature->functionArity(fn);
+    buf[pos++]=(WORD)env -> signature->functionArity(fn);
   }
   cout.write(reinterpret_cast<char*>(buf),pos*sizeof(WORD));
   delete[] buf;
@@ -49,10 +49,10 @@ void Compit2Output::printSignature()
 void Compit2Output::printSignatureForLiterals()
 {
   CALL("Compit2Output::printSignature");
-  ASS_L(env.signature->predicates()*2+env.signature->functions(), numeric_limits<WORD>::max());
+  ASS_L(env -> signature->predicates()*2+env -> signature->functions(), numeric_limits<WORD>::max());
 
-  unsigned pCnt=env.signature->predicates();
-  unsigned fCnt=env.signature->functions();
+  unsigned pCnt=env -> signature->predicates();
+  unsigned fCnt=env -> signature->functions();
   unsigned symCnt=pCnt*2+fCnt;
 
   WORD* buf=new WORD[2+symCnt];
@@ -60,10 +60,10 @@ void Compit2Output::printSignatureForLiterals()
   buf[1]=(WORD)fCnt;
   int pos=2;
   for(unsigned fn=0;fn<fCnt; fn++) {
-    buf[pos++]=(WORD)env.signature->functionArity(fn);
+    buf[pos++]=(WORD)env -> signature->functionArity(fn);
   }
   for(unsigned hdr=0;hdr<pCnt*2; hdr++) {
-    buf[pos++]=(WORD)env.signature->predicateArity(hdr/2);
+    buf[pos++]=(WORD)env -> signature->predicateArity(hdr/2);
   }
   cout.write(reinterpret_cast<char*>(buf),pos*sizeof(WORD));
   delete[] buf;
@@ -80,7 +80,7 @@ WORD Compit2Output::getFunctorRepr(unsigned fn)
 WORD Compit2Output::getPredSymbolRepr(unsigned header)
 {
   CALL("Compit2Output::getPredSymbolRepr");
-  return env.signature->functions()+header;
+  return env -> signature->functions()+header;
 }
 
 WORD Compit2Output::getVarRepr(unsigned var)

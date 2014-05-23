@@ -38,18 +38,18 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
       return;
     }
   }
-  env.beginOutput();
-  env.out() << "% SZS answers Tuple [[";
+  env -> beginOutput();
+  env -> out() << "% SZS answers Tuple [[";
   Stack<TermList>::BottomFirstIterator ait(answer);
   while(ait.hasNext()) {
     TermList aLit = ait.next();
-    env.out() << aLit.toString();
+    env -> out() << aLit.toString();
     if(ait.hasNext()) {
-      env.out() << ',';
+      env -> out() << ',';
     }
   }
-  env.out() << "]|_] for " << env.options->problemName() << endl;
-  env.endOutput();
+  env -> out() << "]|_] for " << env -> options->problemName() << endl;
+  env -> endOutput();
 }
 
 
@@ -304,8 +304,8 @@ Literal* AnswerLiteralManager::getAnswerLiteral(Formula::VarList* vars)
   }
 
   unsigned vcnt = litArgs.size();
-  unsigned pred = env.signature->addFreshPredicate(vcnt,"ans");
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  unsigned pred = env -> signature->addFreshPredicate(vcnt,"ans");
+  Signature::Symbol* predSym = env -> signature->getPredicate(pred);
   predSym->markAnswerPredicate();
   return Literal::create(pred, vcnt, true, false, litArgs.begin());
 }
@@ -381,7 +381,7 @@ bool AnswerLiteralManager::isAnswerLiteral(Literal* lit)
   CALL("AnswerLiteralManager::isAnswerLiteral");
 
   unsigned pred = lit->functor();
-  Signature::Symbol* sym = env.signature->getPredicate(pred);
+  Signature::Symbol* sym = env -> signature->getPredicate(pred);
   return sym->answerPredicate();
 }
 
@@ -406,9 +406,9 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
 
   throw MainLoop::RefutationFoundException(refutation);
 
-//  env.beginOutput();
-//  env.out()<<cl->toString()<<endl;
-//  env.endOutput();
+//  env -> beginOutput();
+//  env -> out()<<cl->toString()<<endl;
+//  env -> endOutput();
 }
 
 Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
@@ -423,7 +423,7 @@ Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
   static Stack<TermList> args;
   args.reset();
 
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  Signature::Symbol* predSym = env -> signature->getPredicate(pred);
   ASS(predSym->answerPredicate());
   unsigned arity = predSym->arity();
 

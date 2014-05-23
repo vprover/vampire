@@ -211,7 +211,7 @@ void MinisatClauseDisposer::onConflict()
     _phaseIdx = 0;
     _phaseLen += _phaseLen/2;
 //    cout<<getLearntStack().size()<<"  "<<_survivorCnt<<"  "
-//	<<(env.statistics->learntSatLiterals/env.statistics->learntSatClauses)<<endl;
+//	<<(env -> statistics->learntSatLiterals/env -> statistics->learntSatClauses)<<endl;
   }
 }
 

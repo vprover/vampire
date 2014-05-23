@@ -59,7 +59,7 @@ void EqualityAxiomatizer::scan(Literal* lit)
   if(lit->isEquality()) {
     unsigned eqSort = SortHelper::getEqualityArgumentSort(lit);
     _eqSorts.insert(eqSort);
-    LOG("pp_ea_eq_sorts","eq sort "<<env.sorts->sortName(eqSort)<<" added because of "<<(*lit));
+    LOG("pp_ea_eq_sorts","eq sort "<<env -> sorts->sortName(eqSort)<<" added because of "<<(*lit));
   }
   else {
     _preds.insert(lit->functor());
@@ -96,7 +96,7 @@ void EqualityAxiomatizer::saturateEqSorts()
   SymbolSet::Iterator fit(_fns);
   while(fit.hasNext()) {
     unsigned fn = fit.next();
-    FunctionType* ft = env.signature->getFunction(fn)->fnType();
+    FunctionType* ft = env -> signature->getFunction(fn)->fnType();
     unsigned rngSort = ft->result();
     unsigned arity = ft->arity();
     for(unsigned ai = 0; ai<arity; ++ai) {
@@ -112,7 +112,7 @@ void EqualityAxiomatizer::saturateEqSorts()
   while(implIt.hasNext()) {
     unsigned eqSort = implIt.next();
     if(_eqSorts.insert(eqSort)) {
-      LOG("pp_ea_eq_sorts","eq sort "<<env.sorts->sortName(eqSort)<<" added by implications");
+      LOG("pp_ea_eq_sorts","eq sort "<<env -> sorts->sortName(eqSort)<<" added by implications");
     }
 
   }
@@ -177,7 +177,7 @@ UnitList* EqualityAxiomatizer::getAxioms()
       SortSet::Iterator sit2(_eqSorts);
       while(sit2.hasNext()) {
 	unsigned srt = sit2.next();
-	tout << env.sorts->sortName(srt);
+	tout << env -> sorts->sortName(srt);
 	if(sit2.hasNext()) {
 	  tout << ", ";
 	}
@@ -218,12 +218,12 @@ bool EqualityAxiomatizer::getArgumentEqualityLiterals(BaseType* symbolType, Lite
       lits.push(Literal::createEquality(false, v1, v2, sort));
       vars1.push(v1);
       vars2.push(v2);
-      LOG("pp_ea_eq_lit_builder","sort "<<env.sorts->sortName(sort)<<" lead to equality "<<(*lits.top()));
+      LOG("pp_ea_eq_lit_builder","sort "<<env -> sorts->sortName(sort)<<" lead to equality "<<(*lits.top()));
     }
     else {
       vars1.push(v1);
       vars2.push(v1);
-      LOG("pp_ea_eq_lit_builder","sort "<<env.sorts->sortName(sort)<<" did not use equality");
+      LOG("pp_ea_eq_lit_builder","sort "<<env -> sorts->sortName(sort)<<" did not use equality");
     }
   }
   return lits.isNonEmpty();
@@ -242,7 +242,7 @@ Clause* EqualityAxiomatizer::getFnCongruenceAxiom(unsigned fn)
   vars2.reset();
   lits.reset();
 
-  Signature::Symbol* fnSym = env.signature->getFunction(fn);
+  Signature::Symbol* fnSym = env -> signature->getFunction(fn);
   FunctionType* fnType = fnSym->fnType();
 
   if(!_eqSorts.contains(fnType->result())) {
@@ -275,7 +275,7 @@ Clause* EqualityAxiomatizer::getPredCongruenceAxiom(unsigned pred)
   vars2.reset();
   lits.reset();
 
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  Signature::Symbol* predSym = env -> signature->getPredicate(pred);
   unsigned arity = predSym->arity();
   ASS_G(arity,0);
   if(!getArgumentEqualityLiterals(predSym->predType(), lits, vars1, vars2)) {

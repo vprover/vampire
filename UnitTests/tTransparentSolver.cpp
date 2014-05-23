@@ -21,7 +21,7 @@ using namespace Test;
 
 TEST_FUN(transpSolver1)
 {
-  SATSolverSCP solver(new TransparentSolver(new TWLSolver(*env.options, false)));
+  SATSolverSCP solver(new TransparentSolver(new TWLSolver(*env -> options, false)));
 
   solver->ensureVarCnt(3);
   ASS_EQ(solver->getStatus(),SATSolver::SATISFIABLE);

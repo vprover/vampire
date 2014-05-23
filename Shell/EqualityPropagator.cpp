@@ -401,7 +401,7 @@ FormulaUnit* EqualityPropagator::apply(FormulaUnit* u)
   Formula* newForm = applyTopLevel(form);
 
   if(form!=newForm) {
-    env.statistics->propagatedEqualities++;
+    env -> statistics->propagatedEqualities++;
     LOG("pp_ep", "Equality propagator transformed\n  "<<(*form)<<" into\n  "<<(*newForm));
   }
 
@@ -409,7 +409,7 @@ FormulaUnit* EqualityPropagator::apply(FormulaUnit* u)
   Formula* svrForm = svr.removeSingletonVars(newForm);
 
   if(newForm!=svrForm) {
-    env.statistics->removedSingletonVariables++;
+    env -> statistics->removedSingletonVariables++;
     LOG("pp_ep", "Singleton varible remover transformed\n  "<<(*newForm)<<" into\n  "<<(*svrForm));
   }
 

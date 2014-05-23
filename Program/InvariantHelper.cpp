@@ -56,23 +56,23 @@ void InvariantHelper::setSEIOptions()
   CALL("InvariantHelper::setSEIOptions");
 
 
-  env.options->set("splitting", "off");
-  env.options->set("show_symbol_elimination", "on");
-  env.options->set("unused_predicate_definition_removal", "off");
-  // env.options->set("propositional_to_bdd","off");
+  env -> options->set("splitting", "off");
+  env -> options->set("show_symbol_elimination", "on");
+  env -> options->set("unused_predicate_definition_removal", "off");
+  // env -> options->set("propositional_to_bdd","off");
 
- if (env.options->timeLimitInDeciseconds() == 0)
+ if (env -> options->timeLimitInDeciseconds() == 0)
    {
-   env.options->setTimeLimitInDeciseconds(_timeLimit);
+   env -> options->setTimeLimitInDeciseconds(_timeLimit);
    }
-  env.options->setNaming(32000);
+  env -> options->setNaming(32000);
 }
 
 void InvariantHelper::preprocessUnits(Problem& prb)
 {
   CALL("InvariantHelper::preprocessUnits");
 
-  Preprocess p(*env.options);
+  Preprocess p(*env -> options);
   p.preprocess(prb);
 }
 
@@ -83,29 +83,29 @@ void InvariantHelper::runVampireSaturationN(Problem& prb){
 
     LOG("pp_output","onPreprocessingEnd(), InvariantHelper::runVampireSaturationN()");
     TRACE("pp_output",
-        env.beginOutput();
+        env -> beginOutput();
         UIHelper::outputAllPremises(cout, prb.units(), "New: ");
-        env.endOutput();
+        env -> endOutput();
     );
 
-    env.statistics->phase=Statistics::SATURATION;
-    ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, *env.options));
+    env -> statistics->phase=Statistics::SATURATION;
+    ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, *env -> options));
     MainLoopResult sres(salg->run());
-    env.statistics->phase=Statistics::FINALIZATION;
+    env -> statistics->phase=Statistics::FINALIZATION;
     Timer::setTimeLimitEnforcement(false);
     sres.updateStatistics();
   }
   catch(MemoryLimitExceededException&){
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
-       env.statistics->refutation=0;
+    env -> statistics->terminationReason=Statistics::MEMORY_LIMIT;
+       env -> statistics->refutation=0;
        size_t limit=Allocator::getMemoryLimit();
        //add extra 1 MB to allow proper termination
        Allocator::setMemoryLimit(limit+1000000);
   }
   catch(TimeLimitExceededException&){
     cout<<"time limit exception"<<endl;
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
-        env.statistics->refutation=0;
+    env -> statistics->terminationReason=Statistics::TIME_LIMIT;
+        env -> statistics->refutation=0;
   }
 }
 Problem* InvariantHelper::preprocessUnits()
@@ -113,7 +113,7 @@ Problem* InvariantHelper::preprocessUnits()
   CALL("InvariantHelper::preprocessUnits/1");
 
   Problem* prb = new Problem(_units);
-  Preprocess p(*env.options);
+  Preprocess p(*env -> options);
   p.preprocess(*prb);
   //p.preprocess1(*prb);
   return prb;
@@ -128,9 +128,9 @@ void InvariantHelper::runSEI()
 
   LOG("pp_output","onPreprocessingEnd(), InvariantHelper");
   TRACE("pp_output",
-            env.beginOutput();
+            env -> beginOutput();
             UIHelper::outputAllPremises(tout, (*prb).units(), "New: ");
-            env.endOutput();
+            env -> endOutput();
         );
   setSEIOptions();
 
@@ -139,10 +139,10 @@ void InvariantHelper::runSEI()
   showSignature();
 #endif
 #if true
-  ProvingHelper::runVampireSaturation(*prb,*env.options);
+  ProvingHelper::runVampireSaturation(*prb,*env -> options);
   //runVampireSaturationN(*prb);
 #else
-  ProvingHelper::runVampire(*prb, *env.options);
+  ProvingHelper::runVampire(*prb, *env -> options);
 #endif
 
 }
@@ -151,16 +151,16 @@ void InvariantHelper::showSignature()
 {
   CALL("InvariantHelper::showSignature");
 
-  for (unsigned int i = 0; i < env.signature->functions(); i++)
-    cout << env.signature->getFunction(i)->name() << " "
-	    << (env.signature->getFunction(i)->color() == COLOR_LEFT ? " left "
-		    : " other ") << env.signature->getFunction(i)->arity()
+  for (unsigned int i = 0; i < env -> signature->functions(); i++)
+    cout << env -> signature->getFunction(i)->name() << " "
+	    << (env -> signature->getFunction(i)->color() == COLOR_LEFT ? " left "
+		    : " other ") << env -> signature->getFunction(i)->arity()
 	    << endl;
 
-  for (unsigned int i = 0; i < env.signature->predicates(); i++)
-    cout << env.signature->getPredicate(i)->name() << " "
-	    << (env.signature->getPredicate(i)->color() == COLOR_LEFT ? " left "
-		    : " other") << env.signature->getPredicate(i)->arity()
+  for (unsigned int i = 0; i < env -> signature->predicates(); i++)
+    cout << env -> signature->getPredicate(i)->name() << " "
+	    << (env -> signature->getPredicate(i)->color() == COLOR_LEFT ? " left "
+		    : " other") << env -> signature->getPredicate(i)->arity()
 	    << endl;
 
 

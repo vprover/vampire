@@ -204,7 +204,7 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     ASS(removed->store()==Clause::ACTIVE);
 
     RSTAT_CTR_INC("clauses discarded from active on weight limit update");
-    env.statistics->discardedNonRedundantClauses++;
+    env -> statistics->discardedNonRedundantClauses++;
 
     remove(removed);
     ASS_NEQ(removed->store(), Clause::ACTIVE);

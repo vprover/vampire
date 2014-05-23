@@ -112,7 +112,7 @@ void ConstraintDatabase::handleLiteral(Literal* lit, bool adding, Clause* premis
 {
   CALL("ConstraintDatabase::handleLiteral");
 
-  Signature::Symbol* sym0=env.signature->getPredicate(lit->functor());
+  Signature::Symbol* sym0=env -> signature->getPredicate(lit->functor());
 
   if(lit->arity()!=2 || !sym0->interpreted()) {
     return;
@@ -221,7 +221,7 @@ ArithmeticIndex::ArithmeticIndex()
 void ArithmeticIndex::handleClause(Clause* c, bool adding)
 {
   CALL("ArithmeticIndex::handleClause");
-//  ASS(env.options->interpretedEvaluation()); //this index should be used only when we interpret symbols
+//  ASS(env -> options->interpretedEvaluation()); //this index should be used only when we interpret symbols
 
   if(c->length()!=1 || !BDD::instance()->isFalse(c->prop())) {
     return;

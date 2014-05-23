@@ -22,7 +22,7 @@ using namespace Lib;
 using namespace Kernel;
 
 EquivalentVariableRemover::EquivalentVariableRemover()
- : _eqClasses(env.signature->vars())
+ : _eqClasses(env -> signature->vars())
 {
   CALL("EquivalentVariableRemover::EquivalentVariableRemover");
 
@@ -120,7 +120,7 @@ void EquivalentVariableRemover::scan(ConstraintRCList* lst)
 	_pairs.set(vp, BOTH);
 	_haveEquivalences = true;
 	if(_eqClasses.doUnion(vp.first, vp.second)) {
-	  env.statistics->equivalentVariables++;
+	  env -> statistics->equivalentVariables++;
 	}
       }
     }

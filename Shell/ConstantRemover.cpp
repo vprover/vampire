@@ -20,7 +20,7 @@ using namespace Lib;
 using namespace Kernel;
 
 ConstantRemover::ConstantRemover()
-  : _varCnt(env.signature->vars())
+  : _varCnt(env -> signature->vars())
 {
   reset();
 }
@@ -51,7 +51,7 @@ bool ConstantRemover::apply(ConstraintRCList*& lst)
       c = ConstraintRCPtr(Constraint::resolve(v, *c, needsLeft ? *d.left : *d.right, false));
     }
     if(c!=c0) {
-      env.statistics->updatedByConstantPropagation++;
+      env -> statistics->updatedByConstantPropagation++;
       anyUpdated = true;
       if(c->isTautology()) {
         cit.del();
@@ -110,7 +110,7 @@ bool ConstantRemover::scan(ConstraintRCList* lst)
     }
     d.isTight = true;
     haveConstant = true;
-    env.statistics->constantVariables++;
+    env -> statistics->constantVariables++;
   }
 
   return haveConstant;

@@ -726,7 +726,7 @@ void SimplifyProver::parseTrueFalse(bool tf,Context context)
 				new Inference(Inference::INPUT),
 				Unit::ASSUMPTION));
       }
-      env.statistics->inputFormulas++;
+      env -> statistics->inputFormulas++;
     }
     return;
   case CN_FORMULA:
@@ -860,23 +860,23 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const string& symb,
 #if 0
   if (symb == ">=") {
     if (arity != 2) return 0;
-    env.options->setTheoryAxioms(true);
-    env.signature->registerInterpretedPredicate(symb,Theory::INT_GREATER_EQUAL);
+    env -> options->setTheoryAxioms(true);
+    env -> signature->registerInterpretedPredicate(symb,Theory::INT_GREATER_EQUAL);
   }
   else if (symb == ">") {
     if (arity != 2) return 0;
-    env.options->setTheoryAxioms(true);
-    env.signature->registerInterpretedPredicate(symb,Theory::INT_GREATER);
+    env -> options->setTheoryAxioms(true);
+    env -> signature->registerInterpretedPredicate(symb,Theory::INT_GREATER);
   }
   else if (symb == "<=") {
     if (arity != 2) return 0;
-    env.options->setTheoryAxioms(true);
-    env.signature->registerInterpretedPredicate(symb,Theory::INT_LESS_EQUAL);
+    env -> options->setTheoryAxioms(true);
+    env -> signature->registerInterpretedPredicate(symb,Theory::INT_LESS_EQUAL);
   }
   else if (symb == "<") {
     if (arity != 2) return 0;
-    env.options->setTheoryAxioms(true);
-    env.signature->registerInterpretedPredicate(symb,Theory::INT_LESS);
+    env -> options->setTheoryAxioms(true);
+    env -> signature->registerInterpretedPredicate(symb,Theory::INT_LESS);
   }
   else
 #endif
@@ -887,7 +887,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const string& symb,
 
   SymbolInfo* sinfo = new(arity) SymbolInfo(arity);
   sinfo->returnType = BIT_BOOL;
-  sinfo->number = isEquality ? 0 : env.signature->addPredicate(symb,arity);
+  sinfo->number = isEquality ? 0 : env -> signature->addPredicate(symb,arity);
   for (int i = 0;i < arity;i++) {
     sinfo->argTypes[i] = BIT_INT;
   }
@@ -907,23 +907,23 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInFunction(const string& symb,i
 #if 0
   if (symb == "+") {
     if (arity != 2) return 0;
-    env.options->setTheoryAxioms(true);
-    env.signature->registerInterpretedFunction(symb,Theory::PLUS);
+    env -> options->setTheoryAxioms(true);
+    env -> signature->registerInterpretedFunction(symb,Theory::PLUS);
   }
   else if (symb == "-") {
     if (arity != 2) return 0;
-    env.options->setTheoryAxioms(true);
-    env.signature->registerInterpretedFunction(symb,Theory::MINUS);
+    env -> options->setTheoryAxioms(true);
+    env -> signature->registerInterpretedFunction(symb,Theory::MINUS);
   }
   else if (symb == "*") {
     if (arity != 2) return 0;
-    env.options->setTheoryAxioms(true);
-    env.signature->registerInterpretedFunction(symb,Theory::MULTIPLY);
+    env -> options->setTheoryAxioms(true);
+    env -> signature->registerInterpretedFunction(symb,Theory::MULTIPLY);
   }
 #endif
   SymbolInfo* sinfo = new(arity) SymbolInfo(arity);
   sinfo->returnType = BIT_INT;
-  sinfo->number = env.signature->addFunction(symb,arity);
+  sinfo->number = env -> signature->addFunction(symb,arity);
   for (int i = 0;i < arity;i++) {
     sinfo->argTypes[i] = BIT_INT;
   }
@@ -1172,10 +1172,10 @@ void SimplifyProver::defOp(const List* list,const Expression* expr)
   }
 
   if (tp == BIT_BOOL) {
-    symInfo->number = env.signature->addPredicate(symb,length-1);
+    symInfo->number = env -> signature->addPredicate(symb,length-1);
   }
   else {
-    symInfo->number = env.signature->addFunction(symb,length-1);
+    symInfo->number = env -> signature->addFunction(symb,length-1);
   }
   _symbolInfo.insert(symb,symInfo);
 } // SimplifyProver::defOp
@@ -1588,7 +1588,7 @@ void SimplifyProver::processFormula(Formula* f,Context context)
 			      new Inference(Inference::INPUT),
 			      Unit::ASSUMPTION));
     }
-    env.statistics->inputFormulas++;
+    env -> statistics->inputFormulas++;
     return;
   case CN_ARGUMENT:
     {
@@ -1599,7 +1599,7 @@ void SimplifyProver::processFormula(Formula* f,Context context)
 	args.push(ts);
       }
       int arity = args.length();
-      unsigned sf = env.signature->addSkolemFunction(arity);
+      unsigned sf = env -> signature->addSkolemFunction(arity);
       // term f(x)
       TermList fx(Term::create(sf,arity,args.begin()));
       // formula ~f => f(x) = 0
@@ -1634,7 +1634,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::addNumber(const string& symb)
   if (_symbolInfo.find(symb,sinfo)) return sinfo;
   sinfo = new(0) SymbolInfo(0);
   sinfo->returnType = BIT_INT;
-  unsigned snumber = env.signature->addFunction(symb,0);
+  unsigned snumber = env -> signature->addFunction(symb,0);
   sinfo->number = snumber;
   _symbolInfo.insert(symb,sinfo);
   TermList num(Term::create(snumber,0,0));
@@ -1735,7 +1735,7 @@ void SimplifyProver::buildIfThenElseTerm()
     }
   }
   int arity = args.length();
-  unsigned sf = env.signature->addSkolemFunction(arity);
+  unsigned sf = env -> signature->addSkolemFunction(arity);
   TermList fx(Term::create(sf,arity,args.begin()));
   // add axioms f => fx=s and ~f => fx=t
  
@@ -1770,7 +1770,7 @@ void SimplifyProver::buildLetFormula()
     args.push(TermList(fvi.next(),false));
   }
   int arity = args.length();
-  unsigned sf = env.signature->addNamePredicate(arity);
+  unsigned sf = env -> signature->addNamePredicate(arity);
   // atom p(x)
   Formula* px = new AtomicFormula(Literal::create(sf,arity,true,false,args.begin()));
   // add binding to the let-stack

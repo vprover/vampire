@@ -91,8 +91,8 @@ void runParsingAndAnalysis(const char* file)
   ci.createPreprocessor();
   ci.getPreprocessorOpts().UsePredefines = false;
   Translator::MyASTConsumer *astConsumer = new Translator::MyASTConsumer();
-  astConsumer->SetWhileNumber(env.options->getWhileNumber());
-  astConsumer->SetFunctionNumber(env.options->getFunctionNumber());
+  astConsumer->SetWhileNumber(env -> options->getWhileNumber());
+  astConsumer->SetFunctionNumber(env -> options->getFunctionNumber());
   ci.setASTConsumer(astConsumer);
 
   ci.createASTContext();
@@ -107,9 +107,9 @@ void runParsingAndAnalysis(const char* file)
 
 void explainException (Exception& exception)
 {
-  env.beginOutput();
-  exception.cry(env.out());
-  env.endOutput();
+  env -> beginOutput();
+  exception.cry(env -> out());
+  env -> endOutput();
 } // explainException
 
 void readAndFilterGlobalOpts(Stack<char*>& args) {
@@ -141,8 +141,8 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
       if(!Int::stringToUnsignedInt(memLimitStr, memLimit)) {
 	USER_ERROR("unsigned number expected as value of -m option");
       }
-      env.options->setMemoryLimit(memLimit);
-      Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
+      env -> options->setMemoryLimit(memLimit);
+      Allocator::setMemoryLimit(env -> options->memoryLimit()*1048576ul);
     }
     else if(arg == "-wno" || arg == "while_number"){
     	it.del();
@@ -155,7 +155,7 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
     	int no;
     	if(!Int::stringToInt(whileString, no))
     		USER_ERROR("integer number expected");
-    //	env.options->setWhileNumber(no);
+    //	env -> options->setWhileNumber(no);
     }
     else if(arg == "-in"){
     	it.del();
@@ -188,32 +188,32 @@ int main(int argc, char* argv [])
   Lib::Random::setSeed(123456);
 
   Shell::CommandLine cl(argc,argv);
-  cl.interpret(*env.options);
-  int time = env.options->timeLimitInDeciseconds();
+  cl.interpret(*env -> options);
+  int time = env -> options->timeLimitInDeciseconds();
   //readAndFilterGlobalOpts()
 
   try {
-    env.options->setMode(Options::MODE_VAMPIRE);
-   // env.options->setTimeLimitInDeciseconds(0);
+    env -> options->setMode(Options::MODE_VAMPIRE);
+   // env -> options->setTimeLimitInDeciseconds(0);
 
-    PROCESS_TRACE_SPEC_STRING(env.options->traceSpecString());
-    env.options->enableTracesAccordingToOptions();
+    PROCESS_TRACE_SPEC_STRING(env -> options->traceSpecString());
+    env -> options->enableTracesAccordingToOptions();
 
     Allocator::setMemoryLimit(1024u*1048576ul);
 
-    string inputFile = env.options->inputFile();
+    string inputFile = env -> options->inputFile();
     if(inputFile=="") {
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
     else {
       //default time limit 10 seconds
       if(time == 0 )
-	  env.options->setTimeLimitInDeciseconds(100);
+	  env -> options->setTimeLimitInDeciseconds(100);
      runParsingAndAnalysis(inputFile.c_str());
     }
 /*
        const char *fim;
-       string opt = env.options->inputFile();
+       string opt = env -> options->inputFile();
        fim = opt.c_str();
        runParsingAndAnalysis(fim);*/
   }
@@ -223,11 +223,11 @@ int main(int argc, char* argv [])
   }
 #endif
   catch(TimeLimitExceededException& exception){
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
-    env.beginOutput();
+    env -> statistics->terminationReason=Statistics::TIME_LIMIT;
+    env -> beginOutput();
     explainException(exception);
-    env.statistics->print(env.out());
-    env.endOutput();
+    env -> statistics->print(env -> out());
+    env -> endOutput();
   }
   catch (UserErrorException& exception) {
     reportSpiderFail();
@@ -235,28 +235,28 @@ int main(int argc, char* argv [])
   }
   catch (Exception& exception) {
     reportSpiderFail();
-    env.beginOutput();
+    env -> beginOutput();
     explainException(exception);
-    env.statistics->print(env.out());
-    env.endOutput();
+    env -> statistics->print(env -> out());
+    env -> endOutput();
   }
   catch (std::bad_alloc& _) {
     reportSpiderFail();
-    env.beginOutput();
-    env.out() << "Insufficient system memory" << '\n';
-    env.endOutput();
+    env -> beginOutput();
+    env -> out() << "Insufficient system memory" << '\n';
+    env -> endOutput();
   }
-//   delete env.allocator;
+//   delete env -> allocator;
 
- env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
+ env -> beginOutput();
+  UIHelper::outputResult(env -> out());
+  env -> endOutput();
 
 #if SATISFIABLE_IS_SUCCESS
-  if(env.statistics->terminationReason==Statistics::REFUTATION ||
-      env.statistics->terminationReason==Statistics::SATISFIABLE) {
+  if(env -> statistics->terminationReason==Statistics::REFUTATION ||
+      env -> statistics->terminationReason==Statistics::SATISFIABLE) {
 #else
-    if(env.statistics->terminationReason==Statistics::REFUTATION) {
+    if(env -> statistics->terminationReason==Statistics::REFUTATION) {
 #endif
     resultValue = VAMP_RESULT_STATUS_SUCCESS;
   }

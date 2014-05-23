@@ -47,13 +47,13 @@ ForkingCM::ForkingCM()
 {
   CALL("ForkingCM::ForkingCM");
 
-  _prb = UIHelper::getInputProblem(*env.options);
+  _prb = UIHelper::getInputProblem(*env -> options);
 
   {
     TimeCounter tc(TC_PREPROCESSING);
 
     //we normalize now so that we don't have to do it in every child Vampire
-    ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
+    ScopedLet<Statistics::ExecutionPhase> phaseLet(env -> statistics->phase,Statistics::NORMALIZATION);
     Normalisation norm;
     norm.normalise(*_prb);
   }
@@ -118,8 +118,8 @@ void ForkingCM::childRun(Options& strategyOpt)
 
   UIHelper::cascModeChild=true;
   int resultValue=1;
-  env.timer->reset();
-  env.timer->start();
+  env -> timer->reset();
+  env -> timer->start();
   TimeCounter::reinitialize();
 
   Options opt(strategyOpt);
@@ -128,28 +128,28 @@ void ForkingCM::childRun(Options& strategyOpt)
   opt.setNormalize(false);
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
-  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
-  env.options->setTimeLimitInDeciseconds(opt.timeLimitInDeciseconds());
+  *env -> options = opt; //just temporarily until we get rid of dependencies on env -> options in solving
+  env -> options->setTimeLimitInDeciseconds(opt.timeLimitInDeciseconds());
 
-  env.beginOutput();
-  env.out()<<opt.testId()<<" on "<<env.options->problemName()<<endl;
-  env.endOutput();
+  env -> beginOutput();
+  env -> out()<<opt.testId()<<" on "<<env -> options->problemName()<<endl;
+  env -> endOutput();
 
   ProvingHelper::runVampire(*_prb,opt);
 
   //set return value to zero if we were successful
 #if SATISFIABLE_IS_SUCCESS
-  if(env.statistics->terminationReason==Statistics::REFUTATION ||
-      env.statistics->terminationReason==Statistics::SATISFIABLE) {
+  if(env -> statistics->terminationReason==Statistics::REFUTATION ||
+      env -> statistics->terminationReason==Statistics::SATISFIABLE) {
 #else
-  if(env.statistics->terminationReason==Statistics::REFUTATION) {
+  if(env -> statistics->terminationReason==Statistics::REFUTATION) {
 #endif
     resultValue=0;
   }
 
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
+  env -> beginOutput();
+  UIHelper::outputResult(env -> out());
+  env -> endOutput();
 
   exit(resultValue);
 }

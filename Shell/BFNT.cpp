@@ -41,7 +41,7 @@ using namespace Kernel;
 BFNT::BFNT(Property* prop)
   : _property(prop)
 {
-  _proxy = env.signature->addFreshPredicate(2,"equalish");
+  _proxy = env -> signature->addFreshPredicate(2,"equalish");
 }
 
 /**
@@ -192,8 +192,8 @@ Clause* BFNT::apply(Clause* cl)
       // find the predicate p corresponding to f
       unsigned p; 
       if (!_preds.find(f,p)) { // no such symbol
-	string pname = env.signature->getFunction(f)->name();
-	p = env.signature->addFreshPredicate(args.length(),pname.c_str());
+	string pname = env -> signature->getFunction(f)->name();
+	p = env -> signature->addFreshPredicate(args.length(),pname.c_str());
 	_preds.insert(f,p);
       }
       // create the new flat literal and save it
@@ -353,7 +353,7 @@ UnitList* BFNT::create(unsigned modelSize)
   unsigned constantsFound=0; // the number of constants, used for symmetry breaking
   while (preds.hasNext()) {
     preds.next(fun,pred);
-    int arity = env.signature->getPredicate(pred)->arity();
+    int arity = env -> signature->getPredicate(pred)->arity();
     Stack<TermList> args;
     for (int i = 0;i < arity;i++) {
       TermList v;

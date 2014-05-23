@@ -61,7 +61,7 @@ Property::Property()
     _hasFormulaItes(false)
 {
   _interpretationPresence.init(Theory::MAX_INTERPRETED_ELEMENT+1, false);
-  env.property = this;
+  env -> property = this;
 } // Property::Property
 
 /**
@@ -78,14 +78,14 @@ Property* Property::scan(UnitList* units)
 } // Property::scan
 
 /**
- * Destroy the property. If this property is used as env.property, set env.property to null.
+ * Destroy the property. If this property is used as env -> property, set env -> property to null.
  * @since 22/07/2011 Manchester
  */
 Property::~Property()
 {
   CALL("Property::~Property");
-  if (this == env.property) {
-    env.property = 0;
+  if (this == env -> property) {
+    env -> property = 0;
   }
 }
 
@@ -103,21 +103,21 @@ void Property::add(UnitList* units)
   }
 
   // information about sorts is read from the environment, not from the problem
-  if (env.sorts->hasSort()) {
+  if (env -> sorts->hasSort()) {
     addProp(PR_SORTS);
   }
     
   // information about interpreted constant is read from the signature
-  if (env.signature->strings()) {
+  if (env -> signature->strings()) {
     addProp(PR_HAS_STRINGS);
   }
-  if (env.signature->integers()) {
+  if (env -> signature->integers()) {
     addProp(PR_HAS_INTEGERS);
   }
-  if (env.signature->rationals()) {
+  if (env -> signature->rationals()) {
     addProp(PR_HAS_RATS);
   }
-  if (env.signature->reals()) {
+  if (env -> signature->reals()) {
     addProp(PR_HAS_REALS);
   }
 
@@ -410,7 +410,7 @@ void Property::scan(Literal* lit)
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
     }
-    PredicateType* type = env.signature->getPredicate(lit->functor())->predType();
+    PredicateType* type = env -> signature->getPredicate(lit->functor())->predType();
     for (int i=0; i<arity; i++) {
       scanSort(type->arg(i));
     }
@@ -468,7 +468,7 @@ void Property::scan(TermList* ts)
 	scanForInterpreted(t);
 
 	int arity = t->arity();
-	FunctionType* type = env.signature->getFunction(t->functor())->fnType();
+	FunctionType* type = env -> signature->getFunction(t->functor())->fnType();
 	for (int i=0; i<arity; i++) {
 	  scanSort(type->arg(i));
 	}

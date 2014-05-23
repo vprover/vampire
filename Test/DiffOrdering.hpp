@@ -67,8 +67,8 @@ public:
     Comparison r2=o2->compareFunctors(fun1,fun2);
     if(r1!=r2) {
       TRACE("ord_diff",
-	  tout << "fun1: " << env.signature->functionName(fun1) << endl;
-	  tout << "fun2: " << env.signature->functionName(fun2) << endl;
+	  tout << "fun1: " << env -> signature->functionName(fun1) << endl;
+	  tout << "fun2: " << env -> signature->functionName(fun2) << endl;
 	  tout << "res1: " << r1 << endl;
 	  tout << "res2: " << r2 << endl;
       );

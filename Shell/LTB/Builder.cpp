@@ -37,7 +37,7 @@ Builder::Builder()
 {
   CALL("Builder::Builder");
 
-  _genThreshold=env.options->sineGeneralityThreshold();
+  _genThreshold=env -> options->sineGeneralityThreshold();
 }
 
 struct StringComparator
@@ -83,7 +83,7 @@ void Builder::build(VirtualIterator<string> fnameIterator)
   StringStack fnames;
   fnames.loadFromIterator(fnameIterator);
 
-  if(env.options->normalize()) {
+  if(env -> options->normalize()) {
     sort<StringComparator>(fnames.begin(), fnames.end());
   }
 
@@ -93,15 +93,15 @@ void Builder::build(VirtualIterator<string> fnameIterator)
   StringStack::Iterator fnit(fnames);
   while(fnit.hasNext()) {
     string fname=fnit.next();
-    ifstream input(env.options->includeFileName(fname).c_str());
+    ifstream input(env -> options->includeFileName(fname).c_str());
     if(input.fail()) {
-      USER_ERROR("Cannot open included file: "+env.options->includeFileName(fname));
+      USER_ERROR("Cannot open included file: "+env -> options->includeFileName(fname));
     }
     UnitList* newUnits = Parse::TPTP::parse(input);
     units=UnitList::concat(newUnits, units);
   }
 
-  if(env.options->normalize()) {
+  if(env -> options->normalize()) {
     Normalisation norm;
     units=norm.normalise(units);
   }
@@ -113,7 +113,7 @@ void Builder::build(VirtualIterator<string> fnameIterator)
   //we store CNF of all units
 
   //first we need to prepare otions for the clausifier
-  Options clausifyOptions(*env.options);
+  Options clausifyOptions(*env -> options);
   clausifyOptions._normalize=false;
   clausifyOptions._sineSelection=Options::SS_OFF;
   clausifyOptions._unusedPredicateDefinitionRemoval=false;

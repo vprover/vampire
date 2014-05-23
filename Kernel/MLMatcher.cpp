@@ -557,7 +557,7 @@ binding_start:
     counter++;
     if(counter==50000) {
       counter=0;
-      if(env.timeLimitReached()) {
+      if(env -> timeLimitReached()) {
 	throw TimeLimitExceededException();
       }
     }

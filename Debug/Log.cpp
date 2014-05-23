@@ -325,7 +325,7 @@ private:
       _segmentCnt(0)
     {
       CALL("Logging::Impl::TimedObserver::TimedObserver");
-      _startTime = env.timer->elapsedMilliseconds();
+      _startTime = env -> timer->elapsedMilliseconds();
       _currSegmentStartTime = _startTime;
       _currSegmentEndTime = _currSegmentStartTime + _interval;
     }
@@ -375,7 +375,7 @@ private:
     void finishPassed()
     {
       CALL("Logging::Impl::TimedObserver::finishPassed");
-      unsigned currTime = env.timer->elapsedMilliseconds();
+      unsigned currTime = env -> timer->elapsedMilliseconds();
       while(currTime>_currSegmentEndTime) {
 	nextSegment();
       }

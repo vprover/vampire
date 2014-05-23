@@ -67,7 +67,7 @@ void PredicateIndexIntroducer::scan(UnitList* units)
     unsigned pred = ipit.nextKey();
     Stack<unsigned>& args = _indexedPredArgs.get(pred);
     std::sort(args.begin(), args.end());
-    LOG("pp_pii_elim","elim pred: "<<env.signature->predicateName(pred));
+    LOG("pp_pii_elim","elim pred: "<<env -> signature->predicateName(pred));
   }
   RSTAT_CTR_INC_MANY("predicates removed by indexing", _indexedPredArgs.size());
 }
@@ -80,7 +80,7 @@ PredicateIndexIntroducer::DistGrpSet* PredicateIndexIntroducer::getDistGrps(Term
     return DistGrpSet::getEmpty();
   }
   unsigned func = trm.term()->functor();
-  const List<unsigned>* signDistGrps = env.signature->getFunction(func)->distinctGroups();
+  const List<unsigned>* signDistGrps = env -> signature->getFunction(func)->distinctGroups();
 
   static Stack<unsigned> distGrps;
 
@@ -91,7 +91,7 @@ PredicateIndexIntroducer::DistGrpSet* PredicateIndexIntroducer::getDistGrps(Term
     string name = trm.term()->functionName();
     bool ssDistinct = name.substr(0,2)=="$$";
 
-    string protectedPrefix = env.options->protectedPrefix();
+    string protectedPrefix = env -> options->protectedPrefix();
     if(!ssDistinct && protectedPrefix.size()!=0) {
       if(name.substr(0, protectedPrefix.size())==protectedPrefix) {
 	ssDistinct = true;
@@ -154,7 +154,7 @@ void PredicateIndexIntroducer::scan(Literal* lit)
 {
   CALL("PredicateIndexIntroducer::scan(Literal*)");
 
-  if(env.signature->getPredicate(lit->functor())->protectedSymbol()) {
+  if(env -> signature->getPredicate(lit->functor())->protectedSymbol()) {
     return;
   }
 
@@ -243,13 +243,13 @@ unsigned PredicateIndexIntroducer::getIndexedPred(Literal* lit)
 
 
 
-  *pRes = env.signature->addFreshPredicate(remainingArity, "sP", suffix.c_str());
+  *pRes = env -> signature->addFreshPredicate(remainingArity, "sP", suffix.c_str());
   ASS_EQ(remainingArity, argSorts.size());
   BaseType* predType = BaseType::makeType(remainingArity, argSorts.begin(), Sorts::SRT_BOOL);
-  env.signature->getPredicate(*pRes)->setType(predType);
+  env -> signature->getPredicate(*pRes)->setType(predType);
 
   RSTAT_CTR_INC("introduced index predicates");
-  LOG("pp_pii_intro","introduced index predicate: "<<env.signature->predicateName(*pRes)<< " of type "<<predType->toString());
+  LOG("pp_pii_intro","introduced index predicate: "<<env -> signature->predicateName(*pRes)<< " of type "<<predType->toString());
 
   return *pRes;
 }

@@ -72,14 +72,14 @@ void CMZRMode::perform()
 
   UIHelper::cascMode = true;
 
-  if (env.options->inputFile()=="") {
+  if (env -> options->inputFile()=="") {
     USER_ERROR("Input file must be specified for CMZR mode");
   }
 
   string line;
-  ifstream in(env.options->inputFile().c_str());
+  ifstream in(env -> options->inputFile().c_str());
   if (in.fail()) {
-    USER_ERROR("Cannot open input file: "+env.options->inputFile());
+    USER_ERROR("Cannot open input file: "+env -> options->inputFile());
   }
 
   //support several batches in one file
@@ -148,11 +148,11 @@ void CMZRMode::attemptProblem(unsigned idx)
   string strategy = _problems[idx].schedule.pop();
   unsigned timeMs = getSliceTime(strategy);
 
-  if (env.remainingTime()*_parallelProcesses < timeMs*_unsolvedCnt) {
-    timeMs = (env.remainingTime()*_parallelProcesses)/_unsolvedCnt;
+  if (env -> remainingTime()*_parallelProcesses < timeMs*_unsolvedCnt) {
+    timeMs = (env -> remainingTime()*_parallelProcesses)/_unsolvedCnt;
   }
-  if (env.remainingTime() < (int)timeMs) {
-    timeMs = env.remainingTime();
+  if (env -> remainingTime() < (int)timeMs) {
+    timeMs = env -> remainingTime();
   }
 
   startStrategyRun(idx, strategy,timeMs);
@@ -170,7 +170,7 @@ void CMZRMode::waitForOneFinished()
   unsigned lowestDueTime = UINT_MAX;
   unsigned lowestDuePrb = UINT_MAX;
 
-  unsigned currTime = env.timer->elapsedMilliseconds();
+  unsigned currTime = env -> timer->elapsedMilliseconds();
 
   ProcessMap::Iterator pit(_processProblems);
   while (pit.hasNext()) {
@@ -178,7 +178,7 @@ void CMZRMode::waitForOneFinished()
     const ProblemInfo& pi = _problems[prbIdx];
     ASS_NEQ(pi.runningProcessPID,-1);
     if (pi.processDueTime<currTime) {
-      cout<<"killed overdue pid "<<pi.runningProcessPID<<" at "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
+      cout<<"killed overdue pid "<<pi.runningProcessPID<<" at "<<env -> timer->elapsedMilliseconds()<<" ms"<<endl;
       kill(pi.runningProcessPID,SIGKILL);
     }
     if (pi.processDueTime<lowestDueTime) {
@@ -195,7 +195,7 @@ void CMZRMode::waitForOneFinished()
 
     if (!finishedChild) {
       const ProblemInfo& pi = _problems[lowestDuePrb];
-      cout<<"killed overdue pid "<<pi.runningProcessPID<<" at "<<env.timer->elapsedMilliseconds()<<" ms after a wait"<<endl;
+      cout<<"killed overdue pid "<<pi.runningProcessPID<<" at "<<env -> timer->elapsedMilliseconds()<<" ms after a wait"<<endl;
       kill(pi.runningProcessPID,SIGKILL);
 
       finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
@@ -215,12 +215,12 @@ void CMZRMode::waitForOneFinished()
   if (!resValue) {
     pi.solved = true;
     _unsolvedCnt--;
-    cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (success) at "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
+    cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (success) at "<<env -> timer->elapsedMilliseconds()<<" ms"<<endl;
     cout<<"% SZS status Theorem for "<<pi.inputFName<<endl;
     cout<<"% SZS status Ended for "<<pi.inputFName<<endl;
   }
 
-  cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (fail) at "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
+  cout<<"terminated slice pid "<<finishedChild<<" on "<<pi.inputFName<<" (fail) at "<<env -> timer->elapsedMilliseconds()<<" ms"<<endl;
   cout.flush();
 }
 
@@ -242,7 +242,7 @@ void CMZRMode::startStrategyRun(unsigned prbIdx, string strategy, unsigned timeM
 
   ALWAYS(_processProblems.insert(childId, prbIdx));
   _problems[prbIdx].runningProcessPID = childId;
-  _problems[prbIdx].processDueTime = env.timer->elapsedMilliseconds()+timeMs+100;
+  _problems[prbIdx].processDueTime = env -> timer->elapsedMilliseconds()+timeMs+100;
 
   cout<<"started slice pid "<<childId<<" "<<strategy<<" on "<<_problems[prbIdx].inputFName
       <<" for "<<timeMs<<" ms"<<endl;
@@ -257,9 +257,9 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy, unsigned timeM
 
   ProblemInfo& pi = _problems[prbIdx];
   ofstream outFile(pi.outputFName.c_str(), ios_base::app);
-  env.setPriorityOutput(&outFile);
+  env -> setPriorityOutput(&outFile);
 
-  Options opt=*env.options;
+  Options opt=*env -> options;
   opt.setProblemName(pi.inputFName);
   opt.readFromTestId(strategy);
 
@@ -277,8 +277,8 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy, unsigned timeM
 
 
   int resultValue=1;
-  env.timer->reset();
-  env.timer->start();
+  env -> timer->reset();
+  env -> timer->start();
   TimeCounter::reinitialize();
 
   //we have already performed the normalization
@@ -286,11 +286,11 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy, unsigned timeM
   opt.checkGlobalOptionConstraints();
   //here we make the strategy options drive vampire, particularly
   //we replace the global time limit by the strategy time limit.
-  *env.options = opt;
+  *env -> options = opt;
 
-  env.beginOutput();
-  env.out()<<opt.testId()<<" on "<<opt.problemName()<<" for "<<env.remainingTime()<<" ms"<<endl;
-  env.endOutput();
+  env -> beginOutput();
+  env -> out()<<opt.testId()<<" on "<<opt.problemName()<<" for "<<env -> remainingTime()<<" ms"<<endl;
+  env -> endOutput();
 
   UIHelper::setConjecturePresence(pi.hasConjecture);
 
@@ -298,15 +298,15 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy, unsigned timeM
   ProvingHelper::runVampire(*baseProblem, opt);
 
   //set return value to zero if we were successful
-  if (env.statistics->terminationReason==Statistics::REFUTATION) {
+  if (env -> statistics->terminationReason==Statistics::REFUTATION) {
     resultValue=0;
   }
 
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
+  env -> beginOutput();
+  UIHelper::outputResult(env -> out());
+  env -> endOutput();
 
-  env.setPriorityOutput(0);
+  env -> setPriorityOutput(0);
   outFile.close();
 
   exit(resultValue);
@@ -343,7 +343,7 @@ void CMZRMode::perform(istream& batchFile)
   _unsolvedCnt = prbCnt;
   unsigned nextProblemIdx = 0;
   for (;;) {
-    if (env.timeLimitReached()) {
+    if (env -> timeLimitReached()) {
       break;
     }
     unsigned startIdx = nextProblemIdx;
@@ -356,7 +356,7 @@ void CMZRMode::perform(istream& batchFile)
 	waitForOneFinished();
       }
     }
-    if (env.timeLimitReached()) {
+    if (env -> timeLimitReached()) {
       break;
     }
     attemptProblem(nextProblemIdx);
@@ -381,7 +381,7 @@ fin:
   }
 
   unsigned solvedCnt = prbCnt - _unsolvedCnt;
-  cout<<"Solved "<<solvedCnt<<" out of "<<prbCnt<<" in "<<env.timer->elapsedMilliseconds()<<" ms"<<endl;
+  cout<<"Solved "<<solvedCnt<<" out of "<<prbCnt<<" in "<<env -> timer->elapsedMilliseconds()<<" ms"<<endl;
 }
 
 void CMZRMode::loadIncludes()
@@ -391,11 +391,11 @@ void CMZRMode::loadIncludes()
   UnitList* theoryAxioms=0;
   {
     TimeCounter tc(TC_PARSING);
-    env.statistics->phase=Statistics::PARSING;
+    env -> statistics->phase=Statistics::PARSING;
 
     StringList::Iterator iit(theoryIncludes);
     while (iit.hasNext()) {
-      string fname=env.options->includeFileName(iit.next());
+      string fname=env -> options->includeFileName(iit.next());
       ifstream inp(fname.c_str());
       if (inp.fail()) {
         USER_ERROR("Cannot open included file: "+fname);
@@ -422,7 +422,7 @@ void CMZRMode::loadIncludes()
 
   _axiomProperty = new Property(*baseProblem->getProperty());
 
-  env.statistics->phase=Statistics::UNKNOWN_PHASE;
+  env -> statistics->phase=Statistics::UNKNOWN_PHASE;
 }
 
 void CMZRMode::readInput(istream& in)

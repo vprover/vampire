@@ -508,7 +508,7 @@ void Clause::computeColor() const
 
   Color color = COLOR_TRANSPARENT;
 
-  if (env.colorUsed) {
+  if (env -> colorUsed) {
     unsigned clen=length();
     for(unsigned i=0;i<clen;i++) {
       color = static_cast<Color>(color | (*this)[i]->color());

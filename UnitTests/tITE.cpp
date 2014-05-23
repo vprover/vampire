@@ -77,10 +77,10 @@ TEST_FUN(iteTerm)
 
   TermList x0(0,false); //X0
   TermList x1(1,false); //X1
-  unsigned p=env.signature->addPredicate("p",2);
-  unsigned q=env.signature->addPredicate("q",1);
-  unsigned f=env.signature->addFunction("f",2);
-  unsigned g=env.signature->addFunction("g",1);
+  unsigned p=env -> signature->addPredicate("p",2);
+  unsigned q=env -> signature->addPredicate("q",1);
+  unsigned f=env -> signature->addFunction("f",2);
+  unsigned g=env -> signature->addFunction("g",1);
 
   TermList f01=TermList(Term::create2(f, x0, x1));
   Literal* p01=Literal::create2(p, true, x0, x1);
@@ -142,8 +142,8 @@ TEST_FUN(iteTerm)
 
   Problem prob(probUnits);
 
-  env.options->setUnusedPredicateDefinitionRemoval(false);
-  Preprocess prep(*env.options);
+  env -> options->setUnusedPredicateDefinitionRemoval(false);
+  Preprocess prep(*env -> options);
 
   prep.preprocess(prob);
 

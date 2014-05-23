@@ -86,7 +86,7 @@ void readSymbolTable(FILE* in)
       symbolTable[(int)c].arity=arity;
       symbolTable[(int)c].used=true;
       char convArr[2]={c,0};
-      symbolTable[(int)c].num=env.signature->addFunction(convArr,arity);
+      symbolTable[(int)c].num=env -> signature->addFunction(convArr,arity);
       c=getc(in);
     }
   c=getc(in); // read newline after $
@@ -172,7 +172,7 @@ int main( int argc, char *argv[] )
       compitTimer.stop();
     }
   printf("Total time:\t%d ms\nIndexing time:\t%d ms\n",
-	  env.timer->elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
+	  env -> timer->elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
 
   printf("ops:%d, +:%d, -:%d.\n",operations,insertions,deletions);
   return 0;
@@ -250,7 +250,7 @@ TermList MakeTerm(unsigned char* str)
       }
 
       TermList aux;
-      aux.setTerm(env.sharing->insert(trm));
+      aux.setTerm(env -> sharing->insert(trm));
       args.push(aux);
     }
   }

@@ -126,7 +126,7 @@ struct EqualityFactoring::ResultFn
     ASS_EQ(next,_cLen);
 
     res->setAge(_cl->age()+1);
-    env.statistics->equalityFactoring++;
+    env -> statistics->equalityFactoring++;
 
     return res;
   }

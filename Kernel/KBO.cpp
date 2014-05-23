@@ -323,7 +323,7 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2) const
 
   if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
 	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&  //this line is just optimization, so we don't check whether literals are opposite when they cannot be
-	  l1==env.sharing->tryGetOpposite(l2)) {
+	  l1==env -> sharing->tryGetOpposite(l2)) {
     return l1->isNegative() ? LESS : GREATER;
   }
 
@@ -442,7 +442,7 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 
 int KBO::functionSymbolWeight(unsigned fun) const
 {
-  if(env.signature->functionColored(fun)) {
+  if(env -> signature->functionColored(fun)) {
     return COLORED_WEIGHT_BOOST*_defaultSymbolWeight;
   } else {
     return _defaultSymbolWeight;
@@ -464,11 +464,11 @@ int KBO::functionSymbolWeight(unsigned fun) const
 int KBOBase::predicateLevel (unsigned pred) const
 {
   int basic=pred >= _predicates ? 1 : _predicateLevels[pred];
-  if(NONINTERPRETED_LEVEL_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
+  if(NONINTERPRETED_LEVEL_BOOST && !env -> signature->getPredicate(pred)->interpreted()) {
     ASS_NEQ(pred,0); //equality is always interpreted
     basic+=NONINTERPRETED_LEVEL_BOOST;
   }
-  if(env.signature->predicateColored(pred)) {
+  if(env -> signature->predicateColored(pred)) {
     ASS_NEQ(pred,0); //equality should never be colored
     return COLORED_LEVEL_BOOST*basic;
   } else {
@@ -487,7 +487,7 @@ int KBOBase::predicateLevel (unsigned pred) const
 int KBOBase::predicatePrecedence (unsigned pred) const
 {
   int res=pred >= _predicates ? (int)pred : _predicatePrecedences[pred];
-  if(NONINTERPRETED_PRECEDENCE_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
+  if(NONINTERPRETED_PRECEDENCE_BOOST && !env -> signature->getPredicate(pred)->interpreted()) {
     return res+NONINTERPRETED_PRECEDENCE_BOOST;
   }
   return res;
@@ -516,8 +516,8 @@ Ordering::Result KBOBase::compareFunctionPrecedences(unsigned fun1, unsigned fun
   CALL("KBOBase::compareFunctionPrecedences");
   ASS_NEQ(fun1, fun2);
 
-  Signature::Symbol* s1=env.signature->getFunction(fun1);
-  Signature::Symbol* s2=env.signature->getFunction(fun2);
+  Signature::Symbol* s1=env -> signature->getFunction(fun1);
+  Signature::Symbol* s2=env -> signature->getFunction(fun2);
   if(!s1->interpreted()) {
     if(s2->interpreted()) {
       return GREATER;
@@ -579,8 +579,8 @@ struct FnArityComparator
 {
   Comparison compare(unsigned u1, unsigned u2)
   {
-    Comparison res=Int::compare(env.signature->functionArity(u1),
-	    env.signature->functionArity(u2));
+    Comparison res=Int::compare(env -> signature->functionArity(u1),
+	    env -> signature->functionArity(u2));
     if(res==EQUAL) {
       res=Int::compare(u1,u2);
     }
@@ -591,8 +591,8 @@ struct PredArityComparator
 {
   Comparison compare(unsigned u1, unsigned u2)
   {
-    Comparison res=Int::compare(env.signature->predicateArity(u1),
-	    env.signature->predicateArity(u2));
+    Comparison res=Int::compare(env -> signature->predicateArity(u1),
+	    env -> signature->predicateArity(u2));
     if(res==EQUAL) {
       res=Int::compare(u1,u2);
     }
@@ -604,8 +604,8 @@ struct FnRevArityComparator
 {
   Comparison compare(unsigned u1, unsigned u2)
   {
-    Comparison res=Int::compare(env.signature->functionArity(u2),
-	    env.signature->functionArity(u1));
+    Comparison res=Int::compare(env -> signature->functionArity(u2),
+	    env -> signature->functionArity(u1));
     if(res==EQUAL) {
       res=Int::compare(u1,u2);
     }
@@ -616,8 +616,8 @@ struct PredRevArityComparator
 {
   Comparison compare(unsigned u1, unsigned u2)
   {
-    Comparison res=Int::compare(env.signature->predicateArity(u2),
-	    env.signature->predicateArity(u1));
+    Comparison res=Int::compare(env -> signature->predicateArity(u2),
+	    env -> signature->predicateArity(u1));
     if(res==EQUAL) {
       res=Int::compare(u1,u2);
     }
@@ -630,8 +630,8 @@ struct PredRevArityComparator
  * Create a KBOBase object.
  */
 KBOBase::KBOBase(Problem& prb, const Options& opt)
-  : _predicates(env.signature->predicates()),
-    _functions(env.signature->functions()),
+  : _predicates(env -> signature->predicates()),
+    _functions(env -> signature->functions()),
     _predicateLevels(_predicates),
     _predicatePrecedences(_predicates),
     _functionPrecedences(_functions)
@@ -656,7 +656,7 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
 
     for(unsigned i=0;i<_functions;i++) {
       _functionPrecedences[aux[i]]=i;
-      LOG("kbo_prec","KBO func: "<<env.signature->functionName(aux[i])<<" prec: "<<i);
+      LOG("kbo_prec","KBO func: "<<env -> signature->functionName(aux[i])<<" prec: "<<i);
     }
   }
 
@@ -674,7 +674,7 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   }
   for(unsigned i=0;i<_predicates;i++) {
     _predicatePrecedences[aux[i]]=i;
-    LOG("kbo_prec","KBO pred: "<<env.signature->predicateName(i)<<" prec: "<<i);
+    LOG("kbo_prec","KBO pred: "<<env -> signature->predicateName(i)<<" prec: "<<i);
   }
 
   switch(opt.literalComparisonMode()) {
@@ -685,7 +685,7 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   case Shell::Options::LCM_REVERSE:
     for(unsigned i=1;i<_predicates;i++) {
       _predicateLevels[i]=_predicatePrecedences[i]+1;
-      LOG("kbo_prec","KBO pred: "<<env.signature->predicateName(i)<<" level: "<<i);
+      LOG("kbo_prec","KBO pred: "<<env -> signature->predicateName(i)<<" level: "<<i);
     }
     break;
   }
@@ -695,7 +695,7 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   _reverseLCM = opt.literalComparisonMode()==Shell::Options::LCM_REVERSE;
 
   for(unsigned i=1;i<_predicates;i++) {
-    Signature::Symbol* predSym = env.signature->getPredicate(i);
+    Signature::Symbol* predSym = env -> signature->getPredicate(i);
     //consequence-finding name predicates have the lowest level
     if(predSym->cfName()) {
       _predicateLevels[i]=-1;

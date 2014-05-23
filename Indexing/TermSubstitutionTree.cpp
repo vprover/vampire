@@ -22,7 +22,7 @@ using namespace Lib;
 using namespace Kernel;
 
 TermSubstitutionTree::TermSubstitutionTree()
-: SubstitutionTree(env.signature->functions())
+: SubstitutionTree(env -> signature->functions())
 {
 }
 

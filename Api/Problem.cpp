@@ -464,8 +464,8 @@ void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySy
 
   using namespace Shell;
 
-  string originalInclude=env.options->include();
-  env.options->setInclude(includeDirectory);
+  string originalInclude=env -> options->include();
+  env -> options->setInclude(includeDirectory);
 
   Kernel::UnitList* units;
   if(simplifySyntax) {
@@ -479,7 +479,7 @@ void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySy
     units = Parse::TPTP::parse(s);
   }
 
-  env.options->setInclude(originalInclude);
+  env -> options->setInclude(originalInclude);
   while(units) {
     Kernel::Unit* u=Kernel::UnitList::pop(units);
     addFormula(AnnotatedFormula(u));
@@ -1632,13 +1632,13 @@ inlining:
     return res;
   }
 
-  bool oldTraceVal = env.options->showNonconstantSkolemFunctionTrace();
-  env.options->setShowNonconstantSkolemFunctionTrace(options.showNonConstantSkolemFunctionTrace);
+  bool oldTraceVal = env -> options->showNonconstantSkolemFunctionTrace();
+  env -> options->setShowNonconstantSkolemFunctionTrace(options.showNonConstantSkolemFunctionTrace);
 
   LOG("api_prb_prepr_progress","api_prb_prepr_progress: clausification");
   res = Clausifier(options.namingThreshold, options.preserveEpr, options.mode==PM_SKOLEMIZE, options.traceClausification).transform(res);
 
-  env.options->setShowNonconstantSkolemFunctionTrace(oldTraceVal);
+  env -> options->setShowNonconstantSkolemFunctionTrace(oldTraceVal);
   return res;
 }
 
@@ -1734,7 +1734,7 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
   CALL("outputSymbolTypeDefinitions");
 
   Signature::Symbol* sym = function ?
-      env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
+      env -> signature->getFunction(symNumber) : env -> signature->getPredicate(symNumber);
 
   if(sym->interpreted()) {
     //there is no need to output type definitions for interpreted symbols
@@ -1755,7 +1755,7 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
   unsigned arity = sym->arity();
   if(arity>0) {
     if(arity==1) {
-      out << env.sorts->sortName(type->arg(0));
+      out << env -> sorts->sortName(type->arg(0));
     }
     else {
       out << "(";
@@ -1763,14 +1763,14 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
 	if(i>0) {
 	  out << " * ";
 	}
-	out << env.sorts->sortName(type->arg(i));
+	out << env -> sorts->sortName(type->arg(i));
       }
       out << ")";
     }
     out << " > ";
   }
   if(function) {
-    out << env.sorts->sortName(sym->fnType()->result());
+    out << env -> sorts->sortName(sym->fnType()->result());
   }
   else {
     out << "$o";
@@ -1787,20 +1787,20 @@ void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
   DefaultHelperCore* core0 = _data->getCore();
   bool dummyNames = core0 && core0->outputDummyNames();
   FBHelperCore* core = (core0 && core0->isFBHelper()) ? static_cast<FBHelperCore*>(core0) : 0;
-  unsigned sorts = env.sorts->sorts();
+  unsigned sorts = env -> sorts->sorts();
   for(unsigned i=Sorts::FIRST_USER_SORT; i<sorts; i++) {
-    out << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i) << ": $tType";
+    out << "tff(sort_def_" << i << ",type, " << env -> sorts->sortName(i) << ": $tType";
     if(core) { outputAttributes(out, &core->getSortAttributes(i)); }
     out << " )." << endl;
   }
 
 
-  unsigned funs = env.signature->functions();
+  unsigned funs = env -> signature->functions();
   for(unsigned i=0; i<funs; i++) {
     outputSymbolTypeDefinitions(out, i, true, outputAllTypeDefs,
 	core ? &core->getFunctionAttributes(i) : 0, dummyNames);
   }
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env -> signature->predicates();
   for(unsigned i=1; i<preds; i++) {
     outputSymbolTypeDefinitions(out, i, false, outputAllTypeDefs,
 	core ? &core->getPredicateAttributes(i) : 0, dummyNames);
@@ -1824,7 +1824,7 @@ void Problem::outputStatistics(ostream& out)
 {
   CALL("Problem::outputStatictics");
 
-  env.statistics->print(out);
+  env -> statistics->print(out);
 }
 
 ///////////////////////////////////////

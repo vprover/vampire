@@ -275,7 +275,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
   d->setAge(c->age());
-  env.statistics->duplicateLiterals += length - newLength;
+  env -> statistics->duplicateLiterals += length - newLength;
 
 #if DEBUG_DUPLICATE_LITERALS
   {
@@ -334,7 +334,7 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
     (*d)[i] = lits[newLength-i-1];
   }
   d->setAge(c->age());
-  env.statistics->trivialInequalities += found;
+  env -> statistics->trivialInequalities += found;
 
   return d;
 }

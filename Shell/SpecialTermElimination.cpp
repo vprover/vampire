@@ -504,7 +504,7 @@ Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList the
   ASS_EQ(argSorts.size(),args.size());
 
   unsigned fnArity = args.size();
-  unsigned fnNum = env.signature->addIteFunction(fnArity, argSorts.begin(), thenSort);
+  unsigned fnNum = env -> signature->addIteFunction(fnArity, argSorts.begin(), thenSort);
   TermList func = TermList(Term::create(fnNum, fnArity, args.begin()));
   //TODO: properly determine sort of the ITE term
   unsigned iteSort = SortHelper::getResultSort(func.term());

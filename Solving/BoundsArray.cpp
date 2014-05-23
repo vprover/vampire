@@ -70,7 +70,7 @@ string BoundInfo::toString(const BoundsArray& bounds, const BoundId& b, bool out
   stringstream stm;
   //stm << "[var:" << v << "] ";
   stm << (b.left ? " " : "-");
-  stm << env.signature->varName(b.var);
+  stm << env -> signature->varName(b.var);
   stm << (strict() ? ">" : ">=");
   stm << (b.left ? value() : -value());
   if(outputJustification) {
@@ -233,7 +233,7 @@ void BoundsArray::makeDecisionAssignment(Var v, BoundNumber value)
 {
   CALL("BoundsArray::makeDecisionAssignment");
 
-  TRACE("tkv_decission",tout<<"Making decision point: "<<env.signature->varName(v)<<"="<<value<<"\n";);
+  TRACE("tkv_decission",tout<<"Making decision point: "<<env -> signature->varName(v)<<"="<<value<<"\n";);
 
   BoundId leftBoundId(v, true);
   BoundId rightBoundId(v, false);
@@ -331,7 +331,7 @@ void BoundsArray::tryGetCollapsingInequality(const BoundId& b, size_t boundIndex
       ASS(premiseCollapsingInequality->isTautology());
     }
     else {
-      TRACE("tkv_collapsing",tout<<"Col for "<<env.signature->varName(b.var)<<" building on "<<env.signature->varName(bs.bound.var)<<
+      TRACE("tkv_collapsing",tout<<"Col for "<<env -> signature->varName(b.var)<<" building on "<<env -> signature->varName(bs.bound.var)<<
 	  " using "<<justification.parent()->toString()<<" :\n\t"<<c->toString()<<"\n\t"<<premiseCollapsingInequality->toString(););
       Constraint* newC = Constraint::resolve(bs.bound.var, *c, *premiseCollapsingInequality);
       TRACE("tkv_collapsing",tout<<"\t"<<newC->toString(););
@@ -390,7 +390,7 @@ void BoundsArray::getConflictCollapsingInequality(Var v, size_t leftIdx, size_t 
     result = collapsingLeft;
     }
   else {
-    TRACE("tkv_collapsing",tout<<"Conflict Collapsing for "<<env.signature->varName(v)<<
+    TRACE("tkv_collapsing",tout<<"Conflict Collapsing for "<<env -> signature->varName(v)<<
 	" :\nleft:\t"<<collapsingLeft->toString()<<"\nright:\t"<<collapsingRight->toString(););
     Constraint* res = Constraint::resolve(v, *collapsingLeft, *collapsingRight);
     res->markCollapsing();

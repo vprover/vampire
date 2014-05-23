@@ -97,7 +97,7 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       ASS_EQ(next,clen);
 
       res->setAge(cl->age());
-      env.statistics->forwardLiteralRewrites++;
+      env -> statistics->forwardLiteralRewrites++;
 
       simplPerformer->perform(premise, res, reductionPremise);
       if(!simplPerformer->clauseKept()) {

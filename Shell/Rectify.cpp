@@ -205,7 +205,7 @@ Term* Rectify::rectify (Term* t)
   Term* s = new(t->arity()) Term(*t);
   if (rectify(t->args(),s->args())) {
     if(TermList::allShared(s->args())) {
-      return env.sharing->insert(s);
+      return env -> sharing->insert(s);
     }
     else {
       return s;
@@ -246,10 +246,10 @@ Literal* Rectify::rectify (Literal* l)
       if(l->isEquality() && m->nthArgument(0)->isVar() && m->nthArgument(1)->isVar()) {
 	ASS(l->shared());
 	unsigned srt = SortHelper::getEqualityArgumentSort(l);
-	return env.sharing->insertVariableEquality(m, srt);
+	return env -> sharing->insertVariableEquality(m, srt);
       }
       else {
-	return env.sharing->insert(m);
+	return env -> sharing->insert(m);
       }
     }
     else {

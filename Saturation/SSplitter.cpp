@@ -644,7 +644,7 @@ bool SSplitter::doSplitting(Clause* cl)
 
   addSATClause(splitClause, false);
 
-  env.statistics->satSplits++;
+  env -> statistics->satSplits++;
   return true;
 }
 
@@ -1029,7 +1029,7 @@ bool SSplitter::handleEmptyClause(Clause* cl)
 
   addSATClause(confl, true);
 
-  env.statistics->satSplitRefutations++;
+  env -> statistics->satSplitRefutations++;
   return true;
 }
 

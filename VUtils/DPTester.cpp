@@ -29,14 +29,14 @@ int DPTester::perform(int argc, char** argv)
   CALL("DPTester::perform");
 
   string fname = argv[2];
-  env.options->setInputFile(fname);
+  env -> options->setInputFile(fname);
 
   cout << "solving "<<fname<<endl;
 
-  env.options->setUnusedPredicateDefinitionRemoval(false);
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+  env -> options->setUnusedPredicateDefinitionRemoval(false);
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
 
-  Preprocess(*env.options).preprocess(*prb);
+  Preprocess(*env -> options).preprocess(*prb);
 
   LiteralStack lits;
 

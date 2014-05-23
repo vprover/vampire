@@ -47,7 +47,7 @@ void compitAddSymbol(unsigned functor, unsigned arity)
 {
   char buf[10];
   sprintf(buf,"f%d",functor);
-  unsigned num=env.signature->addFunction(buf, arity);
+  unsigned num=env -> signature->addFunction(buf, arity);
   ASS_EQ(num,functor);
 }
 
@@ -65,7 +65,7 @@ TermStruct compitTermVar(unsigned var)
 }
 TermStruct compitTermFn(unsigned functor)
 {
-  unsigned arity=env.signature->functionArity(functor);
+  unsigned arity=env -> signature->functionArity(functor);
   ASS_GE(assemblingStack.length(),arity);
 
   Term* trm=new(arity) Term();
@@ -75,7 +75,7 @@ TermStruct compitTermFn(unsigned functor)
 	*trm->nthArgument(i)=assemblingStack.pop();
   }
 
-  assemblingStack.push(TermList(env.sharing->insert(trm)));
+  assemblingStack.push(TermList(env -> sharing->insert(trm)));
   return assemblingStack.top();
 }
 

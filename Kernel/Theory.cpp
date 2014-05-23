@@ -992,7 +992,7 @@ bool Theory::isInterpretedConstant(unsigned func)
     return false;
   }
 
-  return env.signature->getFunction(func)->interpreted() && env.signature->functionArity(func)==0;
+  return env -> signature->getFunction(func)->interpreted() && env -> signature->functionArity(func)==0;
 }
 
 /**
@@ -1004,7 +1004,7 @@ bool Theory::isInterpretedConstant(Term* t)
 
   if (t->isSpecial()) { return false; }
 
-  return t->arity()==0 && env.signature->getFunction(t->functor())->interpreted();
+  return t->arity()==0 && env -> signature->getFunction(t->functor())->interpreted();
 }
 
 /**
@@ -1024,7 +1024,7 @@ bool Theory::isInterpretedPredicate(unsigned pred)
 {
   CALL("Theory::isInterpretedPredicate(unsigned)");
 
-  return env.signature->getPredicate(pred)->interpreted();
+  return env -> signature->getPredicate(pred)->interpreted();
 }
 
 /**
@@ -1045,7 +1045,7 @@ bool Theory::isInterpretedPredicate(Literal* lit, Interpretation itp)
 {
   CALL("Theory::isInterpretedPredicate/2");
 
-  return env.signature->getPredicate(lit->functor())->interpreted() &&
+  return env -> signature->getPredicate(lit->functor())->interpreted() &&
       interpretPredicate(lit)==itp;
 }
 
@@ -1057,7 +1057,7 @@ bool Theory::isInterpretedFunction(unsigned func)
     return false;
   }
 
-  return env.signature->getFunction(func)->interpreted() && env.signature->functionArity(func)!=0;
+  return env -> signature->getFunction(func)->interpreted() && env -> signature->functionArity(func)!=0;
 }
 
 
@@ -1111,7 +1111,7 @@ Interpretation Theory::interpretFunction(unsigned func)
   ASS(isInterpretedFunction(func));
 
   Signature::InterpretedSymbol* sym =
-      static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(func));
+      static_cast<Signature::InterpretedSymbol*>(env -> signature->getFunction(func));
 
   return sym->getInterpretation();
 }
@@ -1144,7 +1144,7 @@ Interpretation Theory::interpretPredicate(unsigned pred)
   ASS(isInterpretedPredicate(pred));
 
   Signature::InterpretedSymbol* sym =
-      static_cast<Signature::InterpretedSymbol*>(env.signature->getPredicate(pred));
+      static_cast<Signature::InterpretedSymbol*>(env -> signature->getPredicate(pred));
 
   return sym->getInterpretation();
 }
@@ -1175,7 +1175,7 @@ bool Theory::tryInterpretConstant(const Term* t, IntegerConstantType& res)
     return false;
   }
   unsigned func = t->functor();
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  Signature::Symbol* sym = env -> signature->getFunction(func);
   if (!sym->integerConstant()) {
     return false;
   }
@@ -1198,7 +1198,7 @@ bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
     return false;
   }
   unsigned func = t->functor();
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  Signature::Symbol* sym = env -> signature->getFunction(func);
   if (!sym->rationalConstant()) {
     return false;
   }
@@ -1221,7 +1221,7 @@ bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
     return false;
   }
   unsigned func = t->functor();
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  Signature::Symbol* sym = env -> signature->getFunction(func);
   if (!sym->realConstant()) {
     return false;
   }
@@ -1233,7 +1233,7 @@ Term* Theory::representConstant(const IntegerConstantType& num)
 {
   CALL("Theory::representConstant(const IntegerConstantType&)");
 
-  unsigned func = env.signature->addIntegerConstant(num);
+  unsigned func = env -> signature->addIntegerConstant(num);
   return Term::create(func, 0, 0);
 }
 
@@ -1241,7 +1241,7 @@ Term* Theory::representConstant(const RationalConstantType& num)
 {
   CALL("Theory::representConstant(const RationalConstantType&)");
 
-  unsigned func = env.signature->addRationalConstant(num);
+  unsigned func = env -> signature->addRationalConstant(num);
   return Term::create(func, 0, 0);
 }
 
@@ -1249,7 +1249,7 @@ Term* Theory::representConstant(const RealConstantType& num)
 {
   CALL("Theory::representConstant(const RealConstantType&)");
 
-  unsigned func = env.signature->addRealConstant(num);
+  unsigned func = env -> signature->addRealConstant(num);
   return Term::create(func, 0, 0);
 }
 
@@ -1263,13 +1263,13 @@ Term* Theory::representIntegerConstant(string str)
   catch(ArithmeticException&) {
     NOT_IMPLEMENTED;
 //    bool added;
-//    unsigned fnNum = env.signature->addFunction(str, 0, added);
+//    unsigned fnNum = env -> signature->addFunction(str, 0, added);
 //    if (added) {
-//      env.signature->getFunction(fnNum)->setType(BaseType::makeType0(Sorts::SRT_INTEGER));
-//      env.signature->addToDistinctGroup(fnNum, Signature::INTEGER_DISTINCT_GROUP);
+//      env -> signature->getFunction(fnNum)->setType(BaseType::makeType0(Sorts::SRT_INTEGER));
+//      env -> signature->addToDistinctGroup(fnNum, Signature::INTEGER_DISTINCT_GROUP);
 //    }
 //    else {
-//      ASS(env.signature->getFunction(fnNum))
+//      ASS(env -> signature->getFunction(fnNum))
 //    }
   }
 }
@@ -1361,7 +1361,7 @@ unsigned Theory::getFnNum(Interpretation itp)
   CALL("Theory::getFnNum");
   ASS(isFunction(itp));
   
-  return env.signature->getInterpretingSymbol(itp);
+  return env -> signature->getInterpretingSymbol(itp);
 }
 
 /**
@@ -1372,7 +1372,7 @@ unsigned Theory::getPredNum(Interpretation itp)
   CALL("Theory::getPredNum");
   ASS(!isFunction(itp));
   
-  return env.signature->getInterpretingSymbol(itp);
+  return env -> signature->getInterpretingSymbol(itp);
 }
 
 }

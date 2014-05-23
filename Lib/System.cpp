@@ -43,13 +43,13 @@ bool outputAllowed()
 #if VDEBUG
   return true;
 #else
-  return !Lib::env.options || Lib::env.options->mode()!=Shell::Options::MODE_SPIDER;
+  return !Lib::env -> options || Lib::env -> options->mode()!=Shell::Options::MODE_SPIDER;
 #endif
 }
 
 bool inSpiderMode()
 {
-  return Lib::env.options && Lib::env.options->mode()==Shell::Options::MODE_SPIDER;
+  return Lib::env -> options && Lib::env -> options->mode()==Shell::Options::MODE_SPIDER;
 }
 
 void reportSpiderFail()
@@ -66,12 +66,12 @@ void reportSpiderStatus(char status)
   if(inSpiderMode() && !headerPrinted) {
     headerPrinted=true;
 
-    env.beginOutput();
-    env.out() << status << " "
-      << (Lib::env.options ? Lib::env.options->problemName() : "unknown") << " "
-      << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
-      << (Lib::env.options ? Lib::env.options->testId() : "unknown") << "\n";
-    env.endOutput();
+    env -> beginOutput();
+    env -> out() << status << " "
+      << (Lib::env -> options ? Lib::env -> options->problemName() : "unknown") << " "
+      << (Lib::env -> timer ? Lib::env -> timer->elapsedDeciseconds() : 0) << " "
+      << (Lib::env -> options ? Lib::env -> options->testId() : "unknown") << "\n";
+    env -> endOutput();
   }
 }
 
@@ -196,10 +196,10 @@ void handleSignal (int sigNum)
       }
       handled = true;
       if(outputAllowed()) {
-	if(env.options) {
-	  env.beginOutput();
-	  env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-	  env.endOutput();
+	if(env -> options) {
+	  env -> beginOutput();
+	  env -> out() << "Aborted by signal " << signalDescription << " on " << env -> options->inputFile() << "\n";
+	  env -> endOutput();
 	} else {
 	  cout << "Aborted by signal " << signalDescription << "\n";
 	}
@@ -207,10 +207,10 @@ void handleSignal (int sigNum)
       return;
     case SIGXCPU:
       if(outputAllowed()) {
-	if(env.options) {
-	  env.beginOutput();
-	  env.out() << "External time out (SIGXCPU) on " << env.options->inputFile() << "\n";
-	  env.endOutput();
+	if(env -> options) {
+	  env -> beginOutput();
+	  env -> out() << "External time out (SIGXCPU) on " << env -> options->inputFile() << "\n";
+	  env -> endOutput();
 	} else {
 	  cout << "External time out (SIGXCPU)\n";
 	}
@@ -244,14 +244,14 @@ void handleSignal (int sigNum)
 	reportSpiderFail();
 	handled = true;
 	if(outputAllowed()) {
-	  if(env.options && env.statistics) {
-	    env.beginOutput();
-	    env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-	    env.statistics->print(env.out());
+	  if(env -> options && env -> statistics) {
+	    env -> beginOutput();
+	    env -> out() << "Aborted by signal " << signalDescription << " on " << env -> options->inputFile() << "\n";
+	    env -> statistics->print(env -> out());
 #if VDEBUG
-	    Debug::Tracer::printStack(env.out());
+	    Debug::Tracer::printStack(env -> out());
 #endif
-	    env.endOutput();
+	    env -> endOutput();
 	  } else {
 	    cout << "Aborted by signal " << signalDescription << "\n";
 #if VDEBUG

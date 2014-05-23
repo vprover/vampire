@@ -408,7 +408,7 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
 
 fin:
 #if OUTPUT_LRS_DETAILS
-  cout<<env.timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
+  cout<<env -> timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
 #endif
 
   getSaturationAlgorithm()->getLimits()->setLimits(maxAge,maxWeight);
@@ -474,7 +474,7 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   while (toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
     RSTAT_CTR_INC("clauses discarded from passive on weight limit update");
-    env.statistics->discardedNonRedundantClauses++;
+    env -> statistics->discardedNonRedundantClauses++;
     remove(removed);
   }
 }

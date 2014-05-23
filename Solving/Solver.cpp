@@ -265,7 +265,7 @@ void Solver::handleConflicts()
   cset.reset();
 
   Var lastDecVar;
-  if(env.options->backjumpTargetIsDecisionPoint()) {
+  if(env -> options->backjumpTargetIsDecisionPoint()) {
     lastDecVar = _decStack.getDecisionVar(tgtDepth+1);
   }
   else {
@@ -284,7 +284,7 @@ void Solver::handleConflicts()
       LOG("tkv_conflict","Collapsing inequality did not improve any bounds!");
       throw NumberImprecisionException();
     }
-////    if(constr->coeffCnt()*_stats.retainedConstraints<Lib::env.timer->elapsedDeciseconds()*10) {
+////    if(constr->coeffCnt()*_stats.retainedConstraints<Lib::env -> timer->elapsedDeciseconds()*10) {
 //    if(constr->coeffCnt()==2) {
 //      _stats.retainedConstraints++;
 //      retainConstraint(constr.ptr());
@@ -296,7 +296,7 @@ void Solver::handleConflicts()
   }
   ASS(propRes==BS_CONFLICT || _bounds.getConflictSet().isEmpty());
   if(propRes!=BS_CONFLICT &&
-      ( env.options->bpPropagateAfterConflict() ||
+      ( env -> options->bpPropagateAfterConflict() ||
        (_bounds.hasTightBound(lastDecVar) && haveFullAssignment()) ) ) {
 //  if(propRes!=BS_CONFLICT && _bounds.hasTightBound(lastDecVar)) {
     //Sometimes the collapsing constraint propagation may create a tight bound
@@ -431,7 +431,7 @@ step1:
   catch(Rational::NumberImprecisionException){
 	  //cout<<"this is an issue "<<endl;
 	  switchToPreciseNumbers();
-	  env.statistics->switchToPreciseTimeInMs = env.timer->elapsedMilliseconds();
+	  env -> statistics->switchToPreciseTimeInMs = env -> timer->elapsedMilliseconds();
 //	  goto step1;
  }
   size_t vcnt = varCnt();

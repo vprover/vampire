@@ -466,16 +466,16 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   // check if the allocatio isn't too big
   if(index>=MAX_PAGES) {
 #if SAFE_OUT_OF_MEM_SOLUTION
-    env.beginOutput();
+    env -> beginOutput();
     reportSpiderStatus('?');
-    env.out() << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
-    if(env.statistics) {
-      env.statistics->print(env.out());
+    env -> out() << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
+    if(env -> statistics) {
+      env -> statistics->print(env -> out());
     }
 #if VDEBUG
-    Debug::Tracer::printStack(env.out());
+    Debug::Tracer::printStack(env -> out());
 #endif
-    env.endOutput();
+    env -> endOutput();
     System::terminateImmediately(1);
 #else
     throw Lib::MemoryLimitExceededException();
@@ -489,21 +489,21 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   else {
     size_t newSize = _usedMemory+realSize;
     if (_tolerated && newSize > _tolerated) {
-      env.statistics->terminationReason = Shell::Statistics::MEMORY_LIMIT;
+      env -> statistics->terminationReason = Shell::Statistics::MEMORY_LIMIT;
       //increase the limit, so that the exception can be handled properly.
       _tolerated=newSize+1000000;
 
 #if SAFE_OUT_OF_MEM_SOLUTION
-      env.beginOutput();
+      env -> beginOutput();
       reportSpiderStatus('?');
-      env.out() << "Memory limit exceeded!\n";
+      env -> out() << "Memory limit exceeded!\n";
 # if VDEBUG
 	Allocator::reportUsageByClasses();
 # endif
-      if(env.statistics) {
-	env.statistics->print(env.out());
+      if(env -> statistics) {
+	env -> statistics->print(env -> out());
       }
-      env.endOutput();
+      env -> endOutput();
       System::terminateImmediately(1);
 #else
       throw Lib::MemoryLimitExceededException();

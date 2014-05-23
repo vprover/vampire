@@ -108,20 +108,20 @@ void SimpleSMT::preprocessProblem(int argc, char** argv)
   }
 
   if (fname.substr(fname.size() - 4) == ".smt") {
-    env.options->setInputSyntax(Options::IS_SMTLIB);
+    env -> options->setInputSyntax(Options::IS_SMTLIB);
   }
 
   cout << "Now we should be solving " << fname << endl;
 
-  env.options->setInputFile(fname);
-  env.options->set("aig_bdd_sweeping","on");
-  env.options->set("flatten_top_level_conjunctions","on");
-  env.options->set("distinct_processor","on");
-  env.options->set("inequality_splitting","0");
-  Problem* prb = UIHelper::getInputProblem(*env.options);
+  env -> options->setInputFile(fname);
+  env -> options->set("aig_bdd_sweeping","on");
+  env -> options->set("flatten_top_level_conjunctions","on");
+  env -> options->set("distinct_processor","on");
+  env -> options->set("inequality_splitting","0");
+  Problem* prb = UIHelper::getInputProblem(*env -> options);
   TimeCounter tc2(TC_PREPROCESSING);
 
-  Shell::Preprocess prepro(*env.options);
+  Shell::Preprocess prepro(*env -> options);
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(*prb);
   SAT::SATClauseIterator clauseIterator = (initSATClauses(prb->clauseIterator()));
@@ -306,7 +306,7 @@ int SimpleSMT::perform(int argc, char** argv)
   default:
     break;
   }
-  env.statistics->phase = Statistics::FINALIZATION;
-  env.statistics->print(cout);
+  env -> statistics->phase = Statistics::FINALIZATION;
+  env -> statistics->print(cout);
   return 0;
 } // perform

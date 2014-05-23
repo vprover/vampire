@@ -190,9 +190,9 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
     return true;
   }
   if(getOptions().showBlocked()) {
-    env.beginOutput();
-    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<endl;
-    env.endOutput();
+    env -> beginOutput();
+    env -> out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<endl;
+    env -> endOutput();
   }
   if(getOptions().colorUnblocking()) {
     SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
@@ -200,7 +200,7 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
     ColorHelper::tryUnblock(rwClause, salg);
     ColorHelper::tryUnblock(eqClause, salg);
   }
-  env.statistics->inferencesSkippedDueToColors++;
+  env -> statistics->inferencesSkippedDueToColors++;
   return false;
 }
 
@@ -299,7 +299,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   //we assume that there will be at least one rewrite in the rwLit
 
   if(remainingLimit < static_cast<int>(eqRHS.weigth())) {
-    env.statistics->discardedNonRedundantClauses++;
+    env -> statistics->discardedNonRedundantClauses++;
     RSTAT_CTR_INC("superpositions weight skipped early");
     return false;
   }
@@ -312,7 +312,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
     //there must be at least one rewriting, possibly more
     int approxWeight = rwLit->weight()+rwrBalance;
     if(approxWeight > remainingLimit) {
-      env.statistics->discardedNonRedundantClauses++;
+      env -> statistics->discardedNonRedundantClauses++;
       RSTAT_CTR_INC("superpositions weight skipped after rewriter weight retrieval");
       return false;
     }
@@ -323,7 +323,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
     ASS_GE(rwrCnt, 1);
     int approxWeight = rwLit->weight()+static_cast<int>(rwrBalance*rwrCnt);
     if(approxWeight > remainingLimit) {
-      env.statistics->discardedNonRedundantClauses++;
+      env -> statistics->discardedNonRedundantClauses++;
       RSTAT_CTR_INC("superpositions weight skipped after rewriter weight retrieval with occurrence counting");
       return false;
     }
@@ -333,7 +333,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 
   int finalLitWeight = rwLitSWeight+static_cast<int>(rwrBalance*rwrCnt);
   if(finalLitWeight > remainingLimit) {
-    env.statistics->discardedNonRedundantClauses++;
+    env -> statistics->discardedNonRedundantClauses++;
     RSTAT_CTR_INC("superpositions weight skipped after rewrited literal weight retrieval");
     return false;
   }
@@ -466,7 +466,7 @@ Clause* Superposition::performSuperposition(
 	weight+=(*res)[next]->weight();
 	if(weight>weightLimit) {
 	  RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
-	  env.statistics->discardedNonRedundantClauses++;
+	  env -> statistics->discardedNonRedundantClauses++;
 	  goto construction_fail;
 	}
       }
@@ -484,7 +484,7 @@ Clause* Superposition::performSuperposition(
 	weight+=(*res)[next]->weight();
 	if(weight>weightLimit) {
 	  RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
-	  env.statistics->discardedNonRedundantClauses++;
+	  env -> statistics->discardedNonRedundantClauses++;
 	  goto construction_fail;
 	}
       }
@@ -494,7 +494,7 @@ Clause* Superposition::performSuperposition(
 
   if(weightLimit!=-1 && weight>weightLimit) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
-    env.statistics->discardedNonRedundantClauses++;
+    env -> statistics->discardedNonRedundantClauses++;
   construction_fail:
     res->destroy();
     return 0;
@@ -503,11 +503,11 @@ Clause* Superposition::performSuperposition(
 
   res->setAge(newAge);
   if(rwClause==eqClause) {
-    env.statistics->selfSuperposition++;
+    env -> statistics->selfSuperposition++;
   } else if(eqIsResult) {
-    env.statistics->forwardSuperposition++;
+    env -> statistics->forwardSuperposition++;
   } else {
-    env.statistics->backwardSuperposition++;
+    env -> statistics->backwardSuperposition++;
   }
 
   return res;

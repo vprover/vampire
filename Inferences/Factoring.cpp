@@ -106,7 +106,7 @@ public:
     ASS_EQ(next,newLength);
 
     res->setAge(_cl->age()+1);
-    env.statistics->factoring++;
+    env -> statistics->factoring++;
 
     return res;
   }

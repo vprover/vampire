@@ -433,7 +433,7 @@ MainLoopResult TabulationAlgorithm::runImpl()
 
     _producer.onSafePoint();
 
-    env.checkTimeSometime<20>();
+    env -> checkTimeSometime<20>();
   }
 
   return MainLoopResult(Statistics::UNKNOWN);

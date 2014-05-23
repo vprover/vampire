@@ -186,7 +186,7 @@ redundancy_check:
     TimeCounter tc2(TC_INST_GEN_VARIANT_DETECTION);
     if(_variantIdx->retrieveVariants(cl).hasNext()) {
       cl->destroyIfUnnecessary();
-      env.statistics->instGenRedundantClauses++;
+      env -> statistics->instGenRedundantClauses++;
       return;
     }
   }
@@ -205,7 +205,7 @@ redundancy_check:
   }
 
   _unprocessed.push(cl);
-  env.statistics->instGenKeptClauses++;
+  env -> statistics->instGenKeptClauses++;
   LOG_UNIT("ig_unprocessed_added", cl);
 }
 
@@ -321,7 +321,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
       <<"  other: "<<(*otherCl)<<endl
       <<"  res:   "<<(*res));
 
-  env.statistics->instGenGeneratedClauses++;
+  env -> statistics->instGenGeneratedClauses++;
   addClause(res);
 }
 
@@ -703,7 +703,7 @@ MainLoopResult IGAlgorithm::runImpl()
     bool restarting = false;
     unsigned loopIterCnt = 0;
     while(_unprocessed.isNonEmpty() || !_passive.isEmpty()) {
-      env.statistics->instGenIterations++;
+      env -> statistics->instGenIterations++;
       processUnprocessed();
       ASS_EQ(_satSolver->getStatus(), SATSolver::SATISFIABLE);
 
@@ -735,7 +735,7 @@ MainLoopResult IGAlgorithm::runImpl()
 	_instGenResolutionRatio.doSecond();
 	doResolutionStep();
       }
-      env.checkTimeSometime<100>();
+      env -> checkTimeSometime<100>();
     }
     if(restarting) {
       if(restartKindRatio>0) {
@@ -803,10 +803,10 @@ MainLoopResult IGAlgorithm::onModelFound()
     if(_opt.proof()!=Options::PROOF_OFF) {
       //we need to print this early because model generating can take some time
       if(UIHelper::cascMode) {
-	env.beginOutput();
-	env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+	env -> beginOutput();
+	env -> out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	    << " for " << _opt.problemName() << endl << flush;
-	env.endOutput();
+	env -> endOutput();
 	UIHelper::satisfiableStatusWasAlreadyOutput = true;
       }
 
@@ -814,7 +814,7 @@ MainLoopResult IGAlgorithm::onModelFound()
       stringstream modelStm;
       bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
       if(modelAvailable) {
-	env.statistics->model = modelStm.str();
+	env -> statistics->model = modelStm.str();
       }
       else {
 	res.saturatedSet = 0;

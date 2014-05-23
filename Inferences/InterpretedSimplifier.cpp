@@ -1089,7 +1089,7 @@ void InterpretedSimplifier::perform(Clause* cl, ForwardSimplificationPerformer* 
     }
   }
 
-  env.statistics->interpretedSimplifications++;
+  env -> statistics->interpretedSimplifications++;
 
   ClauseIterator premises=pvi( ClauseStack::Iterator(_simpl->premises) );
 

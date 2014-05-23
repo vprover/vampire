@@ -38,7 +38,7 @@ Clause* TautologyDeletionISE::simplify(Clause* c)
     // l is positive
     if (_deleteEqTautologies && EqHelper::isEqTautology(l)) {
       // literal t = t
-      env.statistics->equationalTautologies++;
+      env -> statistics->equationalTautologies++;
       return 0;
     }
     plits[pos++] = l;
@@ -64,7 +64,7 @@ Clause* TautologyDeletionISE::simplify(Clause* c)
 	}
 	break;
       case 0:
-	env.statistics->simpleTautologies++;
+	env -> statistics->simpleTautologies++;
 	return 0;
       case 1:
 	n++;

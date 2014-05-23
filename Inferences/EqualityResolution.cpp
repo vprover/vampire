@@ -72,7 +72,7 @@ struct EqualityResolution::ResultFn
     ASS_EQ(next,newLen);
 
     res->setAge(_cl->age()+1);
-    env.statistics->equalityResolution++;
+    env -> statistics->equalityResolution++;
 
     return res;
   }

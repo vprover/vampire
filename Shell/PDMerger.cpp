@@ -191,14 +191,14 @@ PDMerger::PDMerger(bool trace)
 {
   CALL("PDMerger::PDMerger");
 
-  _pred2Defs.init(env.signature->predicates(), 0);
+  _pred2Defs.init(env -> signature->predicates(), 0);
 }
 
 PDMerger::~PDMerger()
 {
   CALL("PDMerger::~PDMerger");
 
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env -> signature->predicates();
   for(unsigned i=0; i<preds; i++) {
     if(_pred2Defs[i]) {
       delete _pred2Defs[i];
@@ -247,7 +247,7 @@ void PDMerger::handleIndexes(FormulaUnit* unit, bool insert)
 void PDMerger::triggerNewDefinitions(unsigned elPred)
 {
   CALL("PDMerger::triggerNewDefinitions");
-  ASS_REP(_pred2Defs[elPred], env.signature->predicateName(elPred));
+  ASS_REP(_pred2Defs[elPred], env -> signature->predicateName(elPred));
 
   FormulaSkipList* sl = _pred2Defs[elPred];
   _pred2Defs[elPred] = 0;
@@ -316,7 +316,7 @@ void PDMerger::processDefinition(FormulaUnit* unit0)
     Unit::InputType inpType = Unit::getInputType(unit->inputType(), qres.unit->inputType());
     FormulaUnit* premise = new FormulaUnit(merged, inf, inpType);
 
-    env.statistics->mergedPredicateDefinitions++;
+    env -> statistics->mergedPredicateDefinitions++;
 
     LOG("pp_pdm", "Predicate equivalence discovered\n- " << qres.unit->toString()
 	  << "\n- " << unit->toString() << "\n- resulting into " << premise->toString());
@@ -463,7 +463,7 @@ bool PDMerger::apply(UnitList*& units)
         defCnt++;
       }
     }
-    tout << "Merged " << env.statistics->mergedPredicateDefinitions << ", "
+    tout << "Merged " << env -> statistics->mergedPredicateDefinitions << ", "
 	 << defCnt << " survived" << endl;
   );
   return modified;

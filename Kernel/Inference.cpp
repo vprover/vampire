@@ -15,7 +15,7 @@ Inference::Inference(Rule r)
   : _rule(r)
 {
 //  switch(r) {
-//  //TODO: move env.statistics object updates here.
+//  //TODO: move env -> statistics object updates here.
 //  default: ;
 //  }
 }

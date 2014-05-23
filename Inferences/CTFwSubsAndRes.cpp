@@ -99,11 +99,11 @@ void CTFwSubsAndRes::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
     if(res.resolved) {
       Clause* replacement=buildSResClause(cl, res.resolvedQueryLiteralIndex, premise);
       simplPerformer->perform(premise, replacement);
-      env.statistics->forwardSubsumptionResolution++;
+      env -> statistics->forwardSubsumptionResolution++;
     }
     else {
       simplPerformer->perform(premise, 0);
-      env.statistics->forwardSubsumed++;
+      env -> statistics->forwardSubsumed++;
     }
     
     if(!simplPerformer->clauseKept()) {

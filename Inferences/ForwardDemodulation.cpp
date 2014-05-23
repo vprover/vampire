@@ -173,7 +173,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 
 	Literal* resLit = EqHelper::replace(lit,trm,rhsS);
 	if(EqHelper::isEqTautology(resLit)) {
-	  env.statistics->forwardDemodulationsToEqTaut++;
+	  env -> statistics->forwardDemodulationsToEqTaut++;
 	  simplPerformer->perform(qr.clause, 0);
 	  if(!simplPerformer->clauseKept()) {
 	    return;
@@ -198,7 +198,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	ASS_EQ(next,cLen);
 
 	res->setAge(cl->age());
-	env.statistics->forwardDemodulations++;
+	env -> statistics->forwardDemodulations++;
 
 	simplPerformer->perform(qr.clause, res);
 	if(!simplPerformer->clauseKept()) {

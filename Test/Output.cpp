@@ -26,7 +26,7 @@ string Output::toString(const Term* t)
 {
   CALL("Output::toString(const Term*)");
   ASS(!t->isLiteral());
-  string name(env.signature->functionName(t->functor()));
+  string name(env -> signature->functionName(t->functor()));
   if (t->arity() == 0) {
     return name;
   }
@@ -68,7 +68,7 @@ string Output::toString(const Literal* l)
   CALL("Output::toString(const Literal*)");
 
   string tt(l->isPositive() ? "" : "~" );
-  tt += l->isEquality() ? "e" : env.signature->predicateName(l->functor());
+  tt += l->isEquality() ? "e" : env -> signature->predicateName(l->functor());
   if (l->arity() != 0) {
     tt += "(" + toString(l->args()) + ")";
   }

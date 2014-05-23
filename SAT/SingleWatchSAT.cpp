@@ -106,7 +106,7 @@ bool SingleWatchSAT::earlyTermination()
 
 
   if(_timeLimit && counter++ == 1000) {
-    int elapsed=env.timer->elapsedMilliseconds()-_startTime;
+    int elapsed=env -> timer->elapsedMilliseconds()-_startTime;
     int remaining=_timeLimit-elapsed;
     counter=0;
     if(remaining<=0) {
@@ -285,7 +285,7 @@ void SingleWatchSAT::satisfy(int timeLimit)
 
   _timeLimit=timeLimit;
   if(timeLimit) {
-    _startTime=env.timer->elapsedMilliseconds();
+    _startTime=env -> timer->elapsedMilliseconds();
     _unusedRemovalCnt=0;
   }
   _conflicts.init(_varCnt, 0);

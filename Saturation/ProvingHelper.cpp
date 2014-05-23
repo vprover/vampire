@@ -26,10 +26,10 @@ using namespace Kernel;
 using namespace Shell;
 
 /**
- * Run the Vampire saturation loop (based on the content of @b env.options )
+ * Run the Vampire saturation loop (based on the content of @b env -> options )
  * on @b clauses
  *
- * The result of the loop is in @b env.statistics
+ * The result of the loop is in @b env -> statistics
  *
  * The content of the @b units list after return from the function is
  * undefined
@@ -45,24 +45,24 @@ using namespace Shell;
     runVampireSaturationImpl(prb, opt);
   }
   catch(MemoryLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
-    env.statistics->refutation=0;
+    env -> statistics->terminationReason=Statistics::MEMORY_LIMIT;
+    env -> statistics->refutation=0;
     size_t limit=Allocator::getMemoryLimit();
     //add extra 1 MB to allow proper termination
     Allocator::setMemoryLimit(limit+1000000);
   }
   catch(TimeLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
-    env.statistics->refutation=0;
+    env -> statistics->terminationReason=Statistics::TIME_LIMIT;
+    env -> statistics->refutation=0;
   }
 }
 
 /**
  * Run the Vampire preprocessing and saturation loop (based on the content
- * of @b env.options ) on @b units. If @b prop is nonzero, do not scan
+ * of @b env -> options ) on @b units. If @b prop is nonzero, do not scan
  * properties of the units, but use @b prop as a property object instead.
  *
- * The result of the loop is in @b env.statistics
+ * The result of the loop is in @b env -> statistics
  *
  * The content of the @b units list after return from the function is
  * undefined
@@ -86,15 +86,15 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
     runVampireSaturationImpl(prb, opt);
   }
   catch(MemoryLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
-    env.statistics->refutation=0;
+    env -> statistics->terminationReason=Statistics::MEMORY_LIMIT;
+    env -> statistics->refutation=0;
     size_t limit=Allocator::getMemoryLimit();
     //add extra 1 MB to allow proper termination
     Allocator::setMemoryLimit(limit+1000000);
   }
   catch(TimeLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
-    env.statistics->refutation=0;
+    env -> statistics->terminationReason=Statistics::TIME_LIMIT;
+    env -> statistics->refutation=0;
   }
 }
 
@@ -109,16 +109,16 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   Unit::onPreprocessingEnd();
   LOG("pp_output", "onPreprocessingEnd(), Proving Helper");
   TRACE("pp_output",
-      env.beginOutput();
+      env -> beginOutput();
       UIHelper::outputAllPremises(tout, prb.units(), "New: ");
-      env.endOutput();
+      env -> endOutput();
   );
 
-  env.statistics->phase=Statistics::SATURATION;
+  env -> statistics->phase=Statistics::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
   MainLoopResult sres(salg->run());
-  env.statistics->phase=Statistics::FINALIZATION;
+  env -> statistics->phase=Statistics::FINALIZATION;
   Timer::setTimeLimitEnforcement(false);
   sres.updateStatistics();
 }

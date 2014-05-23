@@ -142,7 +142,7 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
 {
   CALL("FunctionDefinition::removeUnusedDefinitions");
 
-  unsigned funs=env.signature->functions();
+  unsigned funs=env -> signature->functions();
 
   Stack<Def*> defStack;
   DArray<Def*> def;
@@ -316,7 +316,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
     }
 
     LOG("pp_fde_defs","fn def discovered: "<<(*d->defCl)<<"\n  unfolded: "<<(*d->rhs));
-    env.statistics->functionDefinitions++;
+    env -> statistics->functionDefinitions++;
   }
 
   UnitList::DelIterator unfoldIterator(units);
@@ -801,10 +801,10 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     return 0;
   }
   unsigned f = lhs->functor();
-  if(env.signature->getFunction(f)->protectedSymbol()) {
+  if(env -> signature->getFunction(f)->protectedSymbol()) {
     return 0;
   }
-  if(env.signature->getFunction(f)->distinctGroups()!=0) {
+  if(env -> signature->getFunction(f)->distinctGroups()!=0) {
     return 0;
   }
   if(lhs->color()==COLOR_TRANSPARENT && rhs->color()!=COLOR_TRANSPARENT) {

@@ -110,8 +110,8 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
   CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,const char*)");
   ASS(arity==0 || domainSorts!=0);
 
-  unsigned fun = env.signature->addSkolemFunction(arity, suffix);
-  Signature::Symbol* fnSym = env.signature->getFunction(fun);
+  unsigned fun = env -> signature->addSkolemFunction(arity, suffix);
+  Signature::Symbol* fnSym = env -> signature->getFunction(fun);
   fnSym->setType(new FunctionType(arity, domainSorts, rangeSort));
   return fun;
 }

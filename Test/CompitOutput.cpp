@@ -26,9 +26,9 @@ bool CompitOutput::signaturePrinted=false;
 void CompitOutput::printSignature()
 {
   CALL("CompitOutput::printSignature");
-  unsigned fCnt=env.signature->functions();
+  unsigned fCnt=env -> signature->functions();
   for(unsigned fn=0;fn<fCnt; fn++) {
-    cout<<getFunctorChar(fn)<<'/'<<env.signature->functionArity(fn)<<'\n';
+    cout<<getFunctorChar(fn)<<'/'<<env -> signature->functionArity(fn)<<'\n';
   }
   cout<<"$\n";
   signaturePrinted=true;
@@ -37,13 +37,13 @@ void CompitOutput::printSignature()
 void CompitOutput::printSignatureForLiterals()
 {
   CALL("CompitOutput::printSignatureForLiterals");
-  unsigned fCnt=env.signature->functions();
+  unsigned fCnt=env -> signature->functions();
   for(unsigned fn=0;fn<fCnt; fn++) {
-    cout<<getFunctorChar(fn)<<'/'<<env.signature->functionArity(fn)<<'\n';
+    cout<<getFunctorChar(fn)<<'/'<<env -> signature->functionArity(fn)<<'\n';
   }
-  unsigned pCnt=env.signature->predicates();
+  unsigned pCnt=env -> signature->predicates();
   for(unsigned hdr=0;hdr<pCnt*2; hdr++) {
-    cout<<getPredSymbolChar(hdr)<<'/'<<env.signature->predicateArity(hdr/2)<<'\n';
+    cout<<getPredSymbolChar(hdr)<<'/'<<env -> signature->predicateArity(hdr/2)<<'\n';
   }
   cout<<"$\n";
   signaturePrinted=true;
@@ -61,7 +61,7 @@ char CompitOutput::getFunctorChar(unsigned fn)
 char CompitOutput::getPredSymbolChar(unsigned header)
 {
   CALL("CompitOutput::getPredSymbolChar");
-  unsigned index=env.signature->functions()+header;
+  unsigned index=env -> signature->functions()+header;
   if(index>158) {
     fail();
   }

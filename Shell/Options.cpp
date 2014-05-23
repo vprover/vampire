@@ -3026,7 +3026,7 @@ bool Options::outputSuppressed() const
 //          ! _maxWeight &&
 //          _binaryResolution &&
 //          ! _forwardLiteralRewriting &&
-//          ! env.interpretedOperationsUsed &&
+//          ! env -> interpretedOperationsUsed &&
 //          _sineSelection==SS_OFF &&
 //          _saturationAlgorithm!=TABULATION &&
 //          ! _forceIncompleteness;

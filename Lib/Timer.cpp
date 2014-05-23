@@ -86,26 +86,26 @@ int Timer::s_initGuarantedMiliseconds;
 
 void timeLimitReached()
 {
-  env.beginOutput();
+  env -> beginOutput();
   reportSpiderStatus('?');
   if (!inSpiderMode()) {
     if (Shell::UIHelper::cascMode) {
-      env.out() << "% (" << getpid() << ')';
+      env -> out() << "% (" << getpid() << ')';
     }
-    env.out() << "Time limit reached!\n";
+    env -> out() << "Time limit reached!\n";
     if (Shell::UIHelper::cascMode && !Shell::UIHelper::cascModeChild) {
-      env.out() << "% Proof not found in time ";
-      Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
-      env.out() << endl;
+      env -> out() << "% Proof not found in time ";
+      Timer::printMSString(env -> out(),env -> timer->elapsedMilliseconds());
+      env -> out() << endl;
 
-      env.out() << "% SZS status Timeout for "
-                << (env.options ? env.options->problemName() : "unknown") << endl;
+      env -> out() << "% SZS status Timeout for "
+                << (env -> options ? env -> options->problemName() : "unknown") << endl;
     }
   }
-  if(env.statistics && (!Shell::UIHelper::cascMode || Shell::UIHelper::cascModeChild)) {
-    env.statistics->print(env.out());
+  if(env -> statistics && (!Shell::UIHelper::cascMode || Shell::UIHelper::cascModeChild)) {
+    env -> statistics->print(env -> out());
   }
-  env.endOutput();
+  env -> endOutput();
 
   System::terminateImmediately(1);
 }
@@ -123,7 +123,7 @@ timer_sigalrm_handler (int sig)
 
   timer_sigalrm_counter++;
 
-  if(Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
+  if(Timer::s_timeLimitEnforcement && env -> timeLimitReached()) {
     timeLimitReached();
   }
 

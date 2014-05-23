@@ -51,8 +51,8 @@ AIGInliner::EquivInfo::EquivInfo(Literal* lhs, Formula* rhs, FormulaUnit* unit)
 bool AIGInliner::EquivInfo::litIsLess(Literal* l1, Literal* l2)
 {
   CALL("AIGInliner::EquivInfo::litIsLess");
-  bool l1Protected = env.signature->getPredicate(l1->functor())->protectedSymbol();
-  bool l2Protected = env.signature->getPredicate(l2->functor())->protectedSymbol();
+  bool l1Protected = env -> signature->getPredicate(l1->functor())->protectedSymbol();
+  bool l2Protected = env -> signature->getPredicate(l2->functor())->protectedSymbol();
   if(l1Protected!=l2Protected) {
     return l1Protected;
   }
@@ -83,7 +83,7 @@ AIGInliner::EquivInfo* AIGInliner::EquivInfo::tryGetEquiv(FormulaUnit* fu)
 
   if(f->connective()==LITERAL) {
     Literal* lhs = f->literal();
-    if(env.signature->getPredicate(lhs->functor())->protectedSymbol()) {
+    if(env -> signature->getPredicate(lhs->functor())->protectedSymbol()) {
       return 0;
     }
     return new EquivInfo(lhs, Formula::trueFormula(), fu);
@@ -120,14 +120,14 @@ AIGInliner::EquivInfo* AIGInliner::EquivInfo::tryGetEquiv(FormulaUnit* fu)
     return 0;
   }
   Literal* lhs = c1->literal();
-  if(env.signature->getPredicate(lhs->functor())->protectedSymbol()) {
+  if(env -> signature->getPredicate(lhs->functor())->protectedSymbol()) {
     return 0;
   }
 
 
   Formula* rhs = c2;
 
-  if(env.colorUsed && lhs->color()==COLOR_TRANSPARENT && rhs->getColor()!=COLOR_TRANSPARENT) {
+  if(env -> colorUsed && lhs->color()==COLOR_TRANSPARENT && rhs->getColor()!=COLOR_TRANSPARENT) {
     LOG("bug", "color introducing definition ignored: "<<(*fu));
     return 0;
   }

@@ -103,7 +103,7 @@ struct PredicateDefinition::PredData
       ASS(!enqueuedForReplacement);
       pdObj->_eliminable.push(pred);
       enqueuedForDefEl=true;
-      LOG("pp_updr","pred marked for removing unused predicate definition: " << env.signature->predicateName(pred));
+      LOG("pp_updr","pred marked for removing unused predicate definition: " << env -> signature->predicateName(pred));
     } else if(!enqueuedForReplacement && isPure()) {
       pdObj->_pureToReplace.push(pred);
       enqueuedForReplacement=true;
@@ -122,7 +122,7 @@ struct PredicateDefinition::PredData
   }
 
   string stateToString() const {
-    return env.signature->predicateName(pred) + ": +(" + Int::toString(pocc)
+    return env -> signature->predicateName(pred) + ": +(" + Int::toString(pocc)
 	+ ") -(" + Int::toString(nocc) + ") 0(" + Int::toString(docc) + ")";
   }
 
@@ -131,9 +131,9 @@ struct PredicateDefinition::PredData
 };
 
 PredicateDefinition::PredicateDefinition(bool trace)
-: _trace(trace), _processedPrb(0), _predCnt(env.signature->predicates())
+: _trace(trace), _processedPrb(0), _predCnt(env -> signature->predicates())
 {
-  int predCnt=env.signature->predicates();
+  int predCnt=env -> signature->predicates();
 
   _preds = new PredData[predCnt];
   for(int i=0;i<predCnt;i++) {
@@ -142,7 +142,7 @@ PredicateDefinition::PredicateDefinition(bool trace)
 
   //mark built-in
   for(int i=0;i<predCnt;i++) {
-    if(env.signature->getPredicate(i)->protectedSymbol()) {
+    if(env -> signature->getPredicate(i)->protectedSymbol()) {
       addBuiltInPredicate(i);
     }
   }
@@ -164,7 +164,7 @@ void PredicateDefinition::addBuiltInPredicate(unsigned pred)
 
   _preds[pred].builtIn = true;
 
-  LOG("pp_updr","pred marked as built-in: " << env.signature->predicateName(pred));
+  LOG("pp_updr","pred marked as built-in: " << env -> signature->predicateName(pred));
 }
 
 Unit* PredicateDefinition::getReplacement(Unit* u, ReplMap& replacements)
@@ -218,7 +218,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
       //the definition formula was simplified by other transforation to the
       //point it is no longer definition that can be eliminated
       LOG("pp_updr","Formula " << (*def) << " is no longer in the shape of definition of "
-	  << env.signature->predicateName(pred) << ". The original definition was " << (*def0) << ".");
+	  << env -> signature->predicateName(pred) << ". The original definition was " << (*def0) << ".");
       return;
     }
 
@@ -230,7 +230,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
   count(def, -1);
   ALWAYS(replacements.insert(def, repl));
 
-  env.statistics->unusedPredicateDefinitions++;
+  env -> statistics->unusedPredicateDefinitions++;
 }
 
 void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
@@ -267,7 +267,7 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
     ALWAYS(replacements.insert(u,v));
   }
 
-  env.statistics->purePredicates++;
+  env -> statistics->purePredicates++;
 }
 
 /**

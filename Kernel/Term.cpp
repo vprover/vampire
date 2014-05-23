@@ -521,12 +521,12 @@ const string& Term::functionName() const
 
 #if VDEBUG
   static string nonexisting("<function does not exists>");
-  if (_functor>=static_cast<unsigned>(env.signature->functions())) {
+  if (_functor>=static_cast<unsigned>(env -> signature->functions())) {
     return nonexisting;
   }
 #endif
 
-  return env.signature->functionName(_functor);
+  return env -> signature->functionName(_functor);
 } // Term::functionName
 
 /**
@@ -539,12 +539,12 @@ const string& Literal::predicateName() const
 
 #if VDEBUG
   static string nonexisting("<predicate does not exists>");
-  if (_functor>=static_cast<unsigned>(env.signature->predicates())) {
+  if (_functor>=static_cast<unsigned>(env -> signature->predicates())) {
     return nonexisting;
   }
 #endif
 
-  return env.signature->predicateName(_functor);
+  return env -> signature->predicateName(_functor);
 } // Literal::predicateName
 
 
@@ -628,7 +628,7 @@ unsigned Literal::oppositeHash() const
  */
 Literal* Literal::complementaryLiteral(Literal* l)
 {
-  Literal* res=env.sharing->tryGetOpposite(l);
+  Literal* res=env -> sharing->tryGetOpposite(l);
   if (!res) {
     res=create(l,!l->polarity());
   }
@@ -658,7 +658,7 @@ Term* Term::create(Term* t,TermList* args)
     }
   }
   if (share) {
-    s = env.sharing->insert(s);
+    s = env -> sharing->insert(s);
   }
   return s;
 }
@@ -669,7 +669,7 @@ Term* Term::create(Term* t,TermList* args)
 Term* Term::create(unsigned function, unsigned arity, TermList* args)
 {
   CALL("Term::create/3");
-  ASS_EQ(env.signature->functionArity(function), arity);
+  ASS_EQ(env -> signature->functionArity(function), arity);
 
   Term* s = new(arity) Term;
   s->makeSymbol(function,arity);
@@ -688,7 +688,7 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
     ++curArg;
   }
   if (share) {
-    s = env.sharing->insert(s);
+    s = env -> sharing->insert(s);
   }
   return s;
 }
@@ -700,7 +700,7 @@ Term* Term::createConstant(const string& name)
 {
   CALL("Term::createConstant");
 
-  unsigned symbolNumber = env.signature->addFunction(name,0);
+  unsigned symbolNumber = env -> signature->addFunction(name,0);
   return createConstant(symbolNumber);
 }
 
@@ -862,19 +862,19 @@ bool Term::hasOnlyDistinctVariableArgs() const
 bool Term::skip() const
 {
   if (isLiteral()) {
-    if (!env.signature->getPredicate(functor())->skip()) {
+    if (!env -> signature->getPredicate(functor())->skip()) {
       return false;
     }
   }
   else {
-    if (!env.signature->getFunction(functor())->skip()) {
+    if (!env -> signature->getFunction(functor())->skip()) {
       return false;
     }
   }
   NonVariableIterator nvi(const_cast<Term*>(this));
   while (nvi.hasNext()) {
     unsigned func=nvi.next().term()->functor();
-    if (!env.signature->getFunction(func)->skip()) {
+    if (!env -> signature->getFunction(func)->skip()) {
       return false;
     }
   }
@@ -906,7 +906,7 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
 {
   CALL("Literal::create/4");
   ASS_G(predicate, 0); //equality is to be created by createEquality
-  ASS_EQ(env.signature->predicateArity(predicate), arity);
+  ASS_EQ(env -> signature->predicateArity(predicate), arity);
 
 
   Literal* l = new(arity) Literal(predicate, arity, polarity, commutative);
@@ -920,7 +920,7 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
     }
   }
   if (share) {
-    l = env.sharing->insert(l);
+    l = env -> sharing->insert(l);
   }
   return l;
 }
@@ -950,10 +950,10 @@ Literal* Literal::create(Literal* l,bool polarity)
   }
   if (l->shared()) {
     if (l->isTwoVarEquality()) {
-      m = env.sharing->insertVariableEquality(m, l->twoVarEqSort());
+      m = env -> sharing->insertVariableEquality(m, l->twoVarEqSort());
     }
     else {
-      m = env.sharing->insert(m);
+      m = env -> sharing->insert(m);
     }
   }
   return m;
@@ -985,7 +985,7 @@ Literal* Literal::create(Literal* l,TermList* args)
     }
   }
   if (share) {
-    m = env.sharing->insert(m);
+    m = env -> sharing->insert(m);
   }
   return m;
 } // Literal::create
@@ -1025,7 +1025,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
    *lit->nthArgument(0)=arg1;
    *lit->nthArgument(1)=arg2;
    if (arg1.isSafe() && arg2.isSafe()) {
-     lit = env.sharing->insert(lit);
+     lit = env -> sharing->insert(lit);
    }
    return lit;
 }
@@ -1042,7 +1042,7 @@ Literal* Literal::createVariableEquality (bool polarity, TermList arg1, TermList
   Literal* lit=new(2) Literal(0,2,polarity,true);
   *lit->nthArgument(0)=arg1;
   *lit->nthArgument(1)=arg2;
-  lit = env.sharing->insertVariableEquality(lit, variableSort);
+  lit = env -> sharing->insertVariableEquality(lit, variableSort);
   return lit;
 }
 
@@ -1214,7 +1214,7 @@ Literal* Literal::flattenOnArgument(const Literal* lit,int n)
   unsigned newArity = lit->arity() + t->arity() - 1;
   string newName = lit->predicateName() + '%' + Int::toString(n) +
                    '%' + t->functionName();
-  unsigned newPredicate = env.signature->addPredicate(newName,newArity);
+  unsigned newPredicate = env -> signature->addPredicate(newName,newArity);
 
   Literal* newLiteral = new(newArity) Literal(newPredicate,newArity,
 					      lit->polarity(),false);
@@ -1239,5 +1239,5 @@ Literal* Literal::flattenOnArgument(const Literal* lit,int n)
   }
   ASS(newArgs->isEmpty());
 
-  return env.sharing->insert(newLiteral);
+  return env -> sharing->insert(newLiteral);
 } // Literal::flattenOnArgument

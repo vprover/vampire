@@ -62,7 +62,7 @@ int FOEquivalenceDiscovery::perform(int argc, char** argv)
 
   unsigned sz = preds.size();
   for(unsigned i=0; i<sz; i++) {
-    Signature::Symbol* sym1 = env.signature->getPredicate(preds[i]);
+    Signature::Symbol* sym1 = env -> signature->getPredicate(preds[i]);
     PredicateType* t1 = sym1->predType();
     unsigned ar1 = sym1->arity();
     string n1 = sym1->name();
@@ -71,7 +71,7 @@ int FOEquivalenceDiscovery::perform(int argc, char** argv)
     pout << "fof(f_" << n1 << ", claim, ~" << n1 << args << ")." << endl;
 
     for(unsigned j=i+1; j<sz; j++) {
-      Signature::Symbol* sym2 = env.signature->getPredicate(preds[j]);
+      Signature::Symbol* sym2 = env -> signature->getPredicate(preds[j]);
       PredicateType* t2 = sym2->predType();
       if(*t1!=*t2) {
 	continue;

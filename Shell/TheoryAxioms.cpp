@@ -35,7 +35,7 @@ using namespace Shell;
 void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit,UnitList*& units)
 {
   CALL("TheoryAxioms::addAndOutputTheoryUnit");
-  if (env.options->showTheoryAxioms()) {
+  if (env -> options->showTheoryAxioms()) {
     cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << unit->toString() << "\n";
   }
   UnitList::push(unit,units);
@@ -86,7 +86,7 @@ void TheoryAxioms::addCommutativity(Interpretation op,UnitList*& units)
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
-  unsigned f = env.signature->getInterpretingSymbol(op);
+  unsigned f = env -> signature->getInterpretingSymbol(op);
   unsigned srt = theory->getOperationSort(op);
   TermList x(0,false);
   TermList y(1,false);
@@ -107,7 +107,7 @@ void TheoryAxioms::addAssociativity(Interpretation op, UnitList*& units)
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
-  unsigned f = env.signature->getInterpretingSymbol(op);
+  unsigned f = env -> signature->getInterpretingSymbol(op);
   unsigned srt = theory->getOperationSort(op);
   TermList x(0,false);
   TermList y(1,false);
@@ -131,7 +131,7 @@ void TheoryAxioms::addRightIdentity(Interpretation op, TermList e, UnitList*& un
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
-  unsigned f = env.signature->getInterpretingSymbol(op);
+  unsigned f = env -> signature->getInterpretingSymbol(op);
   unsigned srt = theory->getOperationSort(op);
   TermList x(0,false);
   TermList fxe(Term::create2(f,x,e));
@@ -165,8 +165,8 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
   addRightIdentity(op,e,units);
 
   // i(f(x,y)) = f(i(y),i(x))
-  unsigned f = env.signature->getInterpretingSymbol(op);
-  unsigned i = env.signature->getInterpretingSymbol(inverse);
+  unsigned f = env -> signature->getInterpretingSymbol(op);
+  unsigned i = env -> signature->getInterpretingSymbol(inverse);
   unsigned srt = theory->getOperationSort(op);
   ASS_EQ(srt, theory->getOperationSort(inverse));
 
@@ -196,7 +196,7 @@ void TheoryAxioms::addReflexivity(Interpretation op, UnitList*& units)
   ASS(!theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
-  unsigned opPred = env.signature->getInterpretingSymbol(op);
+  unsigned opPred = env -> signature->getInterpretingSymbol(op);
   TermList x(0,false);
   Literal* l11 = Literal::create2(opPred, true, x, x);
   addTheoryUnitClause(l11, units);
@@ -211,7 +211,7 @@ void TheoryAxioms::addTransitivity(Interpretation op, UnitList*& units)
   ASS(!theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
-  unsigned opPred = env.signature->getInterpretingSymbol(op);
+  unsigned opPred = env -> signature->getInterpretingSymbol(op);
   TermList x(0,false);
   TermList y(1,false);
   TermList v3(2,false);
@@ -232,7 +232,7 @@ void TheoryAxioms::addOrderingTotality(Interpretation lessEqual, UnitList*& unit
   ASS(!theory->isFunction(lessEqual));
   ASS_EQ(theory->getArity(lessEqual),2);
 
-  unsigned opPred = env.signature->getInterpretingSymbol(lessEqual);
+  unsigned opPred = env -> signature->getInterpretingSymbol(lessEqual);
   TermList x(0,false);
   TermList y(1,false);
 
@@ -265,8 +265,8 @@ void TheoryAxioms::addMonotonicity(Interpretation lessEqual, Interpretation addi
   ASS(theory->isFunction(addition));
   ASS_EQ(theory->getArity(addition),2);
 
-  unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
-  unsigned addFun = env.signature->getInterpretingSymbol(addition);
+  unsigned lePred = env -> signature->getInterpretingSymbol(lessEqual);
+  unsigned addFun = env -> signature->getInterpretingSymbol(addition);
   TermList x(0,false);
   TermList y(1,false);
   TermList v3(2,false);
@@ -291,12 +291,12 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
   addMonotonicity(lessEqual, plus, units);
 
   //axiom( ile(zero,one) );
-  unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
+  unsigned lePred = env -> signature->getInterpretingSymbol(lessEqual);
   Literal* nonLeOneZero = Literal::create2(lePred, false, oneElement, zeroElement);
   addTheoryUnitClause(nonLeOneZero, units);
 
   //axiom( (X0+one)<=X1 --> ~(X1<=X0) );
-  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+  unsigned plusFun = env -> signature->getInterpretingSymbol(plus);
   TermList x(0,false);
   TermList y(1,false);
   Literal* nonLe21 = Literal::create2(lePred, false, y, x);
@@ -334,14 +334,14 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   addRightIdentity(multiply, oneElement, units);
 
   //axiom( X0*zero==zero );
-  unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
+  unsigned mulFun = env -> signature->getInterpretingSymbol(multiply);
   TermList x(0,false);
   TermList xMulZero(Term::create2(mulFun, x, zeroElement));
   Literal* xEqXMulZero = Literal::createEquality(true, xMulZero, zeroElement, srt);
   addTheoryUnitClause(xEqXMulZero, units);
 
   //axiom( X0*(X1++)==(X0*X1)+X0 );
-  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+  unsigned plusFun = env -> signature->getInterpretingSymbol(plus);
   TermList y(1,false);
   TermList yPOne(Term::create2(plusFun, y, oneElement));
   TermList xMulYPOne(Term::create2(mulFun, x, yPOne));
@@ -376,8 +376,8 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
   CALL("TheoryAxioms::addExtraIntegerOrderingAxiom");
 
   //axiom( ~(X1<=X0) --> (X0+one)<=X1 );
-  unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
-  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+  unsigned lePred = env -> signature->getInterpretingSymbol(lessEqual);
+  unsigned plusFun = env -> signature->getInterpretingSymbol(plus);
   TermList x(0,false);
   TermList y(1,false);
   Literal* le21 = Literal::create2(lePred, true, y, x);
@@ -403,7 +403,7 @@ void TheoryAxioms::addArrayExtensionalityAxioms(Interpretation select, Interpret
   ASS(theory->isArrayOperation(select));
   ASS_EQ(theory->getArity(select),2);
               
-  unsigned s = env.signature->getInterpretingSymbol(select); // function s stands for function select
+  unsigned s = env -> signature->getInterpretingSymbol(select); // function s stands for function select
   unsigned rangeSort = theory->getArrayOperationSort(select);
   unsigned arraySort = theory->getArrayOperationSort(store);
 
@@ -439,8 +439,8 @@ void TheoryAxioms::addArrayWriteAxioms(Interpretation select, Interpretation sto
   ASS_EQ(theory->getArity(select),2);
         
         
-  unsigned func_select = env.signature->getInterpretingSymbol(select);
-  unsigned func_store = env.signature->getInterpretingSymbol(store);
+  unsigned func_select = env -> signature->getInterpretingSymbol(select);
+  unsigned func_store = env -> signature->getInterpretingSymbol(store);
 
   unsigned rangeSort = theory->getArrayOperationSort(select);
   unsigned domainSort = theory->getArrayDomainSort(select);

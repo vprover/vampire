@@ -55,20 +55,20 @@ void CLTBMode::perform()
 {
   CALL("CLTBMode::perform");
 
-  if (env.options->inputFile() == "") {
+  if (env -> options->inputFile() == "") {
     USER_ERROR("Input file must be specified for cltb mode");
   }
   // to prevent from terminating by time limit
-  env.options->setTimeLimitInSeconds(100000);
+  env -> options->setTimeLimitInSeconds(100000);
 
   UIHelper::cascMode = true;
-  env.options->setProof(Options::PROOF_TPTP);
-  env.options->setStatistics(Options::STATISTICS_NONE);
+  env -> options->setProof(Options::PROOF_TPTP);
+  env -> options->setStatistics(Options::STATISTICS_NONE);
 
   string line;
-  ifstream in(env.options->inputFile().c_str());
+  ifstream in(env -> options->inputFile().c_str());
   if (in.fail()) {
-    USER_ERROR("Cannot open input file: " + env.options->inputFile());
+    USER_ERROR("Cannot open input file: " + env -> options->inputFile());
   }
 
   //support several batches in one file
@@ -111,7 +111,7 @@ void CLTBMode::solveBatch(istream& batchFile)
   CALL("CLTBMode::solveBatch(istream& batchfile)");
 
   // this is the time in milliseconds since the start when this batch file should terminate
-  _timeUsedByPreviousBatches = env.timer->elapsedMilliseconds();
+  _timeUsedByPreviousBatches = env -> timer->elapsedMilliseconds();
   coutLineOutput() << "Starting Vampire on the batch file " << "\n";
   int terminationTime = readInput(batchFile);
   loadIncludes();
@@ -126,7 +126,7 @@ void CLTBMode::solveBatch(istream& batchFile)
     string outFile=res.second;
 
     // calculate the next problem time limit in milliseconds
-    int elapsedTime = env.timer->elapsedMilliseconds();
+    int elapsedTime = env -> timer->elapsedMilliseconds();
     int timeRemainingForThisBatch = terminationTime - elapsedTime;
     coutLineOutput() << "time remaining for this batch " << timeRemainingForThisBatch << endl;
     int remainingBatchTimeForThisProblem = timeRemainingForThisBatch / remainingProblems;
@@ -145,10 +145,10 @@ void CLTBMode::solveBatch(istream& batchFile)
     int problemTerminationTime = elapsedTime + nextProblemTimeLimit;
     coutLineOutput() << "problem termination time " << problemTerminationTime << endl;
 
-    env.beginOutput();
-    env.out() << flush << "%" << endl;
+    env -> beginOutput();
+    env -> out() << flush << "%" << endl;
     lineOutput() << "SZS status Started for " << probFile << endl << flush;
-    env.endOutput();
+    env -> endOutput();
 
     pid_t child = Multiprocessing::instance()->fork();
     if (!child) {
@@ -159,9 +159,9 @@ void CLTBMode::solveBatch(istream& batchFile)
       ASSERTION_VIOLATION;
     }
 
-    env.beginOutput();
+    env -> beginOutput();
     lineOutput() << "solver pid " << child << endl;
-    env.endOutput();
+    env -> endOutput();
     int resValue;
     // wait until the child terminates
     try {
@@ -174,7 +174,7 @@ void CLTBMode::solveBatch(istream& batchFile)
     }
 
     // output the result depending on the termination code
-    env.beginOutput();
+    env -> beginOutput();
     if (!resValue) {
       lineOutput() << "SZS status Theorem for " << probFile << endl;
       solvedProblems++;
@@ -182,17 +182,17 @@ void CLTBMode::solveBatch(istream& batchFile)
     else {
       lineOutput() << "SZS status GaveUp for " << probFile << endl;
     }
-    env.out() << flush << '%' << endl;
+    env -> out() << flush << '%' << endl;
     lineOutput() << "% SZS status Ended for " << probFile << endl << flush;
-    env.endOutput();
+    env -> endOutput();
 
     Timer::syncClock();
 
     remainingProblems--;
   }
-  env.beginOutput();
+  env -> beginOutput();
   lineOutput() << "Solved " << solvedProblems << " out of " << problemFiles.size() << endl;
-  env.endOutput();
+  env -> endOutput();
 } // CLTBMode::solveBatch(batchFile)
 
 void CLTBMode::loadIncludes()
@@ -202,11 +202,11 @@ void CLTBMode::loadIncludes()
   UnitList* theoryAxioms=0;
   {
     TimeCounter tc(TC_PARSING);
-    env.statistics->phase=Statistics::PARSING;
+    env -> statistics->phase=Statistics::PARSING;
 
     StringList::Iterator iit(_theoryIncludes);
     while (iit.hasNext()) {
-      string fname=env.options->includeFileName(iit.next());
+      string fname=env -> options->includeFileName(iit.next());
 
       ifstream inp(fname.c_str());
       if (inp.fail()) {
@@ -231,7 +231,7 @@ void CLTBMode::loadIncludes()
   //ensure we scan the theory axioms for property here, so we don't need to
   //do it afterward in each problem
   _baseProblem->getProperty();
-  env.statistics->phase=Statistics::UNKNOWN_PHASE;
+  env -> statistics->phase=Statistics::UNKNOWN_PHASE;
 } // CLTBMode::loadIncludes
 
 /**
@@ -313,7 +313,7 @@ int CLTBMode::readInput(istream& in)
     USER_ERROR("\"% SZS end BatchConfiguration\" expected, \"" + line + "\" found.");
   }
   if (_questionAnswering) {
-    env.options->setQuestionAnswering(Options::QA_ANSWER_LITERAL);
+    env -> options->setQuestionAnswering(Options::QA_ANSWER_LITERAL);
   }
 
   getline(in, line);
@@ -1566,7 +1566,7 @@ void CLTBProblem::performStrategy(int terminationTime)
   if (runSchedule(quick,usedSlices,false,terminationTime)) {
     return;
   }
-  //  if (env.timer->elapsedMilliseconds() >= terminationTime) {
+  //  if (env -> timer->elapsedMilliseconds() >= terminationTime) {
   //    return;
   //  }
   //  runSchedule(fallback,usedSlices,true,terminationTime);
@@ -1587,14 +1587,14 @@ void CLTBProblem::searchForProof(int terminationTime)
 
   System::registerForSIGHUPOnParentDeath();
 
-  env.timer->makeChildrenIncluded();
+  env -> timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
 
-  env.options->setInputFile(problemFile);
+  env -> options->setInputFile(problemFile);
   // this local scope will delete a potentially large parser
   {
     TimeCounter tc(TC_PARSING);
-    env.statistics->phase=Statistics::PARSING;
+    env -> statistics->phase=Statistics::PARSING;
 
     ifstream inp(problemFile.c_str());
     if (inp.fail()) {
@@ -1613,12 +1613,12 @@ void CLTBProblem::searchForProof(int terminationTime)
 
   if (prb.getProperty()->atoms()<=1000000) {
     TimeCounter tc(TC_PREPROCESSING);
-    env.statistics->phase=Statistics::NORMALIZATION;
+    env -> statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;
     norm.normalise(prb);
   }
 
-  env.statistics->phase=Statistics::UNKNOWN_PHASE;
+  env -> statistics->phase=Statistics::UNKNOWN_PHASE;
 
   // now all the cpu usage will be in children, we'll just be waiting for them
   Timer::setTimeLimitEnforcement(false);
@@ -1636,7 +1636,7 @@ void CLTBProblem::searchForProof(int terminationTime)
 
   //only the writer child is reading from the pipe (and it is now forked off)
   childOutputPipe.neverRead();
-  env.setPipeOutput(&childOutputPipe); //direct output into the pipe
+  env -> setPipeOutput(&childOutputPipe); //direct output into the pipe
   UIHelper::cascMode=true;
 
   performStrategy(terminationTime);
@@ -1655,20 +1655,20 @@ void CLTBProblem::exitOnNoSuccess()
 {
   CALL("CLTBProblem::exitOnNoSuccess");
 
-  env.beginOutput();
-  CLTBMode::lineOutput() << "Proof not found in time " << Timer::msToSecondsString(env.timer->elapsedMilliseconds()) << endl;
-  if (env.remainingTime()/100>0) {
-    CLTBMode::lineOutput() << "SZS status GaveUp for " << env.options->problemName() << endl;
+  env -> beginOutput();
+  CLTBMode::lineOutput() << "Proof not found in time " << Timer::msToSecondsString(env -> timer->elapsedMilliseconds()) << endl;
+  if (env -> remainingTime()/100>0) {
+    CLTBMode::lineOutput() << "SZS status GaveUp for " << env -> options->problemName() << endl;
   }
   else {
     //From time to time we may also be terminating in the timeLimitReached()
     //function in Lib/Timer.cpp in case the time runs out. We, however, output
     //the same string there as well.
-    CLTBMode::lineOutput() << "SZS status Timeout for " << env.options->problemName() << endl;
+    CLTBMode::lineOutput() << "SZS status Timeout for " << env -> options->problemName() << endl;
   }
-  env.endOutput();
+  env -> endOutput();
 
-  env.setPipeOutput(0);
+  env -> setPipeOutput(0);
   //This should make the writer child terminate.
   childOutputPipe.neverWrite();
 
@@ -1724,7 +1724,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       CLTBMode::coutLineOutput() << "Processes available: " << processesLeft << endl << flush;
       ASS_G(processesLeft,0);
 
-      int elapsedTime = env.timer->elapsedMilliseconds();
+      int elapsedTime = env -> timer->elapsedMilliseconds();
       if (elapsedTime >= terminationTime) {
 	// time limit reached
         return false;
@@ -1835,8 +1835,8 @@ void CLTBProblem::runWriterChild()
 
   // This was the previous code, now removed: we assume that this child has all the time it needs
   // Timer::setTimeLimitEnforcement(true);
-  // int writerLimit = parent->_problemTimeLimit+env.timer->elapsedSeconds()+2;
-  // env.options->setTimeLimitInSeconds(writerLimit);
+  // int writerLimit = parent->_problemTimeLimit+env -> timer->elapsedSeconds()+2;
+  // env -> options->setTimeLimitInSeconds(writerLimit);
 
   //we're in the child that writes down the output of other children
   childOutputPipe.neverWrite();
@@ -1878,7 +1878,7 @@ void CLTBProblem::runSlice(string sliceCode, unsigned timeLimitInMilliseconds)
 {
   CALL("CLTBProblem::runSlice");
 
-  Options opt = *env.options;
+  Options opt = *env -> options;
   opt.readFromTestId(sliceCode);
   opt.setTimeLimitInDeciseconds(timeLimitInMilliseconds/100);
   int stl = opt.simulatedTimeLimit();
@@ -1901,8 +1901,8 @@ void CLTBProblem::runSlice(Options& strategyOpt)
   UIHelper::cascModeChild=true;
 
   int resultValue=1;
-  env.timer->reset();
-  env.timer->start();
+  env -> timer->reset();
+  env -> timer->start();
   TimeCounter::reinitialize();
   Timer::setTimeLimitEnforcement(true);
 
@@ -1912,37 +1912,37 @@ void CLTBProblem::runSlice(Options& strategyOpt)
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
   opt.setProblemName(problemFile);
-  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
+  *env -> options = opt; //just temporarily until we get rid of dependencies on env -> options in solving
 
-//  if (env.options->sineSelection()!=Options::SS_OFF) {
+//  if (env -> options->sineSelection()!=Options::SS_OFF) {
 //    //add selected axioms from the theory
 //    parent->theorySelector.perform(probUnits);
 //
-//    env.options->setSineSelection(Options::SS_OFF);
-//    env.options->forceIncompleteness();
+//    env -> options->setSineSelection(Options::SS_OFF);
+//    env -> options->forceIncompleteness();
 //  }
 //  else {
 //    //if there wasn't any sine selection, just put in all theory axioms
 //    probUnits=UnitList::concat(probUnits, parent->theoryAxioms);
 //  }
 
-  env.beginOutput();
+  env -> beginOutput();
   CLTBMode::lineOutput() << opt.testId() << " on " << opt.problemName() << endl;
-  env.endOutput();
+  env -> endOutput();
 
   ProvingHelper::runVampire(prb, opt);
 
   //set return value to zero if we were successful
-  if (env.statistics->terminationReason == Statistics::REFUTATION) {
+  if (env -> statistics->terminationReason == Statistics::REFUTATION) {
     resultValue=0;
   }
 
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
+  env -> beginOutput();
+  UIHelper::outputResult(env -> out());
   if (resultValue == 0) {
-    env.out() << endl << problemFinishedString << endl << flush;
+    env -> out() << endl << problemFinishedString << endl << flush;
   }
-  env.endOutput();
+  env -> endOutput();
   exit(resultValue);
 } // CLTBProblem::runSlice
 
@@ -1973,14 +1973,14 @@ unsigned CLTBProblem::getSliceTime(string sliceCode,string& chopped)
 
 /**
  * Start line output by writing the TPTP comment sign and the current
- * elapsed time in milliseconds to env.out(). Returns env.out()
+ * elapsed time in milliseconds to env -> out(). Returns env -> out()
  * @since 05/06/2013 Vienna
  * @author Andrei Voronkov
  */
 ostream& CLTBMode::lineOutput()
 {
   CALL("CLTBMode::lineOutput");
-  return env.out() << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
+  return env -> out() << "% (" << getpid() << ',' << (env -> timer->elapsedMilliseconds()/100)/10.0 << ") ";
 } // CLTBMode::lineOutput
 
 /**
@@ -1992,7 +1992,7 @@ ostream& CLTBMode::lineOutput()
 ostream& CLTBMode::coutLineOutput()
 {
   CALL("CLTBMode::lineOutput");
-  return cout << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
+  return cout << "% (" << getpid() << ',' << (env -> timer->elapsedMilliseconds()/100)/10.0 << ") ";
 } // CLTBMode::coutLineOutput
 
 #endif //!COMPILER_MSVC

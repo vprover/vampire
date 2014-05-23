@@ -101,7 +101,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, ForwardSimplificationPerform
       SLQueryResult res=rit.next();
       unsigned rlen=res.clause->length();
       if(rlen==1 && simplPerformer->willPerform(res.clause)) {
-	env.statistics->forwardSubsumed++;
+	env -> statistics->forwardSubsumed++;
 	simplPerformer->perform(res.clause, 0);
 	if(!simplPerformer->clauseKept()) {
 	  goto fin;
@@ -172,7 +172,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, ForwardSimplificationPerform
       }
 
       if(!mclMatchFailed && simplPerformer->willPerform(mcl)) {
-	env.statistics->forwardSubsumed++;
+	env -> statistics->forwardSubsumed++;
 	simplPerformer->perform(mcl, 0);
 	if(!simplPerformer->clauseKept()) {
 	  goto fin;

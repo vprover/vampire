@@ -64,6 +64,27 @@ Environment::Environment()
   timer->start();
 } // Environment::Environment
 
+Environment::Environment(const Environment& e)
+	  : signature(0),
+	    sharing(0),
+	    property(0),
+	    ordering(0),
+	    colorUsed(false),
+	    _outputDepth(0),
+	    _priorityOutput(0),
+	    _pipe(0)
+	{
+	  options = new Options;
+	  optionsContainer = options;
+	  statistics = new Statistics;
+	  timer = e.timer;
+	  sorts = new Sorts;
+	  signature = e.signature;
+	  sharing = new TermSharing;
+
+	  //timer->start();//Timer is already started in e
+	} // Environment::Environment
+
 Environment::~Environment()
 {
   CALL("Environment::~Environment");
@@ -78,9 +99,9 @@ Environment::~Environment()
 
 #if CHECK_LEAKS
   delete sharing;
-  delete signature;
+  if(signature){delete signature; signature = 0;}
   delete sorts;
-  delete timer;
+  if(timer){ delete timer; timer = 0;}
   delete statistics;
   delete options;
 #endif
@@ -186,7 +207,7 @@ ostream& Environment::out()
 }
 
 /**
- * Direct @b env.out() into @b pipe or to @b cout if @b pipe is zero
+ * Direct @b env -> out() into @b pipe or to @b cout if @b pipe is zero
  *
  * This function cannot be called when an output is in progress.
  */

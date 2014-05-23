@@ -88,7 +88,7 @@ struct PDInliner::DefDep
 
     initDependencies(dependencies);
     LOG("pp_inl_dep_added","DefDep created");
-    LOG("pp_inl_dep_added","  predicate: "<<env.signature->predicateName(pred)<<"  num: "<<pred);
+    LOG("pp_inl_dep_added","  predicate: "<<env -> signature->predicateName(pred)<<"  num: "<<pred);
     LOG("pp_inl_dep_added","  immediate dependencies: "<<*dependencies);
     LOG("pp_inl_dep_added","  formula: "<<*def);
     LOG("pp_inl_dep_added","  full dependencies: "<<*_dependencies);
@@ -438,14 +438,14 @@ PDInliner::PDInliner(bool axiomsOnly, bool trace, bool nonGrowing)
 {
   CALL("PDInliner::PDInliner");
 
-  _dependent.ensure(env.signature->predicates());
+  _dependent.ensure(env -> signature->predicates());
 }
 
 PDInliner::~PDInliner()
 {
   CALL("PDInliner::~PDInliner");
 
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env -> signature->predicates();
   for(unsigned i=0; i<preds; i++) {
     ASS_EQ(_deps[i]==0, _defs[i]==0)
     if(_defs[i]) {
@@ -1089,7 +1089,7 @@ bool PDInliner::addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* 
   _defs[pred] = new PDef(this, pred);
   _defs[pred]->assignAsym(lhs, posBody, negBody, dblBody, premise);
 
-  env.statistics->inlinedPredicateDefinitions++;
+  env -> statistics->inlinedPredicateDefinitions++;
   return true;
 }
 

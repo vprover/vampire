@@ -602,8 +602,8 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
 
   ASS(isFalse(res));
   _learntClauses.push(res);
-  env.statistics->learntSatClauses++;
-  env.statistics->learntSatLiterals += res->length();
+  env -> statistics->learntSatClauses++;
+  env -> statistics->learntSatLiterals += res->length();
 //  cout<<res->toString()<<endl;
   recordClauseActivity(res);
   LOG("sat_learnt","learnt clause: "<<(*res));
@@ -1316,7 +1316,7 @@ TWLSolver::SatLoopResult TWLSolver::runSatLoop(unsigned conflictCountLimit)
       makeChoiceAssignment(choiceVar, asgn);
     }
     unsigned propagatedVar = pickForPropagation();
-    env.checkTimeSometime<500>();
+    env -> checkTimeSometime<500>();
 
     SATClause* conflict = propagate(propagatedVar);
     while(conflict) {

@@ -242,13 +242,13 @@ unsigned SMTLIB::getSort(BuiltInSorts srt)
   switch(srt) {
   case BS_ARRAY1:
     if(!_array1Sort) {
-        _array1Sort = Sorts::SRT_ARRAY1;//env.sorts->addSort("$array1");
+        _array1Sort = Sorts::SRT_ARRAY1;//env -> sorts->addSort("$array1");
         ASS(_array1Sort);
     }
     return _array1Sort;
   case BS_ARRAY2:
     if(!_array2Sort) {
-        _array2Sort = Sorts::SRT_ARRAY2;//env.sorts->addSort("$array2");
+        _array2Sort = Sorts::SRT_ARRAY2;//env -> sorts->addSort("$array2");
       ASS(_array2Sort);
     }
     return _array2Sort;
@@ -271,7 +271,7 @@ unsigned SMTLIB::getSort(string name)
 
   if(bsym==BS_INVALID) {
     unsigned idx;
-    if(!env.sorts->findSort(name, idx)) {
+    if(!env -> sorts->findSort(name, idx)) {
       USER_ERROR("undeclared sort: "+name);
     }
     return idx;
@@ -288,7 +288,7 @@ void SMTLIB::doSortDeclarations()
   Stack<string>::Iterator srtIt(_userSorts);
   while(srtIt.hasNext()) {
     string sortName = srtIt.next();
-    env.sorts->addSort(sortName);
+    env -> sorts->addSort(sortName);
   }
 }
 
@@ -329,8 +329,8 @@ void SMTLIB::doFunctionDeclarations()
     Signature::Symbol* sym;
     if(isPred) {
       bool added;
-      symNum = env.signature->addPredicate(fnInfo.name, arity, added);
-      sym = env.signature->getPredicate(symNum);
+      symNum = env -> signature->addPredicate(fnInfo.name, arity, added);
+      sym = env -> signature->getPredicate(symNum);
       if(added) {
 	sym->setType(type);
       }
@@ -342,8 +342,8 @@ void SMTLIB::doFunctionDeclarations()
     }
     else {
      bool added;
-      symNum = env.signature->addFunction(fnInfo.name, arity, added);
-      sym = env.signature->getFunction(symNum);
+      symNum = env -> signature->addFunction(fnInfo.name, arity, added);
+      sym = env -> signature->getFunction(symNum);
       if(added) {
 	sym->setType(type);
       }
@@ -482,7 +482,7 @@ unsigned SMTLIB::getMandatoryConnectiveArgCnt(FormulaSymbol fsym)
 //  case FS_EQ:
 //    return 2;
 //  case FS_USER_PRED_SYMBOL:
-//    return env.signature->pre
+//    return env -> signature->pre
 //  }
 //}
 
@@ -507,10 +507,10 @@ void SMTLIB::ensureArgumentSorts(bool pred, unsigned symNum, TermList* args)
 
   BaseType* type;
   if(pred) {
-    type = env.signature->getPredicate(symNum)->predType();
+    type = env -> signature->getPredicate(symNum)->predType();
   }
   else {
-    type = env.signature->getFunction(symNum)->fnType();
+    type = env -> signature->getFunction(symNum)->fnType();
   }
   unsigned arity = type->arity();
   for(unsigned i=0; i<arity; i++) {
@@ -545,7 +545,7 @@ TermList SMTLIB::readTermFromAtom(string str)
     }
   }
 
-  if(!env.signature->functionExists(str, 0)) {
+  if(!env -> signature->functionExists(str, 0)) {
     USER_ERROR("undeclared constant: "+str);
   }
   return TermList(Term::createConstant(str));
@@ -663,7 +663,7 @@ Interpretation SMTLIB::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned
     ASSERTION_VIOLATION;
   }
   if(res==Theory::INVALID_INTERPRETATION) {
-    USER_ERROR("invalid sort "+env.sorts->sortName(firstArgSort)+" for interpretation "+string(s_formulaSymbolNameStrings[fs]));
+    USER_ERROR("invalid sort "+env -> sorts->sortName(firstArgSort)+" for interpretation "+string(s_formulaSymbolNameStrings[fs]));
   }
   return res;
 }
@@ -739,7 +739,7 @@ Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned first
     ASSERTION_VIOLATION_REP(ts);
   }
   if(res==Theory::INVALID_INTERPRETATION) {
-    USER_ERROR("invalid sort "+env.sorts->sortName(firstArgSort)+" for interpretation "+string(s_termSymbolNameStrings[ts]));
+    USER_ERROR("invalid sort "+env -> sorts->sortName(firstArgSort)+" for interpretation "+string(s_termSymbolNameStrings[ts]));
   }
   return res;
 }
@@ -784,14 +784,14 @@ unsigned SMTLIB::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermSta
     arrRangeSort = getSort(BS_ARRAY1);
   }
   else {
-    USER_ERROR("invalid array sort: "+env.sorts->sortName(arrSort)+" in "+e->toString());
+    USER_ERROR("invalid array sort: "+env -> sorts->sortName(arrSort)+" in "+e->toString());
   }
 
   if(getSort(args[1])!=arrDomainSort) {
-    USER_ERROR("invalid second argument sort: "+env.sorts->sortName(getSort(args[1]))+" in "+e->toString());
+    USER_ERROR("invalid second argument sort: "+env -> sorts->sortName(getSort(args[1]))+" in "+e->toString());
   }
   if(tsym==TS_STORE && getSort(args[2])!=arrRangeSort) {
-    USER_ERROR("invalid third argument sort: "+env.sorts->sortName(getSort(args[2]))+" in "+e->toString());
+    USER_ERROR("invalid third argument sort: "+env -> sorts->sortName(getSort(args[2]))+" in "+e->toString());
   }
 
 //  BaseType* type;
@@ -811,16 +811,16 @@ unsigned SMTLIB::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermSta
       {res=  Theory::instance()->getFnNum(Theory::SELECT2_INT);}  
   }
   
-  //string name = baseName + "_" + StringUtils::sanitizeSuffix(env.sorts->sortName(arrSort)
+  //string name = baseName + "_" + StringUtils::sanitizeSuffix(env -> sorts->sortName(arrSort)
     
   //bool added;
-  //unsigned res = env.signature->addFunction(baseName, arity, added);
+  //unsigned res = env -> signature->addFunction(baseName, arity, added);
       
   //if(added) {
-  //      env.signature->getFunction(res)->setType(type); 
+  //      env -> signature->getFunction(res)->setType(type); 
   // }
   // else {
-  //      ASS(*type==*env.signature->getFunction(res)->fnType());
+  //      ASS(*type==*env -> signature->getFunction(res)->fnType());
  
 
   //    delete type;
@@ -863,10 +863,10 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
   unsigned fnNum;
 
   if(ts==TS_USER_FUNCTION) {
-    if(!env.signature->functionExists(fnName, arity)) {
+    if(!env -> signature->functionExists(fnName, arity)) {
       USER_ERROR("undeclared function: "+fnName+"/"+Int::toString(arity));
     }
-    fnNum = env.signature->addFunction(fnName, arity);
+    fnNum = env -> signature->addFunction(fnName, arity);
   }
   else if(ts==TS_SELECT || ts==TS_STORE) {
     fnNum = getTermSelectOrStoreFn(e, ts, args);
@@ -883,7 +883,7 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
     fnNum = Theory::instance()->getFnNum(itp);
   }
 
-  ASS_EQ(env.signature->functionArity(fnNum), args.size());
+  ASS_EQ(env -> signature->functionArity(fnNum), args.size());
   ensureArgumentSorts(false, fnNum, args.begin());
   res = TermList(Term::create(fnNum, arity, args.begin()));
   
@@ -921,10 +921,10 @@ bool SMTLIB::tryReadNonPropAtom(FormulaSymbol fsym, LExpr* e, Literal*& res)
   unsigned predNum;
 
   if(fsym==FS_USER_PRED_SYMBOL) {
-    if(!env.signature->predicateExists(predName, arity)) {
+    if(!env -> signature->predicateExists(predName, arity)) {
       USER_ERROR("undeclared predicate: "+predName+"/"+Int::toString(arity));
     }
-    predNum = env.signature->addPredicate(predName, arity);
+    predNum = env -> signature->addPredicate(predName, arity);
   }
   else {
     if(arity==0) {
@@ -938,7 +938,7 @@ bool SMTLIB::tryReadNonPropAtom(FormulaSymbol fsym, LExpr* e, Literal*& res)
     predNum = Theory::instance()->getPredNum(itp);
   }
 
-  ASS_EQ(env.signature->predicateArity(predNum), args.size());
+  ASS_EQ(env -> signature->predicateArity(predNum), args.size());
   ensureArgumentSorts(true, predNum, args.begin());
   res = Literal::create(predNum, arity, true, false, args.begin());
   return true;
@@ -964,10 +964,10 @@ Formula* SMTLIB::readFormulaFromAtom(string str)
   if(str[0]=='?') {
     USER_ERROR("term variable where formula was expected: "+str);
   }
-  if(!env.signature->predicateExists(str, 0)) {
+  if(!env -> signature->predicateExists(str, 0)) {
     USER_ERROR("undeclared propositional predicate: "+str);
   }
-  unsigned predNum = env.signature->addPredicate(str, 0);
+  unsigned predNum = env -> signature->addPredicate(str, 0);
   Literal* resLit = Literal::create(predNum, 0, true, false, 0);
   return new AtomicFormula(resLit);
 }
@@ -1218,23 +1218,23 @@ bool SMTLIB::tryReadDistinct(LExpr* e, Formula*& res)
 
   //this is a bit of a quick hack, we need to come up with
   //a proper way to have a polymorphic $distinct predicate
-  unsigned predNum = env.signature->addPredicate("$distinct", arity, added);
+  unsigned predNum = env -> signature->addPredicate("$distinct", arity, added);
   if(added) {
-    env.signature->getPredicate(predNum)->setType(type);
+    env -> signature->getPredicate(predNum)->setType(type);
   }
   else {
-    BaseType* prevType = env.signature->getPredicate(predNum)->predType();
+    BaseType* prevType = env -> signature->getPredicate(predNum)->predType();
     if(*type==*prevType) {
       delete type;
     }
     else {
-      string name = "$distinct_"+StringUtils::sanitizeSuffix(env.sorts->sortName(sort));
-      predNum = env.signature->addPredicate(name, arity, added);
+      string name = "$distinct_"+StringUtils::sanitizeSuffix(env -> sorts->sortName(sort));
+      predNum = env -> signature->addPredicate(name, arity, added);
       if(added) {
-	env.signature->getPredicate(predNum)->setType(type);
+	env -> signature->getPredicate(predNum)->setType(type);
       }
       else {
-	ASS(*type==*env.signature->getPredicate(predNum)->predType());
+	ASS(*type==*env -> signature->getPredicate(predNum)->predType());
 	delete type;
       }
     }
@@ -1479,10 +1479,10 @@ Formula* SMTLIB::nameFormula(Formula* f, string fletVarName)
   }
 
   fletVarName = StringUtils::sanitizeSuffix(fletVarName);
-  unsigned predNum = env.signature->addFreshPredicate(varCnt, "sP", fletVarName.c_str());
+  unsigned predNum = env -> signature->addFreshPredicate(varCnt, "sP", fletVarName.c_str());
   BaseType* type = BaseType::makeType(varCnt, argSorts.begin(), Sorts::SRT_BOOL);
 
-  Signature::Symbol* predSym = env.signature->getPredicate(predNum);
+  Signature::Symbol* predSym = env -> signature->getPredicate(predNum);
   predSym->setType(type);
 
   Color symColor = ColorHelper::combine(_introducedSymbolColor, f->getColor());

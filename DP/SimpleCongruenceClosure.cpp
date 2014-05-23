@@ -220,7 +220,7 @@ unsigned SimpleCongruenceClosure::getSignatureConst(unsigned symbol, bool funct)
   _cInfos[res].sigSymIsFunct = funct;
   *pRes = res;
   LOG("dp_cc_const_intr", "signConst: "<<res<<" ("
-      <<(funct ? env.signature->functionName(symbol) : env.signature->predicateName(symbol) )<<")");
+      <<(funct ? env -> signature->functionName(symbol) : env -> signature->predicateName(symbol) )<<")");
 
   return res;
 }

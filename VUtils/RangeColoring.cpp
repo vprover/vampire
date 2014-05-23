@@ -61,13 +61,13 @@ TermList TermColoring::applyToTerm(TermList trm)
   }
   string name0 = name;
   int i=0;
-  while(env.signature->functionExists(name, 0)) {
+  while(env -> signature->functionExists(name, 0)) {
     i++;
     name = name0+Int::toString(i);
   }
 
-  unsigned func = env.signature->addFunction(name, 0);
-  Signature::Symbol* funSym = env.signature->getFunction(func);
+  unsigned func = env -> signature->addFunction(name, 0);
+  Signature::Symbol* funSym = env -> signature->getFunction(func);
   if(clr!=COLOR_TRANSPARENT) {
     funSym->addColor(clr);
   }
@@ -206,7 +206,7 @@ bool TermColoring::areUnitsLocal(UnitStack& units)
 void RangeColoring::addFunction(unsigned func)
 {
   CALL("RangeColoring::addFunction");
-  ASS_EQ(env.signature->functionArity(func),1);
+  ASS_EQ(env -> signature->functionArity(func),1);
 
   ALWAYS(_funcs.insert(func));
 }
@@ -264,7 +264,7 @@ bool NameMapColoring::isColoredFunction(unsigned func)
 {
   CALL("NameMapColoring::isColoredFunction");
 
-  string nm = normalizeName(env.signature->functionName(func));
+  string nm = normalizeName(env -> signature->functionName(func));
   return _funcColors.find(nm);
 }
 Color NameMapColoring::getColor(TermList term)

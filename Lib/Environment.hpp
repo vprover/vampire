@@ -28,6 +28,7 @@ class Environment
 {
 public:
   Environment();
+  Environment(const Environment& e);
   ~Environment();
 
   /** options container for all proof attempts
@@ -89,7 +90,7 @@ private:
   SyncPipe* _pipe;
 }; // class Environment
 
-extern Environment env;
+extern Environment* env;
 
 }
 

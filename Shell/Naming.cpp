@@ -483,10 +483,10 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars)
   CALL("Naming::getDefinitionLiteral");
 
   int length = freeVars->length();
-  unsigned pred = env.signature->addNamePredicate(length);
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  unsigned pred = env -> signature->addNamePredicate(length);
+  Signature::Symbol* predSym = env -> signature->getPredicate(pred);
 
-  if(env.colorUsed) {
+  if(env -> colorUsed) {
     Color fc=f->getColor();
     if(fc!=COLOR_TRANSPARENT) {
       predSym->addColor(fc);
@@ -561,7 +561,7 @@ Formula* Naming::introduceDefinition (Formula* f,bool iff)
 
   InferenceStore::instance()->recordIntroducedSymbol(definition,false,atom->functor());
 
-  env.statistics->formulaNames++;
+  env -> statistics->formulaNames++;
   UnitList::push(definition,_defs);
 
   LOG_UNIT("pp_naming_defs",definition);

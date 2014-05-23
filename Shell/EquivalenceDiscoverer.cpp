@@ -48,7 +48,7 @@ EquivalenceDiscoverer::EquivalenceDiscoverer(bool normalizeForSAT, unsigned satC
 {
   CALL("EquivalenceDiscoverer::EquivalenceDiscoverer");
 
-  _solver = new TWLSolver(*env.options, false);
+  _solver = new TWLSolver(*env -> options, false);
 }
 
 /**
@@ -102,7 +102,7 @@ bool EquivalenceDiscoverer::isEligible(Literal* l)
     }
   }
   else {
-//    if(env.signature->getPredicate(l->functor())->introduced()) {
+//    if(env -> signature->getPredicate(l->functor())->introduced()) {
 //      return false;
 //    }
   }
@@ -271,10 +271,10 @@ SATSolver& EquivalenceDiscoverer::getProofRecordingSolver()
     }
 
     if(TAG_ENABLED("sat_recorder")) {
-      _proofRecordingSolver = new Test::RecordingSatSolver(new TWLSolver(*env.options, true));
+      _proofRecordingSolver = new Test::RecordingSatSolver(new TWLSolver(*env -> options, true));
     }
     else {
-      _proofRecordingSolver = new TWLSolver(*env.options, true);
+      _proofRecordingSolver = new TWLSolver(*env -> options, true);
     }
     _proofRecordingSolver->ensureVarCnt(_maxSatVar+1);
     _proofRecordingSolver->addClauses(pvi(SATClauseStack::Iterator(clauseCopies)), true);

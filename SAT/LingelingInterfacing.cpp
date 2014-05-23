@@ -74,7 +74,7 @@ static void alert_abort(int sig){
 			lglsetopt(_solver, "plain",1);
 			//lglsetopt(_solver, "");
 			//lglsetopt(_solver, "dlim",0);
-			lglsetopt(_solver, "memlim", env.options->memoryLimit());
+			lglsetopt(_solver, "memlim", env -> options->memoryLimit());
 
 			//set signal handler for ABORTIF
 			sig_abort_handler = signal(LING_SIG, alert_abort);
@@ -84,7 +84,7 @@ static void alert_abort(int sig){
 			sig_alrm_handler = signal (SIGALRM, catchlrm);
 
 			//check how much time we spent already and set the maximum allowed for sat
-			int remaining = env.remainingTime();
+			int remaining = env -> remainingTime();
 			//in general Vampire uses miliseconds. But lingeling uses seconds. 
 			//this means, if we have less than a second left for SAT solving, allow 
 			//one second run time.

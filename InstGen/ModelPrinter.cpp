@@ -37,14 +37,14 @@ bool ModelPrinter::haveNonDefaultSorts()
 {
   CALL("ModelPrinter::haveNonDefaultSorts");
 
-  unsigned funs = env.signature->functions();
+  unsigned funs = env -> signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    FunctionType* type = env.signature->getFunction(i)->fnType();
+    FunctionType* type = env -> signature->getFunction(i)->fnType();
     if(!type->isAllDefault()) { return false; }
   }
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env -> signature->predicates();
   for(unsigned i=1; i<preds; i++) {
-    PredicateType* type = env.signature->getPredicate(i)->predType();
+    PredicateType* type = env -> signature->getPredicate(i)->predType();
     if(!type->isAllDefault()) { return false; }
   }
   return true;
@@ -54,9 +54,9 @@ bool ModelPrinter::isEprProblem()
 {
   CALL("ModelPrinter::isEprProblem");
 
-  unsigned funCnt = env.signature->functions();
+  unsigned funCnt = env -> signature->functions();
   for(unsigned i=0; i<funCnt; i++) {
-    if(env.signature->functionArity(i)>0) {
+    if(env -> signature->functionArity(i)>0) {
       return false;
     }
   }
@@ -78,7 +78,7 @@ bool ModelPrinter::tryOutput(ostream& stm)
     bool assignment;
     removedPreds.next(pred, assignment);
     ASS_NEQ(pred,0);
-    unsigned arity = env.signature->predicateArity(pred);
+    unsigned arity = env -> signature->predicateArity(pred);
     args.reset();
     for(unsigned i=0; i<arity; i++) {
       args.push(TermList(i, false));
@@ -88,9 +88,9 @@ bool ModelPrinter::tryOutput(ostream& stm)
   }
 
   collectTrueLits();
-  if(env.signature->functions()!=0) {
+  if(env -> signature->functions()!=0) {
     if(_usedConstants.isEmpty()) {
-      unsigned newFunc = env.signature->addFreshFunction(0,"c");
+      unsigned newFunc = env -> signature->addFreshFunction(0,"c");
       TermList newConstTrm(Term::create(newFunc, 0, 0));
       _usedConstants.push(newConstTrm);
       _usedConstantSet.insert(newFunc);
@@ -110,7 +110,7 @@ bool ModelPrinter::isEquality(Literal* lit)
 {
   CALL("ModelPrinter::isEquality");
 
-  return lit->isEquality() || env.signature->getPredicate(lit->functor())->equalityProxy();
+  return lit->isEquality() || env -> signature->getPredicate(lit->functor())->equalityProxy();
 }
 
 /**
@@ -189,7 +189,7 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
   static DArray<TermList> args;
   static DArray<bool> variables;
   static DArray<unsigned> nextIndexes;
-  PredicateType* predType = env.signature->getPredicate(base->functor())->predType();
+  PredicateType* predType = env -> signature->getPredicate(base->functor())->predType();
 
   args.ensure(arity);
   variables.ensure(arity);
@@ -294,7 +294,7 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
   LiteralStack eqInsts;
   getInstances(_trueEqs, eqInstDomain, eqInsts);
 
-  unsigned funCnt = env.signature->functions();
+  unsigned funCnt = env -> signature->functions();
   IntUnionFind uif(funCnt);
 
   LiteralStack::Iterator eqit(eqInsts);
@@ -326,9 +326,9 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
     TermList firstTerm = TermList(Term::create(firstFunc, 0, 0));
     string firstTermStr = firstTerm.toString();
     unsigned eqClassSort = SortHelper::getResultSort(firstTerm.term());
-    unsigned reprFunc = env.signature->addStringConstant(firstTermStr);
+    unsigned reprFunc = env -> signature->addStringConstant(firstTermStr);
     FunctionType* reprType = new FunctionType(0,0,eqClassSort);
-    env.signature->getFunction(reprFunc)->setType(reprType);
+    env -> signature->getFunction(reprFunc)->setType(reprType);
     TermList reprTerm = TermList(Term::create(reprFunc, 0, 0));
     _rewrites.insert(firstTerm, reprTerm);
 

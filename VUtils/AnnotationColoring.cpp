@@ -36,13 +36,13 @@ void AnnotationColoring::outputColorInfo(ostream& out, SymId sym, string color)
       return;  //we do not color equality
     }
     out<<"vampire(symbol,predicate,"
-	<<env.signature->predicateName(functor)<<","
-	<<env.signature->predicateArity(functor)<<","<<color<<")."<<endl;
+	<<env -> signature->predicateName(functor)<<","
+	<<env -> signature->predicateArity(functor)<<","<<color<<")."<<endl;
   }
   else {
     out<<"vampire(symbol,function,"
-	<<env.signature->functionName(functor)<<","
-	<<env.signature->functionArity(functor)<<","<<color<<")."<<endl;
+	<<env -> signature->functionName(functor)<<","
+	<<env -> signature->functionArity(functor)<<","<<color<<")."<<endl;
   }
 }
 
@@ -65,9 +65,9 @@ int AnnotationColoring::perform(int argc, char** argv)
   argc--; argv++;
 
   Shell::CommandLine cl(argc,argv);
-  cl.interpret(*env.options);
+  cl.interpret(*env -> options);
 
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
 
   UnitList::Iterator uit(prb->units());
   while(uit.hasNext()) {
@@ -99,7 +99,7 @@ int AnnotationColoring::perform(int argc, char** argv)
   }
   bool assignedToSome[2]={false, false};
 
-  env.beginOutput();
+  env -> beginOutput();
 
   VirtualIterator<SymId> leftIt = axiomSymbols.iterator();
   while(leftIt.hasNext()) {
@@ -108,7 +108,7 @@ int AnnotationColoring::perform(int argc, char** argv)
     if(conjectureSymbols.find(sym)) {
       continue; //shared symbol
     }
-    outputColorInfo(env.out(), sym, "left");
+    outputColorInfo(env -> out(), sym, "left");
     assignedToSome[0] = true;
   }
 
@@ -119,29 +119,29 @@ int AnnotationColoring::perform(int argc, char** argv)
     if(axiomSymbols.find(sym)) {
       continue; //shared symbol
     }
-    outputColorInfo(env.out(), sym, "right");
+    outputColorInfo(env -> out(), sym, "right");
     assignedToSome[1] = true;
   }
 
-  env.out()<<endl;
+  env -> out()<<endl;
 
-  env.out()<<"vampire(left_formula)."<<endl;
+  env -> out()<<"vampire(left_formula)."<<endl;
   Stack<Unit*>::BottomFirstIterator leftUnitIt(axiomStack);
   while(leftUnitIt.hasNext()) {
     Unit* u = leftUnitIt.next();
-    env.out()<<TPTPPrinter::toString(u)<<endl;
+    env -> out()<<TPTPPrinter::toString(u)<<endl;
   }
-  env.out()<<"vampire(end_formula)."<<endl<<endl<<endl;
+  env -> out()<<"vampire(end_formula)."<<endl<<endl<<endl;
 
-  env.out()<<"vampire(right_formula)."<<endl;
+  env -> out()<<"vampire(right_formula)."<<endl;
   Stack<Unit*>::BottomFirstIterator rightUnitIt(conjectureStack);
   while(rightUnitIt.hasNext()) {
     Unit* u = rightUnitIt.next();
-    env.out()<<TPTPPrinter::toString(u)<<endl;
+    env -> out()<<TPTPPrinter::toString(u)<<endl;
   }
-  env.out()<<"vampire(end_formula)."<<endl<<endl<<endl;
+  env -> out()<<"vampire(end_formula)."<<endl<<endl<<endl;
 
-  env.endOutput();
+  env -> endOutput();
 
   return (assignedToSome[0] && assignedToSome[1]) ? 0 : 1;
 }

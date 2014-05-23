@@ -156,7 +156,7 @@ void Selector::selectForProblem(UnitList*& units)
     tsc.collectSymIds(uit.next());
   }
 
-  unsigned itolerance=static_cast<unsigned>(100*env.options->sineTolerance());
+  unsigned itolerance=static_cast<unsigned>(100*env -> options->sineTolerance());
 
   DHSet<SymId> selectedSymbols;
   Stack<SymId> newlySelected;
@@ -164,7 +164,7 @@ void Selector::selectForProblem(UnitList*& units)
   newlySelected.loadFromIterator(tsc.getSymIds());
   selectedSymbols.loadFromIterator(Stack<SymId>::Iterator(newlySelected));
 
-  unsigned depthLimit=env.options->sineDepth();
+  unsigned depthLimit=env -> options->sineDepth();
   unsigned depth=1;
   for(;;) {
     if(depthLimit && depth==depthLimit) {
@@ -185,7 +185,7 @@ void Selector::selectForProblem(UnitList*& units)
     depth++;
   }
 
-  env.statistics->sineIterations=depth;
+  env -> statistics->sineIterations=depth;
 
   DHSet<unsigned> selectedFormulas;
   selectedFormulas.loadFromIterator(_storage.getNumbersOfUnitsWithoutSymbols());

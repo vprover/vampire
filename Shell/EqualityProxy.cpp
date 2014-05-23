@@ -207,9 +207,9 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   Stack<TermList> vars2;
   LiteralStack lits;
 
-  unsigned funs = env.signature->functions();
+  unsigned funs = env -> signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    Signature::Symbol* fnSym = env.signature->getFunction(i);
+    Signature::Symbol* fnSym = env -> signature->getFunction(i);
     unsigned arity = fnSym->arity();
     if(arity==0) {
       continue;
@@ -224,9 +224,9 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
     UnitList::push(cl,units);
   }
 
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env -> signature->predicates();
   for(unsigned i=1; i<preds; i++) {
-    Signature::Symbol* predSym = env.signature->getPredicate(i);
+    Signature::Symbol* predSym = env -> signature->getPredicate(i);
     unsigned arity = predSym->arity();
     if(predSym->equalityProxy() || predSym->arity()==0) {
       continue;
@@ -319,13 +319,13 @@ bool EqualityProxy::haveProxyPredicate(unsigned sort) const
 unsigned EqualityProxy::getProxyPredicate(unsigned sort)
 {
   CALL("EqualityProxy::getProxyPredicate");
-  ASS_L(sort, env.sorts->sorts());
+  ASS_L(sort, env -> sorts->sorts());
 
   if(s_proxyPredicates[sort]!=0) {
     return s_proxyPredicates[sort];
   }
-  unsigned newPred = env.signature->addFreshPredicate(2,"sQ","eqProxy");
-  Signature::Symbol* predSym = env.signature->getPredicate(newPred);
+  unsigned newPred = env -> signature->addFreshPredicate(2,"sQ","eqProxy");
+  Signature::Symbol* predSym = env -> signature->getPredicate(newPred);
   unsigned predDomain[] = { sort, sort };
   BaseType* predType = PredicateType::makeType(2, predDomain, Sorts::SRT_BOOL);
   predSym->setType(predType);

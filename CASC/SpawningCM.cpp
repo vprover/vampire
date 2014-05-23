@@ -30,13 +30,13 @@ SpawningCM::SpawningCM(string executable)
     USER_ERROR("The spawning CASC mode is not supported on this system (the \"int system(const char *)\" function is not available)");
   }
 
-  if (env.options->inputFile() == "") {
+  if (env -> options->inputFile() == "") {
     USER_ERROR("Value of the --input_file option must be specified for the CASC mode in Windows.");
   }
-  _inputFile = env.options->inputFile();
+  _inputFile = env -> options->inputFile();
 
   //we just need to extract property from the problem
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
   _property = Property::scan(prb->units());
 }
 
@@ -47,8 +47,8 @@ bool SpawningCM::runSlice(Options& opt)
   string strategy = opt.generateTestId();
   string cmdLine = _executable + " --decode " + strategy + " --input_file " + _inputFile;
 
-  if (env.options->include() != "") {
-    cmdLine += " --include " + env.options->include();
+  if (env -> options->include() != "") {
+    cmdLine += " --include " + env -> options->include();
   }
 
 #if COMPILER_MSVC

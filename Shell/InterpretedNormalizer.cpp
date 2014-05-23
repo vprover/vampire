@@ -43,8 +43,8 @@ public:
   {
     CALL("InterpretedNormalizer::BinaryMinusTranslator::BinaryMinusTranslator");
 
-    _succFun = env.signature->getInterpretingSymbol(Theory::INT_SUCCESSOR);
-    _plusFun = env.signature->getInterpretingSymbol(Theory::INT_PLUS);
+    _succFun = env -> signature->getInterpretingSymbol(Theory::INT_SUCCESSOR);
+    _plusFun = env -> signature->getInterpretingSymbol(Theory::INT_PLUS);
     _one = TermList(theory->representConstant(IntegerConstantType(1)));
   }
 
@@ -77,9 +77,9 @@ public:
   {
     CALL("InterpretedNormalizer::BinaryMinusTranslator::BinaryMinusTranslator");
 
-    _bMinusFun = env.signature->getInterpretingSymbol(bMinus);
-    _plusFun = env.signature->getInterpretingSymbol(plus);
-    _uMinusFun = env.signature->getInterpretingSymbol(uMinus);
+    _bMinusFun = env -> signature->getInterpretingSymbol(bMinus);
+    _plusFun = env -> signature->getInterpretingSymbol(plus);
+    _uMinusFun = env -> signature->getInterpretingSymbol(uMinus);
   }
 
   virtual TermList translate(Term* trm)
@@ -113,10 +113,10 @@ public:
    : _swapArguments(swapArguments), _reversePolarity(reversePolarity)
   {
     CALL("InterpretedNormalizer::IneqTranslator::IneqTranslator");
-    _srcPred = env.signature->getInterpretingSymbol(src);
-    _tgtPred = env.signature->getInterpretingSymbol(tgt);
-    ASS_EQ(env.signature->predicateArity(_srcPred), 2);
-    ASS_EQ(env.signature->predicateArity(_tgtPred), 2);
+    _srcPred = env -> signature->getInterpretingSymbol(src);
+    _tgtPred = env -> signature->getInterpretingSymbol(tgt);
+    ASS_EQ(env -> signature->predicateArity(_srcPred), 2);
+    ASS_EQ(env -> signature->predicateArity(_tgtPred), 2);
 
   }
 
@@ -149,8 +149,8 @@ class InterpretedNormalizer::NLiteralTransformer : private TermTransformer
 {
 public:
   NLiteralTransformer()
-  : _ineqTransls(env.signature->predicates()),
-    _fnTransfs(env.signature->functions())
+  : _ineqTransls(env -> signature->predicates()),
+    _fnTransfs(env -> signature->functions())
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::NLiteralTransformer");
 
@@ -232,7 +232,7 @@ private:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::addMinusTransformer");
 
-    if(!env.signature->haveInterpretingSymbol(bMinus)) {
+    if(!env -> signature->haveInterpretingSymbol(bMinus)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     BinaryMinusTranslator* transl = new BinaryMinusTranslator(bMinus, plus, uMinus);
@@ -248,7 +248,7 @@ private:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::addMinusTransformer");
 
-    if(!env.signature->haveInterpretingSymbol(Theory::INT_SUCCESSOR)) {
+    if(!env -> signature->haveInterpretingSymbol(Theory::INT_SUCCESSOR)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     SuccessorTranslator* transl = new SuccessorTranslator();
@@ -266,7 +266,7 @@ private:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::addIneqTransformer");
 
-    if(!env.signature->haveInterpretingSymbol(from)) {
+    if(!env -> signature->haveInterpretingSymbol(from)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     IneqTranslator* transl = new IneqTranslator(from, to, swapArguments, reversePolarity);

@@ -370,10 +370,10 @@ VirtualIterator<pair<bool, unsigned> > Storage::getGlobalSymbols(Stack<pair<bool
     pair<bool, unsigned> id=symIt.next();
     Signature::Symbol* sym;
     if(id.first) {
-      sym=env.signature->getPredicate(id.second);
+      sym=env -> signature->getPredicate(id.second);
     }
     else {
-      sym=env.signature->getFunction(id.second);
+      sym=env -> signature->getFunction(id.second);
     }
     string name=Signature::key(sym->name(),sym->arity());
 
@@ -441,8 +441,8 @@ void Storage::addCorrespondingLocalSymbols(VirtualIterator<pair<bool,unsigned> >
       symIt0.del();
 //      if(id.first) {
 //	LOG("known pred: "<<id.second<<" orig name "<<getIntKey(PRED_NUM_NAME, id.second)
-//	    <<" arity: "<<env.signature->predicateArity(_glob2loc.get(id))
-//	    <<" loc name: "<<env.signature->predicateName(_glob2loc.get(id)));
+//	    <<" arity: "<<env -> signature->predicateArity(_glob2loc.get(id))
+//	    <<" loc name: "<<env -> signature->predicateName(_glob2loc.get(id)));
 //      }
       continue;
     }
@@ -480,12 +480,12 @@ void Storage::addCorrespondingLocalSymbols(VirtualIterator<pair<bool,unsigned> >
     bool added;
     if(globSym.first) {
       ASS_NEQ(globSym.second, 0); //equality must always correspond to equality, so we cannot add it this way
-      locNum=env.signature->addPredicate(locName, arity, added);
+      locNum=env -> signature->addPredicate(locName, arity, added);
       ASS(added);
 //      LOG("added pred: "<<globSym.second<<" orig name "<<getIntKey(PRED_NUM_NAME, globSym.second)<<" arity: "<<arity);
     }
     else {
-      locNum=env.signature->addFunction(locName, arity, added);
+      locNum=env -> signature->addFunction(locName, arity, added);
       ASS(added);
     }
     ALWAYS(_glob2loc.insert(globSym, locNum));
@@ -705,7 +705,7 @@ UnitList* Storage::getClausesByUnitNumbers(VirtualIterator<unsigned> numIt)
 	  ASS_G(num,0);
 	  unsigned globFunctor=num-1;
 	  unsigned locFunctor=_glob2loc.get(make_pair(false, globFunctor));
-	  unsigned arity=env.signature->functionArity(locFunctor);
+	  unsigned arity=env -> signature->functionArity(locFunctor);
 	  ASS_GE(termStack.size(), arity);
 	  trm.setTerm(Term::create(locFunctor, arity, termStack.end()-arity));
 	  //remove the arguments we've just used from the stack
@@ -718,7 +718,7 @@ UnitList* Storage::getClausesByUnitNumbers(VirtualIterator<unsigned> numIt)
 	bool polarity=num>0;
 	unsigned globFunctor=abs(num)-1;
 	unsigned locFunctor=_glob2loc.get(make_pair(true, globFunctor));
-	unsigned arity=env.signature->predicateArity(locFunctor);
+	unsigned arity=env -> signature->predicateArity(locFunctor);
 	ASS_EQ(termStack.size(), arity);
 
 	Literal* lit;
@@ -980,8 +980,8 @@ void Storage::storeSignature()
   CALL("Storage::dumpSignature");
   ASS(!_translateSignature);
 
-  int preds=env.signature->predicates();
-  int funs=env.signature->functions();
+  int preds=env -> signature->predicates();
+  int funs=env -> signature->functions();
 
   //store number of predicates and functions
   DArray<char> predFunCountBuf(storedIntMaxSize*2);
@@ -995,12 +995,12 @@ void Storage::storeSignature()
 
 
   for(int i=0;i<preds;i++) {
-    Signature::Symbol* sym=env.signature->getPredicate(i);
+    Signature::Symbol* sym=env -> signature->getPredicate(i);
     storeSymbolInfo(sym, i, false);
   }
 
   for(int i=0;i<funs;i++) {
-    Signature::Symbol* sym=env.signature->getFunction(i);
+    Signature::Symbol* sym=env -> signature->getFunction(i);
     storeSymbolInfo(sym, i, true);
   }
 }

@@ -135,11 +135,11 @@ Problem* getPreprocessedProblem()
 {
   CALL("getInputClauses");
 
-  Problem* prb = UIHelper::getInputProblem(*env.options);
+  Problem* prb = UIHelper::getInputProblem(*env -> options);
 
   TimeCounter tc2(TC_PREPROCESSING);
 
-  Preprocess prepro(*env.options);
+  Preprocess prepro(*env -> options);
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(*prb);
   globProblem = prb;
@@ -149,16 +149,16 @@ Problem* getPreprocessedProblem()
 
 void explainException(Exception& exception)
 {
-  env.beginOutput();
-  exception.cry(env.out());
-  env.endOutput();
+  env -> beginOutput();
+  exception.cry(env -> out());
+  env -> endOutput();
 } // explainException
 
 void doProving()
 {
   CALL("doProving()");
   ScopedPtr<Problem> prb(getPreprocessedProblem());
-  ProvingHelper::runVampireSaturation(*prb, *env.options);
+  ProvingHelper::runVampireSaturation(*prb, *env -> options);
 }
 
 /**
@@ -169,17 +169,17 @@ void profileMode()
 {
   CALL("profileMode()");
 
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
 
   Property* property = prb->getProperty();
   TheoryFinder tf(prb->units(), property);
-  Preprocess prepro(*env.options);
+  Preprocess prepro(*env -> options);
   tf.search();
 
-  env.beginOutput();
-  env.out() << property->categoryString() << ' ' << property->props() << ' '
+  env -> beginOutput();
+  env -> out() << property->categoryString() << ' ' << property->props() << ' '
 	  << property->atoms() << "\n";
-  env.endOutput();
+  env -> endOutput();
 
   //we have succeeded with the profile mode, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -192,7 +192,7 @@ void programAnalysisMode()
   // create random seed for the random number generation
 
 #if 0
-  string inputFile = env.options->inputFile();
+  string inputFile = env -> options->inputFile();
   istream* input;
   if (inputFile=="") {
     input=&cin;
@@ -218,18 +218,18 @@ void programAnalysisMode()
 
 #if IS_LINGVA
   Lib::Random::setSeed(123456);
-  int time = env.options->timeLimitInDeciseconds();
-  env.options->setMode(Options::MODE_VAMPIRE);
+  int time = env -> options->timeLimitInDeciseconds();
+  env -> options->setMode(Options::MODE_VAMPIRE);
   Allocator::setMemoryLimit(1024u * 1048576ul);
 
-  string inputFile = env.options->inputFile();
+  string inputFile = env -> options->inputFile();
   if (inputFile == "") {
     USER_ERROR("Cannot open problem file: "+inputFile);
   }
   else {
     //default time limit 10 seconds
     if (time == 0) {
-      env.options->setTimeLimitInDeciseconds(100);
+      env -> options->setTimeLimitInDeciseconds(100);
     }
     Program::RunLingva lingva;
     lingva.run();
@@ -245,14 +245,14 @@ void programAnalysisMode()
 void outputResult(ostream& out) {
   CALL("outputResult");
 
-  switch(env.statistics->terminationReason) {
+  switch(env -> statistics->terminationReason) {
   case Statistics::UNKNOWN:
     cout<<"unknown"<<endl;
     break;
   case Statistics::SATISFIABLE:
     cout<<"sat"<<endl;
 #if GNUMP
-    UIHelper::outputAssignment(*env.statistics->satisfyingAssigment, cout);
+    UIHelper::outputAssignment(*env -> statistics->satisfyingAssigment, cout);
 #endif //GNUMP
     break;
   case Statistics::REFUTATION:
@@ -263,7 +263,7 @@ void outputResult(ostream& out) {
     ASSERTION_VIOLATION; //these outcomes are not reachable with the current implementation
 #endif
   }
-  env.statistics->print(env.out());
+  env -> statistics->print(env -> out());
 }
 
 
@@ -272,14 +272,14 @@ void boundPropagationMode(){
 #if GNUMP
   CALL("boundPropagationMode::doSolving()");
 
-  if (env.options->bpStartWithPrecise()) {
+  if (env -> options->bpStartWithPrecise()) {
 	  switchToPreciseNumbers();
   }
-  if (env.options->bpStartWithRational()){
+  if (env -> options->bpStartWithRational()){
 	  switchToRationalNumbers();
   }
 
-  ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env.options));
+  ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env -> options));
 
 #if 0
   ConstraintRCList::Iterator ite(constraints);
@@ -290,9 +290,9 @@ void boundPropagationMode(){
   start:
   try
   {
-    env.statistics->phase = Statistics::SOLVING;
+    env -> statistics->phase = Statistics::SOLVING;
     TimeCounter tc(TC_SOLVING);
-    Solver solver(env.signature->vars(), *env.options, *env.statistics);
+    Solver solver(env -> signature->vars(), *env -> options, *env -> statistics);
     solver.load(constraints);
     solver.solve();
   }
@@ -301,7 +301,7 @@ void boundPropagationMode(){
       INVALID_OPERATION("Imprecision error when using precise numbers.");
     }
     else {
-      env.statistics->switchToPreciseTimeInMs = env.timer->elapsedMilliseconds();
+      env -> statistics->switchToPreciseTimeInMs = env -> timer->elapsedMilliseconds();
       switchToPreciseNumbers();
       //switchToRationalNumbers();
       ASS(usingPreciseNumbers());
@@ -309,10 +309,10 @@ void boundPropagationMode(){
     }
   }
   catch (TimeLimitExceededException){
-      env.statistics->phase = Statistics::FINALIZATION;
-      env.statistics->terminationReason = Statistics::TIME_LIMIT;
+      env -> statistics->phase = Statistics::FINALIZATION;
+      env -> statistics->terminationReason = Statistics::TIME_LIMIT;
     }
-  env.statistics->phase = Statistics::FINALIZATION;
+  env -> statistics->phase = Statistics::FINALIZATION;
 #endif
 }
 
@@ -321,21 +321,21 @@ void solverMode()
   CALL("solverMode()");
 #if GNUMP
   //adjust vampire options in order to serve the purpose of bound propagation
-  if ( env.options->proof() == env.options->PROOF_ON ) {
-    env.options->setProof(env.options->PROOF_OFF);
+  if ( env -> options->proof() == env -> options->PROOF_ON ) {
+    env -> options->setProof(env -> options->PROOF_OFF);
   }
 
   //this ensures the fact that int's read in smtlib file are treated as reals
-  env.options->setSmtlibConsiderIntsReal(true);
+  env -> options->setSmtlibConsiderIntsReal(true);
 
   boundPropagationMode();
 
-  env.beginOutput();
-  outputResult(env.out());
-  env.endOutput();
+  env -> beginOutput();
+  outputResult(env -> out());
+  env -> endOutput();
 
-  if (env.statistics->terminationReason==Statistics::REFUTATION
-      || env.statistics->terminationReason==Statistics::SATISFIABLE) {
+  if (env -> statistics->terminationReason==Statistics::REFUTATION
+      || env -> statistics->terminationReason==Statistics::SATISFIABLE) {
     g_returnValue=0;
   }
 #endif
@@ -355,23 +355,23 @@ void preprocessMode()
 {
   CALL("preprocessMode()");
 
-  Problem* prb = UIHelper::getInputProblem(*env.options);
+  Problem* prb = UIHelper::getInputProblem(*env -> options);
 
   TimeCounter tc2(TC_PREPROCESSING);
 
   // preprocess without clausification
-  Preprocess prepro(*env.options);
+  Preprocess prepro(*env -> options);
   prepro.turnClausifierOff();
   prepro.preprocess(*prb);
 
-  env.beginOutput();
-  UIHelper::outputSymbolDeclarations(env.out());
+  env -> beginOutput();
+  UIHelper::outputSymbolDeclarations(env -> out());
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
     Unit* u = units.next();
-    env.out() << TPTPPrinter::toString(u) << "\n";
+    env -> out() << TPTPPrinter::toString(u) << "\n";
   }
-  env.endOutput();
+  env -> endOutput();
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -387,16 +387,16 @@ void outputMode()
 {
   CALL("outputMode()");
 
-  Problem* prb = UIHelper::getInputProblem(*env.options);
+  Problem* prb = UIHelper::getInputProblem(*env -> options);
 
-  env.beginOutput();
-  UIHelper::outputSymbolDeclarations(env.out());
+  env -> beginOutput();
+  UIHelper::outputSymbolDeclarations(env -> out());
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
     Unit* u = units.next();
-    env.out() << TPTPPrinter::toString(u) << "\n";
+    env -> out() << TPTPPrinter::toString(u) << "\n";
   }
-  env.endOutput();
+  env -> endOutput();
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -419,7 +419,7 @@ void satSolverMode()
 {
   CALL("satSolverMode()");
   TimeCounter tc(TC_SAT_SOLVER);
-  SATSolverSCP solver(new LingelingInterfacing(*env.options, false));
+  SATSolverSCP solver(new LingelingInterfacing(*env -> options, false));
 
   //get the clauses; 
   SATClauseList* clauses;
@@ -427,37 +427,37 @@ void satSolverMode()
 
   SATSolver::Status res; 
   
-  clauses = getInputClauses(env.options->inputFile().c_str(), varCnt);
+  clauses = getInputClauses(env -> options->inputFile().c_str(), varCnt);
   cout<<"we have : "<<varCnt << " variables\n";
 
   //add all the clauses to the solver 
   solver->addClauses(pvi(SATClauseList::Iterator(clauses)));
   res = solver->getStatus();
 
-  env.statistics->phase = Statistics::FINALIZATION;
+  env -> statistics->phase = Statistics::FINALIZATION;
 
   switch(res) {
   case SATSolver::SATISFIABLE:
     cout<<"SATISFIABLE\n";
-    env.statistics->terminationReason = Statistics::SAT_SATISFIABLE;
+    env -> statistics->terminationReason = Statistics::SAT_SATISFIABLE;
     break;
   case SATSolver::UNSATISFIABLE:
     cout<<"UNSATISFIABLE\n";
-    env.statistics->terminationReason = Statistics::SAT_UNSATISFIABLE;
+    env -> statistics->terminationReason = Statistics::SAT_UNSATISFIABLE;
     break;
   case SATSolver::UNKNOWN:
     cout<<"Unknown\n";
     break;
   }
 
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
+  env -> beginOutput();
+  UIHelper::outputResult(env -> out());
+  env -> endOutput();
 #if SATISFIABLE_IS_SUCCESS
-  if (env.statistics->terminationReason == Statistics::SAT_UNSATISFIABLE
-      || env.statistics->terminationReason == Statistics::SAT_SATISFIABLE) {
+  if (env -> statistics->terminationReason == Statistics::SAT_UNSATISFIABLE
+      || env -> statistics->terminationReason == Statistics::SAT_SATISFIABLE) {
 #else
-    if (env.statistics->terminationReason==Statistics:SAT_UNSATISFIABLE) {
+    if (env -> statistics->terminationReason==Statistics:SAT_UNSATISFIABLE) {
 #endif
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
   }
@@ -467,11 +467,11 @@ void vampireMode()
 {
   CALL("vampireMode()");
 
-  if (env.options->mode() == Options::MODE_CONSEQUENCE_ELIMINATION) {
-    env.options->setUnusedPredicateDefinitionRemoval(false);
+  if (env -> options->mode() == Options::MODE_CONSEQUENCE_ELIMINATION) {
+    env -> options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  string inputFile = env.options->inputFile();
+  string inputFile = env -> options->inputFile();
   istream* input;
   if (inputFile == "") {
     input = &cin;
@@ -484,15 +484,15 @@ void vampireMode()
 
   doProving();
 
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
+  env -> beginOutput();
+  UIHelper::outputResult(env -> out());
+  env -> endOutput();
 
 #if SATISFIABLE_IS_SUCCESS
-  if (env.statistics->terminationReason == Statistics::REFUTATION
-      || env.statistics->terminationReason == Statistics::SATISFIABLE) {
+  if (env -> statistics->terminationReason == Statistics::REFUTATION
+      || env -> statistics->terminationReason == Statistics::SATISFIABLE) {
 #else
-    if (env.statistics->terminationReason==Statistics::REFUTATION) {
+    if (env -> statistics->terminationReason==Statistics::REFUTATION) {
 #endif
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
   }
@@ -508,9 +508,9 @@ void spiderMode()
     noException = false;
   }
 
-  env.beginOutput();
+  env -> beginOutput();
   if (noException) {
-    switch (env.statistics->terminationReason) {
+    switch (env -> statistics->terminationReason) {
     case Statistics::REFUTATION:
       reportSpiderStatus('+');
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -530,12 +530,12 @@ void spiderMode()
     default:
       ASSERTION_VIOLATION;
     }
-    env.statistics->print(env.out());
+    env -> statistics->print(env -> out());
   } else {
     reportSpiderFail();
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
   }
-  env.endOutput();
+  env -> endOutput();
 } // spiderMode
 
 void clausifyMode()
@@ -549,8 +549,8 @@ void clausifyMode()
 
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
-  env.beginOutput();
-  UIHelper::outputSymbolDeclarations(env.out());
+  env -> beginOutput();
+  UIHelper::outputSymbolDeclarations(env -> out());
 
   ClauseIterator cit = prb->clauseIterator();
   while (cit.hasNext()) {
@@ -559,9 +559,9 @@ void clausifyMode()
     if (!cl) {
       continue;
     }
-    env.out() << TPTPPrinter::toString(cl) << "\n";
+    env -> out() << TPTPPrinter::toString(cl) << "\n";
   }
-  env.endOutput();
+  env -> endOutput();
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -571,33 +571,33 @@ void axiomSelectionMode()
 {
   CALL("axiomSelectionMode()");
 
-  env.options->setSineSelection(Options::SS_AXIOMS);
+  env -> options->setSineSelection(Options::SS_AXIOMS);
 
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
 
   if (prb->hasSpecialTermsOrLets()) {
     SpecialTermElimination().apply(*prb);
   }
 
   // reorder units
-  if (env.options->normalize()) {
-    env.statistics->phase = Statistics::NORMALIZATION;
+  if (env -> options->normalize()) {
+    env -> statistics->phase = Statistics::NORMALIZATION;
     Normalisation norm;
     norm.normalise(*prb);
   }
 
-  env.statistics->phase = Statistics::SINE_SELECTION;
-  SineSelector(*env.options).perform(*prb);
+  env -> statistics->phase = Statistics::SINE_SELECTION;
+  SineSelector(*env -> options).perform(*prb);
 
-  env.statistics->phase = Statistics::FINALIZATION;
+  env -> statistics->phase = Statistics::FINALIZATION;
 
   UnitList::Iterator uit(prb->units());
-  env.beginOutput();
+  env -> beginOutput();
   while (uit.hasNext()) {
     Unit* u = uit.next();
-    env.out() << TPTPPrinter::toString(u) << "\n";
+    env -> out() << TPTPPrinter::toString(u) << "\n";
   }
-  env.endOutput();
+  env -> endOutput();
 
   //we have successfully output the selected units, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -608,9 +608,9 @@ void groundingMode()
   CALL("groundingMode()");
 
   try {
-    ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+    ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
 
-    Preprocess prepro(*env.options);
+    Preprocess prepro(*env -> options);
     prepro.preprocess(*prb);
 
     ClauseIterator clauses = prb->clauseIterator();
@@ -637,18 +637,18 @@ void groundingMode()
       }
       insts.pushManyToKey(cl, sGrounded);
     }
-    env.beginOutput();
-    DIMACS::outputGroundedProblem(insts, nameCtx, env.out());
-    env.endOutput();
+    env -> beginOutput();
+    DIMACS::outputGroundedProblem(insts, nameCtx, env -> out());
+    env -> endOutput();
 
   } catch (MemoryLimitExceededException) {
-    env.beginOutput();
-    env.out() << "Memory limit exceeded\n";
-    env.endOutput();
+    env -> beginOutput();
+    env -> out() << "Memory limit exceeded\n";
+    env -> endOutput();
   } catch (TimeLimitExceededException) {
-    env.beginOutput();
-    env.out() << "Time limit exceeded\n";
-    env.endOutput();
+    env -> beginOutput();
+    env -> out() << "Time limit exceeded\n";
+    env -> endOutput();
   }
 } // groundingMode
 
@@ -663,7 +663,7 @@ int main(int argc, char* argv[])
   CALL ("main");
 
 //#if IS_LINGVA
-//    env.options->setMode(Options::MODE_PROGRAM_ANALYSIS);
+//    env -> options->setMode(Options::MODE_PROGRAM_ANALYSIS);
 //#endif
 
   System::registerArgv0(argv[0]);
@@ -674,29 +674,29 @@ int main(int argc, char* argv[])
   try {
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
-    cl.interpret(env.optionsContainer);
+    cl.interpret(env -> optionsContainer);
 
-    //TODO - if env.optionsContainer != env.options
+    //TODO - if env -> optionsContainer != env -> options
     //       then we are in a multi-strategy case
     //Currently we do not allow multi-strategy
-    if(env.options != env.optionsContainer){
+    if(env -> options != env -> optionsContainer){
       USER_ERROR("We do not currently allow multi-strategy... coming soon!");
     }
 
-    PROCESS_TRACE_SPEC_STRING(env.options->traceSpecString());
-    env.options->enableTracesAccordingToOptions();
+    PROCESS_TRACE_SPEC_STRING(env -> options->traceSpecString());
+    env -> options->enableTracesAccordingToOptions();
 
-    if (env.options->showOptions()) {
-      env.beginOutput();
-      env.options->output(env.out());
-      env.endOutput();
+    if (env -> options->showOptions()) {
+      env -> beginOutput();
+      env -> options->output(env -> out());
+      env -> endOutput();
     }
 
 
-    Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
-    Lib::Random::setSeed(env.options->randomSeed());
+    Allocator::setMemoryLimit(env -> options->memoryLimit() * 1048576ul);
+    Lib::Random::setSeed(env -> options->randomSeed());
 
-    switch (env.options->mode())
+    switch (env -> options->mode())
     {
     case Options::MODE_AXIOM_SELECTION:
       axiomSelectionMode();
@@ -784,8 +784,8 @@ int main(int argc, char* argv[])
       MemoryLeak leak;
       leak.release(globUnitList);
     }
-    delete env.signature;
-    env.signature = 0;
+    delete env -> signature;
+    env -> signature = 0;
 #endif
   }
 #if VDEBUG
@@ -810,21 +810,21 @@ int main(int argc, char* argv[])
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
-    env.beginOutput();
+    env -> beginOutput();
     explainException(exception);
-    env.statistics->print(env.out());
-    env.endOutput();
+    env -> statistics->print(env -> out());
+    env -> endOutput();
   } catch (std::bad_alloc& _) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
-    env.beginOutput();
-    env.out() << "Insufficient system memory" << '\n';
-    env.endOutput();
+    env -> beginOutput();
+    env -> out() << "Insufficient system memory" << '\n';
+    env -> endOutput();
   }
-//   delete env.allocator;
+//   delete env -> allocator;
 
   return vampireReturnValue;
 } // main

@@ -239,7 +239,7 @@ Formula* FormulaIteExpander::introduceDefinition(Formula* f)
 
   Formula::VarList* fv=f->freeVariables();
   unsigned fvLen=fv->length();
-  unsigned dpred=env.signature->addNamePredicate(fvLen);
+  unsigned dpred=env -> signature->addNamePredicate(fvLen);
 
   static Stack<TermList> args;
   Formula::VarList::Iterator fvit(fv);

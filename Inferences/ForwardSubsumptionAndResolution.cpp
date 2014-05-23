@@ -256,7 +256,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
       premise->setAux(0);
       if(simplPerformer->willPerform(premise)) {
 	simplPerformer->perform(premise, 0);
-	env.statistics->forwardSubsumed++;
+	env -> statistics->forwardSubsumed++;
 	if(!simplPerformer->clauseKept()) {
 	  goto fin;
 	}
@@ -292,7 +292,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 
       if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0) && simplPerformer->willPerform(mcl)) {
 	simplPerformer->perform(mcl, 0);
-	env.statistics->forwardSubsumed++;
+	env -> statistics->forwardSubsumed++;
 	if(!simplPerformer->clauseKept()) {
 	  goto fin;
 	}
@@ -316,7 +316,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 	Clause* mcl=rit.next().clause;
 	if(simplPerformer->willPerform(mcl)) {
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
-	  env.statistics->forwardSubsumptionResolution++;
+	  env -> statistics->forwardSubsumptionResolution++;
 	  simplPerformer->perform(mcl, resolutionClause);
 	  if(!simplPerformer->clauseKept()) {
 	    goto fin;
@@ -333,7 +333,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 	  Literal* resLit=(*cl)[li];
 	  if(checkForSubsumptionResolution(cl, cms, resLit) && simplPerformer->willPerform(cms->_cl)) {
 	    resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
-	    env.statistics->forwardSubsumptionResolution++;
+	    env -> statistics->forwardSubsumptionResolution++;
 	    simplPerformer->perform(cms->_cl, resolutionClause);
 	    if(!simplPerformer->clauseKept()) {
 	      goto fin;
@@ -362,7 +362,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 
 	if(checkForSubsumptionResolution(cl, cms, resLit) && simplPerformer->willPerform(cms->_cl)) {
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
-	  env.statistics->forwardSubsumptionResolution++;
+	  env -> statistics->forwardSubsumptionResolution++;
 	  simplPerformer->perform(cms->_cl, resolutionClause);
 	  if(!simplPerformer->clauseKept()) {
 	    goto fin;

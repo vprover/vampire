@@ -22,7 +22,7 @@ using namespace Kernel;
 using namespace Shell;
 
 Normalisation::Normalisation ()
-  : _counter(*env.signature)
+  : _counter(*env -> signature)
 {
 } // Normalisation::Normalisation
 

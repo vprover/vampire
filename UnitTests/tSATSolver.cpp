@@ -89,7 +89,7 @@ void testZICert1(SATSolver& s)
 
 TEST_FUN(satSolverZeroImpliedCert)
 {
-  TWLSolver s(*env.options,true);
+  TWLSolver s(*env -> options,true);
   testZICert1(s);
 }
 

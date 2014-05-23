@@ -126,8 +126,8 @@ int main(int argc, char* argv [])
       MemoryLeak leak;
       leak.release(globUnitList);
     }
-    delete env.signature;
-    env.signature = 0;
+    delete env -> signature;
+    env -> signature = 0;
 #endif
 
     //if we got here, all went well and we can return 0
@@ -151,7 +151,7 @@ int main(int argc, char* argv [])
     MemoryLeak::cancelReport();
 #endif
     explainException(exception);
-    env.statistics->print(cout);
+    env -> statistics->print(cout);
   }
   catch (std::bad_alloc& _) {
 #if CHECK_LEAKS
@@ -159,7 +159,7 @@ int main(int argc, char* argv [])
 #endif
     cout << "Insufficient system memory" << '\n';
   }
-//   delete env.allocator;
+//   delete env -> allocator;
 
   return globReturnValue;
 }

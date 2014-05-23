@@ -95,7 +95,7 @@ string TPTPPrinter::getBodyStr(Unit* u)
 
 	res << 'X' << var;
 	if(varSort!=Sorts::SRT_DEFAULT) {
-	  res << " : " << env.sorts->sortName(varSort);
+	  res << " : " << env -> sorts->sortName(varSort);
 	}
 	if(vit.hasNext()) {
 	  res << ',';
@@ -178,7 +178,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
   CALL("TPTPPrinter::outputSymbolTypeDefinitions");
 
   Signature::Symbol* sym = function ?
-      env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
+      env -> signature->getFunction(symNumber) : env -> signature->getPredicate(symNumber);
   BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : sym->predType();
 
   if(type->isAllDefault()) {
@@ -210,12 +210,12 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
       if(i>0) {
 	tgt() << " * ";
       }
-      tgt() << env.sorts->sortName(type->arg(i));
+      tgt() << env -> sorts->sortName(type->arg(i));
     }
     tgt() << ") > ";
   }
   if(function) {
-    tgt() << env.sorts->sortName(sym->fnType()->result());
+    tgt() << env -> sorts->sortName(sym->fnType()->result());
   }
   else {
     tgt() << "$o";
@@ -239,11 +239,11 @@ void TPTPPrinter::ensureNecesarySorts()
   List<unsigned> *_usedSorts(0);
   BaseType* type;
   Signature::Symbol* sym;
-  unsigned sorts = env.sorts->sorts();
+  unsigned sorts = env -> sorts->sorts();
   //check the sorts of the function symbols and collect information about used sorts
-  unsigned funs = env.signature->functions();
+  unsigned funs = env -> signature->functions();
   for (i = 0; i < funs; i++) {
-    sym = env.signature->getFunction(i);
+    sym = env -> signature->getFunction(i);
     type = static_cast<BaseType*>(sym->fnType());
     unsigned arity = sym->arity();
     if (arity > 0) {
@@ -254,9 +254,9 @@ void TPTPPrinter::ensureNecesarySorts()
     }
   }
   //check the sorts of the predicates and collect information about used sorts
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env -> signature->predicates();
   for (i = 1; i < preds; i++) {
-    sym = env.signature->getFunction(i);
+    sym = env -> signature->getFunction(i);
     type = static_cast<BaseType*>(sym->predType());
     unsigned arity = sym->arity();
     if (arity > 0) {
@@ -269,7 +269,7 @@ void TPTPPrinter::ensureNecesarySorts()
   //output the sort definition for the used sorts, but not for the built-in sorts
   for (i = Sorts::FIRST_USER_SORT; i < sorts; i++) {
     if (_usedSorts->member(i))
-      tgt() << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i)
+      tgt() << "tff(sort_def_" << i << ",type, " << env -> sorts->sortName(i)
             	      << ": $tType" << " )." << endl;
 
   }
@@ -288,11 +288,11 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
 
   ensureNecesarySorts();
 
-  unsigned funs = env.signature->functions();
+  unsigned funs = env -> signature->functions();
   for(unsigned i=0; i<funs; i++) {
     outputSymbolTypeDefinitions(i, true);
   }
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env -> signature->predicates();
   for(unsigned i=1; i<preds; i++) {
     outputSymbolTypeDefinitions(i, false);
   }
@@ -311,26 +311,26 @@ ostream& TPTPPrinter::tgt()
     return *_tgtStream;
   }
   else {
-    return env.out();
+    return env -> out();
   }
 }
 
 /**
  * In case there is no specified output stream, than print to the one
- * specified in the env.beginOutput();
+ * specified in the env -> beginOutput();
  */
 void TPTPPrinter::beginOutput()
 {
   CALL("TPTPPrinter::beginOutput");
 
-  if(!_tgtStream) { env.beginOutput(); }
+  if(!_tgtStream) { env -> beginOutput(); }
 }
 
 void TPTPPrinter::endOutput()
 {
   CALL("TPTPPrinter::endOutput");
 
-  if(!_tgtStream) { env.endOutput(); }
+  if(!_tgtStream) { env -> endOutput(); }
 }
 
 /**

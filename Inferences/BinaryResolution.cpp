@@ -99,11 +99,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
   if(!ColorHelper::compatible(queryCl->color(),qr.clause->color()) ) {
-    env.statistics->inferencesSkippedDueToColors++;
+    env -> statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
-      env.beginOutput();
-      env.out()<<"Blocked resolution of "<<queryCl->toString()<<" and "<<qr.clause->toString()<<endl;
-      env.endOutput();
+      env -> beginOutput();
+      env -> out()<<"Blocked resolution of "<<queryCl->toString()<<" and "<<qr.clause->toString()<<endl;
+      env -> endOutput();
     }
     if(opts.colorUnblocking()) {
       SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
@@ -147,7 +147,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
     if(wlb > weightLimit) {
       RSTAT_CTR_INC("binary resolutions skipped for weight limit before building clause");
-      env.statistics->discardedNonRedundantClauses++;
+      env -> statistics->discardedNonRedundantClauses++;
       return 0;
     }
   }
@@ -169,7 +169,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 	wlb+=newLit->weight() - curr->weight();
 	if(wlb > weightLimit) {
 	  RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
-	  env.statistics->discardedNonRedundantClauses++;
+	  env -> statistics->discardedNonRedundantClauses++;
 	  res->destroy();
 	  return 0;
 	}
@@ -186,7 +186,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 	wlb+=newLit->weight() - curr->weight();
 	if(wlb > weightLimit) {
 	  RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
-	  env.statistics->discardedNonRedundantClauses++;
+	  env -> statistics->discardedNonRedundantClauses++;
 	  res->destroy();
 	  return 0;
 	}
@@ -197,7 +197,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   res->setAge(newAge);
-  env.statistics->resolution++;
+  env -> statistics->resolution++;
 
   return res;
 }

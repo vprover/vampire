@@ -137,11 +137,11 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
   CALL("InequalitySplitting::splitLiteral");
   ASS(isSplittable(lit));
 
-  unsigned predNum=env.signature->addNamePredicate(1);
+  unsigned predNum=env -> signature->addNamePredicate(1);
   unsigned srt = SortHelper::getEqualityArgumentSort(lit);
   BaseType* type = BaseType::makeType1(srt, Sorts::SRT_BOOL);
 
-  Signature::Symbol* predSym = env.signature->getPredicate(predNum);
+  Signature::Symbol* predSym = env -> signature->getPredicate(predNum);
   predSym->setType(type);
 
   TermList s;
@@ -156,10 +156,10 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
   }
 
   ASS(t.isTerm());
-  if(env.colorUsed && t.term()->color()!=COLOR_TRANSPARENT) {
+  if(env -> colorUsed && t.term()->color()!=COLOR_TRANSPARENT) {
     predSym->addColor(t.term()->color());
   }
-  if(env.colorUsed && t.term()->skip()) {
+  if(env -> colorUsed && t.term()->skip()) {
     predSym->markSkip();
   }
 
@@ -172,7 +172,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
 
   premise=defCl;
 
-  env.statistics->splitInequalities++;
+  env -> statistics->splitInequalities++;
 
   return makeNameLiteral(predNum, s, true);
 

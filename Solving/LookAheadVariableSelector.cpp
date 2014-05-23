@@ -65,7 +65,7 @@ Var LookAheadVariableSelector::getNextVariable()
     }
   }
 
-  LOG("tkv_vselect","LookAheadVariableSelector picks variable "<<env.signature->varName(best)<<" as a decision point");
+  LOG("tkv_vselect","LookAheadVariableSelector picks variable "<<env -> signature->varName(best)<<" as a decision point");
   return best;
 }
 

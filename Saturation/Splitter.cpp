@@ -102,7 +102,7 @@ bool Splitter::isSpecial(Literal* lit)
 {
   CALL("Splitter::isSpecial");
 
-  Signature::Symbol* predSym = env.signature->getPredicate(lit->functor());
+  Signature::Symbol* predSym = env -> signature->getPredicate(lit->functor());
 
   return lit->color()==COLOR_TRANSPARENT &&
     (!getOptions().showSymbolElimination() || lit->skip()) &&
@@ -234,8 +234,8 @@ bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTo
     return false;
   }
 
-  env.statistics->splitClauses++;
-  env.statistics->splitComponents+=compCnt;
+  env -> statistics->splitClauses++;
+  env -> statistics->splitComponents+=compCnt;
 
   IntUnionFind::ComponentIterator cit(components);
   ASS(cit.hasNext());

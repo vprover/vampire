@@ -34,7 +34,7 @@ bool CASCMode::perform(int argc, char* argv [])
 
   UIHelper::cascMode=true;
 
-  env.timer->makeChildrenIncluded();
+  env -> timer->makeChildrenIncluded();
 
 #if COMPILER_MSVC
   SpawningCM cm(argv[0]);
@@ -44,26 +44,26 @@ bool CASCMode::perform(int argc, char* argv [])
 
   bool res=cm.perform();
 
-  env.beginOutput();
+  env -> beginOutput();
   if (res) {
-    env.out()<<"% Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+    env -> out()<<"% Success in time "<<Timer::msToSecondsString(env -> timer->elapsedMilliseconds())<<endl;
   }
   else {
-    env.out()<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
-    if (env.remainingTime()/100>0) {
-      env.out()<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
+    env -> out()<<"% Proof not found in time "<<Timer::msToSecondsString(env -> timer->elapsedMilliseconds())<<endl;
+    if (env -> remainingTime()/100>0) {
+      env -> out()<<"% SZS status GaveUp for "<<env -> options->problemName()<<endl;
     }
     else {
       //From time to time we may also be terminating in the timeLimitReached()
       //function in Lib/Timer.cpp in case the time runs out. We, however, output
       //the same string there as well.
-      env.out()<<"% SZS status Timeout for "<<env.options->problemName()<<endl;
+      env -> out()<<"% SZS status Timeout for "<<env -> options->problemName()<<endl;
     }
   }
-  if (env.options && env.options->timeStatistics()) {
-    TimeCounter::printReport(env.out());
+  if (env -> options && env -> options->timeStatistics()) {
+    TimeCounter::printReport(env -> out());
   }
-  env.endOutput();
+  env -> endOutput();
 
   return res;
 }
@@ -72,11 +72,11 @@ void CASCMode::handleSIGINT()
 {
   CALL("CASCMode::handleSIGINT");
 
-  env.beginOutput();
-  env.out()<<"% Terminated by SIGINT!"<<endl;
-  env.out()<<"% SZS status User for "<<env.options->problemName() <<endl;
-  env.statistics->print(env.out());
-  env.endOutput();
+  env -> beginOutput();
+  env -> out()<<"% Terminated by SIGINT!"<<endl;
+  env -> out()<<"% SZS status User for "<<env -> options->problemName() <<endl;
+  env -> statistics->print(env -> out());
+  env -> endOutput();
   exit(VAMP_RESULT_STATUS_SIGINT);
 }
 
@@ -99,7 +99,7 @@ bool CASCMode::perform()
     getSchedules(*_property, quick, fallback);
   }
 
-  int remainingTime=env.remainingTime()/100;
+  int remainingTime=env -> remainingTime()/100;
   if (remainingTime<=0) {
     return false;
   }
@@ -107,7 +107,7 @@ bool CASCMode::perform()
   if (runSchedule(quick,remainingTime,used,false)) {
     return true;
   }
-  remainingTime=env.remainingTime()/100;
+  remainingTime=env -> remainingTime()/100;
   if (remainingTime<=0) {
     return false;
   }
@@ -1595,7 +1595,7 @@ bool CASCMode::runSchedule(Schedule& schedule,unsigned ds,StrategySet& ss,bool f
       continue;
     }
     ss.insert(chopped);
-    int remainingTime = env.remainingTime()/100;
+    int remainingTime = env -> remainingTime()/100;
     if (remainingTime<=0) {
       return false;
     }
@@ -1603,9 +1603,9 @@ bool CASCMode::runSchedule(Schedule& schedule,unsigned ds,StrategySet& ss,bool f
     if (sliceTime > (unsigned)remainingTime) {
       sliceTime = remainingTime;
     }
-    env.beginOutput();
-    env.out()<<"% remaining time: "<<remainingTime<<" next slice time: "<<sliceTime<<endl;
-    env.endOutput();
+    env -> beginOutput();
+    env -> out()<<"% remaining time: "<<remainingTime<<" next slice time: "<<sliceTime<<endl;
+    env -> endOutput();
     if (runSlice(sliceCode,sliceTime)) {
       return true;
     }
@@ -1617,7 +1617,7 @@ bool CASCMode::runSlice(string slice, unsigned ds)
 {
   CALL("CASCMode::runSlice");
 
-  Options opt=*env.options;
+  Options opt=*env -> options;
   opt.readFromTestId(slice);
   opt.setTimeLimitInDeciseconds(ds);
   int stl = opt.simulatedTimeLimit();

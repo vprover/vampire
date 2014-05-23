@@ -391,13 +391,13 @@ struct PDInliner::PDef
     //into old one. In other cases the dependencies either aren't added yet,
     //or will be removed all at one in the PDInliner::tryGetDef() function.
     _dependencies.remove(def->_pred);
-    LOG("pp_inl_dep","removed dep: "<<env.signature->predicateName(def->_pred)<<" from "<<env.signature->predicateName(_pred));
+    LOG("pp_inl_dep","removed dep: "<<env -> signature->predicateName(def->_pred)<<" from "<<env -> signature->predicateName(_pred));
 
     //add the predicates added by inlining into dependencies
     Set<unsigned>::Iterator depIt(def->_dependencies);
     while(depIt.hasNext()) {
       unsigned dep = depIt.next();
-      LOG("pp_inl_dep","added dep: "<<env.signature->predicateName(dep)<<" to "<<env.signature->predicateName(_pred));
+      LOG("pp_inl_dep","added dep: "<<env -> signature->predicateName(dep)<<" to "<<env -> signature->predicateName(_pred));
       registerDependentPred(dep);
     }
     LOG("pp_inl_dep","dep update finished");
@@ -410,7 +410,7 @@ struct PDInliner::PDef
 
     _parent->_dependent[depPred].insert(_pred);
     _dependencies.insert(depPred);
-    LOG("pp_inl_dep","added dep: "<<env.signature->predicateName(depPred)<<" to definition of "<<env.signature->predicateName(_pred));
+    LOG("pp_inl_dep","added dep: "<<env -> signature->predicateName(depPred)<<" to definition of "<<env -> signature->predicateName(_pred));
   }
 
   void assignUnit(FormulaUnit* unit)
@@ -770,14 +770,14 @@ PDInliner::PDInliner(bool axiomsOnly, bool trace, bool nonGrowing)
 {
   CALL("PDInliner::PDInliner");
 
-  _dependent.ensure(env.signature->predicates());
+  _dependent.ensure(env -> signature->predicates());
 }
 
 PDInliner::~PDInliner()
 {
   CALL("PDInliner::~PDInliner");
 
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env -> signature->predicates();
   for(unsigned i=0; i<preds; i++) {
     if(_defs[i]) {
       delete _defs[i];
@@ -1317,7 +1317,7 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
   }
 
   _dependent[defPred].reset();
-  env.statistics->inlinedPredicateDefinitions++;
+  env -> statistics->inlinedPredicateDefinitions++;
   return true;
 }
 
@@ -1341,7 +1341,7 @@ bool PDInliner::addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* 
   _defs[pred] = new PDef(this, pred);
   _defs[pred]->assignAsym(lhs, posBody, negBody, dblBody, premise);
 
-  env.statistics->inlinedPredicateDefinitions++;
+  env -> statistics->inlinedPredicateDefinitions++;
   return true;
 }
 

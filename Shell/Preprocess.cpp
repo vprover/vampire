@@ -194,7 +194,7 @@ void Preprocess::preprocess (Problem& prb)
   prb.getProperty();
 
   if (prb.hasInterpretedOperations()) {
-    env.interpretedOperationsUsed = true;
+    env -> interpretedOperationsUsed = true;
   }
 
   if (prb.hasSpecialTermsOrLets()) {
@@ -204,26 +204,26 @@ void Preprocess::preprocess (Problem& prb)
 
   // reorder units
   if (_options.normalize()) {
-    env.statistics->phase=Statistics::NORMALIZATION;
+    env -> statistics->phase=Statistics::NORMALIZATION;
     LOG("pp_progress","normalization");
     Normalisation().normalise(prb);
   }
 
   if (_options.sineSelection()!=Options::SS_OFF) {
-    env.statistics->phase=Statistics::SINE_SELECTION;
+    env -> statistics->phase=Statistics::SINE_SELECTION;
     LOG("pp_progress","sine selection");
     SineSelector(_options).perform(prb);
   }
 
   if (_options.questionAnswering()==Options::QA_ANSWER_LITERAL) {
-    env.statistics->phase=Statistics::UNKNOWN_PHASE;
+    env -> statistics->phase=Statistics::UNKNOWN_PHASE;
     LOG("pp_progress","answer literal addition");
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
   if (prb.hasInterpretedOperations() && _options.theoryAxioms()) {
     InterpretedNormalizer().apply(prb);
-    env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+    env -> statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
     LOG("pp_progress","adding theory axioms");
     TheoryAxioms().apply(prb);
   }
@@ -252,7 +252,7 @@ void Preprocess::preprocess (Problem& prb)
     //the ENNF form there allows us to propagate more equalities.
     //Here we're trying to propagate equalities as well because that might
     //reveal some more formulas to be definitions.
-    env.statistics->phase=Statistics::EQUALITY_PROPAGATION;
+    env -> statistics->phase=Statistics::EQUALITY_PROPAGATION;
     LOG("pp_progress","equality propagation");
     EqualityPropagator().apply(prb);
   }
@@ -263,7 +263,7 @@ void Preprocess::preprocess (Problem& prb)
   }
 
   if (_options.predicateDefinitionInlining()!=Options::INL_OFF) {
-    env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
+    env -> statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
     LOG("pp_progress","inlining");
     PDInliner pdInliner(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY, false,
 	_options.predicateDefinitionInlining()==Options::INL_NON_GROWING);
@@ -300,19 +300,19 @@ void Preprocess::preprocess (Problem& prb)
   }
 
   if (_options.predicateDefinitionMerging()) {
-    env.statistics->phase=Statistics::PREDIACTE_DEFINITION_MERGING;
+    env -> statistics->phase=Statistics::PREDIACTE_DEFINITION_MERGING;
     LOG("pp_progress","predicate definition merging");
     PDMerger().apply(prb);
   }
 
   if (_options.eprPreservingSkolemization()) {
-    env.statistics->phase=Statistics::EPR_PRESERVING_SKOLEMIZATION;
+    env -> statistics->phase=Statistics::EPR_PRESERVING_SKOLEMIZATION;
     LOG("pp_progress","epr skolemization");
     EPRSkolem().apply(prb);
   }
 
   if (_options.eprRestoringInlining()) {
-    env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
+    env -> statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
     LOG("pp_progress","epr restoring inlining");
     EPRInlining().apply(prb);
   }
@@ -343,7 +343,7 @@ void Preprocess::preprocess (Problem& prb)
   }
 
   if (_options.unusedPredicateDefinitionRemoval()) {
-    env.statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
+    env -> statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
     LOG("pp_progress","unused predicate definition removal");
     PredicateDefinition pdRemover;
     pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
@@ -355,7 +355,7 @@ void Preprocess::preprocess (Problem& prb)
   }
 
   if (_options.equalityPropagation() && prb.mayHaveEquality()) {
-    env.statistics->phase=Statistics::EQUALITY_PROPAGATION;
+    env -> statistics->phase=Statistics::EQUALITY_PROPAGATION;
     LOG("pp_progress","equality propagation");
     EqualityPropagator().apply(prb);
   }
@@ -392,7 +392,7 @@ void Preprocess::preprocess (Problem& prb)
   }
 
   if (prb.mayHaveFunctionDefinitions()) {
-    env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
+    env -> statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
     LOG("pp_progress","function definition elimination");
     if (_options.functionDefinitionElimination() == Options::FDE_ALL) {
       FunctionDefinition fd;
@@ -406,7 +406,7 @@ void Preprocess::preprocess (Problem& prb)
 
   if (prb.mayHaveEquality() && _options.inequalitySplitting() != 0) {
     LOG("pp_progress","inequality splitting");
-    env.statistics->phase=Statistics::INEQUALITY_SPLITTING;
+    env -> statistics->phase=Statistics::INEQUALITY_SPLITTING;
     InequalitySplitting is(_options);
     is.perform(prb);
   }
@@ -431,27 +431,27 @@ void Preprocess::preprocess (Problem& prb)
 
    if (_options.equalityResolutionWithDeletion()!=Options::RA_OFF &&
 	   prb.mayHaveInequalityResolvableWithDeletion() ) {
-     env.statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
+     env -> statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
      LOG("pp_progress","equality resolution with deletion");
      EqResWithDeletion resolver;
      resolver.apply(prb);
    }
 
    if (_options.trivialPredicateRemoval()) {
-     env.statistics->phase=Statistics::UNKNOWN_PHASE;
+     env -> statistics->phase=Statistics::UNKNOWN_PHASE;
      LOG("pp_progress","trivial predicate removal");
      TrivialPredicateRemover().apply(prb);
    }
 
    if (_options.generalSplitting()!=Options::RA_OFF) {
-     env.statistics->phase=Statistics::GENERAL_SPLITTING;
+     env -> statistics->phase=Statistics::GENERAL_SPLITTING;
      LOG("pp_progress","general splitting");
      GeneralSplitting gs;
      gs.apply(prb);
    }
 
    if (_options.hornRevealing()) {
-     env.statistics->phase=Statistics::HORN_REVEALING;
+     env -> statistics->phase=Statistics::HORN_REVEALING;
      LOG("pp_progress","horn revealing");
      HornRevealer hr(_options);
      hr.apply(prb);
@@ -459,7 +459,7 @@ void Preprocess::preprocess (Problem& prb)
 
    if (_options.equalityProxy()!=Options::EP_OFF && prb.mayHaveEquality() &&
 	   (prb.mayHaveXEqualsY() || _options.equalityProxy()!=Options::EP_ON) ) {
-     env.statistics->phase=Statistics::EQUALITY_PROXY;
+     env -> statistics->phase=Statistics::EQUALITY_PROXY;
      LOG("pp_progress","equality proxy");
      EqualityProxy proxy(_options.equalityProxy());
      proxy.apply(prb);
@@ -499,7 +499,7 @@ void Preprocess::preprocess1 (Problem& prb)
 {
   CALL("Preprocess::preprocess1");
 
-  ScopedLet<Statistics::ExecutionPhase> epLet(env.statistics->phase, Statistics::PREPROCESS_1);
+  ScopedLet<Statistics::ExecutionPhase> epLet(env -> statistics->phase, Statistics::PREPROCESS_1);
 
   bool formulasSimplified = false;
 
@@ -549,7 +549,7 @@ void Preprocess::preprocess2(Problem& prb)
 {
   CALL("Preprocess::preprocess2");
 
-  env.statistics->phase=Statistics::PREPROCESS_2;
+  env -> statistics->phase=Statistics::PREPROCESS_2;
 
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
@@ -579,7 +579,7 @@ void Preprocess::naming(Problem& prb)
   CALL("Preprocess::naming");
   ASS(_options.naming());
 
-  env.statistics->phase=Statistics::NAMING;
+  env -> statistics->phase=Statistics::NAMING;
   UnitList::DelIterator us(prb.units());
   Naming naming(_options.naming(), _options.eprPreservingNaming());
   while (us.hasNext()) {
@@ -609,7 +609,7 @@ void Preprocess::secondStageEprPreservingNaming(Problem& prb)
   ASS(_options.naming());
   ASS(_options.eprPreservingNaming());
 
-  env.statistics->phase=Statistics::NAMING;
+  env -> statistics->phase=Statistics::NAMING;
 
   bool modified = false;
 
@@ -689,7 +689,7 @@ void Preprocess::preprocess3 (Problem& prb)
 
   bool modified = false;
 
-  env.statistics->phase=Statistics::PREPROCESS_3;
+  env -> statistics->phase=Statistics::PREPROCESS_3;
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
@@ -709,7 +709,7 @@ void Preprocess::clausify(Problem& prb)
 {
   CALL("Preprocess::clausify");
 
-  env.statistics->phase=Statistics::CLAUSIFICATION;
+  env -> statistics->phase=Statistics::CLAUSIFICATION;
 
   //we check if we haven't discover an empty clause during preprocessing
   Unit* emptyClause = 0;

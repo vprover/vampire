@@ -45,7 +45,7 @@ using namespace Kernel;
  */
 SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
 {
-  return max(env.signature->predicates()*2-1, env.signature->functions()*2);
+  return max(env -> signature->predicates()*2-1, env -> signature->functions()*2);
 }
 
 /**
@@ -87,12 +87,12 @@ bool SineSymbolExtractor::validSymId(SymId s)
   unsigned functor;
   decodeSymId(s, pred, functor);
   if (pred) {
-    if (functor>=static_cast<unsigned>(env.signature->predicates())) {
+    if (functor>=static_cast<unsigned>(env -> signature->predicates())) {
       return false;
     }
   }
   else {
-    if (functor>=static_cast<unsigned>(env.signature->functions())) {
+    if (functor>=static_cast<unsigned>(env -> signature->functions())) {
       return false;
     }
   }
@@ -392,9 +392,9 @@ void SineSelector::perform(UnitList*& units)
     }
   }
 
-  env.statistics->sineIterations=depth;
+  env -> statistics->sineIterations=depth;
 
-  env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selectedStack.size();
+  env -> statistics->selectedBySine=_unitsWithoutSymbols.size() + selectedStack.size();
 
   units->destroy();
   units=0;
@@ -616,8 +616,8 @@ void SineTheorySelector::perform(UnitList*& units)
 //  units=res->reverse(); //we want to resemble the original SInE as much as possible
   units=res;
 
-  env.statistics->sineIterations=depth;
-  env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selected.size();
+  env -> statistics->sineIterations=depth;
+  env -> statistics->selectedBySine=_unitsWithoutSymbols.size() + selected.size();
 
 #if SINE_PRINT_SELECTED
   UnitList::Iterator selIt(units);

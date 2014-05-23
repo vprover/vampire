@@ -43,9 +43,9 @@ using namespace VUtils;
 
 void explainException (Exception& exception)
 {
-  env.beginOutput();
-  exception.cry(env.out());
-  env.endOutput();
+  env -> beginOutput();
+  exception.cry(env -> out());
+  env -> endOutput();
 } // explainException
 
 void readAndFilterGlobalOpts(Stack<char*>& args) {
@@ -77,8 +77,8 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
       if(!Int::stringToUnsignedInt(memLimitStr, memLimit)) {
 	USER_ERROR("unsigned number expected as value of -m option");
       }
-      env.options->setMemoryLimit(memLimit);
-      Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
+      env -> options->setMemoryLimit(memLimit);
+      Allocator::setMemoryLimit(env -> options->memoryLimit()*1048576ul);
     }
     else {
       break;
@@ -104,8 +104,8 @@ int main(int argc, char* argv [])
   args.loadFromIterator(getArrayishObjectIterator(argv, argc));
 
   try {
-    env.options->setMode(Options::MODE_VAMPIRE);
-    env.options->setTimeLimitInDeciseconds(0);
+    env -> options->setMode(Options::MODE_VAMPIRE);
+    env -> options->setTimeLimitInDeciseconds(0);
 
     Allocator::setMemoryLimit(1024u*1048576ul);
 
@@ -151,9 +151,9 @@ int main(int argc, char* argv [])
     }
     else if(module=="vamp_casc") {
       Shell::CommandLine cl(args.size()-1, args.begin()+1);
-      cl.interpret(*env.options);
-      Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
-      Lib::Random::setSeed(env.options->randomSeed());
+      cl.interpret(*env -> options);
+      Allocator::setMemoryLimit(env -> options->memoryLimit()*1048576ul);
+      Lib::Random::setSeed(env -> options->randomSeed());
       if(CASC::CASCMode::perform(args.size()-1, args.begin()+1)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	resultValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -174,18 +174,18 @@ int main(int argc, char* argv [])
   }
   catch (Exception& exception) {
     reportSpiderFail();
-    env.beginOutput();
+    env -> beginOutput();
     explainException(exception);
-    env.statistics->print(env.out());
-    env.endOutput();
+    env -> statistics->print(env -> out());
+    env -> endOutput();
   }
   catch (std::bad_alloc& _) {
     reportSpiderFail();
-    env.beginOutput();
-    env.out() << "Insufficient system memory" << '\n';
-    env.endOutput();
+    env -> beginOutput();
+    env -> out() << "Insufficient system memory" << '\n';
+    env -> endOutput();
   }
-//   delete env.allocator;
+//   delete env -> allocator;
 
   return resultValue;
 } // main

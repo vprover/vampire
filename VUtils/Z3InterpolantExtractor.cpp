@@ -138,10 +138,10 @@ unsigned ZIE::getFunctionNumber(string fnName, unsigned arity)
 {
   CALL("ZIE::getFunctionNumber");
   bool added;
-  unsigned res = env.signature->addFunction(fnName, arity, added);
+  unsigned res = env -> signature->addFunction(fnName, arity, added);
   if(added) {
     BaseType* type = BaseType::makeTypeUniformRange(arity, Sorts::SRT_INTEGER, Sorts::SRT_INTEGER);
-    env.signature->getFunction(res)->setType(type);
+    env -> signature->getFunction(res)->setType(type);
   }
   return res;
 }
@@ -166,7 +166,7 @@ bool ZIE::tryReadNumber(LExpr* expr, TermList& res)
   int num;
 
   if(expr->isAtom() && Int::stringToInt(expr->str, num)) {
-    unsigned func = env.signature->addIntegerConstant(IntegerConstantType(num));
+    unsigned func = env -> signature->addIntegerConstant(IntegerConstantType(num));
     res = TermList(Term::create(func, 0, 0));
     return true;
   }
@@ -174,7 +174,7 @@ bool ZIE::tryReadNumber(LExpr* expr, TermList& res)
   LExpr* uminusArg;
   if(expr->get1Arg("-", uminusArg) || expr->get1Arg("~", uminusArg)) {
     if(uminusArg->isAtom() && Int::stringToInt(uminusArg->str, num) && Int::safeUnaryMinus(num, num)) {
-      unsigned func = env.signature->addIntegerConstant(IntegerConstantType(num));
+      unsigned func = env -> signature->addIntegerConstant(IntegerConstantType(num));
       res = TermList(Term::create(func, 0, 0));
       return true;
     }
@@ -242,9 +242,9 @@ Formula* ZIE::termToFormula(TermList trm)
   CALL("ZIE::termToFormula/1");
 
   bool added;
-  unsigned pred = env.signature->addPredicate("e", 1, added);
+  unsigned pred = env -> signature->addPredicate("e", 1, added);
   if(added) {
-    env.signature->getPredicate(pred)->setType(
+    env -> signature->getPredicate(pred)->setType(
 	BaseType::makeType1(Sorts::SRT_INTEGER, Sorts::SRT_BOOL));
   }
 
@@ -671,7 +671,7 @@ Unit* ZIE::getZ3Refutation()
 {
   CALL("ZIE::getZ3Refutation");
 
-  env.colorUsed = true;
+  env -> colorUsed = true;
 
   //get the Z3 proof in the form of lisp expressions
     
@@ -739,7 +739,7 @@ int ZIE::perform(int argc, char** argv)
   if(argc>=4 && argv[2]==string("-t")) {
     unsigned timeLimit;
     ALWAYS(Int::stringToUnsignedInt(argv[3], timeLimit));
-    env.options->setTimeLimitInSeconds(timeLimit);
+    env -> options->setTimeLimitInSeconds(timeLimit);
     //shift by two arguments
     argc-=2;
     argv+=2;

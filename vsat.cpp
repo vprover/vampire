@@ -174,7 +174,7 @@ void satSolverMode(SatOptions& opts)
 {
 	CALL("satSolverMode");
 
-  env.statistics->phase = Statistics::PARSING;
+  env -> statistics->phase = Statistics::PARSING;
   unsigned varCnt;
   SATClauseList* clauses;
 
@@ -189,23 +189,23 @@ void satSolverMode(SatOptions& opts)
 
   /*
   if (opts.testLingeling){
-	  env.statistics->phase = Statistics::SATURATION;
-    SATSolverSCP solver(new LingelingInterfacing(*env.options, false));
+	  env -> statistics->phase = Statistics::SATURATION;
+    SATSolverSCP solver(new LingelingInterfacing(*env -> options, false));
     SATClauseList* iclause; 
     unsigned variableCount;
     iclause = getInputClauses(opts.fileName.c_str(),variableCount);
 
     solver->addClauses(pvi(SATClauseList::Iterator(iclause)));
     SATSolver::Status result = solver->getStatus();
-    env.statistics->phase = Statistics::FINALIZATION;
+    env -> statistics->phase = Statistics::FINALIZATION;
     switch(result) {
     case SATSolver::SATISFIABLE:
       cout<<"SATISFIABLE\n";
-      env.statistics->terminationReason = Statistics::SATISFIABLE;
+      env -> statistics->terminationReason = Statistics::SATISFIABLE;
       break;
     case SATSolver::UNSATISFIABLE:
       cout<<"UNSATISFIABLE\n";
-      env.statistics->terminationReason = Statistics::REFUTATION;
+      env -> statistics->terminationReason = Statistics::REFUTATION;
       break;
     default:
       ASSERTION_VIOLATION;
@@ -213,12 +213,12 @@ void satSolverMode(SatOptions& opts)
     return;
   }
   */
-  env.statistics->phase = Statistics::SAT_SOLVING;
+  env -> statistics->phase = Statistics::SAT_SOLVING;
 
   cout<<"start varcnt :"<<varCnt-1<<"\n";
 
-  //SATSolverSCP solver(new TWLSolver(*env.options, true));
-  SATSolverSCP solver(new LingelingInterfacing(*env.options, false));
+  //SATSolverSCP solver(new TWLSolver(*env -> options, true));
+  SATSolverSCP solver(new LingelingInterfacing(*env -> options, false));
   //for the minimized case
   //solver = new MinimizingSolver(solver.release());
 
@@ -238,16 +238,16 @@ void satSolverMode(SatOptions& opts)
     res = runSolver(*solver, varCnt, clauses);
   }
 
-  env.statistics->phase = Statistics::FINALIZATION;
+  env -> statistics->phase = Statistics::FINALIZATION;
 
   switch(res) {
   case SATSolver::SATISFIABLE:
     cout<<"SATISFIABLE\n";
-    env.statistics->terminationReason = Statistics::SATISFIABLE;
+    env -> statistics->terminationReason = Statistics::SATISFIABLE;
     break;
   case SATSolver::UNSATISFIABLE:
     cout<<"UNSATISFIABLE\n";
-    env.statistics->terminationReason = Statistics::REFUTATION;
+    env -> statistics->terminationReason = Statistics::REFUTATION;
     break;
   case SATSolver::UNKNOWN:
     cout<<"Unknown\n";
@@ -302,7 +302,7 @@ bool processArgs(StringStack& args, SatOptions& opts)
     	int timeout;
     	Lib::Int::stringToInt(timelimit, timeout);
 
-    	env.options->setTimeLimitInSeconds(timeout);
+    	env -> options->setTimeLimitInSeconds(timeout);
     	flag=false;
     }
   }
@@ -322,36 +322,36 @@ int main(int argc, char* argv [])
 {
   CALL("main");
   //ScopedPtr<SATSolver> solver;
-  //solver = new LingelingInterfacing(*env.options, false);
-  //LingelingInterfacing* solver(new LingelingInterfacing(*env.options, false));
+  //solver = new LingelingInterfacing(*env -> options, false);
+  //LingelingInterfacing* solver(new LingelingInterfacing(*env -> options, false));
  
   try {
     System::registerArgv0(argv[0]);
     Random::setSeed(1);
     Options options;
-    Allocator::setMemoryLimit(env.options->memoryLimit()*1048576);
+    Allocator::setMemoryLimit(env -> options->memoryLimit()*1048576);
 
     StringStack args;
     System::readCmdArgs(argc, argv, args);
 
     SatOptions opts;
     if (processArgs(args, opts)){
-    	env.options->setTimeLimitInDeciseconds(3600);
+    	env -> options->setTimeLimitInDeciseconds(3600);
     	}
 
-    Lib::Random::setSeed(env.options->randomSeed());
+    Lib::Random::setSeed(env -> options->randomSeed());
 
     satSolverMode(opts);
   }
   catch(MemoryLimitExceededException&)
   {
     cerr<<"Memory limit exceeded\n";
-    env.statistics->terminationReason = Statistics::MEMORY_LIMIT;
+    env -> statistics->terminationReason = Statistics::MEMORY_LIMIT;
     cout<<"-MEMORY_LIMIT\n";
   }
   catch(TimeLimitExceededException&)
   {
-    env.statistics->terminationReason = Statistics::TIME_LIMIT;
+    env -> statistics->terminationReason = Statistics::TIME_LIMIT;
     cout<<"TIME LIMIT\n";
   }
   catch(UserErrorException& e)
@@ -362,7 +362,7 @@ int main(int argc, char* argv [])
     cout<<"\n";
   }
 
-  env.statistics->print(cout);
+  env -> statistics->print(cout);
 
   return 0;
 }

@@ -24,9 +24,9 @@ using namespace Kernel;
 BaseType& SortHelper::getType(Term* t)
 {
   if (t->isLiteral()) {
-    return *(env.signature->getPredicate(t->functor())->predType());
+    return *(env -> signature->getPredicate(t->functor())->predType());
   }
-  return *env.signature->getFunction(t->functor())->fnType();
+  return *env -> signature->getFunction(t->functor())->fnType();
 } // getType
 
 /**
@@ -39,7 +39,7 @@ unsigned SortHelper::getResultSort(Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
-  Signature::Symbol* sym = env.signature->getFunction(t->functor());
+  Signature::Symbol* sym = env -> signature->getFunction(t->functor());
   return sym->fnType()->result();
 }
 
@@ -279,7 +279,7 @@ void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
       if (args->isOrdinaryVar()) {
 	unsigned varNum = args->var();
 	unsigned varSort = getArgSort(t, idx);
-	LOG("srt_collect_var_sorts","seen variable "<<varNum<<" in "<<t->toString()<<" with sort "<<env.sorts->sortName(varSort));
+	LOG("srt_collect_var_sorts","seen variable "<<varNum<<" in "<<t->toString()<<" with sort "<<env -> sorts->sortName(varSort));
 	if (!map.insert(varNum, varSort)) {
 	  ASS_EQ(varSort, map.get(varNum));
 	}
