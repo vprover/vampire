@@ -160,7 +160,9 @@ SATClauseIterator DIMACS::parse(const char* fname, unsigned& maxVar)
     SATClause* cl=new(clen) SATClause(clen, true);
     for(int i=(int)clen-1; i>=0;i--) {
       ivar=vars.pop();
-      (*cl)[i].set(abs(ivar), ivar>0);
+      // SATLiterals not initialised
+      //(*cl)[i].set(abs(ivar), ivar>0);
+      (*cl)[i] = SATLiteral(abs(ivar), ivar>0);
     }
     ASS(vars.isEmpty());
 
