@@ -38,10 +38,14 @@ public:
   inline
   int size() const { return _size; }
   inline
-  LDIterator allChildren()
+  LDIterator allChildren(bool filterFrozen)
   {
-    //return pvi( getFilteredReferenceIterator(LDList::RefIterator(_children),IsNonNoneClause()));
-    return pvi( LDList::RefIterator(_children));
+    if(filterFrozen){
+      return pvi( getFilteredReferenceIterator(LDList::RefIterator(_children),IsNonNoneClause()));
+    }
+    else{    
+      return pvi( LDList::RefIterator(_children));
+    }
   }
   inline
   void insert(LeafData ld)
@@ -83,9 +87,14 @@ public:
   int size() const { return _children.size(); }
 #endif
   inline
-  LDIterator allChildren()
+  LDIterator allChildren(bool filterFrozen)
   {
-    return pvi( getFilteredReferenceIterator(LDSkipList::RefIterator(_children),IsNonNoneClause()));
+    if(filterFrozen){
+      return pvi( getFilteredReferenceIterator(LDSkipList::RefIterator(_children),IsNonNoneClause()));
+    }
+    else{
+      return pvi( LDSkipList::RefIterator(_children));
+    }
   }
   void insert(LeafData ld) { _children.insert(ld); }
   void remove(LeafData ld) { _children.remove(ld); }
@@ -200,7 +209,7 @@ SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig)
   CALL("SubstitutionTree::SListLeaf::assimilate");
 
   SListLeaf* res=new SListLeaf(orig->term);
-  res->loadChildren(orig->allChildren());
+  res->loadChildren(orig->allChildren(false)); //Get all children
   orig->makeEmpty();
   delete orig;
   return res;

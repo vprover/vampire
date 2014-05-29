@@ -277,6 +277,7 @@ void Clause::setStore(Store s)
     selected=this;
   }
 #endif
+  _prev_store = _store;
   _store = s;
   destroyIfUnnecessary();
 }

@@ -1080,6 +1080,17 @@ bool SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
     _db[slev]->addReduced(cl);
   }
 
+  //set store to FROZEN
+  // it is important that this is not set to NONE when removing
+  // this clause from containers
+  if(cl->store()==Clause::UNPROCESSED){
+    cl->setStore(Clause::FROZEN_UNPROCESSED);
+  }
+  else{
+    ASS(cl->store()!=Clause::NONE);
+    cl->setStore(Clause::FROZEN_PROCESSED);
+  }
+
   return _removeFrozen;
 }
 
@@ -1102,6 +1113,9 @@ bool Splitter::allSplitLevelsActive(SplitSet* s)
 void Splitter::onNewClause(Clause* cl)
 {
   CALL("Splitter::onNewClause");
+
+  //A clause is not new if it has been frozen in the past
+  ASS(cl->getFreezeCount()==0);
 
   //For now just record if cl is in the variant index
   // i.e. is a component
@@ -1268,7 +1282,8 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     while (chit.hasNext()) {
       Clause* ccl=chit.next();
       ASS(ccl->splits()->member(bl));
-      if(ccl->store()!=Clause::NONE) {
+      if(ccl->store()!=Clause::NONE && !ccl->isFrozen()) {
+        // cll depends on assertion we are undoing and is in use, need to remove it
         _sa->removeActiveOrPassiveClause(ccl);
         ASS_EQ(ccl->store(), Clause::NONE);
       }
@@ -1299,7 +1314,9 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       Clause* rcl=rrec.clause;
       if(rcl->validReductionRecord(rrec.timestamp)) {
         ASS(!rcl->splits()->hasIntersection(backtracked));      
+        // It is likely this will no longer be true, and be replaced by isFrozen!
         ASS_EQ(rcl->store(), Clause::NONE);
+        ASS(rcl->isFrozen());
         
         rcl->invalidateMyReductionRecords(); // to make sure we don't unfreeze this clause a second time
         _sa->addNewClause(rcl);

@@ -248,8 +248,11 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onActiveRemoved");
 
-  ASS(c->store()==Clause::ACTIVE);
-  c->setStore(Clause::NONE);
+  if(c->store()==Clause::ACTIVE){
+    c->setStore(Clause::NONE);
+    return;
+  }
+  ASS(c->isFrozen());
   //at this point the c object may be deleted
 }
 
@@ -295,9 +298,12 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
 void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onPassiveRemoved");
-  
-  ASS(c->store()==Clause::PASSIVE);
-  c->setStore(Clause::NONE);
+
+  if(c->store()==Clause::PASSIVE){
+    c->setStore(Clause::NONE);
+    return;
+  }
+  ASS(c->isFrozen());
   //at this point the c object can be deleted
 }
 
@@ -341,7 +347,8 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::onNewClause");
 
-  if (_splitter) {
+  //TODO - do other operations here apply if cl is frozen?
+  if (_splitter && !cl->isFrozen()) {
     _splitter->onNewClause(cl);
   }
 
@@ -463,11 +470,11 @@ bool SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
   premStack.loadFromIterator(premises);
 
   if (_splitter) {
-    //This might freeze cl
+    //This might freeze cl, in which case removecl might be false
     removecl = _splitter->onClauseReduction(cl, pvi( ClauseStack::Iterator(premStack) ), replacement);
-    if(!removecl){
-      cout << "removecl is false!\n";
-    }
+    //if(!removecl){
+    //  cout << "removecl is false!\n";
+    //}
   }
 
   if (replacement) {
@@ -691,6 +698,7 @@ public:
       _sa->addNewClause(replacement);
     }
     _sa->onClauseReduction(_cl, replacement, premises);
+    //if the above returns false it doesn't matter - we incRefCnt when freezing 
 
     // Remove clause - so no longer kept
     //_cl->setProp(bdd->getTrue());
@@ -741,7 +749,8 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
     if (simplCl) {
       addNewClause(simplCl);
     }
-    onClauseReduction(cl, simplCl, 0);
+    bool removecl = onClauseReduction(cl, simplCl, 0);
+    ASS(removecl); //assumed here
     return 0;
   }
 
@@ -791,6 +800,8 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     case Clause::PASSIVE:
       onNonRedundantClause(cl);
       break;
+    case Clause::FROZEN_UNPROCESSED:
+    case Clause::FROZEN_PROCESSED:
     case Clause::NONE:
       addUnprocessedClause(cl);
       break;
@@ -799,6 +810,9 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     case Clause::ACTIVE:
       //such clauses should not appear as new ones
       ASSERTION_VIOLATION;
+    default:
+      //covers any new cases 
+      ASSERTION_VIOLATION; 
 #endif
     }
     cl->decRefCnt(); //belongs to _newClauses.popWithoutDec()
@@ -827,8 +841,10 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addUnprocessedClause");
 
-  _generatedClauseCount++;
-  env.statistics->generatedClauses++;
+  if(cl->store()==Clause::NONE){
+    _generatedClauseCount++;
+    env.statistics->generatedClauses++;
+  }
 
   env.checkTimeSometime<64>();
 
@@ -958,6 +974,10 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	addNewClause(replacement);
       }
       
+      ASS(redundant->store()!=Clause::NONE);
+      // Anything backward simplified should be active or passive
+      ASS(redundant->store()==Clause::ACTIVE || redundant->store()==Clause::PASSIVE);
+
       bool removecl = onClauseReduction(redundant, replacement, cl, 0, false);
 
       //we must remove the redundant clause before adding its replacement,
@@ -971,10 +991,9 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
         removeActiveOrPassiveClause(redundant);
       }
       else{
-        // If we do not remove the clause we need to clear its status, which indicates
-        // to the indices that it should not be used
-	//TODO- Add assertion that cl is frozen
-        cl->setStore(Clause::NONE);
+        // If we do not remove the clause we need to indicate
+        // to the indices that it should not be used, hence FROZEN store
+        ASS(redundant->isFrozen());
       }
 
       redundant->decRefCnt();
@@ -1009,6 +1028,13 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     break;
   case Clause::ACTIVE:
     _active->remove(cl);
+    break;
+  case Clause::FROZEN_PROCESSED: //Should not get FROZEN_UNPROCESSED here
+    if(cl->prevStore()==Clause::ACTIVE){
+      _active->remove(cl);
+    }else if(cl->prevStore()==Clause::PASSIVE){
+      _passive->remove(cl);
+    }
     break;
   default:
     ASS_REP2(false, cl->store(), *cl);
@@ -1089,7 +1115,9 @@ bool SaturationAlgorithm::activate(Clause* cl)
   while (_postponedClauseRemovals.isNonEmpty()) {
     Clause* cl=_postponedClauseRemovals.pop();
     if (cl->store() != Clause::ACTIVE &&
-	cl->store() != Clause::PASSIVE) {
+	cl->store() != Clause::PASSIVE &&
+        // A frozen unprocessed clause will not be in active or passive
+        cl->store() != Clause::FROZEN_PROCESSED) {
       continue;
     }
     removeActiveOrPassiveClause(cl);
@@ -1112,15 +1140,25 @@ start:
   while (! _unprocessed->isEmpty()) {
     Clause* c = _unprocessed->pop();
     ASS(!isRefutation(c));
+    ASS_EQ(c->store(), Clause::UNPROCESSED); 
 
     if (forwardSimplify(c)) {
-      onClauseRetained(c);
       addToPassive(c);
+      //Swapped the order, so that c->store()==PASSIVE when performing backwardSimplify for Otter
+      onClauseRetained(c);
       ASS_EQ(c->store(), Clause::PASSIVE);
     }
     else {
-      ASS_EQ(c->store(), Clause::UNPROCESSED);
-      c->setStore(Clause::NONE);
+      // if the clause has been simplified and is still unprocessed
+      // then it will be removed at the end of this, so store can
+      // be set to none
+      if(c->store()==Clause::UNPROCESSED){
+        c->setStore(Clause::NONE);
+      }
+      // otherwise the clause should be frozen unprocessed
+      else{
+        ASS_EQ(c->store(),Clause::FROZEN_UNPROCESSED);
+      }
     }
 
     newClausesToUnprocessed();

@@ -560,7 +560,7 @@ main_loop_start:
     }
     if(curr->isLeaf()) {
       //we've found a leaf
-      _ldIterator=static_cast<Leaf*>(curr)->allChildren();
+      _ldIterator=static_cast<Leaf*>(curr)->allChildren(_tree->_filterFrozen);
       _inLeaf=true;
       return true;
     }

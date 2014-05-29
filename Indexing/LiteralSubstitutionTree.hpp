@@ -13,7 +13,7 @@
 namespace Indexing {
 
 class LiteralSubstitutionTree
-: public LiteralIndexingStructure, SubstitutionTree
+: public LiteralIndexingStructure, public SubstitutionTree
 {
 public:
   CLASS_NAME(LiteralSubstitutionTree);

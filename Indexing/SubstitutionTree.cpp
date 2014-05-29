@@ -45,6 +45,8 @@ SubstitutionTree::SubstitutionTree(int nodes)
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
+  _filterFrozen = true; // change with setFilterFrozen, by default we do
+
 #if VDEBUG
   _iteratorCnt=0;
 #endif
@@ -538,7 +540,7 @@ vstring SubstitutionTree::nodeToString(Node* topNode)
 
     if(node->isLeaf()) {
 	Leaf* lnode = static_cast<Leaf*>(node);
-	LDIterator ldi(lnode->allChildren());
+	LDIterator ldi(lnode->allChildren(false)); //use all nodes in nodeToString
 
 	while(ldi.hasNext()) {
 	  LeafData ld=ldi.next();
@@ -834,7 +836,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   }
   if(success) {
     if(n->isLeaf()) {
-      ldIterator=static_cast<Leaf*>(n)->allChildren();
+      ldIterator=static_cast<Leaf*>(n)->allChildren(tree->_filterFrozen);
       inLeaf=true;
     } else {
       IntermediateNode* inode=static_cast<IntermediateNode*>(n);

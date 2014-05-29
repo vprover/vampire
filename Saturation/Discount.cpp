@@ -29,7 +29,10 @@ bool Discount::handleClauseBeforeActivation(Clause* cl)
   ASS(cl->store()==Clause::SELECTED);
 
   if (!forwardSimplify(cl)) {
-    cl->setStore(Clause::NONE);
+    if(!cl->isFrozen()){
+      // if cl is frozen then it should keep its store
+      cl->setStore(Clause::NONE);
+    }
     return false;
   }
   backwardSimplify(cl);

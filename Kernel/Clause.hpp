@@ -74,6 +74,13 @@ public:
     /** clause is selected from the passive container
      * and is not added to the active one yet */
     SELECTED = 4u
+    /* clause is frozen after being processed */
+    FROZEN_PROCESSED = 5u,
+    /* clause is frozen before (during) being processed */
+    /* We need the two different versions of FROZEN to
+       help decide if it needs removing from indices */
+    FROZEN_UNPROCESSED = 6u
+
   };
 
   Clause(unsigned length,InputType it,Inference* inf);
@@ -134,8 +141,12 @@ public:
 
   /** Return the clause store */
   Store store() const { return _store; }
+  Store prevStore() const{ return _prev_store; }
 
   void setStore(Store s);
+
+  /** Returns true if clause is Frozen */
+  bool isFrozen() const{ return (_store==FROZEN_PROCESSED) || (_store == FROZEN_UNPROCESSED); }
 
   /** Return the age */
   int age() const { return _age; }
@@ -358,6 +369,7 @@ protected:
   mutable unsigned _weight;
   /** storage class */
   Store _store;
+  Store _prev_store; //Ideally we wouldn't need this, just used when freezing. TODO - use in_generating instead
   /** in any simplifying index **/
   bool _in_simplifying;
   /** in any generating index **/

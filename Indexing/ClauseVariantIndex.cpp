@@ -67,6 +67,7 @@ void ClauseVariantIndex::insert(Clause* cl)
 
   if(!_strees[clen]) {
     _strees[clen]=new LiteralSubstitutionTree();
+    _strees[clen]->setFilterFrozen(false);
   }
   Literal* mainLit=getMainLiteral(cl->literals(), clen);
   _strees[clen]->insert(mainLit, cl);

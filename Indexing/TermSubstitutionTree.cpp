@@ -170,7 +170,7 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
     return TermQueryResultIterator::getEmpty();
   }
   if(root->isLeaf()) {
-    LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
+    LDIterator ldit=static_cast<Leaf*>(root)->allChildren(_filterFrozen);
     return ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions);
   }
   VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions) );
@@ -206,10 +206,15 @@ private:
 
 struct TermSubstitutionTree::LeafToLDIteratorFn
 {
+  LeafToLDIteratorFn(bool ff){
+    _filterFrozen=ff;
+  }
   DECL_RETURN_TYPE(LDIterator);
   OWN_RETURN_TYPE operator() (Leaf* l) {
-    return l->allChildren();
+    return l->allChildren(_filterFrozen);
   }
+  private:
+    bool _filterFrozen;
 };
 
 struct TermSubstitutionTree::UnifyingContext
@@ -259,7 +264,7 @@ TermQueryResultIterator TermSubstitutionTree::getAllUnifyingIterator(TermList va
 		    getFlattenedIterator(
 			    getMappingIterator(
 				    vi( new LeafIterator(this) ),
-				    LeafToLDIteratorFn())),
+				    LeafToLDIteratorFn(_filterFrozen))),
 		    LDSkipList::RefIterator(_vars)),
 	    var, retrieveSubstitutions);
 }

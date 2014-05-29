@@ -198,7 +198,7 @@ void AWPassiveClauseContainer::add(Clause* cl)
 void AWPassiveClauseContainer::remove(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::remove");
-  ASS(cl->store()==Clause::PASSIVE);
+  ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::FROZEN_PROCESSED);
 
   if (_ageRatio) {
     ALWAYS(_ageQueue.remove(cl));
@@ -247,12 +247,14 @@ Clause* AWPassiveClauseContainer::popSelected()
     Clause* cl = _weightQueue.pop();
     _ageQueue.remove(cl);
     selectedEvent.fire(cl);
+    ASS_EQ(cl->store(), Clause::PASSIVE);
     return cl;
   }
   _balance += _weightRatio;
   Clause* cl = _ageQueue.pop();
   _weightQueue.remove(cl);
   selectedEvent.fire(cl);
+  ASS_EQ(cl->store(), Clause::PASSIVE);
   return cl;
 } // AWPassiveClauseContainer::popSelected
 

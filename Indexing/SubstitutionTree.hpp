@@ -87,7 +87,7 @@ public:
 
 /**
  * A functor that returns true iff its LeafData argument
- * contains a clause with a store != NONE
+ * contains a non-frozen clause 
  *
  * This allows us to filter out clauses that have been frozen
  * and not removed from indices
@@ -105,7 +105,8 @@ public:
       //cout << cl << endl;
       if(cl){
         //cout << cl->toString()<< endl;
-        return cl->store()!=Clause::NONE; 
+        ASS_NEQ(cl->store(),Clause::NONE);
+        return !cl->isFrozen(); 
       }
       //cout << "cl is 0\n";
       //TODO - can LeafData have null cl? 
@@ -261,7 +262,7 @@ public:
 
     inline
     bool isLeaf() const { return true; };
-    virtual LDIterator allChildren() = 0;
+    virtual LDIterator allChildren(bool filterFrozen) = 0;
     virtual void insert(LeafData ld) = 0;
     virtual void remove(LeafData ld) = 0;
     void loadChildren(LDIterator children);
@@ -494,6 +495,9 @@ public:
   int _nextVar;
   /** Array of nodes */
   ZIArray<Node*> _nodes;
+  /** Filter frozen clauses **/
+  bool _filterFrozen;
+  void setFilterFrozen(bool ff) { _filterFrozen=ff; }
 
   class LeafIterator
   : public IteratorCore<Leaf*>

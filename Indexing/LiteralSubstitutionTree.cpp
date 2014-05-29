@@ -161,10 +161,15 @@ private:
 
 struct LiteralSubstitutionTree::LeafToLDIteratorFn
 {
+  LeafToLDIteratorFn(bool ff){
+    _filterFrozen=ff;
+  }
   DECL_RETURN_TYPE(LDIterator);
   OWN_RETURN_TYPE operator() (Leaf* l) {
-    return l->allChildren();
+    return l->allChildren(_filterFrozen);
   }
+  private:
+    bool _filterFrozen;
 };
 
 struct LiteralSubstitutionTree::PropositionalLDToSLQueryResultWithSubstFn
@@ -194,7 +199,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
     return SLQueryResultIterator::getEmpty();
   }
   if(root->isLeaf()) {
-    LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
+    LDIterator ldit=static_cast<Leaf*>(root)->allChildren(_filterFrozen);
     if(retrieveSubstitutions) {
       return pvi( getMappingIterator(ldit,PropositionalLDToSLQueryResultWithSubstFn()) );
     } else {
@@ -211,7 +216,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
     return SLQueryResultIterator::getEmpty();
   }
 
-  LDIterator ldit=leaf->allChildren();
+  LDIterator ldit=leaf->allChildren(_filterFrozen);
   if(retrieveSubstitutions) {
     return pvi( getContextualIterator(
 	    getMappingIterator(
@@ -230,7 +235,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
   return pvi( getMappingIterator(
       getMapAndFlattenIterator(
 	  vi( new LeafIterator(this) ),
-	  LeafToLDIteratorFn()),
+	  LeafToLDIteratorFn(_filterFrozen)),
       LDToSLQueryResultFn()) ) ;
 }
 
@@ -266,7 +271,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
     return SLQueryResultIterator::getEmpty();
   }
   if(root->isLeaf()) {
-    LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
+    LDIterator ldit=static_cast<Leaf*>(root)->allChildren(_filterFrozen);
     if(retrieveSubstitutions) {
       return pvi( getMappingIterator(ldit,PropositionalLDToSLQueryResultWithSubstFn()) );
     } else {

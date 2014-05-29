@@ -132,7 +132,7 @@ void ActiveClauseContainer::add(Clause* c)
  */
 void ActiveClauseContainer::remove(Clause* c)
 {
-  ASS(c->store()==Clause::ACTIVE);
+  ASS(c->store()==Clause::ACTIVE || c->store()==Clause::FROZEN_PROCESSED);
   ASS(c->in_generating());
 
   c->toggle_in_generating();
