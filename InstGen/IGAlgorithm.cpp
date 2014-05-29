@@ -86,6 +86,8 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
       ASSERTION_VIOLATION(opt.satSolver());
   }
 
+  _gnd = new  IGGrounder(_satSolver.ptr());
+
   if(_opt.globalSubsumption()) {
     _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder(), opt);
     _globalSubsumption = new GlobalSubsumption(_groundingIndex.ptr());
@@ -247,10 +249,10 @@ void IGAlgorithm::processUnprocessed()
       env.endOutput();
     }
 
-    SATClauseIterator sc = _gnd.ground(cl,_use_niceness);
+    SATClauseIterator sc = _gnd->ground(cl,_use_niceness);
     satClauses.loadFromIterator(sc);
   }
-  _satSolver->ensureVarCnt(_gnd.satVarCnt());
+  _satSolver->ensureVarCnt(_gnd->satVarCnt());
 
   SATClauseIterator scit = pvi( SATClauseStack::Iterator(satClauses) );
   scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
@@ -267,7 +269,7 @@ bool IGAlgorithm::isSelected(Literal* lit)
 {
   CALL("IGAlgorithm::isSelected");
 
-  return _satSolver->trueInAssignment(_gnd.ground(lit,_use_niceness));
+  return _satSolver->trueInAssignment(_gnd->ground(lit,_use_niceness));
 }
 
 /**
@@ -432,10 +434,10 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
     return;
   }
 
-  SATClauseIterator scit = _gnd.ground(cl,_use_niceness);
+  SATClauseIterator scit = _gnd->ground(cl,_use_niceness);
   scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
 
-  _satSolver->ensureVarCnt(_gnd.satVarCnt());
+  _satSolver->ensureVarCnt(_gnd->satVarCnt());
   _satSolver->addClauses(scit, true);
 
   if(_satSolver->getStatus()==SATSolver::UNSATISFIABLE) {

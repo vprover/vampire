@@ -37,6 +37,10 @@ public:
   virtual bool hasAssumptions() const { return _inner->hasAssumptions(); }
   virtual SATClause* getRefutation() { return _inner->getRefutation(); }
 
+  virtual void recordSource(unsigned var, Literal* lit){
+    _inner->recordSource(var,lit);
+  }
+
 private:
 
   string getHdr() const;

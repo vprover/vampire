@@ -224,6 +224,14 @@ void TWLSolver::retractAllAssumptions()
 }
 
 /**
+ * Record the source of a SATLiteral (for niceness computation)
+ * @author Giles
+ */
+void TWLSolver::recordSource(unsigned satlit, Literal* lit){
+  _variableSelector->recordSource(satlit,lit);
+}
+
+/**
  * Perform solving with given conflictNumberLimit (or UINT_MAX for unlimited).
  * Update status for SATISFIABLE or UNKNOWN results. The UNSATISFIABLE result
  * passed to caller as a thrown UnsatException.

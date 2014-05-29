@@ -71,6 +71,9 @@ public:
 
   void assertValid();
   void printAssignment();
+
+  virtual void recordSource(unsigned satlit, Literal* lit);
+
 private:
 
   void doSolving(unsigned conflictNumberLimit);

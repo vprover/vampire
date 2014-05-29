@@ -125,6 +125,9 @@ public:
 	void printLingelingStatistics();
 	void printAssignment();
 
+	//Not used in Lingeling
+	virtual void recordSource(unsigned var, Literal* lit) {};
+
 private: 
 	virtual void addClausesToLingeling(SATClauseIterator iterator);
 	void setSolverStatus(unsigned status);
