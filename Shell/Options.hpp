@@ -230,6 +230,7 @@ public:
     SSPLITTING_FLUSH_PERIOD,
     SSPLITTING_FLUSH_QUOTIENT,
     SSPLITTING_NONSPLITTABLE_COMPONENTS,
+    SSPLITTING_TOTAL_MODEL,
 
     STATISTICS,
     SUPERPOSITION_FROM_VARIABLES,
@@ -808,6 +809,7 @@ public:
   float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient; }
   bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval; }
   bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure; }
+  bool ssplittingTotalModel() const { return _ssplittingTotalModel; }
 
   void setProof(Proof p) { _proof = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval; }
@@ -1028,6 +1030,7 @@ private:
   unsigned _ssplittingFlushPeriod;
   float _ssplittingFlushQuotient;
   SSplittingNonsplittableComponents _ssplittingNonsplittableComponents;
+  bool _ssplittingTotalModel;
   Statistics _statistics;
   bool _superpositionFromVariables;
   SymbolPrecedence _symbolPrecedence;

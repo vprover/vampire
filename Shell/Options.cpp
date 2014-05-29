@@ -296,6 +296,7 @@ const char* Options::Constants::_optionNames[] = {
   "ssplitting_flush_period",
   "ssplitting_flush_quotient",
   "ssplitting_nonsplittable_components",
+  "ssplitting_total_model",
   "statistics",
   "superposition_from_variables",
   "symbol_precedence",
@@ -478,6 +479,7 @@ int Options::Constants::shortNameIndexes[] = {
   SSPLITTING_FLUSH_PERIOD,
   SSPLITTING_FLUSH_QUOTIENT,
   SSPLITTING_NONSPLITTABLE_COMPONENTS,
+  SSPLITTING_TOTAL_MODEL,
   SINE_TOLERANCE,
   SIMULATED_TIME_LIMIT,
 
@@ -1698,6 +1700,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case SSPLITTING_NONSPLITTABLE_COMPONENTS:
       _ssplittingNonsplittableComponents = (SSplittingNonsplittableComponents)Constants::sSplittingNonsplittableComponentsValues.find(value);
+      return;
+    case SSPLITTING_TOTAL_MODEL:
+      _ssplittingTotalModel = onOffToBool(value,name);
       return;
       
     case STATISTICS:
