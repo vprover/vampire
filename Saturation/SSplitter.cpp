@@ -63,16 +63,16 @@ void SSplittingBranchSelector::init()
 
   switch(_parent.getOptions().satSolver()){
     case Options::BUFFERED_VAMPIRE:
-      _solver = new MinimizingSolver(new BufferedSolver(new TWLSolver(_parent.getOptions(),true)));
+      _solver = new BufferedSolver(new TWLSolver(_parent.getOptions(),true));
       break;
     case Options::VAMPIRE:  
-      _solver = new MinimizingSolver(new TWLSolver(_parent.getOptions(), true));
+      _solver = new TWLSolver(_parent.getOptions(), true);
       break;
     case Options::BUFFERED_LINGELING: 
-      _solver = new MinimizingSolver(new BufferedSolver(new LingelingInterfacing(_parent.getOptions(), true)));
+      _solver = new BufferedSolver(new LingelingInterfacing(_parent.getOptions(), true));
       break;
     case Options::LINGELING: 
-      _solver = new MinimizingSolver(new LingelingInterfacing(_parent.getOptions(), true));
+      _solver = new LingelingInterfacing(_parent.getOptions(), true);
       break;
     case Options::BUFFERED_MINISAT:
       _solver = new MinimizingSolver(new BufferedSolver(new MinisatInterfacing(_parent.getOptions(),true)));
@@ -82,6 +82,10 @@ void SSplittingBranchSelector::init()
       break;      
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
+  }
+
+  if(!_parent.getOptions().ssplittingTotalModel()){
+    _solver = new MinimizingSolver(_solver.release());
   }
 
 #if DEBUG_MIN_SOLVER
