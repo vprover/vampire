@@ -36,6 +36,7 @@ void ActiveVariableSelector::ensureVarCnt(unsigned varCnt)
 
   VariableSelector::ensureVarCnt(varCnt);
   _activityHeap.ensureVarCnt(varCnt);
+  // expand and initialise new entries with 0
   _niceness.expand(varCnt, 0);
 }
 
@@ -48,8 +49,8 @@ void ActiveVariableSelector::onInputClauseAdded(SATClause* cl)
   for(unsigned i=0;i<clen;i++) {
     SATLiteral lit = (*cl)[i];
     unsigned var = lit.var();
-    if(_niceness_option != Options::NICENESS_NONE ||
-       _niceness[var]==0){ //only need to getNiceness once
+    // get niceness if not already got
+    if(_niceness[var]==0){ 
       unsigned niceness = lit.getNiceness(_niceness_option);
       _niceness[var] = niceness;
     }

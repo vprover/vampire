@@ -228,6 +228,7 @@ protected:
   };
 
   Options::NicenessOption _niceness_option;
+  //Has initial size 0
   DArray<unsigned> _niceness;
   VariableActivityHeap _activityHeap;
 };
