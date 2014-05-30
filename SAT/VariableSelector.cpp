@@ -77,6 +77,11 @@ unsigned ActiveVariableSelector::getNiceness(unsigned var)
 {
   CALL("ActiveVariableSelector::getNiceness");
 
+  // If niceness is switched off use 1
+  if(_niceness_option == Options::NICENESS_NONE){
+    return 1;
+  }
+
   // use source literal to compute niceness weight
   Literal* _source = _sourceMap.get(var); 
 
