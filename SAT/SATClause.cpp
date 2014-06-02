@@ -35,14 +35,6 @@ void* SATClause::operator new(size_t sz,unsigned lits)
 {
   CALL("SATClause::operator new");
 
-  // TODO: isn't it ugly to update statistics inside operator new?
-  env.statistics->satClauses++;
-  if(lits==1) {
-    env.statistics->unitSatClauses++;
-  }
-  else if(lits==2) {
-    env.statistics->binarySatClauses++;
-  }
   //We have to get sizeof(SATClause) + (_length-1)*sizeof(SATLiteral*)
   //this way, because _length-1 wouldn't behave well for
   //_length==0 on x64 platform.
@@ -58,6 +50,23 @@ void* SATClause::operator new(size_t sz,unsigned lits)
     size-=sizeof(SATLiteral);
 
   return ALLOC_KNOWN(size,"SATClause");
+}
+
+SATClause::SATClause(unsigned length,bool kept)
+  : _activity(0), _length(length), _kept(kept?1:0), _nonDestroyable(0), _inference(0)
+//      , _genCounter(0xFFFFFFFF)
+{
+  env.statistics->satClauses++;
+  if(length==1) {
+    env.statistics->unitSatClauses++;
+  }
+  else if(length==2) {
+    env.statistics->binarySatClauses++;
+  }
+
+  // call a constructor on the literals
+  for (size_t i = 0; i < _length; i++)
+    new (&_literals[i]) SATLiteral();      
 }
 
 /**

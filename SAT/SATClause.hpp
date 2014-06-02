@@ -45,15 +45,8 @@ public:
   typedef double ActivityType;
 
   /** New clause */
-  SATClause(unsigned length,bool kept=true)
-    : _activity(0), _length(length), _kept(kept?1:0), _nonDestroyable(0), _inference(0)
-//      , _genCounter(0xFFFFFFFF)
-  {
-      // call a constructor on the literals
-      for (size_t i = 0; i < _length; i++)
-        new (&_literals[i]) SATLiteral();      
-  }
-
+  SATClause(unsigned length,bool kept=true);
+  
   SATInference* inference() const { return _inference; }
   void setInference(SATInference* val);
 
