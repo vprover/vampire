@@ -779,14 +779,10 @@ SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
   CALL("RobSubstitution::getAssocIterator");
 
   if( !Literal::headersMatch(l1,l2,complementary) ) {
+    // We also get here if the sorts of equality literals do not match.
     return SubstIterator::getEmpty();
   }
-  // BK: matching sorts for equalities is already check above in Literal::headersMatch
-  if( l1->isEquality() &&
-      SortHelper::getEqualityArgumentSort(l1)!=SortHelper::getEqualityArgumentSort(l2) ) {
-    //the sorts of equalities don't match
-    return SubstIterator::getEmpty();
-  }
+
   if( !l1->commutative() ) {
     return pvi( getContextualIterator(getSingletonIterator(subst),
 	    AssocContext<Fn>(l1, l1Index, l2, l2Index)) );
