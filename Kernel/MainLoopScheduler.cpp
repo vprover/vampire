@@ -9,7 +9,9 @@
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/MainLoopContext.hpp"
 
+#include "Shell/Preprocess.hpp"
 #include "Lib/Allocator.hpp"
+#include "Lib/Timer.hpp"
 
 //#include "InstGen/IGAlgorithm.hpp"
 
@@ -24,6 +26,7 @@
 namespace Kernel {
 
 using Shell::Options;
+using Shell::Preprocess;
 //using namespace InstGen;
 using Saturation::SaturationAlgorithmContext;
 //using namespace Tabulation;
@@ -39,6 +42,19 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 
 	  _mlcl = static_cast<MainLoopContext**>(
 	  		  ALLOC_KNOWN(sizeof(MainLoopContext*)*_mlclSize,"MainLoopContext*"));
+
+
+	// Do preprocessing
+	// This is (currently) global for all strategies
+	{
+		TimeCounter tc(TC_PREPROCESSING);
+		//TODO : make this nicer, should probably just use opt in env already
+		// use first option as they should share the preprocessing options
+		OptionsList::Iterator i(opts);
+		ASS(i.hasNext());
+		Preprocess prepro(i.next());
+		prepro.preprocess(prb);
+	}
 
 	  OptionsList::Iterator i(opts);
 	  unsigned int k = 0;
@@ -74,21 +90,13 @@ MainLoopResult MainLoopScheduler::run() {
 	CALL("MainLoopScheduler::run");
 
 
+	MainLoopResult* result = 0;
 	try {
-
-		// Do preprocessing
-		// This is (currently) global for all strategies
-		{
-			TimeCounter tc(TC_PREPROCESSING);
-			Preprocess prepro(opt);
-			prepro.preprocess(prb);
-		}
 
 		for(unsigned int k = 0; k < _mlclSize; k++) {
 			_mlcl[k] -> init();
 		}
 
-		MainLoopResult result = 0;
 		unsigned int live_strategies = _mlclSize;	
 		while(!result){
 			for(unsigned int k = 0; k < _mlclSize; k++) {
@@ -97,6 +105,7 @@ MainLoopResult MainLoopScheduler::run() {
 					if(_mlcl[k]){
 						_mlcl[k] -> doStep();
 					}
+				}
 				//} catch(TimeLimitExceededException&) {
 				//	delete _mlcl[k];	
 				//	_mlcl[k] = 0;
@@ -105,7 +114,7 @@ MainLoopResult MainLoopScheduler::run() {
 				//}
 				catch(MainLoop::MainLoopFinishedException& e) {
 					if(e.result.terminationReason == Statistics::SATISFIABLE){
-						result =  e.result;
+						result =  &e.result;
 						break;
 					}
 					// remove strategy!
@@ -115,7 +124,7 @@ MainLoopResult MainLoopScheduler::run() {
 
 					//check if there are any strategies left
 					if(live_strategies==0){
-						result = e.result;
+						result = &e.result;
 						break;
 					}
 				}
@@ -128,28 +137,29 @@ MainLoopResult MainLoopScheduler::run() {
 		}
 		//Should only be here if result set
 	}catch(MainLoop::RefutationFoundException& rs) {
-		result = MainLoopResult(Statistics::REFUTATION, rs.refutation);
+		result = new MainLoopResult(Statistics::REFUTATION, rs.refutation);
 	}
 	catch(TimeLimitExceededException&) {//We catch this since SaturationAlgorithm::doUnproceessedLoop throws it
-		result = MainLoopResult(Statistics::TIME_LIMIT);
+		result = new MainLoopResult(Statistics::TIME_LIMIT);
 	}
 	catch(MemoryLimitExceededException&) {
 		env -> statistics->refutation=0;
 		size_t limit=Allocator::getMemoryLimit();
 		//add extra 1 MB to allow proper termination
 		Allocator::setMemoryLimit(limit+1000000);
-		result = MainLoopResult(Statistics::MEMORY_LIMIT);
+		result = new MainLoopResult(Statistics::MEMORY_LIMIT);
 	}
 
 	ASS(result);
 
 	// do cleanup
-	Timer::setTimeLimitEnforcement(false);
+	Lib::Timer::setTimeLimitEnforcement(false);
 	for(unsigned int k = 0; k < _mlclSize; k++) {
 		_mlcl[k] -> cleanup();
 	}
+	result -> updateStatistics();
 
-	return result;
+	return *result;
 
 }
 

@@ -25,6 +25,8 @@ using Shell::Options;
 		~SaturationAlgorithmContext();
 
 		virtual void doStep();
+		virtual void init();
+		virtual void cleanup();
 	};
 
 

@@ -54,7 +54,6 @@ void SaturationAlgorithmContext::cleanup(){
 	switchIn();
 
 	_env -> statistics -> phase = Statistics::FINALIZATION;
-	_ml -> updateStatistics();
 
 	switchOut();
 }
