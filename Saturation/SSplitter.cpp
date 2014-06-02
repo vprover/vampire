@@ -803,6 +803,7 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
 #if VDEBUG
   cl->incFreezeCount();
   RSTAT_MCTR_INC("frozen clauses",cl->getFreezeCount());
+  RSTAT_CTR_INC("total_frozen");
 #endif
 
   cl->incReductionTimestamp();
@@ -1061,6 +1062,7 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
       _sa->addNewClause(rcl);
   #if VDEBUG
       RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
+      RSTAT_CTR_INC("total_unfrozen");
       //check that restored clause does not depend on inactive splits
       assertSplitLevelsActive(rcl->splits());
   #endif
