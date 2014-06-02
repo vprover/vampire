@@ -612,7 +612,7 @@ TWLSolver::ClauseVisitResult TWLSolver::visitWatchedClause(Watch watch, unsigned
 
   unsigned otherWatchIndex=1-curWatchIndex;
 
-  SATLiteral otherWatched = (*cl)[otherWatchIndex];
+  const SATLiteral& otherWatched = (*cl)[otherWatchIndex];
   ASS_NEQ((*cl)[otherWatchIndex].var(), var);
 
   if(watch.blocker!=otherWatched && isTrue(otherWatched)) {
@@ -1021,7 +1021,7 @@ inline WatchStack& TWLSolver::getTriggeredWatchStack(unsigned var, PackedAsgnVal
 
 
 /** Return true iff @c lit is true in the current assignment */
-inline bool TWLSolver::isTrue(SATLiteral lit) const
+inline bool TWLSolver::isTrue(const SATLiteral& lit) const
 {
   CALL("TWLSolver::isTrue");
 
@@ -1029,7 +1029,7 @@ inline bool TWLSolver::isTrue(SATLiteral lit) const
 }
 
 /** Return true iff @c lit is false in the current assignment */
-inline bool TWLSolver::isFalse(SATLiteral lit) const
+inline bool TWLSolver::isFalse(const SATLiteral& lit) const
 {
   CALL("TWLSolver::isFalse");
 
@@ -1037,7 +1037,7 @@ inline bool TWLSolver::isFalse(SATLiteral lit) const
 }
 
 /** Return true iff @c lit is undefined in the current assignment */
-inline bool TWLSolver::isUndefined(SATLiteral lit) const
+inline bool TWLSolver::isUndefined(const SATLiteral& lit) const
 {
   CALL("TWLSolver::isUndefined(SATLiteral)");
 

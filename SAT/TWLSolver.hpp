@@ -99,9 +99,9 @@ private:
   WatchStack& getWatchStack(unsigned var, unsigned polarity);
   WatchStack& getTriggeredWatchStack(unsigned var, PackedAsgnVal assignment);
 
-  bool isTrue(SATLiteral lit) const;
-  bool isFalse(SATLiteral lit) const;
-  bool isUndefined(SATLiteral lit) const;
+  bool isTrue(const SATLiteral& lit) const;
+  bool isFalse(const SATLiteral& lit) const;
+  bool isUndefined(const SATLiteral& lit) const;
 
   /** Return true iff variable @c var is undefined in the current assignment */
   bool isUndefined(unsigned var) const {
