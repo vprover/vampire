@@ -38,6 +38,8 @@ ArrayTermTransformer::~ArrayTermTransformer() {}
 
 TermList ArrayTermTransformer::transformSubterm(TermList trm)
 {
+  CALL("ArrayTermTransformer::transformSubterm");
+  
   if (!trm.isTerm()) {
     return trm;
   }
@@ -104,7 +106,10 @@ TermList ArrayTermTransformer::transformSubterm(TermList trm)
   return trm;
 }
 
-Literal* ArrayTermTransformer::rewriteNegEqByExtensionality(Literal* l) {
+Literal* ArrayTermTransformer::rewriteNegEqByExtensionality(Literal* l)
+{
+  CALL("ArrayTermTransformer::rewriteNegEqByExtensionality");
+  
   if (l->isEquality() && l->isNegative()) {
     unsigned sort = SortHelper::getEqualityArgumentSort(l);
     unsigned select;
