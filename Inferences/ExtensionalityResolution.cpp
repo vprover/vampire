@@ -278,6 +278,13 @@ ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
           // and literal a negative equality in clause of same sort as the given
           // extensionality clause.
           getMapAndFlattenIterator(
+            // (possible) TODO: We do not actually maintain a set neg_equal of
+            // active clauses having a negative selected equality literal as
+            // described in the extensionality resolution paper. Instead we
+            // iterate the active clauses every time a backward extensionality
+            // resolution inference has to be performed under the assumption
+            // that this happens rarely. Experiments could clarify, which
+            // solution is more efficient.
             _salg->activeClauses(),
             BackwardPairingFn(extLit->twoVarEqSort())),
           BackwardUnificationsFn(extLit)),
