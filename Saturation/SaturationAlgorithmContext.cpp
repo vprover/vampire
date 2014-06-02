@@ -27,6 +27,7 @@ SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& op
 			switchIn();
 
 			//TODO: Add here a code from helper
+			_env -> statistics -> phase = Statistics::SATURATION;
 
 			_ml = SaturationAlgorithm::createFromOptions(_prb, _opt);
 

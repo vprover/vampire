@@ -3305,5 +3305,6 @@ void OptionsList::checkGlobalOptionConstraints()
   //TODO - check multi-strategey specific constraints
   // i.e. only allowed Vampire mode currently
    opt.checkGlobalOptionConstraints();
+   //TODO - individual options should have no preprocessing options
   }
 }

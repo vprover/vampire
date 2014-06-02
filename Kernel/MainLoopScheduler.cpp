@@ -73,11 +73,44 @@ MainLoopResult MainLoopScheduler::run() {
 
 	CALL("MainLoopScheduler::run");
 
+
 	try {
 
+		// Do preprocessing
+		// This is (currently) global for all strategies
+		{
+			TimeCounter tc(TC_PREPROCESSING);
+			Preprocess prepro(opt);
+			prepro.preprocess(prb);
+		}
+
+		unsigned int live_strategies = _mlclSize;	
 		for(;;){
 			for(unsigned int k = 0; k < _mlclSize; k++) {
-				_mlcl[k] -> doStep();
+				// TODO - add local timers and stop a strategy if it uses up all of its time (need an option for this)
+				try{
+					if(_mlcl[k]){
+						_mlcl[k] -> doStep();
+					}
+				//} catch(TimeLimitExceededException&) {
+				//	delete _mlcl[k];	
+				//	_mlcl[k] = 0;
+				//	live_strategies--;
+				//}
+				catch(MainLoop::MainLoopFinishedException& e) {
+					if(e.result.terminationReason == Statistics::SATISFIABLE){
+						return e.result;
+					}
+					// remove strategy!
+					delete _mlcl[k];
+					_mlcl[k]=0;
+					live_strategies--;
+
+					//check if there are any strategies left
+					if(live_strategies==0){
+						return e.result;
+					}
+				}
 /*				Timer::syncClock();
 				if (env -> timeLimitReached()) {
 					return MainLoopResult(Statistics::TIME_LIMIT);
@@ -92,9 +125,6 @@ MainLoopResult MainLoopScheduler::run() {
 	catch(TimeLimitExceededException&) {//We catch this since SaturationAlgorithm::doUnproceessedLoop throws it
 		return MainLoopResult(Statistics::TIME_LIMIT);
 	}
-	catch(MainLoop::MainLoopFinishedException& e) {
-		return e.result;
-	}
 }
 
 MainLoopScheduler::~MainLoopScheduler() {
@@ -102,7 +132,9 @@ MainLoopScheduler::~MainLoopScheduler() {
 	CALL("MainLoopScheduler::~MainLoopScheduler()");
 
 	for(unsigned int k = 0; k < _mlclSize; k++) {
-		delete _mlcl[k]; //TODO: should be DEALLOC_UNKNOWN but SaturationAlgorithm::createFromOptions allocates via "new"
+		if(_mlcl[k]){
+			delete _mlcl[k]; //TODO: should be DEALLOC_UNKNOWN but SaturationAlgorithm::createFromOptions allocates via "new"
+		}
 	}
 	DEALLOC_KNOWN(_mlcl, sizeof(MainLoopContext*)*_mlclSize, "MainLoopScheduler");
 }
