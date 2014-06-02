@@ -6,6 +6,7 @@
 
 #include "Debug/Assertion.hpp"
 
+#include "Lib/TimeCounter.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/ArrayMap.hpp"
 #include "Lib/BinaryHeap.hpp"
@@ -130,6 +131,7 @@ void TWLSolver::ensureVarCnt(unsigned newVarCnt)
 void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 {
   CALL("TWLSolver::addClauses");
+  TimeCounter tc(TC_TWLSOLVER_ADD);
   ASS_EQ(_assumptionCnt, 0);
   ASS(!_unsatisfiableAssumptions);
 

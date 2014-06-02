@@ -277,6 +277,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_SAT_SOLVER:
     out<<"SAT solver";
     break;
+  case TC_TWLSOLVER_ADD:
+    out<<"TWLSolver add clauses";
+    break;
   case TC_SUPERPOSITION:
     out<<"superposition";
     break;
