@@ -44,6 +44,8 @@ struct ExtensionalityResolution::ForwardPairingFn
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, ExtensionalityClause> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
+    CALL("ExtensionalityResolution::ForwardPairingFn::operator()");
+    
     if (!lit->isEquality() || lit->isPositive()) {
       return OWN_RETURN_TYPE::getEmpty();
     }
@@ -69,6 +71,8 @@ struct ExtensionalityResolution::ForwardUnificationsFn
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> >);
   OWN_RETURN_TYPE operator()(pair<Literal*, ExtensionalityClause> arg)
   {
+    CALL("ExtensionalityResolution::ForwardUnificationsFn::operator()");
+    
     Literal* trmEq = arg.first;
     Literal* varEq = arg.second.literal;
 
@@ -91,6 +95,8 @@ struct ExtensionalityResolution::ForwardResultFn
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> arg)
   {
+    CALL("ExtensionalityResolution::ForwardResultFn::operator()");
+    
     RobSubstitution* subst = arg.second;
     Literal* otherLit = arg.first.first;
     Clause* extCl = arg.first.second.clause;
@@ -114,6 +120,8 @@ struct ExtensionalityResolution::NegEqSortFn
   DECL_RETURN_TYPE(bool);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
+    CALL("ExtensionalityResolution::NegEqSortFn::operator()");
+    
     return lit->isEquality() && lit->isNegative() &&
       SortHelper::getEqualityArgumentSort(lit) == _sort;
   }
@@ -131,6 +139,8 @@ struct ExtensionalityResolution::BackwardPairingFn
   DECL_RETURN_TYPE(VirtualIterator<pair<Clause*, Literal*> >);
   OWN_RETURN_TYPE operator()(Clause* cl)
   {
+    CALL("ExtensionalityResolution::BackwardPairingFn::operator()");
+    
     return pvi(pushPairIntoRightIterator(
         cl,
         getFilteredIterator(
@@ -153,6 +163,8 @@ struct ExtensionalityResolution::BackwardUnificationsFn
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> >);
   OWN_RETURN_TYPE operator()(pair<Clause*, Literal*> arg)
   {
+    CALL("ExtensionalityResolution::BackwardUnificationsFn::operator()");
+    
     Literal* otherLit = arg.second;
     
     SubstIterator unifs = _subst->unifiers(_extLit,0,otherLit,1,true);
@@ -175,6 +187,8 @@ struct ExtensionalityResolution::BackwardResultFn
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Clause*, Literal*>, RobSubstitution*> arg)
   {
+    CALL("ExtensionalityResolution::BackwardResultFn::operator()");
+    
     RobSubstitution* subst = arg.second;
     Clause* otherCl = arg.first.first;
     Literal* otherLit = arg.first.second;
@@ -199,6 +213,8 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
   RobSubstitution* subst,
   unsigned& counter)
 {
+  CALL("ExtensionalityResolution::performExtensionalityResolution");
+  
   unsigned extLen = extCl->length();
   unsigned otherLen = otherCl->length();
   

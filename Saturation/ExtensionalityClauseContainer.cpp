@@ -21,6 +21,8 @@ using namespace Shell;
  * X=Y, which is returned in case of a positive match, 0 otherwise.
  */
 Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
+  CALL("ExtensionalityClauseContainer::addIfExtensionality");
+  
   // Clause is already in extensionality container. We only have to search X=Y.
   if (c->isExtensionality()) {
     return getSingleVarEq(c);
@@ -95,6 +97,8 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
  * places where we already know that @c c is an extensionality clause.
  */
 Literal* ExtensionalityClauseContainer::getSingleVarEq(Clause* c) {
+  CALL("ExtensionalityClauseContainer::getSingleVarEq");
+  
   for (unsigned i = 0; i < c->length(); ++i) {
     Literal* varEq = (*c)[i];
     if (varEq->isTwoVarEquality() && varEq->isPositive()) {
@@ -106,6 +110,8 @@ Literal* ExtensionalityClauseContainer::getSingleVarEq(Clause* c) {
 }
 
 void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
+  CALL("ExtensionalityClauseContainer::add");
+  
   ExtensionalityClauseList::push(c, _clausesBySort[c.sort]);
 }
 
@@ -117,8 +123,10 @@ struct ExtensionalityClauseContainer::ActiveFilterFn
 {
   ActiveFilterFn(ExtensionalityClauseContainer& parent) : _parent(parent) {}
   DECL_RETURN_TYPE(bool);
-  bool operator()(ExtensionalityClause extCl)
+  OWN_RETURN_TYPE operator()(ExtensionalityClause extCl)
   {
+    CALL("ExtensionalityClauseContainer::ActiveFilterFn::operator()");
+    
     if (extCl.clause->store() != Clause::ACTIVE) {
       extCl.clause->setExtensionality(false);
       _parent._size--;
@@ -140,12 +148,16 @@ private:
  * this lazily during generating inferences.
  */
 ExtensionalityClauseIterator ExtensionalityClauseContainer::activeIterator(unsigned sort) {
+  CALL("ExtensionalityClauseContainer::activeIterator");
+  
   return pvi(getFilteredDelIterator(
                ExtensionalityClauseList::DelIterator(_clausesBySort[sort]),
                ActiveFilterFn(*this)));
 }
 
 void ExtensionalityClauseContainer::print (ostream& out) {
+  CALL("ExtensionalityClauseContainer::print");
+  
   out << "#####################" << endl;
 
   for(size_t i = 0; i < _clausesBySort.size(); ++i) {
