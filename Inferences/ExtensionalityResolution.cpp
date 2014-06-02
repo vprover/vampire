@@ -287,8 +287,8 @@ ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
           // Elements: <literal,extClause>
           getMapAndFlattenIterator(
             premise->getSelectedLiteralIterator(),
-            ForwardPairingFn(_salg->getExtensionalityClauseContainer())),
+            ForwardPairingFn(extClauses)),
           ForwardUnificationsFn()),
         ForwardResultFn(premise)),
       backwardIterator));
-} 
+}

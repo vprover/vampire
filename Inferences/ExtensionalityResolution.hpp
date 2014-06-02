@@ -40,8 +40,6 @@ private:
   struct BackwardPairingFn;
   struct BackwardUnificationsFn;
   struct BackwardResultFn;
-
-  ExtensionalityClauseContainer* _extClauses;
 };
 
 };
