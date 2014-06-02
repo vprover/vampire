@@ -18,11 +18,11 @@
 
 #include "MainLoopScheduler.hpp"
 
+namespace Kernel {
+
 using Saturation::SaturationAlgorithmContext;
 using Shell::Options;
 using Shell::Preprocess;
-
-namespace Kernel {
 
 MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 

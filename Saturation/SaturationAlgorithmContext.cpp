@@ -13,12 +13,12 @@
 
 #include "SaturationAlgorithmContext.hpp"
 
+namespace Saturation {
+
 using Kernel::MainLoopContext;
 using Kernel::Problem;
 using Lib::Timer;
 using Shell::Options;
-
-namespace Saturation {
 
 SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts):
 		MainLoopContext(prb, opts) {
