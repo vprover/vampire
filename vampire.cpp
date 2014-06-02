@@ -159,6 +159,8 @@ void doProving()
   CALL("doProving()");
   ScopedPtr<Problem> prb(getPreprocessedProblem());
   ProvingHelper::runVampireSaturation(*prb, *env -> options);
+  //MainLoopScheduler scheduler(*prb, *env -> options);
+  //scheduler.
 }
 
 /**
@@ -672,7 +674,8 @@ int main(int argc, char* argv[])
   Lib::Random::setSeed(123456);
 
   try {
-    // read the command line and interpret it
+    env = new Environment();
+	// read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
     cl.interpret(env -> optionsContainer);
 
@@ -825,6 +828,8 @@ int main(int argc, char* argv[])
     env -> endOutput();
   }
 //   delete env -> allocator;
+
+  delete env;
 
   return vampireReturnValue;
 } // main

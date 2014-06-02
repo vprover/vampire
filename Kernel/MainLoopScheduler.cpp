@@ -5,25 +5,27 @@
  * @author dmitry
  */
 
-#include "MainLoopScheduler.hpp"
-#include "MainLoop.hpp"
-#include "MainLoopContext.hpp"
+#include "Kernel/MainLoopScheduler.hpp"
+#include "Kernel/MainLoop.hpp"
+#include "Kernel/MainLoopContext.hpp"
 
 #include "Lib/Allocator.hpp"
 
 //#include "InstGen/IGAlgorithm.hpp"
 
-#include "Saturation/SaturationAlgorithm.hpp"
+//#include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/SaturationAlgorithmContext.hpp"
 
 //#include "Tabulation/TabulationAlgorithm.hpp"
 
 //#include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
 
-using namespace Kernel;
-using namespace Shell;
+namespace Kernel {
+
+using Shell::Options;
 //using namespace InstGen;
-using namespace Saturation;
+using Saturation::SaturationAlgorithmContext;
 //using namespace Tabulation;
 
 MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
@@ -56,7 +58,7 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 			_mla[k] = new IGAlgorithm(prb, opt);
 			break;
 		  default:*/
-			_mlcl[k] = new MainLoopContext(prb, opt);
+			_mlcl[k] = new SaturationAlgorithmContext(prb, opt);
 
 
 			/*break;
@@ -73,10 +75,6 @@ MainLoopResult MainLoopScheduler::run() {
 
 	try {
 
-		for(unsigned int k = 0; k < _mlclSize; k++) {
-			_mlcl[k] -> init();//TODO: it is assumed that timer is initialized inside. Make this consistent with time limit check.
-		}
-
 		for(;;){
 			for(unsigned int k = 0; k < _mlclSize; k++) {
 				_mlcl[k] -> doStep();
@@ -88,8 +86,7 @@ MainLoopResult MainLoopScheduler::run() {
 			}
 		}
 		//Should never be here
-	}
-	catch(MainLoop::RefutationFoundException& rs) {
+	}catch(MainLoop::RefutationFoundException& rs) {
 		return MainLoopResult(Statistics::REFUTATION, rs.refutation);
 	}
 	catch(TimeLimitExceededException&) {//We catch this since SaturationAlgorithm::doUnproceessedLoop throws it
@@ -116,3 +113,4 @@ MainLoopScheduler::~MainLoopScheduler() {
 	return new MainLoopScheduler(prb, opts);
 
 }*/
+}

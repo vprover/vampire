@@ -152,6 +152,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
         Kernel/MainLoop.o\
+        Kernel/MainLoopContext.o\
         Kernel/MainLoopScheduler.o\
         Kernel/MatchTag.o\
         Kernel/Matcher.o\
@@ -256,6 +257,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/Otter.o\
          Saturation/ProvingHelper.o\
          Saturation/SaturationAlgorithm.o\
+         Saturation/SaturationAlgorithmContext.o\
          Saturation/Splitter.o\
          Saturation/SSplitter.o\
          Saturation/SymElOutput.o
