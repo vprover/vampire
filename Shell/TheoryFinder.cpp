@@ -1353,6 +1353,17 @@ bool TheoryFinder::matchAll (const Literal* lit)
 // #endif
 // } // TheoryFinder::analyse
 
+/**
+ * Returns true iff @c c matches the pattern of a known extensionality clause.
+ * At the moment this includes the standard and subset-based formulations of the
+ * set extensionality axiom, as well as the array extensionality axiom.
+ *
+ * All patterns must have exactly one equality among variables.
+ *
+ * f(X,Y) ∉ X v f(X,Y) ∉ Y v X=Y
+ * X ⊊ Y v Y ⊊ X v X=Y
+ * X[sk(X,Y)] ≠ Y[sk(X,Y)] v X=Y
+ */
 bool TheoryFinder::matchKnownExtensionality(const Clause* c) {
   static const unsigned char setCode[] =
     {CLS,
