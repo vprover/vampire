@@ -84,8 +84,13 @@ MainLoopResult MainLoopScheduler::run() {
 			prepro.preprocess(prb);
 		}
 
+		for(unsigned int k = 0; k < _mlclSize; k++) {
+			_mlcl[k] -> init();
+		}
+
+		MainLoopResult result = 0;
 		unsigned int live_strategies = _mlclSize;	
-		for(;;){
+		while(!result){
 			for(unsigned int k = 0; k < _mlclSize; k++) {
 				// TODO - add local timers and stop a strategy if it uses up all of its time (need an option for this)
 				try{
@@ -96,10 +101,12 @@ MainLoopResult MainLoopScheduler::run() {
 				//	delete _mlcl[k];	
 				//	_mlcl[k] = 0;
 				//	live_strategies--;
+				//	//check live strategies
 				//}
 				catch(MainLoop::MainLoopFinishedException& e) {
 					if(e.result.terminationReason == Statistics::SATISFIABLE){
-						return e.result;
+						result =  e.result;
+						break;
 					}
 					// remove strategy!
 					delete _mlcl[k];
@@ -108,7 +115,8 @@ MainLoopResult MainLoopScheduler::run() {
 
 					//check if there are any strategies left
 					if(live_strategies==0){
-						return e.result;
+						result = e.result;
+						break;
 					}
 				}
 /*				Timer::syncClock();
@@ -118,13 +126,31 @@ MainLoopResult MainLoopScheduler::run() {
 */
 			}
 		}
-		//Should never be here
+		//Should only be here if result set
 	}catch(MainLoop::RefutationFoundException& rs) {
-		return MainLoopResult(Statistics::REFUTATION, rs.refutation);
+		result = MainLoopResult(Statistics::REFUTATION, rs.refutation);
 	}
 	catch(TimeLimitExceededException&) {//We catch this since SaturationAlgorithm::doUnproceessedLoop throws it
-		return MainLoopResult(Statistics::TIME_LIMIT);
+		result = MainLoopResult(Statistics::TIME_LIMIT);
 	}
+	catch(MemoryLimitExceededException&) {
+		env -> statistics->refutation=0;
+		size_t limit=Allocator::getMemoryLimit();
+		//add extra 1 MB to allow proper termination
+		Allocator::setMemoryLimit(limit+1000000);
+		result = MainLoopResult(Statistics::MEMORY_LIMIT);
+	}
+
+	ASS(result);
+
+	// do cleanup
+	Timer::setTimeLimitEnforcement(false);
+	for(unsigned int k = 0; k < _mlclSize; k++) {
+		_mlcl[k] -> cleanup();
+	}
+
+	return result;
+
 }
 
 MainLoopScheduler::~MainLoopScheduler() {

@@ -30,6 +30,11 @@ public:
 
 	virtual void switchOut();
 
+	// Do init required by algorithm, and set phase
+	virtual void init() = 0;
+	// Do cleanup required by algorithm, and set phase
+	virtual void cleanup() = 0;
+
 protected:
 	Problem& _prb;
 	ConcurrentMainLoop* _ml;

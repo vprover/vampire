@@ -26,12 +26,7 @@ SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& op
 
 			switchIn();
 
-			//TODO: Add here a code from helper
-			_env -> statistics -> phase = Statistics::SATURATION;
-
 			_ml = SaturationAlgorithm::createFromOptions(_prb, _opt);
-
-			_ml -> initAlgorithmRun();
 
 			switchOut();
 		}
@@ -42,6 +37,27 @@ SaturationAlgorithmContext::~SaturationAlgorithmContext() {
 			delete _ml;
 		}
 
+void SaturationAlgorithmContext::init(){
+	CALL("SaturationAlgorithmContext::init");
+
+	switchIn();
+
+	_env -> statistics -> phase = Statistics::SATURATION;
+	_ml -> initAlgorithmRun();
+
+	switchOut();
+}
+
+void SaturationAlgorithmContext::cleanup(){
+	CALL("SaturationAlgorithmContext::cleanup");
+
+	switchIn();
+
+	_env -> statistics -> phase = Statistics::FINALIZATION;
+	_ml -> updateStatistics();
+
+	switchOut();
+}
 
 void SaturationAlgorithmContext::doStep() {
 			CALL("SaturationAlgorithmContext::doStep()");
