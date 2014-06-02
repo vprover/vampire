@@ -78,9 +78,9 @@ Environment::Environment(const Environment& e)
 	  optionsContainer = options;
 	  statistics = new Statistics;
 	  timer = e.timer;
-	  sorts = new Sorts;
+	  sorts = e.sorts;
 	  signature = e.signature;
-	  sharing = new TermSharing;
+	  sharing = e.sharing;
 
 	  //timer->start();//Timer is already started in e
 	} // Environment::Environment
