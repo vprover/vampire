@@ -48,7 +48,7 @@ void MinimizingSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
   newClauses.loadFromIterator(cit);
 
   //we need to filter out the empty clause -- it won't have any influence on our algorithm
-  //(as it will make the problem unsat and we process only satisfiale assignment), but it'd
+  //(as it will make the problem unsat and we process only satisfiale assignment), but it
   //is a corner case that needs to be handled
   _unprocessed.loadFromIterator(
       getFilteredIterator(SATClauseStack::BottomFirstIterator(newClauses), isNonEmptyClause));

@@ -457,7 +457,7 @@ bool SSplitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, 
   }
 
   if(_congruenceClosure && cl->length()==1 && (*cl)[0]->ground() && cl->splits()->isEmpty()) {
-    //we add ground clauses if we use congruence closure...
+    //we add ground unit clauses if we use congruence closure...
     compName = getComponentName(cl->length(), cl->literals(), cl, compCl);
     RSTAT_CTR_INC("ssat_ground_clauses_for_congruence");
     return true;
@@ -489,6 +489,8 @@ bool SSplitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, 
     compName = getComponentName(cl->length(), cl->literals(), cl, compCl);
   }
   ASS_NEQ(cl,compCl);
+
+  // We only reach here if cl already exists as a component
 
   return true;
 }
