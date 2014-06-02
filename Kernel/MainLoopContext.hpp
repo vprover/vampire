@@ -35,6 +35,8 @@ protected:
 	ConcurrentMainLoop* _ml;
 	Environment* _env;
 	Options& _opt;
+private:
+	Environment* _temp_env;
 
 };
 

@@ -43,14 +43,14 @@ using Saturation::SaturationAlgorithm;
 
 	void MainLoopContext::switchIn() {
 		CALL("MainLoopContext::switchIn()");
-
+		_temp_env = Lib::env;
 		Lib::env = _env; //TODO: Potential change of context by other MainLoop
 	}
 
 	void MainLoopContext::switchOut() {
 		CALL("MainLoopContext::switchOut()");
 
-		_env = Lib::env;
+		Lib::env = _temp_env;
 	}
 
 }
