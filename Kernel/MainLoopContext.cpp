@@ -6,20 +6,18 @@
  */
 
 #include "Kernel/Problem.hpp"
-
-#include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Shell/Options.hpp"
 
 #include "MainLoopContext.hpp"
-
-namespace Kernel {
 
 using Lib::Environment;
 using Lib::env;
 using Shell::Options;
 using Saturation::SaturationAlgorithm;
+
+namespace Kernel {
 
 	MainLoopContext::MainLoopContext(Problem& prb, Options& opt): _prb(prb), _opt(opt) {
 		CALL("MainLoopContext::MainLoopContext(Problem&, Options&)");

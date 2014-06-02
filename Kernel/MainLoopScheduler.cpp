@@ -5,31 +5,24 @@
  * @author dmitry
  */
 
-#include "Kernel/MainLoopScheduler.hpp"
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/MainLoopContext.hpp"
-
-#include "Shell/Preprocess.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Timer.hpp"
-
 //#include "InstGen/IGAlgorithm.hpp"
-
-//#include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/SaturationAlgorithmContext.hpp"
-
-//#include "Tabulation/TabulationAlgorithm.hpp"
-
 //#include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/Preprocess.hpp"
+//#include "Tabulation/TabulationAlgorithm.hpp"
 
-namespace Kernel {
+#include "MainLoopScheduler.hpp"
 
+using Saturation::SaturationAlgorithmContext;
 using Shell::Options;
 using Shell::Preprocess;
-//using namespace InstGen;
-using Saturation::SaturationAlgorithmContext;
-//using namespace Tabulation;
+
+namespace Kernel {
 
 MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 

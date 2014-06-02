@@ -8,19 +8,16 @@
 #ifndef __MainLoopContext__
 #define __MainLoopContext__
 
+#include "Kernel/ConcurrentMainLoop.hpp"
 #include "Kernel/Problem.hpp"
-
-#include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
+#include "Shell/Options.hpp"
 
 namespace Kernel {
 
-using Lib::Environment;
-using Shell::Options;
-
 class MainLoopContext {
 public:
-	MainLoopContext(Problem& prb, Options& opt);
+	MainLoopContext(Problem& prb, Shell::Options& opt);
 
 	virtual ~MainLoopContext();
 
@@ -39,9 +36,9 @@ protected:
 	Problem& _prb;
 	ConcurrentMainLoop* _ml;
 	Environment* _env;
-	Options& _opt;
+	Shell::Options& _opt;
 private:
-	Environment* _temp_env;
+	Lib::Environment* _temp_env;
 
 };
 

@@ -5,37 +5,37 @@
  * @author dmitry
  */
 
-#include "Saturation/SaturationAlgorithm.hpp"
-
 #include "Kernel/MainLoopContext.hpp"
 #include "Kernel/Problem.hpp"
-#include "Shell/Options.hpp"
 #include "Lib/Timer.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
+#include "Shell/Options.hpp"
 
 #include "SaturationAlgorithmContext.hpp"
 
-namespace Saturation {
-
 using Kernel::MainLoopContext;
 using Kernel::Problem;
-using Shell::Options;
 using Lib::Timer;
+using Shell::Options;
 
-SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts): MainLoopContext(prb, opts) {
-			CALL("SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts)");
+namespace Saturation {
 
-			switchIn();
+SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts):
+		MainLoopContext(prb, opts) {
+	CALL("SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts)");
 
-			_ml = SaturationAlgorithm::createFromOptions(_prb, _opt);
+	switchIn();
 
-			switchOut();
-		}
+	_ml = SaturationAlgorithm::createFromOptions(_prb, _opt);
+
+	switchOut();
+}
 
 SaturationAlgorithmContext::~SaturationAlgorithmContext() {
-			CALL("SaturationAlgorithmContext::~SaturationAlgorithmContext()");
+	CALL("SaturationAlgorithmContext::~SaturationAlgorithmContext()");
 
-			delete _ml;
-		}
+	delete _ml;
+}
 
 void SaturationAlgorithmContext::init(){
 	CALL("SaturationAlgorithmContext::init");
@@ -59,17 +59,17 @@ void SaturationAlgorithmContext::cleanup(){
 }
 
 void SaturationAlgorithmContext::doStep() {
-			CALL("SaturationAlgorithmContext::doStep()");
+	CALL("SaturationAlgorithmContext::doStep()");
 
-			switchIn();
-			_ml -> doOneAlgorithmStep();
+	switchIn();
+	_ml -> doOneAlgorithmStep();
 
-			Timer::syncClock();
-			if (env -> timeLimitReached()) {
-				throw  TimeLimitExceededException();
-			}
+	Timer::syncClock();
+	if (env -> timeLimitReached()) {
+		throw  TimeLimitExceededException();
+	}
 
-			switchOut();
-		}
+	switchOut();
+}
 
-	};
+};

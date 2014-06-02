@@ -8,7 +8,6 @@
 #ifndef __ConcurrentMainLoop__
 #define __ConcurrentMainLoop__
 
-
 namespace Kernel {
 
 class ConcurrentMainLoop {
