@@ -1,6 +1,9 @@
 /**
  * @file ArrayTheoryISE.cpp
  * Implements class ArrayTheoryISE.
+ *
+ * NOTE: This code is unfinished and not in use at the moment. See the comment
+ * in the header file.
  */
 
 #include "Inferences/ArrayTheoryISE.hpp"

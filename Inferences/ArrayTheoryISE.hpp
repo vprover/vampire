@@ -1,6 +1,14 @@
 /**
  * @file ArrayTheoryISE.hpp
  * Defines class ArrayTheoryISE.
+ *
+ * The "extensionality resolution project" initially started out to improve
+ * Vampire's reasoning in the theory of arrays. A first attempt was to add some
+ * simple rewrite rules. However, the code here is not used at the moment.
+ *
+ * Adding this rewrite rules might be useful, but then the code has to be
+ * revised. For example, applying rewrite rules exhaustively is implemented very
+ * inefficiently.
  */
 
 #ifndef __ArrayTheoryISE__
