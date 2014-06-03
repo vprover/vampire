@@ -234,6 +234,12 @@ size_t SaturationAlgorithm::passiveClauseCount()
  */
 void SaturationAlgorithm::onActiveAdded(Clause* c)
 {
+  if (env.options->showActive()) {
+    env.beginOutput();    
+    env.out() << "[SA] active: " << c->toString() << std::endl;
+    env.endOutput();             
+  }      
+    
   LOG_UNIT("sa_active_added", c);
   LOG_INT("sa_active_size", _active->size());
 }
@@ -279,6 +285,12 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
   LOG_UNIT("sa_passive_added", c);
   LOG_INT("sa_passive_size", _passive->size());
 
+  if (env.options->showPassive()) {
+    env.beginOutput();
+    env.out() << "[SA] passive: " << c->toString() << std::endl;
+    env.endOutput();
+  }
+  
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
@@ -379,6 +391,12 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 //  }
 
   LOG_UNIT("sa_new_clause", cl);
+  
+  if (env.options->showNew()) {
+    env.beginOutput();
+    env.out() << "[SA] new: " << cl->toString() << std::endl;
+    env.endOutput();
+  }
 
   if (cl->isPropositional()) {
     onNewUsefulPropositionalClause(cl);
@@ -395,6 +413,11 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
   ASS(c->isPropositional());
 
   LOG_UNIT("sa_new_prop_clause", c);
+  if (env.options->showNewPropositional()) {
+    env.beginOutput();
+    env.out() << "[SA] new propositional: " << c->toString() << std::endl;
+    env.endOutput();
+  }
 
   if (_consFinder) {
     _consFinder->onNewPropositionalClause(c);

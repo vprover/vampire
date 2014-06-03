@@ -3207,12 +3207,6 @@ void Options::enableTracesAccordingToOptions() const
 {
   CALL("Options::enableTracesAccordingToOptions");
 
-  if (showActive()) { ENABLE_TAG("active_clauses"); }
-  if (showPassive()) { ENABLE_TAG("passive_clauses"); }
-  if (showNew()) { ENABLE_TAG("new_clauses"); }
-  if (showNewPropositional()) { ENABLE_TAG("new_prop_clauses"); }
-  if (showSkolemisations()) { ENABLE_TAG("pp_sk_funs"); }
-  if (showNonconstantSkolemFunctionTrace()) { ENABLE_TAG("pp_sk_nonconst_intr"); }
   if (showDefinitions()) { ENABLE_TAG("definitions"); }
   if (showPreprocessingFormulas()) { ENABLE_TAG("pp"); }
 }

@@ -191,6 +191,12 @@ redundancy_check:
     }
   }
   LOG_UNIT("ig_new_clause", cl);
+  if (env.options->showNew()) {
+    env.beginOutput();
+    env.out() << "[IG] new: " << cl->toString() << std::endl;
+    env.endOutput();
+  }
+  
   cl->incRefCnt();
   _variantIdx->insert(cl);
   if(_globalSubsumption) {
@@ -237,7 +243,12 @@ void IGAlgorithm::processUnprocessed()
     //so it cancels out with the increase we'd have to do for it
     _passive.add(cl);
     LOG_UNIT("ig_passive_added", cl);
-
+    
+    if (env.options->showPassive()) {
+      env.beginOutput();
+      env.out() << "[IG] passive: " << cl->toString() << std::endl;
+      env.endOutput();
+    }
 
     SATClauseIterator sc = _gnd.ground(cl,_use_niceness);
     satClauses.loadFromIterator(sc);
@@ -483,6 +494,13 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
   CALL("IGAlgorithm::activate");
 
   selectAndAddToIndex(cl);
+  
+  if (env.options->showActive()) {
+    env.beginOutput();
+    env.out() << "[IG] active: " << cl->toString() << std::endl;
+    env.endOutput();
+  }
+  
   LOG_UNIT("ig_active_added", cl);
 
   // if cl does not have a dismatching index create one
