@@ -80,6 +80,7 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
   }
 
   if (varEq != 0) {
+    // If varEq is nonzero then sort must have been set above.
     c->setExtensionality(true);
     add(ExtensionalityClause(c, varEq, sort));
     _size++;
