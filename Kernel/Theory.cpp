@@ -11,6 +11,8 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
+#include "Shell/Skolem.hpp"
+
 #include "Signature.hpp"
 
 #include "Theory.hpp"
@@ -475,6 +477,7 @@ Theory* Theory::instance()
  * The constructor is private, since Theory is a singleton class.
  */
 Theory::Theory()
+  : _array1SkolemFunction(0), _array2SkolemFunction(0)
 {
 
 }
@@ -791,6 +794,17 @@ bool Theory::isConversionOperation(Interpretation i)
   }
 }
 
+bool Theory::isArraySort(unsigned sort) {
+  CALL("Theory::isArraySort");
+  
+  switch(sort) {
+  case Sorts::SRT_ARRAY1:
+  case Sorts::SRT_ARRAY2:
+    return true;
+  default:
+    return false;
+  }
+}
     
 /**
  * Return true if interpreted function @c i is an array operation.
@@ -811,9 +825,33 @@ bool Theory::isArrayOperation(Interpretation i)
       return false;
   }
 }
-   
-    
-    
+
+unsigned Theory::getArraySelectFunctor(unsigned sort) {
+  CALL("Theory::getArraySelectFunctor");
+  
+  switch(sort) {
+  case Sorts::SRT_ARRAY1:
+    return env.signature->getInterpretingSymbol(Theory::SELECT1_INT);
+  case Sorts::SRT_ARRAY2:
+    return env.signature->getInterpretingSymbol(Theory::SELECT2_INT);
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
+unsigned Theory::getArrayStoreFunctor(unsigned sort) {
+  CALL("Theory::getArrayStoreFunctor");
+  
+  switch(sort) {
+  case Sorts::SRT_ARRAY1:
+    return env.signature->getInterpretingSymbol(Theory::STORE1_INT);
+  case Sorts::SRT_ARRAY2:
+    return env.signature->getInterpretingSymbol(Theory::STORE2_INT);
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
 /**
 * This function can be called for array operations 
 * it returns the range domain (the sort of the output) of select and store
@@ -862,7 +900,47 @@ unsigned Theory::getArrayDomainSort(Interpretation i)
         }
 }
 
-    
+/**
+ * Get the number of the skolem function symbol used in the clause form of the
+ * array extensionality axiom (of particular sort).
+ *
+ * select(X,sk(X,Y)) != select(Y,sk(X,Y)) | X = Y
+ * 
+ * If the symbol does not exist yet, it is added to the signature. We use 0 to
+ * represent that the symbol not yet exists, assuming that at call time of this
+ * method, at least the array function are already in the signature.
+ *
+ * We want to have this function available e.g. in simplification rules.
+ */
+unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
+  unsigned* ptr;
+  Interpretation store;
+  Interpretation select;
+  
+  switch(sort) {
+  case Sorts::SRT_ARRAY1:
+    ptr = &_array1SkolemFunction;
+    store = Theory::STORE1_INT;
+    select = Theory::SELECT1_INT;
+    break;
+  case Sorts::SRT_ARRAY2:
+    ptr = &_array2SkolemFunction;
+    store = Theory::STORE2_INT;
+    select = Theory::SELECT2_INT;
+    break;
+  default:
+    ASSERTION_VIOLATION;
+  }
+
+  if (*ptr == 0) {
+    unsigned arraySort = getArrayOperationSort(store);
+    unsigned indexSort = theory->getArrayDomainSort(select);
+    unsigned params[] = {arraySort, arraySort};
+    *ptr = Shell::Skolem::addSkolemFunction(2, params, indexSort, "arrayDiff");
+  }
+
+  return *ptr;
+}
 
     
 /**

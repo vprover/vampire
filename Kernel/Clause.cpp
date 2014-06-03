@@ -60,6 +60,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _length(length),
     _color(COLOR_INVALID),
     _input(0),
+    _extensionality(false),
     _selected(0),
     _age(0),
     _weight(0),

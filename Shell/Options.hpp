@@ -81,6 +81,10 @@ public:
     EQUALITY_PROXY,
     EQUALITY_RESOLUTION_WITH_DELETION,
 
+    EXTENSIONALITY_ALLOW_POS_EQ,
+    EXTENSIONALITY_INFERENCE,
+    EXTENSIONALITY_MAX_LENGTH,
+
     FLATTEN_TOP_LEVEL_CONJUNCTIONS,
     /** If some of the specified options are set to a forbidden state,
      * vampire will fail to start, or in the CASC mode it will skip
@@ -468,6 +472,13 @@ public:
     EP_ON = 5
   };
 
+  /** Values for --extensionality_inference */
+  enum ExtensionalityInference {
+    EI_FILTER = 0,
+    EI_KNOWN = 1,
+    EI_OFF = 2
+  };
+
   enum SatRestartStrategy {
     SRS_FIXED = 0,
     SRS_GEOMETRIC = 1,
@@ -672,6 +683,10 @@ public:
   void setEqualityPropagation(bool newVal) { _equalityPropagation = newVal; }
   EqualityProxy equalityProxy() const { return _equalityProxy; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion; }
+  ExtensionalityInference extensionalityInference() const { return _extensionalityInference; }
+  unsigned extensionalityMaxLength() const { return _extensionalityMaxLength; }
+  bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq; }
+  
   float nongoalWeightCoefficient() const { return _nongoalWeightCoefficient; }
   bool setNongoalWeightCoefficient(float newVal);
   Sos sos() const { return _sos; }
@@ -861,8 +876,11 @@ private:
   bool _equalityPropagation;
   EqualityProxy _equalityProxy;
   RuleActivity _equalityResolutionWithDeletion;
-
   bool _equivalentVariableRemoval;
+  ExtensionalityInference _extensionalityInference;
+  unsigned _extensionalityMaxLength;
+  bool _extensionalityAllowPosEq;
+  
   bool _flattenTopLevelConjunctions;
   string _forbiddenOptions;
   bool _forceIncompleteness;

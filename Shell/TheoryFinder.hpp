@@ -32,6 +32,8 @@ public:
   TheoryFinder(const UnitList*,Property* property);
   ~TheoryFinder();
   int search();
+  static bool matchCode(const void* obj,const unsigned char* code);
+  static bool matchKnownExtensionality(const Clause*);
 
 private:
   bool matchAll(const Unit* unit);

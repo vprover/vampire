@@ -180,6 +180,9 @@ public:
   }
   void computeColor() const;
 
+  bool isExtensionality() const { return _extensionality; }
+  void setExtensionality(bool e) { _extensionality = e; }
+
   bool skip() const;
 
   unsigned getLiteralPosition(Literal* lit);
@@ -320,6 +323,11 @@ protected:
   mutable unsigned _color : 2;
   /** clause is an input clause for the saturation algorithm */
   unsigned _input : 1;
+  /** Clause was matched as extensionality and is tracked in the extensionality
+    * clause container. The matching happens at activation. If the clause
+    * becomes passive and is removed from the container, also this bit is unset.
+    */
+  unsigned _extensionality : 1;
   /** number of selected literals */
   unsigned _selected;
   /** age */

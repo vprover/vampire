@@ -50,6 +50,7 @@ public:
   static const char* _satSolverValues[];
   static const char* _satAlgValues[];
   static const char* _equalityProxyValues[];
+  static const char* _extensionalityInferenceValues[];
   static const char* _inputSyntaxValues[];
   static const char* _modeValues[];
   static const char* _ruleActivityValues[];
@@ -88,6 +89,7 @@ public:
   static NameArray satSolverValues;
   static NameArray satAlgValues;
   static NameArray equalityProxyValues;
+  static NameArray extensionalityInferenceValues;
   static NameArray inputSyntaxValues;
   static NameArray modeValues;
   static NameArray ruleActivityValues;
@@ -158,6 +160,10 @@ const char* Options::Constants::_optionNames[] = {
   "equality_propagation",
   "equality_proxy",
   "equality_resolution_with_deletion",
+  
+  "extensionality_allow_pos_eq",
+  "extensionality_inference",
+  "extensionality_max_length",
 
   "flatten_top_level_conjunctions",
   "forbidden_options",
@@ -330,6 +336,7 @@ const char* Options::Constants::_shortNames[] = {
 
   "ep",
   "erd",
+  "ext",
 
   "fd",
   "fde",
@@ -415,6 +422,7 @@ int Options::Constants::shortNameIndexes[] = {
 
   EQUALITY_PROXY,
   EQUALITY_RESOLUTION_WITH_DELETION,
+  EXTENSIONALITY_INFERENCE,
 
   FORWARD_DEMODULATION,
   FUNCTION_DEFINITION_ELIMINATION,
@@ -567,6 +575,13 @@ const char* Options::Constants::_equalityProxyValues[] = {
   "on"};
 NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,
 						  sizeof(_equalityProxyValues)/sizeof(char*));
+
+const char* Options::Constants::_extensionalityInferenceValues[] = {
+  "filter",
+  "known",
+  "off"};
+NameArray Options::Constants::extensionalityInferenceValues(_extensionalityInferenceValues,
+						  sizeof(_extensionalityInferenceValues)/sizeof(char*));
 
 const char* Options::Constants::_ruleActivityValues[] = {
   "input_only",
@@ -831,6 +846,9 @@ Options::Options ()
   _equalityProxy(EP_OFF), 
   _equalityResolutionWithDeletion(RA_INPUT_ONLY),
   _equivalentVariableRemoval(true),
+  _extensionalityInference(EI_OFF),
+  _extensionalityMaxLength(0),
+  _extensionalityAllowPosEq(false),
   
   _flattenTopLevelConjunctions(false),
   _forceIncompleteness(false),
@@ -1191,6 +1209,23 @@ void Options::set(const char* name,const char* value, int index)
 	USER_ERROR("equality_resolution_with_deletion is not implemented for value \"on\"");
       }
       return;
+    case EXTENSIONALITY_INFERENCE:
+      _extensionalityInference = (ExtensionalityInference)Constants::extensionalityInferenceValues.find(value);
+      return;
+    case EXTENSIONALITY_MAX_LENGTH:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+        // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
+        if (unsignedValue == 1) {
+          USER_ERROR("extensionality clauses have to be at least of size 2");
+        }
+	_extensionalityMaxLength = unsignedValue;
+	return;
+      }
+      break;
+    case EXTENSIONALITY_ALLOW_POS_EQ:
+      _extensionalityAllowPosEq = onOffToBool(value,name);
+      return;
+      
 
     case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
       _flattenTopLevelConjunctions = onOffToBool(value,name);
@@ -2138,6 +2173,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case EQUALITY_RESOLUTION_WITH_DELETION:
     str << Constants::ruleActivityValues[_equalityResolutionWithDeletion];
+    return;
+  case EXTENSIONALITY_INFERENCE:
+    str << Constants::extensionalityInferenceValues[_extensionalityInference];
     return;
 
   case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
@@ -3142,6 +3180,9 @@ void Options::checkGlobalOptionConstraints() const
   }
   if (_splitting && _saturationAlgorithm == INST_GEN) {
     USER_ERROR("saturation algorithm inst_gen cannot be used with sat splitting");
+  }
+  if (_extensionalityInference != EI_OFF && _inequalitySplitting) {
+    USER_ERROR("extensionality resolution can not be used together with inequality splitting");
   }
   //TODO:implement forbidden options
 }

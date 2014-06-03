@@ -211,6 +211,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/DistinctEqualitySimplifier.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
+         Inferences/ExtensionalityResolution.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
          Inferences/ForwardDemodulation.o\
@@ -250,6 +251,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
+         Saturation/ExtensionalityClauseContainer.o\
          Saturation/Limits.o\
          Saturation/LRS.o\
          Saturation/Otter.o\

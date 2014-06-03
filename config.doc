@@ -34,6 +34,8 @@ HTML_OUTPUT		= html
 ALPHABETICAL_INDEX = YES
 COLS_IN_ALPHA_INDEX = 2
 
+SOURCE_BROWSER = YES
+
 #
 # LaTeX-related options
 #

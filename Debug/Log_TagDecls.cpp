@@ -30,6 +30,9 @@ void Logging::doTagDeclarations()
       DOC("displays newly derived clauses"));
   DECL("new_prop_clauses",
       DOC("displays newly derived propositional clauses"));
+  
+  DECL("extensionality",
+       DOC("display extensionality clauses, inferences, ..."));
 
   DECL("definitions");
 
@@ -85,6 +88,13 @@ void Logging::doTagDeclarations()
       PARENT("sa_containers", 0),
       UNIT_TAG);
 
+  DECL("sa_ext_added",
+       PARENT("extensionality", 0),
+       UNIT_TAG);
+  DECL("sa_ext_removed",
+       PARENT("extensionality", 0),
+       UNIT_TAG);
+
 
   DECL("sa_new_clause",
       PARENT("new_clauses", 0),
@@ -133,11 +143,11 @@ void Logging::doTagDeclarations()
       INT_TAG);
 
   DECL("sa_passive_size",
-      DOC("number fo clauses in the passive container"),
+      DOC("number of clauses in the passive container"),
       PARENT("sa",3),
       INT_TAG);
   DECL("sa_active_size",
-      DOC("number fo clauses in the active container"),
+      DOC("number of clauses in the active container"),
       PARENT("sa",3),
       INT_TAG);
 
@@ -273,6 +283,12 @@ void Logging::doTagDeclarations()
       PARENT("inf_hsp",1),
       UNIT_TAG);
 
+   DECL("inf_ext",
+      DOC("extensionality inference"),
+      PARENT("inf",0),
+      PARENT("extensionality",0)  
+     );
+   
   //
   // Decison procedures
   //

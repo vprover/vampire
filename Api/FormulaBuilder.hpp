@@ -169,7 +169,7 @@ public:
   Var var(const string& varName, Sort varSort);
 
   /**
-   * Create a function symbol using default sorts. If @b builtIn if true, the symbol will not be
+   * Create a function symbol using default sorts. If @b builtIn is true, the symbol will not be
    * eliminated during preprocessing.
    *
    * @warning Functions of the same name and arity must have always

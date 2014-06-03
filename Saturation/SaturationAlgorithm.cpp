@@ -35,6 +35,7 @@
 #include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
+#include "Inferences/ExtensionalityResolution.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
@@ -46,6 +47,8 @@
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/URResolution.hpp"
+
+#include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
@@ -119,6 +122,13 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
   _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
 
+  if (opt.extensionalityInference() != Options::EI_OFF) {
+    _extensionality = new ExtensionalityClauseContainer(opt);
+    //_active->addedEvent.subscribe(_extensionality, &ExtensionalityClauseContainer::addIfExtensionality);
+  } else {
+    _extensionality = 0;
+  }
+  
   if (opt.maxWeight()) {
     _limits.setLimits(0,opt.maxWeight());
   }
@@ -182,6 +192,9 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
   }
   env.statistics->finalActiveClauses = inst->_active->size();
   env.statistics->finalPassiveClauses = inst->_passive->size();
+  if (inst->_extensionality != 0) {
+    env.statistics->finalExtensionalityClauses = inst->_extensionality->size();
+  }
 }
 
 /**
@@ -1384,6 +1397,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.unitResultingResolution() != Options::URR_OFF) {
     gie->addFront(new URResolution());
   }
+  if (opt.extensionalityInference() != Options::EI_OFF) {
+    gie->addFront(new ExtensionalityResolution());
+  }
+  
   res->setGeneratingInferenceEngine(gie);
 
   res->setImmediateSimplificationEngine(createISE(prb, opt));

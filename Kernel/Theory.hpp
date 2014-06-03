@@ -267,9 +267,14 @@ public:
     
   static FunctionType* getArrayOperationType(Interpretation i);
 
+  static bool isArraySort(unsigned sort);
   static bool isArrayOperation(Interpretation i);
+  static unsigned getArraySelectFunctor(unsigned sort);
+  static unsigned getArrayStoreFunctor(unsigned sort);
   static unsigned getArrayOperationSort(Interpretation i);
   static unsigned  getArrayDomainSort(Interpretation i);
+
+  unsigned getArrayExtSkolemFunction(unsigned i);
     
   static Theory* instance();
 
@@ -353,6 +358,8 @@ public:
 private:
   Theory();
   static FunctionType* getConversionOperationType(Interpretation i);
+  unsigned _array1SkolemFunction;
+  unsigned _array2SkolemFunction;
 };
 
 typedef Theory::Interpretation Interpretation;

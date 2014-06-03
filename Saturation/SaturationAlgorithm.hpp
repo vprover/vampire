@@ -22,6 +22,8 @@
 
 #include "Inferences/InferenceEngine.hpp"
 
+#include "Saturation/ExtensionalityClauseContainer.hpp"
+
 #include "Limits.hpp"
 
 #if VDEBUG
@@ -73,6 +75,9 @@ public:
 
   virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
   virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
+  ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
+    return _extensionality;
+  }
 
   ClauseIterator activeClauses();
   ClauseIterator passiveClauses();
@@ -159,6 +164,7 @@ protected:
   UnprocessedClauseContainer* _unprocessed;
   PassiveClauseContainer* _passive;
   ActiveClauseContainer* _active;
+  ExtensionalityClauseContainer* _extensionality;
 
   ScopedPtr<GeneratingInferenceEngine> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
