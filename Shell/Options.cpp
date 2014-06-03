@@ -265,7 +265,7 @@ const char* Options::Constants::_optionNames[] = {
   "show_nonconstant_skolem_function_trace",
   "show_options",
   "show_passive",
-  "show_preprocessing_formulas",
+  "show_preprocessing",
   "show_skolemisations",
   "show_symbol_elimination",
   "show_theory_axioms",
@@ -964,7 +964,7 @@ Options::Options ()
   _showNonconstantSkolemFunctionTrace(false),
   _showOptions(false),
   _showPassive(false),
-  _showPreprocessingFormulas(false),
+  _showPreprocessing(false),
   _showSkolemisations(false),
   _showSymbolElimination(false),
   _showTheoryAxioms(false),
@@ -1605,8 +1605,8 @@ void Options::set(const char* name,const char* value, int index)
     case SHOW_PASSIVE:
       _showPassive = onOffToBool(value,name);
       return;
-    case SHOW_PREPROCESSING_FORMULAS:
-      _showPreprocessingFormulas = onOffToBool(value,name);
+    case SHOW_PREPROCESSING:
+      _showPreprocessing = onOffToBool(value,name);
       return;
     case SHOW_SKOLEMISATIONS:
       _showSkolemisations = onOffToBool(value,name);
@@ -2449,8 +2449,8 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SHOW_PASSIVE:
     str << boolToOnOff(_showPassive);
     return;
-  case SHOW_PREPROCESSING_FORMULAS:
-    str << boolToOnOff(_showPreprocessingFormulas);
+  case SHOW_PREPROCESSING:
+    str << boolToOnOff(_showPreprocessing);
     return;
   case SHOW_SKOLEMISATIONS:
     str << boolToOnOff(_showSkolemisations);
@@ -3208,5 +3208,5 @@ void Options::enableTracesAccordingToOptions() const
   CALL("Options::enableTracesAccordingToOptions");
 
   if (showDefinitions()) { ENABLE_TAG("definitions"); }
-  if (showPreprocessingFormulas()) { ENABLE_TAG("pp"); }
+  if (showPreprocessing()) { ENABLE_TAG("pp"); }
 }
