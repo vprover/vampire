@@ -30,7 +30,7 @@ namespace Shell {
  */
 class EPRSkolem : public EPRRestoring {
 public:
-  EPRSkolem(bool trace=false) : EPRRestoring(trace), _defs(0) {}
+  EPRSkolem() : EPRRestoring(), _defs(0) {}
 
   void apply(Problem& prb);
   bool apply(UnitList*& units);

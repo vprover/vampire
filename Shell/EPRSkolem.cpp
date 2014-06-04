@@ -42,8 +42,6 @@ namespace Shell
 class EPRSkolem::ConstantSkolemizer : private PolarityAwareFormulaTransformer
 {
 public:
-  ConstantSkolemizer(bool trace=false) : _trace(trace) {}
-
   FormulaUnit* transform(FormulaUnit* f);
   bool transform(UnitList*& units);
 
@@ -67,9 +65,7 @@ public:
 protected:
   Formula* applyLiteral(Formula* f);
   Formula* applyQuantified(Formula* f);
-private:
-  bool _trace;
-
+private:  
   bool _extraQuantifiers;
 
   typedef DHMap<unsigned,TermList> BindingMap;
@@ -739,16 +735,14 @@ void EPRSkolem::apply(Problem& prb)
 bool EPRSkolem::apply(UnitList*& units)
 {
   CALL("EPRSkolem::apply(UnitList*&)");
-
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_esk");
-
+  
   LOG("pp_esk","EPR skolemization start");
   LOG("pp_esk","Constant skolemization");
 
   bool modified = false;
 
   {
-    ConstantSkolemizer skol(_trace);
+    ConstantSkolemizer skol;
     bool csModified = skol.transform(units);
     modified |= csModified;
   }

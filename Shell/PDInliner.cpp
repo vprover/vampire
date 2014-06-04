@@ -765,8 +765,8 @@ Formula* PDInliner::PDef::apply(int polarity, Formula* form)
   }
 }
 
-PDInliner::PDInliner(bool axiomsOnly, bool trace, bool nonGrowing)
- : _axiomsOnly(axiomsOnly), _nonGrowing(nonGrowing), _trace(trace)
+PDInliner::PDInliner(bool axiomsOnly, bool nonGrowing)
+ : _axiomsOnly(axiomsOnly), _nonGrowing(nonGrowing)
 {
   CALL("PDInliner::PDInliner");
 
@@ -904,7 +904,6 @@ void PDInliner::apply(Problem& prb)
 bool PDInliner::apply(UnitList*& units, bool inlineOnlyEquivalences)
 {
   CALL("PDInliner::apply");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   bool modified = scanAndRemoveDefinitions(units, inlineOnlyEquivalences);
 
@@ -934,7 +933,6 @@ bool PDInliner::apply(UnitList*& units, bool inlineOnlyEquivalences)
 Unit* PDInliner::apply(Unit* u)
 {
   CALL("PDInliner::apply(Unit*)");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   if(!u->isClause()) {
     return apply(static_cast<FormulaUnit*>(u));
@@ -1074,7 +1072,6 @@ void PDInliner::updatePredOccCounts(Unit* u)
 bool PDInliner::scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly)
 {
   CALL("PDInliner::scanAndRemoveDefinitions(UnitList*)");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   bool modified = false;
 
@@ -1128,7 +1125,6 @@ bool PDInliner::isEligible(FormulaUnit* u)
 bool PDInliner::tryGetPredicateEquivalence(FormulaUnit* unit)
 {
   CALL("PDInliner::tryGetPredicateEquivalence");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   if(!isEligible(unit)) {
     return false;
@@ -1168,7 +1164,6 @@ bool PDInliner::tryGetPredicateEquivalence(FormulaUnit* unit)
 bool PDInliner::tryGetDef(FormulaUnit* unit)
 {
   CALL("PDInliner::scan(FormulaUnit*)");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   if(!isEligible(unit)) {
     return false;
@@ -1229,7 +1224,6 @@ bool PDInliner::isNonGrowingDef(Literal* lhs, Formula* rhs)
 bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
 {
   CALL("PDInliner::tryGetDef");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   if(!PDUtils::hasDefinitionShape(lhs, rhs)) {
     return false;
@@ -1332,7 +1326,6 @@ bool PDInliner::addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* 
     FormulaUnit* premise)
 {
   CALL("PDInliner::addAsymetricDefinition");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   unsigned pred = lhs->functor();
   if(_defs[pred]) {

@@ -40,8 +40,7 @@ namespace Shell
  */
 void EPRRestoring::scan(UnitList* units)
 {
-  CALL("EPRRestoring::scan");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_einl");
+  CALL("EPRRestoring::scan");  
 
   UnitList::Iterator it(units);
   while(it.hasNext()) {
@@ -276,14 +275,12 @@ void EPRInlining::apply(Problem& prb)
 
 bool EPRInlining::apply(UnitList*& units)
 {
-  CALL("EPRInlining::apply");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_einl");
+  CALL("EPRInlining::apply");  
 
   bool modified = false;
 
   {
-    //remove predicate equivalences
-    CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_inl");
+    //remove predicate equivalences    
     PDInliner pdi(false);
     bool eqInlinerModified = pdi.apply(units, true);
     modified |= eqInlinerModified;
@@ -312,8 +309,7 @@ bool EPRInlining::apply(UnitList*& units)
 void EPRInlining::processActiveDefinitions(UnitList* units)
 {
   CALL("EPRInlining::processActiveDefinitions");
-
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_inl");
+  
   PDInliner defInliner(false);
 
   Stack<unsigned>::BottomFirstIterator apit(_activePreds);
@@ -347,8 +343,7 @@ void EPRInlining::processActiveDefinitions(UnitList* units)
 
 Unit* EPRInlining::apply(Unit* unit)
 {
-  CALL("EPRInlining::apply");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_einl");
+  CALL("EPRInlining::apply");  
 
   if(_activeUnits.find(unit)) {
     unsigned pred = _defPreds.get(unit);

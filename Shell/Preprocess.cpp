@@ -179,15 +179,16 @@ void Preprocess::preprocess (Problem& prb)
 //       }
 //     }
 //   }
-  LOG("pp","preprocessing started");
-  TRACE("pp_input",
-      UnitList::Iterator uit(prb.units());
-      while(uit.hasNext()) {
-	Unit* u = uit.next();
-	TRACE_OUTPUT_UNIT(u);
-      }
-      );
-
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "preprocessing started" << std::endl;
+    UnitList::Iterator uit(prb.units());
+    while(uit.hasNext()) {
+      Unit* u = uit.next();
+      env.out() << "[PP] input: " << u->toString() << std::endl;     
+    }
+  }
+  
   //we ensure that in the beginning we have a valid property object, to
   //know that the queries to uncertain problem properties will be precise
   //enough
@@ -198,33 +199,43 @@ void Preprocess::preprocess (Problem& prb)
   }
 
   if (prb.hasSpecialTermsOrLets()) {
-    LOG("pp_progress","special term elimination");
+    if (env.options->showPreprocessing())
+      env.out() << "special term elimination" << std::endl;
+
     SpecialTermElimination().apply(prb);
   }
 
   // reorder units
   if (_options.normalize()) {
     env.statistics->phase=Statistics::NORMALIZATION;
-    LOG("pp_progress","normalization");
+    if (env.options->showPreprocessing())
+      env.out() << "normalization" << std::endl;
+    
     Normalisation().normalise(prb);
   }
 
   if (_options.sineSelection()!=Options::SS_OFF) {
     env.statistics->phase=Statistics::SINE_SELECTION;
-    LOG("pp_progress","sine selection");
+    if (env.options->showPreprocessing())
+      env.out() << "sine selection" << std::endl;
+
     SineSelector(_options).perform(prb);
   }
 
   if (_options.questionAnswering()==Options::QA_ANSWER_LITERAL) {
     env.statistics->phase=Statistics::UNKNOWN_PHASE;
-    LOG("pp_progress","answer literal addition");
+    if (env.options->showPreprocessing())
+      env.out() << "answer literal addition" << std::endl;
+
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
   if (prb.hasInterpretedOperations() && _options.theoryAxioms()) {
     InterpretedNormalizer().apply(prb);
     env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
-    LOG("pp_progress","adding theory axioms");
+    if (env.options->showPreprocessing())
+      env.out() << "adding theory axioms" << std::endl;
+
     TheoryAxioms().apply(prb);
   }
 
@@ -234,7 +245,9 @@ void Preprocess::preprocess (Problem& prb)
   }
 
   if (prb.mayHaveFormulas()) {
-    LOG("pp_progress","preprocess1 (rectify, simplify false true, flatten)");
+    if (env.options->showPreprocessing())
+      env.out() << "preprocess1 (rectify, simplify false true, flatten)" << std::endl;
+
     preprocess1(prb);
   }
 
@@ -243,7 +256,9 @@ void Preprocess::preprocess (Problem& prb)
 //   theoryFinder.search();
 
   if (prb.hasFormulaItes()){
-    LOG("pp_progress","expand ite formulas");
+    if (env.options->showPreprocessing())
+      env.out() << "expand ite formulas" << std::endl;
+    
     FormulaIteExpander().apply(prb);
   }
 
@@ -253,126 +268,172 @@ void Preprocess::preprocess (Problem& prb)
     //Here we're trying to propagate equalities as well because that might
     //reveal some more formulas to be definitions.
     env.statistics->phase=Statistics::EQUALITY_PROPAGATION;
-    LOG("pp_progress","equality propagation");
+    if (env.options->showPreprocessing())
+      env.out() << "equality propagation" << std::endl;
+    
     EqualityPropagator().apply(prb);
   }
 
   if (_options.predicateIndexIntroduction()) {
-    LOG("pp_progress","predicate index introduction");
+    if (env.options->showPreprocessing())
+      env.out() << "predicate index introduction" << std::endl;
+
     PredicateIndexIntroducer().apply(prb);
   }
 
   if (_options.predicateDefinitionInlining()!=Options::INL_OFF) {
     env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
-    LOG("pp_progress","inlining");
-    PDInliner pdInliner(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY, false,
+    if (env.options->showPreprocessing())
+      env.out() << "inlining" << std::endl;
+
+    PDInliner pdInliner(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY,
 	_options.predicateDefinitionInlining()==Options::INL_NON_GROWING);
     pdInliner.apply(prb);
 
     if (_options.flattenTopLevelConjunctions()) {
-	LOG("pp_progress","flattening top-level conjunctions");
+      if (env.options->showPreprocessing())
+        env.out() << "flattening top-level conjunctions" << std::endl;
+
         if (TopLevelFlatten().apply(prb)) {
-          LOG("pp_progress","inlining");
-          PDInliner pdInliner2(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY, false,
+          if (env.options->showPreprocessing())
+            env.out() << "inlining" << std::endl;
+
+          PDInliner pdInliner2(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY,
               _options.predicateDefinitionInlining()==Options::INL_NON_GROWING);
           pdInliner2.apply(prb);
         }
     }
   }
   else if (_options.flattenTopLevelConjunctions()) {
-    LOG("pp_progress","flattening top-level conjunctions");
+    if (env.options->showPreprocessing())
+      env.out() << "flattening top-level conjunctions" << std::endl;
+
     TopLevelFlatten().apply(prb);
   }
 
   if (_options.distinctProcessor()) {
-    LOG("pp_progress","processing distinct declarations");
+    if (env.options->showPreprocessing())
+      env.out() << "processing distinct declarations" << std::endl;
+    
     DistinctProcessor().apply(prb);
   }
 
   if (_options.predicateEquivalenceDiscovery()!=Options::PED_OFF) {
-    LOG("pp_progress","equivalence discovery");
+    if (env.options->showPreprocessing())
+      env.out() << "equivalence discovery" << std::endl;
+
     EquivalenceDiscoveringTransformer(_options).apply(prb);
   }
 
   if (_options.aigFormulaSharing()) {
-    LOG("pp_progress","aig formula sharing");
+    if (env.options->showPreprocessing())
+      env.out() << "aig formula sharing" << std::endl;
+
     AIGFormulaSharer().apply(prb);
   }
 
   if (_options.predicateDefinitionMerging()) {
     env.statistics->phase=Statistics::PREDIACTE_DEFINITION_MERGING;
-    LOG("pp_progress","predicate definition merging");
+    if (env.options->showPreprocessing())
+      env.out() << "predicate definition merging" << std::endl;
+
     PDMerger().apply(prb);
   }
 
   if (_options.eprPreservingSkolemization()) {
     env.statistics->phase=Statistics::EPR_PRESERVING_SKOLEMIZATION;
-    LOG("pp_progress","epr skolemization");
+    if (env.options->showPreprocessing())
+      env.out() << "epr skolemization" << std::endl;
+
     EPRSkolem().apply(prb);
   }
 
   if (_options.eprRestoringInlining()) {
     env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
-    LOG("pp_progress","epr restoring inlining");
+    if (env.options->showPreprocessing())
+      env.out() << "epr restoring inlining" << std::endl;
+
     EPRInlining().apply(prb);
   }
 
   if (_options.aigBddSweeping()) {
-    LOG("pp_progress","bdd sweeping");
+    if (env.options->showPreprocessing())
+      env.out() << "bdd sweeping" << std::endl;
+
     AIGCompressingTransformer().apply(prb);
   }
 
   if (_options.flattenTopLevelConjunctions()) {
-    LOG("pp_progress","flatten top-level conjunctions");
+    if (env.options->showPreprocessing())
+      env.out() << "flatten top-level conjunctions" << std::endl;    
+
     TopLevelFlatten().apply(prb);
   }
 
   if (_options.aigInliner()) {
-    LOG("pp_progress","aig inlining");
+    if (env.options->showPreprocessing())
+      env.out() << "aig inlining" << std::endl;      
+
     AIGInliner().apply(prb);
   }
 
   if (_options.aigConditionalRewriting()) {
-    LOG("pp_progress","aig conditional rewriting");
+    if (env.options->showPreprocessing())
+      env.out() << "aig conditional rewriting" << std::endl; 
+
     AIGConditionalRewriter().apply(prb);
   }
 
   if (_options.aigDefinitionIntroduction()) {
-    LOG("pp_progress","aig definition introduction");
+    if (env.options->showPreprocessing())
+      env.out() << "aig definition introduction" << std::endl; 
+
     AIGDefinitionIntroducer(_options.aigDefinitionIntroductionThreshold()).apply(prb);
   }
 
   if (_options.unusedPredicateDefinitionRemoval()) {
     env.statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
-    LOG("pp_progress","unused predicate definition removal");
+    if (env.options->showPreprocessing())
+      env.out() << "unused predicate definition removal" << std::endl; 
+
     PredicateDefinition pdRemover;
     pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
   }
 
   if (prb.mayHaveFormulas()) {
-    LOG("pp_progress","preprocess 2 (ennf,flatten)");
+    if (env.options->showPreprocessing())
+      env.out() << "preprocess 2 (ennf,flatten)" << std::endl; 
+    
     preprocess2(prb);
   }
 
   if (_options.equalityPropagation() && prb.mayHaveEquality()) {
     env.statistics->phase=Statistics::EQUALITY_PROPAGATION;
-    LOG("pp_progress","equality propagation");
+    if (env.options->showPreprocessing())
+      env.out() << "equality propagation" << std::endl; 
+
     EqualityPropagator().apply(prb);
   }
 
   if (prb.mayHaveFormulas() && _options.naming()) {
-    LOG("pp_progress","naming");
+    if (env.options->showPreprocessing())
+      env.out() << "naming" << std::endl; 
+
     naming(prb);
   }
 
   if (prb.mayHaveFormulas()) {
-    LOG("pp_progress","preprocess3 (nnf, flatten, skolemize)");
+    if (env.options->showPreprocessing())
+      env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl; 
+
     preprocess3(prb);
   }
 
   //we redo the naming if the last naming was restricted by preserving EPR
   if (prb.mayHaveFormulas() && _options.naming() && _options.eprPreservingNaming()) {
-    LOG("pp_progress","stage 2 of epr preserving naming");
+    if (env.options->showPreprocessing())
+      env.out() << "stage 2 of epr preserving naming" << std::endl; 
+
     secondStageEprPreservingNaming(prb);
   }
 
@@ -387,13 +448,17 @@ void Preprocess::preprocess (Problem& prb)
 //   }
 
   if (prb.mayHaveFormulas()) {
-    LOG("pp_progress","clausify");
+    if (env.options->showPreprocessing())
+      env.out() << "clausify" << std::endl;
+
     clausify(prb);
   }
 
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
-    LOG("pp_progress","function definition elimination");
+    if (env.options->showPreprocessing())
+      env.out() << "function definition elimination" << std::endl;
+
     if (_options.functionDefinitionElimination() == Options::FDE_ALL) {
       FunctionDefinition fd;
       fd.removeAllDefinitions(prb);
@@ -405,7 +470,9 @@ void Preprocess::preprocess (Problem& prb)
 
 
   if (prb.mayHaveEquality() && _options.inequalitySplitting() != 0) {
-    LOG("pp_progress","inequality splitting");
+    if (env.options->showPreprocessing())
+      env.out() << "inequality splitting" << std::endl;
+
     env.statistics->phase=Statistics::INEQUALITY_SPLITTING;
     InequalitySplitting is(_options);
     is.perform(prb);
@@ -432,27 +499,35 @@ void Preprocess::preprocess (Problem& prb)
    if (_options.equalityResolutionWithDeletion()!=Options::RA_OFF &&
 	   prb.mayHaveInequalityResolvableWithDeletion() ) {
      env.statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
-     LOG("pp_progress","equality resolution with deletion");
+     if (env.options->showPreprocessing())
+      env.out() << "equality resolution with deletion" << std::endl;
+
      EqResWithDeletion resolver;
      resolver.apply(prb);
    }
 
    if (_options.trivialPredicateRemoval()) {
      env.statistics->phase=Statistics::UNKNOWN_PHASE;
-     LOG("pp_progress","trivial predicate removal");
+     if (env.options->showPreprocessing())
+      env.out() << "trivial predicate removal" << std::endl;
+
      TrivialPredicateRemover().apply(prb);
    }
 
    if (_options.generalSplitting()!=Options::RA_OFF) {
      env.statistics->phase=Statistics::GENERAL_SPLITTING;
-     LOG("pp_progress","general splitting");
+     if (env.options->showPreprocessing())
+       env.out() << "general splitting" << std::endl;
+
      GeneralSplitting gs;
      gs.apply(prb);
    }
 
    if (_options.hornRevealing()) {
      env.statistics->phase=Statistics::HORN_REVEALING;
-     LOG("pp_progress","horn revealing");
+     if (env.options->showPreprocessing())
+       env.out() << "horn revealing" << std::endl;
+
      HornRevealer hr(_options);
      hr.apply(prb);
    }
@@ -460,24 +535,29 @@ void Preprocess::preprocess (Problem& prb)
    if (_options.equalityProxy()!=Options::EP_OFF && prb.mayHaveEquality() &&
 	   (prb.mayHaveXEqualsY() || _options.equalityProxy()!=Options::EP_ON) ) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
-     LOG("pp_progress","equality proxy");
+     if (env.options->showPreprocessing())
+       env.out() << "equality proxy" << std::endl;
+
      EqualityProxy proxy(_options.equalityProxy());
      proxy.apply(prb);
    }
 
-   TRACE("pp_final",
-       UnitList::Iterator uit(prb.units());
-       while(uit.hasNext()) {
- 	Unit* u = uit.next();
- 	TRACE_OUTPUT_UNIT(u);
-       }
-       );
+   if (env.options->showPreprocessing()) {
+     UnitList::Iterator uit(prb.units());
+     while(uit.hasNext()) {
+      Unit* u = uit.next();
+      env.out() << "[PP] final: " << u->toString() << std::endl;             
+     }
+   } 
 
    if (_options.printClausifierPremises()) {
      UIHelper::outputAllPremises(cerr, prb.units());
    }
 
-   LOG("pp","preprocessing finished");
+   if (env.options->showPreprocessing()) {
+     env.out() << "preprocessing finished" << std::endl;
+     env.endOutput();
+   }   
 } // Preprocess::preprocess ()
 
 
@@ -554,7 +634,11 @@ void Preprocess::preprocess2(Problem& prb)
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
-    LOG_UNIT("pp_pre_ennf",u);
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] ennf: " << u->toString() << std::endl;
+      env.endOutput();
+    }    
     if (u->isClause()) {
 	continue;
     }
@@ -721,7 +805,11 @@ void Preprocess::clausify(Problem& prb)
   Stack<Clause*> clauses(32);
   while (us.hasNext()) {
     Unit* u = us.next();
-    LOG_UNIT("pp_pre_cl", u);
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] clausify: " << u->toString() << std::endl;
+      env.endOutput();
+    }
     if (u->isClause()) {
       if (static_cast<Clause*>(u)->isEmpty()) {
 	emptyClause = u;
