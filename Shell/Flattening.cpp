@@ -13,6 +13,9 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Lib/Environment.hpp"
+#include "Shell/Options.hpp"
+
 #include "Flattening.hpp"
 
 namespace Shell
@@ -51,11 +54,19 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   CALL("Flattening::flatten (Unit*)");
   ASS(! unit->isClause());
 
-  LOG_UNIT("pp_flt_inp", unit);
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] flatten in: " << unit->toString() << std::endl;
+    env.endOutput();
+  }
   Formula* f = unit->formula();
   Formula* g = flatten(f);
   if (f == g) { // not changed
-    LOG_UNIT("pp_flt_out", unit);
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] flatten out: " << unit->toString() << std::endl;
+      env.endOutput();
+    }
     return unit;
   }
 
@@ -65,7 +76,11 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   if(unit->included()) {
     res->markIncluded();
   }
-  LOG_UNIT("pp_flt_out", res);
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] flatten out: " << res->toString() << std::endl;
+    env.endOutput();
+  }
   return res;
 } // Flattening::flatten
 
