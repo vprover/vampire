@@ -255,7 +255,11 @@ public:
     if(l->isPositive() != _lhs->isPositive()) {
       res = Flattening::getFlattennedNegation(res);
     }
-    LOG("pp_inl_substep", "Lit inlining: "<<(*l)<<" --> "<<(*res));
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "Lit inlining: "<<(*l)<<" --> "<<(*res) << std::endl;
+      env.endOutput();
+    }
     return res;
   }
 
