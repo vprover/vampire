@@ -87,11 +87,16 @@ struct PDInliner::DefDep
     ASS_NEQ(pred, 0);
 
     initDependencies(dependencies);
-    LOG("pp_inl_dep_added","DefDep created");
-    LOG("pp_inl_dep_added","  predicate: "<<env.signature->predicateName(pred)<<"  num: "<<pred);
-    LOG("pp_inl_dep_added","  immediate dependencies: "<<*dependencies);
-    LOG("pp_inl_dep_added","  formula: "<<*def);
-    LOG("pp_inl_dep_added","  full dependencies: "<<*_dependencies);
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] DefDep created" << std::endl;
+      env.out() << "[PP]   predicate: "<<env.signature->predicateName(pred)
+              <<"  num: "<<pred << std::endl;
+      env.out() << "[PP]   immediate dependencies: "<<*dependencies << std::endl;
+      env.out() << "[PP]   formula: "<<*def << std::endl;
+      env.out() << "[PP]   full dependencies: "<<*_dependencies << std::endl;
+      env.endOutput();
+    }
   }
 
   /**
@@ -102,7 +107,12 @@ struct PDInliner::DefDep
   {
     CALL("PDInliner::DefDep::expandDependency");
     ASS(_dependencies->member(depPred));
-    LOG("pp_inl_dep_expand","expanding dependencies of "<<_pred<<" by "<<depPred);
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] expanding dependencies of "<<_pred
+              <<" by "<<depPred << std::endl;      
+      env.endOutput();
+    }    
 
     DefDep* dObj = _parent._deps[depPred];
     ASS(dObj);
@@ -221,7 +231,11 @@ public:
     if(l->isPositive() != _lhs->isPositive()) {
       res = Literal::complementaryLiteral(res);
     }
-    LOG("pp_inl_substep", "Lit inlining: "<<(*l)<<" --> "<<(*res));
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] Lit inlining: "<<(*l)<<" --> "<<(*res) << std::endl;
+      env.endOutput();
+    }
     return res;
   }
 
@@ -235,7 +249,11 @@ public:
 
     bool negate = l->isPositive()!=_lhs->isPositive();
     bool res = negate ^ (getBody(polarity,l)->connective()==TRUE);
-    LOG("pp_inl_substep", "Lit inlining: "<<(*l)<<" --> "<<(res ? "$true" : "$false"));
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] Lit inlining: "<<(*l)<<" --> "<<(res ? "$true" : "$false") << std::endl;
+      env.endOutput();
+    }
     return res;
   }
 
@@ -270,7 +288,11 @@ public:
 
     _asymDef = false;
 
-    LOG("pp_inl_def","Definition from unit: "<<unit->toString());
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] inl: Definition from unit: "<<unit->toString() << std::endl;
+      env.endOutput();
+    }
     _defUnit = unit;
     Formula* f = unit->formula();
     if(f->connective()==FORALL) {
@@ -295,7 +317,7 @@ public:
   }
 
   /**
-   * Make the object into an asymetric definition
+   * Make the object into an asymmetric definition
    *
    * If some body argument is zero, the lhs is not transformed for that polarity.
    */
@@ -317,7 +339,11 @@ public:
     _negBody = negBody;
     _dblBody = dblBody;
 
-    LOG("pp_inl_def","Asymetric definition: " << toString());
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] inl: Asymmetric definition: " << toString() << std::endl;
+      env.endOutput();
+    }
   }
 
   /**
@@ -437,8 +463,8 @@ PDInliner::Applicator::Applicator(PDef& parent, Literal* lit)
 }
 
 
-PDInliner::PDInliner(bool axiomsOnly, bool trace, bool nonGrowing)
- : _axiomsOnly(axiomsOnly), _nonGrowing(nonGrowing), _trace(trace)
+PDInliner::PDInliner(bool axiomsOnly, bool nonGrowing)
+ : _axiomsOnly(axiomsOnly), _nonGrowing(nonGrowing)
 {
   CALL("PDInliner::PDInliner");
 
@@ -465,7 +491,12 @@ Formula* PDInliner::apply(int polarity, Formula* form, InliningState& state)
 {
   CALL("PDInliner::apply/3");
 
-  LOG("pp_inl_substep","Apply all definitions to subformula "<<form->toString()<<" with polarity "<<polarity);
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] Apply all definitions to subformula "<<form->toString()
+            <<" with polarity "<<polarity << std::endl;
+    env.endOutput();
+  }
 
   Connective con = form->connective();
   switch (con) {
@@ -576,12 +607,15 @@ void PDInliner::apply(Problem& prb)
 bool PDInliner::apply(UnitList*& units, bool inlineOnlyEquivalences)
 {
   CALL("PDInliner::apply");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   bool modified = scanAndRemoveDefinitions(units, inlineOnlyEquivalences);
 
-  LOG("pp_inl","scan finished, now processing problem units");
-
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] scan finished, now processing problem units" << std::endl;
+    env.endOutput();
+  }
+  
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
@@ -606,7 +640,6 @@ bool PDInliner::apply(UnitList*& units, bool inlineOnlyEquivalences)
 Unit* PDInliner::apply(Unit* u)
 {
   CALL("PDInliner::apply(Unit*)");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   if(u->isClause()) {
     return apply(static_cast<Clause*>(u));
@@ -647,8 +680,12 @@ FormulaUnit* PDInliner::apply(FormulaUnit* unit)
 {
   CALL("PDInliner::apply(FormulaUnit*)");
 
-  LOG("pp_inl_substep","Inlining into "<<(*unit));
-
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] Inlining into "<<(*unit) << std::endl;
+    env.endOutput();
+  }
+  
   static InliningState inlState;
   inlState.reset();
 
@@ -699,7 +736,11 @@ FormulaUnit* PDInliner::apply(FormulaUnit* unit)
   }
 #endif
 
-  LOG("pp_inl_step","Inlining into "<<(*unit)<<" gave "<<(*res));
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] inl: Inlining into "<<(*unit)<<" gave "<<(*res) << std::endl;
+    env.endOutput();
+  }
   RSTAT_MCTR_INC("inl premises", inlState.premises.size()-1);
 
   return res;
@@ -712,7 +753,11 @@ FormulaUnit* PDInliner::apply(FormulaUnit* unit)
 Unit* PDInliner::apply(Clause* cl)
 {
   CALL("PDInliner::apply");
-  LOG("pp_inl_substep","Inlining into "<<(*cl));
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] Inlining into "<<(*cl) << std::endl;
+    env.endOutput();
+  }
 
   static InliningState inlState;
   inlState.reset();
@@ -765,7 +810,11 @@ Unit* PDInliner::apply(Clause* cl)
   getInferenceAndInputType(cl, inlState, inf, inp);
   if(forms.isEmpty()) {
     Clause* res = Clause::fromIterator(LiteralStack::Iterator(lits), inp, inf);
-    LOG("pp_inl_step","Inlining into "<<(*cl)<<" gave "<<(*res));
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] inl: Inlining into "<<(*cl)<<" gave "<<(*res) << std::endl;
+      env.endOutput();
+    }
     return res;
   }
   FormulaUnit* res;
@@ -786,8 +835,11 @@ Unit* PDInliner::apply(Clause* cl)
     res = Rectify::rectify(res);
     res = Flattening::flatten(res);
   }
-
-  LOG("pp_inl_step","Inlining into "<<(*cl)<<" gave "<<(*res));
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] inl: Inlining into "<<(*cl)<<" gave "<<(*res) << std::endl;
+    env.endOutput();
+  }
   return res;
 }
 
@@ -810,7 +862,6 @@ void PDInliner::updatePredOccCounts(Unit* u)
 bool PDInliner::scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly)
 {
   CALL("PDInliner::scanAndRemoveDefinitions(UnitList*)");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   bool modified = false;
 
@@ -929,7 +980,6 @@ bool PDInliner::isEligible(FormulaUnit* u)
 bool PDInliner::tryGetPredicateEquivalence(FormulaUnit* unit)
 {
   CALL("PDInliner::tryGetPredicateEquivalence");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   if(!isEligible(unit)) {
     return false;
@@ -956,7 +1006,6 @@ bool PDInliner::tryGetPredicateEquivalence(FormulaUnit* unit)
 bool PDInliner::tryGetDef(FormulaUnit* unit)
 {
   CALL("PDInliner::scan(FormulaUnit*)");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   if(!isEligible(unit)) {
     return false;
@@ -1017,7 +1066,6 @@ bool PDInliner::isNonGrowingDef(Literal* lhs, Formula* rhs)
 bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
 {
   CALL("PDInliner::tryGetDef");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   if(!PDUtils::hasDefinitionShape(lhs, rhs)) {
     return false;
@@ -1084,7 +1132,6 @@ bool PDInliner::addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* 
     FormulaUnit* premise)
 {
   CALL("PDInliner::addAsymetricDefinition");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   unsigned pred = lhs->functor();
   if(_defs[pred]) {
