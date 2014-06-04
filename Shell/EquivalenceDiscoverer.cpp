@@ -498,10 +498,16 @@ UnitList* EquivalenceDiscoverer::getEquivalences(UnitList* units, const Options*
 
   Problem prb(units->copy());
 
-  LOG("pp_progress","--- preprocessing for equivalence discovery started ---");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "--- preprocessing for equivalence discovery started ---" << std::endl;
+  }
   Preprocess prepr(prepOpts);
   prepr.preprocess(prb);
-  LOG("pp_progress","--- preprocessing for equivalence discovery finished ---");
+  if (env.options->showPreprocessing()) {
+    env.out() << "--- preprocessing for equivalence discovery finished ---" << std::endl;
+    env.endOutput();
+  }
   //TODO: we will leak the results of this preprocessing iteration
 
   return getEquivalences(prb.clauseIterator());
