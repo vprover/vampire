@@ -3207,6 +3207,5 @@ void Options::enableTracesAccordingToOptions() const
 {
   CALL("Options::enableTracesAccordingToOptions");
 
-  if (showDefinitions()) { ENABLE_TAG("definitions"); }
   if (showPreprocessing()) { ENABLE_TAG("pp"); }
 }
