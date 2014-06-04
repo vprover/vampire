@@ -979,7 +979,11 @@ protected:
     static DHSet<Kernel::Unit*> defs;
     defs.reset();
 
-    LOG("pp_inl","api: started def inlining");
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] api: started def inlining" << std::endl;
+      env.endOutput();
+    }    
 
     AnnotatedFormulaIterator fit;
     if(_mode!=INL_NO_DISCOVERED_DEFS) {
@@ -990,7 +994,11 @@ protected:
 	  AnnotatedFormula f=fit.next();
 	  _pdInliner.updatePredOccCounts(f.unit);
 	}
-	LOG("pp_inl","api: non-growing counting finished");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] api: non-growing counting finished" << std::endl;
+    env.endOutput();
+  }
       }
 
       fit=p.formulas();
@@ -1004,7 +1012,11 @@ protected:
 	  defs.insert(fu);
 	}
       }
-      LOG("pp_inl","api: predicate equivalence scan finished");
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] api: predicate equivalence scan finished" << std::endl;
+        env.endOutput();
+      }
 
       if(_mode!=INL_PREDICATE_EQUIVALENCES_ONLY) {
 	fit=p.formulas();
@@ -1018,7 +1030,11 @@ protected:
 	    defs.insert(fu);
 	  }
 	}
-	LOG("pp_inl","api: other definition scan finished");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] api: other definition scan finished" << std::endl;
+    env.endOutput();
+  }
       }
     }
 
