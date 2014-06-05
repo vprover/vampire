@@ -176,7 +176,11 @@ public:
   {
     CALL("AIGPrenexTransformer::QuantUnifier::QuantUnifier");
 
-    LOG("pp_aig_pren_qu", "QuantUnifier init");
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_pren_qu: QuantUnifier init" << std::endl;
+      env.endOutput();
+    }
 
     _usedVars.loadFromIterator(AIG::VarSet::Iterator(*freeVars));
 
@@ -204,11 +208,21 @@ private:
 
     if(q1.isValid() && tgtVar!=q1.var) {
       ALWAYS(_rnm1.insert(q1.var, TermList(tgtVar, false)));
-      LOG("pp_aig_pren_qu", "adding rewrite to 1: "<< q1.var << " --> "<<tgtVar);
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] aig_pren_qu: adding rewrite to 1: "
+                << q1.var << " --> "<<tgtVar << std::endl;
+        env.endOutput();
+      }
     }
     if(q2.isValid() && tgtVar!=q2.var) {
       ALWAYS(_rnm2.insert(q2.var, TermList(tgtVar, false)));
-      LOG("pp_aig_pren_qu", "adding rewrite to 2: "<< q2.var << " --> "<<tgtVar);
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] aig_pren_qu: adding rewrite to 2: "
+                << q2.var << " --> "<<tgtVar << std::endl;
+        env.endOutput();
+      }
     }
 
     _qres.push(QuantInfo(tgtVar, univ));
@@ -335,9 +349,13 @@ AIGRef AIGPrenexTransformer::processConjunction(AIGRef a)
 
   AIGRef res = quantifyBySpec(unifQuants, resConj);
 
-  LOG("pp_aig_pren_conj_res", "conj prenex transform:"<<endl<<
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_pren_conj_res: conj prenex transform:"<<endl<<
       "  src: "<<a<<endl<<
-      "  tgt: "<<res);
+      "  tgt: "<<res << std::endl;
+    env.endOutput();
+  }  
 
   return res;
 }
@@ -352,19 +370,24 @@ public:
   {
     CALL("AIGPrenexTransformer::QuantUnifier::QuantUnifier");
 
-    LOG("pp_aig_pren_qu", "QuantUnifier init, freeVars: "<<freeVars->toString()<<" aigCnt: "<<aigCnt);
-    TRACE("pp_aig_pren_qu_args", tout << "  quantifier blocks:" <<endl;
-	for(size_t i=0; i<aigCnt; i++) {
-	  tout << "  aig "<<i<<":" <<endl;
-	  QIStack::BottomFirstIterator qit(aigs[i].second);
-	  while(qit.hasNext()) {
-	    QuantInfo qi = qit.next();
-	    tout << "    "<<(qi.univ ? "un " : "ex ")<<qi.var<<endl;
-	  }
-	}
-    );
-
-
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      ostream& out = env.out();
+      out << "[PP] aig_pren_qu: QuantUnifier init, freeVars: "
+              <<freeVars->toString()<<" aigCnt: "<<aigCnt << std::endl
+              << "  quantifier blocks:" <<endl;
+      for(size_t i=0; i<aigCnt; i++) {
+        out << "  aig "<<i<<":" <<endl;
+        QIStack::BottomFirstIterator qit(aigs[i].second);
+        while(qit.hasNext()) {
+          QuantInfo qi = qit.next();
+          out << "    "<<(qi.univ ? "un " : "ex ")<<qi.var<<endl;
+        }
+      }
+      
+      env.endOutput();
+    }
+    
     _usedVars.loadFromIterator(AIG::VarSet::Iterator(*freeVars));
     process();
   }
@@ -384,7 +407,12 @@ private:
     if(!_usedVars.insert(tgtVar)) {
       tgtVar = getNextFreshVar();
     }
-    LOG("pp_aig_pren_qu","added exQuant for aig "<<aigIdx<<" locVar: "<< q.var <<" globVar: "<<tgtVar);
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_pren_qu: added exQuant for aig "
+              <<aigIdx<<" locVar: "<< q.var <<" globVar: "<<tgtVar << std::endl;
+      env.endOutput();
+    }
     if(tgtVar!=q.var) {
       ALWAYS(_rnm[aigIdx].insert(q.var, TermList(tgtVar, false)));
     }
@@ -458,12 +486,21 @@ private:
       tgtVar = getNextFreshVar();
     }
 
-    LOG("pp_aig_pren_qu","added univQuant, globVar: "<<tgtVar);
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_pren_qu: added univQuant, globVar: "<<tgtVar << std::endl;
+      env.endOutput();
+    }
     size_t cnt = aigQuants.size();
     for(size_t i=0; i<cnt; i++) {
       ASS(aigQuants[i].univ);
       unsigned locVar = aigQuants[i].var;
-      LOG("pp_aig_pren_qu","  in aig "<<aigIndexes[i]<<" locVar: "<< locVar);
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] aig_pren_qu:   in aig "<<aigIndexes[i]
+                <<" locVar: "<< locVar << std::endl;
+        env.endOutput();
+      }
       if(tgtVar!=locVar) {
 	size_t locIdx = aigIndexes[i];
         ALWAYS(_rnm[locIdx].insert(locVar, TermList(tgtVar, false)));
@@ -488,7 +525,12 @@ private:
 	QIStack& quants = _aigs[aIdx].second;
 	size_t& qIdx = qIndexes[aIdx];
 	while(qIdx<quants.size() && !quants[qIdx].univ) {
-	  LOG("pp_aig_pren_qu","ex aIdx: "<<aIdx<<" var: "<<quants[qIdx].var<<" qIdx: "<< qIdx);
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_pren_qu: ex aIdx: "<<aIdx<<" var: "
+              <<quants[qIdx].var<<" qIdx: "<< qIdx << std::endl;
+      env.endOutput();
+    }
 	  addExQuantifier(quants[qIdx], aIdx);
 	  qIdx++;
 	}
@@ -513,7 +555,12 @@ private:
 	ASS_L(qIdx,quants.size());
 	ASS(quants[qIdx].univ);
 
-	LOG("pp_aig_pren_qu","un aIdx: "<<aIdx<<" var: "<<quants[qIdx].var<<" qIdx: "<< qIdx);
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_pren_qu: un aIdx: "<<aIdx<<" var: "
+            <<quants[qIdx].var<<" qIdx: "<< qIdx << std::endl;
+    env.endOutput();
+  }
 	univQuants.push(quants[qIdx]);
 	qIdx++;
       }
@@ -631,9 +678,13 @@ struct AIGPrenexTransformer::RecursiveVisitor
       posRes.first =_aig.makeConjunction(qu.getResultingInnerAigs());
       posRes.second = qu.getResQuantInfo();
 
-      LOG("pp_aig_pren_conj_res", "conj prenex transform:"<<endl<<
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] aig_pren_conj_res: conj prenex transform:"<<endl<<
           "  src: "<<objPos<<endl<<
-          "  tgt: "<<_parent.quantifyBySpec(posRes.second, posRes.first));
+          "  tgt: "<<_parent.quantifyBySpec(posRes.second, posRes.first) << std::endl;
+        env.endOutput();
+      }      
     }
 
     if(!cached) {
