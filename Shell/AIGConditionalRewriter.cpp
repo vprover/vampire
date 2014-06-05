@@ -870,15 +870,23 @@ struct AIGFactorizingTransformer::LocalFactorizer
   {
     CALL("AIGFactorizingTransformer::LocalFactorizer::apply");
 
-    LOG("pp_aig_fact_lcl_steps","local factorization call started");
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_fact_lcl_steps: local factorization call started"  << std::endl;
+      env.endOutput();
+    }
 
     _subAigs.reset();
     _occMap.reset();
 
     size_t conjCnt0 = conjs.size();
     makeUnique(conjs);
-    COND_LOG("pp_aig_fact_lcl_steps",conjCnt0!=conjs.size(),
-	"removed duplicate conjuncts, cnt0="<<conjCnt0<<" cnt="<<conjs.size());
+    if (conjCnt0!=conjs.size() && env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_fact_lcl_steps: removed duplicate conjuncts, cnt0="
+              <<conjCnt0<<" cnt="<<conjs.size() << std::endl;
+      env.endOutput();
+    }
     scan(conjs);
 
     static DHSet<AIGRef> removedConjs;
@@ -894,16 +902,19 @@ struct AIGFactorizingTransformer::LocalFactorizer
       ASS_GE(occStack.size(),2);
 
       AIGRef mergedDisj = getFactoredDisjunctionAndUpdateOccData(fdisj, occStack);
-      TRACE("pp_aig_fact_lcl_steps",
-	  tout<<"local factorization step:"<<endl<<
-	    "  disjunct: "<<fdisj<<endl<<
-	    "  merged:   "<<mergedDisj<<endl;
-	  AIGStack::ConstIterator rmIt(occStack);
-	  while(rmIt.hasNext()) {
-	    tout << "  removed:  " << rmIt.next()<<endl;
-	  }
-      );
-
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        ostream& out = env.out();
+        out << "[PP] aig_fact_lcl_steps: local factorization step:" <<endl<<
+                  "  disjunct: "<<fdisj<<endl<<
+                  "  merged:   "<<mergedDisj<<endl;
+        AIGStack::ConstIterator rmIt(occStack);
+        while(rmIt.hasNext()) {
+          out << "  removed:  " << rmIt.next()<<endl;
+        }                                        
+        env.endOutput();
+      }
+	     
       removedConjs.loadFromIterator(AIGStack::ConstIterator(occStack));
       addedConjs.push(mergedDisj);
       occStack.reset();
@@ -918,7 +929,11 @@ struct AIGFactorizingTransformer::LocalFactorizer
       }
     }
     conjs.loadFromIterator(AIGStack::ConstIterator(addedConjs));
-    LOG("pp_aig_fact_lcl_steps","local factorization call finished");
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_fact_lcl_steps: local factorization call finished" << std::endl;
+      env.endOutput();
+    }
   }
 
 private:
@@ -1057,9 +1072,14 @@ struct AIGFactorizingTransformer::RecursiveVisitor
       _parent.doLocalFactorization(childNodes);
       posRes = _aig.makeConjunction(childNodes);
 
-      COND_LOG("pp_aig_fact_conj_transf", obj.getPositive()!=posRes, "factor transf:"<<endl<<
-	  "  src: "<<obj.getPositive()<<endl<<
-	  "  tgt: "<<posRes);
+      if (obj.getPositive()!=posRes && env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] aig_fact_conj_transf: " << 
+                "factor transf:"<<endl<<
+                "  src: "<<obj.getPositive()<<endl<<
+            	  "  tgt: "<<posRes << std::endl;
+        env.endOutput();
+      }             
     }
 
     ALWAYS(_transfCache.insert(obj.getPositive(), posRes));
