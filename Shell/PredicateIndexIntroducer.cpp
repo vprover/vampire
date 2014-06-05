@@ -67,7 +67,11 @@ void PredicateIndexIntroducer::scan(UnitList* units)
     unsigned pred = ipit.nextKey();
     Stack<unsigned>& args = _indexedPredArgs.get(pred);
     std::sort(args.begin(), args.end());
-    LOG("pp_pii_elim","elim pred: "<<env.signature->predicateName(pred));
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] elim pred: "<<env.signature->predicateName(pred) << std::endl;
+      env.endOutput();
+    }
   }
   RSTAT_CTR_INC_MANY("predicates removed by indexing", _indexedPredArgs.size());
 }
@@ -249,7 +253,12 @@ unsigned PredicateIndexIntroducer::getIndexedPred(Literal* lit)
   env.signature->getPredicate(*pRes)->setType(predType);
 
   RSTAT_CTR_INC("introduced index predicates");
-  LOG("pp_pii_intro","introduced index predicate: "<<env.signature->predicateName(*pRes)<< " of type "<<predType->toString());
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] introduced index predicate: "<<env.signature->predicateName(*pRes)
+            << " of type "<<predType->toString() << std::endl;
+    env.endOutput();
+  }  
 
   return *pRes;
 }
@@ -295,8 +304,11 @@ Literal* PredicateIndexIntroducer::apply(Literal* lit, UnitStack& premAcc)
   RSTAT_CTR_INC("introduced index predicate occurrences");
   Literal* res = Literal::create(idxPred, args.size(), lit->polarity(), false, args.begin());
 
-  LOG("pp_pii_rwr","rewrite: "<<(*lit)<<" --> "<<(*res));
-
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] rewrite: "<<(*lit)<<" --> "<<(*res) << std::endl;
+    env.endOutput();
+  }
 
   return res;
 }
