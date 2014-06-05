@@ -1674,7 +1674,12 @@ bool AIGFormulaSharer::apply(FormulaUnit* unit, FormulaUnit*& res)
   ARes ar = apply(f0);
   Formula* f = ar.first;
 
-  LOG("pp_aig_nodes", (*unit) << " has AIG node " << ar.second.toString());
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_nodes: " << (*unit) << " has AIG node " 
+            << ar.second.toString() << std::endl;
+    env.endOutput();
+  }  
 
   if(f==f0) {
     return false;
@@ -1682,9 +1687,13 @@ bool AIGFormulaSharer::apply(FormulaUnit* unit, FormulaUnit*& res)
 
   res = new FormulaUnit(f, new Inference1(Inference::FORMULA_SHARING, unit), unit->inputType());
 
-  LOG("pp_aig_sharing", "sharing introduced in " << (*res));
-  COND_LOG("pp_aig_transf", f0->toString()!=f->toString(),
-      "sharing transformed " << (*unit) << " into " << (*res));
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_sharing: sharing introduced in " << (*res) << std::endl;
+    if (f0->toString()!=f->toString())
+      env.out() <<"sharing transformed " << (*unit) << " into " << (*res) << std::endl;
+    env.endOutput();
+  }
 
   return true;
 }
@@ -1734,7 +1743,12 @@ AIGFormulaSharer::ARes AIGFormulaSharer::getSharedFormula(Formula* f)
     ASSERTION_VIOLATION;
   }
 
-  LOG("pp_aig_subformula_nodes", "SFN: "<< (*f) << " has AIG node " << res.second.toString());
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_subformula_nodes: SFN: "<< (*f) 
+            << " has AIG node " << res.second.toString() << std::endl;
+    env.endOutput();
+  }
 
   res.first = SimplifyFalseTrue::simplify(res.first);
 
@@ -1791,7 +1805,11 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyJunction(Formula* f)
   Stack<Formula*> newForms;
   newForms.reset();
 
-  LOG("pp_aig_junction_building", "building junction " << (*f));
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_junction_building: building junction " << (*f) << std::endl;
+    env.endOutput();
+  }
 
   FormulaList::Iterator fit(f->args());
   while(fit.hasNext()) {
@@ -1799,7 +1817,12 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyJunction(Formula* f)
     ARes ar = apply(f0);
     newForms.push(ar.first);
     aigs.push(ar.second);
-    LOG("pp_aig_junction_building", "obtained AIG " << ar.second.toString() << " for " << (*f0));
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_junction_building: obtained AIG " << ar.second.toString()
+              << " for " << (*f0) << std::endl;
+      env.endOutput();
+    }
     modified |= f0!=ar.first;
   }
 
@@ -1813,10 +1836,19 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyJunction(Formula* f)
   }
   else {
     ar = aigs.pop();
-    LOG("pp_aig_junction_building", "initial conj AIG " << ar.toString());
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_junction_building: initial conj AIG " 
+              << ar.toString() << std::endl;
+      env.endOutput();
+    }    
     while(aigs.isNonEmpty()) {
       AIGRef cur = aigs.pop();
-      LOG("pp_aig_junction_building", "added AIG " << cur.toString());
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] aig_junction_building: added AIG " << cur.toString() << std::endl;
+        env.endOutput();
+      }
       if(conj) {
         ar = _aig.getConj(ar, cur);
       }
@@ -1825,7 +1857,11 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyJunction(Formula* f)
       }
     }
   }
-  LOG("pp_aig_junction_building", "final AIG " << ar.toString());
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_junction_building: final AIG " << ar.toString() << std::endl;
+    env.endOutput();
+  }
 
   Formula* f1;
   if(modified) {
@@ -1949,7 +1985,11 @@ void AIGFormulaSharer::addRewriteRules(unsigned cnt, Formula* const * srcs, Form
   ASS(_rewrites.isEmpty());
   ASS(_formReprs.isEmpty());
 
-  LOG("pp_aig_rwr","adding "<<cnt<<" AIG-based rewrite rules");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_rwr: adding "<<cnt<<" AIG-based rewrite rules" << std::endl;
+    env.endOutput();
+  }
 
   DHMap<AIGRef,unsigned> refIndexes;
   for(unsigned i=0; i<cnt; ++i) {
@@ -1981,9 +2021,17 @@ void AIGFormulaSharer::addRewriteRules(unsigned cnt, Formula* const * srcs, Form
       //We put the target formula for idx-th rewrite into the _formReprs cache.
       //The call to restrictToGetOrderedDomain() ensures we do apply the targets
       //in the right order to inline rewrites into each orther when needed.
-      LOG("pp_aig_rwr", "building rewriting cache for "<<(*srcs[idx])<<" by rewriting "<<(*tgts[idx]));
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] aig_rwr: building rewriting cache for "<<(*srcs[idx])
+                <<" by rewriting "<<(*tgts[idx]) << std::endl;
+      }
       ARes applyRes = apply(tgts[idx]);
-      LOG("pp_aig_rwr", "result: "<<applyRes.second<<" --> "<<(*applyRes.first));
+      if (env.options->showPreprocessing()) {
+        env.out() << "[PP] aig_rwr: result: "<<applyRes.second
+                <<" --> "<<(*applyRes.first) << std::endl;
+        env.endOutput();
+      }
     }
     if(usedIdxAcc) {
       usedIdxAcc->push(idx);
