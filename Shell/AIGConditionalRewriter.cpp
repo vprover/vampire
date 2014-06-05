@@ -1186,7 +1186,11 @@ void AIGConditionalRewriter::apply(UnitList*& units)
       leftAside.push(u);
       continue;
     }
-    LOG_UNIT("pp_aig_cr_inp", u);
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_cr_inp: " << u->toString() << std::endl;
+      env.endOutput();
+    }
     AIGRef unitAig;
     if(u->isClause()) {
       Clause* cl = static_cast<Clause*>(u);
@@ -1211,13 +1215,17 @@ void AIGConditionalRewriter::apply(UnitList*& units)
 
   TopLevelFlatten().apply(units);
 
-  TRACE("pp_aig_cr_out",
-      UnitList::Iterator uit(units);
-      while(uit.hasNext()) {
-	Unit* u = uit.next();
-	TRACE_OUTPUT_UNIT(u);
-      }
-      );
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    ostream& out = env.out();
+    out << "[PP] aig_cr_out: " << std::endl;
+    UnitList::Iterator uit(units);
+    while(uit.hasNext()) {
+      Unit* u = uit.next();
+      out << u->toString() << std::endl;      
+    }        
+    env.endOutput();
+  }  
 }
 
 /**
@@ -1333,15 +1341,18 @@ AIGRef AIGConditionalRewriter::applyInner(AIGRef a0)
   AIGStack premises;
   AIGRef a = _engine->apply(a0, &premises);
 //  AIGRef a = a0;
-  COND_TRACE("pp_aig_cr_engine_step", a!=a0,
-      tout << "pp_aig_cr_engine_step"<<endl;
-      tout << "  src: "<<a0<<endl;
-      tout << "  tgt: "<<a<<endl;
-      AIGStack::ConstIterator pit(premises);
-      while(pit.hasNext()) {
-	tout << "  prem: " << pit.next() << endl;
-      }
-      );
+  if (a!=a0 && env.options->showPreprocessing()) {
+    env.beginOutput();
+    ostream& out = env.out();
+    out << "[PP] aig_cr_engine_step: " << std::endl;
+    out << "  src: "<<a0<<endl;
+    out << "  tgt: "<<a<<endl;
+    AIGStack::ConstIterator pit(premises);
+    while(pit.hasNext()) {
+      out << "  prem: " << pit.next() << endl;
+    }
+    env.endOutput();
+  }
 
   if(!a.isConjunction()) {
     return a;
@@ -1358,7 +1369,11 @@ AIGRef AIGConditionalRewriter::applyInner(AIGRef a0)
     collectEquivs(conjs, eqs);
     while(eqs.isNonEmpty()) {
       Equiv eq = eqs.pop();
-      LOG("pp_aig_cr_equiv", "pp_aig_cr_equiv: "<< eq.toString());
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] aig_cr_equiv: "<< eq.toString() << std::endl;
+        env.endOutput();
+      }
       conjs.push(eq.getDisjunctiveRepr(_aig));
     }
   }
@@ -1402,11 +1417,14 @@ AIGRef AIGConditionalRewriter::applyInner(AIGRef a0)
 
   AIGRef res = _aig.makeConjunction(conjs);
 
-  COND_LOG("pp_aig_cr_inner_step", a0!=res,
-	 "pp_aig_cr_inner_step"<<endl
-      << "  src: "<<a0<<endl
-      << "  tgt: "<<res);
-
+  if (a0!=res && env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_cr_inner_step: " << std::endl
+            << "  src: "<<a0<<endl
+            << "  tgt: "<<res << endl;
+    env.endOutput();
+  }
+  
   return res;
 }
 
@@ -1417,16 +1435,27 @@ AIGRef AIGConditionalRewriter::apply(AIGRef a0)
   _freshnessGuard.use();
 
   AIGRef outer = a0;
-
-  LOG("pp_aig_cr_progress","prenex transformation");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_cr_progress: prenex transformation" << std::endl;
+    env.endOutput();
+  }
   AIGPrenexTransformer apt(_aig);
   outer = apt.apply(outer);
 
-  LOG("pp_aig_cr_progress","factorization");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_cr_progress: factorization" << std::endl;
+    env.endOutput();
+  }
   AIGFactorizingTransformer factor(_aig);
   outer = factor.apply(outer);
 
-  LOG("pp_aig_cr_progress","inner conditional rewriting");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_cr_progress: inner conditional rewriting" << std::endl;
+    env.endOutput();
+  }
   AIGRef inner;
   apt.collectQuants(outer, _prenexQuantifiers, inner);
 
@@ -1440,53 +1469,34 @@ AIGRef AIGConditionalRewriter::apply(AIGRef a0)
 
   outer = apt.quantifyBySpec(_prenexQuantifiers, inner);
 
-  LOG("pp_aig_cr_progress","miniscoping");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_cr_progress: miniscoping" << std::endl;
+    env.endOutput();
+  }
   AIGMiniscopingTransformer minis(_aig);
   outer = minis.apply(outer);
 
   return outer;
 
-
-//  LOG("bug","init:  "<<a0);
-//  LOG("bug","pren: "<<aPrenex);
-//  LOG("bug","fact: "<<aFactor);
-//  LOG("bug","mnsc: "<<aMinis);
-//  LOG("bug","-----------------------");
-//  LOG("bug","-----------------------");
-//  LOG("bug","-----------------------");
-//
 //  AIGStack conjs;
 //  _aig.collectConjuncts(factInner, conjs);
 //
 //  EquivStack eqs;
 //  collectEquivs(conjs, eqs);
 //
-//  LOGV("bug",conjs.size());
-//
 //  AIGCompressor aCompr(_aig);
 //
 //  while(conjs.isNonEmpty()) {
 //    AIGRef conjunct = conjs.pop();
 //    AIGRef conjSimp = aCompr.compress(conjunct);
-//    LOGV("bug", conjunct);
-//    if(conjunct!=conjSimp) {
-//      LOGV("bug", conjSimp);
-//    }
 //  }
 //
-//  while(eqs.isNonEmpty()) {
-//    LOGV("bug", eqs.pop().toString());
-//  }
-//
-////  LOG("bug","-----------------------");
-////  LOG("bug","-----------------------");
-////  LOG("bug","-----------------------");
+
 ////
 ////  _aig.collectConjuncts(aMinis, conjs);
-////  LOGV("bug",conjs.size());
 ////
 ////  while(conjs.isNonEmpty()) {
-////    LOGV("bug", conjs.pop());
 ////  }
 //
 //  return aPrenex;
