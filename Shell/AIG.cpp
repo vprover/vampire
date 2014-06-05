@@ -22,6 +22,8 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "PDUtils.hpp"
 #include "SimplifyFalseTrue.hpp"
 
@@ -1137,7 +1139,11 @@ void AIGTransformer::collectUsed(Ref r, const RefMap& map, RefEdgeMap& edges)
   while(it.hasNext()) {
     Ref p = it.next();
     if(map.find(p) && p!=r) {
-      LOG("pp_aigtr_sat_deps","dep: " << r << " <-- " << p);
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] aigtr_sat dep: " << r << " <-- " << p << std::endl;
+        env.endOutput();
+      }
       edges.pushToKey(r, p);
     }
   }
@@ -1211,7 +1217,11 @@ void AIGTransformer::makeOrderedAIGGraphStack(AIGStack& stack)
 void AIGTransformer::applyWithCaching(Ref r0, RefMap& map)
 {
   CALL("AIGTransformer::applyWithCaching");
-  LOG("pp_aigtr_sat","applyWithCaching -- "<<r0);
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] applyWithCaching -- "<<r0 << std::endl;
+    env.endOutput();
+  }
   static Stack<Ref> toDo;
   toDo.reset();
 
@@ -1232,7 +1242,11 @@ void AIGTransformer::restrictToGetOrderedDomain(RefMap& map, AIGStack& domainOrd
 {
   CALL("AIGTransformer::restrictToGetOrderedDomain");
 
-  LOG("pp_aigtr_sat","ordering domain");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] ordering domain" << std::endl;
+    env.endOutput();
+  }
 
   static DHSet<Ref> seen;
   seen.reset();
@@ -1245,7 +1259,11 @@ void AIGTransformer::restrictToGetOrderedDomain(RefMap& map, AIGStack& domainOrd
 
   while(domIt.hasNext()) {
     Ref d = domIt.next();
-    LOG("pp_aigtr_inp_map",d<<" --> "<<map.get(d));
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aigtr_inp_map: " << d<<" --> "<<map.get(d) << std::endl;
+      env.endOutput();
+    }
     collectUsed(d, map, edgeMap);
   }
 
@@ -1259,7 +1277,11 @@ void AIGTransformer::restrictToGetOrderedDomain(RefMap& map, AIGStack& domainOrd
     AIGStack::ConstIterator brIt(an0.breakingNodes());
     while(brIt.hasNext()) {
       Ref br = brIt.next();
-      LOG("pp_aigtr_sat","domain element removed to break cycles: "<<br);
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] domain element removed to break cycles: "<<br << std::endl;
+        env.endOutput();
+      }      
       map.remove(br);
     }
     Subgraph<RefGraph> subGr(gr, AIGStack::ConstIterator(an0.breakingNodes()));
@@ -1272,7 +1294,11 @@ void AIGTransformer::restrictToGetOrderedDomain(RefMap& map, AIGStack& domainOrd
     const AIGStack& comp = cit.next();
     ASS_EQ(comp.size(),1);
     domainOrder.push(comp.top());
-    LOG("pp_aigtr_sat","domain element to process: "<<comp.top());
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] domain element to process: "<<comp.top() << std::endl;
+      env.endOutput();
+    }
   }
 }
 
