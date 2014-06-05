@@ -22,6 +22,8 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "Flattening.hpp"
 #include "PDUtils.hpp"
 #include "Rectify.hpp"
@@ -113,7 +115,11 @@ void EPRRestoring::performClosure()
     MapToLIFOGraph<unsigned> gr(dependencies);
     SCCAnalyzer<MapToLIFOGraph<unsigned> > scca(gr);
     if(scca.breakingNodes().isNonEmpty()) {
-      LOG("pp_einl","Cycle among definitions detected");
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] Cycle among definitions detected" << std::endl;
+        env.endOutput();
+      }
       Stack<unsigned>::ConstIterator bpIt1(scca.breakingNodes());
       while(bpIt1.hasNext()) {
 	unsigned breakingPred = bpIt1.next();
@@ -122,7 +128,12 @@ void EPRRestoring::performClosure()
       Stack<unsigned>::ConstIterator bpIt(scca.breakingNodes());
       while(bpIt.hasNext()) {
 	unsigned breakingPred = bpIt.next(); //cycle-breaking predicate (will be removed to break cycle)
-	LOG("pp_einl"," - breaking cycle by ignoring definition "<< _nonEprDefs[breakingPred]->toString());
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP]  - breaking cycle by ignoring definition "
+            << _nonEprDefs[breakingPred]->toString() << std::endl;
+    env.endOutput();
+  }
 
 	MapToLIFO<unsigned,unsigned>::ValList::Iterator depIt=dependencies.keyIterator(breakingPred);
 	while(depIt.hasNext()) {
@@ -142,7 +153,11 @@ void EPRRestoring::performClosure()
     _activeUnits.insert(u);
     _activePreds.push(p);
 
-    LOG("pp_einl","Unit "<<(*u)<<" activated");
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] Unit "<<(*u)<<" activated" << std::endl;
+      env.endOutput();
+    }
 
     MapToLIFO<unsigned,unsigned>::ValList::Iterator depIt=dependencies.keyIterator(p);
     while(depIt.hasNext()) {
@@ -161,8 +176,12 @@ bool EPRRestoring::addNEDef(FormulaUnit* unit, unsigned pred, int polarity)
 
   if(_nonEprDefs[pred]) {
     if(_nonEprDefs[pred]!=unit) {
-      LOG("pp_einl","Unit "<<(*unit)<<" identified as EPR violating definition and ignored "
-            "because there is already such definition for the predicate");
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] Unit "<<(*unit)<<" identified as EPR violating definition and ignored "
+            "because there is already such definition for the predicate" << std::endl;
+        env.endOutput();
+      }
       //we already have a different non-epr definition, so we'll ignore this one
       return false;
     }
@@ -173,7 +192,11 @@ bool EPRRestoring::addNEDef(FormulaUnit* unit, unsigned pred, int polarity)
     _nonEprDefPolarities[pred] = newPolarity;
   }
   else {
-    LOG("pp_einl","Unit "<<(*unit)<<" identified as EPR violating definition");
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] Unit "<<(*unit)<<" identified as EPR violating definition" << std::endl;
+      env.endOutput();
+    }
     _nonEprDefs[pred] = unit;
     _nonEprDefPolarities[pred] = polarity;
     _nonEprPreds.push(pred);
