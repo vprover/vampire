@@ -20,6 +20,8 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "PDUtils.hpp"
 #include "Statistics.hpp"
 
@@ -185,8 +187,7 @@ Comparison PDMerger::Normalizer::compare(Literal* l1, Literal* l2)
 //
 
 PDMerger::PDMerger(bool trace)
-: _trace(trace),
-//  _index(new StringFormulaIndex())
+: //  _index(new StringFormulaIndex())
   _index(new AIGFormulaIndex())
 {
   CALL("PDMerger::PDMerger");
@@ -318,8 +319,13 @@ void PDMerger::processDefinition(FormulaUnit* unit0)
 
     env.statistics->mergedPredicateDefinitions++;
 
-    LOG("pp_pdm", "Predicate equivalence discovered\n- " << qres.unit->toString()
-	  << "\n- " << unit->toString() << "\n- resulting into " << premise->toString());
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] Predicate equivalence discovered\n- " << qres.unit->toString()
+                << "\n- " << unit->toString() << "\n- resulting into " 
+                << premise->toString() << std::endl;
+      env.endOutput();
+    }    
 
 #if 0
     if(!_inliner.tryGetDef(premise, substLhs, resRhs)) {
@@ -374,7 +380,6 @@ Unit* PDMerger::apply(Unit* unit)
 void PDMerger::scan(UnitList* units)
 {
   CALL("PDMerger::scan");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_pdm");
 
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
@@ -429,7 +434,6 @@ void PDMerger::apply(Problem& prb)
 bool PDMerger::apply(UnitList*& units)
 {
   CALL("PDMerger::apply(UnitList*&)");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_pdm");
 
   scan(units);
 
@@ -450,7 +454,10 @@ bool PDMerger::apply(UnitList*& units)
     }
   }
 
-  TRACE("pp_pdm",
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    ostream& out = env.out();
+    
     unsigned defCnt = 0;
     UnitList::Iterator uit2(units);
     while(uit2.hasNext()) {
@@ -459,13 +466,16 @@ bool PDMerger::apply(UnitList*& units)
         continue;
       }
       if(PDUtils::hasDefinitionShape(static_cast<FormulaUnit*>(u))) {
-//        tout << "Survivor: " << u->toString() << endl;
+//        out << "Survivor: " << u->toString() << endl;
         defCnt++;
       }
     }
-    tout << "Merged " << env.statistics->mergedPredicateDefinitions << ", "
-	 << defCnt << " survived" << endl;
-  );
+    out << "Merged " << env.statistics->mergedPredicateDefinitions << ", "
+        << defCnt << " survived" << endl;
+        
+    env.endOutput();
+  }
+  
   return modified;
 }
 
