@@ -41,14 +41,22 @@ void HornRevealer::apply(UnitList*& units)
   _solver.addClauses(pvi( SATClauseStack::Iterator(_satPrb) ), false);
 
   if(_solver.getStatus()==SATSolver::SATISFIABLE) {
-    LOG("pp_hr","Horn discovered");
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] Horn discovered" << std::endl;
+      env.endOutput();
+    }
     discoverGoals(units);
 
     unsigned preds = env.signature->predicates();
     for(unsigned i=0; i<preds; i++) {
       bool reversed = isReversed(i);
       if(reversed) {
-	LOG("pp_hr","reversed: " << env.signature->predicateName(i));
+        if (env.options->showPreprocessing()) {
+          env.beginOutput();
+          env.out() << "[PP] predicate reversed: " << env.signature->predicateName(i) << std::endl;
+          env.endOutput();
+        }
 	LiteralSelector::reversePredicatePolarity(i, true);
 	env.statistics->hornReversedPredicates++;
       }
@@ -74,7 +82,11 @@ void HornRevealer::discoverGoals(UnitList*& units)
     Unit::InputType inpType = shouldBeGoal ? Unit::CONJECTURE : Unit::AXIOM;
     Clause* newCl = Clause::fromIterator(Clause::Iterator(*cl), inpType, inf);
     uit.replace(newCl);
-    LOG("pp_hr","Horn revealer changed inp type: " << inpType <<"\n  "<< newCl->toString());
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] Horn revealer changed inp type: " << inpType <<"\n  "<< newCl->toString() << std::endl;
+      env.endOutput();
+    }
   }
 }
 
