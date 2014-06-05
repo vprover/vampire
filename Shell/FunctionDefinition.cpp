@@ -24,6 +24,8 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "Statistics.hpp"
 
 #include "FunctionDefinition.hpp"
@@ -315,7 +317,11 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
       _processedProblem->addEliminatedFunction(d->fun, (*d->defCl)[0]);
     }
 
-    LOG("pp_fde_defs","fn def discovered: "<<(*d->defCl)<<"\n  unfolded: "<<(*d->rhs));
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] fn def discovered: "<<(*d->defCl)<<"\n  unfolded: "<<(*d->rhs) << std::endl;
+      env.endOutput();
+    }
     env.statistics->functionDefinitions++;
   }
 
@@ -512,7 +518,11 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 {
   CALL("FunctionDefinition::applyDefinitions");
 
-  LOG("pp_fde_applications","applyting function definitions to literal "<<(*lit));
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] applying function definitions to literal "<<(*lit) << std::endl;
+    env.endOutput();
+  }
   BindingMap bindings;
   UnfoldedSet unfolded;
   unsigned nextDefIndex=1;
@@ -609,7 +619,11 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
     if( !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED) {
       ASS_EQ(d->mark, Def::UNFOLDED);
       usedDefs->push(d);
-      LOG("pp_fde_applications","definition of "<<(*t)<<"\n  expanded to "<<(*d->rhs));
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] definition of "<<(*t)<<"\n  expanded to "<<(*d->rhs) << std::endl;
+        env.endOutput();
+      }
 
       defIndex=nextDefIndex++;
 
