@@ -678,7 +678,6 @@ int main(int argc, char* argv[])
     cl.interpret(*env.options);
 
     PROCESS_TRACE_SPEC_STRING(env.options->traceSpecString());
-    env.options->enableTracesAccordingToOptions();
 
     if (env.options->showOptions()) {
       env.beginOutput();

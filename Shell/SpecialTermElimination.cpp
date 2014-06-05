@@ -136,8 +136,12 @@ FormulaUnit* SpecialTermElimination::apply(FormulaUnit* fu0)
   if(fu0->included()) {
     res->markIncluded();
   }
-  LOG("pp",fu0->toString());
-  LOG("pp",res->toString());
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] " << fu0->toString() << std::endl;
+    env.out() << "[PP] " << res->toString() << std::endl;
+    env.endOutput();
+  }
   return res;
 }
 
@@ -419,7 +423,11 @@ Formula* SpecialTermElimination::process(Formula* f)
       return f;
     }
     IteFormula* formula = new IteFormula(c,t,e);
-    LOG("pp", formula->toString());
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP]: " << formula->toString() << std::endl;
+      env.endOutput();
+    }
     return new IteFormula(c,t,e);
   }
 

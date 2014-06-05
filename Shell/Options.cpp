@@ -3199,13 +3199,3 @@ void Options::setMode(Mode newVal) {
     break;
   }
 }
-
-/**
- * Enable traces that provide output for show_* options that are enabled.
- */
-void Options::enableTracesAccordingToOptions() const
-{
-  CALL("Options::enableTracesAccordingToOptions");
-
-  if (showPreprocessing()) { ENABLE_TAG("pp"); }
-}

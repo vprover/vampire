@@ -802,8 +802,6 @@ public:
   bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval; }
   bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure; }
 
-  void enableTracesAccordingToOptions() const;
-
   void setProof(Proof p) { _proof = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval; }
   unsigned bpMaximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength; }
