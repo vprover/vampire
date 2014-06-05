@@ -317,7 +317,11 @@ bool TopLevelFlatten::apply(FormulaUnit* fu, Stack<FormulaUnit*>& acc)
     return false;
   }
   RSTAT_CTR_INC("top level flattened formulas")
-  LOG_UNIT("pp_tlf_processed", fu);
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] tlf_processed: " << fu->toString() << std::endl;
+    env.endOutput();
+  }
   FormulaList::Iterator fit(f->args());
   while(fit.hasNext()) {
     Formula* sf = fit.next();
@@ -334,7 +338,12 @@ bool TopLevelFlatten::apply(FormulaUnit* fu, Stack<FormulaUnit*>& acc)
       sfu = Flattening::flatten(sfu);
     }
     acc.push(sfu);
-    LOG_UNIT("pp_tlf_res", sfu);
+    
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] tlf_res: " << sfu->toString() << std::endl;
+      env.endOutput();
+    }
     RSTAT_CTR_INC("top level flattenning results")
   }
   return true;
