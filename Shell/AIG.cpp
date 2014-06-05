@@ -1389,9 +1389,13 @@ Formula* AIGFormulaSharer::shareFormula(Formula* f, AIGRef aig)
 
   Formula** pRes;
   if(_formReprs.getValuePtr(aig, pRes)) {
-    LOG("pp_aig_a2f_sharing", "(aig,formula) pair added to sharing:"<<endl<<
-	"  aig: "<<aig<<endl<<
-	"  frm: "<<(*f));
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_a2f_sharing: (aig,formula) pair added to sharing:"<<endl<<
+                  "  aig: "<<aig<<endl<<
+                	"  frm: "<<(*f) << std::endl;
+      env.endOutput();
+    }    
     *pRes = f;
     ALWAYS(_formAIGs.insert(f, aig));
   }
@@ -1593,7 +1597,12 @@ Formula* AIGFormulaSharer::aigToFormula(AIGRef aig0)
 
   Formula* res;
   if(_formReprs.find(aig0, res)) {
-    LOG("pp_aig_a2f_cached","whole aig with cached formula: "<<aig0<<" --> "<<(*res));
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_a2f_cached: whole aig with cached formula: "
+              <<aig0<<" --> "<<(*res) << std::endl;
+      env.endOutput();
+    }    
     return res;
   }
 
@@ -1605,7 +1614,12 @@ Formula* AIGFormulaSharer::aigToFormula(AIGRef aig0)
     AIGRef a = toBuild.pop();
 
     if(_formReprs.find(a)) {
-      LOG("pp_aig_a2f_cached","aig with cached formula: "<<a<<" --> "<<(*_formReprs.get(a)));
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] aig_a2f_cached: aig with cached formula: "
+                <<a<<" --> "<<(*_formReprs.get(a)) << std::endl;
+        env.endOutput();
+      }      
       continue;
     }
 
@@ -1640,7 +1654,12 @@ Formula* AIGFormulaSharer::aigToFormula(AIGRef aig0)
     if(a.isPropConst()) {
       form = a.polarity() ? Formula::trueFormula() : Formula::falseFormula();
     }
-    LOG("pp_aig_a2f_new","aig with newly created formula: "<<a<<" --> "<<(*form));
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aig_a2f_new: aig with newly created formula: "
+              <<a<<" --> "<<(*form) << std::endl;
+      env.endOutput();
+    }
     shareFormula(form, a);
 
   }
