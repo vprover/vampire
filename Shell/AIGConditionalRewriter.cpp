@@ -13,6 +13,10 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/SubstHelper.hpp"
 
+#include "Lib/Environment.hpp"
+
+#include "Shell/Options.hpp"
+
 #include "AIGCompressor.hpp"
 #include "AIGSubst.hpp"
 #include "Flattening.hpp"
@@ -775,9 +779,13 @@ AIGRef AIGMiniscopingTransformer::processQuantifier(AIGRef a)
   else {
     res = a;
   }
-  COND_LOG("pp_aig_minis_step", res!=a,"miniscoping step:"<<endl<<
-      "  src: "<<a<<endl<<
-      "  tgt: "<<res);
+  if (res!=a && env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aig_minis_step: miniscoping step:" << endl <<
+                  "  src: " << a << endl <<
+                  "  tgt: " << res << std::endl;
+    env.endOutput();
+  }
   return res;
 }
 
