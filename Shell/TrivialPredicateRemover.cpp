@@ -13,6 +13,8 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "PredicateDefinition.hpp"
 #include "Statistics.hpp"
 
@@ -111,7 +113,12 @@ void TrivialPredicateRemover::scan(UnitList* units)
       _removed.insert(cl);
       count(cl, -1);
       env.statistics->trivialPredicates++;
-      LOG("pp_tpr","Removed due to trivial predicate: " << cl->toString());
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] ennf: Removed due to trivial predicate: " 
+                << cl->toString() << std::endl;
+        env.endOutput();
+      }      
     }
     while(_reachedZeroes.isNonEmpty()) {
       unsigned zpred = _reachedZeroes.pop();
