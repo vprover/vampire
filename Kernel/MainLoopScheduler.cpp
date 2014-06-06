@@ -1,27 +1,28 @@
 /**
  * @file MainLoopScheduler.cpp
  *
- * @date 7 May 2014
+ * @since 7 May 2014
  * @author dmitry
  */
 
+#include "MainLoopScheduler.hpp"
+
 #include "Kernel/MainLoop.hpp"
-#include "Kernel/MainLoopContext.hpp"
-#include "Lib/Allocator.hpp"
+//#include "Kernel/MainLoopContext.hpp"
+//#include "Lib/Allocator.hpp"
 #include "Lib/Timer.hpp"
 //#include "InstGen/IGAlgorithm.hpp"
 #include "Saturation/SaturationAlgorithmContext.hpp"
 //#include "Shell/BFNTMainLoop.hpp"
-#include "Shell/Options.hpp"
+//#include "Shell/Options.hpp"
 #include "Shell/Preprocess.hpp"
 //#include "Tabulation/TabulationAlgorithm.hpp"
-
-#include "MainLoopScheduler.hpp"
 
 namespace Kernel {
 
 using Saturation::SaturationAlgorithmContext;
 using Shell::Options;
+using Shell::OptionsList;
 using Shell::Preprocess;
 
 MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
@@ -50,7 +51,7 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 	}
 
 	  OptionsList::Iterator i(opts);
-	  unsigned int k = 0;
+	  size_t k = 0;
 	  while(i.hasNext()){
 
 		  Options& opt = i.next();
@@ -86,13 +87,13 @@ MainLoopResult MainLoopScheduler::run() {
 	MainLoopResult* result = 0;
 	try {
 
-		for(unsigned int k = 0; k < _mlclSize; k++) {
+		for(size_t k = 0; k < _mlclSize; k++) {
 			_mlcl[k] -> init();
 		}
 
-		unsigned int live_strategies = _mlclSize;	
+		size_t live_strategies = _mlclSize;
 		while(!result){
-			for(unsigned int k = 0; k < _mlclSize; k++) {
+			for(size_t k = 0; k < _mlclSize; k++) {
 				// TODO - add local timers and stop a strategy if it uses up all of its time (need an option for this)
 				try{
 					if(_mlcl[k]){
@@ -147,7 +148,7 @@ MainLoopResult MainLoopScheduler::run() {
 
 	// do cleanup
 	Lib::Timer::setTimeLimitEnforcement(false);
-	for(unsigned int k = 0; k < _mlclSize; k++) {
+	for(size_t k = 0; k < _mlclSize; k++) {
 		_mlcl[k] -> cleanup();
 	}
 	result -> updateStatistics();
@@ -160,7 +161,7 @@ MainLoopScheduler::~MainLoopScheduler() {
 
 	CALL("MainLoopScheduler::~MainLoopScheduler()");
 
-	for(unsigned int k = 0; k < _mlclSize; k++) {
+	for(size_t k = 0; k < _mlclSize; k++) {
 		if(_mlcl[k]){
 			delete _mlcl[k]; //TODO: should be DEALLOC_UNKNOWN but SaturationAlgorithm::createFromOptions allocates via "new"
 		}

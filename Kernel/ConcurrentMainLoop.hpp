@@ -1,7 +1,7 @@
 /**
  * @file ConcurrentMainLoop.hpp
  *
- * @date 7 May 2014
+ * @since 7 May 2014
  * @author dmitry
  */
 

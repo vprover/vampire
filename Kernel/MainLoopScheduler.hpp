@@ -1,19 +1,20 @@
 /**
  * @file MainLoopScheduler.hpp
  *
- * @date 7 May 2014
+ * @since 7 May 2014
  * @author dmitry
  */
 
 #ifndef __MainLoopScheduler__
 #define __MainLoopScheduler__
 
-#include "Kernel/MainLoop.hpp"
-#include "Kernel/MainLoopContext.hpp"
-#include "Lib/List.hpp"
 #include "Shell/Options.hpp"
 
 namespace Kernel {
+
+class MainLoopContext;
+class MainLoopResult;
+class Problem;
 
 class MainLoopScheduler {
 public:

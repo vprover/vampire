@@ -1,17 +1,17 @@
 /**
  * @file SaturationAlgorithmContext.cpp
  *
- * @date 2 Jun 2014
+ * @since 2 Jun 2014
  * @author dmitry
  */
 
-#include "Kernel/MainLoopContext.hpp"
-#include "Kernel/Problem.hpp"
+#include "SaturationAlgorithmContext.hpp"
+
+//#include "Kernel/MainLoopContext.hpp"
+//#include "Kernel/Problem.hpp"
 #include "Lib/Timer.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Shell/Options.hpp"
-
-#include "SaturationAlgorithmContext.hpp"
+//#include "Shell/Options.hpp"
 
 namespace Saturation {
 
@@ -19,10 +19,11 @@ using Kernel::MainLoopContext;
 using Kernel::Problem;
 using Lib::Timer;
 using Shell::Options;
+using Shell::Statistics;
 
-SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts):
+SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, const Options& opts):
 		MainLoopContext(prb, opts) {
-	CALL("SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts)");
+	CALL("SaturationAlgorithmContext::SaturationAlgorithmContext");
 
 	switchIn();
 
@@ -32,7 +33,7 @@ SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& op
 }
 
 SaturationAlgorithmContext::~SaturationAlgorithmContext() {
-	CALL("SaturationAlgorithmContext::~SaturationAlgorithmContext()");
+	CALL("SaturationAlgorithmContext::~SaturationAlgorithmContext");
 
 	delete _ml;
 }
@@ -59,7 +60,7 @@ void SaturationAlgorithmContext::cleanup(){
 }
 
 void SaturationAlgorithmContext::doStep() {
-	CALL("SaturationAlgorithmContext::doStep()");
+	CALL("SaturationAlgorithmContext::doStep");
 
 	switchIn();
 	_ml -> doOneAlgorithmStep();

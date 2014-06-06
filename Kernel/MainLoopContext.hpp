@@ -1,7 +1,7 @@
 /**
  * @file MainLoopContext.hpp
  *
- * @date 19 May 2014
+ * @since 19 May 2014
  * @author dmitry
  */
 
@@ -11,20 +11,23 @@
 #include "Kernel/ConcurrentMainLoop.hpp"
 #include "Kernel/Problem.hpp"
 #include "Lib/Environment.hpp"
-#include "Shell/Options.hpp"
+//#include "Shell/Options.hpp"
 
 namespace Kernel {
 
 class MainLoopContext {
 public:
-	MainLoopContext(Problem& prb, Shell::Options& opt);
+	MainLoopContext(Problem& prb, const Shell::Options& opt);
 
 	virtual ~MainLoopContext();
 
+	// Do one main loop step in this context
 	virtual void doStep() = 0;
 
+	// Switch into this context
 	virtual void switchIn();
 
+	// Switch out from the context
 	virtual void switchOut();
 
 	// Do init required by algorithm, and set phase
@@ -35,11 +38,11 @@ public:
 protected:
 	Problem& _prb;
 	ConcurrentMainLoop* _ml;
-	Environment* _env;
-	Shell::Options& _opt;
+	Lib::Environment* _env;
+	const Shell::Options& _opt;
 private:
-	Lib::Environment* _temp_env;
-
+	Lib::Environment* _temp_env; //A variable to preserve the current environment before switching in.
+								 //TODO: a manager pattern for main loops needs to be implemented for context switching
 };
 
 } /* namespace Kernel */

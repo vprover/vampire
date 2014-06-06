@@ -1,21 +1,22 @@
 /**
  * @file SaturationAlgorithmContext.hpp
  *
- * @date 23 May 2014
+ * @since 23 May 2014
  * @author dmitry
  */
 
 #ifndef __SaturationAlgorithmContext__
 #define __SaturationAlgorithmContext__
 
-#include "Kernel/Problem.hpp"
-#include "Shell/Options.hpp"
+#include "Kernel/MainLoopContext.hpp"
+//#include "Kernel/Problem.hpp"
+//#include "Shell/Options.hpp"
 
 namespace Saturation {
 
 	class SaturationAlgorithmContext: public Kernel::MainLoopContext {
 	public:
-		SaturationAlgorithmContext(Kernel::Problem& prb, Shell::Options& opts);
+		SaturationAlgorithmContext(Kernel::Problem& prb, const Shell::Options& opts);
 
 		~SaturationAlgorithmContext();
 
