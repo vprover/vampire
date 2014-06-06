@@ -294,10 +294,11 @@ SATSolver& EquivalenceDiscoverer::getProofRecordingSolver()
       clauseCopies.push(clCopy);
     }
 
-    if(TAG_ENABLED("sat_recorder")) {
+    // a relict of the LOGGING module -- could RecordingSatSolver be still useful?
+    /*if(TAG_ENABLED("sat_recorder")) {
       _proofRecordingSolver = new Test::RecordingSatSolver(new TWLSolver(*env.options, true));
     }
-    else {
+    else*/ {
       _proofRecordingSolver = new TWLSolver(*env.options, true);
     }
     _proofRecordingSolver->ensureVarCnt(_maxSatVar+1);

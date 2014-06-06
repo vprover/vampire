@@ -452,12 +452,10 @@ void CMZRMode::readInput(istream& in)
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
       category = lineSegments[1];
-      LOG("ltb_conf","ltb_conf: "<<param<<" = "<<category);
     }
     else if (param=="output.required" || param=="output.desired") {
       if (lineSegments.find("Answer")) {
 	questionAnswering = true;
-	LOG("ltb_conf","ltb_conf: enabled question answering");
       }
     }
     else if (param=="execution.order") {
@@ -467,7 +465,6 @@ void CMZRMode::readInput(istream& in)
       if (lineSegments.size()!=2 || !Int::stringToInt(lineSegments[1], problemTimeLimit)) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
-      LOG("ltb_conf","ltb_conf: "<<param<<" = "<<problemTimeLimit);
     }
     else {
       USER_ERROR("unknown batch configuration parameter: \""+line+"\"");

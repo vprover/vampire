@@ -274,13 +274,11 @@ int CLTBMode::readInput(istream& in)
       if (lineSegments.size()!=2) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
-      category = lineSegments[1];
-      LOG("ltb_conf","ltb_conf: " << param << " = " << category);
+      category = lineSegments[1];      
     }
     else if (param == "output.required" || param == "output.desired") {
       if (lineSegments.find("Answer")) {
 	_questionAnswering = true;
-	LOG("ltb_conf","ltb_conf: enabled question answering");
       }
     }
     else if (param == "execution.order") {
@@ -290,8 +288,7 @@ int CLTBMode::readInput(istream& in)
       if (lineSegments.size() != 2 ||
 	  !Int::stringToInt(lineSegments[1], _problemTimeLimit)) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
-      }
-      LOG("ltb_conf","ltb_conf: " << param << " = " << _problemTimeLimit);
+      }      
       _problemTimeLimit = 1000 * _problemTimeLimit;
     }
     else if (param == "limit.time.overall.wc") {
@@ -299,7 +296,6 @@ int CLTBMode::readInput(istream& in)
 	  !Int::stringToInt(lineSegments[1], batchTimeLimit)) {
 	USER_ERROR("unexpected \"" + param + "\" specification: \""+ line +"\"");
       }
-      LOG("ltb_conf","ltb_conf: " << param << " = " << batchTimeLimit);
       batchTimeLimit = 1000 * batchTimeLimit;
     }
     else {

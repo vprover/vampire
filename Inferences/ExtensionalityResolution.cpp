@@ -241,14 +241,7 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
     
   ASS_EQ(next,newLength);
   counter++;
-  
-  TRACE("inf_ext", tout
-        << "extensionality inference" << endl
-        << "ExtCl: " << extCl->toString() << endl
-        << "OthCl: " << otherCl->toString() << endl
-        << "Res:   " << res->toString() << endl;
-    );
-  
+     
   return res;
 }
   

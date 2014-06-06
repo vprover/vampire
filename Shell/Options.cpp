@@ -306,7 +306,6 @@ const char* Options::Constants::_optionNames[] = {
   "theory_axioms",
   "time_limit",
   "time_statistics",
-  "traces",
   "trivial_predicate_removal",
 
   "unit_resulting_resolution",
@@ -1004,7 +1003,6 @@ Options::Options ()
   _theoryAxioms(true),
   _timeLimitInDeciseconds(600),
   _timeStatistics(false),
-  _traces(""),
   _trivialPredicateRemoval(false),
 
   _unitResultingResolution(URR_OFF),
@@ -1731,9 +1729,6 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case TIME_STATISTICS:
       _timeStatistics = onOffToBool(value,name);
-      return;
-    case TRACES:
-      _traces = value;
       return;
     case TRIVIAL_PREDICATE_REMOVAL:
       _trivialPredicateRemoval = onOffToBool(value,name);
@@ -2575,9 +2570,6 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case TIME_STATISTICS:
     str << boolToOnOff(_timeStatistics);
-    return;
-  case TRACES:
-    str << _traces;
     return;
   case TRIVIAL_PREDICATE_REMOVAL:
     str << boolToOnOff(_trivialPredicateRemoval);

@@ -246,22 +246,14 @@ void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, 
     }
 
     string uid = getUnitId(unit);
-
-    TRACE("itp_min",
-	if(solverResult.assignment.get(pred(D, uid))=="true") {
-	  tout << "Digest: " << unit.toString() << endl;
-	}
-    );
-
+    
     SMTConstant sU = pred(S, uid);
     string val = solverResult.assignment.get(sU);
     if(val=="false") {
-      LOG("itp_min","Non-sliced: " << unit.toString());
       continue;
     }
     ASS_EQ(val,"true");
     acc.insert(unit);
-    LOG("itp_min","Sliced: " << unit.toString());
   }
 }
 
@@ -579,7 +571,6 @@ string InterpolantMinimizer::getComponentId(Clause* cl)
     unsigned weight = cl->weight();
     _atomWeights.insert(id, weight);
     _unitsById.insert(id, UnitSpec(cl));
-    LOG("itp_min","atom: "<<id<<" "<<weight<<"\t"<<cl->toString());
   }
   return id;
 }

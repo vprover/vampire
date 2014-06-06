@@ -119,7 +119,6 @@ void UnitTesting::spawnTest(TestProc proc)
   }
   int childRes;
   Multiprocessing::instance()->waitForParticularChildTermination(fres, childRes);
-  LOG("ut_forking","child proces result status: " << childRes);
   if(childRes!=0) {
     exit(childRes);
   }

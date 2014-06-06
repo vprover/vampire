@@ -90,7 +90,6 @@ void Producer::performURR(Clause* cl)
   while(genIt.hasNext()) {
     Clause* gen = genIt.next();
     if(gen->isEmpty()) {
-      LOG("tab","P refutation: "<<gen->toString());
       throw MainLoop::RefutationFoundException(gen);
     }
     ASS_EQ(gen->length(), 1);
@@ -102,7 +101,6 @@ void Producer::performURR(Clause* cl)
       continue;
     }
 
-    LOG("tab","P generated: "<<gen->toString());
     gen->setSelected(1);
     newLemma(gen);
 //    cout<<lemmaLit->toString()<<endl;
@@ -221,16 +219,12 @@ void Producer::performRuleAddition(Clause* rule)
     return;
   }
 
-
-  LOG("tab","P adding rule "<<rule->toString()<<" selected "<<rule->selected());
-
   Literal* head = 0;
   if(rule->selected()==rule->length()-1) {
     ASS_GE(rule->length(), 2);
     head = (*rule)[rule->length()-1];
 
     if(subsumedByLemma(head)) {
-      LOG("tab","P rule rejected by lemma "<<rule->toString());
       RSTAT_CTR_INC("rules subsumed by old lemmas");
       return;
     }
@@ -352,7 +346,6 @@ void Producer::onLemma(Clause* lemma)
   while(srit.hasNext()) {
     SLQueryResult srRec = srit.next();
     Clause* subsumedRule = srRec.clause;
-    LOG("tab","P rule subsumed: "<<subsumedRule->toString()<< " by "<<lit->toString());
     removeRule(subsumedRule);
     RSTAT_CTR_INC("rules subsumed by new lemmas");
   }
@@ -361,7 +354,6 @@ void Producer::onLemma(Clause* lemma)
   while(slit.hasNext()) {
     SLQueryResult slRec = slit.next();
     Clause* subsumedLemma = slRec.clause;
-    LOG("tab","P lemma subsumed: "<<subsumedLemma->toString()<< " by "<<lit->toString());
     removeLemma(subsumedLemma);
     RSTAT_CTR_INC("backward subsumed lemmas");
   }
@@ -478,7 +470,6 @@ void Producer::processLemma()
 
   Clause* lemma = _unprocLemmaCont.popSelected();
   ASS_EQ(lemma->selected(),1);
-  LOG("tab","P processing lemma "<<lemma->toString());
   performURR(lemma);
   _activeCont.add(lemma);
 }

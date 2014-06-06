@@ -128,7 +128,6 @@ AIGInliner::EquivInfo* AIGInliner::EquivInfo::tryGetEquiv(FormulaUnit* fu)
   Formula* rhs = c2;
 
   if(env.colorUsed && lhs->color()==COLOR_TRANSPARENT && rhs->getColor()!=COLOR_TRANSPARENT) {
-    LOG("bug", "color introducing definition ignored: "<<(*fu));
     return 0;
   }
 
@@ -277,10 +276,6 @@ bool AIGInliner::tryExpandAtom(AIGRef atom, PremRef& res)
 
 //  if(defIt.hasNext()) {
 //    defIt = _lhsIdx->getGeneralizations(lit, false, false);
-//    LOGV("bug", *lit);
-//    while(defIt.hasNext()) {
-//      LOGV("bug", *defIt.next().literal);
-//    }
 //  }
   ASS(!defIt.hasNext()); //we made sure there is always only one way to inline
 
@@ -355,62 +350,18 @@ void AIGInliner::scan(UnitList* units)
 
   _inlMap.loadFromMap(atomMap);
 
-//  TRACE("bug",
-//      AIGTransformer::RefMap::Iterator mit(_inlMap);
-//      while(mit.hasNext()) {
-//	AIGRef src, tgt;
-//	mit.next(src, tgt);
-//	tout << "-inl---" << endl;
-//	tout << "  src: " << src << endl;
-//	tout << "  tgt: " << tgt << endl;
-//      }
-//  );
-
-
   _atr.saturateMap(_inlMap);
-
-//  TRACE("bug",
-//      AIGTransformer::RefMap::Iterator mit(_inlMap);
-//      while(mit.hasNext()) {
-//	AIGRef src, tgt;
-//	mit.next(src, tgt);
-//	tout << "-inl-sat--" << endl;
-//	tout << "  src: " << src << endl;
-//	tout << "  tgt: " << tgt << endl;
-//	tout << "  srcI: " << src.toInternalString() << endl;
-//	tout << "  tgtI: " << tgt.toInternalString() << endl;
-//      }
-//  );
-
-
-
+  
   ait.reset();
 
   Stack<AIGRef>::Iterator baseAigIt(_relevantAigs);
   while(baseAigIt.hasNext()) {
     AIGRef baseAig = baseAigIt.next();
     AIGRef inlAig = AIGRewriter::lev0Deref(baseAig, _inlMap, 0);
-//    LOGV("bug",baseAig);
-//    LOGV("bug",inlAig);
-//    LOGV("bug",inlAig.toInternalString());
     ait.addToTraversal(inlAig);
   }
 
   _acompr.populateBDDCompressingMap(ait, _simplMap);
-
-//  LOGV("bug", _simplMap.size());
-//  TRACE("bug",
-//      AIGTransformer::RefMap::Iterator mit(_simplMap);
-//      while(mit.hasNext()) {
-//	AIGRef src, tgt;
-//	mit.next(src, tgt);
-//	tout << "----" << endl;
-//	tout << "  src: " << src << endl;
-//	tout << "  tgt: " << tgt << endl;
-//	tout << "  srcI: " << src.toInternalString() << endl;
-//	tout << "  tgtI: " << tgt.toInternalString() << endl;
-//      }
-//  );
 }
 
 AIGRef AIGInliner::apply(AIGRef a, PremSet*& prems)
@@ -431,16 +382,6 @@ AIGRef AIGInliner::apply(AIGRef a, PremSet*& prems)
       <<"  tgtI: "<<res.toInternalString() << std::endl;
     env.endOutput();
   }
-//  COND_LOG("bug", res!=_acompr.compress(res),
-//      "missed simplification in aig inlining:"<<endl
-//            <<"  src: "<<a<<endl
-//            <<"  inl: "<<inl<<endl
-//            <<"  tgt: "<<res<<endl
-//            <<"  tSm: "<<_acompr.compress(res)<<endl
-//            <<"  srcI: "<<a.toInternalString()<<endl
-//            <<"  inlI: "<<inl.toInternalString()<<endl
-//            <<"  tgtI: "<<res.toInternalString()
-//      );
 
   ASS_REP(_relevantAigsSet.contains(a), a);
 

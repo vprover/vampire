@@ -22,7 +22,6 @@ namespace Kernel
 Formula* FormulaTransformer::transform(Formula* f) {
   CALL("FormulaTransformar::transform");
   Formula* res = apply(f);
-  LOG("ft_tl","FormulaTransformer: " << (*f)<<" --> "<<(*res));
   return res;
 }
 
@@ -85,7 +84,6 @@ Formula* FormulaTransformer::apply(Formula* f)
 #endif
   }
   postApply(f, res);
-  LOG("ft_subformula","FormulaTransformer::apply: " << (*f)<<" --> "<<(*res));
   return res;
 }
 

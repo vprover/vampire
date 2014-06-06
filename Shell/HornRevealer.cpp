@@ -103,7 +103,6 @@ bool HornRevealer::isGoal(Clause* cl)
 {
   CALL("HornRevealer::isGoal");
 
-//  LOG("isGoal:\n"<<cl->toString());
   bool hasPositive = false;
 
   Clause::Iterator cit(*cl);
@@ -115,7 +114,6 @@ bool HornRevealer::isGoal(Clause* cl)
     bool posPolarity = !isReversed(pred);
 
     if(polarity==posPolarity) {
-//      LOG("pos:"<<l->toString());
       ASS_REP(!hasPositive, cl->toString());
       hasPositive = true;
     }
@@ -146,7 +144,6 @@ void HornRevealer::buildSatProblem(UnitList* units)
 void HornRevealer::addToSatProblem(Clause* cl)
 {
   CALL("HornRevealer::addToSatProblem");
-//  LOG(cl->toString());
 
   static SATLiteralStack slits;
 
@@ -172,8 +169,6 @@ void HornRevealer::addToSatProblem(Clause* cl)
 
       SATClause* scl = SATClause::fromStack(slits);
       _satPrb.push(scl);
-
-//      LOG(scl->toString()<<" <-- "<<iLit->toString()<<", "<<jLit->toString());
     }
   }
 }

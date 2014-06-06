@@ -8,8 +8,6 @@
 
 #include <string>
 
-#include "Debug/Log.hpp"
-
 #include "Config.hpp"
 
 typedef void (*VoidFunc)();

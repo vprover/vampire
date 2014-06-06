@@ -167,7 +167,6 @@ BoundSuggestionResult BoundPropagator::propagateBounds(Constraint& constr, bool 
   Var unboundedVar;
 
   Constraint::CoeffIterator cit = constr.coeffs();
-  TRACE("tkv_constraint", tout<<constr.toString()<<"\n";);
   while(cit.hasNext()) {
     const Constraint::Coeff& coeff = cit.next();
     if(coeff.value==CoeffNumber::zero())
@@ -262,8 +261,6 @@ BoundSuggestionResult BoundPropagator::propagateBounds(Constraint& constr, Var v
     }
     nonStrict &= !boundStrict;
     boundValue -= boundVal*coeff.value;
-    LOG("tkv_bK", "value "<<env.signature->varName(currVar)<<" " <<boundValue);
-
 
     ASS(_bounds.getBounds(srcBound).isNonEmpty());
     size_t boundIndex = _bounds.getBounds(srcBound).size()-1;
@@ -308,9 +305,7 @@ BoundSuggestionResult BoundPropagator::propagateBounds(Constraint& constr, Var v
     //We generate a collapsing inequality only once on each level to avoid cycles.
     ConstraintRCPtr collapsingConstr;
     _bounds.tryGetCollapsingInequality(newBoundId, collapsingConstr);
-    LOG("tkv_colapsing","Bound collapsing constr generated: "<<collapsingConstr->toString());
     res = propagateBounds(*collapsingConstr);
-    LOG("tkv_colapsing","Collapsing constr propagation done");
   }
   return res;
 }

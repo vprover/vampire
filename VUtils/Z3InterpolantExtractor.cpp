@@ -108,8 +108,6 @@ bool ZIE::readLet(LExpr* expr, LExpr*& tail)
     if(!nameE->isAtom()) { LISP_ERROR("invalid let assignment name", asgn); }
     string name = nameE->str;
     _letRecords.push(LetRecord(name, value));
-
-//    LOG("let: " << name << " --> " << value->toString());
   }
   return true;
 }
@@ -332,7 +330,6 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
     if(isProofVariable(name)) {
       return getProofObjectAssignment(name);
     }
-    LOG("vu_z3ie",name);
     LISP_ERROR("invalid proof object (neither list nor variable)", expr);
   }
 
@@ -450,14 +447,12 @@ void ZIE::processLets()
     LExpr* expr = lrec.second;
     if(isTermVariable(varName)) {
       TermList trm = readTerm(expr);
-//      LOG(varName << " = " << trm.toString());
       if(!_termAssignments.insert(varName, trm)) {
 	USER_ERROR("duplicate variable: " + varName);
       }
     }
     else if(isProofVariable(varName)) {
       ProofObject po = readProofObject(expr);
-//      LOG(varName << " = " << (po.unit ? po.unit->toString() : "<hypothesis>"));
       if(!_proofAssignments.insert(varName, po)) {
 	USER_ERROR("duplicate variable: " + varName);
       }
@@ -563,7 +558,6 @@ TermColoring* ZIE::createRangeColorer()
     res->addFunction(func);
   }
   IntegerConstantType midpoint = (globalMax+globalMin)/2;
-  LOGV("vu_z3ie", midpoint);
   res->setMiddleValue(midpoint);
 
   return res;

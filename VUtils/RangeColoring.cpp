@@ -107,7 +107,6 @@ void TermColoring::applyToDerivation(UnitStack& inp, UnitStack& out)
   while(uit.hasNext()){
     FormulaUnit* fu = static_cast<FormulaUnit*>(uit.next());
     ASS(!fu->isClause());
-//    LOGV(fu->toString());
 
     Formula* newForm = applyToFormula(fu->formula());
 
@@ -116,7 +115,6 @@ void TermColoring::applyToDerivation(UnitStack& inp, UnitStack& out)
     Inference::Iterator iit(origInf->iterator());
     while(origInf->hasNext(iit)) {
       Unit* premise = origInf->next(iit);
-//      LOGV(premise->toString());
       Unit* newPremise = translated.get(premise);
       UnitList::push(newPremise, newPrems);
     }

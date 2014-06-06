@@ -167,7 +167,6 @@ struct BackwardDemodulation::ResultFn
 	}
 	if(isMax) {
 //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
-//	  LOG("prevented bw dem: "<<(*eqLitS)<<" in "<<(*qr.literal)<<" of "<<(*qr.clause));
 	  //The demodulation is this case which doesn't preserve completeness:
 	  //s = t     s = t1 \/ C
 	  //---------------------

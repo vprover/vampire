@@ -73,7 +73,6 @@ void SMTLIBConcat::rewriteSmt1FormToSmt2(LExpr* e0)
       ASS(e->isList());
       LispListReader rdr(e);
       if(rdr.lookAheadAtom("flet") || rdr.lookAheadAtom("let")) {
-	LOG("vu_sc_let","let rewriting"<<endl<<"  src:"<<e->toString());
 	LExpr* head = rdr.readNext();
 	LExpr* defs = rdr.readNext();
 	rdr.readNext();
@@ -81,7 +80,6 @@ void SMTLIBConcat::rewriteSmt1FormToSmt2(LExpr* e0)
 
 	head->str = "let";
 	defs->list = (LispListWriter()<<(LispListWriter().append(defs->list))).getList();
-	LOG("vu_sc_let","  tgt:"<<e->toString());
       }
       LExprList::Iterator elit(e->list);
       while(elit.hasNext()) {
@@ -260,8 +258,6 @@ LExpr* SMTLIBConcat::parseFile(string fname)
   LispLexer lex(fin);
   LispParser parser(lex);
   LExpr* res = parser.parse();
-
-  LOG("vu_sc_files", fname<<":"<<endl<<res->toString());
 
   return res;
 }

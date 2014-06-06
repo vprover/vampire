@@ -20,7 +20,7 @@ namespace Test
 // RecordingSatSolver
 //
 
-#define REC(x) LOG("sat_recorder",getHdr()<<x)
+#define REC(x) 
 
 /**
  * Return header to be used for log outputs of this solver
@@ -139,7 +139,6 @@ void SolverReplayer::ActionSpec::readCommand(string str)
   CALL("SolverReplayer::ActionSpec::readCommand");
 
   if(!rdr.readOptions(str)) {
-    LOG("bug","Invalid command string: "<<str);
     ASSERTION_VIOLATION;
   }
 

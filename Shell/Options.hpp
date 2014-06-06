@@ -239,7 +239,6 @@ public:
     THEORY_AXIOMS,
     TIME_LIMIT,
     TIME_STATISTICS,
-    TRACES,
     TRIVIAL_PREDICATE_REMOVAL,
 
     UNIT_RESULTING_RESOLUTION,
@@ -779,7 +778,6 @@ public:
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds = newVal; }
   int getTimeLimit(){return _timeLimitInDeciseconds;}
-  string traceSpecString() const { return _traces; }
   int getWhileNumber(){return _whileNumber;}
   int getFunctionNumber(){return _functionNumber;}
 //   // standard ways of creating options
@@ -1037,7 +1035,6 @@ private:
   /** Time limit in deciseconds */
   int _timeLimitInDeciseconds;
   bool _timeStatistics;
-  string _traces;
   bool _trivialPredicateRemoval;
 
   URResolution _unitResultingResolution;

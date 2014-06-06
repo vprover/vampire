@@ -609,18 +609,12 @@ bool AIGCompressor::doHistoryLookUp(AIGRef aig, BDDNode* bdd, AIGRef& tgt)
 //      AIGWithSize* improvementEntry;
 //      if(_lookUpImprovement.getValuePtr(bdd, improvementEntry)) {
 //        *improvementEntry = curr;
-//        LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-//  	<<"  src: "<<lookupEntry->first<<endl
-//  	<<"  tgt: "<<aig);
 //      }
 //      else {
 //        Comparison aiCmpResult;
 //        ALWAYS(tryCompareAIGGoodness(curr, *improvementEntry, aiCmpResult));
 //        if(aiCmpResult==LESS) {
 //  	*improvementEntry = curr;
-//  	LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-//  	  <<"  src: "<<lookupEntry->first<<endl
-//  	  <<"  tgt: "<<aig);
 //        }
 //      }
 //    }
@@ -637,35 +631,23 @@ bool AIGCompressor::doHistoryLookUp(AIGRef aig, BDDNode* bdd, AIGRef& tgt)
 //    }
 //    if(aiCmpResult==LESS) {
 //      _lookUpImprovement.set(bdd, curr);
-//      LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-//	  <<"  src: "<<lookupEntry->first<<endl
-//	  <<"  tgt: "<<aig);
 //    }
 //  }
 //  else if(atCmpResult==LESS) {
 //    AIGWithSize* improvementEntry;
 //    if(_lookUpImprovement.getValuePtr(bdd, improvementEntry)) {
 //      *improvementEntry = curr;
-//      LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-//	<<"  src: "<<lookupEntry->first<<endl
-//	<<"  tgt: "<<aig);
 //    }
 //    else {
 //      Comparison aiCmpResult;
 //      ALWAYS(tryCompareAIGGoodness(curr, *improvementEntry, aiCmpResult));
 //      if(aiCmpResult==LESS) {
 //	*improvementEntry = curr;
-//	LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-//	  <<"  src: "<<lookupEntry->first<<endl
-//	  <<"  tgt: "<<aig);
 //      }
 //    }
 //  }
 //
 //  tgt = lookupEntry->first;
-//  LOG("pp_aig_compr_lookup_hit", "bdd look-up hit:"<<endl
-//	  <<"  src: "<<lookupEntry->first<<endl
-//	  <<"  tgt: "<<aig);
 //
 //  if(!_lookUpNeedsImprovement) {
 //    _lookUpNeedsImprovement = _lookUpImprovement.find(bdd);

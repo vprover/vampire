@@ -672,11 +672,6 @@ AIG::Ref AIG::getUnivQuant(VarSet* vars0, Ref par)
 
   VarSet* vars = vars0->getIntersection(par.getFreeVars());
 
-  COND_LOG("pp_quant_simpl", vars!=vars0, "quentifier simplified:"<<endl
-      <<"  vars0: "<<vars0->toString()<<endl
-      <<"  vars: "<<vars->toString()<<endl
-      <<"  par: "<<par);
-
   if(vars->isEmpty()) { return par; }
 
   return Ref(univQuantNode(vars, par), true);

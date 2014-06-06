@@ -6,8 +6,6 @@
 
 #include <string.h>
 
-#include "Debug/Log.hpp"
-
 #include "Int.hpp"
 
 #include "Exception.hpp"

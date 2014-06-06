@@ -109,26 +109,17 @@ struct PDInliner::PDef
     if(!_fixNeedsRect) {
       FormulaUnit* fu2 = Rectify::rectify(fu);
       if(fu!=fu2) {
-	LOG("bug", "insufficient rectify check");
-	LOG_UNIT("bug", fu);
-	LOG_UNIT("bug", fu2);
 	ASSERTION_VIOLATION;
       }
     }
     if(!_fixNeedsSimpl) {
       FormulaUnit* fu2 = SimplifyFalseTrue::simplify(fu);
       if(fu!=fu2) {
-	LOG("bug", "insufficient SimplifyFalseTrue check");
-	LOG_UNIT("bug", fu);
-	LOG_UNIT("bug", fu2);
 	ASSERTION_VIOLATION;
       }
     }
     FormulaUnit* fu2 = Flattening::flatten(fu);
     if(fu!=fu2) {
-      LOG("bug", "insufficient built-in flattening");
-      LOG_UNIT("bug", fu);
-      LOG_UNIT("bug", fu2);
       ASSERTION_VIOLATION;
     }
 #endif
@@ -1118,26 +1109,17 @@ FormulaUnit* PDInliner::apply(FormulaUnit* unit)
   if(!inlState.needsRectify) {
     FormulaUnit* fu2 = Rectify::rectify(res, false);
     if(res!=fu2) {
-	LOG("bug", "insufficient rectify check");
-	LOG_UNIT("bug", res);
-	LOG_UNIT("bug", fu2);
 	ASSERTION_VIOLATION;
     }
   }
   if(!inlState.needsConstantSimplification) {
     FormulaUnit* fu2 = SimplifyFalseTrue::simplify(res);
     if(res!=fu2) {
-	LOG("bug", "insufficient SimplifyFalseTrue check");
-	LOG_UNIT("bug", res);
-	LOG_UNIT("bug", fu2);
 	ASSERTION_VIOLATION;
     }
   }
   FormulaUnit* fu2 = Flattening::flatten(res);
   if(res!=fu2) {
-    LOG("bug", "insufficient built-in flattening");
-    LOG_UNIT("bug", res);
-    LOG_UNIT("bug", fu2);
     ASSERTION_VIOLATION;
   }
 #endif

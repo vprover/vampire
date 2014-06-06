@@ -7,7 +7,6 @@
 
 #include "Forwards.hpp"
 
-#include "Debug/Log.hpp"
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Allocator.hpp"

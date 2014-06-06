@@ -328,14 +328,7 @@ void PDMerger::processDefinition(FormulaUnit* unit0)
     }    
 
 #if 0
-    if(!_inliner.tryGetDef(premise, substLhs, resRhs)) {
-      LOG("bug",
-	"cannot process definition "<<(*premise)<<endl<<
-	"coming from "<<(*unit)<<endl<<
-	"the original formula was "<<(*unit0)<<endl<<
-	"definition with equivalent body "<<(*qres.unit)<<endl<<
-	"definition lhs: "<<(*substLhs)<<endl<<
-	"definition rhs: "<<(*resRhs));
+    if(!_inliner.tryGetDef(premise, substLhs, resRhs)) {      
       ASSERTION_VIOLATION;
     }
 #else

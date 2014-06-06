@@ -116,7 +116,6 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
       env.statistics->backwardSubsumptionResolution++;
       RSTAT_CTR_INC("bsr0 performed (units)");
-      LOG_SIMPL2("inf_bsr", cl, qr.clause, resCl,"unit");
     }
     if(simplRes) {
       simplifications=pvi( List<BwSimplificationRecord>::DestructiveIterator(simplRes) );
@@ -256,8 +255,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
       RSTAT_CTR_INC("bsr1 4 performed");
       Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
-      env.statistics->backwardSubsumptionResolution++;
-      LOG_SIMPL2("inf_bsr", cl, qr.clause, resCl, "by fetch neg");
+      env.statistics->backwardSubsumptionResolution++;      
     }
 
   match_fail:
@@ -404,7 +402,6 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
       Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, resolvedLit, cl);
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
       env.statistics->backwardSubsumptionResolution++;
-      LOG_SIMPL2("inf_bsr", cl, qr.clause, resCl, "by fetch pos");
     }
 
   match_fail2:

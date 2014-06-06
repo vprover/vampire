@@ -1268,7 +1268,6 @@ std::string newTranslator::WriteSimpleAssignment(const ::clang::Expr* lhs,
 
   if (!colect->findAssignemt(numeUitat))
     colect->insertAssignment(numeUitat, ass);
-  //LOG("trans_ass", ass->prettyPrint(std::cout, 3));
 
   if (flag == false)
     Body.insert(Body.end(), numeUitat);

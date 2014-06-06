@@ -73,21 +73,12 @@ protected:
 
     size_t curLeft = leftBounds.size()-1;
     size_t curRight = rightBounds.size()-1;
-    LOG("tkv_conflict","Conflict selection for "<<env.signature->varName(v));
     while(curLeft>0 && leftBounds[curLeft-1].hasConflictWith(rightBounds[curRight], true)) {
-    TRACE("tkv_conflict",tout<<"Skipping left bound "<<leftBounds[curLeft].value()<<" justified by "
-	<<(leftBounds[curLeft].justification().parent()?leftBounds[curLeft].justification().parent()->toString():string("<decision point>")););
       curLeft--;
     }
-    TRACE("tkv_conflict",tout<<"Selecting left bound "<<leftBounds[curLeft].value()<<" justified by "
-	<<(leftBounds[curLeft].justification().parent()?leftBounds[curLeft].justification().parent()->toString():string("<decision point>")););
     while(curRight>0 && leftBounds[curLeft].hasConflictWith(rightBounds[curRight-1], true)) {
-    TRACE("tkv_conflict",tout<<"Skipping right bound "<<rightBounds[curRight].value()<<" justified by "
-	<<(rightBounds[curRight].justification().parent()?rightBounds[curRight].justification().parent()->toString():string("<decision point>")););
       curRight--;
     }
-    TRACE("tkv_conflict",tout<<"Selecting right bound "<<rightBounds[curRight].value()<<" justified by "
-	<<(rightBounds[curRight].justification().parent()?rightBounds[curRight].justification().parent()->toString():string("<decision point>")););
     left = curLeft;
     right = curRight;
   }
@@ -116,14 +107,11 @@ protected:
     size_t bestRight = curRight;
     Goodness bestGoodness; //we evaluate the goodness of candidates only if there are more than one
 
-    LOG("tkv_conflict","Conflict selection for "<<env.signature->varName(v));
     while(curLeft>0 && leftBounds[curLeft-1].hasConflictWith(rightBounds[curRight], true) && leftBounds[curLeft].justification().parent()) {
       if(onlyCandidate) {
 	bestGoodness = getGoodness(v, bestLeft, bestRight, leftBounds, rightBounds);
 	onlyCandidate = false;
-      }
-    TRACE("tkv_conflict",tout<<"Skipping left bound "<<leftBounds[curLeft].value()<<" justified by "
-	<<(leftBounds[curLeft].justification().parent()?leftBounds[curLeft].justification().parent()->toString():string("<decision point>")););
+      }    
       curLeft--;
       Goodness curGoodness = getGoodness(v, curLeft, curRight, leftBounds, rightBounds);
       if(curGoodness>bestGoodness) {
@@ -132,8 +120,6 @@ protected:
 	bestRight = curRight;
       }
     }
-    TRACE("tkv_conflict",tout<<"Selecting left bound "<<leftBounds[curLeft].value()<<" justified by "
-	  <<(leftBounds[curLeft].justification().parent()?leftBounds[curLeft].justification().parent()->toString():string("<decision point>")););
     while(curRight>0 && leftBounds[curLeft].hasConflictWith(rightBounds[curRight-1], true) && rightBounds[curRight].justification().parent()) {
       //If we can go to earlier right bounds, left bound must have been the
       //one whose adding caused conflict (so we could not have gone to earlier
@@ -145,8 +131,6 @@ protected:
 	bestGoodness = getGoodness(v, bestLeft, bestRight, leftBounds, rightBounds);
 	onlyCandidate = false;
       }
-      TRACE("tkv_conflict",tout<<"Skipping right bound "<<rightBounds[curRight].value()<<" justified by "
-	  <<(rightBounds[curRight].justification().parent()?rightBounds[curRight].justification().parent()->toString():string("<decision point>")););
       curRight--;
       Goodness curGoodness = getGoodness(v, curLeft, curRight, leftBounds, rightBounds);
       if(curGoodness>bestGoodness) {
@@ -155,8 +139,6 @@ protected:
 	bestRight = curRight;
       }
     }
-    TRACE("tkv_conflict",tout<<"Selecting right bound "<<rightBounds[curRight].value()<<" justified by "
-	  <<(rightBounds[curRight].justification().parent()?rightBounds[curRight].justification().parent()->toString():string("<decision point>")););
     left = bestLeft;
     right = bestRight;
   }

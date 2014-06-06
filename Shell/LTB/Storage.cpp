@@ -440,9 +440,6 @@ void Storage::addCorrespondingLocalSymbols(VirtualIterator<pair<bool,unsigned> >
       //able to pair it with the right local symbol)
       symIt0.del();
 //      if(id.first) {
-//	LOG("known pred: "<<id.second<<" orig name "<<getIntKey(PRED_NUM_NAME, id.second)
-//	    <<" arity: "<<env.signature->predicateArity(_glob2loc.get(id))
-//	    <<" loc name: "<<env.signature->predicateName(_glob2loc.get(id)));
 //      }
       continue;
     }
@@ -482,7 +479,6 @@ void Storage::addCorrespondingLocalSymbols(VirtualIterator<pair<bool,unsigned> >
       ASS_NEQ(globSym.second, 0); //equality must always correspond to equality, so we cannot add it this way
       locNum=env.signature->addPredicate(locName, arity, added);
       ASS(added);
-//      LOG("added pred: "<<globSym.second<<" orig name "<<getIntKey(PRED_NUM_NAME, globSym.second)<<" arity: "<<arity);
     }
     else {
       locNum=env.signature->addFunction(locName, arity, added);

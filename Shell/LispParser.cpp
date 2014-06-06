@@ -350,7 +350,6 @@ LExpr* LispListReader::readNext()
 {
   CALL("LispListReader::readNext");
   ASS(hasNext());
-  LOG("lisp_rdr","LLR reading "<<it.peekAtNext()->toString());
 
   return it.next();
 }

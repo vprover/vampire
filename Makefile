@@ -102,8 +102,6 @@ API_OBJ = Api/FormulaBuilder.o\
 	  Api/Tracing.o
 
 VD_OBJ = Debug/Assertion.o\
-         Debug/Log.o\
-         Debug/Log_TagDecls.o\
          Debug/RuntimeStatistics.o\
          Debug/Tracer.o
 
@@ -470,7 +468,6 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Test/RecordingSatSolver.o
 
 BP_VD_OBJ = Debug/Assertion.o\
-         Debug/Log.o\
          Debug/RuntimeStatistics.o\
          Debug/Tracer.o
 

@@ -298,7 +298,6 @@ void Statistics::print(ostream& out)
   out << "------------------------------\n";
 
   RSTAT_PRINT(out);
-  DISPLAY_TRACE_STATS(out);
   addCommentIfCASC(out);
   out << "------------------------------\n";
 

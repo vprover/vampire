@@ -712,26 +712,17 @@ FormulaUnit* PDInliner::apply(FormulaUnit* unit)
   if(!inlState.needsRectify) {
     FormulaUnit* fu2 = Rectify::rectify(res);
     if(res!=fu2) {
-	LOG("bug", "insufficient rectify check");
-	LOG_UNIT("bug", res);
-	LOG_UNIT("bug", fu2);
 	ASSERTION_VIOLATION;
     }
   }
   if(!inlState.needsConstantSimplification) {
     FormulaUnit* fu2 = SimplifyFalseTrue::simplify(res);
     if(res!=fu2) {
-	LOG("bug", "insufficient SimplifyFalseTrue check");
-	LOG_UNIT("bug", res);
-	LOG_UNIT("bug", fu2);
 	ASSERTION_VIOLATION;
     }
   }
   FormulaUnit* fu2 = Flattening::flatten(res);
   if(res!=fu2) {
-    LOG("bug", "insufficient built-in flattening");
-    LOG_UNIT("bug", res);
-    LOG_UNIT("bug", fu2);
     ASSERTION_VIOLATION;
   }
 #endif
