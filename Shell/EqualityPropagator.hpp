@@ -29,8 +29,6 @@ using namespace Kernel;
  */
 class EqualityPropagator {
 public:
-  EqualityPropagator(bool trace=false) : _trace(trace) {}
-
   void apply(Problem& prb);
   bool apply(UnitList*& units);
   Unit* apply(Unit* u);
@@ -51,9 +49,7 @@ private:
 
   void collectResolvableBindings(Formula* form, bool negated);
 
-  void undoBindings(unsigned remaining);
-
-  bool _trace;
+  void undoBindings(unsigned remaining); 
 
   Stack<unsigned> _vars;
   DHMap<unsigned,unsigned> _varDepths;

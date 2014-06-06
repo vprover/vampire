@@ -316,7 +316,6 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
 
     //we can remove the literal from the index of partial definitions
     _partialIndex->remove(dgr, d);
-    LOG("inf_flr_defs","added definition from"<<endl<<"  "<<(*c)<<endl<<"  "<<(*d));
   }
   else {
     _counterparts.remove(c);

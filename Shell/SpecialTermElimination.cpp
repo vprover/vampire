@@ -18,6 +18,8 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "Rectify.hpp"
 
 #include "SpecialTermElimination.hpp"
@@ -134,8 +136,12 @@ FormulaUnit* SpecialTermElimination::apply(FormulaUnit* fu0)
   if(fu0->included()) {
     res->markIncluded();
   }
-  LOG("pp",fu0->toString());
-  LOG("pp",res->toString());
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] " << fu0->toString() << std::endl;
+    env.out() << "[PP] " << res->toString() << std::endl;
+    env.endOutput();
+  }
   return res;
 }
 
@@ -171,9 +177,15 @@ TermList SpecialTermElimination::processSpecialTerm(Term* t)
     TermList thenBranch = process(*t->nthArgument(0));
     TermList elseBranch = process(*t->nthArgument(1));
     if(eliminatingTermIte()) {
-      TRACE("pp_ste_if",tout<<t->toString(););
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] ste_if: " << t->toString();
+      }            
       t = eliminateTermIte(newCond, thenBranch, elseBranch);
-      TRACE("pp_ste_if",tout<<"\n After elimination of ite:"<<t->toString(););
+      if (env.options->showPreprocessing()) {        
+        env.out() << "\n After elimination of ite:"<<t->toString() << std::endl;
+        env.endOutput();
+      }
     }
     else if(cond!=newCond || thenBranch!=*t->nthArgument(0) || elseBranch!=*t->nthArgument(1)) {
       t = Term::createTermITE(newCond, thenBranch, elseBranch);
@@ -411,7 +423,11 @@ Formula* SpecialTermElimination::process(Formula* f)
       return f;
     }
     IteFormula* formula = new IteFormula(c,t,e);
-    LOG("pp", formula->toString());
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP]: " << formula->toString() << std::endl;
+      env.endOutput();
+    }
     return new IteFormula(c,t,e);
   }
 
@@ -474,8 +490,13 @@ Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList the
 
   Formula::VarList* freeVars = condition->freeVariables();
   //TODO: add reusing of definitions belonging to simple formulas
-  TRACE("pp_ste_if", tout<<"\n condition "<<condition->toString(),tout<<"\n then "<<thenBranch.toString(),
-	  tout<<"\n else "<<elseBranch.toString(););
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] ste_if: " << "\n condition "
+            << condition->toString() <<"\n then "<<thenBranch.toString()
+            << "\n else " << elseBranch.toString() << std::endl;    
+    env.endOutput();
+  }
   unsigned varUpperBound = 0;
   Stack<unsigned> argSorts;
   Stack<TermList> args;
@@ -512,10 +533,16 @@ Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList the
   Literal* eqThen = Literal::createEquality(true, func, z1, iteSort);
   Literal* eqElse = Literal::createEquality(true, func, z2, iteSort);
 
-  TRACE("pp_ste_if", tout<<"\n eqThen "<<eqThen->toString(), tout<<"\n eqElse "<<eqElse->toString(););
-
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] ste_if: "<< "\n eqThen "<<eqThen->toString() 
+            <<"\n eqElse "<<eqElse->toString();
+  }
   Formula* def = new IteFormula(condition, new AtomicFormula(eqThen), new AtomicFormula(eqElse));
-  TRACE("pp_ste_if", tout<<"\n new iteFormula"<<def->toString(););
+  if (env.options->showPreprocessing()) {
+    env.out() <<"\n new iteFormula"<<def->toString() << std::endl;
+    env.endOutput();
+  }
 
   FormulaUnit* defUnit = new FormulaUnit(def, new Inference(Inference::TERM_IF_THEN_ELSE_DEFINITION), Unit::AXIOM);
   UnitList::push(defUnit, _defs);

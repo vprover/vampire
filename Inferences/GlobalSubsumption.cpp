@@ -91,7 +91,6 @@ void GlobalSubsumption::addClauseToIndex(Clause* cl)
 
     Grounder::recordInference(cl, solver.getRefutation(), refutation);
 
-    LOG("inf_gs","gs found refutation "<<(*refutation)<<" based on "<<(*cl));
     env.statistics->globalSubsumption++;
     throw MainLoop::RefutationFoundException(refutation);
   }
@@ -175,7 +174,6 @@ Clause* GlobalSubsumption::tryResolvingAway(Clause* cl, unsigned litIdx, SATLite
 	replacement->setAge(cl->age());
 
 	Grounder::recordInference(cl, solver.getRefutation(), replacement);
-	LOG_SIMPL("inf_gs",cl,replacement);
 	env.statistics->globalSubsumption++;
         ASS_L(replacement->length(), clen);
 

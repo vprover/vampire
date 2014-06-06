@@ -21,7 +21,6 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
   if(!canSimplify(cl)) {
     return cl;
   }
-  LOG("inf_des","can simplify: "<<cl->toString());
   static LiteralStack lits;
   static Stack<Unit*> prems;
   prems.reset();
@@ -36,7 +35,6 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
     }
     if(lit->isNegative()) {
       //we have a clause that is implied by the distinctness constraints
-      LOG_TAUT("inf_des",cl);
       return 0;
     }
     Unit* prem = env.signature->getDistinctGroupPremise(grp);
@@ -62,7 +60,6 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
   }
   Unit::InputType inpType = cl->inputType();
   Clause* res = Clause::fromStack(lits, inpType, inf);
-  LOG_SIMPL("inf_des",cl,res);
   return res;
 }
 
@@ -96,7 +93,6 @@ bool DistinctEqualitySimplifier::mustBeDistinct(TermList t1, TermList t2, unsign
     unsigned candGrp = dl1it.next(); //candidate group
     if(dlst2->member(candGrp)) {
       grp = candGrp;
-      LOG("inf_des","must be distinct: "<<t1<<" and "<<t2<<" due to "<<grp);
       return true;
     }
   }

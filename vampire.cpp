@@ -677,15 +677,11 @@ int main(int argc, char* argv[])
     Shell::CommandLine cl(argc, argv);
     cl.interpret(*env.options);
 
-    PROCESS_TRACE_SPEC_STRING(env.options->traceSpecString());
-    env.options->enableTracesAccordingToOptions();
-
     if (env.options->showOptions()) {
       env.beginOutput();
       env.options->output(env.out());
       env.endOutput();
     }
-
 
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());

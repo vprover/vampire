@@ -29,7 +29,6 @@
 #include "clang/Parse/ParseAST.h"
 #include "Forwards.hpp"
 
-#include "Debug/Log.hpp"
 #include "Debug/Tracer.hpp"
 
 

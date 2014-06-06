@@ -26,7 +26,7 @@ using namespace Kernel;
  */
 class PDInliner {
 public:
-  PDInliner(bool axiomsOnly=false, bool trace=false, bool nonGrowing=false);
+  PDInliner(bool axiomsOnly=false, bool nonGrowing=false);
   ~PDInliner();
 
   void apply(Problem& prb);
@@ -122,8 +122,7 @@ private:
   MultiCounter _predOccCounts;
 
   bool _axiomsOnly;
-  bool _nonGrowing;
-  bool _trace;
+  bool _nonGrowing;  
 };
 
 }

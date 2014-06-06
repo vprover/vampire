@@ -91,8 +91,6 @@ Ordering::Result Ordering::compareEqualities(Literal* eq1, Literal* eq2) const
   _eqCmp->inUse=false;
 #endif
 
-//  LOG("eq cmp: "<<res<<"  "<<(*eq1)<<"   :   "<<(*eq2));
-
   return res;
 }
 

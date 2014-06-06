@@ -197,7 +197,7 @@ public:
     SHOW_NONCONSTANT_SKOLEM_FUNCTION_TRACE,
     SHOW_OPTIONS,
     SHOW_PASSIVE,
-    SHOW_PREPROCESSING_FORMULAS,
+    SHOW_PREPROCESSING,
     SHOW_SKOLEMISATIONS,
     SHOW_SYMBOL_ELIMINATION,
     SHOW_THEORY_AXIOMS,
@@ -239,7 +239,6 @@ public:
     THEORY_AXIOMS,
     TIME_LIMIT,
     TIME_STATISTICS,
-    TRACES,
     TRIVIAL_PREDICATE_REMOVAL,
 
     UNIT_RESULTING_RESOLUTION,
@@ -620,7 +619,7 @@ public:
   void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace = newVal; }
   bool showOptions() const { return _showOptions; }
   bool showPassive() const { return _showPassive; }
-  bool showPreprocessingFormulas() const { return _showPreprocessingFormulas; }
+  bool showPreprocessing() const { return _showPreprocessing; }
   bool showSkolemisations() const { return _showSkolemisations; }
   bool showSymbolElimination() const { return _showSymbolElimination; }
   bool showTheoryAxioms() const { return _showTheoryAxioms; }
@@ -779,7 +778,6 @@ public:
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds = newVal; }
   int getTimeLimit(){return _timeLimitInDeciseconds;}
-  string traceSpecString() const { return _traces; }
   int getWhileNumber(){return _whileNumber;}
   int getFunctionNumber(){return _functionNumber;}
 //   // standard ways of creating options
@@ -801,8 +799,6 @@ public:
   float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient; }
   bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval; }
   bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure; }
-
-  void enableTracesAccordingToOptions() const;
 
   void setProof(Proof p) { _proof = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval; }
@@ -994,7 +990,7 @@ private:
   bool _showNonconstantSkolemFunctionTrace;
   bool _showOptions;
   bool _showPassive;
-  bool _showPreprocessingFormulas;
+  bool _showPreprocessing;
   bool _showSkolemisations;
   bool _showSymbolElimination;
   bool _showTheoryAxioms;
@@ -1039,7 +1035,6 @@ private:
   /** Time limit in deciseconds */
   int _timeLimitInDeciseconds;
   bool _timeStatistics;
-  string _traces;
   bool _trivialPredicateRemoval;
 
   URResolution _unitResultingResolution;

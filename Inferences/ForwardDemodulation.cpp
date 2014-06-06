@@ -165,7 +165,6 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	      //---------------------
 	      //     t = t1 \/ C
 	      //where t > t1 and s = t > C
-	      LOG("inf_fwd_tlcheck","prevented fw dem: "<<(*eqLitS)<<" in "<<(*lit)<<" of "<<(*cl));
 	      continue;
 	    }
 	  }

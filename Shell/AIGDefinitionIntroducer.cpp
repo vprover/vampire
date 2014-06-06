@@ -16,6 +16,8 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "Flattening.hpp"
 #include "PDUtils.hpp"
 #include "SimplifyFalseTrue.hpp"
@@ -137,7 +139,12 @@ void AIGDefinitionIntroducer::doFirstRefAIGPass()
   size_t aigCnt = _refAIGs.size();
   for(size_t i=0; i<aigCnt; ++i) {
     AIGRef r = _refAIGs[i];
-    LOG("pp_aigdef_used_aigs","used at "<<i<<": "<<r.toInternalString());
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aigdef_used_aigs: used at "<<i
+              <<": "<<r.toInternalString() << std::endl;
+      env.endOutput();
+    }
     ASS(r.polarity());
     _aigIndexes.insert(r, i);
 
@@ -361,7 +368,11 @@ FormulaUnit* AIGDefinitionIntroducer::createNameUnit(AIGRef rhs, AIGRef atomName
   InferenceStore::instance()->recordIntroducedSymbol(def,false,nameLit->functor());
   _newDefs.push(def);
 
-  LOG_UNIT("pp_aigdef_intro", def);
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aigdef_intro: " << def->toString() << std::endl;
+    env.endOutput();
+  }
   return def;
 }
 
@@ -463,7 +474,12 @@ bool AIGDefinitionIntroducer::apply(FormulaUnit* unit, Unit*& res)
 
   if(f->connective()==TRUE) {
     res = 0;
-    LOG("pp_aigdef_apply","orig: " << (*unit) << endl << "  simplified to tautology");
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] aigdef_apply: orig: " << (*unit) << endl
+              << "  simplified to tautology" << std::endl;
+      env.endOutput();
+    }
     return true;
   }
 
@@ -471,7 +487,12 @@ bool AIGDefinitionIntroducer::apply(FormulaUnit* unit, Unit*& res)
 
   Inference* inf = getInferenceFromPremIndexes(unit, premIndexes);
   res = new FormulaUnit(f, inf, unit->inputType());
-  LOG("pp_aigdef_apply","orig: " << (*unit) << endl << "intr: " << (*res));
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aigdef_apply: orig: " << (*unit) << endl 
+            << "intr: " << (*res) << std::endl;
+    env.endOutput();
+  }
   ASS(!res->isClause());
   res = SimplifyFalseTrue().simplify(static_cast<FormulaUnit*>(res));
   res = Flattening::flatten(static_cast<FormulaUnit*>(res));
@@ -481,7 +502,11 @@ bool AIGDefinitionIntroducer::apply(FormulaUnit* unit, Unit*& res)
 UnitList* AIGDefinitionIntroducer::getIntroducedFormulas()
 {
   CALL("AIGDefinitionIntroducer::getIntroducedFormulas");
-  LOG("pp_aigdef_apply","processing definitions");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] aigdef_apply: processing definitions" << std::endl;
+    env.endOutput();
+  }
 
   UnitList* res = 0;
 

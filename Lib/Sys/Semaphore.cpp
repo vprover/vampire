@@ -14,8 +14,6 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 
-#include "Debug/Log.hpp"
-
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
@@ -82,8 +80,6 @@ get_retry:
     SYSTEM_FAIL("Cannot set initial semaphore values.",errno);
   }
   ASS_EQ(res,0);
-
-  LOG("mp_sem","Semaphore: created");
 
   registerInstance();
 }
@@ -157,7 +153,6 @@ retry_decreasing:
   int res=semop(semid, &buf, 1);
   if(res==-1 && errno==EINTR) {
     //we just received a signal -- now we can continue waiting
-    LOG("mp_sem","Semaphore: resuming waiting for decrease after a signal");
     goto retry_decreasing;
   }
   if(res==-1) {
@@ -290,7 +285,6 @@ void Semaphore::registerInstance(bool addToInstanceList)
   if(addToInstanceList) {
     SemaphoreList::push(this, s_instances);
   }
-  LOG("mp_sem","Semaphore: instance registered");
 }
 
 /**
@@ -301,11 +295,9 @@ void Semaphore::deregisterInstance()
 {
   CALL("Semaphore::deregisterInstance");
 
-  LOG("mp_sem","Semaphore: call to deregisterInstance");
   if(!hasSemaphore()) {
     return;
   }
-  LOG("mp_sem","Semaphore: deregistering instance");
   ASS(s_instances->member(this));
   s_instances=s_instances->remove(this);
 
@@ -349,7 +341,6 @@ void Semaphore::releaseInstance()
       SYSTEM_FAIL("Cannot destroy semaphore.",errno);
     }
     ASS_EQ(res,0);
-    LOG("mp_sem","Semaphore: sem destroyed");
   }
   else {
     //if we didn't delete the semaphore, we now allow other destructors to proceed
@@ -367,8 +358,6 @@ void Semaphore::releaseInstance()
 void Semaphore::releaseAllSemaphores()
 {
   CALL("Semaphore::releaseAllSemaphores");
-
-  LOG("mp_sem","Semaphore: releasing all");
 
   SemaphoreList* instIter=s_instances;
   while(instIter) {
@@ -389,8 +378,6 @@ void Semaphore::releaseAllSemaphores()
 void Semaphore::postForkInChild()
 {
   CALL("Semaphore::postForkInChild");
-
-  LOG("mp_sem","Semaphore: post-fork in child");
 
   SemaphoreList::Iterator sit(s_instances);
   while(sit.hasNext()) {

@@ -138,8 +138,6 @@ SimpleCongruenceClosure::SimpleCongruenceClosure()
   _posLitConst = getFreshConst();
   _negLitConst = getFreshConst();
   _negEqualities.push(CEq(_posLitConst, _negLitConst, 0));
-  LOG("dp_cc_const_intr", "posConst: "<<_posLitConst);
-  LOG("dp_cc_const_intr", "negConst: "<<_negLitConst);
 
   _hadPropagated = false;
 }
@@ -219,8 +217,6 @@ unsigned SimpleCongruenceClosure::getSignatureConst(unsigned symbol, bool funct)
   _cInfos[res].sigSymbol = symbol;
   _cInfos[res].sigSymIsFunct = funct;
   *pRes = res;
-  LOG("dp_cc_const_intr", "signConst: "<<res<<" ("
-      <<(funct ? env.signature->functionName(symbol) : env.signature->predicateName(symbol) )<<")");
 
   return res;
 }
@@ -248,7 +244,6 @@ unsigned SimpleCongruenceClosure::getPairName(CPair p)
     _cInfos[sRepr].useList.push(res);
   }
 
-  LOG("dp_cc_const_intr", "pairConst: "<<res<<" ("<<p.first<<","<<p.second<<")");
   return res;
 }
 
@@ -300,7 +295,6 @@ struct SimpleCongruenceClosure::FOConversionWorker
     }
     _parent._cInfos[res].term = t;
     _parent._termNames.insert(t, res);
-    LOG("dp_cc_fo_conv", "Term "<<t<<" converted to "<<res);
     return res;
   }
 
@@ -344,8 +338,6 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
   _cInfos[res].lit = lit;
 
   _litNames.insert(lit, res);
-
-  LOG("dp_cc_fo_conv", "Lit "<<(*Literal::positiveLiteral(lit))<<" converted to "<<res);
   return res;
 }
 
@@ -360,8 +352,6 @@ void SimpleCongruenceClosure::readDistinct(Literal* lit)
 {
   CALL("SimpleCongruenceClosure::readDistinct");
 
-  LOG("dp_cc_distinct","adding distinct constraint "<<(*lit));
-
   bool pos = lit->isPositive();
   DistinctStack& tgtDStack = pos ? _distinctConstraints : _negDistinctConstraints;
   tgtDStack.push(DistinctEntry(lit));
@@ -371,7 +361,6 @@ void SimpleCongruenceClosure::readDistinct(Literal* lit)
     TermList arg = ait.next();
     unsigned cNum = convertFO(arg);
     tgtStack.push(cNum);
-    LOG("dp_cc_distinct","  dist const "<<arg<<" represented as number "<<cNum);
   }
 }
 
@@ -393,10 +382,8 @@ void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
     Literal* l = lits.next();
     if(!l->ground()) {
       //for now we ignore non-ground literals
-      LOG("dp_cc_interf_inp", "non-ground lit "<<(*l)<<" skipped");
       continue;
     }
-    LOG("dp_cc_interf_inp", "added "<<(*l));
     if(l->isEquality()) {
       CEq eq = convertFOEquality(l);
       if(l->isPositive()) {
@@ -428,7 +415,6 @@ void SimpleCongruenceClosure::addPendingEquality(CEq eq) {
 
   ASS_G(eq.c1,0);
   ASS_G(eq.c2,0);
-  LOG("dp_cc_eqs_pending","pending equality: "<<eq.toString(*this));
   _pendingEqualities.push_back(eq);
 }
 
@@ -488,8 +474,6 @@ void SimpleCongruenceClosure::propagate()
 
     unsigned aRep = curr.first;
     unsigned bRep = curr.second;
-
-    LOG("dp_cc_unions","union of "<<curr0.toString(*this)<<" dereferenced as "<<bRep<<"<-"<<aRep);
 
     ConstInfo& aInfo = _cInfos[aRep];
     ConstInfo& bInfo = _cInfos[bRep];
@@ -604,9 +588,7 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultip
   propagate();
 
   if(!checkPositiveDistincts(retrieveMultipleCores)) {
-    LOG("dp_cc_interf_res","conflict from positive distinct");
     if(!retrieveMultipleCores) {
-      LOG("dp_cc_interf_res","cc gave UNSAT");
       return DecisionProcedure::UNSATISFIABLE;
     }
   }
@@ -622,26 +604,20 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultip
     CPair derNEq = deref(neq);
     if(derNEq.first==derNEq.second) {
       _unsatEqs.push(neq);
-      LOG("dp_cc_contr", "contradiction: ("<<neq.c1<<","<<neq.c2<<") both dereferenced to "<<derNEq.first);
       if(!retrieveMultipleCores) {
-	LOG("dp_cc_interf_res","cc gave UNSAT");
 	return DecisionProcedure::UNSATISFIABLE;
       }
     }
   }
 
   DecisionProcedure::Status ndStatus = checkNegativeDistincts(retrieveMultipleCores);
-  COND_LOG("dp_cc_interf_res",ndStatus==DecisionProcedure::UNSATISFIABLE, "conflict from negative distinct");
 
   if(_unsatEqs.isNonEmpty()) {
-    LOG("dp_cc_interf_res","cc gave UNSAT");
     return DecisionProcedure::UNSATISFIABLE;
   }
   if(ndStatus==DecisionProcedure::UNKNOWN) {
-    LOG("dp_cc_interf_res","cc gave UNKNOWN because of the presence of negative $distinct literals");
     return DecisionProcedure::UNKNOWN;
   }
-  LOG("dp_cc_interf_res","cc gave SAT");
   return DecisionProcedure::SATISFIABLE;
 }
 
@@ -669,7 +645,6 @@ void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stac
 {
   CALL("SimpleCongruenceClosure::collectUnifyingPath");
   ASS_EQ(deref(c1), deref(c2));
-  LOG("dp_cc_expl_up","finding unifying path between "<<c1<<" and "<<c2);
 
   //this function could be probably made more efficient if we use some time-stamping the the ConstInfo object
 
@@ -680,17 +655,12 @@ void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stac
     swap(c1,c2);
     swap(depth1,depth2);
   }
-  LOG("dp_cc_expl_up","proof depth of c1 "<<c1<<": "<<depth1);
-  LOG("dp_cc_expl_up","proof depth of c2 "<<c2<<": "<<depth2);
 
   while(depth1>depth2) {
     path.push(c1);
     c1 = _cInfos[c1].proofPredecessor;
     depth1--;
-    LOG("dp_cc_expl_up","c1 up to "<<c1);
  }
-
-  LOG("dp_cc_expl_up","equal depth of both branches");
 
 #if VDEBUG
   unsigned depth=depth1;
@@ -704,8 +674,6 @@ void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stac
     c1 = _cInfos[c1].proofPredecessor;
     path.push(c2);
     c2 = _cInfos[c2].proofPredecessor;
-    LOG("dp_cc_expl_up","c1 up to "<<c1);
-    LOG("dp_cc_expl_up","c2 up to "<<c2);
   }
 }
 
@@ -715,13 +683,10 @@ void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex
   ASS(res.isEmpty());
   ASS_L(coreIndex,_unsatEqs.size());
 
-  LOG("dp_cc_interf_unsat", "UNSAT subset start");
-
   CEq unsatEq = _unsatEqs[coreIndex];
 
   ASS(unsatEq.foOrigin);
   if(unsatEq.foPremise) {
-    LOG("dp_cc_interf_unsat", *unsatEq.foPremise);
     res.push(unsatEq.foPremise);
   }
 
@@ -738,24 +703,19 @@ void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex
 
     if(explained.root(curr.first)==explained.root(curr.second)) {
       //we've already explained this equality
-      LOG("dp_cc_expl_curr","("<<curr.first<<","<<curr.second<<") already explained");
       continue;
     }
-    LOG("dp_cc_expl_curr","("<<curr.first<<","<<curr.second<<") to be explained now");
     pathStack.reset();
     collectUnifyingPath(curr.first, curr.second, pathStack);
     while(pathStack.isNonEmpty()) {
       unsigned proofStepConst = pathStack.pop();
       CEq& prem = _cInfos[proofStepConst].predecessorPremise;
-      LOG("dp_cc_expl_prem", "premise: "<<prem.toString(*this));
       if(explained.root(prem.c1)==explained.root(prem.c2)) {
         //we've already explained this equality
-        LOG("dp_cc_expl_curr","("<<prem.c1<<","<<prem.c2<<") already explained");
         continue;
       }
       if(prem.foOrigin) {
 	if(prem.foPremise) {
-	  LOG("dp_cc_interf_unsat", *prem.foPremise);
 	  res.push(prem.foPremise);
 	}
       }
@@ -767,8 +727,6 @@ void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex
 	ASS_NEQ(cp1.second,0);
 	ASS_NEQ(cp2.first,0);
 	ASS_NEQ(cp2.second,0);
-	LOG("dp_cc_expl_planned","need to explain ("<<cp1.first<<","<<cp1.second<<")");
-	LOG("dp_cc_expl_planned","need to explain ("<<cp2.first<<","<<cp2.second<<")");
 	toExplain.push(CPair(cp1.first, cp2.first));
 	ASS_EQ(deref(toExplain.top().first), deref(toExplain.top().second));
 	toExplain.push(CPair(cp1.second, cp2.second));
@@ -777,8 +735,6 @@ void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex
       explained.doUnion(prem.c1, prem.c2);
     }
   }
-
-  LOG("dp_cc_interf_unsat", "UNSAT subset end");
 }
 
 

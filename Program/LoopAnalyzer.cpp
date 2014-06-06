@@ -702,14 +702,12 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
       default:
 	ASSERTION_VIOLATION;
       }
-      LOG("lin_letCondition","let conditon: "<< condition->toString());
       return letCondition(sit,condition, condPos, currPos+1);
     }
   case Statement::BLOCK:
   case Statement::WHILE_DO:
   case Statement::ITE: 
   case Statement::ITS:
-    LOG("lin_letCondition","let condition: "<<condition->toString());
     return letCondition(sit,condition, condPos, currPos+1);
   default:
     ASSERTION_VIOLATION;
@@ -761,7 +759,6 @@ Formula* LoopAnalyzer::letTranslationOfGuards(Path* path, Path::Iterator &sit, F
     Formula* cond= conditions.pop();
     letFormula = new BinaryFormula(IMP, cond, letFormula);
   }
-  LOG("lin_letTransG","translation of guards: "<<letFormula->toString());
   return letFormula; 
 }
 
@@ -840,7 +837,6 @@ void LoopAnalyzer::generateLetExpressions()
       //process updated scalars 
       VariableMap::Iterator varit(_variableInfo);
       letFormula = letTranslationOfVar(varit,letFormula);
-      LOG("lin_let","let expression: "<<letFormula->toString());
     }
   }
 }
@@ -1045,7 +1041,6 @@ Formula* LoopAnalyzer::arrayUpdateCondition(Path* path, Path::Iterator &sit, int
     }
   }
   
-  LOG("lin_arrayUpdateCond","array update condition: "<<arrayUpdCondition->toString());
   return arrayUpdCondition;
 }
 
@@ -1128,7 +1123,6 @@ Formula* LoopAnalyzer::updatePredicateOfArray2(Path* path, Path::Iterator &sit, 
       arrayUpdPredicate=new JunctionFormula(OR,interForm);
     }
   }
-  LOG("lin_arrayUpdPred","array upd pred: "<<arrayUpdPredicate->toString());
   return arrayUpdPredicate;  
 }
 
@@ -1211,12 +1205,10 @@ Formula* LoopAnalyzer::updatePredicateOfArray3(Path* path, Path::Iterator &sit, 
     if (firstUpdFormula) {
       arrayUpdPredicate = updPred;
       firstUpdFormula=0;
-      LOG("lin_arrayUpdPred","array upd pred: "<<arrayUpdPredicate->toString());
     }
     else {
       FormulaList* interForm = (new FormulaList(arrayUpdPredicate))->cons(updPred);
       arrayUpdPredicate=new JunctionFormula(OR,interForm);
-      LOG("lin_arrayUpdPred","array upd pred: "<<arrayUpdPredicate->toString());
     }
   }    
   return arrayUpdPredicate;  
@@ -1292,7 +1284,6 @@ Formula* LoopAnalyzer::stabilityProperty(Literal* updPred, string array, TermLis
   QuantifiedFormula* qf = new QuantifiedFormula(FORALL, new Formula::VarList(0), stabilityCondition);
   
   Formula* stabilityProp = new BinaryFormula(IMP,qf,new AtomicFormula(stabilityImplication));
-  LOG("lin_stability","stability properties: "<<stabilityProp->toString());
   return stabilityProp;
 }
 
@@ -1366,19 +1357,15 @@ void LoopAnalyzer::generateUpdatePredicates()
     //generate stability property: (iter(x0)=>~updV(x0,x2)) => V(X2)=V0(X2)
     Formula* stabProp = stabilityProperty(upd1, v->name(), x2, x0);
 
-    LOG("lin_arrayUpdateCond","update def: " << updDefV1->toString());
     _units = _units->cons(new FormulaUnit(updDefV1,
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));
-    LOG("lin_arrayUpdateCond","update def: "<<updDefV2->toString());
     _units = _units->cons(new FormulaUnit(updDefV2,
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));
-    LOG("lin_arrayUpdateCond","last update: "<<lastUpd->toString());
     _units = _units->cons(new FormulaUnit(lastUpd,
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));	
-    LOG("lin_arrayUpdateCond","stability prop: "<<stabProp->toString());
     _units = _units->cons(new FormulaUnit(stabProp,
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));	
@@ -1444,13 +1431,10 @@ void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
 			     new FormulaUnit(initialValFctCorresp,
 					     new Inference(Inference::PROGRAM_ANALYSIS),
 					     Unit::ASSUMPTION));
-       LOG("lin_initial",
-	   "initialValue: "<<initialValFctCorresp->toString());
        _units = _units->cons(
 			     new FormulaUnit(finalValFctCorresp,
 					     new Inference(Inference::PROGRAM_ANALYSIS),
 					     Unit::ASSUMPTION));
-       LOG("lin_initial", "finalVlaue: "<<finalValFctCorresp->toString());
      }
      if (scalar) {
        //create final and initial scalar functions
@@ -1467,11 +1451,9 @@ void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
        _units = _units->cons(new FormulaUnit(finalValFctCorresp,
 					     new Inference(Inference::PROGRAM_ANALYSIS),
 					     Unit::ASSUMPTION));	
-       LOG("lin_initial","scalar final: "<<finalValFctCorresp->toString());
        _units = _units->cons(new FormulaUnit(initialValFctCorresp,
 					     new Inference(Inference::PROGRAM_ANALYSIS),
 					     Unit::ASSUMPTION));	
-       LOG("lin_initial","scalar initial: "<<initialValFctCorresp->toString());
      }
    }
 }
@@ -1504,9 +1486,6 @@ void LoopAnalyzer::generateLoopConditionProperty()
   Formula* loopConditionProp =
     new BinaryFormula(IMP,new AtomicFormula(iterPred),condition);
     
-
-  LOG("lin_lCond","loop condition: "<< loopConditionProp->toString());
-
   _units = _units->cons(new FormulaUnit(loopConditionProp,
 					new Inference(Inference::PROGRAM_ANALYSIS),
 					Unit::ASSUMPTION));	
@@ -1542,7 +1521,6 @@ void LoopAnalyzer::generateIterationDefinition()//TermList n)
   //generate the prop: iter <=> ...
   Formula* iterProp = new BinaryFormula(IFF, new AtomicFormula(iterPred), iterDef);
 
-  LOG("lin_ite","iteration definition: "<<iterProp->toString());
  _units = _units->cons(new FormulaUnit(iterProp,
 					new Inference(Inference::PROGRAM_ANALYSIS),
 					Unit::AXIOM));
@@ -1567,7 +1545,6 @@ Formula* LoopAnalyzer::relativePathCondition(Formula* condition)
   //process updated scalars 
   VariableMap::Iterator varit(_variableInfo);
   relativeCondition = letTranslationOfVar(varit,condition);    
-  LOG("lin_relativePath","relative path condition: "<< relativeCondition->toString());
   return relativeCondition;
 }
 
@@ -1789,7 +1766,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
       eq = createIntEquality(true, cx0, sum);
     }
     (*cls)[0] = eq;
-    LOG("lin_counter", "1 counter axiom: "<<cls->toString());
     _units = _units->cons(cls);
     return;
   }
@@ -1801,7 +1777,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
     Clause* cls = new (1) Clause(1, Unit::ASSUMPTION,
 				 new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
-    LOG("lin_counter", "2 counter axioms: "<<cls->toString());
     _units = _units->cons(cls);
 
   }
@@ -1817,8 +1792,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
     _units = _units->cons(new FormulaUnit(new AtomicFormula(ineg),
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));
-    
-    LOG("lin_counter", "3 counter axioms: "<<ineg->toString());
   }
   else {
     TermList c_max(theory->representConstant(IntegerConstantType(max)));
@@ -1831,7 +1804,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
     Clause* cls = new (1) Clause(1, Unit::ASSUMPTION,
 				 new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
-    LOG("lin_counter","4 counter axiom: "<<ineq->toString());
     _units = _units->cons(cls);
   }
 
@@ -1843,9 +1815,7 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
     TermList cx(Term::create(fun, 1, &yy));
     Literal* ineqN = theory->pred2(Theory::INT_GREATER_EQUAL, true, cx, cx0);
     BinaryFormula* res = new BinaryFormula(IMP, new AtomicFormula(x0greq0), new AtomicFormula(ineqN));
-    _units = _units->cons(new FormulaUnit(res, new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
-    LOG("lin_counter", "5 counter axiom: "<<res->toString());
-    
+    _units = _units->cons(new FormulaUnit(res, new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));   
   }
   else if (min == 1 || min == -1) { // c(x0) >= c +- x_0
     TermList yy;
@@ -1858,7 +1828,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
 			       cX0, yy));
     Literal* cX0YGsum = theory->pred2(Theory::INT_GREATER_EQUAL, true, cX0Y,
 				      sum2);
-    LOG("lin_counter", "6 counter axiom: "<<cX0YGsum->toString());
     _units = _units->cons(new FormulaUnit(new AtomicFormula(cX0YGsum),
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));
@@ -1871,7 +1840,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
     Literal* ineq = theory->pred2(Theory::INT_GREATER_EQUAL, true, cx0, sum);
     Clause* cls = new (1) Clause(1, Unit::ASSUMPTION, new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
-    LOG("lin_counter", "7 counter axiom: "<<ineq->toString());
     _units = _units->cons(cls);
   }
   
@@ -1909,7 +1877,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
     FormulaList* right = (new FormulaList(cKequalV))->cons(nfK)->cons(condition_with_iteration);
     Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
 					 new JunctionFormula(AND, right));
-    LOG("lin_density","density axioms: " << lhs->toString() << " => "<< rhs->toString());
     _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs),
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));
@@ -1937,7 +1904,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
         
     Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
 					 new JunctionFormula(AND, right));
-    LOG("lin_density","density axioms: " << lhs->toString() << " => " << rhs->toString());
     _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs), new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
   }
 }

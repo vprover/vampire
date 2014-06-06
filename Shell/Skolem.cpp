@@ -217,15 +217,24 @@ Formula* Skolem::skolemise (Formula* f)
 	Term* skolemTerm = createSkolemTerm(v);
 	_subst.bind(v,skolemTerm);
 
-	LOG("pp_sk_funs","Skolemising: "<<skolemTerm->toString()<<" for X"<<v
-	    <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString());
-	COND_TRACE("pp_sk_nonconst_intr", arity!=0,
-	    tout<<"Nonconstant skolem function introduced: "
-		<<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
-		<<" in formula "<<_beingSkolemised->toString()<<endl;
-	    Refutation ref(_beingSkolemised, true);
-	    ref.output(tout);
-	);
+  if (env.options->showSkolemisations()) {
+    env.beginOutput();
+    env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
+	    <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString();
+    env.endOutput();
+  }
+  
+  if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
+    env.beginOutput();
+    ostream& out = env.out();
+      out <<"Nonconstant skolem function introduced: "
+      <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
+      <<" in formula "<<_beingSkolemised->toString()<<endl;
+      
+	  Refutation ref(_beingSkolemised, true);
+	  ref.output(out);
+    env.endOutput();
+  }
       }
       Formula* g = skolemise(f->qarg());
       vs.reset(f->vars());

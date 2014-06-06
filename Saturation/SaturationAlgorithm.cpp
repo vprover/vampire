@@ -234,8 +234,11 @@ size_t SaturationAlgorithm::passiveClauseCount()
  */
 void SaturationAlgorithm::onActiveAdded(Clause* c)
 {
-  LOG_UNIT("sa_active_added", c);
-  LOG_INT("sa_active_size", _active->size());
+  if (env.options->showActive()) {
+    env.beginOutput();    
+    env.out() << "[SA] active: " << c->toString() << std::endl;
+    env.endOutput();             
+  }          
 }
 
 /**
@@ -244,9 +247,6 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
 void SaturationAlgorithm::onActiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onActiveRemoved");
-
-  LOG_UNIT("sa_active_removed", c);
-  LOG_INT("sa_active_size", _active->size());
 
   ASS(c->store()==Clause::ACTIVE);
   c->setStore(Clause::NONE);
@@ -276,9 +276,12 @@ void SaturationAlgorithm::onAllProcessed()
  */
 void SaturationAlgorithm::onPassiveAdded(Clause* c)
 {
-  LOG_UNIT("sa_passive_added", c);
-  LOG_INT("sa_passive_size", _passive->size());
-
+  if (env.options->showPassive()) {
+    env.beginOutput();
+    env.out() << "[SA] passive: " << c->toString() << std::endl;
+    env.endOutput();
+  }
+  
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
@@ -292,10 +295,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
 void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onPassiveRemoved");
-
-  LOG_UNIT("sa_passive_removed", c);
-  LOG_INT("sa_passive_size", _passive->size());
-
+  
   ASS(c->store()==Clause::PASSIVE);
   c->setStore(Clause::NONE);
   //at this point the c object can be deleted
@@ -310,8 +310,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
-  LOG_UNIT("sa_passive_selected", c);
-  LOG_INT("sa_passive_size", _passive->size());
+
 }
 
 /**
@@ -319,7 +318,7 @@ void SaturationAlgorithm::onPassiveSelected(Clause* c)
  */
 void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
 {
-  LOG_UNIT("sa_unprocessed_added", c);
+  
 }
 
 /**
@@ -327,12 +326,12 @@ void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
  */
 void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
 {
-  LOG_UNIT("sa_unprocessed_removed", c);
+  
 }
 
 void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 {
-  LOG_UNIT("sa_unprocessed_selected", c);
+  
 }
 
 /**
@@ -378,7 +377,12 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 //    }
 //  }
 
-  LOG_UNIT("sa_new_clause", cl);
+   
+  if (env.options->showNew()) {
+    env.beginOutput();
+    env.out() << "[SA] new: " << cl->toString() << std::endl;
+    env.endOutput();
+  }
 
   if (cl->isPropositional()) {
     onNewUsefulPropositionalClause(cl);
@@ -393,8 +397,12 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
 {
   CALL("SaturationAlgorithm::onNewUsefulPropositionalClause");
   ASS(c->isPropositional());
-
-  LOG_UNIT("sa_new_prop_clause", c);
+  
+  if (env.options->showNewPropositional()) {
+    env.beginOutput();
+    env.out() << "[SA] new propositional: " << c->toString() << std::endl;
+    env.endOutput();
+  }
 
   if (_consFinder) {
     _consFinder->onNewPropositionalClause(c);
@@ -408,7 +416,6 @@ void SaturationAlgorithm::onClauseRetained(Clause* cl)
 {
   CALL("SaturationAlgorithm::onClauseRetained");
 
-  LOG_UNIT("sa_retained_clause", cl);
 }
 
 /**
@@ -669,21 +676,6 @@ public:
     ASS(_cl);
 
     //BDDNode* oldClProp=_cl->prop();
-
-    LOG_UNIT("sa_fw_simpl_red_clause",_cl);
-    TRACE("sa_fw_simpl",
-	tout << "->>--------\n";
-	ClauseList* lst=0;
-	while (premises.hasNext()) {
-	  Clause* premise=premises.next();
-	  ASS(willPerform(premise));
-	  ClauseList::push(premise, lst);
-	  tout << ":" << (*premise) << endl;
-	}
-	cout << "-" << (*_cl) << endl;
-	premises=pvi( ClauseList::DestructiveIterator(lst) );
-    );
-
     if (replacement) {
     // No prop parts.
     //  replacement->initProp(oldClProp);
@@ -696,14 +688,6 @@ public:
     //_cl->setProp(bdd->getTrue());
     //InferenceStore::instance()->recordPropReduce(_cl, oldClProp, bdd->getTrue());
     _cl=0;
-
-    TRACE("sa_fw_simpl",
-	if (replacement) {
-	  tout << "+" << (*replacement) << endl;
-	}
-	tout << "removed\n";
-	tout << "^^^^^^^^^^^^\n";
-    );
   }
 
   bool willPerform(Clause* premise)
@@ -990,7 +974,6 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       if (replacement) {
 	addNewClause(replacement);
       }
-      LOG_UNIT("sa_bw_simpl_red_clause",redundant);
       onClauseReduction(redundant, replacement, cl, 0, false);
 
 
@@ -1001,18 +984,6 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       redundant->incRefCnt(); //we don't want the clause deleted before we record the simplification
 
       removeActiveOrPassiveClause(redundant);
-
-
-      TRACE("sa_bw_simpl",
-	tout << "-<<--------\n";
-	tout << ":" << (*cl) << endl;
-	tout << "-" << (*redundant) << endl;
-	if (replacement) {
-	  tout << "+" << (*replacement) << endl;
-	}
-	tout << "removed\n";
-	tout << "^^^^^^^^^^^\n";
-      );
 
       redundant->decRefCnt();
     }
@@ -1109,8 +1080,6 @@ bool SaturationAlgorithm::activate(Clause* cl)
     Clause* genCl=toAdd.next();
 
     addNewClause(genCl);
-
-    LOG_UNIT("sa_generated_clause", genCl);
 
     Inference::Iterator iit=genCl->inference()->iterator();
     while (genCl->inference()->hasNext(iit)) {

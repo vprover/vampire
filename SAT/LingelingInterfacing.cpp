@@ -243,7 +243,6 @@ static void alert_abort(int sig){
 		CALL("LingelingInterfacing::addAssumption(SATLiteral, unsigned condlictCountLimit)");
 		//in case the solver is in UNSATISFIABLE state don't assume the literal
 		if (_status == SATSolver::UNSATISFIABLE) {
-			 LOG("sat_asmp","assumption ignored due to unsat state");
 			return;
 		}
 		//if the literal has negative polarity then multiply the flag by -1
@@ -259,7 +258,6 @@ static void alert_abort(int sig){
 	void LingelingInterfacing::addCAssumption(SATClause* clause, unsigned conflictCountLimit){
 		CALL("LingelingInterfacing::addaCAssumption");
 		if(_status == SATSolver::UNSATISFIABLE){
-			LOG("sat_asmp", "assumption ignored due to unsat state in CAssumption");
 			return;
 		}
 		unsigned clauseLength = clause->length();

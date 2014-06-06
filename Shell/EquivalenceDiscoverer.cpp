@@ -202,7 +202,11 @@ void EquivalenceDiscoverer::collectRelevantLits()
 
       _eligibleSatLits.push(slit);
 
-      LOG("pp_ed_lits", "pp_ed_lits:  fo: "<<(*npLit)<<"  sat: "<<slit.toString());
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] ed_lits: fo: "<<(*npLit)<<"  sat: "<<slit.toString() << std::endl;
+        env.endOutput();
+      }
     }
   }
 }
@@ -220,7 +224,11 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
     addGrounding(cl);
   }
 
-  LOG("pp_ed_progress","groundings added");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] groundings added" << std::endl;
+    env.endOutput();
+  }
 
   _filteredSatClauses.loadFromIterator(
       SAT::Preprocess::filterPureLiterals(_maxSatVar+1,
@@ -228,13 +236,21 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
 
   collectRelevantLits();
 
-  LOG("pp_ed_progress","relevant literals collected");
-
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] relevant literals collected" << std::endl;
+    env.endOutput();
+  }
+  
   _solver->ensureVarCnt(_maxSatVar+1);
   _solver->addClauses(pvi(SATClauseStack::Iterator(_filteredSatClauses)));
 
-  LOG("pp_ed_progress","grounded clauses added to SAT solver");
-
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] grounded clauses added to SAT solver" << std::endl;
+    env.endOutput();
+  }
+    
   if(_solver->getStatus()==SATSolver::UNSATISFIABLE) {
     //we might have built a refutation clause here but this is highly unlikely case anyway...
     return 0;
@@ -242,13 +258,21 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
   ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
 
   //the actual equivalence finding
-
-  LOG("pp_ed_progress","starting equivalence discovery among "<<_eligibleSatLits.size()<<" atoms");
-
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] starting equivalence discovery among "
+            <<_eligibleSatLits.size()<<" atoms" << std::endl;
+    env.endOutput();
+  }
+  
   UnitList* res = 0;
   doISSatDiscovery(res);
 
-  LOG("pp_ed_progress","finished");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] finished" << std::endl;
+    env.endOutput();
+  }
 
   return res;
 }
@@ -270,10 +294,11 @@ SATSolver& EquivalenceDiscoverer::getProofRecordingSolver()
       clauseCopies.push(clCopy);
     }
 
-    if(TAG_ENABLED("sat_recorder")) {
+    // a relict of the LOGGING module -- could RecordingSatSolver be still useful?
+    /*if(TAG_ENABLED("sat_recorder")) {
       _proofRecordingSolver = new Test::RecordingSatSolver(new TWLSolver(*env.options, true));
     }
-    else {
+    else*/ {
       _proofRecordingSolver = new TWLSolver(*env.options, true);
     }
     _proofRecordingSolver->ensureVarCnt(_maxSatVar+1);
@@ -414,7 +439,11 @@ bool EquivalenceDiscoverer::handleTrueLiteral(SATLiteral l, UnitList*& eqAcc)
   FormulaUnit* fu = new FormulaUnit(atomForm, inf, Unit::AXIOM);
   UnitList::push(fu, eqAcc);
 
-  LOG_UNIT("pp_ed_tl",fu);
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] ed_tl: " << fu->toString() << std::endl;
+    env.endOutput();
+  }
 
   return false;
 }
@@ -447,7 +476,11 @@ bool EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, Unit
   FormulaUnit* fu = new FormulaUnit(eqForm, inf, Unit::AXIOM);
   UnitList::push(fu, eqAcc);
 
-  LOG_UNIT("pp_ed_eq",fu);
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] ed_eq: " << fu->toString() << std::endl;
+    env.endOutput();
+  }
 
   return true;
 }
@@ -483,7 +516,11 @@ bool EquivalenceDiscoverer::handleImplication(SATLiteral lhs, SATLiteral rhs, Un
   FormulaUnit* fu = new FormulaUnit(eqForm, inf, Unit::AXIOM);
   UnitList::push(fu, eqAcc);
 
-  LOG_UNIT("pp_ed_imp",fu);
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] ed_imp: " << fu->toString() << std::endl;
+    env.endOutput();
+  }
 
   return true;
 }
@@ -498,10 +535,16 @@ UnitList* EquivalenceDiscoverer::getEquivalences(UnitList* units, const Options*
 
   Problem prb(units->copy());
 
-  LOG("pp_progress","--- preprocessing for equivalence discovery started ---");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "--- preprocessing for equivalence discovery started ---" << std::endl;
+  }
   Preprocess prepr(prepOpts);
   prepr.preprocess(prb);
-  LOG("pp_progress","--- preprocessing for equivalence discovery finished ---");
+  if (env.options->showPreprocessing()) {
+    env.out() << "--- preprocessing for equivalence discovery finished ---" << std::endl;
+    env.endOutput();
+  }
   //TODO: we will leak the results of this preprocessing iteration
 
   return getEquivalences(prb.clauseIterator());
@@ -599,13 +642,21 @@ UnitList* FormulaEquivalenceDiscoverer::collectOuterEquivalences(UnitList* named
 
     if(!f1o || !f2o) {
       //couldn't translate the introduced names, so we skip this equivalence
-      LOG_UNIT("pp_ed_form_failed", u);
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] ed_form_failed: " << u->toString() << std::endl;
+        env.endOutput();
+      }
       continue;
     }
     if(f1o==f1 && f2o==f2) {
       //no need to translate, we just use the original equivalence
       UnitList::push(u, res);
-      LOG_UNIT("pp_ed_form_res_direct", u);
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] ed_form_res_direct: " << u->toString() << std::endl;
+        env.endOutput();
+      }
       continue;
     }
     ASS(prems.isNonEmpty());
@@ -627,9 +678,12 @@ UnitList* FormulaEquivalenceDiscoverer::collectOuterEquivalences(UnitList* named
     Inference* inf = new InferenceMany(Inference::DEFINITION_UNFOLDING, premLst);
     FormulaUnit* newUnit = new FormulaUnit(eqForm, inf, Unit::getInputType(premLst));
 
-
     UnitList::push(newUnit,res);
-    LOG_UNIT("pp_ed_form_res_translated", newUnit);
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] ed_form_res_translated: " << newUnit->toString() << std::endl;
+      env.endOutput();
+    }    
   }
   return res;
 }

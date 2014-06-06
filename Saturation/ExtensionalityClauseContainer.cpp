@@ -85,7 +85,6 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
     add(ExtensionalityClause(c, varEq, sort));
     _size++;
     env.statistics->extensionalityClauses++;
-    LOG_UNIT("sa_ext_added", c);
     return varEq;
   }
 
@@ -131,7 +130,6 @@ struct ExtensionalityClauseContainer::ActiveFilterFn
     if (extCl.clause->store() != Clause::ACTIVE) {
       extCl.clause->setExtensionality(false);
       _parent._size--;
-      LOG_UNIT("sa_ext_removed", extCl.clause);
       return false;
     }
     return true;

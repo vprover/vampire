@@ -265,7 +265,7 @@ const char* Options::Constants::_optionNames[] = {
   "show_nonconstant_skolem_function_trace",
   "show_options",
   "show_passive",
-  "show_preprocessing_formulas",
+  "show_preprocessing",
   "show_skolemisations",
   "show_symbol_elimination",
   "show_theory_axioms",
@@ -306,7 +306,6 @@ const char* Options::Constants::_optionNames[] = {
   "theory_axioms",
   "time_limit",
   "time_statistics",
-  "traces",
   "trivial_predicate_removal",
 
   "unit_resulting_resolution",
@@ -964,7 +963,7 @@ Options::Options ()
   _showNonconstantSkolemFunctionTrace(false),
   _showOptions(false),
   _showPassive(false),
-  _showPreprocessingFormulas(false),
+  _showPreprocessing(false),
   _showSkolemisations(false),
   _showSymbolElimination(false),
   _showTheoryAxioms(false),
@@ -1004,7 +1003,6 @@ Options::Options ()
   _theoryAxioms(true),
   _timeLimitInDeciseconds(600),
   _timeStatistics(false),
-  _traces(""),
   _trivialPredicateRemoval(false),
 
   _unitResultingResolution(URR_OFF),
@@ -1605,8 +1603,8 @@ void Options::set(const char* name,const char* value, int index)
     case SHOW_PASSIVE:
       _showPassive = onOffToBool(value,name);
       return;
-    case SHOW_PREPROCESSING_FORMULAS:
-      _showPreprocessingFormulas = onOffToBool(value,name);
+    case SHOW_PREPROCESSING:
+      _showPreprocessing = onOffToBool(value,name);
       return;
     case SHOW_SKOLEMISATIONS:
       _showSkolemisations = onOffToBool(value,name);
@@ -1731,9 +1729,6 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case TIME_STATISTICS:
       _timeStatistics = onOffToBool(value,name);
-      return;
-    case TRACES:
-      _traces = value;
       return;
     case TRIVIAL_PREDICATE_REMOVAL:
       _trivialPredicateRemoval = onOffToBool(value,name);
@@ -2449,8 +2444,8 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SHOW_PASSIVE:
     str << boolToOnOff(_showPassive);
     return;
-  case SHOW_PREPROCESSING_FORMULAS:
-    str << boolToOnOff(_showPreprocessingFormulas);
+  case SHOW_PREPROCESSING:
+    str << boolToOnOff(_showPreprocessing);
     return;
   case SHOW_SKOLEMISATIONS:
     str << boolToOnOff(_showSkolemisations);
@@ -2575,9 +2570,6 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case TIME_STATISTICS:
     str << boolToOnOff(_timeStatistics);
-    return;
-  case TRACES:
-    str << _traces;
     return;
   case TRIVIAL_PREDICATE_REMOVAL:
     str << boolToOnOff(_trivialPredicateRemoval);
@@ -3198,21 +3190,4 @@ void Options::setMode(Mode newVal) {
   default:
     break;
   }
-}
-
-/**
- * Enable traces that provide output for show_* options that are enabled.
- */
-void Options::enableTracesAccordingToOptions() const
-{
-  CALL("Options::enableTracesAccordingToOptions");
-
-  if (showActive()) { ENABLE_TAG("active_clauses"); }
-  if (showPassive()) { ENABLE_TAG("passive_clauses"); }
-  if (showNew()) { ENABLE_TAG("new_clauses"); }
-  if (showNewPropositional()) { ENABLE_TAG("new_prop_clauses"); }
-  if (showSkolemisations()) { ENABLE_TAG("pp_sk_funs"); }
-  if (showNonconstantSkolemFunctionTrace()) { ENABLE_TAG("pp_sk_nonconst_intr"); }
-  if (showDefinitions()) { ENABLE_TAG("definitions"); }
-  if (showPreprocessingFormulas()) { ENABLE_TAG("pp"); }
 }

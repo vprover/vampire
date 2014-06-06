@@ -36,43 +36,19 @@ public:
   {
     Result r1=o1->compare(l1,l2);
     Result r2=o2->compare(l1,l2);
-    if(r1!=r2) {
-      TRACE("ord_diff",
-	  tout << "lit1: " << *l1 << endl;
-	  tout << "lit2: " << *l2 << endl;
-	  tout << "res1: " << resultToString(r1) << endl;
-	  tout << "res2: " << resultToString(r2) << endl;
-      );
-    }
     return r1;
   }
   virtual Result compare(TermList t1,TermList t2)
   {
     Result r1=o1->compare(t1,t2);
     Result r2=o2->compare(t1,t2);
-    if(r1!=r2) {
-      TRACE("ord_diff",
-	  tout << "trm1: " << t1 << endl;
-	  tout << "trm2: " << t2 << endl;
-	  tout << "res1: " << resultToString(r1) << endl;
-	  tout << "res2: " << resultToString(r2) << endl;
-      );
-    }
     return r1;
   }
 
   virtual Comparison compareFunctors(unsigned fun1, unsigned fun2)
   {
     Comparison r1=o1->compareFunctors(fun1,fun2);
-    Comparison r2=o2->compareFunctors(fun1,fun2);
-    if(r1!=r2) {
-      TRACE("ord_diff",
-	  tout << "fun1: " << env.signature->functionName(fun1) << endl;
-	  tout << "fun2: " << env.signature->functionName(fun2) << endl;
-	  tout << "res1: " << r1 << endl;
-	  tout << "res2: " << r2 << endl;
-      );
-    }
+    Comparison r2=o2->compareFunctors(fun1,fun2);    
     return r1;
   }
 

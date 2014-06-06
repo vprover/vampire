@@ -116,7 +116,6 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
     return true;
   }
 
-  LOG("inf_hsp_attempts","attempt: "<<t1<<" "<<t2);
   TermList ut1 = subst.apply(t1, 0);
   TermList ut2 = subst.apply(t2, t2Bank);
 
@@ -134,7 +133,6 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
 
   SLQueryResultIterator srqi = _index->getUnifications(queryEq, false, false);
   if(!srqi.hasNext()) {
-    LOG("inf_hsp_attempts","no equality for "<<ut1<<" "<<ut2);
     return false;
   }
   //for now we just get the first result
@@ -158,7 +156,6 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
 
   rewriters.push(make_pair(TermPair(rwrT1,rwrT2), rwrBankIdx));
   premises.push(qr.clause);
-  LOG("inf_hsp_rwrs",t1<<" "<<t2<<" -- "<<rwrT1<<" "<<rwrT2<<endl<<"  unit: "<<(*qr.clause));
   return true;
 }
 
@@ -170,8 +167,6 @@ bool HyperSuperposition::tryGetRewriters(Term* t1, Term* t2, int t2Bank, int& ne
 {
   CALL("HyperSuperposition::tryGetRewriters");
   ASS_EQ(t1->isLiteral(),t2->isLiteral());
-
-  LOG("inf_hsp_attempts","looking for rewriters of "<<(*t1)<<" "<<(*t2));
 
 //for this we'll need to handle some corner cases in rewriter application
 //  if(!t1->isLiteral()) {
@@ -274,10 +269,6 @@ void HyperSuperposition::tryUnifyingSuperpositioins(Clause* cl, unsigned literal
   static RobSubstitution checkerSubst;
   checkerSubst.reset();
   if(!checkerSubst.unifyArgs(t1Rwr, 0, t2, bank2)) {
-    LOG("inf_hsp_cannot", "unsuccessful hyper-superposition:"<<endl
-	<<"  t1: "<<(*t1)<<endl
-	<<"  t1Rwr: "<<(*t1Rwr)<<endl
-	<<"  t2: "<<(*t2)<<endl);
     return;
   }
 
@@ -318,8 +309,6 @@ void HyperSuperposition::tryUnifyingSuperpositioins(Clause* cl, unsigned literal
 
   _salg->onNewClause(res);
   acc.push(res);
-  LOG("inf_hsp_rwrs","gen premise: "<<(*cl)<<endl<<"disjoint vars: "<<disjointVariables);
-  LOG_UNIT("inf_hsp_gen", res);
 }
 
 void HyperSuperposition::tryUnifyingNonequality(Clause* cl, unsigned literalIndex, ClausePairStack& acc)
@@ -345,7 +334,6 @@ void HyperSuperposition::tryUnifyingNonequality(Clause* cl, unsigned literalInde
     Clause* resCl = EqualityResolution::tryResolveEquality(ocl, (*ocl)[literalIndex]);
     ASS(resCl);
     acc.push(ClausePair(ocl, resCl));
-    LOG_UNIT("inf_hsp_res", resCl);
   }
 }
 
@@ -371,7 +359,6 @@ void HyperSuperposition::resolveFixedLiteral(Clause* cl, unsigned litIndex, Clau
   while(unifs.hasNext()) {
     SLQueryResult qr = unifs.next();
     Clause* genCl = BinaryResolution::generateClause(cl, lit, qr, getOptions());
-    LOG_UNIT("inf_hsp_res", genCl);
     acc.push(ClausePair(cl, genCl));
   }
 }
@@ -486,20 +473,16 @@ bool HyperSuperposition::trySimplifyingFromUnification(Clause* cl, Term* t1, Ter
     return false;
   }
 
-  LOG_UNIT("inf_hsp_prems", cl);
   ClauseStack::Iterator premIt(premises);
   while(premIt.hasNext()) {
     Clause* pr = premIt.next();
-    LOG_UNIT("inf_hsp_prems", pr);
     if(!simplPerformer->willPerform(pr)) {
-      LOG("inf_hsp_prems", "fail on simplification conditions");
       return false;
     }
   }
 
   simplPerformer->perform(pvi(ClauseStack::Iterator(premises)), res);
   RSTAT_CTR_INC("hyper-superposition");
-  LOG_UNIT("inf_hsp_res", res);
   return true;
 }
 

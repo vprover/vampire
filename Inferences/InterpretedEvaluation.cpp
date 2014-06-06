@@ -82,7 +82,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
     if(constant) {
       if(constTrue) {
 	env.statistics->evaluations++;
-	LOG_TAUT("inf_ie",cl);
 	return 0;
       } else {
 	continue;
@@ -106,7 +105,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   res->setAge(cl->age());
   env.statistics->evaluations++;
 
-  LOG_SIMPL("inf_ie",cl,res);
   return res;
 }
 

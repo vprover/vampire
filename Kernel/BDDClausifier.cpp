@@ -132,7 +132,6 @@ unsigned BDDClausifier::assignName(BDDNode* node, SATClauseStack& acc)
   unsigned name=_nextCNFVar++;
   clausify(node, acc, name);
   ALWAYS(_names.insert(node, name));
-  LOG("bdd_clausifier","name "<<name<<" assigned to node "<<BDD::instance()->toString(node));
   return name;
 }
 
@@ -155,7 +154,6 @@ unsigned BDDClausifier::getCNFVar(unsigned bddVar)
 
   unsigned cnfVar;
   if(_bdd2cnfVars.findOrInsert(bddVar, cnfVar, _nextCNFVar)) {
-    LOG("bdd_clausifier","bdd var "<<bddVar<<" has assigned cnf var "<<cnfVar);
     _nextCNFVar++;
   }
   return cnfVar;

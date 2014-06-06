@@ -41,14 +41,22 @@ void HornRevealer::apply(UnitList*& units)
   _solver.addClauses(pvi( SATClauseStack::Iterator(_satPrb) ), false);
 
   if(_solver.getStatus()==SATSolver::SATISFIABLE) {
-    LOG("pp_hr","Horn discovered");
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] Horn discovered" << std::endl;
+      env.endOutput();
+    }
     discoverGoals(units);
 
     unsigned preds = env.signature->predicates();
     for(unsigned i=0; i<preds; i++) {
       bool reversed = isReversed(i);
       if(reversed) {
-	LOG("pp_hr","reversed: " << env.signature->predicateName(i));
+        if (env.options->showPreprocessing()) {
+          env.beginOutput();
+          env.out() << "[PP] predicate reversed: " << env.signature->predicateName(i) << std::endl;
+          env.endOutput();
+        }
 	LiteralSelector::reversePredicatePolarity(i, true);
 	env.statistics->hornReversedPredicates++;
       }
@@ -74,7 +82,11 @@ void HornRevealer::discoverGoals(UnitList*& units)
     Unit::InputType inpType = shouldBeGoal ? Unit::CONJECTURE : Unit::AXIOM;
     Clause* newCl = Clause::fromIterator(Clause::Iterator(*cl), inpType, inf);
     uit.replace(newCl);
-    LOG("pp_hr","Horn revealer changed inp type: " << inpType <<"\n  "<< newCl->toString());
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] Horn revealer changed inp type: " << inpType <<"\n  "<< newCl->toString() << std::endl;
+      env.endOutput();
+    }
   }
 }
 
@@ -91,7 +103,6 @@ bool HornRevealer::isGoal(Clause* cl)
 {
   CALL("HornRevealer::isGoal");
 
-//  LOG("isGoal:\n"<<cl->toString());
   bool hasPositive = false;
 
   Clause::Iterator cit(*cl);
@@ -103,7 +114,6 @@ bool HornRevealer::isGoal(Clause* cl)
     bool posPolarity = !isReversed(pred);
 
     if(polarity==posPolarity) {
-//      LOG("pos:"<<l->toString());
       ASS_REP(!hasPositive, cl->toString());
       hasPositive = true;
     }
@@ -134,7 +144,6 @@ void HornRevealer::buildSatProblem(UnitList* units)
 void HornRevealer::addToSatProblem(Clause* cl)
 {
   CALL("HornRevealer::addToSatProblem");
-//  LOG(cl->toString());
 
   static SATLiteralStack slits;
 
@@ -160,8 +169,6 @@ void HornRevealer::addToSatProblem(Clause* cl)
 
       SATClause* scl = SATClause::fromStack(slits);
       _satPrb.push(scl);
-
-//      LOG(scl->toString()<<" <-- "<<iLit->toString()<<", "<<jLit->toString());
     }
   }
 }

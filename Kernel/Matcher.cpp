@@ -298,7 +298,6 @@ bool OCMatchIterator::occursCheck()
   static Stack<int> toDo;
   statuses.reset();
   toDo.reset();
-  LOG("match_oc","-----");
   BoundStack::Iterator bit(_bound);
   while(bit.hasNext()) {
     unsigned var0=bit.next();
@@ -310,7 +309,6 @@ bool OCMatchIterator::occursCheck()
 
     *pst0=ENQUEUED;
     toDo.push(var0);
-    LOG("match_oc","enq1: "<<var0);
 
     while(toDo.isNonEmpty()) {
       int task=toDo.pop();
@@ -318,7 +316,6 @@ bool OCMatchIterator::occursCheck()
 	unsigned var=toDo.pop();
 	ASS_EQ(statuses.get(var), TRAVERSING);
 	statuses.set(var, CHECKED);
-	LOG("match_oc","ch1: "<<var);
 	continue;
       }
 
@@ -326,7 +323,6 @@ bool OCMatchIterator::occursCheck()
 
       ASS_EQ(statuses.get(var), ENQUEUED);
       statuses.set(var, TRAVERSING);
-      LOG("match_oc","trav1: "<<var);
 
       //this schedules the update of the state to CHECKED
       toDo.push(var);
@@ -357,7 +353,6 @@ bool OCMatchIterator::occursCheck()
 	  continue;
 	}
 	*pChStatus=ENQUEUED;
-	LOG("match_oc","enq2: "<<chvar);
 
 	toDo.push(chvar);
       }

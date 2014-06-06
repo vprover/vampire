@@ -324,7 +324,6 @@ void SimplifyProver::parse()
 
   while (! _commands.isEmpty()) {
     Command cmd = _commands.pop();
-    LOG("simplify","Command: " << (int)cmd);
     switch (cmd) {
     case PARSE_FORMULA:
       parseFormula();
@@ -436,7 +435,6 @@ void SimplifyProver::parseFormula()
 
   const Expression* expr = (const Expression*)_saved.pop();
   Context context = (Context)_isaved.pop();
-  LOG("simplify","Formula: " << expr->toString());
  retry:
   if (expr->tag == LispParser::LIST) {
     List* lst = expr->list;
@@ -941,7 +939,6 @@ void SimplifyProver::parseTerm()
   CALL("SimplifyProver::parseTerm");
 
   const Expression* expr = (const Expression*)_saved.pop();
-  LOG("simplify","Term: " << expr->toString());
   if (expr->tag == LispParser::ATOM) {
     string symb = expr->str;
     if (keyword(symb) != K_NONE) {
@@ -961,7 +958,6 @@ void SimplifyProver::parseTerm()
 #else
       INVALID_OPERATION("Integers not supported by the Simplify parser currently");
 #endif
-      LOG("simplify","INTEGER: " << symb);
       return;
     }
 
@@ -969,14 +965,12 @@ void SimplifyProver::parseTerm()
     if (_variables.find(symb,bindings) && bindings) {
       TermList ts(bindings->head(),false);
       _tsaved.push(ts);
-      LOG("simplify","TERM: " << ts.toString());
       return;
     }
     Lib::List<TermList>* binding = 0;
     _termLet.find(symb,binding);
     if (binding) {
       _tsaved.push(binding->head());
-      LOG("simplify","TERM: " << binding->head().toString());
       return;
     }
 
@@ -997,7 +991,6 @@ void SimplifyProver::parseTerm()
     Term* t = Term::create(sinfo->number,0,0);
     ts.setTerm(t);
     _tsaved.push(ts);
-    LOG("simplify","TERM: " << ts.toString());
     return;
   }
 
@@ -1301,7 +1294,6 @@ void SimplifyProver::buildTerm()
     args[i] = _tsaved.pop();
   }
   TermList ts(Term::create(sinfo->number,arity,args.array()));
-  LOG("simplify","TERM: " << ts.toString());
   _tsaved.push(ts);
 } // buildTerm
 
@@ -1565,7 +1557,6 @@ void SimplifyProver::processFormula(Formula* f,Context context)
 {
   CALL("SimplifyProver::processFormula");
 
-  LOG("simplify","FORMULA: " << f->toString());
   switch (context) {
   case CN_FORMULA:
     _built.push(f);
@@ -1656,7 +1647,6 @@ SimplifyProver::SymbolInfo* SimplifyProver::addNumber(const string& symb)
 void SimplifyProver::addUnit(Unit* u)
 {
   _units = new UnitList(u,_units);
-  LOG("simplify","UNIT: " << u->toString());
 } // SimplifyProver::addUnit
 
 /**

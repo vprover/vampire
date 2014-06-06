@@ -53,12 +53,10 @@ Formula* TestUtils::getUniqueFormula(UnitList* units)
 Formula* TestUtils::getUniqueFormula(Api::AnnotatedFormulaIterator afit)
 {
   CALL("TestUtils::getUniqueFormula(Api::AnnotatedFormulaIterator)");
-  LOG("tu_uf", "getting unique formula for AnnotatedFormulaIterator");
 
   UnitList* units = 0;
   while(afit.hasNext()) {
     Api::AnnotatedFormula af = afit.next();
-    LOG("tu_uf", "af: "<<af);
     UnitList::push(static_cast<Unit*>(af), units);
   }
   Formula* res = getUniqueFormula(units);

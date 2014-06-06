@@ -89,7 +89,6 @@ private:
     CALL("SimpleCongruenceClosure::deref");
     unsigned repr = _cInfos[c].reprConst;
     unsigned res = (repr==0) ? c : repr;
-    COND_LOG("bug", _cInfos[res].reprConst!=0, "res: "<<res);
     ASS_REP2(_cInfos[res].reprConst==0, _cInfos[res].reprConst, c);
     return res;
   }

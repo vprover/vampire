@@ -74,9 +74,7 @@ SATClauseIterator SimpleSMT::initSATClauses(ClauseIterator clite)
     SATClause* satCl = _map.toSAT(cl);
     if (satCl != 0){
       SATClauseList::push(satCl, clauses);
-      LOG("smt_sat_clauses", "initial: "<<satCl->toString());
     }
-    COND_LOG("smt_sat_clauses", satCl==0, "sat tautology: "<<cl->toString());
   }
   return pvi(SATClauseList::DestructiveIterator(clauses));
 } // SimpleSMT::initSATClauses
@@ -137,12 +135,10 @@ DecisionProcedure::Status SimpleSMT::addTheoryConflicts(LiteralStack& assignment
   DP::DecisionProcedure::Status status; // = DP::DecisionProcedure::UNSATISFIABLE;
   status = _dp->getStatus(true);
   if (status == DP::DecisionProcedure::SATISFIABLE || status == DP::DecisionProcedure::UNKNOWN) {
-    LOG("smt_dp_status",(status == DP::DecisionProcedure::SATISFIABLE ? "DP::SATISFIABLE" : "DP::UNKNOWN"));
     return status;
   }
   //equivalent to ASS(status==DP::UNSATISFIABLE);
   ASS_EQ(status , DP::DecisionProcedure::UNSATISFIABLE);
-  LOG("smt_dp_status", "UNSATISFIABLE");
 
   static LiteralStack unsatCore;
   static SATClauseStack conflictClauses;
@@ -183,12 +179,10 @@ DecisionProcedure::Status SimpleSMT::addTheoryConflicts(LiteralStack& assignment
 //
 //  status = cClosure.getStatus(true);
 //  if (status == DP::DecisionProcedure::SATISFIABLE || status == DP::DecisionProcedure::UNKNOWN) {
-//    LOG("smt_dp_status",(status == DP::DecisionProcedure::SATISFIABLE ? "DP::SATISFIABLE" : "DP::UNKNOWN"));
 //  }
 //  else {
 //    //equivalent to ASS(status==DP::UNSATISFIABLE);
 //    ASS_EQ(status , DP::DecisionProcedure::UNSATISFIABLE);
-//    LOG("smt_dp_status", "UNSATISFIABLE");
 //    RSTAT_CTR_INC("smt_conflict");
 //  }
 //
@@ -202,17 +196,11 @@ SATClause* SimpleSMT::convertSATtoFO(LiteralStack *litAsgn)
   LiteralStack::Iterator lIterator(*litAsgn);
   SAT::SATLiteralStack slitStack;
   
-  LOG("smt_confl_detail","building conflict clause:");
-
   while (lIterator.hasNext()) {
     Literal *literal = lIterator.next();
     SAT::SATLiteral slit(_map.toSAT(literal));
     //negate the literal and add it to the stack of literals
-    if(_solver->isZeroImplied(slit.var())) {
-      LOG("smt_confl_detail","  - "<<(*literal)<<" zero implied");
-    }
-    else {
-      LOG("smt_confl_detail","  + "<<(*literal));
+    if(!_solver->isZeroImplied(slit.var())) {      
       slitStack.push(slit.opposite());
     }
     ASS(_solver->trueInAssignment(slit));
@@ -225,14 +213,6 @@ void SimpleSMT::addClausesToSAT(SATClauseStack& clauses)
 {
   CALL("SimpleSMT::addClausesToSAT");
   ASS(clauses.isNonEmpty());
-
-  TRACE("smt_clause",
-      SATClauseStack::ConstIterator cit(clauses);
-      while(cit.hasNext()) {
-	SATClause* cl = cit.next();
-	tout << "Clause added:" << (*cl).toString()<<endl;
-      }
-    );
 
   //conflict clauses should never have duplicate variables,
   //so we don't need to do duplicate variable removal

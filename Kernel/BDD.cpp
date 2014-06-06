@@ -338,19 +338,6 @@ bool BDD::findTrivial(BDDNode* n, bool& areImplied, Stack<BDDNode*>& acc)
       acc.push(getAtomic(currVar, false));
     }
   }
-  COND_TRACE("bdd_triv_vars", foundSome,
-      tout << "found trivial (" << (areImplied ? "implied" : "implying") << ") variables in BDD." << endl;
-      tout << "  BDD: " << toTPTPString(n,"n") << endl;
-      tout << "  vars: ";
-      Stack<BDDNode*>::BottomFirstIterator vit(acc);
-      while(vit.hasNext()) {
-	tout << toTPTPString(vit.next(), "n");
-	if(vit.hasNext()) {
-	  tout << ", ";
-	}
-      }
-      tout << endl;
-      );
   ASS(!foundSome || assignValue(n, acc.top()->getVar(), !acc.top()->getPos()->isTrue())->isConst());
   return foundSome;
 }

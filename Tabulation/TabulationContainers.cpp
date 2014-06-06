@@ -92,8 +92,6 @@ void GoalProducer::addRule(Clause* goal, Literal* activator)
 {
   CALL("GoalProducer::addRule");
 
-  LOG("tab","G added rule "<<activator->toString()<<" --> "<<goal->toString());
-
   if(_lemmaIndex->getGeneralizations(activator, false, false).hasNext()) {
     _alg.addGoal(goal);
     return;

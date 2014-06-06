@@ -48,19 +48,16 @@ bool OptionsReader::readOption(string name, string value) const
       tgt = UINT_MAX;
       return true;
     }
-    LOG("or_fail","wrong int value: "<<name<<" = "<<value);
     return false;
   }
   else if(_floatOptTargets.find(name)) {
     if(!Int::stringToFloat(value.c_str(), *_floatOptTargets.get(name))) {
-      LOG("or_fail","wrong float value: "<<name<<" = "<<value);
       return false;
     }
     return true;
   }
   else if(_boolOptTargets.find(name)) {
     if(!tryReadBool(value, *_boolOptTargets.get(name))) {
-      LOG("or_fail","wrong boolean value: "<<name<<" = "<<value);
       return false;
     }
     return true;
@@ -69,13 +66,10 @@ bool OptionsReader::readOption(string name, string value) const
     int* tgt = _enumOptTargets.get(name);
     const EnumReaderBase& rdr = _enumOptVals.get(name);
     if(!rdr.tryRead(value, *tgt)) {
-      LOG("or_fail","bad enum value: "<<name<<" = "<<value);
-      LOG("or_fail","possible values: "<<rdr.toString());
       return false;
     }
     return true;
   }
-  LOG("or_fail","unknown option name: "<<name<<" = "<<value);
   return false;
 }
 
@@ -85,7 +79,6 @@ bool OptionsReader::readOptions(string str) const
 
   DHMap<string,string> optVals;
   if(!StringUtils::readEqualities(str.c_str(), ':', '=', optVals)) {
-    LOG("or_fail","wrong sequence of equalities: "<<str);
     return false;
   }
 
@@ -94,10 +87,8 @@ bool OptionsReader::readOptions(string str) const
     string name, val;
     oit.next(name, val);
     if(!readOption(name, val)) {
-      LOG("or_fail","could not set option: "<<name<<" = "<<val);
       return false;
     }
-    LOG("or_set","have set option: "<<name<<" = "<<val);
   }
   return true;
 }

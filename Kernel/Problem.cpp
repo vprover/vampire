@@ -113,11 +113,9 @@ void Problem::addUnits(UnitList* newUnits)
     TimeCounter tc(TC_PROPERTY_EVALUATION);
     _property->add(newUnits);
     readDetailsFromProperty();
-    LOG("prb","units added to problem with valid property");
   }
   else {
     invalidateEverything();
-    LOG("prb","units added to problem with invalid property");
   }
 }
 
@@ -249,8 +247,6 @@ void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
 void Problem::refreshProperty() const
 {
   CALL("Problem::refreshProperty");
-
-  LOG("prb_prop_refresh","property scanned");
 
   TimeCounter tc(TC_PROPERTY_EVALUATION);
   ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);

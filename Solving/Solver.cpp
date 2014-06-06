@@ -120,7 +120,6 @@ void Solver::collectInputBounds()
   while(cit.hasNext()) {
     Constraint* c = cit.next();
     //cout<<c->toString()<<" <- constraint\n";
-    //LOG("tkv_test","working on: "<<c->toString());
     ASS_NEQ(c->type(),CT_EQ);
 
     size_t coeffCnt = c->coeffCnt();
@@ -137,10 +136,8 @@ void Solver::collectInputBounds()
       ASS(!coeffIt.hasNext());
 
       bool leftBound = coeff.isPositive();
-      //LOG("tkv_test",leftBound<<"  "<<c->toString());
       BoundId newBoundId(coeff.var, leftBound);
       //cout<<newBoundId.var<<" <- var newBoundId->"<<newBoundId.left;
-      //LOG("tkv_test",newBoundId.var<<" "<<newBoundId.left);
       ASS_NEQ(coeff.value, CoeffNumber::zero());
 
       BoundNumber boundVal = BoundNumber(c->freeCoeff())/coeff.value;
@@ -163,7 +160,6 @@ void Solver::retainConstraint(Constraint* c)
   CALL("Solver::retainConstraint");
   ConstraintList::push(c, _aliveConstraints);
   ConstraintRCList::push(ConstraintRCPtr(c), _aliveConstraintsRC);
-  TRACE("tkv_alive", tout<<c->toString()<<endl;);
   _propagator->registerConstraint(c);
 }
 
@@ -227,8 +223,7 @@ void Solver::handleConflicts()
 
   static Stack<ConstraintRCPtr> collapsingConstraints;
   collapsingConstraints.reset();
-
-  TRACE("tkv_conflict", tout<<"handle conflict"<<endl;);
+ 
   VarIterator conflictVars = cset.iterator();
   DecisionLevel tgtDepth = -1;
   Var conflictVar;
@@ -236,12 +231,9 @@ void Solver::handleConflicts()
     conflictVar = conflictVars.next();
     ConstraintRCPtr colConstr;
     _bounds.getConflictCollapsingInequality(conflictVar, colConstr);
-    LOG("tkv_conflict","Collapsing inequality: "<<colConstr->toString());
 
-   TRACE("tkv_conflict", tout<<colConstr->toString(););
     if(colConstr->isRefutation()) {
       //std::cout<<colConstr->toString()<<std::endl;
-      LOG("tkv_conflict", "Collapsing inequality is a tautology!");
       throw RefutationFoundException(colConstr);
     }
     ASS_REP(colConstr->coeffCnt()>0, colConstr->toString());
@@ -281,7 +273,6 @@ void Solver::handleConflicts()
     ConstraintRCPtr constr = collapsingConstraints.pop();
     propRes = _propagator->propagateBounds(*constr);
     if(propRes==BS_NONE && first) {
-      LOG("tkv_conflict","Collapsing inequality did not improve any bounds!");
       throw NumberImprecisionException();
     }
 ////    if(constr->coeffCnt()*_stats.retainedConstraints<Lib::env.timer->elapsedDeciseconds()*10) {
@@ -306,9 +297,7 @@ void Solver::handleConflicts()
     //On the other hand, we do not want to do the bound propagation unless the
     //tight bound makes us, because it (for some reason) makes the algorithm go
     //crazy.
-    LOG("tkv_conflict","Propagating input inequalities after a conflict");
     propRes = _propagator->propagate();
-    LOG("tkv_conflict","Propagating input inequalities after a conflict done");
   }
 
   setForcedDecision(lastDecVar);
@@ -394,25 +383,19 @@ step1:
     handleConflicts();
 
     BoundNumber nextDecisionValue;
-    //LOG("tkv_test","decision value "<<nextDecisionValue);
     while(!haveFullAssignment()) {
       Var nextDecisionVar;
       if(!tryUseForcedDecision(nextDecisionVar)) {
 	TimeCounter tc(TC_VARIABLE_SELECTION);
 
 	nextDecisionVar = _varSelector->getNextVariable();
-	//LOG("tkv_test","decision variable "<<nextDecisionVar);
 	_stats.freeDecisionPoints++;
 
       }
       _asgSelector->getAssignment(nextDecisionVar, nextDecisionValue);
-     //LOG("tkv_test",nextDecisionVar<<" with bound "<<nextDecisionValue);
-      TRACE("tkv_colapsing", tout<<nextDecisionVar<<endl;);
       makeDecisionPoint(nextDecisionVar, nextDecisionValue);
       _propagator->propagate();
-      //LOG("tkv_test","we get after propagate");
       handleConflicts();
-      //LOG("tkv_test","after handling conflicts");
     }
 
   }

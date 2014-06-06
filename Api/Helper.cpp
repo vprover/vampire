@@ -541,10 +541,7 @@ void FBHelperCore::ensureArgumentsSortsMatch(BaseType* type, const Api::Term* ar
   for(unsigned i=0; i<arity; i++) {
     unsigned parentSort = type->arg(i);
     Sort argSort = getSort(args[i]);
-    if(!argSort.isValid()) {
-      LOG("api_prb_transf","found term whose sort cannot be determined!!");
-    }
-    else if(parentSort!=argSort) {
+    if(argSort.isValid() && parentSort!=argSort) {
       throw SortMismatchException("Unexpected sort of term " + args[i].toString());
     }
   }
@@ -555,11 +552,7 @@ void FBHelperCore::ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const
   CALL("FBHelperCore::ensureEqualityArgumentsSortsMatch");
 
   Sort s1 = getSort(arg1);
-  Sort s2 = getSort(arg2);
-  if(!s1.isValid() || !s2.isValid()) {
-    LOG("api_prb_transf","found term whose sort cannot be determined!!");
-  }
-
+  Sort s2 = getSort(arg2);  
   if(s1!=s2) {
     throw SortMismatchException("Different sorts of equality arguments: " + arg1.toString() + " and " + arg2.toString());
   }
@@ -580,9 +573,7 @@ string FBHelperCore::getVarName(Var v) const
   else {
     static bool seen = false;
     if(!seen) {
-      seen = true;
-      LOG("api_prb_transf","detected variable without a stored name: "<<v
-	  <<" (using preprocessing which does not support variable name preservation)");
+      seen = true;      
     }
     return "X"+Int::toString(v);
 
@@ -605,8 +596,7 @@ Sort FBHelperCore::getVarSort(Var v) const
   if(varSorts.find(v,res)) {
     return res;
   }
-  else {
-    LOG("api_prb_transf","Cannot determine sort of variable number "<<v<<" !!!");
+  else {   
     return Sort::getInvalid();
 //    throw FormulaBuilderException("Var object was used in FormulaBuilder object which did not create it");
   }
@@ -620,8 +610,7 @@ unsigned FBHelperCore::getVar(string varName, Sort varSort)
     }
     //TODO: add further checks
   }
-
-  COND_LOG("api_prb_transf",!varSort.isValid(),"Adding variable with unknown sort: "<<varName<<" !!!");
+  
   unsigned res=vars.insert(varName, nextVar);
   if(res==nextVar) {
     nextVar++;

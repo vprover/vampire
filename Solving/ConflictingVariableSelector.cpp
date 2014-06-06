@@ -60,7 +60,6 @@ Var ConflictingVariableSelector::getNextVariable()
       best = cur;
     }
   }
-  TRACE("tkv_vselect",tout<<"Picking most conflicting variable "<<env.signature->varName(best)<<" as a decision point\n";);
   return best;
 }
 
