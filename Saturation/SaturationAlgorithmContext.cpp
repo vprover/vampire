@@ -7,11 +7,8 @@
 
 #include "SaturationAlgorithmContext.hpp"
 
-//#include "Kernel/MainLoopContext.hpp"
-//#include "Kernel/Problem.hpp"
 #include "Lib/Timer.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-//#include "Shell/Options.hpp"
 
 namespace Saturation {
 

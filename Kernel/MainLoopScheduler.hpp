@@ -8,7 +8,13 @@
 #ifndef __MainLoopScheduler__
 #define __MainLoopScheduler__
 
-#include "Shell/Options.hpp"
+#include <cstddef>
+
+namespace Shell {
+
+class OptionsList;
+
+}
 
 namespace Kernel {
 
@@ -30,7 +36,7 @@ protected:
 private:
 
 	MainLoopContext** _mlcl;
-	unsigned int _mlclSize;
+	std::size_t _mlclSize;
 
 };
 

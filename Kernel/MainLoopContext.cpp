@@ -6,36 +6,25 @@
  */
 #include "MainLoopContext.hpp"
 
-//#include "Kernel/Problem.hpp"
-//#include "Lib/Environment.hpp"
-//#include "Saturation/SaturationAlgorithm.hpp"
-//#include "Shell/Options.hpp"
+#include "Debug/Tracer.hpp"
+#include "Lib/Environment.hpp"
 
 namespace Kernel {
 
 using Lib::Environment;
-//using Lib::env;
 using Shell::Options;
-using Saturation::SaturationAlgorithm;
 
 	MainLoopContext::MainLoopContext(Problem& prb, const Options& opt):
 			_prb(prb), _opt(opt) {
 
 		CALL("MainLoopContext::MainLoopContext");
 
-//		if(Lib::env) {
 			_env = new Environment(*Lib::env);
-//		}else{
-//			_env = new Environment();
-//		}
-
-//		init();
 	}
 
 	MainLoopContext::~MainLoopContext() {
 		CALL("MainLoopContext::~MainLoopContext");
 
-//		cleanUp();
 		delete _env;
 	}
 

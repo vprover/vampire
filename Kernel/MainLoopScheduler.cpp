@@ -8,17 +8,16 @@
 #include "MainLoopScheduler.hpp"
 
 #include "Kernel/MainLoop.hpp"
-//#include "Kernel/MainLoopContext.hpp"
-//#include "Lib/Allocator.hpp"
+#include "Kernel/MainLoopContext.hpp"
 #include "Lib/Timer.hpp"
 //#include "InstGen/IGAlgorithm.hpp"
 #include "Saturation/SaturationAlgorithmContext.hpp"
-//#include "Shell/BFNTMainLoop.hpp"
-//#include "Shell/Options.hpp"
+#include "Shell/Options.hpp"
 #include "Shell/Preprocess.hpp"
-//#include "Tabulation/TabulationAlgorithm.hpp"
 
 namespace Kernel {
+
+using std::size_t;
 
 using Saturation::SaturationAlgorithmContext;
 using Shell::Options;
@@ -31,12 +30,9 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 	  _mlclSize = opts.size();
 
 	  ASS_G(_mlclSize, 0);
-	  //void* mem = ALLOC_KNOWN(_mlclSize*sizeof(MainLoopContext),"MainLoopScheduler");
-	  //_mlcl = array_new<MainLoopContext>(mem,_mlclSize);
 
 	  _mlcl = static_cast<MainLoopContext**>(
 	  		  ALLOC_KNOWN(sizeof(MainLoopContext*)*_mlclSize,"MainLoopContext*"));
-
 
 	// Do preprocessing
 	// This is (currently) global for all strategies
@@ -122,11 +118,6 @@ MainLoopResult MainLoopScheduler::run() {
 						break;
 					}
 				}
-/*				Timer::syncClock();
-				if (env -> timeLimitReached()) {
-					return MainLoopResult(Statistics::TIME_LIMIT);
-				}
-*/
 			}
 		}
 		//Should only be here if result set
@@ -169,10 +160,4 @@ MainLoopScheduler::~MainLoopScheduler() {
 	DEALLOC_KNOWN(_mlcl, sizeof(MainLoopContext*)*_mlclSize, "MainLoopScheduler");
 }
 
-/*static MainLoopScheduler* MainLoopScheduler::createFromOptions(Problem& prb, OptionsList* opts) {
-
-	CALL("MainLoopScheduler::createFromOptions");
-	return new MainLoopScheduler(prb, opts);
-
-}*/
 }

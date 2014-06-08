@@ -9,8 +9,6 @@
 #define __SaturationAlgorithmContext__
 
 #include "Kernel/MainLoopContext.hpp"
-//#include "Kernel/Problem.hpp"
-//#include "Shell/Options.hpp"
 
 namespace Saturation {
 

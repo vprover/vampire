@@ -8,12 +8,22 @@
 #ifndef __MainLoopContext__
 #define __MainLoopContext__
 
-#include "Kernel/ConcurrentMainLoop.hpp"
-#include "Kernel/Problem.hpp"
-#include "Lib/Environment.hpp"
-//#include "Shell/Options.hpp"
+namespace Lib {
+
+class Environment;
+
+}
+
+namespace Shell {
+
+class Options;
+
+}
 
 namespace Kernel {
+
+class Problem;
+class ConcurrentMainLoop;
 
 class MainLoopContext {
 public:
