@@ -8,22 +8,27 @@
 #ifndef __MainLoopContext__
 #define __MainLoopContext__
 
-namespace Lib {
+#include "Lib/EnvironmentFwd.hpp"
+#include "Kernel/ConcurrentMainLoopFwd.hpp"
+#include "Kernel/ProblemFwd.hpp"
+#include "Shell/OptionsFwd.hpp"
+
+/*namespace Lib {
 
 class Environment;
 
-}
+}*/
 
-namespace Shell {
+/*namespace Shell {
 
 class Options;
 
-}
+}*/
 
 namespace Kernel {
 
-class Problem;
-class ConcurrentMainLoop;
+//class Problem;
+//class ConcurrentMainLoop;
 
 class MainLoopContext {
 public:
@@ -32,7 +37,7 @@ public:
 	virtual ~MainLoopContext();
 
 	// Do one main loop step in this context
-	virtual void doStep() = 0;
+	virtual void doStep();
 
 	// Switch into this context
 	virtual void switchIn();
@@ -41,9 +46,9 @@ public:
 	virtual void switchOut();
 
 	// Do init required by algorithm, and set phase
-	virtual void init() = 0;
+	virtual void init();
 	// Do cleanup required by algorithm, and set phase
-	virtual void cleanup() = 0;
+	virtual void cleanup();
 
 protected:
 	Problem& _prb;

@@ -17,12 +17,7 @@ namespace Saturation {
 		SaturationAlgorithmContext(Kernel::Problem& prb, const Shell::Options& opts);
 
 		~SaturationAlgorithmContext();
-
-		virtual void doStep();
-		virtual void init();
-		virtual void cleanup();
 	};
-
 
 } /* namespace Saturation */
 

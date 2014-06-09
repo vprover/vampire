@@ -7,16 +7,19 @@
 
 #include "SaturationAlgorithmContext.hpp"
 
-#include "Lib/Timer.hpp"
+#include "Kernel/MainLoopContextFwd.hpp"
+#include "Kernel/ProblemFwd.hpp"
+
+//#include "Lib/Timer.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 namespace Saturation {
 
 using Kernel::MainLoopContext;
 using Kernel::Problem;
-using Lib::Timer;
+//using Lib::Timer;
 using Shell::Options;
-using Shell::Statistics;
+//using Shell::Statistics;
 
 SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, const Options& opts):
 		MainLoopContext(prb, opts) {
@@ -35,7 +38,7 @@ SaturationAlgorithmContext::~SaturationAlgorithmContext() {
 	delete _ml;
 }
 
-void SaturationAlgorithmContext::init(){
+/*void SaturationAlgorithmContext::init(){
 	CALL("SaturationAlgorithmContext::init");
 
 	switchIn();
@@ -68,6 +71,6 @@ void SaturationAlgorithmContext::doStep() {
 	}
 
 	switchOut();
-}
+}*/
 
 };

@@ -7,12 +7,17 @@
 #include "MainLoopContext.hpp"
 
 #include "Debug/Tracer.hpp"
+#include "Kernel/ConcurrentMainLoop.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Timer.hpp"
+#include "Shell/Statistics.hpp"
 
 namespace Kernel {
 
 using Lib::Environment;
+using Lib::Timer;
 using Shell::Options;
+using Shell::Statistics;
 
 	MainLoopContext::MainLoopContext(Problem& prb, const Options& opt):
 			_prb(prb), _opt(opt) {
@@ -28,7 +33,6 @@ using Shell::Options;
 		delete _env;
 	}
 
-
 	void MainLoopContext::switchIn() {
 		CALL("MainLoopContext::switchIn");
 		_temp_env = Lib::env;
@@ -41,4 +45,38 @@ using Shell::Options;
 		Lib::env = _temp_env;
 	}
 
+	void MainLoopContext::init(){
+		CALL("MainLoopContext::init");
+
+		switchIn();
+
+		_env -> statistics -> phase = Statistics::SATURATION;
+		_ml -> initAlgorithmRun();
+
+		switchOut();
+	}
+
+	void MainLoopContext::cleanup(){
+		CALL("MainLoopContext::cleanup");
+
+		switchIn();
+
+		_env -> statistics -> phase = Statistics::FINALIZATION;
+
+		switchOut();
+	}
+
+	void MainLoopContext::doStep() {
+		CALL("MainLoopContext::doStep");
+
+		switchIn();
+		_ml -> doOneAlgorithmStep();
+
+		Timer::syncClock();
+		if (env -> timeLimitReached()) {
+			throw  TimeLimitExceededException();
+		}
+
+		switchOut();
+	}
 }

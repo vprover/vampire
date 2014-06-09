@@ -10,14 +10,16 @@
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/MainLoopContext.hpp"
 #include "Lib/Timer.hpp"
-//#include "InstGen/IGAlgorithm.hpp"
+#include "InstGen/IGAlgorithmContext.hpp"
 #include "Saturation/SaturationAlgorithmContext.hpp"
-#include "Shell/Options.hpp"
+#include "Shell/OptionsList.hpp"
 #include "Shell/Preprocess.hpp"
 
 namespace Kernel {
 
 using std::size_t;
+
+using InstGen::IGAlgorithmContext;
 
 using Saturation::SaturationAlgorithmContext;
 using Shell::Options;
@@ -54,21 +56,19 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 
 		  /*if(opt.bfnt()) {
 			_mla[k] = new BFNTMainLoop(prb, opt);
-		  }
+		  }*/
 
 		  switch (opt.saturationAlgorithm()) {
-		  case Options::TABULATION:
+		  /*case Options::TABULATION:
 			_mla[k] = new TabulationAlgorithm(prb, opt);
-			break;
+			break;*/
 		  case Options::INST_GEN:
-			_mla[k] = new IGAlgorithm(prb, opt);
+			_mlcl[k] = new IGAlgorithmContext(prb, opt);
 			break;
-		  default:*/
+		  default:
 			_mlcl[k] = new SaturationAlgorithmContext(prb, opt);
-
-
-			/*break;
-		  }*/
+			break;
+		  }
 
 		  k++;
 	  }

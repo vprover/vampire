@@ -10,17 +10,22 @@
 
 #include <cstddef>
 
-namespace Shell {
+#include "Kernel/MainLoopFwd.hpp"
+#include "Kernel/MainLoopContextFwd.hpp"
+#include "Kernel/ProblemFwd.hpp"
+#include "Shell/OptionsListFwd.hpp"
 
-class OptionsList;
+//namespace Shell {
 
-}
+//class OptionsList;
+
+//}
 
 namespace Kernel {
 
-class MainLoopContext;
-class MainLoopResult;
-class Problem;
+//class MainLoopContext;
+//class MainLoopResult;
+//class Problem;
 
 class MainLoopScheduler {
 public:

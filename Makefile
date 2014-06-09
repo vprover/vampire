@@ -203,6 +203,7 @@ VI_OBJ = Indexing/ClauseCodeTree.o\
          Indexing/TermSubstitutionTree.o
 
 VIG_OBJ = InstGen/IGAlgorithm.o\
+          InstGen/IGAlgorithmContext.o\
           InstGen/ModelPrinter.o
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
