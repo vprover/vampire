@@ -39,15 +39,14 @@ CommandLine::CommandLine (int argc, char* argv [])
  * @since 06/05/2007 Manchester, simplified again
  * @since 12/05/2014 Manchester, extended to deal with multiple strategies 
  */
-void CommandLine::interpret (OptionsContainer* options)
+void CommandLine::interpret ()
 {
   CALL ("CommandLine::interpret");
 
-  //Expect to be called with an instance of Options
-  ASS(!options->isOptionsList());
 
   bool fileGiven = false;
   unsigned strategies = 0; 
+  OptionsList* optionsList = 0;
   
   while (_next != _last) {
     ASS(_next < _last);
@@ -63,14 +62,17 @@ void CommandLine::interpret (OptionsContainer* options)
         if(!Int::stringToUnsignedInt(*_next,strategies)){
           USER_ERROR("Error parsing strategies");
         }
-        options = new OptionsList(strategies);
-        env -> optionsContainer = options;
-        ASS(options->isOptionsList());
+        optionsList = new OptionsList(strategies);
+        env -> optionsList = SmartPtr<OptionsList>(optionsList);
+        env -> options = &((*optionsList)[0]);
         //Continue to next option
         _next++;
         continue;
       }
       else{
+        optionsList = new OptionsList(1);
+        env -> optionsList = SmartPtr<OptionsList>(optionsList);
+        env -> options = &((*optionsList)[0]);
 	cout << "no strategies" << endl;
         strategies=1;
       }
@@ -87,10 +89,10 @@ void CommandLine::interpret (OptionsContainer* options)
 	USER_ERROR((string)"no value specified for option " + arg);
       }
       if (arg[1] == '-') {
-	options->set(arg+2,*_next);
+	optionsList->set(arg+2,*_next);
       }
       else {
-	options->setShort(arg+1,*_next);
+	optionsList->setShort(arg+1,*_next);
       }
       _next++;
     }
@@ -99,11 +101,11 @@ void CommandLine::interpret (OptionsContainer* options)
 	USER_ERROR("two input file names specified");
       }
       fileGiven = true;
-      options->setInputFile(arg);
+      optionsList->setInputFile(arg);
     }
   }
-  options->setForcedOptionValues();
-  options->checkGlobalOptionConstraints();
+  optionsList->setForcedOptionValues();
+  optionsList->checkGlobalOptionConstraints();
 } // CommandLine::interpret
 
 
