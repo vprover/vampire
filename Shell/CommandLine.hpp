@@ -21,7 +21,8 @@ class CommandLine
 {
 public:
   CommandLine(int argc, char* argv []);
-  void interpret(OptionsContainer*);
+  // Will update global env
+  void interpret();
 private:
   /** Next string to process */
   char** _next;

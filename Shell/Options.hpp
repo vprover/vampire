@@ -21,34 +21,12 @@ using namespace Kernel;
 
 class Property;
 
-/**
- * Both Options and OptionsList extend this 
- *
- * @author Giles
- * @since 13/05/2014
- */
-class OptionsContainer
-{
-public:
-  //Final operations
-  virtual void setForcedOptionValues()=0;
-  virtual void checkGlobalOptionConstraints() = 0;
-  //Setting options
-  virtual void set(const string& name, const string& value) = 0;
-  virtual void set(const char* name, const char* value) = 0;
-  virtual void setShort(const char* name, const char* value) = 0;
-  virtual void setInputFile(const string& newVal) = 0;
-
-  virtual bool isOptionsList() const = 0;
-
-}; // class OptionsContainer
-
 
 /**
  * Class that represents Vampire's options.
  * 11/11/2004 Shrigley Hall, completely reimplemented
  */
-class Options : public OptionsContainer
+class Options 
 {
 public:
   enum Tag {
@@ -563,8 +541,6 @@ public:
 
   void forceIncompleteness() { _forceIncompleteness=true; }
 
-  bool isOptionsList() const { return false; }
-
   /**
    * Return the problem name
    *
@@ -1074,86 +1050,8 @@ public:
   bool onOffToBool(const char* onOff,const char* option);
 }; // class Options
 
-/**
- * For storing multiple options for many strategies
- * Requires us to know the number of strategies up-front
- *
- * @author Giles
- * @since 13/05/2014
- */
-
-class OptionsList : public OptionsContainer
-{
-
-public:
-  inline OptionsList(unsigned len) : _length(len), _alive(0){
-    CALL("OptionsList::OptionsList()");
-    ASS(len>0);
-    void* mem = ALLOC_KNOWN(len*sizeof(Options),"OptionsList");
-    // Initialises _strategies by calling constructor of Options
-    _strategies = array_new<Options>(mem,len);
-  }
-  ~OptionsList(){
-    CALL("OptionsList::~OptionsList()");
-    array_delete(_strategies,_length);
-    DEALLOC_KNOWN(_strategies,_length*sizeof(Options),"OptionsList");
-  }
-
-  bool isOptionsList() const { return true; }
-
-  typedef ArrayishObjectIterator<OptionsList> Iterator;
-  DECL_ELEMENT_TYPE(Options&);
-  DECL_ITERATOR_TYPE(Iterator);
-
-  /** Return the number of strategies **/
-  unsigned size() const {return _length;}
-  /** Return the nth strategy **/
-  Options& operator[](unsigned n) const { return _strategies[n]; }
-  /** Return an iterator for the live strategies
-      A strategy is live if it has been given individual options
-      If strategy n is live then all strategies m<n are live **/
-  ArrayishObjectIterator<OptionsList> getLive() {
-    return ArrayishObjectIterator<OptionsList>(*this,_alive);
-  }
-
-  /** Update the number of live strategies **/
-  void setLive(unsigned n){
-    if(n > _alive){
-      _alive = n;
-    }
-  }
-
-  /** Include a new options file
-      If this includes global options these will apply to
-      live strategies only **/
-  void include(const string& newVal);
-
-  //Functions for setting global options
-  void set(const string& name, const string& value);
-  void set(const char* name, const char* value);
-  void setShort(const char* name, const char* value);
-  void setInputFile(const string& newVal);
-
-  //Functions for setting local options
-  void set(unsigned n, const string& name, const string& value)
-  { (*this)[n].set(name,value); setLive(n); }
-  void set(unsigned n, const char* name, const char* value)
-  { (*this)[n].set(name,value); setLive(n); }
-  void setShort(unsigned n, const char* name, const char* value)
-  { (*this)[n].setShort(name,value); setLive(n); }
-
-  //Final functions
-  void setForcedOptionValues();
-  void checkGlobalOptionConstraints();
-
-private:
-  unsigned _length;
-  unsigned _alive;
-  Options* _strategies;
-
-}; // class OptionsList
-
 }
+
 
 #endif
 

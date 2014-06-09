@@ -53,8 +53,9 @@ Environment::Environment()
     _priorityOutput(0),
     _pipe(0)
 {
-  options = new Options;
-  optionsContainer = options;
+  // Will be set in Shell::CommandLine::interpret
+  //options = new Options;
+  //optionsList = 0;
   statistics = new Statistics;
   timer = new Timer;
   sorts = new Sorts;
@@ -75,7 +76,7 @@ Environment::Environment(const Environment& e)
 	    _pipe(0)
 	{
 	  options = new Options;
-	  optionsContainer = options;
+	  optionsList = e.optionsList;
 	  statistics = new Statistics;
 	  timer = e.timer;
 	  sorts = e.sorts;

@@ -303,6 +303,7 @@ VS_OBJ = Shell/AIG.o\
          Shell/NNF.o\
          Shell/Normalisation.o\
          Shell/Options.o\
+         Shell/OptionsList.o\
          Shell/PDInliner.o\
          Shell/PDMerger.o\
          Shell/PDUtils.o\
@@ -432,6 +433,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Saturation/ClauseContainer.o\
 	  Shell/FunctionDefinition.o\
 	  Shell/Options.o\
+          Shell/OptionsList.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
 	  Shell/GlobalOptions.o\

@@ -13,6 +13,9 @@
 #include "Forwards.hpp"
 #include "Exception.hpp"
 
+#include "Lib/SmartPtr.hpp"
+#include "Shell/OptionsList.hpp"
+
 namespace Lib {
 
 using namespace std;
@@ -31,9 +34,8 @@ public:
   Environment(const Environment& e);
   ~Environment();
 
-  /** options container for all proof attempts
-      if we have a single strategy this will = options **/
-  Shell::OptionsContainer* optionsContainer;
+  /** options container for all proof attempts */
+  Lib::SmartPtr<Shell::OptionsList> optionsList;
   /** options for the current proof attempt */
   Shell::Options* options;
   /** currently used sorts */

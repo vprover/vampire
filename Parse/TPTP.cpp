@@ -3613,7 +3613,6 @@ void TPTP::vampire()
     Token third_tok;
     unsigned strategy;
     string opt;
-    OptionsList* olist;
 
     switch(first_tag){
     case T_INT:
@@ -3628,9 +3627,7 @@ void TPTP::vampire()
       case T_INT:
       case T_REAL:
       case T_NAME:
-        ASS(env -> optionsContainer->isOptionsList());
-        olist = (OptionsList*) env -> optionsContainer;
-        olist->set(strategy,opt,third_tok.content);
+        env -> optionsList ->set(strategy,opt,third_tok.content);
         resetToks();
         break;
       default:
