@@ -17,6 +17,7 @@
 
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/MainLoop.hpp"
+#include "Kernel/ConcurrentMainLoop.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/RCClauseStack.hpp"
 
@@ -47,7 +48,7 @@ using namespace SAT;
 using namespace Saturation;
 using namespace Shell;
 
-class IGAlgorithm : public MainLoop {
+class IGAlgorithm : public MainLoop, public ConcurrentMainLoop {
 public:
   typedef Statistics::TerminationReason TerminationReason;
 
@@ -58,7 +59,13 @@ public:
 
   ClauseIterator getActive();
 
+  // From ConcurrentMainLoop
+  // TODO - could these be protected?
+  virtual void initAlgorithmRun();
+  virtual void doOneAlgorithmStep();
+
 protected:
+  // From MainLoop
   virtual void init();
   virtual MainLoopResult runImpl();
 private:
@@ -152,6 +159,16 @@ private:
   bool _use_niceness;
   bool _use_dm;
   DHMap<Clause*,DismatchingLiteralIndex*> _dismatchMap;
+
+  // Moved here from runImpl
+  // State to be kept between runs of doOneAlgorithmStep
+  int _bigRestartRatio;
+  int _smallRestartRatio;
+  int _restartKindRatio;
+  unsigned _loopIterBeforeRestart;
+
+
+  
 
 };
 

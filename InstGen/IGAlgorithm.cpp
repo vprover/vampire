@@ -166,7 +166,37 @@ void IGAlgorithm::init()
     _inputClauses.push(cl);
   }
 
+
+  // GR: Moved here from runImpl after making incremental
+  // Load the input clauses
+  RCClauseStack::Iterator icit(_inputClauses);
+  while(icit.hasNext()) {
+    Clause* cl = icit.next();
+    if(isRefutation(cl)) {
+      throw RefutationFoundException(cl);
+    }
+    addClause(cl);
+  }
+  // Set the parameters for running
+  int restartRatioMultiplier = 100;
+  _bigRestartRatio = static_cast<int>(restartRatioMultiplier * _opt.instGenBigRestartRatio());
+  _smallRestartRatio = restartRatioMultiplier - _bigRestartRatio;
+  _restartKindRatio = 0;
+  _loopIterBeforeRestart = _opt.instGenRestartPeriod();
 }
+
+/**
+ * This function should be called if (and only if) we will use
+ * the @c doOneAlgorithmStep() function to run the instgen 
+ * algorithm, instead of the @c MailLoop::run() function.
+ */
+void IGAlgorithm::initAlgorithmRun()
+{
+  CALL("IGAlgorithm::initAlgorithmRun");
+
+  init();
+}
+
 
 void IGAlgorithm::addClause(Clause* cl)
 {
@@ -676,30 +706,15 @@ void IGAlgorithm::restartFromBeginning()
   }
 }
 
-
-MainLoopResult IGAlgorithm::runImpl()
+/**
+ *
+ *
+ * @since 9/07/14 factored out this function from runImpl
+ */
+void IGAlgorithm::doOneAlgorithmStep()
 {
-  CALL("IGAlgorithm::runImpl");
-  LOG("ig", "IGA started");
+  CALL("IGAlgorithm::doOneAlgorithmStep");
 
-  RCClauseStack::Iterator icit(_inputClauses);
-  while(icit.hasNext()) {
-    Clause* cl = icit.next();
-    if(isRefutation(cl)) {
-      throw RefutationFoundException(cl);
-    }
-    addClause(cl);
-  }
-
-  int restartRatioMultiplier = 100;
-  int bigRestartRatio = static_cast<int>(restartRatioMultiplier * _opt.instGenBigRestartRatio());
-  int smallRestartRatio = restartRatioMultiplier - bigRestartRatio;
-
-  int restartKindRatio = 0;
-
-  unsigned loopIterBeforeRestart = _opt.instGenRestartPeriod();
-
-  for(;;) {
     bool restarting = false;
     unsigned loopIterCnt = 0;
     while(_unprocessed.isNonEmpty() || !_passive.isEmpty()) {
@@ -709,46 +724,45 @@ MainLoopResult IGAlgorithm::runImpl()
 
       unsigned activatedCnt = max(10u, _passive.size()/4);
       for(unsigned i=0; i<activatedCnt && !_passive.isEmpty() && _instGenResolutionRatio.shouldDoFirst(); i++) {
-	Clause* given = _passive.popSelected();
-	activate(given);
-	_instGenResolutionRatio.doFirst();
-	if(loopIterBeforeRestart && ++loopIterCnt > loopIterBeforeRestart) {
-	  restarting = true;
-	  break;
-	}
+        Clause* given = _passive.popSelected();
+        activate(given);
+        _instGenResolutionRatio.doFirst();
+        if(_loopIterBeforeRestart && ++loopIterCnt > _loopIterBeforeRestart) {
+          restarting = true;
+          break;
+        }
       }
       if(restarting) {
-	// if we activate more than instGenRestartPeriod clauses then we 'restart'
+        // if we activate more than instGenRestartPeriod clauses then we 'restart'
         // what does this entail?
-	break;
+        break;
       }
 
       if(_opt.instGenPassiveReactivation()) {
-	doPassiveReactivation();
+        doPassiveReactivation();
       }
       else {
-	doImmediateReactivation();
+        doImmediateReactivation();
       }
 
-
       while(_instGenResolutionRatio.shouldDoSecond()) {
-	_instGenResolutionRatio.doSecond();
-	doResolutionStep();
+        _instGenResolutionRatio.doSecond();
+        doResolutionStep();
       }
       env -> checkTimeSometime<100>();
     }
     if(restarting) {
-      if(restartKindRatio>0) {
-	restartFromBeginning();
-	restartKindRatio -= smallRestartRatio;
+      if(_restartKindRatio>0) {
+        restartFromBeginning();
+        _restartKindRatio -= _smallRestartRatio;
       }
       else {
-	//if we ran out of clauses, we need this kind of restart to check for satisfiability
-	restartWithCurrentClauses();
-	restartKindRatio += bigRestartRatio;
+        //if we ran out of clauses, we need this kind of restart to check for satisfiability
+        restartWithCurrentClauses();
+        _restartKindRatio += _bigRestartRatio;
       }
-      loopIterBeforeRestart = static_cast<int>(ceilf(
-	  loopIterBeforeRestart*_opt.instGenRestartPeriodQuotient()));
+      _loopIterBeforeRestart = static_cast<int>(ceilf(
+          _loopIterBeforeRestart*_opt.instGenRestartPeriodQuotient()));
 
     }
     else {
@@ -763,8 +777,28 @@ MainLoopResult IGAlgorithm::runImpl()
       }
       _doingSatisfiabilityCheck = false;
       if(_unprocessed.isEmpty()) {
-        return onModelFound();
+        MainLoopResult res = onModelFound();
+        throw MainLoopFinishedException(res);
       }
+    }
+
+}
+
+
+/**
+ *
+ * 
+ * @since 9/07/14 moved main work to doOneAlgorithmStep
+ */
+MainLoopResult IGAlgorithm::runImpl()
+{
+  CALL("IGAlgorithm::runImpl");
+
+  for(;;) {
+    doOneAlgorithmStep();
+    //TODO - other checks here?
+    if(env -> timeLimitReached()){
+      throw TimeLimitExceededException();
     }
   }
 }
