@@ -85,6 +85,10 @@ public:
   /** set to true when there are some interpreted operations */
   bool interpretedOperationsUsed;
 
+  bool isSingleStrategy() const {
+	  return (optionsList -> size() < 2);
+  }
+
 private:
   int _outputDepth;
   /** if non-zero, all output will go here */

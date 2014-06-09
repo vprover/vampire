@@ -35,6 +35,8 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Kernel/MainLoopScheduler.hpp"
+
 #include "Indexing/TermSharing.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
@@ -157,15 +159,14 @@ void explainException(Exception& exception)
 void doProving()
 {
   CALL("doProving()");
-  if(*env -> multipleStrategies()) {
-	  MainLoopScheduler scheduler(*prb, *env -> optionsList);
-	  scheduler.run();
-  }else{
+  if(env -> isSingleStrategy()) {
 	  ScopedPtr<Problem> prb(getPreprocessedProblem());
 	  ProvingHelper::runVampireSaturation(*prb, *env -> options);
+  }else{
+	  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
+	  Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList);
+	  scheduler.run();
   }
-  //MainLoopScheduler scheduler(*prb, *env -> options);
-  //scheduler.
 }
 
 /**
