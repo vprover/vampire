@@ -157,8 +157,13 @@ void explainException(Exception& exception)
 void doProving()
 {
   CALL("doProving()");
-  ScopedPtr<Problem> prb(getPreprocessedProblem());
-  ProvingHelper::runVampireSaturation(*prb, *env -> options);
+  if(*env -> multipleStrategies()) {
+	  MainLoopScheduler scheduler(*prb, *env -> optionsList);
+	  scheduler.run();
+  }else{
+	  ScopedPtr<Problem> prb(getPreprocessedProblem());
+	  ProvingHelper::runVampireSaturation(*prb, *env -> options);
+  }
   //MainLoopScheduler scheduler(*prb, *env -> options);
   //scheduler.
 }
