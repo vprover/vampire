@@ -19,6 +19,8 @@
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
 
+#include "Lib/Allocator.hpp"
+
 #include <csignal>
 
 extern "C"{
@@ -52,7 +54,7 @@ public:
 		CALL("LingelingInterfacing::getStatus()");
 		//printLingelingStatistics();
 		return _status;
-	};
+	}
 
 	/**
 	* In case the status of the problem is SATISFIABLE, then return the assigned value for var
@@ -71,15 +73,13 @@ public:
 	* return 1.  
 	* 
 	*/
-	virtual bool isZeroImplied(unsigned var){ return lglfixed(_solver,var);}
+	virtual bool isZeroImplied(unsigned var){ return false;}
 
 	/**
 	* collect all the zero-implied variables 
 	* should be used only for SATISFIABLE or UNKNOWN
 	*/
-	virtual void collectZeroImplied(SATLiteralStack& acc){
-		//ASSERTION_VIOLATION_REP("Not implemented");
-	}
+	virtual void collectZeroImplied(SATLiteralStack& acc){}
 
 	/**
    	* Return a valid clause that contains the zero-implied literal
@@ -88,10 +88,7 @@ public:
    	* If called on a proof producing solver, the clause will have
    	* a proper proof history.
    	*/
-	virtual SATClause* getZeroImpliedCertificate(unsigned var){
-		//ASSERTION_VIOLATION_REP("Not implemented");	
-		return 0;
-	}
+	virtual SATClause* getZeroImpliedCertificate(unsigned var){ return 0;}
 
 	/**
 	* in the original solver this function took care of increasing the memory allocated for the
@@ -122,9 +119,6 @@ public:
 	*/
 	virtual SATClause* getRefutation();
 
-
-	void testLingeling();
-
 	void printLingelingStatistics();
 	void printAssignment();
 
@@ -134,11 +128,13 @@ public:
 private: 
 	virtual void addClausesToLingeling(SATClauseIterator iterator);
 	void setSolverStatus(unsigned status);
+	/** Create an inference with all the clauses that where used to derive unsat in the solver part*/
+	void setRefutation();
 
 	 enum AsgnVal {
     //the true and false value also correspond to positive
     //and negative literal polarity values
-	AS_FALSE = 0u,
+   		AS_FALSE = 0u,
     	AS_TRUE = 1u,
     	AS_UNDEFINED = 2u
   	};
@@ -146,14 +142,17 @@ private:
 	* Status of the solver 
 	*/
 	Status _status;
+	SATClauseList * _clauseList;
+	SATClause* _refutation;
 	/**
 	* flag which enables proof generation
 	*/
-	SATClause* _refutation; 
 	bool _generateProofs;
 	bool _hasAssumptions;
 	//keep track of the assumptions done until now
-	List<SATLiteral>* _assumptions;
+	List<SATLiteral*>* _assumptions;
+	List<unsigned> *_satVariables;
+	DHMap<unsigned, SATClauseList* > _litToClause;
 	//scoped pointer to the incremental lingleling 
 	LGL * _solver;
 
@@ -162,13 +161,6 @@ private:
     	UnsatException(SATClause* refutation=0) : refutation(refutation) {}
     	SATClause* refutation;
   	};
-
-	/**
-	* Test to see if we can use the set of added clauses to get a refutation clause
-	* @author Giles
-	*/
-	SATClauseStack _addedClauses;
-
 };
 
 }//end SAT namespace

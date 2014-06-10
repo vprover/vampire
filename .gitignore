@@ -1,6 +1,7 @@
 obj/
 doc/
 
+
 Makefile_depend*
 
 version.cpp

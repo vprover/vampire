@@ -174,6 +174,14 @@ public:
     SAT_CLAUSE_DISPOSER,
     SAT_LEARNT_MINIMIZATION,
     SAT_LEARNT_SUBSUMPTION_RESOLUTION,
+
+    /** @author: ioan
+     * Use lingeling in an incremental way from the beginning
+     */
+    SAT_LINGELING_INCREMENTAL,
+    /** enable similar model generation for lingleling */
+    SAT_LINGELING_SIMILAR_MODELS,
+
     SAT_RESTART_FIXED_COUNT,
     SAT_RESTART_GEOMETRIC_INCREASE,
     SAT_RESTART_GEOMETRIC_INIT,
@@ -761,6 +769,8 @@ public:
   float satClauseActivityDecay() const { return _satClauseActivityDecay; }
   SatClauseDisposer satClauseDisposer() const { return _satClauseDisposer; }
   bool satLearntMinimization() const { return _satLearntMinimization; }
+  bool satLingelingIncremental() const { return _satLingelingIncremental; }
+  bool satLingelingSimilarModels() const { return _satLingelingSimilarModels; }
   bool satLearntSubsumptionResolution() const { return _satLearntSubsumptionResolution; }
   int satRestartFixedCount() const { return _satRestartFixedCount; }
   float satRestartGeometricIncrease() const { return _satRestartGeometricIncrease; }
@@ -966,6 +976,10 @@ private:
   SatClauseDisposer _satClauseDisposer;
   bool _satLearntMinimization;
   bool _satLearntSubsumptionResolution;
+  /** Lingeling incremental and similar models options */
+  bool _satLingelingIncremental;
+  bool _satLingelingSimilarModels;
+
   int _satRestartFixedCount;
   float _satRestartGeometricIncrease;
   int _satRestartGeometricInit;

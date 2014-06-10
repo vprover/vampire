@@ -110,6 +110,16 @@ Statistics::Statistics()
     satSplits(0),
     satSplitRefutations(0),
 
+    satLingelingAssumptions(0),
+    satLingelingNClauses(0),
+    satLingelingPClauses(0),
+    satLingelingNVariables(0),
+    satLingelingPVariables(0),
+    satLingelingSATCalls(0),
+    satLingelingTimeSpent(0),
+    /**TODO Remove the next var*/
+    satTWLMiliseconds(0),
+
     instGenGeneratedClauses(0),
     instGenRedundantClauses(0),
     instGenKeptClauses(0),
@@ -286,6 +296,16 @@ void Statistics::print(ostream& out)
   COND_OUT("InstGen kept clauses", instGenKeptClauses);
   COND_OUT("InstGen iterations", instGenIterations);
   COND_OUT("Max BFNT model size", maxBFNTModelSize);
+  SEPARATOR;
+
+  COND_OUT("Lingeling assumptions", satLingelingAssumptions);
+  COND_OUT("Lingeling variables", satLingelingNVariables);
+  COND_OUT("Lingeling vampire count variables", satLingelingPVariables);
+  COND_OUT("Lingeling prev. clauses", satLingelingPClauses);
+  COND_OUT("Lingeling clauses", satLingelingNClauses);
+  COND_OUT("Lingeling calls for satisfiability", satLingelingSATCalls);
+  COND_OUT("Time spent by Lingeling", satLingelingTimeSpent);
+  COND_OUT("Time spent by TWLsolver", satTWLMiliseconds);
   SEPARATOR;
 
   COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
