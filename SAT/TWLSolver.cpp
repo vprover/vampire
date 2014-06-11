@@ -189,6 +189,7 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 
   t.stop();
   env.statistics->satTWLMiliseconds+=t.elapsedMilliseconds();
+  env.statistics->satTWLVariablesCount = _varCnt;
 }
 
 void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)

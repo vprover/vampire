@@ -200,19 +200,14 @@ public:
   /** Lingeling statistics*/
   /** Count the number of assumptions that are added to Lingeling */
   unsigned satLingelingAssumptions;
-  /** Count the number of clauses that are still in Lingeling after call for satisfiability*/
-  unsigned satLingelingNClauses;
   /** Count the number of clauses sent to Lingeling */
-  unsigned satLingelingPClauses;
-  /** Number of variables that are still in Lingeling after SAT call */
-  unsigned satLingelingNVariables;
+  unsigned satLingelingClauses;
   /** Number of distinct variables counted by vampire */
-  unsigned satLingelingPVariables;
+  unsigned satLingelingVariables;
   /** Number of SAT calls for Lingeling */
   unsigned satLingelingSATCalls;
   /** Total time spent by Lingeling for the current instance */
   double satLingelingTimeSpent;
-  double satLingelingTimeVamp;
 
   /** TODO remove this statistics from here.
    * we count the time spent by twliteral sat solver

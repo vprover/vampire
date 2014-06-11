@@ -111,13 +111,10 @@ Statistics::Statistics()
     satSplitRefutations(0),
 
     satLingelingAssumptions(0),
-    satLingelingNClauses(0),
-    satLingelingPClauses(0),
-    satLingelingNVariables(0),
-    satLingelingPVariables(0),
+    satLingelingClauses(0),
+    satLingelingVariables(0),
     satLingelingSATCalls(0),
     satLingelingTimeSpent(0),
-    satLingelingTimeVamp(0),
     /**TODO Remove the next var*/
     satTWLMiliseconds(0),
     satTWLClauseCount(0),
@@ -303,14 +300,11 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   COND_OUT("Lingeling assumptions", satLingelingAssumptions);
-  COND_OUT("Lingeling variables", satLingelingNVariables);
-  COND_OUT("Lingeling vampire count variables", satLingelingPVariables);
-  COND_OUT("Lingeling prev. clauses", satLingelingPClauses);
-  COND_OUT("Lingeling clauses", satLingelingNClauses);
+  COND_OUT("Lingeling vampire count variables", satLingelingVariables);
+  COND_OUT("Lingeling vampire count clauses", satLingelingClauses);
   COND_OUT("Lingeling calls for satisfiability", satLingelingSATCalls);
-  COND_OUT("Time spent by Lingeling", satLingelingTimeSpent);
-  COND_OUT("Time spent by Lingeling c vamp", double(satLingelingTimeVamp/1000));
-  COND_OUT("Time spent by TWLsolver", double(satTWLMiliseconds/1000));
+  COND_OUT("Lingeling elapsed time", satLingelingTimeSpent);
+  COND_OUT("TWLsolver elapsed time", double(satTWLMiliseconds/1000));
   COND_OUT("TWLsolver clauses", satTWLClauseCount);
   COND_OUT("TWLsolver variables", satTWLVariablesCount);
   COND_OUT("TWLsolver calls for satisfiability", satTWLSATCalls);

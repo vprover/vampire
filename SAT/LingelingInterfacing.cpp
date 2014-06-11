@@ -35,14 +35,11 @@ extern "C" {
 #include <signal.h>
 }
 
-/*
- * TODO fix the issue with lglderef API error 
- */
 namespace SAT
 {
 using namespace std;
 using namespace Lib;
-
+//signal handlers taken from lglmain.c
 static LGL * lgl4sigh;
 static int catchedsig, verbose;
 
@@ -65,17 +62,28 @@ static void caughtsigmsg (int sig) {
   if (verbose < 0) return;
   printf ("c\nc CAUGHT SIGNAL %d", sig);
   switch (sig) {
-    case SIGINT: printf (" SIGINT"); break;
-    case SIGSEGV: printf (" SIGSEGV"); break;
-    case SIGABRT: printf (" SIGABRT"); break;
-    case SIGTERM: printf (" SIGTERM"); break;
-    case SIGBUS: printf (" SIGBUS"); break;
-    case SIGALRM: printf (" SIGALRM"); break;
+    case SIGINT: printf (" SIGINT");
+    	env.statistics->terminationReason = env.statistics->UNKNOWN;
+    	break;
+    case SIGSEGV: printf (" SIGSEGV");
+    	env.statistics->terminationReason = env.statistics->UNKNOWN;
+    	break;
+    case SIGABRT: printf (" SIGABRT");
+    	env.statistics->terminationReason = env.statistics->UNKNOWN;
+    	break;
+    case SIGTERM: printf (" SIGTERM");
+		env.statistics->terminationReason = env.statistics->UNKNOWN;
+		break;
+    case SIGBUS: printf (" SIGBUS");
+    	env.statistics->terminationReason = env.statistics->UNKNOWN;
+    	break;
+    case SIGALRM: printf (" SIGALRM");
+    	env.statistics->terminationReason = env.statistics->TIME_LIMIT;
+    	break;
     default: break;
   }
   printf ("\nc\n");
   fflush (stdout);
-  env.statistics->terminationReason = env.statistics->TIME_LIMIT;
   env.beginOutput();
   Shell::UIHelper::outputResult(env.out());
   env.endOutput();
@@ -193,41 +201,28 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 	//TAKE CARE HOW ONE ADDS CLAUSES. a call to lgladd(_solver, 0) terminates the cluase
 	TimeCounter tc(TC_SAT_SOLVER);
 	//iterate over all the clauses from the problem
-	//if the solver is in UNSATISFIABLE state, adding a new clause keeps it unsat
-	if (_status == SATSolver::UNSATISFIABLE)
-	{
+	//if the solver is in UNSATISFIABLE state, adding a new clause keeps it unsatisfiable so simply return
+	if (_status == SATSolver::UNSATISFIABLE){
 		return;
 	}
-	Timer t ;
-	t.reset();
-	t.start();
-	try
-	{
+
+	try{
 		//reset Lingeling signal handlers
 		resetsighandlers();
 
 		addClausesToLingeling(clauseIterator);
 		//add statistics about usage of Lingeling
-
-		//number of remaining clauses in Lingeling
-		env.statistics->satLingelingNClauses = lglnclauses(_solver);
-		//number of remaining variables in Lingeling
-		env.statistics->satLingelingNVariables = lglnvars(_solver);
 		//total time spent by  Lingeling in solving
 		env.statistics->satLingelingTimeSpent = lglsec(_solver);
-	} catch (const UnsatException& e)
-	{
+	}
+	catch (const UnsatException& e){
 		_status = SATSolver::UNSATISFIABLE;
 		_refutation = e.refutation;
-	} catch (TimeLimitExceededException&)
-	{
+	}
+	catch (TimeLimitExceededException&){
 		env.statistics->terminationReason = Statistics::TIME_LIMIT;
 		env.timeLimitReached();
-
 	}
-	t.stop();
-	env.statistics->satLingelingTimeVamp+=t.elapsedMilliseconds();
-
 }
 
 void LingelingInterfacing::setSolverStatus(unsigned int status)
@@ -271,6 +266,7 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 	resetsighandlers();
 	if (remaining < 100)
 	{
+		//update statistics
 		env.statistics->satLingelingTimeSpent = lglsec(_solver);
 		throw TimeLimitExceededException();
 	}
@@ -289,7 +285,7 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 		SATClause* currentClause = iterator.next();
 
 		//add the statistics for Lingeling total number of clauses
-		env.statistics->satLingelingPClauses++;
+		env.statistics->satLingelingClauses++;
 
 		SATClauseList::push(currentClause, _clauseList);
 
@@ -308,7 +304,7 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 				_litToClause.insert(currVar, clauseList);
 				_satVariables = _satVariables->cons(currVar);
 				//increase the counter of variables added to Lingeling
-				env.statistics->satLingelingPVariables++;
+				env.statistics->satLingelingVariables++;
 				//_satVariables.addLast(currVar);
 			}else{
 				SATClauseList *scl = _litToClause.get(currVar);
@@ -328,7 +324,6 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 		clauseIdx++;
 		if(env.options->satLingelingIncremental() == true){
 			env.statistics->phase = Statistics::SAT_SOLVING;
-
 			//increment the number of calls to satisfiability check
 			env.statistics->satLingelingSATCalls++;
 			//call lingeling satisfiability check
@@ -445,9 +440,7 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	{
 		return;
 	}
-	Timer t ;
-	t.reset();
-	t.start();
+
 	if (_hasAssumptions)
 	{
 		List<SATLiteral*>::Iterator lite(_assumptions);
@@ -480,8 +473,9 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	alarm((remaining / 1000));
 
 	lglassume(_solver, (flag * (literal.var()+1)));
-	unsigned int result = lglsat(_solver);
 	env.statistics->satLingelingSATCalls++;
+	unsigned int result = lglsat(_solver);
+	env.statistics->satLingelingTimeSpent = lglsec(_solver);
 	Timer::syncClock();
 	if (result == LGL_UNSATISFIABLE)
 	{
@@ -511,8 +505,6 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 
 	_assumptions = _assumptions->cons(&literal);
 	_hasAssumptions = true;
-	t.stop();
-	env.statistics->satLingelingTimeVamp+=t.elapsedMilliseconds();
 }
 
 //since lingeling allows assumption of clauses, let's have a function which does that
