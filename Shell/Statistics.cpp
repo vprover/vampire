@@ -117,8 +117,12 @@ Statistics::Statistics()
     satLingelingPVariables(0),
     satLingelingSATCalls(0),
     satLingelingTimeSpent(0),
+    satLingelingTimeVamp(0),
     /**TODO Remove the next var*/
     satTWLMiliseconds(0),
+    satTWLClauseCount(0),
+    satTWLVariablesCount(0),
+    satTWLSATCalls(0),
 
     instGenGeneratedClauses(0),
     instGenRedundantClauses(0),
@@ -305,7 +309,11 @@ void Statistics::print(ostream& out)
   COND_OUT("Lingeling clauses", satLingelingNClauses);
   COND_OUT("Lingeling calls for satisfiability", satLingelingSATCalls);
   COND_OUT("Time spent by Lingeling", satLingelingTimeSpent);
-  COND_OUT("Time spent by TWLsolver", satTWLMiliseconds);
+  COND_OUT("Time spent by Lingeling c vamp", double(satLingelingTimeVamp/1000));
+  COND_OUT("Time spent by TWLsolver", double(satTWLMiliseconds/1000));
+  COND_OUT("TWLsolver clauses", satTWLClauseCount);
+  COND_OUT("TWLsolver variables", satTWLVariablesCount);
+  COND_OUT("TWLsolver calls for satisfiability", satTWLSATCalls);
   SEPARATOR;
 
   COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);

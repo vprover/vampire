@@ -74,6 +74,7 @@ private:
    * Contains selected component names
    */
   ArraySet _selected;
+
 };
 
 /**

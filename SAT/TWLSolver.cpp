@@ -13,6 +13,8 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
+#include "Lib/Timer.hpp"
+
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -139,9 +141,18 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
   if(_status==UNSATISFIABLE) { // TODO: a potential memory leak !
     return;
   }
-
+  Timer t ;
+  t.reset();
+  t.start();
   try {
+
     while(cit.hasNext()) {
+ 	  //TODO remove this
+  	  /**@author ioan.
+  	   * reason: in order to count how many clauses are added to vampire solver
+   	   */
+   	  env.statistics->satTWLClauseCount++;
+
       SATClause* cl=cit.next();
       ASS(cl->hasUniqueVariables());
       cl->setKept(true);
@@ -160,7 +171,11 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
       _variableSelector->onInputClauseAdded(cl);
       _clauseDisposer->onNewInputClause(cl);
     }
+    //when adding clauses, after we are done with adding all of them we call solving procedure
+    //hence we increase by one here
+    env.statistics->satTWLSATCalls++;
     doSolving(onlyPropagate ? 0 : UINT_MAX);
+
   } catch (const UnsatException& e)
   {
     // make sure the rest of clauses will get released
@@ -171,6 +186,9 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
     _refutation = e.refutation;
     ASS(!_generateProofs || _refutation);
   }
+
+  t.stop();
+  env.statistics->satTWLMiliseconds+=t.elapsedMilliseconds();
 }
 
 void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
@@ -183,7 +201,9 @@ void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
     return;
   }
   ASS(!anythingToPropagate());
-
+  Timer t;
+  t.reset();
+  t.start();
   try
   {
     backtrack(1);
@@ -196,6 +216,8 @@ void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
       return;
     }
     makeAssumptionAssignment(lit);  //increases _assumptionCnt
+    //increase the count of solving calls for TWLiteral
+    env.statistics->satTWLSATCalls++;
     doSolving(conflictCountLimit);
   } catch (const UnsatException& e)
   {
@@ -204,6 +226,8 @@ void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
     _refutation = e.refutation;
     ASS(!_generateProofs || _refutation);
   }
+  t.stop();
+  env.statistics->satTWLMiliseconds+=t.elapsedMilliseconds();
 }
 
 void TWLSolver::retractAllAssumptions()
@@ -1369,6 +1393,7 @@ void TWLSolver::randomizeAssignment()
   }
 
   try {
+	  env.statistics->satTWLSATCalls++;
     doSolving(UINT_MAX);
   }
   catch (UnsatException&) {

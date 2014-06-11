@@ -176,8 +176,7 @@ LingelingInterfacing::LingelingInterfacing(const Options& opt,
 	//TODO maybe better way to do this!
 	_refutation = 0;
 	_clauseList = 0;
-	//_litToClause = 0;
-	//
+	_satVariables = 0;
 }
 
 LingelingInterfacing::~LingelingInterfacing()
@@ -199,6 +198,9 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 	{
 		return;
 	}
+	Timer t ;
+	t.reset();
+	t.start();
 	try
 	{
 		//reset Lingeling signal handlers
@@ -223,6 +225,8 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 		env.timeLimitReached();
 
 	}
+	t.stop();
+	env.statistics->satLingelingTimeVamp+=t.elapsedMilliseconds();
 
 }
 
@@ -299,9 +303,12 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 			unsigned currVar = sLit.var()+1;
 
 			if (_litToClause.find(currVar) != true ){
-				SATClauseList *clauseList(0);
+				SATClauseList *clauseList=0;
+				clauseList = clauseList->cons(currentClause);
 				_litToClause.insert(currVar, clauseList);
 				_satVariables = _satVariables->cons(currVar);
+				//increase the counter of variables added to Lingeling
+				env.statistics->satLingelingPVariables++;
 				//_satVariables.addLast(currVar);
 			}else{
 				SATClauseList *scl = _litToClause.get(currVar);
@@ -349,25 +356,6 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 		Timer::syncClock();
 
 		if (result == LGL_UNSATISFIABLE) {
-			/*
-			SATLiteralStack::Iterator slite(literalStack);
-			while (slite.hasNext()) {
-				SATLiteral slit = slite.next();
-				if (lglfixed(_solver, slit.var() + 1) >= 0) {
-
-					List<int>* cidxList = mapLitToClause.get(slit);
-
-					List<int>::Iterator lite(cidxList);
-					while (lite.hasNext()) {
-						SATClause* sclause = clauseList->nth(lite.next());
-						if (!premises->member(sclause)){
-							SATClauseList::push(sclause, premises);
-						}
-					}
-				}
-				i++;
-			}
-			*/
 			setRefutation();
 			throw UnsatException(_refutation);
 		}
@@ -457,7 +445,9 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	{
 		return;
 	}
-
+	Timer t ;
+	t.reset();
+	t.start();
 	if (_hasAssumptions)
 	{
 		List<SATLiteral*>::Iterator lite(_assumptions);
@@ -521,6 +511,8 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 
 	_assumptions = _assumptions->cons(&literal);
 	_hasAssumptions = true;
+	t.stop();
+	env.statistics->satLingelingTimeVamp+=t.elapsedMilliseconds();
 }
 
 //since lingeling allows assumption of clauses, let's have a function which does that

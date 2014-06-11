@@ -212,11 +212,15 @@ public:
   unsigned satLingelingSATCalls;
   /** Total time spent by Lingeling for the current instance */
   double satLingelingTimeSpent;
+  double satLingelingTimeVamp;
 
   /** TODO remove this statistics from here.
    * we count the time spent by twliteral sat solver
    */
   double satTWLMiliseconds;
+  unsigned satTWLClauseCount;
+  unsigned satTWLVariablesCount;
+  unsigned satTWLSATCalls;
 
   unsigned instGenGeneratedClauses;
   unsigned instGenRedundantClauses;
