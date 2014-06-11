@@ -385,7 +385,6 @@ void LingelingInterfacing::setRefutation(){
 			}
 		}
 	}
-
 	ASS(premises);
 	SATInference* inf = new PropInference(premises);
 	res->setInference(inf);

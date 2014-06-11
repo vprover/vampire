@@ -581,18 +581,16 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
     }
   }
 
-//  cout<<resLits.size()<<" ";
 //  doShallowMinimize(resLits, seenVars);
   if(_doLearntMinimization) {
     doDeepMinimize(resLits, seenVars, premises);
   }
-//  cout<<resLits.size()<<" ";
   if(_doLearntSubsumptionResolution) {
     doSubsumptionResolution(resLits, premises);
   }
-//  cout<<resLits.size()<<" ";
 
   SATClause* res = SATClause::fromStack(resLits);
+
   if(_generateProofs) {
     ASS(premises);
     SATInference* inf = new PropInference(premises);
