@@ -19,8 +19,8 @@ using Lib::Timer;
 using Shell::Options;
 using Shell::Statistics;
 
-	MainLoopContext::MainLoopContext(Problem& prb, const Options& opt):
-			_prb(prb), _opt(opt) {
+	MainLoopContext::MainLoopContext(Problem& prb, const Options& opts):
+			_prb(prb), _opts(opts) {
 
 		CALL("MainLoopContext::MainLoopContext");
 

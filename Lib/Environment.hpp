@@ -64,6 +64,14 @@ public:
 
   bool timeLimitReached() const;
 
+  void checkTimeLimit() const {
+	  if(timeLimitReached()) {
+		  throw TimeLimitExceededException();
+	  }
+  }
+
+  void checkAllTimeLimits() const;
+
   template<int Period>
   void checkTimeSometime() const
   {

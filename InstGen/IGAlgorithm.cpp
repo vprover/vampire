@@ -499,6 +499,7 @@ void IGAlgorithm::doResolutionStep()
     case Statistics::REFUTATION_NOT_FOUND:
     case Statistics::UNKNOWN:
     case Statistics::TIME_LIMIT:
+    case Statistics::LOCAL_TIME_LIMIT:
     case Statistics::MEMORY_LIMIT:
       //refutation algorithm finished, we just get rid of it
       _saturationAlgorithm = 0;
@@ -797,9 +798,10 @@ MainLoopResult IGAlgorithm::runImpl()
   for(;;) {
     doOneAlgorithmStep();
     //TODO - other checks here?
-    if(env -> timeLimitReached()){
+    /*if(env -> timeLimitReached()){
       throw TimeLimitExceededException();
-    }
+    }*/
+    env -> checkAllTimeLimits();
   }
 }
 

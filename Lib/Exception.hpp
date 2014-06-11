@@ -123,7 +123,19 @@ public:
   TimeLimitExceededException ()
   : Exception("The time limit exceeded")
   {}
-}; // MemoryLimitExceededException
+}; // TimeLimitExceededException
+
+/**
+ * Class LocalTimeLimitExceededException.
+ */
+class LocalTimeLimitExceededException
+: public Exception
+{
+public:
+  LocalTimeLimitExceededException ()
+  : Exception("The local time limit exceeded")
+  {}
+}; // LocalTimeLimitExceededException
 
 
 /**

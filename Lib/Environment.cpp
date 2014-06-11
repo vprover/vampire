@@ -125,6 +125,20 @@ bool Environment::timeLimitReached() const
   return false;
 } // Environment::timeLimitReached
 
+void Environment::checkAllTimeLimits() const
+{
+  CALL("Environment::checkAllTimeLimits");
+
+  if (options->timeLimitInDeciseconds() &&
+      timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
+    statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+    throw TimeLimitExceededException();
+  }else if (options->localTimeLimitInDeciseconds() &&
+	      timer->elapsedDeciseconds() > options->localTimeLimitInDeciseconds()) {
+	    statistics->terminationReason = Shell::Statistics::LOCAL_TIME_LIMIT;
+	    throw LocalTimeLimitExceededException();
+  }
+} // Environment::timeLimitReached
 
 /**
  * Return remaining time in miliseconds.

@@ -24,7 +24,7 @@ IGAlgorithmContext::IGAlgorithmContext(Problem& prb, const Options& opts):
 
 	switchIn();
 
-	_ml = new IGAlgorithm(_prb, _opt);
+	_ml = new IGAlgorithm(prb, opts);
 
 	switchOut();
 }

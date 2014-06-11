@@ -95,14 +95,16 @@ MainLoopResult MainLoopScheduler::run() {
 					if(_mlcl[k]){
 						_mlcl[k] -> doStep();
 					}
-				}
-				//} catch(TimeLimitExceededException&) {
-				//	delete _mlcl[k];	
-				//	_mlcl[k] = 0;
-				//	live_strategies--;
-				//	//check live strategies
-				//}
-				catch(MainLoop::MainLoopFinishedException& e) {
+				}catch(LocalTimeLimitExceededException&) {
+					delete _mlcl[k];
+					_mlcl[k] = 0;
+					live_strategies--;
+					//check if there are any strategies left
+					if(live_strategies==0){
+						result = new MainLoopResult(Statistics::LOCAL_TIME_LIMIT);
+						break;
+					}
+				}catch(MainLoop::MainLoopFinishedException& e) {
 					if(e.result.terminationReason == Statistics::SATISFIABLE){
 						result =  &e.result;
 						break;

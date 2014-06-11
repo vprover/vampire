@@ -13,49 +13,32 @@
 #include "Kernel/ProblemFwd.hpp"
 #include "Shell/OptionsFwd.hpp"
 
-/*namespace Lib {
-
-class Environment;
-
-}*/
-
-/*namespace Shell {
-
-class Options;
-
-}*/
-
 namespace Kernel {
-
-//class Problem;
-//class ConcurrentMainLoop;
 
 class MainLoopContext {
 public:
-	MainLoopContext(Problem& prb, const Shell::Options& opt);
+	MainLoopContext(Problem& prb, const Shell::Options& opts);
 
 	virtual ~MainLoopContext();
 
 	// Do one main loop step in this context
 	virtual void doStep();
-
-	// Switch into this context
-	virtual void switchIn();
-
-	// Switch out from the context
-	virtual void switchOut();
-
 	// Do init required by algorithm, and set phase
 	virtual void init();
 	// Do cleanup required by algorithm, and set phase
 	virtual void cleanup();
 
 protected:
-	Problem& _prb;
+	// Switch into this context
+	void switchIn();
+	// Switch out from the context
+	void switchOut();
+
 	ConcurrentMainLoop* _ml;
-	Lib::Environment* _env;
-	const Shell::Options& _opt;
 private:
+	Problem& _prb;
+	Lib::Environment* _env;
+	const Shell::Options& _opts;
 	Lib::Environment* _temp_env; //A variable to preserve the current environment before switching in.
 								 //TODO: a manager pattern for main loops needs to be implemented for context switching
 };

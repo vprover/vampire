@@ -298,6 +298,8 @@ public:
     UNKNOWN,
     /** time limit reached */
     TIME_LIMIT,
+    /** local (proof attempt) time limit reached */
+    LOCAL_TIME_LIMIT,
     /** memory limit reached */
     MEMORY_LIMIT
   };

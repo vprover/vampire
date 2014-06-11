@@ -1151,9 +1151,10 @@ start:
 
     newClausesToUnprocessed();
 
-    if (env -> timeLimitReached()) {
+    /*if (env -> timeLimitReached()) {
       throw TimeLimitExceededException();
-    }
+    }*/
+    env -> checkAllTimeLimits();
   }
 
   ASS(clausesFlushed());
@@ -1262,9 +1263,10 @@ MainLoopResult SaturationAlgorithm::runImpl()
       doOneAlgorithmStep();
 
       Timer::syncClock();
-      if (env -> timeLimitReached()) {
+      /*if (env -> timeLimitReached()) {
         throw TimeLimitExceededException();
-      }
+      }*/
+      env -> checkAllTimeLimits();
     }
   }
   catch(ThrowableBase&)
