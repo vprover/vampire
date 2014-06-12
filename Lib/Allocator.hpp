@@ -202,7 +202,7 @@ public:
 
 private:
   /**
-   * A piece of memory whose size is multiple of PAGE_SIZE_. Each page
+   * A piece of memory whose size is multiple of VPAGE_SIZE. Each page
    * is used in one of the following ways:
    * <ol>
    *  <li>to store a collection of Knowns</li>
@@ -220,7 +220,7 @@ private:
     Page* next;
     /** The previous page, if any */
     Page* previous;
-    /**  Size of this page, multiple of PAGE_SIZE_ */
+    /**  Size of this page, multiple of VPAGE_SIZE */
     size_t size;
     /** The next page, if any, if the page is not usable any more.
      *  If the page is the currently usable page, then it is the
