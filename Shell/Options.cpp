@@ -50,7 +50,7 @@ public:
   static const char* _satSolverValues[];
   static const char* _satAlgValues[];
   static const char* _equalityProxyValues[];
-  static const char* _extensionalityInferenceValues[];
+  static const char* _extensionalityResolutionValues[];
   static const char* _inputSyntaxValues[];
   static const char* _modeValues[];
   static const char* _ruleActivityValues[];
@@ -89,7 +89,7 @@ public:
   static NameArray satSolverValues;
   static NameArray satAlgValues;
   static NameArray equalityProxyValues;
-  static NameArray extensionalityInferenceValues;
+  static NameArray extensionalityResolutionValues;
   static NameArray inputSyntaxValues;
   static NameArray modeValues;
   static NameArray ruleActivityValues;
@@ -162,8 +162,8 @@ const char* Options::Constants::_optionNames[] = {
   "equality_resolution_with_deletion",
   
   "extensionality_allow_pos_eq",
-  "extensionality_inference",
   "extensionality_max_length",
+  "extensionality_resolution",
 
   "flatten_top_level_conjunctions",
   "forbidden_options",
@@ -334,8 +334,8 @@ const char* Options::Constants::_shortNames[] = {
   "drc",
 
   "ep",
+  "er",
   "erd",
-  "ext",
 
   "fd",
   "fde",
@@ -420,8 +420,8 @@ int Options::Constants::shortNameIndexes[] = {
   DEMODULATION_REDUNDANCY_CHECK,
 
   EQUALITY_PROXY,
+  EXTENSIONALITY_RESOLUTION,
   EQUALITY_RESOLUTION_WITH_DELETION,
-  EXTENSIONALITY_INFERENCE,
 
   FORWARD_DEMODULATION,
   FUNCTION_DEFINITION_ELIMINATION,
@@ -575,12 +575,12 @@ const char* Options::Constants::_equalityProxyValues[] = {
 NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,
 						  sizeof(_equalityProxyValues)/sizeof(char*));
 
-const char* Options::Constants::_extensionalityInferenceValues[] = {
+const char* Options::Constants::_extensionalityResolutionValues[] = {
   "filter",
   "known",
   "off"};
-NameArray Options::Constants::extensionalityInferenceValues(_extensionalityInferenceValues,
-						  sizeof(_extensionalityInferenceValues)/sizeof(char*));
+NameArray Options::Constants::extensionalityResolutionValues(_extensionalityResolutionValues,
+						  sizeof(_extensionalityResolutionValues)/sizeof(char*));
 
 const char* Options::Constants::_ruleActivityValues[] = {
   "input_only",
@@ -845,7 +845,7 @@ Options::Options ()
   _equalityProxy(EP_OFF), 
   _equalityResolutionWithDeletion(RA_INPUT_ONLY),
   _equivalentVariableRemoval(true),
-  _extensionalityInference(EI_OFF),
+  _extensionalityResolution(ER_OFF),
   _extensionalityMaxLength(0),
   _extensionalityAllowPosEq(false),
   
@@ -1207,8 +1207,8 @@ void Options::set(const char* name,const char* value, int index)
 	USER_ERROR("equality_resolution_with_deletion is not implemented for value \"on\"");
       }
       return;
-    case EXTENSIONALITY_INFERENCE:
-      _extensionalityInference = (ExtensionalityInference)Constants::extensionalityInferenceValues.find(value);
+    case EXTENSIONALITY_RESOLUTION:
+      _extensionalityResolution = (ExtensionalityResolution)Constants::extensionalityResolutionValues.find(value);
       return;
     case EXTENSIONALITY_MAX_LENGTH:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
@@ -2169,8 +2169,8 @@ void Options::outputValue (ostream& str,int optionTag) const
   case EQUALITY_RESOLUTION_WITH_DELETION:
     str << Constants::ruleActivityValues[_equalityResolutionWithDeletion];
     return;
-  case EXTENSIONALITY_INFERENCE:
-    str << Constants::extensionalityInferenceValues[_extensionalityInference];
+  case EXTENSIONALITY_RESOLUTION:
+    str << Constants::extensionalityResolutionValues[_extensionalityResolution];
     return;
 
   case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
@@ -3173,7 +3173,7 @@ void Options::checkGlobalOptionConstraints() const
   if (_splitting && _saturationAlgorithm == INST_GEN) {
     USER_ERROR("saturation algorithm inst_gen cannot be used with sat splitting");
   }
-  if (_extensionalityInference != EI_OFF && _inequalitySplitting) {
+  if (_extensionalityResolution != ER_OFF && _inequalitySplitting) {
     USER_ERROR("extensionality resolution can not be used together with inequality splitting");
   }
   //TODO:implement forbidden options

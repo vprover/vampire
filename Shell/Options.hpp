@@ -82,8 +82,8 @@ public:
     EQUALITY_RESOLUTION_WITH_DELETION,
 
     EXTENSIONALITY_ALLOW_POS_EQ,
-    EXTENSIONALITY_INFERENCE,
     EXTENSIONALITY_MAX_LENGTH,
+    EXTENSIONALITY_RESOLUTION,
 
     FLATTEN_TOP_LEVEL_CONJUNCTIONS,
     /** If some of the specified options are set to a forbidden state,
@@ -471,11 +471,11 @@ public:
     EP_ON = 5
   };
 
-  /** Values for --extensionality_inference */
-  enum ExtensionalityInference {
-    EI_FILTER = 0,
-    EI_KNOWN = 1,
-    EI_OFF = 2
+  /** Values for --extensionality_resolution */
+  enum ExtensionalityResolution {
+    ER_FILTER = 0,
+    ER_KNOWN = 1,
+    ER_OFF = 2
   };
 
   enum SatRestartStrategy {
@@ -682,7 +682,7 @@ public:
   void setEqualityPropagation(bool newVal) { _equalityPropagation = newVal; }
   EqualityProxy equalityProxy() const { return _equalityProxy; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion; }
-  ExtensionalityInference extensionalityInference() const { return _extensionalityInference; }
+  ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq; }
   
@@ -873,7 +873,7 @@ private:
   EqualityProxy _equalityProxy;
   RuleActivity _equalityResolutionWithDeletion;
   bool _equivalentVariableRemoval;
-  ExtensionalityInference _extensionalityInference;
+  ExtensionalityResolution _extensionalityResolution;
   unsigned _extensionalityMaxLength;
   bool _extensionalityAllowPosEq;
   

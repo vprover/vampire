@@ -122,7 +122,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
   _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
 
-  if (opt.extensionalityInference() != Options::EI_OFF) {
+  if (opt.extensionalityResolution() != Options::ER_OFF) {
     _extensionality = new ExtensionalityClauseContainer(opt);
     //_active->addedEvent.subscribe(_extensionality, &ExtensionalityClauseContainer::addIfExtensionality);
   } else {
@@ -1366,7 +1366,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.unitResultingResolution() != Options::URR_OFF) {
     gie->addFront(new URResolution());
   }
-  if (opt.extensionalityInference() != Options::EI_OFF) {
+  if (opt.extensionalityResolution() != Options::ER_OFF) {
     gie->addFront(new ExtensionalityResolution());
   }
   
