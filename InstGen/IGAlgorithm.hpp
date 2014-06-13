@@ -107,7 +107,7 @@ private:
   RatioKeeper _instGenResolutionRatio;
 
 
-  SATSolverSCP _satSolver;
+  SATSolver* _satSolver;
   ScopedPtr<IGGrounder> _gnd;
 
   /** Used by global subsumption */

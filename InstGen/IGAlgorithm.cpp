@@ -86,7 +86,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
       ASSERTION_VIOLATION(opt.satSolver());
   }
 
-  _gnd = new  IGGrounder(_satSolver.ptr());
+  _gnd = new  IGGrounder(_satSolver);
 
   if(_opt.globalSubsumption()) {
     _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder(), opt);
@@ -105,6 +105,7 @@ IGAlgorithm::~IGAlgorithm()
 
   delete _selected;
   delete _variantIdx;
+  delete _satSolver;
 }
 
 ClauseIterator IGAlgorithm::getActive()
