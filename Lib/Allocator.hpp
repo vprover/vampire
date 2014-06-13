@@ -135,6 +135,10 @@ private:
    * this piece. Since the size is known in advance, no bookkeeping of
    * the size is required.
    *
+   * Note: the code of Allocator uses sizeof(Known) as a canonical
+   * way of describing the size of a general pointer on the current
+   * architecture.
+   * 
    * This pieces of memory are kept in a free list.
    * @since 10/01/2007 Manchester
    */
