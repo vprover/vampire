@@ -125,6 +125,8 @@ public:
   static SATClause* copy(SATClause* cl);
 
 protected:
+  static Allocator* satAllocator;  
+  
   static SATLiteral litToSAT(NamingContext& context, Literal* lit);
 
   ActivityType _activity;

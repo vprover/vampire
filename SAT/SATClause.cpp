@@ -28,6 +28,24 @@ namespace SAT {
 using namespace Lib;
 using namespace Shell;
 
+Allocator* SATClause::satAllocator = Allocator::newAllocator();
+
+#if VDEBUG
+
+#define SAT_ALLOC_KNOWN(size,className)				\
+  (SATClause::satAllocator->allocateKnown(size,className))
+#define SAT_DEALLOC_KNOWN(obj,size,className)		        \
+  (SATClause::satAllocator->deallocateKnown(obj,size,className))
+
+#else
+
+#define SAT_ALLOC_KNOWN(size,className)				\
+  (SATClause::satAllocator->allocateKnown(size))
+#define SAT_DEALLOC_KNOWN(obj,size,className)		        \
+  (SATClause::satAllocator->deallocateKnown(obj,size))
+
+#endif
+
 /**
  * Allocate a clause having lits literals.
  */
@@ -49,7 +67,7 @@ void* SATClause::operator new(size_t sz,unsigned lits)
   if (lits > 0)
     size-=sizeof(SATLiteral);
 
-  return ALLOC_KNOWN(size,"SATClause");
+  return SAT_ALLOC_KNOWN(size,"SATClause");
 }
 
 SATClause::SATClause(unsigned length,bool kept)
@@ -100,7 +118,7 @@ void SATClause::destroy()
   // call a destructor of the clause object (will destroy _literals[0])
   this->~SATClause();
     
-  DEALLOC_KNOWN(this, size,"SATClause");
+  SAT_DEALLOC_KNOWN(this, size,"SATClause");
 } // SATClause::destroy
 
 
