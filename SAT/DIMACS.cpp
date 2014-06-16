@@ -109,7 +109,18 @@ void DIMACS::outputProblem(SATClauseList* clauses, ostream& out)
   out<<"0"<<endl;
 }
 
-SATClauseIterator DIMACS::parse(const char* fname, unsigned& maxVar)
+template <class T>
+static T readT(istream& str, bool survive_eof = false) {
+  T res;
+  str >> res;
+  if (str.fail() && !(survive_eof && str.eof())) {
+    cout << "Invalid input.\n";
+    exit(0);
+  }
+  return res;
+}
+
+SATClauseList* DIMACS::parse(const char* fname, unsigned& maxVar)
 {
   CALL("DIMACS::parse");
 
@@ -123,56 +134,67 @@ SATClauseIterator DIMACS::parse(const char* fname, unsigned& maxVar)
 
   istream& inp=*inp0;
   if(!inp.good()) {
-    cout<<"Cannot open file\n";
+    cout<<"Cannot open file.\n";
     exit(0);
   }
 
-  char buf[512];
-  char ch;
-  inp>>ch;
+  char ch = readT<char>(inp);
   while(ch=='c') {
-    inp.getline(buf,512);
-    inp>>ch;
+    inp.ignore(numeric_limits<streamsize>::max(),'\n');
+    ch = readT<char>(inp);
   }
-  ASS_EQ(ch,'p');
-  for(int i=0;i<3;i++) {
-    inp>>ch;
+  // the line should look like "p cnf #vars #clauses" ...
+  if (ch != 'p') {
+    cout<<"Invalid input: 'p' expected.\n";
   }
-
+  // skip one more word -- should be "cnf"
+  readT<char>(inp);
+  inp.ignore(numeric_limits<streamsize>::max(),' ');
+  unsigned num_vars = readT<unsigned>(inp);
+  unsigned num_cls = readT<unsigned>(inp);
+  
   SATClauseList* res=0;
-
-  unsigned remains;
-  int ivar;
   Stack<int> vars(64);
-  inp>>maxVar;
-  inp>>remains;
-  while(remains--) {
-    inp>>ivar;
-    while(ivar!=0) {
-      if(inp.eof()) {
-	cout<<"Invalid input\n";
-	exit(0);
-      }
-      vars.push(ivar);
-      inp>>ivar;
+  
+  unsigned numCls = 0;
+  maxVar = 0;  
+  
+  int lit = readT<int>(inp,true);
+  while (!inp.eof()) {  
+    while (lit != 0) {            
+      unsigned var = abs(lit);
+      if (var > maxVar)
+        maxVar = var;      
+      vars.push(lit);            
+      lit = readT<int>(inp);
     }
+    
+    lit = readT<int>(inp,true);
+    
+    numCls++;
     unsigned clen=(unsigned)vars.size();
     SATClause* cl=new(clen) SATClause(clen, true);
     for(int i=(int)clen-1; i>=0;i--) {
-      ivar=vars.pop();
-      (*cl)[i].set(abs(ivar), ivar>0);
+      int l = vars.pop();
+      (*cl)[i].set(abs(l), l>0);
     }
     ASS(vars.isEmpty());
 
-    cl->sort();
     SATClauseList::push(cl,res);
   }
 
+  if (num_vars != maxVar)
+    cout << "Warning: DIMACS input mis-specifies the number of variables (" 
+            << num_vars << " specified and " << maxVar << " read).\n";
+  if (num_cls != numCls)
+    cout << "Warning: DIMACS input mis-specifies the number of clauses (" 
+            << num_cls << " specified and " << numCls << " read).\n";
+  
   if(inp0!=&cin) {
     delete inp0;
   }
 
-  return pvi( SATClauseList::DestructiveIterator(res) );
+  return res;
 }
 
 

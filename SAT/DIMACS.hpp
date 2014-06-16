@@ -17,7 +17,7 @@ namespace SAT
 class DIMACS
 {
 public:
-  static SATClauseIterator parse(const char* fname, unsigned& maxVar);
+  static SATClauseList* parse(const char* fname, unsigned& maxVar);
 
   static void outputGroundedProblem(MapToLIFO<Clause*, SATClause*>& insts,
 	  SATClause::NamingContext& nctx, ostream& out);

@@ -147,7 +147,7 @@ public:
     return _stack[n];
   } // operator[]
 
-  /** Return a reference to the n-th element of the stack */
+  /** Return a const reference to the n-th element of the stack */
   inline
   const C& operator[](size_t n) const
   {

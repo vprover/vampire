@@ -24,14 +24,14 @@ using namespace Kernel;
 class SATLiteral
 {
 public:
-  inline SATLiteral(): _source(0) {}
-  explicit inline SATLiteral(unsigned content) :_content(content),_source(0) {}
+  inline SATLiteral() {}
+  explicit inline SATLiteral(unsigned content) :_content(content) {}
   /**
    * Create a SAT literal of variable @b var and polarity &b polarity
    *
    * @b var must be greater than 0 and @b polarity either 1 or 0 (for positive or negative)
    */
-  inline SATLiteral(unsigned var, unsigned polarity) :_polarity(polarity), _var(var), _source(0)
+  inline SATLiteral(unsigned var, unsigned polarity) :_polarity(polarity), _var(var) 
   { ASS_G(var,0); ASS_NEQ(var,0x7FFFFFFF); }
 
 
@@ -59,15 +59,6 @@ public:
   inline bool operator!=(const SATLiteral& l) const
   { return _content!=l._content; }
 
- /**
-  * The decision to record niceness in this way has effectively
-  * doubled the size of all SATLiterals, perhaps not the best
-  * idea, but it does avoid having to pass this all the way down
-  * to the VariableSelector
-  */
-  inline void recordSource(Literal* l){ cout << "RN\n";_source = l; }
-  virtual unsigned getNiceness(Shell::Options::NicenessOption niceness_option);
-
   string toString() const;
 
   /**
@@ -87,12 +78,6 @@ private:
     };
   };
  
-  // The FO literal that this SAT literal represents
-  // for use in computing niceness
-  // This information is possibly replicated in 
-  //  - Grounder, _asgn (possibly?)
-  // TODO - check
-  Literal* _source;
 };
 
 };

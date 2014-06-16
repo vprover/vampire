@@ -229,6 +229,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE:
     out<<"splitting component index maintenance";
     break;
+  case TC_SPLITTING_COMPONENT_INDEX_USAGE:
+    out<<"splitting component index usage";
+    break;
   case TC_SPLITTING_COMPONENT_SELECTION:
     out<<"splitting component selection";
     break;
@@ -273,6 +276,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_SAT_SOLVER:
     out<<"SAT solver";
+    break;
+  case TC_TWLSOLVER_ADD:
+    out<<"TWLSolver add clauses";
     break;
   case TC_SUPERPOSITION:
     out<<"superposition";

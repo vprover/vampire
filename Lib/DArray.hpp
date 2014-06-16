@@ -30,7 +30,7 @@ template<typename C>
 class DArray
 {
 private:
-  //private and undefined operator= and copy constructor to avoid implicitly generated ones
+  //private and undefined operator= to avoid an implicitly generated one
   DArray& operator=(const DArray&);
 public:
   class Iterator;

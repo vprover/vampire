@@ -55,7 +55,7 @@ using namespace __Cache_AUX;
  * A direct mapped cache that expands if the number of cache evictions is
  * too high
  *
- * The number of cache evictions for expancion is two times the size of
+ * The number of cache evictions for expansion is two times the size of
  * the cache. On the expansion, elements previously stored in the cache are
  * not copied.
  *

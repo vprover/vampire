@@ -37,6 +37,7 @@ public:
   virtual void onConflict() {}
   virtual void onInputClauseAdded(SATClause* cl) {}
   virtual void onRestart() {}
+  virtual void recordSource(unsigned satlit, Literal* lit) {}
 
 protected:
   bool isUndefined(unsigned var);
@@ -134,6 +135,13 @@ public:
 
     _activityHeap.decay();
   }
+
+  virtual void recordSource(unsigned satlit, Literal* lit)
+  {
+    CALL("ActiveVaraibleSelector::recordSource");
+    _sourceMap.insert(satlit,lit);
+  }
+
 protected:
 
   class VariableActivityHeap
@@ -227,8 +235,12 @@ protected:
     DynamicHeap<unsigned, VAComparator, ArrayMap<size_t> > _heap;
   };
 
+  unsigned getNiceness(unsigned var);
+
   Options::NicenessOption _niceness_option;
+  //Has initial size 0
   DArray<unsigned> _niceness;
+  DHMap<unsigned,Literal*> _sourceMap;
   VariableActivityHeap _activityHeap;
 };
 

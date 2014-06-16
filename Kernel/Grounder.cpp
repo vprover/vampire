@@ -20,17 +20,11 @@
 #include "SAT/SATClause.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/SATLiteral.hpp"
+#include "SAT/SATSolver.hpp"
 
 #include "Grounder.hpp"
 
 using namespace Kernel;
-
-Grounder::Grounder()
-: _nextSatVar(1)
-{
-  CALL("Grounder::Grounder");
-
-}
 
 /**
  * Return SATClauseIterator with SAT clauses that are results
@@ -88,8 +82,12 @@ void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc, bool use_n, Liter
 
   for(unsigned i=0; i<clen; i++) {
     SATLiteral lit = groundNormalized(normLits[i]);
-    // this is recording the FO literal for niceness computation in SATLiteral 
-    if(use_n) lit.recordSource((* cl)[i]); 
+    // this is recording the FO literal for niceness computation 
+    if(use_n){
+      //lit.recordSource((* cl)[i]); 
+      ASS(_satSolver);
+      _satSolver->recordSource(lit.var(),(*cl)[i]);
+    }
     acc.push(lit);
   }
 }
@@ -132,7 +130,10 @@ SATLiteral Grounder::ground(Literal* lit,bool use_n)
   normalize(1, &norm);
   SATLiteral slit = groundNormalized(norm);
   // this is recording the FO literal for niceness computation later
-  if(use_n) slit.recordSource(lit); 
+  if(use_n){
+     ASS(_satSolver);
+     _satSolver->recordSource(slit.var(),lit);
+  }
   return slit;
 }
 
@@ -261,7 +262,7 @@ void GlobalSubsumptionGrounder::normalize(unsigned cnt, Literal** lits)
 // IGGrounder
 //
 
-IGGrounder::IGGrounder()
+IGGrounder::IGGrounder(SATSolver* satSolver) : Grounder(satSolver)
 {
   _tgtTerm = TermList(0, false);
   //TODO: make instantiation happen with the most prolific symbol of each sort

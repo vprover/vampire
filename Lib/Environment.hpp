@@ -42,7 +42,7 @@ public:
   Shell::Statistics* statistics;
   /** Last read properties */
   Shell::Property* property;
-  /** Currently used timer */
+  /** Currently used timer, this is used by all timers as a global clock */
   Timer* timer;
 
   bool haveOutput();

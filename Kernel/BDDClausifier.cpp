@@ -162,7 +162,7 @@ unsigned BDDClausifier::getCNFVar(unsigned bddVar)
 /**
  * Return pointer to new SATClause object containing literals
  * corresponding to non-resolved entries in @b stack (the number of
- * resolved entried is passed in @b resolvedCnt to spare one pass
+ * resolved entries is passed in @b resolvedCnt to spare one pass
  * through the stack). If @b givenName is non-zero, negative occurrence
  * of the CNF variable @b givenName is added to the clause. If
  * @b nodeName is non-zero, positive occurrence of the CNF variable

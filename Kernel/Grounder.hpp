@@ -9,6 +9,8 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
+#include "Lib/ScopedPtr.hpp"
+#include "Lib/SmartPtr.hpp"
 
 #include "Kernel/Term.hpp"
 
@@ -19,8 +21,9 @@ using namespace SAT;
 
 class Grounder {
 public:
-  Grounder();
-  virtual ~Grounder() {}
+  Grounder() : _nextSatVar(1), _satSolver(0) {}
+  Grounder(SATSolver* satSolver) : _nextSatVar(1), _satSolver(satSolver) {}
+  virtual ~Grounder() { CALL("Kernel::~Grounder"); }
 
   SATClauseIterator ground(Clause* cl,bool use_n);
   SATClause* groundNonProp(Clause* cl, bool use_n, Literal** normLits=0);
@@ -48,6 +51,9 @@ private:
   unsigned _nextSatVar;
   /** Map from positive literals to SAT variable numbers */
   DHMap<Literal*, unsigned> _asgn;
+  /** Used to communicate source literals, should be 0 unless this is IGGrounded */
+  // IGAlgorithm will delete this
+  SATSolver* _satSolver;
 };
 
 class GlobalSubsumptionGrounder : public Grounder {
@@ -62,7 +68,7 @@ protected:
 
 class IGGrounder : public Grounder {
 public:
-  IGGrounder();
+  IGGrounder(SATSolver* satSolver);
 private:
   TermList _tgtTerm;
 protected:

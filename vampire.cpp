@@ -67,6 +67,8 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "SAT/LingelingInterfacing.hpp"
+#include "SAT/TWLSolver.hpp"
+#include "SAT/Preprocess.hpp"
 
 #if IS_LINGVA
 #include "Program/Lingva.hpp"
@@ -102,7 +104,7 @@ UnitList* globUnitList=0;
  * either found refutation or established satisfiability.
  *
  *
- * If Vampire was interupted by a SIGINT, value
+ * If Vampire was interrupted by a SIGINT, value
  * VAMP_RESULT_STATUS_SIGINT is returned,
  * and in case of other signal we return VAMP_RESULT_STATUS_OTHER_SIGNAL. For implementation
  * of these return values see Lib/System.hpp.
@@ -123,7 +125,7 @@ int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
  * either found refutation or established satisfiability.
  *
  *
- * If execution was interupted by a SIGINT, value 3 is returned,
+ * If execution was interrupted by a SIGINT, value 3 is returned,
  * and in case of other signal we return 2. For implementation
  * of these return values see Lib/System.hpp.
  *
@@ -140,7 +142,7 @@ Problem* getPreprocessedProblem()
 
   TimeCounter tc2(TC_PREPROCESSING);
 
-  Preprocess prepro(*env.options);
+  Shell::Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(*prb);
   globProblem = prb;
@@ -174,7 +176,7 @@ void profileMode()
 
   Property* property = prb->getProperty();
   TheoryFinder tf(prb->units(), property);
-  Preprocess prepro(*env.options);
+  Shell::Preprocess prepro(*env.options);
   tf.search();
 
   env.beginOutput();
@@ -361,7 +363,7 @@ void preprocessMode()
   TimeCounter tc2(TC_PREPROCESSING);
 
   // preprocess without clausification
-  Preprocess prepro(*env.options);
+  Shell::Preprocess prepro(*env.options);
   prepro.turnClausifierOff();
   prepro.preprocess(*prb);
 
@@ -403,24 +405,26 @@ void outputMode()
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // outputMode
 
-SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
+static SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
 {
   CALL("getInputClauses");
-  TimeCounter tc(TC_PREPROCESSING);
-  unsigned maxVar;
-  SATClauseIterator cit=( DIMACS::parse(fname, maxVar) );
-  varCnt=maxVar+1;
+  TimeCounter tc(TC_PARSING);
 
-  SATClauseList* clauses = 0;
-  SATClauseList::pushFromIterator(cit, clauses);
-  return clauses;
+  return DIMACS::parse(fname, varCnt);
+}
+
+static SATClauseIterator preprocessClauses(SATClauseList* clauses) {
+  CALL("preprocessClauses");
+  TimeCounter tc(TC_PREPROCESSING);
+  
+  return SAT::Preprocess::removeDuplicateLiterals(pvi(SATClauseList::DestructiveIterator(clauses)));
 }
 
 void satSolverMode()
 {
   CALL("satSolverMode()");
   TimeCounter tc(TC_SAT_SOLVER);
-  SATSolverSCP solver(new LingelingInterfacing(*env.options, false));
+  SATSolverSCP solver(new TWLSolver(*env.options, false));
 
   //get the clauses; 
   SATClauseList* clauses;
@@ -429,10 +433,10 @@ void satSolverMode()
   SATSolver::Status res; 
   
   clauses = getInputClauses(env.options->inputFile().c_str(), varCnt);
-  cout<<"we have : "<<varCnt << " variables\n";
-
-  //add all the clauses to the solver 
-  solver->addClauses(pvi(SATClauseList::Iterator(clauses)));
+  
+  solver->ensureVarCnt(varCnt+1); // allocates one extra slot for the dummy variable 0    
+  
+  solver->addClauses(preprocessClauses(clauses));
   res = solver->getStatus();
 
   env.statistics->phase = Statistics::FINALIZATION;
@@ -611,7 +615,7 @@ void groundingMode()
   try {
     ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
-    Preprocess prepro(*env.options);
+    Shell::Preprocess prepro(*env.options);
     prepro.preprocess(*prb);
 
     ClauseIterator clauses = prb->clauseIterator();

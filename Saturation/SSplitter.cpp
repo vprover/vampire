@@ -592,7 +592,11 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
 {
   CALL("SSplitter::tryGetExistingComponentName");
 
-  ClauseIterator existingComponents = _componentIdx.retrieveVariants(lits, size);
+  ClauseIterator existingComponents;
+  { 
+    TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_USAGE);
+    existingComponents = _componentIdx.retrieveVariants(lits, size);
+  }
 
   if(!existingComponents.hasNext()) {
     return false;
@@ -630,7 +634,10 @@ Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size,
 
   compCl->setSplits(SplitSet::getSingleton(name));
 
-  _componentIdx.insert(compCl);
+  {
+    TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
+    _componentIdx.insert(compCl);
+  }
   _compNames.insert(compCl, name);
 
   return compCl;
@@ -796,6 +803,7 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
 #if VDEBUG
   cl->incFreezeCount();
   RSTAT_MCTR_INC("frozen clauses",cl->getFreezeCount());
+  RSTAT_CTR_INC("total_frozen");
 #endif
 
   cl->incReductionTimestamp();
@@ -853,10 +861,15 @@ void SSplitter::onNewClause(Clause* cl)
   // (a) if it is true it can be immediately frozen
   // (b) if it is false it can be immediately passed to the SAT
   //      solver and kill the current model
-  bool isComponenet = _componentIdx.retrieveVariants(cl).hasNext();
-  if(isComponenet){
-	RSTAT_CTR_INC("New Clause is Componenet");
-  }
+  //bool isComponent = false;
+  //{
+  //  //TODO - would it be better to use tryGetExistingComponent here?
+  //  TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_USAGE);
+  //  isComponent = _componentIdx.retrieveVariants(cl).hasNext();
+  //}
+  //if(isComponent){
+  //	RSTAT_CTR_INC("New Clause is Componenet");
+  //}
 
   if(!cl->splits()) {
     SplitSet* splits=getNewClauseSplitSet(cl);
@@ -1049,6 +1062,7 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
       _sa->addNewClause(rcl);
   #if VDEBUG
       RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
+      RSTAT_CTR_INC("total_unfrozen");
       //check that restored clause does not depend on inactive splits
       assertSplitLevelsActive(rcl->splits());
   #endif

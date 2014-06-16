@@ -49,6 +49,10 @@ public:
   virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
   virtual void retractAllAssumptions();
 
+  virtual void recordSource(unsigned var, Literal* lit){
+    _inner->recordSource(var,lit);
+  }
+
 private:
 
   // check if @cl is implied by current model, and record it

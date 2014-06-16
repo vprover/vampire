@@ -204,7 +204,7 @@ public:
 
 #if GNUMP
   /**
-   * added for the purpose of Bound porpagation
+   * added for the purpose of Bound propagation
    * @since 25.10.2012 Vienna
    * @author Ioan Dragan
    */

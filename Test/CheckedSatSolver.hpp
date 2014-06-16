@@ -38,6 +38,10 @@ public:
   virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
   virtual void retractAllAssumptions();
 
+  virtual void recordSource(unsigned var, Literal* lit){
+    _inner->recordSource(var,lit);
+  }
+
 private:
 
   bool isSatisfied(SATClause* cl);

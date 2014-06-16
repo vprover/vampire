@@ -51,6 +51,14 @@ public:
 
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
   virtual Status getStatus() { return _status; };
+  
+  /*
+   * Because variables are integers greater than zero and we use them for indexing,
+   * we always need one dummy variable slot for 0.
+   * 
+   * TODO: See whether the assumption about vars > 0 is essential in some way
+   * and if not update everything accordingly to save this slot.
+   */
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var);
@@ -71,6 +79,9 @@ public:
 
   void assertValid();
   void printAssignment();
+
+  virtual void recordSource(unsigned satlit, Literal* lit);
+
 private:
 
   void doSolving(unsigned conflictNumberLimit);
@@ -88,9 +99,9 @@ private:
   WatchStack& getWatchStack(unsigned var, unsigned polarity);
   WatchStack& getTriggeredWatchStack(unsigned var, PackedAsgnVal assignment);
 
-  bool isTrue(SATLiteral lit) const;
-  bool isFalse(SATLiteral lit) const;
-  bool isUndefined(SATLiteral lit) const;
+  bool isTrue(const SATLiteral& lit) const;
+  bool isFalse(const SATLiteral& lit) const;
+  bool isUndefined(const SATLiteral& lit) const;
 
   /** Return true iff variable @c var is undefined in the current assignment */
   bool isUndefined(unsigned var) const {
@@ -234,7 +245,7 @@ private:
    * Some unsatisfiable assumptions were added.
    *
    * This variable can be true even if @c _assumptionCnt is zero, since
-   * conflicting assumtions aren't added on the unit stack.
+   * conflicting assumptions aren't added on the unit stack.
    */
   bool _unsatisfiableAssumptions;
 
@@ -247,6 +258,13 @@ private:
    * The most recently learn clauses are at the top
    */
   SATClauseStack _learntClauses;
+  
+  /**
+   * Stack of added clauses
+   * 
+   * We remember them separately to delete them at the end.
+  */
+  SATClauseStack _addedClauses;
 
   ArrayMap<EmptyStruct> _propagationScheduled;
   Deque<unsigned> _toPropagate;

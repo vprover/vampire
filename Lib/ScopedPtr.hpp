@@ -35,6 +35,7 @@ public:
   inline
   ~ScopedPtr()
   {
+    CALL("Lib::ScopedPtr::~ScopedPtr");
     if(_obj) {
       checked_delete(_obj);
     }
