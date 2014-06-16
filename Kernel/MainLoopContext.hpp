@@ -28,6 +28,9 @@ public:
 	// Do cleanup required by algorithm, and set phase
 	virtual void cleanup();
 
+	// Get the ConcurrentMainLoop
+	ConcurrentMainLoop* getMainLoop(){ return _ml; }
+
 protected:
 	// Switch into this context
 	void switchIn();

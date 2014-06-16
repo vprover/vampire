@@ -79,9 +79,10 @@ public:
     counter++;
     if(counter==Period) {
       counter=0;
-      if(timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
+      //if(timeLimitReached()) {
+      //  throw TimeLimitExceededException();
+      //}
+      checkAllTimeLimits();
     }
   }
   /** Time remaining until the end of the time-limit in miliseconds */

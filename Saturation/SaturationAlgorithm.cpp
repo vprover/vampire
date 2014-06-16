@@ -92,7 +92,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _generatedClauseCount(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
-  ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
+  //ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
@@ -132,7 +132,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 SaturationAlgorithm::~SaturationAlgorithm()
 {
   CALL("SaturationAlgorithm::~SaturationAlgorithm");
-  ASS_EQ(s_instance,this);
+  //ASS_EQ(s_instance,this);
 
   s_instance=0;
 
@@ -800,6 +800,8 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 {
   CALL("SaturationAlgorithm::newClausesToUnprocessed");
 
+  cout << "size of newClauses is " << _newClauses.size() << endl;
+
   while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
 
@@ -813,6 +815,7 @@ void SaturationAlgorithm::newClausesToUnprocessed()
       break;
     case Clause::NONE:
       addUnprocessedClause(cl);
+      cout << "added unprocessed" << endl;
       break;
 #if VDEBUG
     case Clause::SELECTED:
@@ -852,19 +855,26 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   env -> checkTimeSometime<64>();
 
-
+  cout << "doing immediate" << endl;
+  
   cl=doImmediateSimplification(cl);
+
+  cout << "immediate done" << endl;
+
   if (!cl) {
     return;
   }
 
   if (cl->isEmpty()) {
+    cout << "is empty, handling" << endl;
     handleEmptyClause(cl);
     return;
   }
 
   cl->setStore(Clause::UNPROCESSED);
+  cout << "adding to un" << endl;
   _unprocessed->add(cl);
+  cout << "added to un" << endl;
 }
 
 /**
@@ -881,7 +891,9 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   ASS(cl->isEmpty());
 
   if (isRefutation(cl)) {
+    cout << "is refutation" << endl;
     onNonRedundantClause(cl);
+    cout << "throwing ref found" << endl;
     throw RefutationFoundException(cl);
   }
   // as Clauses no longer have prop parts the only reason for an empty 
@@ -907,6 +919,8 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
 bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::forwardSimplify");
+
+  cout << "forward simplifying" << endl;
 
   if (!getLimits()->fulfillsLimits(cl)) {
     RSTAT_CTR_INC("clauses discarded by weight limit in forward simplification");
@@ -1149,13 +1163,19 @@ start:
       c->setStore(Clause::NONE);
     }
 
+    cout << "Done simplify" << endl;
+
     newClausesToUnprocessed();
+
+    cout << "New clauses added" << endl;
 
     /*if (env -> timeLimitReached()) {
       throw TimeLimitExceededException();
     }*/
     env -> checkAllTimeLimits();
   }
+
+  cout << "onAllProcessed" << endl;
 
   ASS(clausesFlushed());
   onAllProcessed();
@@ -1222,6 +1242,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 {
   CALL("SaturationAlgorithm::doOneAlgorithmStep");
 
+  cout << "doing unprocessed loop" << endl;
   doUnprocessedLoop();
 
   if (_passive->isEmpty()) {
@@ -1233,6 +1254,8 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     }
     throw MainLoopFinishedException(res);
   }
+
+  cout << "activating clause" << endl;
 
   Clause* cl = _passive->popSelected();
   ASS_EQ(cl->store(),Clause::PASSIVE);

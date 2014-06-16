@@ -11,7 +11,7 @@
 #include <cstddef>
 
 #include "Kernel/MainLoopFwd.hpp"
-#include "Kernel/MainLoopContextFwd.hpp"
+#include "Kernel/MainLoopContext.hpp"
 #include "Kernel/ProblemFwd.hpp"
 #include "Shell/OptionsListFwd.hpp"
 
@@ -30,18 +30,23 @@ namespace Kernel {
 class MainLoopScheduler {
 public:
 	MainLoopScheduler(Problem& prb, Shell::OptionsList& opts);
-	//MainLoopScheduler(ProblemList& prbs, OptionsList& opts);
-	virtual ~MainLoopScheduler();
+	~MainLoopScheduler();
 
-    virtual MainLoopResult run();
+	MainLoopResult run();
 	//static MainLoopScheduler* createFromOptions(Problem& prb, OptionsList* opts);
+
+	static ConcurrentMainLoop* getCurrentMainLoop(){
+		return _currentContext->getMainLoop();
+	}
 
 protected:
 
 private:
+	// Store the context currently being run
+        static MainLoopContext* _currentContext;
 
-	MainLoopContext** _mlcl;
-	std::size_t _mlclSize;
+	static MainLoopContext** _mlcl;
+	static std::size_t _mlclSize;
 
 };
 

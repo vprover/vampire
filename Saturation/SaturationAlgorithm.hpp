@@ -18,6 +18,7 @@
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/RCClauseStack.hpp"
 #include "Kernel/ConcurrentMainLoop.hpp"
+#include "Kernel/MainLoopScheduler.hpp"
 
 #include "Indexing/IndexManager.hpp"
 
@@ -99,7 +100,10 @@ public:
    * If the saturation algorithm run is in progress, return pointer
    * to the object; otherwise return zero.
    */
-  static SaturationAlgorithm* tryGetInstance() { return s_instance; }
+  static SaturationAlgorithm* tryGetInstance() {
+    if(env->isSingleStrategy()) return s_instance;
+    return static_cast<SaturationAlgorithm*>(MainLoopScheduler::getCurrentMainLoop());
+  }
   static void tryUpdateFinalClauseCount();
 
 protected:

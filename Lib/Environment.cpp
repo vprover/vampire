@@ -132,10 +132,12 @@ void Environment::checkAllTimeLimits() const
   if (options->timeLimitInDeciseconds() &&
       timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
     statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+    cout << "throwing time limit exception" << endl;
     throw TimeLimitExceededException();
   }else if (options->localTimeLimitInDeciseconds() &&
 	      timer->elapsedDeciseconds() > options->localTimeLimitInDeciseconds()) {
 	    statistics->terminationReason = Shell::Statistics::LOCAL_TIME_LIMIT;
+    		cout << "throwing time limit exception" << endl;
 	    throw LocalTimeLimitExceededException();
   }
 } // Environment::timeLimitReached
@@ -213,9 +215,11 @@ ostream& Environment::out()
     return *_priorityOutput;
   }
   else if(_pipe) {
+    cout << "returning pipeout" << endl;
     return _pipe->out();
   }
   else {
+    cout << "returning cout" << endl;
     return cout;
   }
 #endif

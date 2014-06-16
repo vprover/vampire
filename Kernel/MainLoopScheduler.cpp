@@ -14,6 +14,7 @@
 #include "Saturation/SaturationAlgorithmContext.hpp"
 #include "Shell/OptionsList.hpp"
 #include "Shell/Preprocess.hpp"
+#include "Kernel/Problem.hpp"
 
 namespace Kernel {
 
@@ -26,12 +27,19 @@ using Shell::Options;
 using Shell::OptionsList;
 using Shell::Preprocess;
 
+MainLoopContext* MainLoopScheduler::_currentContext = 0;
+MainLoopContext** MainLoopScheduler::_mlcl = 0;
+size_t MainLoopScheduler::_mlclSize = 0;
+
 MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 
 	  CALL("MainLoopScheduler::MainLoopScheduler");
 	  _mlclSize = opts.size();
 
 	  ASS_G(_mlclSize, 0);
+
+	// Check that this constructor has not previously been run i.e. we are a singleton
+	  ASS(!_mlcl);
 
 	  _mlcl = static_cast<MainLoopContext**>(
 	  		  ALLOC_KNOWN(sizeof(MainLoopContext*)*_mlclSize,"MainLoopContext*"));
@@ -54,19 +62,24 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 
 		  Options& opt = i.next();
 
+		// We must copy the problem otherwise we share clauses
+		// This is an issue as clauses store information about
+		// how they are used in a proof attempt
+		  Problem& localprb = *prb.copy(true);
+
 		  /*if(opt.bfnt()) {
-			_mla[k] = new BFNTMainLoop(prb, opt);
+			_mla[k] = new BFNTMainLoop(localprb, opt);
 		  }*/
 
 		  switch (opt.saturationAlgorithm()) {
 		  /*case Options::TABULATION:
-			_mla[k] = new TabulationAlgorithm(prb, opt);
+			_mla[k] = new TabulationAlgorithm(localprb, opt);
 			break;*/
 		  case Options::INST_GEN:
-			_mlcl[k] = new IGAlgorithmContext(prb, opt);
+			_mlcl[k] = new IGAlgorithmContext(localprb, opt);
 			break;
 		  default:
-			_mlcl[k] = new SaturationAlgorithmContext(prb, opt);
+			_mlcl[k] = new SaturationAlgorithmContext(localprb, opt);
 			break;
 		  }
 
@@ -93,7 +106,10 @@ MainLoopResult MainLoopScheduler::run() {
 				// TODO - add local timers and stop a strategy if it uses up all of its time (need an option for this)
 				try{
 					if(_mlcl[k]){
-						_mlcl[k] -> doStep();
+						cout << "Doing step" << endl;
+						_currentContext = _mlcl[k];
+						_currentContext -> doStep();
+						cout << "Finished step" << endl;
 					}
 				}catch(LocalTimeLimitExceededException&) {
 					delete _mlcl[k];
@@ -124,6 +140,7 @@ MainLoopResult MainLoopScheduler::run() {
 		}
 		//Should only be here if result set
 	}catch(MainLoop::RefutationFoundException& rs) {
+		cout << "refutation found in MLS" << endl;
 		result = new MainLoopResult(Statistics::REFUTATION, rs.refutation);
 	}
 	catch(TimeLimitExceededException&) {//We catch this since SaturationAlgorithm::doUnproceessedLoop throws it
@@ -142,9 +159,12 @@ MainLoopResult MainLoopScheduler::run() {
 	// do cleanup
 	Lib::Timer::setTimeLimitEnforcement(false);
 	for(size_t k = 0; k < _mlclSize; k++) {
+		cout << "Cleaning " << k << endl;
 		_mlcl[k] -> cleanup();
 	}
+	cout << "updating stats" << endl;
 	result -> updateStatistics();
+	cout << "updated stats" << endl;
 
 	return *result;
 
@@ -159,7 +179,8 @@ MainLoopScheduler::~MainLoopScheduler() {
 			delete _mlcl[k]; //TODO: should be DEALLOC_UNKNOWN but SaturationAlgorithm::createFromOptions allocates via "new"
 		}
 	}
-	DEALLOC_KNOWN(_mlcl, sizeof(MainLoopContext*)*_mlclSize, "MainLoopScheduler");
+	DEALLOC_KNOWN(_mlcl, sizeof(MainLoopContext*)*_mlclSize, "MainLoopContext*");
+
 }
 
 }

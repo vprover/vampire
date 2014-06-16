@@ -41,6 +41,7 @@ public:
   }
   ~OptionsList(){
     CALL("OptionsList::~OptionsList()");
+    cout << "destroying optionslist" << endl;
     array_delete(_strategies,_length);
     DEALLOC_KNOWN(_strategies,_length*sizeof(Options),"OptionsList");
   }

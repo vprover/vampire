@@ -166,6 +166,7 @@ void doProving()
 	  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
 	  Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList);
 	  scheduler.run();
+	  cout << "scheduler finished" << endl;
   }
 }
 
