@@ -476,6 +476,9 @@ void vampireMode()
   CALL("vampireMode()");
 
   if (env -> options->mode() == Options::MODE_CONSEQUENCE_ELIMINATION) {
+    if(!env -> isSingleStrategy()){
+      USER_ERROR("Only single strategy mode supported for consequence elimination");
+    }
     env -> options->setUnusedPredicateDefinitionRemoval(false);
   }
 
@@ -684,10 +687,6 @@ int main(int argc, char* argv[])
 	// read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
     cl.interpret();
-
-    if(env -> optionsList -> size() > 1){
-      USER_ERROR("We do not currently allow multi-strategy... coming soon!");
-    }
 
     PROCESS_TRACE_SPEC_STRING(env -> options->traceSpecString());
     env -> options->enableTracesAccordingToOptions();
