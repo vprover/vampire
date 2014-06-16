@@ -64,7 +64,7 @@ public:
   /** Update the number of live strategies **/
   void setLive(unsigned n){
     if(n > _alive){
-      _alive = n;
+      _alive = n+1;
     }
   }
 
@@ -81,17 +81,22 @@ public:
 
   //Functions for setting local options
   void set(unsigned n, const string& name, const string& value)
-  { (*this)[n].set(name,value); setLive(n); }
+  { check(n);(*this)[n].set(name,value); setLive(n); }
   void set(unsigned n, const char* name, const char* value)
-  { (*this)[n].set(name,value); setLive(n); }
+  { check(n);(*this)[n].set(name,value); setLive(n); }
   void setShort(unsigned n, const char* name, const char* value)
-  { (*this)[n].setShort(name,value); setLive(n); }
+  { check(n);(*this)[n].setShort(name,value); setLive(n); }
 
   //Final functions
   void setForcedOptionValues();
   void checkGlobalOptionConstraints();
 
 private:
+
+  void check(unsigned n){
+    if(n >= _length){ USER_ERROR("You are using more strategies than you said you would!"); }
+  }
+
   unsigned _length;
   unsigned _alive;
   Options* _strategies;

@@ -2846,13 +2846,13 @@ void Options::readFromTestId (string testId)
     _saturationAlgorithm = INST_GEN;
   }
   else {
-  error: USER_ERROR("bad test id " + _testId);
+    USER_ERROR("bad test id " + _testId);
   }
 
   // after last '_' we have time limit
   size_t index = testId.find_last_of('_');
   if (index == string::npos) { // not found
-    goto error;
+	USER_ERROR("No time limit in test id " + _testId);
   }
   string timeString = testId.substr(index+1);
   _timeLimitInDeciseconds = readTimeLimit(timeString.c_str()) / 10;
@@ -2865,7 +2865,7 @@ void Options::readFromTestId (string testId)
   case '-':
     break;
   default:
-    goto error;
+    USER_ERROR("Expecting + or - next in test id " + _testId);
   }
 
   index = testId.find('_');
@@ -2876,7 +2876,7 @@ void Options::readFromTestId (string testId)
   testId = testId.substr(index+1);
 
   if (testId == "") {
-    goto error;
+    USER_ERROR("Issue in test id " + _testId);
   }
 
   index = testId.find('_');

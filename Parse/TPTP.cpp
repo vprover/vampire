@@ -3590,8 +3590,8 @@ void TPTP::vampire()
 
 /*
  * There are now two options
- * vampire("option",<option_name>,<option_value>)
- * vampire("option",<strategy_number,<option_name,<option_value>)
+ * vampire(option,<option_name>,<option_value>)
+ * vampire(option,<strategy_number,<option_name>,<option_value>)
  *
  * The first applies the option to all 'live' strategies, the second
  * only to the specified strategy
@@ -3616,27 +3616,31 @@ void TPTP::vampire()
 
     switch(first_tag){
     case T_INT:
-      strategy = atoi(first_content.c_str());
+      strategy = atoi(first_content.c_str())-1;
       consumeToken(T_COMMA);
       second_tok = getTok(0);
       opt = second_tok.content;
       resetToks();
       consumeToken(T_COMMA);
+      // TODO this fails with decode
       third_tok = getTok(0);
       switch (third_tok.tag) {
       case T_INT:
       case T_REAL:
       case T_NAME:
+      case T_STRING:
+        //cout << "strat " << strategy << " has opt " << opt << " being set with " << third_tok.content << endl;
         env -> optionsList ->set(strategy,opt,third_tok.content);
         resetToks();
         break;
       default:
-        throw Exception("either atom or number expected as a value of a Vampire option",third_tok);
+        throw Exception(third_tok.tag+" not expected as a value of a Vampire option",third_tok);
       }
       break;
     case T_NAME:
       opt = first_content;
       consumeToken(T_COMMA);
+      // TODO this fails with decode
       second_tok = getTok(0);
       switch (second_tok.tag) {
       case T_INT:
