@@ -35,6 +35,13 @@ extern "C" {
 #include <signal.h>
 }
 
+/**
+ * Just as a general hint: assuming one wants to trace all the API calls to Lingeling
+ * can be done by enabling the LGLAPITRACE=filename from command line. Doing so
+ * Lingeling will produce a trace file (filename) with all the calls to its API.
+ *
+ * e.g: LGLAPITRACE=trace ./vampire options to Vampire
+ */
 namespace SAT
 {
 using namespace std;
@@ -180,7 +187,7 @@ LingelingInterfacing::LingelingInterfacing(const Options& opt,
 	{
 		lglsetopt(_solver, "flipping", 0);
 	}
-	_status = SATSolver::SATISFIABLE;
+	_status = SATSolver::UNKNOWN;
 	//TODO maybe better way to do this!
 	_refutation = 0;
 	_clauseList = 0;
@@ -264,7 +271,7 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 	//one second run time.
 	//set the alarm handlers for sat solver
 	resetsighandlers();
-	if (remaining < 100)
+	if (remaining < 1)
 	{
 		//update statistics
 		env.statistics->satLingelingTimeSpent = lglsec(_solver);
@@ -328,6 +335,8 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 			env.statistics->satLingelingSATCalls++;
 			//call lingeling satisfiability check
 			result = lglsat(_solver);
+			setSolverStatus(result);
+			env.statistics->satLingelingTimeSpent = lglsec(_solver);
 			Timer::syncClock();
 
 			if(result== LGL_UNSATISFIABLE){
@@ -348,8 +357,9 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 		env.statistics->satLingelingSATCalls++;
 		//call for satisfiability check
 		result = lglsat(_solver);
+		setSolverStatus(result);
 		Timer::syncClock();
-
+		env.statistics->satLingelingTimeSpent = lglsec(_solver);
 		if (result == LGL_UNSATISFIABLE) {
 			setRefutation();
 			throw UnsatException(_refutation);
@@ -466,14 +476,17 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	lglseterm(_solver, checkalarm, &caughtalarm);
 	sig_alrm_handler = signal(SIGALRM, catchalrm);
 	double remaining = env.remainingTime();
-	if (remaining < 100){
-		throw TimeLimitExceededException();
+	if (remaining < 1){
+		//throw TimeLimitExceededException();
+		remaining = 1;
+		Timer::syncClock();
 	}
 	alarm((remaining / 1000));
 
 	lglassume(_solver, (flag * (literal.var()+1)));
 	env.statistics->satLingelingSATCalls++;
 	unsigned int result = lglsat(_solver);
+	setSolverStatus(result);
 	env.statistics->satLingelingTimeSpent = lglsec(_solver);
 	Timer::syncClock();
 	if (result == LGL_UNSATISFIABLE)
@@ -593,7 +606,8 @@ void LingelingInterfacing::randomizeAssignment()
 			int l = (lit->polarity()==1? 1:-1)*lit->var();
 			lglassume(clone, l);
 		}
-		lglsat(clone);
+		unsigned int result = lglsat(clone);
+		setSolverStatus(result);
 		env.statistics->satLingelingSATCalls++;
 		if (lglchanged(clone)){
 			_solver = clone;
