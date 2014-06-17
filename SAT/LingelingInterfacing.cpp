@@ -275,12 +275,14 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 	{
 		//update statistics
 		env.statistics->satLingelingTimeSpent = lglsec(_solver);
-		throw TimeLimitExceededException();
+		Timer::syncClock();
+		remaining = 1 ;
+		//throw TimeLimitExceededException();
 	}
 
+	alarm(double(remaining / 1000));
 	lglseterm(_solver, checkalarm, &caughtalarm);
 	sig_alrm_handler = signal(SIGALRM, catchalrm);
-	alarm((remaining / 1000));
 	DHMap<SATLiteral, List<int>* > mapLitToClause;
 	mapLitToClause.reset();
 
