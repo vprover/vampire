@@ -214,6 +214,11 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 	}
 
 	try{
+		if(onlyPropagate){
+			lglsetopt(_solver,"clim",1);
+		} else {
+			lglsetopt(_solver,"clim",-1);
+		}
 		//reset Lingeling signal handlers
 		resetsighandlers();
 
@@ -229,7 +234,9 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 	catch (TimeLimitExceededException&){
 		env.statistics->terminationReason = Statistics::TIME_LIMIT;
 		env.timeLimitReached();
+		env.checkTimeSometime<64>();
 	}
+	env.checkTimeSometime<64>();
 }
 
 void LingelingInterfacing::setSolverStatus(unsigned int status)
@@ -255,7 +262,6 @@ void LingelingInterfacing::setSolverStatus(unsigned int status)
 void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 {
 	CALL("LingelingInterfacing::addClausesToLingeling");
-	env.checkTimeSometime<64>();
 	SATLiteralStack literalStack;
 	literalStack.reset();
 
@@ -337,6 +343,7 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 			env.statistics->satLingelingSATCalls++;
 			//call lingeling satisfiability check
 			result = lglsat(_solver);
+			env.checkTimeSometime<64>();
 			setSolverStatus(result);
 			env.statistics->satLingelingTimeSpent = lglsec(_solver);
 			Timer::syncClock();
@@ -359,6 +366,7 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator)
 		env.statistics->satLingelingSATCalls++;
 		//call for satisfiability check
 		result = lglsat(_solver);
+		env.checkTimeSometime<64>();
 		setSolverStatus(result);
 		Timer::syncClock();
 		env.statistics->satLingelingTimeSpent = lglsec(_solver);
@@ -488,6 +496,7 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	lglassume(_solver, (flag * (literal.var()+1)));
 	env.statistics->satLingelingSATCalls++;
 	unsigned int result = lglsat(_solver);
+	env.checkTimeSometime<64>();
 	setSolverStatus(result);
 	env.statistics->satLingelingTimeSpent = lglsec(_solver);
 	Timer::syncClock();
