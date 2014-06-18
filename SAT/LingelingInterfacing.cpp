@@ -191,6 +191,7 @@ LingelingInterfacing::LingelingInterfacing(const Options& opt,
 	//TODO maybe better way to do this!
 	_refutation = 0;
 	_clauseList = 0;
+	_assumptions = 0;
 	_satVariables = 0;
 }
 
@@ -587,6 +588,8 @@ void LingelingInterfacing::retractAllAssumptions()
   //so we do not have to worry about retracting assumptions.
   //but we still have to mark that at this point there are no more assumptions
   _hasAssumptions = false;
+  if (_assumptions->isEmpty())
+	  return;
   //remove all the assumptions from the 
   while(_assumptions->isNonEmpty()){
     List<SATLiteral*>::pop(_assumptions);
