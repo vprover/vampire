@@ -832,11 +832,11 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
   }
   // else freeze clause
 
-#if VDEBUG
+//#if VDEBUG
   cl->incFreezeCount();
   RSTAT_MCTR_INC("frozen clauses",cl->getFreezeCount());
   RSTAT_CTR_INC("total_frozen");
-#endif
+//#endif
 
   cl->incReductionTimestamp();
   //BDDs are disabled when we do ssplitting so they can only contain false
@@ -1092,12 +1092,12 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
       rcl->incReductionTimestamp();
       //rcl->setProp(BDD::instance()->getFalse()); //we asserted it was false in onClauseReduction
       _sa->addNewClause(rcl);
-  #if VDEBUG
+ // #if VDEBUG
       RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
       RSTAT_CTR_INC("total_unfrozen");
       //check that restored clause does not depend on inactive splits
       assertSplitLevelsActive(rcl->splits());
-  #endif
+//  #endif
     }
     rcl->decRefCnt(); //belongs to restored.popWithoutDec();
   }

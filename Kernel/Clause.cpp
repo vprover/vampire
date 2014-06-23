@@ -72,9 +72,9 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _splits(0),
     _auxTimestamp(0)
 {
-#if VDEBUG
+//#if VDEBUG
 _freeze_count=0;
-#endif
+//#endif
 }
 
 /**

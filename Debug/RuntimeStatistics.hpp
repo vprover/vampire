@@ -15,7 +15,8 @@ collected nor output.
 #if VDEBUG
 #define RUNTIME_STATS 1
 #else
-#define RUNTIME_STATS 0
+//Temporarily make Runtime stats always printed
+#define RUNTIME_STATS 1
 #endif
 #endif
 
