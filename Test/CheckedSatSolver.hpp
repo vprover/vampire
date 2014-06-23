@@ -31,7 +31,7 @@ public:
   virtual bool hasAssumptions() const { return _inner->hasAssumptions(); }
   virtual void randomizeAssignment() { _inner->randomizeAssignment(); _checked = false; ensureChecked(); }
 
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate=false);
+  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel);
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var) { return _inner->isZeroImplied(var); }
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }

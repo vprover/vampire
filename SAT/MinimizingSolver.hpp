@@ -27,7 +27,7 @@ public:
   CLASS_NAME(MinimizingSolver);
   USE_ALLOCATOR(MinimizingSolver);
 
-  MinimizingSolver(SATSolver* inner);
+  MinimizingSolver(SATSolver* inner,bool splitclausesonly);
 
   virtual Status getStatus() { return _inner->getStatus(); }
   virtual SATClause* getRefutation() { return _inner->getRefutation(); }
@@ -35,7 +35,7 @@ public:
   virtual void randomizeAssignment() { _inner->randomizeAssignment(); _assignmentValid = false; }
 
 
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate=false);
+  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel);
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var);
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
@@ -67,6 +67,7 @@ private:
 
   unsigned _varCnt;
   SATSolverSCP _inner;
+  bool _splitclausesonly;
 
   DHMap<unsigned, bool> _assumptions;
 

@@ -27,7 +27,7 @@ public:
    *
    * A requirement is that in each clause, each variable occurs at most once.
    */
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
+  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate, bool useInPartialModel);
   virtual Status getStatus() { return _status; }
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var

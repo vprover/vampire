@@ -243,7 +243,7 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
   }
   
   _solver->ensureVarCnt(_maxSatVar+1);
-  _solver->addClauses(pvi(SATClauseStack::Iterator(_filteredSatClauses)));
+  _solver->addClauses(pvi(SATClauseStack::Iterator(_filteredSatClauses)),false);
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();

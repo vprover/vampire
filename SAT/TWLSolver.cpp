@@ -130,8 +130,10 @@ void TWLSolver::ensureVarCnt(unsigned newVarCnt)
  * 
  * Memory-wise, the clauses are owned by the solver from now on.
  * (TODO: this may not be a good assumption - check on the caller sides)
+ *
+ * @useInPartialModel is ignored as this solver generates a total model
  */
-void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
+void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate, bool useInPartialModel)
 {
   CALL("TWLSolver::addClauses");
   TimeCounter tc(TC_TWLSOLVER_ADD);

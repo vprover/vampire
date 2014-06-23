@@ -69,6 +69,7 @@ public:
   static const char* _sSplittingComponentSweepingValues[];
   static const char* _sSplittingAddComplementaryValues[];
   static const char* _sSplittingNonsplittableComponentsValues[];
+  static const char* _sSplittingModelValues[];
   static const char* _predicateEquivalenceDiscoveryModeValues[];
   static const char* _bpAssignmentSelectorValues[];
   static const char* _bpVariableSelectorValues[];
@@ -108,6 +109,7 @@ public:
   static NameArray sSplittingComponentSweepingValues;
   static NameArray sSplittingAddComplementaryValues;
   static NameArray sSplittingNonsplittableComponentsValues;
+  static NameArray sSplittingModelValues;
   static NameArray predicateEquivalenceDiscoveryModeValues;
   static NameArray bpAssignmentSelectorValues;
   static NameArray bpVariableSelectorValues;
@@ -295,8 +297,8 @@ const char* Options::Constants::_optionNames[] = {
   "ssplitting_eager_removal",
   "ssplitting_flush_period",
   "ssplitting_flush_quotient",
+  "ssplitting_model",
   "ssplitting_nonsplittable_components",
-  "ssplitting_total_model",
   "statistics",
   "superposition_from_variables",
   "symbol_precedence",
@@ -391,6 +393,7 @@ const char* Options::Constants::_shortNames[] = {
   "sser",
   "ssfp",
   "ssfq",
+  "ssm",
   "ssnc",
   "st",
   "stl",
@@ -478,8 +481,8 @@ int Options::Constants::shortNameIndexes[] = {
   SSPLITTING_EAGER_REMOVAL,
   SSPLITTING_FLUSH_PERIOD,
   SSPLITTING_FLUSH_QUOTIENT,
+  SSPLITTING_MODEL,
   SSPLITTING_NONSPLITTABLE_COMPONENTS,
-  SSPLITTING_TOTAL_MODEL,
   SINE_TOLERANCE,
   SIMULATED_TIME_LIMIT,
 
@@ -750,6 +753,13 @@ const char* Options::Constants::_sSplittingNonsplittableComponentsValues[] = {
 NameArray Options::Constants::sSplittingNonsplittableComponentsValues(_sSplittingNonsplittableComponentsValues,
 					  sizeof(_sSplittingNonsplittableComponentsValues)/sizeof(char*));
 
+const char* Options::Constants::_sSplittingModelValues[] = {
+  "min_all",
+  "min_sco",  // sco stands for split clauses only
+  "total"};
+NameArray Options::Constants::sSplittingModelValues(_sSplittingModelValues,
+                                          sizeof(_sSplittingModelValues)/sizeof(char*));
+
 const char* Options::Constants::_predicateEquivalenceDiscoveryModeValues[] = {
   "all_atoms",
   "all_formulas",
@@ -996,7 +1006,7 @@ Options::Options ()
   _ssplittingFlushPeriod(0),
   _ssplittingFlushQuotient(1.5f),
   _ssplittingNonsplittableComponents(SSNS_KNOWN),
-  _ssplittingTotalModel(false),
+  _ssplittingModel(SSM_MIN_ALL),
   _statistics(STATISTICS_FULL),
   _superpositionFromVariables(true),
   _symbolPrecedence(BY_ARITY),
@@ -1699,11 +1709,11 @@ void Options::set(const char* name,const char* value, int index)
       }
       _ssplittingFlushQuotient = floatValue;
       return;
+    case SSPLITTING_MODEL:
+      _ssplittingModel = (SSplittingModel)Constants::sSplittingModelValues.find(value);
+      return;
     case SSPLITTING_NONSPLITTABLE_COMPONENTS:
       _ssplittingNonsplittableComponents = (SSplittingNonsplittableComponents)Constants::sSplittingNonsplittableComponentsValues.find(value);
-      return;
-    case SSPLITTING_TOTAL_MODEL:
-      _ssplittingTotalModel = onOffToBool(value,name);
       return;
       
     case STATISTICS:

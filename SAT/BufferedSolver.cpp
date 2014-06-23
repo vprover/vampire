@@ -26,9 +26,6 @@ BufferedSolver::BufferedSolver(SATSolver* inner)
  * occurs with a contradicting value for a new literal we currently
  * flag a conflict and flush everything.
  *
- * TODO - use a map of alternatives to attempt to change the value
- *        in the buffer for a new literal
- *
  * @author Giles
  */
 bool BufferedSolver::checkAndRecordImplied(SATClause* cl)
@@ -57,15 +54,11 @@ bool BufferedSolver::checkAndRecordImplied(SATClause* cl)
     SATLiteral l = newLitsIt.next();
     if(!_literalBuffer.find(l.var())){
       _literalBuffer.insert(l.var(),l.polarity());
-      //TODO update alternatives
       return true;
     }
   }
   // if we get to here then all new literals are set to the
   // opposite of desired. 
-
-  //now try alternatives for set new literals
-  //TODO
 
   return false;
 }
@@ -78,7 +71,7 @@ bool BufferedSolver::checkAndRecordImplied(SATClause* cl)
  *
  * @author Giles
  */
-void BufferedSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
+void BufferedSolver::addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel)
 {
   CALL("BufferedSolver::addClauses");
 
@@ -87,7 +80,12 @@ void BufferedSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
   newClauses.loadFromIterator(cit);
 
   // add clauses to _unadded
-  _unadded.loadFromIterator(SATClauseStack::BottomFirstIterator(newClauses));
+  if(useInPartialModel){
+    _unadded_in_partial.loadFromIterator(SATClauseStack::BottomFirstIterator(newClauses));
+  }
+  else{
+    _unadded_not_in_partial.loadFromIterator(SATClauseStack::BottomFirstIterator(newClauses));
+  }
 
   // check if clauses are implied by current ground model and bufferd literals
   bool all_implied = true;
@@ -127,12 +125,13 @@ void BufferedSolver::flushUnadded()
   _maxVar=_tmaxVar;
 
   // flush _unadded to _inner
-  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(_unadded)),_allOnlyPropagate);
+  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(_unadded_in_partial)),_allOnlyPropagate,true);
+  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(_unadded_not_in_partial)),_allOnlyPropagate,false);
 
   // reset
-  _unadded.reset();
+  _unadded_in_partial.reset();
+  _unadded_not_in_partial.reset();
   _literalBuffer.reset();
-  //_alternatives.reset();
   _allOnlyPropagate=true;
 }
 

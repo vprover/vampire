@@ -75,18 +75,29 @@ void SSplittingBranchSelector::init()
       _solver = new LingelingInterfacing(_parent.getOptions(), true);
       break;
     case Options::BUFFERED_MINISAT:
-      _solver = new MinimizingSolver(new BufferedSolver(new MinisatInterfacing(_parent.getOptions(),true)));
+      _solver = new BufferedSolver(new MinisatInterfacing(_parent.getOptions(),true));
       break;
     case Options::MINISAT:
-      _solver = new MinimizingSolver(new MinisatInterfacing(_parent.getOptions(),true));
+      _solver = new MinisatInterfacing(_parent.getOptions(),true);
       break;      
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
   }
 
-  if(!_parent.getOptions().ssplittingTotalModel()){
-    _solver = new MinimizingSolver(_solver.release());
+  switch(_parent.getOptions().ssplittingModel()){
+    case Options::SSM_TOTAL:
+      // Do nothing - we don't want to minimise the model
+      break;
+    case Options::SSM_MIN_ALL:
+      _solver = new MinimizingSolver(_solver.release(),false);
+      break;
+    case  Options::SSM_MIN_SCO:
+      _solver = new MinimizingSolver(_solver.release(),true);
+      break;
+    default:
+      ASSERTION_VIOLATION_REP(_parent.getOptions().ssplittingModel());
   }
+
 
 #if DEBUG_MIN_SOLVER
   _solver = new Test::CheckedSatSolver(_solver.release());
@@ -160,8 +171,10 @@ void SSplittingBranchSelector::processDPConflicts()
 
     {
     	TimeCounter tca(TC_SAT_SOLVER);
-    	_solver->addClauses(pvi( SATClauseStack::Iterator(conflictClauses) ));
+      // We do not use conflict clauses in the partial model      
+    	_solver->addClauses(pvi( SATClauseStack::Iterator(conflictClauses) ),false,false);
     }
+
     RSTAT_CTR_INC("ssat_dp_conflict");
     RSTAT_CTR_INC_MANY("ssat_dp_conflict_clauses",conflictClauses.size());
   }
@@ -231,7 +244,8 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
 //  RSTAT_CTR_INC_MANY("ssat_sat_clauses_with_positive",_unprocessed.size());
   {
     TimeCounter tc1(TC_SAT_SOLVER);
-    _solver->addClauses(pvi( SATClauseStack::ConstIterator(clauses) ), false);
+    // We do use split clauses in the partial model
+    _solver->addClauses(pvi( SATClauseStack::ConstIterator(clauses) ), false,true);
     processDPConflicts();
   }
 

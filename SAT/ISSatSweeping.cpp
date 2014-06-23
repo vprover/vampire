@@ -241,7 +241,7 @@ void ISSatSweeping::tryRandomSimulation()
   }
 
   if(_solver.getStatus()!=SATSolver::SATISFIABLE) {
-    _solver.addClauses(SATClauseIterator::getEmpty());
+    _solver.addClauses(SATClauseIterator::getEmpty(),false);
   }
   ASS_EQ(_solver.getStatus(), SATSolver::SATISFIABLE);
 

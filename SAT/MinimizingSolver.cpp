@@ -10,13 +10,12 @@
 namespace SAT
 {
 
-MinimizingSolver::MinimizingSolver(SATSolver* inner)
- : _varCnt(0), _inner(inner),
+MinimizingSolver::MinimizingSolver(SATSolver* inner,bool splitclausesonly)
+ : _varCnt(0), _inner(inner), _splitclausesonly(splitclausesonly),
    _assignmentValid(false)
 {
   CALL("MinimizingSolver::MinimizingSolver");
 
-  _assignmentValid = false;
 }
 
 void MinimizingSolver::ensureVarCnt(unsigned newVarCnt)
@@ -39,7 +38,7 @@ bool MinimizingSolver::isNonEmptyClause(SATClause* cl)
   return cl->length()!=0;
 }
 
-void MinimizingSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
+void MinimizingSolver::addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel)
 {
   CALL("MinimizingSolver::addClauses");
 

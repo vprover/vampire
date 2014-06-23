@@ -53,7 +53,7 @@ public:
   TWLSolver(const Options& opt, bool generateProofs=false);
   ~TWLSolver();
 
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
+  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate, bool useInPartialModel=true);
   virtual Status getStatus() { return _status; };
   
   /*

@@ -26,7 +26,7 @@ void CheckedSatSolver::ensureVarCnt(unsigned newVarCnt)
   _inner->ensureVarCnt(newVarCnt);
 }
 
-void CheckedSatSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
+void CheckedSatSolver::addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel)
 {
   CALL("CheckedSatSolver::addClauses");
 
@@ -36,7 +36,7 @@ void CheckedSatSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 
   _clauses.loadFromIterator(SATClauseStack::BottomFirstIterator(newClauses));
 
-  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(newClauses)), onlyPropagate);
+  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(newClauses)), onlyPropagate, useInPartialModel);
   _checked = false;
 }
 

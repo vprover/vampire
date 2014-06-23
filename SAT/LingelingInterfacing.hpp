@@ -36,7 +36,7 @@ public:
 	* The add clause is the incremental way for the lingeling sat solver. It is used in order to add new clause
 	* to the current problem
 	**/
-	virtual void addClauses(SATClauseIterator clauseIterator, bool onlyPropagate);
+	virtual void addClauses(SATClauseIterator clauseIterator, bool onlyPropagate,bool useInPartialModel);
 	
 	/**
 	* return the current status of the problem

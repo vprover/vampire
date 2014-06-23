@@ -65,8 +65,11 @@ void MinisatInterfacing::solveModuloAssumptionsAndSetStatus(unsigned conflictCou
  * unsatisfiability isn't shown in this case, the status is set to UNKNOWN.
  * 
  * Memory-wise, the clauses are owned by the solver from now on.
+ * 
+ * @useInPartialModel is ignored as this solver generates a total model
  */
-void MinisatInterfacing::addClauses(SATClauseIterator cit, bool onlyPropagate) 
+void MinisatInterfacing::addClauses(SATClauseIterator cit, 
+        bool onlyPropagate, bool useInPartialModel)
 {
   CALL("MinisatInterfacing::addClauses");
   

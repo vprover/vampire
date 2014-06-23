@@ -22,12 +22,7 @@
 #include "SATLiteral.hpp"
 
 #include "LingelingInterfacing.hpp"
-
 #include "Shell/Options.hpp"
-
-#include "LingelingInterfacing.hpp"
-#include "TWLSolver.hpp"
-#include "MinimizingSolver.hpp"
 
 #include <csignal>
 
@@ -161,7 +156,7 @@ void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(int conflictCountL
 }
 
 void LingelingInterfacing::addClauses(SATClauseIterator cit,
-		bool onlyPropagate)
+		bool onlyPropagate, bool useInPartialModel) // useInPartialModel ignored as this solver produces a total model
 {
 	CALL("LingelingInterfacing::addClause(SatClauseIte, bool onlyPropagate)");
   

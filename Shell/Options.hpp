@@ -229,8 +229,8 @@ public:
     SSPLITTING_EAGER_REMOVAL,
     SSPLITTING_FLUSH_PERIOD,
     SSPLITTING_FLUSH_QUOTIENT,
+    SSPLITTING_MODEL,
     SSPLITTING_NONSPLITTABLE_COMPONENTS,
-    SSPLITTING_TOTAL_MODEL,
 
     STATISTICS,
     SUPERPOSITION_FROM_VARIABLES,
@@ -525,6 +525,12 @@ public:
     SSAC_NONE = 1
   };
 
+  enum SSplittingModel {
+    SSM_MIN_ALL = 0,
+    SSM_MIN_SCO = 1,
+    SSM_TOTAL = 2
+  };
+
   enum SSplittingNonsplittableComponents {
     SSNS_ALL = 0,
     SSNS_ALL_DEPENDENT = 1,
@@ -809,7 +815,7 @@ public:
   float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient; }
   bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval; }
   bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure; }
-  bool ssplittingTotalModel() const { return _ssplittingTotalModel; }
+  SSplittingModel ssplittingModel() const { return _ssplittingModel; }
 
   void setProof(Proof p) { _proof = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval; }
@@ -1030,7 +1036,7 @@ private:
   unsigned _ssplittingFlushPeriod;
   float _ssplittingFlushQuotient;
   SSplittingNonsplittableComponents _ssplittingNonsplittableComponents;
-  bool _ssplittingTotalModel;
+  SSplittingModel _ssplittingModel;
   Statistics _statistics;
   bool _superpositionFromVariables;
   SymbolPrecedence _symbolPrecedence;
