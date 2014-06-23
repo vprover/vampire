@@ -46,13 +46,20 @@ void MinimizingSolver::addClauses(SATClauseIterator cit, bool onlyPropagate,bool
   newClauses.reset();
   newClauses.loadFromIterator(cit);
 
-  //we need to filter out the empty clause -- it won't have any influence on our algorithm
-  //(as it will make the problem unsat and we process only satisfiale assignment), but it
-  //is a corner case that needs to be handled
-  _unprocessed.loadFromIterator(
-      getFilteredIterator(SATClauseStack::BottomFirstIterator(newClauses), isNonEmptyClause));
+  // We only need to keep track of these clauses if they need to be covered by the partial model
+  // This is safe as the model produced is always a 'sub-model' of that produced by inner
+  // and not adding clauses to _unprocessed should only result in more variables being marked
+  // as DONT_CARE (if they only appear in clauses not to be used in the partial model)
+  // - Giles
+  if(useInPartialModel){
+    //we need to filter out the empty clause -- it won't have any influence on our algorithm
+    //(as it will make the problem unsat and we process only satisfiale assignment), but it
+    //is a corner case that needs to be handled
+    _unprocessed.loadFromIterator(
+        getFilteredIterator(SATClauseStack::BottomFirstIterator(newClauses), isNonEmptyClause));
+  }
 
-  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(newClauses)), onlyPropagate);
+  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(newClauses)), onlyPropagate,useInPartialModel);
   _assignmentValid = false;
 }
 
@@ -93,6 +100,8 @@ SATLiteral MinimizingSolver::getMostSatisfyingTrueLiteral()
   CALL("MinimizingSolver::getMostSatisfyingTrueLiteral");
 
   //TODO:use a heap for this
+  // Giles: Definitely use a heap! This is iterating over all literals
+  // in the SAT solver on each call, and will be called many times
   unsigned best=0;
   SATLiteral bestLit = SATLiteral::dummy();
 
