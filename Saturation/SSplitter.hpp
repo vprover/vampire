@@ -70,6 +70,8 @@ private:
   SATSolverSCP _solver;
   ScopedPtr<DecisionProcedure> _dp;
 
+  unsigned _usedcnt;
+
   /**
    * Contains selected component names
    */

@@ -191,6 +191,7 @@ void SSplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAs
 
   switch(asgn) {
   case SATSolver::TRUE:
+    _usedcnt++;
     if(!_selected.find(posLvl) && _parent.isActiveName(posLvl)) {
       _selected.insert(posLvl);
       addedComps.push(posLvl);
@@ -201,6 +202,7 @@ void SSplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAs
     }
     break;
   case SATSolver::FALSE:
+    _usedcnt++;
     if(!_selected.find(negLvl) && _parent.isActiveName(negLvl)) {
       _selected.insert(negLvl);
       addedComps.push(negLvl);
@@ -256,10 +258,13 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
   ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
 
   unsigned maxSatVar = _parent.maxSatVar();
+  _usedcnt=0;
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = _solver->getAssignment(i);
     updateSelection(i, asgn, addedComps, removedComps);
   }
+  int percent = (_usedcnt *100) / (maxSatVar-1);
+  RSTAT_MCTR_INC("minimise_model_percent",percent);
 
 //
 //
@@ -307,10 +312,13 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
   ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
 
   unsigned maxSatVar = _parent.maxSatVar();
+  _usedcnt=0;
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = _solver->getAssignment(i);
     updateSelection(i, asgn, addedComps, removedComps);
   }
+  int percent = (_usedcnt *100) / (maxSatVar-1);
+  RSTAT_MCTR_INC("minimise_model_percent",percent);
 
   RSTAT_CTR_INC_MANY("ssat_added_by_flush",addedComps.size());
   RSTAT_CTR_INC_MANY("ssat_removed_by_flush",removedComps.size());  
