@@ -64,7 +64,7 @@ void BDDConjunction::addNode(BDDNode* n)
   TimeCounter tc(TC_SAT_SOLVER);
 
   _solver->ensureVarCnt(_clausifier.getCNFVarCount());
-  _solver->addClauses(pvi( SATClauseStack::Iterator(acc) ),false);
+  _solver->addClauses(pvi( SATClauseStack::Iterator(acc) ));
 
   if(_solver->getStatus()==TWLSolver::UNSATISFIABLE) {
     _isFalse=true;
