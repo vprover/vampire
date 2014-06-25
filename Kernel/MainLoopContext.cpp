@@ -24,7 +24,9 @@ using Shell::Statistics;
 
 		CALL("MainLoopContext::MainLoopContext");
 
-			_env = new Environment(*Lib::env);
+			//TODO - env needs to have this prb and opts in it!
+			//TODO - why do we need to store prb and opts if they will be in env?
+			_env = new Environment(*Lib::env,prb,opts);
 	}
 
 	MainLoopContext::~MainLoopContext() {
