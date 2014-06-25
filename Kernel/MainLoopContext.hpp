@@ -32,18 +32,21 @@ public:
 	// Get the ConcurrentMainLoop
 	ConcurrentMainLoop* getMainLoop(){ return _ml; }
 
-struct AutoSwitchOut{
-        AutoSwitchOut(MainLoopContext* c) : _cntxt(c) {}
-        ~AutoSwitchOut(){ _cntxt->switchOut(); }
-        MainLoopContext* _cntxt;
-};
-	friend AutoSwitchOut;
 
 protected:
 	// Switch into this context
 	void switchIn();
 	// Switch out from the context
 	void switchOut();
+
+	class AutoSwitch{
+		public:
+	        AutoSwitch(MainLoopContext* c) : _cntxt(c) { _cntxt -> switchIn(); }
+	        ~AutoSwitch(){ _cntxt->switchOut(); }
+		private:
+	        MainLoopContext* _cntxt;
+	};
+	friend AutoSwitch;
 
 	ConcurrentMainLoop* _ml;
 	Problem* _prb;

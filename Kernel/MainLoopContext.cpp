@@ -39,7 +39,7 @@ using Shell::Statistics;
 		CALL("MainLoopContext::~MainLoopContext");
 		delete _env;
 		delete _prb;
-		switchOut();
+//		switchOut();
 	}
 
 
@@ -58,29 +58,23 @@ using Shell::Statistics;
 	void MainLoopContext::init(){
 		CALL("MainLoopContext::init");
 
-		switchIn();
+		AutoSwitch(this);
 
 		_env -> statistics -> phase = Statistics::SATURATION;
 		_ml -> initAlgorithmRun();
-
-		switchOut();
 	}
 
 	void MainLoopContext::cleanup(){
 		CALL("MainLoopContext::cleanup");
 
-		switchIn();
-
+		AutoSwitch(this);
 		_env -> statistics -> phase = Statistics::FINALIZATION;
-
-		switchOut();
 	}
 
 	void MainLoopContext::doStep() {
 		CALL("MainLoopContext::doStep");
 
-		switchIn();
-		AutoSwitchOut(this);
+		AutoSwitch(this);
 		_ml -> doOneAlgorithmStep();
 		env -> checkAllTimeLimits();
 	}
