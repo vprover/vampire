@@ -806,8 +806,8 @@ void SSplitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
 /**
  * Register the reduction of the @b cl clause
  *
- * Giles: at this stage we also check for zero-implied literals
- *        and remove them if found
+ * At this stage we also check for zero-implied literals and remove
+ * them if found, this is safe as we no longer rely on them
  */
 void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement)
 {
@@ -861,25 +861,27 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
 }
 
 void SSplittingBranchSelector::clearZeroImpliedSplits(Clause* cl)
-{/*
+{
  
-  Currently switched off in trunk as not fully debuged
-
-
   CALL("SSplitter::clearZeroImpliedSplits");
+
   SplitSet* rem=SplitSet::getEmpty();
   SplitSet::Iterator sit(*(cl->splits()));
   while(sit.hasNext()){
-    SplitLevel l = sit.next();
-    if(_solver->isZeroImplied(l)){
+    SplitLevel level = sit.next();
+    SATLiteral lit = _parent.getLiteralFromName(level);
+    // We're asking if the current assignment of this var is zero implied
+    // We can assume that the assignment is consistent with this lit as it
+    // is currently asserted
+    if(_solver->isZeroImplied(lit.var())){
       //TODO use a stack for rem instead
-      rem = rem->getUnion(SplitSet::getSingleton(l));
+      rem = rem->getUnion(SplitSet::getSingleton(level));
     }
   }
   if(!rem->isEmpty()){
     RSTAT_CTR_INC("clearedZeroImpliedSplits");
     cl->setSplits(cl->splits()->subtract(rem),true);
-  }*/
+  }
 }
 
 void SSplitter::assertSplitLevelsActive(SplitSet* s)
