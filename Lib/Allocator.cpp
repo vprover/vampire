@@ -35,8 +35,7 @@ using namespace Kernel;
 # endif
 #endif
 
-
-/** set this to 1 to print all allocations/deallocations to stdout */
+/** set this to 1 to print all allocations/deallocations to stdout -- only with VDEBUG */
 #define TRACE_ALLOCATIONS 0
 
 /** Size of a page prefix (part of the page used for bookkeeping the
@@ -140,6 +139,20 @@ Allocator::Allocator()
   _myPages = 0;
 #endif
 } // Allocator::Allocator
+
+/**
+ * Should return all pages to the global manager :)
+ * 
+ * @since 18/03/2008 Torrevieja
+ */
+Lib::Allocator::~Allocator ()
+{
+  CALL("Allocator::~Allocator");
+
+  while (_myPages) {
+    deallocatePages(_myPages);
+  }
+} // Allocator::~allocator
 
 /**
  * Initialise all static structures and create a default allocator.
@@ -250,13 +263,13 @@ void Allocator::cleanup()
 {
   CALL("Allocator::cleanup");
 
+  // delete all allocators
+  for (int i = _total-1;i >= 0;i--) {
+    delete _all[i];
+  }
+       
 #if CHECK_LEAKS
   if (MemoryLeak::report()) {
-    // delete all allocators
-    for (int i = _total-1;i >= 0;i--) {
-      delete _all[i];
-    }
-
     int leaks = 0;
     for (int i = Descriptor::capacity-1;i >= 0;i--) {
       Descriptor& d = Descriptor::map[i];
@@ -273,6 +286,32 @@ void Allocator::cleanup()
     }
   }
 #endif
+
+  // release all the pages
+  for (int i = MAX_PAGES-1;i >= 0;i--) {
+#if VDEBUG && TRACE_ALLOCATIONS
+    int cnt = 0;
+#endif    
+    while (_pages[i]) {
+      Page* pg = _pages[i];
+      _pages[i] = pg->next;
+      
+      char* mem = reinterpret_cast<char*>(pg);
+      ::delete[] mem;
+#if VDEBUG && TRACE_ALLOCATIONS
+      cnt++;
+#endif    
+    }
+#if VDEBUG && TRACE_ALLOCATIONS    
+      if (cnt) {
+        cout << "deleted " << cnt << " global page(s) of size " << VPAGE_SIZE*(i+1) << endl;
+      }
+#endif        
+  }
+    
+#if VDEBUG
+  delete[] Descriptor::map;
+#endif  
 } // Allocator::initialise
 
 
@@ -874,23 +913,6 @@ Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
 
   return desc;
 } // Allocator::Descriptor::find
-
-
-/**
- * Should return all pages to the global manager :) not yet though
- * @since 18/03/2008 Torrevieja
- */
-Allocator::~Allocator ()
-{
-  CALL("Allocator::~Allocator");
-
-#if VDEBUG
-  while (_myPages) {
-    deallocatePages(_myPages);
-  }
-#endif
-} // Allocator::~allocator
-
 
 /**
  * A string description of the descriptor.
