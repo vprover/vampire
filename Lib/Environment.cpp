@@ -66,7 +66,7 @@ Environment::Environment()
   timer->start();
 } // Environment::Environment
 
-Environment::Environment(const Environment& e)
+Environment::Environment(const Environment& e, Options& opts)
 	  : signature(0),
 	    sharing(0),
 	    property(0),
@@ -76,7 +76,7 @@ Environment::Environment(const Environment& e)
 	    _priorityOutput(0),
 	    _pipe(0)
 	{
-	  options = new Options();
+	  options = &opts;
 	  optionsList = e.optionsList;
 	  statistics = new Statistics;
 	  timer = e.timer;
@@ -100,6 +100,7 @@ Environment::~Environment()
   }
 
 #if CHECK_LEAKS
+  cout << "running this code" << endl;
   delete sharing;
   if(signature){delete signature; signature = 0;}
   delete sorts;
@@ -107,6 +108,9 @@ Environment::~Environment()
   delete statistics;
   delete options;
 #endif
+
+
+
 }
 
 /**
@@ -216,11 +220,9 @@ ostream& Environment::out()
     return *_priorityOutput;
   }
   else if(_pipe) {
-    cout << "returning pipeout" << endl;
     return _pipe->out();
   }
   else {
-    cout << "returning cout" << endl;
     return cout;
   }
 #endif

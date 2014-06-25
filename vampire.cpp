@@ -156,19 +156,6 @@ void explainException(Exception& exception)
   env -> endOutput();
 } // explainException
 
-void doProving()
-{
-  CALL("doProving()");
-  if(env -> isSingleStrategy()) {
-	  ScopedPtr<Problem> prb(getPreprocessedProblem());
-	  ProvingHelper::runVampireSaturation(*prb, *env -> options);
-  }else{
-	  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
-	  Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList);
-	  scheduler.run();
-	  cout << "scheduler finished" << endl;
-  }
-}
 
 /**
  * Read a problem and output profiling information about it.
@@ -494,20 +481,43 @@ void vampireMode()
     }
   }
 
-  doProving();
+  if(env -> isSingleStrategy()) {
+          ScopedPtr<Problem> prb(getPreprocessedProblem());
+          ProvingHelper::runVampireSaturation(*prb, *env -> options);
 
-  env -> beginOutput();
-  UIHelper::outputResult(env -> out());
-  env -> endOutput();
+          env -> beginOutput();
+          UIHelper::outputResult(env -> out());
+          env -> endOutput();
 
-#if SATISFIABLE_IS_SUCCESS
-  if (env -> statistics->terminationReason == Statistics::REFUTATION
-      || env -> statistics->terminationReason == Statistics::SATISFIABLE) {
-#else
-    if (env -> statistics->terminationReason==Statistics::REFUTATION) {
-#endif
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+          #if SATISFIABLE_IS_SUCCESS
+          if (env -> statistics->terminationReason == Statistics::REFUTATION
+              || env -> statistics->terminationReason == Statistics::SATISFIABLE) {
+          #else
+          if (env -> statistics->terminationReason==Statistics::REFUTATION) {
+          #endif
+             vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+          }
+
+  }else{
+          ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
+          Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList);
+          scheduler.run();
+
+          // Code duplicated as need to have scheduler alive
+          env -> beginOutput();
+          UIHelper::outputResult(env -> out());
+          env -> endOutput();
+
+          #if SATISFIABLE_IS_SUCCESS
+          if (env -> statistics->terminationReason == Statistics::REFUTATION
+              || env -> statistics->terminationReason == Statistics::SATISFIABLE) {
+          #else
+          if (env -> statistics->terminationReason==Statistics::REFUTATION) {
+          #endif
+             vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+          }
   }
+
 } // vampireMode
 
 void spiderMode()
@@ -515,7 +525,8 @@ void spiderMode()
   CALL("spiderMode()");
   bool noException = true;
   try {
-    doProving();
+          ScopedPtr<Problem> prb(getPreprocessedProblem());
+          ProvingHelper::runVampireSaturation(*prb, *env -> options);
   } catch (...) {
     noException = false;
   }
@@ -831,8 +842,9 @@ int main(int argc, char* argv[])
     env -> endOutput();
   }
 //   delete env -> allocator;
-
-  delete env;
+  if(env){
+    delete env;
+  }
 
   return vampireReturnValue;
 } // main

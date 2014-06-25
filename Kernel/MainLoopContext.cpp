@@ -8,6 +8,7 @@
 
 #include "Debug/Tracer.hpp"
 #include "Kernel/ConcurrentMainLoop.hpp"
+#include "Kernel/Problem.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "Shell/Statistics.hpp"
@@ -19,19 +20,28 @@ using Lib::Timer;
 using Shell::Options;
 using Shell::Statistics;
 
-	MainLoopContext::MainLoopContext(Problem& prb, const Options& opts):
-			_prb(prb), _opts(opts) {
+	MainLoopContext::MainLoopContext(Problem& prb, Options& opts):
+			_opts(opts) {
 
 		CALL("MainLoopContext::MainLoopContext");
 
-			_env = new Environment(*Lib::env);
+
+                // We must copy the problem otherwise we share clauses
+                // This is an issue as clauses store information about
+                // how they are used in a proof attempt
+                _prb = prb.copy(true);
+
+		//TODO - why do we need to store prb and opts if they will be in env?
+		_env = new Environment(*Lib::env,opts);
 	}
 
 	MainLoopContext::~MainLoopContext() {
 		CALL("MainLoopContext::~MainLoopContext");
-
-		delete _env;//XXX Propagate env upward if main loop is successful
+		delete _env;
+		delete _prb;
+		switchOut();
 	}
+
 
 	void MainLoopContext::switchIn() {
 		CALL("MainLoopContext::switchIn");
@@ -70,11 +80,8 @@ using Shell::Statistics;
 		CALL("MainLoopContext::doStep");
 
 		switchIn();
+		AutoSwitchOut(this);
 		_ml -> doOneAlgorithmStep();
-
-		Timer::syncClock();
 		env -> checkAllTimeLimits();
-
-		switchOut();
 	}
 }

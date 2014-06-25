@@ -31,7 +31,7 @@ class Environment
 {
 public:
   Environment();
-  Environment(const Environment& e);
+  Environment(const Environment& e, Shell::Options& o);
   ~Environment();
 
   /** options container for all proof attempts */
