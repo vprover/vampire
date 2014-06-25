@@ -91,6 +91,7 @@ MainLoopResult MainLoopScheduler::run() {
 	try {
 
 		for(size_t k = 0; k < _mlclSize; k++) {
+			_currentContext = _mlcl[k];
 			_mlcl[k] -> init();
 		}
 
