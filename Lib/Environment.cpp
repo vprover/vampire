@@ -51,10 +51,11 @@ Environment::Environment()
     colorUsed(false),
     _outputDepth(0),
     _priorityOutput(0),
-    _pipe(0)
+    _pipe(0),
+	options(0)
 {
   // Will be set in Shell::CommandLine::interpret
-  //options = new Options;
+  //options = new Options();//TODO This object is needed only because of global iostream
   //optionsList = 0;
   statistics = new Statistics;
   timer = new Timer;
@@ -75,7 +76,7 @@ Environment::Environment(const Environment& e)
 	    _priorityOutput(0),
 	    _pipe(0)
 	{
-	  options = new Options;
+	  options = new Options();
 	  optionsList = e.optionsList;
 	  statistics = new Statistics;
 	  timer = e.timer;

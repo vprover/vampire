@@ -30,7 +30,7 @@ using Shell::Statistics;
 	MainLoopContext::~MainLoopContext() {
 		CALL("MainLoopContext::~MainLoopContext");
 
-		delete _env;
+		delete _env;//XXX Propagate env upward if main loop is successful
 	}
 
 	void MainLoopContext::switchIn() {
@@ -73,9 +73,7 @@ using Shell::Statistics;
 		_ml -> doOneAlgorithmStep();
 
 		Timer::syncClock();
-		if (env -> timeLimitReached()) {
-			throw  TimeLimitExceededException();
-		}
+		env -> checkAllTimeLimits();
 
 		switchOut();
 	}

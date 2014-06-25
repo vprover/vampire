@@ -247,17 +247,20 @@ void UIHelper::outputResult(ostream& out)
 
   cout << "outputting result" << endl;
   cout << "tr " << env -> statistics -> terminationReason << endl;
-  string th;
+
+  Options* opt = env -> options;
+  if(opt){cout << "Opt is not null" << endl;}
+  //const string th = opt -> thanks();
 
   switch (env -> statistics->terminationReason) {
   case Statistics::REFUTATION:
     addCommentIfCASC(out);
-    cout << "Thanks.." << endl;
-    th = env -> options -> thanks();
-    cout << "th got" << endl;
-    cout << "th is " << th << endl;
-    out << "Refutation found. Thanks to "
-	<< env -> options->thanks() << "!\n";
+    cout << "Thanks..." << endl;
+    //th = env -> options -> thanks();
+    //cout << "th got" << endl;
+    //cout << "th is " << th << endl;
+    //out << "Refutation found. Thanks to "
+	//<< env -> options->thanks() << "!\n";
     if (cascMode) {
       out << "% SZS status " << ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
 	  << " for " << env -> options->problemName() << endl;
