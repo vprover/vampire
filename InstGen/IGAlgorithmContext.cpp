@@ -18,21 +18,22 @@ using Kernel::MainLoopContext;
 using Kernel::Problem;
 using Shell::Options;
 
-IGAlgorithmContext::IGAlgorithmContext(Problem& prb, const Options& opts):
+IGAlgorithmContext::IGAlgorithmContext(Problem& prb, Options& opts):
 		MainLoopContext(prb, opts) {
 	CALL("IGAlgorithmContext::IGAlgorithmContext");
 
 	switchIn();
 
-	_ml = new IGAlgorithm(prb, opts);
+	_ml = new IGAlgorithm(*_prb, opts);
 
 	switchOut();
 }
 
 IGAlgorithmContext::~IGAlgorithmContext() {
 	CALL("IGAlgorithmContext::~IGAlgorithmContext");
-
+	switchIn();
 	delete _ml;
+	switchOut();
 }
 
 };

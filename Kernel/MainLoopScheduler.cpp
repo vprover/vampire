@@ -62,24 +62,19 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 
 		  Options& opt = i.next();
 
-		// We must copy the problem otherwise we share clauses
-		// This is an issue as clauses store information about
-		// how they are used in a proof attempt
-		  Problem& localprb = *prb.copy(true);
-
 		  /*if(opt.bfnt()) {
 			_mla[k] = new BFNTMainLoop(localprb, opt);
 		  }*/
 
 		  switch (opt.saturationAlgorithm()) {
 		  /*case Options::TABULATION:
-			_mla[k] = new TabulationAlgorithm(localprb, opt);
+			_mla[k] = new TabulationAlgorithm(prb, opt);
 			break;*/
 		  case Options::INST_GEN:
-			_mlcl[k] = new IGAlgorithmContext(localprb, opt);
+			_mlcl[k] = new IGAlgorithmContext(prb, opt);
 			break;
 		  default:
-			_mlcl[k] = new SaturationAlgorithmContext(localprb, opt);
+			_mlcl[k] = new SaturationAlgorithmContext(prb, opt);
 			break;
 		  }
 
@@ -91,7 +86,6 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 MainLoopResult MainLoopScheduler::run() {
 
 	CALL("MainLoopScheduler::run");
-
 
 	MainLoopResult* result = 0;
 	try {
@@ -140,7 +134,6 @@ MainLoopResult MainLoopScheduler::run() {
 		}
 		//Should only be here if result set
 	}catch(MainLoop::RefutationFoundException& rs) {
-		cout << "refutation found in MLS" << endl;
 		result = new MainLoopResult(Statistics::REFUTATION, rs.refutation);
 	}
 	catch(TimeLimitExceededException&) {//We catch this since SaturationAlgorithm::doUnproceessedLoop throws it
@@ -159,12 +152,9 @@ MainLoopResult MainLoopScheduler::run() {
 	// do cleanup
 	Lib::Timer::setTimeLimitEnforcement(false);
 	for(size_t k = 0; k < _mlclSize; k++) {
-		cout << "Cleaning " << k << endl;
-		_mlcl[k] -> cleanup();
+		if(_mlcl[k]){_mlcl[k] -> cleanup();}
 	}
-	cout << "updating stats" << endl;
 	result -> updateStatistics();
-	cout << "updated stats" << endl;
 
 	return *result;
 
@@ -180,6 +170,7 @@ MainLoopScheduler::~MainLoopScheduler() {
 		}
 	}
 	DEALLOC_KNOWN(_mlcl, sizeof(MainLoopContext*)*_mlclSize, "MainLoopContext*");
+
 
 }
 

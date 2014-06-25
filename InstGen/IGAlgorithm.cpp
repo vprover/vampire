@@ -100,7 +100,6 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
 IGAlgorithm::~IGAlgorithm()
 {
   CALL("IGAlgorithm::~IGAlgorithm");
-
   delete _selected;
   delete _variantIdx;
 }

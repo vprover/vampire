@@ -18,21 +18,22 @@ using Kernel::MainLoopContext;
 using Kernel::Problem;
 using Shell::Options;
 
-SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, const Options& opts):
+SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts):
 		MainLoopContext(prb, opts) {
 	CALL("SaturationAlgorithmContext::SaturationAlgorithmContext");
 
 	switchIn();
 
-	_ml = SaturationAlgorithm::createFromOptions(prb, opts);
+	_ml = SaturationAlgorithm::createFromOptions(*_prb, opts);
 
 	switchOut();
 }
 
 SaturationAlgorithmContext::~SaturationAlgorithmContext() {
 	CALL("SaturationAlgorithmContext::~SaturationAlgorithmContext");
-
+	switchIn();
 	delete _ml;
+	switchOut();
 }
 
 };

@@ -245,17 +245,9 @@ void UIHelper::outputResult(ostream& out)
 {
   CALL("UIHelper::outputResult");
 
-  cout << "outputting result" << endl;
-  cout << "tr " << env -> statistics -> terminationReason << endl;
-  string th;
-
   switch (env -> statistics->terminationReason) {
   case Statistics::REFUTATION:
     addCommentIfCASC(out);
-    cout << "Thanks.." << endl;
-    th = env -> options -> thanks();
-    cout << "th got" << endl;
-    cout << "th is " << th << endl;
     out << "Refutation found. Thanks to "
 	<< env -> options->thanks() << "!\n";
     if (cascMode) {

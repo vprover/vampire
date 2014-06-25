@@ -35,15 +35,18 @@ public:
   inline OptionsList(unsigned len) : _length(len), _alive(0){
     CALL("OptionsList::OptionsList()");
     ASS(len>0);
-    void* mem = ALLOC_KNOWN(len*sizeof(Options),"OptionsList");
+    //void* mem = ALLOC_KNOWN(len*sizeof(Options),"OptionsList<>");
     // Initialises _strategies by calling constructor of Options
-    _strategies = array_new<Options>(mem,len);
+    //_strategies = array_new<Options>(mem,len);
+    _strategies.ensure(len);
+    for(unsigned i=0;i<len;i++){ _strategies[i] = new Options();}
   }
   ~OptionsList(){
     CALL("OptionsList::~OptionsList()");
-    cout << "destroying optionslist" << endl;
-    array_delete(_strategies,_length);
-    DEALLOC_KNOWN(_strategies,_length*sizeof(Options),"OptionsList");
+    //array_delete(_strategies,_length);
+    //cout << "deleted array" << endl;
+    //DEALLOC_KNOWN(_strategies,_length*sizeof(Options),"OptionsList<>");
+    for(unsigned i=0;i<_length;i++){ delete _strategies[i];}
   }
 
 
@@ -54,7 +57,7 @@ public:
   /** Return the number of strategies **/
   unsigned size() const {return _length;}
   /** Return the nth strategy **/
-  Options& operator[](unsigned n) const { return _strategies[n]; }
+  Options& operator[](unsigned n) const { return *_strategies[n]; }
   /** Return an iterator for the live strategies
       A strategy is live if it has been given individual options
       If strategy n is live then all strategies m<n are live **/
@@ -100,7 +103,8 @@ private:
 
   unsigned _length;
   unsigned _alive;
-  Options* _strategies;
+  //Options* _strategies;
+  DArray<Options*> _strategies;
 
 }; // class OptionsList
 

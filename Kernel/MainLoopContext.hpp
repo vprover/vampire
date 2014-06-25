@@ -15,9 +15,10 @@
 
 namespace Kernel {
 
+
 class MainLoopContext {
 public:
-	MainLoopContext(Problem& prb, const Shell::Options& opts);
+	MainLoopContext(Problem& prb, Shell::Options& opts);
 
 	virtual ~MainLoopContext();
 
@@ -31,6 +32,13 @@ public:
 	// Get the ConcurrentMainLoop
 	ConcurrentMainLoop* getMainLoop(){ return _ml; }
 
+struct AutoSwitchOut{
+        AutoSwitchOut(MainLoopContext* c) : _cntxt(c) {}
+        ~AutoSwitchOut(){ _cntxt->switchOut(); }
+        MainLoopContext* _cntxt;
+};
+	friend AutoSwitchOut;
+
 protected:
 	// Switch into this context
 	void switchIn();
@@ -38,8 +46,8 @@ protected:
 	void switchOut();
 
 	ConcurrentMainLoop* _ml;
+	Problem* _prb;
 private:
-	Problem& _prb;
 	Lib::Environment* _env;
 	const Shell::Options& _opts;
 	Lib::Environment* _temp_env; //A variable to preserve the current environment before switching in.
