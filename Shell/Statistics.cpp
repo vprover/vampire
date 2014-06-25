@@ -135,11 +135,15 @@ void Statistics::addCommentIfCASC(ostream& out)
 
 void Statistics::print(ostream& out)
 {
+  CALL("Statistics::print");
   if (env -> options->statistics()==Options::STATISTICS_NONE) {
     return;
   }
 
-  SaturationAlgorithm::tryUpdateFinalClauseCount();
+  if(env->isSingleStrategy()){
+    //TODO equivalent for multi
+    SaturationAlgorithm::tryUpdateFinalClauseCount();
+  }
 
   bool separable=false;
 #define COND_OUT(text, num) if (num) { addCommentIfCASC(out); out << (text) << ": " << (num) << endl; separable = true; }

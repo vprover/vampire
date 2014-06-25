@@ -100,12 +100,13 @@ MainLoopResult MainLoopScheduler::run() {
 				// TODO - add local timers and stop a strategy if it uses up all of its time (need an option for this)
 				try{
 					if(_mlcl[k]){
-						cout << "Doing step" << endl;
+						cout << "Doing step on " << k << endl;
 						_currentContext = _mlcl[k];
 						_currentContext -> doStep();
 						cout << "Finished step" << endl;
 					}
 				}catch(LocalTimeLimitExceededException&) {
+					cout << "Killing " << k << " as local time limit exceeded" << endl;
 					delete _mlcl[k];
 					_mlcl[k] = 0;
 					live_strategies--;
@@ -115,6 +116,7 @@ MainLoopResult MainLoopScheduler::run() {
 						break;
 					}
 				}catch(MainLoop::MainLoopFinishedException& e) {
+					cout << "Strategy " << k << " found result" << endl;
 					if(e.result.terminationReason == Statistics::SATISFIABLE){
 						result =  &e.result;
 						break;

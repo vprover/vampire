@@ -354,7 +354,6 @@ void UIHelper::outputResult(ostream& out)
   default:
     ASSERTION_VIOLATION;
   }
-  cout << "calling statistics print out" << endl;
   env -> statistics->print(out);
 }
 

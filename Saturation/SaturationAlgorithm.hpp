@@ -101,6 +101,7 @@ public:
    * to the object; otherwise return zero.
    */
   static SaturationAlgorithm* tryGetInstance() {
+    CALL("SaturationAlgorithm::tryGetInstance");
     if(env->isSingleStrategy()) return s_instance;
     return static_cast<SaturationAlgorithm*>(MainLoopScheduler::getCurrentMainLoop());
   }
