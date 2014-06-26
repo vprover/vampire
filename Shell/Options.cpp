@@ -1039,7 +1039,8 @@ Options::Options ()
   _weightRatio(1),
   _whileNumber(1),
 
-  _xmlOutput("off")
+  _xmlOutput("off"),
+  _zeroOpt(true)
 {
   CALL("Options::Options");
 } // Options::Options
