@@ -22,18 +22,14 @@ SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& op
 		MainLoopContext(prb, opts) {
 	CALL("SaturationAlgorithmContext::SaturationAlgorithmContext");
 
-	switchIn();
-
+	AutoSwitch(this);
 	_ml = SaturationAlgorithm::createFromOptions(*_prb, opts);
-
-	switchOut();
 }
 
 SaturationAlgorithmContext::~SaturationAlgorithmContext() {
 	CALL("SaturationAlgorithmContext::~SaturationAlgorithmContext");
-	switchIn();
+
 	delete _ml;
-	switchOut();
 }
 
 };

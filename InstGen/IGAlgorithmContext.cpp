@@ -22,18 +22,14 @@ IGAlgorithmContext::IGAlgorithmContext(Problem& prb, Options& opts):
 		MainLoopContext(prb, opts) {
 	CALL("IGAlgorithmContext::IGAlgorithmContext");
 
-	switchIn();
-
+	AutoSwitch(this);
 	_ml = new IGAlgorithm(*_prb, opts);
-
-	switchOut();
 }
 
 IGAlgorithmContext::~IGAlgorithmContext() {
 	CALL("IGAlgorithmContext::~IGAlgorithmContext");
-	switchIn();
+
 	delete _ml;
-	switchOut();
 }
 
 };

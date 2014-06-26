@@ -44,7 +44,8 @@ nullstream nullStream;
  * @since 06/05/2007 Manchester
  */
 Environment::Environment()
-  : signature(0),
+  : options(0),
+	signature(0),
     sharing(0),
     property(0),
     ordering(0),
@@ -54,7 +55,7 @@ Environment::Environment()
     _pipe(0)
 {
   // Will be set in Shell::CommandLine::interpret
-  //options = new Options;
+  //options = new Options();//TODO This object is needed only because of global iostream
   //optionsList = 0;
   statistics = new Statistics;
   timer = new Timer;
@@ -66,7 +67,8 @@ Environment::Environment()
 } // Environment::Environment
 
 Environment::Environment(const Environment& e, Options& opts)
-	  : signature(0),
+	  : options(&opts),
+	    signature(0),
 	    sharing(0),
 	    property(0),
 	    ordering(0),
@@ -75,7 +77,6 @@ Environment::Environment(const Environment& e, Options& opts)
 	    _priorityOutput(0),
 	    _pipe(0)
 	{
-	  options = &opts;
 	  optionsList = e.optionsList;
 	  statistics = new Statistics;
 	  timer = e.timer;
