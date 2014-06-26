@@ -95,7 +95,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   //ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
-  if (!Ordering::trySetGlobalOrdering(_ordering)) {
+  if (env->isSingleStrategy() && !Ordering::trySetGlobalOrdering(_ordering)) {
     //this is not an error, it may just lead to lower performance (and most likely not significantly lower)
     cerr << "SaturationAlgorithm cannot set its ordering as global" << endl;
   }
