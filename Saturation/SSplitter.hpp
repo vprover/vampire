@@ -63,6 +63,7 @@ private:
 
   //options
   bool _eagerRemoval;
+  bool _zeroOpt;
 
   SSplitter& _parent;
 

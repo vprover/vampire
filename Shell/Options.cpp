@@ -322,7 +322,10 @@ const char* Options::Constants::_optionNames[] = {
   "weight_increment",
   "while_number",
 
-  "xml_output"};
+  "xml_output",
+  "zero_opt"
+
+  };
 
 /** Names for all options */
 NameArray Options::Constants::optionNames(_optionNames,
@@ -1787,6 +1790,9 @@ void Options::set(const char* name,const char* value, int index)
       _xmlOutput = value;
       return;
 
+    case ZERO_OPT:
+      _zeroOpt = onOffToBool(value,name);
+      return;
 
 #if VDEBUG
     default:

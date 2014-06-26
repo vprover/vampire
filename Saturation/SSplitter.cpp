@@ -60,6 +60,7 @@ void SSplittingBranchSelector::init()
 
   _eagerRemoval = _parent.getOptions().ssplittingEagerRemoval();
   //  _sweepingMode = _parent.getOptions().ssplittingComponentSweeping();
+  _zeroOpt = _parent.getOptions().zeroOpt();
 
   switch(_parent.getOptions().satSolver()){
     case Options::BUFFERED_VAMPIRE:
@@ -864,6 +865,8 @@ void SSplittingBranchSelector::clearZeroImpliedSplits(Clause* cl)
 {
  
   CALL("SSplitter::clearZeroImpliedSplits");
+
+  if(!_zeroOpt) return;
 
   SplitSet* rem=SplitSet::getEmpty();
   SplitSet::Iterator sit(*(cl->splits()));

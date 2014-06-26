@@ -257,6 +257,8 @@ public:
     WHILE_NUMBER,
 
     XML_OUTPUT,
+   
+    ZERO_OPT,
 
     NUMBER_OF_OPTIONS // must be the last one!
   };
@@ -714,6 +716,8 @@ public:
   vstring xmlOutput() const { return _xmlOutput; }
   vstring thanks() const { return _thanks; }
 
+  bool zeroOpt() const{ return _zeroOpt;}
+
   bool globalSubsumption() const { return _globalSubsumption; }
   /** true if calling set() on non-existing options does not result in a user error */
   bool ignoreMissing() const { return _ignoreMissing; }
@@ -1067,6 +1071,8 @@ private:
   int _whileNumber;
 
   vstring _xmlOutput;
+
+  bool _zeroOpt;
 
   // various read-from-string-write options
   static void readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio, char separator=':');
