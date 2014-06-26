@@ -482,6 +482,7 @@ void vampireMode()
   }
 
   if(env -> isSingleStrategy()) {
+          cout << "running in single strategy mode" << endl;
           ScopedPtr<Problem> prb(getPreprocessedProblem());
           ProvingHelper::runVampireSaturation(*prb, *env -> options);
 
@@ -499,7 +500,10 @@ void vampireMode()
           }
 
   }else{
-          ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
+          cout << "running in multi strategy mode" << endl;
+	  // Preprocessing based on options in first strategy and applied to the problems of all
+          // strategies
+          ScopedPtr<Problem> prb(getPreprocessedProblem());
           Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList);
           scheduler.run();
 

@@ -302,6 +302,7 @@ const char* Options::Constants::_optionNames[] = {
   "thanks",
   "theory_axioms",
   "time_limit",
+  "time_limit_local",
   "time_statistics",
   "traces",
   "trivial_predicate_removal",
@@ -393,6 +394,7 @@ const char* Options::Constants::_shortNames[] = {
   "tgawr",
   "tglr",
   "tipr",
+  "tl",
   "tlawr",
 
   "updr",
@@ -480,6 +482,7 @@ int Options::Constants::shortNameIndexes[] = {
   TABULATION_GOAL_AWR,
   TABULATION_GOAL_LEMMA_RATIO,
   TABULATION_INSTANTIATE_PRODUCING_RULES,
+  TIME_LIMIT_LOCAL,
   TABULATION_LEMMA_AWR,
 
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
@@ -988,6 +991,7 @@ Options::Options ()
   _thanks("Tanya"),
   _theoryAxioms(true),
   _timeLimitInDeciseconds(600),
+  _localTimeLimitInDeciseconds(600),
   _timeStatistics(false),
   _traces(""),
   _trivialPredicateRemoval(false),
@@ -1696,6 +1700,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case TIME_LIMIT:
       _timeLimitInDeciseconds = readTimeLimit(value);
+      return;
+    case TIME_LIMIT_LOCAL:
+      _localTimeLimitInDeciseconds = readTimeLimit(value);
       return;
     case TIME_STATISTICS:
       _timeStatistics = onOffToBool(value,name);
@@ -2538,6 +2545,12 @@ void Options::outputValue (ostream& str,int optionTag) const
       str << '.' << _timeLimitInDeciseconds % 10;
     }
     return;
+  case TIME_LIMIT_LOCAL:
+    str << _localTimeLimitInDeciseconds/10;
+    if (_localTimeLimitInDeciseconds % 10) {
+      str << '.' << _localTimeLimitInDeciseconds % 10;
+    }
+    return;
   case TIME_STATISTICS:
     str << boolToOnOff(_timeStatistics);
     return;
@@ -2855,7 +2868,16 @@ void Options::readFromTestId (string testId)
 	USER_ERROR("No time limit in test id " + _testId);
   }
   string timeString = testId.substr(index+1);
-  _timeLimitInDeciseconds = readTimeLimit(timeString.c_str()) / 10;
+  // Set this as local if we have more than one strategy
+  // This will be useful in multi-strategy CASC mode and multi-strategy mode in general where we use decode
+  // However, this means that in these modes the timeLimit must be set seperately
+  // We also need multi-strategy CASC mode to create options such that env->isSingleStrategy is false here
+  if(env->isSingleStrategy()){
+    _timeLimitInDeciseconds = readTimeLimit(timeString.c_str()) / 10;
+  }
+  else{
+    _localTimeLimitInDeciseconds = readTimeLimit(timeString.c_str()) / 10;
+  }
 
   testId = testId.substr(3,index-3);
   switch (testId[0]) {

@@ -56,8 +56,9 @@ void CommandLine::interpret ()
       exit(0);
     }
     //On first loop decide if it is single strategy or not
+    // (decode in Options, and others,  depends on strategies being set before reading any other options)
     if(strategies==0){
-      if (strcmp(arg, "--strategies")==0 || strcmp(arg,"-strategies")){
+      if (strcmp(arg, "--strategies")==0 || strcmp(arg,"-strategies")==0){
 
         if(!Int::stringToUnsignedInt(*_next,strategies)){
           USER_ERROR("Error parsing strategies");

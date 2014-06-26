@@ -44,23 +44,14 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts) {
 	  _mlcl = static_cast<MainLoopContext**>(
 	  		  ALLOC_KNOWN(sizeof(MainLoopContext*)*_mlclSize,"MainLoopContext*"));
 
-	// Do preprocessing
-	// This is (currently) global for all strategies
-	{
-		TimeCounter tc(TC_PREPROCESSING);
-		//TODO : make this nicer, should probably just use opt in env already
-		// use first option as they should share the preprocessing options
-		OptionsList::Iterator i(opts);
-		ASS(i.hasNext());
-		Preprocess prepro(i.next());
-		prepro.preprocess(prb);
-	}
 
 	  OptionsList::Iterator i(opts);
 	  size_t k = 0;
 	  while(i.hasNext()){
 
 		  Options& opt = i.next();
+
+		  cout << "Creating strategy " << k << " with " << opt.localTimeLimitInDeciseconds() << " and " << opt.timeLimitInDeciseconds() << " local and global time" << endl;
 
 		  /*if(opt.bfnt()) {
 			_mla[k] = new BFNTMainLoop(localprb, opt);
