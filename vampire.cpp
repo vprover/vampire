@@ -476,6 +476,7 @@ void vampireMode()
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
+  /*
   string inputFile = env.options->inputFile();
   istream* input;
   if (inputFile == "") {
@@ -486,6 +487,7 @@ void vampireMode()
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
   }
+  */
 
   doProving();
 
