@@ -75,14 +75,14 @@ Environment::~Environment()
     endOutput();
   }
 
-#if CHECK_LEAKS
+// #if CHECK_LEAKS
   delete sharing;
   delete signature;
   delete sorts;
   delete timer;
   delete statistics;
   delete options;
-#endif
+// #endif
 }
 
 /**
