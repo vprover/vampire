@@ -154,8 +154,10 @@ void SSplittingBranchSelector::processDPConflicts()
       conflictClauses.push(conflCl);
     }
 
-    _solver->addClauses(pvi( SATClauseStack::Iterator(conflictClauses) ));
-
+    {
+    	TimeCounter tca(TC_SAT_SOLVER);
+    	_solver->addClauses(pvi( SATClauseStack::Iterator(conflictClauses) ));
+    }
     RSTAT_CTR_INC("ssat_dp_conflict");
     RSTAT_CTR_INC_MANY("ssat_dp_conflict_clauses",conflictClauses.size());
   }
@@ -271,12 +273,15 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
 
   if(_solver->getStatus()==SATSolver::UNKNOWN) {
     //why is this required twice?
+  	TimeCounter tca(TC_SAT_SOLVER);
     _solver->addClauses(SATClauseIterator::getEmpty(), false);
   }
   // calling addClauses with false forces solver to run
   // without only use propagation
-  _solver->addClauses(SATClauseIterator::getEmpty(), false);
-
+  {
+	  TimeCounter tc1(TC_SAT_SOLVER);
+	  _solver->addClauses(SATClauseIterator::getEmpty(), false);
+  }
   ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
   //_solver->randomizeAssignment(); //why do we do this?
 

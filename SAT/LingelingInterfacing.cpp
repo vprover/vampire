@@ -157,7 +157,7 @@ LingelingInterfacing::LingelingInterfacing(const Options& opt,
 {
 	CALL("LingelingInterfacing::LingelingInterfacing");
 	//here we should take care of all the options passed from the caller
-	TimeCounter ntc(TC_SAT_SOLVER);
+	//TimeCounter ntc(TC_LINGELING);
 	Options _opts(opt);
 
 	lgl4sigh = _solver = lglinit();
@@ -207,7 +207,7 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 {
 	CALL("LingelingInterfacing::addClause(SatClauseIte, bool onlyPropagate)");
 	//TAKE CARE HOW ONE ADDS CLAUSES. a call to lgladd(_solver, 0) terminates the cluase
-	TimeCounter tc(TC_SAT_SOLVER);
+	TimeCounter tc(TC_LINGELING);
 	//iterate over all the clauses from the problem
 	//if the solver is in UNSATISFIABLE state, adding a new clause keeps it unsatisfiable so simply return
 	if (_status == SATSolver::UNSATISFIABLE){
@@ -460,6 +460,7 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 		unsigned conflictCountLimit)
 {
 	CALL("LingelingInterfacing::addAssumption(SATLiteral, unsigned condlictCountLimit)");
+	TimeCounter tc(TC_LINGELING);
 	env.statistics->satLingelingAssumptions++;
 	//in case the solver is in UNSATISFIABLE state don't assume the literal
 	if (_status == SATSolver::UNSATISFIABLE)
