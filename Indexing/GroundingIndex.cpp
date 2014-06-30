@@ -28,8 +28,10 @@ GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
 
   switch(opt.satSolver()){
     case Options::VAMPIRE:
+    case Options::BUFFERED_VAMPIRE:
       _solver = new TWLSolver(opt,true);
       break;
+    case Options::BUFFERED_LINGELING:
     case Options::LINGELING:
       _solver = new LingelingInterfacing(opt,true);
       break;
