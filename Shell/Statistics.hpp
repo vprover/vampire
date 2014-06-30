@@ -212,7 +212,7 @@ public:
   /** TODO remove this statistics from here.
    * we count the time spent by twliteral sat solver
    */
-  double satTWLMiliseconds;
+
   unsigned satTWLClauseCount;
   unsigned satTWLVariablesCount;
   unsigned satTWLSATCalls;

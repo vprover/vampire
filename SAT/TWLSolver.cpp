@@ -141,13 +141,10 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
   if(_status==UNSATISFIABLE) { // TODO: a potential memory leak !
     return;
   }
-  Timer t ;
-  t.reset();
-  t.start();
+
   try {
 
     while(cit.hasNext()) {
- 	  //TODO remove this
   	  /**@author ioan.
   	   * reason: in order to count how many clauses are added to vampire solver
    	   */
@@ -160,13 +157,12 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
       _addedClauses.push(cl);
       
       if(cl->length()==0) {
-	throw UnsatException(cl);
-      }
-      else if(cl->length()==1) {
-	addUnitClause(cl);
+    	  throw UnsatException(cl);
+      } else if(cl->length()==1) {
+    	  addUnitClause(cl);
       }
       else {
-	addClause(cl);
+    	  addClause(cl);
       }
       _variableSelector->onInputClauseAdded(cl);
       _clauseDisposer->onNewInputClause(cl);
@@ -187,8 +183,6 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
     ASS(!_generateProofs || _refutation);
   }
 
-  t.stop();
-  env.statistics->satTWLMiliseconds+=t.elapsedMilliseconds();
   env.statistics->satTWLVariablesCount = _varCnt;
 }
 
@@ -202,9 +196,7 @@ void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
     return;
   }
   ASS(!anythingToPropagate());
-  Timer t;
-  t.reset();
-  t.start();
+
   try
   {
     backtrack(1);
@@ -227,8 +219,6 @@ void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
     _refutation = e.refutation;
     ASS(!_generateProofs || _refutation);
   }
-  t.stop();
-  env.statistics->satTWLMiliseconds+=t.elapsedMilliseconds();
 }
 
 void TWLSolver::retractAllAssumptions()
