@@ -11,6 +11,7 @@
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/StringUtils.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
@@ -1101,11 +1102,9 @@ void InferenceStore::outputProof(ostream& out, UnitList* units)
 
 InferenceStore* InferenceStore::instance()
 {
-  static InferenceStore* inst=0;
-  if (!inst) {
-    inst = new InferenceStore();
-  }
-  return inst;
+  static ScopedPtr<InferenceStore> inst(new InferenceStore());
+  
+  return inst.ptr();
 }
 
 
