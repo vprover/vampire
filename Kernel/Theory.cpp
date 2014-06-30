@@ -457,16 +457,16 @@ string RealConstantType::toNiceString() const
 // Theory
 //
 
-Theory* theory = Theory::instance();
+Theory Theory::theory_obj;  // to facilitate destructor call at deinitization
+
+Theory* theory = &Theory::theory_obj;
 
 /**
  * Accessor for the singleton instance of the Theory class.
  */
 Theory* Theory::instance()
 {
-  static Theory* inst=new Theory;
-
-  return inst;
+  return theory;
 }
 
 /**

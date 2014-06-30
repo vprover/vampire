@@ -276,6 +276,8 @@ public:
 
   unsigned getArrayExtSkolemFunction(unsigned i);
     
+  static Theory theory_obj;
+    
   static Theory* instance();
 
   bool isInterpretedConstant(unsigned func);
