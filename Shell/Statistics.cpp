@@ -114,7 +114,6 @@ Statistics::Statistics()
     satLingelingClauses(0),
     satLingelingVariables(0),
     satLingelingSATCalls(0),
-    satLingelingTimeSpent(0),
     /**TODO Remove the next var*/
     satTWLClauseCount(0),
     satTWLVariablesCount(0),
@@ -302,7 +301,6 @@ void Statistics::print(ostream& out)
   COND_OUT("Lingeling vampire count variables", satLingelingVariables);
   COND_OUT("Lingeling vampire count clauses", satLingelingClauses);
   COND_OUT("Lingeling calls for satisfiability", satLingelingSATCalls);
-  COND_OUT("Lingeling elapsed time", satLingelingTimeSpent);
   COND_OUT("TWLsolver clauses", satTWLClauseCount);
   COND_OUT("TWLsolver variables", satTWLVariablesCount);
   COND_OUT("TWLsolver calls for satisfiability", satTWLSATCalls);

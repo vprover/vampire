@@ -206,13 +206,9 @@ public:
   unsigned satLingelingVariables;
   /** Number of SAT calls for Lingeling */
   unsigned satLingelingSATCalls;
-  /** Total time spent by Lingeling for the current instance */
-  double satLingelingTimeSpent;
 
   /** TODO remove this statistics from here.
-   * we count the time spent by twliteral sat solver
-   */
-
+  * the next three variables keep statistics for Vampire default sat solver*/
   unsigned satTWLClauseCount;
   unsigned satTWLVariablesCount;
   unsigned satTWLSATCalls;

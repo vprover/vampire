@@ -129,7 +129,6 @@ static void catchalrm (int sig) {
   if (!caughtalarm) {
     caughtalarm = 1;
     caughtsigmsg (sig);
-    env.statistics->satLingelingTimeSpent = lglsec(lgl4sigh);
     env.statistics->terminationReason = env.statistics->TIME_LIMIT;
     env.beginOutput();
     Shell::UIHelper::outputResult(env.out());
@@ -226,7 +225,6 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 		addClausesToLingeling(clauseIterator);
 		//add statistics about usage of Lingeling
 		//total time spent by  Lingeling in solving
-		env.statistics->satLingelingTimeSpent = lglsec(_solver);
 	}
 	catch (const UnsatException& e){
 		_status = SATSolver::UNSATISFIABLE;
@@ -280,7 +278,6 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 	resetsighandlers();
 	if (remaining < 1) {
 		//update statistics
-		env.statistics->satLingelingTimeSpent = lglsec(_solver);
 		Timer::syncClock();
 		remaining = 1;
 		//throw TimeLimitExceededException();
@@ -351,7 +348,6 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 				result = lglsat(_solver);
 				env.checkTimeSometime<64>();
 				setSolverStatus(result);
-				env.statistics->satLingelingTimeSpent = lglsec(_solver);
 				Timer::syncClock();
 
 				if (result == LGL_UNSATISFIABLE) {
@@ -375,7 +371,6 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 			env.checkTimeSometime<64>();
 			setSolverStatus(result);
 			Timer::syncClock();
-			env.statistics->satLingelingTimeSpent = lglsec(_solver);
 			if (result == LGL_UNSATISFIABLE) {
 				setRefutation();
 				throw UnsatException(_refutation);
@@ -506,7 +501,6 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	unsigned int result = lglsat(_solver);
 	env.checkTimeSometime<64>();
 	setSolverStatus(result);
-	env.statistics->satLingelingTimeSpent = lglsec(_solver);
 	Timer::syncClock();
 	if (result == LGL_UNSATISFIABLE)
 	{
@@ -618,6 +612,7 @@ void LingelingInterfacing::randomizeAssignment()
 	CALL("LingelingInterfacing::randomizeAssignment()");
 	//here we should find a way to randomize the assignment
 	//lglsetopt(_solver, "flipping",1);
+	TimeCounter tc(TC_LINGELING);
 	LGL* clone;
 	clone = lglclone(_solver);
 	if (hasAssumptions()){
