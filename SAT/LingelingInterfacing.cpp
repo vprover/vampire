@@ -292,7 +292,7 @@ void LingelingInterfacing::addCAssumption(SATClause* clause,
 }
 
 /**
- * get the assigment for @param var
+ * get the assignment for @param var
  */
 SATSolver::VarAssignment LingelingInterfacing::getAssignment(unsigned var)
 {

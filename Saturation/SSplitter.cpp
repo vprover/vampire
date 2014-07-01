@@ -263,8 +263,10 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
     SATSolver::VarAssignment asgn = _solver->getAssignment(i);
     updateSelection(i, asgn, addedComps, removedComps);
   }
-  int percent = (_usedcnt *100) / (maxSatVar-1);
-  RSTAT_MCTR_INC("minimise_model_percent",percent);
+  if(maxSatVar>1){
+    int percent = (_usedcnt *100) / (maxSatVar-1);
+    RSTAT_MCTR_INC("minimise_model_percent",percent);
+  }
 
 //
 //
@@ -317,8 +319,10 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
     SATSolver::VarAssignment asgn = _solver->getAssignment(i);
     updateSelection(i, asgn, addedComps, removedComps);
   }
-  int percent = (_usedcnt *100) / (maxSatVar-1);
-  RSTAT_MCTR_INC("minimise_model_percent",percent);
+  if(maxSatVar>1){
+    int percent = (_usedcnt *100) / (maxSatVar-1);
+    RSTAT_MCTR_INC("minimise_model_percent",percent);
+  }
 
   RSTAT_CTR_INC_MANY("ssat_added_by_flush",addedComps.size());
   RSTAT_CTR_INC_MANY("ssat_removed_by_flush",removedComps.size());  
