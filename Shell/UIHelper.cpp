@@ -322,6 +322,12 @@ void UIHelper::outputResult(ostream& out)
     }
     out << "Time limit reached!\n";
     break;
+  case Statistics::LOCAL_TIME_LIMIT:
+	if (cascMode) {
+	  out << "% (" << getpid() << ')';
+	}
+	out << "Time limits for all proof attempts reached!\n";
+	break;
   case Statistics::MEMORY_LIMIT:
 #if VDEBUG
     Allocator::reportUsageByClasses();

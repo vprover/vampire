@@ -46,7 +46,7 @@ protected:
 		private:
 	        MainLoopContext* _cntxt;
 	};
-	friend AutoSwitch;
+	friend class AutoSwitch;
 
 	ConcurrentMainLoop* _ml;
 	Problem* _prb;
