@@ -56,10 +56,26 @@ public:
 
 private:
 
+  /*
+  * A Stack which deletes its elements at the end.
+  */
+  template<typename T> 
+  struct OwnedPtrStack : public Stack<T*>
+  {  
+    inline
+    explicit OwnedPtrStack (size_t initialCapacity=0)
+      : Stack<T*> (initialCapacity) { }
+  
+    inline ~OwnedPtrStack() { 
+      while (this->template isNonEmpty())
+        delete (this->template pop());
+     }
+  };
+
   template<typename T>
   static Stack<T*>& getStore() throw()
   {
-    static Stack<T*> store(4);
+    static OwnedPtrStack<T> store(4);
     return store;
   }
 };
