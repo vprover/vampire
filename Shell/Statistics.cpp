@@ -161,8 +161,11 @@ void Statistics::print(ostream& out)
     out << "Refutation";
     break;
   case Statistics::TIME_LIMIT:
-    out << "Time limit";
-    break;
+      out << "Time limit";
+      break;
+  case Statistics::LOCAL_TIME_LIMIT:
+      out << "Local time limit";
+      break;
   case Statistics::MEMORY_LIMIT:
     out << "Memory limit";
     break;
