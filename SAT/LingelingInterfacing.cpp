@@ -452,36 +452,32 @@ void LingelingInterfacing::printAssignment()
 //as this function is used, we only assume single units
 //lingeling allows us to also assum more than units, clauses
 void LingelingInterfacing::addAssumption(SATLiteral literal,
-		unsigned conflictCountLimit)
-{
+		unsigned conflictCountLimit) {
 	CALL("LingelingInterfacing::addAssumption(SATLiteral, unsigned condlictCountLimit)");
 	TimeCounter tc(TC_LINGELING);
 	env.statistics->satLingelingAssumptions++;
 	//in case the solver is in UNSATISFIABLE state don't assume the literal
-	if (_status == SATSolver::UNSATISFIABLE)
-	{
+	if (_status == SATSolver::UNSATISFIABLE) {
 		return;
 	}
 
-	if (_hasAssumptions)
-	{
+	if (_hasAssumptions) {
 		List<SATLiteral*>::Iterator lite(_assumptions);
-		while (lite.hasNext())
-		{
+		while (lite.hasNext()) {
 			SATLiteral *slite = lite.next();
-			if((slite->var()+1)==0){
+			if ((slite->var() + 1) == 0) {
 				ASSERTION_VIOLATION;
 			}
 			slite->polarity() == 1 ?
-					lglassume(_solver, slite->var()+1) :
-					lglassume(_solver, -1*(slite->var()+1));
+					lglassume(_solver, slite->var() + 1) :
+					lglassume(_solver, -1 * (slite->var() + 1));
 		}
 	}
 	//if the literal has negative polarity then multiply the flag by -1
 	int flag = 1;
 	flag = flag * (literal.polarity() == 1 ? 1 : -1);
 	//assume the literal
-	if( (flag*(literal.var()+1))==0)
+	if ((flag * (literal.var() + 1)) == 0)
 		ASSERTION_VIOLATION;
 
 	resetsighandlers();
@@ -489,44 +485,34 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	lglseterm(_solver, checkalarm, &caughtalarm);
 	sig_alrm_handler = signal(SIGALRM, catchalrm);
 	double remaining = env.remainingTime();
-	if (remaining < 1){
+	if (remaining < 1) {
 		//throw TimeLimitExceededException();
 		remaining = 1;
 		Timer::syncClock();
 	}
 	alarm((remaining / 1000));
 
-	lglassume(_solver, (flag * (literal.var()+1)));
+	lglassume(_solver, (flag * (literal.var() + 1)));
 	env.statistics->satLingelingSATCalls++;
 	unsigned int result = lglsat(_solver);
 	env.checkTimeSometime<64>();
 	setSolverStatus(result);
 	Timer::syncClock();
-	if (result == LGL_UNSATISFIABLE)
-	{
+	if (result == LGL_UNSATISFIABLE) {
 		SATLiteralStack slitStack;
 		slitStack.reset();
-		slitStack.push(literal);//.opposite());
-
+		slitStack.push(literal);
 		SATClause * cl = SATClause::fromStack(slitStack);
 		_status = SATSolver::UNSATISFIABLE;
 		throw UnsatException(cl);
 	}
 
-	if (result == LGL_SATISFIABLE)
-	{
+	if (result == LGL_SATISFIABLE) {
 		_status = SATSolver::SATISFIABLE;
 
-	}
-	else {
+	} else {
 		_status = SATSolver::UNKNOWN;
 	}
-#if !VDEBUG
-	if (result == LGL_SATISFIABLE)
-	{
-		printAssignment();
-	}
-#endif
 
 	_assumptions = _assumptions->cons(&literal);
 	_hasAssumptions = true;
