@@ -348,6 +348,13 @@ void Timer::printMSString(ostream& str, int ms)
   str<<msonly<<" s";
 }
 
+Timer* Timer::instance()
+{
+  static ScopedPtr<Timer> inst(new Timer());
+  
+  return inst.ptr();
+}
+
 };
 
 //#include <iostream>

@@ -38,7 +38,6 @@ using namespace std;
  */
 class Timer
 {
-public:
   Timer(bool mustIncludeChildren=false)
     :
     _mustIncludeChildren(mustIncludeChildren),
@@ -46,6 +45,9 @@ public:
     _elapsed(0)
   { ensureTimerInitialized(); }
 
+public:
+  static Timer* instance();
+  
   /** stop the timer and reset the clock */
   inline void reset()
   { _running = false;
