@@ -11,9 +11,11 @@
 #include <iostream>
 
 #include "Debug/Assertion.hpp"
+#include "Forwards.hpp"               // to declare checked_delete a fried for ScopedPtr's desctruction to work
 
 #ifndef UNIX_USE_SIGALRM
 //SIGALRM causes some problems with debugging
+//[one problem might have been removed, so it's worth checking if the demand for UNIX_USE_SIGALRM in VDEBUG arises]
 #define UNIX_USE_SIGALRM !VDEBUG
 #endif
 
@@ -45,6 +47,9 @@ class Timer
     _elapsed(0)
   { ensureTimerInitialized(); }
 
+  ~Timer() { deinitializeTimer(); }
+  friend void ::checked_delete<Timer>(Timer*);
+  
 public:
   static Timer* instance();
   
@@ -92,6 +97,7 @@ public:
   void makeChildrenIncluded();
 
   static void ensureTimerInitialized();
+  static void deinitializeTimer();
   static string msToSecondsString(int ms);
   static void printMSString(ostream& str, int ms);
 

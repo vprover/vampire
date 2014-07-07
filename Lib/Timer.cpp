@@ -64,6 +64,9 @@ void Lib::Timer::ensureTimerInitialized()
 {
 }
 
+void Lib::Timer::deinitializeTimer()
+{
+}
 
 #elif UNIX_USE_SIGALRM
 
@@ -193,7 +196,7 @@ void Lib::Timer::restoreTimerAfterFork()
 
 void Lib::Timer::ensureTimerInitialized()
 {
-  CALL("Timer::initTimer");
+  CALL("Timer::ensureTimerInitialized");
 
   if(timer_sigalrm_counter!=-1) {
     return;
@@ -213,6 +216,20 @@ void Lib::Timer::ensureTimerInitialized()
   s_initGuarantedMiliseconds=guaranteedMilliseconds();
 
   Sys::Multiprocessing::instance()->registerForkHandlers(suspendTimerBeforeFork, restoreTimerAfterFork, restoreTimerAfterFork);
+}
+
+void Lib::Timer::deinitializeTimer()
+{
+  CALL("Timer::deinitializeTimer");
+
+  itimerval tv1, tv2;
+  tv1.it_value.tv_usec=0;
+  tv1.it_value.tv_sec=0;
+  tv1.it_interval.tv_usec=0;
+  tv1.it_interval.tv_sec=0;
+  setitimer(ITIMER_REAL, &tv1, &tv2);
+  
+  signal (SIGALRM, SIG_IGN); // unregister the handler (and ignore the rest of SIGALRMs, should they still come) 
 }
 
 void Lib::Timer::syncClock()
@@ -280,6 +297,10 @@ void Lib::Timer::syncClock()
 }
 
 void Lib::Timer::ensureTimerInitialized()
+{
+}
+
+void Lib::Timer::deinitializeTimer()
 {
 }
 
