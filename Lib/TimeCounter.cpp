@@ -275,13 +275,13 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     out<<"unit resulting resolution";
     break;
   case TC_SAT_SOLVER:
-    out<<"SAT solver";
+    out<<"SAT solver time";
     break;
   case TC_TWLSOLVER_ADD:
     out<<"TWLSolver add clauses";
     break;
   case TC_LINGELING:
-	out<<"Lingeling solver";
+	out<<"Lingeling solver time";
 	break;
   case TC_SUPERPOSITION:
     out<<"superposition";

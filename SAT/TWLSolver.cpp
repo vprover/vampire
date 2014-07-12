@@ -135,6 +135,7 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 {
   CALL("TWLSolver::addClauses");
   TimeCounter tc(TC_TWLSOLVER_ADD);
+  TimeCounter ttc(TC_SAT_SOLVER);
   ASS_EQ(_assumptionCnt, 0);
   ASS(!_unsatisfiableAssumptions);
 
@@ -189,7 +190,7 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
 {
   CALL("TWLSolver::addAssumption(SATLiteral,unsigned)");
-
+  TimeCounter ttc(TC_SAT_SOLVER);
   _assumptionsAdded = true;
 
   if(_status==UNSATISFIABLE) {
@@ -224,7 +225,7 @@ void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
 void TWLSolver::retractAllAssumptions()
 {
   CALL("TWLSolver::retractAllAssumptions");
-
+  TimeCounter ttc(TC_SAT_SOLVER);
   _assumptionsAdded = false;
 
   if(_unsatisfiableAssumptions) {

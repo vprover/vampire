@@ -167,7 +167,8 @@ LingelingInterfacing::LingelingInterfacing(const Options& opt,
 	lglsetopt(_solver, "drup", -1);
 	lglsetopt(_solver, "plain", 0);
 	//lglsetopt(_solver, "dlim",0);
-	lglsetopt(_solver, "memlim", env.options->memoryLimit());
+	size_t remMem =env.options->memoryLimit() - (Allocator::getUsedMemory()/1048576);
+	lglsetopt(_solver, "memlim", remMem);
 	
 	//set signal hadler for ABORTIF 
 	//sig_abort_handler = signal(LING_SIG, alert_abort);
@@ -214,6 +215,7 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 	}
 
 	try{
+		size_t remMem =env.options->memoryLimit() - (Allocator::getUsedMemory()/1048576);
 		if(onlyPropagate){
 			lglsetopt(_solver,"clim",1);
 		} else {
@@ -221,6 +223,7 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 		}
 		//reset Lingeling signal handlers
 		resetsighandlers();
+		lglsetopt(_solver,"memlim",remMem);
 
 		addClausesToLingeling(clauseIterator);
 		//add statistics about usage of Lingeling
