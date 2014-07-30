@@ -5,6 +5,7 @@
  */
 
 #include <string>
+#include "Allocator.hpp"
 
 using namespace std;
 
@@ -14,18 +15,15 @@ namespace Lib {
 * Store information about an Option
 * i.e. long and short names, description and whether it is experimental
 *
-* Note: All components are required, including shortName
-*
 * @author Giles
 */
-struct OptionName{
+struct OptionName {
   OptionName(const char* l, const char* s, const char* d, const bool e) :
      longName(l), shortName(s), description(d), experimental(e) {}
   const char* longName;
   const char* shortName;
   const char* description;
   const bool experimental;
-
 };
 
 /**

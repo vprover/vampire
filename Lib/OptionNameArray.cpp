@@ -11,13 +11,18 @@
 #include "OptionNameArray.hpp"
 #include "Debug/Tracer.hpp"
 
-
 std::ostream& operator<< (ostream& out, const Lib::OptionName& on ){
   CALL("operator<< (ostream&,const Lib::OptionNameArray::OptionName&)");
 
-  out << "--" << on.longName << " (-" << on.shortName << ")" << endl;
-  //TODO break description into 80 character chunks
-  out << "\t" << on.description << endl;
+  out << "--" << on.longName;
+  if(strcmp(on.shortName,"")!=0){ out << " (-"<<on.shortName<<")"; }
+  out << endl; 
+
+  if(strcmp(on.description,"")!=0){
+    //TODO break description into 80 character chunks
+    out << "\t" << on.description << endl;
+  }
+  else{ out << "\tno description provided!" << endl; }
 
   return out;
 }
@@ -30,13 +35,18 @@ OptionNameArray::OptionNameArray (const OptionName array[],int len)
 {
   CALL("OptionNameArray::OptionNameArray");
 
+  // create memory for long and short array
+  _longArray = (const char**) ALLOC_KNOWN(sizeof(char*)*len,"OptionNameArray<>");
+  _shortArray = (const char**) ALLOC_KNOWN(sizeof(char*)*len,"OptionNameArray<>");
+  
+
   for(int i=0;i<len;i++){
     _longArray[i] = _array[i].longName;
     _shortArray[i] = _array[i].shortName;
     #if VDEBUG
     if(i>0){
       ASS_REP2(strcmp(_longArray[i-1],_longArray[i]) <0, _longArray[i-1],_longArray[i]);
-      ASS_REP2(strcmp(_shortArray[i-1],_shortArray[i]) <0, _shortArray[i-1],_shortArray[i]);
+      //ASS_REP2(strcmp(_shortArray[i-1],_shortArray[i]) <0, _shortArray[i-1],_shortArray[i]);
     }
     #endif
   }
@@ -107,19 +117,11 @@ int OptionNameArray::tryToFindShort(const char* value) const
 {
   CALL("OptionNameArray::tryToFindShort");
 
-  int from = 0;
-  int to = length;
-  while (from < to) {
-    int mid = (from+to)/2;
-    int comp = strcmp(_shortArray[mid],value);
-    if (comp < 0) {
-      from = mid+1;
-    }
-    else if (comp == 0) {
-      return mid;
-    }
-    else { // comp > 0
-      to = mid;
+  //TODO - uses a linear search, would be better to construct
+  //       an ordered shortArray in constructor
+  for(int i=0;i<length;i++){
+    if(strcmp(_shortArray[i],value) == 0){
+      return i;
     }
   }
   return -1;

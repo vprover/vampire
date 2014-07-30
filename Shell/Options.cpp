@@ -316,7 +316,7 @@ const OptionName Options::Constants::_optionNames[] = {
 
 /** Names for all options */
 OptionNameArray Options::Constants::optionNames(_optionNames,
-					  sizeof(_optionNames)/sizeof(char*));
+					  sizeof(_optionNames)/sizeof(OptionName));
 
 const char* Options::Constants::_statisticsValues[] = {
   "brief",
@@ -353,12 +353,6 @@ const char* Options::Constants::_urResolutionValues[] = {
 NameArray Options::Constants::urResolutionValues(_urResolutionValues,
 						 sizeof(_urResolutionValues)/sizeof(char*));
 
-//const char* Options::Constants::_splittingModeValues[] = {
-//  "input",
-//  "off",
-//  "sat"};
-//NameArray Options::Constants::splittingModeValues(_splittingModeValues,
-//					sizeof(_splittingModeValues)/sizeof(char*));
 
 const char* Options::Constants::_fdeValues[] = {
   "all",
@@ -1871,12 +1865,13 @@ void Options::output (ostream& str) const
   str << "=========== Options ==========\n";
 
   for (int i = 0;i < Constants::optionNames.length;i++) {
-    str << Constants::optionNames[i] << '=';
+    str << Constants::optionNames[i] << "\tdefault:";
     outputValue(str,i);
     str << '\n';
   }
 
   str << "======= End of options =======\n";
+  exit(0);
 } // Options::output (ostream& str) const
 
 /**
@@ -2004,6 +1999,12 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case EXTENSIONALITY_RESOLUTION:
     str << Constants::extensionalityResolutionValues[_extensionalityResolution];
+    return;
+  case EXTENSIONALITY_ALLOW_POS_EQ:
+    str << boolToOnOff(_extensionalityAllowPosEq);
+    return;
+  case EXTENSIONALITY_MAX_LENGTH:
+    str << _extensionalityMaxLength;
     return;
 
   case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
@@ -2419,6 +2420,10 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
     str << boolToOnOff(_unusedPredicateDefinitionRemoval);
+    return;
+
+  case USEDM:
+    str << boolToOnOff(_use_dm);
     return;
 
   case WEIGHT_INCREMENT:
