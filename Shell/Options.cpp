@@ -19,6 +19,7 @@
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/NameArray.hpp"
+#include "Lib/OptionNameArray.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/System.hpp"
@@ -31,14 +32,16 @@
 using namespace Lib;
 using namespace Shell;
 
+
 /**
  * Class to hide various data used by class Options, mostly name arrays.
  * @since 21/04/2005 Manchester
  */
 class Options::Constants {
 public:
-  static const char* _optionNames[];
-  static const char* _shortNames[];
+
+  static const OptionName _optionNames[];
+  // Arrays to store option values
   static const char* _statisticsValues[];
   static const char* _condensationValues[];
   static const char* _demodulationValues[];
@@ -65,20 +68,16 @@ public:
   static const char* _nicenessOptionValues[];
   static const char* _satClauseDisposerValues[];
   static const char* _sosValues[];
-  static const char* _splittingAddComplementaryValues[];
-  static const char* _splittingDeleteDeactivatedValues[];
-  static const char* _splittingNonsplittableComponentsValues[];
-  static const char* _splittingModelValues[];
-  static const char* _splittingLiteralPolarityAdviceValues[];
+  static const char* _sSplittingComponentSweepingValues[];
+  static const char* _sSplittingAddComplementaryValues[];
+  static const char* _sSplittingNonsplittableComponentsValues[];
   static const char* _predicateEquivalenceDiscoveryModeValues[];
   static const char* _bpAssignmentSelectorValues[];
   static const char* _bpVariableSelectorValues[];
   static const char* _bpConflictSelectorValues[];
   static const char* _bpAlmostHalfBoundingRemovalValues[];
-  static int shortNameIndexes[];
 
-  static NameArray optionNames;
-  static NameArray shortNames;
+  static OptionNameArray optionNames;
   static NameArray statisticsValues;
   static NameArray condensationValues;
   static NameArray demodulationValues;
@@ -105,12 +104,9 @@ public:
   static NameArray nicenessOptionValues;
   static NameArray satClauseDisposerValues;
   static NameArray sosValues;
-  static NameArray splittingComponentSweepingValues;
-  static NameArray splittingAddComplementaryValues;
-  static NameArray splittingDeleteDeactivatedValues;
-  static NameArray splittingNonsplittableComponentsValues;
-  static NameArray splittingModelValues;
-  static NameArray splittingLiteralPolarityAdviceValues;
+  static NameArray sSplittingComponentSweepingValues;
+  static NameArray sSplittingAddComplementaryValues;
+  static NameArray sSplittingNonsplittableComponentsValues;
   static NameArray predicateEquivalenceDiscoveryModeValues;
   static NameArray bpAssignmentSelectorValues;
   static NameArray bpVariableSelectorValues;
@@ -120,384 +116,207 @@ public:
 
 
 /** Names for all options */
-const char* Options::Constants::_optionNames[] = {
-  "age_weight_ratio",
-  "aig_bdd_sweeping",
-  "aig_conditional_rewriting",
-  "aig_definition_introduction",
-  "aig_definition_introduction_threshold",
-  "aig_formula_sharing",
-  "aig_inliner",
-  "arity_check",
+const OptionName Options::Constants::_optionNames[] = {
+  OptionName("abstraction","","",false),
+  OptionName("age_weight_ratio","awr","",false),
+  OptionName("aig_bdd_sweeping","","",false),
+  OptionName("aig_conditional_rewriting","","",false),
+  OptionName("aig_definition_introduction","","",false),
+  OptionName("aig_definition_introduction_threshold","","",false),
+  OptionName("aig_formula_sharing","","",false),
+  OptionName("aig_inliner","","",false),
+  OptionName("arity_check","","",false),
 
-  "backward_demodulation",
-  "backward_subsumption",
-  "backward_subsumption_resolution",
-  "bfnt",
-  "binary_resolution",
-  "bp_add_collapsing_inequalities",
-  "bp_allowed_fm_balance",
-  "bp_almost_half_bounding_removal",
-  "bp_assignment_selector",
-  "bp_bound_improvement_limit",
-  "bp_conflict_selector",
-  "bp_conservative_assignment_selection",
-  "bp_fm_elimination",
-  "bp_max_prop_length",
-  "bp_propagate_after_conflict",
-  "bp_start_with_precise",
-  "bp_start_with_rational",
-  "bp_variable_selector",
+  OptionName("backward_demodulation","bd","",false),
+  OptionName("backward_subsumption","bs","",false),
+  OptionName("backward_subsumption_resolution","bsr","",false),
+  OptionName("bfnt","bfnt","",false),
+  OptionName("binary_resolution","br","",false),
+  OptionName("bp_add_collapsing_inequalities","","",false),
+  OptionName("bp_allowed_fm_balance","","",false),
+  OptionName("bp_almost_half_bounding_removal","","",false),
+  OptionName("bp_assignment_selector","","",false),
+  OptionName("bp_bound_improvement_limit","","",false),
+  OptionName("bp_conflict_selector","","",false),
+  OptionName("bp_conservative_assignment_selection","","",false),
+  OptionName("bp_fm_elimination","","",false),
+  OptionName("bp_max_prop_length","","",false),
+  OptionName("bp_propagate_after_conflict","","",false),
+  OptionName("bp_start_with_precise","","",false),
+  OptionName("bp_start_with_rational","","",false),
+  OptionName("bp_variable_selector","","",false),
 
-  "color_unblocking",
-  "condensation",
+  OptionName("color_unblocking","","",false),
+  OptionName("condensation","cond","",false),
 
-  "decode",
-  "demodulation_redundancy_check",
-  "distinct_processor",
+  OptionName("decode","","",false),
+  OptionName("demodulation_redundancy_check","drc","",false),
+  OptionName("distinct_processor","","",false),
 
-  "epr_preserving_naming",
-  "epr_preserving_skolemization",
-  "epr_restoring_inlining",
-  "equality_propagation",
-  "equality_proxy",
-  "equality_resolution_with_deletion",
+  OptionName("epr_preserving_naming","","",false),
+  OptionName("epr_preserving_skolemization","","",false),
+  OptionName("epr_restoring_inlining","","",false),
+  OptionName("equality_propagation","","",false),
+  OptionName("equality_proxy","ep","",false),
+  OptionName("equality_resolution_with_deletion","erd","",false),
   
-  "extensionality_allow_pos_eq",
-  "extensionality_max_length",
-  "extensionality_resolution",
+  OptionName("extensionality_allow_pos_eq","","",false),
+  OptionName("extensionality_max_length","","",false),
+  OptionName("extensionality_resolution","er","",false),
 
-  "flatten_top_level_conjunctions",
-  "forbidden_options",
-  "forced_options",
-  "forward_demodulation",
-  "forward_literal_rewriting",
-  "forward_subsumption",
-  "forward_subsumption_resolution",
-  "function_definition_elimination",
-  "function_number",
+  OptionName("flatten_top_level_conjunctions","","",false),
+  OptionName("forbidden_options","","",false),
+  OptionName("forced_options","","",false),
+  OptionName("forward_demodulation","fd","",false),
+  OptionName("forward_literal_rewriting","flr","",false),
+  OptionName("forward_subsumption","fs","",false),
+  OptionName("forward_subsumption_resolution","fsr","",false),
+  OptionName("function_definition_elimination","fde","",false),
+  OptionName("function_number","","",false),
 
-  "general_splitting",
-  "global_subsumption",
+  OptionName("general_splitting","gsp","",false),
+  OptionName("global_subsumption","gs","",false),
 
-  "horn_revealing",
-  "hyper_superposition",
+  OptionName("horn_revealing","","",false),
+  OptionName("hyper_superposition","","",false),
 
-  "ignore_missing",
-  "include",
-  "increased_numeral_weight",
-  "inequality_splitting",
-  "input_file",
-  "input_syntax",
-  "inst_gen_big_restart_ratio",
-  "inst_gen_inprocessing",
-  "inst_gen_passive_reactivation",
-  "inst_gen_resolution_ratio",
-  "inst_gen_restart_period",
-  "inst_gen_restart_period_quotient",
-  "inst_gen_selection",
-  "inst_gen_with_resolution",
-  "interpreted_simplification",
+  OptionName("ignore_missing","","",false),
+  OptionName("include","","",false),
+  OptionName("increased_numeral_weight","","",false),
+  OptionName("inequality_splitting","ins","",false),
+  OptionName("input_file","","",false),
+  OptionName("input_syntax","","",false),
+  OptionName("inst_gen_big_restart_ratio","igbrr","",false),
+  OptionName("inst_gen_inprocessing","","",false),
+  OptionName("inst_gen_passive_reactivation","","",false),
+  OptionName("inst_gen_resolution_ratio","igrr","",false),
+  OptionName("inst_gen_restart_period","igrp","",false),
+  OptionName("inst_gen_restart_period_quotient","igrpq","",false),
+  OptionName("inst_gen_selection","igs","",false),
+  OptionName("inst_gen_with_resolution","igwr","",false),
+  OptionName("interpreted_simplification","","",false),
 
-  "latex_output",
-  "lingva_additional_invariants",
+  OptionName("latex_output","","",false),
+  OptionName("lingva_additional_invariants","","",false),
 
-  "literal_comparison_mode",
-  "log_file",
-  "lrs_first_time_check",
-  "lrs_weight_limit_only",
+  OptionName("literal_comparison_mode","lcm","",false),
+  OptionName("log_file","","",false),
+  OptionName("lrs_first_time_check","","",false),
+  OptionName("lrs_weight_limit_only","","",false),
 
-  "max_active",
-  "max_answers",
-  "max_inference_depth",
-  "max_passive",
-  "max_weight",
-  "memory_limit",
-  "mode",
+  OptionName("max_active","","",false),
+  OptionName("max_answers","","",false),
+  OptionName("max_inference_depth","","",false),
+  OptionName("max_passive","","",false),
+  OptionName("max_weight","","",false),
+  OptionName("memory_limit","m","",false),
+  OptionName("mode","","",false),
 
-  "name_prefix",
-  "naming",
-  "niceness_option",
-  "nongoal_weight_coefficient",
-  "nonliterals_in_clause_weight",
-  "normalize",
+  OptionName("name_prefix","","",false),
+  OptionName("naming","nm","",false),
+  OptionName("niceness_option","no","",true),
+  OptionName("nongoal_weight_coefficient","nwc","",false),
+  OptionName("nonliterals_in_clause_weight","nicw","",false),
+  OptionName("normalize","","",false),
 
-  "output_axiom_names",
+  OptionName("output_axiom_names","","",false),
 
-  "predicate_definition_inlining",
-  "predicate_definition_merging",
-  "predicate_equivalence_discovery",
-  "predicate_equivalence_discovery_add_implications",
-  "predicate_equivalence_discovery_random_simulation",
-  "predicate_equivalence_discovery_sat_conflict_limit",
-  "predicate_index_introduction",
-  "print_clausifier_premises",
-  "problem_name",
-  "proof",
-  "proof_checking",
-  "protected_prefix",
+  OptionName("predicate_definition_inlining","","",false),
+  OptionName("predicate_definition_merging","","",false),
+  OptionName("predicate_equivalence_discovery","","",false),
+  OptionName("predicate_equivalence_discovery_add_implications","","",false),
+  OptionName("predicate_equivalence_discovery_random_simulation","","",false),
+  OptionName("predicate_equivalence_discovery_sat_conflict_limit","","",false),
+  OptionName("predicate_index_introduction","","",false),
+  OptionName("print_clausifier_premises","","",false),
+  OptionName("problem_name","","",false),
+  OptionName("proof","p","",false),
+  OptionName("proof_checking","","",false),
+  OptionName("protected_prefix","","",false),
 
-  "question_answering",
+  OptionName("question_answering","","",false),
 
-  "random_seed",
-  "row_variable_max_length",
+  OptionName("random_seed","","",false),
+  OptionName("row_variable_max_length","","",false),
 
-  "sat_clause_activity_decay",
-  "sat_clause_disposer",
-  "sat_learnt_minimization",
-  "sat_learnt_subsumption_resolution",
+  OptionName("sat_clause_activity_decay","","",false),
+  OptionName("sat_clause_disposer","","",false),
+  OptionName("sat_learnt_minimization","","",false),
+  OptionName("sat_learnt_subsumption_resolution","","",false),
+  OptionName("sat_restart_fixed_count","","",false),
+  OptionName("sat_restart_geometric_increase","","",false),
+  OptionName("sat_restart_geometric_init","","",false),
+  OptionName("sat_restart_luby_factor","","",false),
+  OptionName("sat_restart_minisat_increase","","",false),
+  OptionName("sat_restart_minisat_init","","",false),
+  OptionName("sat_restart_strategy","","",false),
+  OptionName("sat_solver","sas","",false),
+  OptionName("sat_var_activity_decay","","",false),
+  OptionName("sat_var_selector","svs","",false),
+  OptionName("saturation_algorithm","sa","",false),
+  OptionName("selection","s","",false),
+  OptionName("show_active","","",false),
+  OptionName("show_blocked","","",false),
+  OptionName("show_definitions","","",false),
+  OptionName("show_interpolant","","",false),
+  OptionName("show_new","","",false),
+  OptionName("show_new_propositional","","",false),
+  OptionName("show_nonconstant_skolem_function_trace","","",false),
+  OptionName("show_options","","",false),
+  OptionName("show_passive","","",false),
+  OptionName("show_preprocessing","","",false),
+  OptionName("show_skolemisations","","",false),
+  OptionName("show_symbol_elimination","","",false),
+  OptionName("show_theory_axioms","","",false),
+  OptionName("simulated_time_limit","stl","",false),
+  OptionName("sine_depth","sd","",false),
+  OptionName("sine_generality_threshold","sgt","",false),
+  OptionName("sine_selection","ss","",false),
+  OptionName("sine_tolerance","st","",false),
+  OptionName("smtlib_consider_ints_real","","",false),
+  OptionName("smtlib_flet_as_definition","","",false),
+  OptionName("smtlib_introduce_aig_names","","",false),
+  OptionName("sos","sos","",false),
+  OptionName("split_at_activation","sac","",false),
+  OptionName("splitting","spl","",false),
+  OptionName("ssplitting_add_complementary","ssac","",false),
+  OptionName("ssplitting_component_sweeping","","",false),
+  OptionName("ssplitting_congruence_closure","sscc","",false),
+  OptionName("ssplitting_eager_removal","sser","",false),
+  OptionName("ssplitting_flush_period","ssfp","",false),
+  OptionName("ssplitting_flush_quotient","ssfq","",false),
+  OptionName("ssplitting_nonsplittable_components","ssnc","",false),
+  OptionName("statistics","","",false),
+  OptionName("superposition_from_variables","sfv","",false),
+  OptionName("symbol_precedence","sp","",false),
 
-  /** Lingeling options for incremental use and similar models generation*/
-  "sat_lingeling_incremental",
-  "sat_lingeling_similar_models",
+  OptionName("tabulation_bw_rule_subsumption_resolution_by_lemmas","tbsr","",false),
+  OptionName("tabulation_fw_rule_subsumption_resolution_by_lemmas","tfsr","",false),
+  OptionName("tabulation_goal_awr","tgawr","",false),
+  OptionName("tabulation_goal_lemma_ratio","tglr","",false),
+  OptionName("tabulation_instantiate_producing_rules","tipr","",false),
+  OptionName("tabulation_lemma_awr","tlawr","",false),
+  OptionName("test_id","","",false),
+  OptionName("thanks","","",false),
+  OptionName("theory_axioms","","",false),
+  OptionName("time_limit","t","",false),
+  OptionName("time_statistics","","",false),
+  OptionName("trivial_predicate_removal","","",false),
 
-  "sat_restart_fixed_count",
-  "sat_restart_geometric_increase",
-  "sat_restart_geometric_init",
-  "sat_restart_luby_factor",
-  "sat_restart_minisat_increase",
-  "sat_restart_minisat_init",
-  "sat_restart_strategy",
-  "sat_solver",
+  OptionName("unit_resulting_resolution","urr","",false),
+  OptionName("unused_predicate_definition_removal","updr","",false),
+  OptionName("use_dismatching","","",false),
 
-  "sat_var_activity_decay",
-  "sat_var_selector",
-  "saturation_algorithm",
-  "selection",
-  "show_active",
-  "show_blocked",
-  "show_definitions",
-  "show_interpolant",
-  "show_new",
-  "show_new_propositional",
-  "show_nonconstant_skolem_function_trace",
-  "show_options",
-  "show_passive",
-  "show_preprocessing",
-  "show_skolemisations",
-  "show_symbol_elimination",
-  "show_theory_axioms",
-  "simulated_time_limit",
-  "sine_depth",
-  "sine_generality_threshold",
-  "sine_selection",
-  "sine_tolerance",
-  "smtlib_consider_ints_real",
-  "smtlib_flet_as_definition",
-  "smtlib_introduce_aig_names",
-  "sos",
-  "split_at_activation",
-  "splitting",
-  "splitting_add_complementary",
-  "splitting_congruence_closure",
-  "splitting_delete_deactivated",
-  "splitting_eager_removal",
-  "splitting_fast_restart",
-  "splitting_flush_period",
-  "splitting_flush_quotient",
-  "splitting_handle_zero_implied",
-  "splitting_literal_polarity_advice",
-  "splitting_model",
-  "splitting_nonsplittable_components",
-  "statistics",
-  "superposition_from_variables",
-  "symbol_precedence",
+  OptionName("weight_increment","","",false),
+  OptionName("while_number","","",false),
 
-  "tabulation_bw_rule_subsumption_resolution_by_lemmas",
-  "tabulation_fw_rule_subsumption_resolution_by_lemmas",
-  "tabulation_goal_awr",
-  "tabulation_goal_lemma_ratio",
-  "tabulation_instantiate_producing_rules",
-  "tabulation_lemma_awr",
-  "test_id",
-  "thanks",
-  "theory_axioms",
-  "time_limit",
-  "time_statistics",
-  "trivial_predicate_removal",
-
-  "unit_resulting_resolution",
-  "unused_predicate_definition_removal",
-  "use_dismatching",
-  "weight_increment",
-  "while_number",
-
-  "xml_output"
+  OptionName("xml_output","","",false)
   };
+>>>>>>> Add OptionNameArray and use it in Shell/Options
 
 /** Names for all options */
-NameArray Options::Constants::optionNames(_optionNames,
+OptionNameArray Options::Constants::optionNames(_optionNames,
 					  sizeof(_optionNames)/sizeof(char*));
-
-const char* Options::Constants::_shortNames[] = {
-  "awr",
-
-  "bd",
-  "bfnt",
-  "br",
-  "bs",
-  "bsr",
-
-  "cond",
-
-  "drc",
-
-  "ep",
-  "er",
-  "erd",
-
-  "fd",
-  "fde",
-  "flr",
-  "fs",
-  "fsr",
-
-  "gs",
-  "gsp",
-
-  "igbrr",
-  "igrp",
-  "igrpq",
-  "igrr",
-  "igs",
-  "igwr",
-  "ins",
-
-  "lcm",
-
-  "m",
-
-  "nicw",
-  "nm",
-  "no",
-  "nwc",
-
-  "p",
-
-  "s",        
-  "sa",       
-  "saa",      
-  "sac",      
-  "sas",      
-  "scc",      
-  "sd", 
-  "sdd",
-  "ser",      
-  "sfp",      
-  "sfq",
-  "sfr",
-  "sfv",      
-  "sgt",
-  "shzi",
-  "slpa",
-  "sm",       
-  "snc",      
-  "sos",      
-  "sp",       
-  "spl",      
-  "ss",       
-  "st",       
-  "stl",      
-  "svs", 
-
-  "t",
-  "tbsr",
-  "tfsr",
-  "tgawr",
-  "tglr",
-  "tipr",
-  "tlawr",
-
-  "updr",
-  "urr"
-};
-
-/** Short names for all options */
-NameArray Options::Constants::shortNames(_shortNames,
-					  sizeof(_shortNames)/sizeof(char*));
-
-int Options::Constants::shortNameIndexes[] = {
-  AGE_WEIGHT_RATIO,
-
-  BACKWARD_DEMODULATION,
-  BFNT,
-  BINARY_RESOLUTION,
-  BACKWARD_SUBSUMPTION,
-  BACKWARD_SUBSUMPTION_RESOLUTION,
-
-  CONDENSATION,
-
-  DEMODULATION_REDUNDANCY_CHECK,
-
-  EQUALITY_PROXY,
-  EXTENSIONALITY_RESOLUTION,
-  EQUALITY_RESOLUTION_WITH_DELETION,
-
-  FORWARD_DEMODULATION,
-  FUNCTION_DEFINITION_ELIMINATION,
-  FORWARD_LITERAL_REWRITING,
-  FORWARD_SUBSUMPTION,
-  FORWARD_SUBSUMPTION_RESOLUTION,
-
-  GLOBAL_SUBSUMPTION,
-  GENERAL_SPLITTING,
-
-  INST_GEN_BIG_RESTART_RATIO,
-  INST_GEN_RESTART_PERIOD,
-  INST_GEN_RESTART_PERIOD_QUOTIENT,
-  INST_GEN_RESOLUTION_RATIO,
-  INST_GEN_SELECTION,
-  INST_GEN_WITH_RESOLUTION,
-  INEQUALITY_SPLITTING,
-
-  LITERAL_COMPARISON_MODE,
-
-  MEMORY_LIMIT,
-
-  NONLITERALS_IN_CLAUSE_WEIGHT,
-  NAMING,
-  NICENESS_OPTION,
-  NONGOAL_WEIGHT_COEFFICIENT,
-
-  PROOF,
-
-  SELECTION,
-  SATURATION_ALGORITHM,
-  SPLIT_AT_ACTIVATION,
-  SPLITTING_ADD_COMPLEMENTARY,
-  SAT_SOLVER,
-  SPLITTING_CONGRUENCE_CLOSURE,
-  SINE_DEPTH,
-  SPLITTING_DELETE_DEACTIVATED,
-  SPLITTING_EAGER_REMOVAL,
-  SPLITTING_FLUSH_PERIOD,
-  SPLITTING_FLUSH_QUOTIENT,
-  SPLITTING_FAST_RESTART,
-  SUPERPOSITION_FROM_VARIABLES,
-  SINE_GENERALITY_THRESHOLD,
-  SPLITTING_HANDLE_ZERO_IMPLIED,
-  SPLITTING_LITERAL_POLARITY_ADVICE,
-  SPLITTING_MODEL,
-  SPLITTING_NONSPLITTABLE_COMPONENTS,
-  SOS,
-  SYMBOL_PRECEDENCE,
-  SPLITTING,
-  SINE_SELECTION,
-  SINE_TOLERANCE,
-  SIMULATED_TIME_LIMIT,
-  SAT_VAR_SELECTOR,
-
-  TIME_LIMIT,
-  TABULATION_BW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS,
-  TABULATION_FW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS,
-  TABULATION_GOAL_AWR,
-  TABULATION_GOAL_LEMMA_RATIO,
-  TABULATION_INSTANTIATE_PRODUCING_RULES,
-  TABULATION_LEMMA_AWR,
-
-  UNUSED_PREDICATE_DEFINITION_REMOVAL,
-  UNIT_RESULTING_RESOLUTION
-};
 
 const char* Options::Constants::_statisticsValues[] = {
   "brief",
@@ -533,6 +352,13 @@ const char* Options::Constants::_urResolutionValues[] = {
   "on"};
 NameArray Options::Constants::urResolutionValues(_urResolutionValues,
 						 sizeof(_urResolutionValues)/sizeof(char*));
+
+//const char* Options::Constants::_splittingModeValues[] = {
+//  "input",
+//  "off",
+//  "sat"};
+//NameArray Options::Constants::splittingModeValues(_splittingModeValues,
+//					sizeof(_splittingModeValues)/sizeof(char*));
 
 const char* Options::Constants::_fdeValues[] = {
   "all",
@@ -723,43 +549,27 @@ const char* Options::Constants::_sosValues[] = {
 NameArray Options::Constants::sosValues(_sosValues,
 					sizeof(_sosValues)/sizeof(char*));
 
-const char* Options::Constants::_splittingAddComplementaryValues[] = {
+const char* Options::Constants::_sSplittingComponentSweepingValues[] = {
+  "all",
+  "iterated",
+  "none",
+  "only_new"};
+NameArray Options::Constants::sSplittingComponentSweepingValues(_sSplittingComponentSweepingValues,
+					  sizeof(_sSplittingComponentSweepingValues)/sizeof(char*));
+
+const char* Options::Constants::_sSplittingAddComplementaryValues[] = {
   "ground",
   "none"};
-NameArray Options::Constants::splittingAddComplementaryValues(_splittingAddComplementaryValues,
-					  sizeof(_splittingAddComplementaryValues)/sizeof(char*));
+NameArray Options::Constants::sSplittingAddComplementaryValues(_sSplittingAddComplementaryValues,
+					  sizeof(_sSplittingAddComplementaryValues)/sizeof(char*));
 
-const char* Options::Constants::_splittingDeleteDeactivatedValues[] = {
-  "large",
-  "off",
-  "on"};
-NameArray Options::Constants::splittingDeleteDeactivatedValues(_splittingDeleteDeactivatedValues,
-					  sizeof(_splittingDeleteDeactivatedValues)/sizeof(char*));
-
-const char* Options::Constants::_splittingNonsplittableComponentsValues[] = {
+const char* Options::Constants::_sSplittingNonsplittableComponentsValues[] = {
   "all",
   "all_dependent",
   "known",
   "none"};
-NameArray Options::Constants::splittingNonsplittableComponentsValues(_splittingNonsplittableComponentsValues,
-					  sizeof(_splittingNonsplittableComponentsValues)/sizeof(char*));
-
-const char* Options::Constants::_splittingModelValues[] = {
-  "min_all",
-  "min_sco",  // sco stands for split clauses only
-  "total"};
-NameArray Options::Constants::splittingModelValues(_splittingModelValues,
-                                          sizeof(_splittingModelValues)/sizeof(char*));
-
-const char* Options::Constants::_splittingLiteralPolarityAdviceValues[] = {
-  "force_false",
-  "force_rnd",
-  "none",
-  "suggest_false",
-  "suggest_rnd"
-};
-NameArray Options::Constants::splittingLiteralPolarityAdviceValues(_splittingLiteralPolarityAdviceValues,
-                                          sizeof(_splittingLiteralPolarityAdviceValues)/sizeof(char*));
+NameArray Options::Constants::sSplittingNonsplittableComponentsValues(_sSplittingNonsplittableComponentsValues,
+					  sizeof(_sSplittingNonsplittableComponentsValues)/sizeof(char*));
 
 const char* Options::Constants::_predicateEquivalenceDiscoveryModeValues[] = {
   "all_atoms",
@@ -998,19 +808,15 @@ Options::Options ()
   _smtlibFletAsDefinition(false),
   _smtlibIntroduceAIGNames(true),
   _sos(SOS_OFF),
-  _splitAtActivation(true), 
-  _splitting(true), 
-  _splittingAddComplementary(SAC_GROUND),
-  _splittingCongruenceClosure(false),
-  _splittingDeleteDeactivated(SDD_ON),
-  _splittingEagerRemoval(true),
-  _splittingFastRestart(false),
-  _splittingFlushPeriod(0),
-  _splittingFlushQuotient(1.5f),
-  _splittingHandleZeroImplied(false),
-  _splittingNonsplittableComponents(SNS_KNOWN),
-  _splittingModel(SM_MIN_ALL),
-  _splittingLiteralPolarityAdvice(SLPA_NONE),
+  _splitAtActivation(false), // is this even a valid option?
+  _splitting(true), // should splitting by on or off by default?
+  _ssplittingAddComplementary(SSAC_GROUND),
+  _ssplittingComponentSweeping(SSCS_ITERATED),
+  _ssplittingCongruenceClosure(false),
+  _ssplittingEagerRemoval(true),
+  _ssplittingFlushPeriod(0),
+  _ssplittingFlushQuotient(1.5f),
+  _ssplittingNonsplittableComponents(SSNS_KNOWN),
   _statistics(STATISTICS_FULL),
   _superpositionFromVariables(true),
   _symbolPrecedence(BY_ARITY),
@@ -1040,7 +846,7 @@ Options::Options ()
   _weightRatio(1),
   _whileNumber(1),
 
-  _xmlOutput("off")  
+  _xmlOutput("off")
 {
   CALL("Options::Options");
 } // Options::Options
@@ -1056,7 +862,7 @@ void Options::set(const char* name,const char* value)
   CALL ("Options::set/2");
 
   try {
-    set(name,value,Constants::optionNames.find(name));
+    set(name,value,Constants::optionNames.findLong(name));
   }
   catch (const ValueNotFoundException&) {
     if (!_ignoreMissing) {
@@ -1687,47 +1493,34 @@ void Options::set(const char* name,const char* value, int index)
       _splitAtActivation = onOffToBool(value,name);
       return;
     case SPLITTING:
-      _splitting = onOffToBool(value,name);
+      _splitting = onOffToBool(value,name);//(SplittingMode)Constants::splittingModeValues.find(value);
       return;
-    case SPLITTING_ADD_COMPLEMENTARY:
-      _splittingAddComplementary = (SplittingAddComplementary)Constants::splittingAddComplementaryValues.find(value);
+    case SSPLITTING_ADD_COMPLEMENTARY:
+      _ssplittingAddComplementary = (SSplittingAddComplementary)Constants::sSplittingAddComplementaryValues.find(value);
       return;
-    case SPLITTING_CONGRUENCE_CLOSURE:
-      _splittingCongruenceClosure = onOffToBool(value,name);
+    case SSPLITTING_COMPONENT_SWEEPING:
+      _ssplittingComponentSweeping = (SSplittingComponentSweeping)Constants::sSplittingComponentSweepingValues.find(value);
       return;
-    case SPLITTING_DELETE_DEACTIVATED:
-      _splittingDeleteDeactivated = (SplittingDeleteDeactivated)Constants::splittingDeleteDeactivatedValues.find(value);
-      return;        
-    case SPLITTING_EAGER_REMOVAL:
-      _splittingEagerRemoval = onOffToBool(value,name);
+    case SSPLITTING_CONGRUENCE_CLOSURE:
+      _ssplittingCongruenceClosure = onOffToBool(value,name);
       return;
-    case SPLITTING_FAST_RESTART:
-      _splittingFastRestart = onOffToBool(value,name);
-      return;      
-    case SPLITTING_FLUSH_PERIOD:
+    case SSPLITTING_EAGER_REMOVAL:
+      _ssplittingEagerRemoval = onOffToBool(value,name);
+      return;
+    case SSPLITTING_FLUSH_PERIOD:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_splittingFlushPeriod = unsignedValue;
+	_ssplittingFlushPeriod = unsignedValue;
 	return;
       }
       break;
-    case SPLITTING_FLUSH_QUOTIENT:
+    case SSPLITTING_FLUSH_QUOTIENT:
       if (!Int::stringToFloat(value,floatValue) || (floatValue<1.0f)) {
-	USER_ERROR("splitting_flush_quotient must greater than or equal to 1");
+	USER_ERROR("ssplitting_flush_quotient must greater than or equal to 1");
       }
-      _splittingFlushQuotient = floatValue;
+      _ssplittingFlushQuotient = floatValue;
       return;
-    case SPLITTING_HANDLE_ZERO_IMPLIED:
-      _splittingHandleZeroImplied = onOffToBool(value,name);
-      return;
-    case SPLITTING_LITERAL_POLARITY_ADVICE:
-      _splittingLiteralPolarityAdvice = 
-              (SplittingLitaralPolarityAdvice)Constants::splittingLiteralPolarityAdviceValues.find(value);
-      return;      
-    case SPLITTING_MODEL:
-      _splittingModel = (SplittingModel)Constants::splittingModelValues.find(value);
-      return;
-    case SPLITTING_NONSPLITTABLE_COMPONENTS:
-      _splittingNonsplittableComponents = (SplittingNonsplittableComponents)Constants::splittingNonsplittableComponentsValues.find(value);
+    case SSPLITTING_NONSPLITTABLE_COMPONENTS:
+      _ssplittingNonsplittableComponents = (SSplittingNonsplittableComponents)Constants::sSplittingNonsplittableComponentsValues.find(value);
       return;
       
     case STATISTICS:
@@ -1801,6 +1594,7 @@ void Options::set(const char* name,const char* value, int index)
       _xmlOutput = value;
       return;
 
+
 #if VDEBUG
     default:
       ASSERTION_VIOLATION_REP(name);
@@ -1826,15 +1620,13 @@ void Options::setShort(const char* name,const char* value)
 {
   CALL ("Options::setShort");
 
-  int found;
   try {
-    found = Constants::shortNameIndexes[Constants::shortNames.find(name)];
+    set(name,value,Constants::optionNames.findShort(name));
   }
   catch(ValueNotFoundException&) {
     // try to set it as a long name
     return set(name,value);
   }
-  set(name,value,found);
 } // Options::setShort
 
 /**
@@ -2533,38 +2325,44 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SOS:
     str << Constants::sosValues[_sos];
     return;
+//  case SPLIT_ADD_GROUND_NEGATION:
+//    str << boolToOnOff(_splitAddGroundNegation);
+//    return;
   case SPLIT_AT_ACTIVATION:
     str << boolToOnOff(_splitAtActivation);
     return;
+//  case SPLIT_GOAL_ONLY:
+//    str << boolToOnOff(_splitGoalOnly);
+//    return;
+//  case SPLIT_INPUT_ONLY:
+//    str << boolToOnOff(_splitInputOnly);
+//    return;
+//  case SPLIT_POSITIVE:
+//    str << boolToOnOff(_splitPositive);
+//    return;
   case SPLITTING:
-    str << boolToOnOff(_splitting);
+    str << boolToOnOff(_splitting); //Constants::splittingModeValues[_splitting];
     return;
-  case SPLITTING_ADD_COMPLEMENTARY:
-    str << Constants::splittingAddComplementaryValues[_splittingAddComplementary];
+  case SSPLITTING_ADD_COMPLEMENTARY:
+    str << Constants::sSplittingAddComplementaryValues[_ssplittingAddComplementary];
     return;
-  case SPLITTING_CONGRUENCE_CLOSURE:
-    str << boolToOnOff(_splittingCongruenceClosure);
+  case SSPLITTING_COMPONENT_SWEEPING:
+    str << Constants::sSplittingComponentSweepingValues[_ssplittingComponentSweeping];
     return;
-  case SPLITTING_DELETE_DEACTIVATED:
-    str << Constants::splittingDeleteDeactivatedValues[_splittingDeleteDeactivated];
-    return;    
-  case SPLITTING_EAGER_REMOVAL:
-    str << boolToOnOff(_splittingEagerRemoval);
+  case SSPLITTING_CONGRUENCE_CLOSURE:
+    str << boolToOnOff(_ssplittingCongruenceClosure);
     return;
-  case SPLITTING_FAST_RESTART:
-    str << boolToOnOff(_splittingFastRestart);
-    return;    
-  case SPLITTING_FLUSH_PERIOD:
-    str << _splittingFlushPeriod;
+  case SSPLITTING_EAGER_REMOVAL:
+    str << boolToOnOff(_ssplittingEagerRemoval);
     return;
-  case SPLITTING_FLUSH_QUOTIENT:
-    str << _splittingFlushQuotient;
+  case SSPLITTING_FLUSH_PERIOD:
+    str << _ssplittingFlushPeriod;
     return;
-  case SPLITTING_HANDLE_ZERO_IMPLIED:
-    str << boolToOnOff(_splittingHandleZeroImplied);
+  case SSPLITTING_FLUSH_QUOTIENT:
+    str << _ssplittingFlushQuotient;
     return;
-  case SPLITTING_NONSPLITTABLE_COMPONENTS:
-    str << Constants::splittingNonsplittableComponentsValues[_splittingNonsplittableComponents];
+  case SSPLITTING_NONSPLITTABLE_COMPONENTS:
+    str << Constants::sSplittingNonsplittableComponentsValues[_ssplittingNonsplittableComponents];
     return;
   case STATISTICS:
     str << Constants::statisticsValues[_statistics];
@@ -3010,6 +2808,9 @@ vstring Options::generateTestId() const
     forbidden.insert(INPUT_FILE);
   }
 
+  cout << "generateTestId currently brokend" << endl; //TODO fix
+  ASSERTION_VIOLATION;
+/*
   for (int i=0;i<Constants::shortNames.length;i++) {
     Tag t=static_cast<Tag>(Constants::shortNameIndexes[i]);
     if (forbidden.contains(t)) {
@@ -3032,7 +2833,7 @@ vstring Options::generateTestId() const
     res << name << "=" << valCur.str();
     cur.set(name.c_str(), valDef.str().c_str(), t);
   }
-
+*/
   for (int i=0;i<NUMBER_OF_OPTIONS;i++) {
     Tag t=static_cast<Tag>(i);
     if (forbidden.contains(t)) {
