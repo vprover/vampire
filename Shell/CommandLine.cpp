@@ -49,15 +49,20 @@ void CommandLine::interpret (Options& options)
     }
     if (arg[0] == '-') {
       if (_next == _last) {
-	USER_ERROR((vstring)"no value specified for option " + arg);
+        if(strcmp(arg,"--help") || strcmp(arg,"-h")){
+          options.set("help","on");
+        }
+	else USER_ERROR((string)"no value specified for option " + arg);
       }
-      if (arg[1] == '-') {
-	options.set(arg+2,*_next);
+      else{
+         if (arg[1] == '-') {
+   	  options.set(arg+2,*_next);
+         }
+         else {
+	  options.setShort(arg+1,*_next);
+        }
+        _next++;
       }
-      else {
-	options.setShort(arg+1,*_next);
-      }
-      _next++;
     }
     else { // next is not an option but a file name
       if (fileGiven) {

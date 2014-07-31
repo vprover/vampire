@@ -439,8 +439,8 @@ const OptionName Options::Constants::_optionNames[] = {
   OptionName("sat_restart_strategy","",GLOBAL_TAG,
              "",
              false, "luby",OptionValues("fixed","geometric","luby","minisat")),
-  OptionName("sat_solver","sas",GLOBAL_TAG,
-             "",
+  OptionName("sat_solver","sas",VAMPIRE_TAG,
+             "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption. The buf options are experimental (they add buffering).",
              false, "vampire",OptionValues("buf_lingeling","buf_vampire",
                                            "lingeling","vampire")),
   OptionName("sat_var_activity_decay","",GLOBAL_TAG,
@@ -693,9 +693,9 @@ void Options::set(const char* name,const char* value)
  */
 void Options::set(const vstring& name,const vstring& value)
 {
-  CALL ("Options::set/3");
+  CALL ("Options::set/2");
   set(name.c_str(),value.c_str());
-} // Options::set/3
+} // Options::set/2
 
 /**
  * Set option by its name, value, and index in the list of options.
@@ -1457,11 +1457,13 @@ void Options::setShort(const char* name,const char* value)
  * of "on" or "off", then raise a user error exception.
  * @since 15/11/2004 Manchester
  * @since 18/01/2014 Manchester, changed to use _ignoreMissing for the splitting option
+ * @since 31/07/2014 Manchester, allow true for on and false for off
  * @author Andrei Voronkov
  */
 bool Options::onOffToBool (const char* onOff,const char* option)
 {
   CALL("Options::onOffToBool");
+
 
   if (! strcmp(onOff,"on") || ! strcmp(onOff,"true")) {
     return true;
