@@ -703,10 +703,12 @@ int main(int argc, char* argv[])
     Shell::CommandLine cl(argc, argv);
     cl.interpret(*env.options);
 
-    if (env.options->showOptions()) {
+
+    if (env.options->showHelp() || env.options->showOptions()) {
       env.beginOutput();
       env.options->output(env.out());
       env.endOutput();
+      exit(0);
     }
 
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);

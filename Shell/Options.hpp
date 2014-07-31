@@ -100,6 +100,8 @@ public:
     GENERAL_SPLITTING,
     GLOBAL_SUBSUMPTION,
 
+    HELP,
+
     /** We check whether by swapping predicate polarities we can obtain a horn problem */
     HORN_REVEALING,
     /** Generating inference that attempts to do several rewriting at once if it will
@@ -198,6 +200,7 @@ public:
     SHOW_ACTIVE,
     SHOW_BLOCKED,
     SHOW_DEFINITIONS,
+    SHOW_EXPERIMENTAL_OPTIONS,
     SHOW_INTERPOLANT,
     SHOW_NEW,
     SHOW_NEW_PROPOSITIONAL,
@@ -327,6 +330,17 @@ public:
     IS_HUMAN = 4, 
     IS_MPS = 5, 
     IS_NETLIB = 6
+  };
+
+ /**
+  * Possible values for show_option (used in OptionNameArray)
+  * @author Giles
+  */
+  enum OptionTag{
+    BP_TAG,
+    OFF_TAG,
+    GLOBAL_TAG,
+    VAMPIRE_TAG
   };
 
   /**
@@ -631,7 +645,9 @@ public:
   bool showNewPropositional() const { return _showNewPropositional; }
   bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace; }
   void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace = newVal; }
-  bool showOptions() const { return _showOptions; }
+  OptionTag showOptions() const { return _showOptions; }
+  bool showExperimentalOptions() const { return _showExperimentalOptions; }
+  bool showHelp() const { return _showHelp; }
   bool showPassive() const { return _showPassive; }
   bool showPreprocessing() const { return _showPreprocessing; }
   bool showSkolemisations() const { return _showSkolemisations; }
@@ -1005,7 +1021,9 @@ private:
   bool _showNew;
   bool _showNewPropositional;
   bool _showNonconstantSkolemFunctionTrace;
-  bool _showOptions;
+  OptionTag _showOptions;
+  bool _showExperimentalOptions;
+  bool _showHelp;
   bool _showPassive;
   bool _showPreprocessing;
   bool _showSkolemisations;

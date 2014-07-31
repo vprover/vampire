@@ -17,9 +17,8 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
-#include "Lib/Int.hpp"
-#include "Lib/NameArray.hpp"
 #include "Lib/OptionNameArray.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/System.hpp"
@@ -41,585 +40,593 @@ class Options::Constants {
 public:
 
   static const OptionName _optionNames[];
-  // Arrays to store option values
-  static const char* _statisticsValues[];
-  static const char* _condensationValues[];
-  static const char* _demodulationValues[];
-  static const char* _subsumptionValues[];
-  static const char* _urResolutionValues[];
-  static const char* _fdeValues[];
-  static const char* _lcmValues[];
-  static const char* _satSolverValues[];
-  static const char* _satAlgValues[];
-  static const char* _equalityProxyValues[];
-  static const char* _extensionalityResolutionValues[];
-  static const char* _inputSyntaxValues[];
-  static const char* _modeValues[];
-  static const char* _ruleActivityValues[];
-  static const char* _questionAnsweringValues[];
-  static const char* _inliningModeValues[];
-  static const char* _interpolantModeValues[];
-  static const char* _symbolPrecedenceValues[];
-  static const char* _tcValues[];
-  static const char* _sineSelectionValues[];
-  static const char* _proofValues[];
-  static const char* _satRestartStrategyValues[];
-  static const char* _satVarSelectorValues[];
-  static const char* _nicenessOptionValues[];
-  static const char* _satClauseDisposerValues[];
-  static const char* _sosValues[];
-  static const char* _sSplittingComponentSweepingValues[];
-  static const char* _sSplittingAddComplementaryValues[];
-  static const char* _sSplittingNonsplittableComponentsValues[];
-  static const char* _predicateEquivalenceDiscoveryModeValues[];
-  static const char* _bpAssignmentSelectorValues[];
-  static const char* _bpVariableSelectorValues[];
-  static const char* _bpConflictSelectorValues[];
-  static const char* _bpAlmostHalfBoundingRemovalValues[];
-
   static OptionNameArray optionNames;
-  static NameArray statisticsValues;
-  static NameArray condensationValues;
-  static NameArray demodulationValues;
-  static NameArray subsumptionValues;
-  static NameArray urResolutionValues;
-  static NameArray fdeValues;
-  static NameArray lcmValues;
-  static NameArray satSolverValues;
-  static NameArray satAlgValues;
-  static NameArray equalityProxyValues;
-  static NameArray extensionalityResolutionValues;
-  static NameArray inputSyntaxValues;
-  static NameArray modeValues;
-  static NameArray ruleActivityValues;
-  static NameArray questionAnsweringValues;
-  static NameArray inliningModeValues;
-  static NameArray interpolantModeValues;
-  static NameArray symbolPrecedenceValues;
-  static NameArray tcValues;
-  static NameArray sineSelectionValues;
-  static NameArray proofValues;
-  static NameArray satRestartStrategyValues;
-  static NameArray satVarSelectorValues;
-  static NameArray nicenessOptionValues;
-  static NameArray satClauseDisposerValues;
-  static NameArray sosValues;
-  static NameArray sSplittingComponentSweepingValues;
-  static NameArray sSplittingAddComplementaryValues;
-  static NameArray sSplittingNonsplittableComponentsValues;
-  static NameArray predicateEquivalenceDiscoveryModeValues;
-  static NameArray bpAssignmentSelectorValues;
-  static NameArray bpVariableSelectorValues;
-  static NameArray bpConflictSelectorValues;
-  static NameArray bpAlmostHalfBoundingRemovalValues;
 }; // class Options::Constants
 
 
 /** Names for all options */
 const OptionName Options::Constants::_optionNames[] = {
-  OptionName("abstraction","","",false),
-  OptionName("age_weight_ratio","awr","",false),
-  OptionName("aig_bdd_sweeping","","",false),
-  OptionName("aig_conditional_rewriting","","",false),
-  OptionName("aig_definition_introduction","","",false),
-  OptionName("aig_definition_introduction_threshold","","",false),
-  OptionName("aig_formula_sharing","","",false),
-  OptionName("aig_inliner","","",false),
-  OptionName("arity_check","","",false),
+  OptionName("abstraction","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("age_weight_ratio","awr",GLOBAL_TAG,
+             "",
+             false, "1:1"), 
+  OptionName("aig_bdd_sweeping","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("aig_conditional_rewriting","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("aig_definition_introduction","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("aig_definition_introduction_threshold","",GLOBAL_TAG,
+             "number of subformula occurrences needed to introduce a name for it (if aig_definition_introduction is enabled)",
+             false, "4"),
+  OptionName("aig_formula_sharing","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("aig_inliner","",GLOBAL_TAG,
+             "",
+             false,"false"),
+  OptionName("arity_check","",GLOBAL_TAG,
+             "",
+             false, "false"),
 
-  OptionName("backward_demodulation","bd","",false),
-  OptionName("backward_subsumption","bs","",false),
-  OptionName("backward_subsumption_resolution","bsr","",false),
-  OptionName("bfnt","bfnt","",false),
-  OptionName("binary_resolution","br","",false),
-  OptionName("bp_add_collapsing_inequalities","","",false),
-  OptionName("bp_allowed_fm_balance","","",false),
-  OptionName("bp_almost_half_bounding_removal","","",false),
-  OptionName("bp_assignment_selector","","",false),
-  OptionName("bp_bound_improvement_limit","","",false),
-  OptionName("bp_conflict_selector","","",false),
-  OptionName("bp_conservative_assignment_selection","","",false),
-  OptionName("bp_fm_elimination","","",false),
-  OptionName("bp_max_prop_length","","",false),
-  OptionName("bp_propagate_after_conflict","","",false),
-  OptionName("bp_start_with_precise","","",false),
-  OptionName("bp_start_with_rational","","",false),
-  OptionName("bp_variable_selector","","",false),
+  OptionName("backward_demodulation","bd",GLOBAL_TAG,
+             "",
+             false,"all", OptionValues("all","off","preordered")),
+  OptionName("backward_subsumption","bs",GLOBAL_TAG,
+             "",
+             false, "on", OptionValues("off","on","unit_only")),
+  OptionName("backward_subsumption_resolution","bsr",GLOBAL_TAG,
+             "",
+             false, "off", OptionValues("off","on","unit_only")),
+  OptionName("bfnt","bfnt",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("binary_resolution","br",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("bp_add_collapsing_inequalities","",BP_TAG,
+             "",
+             false), // no default?
+  OptionName("bp_allowed_fm_balance","",BP_TAG,
+             "",
+             false, "0"),
+  OptionName("bp_almost_half_bounding_removal","",BP_TAG,
+             "",
+             false, "on",OptionValues("bounds_on","off","on")),
+  OptionName("bp_assignment_selector","",BP_TAG,
+             "",
+             false, "random", OptionValues("alternating","bmp","lower_bound",
+                                     "middle","random","rational","smallest",
+                                     "tight","tightish","upper_bound")),
+  OptionName("bp_bound_improvement_limit","",BP_TAG,
+             "",
+             false), // no default?
+  OptionName("bp_conflict_selector","",BP_TAG,
+             "",
+             false, "most_recent", OptionValues("least_recent","most_recent","shortest")),
+  OptionName("bp_conservative_assignment_selection","",BP_TAG,
+             "",
+             false, "true"),
+  OptionName("bp_fm_elimination","",BP_TAG,
+             "",
+             false, "true"),
+  OptionName("bp_max_prop_length","",BP_TAG,
+             "",
+             false), // no default?
+  OptionName("bp_propagate_after_conflict","",BP_TAG,
+             "",
+             false, "true"),
+  OptionName("bp_start_with_precise","",BP_TAG,
+             "",
+             false, "false"),
+  OptionName("bp_start_with_rational","",BP_TAG,
+             "",
+             false, "false"),
+  OptionName("bp_variable_selector","",BP_TAG,
+             "",
+             false, "tightest_bound",
+                       OptionValues("conflicting","conflicting_and_collapsing",
+                                    "first","look_ahead","random","recent_collapsing",
+                                    "recent_conflicting","tightest_bound")),
 
-  OptionName("color_unblocking","","",false),
-  OptionName("condensation","cond","",false),
+  OptionName("color_unblocking","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("condensation","cond",GLOBAL_TAG,
+             "",
+             false, "off", OptionValues("fast","off","on")),
 
-  OptionName("decode","","",false),
-  OptionName("demodulation_redundancy_check","drc","",false),
-  OptionName("distinct_processor","","",false),
+  OptionName("decode","",GLOBAL_TAG,
+             "",
+             false),
+  OptionName("demodulation_redundancy_check","drc",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("distinct_processor","",GLOBAL_TAG,
+             "",
+             false, "false"),
 
-  OptionName("epr_preserving_naming","","",false),
-  OptionName("epr_preserving_skolemization","","",false),
-  OptionName("epr_restoring_inlining","","",false),
-  OptionName("equality_propagation","","",false),
-  OptionName("equality_proxy","ep","",false),
-  OptionName("equality_resolution_with_deletion","erd","",false),
+  OptionName("epr_preserving_naming","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("epr_preserving_skolemization","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("epr_restoring_inlining","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("equality_propagation","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("equality_proxy","ep",GLOBAL_TAG,
+             "",
+             false, "off", OptionValues("R","RS","RST","RSTC","off","on")),
+  OptionName("equality_resolution_with_deletion","erd",GLOBAL_TAG,
+             "",
+             false, "input_only", OptionValues("input_only","off","on")),
   
-  OptionName("extensionality_allow_pos_eq","","",false),
-  OptionName("extensionality_max_length","","",false),
-  OptionName("extensionality_resolution","er","",false),
+  OptionName("extensionality_allow_pos_eq","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("extensionality_max_length","",GLOBAL_TAG,
+             "",
+             false, "0"),
+  OptionName("extensionality_resolution","er",GLOBAL_TAG,
+             "",
+             false, "off",OptionValues("filter","known","off")),
 
-  OptionName("flatten_top_level_conjunctions","","",false),
-  OptionName("forbidden_options","","",false),
-  OptionName("forced_options","","",false),
-  OptionName("forward_demodulation","fd","",false),
-  OptionName("forward_literal_rewriting","flr","",false),
-  OptionName("forward_subsumption","fs","",false),
-  OptionName("forward_subsumption_resolution","fsr","",false),
-  OptionName("function_definition_elimination","fde","",false),
-  OptionName("function_number","","",false),
+  OptionName("flatten_top_level_conjunctions","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("forbidden_options","",GLOBAL_TAG,
+             "",
+             false), // no default
+  OptionName("forced_options","",GLOBAL_TAG,
+             "",
+             false), // no default
+  OptionName("forward_demodulation","fd",GLOBAL_TAG,
+             "",
+             false,"all", OptionValues("all","off","preordered")),
+  OptionName("forward_literal_rewriting","flr",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("forward_subsumption","fs",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("forward_subsumption_resolution","fsr",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("function_definition_elimination","fde",GLOBAL_TAG,
+             "",
+             false, "all",OptionValues("all","none","unused")),
+  OptionName("function_number","",GLOBAL_TAG,
+             "",
+             false, "1"),
 
-  OptionName("general_splitting","gsp","",false),
-  OptionName("global_subsumption","gs","",false),
+  OptionName("general_splitting","gsp",GLOBAL_TAG,
+             "",
+             false, "off",OptionValues("input_only","off","on")),
+  OptionName("global_subsumption","gs",GLOBAL_TAG,
+             "",
+             false, "false"),
 
-  OptionName("horn_revealing","","",false),
-  OptionName("hyper_superposition","","",false),
+  OptionName("help","h",GLOBAL_TAG,
+             "display this help",
+             false,"off"),
 
-  OptionName("ignore_missing","","",false),
-  OptionName("include","","",false),
-  OptionName("increased_numeral_weight","","",false),
-  OptionName("inequality_splitting","ins","",false),
-  OptionName("input_file","","",false),
-  OptionName("input_syntax","","",false),
-  OptionName("inst_gen_big_restart_ratio","igbrr","",false),
-  OptionName("inst_gen_inprocessing","","",false),
-  OptionName("inst_gen_passive_reactivation","","",false),
-  OptionName("inst_gen_resolution_ratio","igrr","",false),
-  OptionName("inst_gen_restart_period","igrp","",false),
-  OptionName("inst_gen_restart_period_quotient","igrpq","",false),
-  OptionName("inst_gen_selection","igs","",false),
-  OptionName("inst_gen_with_resolution","igwr","",false),
-  OptionName("interpreted_simplification","","",false),
+  OptionName("horn_revealing","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("hyper_superposition","",GLOBAL_TAG,
+             "",
+             false, "false"),
 
-  OptionName("latex_output","","",false),
-  OptionName("lingva_additional_invariants","","",false),
+  OptionName("ignore_missing","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("include","",GLOBAL_TAG,
+             "",
+             false, ""),
+  OptionName("increased_numeral_weight","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("inequality_splitting","ins",GLOBAL_TAG,
+             "",
+             false, "3"),
+  OptionName("input_file","",GLOBAL_TAG,
+             "",
+             false, ""),
+  OptionName("input_syntax","",GLOBAL_TAG,
+             "",
+             false, 
+//in case we compile vampire with bpa, then the default input syntax is smtlib
+#if !GNUMP
+             "tptp",
+#else
+             "smtlib",
+#endif
+             OptionValues("simplify","smtlib","smtlib2","tptp",
+                          "xhuman","xmps","xnetlib")),
+  OptionName("inst_gen_big_restart_ratio","igbrr",GLOBAL_TAG,
+             "",
+             false, "0.0"),
+  OptionName("inst_gen_inprocessing","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("inst_gen_passive_reactivation","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("inst_gen_resolution_ratio","igrr",GLOBAL_TAG,
+             "",
+             false, "1/1"),
+  OptionName("inst_gen_restart_period","igrp",GLOBAL_TAG,
+             "",
+             false, "1000"),
+  OptionName("inst_gen_restart_period_quotient","igrpq",GLOBAL_TAG,
+             "",
+             false, "1.0"),
+  OptionName("inst_gen_selection","igs",GLOBAL_TAG,
+             "",
+             false, "0"),
+  OptionName("inst_gen_with_resolution","igwr",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("interpreted_simplification","",GLOBAL_TAG,
+             "",
+             false, "false"),
 
-  OptionName("literal_comparison_mode","lcm","",false),
-  OptionName("log_file","","",false),
-  OptionName("lrs_first_time_check","","",false),
-  OptionName("lrs_weight_limit_only","","",false),
+  OptionName("latex_output","",GLOBAL_TAG,
+             "",
+             false, "off"),
+  OptionName("lingva_additional_invariants","",GLOBAL_TAG,
+             "",
+             false, ""),
 
-  OptionName("max_active","","",false),
-  OptionName("max_answers","","",false),
-  OptionName("max_inference_depth","","",false),
-  OptionName("max_passive","","",false),
-  OptionName("max_weight","","",false),
-  OptionName("memory_limit","m","",false),
-  OptionName("mode","","",false),
+  OptionName("literal_comparison_mode","lcm",GLOBAL_TAG,
+             "",
+             false, "standard",OptionValues("predicate","reverse","standard")),
+  OptionName("log_file","",GLOBAL_TAG,
+             "",
+             false, "off"),
+  OptionName("lrs_first_time_check","",GLOBAL_TAG,
+             "",
+             false, "5"),
+  OptionName("lrs_weight_limit_only","",GLOBAL_TAG,
+             "",
+             false, "false"),
 
-  OptionName("name_prefix","","",false),
-  OptionName("naming","nm","",false),
-  OptionName("niceness_option","no","",true),
-  OptionName("nongoal_weight_coefficient","nwc","",false),
-  OptionName("nonliterals_in_clause_weight","nicw","",false),
-  OptionName("normalize","","",false),
+  OptionName("max_active","",GLOBAL_TAG,
+             "",
+             false, "0"),
+  OptionName("max_answers","",GLOBAL_TAG,
+             "",
+             false, "1"),
+  OptionName("max_inference_depth","",GLOBAL_TAG,
+             "",
+             false, "0"),
+  OptionName("max_passive","",GLOBAL_TAG,
+             "",
+             false, "0"),
+  OptionName("max_weight","",GLOBAL_TAG,
+             "",
+             false, "0"),
+#if VDEBUG
+  OptionName("memory_limit","m",GLOBAL_TAG,
+             "",
+             false, "1000"),
+#else
+  OptionName("memory_limit","m",GLOBAL_TAG,
+             "",
+             false, "3000"),
+#endif
+  OptionName("mode","",GLOBAL_TAG,
+             "",
+             false, "vampire",
+                       OptionValues("axiom_selection","bpa","casc","casc_epr",
+                                    "casc_ltb","casc_mzr","casc_sat","clausify",
+                                    "consequence_elimination","grounding",
+                                    "ltb_build","ltb_solve","output","preprocess",
+                                    "profile","program_analysis","sat_solver",
+                                    "spider","vampire")),
 
-  OptionName("output_axiom_names","","",false),
+  OptionName("name_prefix","",GLOBAL_TAG,
+             "",
+             false, ""),
+  OptionName("naming","nm",GLOBAL_TAG,
+             "",
+             false, "8"),
+  OptionName("niceness_option","no",GLOBAL_TAG,
+             "",
+             true, "none",OptionValues("average","none","sum","top")),
+  OptionName("nongoal_weight_coefficient","nwc",GLOBAL_TAG,
+             "",
+             false, "1.0"),
+  OptionName("nonliterals_in_clause_weight","nicw",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("normalize","",GLOBAL_TAG,
+             "",
+             false, "false"),
 
-  OptionName("predicate_definition_inlining","","",false),
-  OptionName("predicate_definition_merging","","",false),
-  OptionName("predicate_equivalence_discovery","","",false),
-  OptionName("predicate_equivalence_discovery_add_implications","","",false),
-  OptionName("predicate_equivalence_discovery_random_simulation","","",false),
-  OptionName("predicate_equivalence_discovery_sat_conflict_limit","","",false),
-  OptionName("predicate_index_introduction","","",false),
-  OptionName("print_clausifier_premises","","",false),
-  OptionName("problem_name","","",false),
-  OptionName("proof","p","",false),
-  OptionName("proof_checking","","",false),
-  OptionName("protected_prefix","","",false),
+  OptionName("output_axiom_names","",GLOBAL_TAG,
+             "",
+             false, "false"),
 
-  OptionName("question_answering","","",false),
+  OptionName("predicate_definition_inlining","",GLOBAL_TAG,
+             "",
+             false, "off",OptionValues("axioms_only","non_growwing","off","on")),
+  OptionName("predicate_definition_merging","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("predicate_equivalence_discovery","",GLOBAL_TAG,
+             "",
+             false, "off",OptionValues("all_atoms","all_formulas",
+                                       "definitions","off","on")),
+  OptionName("predicate_equivalence_discovery_add_implications","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("predicate_equivalence_discovery_random_simulation","",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("predicate_equivalence_discovery_sat_conflict_limit","",GLOBAL_TAG,
+             "",
+             false, "-1"),
+  OptionName("predicate_index_introduction","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("print_clausifier_premises","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("problem_name","",GLOBAL_TAG,
+             "",
+             false),
+  OptionName("proof","p",GLOBAL_TAG,
+             "",
+             false, "on",OptionValues("off","on","proofcheck","tptp")),
+  OptionName("proof_checking","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("protected_prefix","",GLOBAL_TAG,
+             "",
+             false, ""),
 
-  OptionName("random_seed","","",false),
-  OptionName("row_variable_max_length","","",false),
+  OptionName("question_answering","",GLOBAL_TAG,
+             "",
+             false, "off",OptionValues("answer_literal","from_proof","off")),
 
-  OptionName("sat_clause_activity_decay","","",false),
-  OptionName("sat_clause_disposer","","",false),
-  OptionName("sat_learnt_minimization","","",false),
-  OptionName("sat_learnt_subsumption_resolution","","",false),
-  OptionName("sat_restart_fixed_count","","",false),
-  OptionName("sat_restart_geometric_increase","","",false),
-  OptionName("sat_restart_geometric_init","","",false),
-  OptionName("sat_restart_luby_factor","","",false),
-  OptionName("sat_restart_minisat_increase","","",false),
-  OptionName("sat_restart_minisat_init","","",false),
-  OptionName("sat_restart_strategy","","",false),
-  OptionName("sat_solver","sas","",false),
-  OptionName("sat_var_activity_decay","","",false),
-  OptionName("sat_var_selector","svs","",false),
-  OptionName("saturation_algorithm","sa","",false),
-  OptionName("selection","s","",false),
-  OptionName("show_active","","",false),
-  OptionName("show_blocked","","",false),
-  OptionName("show_definitions","","",false),
-  OptionName("show_interpolant","","",false),
-  OptionName("show_new","","",false),
-  OptionName("show_new_propositional","","",false),
-  OptionName("show_nonconstant_skolem_function_trace","","",false),
-  OptionName("show_options","","",false),
-  OptionName("show_passive","","",false),
-  OptionName("show_preprocessing","","",false),
-  OptionName("show_skolemisations","","",false),
-  OptionName("show_symbol_elimination","","",false),
-  OptionName("show_theory_axioms","","",false),
-  OptionName("simulated_time_limit","stl","",false),
-  OptionName("sine_depth","sd","",false),
-  OptionName("sine_generality_threshold","sgt","",false),
-  OptionName("sine_selection","ss","",false),
-  OptionName("sine_tolerance","st","",false),
-  OptionName("smtlib_consider_ints_real","","",false),
-  OptionName("smtlib_flet_as_definition","","",false),
-  OptionName("smtlib_introduce_aig_names","","",false),
-  OptionName("sos","sos","",false),
-  OptionName("split_at_activation","sac","",false),
-  OptionName("splitting","spl","",false),
-  OptionName("ssplitting_add_complementary","ssac","",false),
-  OptionName("ssplitting_component_sweeping","","",false),
-  OptionName("ssplitting_congruence_closure","sscc","",false),
-  OptionName("ssplitting_eager_removal","sser","",false),
-  OptionName("ssplitting_flush_period","ssfp","",false),
-  OptionName("ssplitting_flush_quotient","ssfq","",false),
-  OptionName("ssplitting_nonsplittable_components","ssnc","",false),
-  OptionName("statistics","","",false),
-  OptionName("superposition_from_variables","sfv","",false),
-  OptionName("symbol_precedence","sp","",false),
+  OptionName("random_seed","",GLOBAL_TAG,
+             "",
+             false), // special case - set in constructor 
+  OptionName("row_variable_max_length","",GLOBAL_TAG,
+             "",
+             false, "2"),
 
-  OptionName("tabulation_bw_rule_subsumption_resolution_by_lemmas","tbsr","",false),
-  OptionName("tabulation_fw_rule_subsumption_resolution_by_lemmas","tfsr","",false),
-  OptionName("tabulation_goal_awr","tgawr","",false),
-  OptionName("tabulation_goal_lemma_ratio","tglr","",false),
-  OptionName("tabulation_instantiate_producing_rules","tipr","",false),
-  OptionName("tabulation_lemma_awr","tlawr","",false),
-  OptionName("test_id","","",false),
-  OptionName("thanks","","",false),
-  OptionName("theory_axioms","","",false),
-  OptionName("time_limit","t","",false),
-  OptionName("time_statistics","","",false),
-  OptionName("trivial_predicate_removal","","",false),
+  OptionName("sat_clause_activity_decay","",GLOBAL_TAG,
+             "",
+             false, "1.001"),
+  OptionName("sat_clause_disposer","",GLOBAL_TAG,
+             "",
+             false, "minisat",OptionValues("growing","minisat")),
+  OptionName("sat_learnt_minimization","",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("sat_learnt_subsumption_resolution","",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("sat_restart_fixed_count","",GLOBAL_TAG,
+             "",
+             false, "16000"),
+  OptionName("sat_restart_geometric_increase","",GLOBAL_TAG,
+             "",
+             false, "1.1"),
+  OptionName("sat_restart_geometric_init","",GLOBAL_TAG,
+             "",
+             false, "32"),
+  OptionName("sat_restart_luby_factor","",GLOBAL_TAG,
+             "",
+             false, "100"),
+  OptionName("sat_restart_minisat_increase","",GLOBAL_TAG,
+             "",
+             false, "1.1"),
+  OptionName("sat_restart_minisat_init","",GLOBAL_TAG,
+             "",
+             false, "100"),
+  OptionName("sat_restart_strategy","",GLOBAL_TAG,
+             "",
+             false, "luby",OptionValues("fixed","geometric","luby","minisat")),
+  OptionName("sat_solver","sas",GLOBAL_TAG,
+             "",
+             false, "vampire",OptionValues("buf_lingeling","buf_vampire",
+                                           "lingeling","vampire")),
+  OptionName("sat_var_activity_decay","",GLOBAL_TAG,
+             "",
+             false, "1.05"),
+  OptionName("sat_var_selector","svs",GLOBAL_TAG,
+             "",
+             false, "active",OptionValues("active","niceness","recently_learnt")),
+  OptionName("saturation_algorithm","sa",GLOBAL_TAG,
+             "",
+             false, "lrs",OptionValues("discount","inst_gen","lrs",
+                                       "otter","tabulation")),
+  OptionName("selection","s",GLOBAL_TAG,
+             "",
+             false, "10"),
+  OptionName("show_active","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("show_blocked","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("show_definitions","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("show_experimental_options","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("show_interpolant","",GLOBAL_TAG,
+             "",
+             false, "off",OptionValues("minimized","off","on")),
+  OptionName("show_new","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("show_new_propositional","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("show_nonconstant_skolem_function_trace","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("show_options","",GLOBAL_TAG,
+             "",
+             false, "off",OptionValues("bp","off","on","vampire")),
+  OptionName("show_passive","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("show_preprocessing","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("show_skolemisations","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("show_symbol_elimination","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("show_theory_axioms","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("simulated_time_limit","stl",GLOBAL_TAG,
+             "",
+             false, "0"),
+  OptionName("sine_depth","sd",GLOBAL_TAG,
+             "",
+             false, "0"),
+  OptionName("sine_generality_threshold","sgt",GLOBAL_TAG,
+             "",
+             false, "0"),
+  OptionName("sine_selection","ss",GLOBAL_TAG,
+             "",
+             false, "off",OptionValues("axioms","included","off")),
+  OptionName("sine_tolerance","st",GLOBAL_TAG,
+             "",
+             false, "1.0"),
+  OptionName("smtlib_consider_ints_real","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("smtlib_flet_as_definition","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("smtlib_introduce_aig_names","",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("sos","sos",GLOBAL_TAG,
+             "",
+             false, "off",OptionValues("all","off","on")),
+  OptionName("split_at_activation","sac",GLOBAL_TAG,
+             "",
+             false, "false"), //check if valid option
+  OptionName("splitting","spl",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("ssplitting_add_complementary","ssac",GLOBAL_TAG,
+             "",
+             true, "ground",OptionValues("ground","none")),
+  OptionName("ssplitting_component_sweeping","",GLOBAL_TAG,
+             "",
+             true, "iterated",OptionValues("all","iterated","none","only_new")),
+  OptionName("ssplitting_congruence_closure","sscc",GLOBAL_TAG,
+             "",
+             true, "false"),
+  OptionName("ssplitting_eager_removal","sser",GLOBAL_TAG,
+             "",
+             true, "true"),
+  OptionName("ssplitting_flush_period","ssfp",GLOBAL_TAG,
+             "",
+             true, "0"),
+  OptionName("ssplitting_flush_quotient","ssfq",GLOBAL_TAG,
+             "",
+             true, "1.5"),
+  OptionName("ssplitting_nonsplittable_components","ssnc",GLOBAL_TAG,
+             "",
+             true, "known",OptionValues("all","all_dependent","known","none")),
+  OptionName("statistics","",GLOBAL_TAG,
+             "",
+             false, "full", OptionValues("brief","full","none")),
+  OptionName("superposition_from_variables","sfv",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("symbol_precedence","sp",GLOBAL_TAG,
+             "",
+             false, "arity",OptionValues("arity","occurrence","reverse_arity")),
 
-  OptionName("unit_resulting_resolution","urr","",false),
-  OptionName("unused_predicate_definition_removal","updr","",false),
-  OptionName("use_dismatching","","",false),
+  OptionName("tabulation_bw_rule_subsumption_resolution_by_lemmas","tbsr",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("tabulation_fw_rule_subsumption_resolution_by_lemmas","tfsr",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("tabulation_goal_awr","tgawr",GLOBAL_TAG,
+             "",
+             false, "1/1"), 
+  OptionName("tabulation_goal_lemma_ratio","tglr",GLOBAL_TAG,
+             "",
+             false, "1/1"),
+  OptionName("tabulation_instantiate_producing_rules","tipr",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("tabulation_lemma_awr","tlawr",GLOBAL_TAG,
+             "",
+             false, "1/1"), 
+  OptionName("test_id","",GLOBAL_TAG,
+             "",
+             false, "unspecified_test"),
+  OptionName("thanks","",GLOBAL_TAG,
+             "",
+             false, "Tanya"),
+  OptionName("theory_axioms","",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("time_limit","t",GLOBAL_TAG,
+             "",
+             false, "600"),
+  OptionName("time_statistics","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("trivial_predicate_removal","",GLOBAL_TAG,
+             "",
+             false, "false"),
 
-  OptionName("weight_increment","","",false),
-  OptionName("while_number","","",false),
+  OptionName("unit_resulting_resolution","urr",GLOBAL_TAG,
+             "",
+             false, "off",OptionValues("ec_only","off","on")),
+  OptionName("unused_predicate_definition_removal","updr",GLOBAL_TAG,
+             "",
+             false, "true"),
+  OptionName("use_dismatching","",GLOBAL_TAG,
+             "",
+             false, "false"),
 
-  OptionName("xml_output","","",false)
+  OptionName("weight_increment","",GLOBAL_TAG,
+             "",
+             false, "false"),
+  OptionName("while_number","",GLOBAL_TAG,
+             "",
+             false, "1"),
+
+  OptionName("xml_output","",GLOBAL_TAG,
+             "",
+             false, "off")
   };
 >>>>>>> Add OptionNameArray and use it in Shell/Options
 
 /** Names for all options */
 OptionNameArray Options::Constants::optionNames(_optionNames,
-					  sizeof(_optionNames)/sizeof(OptionName));
-
-const char* Options::Constants::_statisticsValues[] = {
-  "brief",
-  "full",
-  "none"};
-NameArray Options::Constants::statisticsValues(_statisticsValues,
-					       sizeof(_statisticsValues)/sizeof(char*));
-
-const char* Options::Constants::_condensationValues[] = {
-  "fast",
-  "off",
-  "on"};
-NameArray Options::Constants::condensationValues(_condensationValues,
-						 sizeof(_condensationValues)/sizeof(char*));
-
-const char* Options::Constants::_demodulationValues[] = {
-  "all",
-  "off",
-  "preordered"};
-NameArray Options::Constants::demodulationValues(_demodulationValues,
-						 sizeof(_demodulationValues)/sizeof(char*));
-
-const char* Options::Constants::_subsumptionValues[] = {
-  "off",
-  "on",
-  "unit_only"};
-NameArray Options::Constants::subsumptionValues(_subsumptionValues,
-						 sizeof(_subsumptionValues)/sizeof(char*));
-
-const char* Options::Constants::_urResolutionValues[] = {
-  "ec_only",
-  "off",
-  "on"};
-NameArray Options::Constants::urResolutionValues(_urResolutionValues,
-						 sizeof(_urResolutionValues)/sizeof(char*));
+		  sizeof(_optionNames)/sizeof(OptionName));
 
 
-const char* Options::Constants::_fdeValues[] = {
-  "all",
-  "none",
-  "unused"};
-NameArray Options::Constants::fdeValues(_fdeValues,
-					sizeof(_fdeValues)/sizeof(char*));
-
-const char* Options::Constants::_lcmValues[] = {
-  "predicate",
-  "reverse",
-  "standard"
-};
-NameArray Options::Constants::lcmValues(_lcmValues,
-					sizeof(_lcmValues)/sizeof(char*));
-
-const char* Options::Constants::_satSolverValues[] = {
-  "buf_lingeling",
-  "buf_minisat",
-  "buf_vampire",
-  "lingeling",
-  "minisat",
-  "vampire"    
-};
-NameArray Options::Constants::satSolverValues(_satSolverValues,
-                                              sizeof(_satSolverValues)/sizeof(char*));
-
-
-const char* Options::Constants::_satAlgValues[] = {
-  "discount",
-  "inst_gen",
-  "lrs",
-  "otter",
-  "tabulation"};
-NameArray Options::Constants::satAlgValues(_satAlgValues,
-					   sizeof(_satAlgValues)/sizeof(char*));
-
-const char* Options::Constants::_equalityProxyValues[] = {
-  "R",
-  "RS",
-  "RST",
-  "RSTC",
-  "off",
-  "on"};
-NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,
-						  sizeof(_equalityProxyValues)/sizeof(char*));
-
-const char* Options::Constants::_extensionalityResolutionValues[] = {
-  "filter",
-  "known",
-  "off"};
-NameArray Options::Constants::extensionalityResolutionValues(_extensionalityResolutionValues,
-						  sizeof(_extensionalityResolutionValues)/sizeof(char*));
-
-const char* Options::Constants::_ruleActivityValues[] = {
-  "input_only",
-  "off",
-  "on"};
-NameArray Options::Constants::ruleActivityValues(_ruleActivityValues,
-					      sizeof(_ruleActivityValues)/sizeof(char*));
-
-const char* Options::Constants::_questionAnsweringValues[] = {
-  "answer_literal",
-  "from_proof",
-  "off"};
-NameArray Options::Constants::questionAnsweringValues(_questionAnsweringValues,
-					      sizeof(_questionAnsweringValues)/sizeof(char*));
-
-const char* Options::Constants::_inliningModeValues[] = {
-  "axioms_only",
-  "non_growing",
-  "off",
-  "on"};
-NameArray Options::Constants::inliningModeValues(_inliningModeValues,
-					      sizeof(_inliningModeValues)/sizeof(char*));
-
-const char* Options::Constants::_interpolantModeValues[] = {
-  "minimized",
-  "off",
-  "on"};
-NameArray Options::Constants::interpolantModeValues(_interpolantModeValues,
-					      sizeof(_interpolantModeValues)/sizeof(char*));
-
-const char* Options::Constants::_symbolPrecedenceValues[] = {
-  "arity",
-  "occurrence",
-  "reverse_arity"};
-NameArray Options::Constants::symbolPrecedenceValues(_symbolPrecedenceValues,
-						     sizeof(_symbolPrecedenceValues)/sizeof(char*));
-
-const char* Options::Constants::_tcValues[] = {
-  "full",
-  "none",
-  "only_nonvariables"};
-NameArray Options::Constants::tcValues(_tcValues,
-				       sizeof(_tcValues)/sizeof(char*));
-
-const char* Options::Constants::_inputSyntaxValues[] = {
-  "simplify",
-  "smtlib",
-  "smtlib2",
-  "tptp",
-  "xhuman",
-  "xmps", 
-  "xnetlib"
-};
-NameArray Options::Constants::inputSyntaxValues(_inputSyntaxValues,
-						sizeof(_inputSyntaxValues)/sizeof(char*));
-
-const char* Options::Constants::_modeValues[] = {
-  "axiom_selection",
-  "bpa", 
-  "casc",
-  "casc_epr",
-  "casc_ltb",
-  "casc_mzr",
-  "casc_sat",
-  "clausify",
-  "consequence_elimination",
-  "grounding",
-  "ltb_build",
-  "ltb_solve",
-  "output",
-  "preprocess",
-  "profile",
-  "program_analysis",
-  //runs the sat solver from vampire
-  //Added for development reasons, Ioan Oct. 2013
-  "sat_solver",
-
-  "spider",
-  "vampire"
-};
-NameArray Options::Constants::modeValues(_modeValues,
-					 sizeof(_modeValues)/sizeof(char*));
-
-/** Possible values for --sine_selection */
-const char* Options::Constants::_sineSelectionValues[] = {
-  "axioms",
-  "included",
-  "off"};
-NameArray Options::Constants::sineSelectionValues(_sineSelectionValues,
-					  sizeof(_sineSelectionValues)/sizeof(char*));
-
-/** Possible values for --proof */
-const char* Options::Constants::_proofValues[] = {
-  "off",
-  "on",
-  "proofcheck",
-  "tptp"};
-NameArray Options::Constants::proofValues(_proofValues,
-					  sizeof(_proofValues)/sizeof(char*));
-
-const char* Options::Constants::_satRestartStrategyValues[] = {
-  "fixed",
-  "geometric",
-  "luby",
-  "minisat"};
-NameArray Options::Constants::satRestartStrategyValues(_satRestartStrategyValues,
-					  sizeof(_satRestartStrategyValues)/sizeof(char*));
-
-const char* Options::Constants::_satVarSelectorValues[] = {
-  "active",
-  "niceness",
-  "recently_learnt"};
-NameArray Options::Constants::satVarSelectorValues(_satVarSelectorValues,
-					  sizeof(_satVarSelectorValues)/sizeof(char*));
-
-const char* Options::Constants::_nicenessOptionValues[] = {
-  "average",
-  "none",
-  "sum",
-  "top"
-  };
-NameArray Options::Constants::nicenessOptionValues(_nicenessOptionValues,
-					  sizeof(_nicenessOptionValues)/sizeof(char*));
-
-const char* Options::Constants::_satClauseDisposerValues[] = {
-  "growing",
-  "minisat"};
-NameArray Options::Constants::satClauseDisposerValues(_satClauseDisposerValues,
-					  sizeof(_satClauseDisposerValues)/sizeof(char*));
-
-const char* Options::Constants::_sosValues[] = {
-  "all",
-  "off",
-  "on"};
-NameArray Options::Constants::sosValues(_sosValues,
-					sizeof(_sosValues)/sizeof(char*));
-
-const char* Options::Constants::_sSplittingComponentSweepingValues[] = {
-  "all",
-  "iterated",
-  "none",
-  "only_new"};
-NameArray Options::Constants::sSplittingComponentSweepingValues(_sSplittingComponentSweepingValues,
-					  sizeof(_sSplittingComponentSweepingValues)/sizeof(char*));
-
-const char* Options::Constants::_sSplittingAddComplementaryValues[] = {
-  "ground",
-  "none"};
-NameArray Options::Constants::sSplittingAddComplementaryValues(_sSplittingAddComplementaryValues,
-					  sizeof(_sSplittingAddComplementaryValues)/sizeof(char*));
-
-const char* Options::Constants::_sSplittingNonsplittableComponentsValues[] = {
-  "all",
-  "all_dependent",
-  "known",
-  "none"};
-NameArray Options::Constants::sSplittingNonsplittableComponentsValues(_sSplittingNonsplittableComponentsValues,
-					  sizeof(_sSplittingNonsplittableComponentsValues)/sizeof(char*));
-
-const char* Options::Constants::_predicateEquivalenceDiscoveryModeValues[] = {
-  "all_atoms",
-  "all_formulas",
-  "definitions",
-  "off",
-  "on"};
-
-NameArray Options::Constants::predicateEquivalenceDiscoveryModeValues(_predicateEquivalenceDiscoveryModeValues,
-								      sizeof(_predicateEquivalenceDiscoveryModeValues)/sizeof(char*));
-
-const char* Options::Constants::_bpAssignmentSelectorValues[] = {
-  "alternating",
-  "bmp",
-  "lower_bound",
-  "middle",
-  "random",
-  "rational",
-  "smallest",
-  "tight",
-  "tightish",
-  "upper_bound"};
-
-NameArray Options::Constants::bpAssignmentSelectorValues(_bpAssignmentSelectorValues,
-							 sizeof(_bpAssignmentSelectorValues)/sizeof(char*));
-
-const char* Options::Constants::_bpVariableSelectorValues[] = {
-  "conflicting",
-  "conflicting_and_collapsing",
-  "first",
-  "look_ahead",
-  "random",
-  "recent_collapsing",
-  "recent_conflicting",
-  "tightest_bound"
-};
-
-NameArray Options::Constants::bpVariableSelectorValues(_bpVariableSelectorValues,
-						       sizeof(_bpVariableSelectorValues)/sizeof(char*));
-
-const char* Options::Constants::_bpConflictSelectorValues[] = {
-  "least_recent",
-  "most_recent",
-  "shortest"
-};
-NameArray Options::Constants::bpConflictSelectorValues(_bpConflictSelectorValues,
-						       sizeof(_bpConflictSelectorValues)/sizeof(char*));
-
-const char* Options::Constants::_bpAlmostHalfBoundingRemovalValues[] = {
-  "bounds_on",
-  "off",
-  "on"
-};
-
-NameArray Options::Constants::bpAlmostHalfBoundingRemovalValues(_bpAlmostHalfBoundingRemovalValues,
-								sizeof(_bpAlmostHalfBoundingRemovalValues)/sizeof(char*));
 
 /**
  * Initialize options to the default values.
@@ -628,221 +635,36 @@ NameArray Options::Constants::bpAlmostHalfBoundingRemovalValues(_bpAlmostHalfBou
  */
 Options::Options ()
   :
-  _ageRatio(1),
-
-  _aigBddSweeping(false),
-  _aigConditionalRewriting(false),
-  _aigDefinitionIntroduction(false),
-  _aigDefinitionIntroductionThreshold(4),
-  _aigFormulaSharing(false),
-  _aigInliner(false),
-  _arityCheck(false),
-
+  // not sure where these are set or what they control
   _backjumpTargetIsDecisionPoint(true),
-  _backwardDemodulation(DEMODULATION_ALL),
-  _backwardSubsumption(SUBSUMPTION_ON),
-  _backwardSubsumptionResolution(SUBSUMPTION_OFF),
-  _bfnt(false),
-  _binaryResolution(true),
-  _bpAllowedFMBalance(0),
-  _bpAlmostHalfBoundingRemoval(AHR_ON),
-  _bpAssignmentSelector(ASG_RANDOM),
   _bpCollapsingPropagation(false),
-  _bpConflictSelector(CS_MOST_RECENT),
-  _bpConservativeAssignmentSelection(true),
-  _bpFmElimination(true),
-  _bpPropagateAfterConflict(true),
-  _bpStartWithPrecise(false),
-  _bpStartWithRational(false),
-  _bpVariableSelector(VS_TIGHTEST_BOUND),
-
-  _colorUnblocking(false),
-  _condensation(CONDENSATION_OFF),
-
-  _demodulationRedundancyCheck(true),
-  _distinctProcessor(false),
-
-  _eprPreservingNaming(false),
-  _eprPreservingSkolemization(false),
-  _eprRestoringInlining(false),
-  _equalityPropagation(false),
-  _equalityProxy(EP_OFF), 
-  _equalityResolutionWithDeletion(RA_INPUT_ONLY),
   _equivalentVariableRemoval(true),
-  _extensionalityResolution(ER_OFF),
-  _extensionalityMaxLength(0),
-  _extensionalityAllowPosEq(false),
-  
-  _flattenTopLevelConjunctions(false),
   _forceIncompleteness(false),
-  _forwardDemodulation(DEMODULATION_ALL),
-  _forwardLiteralRewriting(false),
-  _forwardSubsumption(true),
-  _forwardSubsumptionResolution(true),
-  _functionDefinitionElimination(FDE_ALL),
-  _functionNumber(1),
-
-  _generalSplitting(RA_OFF),
-  _globalSubsumption(false),
-
-  _hornRevealing(false),
-  _hyperSuperposition(false),
-
-  _ignoreMissing(false),
-  _include(""),
-  _increasedNumeralWeight(false),
-  _inequalitySplitting(3),
-  _inputFile(""),
-  //in case we compile vampire with bpa, then the default input syntax is smtlib
-#if !GNUMP
-  _inputSyntax(IS_TPTP),
-#else
-  _inputSyntax(IS_SMTLIB),
-#endif
-  _instGenBigRestartRatio(0.0f),
-  _instGenInprocessing(false),
-  _instGenPassiveReactivation(false),
-  _instGenResolutionRatioInstGen(1),
-  _instGenResolutionRatioResolution(1),
-  _instGenRestartPeriod(1000),
-  _instGenRestartPeriodQuotient(1.0f),
-  _instGenSelection(0),
-  _instGenWithResolution(false),
-  _interpretedSimplification(false),
-
-  _latexOutput("off"),
-  _lingvaAdditionalInvariants(""),
-  _literalComparisonMode(LCM_STANDARD),
-  _logFile("off"),
-  _lrsFirstTimeCheck(5),
-  _lrsWeightLimitOnly(false),
-
-  _maxActive(0),
-  _maxAnswers(1),
-  _maxInferenceDepth(0),
-  _maxPassive(0),
-  _maxWeight(0),
   _maximalPropagatedEqualityLength(5),
-#if VDEBUG
-  _memoryLimit(1000),
-#else
-  _memoryLimit(3000),
-#endif
-  _mode(MODE_VAMPIRE),
 
-  _namePrefix(""),
-  _naming(8),
-
-  _nicenessOption(NICENESS_AVERAGE),
-
-  _nongoalWeightCoefficient(1.0),
+  // will be set in setNongoalWeightCoefficient anyway
   _nonGoalWeightCoeffitientDenominator(1),
   _nonGoalWeightCoeffitientNumerator(1),
-  _nonliteralsInClauseWeight(false),
-  _normalize(false),
 
-  _outputAxiomNames(false),
-
-  _predicateDefinitionInlining(INL_OFF),
-  _predicateDefinitionMerging(false),
-  _predicateEquivalenceDiscovery(PED_OFF),
-  _predicateEquivalenceDiscoveryAddImplications(false),
-  _predicateEquivalenceDiscoveryRandomSimulation(true),
-  _predicateEquivalenceDiscoverySatConflictLimit(-1),
-  _predicateIndexIntroduction(false),
-  _printClausifierPremises(false),
-  _problemName("unknown"),
-  _proof(PROOF_ON),
-  _proofChecking(false),
-  _protectedPrefix(""),
-
-  _questionAnswering(QA_OFF),
-
+  // necessary to set here as it uses a function call
   _randomSeed(Random::seed()),
-  _rowVariableMaxLength(2),
 
-  _satClauseActivityDecay(1.001f),
-  _satClauseDisposer(SCD_MINISAT),
-  _satLearntMinimization(true),
-  _satLearntSubsumptionResolution(true),
-  _satLingelingIncremental(false),
-  _satLingelingSimilarModels(false),
-  _satRestartFixedCount(16000),
-  _satRestartGeometricIncrease(1.1f),
-  _satRestartGeometricInit(32),
-  _satRestartLubyFactor(100),
-  _satRestartMinisatIncrease(1.1f),
-  _satRestartMinisatInit(100),
-  _satRestartStrategy(SRS_LUBY),
-  _satVarActivityDecay(1.05f),
-  _satVarSelector(SVS_ACTIVE),
-  _satSolver(MINISAT),
-  _saturationAlgorithm(LRS),
-  _selection(10),
+  // not sure where these are set or what they control
   _selectUnusedVariablesFirst(false),
-  _showActive(false),
-  _showBlocked(false),
-  _showDefinitions(false),
-  _showInterpolant(INTERP_OFF),
-  _showNew(false),
-  _showNewPropositional(false),
-  _showNonconstantSkolemFunctionTrace(false),
-  _showOptions(false),
-  _showPassive(false),
-  _showPreprocessing(false),
-  _showSkolemisations(false),
-  _showSymbolElimination(false),
-  _showTheoryAxioms(false),
-  _simulatedTimeLimit(0),
-  _sineDepth(0),
-  _sineGeneralityThreshold(0),
-  _sineSelection(SS_OFF),
-  _sineTolerance(1.0f),
-  _smtlibConsiderIntsReal(false),
-  _smtlibFletAsDefinition(false),
-  _smtlibIntroduceAIGNames(true),
-  _sos(SOS_OFF),
-  _splitAtActivation(false), // is this even a valid option?
-  _splitting(true), // should splitting by on or off by default?
-  _ssplittingAddComplementary(SSAC_GROUND),
-  _ssplittingComponentSweeping(SSCS_ITERATED),
-  _ssplittingCongruenceClosure(false),
-  _ssplittingEagerRemoval(true),
-  _ssplittingFlushPeriod(0),
-  _ssplittingFlushQuotient(1.5f),
-  _ssplittingNonsplittableComponents(SSNS_KNOWN),
-  _statistics(STATISTICS_FULL),
-  _superpositionFromVariables(true),
-  _symbolPrecedence(BY_ARITY),
+  _updatesByOneConstraint(3)
 
-  _tabulationBwRuleSubsumptionResolutionByLemmas(true),
-  _tabulationFwRuleSubsumptionResolutionByLemmas(true),
-  _tabulationGoalAgeRatio(1),
-  _tabulationGoalWeightRatio(1),
-  _tabulationGoalRatio(1),
-  _tabulationLemmaRatio(1),
-  _tabulationInstantiateProducingRules(true),
-  _tabulationLemmaAgeRatio(1),
-  _tabulationLemmaWeightRatio(1),
-  _testId ("unspecified_test"),
-  _thanks("Tanya"),
-  _theoryAxioms(true),
-  _timeLimitInDeciseconds(600),
-  _timeStatistics(false),
-  _trivialPredicateRemoval(false),
-
-  _unitResultingResolution(URR_OFF),
-  _unusedPredicateDefinitionRemoval(true),
-  _updatesByOneConstraint(3),
-  _use_dm(false),
-
-  _weightIncrement(false),
-  _weightRatio(1),
-  _whileNumber(1),
-
-  _xmlOutput("off")
 {
   CALL("Options::Options");
+
+  //Set the default values
+  for(int i=0;i<Constants::optionNames.length;i++){
+        const char* default_value = Constants::optionNames[i].default_value;
+        const char* longName = Constants::optionNames[i].longName;
+        if(default_value){
+	  set(longName,default_value, i); 
+        }
+  }
+
 } // Options::Options
 
 /**
@@ -923,13 +745,13 @@ void Options::set(const char* name,const char* value, int index)
       return;
 
     case BACKWARD_DEMODULATION:
-      _backwardDemodulation = (Demodulation)Constants::demodulationValues.find(value);
+      _backwardDemodulation = (Demodulation)Constants::optionNames[BACKWARD_DEMODULATION].names->find(value);
       return;
     case BACKWARD_SUBSUMPTION:
-      _backwardSubsumption = (Subsumption)Constants::subsumptionValues.find(value);
+      _backwardSubsumption = (Subsumption)Constants::optionNames[BACKWARD_SUBSUMPTION].names->find(value);
       return;
     case BACKWARD_SUBSUMPTION_RESOLUTION:
-      _backwardSubsumptionResolution = (Subsumption)Constants::subsumptionValues.find(value);
+      _backwardSubsumptionResolution = (Subsumption)Constants::optionNames[BACKWARD_SUBSUMPTION_RESOLUTION].names->find(value);
       return;
     case BFNT:
       _bfnt = onOffToBool(value,name);
@@ -947,16 +769,16 @@ void Options::set(const char* name,const char* value, int index)
       return;
     }
     case BP_ALMOST_HALF_BOUND_REMOVER:
-      _bpAlmostHalfBoundingRemoval = (BPAlmostHalfBoundingRemoval)Constants::bpAlmostHalfBoundingRemovalValues.find(value);
+      _bpAlmostHalfBoundingRemoval = (BPAlmostHalfBoundingRemoval)Constants::optionNames[BP_ALMOST_HALF_BOUND_REMOVER].names->find(value);
       return;
     case BP_ASSIGNMENT_SELECTOR:
-      _bpAssignmentSelector = (BPAssignmentSelector)Constants::bpAssignmentSelectorValues.find(value);
+      _bpAssignmentSelector = (BPAssignmentSelector)Constants::optionNames[BP_ASSIGNMENT_SELECTOR].names->find(value);
       return;
     case BP_COLLAPSING_PROPAGATION:
       _bpCollapsingPropagation = onOffToBool(value,name);
       return;
     case BP_CONFLICT_SELECTOR:
-      _bpConflictSelector = (BPConflictSelector)Constants::bpConflictSelectorValues.find(value);
+      _bpConflictSelector = (BPConflictSelector)Constants::optionNames[BP_CONFLICT_SELECTOR].names->find(value);
       return;
     case BP_CONSERVATIVE_ASSIGNMENT_SELECTION:
       _bpConservativeAssignmentSelection = onOffToBool(value,name);
@@ -988,7 +810,7 @@ void Options::set(const char* name,const char* value, int index)
       else USER_ERROR("The value must be an integer");
       return;
     case BP_VARIABLE_SELECTOR:
-      _bpVariableSelector = (BPVariableSelector)Constants::bpVariableSelectorValues.find(value);
+      _bpVariableSelector = (BPVariableSelector)Constants::optionNames[BP_VARIABLE_SELECTOR].names->find(value);
       return;
 
     case COLOR_UNBLOCKING:
@@ -996,7 +818,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case CONDENSATION:
       _condensation =
-	(Condensation)Constants::condensationValues.find(value);
+	(Condensation)Constants::optionNames[CONDENSATION].names->find(value);
       return;
 
     case DECODE:
@@ -1022,16 +844,16 @@ void Options::set(const char* name,const char* value, int index)
       _equalityPropagation = onOffToBool(value,name);
       return;
     case EQUALITY_PROXY:
-      _equalityProxy = (EqualityProxy)Constants::equalityProxyValues.find(value);
+      _equalityProxy = (EqualityProxy)Constants::optionNames[EQUALITY_PROXY].names->find(value);
       return;
     case EQUALITY_RESOLUTION_WITH_DELETION:
-      _equalityResolutionWithDeletion = (RuleActivity)Constants::ruleActivityValues.find(value);
+      _equalityResolutionWithDeletion = (RuleActivity)Constants::optionNames[EQUALITY_RESOLUTION_WITH_DELETION].names->find(value);
       if (_equalityResolutionWithDeletion==RA_ON) {
 	USER_ERROR("equality_resolution_with_deletion is not implemented for value \"on\"");
       }
       return;
     case EXTENSIONALITY_RESOLUTION:
-      _extensionalityResolution = (ExtensionalityResolution)Constants::extensionalityResolutionValues.find(value);
+      _extensionalityResolution = (ExtensionalityResolution)Constants::optionNames[EXTENSIONALITY_RESOLUTION].names->find(value);
       return;
     case EXTENSIONALITY_MAX_LENGTH:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
@@ -1059,7 +881,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case FORWARD_DEMODULATION:
       _forwardDemodulation =
-	(Demodulation)Constants::demodulationValues.find(value);
+	(Demodulation)Constants::optionNames[FORWARD_DEMODULATION].names->find(value);
       return;
     case FORWARD_LITERAL_REWRITING:
       _forwardLiteralRewriting = onOffToBool(value,name);
@@ -1072,7 +894,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case FUNCTION_DEFINITION_ELIMINATION:
       _functionDefinitionElimination =
-	(FunctionDefinitionElimination)Constants::fdeValues.find(value);
+	(FunctionDefinitionElimination)Constants::optionNames[FUNCTION_DEFINITION_ELIMINATION].names->find(value);
       return;
     case FUNCTION_NUMBER:
       if (Int::stringToInt(value,intValue))
@@ -1080,13 +902,17 @@ void Options::set(const char* name,const char* value, int index)
       return;
 
     case GENERAL_SPLITTING:
-      _generalSplitting = (RuleActivity)Constants::ruleActivityValues.find(value);
+      _generalSplitting = (RuleActivity)Constants::optionNames[GENERAL_SPLITTING].names->find(value);
       if (_generalSplitting==RA_ON) {
 	USER_ERROR("general_splitting is not implemented for value \"on\"");
       }
       return;
     case GLOBAL_SUBSUMPTION:
       _globalSubsumption = onOffToBool(value,name);
+      return;
+
+    case HELP:
+      _showHelp = onOffToBool(value,name);
       return;
 
     case HORN_REVEALING:
@@ -1115,7 +941,7 @@ void Options::set(const char* name,const char* value, int index)
       setInputFile(value);
       return;
     case INPUT_SYNTAX:
-      _inputSyntax = (InputSyntax)Constants::inputSyntaxValues.find(value);
+      _inputSyntax = (InputSyntax)Constants::optionNames[INPUT_SYNTAX].names->find(value);
       return;
     case INST_GEN_BIG_RESTART_RATIO:
       if (Int::stringToFloat(value,floatValue)) {
@@ -1173,7 +999,7 @@ void Options::set(const char* name,const char* value, int index)
 
     case LITERAL_COMPARISON_MODE:
       _literalComparisonMode =
-	(LiteralComparisonMode)Constants::lcmValues.find(value);
+	(LiteralComparisonMode)Constants::optionNames[LITERAL_COMPARISON_MODE].names->find(value);
       return;
     case LOG_FILE:
       _logFile = value;
@@ -1225,7 +1051,7 @@ void Options::set(const char* name,const char* value, int index)
       }
       break;
     case MODE:
-      _mode = (Mode)Constants::modeValues.find(value);
+      _mode = (Mode)Constants::optionNames[MODE].names->find(value);
       return;
 
     case NAME_PREFIX:
@@ -1255,14 +1081,14 @@ void Options::set(const char* name,const char* value, int index)
       return;
 
     case PREDICATE_DEFINITION_INLINING:
-      _predicateDefinitionInlining = (InliningMode)Constants::inliningModeValues.find(value);
+      _predicateDefinitionInlining = (InliningMode)Constants::optionNames[PREDICATE_DEFINITION_INLINING].names->find(value);
       return;
     case PREDICATE_DEFINITION_MERGING:
       _predicateDefinitionMerging = onOffToBool(value,name);
       return;
     case PREDICATE_EQUIVALENCE_DISCOVERY:
       _predicateEquivalenceDiscovery =
-	  (PredicateEquivalenceDiscoveryMode)Constants::predicateEquivalenceDiscoveryModeValues.find(value);
+	  (PredicateEquivalenceDiscoveryMode)Constants::optionNames[PREDICATE_EQUIVALENCE_DISCOVERY].names->find(value);
       return;
     case PREDICATE_EQUIVALENCE_DISCOVERY_ADD_IMPLICATIONS:
       _predicateEquivalenceDiscoveryAddImplications = onOffToBool(value,name);
@@ -1283,7 +1109,7 @@ void Options::set(const char* name,const char* value, int index)
       _printClausifierPremises = onOffToBool(value,name);
       return;
     case PROOF:
-      _proof = (Proof)Constants::proofValues.find(value);
+      _proof = (Proof)Constants::optionNames[PROOF].names->find(value);
       return;
     case PROOF_CHECKING:
       _proofChecking = onOffToBool(value,name);
@@ -1293,7 +1119,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
 
     case QUESTION_ANSWERING:
-      _questionAnswering = (QuestionAnsweringMode)Constants::questionAnsweringValues.find(value);
+      _questionAnswering = (QuestionAnsweringMode)Constants::optionNames[QUESTION_ANSWERING].names->find(value);
       return;
 
     case RANDOM_SEED:
@@ -1319,7 +1145,7 @@ void Options::set(const char* name,const char* value, int index)
       }
       break;
     case SAT_CLAUSE_DISPOSER:
-      _satClauseDisposer = (SatClauseDisposer)Constants::satClauseDisposerValues.find(value);
+      _satClauseDisposer = (SatClauseDisposer)Constants::optionNames[SAT_CLAUSE_DISPOSER].names->find(value);
       return;
     case SAT_LEARNT_MINIMIZATION:
       _satLearntMinimization = onOffToBool(value,name);
@@ -1378,7 +1204,7 @@ void Options::set(const char* name,const char* value, int index)
       }
       break;
     case SAT_RESTART_STRATEGY:
-      _satRestartStrategy = (SatRestartStrategy)Constants::satRestartStrategyValues.find(value);
+      _satRestartStrategy = (SatRestartStrategy)Constants::optionNames[SAT_RESTART_STRATEGY].names->find(value);
       return;
     case SAT_VAR_ACTIVITY_DECAY:
       if (Int::stringToFloat(value,floatValue)) {
@@ -1390,16 +1216,16 @@ void Options::set(const char* name,const char* value, int index)
       }
       break;
     case SAT_VAR_SELECTOR:
-      _satVarSelector = (SatVarSelector)Constants::satVarSelectorValues.find(value);
+      _satVarSelector = (SatVarSelector)Constants::optionNames[SAT_VAR_SELECTOR].names->find(value);
       return;
     case NICENESS_OPTION:
-      _nicenessOption = (NicenessOption)Constants::nicenessOptionValues.find(value);
+      _nicenessOption = (NicenessOption)Constants::optionNames[NICENESS_OPTION].names->find(value);
       return;
     case SAT_SOLVER:
-      _satSolver = (SatSolver) Constants::satSolverValues.find(value);
+      _satSolver = (SatSolver) Constants::optionNames[SAT_SOLVER].names->find(value);
       return;
     case SATURATION_ALGORITHM:
-      _saturationAlgorithm = (SaturationAlgorithm)Constants::satAlgValues.find(value);
+      _saturationAlgorithm = (SaturationAlgorithm)Constants::optionNames[SATURATION_ALGORITHM].names->find(value);
       return;
     case SELECTION:
       if (Int::stringToInt(value,intValue) &&
@@ -1416,8 +1242,11 @@ void Options::set(const char* name,const char* value, int index)
     case SHOW_DEFINITIONS:
       _showDefinitions = onOffToBool(value,name);
       return;
+    case SHOW_EXPERIMENTAL_OPTIONS:
+      _showExperimentalOptions = onOffToBool(value,name);
+      return;
     case SHOW_INTERPOLANT:
-      _showInterpolant = (InterpolantMode)Constants::interpolantModeValues.find(value);
+      _showInterpolant = (InterpolantMode)Constants::optionNames[SHOW_INTERPOLANT].names->find(value);
       return;
     case SHOW_NEW:
       _showNew = onOffToBool(value,name);
@@ -1429,7 +1258,7 @@ void Options::set(const char* name,const char* value, int index)
       _showNonconstantSkolemFunctionTrace = onOffToBool(value,name);
       return;
     case SHOW_OPTIONS:
-      _showOptions = onOffToBool(value,name);
+      _showOptions = (OptionTag) Constants::optionNames[SHOW_OPTIONS].names->find(value);
       return;
     case SHOW_PASSIVE:
       _showPassive = onOffToBool(value,name);
@@ -1463,7 +1292,7 @@ void Options::set(const char* name,const char* value, int index)
       break;
     case SINE_SELECTION:
       _sineSelection =
-	(SineSelection)Constants::sineSelectionValues.find(value);
+	(SineSelection)Constants::optionNames[SINE_SELECTION].names->find(value);
       return;
     case SINE_TOLERANCE:
       if (!Int::stringToFloat(value,floatValue) || (floatValue!=0.0f && floatValue<1.0f)) {
@@ -1481,19 +1310,19 @@ void Options::set(const char* name,const char* value, int index)
       _smtlibIntroduceAIGNames = onOffToBool(value,name);
       return;
     case SOS:
-      _sos = (Sos)Constants::sosValues.find(value);
+      _sos = (Sos)Constants::optionNames[SOS].names->find(value);
       return;
     case SPLIT_AT_ACTIVATION:
       _splitAtActivation = onOffToBool(value,name);
       return;
     case SPLITTING:
-      _splitting = onOffToBool(value,name);//(SplittingMode)Constants::splittingModeValues.find(value);
+      _splitting = onOffToBool(value,name);
       return;
     case SSPLITTING_ADD_COMPLEMENTARY:
-      _ssplittingAddComplementary = (SSplittingAddComplementary)Constants::sSplittingAddComplementaryValues.find(value);
+      _ssplittingAddComplementary = (SSplittingAddComplementary)Constants::optionNames[SSPLITTING_ADD_COMPLEMENTARY].names->find(value);
       return;
     case SSPLITTING_COMPONENT_SWEEPING:
-      _ssplittingComponentSweeping = (SSplittingComponentSweeping)Constants::sSplittingComponentSweepingValues.find(value);
+      _ssplittingComponentSweeping = (SSplittingComponentSweeping)Constants::optionNames[SSPLITTING_COMPONENT_SWEEPING].names->find(value);
       return;
     case SSPLITTING_CONGRUENCE_CLOSURE:
       _ssplittingCongruenceClosure = onOffToBool(value,name);
@@ -1514,18 +1343,18 @@ void Options::set(const char* name,const char* value, int index)
       _ssplittingFlushQuotient = floatValue;
       return;
     case SSPLITTING_NONSPLITTABLE_COMPONENTS:
-      _ssplittingNonsplittableComponents = (SSplittingNonsplittableComponents)Constants::sSplittingNonsplittableComponentsValues.find(value);
+      _ssplittingNonsplittableComponents = (SSplittingNonsplittableComponents)Constants::optionNames[SSPLITTING_NONSPLITTABLE_COMPONENTS].names->find(value);
       return;
       
     case STATISTICS:
-      _statistics = (Statistics)Constants::statisticsValues.find(value);
+      _statistics = (Statistics) Constants::optionNames[STATISTICS].names->find(value);
       return;
     case SUPERPOSITION_FROM_VARIABLES:
       _superpositionFromVariables = onOffToBool(value,name);
       return;
     case SYMBOL_PRECEDENCE:
       _symbolPrecedence =
-	(SymbolPrecedence)Constants::symbolPrecedenceValues.find(value);
+	(SymbolPrecedence)Constants::optionNames[SYMBOL_PRECEDENCE].names->find(value);
       return;
 
     case TABULATION_BW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS:
@@ -1566,7 +1395,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
 
     case UNIT_RESULTING_RESOLUTION:
-      _unitResultingResolution = (URResolution)Constants::urResolutionValues.find(value);
+      _unitResultingResolution = (URResolution)Constants::optionNames[UNIT_RESULTING_RESOLUTION].names->find(value);
       return;
     case UNUSED_PREDICATE_DEFINITION_REMOVAL:
       _unusedPredicateDefinitionRemoval = onOffToBool(value,name);
@@ -1634,12 +1463,13 @@ bool Options::onOffToBool (const char* onOff,const char* option)
 {
   CALL("Options::onOffToBool");
 
-  if (! strcmp(onOff,"on")) {
+  if (! strcmp(onOff,"on") || ! strcmp(onOff,"true")) {
     return true;
   }
-  if (! strcmp(onOff,"off")) {
+  if (! strcmp(onOff,"off") || ! strcmp(onOff,"false")) {
     return false;
   }
+  //TODO hopefully remove the need for this
   if (_ignoreMissing) {
     if (!strcmp(option,"splitting") || !strcmp(option,"spl")) {
       if (! strcmp(onOff,"sat")) {
@@ -1858,595 +1688,36 @@ void Options::output (ostream& str) const
 {
   CALL("Options::output");
 
-  if (! showOptions()) {
-    return;
+  if(showOptions() != OFF_TAG){
+    str << "=========== Options ==========\n";
+    bool experimental = showExperimentalOptions();
+    for (int i = 0;i < Constants::optionNames.length;i++) {
+      OptionTag this_tag = Constants::optionNames[i].tag;
+      if(showOptions() == GLOBAL_TAG || this_tag == GLOBAL_TAG || this_tag == showOptions()){
+        if(experimental || !Constants::optionNames[i].experimental){
+          str << Constants::optionNames[i] << endl;
+        }
+      }
+    }
+    str << "======= End of options =======\n";
+  }
+  if(showHelp()){
+    str << "=========== Usage ==========\n";
+
+    str << "=========== Hints ==========\n";
+
+    str << "=========== Options ==========\n";
+    str << "To see a list of all options use\n  --show_options on\n";
+    str << "To see a list of options for a particular mode use\n";
+    str << "  --show_options <mode>\t(for example --show_options vampire)\n";
+    str << "By default experimental options will not be shown. To show ";
+    str << "these options use\n  --show_experimental_options on\n";
+    str << "=========== End ==========\n";
   }
 
-  str << "=========== Options ==========\n";
 
-  for (int i = 0;i < Constants::optionNames.length;i++) {
-    str << Constants::optionNames[i] << "\tdefault:";
-    outputValue(str,i);
-    str << '\n';
-  }
-
-  str << "======= End of options =======\n";
-  exit(0);
 } // Options::output (ostream& str) const
 
-/**
- * Output the value of an option with a given tag to the output stream
- * str.
- *
- * @since 15/11/2004 Manchester
- */
-void Options::outputValue (ostream& str,int optionTag) const
-{
-  CALL("Options::outputValue");
-
-  switch (optionTag) {
-  case AGE_WEIGHT_RATIO:
-    str << _ageRatio << ':' << _weightRatio;
-    return;
-  case AIG_BDD_SWEEPING:
-    str << boolToOnOff(_aigBddSweeping);
-    return;
-  case AIG_CONDITIONAL_REWRITING:
-    str << boolToOnOff(_aigConditionalRewriting);
-    return;
-  case AIG_DEFINITION_INTRODUCTION:
-    str << boolToOnOff(_aigDefinitionIntroduction);
-    return;
-  case AIG_DEFINITION_INTRODUCTION_THRESHOLD:
-    str << _aigDefinitionIntroductionThreshold;
-    return;
-  case AIG_FORMULA_SHARING:
-    str << boolToOnOff(_aigFormulaSharing);
-    return;
-  case AIG_INLINER:
-    str << boolToOnOff(_aigInliner);
-    return;
-  case ARITY_CHECK:
-    str << boolToOnOff(_arityCheck);
-    return;
-  case BACKWARD_DEMODULATION:
-    str << Constants::demodulationValues[_backwardDemodulation];
-    return;
-  case BACKWARD_SUBSUMPTION:
-    str << Constants::subsumptionValues[_backwardSubsumption];
-    return;
-  case BACKWARD_SUBSUMPTION_RESOLUTION:
-    str << Constants::subsumptionValues[_backwardSubsumptionResolution];
-    return;
-  case BFNT:
-    str << boolToOnOff(_bfnt);
-    return;
-  case BINARY_RESOLUTION:
-    str << boolToOnOff(_binaryResolution);
-    return;
-  case BP_ALLOWED_FM_BALANCE:
-    str << _bpAllowedFMBalance;
-    return;
-  case BP_ALMOST_HALF_BOUND_REMOVER:
-    str << Constants::bpAlmostHalfBoundingRemovalValues[_bpAlmostHalfBoundingRemoval];
-    return;
-  case BP_ASSIGNMENT_SELECTOR:
-    str << Constants::bpAssignmentSelectorValues[_bpAssignmentSelector];
-    return;
-  case BP_CONFLICT_SELECTOR:
-    str << Constants::bpConflictSelectorValues[_bpConflictSelector];
-    return;
-  case BP_CONSERVATIVE_ASSIGNMENT_SELECTION:
-    str << boolToOnOff(_bpConservativeAssignmentSelection);
-    return;
-  case BP_COLLAPSING_PROPAGATION:
-    str << boolToOnOff(_bpCollapsingPropagation);
-    return;
-  case BP_FM_ELIMINATION:
-    str << boolToOnOff(_bpFmElimination);
-    return;
-  case BP_MAX_PROP_LENGTH:
-    str << _maximalPropagatedEqualityLength;
-    return;
-  case BP_PROPAGATE_AFTER_CONFLICT:
-	str << boolToOnOff(_bpPropagateAfterConflict);
-	return;
-  case BP_START_WITH_PRECISE:
-    str << boolToOnOff(_bpStartWithPrecise);
-    return;
-  case BP_START_WITH_RATIONAL:
-	  str<< boolToOnOff(_bpStartWithRational);
-	  return;
-  case BP_UPDATE_BY_ONE_CONSTRAINT:
-    str << _updatesByOneConstraint;
-    return;
-  case BP_VARIABLE_SELECTOR:
-    str << Constants::bpVariableSelectorValues[_bpVariableSelector];
-    return;
-
-  case COLOR_UNBLOCKING:
-    str << boolToOnOff(_colorUnblocking);
-    return;
-  case CONDENSATION:
-    str << Constants::condensationValues[_condensation];
-    return;
-  case DECODE: // no output for DECODE
-    return;
-  case DEMODULATION_REDUNDANCY_CHECK:
-    str << boolToOnOff(_demodulationRedundancyCheck);
-    return;
-  case DISTINCT_PROCESSOR:
-    str << boolToOnOff(_distinctProcessor);
-    return;
-
-  case EPR_PRESERVING_NAMING:
-    str << boolToOnOff(_eprPreservingNaming);
-    return;
-  case EPR_PRESERVING_SKOLEMIZATION:
-    str << boolToOnOff(_eprPreservingSkolemization);
-    return;
-  case EPR_RESTORING_INLINING:
-    str << boolToOnOff(_eprRestoringInlining);
-    return;
-  case EQUALITY_PROPAGATION:
-    str << boolToOnOff(_equalityPropagation);
-    return;
-  case EQUALITY_PROXY:
-    str << Constants::equalityProxyValues[_equalityProxy];
-    return;
-  case EQUALITY_RESOLUTION_WITH_DELETION:
-    str << Constants::ruleActivityValues[_equalityResolutionWithDeletion];
-    return;
-  case EXTENSIONALITY_RESOLUTION:
-    str << Constants::extensionalityResolutionValues[_extensionalityResolution];
-    return;
-  case EXTENSIONALITY_ALLOW_POS_EQ:
-    str << boolToOnOff(_extensionalityAllowPosEq);
-    return;
-  case EXTENSIONALITY_MAX_LENGTH:
-    str << _extensionalityMaxLength;
-    return;
-
-  case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
-    str << boolToOnOff(_flattenTopLevelConjunctions);
-    return;
-  case FORBIDDEN_OPTIONS:
-    str << forbiddenOptions();
-    return;
-  case FORCED_OPTIONS:
-    str << forcedOptions();
-    return;
-  case FORWARD_DEMODULATION:
-    str << Constants::demodulationValues[_forwardDemodulation];
-    return;
-  case FORWARD_LITERAL_REWRITING:
-    str << boolToOnOff(_forwardLiteralRewriting);
-    return;
-  case FORWARD_SUBSUMPTION:
-    str << boolToOnOff(_forwardSubsumption);
-    return;
-  case FORWARD_SUBSUMPTION_RESOLUTION:
-    str << boolToOnOff(_forwardSubsumptionResolution);
-    return;
-  case FUNCTION_DEFINITION_ELIMINATION:
-    str << Constants::fdeValues[_functionDefinitionElimination];
-    return;
-
-  case GENERAL_SPLITTING:
-    str << Constants::ruleActivityValues[_generalSplitting];
-    return;
-  case GLOBAL_SUBSUMPTION:
-    str << boolToOnOff(_globalSubsumption);
-    return;
-
-  case HORN_REVEALING:
-    str << boolToOnOff(_hornRevealing);
-    return;
-  case HYPER_SUPERPOSITION:
-    str << boolToOnOff(_hyperSuperposition);
-    return;
-
-  case IGNORE_MISSING:
-    str << boolToOnOff(_ignoreMissing);
-    return;
-  case INCLUDE:
-    str << _include;
-    return;
-  case INCREASED_NUMERAL_WEIGHT:
-    str << boolToOnOff(_increasedNumeralWeight);
-    return;
-  case INEQUALITY_SPLITTING:
-    str << _inequalitySplitting;
-    return;
-  case INPUT_FILE:
-    str << _inputFile;
-    return;
-  case INPUT_SYNTAX:
-    str << Constants::inputSyntaxValues[_inputSyntax];
-    return;
-  case INST_GEN_BIG_RESTART_RATIO:
-    str << _instGenBigRestartRatio;
-    return;
-  case INST_GEN_INPROCESSING:
-    str << boolToOnOff(_instGenInprocessing);
-    return;
-  case INST_GEN_PASSIVE_REACTIVATION:
-    str << boolToOnOff(_instGenPassiveReactivation);
-    return;
-  case INST_GEN_RESOLUTION_RATIO:
-    str << _instGenResolutionRatioInstGen << ':' << _instGenResolutionRatioResolution;
-    return;
-  case INST_GEN_RESTART_PERIOD:
-    str << _instGenRestartPeriod;
-    return;
-  case INST_GEN_RESTART_PERIOD_QUOTIENT:
-    str << _instGenRestartPeriodQuotient;
-    return;
-  case INST_GEN_SELECTION:
-    str << _instGenSelection;
-    return;
-  case INST_GEN_WITH_RESOLUTION:
-    str << boolToOnOff(_instGenWithResolution);
-    return;
-  case INTERPRETED_SIMPLIFICATION:
-    str << boolToOnOff(_interpretedSimplification);
-    return;
-
-  case LATEX_OUTPUT:
-    str << _latexOutput;
-    return;
-  case LINGVA_ADDITIONAL_INVARIANTS:
-    str << _lingvaAdditionalInvariants;
-    return;
-  case LITERAL_COMPARISON_MODE:
-    str << Constants::lcmValues[_literalComparisonMode];
-    return;
-  case LOG_FILE:
-    str << _logFile;
-    return;
-  case LRS_FIRST_TIME_CHECK:
-    str << _lrsFirstTimeCheck;
-    return;
-  case LRS_WEIGHT_LIMIT_ONLY:
-    str << boolToOnOff(_lrsWeightLimitOnly);
-    return;
-
-  case MAX_ACTIVE:
-    str << _maxActive;
-    return;
-  case MAX_ANSWERS:
-    str << _maxAnswers;
-    return;
-  case MAX_INFERENCE_DEPTH:
-    str << _maxInferenceDepth;
-    return;
-  case MAX_PASSIVE:
-    str << _maxPassive;
-    return;
-  case MAX_WEIGHT:
-    str << _maxWeight;
-    return;
-  case MEMORY_LIMIT:
-    str << _memoryLimit;
-    return;
-  case MODE:
-    str << Constants::modeValues[_mode];
-    return;
-
-  case NAME_PREFIX:
-    str << _namePrefix;
-    return;
-  case NAMING:
-    str << _naming;
-    return;
-  case NONGOAL_WEIGHT_COEFFICIENT:
-    str << _nongoalWeightCoefficient;
-    return;
-  case NONLITERALS_IN_CLAUSE_WEIGHT:
-    str << boolToOnOff(_nonliteralsInClauseWeight);
-    return;
-  case NORMALIZE:
-    str << boolToOnOff(_normalize);
-    return;
-
-  case OUTPUT_AXIOM_NAMES:
-    str << boolToOnOff(_outputAxiomNames);
-    return;
-
-  case PREDICATE_DEFINITION_INLINING:
-    str << Constants::inliningModeValues[_predicateDefinitionInlining];
-    return;
-  case PREDICATE_DEFINITION_MERGING:
-    str << boolToOnOff(_predicateDefinitionMerging);
-    return;
-  case PREDICATE_EQUIVALENCE_DISCOVERY:
-    str << Constants::predicateEquivalenceDiscoveryModeValues[_predicateEquivalenceDiscovery];
-    return;
-  case PREDICATE_EQUIVALENCE_DISCOVERY_ADD_IMPLICATIONS:
-    str << boolToOnOff(_predicateEquivalenceDiscoveryAddImplications);
-    return;
-  case PREDICATE_EQUIVALENCE_DISCOVERY_RANDOM_SIMULATION:
-    str << boolToOnOff(_predicateEquivalenceDiscoveryRandomSimulation);
-    return;
-  case PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT:
-    str << _predicateEquivalenceDiscoverySatConflictLimit;
-    return;
-  case PREDICATE_INDEX_INTRODUCTION:
-    str << boolToOnOff(_predicateIndexIntroduction);
-    return;
-  case PRINT_CLAUSIFIER_PREMISES:
-    str << boolToOnOff(_printClausifierPremises);
-    return;
-  case PROBLEM_NAME:
-    str << _problemName;
-    return;
-  case PROOF:
-    str << boolToOnOff(_proof);
-    return;
-  case PROOF_CHECKING:
-    str << boolToOnOff(_proofChecking);
-    return;
-  case PROTECTED_PREFIX:
-    str << _protectedPrefix;
-    return;
-
-  case QUESTION_ANSWERING:
-    str << Constants::questionAnsweringValues[_questionAnswering];
-    return;
-
-  case RANDOM_SEED:
-    str << _randomSeed;
-    return;
-  case ROW_VARIABLE_MAX_LENGTH:
-    str << _rowVariableMaxLength;
-    return;
-
-  case SAT_CLAUSE_ACTIVITY_DECAY:
-    str << _satClauseActivityDecay;
-    return;
-  case SAT_CLAUSE_DISPOSER:
-    str << Constants::satClauseDisposerValues[_satClauseDisposer];
-    return;
-  case SAT_LEARNT_MINIMIZATION:
-    str << boolToOnOff(_satLearntMinimization);
-    return;
-  case SAT_LEARNT_SUBSUMPTION_RESOLUTION:
-    str << boolToOnOff(_satLearntSubsumptionResolution);
-    return;
-  case SAT_LINGELING_INCREMENTAL:
-	str << boolToOnOff(_satLingelingIncremental);
-	return;
-  case SAT_LINGELING_SIMILAR_MODELS:
-	str << boolToOnOff(_satLingelingSimilarModels);
-	return;
-  case SAT_RESTART_FIXED_COUNT:
-    str << _satRestartFixedCount;
-    return;
-  case SAT_RESTART_GEOMETRIC_INCREASE:
-    str << _satRestartGeometricIncrease;
-    return;
-  case SAT_RESTART_GEOMETRIC_INIT:
-    str << _satRestartGeometricInit;
-    return;
-  case SAT_RESTART_LUBY_FACTOR:
-    str << _satRestartLubyFactor;
-    return;
-  case SAT_RESTART_MINISAT_INCREASE:
-    str << _satRestartMinisatIncrease;
-    return;
-  case SAT_RESTART_MINISAT_INIT:
-    str << _satRestartMinisatInit;
-    return;
-  case SAT_RESTART_STRATEGY:
-    str << Constants::satRestartStrategyValues[_satRestartStrategy];
-    return;
-  case SAT_VAR_ACTIVITY_DECAY:
-    str << _satVarActivityDecay;
-    return;
-  case SAT_VAR_SELECTOR:
-    str << Constants::satVarSelectorValues[_satVarSelector];
-    return;
-  case NICENESS_OPTION:
-    str << Constants::nicenessOptionValues[_nicenessOption];
-  case SAT_SOLVER:
-    str << Constants::satSolverValues[_satSolver];
-    return;
-  case SATURATION_ALGORITHM:
-    str << Constants::satAlgValues[_saturationAlgorithm];
-    return;
-  case SELECTION:
-    str << _selection;
-    return;
-  case SHOW_ACTIVE:
-    str << boolToOnOff(_showActive);
-    return;
-  case SHOW_BLOCKED:
-    str << boolToOnOff(_showBlocked);
-    return;
-  case SHOW_DEFINITIONS:
-    str << boolToOnOff(_showDefinitions);
-    return;
-  case SHOW_INTERPOLANT:
-    str << Constants::interpolantModeValues[_showInterpolant];
-    return;
-  case SHOW_NEW:
-    str << boolToOnOff(_showNew);
-    return;
-  case SHOW_NEW_PROPOSITIONAL:
-    str << boolToOnOff(_showNewPropositional);
-    return;
-  case SHOW_NONCONSTANT_SKOLEM_FUNCTION_TRACE:
-    str << boolToOnOff(_showNonconstantSkolemFunctionTrace);
-    return;
-  case SHOW_OPTIONS:
-    str << boolToOnOff(_showOptions);
-    return;
-  case SHOW_PASSIVE:
-    str << boolToOnOff(_showPassive);
-    return;
-  case SHOW_PREPROCESSING:
-    str << boolToOnOff(_showPreprocessing);
-    return;
-  case SHOW_SKOLEMISATIONS:
-    str << boolToOnOff(_showSkolemisations);
-    return;
-  case SHOW_SYMBOL_ELIMINATION:
-    str << boolToOnOff(_showSymbolElimination);
-    return;
-  case SHOW_THEORY_AXIOMS:
-    str << boolToOnOff(_showTheoryAxioms);
-    return;
-  case SIMULATED_TIME_LIMIT:
-    str << _simulatedTimeLimit/10;
-    if (_simulatedTimeLimit % 10) {
-      str << '.' << _simulatedTimeLimit % 10;
-    }
-    return;
-  case SINE_DEPTH:
-    str << _sineDepth;
-    return;
-  case SINE_GENERALITY_THRESHOLD:
-    str << _sineGeneralityThreshold;
-    return;
-  case SINE_SELECTION:
-    str << Constants::sineSelectionValues[_sineSelection];
-    return;
-  case SINE_TOLERANCE:
-    str << _sineTolerance;
-    return;
-  case SMTLIB_CONSIDER_INTS_REAL:
-    str << boolToOnOff(_smtlibConsiderIntsReal);
-    return;
-  case SMTLIB_FLET_AS_DEFINITION:
-    str << boolToOnOff(_smtlibFletAsDefinition);
-    return;
-  case SMTLIB_INTRODUCE_AIG_NAMES:
-    str << boolToOnOff(_smtlibIntroduceAIGNames);
-    return;
-  case SOS:
-    str << Constants::sosValues[_sos];
-    return;
-//  case SPLIT_ADD_GROUND_NEGATION:
-//    str << boolToOnOff(_splitAddGroundNegation);
-//    return;
-  case SPLIT_AT_ACTIVATION:
-    str << boolToOnOff(_splitAtActivation);
-    return;
-//  case SPLIT_GOAL_ONLY:
-//    str << boolToOnOff(_splitGoalOnly);
-//    return;
-//  case SPLIT_INPUT_ONLY:
-//    str << boolToOnOff(_splitInputOnly);
-//    return;
-//  case SPLIT_POSITIVE:
-//    str << boolToOnOff(_splitPositive);
-//    return;
-  case SPLITTING:
-    str << boolToOnOff(_splitting); //Constants::splittingModeValues[_splitting];
-    return;
-  case SSPLITTING_ADD_COMPLEMENTARY:
-    str << Constants::sSplittingAddComplementaryValues[_ssplittingAddComplementary];
-    return;
-  case SSPLITTING_COMPONENT_SWEEPING:
-    str << Constants::sSplittingComponentSweepingValues[_ssplittingComponentSweeping];
-    return;
-  case SSPLITTING_CONGRUENCE_CLOSURE:
-    str << boolToOnOff(_ssplittingCongruenceClosure);
-    return;
-  case SSPLITTING_EAGER_REMOVAL:
-    str << boolToOnOff(_ssplittingEagerRemoval);
-    return;
-  case SSPLITTING_FLUSH_PERIOD:
-    str << _ssplittingFlushPeriod;
-    return;
-  case SSPLITTING_FLUSH_QUOTIENT:
-    str << _ssplittingFlushQuotient;
-    return;
-  case SSPLITTING_NONSPLITTABLE_COMPONENTS:
-    str << Constants::sSplittingNonsplittableComponentsValues[_ssplittingNonsplittableComponents];
-    return;
-  case STATISTICS:
-    str << Constants::statisticsValues[_statistics];
-    return;
-  case SUPERPOSITION_FROM_VARIABLES:
-    str << boolToOnOff(_superpositionFromVariables);
-    return;
-  case SYMBOL_PRECEDENCE:
-    str << Constants::symbolPrecedenceValues[_symbolPrecedence];
-    return;
-
-  case TABULATION_BW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS:
-    str << boolToOnOff(_tabulationBwRuleSubsumptionResolutionByLemmas);
-    return;
-  case TABULATION_FW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS:
-    str << boolToOnOff(_tabulationFwRuleSubsumptionResolutionByLemmas);
-    return;
-  case TABULATION_GOAL_AWR:
-    str << _tabulationGoalAgeRatio << ":" << _tabulationGoalWeightRatio;
-    return;
-  case TABULATION_GOAL_LEMMA_RATIO:
-    str << _tabulationGoalRatio << ":" << _tabulationLemmaRatio;
-    return;
-  case TABULATION_INSTANTIATE_PRODUCING_RULES:
-    str << boolToOnOff(_tabulationInstantiateProducingRules);
-    return;
-  case TABULATION_LEMMA_AWR:
-    str << _tabulationLemmaAgeRatio << ":" << _tabulationLemmaWeightRatio;
-    return;
-  case TEST_ID:
-    str << _testId;
-    return;
-  case THANKS:
-    str << _thanks;
-    return;
-  case THEORY_AXIOMS:
-    str << _theoryAxioms;
-    return;
-  case TIME_LIMIT:
-    str << _timeLimitInDeciseconds/10;
-    if (_timeLimitInDeciseconds % 10) {
-      str << '.' << _timeLimitInDeciseconds % 10;
-    }
-    return;
-  case TIME_STATISTICS:
-    str << boolToOnOff(_timeStatistics);
-    return;
-  case TRIVIAL_PREDICATE_REMOVAL:
-    str << boolToOnOff(_trivialPredicateRemoval);
-    return;
-
-  case UNIT_RESULTING_RESOLUTION:
-    str << Constants::urResolutionValues[_unitResultingResolution];
-    return;
-  case UNUSED_PREDICATE_DEFINITION_REMOVAL:
-    str << boolToOnOff(_unusedPredicateDefinitionRemoval);
-    return;
-
-  case USEDM:
-    str << boolToOnOff(_use_dm);
-    return;
-
-  case WEIGHT_INCREMENT:
-    str << boolToOnOff(_weightIncrement);
-    return;
-  case WHILE_NUMBER:
-    str << _whileNumber;
-    return;
-
-  case FUNCTION_NUMBER:
-    str<<_functionNumber;
-    return;
-
-  case XML_OUTPUT:
-    str << _xmlOutput;
-    return;
-
-#if VDEBUG
-  default:
-    ASS_REP(false, Constants::optionNames[optionTag]);
-#endif
-  }
-} // Options::outputValue
 
 /**
  * Set input file and also update problemName if it was not
