@@ -21,6 +21,9 @@ class BackwardDemodulation
 : public BackwardSimplificationEngine
 {
 public:
+  CLASS_NAME(BackwardDemodulation);
+  USE_ALLOCATOR(BackwardDemodulation);
+
   void attach(SaturationAlgorithm* salg);
   void detach();
 

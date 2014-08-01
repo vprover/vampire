@@ -16,6 +16,9 @@ class LiteralSubstitutionTree
 : public LiteralIndexingStructure, SubstitutionTree
 {
 public:
+  CLASS_NAME(LiteralSubstitutionTree);
+  USE_ALLOCATOR(LiteralSubstitutionTree);
+
   LiteralSubstitutionTree();
 
   void insert(Literal* lit, Clause* cls);

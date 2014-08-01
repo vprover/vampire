@@ -22,6 +22,9 @@ class HyperSuperposition
 : public ForwardSimplificationEngine
 {
 public:
+  CLASS_NAME(HyperSuperposition);
+  USE_ALLOCATOR(HyperSuperposition);
+
   HyperSuperposition() : _index(0) {}
 
   void attach(SaturationAlgorithm* salg);

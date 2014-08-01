@@ -417,6 +417,9 @@ void InterpolantMinimizer::addFringeFormulas(UnitSpec u)
 class InterpolantMinimizer::ClauseSplitter : protected Saturation::SSplitter
 {
 public:
+  CLASS_NAME(InterpolantMinimizer::ClauseSplitter);
+  USE_ALLOCATOR(InterpolantMinimizer::ClauseSplitter);
+
   ClauseSplitter() : _acc(0) {}
 
   /**

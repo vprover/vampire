@@ -21,6 +21,9 @@ using namespace Shell;
 
 class GroundingIndex : public Index {
 public:
+  CLASS_NAME(GroundingIndex);
+  USE_ALLOCATOR(GroundingIndex);
+
   GroundingIndex(Grounder* gnd, const Options& opt);
 
   SATSolver& getSolver() { return *_solver; }

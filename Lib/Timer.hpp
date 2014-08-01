@@ -13,6 +13,8 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"               // to declare checked_delete a fried for ScopedPtr's desctruction to work
 
+#include "Lib/Allocator.hpp"
+
 #ifndef UNIX_USE_SIGALRM
 //SIGALRM causes some problems with debugging
 //[one problem might have been removed, so it's worth checking if the demand for UNIX_USE_SIGALRM in VDEBUG arises]
@@ -51,6 +53,9 @@ class Timer
   friend void ::checked_delete<Timer>(Timer*);
   
 public:
+  CLASS_NAME(Timer);
+  USE_ALLOCATOR(Timer);
+
   static Timer* instance();
   
   /** stop the timer and reset the clock */

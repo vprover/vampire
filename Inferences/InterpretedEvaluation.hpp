@@ -22,6 +22,9 @@ class InterpretedEvaluation
 : public ImmediateSimplificationEngine
 {
 public:
+  CLASS_NAME(InterpretedEvaluation);
+  USE_ALLOCATOR(InterpretedEvaluation);
+
   InterpretedEvaluation();
   virtual ~InterpretedEvaluation();
 

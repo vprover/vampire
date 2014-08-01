@@ -41,6 +41,9 @@ using namespace Inferences;
 class SaturationAlgorithm : public MainLoop
 {
 public:
+  CLASS_NAME(SaturationAlgorithm);
+  USE_ALLOCATOR(SaturationAlgorithm);
+
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);

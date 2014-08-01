@@ -15,6 +15,8 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/SmartPtr.hpp"
 
+#include "Lib/Allocator.hpp"
+
 namespace Kernel {
 
 using namespace Shell;
@@ -26,6 +28,9 @@ using namespace Shell;
 class Ordering
 {
 public:
+  CLASS_NAME(Ordering);
+  USE_ALLOCATOR(Ordering);
+
   /**
    * Represents the results of ordering comparisons
    *

@@ -15,6 +15,9 @@ class TermIndex
 : public Index
 {
 public:
+  CLASS_NAME(TermIndex);
+  USE_ALLOCATOR(TermIndex);
+
   virtual ~TermIndex();
 
   TermQueryResultIterator getUnifications(TermList t,
@@ -34,6 +37,9 @@ class SuperpositionSubtermIndex
 : public TermIndex
 {
 public:
+  CLASS_NAME(SuperpositionSubtermIndex);
+  USE_ALLOCATOR(SuperpositionSubtermIndex);
+
   SuperpositionSubtermIndex(TermIndexingStructure* is, Ordering& ord)
   : TermIndex(is), _ord(ord) {};
 protected:
@@ -46,6 +52,9 @@ class SuperpositionLHSIndex
 : public TermIndex
 {
 public:
+  CLASS_NAME(SuperpositionLHSIndex);
+  USE_ALLOCATOR(SuperpositionLHSIndex);
+
   SuperpositionLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
@@ -62,6 +71,9 @@ class DemodulationSubtermIndex
 : public TermIndex
 {
 public:
+  CLASS_NAME(DemodulationSubtermIndex);
+  USE_ALLOCATOR(DemodulationSubtermIndex);
+
   DemodulationSubtermIndex(TermIndexingStructure* is)
   : TermIndex(is) {};
 protected:
@@ -75,6 +87,9 @@ class DemodulationLHSIndex
 : public TermIndex
 {
 public:
+  CLASS_NAME(DemodulationLHSIndex);
+  USE_ALLOCATOR(DemodulationLHSIndex);
+
   DemodulationLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:

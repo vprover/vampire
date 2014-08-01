@@ -40,6 +40,9 @@ class ArrayTheoryISE
   : public ImmediateSimplificationEngine
 {
 public:
+  CLASS_NAME(ArrayTheoryISE);
+  USE_ALLOCATOR(ArrayTheoryISE);
+
   ArrayTheoryISE();
   Clause* simplify(Clause* cl);
 private:

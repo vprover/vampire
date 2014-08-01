@@ -14,10 +14,15 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
 
+#include "Lib/Allocator.hpp"
+
 namespace Kernel {
 
 class Sorts {
 public:
+  CLASS_NAME(Sorts);
+  USE_ALLOCATOR(Sorts);
+
   /** Various pre-defined sort */
   enum DefaultSorts {
     /** The default sort of all individuals, always in the non-sorted case */
@@ -44,6 +49,9 @@ public:
   class SortInfo
   {
   public:
+    CLASS_NAME(SortInfo);
+    USE_ALLOCATOR(SortInfo);
+  
     SortInfo(const string& name) : _name(name) {}
     
     const string& name() const { return _name; }
@@ -80,6 +88,9 @@ private:
 class BaseType
 {
 public:
+  CLASS_NAME(BaseType);
+  USE_ALLOCATOR(BaseType);
+
   virtual ~BaseType();
 
   unsigned arg(unsigned idx) const
@@ -117,6 +128,9 @@ private:
 class PredicateType : public BaseType
 {
 public:
+  CLASS_NAME(PredicateType);
+  USE_ALLOCATOR(PredicateType);
+
   PredicateType(unsigned arity, const unsigned* argumentSorts = 0)
    : BaseType(arity, argumentSorts) {}
 
@@ -126,6 +140,9 @@ public:
 class FunctionType : public BaseType
 {
 public:
+  CLASS_NAME(FunctionType);
+  USE_ALLOCATOR(FunctionType);
+
   FunctionType(unsigned arity, const unsigned* argumentSorts, unsigned resultSort)
    : BaseType(arity, argumentSorts), _result(resultSort) {}
   FunctionType(unsigned arity);

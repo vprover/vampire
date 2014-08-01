@@ -23,6 +23,9 @@ class ForwardDemodulation
 : public ForwardSimplificationEngine
 {
 public:
+  CLASS_NAME(ForwardDemodulation);
+  USE_ALLOCATOR(ForwardDemodulation);
+
   void attach(SaturationAlgorithm* salg);
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
