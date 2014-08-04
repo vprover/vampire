@@ -30,6 +30,7 @@ std::ostream& operator<< (ostream& out, const Lib::OptionName& on ){
         out << endl << '\t';
         count=0;
       }
+      if(*p=='\n'){ count=0; out << '\t'; }
     }
     out << endl;
   }
