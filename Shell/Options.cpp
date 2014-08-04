@@ -198,10 +198,10 @@ const OptionName Options::Constants::_optionNames[] = {
              "Options in the format <opt1>=<val1>:<opt2>=<val2>:...:<optn>=<valN> that override the option values set by other means (also inside CASC mode strategies)",
              false), // no default
   OptionName("forward_demodulation","fd",GLOBAL_TAG,
-             "Oriented rewriting of newly derived clauses by kept unit equalities"
-             "s = t     L[sθ] \\/ C"
-             "---------------------  where sθ > tθ"
-             " L[tθ] \\/ C"
+             "Oriented rewriting of newly derived clauses by kept unit equalities\n"
+             "s = t     L[sθ] \\/ C\n"
+             "---------------------  where sθ > tθ\n"
+             " L[tθ] \\/ C\n"
              "If 'preordered' is set, only equalities s = t where s > t are used for rewriting.",
              false,"all", OptionValues("all","off","preordered")),
   OptionName("forward_literal_rewriting","flr",GLOBAL_TAG,
