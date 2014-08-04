@@ -549,8 +549,7 @@ const OptionName Options::Constants::_optionNames[] = {
              "",
              false, "true"),
   OptionName("sos","sos",GLOBAL_TAG,
-             "Set of support strategy. All formulas annotated as theory axioms are put directly among active clauses, without performing any inferences between them.
-If all, select all literals of set-of-support clauses, ortherwise use the default literal selector.",
+             "Set of support strategy. All formulas annotated as theory axioms are put directly among active clauses, without performing any inferences between them. If all, select all literals of set-of-support clauses, ortherwise use the default literal selector.",
              false, "off",OptionValues("all","off","on")),
   OptionName("split_at_activation","sac",GLOBAL_TAG,
              "",
@@ -577,8 +576,7 @@ If all, select all literals of set-of-support clauses, ortherwise use the defaul
              "after each flush, the ssplitting_flush_period is multiplied by the quotient",
              true, "1.5"),
   OptionName("ssplitting_nonsplittable_components","ssnc",GLOBAL_TAG,
-             "known .. SAT clauses will be learnt from non-splittable clauses that have corresponding components (if there is a component C with name SAT l, clause C | {l1,..ln} will give SAT clause ~l1 \\/ … \\/ ~ln \\/ l). When we add the sat clause, we discard the original FO clause C | {l1,..ln} and let the component selection update model, possibly adding the component clause C | {l}. all .. like known, except when we see a non-splittable clause that doesn't have a name, we introduce the name for it.
-all_dependent .. like all, but we don't introduce names for non-splittable clauses that don't depend on any components",
+             "known .. SAT clauses will be learnt from non-splittable clauses that have corresponding components (if there is a component C with name SAT l, clause C | {l1,..ln} will give SAT clause ~l1 \\/ … \\/ ~ln \\/ l). When we add the sat clause, we discard the original FO clause C | {l1,..ln} and let the component selection update model, possibly adding the component clause C | {l}. all .. like known, except when we see a non-splittable clause that doesn't have a name, we introduce the name for it. all_dependent .. like all, but we don't introduce names for non-splittable clauses that don't depend on any components",
              true, "known",OptionValues("all","all_dependent","known","none")),
   OptionName("statistics","",GLOBAL_TAG,
              "",
