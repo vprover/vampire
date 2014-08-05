@@ -327,7 +327,7 @@ public:
    */
   enum Mode {
     MODE_AXIOM_SELECTION,
-    MODE_SOLVER,
+    MODE_BOUND_PROP,
     MODE_CASC,
     MODE_CASC_EPR,
     MODE_CASC_LTB,

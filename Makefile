@@ -12,6 +12,7 @@
 #   UNIX_USE_SIGALRM - the SIGALRM timer will be used even in debug mode
 #   IS_LINGVA 	     - this allows the compilation of lingva. 
 #   GNUMPF           - this option allows us to compile with bound propagation or without it ( value 1 or 0 ) 
+#                      Importantly, it includes the GNU Multiple Precision Arithmetic Library (GMP)
 GNUMPF = 0
 DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
@@ -435,8 +436,8 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
 	  Shell/GlobalOptions.o\
-	  ClausifierDependencyFix.o\
 	  version.o
+	  # ClausifierDependencyFix.o\
 
 OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Indexing/LiteralSubstitutionTree.o\
