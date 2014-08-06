@@ -434,20 +434,20 @@ void LingelingInterfacing::printAssignment()
 	int maxVar = lglmaxvar(_solver);
 	_assignm.expand(maxVar, AS_UNDEFINED);
 
-	for (int idx = 0; idx < maxVar; idx++)
+	for (int var = 0; var < maxVar; var++)
 	{
-		switch (lglderef(_solver, idx+1))
+		switch (lglderef(_solver, var+1))
 		{
 		case -1:
-			_assignm[idx] = AS_FALSE;
+			_assignm[var] = AS_FALSE;
 			break;
 			// _res=_res->addLast(AS_FALSE); break;
 		case 1:
-			_assignm[idx] = AS_TRUE;
+			_assignm[var] = AS_TRUE;
 			break;
 			//_res=_res->addLast(AS_TRUE);break;
 		case 0:
-			_assignm[idx] = AS_UNDEFINED;
+			_assignm[var] = AS_UNDEFINED;
 			break;
 			//_res=_res->addLast(AS_UNDEFINED);break;
 		default:
