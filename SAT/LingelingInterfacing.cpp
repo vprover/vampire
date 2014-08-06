@@ -302,88 +302,89 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 		env.statistics->satLingelingSATCalls++;
 		result = lglsat(_solver);
 		setSolverStatus(result);
-	} else {
+		return;
+	}
 
-		while (iterator.hasNext()) {
-			SATClause* currentClause = iterator.next();
+	while (iterator.hasNext()) {
+		SATClause* currentClause = iterator.next();
 
-			//add the statistics for Lingeling total number of clauses
-			env.statistics->satLingelingClauses++;
+		//add the statistics for Lingeling total number of clauses
+		env.statistics->satLingelingClauses++;
 
-			SATClauseList::push(currentClause, _clauseList);
+		SATClauseList::push(currentClause, _clauseList);
 
-			//treat each of the clauses individually.
-			ASS_GE(currentClause->length(), 1);
+		//treat each of the clauses individually.
+		ASS_GE(currentClause->length(), 1);
 
-			SATClause::Iterator ccite(*currentClause);
-			while (ccite.hasNext()) {
-				SATLiteral sLit = ccite.next();
-				unsigned currVar = sLit.var() + 1;
+		SATClause::Iterator ccite(*currentClause);
+		while (ccite.hasNext()) {
+			SATLiteral sLit = ccite.next();
+			unsigned currVar = sLit.var() + 1;
 
-				if (_litToClause.find(currVar) != true) {
-					SATClauseList *clauseList = 0;
-					clauseList = clauseList->cons(currentClause);
-					_litToClause.insert(currVar, clauseList);
-					_satVariables = _satVariables->cons(currVar);
-					//increase the counter of variables added to Lingeling
-					env.statistics->satLingelingVariables++;
-					//_satVariables.addLast(currVar);
-				} else {
-					SATClauseList *scl = _litToClause.get(currVar);
-					scl = scl->cons(currentClause);
-					_litToClause.set(currVar, scl);
-				}
-
-				ASS(lglusable(_solver, currVar));
-				lgladd(_solver, (sLit.polarity() == 1 ? currVar : -currVar));
-				lglfreeze(_solver, currVar);
+			if (_litToClause.find(currVar) != true) {
+				SATClauseList *clauseList = 0;
+				clauseList = clauseList->cons(currentClause);
+				_litToClause.insert(currVar, clauseList);
+				_satVariables = _satVariables->cons(currVar);
+				//increase the counter of variables added to Lingeling
+				env.statistics->satLingelingVariables++;
+				//_satVariables.addLast(currVar);
+			} else {
+				SATClauseList *scl = _litToClause.get(currVar);
+				scl = scl->cons(currentClause);
+				_litToClause.set(currVar, scl);
 			}
 
-			//add the marker for clause termination
-			lgladd(_solver, 0);
-
-			clauseIdx++;
-			if (env.options->satLingelingIncremental() == true) {
-				env.statistics->phase = Statistics::SAT_SOLVING;
-				//increment the number of calls to satisfiability check
-				env.statistics->satLingelingSATCalls++;
-				//call lingeling satisfiability check
-				result = lglsat(_solver);
-				env.checkTimeSometime<64>();
-				setSolverStatus(result);
-				Timer::syncClock();
-
-				if (result == LGL_UNSATISFIABLE) {
-					setRefutation();
-					throw UnsatException(_refutation);
-
-				} else if (result == LGL_SATISFIABLE) {
-					_status = SATSolver::SATISFIABLE;
-				} else {
-					_status = SATSolver::UNKNOWN;
-				}
-			}
+			ASS(lglusable(_solver, currVar));
+			lgladd(_solver, (sLit.polarity() == 1 ? currVar : -currVar));
+			lglfreeze(_solver, currVar);
 		}
 
-		if (env.options->satLingelingIncremental() == false) {
+		//add the marker for clause termination
+		lgladd(_solver, 0);
+
+		clauseIdx++;
+		if (env.options->satLingelingIncremental() == true) {
 			env.statistics->phase = Statistics::SAT_SOLVING;
-			//increment lingeling call for satisfiability check statistics
+			//increment the number of calls to satisfiability check
 			env.statistics->satLingelingSATCalls++;
-			//call for satisfiability check
+			//call lingeling satisfiability check
 			result = lglsat(_solver);
 			env.checkTimeSometime<64>();
 			setSolverStatus(result);
 			Timer::syncClock();
+
 			if (result == LGL_UNSATISFIABLE) {
 				setRefutation();
 				throw UnsatException(_refutation);
-			}
 
-			if (result != LGL_SATISFIABLE) {
-				setSolverStatus(result);
+			} else if (result == LGL_SATISFIABLE) {
+				_status = SATSolver::SATISFIABLE;
+			} else {
+				_status = SATSolver::UNKNOWN;
 			}
 		}
 	}
+
+	if (env.options->satLingelingIncremental() == false) {
+		env.statistics->phase = Statistics::SAT_SOLVING;
+		//increment lingeling call for satisfiability check statistics
+		env.statistics->satLingelingSATCalls++;
+		//call for satisfiability check
+		result = lglsat(_solver);
+		env.checkTimeSometime<64>();
+		setSolverStatus(result);
+		Timer::syncClock();
+		if (result == LGL_UNSATISFIABLE) {
+			setRefutation();
+			throw UnsatException(_refutation);
+		}
+
+		if (result != LGL_SATISFIABLE) {
+			setSolverStatus(result);
+		}
+	}
+
 
 }
 
