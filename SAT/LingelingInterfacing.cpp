@@ -319,6 +319,7 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 		SATClause::Iterator ccite(*currentClause);
 		while (ccite.hasNext()) {
 			SATLiteral sLit = ccite.next();
+			//currVar reffers to the current variable
 			unsigned currVar = sLit.var() + 1;
 
 			if (_litToClause.find(currVar) != true) {
@@ -336,7 +337,8 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 			}
 
 			ASS(lglusable(_solver, currVar));
-			lgladd(_solver, (sLit.polarity() == 1 ? currVar : -currVar));
+			int polarity = (sLit.polarity() == 1 ? 1 : -1);
+			lgladd(_solver, polarity * currVar);
 			lglfreeze(_solver, currVar);
 		}
 
@@ -427,24 +429,20 @@ void LingelingInterfacing::printAssignment()
 	int maxVar = lglmaxvar(_solver);
 	_assignm.expand(maxVar, AS_UNDEFINED);
 
-	for (int idx = 1; idx <= maxVar; idx++)
+	for (int idx = 0; idx < maxVar; idx++)
 	{
-		int val;
-		val = lglderef(_solver, idx);
-		//val = lglfixed(_solver, idx);
-		//val = lglfailed(_solver, idx);
-		switch (val)
+		switch (lglderef(_solver, idx+1))
 		{
 		case -1:
-			_assignm[idx - 1] = AS_FALSE;
+			_assignm[idx] = AS_FALSE;
 			break;
 			// _res=_res->addLast(AS_FALSE); break;
 		case 1:
-			_assignm[idx - 1] = AS_TRUE;
+			_assignm[idx] = AS_TRUE;
 			break;
 			//_res=_res->addLast(AS_TRUE);break;
 		case 0:
-			_assignm[idx - 1] = AS_UNDEFINED;
+			_assignm[idx] = AS_UNDEFINED;
 			break;
 			//_res=_res->addLast(AS_UNDEFINED);break;
 		default:
@@ -472,16 +470,14 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 			if ((slite->var() + 1) == 0) {
 				ASSERTION_VIOLATION;
 			}
-			slite->polarity() == 1 ?
-					lglassume(_solver, slite->var() + 1) :
-					lglassume(_solver, -1 * (slite->var() + 1));
+			int polarity = slite->polarity() == 1 ? 1 : -1 ;
+			lglassume(_solver, polarity * (slite->var()+1));
 		}
 	}
 	//if the literal has negative polarity then multiply the flag by -1
-	int flag = 1;
-	flag = flag * (literal.polarity() == 1 ? 1 : -1);
+	int polarity = (literal.polarity() == 1 ? 1 : -1);
 	//assume the literal
-	if ((flag * (literal.var() + 1)) == 0)
+	if ((polarity * (literal.var() + 1)) == 0)
 		ASSERTION_VIOLATION;
 
 	resetsighandlers();
@@ -496,7 +492,7 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	}
 	alarm((remaining / 1000));
 
-	lglassume(_solver, (flag * (literal.var() + 1)));
+	lglassume(_solver, (polarity * (literal.var() + 1)));
 	env.statistics->satLingelingSATCalls++;
 	unsigned int result = lglsat(_solver);
 	env.checkTimeSometime<64>();
@@ -609,8 +605,8 @@ void LingelingInterfacing::randomizeAssignment()
 		List<SATLiteral*>::Iterator lite(_assumptions);
 		while(lite.hasNext()){
 			SATLiteral* lit = lite.next();
-			int l = (lit->polarity()==1? 1:-1)*lit->var();
-			lglassume(clone, l);
+			int polarity = (lit->polarity()==1? 1:-1);
+			lglassume(clone, polarity * lit->var());
 		}
 		unsigned int result = lglsat(clone);
 		setSolverStatus(result);
