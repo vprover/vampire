@@ -356,14 +356,19 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 			setSolverStatus(result);
 			Timer::syncClock();
 
-			if (result == LGL_UNSATISFIABLE) {
+			switch(result){
+			case LGL_UNSATISFIABLE:
 				setRefutation();
 				throw UnsatException(_refutation);
-
-			} else if (result == LGL_SATISFIABLE) {
+				break;
+			case LGL_SATISFIABLE:
 				_status = SATSolver::SATISFIABLE;
-			} else {
+				break;
+			case LGL_UNKNOWN:
 				_status = SATSolver::UNKNOWN;
+				break;
+			default:
+				ASSERTION_VIOLATION;
 			}
 		}
 	}
@@ -542,6 +547,9 @@ void LingelingInterfacing::addCAssumption(SATClause* clause,
 	}
 	//something we could do is book-keeping of what we add and which fails!
 }
+/**
+ * get the assigment for @param var
+ */
 SATSolver::VarAssignment LingelingInterfacing::getAssignment(unsigned var)
 {
 	CALL("LingelingInterfacing::getAssignment(var)");
