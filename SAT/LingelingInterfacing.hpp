@@ -152,6 +152,7 @@ private:
 	//keep track of the assumptions done until now
 	List<SATLiteral*>* _assumptions;
 	List<unsigned> *_satVariables;
+	//mapping that gets used in computation of the unsat core
 	DHMap<unsigned, SATClauseList* > _litToClause;
 	//scoped pointer to the incremental lingleling 
 	LGL * _solver;
