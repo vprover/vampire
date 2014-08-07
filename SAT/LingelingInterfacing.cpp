@@ -110,8 +110,6 @@ static void catchsig (int sig) {
     }
   }
   exit(1);
-  resetsighandlers ();
-  if (!getenv ("LGLNABORT")) raise (sig); else exit (1);
 }
 
 static void setsighandlers (void) {
@@ -145,10 +143,15 @@ static int checkalarm (void * ptr) {
 }
 
 
-//do the set-up of sat solver according to environment options
 /*
  * Constructor for that creates an object containing the Lingeling solver based on the options
  * @opt provided as parameter
+ *
+ * Note that through out the entire Lingeling integration we shift the SAT variables by one. This means that as
+ * soon as we get a new variable that has to be added to Lingeling we add 1 to it. We do this in order
+ * to avoid the situation where we would have a variable 0 that has to be added to Lingeling. Adding 0
+ * to Lingeling has the DIMACS meaning of terminating a clause.
+ * TODO: investigate if the shifting by one can be removed.
  */
 LingelingInterfacing::LingelingInterfacing(const Options& opt,
 		bool generateProofs) :
@@ -170,7 +173,7 @@ LingelingInterfacing::LingelingInterfacing(const Options& opt,
 	size_t remMem =env.options->memoryLimit() - (Allocator::getUsedMemory()/1048576);
 	lglsetopt(_solver, "memlim", remMem);
 	
-	//set signal hadler for ABORTIF 
+	//set signal handler for ABORTIF
 	//sig_abort_handler = signal(LING_SIG, alert_abort);
 	//set the conflict limit -1 => unlimited
 	//this could also be controlled by the opt
@@ -295,8 +298,8 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 	//SATClauseList *clauseList=0;
 	unsigned int result;
 	int clauseIdx = 0;
-	//in order to properly accomodate SSplitingBranchSelector::flush() one has to
-	//check wether the iterator is empty. And if so call for satisfiability check
+	//in order to properly accommodate SSplitingBranchSelector::flush() one has to
+	//check whether the iterator is empty. And if so call for satisfiability check
 	//if this check is not done, SIGABT due to lglderef() => not SATISFIED | EXTENDED
 	if (!iterator.hasNext()) {
 		env.statistics->satLingelingSATCalls++;
@@ -319,7 +322,7 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 		SATClause::Iterator ccite(*currentClause);
 		while (ccite.hasNext()) {
 			SATLiteral sLit = ccite.next();
-			//currVar reffers to the current variable
+			//currVar refers to the current variable
 			unsigned currVar = sLit.var() + 1;
 
 			if (_litToClause.find(currVar) != true) {
@@ -460,7 +463,7 @@ void LingelingInterfacing::printAssignment()
 }
 
 //as this function is used, we only assume single units
-//lingeling allows us to also assum more than units, clauses
+//lingeling allows us to also assume more than units, clauses
 void LingelingInterfacing::addAssumption(SATLiteral literal,
 		unsigned conflictCountLimit) {
 	CALL("LingelingInterfacing::addAssumption(SATLiteral, unsigned condlictCountLimit)");
