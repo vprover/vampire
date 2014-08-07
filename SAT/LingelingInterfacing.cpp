@@ -337,7 +337,7 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 			}
 
 			ASS(lglusable(_solver, currVar));
-			int polarity = (sLit.isNegative() ? -1 : 1 );
+			int8_t polarity = (sLit.isNegative() ? -1 : 1 );
 			lgladd(_solver, polarity * currVar);
 			lglfreeze(_solver, currVar);
 		}
@@ -475,12 +475,12 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 			if ((slite->var() + 1) == 0) {
 				ASSERTION_VIOLATION;
 			}
-			int polarity = slite->isNegative() ? -1 : 1 ;
+			int8_t polarity = slite->isNegative() ? -1 : 1 ;
 			lglassume(_solver, polarity * (slite->var()+1));
 		}
 	}
 	//if the literal has negative polarity then multiply the flag by -1
-	int polarity = (literal.isNegative()? -1 : 1);
+	int8_t polarity = (literal.isNegative()? -1 : 1);
 	//assume the literal
 	if ((polarity * (literal.var() + 1)) == 0)
 		ASSERTION_VIOLATION;
@@ -539,7 +539,7 @@ void LingelingInterfacing::addCAssumption(SATClause* clause,
 		SATLiteral sLit = (*clause)[idx];
 		unsigned currVar = sLit.var()+1;
 		//take care of the polarity of each of the literals
-		int polarity = (sLit.isNegative() ? -1 : 1);
+		int8_t polarity = (sLit.isNegative() ? -1 : 1);
 		//assume each of them with the right polarity
 		lglcassume(_solver, polarity * currVar);
 		//add the end of lglcassume
@@ -568,6 +568,8 @@ SATSolver::VarAssignment LingelingInterfacing::getAssignment(unsigned var)
 	default:
 		ASSERTION_VIOLATION;
 	}
+	//Added just in order to get rid of compiler warning!
+	return SATSolver::DONT_CARE;
 }
 
 void LingelingInterfacing::retractAllAssumptions()
@@ -613,7 +615,7 @@ void LingelingInterfacing::randomizeAssignment()
 		List<SATLiteral*>::Iterator lite(_assumptions);
 		while(lite.hasNext()){
 			SATLiteral* lit = lite.next();
-			int polarity = (lit->isNegative() ? -1 : 1);
+			int8_t polarity = (lit->isNegative() ? -1 : 1);
 			lglassume(clone, polarity * lit->var());
 		}
 		unsigned int result = lglsat(clone);
