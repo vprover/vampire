@@ -424,6 +424,19 @@ void LingelingInterfacing::setRefutation(){
 			}
 		}
 	}
+	//in case we also have assumptions we have to add them all to the premises.
+	if(hasAssumptions()){
+		//in case we have assumptions we have to add them to the refutation as well
+		SATLiteralStack sls;
+		List<SATLiteral*>::Iterator slite(_assumptions);
+		while(slite.hasNext()){
+			SATLiteral* sl = slite.next();
+			sls.push(*sl);
+		}
+		SATClause* assumptionClause = SATClause::fromStack(sls);
+		premises = premises->cons(assumptionClause);
+	}
+
 	ASS(premises);
 	SATInference* inf = new PropInference(premises);
 	res->setInference(inf);
@@ -510,12 +523,9 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	setSolverStatus(result);
 	Timer::syncClock();
 	if (result == LGL_UNSATISFIABLE) {
-		SATLiteralStack slitStack;
-		slitStack.reset();
-		slitStack.push(literal);
-		SATClause * cl = SATClause::fromStack(slitStack);
+		setRefutation();
 		_status = SATSolver::UNSATISFIABLE;
-		throw UnsatException(cl);
+		throw UnsatException(_refutation);
 	}
 
 	if (result == LGL_SATISFIABLE) {
