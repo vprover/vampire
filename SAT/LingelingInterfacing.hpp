@@ -73,7 +73,7 @@ public:
 	* return 1.  
 	* 
 	*/
-	virtual bool isZeroImplied(unsigned var){ return false;}
+	virtual bool isZeroImplied(unsigned var){ return lglfixed(_solver, var);}
 
 	/**
 	* collect all the zero-implied variables 
