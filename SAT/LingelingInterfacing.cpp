@@ -414,7 +414,10 @@ void LingelingInterfacing::setRefutation(){
 			SATClauseList *scl = _litToClause.get(var);
 			SATClauseList::Iterator ite(scl);
 			while(ite.hasNext()){
-				premises = premises->cons(ite.next());
+				SATClause* clause = ite.next();
+				if(!premises->member(clause)){
+					premises = premises->cons(ite.next());
+				}
 			}
 		}
 	}
