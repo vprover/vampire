@@ -1,6 +1,7 @@
-DecisionProcedure.hpp
-explanation
-ShortConflictMetaDP.cpp
+Stuff for decision procedures in general. Here a decision procedure decides whether a set of literals is satisfiable.
+
+DecisionProcedure.hpp			General DP interface
+ShortConflictMetaDP.cpp			Wrapper for a DP that aims to minimize unsat cores (?)
 ShortConflictMetaDP.hpp
-SimpleCongruenceClosure.cpp
+SimpleCongruenceClosure.cpp		Congruence closure decision procedure
 SimpleCongruenceClosure.hpp

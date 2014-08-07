@@ -1,7 +1,8 @@
-Assertion.cpp
+For debugging.
+
+Assertion.cpp			Defining assertions
 Assertion.hpp
-explanation
-RuntimeStatistics.cpp
+RuntimeStatistics.cpp		Tracking runtime statistics
 RuntimeStatistics.hpp
-Tracer.cpp
+Tracer.cpp			Call tracing
 Tracer.hpp

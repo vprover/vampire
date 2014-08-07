@@ -273,7 +273,7 @@ struct SimpleCongruenceClosure::FOConversionWorker
 
   unsigned post(TermList t, size_t childCnt, unsigned* childRes)
   {
-    CALL("MaxDegreeRetrievalWorker::post");
+    CALL("SimpleCongruenceClosure::FOConversionWorker::post");
 
     unsigned res;
     if(_parent._termNames.find(t, res)) {
@@ -301,6 +301,13 @@ struct SimpleCongruenceClosure::FOConversionWorker
   SimpleCongruenceClosure& _parent;
 };
 
+/**
+ * Convert a first-order term into a canonical constant
+ * by traversing the term structure converting each subterm, results are
+ * cached in _termNames for consistency
+ *
+ * (see FOConversionWorker)
+ */
 unsigned SimpleCongruenceClosure::convertFO(TermList trm)
 {
   CALL("SimpleCongruenceClosure::convertFO(TermList)");
@@ -315,9 +322,14 @@ unsigned SimpleCongruenceClosure::convertFO(TermList trm)
   return convertor(trm);
 }
 
+/**
+ * Convert a non-equality term into a canonical constant
+ *
+ */
 unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
 {
   CALL("SimpleCongruenceClosure::convertFONonEquality");
+  ASS(!lit->isEquality);
 
   unsigned res;
   if(_litNames.find(lit, res)) {
@@ -341,6 +353,9 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
   return res;
 }
 
+/**
+ * Uses Shell::DistinctProcessor to check for $distinct predicate from TFF language in TPTP
+ */
 bool SimpleCongruenceClosure::isDistinctPred(Literal* l)
 {
   CALL("SimpleCongruenceClosure::isDistinctPred");
@@ -348,6 +363,9 @@ bool SimpleCongruenceClosure::isDistinctPred(Literal* l)
   return Shell::DistinctProcessor::isDistinctPred(l);
 }
 
+/**
+ * Records distinct arguments (will be used to check satisfiability)
+ */
 void SimpleCongruenceClosure::readDistinct(Literal* lit)
 {
   CALL("SimpleCongruenceClosure::readDistinct");
@@ -364,15 +382,37 @@ void SimpleCongruenceClosure::readDistinct(Literal* lit)
   }
 }
 
+/**
+ * Convert a equality literal into a CEq
+ * by first converting each side into a representative constant (see convertFO)
+ */
 SimpleCongruenceClosure::CEq SimpleCongruenceClosure::convertFOEquality(Literal* equality)
 {
   CALL("SimpleCongruenceClosure::convertFOEquality(Literal*)");
+  ASS(equality->isEquality);
 
   unsigned arg1 = convertFO(*equality->nthArgument(0));
   unsigned arg2 = convertFO(*equality->nthArgument(1));
   return CEq(arg1, arg2, equality);
 }
 
+/**
+ * Add literals based on their structure
+ * - if non-ground ignore
+ *
+ * - if equality convert each side to a representative integer and place in a CEq
+ *     if positive equality add eq as a pending equality
+ *     otherwise add eq to _negEqualities
+ *
+ * - if distinct predicate (a special predicate in teh TFF language of TPTP that
+ *     gaurentees that its arguments are distinct)
+ *     add to distinctConstraints or negDistinctConstraints appropriately
+ *
+ * - otherwise build an integer representative of the term and
+ *    if the literal is positive equate it with a positive constant
+ *    otherwise, equate it with a negative constant
+ *
+ */
 void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
 {
   CALL("SimpleCongruenceClosure::addLiterals");
@@ -444,6 +484,11 @@ void SimpleCongruenceClosure::makeProofRepresentant(unsigned c)
   ASS(transfPrem.isInvalid()); //the proof tree root has invalid equality as a premise
 }
 
+/**
+ * Propagate any pending equalities
+ *
+ *
+ */
 void SimpleCongruenceClosure::propagate()
 {
   CALL("SimpleCongruenceClosure::propagate");
@@ -456,6 +501,7 @@ void SimpleCongruenceClosure::propagate()
     if(curr.first==curr.second) {
       continue;
     }
+    // Ensure the first constant has a smaller class size
     if(getClassSize(curr.first)>getClassSize(curr.second)) {
       std::swap(curr0.c1, curr0.c2);
       std::swap(curr.first, curr.second);
@@ -472,18 +518,21 @@ void SimpleCongruenceClosure::propagate()
       aProofInfo.predecessorPremise = curr0;
     }
 
+    // Get the class representatives
     unsigned aRep = curr.first;
     unsigned bRep = curr.second;
 
     ConstInfo& aInfo = _cInfos[aRep];
     ConstInfo& bInfo = _cInfos[bRep];
-    ASS_EQ(aInfo.reprConst,0);
+    ASS_EQ(aInfo.reprConst,0); // ensure that they are their own representatives
     ASS_EQ(bInfo.reprConst,0);
 
     DEBUG_CODE( aInfo.assertValid(*this, aRep); );
     DEBUG_CODE( bInfo.assertValid(*this, bRep); );
 
-
+    // Merge first class into second (which is why we wanted the first to be smaller)
+    // To do this we update the representative for all constants in
+    // the class of aRep to be bRep
     aInfo.reprConst = bRep;
     bInfo.classList.push(aRep);
     Stack<unsigned>::Iterator aChildIt(aInfo.classList);
@@ -492,6 +541,8 @@ void SimpleCongruenceClosure::propagate()
       bInfo.classList.push(aChild);
       _cInfos[aChild].reprConst = bRep;
     }
+    // Now update all places where aRep has been used as a
+    // representative of one of the arguments of a pair
     Stack<unsigned>::Iterator aUseIt(aInfo.useList);
     while(aUseIt.hasNext()) {
       unsigned usePairConst = aUseIt.next();
@@ -581,12 +632,20 @@ DecisionProcedure::Status SimpleCongruenceClosure::checkNegativeDistincts(bool r
   return DecisionProcedure::SATISFIABLE;
 }
 
+/**
+ * Decide whether the added literals are satisfiable. The @c retrieveMultipleCores parameter
+ * indicates whether, on unsat, we should compute all unsat cores or only the first one
+ *
+ */
 DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultipleCores)
 {
   CALL("SimpleCongruenceClosure::getStatus");
 
+  // Propagate any pending equalities
   propagate();
 
+  // Check classes satisfy distincts (inbuilt predicate stating inequality)
+  // Straightforward to check positive distincts against congruence classes
   if(!checkPositiveDistincts(retrieveMultipleCores)) {
     if(!retrieveMultipleCores) {
       return DecisionProcedure::UNSATISFIABLE;
@@ -598,9 +657,15 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultip
   //A possible problem with this is that the non-equality true!=false is the
   //first one, so whenever we have a contradiction with non-equality predicates,
   //it will be discovered first.
+  //
+  // Giles: not sure why 'early' equalities are better as the order of added literals
+  //        is based on order added to SAT solver, which is not necessarily indicative
+  //        of ordering in SAT solver splitting tree
+  //        Cannot see why true!=false would be first non-equality
   Stack<CEq>::BottomFirstIterator neqIt(_negEqualities);
   while(neqIt.hasNext()) {
     CEq neq = neqIt.next();
+    // derNEq is neq with each half converted to its class representative
     CPair derNEq = deref(neq);
     if(derNEq.first==derNEq.second) {
       _unsatEqs.push(neq);
@@ -610,6 +675,8 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultip
     }
   }
 
+  // check negative distincts, but might return UNKNOWN as if we don't falsify the
+  // distinctness it doesn't mean we can't
   DecisionProcedure::Status ndStatus = checkNegativeDistincts(retrieveMultipleCores);
 
   if(_unsatEqs.isNonEmpty()) {
@@ -677,6 +744,11 @@ void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stac
   }
 }
 
+/**
+ * Retrieve unsatcore @c coreIndex
+ * This uses the @c coreIndex violated non-equality to extract a set of literals to explain
+ * the violation.
+ */
 void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex)
 {
   CALL("SimpleCongruenceClosure::getUnsatisfiableSubset");
@@ -706,6 +778,7 @@ void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex
       continue;
     }
     pathStack.reset();
+    // put into pathStack constants whose premises imply the equality
     collectUnifyingPath(curr.first, curr.second, pathStack);
     while(pathStack.isNonEmpty()) {
       unsigned proofStepConst = pathStack.pop();
