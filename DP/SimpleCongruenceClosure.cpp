@@ -329,7 +329,7 @@ unsigned SimpleCongruenceClosure::convertFO(TermList trm)
 unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
 {
   CALL("SimpleCongruenceClosure::convertFONonEquality");
-  ASS(!lit->isEquality);
+  ASS(!lit->isEquality());
 
   unsigned res;
   if(_litNames.find(lit, res)) {
@@ -389,7 +389,7 @@ void SimpleCongruenceClosure::readDistinct(Literal* lit)
 SimpleCongruenceClosure::CEq SimpleCongruenceClosure::convertFOEquality(Literal* equality)
 {
   CALL("SimpleCongruenceClosure::convertFOEquality(Literal*)");
-  ASS(equality->isEquality);
+  ASS(equality->isEquality());
 
   unsigned arg1 = convertFO(*equality->nthArgument(0));
   unsigned arg2 = convertFO(*equality->nthArgument(1));
