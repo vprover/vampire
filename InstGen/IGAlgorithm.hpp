@@ -49,6 +49,9 @@ using namespace Shell;
 
 class IGAlgorithm : public MainLoop {
 public:
+  CLASS_NAME(IGAlgorithm);
+  USE_ALLOCATOR(IGAlgorithm);  
+  
   typedef Statistics::TerminationReason TerminationReason;
 
   IGAlgorithm(Problem& prb, const Options& opt);
