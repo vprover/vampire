@@ -21,6 +21,9 @@ using namespace SAT;
 
 class Grounder {
 public:
+  CLASS_NAME(Grounder);
+  USE_ALLOCATOR(Grounder);
+  
   Grounder() : _nextSatVar(1), _satSolver(0) {}
   Grounder(SATSolver* satSolver) : _nextSatVar(1), _satSolver(satSolver) {}
   virtual ~Grounder() { CALL("Kernel::~Grounder"); }
@@ -61,6 +64,9 @@ class GlobalSubsumptionGrounder : public Grounder {
 
   bool _doNormalization;
 public:
+  CLASS_NAME(GlobalSubsumptionGrounder);
+  USE_ALLOCATOR(GlobalSubsumptionGrounder);
+
   GlobalSubsumptionGrounder(bool doNormalization=true) : _doNormalization(doNormalization) {}
 protected:
   virtual void normalize(unsigned cnt, Literal** lits);
@@ -68,6 +74,9 @@ protected:
 
 class IGGrounder : public Grounder {
 public:
+  CLASS_NAME(IGGrounder);
+  USE_ALLOCATOR(IGGrounder);
+
   IGGrounder(SATSolver* satSolver);
 private:
   TermList _tgtTerm;

@@ -21,6 +21,9 @@ using namespace Kernel;
 class ClauseVariantIndex
 {
 public:
+  CLASS_NAME(ClauseVariantIndex);
+  USE_ALLOCATOR(ClauseVariantIndex);
+
   ClauseVariantIndex() : _emptyClauses(0) {}
   ~ClauseVariantIndex();
 
