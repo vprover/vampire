@@ -8,7 +8,7 @@
 #define __Renaming__
 
 #if VDEBUG
-#include<string>
+#include "Lib/VString.hpp"
 #endif
 
 #include "Lib/DHMap.hpp"
@@ -64,7 +64,7 @@ public:
 
 #if VDEBUG
   void assertValid() const;
-  string toString() const;
+  vstring toString() const;
 #endif
 private:
   class Applicator

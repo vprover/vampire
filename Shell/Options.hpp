@@ -538,9 +538,9 @@ public:
 public:
   Options ();
   void output (ostream&) const;
-  void readFromTestId (string testId);
-  void readOptionsString (string testId);
-  string generateTestId() const;
+  void readFromTestId (vstring testId);
+  void readOptionsString (vstring testId);
+  vstring generateTestId() const;
   bool complete(const Problem&) const;
   bool completeForNNE() const;
   void setForcedOptionValues();
@@ -556,13 +556,13 @@ public:
    * the problem name is equal to "unknown". The problem name can
    * be set to a specific value using setProblemName().
    */
-  string problemName () const { return _problemName; }
-  void setProblemName(string str) { _problemName = str; }
+  vstring problemName () const { return _problemName; }
+  void setProblemName(vstring str) { _problemName = str; }
 
-  string forcedOptions() const { return _forcedOptions; }
-  string forbiddenOptions() const { return _forbiddenOptions; }
-  string testId() const { return _testId; }
-  string protectedPrefix() const { return _protectedPrefix; }
+  vstring forcedOptions() const { return _forcedOptions; }
+  vstring forbiddenOptions() const { return _forbiddenOptions; }
+  vstring testId() const { return _testId; }
+  vstring protectedPrefix() const { return _protectedPrefix; }
   Statistics statistics() const { return _statistics; }
   void setStatistics(Statistics newVal) { _statistics=newVal; }
   Proof proof() const { return _proof; }
@@ -599,11 +599,11 @@ public:
   void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
   bool normalize() const { return _normalize; }
   void setNormalize(bool normalize) { _normalize = normalize; }
-  string include() const { return _include; }
-  void setInclude(string val) { _include = val; }
-  string includeFileName (const string& relativeName);
-  string logFile() const { return _logFile; }
-  string inputFile() const { return _inputFile; }
+  vstring include() const { return _include; }
+  void setInclude(vstring val) { _include = val; }
+  vstring includeFileName (const vstring& relativeName);
+  vstring logFile() const { return _logFile; }
+  vstring inputFile() const { return _inputFile; }
   int randomSeed() const { return _randomSeed; }
   int rowVariableMaxLength() const { return _rowVariableMaxLength; }
   void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
@@ -633,7 +633,7 @@ public:
   int selection() const { return _selection; }
   bool setSelection(int newValue);
   bool setInstGenSelection(int newValue);
-  string latexOutput() const { return _latexOutput; }
+  vstring latexOutput() const { return _latexOutput; }
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode; }
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution; }
   void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
@@ -654,7 +654,7 @@ public:
   bool forwardSubsumption() const { return _forwardSubsumption; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting; }
 
-  string lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants; }
+  vstring lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly; }
   bool setLrsFirstTimeCheck(int newVal);
@@ -694,8 +694,8 @@ public:
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering = newVal; }
-  string xmlOutput() const { return _xmlOutput; }
-  string thanks() const { return _thanks; }
+  vstring xmlOutput() const { return _xmlOutput; }
+  vstring thanks() const { return _thanks; }
 
   bool globalSubsumption() const { return _globalSubsumption; }
   /** true if calling set() on non-existing options does not result in a user error */
@@ -709,7 +709,7 @@ public:
   void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
   Condensation condensation() const { return _condensation; }
   RuleActivity generalSplitting() const { return _generalSplitting; }
-  string namePrefix() const { return _namePrefix; }
+  vstring namePrefix() const { return _namePrefix; }
   bool timeStatistics() const { return _timeStatistics; }
 //  bool splitAddGroundNegation() const { return _splitAddGroundNegation; }
   bool splitAtActivation() const { return _splitAtActivation; }
@@ -773,7 +773,7 @@ public:
   NicenessOption nicenessOption() const { return _nicenessOption; }
 
   void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
-  void setInputFile(const string& newVal);
+  void setInputFile(const vstring& newVal);
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds = newVal; }
   int getTimeLimit(){return _timeLimitInDeciseconds;}
@@ -782,7 +782,7 @@ public:
 //   // standard ways of creating options
   XMLElement toXML() const;
   bool outputSuppressed() const;
-  void set(const string& name, const string& value);
+  void set(const vstring& name, const vstring& value);
   void set(const char* name, const char* value);
   void setShort(const char* name, const char* value);
 
@@ -819,9 +819,9 @@ public:
   USE_ALLOCATOR(Options);
 
   /** first is option name, second option value */
-  typedef pair<string, string> OptionSpec;
+  typedef pair<vstring, vstring> OptionSpec;
   typedef Stack<OptionSpec> OptionSpecStack;
-  static void readOptionsString(string testId, OptionSpecStack& assignments);
+  static void readOptionsString(vstring testId, OptionSpecStack& assignments);
 
 private:
   void set(const char* name, const char* value, int index);
@@ -874,9 +874,9 @@ private:
   bool _extensionalityAllowPosEq;
   
   bool _flattenTopLevelConjunctions;
-  string _forbiddenOptions;
+  vstring _forbiddenOptions;
   bool _forceIncompleteness;
-  string _forcedOptions;
+  vstring _forcedOptions;
   Demodulation _forwardDemodulation;
   bool _forwardLiteralRewriting;
   bool _forwardSubsumption;
@@ -892,7 +892,7 @@ private:
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   bool _ignoreMissing;
-  string _include;
+  vstring _include;
   /** if this option is true, Vampire will add the numeral weight of a clause
    * to its weight. The weight is defined as the sum of binary sizes of all
    * integers occurring in this clause. This option has not been tested and
@@ -900,7 +900,7 @@ private:
    */
   bool _increasedNumeralWeight;
   int _inequalitySplitting;
-  string _inputFile;
+  vstring _inputFile;
   InputSyntax _inputSyntax;
   float _instGenBigRestartRatio;
   bool _instGenInprocessing;
@@ -913,11 +913,11 @@ private:
   bool _instGenWithResolution;
   bool _interpretedSimplification;
 
-  string _latexOutput;
-  string _lingvaAdditionalInvariants;
+  vstring _latexOutput;
+  vstring _lingvaAdditionalInvariants;
 
   LiteralComparisonMode _literalComparisonMode;
-  string _logFile;
+  vstring _logFile;
   int _lrsFirstTimeCheck;
   int _lrsWeightLimitOnly;
 
@@ -930,7 +930,7 @@ private:
   size_t _memoryLimit;
   Mode _mode;
 
-  string _namePrefix;
+  vstring _namePrefix;
   int _naming;
   NicenessOption _nicenessOption;
   float _nongoalWeightCoefficient;
@@ -949,11 +949,11 @@ private:
   int _predicateEquivalenceDiscoverySatConflictLimit;
   bool _predicateIndexIntroduction;
   bool _printClausifierPremises;
-  string _problemName;
+  vstring _problemName;
   Proof _proof;
   bool _proofChecking;
   
-  string _protectedPrefix;
+  vstring _protectedPrefix;
 
   QuestionAnsweringMode _questionAnswering;
 
@@ -1025,8 +1025,8 @@ private:
   bool _tabulationInstantiateProducingRules;
   int _tabulationLemmaAgeRatio;
   int _tabulationLemmaWeightRatio;
-  string _testId;
-  string _thanks;
+  vstring _testId;
+  vstring _thanks;
   bool _theoryAxioms;
   /** Time limit in deciseconds */
   int _timeLimitInDeciseconds;
@@ -1041,11 +1041,11 @@ private:
   int _weightRatio;
   int _whileNumber;
 
-  string _xmlOutput;
+  vstring _xmlOutput;
 
   // various read-from-string-write options
   static void readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio, char separator=':');
-  static string boolToOnOff(bool);
+  static vstring boolToOnOff(bool);
   void outputValue(ostream& str,int optionTag) const;
   friend class Shell::LTB::Builder;
 

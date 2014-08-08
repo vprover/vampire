@@ -33,9 +33,9 @@ namespace VUtils
 // proof extraction
 //
 
-string ZIE::hypothesesToString(List<TermList>* hypotheses)
+vstring ZIE::hypothesesToString(List<TermList>* hypotheses)
 {
-  string res;
+  vstring res;
   List<TermList>::Iterator hit(hypotheses);
   while(hit.hasNext()) {
     TermList hyp = hit.next();
@@ -77,7 +77,7 @@ void print(LExpr* expr)
   cout << ")";
 }
 
-void LISP_ERROR(string error, LExpr* expr)
+void LISP_ERROR(vstring error, LExpr* expr)
 {
   cout << "ERROR: "<< error << endl;
   print(expr);
@@ -106,13 +106,13 @@ bool ZIE::readLet(LExpr* expr, LExpr*& tail)
     LExpr* value;
     if(!asgn->getPair(nameE, value)) { LISP_ERROR("invalid let assignment", asgn); }
     if(!nameE->isAtom()) { LISP_ERROR("invalid let assignment name", asgn); }
-    string name = nameE->str;
+    vstring name = nameE->str;
     _letRecords.push(LetRecord(name, value));
   }
   return true;
 }
 
-TermList ZIE::getTermAssignment(string name)
+TermList ZIE::getTermAssignment(vstring name)
 {
   CALL("ZIE::getTermAssignment");
 
@@ -122,7 +122,7 @@ TermList ZIE::getTermAssignment(string name)
   return _termAssignments.get(name);
 }
 
-ZIE::ProofObject ZIE::getProofObjectAssignment(string name)
+ZIE::ProofObject ZIE::getProofObjectAssignment(vstring name)
 {
   CALL("ZIE::getProofObjectAssignment");
 
@@ -132,7 +132,7 @@ ZIE::ProofObject ZIE::getProofObjectAssignment(string name)
   return _proofAssignments.get(name);
 }
 
-unsigned ZIE::getFunctionNumber(string fnName, unsigned arity)
+unsigned ZIE::getFunctionNumber(vstring fnName, unsigned arity)
 {
   CALL("ZIE::getFunctionNumber");
   bool added;
@@ -195,7 +195,7 @@ TermList ZIE::readTerm(LExpr* term)
 
   if(term->isAtom()) {
     //we have a constant or a let variable
-    string name = term->str;
+    vstring name = term->str;
 
     if(isProofVariable(name)) { LISP_ERROR("proof variable inside term", term); }
     if(isTermVariable(name)) {
@@ -217,7 +217,7 @@ TermList ZIE::readTerm(LExpr* term)
   if(!args.hasNext()) { LISP_ERROR("invalid term", term); }
   LExpr* nameE = args.next();
   if(!nameE->isAtom()) { LISP_ERROR("invalid term name", nameE); }
-  string name = nameE->str;
+  vstring name = nameE->str;
 
   TermStack argStack;
   argStack.reset();
@@ -324,7 +324,7 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
 
   if(expr->isAtom()) {
     //we have a constant or a let variable
-    string name = expr->str;
+    vstring name = expr->str;
 
     if(isTermVariable(name)) { LISP_ERROR("proof variable expected, term variable found", expr); }
     if(isProofVariable(name)) {
@@ -379,7 +379,7 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
   LExprList::Iterator args(expr->list);
   if(!args.hasNext()) { LISP_ERROR("invalid proof object", expr); }
   LExpr* nameE = args.next();
-  string name = nameE->toString();
+  vstring name = nameE->toString();
 
   Stack<LExpr*> argStack;
   argStack.reset();
@@ -443,7 +443,7 @@ void ZIE::processLets()
   Stack<LetRecord>::BottomFirstIterator letIt(_letRecords);
   while(letIt.hasNext()) {
     LetRecord lrec = letIt.next();
-    string varName = lrec.first;
+    vstring varName = lrec.first;
     LExpr* expr = lrec.second;
     if(isTermVariable(varName)) {
       TermList trm = readTerm(expr);
@@ -563,7 +563,7 @@ TermColoring* ZIE::createRangeColorer()
   return res;
 }
 
-void ZIE::collectSMTLIB1FileFunctionNames(const char* fname, DHSet<string>& acc)
+void ZIE::collectSMTLIB1FileFunctionNames(const char* fname, DHSet<vstring>& acc)
 {
   CALL("ZIE::collectSMTLIB1FileFunctionNames");
 
@@ -590,7 +590,7 @@ void ZIE::collectSMTLIB1FileFunctionNames(const char* fname, DHSet<string>& acc)
       LispListReader declsListRdr(bRdr.readList());
       while(declsListRdr.hasNext()) {
 	LispListReader declRdr(declsListRdr.readList());
-	string funName = declRdr.readAtom();
+	vstring funName = declRdr.readAtom();
 	acc.insert(funName);
       }
     }
@@ -608,23 +608,23 @@ TermColoring* ZIE::createFileColorer(unsigned leftCnt, char** leftFNames, unsign
 {
   CALL("ZIE::createFileColorer");
 
-  DHSet<string> leftNames;
+  DHSet<vstring> leftNames;
   for(unsigned i=0; i<leftCnt; i++) {
     collectSMTLIB1FileFunctionNames(leftFNames[i], leftNames);
   }
-  DHSet<string> rightNames;
+  DHSet<vstring> rightNames;
   for(unsigned i=0; i<rightCnt; i++) {
     collectSMTLIB1FileFunctionNames(rightFNames[i], rightNames);
   }
-  DHSet<string> allNames;
-  allNames.loadFromIterator(DHSet<string>::Iterator(leftNames));
-  allNames.loadFromIterator(DHSet<string>::Iterator(rightNames));
+  DHSet<vstring> allNames;
+  allNames.loadFromIterator(DHSet<vstring>::Iterator(leftNames));
+  allNames.loadFromIterator(DHSet<vstring>::Iterator(rightNames));
 
-  DHMap<string,Color> nameColors;
+  DHMap<vstring,Color> nameColors;
 
-  DHSet<string>::Iterator nameIt(allNames);
+  DHSet<vstring>::Iterator nameIt(allNames);
   while(nameIt.hasNext()) {
-    string name = nameIt.next();
+    vstring name = nameIt.next();
     bool inLeft = leftNames.contains(name);
     bool inRight = rightNames.contains(name);
     ASS(inLeft || inRight);
@@ -724,13 +724,13 @@ int ZIE::perform(int argc, char** argv)
   CALL("ZIE::perform");
 
   bool quantifyRed = true;
-  if(argc>=3 && argv[2]==string("-b")) {
+  if(argc>=3 && argv[2]==vstring("-b")) {
     quantifyRed = false;
     //shift by one argument
     argc--;
     argv++;
   }
-  if(argc>=4 && argv[2]==string("-t")) {
+  if(argc>=4 && argv[2]==vstring("-t")) {
     unsigned timeLimit;
     ALWAYS(Int::stringToUnsignedInt(argv[3], timeLimit));
     env.options->setTimeLimitInSeconds(timeLimit);
@@ -739,7 +739,7 @@ int ZIE::perform(int argc, char** argv)
     argv+=2;
   }
   _showInterpolants = true;
-  if(argc>=3 && argv[2]==string("-q")) {
+  if(argc>=3 && argv[2]==vstring("-q")) {
     _showInterpolants = false;
     //shift by one argument
     argc--;

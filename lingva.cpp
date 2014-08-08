@@ -9,9 +9,9 @@
  * Implements the main function for running small tools thet use Vampire's infrastructure.
  */
 
-#include <string>
 #include <iostream>
 
+#include "Lib/VString.hpp"
 
 #include "Translator/MyASTConsumer.h"
 #include "llvm/Support/Host.h"
@@ -119,13 +119,13 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
   it.next();
 
   while(it.hasNext()) {
-    string arg(it.next());
+    vstring arg(it.next());
     if(arg=="-tr") {
       it.del();
       if(!it.hasNext()) {
 	USER_ERROR("value for -tr option expected");
       }
-      string traceStr(it.next());
+      vstring traceStr(it.next());
       it.del();
       PROCESS_TRACE_SPEC_STRING(traceStr);
     }
@@ -134,7 +134,7 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
       if(!it.hasNext()) {
 	USER_ERROR("value for -m option expected");
       }
-      string memLimitStr = it.next();
+      vstring memLimitStr = it.next();
       it.del();
       unsigned memLimit;
       if(!Int::stringToUnsignedInt(memLimitStr, memLimit)) {
@@ -148,7 +148,7 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
     	if(!it.hasNext()) {
     		USER_ERROR("value for -wno option expected");
     	      }
-    	string whileString = it.next();
+    	vstring whileString = it.next();
     	it.del();
 
     	int no;
@@ -200,7 +200,7 @@ int main(int argc, char* argv [])
 
     Allocator::setMemoryLimit(1024u*1048576ul);
 
-    string inputFile = env.options->inputFile();
+    vstring inputFile = env.options->inputFile();
     if(inputFile=="") {
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
@@ -212,7 +212,7 @@ int main(int argc, char* argv [])
     }
 /*
        const char *fim;
-       string opt = env.options->inputFile();
+       vstring opt = env.options->inputFile();
        fim = opt.c_str();
        runParsingAndAnalysis(fim);*/
   }

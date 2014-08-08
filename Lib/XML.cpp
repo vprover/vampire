@@ -18,15 +18,15 @@
 // class XMLAttribute::Data
 // {
 // public:
-//   Data(const string& name);
+//   Data(const vstring& name);
 //   virtual ~Data() {}
 //   virtual Type kind() = 0;
 
 //   inline void ref() { counter++; }
 //   void deref();
 //   void writeList(ostream&) const;
-//   const XMLAttribute* find(const string& name) const;
-//   string name;
+//   const XMLAttribute* find(const vstring& name) const;
+//   vstring name;
 //   int counter;
 //   XMLAttribute next;
 
@@ -41,11 +41,11 @@
 //   public XMLAttribute::Data
 // {
 // public:
-//   TextXMLAttribute(const string& name, const string& value);
+//   TextXMLAttribute(const vstring& name, const vstring& value);
 //   ~TextXMLAttribute() {}
 //   XMLAttribute::Type kind() { return XMLAttribute::TEXT; }
 //   void writeValue (ostream&) const;
-//   string value;
+//   vstring value;
 
 //   CLASS_NAME(XML::TextXMLAttribute);
 //   USE_ALLOCATOR(TextXMLAttribute);
@@ -58,7 +58,7 @@
 //   public XMLAttribute::Data
 // {
 // public:
-//   LongXMLAttribute(const string& name, long value);
+//   LongXMLAttribute(const vstring& name, long value);
 //   ~LongXMLAttribute() {}
 //   XMLAttribute::Type kind() { return XMLAttribute::LONG; }
 //   void writeValue (ostream&) const;
@@ -75,7 +75,7 @@
 //   public XMLAttribute::Data
 // {
 // public:
-//   DoubleXMLAttribute(const string& name, double value);
+//   DoubleXMLAttribute(const vstring& name, double value);
 //   ~DoubleXMLAttribute() {}
 //   XMLAttribute::Type kind() { return XMLAttribute::DOUBLE; }
 //   void writeValue (ostream&) const;
@@ -92,7 +92,7 @@
 //   public XMLAttribute::Data
 // {
 // public:
-//   UnsignedXMLAttribute(const string& name, unsigned value);
+//   UnsignedXMLAttribute(const vstring& name, unsigned value);
 //   ~UnsignedXMLAttribute() {}
 //   XMLAttribute::Type kind() { return XMLAttribute::UNSIGNED; }
 //   void writeValue (ostream&) const;
@@ -109,7 +109,7 @@
 //   public XMLAttribute::Data
 // {
 // public:
-//   IntegerXMLAttribute(const string& name, int value);
+//   IntegerXMLAttribute(const vstring& name, int value);
 //   ~IntegerXMLAttribute() {}
 //   XMLAttribute::Type kind() { return XMLAttribute::INTEGER; }
 //   void writeValue (ostream&) const;
@@ -122,7 +122,7 @@
 // class XMLElement::Data
 // {
 // public:
-//   Data(const string& name);
+//   Data(const vstring& name);
 //   virtual ~Data() {}
 //   virtual Type kind() = 0;
 
@@ -131,7 +131,7 @@
 //   void addAttribute(const XMLAttribute&);
 //   virtual void write(ostream&,int indent) const;
 
-//   string name;
+//   vstring name;
 //   int counter;
 //   XMLAttribute firstXMLAttribute;
 //   XMLAttribute lastXMLAttribute;
@@ -153,7 +153,7 @@
 //   : public XMLElement::Data
 // {
 // public:
-//   EmptyXMLElement(const string& name) : XMLElement::Data(name) {}
+//   EmptyXMLElement(const vstring& name) : XMLElement::Data(name) {}
 //   ~EmptyXMLElement() {}
 //   virtual XMLElement::Type kind() { return XMLElement::EMPTY; }
 //   void writeEndOfHeader(ostream& str) const;
@@ -172,9 +172,9 @@
 //   : public XMLElement::Data
 // {
 // public: 
-//   TextXMLElement(const string& name, const string& text);
+//   TextXMLElement(const vstring& name, const vstring& text);
 //   ~TextXMLElement() {}
-//   string text;
+//   vstring text;
 //   virtual XMLElement::Type kind() { return XMLElement::TEXT; }
 //   void writeContent (ostream&,int indent) const;
 
@@ -190,7 +190,7 @@
 //   : public XMLElement::Data
 // {
 // public: 
-//   explicit DeepXMLElement (const string& name);
+//   explicit DeepXMLElement (const vstring& name);
 //   void addChild(const XMLElement& subelement);
 //   ~DeepXMLElement () {}
 //   XMLElement firstChild;
@@ -210,7 +210,7 @@
 //   : public XMLElement::Data
 // {
 // public: 
-//   IntegerXMLElement(const string& name, int value);
+//   IntegerXMLElement(const vstring& name, int value);
 //   ~IntegerXMLElement() {}
 //   int value;
 //   virtual XMLElement::Type kind() { return XMLElement::INTEGER; }
@@ -228,7 +228,7 @@
 //   : public XMLElement::Data
 // {
 // public: 
-//   LongXMLElement(const string& name, long value);
+//   LongXMLElement(const vstring& name, long value);
 //   ~LongXMLElement() {}
 //   long value;
 //   virtual XMLElement::Type kind() { return XMLElement::LONG; }
@@ -246,7 +246,7 @@
 //   : public XMLElement::Data
 // {
 // public: 
-//   FloatXMLElement(const string& name, float value);
+//   FloatXMLElement(const vstring& name, float value);
 //   ~FloatXMLElement() {}
 //   float value;
 //   virtual XMLElement::Type kind() { return XMLElement::FLOAT; }
@@ -265,7 +265,7 @@
 //   : public XMLElement::Data
 // {
 // public: 
-//   DoubleXMLElement(const string& name, double value);
+//   DoubleXMLElement(const vstring& name, double value);
 //   ~DoubleXMLElement() {}
 //   double value;
 //   virtual XMLElement::Type kind() { return XMLElement::DOUBLE; }
@@ -277,14 +277,14 @@
 // }; // class DoubleXMLElement
 
 
-// XMLElement::Data::Data (const string& nm)
+// XMLElement::Data::Data (const vstring& nm)
 //   : name(nm),
 //     counter(1)
 // {
 // } // XMLElement::Data::Data
 
 
-// XMLAttribute::Data::Data (const string& nm)
+// XMLAttribute::Data::Data (const vstring& nm)
 //   : name(nm),
 //     counter(1)
 // {
@@ -369,80 +369,80 @@
 // } // XMLAttribute::XMLAttribute
 
 
-// XMLAttribute::XMLAttribute (const string& name, const string& value)
+// XMLAttribute::XMLAttribute (const vstring& name, const vstring& value)
 //   : _data(new TextXMLAttribute(name,value))
 // {
-//   CALL("XMLAttribute::XMLAttribute (const string& name, const string& value)");
-// } // XMLAttribute::XMLAttribute(const string& name, const string& value)
+//   CALL("XMLAttribute::XMLAttribute (const vstring& name, const vstring& value)");
+// } // XMLAttribute::XMLAttribute(const vstring& name, const vstring& value)
 
 
-// XMLAttribute::XMLAttribute (const string& name, long value)
+// XMLAttribute::XMLAttribute (const vstring& name, long value)
 //   : _data(new LongXMLAttribute(name,value))
 // {
-//   CALL("XMLAttribute::XMLAttribute (const string& name, long value)");
-// } // XMLAttribute::XMLAttribute(const string& name, long value)
+//   CALL("XMLAttribute::XMLAttribute (const vstring& name, long value)");
+// } // XMLAttribute::XMLAttribute(const vstring& name, long value)
 
 
-// XMLAttribute::XMLAttribute (const string& name, double value)
+// XMLAttribute::XMLAttribute (const vstring& name, double value)
 //   : _data(new DoubleXMLAttribute(name,value))
 // {
-//   CALL("XMLAttribute::XMLAttribute (const string& name, double value)");
-// } // XMLAttribute::XMLAttribute(const string& name, double value)
+//   CALL("XMLAttribute::XMLAttribute (const vstring& name, double value)");
+// } // XMLAttribute::XMLAttribute(const vstring& name, double value)
 
 
-// XMLAttribute::XMLAttribute (const string& name, unsigned value)
+// XMLAttribute::XMLAttribute (const vstring& name, unsigned value)
 //   : _data(new UnsignedXMLAttribute(name,value))
 // {
-//   CALL("XMLAttribute::XMLAttribute (const string& name, unsigned value)");
-// } // XMLAttribute::XMLAttribute(const string& name, unsigned value)
+//   CALL("XMLAttribute::XMLAttribute (const vstring& name, unsigned value)");
+// } // XMLAttribute::XMLAttribute(const vstring& name, unsigned value)
 
-// XMLAttribute::XMLAttribute (const string& name, int value)
+// XMLAttribute::XMLAttribute (const vstring& name, int value)
 //   : _data(new IntegerXMLAttribute(name,value))
 // {
-//   CALL("XMLAttribute::XMLAttribute (const string& name, int value)");
-// } // XMLAttribute::XMLAttribute(const string& name, int value)
+//   CALL("XMLAttribute::XMLAttribute (const vstring& name, int value)");
+// } // XMLAttribute::XMLAttribute(const vstring& name, int value)
 
 
-// XMLElement::XMLElement (const string& name, const string& value)
+// XMLElement::XMLElement (const vstring& name, const vstring& value)
 //   : _data(new TextXMLElement(name,value))
 // {
-//   CALL("XMLElement::XMLElement (const string& name, const string& value)");
-// } // XMLElement::XMLElement(const string& name, const string& value)
+//   CALL("XMLElement::XMLElement (const vstring& name, const vstring& value)");
+// } // XMLElement::XMLElement(const vstring& name, const vstring& value)
 
 
-// XMLElement::XMLElement (const string& name, int value)
+// XMLElement::XMLElement (const vstring& name, int value)
 //   : _data(new IntegerXMLElement(name,value))
 // {
-//   CALL("XMLElement::XMLElement (const string& name, int value)");
-// } // XMLElement::XMLElement(const string& name, int value)
+//   CALL("XMLElement::XMLElement (const vstring& name, int value)");
+// } // XMLElement::XMLElement(const vstring& name, int value)
 
 
-// XMLElement::XMLElement (const string& name, long value)
+// XMLElement::XMLElement (const vstring& name, long value)
 //   : _data(new LongXMLElement(name,value))
 // {
-//   CALL("XMLElement::XMLElement (const string& name, long value)");
-// } // XMLElement::XMLElement(const string& name, long value)
+//   CALL("XMLElement::XMLElement (const vstring& name, long value)");
+// } // XMLElement::XMLElement(const vstring& name, long value)
 
 
-// XMLElement::XMLElement (const string& name, float value)
+// XMLElement::XMLElement (const vstring& name, float value)
 //   : _data(new FloatXMLElement(name,value))
 // {
-//   CALL("XMLElement::XMLElement (const string& name, float value)");
-// } // XMLElement::XMLElement(const string& name, float value)
+//   CALL("XMLElement::XMLElement (const vstring& name, float value)");
+// } // XMLElement::XMLElement(const vstring& name, float value)
 
 
-// XMLElement::XMLElement (const string& name, double value)
+// XMLElement::XMLElement (const vstring& name, double value)
 //   : _data(new DoubleXMLElement(name,value))
 // {
-//   CALL("XMLElement::XMLElement (const string& name, double value)");
-// } // XMLElement::XMLElement(const string& name, double value)
+//   CALL("XMLElement::XMLElement (const vstring& name, double value)");
+// } // XMLElement::XMLElement(const vstring& name, double value)
 
 
-// XMLElement::XMLElement (const string& name)
+// XMLElement::XMLElement (const vstring& name)
 //   : _data(new DeepXMLElement(name))
 // {
-//   CALL("XMLElement::XMLElement (const string& name)");
-// } // XMLElement::XMLElement(const string& name)
+//   CALL("XMLElement::XMLElement (const vstring& name)");
+// } // XMLElement::XMLElement(const vstring& name)
 
 // /**
 //  * Assignment operator.
@@ -488,61 +488,61 @@
 //  * Empty element constructor
 //  * @since 14/09/2005 Redmond
 //  */
-// XMLElement::XMLElement (const string& name,bool dummy)
+// XMLElement::XMLElement (const vstring& name,bool dummy)
 //   : _data(new EmptyXMLElement(name))
 // {
-//   CALL("XMLElement::XMLElement (const string& name,bool dummy)");
+//   CALL("XMLElement::XMLElement (const vstring& name,bool dummy)");
 // } // XMLElement::XMLElement
 
 
-// void XMLElement::addAttribute (const string& name,const string& value)
+// void XMLElement::addAttribute (const vstring& name,const vstring& value)
 // {
-//   CALL("XMLElement::addAttribute (const string& name,const string& value)");
+//   CALL("XMLElement::addAttribute (const vstring& name,const vstring& value)");
 //   ASS(_data);
 
 //   XMLAttribute attr(name,value);
 //   _data->addAttribute(attr);
-// } // XMLElement::addAttribute (const string& name,const string& value)
+// } // XMLElement::addAttribute (const vstring& name,const vstring& value)
 
 
-// void XMLElement::addAttribute (const string& name,int value)
+// void XMLElement::addAttribute (const vstring& name,int value)
 // {
-//   CALL("XMLElement::addAttribute (const string& name,int value)");
+//   CALL("XMLElement::addAttribute (const vstring& name,int value)");
 //   ASS(_data);
 
 //   XMLAttribute attr(name,value);
 //   _data->addAttribute(attr);
-// } // XMLElement::addAttribute (const string& name,long value)
+// } // XMLElement::addAttribute (const vstring& name,long value)
 
 
-// void XMLElement::addAttribute (const string& name,unsigned value)
+// void XMLElement::addAttribute (const vstring& name,unsigned value)
 // {
-//   CALL("XMLElement::addAttribute (const string& name,unsigned value)");
+//   CALL("XMLElement::addAttribute (const vstring& name,unsigned value)");
 //   ASS(_data);
 
 //   XMLAttribute attr(name,value);
 //   _data->addAttribute(attr);
-// } // XMLElement::addAttribute (const string& name,unsigned value)
+// } // XMLElement::addAttribute (const vstring& name,unsigned value)
 
 
-// void XMLElement::addAttribute (const string& name,long value)
+// void XMLElement::addAttribute (const vstring& name,long value)
 // {
-//   CALL("XMLElement::addAttribute (const string& name,long value)");
+//   CALL("XMLElement::addAttribute (const vstring& name,long value)");
 //   ASS(_data);
 
 //   XMLAttribute attr(name,value);
 //   _data->addAttribute(attr);
-// } // XMLElement::addAttribute (const string& name,long value)
+// } // XMLElement::addAttribute (const vstring& name,long value)
 
 
-// void XMLElement::addAttribute (const string& name,double value)
+// void XMLElement::addAttribute (const vstring& name,double value)
 // {
-//   CALL("XMLElement::addAttribute (const string& name,int value)");
+//   CALL("XMLElement::addAttribute (const vstring& name,int value)");
 //   ASS(_data);
 
 //   XMLAttribute attr(name,value);
 //   _data->addAttribute(attr);
-// } // XMLElement::addAttribute (const string& name,double value)
+// } // XMLElement::addAttribute (const vstring& name,double value)
 
 
 // /**
@@ -551,9 +551,9 @@
 //  * The atribute must be an XML::TextXMLAttribute.
 //  * @since 11/09/2005 Redmond, copied from Bag::find
 //  */
-// const string* XMLElement::findStringValue (const string& name) const
+// const vstring* XMLElement::findStringValue (const vstring& name) const
 // {
-//   CALL("XMLElement::findStringValue (const string& name) const");
+//   CALL("XMLElement::findStringValue (const vstring& name) const");
 //   ASS(_data);
 //   XMLAttribute attr;
 //   _data->firstXMLAttribute.find(name,attr);
@@ -567,7 +567,7 @@
 // } // XMLElement::findStringValue
 
 
-// const string& XMLAttribute::name () const
+// const vstring& XMLAttribute::name () const
 // {
 //   CALL("XMLAttribute::name");
 //   ASS(_data);
@@ -575,7 +575,7 @@
 // } // XMLAttribute::name
 
 
-// const string& XMLElement::name () const
+// const vstring& XMLElement::name () const
 // {
 //   CALL("XMLElement::name");
 //   ASS(_data);
@@ -611,7 +611,7 @@
 // } // XMLElement::ChildIterator::next
 
 
-// const string& XMLElement::text () const
+// const vstring& XMLElement::text () const
 // {
 //   CALL("XMLElement::text");
 //   ASS(_data);
@@ -650,7 +650,7 @@
 // // /**
 // //  * Create a new attribute.
 // //  */
-// // XMLAttribute::XMLAttribute (Type type, const string& name)
+// // XMLAttribute::XMLAttribute (Type type, const vstring& name)
 // //   : _type (type),
 // //     _name (name),
 // //     _next (0),
@@ -662,7 +662,7 @@
 // /**
 //  * Create a new integer-valued attribute.
 //  */
-// IntegerXMLAttribute::IntegerXMLAttribute (const string& name, int val)
+// IntegerXMLAttribute::IntegerXMLAttribute (const vstring& name, int val)
 //   : XMLAttribute::Data(name),
 //     value(val)
 // {
@@ -672,7 +672,7 @@
 // /**
 //  * Create a new long-valued attribute.
 //  */
-// LongXMLAttribute::LongXMLAttribute (const string& name, long val)
+// LongXMLAttribute::LongXMLAttribute (const vstring& name, long val)
 //   : XMLAttribute::Data(name),
 //     value(val)
 // {
@@ -682,7 +682,7 @@
 // /**
 //  * Create a new text-valued attribute.
 //  */
-// TextXMLAttribute::TextXMLAttribute (const string& name, const string& text)
+// TextXMLAttribute::TextXMLAttribute (const vstring& name, const vstring& text)
 //   : XMLAttribute::Data(name),
 //     value(text)
 // {
@@ -692,7 +692,7 @@
 // /**
 //  * Create a new double-valued attribute.
 //  */
-// DoubleXMLAttribute::DoubleXMLAttribute (const string& name, double val)
+// DoubleXMLAttribute::DoubleXMLAttribute (const vstring& name, double val)
 //   : XMLAttribute::Data(name),
 //     value(val)
 // {
@@ -702,7 +702,7 @@
 // /**
 //  * Create a new unsigned-valued attribute.
 //  */
-// UnsignedXMLAttribute::UnsignedXMLAttribute (const string& name, unsigned val)
+// UnsignedXMLAttribute::UnsignedXMLAttribute (const vstring& name, unsigned val)
 //   : XMLAttribute::Data(name),
 //     value(val)
 // {
@@ -743,7 +743,7 @@
 // /**
 //  * Write the element to the end of the file.
 //  */
-// void XMLElement::append (const string& file)
+// void XMLElement::append (const vstring& file)
 // {
 //   CALL("XMLElement::append");
 
@@ -776,7 +776,7 @@
 // /**
 //  * Create a new text element with no attributes.
 //  */
-// TextXMLElement::TextXMLElement (const string& name, const string& txt)
+// TextXMLElement::TextXMLElement (const vstring& name, const vstring& txt)
 //   : XMLElement::Data(name),
 //     text(txt)
 // {
@@ -786,7 +786,7 @@
 // /**
 //  * Create a new deep element with no attributes.
 //  */
-// DeepXMLElement::DeepXMLElement (const string& name)
+// DeepXMLElement::DeepXMLElement (const vstring& name)
 //   : XMLElement::Data(name)
 // {
 //   CALL("DeepXMLElement::DeepXMLElement");
@@ -795,7 +795,7 @@
 // /**
 //  * Create a new float-valued element with no attributes.
 //  */
-// FloatXMLElement::FloatXMLElement (const string& name, float val)
+// FloatXMLElement::FloatXMLElement (const vstring& name, float val)
 //   : XMLElement::Data(name),
 //     value(val)
 // {
@@ -805,7 +805,7 @@
 // /**
 //  * Create a new double-valued element with no attributes.
 //  */
-// DoubleXMLElement::DoubleXMLElement (const string& name, double val)
+// DoubleXMLElement::DoubleXMLElement (const vstring& name, double val)
 //   : XMLElement::Data(name),
 //     value(val)
 // {
@@ -815,7 +815,7 @@
 // /**
 //  * Create a new long-valued element with no attributes.
 //  */
-// LongXMLElement::LongXMLElement (const string& name, long val)
+// LongXMLElement::LongXMLElement (const vstring& name, long val)
 //   : XMLElement::Data(name),
 //     value(val)
 // {
@@ -825,7 +825,7 @@
 // /**
 //  * Create a new integer-valued element with no attributes.
 //  */
-// IntegerXMLElement::IntegerXMLElement (const string& name, int val)
+// IntegerXMLElement::IntegerXMLElement (const vstring& name, int val)
 //   : XMLElement::Data(name),
 //     value(val)
 // {
@@ -1049,10 +1049,10 @@
 // }
 
 // /**
-//  * Write string by translating cnaracters in it.
+//  * Write a vstring by translating characters in it.
 //  * @since 28/08/2004 Torrevieja
 //  */
-// void XMLElement::writeString (ostream& str,const string& s)
+// void XMLElement::writeString (ostream& str,const vstring& s)
 // {
 //   CALL("XMLElement::writeString");
 
@@ -1086,7 +1086,7 @@
 //  * Find an attribute with a given @b name and return it in @b result
 //  * @since 07/04/2005 Torrevieja
 //  */
-// void XMLAttribute::find (const string& name,XMLAttribute& result) const
+// void XMLAttribute::find (const vstring& name,XMLAttribute& result) const
 // {
 //   CALL("XMLAttribute::find");
 

@@ -40,7 +40,7 @@ public:
 	  bool complementary, bool retrieveSubstitutions);
 
 #if VDEBUG
-  string toString() {return SubstitutionTree::toString();}
+  vstring toString() {return SubstitutionTree::toString();}
 #endif
 
 private:

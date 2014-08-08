@@ -19,31 +19,31 @@ using namespace std;
 class EnumReaderBase {
 public:
   EnumReaderBase()
-   : _vals(new DHMap<string,int>()), _names(new DHMap<int,string>())
+   : _vals(new DHMap<vstring,int>()), _names(new DHMap<int,vstring>())
   {
   }
 
-  void addVal(string name, int val)
+  void addVal(vstring name, int val)
   {
     CALL("EnumReaderBase::addVal");
     ALWAYS(_vals->insert(name, val));
     ALWAYS(_names->insert(val, name));
   }
-  bool tryRead(string name, int& val) const
+  bool tryRead(vstring name, int& val) const
   {
     CALL("EnumReaderBase::tryRead");
     return _vals->find(name, val);
   }
-  string getValName(int val) const {
+  vstring getValName(int val) const {
     return _names->get(val);
   }
 
-  string toString() const {
+  vstring toString() const {
     CALL("EnumReaderBase::toString");
-    string res;
-    DHMap<string,int>::Iterator valIt(*_vals);
+    vstring res;
+    DHMap<vstring,int>::Iterator valIt(*_vals);
     while(valIt.hasNext()) {
-      string val = valIt.nextKey();
+      vstring val = valIt.nextKey();
       res += val;
       if(valIt.hasNext()) {
 	res+= ", ";
@@ -53,20 +53,20 @@ public:
   }
 
 private:
-  SmartPtr<DHMap<string,int> > _vals;
-  SmartPtr<DHMap<int,string> > _names;
+  SmartPtr<DHMap<vstring,int> > _vals;
+  SmartPtr<DHMap<int,vstring> > _names;
 };
 
 template<typename Enum>
 class EnumReader : public EnumReaderBase {
 public:
-  void addVal(string name, Enum val)
+  void addVal(vstring name, Enum val)
   {
     CALL("EnumReader::addVal");
 
     EnumReaderBase::addVal(name, val);
   }
-  bool tryRead(string name, Enum& val) const
+  bool tryRead(vstring name, Enum& val) const
   {
     int aux;
     if(!EnumReaderBase::tryRead(name, aux)) {
@@ -79,7 +79,7 @@ public:
 
 class OptionsReader {
 public:
-  void registerStringOption(string* tgt, string name, string shortName=string()) {
+  void registerStringOption(vstring* tgt, vstring name, vstring shortName=vstring()) {
     _longNames.push(name);
     ALWAYS(_stringOptTargets.insert(name, tgt));
     if(shortName!="") {
@@ -87,7 +87,7 @@ public:
     }
   }
 
-  void registerIntOption(int* tgt, string name, string shortName=string()) {
+  void registerIntOption(int* tgt, vstring name, vstring shortName=vstring()) {
     _longNames.push(name);
     ALWAYS(_intOptTargets.insert(name, tgt));
     if(shortName!="") {
@@ -95,7 +95,7 @@ public:
     }
   }
 
-  void registerUnsignedOption(unsigned* tgt, string name, string shortName=string()) {
+  void registerUnsignedOption(unsigned* tgt, vstring name, vstring shortName=vstring()) {
     _longNames.push(name);
     ALWAYS(_unsignedOptTargets.insert(name, tgt));
     if(shortName!="") {
@@ -103,7 +103,7 @@ public:
     }
   }
 
-  void registerFloatOption(float* tgt,string name, string shortName=string()) {
+  void registerFloatOption(float* tgt,vstring name, vstring shortName=vstring()) {
     _longNames.push(name);
     ALWAYS(_floatOptTargets.insert(name, tgt));
     if(shortName!="") {
@@ -111,7 +111,7 @@ public:
     }
   }
 
-  void registerBoolOption(bool* tgt,string name, string shortName=string()) {
+  void registerBoolOption(bool* tgt,vstring name, vstring shortName=vstring()) {
     _longNames.push(name);
     ALWAYS(_boolOptTargets.insert(name, tgt));
     if(shortName!="") {
@@ -120,7 +120,7 @@ public:
   }
 
   template<typename Enum>
-  void registerEnumOption(Enum* tgt, EnumReaderBase enumVals, string name, string shortName=string()) {
+  void registerEnumOption(Enum* tgt, EnumReaderBase enumVals, vstring name, vstring shortName=vstring()) {
     _longNames.push(name);
     int* intTgt = reinterpret_cast<int*>(tgt);
     ALWAYS(_enumOptTargets.insert(name, intTgt));
@@ -131,25 +131,25 @@ public:
     }
   }
 
-  bool readOption(string name, string value) const;
-  bool readOptions(string str) const;
+  bool readOption(vstring name, vstring value) const;
+  bool readOptions(vstring str) const;
 
-  void printOptionValue(string name, ostream& out);
-  string getOptionStringValue(string optName);
-  void printOptionValues(ostream& out, OptionsReader* defOpts=0, string linePrefix=string());
+  void printOptionValue(vstring name, ostream& out);
+  vstring getOptionStringValue(vstring optName);
+  void printOptionValues(ostream& out, OptionsReader* defOpts=0, vstring linePrefix=vstring());
 
-  static bool tryReadBool(string val, bool& tgt);
+  static bool tryReadBool(vstring val, bool& tgt);
 
 private:
   StringStack _longNames;
 
-  DHMap<string,string*> _stringOptTargets;
-  DHMap<string,int*> _intOptTargets;
-  DHMap<string,unsigned*> _unsignedOptTargets;
-  DHMap<string,float*> _floatOptTargets;
-  DHMap<string,bool*> _boolOptTargets;
-  DHMap<string,int*> _enumOptTargets;
-  DHMap<string,EnumReaderBase> _enumOptVals;
+  DHMap<vstring,vstring*> _stringOptTargets;
+  DHMap<vstring,int*> _intOptTargets;
+  DHMap<vstring,unsigned*> _unsignedOptTargets;
+  DHMap<vstring,float*> _floatOptTargets;
+  DHMap<vstring,bool*> _boolOptTargets;
+  DHMap<vstring,int*> _enumOptTargets;
+  DHMap<vstring,EnumReaderBase> _enumOptVals;
 };
 
 }

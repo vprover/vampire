@@ -55,8 +55,8 @@ private:
      : c1(c1), c2(c2), foOrigin(false) {}
 
     bool isInvalid() const { ASS_EQ(c1==0, c2==0); return c1==0; }
-    string toString() const;
-    string toString(SimpleCongruenceClosure& parent) const;
+    vstring toString() const;
+    vstring toString(SimpleCongruenceClosure& parent) const;
 
     unsigned c1;
     unsigned c2;

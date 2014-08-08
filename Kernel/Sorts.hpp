@@ -6,15 +6,13 @@
 #ifndef __Sorts__
 #define __Sorts__
 
-#include <string>
-
 #include "Forwards.hpp"
 
 #include "Lib/Map.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
-
 #include "Lib/Allocator.hpp"
+#include "Lib/VString.hpp"
 
 namespace Kernel {
 
@@ -52,20 +50,20 @@ public:
     CLASS_NAME(SortInfo);
     USE_ALLOCATOR(SortInfo);
   
-    SortInfo(const string& name) : _name(name) {}
+    SortInfo(const vstring& name) : _name(name) {}
     
-    const string& name() const { return _name; }
+    const vstring& name() const { return _name; }
   private:
-    string _name;
+    vstring _name;
   };
 
-  unsigned addSort(const string& name, bool& added);
-  unsigned addSort(const string& name);
+  unsigned addSort(const vstring& name, bool& added);
+  unsigned addSort(const vstring& name);
 
-  bool haveSort(const string& name);
-  bool findSort(const string& name, unsigned& idx);
+  bool haveSort(const vstring& name);
+  bool findSort(const vstring& name, unsigned& idx);
 
-  const string& sortName(unsigned idx) const
+  const vstring& sortName(unsigned idx) const
   {
     CALL("Sorts::sortName");
     return _sorts[idx]->name();
@@ -108,7 +106,7 @@ public:
   bool operator==(const BaseType& o) const;
   bool operator!=(const BaseType& o) const { return !(*this==o); }
 
-  virtual string toString() const = 0;
+  virtual vstring toString() const = 0;
 
   static BaseType* makeType(unsigned arity, const unsigned* domainSorts, unsigned rangeSort);
   static BaseType* makeType0(unsigned rangeSort);
@@ -119,7 +117,7 @@ public:
 protected:
   BaseType(unsigned arity, const unsigned* sorts=0);
 
-  string argsToString() const;
+  vstring argsToString() const;
 private:
   typedef Vector<unsigned> SortVector;
   SortVector* _args;
@@ -134,7 +132,7 @@ public:
   PredicateType(unsigned arity, const unsigned* argumentSorts = 0)
    : BaseType(arity, argumentSorts) {}
 
-  virtual string toString() const;
+  virtual vstring toString() const;
 };
 
 class FunctionType : public BaseType
@@ -152,7 +150,7 @@ public:
   virtual bool isSingleSortType(unsigned sort) const;
   virtual bool isFunctionType() const { return true; }
 
-  virtual string toString() const;
+  virtual vstring toString() const;
 private:
   unsigned _result;
 };

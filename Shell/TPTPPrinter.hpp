@@ -26,22 +26,22 @@ public:
   TPTPPrinter(ostream* tgtStream=0);
 
   void print(Unit* u);
-  void printAsClaim(string name, Unit* u);
+  void printAsClaim(vstring name, Unit* u);
 
-  static string toString(const Unit*);
-  static string toString(const Formula*);
-  static string toString(const Term*);
-  static string toString(const Literal*);
+  static vstring toString(const Unit*);
+  static vstring toString(const Formula*);
+  static vstring toString(const Term*);
+  static vstring toString(const Literal*);
 
 private:
 
-  string getBodyStr(Unit* u);
+  vstring getBodyStr(Unit* u);
 
   void ensureHeadersPrinted(Unit* u);
   void outputSymbolTypeDefinitions(unsigned symNumber, bool function);
 
   void ensureNecesarySorts();
-  void printTffWrapper(Unit* u, string bodyStr);
+  void printTffWrapper(Unit* u, vstring bodyStr);
 
   void beginOutput();
   void endOutput();

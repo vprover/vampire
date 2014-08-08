@@ -3,7 +3,6 @@
  * Implements class UIHelper.
  */
 
-#include <string>
 #include <fstream>
 
 #include <stdlib.h>
@@ -15,6 +14,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/TimeCounter.hpp"
+#include "Lib/VString.hpp"
 
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
@@ -86,7 +86,7 @@ void UIHelper::addCommentIfCASC(ostream& out)
   }
 } // UIHelper::addCommentIfCASC
 
-void UIHelper::outputAllPremises(ostream& out, UnitList* units, string prefix)
+void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 {
   CALL("UIHelper::outputAllPremises");
 
@@ -159,7 +159,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   env.statistics->phase = Statistics::PARSING;
 
 
-  string inputFile = opts.inputFile();
+  vstring inputFile = opts.inputFile();
 
   istream* input;
   if (inputFile=="") {
@@ -468,7 +468,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
   TimeCounter tc(TC_PARSING);
   env.statistics->phase = Statistics::PARSING;
 
-  string inputFile = env.options->inputFile();
+  vstring inputFile = env.options->inputFile();
 
   ScopedPtr<std::ifstream> inputScoped;
   istream * input;
@@ -516,7 +516,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     std::cout << "doing the constraint reading" << std::endl;
     Parse::SMTLIB parser1(*env.options);
   
-    string inputFile = env.options->inputFile();
+    vstring inputFile = env.options->inputFile();
     std::cout << inputFile << std::endl;
     istream* input;
     if (inputFile=="") {
@@ -813,7 +813,7 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     out << " :logic QF_LRA " << endl;
     
     ConstraintList::Iterator fun(constraints);
-    std::list<std::string> uni;
+    std::list<vstring> uni;
 
     while (fun.hasNext())
     {
@@ -826,8 +826,8 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
 	
     }
 
-    std::vector<std::string> myvector (uni.begin(),uni.end());
-    std::vector<std::string>::iterator ite;
+    std::vector<vstring> myvector (uni.begin(),uni.end());
+    std::vector<vstring>::iterator ite;
     ite = unique(myvector.begin(),myvector.end());
     myvector.resize( ite - myvector.begin() );
     for (ite=myvector.begin(); ite!=myvector.end(); ++ite)

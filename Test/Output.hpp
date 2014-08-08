@@ -8,7 +8,7 @@
 #ifndef __Output__
 #define __Output__
 
-#include <string>
+#include "Lib/VString.hpp"
 
 #include "Forwards.hpp"
 
@@ -25,13 +25,13 @@ using namespace Kernel;
 class Output
 {
 public:
-  static string toString(const Term* t);
-  static string toString(const Literal* l);
-  static string toString(const TermList* ts);
-  static string toString(const Clause* c);
+  static vstring toString(const Term* t);
+  static vstring toString(const Literal* l);
+  static vstring toString(const TermList* ts);
+  static vstring toString(const Clause* c);
 
   /** Convert only the first item of a term list to string */
-  static string singleTermListToString(TermList ts)
+  static vstring singleTermListToString(TermList ts)
   {
     TermList aux[2];
     aux[0].makeEmpty();

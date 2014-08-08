@@ -330,7 +330,7 @@ void Lib::Timer::makeChildrenIncluded()
 namespace Lib
 {
 
-string Timer::msToSecondsString(int ms)
+vstring Timer::msToSecondsString(int ms)
 {
   return Int::toString(static_cast<float>(ms)/1000)+" s";
 }

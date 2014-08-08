@@ -20,7 +20,7 @@ class SpawningCM
 : public CASCMode
 {
 public:
-  SpawningCM(string executable);
+  SpawningCM(vstring executable);
 
 protected:
   /**
@@ -30,8 +30,8 @@ protected:
   virtual bool runSlice(Options& opt);
 
 private:
-  string _executable;
-  string _inputFile;
+  vstring _executable;
+  vstring _inputFile;
 };
 
 } // nameSpace CASC

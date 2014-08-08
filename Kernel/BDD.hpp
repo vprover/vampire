@@ -7,7 +7,6 @@
 #define __BDD__
 
 #include <iosfwd>
-#include <string>
 
 #include "Forwards.hpp"
 #include "Lib/Allocator.hpp"
@@ -19,6 +18,7 @@
 #include "Lib/Set.hpp"
 #include "Lib/SkipList.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/VString.hpp"
 
 #include "Kernel/Signature.hpp"
 
@@ -87,8 +87,8 @@ public:
   int getNewVar() { return _newVar++; }
   int getNewVar(unsigned pred);
 
-  string getPropositionalPredicateName(int var);
-  bool getNiceName(int var, string& res);
+  vstring getPropositionalPredicateName(int var);
+  bool getNiceName(int var, vstring& res);
   Signature::Symbol* getSymbol(int var);
 
   /** Return a BDD node representing true formula */
@@ -122,14 +122,14 @@ public:
   static bool equals(const BDDNode* n1,const BDDNode* n2);
   static unsigned hash(const BDDNode* n);
 
-  string toString(BDDNode* node);
-  string toTPTPString(BDDNode* node, string bddPrefix);
-  string toTPTPString(BDDNode* node);
+  vstring toString(BDDNode* node);
+  vstring toTPTPString(BDDNode* node, vstring bddPrefix);
+  vstring toTPTPString(BDDNode* node);
 
   Formula* toFormula(BDDNode* node);
 
-  string getDefinition(BDDNode* node);
-  string getName(BDDNode* node);
+  vstring getDefinition(BDDNode* node);
+  vstring getName(BDDNode* node);
   TermList getConstant(BDDNode* node);
 
   void allowDefinitionOutput(bool allow);
@@ -138,8 +138,8 @@ public:
   bool isRefuted(BDDNode* n) { return n->_refuted; }
 
 private:
-  void outputDefinition(string def);
-  string introduceName(BDDNode* node, string definition);
+  void outputDefinition(vstring def);
+  vstring introduceName(BDDNode* node, vstring definition);
 
   BDDNode* getNode(int varNum, BDDNode* pos, BDDNode* neg);
 
@@ -237,13 +237,13 @@ private:
    */
   DHMap<int, unsigned> _predicateSymbols;
 
-  DHMap<BDDNode*,string> _nodeNames;
+  DHMap<BDDNode*,vstring> _nodeNames;
   DHMap<BDDNode*,TermList> _nodeConstants;
   unsigned _bddEvalPredicate;
 
   int _nextNodeNum;
   bool _allowDefinitionOutput;
-  Stack<string> _postponedDefinitions;
+  Stack<vstring> _postponedDefinitions;
 
   /** The next unused BDD variable */
   int _newVar;

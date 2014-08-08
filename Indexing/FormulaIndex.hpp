@@ -39,7 +39,7 @@ public:
   virtual void insert(FormulaUnit* unit, Formula* f);
   virtual void remove(FormulaUnit* unit, Formula* f);
 private:
-  string getKey(Formula* f);
+  vstring getKey(Formula* f);
 
   struct Entry
   {
@@ -54,7 +54,7 @@ private:
 
   struct Entry2QR;
 
-  MapToLIFO<string,Entry> _map;
+  MapToLIFO<vstring,Entry> _map;
 };
 
 class AIGFormulaIndex : public FormulaIndex {

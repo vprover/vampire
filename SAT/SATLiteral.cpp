@@ -21,7 +21,7 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-string SATLiteral::toString() const
+vstring SATLiteral::toString() const
 {
   if(isPositive()) {
     return Int::toString(var());

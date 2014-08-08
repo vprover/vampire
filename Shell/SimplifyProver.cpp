@@ -85,7 +85,7 @@ SimplifyProver::~SimplifyProver()
 {
   CALL("SimplifyProver::SimplifyProver");
 
-  Map<string,SymbolInfo*>::Iterator it(_symbolInfo);
+  Map<vstring,SymbolInfo*>::Iterator it(_symbolInfo);
   while (it.hasNext()) {
     SymbolInfo* symInfo = it.next();
     DEALLOC_KNOWN(symInfo,sizeof(SymbolInfo) + sizeof(int)*(symInfo->arity - 1),"SimplifyProver::SymbolInfo");
@@ -162,10 +162,10 @@ void SimplifyProver::parse(const Expression* expr)
 } // parse/1
 
 /**
- * Return the keyword tag corresponding to the string @b str (K_NONE if not a keyword)
+ * Return the keyword tag corresponding to the vstring @b str (K_NONE if not a keyword)
  * @since 26/08/2009 Redmond
  */
-SimplifyProver::Keyword SimplifyProver::keyword(const string& str)
+SimplifyProver::Keyword SimplifyProver::keyword(const vstring& str)
 {
   CALL("SimplifyProver::keyword");
 
@@ -290,7 +290,7 @@ void* SimplifyProver::SymbolInfo::operator new(size_t size, int arity)
 }
 
 /** Bind a variable name to the variable number */
-int SimplifyProver::bindVar(const string& varName)
+int SimplifyProver::bindVar(const vstring& varName)
 {
   CALL("SimplifyProver::bindVar");
 
@@ -302,7 +302,7 @@ int SimplifyProver::bindVar(const string& varName)
 } // bindVar
 
 /** Unbind a variable name */
-void SimplifyProver::unbindVar(const string& varName)
+void SimplifyProver::unbindVar(const vstring& varName)
 {
   CALL("SimplifyProver::unbindVar");
 
@@ -377,7 +377,7 @@ void SimplifyProver::parse()
       unbindVars();
       break;
     default:
-      error((string)"Cannot handle command "+Int::toString(cmd));
+      error((vstring)"Cannot handle command "+Int::toString(cmd));
     }
   }
   return;
@@ -390,7 +390,7 @@ void SimplifyProver::parse()
 void SimplifyProver::formulaError(const Expression* expr)
 {
   CALL("SimplifyProver::formulaError");
-  error((string)"Formula " + expr->toString() + " cannot be parsed");
+  error((vstring)"Formula " + expr->toString() + " cannot be parsed");
 } // formulaError
 
 /**
@@ -400,7 +400,7 @@ void SimplifyProver::formulaError(const Expression* expr)
 void SimplifyProver::formulaError(const Expression* expr,const char* explanation)
 {
   CALL("SimplifyProver::formulaError");
-  error((string)"Formula " + expr->toString() + " cannot be parsed" + ": " + explanation);
+  error((vstring)"Formula " + expr->toString() + " cannot be parsed" + ": " + explanation);
 } // formulaError
 
 /**
@@ -410,14 +410,14 @@ void SimplifyProver::formulaError(const Expression* expr,const char* explanation
 void SimplifyProver::termError(const Expression* expr)
 {
   CALL("SimplifyProver::termError");
-  error((string)"Term " + expr->toString() + " cannot be parsed");
+  error((vstring)"Term " + expr->toString() + " cannot be parsed");
 } // termError
 
 /**
  * Report and error and raise an exception.
  * @since 29/08/2009 Redmond
  */
-void SimplifyProver::error(const string& str)
+void SimplifyProver::error(const vstring& str)
 {
   CALL("SimplifyProver::error");
   cerr << str << '\n';
@@ -442,7 +442,7 @@ void SimplifyProver::parseFormula()
       expr = lst->head();
     }
     else {
-      string head = lst->head()->str;
+      vstring head = lst->head()->str;
 
       switch (keyword(head)) {
       case K_AND:
@@ -540,7 +540,7 @@ void SimplifyProver::parseQuantifiedFormula(const List* lst,const Expression* ex
   _saved.push(vars);
   while (vars) {
     // bind a new variable and add it to qvars
-    string vname = vars->head()->str;
+    vstring vname = vars->head()->str;
     if (keyword(vname) != K_NONE) {
       formulaError(expr,"keyword found where variable name expected");
     }
@@ -667,22 +667,22 @@ void SimplifyProver::parseAtom(const List* lst,const Expression* expr,Context co
   if (lst->head()->tag == LispParser::LIST) {
     formulaError(expr);
   } 
-  string symb = lst->head()->str;
+  vstring symb = lst->head()->str;
   int arity = lst->length() - 1;
 
   SymbolInfo* sinfo;
   if (!_symbolInfo.find(symb,sinfo)) {
     sinfo = builtInPredicate(symb,arity);
     if (! sinfo) {
-      error((string)"predicate symbol " + symb + " not previously defined");
+      error((vstring)"predicate symbol " + symb + " not previously defined");
     }
   }
   _saved.push(sinfo);
   if (sinfo->arity != arity) {
-    error((string)"predicate symbol " + symb + " is used with an arity different from declared");
+    error((vstring)"predicate symbol " + symb + " is used with an arity different from declared");
   }
   if (sinfo->returnType != BIT_BOOL) {
-    error((string)"symbol " + symb + " is used both as a function and as a predicate");
+    error((vstring)"symbol " + symb + " is used both as a function and as a predicate");
   }
   _commands.push(BUILD_ATOM);
   _isaved.push(context);
@@ -744,7 +744,7 @@ void SimplifyProver::parseAtom(const Expression* expr,Context context)
 {
   CALL("SimplifyProver::parseAtom");
 
-  string symb = expr->str;
+  vstring symb = expr->str;
   IntList* bindings;
   if (_variables.find(symb,bindings) && bindings) {
     // a boolean variable
@@ -771,10 +771,10 @@ void SimplifyProver::parseAtom(const Expression* expr,Context context)
   SymbolInfo* sinfo;
   if (!_symbolInfo.find(symb,sinfo)) {
     sinfo = builtInPredicate(symb,0);
-    if (! sinfo) error((string)"predicate symbol " + symb + " not previously defined");
+    if (! sinfo) error((vstring)"predicate symbol " + symb + " not previously defined");
   }
-  if (sinfo->arity != 0) error((string)"predicate symbol " + symb + " is used with an arity different from declared");
-  if (sinfo->returnType != BIT_BOOL) error((string)"symbol " + symb + " is used both as a function and as a predicate");
+  if (sinfo->arity != 0) error((vstring)"predicate symbol " + symb + " is used with an arity different from declared");
+  if (sinfo->returnType != BIT_BOOL) error((vstring)"symbol " + symb + " is used both as a function and as a predicate");
 
   Literal* lit = Literal::create(sinfo->number,0,true,false,0);
   processFormula(new AtomicFormula(lit),context);
@@ -850,7 +850,7 @@ void SimplifyProver::parseEquality(const List* lst,const Expression* expr,Contex
  * have to be declared in advance but they can be used.
  * @since 29/08/2009 Redmond
  */
-SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const string& symb,int arity)
+SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const vstring& symb,int arity)
 {
   CALL("SimplifyProver::builtInPredicate");
 
@@ -898,7 +898,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const string& symb,
  * have to be declared in advance but they can be used.
  * @since 31/08/2009 Redmond
  */
-SimplifyProver::SymbolInfo* SimplifyProver::builtInFunction(const string& symb,int arity)
+SimplifyProver::SymbolInfo* SimplifyProver::builtInFunction(const vstring& symb,int arity)
 {
   CALL("SimplifyProver::builtInFunction");
 
@@ -940,15 +940,15 @@ void SimplifyProver::parseTerm()
 
   const Expression* expr = (const Expression*)_saved.pop();
   if (expr->tag == LispParser::ATOM) {
-    string symb = expr->str;
+    vstring symb = expr->str;
     if (keyword(symb) != K_NONE) {
-      error((string)"term expected: " + expr->toString());
+      error((vstring)"term expected: " + expr->toString());
     }
     if (Int::isInteger(symb)) {
 #if 0
       InterpretedType val;
       if(!Int::stringToInt(symb,val)) {
-        error((string)"unsupported integer value: " + symb);
+        error((vstring)"unsupported integer value: " + symb);
       }
 
       TermList ts;
@@ -978,14 +978,14 @@ void SimplifyProver::parseTerm()
     if (!_symbolInfo.find(symb,sinfo)) {
       sinfo = builtInFunction(symb,0);
       if (! sinfo) {
-	error((string)"function symbol " + symb + " not previously defined");
+	error((vstring)"function symbol " + symb + " not previously defined");
       }
     }
     if (sinfo->arity != 0) {
-      error((string)"function symbol " + symb + " is used with an arity different from declared");
+      error((vstring)"function symbol " + symb + " is used with an arity different from declared");
     }
     if (sinfo->returnType == BIT_BOOL) {
-      error((string)"symbol " + symb + " is used both as a constant and as a predicate");
+      error((vstring)"symbol " + symb + " is used both as a constant and as a predicate");
     }
     TermList ts;
     Term* t = Term::create(sinfo->number,0,0);
@@ -999,7 +999,7 @@ void SimplifyProver::parseTerm()
   if (lst->head()->tag == LispParser::LIST) {
     termError(expr);
   }
-  string symb = lst->head()->str;
+  vstring symb = lst->head()->str;
   switch (keyword(symb)) {
   case K_NONE:
     {
@@ -1008,15 +1008,15 @@ void SimplifyProver::parseTerm()
       if (!_symbolInfo.find(symb,sinfo)) {
 	sinfo = builtInFunction(symb,arity);
 	if (! sinfo) {
-	  error((string)"function symbol " + symb + " not previously defined");
+	  error((vstring)"function symbol " + symb + " not previously defined");
 	}
       }
       _saved.push(sinfo);
       if (sinfo->arity != arity) {
-	error((string)"function symbol " + symb + " is used with an arity different from declared");
+	error((vstring)"function symbol " + symb + " is used with an arity different from declared");
       }
       if (sinfo->returnType == BIT_BOOL) {
-	error((string)"symbol " + symb + " is used both as a function and as a predicate");
+	error((vstring)"symbol " + symb + " is used both as a function and as a predicate");
       }
       _commands.push(BUILD_TERM);
       List::Iterator lit(lst->tail());
@@ -1049,7 +1049,7 @@ void SimplifyProver::parseTerm()
     return;
 
   default:
-    error((string)"term expected: " + expr->toString());
+    error((vstring)"term expected: " + expr->toString());
   }
 } // parseTerm
 
@@ -1064,14 +1064,14 @@ void SimplifyProver::defType(const List* list,const Expression* expr)
   int length = list->length();
   if (length == 0) {
   err:
-    error((string)"Bad DEFTYPE declaration " + expr->toString());
+    error((vstring)"Bad DEFTYPE declaration " + expr->toString());
   }
   List* l1 = list->tail();
   Expression* h1 = l1->head();
   if (h1->tag == LispParser::LIST) {
     goto err;
   }
-  string typeName = h1->str;
+  vstring typeName = h1->str;
   if (keyword(typeName) != K_NONE) {
     goto err;
   }
@@ -1123,9 +1123,9 @@ void SimplifyProver::defOp(const List* list,const Expression* expr)
   Expression* h1 = l1->head();
   if (h1->tag == LispParser::LIST) {
   err:
-    error((string)"Bad DEFOP declaration: " + expr->toString());
+    error((vstring)"Bad DEFOP declaration: " + expr->toString());
   }
-  string symb = h1->str;
+  vstring symb = h1->str;
   if (keyword(symb) != K_NONE) {
     goto err;
   }
@@ -1136,7 +1136,7 @@ void SimplifyProver::defOp(const List* list,const Expression* expr)
     if (h1->tag == LispParser::LIST) {
       goto err;
     }
-    string typeName = h1->str;
+    vstring typeName = h1->str;
     switch (keyword(typeName)) {
     case K_NONE:
       break;
@@ -1148,7 +1148,7 @@ void SimplifyProver::defOp(const List* list,const Expression* expr)
     }
     if (done) break;
     Type tp;
-    if (! _types.find(typeName,tp)) error((string)"Type " + typeName + " not declared in " + expr->toString());
+    if (! _types.find(typeName,tp)) error((vstring)"Type " + typeName + " not declared in " + expr->toString());
     if (tp == BIT_BOOL) {
       _hasBooleanArgs.insert(symb);
     }
@@ -1393,7 +1393,7 @@ void SimplifyProver::buildQuantifiedFormula()
   List* vars = (List*)_saved.pop();
   while (vars) {
     // bind a new variable and add it to qvars
-    string vname = vars->head()->str;
+    vstring vname = vars->head()->str;
     unbindVar(vname);
     vars = vars->tail();
     if (! vars || keyword(vars->head()->str) != K_TYPE) {
@@ -1478,7 +1478,7 @@ void SimplifyProver::undoLet()
   CALL("SimplifyProver::undoLet");
   for (const List* lst = (const List*)_saved.pop();! lst->isEmpty(); lst=lst->tail()) {
     const List* bind = lst->head()->list;
-    string symb = bind->tail()->head()->str;
+    vstring symb = bind->tail()->head()->str;
     switch (keyword(bind->head()->str)) {
     case K_FORMULA:
       {
@@ -1617,7 +1617,7 @@ void SimplifyProver::processFormula(Formula* f,Context context)
  * Add a constant that is a number. Introduced for adding axioms that all numbers are distinct
  * @since 03/09/2009 Redmond
  */
-SimplifyProver::SymbolInfo* SimplifyProver::addNumber(const string& symb)
+SimplifyProver::SymbolInfo* SimplifyProver::addNumber(const vstring& symb)
 {
   CALL("SimplifyProver::addNumber");
 
@@ -1753,7 +1753,7 @@ void SimplifyProver::buildLetFormula()
   CALL("SimplifyProver::buildLetFormula");
 
   Formula* f = (Formula*)_built.pop();
-  string symb = _ssaved.pop();
+  vstring symb = _ssaved.pop();
   FormulaVarIterator fvi(f);
   Stack<TermList> args;
   while (fvi.hasNext()) {
@@ -1781,7 +1781,7 @@ void SimplifyProver::buildLetTerm()
   CALL("SimplifyProver::buildLetTerm");
 
   TermList s = _tsaved.pop();
-  string symb = _ssaved.pop();
+  vstring symb = _ssaved.pop();
 
   // add binding to the let-stack
   Lib::List<TermList>* binding = 0;

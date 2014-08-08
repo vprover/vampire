@@ -6,10 +6,10 @@
 #ifndef __Hash__
 #define __Hash__
 
-#include <string>
 #include <utility>
 
 #include "Forwards.hpp"
+#include "VString.hpp"
 
 namespace Lib {
 
@@ -51,7 +51,7 @@ public:
 
   static unsigned hash(const char* str);
   /** Hash function for strings */
-  static unsigned hash(const std::string& str)
+  static unsigned hash(const vstring& str)
   { return hash(str.c_str()); }
 
   static unsigned hash(Kernel::Unit* u);

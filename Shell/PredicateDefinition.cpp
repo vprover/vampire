@@ -132,7 +132,7 @@ struct PredicateDefinition::PredData
     return docc==0 && ( (pocc==0) ^ (nocc==0) );
   }
 
-  string stateToString() const {
+  vstring stateToString() const {
     return env.signature->predicateName(pred) + ": +(" + Int::toString(pocc)
 	+ ") -(" + Int::toString(nocc) + ") 0(" + Int::toString(docc) + ")";
   }

@@ -1266,12 +1266,12 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
   }
 }
 
-unsigned CASCMode::getSliceTime(string sliceCode,string& chopped)
+unsigned CASCMode::getSliceTime(vstring sliceCode,vstring& chopped)
 {
   CALL("CASCMode::getSliceTime");
 
   unsigned pos=sliceCode.find_last_of('_');
-  string sliceTimeStr=sliceCode.substr(pos+1);
+  vstring sliceTimeStr=sliceCode.substr(pos+1);
   chopped.assign(sliceCode.substr(0,pos));
   unsigned sliceTime;
   ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
@@ -1588,8 +1588,8 @@ bool CASCMode::runSchedule(Schedule& schedule,unsigned ds,StrategySet& ss,bool f
 
   Schedule::BottomFirstIterator sit(schedule);
   while (sit.hasNext()) {
-    string sliceCode = sit.next();
-    string chopped;
+    vstring sliceCode = sit.next();
+    vstring chopped;
     unsigned sliceTime = getSliceTime(sliceCode,chopped);
     if (fallback && ss.contains(chopped)) {
       continue;
@@ -1613,7 +1613,7 @@ bool CASCMode::runSchedule(Schedule& schedule,unsigned ds,StrategySet& ss,bool f
   return false;
 } // runSchedule
 
-bool CASCMode::runSlice(string slice, unsigned ds)
+bool CASCMode::runSlice(vstring slice, unsigned ds)
 {
   CALL("CASCMode::runSlice");
 

@@ -41,14 +41,14 @@ SMTParser::Benchmark* SMTParser::benchmark()
   readToken();
   while (currentToken().tag != TT_RPAR) {
     expectToken(TT_ATTRIBUTE);
-    string attr = currentToken().text;
+    vstring attr = currentToken().text;
     if (attr == ":logic") {
       consumeToken();
       readToken();
       switch (currentToken().tag) {
       case TT_NAME:
 	{
-	  string logic = currentToken().text;
+	  vstring logic = currentToken().text;
 //	  if (logic == "QF_RDL") {
 //	    bench->logic = QF_RDL;
 //	  }
@@ -57,7 +57,7 @@ SMTParser::Benchmark* SMTParser::benchmark()
 	    bench->logic = QF_LRA;
 	  }
 	  else {
-	    terminate((string)"unknown logic: '" + logic + "'");
+	    terminate((vstring)"unknown logic: '" + logic + "'");
 	  }
 	}
 	consumeToken();
@@ -102,7 +102,7 @@ SMTParser::Benchmark* SMTParser::benchmark()
       switch (currentToken().tag) {
       case TT_NAME:
 	{
-	  string stat = currentToken().text;
+	  vstring stat = currentToken().text;
 	  if (stat == "sat") {
 	    bench->status = SAT;
 	  }
@@ -196,7 +196,7 @@ void SMTParser::functions(FunctionDeclaration** decs)
 	*decs = dec;
 	consumeToken();
 	readToken(TT_NAME,"sort name expected");
-	string sort = currentToken().text;
+	vstring sort = currentToken().text;
 	if (sort == "Real") {
 	  dec->sort = REAL;
 	}
@@ -245,7 +245,7 @@ SMTParser::Annotation* SMTParser::annotation()
  * Create a new benchmark with a given name.
  * @since 26/01/2009 Heathrow
  */
-SMTParser::Benchmark::Benchmark(const string& nm)
+SMTParser::Benchmark::Benchmark(const vstring& nm)
   : name(nm),
     status(UNKNOWN),
     functionDeclarations(0),
@@ -257,7 +257,7 @@ SMTParser::Benchmark::Benchmark(const string& nm)
  * Create a new predicate declaration with a given name.
  * @since 27/01/2009 Manchester
  */
-SMTParser::PredicateDeclaration::PredicateDeclaration(const string& nm)
+SMTParser::PredicateDeclaration::PredicateDeclaration(const vstring& nm)
   : name(nm),
     annotations(0),
     next(0)
@@ -267,7 +267,7 @@ SMTParser::PredicateDeclaration::PredicateDeclaration(const string& nm)
  * Create a new function declaration with a given name.
  * @since 27/01/2009 Manchester
  */
-SMTParser::FunctionDeclaration::FunctionDeclaration(const string& nm)
+SMTParser::FunctionDeclaration::FunctionDeclaration(const vstring& nm)
   : name(nm),
     annotations(0),
     next(0)
@@ -290,7 +290,7 @@ void SMTParser::formula(SMTParser::Formula** form)
   default:
     terminate("connective or predicate name expected");
   }
-  string tokenText = currentToken().text;
+  vstring tokenText = currentToken().text;
   consumeToken();
   readToken();
   Connective con; 

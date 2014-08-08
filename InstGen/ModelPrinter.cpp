@@ -322,7 +322,7 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
       continue;
     }
     TermList firstTerm = TermList(Term::create(firstFunc, 0, 0));
-    string firstTermStr = firstTerm.toString();
+    vstring firstTermStr = firstTerm.toString();
     unsigned eqClassSort = SortHelper::getResultSort(firstTerm.term());
     unsigned reprFunc = env.signature->addStringConstant(firstTermStr);
     FunctionType* reprType = new FunctionType(0,0,eqClassSort);

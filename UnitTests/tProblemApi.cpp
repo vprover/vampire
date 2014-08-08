@@ -21,7 +21,7 @@ using namespace Api;
 TEST_FUN(papi1)
 {
   Problem prb;
-  stringstream stm("cnf(a,axiom,p(X) | q(Y) | q(X)).");
+  vstringstream stm("cnf(a,axiom,p(X) | q(Y) | q(X)).");
 
   prb.addFromStream(stm);
 
@@ -40,7 +40,7 @@ TEST_FUN(papi1)
   ASS_EQ(i,2);
 
   sit=af.freeVars();
-  DHSet<string> sset;
+  DHSet<vstring> sset;
   sset.loadFromIterator(sit);
   ASS_EQ(sset.size(), 2);
 
@@ -133,7 +133,7 @@ TEST_FUN(papiClausifyDefinitions)
 {
   try {
     Problem prb;
-    stringstream stm("fof(a,axiom,(? [X]: p(X)&p(a2)) | (p(b1)&p(b2)) | (p(c1)&p(c2)) | (p(d1)&p(d2)) | (p(e1)&p(e2))).");
+    vstringstream stm("fof(a,axiom,(? [X]: p(X)&p(a2)) | (p(b1)&p(b2)) | (p(c1)&p(c2)) | (p(d1)&p(d2)) | (p(e1)&p(e2))).");
     prb.addFromStream(stm);
 
     cout<<"Problem:"<<endl;
@@ -158,7 +158,7 @@ TEST_FUN(papiSine)
 {
   try {
     Problem prb;
-    stringstream stm("fof(a1,axiom,a|b).fof(a2,axiom,b|c).fof(a3,axiom,b|d).fof(a4,axiom,d).fof(a4,axiom,d|e).fof(a5,conjecture,a).");
+    vstringstream stm("fof(a1,axiom,a|b).fof(a2,axiom,b|c).fof(a3,axiom,b|d).fof(a4,axiom,d).fof(a4,axiom,d|e).fof(a5,conjecture,a).");
     prb.addFromStream(stm);
     Problem::PreprocessingOptions opts;
     opts.mode = Problem::PM_SELECTION_ONLY;
@@ -182,7 +182,7 @@ TEST_FUN(papiSine)
 TEST_FUN(papiTff)
 {
   Problem prb;
-  stringstream stm("fof(a,axiom,p(X) | q(Y) | q(X)).");
+  vstringstream stm("fof(a,axiom,p(X) | q(Y) | q(X)).");
   prb.addFromStream(stm);
 
   OutputOptions::setTffFormulas(true);

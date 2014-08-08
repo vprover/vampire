@@ -14,7 +14,6 @@ UT_CREATE;
 //forking isn't supported in the visual studio
 #if !COMPILER_MSVC
 
-#include <string>
 #include <sstream>
 #include <sys/wait.h>
 
@@ -23,6 +22,7 @@ UT_CREATE;
 #include "Lib/Timer.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
 #include "Lib/Sys/SyncPipe.hpp"
+#include "Lib/VString.hpp"
 
 #include "Kernel/Problem.hpp"
 
@@ -40,9 +40,9 @@ using namespace Kernel;
 using namespace Saturation;
 using namespace Shell;
 
-void runChild(UnitList* units, string slice) __attribute__((noreturn));
+void runChild(UnitList* units, vstring slice) __attribute__((noreturn));
 
-void runChild(UnitList* units, string slice)
+void runChild(UnitList* units, vstring slice)
 {
   int resultValue=1;
   env.timer->reset();
@@ -86,14 +86,14 @@ void runChild(UnitList* units, string slice)
 TEST_FUN(two_vampires1)
 {
   //a non-trivial satisfiable problem (LCL354+1)
-  string prob="fof(m1,axiom,( ! [P,Q,R,S] :( ( meets(P,Q) & meets(P,S) & meets(R,Q) ) => meets(R,S) ) ))."
+  vstring prob="fof(m1,axiom,( ! [P,Q,R,S] :( ( meets(P,Q) & meets(P,S) & meets(R,Q) ) => meets(R,S) ) ))."
       "fof(m2,axiom, ( ! [P,Q,R,S] : ( ( meets(P,Q) & meets(R,S) ) => ( ( meets(P,S) <~> ? [T] : "
       "  ( meets(P,T) & meets(T,S) ) ) <~> ? [T] : ( meets(R,T) & meets(T,Q) ) ) ) ))."
       "fof(m3,axiom, ( ! [P] : ? [Q,R] : ( meets(Q,P) & meets(P,R) ) ))."
       "fof(not_m5,axiom, ( ~ ( ! [P,Q] : ( meets(P,Q) => ? [R,S,T] : ( meets(R,P) & meets(Q,S) & meets(R,T) & meets(T,S) ) ) ) )).";
 
   //get the problem we'll be solving
-  stringstream inp(prob);
+  vstringstream inp(prob);
   UnitList* units=Parse::TPTP::parse(inp);
 
   //pipe for collecting the output from children
@@ -126,7 +126,7 @@ TEST_FUN(two_vampires1)
   cout<<endl;
 
   childOutputPipe.acquireRead();  //start reading from the pipe
-  string str;
+  vstring str;
   //We are processing the pipe until the EOF appears. This happens
   //when all the writing ends of the pipe are closed.
   //The closing is done either by calling the neverWrite() function,

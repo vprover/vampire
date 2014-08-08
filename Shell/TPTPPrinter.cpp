@@ -41,7 +41,7 @@ void TPTPPrinter::print(Unit* u)
 {
   CALL("TPTPPrinter::print");
 
-  string body = getBodyStr(u);
+  vstring body = getBodyStr(u);
 
   beginOutput();
   ensureHeadersPrinted(u);
@@ -54,10 +54,10 @@ void TPTPPrinter::print(Unit* u)
  * @param name
  * @param u
  */
-void TPTPPrinter::printAsClaim(string name, Unit* u)
+void TPTPPrinter::printAsClaim(vstring name, Unit* u)
 {
   CALL("TPTPPrinter::printAsClaim");
-  string body = getBodyStr(u);
+  vstring body = getBodyStr(u);
 
   beginOutput();
 
@@ -69,15 +69,15 @@ void TPTPPrinter::printAsClaim(string name, Unit* u)
 }
 
 /**
- * Return as a string the body of the Unit u
+ * Return as a vstring the body of the Unit u
  * @param u
- * @return the body string
+ * @return the body vstring
  */
-string TPTPPrinter::getBodyStr(Unit* u)
+vstring TPTPPrinter::getBodyStr(Unit* u)
 {
   CALL("TPTPPrinter::getBodyStr");
 
-  stringstream res;
+  vstringstream res;
 
   typedef DHMap<unsigned,unsigned> SortMap;
   static SortMap varSorts;
@@ -140,12 +140,12 @@ string TPTPPrinter::getBodyStr(Unit* u)
  * @param u
  * @param bodyStr
  */
-void TPTPPrinter::printTffWrapper(Unit* u, string bodyStr)
+void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
 {
   CALL("TPTPPrinter::printTffWrapper");
 
   tgt() << "tff(";
-  string unitName;
+  vstring unitName;
   if(Parse::TPTP::findAxiomName(u, unitName)) {
     tgt() << unitName;
   }
@@ -334,17 +334,17 @@ void TPTPPrinter::endOutput()
 }
 
 /**
- * Return the string representing the formula f.
+ * Return the vstring representing the formula f.
  */
-string TPTPPrinter::toString(const Formula* f)
+vstring TPTPPrinter::toString(const Formula* f)
 {
   CALL("TPTPPrinter::toString(const Formula*)");
-  static string names [] =
+  static vstring names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
       "~", "!", "?", "", "", "", "$false", "$true"};
-  ASS_EQ(sizeof(names)/sizeof(string), TRUE+1);
+  ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
   Connective c = f->connective();
-  string con = names[(int)c];
+  vstring con = names[(int)c];
   switch (c) {
   case LITERAL:
     return f->literal()->toString();
@@ -352,7 +352,7 @@ string TPTPPrinter::toString(const Formula* f)
   case OR:
     {
       const FormulaList* fs = f->args();
-      string result = "(" + toString(fs->head());
+      vstring result = "(" + toString(fs->head());
       fs = fs->tail();
       while (! fs->isEmpty()) {
 	result += con + toString(fs->head());
@@ -364,16 +364,16 @@ string TPTPPrinter::toString(const Formula* f)
   case IMP:
   case IFF:
   case XOR:
-    return string("(") + toString(f->left()) +
+    return vstring("(") + toString(f->left()) +
            con + toString(f->right()) + ")";
 
   case NOT:
-    return string("(") + con + toString(f->uarg()) + ")";
+    return vstring("(") + con + toString(f->uarg()) + ")";
 
   case FORALL:
   case EXISTS:
     {
-      string result = string("(") + con + "[";
+      vstring result = vstring("(") + con + "[";
       const Formula::VarList* vars = f->vars();
       result += 'X';
       result += Int::toString(vars->head());
@@ -396,24 +396,24 @@ string TPTPPrinter::toString(const Formula* f)
 }
 
 /**
- * Output unit @param unit in TPTP format as a string
+ * Output unit @param unit in TPTP format as a vstring
  *
  * If the unit is a formula of type @b CONJECTURE, output the
  * negation of Vampire's internal representation with the
  * TPTP role conjecture. If it is a clause, just output it as
  * is, with the role negated_conjecture.
  */
-string TPTPPrinter::toString (const Unit* unit)
+vstring TPTPPrinter::toString (const Unit* unit)
 {
   CALL("TPTPPrinter::toString(const Unit*)");
 //  const Inference* inf = unit->inference();
 //  Inference::Rule rule = inf->rule();
 
-  string prefix;
-  string main = "";
+  vstring prefix;
+  vstring main = "";
 
   bool negate_formula = false;
-  string kind;
+  vstring kind;
   switch (unit->inputType()) {
   case Unit::ASSUMPTION:
     kind = "hypothesis";
@@ -463,7 +463,7 @@ string TPTPPrinter::toString (const Unit* unit)
     }
   }
 
-  string unitName;
+  vstring unitName;
   if(!Parse::TPTP::findAxiomName(unit, unitName)) {
     unitName="u" + Int::toString(unit->number());
   }
@@ -473,11 +473,11 @@ string TPTPPrinter::toString (const Unit* unit)
 }
 
 
-string TPTPPrinter::toString(const Term* t){
+vstring TPTPPrinter::toString(const Term* t){
   NOT_IMPLEMENTED;
 }
 
-string TPTPPrinter::toString(const Literal* l){
+vstring TPTPPrinter::toString(const Literal* l){
   NOT_IMPLEMENTED;
 }
 

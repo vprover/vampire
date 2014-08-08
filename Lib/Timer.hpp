@@ -7,13 +7,12 @@
 #ifndef __Timer__
 #define __Timer__
 
-#include <string>
 #include <iostream>
 
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"               // to declare checked_delete a fried for ScopedPtr's desctruction to work
-
-#include "Lib/Allocator.hpp"
+#include "Allocator.hpp"
+#include "VString.hpp"
 
 #ifndef UNIX_USE_SIGALRM
 //SIGALRM causes some problems with debugging
@@ -103,7 +102,7 @@ public:
 
   static void ensureTimerInitialized();
   static void deinitializeTimer();
-  static string msToSecondsString(int ms);
+  static vstring msToSecondsString(int ms);
   static void printMSString(ostream& str, int ms);
 
   static void setTimeLimitEnforcement(bool enabled)

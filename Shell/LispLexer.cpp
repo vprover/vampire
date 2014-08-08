@@ -180,13 +180,13 @@ void LispLexer::readQuotedString(Token& token, char opening, char closing)
     }
     else {
       if (escape && _lastCharacter!=closing && _lastCharacter!='\\') {
-	throw LexerException((string)"invalid escape sequence in quoted string ", *this);
+	throw LexerException((vstring)"invalid escape sequence in quoted vstring ", *this);
       }
       escape=false;
       saveLastChar();
     }
   }
-  throw LexerException((string)"file ended while reading quoted string ", *this);
+  throw LexerException((vstring)"file ended while reading quoted vstring ", *this);
 } // LispLexer::readQuotedString
 
 

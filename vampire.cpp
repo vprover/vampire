@@ -2,7 +2,6 @@
  * @file vampire.cpp. Implements the top-level procedures of Vampire.
  */
 
-#include <string>
 #include <iostream>
 #include <ostream>
 #include <fstream>
@@ -19,7 +18,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
-
+#include "Lib/VString.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
@@ -195,7 +194,7 @@ void programAnalysisMode()
   // create random seed for the random number generation
 
 #if 0
-  string inputFile = env.options->inputFile();
+  vstring inputFile = env.options->inputFile();
   istream* input;
   if (inputFile=="") {
     input=&cin;
@@ -206,9 +205,9 @@ void programAnalysisMode()
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
   }
-  string progString("");
+  vstring progString("");
   while (!input->eof()) {
-    string inp;
+    vstring inp;
     getline(*input,inp);
     progString += inp + '\n';
   }
@@ -225,7 +224,7 @@ void programAnalysisMode()
   env.options->setMode(Options::MODE_VAMPIRE);
   Allocator::setMemoryLimit(1024u * 1048576ul);
 
-  string inputFile = env.options->inputFile();
+  vstring inputFile = env.options->inputFile();
   if (inputFile == "") {
     USER_ERROR("Cannot open problem file: "+inputFile);
   }
@@ -477,7 +476,7 @@ void vampireMode()
   }
 
   /*
-  string inputFile = env.options->inputFile();
+  vstring inputFile = env.options->inputFile();
   istream* input;
   if (inputFile == "") {
     input = &cin;

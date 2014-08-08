@@ -1330,7 +1330,7 @@ bool TheoryFinder::matchAll (const Literal* lit)
 //   CALL("TheoryFinder::analyse");
 
 //   const Term& answer = clause.literals().head().atom().args().head();
-//   const string theory(answer.functor().name());
+//   const vstring theory(answer.functor().name());
 //   if (theory == "group") {
 //     _property->addProp(Property::PR_GROUP);
 //   }

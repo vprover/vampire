@@ -34,7 +34,7 @@ public:
   {}
 
   void destroy();
-  string toString() const;
+  vstring toString() const;
 
   unsigned varCnt();
 

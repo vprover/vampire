@@ -114,7 +114,7 @@ string Lib::___prettyFunToClassName(std::string str)
   string noPref = str.substr(19);
   size_t fnNamePos = noPref.find("::className()");
   string className = noPref.substr(0,fnNamePos);
-  //either empty, or contains one space folowed by values of
+  //either empty, or contains one space followed by values of
   //template params
   string templateInfo = noPref.substr(fnNamePos+13);
   return className+templateInfo;

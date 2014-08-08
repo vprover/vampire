@@ -156,7 +156,7 @@ void LispParser::parse(List** expr0)
  * Return a LISP string corresponding to this expression
  * @since 26/08/2009 Redmond
  */
-string LispParser::Expression::toString(bool outerParentheses) const
+vstring LispParser::Expression::toString(bool outerParentheses) const
 {
   CALL("LispParser::Expression::toString");
 
@@ -165,7 +165,7 @@ string LispParser::Expression::toString(bool outerParentheses) const
     return str;
   case LIST:
     {
-      string result;
+      vstring result;
       if(outerParentheses) {
 	result = "(";
       }
@@ -188,7 +188,7 @@ string LispParser::Expression::toString(bool outerParentheses) const
  * If expression corresponds to a unary function named @c funcionName,
  * return true and assign its argument to @c arg. Otherwise return false.
  */
-bool LispParser::Expression::get1Arg(string functionName, Expression*& arg)
+bool LispParser::Expression::get1Arg(vstring functionName, Expression*& arg)
 {
   CALL("LispParser::Expression::get1Arg");
 
@@ -198,7 +198,7 @@ bool LispParser::Expression::get1Arg(string functionName, Expression*& arg)
 
   List::Iterator args(list);
   if(!args.hasNext()) { return false; }
-  string name = args.next()->str;
+  vstring name = args.next()->str;
   if(name!=functionName) { return false; }
 
   if(!args.hasNext()) { return false; }
@@ -215,7 +215,7 @@ bool LispParser::Expression::get1Arg(string functionName, Expression*& arg)
  * return true and assign its arguments to @c arg1 and @c arg2. Otherwise
  * return false.
  */
-bool LispParser::Expression::get2Args(string functionName, Expression*& arg1, Expression*& arg2)
+bool LispParser::Expression::get2Args(vstring functionName, Expression*& arg1, Expression*& arg2)
 {
   CALL("LispParser::Expression::get2Args");
 
@@ -225,7 +225,7 @@ bool LispParser::Expression::get2Args(string functionName, Expression*& arg1, Ex
 
   List::Iterator args(list);
   if(!args.hasNext()) { return false; }
-  string name = args.next()->str;
+  vstring name = args.next()->str;
   if(name!=functionName) { return false; }
 
   if(!args.hasNext()) { return false; }
@@ -289,7 +289,7 @@ bool LispParser::Expression::getSingleton(Expression*& el)
  * Create a new parser exception.
  * @since 17/07/2004 Turku
  */
-LispParser::Exception::Exception(string message,const Token& token)
+LispParser::Exception::Exception(vstring message,const Token& token)
   : _message (message)
 {
   _message += " in line ";
@@ -311,7 +311,7 @@ void LispParser::Exception::cry(ostream& out)
 // LispListReader
 //
 
-void LispListReader::lispError(LExpr* expr, string reason)
+void LispListReader::lispError(LExpr* expr, vstring reason)
 {
   CALL("SMTLIBConcat::lispError");
 
@@ -326,7 +326,7 @@ void LispListReader::lispError(LExpr* expr, string reason)
 /**
  * Report error with the current lisp element
  */
-void LispListReader::lispCurrError(string reason)
+void LispListReader::lispCurrError(vstring reason)
 {
   CALL("LispListReader::lispCurrError");
 
@@ -354,7 +354,7 @@ LExpr* LispListReader::readNext()
   return it.next();
 }
 
-bool LispListReader::tryReadAtom(string& atom)
+bool LispListReader::tryReadAtom(vstring& atom)
 {
   CALL("LispListReader::tryReadAtom");
 
@@ -369,18 +369,18 @@ bool LispListReader::tryReadAtom(string& atom)
   return false;
 }
 
-string LispListReader::readAtom()
+vstring LispListReader::readAtom()
 {
   CALL("LispListReader::readAtom");
 
-  string atm;
+  vstring atm;
   if(!tryReadAtom(atm)) {
     lispCurrError("atom expected");
   }
   return atm;
 }
 
-bool LispListReader::tryAcceptAtom(string atom)
+bool LispListReader::tryAcceptAtom(vstring atom)
 {
   CALL("SMTLIBConcat::tryAcceptAtom");
 
@@ -394,7 +394,7 @@ bool LispListReader::tryAcceptAtom(string atom)
   return false;
 }
 
-void LispListReader::acceptAtom(string atom)
+void LispListReader::acceptAtom(vstring atom)
 {
   CALL("SMTLIBConcat::acceptAtom");
 
@@ -469,7 +469,7 @@ void LispListReader::acceptEOL()
   }
 }
 
-bool LispListReader::lookAheadAtom(string atom)
+bool LispListReader::lookAheadAtom(vstring atom)
 {
   CALL("LispListReader::lookAheadAtom");
 

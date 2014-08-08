@@ -129,10 +129,10 @@ public:
 
   void destroy();
   void destroyExceptInferenceObject();
-  string nonPropToString() const;
-  string toString() const;
-  string toTPTPString() const;
-  string toNiceString() const;
+  vstring nonPropToString() const;
+  vstring toString() const;
+  vstring toTPTPString() const;
+  vstring toNiceString() const;
 
   /** Return the clause store */
   Store store() const { return _store; }
@@ -240,7 +240,7 @@ public:
     _splits=splits;
   }
 
-  VirtualIterator<string> toSimpleClauseStrings();
+  VirtualIterator<vstring> toSimpleClauseStrings();
 
 
   /** Set auxiliary value of this clause. */

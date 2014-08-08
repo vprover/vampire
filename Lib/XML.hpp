@@ -12,8 +12,9 @@
 #ifndef __XML__
 #define __XML__
 
-#include <string>
 #include <iostream>
+
+#include "VString.hpp"
 
 using namespace std;
 
@@ -38,18 +39,18 @@ public:
   /** dummy (uninitialised) attribute */
   XMLAttribute() : _data(0) {}
   XMLAttribute(const XMLAttribute& attr);
-  XMLAttribute(const string& name,const string& value);
-  XMLAttribute(const string& name,int value);
-  XMLAttribute(const string& name,long value);
-  XMLAttribute(const string& name,double value);
-  XMLAttribute(const string& name,unsigned value);
+  XMLAttribute(const vstring& name,const vstring& value);
+  XMLAttribute(const vstring& name,int value);
+  XMLAttribute(const vstring& name,long value);
+  XMLAttribute(const vstring& name,double value);
+  XMLAttribute(const vstring& name,unsigned value);
   ~XMLAttribute();
   void operator= (const XMLAttribute& rhs);
   void setNext(const XMLAttribute&);
-  void find(const string& name,XMLAttribute&) const;
+  void find(const vstring& name,XMLAttribute&) const;
   /** true if the attribute is not initialised */
   bool isNull() const { return _data == 0; }
-  const string& name() const;
+  const vstring& name() const;
 
   // structure
   Type tag () const;
@@ -101,40 +102,40 @@ public:
   XMLElement() : _data(0) {}
   /** true if the element is not initialised */
   bool isNull() const { return _data == 0; }
-  XMLElement(const string& name);  // deep element
-  XMLElement(const string& name,bool dummy);  // empty element
-  XMLElement(const string& name,const string& text);  // text element
-  XMLElement(const string& name,int content);         // integer element
-  XMLElement(const string& name,long content);        // long element
-  XMLElement(const string& name,float content);       // floating point element
-  XMLElement(const string& name,double content);
+  XMLElement(const vstring& name);  // deep element
+  XMLElement(const vstring& name,bool dummy);  // empty element
+  XMLElement(const vstring& name,const vstring& text);  // text element
+  XMLElement(const vstring& name,int content);         // integer element
+  XMLElement(const vstring& name,long content);        // long element
+  XMLElement(const vstring& name,float content);       // floating point element
+  XMLElement(const vstring& name,double content);
   XMLElement(const XMLElement& elem);
   ~XMLElement();
   void operator= (const XMLElement& rhs);
 
-  void addAttribute(const string& name,const string& value);
-  void addAttribute(const string& name,int value);
-  void addAttribute(const string& name,unsigned value);
-  void addAttribute(const string& name,long value);
-  void addAttribute(const string& name,double value);
+  void addAttribute(const vstring& name,const vstring& value);
+  void addAttribute(const vstring& name,int value);
+  void addAttribute(const vstring& name,unsigned value);
+  void addAttribute(const vstring& name,long value);
+  void addAttribute(const vstring& name,double value);
   void addChild(const XMLElement& element);
-  const string& name() const;
-  const string* findStringValue(const string& name) const;
+  const vstring& name() const;
+  const vstring* findStringValue(const vstring& name) const;
   void write(ostream&) const;
   void write(ostream&,int indent) const;
-  void append(const string& file); 
+  void append(const vstring& file); 
   void copyAttributes(const XMLElement&);
 
   // structure
   Type tag() const;
-  const string& text() const;
+  const vstring& text() const;
   bool operator == (const XMLElement& rhs) const;
   bool operator != (const XMLElement& rhs) const;
 
   // declared but not defined, to prevent on-heap allocation
   void* operator new(size_t);
 
-  static void writeString(ostream& str,const string& s);
+  static void writeString(ostream& str,const vstring& s);
 
   /** XML classes could not work without lots of friends or redirections
    * before I have added this */

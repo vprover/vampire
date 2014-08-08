@@ -13,7 +13,7 @@
 namespace Lib
 {
 
-bool OptionsReader::tryReadBool(string val, bool& tgt)
+bool OptionsReader::tryReadBool(vstring val, bool& tgt)
 {
   CALL("OptionsReader::tryReadBool");
 
@@ -28,7 +28,7 @@ bool OptionsReader::tryReadBool(string val, bool& tgt)
   return false;
 }
 
-bool OptionsReader::readOption(string name, string value) const
+bool OptionsReader::readOption(vstring name, vstring value) const
 {
   CALL("OptionsReader::readOption");
 
@@ -73,18 +73,18 @@ bool OptionsReader::readOption(string name, string value) const
   return false;
 }
 
-bool OptionsReader::readOptions(string str) const
+bool OptionsReader::readOptions(vstring str) const
 {
   CALL("OptionsReader::readOptions");
 
-  DHMap<string,string> optVals;
+  DHMap<vstring,vstring> optVals;
   if(!StringUtils::readEqualities(str.c_str(), ':', '=', optVals)) {
     return false;
   }
 
-  DHMap<string,string>::Iterator oit(optVals);
+  DHMap<vstring,vstring>::Iterator oit(optVals);
   while(oit.hasNext()) {
-    string name, val;
+    vstring name, val;
     oit.next(name, val);
     if(!readOption(name, val)) {
       return false;
@@ -93,7 +93,7 @@ bool OptionsReader::readOptions(string str) const
   return true;
 }
 
-void OptionsReader::printOptionValue(string name, ostream& out)
+void OptionsReader::printOptionValue(vstring name, ostream& out)
 {
   CALL("OptionsReader::printOptionValue");
 
@@ -121,22 +121,23 @@ void OptionsReader::printOptionValue(string name, ostream& out)
   }
 }
 
-string OptionsReader::getOptionStringValue(string optName)
+vstring OptionsReader::getOptionStringValue(vstring optName)
 {
   CALL("OptionsReader::getOptionStringValue");
-
-  stringstream stm;
+  
+  vstringstream stm;
+  
   printOptionValue(optName, stm);
   return stm.str();
 }
 
-void OptionsReader::printOptionValues(ostream& out, OptionsReader* defOpts, string linePrefix)
+void OptionsReader::printOptionValues(ostream& out, OptionsReader* defOpts, vstring linePrefix)
 {
   CALL("OptionsReader::printOptionValues");
 
   StringStack::BottomFirstIterator nameIt(_longNames);
   while(nameIt.hasNext()) {
-    string nm = nameIt.next();
+    vstring nm = nameIt.next();
 
     out << linePrefix << nm << ": ";
     printOptionValue(nm, out);

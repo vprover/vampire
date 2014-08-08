@@ -124,7 +124,7 @@ bool SMTLIB2::tryLispReading(LExpr* list)
     }
   }
   else if(ibRdr.tryAcceptAtom("declare-sort")) {
-    string sortName = ibRdr.readAtom();
+    vstring sortName = ibRdr.readAtom();
     bool added;
     env.sorts->addSort(sortName, added);
     if (!added){
@@ -208,7 +208,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
    }
 }
 
-void SMTLIB2::readSort(string name)
+void SMTLIB2::readSort(vstring name)
 {
   CALL("SMTLIB2::readSort");
 
@@ -225,14 +225,14 @@ void SMTLIB2::readFunction(LExprList* decl)
 
 
   LispListReader dRdr(decl);
-  string name = dRdr.readAtom();
+  vstring name = dRdr.readAtom();
   LExpr* nextSym = dRdr.readNext();
   
-  static Stack<string> argSorts;
+  static Stack<vstring> argSorts;
   argSorts.reset();
 
   if (nextSym->isAtom()) {
-     string type = nextSym->str;
+     vstring type = nextSym->str;
      argSorts.push(type);
      while(dRdr.hasNext()) {
           argSorts.push(dRdr.readAtom());
@@ -242,17 +242,17 @@ void SMTLIB2::readFunction(LExprList* decl)
       if (nextSym->isList()) {
         //for now we only treat one-dimensional integer arrays, given in SMT as (Array Int Int)
         LExprList* l= nextSym->list;
-        string type = l->head()->toString();
+        vstring type = l->head()->toString();
         if (type != "Array") {USER_ERROR("unknown non-atomic sort (we only handle arrays)");}
         type = "Array1";
         //type 1
         if (!l->tail()) {	USER_ERROR("non-atomic sort has no domain and range");}
         l=l->tail();
-        string tmpArg1 = l->head()->toString();
+        vstring tmpArg1 = l->head()->toString();
       if (tmpArg1!= "Int") {USER_ERROR("Array indeces are not int");}
         if (!l->tail()) {	USER_ERROR("non-atomic sort has no range sort");}
         l=l->tail();
-        string tmpArg2 = l->head()->toString();
+        vstring tmpArg2 = l->head()->toString();
       if (tmpArg2!= "Int") {USER_ERROR("Array elements are not int (we only handle arrays of int)");}
         argSorts.push(type);
         //read the leftover declaration
@@ -265,7 +265,7 @@ void SMTLIB2::readFunction(LExprList* decl)
 
   }
   ASS(argSorts.size()!=0);
-  string domainSort = argSorts.pop();
+  vstring domainSort = argSorts.pop();
   _funcs.push(FunctionInfo(name, argSorts, domainSort));
 }
 
@@ -274,9 +274,9 @@ void SMTLIB2::readPredicate(LExprList* decl)
   CALL("SMTLIB::declarePredicate");
 
   LispListReader dRdr(decl);
-  string name = dRdr.readAtom();
+  vstring name = dRdr.readAtom();
 
-  static Stack<string> argSorts;
+  static Stack<vstring> argSorts;
   argSorts.reset();
   while(dRdr.hasNext()) {
     argSorts.push(dRdr.readAtom());
@@ -315,7 +315,7 @@ unsigned SMTLIB2::getSort(BuiltInSorts srt)
   }
 }
 
-unsigned SMTLIB2::getSort(string name)
+unsigned SMTLIB2::getSort(vstring name)
 {
   CALL("SMTLIB::getSort");
     
@@ -337,9 +337,9 @@ void SMTLIB2::doSortDeclarations()
 {
   CALL("SMTLIB::doSortDeclarations");
     
-  Stack<string>::Iterator srtIt(_userSorts);
+  Stack<vstring>::Iterator srtIt(_userSorts);
   while(srtIt.hasNext()) {
-    string sortName = srtIt.next();
+    vstring sortName = srtIt.next();
     env.sorts->addSort(sortName);
   }
 }
@@ -355,9 +355,9 @@ BaseType* SMTLIB2::getSymbolType(const FunctionInfo& fnInfo)
   static Stack<unsigned> argSorts;
   argSorts.reset();
 
-  Stack<string>::BottomFirstIterator argSortIt(fnInfo.argSorts);
+  Stack<vstring>::BottomFirstIterator argSortIt(fnInfo.argSorts);
   while(argSortIt.hasNext()) {
-    string argSortName = argSortIt.next();
+    vstring argSortName = argSortIt.next();
     argSorts.push(getSort(argSortName));
   }
 
@@ -422,7 +422,7 @@ const char * SMTLIB2::s_builtInSortNameStrings[] = {
     "U"
 };
 
-SMTLIB2::BuiltInSorts SMTLIB2::getBuiltInSort(string str)
+SMTLIB2::BuiltInSorts SMTLIB2::getBuiltInSort(vstring str)
 {
   CALL("SMTLIB::getBuiltInSort");
     
@@ -456,7 +456,7 @@ const char * SMTLIB2::s_formulaSymbolNameStrings[] = {
     "xor"
 };
 
-SMTLIB2::FormulaSymbol SMTLIB2::getFormulaSymbol(string str)
+SMTLIB2::FormulaSymbol SMTLIB2::getFormulaSymbol(vstring str)
 {
   CALL("SMTLIB::getFormulaSymbol");
 
@@ -482,7 +482,7 @@ const char * SMTLIB2::s_termSymbolNameStrings[] = {
 };
 
 
-SMTLIB2::TermSymbol SMTLIB2::getTermSymbol(string str,unsigned arity)
+SMTLIB2::TermSymbol SMTLIB2::getTermSymbol(vstring str,unsigned arity)
 {
   CALL("SMTLIB::getTermSymbol");
 
@@ -527,7 +527,7 @@ unsigned SMTLIB2::getMandatoryConnectiveArgCnt(FormulaSymbol fsym)
   }
 }
 
-//unsigned SMTLIB::getPredSymbolArity(FormulaSymbol fsym, string str)
+//unsigned SMTLIB::getPredSymbolArity(FormulaSymbol fsym, vstring str)
 //{
 //  switch(fsym) {
 //  case FS_EQ:
@@ -571,7 +571,7 @@ void SMTLIB2::ensureArgumentSorts(bool pred, unsigned symNum, TermList* args)
   }
 }
 
-TermList SMTLIB2::readTermFromAtom(string str)
+TermList SMTLIB2::readTermFromAtom(vstring str)
 {
   CALL("SMTLIB::readTermFromAtom");
 
@@ -640,7 +640,7 @@ bool SMTLIB2::readTermArgs(LExpr* parent, LispListReader& rdr, TermStack& args)
 
   while(rdr.hasNext()) {
     TermList arg;
-    string atomArgStr;
+    vstring atomArgStr;
     if(rdr.tryReadAtom(atomArgStr)) {
       arg = readTermFromAtom(atomArgStr);
     }
@@ -714,7 +714,7 @@ Interpretation SMTLIB2::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigne
     ASSERTION_VIOLATION;
   }
   if(res==Theory::INVALID_INTERPRETATION) {
-    USER_ERROR("invalid sort "+env.sorts->sortName(firstArgSort)+" for interpretation "+string(s_formulaSymbolNameStrings[fs]));
+    USER_ERROR("invalid sort "+env.sorts->sortName(firstArgSort)+" for interpretation "+vstring(s_formulaSymbolNameStrings[fs]));
   }
   return res;
 }
@@ -791,7 +791,7 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, unsigned firs
     ASSERTION_VIOLATION_REP(ts);
   }
   if(res==Theory::INVALID_INTERPRETATION) {
-    USER_ERROR("invalid sort "+env.sorts->sortName(firstArgSort)+" for interpretation "+string(s_termSymbolNameStrings[ts]));
+    USER_ERROR("invalid sort "+env.sorts->sortName(firstArgSort)+" for interpretation "+vstring(s_termSymbolNameStrings[ts]));
   }
   return res;
 }
@@ -822,7 +822,7 @@ unsigned SMTLIB2::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermSt
     }
   }
 
-  string arrayName=e->list->tail()->head()->toString();
+  vstring arrayName=e->list->tail()->head()->toString();
   unsigned arrSort = getSort(args[0]);
 
   unsigned arrDomainSort;
@@ -863,7 +863,7 @@ unsigned SMTLIB2::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermSt
       {res=  Theory::instance()->getFnNum(Theory::SELECT2_INT);}  
   }
   
-  //string name = baseName + "_" + StringUtils::sanitizeSuffix(env.sorts->sortName(arrSort)
+  //vstring name = baseName + "_" + StringUtils::sanitizeSuffix(env.sorts->sortName(arrSort)
     
   //bool added;
   //unsigned res = env.signature->addFunction(baseName, arity, added);
@@ -896,7 +896,7 @@ bool SMTLIB2::tryReadTerm(LExpr* e, TermList& res)
 
   unsigned arity = e->list->length()-1;
   LispListReader rdr(e);
-  string fnName = rdr.readAtom();
+  vstring fnName = rdr.readAtom();
   TermSymbol ts = getTermSymbol(fnName, arity);
   
 
@@ -946,7 +946,7 @@ bool SMTLIB2::tryReadNonPropAtom(FormulaSymbol fsym, LExpr* e, Literal*& res)
   CALL("SMTLIB::tryReadNonPropAtom");
 
   LispListReader rdr(e);
-  string predName = rdr.readAtom();
+  vstring predName = rdr.readAtom();
 
   static TermStack args;
   args.reset();
@@ -995,7 +995,7 @@ bool SMTLIB2::tryReadNonPropAtom(FormulaSymbol fsym, LExpr* e, Literal*& res)
   return true;
 }
 
-Formula* SMTLIB2::readFormulaFromAtom(string str)
+Formula* SMTLIB2::readFormulaFromAtom(vstring str)
 {
   CALL("SMTLIB::readFormulaFromAtom");
 
@@ -1101,14 +1101,14 @@ bool SMTLIB2::tryReadQuantifier(bool univ, LExpr* e, Formula*& res)
 
   LExpr* subFormExpr = qExprs.pop();
 
-  static Stack<string> varNames;
+  static Stack<vstring> varNames;
   varNames.reset();
 
   Stack<LExpr*>::BottomFirstIterator qvarExprIt(qExprs);
   while(qvarExprIt.hasNext()) {
     LispListReader qvarRdr(qvarExprIt.next());
-    string varName = qvarRdr.readAtom();
-    string sortName = qvarRdr.readAtom();
+    vstring varName = qvarRdr.readAtom();
+    vstring sortName = qvarRdr.readAtom();
     qvarRdr.acceptEOL();
 
     if(varName[0]!='?') {
@@ -1139,9 +1139,9 @@ bool SMTLIB2::tryReadQuantifier(bool univ, LExpr* e, Formula*& res)
   }
 
   Formula::VarList* qvars = 0;
-  Stack<string>::Iterator vnameIt(varNames);
+  Stack<vstring>::Iterator vnameIt(varNames);
   while(vnameIt.hasNext()) {
-    string varName = vnameIt.next();
+    vstring varName = vnameIt.next();
     unsigned varIdx = _termVars.get(varName).var();
     Formula::VarList::push(varIdx, qvars);
     ALWAYS(_termVars.remove(varName));
@@ -1159,7 +1159,7 @@ bool SMTLIB2::tryReadFlet(LExpr* e, Formula*& res)
 
   rdr.acceptAtom("flet");
   LispListReader defRdr(rdr.readList());
-  string varName = defRdr.readAtom();
+  vstring varName = defRdr.readAtom();
 
   if(varName[0]!='$') {
     USER_ERROR("invalid formula variable name: "+varName);
@@ -1208,7 +1208,7 @@ bool SMTLIB2::tryReadLet(LExpr* e, Formula*& res)
   LExprList::Iterator lite(list);
 
   LispListReader defRdr(list);
-  string varName = defRdr.readAtom();
+  vstring varName = defRdr.readAtom();
   if(varName[0]!='?') {
     USER_ERROR("invalid term variable name: "+varName);
   }
@@ -1283,7 +1283,7 @@ bool SMTLIB2::tryReadDistinct(LExpr* e, Formula*& res)
       delete type;
     }
     else {
-      string name = "$distinct_"+StringUtils::sanitizeSuffix(env.sorts->sortName(sort));
+      vstring name = "$distinct_"+StringUtils::sanitizeSuffix(env.sorts->sortName(sort));
       predNum = env.signature->addPredicate(name, arity, added);
       if(added) {
 	env.signature->getPredicate(predNum)->setType(type);
@@ -1315,7 +1315,7 @@ bool SMTLIB2::tryReadFormula(LExpr* e, Formula*& res)
 
   cout<<"is atom flase"<<endl;
   LispListReader rdr(e);
-  string sym = rdr.readAtom();
+  vstring sym = rdr.readAtom();
   cout<<sym<<endl;
   FormulaSymbol fsym = getFormulaSymbol(sym);
   switch(fsym) {
@@ -1512,7 +1512,7 @@ void SMTLIB2::introduceAigNames(UnitList*& forms)
   _definitions = UnitList::concat(newDefs, _definitions);
 }
 
-Formula* SMTLIB2::nameFormula(Formula* f, string fletVarName)
+Formula* SMTLIB2::nameFormula(Formula* f, vstring fletVarName)
 {
   CALL("SMTLIB::nameFormula");
 

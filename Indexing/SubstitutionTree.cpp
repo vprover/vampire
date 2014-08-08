@@ -27,7 +27,7 @@
 #include "Lib/Int.hpp"
 #include "Test/Output.hpp"
 
-string SingleTermListToString(const TermList* ts);
+vstring SingleTermListToString(const TermList* ts);
 
 #endif
 
@@ -504,20 +504,20 @@ SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBin
 
 #if VDEBUG
 
-string getIndentStr(int n)
+vstring getIndentStr(int n)
 {
-  string res;
+  vstring res;
   for(int indCnt=0;indCnt<n;indCnt++) {
 	res+="  ";
   }
   return res;
 }
 
-string SubstitutionTree::nodeToString(Node* topNode)
+vstring SubstitutionTree::nodeToString(Node* topNode)
 {
   CALL("SubstitutionTree::nodeToString");
 
-  string res;
+  vstring res;
   Stack<int> indentStack(10);
   Stack<Node*> stack(10);
 
@@ -558,11 +558,11 @@ string SubstitutionTree::nodeToString(Node* topNode)
   return res;
 }
 
-string SubstitutionTree::toString() const
+vstring SubstitutionTree::toString() const
 {
   CALL("SubstitutionTree::toString");
 
-  string res;
+  vstring res;
 
   for(unsigned tli=0;tli<_nodes.size();tli++) {
     res+=Int::toString(tli);

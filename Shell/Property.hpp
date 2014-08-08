@@ -11,11 +11,10 @@
 #ifndef __Property__
 #define __Property__
 
-#include <string>
-
 #include "Lib/DArray.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
+#include "Lib/VString.hpp"
 
 namespace Kernel {
   class Clause;
@@ -119,10 +118,10 @@ public:
 
   /** Return the CASC category of the problem */
   Category category() const { return _category;}
-  string categoryString() const;
+  vstring categoryString() const;
 
-  string toString() const;
-  string toSpider(const string& problemName) const;
+  vstring toString() const;
+  vstring toSpider(const vstring& problemName) const;
 
   /** Total number of clauses in the problem. */
   int clauses() const { return _goalClauses + _axiomClauses; }

@@ -6,9 +6,6 @@
 #ifndef __SharedSet__
 #define __SharedSet__
 
-#include <string>
-#include <sstream>
-
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
@@ -19,6 +16,7 @@
 #include "Set.hpp"
 #include "Sort.hpp"
 #include "Stack.hpp"
+#include "VString.hpp"
 
 namespace Lib {
 
@@ -306,11 +304,11 @@ public:
   }
 
 
-  string toString()
+  vstring toString()
   {
     CALL("SharedSet::toString");
 
-    stringstream res;
+    vstringstream res;
     res<<(*this);
     return res.str();
   }

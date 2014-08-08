@@ -18,6 +18,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/VString.hpp"
 
 #include "Kernel/Unit.hpp"
 
@@ -37,7 +38,7 @@ collectionOfObjects::~collectionOfObjects()
 {
 }
 
-bool collectionOfObjects::insertVariableExpression(std::string key,
+bool collectionOfObjects::insertVariableExpression(vstring key,
 	Program::VariableExpression* obj)
 {
   CALL("collectionOfObjects::insertVariableExpression");
@@ -46,7 +47,7 @@ bool collectionOfObjects::insertVariableExpression(std::string key,
 }
 
 Program::VariableExpression* collectionOfObjects::getVarExpression(
-	std::string key)
+	vstring key)
 {
   CALL("getVariableExpression");
   Program::VariableExpression* varE = NULL;
@@ -68,7 +69,7 @@ void collectionOfObjects::insertConstantIntegerExpr(int val,
   _mapOfIntegers.insert(val, obj);
 }
 
-void collectionOfObjects::insertAssignment(std::string key,
+void collectionOfObjects::insertAssignment(vstring key,
 	Program::Assignment* obj)
 {
   CALL("insertAssignment");
@@ -77,7 +78,7 @@ void collectionOfObjects::insertAssignment(std::string key,
 
 }
 
-Program::Assignment* collectionOfObjects::getAssignment(std::string key)
+Program::Assignment* collectionOfObjects::getAssignment(vstring key)
 {
   CALL("getAssignment");
   Program::Assignment* vas = NULL;
@@ -93,13 +94,13 @@ Program::ConstantIntegerExpression* collectionOfObjects::getConstantIntegerExpr(
   return cie;
 }
 
-void collectionOfObjects::insertBlock(std::string key, Program::Block* obj)
+void collectionOfObjects::insertBlock(vstring key, Program::Block* obj)
 {
   CALL("insertBlock");
   _mapOfBlocks.insert(key, obj);
 }
 
-Program::Block* collectionOfObjects::getBlock(std::string key)
+Program::Block* collectionOfObjects::getBlock(vstring key)
 {
   CALL("getBlock");
   Program::Block* blk = NULL;
@@ -109,7 +110,7 @@ Program::Block* collectionOfObjects::getBlock(std::string key)
 
 }
 
-void collectionOfObjects::insertFunctionApplication(std::string key,
+void collectionOfObjects::insertFunctionApplication(vstring key,
 	Program::FunctionApplicationExpression* obj)
 {
   CALL("insertFunctionApplication");
@@ -119,7 +120,7 @@ void collectionOfObjects::insertFunctionApplication(std::string key,
 }
 
 Program::FunctionApplicationExpression* collectionOfObjects::getFunctionApplicationExpression(
-	std::string key)
+	vstring key)
 {
   CALL("getFunctionApplicationExpression");
   Program::FunctionApplicationExpression* fca = NULL;
@@ -127,7 +128,7 @@ Program::FunctionApplicationExpression* collectionOfObjects::getFunctionApplicat
   return fca;
 }
 
-void collectionOfObjects::insertWhileDo(std::string key, Program::WhileDo* obj)
+void collectionOfObjects::insertWhileDo(vstring key, Program::WhileDo* obj)
 {
   CALL("insertWhileDo");
   if(env.options->getWhileNumber()==-1)
@@ -137,7 +138,7 @@ void collectionOfObjects::insertWhileDo(std::string key, Program::WhileDo* obj)
 
 }
 
-void collectionOfObjects::insertIfThenElse(std::string key,
+void collectionOfObjects::insertIfThenElse(vstring key,
 	Program::IfThenElse* obj)
 {
   CALL("insertIfThenElse");
@@ -145,7 +146,7 @@ void collectionOfObjects::insertIfThenElse(std::string key,
     _mapOfThenElse.insert(key, obj);
 }
 
-void collectionOfObjects::insertIfThen(std::string key,
+void collectionOfObjects::insertIfThen(vstring key,
 	Program::IfThen* obj)
 {
   CALL("insertIfThen");
@@ -153,14 +154,14 @@ void collectionOfObjects::insertIfThen(std::string key,
     _mapOfIfThen.insert(key, obj);
 }
 
-Program::IfThenElse* collectionOfObjects::getIfThenElse(std::string key)
+Program::IfThenElse* collectionOfObjects::getIfThenElse(vstring key)
 {
   CALL("getIfThenElse");
   Program::IfThenElse* ite = NULL;
   _mapOfThenElse.find(key, ite);
   return ite;
 }
-Program::IfThen* collectionOfObjects::getIfThen(std::string key)
+Program::IfThen* collectionOfObjects::getIfThen(vstring key)
 {
    CALL("collectionOfObjects::getIfThen");
    Program::IfThen* it = NULL;
@@ -168,7 +169,7 @@ Program::IfThen* collectionOfObjects::getIfThen(std::string key)
    return it;
 }
 
-Program::WhileDo* collectionOfObjects::getWhile(std::string key)
+Program::WhileDo* collectionOfObjects::getWhile(vstring key)
 {
   CALL("getWhile");
   Program::WhileDo* wdo = NULL;
@@ -176,7 +177,7 @@ Program::WhileDo* collectionOfObjects::getWhile(std::string key)
   return wdo;
 }
 
-void collectionOfObjects::insertArrayApplication(std::string key,
+void collectionOfObjects::insertArrayApplication(vstring key,
 	Program::ArrayApplicationExpression* obj)
 {
   CALL("insertArrayApplication");
@@ -184,7 +185,7 @@ void collectionOfObjects::insertArrayApplication(std::string key,
 }
 
 Program::ArrayApplicationExpression* collectionOfObjects::getArrayApplicationExpression(
-	std::string key)
+	vstring key)
 {
   CALL("getArrayApplicationExpression");
   Program::ArrayApplicationExpression* arr = NULL;
@@ -192,7 +193,7 @@ Program::ArrayApplicationExpression* collectionOfObjects::getArrayApplicationExp
   return arr;
 }
 
-int collectionOfObjects::chekMaps(std::string key)
+int collectionOfObjects::chekMaps(vstring key)
 {
   CALL("collectionOfObjects::checkMaps");
   if (_mapOfAssignments.find(key))
@@ -210,7 +211,7 @@ int collectionOfObjects::chekMaps(std::string key)
   return 0;
 }
 
-bool collectionOfObjects::testASS(std::string key)
+bool collectionOfObjects::testASS(vstring key)
 {
   return _mapOfAssignments.find(key);
 }
@@ -303,19 +304,19 @@ Statement* collectionOfObjects::getWhile(int wNumber){
 
 }
 
-bool collectionOfObjects::findArrayApplication(std::string key)
+bool collectionOfObjects::findArrayApplication(vstring key)
 {
   CALL("collectionOfObjects::findArrayApplication");
   return _mapOfArrayApplic.find(key);
 }
 
-bool collectionOfObjects::findAssignemt(std::string key)
+bool collectionOfObjects::findAssignemt(vstring key)
 {
   CALL("collectionOfObjects::findAssignment");
   return _mapOfAssignments.find(key);
 }
 
-bool collectionOfObjects::findBlock(std::string key)
+bool collectionOfObjects::findBlock(vstring key)
 {
   CALL("collectionOfObjects::findBlock");
   return _mapOfBlocks.find(key);
@@ -327,13 +328,13 @@ bool collectionOfObjects::findConstantInteger(int key)
   return _mapOfIntegers.find(key);
 }
 
-bool collectionOfObjects::findFunctionApplication(std::string key)
+bool collectionOfObjects::findFunctionApplication(vstring key)
 {
   CALL("collectionOfObjects::findFunctionApplication");
   return _mapOfFcApplic.find(key);
 }
 
-bool collectionOfObjects::findVarExpression(std::string key)
+bool collectionOfObjects::findVarExpression(vstring key)
 {
   CALL("collectionOfObjects::findVarExpression");
   return _mapOfVariableExpr.find(key);
@@ -353,19 +354,19 @@ void collectionOfObjects::insertMainProgramStatement(Program::Statement* stmt)
 	  _mapOfMainProgramStatements.numberOfElements() + 1, stmt);
 }
 
-void collectionOfObjects::insertVariable(std::string key,
+void collectionOfObjects::insertVariable(vstring key,
 	Program::Variable* obj)
 {
   CALL("collectionOfObjects::insertVariable");
   _mapOfVariables.insert(key, obj);
 }
-bool collectionOfObjects::findVariable(std::string key)
+bool collectionOfObjects::findVariable(vstring key)
 {
   CALL("collectionOfObjects::findVariable");
   return _mapOfVariables.find(key);
 }
 
-Program::Variable* collectionOfObjects::getVariable(std::string key)
+Program::Variable* collectionOfObjects::getVariable(vstring key)
 {
   CALL("collectionOfObjects::getVariable");
   Program::Variable* var = NULL;
@@ -373,19 +374,19 @@ Program::Variable* collectionOfObjects::getVariable(std::string key)
   return var;
 }
 
-bool collectionOfObjects::findWhileDo(std::string key)
+bool collectionOfObjects::findWhileDo(vstring key)
 {
   CALL("collectionOfObjects::findWhileDo");
   return _mapOfWhile.find(key);
 }
 
-bool collectionOfObjects::findIfThenElse(std::string key)
+bool collectionOfObjects::findIfThenElse(vstring key)
 {
   CALL("collectionOfObjects::findIfThenElse");
   return _mapOfThenElse.find(key);
 }
 
-bool collectionOfObjects::findIfThen(std::string key)
+bool collectionOfObjects::findIfThen(vstring key)
 {
    CALL("collectionOfObjects::findIfThen");
    return _mapOfIfThen.find(key);

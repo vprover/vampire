@@ -253,11 +253,11 @@ SATLiteral SATClause::litToSAT(NamingContext& context, Literal* lit)
 /**
  * Convert the clause to the string representation.
  */
-string SATClause::toString() const
+vstring SATClause::toString() const
 {
   CALL("SATClause::toString");
 
-  string result;
+  vstring result;
   if (_length == 0) {
     result = "#";
   } else {
@@ -275,7 +275,7 @@ string SATClause::toString() const
 /**
  * Convert the clause to the DIMACS string representation.
  */
-string SATClause::toDIMACSString() const
+vstring SATClause::toDIMACSString() const
 {
   CALL("SATClause::toDIMACSString");
 
@@ -283,7 +283,7 @@ string SATClause::toDIMACSString() const
     return "0";
   }
 
-  string result;
+  vstring result;
   for(unsigned i=0;i<_length;i++) {
     ASS_G(_literals[i].var(),0);
     if(i!=0) {

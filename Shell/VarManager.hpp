@@ -6,7 +6,7 @@
 #ifndef __VarManager__
 #define __VarManager__
 
-#include <string>
+#include "Lib/VString.hpp"
 
 #include "Forwards.hpp"
 
@@ -20,7 +20,7 @@ public:
   struct VarFactory
   {
     virtual unsigned getVarAlias(unsigned var) = 0;
-    virtual string getVarName(unsigned var) = 0;
+    virtual vstring getVarName(unsigned var) = 0;
   };
 
   static bool varNamePreserving() { return _fact; }
@@ -28,7 +28,7 @@ public:
   static VarFactory* varNamePreservingFactory() { return _fact; }
 
   static unsigned getVarAlias(unsigned var);
-  static string getVarName(unsigned var);
+  static vstring getVarName(unsigned var);
 private:
   static VarFactory* _fact;
 };

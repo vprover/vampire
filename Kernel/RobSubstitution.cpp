@@ -27,7 +27,6 @@
 #if VDEBUG
 #include "Lib/Int.hpp"
 #include "Debug/Tracer.hpp"
-#include <string>
 #include <iostream>
 using namespace Debug;
 #endif
@@ -985,10 +984,10 @@ struct RobSubstitution::UnificationFn {
 
 
 #if VDEBUG
-string RobSubstitution::toString(bool deref) const
+vstring RobSubstitution::toString(bool deref) const
 {
   CALL("RobSubstitution::toString");
-  string res;
+  vstring res;
   BankType::Iterator bit(_bank);
   while(bit.hasNext()) {
     VarSpec v;
@@ -1013,7 +1012,7 @@ string RobSubstitution::toString(bool deref) const
   return res;
 }
 
-std::string RobSubstitution::VarSpec::toString() const
+vstring RobSubstitution::VarSpec::toString() const
 {
   if(index==SPECIAL_INDEX) {
     return "S"+Int::toString(var);
@@ -1022,7 +1021,7 @@ std::string RobSubstitution::VarSpec::toString() const
   }
 }
 
-string RobSubstitution::TermSpec::toString() const
+vstring RobSubstitution::TermSpec::toString() const
 {
   return term.toString()+"/"+Int::toString(index);
 }

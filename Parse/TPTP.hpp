@@ -271,8 +271,8 @@ public:
     /** position of the beginning of this token */
     int start;
     /** content */
-    string content;
-    string toString() const;
+    vstring content;
+    vstring toString() const;
   };
 
   /**
@@ -282,12 +282,12 @@ public:
     : public ::Exception
   {
   public:
-    Exception(string message,Token& tok);
-    Exception(string message,int position);
+    Exception(vstring message,Token& tok);
+    Exception(vstring message,int position);
     void cry(ostream&);
     ~Exception() {}
   protected:
-    string _message;
+    vstring _message;
   }; // TPTP::Exception
   friend class Exception;
 
@@ -305,10 +305,10 @@ public:
    * based on this value.
    */
   bool containsConjecture() const { return _containsConjecture; }
-  void addForbiddenInclude(string file);
-  static bool findAxiomName(const Unit* unit, string& result);
+  void addForbiddenInclude(vstring file);
+  static bool findAxiomName(const Unit* unit, vstring& result);
   //this function is used also by the API
-  static void assignAxiomName(const Unit* unit, string& name);
+  static void assignAxiomName(const Unit* unit, vstring& name);
 private:
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
@@ -428,22 +428,22 @@ private:
    * This is to support the feature formula_selection of the include
    * directive of the TPTP format.
  */
-  Set<string>* _allowedNames;
+  Set<vstring>* _allowedNames;
   /** stacks of allowed names when include is used */
-  Stack<Set<string>*> _allowedNamesStack;
+  Stack<Set<vstring>*> _allowedNamesStack;
   /** set of files whose inclusion should be ignored */
-  Set<string> _forbiddenIncludes;
+  Set<vstring> _forbiddenIncludes;
   /** the input stream */
   istream* _in;
   /** in the case include() is used, previous streams will be saved here */
   Stack<istream*> _inputs;
   /** the current include directory */
-  string _includeDirectory;
+  vstring _includeDirectory;
   /** in the case include() is used, previous sequence of directories will be
    * saved here, this is required since TPTP requires the directory to be
    * relative to the "current directory, that is, the directory used by the last include()
    */
-  Stack<string> _includeDirectories;
+  Stack<vstring> _includeDirectories;
   /** input characters */
   Array<char> _chars;
   /** position in the input stream of the 0th characater in _chars[] */
@@ -466,7 +466,7 @@ private:
    * between fof() and tff() in treating numeric constants */ 
   bool _isFof;
   /** various strings saved during parsing */
-  Stack<string> _strings;
+  Stack<vstring> _strings;
   /** various connectives saved during parsing */ // they must be int, since non-existing value -1 can be used
   Stack<int> _connectives;
   /** various boolean values saved during parsing */
@@ -495,7 +495,7 @@ private:
   /** bindings of variables to sorts */
   Map<int,SortList*> _variableSorts;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
-  Set<string> _overflow;
+  Set<vstring> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
 
@@ -589,7 +589,7 @@ private:
   Tag readNumber(Token&);
   int decimal(int pos);
   int positiveDecimal(int pos);
-  static string toString(Tag);
+  static vstring toString(Tag);
 
   // parser functions
   static Formula* makeJunction(Connective c,Formula* lhs,Formula* rhs);
@@ -598,7 +598,7 @@ private:
   void tff();
   void vampire();
   void consumeToken(Tag);
-  string name();
+  vstring name();
   void formula();
   void atom();
   void simpleFormula();
@@ -642,36 +642,36 @@ private:
   static void checkFlat(const TermList& t);
   static void checkFlat(const Term* t);
   static void checkFlat(const Literal* t);
-  static void reportNonFlat(string);
+  static void reportNonFlat(vstring);
 
   unsigned readSort();
   void bindVariable(int var,unsigned sortNumber);
   void unbindVariables();
   void skipToRPAR();
-  unsigned addFunction(string name,int arity,bool& added,TermList& someArgument);
-  int addPredicate(string name,int arity,bool& added,TermList& someArgument);
-  unsigned addOverloadedFunction(string name,int arity,int symbolArity,bool& added,TermList& arg,
+  unsigned addFunction(vstring name,int arity,bool& added,TermList& someArgument);
+  int addPredicate(vstring name,int arity,bool& added,TermList& someArgument);
+  unsigned addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
 				 Theory::Interpretation integer,Theory::Interpretation rational,
 				 Theory::Interpretation real);
-  unsigned addOverloadedPredicate(string name,int arity,int symbolArity,bool& added,TermList& arg,
+  unsigned addOverloadedPredicate(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
 				  Theory::Interpretation integer,Theory::Interpretation rational,
 				  Theory::Interpretation real);
- // unsigned addOverloadedArrayFunction(string name,int arity,int symbolArity,bool& added,TermList& arg,Theory::Interpretation array_select);
-  unsigned addIntegerConstant(const string&);
-  unsigned addRationalConstant(const string&);
-  unsigned addRealConstant(const string&);
-  unsigned addUninterpretedConstant(const string& name,bool& added);
+ // unsigned addOverloadedArrayFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,Theory::Interpretation array_select);
+  unsigned addIntegerConstant(const vstring&);
+  unsigned addRationalConstant(const vstring&);
+  unsigned addRealConstant(const vstring&);
+  unsigned addUninterpretedConstant(const vstring& name,bool& added);
   unsigned sortOf(TermList& term);
   static bool higherPrecedence(int c1,int c2);
 
 private:
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
-  static DHMap<unsigned, string> _axiomNames;
+  static DHMap<unsigned, vstring> _axiomNames;
 
 #if VDEBUG
-  void printStates(string extra);
-  void printInts(string extra);
+  void printStates(vstring extra);
+  void printInts(vstring extra);
   const char* toString(State s);
 #endif
 }; // class TPTP

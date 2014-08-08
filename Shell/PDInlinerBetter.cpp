@@ -351,13 +351,13 @@ public:
    *
    * For debugging and logging purposes.
    */
-  string toString() const
+  vstring toString() const
   {
     CALL("toString");
     if(_asymDef) {
-      string posStr = _posBody ? _posBody->toString() : "(none)";
-      string negStr = _negBody ? _negBody->toString() : "(none)";
-      string dblStr = _dblBody ? _dblBody->toString() : "(none)";
+      vstring posStr = _posBody ? _posBody->toString() : "(none)";
+      vstring negStr = _negBody ? _negBody->toString() : "(none)";
+      vstring dblStr = _dblBody ? _dblBody->toString() : "(none)";
       return "[Asym def " + _lhs->toString() + " --> (+) " + posStr
 	  + ", (-) " + negStr + ", (0) " + dblStr + " ]";
     }

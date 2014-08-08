@@ -142,11 +142,11 @@ void Constraint::reduce(bool allowDecimals)
   CoeffNumber::reduceNumbers(nums.size(), nums.begin(), allowDecimals);
 }
 
-string Constraint::toString() const
+vstring Constraint::toString() const
 {
   CALL("Constraint::toString");
 
-  stringstream stm;
+  vstringstream stm;
   UIHelper::outputConstraint(*this, stm);
   return stm.str();
 }

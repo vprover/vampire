@@ -6,7 +6,6 @@
 #ifndef __CMZRMode__
 #define __CMZRMode__
 
-#include <string>
 #include <utility>
 
 #include "Forwards.hpp"
@@ -15,6 +14,8 @@
 #include "Lib/Portability.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
+
+#include "Lib/VString.hpp"
 
 #include "Lib/Sys/SyncPipe.hpp"
 
@@ -54,18 +55,18 @@ private:
   void loadIncludes();
   void loadProblems();
 
-  typedef Stack<string> StringStack;
+  typedef Stack<vstring> StringStack;
 
-  unsigned getSliceTime(string sliceCode);
+  unsigned getSliceTime(vstring sliceCode);
   void getStrategy(Property& property, StringStack& res);
 
   struct ProblemInfo {
-    ProblemInfo(string inputFName="",string outputFName="")
+    ProblemInfo(vstring inputFName="",vstring outputFName="")
     : inputFName(inputFName), outputFName(outputFName), specificFormulas(0), property(0),
       solved(false), runningProcessPID(-1) {}
 
-    string inputFName;
-    string outputFName;
+    vstring inputFName;
+    vstring outputFName;
 
     //the fields below are populated in loadProblems()
     UnitList* specificFormulas;
@@ -84,11 +85,11 @@ private:
   };
 
 
-  typedef List<string> StringList;
+  typedef List<vstring> StringList;
 
 
 
-  string category;
+  vstring category;
   /** in seconds */
   int problemTimeLimit;
 //  int overallTimeLimit;
@@ -112,8 +113,8 @@ private:
   void attemptProblem(unsigned idx);
   void waitForOneFinished();
 
-  void startStrategyRun(unsigned prbIdx, string strategy, unsigned timeMs);
-  void strategyRunChild(unsigned prbIdx, string strategy, unsigned timeMs) NO_RETURN;
+  void startStrategyRun(unsigned prbIdx, vstring strategy, unsigned timeMs);
+  void strategyRunChild(unsigned prbIdx, vstring strategy, unsigned timeMs) NO_RETURN;
 
   unsigned _parallelProcesses;
   unsigned _availCoreCnt;

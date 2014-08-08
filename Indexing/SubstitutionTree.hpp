@@ -644,8 +644,8 @@ public:
 
 #if VDEBUG
 public:
-  static string nodeToString(Node* topNode);
-  string toString() const;
+  static vstring nodeToString(Node* topNode);
+  vstring toString() const;
   bool isEmpty() const;
 
   int _iteratorCnt;

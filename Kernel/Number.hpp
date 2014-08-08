@@ -37,7 +37,7 @@ public:
   static void switchToRationalNumbers() {_useRational = true; _usePrecise=false; }
 protected:
 
-  static NativeNumber parseString(string str);
+  static NativeNumber parseString(vstring str);
 
   static bool _usePrecise;
   static bool _useRational;
@@ -428,7 +428,7 @@ public:
   explicit CoeffNumber(const NativeNumber val) : CoeffNumberBase(val) {}
   explicit CoeffNumber(const NativeRational val) : CoeffNumberBase(val) {}
   explicit CoeffNumber(const Precise& val) : CoeffNumberBase(val) {}
-  explicit CoeffNumber(string val) : CoeffNumberBase(parseString(val)) {}
+  explicit CoeffNumber(vstring val) : CoeffNumberBase(parseString(val)) {}
 
   static void reduceNumbers(size_t cnt, CoeffNumber** vals, bool allowDecimal=true);
 
@@ -444,7 +444,7 @@ public:
   explicit BoundNumber(const NativeRational val) : BoundNumberBase(val){}
   explicit BoundNumber(const Precise& val) : BoundNumberBase(val) {}
   explicit BoundNumber(const CoeffNumber& val) : BoundNumberBase(val) {}
-  explicit BoundNumber(string val) : BoundNumberBase(parseString(val)) {}
+  explicit BoundNumber(vstring val) : BoundNumberBase(parseString(val)) {}
 
   static BoundNumber getRandomValue(const BoundNumber& min, const BoundNumber& max);
   BoundNumber getMagicNumber(BoundNumber& rhs);

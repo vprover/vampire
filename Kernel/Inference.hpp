@@ -9,10 +9,10 @@
 #define __Inference__
 
 #include <cstdlib>
-#include <string>
 
 #include "Kernel/Unit.hpp"
 #include "Lib/Allocator.hpp"
+#include "Lib/VString.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -274,8 +274,8 @@ public:
    */
   virtual ~Inference() {}
 
-  static string ruleName(Rule rule);
-  string name() const { return ruleName(_rule); }
+  static vstring ruleName(Rule rule);
+  vstring name() const { return ruleName(_rule); }
 
   CLASS_NAME(Inference);
   USE_ALLOCATOR(Inference);

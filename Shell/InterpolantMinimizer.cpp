@@ -194,7 +194,7 @@ void InterpolantMinimizer::prettyPrint(Term* term, ostream& out)
 //unfortunately I only discovered about those later..
 void InterpolantMinimizer::prettyPrint(Symbol* symb, ostream& out)
 {
-    string name = symb->name();
+    vstring name = symb->name();
     if(symb->interpreted()) {
         if(name == "$less")
         {out << "<";}
@@ -245,10 +245,10 @@ void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, 
       continue;
     }
 
-    string uid = getUnitId(unit);
+    vstring uid = getUnitId(unit);
     
     SMTConstant sU = pred(S, uid);
-    string val = solverResult.assignment.get(sU);
+    vstring val = solverResult.assignment.get(sU);
     if(val=="false") {
       continue;
     }
@@ -296,7 +296,7 @@ void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
     if(!info.leadsToColor) {
       continue;
     }
-    string parId = getUnitId(par);
+    vstring parId = getUnitId(par);
     switch(info.color) {
     case COLOR_LEFT: psum.rParents.push(parId); break;
     case COLOR_RIGHT: psum.bParents.push(parId); break;
@@ -308,7 +308,7 @@ void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
   UnitInfo& uinfo = _infos.get(u);
   ASS_EQ(uinfo.color, COLOR_TRANSPARENT);
 
-  string uId = getUnitId(u);
+  vstring uId = getUnitId(u);
 
   if(uinfo.inputInheritedColor!=COLOR_TRANSPARENT) {
     //if unit has an inherited color, it must be input unit and therefore
@@ -326,7 +326,7 @@ void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
 
 
   if(_noSlicing || uinfo.isRefutation) {
-    string comment;
+    vstring comment;
     if(uinfo.isRefutation) {
       comment += "refutation";
     }
@@ -354,7 +354,7 @@ void InterpolantMinimizer::addFringeFormulas(UnitSpec u)
 {
   CALL("InterpolantMinimizer::addFringeFormulas");
 
-  string n = getUnitId(u);
+  vstring n = getUnitId(u);
 
 
   SMTFormula rcN = pred(RC, n);
@@ -378,7 +378,7 @@ void InterpolantMinimizer::addFringeFormulas(UnitSpec u)
   USList::Iterator gsit(uinfo.transparentSuccessors);
   while(gsit.hasNext()) {
     UnitSpec succ = gsit.next();
-    string succId = getUnitId(succ);
+    vstring succId = getUnitId(succ);
 
     SMTFormula rcS = pred(RC, succId);
     SMTFormula bcS = pred(BC, succId);
@@ -540,16 +540,16 @@ private:
  *
  * Currently we consider formulas to be one big component.
  */
-void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<string>& atoms)
+void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<vstring>& atoms)
 {
   CALL("InterpolantMinimizer::collectAtoms(FormulaUnit*...)");
   
-  string key = f->formula()->toString();
+  vstring key = f->formula()->toString();
 
   
   
 
-  string id;
+  vstring id;
   if(!_formulaAtomIds.find(key, id)) {
     id = "f" + Int::toString(_formulaAtomIds.size());
     _formulaAtomIds.insert(key, id);
@@ -564,10 +564,10 @@ void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<string>& atoms)
 /**
  * Get ID of component @c cl
  */
-string InterpolantMinimizer::getComponentId(Clause* cl)
+vstring InterpolantMinimizer::getComponentId(Clause* cl)
 {
   CALL("InterpolantMinimizer::getComponentId");
-  string id;
+  vstring id;
   if(!_atomIds.find(cl, id)) {
     id = "c" + Int::toString(_atomIds.size());
     _atomIds.insert(cl, id);
@@ -583,7 +583,7 @@ string InterpolantMinimizer::getComponentId(Clause* cl)
  * If the formula is not a clause (i.e. conjunction of formulas), then the sub-formulas need to be traversed
  * (though currently, conjunctions of clauses is treated one formula in interpolation)
  */
-void InterpolantMinimizer::collectAtoms(UnitSpec u, Stack<string>& atoms)
+void InterpolantMinimizer::collectAtoms(UnitSpec u, Stack<vstring>& atoms)
 {
   CALL("InterpolantMinimizer::collectAtoms(UnitSpec...)");
 
@@ -615,22 +615,22 @@ void InterpolantMinimizer::addAtomImplicationFormula(UnitSpec u)
   CALL("InterpolantMinimizer::getAtomImplicationFormula");
   
   
-  static Stack<string> atoms;
+  static Stack<vstring> atoms;
   atoms.reset();
   
   collectAtoms(u, atoms);
 
-  string uId = getUnitId(u);
+  vstring uId = getUnitId(u);
 
   SMTFormula cConj = SMTFormula::getTrue();
-  Stack<string>::Iterator ait(atoms);
+  Stack<vstring>::Iterator ait(atoms);
   while(ait.hasNext()) {
     
-    string atom = ait.next();
+    vstring atom = ait.next();
     cConj = cConj & pred(V, atom);
   }
 
-  string comment = "atom implications for " + u.toString();
+  vstring comment = "atom implications for " + u.toString();
   _resBenchmark.addFormula(pred(D, uId) --> cConj, comment);
 }
 
@@ -645,7 +645,7 @@ void InterpolantMinimizer::addCostFormula()
 
   WeightMap::Iterator wit(_atomWeights);
   while(wit.hasNext()) {
-    string atom;
+    vstring atom;
     unsigned weight;
     wit.next(atom, weight);
 
@@ -670,14 +670,14 @@ void InterpolantMinimizer::addCostFormula()
 // Generating the SAT part of the problem
 //
 
-SMTConstant InterpolantMinimizer::pred(PredType t, string node)
+SMTConstant InterpolantMinimizer::pred(PredType t, vstring node)
 {
   CALL("InterpolantMinimizer::pred");
   //Fake node is fictitious parent of gray nodes marked as colored in the TPTP.
   //We should never create predicates for these.
   ASS_NEQ(node, "fake_node");
 
-  string n1;
+  vstring n1;
   switch(t) {
   case R: n1 = "r"; break;
   case B: n1 = "b"; break;
@@ -703,11 +703,11 @@ SMTConstant InterpolantMinimizer::costFunction()
   return res;
 }
 
-string InterpolantMinimizer::getUnitId(UnitSpec u)
+vstring InterpolantMinimizer::getUnitId(UnitSpec u)
 {
   CALL("InterpolantMinimizer::getUnitId");
 
-  string id = InferenceStore::instance()->getUnitIdStr(u);
+  vstring id = InferenceStore::instance()->getUnitIdStr(u);
 //  _idToFormulas.insert(is, u); //the item might be already there from previous call to getUnitId
   return id;
 }
@@ -716,7 +716,7 @@ string InterpolantMinimizer::getUnitId(UnitSpec u)
  * Add into @c _resBenchmark formulas stating uniqueness of trace colours
  * of node @c n.
  */
-void InterpolantMinimizer::addDistinctColorsFormula(string n)
+void InterpolantMinimizer::addDistinctColorsFormula(vstring n)
 {
   CALL("InterpolantMinimizer::distinctColorsFormula");
 
@@ -736,7 +736,7 @@ void InterpolantMinimizer::addDistinctColorsFormula(string n)
  * Add into @c _resBenchmark formulas related to digest and trace of node @c n
  * that are specific to a node which is parent of only gray formulas.
  */
-void InterpolantMinimizer::addGreyNodePropertiesFormula(string n, ParentSummary& parents)
+void InterpolantMinimizer::addGreyNodePropertiesFormula(vstring n, ParentSummary& parents)
 {
   CALL("InterpolantMinimizer::gNodePropertiesFormula");
   ASS(parents.rParents.isEmpty());
@@ -746,9 +746,9 @@ void InterpolantMinimizer::addGreyNodePropertiesFormula(string n, ParentSummary&
   SMTFormula bParDisj = SMTFormula::getFalse();
   SMTFormula gParConj = SMTFormula::getTrue();
 
-  Stack<string>::Iterator pit(parents.gParents);
+  Stack<vstring>::Iterator pit(parents.gParents);
   while(pit.hasNext()) {
-    string par = pit.next();
+    vstring par = pit.next();
     rParDisj = rParDisj | pred(R, par);
     bParDisj = bParDisj | pred(B, par);
     gParConj = gParConj & pred(G, par);
@@ -779,7 +779,7 @@ void InterpolantMinimizer::addGreyNodePropertiesFormula(string n, ParentSummary&
  * Add properties for a leaf node which was marked as colored in the TPTP problem,
  * but doesn't contain any colored symbols
  */
-void InterpolantMinimizer::addLeafNodePropertiesFormula(string n)
+void InterpolantMinimizer::addLeafNodePropertiesFormula(vstring n)
 {
   CALL("InterpolantMinimizer::addLeafNodePropertiesFormula");
  
@@ -797,7 +797,7 @@ void InterpolantMinimizer::addLeafNodePropertiesFormula(string n)
  * Add into @c _resBenchmark formulas related to digest and trace of node @c n
  * that are specific to a node which is parent of a colored formula.
  */
-void InterpolantMinimizer::addColoredParentPropertiesFormulas(string n, ParentSummary& parents)
+void InterpolantMinimizer::addColoredParentPropertiesFormulas(vstring n, ParentSummary& parents)
 {
   CALL("InterpolantMinimizer::coloredParentPropertiesFormula");
   ASS_NEQ(parents.rParents.isNonEmpty(),parents.bParents.isNonEmpty());
@@ -805,11 +805,11 @@ void InterpolantMinimizer::addColoredParentPropertiesFormulas(string n, ParentSu
   PredType parentType = parents.rParents.isNonEmpty() ? R : B;
   PredType oppositeType = (parentType==R) ? B : R;
 
-  Stack<string>::Iterator gParIt(parents.gParents);
+  Stack<vstring>::Iterator gParIt(parents.gParents);
 
   SMTFormula gParNegConj = SMTFormula::getTrue();
   while(gParIt.hasNext()) {
-    string par = gParIt.next();
+    vstring par = gParIt.next();
     gParNegConj = gParNegConj & !pred(oppositeType, par);
   }
 
@@ -842,7 +842,7 @@ void InterpolantMinimizer::addColoredParentPropertiesFormulas(string n, ParentSu
  *
  * Formulas related to the cost function are added elsewhere.
  */
-void InterpolantMinimizer::addNodeFormulas(string n, ParentSummary& parents)
+void InterpolantMinimizer::addNodeFormulas(vstring n, ParentSummary& parents)
 {
   CALL("InterpolantMinimizer::propertiesFormula");
 
@@ -995,7 +995,7 @@ void InterpolantMinimizer::traverse(Unit* refutationUnit)
  * with statsPrefix + " cost: "
  */
 InterpolantMinimizer::InterpolantMinimizer(OptimizationTarget target, bool noSlicing,
-					   bool showStats, string statsPrefix)
+					   bool showStats, vstring statsPrefix)
   : _optTarget(target),
     _noSlicing(noSlicing),
     _showStats(showStats),

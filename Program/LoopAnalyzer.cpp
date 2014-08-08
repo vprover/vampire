@@ -43,9 +43,10 @@
 
 #include "Parse/TPTP.hpp"
 
-#include <string>
 #include <fstream>
 #include <iostream>
+
+#include "Lib/VString.hpp"
 
 using namespace Kernel;
 using namespace Program;
@@ -62,7 +63,7 @@ LoopAnalyzer::LoopAnalyzer(WhileDo* loop)
   _n=Term::createConstant(getIntConstant("$counter"));
 }
 
-unsigned LoopAnalyzer::getIntConstant(string name){
+unsigned LoopAnalyzer::getIntConstant(vstring name){
   //if the constant to be inserted is the internal counter mark it for elimination 
   return ("$counter"==name? getIntFunction(name,0,true):getIntFunction(name, 0));
 
@@ -114,7 +115,7 @@ void LoopAnalyzer::analyze()
   generateIterationDefinition();
 
   //check if we have additional information to be added to the units
-  string additionalInvariants = env.options->lingvaAdditionalInvariants();
+  vstring additionalInvariants = env.options->lingvaAdditionalInvariants();
   if ( additionalInvariants != "") {
     //retrieve the file containing the additional information
     istream* additional = new ifstream(additionalInvariants.c_str());
@@ -264,7 +265,7 @@ void LoopAnalyzer::analyzeVariables()
 
     // adding the symbol to the signature
     unsigned arity = vinfo->scalar ? 0 : 1;
-    string name(v->name());
+    vstring name(v->name());
     vinfo->signatureNumber = getIntFunction(name,arity,false);
     if (arity == 0) {
       vinfo->constant = Term::create(vinfo->signatureNumber,0,0);
@@ -379,7 +380,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp, bool magic)
     {
 
       Variable* expVar=  static_cast<VariableExpression*>(exp)->variable();
-      string expName=expVar->name() ;
+      vstring expName=expVar->name() ;
       if (!magic)
         {
           TermList var(Term::createConstant(getIntConstant(expName)));
@@ -397,7 +398,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp, bool magic)
      {
        //create term for array variable
        Expression*  expArray=  static_cast<ArrayApplicationExpression*>(exp)->array();
-       string varName=expArray->toString();
+       vstring varName=expArray->toString();
        unsigned arrayFct=getIntFunction(varName,1,false);
        //create term represenation for array arguments
        Expression*  expArrayArguments=  static_cast<ArrayApplicationExpression*>(exp)->argument();
@@ -449,7 +450,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp, bool magic)
       //rhs is an uninterpreted function f(e1), 
       //create term for uninterpreted function
       Expression*  uiFct=  app->function();
-      string uiFctName=uiFct->toString();
+      vstring uiFctName=uiFct->toString();
       unsigned uiFctNameTerm=getIntFunction(uiFctName,1,false);
       //create term representation for arguments e1
       Expression* e1 = app->getArgument(0);
@@ -577,7 +578,7 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
       Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
       Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
       TermList argTerms = expressionToTerm(lhsArrayArguments);
-      string arrayName=lhsArray->toString();
+      vstring arrayName=lhsArray->toString();
       unsigned arrayFct1=getIntFunction(arrayName,1,false);
       TermList x1;
       x1.makeVar(1);
@@ -611,7 +612,7 @@ Formula* LoopAnalyzer::letTranslationOfVar(VariableMap::Iterator& varit, Formula
   VariableInfo* winfo;
   varit.next(w,winfo);
   if (winfo->counter) { // do this only for updated scalar variables
-    string warName=w->name();
+    vstring warName=w->name();
     TermList war(Term::createConstant(getIntConstant(warName)));
     unsigned warFun = getIntFunction(warName,1,false);
     // term x0
@@ -639,7 +640,7 @@ Formula* LoopAnalyzer::letTranslationOfArray(Map<Variable*,bool>::Iterator &sit,
   sit.next(v,updated);
   bool array = (v->vtype()->kind() == Type::ARRAY);
   if (updated & array) {//it is an updated array
-    string varName=v->name();
+    vstring varName=v->name();
     unsigned arrayFct1=getIntFunction(varName,1,false);
     unsigned arrayFct2=getIntFunction(varName,2,true);
     // term x0
@@ -688,7 +689,7 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
 	  Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
 	  Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 	  TermList argTerms = expressionToTerm(lhsArrayArguments);
-	  string arrayName=lhsArray->toString();
+	  vstring arrayName=lhsArray->toString();
 	  unsigned arrayFct1=getIntFunction(arrayName,1,false);
 	  TermList x1;
 	  x1.makeVar(1);
@@ -784,7 +785,7 @@ void LoopAnalyzer::generateLetExpressions()
       }
       bool scalar = (v->vtype()->kind() == Type::INT);
       bool array = (v->vtype()->kind() == Type::ARRAY);
-      string varName=v->name();
+      vstring varName=v->name();
       TermList var;
       TermList varX01;
       Theory* theory = Theory::instance();
@@ -871,7 +872,7 @@ TermList LoopAnalyzer::arrayUpdateValue(Path::Iterator &sit, TermList exp, int p
 	Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
 	Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 	TermList argTerms = expressionToTerm(lhsArrayArguments);
-	string arrayName=lhsArray->toString();
+	vstring arrayName=lhsArray->toString();
 	unsigned arrayFct1=getIntFunction(arrayName,1,false);
 	TermList x1;
 	x1.makeVar(1);
@@ -911,7 +912,7 @@ int LoopAnalyzer::arrayIsUpdatedOnPath(Path* path, Variable *v)
 	Expression* lhs = static_cast<Assignment*>(stat)->lhs();
 	if (lhs->kind()==Expression::ARRAY_APPLICATION) { 
 	  Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
-	  string arrayName=lhsArray->toString();
+	  vstring arrayName=lhsArray->toString();
 	  if (arrayName == v->name()) {
 	    updated =1;
 	  }
@@ -958,7 +959,7 @@ TermList LoopAnalyzer::arrayUpdatePosition(Path::Iterator &sit, TermList updPosE
 	Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
 	Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 	TermList argTerms = expressionToTerm(lhsArrayArguments);
-	string arrayName=lhsArray->toString();
+	vstring arrayName=lhsArray->toString();
 	unsigned arrayFct1=getIntFunction(arrayName,1,false);
 	TermList x1;
 	x1.makeVar(1);
@@ -1073,7 +1074,7 @@ Formula* LoopAnalyzer::updatePredicateOfArray2(Path* path, Path::Iterator &sit, 
 	  Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
 	  Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 	  TermList arrayArgs=expressionToTerm(lhsArrayArguments);
-	  string arrayName=lhsArray->toString();
+	  vstring arrayName=lhsArray->toString();
 	  if (arrayName == v->name()) {
 	    //compute an update predicate of v
 	    Path::Iterator pit(path);
@@ -1154,7 +1155,7 @@ Formula* LoopAnalyzer::updatePredicateOfArray3(Path* path, Path::Iterator &sit, 
 	  Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
 	  Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 	  TermList arrayArgs=expressionToTerm(lhsArrayArguments);
-	  string arrayName=lhsArray->toString();
+	  vstring arrayName=lhsArray->toString();
 	  if (arrayName == v->name()) {
 	    //compute an update predicate of v
 	    Path::Iterator pit(path);
@@ -1249,7 +1250,7 @@ Formula* LoopAnalyzer::updPredicateStack(Stack<Formula*> &updStack)
  * generate last update property of an array ARRAY
  * using the update predicate UpdPRED of the ARRAY
  */
-Formula* LoopAnalyzer::lastUpdateProperty(Literal* updPred, string array, TermList position, TermList updValue)
+Formula* LoopAnalyzer::lastUpdateProperty(Literal* updPred, vstring array, TermList position, TermList updValue)
 {
   CALL("LoopAnalyzer::lastUpdateProperty");
   unsigned arrayFct1=getIntFunction(array,1);
@@ -1263,7 +1264,7 @@ Formula* LoopAnalyzer::lastUpdateProperty(Literal* updPred, string array, TermLi
  * using the update predicate UpdPRED of the ARRAY
  * that is: (iter(ITERATION) => ~UpdPred(ITERATION,POSITION)) => ARRAY(POSITION) = ARRAY0(POSITION)
  */
-Formula* LoopAnalyzer::stabilityProperty(Literal* updPred, string array, TermList position, TermList iteration)
+Formula* LoopAnalyzer::stabilityProperty(Literal* updPred, vstring array, TermList position, TermList iteration)
 {
   CALL("LoopAnalyzer::stabilityProperty");
 
@@ -1335,7 +1336,7 @@ void LoopAnalyzer::generateUpdatePredicates()
     Formula* loopUpdPredicateV2=updPredicateStack(updPredicatesV2);
     Formula* loopUpdPredicateV3=updPredicateStack(updPredicatesV3);
     //create updV predicates in the signature
-    string updName="upd"+v->name();
+    vstring updName="upd"+v->name();
     TermList x2;//variable for update position
     x2.makeVar(2);
     TermList x0;
@@ -1734,7 +1735,7 @@ void LoopAnalyzer::generateAxiomsForCounters()
  *  Last change: ioan, 21.05.2013
  */
 
-void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
+void LoopAnalyzer::generateCounterAxiom(const vstring& name, int min, int max,
 					int gcd, Formula* branch) {
   CALL("LoopAnalyzer::generateCounterAxiom");
   // value of the counter at position 0
@@ -1908,7 +1909,7 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
   }
 }
 
-unsigned LoopAnalyzer::getIntFunction(string name, unsigned arity, bool setColor)
+unsigned LoopAnalyzer::getIntFunction(vstring name, unsigned arity, bool setColor)
 {
   CALL("LoopAnalyzer::getIntFunction");
 
@@ -1935,7 +1936,7 @@ unsigned LoopAnalyzer::getIntFunction(string name, unsigned arity, bool setColor
   return res;
 }
 
-unsigned LoopAnalyzer::getIntPredicate(string name, unsigned arity, bool setColor)
+unsigned LoopAnalyzer::getIntPredicate(vstring name, unsigned arity, bool setColor)
 {
   CALL("LoopAnalyzer::getIntPredicate");
 

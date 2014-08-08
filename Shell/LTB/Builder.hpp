@@ -24,7 +24,7 @@ class Builder {
 public:
   Builder();
 
-  void build(VirtualIterator<string> fnames);
+  void build(VirtualIterator<vstring> fnames);
 private:
 
   /**
