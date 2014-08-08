@@ -21,6 +21,9 @@ using namespace SAT;
 
 class CheckedSatSolver : public SATSolver {
 public:
+  CLASS_NAME(CheckedSatSolver);
+  USE_ALLOCATOR(CheckedSatSolver);
+  
   CheckedSatSolver(SATSolver* inner);
 
   virtual Status getStatus() { ensureChecked(); return _inner->getStatus(); }

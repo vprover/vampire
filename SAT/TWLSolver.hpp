@@ -16,6 +16,7 @@
 #include "Lib/Exception.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Allocator.hpp"
 
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
@@ -46,6 +47,9 @@ class TWLSolver : public SATSolver {
   friend class VariableSelector;
   friend class RLCVariableSelector;
 public:
+  CLASS_NAME(TWLSolver);
+  USE_ALLOCATOR(TWLSolver);
+
   TWLSolver(const Options& opt, bool generateProofs=false);
   ~TWLSolver();
 
