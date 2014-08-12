@@ -94,6 +94,9 @@ class EmptyIterator
 : public IteratorCore<T>
 {
 public:
+  CLASS_NAME(EmptyIterator);
+  USE_ALLOCATOR(EmptyIterator);
+
   EmptyIterator() {}
   bool hasNext() { return false; };
   T next() { INVALID_OPERATION("next() called on EmptyIterator object"); };
