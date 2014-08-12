@@ -271,6 +271,9 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 
 struct InferenceStore::ProofPrinter
 {
+  CLASS_NAME(InferenceStore::ProofPrinter);
+  USE_ALLOCATOR(InferenceStore::ProofPrinter);
+  
   ProofPrinter(ostream& out, InferenceStore* is)
   : _is(is), out(out)
   {
@@ -453,6 +456,9 @@ protected:
 struct InferenceStore::TPTPProofPrinter
 : public InferenceStore::ProofPrinter
 {
+  CLASS_NAME(InferenceStore::TPTPProofPrinter);
+  USE_ALLOCATOR(InferenceStore::TPTPProofPrinter);
+  
   TPTPProofPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {}
 
@@ -962,6 +968,9 @@ const char* InferenceStore::TPTPProofPrinter::splitPrefix = "$spl";
 struct InferenceStore::ProofCheckPrinter
 : public InferenceStore::ProofPrinter
 {
+  CLASS_NAME(InferenceStore::ProofCheckPrinter);
+  USE_ALLOCATOR(InferenceStore::ProofCheckPrinter);
+  
   ProofCheckPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {}
 

@@ -99,6 +99,7 @@ size_t Allocator::Descriptor::maxEntries;
 size_t Allocator::Descriptor::capacity;
 Allocator::Descriptor* Allocator::Descriptor::map;
 Allocator::Descriptor* Allocator::Descriptor::afterLast;
+unsigned Allocator::_tolerantZone;
 #endif
 
 #if VDEBUG && USE_PRECISE_CLASS_NAMES && defined(__GNUC__)
@@ -262,6 +263,7 @@ void Allocator::reportUsageByClasses()
 void Allocator::cleanup()
 {
   CALL("Allocator::cleanup");
+  BYPASSING_ALLOCATOR;
 
   // delete all allocators
   for (int i = _total-1;i >= 0;i--) {
@@ -471,6 +473,8 @@ void Allocator::deallocateUnknown(void* obj)
 Allocator* Allocator::newAllocator()
 {
   CALL("Allocator::newAllocator");
+  BYPASSING_ALLOCATOR;
+  
 #if VDEBUG && USE_SYSTEM_ALLOCATION
   ASSERTION_VIOLATION;
 #else
@@ -552,6 +556,8 @@ Allocator::Page* Allocator::allocatePages(size_t size)
 
     char* mem;
     try {
+      BYPASSING_ALLOCATOR;
+      
       mem = new char[realSize];
     } catch(bad_alloc)
     {
@@ -866,8 +872,9 @@ void* Allocator::allocateUnknown(size_t size)
  * @since 14/12/2005 Bellevue
  */
 Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
-{
+{    
   CALL("Allocator::Descriptor::find");
+  BYPASSING_ALLOCATOR;
 
   if (noOfEntries >= maxEntries) { // too many entries
     // expand the hash table first
@@ -970,6 +977,58 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 } // Allocator::Descriptor::hash(const char* str)
 
 #endif
+
+#if VDEBUG
+/**
+ * In debug mode we replace the global new and delete (also the array versions)
+ * and terminate in cases when they are used "unwillingly".
+ * Where "unwillingly" means people didn't mark the code explicitly with BYPASSING_ALLOCATOR
+ * and yet they attempt to call global new (and not the class specific versions 
+ * built on top of Allocator).
+ * 
+ * This is a link about some requirements on new/delete: 
+ * http://stackoverflow.com/questions/7194127/how-should-i-write-iso-c-standard-conformant-custom-new-and-delete-operators/
+ * (Note that we ignore the globalHandler issue here.)
+ **/ 
+  
+void* operator new(size_t sz) throw(bad_alloc) {    
+  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
+  
+  if (sz == 0)
+    sz = 1;
+      
+  void* res = malloc(sz);  
+  
+  if (!res)
+    throw bad_alloc();
+  
+  return res;
+}
+
+void* operator new[](size_t sz) throw(bad_alloc) {  
+  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
+  
+  if (sz == 0)
+    sz = 1;
+      
+  void* res = malloc(sz);  
+  
+  if (!res)
+    throw bad_alloc();
+  
+  return res;
+}
+
+void operator delete(void* obj) throw() {  
+  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");    
+  free(obj);
+}
+
+void operator delete[](void* obj) throw() {  
+  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");  
+  free(obj);
+}
+#endif // VDEBUG
 
 #if VTEST
 

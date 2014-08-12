@@ -295,6 +295,9 @@ class ProxyIterator
 : public IteratorCore<T>
 {
 public:
+  CLASS_NAME(ProxyIterator);
+  USE_ALLOCATOR(ProxyIterator);
+  
   explicit ProxyIterator(Inner inn) :_inn(inn) {}
   bool hasNext() { return _inn.hasNext(); };
   T next() { return _inn.next(); };
@@ -322,7 +325,7 @@ VirtualIterator<ELEMENT_TYPE(Inner)> pvi(Inner it)
 
 
 
-///@}Á
+///@}ï¿½
 
 }
 

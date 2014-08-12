@@ -127,6 +127,9 @@ SATClauseList* DIMACS::parse(const char* fname, unsigned& maxVar)
   istream* inp0;
 
   if(fname) {
+    // CAREFUL: this might not be enough if the ifstream (re)allocates while being operated
+    BYPASSING_ALLOCATOR;
+    
     inp0=new ifstream(fname);
   } else {
     inp0=&cin;
@@ -191,6 +194,8 @@ SATClauseList* DIMACS::parse(const char* fname, unsigned& maxVar)
             << num_cls << " specified and " << numCls << " read).\n";
   
   if(inp0!=&cin) {
+    BYPASSING_ALLOCATOR;
+    
     delete inp0;
   }
 

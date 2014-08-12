@@ -661,6 +661,9 @@ protected:
   {
     Stack* st;
   public:
+    CLASS_NAME(Stack::PushBacktrackObject);
+    USE_ALLOCATOR(Stack::PushBacktrackObject);
+    
     PushBacktrackObject(Stack* st) : st(st) {}
     void backtrack() { st->pop(); }
   };

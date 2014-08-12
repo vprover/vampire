@@ -153,11 +153,9 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
 Problem* UIHelper::getInputProblem(const Options& opts)
 {
   CALL("UIHelper::getInputProblem");
-
     
   TimeCounter tc1(TC_PARSING);
   env.statistics->phase = Statistics::PARSING;
-
 
   vstring inputFile = opts.inputFile();
 
@@ -165,12 +163,14 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   if (inputFile=="") {
     input=&cin;
   } else {
+    // CAREFUL: this might not be enough if the ifstream (re)allocates while being operated
+    BYPASSING_ALLOCATOR; 
+    
     input=new ifstream(inputFile.c_str());
     if (input->fail()) {
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
   }
-
 
   UnitList* units;
   switch (opts.inputSyntax()) {
@@ -223,6 +223,8 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   }
 
   if (inputFile!="") {
+    BYPASSING_ALLOCATOR;
+    
     delete static_cast<ifstream*>(input);
     input=0;
   }

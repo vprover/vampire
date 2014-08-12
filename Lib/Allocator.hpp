@@ -56,7 +56,7 @@ class Allocator {
 public:
   Allocator();
   ~Allocator();
-
+  
   /** Return the amount of used memory */
   static size_t getUsedMemory()
   {
@@ -166,6 +166,11 @@ private:
 
 #if VDEBUG
 public:
+  struct AllowBypassing {
+    AllowBypassing() { _tolerantZone++; }
+    ~AllowBypassing() { _tolerantZone--; }
+  };
+  
   /** Descriptor stores information about allocated pieces of memory */
   struct Descriptor
   {
@@ -262,6 +267,18 @@ private:
 //   static char* _pageReserve;
 
   friend class Initialiser;
+  
+#if VDEBUG  
+  /*
+   * A tool for marking pieces of code which are allowed to bypass Allocator.
+   * See also Allocator::AllowBypassing and the BYPASSING_ALLOCATOR macro.
+   */
+  static unsigned _tolerantZone;  
+  friend void* ::operator new(size_t);
+  friend void* ::operator new[](size_t);
+  friend void ::operator delete(void*);
+  friend void ::operator delete[](void*);
+#endif
 }; // class Allocator
 
 /** An initialiser to be included in every compilation unit to ensure
@@ -331,6 +348,12 @@ void array_delete(T* array, size_t length)
   { ASS_EQ(sz,sizeof(C)); return Lib::Allocator::current->allocateKnown(sizeof(C),className()); } \
   void operator delete (void* obj)                                  \
   { if (obj) Lib::Allocator::current->deallocateKnown(obj,sizeof(C),className()); }
+#define USE_ALLOCATOR_ARRAY \
+  void* operator new[] (size_t sz)                                       \
+  { return Lib::Allocator::current->allocateUnknown(sz,className()); } \
+  void operator delete[] (void* obj)                                  \
+  { if (obj) Lib::Allocator::current->deallocateUnknown(obj,className()); }
+
 
 #if USE_PRECISE_CLASS_NAMES
 #  if defined(__GNUC__)
@@ -357,7 +380,10 @@ void array_delete(T* array, size_t length)
   (Lib::Allocator::current->deallocateKnown(obj,size,className))
 #define DEALLOC_UNKNOWN(obj,className)		                \
   (Lib::Allocator::current->deallocateUnknown(obj,className))
-
+         
+#define BYPASSING_ALLOCATOR_(SEED) Allocator::AllowBypassing _tmpBypass_##SEED;
+#define BYPASSING_ALLOCATOR BYPASSING_ALLOCATOR_(__LINE__)
+     
 #else
 
 #define CLASS_NAME(name)
@@ -375,11 +401,18 @@ void array_delete(T* array, size_t length)
     { return Lib::Allocator::current->allocateKnown(sizeof(C)); }\
   inline void operator delete (void* obj)                               \
    { if (obj) Lib::Allocator::current->deallocateKnown(obj,sizeof(C)); }
+#define USE_ALLOCATOR_ARRAY                                            \
+  inline void* operator new[] (size_t sz)                                       \
+  { return Lib::Allocator::current->allocateUnknown(sz); } \
+  inline void operator delete[] (void* obj)                                  \
+  { if (obj) Lib::Allocator::current->deallocateUnknown(obj); }          
 #define ALLOC_UNKNOWN(size,className)				\
   (Lib::Allocator::current->allocateUnknown(size))
 #define DEALLOC_UNKNOWN(obj,className)		         \
   (Lib::Allocator::current->deallocateUnknown(obj))
 
+#define BYPASSING_ALLOCATOR
+     
 #endif
 
 } // namespace Lib

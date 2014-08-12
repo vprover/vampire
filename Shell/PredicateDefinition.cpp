@@ -137,8 +137,8 @@ struct PredicateDefinition::PredData
 	+ ") -(" + Int::toString(nocc) + ") 0(" + Int::toString(docc) + ")";
   }
 
-  CLASS_NAME(PredicateDefinition::PredData);
-  USE_ALLOCATOR(PredData);
+  CLASS_NAME(PredicateDefinition::PredData);  
+  USE_ALLOCATOR_ARRAY;
 };
 
 PredicateDefinition::PredicateDefinition(bool trace)

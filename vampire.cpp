@@ -135,14 +135,14 @@ int g_returnValue = 1;
 
 Problem* getPreprocessedProblem()
 {
-  CALL("getInputClauses");
+  CALL("getPreprocessedProblem");
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   TimeCounter tc2(TC_PREPROCESSING);
 
   Shell::Preprocess prepro(*env.options);
-  //phases for preprocessing are being set inside the proprocess method
+  //phases for preprocessing are being set inside the preprocess method
   prepro.preprocess(*prb);
   globProblem = prb;
 
