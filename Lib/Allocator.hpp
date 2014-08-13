@@ -190,6 +190,7 @@ public:
     unsigned page : 1;
     Descriptor();
 
+    friend std::ostream& operator<<(std::ostream& out, const Descriptor& d);
     std::string toString() const;
 
     static unsigned hash (const void* addr);
@@ -337,6 +338,8 @@ void array_delete(T* array, size_t length)
 
 
 #if VDEBUG
+
+std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
 
 #define USE_ALLOCATOR_UNK                                            \
   void* operator new (size_t sz)                                       \

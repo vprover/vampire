@@ -208,13 +208,13 @@ void Allocator::addressStatus(const void* address)
       continue;
     }
     // found
-    cout << "Descriptor: " << d.toString() << '\n'
+    cout << "Descriptor: " << d << '\n'
 	 << "Offset: " << diff << '\n'
 	 << "End of status\n";
     return;
   }
   if (pg) {
-    cout << "Not found but belongs to allocated page: " << pg->toString() << '\n';
+    cout << "Not found but belongs to allocated page: " << *pg << '\n';
   }
   else {
     cout << "Does not belong to an allocated page\n";
@@ -337,7 +337,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
   Descriptor* desc = Descriptor::find(obj);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
-  cout << desc->toString() << ": DK\n" << flush;
+  cout << *desc << ": DK\n" << flush;
 #endif
   ASS_EQ(desc->address, obj);
   ASS_STR_EQ(desc->cls,className);
@@ -386,7 +386,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
       watchAddressLastValue = currentValue;
       cout << "  Value: " << (void*)watchAddressLastValue << '\n';
     }
-    cout << "  " << desc->toString() << '\n'
+    cout << "  " << *desc << '\n'
 	 << "Watch! end\n";
   }
 #endif
@@ -411,7 +411,7 @@ void Allocator::deallocateUnknown(void* obj)
   Descriptor* desc = Descriptor::find(obj);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
-  cout << desc->toString() << ": DU\n" << flush;
+  cout << *desc << ": DU\n" << flush;
 #endif
   ASS_EQ(desc->address, obj);
   ASS_STR_EQ(desc->cls,className);
@@ -460,7 +460,7 @@ void Allocator::deallocateUnknown(void* obj)
       watchAddressLastValue = currentValue;
       cout << "  Value: " << (void*)watchAddressLastValue << '\n';
     }
-    cout << "  " << desc->toString() << '\n'
+    cout << "  " << *desc << '\n'
 	 << "Watch! end\n";
   }
 #endif
@@ -506,7 +506,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   size_t index = (size-1)/VPAGE_SIZE;
   size_t realSize = VPAGE_SIZE*(index+1);
 
-  // check if the allocatio isn't too big
+  // check if the allocation isn't too big
   if(index>=MAX_PAGES) {
 #if SAFE_OUT_OF_MEM_SOLUTION
     env.beginOutput();
@@ -580,7 +580,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   desc->page = 1;
 
 #if TRACE_ALLOCATIONS
-  cout << desc->toString() << ": AP\n" << flush;
+  cout << *desc << ": AP\n" << flush;
 #endif // TRACE_ALLOCATIONS
 #endif // VDEBUG
 
@@ -633,7 +633,7 @@ void Allocator::deallocatePages(Page* page)
   Descriptor* desc = Descriptor::find(page);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
-  cout << desc->toString() << ": DP\n" << flush;
+  cout << *desc << ": DP\n" << flush;
 #endif
   ASS(desc->address == page);
   ASS_STR_EQ(desc->cls,"Allocator::Page");
@@ -714,7 +714,7 @@ void* Allocator::allocateKnown(size_t size)
   desc->known = 1;
   desc->page = 0;
 #if TRACE_ALLOCATIONS
-  cout << desc->toString() << ": AK\n" << flush;
+  cout << *desc << ": AK\n" << flush;
 #endif
 #endif
 
@@ -734,7 +734,7 @@ void* Allocator::allocateKnown(size_t size)
       watchAddressLastValue = currentValue;
       cout << "  Value: " << (void*)watchAddressLastValue << '\n';
     }
-    cout << "  " << desc->toString() << '\n'
+    cout << "  " << *desc << '\n'
 	 << "Watch! end\n";
   }
 #endif
@@ -786,7 +786,7 @@ char* Allocator::allocatePiece(size_t size)
 	desc->size = _reserveBytesAvailable;
 	desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
-	cout << desc->toString() << ": RR\n" << flush;
+	cout << *desc << ": RR\n" << flush;
 #endif
 #endif
 	save->next = _freeList[index];
@@ -838,7 +838,7 @@ void* Allocator::allocateUnknown(size_t size)
   desc->page = 0;
 
 #if TRACE_ALLOCATIONS
-  cout << desc->toString() << ": AU\n" << flush;
+  cout << *desc << ": AU\n" << flush;
 #endif
 #endif
 
@@ -858,7 +858,7 @@ void* Allocator::allocateUnknown(size_t size)
       watchAddressLastValue = currentValue;
       cout << "  Value: " << (void*)watchAddressLastValue << '\n';
     }
-    cout << "  " << desc->toString() << '\n'
+    cout << "  " << *desc << '\n'
 	 << "Watch! end\n";
   }
 #endif
@@ -922,6 +922,26 @@ Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
 } // Allocator::Descriptor::find
 
 /**
+ * Output the string description of the descriptor to an ostream.
+ * @author Martin Suda
+ * @since 12/08/2014 Manchester
+ */
+ostream& Lib::operator<<(ostream& out, const Allocator::Descriptor& d) {
+  CALL("operator<<(ostream,Allocator::Descriptor)");
+  
+  out << (size_t)(&d)
+      << " [address:" << d.address
+      << ",timestamp:" << d.timestamp
+      << ",class:" << d.cls
+      << ",size:" << d.size
+      << ",allocated:" << (d.allocated ? "yes" : "no")
+      << ",known:" << (d.known ? "yes" : "no")
+      << ",page:" << (d.page ? "yes" : "no") << ']';  
+  
+  return out;
+}
+
+/**
  * A string description of the descriptor.
  * @since 17/12/2005 Vancouver
  */
@@ -932,17 +952,9 @@ std::string Allocator::Descriptor::toString() const
   // the order is selected so that the output lines can be sorted by
   // (address,timestamp)
   ostringstream out;
-  out << (size_t)this
-      << " [address:" << address
-      << ",timestamp:" << timestamp
-      << ",class:" << cls
-      << ",size:" << size
-      << ",allocated:" << (allocated ? "yes" : "no")
-      << ",known:" << (known ? "yes" : "no")
-      << ",page:" << (page ? "yes" : "no") << ']';
+  out << *this;
   return out.str();
 } // Allocator::Descriptor::toString
-
 
 /**
  * Initialise a descriptor.
