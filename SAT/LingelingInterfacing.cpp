@@ -218,6 +218,7 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 	}
 
 	try{
+		// Limit memory to what the Allocator has not used up
 		size_t remMem =env.options->memoryLimit() - (Allocator::getUsedMemory()/1048576);
 		if(onlyPropagate){
 			lglsetopt(_solver,"clim",1);
@@ -398,6 +399,15 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 
 }
 
+/**
+ * The reasoning behind this implementation is as follows:
+ * If the SAT solver manages to prove the problem unsatisfiable, it means that it managed
+ * to find a conflict (contradiction) at decision level 0. Hence, using just the clauses
+ * that have variables assigned at decision level 0 makes sense. In our case that can be
+ * tested by lglfixed call. And by doing so, the set of clauses that are sent back to the
+ * first-order reasoning part (as refutation) could be smaller than the actual problem.
+ * This is not guaranteed though.
+ */
 void LingelingInterfacing::setRefutation(){
 	CALL("LingelingInterfacing::setRefuation");
 
@@ -501,8 +511,9 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	//if the literal has negative polarity then multiply the flag by -1
 	int8_t polarity = (literal.isNegative()? -1 : 1);
 	//assume the literal
-	if ((polarity * (literal.var() + 1)) == 0)
+	if ((polarity * (literal.var() + 1)) == 0){
 		ASSERTION_VIOLATION;
+	}
 
 	resetsighandlers();
 
@@ -619,6 +630,12 @@ SATClause* LingelingInterfacing::getRefutation()
 
 }
 
+/**
+ * Works by creating a copy of the SAT solver and getting it to solve the problem
+ * in a different way
+ *
+ * Not currently in use - review before using
+ */
 void LingelingInterfacing::randomizeAssignment()
 {
 	CALL("LingelingInterfacing::randomizeAssignment()");
