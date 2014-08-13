@@ -77,7 +77,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u)
 {
   CALL("TPTPPrinter::getBodyStr");
 
-  vstringstream res;
+  vostringstream res;
 
   typedef DHMap<unsigned,unsigned> SortMap;
   static SortMap varSorts;

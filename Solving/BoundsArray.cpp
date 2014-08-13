@@ -67,7 +67,7 @@ vstring BoundInfo::toString(const BoundsArray& bounds, const BoundId& b, bool ou
 {
   CALL("BoundInfo::toString");
 
-  vstringstream stm;
+  vostringstream stm;
   //stm << "[var:" << v << "] ";
   stm << (b.left ? " " : "-");
   stm << env.signature->varName(b.var);

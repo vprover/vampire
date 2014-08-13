@@ -27,7 +27,7 @@ void assertInliningActivation(Problem::InliningMode mode, bool shouldPerform, vs
   popts.unusedPredicateDefinitionRemoval = false;
 
   Problem prb;
-  vstringstream stm(prbStr);
+  vostringstream stm(prbStr);
   prb.addFromStream(stm);
 
 

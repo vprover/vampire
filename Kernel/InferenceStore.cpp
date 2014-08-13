@@ -590,7 +590,7 @@ protected:
   vstring getNewSymbols(vstring origin, It symIt) {
     CALL("InferenceStore::TPTPProofPrinter::getNewSymbols(vstring,It)");
 
-    vstringstream symsStr;
+    vostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
       if (sym.first) {
@@ -739,7 +739,7 @@ protected:
 
 //    Inference::Rule rule=Inference::SPLITTING_COMPONENT;
 
-//    vstringstream originStm;
+//    vostringstream originStm;
 //    originStm << "introduced(" << tptpRuleName(rule)
 //	      << ",[" << getNewSymbols("naming",bddSymbolStr)
 //	      << "])";
@@ -846,7 +846,7 @@ protected:
     nameVars->destroy();
 
     SymbolId nameSymbol = SymbolId(false,nameLit->functor());
-    vstringstream originStm;
+    vostringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))
 	      << "])";
@@ -873,7 +873,7 @@ protected:
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
 	"inference("+tptpRuleName(Inference::CLAUSIFY)+",[],["+defId+"])", Inference::CLAUSIFY)<<endl;
 
-    vstringstream originStm;
+    vostringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",splitPred)
 	      << "])";

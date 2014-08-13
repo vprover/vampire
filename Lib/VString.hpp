@@ -21,9 +21,14 @@ namespace Lib {
 // vampire string, a STL string using vampire's Allocator
 typedef std::basic_string<char,std::char_traits<char>,STLAllocator<char> > vstring;
 
-// stringstream which uses (returns) a vstring
-typedef std::basic_stringstream<char,std::char_traits<char>,STLAllocator<char> > vstringstream;
+// ostringstream which uses (returns) a vstring
+typedef std::basic_ostringstream<char,std::char_traits<char>,STLAllocator<char> > vostringstream;
 
+// istringstream which uses (returns) a vstring
+typedef std::basic_istringstream<char,std::char_traits<char>,STLAllocator<char> > vistringstream;
+
+// stringstream which uses (returns) a vstring 
+typedef std::basic_stringstream<char,std::char_traits<char>,STLAllocator<char> > vstringstream;
 
 } // namespace Lib
 

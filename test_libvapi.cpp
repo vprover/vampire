@@ -212,7 +212,7 @@ int main(int argc, char* argv [])
 
 //  vstring fs=af.toString();
 //
-//  vstringstream sstr(fs);
+//  vostringstream sstr(fs);
 //
 //  Problem p2;
 //  p2.addFromStream(sstr);

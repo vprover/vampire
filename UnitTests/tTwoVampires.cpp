@@ -93,7 +93,7 @@ TEST_FUN(two_vampires1)
       "fof(not_m5,axiom, ( ~ ( ! [P,Q] : ( meets(P,Q) => ? [R,S,T] : ( meets(R,P) & meets(Q,S) & meets(R,T) & meets(T,S) ) ) ) )).";
 
   //get the problem we'll be solving
-  vstringstream inp(prob);
+  vostringstream inp(prob);
   UnitList* units=Parse::TPTP::parse(inp);
 
   //pipe for collecting the output from children

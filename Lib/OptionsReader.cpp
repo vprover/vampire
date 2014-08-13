@@ -125,7 +125,7 @@ vstring OptionsReader::getOptionStringValue(vstring optName)
 {
   CALL("OptionsReader::getOptionStringValue");
   
-  vstringstream stm;
+  vostringstream stm;
   
   printOptionValue(optName, stm);
   return stm.str();

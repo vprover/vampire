@@ -2925,7 +2925,7 @@ vstring Options::generateTestId() const
 {
   CALL("Options::generateTestId");
 
-  vstringstream res;
+  vostringstream res;
   //saturation algorithm
   res << ( (saturationAlgorithm()==DISCOUNT) ? "dis" : ( (saturationAlgorithm()==LRS) ? "lrs" : "ott") );
 
@@ -2967,8 +2967,8 @@ vstring Options::generateTestId() const
     if (forbidden.contains(t)) {
       continue;
     }
-    vstringstream valCur;
-    vstringstream valDef;
+    vostringstream valCur;
+    vostringstream valDef;
     cur.outputValue(valCur, t);
     def.outputValue(valDef, t);
     if (valCur.str()==valDef.str()) {
@@ -2990,8 +2990,8 @@ vstring Options::generateTestId() const
     if (forbidden.contains(t)) {
       continue;
     }
-    vstringstream valCur;
-    vstringstream valDef;
+    vostringstream valCur;
+    vostringstream valDef;
     cur.outputValue(valCur, t);
     def.outputValue(valDef, t);
     if (valCur.str()==valDef.str()) {

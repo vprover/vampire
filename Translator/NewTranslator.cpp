@@ -704,7 +704,7 @@ vstring newTranslator::noToString(int n)
 {
   CALL("newTranslator::noToString");
   vstring name = "";
-  vstringstream ss;
+  vostringstream ss;
   ss << n; //"   "<<l->getValue().getHashValue();
   name.append(ss.str());
   return name;
@@ -720,7 +720,7 @@ int newTranslator::stringToInt(vstring s)
 {
   CALL("newTranslator::stringToInt");
   int value;
-  vstringstream ss(s);
+  vostringstream ss(s);
   ss >> value;
   return value;
 }
@@ -985,7 +985,7 @@ vstring newTranslator::getSignedValue(const ::clang::Expr *exp)
 {
   CALL("newTranslator::getSignedValue");
   vstring value = "";
-  vstringstream ss;
+  vostringstream ss;
 
   if (::clang::UnaryOperator::classof(exp)) {
     //on the signed values I have to take care of how we represent them in the program
@@ -1335,7 +1335,7 @@ vstring newTranslator::simpleExpression(const clang::Expr* exp)
 	composition = composition + idx + ");";
 	if (isNumber(index)) {
 	  int val;
-	  vstringstream ss(idx);
+	  vostringstream ss(idx);
 	  ss >> val;
 	  Program::ConstantIntegerExpression* ct =
 		  colect->getConstantIntegerExpr(val);
@@ -1407,7 +1407,7 @@ vstring newTranslator::simpleExpression(const clang::Expr* exp)
 
 	  if (isNumber(index)) {
 	    int val;
-	    vstringstream ss(idx);
+	    vostringstream ss(idx);
 	    ss >> val;
 	    arrApp = new Program::ArrayApplicationExpression(
 		    colect->getVarExpression(nme),

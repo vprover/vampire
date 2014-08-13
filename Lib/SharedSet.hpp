@@ -308,7 +308,7 @@ public:
   {
     CALL("SharedSet::toString");
 
-    vstringstream res;
+    vostringstream res;
     res<<(*this);
     return res.str();
   }

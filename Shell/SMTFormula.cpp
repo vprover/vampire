@@ -238,7 +238,7 @@ void YicesSolver::run(SMTBenchmark& problem, SMTSolverResult& res, unsigned time
 {
   CALL("YicesSolver::run");
 
-  vstringstream problemStm;
+  vostringstream problemStm;
   problem.output(problemStm);
 
   static Stack<vstring> proverOut;

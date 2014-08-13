@@ -26,7 +26,7 @@ vstring SimpleCongruenceClosure::CEq::toString() const
 {
   CALL("SimpleCongruenceClosure::CEq::toString");
 
-  vstringstream res;
+  vostringstream res;
   res << c1<<"="<<c2<<" implied by ";
   if(foOrigin) {
     if(foPremise) {
@@ -46,7 +46,7 @@ vstring SimpleCongruenceClosure::CEq::toString(SimpleCongruenceClosure& parent) 
 {
   CALL("SimpleCongruenceClosure::CEq::toString");
 
-  vstringstream res;
+  vostringstream res;
   res << c1<<"="<<c2<<" implied by ";
   if(foOrigin) {
     if(foPremise) {

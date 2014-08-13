@@ -146,7 +146,7 @@ vstring Constraint::toString() const
 {
   CALL("Constraint::toString");
 
-  vstringstream stm;
+  vostringstream stm;
   UIHelper::outputConstraint(*this, stm);
   return stm.str();
 }

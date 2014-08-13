@@ -41,7 +41,7 @@ TEST_FUN(fbapi1)
 
     vstring formString=result.toString();
 
-    vstringstream sstr;
+    vostringstream sstr;
     sstr << result;
     ASS_EQ(sstr.str(), formString);
 
@@ -319,7 +319,7 @@ vstring getId(Term t)
 {
   static std::map<vstring,vstring> idMap;
 
-  vstringstream newIdStr;
+  vostringstream newIdStr;
   newIdStr<<"t_"<<idMap.size();
   vstring newId=newIdStr.str();
 

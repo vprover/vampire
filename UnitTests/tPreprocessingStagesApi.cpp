@@ -30,7 +30,7 @@ TEST_FUN(psaFixedPoint)
       "fof(a,axiom, p(a,a,a) ).";
 
   Problem prb;
-  vstringstream stm(testPrb);
+  vostringstream stm(testPrb);
   prb.addFromStream(stm);
 
   Problem prb1 = prb.preprocessInStages("rc=0:ret=formula_count:m=early_preprocessing:pdi=on:updr=off");

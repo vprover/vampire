@@ -23,7 +23,7 @@ namespace VUtils
 vstring FOEquivalenceDiscovery::getArgStr(unsigned arity)
 {
   if(arity==0) { return ""; }
-  vstringstream res;
+  vostringstream res;
   res << "(X0";
   for(unsigned i=1; i<arity; i++) {
     res << ",X" << i;

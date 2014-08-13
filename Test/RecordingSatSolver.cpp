@@ -40,7 +40,7 @@ void RecordingSatSolver::addClauses(SATClauseIterator cit0, bool onlyPropagate)
   SATClauseList::pushFromIterator(cit0, clauses);
   clauses = clauses->reverse();
 
-  vstringstream clausesStm;
+  vostringstream clausesStm;
   SATClauseList::Iterator cit(clauses);
   while(cit.hasNext()) {
     SATClause* cl = cit.next();

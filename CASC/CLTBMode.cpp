@@ -73,7 +73,7 @@ void CLTBMode::perform()
 
   //support several batches in one file
   while (!in.eof()) {
-    vstringstream singleInst;
+    vostringstream singleInst;
     bool ready = false;
     while (!in.eof()) {
       getline(in, line);
@@ -87,7 +87,7 @@ void CLTBMode::perform()
       break;
     }
     CLTBMode ltbm;
-    vstringstream childInp(singleInst.str());
+    vistringstream childInp(singleInst.str());
     ltbm.solveBatch(childInp);
   }
 } // CLTBMode::perform

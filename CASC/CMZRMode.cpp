@@ -84,7 +84,7 @@ void CMZRMode::perform()
 
   //support several batches in one file
   while (!in.eof()) {
-    vstringstream singleInst;
+    vostringstream singleInst;
     bool ready = false;
     while (!in.eof()) {
       std::getline(in, line);
@@ -98,7 +98,7 @@ void CMZRMode::perform()
       break;
     }
     CMZRMode ltbm;
-    vstringstream childInp(singleInst.str());
+    vistringstream childInp(singleInst.str());
     ltbm.perform(childInp);
   }
 }

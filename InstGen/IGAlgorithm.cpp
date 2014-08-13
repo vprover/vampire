@@ -773,7 +773,7 @@ MainLoopResult IGAlgorithm::onModelFound()
       }
 
 
-      vstringstream modelStm;
+      vostringstream modelStm;
       bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
       if(modelAvailable) {
 	env.statistics->model = modelStm.str();
