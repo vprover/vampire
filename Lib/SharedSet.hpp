@@ -69,7 +69,7 @@ public:
     return (*this)[size()-1];
   }
 
-  bool member(T val)
+  bool member(T val) const
   {
     CALL("SharedSet::member");
 
@@ -92,7 +92,7 @@ public:
     return false;
   }
 
-  SharedSet* getUnion(SharedSet* s)
+  const SharedSet* getUnion(const SharedSet* s) const
   {
     CALL("SharedSet::getUnion");
     ASS(s);
@@ -110,10 +110,10 @@ public:
     static ItemStack acc;
     acc.reset();
 
-    T* p1=_items;
-    T* p2=s->_items;
-    T* p1e=p1+size();
-    T* p2e=p2+s->size();
+    const T* p1=_items;
+    const T* p2=s->_items;
+    const T* p1e=p1+size();
+    const T* p2e=p2+s->size();
 
     while(p1!=p1e && p2!=p2e) {
       if(*p1==*p2) {
@@ -153,11 +153,11 @@ public:
       return s;
     }
 
-    SharedSet* res=create(acc);
+    const SharedSet* res=create(acc);
     return res;
   }
 
-  SharedSet* getIntersection(SharedSet* s)
+  const SharedSet* getIntersection(const SharedSet* s) const
   {
     CALL("SharedSet::getIntersection");
     ASS(s);
@@ -169,10 +169,10 @@ public:
     static ItemStack acc;
     ASS(acc.isEmpty());
 
-    T* p1=_items;
-    T* p2=s->_items;
-    T* p1e=p1+size();
-    T* p2e=p2+s->size();
+    const T* p1=_items;
+    const T* p2=s->_items;
+    const T* p1e=p1+size();
+    const T* p2e=p2+s->size();
 
     while(p1!=p1e && p2!=p2e) {
       if(*p1==*p2) {
@@ -189,7 +189,7 @@ public:
       }
     }
 
-    SharedSet* res=create(acc);
+    const SharedSet* res=create(acc);
     acc.reset();
     return res;
   }
@@ -198,7 +198,7 @@ public:
   /**
    * Subtract a set @b s from the current set and return the result
    */
-  SharedSet* subtract(SharedSet* s)
+  const SharedSet* subtract(const SharedSet* s) const
   {
     CALL("SharedSet::subtract");
     ASS(s);
@@ -210,10 +210,10 @@ public:
     static ItemStack acc;
     ASS(acc.isEmpty());
 
-    T* p1=_items;
-    T* p2=s->_items;
-    T* p1e=p1+size();
-    T* p2e=p2+s->size();
+    const T* p1=_items;
+    const T* p2=s->_items;
+    const T* p1e=p1+size();
+    const T* p2e=p2+s->size();
 
     while(p1!=p1e && p2!=p2e) {
       if(*p1==*p2) {
@@ -235,20 +235,20 @@ public:
       p1++;
     }
 
-    SharedSet* res=create(acc);
+    const SharedSet* res=create(acc);
     acc.reset();
     return res;
   }
 
-  bool hasIntersection(SharedSet* s)
+  bool hasIntersection(const SharedSet* s) const
   {
     CALL("SharedSet::hasIntersection");
     ASS(s);
 
-    T* p1=_items;
-    T* p2=s->_items;
-    T* p1e=p1+size();
-    T* p2e=p2+s->size();
+    const T* p1=_items;
+    const T* p2=s->_items;
+    const T* p1e=p1+size();
+    const T* p2e=p2+s->size();
 
     while(p1!=p1e && p2!=p2e) {
       if(*p1==*p2) {
@@ -266,7 +266,7 @@ public:
     return false;
   }
 
-  bool isSubsetOf(SharedSet* s)
+  bool isSubsetOf(const SharedSet* s) const
   {
     CALL("SharedSet::isSubsetOf");
     ASS(s);
@@ -278,10 +278,10 @@ public:
       return true;
     }
 
-    T* p1=_items;
-    T* p2=s->_items;
-    T* p1e=p1+size();
-    T* p2e=p2+s->size();
+    const T* p1=_items;
+    const T* p2=s->_items;
+    const T* p1e=p1+size();
+    const T* p2e=p2+s->size();
 
     while(p1!=p1e && p2!=p2e) {
       if(*p1==*p2) {
@@ -304,7 +304,7 @@ public:
   }
 
 
-  vstring toString()
+  vstring toString() const
   {
     CALL("SharedSet::toString");
 
@@ -313,18 +313,16 @@ public:
     return res.str();
   }
 
-  static SharedSet* getEmpty()
+  static const SharedSet* getEmpty()
   {
     CALL("SharedSet::getEmpty");
 
-    static SharedSet* empty=0;
-    if(!empty) {
-      empty=new(0) SharedSet(0);
-    }
-    return empty;
+    static SharedSet empty(0);    
+    
+    return &empty;
   }
 
-  static SharedSet* getRange(T first, T afterLast)
+  static const SharedSet* getRange(T first, T afterLast)
   {
     CALL("SharedSet::getRange");
 
@@ -335,14 +333,14 @@ public:
       is.push(itm);
     }
 
-    SharedSet* res=create(is);
+    const SharedSet* res=create(is);
     is.reset();
 
     return res;
   }
 
   template<class It>
-  static SharedSet* getFromIterator(It it)
+  static const SharedSet* getFromIterator(It it)
   {
     static ItemStack is;
     is.reset();
@@ -350,7 +348,7 @@ public:
     return getFromArray(is.begin(), is.length());
   }
 
-  static SharedSet* getFromArray(T* arr, size_t len)
+  static const SharedSet* getFromArray(T* arr, size_t len)
   {
     CALL("SharedSet::getFromArray");
 
@@ -392,13 +390,13 @@ public:
       }
     }
 
-    SharedSet* res=create(is);
+    const SharedSet* res=create(is);
     is.reset();
 
     return res;
   }
 
-  static SharedSet* getSingleton(T val)
+  static const SharedSet* getSingleton(T val)
   {
     CALL("SharedSet::getSingleton");
 
@@ -417,6 +415,19 @@ private:
     size-=sizeof(T);
 
     return ALLOC_KNOWN(size,"SharedSet");
+  }
+  
+  void operator delete (void* obj)
+  {
+    CALL("SharedSet::operator delete");
+    
+    SharedSet* ss = static_cast<SharedSet*>(obj);
+    
+    // calculate the same thing as in operator new
+    size_t size=sizeof(SharedSet)+ss->_size*sizeof(T);
+    size-=sizeof(T);
+  
+    DEALLOC_KNOWN(obj, size,"SharedSet");
   }
 
   size_t _size;
@@ -450,7 +461,7 @@ private:
     return res;
   }
 
-  static SharedSet* create(const ItemStack& is)
+  static const SharedSet* create(const ItemStack& is)
   {
     CALL("SharedSet::create");
 
@@ -461,7 +472,7 @@ private:
     }
 
     SharedSet* res;
-    if(getSStruct().find<const ItemStack&>(is,res)) {
+    if(getSStruct().find(is,res)) {
       return res;
     }
 
@@ -475,7 +486,30 @@ private:
     return res;
   }
 
-  typedef Set<SharedSet*, SharedSet> SharingStruct;
+  class SharingStruct {
+    typedef Set<SharedSet*, SharedSet> InternalSharingSet;
+    
+    /* starts empty */ 
+    InternalSharingSet _data;
+  
+  public:
+    /* forward find */
+    bool find(const ItemStack& key,SharedSet*& result) {
+      return _data.find(key,result);
+    }
+    
+    /* forward insert */
+    void insert(SharedSet* val) {
+      _data.insert(val);
+    }
+    
+    /* delete all stored items */
+    ~SharingStruct() {
+      typename InternalSharingSet::Iterator it(_data);
+      while(it.hasNext())
+        delete it.next();    
+    }
+  };
 
   static SharingStruct& getSStruct()
   {

@@ -20,7 +20,7 @@ namespace Shell {
 
 class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
 {
-  typedef SharedSet<unsigned> VarSet;
+  typedef const SharedSet<unsigned> VarSet;
 
   struct NodeInfo {
 

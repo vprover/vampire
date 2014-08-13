@@ -36,7 +36,7 @@ public:
   friend class AIGFormulaSharer;
 
   class Node;
-  typedef SharedSet<unsigned> VarSet;
+  typedef const SharedSet<unsigned> VarSet;
 
   class Ref {
     friend class AIG;

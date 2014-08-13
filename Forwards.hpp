@@ -227,7 +227,7 @@ class BDD;
 class BDDNode;
 
 typedef unsigned SplitLevel;
-typedef SharedSet<SplitLevel> SplitSet;
+typedef const SharedSet<SplitLevel> SplitSet;
 
 struct UnitSpec;
 
