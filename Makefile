@@ -598,11 +598,11 @@ obj/%X: | obj
 %.o : %.cpp
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.c 
 $(CONF_ID)/%.o : %.c | $(CONF_ID)
-	$(CC) $(CCFLAGS) -c -o $@ $*.c
+	$(CC) $(CCFLAGS) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
 
 ################################################################
 # targets for executables
@@ -768,23 +768,13 @@ vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
 clean:
 	rm -rf obj version.cpp
 
-DEPEND_CMD = makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 -DUNIX_USE_SIGALRM=1 $(patsubst %, %/*.cpp, $(VAMP_DIRS)) *.cpp
-
-depend:
-	$(DEPEND_CMD)
-
-Makefile_depend:
-	if [ ! -e Makefile_depend ]; then touch Makefile_depend; fi
-	$(DEPEND_CMD)
-
 doc:
 	rm -fr doc/html
 	doxygen config.doc
 
-.PHONY: doc depend clean clausify_src api_src
-
+.PHONY: doc clean clausify_src api_src
 
 ###########################
 # include header dependencies
 
-include Makefile_depend
+include $(shell find obj -name *.d)
