@@ -1673,7 +1673,7 @@ Problem Problem::performAsymetricRewriting(size_t cnt, Formula* lhsArray, Formul
   CALL("Problem::performAsymetricRewriting");
 
   Problem res = Preprocessor1().transform(*this);
-  PredicateDefinitionInliner inl(INL_NO_DISCOVERED_DEFS, false);
+  PredicateDefinitionInliner inl(INL_NO_DISCOVERED_DEFS);
   for(size_t i=0; i<cnt; i++) {
     if(!inl.addAsymetricDefinition(lhsArray[i], posRhsArray[i], negRhsArray[i], dblRhsArray[i])) {
       throw new ApiException("LHS is already defined");
