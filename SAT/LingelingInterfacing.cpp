@@ -14,6 +14,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/TimeCounter.hpp"
+#include "Lib/System.hpp"
 
 #include "SATInference.hpp"
 #include "SATClause.hpp"
@@ -163,7 +164,8 @@ LingelingInterfacing::LingelingInterfacing(const Options& opt,
 	Options _opts(opt);
 
 	lgl4sigh = _solver = lglinit();
-	setsighandlers ();
+	//setsighandlers ();
+	Lib::System::setSignalHandlers();
 	//for debugging
 	lglsetopt(_solver, "verbose", -1);
 	lglsetopt(_solver, "log", -1);
@@ -226,7 +228,7 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 			lglsetopt(_solver,"clim",-1);
 		}
 		//reset Lingeling signal handlers
-		resetsighandlers();
+		//resetsighandlers();
 		lglsetopt(_solver,"memlim",remMem);
 
 		addClausesToLingeling(clauseIterator);
@@ -282,7 +284,7 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 	//this means, if we have less than a second left for SAT solving, allow
 	//one second run time.
 	//set the alarm handlers for sat solver
-	resetsighandlers();
+	//resetsighandlers();
 	if (remaining < 1) {
 		//update statistics
 		Timer::syncClock();
@@ -291,8 +293,6 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 	}
 
 	alarm(double(remaining / 1000));
-	lglseterm(_solver, checkalarm, &caughtalarm);
-	sig_alrm_handler = signal(SIGALRM, catchalrm);
 	DHMap<SATLiteral, List<int>*> mapLitToClause;
 	mapLitToClause.reset();
 
@@ -515,16 +515,13 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 		ASSERTION_VIOLATION;
 	}
 
-	resetsighandlers();
-
-	lglseterm(_solver, checkalarm, &caughtalarm);
-	sig_alrm_handler = signal(SIGALRM, catchalrm);
 	double remaining = env.remainingTime();
 	if (remaining < 1) {
 		//throw TimeLimitExceededException();
 		remaining = 1;
 		Timer::syncClock();
 	}
+	//set an alarm with the remaining time
 	alarm((remaining / 1000));
 
 	lglassume(_solver, (polarity * (literal.var() + 1)));
@@ -612,8 +609,6 @@ void LingelingInterfacing::retractAllAssumptions()
   while(_assumptions->isNonEmpty()){
     List<SATLiteral*>::pop(_assumptions);
   }
-  //_assumptions = 0;
-  //_assumptions->destroyWithDeletion();
 }
 
 bool LingelingInterfacing::hasAssumptions() const
