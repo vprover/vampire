@@ -182,7 +182,6 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 	int remaining = env.remainingTime();
 
 	env.statistics->phase = Statistics::SAT_SOLVING;
-	//TimeCounter ntc(TC_OTHER);
 
 	//convert the remaining time from miliseconds to seconds
 	//in general Vampire uses miliseconds. But lingeling uses seconds.
@@ -199,7 +198,6 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 	DHMap<SATLiteral, List<int>*> mapLitToClause;
 	mapLitToClause.reset();
 
-	//SATClauseList *clauseList=0;
 	unsigned int result;
 	int clauseIdx = 0;
 	//in order to properly accommodate SSplitingBranchSelector::flush() one has to
@@ -236,7 +234,6 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 				_satVariables = _satVariables->cons(currVar);
 				//increase the counter of variables added to Lingeling
 				env.statistics->satLingelingVariables++;
-				//_satVariables.addLast(currVar);
 			} else {
 				SATClauseList *scl = _litToClause.get(currVar);
 				scl = scl->cons(currentClause);
@@ -373,15 +370,12 @@ void LingelingInterfacing::printAssignment()
 		case -1:
 			_assignm[var] = AS_FALSE;
 			break;
-			// _res=_res->addLast(AS_FALSE); break;
 		case 1:
 			_assignm[var] = AS_TRUE;
 			break;
-			//_res=_res->addLast(AS_TRUE);break;
 		case 0:
 			_assignm[var] = AS_UNDEFINED;
 			break;
-			//_res=_res->addLast(AS_UNDEFINED);break;
 		default:
 			ASSERTION_VIOLATION;
 		}
@@ -420,7 +414,6 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 
 	double remaining = env.remainingTime();
 	if (remaining < 1) {
-		//throw TimeLimitExceededException();
 		remaining = 1;
 		Timer::syncClock();
 	}
@@ -441,7 +434,6 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 
 	if (result == LGL_SATISFIABLE) {
 		_status = SATSolver::SATISFIABLE;
-
 	} else {
 		_status = SATSolver::UNKNOWN;
 	}
@@ -455,14 +447,13 @@ void LingelingInterfacing::addCAssumption(SATClause* clause,
 		unsigned conflictCountLimit)
 {
 	CALL("LingelingInterfacing::addaCAssumption");
-	if (_status == SATSolver::UNSATISFIABLE)
-	{
+	if (_status == SATSolver::UNSATISFIABLE){
 		return;
 	}
+
 	unsigned clauseLength = clause->length();
 
-	for (unsigned idx = 0; idx < clauseLength; idx++)
-	{
+	for (unsigned idx = 0; idx < clauseLength; idx++){
 		SATLiteral sLit = (*clause)[idx];
 		unsigned currVar = sLit.var()+1;
 		//take care of the polarity of each of the literals
