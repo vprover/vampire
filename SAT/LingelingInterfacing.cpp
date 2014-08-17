@@ -71,6 +71,7 @@ LingelingInterfacing::LingelingInterfacing(const Options& opt,
 
 	lgl4sigh = _solver = lglinit();
 	//setsighandlers ();
+	//use Vampire's signal handling
 	Lib::System::setSignalHandlers();
 	//for debugging
 	lglsetopt(_solver, "verbose", -1);
