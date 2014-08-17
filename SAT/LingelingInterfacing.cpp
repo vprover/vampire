@@ -49,100 +49,6 @@ using namespace std;
 using namespace Lib;
 //signal handlers taken from lglmain.c
 static LGL * lgl4sigh;
-static int catchedsig, verbose;
-
-static void (*sig_int_handler)(int);
-static void (*sig_segv_handler)(int);
-static void (*sig_abrt_handler)(int);
-static void (*sig_term_handler)(int);
-static void (*sig_bus_handler)(int);
-static void (*sig_alrm_handler)(int);
-
-static void resetsighandlers (void) {
-  (void) signal (SIGINT, sig_int_handler);
-  (void) signal (SIGSEGV, sig_segv_handler);
-  (void) signal (SIGABRT, sig_abrt_handler);
-  (void) signal (SIGTERM, sig_term_handler);
-  (void) signal (SIGBUS, sig_bus_handler);
-}
-
-static void caughtsigmsg (int sig) {
-  if (verbose < 0) return;
-  printf ("c\nc CAUGHT SIGNAL %d", sig);
-  switch (sig) {
-    case SIGINT: printf (" SIGINT");
-    	env.statistics->terminationReason = env.statistics->UNKNOWN;
-    	break;
-    case SIGSEGV: printf (" SIGSEGV");
-    	env.statistics->terminationReason = env.statistics->UNKNOWN;
-    	break;
-    case SIGABRT: printf (" SIGABRT");
-    	env.statistics->terminationReason = env.statistics->UNKNOWN;
-    	break;
-    case SIGTERM: printf (" SIGTERM");
-		env.statistics->terminationReason = env.statistics->UNKNOWN;
-		break;
-    case SIGBUS: printf (" SIGBUS");
-    	env.statistics->terminationReason = env.statistics->UNKNOWN;
-    	break;
-    case SIGALRM: printf (" SIGALRM");
-    	env.statistics->terminationReason = env.statistics->TIME_LIMIT;
-    	break;
-    default: break;
-  }
-  printf ("\nc\n");
-  fflush (stdout);
-  env.beginOutput();
-  Shell::UIHelper::outputResult(env.out());
-  env.endOutput();
-  exit(1);
-}
-
-static void catchsig (int sig) {
-  if (!catchedsig) {
-    catchedsig = 1;
-    caughtsigmsg (sig);
-    fputs ("s UNKNOWN\n", stdout);
-    fflush (stdout);
-    if (verbose >= 0) {
-      lglflushtimers (lgl4sigh);
-      lglstats (lgl4sigh);
-      caughtsigmsg (sig);
-    }
-  }
-  exit(1);
-}
-
-static void setsighandlers (void) {
-  sig_int_handler = signal (SIGINT, catchsig);
-  sig_segv_handler = signal (SIGSEGV, catchsig);
-  sig_abrt_handler = signal (SIGABRT, catchsig);
-  sig_term_handler = signal (SIGTERM, catchsig);
-  sig_bus_handler = signal (SIGBUS, catchsig);
-}
-
-static int caughtalarm = 0;
-
-static void catchalrm (int sig) {
-  ASS (sig == SIGALRM);
-  if (!caughtalarm) {
-    caughtalarm = 1;
-    caughtsigmsg (sig);
-    env.statistics->terminationReason = env.statistics->TIME_LIMIT;
-    env.beginOutput();
-    Shell::UIHelper::outputResult(env.out());
-    env.endOutput();
-    exit(1);
-
-  }
-}
-
-
-static int checkalarm (void * ptr) {
-  ASS (ptr == (void*) &caughtalarm);
-  return caughtalarm;
-}
-
 
 /*
  * Constructor for that creates an object containing the Lingeling solver based on the options
@@ -227,8 +133,6 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 		} else {
 			lglsetopt(_solver,"clim",-1);
 		}
-		//reset Lingeling signal handlers
-		//resetsighandlers();
 		lglsetopt(_solver,"memlim",remMem);
 
 		addClausesToLingeling(clauseIterator);
@@ -284,12 +188,10 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 	//this means, if we have less than a second left for SAT solving, allow
 	//one second run time.
 	//set the alarm handlers for sat solver
-	//resetsighandlers();
 	if (remaining < 1) {
 		//update statistics
 		Timer::syncClock();
 		remaining = 1;
-		//throw TimeLimitExceededException();
 	}
 
 	alarm(double(remaining / 1000));
