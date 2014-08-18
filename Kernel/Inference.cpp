@@ -355,14 +355,8 @@ vstring Inference::ruleName(Rule rule)
     return "theory axiom";
   case BOOLEAN_TERM_ENCODING:
     return "boolean term encoding";
-  case SPLITTING_COMPONENT:
-    return "splitting component introduction";
-  case SPLITTING:
-    return "splitting";
-  //case BACKTRACKING_SPLITTING_COMPONENT:
-  //  return "backtracking splitting component";
-  //case BACKTRACKING_SPLIT_REFUTATION:
-  //  return "backtracking split refutation";
+ // case SPLITTING_COMPONENT:
+ //   return "splitting component introduction";
   case SAT_SPLITTING_COMPONENT:
     return "sat splitting component";
   case SAT_SPLITTING_REFUTATION:

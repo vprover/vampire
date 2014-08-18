@@ -174,6 +174,8 @@ typedef List<Unit*> UnitList;
 typedef Stack<Unit*> UnitStack;
 typedef VirtualIterator<Unit*> UnitIterator;
 
+struct UnitSpec;
+
 class FormulaUnit;
 class Formula;
 typedef List<Formula*> FormulaList;

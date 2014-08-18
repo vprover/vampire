@@ -37,10 +37,10 @@ struct UnitSpec
 
   static unsigned hash(const UnitSpec& o)
   {
-    //return PtrPairSimpleHash::hash(make_pair(o._unit, o._prop));
-    // I think PtrIdentityHash is a suitable replacement
-    return PtrIdentityHash::hash(o._unit);
+    ASS(!o.isEmpty());
+    return Hash::hash(o._unit);
   }
+  static bool equals(const UnitSpec& left, const UnitSpec& right){ return left==right; }
 
   bool isEmpty() const { return _unit==0; }
   bool isClause() const { ASS(!isEmpty()); return _unit->isClause(); }
@@ -59,7 +59,6 @@ struct UnitSpec
 	return cl()->toString();
     }
     else {
-	//ASS(BDD::instance()->isFalse(prop()));
 	return unit()->toString();
     }
     
@@ -127,7 +126,7 @@ public:
 
   void recordInference(UnitSpec unit, FullInference* inf);
 
-  void recordSplitting(SplittingRecord* srec, unsigned premCnt, UnitSpec* prems);
+  //void recordSplitting(SplittingRecord* srec, unsigned premCnt, UnitSpec* prems);
   void recordSplittingNameLiteral(UnitSpec us, Literal* lit);
 
   void recordIntroducedSymbol(Unit* u, bool func, unsigned number);
