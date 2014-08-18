@@ -83,7 +83,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
       _satSolver = new LingelingInterfacing(opt,true);
       break;
     default:
-      ASSERTION_VIOLATION(opt.satSolver());
+      ASSERTION_VIOLATION_REP(opt.satSolver());
   }
 
   _gnd = new  IGGrounder(_satSolver);

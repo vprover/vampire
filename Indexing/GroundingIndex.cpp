@@ -34,7 +34,7 @@ GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
       _solver = new LingelingInterfacing(opt,true);
       break;
     default:
-      ASSERTION_VIOLATION(opt.satSolver());
+      ASSERTION_VIOLATION_REP(opt.satSolver());
   }
 
 }
