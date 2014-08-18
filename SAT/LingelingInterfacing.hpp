@@ -32,6 +32,9 @@ namespace SAT{
 class LingelingInterfacing : public SATSolver
 {
 public: 
+  CLASS_NAME(LingelingInterfacing);
+  USE_ALLOCATOR(LingelingInterfacing);
+
 	//constructor for the instantiation of Lingeling
 	LingelingInterfacing(const Options& opts, bool generateProofs=false);
 	~LingelingInterfacing();
