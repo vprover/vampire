@@ -28,6 +28,9 @@ using namespace Kernel;
 class SimpleCongruenceClosure : public DecisionProcedure
 {
 public:
+  CLASS_NAME(SimpleCongruenceClosure);
+  USE_ALLOCATOR(SimpleCongruenceClosure);
+
   SimpleCongruenceClosure();
 
   virtual void addLiterals(LiteralIterator lits);
