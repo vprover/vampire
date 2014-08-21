@@ -761,33 +761,10 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
   //(there the control flow goes out of the SaturationAlgorithm class,
   //so we'd better not assume on what's happening out there)
   cl->incRefCnt();
-
-  if (_opt.abstraction() && cl->number()%100000==(24788+(env.statistics->inputClauses%50000)) && env.statistics->inputClauses%3==0) {
-    Clause* newCl = 0;
-    if (cl->length()>1) {
-      LiteralStack lits;
-      lits.loadFromIterator(Clause::Iterator(*cl));
-      newCl = Clause::fromStack(lits, cl->inputType(), cl->inference());
-    }
-    else if (cl->length()==1) {
-      Literal* lit = (*cl)[0];
-      if (lit->arity()) {
-	TermList orig = *lit->nthArgument(0);
-	Literal* newLit = EqHelper::replace(lit, orig, TermList(lit->vars(), false));
-	newCl = Clause::fromIterator(getSingletonIterator(newLit), cl->inputType(), cl->inference());
-      }
-    }
-    if (newCl) {
-      cl->incRefCnt();
-      newCl->incRefCnt();
-      cl=newCl;
-    }
-  }
-
+  
   onNewClause(cl);
-
-
   _newClauses.push(cl);
+  
   //we can decrease the counter here -- it won't get deleted because
   //the _newClauses RC stack already took over the clause
   cl->decRefCnt();
