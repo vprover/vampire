@@ -115,7 +115,7 @@ public:
  * a forward simplification inference with each simplification request,
  * so that the inference object (which works only with non-propositional
  * parts of clauses) can tell whether the forward simplification can be
- * peformed by the @b premise clause from the propositional part point
+ * performed by the @b premise clause from the propositional part point
  * of view.
  *
  * It also allows for simplifications that only modify the propositional

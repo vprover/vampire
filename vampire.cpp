@@ -145,6 +145,9 @@ Problem* getPreprocessedProblem()
   //phases for preprocessing are being set inside the preprocess method
   prepro.preprocess(*prb);
   globProblem = prb;
+  
+  // TODO: could this be the right way to freeing the currently leaking classes like Units, Clauses and Inferences?
+  // globUnitList = prb->units();
 
   return prb;
 } // getPreprocessedProblem

@@ -20,15 +20,15 @@ using namespace Shell;
  * Class representing a TPTP problem to be solved
  *
  * The main benefit of this class is that it can carry information about
- * all preprocessing perfored on a problem. This can be necessary for
- * outputing models.
+ * all preprocessing performed on a problem. This can be necessary for
+ * outputting models.
  *
  * Functions has... answer with certainty whether the problem (in its current state)
  * has certain property.
  *
  * Functions mayHave... provide answer that may err on the positive side --
  * for example mayHaveEquality() may return true for a problem that no longer
- * has equality because it was removed somewhere durring preprocessing.
+ * has equality because it was removed somewhere during preprocessing.
  * These functions are present so that we do not need to keep track of
  * every step performed by the preprocessor, and at the same time we do not
  * need to reevaluate the Property object with each call to such function.
@@ -70,7 +70,7 @@ public:
   const TrivialPredicateMap& trivialPredicates() const { return _trivialPredicates; }
 
   /**
-   * Always exectly one of the pair is non-zero, if the literal is specified,
+   * Always exactly one of the pair is non-zero, if the literal is specified,
    * it must be ground.
    */
   typedef pair<Literal*,Clause*> BDDMeaningSpec;

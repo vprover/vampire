@@ -120,7 +120,7 @@ public:
   unsigned size() const { return _length; }
 
   /** Return a pointer to the array of literals.
-   * Caller should not malipulate literals, with the exception of
+   * Caller should not manipulate literals, with the exception of
    * clause construction and literal selection. */
   Literal** literals() { return _literals; }
 
