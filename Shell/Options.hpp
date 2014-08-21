@@ -28,7 +28,6 @@ class Options
 {
 public:
   enum Tag {
-    ABSTRACTION,
     AGE_WEIGHT_RATIO,
     AIG_BDD_SWEEPING,
     AIG_CONDITIONAL_REWRITING,
@@ -787,8 +786,6 @@ public:
   void set(const char* name, const char* value);
   void setShort(const char* name, const char* value);
 
-  bool abstraction() const { return _abstraction; }
-
   int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator; }
   int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator; }
 
@@ -832,7 +829,6 @@ private:
 private:
   class Constants;
 
-  bool _abstraction;
   int _ageRatio;
   bool _aigBddSweeping;
   bool _aigConditionalRewriting;
