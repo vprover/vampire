@@ -15,7 +15,6 @@
 
 namespace Lib
 {
-using namespace Indexing;
 
 class Recycler {
 public:
