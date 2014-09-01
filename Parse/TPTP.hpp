@@ -446,7 +446,7 @@ private:
   Stack<vstring> _includeDirectories;
   /** input characters */
   Array<char> _chars;
-  /** position in the input stream of the 0th characater in _chars[] */
+  /** position in the input stream of the 0th character in _chars[] */
   int _gpos;
   /** the position beyond the last read characters */
   int _cend;

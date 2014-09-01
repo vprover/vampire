@@ -1168,9 +1168,12 @@ void TPTP::unitList()
       return;
     }
     resetChars();
-    delete _in;
+    {
+      BYPASSING_ALLOCATOR; // ifstream was allocated by "system new"
+      delete _in;
+    }
     _in = _inputs.pop();
-    _includeDirectory = _includeDirectories.pop();
+    _includeDirectory = _includeDirectories.pop();    
     delete _allowedNames;
     _allowedNames = _allowedNamesStack.pop();
     _states.push(UNIT_LIST);
@@ -1873,7 +1876,10 @@ void TPTP::include()
   // the TPTP standard, so far we just set it to ""
   _includeDirectory = "";
   vstring fileName(env.options->includeFileName(relativeName));
-  _in = new ifstream(fileName.c_str());
+  { 
+    BYPASSING_ALLOCATOR; // we cannot make ifstream allocated via Allocator
+    _in = new ifstream(fileName.c_str());
+  }
   if (!*_in) {
     USER_ERROR((vstring)"cannot open file " + fileName);
   }
