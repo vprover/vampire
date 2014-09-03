@@ -35,8 +35,6 @@
 #define REQUIRES_PAGE (VPAGE_SIZE/2)
 /** Maximal allowed number of allocators */
 #define MAX_ALLOCATORS 256
-/** Maximal height of skip lists */
-#define MAX_SKIP_HEIGHT 32
 
 /** The largest piece of memory that can be allocated at once */
 #define MAXIMAL_ALLOCATION (static_cast<unsigned long long>(VPAGE_SIZE)*MAX_PAGES)
@@ -60,6 +58,7 @@ public:
   /** Return the amount of used memory */
   static size_t getUsedMemory()
   {
+    CALL("Allocator::getUsedMemory");
     return _usedMemory;
   }
   /** Return the global memory limit (in bytes) */
@@ -75,7 +74,8 @@ public:
     _memoryLimit = size;
     _tolerated = size + (size/10);
   }
-  /** The current allocator */
+  /** The current allocator
+   * - through which allocations by the here defined macros are channelled */
   static Allocator* current;
 
 #if VDEBUG
@@ -122,7 +122,7 @@ private:
   /** Array of Allocators. It is assumed that a small number of Allocators is
    *  available at any given time and Allocator deletions are rare since
    *  a deletion involves a linear lookup in the array and the
-   *  size of the array is small.
+   *  size of the array is small (currently, no during runtime deletion supported).
    */
   static Allocator* _all[MAX_ALLOCATORS];
   /** Total number of allocators currently available */
@@ -151,7 +151,7 @@ private:
    * A piece of memory whose size is unknown by procedures de-allocating
    * this piece. Since the size is unknown, storing the size is required.
    *
-   * This pieces of memory are kept in a skip list
+   * This pieces of memory are kept in a list
    * @since 10/01/2007 Manchester
    */
   struct Unknown {
@@ -160,12 +160,13 @@ private:
      *  the datastructure using the piece may actually be smaller */
     size_t size;
     /** Pointer to the next available piece. Used when kept in
-     *  the skip list. */
+     *  the list. */
     Unknown* next;
   }; // class Unknown
 
 #if VDEBUG
 public:
+  /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */  
   struct AllowBypassing {
     AllowBypassing() { _tolerantZone++; }
     ~AllowBypassing() { _tolerantZone--; }
@@ -191,7 +192,6 @@ public:
     Descriptor();
 
     friend std::ostream& operator<<(std::ostream& out, const Descriptor& d);
-    std::string toString() const;
 
     static unsigned hash (const void* addr);
     static Descriptor* find(const void* addr);
@@ -220,22 +220,18 @@ private:
    *  <li>to store a single object of size greater than or equal to
    *      REQUIRES_PAGE</li>
    * </ol>
-   * Available pages are stored by the global manager.
    * @warning @b size should go just before @b content since Vampire
    *             must be able to know the size of both Page and Unknown
    *             before knowing the type (that is, Page or Unknown)
    * @since 10/01/2007 Manchester
    */
   struct Page {
+    /** The next page, if any */
     Page* next;
     /** The previous page, if any */
     Page* previous;
     /**  Size of this page, multiple of VPAGE_SIZE */
-    size_t size;
-    /** The next page, if any, if the page is not usable any more.
-     *  If the page is the currently usable page, then it is the
-     *  pointer to the last allocated piece.
-     */
+    size_t size;    
     /** The page content starts here */
     void* content[1];
   }; // class Page
@@ -250,10 +246,13 @@ private:
   static size_t _tolerated;
 
   // structures used inside the allocator start here
-  /** The free list */
+  /** The free list.
+   * At index @b i there are a linked list of Knowns of size (i+1)*sizeof(Known)
+   * Note that, essentially, sizeof(Known) = sizeof(void*).
+   */
   Known* _freeList[REQUIRES_PAGE/4];
-  /** All pages allocated by this allocator and not returned to the
-   *  global one. The first page is always a reserve page */
+  /** All pages allocated by this allocator and not returned to 
+   *  the global manager via deallocatePages (doubly linked).  */
   Page* _myPages;
   /** Number of bytes available on the reserve page */
   size_t _reserveBytesAvailable;
@@ -262,10 +261,9 @@ private:
 
   /** Total memory allocated by pages */
   static size_t _usedMemory;
-  /** Page allocator array */
+  /** Page allocator array, a.k.a. "the global manager".
+   * Each entry is a (singly linked) list */
   static Page* _pages[MAX_PAGES];
-//   /** reserve using for allocating pages, allocated 4M at a time  */
-//   static char* _pageReserve;
 
   friend class Initialiser;
   

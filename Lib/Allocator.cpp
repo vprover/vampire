@@ -11,8 +11,6 @@
 #include <cstring>
 #include "DHMap.hpp"
 
-#include "Kernel/Clause.hpp"
-using namespace Kernel;
 #endif
 
 #include <cstdlib>
@@ -42,10 +40,6 @@ using namespace Kernel;
  * page itself) */
 #define PAGE_PREFIX_SIZE (sizeof(Page)-sizeof(void*))
 
-/** Number of bytes used for bookkeeping by the compiler when
- *  it allocates a page */
-#define PAGE_SHIFT 8
-
 // To watch an address define the following values:
 //   WATCH_FIRST     - the first watch point
 //   WATCH_LAST      - the last watch point
@@ -69,11 +63,9 @@ unsigned watchAddressLastValue = 0;
 #include "Debug/Tracer.hpp"
 
 #include "Shell/Statistics.hpp"
-#include "Shell/Options.hpp"
 
 #include "Exception.hpp"
 #include "Environment.hpp"
-#include "Timer.hpp"
 #include "Allocator.hpp"
 
 #if CHECK_LEAKS
@@ -142,7 +134,7 @@ Allocator::Allocator()
 } // Allocator::Allocator
 
 /**
- * Should return all pages to the global manager :)
+ * Returns all pages to the global manager.
  * 
  * @since 18/03/2008 Torrevieja
  */
@@ -489,7 +481,7 @@ Allocator* Allocator::newAllocator()
 } // Allocator::newAllocator
 
 /**
- * Allocate a page able to store a structure of size @b size
+ * Allocate a (multi)page able to store a structure of size @b size
  * @since 12/01/2008 Manchester
  */
 Allocator::Page* Allocator::allocatePages(size_t size)
@@ -524,7 +516,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
     throw Lib::MemoryLimitExceededException();
 #endif
   }
-  // check if there is a page in the skip list available
+  // check if there is a page in the list available
   if (_pages[index]) {
     result = _pages[index];
     _pages[index] = result->next;
@@ -687,8 +679,7 @@ void Allocator::deallocatePages(Page* page)
 
 
 /**
- * Allocate object of size @b size. If @b size is REQUIRES_PAGE
- * or more it is allocated as a large object using allocateLarge.
+ * Allocate object of size @b size. 
  * @since 12/01/2008 Manchester
  */
 #if VDEBUG
@@ -744,6 +735,8 @@ void* Allocator::allocateKnown(size_t size)
 
 /**
  * Allocate a piece of memory of a given size.
+ * If @b size is REQUIRES_PAGE or more it is 
+ * allocated on a separate page.
  * @since 15/01/2008 Manchester
  */
 char* Allocator::allocatePiece(size_t size)
@@ -940,21 +933,6 @@ ostream& Lib::operator<<(ostream& out, const Allocator::Descriptor& d) {
   
   return out;
 }
-
-/**
- * A string description of the descriptor.
- * @since 17/12/2005 Vancouver
- */
-std::string Allocator::Descriptor::toString() const
-{
-  CALL("Allocator::Descriptor::toString");
-
-  // the order is selected so that the output lines can be sorted by
-  // (address,timestamp)
-  ostringstream out;
-  out << *this;
-  return out.str();
-} // Allocator::Descriptor::toString
 
 /**
  * Initialise a descriptor.
