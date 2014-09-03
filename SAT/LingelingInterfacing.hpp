@@ -149,6 +149,7 @@ private:
 	*/
 	bool _generateProofs;
 	bool _hasAssumptions;
+	bool _unsatisfiableAssumptions;
 	//keep track of the assumptions done until now
 	List<SATLiteral*>* _assumptions;
 	List<unsigned> *_satVariables;

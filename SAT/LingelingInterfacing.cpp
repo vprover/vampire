@@ -62,7 +62,7 @@ static LGL * lgl4sigh;
  */
 LingelingInterfacing::LingelingInterfacing(const Options& opt,
 		bool generateProofs) :
-		_generateProofs(generateProofs), _hasAssumptions(false)
+		_generateProofs(generateProofs), _hasAssumptions(false), _unsatisfiableAssumptions(false)
 {
 	CALL("LingelingInterfacing::LingelingInterfacing");
 	//here we should take care of all the options passed from the caller
@@ -429,13 +429,14 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	if (result == LGL_UNSATISFIABLE) {
 		setRefutation();
 		_status = SATSolver::UNSATISFIABLE;
-		throw UnsatException(_refutation);
+		_unsatisfiableAssumptions=true;
 	}
-
-	if (result == LGL_SATISFIABLE) {
-		_status = SATSolver::SATISFIABLE;
-	} else {
-		_status = SATSolver::UNKNOWN;
+	else{
+		if (result == LGL_SATISFIABLE) {
+			_status = SATSolver::SATISFIABLE;
+		} else {
+			_status = SATSolver::UNKNOWN;
+		}
 	}
 
 	_assumptions = _assumptions->cons(&literal);
@@ -497,8 +498,15 @@ void LingelingInterfacing::retractAllAssumptions()
   //so we do not have to worry about retracting assumptions.
   //but we still have to mark that at this point there are no more assumptions
   _hasAssumptions = false;
-  if (_assumptions->isEmpty())
+
+  if(_unsatisfiableAssumptions){
+    _unsatisfiableAssumptions=false;
+    _status=UNKNOWN;
+  }
+
+  if (_assumptions->isEmpty()){
 	  return;
+  }
   //remove all the assumptions from the 
   while(_assumptions->isNonEmpty()){
     List<SATLiteral*>::pop(_assumptions);
