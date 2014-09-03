@@ -329,7 +329,7 @@ void LingelingInterfacing::setRefutation(){
 			while(ite.hasNext()){
 				SATClause* clause = ite.next();
 				if(!premises->member(clause)){
-					premises = premises->cons(ite.next());
+					premises = premises->cons(clause);
 				}
 			}
 		}
