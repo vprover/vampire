@@ -339,12 +339,18 @@ void LingelingInterfacing::setRefutation(){
 		//in case we have assumptions we have to add them to the refutation as well
 		SATLiteralStack sls;
 		List<SATLiteral*>::Iterator slite(_assumptions);
+		//for each assumed literal creat a SATClause and add it to the premises for refutation
 		while(slite.hasNext()){
 			SATLiteral* sl = slite.next();
 			sls.push(*sl);
+			SATClause* assumptionClause = SATClause::fromStack(sls);
+			//alternative would be to create a unit SATClause by hand:
+			//inspired from SATClause::fromStack()
+			//SATClause* assumptionClause = new(1) SATClause(1);
+			//(*assumptionClause)[0]=slite.next();
+			premises = premises->cons(assumptionClause);
+			sls.reset();
 		}
-		SATClause* assumptionClause = SATClause::fromStack(sls);
-		premises = premises->cons(assumptionClause);
 	}
 
 	ASS(premises);
