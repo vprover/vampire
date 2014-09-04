@@ -138,6 +138,9 @@ private:
 
 struct SubstitutionTree::GenMatcher::Applicator
 {
+  CLASS_NAME(SubstitutionTree::GenMatcher::Applicator);
+  USE_ALLOCATOR(SubstitutionTree::GenMatcher::Applicator); 
+
   inline
   Applicator(GenMatcher* parent, Renaming* resultNormalizer)
   : _parent(parent), _resultNormalizer(resultNormalizer) {}
