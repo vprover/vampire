@@ -1005,7 +1005,7 @@ private:
   SSplittingAddComplementary _ssplittingAddComplementary;
   SSplittingComponentSweeping _ssplittingComponentSweeping;
   bool _ssplittingCongruenceClosure;
-  bool _ssplittingEagerRemoval;
+  static bool _ssplittingEagerRemoval;
   unsigned _ssplittingFlushPeriod;
   float _ssplittingFlushQuotient;
   SSplittingNonsplittableComponents _ssplittingNonsplittableComponents;

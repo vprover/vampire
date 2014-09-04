@@ -30,7 +30,7 @@ public:
 	virtual void cleanup();
 
 	// Get the ConcurrentMainLoop
-	ConcurrentMainLoop* getMainLoop(){ return _ml; }
+	ConcurrentMainLoop* getMainLoop() const { return _ml; }
 
 
 protected:
@@ -49,10 +49,10 @@ protected:
 	friend class AutoSwitch;
 
 	ConcurrentMainLoop* _ml;
+	const Shell::Options& _opts;
 	Problem* _prb;
 private:
 	Lib::Environment* _env;
-	const Shell::Options& _opts;
 	Lib::Environment* _temp_env; //A variable to preserve the current environment before switching in.
 								 //TODO: a manager pattern for main loops needs to be implemented for context switching
 };

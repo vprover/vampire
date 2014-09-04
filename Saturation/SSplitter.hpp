@@ -14,16 +14,23 @@
 #include "Lib/Stack.hpp"
 
 #include "Kernel/RCClauseStack.hpp"
+#include "Kernel/MainLoopScheduler.hpp"
 
 #include "Indexing/ClauseVariantIndex.hpp"
 
-#include "SAT/SAT2FO.hpp"
+//#include "SAT/SAT2FO.hpp"
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATSolver.hpp"
+
+#include "Saturation/SaturationAlgorithmContext.hpp"
 
 #include "DP/DecisionProcedure.hpp"
 
 #include "Splitter.hpp"
+
+//namespace SAT{
+//class SAT2FO;
+//}
 
 namespace Saturation {
 
@@ -34,6 +41,7 @@ using namespace DP;
 
 typedef Stack<SplitLevel> SplitLevelStack;
 
+//class SaturationAlgorithmContext;
 class SSplitter;
 
 /**
@@ -41,17 +49,22 @@ class SSplitter;
  */
 class SSplittingBranchSelector {
 public:
-  SSplittingBranchSelector(SSplitter& parent) : _parent(parent) {}
+  //SSplittingBranchSelector(SSplitter& parent) : _parent(parent) {}
+  SSplittingBranchSelector(SAT::SAT2FO* sat2fo) : _sat2fo(sat2fo) {}
 
   /** To be called from SSplitter::init() */
-  void init();
+  void init(const Options& opts);
 
   void updateVarCnt();
   void addSatClauses(const SATClauseStack& clauses, SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
   void clearZeroImpliedSplits(Clause* cl);
+
+  SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
+
 private:
+  SSplittingBranchSelector(const Saturation::SSplittingBranchSelector&) {}
 
   void processDPConflicts();
 
@@ -59,10 +72,19 @@ private:
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
+  static const SSplitter* splitter() {
+	  return static_cast<const SaturationAlgorithmContext*>(
+			  MainLoopScheduler::context()) -> splitter();
+  }
+
+  //SATLiteral getLiteralFromName(SplitLevel compName) const;
+  SplitLevel getNameFromLiteral(SATLiteral lit) const;
+
   //options
   bool _eagerRemoval;
 
-  SSplitter& _parent;
+  //SSplitter& _parent;
+  SAT::SAT2FO* _sat2fo;
 
   unsigned _varCnt;
   SATSolverSCP _solver;
@@ -141,7 +163,7 @@ public:
   bool handleEmptyClause(Clause* cl);
 
   SATLiteral getLiteralFromName(SplitLevel compName) const;
-  SplitLevel getNameFromLiteral(SATLiteral lit) const;
+  //SplitLevel getNameFromLiteral(SATLiteral lit) const;
 
   bool isActiveName(SplitLevel name) const {
     CALL("SSplitter::isActiveName");
@@ -151,12 +173,25 @@ public:
   Clause* getComponentClause(SplitLevel name) const;
 
   SplitLevel splitLevelCnt() const { return _db.size(); }
-  unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
+  //unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
 
-  SAT2FO& satNaming() { return _sat2fo; }
+  //SAT2FO& satNaming() { return _sat2fo; }
+
+  void setBranchSelector(SSplittingBranchSelector* branchSelector) {
+	  _branchSelector = branchSelector;
+  }
+
+  void setComponentIndex(ClauseVariantIndex* idx) {
+  	  _componentIdx = idx;
+  }
+
+  void setSAT2FO(SAT2FO* sat2fo) {
+  	  _sat2fo = sat2fo;
+  }
+
 private:
 
-  SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
+  //SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
 
   bool shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, Clause*& compCl);
   bool handleNonSplittable(Clause* cl);
@@ -194,9 +229,9 @@ private:
   bool _congruenceClosure;
 
   //utility objects
-  SSplittingBranchSelector _branchSelector;
-  ClauseVariantIndex _componentIdx;
-  SAT2FO _sat2fo;
+  SSplittingBranchSelector* _branchSelector;
+  ClauseVariantIndex* _componentIdx;
+  SAT2FO* _sat2fo;
 
   //state variables
   /**

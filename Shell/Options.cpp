@@ -788,6 +788,9 @@ const char* Options::Constants::_bpAlmostHalfBoundingRemovalValues[] = {
 NameArray Options::Constants::bpAlmostHalfBoundingRemovalValues(_bpAlmostHalfBoundingRemovalValues,
 								sizeof(_bpAlmostHalfBoundingRemovalValues)/sizeof(char*));
 
+
+bool Options::_ssplittingEagerRemoval = true;
+
 /**
  * Initialize options to the default values.
  *
@@ -970,7 +973,7 @@ Options::Options ()
   _ssplittingAddComplementary(SSAC_GROUND),
   _ssplittingComponentSweeping(SSCS_ITERATED),
   _ssplittingCongruenceClosure(false),
-  _ssplittingEagerRemoval(true),
+  //_ssplittingEagerRemoval(true),//Removing the static field
   _ssplittingFlushPeriod(0),
   _ssplittingFlushQuotient(1.5f),
   _ssplittingNonsplittableComponents(SSNS_KNOWN),

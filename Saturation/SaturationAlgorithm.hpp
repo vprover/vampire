@@ -107,6 +107,8 @@ public:
   }
   static void tryUpdateFinalClauseCount();
 
+  Splitter* splitter() const { return _splitter; }
+
 protected:
   virtual void init();
   virtual MainLoopResult runImpl();
