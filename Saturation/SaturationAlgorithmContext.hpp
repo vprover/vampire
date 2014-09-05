@@ -8,6 +8,11 @@
 #ifndef __SaturationAlgorithmContext__
 #define __SaturationAlgorithmContext__
 
+#include "Forwards.hpp"
+
+#include "Lib/DHMap.hpp"
+
+#include "Kernel/Clause.hpp"
 #include "Kernel/MainLoopContext.hpp"
 
 //#include "SAT/SAT2FO.hpp"
@@ -43,6 +48,7 @@ namespace Saturation {
 		static bool _branchSelectorInitialised;
 		static SSplittingBranchSelector _branchSelector;
 		static Indexing::ClauseVariantIndex _componentIdx;
+		static Lib::DHMap<Kernel::Clause*,Kernel::SplitLevel> _compNames;
 		SSplitter* _splitter;
 		//static ClauseVariantIndex _componentIdx;
 		static SAT::SAT2FO _sat2fo;

@@ -185,6 +185,10 @@ public:
   	  _componentIdx = idx;
   }
 
+  void setComponentNames(DHMap<Clause*,SplitLevel>* names) {
+    	  _compNames = names;
+  }
+
   void setSAT2FO(SAT2FO* sat2fo) {
   	  _sat2fo = sat2fo;
   }
@@ -195,7 +199,7 @@ private:
 
   bool shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, Clause*& compCl);
   bool handleNonSplittable(Clause* cl);
-  bool tryGetExistingComponentName(unsigned size, Literal* const * lits, SplitLevel& comp, Clause*& compCl);
+  bool tryGetExistingComponentName(unsigned size, Literal* const * lits, SplitLevel& comp, Clause* orig, Clause*& compCl);
 
   void addComponents(const SplitLevelStack& toAdd);
   void removeComponents(const SplitLevelStack& toRemove);
@@ -243,7 +247,7 @@ private:
    * the _db record of this level is non-null.
    */
   Stack<SplitRecord*> _db;
-  DHMap<Clause*,SplitLevel> _compNames;
+  DHMap<Clause*,SplitLevel>* _compNames;
   /** When this number of generated clauses is reached, it will cause flush */
   unsigned _flushThreshold;
   /** true if there is a refutation to be added to the SAT solver */

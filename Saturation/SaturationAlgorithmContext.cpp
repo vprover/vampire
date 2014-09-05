@@ -26,6 +26,7 @@ bool SaturationAlgorithmContext::_branchSelectorInitialised = false;
 SAT2FO SaturationAlgorithmContext::_sat2fo;
 SSplittingBranchSelector SaturationAlgorithmContext::_branchSelector(&SaturationAlgorithmContext::_sat2fo);
 ClauseVariantIndex SaturationAlgorithmContext::_componentIdx;
+Lib::DHMap<Kernel::Clause*,Kernel::SplitLevel> SaturationAlgorithmContext::_compNames;
 
 SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts):
 		MainLoopContext(prb, opts) {
@@ -43,6 +44,8 @@ SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& op
 	}
 	_splitter -> setBranchSelector(&_branchSelector);
 	_splitter -> setComponentIndex(&_componentIdx);
+	_splitter -> setSAT2FO(&_sat2fo);
+	_splitter -> setComponentNames(&_compNames);
 }
 
 SaturationAlgorithmContext::~SaturationAlgorithmContext() {

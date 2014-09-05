@@ -514,7 +514,7 @@ private:
   inline
   void ensureExpanded()
   {
-    if(_size+_deleted>=_nextExpansionOccupancy) {
+	if(_size+_deleted>=_nextExpansionOccupancy) {
       expand();
     }
   }

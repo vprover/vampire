@@ -335,7 +335,7 @@ SplitLevel SSplittingBranchSelector::getNameFromLiteral(SATLiteral lit) const
   CALL("SSplittingBranchSelector::getNameFromLiteral");
 
   SplitLevel res = getNameFromLiteralUnsafe(lit);
-  ASS_L(res, splitter() -> splitLevelCnt());
+  //XXX: Revert back? ASS_L(res, splitter() -> splitLevelCnt());
   return res;
 }
 
@@ -527,7 +527,7 @@ bool SSplitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, 
     return false;
   }
 
-  if(!tryGetExistingComponentName(cl->length(), cl->literals(), compName, compCl)) {
+  if(!tryGetExistingComponentName(cl->length(), cl->literals(), compName, cl, compCl)) {
     bool canCreate;
     switch(_nonsplComps) {
     case Options::SSNS_ALL:
@@ -681,7 +681,7 @@ bool SSplitter::doSplitting(Clause* cl)
  *
  * @author Giles
  */
-bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits, SplitLevel& comp, Clause*& compCl)
+bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits, SplitLevel& comp, Clause* orig, Clause*& compCl)
 {
   CALL("SSplitter::tryGetExistingComponentName");
 
@@ -692,7 +692,19 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
   }
   compCl = existingComponents.next();
   ASS(!existingComponents.hasNext());
-  comp = _compNames.get(compCl);
+  comp = _compNames -> get(compCl);
+  //if(!_db.find(comp)){
+	  //ensure db big enough
+	  while(comp >= _db.size()) {
+	      _db.push(0);
+	      _db.push(0);
+	  }
+	  if(!_db[comp]){
+		  Unit::InputType inpType = orig ? orig->inputType() : Unit::AXIOM;
+		  compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, new Inference(Inference::SAT_SPLITTING_COMPONENT));
+		  _db[comp] = new SplitRecord(compCl);
+	  }
+  //}
   return true;
 }
 
@@ -725,7 +737,7 @@ Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size,
   LOG_UNIT("sspl_comp_names", compCl);
 
   _componentIdx -> insert(compCl);
-  _compNames.insert(compCl, name);
+  _compNames -> insert(compCl, name);
 
   LOG_UNIT("sspl_comp_names", compCl);
   return compCl;
@@ -743,8 +755,10 @@ SplitLevel SSplitter::addNonGroundComponent(unsigned size, Literal* const * lits
   SplitLevel compName = _branchSelector -> getNameFromLiteralUnsafe(posLit);
   ASS_EQ(compName&1,0); //positive levels are even
   ASS_GE(compName,_db.size());
-  _db.push(0);
-  _db.push(0);
+  while(compName>=_db.size()) {
+	  _db.push(0);
+	  _db.push(0);
+  }
   ASS_L(compName,_db.size());
 
   _branchSelector -> updateVarCnt();
@@ -763,11 +777,12 @@ SplitLevel SSplitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& co
   SATLiteral satLit = _sat2fo -> toSAT(lit);
   SplitLevel compName = _branchSelector -> getNameFromLiteralUnsafe(satLit);
 
-  if(compName>=_db.size()) {
-    _db.push(0);
-    _db.push(0);
-  }
-  else {
+  if(compName>=_db.size()){
+	  do {
+		  _db.push(0);
+		  _db.push(0);
+	  } while (compName>=_db.size());
+  } else {
     ASS_EQ(_complBehavior,Options::SSAC_NONE); //otherwise the compement would have been created
   }
   ASS_L(compName,_db.size());
@@ -813,7 +828,7 @@ SplitLevel SSplitter::getComponentName(unsigned size, Literal* const * lits, Cla
 
   SplitLevel res;
 
-  if(tryGetExistingComponentName(size, lits, res, compCl)) {
+  if(tryGetExistingComponentName(size, lits, res, orig, compCl)) {
     RSTAT_CTR_INC("ssat_reused_components");
   }
   else {

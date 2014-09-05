@@ -71,19 +71,26 @@ UnitList* SATInference::getFOPremises(SATClause* cl)
   ASS(cl);
   ASS(cl->inference());
 
+  cout << "#1 ";
   static Stack<UnitSpec> prems;
+  cout << "#2 ";
   prems.reset();
+  cout << "#3 ";
 
   collectFOPremises(cl, prems);
+  cout << "#4 " << endl;
 
   UnitList* res = 0;
   while (prems.isNonEmpty()) {
+	cout << "#5 ";
     UnitSpec us = prems.pop();
-
+    cout << "#6 ";
     //ASS_REP(us.withoutProp() || BDD::instance()->isTrue(us.prop()), us.toString());
     UnitList::push(us.unit(), res);
+    cout << "#7 " << endl;
   }
 
+  cout << "#8 " << endl;
   return res;
 }
 
