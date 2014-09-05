@@ -62,7 +62,7 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
       }
       vstring traceStr(it.next());
       it.del();
-      PROCESS_TRACE_SPEC_STRING(traceStr);
+      //PROCESS_TRACE_SPEC_STRING(traceStr);
     } 
     //this part is added just for testing
     else if(arg == "-t") {

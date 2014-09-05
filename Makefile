@@ -17,6 +17,8 @@ GNUMPF = 0
 DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
 LLVM_FLAGS = -D_GNU_SOURCE -DGNUMP=$(GNUMPF) -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
+GCOV_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF) -O0 --coverage #-pedantic
+ 
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
@@ -62,6 +64,9 @@ XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0
 endif
 ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0
+endif
+ifneq (,$(filter %_gcov,$(MAKECMDGOALS)))
+XFLAGS = $(GCOV_FLAGS) -DIS_LINGVA=0
 endif
 
 
@@ -575,6 +580,12 @@ $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(LGMP)
 @#strip $@
 endef
 
+define COMPILE_CMD_GCOV
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(LGMP)
+@#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
+@#strip $@
+endef
+
 define COMPILE_CMD_TKV
 $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ -lgmp -lgmpxx
 @#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
@@ -620,7 +631,7 @@ EXEC_DEF_PREREQ = Makefile
 lingva lingva_rel lingva_dbg: $(LINGVA_OBJ) $(EXEC_DEF_PREREQ)
 	$(LLVM_COMPILE_CMD)
 
-vampire vampire_rel vampire_dbg: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
+vampire vampire_rel vampire_dbg vampire_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)

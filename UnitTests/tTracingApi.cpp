@@ -2,7 +2,7 @@
  * @file tTracingApi.cpp
  * Test for Api::Tracing
  */
-
+/*
 #include "Api/Tracing.hpp"
 
 
@@ -36,3 +36,4 @@ TEST_FUN(trapiEx1)
   }
   catch(...) {}
 }
+*/

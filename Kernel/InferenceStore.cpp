@@ -286,7 +286,6 @@ protected:
   void requestProofStep(UnitSpec prem)
   {
     if (!handledKernel.contains(prem)) {
-      cout << "inserting " << prem.toString() << endl;
       handledKernel.insert(prem);
       outKernel.push(prem);
     }
