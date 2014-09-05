@@ -155,7 +155,7 @@ private:
 	List<unsigned> *_satVariables;
 	//mapping that gets used in computation of the unsat core
 	DHMap<unsigned, SATClauseList* > _litToClause;
-	//scoped pointer to the incremental lingleling 
+	//pointer to the incremental lingleling 
 	LGL * _solver;
 
 	struct UnsatException : public Exception
