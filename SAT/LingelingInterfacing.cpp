@@ -15,6 +15,7 @@
 #include "Lib/Timer.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/System.hpp"
+#include "Lib/ScopedLet.hpp"
 
 #include "SATInference.hpp"
 #include "SATClause.hpp"
@@ -47,8 +48,6 @@ namespace SAT
 {
 using namespace std;
 using namespace Lib;
-//signal handlers taken from lglmain.c
-static LGL * lgl4sigh;
 
 /*
  * Constructor for that creates an object containing the Lingeling solver based on the options
@@ -69,10 +68,7 @@ LingelingInterfacing::LingelingInterfacing(const Options& opt,
 	//TimeCounter ntc(TC_LINGELING);
 	Options _opts(opt);
 
-	lgl4sigh = _solver = lglinit();
-	//setsighandlers ();
-	//use Vampire's signal handling
-	Lib::System::setSignalHandlers();
+	_solver = lglinit();	
 	//for debugging
 	lglsetopt(_solver, "verbose", -1);
 	lglsetopt(_solver, "log", -1);
@@ -143,14 +139,7 @@ void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
 	catch (const UnsatException& e){
 		_status = SATSolver::UNSATISFIABLE;
 		_refutation = e.refutation;
-	}
-	catch (TimeLimitExceededException&){
-		env.statistics->terminationReason = Statistics::TIME_LIMIT;
-		env.timeLimitReached();
-		env.checkTimeSometime<64>();
-		throw TimeLimitExceededException();
-	}
-	env.checkTimeSometime<64>();
+	}	
 }
 
 void LingelingInterfacing::setSolverStatus(unsigned int status)
@@ -175,29 +164,9 @@ void LingelingInterfacing::setSolverStatus(unsigned int status)
 
 void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 	CALL("LingelingInterfacing::addClausesToLingeling");
-	SATLiteralStack literalStack;
-	literalStack.reset();
 
-	//check how much time we spent already and set the maximum allowed for sat
-	int remaining = env.remainingTime();
-
-	env.statistics->phase = Statistics::SAT_SOLVING;
-
-	//convert the remaining time from miliseconds to seconds
-	//in general Vampire uses miliseconds. But lingeling uses seconds.
-	//this means, if we have less than a second left for SAT solving, allow
-	//one second run time.
-	//set the alarm handlers for sat solver
-	if (remaining < 1) {
-		//update statistics
-		Timer::syncClock();
-		remaining = 1;
-	}
-
-	alarm(double(remaining / 1000));
-	DHMap<SATLiteral, List<int>*> mapLitToClause;
-	mapLitToClause.reset();
-
+  ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::SAT_SOLVING);
+  
 	unsigned int result;
 	int clauseIdx = 0;
 	//in order to properly accommodate SSplitingBranchSelector::flush() one has to
@@ -251,14 +220,12 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 
 		clauseIdx++;
 		if (env.options->satLingelingIncremental() == true) {
-			env.statistics->phase = Statistics::SAT_SOLVING;
 			//increment the number of calls to satisfiability check
 			env.statistics->satLingelingSATCalls++;
 			//call lingeling satisfiability check
 			result = lglsat(_solver);
 			env.checkTimeSometime<64>();
 			setSolverStatus(result);
-			Timer::syncClock();
 
 			switch(result){
 			case LGL_UNSATISFIABLE:
@@ -278,25 +245,20 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 	}
 
 	if (env.options->satLingelingIncremental() == false) {
-		env.statistics->phase = Statistics::SAT_SOLVING;
 		//increment lingeling call for satisfiability check statistics
 		env.statistics->satLingelingSATCalls++;
 		//call for satisfiability check
 		result = lglsat(_solver);
 		env.checkTimeSometime<64>();
 		setSolverStatus(result);
-		Timer::syncClock();
 		if (result == LGL_UNSATISFIABLE) {
 			setRefutation();
 			throw UnsatException(_refutation);
 		}
-
 		if (result != LGL_SATISFIABLE) {
 			setSolverStatus(result);
 		}
 	}
-
-
 }
 
 /**
@@ -418,20 +380,11 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 		ASSERTION_VIOLATION;
 	}
 
-	double remaining = env.remainingTime();
-	if (remaining < 1) {
-		remaining = 1;
-		Timer::syncClock();
-	}
-	//set an alarm with the remaining time
-	alarm((remaining / 1000));
-
 	lglassume(_solver, (polarity * (literal.var() + 1)));
 	env.statistics->satLingelingSATCalls++;
 	unsigned int result = lglsat(_solver);
 	env.checkTimeSometime<64>();
-	setSolverStatus(result);
-	Timer::syncClock();
+	setSolverStatus(result);	
 	if (result == LGL_UNSATISFIABLE) {
 		setRefutation();
 		_status = SATSolver::UNSATISFIABLE;

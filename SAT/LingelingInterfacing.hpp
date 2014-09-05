@@ -7,13 +7,9 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Array.hpp"
-#include "Lib/ArrayMap.hpp"
-#include "Lib/DArray.hpp"
-#include "Lib/Deque.hpp"
+#include "Shell/Options.hpp"
 #include "Lib/Exception.hpp"
-#include "Lib/ScopedPtr.hpp"
-#include "Lib/Stack.hpp"
+#include "Lib/List.hpp"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
