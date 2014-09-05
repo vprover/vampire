@@ -126,7 +126,7 @@ public:
 	virtual void recordSource(unsigned var, Literal* lit) {};
 
 private: 
-	virtual void addClausesToLingeling(SATClauseIterator iterator);
+	void addClausesToLingeling(SATClauseIterator iterator);
 	void setSolverStatus(unsigned status);
 	/** Create an inference with all the clauses that where used to derive unsat in the solver part*/
 	void setRefutation();
