@@ -15,8 +15,13 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 
+
+#include "Kernel/MainLoop.hpp"
+#include "Kernel/MainLoopScheduler.hpp"
+
 #include "ForkingCM.hpp"
 #include "SpawningCM.hpp"
+#include "MultiCM.hpp"
 
 #include "CASCMode.hpp"
 
@@ -27,6 +32,7 @@ using namespace CASC;
 
 bool CASCMode::_sat = false;
 bool CASCMode::_epr = false;
+bool CASCMode::_multi_strategy = false;
 
 bool CASCMode::perform(int argc, char* argv [])
 {
@@ -34,15 +40,21 @@ bool CASCMode::perform(int argc, char* argv [])
 
   UIHelper::cascMode=true;
 
-  env -> timer->makeChildrenIncluded();
-
+  bool res=false;
+  if(_multi_strategy){
+    MultiCM cm;
+    res=cm.perform();
+  }
+  else{
+    env -> timer->makeChildrenIncluded();
 #if COMPILER_MSVC
-  SpawningCM cm(argv[0]);
+    SpawningCM cm(argv[0]);
 #else
-  ForkingCM cm;
+    ForkingCM cm;
 #endif
+    res=cm.perform();
+  }
 
-  bool res=cm.perform();
 
   env -> beginOutput();
   if (res) {
@@ -52,6 +64,7 @@ bool CASCMode::perform(int argc, char* argv [])
     env -> out()<<"% Proof not found in time "<<Timer::msToSecondsString(env -> timer->elapsedMilliseconds())<<endl;
     if (env -> remainingTime()/100>0) {
       env -> out()<<"% SZS status GaveUp for "<<env -> options->problemName()<<endl;
+
     }
     else {
       //From time to time we may also be terminating in the timeLimitReached()
@@ -103,15 +116,50 @@ bool CASCMode::perform()
   if (remainingTime<=0) {
     return false;
   }
-  StrategySet used;
-  if (runSchedule(quick,remainingTime,used,false)) {
-    return true;
+  if(_multi_strategy){
+    //TODO this belongs in MultiCM
+    transformToOptionsList(quick);
+    
+    Problem* prb = UIHelper::getInputProblem(*env -> options);
+    Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList);
+    scheduler.run();
+
+    int resultValue=1;
+    //return value to zero if we were successful
+#if SATISFIABLE_IS_SUCCESS
+    if(env -> statistics->terminationReason==Statistics::REFUTATION ||
+       env -> statistics->terminationReason==Statistics::SATISFIABLE) {
+#else
+    if(env -> statistics->terminationReason==Statistics::REFUTATION) {
+#endif
+      resultValue=0;
+    }
+
+    env -> beginOutput();
+    UIHelper::outputResult(env -> out());
+    env -> endOutput();
+
+    //To use fallback we would need to perform this on top of Forking
+    return resultValue;
   }
-  remainingTime=env -> remainingTime()/100;
-  if (remainingTime<=0) {
-    return false;
+  else{ 
+    StrategySet used;
+    if (runSchedule(quick,remainingTime,used,false)) {
+      return true;
+    }
+    remainingTime=env -> remainingTime()/100;
+    if (remainingTime<=0) {
+      return false;
+    }
+    return runSchedule(fallback,remainingTime,used,true);
   }
-  return runSchedule(fallback,remainingTime,used,true);
+}
+
+void CASCMode::transformToOptionsList(Schedule& schedule)
+{
+  CALL("CASCMode::transformToOptionsList");
+  ASS(env->optionsList);
+
 }
 
 /**

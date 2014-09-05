@@ -26,7 +26,7 @@ using namespace Shell;
 
 class CASCMode {
 public:
-  virtual ~CASCMode() {}
+  virtual ~CASCMode() { }
   static bool perform(int argc,char* argv []);
 
   typedef Stack<string> Schedule;
@@ -36,6 +36,7 @@ public:
   static unsigned getSliceTime(string sliceCode,string& chopped);
   static void makeSat() {_sat=true;}
   static void makeEPR() {_epr=true;}
+  static void makeMulti() {_multi_strategy=true;}
 protected:
   /**
    * Run a slice correponding to the options.
@@ -52,11 +53,18 @@ protected:
   /** True if EPR formulas */
   static bool _epr;
 
+  /** True if running in multi strategy mode **/
+  static bool _multi_strategy;
+
 private:
   typedef Set<string> StrategySet;
   bool perform();
   bool runSchedule(Schedule&,unsigned ds,StrategySet& remember,bool fallback);
   bool runSlice(string sliceCode, unsigned ds);
+
+  // For multi-strategy mode
+  void transformToOptionsList(Schedule& schedule);
+  
 };
 
 }
