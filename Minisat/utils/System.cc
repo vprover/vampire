@@ -26,7 +26,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <signal.h>
 #include <stdio.h>
 
-#include "minisat/utils/System.h"
+#include "Minisat/utils/System.h"
 
 #if defined(__linux__)
 

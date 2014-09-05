@@ -24,7 +24,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef Minisat_IntMap_h
 #define Minisat_IntMap_h
 
-#include "minisat/mtl/Vec.h"
+#include "Minisat/mtl/Vec.h"
 
 namespace Minisat {
 

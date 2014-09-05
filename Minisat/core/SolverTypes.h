@@ -29,12 +29,12 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <assert.h>
 
-#include "minisat/mtl/IntTypes.h"
-#include "minisat/mtl/Alg.h"
-#include "minisat/mtl/Vec.h"
-#include "minisat/mtl/IntMap.h"
-#include "minisat/mtl/Map.h"
-#include "minisat/mtl/Alloc.h"
+#include "Minisat/mtl/IntTypes.h"
+#include "Minisat/mtl/Alg.h"
+#include "Minisat/mtl/Vec.h"
+#include "Minisat/mtl/IntMap.h"
+#include "Minisat/mtl/Map.h"
+#include "Minisat/mtl/Alloc.h"
 
 namespace Minisat {
 

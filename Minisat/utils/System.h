@@ -30,7 +30,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <fpu_control.h>
 #endif
 
-#include "minisat/mtl/IntTypes.h"
+#include "Minisat/mtl/IntTypes.h"
 
 //-------------------------------------------------------------------------------------------------
 
