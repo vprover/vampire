@@ -104,6 +104,12 @@ CXXFLAGS = $(XFLAGS) -Wall $(INCLUDES)
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
 ################################################################
+MINISAT_OBJ = Minisat/core/Solver.o\
+  Minisat/simp/SimpSolver.o\
+  Minisat/utils/Options.o\
+  Minisat/utils/System.o\
+  SAT/MinisatInterfacing.o
+
 API_OBJ = Api/FormulaBuilder.o\
 	  Api/Helper.o\
 	  Api/Problem.o\
@@ -476,9 +482,10 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/VariableSelector.o\
 	       Test/RecordingSatSolver.o
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Indexing Inferences InstGen Solving Shell CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib
 
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Indexing Inferences InstGen Solving Shell CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils
+
+VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
 VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o Shell/BFNTMainLoop.o, $(VS_OBJ)) $(PARSE_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) Test/CheckedSatSolver.o $(LIB_DEP)
@@ -552,6 +559,10 @@ $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 $(CONF_ID)/%.o : %.c | $(CONF_ID)
 	$(CC) $(CCFLAGS) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
 
+%.o : %.cc
+$(CONF_ID)/%.o : %.cc | $(CONF_ID)
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+  
 ################################################################
 # targets for executables
 
