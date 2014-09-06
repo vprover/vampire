@@ -96,8 +96,7 @@ double Minisat::memUsedPeak() { return memUsed(); }
 
 #else
 double Minisat::memUsed()     { return 0; }
-double Minisat::memUsedPeak(bool strictlyPeak) { 
-  (void)strictlyPeak; // to get rid of unused parameter warning
+double Minisat::memUsedPeak(bool) { 
   return 0; 
 }
 #endif
