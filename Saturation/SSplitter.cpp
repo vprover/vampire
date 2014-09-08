@@ -702,7 +702,8 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
   // If there is no entry for this split level then create one
   // This means that compCl is from a *different* proof attempt
   if(!_db[comp]){
-    compCl = buildAndInsertComponentClause(comp,size,lits,orig,true);
+	_db[comp] = new SplitRecord(compCl);
+    //compCl = buildAndInsertComponentClause(comp,size,lits,orig,true);
   }
 
   ASS_EQ(_db[comp]->component,compCl);
