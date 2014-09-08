@@ -47,11 +47,13 @@ void CommandLine::interpret (Options& options)
       cout<<VERSION_STRING<<endl;
       exit(0);
     }
+    if(strcmp(arg,"--help") || strcmp(arg,"-h")){
+      options.set("help","on");
+      print help here
+      exit(0);
+    }
     if (arg[0] == '-') {
       if (_next == _last) {
-        if(strcmp(arg,"--help") || strcmp(arg,"-h")){
-          options.set("help","on");
-        }
 	else USER_ERROR((string)"no value specified for option " + arg);
       }
       else{

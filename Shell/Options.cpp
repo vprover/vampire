@@ -3,6 +3,8 @@
  * Implements Vampire options.
  *
  * @since 06/06/2001 Manchester, completely rewritten
+ *
+ * @since Sep 14 rewritten by Giles
  */
 
 // Visual does not know the round function
@@ -46,10 +48,7 @@ public:
 
 /** Names for all options */
 const OptionName Options::Constants::_optionNames[] = {
-  OptionName("abstraction","",GLOBAL_TAG,
-             "",
-             false, "false"),
-  OptionName("age_weight_ratio","awr",GLOBAL_TAG,
+  OptionName("age_weight_ratio","awr",
              "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age there will be w selected based on weight.",
              false, "1:1"), 
   OptionName("aig_bdd_sweeping","",GLOBAL_TAG,
@@ -1720,10 +1719,13 @@ void Options::output (ostream& str) const
     str << "=========== Options ==========\n";
     bool experimental = showExperimentalOptions();
     for (int i = 0;i < Constants::optionNames.length;i++) {
-      OptionTag this_tag = Constants::optionNames[i].tag;
-      if(showOptions() == GLOBAL_TAG || this_tag == GLOBAL_TAG || this_tag == showOptions()){
-        if(experimental || !Constants::optionNames[i].experimental){
-          str << Constants::optionNames[i] << endl;
+      Stack<OptionTag>::Iterator tags(Constants::optionNames[i].tags);
+      while(tags.hasNext()){
+        OptionTag this_tag = tags.next();
+        if(showOptions() == GLOBAL_TAG || this_tag == GLOBAL_TAG || this_tag == showOptions()){
+          if(experimental || !Constants::optionNames[i].experimental){
+            str << Constants::optionNames[i] << endl;
+          }
         }
       }
     }
@@ -1731,15 +1733,20 @@ void Options::output (ostream& str) const
   }
   if(showHelp()){
     str << "=========== Usage ==========\n";
+    str << "Call vampire using\n";
+    str << "  vampire [options] [problem]\n";
+    str << "For example,\n";
+    str << "  vampire --mode casc --include ~/TPTP ~/TPTP/Problems/ALG/ALG150+1.p\n";
 
     str << "=========== Hints ==========\n";
+
 
     str << "=========== Options ==========\n";
     str << "To see a list of all options use\n  --show_options on\n";
     str << "To see a list of options for a particular mode use\n";
     str << "  --show_options <mode>\t(for example --show_options vampire)\n";
-    str << "By default experimental options will not be shown. To show ";
-    str << "these options use\n  --show_experimental_options on\n";
+    //str << "By default experimental options will not be shown. To show ";
+    //str << "these options use\n  --show_experimental_options on\n";
     str << "=========== End ==========\n";
   }
 

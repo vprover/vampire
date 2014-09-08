@@ -23,6 +23,8 @@ class Property;
 /**
  * Class that represents Vampire's options.
  * 11/11/2004 Shrigley Hall, completely reimplemented
+ *
+ * @since Sep 14 reimplemented by Giles
  */
 class Options
 {

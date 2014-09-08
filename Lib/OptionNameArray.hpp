@@ -5,6 +5,7 @@
  */
 
 #include <string>
+#include "Lib/Stack.hpp"
 #include "Shell/Options.hpp"
 #include "Allocator.hpp"
 #include "NameArray.hpp"
@@ -77,17 +78,35 @@ struct OptionValues{
  * @author Giles
  */
 struct OptionName {
+
+  OptionName(const char* l, const char* s, const char* d, const bool e,
+             const char* def = 0) :
+               longName(l), shortName(s), description(d),experimental(e),default_value(def) 
+  { 
+    tags.push(Options::GLOBAL_TAG);
+    names=0;
+  }
+
   OptionName(const char* l, const char* s, Options::OptionTag t, const char* d, const bool e,
              const char* def = 0) : 
-               longName(l), shortName(s), tag(t), description(d),experimental(e), 
-               default_value(def) { names=0;}
+               longName(l), shortName(s), description(d),experimental(e),default_value(def) 
+  { 
+    tags.push(t);
+    names=0;
+  }
 
   OptionName(const char* l, const char* s, Options::OptionTag t, const char* d, const bool e,
              const char* def, OptionValues choices) : 
-               longName(l), shortName(s), tag(t), description(d),experimental(e), 
-               default_value(def) { 
+               longName(l), shortName(s), description(d),experimental(e), 
+               default_value(def) 
+  { 
+    tags[0] = t;
     names = new NameArray(choices._array,choices._len);
     ASS(names->tryToFind(default_value) != -1);
+  }
+
+  void addTag(Options::OptionTag t){
+    tags.push(t);
   }
 
   ~OptionName(){
@@ -96,7 +115,7 @@ struct OptionName {
 
   const char* longName;
   const char* shortName;
-  const Options::OptionTag tag;
+  Stack<Options::OptionTag> tags;
   const char* description;
   const bool experimental;
   const char* default_value;
