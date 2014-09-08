@@ -3,7 +3,7 @@
 TEST_DIR=`dirname $0`
 PRB_DIR="$TEST_DIR/problems"
 
-VEXEC_DBG="$TEST_DIR/../vampire"
+VEXEC_DBG="$TEST_DIR/../vampire_dbg"
 VEXEC_REL="$TEST_DIR/../vampire_rel"
 
 PRB_SCRIPT="$TEST_DIR/run_problem.sh"

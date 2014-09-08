@@ -71,7 +71,7 @@ void EquivalenceDiscoverer::addGrounding(Clause* cl)
   static DArray<Literal*> normLits;
   normLits.ensure(clen);
 
-  SATClause* scl = _gnd.groundNonProp(cl, normLits.array());
+  SATClause* scl = _gnd.groundNonProp(cl, false, normLits.array());
   scl->setInference(new FOConversionInference(cl));
   _satClauses.push(scl);
 
