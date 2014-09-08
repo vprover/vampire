@@ -209,7 +209,7 @@ private:
   SplitLevel addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
   SplitLevel addGroundComponent(Literal* lit, Clause* orig, Clause*& compCl);
 
-  Clause* buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig=0);
+  Clause* buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig, bool copy);
 
   SplitLevel getComponentName(const CompRec& comp, Clause* orig, Clause*& compCl);
   SplitLevel getComponentName(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);

@@ -602,7 +602,6 @@ bool SSplitter::handleNonSplittable(Clause* cl)
     //  component C is made redundant by C'
     //  we name C' as C. The sat clause {C} won't lead to addition of C into FO as C is already selected.
 
-    //compCl->setProp(BDD::instance()->getFalse());
     compCl->incReductionTimestamp();
     _sa->addNewClause(compCl);
   }
@@ -693,18 +692,21 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
   compCl = existingComponents.next();
   ASS(!existingComponents.hasNext());
   comp = _compNames -> get(compCl);
-  //if(!_db.find(comp)){
-	  //ensure db big enough
-	  while(comp >= _db.size()) {
-	      _db.push(0);
-	      _db.push(0);
-	  }
-	  if(!_db[comp]){
-		  Unit::InputType inpType = orig ? orig->inputType() : Unit::AXIOM;
-		  compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, new Inference(Inference::SAT_SPLITTING_COMPONENT));
-		  _db[comp] = new SplitRecord(compCl);
-	  }
-  //}
+
+  // Ensure db big enough
+  // Increase by 2 each time as each component has two split levels for positive and negative
+  while(comp >= _db.size()) {
+    _db.push(0);
+    _db.push(0);
+  }
+  // If there is no entry for this split level then create one
+  // This means that compCl is from a *different* proof attempt
+  if(!_db[comp]){
+    compCl = buildAndInsertComponentClause(comp,size,lits,orig,true);
+  }
+
+  ASS_EQ(_db[comp]->component,compCl);
+
   return true;
 }
 
@@ -720,10 +722,11 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
  * @param size The number of literals in the component to add
  * @param lits The literals in the component to add
  * @param orig The original clause i.e. the one that we are splitting
+ * @param copy This clause is a copy of a clause in another proof attempt
  *
  * Comment by Giles.
  */
-Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig)
+Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig, bool copy)
 {
   CALL("SSplitter::buildAndInsertComponentClause");
   ASS_EQ(_db[name],0);
@@ -736,7 +739,7 @@ Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size,
   compCl->setSplits(SplitSet::getSingleton(name));
   LOG_UNIT("sspl_comp_names", compCl);
 
-  _componentIdx -> insert(compCl);
+  if(!copy){_componentIdx -> insert(compCl);} // do not add to _componentIdx if a copy, as is already there
   _compNames -> insert(compCl, name);
 
   LOG_UNIT("sspl_comp_names", compCl);
@@ -763,7 +766,7 @@ SplitLevel SSplitter::addNonGroundComponent(unsigned size, Literal* const * lits
 
   _branchSelector -> updateVarCnt();
 
-  compCl = buildAndInsertComponentClause(compName, size, lits, orig);
+  compCl = buildAndInsertComponentClause(compName, size, lits, orig,false);
 
   return compName;
 }
@@ -792,9 +795,9 @@ SplitLevel SSplitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& co
     unsigned oppName = compName^1;
     ASS_L(oppName,_db.size());
     Literal* opposite = Literal::complementaryLiteral(lit);
-    buildAndInsertComponentClause(oppName, 1, &opposite, orig);
+    buildAndInsertComponentClause(oppName, 1, &opposite, orig,false);
   }
-  compCl = buildAndInsertComponentClause(compName, 1, &lit, orig);
+  compCl = buildAndInsertComponentClause(compName, 1, &lit, orig,false);
 
   _branchSelector -> updateVarCnt();
 
