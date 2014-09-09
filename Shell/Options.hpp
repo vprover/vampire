@@ -363,7 +363,8 @@ public:
      BUFFERED_LINGELING = 0,
      BUFFERED_VAMPIRE = 1,
      LINGELING = 2,
-     VAMPIRE = 3 
+     MINISAT = 3,
+     VAMPIRE = 4 
   };
 
   /** Possible values for saturation_algorithm */

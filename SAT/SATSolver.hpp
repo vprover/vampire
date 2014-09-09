@@ -122,7 +122,7 @@ public:
   }
 
  /**
-  * Record the assocation between a SATLiteral var and a Literal
+  * Record the association between a SATLiteral var and a Literal
   * In TWLSolver this is used for computing niceness values
   */
   virtual void recordSource(unsigned satlitvar, Literal* lit) = 0;

@@ -135,7 +135,7 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
   ASS_EQ(_assumptionCnt, 0);
   ASS(!_unsatisfiableAssumptions);
 
-  if(_status==UNSATISFIABLE) {
+  if(_status==UNSATISFIABLE) { // TODO: a potential memory leak !
     return;
   }
 
