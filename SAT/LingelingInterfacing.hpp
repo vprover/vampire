@@ -85,13 +85,7 @@ public:
    	* a proper proof history.
    	*/
 	virtual SATClause* getZeroImpliedCertificate(unsigned var){ return 0;}
-
-	/**
-	* in the original solver this function took care of increasing the memory allocated for the
-	* variable representation, clauses and so on.
-	*/
-	virtual void ensureVarCnt(unsigned newVarCnt){}
-
+	
 	/**
 	*Adds an assumption to the solver. 
 	* If conflictingCountLimit == 0 => do only unit propagation 
@@ -99,7 +93,10 @@ public:
 	* if the value is in between, then simply set that as the upper bound on conflictCountLimit
 	*/
 	virtual void addAssumption(SATLiteral literal, unsigned conflictCountLimit);
+  
+  //since lingeling allows assumption of clauses, let's have a function which does that
 	void addCAssumption(SATClause* clause, unsigned conflictingCountLimit);
+  
 	/**
 	* Retracts all the assumption made until now.
 	*/
@@ -138,7 +135,6 @@ private:
 	* Status of the solver 
 	*/
 	Status _status;
-	SATClauseList * _clauseList;
 	SATClause* _refutation;
 	/**
 	* flag which enables proof generation

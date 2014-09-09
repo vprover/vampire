@@ -98,7 +98,6 @@ LingelingInterfacing::LingelingInterfacing(const Options& opt,
 	_status = SATSolver::UNKNOWN;
 	//TODO maybe better way to do this!
 	_refutation = 0;
-	_clauseList = 0;
 	_assumptions = 0;
 	_satVariables = 0;
 }
@@ -168,7 +167,6 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
   ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::SAT_SOLVING);
   
 	unsigned int result;
-	int clauseIdx = 0;
 	//in order to properly accommodate SSplitingBranchSelector::flush() one has to
 	//check whether the iterator is empty. And if so call for satisfiability check
 	//if this check is not done, SIGABT due to lglderef() => not SATISFIED | EXTENDED
@@ -184,8 +182,6 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 
 		//add the statistics for Lingeling total number of clauses
 		env.statistics->satLingelingClauses++;
-
-		SATClauseList::push(currentClause, _clauseList);
 
 		//treat each of the clauses individually.
 		ASS_GE(currentClause->length(), 1);
@@ -218,7 +214,6 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 		//add the marker for clause termination
 		lgladd(_solver, 0);
 
-		clauseIdx++;
 		if (env.options->satLingelingIncremental() == true) {
 			//increment the number of calls to satisfiability check
 			env.statistics->satLingelingSATCalls++;
@@ -280,7 +275,6 @@ void LingelingInterfacing::setRefutation(){
 	SATClause *res = SATClause::fromStack(resList);
 
 	//one could also minimize this set
-	//premises = _clauseList;
 
 	List<unsigned>::Iterator varit(_satVariables);
 	while(varit.hasNext()){
@@ -402,7 +396,6 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	_hasAssumptions = true;
 }
 
-//since lingeling allows assumption of clauses, let's have a function which does that
 void LingelingInterfacing::addCAssumption(SATClause* clause,
 		unsigned conflictCountLimit)
 {
