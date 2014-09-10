@@ -315,6 +315,7 @@ void LingelingInterfacing::setRefutation(){
 
 	ASS(premises);
 
+#if VDEBUG
 	//make sure that the unsat core is correct
 	//create a new instance of lingeling and add all the premises
 	LGL *_nsolver = lglinit();
@@ -336,6 +337,8 @@ void LingelingInterfacing::setRefutation(){
 	int result = lglsat(_nsolver);
 	//assert that the result should be unsatisfiable
 	ASS(result == LGL_UNSATISFIABLE);
+#endif
+
 	SATInference* inf = new PropInference(premises);
 	res->setInference(inf);
 	_refutation = res;
