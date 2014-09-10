@@ -26,6 +26,15 @@ namespace SAT{
 
 	using namespace Lib;
 	using namespace Shell;
+struct UsedClause{
+public:
+		UsedClause(SATClause* cl , bool us){
+			_clause = cl;
+			used = us;
+		}
+		SATClause *_clause;
+		bool used;
+	};
 
 class LingelingInterfacing : public SATSolver
 {
@@ -123,6 +132,8 @@ private:
 	void setSolverStatus(unsigned status);
 	/** Create an inference with all the clauses that where used to derive unsat in the solver part*/
 	void setRefutation();
+	/** Extract the MUS from an UNSAT formula */
+	void extractMUS();
 
 	 enum AsgnVal {
     //the true and false value also correspond to positive
@@ -142,6 +153,8 @@ private:
 	bool _generateProofs;
 	bool _hasAssumptions;
 	bool _unsatisfiableAssumptions;
+	//list of clauses that are added to lingeling
+	List<UsedClause *>* _usedClause;
 	//keep track of the assumptions done until now
 	List<SATLiteral*>* _assumptions;
 	List<unsigned> *_satVariables;

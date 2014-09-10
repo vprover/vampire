@@ -97,6 +97,7 @@ LingelingInterfacing::LingelingInterfacing(const Options& opt,
 	}
 	_status = SATSolver::UNKNOWN;
 	//TODO maybe better way to do this!
+	_usedClause = 0;
 	_refutation = 0;
 	_assumptions = 0;
 	_satVariables = 0;
@@ -179,6 +180,9 @@ void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
 
 	while (iterator.hasNext()) {
 		SATClause* currentClause = iterator.next();
+		//keep track of the clauses in order to be used for MUS extraction
+		UsedClause *uc= new UsedClause(currentClause, true);
+		_usedClause = _usedClause->addLast(uc);
 
 		//add the statistics for Lingeling total number of clauses
 		env.statistics->satLingelingClauses++;
@@ -310,6 +314,28 @@ void LingelingInterfacing::setRefutation(){
 	}
 
 	ASS(premises);
+
+	//make sure that the unsat core is correct
+	//create a new instance of lingeling and add all the premises
+	LGL *_nsolver = lglinit();
+
+	SATClauseList::Iterator scli(premises);
+	while(scli.hasNext()){
+		SATClause *sc = scli.next();
+		SATClause::Iterator sci (*sc);
+		while(sci.hasNext()){
+			SATLiteral sLit = sci.next();
+			//currVar refers to the current variable
+			unsigned currVar = sLit.var() + 1;
+			int8_t polarity = (sLit.isNegative() ? -1 : 1 );
+			lgladd(_nsolver, polarity * currVar);
+		}
+		lgladd(_nsolver,0);
+	}
+	//check for satisfiability
+	int result = lglsat(_nsolver);
+	//assert that the result should be unsatisfiable
+	ASS(result == LGL_UNSATISFIABLE);
 	SATInference* inf = new PropInference(premises);
 	res->setInference(inf);
 	_refutation = res;
@@ -519,6 +545,10 @@ void LingelingInterfacing::printLingelingStatistics()
 	cout << "memory Bytes: " << lglbytes(_solver) << endl;
 	cout << "seconds : " << lglsec(_solver) << endl;
 	cout << "processtime: " << lglprocesstime() << endl;
+}
+
+void LingelingInterfacing::extractMUS(){
+	CALL("LingelingInterfacing::extractMUS()");
 }
 };
 
