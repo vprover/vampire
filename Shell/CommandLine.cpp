@@ -11,6 +11,7 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 
 #include "CommandLine.hpp"
@@ -49,12 +50,13 @@ void CommandLine::interpret (Options& options)
     }
     if(strcmp(arg,"--help") || strcmp(arg,"-h")){
       options.set("help","on");
-      print help here
+      options.output(env.out());
+      env.endOutput();
       exit(0);
     }
     if (arg[0] == '-') {
       if (_next == _last) {
-	else USER_ERROR((string)"no value specified for option " + arg);
+	USER_ERROR((string)"no value specified for option " + arg);
       }
       else{
          if (arg[1] == '-') {

@@ -35,50 +35,90 @@ using namespace Shell;
 
 
 /**
- * Class to hide various data used by class Options, mostly name arrays.
- * @since 21/04/2005 Manchester
+ * Initialize options to the default values.
+ *
+ * @since 10/07/2003 Manchester, _normalize added
  */
-class Options::Constants {
-public:
+Options::Options ()
+:
+// not sure where these are set or what they control
+_backjumpTargetIsDecisionPoint(true),
+_bpCollapsingPropagation(false),
+_equivalentVariableRemoval(true),
+_forceIncompleteness(false),
+_maximalPropagatedEqualityLength(5),
 
-  static const OptionName _optionNames[];
-  static OptionNameArray optionNames;
-}; // class Options::Constants
+// will be set in setNongoalWeightCoefficient anyway
+_nonGoalWeightCoeffitientDenominator(1),
+_nonGoalWeightCoeffitientNumerator(1),
 
+// necessary to set here as it uses a function call
+_randomSeed(Random::seed()),
 
-/** Names for all options */
-const OptionName Options::Constants::_optionNames[] = {
-  OptionName("age_weight_ratio","awr",
-             "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age there will be w selected based on weight.",
-             false, "1:1"), 
-  OptionName("aig_bdd_sweeping","",GLOBAL_TAG,
-             "",
-             false, "false"),
-  OptionName("aig_conditional_rewriting","",GLOBAL_TAG,
-             "",
-             false, "false"),
-  OptionName("aig_definition_introduction","",GLOBAL_TAG,
-             "",
-             false, "false"),
-  OptionName("aig_definition_introduction_threshold","",GLOBAL_TAG,
-             "number of subformula occurrences needed to introduce a name for it (if aig_definition_introduction is enabled)",
-             false, "4"),
-  OptionName("aig_formula_sharing","",GLOBAL_TAG,
-             "Detection and sharing of common subformulas using AIG representation",
-             false, "false"),
-  OptionName("aig_inliner","",GLOBAL_TAG,
-             "",
-             false,"false"),
-  OptionName("arity_check","",GLOBAL_TAG,
-             "The same symbol name cannot be used with multiple arities",
-             false, "false"),
+// not sure where these are set or what they control
+_selectUnusedVariablesFirst(false),
+_updatesByOneConstraint(3)
 
-  OptionName("backward_demodulation","bd",GLOBAL_TAG,
+{
+    CALL("Options::Options");
+    
+   
+    _ageRatio = StringOptionValue("age_weight_ratio","awr");
+    _ageRatio.description=
+             "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age"
+             "there will be w selected based on weight.";
+    _ageRatio.defaultValue="1:1";
+    lookup.insert(_ageRatio);
+    
+    _aigBddSweeping = BoolOptionValue("aig_bdd_sweeping","");
+    _aigBddSweeping.description="";
+    _aigBddSweeping.defaultValue=false;
+    lookup.insert(_aigBddSweeping);
+    
+    _aigConditionalRewriting = BoolOptionValue("aig_conditional_rewriting","");
+    _aigConditionalRewriting.description="";
+    _aigConditionalRewriting.defaultValue=false;
+    lookup.insert(_aigConditionalRewriting);
+    
+    _aigDefinitionIntroduction = BoolOptionValue("aig_definition_introduction","");
+    _aigDefinitionIntroduction.description="";
+    _aigDefinitionIntroduction.defaultValue=false;
+    lookup.insert(_aigDefinitionIntroduction);
+    
+    _aigDefinitionIntroductionThreshold = UnsignedOptionValue("aig_definition_introduction_threshold","");
+    _aigDefinitionIntroductionThreshold.description=
+               "number of subformula occurrences needed to introduce a name for it (if aig_definition_introduction is enabled)";
+    _aigDefinitionIntroductionThreshold.defaultValue=4;
+    lookup.insert(_aigDefinitionIntroductionThreshold);
+
+    _aigFormulaSharing = BoolOptionValue("aig_formula_sharing","");
+    _aigFormulaSharing.description="Detection and sharing of common subformulas using AIG representation";
+    _aigFormulaSharing.defaultValue=false;
+    lookup.insert(_aigFormulaSharing);
+    
+    _aigInliner = BoolOptionValue("aig_inliner","");
+    _aigInliner.description="";
+    _aigInliner.defaultValue=false;
+    lookup.insert(_aigInliner);
+    
+    _arityCheck = BoolOptionValue("arity_check","");
+    _arityCheck.description="The same symbol name cannot be used with multiple arities";
+    _arityCheck.defaultValue=false;
+    lookup.insert(_arityCheck);
+    
+    // backwardTargetIsDecsisionPoint
+    
+    _backwardDemodulation = OptionValue<Demodulation>("backward_demodulation","bd");
+    _backwardDemodulation.description=
              "Oriented rewriting of kept clauses by newly derived unit equalities\n"
              "s = t     L[sθ] \\/ C\n"
              "---------------------   where sθ > tθ (replaces RHS)\n"
-             " L[tθ] \\/ C\n",
-             false,"all", OptionValues("all","off","preordered")),
+             " L[tθ] \\/ C\n";
+    _backwardDemodulation.setOptionValues(OptionValues("all","off","preordered"));
+    _backwardDemodulation.defaultValue= DEMODULATION_ALL;
+    lookup.insert(_backwardDemodulation);
+    
+    
   OptionName("backward_subsumption","bs",GLOBAL_TAG,
              "unit_only means that the subsumption will be performed only by unit clauses",
              false, "on", OptionValues("off","on","unit_only")),
@@ -168,11 +208,12 @@ const OptionName Options::Constants::_optionNames[] = {
              false, "false"),
   OptionName("equality_propagation","",GLOBAL_TAG,
              "propagate equalities in formulas, for example\n"
-             "X=Y => X=f(Y) ---> X=f(X)",
+             "X=Y => X=f(Y) ---> X=f(X)\n"
+             "Such propagation can simplify formulas early in the preprocessing and so help other preprocessing rules (namely dealing with predicate definitions).",
              false, "false"),
   OptionName("equality_proxy","ep",GLOBAL_TAG,
              "",
-             false, "off", OptionValues("R","RS","RST","RSTC","off","on")),
+             false, "off", OptionValues("R","RS","RST","RSTC","off")),
   OptionName("equality_resolution_with_deletion","erd",GLOBAL_TAG,
              "",
              false, "input_only", OptionValues("input_only","off","on")),
@@ -191,7 +232,7 @@ const OptionName Options::Constants::_optionNames[] = {
              "split formulas with top-level (up to universal quantification) conjunctions into several formulas",
              false, "false"),
   OptionName("forbidden_options","",GLOBAL_TAG,
-             "strategies with specified option values will be skipped (not sure on format - check)",
+             "If some of the specified options are set to a forbidden state, vampire will fail to start, or in the CASC mode it will skip such strategies.",
              false), // no default
   OptionName("forced_options","",GLOBAL_TAG,
              "Options in the format <opt1>=<val1>:<opt2>=<val2>:...:<optn>=<valN> that override the option values set by other means (also inside CASC mode strategies)",
@@ -213,7 +254,7 @@ const OptionName Options::Constants::_optionNames[] = {
              "",
              false, "true"),
   OptionName("function_definition_elimination","fde",GLOBAL_TAG,
-             "",
+             "All literals of set-of-support clauses will be selected",
              false, "all",OptionValues("all","none","unused")),
   OptionName("function_number","",GLOBAL_TAG,
              "",
@@ -245,7 +286,7 @@ const OptionName Options::Constants::_optionNames[] = {
              false, ""),
   OptionName("increased_numeral_weight","",GLOBAL_TAG,
              "weight of integer constants depends on the logarithm of their absolute value (instead of being 1)",
-             false, "false"),
+             true, "false"),
   OptionName("inequality_splitting","ins",GLOBAL_TAG,
              "",
              false, "3"),
@@ -367,10 +408,10 @@ const OptionName Options::Constants::_optionNames[] = {
              false, "false"),
 
   OptionName("predicate_definition_inlining","",GLOBAL_TAG,
-             "non_growing rules out inlinings that would lead to increase in the size of the problem",
+             "Determines whether predicate definitions should be inlined. Non_growing rules out inlinings that would lead to increase in the size of the problem",
              false, "off",OptionValues("axioms_only","non_growwing","off","on")),
   OptionName("predicate_definition_merging","",GLOBAL_TAG,
-             "Look for pairs of definitions such as"
+             "Determines whetehr predicates with equivalent definitions will be merged into one. Look for pairs of definitions such as"
              "p(X) <=> F[X]"
              "q(X) <=> F[X]"
              "replace the latter by"
@@ -378,7 +419,7 @@ const OptionName Options::Constants::_optionNames[] = {
              "and use it to eliminate the predicate q(X).",
              false, "false"),
   OptionName("predicate_equivalence_discovery","",GLOBAL_TAG,
-             "if enabled, SAT solver will be used to discover predicate equivalences during preprocessing. "
+             "If enabled, SAT solver will be used to discover predicate equivalences during preprocessing. "
              "if all_atoms, equivalences between all atoms will be searched for. "
              "if definitions, we'll look only for equivalences in the shape of predicate definitions (this lies somewhere between on and all_atoms). "
              "if all_formulas, equivalences between all formulas are searched for",
@@ -417,11 +458,11 @@ const OptionName Options::Constants::_optionNames[] = {
              "",
              false, "false"),
   OptionName("protected_prefix","",GLOBAL_TAG,
-             "symbols with this prefix are immune against elimination during preprocessing",
+             "Symbols with this prefix are immune against elimination during preprocessing",
              false, ""),
 
   OptionName("question_answering","",GLOBAL_TAG,
-             "",
+             "Determines whether (and how) we attempt to answer questions",
              false, "off",OptionValues("answer_literal","from_proof","off")),
 
   OptionName("random_seed","",GLOBAL_TAG,
@@ -645,7 +686,6 @@ const OptionName Options::Constants::_optionNames[] = {
              "",
              false, "off")
   };
->>>>>>> Add OptionNameArray and use it in Shell/Options
 
 /** Names for all options */
 OptionNameArray Options::Constants::optionNames(_optionNames,
@@ -689,8 +729,11 @@ Options::Options ()
 	  set(longName,default_value, i); 
         }
   }
+=======
+>>>>>>> Changing the way we do options
 
 } // Options::Options
+
 
 /**
  * Set option by its name and value.
@@ -732,727 +775,20 @@ void Options::set(const char* name,const char* value, int index)
 {
   CALL("Options::set/3");
 
-  int intValue;
-  unsigned unsignedValue;
-  float floatValue;
-
-  try {
-    switch (index) {
-    case AGE_WEIGHT_RATIO:
-      readAgeWeightRatio(value, _ageRatio, _weightRatio);
-      return;
-    case AIG_BDD_SWEEPING:
-      _aigBddSweeping = onOffToBool(value,name);
-      return;
-    case AIG_CONDITIONAL_REWRITING:
-      _aigConditionalRewriting = onOffToBool(value,name);
-      return;
-    case AIG_DEFINITION_INTRODUCTION:
-      _aigDefinitionIntroduction = onOffToBool(value,name);
-      return;
-    case AIG_DEFINITION_INTRODUCTION_THRESHOLD:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	if (unsignedValue==0) {
-	  USER_ERROR("aig_definition_introduction_threshold must be non-zero");
-	}
-	_aigDefinitionIntroductionThreshold = unsignedValue;
-	return;
-      }
-      break;
-    case AIG_FORMULA_SHARING:
-      _aigFormulaSharing = onOffToBool(value,name);
-      return;
-    case AIG_INLINER:
-      _aigInliner = onOffToBool(value,name);
-      return;
-    case ARITY_CHECK:
-      _arityCheck = onOffToBool(value,name);
-      return;
-
-    case BACKWARD_DEMODULATION:
-      _backwardDemodulation = (Demodulation)Constants::optionNames[BACKWARD_DEMODULATION].names->find(value);
-      return;
-    case BACKWARD_SUBSUMPTION:
-      _backwardSubsumption = (Subsumption)Constants::optionNames[BACKWARD_SUBSUMPTION].names->find(value);
-      return;
-    case BACKWARD_SUBSUMPTION_RESOLUTION:
-      _backwardSubsumptionResolution = (Subsumption)Constants::optionNames[BACKWARD_SUBSUMPTION_RESOLUTION].names->find(value);
-      return;
-    case BFNT:
-      _bfnt = onOffToBool(value,name);
-      return;
-    case BINARY_RESOLUTION:
-      _binaryResolution = onOffToBool(value,name);
-      return;
-    case BP_ALLOWED_FM_BALANCE: {
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_bpAllowedFMBalance = unsignedValue;
-      }
-      else {
-	USER_ERROR("The value must be an integer");
-      }
-      return;
-    }
-    case BP_ALMOST_HALF_BOUND_REMOVER:
-      _bpAlmostHalfBoundingRemoval = (BPAlmostHalfBoundingRemoval)Constants::optionNames[BP_ALMOST_HALF_BOUND_REMOVER].names->find(value);
-      return;
-    case BP_ASSIGNMENT_SELECTOR:
-      _bpAssignmentSelector = (BPAssignmentSelector)Constants::optionNames[BP_ASSIGNMENT_SELECTOR].names->find(value);
-      return;
-    case BP_COLLAPSING_PROPAGATION:
-      _bpCollapsingPropagation = onOffToBool(value,name);
-      return;
-    case BP_CONFLICT_SELECTOR:
-      _bpConflictSelector = (BPConflictSelector)Constants::optionNames[BP_CONFLICT_SELECTOR].names->find(value);
-      return;
-    case BP_CONSERVATIVE_ASSIGNMENT_SELECTION:
-      _bpConservativeAssignmentSelection = onOffToBool(value,name);
-      return;
-    case BP_FM_ELIMINATION:
-      _bpFmElimination = onOffToBool(value,name);
-      return;
-    case BP_MAX_PROP_LENGTH:
-      if ( Int::stringToUnsignedInt(value, unsignedValue)) {
-	_maximalPropagatedEqualityLength = unsignedValue;
-      }
-      else {
-	USER_ERROR("the value must be an integer");
-      }
-      return;
-    case BP_PROPAGATE_AFTER_CONFLICT:
-      _bpPropagateAfterConflict = onOffToBool(value, name);
-      return;
-    case BP_START_WITH_PRECISE:
-      _bpStartWithPrecise = onOffToBool(value,name);
-      return;
-    case BP_START_WITH_RATIONAL:
-    	_bpStartWithRational = onOffToBool(value, name);
-    	return;
-    case BP_UPDATE_BY_ONE_CONSTRAINT:
-      if ( Int::stringToUnsignedInt(value, unsignedValue)) {
-	_updatesByOneConstraint = unsignedValue;
-      }
-      else USER_ERROR("The value must be an integer");
-      return;
-    case BP_VARIABLE_SELECTOR:
-      _bpVariableSelector = (BPVariableSelector)Constants::optionNames[BP_VARIABLE_SELECTOR].names->find(value);
-      return;
-
-    case COLOR_UNBLOCKING:
-      _colorUnblocking = onOffToBool(value,name);
-      return;
-    case CONDENSATION:
-      _condensation =
-	(Condensation)Constants::optionNames[CONDENSATION].names->find(value);
-      return;
-
-    case DECODE:
-      readFromTestId(value);
-      return;
-    case DEMODULATION_REDUNDANCY_CHECK:
-      _demodulationRedundancyCheck = onOffToBool(value,name);
-      return;
-    case DISTINCT_PROCESSOR:
-      _distinctProcessor = onOffToBool(value,name);
-      return;
-
-    case EPR_PRESERVING_NAMING:
-      _eprPreservingNaming = onOffToBool(value,name);
-      return;
-    case EPR_PRESERVING_SKOLEMIZATION:
-      _eprPreservingSkolemization = onOffToBool(value,name);
-      return;
-    case EPR_RESTORING_INLINING:
-      _eprRestoringInlining = onOffToBool(value,name);
-      return;
-    case EQUALITY_PROPAGATION:
-      _equalityPropagation = onOffToBool(value,name);
-      return;
-    case EQUALITY_PROXY:
-      _equalityProxy = (EqualityProxy)Constants::optionNames[EQUALITY_PROXY].names->find(value);
-      return;
-    case EQUALITY_RESOLUTION_WITH_DELETION:
-      _equalityResolutionWithDeletion = (RuleActivity)Constants::optionNames[EQUALITY_RESOLUTION_WITH_DELETION].names->find(value);
-      if (_equalityResolutionWithDeletion==RA_ON) {
-	USER_ERROR("equality_resolution_with_deletion is not implemented for value \"on\"");
-      }
-      return;
-    case EXTENSIONALITY_RESOLUTION:
-      _extensionalityResolution = (ExtensionalityResolution)Constants::optionNames[EXTENSIONALITY_RESOLUTION].names->find(value);
-      return;
-    case EXTENSIONALITY_MAX_LENGTH:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-        // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
-        if (unsignedValue == 1) {
-          USER_ERROR("extensionality clauses have to be at least of size 2");
-        }
-	_extensionalityMaxLength = unsignedValue;
-	return;
-      }
-      break;
-    case EXTENSIONALITY_ALLOW_POS_EQ:
-      _extensionalityAllowPosEq = onOffToBool(value,name);
-      return;
-      
-
-    case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
-      _flattenTopLevelConjunctions = onOffToBool(value,name);
-      return;
-    case FORBIDDEN_OPTIONS:
-      _forbiddenOptions = value;
-      return;
-    case FORCED_OPTIONS:
-      _forcedOptions = value;
-      return;
-    case FORWARD_DEMODULATION:
-      _forwardDemodulation =
-	(Demodulation)Constants::optionNames[FORWARD_DEMODULATION].names->find(value);
-      return;
-    case FORWARD_LITERAL_REWRITING:
-      _forwardLiteralRewriting = onOffToBool(value,name);
-      return;
-    case FORWARD_SUBSUMPTION:
-      _forwardSubsumption = onOffToBool(value,name);
-      return;
-    case FORWARD_SUBSUMPTION_RESOLUTION:
-      _forwardSubsumptionResolution = onOffToBool(value,name);
-      return;
-    case FUNCTION_DEFINITION_ELIMINATION:
-      _functionDefinitionElimination =
-	(FunctionDefinitionElimination)Constants::optionNames[FUNCTION_DEFINITION_ELIMINATION].names->find(value);
-      return;
-    case FUNCTION_NUMBER:
-      if (Int::stringToInt(value,intValue))
-    	  _functionNumber= intValue;
-      return;
-
-    case GENERAL_SPLITTING:
-      _generalSplitting = (RuleActivity)Constants::optionNames[GENERAL_SPLITTING].names->find(value);
-      if (_generalSplitting==RA_ON) {
-	USER_ERROR("general_splitting is not implemented for value \"on\"");
-      }
-      return;
-    case GLOBAL_SUBSUMPTION:
-      _globalSubsumption = onOffToBool(value,name);
-      return;
-
-    case HELP:
-      _showHelp = onOffToBool(value,name);
-      return;
-
-    case HORN_REVEALING:
-      _hornRevealing = onOffToBool(value,name);
-      return;
-    case HYPER_SUPERPOSITION:
-      _hyperSuperposition = onOffToBool(value,name);
-      return;
-
-    case IGNORE_MISSING:
-      _ignoreMissing = onOffToBool(value,name);
-      return;      
-    case INCLUDE:
-      _include = value;
-      return;
-    case INCREASED_NUMERAL_WEIGHT:
-      _increasedNumeralWeight = onOffToBool(value,name);
-      return;
-    case INEQUALITY_SPLITTING:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_inequalitySplitting = unsignedValue;
-	return;
-      }
-      break;
-    case INPUT_FILE:
-      setInputFile(value);
-      return;
-    case INPUT_SYNTAX:
-      _inputSyntax = (InputSyntax)Constants::optionNames[INPUT_SYNTAX].names->find(value);
-      return;
-    case INST_GEN_BIG_RESTART_RATIO:
-      if (Int::stringToFloat(value,floatValue)) {
-	if (floatValue<0.0f || floatValue>1.0f) {
-	  USER_ERROR("inst_gen_big_restart_ratio must be a number between 0 and 1 (inclusive)");
-	}
-	_instGenBigRestartRatio = floatValue;
-	return;
-      }
-      break;
-    case INST_GEN_INPROCESSING:
-      _instGenInprocessing = onOffToBool(value,name);
-      return;
-    case INST_GEN_PASSIVE_REACTIVATION:
-      _instGenPassiveReactivation = onOffToBool(value,name);
-      return;
-    case INST_GEN_RESOLUTION_RATIO:
-      readAgeWeightRatio(value, _instGenResolutionRatioInstGen, _instGenResolutionRatioResolution, '/');
-      return;
-    case INST_GEN_RESTART_PERIOD:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_instGenRestartPeriod = unsignedValue;
-	return;
-      }
-      break;
-    case INST_GEN_RESTART_PERIOD_QUOTIENT:
-      if (Int::stringToFloat(value,floatValue)) {
-	if (floatValue<1.0f) {
-	  USER_ERROR("inst_gen_restart_period_quotient must be a number at least 1");
-	}
-	_instGenRestartPeriodQuotient = floatValue;
-	return;
-      }
-      break;
-    case INST_GEN_SELECTION:
-      if (Int::stringToInt(value,intValue) &&
-	  setInstGenSelection(intValue) ) {
-	return;
-      }
-      break;
-    case INST_GEN_WITH_RESOLUTION:
-      _instGenWithResolution = onOffToBool(value,name);
-      return;
-    case INTERPRETED_SIMPLIFICATION:
-      _interpretedSimplification = onOffToBool(value,name);
-      return;
-
-    case LATEX_OUTPUT:
-      _latexOutput = value;
-      return;
-
-    case LINGVA_ADDITIONAL_INVARIANTS:
-      _lingvaAdditionalInvariants = value;
-      return;
-
-    case LITERAL_COMPARISON_MODE:
-      _literalComparisonMode =
-	(LiteralComparisonMode)Constants::optionNames[LITERAL_COMPARISON_MODE].names->find(value);
-      return;
-    case LOG_FILE:
-      _logFile = value;
-      return;
-    case LRS_FIRST_TIME_CHECK:
-      if (Int::stringToInt(value,intValue) &&
-	  setLrsFirstTimeCheck(intValue)) {
-	return;
-      }
-      break;
-    case LRS_WEIGHT_LIMIT_ONLY:
-      _lrsWeightLimitOnly = onOffToBool(value,name);
-      return;
-
-    case MAX_ACTIVE:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_maxActive = unsignedValue;
-	return;
-      }
-      break;
-    case MAX_ANSWERS:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_maxAnswers = unsignedValue;
-	return;
-      }
-      break;
-    case MAX_INFERENCE_DEPTH:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_maxInferenceDepth = unsignedValue;
-	return;
-      }
-      break;
-    case MAX_PASSIVE:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_maxPassive = unsignedValue;
-	return;
-      }
-      break;
-    case MAX_WEIGHT:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_maxWeight = unsignedValue;
-	return;
-      }
-      break;
-    case MEMORY_LIMIT:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_memoryLimit = unsignedValue;
-	return;
-      }
-      break;
-    case MODE:
-      _mode = (Mode)Constants::optionNames[MODE].names->find(value);
-      return;
-
-    case NAME_PREFIX:
-      _namePrefix = value;
-      return;
-    case NAMING:
-      if (Int::stringToUnsignedInt(value,unsignedValue) &&
-	  setNaming(unsignedValue)) {
-	return;
-      }
-      break;
-    case NONGOAL_WEIGHT_COEFFICIENT:
-      if (Int::stringToFloat(value,floatValue) &&
-	  setNongoalWeightCoefficient(floatValue)) {
-	return;
-      }
-      break;
-    case NONLITERALS_IN_CLAUSE_WEIGHT:
-      _nonliteralsInClauseWeight = onOffToBool(value,name);
-      return;
-    case NORMALIZE:
-      _normalize = onOffToBool(value,name);
-      return;
-
-    case OUTPUT_AXIOM_NAMES:
-      _outputAxiomNames = onOffToBool(value,name);
-      return;
-
-    case PREDICATE_DEFINITION_INLINING:
-      _predicateDefinitionInlining = (InliningMode)Constants::optionNames[PREDICATE_DEFINITION_INLINING].names->find(value);
-      return;
-    case PREDICATE_DEFINITION_MERGING:
-      _predicateDefinitionMerging = onOffToBool(value,name);
-      return;
-    case PREDICATE_EQUIVALENCE_DISCOVERY:
-      _predicateEquivalenceDiscovery =
-	  (PredicateEquivalenceDiscoveryMode)Constants::optionNames[PREDICATE_EQUIVALENCE_DISCOVERY].names->find(value);
-      return;
-    case PREDICATE_EQUIVALENCE_DISCOVERY_ADD_IMPLICATIONS:
-      _predicateEquivalenceDiscoveryAddImplications = onOffToBool(value,name);
-      return;
-    case PREDICATE_EQUIVALENCE_DISCOVERY_RANDOM_SIMULATION:
-      _predicateEquivalenceDiscoveryRandomSimulation = onOffToBool(value,name);
-      return;
-    case PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT:
-      if (Int::stringToInt(value,intValue)) {
-	_predicateEquivalenceDiscoverySatConflictLimit = intValue;
-	return;
-      }
-      break;
-    case PREDICATE_INDEX_INTRODUCTION:
-      _predicateIndexIntroduction = onOffToBool(value,name);
-      return;
-    case PRINT_CLAUSIFIER_PREMISES:
-      _printClausifierPremises = onOffToBool(value,name);
-      return;
-    case PROOF:
-      _proof = (Proof)Constants::optionNames[PROOF].names->find(value);
-      return;
-    case PROOF_CHECKING:
-      _proofChecking = onOffToBool(value,name);
-      return;
-    case PROTECTED_PREFIX:
-      _protectedPrefix = value;
-      return;
-
-    case QUESTION_ANSWERING:
-      _questionAnswering = (QuestionAnsweringMode)Constants::optionNames[QUESTION_ANSWERING].names->find(value);
-      return;
-
-    case RANDOM_SEED:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_randomSeed = unsignedValue;
-	return;
-      }
-      break;
-    case ROW_VARIABLE_MAX_LENGTH:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_rowVariableMaxLength = unsignedValue;
-	return;
-      }
-      break;
-
-    case SAT_CLAUSE_ACTIVITY_DECAY:
-      if (Int::stringToFloat(value,floatValue)) {
-	if (floatValue<=1.0f) {
-	  USER_ERROR("sat_clause_activity_decay must be a number greater than 1");
-	}
-	_satClauseActivityDecay = floatValue;
-	return;
-      }
-      break;
-    case SAT_CLAUSE_DISPOSER:
-      _satClauseDisposer = (SatClauseDisposer)Constants::optionNames[SAT_CLAUSE_DISPOSER].names->find(value);
-      return;
-    case SAT_LEARNT_MINIMIZATION:
-      _satLearntMinimization = onOffToBool(value,name);
-      return;
-    case SAT_LEARNT_SUBSUMPTION_RESOLUTION:
-      _satLearntSubsumptionResolution = onOffToBool(value,name);
-      return;
-
-    case SAT_LINGELING_INCREMENTAL:
-      _satLingelingIncremental = onOffToBool(value, name);
-      return;
-    case SAT_LINGELING_SIMILAR_MODELS:
-      _satLingelingSimilarModels = onOffToBool(value, name);
-      return;
-
-    case SAT_RESTART_FIXED_COUNT:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_satRestartFixedCount = unsignedValue;
-	return;
-      }
-      break;
-    case SAT_RESTART_GEOMETRIC_INCREASE:
-      if (Int::stringToFloat(value,floatValue)) {
-	if (floatValue<=1.0f) {
-	  USER_ERROR("sat_restart_geometric_increase must be a number greater than 1");
-	}
-	_satRestartGeometricIncrease = floatValue;
-	return;
-      }
-      break;
-    case SAT_RESTART_GEOMETRIC_INIT:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_satRestartGeometricInit = unsignedValue;
-	return;
-      }
-      break;
-    case SAT_RESTART_LUBY_FACTOR:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_satRestartLubyFactor = unsignedValue;
-	return;
-      }
-      break;
-    case SAT_RESTART_MINISAT_INCREASE:
-      if (Int::stringToFloat(value,floatValue)) {
-	if (floatValue<=1.0f) {
-	  USER_ERROR("sat_restart_minisat_increase must be a number greater than 1");
-	}
-	_satRestartMinisatIncrease = floatValue;
-	return;
-      }
-      break;
-    case SAT_RESTART_MINISAT_INIT:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_satRestartMinisatInit = unsignedValue;
-	return;
-      }
-      break;
-    case SAT_RESTART_STRATEGY:
-      _satRestartStrategy = (SatRestartStrategy)Constants::optionNames[SAT_RESTART_STRATEGY].names->find(value);
-      return;
-    case SAT_VAR_ACTIVITY_DECAY:
-      if (Int::stringToFloat(value,floatValue)) {
-	if (floatValue<=1.0f) {
-	  USER_ERROR("sat_var_activity_decay must be a number greater than 1");
-	}
-	_satVarActivityDecay = floatValue;
-	return;
-      }
-      break;
-    case SAT_VAR_SELECTOR:
-      _satVarSelector = (SatVarSelector)Constants::optionNames[SAT_VAR_SELECTOR].names->find(value);
-      return;
-    case NICENESS_OPTION:
-      _nicenessOption = (NicenessOption)Constants::optionNames[NICENESS_OPTION].names->find(value);
-      return;
-    case SAT_SOLVER:
-      _satSolver = (SatSolver) Constants::optionNames[SAT_SOLVER].names->find(value);
-      return;
-    case SATURATION_ALGORITHM:
-      _saturationAlgorithm = (SaturationAlgorithm)Constants::optionNames[SATURATION_ALGORITHM].names->find(value);
-      return;
-    case SELECTION:
-      if (Int::stringToInt(value,intValue) &&
-	  setSelection(intValue) ) {
-	return;
-      }
-      break;
-    case SHOW_ACTIVE:
-      _showActive = onOffToBool(value,name);
-      return;
-    case SHOW_BLOCKED:
-      _showBlocked = onOffToBool(value,name);
-      return;
-    case SHOW_DEFINITIONS:
-      _showDefinitions = onOffToBool(value,name);
-      return;
-    case SHOW_EXPERIMENTAL_OPTIONS:
-      _showExperimentalOptions = onOffToBool(value,name);
-      return;
-    case SHOW_INTERPOLANT:
-      _showInterpolant = (InterpolantMode)Constants::optionNames[SHOW_INTERPOLANT].names->find(value);
-      return;
-    case SHOW_NEW:
-      _showNew = onOffToBool(value,name);
-      return;
-    case SHOW_NEW_PROPOSITIONAL:
-      _showNewPropositional = onOffToBool(value,name);
-      return;
-    case SHOW_NONCONSTANT_SKOLEM_FUNCTION_TRACE:
-      _showNonconstantSkolemFunctionTrace = onOffToBool(value,name);
-      return;
-    case SHOW_OPTIONS:
-      _showOptions = (OptionTag) Constants::optionNames[SHOW_OPTIONS].names->find(value);
-      return;
-    case SHOW_PASSIVE:
-      _showPassive = onOffToBool(value,name);
-      return;
-    case SHOW_PREPROCESSING:
-      _showPreprocessing = onOffToBool(value,name);
-      return;
-    case SHOW_SKOLEMISATIONS:
-      _showSkolemisations = onOffToBool(value,name);
-      return;
-    case SHOW_SYMBOL_ELIMINATION:
-      _showSymbolElimination = onOffToBool(value,name);
-      return;
-    case SHOW_THEORY_AXIOMS:
-      _showTheoryAxioms = onOffToBool(value,name);
-      return;
-    case SIMULATED_TIME_LIMIT:
-      _simulatedTimeLimit = readTimeLimit(value);
-      return;
-    case SINE_DEPTH:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_sineDepth = unsignedValue;
-	return;
-      }
-      break;
-    case SINE_GENERALITY_THRESHOLD:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_sineGeneralityThreshold = unsignedValue;
-	return;
-      }
-      break;
-    case SINE_SELECTION:
-      _sineSelection =
-	(SineSelection)Constants::optionNames[SINE_SELECTION].names->find(value);
-      return;
-    case SINE_TOLERANCE:
-      if (!Int::stringToFloat(value,floatValue) || (floatValue!=0.0f && floatValue<1.0f)) {
-	USER_ERROR("sine_tolerance value must be a float number greater than or equal to 1");
-      }
-      _sineTolerance = floatValue;
-      return;
-    case SMTLIB_CONSIDER_INTS_REAL:
-      _smtlibConsiderIntsReal = onOffToBool(value,name);
-      return;
-    case SMTLIB_FLET_AS_DEFINITION:
-      _smtlibFletAsDefinition = onOffToBool(value,name);
-      return;
-    case SMTLIB_INTRODUCE_AIG_NAMES:
-      _smtlibIntroduceAIGNames = onOffToBool(value,name);
-      return;
-    case SOS:
-      _sos = (Sos)Constants::optionNames[SOS].names->find(value);
-      return;
-    case SPLIT_AT_ACTIVATION:
-      _splitAtActivation = onOffToBool(value,name);
-      return;
-    case SPLITTING:
-      _splitting = onOffToBool(value,name);
-      return;
-    case SSPLITTING_ADD_COMPLEMENTARY:
-      _ssplittingAddComplementary = (SSplittingAddComplementary)Constants::optionNames[SSPLITTING_ADD_COMPLEMENTARY].names->find(value);
-      return;
-    case SSPLITTING_COMPONENT_SWEEPING:
-      _ssplittingComponentSweeping = (SSplittingComponentSweeping)Constants::optionNames[SSPLITTING_COMPONENT_SWEEPING].names->find(value);
-      return;
-    case SSPLITTING_CONGRUENCE_CLOSURE:
-      _ssplittingCongruenceClosure = onOffToBool(value,name);
-      return;
-    case SSPLITTING_EAGER_REMOVAL:
-      _ssplittingEagerRemoval = onOffToBool(value,name);
-      return;
-    case SSPLITTING_FLUSH_PERIOD:
-      if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_ssplittingFlushPeriod = unsignedValue;
-	return;
-      }
-      break;
-    case SSPLITTING_FLUSH_QUOTIENT:
-      if (!Int::stringToFloat(value,floatValue) || (floatValue<1.0f)) {
-	USER_ERROR("ssplitting_flush_quotient must greater than or equal to 1");
-      }
-      _ssplittingFlushQuotient = floatValue;
-      return;
-    case SSPLITTING_NONSPLITTABLE_COMPONENTS:
-      _ssplittingNonsplittableComponents = (SSplittingNonsplittableComponents)Constants::optionNames[SSPLITTING_NONSPLITTABLE_COMPONENTS].names->find(value);
-      return;
-      
-    case STATISTICS:
-      _statistics = (Statistics) Constants::optionNames[STATISTICS].names->find(value);
-      return;
-    case SUPERPOSITION_FROM_VARIABLES:
-      _superpositionFromVariables = onOffToBool(value,name);
-      return;
-    case SYMBOL_PRECEDENCE:
-      _symbolPrecedence =
-	(SymbolPrecedence)Constants::optionNames[SYMBOL_PRECEDENCE].names->find(value);
-      return;
-
-    case TABULATION_BW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS:
-      _tabulationBwRuleSubsumptionResolutionByLemmas = onOffToBool(value,name);
-      return;
-    case TABULATION_FW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS:
-      _tabulationFwRuleSubsumptionResolutionByLemmas = onOffToBool(value,name);
-      return;
-    case TABULATION_GOAL_AWR:
-      readAgeWeightRatio(value, _tabulationGoalAgeRatio, _tabulationGoalWeightRatio, '/');
-      return;
-    case TABULATION_GOAL_LEMMA_RATIO:
-      readAgeWeightRatio(value, _tabulationGoalRatio, _tabulationLemmaRatio, '/');
-      return;
-    case TABULATION_INSTANTIATE_PRODUCING_RULES:
-      _tabulationInstantiateProducingRules = onOffToBool(value,name);
-      return;
-    case TABULATION_LEMMA_AWR:
-      readAgeWeightRatio(value, _tabulationLemmaAgeRatio, _tabulationLemmaWeightRatio, '/');
-      return;
-    case TEST_ID:
-      _testId = value;
-      return;
-    case THANKS:
-      _thanks = value;
-      return;
-    case THEORY_AXIOMS:
-      _theoryAxioms = onOffToBool(value,name);
-      return;
-    case TIME_LIMIT:
-      _timeLimitInDeciseconds = readTimeLimit(value);
-      return;
-    case TIME_STATISTICS:
-      _timeStatistics = onOffToBool(value,name);
-      return;
-    case TRIVIAL_PREDICATE_REMOVAL:
-      _trivialPredicateRemoval = onOffToBool(value,name);
-      return;
-
-    case UNIT_RESULTING_RESOLUTION:
-      _unitResultingResolution = (URResolution)Constants::optionNames[UNIT_RESULTING_RESOLUTION].names->find(value);
-      return;
-    case UNUSED_PREDICATE_DEFINITION_REMOVAL:
-      _unusedPredicateDefinitionRemoval = onOffToBool(value,name);
-      return;
-
-    case USEDM:
-      _use_dm = onOffToBool(value,name);
-      return;
-
-    case WEIGHT_INCREMENT:
-      _weightIncrement = onOffToBool(value,name);
-      return;
-    case WHILE_NUMBER:
-       if (Int::stringToInt(value,intValue))
-       _whileNumber = intValue;
-       return;
-
-    case XML_OUTPUT:
-      _xmlOutput = value;
-      return;
+    //onOffToBool(value,name)
+    /*
+     se BP_ALLOWED_FM_BALANCE: {
+     if (Int::stringToUnsignedInt(value,unsignedValue)) {
+     _bpAllowedFMBalance = unsignedValue;
+     }
+     else {
+     USER_ERROR("The value must be an integer");
+     }
+    */
 
 
-#if VDEBUG
-    default:
-      ASSERTION_VIOLATION_REP(name);
-#endif
-    }
-    throw ValueNotFoundException();
-  }
-  catch(ValueNotFoundException&) {
-    USER_ERROR((vstring)"wrong value (" + value + ") for " + name);
-  }
+    USER_ERROR((string)"wrong value (" + value + ") for " + name);
+
 } // Options::set
 
 
@@ -2183,33 +1519,9 @@ bool Options::outputSuppressed() const
 {
   CALL("Options::setLrsFirstTimeCheck");
 
-  return _xmlOutput == "on" ||
-         _latexOutput == "on";
+  return _xmlOutput.value == "on" || _latexOutput.value == "on";
 } // Output::outputSuppressed
 
-// /**
-//  * True if the options are complete.
-//  * @since 28/07/2005 Manchester
-//  */
-// bool Options::complete() const
-// {
-//   CALL("Options::complete");
-
-//   return (_equalityProxy==EP_OFF || _equalityProxy==EP_ON || _equalityProxy==EP_RSTC) &&
-//          (_equalityResolutionWithDeletion != RA_ON ) &&
-//          (_literalComparisonMode != LCM_REVERSE) &&
-//          _selection < 20 &&
-//          _selection > -20 &&
-//          ! _sos &&
-//          _superpositionFromVariables &&
-//          ! _maxWeight &&
-//          _binaryResolution &&
-//          ! _forwardLiteralRewriting &&
-//          ! env.interpretedOperationsUsed &&
-//          _sineSelection==SS_OFF &&
-//          _saturationAlgorithm!=TABULATION &&
-//          ! _forceIncompleteness;
-// } // Options::complete
 
 /**
  * True if the options are complete.
@@ -2320,15 +1632,53 @@ bool Options::completeForNNE() const
  */
 void Options::checkGlobalOptionConstraints() const
 {
-  if (_bfnt && !completeForNNE()) {
+  if (_aigDefinitionIntroductionThreshold.value==0) {
+    USER_ERROR("aig_definition_introduction_threshold must be non-zero");
+  }
+  if (_equalityResolutionWithDeletion.value==RA_ON) {
+    USER_ERROR("equality_resolution_with_deletion is not implemented for value \"on\"");
+  }
+  // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
+  if (_extensionalityMaxLength.value == 1) {
+    USER_ERROR("extensionality clauses have to be at least of size 2");
+  }
+    
+  if (_bfnt.value && !completeForNNE()) {
     USER_ERROR("The bfnt option can only be used with a strategy complete for non-Horn problems without equality");
   }
-  if (_splitting && _saturationAlgorithm == INST_GEN) {
+  if (_splitting.value && _saturationAlgorithm.value == INST_GEN) {
     USER_ERROR("saturation algorithm inst_gen cannot be used with sat splitting");
   }
-  if (_extensionalityResolution != ER_OFF && _inequalitySplitting) {
+  if (_extensionalityResolution.value != ER_OFF && _inequalitySplitting.value) {
     USER_ERROR("extensionality resolution can not be used together with inequality splitting");
   }
+    if (_generalSplitting.value==RA_ON) {
+        USER_ERROR("general_splitting is not implemented for value \"on\"");
+    }
+    if (_instGenBigRestartRatio.value<0.0f || _instGenBigRestartRatio.value>1.0f) {
+        USER_ERROR("inst_gen_big_restart_ratio must be a number between 0 and 1 (inclusive)");
+	}
+	if (_instGenRestartPeriodQuotient.value<1.0f) {
+        USER_ERROR("inst_gen_restart_period_quotient must be a number at least 1");
+	}
+	if (_satClauseActivityDecay.value<=1.0f) {
+        USER_ERROR("sat_clause_activity_decay must be a number greater than 1");
+	}
+	if (_satRestartGeometricIncrease.value<=1.0f) {
+        USER_ERROR("sat_restart_geometric_increase must be a number greater than 1");
+	}
+	if (_satRestartMinisatIncrease.value<=1.0f) {
+        USER_ERROR("sat_restart_minisat_increase must be a number greater than 1");
+	}
+    if (_satVarActivityDecay.value<=1.0f) {
+        USER_ERROR("sat_var_activity_decay must be a number greater than 1");
+	}
+	if (_sineTolerance.value!=0.0f && _sineTolerance.value<1.0f) {
+        USER_ERROR("sine_tolerance value must be a float number greater than or equal to 1");
+    }
+    if (_ssplittingFlushQuotient.value<1.0f) {
+        USER_ERROR("ssplitting_flush_quotient must greater than or equal to 1");
+    }
   //TODO:implement forbidden options
 }
 

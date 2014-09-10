@@ -29,245 +29,64 @@ class Property;
 class Options
 {
 public:
-  enum Tag {
-    AGE_WEIGHT_RATIO,
-    AIG_BDD_SWEEPING,
-    AIG_CONDITIONAL_REWRITING,
-    AIG_DEFINITION_INTRODUCTION,
-    AIG_DEFINITION_INTRODUCTION_THRESHOLD,
-    AIG_FORMULA_SHARING,
-    AIG_INLINER,
-    ARITY_CHECK,
 
-    BACKWARD_DEMODULATION,
-    BACKWARD_SUBSUMPTION,
-    BACKWARD_SUBSUMPTION_RESOLUTION,
-    BFNT,
-    BINARY_RESOLUTION,
-    BP_COLLAPSING_PROPAGATION,
-    BP_ALLOWED_FM_BALANCE,
-    BP_ALMOST_HALF_BOUND_REMOVER,
-    BP_ASSIGNMENT_SELECTOR,
-    BP_UPDATE_BY_ONE_CONSTRAINT,
-    BP_CONFLICT_SELECTOR,
-    BP_CONSERVATIVE_ASSIGNMENT_SELECTION,
-    BP_FM_ELIMINATION,
-    BP_MAX_PROP_LENGTH,
-    BP_PROPAGATE_AFTER_CONFLICT,
-    BP_START_WITH_PRECISE,
-    BP_START_WITH_RATIONAL,
-
-    BP_VARIABLE_SELECTOR,
-
-    COLOR_UNBLOCKING,
-    CONDENSATION,
-
-    /** Decode test id */
-    DECODE,
-    DEMODULATION_REDUNDANCY_CHECK,
-    DISTINCT_PROCESSOR,
-
-    EPR_PRESERVING_NAMING,
-    EPR_PRESERVING_SKOLEMIZATION,
-    EPR_RESTORING_INLINING,
+    Options ();
+    void output (ostream&) const;
+    void readFromTestId (vstring testId);
+    void readOptionsString (vstring testId);
+    vstring generateTestId() const;
+    bool complete(const Problem&) const;
+    bool completeForNNE() const;
+    void setForcedOptionValues();
+    void setInputFile(const vstring& newVal);
+    void checkGlobalOptionConstraints() const;
+    
+    void forceIncompleteness() { _forceIncompleteness=true; }
+    
+    static int readTimeLimit(const char* val);
     /**
-     * Propagate equalities in formulas, for example
-     * (X=Y => X=f(Y)) ---> X=f(X)
+     * Return the problem name
      *
-     * Such propagation can simplify formulas early in
-     * the preprocessing and so help other preprocessing
-     * rules (namely dealing with predicate definitions).
+     * The problem name is computed from the input file name in
+     * the @b setInputFile function. If the input file is not set,
+     * the problem name is equal to "unknown". The problem name can
+     * be set to a specific value using setProblemName().
      */
-    EQUALITY_PROPAGATION,
-    EQUALITY_PROXY,
-    EQUALITY_RESOLUTION_WITH_DELETION,
+    vstring problemName () const { return _problemName; }
+    void setProblemName(vstring str) { _problemName = str; }
+    
+    CLASS_NAME(Options);
+    USE_ALLOCATOR(Options);
+    
+    /** first is option name, second option value */
+    typedef pair<vstring, vstring> OptionSpec;
+    typedef Stack<OptionSpec> OptionSpecStack;
+    static void readOptionsString(vstring testId, OptionSpecStack& assignments);
+    
+    // the following two functions are used by Environment
+    bool onOffToBool(const char* onOff,const char* option);
+    
+    // standard ways of creating options
+    XMLElement toXML() const;
+    bool outputSuppressed() const;
+    void set(const vstring& name, const vstring& value);
+    void set(const char* name, const char* value);
+    void setShort(const char* name, const char* value);
+    
+private:
+    void set(const char* name, const char* value, int index);
+    
+    // various read-from-string-write options
+    static void readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio, char separator=':');
+    static vstring boolToOnOff(bool);
+    void outputValue(ostream& str,int optionTag) const;
+    friend class Shell::LTB::Builder;
 
-    EXTENSIONALITY_ALLOW_POS_EQ,
-    EXTENSIONALITY_MAX_LENGTH,
-    EXTENSIONALITY_RESOLUTION,
-
-    FLATTEN_TOP_LEVEL_CONJUNCTIONS,
-    /** If some of the specified options are set to a forbidden state,
-     * vampire will fail to start, or in the CASC mode it will skip
-     * such strategies. */
-    FORBIDDEN_OPTIONS,
-    FORCED_OPTIONS,
-    FORWARD_DEMODULATION,
-    FORWARD_LITERAL_REWRITING,
-    FORWARD_SUBSUMPTION,
-    FORWARD_SUBSUMPTION_RESOLUTION,
-    /** All literals of set-of-support clauses will be selected */
-    FUNCTION_DEFINITION_ELIMINATION,
-    FUNCTION_NUMBER,
-    GENERAL_SPLITTING,
-    GLOBAL_SUBSUMPTION,
-
-    HELP,
-
-    /** We check whether by swapping predicate polarities we can obtain a horn problem */
-    HORN_REVEALING,
-    /** Generating inference that attempts to do several rewriting at once if it will
-     * eliminate literals of the original clause (now we aim just for eliminatin by equality
-     * resolution) */
-    HYPER_SUPERPOSITION,
-
-    IGNORE_MISSING,
-    INCLUDE,
-    INCREASED_NUMERAL_WEIGHT,
-    INEQUALITY_SPLITTING,
-    INPUT_FILE,
-    INPUT_SYNTAX,
-    INST_GEN_BIG_RESTART_RATIO,
-    INST_GEN_INPROCESSING,
-    INST_GEN_PASSIVE_REACTIVATION,
-    INST_GEN_RESOLUTION_RATIO,
-    INST_GEN_RESTART_PERIOD,
-    INST_GEN_RESTART_PERIOD_QUOTIENT,
-    INST_GEN_SELECTION,
-    INST_GEN_WITH_RESOLUTION,
-    INTERPRETED_SIMPLIFICATION,
-
-    LATEX_OUTPUT,
-    LINGVA_ADDITIONAL_INVARIANTS,
-    LITERAL_COMPARISON_MODE,
-    LOG_FILE,
-    LRS_FIRST_TIME_CHECK,
-    LRS_WEIGHT_LIMIT_ONLY,
-
-    MAX_ACTIVE,
-    MAX_ANSWERS,
-    MAX_INFERENCE_DEPTH,
-    MAX_PASSIVE,
-    MAX_WEIGHT,
-    MEMORY_LIMIT,
-    MODE,
-
-    NAME_PREFIX,
-    NAMING,
-    NICENESS_OPTION,
-    NONGOAL_WEIGHT_COEFFICIENT,
-    NONLITERALS_IN_CLAUSE_WEIGHT,
-    NORMALIZE,
-
-    OUTPUT_AXIOM_NAMES,
-
-    /** Determines whether predicate definitions will be inlined */
-    PREDICATE_DEFINITION_INLINING,
-    /** Determines whether predicates with equivalent definitions will be merged into one */
-    PREDICATE_DEFINITION_MERGING,
-    /** Determines whether SAT solver will be used to discover equivalent predicates */
-    PREDICATE_EQUIVALENCE_DISCOVERY,
-    PREDICATE_EQUIVALENCE_DISCOVERY_ADD_IMPLICATIONS,
-    PREDICATE_EQUIVALENCE_DISCOVERY_RANDOM_SIMULATION,
-    PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT,
-    PREDICATE_INDEX_INTRODUCTION,
-    PRINT_CLAUSIFIER_PREMISES,
-    PROBLEM_NAME,
-    PROOF,
-    PROOF_CHECKING,
-    /** if non-empty, symbols with this prefix will not be subject to any kind of elimination in preprocessing */
-    PROTECTED_PREFIX,
-
-    /** Determines whether (and how) we attempt to answer questions */
-    QUESTION_ANSWERING,
-
-    RANDOM_SEED,
-    ROW_VARIABLE_MAX_LENGTH,
-
-    SAT_CLAUSE_ACTIVITY_DECAY,
-    SAT_CLAUSE_DISPOSER,
-    SAT_LEARNT_MINIMIZATION,
-    SAT_LEARNT_SUBSUMPTION_RESOLUTION,
-
-    /** @author: ioan
-     * Use lingeling in an incremental way from the beginning
-     */
-    SAT_LINGELING_INCREMENTAL,
-    /** enable similar model generation for lingleling */
-    SAT_LINGELING_SIMILAR_MODELS,
-
-    SAT_RESTART_FIXED_COUNT,
-    SAT_RESTART_GEOMETRIC_INCREASE,
-    SAT_RESTART_GEOMETRIC_INIT,
-    SAT_RESTART_LUBY_FACTOR,
-    SAT_RESTART_MINISAT_INCREASE,
-    SAT_RESTART_MINISAT_INIT,
-    SAT_RESTART_STRATEGY,
-    SAT_SOLVER,
-    SAT_VAR_ACTIVITY_DECAY,
-    SAT_VAR_SELECTOR,
-    /** !!! saturation algorithm: lrs, otter, or discount, inst_gen or tabulation */
-    SATURATION_ALGORITHM,
-    SELECTION,
-    SHOW_ACTIVE,
-    SHOW_BLOCKED,
-    SHOW_DEFINITIONS,
-    SHOW_EXPERIMENTAL_OPTIONS,
-    SHOW_INTERPOLANT,
-    SHOW_NEW,
-    SHOW_NEW_PROPOSITIONAL,
-    SHOW_NONCONSTANT_SKOLEM_FUNCTION_TRACE,
-    SHOW_OPTIONS,
-    SHOW_PASSIVE,
-    SHOW_PREPROCESSING,
-    SHOW_SKOLEMISATIONS,
-    SHOW_SYMBOL_ELIMINATION,
-    SHOW_THEORY_AXIOMS,
-    SIMULATED_TIME_LIMIT,
-    SINE_DEPTH,
-    SINE_GENERALITY_THRESHOLD,
-    SINE_SELECTION,
-    SINE_TOLERANCE,
-    SMTLIB_CONSIDER_INTS_REAL,
-    SMTLIB_FLET_AS_DEFINITION,
-    SMTLIB_INTRODUCE_AIG_NAMES,
-    SOS,
-    SPLIT_AT_ACTIVATION,
-    SPLITTING,
-    SPLITTING_ADD_COMPLEMENTARY,
-    SPLITTING_CONGRUENCE_CLOSURE,
-    SPLITTING_DELETE_DEACTIVATED,
-    SPLITTING_EAGER_REMOVAL,
-    SPLITTING_FAST_RESTART,
-    SPLITTING_FLUSH_PERIOD,
-    SPLITTING_FLUSH_QUOTIENT,
-    SPLITTING_HANDLE_ZERO_IMPLIED,
-    SPLITTING_LITERAL_POLARITY_ADVICE,
-    SPLITTING_MODEL,
-    SPLITTING_NONSPLITTABLE_COMPONENTS,
-
-    STATISTICS,
-    SUPERPOSITION_FROM_VARIABLES,
-    SYMBOL_PRECEDENCE,
-
-    TABULATION_BW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS,
-    TABULATION_FW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS,
-    TABULATION_GOAL_AWR,
-    TABULATION_GOAL_LEMMA_RATIO,
-    TABULATION_INSTANTIATE_PRODUCING_RULES,
-    TABULATION_LEMMA_AWR,
-    TEST_ID,
-    THANKS,
-    THEORY_AXIOMS,
-    TIME_LIMIT,
-    TIME_STATISTICS,
-    TRIVIAL_PREDICATE_REMOVAL,
-
-    UNIT_RESULTING_RESOLUTION,
-    UNUSED_PREDICATE_DEFINITION_REMOVAL,
-    USEDM,
-
-    WEIGHT_INCREMENT,
-    WHILE_NUMBER,
-
-    XML_OUTPUT,
-   
-    NUMBER_OF_OPTIONS // must be the last one!
-  };
-
+    
 public:
-  class StringInt;
-  class StringIntMap;
+  //==========================================================
+  // The Enums for Option Values
+  //==========================================================
   
   //enums for the bound propagation purpose
   enum BPAlmostHalfBoundingRemoval {
@@ -286,7 +105,6 @@ public:
     ASG_SMALLEST = 6,
     ASG_TIGHT = 7,
     ASG_TIGHTISH = 8,
-   // ASG_BIGGEST = 9,
     ASG_UPPER = 9
   };
   
@@ -482,10 +300,7 @@ public:
     EP_RS = 1,
     EP_RST = 2,
     EP_RSTC = 3,
-    /** --equality_proxy=off */
     EP_OFF = 4,
-    /** --equality_proxy=on */
-    EP_ON = 5
   };
 
   /** Values for --extensionality_resolution */
@@ -520,36 +335,23 @@ public:
     SCD_MINISAT = 1,
   };
 
-  enum SplittingAddComplementary {
-    SAC_GROUND = 0,
-    SAC_NONE = 1
+  enum SSplittingComponentSweeping {
+    SSCS_ALL = 0,
+    SSCS_ITERATED = 1,
+    SSCS_NONE = 2,
+    SSCS_ONLY_NEW = 3
   };
 
-  enum SplittingDeleteDeactivated {
-    SDD_LARGE_ONLY = 0,
-    SDD_OFF = 1,    
-    SDD_ON = 2    
-  };
-  
-  enum SplittingModel {
-    SM_MIN_ALL = 0,
-    SM_MIN_SCO = 1,
-    SM_TOTAL = 2
-  };
-  
-  enum SplittingLitaralPolarityAdvice {
-    SLPA_FORCE_FALSE,
-    SLPA_FORCE_RND,
-    SLPA_NONE,
-    SLPA_SUGGEST_FALSE,
-    SLPA_SUGGEST_RND                    
+  enum SSplittingAddComplementary {
+    SSAC_GROUND = 0,
+    SSAC_NONE = 1
   };
 
-  enum SplittingNonsplittableComponents {
-    SNS_ALL = 0,
-    SNS_ALL_DEPENDENT = 1,
-    SNS_KNOWN = 2,
-    SNS_NONE = 3
+  enum SSplittingNonsplittableComponents {
+    SSNS_ALL = 0,
+    SSNS_ALL_DEPENDENT = 1,
+    SSNS_KNOWN = 2,
+    SSNS_NONE = 3
   };
 
   enum Sos {
@@ -566,533 +368,499 @@ public:
     PED_ON = 4
   };
 
-public:
-  Options ();
-  void output (ostream&) const;
-  void readFromTestId (vstring testId);
-  void readOptionsString (vstring testId);
-  vstring generateTestId() const;
-  bool complete(const Problem&) const;
-  bool completeForNNE() const;
-  void setForcedOptionValues();
-  void checkGlobalOptionConstraints() const;
 
-  void forceIncompleteness() { _forceIncompleteness=true; }
+  //==========================================================
+  // Getter functions
+  // -currently disabled all setter functions
+  //==========================================================
 
-  /**
-   * Return the problem name
-   *
-   * The problem name is computed from the input file name in
-   * the @b setInputFile function. If the input file is not set,
-   * the problem name is equal to "unknown". The problem name can
-   * be set to a specific value using setProblemName().
-   */
-  vstring problemName () const { return _problemName; }
-  void setProblemName(vstring str) { _problemName = str; }
-
-  vstring forcedOptions() const { return _forcedOptions; }
-  vstring forbiddenOptions() const { return _forbiddenOptions; }
-  vstring testId() const { return _testId; }
-  vstring protectedPrefix() const { return _protectedPrefix; }
-  Statistics statistics() const { return _statistics; }
-  void setStatistics(Statistics newVal) { _statistics=newVal; }
-  Proof proof() const { return _proof; }
-  bool proofChecking() const { return _proofChecking; }
-  int naming() const { return _naming; }
+  vstring forcedOptions() const { return _forcedOptions.value; }
+  vstring forbiddenOptions() const { return _forbiddenOptions.value; }
+  vstring testId() const { return _testId.value; }
+  vstring protectedPrefix() const { return _protectedPrefix.value; }
+  Statistics statistics() const { return _statistics.value; }
+  //void setStatistics(Statistics newVal) { _statistics=newVal; }
+  Proof proof() const { return _proof.value; }
+  bool proofChecking() const { return _proofChecking.value; }
+  int naming() const { return _naming.value; }
   bool setNaming(int newVal);
-  bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions; }
-  bool eprPreservingNaming() const { return _eprPreservingNaming; }
-  void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
-  bool eprPreservingSkolemization() const { return _eprPreservingSkolemization; }
-  void setEprPreservingSkolemization(bool newVal) { _eprPreservingSkolemization = newVal; }
-  bool eprRestoringInlining() const { return _eprRestoringInlining; }
-  void setEprRestoringInlining(bool newVal) { _eprRestoringInlining = newVal; }
-  InliningMode predicateDefinitionInlining() const { return _predicateDefinitionInlining; }
-  void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
-  bool predicateDefinitionMerging() const { return _predicateDefinitionMerging; }
-  void setPredicateDefinitionMerging(bool newValue) { _predicateDefinitionMerging = newValue; }
-  PredicateEquivalenceDiscoveryMode predicateEquivalenceDiscovery() const { return _predicateEquivalenceDiscovery; }
-  void setPredicateEquivalenceDiscovery(PredicateEquivalenceDiscoveryMode newValue) { _predicateEquivalenceDiscovery = newValue; }
-  bool predicateEquivalenceDiscoveryAddImplications() const { return _predicateEquivalenceDiscoveryAddImplications; }
-  bool predicateEquivalenceDiscoveryRandomSimulation() const { return _predicateEquivalenceDiscoveryRandomSimulation; }
-  int predicateEquivalenceDiscoverySatConflictLimit() const { return _predicateEquivalenceDiscoverySatConflictLimit; }
-  bool predicateIndexIntroduction() const { return _predicateIndexIntroduction; }
-  void setPredicateIndexIntroduction(bool newValue) { _predicateIndexIntroduction = newValue; }
-  bool aigBddSweeping() const { return _aigBddSweeping; }
-  bool aigConditionalRewriting() const { return _aigConditionalRewriting; }
-  bool aigDefinitionIntroduction() const { return _aigDefinitionIntroduction; }
-  unsigned aigDefinitionIntroductionThreshold() const { return _aigDefinitionIntroductionThreshold; }
-  bool aigFormulaSharing() const { return _aigFormulaSharing; }
-  bool aigInliner() const { return _aigInliner; }
-  Mode mode() const { return _mode; }
-  void setMode(Mode newVal);
-  InputSyntax inputSyntax() const { return _inputSyntax; }
-  void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
-  bool normalize() const { return _normalize; }
-  void setNormalize(bool normalize) { _normalize = normalize; }
-  vstring include() const { return _include; }
-  void setInclude(vstring val) { _include = val; }
+  bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.value; }
+  bool eprPreservingNaming() const { return _eprPreservingNaming.value; }
+  //void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
+  bool eprPreservingSkolemization() const { return _eprPreservingSkolemization.value; }
+  //void setEprPreservingSkolemization(bool newVal) { _eprPreservingSkolemization = newVal; }
+  bool eprRestoringInlining() const { return _eprRestoringInlining.value; }
+  //void setEprRestoringInlining(bool newVal) { _eprRestoringInlining = newVal; }
+  InliningMode predicateDefinitionInlining() const { return _predicateDefinitionInlining.value; }
+  //void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
+  bool predicateDefinitionMerging() const { return _predicateDefinitionMerging.value; }
+  //void setPredicateDefinitionMerging(bool newValue) { _predicateDefinitionMerging = newValue; }
+  PredicateEquivalenceDiscoveryMode predicateEquivalenceDiscovery() const { return _predicateEquivalenceDiscovery.value; }
+  //void setPredicateEquivalenceDiscovery(PredicateEquivalenceDiscoveryMode newValue) { _predicateEquivalenceDiscovery = newValue; }
+  bool predicateEquivalenceDiscoveryAddImplications() const { return _predicateEquivalenceDiscoveryAddImplications.value; }
+  bool predicateEquivalenceDiscoveryRandomSimulation() const { return _predicateEquivalenceDiscoveryRandomSimulation.value; }
+  int predicateEquivalenceDiscoverySatConflictLimit() const { return _predicateEquivalenceDiscoverySatConflictLimit.value; }
+  bool predicateIndexIntroduction() const { return _predicateIndexIntroduction.value; }
+  //void setPredicateIndexIntroduction(bool newValue) { _predicateIndexIntroduction = newValue; }
+  bool aigBddSweeping() const { return _aigBddSweeping.value; }
+  bool aigConditionalRewriting() const { return _aigConditionalRewriting.value; }
+  bool aigDefinitionIntroduction() const { return _aigDefinitionIntroduction.value; }
+  unsigned aigDefinitionIntroductionThreshold() const { return _aigDefinitionIntroductionThreshold.value; }
+  bool aigFormulaSharing() const { return _aigFormulaSharing.value; }
+  bool aigInliner() const { return _aigInliner.value; }
+  Mode mode() const { return _mode.value; }
+  //void setMode(Mode newVal);
+  InputSyntax inputSyntax() const { return _inputSyntax.value; }
+  //void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
+  bool normalize() const { return _normalize.value; }
+  //void setNormalize(bool normalize) { _normalize = normalize; }
+  vstring include() const { return _include.value; }
+  //void setInclude(vstring val) { _include = val; }
   vstring includeFileName (const vstring& relativeName);
-  vstring logFile() const { return _logFile; }
-  vstring inputFile() const { return _inputFile; }
-  int randomSeed() const { return _randomSeed; }
-  int rowVariableMaxLength() const { return _rowVariableMaxLength; }
-  void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
-  bool printClausifierPremises() const { return _printClausifierPremises; }
-  bool showActive() const { return _showActive; }
-  bool showBlocked() const { return _showBlocked; }
-  bool showDefinitions() const { return _showDefinitions; }
-  InterpolantMode showInterpolant() const { return _showInterpolant; }
-  bool showNew() const { return _showNew; }
-  bool showNewPropositional() const { return _showNewPropositional; }
-  bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace; }
-  void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace = newVal; }
-  OptionTag showOptions() const { return _showOptions; }
-  bool showExperimentalOptions() const { return _showExperimentalOptions; }
-  bool showHelp() const { return _showHelp; }
-  bool showPassive() const { return _showPassive; }
-  bool showPreprocessing() const { return _showPreprocessing; }
-  bool showSkolemisations() const { return _showSkolemisations; }
-  bool showSymbolElimination() const { return _showSymbolElimination; }
-  bool showTheoryAxioms() const { return _showTheoryAxioms; }
-  bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval; }
-  void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval = newVal; }
-  bool weightIncrement() const { return _weightIncrement; }
-  bool useDM() const { return _use_dm; }
-  SatSolver satSolver() const { return _satSolver; }
-  void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
-  SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm; }
-  void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm = newVal; }
-  int selection() const { return _selection; }
+  vstring logFile() const { return _logFile.value; }
+  vstring inputFile() const { return _inputFile.value; }
+  int randomSeed() const { return _randomSeed.value; }
+  int rowVariableMaxLength() const { return _rowVariableMaxLength.value; }
+  //void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
+  bool printClausifierPremises() const { return _printClausifierPremises.value; }
+  bool showActive() const { return _showActive.value; }
+  bool showBlocked() const { return _showBlocked.value; }
+  bool showDefinitions() const { return _showDefinitions.value; }
+  InterpolantMode showInterpolant() const { return _showInterpolant.value; }
+  bool showNew() const { return _showNew.value; }
+  bool showNewPropositional() const { return _showNewPropositional.value; }
+  bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace.value; }
+  //void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace = newVal; }
+  OptionTag showOptions() const { return _showOptions.value; }
+  bool showExperimentalOptions() const { return _showExperimentalOptions.value; }
+  bool showHelp() const { return _showHelp.value; }
+  bool showPassive() const { return _showPassive.value; }
+  bool showPreprocessing() const { return _showPreprocessing.value; }
+  bool showSkolemisations() const { return _showSkolemisations.value; }
+  bool showSymbolElimination() const { return _showSymbolElimination.value; }
+  bool showTheoryAxioms() const { return _showTheoryAxioms.value; }
+  bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.value; }
+  //void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval = newVal; }
+  bool weightIncrement() const { return _weightIncrement.value; }
+  bool useDM() const { return _use_dm.value; }
+  SatSolver satSolver() const { return _satSolver.value; }
+  //void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
+  SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.value; }
+  //void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm = newVal; }
+  int selection() const { return _selection.value; }
   bool setSelection(int newValue);
   bool setInstGenSelection(int newValue);
-  vstring latexOutput() const { return _latexOutput; }
-  LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode; }
-  bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution; }
+  vstring latexOutput() const { return _latexOutput.value; }
+  LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.value; }
+  bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution.value; }
   void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
-  Demodulation forwardDemodulation() const { return _forwardDemodulation; }
-  bool binaryResolution() const { return _binaryResolution; }
-  bool bfnt() const { return _bfnt; }
-  void setBfnt(bool newVal) { _bfnt = newVal; }
-  URResolution unitResultingResolution() const { return _unitResultingResolution; }
-  bool hyperSuperposition() const { return _hyperSuperposition; }
-  bool arityCheck() const { return _arityCheck; }
-  void setArityCheck(bool newVal) { _arityCheck=newVal; }
-  Demodulation backwardDemodulation() const { return _backwardDemodulation; }
-  bool demodulationRedundancyCheck() const { return _demodulationRedundancyCheck; }
-  void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
-  Subsumption backwardSubsumption() const { return _backwardSubsumption; }
-  void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
-  Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution; }
-  bool forwardSubsumption() const { return _forwardSubsumption; }
-  bool forwardLiteralRewriting() const { return _forwardLiteralRewriting; }
-
-  vstring lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants; }
-  int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck; }
-  int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly; }
+  Demodulation forwardDemodulation() const { return _forwardDemodulation.value; }
+  bool binaryResolution() const { return _binaryResolution.value; }
+  bool bfnt() const { return _bfnt.value; }
+  //void setBfnt(bool newVal) { _bfnt = newVal; }
+  URResolution unitResultingResolution() const { return _unitResultingResolution.value; }
+  bool hyperSuperposition() const { return _hyperSuperposition.value; }
+  bool arityCheck() const { return _arityCheck.value; }
+  //void setArityCheck(bool newVal) { _arityCheck=newVal; }
+  Demodulation backwardDemodulation() const { return _backwardDemodulation.value; }
+  bool demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.value; }
+  //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
+  Subsumption backwardSubsumption() const { return _backwardSubsumption.value; }
+  //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
+  Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution.value; }
+  bool forwardSubsumption() const { return _forwardSubsumption.value; }
+  bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.value; }
+  vstring lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants.value; }
+  int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.value; }
+  int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.value; }
+>>>>>>> Changing the way we do options
   bool setLrsFirstTimeCheck(int newVal);
-  int simulatedTimeLimit() const { return _simulatedTimeLimit; }
-  void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit = newVal; }
-  int maxInferenceDepth() const { return _maxInferenceDepth; }
-  SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence; }
+  int simulatedTimeLimit() const { return _simulatedTimeLimit.value; }
+  //void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit = newVal; }
+  int maxInferenceDepth() const { return _maxInferenceDepth.value; }
+  SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.value; }
   /**
    * Return time limit in deciseconds, or 0 if there is no time limit
    */
-  int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds; }
-  static int readTimeLimit(const char* val);
-  size_t memoryLimit() const { return _memoryLimit; }
-  int inequalitySplitting() const { return _inequalitySplitting; }
-  long maxActive() const { return _maxActive; }
-  long maxAnswers() const { return _maxAnswers; }
-  void setMaxAnswers(int newVal) { _maxAnswers = newVal; }
-  long maxPassive() const { return _maxPassive; }
-  int maxWeight() const { return _maxWeight; }
-  int ageRatio() const { return _ageRatio; }
-  int weightRatio() const { return _weightRatio; }
-  bool superpositionFromVariables() const { return _superpositionFromVariables; }
-  bool equalityPropagation() const { return _equalityPropagation; }
-  void setEqualityPropagation(bool newVal) { _equalityPropagation = newVal; }
-  EqualityProxy equalityProxy() const { return _equalityProxy; }
-  RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion; }
-  ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution; }
-  unsigned extensionalityMaxLength() const { return _extensionalityMaxLength; }
-  bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq; }
+  int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.value; }
+  size_t memoryLimit() const { return _memoryLimit.value; }
+  int inequalitySplitting() const { return _inequalitySplitting.value; }
+  long maxActive() const { return _maxActive.value; }
+  long maxAnswers() const { return _maxAnswers.value; }
+  //void setMaxAnswers(int newVal) { _maxAnswers = newVal; }
+  long maxPassive() const { return _maxPassive.value; }
+  int maxWeight() const { return _maxWeight.value; }
+  int ageRatio() const { return _ageRatio.value; }
+  int weightRatio() const { return _weightRatio.value; }
+  bool superpositionFromVariables() const { return _superpositionFromVariables.value; }
+  bool equalityPropagation() const { return _equalityPropagation.value; }
+  //void setEqualityPropagation(bool newVal) { _equalityPropagation = newVal; }
+  EqualityProxy equalityProxy() const { return _equalityProxy.value; }
+  RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.value; }
+  ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.value; }
+  unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.value; }
+  bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.value; }
   
-  float nongoalWeightCoefficient() const { return _nongoalWeightCoefficient; }
+  float nongoalWeightCoefficient() const { return _nongoalWeightCoefficient.value; }
   bool setNongoalWeightCoefficient(float newVal);
   Sos sos() const { return _sos; }
-  void setSos(Sos newVal) { _sos = newVal; }
-  FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination; }
-  bool outputAxiomNames() const { return _outputAxiomNames; }
-  void setOutputAxiomNames(bool newVal) { _outputAxiomNames = newVal; }
-  QuestionAnsweringMode questionAnswering() const { return _questionAnswering; }
-  void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering = newVal; }
-  vstring xmlOutput() const { return _xmlOutput; }
-  vstring thanks() const { return _thanks; }
-  
-  bool globalSubsumption() const { return _globalSubsumption; }
+  //void setSos(Sos newVal) { _sos = newVal; }
+  FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.value; }
+  bool outputAxiomNames() const { return _outputAxiomNames.value; }
+  //void setOutputAxiomNames(bool newVal) { _outputAxiomNames = newVal; }
+  QuestionAnsweringMode questionAnswering() const { return _questionAnswering.value; }
+  //void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering = newVal; }
+  vstring xmlOutput() const { return _xmlOutput.value; }
+  vstring thanks() const { return _thanks.value; }
+
+  bool globalSubsumption() const { return _globalSubsumption.value; }
   /** true if calling set() on non-existing options does not result in a user error */
-  bool ignoreMissing() const { return _ignoreMissing; }
+  bool ignoreMissing() const { return _ignoreMissing.value; }
   /** set the "ignore missing options" value to true or false */
-  void setIgnoreMissing(bool newVal) { _ignoreMissing = newVal; }
-  bool increasedNumeralWeight() const { return _increasedNumeralWeight; }
-  bool theoryAxioms() const { return _theoryAxioms; }
-  void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
-  bool interpretedSimplification() const { return _interpretedSimplification; }
-  void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
-  Condensation condensation() const { return _condensation; }
-  RuleActivity generalSplitting() const { return _generalSplitting; }
-  vstring namePrefix() const { return _namePrefix; }
-  bool timeStatistics() const { return _timeStatistics; }    
-  bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
+  //void setIgnoreMissing(bool newVal) { _ignoreMissing = newVal; }
+  bool increasedNumeralWeight() const { return _increasedNumeralWeight.value; }
+  bool theoryAxioms() const { return _theoryAxioms.value; }
+  //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
+  bool interpretedSimplification() const { return _interpretedSimplification.value; }
+  //void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
+  Condensation condensation() const { return _condensation.value; }
+  RuleActivity generalSplitting() const { return _generalSplitting.value; }
+  vstring namePrefix() const { return _namePrefix.value; }
+  bool timeStatistics() const { return _timeStatistics.value; }
+  bool splitAtActivation() const { return _splitAtActivation.value; }
+  bool splitting() const { return _splitting.value; }
+  bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.value; }
+  unsigned sineDepth() const { return _sineDepth.value; }
+  unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.value; }
+  SineSelection sineSelection() const { return _sineSelection.value; }
+  //void setSineSelection(SineSelection val) { _sineSelection=val; }
+  float sineTolerance() const { return _sineTolerance.value; }
+  bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal.value; }
+  //void setSmtlibConsiderIntsReal( bool newVal ) { _smtlibConsiderIntsReal = newVal; }
+  bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition.value; }
+  bool smtlibIntroduceAIGNames() const { return _smtlibIntroduceAIGNames.value; }
 
-  unsigned sineDepth() const { return _sineDepth; }
-  unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold; }
-  SineSelection sineSelection() const { return _sineSelection; }
-  void setSineSelection(SineSelection val) { _sineSelection=val; }
-  float sineTolerance() const { return _sineTolerance; }
+  bool colorUnblocking() const { return _colorUnblocking.value; }
+  bool distinctProcessor() const { return _distinctProcessor.value; }
+  bool hornRevealing() const { return _hornRevealing.value; }
+  bool trivialPredicateRemoval() const { return _trivialPredicateRemoval.value; }
 
-  bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal; }
-  void setSmtlibConsiderIntsReal( bool newVal ) { _smtlibConsiderIntsReal = newVal; }
-  bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition; }
-  bool smtlibIntroduceAIGNames() const { return _smtlibIntroduceAIGNames; }
+  bool tabulationBwRuleSubsumptionResolutionByLemmas() const { return _tabulationBwRuleSubsumptionResolutionByLemmas.value; }
+  bool tabulationFwRuleSubsumptionResolutionByLemmas() const { return _tabulationFwRuleSubsumptionResolutionByLemmas.value; }
+  int tabulationGoalAgeRatio() const { return _tabulationGoalAgeRatio.value; }
+  int tabulationGoalWeightRatio() const { return _tabulationGoalWeightRatio.value; }
+  int tabulationGoalRatio() const { return _tabulationGoalRatio.value; }
+  int tabulationLemmaRatio() const { return _tabulationLemmaRatio.value; }
+  bool tabulationInstantiateProducingRules() const { return _tabulationInstantiateProducingRules.value; }
+  int tabulationLemmaAgeRatio() const { return _tabulationLemmaAgeRatio.value; }
+  int tabulationLemmaWeightRatio() const { return _tabulationLemmaWeightRatio.value; }
 
-  bool colorUnblocking() const { return _colorUnblocking; }
-  bool distinctProcessor() const { return _distinctProcessor; }
-  bool hornRevealing() const { return _hornRevealing; }
-  bool trivialPredicateRemoval() const { return _trivialPredicateRemoval; }
+  float instGenBigRestartRatio() const { return _instGenBigRestartRatio.value; }
+  bool instGenInprocessing() const { return _instGenInprocessing.value; }
+  bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.value; }
+  int instGenResolutionRatioInstGen() const { return _instGenResolutionRatioInstGen.value; }
+  int instGenResolutionRatioResolution() const { return _instGenResolutionRatioResolution.value; }
+  int instGenRestartPeriod() const { return _instGenRestartPeriod.value; }
+  float instGenRestartPeriodQuotient() const { return _instGenRestartPeriodQuotient.value; }
+  int instGenSelection() const { return _instGenSelection.value; }
+  bool instGenWithResolution() const { return _instGenWithResolution.value; }
 
-  bool tabulationBwRuleSubsumptionResolutionByLemmas() const { return _tabulationBwRuleSubsumptionResolutionByLemmas; }
-  bool tabulationFwRuleSubsumptionResolutionByLemmas() const { return _tabulationFwRuleSubsumptionResolutionByLemmas; }
-  int tabulationGoalAgeRatio() const { return _tabulationGoalAgeRatio; }
-  int tabulationGoalWeightRatio() const { return _tabulationGoalWeightRatio; }
-  int tabulationGoalRatio() const { return _tabulationGoalRatio; }
-  int tabulationLemmaRatio() const { return _tabulationLemmaRatio; }
-  bool tabulationInstantiateProducingRules() const { return _tabulationInstantiateProducingRules; }
-  int tabulationLemmaAgeRatio() const { return _tabulationLemmaAgeRatio; }
-  int tabulationLemmaWeightRatio() const { return _tabulationLemmaWeightRatio; }
+  float satClauseActivityDecay() const { return _satClauseActivityDecay.value; }
+  SatClauseDisposer satClauseDisposer() const { return _satClauseDisposer.value; }
+  bool satLearntMinimization() const { return _satLearntMinimization.value; }
+  bool satLearntSubsumptionResolution() const { return _satLearntSubsumptionResolution.value; }
+  int satRestartFixedCount() const { return _satRestartFixedCount.value; }
+  float satRestartGeometricIncrease() const { return _satRestartGeometricIncrease.value; }
+  int satRestartGeometricInit() const { return _satRestartGeometricInit.value; }
+  int satRestartLubyFactor() const { return _satRestartLubyFactor.value; }
+  float satRestartMinisatIncrease() const { return _satRestartMinisatIncrease.value; }
+  int satRestartMinisatInit() const { return _satRestartMinisatInit.value; }
+  SatRestartStrategy satRestartStrategy() const { return _satRestartStrategy.value; }
+  float satVarActivityDecay() const { return _satVarActivityDecay.value; }
+  SatVarSelector satVarSelector() const { return _satVarSelector.value; }
 
-  float instGenBigRestartRatio() const { return _instGenBigRestartRatio; }
-  bool instGenInprocessing() const { return _instGenInprocessing; }
-  bool instGenPassiveReactivation() const { return _instGenPassiveReactivation; }
-  int instGenResolutionRatioInstGen() const { return _instGenResolutionRatioInstGen; }
-  int instGenResolutionRatioResolution() const { return _instGenResolutionRatioResolution; }
-  int instGenRestartPeriod() const { return _instGenRestartPeriod; }
-  float instGenRestartPeriodQuotient() const { return _instGenRestartPeriodQuotient; }
-  int instGenSelection() const { return _instGenSelection; }
-  bool instGenWithResolution() const { return _instGenWithResolution; }
+  NicenessOption nicenessOption() const { return _nicenessOption.value; }
 
-  float satClauseActivityDecay() const { return _satClauseActivityDecay; }
-  SatClauseDisposer satClauseDisposer() const { return _satClauseDisposer; }
-  bool satLearntMinimization() const { return _satLearntMinimization; }
-  bool satLingelingIncremental() const { return _satLingelingIncremental; }
-  bool satLingelingSimilarModels() const { return _satLingelingSimilarModels; }
-  bool satLearntSubsumptionResolution() const { return _satLearntSubsumptionResolution; }
-  int satRestartFixedCount() const { return _satRestartFixedCount; }
-  float satRestartGeometricIncrease() const { return _satRestartGeometricIncrease; }
-  int satRestartGeometricInit() const { return _satRestartGeometricInit; }
-  int satRestartLubyFactor() const { return _satRestartLubyFactor; }
-  float satRestartMinisatIncrease() const { return _satRestartMinisatIncrease; }
-  int satRestartMinisatInit() const { return _satRestartMinisatInit; }
-  SatRestartStrategy satRestartStrategy() const { return _satRestartStrategy; }
-  float satVarActivityDecay() const { return _satVarActivityDecay; }
-  SatVarSelector satVarSelector() const { return _satVarSelector; }
-
-  NicenessOption nicenessOption() const { return _nicenessOption; }
-
-  void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
-  void setInputFile(const vstring& newVal);
-  void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
-  void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds = newVal; }
-  int getTimeLimit(){return _timeLimitInDeciseconds;}
-  int getWhileNumber(){return _whileNumber;}
-  int getFunctionNumber(){return _functionNumber;}
-//   // standard ways of creating options
-  XMLElement toXML() const;
-  bool outputSuppressed() const;
-  void set(const vstring& name, const vstring& value);
-  void set(const char* name, const char* value);
-  void setShort(const char* name, const char* value);
-
-  int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator; }
-  int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator; }
-
-  bool splitting() const { return _splitting; }
-  bool splitAtActivation() const { return _splitAtActivation; }
-  SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents; }
-  SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary; }
-  int splittingFlushPeriod() const { return _splittingFlushPeriod; }
-  float splittingFlushQuotient() const { return _splittingFlushQuotient; }
-
-  bool splittingEagerRemoval() const { return _splittingEagerRemoval; }  
-  bool splittingCongruenceClosure() const { return _splittingCongruenceClosure; }  
-  SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated; }
-  bool splittingFastRestart() const { return _splittingFastRestart; }
-  bool splittingHandleZeroImplied() const{ return _splittingHandleZeroImplied;}  
-  SplittingLitaralPolarityAdvice splittingLitaralPolarityAdvice() const { return _splittingLiteralPolarityAdvice; }    
-  SplittingModel splittingModel() const { return _splittingModel; } 
-
-  void setProof(Proof p) { _proof = p; }
-  bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval; }
-  unsigned bpMaximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength; }
-  BPAlmostHalfBoundingRemoval bpAlmostHalfBoundingRemoval() const {return _bpAlmostHalfBoundingRemoval;}
-  bool bpFmElimination () const {return _bpFmElimination;}
-  unsigned bpAllowedFMBalance() const { return _bpAllowedFMBalance; }
-  BPAssignmentSelector bpAssignmentSelector() const {return _bpAssignmentSelector; }
-  bool bpCollapsingPropagation() const {return _bpCollapsingPropagation; }
-  unsigned bpUpdatesByOneConstraint() const {return _updatesByOneConstraint; }
-  bool bpConservativeAssignmentSelection() const {return _bpConservativeAssignmentSelection; }
-  BPConflictSelector bpConflictSelector() const {return _bpConflictSelector; }
-  bool backjumpTargetIsDecisionPoint() const { return _backjumpTargetIsDecisionPoint; }
-  bool bpPropagateAfterConflict() const {return _bpPropagateAfterConflict; }
-  BPVariableSelector bpVariableSelector() const {return _bpVariableSelector; }
-  bool bpSelectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst; }
-  bool bpStartWithPrecise() const { return _bpStartWithPrecise; }
-  bool bpStartWithRational() const { return _bpStartWithRational;}
+  //void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
   
-  CLASS_NAME(Options);
-  USE_ALLOCATOR(Options);
+  void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.value = 10*newVal; }
+  void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.value = newVal; }
+  int getTimeLimit(){return _timeLimitInDeciseconds.value;}
+  int getWhileNumber(){return _whileNumber.value;}
+  int getFunctionNumber(){return _functionNumber.value;}
 
-  /** first is option name, second option value */
-  typedef pair<vstring, vstring> OptionSpec;
-  typedef Stack<OptionSpec> OptionSpecStack;
-  static void readOptionsString(vstring testId, OptionSpecStack& assignments);
+  int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator.value; }
+  int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator.value; }
 
+  SSplittingNonsplittableComponents ssplittingNonsplittableComponents() const { return _ssplittingNonsplittableComponents.value; }
+  SSplittingComponentSweeping ssplittingComponentSweeping() const { return _ssplittingComponentSweeping.value; }
+  SSplittingAddComplementary ssplittingAddComplementary() const { return _ssplittingAddComplementary.value; }
+  int ssplittingFlushPeriod() const { return _ssplittingFlushPeriod; }
+  float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient.value; }
+  bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval.value; }
+  bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure.value; }
+
+  //void setProof(Proof p) { _proof = p; }
+  bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval.value; }
+  unsigned bpMaximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength.value; }
+  BPAlmostHalfBoundingRemoval bpAlmostHalfBoundingRemoval() const {return _bpAlmostHalfBoundingRemoval.value;}
+  bool bpFmElimination () const {return _bpFmElimination.value;}
+  unsigned bpAllowedFMBalance() const { return _bpAllowedFMBalance.value; }
+  BPAssignmentSelector bpAssignmentSelector() const {return _bpAssignmentSelector.value; }
+  bool bpCollapsingPropagation() const {return _bpCollapsingPropagation.value; }
+  unsigned bpUpdatesByOneConstraint() const {return _updatesByOneConstraint.value; }
+  bool bpConservativeAssignmentSelection() const {return _bpConservativeAssignmentSelection.value; }
+  BPConflictSelector bpConflictSelector() const {return _bpConflictSelector.value; }
+  bool backjumpTargetIsDecisionPoint() const { return _backjumpTargetIsDecisionPoint.value; }
+  bool bpPropagateAfterConflict() const {return _bpPropagateAfterConflict.value; }
+  BPVariableSelector bpVariableSelector() const {return _bpVariableSelector.value; }
+  bool bpSelectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst.value; }
+  bool bpStartWithPrecise() const { return _bpStartWithPrecise.value; }
+  bool bpStartWithRational() const { return _bpStartWithRational.value;}
+  
+
+
+    //==========================================================
+    // Variables holding option values
+    //==========================================================
 private:
-  void set(const char* name, const char* value, int index);
-
-private:
-  class Constants;
-
-  int _ageRatio;
-  bool _aigBddSweeping;
-  bool _aigConditionalRewriting;
-  bool _aigDefinitionIntroduction;
-  unsigned _aigDefinitionIntroductionThreshold;
-  bool _aigFormulaSharing;
-  bool _aigInliner;
-  bool _arityCheck;
   
-  bool _backjumpTargetIsDecisionPoint;
-  Demodulation _backwardDemodulation;
-  Subsumption _backwardSubsumption;
-  Subsumption _backwardSubsumptionResolution;
-  bool _bfnt;
-  bool _binaryResolution;
-  unsigned _bpAllowedFMBalance;
-  BPAlmostHalfBoundingRemoval _bpAlmostHalfBoundingRemoval;
-  BPAssignmentSelector _bpAssignmentSelector;
-  bool _bpCollapsingPropagation;
-  BPConflictSelector _bpConflictSelector;
-  bool _bpConservativeAssignmentSelection;
-  bool _bpFmElimination;
-  bool _bpPropagateAfterConflict;
-  bool _bpStartWithPrecise;
-  bool _bpStartWithRational;
-  BPVariableSelector _bpVariableSelector;
+    template<typename T>
+    class OptionValue {
+    public:
+        OptionValue() {}
+        OptionValue(vstring l, vstring s) : longName(l), shortName(s) {}
+        vstring longName;
+        vstring shortName;
+        vstring description;
+        bool experimental;
+        T defaultValue;
+        T actualValue;
+        
+        void setOptionValues(OptionValues choices){}
+        
+    };
+    typedef OptionValue<bool> BoolOptionValue;
+    typedef OptionValue<int> IntOptionValue;
+    typedef OptionValue<unsigned> UnsignedOptionValue;
+    typedef OptionValue<vstring> StringOptionValue;
+    typedef OptionValue<long> LongOptionValue;
+    typedef OptionValue<float> FloatOptionValue;
+    
 
-  bool _colorUnblocking;
-  Condensation _condensation;
-
-  bool _demodulationRedundancyCheck;
-  bool _distinctProcessor;
-
-  bool _eprPreservingNaming;
-  bool _eprPreservingSkolemization;
-  bool _eprRestoringInlining;
-  bool _equalityPropagation;
-  EqualityProxy _equalityProxy;
-  RuleActivity _equalityResolutionWithDeletion;
-  bool _equivalentVariableRemoval;
-  ExtensionalityResolution _extensionalityResolution;
-  unsigned _extensionalityMaxLength;
-  bool _extensionalityAllowPosEq;
+  StringOptionValue _ageRatio;
+  BoolOptionValue _aigBddSweeping;
+  BoolOptionValue _aigConditionalRewriting;
+  BoolOptionValue _aigDefinitionIntroduction;
+  UnsignedOptionValue _aigDefinitionIntroductionThreshold;
+  BoolOptionValue _aigFormulaSharing;
+  BoolOptionValue _aigInliner;
+  BoolOptionValue _arityCheck;
   
-  bool _flattenTopLevelConjunctions;
-  vstring _forbiddenOptions;
-  bool _forceIncompleteness;
-  vstring _forcedOptions;
-  Demodulation _forwardDemodulation;
-  bool _forwardLiteralRewriting;
-  bool _forwardSubsumption;
-  bool _forwardSubsumptionResolution;
-  FunctionDefinitionElimination _functionDefinitionElimination;
-  int _functionNumber;
-  
-  RuleActivity _generalSplitting;
-  bool _globalSubsumption;
+  BoolOptionValue _backjumpTargetIsDecisionPoint;
+  OptionValue<Demodulation> _backwardDemodulation;
+  OptionValue<Subsumption> _backwardSubsumption;
+  OptionValue<Subsumption> _backwardSubsumptionResolution;
+  BoolOptionValue _bfnt;
+  BoolOptionValue _binaryResolution;
+  UnsignedOptionValue _bpAllowedFMBalance;
+  OptionValue<BPAlmostHalfBoundingRemoval> _bpAlmostHalfBoundingRemoval;
+  OptionValue<BPAssignmentSelector> _bpAssignmentSelector;
+  BoolOptionValue _bpCollapsingPropagation;
+  OptionValue<BPConflictSelector> _bpConflictSelector;
+  BoolOptionValue _bpConservativeAssignmentSelection;
+  BoolOptionValue _bpFmElimination;
+  BoolOptionValue _bpPropagateAfterConflict;
+  BoolOptionValue _bpStartWithPrecise;
+  BoolOptionValue _bpStartWithRational;
+  OptionValue<BPVariableSelector> _bpVariableSelector;
 
-  bool _hornRevealing;
-  bool _hyperSuperposition;
+  BoolOptionValue _colorUnblocking;
+  OptionValue<Condensation> _condensation;
+
+  BoolOptionValue _demodulationRedundancyCheck;
+  BoolOptionValue _distinctProcessor;
+
+  BoolOptionValue _eprPreservingNaming;
+  BoolOptionValue _eprPreservingSkolemization;
+  BoolOptionValue _eprRestoringInlining;
+  BoolOptionValue _equalityPropagation;
+  OptionValue<EqualityProxy> _equalityProxy;
+  OptionValue<RuleActivity> _equalityResolutionWithDeletion;
+  BoolOptionValue _equivalentVariableRemoval;
+  OptionValue<ExtensionalityResolution> _extensionalityResolution;
+  UnsignedOptionValue _extensionalityMaxLength;
+  BoolOptionValue _extensionalityAllowPosEq;
+  
+  BoolOptionValue _flattenTopLevelConjunctions;
+  StringOptionValue _forbiddenOptions;
+  BoolOptionValue _forceIncompleteness;
+  StringOptionValue _forcedOptions;
+  OptionValue<Demodulation> _forwardDemodulation;
+  BoolOptionValue _forwardLiteralRewriting;
+  BoolOptionValue _forwardSubsumption;
+  BoolOptionValue _forwardSubsumptionResolution;
+  OptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
+  BoolOptionValue _functionNumber;
+  
+  OptionValue<RuleActivity> _generalSplitting;
+  BoolOptionValue _globalSubsumption;
+
+  BoolOptionValue _hornRevealing;
+  BoolOptionValue _hyperSuperposition;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
-  bool _ignoreMissing;
-  vstring _include;
+  BoolOptionValue _ignoreMissing;
+  StringOptionValue _include;
   /** if this option is true, Vampire will add the numeral weight of a clause
    * to its weight. The weight is defined as the sum of binary sizes of all
    * integers occurring in this clause. This option has not been tested and
    * may be extensive, see Clause::getNumeralWeight()
    */
-  bool _increasedNumeralWeight;
-  int _inequalitySplitting;
-  vstring _inputFile;
-  InputSyntax _inputSyntax;
-  float _instGenBigRestartRatio;
-  bool _instGenInprocessing;
-  bool _instGenPassiveReactivation;
-  int _instGenResolutionRatioInstGen;
-  int _instGenResolutionRatioResolution;
-  int _instGenRestartPeriod;
-  float _instGenRestartPeriodQuotient;
-  int _instGenSelection;
-  bool _instGenWithResolution;
-  bool _interpretedSimplification;
+  BoolOptionValue _increasedNumeralWeight;
+  IntOptionValue _inequalitySplitting;
+  StringOptionValue _inputFile;
+  OptionValue<InputSyntax> _inputSyntax;
+  FloatOptionValue _instGenBigRestartRatio;
+  BoolOptionValue _instGenInprocessing;
+  BoolOptionValue _instGenPassiveReactivation;
+  IntOptionValue _instGenResolutionRatioInstGen;
+  IntOptionValue _instGenResolutionRatioResolution;
+  IntOptionValue _instGenRestartPeriod;
+  FloatOptionValue _instGenRestartPeriodQuotient;
+  IntOptionValue _instGenSelection;
+  BoolOptionValue _instGenWithResolution;
+  BoolOptionValue _interpretedSimplification;
 
-  vstring _latexOutput;
-  vstring _lingvaAdditionalInvariants;
+  StringOptionValue _latexOutput;
+  StringOptionValue _lingvaAdditionalInvariants;
 
-  LiteralComparisonMode _literalComparisonMode;
-  vstring _logFile;
-  int _lrsFirstTimeCheck;
-  int _lrsWeightLimitOnly;
+  OptionValue<LiteralComparisonMode> _literalComparisonMode;
+  StringOptionValue _logFile;
+  IntOptionValue _lrsFirstTimeCheck;
+  IntOptionValue _lrsWeightLimitOnly;
 
-  long _maxActive;
-  int _maxAnswers;
-  int _maxInferenceDepth;
-  long _maxPassive;
-  int _maxWeight;
-  unsigned _maximalPropagatedEqualityLength;
-  size_t _memoryLimit;
-  Mode _mode;
+  LongOptionValue _maxActive;
+  IntOptionValue _maxAnswers;
+  IntOptionValue _maxInferenceDepth;
+  LongOptionValue _maxPassive;
+  IntOptionValue _maxWeight;
+  UnsignedOptionValue _maximalPropagatedEqualityLength;
+  OptionValue<size_t> _memoryLimit;
+  OptionValue<Mode> _mode;
 
-  vstring _namePrefix;
-  int _naming;
-  NicenessOption _nicenessOption;
-  float _nongoalWeightCoefficient;
-  int _nonGoalWeightCoeffitientDenominator;
-  int _nonGoalWeightCoeffitientNumerator;
-  bool _nonliteralsInClauseWeight;
-  bool _normalize;
+  StringOptionValue _namePrefix;
+  IntOptionValue _naming;
+  OptionValue<NicenessOption> _nicenessOption;
+  FloatOptionValue _nongoalWeightCoefficient;
+  IntOptionValue _nonGoalWeightCoeffitientDenominator;
+  IntOptionValue _nonGoalWeightCoeffitientNumerator;
+  BoolOptionValue _nonliteralsInClauseWeight;
+  BoolOptionValue _normalize;
 
-  bool _outputAxiomNames;
+  BoolOptionValue _outputAxiomNames;
 
-  InliningMode _predicateDefinitionInlining;
-  bool _predicateDefinitionMerging;
-  PredicateEquivalenceDiscoveryMode _predicateEquivalenceDiscovery;
-  bool _predicateEquivalenceDiscoveryAddImplications;
-  bool _predicateEquivalenceDiscoveryRandomSimulation;
-  int _predicateEquivalenceDiscoverySatConflictLimit;
-  bool _predicateIndexIntroduction;
-  bool _printClausifierPremises;
+  OptionValue<InliningMode> _predicateDefinitionInlining;
+  BoolOptionValue _predicateDefinitionMerging;
+  OptionValue<PredicateEquivalenceDiscoveryMode> _predicateEquivalenceDiscovery;
+  BoolOptionValue _predicateEquivalenceDiscoveryAddImplications;
+  BoolOptionValue _predicateEquivalenceDiscoveryRandomSimulation;
+  IntOptionValue _predicateEquivalenceDiscoverySatConflictLimit;
+  BoolOptionValue _predicateIndexIntroduction;
+  BoolOptionValue _printClausifierPremises;
   vstring _problemName;
-  Proof _proof;
-  bool _proofChecking;
+  OptionValue<Proof> _proof;
+  BoolOptionValue _proofChecking;
   
-  vstring _protectedPrefix;
+  StringOptionValue _protectedPrefix;
 
-  QuestionAnsweringMode _questionAnswering;
+  OptionValue<QuestionAnsweringMode> _questionAnswering;
 
-  int _randomSeed;
-  int _rowVariableMaxLength;
+  IntOptionValue _randomSeed;
+  IntOptionValue _rowVariableMaxLength;
 
-  float _satClauseActivityDecay;
-  SatClauseDisposer _satClauseDisposer;
-  bool _satLearntMinimization;
-  bool _satLearntSubsumptionResolution;
-  /** Lingeling incremental and similar models options */
-  bool _satLingelingIncremental;
-  bool _satLingelingSimilarModels;
+  FloatOptionValue _satClauseActivityDecay;
+  OptionValue<SatClauseDisposer> _satClauseDisposer;
+  BoolOptionValue _satLearntMinimization;
+  BoolOptionValue _satLearntSubsumptionResolution;
+  IntOptionValue _satRestartFixedCount;
+  FloatOptionValue _satRestartGeometricIncrease;
+  IntOptionValue _satRestartGeometricInit;
+  IntOptionValue _satRestartLubyFactor;
+  FloatOptionValue _satRestartMinisatIncrease;
+  IntOptionValue _satRestartMinisatInit;
+  OptionValue<SatRestartStrategy> _satRestartStrategy;
+  FloatOptionValue _satVarActivityDecay;
+  OptionValue<SatVarSelector> _satVarSelector;
+  OptionValue<SatSolver> _satSolver;
+  OptionValue<SaturationAlgorithm> _saturationAlgorithm;
+  IntOptionValue _selection;
+  BoolOptionValue _selectUnusedVariablesFirst;
+  BoolOptionValue _showActive;
+  BoolOptionValue _showBlocked;
+  BoolOptionValue _showDefinitions;
+  OptionValue<InterpolantMode> _showInterpolant;
+  BoolOptionValue _showNew;
+  BoolOptionValue _showNewPropositional;
+  BoolOptionValue _showNonconstantSkolemFunctionTrace;
+  OptionValue<OptionTag> _showOptions;
+  BoolOptionValue _showExperimentalOptions;
+  BoolOptionValue _showHelp;
+  BoolOptionValue _showPassive;
+  BoolOptionValue _showPreprocessing;
+  BoolOptionValue _showSkolemisations;
+  BoolOptionValue _showSymbolElimination;
+  BoolOptionValue _showTheoryAxioms;
+  IntOptionValue _simulatedTimeLimit;
+  UnsignedOptionValue _sineDepth;
+  UnsignedOptionValue _sineGeneralityThreshold;
+  OptionValue<SineSelection> _sineSelection;
+  FloatOptionValue _sineTolerance;
+  BoolOptionValue _smtlibConsiderIntsReal;
+  BoolOptionValue _smtlibFletAsDefinition;
+  BoolOptionValue _smtlibIntroduceAIGNames;
+  OptionValue<Sos _sos;
+  BoolOptionValue _splitAtActivation;
+  BoolOptionValue _splitting;
+  OptionValue<SSplittingAddComplementary> _ssplittingAddComplementary;
+  OptionValue<SSplittingComponentSweeping> _ssplittingComponentSweeping;
+  BoolOptionValue _ssplittingCongruenceClosure;
+  BoolOptionValue _ssplittingEagerRemoval;
+  UnsignedOptionValue _ssplittingFlushPeriod;
+  FloatOptionValue _ssplittingFlushQuotient;
+  OptionValue<SSplittingNonsplittableComponents> _ssplittingNonsplittableComponents;
+  OptionValue<Statistics> _statistics;
+  BoolOptionValue _superpositionFromVariables;
+  OptionValue<SymbolPrecedence> _symbolPrecedence;
 
-  int _satRestartFixedCount;
-  float _satRestartGeometricIncrease;
-  int _satRestartGeometricInit;
-  int _satRestartLubyFactor;
-  float _satRestartMinisatIncrease;
-  int _satRestartMinisatInit;
-  SatRestartStrategy _satRestartStrategy;
-  float _satVarActivityDecay;
-  SatVarSelector _satVarSelector;
-  SatSolver _satSolver;
-  SaturationAlgorithm _saturationAlgorithm;
-  int _selection;
-  bool _selectUnusedVariablesFirst;
-  bool _showActive;
-  bool _showBlocked;
-  bool _showDefinitions;
-  InterpolantMode _showInterpolant;
-  bool _showNew;
-  bool _showNewPropositional;
-  bool _showNonconstantSkolemFunctionTrace;
-  OptionTag _showOptions;
-  bool _showExperimentalOptions;
-  bool _showHelp;
-  bool _showPassive;
-  bool _showPreprocessing;
-  bool _showSkolemisations;
-  bool _showSymbolElimination;
-  bool _showTheoryAxioms;
-  int _simulatedTimeLimit;
-  unsigned _sineDepth;
-  unsigned _sineGeneralityThreshold;
-  SineSelection _sineSelection;
-  float _sineTolerance;
-  bool _smtlibConsiderIntsReal;
-  bool _smtlibFletAsDefinition;
-  bool _smtlibIntroduceAIGNames;
-  Sos _sos;
-  bool _splitAtActivation;
-  bool _splitting;
-  SplittingAddComplementary _splittingAddComplementary;
-  bool _splittingCongruenceClosure;
-  SplittingDeleteDeactivated _splittingDeleteDeactivated;
-  bool _splittingEagerRemoval;
-  bool _splittingFastRestart;
-  unsigned _splittingFlushPeriod;
-  float _splittingFlushQuotient;
-  bool _splittingHandleZeroImplied;
-  SplittingNonsplittableComponents _splittingNonsplittableComponents;
-  SplittingModel _splittingModel;
-  SplittingLitaralPolarityAdvice _splittingLiteralPolarityAdvice;
-  Statistics _statistics;
-  bool _superpositionFromVariables;
-  SymbolPrecedence _symbolPrecedence;
-
-  int _tabulationBwRuleSubsumptionResolutionByLemmas;
-  int _tabulationFwRuleSubsumptionResolutionByLemmas;
-  int _tabulationGoalAgeRatio;
-  int _tabulationGoalWeightRatio;
-  int _tabulationGoalRatio;
-  int _tabulationLemmaRatio;
-  bool _tabulationInstantiateProducingRules;
-  int _tabulationLemmaAgeRatio;
-  int _tabulationLemmaWeightRatio;
-  vstring _testId;
-  vstring _thanks;
-  bool _theoryAxioms;
+  IntOptionValue _tabulationBwRuleSubsumptionResolutionByLemmas;
+  IntOptionValue _tabulationFwRuleSubsumptionResolutionByLemmas;
+  IntOptionValue _tabulationGoalAgeRatio;
+  IntOptionValue _tabulationGoalWeightRatio;
+  IntOptionValue _tabulationGoalRatio;
+  IntOptionValue _tabulationLemmaRatio;
+  BoolOptionValue _tabulationInstantiateProducingRules;
+  IntOptionValue _tabulationLemmaAgeRatio;
+  IntOptionValue _tabulationLemmaWeightRatio;
+  StringOptionValue _testId;
+  StringOptionValue _thanks;
+  BoolOptionValue _theoryAxioms;
   /** Time limit in deciseconds */
-  int _timeLimitInDeciseconds;
-  bool _timeStatistics;
-  bool _trivialPredicateRemoval;
+  IntOptionValue _timeLimitInDeciseconds;
+  BoolOptionValue _timeStatistics;
+  BoolOptionValue _trivialPredicateRemoval;
 
-  URResolution _unitResultingResolution;
-  bool _unusedPredicateDefinitionRemoval;
-  unsigned _updatesByOneConstraint;
-  bool _use_dm;
-  bool _weightIncrement;
-  int _weightRatio;
-  int _whileNumber;
+  OptionValue<URResolution> _unitResultingResolution;
+  BoolOptionValue _unusedPredicateDefinitionRemoval;
+  UnsignedOptionValue _updatesByOneConstraint;
+  BoolOptionValue _use_dm;
+  BoolOptionValue _weightIncrement;
+  IntOptionValue _weightRatio;
+  IntOptionValue _whileNumber;
 
-  vstring _xmlOutput;
+  StringOptionValue _xmlOutput;
+>>>>>>> Changing the way we do options
 
-  // various read-from-string-write options
-  static void readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio, char separator=':');
-  static vstring boolToOnOff(bool);
-  void outputValue(ostream& str,int optionTag) const;
-  friend class Shell::LTB::Builder;
-
-public:
-  // the following two functions are used by Environment
-  bool onOffToBool(const char* onOff,const char* option);
 }; // class Options
 
 }
