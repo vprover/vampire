@@ -580,12 +580,6 @@ $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(LGMP)
 @#strip $@
 endef
 
-define COMPILE_CMD_GCOV
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(LGMP)
-@#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
-@#strip $@
-endef
-
 define COMPILE_CMD_TKV
 $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ -lgmp -lgmpxx
 @#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
