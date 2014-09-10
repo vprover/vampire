@@ -127,6 +127,7 @@ void TWLSolver::ensureVarCnt(unsigned newVarCnt)
  * unsatisfiability isn't shown in this case, the status is set to UNKNOWN.
  * 
  * Memory-wise, the clauses are owned by the solver from now on.
+ * (TODO: this may not be a good assumption - check on the caller sides)
  */
 void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 {

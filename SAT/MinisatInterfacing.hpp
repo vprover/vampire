@@ -8,6 +8,7 @@
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
+#include "SATInference.hpp"
 
 #include "Minisat/core/Solver.h"
 
@@ -117,9 +118,13 @@ protected:
   }
   
 private:
-  Status _status;  
-  Minisat::vec<Minisat::Lit> _assumptions;
-  Minisat::Solver _solver;    
+  Status _status;
+  Minisat::vec<Minisat::Lit> _assumptions;  
+  Minisat::Solver _solver;
+  
+  // to be used for the premises of a refutation
+  // TODO: consider moving responsibility to the caller
+  SATClauseList* _addedClauses; 
 };
 
 }//end SAT namespace

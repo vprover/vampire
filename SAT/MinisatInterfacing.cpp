@@ -18,9 +18,7 @@ MinisatInterfacing::MinisatInterfacing(const Options& opts, bool generateProofs)
   CALL("MinisatInterfacing::MinisatInterfacing");
   
   // TODO: consider tuning minisat's options to be set for _solver
-  // (or even forwarding them to vampire's options)
-  
-  ASS(!generateProofs);
+  // (or even forwarding them to vampire's options)  
 }
   
 /**
@@ -73,7 +71,10 @@ void MinisatInterfacing::addClauses(SATClauseIterator cit, bool onlyPropagate)
   
   while(cit.hasNext()) {
     SATClause* cl=cit.next();
-  
+    
+    // store to later generate the refutation
+    SATClauseList::push(cl,_addedClauses);    
+          
     static vec<Lit> mcl;
     mcl.clear();
     
@@ -84,9 +85,7 @@ void MinisatInterfacing::addClauses(SATClauseIterator cit, bool onlyPropagate)
       mcl.push(vampireLit2Minisat(l));
     }
     
-    _solver.addClause(mcl);
-            
-    cl->destroy();
+    _solver.addClause(mcl);          
   }
   
   solveModuloAssumptionsAndSetStatus(onlyPropagate ? 0 : UINT_MAX);
@@ -170,9 +169,23 @@ SATClause* MinisatInterfacing::getRefutation()
 {
   CALL("MinisatInterfacing::getRefutation");
   
-  // TODO: start from here
+	ASS_EQ(_status,UNSATISFIABLE);
   
-  return 0;  
+  // connect the added clauses ... 
+  SATClauseList* prems = _addedClauses;
+  
+  // ... with the current assumptions
+  for (int i=0; i < _assumptions.size(); i++) {
+    SATClause* unit = new(1) SATClause(1);
+    (*unit)[0] = minisatLit2Vampire(_assumptions[i]);
+    unit->setInference(new AssumptionInference());
+    SATClauseList::push(unit,prems);
+  }
+  	        
+	SATClause* refutation = new(0) SATClause(0);
+	refutation->setInference(new PropInference(prems));
+
+	return refutation; 
 }
 
 } // namespace SAT
