@@ -14,16 +14,13 @@
 
 namespace SAT{
 
-using namespace Lib;
-using namespace Shell;
-
 class MinisatInterfacing : public SATSolver
 {
 public: 
   CLASS_NAME(MinisatInterfacing);
   USE_ALLOCATOR(MinisatInterfacing);
   
-	MinisatInterfacing(const Options& opts, bool generateProofs=false);
+	MinisatInterfacing(const Shell::Options& opts, bool generateProofs=false);
 
   /**
    * Can be called only when all assumptions are retracted
@@ -109,12 +106,12 @@ protected:
     return (unsigned)mvar;
   }
   
-  static Minisat::Lit vampireLit2Minisat(SATLiteral vlit) {
+  static const Minisat::Lit vampireLit2Minisat(SATLiteral vlit) {
     return Minisat::mkLit(vampireVar2Minisat(vlit.var()),vlit.isNegative()); 
   }
   
   /* sign=trun in minisat means "negated" in vampire */
-  static SATLiteral minisatLit2Vampire(Minisat::Lit mlit) {
+  static const SATLiteral minisatLit2Vampire(Minisat::Lit mlit) {
     return SATLiteral(minisatVar2Vampire(Minisat::var(mlit)),Minisat::sign(mlit) ? 0 : 1);            
   }
   
@@ -124,8 +121,10 @@ private:
   Minisat::Solver _solver;
   
   // to be used for the premises of a refutation
-  // TODO: consider moving responsibility to the caller
-  SATClauseList* _addedClauses; 
+  // TODO: who should now free the list? 
+  // (and when it's passed as part of the refutation?, perhaps more than once?) 
+  // -- consider moving responsibility to the caller
+  SATClauseList* _addedClauses;
 };
 
 }//end SAT namespace

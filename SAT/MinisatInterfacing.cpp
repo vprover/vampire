@@ -10,10 +10,13 @@
 namespace SAT
 {
 
+using namespace Shell;  
+using namespace Lib;  
+  
 using namespace Minisat;
   
-MinisatInterfacing::MinisatInterfacing(const Options& opts, bool generateProofs):
-  _status(SATISFIABLE)
+MinisatInterfacing::MinisatInterfacing(const Shell::Options& opts, bool generateProofs):
+  _status(SATISFIABLE), _addedClauses(0)
 {
   CALL("MinisatInterfacing::MinisatInterfacing");
   
@@ -39,7 +42,7 @@ void MinisatInterfacing::ensureVarCnt(unsigned newVarCnt)
  */
 void MinisatInterfacing::solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit) 
 {
-  CALL("MinisatInterfacing::solveAndSetStatus");
+  CALL("MinisatInterfacing::solveModuloAssumptionsAndSetStatus");
   
   // TODO: consider calling simplify(); or only from time to time?
     
