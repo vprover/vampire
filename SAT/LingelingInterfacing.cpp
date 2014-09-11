@@ -46,8 +46,9 @@ extern "C" {
  */
 namespace SAT
 {
-using namespace std;
-using namespace Lib;
+
+using namespace Shell;  
+using namespace Lib;  
 
 /*
  * Constructor for that creates an object containing the Lingeling solver based on the options
@@ -59,14 +60,13 @@ using namespace Lib;
  * to Lingeling has the DIMACS meaning of terminating a clause.
  * TODO: investigate if the shifting by one can be removed.
  */
-LingelingInterfacing::LingelingInterfacing(const Options& opt,
+LingelingInterfacing::LingelingInterfacing(const Options& opts,
 		bool generateProofs) :
-		_generateProofs(generateProofs), _hasAssumptions(false), _unsatisfiableAssumptions(false)
+		_status(SATISFIABLE), _addedClauses(0)
 {
 	CALL("LingelingInterfacing::LingelingInterfacing");
 	//here we should take care of all the options passed from the caller
 	//TimeCounter ntc(TC_LINGELING);
-	Options _opts(opt);
 
 	_solver = lglinit();	
 	//for debugging
@@ -94,13 +94,7 @@ LingelingInterfacing::LingelingInterfacing(const Options& opt,
 	if (env.options->satLingelingSimilarModels())
 	{
 		lglsetopt(_solver, "flipping", 0);
-	}
-	_status = SATSolver::UNKNOWN;
-	//TODO maybe better way to do this!
-	_usedClause = 0;
-	_refutation = 0;
-	_assumptions = 0;
-	_satVariables = 0;
+	}	
 }
 
 LingelingInterfacing::~LingelingInterfacing()
@@ -110,51 +104,36 @@ LingelingInterfacing::~LingelingInterfacing()
 	lglrelease(_solver);
 }
 
-void LingelingInterfacing::addClauses(SATClauseIterator clauseIterator,
-		bool onlyPropagate)
+/**
+ * Solve modulo assumptions and set status. 
+ */
+void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(int conflictCountLimit) 
 {
-	CALL("LingelingInterfacing::addClause(SatClauseIte, bool onlyPropagate)");
-	//TAKE CARE HOW ONE ADDS CLAUSES. a call to lgladd(_solver, 0) terminates the cluase
-	TimeCounter tc(TC_LINGELING);
-	//iterate over all the clauses from the problem
-	//if the solver is in UNSATISFIABLE state, adding a new clause keeps it unsatisfiable so simply return
-	if (_status == SATSolver::UNSATISFIABLE){
-		return;
-	}
-
-	try{
-		// Limit memory to what the Allocator has not used up
-		size_t remMem =env.options->memoryLimit() - (Allocator::getUsedMemory()/1048576);
-		if(onlyPropagate){
-			lglsetopt(_solver,"clim",1);
-		} else {
-			lglsetopt(_solver,"clim",-1);
-		}
-		lglsetopt(_solver,"memlim",remMem);
-
-		addClausesToLingeling(clauseIterator);
-		//add statistics about usage of Lingeling
-		//total time spent by  Lingeling in solving
-	}
-	catch (const UnsatException& e){
-		_status = SATSolver::UNSATISFIABLE;
-		_refutation = e.refutation;
-	}	
-}
-
-void LingelingInterfacing::setSolverStatus(unsigned int status)
-{
-	CALL("LingelingInterfacing::setSolverStatus(uint status)");
-	switch (status)
-	{
-	case LGL_UNKNOWN:
-		_status = SATSolver::UNKNOWN;
+  CALL("LingelingInterfacing::solveModuloAssumptionsAndSetStatus");
+  
+  ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::SAT_SOLVING);  
+  env.statistics->satLingelingSATCalls++;
+  
+  // Limit memory to what the Allocator has not used up
+	size_t remMem =env.options->memoryLimit() - (Allocator::getUsedMemory()/1048576);
+  lglsetopt(_solver,"memlim",remMem);  
+  lglsetopt(_solver,"clim",conflictCountLimit);
+  
+  for (size_t i=0; i < _assumptions.size(); i++) {
+    lglassume(_solver,vampireLit2Lingeling(_assumptions[i]));
+  }  
+  
+  unsigned result = lglsat(_solver);  
+  
+	switch (result) {
+    case LGL_UNKNOWN:
+    _status = SATSolver::UNKNOWN;
 		break;
 	case LGL_SATISFIABLE:
-		_status = SATSolver::SATISFIABLE;
+    _status = SATSolver::SATISFIABLE;
 		break;
 	case LGL_UNSATISFIABLE:
-		_status = SATSolver::UNSATISFIABLE;
+    _status = SATSolver::UNSATISFIABLE;
 		break;
 	default:
 		ASSERTION_VIOLATION;
@@ -162,193 +141,85 @@ void LingelingInterfacing::setSolverStatus(unsigned int status)
 	}
 }
 
-void LingelingInterfacing::addClausesToLingeling(SATClauseIterator iterator) {
-	CALL("LingelingInterfacing::addClausesToLingeling");
-
-  ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::SAT_SOLVING);
+void LingelingInterfacing::addClauses(SATClauseIterator cit,
+		bool onlyPropagate)
+{
+	CALL("LingelingInterfacing::addClause(SatClauseIte, bool onlyPropagate)");
   
-	unsigned int result;
-	//in order to properly accommodate SSplitingBranchSelector::flush() one has to
-	//check whether the iterator is empty. And if so call for satisfiability check
-	//if this check is not done, SIGABT due to lglderef() => not SATISFIED | EXTENDED
-	if (!iterator.hasNext()) {
-		env.statistics->satLingelingSATCalls++;
-		result = lglsat(_solver);
-		setSolverStatus(result);
+  ASS_EQ(_assumptions.size(),0);
+  
+	//TAKE CARE HOW ONE ADDS CLAUSES. a call to lgladd(_solver, 0) terminates the clause
+	TimeCounter tc(TC_LINGELING);
+	//iterate over all the clauses from the problem
+	//if the solver is in UNSATISFIABLE state, adding a new clause keeps it unsatisfiable so simply return
+	if (_status == SATSolver::UNSATISFIABLE) {
 		return;
 	}
 
-	while (iterator.hasNext()) {
-		SATClause* currentClause = iterator.next();
-		//keep track of the clauses in order to be used for MUS extraction
-		UsedClause *uc= new UsedClause(currentClause, true);
-		_usedClause = _usedClause->addLast(uc);
+  while(cit.hasNext()) {
+    SATClause* cl=cit.next();
+    
+    // store to later generate the refutation
+    SATClauseList::push(cl,_addedClauses);    
 
-		//add the statistics for Lingeling total number of clauses
+    //add the statistics for Lingeling total number of clauses
 		env.statistics->satLingelingClauses++;
+            
+    unsigned clen=cl->length();
+    for(unsigned i=0;i<clen;i++) {
+      SATLiteral l = (*cl)[i];      
+      
+      int v = vampireVar2Lingeling(l.var());
+      ASS(lglusable(_solver, v));
+      
+      lgladd(_solver, vampireLit2Lingeling(l));
+			lglfreeze(_solver, v);           
+    }
+    lgladd(_solver, 0); //add the marker for clause termination
+  }
 
-		//treat each of the clauses individually.
-		ASS_GE(currentClause->length(), 1);
-
-		SATClause::Iterator ccite(*currentClause);
-		while (ccite.hasNext()) {
-			SATLiteral sLit = ccite.next();
-			//currVar refers to the current variable
-			unsigned currVar = sLit.var() + 1;
-
-			if (_litToClause.find(currVar) != true) {
-				SATClauseList *clauseList = 0;
-				clauseList = clauseList->cons(currentClause);
-				_litToClause.insert(currVar, clauseList);
-				_satVariables = _satVariables->cons(currVar);
-				//increase the counter of variables added to Lingeling
-				env.statistics->satLingelingVariables++;
-			} else {
-				SATClauseList *scl = _litToClause.get(currVar);
-				scl = scl->cons(currentClause);
-				_litToClause.set(currVar, scl);
-			}
-
-			ASS(lglusable(_solver, currVar));
-			int8_t polarity = (sLit.isNegative() ? -1 : 1 );
-			lgladd(_solver, polarity * currVar);
-			lglfreeze(_solver, currVar);
-		}
-
-		//add the marker for clause termination
-		lgladd(_solver, 0);
-
-		if (env.options->satLingelingIncremental() == true) {
-			//increment the number of calls to satisfiability check
-			env.statistics->satLingelingSATCalls++;
-			//call lingeling satisfiability check
-			result = lglsat(_solver);
-			env.checkTimeSometime<64>();
-			setSolverStatus(result);
-
-			switch(result){
-			case LGL_UNSATISFIABLE:
-				setRefutation();
-				throw UnsatException(_refutation);
-				break;
-			case LGL_SATISFIABLE:
-				_status = SATSolver::SATISFIABLE;
-				break;
-			case LGL_UNKNOWN:
-				_status = SATSolver::UNKNOWN;
-				break;
-			default:
-				ASSERTION_VIOLATION;
-			}
-		}
-	}
-
-	if (env.options->satLingelingIncremental() == false) {
-		//increment lingeling call for satisfiability check statistics
-		env.statistics->satLingelingSATCalls++;
-		//call for satisfiability check
-		result = lglsat(_solver);
-		env.checkTimeSometime<64>();
-		setSolverStatus(result);
-		if (result == LGL_UNSATISFIABLE) {
-			setRefutation();
-			throw UnsatException(_refutation);
-		}
-		if (result != LGL_SATISFIABLE) {
-			setSolverStatus(result);
-		}
-	}
+  /* TODO: reconsider implementing env.options->satLingelingIncremental()
+   * or removing the option! */
+  
+  solveModuloAssumptionsAndSetStatus(onlyPropagate ? 0 : -1);
 }
 
-/**
- * The reasoning behind this implementation is as follows:
- * If the SAT solver manages to prove the problem unsatisfiable, it means that it managed
- * to find a conflict (contradiction) at decision level 0. Hence, using just the clauses
- * that have variables assigned at decision level 0 makes sense. In our case that can be
- * tested by lglfixed call. And by doing so, the set of clauses that are sent back to the
- * first-order reasoning part (as refutation) could be smaller than the actual problem.
- * This is not guaranteed though.
- */
-void LingelingInterfacing::setRefutation(){
-	CALL("LingelingInterfacing::setRefuation");
+SATClause* LingelingInterfacing::getRefutation()
+{
+	CALL("LingelingInterfacing::getRefutation");
 
-	SATLiteralStack resList;
-	resList.reset();
+  ASS_EQ(_status,UNSATISFIABLE);
+  
+  // connect the added clauses ... 
+  SATClauseList* prems = _addedClauses;
+  
+  // ... with the current assumptions
+  for (size_t i=0; i < _assumptions.size(); i++) {
+    SATClause* unit = new(1) SATClause(1);
+    (*unit)[0] = _assumptions[i];
+    unit->setInference(new AssumptionInference());
+    SATClauseList::push(unit,prems);
+  }
+  	        
+	SATClause* refutation = new(0) SATClause(0);
+	refutation->setInference(new PropInference(prems));
 
-	SATClauseList* premises = 0 ;
-	SATClause *res = SATClause::fromStack(resList);
-
-	//one could also minimize this set
-
-	List<unsigned>::Iterator varit(_satVariables);
-	while(varit.hasNext()){
-		unsigned var = varit.next();
-		if(lglfixed(_solver, var)){
-			SATClauseList *scl = _litToClause.get(var);
-			SATClauseList::Iterator ite(scl);
-			while(ite.hasNext()){
-				SATClause* clause = ite.next();
-				if(!premises->member(clause)){
-					premises = premises->cons(clause);
-				}
-			}
-		}
-	}
-	//in case we also have assumptions we have to add them all to the premises.
-	if(hasAssumptions()){
-		//in case we have assumptions we have to add them to the refutation as well
-		SATLiteralStack sls;
-		List<SATLiteral*>::Iterator slite(_assumptions);
-		//for each assumed literal create a SATClause and add it to the premises for refutation
-		while(slite.hasNext()){
-			SATLiteral* sl = slite.next();
-			sls.push(*sl);
-			SATClause* assumptionClause = SATClause::fromStack(sls);
-			//alternative would be to create a unit SATClause by hand:
-			//inspired from SATClause::fromStack()
-			//SATClause* assumptionClause = new(1) SATClause(1);
-			//(*assumptionClause)[0]=slite.next();
-			premises = premises->cons(assumptionClause);
-			sls.reset();
-		}
-	}
-
-	ASS(premises);
-
-#if VDEBUG
-	//make sure that the unsat core is correct
-	//create a new instance of lingeling and add all the premises
-	LGL *_nsolver = lglinit();
-
-	SATClauseList::Iterator scli(premises);
-	while(scli.hasNext()){
-		SATClause *sc = scli.next();
-		SATClause::Iterator sci (*sc);
-		while(sci.hasNext()){
-			SATLiteral sLit = sci.next();
-			//currVar refers to the current variable
-			unsigned currVar = sLit.var() + 1;
-			int8_t polarity = (sLit.isNegative() ? -1 : 1 );
-			lgladd(_nsolver, polarity * currVar);
-		}
-		lgladd(_nsolver,0);
-	}
-	//check for satisfiability
-	int result = lglsat(_nsolver);
-	//assert that the result should be unsatisfiable
-	ASS(result == LGL_UNSATISFIABLE);
-#endif
-
-	SATInference* inf = new PropInference(premises);
-	res->setInference(inf);
-	_refutation = res;
-	_status = SATSolver::UNSATISFIABLE;
+	return refutation; 
 }
-
+  
+/*
 void LingelingInterfacing::printAssignment()
 {
 	CALL("LingelingInterfacing::printAssignment");
 
+  enum AsgnVal {
+    //the true and false value also correspond to positive
+    //and negative literal polarity values
+   		AS_FALSE = 0u,
+    	AS_TRUE = 1u,
+    	AS_UNDEFINED = 2u
+  };
+  
 	ASS(_status == SATSolver::SATISFIABLE);
 	DArray<AsgnVal> _assignm;
 	int maxVar = lglmaxvar(_solver);
@@ -372,6 +243,7 @@ void LingelingInterfacing::printAssignment()
 		}
 	}
 }
+*/
 
 //as this function is used, we only assume single units
 //lingeling allows us to also assume more than units, clauses
@@ -380,51 +252,12 @@ void LingelingInterfacing::addAssumption(SATLiteral literal,
 	CALL("LingelingInterfacing::addAssumption(SATLiteral, unsigned condlictCountLimit)");
 	TimeCounter tc(TC_LINGELING);
 	env.statistics->satLingelingAssumptions++;
-	//in case the solver is in UNSATISFIABLE state don't assume the literal
-	if (_status == SATSolver::UNSATISFIABLE) {
-		return;
-	}
+	
+  _assumptions.push(literal);
 
-	if (_hasAssumptions) {
-		List<SATLiteral*>::Iterator lite(_assumptions);
-		while (lite.hasNext()) {
-			SATLiteral *slite = lite.next();
-			if ((slite->var() + 1) == 0) {
-				ASSERTION_VIOLATION;
-			}
-			int8_t polarity = slite->isNegative() ? -1 : 1 ;
-			lglassume(_solver, polarity * (slite->var()+1));
-		}
-	}
-	//if the literal has negative polarity then multiply the flag by -1
-	int8_t polarity = (literal.isNegative()? -1 : 1);
-	//assume the literal
-	if ((polarity * (literal.var() + 1)) == 0){
-		ASSERTION_VIOLATION;
-	}
-
-	lglassume(_solver, (polarity * (literal.var() + 1)));
-	env.statistics->satLingelingSATCalls++;
-	unsigned int result = lglsat(_solver);
-	env.checkTimeSometime<64>();
-	setSolverStatus(result);	
-	if (result == LGL_UNSATISFIABLE) {
-		setRefutation();
-		_status = SATSolver::UNSATISFIABLE;
-		_unsatisfiableAssumptions=true;
-	}
-	else{
-		if (result == LGL_SATISFIABLE) {
-			_status = SATSolver::SATISFIABLE;
-		} else {
-			_status = SATSolver::UNKNOWN;
-		}
-	}
-
-	_assumptions = _assumptions->cons(&literal);
-	_hasAssumptions = true;
+  solveModuloAssumptionsAndSetStatus(conflictCountLimit);
 }
-
+  
 void LingelingInterfacing::addCAssumption(SATClause* clause,
 		unsigned conflictCountLimit)
 {
@@ -436,17 +269,14 @@ void LingelingInterfacing::addCAssumption(SATClause* clause,
 	unsigned clauseLength = clause->length();
 
 	for (unsigned idx = 0; idx < clauseLength; idx++){
-		SATLiteral sLit = (*clause)[idx];
-		unsigned currVar = sLit.var()+1;
-		//take care of the polarity of each of the literals
-		int8_t polarity = (sLit.isNegative() ? -1 : 1);
-		//assume each of them with the right polarity
-		lglcassume(_solver, polarity * currVar);
-		//add the end of lglcassume
-		lglcassume(_solver, 0);
+		lglcassume(_solver, vampireLit2Lingeling((*clause)[idx]));		
 	}
+  //add the end of lglcassume
+	lglcassume(_solver, 0);
+  
 	//something we could do is book-keeping of what we add and which fails!
 }
+
 /**
  * get the assigment for @param var
  */
@@ -454,9 +284,8 @@ SATSolver::VarAssignment LingelingInterfacing::getAssignment(unsigned var)
 {
 	CALL("LingelingInterfacing::getAssignment(var)");
 	ASS(_status == SATISFIABLE);
-	int val;
 
-	val = lglderef(_solver, var+1);
+	int val = lglderef(_solver, vampireVar2Lingeling(var));
 	switch (val)
 	{
 	case -1:
@@ -475,37 +304,15 @@ SATSolver::VarAssignment LingelingInterfacing::getAssignment(unsigned var)
 void LingelingInterfacing::retractAllAssumptions()
 {
   CALL("LingelingInterfacing::retractAllAssumptions()");
-  //in the case of Lingeling all the assumptions are valid only until the next lslsat/lglsimp
-  //so we do not have to worry about retracting assumptions.
-  //but we still have to mark that at this point there are no more assumptions
-  _hasAssumptions = false;
-
-  if(_unsatisfiableAssumptions){
-    _unsatisfiableAssumptions=false;
-    _status=UNKNOWN;
-  }
-
-  if (_assumptions->isEmpty()){
-	  return;
-  }
-  //remove all the assumptions from the 
-  while(_assumptions->isNonEmpty()){
-    List<SATLiteral*>::pop(_assumptions);
-  }
+  
+  _assumptions.reset();
+  _status = UNKNOWN;
 }
 
 bool LingelingInterfacing::hasAssumptions() const
 {
   CALL("LingelingInterfacing::hasAssumptions()");
-  return _hasAssumptions;
-}
-
-SATClause* LingelingInterfacing::getRefutation()
-{
-	CALL("LingelingInterfacing::getRefutation");
-	ASS(_status == SATSolver::UNSATISFIABLE);
-	return _refutation;
-
+  return !_assumptions.isEmpty();
 }
 
 /**
@@ -517,26 +324,18 @@ SATClause* LingelingInterfacing::getRefutation()
 void LingelingInterfacing::randomizeAssignment()
 {
 	CALL("LingelingInterfacing::randomizeAssignment()");
-	//here we should find a way to randomize the assignment
-	//lglsetopt(_solver, "flipping",1);
-	TimeCounter tc(TC_LINGELING);
-	LGL* clone;
-	clone = lglclone(_solver);
-	if (hasAssumptions()){
-		List<SATLiteral*>::Iterator lite(_assumptions);
-		while(lite.hasNext()){
-			SATLiteral* lit = lite.next();
-			int8_t polarity = (lit->isNegative() ? -1 : 1);
-			lglassume(clone, polarity * lit->var());
-		}
-		unsigned int result = lglsat(clone);
-		setSolverStatus(result);
-		env.statistics->satLingelingSATCalls++;
-		if (lglchanged(clone)){
-			_solver = clone;
-			lglrelease(clone);
-		}
-	}
+  TimeCounter tc(TC_LINGELING);
+  
+  ASS_EQ(_status, SATISFIABLE);
+  
+  // TODO: this does not seem to work ...
+  
+  lglsetopt(_solver, "randecint",1); // shouldn't set bellow minimum      
+  
+  solveModuloAssumptionsAndSetStatus();
+  ASS_EQ(_status, SATISFIABLE);
+  
+  lglsetopt(_solver, "randecint",1000); // back to default
 }
 
 void LingelingInterfacing::printLingelingStatistics()
@@ -550,9 +349,22 @@ void LingelingInterfacing::printLingelingStatistics()
 	cout << "processtime: " << lglprocesstime() << endl;
 }
 
-void LingelingInterfacing::extractMUS(){
-	CALL("LingelingInterfacing::extractMUS()");
+bool LingelingInterfacing::isZeroImplied(unsigned var)
+{
+  CALL("LingelingInterfacing::isZeroImplied");
+  
+  return lglfixed(_solver, vampireVar2Lingeling(var));
 }
-};
 
-//end of the SAT namespace
+void LingelingInterfacing::collectZeroImplied(SATLiteralStack& acc)
+{
+  CALL("LingelingInterfacing::collectZeroImplied");
+   
+  for (int v = 1; v <= lglmaxvar(_solver); v++) {        
+    if (lglfixed(_solver, v)) {
+      acc.push(lingelingLit2Vampire(v*lglderef(_solver,v)));
+    }              
+  }      
+}
+
+} //end of the SAT namespace
