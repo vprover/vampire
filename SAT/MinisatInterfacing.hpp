@@ -30,7 +30,7 @@ public:
    *
    * A requirement is that in each clause, each variable occurs at most once.
    */
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate=false);
+  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
   virtual Status getStatus() { return _status; }
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
@@ -79,6 +79,7 @@ public:
   
   virtual void retractAllAssumptions() {
     _assumptions.clear();
+    _status = UNKNOWN;
   };
   
   virtual bool hasAssumptions() const {

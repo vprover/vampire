@@ -43,13 +43,15 @@ void MinisatInterfacing::solveModuloAssumptionsAndSetStatus(unsigned conflictCou
   
   // TODO: consider calling simplify(); or only from time to time?
     
-  _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty      
-  if (_solver.solveLimited(_assumptions) == l_True) {
+  _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty     
+  lbool res = _solver.solveLimited(_assumptions);
+  
+  if (res == l_True) {
     _status = SATISFIABLE;
-  } else if (_solver.okay()) {
-    _status = UNKNOWN;
-  } else {
+  } else if (res == l_False) {
     _status = UNSATISFIABLE;    
+  } else {
+    _status = UNKNOWN;
   }
 }
 
