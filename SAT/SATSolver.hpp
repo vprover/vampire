@@ -77,12 +77,7 @@ public:
 
   void addAssumption(SATLiteral lit, bool onlyPropagate=false) {
     CALL("SATSolver::addAssumption(SATLiteral,bool)");
-    if(onlyPropagate) {
-    addAssumption(lit, false);
-    }
-    else {
-    	addAssumption(lit, UINT_MAX);
-    }
+    addAssumption(lit, onlyPropagate ? 0 : UINT_MAX);
   }
   /**
    * Add an assumption into the solver. If conflictCountLimit==0,
