@@ -31,7 +31,7 @@ void assertEarlyPreprocActive(Problem::PreprocessingOptions popts, bool shouldPe
   popts.unusedPredicateDefinitionRemoval = false;
 
   Problem prb;
-  vostringstream stm(prbStr);
+  vistringstream stm(prbStr);
   prb.addFromStream(stm);
 
 

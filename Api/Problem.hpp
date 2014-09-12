@@ -7,6 +7,7 @@
 #define __API_Problem__
 
 #include "FormulaBuilder.hpp"
+#include "Lib/VString.hpp"
 
 namespace Api {
 
@@ -137,9 +138,9 @@ public:
   {
     PreprocessingOptions();
     /**
-     * Read options from a vstring.
+     * Read options from a string.
      */
-    explicit PreprocessingOptions(vstring spec);
+    explicit PreprocessingOptions(Lib::vstring spec);
 
     PreprocessingMode mode;
     /**
@@ -453,7 +454,7 @@ public:
    * where &lt;stageX spec&gt; is
    * &lt;option1&gt;=&lt;value1&gt;[:&lt;option2&gt;=&lt;value2&gt;[:...]]
    */
-  void readStageSpecs(vstring stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs);
+  void readStageSpecs(Lib::vstring stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs);
 
   /**
    * Perform sequence of preprocessing according to array of options @c stageSpecs with
@@ -461,7 +462,7 @@ public:
    *
    */
   Problem preprocessInStages(size_t stageCount, const PreprocessingOptions* stageSpecs);
-  Problem preprocessInStages(vstring stagesStr);
+  Problem preprocessInStages(Lib::vstring stagesStr);
 
   /**
    * Rewrite occurrences of @c lhs in the problem by posRhs, negRhs or dblRhs,

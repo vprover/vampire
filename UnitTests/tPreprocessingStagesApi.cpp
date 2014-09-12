@@ -9,6 +9,8 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Lib/VString.hpp"
+
 #include "Test/TestUtils.hpp"
 #include "Test/UnitTesting.hpp"
 
@@ -18,7 +20,7 @@ UT_CREATE;
 using namespace std;
 using namespace Api;
 using namespace Test;
-
+using namespace Lib;
 
 
 TEST_FUN(psaFixedPoint)
@@ -30,7 +32,7 @@ TEST_FUN(psaFixedPoint)
       "fof(a,axiom, p(a,a,a) ).";
 
   Problem prb;
-  vostringstream stm(testPrb);
+  vistringstream stm(testPrb);
   prb.addFromStream(stm);
 
   Problem prb1 = prb.preprocessInStages("rc=0:ret=formula_count:m=early_preprocessing:pdi=on:updr=off");
