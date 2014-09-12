@@ -32,7 +32,21 @@ public:
 	// Get the ConcurrentMainLoop
 	ConcurrentMainLoop* getMainLoop() const { return _ml; }
 
-	int elapsedDeciseconds() const { return _elapsedDeciseconds; }
+	int updateTimeCounter();
+	int elapsedDeciseconds() const {
+		return _elapsed / 100;
+	}
+	int elapsed() const {
+		return _elapsed;
+	}
+
+#if VDEBUG
+	bool checkEnvironment(const Lib::Environment* env) const {
+		return (_env == env);
+	}
+#endif //VDEBUG
+
+	static MainLoopContext* currentContext;
 
 protected:
 	// Switch into this context
@@ -43,7 +57,7 @@ protected:
 	class AutoSwitch{
 		public:
 	        AutoSwitch(MainLoopContext* c) : _cntxt(c) { _cntxt -> switchIn(); }
-	        ~AutoSwitch(){ _cntxt->switchOut(); }
+	        ~AutoSwitch(){ _cntxt -> switchOut(); }
 		private:
 	        MainLoopContext* _cntxt;
 	};
@@ -56,7 +70,7 @@ private:
 	Lib::Environment* _env;
 	Lib::Environment* _temp_env; //A variable to preserve the current environment before switching in.
 								 //TODO: a manager pattern for main loops needs to be implemented for context switching
-	int _startTime, _endTime, _elapsedDeciseconds;
+	int _startTime, _endTime, _elapsed;
 };
 
 } /* namespace Kernel */

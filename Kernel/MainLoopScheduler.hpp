@@ -36,18 +36,18 @@ public:
 	//static MainLoopScheduler* createFromOptions(Problem& prb, OptionsList* opts);
 
 	static ConcurrentMainLoop* getCurrentMainLoop() {
-		return _currentContext -> getMainLoop();
+		return MainLoopContext::currentContext -> getMainLoop();
 	}
 
-	static const MainLoopContext* context() {
-		return _currentContext;
+	static MainLoopContext* context() {
+		return MainLoopContext::currentContext;
 	}
 
 protected:
 
 private:
 	// Store the context currently being run
-    static MainLoopContext* _currentContext;
+    //static MainLoopContext* _currentContext;
 
 	static MainLoopContext** _mlcl;
 	static std::size_t _mlclSize;

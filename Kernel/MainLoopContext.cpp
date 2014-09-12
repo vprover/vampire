@@ -20,8 +20,10 @@ using Lib::Timer;
 using Shell::Options;
 using Shell::Statistics;
 
+MainLoopContext* MainLoopContext::currentContext = 0;
+
 	MainLoopContext::MainLoopContext(Problem& prb, Options& opts):
-			_opts(opts), _startTime(0), _endTime(0), _elapsedDeciseconds(0) {
+			_opts(opts), _startTime(0), _endTime(0), _elapsed(0) {
 
 		CALL("MainLoopContext::MainLoopContext");
 
@@ -47,21 +49,34 @@ using Shell::Statistics;
 		CALL("MainLoopContext::switchIn");
 		_temp_env = Lib::env;
 		Lib::env = _env; //TODO: Potential change of context by other MainLoop
-		_startTime = _env -> timer-> elapsedDeciseconds();
+		_startTime = _env -> timer-> elapsedMilliseconds();
+		std::cout << "Switching in: local time limit: " << _env->options->localTimeLimitInDeciseconds() <<
+				", elapsed so far: " << elapsedDeciseconds() << " dsec" <<
+				std::endl;
+		currentContext = this;
 	}
 
 	void MainLoopContext::switchOut() {
 		CALL("MainLoopContext::switchOut");
 
-		_endTime = _env -> timer -> elapsedDeciseconds();
-		_elapsedDeciseconds += (_endTime - _startTime);
+		_endTime = _env -> timer -> elapsedMilliseconds();
+
+		ASS_GE(_endTime,_startTime);
+
+		_elapsed += (_endTime - _startTime);
+
+		std::cout << "Switching out: local time limit: " << _env->options->localTimeLimitInDeciseconds() <<
+				", elapsed so far: " << elapsedDeciseconds() << " dsec" <<
+				std::endl;
+
 		Lib::env = _temp_env;
+		currentContext = 0;
 	}
 
 	void MainLoopContext::init(){
 		CALL("MainLoopContext::init");
 
-		AutoSwitch(this);
+		AutoSwitch s(this);
 
 		_env -> statistics -> phase = Statistics::SATURATION;
 		_ml -> initAlgorithmRun();
@@ -70,15 +85,23 @@ using Shell::Statistics;
 	void MainLoopContext::cleanup(){
 		CALL("MainLoopContext::cleanup");
 
-		AutoSwitch(this);
+		AutoSwitch s(this);
 		_env -> statistics -> phase = Statistics::FINALIZATION;
 	}
 
 	void MainLoopContext::doStep() {
 		CALL("MainLoopContext::doStep");
 
-		AutoSwitch(this);
+		AutoSwitch s(this);
 		_ml -> doOneAlgorithmStep();
-		env -> checkAllTimeLimits();
+		_env -> checkAllTimeLimits();
+	}
+
+	int MainLoopContext::updateTimeCounter() {
+		_endTime = _env->timer->elapsedMilliseconds();
+		ASS_GE(_endTime,_startTime);
+		_elapsed += (_endTime - _startTime);
+		_startTime = _endTime;
+		return _elapsed / 100;
 	}
 }

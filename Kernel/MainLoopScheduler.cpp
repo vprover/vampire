@@ -27,7 +27,7 @@ using Shell::Options;
 using Shell::OptionsList;
 using Shell::Preprocess;
 
-MainLoopContext* MainLoopScheduler::_currentContext = 0;
+//MainLoopContext* MainLoopScheduler::_currentContext = 0;
 MainLoopContext** MainLoopScheduler::_mlcl = 0;
 size_t MainLoopScheduler::_mlclSize = 0;
 
@@ -82,7 +82,7 @@ MainLoopResult MainLoopScheduler::run() {
 	try {
 
 		for(size_t k = 0; k < _mlclSize; k++) {
-			_currentContext = _mlcl[k];
+			//_currentContext = _mlcl[k];
 			_mlcl[k] -> init();
 		}
 
@@ -93,8 +93,8 @@ MainLoopResult MainLoopScheduler::run() {
 				try{
 					if(_mlcl[k]){
 						cout << "Doing step on " << k << endl;
-						_currentContext = _mlcl[k];
-						_currentContext -> doStep();
+						//_currentContext = _mlcl[k];
+						_mlcl[k] -> doStep();
 						cout << "Finished step" << endl;
 					}
 				}catch(LocalTimeLimitExceededException&) {
