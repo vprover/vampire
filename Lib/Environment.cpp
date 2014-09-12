@@ -138,16 +138,20 @@ void Environment::checkAllTimeLimits() const
   if (options->timeLimitInDeciseconds() &&
       timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
     statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+#if VDEBUG
     cout << "throwing time limit exception" << endl;
+#endif
     throw TimeLimitExceededException();
   }else if (MainLoopContext::currentContext && options->localTimeLimitInDeciseconds() &&
 	      MainLoopContext::currentContext -> updateTimeCounter() > options -> localTimeLimitInDeciseconds()) {
 	    statistics->terminationReason = Shell::Statistics::LOCAL_TIME_LIMIT;
 	    	ASS(MainLoopContext::currentContext -> checkEnvironment(this));
-    		cout << "throwing local time limit exception " <<
+#if VDEBUG
+	    	cout << "throwing local time limit exception " <<
     				MainLoopContext::currentContext -> elapsedDeciseconds() <<
-    				"exceeds "<< options -> localTimeLimitInDeciseconds() << "dsec"
+    				" exceeds "<< options -> localTimeLimitInDeciseconds() << " dsec"
     				<< endl;
+#endif
 	    throw LocalTimeLimitExceededException();
   }
 } // Environment::timeLimitReached
