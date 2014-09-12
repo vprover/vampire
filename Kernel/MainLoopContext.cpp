@@ -23,7 +23,7 @@ using Shell::Statistics;
 MainLoopContext* MainLoopContext::currentContext = 0;
 
 	MainLoopContext::MainLoopContext(Problem& prb, Options& opts):
-			_opts(opts), _startTime(0), _endTime(0), _elapsed(0) {
+			_opts(opts), _startTime(0), _elapsed(0) {
 
 		CALL("MainLoopContext::MainLoopContext");
 
@@ -51,7 +51,7 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 		Lib::env = _env; //TODO: Potential change of context by other MainLoop
 		_startTime = _env -> timer-> elapsedMilliseconds();
 		std::cout << "Switching in: local time limit: " << _env->options->localTimeLimitInDeciseconds() <<
-				", elapsed so far: " << elapsedDeciseconds() << " dsec" <<
+				" dsec, elapsed so far: " << _elapsed << " msec" <<
 				std::endl;
 		currentContext = this;
 	}
@@ -59,14 +59,14 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 	void MainLoopContext::switchOut() {
 		CALL("MainLoopContext::switchOut");
 
-		_endTime = _env -> timer -> elapsedMilliseconds();
+	    const int endTime = _env -> timer -> elapsedMilliseconds();
 
-		ASS_GE(_endTime,_startTime);
+		ASS_GE(endTime,_startTime);
 
-		_elapsed += (_endTime - _startTime);
+		_elapsed += (endTime - _startTime);
 
 		std::cout << "Switching out: local time limit: " << _env->options->localTimeLimitInDeciseconds() <<
-				", elapsed so far: " << elapsedDeciseconds() << " dsec" <<
+				" dsec, elapsed so far: " << _elapsed << " msec" <<
 				std::endl;
 
 		Lib::env = _temp_env;
@@ -98,10 +98,10 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 	}
 
 	int MainLoopContext::updateTimeCounter() {
-		_endTime = _env->timer->elapsedMilliseconds();
-		ASS_GE(_endTime,_startTime);
-		_elapsed += (_endTime - _startTime);
-		_startTime = _endTime;
+		const int endTime = _env->timer->elapsedMilliseconds();
+		ASS_GE(endTime,_startTime);
+		_elapsed += (endTime - _startTime);
+		_startTime = endTime;
 		return _elapsed / 100;
 	}
 }

@@ -70,7 +70,7 @@ private:
 	Lib::Environment* _env;
 	Lib::Environment* _temp_env; //A variable to preserve the current environment before switching in.
 								 //TODO: a manager pattern for main loops needs to be implemented for context switching
-	int _startTime, _endTime, _elapsed;
+	int _startTime, _elapsed;
 };
 
 } /* namespace Kernel */
