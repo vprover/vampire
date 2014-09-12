@@ -74,6 +74,9 @@ void SSplittingBranchSelector::init()
     case Options::LINGELING: 
       _solver = new MinimizingSolver(new LingelingInterfacing(_parent.getOptions(), true));
       break;
+    case Options::BUFFERED_MINISAT:
+      _solver = new MinimizingSolver(new BufferedSolver(new MinisatInterfacing(_parent.getOptions(),true)));
+      break;
     case Options::MINISAT:
       _solver = new MinimizingSolver(new MinisatInterfacing(_parent.getOptions(),true));
       break;      

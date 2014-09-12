@@ -548,10 +548,12 @@ NameArray Options::Constants::lcmValues(_lcmValues,
 
 const char* Options::Constants::_satSolverValues[] = {
   "buf_lingeling",
+  "buf_minisat",
   "buf_vampire",
   "lingeling",
   "minisat",
-  "vampire"};
+  "vampire"    
+};
 NameArray Options::Constants::satSolverValues(_satSolverValues,
                                               sizeof(_satSolverValues)/sizeof(char*));
 

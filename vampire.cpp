@@ -437,7 +437,8 @@ void satSolverMode()
     case Options::BUFFERED_LINGELING: 
     case Options::LINGELING:
       solver = new LingelingInterfacing(*env.options);
-      break;           
+      break;
+    case Options::BUFFERED_MINISAT: 
     case Options::MINISAT:
       solver = new MinisatInterfacing(*env.options);
       break;      

@@ -83,6 +83,9 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
     case Options::LINGELING:
       _satSolver = new LingelingInterfacing(opt,true);
       break;
+    case Options::BUFFERED_MINISAT:
+      _satSolver = new BufferedSolver(new MinisatInterfacing(opt,true));
+      break;
     case Options::MINISAT:
       _satSolver = new MinisatInterfacing(opt,true);
       break;
