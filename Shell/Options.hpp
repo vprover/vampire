@@ -647,6 +647,7 @@ private:
     typedef OptionValue<long> LongOptionValue;
     typedef OptionValue<float> FloatOptionValue;
     
+  StringOptionValue _decode;
 
   StringOptionValue _ageRatio;
   BoolOptionValue _aigBddSweeping;
@@ -663,10 +664,10 @@ private:
   OptionValue<Subsumption> _backwardSubsumptionResolution;
   BoolOptionValue _bfnt;
   BoolOptionValue _binaryResolution;
+  BoolOptionValue _bpCollapsingPropagation;
   UnsignedOptionValue _bpAllowedFMBalance;
   OptionValue<BPAlmostHalfBoundingRemoval> _bpAlmostHalfBoundingRemoval;
   OptionValue<BPAssignmentSelector> _bpAssignmentSelector;
-  BoolOptionValue _bpCollapsingPropagation;
   OptionValue<BPConflictSelector> _bpConflictSelector;
   BoolOptionValue _bpConservativeAssignmentSelection;
   BoolOptionValue _bpFmElimination;
@@ -701,7 +702,7 @@ private:
   BoolOptionValue _forwardSubsumption;
   BoolOptionValue _forwardSubsumptionResolution;
   OptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
-  BoolOptionValue _functionNumber;
+  IntOptionValue _functionNumber;
   
   OptionValue<RuleActivity> _generalSplitting;
   BoolOptionValue _globalSubsumption;
@@ -738,7 +739,7 @@ private:
   OptionValue<LiteralComparisonMode> _literalComparisonMode;
   StringOptionValue _logFile;
   IntOptionValue _lrsFirstTimeCheck;
-  IntOptionValue _lrsWeightLimitOnly;
+  BoolOptionValue _lrsWeightLimitOnly;
 
   LongOptionValue _maxActive;
   IntOptionValue _maxAnswers;
@@ -768,7 +769,7 @@ private:
   IntOptionValue _predicateEquivalenceDiscoverySatConflictLimit;
   BoolOptionValue _predicateIndexIntroduction;
   BoolOptionValue _printClausifierPremises;
-  vstring _problemName;
+  StrintOptionValue _problemName;
   OptionValue<Proof> _proof;
   BoolOptionValue _proofChecking;
   
@@ -819,8 +820,7 @@ private:
   BoolOptionValue _smtlibConsiderIntsReal;
   BoolOptionValue _smtlibFletAsDefinition;
   BoolOptionValue _smtlibIntroduceAIGNames;
-  OptionValue<Sos _sos;
-  BoolOptionValue _splitAtActivation;
+  OptionValue<Sos> _sos;
   BoolOptionValue _splitting;
   OptionValue<SSplittingAddComplementary> _ssplittingAddComplementary;
   OptionValue<SSplittingComponentSweeping> _ssplittingComponentSweeping;
@@ -833,8 +833,8 @@ private:
   BoolOptionValue _superpositionFromVariables;
   OptionValue<SymbolPrecedence> _symbolPrecedence;
 
-  IntOptionValue _tabulationBwRuleSubsumptionResolutionByLemmas;
-  IntOptionValue _tabulationFwRuleSubsumptionResolutionByLemmas;
+  BoolOptionValue _tabulationBwRuleSubsumptionResolutionByLemmas;
+  BoolOptionValue _tabulationFwRuleSubsumptionResolutionByLemmas;
   IntOptionValue _tabulationGoalAgeRatio;
   IntOptionValue _tabulationGoalWeightRatio;
   IntOptionValue _tabulationGoalRatio;
