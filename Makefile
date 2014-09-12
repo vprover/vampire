@@ -26,7 +26,7 @@ MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
 XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging only
-#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -DGNUMP=$(GNUMPF)# standard debugging only
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -DGNUMP=$(GNUMPF)# memory leaks
 #XFLAGS = $(REL_FLAGS)
 
 # TODO: consider trying -flto (see https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html)

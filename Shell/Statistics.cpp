@@ -110,6 +110,15 @@ Statistics::Statistics()
     satSplits(0),
     satSplitRefutations(0),
 
+    satLingelingAssumptions(0),
+    satLingelingClauses(0),
+    satLingelingVariables(0),
+    satLingelingSATCalls(0),
+    /**TODO Remove the next var*/
+    satTWLClauseCount(0),
+    satTWLVariablesCount(0),
+    satTWLSATCalls(0),
+
     instGenGeneratedClauses(0),
     instGenRedundantClauses(0),
     instGenKeptClauses(0),
@@ -286,6 +295,15 @@ void Statistics::print(ostream& out)
   COND_OUT("InstGen kept clauses", instGenKeptClauses);
   COND_OUT("InstGen iterations", instGenIterations);
   COND_OUT("Max BFNT model size", maxBFNTModelSize);
+  SEPARATOR;
+
+  COND_OUT("Lingeling assumptions", satLingelingAssumptions);
+  COND_OUT("Lingeling vampire count variables", satLingelingVariables);
+  COND_OUT("Lingeling vampire count clauses", satLingelingClauses);
+  COND_OUT("Lingeling calls for satisfiability", satLingelingSATCalls);
+  COND_OUT("TWLsolver clauses", satTWLClauseCount);
+  COND_OUT("TWLsolver variables", satTWLVariablesCount);
+  COND_OUT("TWLsolver calls for satisfiability", satTWLSATCalls);
   SEPARATOR;
 
   COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);

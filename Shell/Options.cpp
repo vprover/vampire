@@ -243,6 +243,11 @@ const char* Options::Constants::_optionNames[] = {
   "sat_clause_disposer",
   "sat_learnt_minimization",
   "sat_learnt_subsumption_resolution",
+
+  /** Lingeling options for incremental use and similar models generation*/
+  "sat_lingeling_incremental",
+  "sat_lingeling_similar_models",
+
   "sat_restart_fixed_count",
   "sat_restart_geometric_increase",
   "sat_restart_geometric_init",
@@ -251,6 +256,7 @@ const char* Options::Constants::_optionNames[] = {
   "sat_restart_minisat_init",
   "sat_restart_strategy",
   "sat_solver",
+
   "sat_var_activity_decay",
   "sat_var_selector",
   "saturation_algorithm",
@@ -657,7 +663,7 @@ const char* Options::Constants::_modeValues[] = {
   "profile",
   "program_analysis",
   //runs the sat solver from vampire
-  //Added for developement reasons, Ioan Oct. 2013
+  //Added for development reasons, Ioan Oct. 2013
   "sat_solver",
 
   "spider",
@@ -942,6 +948,8 @@ Options::Options ()
   _satClauseDisposer(SCD_MINISAT),
   _satLearntMinimization(true),
   _satLearntSubsumptionResolution(true),
+  _satLingelingIncremental(false),
+  _satLingelingSimilarModels(false),
   _satRestartFixedCount(16000),
   _satRestartGeometricIncrease(1.1f),
   _satRestartGeometricInit(32),
@@ -1502,6 +1510,14 @@ void Options::set(const char* name,const char* value, int index)
     case SAT_LEARNT_SUBSUMPTION_RESOLUTION:
       _satLearntSubsumptionResolution = onOffToBool(value,name);
       return;
+
+    case SAT_LINGELING_INCREMENTAL:
+      _satLingelingIncremental = onOffToBool(value, name);
+      return;
+    case SAT_LINGELING_SIMILAR_MODELS:
+      _satLingelingSimilarModels = onOffToBool(value, name);
+      return;
+
     case SAT_RESTART_FIXED_COUNT:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
 	_satRestartFixedCount = unsignedValue;
@@ -2375,6 +2391,12 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SAT_LEARNT_SUBSUMPTION_RESOLUTION:
     str << boolToOnOff(_satLearntSubsumptionResolution);
     return;
+  case SAT_LINGELING_INCREMENTAL:
+	str << boolToOnOff(_satLingelingIncremental);
+	return;
+  case SAT_LINGELING_SIMILAR_MODELS:
+	str << boolToOnOff(_satLingelingSimilarModels);
+	return;
   case SAT_RESTART_FIXED_COUNT:
     str << _satRestartFixedCount;
     return;

@@ -23,6 +23,11 @@ enum TimeCounterUnit
   TC_BDD_CLAUSIFICATION,
   TC_SAT_SOLVER,
   TC_TWLSOLVER_ADD,
+  /**
+   * Time counter for LingelingInterfacing. Counts the total time spent in SAT solving
+   * both in adding new clauses and also in adding new assumptions
+   */
+  TC_LINGELING,
   TC_TERM_SHARING,
   TC_SPLITTING_COMPONENT_SELECTION,
   TC_CONGRUENCE_CLOSURE,

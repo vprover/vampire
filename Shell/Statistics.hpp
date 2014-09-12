@@ -197,6 +197,22 @@ public:
   unsigned satSplits;
   unsigned satSplitRefutations;
 
+  /** Lingeling statistics*/
+  /** Count the number of assumptions that are added to Lingeling */
+  unsigned satLingelingAssumptions;
+  /** Count the number of clauses sent to Lingeling */
+  unsigned satLingelingClauses;
+  /** Number of distinct variables counted by vampire */
+  unsigned satLingelingVariables;
+  /** Number of SAT calls for Lingeling */
+  unsigned satLingelingSATCalls;
+
+  /** TODO remove this statistics from here.
+  * the next three variables keep statistics for Vampire default sat solver*/
+  unsigned satTWLClauseCount;
+  unsigned satTWLVariablesCount;
+  unsigned satTWLSATCalls;
+
   unsigned instGenGeneratedClauses;
   unsigned instGenRedundantClauses;
   unsigned instGenKeptClauses;

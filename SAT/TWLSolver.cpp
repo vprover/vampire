@@ -13,6 +13,8 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
+#include "Lib/Timer.hpp"
+
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -133,6 +135,7 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 {
   CALL("TWLSolver::addClauses");
   TimeCounter tc(TC_TWLSOLVER_ADD);
+  TimeCounter ttc(TC_SAT_SOLVER);
   ASS_EQ(_assumptionCnt, 0);
   ASS(!_unsatisfiableAssumptions);
 
@@ -141,7 +144,13 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
   }
 
   try {
+
     while(cit.hasNext()) {
+  	  /**@author ioan.
+  	   * reason: in order to count how many clauses are added to vampire solver
+   	   */
+   	  env.statistics->satTWLClauseCount++;
+
       SATClause* cl=cit.next();
       ASS(cl->hasUniqueVariables());
       cl->setKept(true);
@@ -149,18 +158,21 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
       _addedClauses.push(cl);
       
       if(cl->length()==0) {
-	throw UnsatException(cl);
-      }
-      else if(cl->length()==1) {
-	addUnitClause(cl);
+    	  throw UnsatException(cl);
+      } else if(cl->length()==1) {
+    	  addUnitClause(cl);
       }
       else {
-	addClause(cl);
+    	  addClause(cl);
       }
       _variableSelector->onInputClauseAdded(cl);
       _clauseDisposer->onNewInputClause(cl);
     }
+    //when adding clauses, after we are done with adding all of them we call solving procedure
+    //hence we increase by one here
+    env.statistics->satTWLSATCalls++;
     doSolving(onlyPropagate ? 0 : UINT_MAX);
+
   } catch (const UnsatException& e)
   {
     // make sure the rest of clauses will get released
@@ -171,12 +183,14 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
     _refutation = e.refutation;
     ASS(!_generateProofs || _refutation);
   }
+
+  env.statistics->satTWLVariablesCount = _varCnt;
 }
 
 void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
 {
   CALL("TWLSolver::addAssumption(SATLiteral,unsigned)");
-
+  TimeCounter ttc(TC_SAT_SOLVER);
   _assumptionsAdded = true;
 
   if(_status==UNSATISFIABLE) {
@@ -196,6 +210,8 @@ void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
       return;
     }
     makeAssumptionAssignment(lit);  //increases _assumptionCnt
+    //increase the count of solving calls for TWLiteral
+    env.statistics->satTWLSATCalls++;
     doSolving(conflictCountLimit);
   } catch (const UnsatException& e)
   {
@@ -209,7 +225,7 @@ void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
 void TWLSolver::retractAllAssumptions()
 {
   CALL("TWLSolver::retractAllAssumptions");
-
+  TimeCounter ttc(TC_SAT_SOLVER);
   _assumptionsAdded = false;
 
   if(_unsatisfiableAssumptions) {
@@ -556,18 +572,16 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
     }
   }
 
-//  cout<<resLits.size()<<" ";
 //  doShallowMinimize(resLits, seenVars);
   if(_doLearntMinimization) {
     doDeepMinimize(resLits, seenVars, premises);
   }
-//  cout<<resLits.size()<<" ";
   if(_doLearntSubsumptionResolution) {
     doSubsumptionResolution(resLits, premises);
   }
-//  cout<<resLits.size()<<" ";
 
   SATClause* res = SATClause::fromStack(resLits);
+
   if(_generateProofs) {
     ASS(premises);
     SATInference* inf = new PropInference(premises);
@@ -1369,6 +1383,7 @@ void TWLSolver::randomizeAssignment()
   }
 
   try {
+	  env.statistics->satTWLSATCalls++;
     doSolving(UINT_MAX);
   }
   catch (UnsatException&) {
