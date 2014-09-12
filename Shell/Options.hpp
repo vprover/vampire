@@ -361,9 +361,11 @@ public:
   /** Possible values for sat_solver */
   enum SatSolver {
      BUFFERED_LINGELING = 0,
-     BUFFERED_VAMPIRE = 1,
-     LINGELING = 2,
-     VAMPIRE = 3 
+     BUFFERED_MINISAT = 1,
+     BUFFERED_VAMPIRE = 2,
+     LINGELING = 3,
+     MINISAT = 4,
+     VAMPIRE = 5
   };
 
   /** Possible values for saturation_algorithm */

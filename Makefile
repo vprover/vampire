@@ -18,7 +18,10 @@ DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
 LLVM_FLAGS = -D_GNU_SOURCE -DGNUMP=$(GNUMPF) -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
 GCOV_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF) -O0 --coverage #-pedantic
- 
+
+MINISAT_DBG_FLAGS = -D DEBUG
+MINISAT_REL_FLAGS = -D NDEBUG
+MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
@@ -64,6 +67,7 @@ XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0
 endif
 ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0
+MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 ifneq (,$(filter %_gcov,$(MAKECMDGOALS)))
 XFLAGS = $(GCOV_FLAGS) -DIS_LINGVA=0
@@ -104,6 +108,12 @@ CXXFLAGS = $(XFLAGS) -Wall $(INCLUDES)
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
 ################################################################
+MINISAT_OBJ = Minisat/core/Solver.o\
+  Minisat/simp/SimpSolver.o\
+  Minisat/utils/Options.o\
+  Minisat/utils/System.o\
+  SAT/MinisatInterfacing.o
+
 API_OBJ = Api/FormulaBuilder.o\
 	  Api/Helper.o\
 	  Api/Problem.o\
@@ -476,9 +486,10 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/VariableSelector.o\
 	       Test/RecordingSatSolver.o
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Indexing Inferences InstGen Solving Shell CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib
 
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Indexing Inferences InstGen Solving Shell CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils
+
+VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
 VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o Shell/BFNTMainLoop.o, $(VS_OBJ)) $(PARSE_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) Test/CheckedSatSolver.o $(LIB_DEP)
@@ -546,12 +557,16 @@ obj/%X: | obj
 %.o : %.cpp
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.c 
 $(CONF_ID)/%.o : %.c | $(CONF_ID)
 	$(CC) $(CCFLAGS) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
 
+%.o : %.cc
+$(CONF_ID)/%.o : %.cc | $(CONF_ID)
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+  
 ################################################################
 # targets for executables
 

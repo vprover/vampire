@@ -66,6 +66,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "SAT/LingelingInterfacing.hpp"
+#include "SAT/MinisatInterfacing.hpp"
 #include "SAT/TWLSolver.hpp"
 #include "SAT/Preprocess.hpp"
 
@@ -426,8 +427,25 @@ void satSolverMode()
 {
   CALL("satSolverMode()");
   TimeCounter tc(TC_SAT_SOLVER);
-  SATSolverSCP solver(new TWLSolver(*env.options, false));
-
+  SATSolverSCP solver;
+  
+  switch(env.options->satSolver()) { 
+    case Options::BUFFERED_VAMPIRE:
+    case Options::VAMPIRE:  
+      solver = new TWLSolver(*env.options);
+      break;          
+    case Options::BUFFERED_LINGELING: 
+    case Options::LINGELING:
+      solver = new LingelingInterfacing(*env.options);
+      break;
+    case Options::BUFFERED_MINISAT: 
+    case Options::MINISAT:
+      solver = new MinisatInterfacing(*env.options);
+      break;      
+    default:
+      ASSERTION_VIOLATION(env.options->satSolver());
+  }
+    
   //get the clauses; 
   SATClauseList* clauses;
   unsigned varCnt=0;

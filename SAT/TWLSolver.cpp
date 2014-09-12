@@ -127,6 +127,7 @@ void TWLSolver::ensureVarCnt(unsigned newVarCnt)
  * unsatisfiability isn't shown in this case, the status is set to UNKNOWN.
  * 
  * Memory-wise, the clauses are owned by the solver from now on.
+ * (TODO: this may not be a good assumption - check on the caller sides)
  */
 void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 {
@@ -135,7 +136,7 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
   ASS_EQ(_assumptionCnt, 0);
   ASS(!_unsatisfiableAssumptions);
 
-  if(_status==UNSATISFIABLE) {
+  if(_status==UNSATISFIABLE) { // TODO: a potential memory leak !
     return;
   }
 

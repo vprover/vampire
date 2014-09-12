@@ -28,7 +28,7 @@
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
-
+#include "SAT/MinisatInterfacing.hpp"
 
 #include "DP/ShortConflictMetaDP.hpp"
 #include "DP/SimpleCongruenceClosure.hpp"
@@ -74,6 +74,12 @@ void SSplittingBranchSelector::init()
     case Options::LINGELING: 
       _solver = new MinimizingSolver(new LingelingInterfacing(_parent.getOptions(), true));
       break;
+    case Options::BUFFERED_MINISAT:
+      _solver = new MinimizingSolver(new BufferedSolver(new MinisatInterfacing(_parent.getOptions(),true)));
+      break;
+    case Options::MINISAT:
+      _solver = new MinimizingSolver(new MinisatInterfacing(_parent.getOptions(),true));
+      break;      
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
   }

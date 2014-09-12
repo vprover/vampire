@@ -548,9 +548,12 @@ NameArray Options::Constants::lcmValues(_lcmValues,
 
 const char* Options::Constants::_satSolverValues[] = {
   "buf_lingeling",
+  "buf_minisat",
   "buf_vampire",
   "lingeling",
-  "vampire"};
+  "minisat",
+  "vampire"    
+};
 NameArray Options::Constants::satSolverValues(_satSolverValues,
                                               sizeof(_satSolverValues)/sizeof(char*));
 
@@ -948,7 +951,7 @@ Options::Options ()
   _satRestartStrategy(SRS_LUBY),
   _satVarActivityDecay(1.05f),
   _satVarSelector(SVS_ACTIVE),
-  _satSolver(VAMPIRE),
+  _satSolver(MINISAT),
   _saturationAlgorithm(LRS),
   _selection(10),
   _selectUnusedVariablesFirst(false),
