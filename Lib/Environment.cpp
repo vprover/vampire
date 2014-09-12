@@ -11,6 +11,7 @@
 
 #include "Indexing/TermSharing.hpp"
 
+#include "Kernel/MainLoopScheduler.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
 
@@ -140,7 +141,7 @@ void Environment::checkAllTimeLimits() const
     cout << "throwing time limit exception" << endl;
     throw TimeLimitExceededException();
   }else if (options->localTimeLimitInDeciseconds() &&
-	      timer->elapsedDeciseconds() > options->localTimeLimitInDeciseconds()) {
+	      MainLoopScheduler::context()->elapsedDeciseconds() > options->localTimeLimitInDeciseconds()) {
 	    statistics->terminationReason = Shell::Statistics::LOCAL_TIME_LIMIT;
     		cout << "throwing time limit exception" << endl;
 	    throw LocalTimeLimitExceededException();

@@ -21,7 +21,7 @@ using Shell::Options;
 using Shell::Statistics;
 
 	MainLoopContext::MainLoopContext(Problem& prb, Options& opts):
-			_opts(opts) {
+			_opts(opts), _startTime(0), _endTime(0), _elapsedDeciseconds(0) {
 
 		CALL("MainLoopContext::MainLoopContext");
 
@@ -47,11 +47,14 @@ using Shell::Statistics;
 		CALL("MainLoopContext::switchIn");
 		_temp_env = Lib::env;
 		Lib::env = _env; //TODO: Potential change of context by other MainLoop
+		_startTime = _env -> timer-> elapsedDeciseconds();
 	}
 
 	void MainLoopContext::switchOut() {
 		CALL("MainLoopContext::switchOut");
 
+		_endTime = _env -> timer -> elapsedDeciseconds();
+		_elapsedDeciseconds += (_endTime - _startTime);
 		Lib::env = _temp_env;
 	}
 

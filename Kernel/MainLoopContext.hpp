@@ -32,6 +32,7 @@ public:
 	// Get the ConcurrentMainLoop
 	ConcurrentMainLoop* getMainLoop() const { return _ml; }
 
+	int elapsedDeciseconds() const { return _elapsedDeciseconds; }
 
 protected:
 	// Switch into this context
@@ -55,6 +56,7 @@ private:
 	Lib::Environment* _env;
 	Lib::Environment* _temp_env; //A variable to preserve the current environment before switching in.
 								 //TODO: a manager pattern for main loops needs to be implemented for context switching
+	int _startTime, _endTime, _elapsedDeciseconds;
 };
 
 } /* namespace Kernel */
