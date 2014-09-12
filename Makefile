@@ -18,7 +18,10 @@ DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
 LLVM_FLAGS = -D_GNU_SOURCE -DGNUMP=$(GNUMPF) -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
 GCOV_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF) -O0 --coverage #-pedantic
- 
+
+MINISAT_DBG_FLAGS = -D DEBUG
+MINISAT_REL_FLAGS = -D NDEBUG
+MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
@@ -64,6 +67,7 @@ XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0
 endif
 ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0
+MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 ifneq (,$(filter %_gcov,$(MAKECMDGOALS)))
 XFLAGS = $(GCOV_FLAGS) -DIS_LINGVA=0
@@ -561,7 +565,7 @@ $(CONF_ID)/%.o : %.c | $(CONF_ID)
 
 %.o : %.cc
 $(CONF_ID)/%.o : %.cc | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
   
 ################################################################
 # targets for executables
