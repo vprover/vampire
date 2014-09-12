@@ -39,9 +39,9 @@ TEST_FUN(fbapi1)
     Formula result = api.formula(FormulaBuilder::IMP,lhs,rhs); // f(X0) = f(X1) => p(X0,f(X0),f(X1))
 
 
-    string formString=result.toString();
+    vstring formString=result.toString();
 
-    stringstream sstr;
+    vostringstream sstr;
     sstr << result;
     ASS_EQ(sstr.str(), formString);
 
@@ -84,7 +84,7 @@ TEST_FUN(fbapiReflection)
     ASS(!f1neg.boundVars().hasNext());
 
 
-    DHSet<string> vs;
+    DHSet<vstring> vs;
     vs.loadFromIterator(f1neg.freeVars());
     ASS_EQ(vs.size(),2);
     ASS(vs.find("X"));
@@ -220,17 +220,17 @@ TEST_FUN(fbapiStrConv)
     ASS_EQ(gfgxfffcfgxfffc.toString(), "g(f(g(X,f(f(f(c))))),f(g(X,f(f(f(c))))))");
 
     Formula f1=api.equality(gxfffc,y);
-    ASS_NEQ(f1.toString().find("Y"), string::npos);
-    ASS_NEQ(f1.toString().find("g(X,f(f(f(c))))"), string::npos);
-    ASS_NEQ(f1.toString().find("="), string::npos);
+    ASS_NEQ(f1.toString().find("Y"), vstring::npos);
+    ASS_NEQ(f1.toString().find("g(X,f(f(f(c))))"), vstring::npos);
+    ASS_NEQ(f1.toString().find("="), vstring::npos);
 
     Formula f2=api.atom(p,&gfgxfffcfgxfffc, false);
     ASS_EQ(f2.toString(), "~p(g(f(g(X,f(f(f(c))))),f(g(X,f(f(f(c)))))))");
 
     Formula f3=api.formula(FormulaBuilder::AND, api.negation(f1), api.formula(FormulaBuilder::EXISTS,xv,f2));
-    ASS_REP2(f3.toString().find(f1.toString())!=string::npos, f3.toString(),f1.toString());
-    ASS_REP2(f3.toString().find(f2.toString())!=string::npos, f3.toString(),f2.toString());
-    ASS_REP(f3.toString().find("[X]")!=string::npos, f3.toString());
+    ASS_REP2(f3.toString().find(f1.toString())!=vstring::npos, f3.toString(),f1.toString());
+    ASS_REP2(f3.toString().find(f2.toString())!=vstring::npos, f3.toString(),f2.toString());
+    ASS_REP(f3.toString().find("[X]")!=vstring::npos, f3.toString());
 
     try{
       Formula f4=api.formula(FormulaBuilder::EXISTS,xv,f3); //binding bound variable
@@ -315,15 +315,15 @@ TEST_FUN(fbapiErrors)
 }
 
 
-string getId(Term t)
+vstring getId(Term t)
 {
-  static std::map<string,string> idMap;
+  static std::map<vstring,vstring> idMap;
 
-  stringstream newIdStr;
+  vostringstream newIdStr;
   newIdStr<<"t_"<<idMap.size();
-  string newId=newIdStr.str();
+  vstring newId=newIdStr.str();
 
-  string id=(*idMap.insert(make_pair(t.toString(), newId)).first).second;
+  vstring id=(*idMap.insert(make_pair(t.toString(), newId)).first).second;
   return id;
 }
 
@@ -639,7 +639,7 @@ TEST_FUN(fbapiDollarNames)
   Term t = api.term(f);
   Formula form = api.formula(p, t);
 
-  string str = form.toString();
+  vstring str = form.toString();
   ASS_EQ(str,"$$p($$f)");
 }
 

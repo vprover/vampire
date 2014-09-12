@@ -20,7 +20,7 @@ using namespace Api;
 using namespace Test;
 
 
-void assertEarlyPreprocActive(Problem::PreprocessingOptions popts, bool shouldPerform, string prbStr)
+void assertEarlyPreprocActive(Problem::PreprocessingOptions popts, bool shouldPerform, vstring prbStr)
 {
   //default opts, we assume the preprocessing is disabled there
   Problem::PreprocessingOptions popts0;
@@ -31,7 +31,7 @@ void assertEarlyPreprocActive(Problem::PreprocessingOptions popts, bool shouldPe
   popts.unusedPredicateDefinitionRemoval = false;
 
   Problem prb;
-  stringstream stm(prbStr);
+  vostringstream stm(prbStr);
   prb.addFromStream(stm);
 
 
@@ -55,13 +55,13 @@ TEST_FUN(preprapiSine)
 {
   Problem::PreprocessingOptions popts("ss=on:st=-1");
 
-  string prbNoConj =
+  vstring prbNoConj =
       "fof(a,axiom, p)."
       "fof(a,axiom, q).";
-  string prbSelected =
+  vstring prbSelected =
       "fof(a,conjecture, p|q)."
       "fof(a,axiom, q).";
-  string prbNotSelectedForTolerance1 =
+  vstring prbNotSelectedForTolerance1 =
       "fof(a,conjecture, p|q)."
       "fof(a,axiom, q|r)."
       "fof(a,axiom, q|s).";
@@ -88,12 +88,12 @@ TEST_FUN(preprapiAigConditionalRewriting)
 {
   Problem::PreprocessingOptions popts("acr=on");
 
-  string prb1 =
+  vstring prb1 =
       "fof(a,axiom, p=>(a<=>b))."
       "fof(a,axiom, p=>(a))."
       "fof(a,axiom, p=>(b))."
       ;
-  string prb2 =
+  vstring prb2 =
       "fof(a,axiom, p=>(a<=>b))."
       "fof(a,axiom, q=>(a))."
       "fof(a,axiom, r=>(b))."

@@ -232,7 +232,7 @@ protected:
 private:
   Literal* getSkolemLiteral(unsigned var);
 
-  void generateSKUnit(Literal* inst, unsigned pred, unsigned var, string nameSuffix);
+  void generateSKUnit(Literal* inst, unsigned pred, unsigned var, vstring nameSuffix);
 
   void propagateInstancesToLiteral(Literal* lit, bool negated);
 
@@ -344,12 +344,12 @@ void EPRSkolem::Applicator::propagateInstancesToLiteral(Literal* lit, bool negat
   }
 }
 
-void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigned var, string nameSuffix)
+void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigned var, vstring nameSuffix)
 {
   CALL("EPRSkolem::Applicator::generateSKUnit");
   ASS_EQ(inst->functor(), _lhs->functor());
 
-  string argsStr;
+  vstring argsStr;
 
   static Stack<TermList> args;
   args.reset();
@@ -362,8 +362,8 @@ void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigne
     argsStr += t->toString();
   }
 
-  string suffix = nameSuffix;
-  if(!argsStr.empty() && argsStr.find_first_of("('")==string::npos) {
+  vstring suffix = nameSuffix;
+  if(!argsStr.empty() && argsStr.find_first_of("('")==vstring::npos) {
     suffix += "_" + argsStr;
   }
 
@@ -411,7 +411,7 @@ Literal* EPRSkolem::Applicator::getSkolemLiteral(unsigned var)
   CALL("EPRSkolem::Applicator::getSkolemLiteral");
   ASS(!_lhs->containsSubterm(TermList(var,false)));
 
-  string nameSuffix = _lhs->predicateName();
+  vstring nameSuffix = _lhs->predicateName();
   if(VarManager::varNamePreserving()) {
     nameSuffix += "_" + VarManager::getVarName(var);
   }
@@ -885,7 +885,7 @@ bool EPRSkolem::apply(Unit* unit, UnitList*& acc)
   return true;
 }
 
-string EPRSkolem::headerToString(unsigned header)
+vstring EPRSkolem::headerToString(unsigned header)
 {
   CALL("EPRSkolem::headerToString");
 

@@ -52,14 +52,14 @@ TermList TermColoring::applyToTerm(TermList trm)
   }
 
   Color clr = getColor(trm);
-  string name = trm.toString();
+  vstring name = trm.toString();
   size_t nlen = name.size();
   for(size_t i=0; i<nlen; i++) {
     if(name[i]=='(' || name[i]==')' || name[i]=='\'') {
       name[i] = '_';
     }
   }
-  string name0 = name;
+  vstring name0 = name;
   int i=0;
   while(env.signature->functionExists(name, 0)) {
     i++;
@@ -248,7 +248,7 @@ Color RangeColoring::getColor(TermList term)
 // NameMapColoring
 //
 
-string NameMapColoring::normalizeName(string str)
+vstring NameMapColoring::normalizeName(vstring str)
 {
   CALL("NameMapColoring::normalizeName");
 
@@ -262,7 +262,7 @@ bool NameMapColoring::isColoredFunction(unsigned func)
 {
   CALL("NameMapColoring::isColoredFunction");
 
-  string nm = normalizeName(env.signature->functionName(func));
+  vstring nm = normalizeName(env.signature->functionName(func));
   return _funcColors.find(nm);
 }
 Color NameMapColoring::getColor(TermList term)
@@ -270,7 +270,7 @@ Color NameMapColoring::getColor(TermList term)
   CALL("NameMapColoring::getColor");
   ASS(term.isTerm());
 
-  string nm = normalizeName(term.term()->functionName());
+  vstring nm = normalizeName(term.term()->functionName());
   return _funcColors.get(nm);
 }
 

@@ -32,6 +32,9 @@ namespace SAT{
 class LingelingInterfacing : public SATSolver
 {
 public: 
+  CLASS_NAME(LingelingInterfacing);
+  USE_ALLOCATOR(LingelingInterfacing);
+
 	//constructor for the instantiation of Lingeling
 	LingelingInterfacing(const Options& opts, bool generateProofs=false);
 	~LingelingInterfacing();
@@ -75,7 +78,7 @@ public:
 	* should be used only for SATISFIABLE or UNKNOWN
 	*/
 	virtual void collectZeroImplied(SATLiteralStack& acc){
-		//ASSERTION_VIOLATION("Not implemented");
+		//ASSERTION_VIOLATION_REP("Not implemented");
 	}
 
 	/**
@@ -86,7 +89,7 @@ public:
    	* a proper proof history.
    	*/
 	virtual SATClause* getZeroImpliedCertificate(unsigned var){
-		//ASSERTION_VIOLATION("Not implemented");	
+		//ASSERTION_VIOLATION_REP("Not implemented");	
 		return 0;
 	}
 

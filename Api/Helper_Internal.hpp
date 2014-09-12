@@ -41,12 +41,12 @@ public:
   }
 
   static DefaultHelperCore* instance();
-  virtual string getVarName(Var v) const;
-  string toString(Kernel::TermList t) const;
-  string toString(const Kernel::Term* t0) const;
-  string toString(const Kernel::Formula* f) const;
-  string toString(const Kernel::Clause* clause) const;
-  string toString (const Kernel::Unit* unit) const;
+  virtual vstring getVarName(Var v) const;
+  vstring toString(Kernel::TermList t) const;
+  vstring toString(const Kernel::Term* t0) const;
+  vstring toString(const Kernel::Formula* f) const;
+  vstring toString(const Kernel::Clause* clause) const;
+  vstring toString (const Kernel::Unit* unit) const;
 
   virtual VarManager::VarFactory* getVarFactory() { return 0; };
 
@@ -57,11 +57,11 @@ private:
 public:
   StringIterator getVarNames(VarList* l);
 
-  static string getDummyName(bool pred, unsigned functor);
-  static string getDummyName(const Kernel::Term* t);
+  static vstring getDummyName(bool pred, unsigned functor);
+  static vstring getDummyName(const Kernel::Term* t);
 
-  string getSymbolName(bool pred, unsigned functor) const;
-  string getSymbolName(const Kernel::Term* t) const;
+  vstring getSymbolName(bool pred, unsigned functor) const;
+  vstring getSymbolName(const Kernel::Term* t) const;
 };
 
 class FBHelperCore
@@ -101,9 +101,9 @@ public:
 
   Term term(const Function& f,const Term* args, unsigned arity);
   Formula atom(const Predicate& p, bool positive, const Term* args, unsigned arity);
-  virtual string getVarName(Var v) const;
+  virtual vstring getVarName(Var v) const;
   Sort getVarSort(Var v) const;
-  Var getVar(string varName, Sort varSort);
+  Var getVar(vstring varName, Sort varSort);
 
   virtual VarManager::VarFactory* getVarFactory()
   { return &varFact; }
@@ -128,7 +128,7 @@ public:
   void ensureArgumentsSortsMatch(BaseType* type, const Api::Term* args);
   void ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const Api::Term arg2);
 
-  typedef pair<string,string> AttribPair;
+  typedef pair<vstring,vstring> AttribPair;
   typedef Stack<AttribPair> AttribStack;
 
   AttribStack& getSortAttributes(unsigned srt)
@@ -155,7 +155,7 @@ public:
     return *res;
   }
 
-  static void addAttribute(AttribStack& stack, string name, string value);
+  static void addAttribute(AttribStack& stack, vstring name, vstring value);
 private:
 
   DHMap<unsigned,AttribStack > _sortAttributes;
@@ -166,15 +166,15 @@ private:
   {
     explicit FBVarFactory(FBHelperCore& parent) : _parent(parent) {}
     virtual unsigned getVarAlias(unsigned var);
-    virtual string getVarName(unsigned var);
+    virtual vstring getVarName(unsigned var);
 
     FBHelperCore& _parent;
   };
 
   /** Map from variable names to their numbers */
-  Map<string,Var> vars;
+  Map<vstring,Var> vars;
   /** Map from variable names to their numbers */
-  Map<Var,string> varNames;
+  Map<Var,vstring> varNames;
   /** Map from variable names to their sorts */
   Map<Var,Sort> varSorts;
   /** next available variable number */

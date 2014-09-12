@@ -8,7 +8,7 @@
 #define __Renaming__
 
 #if VDEBUG
-#include<string>
+#include "Lib/VString.hpp"
 #endif
 
 #include "Lib/DHMap.hpp"
@@ -23,6 +23,9 @@ using namespace Lib;
 
 class Renaming {
 public:
+  CLASS_NAME(Renaming);
+  USE_ALLOCATOR(Renaming);
+
   Renaming() :
     _nextVar(0), _identity(true) {
   }
@@ -64,7 +67,7 @@ public:
 
 #if VDEBUG
   void assertValid() const;
-  string toString() const;
+  vstring toString() const;
 #endif
 private:
   class Applicator

@@ -73,7 +73,7 @@ Sorts::~Sorts()
  * Add a new or existing sort and return its number.
  * @author Andrei Voronkov
  */
-unsigned Sorts::addSort(const string& name)
+unsigned Sorts::addSort(const vstring& name)
 {
   CALL("Sorts::addSort/1");
   bool dummy;
@@ -85,7 +85,7 @@ unsigned Sorts::addSort(const string& name)
  * the sort turned out to be new.
  * @author Andrei Voronkov
  */
-unsigned Sorts::addSort(const string& name, bool& added)
+unsigned Sorts::addSort(const vstring& name, bool& added)
 {
   CALL("Sorts::addSort/2");
 
@@ -106,7 +106,7 @@ unsigned Sorts::addSort(const string& name, bool& added)
  * True if this collection contains the sort @c name.
  * @author Andrei Voronkov
  */
-bool Sorts::haveSort(const string& name)
+bool Sorts::haveSort(const vstring& name)
 {
   CALL("Sorts::haveSort");
   return _sortNames.find(name);
@@ -117,7 +117,7 @@ bool Sorts::haveSort(const string& name)
  * to the sort number. Otherwise, return false.
  * @author Andrei Voronkov
  */
-bool Sorts::findSort(const string& name, unsigned& idx)
+bool Sorts::findSort(const vstring& name, unsigned& idx)
 {
   CALL("Sorts::findSort");
   return _sortNames.find(name, idx);
@@ -295,11 +295,11 @@ bool BaseType::operator==(const BaseType& o) const
  * @since 04/05/2013 bug fix (comma was used instead of *)
  * @author Andrei Voronkov
  */
-string BaseType::argsToString() const
+vstring BaseType::argsToString() const
 {
   CALL("BaseType::argsToString");
 
-  string res = "(";
+  vstring res = "(";
   unsigned ar = arity();
   ASS(ar);
   for (unsigned i = 0; i < ar; i++) {
@@ -316,7 +316,7 @@ string BaseType::argsToString() const
  * Return the TPTP string representation of the predicate type.
  * @author Andrei Voronkov
  */
-string PredicateType::toString() const
+vstring PredicateType::toString() const
 {
   CALL("PredicateType::toString");
   return argsToString() + " > $bool";
@@ -326,7 +326,7 @@ string PredicateType::toString() const
  * Return the TPTP string representation of the function type.
  * @author Andrei Voronkov
  */
-string FunctionType::toString() const
+vstring FunctionType::toString() const
 {
   CALL("FunctionType::toString");
   return argsToString() + " > " + env.sorts->sortName(result());

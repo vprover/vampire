@@ -128,7 +128,7 @@ Problem::PreprocessingOptions::PreprocessingOptions()
   setDefaults();
 }
 
-Problem::PreprocessingOptions::PreprocessingOptions(string spec)
+Problem::PreprocessingOptions::PreprocessingOptions(vstring spec)
 {
   CALL("Problem::PreprocessingOptions::PreprocessingOptions/1");
 
@@ -458,13 +458,13 @@ bool Problem::empty()
 ///////////////////////////////////////
 // Parsing
 
-void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySyntax)
+void Problem::addFromStream(istream& s, vstring includeDirectory, bool simplifySyntax)
 {
   CALL("Problem::addFromStream");
 
   using namespace Shell;
 
-  string originalInclude=env.options->include();
+  vstring originalInclude=env.options->include();
   env.options->setInclude(includeDirectory);
 
   Kernel::UnitList* units;
@@ -582,7 +582,7 @@ protected:
       return;
     }
 
-    string unitName;
+    vstring unitName;
     //we don't worry about making the names unique, that's the business of
     //the AnnotatedFormula::assignName() function
     if(_transformingDef) {
@@ -607,7 +607,7 @@ protected:
 
   bool _transforming;
   bool _transformingDef;
-  string _origName;
+  vstring _origName;
   Kernel::Unit* _origUnit;
   AnnotatedFormula _origAF;
 
@@ -1496,11 +1496,11 @@ Problem Problem::preprocessInStages(size_t stageCount, const PreprocessingOption
   return res;
 }
 
-void Problem::readStageSpecs(string stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs)
+void Problem::readStageSpecs(vstring stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs)
 {
   CALL("Problem::readStageSpecs");
 
-  Stack<string> singleSpecs;
+  Stack<vstring> singleSpecs;
   StringUtils::splitStr(stagesStr.c_str(), ';', singleSpecs);
 
   stageCnt = singleSpecs.size();
@@ -1508,9 +1508,9 @@ void Problem::readStageSpecs(string stagesStr, size_t& stageCnt, PreprocessingOp
 
   unsigned idx = 0;
 
-  Stack<string>::BottomFirstIterator specIt(singleSpecs);
+  Stack<vstring>::BottomFirstIterator specIt(singleSpecs);
   while(specIt.hasNext()) {
-    string spec = specIt.next();
+    vstring spec = specIt.next();
     stageSpecs[idx] = PreprocessingOptions(spec);
     idx++;
   }
@@ -1518,7 +1518,7 @@ void Problem::readStageSpecs(string stagesStr, size_t& stageCnt, PreprocessingOp
 }
 
 
-Problem Problem::preprocessInStages(string stagesStr)
+Problem Problem::preprocessInStages(vstring stagesStr)
 {
   CALL("Problem::preprocessInStages");
 
@@ -1728,7 +1728,7 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
     return;
   }
 
-  string symName = dummyNames ? (DefaultHelperCore::getDummyName(!function, symNumber)) : sym->name();
+  vstring symName = dummyNames ? (DefaultHelperCore::getDummyName(!function, symNumber)) : sym->name();
 
   out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
       << symName << ": ";

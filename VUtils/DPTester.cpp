@@ -28,7 +28,7 @@ int DPTester::perform(int argc, char** argv)
 {
   CALL("DPTester::perform");
 
-  string fname = argv[2];
+  vstring fname = argv[2];
   env.options->setInputFile(fname);
 
   cout << "solving "<<fname<<endl;

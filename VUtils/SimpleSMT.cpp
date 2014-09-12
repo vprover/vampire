@@ -97,7 +97,7 @@ void SimpleSMT::preprocessProblem(int argc, char** argv)
 {
   CALL("SimpleSMT::preprocessProblem")
     
-  string fname;
+  vstring fname;
   if (argc < 3) {
     fname = "";
   }

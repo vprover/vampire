@@ -30,7 +30,7 @@ int SATReplayer::perform(int argc, char** argv)
     exit(1);
   }
 
-  string prefix = string(argv[2])+" ";
+  vstring prefix = vstring(argv[2])+" ";
   ifstream inp(argv[3]);
 
   TWLSolver solver(*env.options, true);

@@ -17,7 +17,7 @@
 #if VDEBUG
 
 #include <iostream>
-#include <string>
+#include "Lib/VString.hpp"
 
 #endif
 
@@ -31,6 +31,9 @@ class RobSubstitution
 :public Backtrackable
 {
 public:
+  CLASS_NAME(RobSubstitution);
+  USE_ALLOCATOR(RobSubstitution);
+  
   RobSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
 
   SubstIterator matches(Literal* base, int baseIndex,
@@ -78,7 +81,7 @@ public:
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 
 #if VDEBUG
-  std::string toString(bool deref=false) const;
+  vstring toString(bool deref=false) const;
   /**
    * Return number of bindings stored in the substitution.
    *
@@ -103,7 +106,7 @@ public:
     { return !(*this==o); }
 
 #if VDEBUG
-    std::string toString() const;
+    vstring toString() const;
 #endif
 
     /** number of variable */
@@ -170,7 +173,7 @@ public:
     bool operator==(const TermSpec& o) const
     { return term==o.term && index==o.index; }
 #if VDEBUG
-    string toString() const;
+    vstring toString() const;
 #endif
 
     /** term reference */
@@ -272,7 +275,7 @@ private:
       }
     }
 #if VDEBUG
-    std::string toString() const
+    vstring toString() const
     {
       return "(ROB backtrack object for "+ _var.toString() +")";
     }

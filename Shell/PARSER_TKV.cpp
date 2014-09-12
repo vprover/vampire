@@ -34,7 +34,7 @@ Parser::Parser (Lexer& lexer)
  * Create a new parser exception.
  * @since 17/07/2004 Turku
  */
-ParserException::ParserException (string message,const Token& token)
+ParserException::ParserException (vstring message,const Token& token)
   : _message (message)
 {
   _message += " in line ";
@@ -89,7 +89,7 @@ void Parser::expectToken (TokenType tt)
  * @throws ParserException with the given error message if it has a wrong type
  * @pre The buffer must contain at least one token
  */
-void Parser::expectToken (TokenType tt,string errorMessage)
+void Parser::expectToken (TokenType tt,vstring errorMessage)
 {
   CALL("Parser::expectToken/2");
 
@@ -110,7 +110,7 @@ void Parser::expectKeyword (const char* keyword)
   CALL("Parser::expectKeyword");
 
   if (currentToken().text != keyword) {
-    throw ParserException((string)"keyword '" + keyword + "' expected",
+    throw ParserException((vstring)"keyword '" + keyword + "' expected",
 			  _tokens[_tokenCursor]);
   }
 } // Parser::expectKeyword
@@ -183,7 +183,7 @@ void Parser::readToken(TokenType tt)
  * @throws ParserException if the next token has a wrong type.
  * @since 26/01/2009 Heathrow
  */
-void Parser::readToken(TokenType tt,string errorMessage)
+void Parser::readToken(TokenType tt,vstring errorMessage)
 {
   CALL("Parser::readToken/2");
   readToken();
@@ -269,7 +269,7 @@ int Parser::integer (const Token& token)
   CALL("Parser::integer");
 
   int result;
-  if (Int::stringToInt(const_cast<string&>(token.text),result)) {
+  if (Int::stringToInt(const_cast<vstring&>(token.text),result)) {
     return result;
   }
   throw ParserException("incorrect integer",token);
@@ -287,7 +287,7 @@ long long unsigned Parser::unsigned64 (const Token& token)
 
   long long unsigned result;
 
-  if (Int::stringToUnsigned64(const_cast<string&>(token.text),result)) {
+  if (Int::stringToUnsigned64(const_cast<vstring&>(token.text),result)) {
     return result;
   }
   throw ParserException("incorrect 64-bit unsigned",token);
@@ -297,7 +297,7 @@ long long unsigned Parser::unsigned64 (const Token& token)
  * Terminate by throwing an exception with a given error message
  * @since 27/01/2009 Manchester
  */
-void Parser::terminate(string errorMessage)
+void Parser::terminate(vstring errorMessage)
 {
   throw ParserException(errorMessage,_tokens[_tokenCursor]);
 } // terminate

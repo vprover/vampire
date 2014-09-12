@@ -75,7 +75,7 @@ void SSplittingBranchSelector::init()
       _solver = new MinimizingSolver(new LingelingInterfacing(_parent.getOptions(), true));
       break;
     default:
-      ASSERTION_VIOLATION(_parent.getOptions().satSolver());
+      ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
   }
 
 #if DEBUG_MIN_SOLVER
@@ -84,7 +84,7 @@ void SSplittingBranchSelector::init()
 
   //Giles. Currently false by default.
   if(_parent.getOptions().ssplittingCongruenceClosure()) {
-    //ASSERTION_VIOLATION("Is this ever turned on?");
+    // ASSERTION_VIOLATION_REP("Is this ever turned on?");
     _dp = new ShortConflictMetaDP(new DP::SimpleCongruenceClosure(), _parent.satNaming(), *_solver);
   }
 }

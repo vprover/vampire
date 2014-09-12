@@ -7,14 +7,12 @@
 #ifndef __SATLiteral__
 #define __SATLiteral__
 
-#include <string>
 #include <ostream>
 
 #include "Shell/Options.hpp"
 #include "Debug/Assertion.hpp"
-
+#include "Lib/VString.hpp"
 #include "Kernel/Clause.hpp"
-
 
 namespace SAT {
 
@@ -59,7 +57,7 @@ public:
   inline bool operator!=(const SATLiteral& l) const
   { return _content!=l._content; }
 
-  string toString() const;
+  vstring toString() const;
 
   /**
    * Return a dummy literal that is not equal to any

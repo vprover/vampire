@@ -26,9 +26,9 @@ private:
   void rewriteSmt1FormToSmt2(LExpr* e);
 //  LExpr* smtlibToSmtlib2(LExpr* e);
 
-  void addBenchmark(LExpr* expr, DHSet<string>& funSet, LispListWriter& wrt);
+  void addBenchmark(LExpr* expr, DHSet<vstring>& funSet, LispListWriter& wrt);
 
-  LExpr* parseFile(string fname);
+  LExpr* parseFile(vstring fname);
   LExpr* mergeBenchmarksIntoSmtlib2(Stack<LExpr*>& exprs);
 };
 

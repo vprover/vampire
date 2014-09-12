@@ -92,10 +92,10 @@ PredicateIndexIntroducer::DistGrpSet* PredicateIndexIntroducer::getDistGrps(Term
   distGrps.loadFromIterator(List<unsigned>::Iterator(signDistGrps));
 
   if(_assumeSSDistinctGroup) {
-    string name = trm.term()->functionName();
+    vstring name = trm.term()->functionName();
     bool ssDistinct = name.substr(0,2)=="$$";
 
-    string protectedPrefix = env.options->protectedPrefix();
+    vstring protectedPrefix = env.options->protectedPrefix();
     if(!ssDistinct && protectedPrefix.size()!=0) {
       if(name.substr(0, protectedPrefix.size())==protectedPrefix) {
 	ssDistinct = true;
@@ -206,7 +206,7 @@ unsigned PredicateIndexIntroducer::getIndexedPred(Literal* lit)
   unsigned remainingArity = lit->arity() - indexedArgs.size();
 
 
-  string suffix = lit->predicateName();
+  vstring suffix = lit->predicateName();
 
 
   //build a nice suffix for the newly introduced predicate

@@ -2,7 +2,6 @@
  * @file vampire.cpp. Implements the top-level procedures of Vampire.
  */
 
-#include <string>
 #include <iostream>
 #include <ostream>
 #include <fstream>
@@ -19,7 +18,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
-
+#include "Lib/VString.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
@@ -136,16 +135,19 @@ int g_returnValue = 1;
 
 Problem* getPreprocessedProblem()
 {
-  CALL("getInputClauses");
+  CALL("getPreprocessedProblem");
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   TimeCounter tc2(TC_PREPROCESSING);
 
   Shell::Preprocess prepro(*env.options);
-  //phases for preprocessing are being set inside the proprocess method
+  //phases for preprocessing are being set inside the preprocess method
   prepro.preprocess(*prb);
   globProblem = prb;
+  
+  // TODO: could this be the right way to freeing the currently leaking classes like Units, Clauses and Inferences?
+  // globUnitList = prb->units();
 
   return prb;
 } // getPreprocessedProblem
@@ -195,7 +197,7 @@ void programAnalysisMode()
   // create random seed for the random number generation
 
 #if 0
-  string inputFile = env.options->inputFile();
+  vstring inputFile = env.options->inputFile();
   istream* input;
   if (inputFile=="") {
     input=&cin;
@@ -206,9 +208,9 @@ void programAnalysisMode()
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
   }
-  string progString("");
+  vstring progString("");
   while (!input->eof()) {
-    string inp;
+    vstring inp;
     getline(*input,inp);
     progString += inp + '\n';
   }
@@ -225,7 +227,7 @@ void programAnalysisMode()
   env.options->setMode(Options::MODE_VAMPIRE);
   Allocator::setMemoryLimit(1024u * 1048576ul);
 
-  string inputFile = env.options->inputFile();
+  vstring inputFile = env.options->inputFile();
   if (inputFile == "") {
     USER_ERROR("Cannot open problem file: "+inputFile);
   }
@@ -476,7 +478,8 @@ void vampireMode()
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  string inputFile = env.options->inputFile();
+  /*
+  vstring inputFile = env.options->inputFile();
   istream* input;
   if (inputFile == "") {
     input = &cin;
@@ -486,6 +489,7 @@ void vampireMode()
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
   }
+  */
 
   doProving();
 

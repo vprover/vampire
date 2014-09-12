@@ -7,12 +7,17 @@
 
 #include "Ordering.hpp"
 
+#include "Lib/Allocator.hpp"
+
 namespace Kernel
 {
 
 class Ordering::EqCmp
 {
 public:
+  CLASS_NAME(EqCmp);
+  USE_ALLOCATOR(EqCmp);
+
   EqCmp(Ordering* ordering) : _ordering(ordering)
   {
 #if VDEBUG

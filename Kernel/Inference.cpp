@@ -219,7 +219,7 @@ Unit* Inference::next(Iterator&)
  * Return the rule name, such as "binary resolution".
  * @since 04/01/2008 Torrevieja
  */
-string Inference::ruleName(Rule rule)
+vstring Inference::ruleName(Rule rule)
 {
   CALL("Inference::ruleName");
 

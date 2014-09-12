@@ -8,14 +8,12 @@
 #ifndef __System__
 #define __System__
 
-#include <string>
-
 #include "Forwards.hpp"
 
 #include "Array.hpp"
 #include "List.hpp"
 #include "Portability.hpp"
-
+#include "VString.hpp"
 
 #define VAMP_RESULT_STATUS_SUCCESS 0
 #define VAMP_RESULT_STATUS_UNKNOWN 1
@@ -39,11 +37,11 @@ class System {
 public:
 //  static void gethostname(char* hostname,int maxlength);
   static void setSignalHandlers();
-  static string extractFileNameFromPath(string str);
-  static bool extractDirNameFromPath(string path, string& dir);
+  static vstring extractFileNameFromPath(vstring str);
+  static bool extractDirNameFromPath(vstring path, vstring& dir);
 
-  static string guessExecutableDirectory();
-  static string guessExecutableName();
+  static vstring guessExecutableDirectory();
+  static vstring guessExecutableName();
 
   static void ignoreSIGINT() { s_shouldIgnoreSIGINT=true; }
   static void heedSIGINT() { s_shouldIgnoreSIGINT=false; }
@@ -76,11 +74,11 @@ public:
    */
   static unsigned getNumberOfCores();
 
-  static bool fileExists(string fname);
+  static bool fileExists(vstring fname);
 
   static pid_t getPID();
 
-  static int executeCommand(string command, string input, Stack<string>& outputLines);
+  static int executeCommand(vstring command, vstring input, Stack<vstring>& outputLines);
 
 private:
 

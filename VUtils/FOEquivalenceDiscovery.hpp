@@ -20,7 +20,7 @@ class FOEquivalenceDiscovery {
 public:
   int perform(int argc, char** argv);
 private:
-  string getArgStr(unsigned arity);
+  vstring getArgStr(unsigned arity);
 };
 
 }

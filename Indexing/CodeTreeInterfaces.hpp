@@ -15,6 +15,7 @@
 #include "TermIndexingStructure.hpp"
 #include "LiteralIndexingStructure.hpp"
 
+#include "Lib/Allocator.hpp"
 
 namespace Indexing
 {
@@ -30,6 +31,9 @@ using namespace Lib;
 class CodeTreeTIS : public TermIndexingStructure
 {
 public:
+  CLASS_NAME(CodeTreeTIS);
+  USE_ALLOCATOR(CodeTreeTIS);
+
   void insert(TermList t, Literal* lit, Clause* cls);
   void remove(TermList t, Literal* lit, Clause* cls);
 
@@ -62,6 +66,9 @@ class CodeTreeSubsumptionIndex
 : public ClauseSubsumptionIndex
 {
 public:
+  CLASS_NAME(CodeTreeSubsumptionIndex);
+  USE_ALLOCATOR(CodeTreeSubsumptionIndex);
+
   ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution);
 protected:
   //overrides Index::handleClause

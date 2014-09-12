@@ -2,7 +2,6 @@
  * @file vutil.cpp. Implements the main function for running small tools thet use Vampire's infrastructure.
  */
 
-#include <string>
 #include <iostream>
 
 #include "Forwards.hpp"
@@ -16,6 +15,7 @@
 #include "Lib/Random.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
+#include "Lib/VString.hpp"
 
 #include "Shell/CommandLine.hpp"
 #include "Shell/Options.hpp"
@@ -55,13 +55,13 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
   it.next();
 
   while(it.hasNext()) {
-    string arg(it.next());
+    vstring arg(it.next());
     if(arg=="-tr") {
       it.del();
       if(!it.hasNext()) {
 	USER_ERROR("value for -tr option expected");
       }
-      string traceStr(it.next());
+      vstring traceStr(it.next());
       it.del();
       PROCESS_TRACE_SPEC_STRING(traceStr);
     }
@@ -70,7 +70,7 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
       if(!it.hasNext()) {
 	USER_ERROR("value for -m option expected");
       }
-      string memLimitStr = it.next();
+      vstring memLimitStr = it.next();
       it.del();
       unsigned memLimit;
       if(!Int::stringToUnsignedInt(memLimitStr, memLimit)) {
@@ -113,7 +113,7 @@ int main(int argc, char* argv [])
     if(args.size()<2) {
       USER_ERROR("missing name of the vutil module to be run (vutil requires at least one command line argument)");
     }
-    string module=args[1];
+    vstring module=args[1];
     if(module=="problem_coloring") {
       resultValue=ProblemColoring().perform(args.size(), args.begin());
     }

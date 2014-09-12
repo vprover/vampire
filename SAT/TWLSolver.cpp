@@ -162,6 +162,10 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
     doSolving(onlyPropagate ? 0 : UINT_MAX);
   } catch (const UnsatException& e)
   {
+    // make sure the rest of clauses will get released
+    while(cit.hasNext())
+      _addedClauses.push(cit.next());
+  
     _status=UNSATISFIABLE;
     _refutation = e.refutation;
     ASS(!_generateProofs || _refutation);

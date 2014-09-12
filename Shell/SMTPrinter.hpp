@@ -34,8 +34,8 @@ public:
   void smtPrint(Formula* formula, ostream& out);
   void smtPrint(Term* term, ostream& out);
   void smtPrint(Symbol* symb, ostream& out);
-  void smtPrintName(const string& name, ostream& out);
-  void smtPrintSort(const string& sortName, ostream& out);  
+  void smtPrintName(const vstring& name, ostream& out);
+  void smtPrintSort(const vstring& sortName, ostream& out);  
   void smtPrintDeclaration(Symbol* symb, ostream& out);
 
 private:

@@ -137,9 +137,9 @@ public:
   {
     PreprocessingOptions();
     /**
-     * Read options from a string.
+     * Read options from a vstring.
      */
-    explicit PreprocessingOptions(string spec);
+    explicit PreprocessingOptions(vstring spec);
 
     PreprocessingMode mode;
     /**
@@ -417,7 +417,7 @@ public:
    * @param includeDirectory where the parser will look for included files
    * @param simplifySyntax Simplify syntax will be used instead of the TPTP syntax.
    */
-  void addFromStream(istream& s, string includeDirectory="./", bool simplifySyntax=false);
+  void addFromStream(istream& s, vstring includeDirectory="./", bool simplifySyntax=false);
 
   /**
    * Return the current problem clausified
@@ -473,7 +473,7 @@ public:
    * where &lt;stageX spec&gt; is
    * &lt;option1&gt;=&lt;value1&gt;[:&lt;option2&gt;=&lt;value2&gt;[:...]]
    */
-  void readStageSpecs(string stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs);
+  void readStageSpecs(vstring stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs);
 
   /**
    * Perform sequence of preprocessing according to array of options @c stageSpecs with
@@ -481,7 +481,7 @@ public:
    *
    */
   Problem preprocessInStages(size_t stageCount, const PreprocessingOptions* stageSpecs);
-  Problem preprocessInStages(string stagesStr);
+  Problem preprocessInStages(vstring stagesStr);
 
   /**
    * Rewrite occurrences of @c lhs in the problem by posRhs, negRhs or dblRhs,

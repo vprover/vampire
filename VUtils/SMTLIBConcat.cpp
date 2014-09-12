@@ -161,7 +161,7 @@ void SMTLIBConcat::rewriteIntsToReals(LExpr* e0)
   }
 }
 
-void SMTLIBConcat::addBenchmark(LExpr* expr, DHSet<string>& funSet, LispListWriter& wrt)
+void SMTLIBConcat::addBenchmark(LExpr* expr, DHSet<vstring>& funSet, LispListWriter& wrt)
 {
   CALL("SMTLIBConcat::readBenchmark");
 
@@ -190,7 +190,7 @@ void SMTLIBConcat::addBenchmark(LExpr* expr, DHSet<string>& funSet, LispListWrit
 	LExpr* funDecl = funIt.next();
 	if(!funDecl->isList() && funDecl->list->head()->isAtom()) { USER_ERROR("function declaration expected: "+funDecl->toString()); }
 
-	string fnName = funDecl->list->head()->str;
+	vstring fnName = funDecl->list->head()->str;
 	if(!funSet.insert(fnName)) {
 	  //duplicate function
 	  continue;
@@ -214,7 +214,7 @@ LExpr* SMTLIBConcat::mergeBenchmarksIntoSmtlib2(Stack<LExpr*>& exprs)
 {
   CALL("SMTLIBConcat::mergeBenchmarks");
 
-  DHSet<string> funSet;
+  DHSet<vstring> funSet;
   Stack<LExpr*> funs;
 
   LispListWriter res;
@@ -246,7 +246,7 @@ LExpr* SMTLIBConcat::mergeBenchmarksIntoSmtlib2(Stack<LExpr*>& exprs)
   return res.get();
 }
 
-LExpr* SMTLIBConcat::parseFile(string fname)
+LExpr* SMTLIBConcat::parseFile(vstring fname)
 {
   CALL("SMTLIBConcat::parseFile");
 

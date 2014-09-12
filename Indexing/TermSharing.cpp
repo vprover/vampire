@@ -159,7 +159,7 @@ Literal* TermSharing::insert(Literal* t)
 
   _literalInsertions++;
   Literal* s = _literals.insert(t);
-  string n = "";
+  vstring n = "";
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
@@ -232,7 +232,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t,unsigned sort)
 
   _literalInsertions++;
   Literal* s = _literals.insert(t);
-  string n = "";
+  vstring n = "";
   if (s == t) {
     t->markShared();
     t->setWeight(3);

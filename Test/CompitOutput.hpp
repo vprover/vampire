@@ -10,9 +10,9 @@
 
 #if COMPIT_VERSION==1
 
-#include <string>
-
 #include "Forwards.hpp"
+
+#include "Lib/VString.hpp"
 
 namespace Test {
 

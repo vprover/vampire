@@ -19,6 +19,9 @@ namespace SAT {
 class ClauseDisposer
 {
 public:
+  CLASS_NAME(ClauseDisposer);
+  USE_ALLOCATOR(ClauseDisposer);
+
   typedef SATClause::ActivityType ActivityType;
 
   ClauseDisposer(TWLSolver& solver) : _solver(solver) {}
@@ -59,6 +62,9 @@ protected:
 class DecayingClauseDisposer : public ClauseDisposer
 {
 public:
+  CLASS_NAME(DecayingClauseDisposer);
+  USE_ALLOCATOR(DecayingClauseDisposer);
+
   DecayingClauseDisposer(TWLSolver& solver, ActivityType decayFactor = 1.001)
    : ClauseDisposer(solver), _decayFactor(decayFactor), _inc(1e-30) {}
 
@@ -93,6 +99,9 @@ protected:
 class MinisatClauseDisposer : public DecayingClauseDisposer
 {
 public:
+  CLASS_NAME(MinisatClauseDisposer);
+  USE_ALLOCATOR(MinisatClauseDisposer);
+
   MinisatClauseDisposer(TWLSolver& solver, ActivityType decayFactor = 1.001f)
    : DecayingClauseDisposer(solver, decayFactor), _phaseIdx(0), _phaseLen(100), _clauseCntAcc(0), _survivorCnt(0) {}
 
@@ -130,6 +139,9 @@ protected:
 class GrowingClauseDisposer : public DecayingClauseDisposer
 {
 public:
+  CLASS_NAME(GrowingClauseDisposer);
+  USE_ALLOCATOR(GrowingClauseDisposer);
+
   GrowingClauseDisposer(TWLSolver& solver, ActivityType decayFactor = 1.001f)
    : DecayingClauseDisposer(solver, decayFactor), _phaseIdx(0), _phaseLen(100), _clauseCntAcc(0), _survivorCnt(0) {}
 

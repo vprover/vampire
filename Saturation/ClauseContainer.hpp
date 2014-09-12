@@ -14,6 +14,8 @@
 #include "Lib/Deque.hpp"
 #include "Lib/Stack.hpp"
 
+#include "Lib/Allocator.hpp"
+
 #include "Limits.hpp"
 
 #define OUTPUT_LRS_DETAILS 0
@@ -27,6 +29,9 @@ using namespace Kernel;
 class ClauseContainer
 {
 public:
+  CLASS_NAME(ClauseContainer);
+  USE_ALLOCATOR(ClauseContainer);
+
   virtual ~ClauseContainer() {}
   ClauseEvent addedEvent;
   /**
@@ -52,6 +57,9 @@ class RandomAccessClauseContainer
 : public ClauseContainer
 {
 public:
+  CLASS_NAME(RandomAccessClauseContainer);
+  USE_ALLOCATOR(RandomAccessClauseContainer);
+
   virtual void attach(SaturationAlgorithm* salg);
   virtual void detach();
 
@@ -71,6 +79,9 @@ private:
 
 class PlainClauseContainer : public ClauseContainer {
 public:
+  CLASS_NAME(PlainClauseContainer);
+  USE_ALLOCATOR(PlainClauseContainer);
+
   virtual void add(Clause* c)
   {
     addedEvent.fire(c);
@@ -82,6 +93,9 @@ class UnprocessedClauseContainer
 : public ClauseContainer
 {
 public:
+  CLASS_NAME(UnprocessedClauseContainer);
+  USE_ALLOCATOR(UnprocessedClauseContainer);
+
   virtual ~UnprocessedClauseContainer();
   UnprocessedClauseContainer() : _data(64) {}
   void add(Clause* c);
@@ -96,6 +110,8 @@ class PassiveClauseContainer
 : public RandomAccessClauseContainer
 {
 public:
+  CLASS_NAME(PassiveClauseContainer);
+  USE_ALLOCATOR(PassiveClauseContainer);
 
   virtual bool isEmpty() const = 0;
   virtual Clause* popSelected() = 0;
@@ -110,6 +126,9 @@ class ActiveClauseContainer
 : public RandomAccessClauseContainer
 {
 public:
+  CLASS_NAME(ActiveClauseContainer);
+  USE_ALLOCATOR(ActiveClauseContainer);
+
   ActiveClauseContainer(const Options& opt) : _size(0), _opt(opt) {}
 
   void add(Clause* c);

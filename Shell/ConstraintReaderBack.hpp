@@ -58,7 +58,7 @@ private:
 
   ConstraintRCPtr getConstraint(Literal* literal);
   CoeffNumber readNumber(Term* term);
-  bool isNumber(string term);
+  bool isNumber(vstring term);
   Signature& _sig;
   Parse::SMTLIB2& _parser;
 };

@@ -89,29 +89,29 @@ public:
 
 protected:
 
-  std::string simpleExpression(const clang::Expr* e);
+  vstring simpleExpression(const clang::Expr* e);
   void treatSingleDeclaration(const Decl* stmt);
   bool isSimpleExpression(const Expr *exp);
   const VarDecl * GetVarDecl(const Expr *exp);
-  string getLiteralName(const Expr *exp);
-  string getSignedValue(const Expr *exp);
+  vstring getLiteralName(const Expr *exp);
+  vstring getSignedValue(const Expr *exp);
 
-  Program::ConstantFunctionExpression* getConstFunction(std::string op);
-  string WriteSimpleAssignment(const ::clang::Expr* lhs, const Expr* rhs,
-	  string operation);
-  string WriteSimpleStatement(const ::clang::Expr *lhs,
-	  const ::clang::Expr *rhs, ::std::string operation);
+  Program::ConstantFunctionExpression* getConstFunction(vstring op);
+  vstring WriteSimpleAssignment(const ::clang::Expr* lhs, const Expr* rhs,
+	  vstring operation);
+  vstring WriteSimpleStatement(const ::clang::Expr *lhs,
+	  const ::clang::Expr *rhs, ::vstring operation);
 
   void AddValues(int val);
-  void AddArrayName(string name);
-  void AddVariableName(string name);
+  void AddArrayName(vstring name);
+  void AddVariableName(vstring name);
   void getVariables(const Stmt *stmt);
 
-  void writeIfStatments(string att);
+  void writeIfStatments(vstring att);
   void writeWhileStatments();
 
-  void addToMainProgram(string exp);
-  int stringToInt(string s);
+  void addToMainProgram(vstring exp);
+  int stringToInt(vstring s);
 
   //checks the kind of a expression
   bool isVariable(const Expr *exp);
@@ -120,16 +120,16 @@ protected:
 
   //this function is called in order to treat expressions of the form
   // var++ or var-- and so on
-  void treatSpecialCase(const Expr *lhs, string operation);
+  void treatSpecialCase(const Expr *lhs, vstring operation);
 
   //take care of th case var+= exp
-  void treatSpecial(const Expr *lhs, const Expr *rhs, string op);
-  std::string treatSimpleBinaryOperation(const clang::Expr* lhs,
-	  const clang::Expr*, std::string op);
-  string noToString(int n);
-  string numeUitat;
-  vector<string> _mainProgram;
-  vector<string> Body;
+  void treatSpecial(const Expr *lhs, const Expr *rhs, vstring op);
+  vstring treatSimpleBinaryOperation(const clang::Expr* lhs,
+	  const clang::Expr*, vstring op);
+  vstring noToString(int n);
+  vstring numeUitat;
+  vector<vstring> _mainProgram;
+  vector<vstring> Body;
   //flag is the indicator if the loop/if construction is in the outermost structure
   //or is in the body of some construction
   bool flag;

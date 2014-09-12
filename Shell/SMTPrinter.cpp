@@ -171,7 +171,7 @@ void SMTPrinter::smtPrint(Term* term, ostream& out)
 /*print symbols in SMT*/
 void SMTPrinter::smtPrint(Symbol* symb, ostream& out)
 {
-  string name = symb->name();
+  vstring name = symb->name();
    if (symb->interpreted()) {
     if (name == "$less") {
       out << "<";

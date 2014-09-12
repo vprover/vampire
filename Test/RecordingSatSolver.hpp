@@ -43,7 +43,7 @@ public:
 
 private:
 
-  string getHdr() const;
+  vstring getHdr() const;
 
   SATSolverSCP _inner;
 };
@@ -67,7 +67,7 @@ public:
 
     ReplayAction action;
     unsigned acOnlyPropagate;
-    string acClausesStr;
+    vstring acClausesStr;
     SATClauseStack acClauses;
     unsigned evcVarCnt;
     unsigned aaLitVar;
@@ -78,18 +78,18 @@ public:
     OptionsReader rdr;
 
 
-    void readCommand(string str);
+    void readCommand(vstring str);
 
     SATClauseIterator getClauses() {
       ASS_EQ(action, RA_ADD_CLAUSES);
       return pvi(SATClauseStack::BottomFirstIterator(acClauses));
     }
   private:
-    SATClause* readClause(string str);
+    SATClause* readClause(vstring str);
   };
 
-  void performStep(string cmd);
-  void runFromStream(istream& stm, string prefix);
+  void performStep(vstring cmd);
+  void runFromStream(istream& stm, vstring prefix);
 
 private:
   SATSolver& _solver;

@@ -26,9 +26,9 @@ using namespace Lib;
 // IntegerConstantType
 //
 
-IntegerConstantType::IntegerConstantType(const string& str)
+IntegerConstantType::IntegerConstantType(const vstring& str)
 {
-  CALL("IntegerConstantType::IntegerConstantType(string)");
+  CALL("IntegerConstantType::IntegerConstantType(vstring)");
 
   if (!Int::stringToInt(str, _val)) {
     //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
@@ -177,7 +177,7 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
   }
 }
 
-string IntegerConstantType::toString() const
+vstring IntegerConstantType::toString() const
 {
   CALL("IntegerConstantType::toString");
 
@@ -195,7 +195,7 @@ RationalConstantType::RationalConstantType(InnerType num, InnerType den)
   init(num, den);
 }
 
-RationalConstantType::RationalConstantType(const string& num, const string& den)
+RationalConstantType::RationalConstantType(const vstring& num, const vstring& den)
 {
   CALL("RationalConstantType::RationalConstantType");
 
@@ -271,12 +271,12 @@ bool RationalConstantType::operator>(const RationalConstantType& o) const
 }
 
 
-string RationalConstantType::toString() const
+vstring RationalConstantType::toString() const
 {
   CALL("RationalConstantType::toString");
 
-  string numStr = _num.toString();
-  string denStr = _den.toString();
+  vstring numStr = _num.toString();
+  vstring denStr = _den.toString();
 
 //  return "("+numStr+"/"+denStr+")";
   return numStr+"/"+denStr;
@@ -368,12 +368,12 @@ Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstant
   return RationalConstantType::comparePrecedence(n1, n2);
 }
 
-bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
+bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res)
 {
   CALL("RealConstantType::parseDouble");
 
   try {
-    string newNum;
+    vstring newNum;
     IntegerConstantType denominator = 1;
     bool haveDecimal = false;
     bool neg = false;
@@ -414,7 +414,7 @@ bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
   return true;
 }
 
-RealConstantType::RealConstantType(const string& number)
+RealConstantType::RealConstantType(const vstring& number)
 {
   CALL("RealConstantType::RealConstantType");
 
@@ -443,7 +443,7 @@ RealConstantType::RealConstantType(const string& number)
   init(numerator, denominator);
 }
 
-string RealConstantType::toNiceString() const
+vstring RealConstantType::toNiceString() const
 {
   CALL("RealConstantType::toNiceString");
 
@@ -457,16 +457,16 @@ string RealConstantType::toNiceString() const
 // Theory
 //
 
-Theory* theory = Theory::instance();
+Theory Theory::theory_obj;  // to facilitate destructor call at deinitization
+
+Theory* theory = &Theory::theory_obj;
 
 /**
  * Accessor for the singleton instance of the Theory class.
  */
 Theory* Theory::instance()
 {
-  static Theory* inst=new Theory;
-
-  return inst;
+  return theory;
 }
 
 /**
@@ -1329,7 +1329,7 @@ Term* Theory::representConstant(const RealConstantType& num)
   return Term::create(func, 0, 0);
 }
 
-Term* Theory::representIntegerConstant(string str)
+Term* Theory::representIntegerConstant(vstring str)
 {
   CALL("Theory::representIntegerConstant");
 
@@ -1350,7 +1350,7 @@ Term* Theory::representIntegerConstant(string str)
   }
 }
 
-Term* Theory::representRealConstant(string str)
+Term* Theory::representRealConstant(vstring str)
 {
   CALL("Theory::representRealConstant");
   try {

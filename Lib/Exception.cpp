@@ -9,6 +9,7 @@
 #include "Int.hpp"
 
 #include "Exception.hpp"
+#include "VString.hpp"
 
 namespace Lib
 {
@@ -16,7 +17,7 @@ namespace Lib
 int Exception::s_exceptionCounter=0;
 
 Exception::Exception (const char* msg, int line)
-  : _message((string(msg)+": "+Int::toString(line)).c_str())
+  : _message((vstring(msg)+": "+Int::toString(line)).c_str())
 { s_exceptionCounter++; }
 
 /**
@@ -45,7 +46,7 @@ void InvalidOperationException::cry (ostream& str)
 } // InvalidOperationException::cry
 
 
-SystemFailException::SystemFailException(const string msg, int err)
+SystemFailException::SystemFailException(const vstring msg, int err)
 : Exception(msg+" error "+Int::toString(err)+": "+strerror(err)), err(err)
 {
 //#if VDEBUG

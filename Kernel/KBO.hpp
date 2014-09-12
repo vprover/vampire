@@ -54,6 +54,9 @@ class KBO
 : public KBOBase
 {
 public:
+  CLASS_NAME(KBO);
+  USE_ALLOCATOR(KBO);
+
   KBO(Problem& prb, const Options& opt);
   virtual ~KBO();
 

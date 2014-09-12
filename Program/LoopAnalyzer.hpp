@@ -8,9 +8,9 @@
 #ifndef __ProgramLoopAnalyzer__
 #define __ProgramLoopAnalyzer__
 
-#include <string>
 #include "Lib/Set.hpp"
 #include "Lib/List.hpp"
+#include "Lib/VString.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Sorts.hpp"
@@ -73,7 +73,7 @@ private:
   void generateAxiomsForCounters();
   Formula* getBranchCondition(Variable* v);
   Formula* getGeneralUpdateCondition(Path* path, Path::Iterator& pite, int conditionNumber);
-  void generateCounterAxiom(const string& name,int min,int max,int gcd, Formula* branch);
+  void generateCounterAxiom(const vstring& name,int min,int max,int gcd, Formula* branch);
   void generateLetExpressions();
   TermList expressionToTerm(Expression* exp, bool magic=false);
   Formula*  expressionToPred(Expression* exp,bool magic=false);
@@ -90,16 +90,16 @@ private:
   Formula* arrayUpdateCondition(Path* path, Path::Iterator &sit, int posCnt);
   Formula* updPredicateStack(Stack<Formula*> &updStack);
   TermList arrayUpdateValue(Path::Iterator &sit, TermList exp, int posCnt, int currentCnt);
-  Formula* lastUpdateProperty(Literal* updPred, string array, TermList position, TermList updValue);
-  Formula* stabilityProperty(Literal* updPred, string array, TermList position, TermList iteration);
+  Formula* lastUpdateProperty(Literal* updPred, vstring array, TermList position, TermList updValue);
+  Formula* stabilityProperty(Literal* updPred, vstring array, TermList position, TermList iteration);
   void generateValueFunctionRelationsOfVariables();//TermList n);
   void generateLoopConditionProperty();
   void generateIterationDefinition();//TermList n);
   Formula* relativePathCondition(Formula* condition);
 
-  unsigned getIntFunction(string name, unsigned arity, bool setColor=false);
-  unsigned getIntConstant(string name);
-  unsigned getIntPredicate(string name, unsigned arity, bool setColor);
+  unsigned getIntFunction(vstring name, unsigned arity, bool setColor=false);
+  unsigned getIntConstant(vstring name);
+  unsigned getIntPredicate(vstring name, unsigned arity, bool setColor);
   Literal* createIntEquality(bool polarity, TermList arg1, TermList arg2)
   { return Literal::createEquality(polarity, arg1, arg2, Sorts::SRT_INTEGER); }
 

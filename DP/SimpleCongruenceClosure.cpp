@@ -22,11 +22,11 @@ namespace DP
 
 const unsigned SimpleCongruenceClosure::NO_SIG_SYMBOL = 0xFFFFFFFF;
 
-string SimpleCongruenceClosure::CEq::toString() const
+vstring SimpleCongruenceClosure::CEq::toString() const
 {
   CALL("SimpleCongruenceClosure::CEq::toString");
 
-  stringstream res;
+  vostringstream res;
   res << c1<<"="<<c2<<" implied by ";
   if(foOrigin) {
     if(foPremise) {
@@ -42,11 +42,11 @@ string SimpleCongruenceClosure::CEq::toString() const
   return res.str();
 }
 
-string SimpleCongruenceClosure::CEq::toString(SimpleCongruenceClosure& parent) const
+vstring SimpleCongruenceClosure::CEq::toString(SimpleCongruenceClosure& parent) const
 {
   CALL("SimpleCongruenceClosure::CEq::toString");
 
-  stringstream res;
+  vostringstream res;
   res << c1<<"="<<c2<<" implied by ";
   if(foOrigin) {
     if(foPremise) {

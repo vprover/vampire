@@ -434,11 +434,11 @@ bool AIG::Ref::operator<(const Ref& r) const
   return false;
 }
 
-string AIG::Ref::toString() const
+vstring AIG::Ref::toString() const
 {
   CALL("AIG::Ref::toString");
 
-  string inner;
+  vstring inner;
   switch(node()->kind()) {
   case Node::TRUE_CONST:
     return polarity() ? "$true" : "$false";
@@ -471,9 +471,9 @@ string AIG::Ref::toString() const
 /**
  * Output string representation of AIG that reveals links to parent AIGs
  */
-string AIG::Ref::toInternalString(unsigned depth) const
+vstring AIG::Ref::toInternalString(unsigned depth) const
 {
-  string inner;
+  vstring inner;
 
   Node::Kind kind = node()->kind();
 

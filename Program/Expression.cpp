@@ -317,25 +317,25 @@ Expression* Expression::SubexpressionIterator::next()
 } // next
 
 /** convert the expression to a string, can be used to output the expression */
-string ConstantIntegerExpression::toString(unsigned priority) const
+vstring ConstantIntegerExpression::toString(unsigned priority) const
 {
   return Int::toString(_value);
 }
 
 /** convert the expression to a string, can be used to output the expression */
-string ConstantFunctionExpression::toString(unsigned priority) const
+vstring ConstantFunctionExpression::toString(unsigned priority) const
 {
   return _name;
 }
 
 /** convert the expression to a string, can be used to output the expression */
-string VariableExpression::toString(unsigned priority) const
+vstring VariableExpression::toString(unsigned priority) const
 {
   return _variable->name();
 }
 
 /** convert the expression to a string, can be used to output the expression */
-string FunctionApplicationExpression::toString(unsigned priority) const
+vstring FunctionApplicationExpression::toString(unsigned priority) const
 {
   CALL("FunctionApplicationExpression::toString");
 
@@ -345,7 +345,7 @@ string FunctionApplicationExpression::toString(unsigned priority) const
   unsigned pr = fun->priority();
 
   if (arity == 2 && pr > 0) {
-    string result("");
+    vstring result("");
     if (priority > 0 && pr >= priority) {
       result += '(';
     }
@@ -357,7 +357,7 @@ string FunctionApplicationExpression::toString(unsigned priority) const
   }
 
   if (arity == 1 && pr > 0) {
-    string result("");
+    vstring result("");
     if (priority > 0 && pr >= priority) {
       result += '(';
     }
@@ -368,18 +368,18 @@ string FunctionApplicationExpression::toString(unsigned priority) const
     return result;
   }
 
-  string result = _function->toString() + '(';
+  vstring result = _function->toString() + '(';
   if (_numberOfArguments > 0) {
     result += _arguments[0]->toString();
     for (unsigned n = 1;n < _numberOfArguments;n++) {
-      result += string(",") + _arguments[n]->toString();
+      result += vstring(",") + _arguments[n]->toString();
     }
   }
   return result + ")";
 }
 
 /** convert the expression to a string, can be used to output the expression */
-string ArrayApplicationExpression::toString(unsigned priority) const
+vstring ArrayApplicationExpression::toString(unsigned priority) const
 {
   CALL("ArrayApplicationExpression::toString");
   return _array->toString() + '[' + _argument->toString() + ']';

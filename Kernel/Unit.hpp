@@ -8,11 +8,10 @@
 #ifndef __Unit__
 #define __Unit__
 
-#include <string>
-
 #include "Forwards.hpp"
 
 #include "Lib/List.hpp"
+#include "Lib/VString.hpp"
 
 namespace Kernel {
 
@@ -57,10 +56,10 @@ public:
   static InputType getInputType(InputType t1, InputType t2);
 
   void destroy();
-  string toString() const;
+  vstring toString() const;
   unsigned varCnt();
 
-  string inferenceAsString(BDDNode* propPart=0) const;
+  vstring inferenceAsString(BDDNode* propPart=0) const;
 
   /** True if a clause unit */
   bool isClause() const

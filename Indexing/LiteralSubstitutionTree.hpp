@@ -16,6 +16,9 @@ class LiteralSubstitutionTree
 : public LiteralIndexingStructure, SubstitutionTree
 {
 public:
+  CLASS_NAME(LiteralSubstitutionTree);
+  USE_ALLOCATOR(LiteralSubstitutionTree);
+
   LiteralSubstitutionTree();
 
   void insert(Literal* lit, Clause* cls);
@@ -37,7 +40,7 @@ public:
 	  bool complementary, bool retrieveSubstitutions);
 
 #if VDEBUG
-  string toString() {return SubstitutionTree::toString();}
+  vstring toString() {return SubstitutionTree::toString();}
 #endif
 
 private:

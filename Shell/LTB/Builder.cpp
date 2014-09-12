@@ -42,7 +42,7 @@ Builder::Builder()
 
 struct StringComparator
 {
-  static Comparison compare(const string& a, const string& b)
+  static Comparison compare(const vstring& a, const vstring& b)
   {
     CALL("DefaultComparator::compare");
 
@@ -76,7 +76,7 @@ struct DRecordComparator
 };
 
 
-void Builder::build(VirtualIterator<string> fnameIterator)
+void Builder::build(VirtualIterator<vstring> fnameIterator)
 {
   CALL("Builder::build");
 
@@ -92,7 +92,7 @@ void Builder::build(VirtualIterator<string> fnameIterator)
   //read units from all the included files
   StringStack::Iterator fnit(fnames);
   while(fnit.hasNext()) {
-    string fname=fnit.next();
+    vstring fname=fnit.next();
     ifstream input(env.options->includeFileName(fname).c_str());
     if(input.fail()) {
       USER_ERROR("Cannot open included file: "+env.options->includeFileName(fname));

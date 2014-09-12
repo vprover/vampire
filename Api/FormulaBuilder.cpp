@@ -53,7 +53,7 @@ FormulaBuilder::FormulaBuilder(bool checkNames, bool checkBindingBoundVariables,
   _aux->_outputDummyNames=outputDummyNames;
 }
 
-Sort FormulaBuilder::sort(const string& sortName)
+Sort FormulaBuilder::sort(const vstring& sortName)
 {
   CALL("FormulaBuilder::sort");
 
@@ -90,28 +90,28 @@ Sort FormulaBuilder::defaultSort()
   return Sort(Sorts::SRT_DEFAULT);
 }
 
-string FormulaBuilder::getSortName(Sort s)
+vstring FormulaBuilder::getSortName(Sort s)
 {
   CALL("FormulaBuilder::getSortName");
 
   return env.sorts->sortName(s);
 }
 
-string FormulaBuilder::getPredicateName(Predicate p)
+vstring FormulaBuilder::getPredicateName(Predicate p)
 {
   CALL("FormulaBuilder::getPredicateName");
 
   return _aux->getSymbolName(true, p);
 }
 
-string FormulaBuilder::getFunctionName(Function f)
+vstring FormulaBuilder::getFunctionName(Function f)
 {
   CALL("FormulaBuilder::getFunctionName");
 
   return _aux->getSymbolName(true, f);
 }
 
-string FormulaBuilder::getVariableName(Var v)
+vstring FormulaBuilder::getVariableName(Var v)
 {
   CALL("FormulaBuilder::getVariableName");
 
@@ -120,27 +120,27 @@ string FormulaBuilder::getVariableName(Var v)
 
 
 
-Var FormulaBuilder::var(const string& varName)
+Var FormulaBuilder::var(const vstring& varName)
 {
   CALL("FormulaBuilder::var");
 
   if(!_aux->_allowImplicitlyTypedVariables) {
     throw FormulaBuilderException("Creating implicitly typed variables is not allowed. Use function "
-	"FormulaBuilder::var(const string& varName, Sort varSort) instead of "
-	"FormulaBuilder::var(const string& varName)");
+	"FormulaBuilder::var(const vstring& varName, Sort varSort) instead of "
+	"FormulaBuilder::var(const vstring& varName)");
   }
 
   return var(varName, defaultSort());
 }
 
-Var FormulaBuilder::var(const string& varName, Sort varSort)
+Var FormulaBuilder::var(const vstring& varName, Sort varSort)
 {
   CALL("FormulaBuilder::var");
 
   return _aux->getVar(varName, varSort);
 }
 
-Function FormulaBuilder::function(const string& funName,unsigned arity, bool builtIn)
+Function FormulaBuilder::function(const vstring& funName,unsigned arity, bool builtIn)
 {
   CALL("FormulaBuilder::function/2");
 
@@ -149,7 +149,7 @@ Function FormulaBuilder::function(const string& funName,unsigned arity, bool bui
   return function(funName, arity, defaultSort(), domainSorts.array(), builtIn);
 }
 
-Function FormulaBuilder::function(const string& funName, unsigned arity, Sort rangeSort, Sort* domainSorts, bool builtIn)
+Function FormulaBuilder::function(const vstring& funName, unsigned arity, Sort rangeSort, Sort* domainSorts, bool builtIn)
 {
   CALL("FormulaBuilder::function/4");
 
@@ -193,7 +193,7 @@ Function FormulaBuilder::integerConstant(int i)
   return Function(fun);
 }
 
-Function FormulaBuilder::integerConstant(string i)
+Function FormulaBuilder::integerConstant(vstring i)
 {
   CALL("FormulaBuilder::integerConstant");
 
@@ -208,7 +208,7 @@ Function FormulaBuilder::integerConstant(string i)
 }
 
 
-Predicate FormulaBuilder::predicate(const string& predName,unsigned arity, bool builtIn)
+Predicate FormulaBuilder::predicate(const vstring& predName,unsigned arity, bool builtIn)
 {
   CALL("FormulaBuilder::predicate/2");
 
@@ -217,7 +217,7 @@ Predicate FormulaBuilder::predicate(const string& predName,unsigned arity, bool 
   return predicate(predName, arity, domainSorts.array(), builtIn);
 }
 
-Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort* domainSorts, bool builtIn)
+Predicate FormulaBuilder::predicate(const vstring& predName, unsigned arity, Sort* domainSorts, bool builtIn)
 {
   CALL("FormulaBuilder::predicate/3");
 
@@ -279,9 +279,9 @@ Predicate FormulaBuilder::interpretedPredicate(InterpretedPredicate symbol)
   return Predicate(res);
 }
 
-void FormulaBuilder::addAttribute(Sort p, string name, string value)
+void FormulaBuilder::addAttribute(Sort p, vstring name, vstring value)
 {
-  CALL("FormulaBuilder::addAttribute(Sort,string,string)");
+  CALL("FormulaBuilder::addAttribute(Sort,vstring,vstring)");
 
   FBHelperCore::addAttribute(_aux->getSortAttributes(p), name, value);
 }
@@ -293,7 +293,7 @@ unsigned FormulaBuilder::attributeCount(Sort p)
   return _aux->getSortAttributes(p).size();
 }
 
-string FormulaBuilder::getAttributeName(Sort p, unsigned index)
+vstring FormulaBuilder::getAttributeName(Sort p, unsigned index)
 {
   CALL("FormulaBuilder::getAttributeName(Sort,unsigned)");
 
@@ -303,7 +303,7 @@ string FormulaBuilder::getAttributeName(Sort p, unsigned index)
   return _aux->getSortAttributes(p)[index].first;
 }
 
-string FormulaBuilder::getAttributeValue(Sort p, unsigned index)
+vstring FormulaBuilder::getAttributeValue(Sort p, unsigned index)
 {
   CALL("FormulaBuilder::getAttributeValue(Sort,unsigned)");
 
@@ -313,13 +313,13 @@ string FormulaBuilder::getAttributeValue(Sort p, unsigned index)
   return _aux->getSortAttributes(p)[index].second;
 }
 
-string FormulaBuilder::getAttributeValue(Sort p, string attributeName)
+vstring FormulaBuilder::getAttributeValue(Sort p, vstring attributeName)
 {
-  CALL("FormulaBuilder::getAttributeValue(Sort,string)");
+  CALL("FormulaBuilder::getAttributeValue(Sort,vstring)");
 
   FBHelperCore::AttribStack::BottomFirstIterator it(_aux->getSortAttributes(p));
   while(it.hasNext()) {
-    pair<string,string> curr = it.next();
+    pair<vstring,vstring> curr = it.next();
     if(curr.first==attributeName) {
       return curr.second;
     }
@@ -327,9 +327,9 @@ string FormulaBuilder::getAttributeValue(Sort p, string attributeName)
   throw FormulaBuilderException("Requested attribute does not exist");
 }
 
-void FormulaBuilder::addAttribute(Predicate p, string name, string value)
+void FormulaBuilder::addAttribute(Predicate p, vstring name, vstring value)
 {
-  CALL("FormulaBuilder::addAttribute(Predicate,string,string)");
+  CALL("FormulaBuilder::addAttribute(Predicate,vstring,vstring)");
 
   FBHelperCore::addAttribute(_aux->getPredicateAttributes(p), name, value);
 }
@@ -341,7 +341,7 @@ unsigned FormulaBuilder::attributeCount(Predicate p)
   return _aux->getPredicateAttributes(p).size();
 }
 
-string FormulaBuilder::getAttributeName(Predicate p, unsigned index)
+vstring FormulaBuilder::getAttributeName(Predicate p, unsigned index)
 {
   CALL("FormulaBuilder::getAttributeName(Predicate,unsigned)");
 
@@ -351,7 +351,7 @@ string FormulaBuilder::getAttributeName(Predicate p, unsigned index)
   return _aux->getPredicateAttributes(p)[index].first;
 }
 
-string FormulaBuilder::getAttributeValue(Predicate p, unsigned index)
+vstring FormulaBuilder::getAttributeValue(Predicate p, unsigned index)
 {
   CALL("FormulaBuilder::getAttributeValue(Predicate,unsigned)");
 
@@ -361,13 +361,13 @@ string FormulaBuilder::getAttributeValue(Predicate p, unsigned index)
   return _aux->getPredicateAttributes(p)[index].second;
 }
 
-string FormulaBuilder::getAttributeValue(Predicate p, string attributeName)
+vstring FormulaBuilder::getAttributeValue(Predicate p, vstring attributeName)
 {
-  CALL("FormulaBuilder::getAttributeValue(Predicate,string)");
+  CALL("FormulaBuilder::getAttributeValue(Predicate,vstring)");
 
   FBHelperCore::AttribStack::BottomFirstIterator it(_aux->getPredicateAttributes(p));
   while(it.hasNext()) {
-    pair<string,string> curr = it.next();
+    pair<vstring,vstring> curr = it.next();
     if(curr.first==attributeName) {
       return curr.second;
     }
@@ -375,9 +375,9 @@ string FormulaBuilder::getAttributeValue(Predicate p, string attributeName)
   throw FormulaBuilderException("Requested attribute does not exist");
 }
 
-void FormulaBuilder::addAttribute(Function p, string name, string value)
+void FormulaBuilder::addAttribute(Function p, vstring name, vstring value)
 {
-  CALL("FormulaBuilder::addAttribute(Function,string,string)");
+  CALL("FormulaBuilder::addAttribute(Function,vstring,vstring)");
 
   FBHelperCore::addAttribute(_aux->getFunctionAttributes(p), name, value);
 }
@@ -389,7 +389,7 @@ unsigned FormulaBuilder::attributeCount(Function p)
   return _aux->getFunctionAttributes(p).size();
 }
 
-string FormulaBuilder::getAttributeName(Function p, unsigned index)
+vstring FormulaBuilder::getAttributeName(Function p, unsigned index)
 {
   CALL("FormulaBuilder::getAttributeName(Function,unsigned)");
 
@@ -399,7 +399,7 @@ string FormulaBuilder::getAttributeName(Function p, unsigned index)
   return _aux->getFunctionAttributes(p)[index].first;
 }
 
-string FormulaBuilder::getAttributeValue(Function p, unsigned index)
+vstring FormulaBuilder::getAttributeValue(Function p, unsigned index)
 {
   CALL("FormulaBuilder::getAttributeValue(Function,unsigned)");
 
@@ -409,13 +409,13 @@ string FormulaBuilder::getAttributeValue(Function p, unsigned index)
   return _aux->getFunctionAttributes(p)[index].second;
 }
 
-string FormulaBuilder::getAttributeValue(Function p, string attributeName)
+vstring FormulaBuilder::getAttributeValue(Function p, vstring attributeName)
 {
-  CALL("FormulaBuilder::getAttributeValue(Function,string)");
+  CALL("FormulaBuilder::getAttributeValue(Function,vstring)");
 
   FBHelperCore::AttribStack::BottomFirstIterator it(_aux->getFunctionAttributes(p));
   while(it.hasNext()) {
-    pair<string,string> curr = it.next();
+    pair<vstring,vstring> curr = it.next();
     if(curr.first==attributeName) {
       return curr.second;
     }
@@ -607,7 +607,7 @@ Formula FormulaBuilder::formula(Connective c,const Formula& cond,const Formula& 
   return res;
 }
 
-AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a, string name)
+AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a, vstring name)
 {
   CALL("FormulaBuilder::annotatedFormula");
 
@@ -831,7 +831,7 @@ Term::Term(Kernel::TermList t, ApiHelper aux) : _aux(aux)
   content=t.content();
 }
 
-string Term::toString() const
+vstring Term::toString() const
 {
   CALL("Term::toString");
 
@@ -925,7 +925,7 @@ Term::operator Kernel::TermList() const
   return TermList(content);
 }
 
-string Formula::toString() const
+vstring Formula::toString() const
 {
   CALL("Formula::toString");
 
@@ -1108,7 +1108,7 @@ StringIterator Formula::freeVars()
   CALL("Formula::freeVars");
 
   if(!form) {
-    return StringIterator(VirtualIterator<string>::getEmpty());
+    return StringIterator(VirtualIterator<vstring>::getEmpty());
   }
   VarList* vars=form->freeVariables();
   return _aux->getVarNames(vars);
@@ -1119,24 +1119,24 @@ StringIterator Formula::boundVars()
   CALL("Formula::boundVars");
 
   if(!form) {
-    return StringIterator(VirtualIterator<string>::getEmpty());
+    return StringIterator(VirtualIterator<vstring>::getEmpty());
   }
   VarList* vars=form->boundVariables();
   return _aux->getVarNames(vars);
 }
 
-string AnnotatedFormula::toString() const
+vstring AnnotatedFormula::toString() const
 {
   CALL("AnnotatedFormula::toString");
 
   return _aux->toString(unit);
 }
 
-string AnnotatedFormula::name() const
+vstring AnnotatedFormula::name() const
 {
   CALL("AnnotatedFormula::toString");
 
-  string unitName;
+  vstring unitName;
   if(!Parse::TPTP::findAxiomName(unit, unitName)) {
     unitName="u" + Int::toString(unit->number());
   }
@@ -1148,7 +1148,7 @@ StringIterator AnnotatedFormula::freeVars()
   CALL("AnnotatedFormula::freeVars");
 
   if(!unit) {
-    return StringIterator(VirtualIterator<string>::getEmpty());
+    return StringIterator(VirtualIterator<vstring>::getEmpty());
   }
   VarList* vl=0;
   if(unit->isClause()) {
@@ -1165,7 +1165,7 @@ StringIterator AnnotatedFormula::boundVars()
   CALL("AnnotatedFormula::boundVars");
 
   if(!unit || unit->isClause()) {
-    return StringIterator(VirtualIterator<string>::getEmpty());
+    return StringIterator(VirtualIterator<vstring>::getEmpty());
   }
   VarList* vl=static_cast<FormulaUnit*>(unit)->formula()->boundVariables();
   return _aux->getVarNames(vl);
@@ -1210,7 +1210,7 @@ Formula AnnotatedFormula::formula()
   return Formula(negated, _aux);
 }
 
-void AnnotatedFormula::assignName(AnnotatedFormula& form, string name)
+void AnnotatedFormula::assignName(AnnotatedFormula& form, vstring name)
 {
   CALL("AnnotatedFormula::assignName");
 
@@ -1218,10 +1218,10 @@ void AnnotatedFormula::assignName(AnnotatedFormula& form, string name)
     return;
   }
 
-  static DHSet<string> usedNames;
+  static DHSet<vstring> usedNames;
 
   if(!usedNames.insert(name)) {
-    string name0 = name;
+    vstring name0 = name;
     unsigned idx = 0;
     do {
       idx++;
@@ -1252,11 +1252,11 @@ void OutputOptions::setAssignFormulaNames(bool newVal)
 //////////////////////////////
 // StringIterator implementation
 
-StringIterator::StringIterator(const VirtualIterator<string>& vit)
+StringIterator::StringIterator(const VirtualIterator<vstring>& vit)
 {
   CALL("StringIterator::StringIterator");
 
-  _impl=new VirtualIterator<string>(vit);
+  _impl=new VirtualIterator<vstring>(vit);
 }
 
 StringIterator::~StringIterator()
@@ -1273,7 +1273,7 @@ StringIterator::StringIterator(const StringIterator& it)
   CALL("StringIterator::StringIterator(StringIterator&)");
 
   if(it._impl) {
-    _impl=new VirtualIterator<string>(*it._impl);
+    _impl=new VirtualIterator<vstring>(*it._impl);
   }
   else {
     _impl=0;
@@ -1284,10 +1284,10 @@ StringIterator& StringIterator::operator=(const StringIterator& it)
 {
   CALL("StringIterator::operator=");
 
-  VirtualIterator<string>* oldImpl=_impl;
+  VirtualIterator<vstring>* oldImpl=_impl;
 
   if(it._impl) {
-    _impl=new VirtualIterator<string>(*it._impl);
+    _impl=new VirtualIterator<vstring>(*it._impl);
   }
   else {
     _impl=0;
@@ -1311,7 +1311,7 @@ bool StringIterator::hasNext()
   return _impl->hasNext();
 }
 
-string StringIterator::next()
+vstring StringIterator::next()
 {
   CALL("StringIterator::next");
 

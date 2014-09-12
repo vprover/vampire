@@ -22,6 +22,9 @@ class ForwardLiteralRewriting
 : public ForwardSimplificationEngine
 {
 public:
+  CLASS_NAME(ForwardLiteralRewriting);
+  USE_ALLOCATOR(ForwardLiteralRewriting);
+
   void attach(SaturationAlgorithm* salg);
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);

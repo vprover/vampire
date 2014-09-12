@@ -10,7 +10,6 @@
 #define __Term__
 
 #include <cstdlib>
-#include <string>
 #include <iosfwd>
 #include <utility>
 
@@ -24,6 +23,7 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/VString.hpp"
 
 #include "MatchTag.hpp"
 
@@ -110,7 +110,7 @@ public:
   { return _content == t->_content ; }
   /** return the content, useful for e.g., term argument comparison */
   inline size_t content() const { return _content; }
-  string toString() const;
+  vstring toString() const;
   /** make the term into an ordinary variable with a given number */
   inline void makeVar(unsigned vnumber)
   { _content = vnumber * 4 + ORD_VAR; }
@@ -123,7 +123,7 @@ public:
   /** make the term into a reference */
   inline void setTerm(Term* t)
   { _term = t; }
-  static void argsToString(Stack<const TermList*>&,string& str);
+  static void argsToString(Stack<const TermList*>&,vstring& str);
   static bool sameTop(TermList ss, TermList tt);
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
@@ -250,7 +250,7 @@ public:
   static Term* createNonShared(Term* t);
   static Term* cloneNonShared(Term* t);
 
-  static Term* createConstant(const string& name);
+  static Term* createConstant(const vstring& name);
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createTermITE(Formula * condition, TermList thenBranch, TermList elseBranch);
@@ -267,9 +267,9 @@ public:
   const unsigned functor() const { return _functor; }
 
   static XMLElement variableToXML(unsigned var);
-  string toString() const;
-  static string variableToString(unsigned var);
-  static string variableToString(TermList var);
+  vstring toString() const;
+  static vstring variableToString(unsigned var);
+  static vstring variableToString(TermList var);
   /** return the arguments */
   const TermList* args() const
   { return _args + _arity; }
@@ -381,7 +381,7 @@ public:
     return _isTwoVarEquality;
   }
 
-  const string& functionName() const;
+  const vstring& functionName() const;
 
   /** True if the term is, in fact, a literal */
   bool isLiteral() const { return _args[0]._info.literal; }
@@ -397,7 +397,7 @@ public:
   }
 
 #if VDEBUG
-  string headerToString() const;
+  vstring headerToString() const;
   void assertValid() const;
 #endif
 
@@ -583,7 +583,7 @@ protected:
   friend class Indexing::TermSharing;
   friend class Ordering;
 public:
-  string specialTermToString() const;
+  vstring specialTermToString() const;
 
 public:
   /**
@@ -790,8 +790,8 @@ public:
 
 
 //   XMLElement toXML() const;
-  string toString() const;
-  const string& predicateName() const;
+  vstring toString() const;
+  const vstring& predicateName() const;
 
 private:
   static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned variableSort);

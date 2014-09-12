@@ -65,7 +65,7 @@ void CLTBMode::perform()
   env.options->setProof(Options::PROOF_TPTP);
   env.options->setStatistics(Options::STATISTICS_NONE);
 
-  string line;
+  vstring line;
   ifstream in(env.options->inputFile().c_str());
   if (in.fail()) {
     USER_ERROR("Cannot open input file: " + env.options->inputFile());
@@ -73,7 +73,7 @@ void CLTBMode::perform()
 
   //support several batches in one file
   while (!in.eof()) {
-    stringstream singleInst;
+    vostringstream singleInst;
     bool ready = false;
     while (!in.eof()) {
       getline(in, line);
@@ -87,7 +87,7 @@ void CLTBMode::perform()
       break;
     }
     CLTBMode ltbm;
-    stringstream childInp(singleInst.str());
+    vistringstream childInp(singleInst.str());
     ltbm.solveBatch(childInp);
   }
 } // CLTBMode::perform
@@ -122,8 +122,8 @@ void CLTBMode::solveBatch(istream& batchFile)
   while (probs.hasNext()) {
     StringPair res=probs.next();
 
-    string probFile=res.first;
-    string outFile=res.second;
+    vstring probFile=res.first;
+    vstring outFile=res.second;
 
     // calculate the next problem time limit in milliseconds
     int elapsedTime = env.timer->elapsedMilliseconds();
@@ -206,7 +206,7 @@ void CLTBMode::loadIncludes()
 
     StringList::Iterator iit(_theoryIncludes);
     while (iit.hasNext()) {
-      string fname=env.options->includeFileName(iit.next());
+      vstring fname=env.options->includeFileName(iit.next());
 
       ifstream inp(fname.c_str());
       if (inp.fail()) {
@@ -248,11 +248,11 @@ int CLTBMode::readInput(istream& in)
   CALL("CLTBMode::readInput");
 
   // ignore any lines describing the division or the category
-  string line, word;
+  vstring line, word;
   do {
     getline(in, line);
   }
-  while (line.find("division.category") != string::npos);
+  while (line.find("division.category") != vstring::npos);
 
   if (line!="% SZS start BatchConfiguration") {
     USER_ERROR("\"% SZS start BatchConfiguration\" expected, \""+line+"\" found.");
@@ -269,7 +269,7 @@ int CLTBMode::readInput(istream& in)
   while (!in.eof() && line!="% SZS end BatchConfiguration") {
     lineSegments.reset();
     StringUtils::splitStr(line.c_str(), ' ', lineSegments);
-    string param = lineSegments[0];
+    vstring param = lineSegments[0];
     if (param == "division.category") {
       if (lineSegments.size()!=2) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
@@ -321,11 +321,11 @@ int CLTBMode::readInput(istream& in)
   for (getline(in, line); line[0]!='%' && !in.eof(); getline(in, line)) {
     size_t first=line.find_first_of('\'');
     size_t last=line.find_last_of('\'');
-    if (first == string::npos || first == last) {
+    if (first == vstring::npos || first == last) {
       USER_ERROR("Include specification must contain the file name enclosed in the ' characters:\""+line+"\".");
     }
     ASS_G(last,first);
-    string fname=line.substr(first+1, last-first-1);
+    vstring fname=line.substr(first+1, last-first-1);
     StringList::push(fname, _theoryIncludes);
   }
 
@@ -341,11 +341,11 @@ int CLTBMode::readInput(istream& in)
   for (getline(in, line); line[0]!='%' && !in.eof(); getline(in, line)) {
     size_t spc=line.find(' ');
     size_t lastSpc=line.find(' ', spc+1);
-    if (spc == string::npos || spc == 0 || spc == line.length()-1) {
+    if (spc == vstring::npos || spc == 0 || spc == line.length()-1) {
       USER_ERROR("Two file names separated by a single space expected:\""+line+"\".");
     }
-    string inp=line.substr(0,spc);
-    string outp=line.substr(spc+1, lastSpc-spc-1);
+    vstring inp=line.substr(0,spc);
+    vstring outp=line.substr(spc+1, lastSpc-spc-1);
     problemFiles.push(make_pair(inp, outp));
   }
 
@@ -371,9 +371,9 @@ int CLTBMode::readInput(istream& in)
   return _timeUsedByPreviousBatches + batchTimeLimit;
 } // CLTBMode::readInput
 
-string CLTBProblem::problemFinishedString = "##Problem finished##vn;3-d-ca-12=1;'";
+vstring CLTBProblem::problemFinishedString = "##Problem finished##vn;3-d-ca-12=1;'";
 
-CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)
+CLTBProblem::CLTBProblem(CLTBMode* parent, vstring problemFile, vstring outFile)
   : parent(parent), problemFile(problemFile), outFile(outFile),
     prb(*parent->_baseProblem)
 {
@@ -1597,7 +1597,7 @@ void CLTBProblem::searchForProof(int terminationTime)
       USER_ERROR("Cannot open problem file: " + problemFile);
     }
     Parse::TPTP parser(inp);
-    List<string>::Iterator iit(parent->_theoryIncludes);
+    List<vstring>::Iterator iit(parent->_theoryIncludes);
     while (iit.hasNext()) {
       parser.addForbiddenInclude(iit.next());
     }
@@ -1726,8 +1726,8 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
         return false;
       }
  
-      string sliceCode = it.next();
-      string chopped;
+      vstring sliceCode = it.next();
+      vstring chopped;
 
       // slice time in milliseconds
       int sliceTime = SLOWNESS * getSliceTime(sliceCode,chopped);
@@ -1843,7 +1843,7 @@ void CLTBProblem::runWriterChild()
   childOutputPipe.acquireRead();
 
   while (!childOutputPipe.in().eof()) {
-    string line;
+    vstring line;
     getline(childOutputPipe.in(), line);
     if (line == problemFinishedString) {
       break;
@@ -1870,7 +1870,7 @@ void CLTBProblem::terminatingSignalHandler(int sigNum)
  * @since 04/06/2013 flight Frankfurt-Vienna
  * @author Andrei Voronkov
  */
-void CLTBProblem::runSlice(string sliceCode, unsigned timeLimitInMilliseconds)
+void CLTBProblem::runSlice(vstring sliceCode, unsigned timeLimitInMilliseconds)
 {
   CALL("CLTBProblem::runSlice");
 
@@ -1944,16 +1944,16 @@ void CLTBProblem::runSlice(Options& strategyOpt)
 
 /**
  * Return the intended slice time in milliseconds and assign the slice
- * string with chopped time limit to @b chopped.
+ * vstring with chopped time limit to @b chopped.
  * @since 04/06/2013 flight Frankfurt-Vienna
  * @author Andrei Voronkov
  */
-unsigned CLTBProblem::getSliceTime(string sliceCode,string& chopped)
+unsigned CLTBProblem::getSliceTime(vstring sliceCode,vstring& chopped)
 {
   CALL("CASCMode::getSliceTime");
 
   unsigned pos = sliceCode.find_last_of('_');
-  string sliceTimeStr = sliceCode.substr(pos+1);
+  vstring sliceTimeStr = sliceCode.substr(pos+1);
   chopped.assign(sliceCode.substr(0,pos));
   unsigned sliceTime;
   ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));

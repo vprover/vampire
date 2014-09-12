@@ -53,7 +53,7 @@ private:
   FormulaUnit* definitionToImplication(FormulaUnit* premise, Literal* lhs,
       Formula* rhs, int topPolarity);
 
-  static string headerToString(unsigned hdr);
+  static vstring headerToString(unsigned hdr);
 
   class Applicator;
   class ConstantSkolemizer;

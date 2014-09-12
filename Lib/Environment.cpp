@@ -54,12 +54,12 @@ Environment::Environment()
     _pipe(0)
 {
   options = new Options;
-  statistics = new Statistics;
-  timer = new Timer;
+  statistics = new Statistics;  
   sorts = new Sorts;
   signature = new Signature;
   sharing = new TermSharing;
 
+  timer = Timer::instance();
   timer->start();
 } // Environment::Environment
 
@@ -75,14 +75,13 @@ Environment::~Environment()
     endOutput();
   }
 
-#if CHECK_LEAKS
+// #if CHECK_LEAKS
   delete sharing;
   delete signature;
   delete sorts;
-  delete timer;
   delete statistics;
   delete options;
-#endif
+// #endif
 }
 
 /**

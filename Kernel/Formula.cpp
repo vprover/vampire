@@ -3,12 +3,11 @@
  *  Implements class Formula.
  */
 
-#include <string>
-
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Exception.hpp"
 #include "Lib/MultiCounter.hpp"
+#include "Lib/VString.hpp"
 
 #include "BDD.hpp"
 #include "Clause.hpp"
@@ -215,15 +214,15 @@ void Formula::destroy ()
 // } // Formula::toXML()
 
 /**
- * Convert the connective to a string.
+ * Convert the connective to a vstring.
  * @since 02/01/2004 Manchester
  */
-string Formula::toString (Connective c)
+vstring Formula::toString (Connective c)
 {
-  static string names [] =
+  static vstring names [] =
 //    { "", "&", "\\/", "=>", "<=>", "<~>", "~", "!", "?", "false", "true"};
     { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "<ite>", "<formula_let>", "<term_let>", "$false", "$true"};
-  ASS_EQ(sizeof(names)/sizeof(string), TRUE+1);
+  ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
 
   return names[(int)c];
 } // Formula::toString (Connective c)
@@ -231,18 +230,18 @@ string Formula::toString (Connective c)
 
 
 /**
- * Convert the formula to a string using the native syntax
+ * Convert the formula to a vstring using the native syntax
  *
  * @since 12/10/2002 Tbilisi, implemented as ostream output function
  * @since 09/12/2003 Manchester
  * @since 11/12/2004 Manchester, true and false added
  */
-string Formula::toString () const
+vstring Formula::toString () const
 {
   CALL("Formula::toString");
 
   Connective c = connective();
-  string con = toString(c);
+  vstring con = toString(c);
 
   switch (c) {
   case LITERAL:
@@ -252,7 +251,7 @@ string Formula::toString () const
   case OR:
     {
       ASS (args()->length() >= 2);
-      string result = args()->head()->toStringInScopeOf(c);
+      vstring result = args()->head()->toStringInScopeOf(c);
       FormulaList::Iterator arg(args()->tail());
       while (arg.hasNext()) {
 	result += ' ' + con + ' ' + arg.next()->toStringInScopeOf(c);
@@ -278,13 +277,13 @@ string Formula::toString () const
   case FORALL:
   case EXISTS:
     {
-//      string result = "(" + con;
+//      vstring result = "(" + con;
 //      VarList::Iterator vs(vars());
 //      while (vs.hasNext()) {
-//	result += string(" ") + Term::variableToString(vs.next());
+//	result += vstring(" ") + Term::variableToString(vs.next());
 //      }
 //      result += ")";
-      string result = con + " [";
+      vstring result = con + " [";
       VarList::Iterator vs(vars());
       bool first=true;
       while (vs.hasNext()) {
@@ -363,14 +362,14 @@ bool Formula::parenthesesRequired (Connective outer) const
 
 /**
  * Convert the formula in scope of another formula
- * to a string using the native syntax.
+ * to a vstring using the native syntax.
  * @param outer connective of the outer formula
  * @since 09/12/2003 Manchester
  */
-string Formula::toStringInScopeOf (Connective outer) const
+vstring Formula::toStringInScopeOf (Connective outer) const
 {
   return parenthesesRequired(outer) ?
-         string("(") + toString() + ")" :
+         vstring("(") + toString() + ")" :
          toString();
 } // Formula::toStringInScopeOf
 

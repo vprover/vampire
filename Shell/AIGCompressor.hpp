@@ -88,7 +88,7 @@ private:
   size_t getAIGDagSize(AIGRef aig);
 
 
-  typedef SharedSet<unsigned> USharedSet;
+  typedef const SharedSet<unsigned> USharedSet;
   /**
    * Map that assigns AIG nodes a set of nodes they contain that are unsplittable
    * for the purpose of conversion to BDDs.

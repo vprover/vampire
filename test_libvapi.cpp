@@ -6,12 +6,12 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <string>
 
 #include "Api/FormulaBuilder.hpp"
 #include "Api/Problem.hpp"
 #include "Api/Tracing.hpp"
 
+#include "Lib/VString.hpp"
 
 using namespace std;
 using namespace Api;
@@ -210,9 +210,9 @@ int main(int argc, char* argv [])
   cout<<fit1.next().toString()<<endl;
 
 
-//  string fs=af.toString();
+//  vstring fs=af.toString();
 //
-//  stringstream sstr(fs);
+//  vostringstream sstr(fs);
 //
 //  Problem p2;
 //  p2.addFromStream(sstr);

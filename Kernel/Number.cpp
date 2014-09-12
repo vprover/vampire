@@ -279,7 +279,7 @@ using namespace __Aux_Number;
 bool CommonNumberBase::_usePrecise = false;
 bool CommonNumberBase::_useRational = false;
 
-NativeNumber CommonNumberBase::parseString(string str)
+NativeNumber CommonNumberBase::parseString(vstring str)
 {
   CALL("CommonNumberBase::parseString");
 
@@ -293,7 +293,7 @@ unsigned CoeffNumber::hash(const CoeffNumber& n)
   CALL("CoeffNumber::hash");
 
   if(usePrecise()) {
-    string str = n.precise().get_str(16);
+    vstring str = n.precise().get_str(16);
     return Hash::hash(str);
   }
   if(useRational()){

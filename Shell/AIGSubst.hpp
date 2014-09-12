@@ -29,7 +29,7 @@ public:
   AIGRef apply(Applicator apl, AIGRef aig);
 
 private:
-  typedef SharedSet<unsigned> VarSet;
+  typedef const SharedSet<unsigned> VarSet;
 
   template<class Applicator>
   VarSet* getSubstFreeVars(Applicator apl, AIGRef aig);

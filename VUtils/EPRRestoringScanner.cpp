@@ -226,7 +226,7 @@ int EPRRestoringScanner::perform(int argc, char** argv)
   if(argc<3) {
     USER_ERROR("file name expected as second argument");
   }
-  string fname = argv[2];
+  vstring fname = argv[2];
 
   _opts.setTheoryAxioms(false);
   _opts.setInputFile(fname);

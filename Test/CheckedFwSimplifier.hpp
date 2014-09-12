@@ -18,6 +18,9 @@ class CheckedFwSimplifier
 : public ForwardSimplificationEngine
 {
 public:
+  CLASS_NAME(CheckedFwSimplifier);
+  USE_ALLOCATOR(CheckedFwSimplifier);
+
   CheckedFwSimplifier(ForwardSimplificationEngine* fse1, ForwardSimplificationEngine* fse2);
   ~CheckedFwSimplifier();
 

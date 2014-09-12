@@ -27,14 +27,14 @@ DefaultHelperCore* DefaultHelperCore::instance()
   return &inst;
 }
 
-string DefaultHelperCore::getVarName(Var v) const
+vstring DefaultHelperCore::getVarName(Var v) const
 {
   CALL("DefaultHelperCore::getVarName");
 
   return "X"+Int::toString(v);
 }
 
-string DefaultHelperCore::toString(Kernel::TermList t) const
+vstring DefaultHelperCore::toString(Kernel::TermList t) const
 {
   CALL("DefaultHelperCore::toString(TermList)");
 
@@ -46,7 +46,7 @@ string DefaultHelperCore::toString(Kernel::TermList t) const
 }
 
 /** Get dummy name for function or predicate */
-string DefaultHelperCore::getDummyName(bool pred, unsigned functor)
+vstring DefaultHelperCore::getDummyName(bool pred, unsigned functor)
 {
   CALL("DefaultHelperCore::getDummyName/2");
 
@@ -68,14 +68,14 @@ string DefaultHelperCore::getDummyName(bool pred, unsigned functor)
 }
 
 /** Get dummy name for function or predicate */
-string DefaultHelperCore::getDummyName(const Kernel::Term* t)
+vstring DefaultHelperCore::getDummyName(const Kernel::Term* t)
 {
   CALL("DefaultHelperCore::getDummyName/1");
 
   return getDummyName(t->isLiteral(), t->functor());
 }
 
-string DefaultHelperCore::getSymbolName(bool pred, unsigned functor) const
+vstring DefaultHelperCore::getSymbolName(bool pred, unsigned functor) const
 {
   if(outputDummyNames()) {
     return getDummyName(pred, functor);
@@ -90,24 +90,24 @@ string DefaultHelperCore::getSymbolName(bool pred, unsigned functor) const
   }
 }
 
-string DefaultHelperCore::getSymbolName(const Kernel::Term* t) const
+vstring DefaultHelperCore::getSymbolName(const Kernel::Term* t) const
 {
   return getSymbolName(t->isLiteral(), t->functor());
 }
 
 
-string DefaultHelperCore::toString(const Kernel::Term* t0) const
+vstring DefaultHelperCore::toString(const Kernel::Term* t0) const
 {
   CALL("DefaultHelperCore::toString(const Kernel::Term*)");
 
-  string res;
+  vstring res;
   if(t0->isSpecial()) {
     const Kernel::Term::SpecialTermData* sd = t0->getSpecialData();
     switch(t0->functor()) {
     case Kernel::Term::SF_LET_FORMULA_IN_TERM:
     {
       ASS_EQ(t0->arity(),1);
-      string s = "(let " + toString(sd->getLhsLiteral());
+      vstring s = "(let " + toString(sd->getLhsLiteral());
       s += " := " + toString(sd->getRhsFormula());
       s += " in " + toString(*t0->nthArgument(0));
       s += " )";
@@ -116,7 +116,7 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
     case Kernel::Term::SF_LET_TERM_IN_TERM:
     {
       ASS_EQ(t0->arity(),1);
-      string s = "( let " + toString(sd->getLhsTerm());
+      vstring s = "( let " + toString(sd->getLhsTerm());
       s += " := " + toString(sd->getRhsTerm());
       s += " in " + toString(*t0->nthArgument(0));
       s += " )";
@@ -125,7 +125,7 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
     case Kernel::Term::SF_TERM_ITE:
     {
       ASS_EQ(t0->arity(),2);
-      string s = "( " + toString(sd->getCondition());
+      vstring s = "( " + toString(sd->getCondition());
       s += " ? " + toString(*t0->nthArgument(0));
       s += " : " + toString(*t0->nthArgument(1));
       s += " )";
@@ -214,18 +214,18 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
   return res;
 }
 
-string DefaultHelperCore::toString(const Kernel::Formula* f0) const
+vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
 {
   CALL("DefaultHelperCore::toString(const Kernel::Formula*)");
 
   Kernel::Formula* f = const_cast<Kernel::Formula*>(f0);
 
-  static string names [] =
+  static vstring names [] =
   { "", " & ", " | ", " => ", " <=> ", " <~> ",
       "~", "!", "?", "", "", "", "$false", "$true"};
-  ASS_EQ(sizeof(names)/sizeof(string), TRUE+1);
+  ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
   Connective c = f->connective();
-  string con = names[(int)c];
+  vstring con = names[(int)c];
   switch (c) {
   case LITERAL:
     return toString(f->literal());
@@ -233,7 +233,7 @@ string DefaultHelperCore::toString(const Kernel::Formula* f0) const
   case OR:
   {
     const Kernel::FormulaList* fs = f->args();
-    string result = "(" + toString(fs->head());
+    vstring result = "(" + toString(fs->head());
     fs = fs->tail();
     while (! fs->isEmpty()) {
       result += con + toString(fs->head());
@@ -245,16 +245,16 @@ string DefaultHelperCore::toString(const Kernel::Formula* f0) const
   case IMP:
   case IFF:
   case XOR:
-    return string("(") + toString(f->left()) +
+    return vstring("(") + toString(f->left()) +
 	con + toString(f->right()) + ")";
 
   case NOT:
-    return string("(") + con + toString(f->uarg()) + ")";
+    return vstring("(") + con + toString(f->uarg()) + ")";
 
   case FORALL:
   case EXISTS:
   {
-    string result = string("(") + con + "[";
+    vstring result = vstring("(") + con + "[";
     Kernel::Formula::VarList::Iterator vit(f->vars());
     ASS(vit.hasNext());
     while (vit.hasNext()) {
@@ -287,7 +287,7 @@ string DefaultHelperCore::toString(const Kernel::Formula* f0) const
   }
 
   case ITE:
-    return string("(") + toString(f->condArg()) + " ? " +
+    return vstring("(") + toString(f->condArg()) + " ? " +
 	toString(f->thenArg()) + " : " + toString(f->elseArg()) + ")";
 
   case FORMULA_LET:
@@ -306,11 +306,11 @@ string DefaultHelperCore::toString(const Kernel::Formula* f0) const
   return "formula";
 }
 
-string DefaultHelperCore::toString(const Kernel::Clause* clause) const
+vstring DefaultHelperCore::toString(const Kernel::Clause* clause) const
 {
   CALL("DefaultHelperCore::toString(const Kernel::Clause*)");
 
-  string res;
+  vstring res;
   Kernel::Clause::Iterator lits(*const_cast<Kernel::Clause*>(clause));
   if(lits.hasNext()) {
     while(lits.hasNext()) {
@@ -342,16 +342,16 @@ string DefaultHelperCore::toString(const Kernel::Clause* clause) const
  * TPTP role conjecture. If it is a clause, just output it as
  * is, with the role negated_conjecture.
  */
-string DefaultHelperCore::toString (const Kernel::Unit* unit0) const
+vstring DefaultHelperCore::toString (const Kernel::Unit* unit0) const
 {
   CALL("DefaultHelperCore::toString(const Kernel::Unit*)");
 
   Kernel::Unit* unit = const_cast<Kernel::Unit*>(unit0);
-  string prefix;
-  string main = "";
+  vstring prefix;
+  vstring main = "";
 
   bool negate_formula = false;
-  string kind;
+  vstring kind;
   switch (unit->inputType()) {
   case Unit::ASSUMPTION:
     kind = "hypothesis";
@@ -372,7 +372,7 @@ string DefaultHelperCore::toString (const Kernel::Unit* unit0) const
     break;
   }
 
-  string unitName;
+  vstring unitName;
   if(!Parse::TPTP::findAxiomName(unit, unitName)) {
     unitName="u" + Int::toString(unit->number());
   }
@@ -427,8 +427,8 @@ string DefaultHelperCore::toString (const Kernel::Unit* unit0) const
 struct DefaultHelperCore::Var2NameMapper
 {
   Var2NameMapper(DefaultHelperCore& a) : aux(a) {}
-  DECL_RETURN_TYPE(string);
-  string operator()(unsigned v)
+  DECL_RETURN_TYPE(vstring);
+  vstring operator()(unsigned v)
   {
     return aux.getVarName(v);
   }
@@ -439,7 +439,7 @@ StringIterator DefaultHelperCore::getVarNames(VarList* l)
 {
   CALL("DefaultHelperCore::getVarNames");
 
-  VirtualIterator<string> res=pvi( getPersistentIterator(
+  VirtualIterator<vstring> res=pvi( getPersistentIterator(
       getMappingIterator(
 	  VarList::DestructiveIterator(l),
 	  Var2NameMapper(*this))
@@ -558,7 +558,7 @@ void FBHelperCore::ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const
   }
 }
 
-string FBHelperCore::getVarName(Var v) const
+vstring FBHelperCore::getVarName(Var v) const
 {
   CALL("FBHelperCore::getVarName");
 
@@ -566,7 +566,7 @@ string FBHelperCore::getVarName(Var v) const
     return "X"+Int::toString(v);
   }
 
-  string res;
+  vstring res;
   if(varNames.find(v,res)) {
     return res;
   }
@@ -577,9 +577,9 @@ string FBHelperCore::getVarName(Var v) const
     }
     return "X"+Int::toString(v);
 
-//    Map<Var,string>::Iterator it(varNames);
+//    Map<Var,vstring>::Iterator it(varNames);
 //    while(it.hasNext()) {
-//      string v;
+//      vstring v;
 //      unsigned k;
 //      it.next(k,v);
 //      cout<<k<<" "<<v<<endl;
@@ -602,7 +602,7 @@ Sort FBHelperCore::getVarSort(Var v) const
   }
 }
 
-unsigned FBHelperCore::getVar(string varName, Sort varSort)
+unsigned FBHelperCore::getVar(vstring varName, Sort varSort)
 {
   if(_checkNames) {
     if(!isupper(varName[0])) {
@@ -634,7 +634,7 @@ unsigned FBHelperCore::getVar(string varName, Sort varSort)
   return res;
 }
 
-void FBHelperCore::addAttribute(AttribStack& stack, string name, string value)
+void FBHelperCore::addAttribute(AttribStack& stack, vstring name, vstring value)
 {
   CALL("FBHelperCore::addAttribute");
 
@@ -654,9 +654,9 @@ unsigned FBHelperCore::FBVarFactory::getVarAlias(unsigned var)
 {
   CALL("FBHelperCore::FBVarFactory::getVarAlias");
 
-  string origName=_parent.getVarName(var);
+  vstring origName=_parent.getVarName(var);
   int i=0;
-  string name;
+  vstring name;
   do {
     i++;
     name=origName+"_"+Int::toString(i);
@@ -668,7 +668,7 @@ unsigned FBHelperCore::FBVarFactory::getVarAlias(unsigned var)
 /**
  * Return name of variable number @b var
  */
-string FBHelperCore::FBVarFactory::getVarName(unsigned var)
+vstring FBHelperCore::FBVarFactory::getVarName(unsigned var)
 {
   CALL("FBHelperCore::FBVarFactory::getVarName");
 

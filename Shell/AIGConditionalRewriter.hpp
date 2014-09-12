@@ -189,7 +189,7 @@ private:
       }
     }
 
-    string toString() const { return "EQ: "+first.toString()+" <=> "+second.toString(); }
+    vstring toString() const { return "EQ: "+first.toString()+" <=> "+second.toString(); }
 
     AIGRef getDisjunctiveRepr(AIG& aig)
     {

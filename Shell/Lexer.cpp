@@ -92,7 +92,7 @@ void Lexer::readNumber (Token& token)
       }
     }
     saveTokenText(token);
-    throw LexerException((string)"incorrect number format in " + token.text,
+    throw LexerException((vstring)"incorrect number format in " + token.text,
 			 *this);
   }
   token.tag = TT_INTEGER;
@@ -156,7 +156,7 @@ void Lexer::readUnsignedInteger ()
  * Create a new lexer exception.
  * @since 15/07/2004 Turku
  */
-LexerException::LexerException (string message,const Lexer& lexer)
+LexerException::LexerException (vstring message,const Lexer& lexer)
   : _message (message)
 {
   if (lexer.isAtEndOfFile()) {
@@ -191,7 +191,7 @@ void Lexer::readSequence (const char* cs)
   while (*cs) {
     readNextChar();
     if (lastCharacter() != *cs) {
-      throw LexerException((string)cs + 
+      throw LexerException((vstring)cs + 
 			   " expected",*this);
     }
     cs++;

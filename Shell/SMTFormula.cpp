@@ -23,14 +23,14 @@ SMTConstant SMTFormula::unsignedValue(unsigned val)
   return SMTConstant(Int::toString(val)+".0");
 }
 
-SMTConstant SMTFormula::name(string name)
+SMTConstant SMTFormula::name(vstring name)
 {
   CALL("SMTFormula::name/1");
 
   return SMTConstant(name);
 }
 
-SMTConstant SMTFormula::name(string n1, string n2)
+SMTConstant SMTFormula::name(vstring n1, vstring n2)
 {
   CALL("SMTFormula::name/2");
 
@@ -83,7 +83,7 @@ SMTFormula SMTFormula::operator-=(const SMTFormula__HalfEquiv& r) const
 // SMTBenchmark
 //
 
-void SMTBenchmark::addFormula(const SMTFormula& f, string comment)
+void SMTBenchmark::addFormula(const SMTFormula& f, vstring comment)
 {
   CALL("SMTBenchmark::addFormula");
   ASS_EQ(_formulas.size(), _formulaComments.size());
@@ -128,26 +128,26 @@ void SMTBenchmark::output(ostream& out)
 
   StringMap::Iterator fdeclIt(_funDecls);
   while(fdeclIt.hasNext()) {
-    string func, fType;
+    vstring func, fType;
     fdeclIt.next(func, fType);
     out << ":extrafuns ((" << func << " " << fType << "))" <<endl;
   }
 
-  static Stack<string> predDeclStack;
+  static Stack<vstring> predDeclStack;
   predDeclStack.reset();
   predDeclStack.loadFromIterator(_predDecls.iterator());
   sort<DefaultComparator>(predDeclStack.begin(), predDeclStack.end());
 
-  Stack<string>::BottomFirstIterator pdeclIt(predDeclStack);
+  Stack<vstring>::BottomFirstIterator pdeclIt(predDeclStack);
   while(pdeclIt.hasNext()) {
-    string pred = pdeclIt.next();
+    vstring pred = pdeclIt.next();
     out << ":extrapreds ((" << pred << "))" <<endl;
   }
 
   out << ":formula ( (and " << endl;
 
   Stack<SMTFormula>::BottomFirstIterator fit(_formulas);
-  Stack<string>::BottomFirstIterator fCommentIt(_formulaComments);
+  Stack<vstring>::BottomFirstIterator fCommentIt(_formulaComments);
 
   if(!fit.hasNext()) { out << "  true" << endl; }
 
@@ -155,7 +155,7 @@ void SMTBenchmark::output(ostream& out)
     ALWAYS(fCommentIt.hasNext());
 
     SMTFormula form = fit.next();
-    string comment = fCommentIt.next();
+    vstring comment = fCommentIt.next();
     out << "  " << form.toString();
     if(comment!="") {
       out << " ; " << comment;
@@ -238,18 +238,18 @@ void YicesSolver::run(SMTBenchmark& problem, SMTSolverResult& res, unsigned time
 {
   CALL("YicesSolver::run");
 
-  stringstream problemStm;
+  vostringstream problemStm;
   problem.output(problemStm);
 
-  static Stack<string> proverOut;
+  static Stack<vstring> proverOut;
   proverOut.reset();
 
-  string execName = System::guessExecutableDirectory()+"/yices";
+  vstring execName = System::guessExecutableDirectory()+"/yices";
   if(!System::fileExists(execName)) {
     USER_ERROR("Executable "+execName+" does not exist");
   }
 
-  string cmdLine = execName+" -smt -e";
+  vstring cmdLine = execName+" -smt -e";
   if(timeout!=0) {
     cmdLine += " --timeout="+Int::toString(timeout);
   }
@@ -258,9 +258,9 @@ void YicesSolver::run(SMTBenchmark& problem, SMTSolverResult& res, unsigned time
 
   res.reset();
 
-  Stack<string>::Iterator oit(proverOut);
+  Stack<vstring>::Iterator oit(proverOut);
   while(oit.hasNext()) {
-    string line = oit.next();
+    vstring line = oit.next();
     if(line=="") { continue; }
     if(line=="sat") { res.status = SMTSolverResult::SAT; continue; }
     if(line=="unsat") { res.status = SMTSolverResult::UNSAT; continue; }
@@ -269,10 +269,10 @@ void YicesSolver::run(SMTBenchmark& problem, SMTSolverResult& res, unsigned time
     if(line.substr(0,3)!="(= " || line.substr(line.size()-1,1)!=")") {
       continue;
     }
-    string lineCore = line.substr(3, line.size()-4);
+    vstring lineCore = line.substr(3, line.size()-4);
     size_t sep = lineCore.find(' ');
-    string element = lineCore.substr(0, sep);
-    string value = lineCore.substr(sep+1);
+    vstring element = lineCore.substr(0, sep);
+    vstring value = lineCore.substr(sep+1);
 
     res.assignment.insert(element, value);
   }

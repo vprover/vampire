@@ -7,10 +7,10 @@
 #ifndef __Exception__
 #define __Exception__
 
-#include <string>
 #include <iostream>
 
 #include "LastCopyWatcher.hpp"
+#include "VString.hpp"
 
 namespace Lib {
 
@@ -35,7 +35,7 @@ public:
     : _message(msg)
   { s_exceptionCounter++; }
   Exception (const char* msg, int line);
-  explicit Exception (const string msg)
+  explicit Exception (const vstring msg)
     : _message(msg)
   { s_exceptionCounter++; }
   virtual void cry (ostream&);
@@ -54,7 +54,7 @@ protected:
    * so that it cannot be called directly */
   Exception () { s_exceptionCounter++; }
   /** The error message */
-  string _message;
+  vstring _message;
 
   LastCopyWatcher _lcw;
 
@@ -78,7 +78,7 @@ class UserErrorException
   UserErrorException (const char* msg)
     : Exception(msg)
   {}
-  UserErrorException (const string msg)
+  UserErrorException (const vstring msg)
     : Exception(msg)
   {}
   void cry (ostream&);
@@ -136,7 +136,7 @@ class InvalidOperationException
    InvalidOperationException (const char* msg)
     : Exception(msg)
   {}
-   InvalidOperationException (const string msg)
+   InvalidOperationException (const vstring msg)
     : Exception(msg)
   {}
   void cry (ostream&);
@@ -149,7 +149,7 @@ class SystemFailException
   : public Exception
 {
 public:
-  SystemFailException (const string msg, int err);
+  SystemFailException (const vstring msg, int err);
   void cry (ostream&);
 
   int err;

@@ -193,11 +193,11 @@ private:
   /** The list of units collected so far */
   UnitList* _units;
   /** maps type names to types */
-  Map<string,Type> _types;
+  Map<vstring,Type> _types;
   /** maps symbols to their types */
-  Map<string,SymbolInfo*> _symbolInfo;
+  Map<vstring,SymbolInfo*> _symbolInfo;
   /** symbols having one or more boolean arguments */
-  Set<string> _hasBooleanArgs;
+  Set<vstring> _hasBooleanArgs;
   /** used for numbering new types */
   int _nextType;
   /** used for numbering new variables */
@@ -205,7 +205,7 @@ private:
   /** all formulas collected during parsing */
   Stack<Formula*> _formulas;
   /** current binding to variables */
-  Map<string,IntList*> _variables;
+  Map<vstring,IntList*> _variables;
   /** Instructions to be executed during parsing */
   Stack<Command> _commands;
   /** Already parsed expressions and arguments to instructions */
@@ -217,7 +217,7 @@ private:
   /** Already parsed terms */
   Stack<TermList> _tsaved;
   /** Stored strings */
-  Stack<string> _ssaved;
+  Stack<vstring> _ssaved;
   /** special stack for storing numbers: we add axioms that all of them are different */
   Stack<TermList> _numbers;
   /** function symbol for constant 0, also used as boolean value false */
@@ -225,21 +225,21 @@ private:
   /** function symbol for constant 1, also used as boolean value true */
   TermList _one;
   /** formulas introduced by LET */
-  Map<string,Lib::List<Formula*>*> _formulaLet;
+  Map<vstring,Lib::List<Formula*>*> _formulaLet;
   /** formulas introduced by LET */
-  Map<string,Lib::List<TermList>*> _termLet;
+  Map<vstring,Lib::List<TermList>*> _termLet;
 
   void parse(const Expression*);
   void parse();
-  static Keyword keyword(const string& str);
+  static Keyword keyword(const vstring& str);
   void formula(const Expression*);
-  int bindVar(const string& varName);
-  int isVar(const string& varName);
-  void unbindVar(const string& var);
+  int bindVar(const vstring& varName);
+  int isVar(const vstring& varName);
+  void unbindVar(const vstring& var);
   void formulaError(const Expression* expr);
   void formulaError(const Expression* expr,const char* explanation);
   void termError(const Expression* expr);
-  void error(const string& errMsg);
+  void error(const vstring& errMsg);
   void parseFormula();
   void parseJunctionFormula(const List*,const Expression*,Connective c,Context);
   void parseBinaryFormula(const List*,const Expression*,Connective c,Context);
@@ -251,10 +251,10 @@ private:
   void parseDistinct(const List*,const Expression*,Context);
   void parseLet(const List*,const Expression*,Context);
   void parseTerm();
-  SymbolInfo* builtInPredicate(const string& str,int arity);
-  SymbolInfo* builtInFunction(const string& str,int arity);
-  SymbolInfo* getFunctionSymbolInfo(const string& name,int arity);
-  SymbolInfo* addNumber(const string&);
+  SymbolInfo* builtInPredicate(const vstring& str,int arity);
+  SymbolInfo* builtInFunction(const vstring& str,int arity);
+  SymbolInfo* getFunctionSymbolInfo(const vstring& name,int arity);
+  SymbolInfo* addNumber(const vstring&);
   void defType(const List*,const Expression*);
   void defOp(const List*,const Expression*);
   void bgPush(const List*);

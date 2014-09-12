@@ -1032,7 +1032,7 @@ void Options::set(const char* name,const char* value)
   }
   catch (const ValueNotFoundException&) {
     if (!_ignoreMissing) {
-      USER_ERROR((string)name + " is not a valid option");
+      USER_ERROR((vstring)name + " is not a valid option");
     }
   }
 } // Options::set/2
@@ -1041,7 +1041,7 @@ void Options::set(const char* name,const char* value)
  * Set option by its name and value.
  * @since 06/04/2005 Torrevieja
  */
-void Options::set(const string& name,const string& value)
+void Options::set(const vstring& name,const vstring& value)
 {
   CALL ("Options::set/3");
   set(name.c_str(),value.c_str());
@@ -1761,7 +1761,7 @@ void Options::set(const char* name,const char* value, int index)
     throw ValueNotFoundException();
   }
   catch(ValueNotFoundException&) {
-    USER_ERROR((string)"wrong value (" + value + ") for " + name);
+    USER_ERROR((vstring)"wrong value (" + value + ") for " + name);
   }
 } // Options::set
 
@@ -1814,7 +1814,7 @@ bool Options::onOffToBool (const char* onOff,const char* option)
     }
   }
   
-  USER_ERROR((string)"wrong value for " + option + ": " + onOff);
+  USER_ERROR((vstring)"wrong value for " + option + ": " + onOff);
 } // Options::onOffToBool
 
 /**
@@ -1822,12 +1822,12 @@ bool Options::onOffToBool (const char* onOff,const char* option)
  * value.
  * @since 15/11/2004 Manchester
  */
-string Options::boolToOnOff (bool val)
+vstring Options::boolToOnOff (bool val)
 {
   CALL("Options::boolToOnOff");
 
-  static string on ("on");
-  static string off ("off");
+  static vstring on ("on");
+  static vstring off ("off");
 
   return val ? on : off;
 } // Options::boolToOnOff
@@ -1964,9 +1964,10 @@ bool Options::setLrsFirstTimeCheck (int newVal)
  *
  * @param relativeName the relative name, must begin and end with "'"
  *        because of the TPTP syntax
- * @since 16/10/2003 Manchester, relativeName change to string from char*
+ * @since 16/10/2003 Manchester, relativeName changed to string from char*
+ * @since 07/08/2014 Manchester, relativeName changed to vstring
  */
-string Options::includeFileName (const string& relativeName)
+vstring Options::includeFileName (const vstring& relativeName)
 {
   CALL("Options::includeFileName");
 
@@ -1981,12 +1982,12 @@ string Options::includeFileName (const string& relativeName)
   // truncatedRelativeName is relative.
   // Use the conventions of Vampire:
   // (a) first search the value of "include"
-  string dir = include();
+  vstring dir = include();
 
   if (dir == "") { // include undefined
     // (b) search in the directory of the 'current file'
     // i.e. the input file
-    string currentFile = inputFile();
+    vstring currentFile = inputFile();
     System::extractDirNameFromPath(currentFile,dir); 
     if(System::fileExists(dir+"/"+relativeName)){
       return dir + "/" + relativeName;
@@ -2600,7 +2601,7 @@ void Options::outputValue (ostream& str,int optionTag) const
  * Set input file and also update problemName if it was not
  * set before
  */
-void Options::setInputFile(const string& inputFile)
+void Options::setInputFile(const vstring& inputFile)
 {
   CALL("Options::setInputFile");
 
@@ -2678,19 +2679,19 @@ void Options::readAgeWeightRatio(const char* val, int& ageRatio, int& weightRati
 
   if (found) {
     if (strlen(val) > 127) {
-      USER_ERROR((string)"wrong value for age-weight ratio: " + val);
+      USER_ERROR((vstring)"wrong value for age-weight ratio: " + val);
     }
     char copy[128];
     strcpy(copy,val);
     copy[colonIndex] = 0;
     int age;
     if (! Int::stringToInt(copy,age)) {
-      USER_ERROR((string)"wrong value for age-weight ratio: " + val);
+      USER_ERROR((vstring)"wrong value for age-weight ratio: " + val);
     }
     ageRatio = age;
     int weight;
     if (! Int::stringToInt(copy+colonIndex+1,weight)) {
-      USER_ERROR((string)"wrong value for age-weight ratio: " + val);
+      USER_ERROR((vstring)"wrong value for age-weight ratio: " + val);
     }
     weightRatio = weight;
     return;
@@ -2698,7 +2699,7 @@ void Options::readAgeWeightRatio(const char* val, int& ageRatio, int& weightRati
   ageRatio = 1;
   int weight;
   if (! Int::stringToInt(val,weight)) {
-    USER_ERROR((string)"wrong value for age-weight ratio: " + val);
+    USER_ERROR((vstring)"wrong value for age-weight ratio: " + val);
   }
   weightRatio = weight;
 } // Options::readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio)
@@ -2716,7 +2717,7 @@ int Options::readTimeLimit(const char* val)
 
   int length = strlen(val);
   if (length == 0 || length > 127) {
-    USER_ERROR((string)"wrong value for time limit: " + val);
+    USER_ERROR((vstring)"wrong value for time limit: " + val);
   }
 
   char copy[128];
@@ -2751,7 +2752,7 @@ int Options::readTimeLimit(const char* val)
 
   float number;
   if (! Int::stringToFloat(copy,number)) {
-    USER_ERROR((string)"wrong value for time limit: " + val);
+    USER_ERROR((vstring)"wrong value for time limit: " + val);
   }
 
 #ifdef _MSC_VER
@@ -2765,23 +2766,23 @@ int Options::readTimeLimit(const char* val)
 /**
  * Read 
  */
-void Options::readOptionsString(string testId, OptionSpecStack& assignments)
+void Options::readOptionsString(vstring testId, OptionSpecStack& assignments)
 {
   CALL("Options::readOptionsString");
   cout << testId << "\n";
   while (testId != "") {
     size_t index1 = testId.find('=');
-    if (index1 == string::npos) {
+    if (index1 == vstring::npos) {
       error: USER_ERROR("bad option specification" + testId);
     }
     size_t index = testId.find(':');
-    if (index!=string::npos && index1 > index) {
+    if (index!=vstring::npos && index1 > index) {
       goto error;
     }
 
-    string param = testId.substr(0,index1);
-    string value;
-    if (index==string::npos) {
+    vstring param = testId.substr(0,index1);
+    vstring value;
+    if (index==vstring::npos) {
       value = testId.substr(index1+1);
     }
     else {
@@ -2789,7 +2790,7 @@ void Options::readOptionsString(string testId, OptionSpecStack& assignments)
     }
     assignments.push(OptionSpec(param, value));
 
-    if (index==string::npos) {
+    if (index==vstring::npos) {
       break;
     }
     testId = testId.substr(index+1);
@@ -2797,29 +2798,29 @@ void Options::readOptionsString(string testId, OptionSpecStack& assignments)
 }
 
 /**
- * Assign option values as encoded in the option string.
+ * Assign option values as encoded in the option vstring.
  * according to the argument in the format
  * opt1=val1:opt2=val2:...:optn=valN,
  * for example bs=off:cond=on:drc=off:nwc=1.5:nicw=on:sos=on:sio=off:spl=sat:ssnc=none
  */
-void Options::readOptionsString(string optionsString)
+void Options::readOptionsString(vstring optionsString)
 {
   CALL("Options::readOptionsString");
 
   // repeatedly look for param=value
   while (optionsString != "") {
     size_t index1 = optionsString.find('=');
-    if (index1 == string::npos) {
+    if (index1 == vstring::npos) {
       error: USER_ERROR("bad option specification" + optionsString);
     }
     size_t index = optionsString.find(':');
-    if (index!=string::npos && index1 > index) {
+    if (index!=vstring::npos && index1 > index) {
       goto error;
     }
 
-    string param = optionsString.substr(0,index1);
-    string value;
-    if (index==string::npos) {
+    vstring param = optionsString.substr(0,index1);
+    vstring value;
+    if (index==vstring::npos) {
       value = optionsString.substr(index1+1);
     }
     else {
@@ -2827,7 +2828,7 @@ void Options::readOptionsString(string optionsString)
     }
     setShort(param.c_str(),value.c_str());
 
-    if (index==string::npos) {
+    if (index==vstring::npos) {
       break;
     }
     optionsString = optionsString.substr(index+1);
@@ -2841,14 +2842,14 @@ void Options::readOptionsString(string optionsString)
  *        in deciseconds
  * @throws UserErrorException if the test id is incorrect
  */
-void Options::readFromTestId (string testId)
+void Options::readFromTestId (vstring testId)
 {
   CALL("Options::readFromTestId");
 
   _normalize = true;
   _testId = testId;
 
-  string ma(testId,0,3); // the first 3 characters
+  vstring ma(testId,0,3); // the first 3 characters
   if (ma == "dis") {
     _saturationAlgorithm = DISCOUNT;
   }
@@ -2870,10 +2871,10 @@ void Options::readFromTestId (string testId)
 
   // after last '_' we have time limit
   size_t index = testId.find_last_of('_');
-  if (index == string::npos) { // not found
+  if (index == vstring::npos) { // not found
     goto error;
   }
-  string timeString = testId.substr(index+1);
+  vstring timeString = testId.substr(index+1);
   _timeLimitInDeciseconds = readTimeLimit(timeString.c_str()) / 10;
 
   testId = testId.substr(3,index-3);
@@ -2889,7 +2890,7 @@ void Options::readFromTestId (string testId)
 
   index = testId.find('_');
   int selection;
-  string sel = testId.substr(0,index);
+  vstring sel = testId.substr(0,index);
   Int::stringToInt(sel,selection);
   setSelection(selection);
   testId = testId.substr(index+1);
@@ -2899,9 +2900,9 @@ void Options::readFromTestId (string testId)
   }
 
   index = testId.find('_');
-  string awr = testId.substr(0,index);
+  vstring awr = testId.substr(0,index);
   readAgeWeightRatio(awr.c_str(), _ageRatio, _weightRatio);
-  if (index==string::npos) {
+  if (index==vstring::npos) {
     //there are no extra options
     return;
   }
@@ -2918,13 +2919,13 @@ void Options::setForcedOptionValues()
 }
 
 /**
- * Return testId string that represents current values of the options
+ * Return testId vstring that represents current values of the options
  */
-string Options::generateTestId() const
+vstring Options::generateTestId() const
 {
   CALL("Options::generateTestId");
 
-  stringstream res;
+  vostringstream res;
   //saturation algorithm
   res << ( (saturationAlgorithm()==DISCOUNT) ? "dis" : ( (saturationAlgorithm()==LRS) ? "lrs" : "ott") );
 
@@ -2966,8 +2967,8 @@ string Options::generateTestId() const
     if (forbidden.contains(t)) {
       continue;
     }
-    stringstream valCur;
-    stringstream valDef;
+    vostringstream valCur;
+    vostringstream valDef;
     cur.outputValue(valCur, t);
     def.outputValue(valDef, t);
     if (valCur.str()==valDef.str()) {
@@ -2979,7 +2980,7 @@ string Options::generateTestId() const
     else {
       first=false;
     }
-    string name=Constants::shortNames[i];
+    vstring name=Constants::shortNames[i];
     res << name << "=" << valCur.str();
     cur.set(name.c_str(), valDef.str().c_str(), t);
   }
@@ -2989,8 +2990,8 @@ string Options::generateTestId() const
     if (forbidden.contains(t)) {
       continue;
     }
-    stringstream valCur;
-    stringstream valDef;
+    vostringstream valCur;
+    vostringstream valDef;
     cur.outputValue(valCur, t);
     def.outputValue(valDef, t);
     if (valCur.str()==valDef.str()) {

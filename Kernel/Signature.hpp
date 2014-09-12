@@ -9,8 +9,6 @@
 #ifndef __Signature__
 #define __Signature__
 
-#include <string>
-
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
@@ -19,6 +17,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Map.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/VString.hpp"
 
 #include "Sorts.hpp"
 #include "Theory.hpp"
@@ -39,7 +38,7 @@ class Signature
   class Symbol {
   protected:
     /** print name */
-    string _name;
+    vstring _name;
     /** arity */
     unsigned _arity;
     /** the object is of type InterpretedSymbol */
@@ -75,7 +74,7 @@ class Signature
     ~Symbol();
   public:
     /** standard constructor */
-    Symbol(const string& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false);
+    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false);
     void destroyFnSymbol();
     void destroyPredSymbol();
 
@@ -107,7 +106,7 @@ class Signature
     /** Return the arity of the symbol */
     inline unsigned arity() const { return _arity; }
     /** Return the name of the symbol */
-    inline const string& name() const { return _name; }
+    inline const vstring& name() const { return _name; }
     /** Return true iff the object is of type InterpretedSymbol */
     inline bool interpreted() const { return _interpreted; }
     /** Return true iff the symbol doesn't come from input problem but was introduced by Vampire */
@@ -158,13 +157,13 @@ class Signature
   class VarSymbol{
   protected:
     /** print name*/
-    string _name;
+    vstring _name;
   public: 
     /**Standard Constructor*/
-    VarSymbol(const string& nm);
+    VarSymbol(const vstring& nm);
     
     /** Return the name of the symbol*/
-    inline const string& name() const {return _name;}
+    inline const vstring& name() const {return _name;}
     
     CLASS_NAME("Signature::VarSymbol");
     USE_ALLOCATOR(VarSymbol);
@@ -181,13 +180,13 @@ class Signature
 
   public:
 
-    InterpretedSymbol(const string& nm, Interpretation interp)
+    InterpretedSymbol(const vstring& nm, Interpretation interp)
     : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
     {
       CALL("InterpretedSymbol");
     }
 
-    InterpretedSymbol(const string& nm)
+    InterpretedSymbol(const vstring& nm)
     : Symbol(nm, 0, true)
     {
       CALL("InterpretedSymbol");
@@ -270,13 +269,13 @@ class Signature
    * If a variable with this name and arity exists, return its number 
    * Otherwise, add a new one and return its number 
    */
-  unsigned addVar(const string& name){
+  unsigned addVar(const vstring& name){
     CALL("Signature::addVar");
     bool added;
     return addVar(name, added);
   }
   
-  const string& varName(Var number){
+  const vstring& varName(Var number){
     return _vars[number]->name();
   }
   
@@ -291,13 +290,13 @@ class Signature
     return _vars[n];
   }
   
-  unsigned addVar(const string& name, bool& added);
+  unsigned addVar(const vstring& name, bool& added);
   //////////////////////////////////////
   // Uninterpreted symbol declarations
   //
 
-  unsigned addPredicate(const string& name,unsigned arity,bool& added);
-  unsigned addFunction(const string& name,unsigned arity,bool& added);
+  unsigned addPredicate(const vstring& name,unsigned arity,bool& added);
+  unsigned addFunction(const vstring& name,unsigned arity,bool& added);
 
   /**
    * If a predicate with this name and arity exists, return its number.
@@ -307,7 +306,7 @@ class Signature
    * @param arity arity of the symbol
    * @since 07/05/2007 Manchester
    */
-  unsigned addPredicate(const string& name,unsigned arity)
+  unsigned addPredicate(const vstring& name,unsigned arity)
   {
     bool added;
     return addPredicate(name,arity,added);
@@ -318,7 +317,7 @@ class Signature
    *
    * @since 28/12/2007 Manchester
    */
-  unsigned addFunction(const string& name,unsigned arity)
+  unsigned addFunction(const vstring& name,unsigned arity)
   {
     bool added;
     return addFunction(name,arity,added);
@@ -329,7 +328,7 @@ class Signature
    *
    * The added constant is of sort Sorts::SRT_DEFAULT.
    */
-  unsigned addStringConstant(const string& name);
+  unsigned addStringConstant(const vstring& name);
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addIteFunction(unsigned arity, unsigned* argSorts, unsigned resSort);
   unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
@@ -338,12 +337,12 @@ class Signature
 
   // Interpreted symbol declarations
 
-  unsigned addInterpretedFunction(Interpretation itp, const string& name);
-  unsigned addInterpretedPredicate(Interpretation itp, const string& name);
+  unsigned addInterpretedFunction(Interpretation itp, const vstring& name);
+  unsigned addInterpretedPredicate(Interpretation itp, const vstring& name);
 
-  unsigned addIntegerConstant(const string& number,bool defaultSort);
-  unsigned addRationalConstant(const string& numerator, const string& denominator,bool defaultSort);
-  unsigned addRealConstant(const string& number,bool defaultSort);
+  unsigned addIntegerConstant(const vstring& number,bool defaultSort);
+  unsigned addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort);
+  unsigned addRealConstant(const vstring& number,bool defaultSort);
 
   unsigned addIntegerConstant(const IntegerConstantType& number);
   unsigned addRationalConstant(const RationalConstantType& number);
@@ -370,12 +369,12 @@ class Signature
   }
 
   /** return the name of a function with a given number */
-  const string& functionName(int number)
+  const vstring& functionName(int number)
   {
     return _funs[number]->name();
   }
   /** return the name of a predicate with a given number */
-  const string& predicateName(int number)
+  const vstring& predicateName(int number)
   {
     return _preds[number]->name();
   }
@@ -403,9 +402,9 @@ class Signature
   }
 
   /** return true iff predicate of given @b name and @b arity exists. */
-  bool isPredicateName(string name, unsigned arity)
+  bool isPredicateName(vstring name, unsigned arity)
   {
-    string symbolKey = key(name,arity);
+    vstring symbolKey = key(name,arity);
     unsigned tmp;
     return _predNames.find(symbolKey,tmp);
   }
@@ -434,14 +433,14 @@ class Signature
   CLASS_NAME(Signature);
   USE_ALLOCATOR(Signature);
 
-  bool functionExists(const string& name,unsigned arity) const;
-  bool predicateExists(const string& name,unsigned arity) const;
+  bool functionExists(const vstring& name,unsigned arity) const;
+  bool predicateExists(const vstring& name,unsigned arity) const;
 
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
 
-  static string key(const string& name,int arity);
+  static vstring key(const vstring& name,int arity);
 
   /** the number of string constants */
   unsigned strings() const {return _strings;}
@@ -459,8 +458,8 @@ class Signature
   static const unsigned LAST_BUILT_IN_DISTINCT_GROUP;
 
 private:
-  static bool isProtectedName(string name);
-  static bool symbolNeedsQuoting(string name, bool interpreted, unsigned arity);
+  static bool isProtectedName(vstring name);
+  static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
   static bool charNeedsQuoting(char c, bool first);
   /** Stack of function symbols -- used for bound propagation*/
   Stack<VarSymbol*> _vars;
@@ -469,13 +468,13 @@ private:
   /** Stack of predicate symbols */
   Stack<Symbol*> _preds;
   /**
-   * Map from string "name_arity" to their numbers
+   * Map from vstring "name_arity" to their numbers
    *
    * String constants have key "value_c", integer constants "value_n",
    * rational "numerator_denominator_q" and real "value_r".
    */
   SymbolMap _funNames;
-  /** Map from string "name_arity" to their numbers */
+  /** Map from vstring "name_arity" to their numbers */
   SymbolMap _predNames;
   /** Map for the arity_check options: maps symbols to their arities */
   SymbolMap _arityCheck;

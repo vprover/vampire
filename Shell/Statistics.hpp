@@ -15,6 +15,8 @@
 #include "Lib/RCPtr.hpp"
 #include "Lib/ScopedPtr.hpp"
 
+#include "Lib/Allocator.hpp"
+
 //#include "Kernel/Assignment.hpp"
 //#include "Kernel/Constraint.hpp"
 
@@ -37,6 +39,9 @@ using namespace Solving;
 class Statistics
 {
 public:
+  CLASS_NAME(Statistics);
+  USE_ALLOCATOR(Statistics);
+
   Statistics();
 
   void print(ostream& out);
@@ -317,7 +322,7 @@ public:
   Kernel::UnitList* saturatedSet;
   /** if problem is satisfiable and we obtained a model, contains its
    * representation; otherwise it is an empty string */
-  string model;
+  vstring model;
 
   enum ExecutionPhase {
     /** Whatever happens before we start parsing the problem */

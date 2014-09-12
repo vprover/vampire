@@ -969,9 +969,7 @@ void AIGCompressor::populateBDDCompressingMap(AIGInsideOutPosIterator& aigIt, AI
   CALL("AIGCompressor::populateBDDCompressingMap");
   ASS(_lookUpImprovement.isEmpty());
   ASS(!_lookUpNeedsImprovement);
-
-
-  typedef SharedSet<unsigned> USharedSet;
+  
   /** For processed AIGs contains set of refered atoms, or zero
    * if the set of processed atoms was too big. */
   static DHMap<AIGRef,USharedSet*> refAtoms;

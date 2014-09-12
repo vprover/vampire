@@ -25,6 +25,9 @@ using namespace Kernel;
 
 class ClauseCodeTree : public CodeTree
 {
+protected:
+  static void onCodeOpDestroying(CodeOp* op);
+  
 public:
   ClauseCodeTree();
 

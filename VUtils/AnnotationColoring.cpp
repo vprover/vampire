@@ -24,7 +24,7 @@ namespace VUtils
  * Output color info on symbol @c sym, unless it is an equality. In that
  * case do nothing.
  */
-void AnnotationColoring::outputColorInfo(ostream& out, SymId sym, string color)
+void AnnotationColoring::outputColorInfo(ostream& out, SymId sym, vstring color)
 {
   CALL("AnnotationColoring::outputColorInfo");
 
@@ -58,8 +58,8 @@ int AnnotationColoring::perform(int argc, char** argv)
   CALL("AnnotationColoring::perform");
   ASS_GE(argc,2);
 
-  bool conjectureColoring = string(argv[1])=="conjecture_coloring";
-  ASS_REP(conjectureColoring || string(argv[1])=="axiom_coloring", argv[1]);
+  bool conjectureColoring = vstring(argv[1])=="conjecture_coloring";
+  ASS_REP(conjectureColoring || vstring(argv[1])=="axiom_coloring", argv[1]);
 
   //remove the first argument
   argc--; argv++;

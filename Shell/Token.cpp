@@ -17,7 +17,7 @@ namespace Shell {
  * 
  * @since 25/07/2004 Torrevieja
  */
-string Token::toString (TokenType tt)
+Lib::vstring Token::toString (TokenType tt)
 {
   switch (tt) {
   case TT_INTEGER:

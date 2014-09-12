@@ -14,7 +14,7 @@ namespace Lib
 
 using namespace std;
 
-string StringUtils::replaceChar(string str, char src, char target)
+vstring StringUtils::replaceChar(vstring str, char src, char target)
 {
   CALL("StringUtils::replaceChar");
 
@@ -35,15 +35,15 @@ string StringUtils::replaceChar(string str, char src, char target)
     tptr++;
     sptr++;
   }
-  return string(buf.array(), len);
+  return vstring(buf.array(), len);
 }
 
 /**
- * Sanitize string so that it can be used as a valid suffix in the
+ * Sanitize vstring so that it can be used as a valid suffix in the
  * Signature::addFreshFunction() and Signature::addFreshPredicate()
  * functions.
  */
-string StringUtils::sanitizeSuffix(string str)
+vstring StringUtils::sanitizeSuffix(vstring str)
 {
   CALL("StringUtils::sanitizeSuffix");
 
@@ -75,10 +75,10 @@ string StringUtils::sanitizeSuffix(string str)
     tptr++;
     sptr++;
   }
-  return string(buf.array(), len);
+  return vstring(buf.array(), len);
 }
 
-bool StringUtils::isPositiveInteger(string str)
+bool StringUtils::isPositiveInteger(vstring str)
 {
   CALL("StringUtils::isPositiveInteger");
 
@@ -95,7 +95,7 @@ bool StringUtils::isPositiveInteger(string str)
   return true;
 }
 
-bool StringUtils::isPositiveDecimal(string str)
+bool StringUtils::isPositiveDecimal(vstring str)
 {
   CALL("StringUtils::isPositiveDecimal");
 
@@ -120,7 +120,7 @@ bool StringUtils::isPositiveDecimal(string str)
   return true;
 }
 
-void StringUtils::splitStr(const char* str, char delimiter, Stack<string>& strings)
+void StringUtils::splitStr(const char* str, char delimiter, Stack<vstring>& strings)
 {
   CALL("StringUtils::splitStr");
 
@@ -143,11 +143,11 @@ void StringUtils::splitStr(const char* str, char delimiter, Stack<string>& strin
   strings.push(currPart.begin());
 }
 
-bool StringUtils::readEquality(const char* str, char eqChar, string& lhs, string& rhs)
+bool StringUtils::readEquality(const char* str, char eqChar, vstring& lhs, vstring& rhs)
 {
   CALL("StringUtils::readEquality");
 
-  static Stack<string> parts;
+  static Stack<vstring> parts;
   parts.reset();
   splitStr(str, eqChar, parts);
   if(parts.size()!=2) {
@@ -161,18 +161,18 @@ bool StringUtils::readEquality(const char* str, char eqChar, string& lhs, string
 /**
  * If str doesn't contain equalities, false is returned and the content of pairs is undefined.
  */
-bool StringUtils::readEqualities(const char* str, char delimiter, char eqChar, DHMap<string,string>& pairs)
+bool StringUtils::readEqualities(const char* str, char delimiter, char eqChar, DHMap<vstring,vstring>& pairs)
 {
   CALL("StringUtils::readEqualities");
 
-  static Stack<string> parts;
+  static Stack<vstring> parts;
   parts.reset();
   splitStr(str, delimiter, parts);
 
-  Stack<string>::TopFirstIterator pit(parts);
+  Stack<vstring>::TopFirstIterator pit(parts);
   while(pit.hasNext()) {
-    string part = pit.next();
-    string lhs, rhs;
+    vstring part = pit.next();
+    vstring lhs, rhs;
     if(!readEquality(part.c_str(), eqChar, lhs, rhs)) {
       return false;
     }

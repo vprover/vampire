@@ -330,34 +330,34 @@ TermIterator Term::getVariableIterator(TermList tl)
  * Return the string representation of variable var.
  * @since 16/05/2007
  */
-string Term::variableToString(unsigned var)
+vstring Term::variableToString(unsigned var)
 {
   CALL("Term::variableToString");
 
-  return (string)"X" + Int::toString(var);
+  return (vstring)"X" + Int::toString(var);
 } // variableToString
 
 /**
  * Return the string representation of variable term var.
  * @since 16/05/2007
  */
-string Term::variableToString(TermList var)
+vstring Term::variableToString(TermList var)
 {
   CALL("Term::variableToString");
   ASS(var.isVar());
 
   if (var.isOrdinaryVar()) {
-    return (string)"X" + Int::toString(var.var());
+    return (vstring)"X" + Int::toString(var.var());
   }
   else {
-    return (string)"S" + Int::toString(var.var());
+    return (vstring)"S" + Int::toString(var.var());
   }
 } // variableToString
 
 /**
- * Convert a term if-then-else or a let...in expression to string
+ * Convert a term if-then-else or a let...in expression to vstring
  */
-string Term::specialTermToString() const
+vstring Term::specialTermToString() const
 {
   CALL("Term::specialTermToString");
   ASS(isSpecial());
@@ -366,7 +366,7 @@ string Term::specialTermToString() const
   case SF_LET_FORMULA_IN_TERM:
   {
     ASS_EQ(arity(),1);
-    string s = "(let " + getSpecialData()->getLhsLiteral()->toString();
+    vstring s = "(let " + getSpecialData()->getLhsLiteral()->toString();
     s += " := " + getSpecialData()->getRhsFormula()->toString();
     s += " in " + nthArgument(0)->toString();
     s += " )";
@@ -375,7 +375,7 @@ string Term::specialTermToString() const
   case SF_LET_TERM_IN_TERM:
   {
     ASS_EQ(arity(),1);
-    string s = "( let " + getSpecialData()->getLhsTerm().toString();
+    vstring s = "( let " + getSpecialData()->getLhsTerm().toString();
     s += " := " + getSpecialData()->getRhsTerm().toString();
     s += " in " + nthArgument(0)->toString();
     s += " )";
@@ -384,7 +384,7 @@ string Term::specialTermToString() const
   case SF_TERM_ITE:
   {
     ASS_EQ(arity(),2);
-    string s = "$ite_t(" + getSpecialData()->getCondition()->toString();
+    vstring s = "$ite_t(" + getSpecialData()->getCondition()->toString();
     s += "," + nthArgument(0)->toString();
     s += "," + nthArgument(1)->toString();
     s += ")";
@@ -395,10 +395,10 @@ string Term::specialTermToString() const
 }
 
 /**
- * Return the result of conversion of a term into a string.
+ * Return the result of conversion of a term into a vstring.
  * @since 16/05/2007 Manchester
  */
-string Term::toString() const
+vstring Term::toString() const
 {
   CALL("Term::toString");
 
@@ -408,7 +408,7 @@ string Term::toString() const
 
   Stack<const TermList*> stack(64);
 
-  string s = isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName();
+  vstring s = isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName();
   if (_arity) {
     s += '(';
     stack.push(args());
@@ -418,11 +418,11 @@ string Term::toString() const
 } // Term::toString
 
 /**
- * Write to a string term arguments (used in printing literals
+ * Write to a vstring term arguments (used in printing literals
  * and terms.
  * @since 16/05/2007 Manchester
  */
-void TermList::argsToString(Stack<const TermList*>& stack,string& s)
+void TermList::argsToString(Stack<const TermList*>& stack,vstring& s)
 {
   CALL("TermList::argsToString");
 
@@ -461,10 +461,10 @@ void TermList::argsToString(Stack<const TermList*>& stack,string& s)
 } // Term::argsToString
 
 /**
- * Write as a string the head of the term list.
+ * Write as a vstring the head of the term list.
  * @since 27/02/2008 Manchester
  */
-string TermList::toString() const
+vstring TermList::toString() const
 {
   CALL("TermList::toString");
 
@@ -479,16 +479,16 @@ string TermList::toString() const
 
 
 /**
- * Return the result of conversion of a literal into a string.
+ * Return the result of conversion of a literal into a vstring.
  * @since 16/05/2007 Manchester
  */
-string Literal::toString() const
+vstring Literal::toString() const
 {
   CALL("Literal::toString");
 
   if (isEquality()) {
     const TermList* lhs = args();
-    string s = lhs->toString();
+    vstring s = lhs->toString();
     if (isPositive()) {
       s += " = ";
     }
@@ -499,7 +499,7 @@ string Literal::toString() const
   }
 
   Stack<const TermList*> stack(64);
-  string s = polarity() ? "" : "~";
+  vstring s = polarity() ? "" : "~";
   s += predicateName();
   //cerr << "predicate: "<< predicateName()<<endl;
   if (_arity) {
@@ -515,12 +515,12 @@ string Literal::toString() const
  * Return the print name of the function symbol of this term.
  * @since 18/05/2007 Manchester
  */
-const string& Term::functionName() const
+const vstring& Term::functionName() const
 {
   CALL("Term::functionName");
 
 #if VDEBUG
-  static string nonexisting("<function does not exists>");
+  static vstring nonexisting("<function does not exists>");
   if (_functor>=static_cast<unsigned>(env.signature->functions())) {
     return nonexisting;
   }
@@ -533,12 +533,12 @@ const string& Term::functionName() const
  * Return the print name of the function symbol of this literal.
  * @since 18/05/2007 Manchester
  */
-const string& Literal::predicateName() const
+const vstring& Literal::predicateName() const
 {
   CALL("Literal::predicateName");
 
 #if VDEBUG
-  static string nonexisting("<predicate does not exists>");
+  static vstring nonexisting("<predicate does not exists>");
   if (_functor>=static_cast<unsigned>(env.signature->predicates())) {
     return nonexisting;
   }
@@ -696,7 +696,7 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
 /** Create a new constant and insert in into the sharing
  *  structure.
  */
-Term* Term::createConstant(const string& name)
+Term* Term::createConstant(const vstring& name)
 {
   CALL("Term::createConstant");
 
@@ -1147,9 +1147,9 @@ Literal::Literal()
 #include <iostream>
 
 #if VDEBUG
-string Term::headerToString() const
+vstring Term::headerToString() const
 {
-  string s("functor: ");
+  vstring s("functor: ");
   s += Int::toString(_functor) + ", arity: " + Int::toString(_arity)
     + ", weight: " + Int::toString(_weight)
     + ", vars: " + Int::toString(_vars)
@@ -1212,7 +1212,7 @@ Literal* Literal::flattenOnArgument(const Literal* lit,int n)
   ASS(! ts->isVar());
   const Term* t = ts->term();
   unsigned newArity = lit->arity() + t->arity() - 1;
-  string newName = lit->predicateName() + '%' + Int::toString(n) +
+  vstring newName = lit->predicateName() + '%' + Int::toString(n) +
                    '%' + t->functionName();
   unsigned newPredicate = env.signature->addPredicate(newName,newArity);
 

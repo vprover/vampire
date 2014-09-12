@@ -75,7 +75,7 @@ Problem::~Problem()
 /**
  * Initialize values of information in the problem
  *
- * This function we have to share the initialization code among different
+ * This function we have to share the initialisation code among different
  * constructors.
  */
 void Problem::initValues()
@@ -186,7 +186,7 @@ void Problem::copyInto(Problem& tgt, bool copyClauses)
   }
   if(isPropertyUpToDate()) {
     //if we have an up-to-date property, we just copy it into the
-    //copyed opbect so we save ourselves scanning for the property
+    //copied object so we save ourselves scanning for the property
     //in the child
     tgt._propertyValid = true;
     tgt._property = new Property(*_property);
@@ -261,7 +261,7 @@ void Problem::refreshProperty() const
 }
 
 /**
- * Read the localy stored information from the Property object
+ * Read the locally stored information from the Property object
  */
 void Problem::readDetailsFromProperty() const
 {
@@ -338,8 +338,7 @@ bool Problem::hasFormulas() const
   CALL("Problem::hasFormulas");
 
   if(!mayHaveFormulas()) { return false; }
-  if(!_hasFormulas.known()) { refreshProperty(); }
-  ASS(_hasFormulas.known());
+  if(!_hasFormulas.known()) { refreshProperty(); }  
   ASS(_hasFormulas.known());
   return _hasFormulas.value();
 }

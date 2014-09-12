@@ -96,7 +96,7 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
   CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,unsigned)");
 
   if(VarManager::varNamePreserving()) {
-    string varName=VarManager::getVarName(var);
+    vstring varName=VarManager::getVarName(var);
     return addSkolemFunction(arity, domainSorts, rangeSort, varName.c_str());
   }
   else {

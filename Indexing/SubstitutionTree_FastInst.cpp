@@ -50,7 +50,7 @@ public:
       ASS(!q || !t.isSpecialVar());
     }
 
-    string toString()
+    vstring toString()
     {
       CALL("SubstitutionTree::InstMatcher::TermSpec::toString");
       return (q ? "q|" : "n|")+t.toString();
@@ -215,6 +215,9 @@ class SubstitutionTree::InstMatcher::Substitution
 : public ResultSubstitution
 {
 public:
+  CLASS_NAME(SubstitutionTree::InstMatcher::Substitution);
+  USE_ALLOCATOR(SubstitutionTree::InstMatcher::Substitution);
+  
   Substitution(InstMatcher* parent, Renaming* resultDenormalizer)
   : _parent(parent), _resultDenormalizer(resultDenormalizer)
   {}

@@ -81,7 +81,7 @@ TEST_FUN(eprPDInlining2)
 {
   try {
     Problem prb;
-//    stringstream stm(
+//    vostringstream stm(
 //	"fof(memoryEquality,axiom,"
 //	"    (toy_EXP_9(VarCurr) <=> (![A] : ((address(A) => (![B] : (((less_5(B) & (~less_0(B))) => (toy_mem_array(VarCurr,A,B) <=> toy_mem2_array(VarCurr,A,B)))) ))) )))."
 //	"fof(writeUnaryOperator,axiom,"
@@ -90,7 +90,7 @@ TEST_FUN(eprPDInlining2)
 //	"   ((~toy_assume_memory_correspondence_fs_assert_reachable(VarCurr)) <=> toy_EXP_41(VarCurr)))."
 //	"fof(addAssertion,conjecture,"
 //	"   (![VarCurr] : ((reachableState(VarCurr) => toy_assume_memory_correspondence_fs_assert_reachable(VarCurr))) )).");
-    stringstream stm(
+    vostringstream stm(
 	"fof(a,axiom, p <=> r). fof(a,hypothesis, p <=> (q|s)).fof(a,axiom, r => u).");
     prb.addFromStream(stm);
 
@@ -130,7 +130,7 @@ TEST_FUN(eprEPRRestoringInlining)
     OutputOptions::setTffFormulas(true);
 
     Problem prb;
-    stringstream stm(
+    vostringstream stm(
 	"fof(a,axiom, p <=> (r(a)|q)). fof(b,hypothesis, p). fof(c,hypothesis, ~p). fof(d,axiom, r(X) <=> ![Y] : z(Y,a))."
 	"fof(e,axiom, q <=> (s|t)).");
     prb.addFromStream(stm);
@@ -160,7 +160,7 @@ TEST_FUN(eprEPRRestoringInliningCycles)
 {
   try {
     Problem prb;
-    stringstream stm(
+    vostringstream stm(
 	"fof(d,axiom, r(X) <=> ![Y] : z(Y))."
 	"fof(d,axiom, z(X) <=> ![Y] : w(Y))."
 	"fof(d,axiom, w(X) <=> ![Y] : r(Y))."
@@ -191,7 +191,7 @@ TEST_FUN(eprEqPropagation)
 {
   try {
     Problem prb;
-    stringstream stm(
+    vostringstream stm(
 	"fof(d,axiom, X!=Y | p(X,Y)).");
     prb.addFromStream(stm);
 
@@ -217,7 +217,7 @@ TEST_FUN(eprAsymReplacement)
 {
   try {
     Problem prb;
-    stringstream stm(
+    vostringstream stm(
 	"fof(a1,axiom, p(X) <=> r). fof(a2,hypothesis, p(X) => (q|s)). fof(a3,axiom, ~r => p(X)). fof(a4,axiom, p(X)).");
     prb.addFromStream(stm);
 
@@ -287,7 +287,7 @@ TEST_FUN(eprUPDR)
 {
   try {
     Problem prb;
-    stringstream stm(
+    vostringstream stm(
 //	"fof(a,axiom, p <=> (r|s&t)). fof(a,hypothesis, p). fof(a,axiom, r => ~s)."
 	 "fof(addBitVectorEquality,axiom,"
 	    "(exp_17(VarCurr) <=> (![B] : (((less_5(B) & (~less_0(B))) => (outp(VarCurr,B) <=> outp2(VarCurr,B)))) )))."
@@ -320,7 +320,7 @@ TEST_FUN(eprUPDRBuiltInPreds)
 {
   try {
     Problem prb;
-    stringstream stm(
+    vostringstream stm(
 	"fof(a,axiom, p <=> (r|s&t)). fof(a,hypothesis, p). fof(a,axiom, r => ~s). fof(a,axiom, a). fof(a,axiom, b)."
 	);
     prb.addFromStream(stm);
@@ -413,7 +413,7 @@ TEST_FUN(eprPDMerging)
 {
   try {
     Problem prb;
-    stringstream stm(
+    vostringstream stm(
 	"fof(a1,axiom, p(X) <=> (q(a) | q(X)) ). fof(a2,axiom, r(X) <=> (q(a) | q(X)) )."
 	"fof(a,axiom, r(a) | p(a)).");
     prb.addFromStream(stm);

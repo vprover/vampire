@@ -7,13 +7,16 @@
 #ifndef __Timer__
 #define __Timer__
 
-#include <string>
 #include <iostream>
 
 #include "Debug/Assertion.hpp"
+#include "Forwards.hpp"               // to declare checked_delete a fried for ScopedPtr's desctruction to work
+#include "Allocator.hpp"
+#include "VString.hpp"
 
 #ifndef UNIX_USE_SIGALRM
 //SIGALRM causes some problems with debugging
+//[one problem might have been removed, so it's worth checking if the demand for UNIX_USE_SIGALRM in VDEBUG arises]
 #define UNIX_USE_SIGALRM !VDEBUG
 #endif
 
@@ -38,7 +41,6 @@ using namespace std;
  */
 class Timer
 {
-public:
   Timer(bool mustIncludeChildren=false)
     :
     _mustIncludeChildren(mustIncludeChildren),
@@ -46,6 +48,15 @@ public:
     _elapsed(0)
   { ensureTimerInitialized(); }
 
+  ~Timer() { deinitializeTimer(); }
+  friend void ::checked_delete<Timer>(Timer*);
+  
+public:
+  CLASS_NAME(Timer);
+  USE_ALLOCATOR(Timer);
+
+  static Timer* instance();
+  
   /** stop the timer and reset the clock */
   inline void reset()
   { _running = false;
@@ -90,7 +101,8 @@ public:
   void makeChildrenIncluded();
 
   static void ensureTimerInitialized();
-  static string msToSecondsString(int ms);
+  static void deinitializeTimer();
+  static vstring msToSecondsString(int ms);
   static void printMSString(ostream& str, int ms);
 
   static void setTimeLimitEnforcement(bool enabled)

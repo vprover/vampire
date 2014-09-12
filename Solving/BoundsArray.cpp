@@ -38,7 +38,7 @@ BoundJustification& BoundJustification::operator=(const BoundJustification& j)
   return *this;
 }
 
-string BoundJustification::toString(const BoundsArray& bounds) const
+vstring BoundJustification::toString(const BoundsArray& bounds) const
 {
   CALL("BoundJustification::toString");
 
@@ -46,7 +46,7 @@ string BoundJustification::toString(const BoundsArray& bounds) const
     ASS_EQ(propagatedBounds().size(),0);
     return "{decision bound}";
   }
-  string res = parent()->toString();
+  vstring res = parent()->toString();
 
   BoundSpecArray::ConstIterator bsIt(_propagatedBounds);
   while(bsIt.hasNext()) {
@@ -63,11 +63,11 @@ string BoundJustification::toString(const BoundsArray& bounds) const
  * @c v and that it is left iff @c isLeftBound is true. If @c outputJustification
  * is true, include representation of the justification into the output.
  */
-string BoundInfo::toString(const BoundsArray& bounds, const BoundId& b, bool outputJustification) const
+vstring BoundInfo::toString(const BoundsArray& bounds, const BoundId& b, bool outputJustification) const
 {
   CALL("BoundInfo::toString");
 
-  stringstream stm;
+  vostringstream stm;
   //stm << "[var:" << v << "] ";
   stm << (b.left ? " " : "-");
   stm << env.signature->varName(b.var);

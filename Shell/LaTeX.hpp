@@ -9,12 +9,11 @@
 #ifndef __LaTeX__
 #define __LaTeX__
 
-#include <string>
-
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/VString.hpp"
 
 #include "Kernel/Connective.hpp"
 #include "Kernel/InferenceStore.hpp"
@@ -42,40 +41,40 @@ class LaTeX
 public:
   LaTeX() : _nextNodeNum(0) {}
 
-  string refutationToString(Unit* ref);
+  vstring refutationToString(Unit* ref);
 
 //  LaTeX(const Options& options,const SymbolMap* map);
 //  void output (const Refutation&) const;
-  string toString(const Term&) const;
-  string toString(const string& funOrPred,const TermList& args) const;
-  string toString(Unit*);
+  vstring toString(const Term&) const;
+  vstring toString(const vstring& funOrPred,const TermList& args) const;
+  vstring toString(Unit*);
 private:
 //  /** options used for output */
 //  const Options& _options;
 //  /** symbol map for printing atoms, functions and variables */
 //  const SymbolMap* _map;
-  string varToString(unsigned num) const;
-  string toString(TermList*) const;
-  string toString(Literal*) const;
-  string toString(Clause*);
-  string toString(Formula*) const;
-  string toString(Formula*, Connective c) const;
+  vstring varToString(unsigned num) const;
+  vstring toString(TermList*) const;
+  vstring toString(Literal*) const;
+  vstring toString(Clause*);
+  vstring toString(Formula*) const;
+  vstring toString(Formula*, Connective c) const;
 
-  string getClauseLatexId(UnitSpec cs);
+  vstring getClauseLatexId(UnitSpec cs);
 
-  string splittingToString(InferenceStore::SplittingRecord*);
-  string toStringAsInference(Unit*);
-  string toStringAsInference(UnitSpec cs, InferenceStore::FullInference* inf);
+  vstring splittingToString(InferenceStore::SplittingRecord*);
+  vstring toStringAsInference(Unit*);
+  vstring toStringAsInference(UnitSpec cs, InferenceStore::FullInference* inf);
 
-  string symbolToString (unsigned num, bool pred) const;
+  vstring symbolToString (unsigned num, bool pred) const;
 
 
-  string toString(BDDNode*);
-  string getBDDVarName(int var);
+  vstring toString(BDDNode*);
+  vstring getBDDVarName(int var);
 
-  Stack<string> definitionStack;
+  Stack<vstring> definitionStack;
   int _nextNodeNum;
-  DHMap<BDDNode*,string> _nodeNames;
+  DHMap<BDDNode*,vstring> _nodeNames;
 }; // class LaTeX
 
 

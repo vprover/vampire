@@ -11,6 +11,7 @@
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/StringUtils.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
@@ -54,21 +55,21 @@ InferenceStore::InferenceStore()
 {
 }
 
-string InferenceStore::getUnitIdStr(UnitSpec cs)
+vstring InferenceStore::getUnitIdStr(UnitSpec cs)
 {
   CALL("InferenceStore::getUnitIdStr");
 
   if (!cs.isClause()) {
     return Int::toString(cs.unit()->number());
   }
-  string suffix=getClauseIdSuffix(cs);
+  vstring suffix=getClauseIdSuffix(cs);
   if (suffix=="") {
     return Int::toString(cs.cl()->number());
   }
   return Int::toString(cs.cl()->number())+"_"+suffix;
 }
 
-string InferenceStore::getClauseIdSuffix(UnitSpec cs)
+vstring InferenceStore::getClauseIdSuffix(UnitSpec cs)
 {
   CALL("InferenceStore::getClauseIdSuffix");
 
@@ -197,19 +198,19 @@ UnitSpecIterator InferenceStore::getParents(UnitSpec us)
  * It is caller's responsibility to ensure that variables in @b vars are unique.
  */
 template<typename VarContainer>
-string getQuantifiedStr(const VarContainer& vars, string inner, bool innerParentheses=true)
+vstring getQuantifiedStr(const VarContainer& vars, vstring inner, bool innerParentheses=true)
 {
-  CALL("getQuantifiedStr(VarContainer, string)");
+  CALL("getQuantifiedStr(VarContainer, vstring)");
 
   VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
-  string varStr;
+  vstring varStr;
   bool first=true;
   while(vit.hasNext()) {
     unsigned var=vit.next();
     if (!first) {
       varStr+=",";
     }
-    varStr+=string("X")+Int::toString(var);
+    varStr+=vstring("X")+Int::toString(var);
     first=false;
   }
 
@@ -227,17 +228,17 @@ string getQuantifiedStr(const VarContainer& vars, string inner, bool innerParent
 }
 
 /**
- * Return string containing quantified unit @b u.
+ * Return vstring containing quantified unit @b u.
  *
  * If @b u is clause, only non-propositional part of the clause is
  * returned. (BDD part and the split history are ommitted.)
  */
-string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
+vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 {
   CALL("getQuantifiedStr(Unit*...)");
 
   Set<unsigned> vars;
-  string res;
+  vstring res;
   if (u->isClause()) {
     Clause* cl=static_cast<Clause*>(u);
     unsigned clen=cl->length();
@@ -270,6 +271,9 @@ string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 
 struct InferenceStore::ProofPrinter
 {
+  CLASS_NAME(InferenceStore::ProofPrinter);
+  USE_ALLOCATOR(InferenceStore::ProofPrinter);
+  
   ProofPrinter(ostream& out, InferenceStore* is)
   : _is(is), out(out)
   {
@@ -387,7 +391,7 @@ protected:
 
     if (outputAxiomNames && rule==Inference::INPUT) {
       ASS(!parents.hasNext()); //input clauses don't have parents
-      string name;
+      vstring name;
       if (Parse::TPTP::findAxiomName(cs.unit(), name)) {
 	out << " " << name;
       }
@@ -452,6 +456,9 @@ protected:
 struct InferenceStore::TPTPProofPrinter
 : public InferenceStore::ProofPrinter
 {
+  CLASS_NAME(InferenceStore::TPTPProofPrinter);
+  USE_ALLOCATOR(InferenceStore::TPTPProofPrinter);
+  
   TPTPProofPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {}
 
@@ -462,7 +469,7 @@ protected:
     return false;
   }
 
-  string getRole(Inference::Rule rule, Unit::InputType origin)
+  vstring getRole(Inference::Rule rule, Unit::InputType origin)
   {
     switch(rule) {
     case Inference::INPUT:
@@ -479,34 +486,34 @@ protected:
     }
   }
 
-  string tptpRuleName(Inference::Rule rule)
+  vstring tptpRuleName(Inference::Rule rule)
   {
     return StringUtils::replaceChar(Inference::ruleName(rule), ' ', '_');
   }
 
-  string unitIdToTptp(string unitId)
+  vstring unitIdToTptp(vstring unitId)
   {
     return "f"+unitId;
   }
 
-  string tptpUnitId(UnitSpec us)
+  vstring tptpUnitId(UnitSpec us)
   {
     return unitIdToTptp(_is->getUnitIdStr(us));
   }
 
-  string tptpDefId(UnitSpec us)
+  vstring tptpDefId(UnitSpec us)
   {
     return unitIdToTptp(Int::toString(us.unit()->number())+"_D");
   }
 
-  //string bddToString(BDDNode* prop)
+  //vstring bddToString(BDDNode* prop)
   //{
   //  CALL("InferenceStore::TPTPProofPrinter::bddToString");
 
   //  return bdd->toTPTPString(prop,bddPrefix);
   //}
 
-  string splitsToString(SplitSet* splits)
+  vstring splitsToString(SplitSet* splits)
   {
     CALL("InferenceStore::TPTPProofPrinter::splitsToString");
     ASS_G(splits->size(),0);
@@ -515,7 +522,7 @@ protected:
       return splitPrefix+Int::toString(splits->sval());
     }
     SplitSet::Iterator sit(*splits);
-    string res("(");
+    vstring res("(");
     while(sit.hasNext()) {
       res+=splitPrefix+Int::toString(sit.next());
       if (sit.hasNext()) {
@@ -526,21 +533,21 @@ protected:
     return res;
   }
 
-  string quoteAxiomName(string n)
+  vstring quoteAxiomName(vstring n)
   {
     CALL("InferenceStore::TPTPProofPrinter::quoteAxiomName");
 
-    static string allowedFirst("0123456789abcdefghijklmnopqrstuvwxyz");
+    static vstring allowedFirst("0123456789abcdefghijklmnopqrstuvwxyz");
     const char* allowed="_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
 
-    if (n.size()==0 || allowedFirst.find(n[0])==string::npos ||
-	n.find_first_not_of(allowed)!=string::npos) {
+    if (n.size()==0 || allowedFirst.find(n[0])==vstring::npos ||
+	n.find_first_not_of(allowed)!=vstring::npos) {
       n='\''+n+'\'';
     }
     return n;
   }
 
-  string getFofString(string id, string formula, string inference, Inference::Rule rule, Unit::InputType origin=Unit::AXIOM)
+  vstring getFofString(vstring id, vstring formula, vstring inference, Inference::Rule rule, Unit::InputType origin=Unit::AXIOM)
   {
     CALL("InferenceStore::TPTPProofPrinter::getFofString");
 
@@ -549,11 +556,11 @@ protected:
 	+"  "+inference+").";
   }
 
-  string getFormulaString(UnitSpec us)
+  vstring getFormulaString(UnitSpec us)
   {
     CALL("InferenceStore::TPTPProofPrinter::getFormulaString");
 
-    string formulaStr;
+    vstring formulaStr;
     if (us.isClause()) {
       Clause* cl=us.cl();
       formulaStr=getQuantifiedStr(cl);
@@ -574,16 +581,16 @@ protected:
     ASS(!res || _is->_introducedSymbols.get(u->number()).isNonEmpty());
     return res;
   }
-  string getNewSymbols(string origin, string symStr) {
-    CALL("InferenceStore::TPTPProofPrinter::getNewSymbols(string,string)");
+  vstring getNewSymbols(vstring origin, vstring symStr) {
+    CALL("InferenceStore::TPTPProofPrinter::getNewSymbols(vstring,vstring)");
     return "new_symbols(" + origin + ",[" +symStr + "])";
   }
   /** It is an iterator over SymbolId */
   template<class It>
-  string getNewSymbols(string origin, It symIt) {
-    CALL("InferenceStore::TPTPProofPrinter::getNewSymbols(string,It)");
+  vstring getNewSymbols(vstring origin, It symIt) {
+    CALL("InferenceStore::TPTPProofPrinter::getNewSymbols(vstring,It)");
 
-    stringstream symsStr;
+    vostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
       if (sym.first) {
@@ -598,8 +605,8 @@ protected:
     }
     return getNewSymbols(origin, symsStr.str());
   }
-  string getNewSymbols(string origin, Unit* u) {
-    CALL("InferenceStore::TPTPProofPrinter::getNewSymbols(string,Unit*)");
+  vstring getNewSymbols(vstring origin, Unit* u) {
+    CALL("InferenceStore::TPTPProofPrinter::getNewSymbols(vstring,Unit*)");
     ASS(hasNewSymbols(u));
 
     SymbolStack& syms = _is->_introducedSymbols.get(u->number());
@@ -640,29 +647,29 @@ protected:
     }
 
 
-    //get string representing the formula
+    //get vstring representing the formula
 
-    string formulaStr=getFormulaString(us);
+    vstring formulaStr=getFormulaString(us);
 
-    //get inference string
+    //get inference vstring
 
-    string inferenceStr;
+    vstring inferenceStr;
     if (rule==Inference::INPUT) {
-      string fileName;
+      vstring fileName;
       if (env.options->inputFile()=="") {
 	fileName="unknown";
       }
       else {
 	fileName="'"+env.options->inputFile()+"'";
       }
-      string axiomName;
+      vstring axiomName;
       if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us.unit(), axiomName)) {
 	axiomName="unknown";
       }
       inferenceStr="file("+fileName+","+quoteAxiomName(axiomName)+")";
     }
     else if (!parents.hasNext()) {
-      string newSymbolInfo;
+      vstring newSymbolInfo;
       if (hasNewSymbols(us.unit())) {
 	newSymbolInfo = getNewSymbols("naming",us.unit());
       }
@@ -670,7 +677,7 @@ protected:
     }
     else {
       ASS(parents.hasNext());
-      string statusStr;
+      vstring statusStr;
       if (rule==Inference::SKOLEMIZE) {
 	statusStr="status(esa),"+getNewSymbols("skolem",us.unit());
       }
@@ -708,7 +715,7 @@ protected:
    // ASS(!bdd->isConstant(us.prop())); //the bdd part is the introduced name, so it must be a single variable
 //    Clause* cl=us.cl();
 //
-//    string defId=tptpDefId(us);
+//    vstring defId=tptpDefId(us);
 //    out<<getFofString(tptpUnitId(us), getFormulaString(us),
 //	"inference("+tptpRuleName(Inference::CLAUSIFY)+",[],["+defId+"])", Inference::CLAUSIFY)<<endl;
 
@@ -717,7 +724,7 @@ protected:
 //    bool varPos;
 //    ALWAYS(bdd->parseAtomic(us.prop(), var, varPos));
 
-//    string defStr;
+//    vstring defStr;
 //    if (cl->length()==1 && (*cl)[0]->arity()==0) {
 //      defStr=(*cl)[0]->predicateName();
 //    } else {
@@ -727,12 +734,12 @@ protected:
 //    if (varPos) {
 //      defStr+="~";
 //    }
-//    string bddSymbolStr = bddPrefix+Int::toString(var);
+//    vstring bddSymbolStr = bddPrefix+Int::toString(var);
 //    defStr+=bddSymbolStr;
 
 //    Inference::Rule rule=Inference::SPLITTING_COMPONENT;
 
-//    stringstream originStm;
+//    vostringstream originStm;
 //    originStm << "introduced(" << tptpRuleName(rule)
 //	      << ",[" << getNewSymbols("naming",bddSymbolStr)
 //	      << "])";
@@ -756,7 +763,7 @@ protected:
     ASS(rule==Inference::GENERAL_SPLITTING || rule==Inference::SPLITTING);
 
 
-    string inferenceStr="inference("+tptpRuleName(rule)+",[],[";
+    vstring inferenceStr="inference("+tptpRuleName(rule)+",[],[";
 
     //here we rely on the fact that the base premise is always put as the first premise in
     //GeneralSplitting::apply, in SWBSplitterWithoutBDDs::buildAndInsertComponents
@@ -788,7 +795,7 @@ protected:
 
     Literal* nameLit=_is->_splittingNameLiterals.get(us); //the name literal must always be stored
 
-    string defId=tptpDefId(us);
+    vstring defId=tptpDefId(us);
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
 	"inference("+tptpRuleName(Inference::CLAUSIFY)+",[],["+defId+"])", Inference::CLAUSIFY)<<endl;
@@ -802,7 +809,7 @@ protected:
       List<unsigned>::push(var,nameVars);
     }
 
-    string compStr;
+    vstring compStr;
     List<unsigned>* compOnlyVars=0;
     Clause::Iterator lits(*us.cl());
     bool first=true;
@@ -834,12 +841,12 @@ protected:
     compStr=getQuantifiedStr(compOnlyVars, compStr, multiple);
     compOnlyVars->destroy();
 
-    string defStr=compStr+" <=> "+Literal::complementaryLiteral(nameLit)->toString();
+    vstring defStr=compStr+" <=> "+Literal::complementaryLiteral(nameLit)->toString();
     defStr=getQuantifiedStr(nameVars, defStr);
     nameVars->destroy();
 
     SymbolId nameSymbol = SymbolId(false,nameLit->functor());
-    stringstream originStm;
+    vostringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))
 	      << "])";
@@ -859,14 +866,14 @@ protected:
     Inference::Rule rule=Inference::BACKTRACKING_SPLITTING_COMPONENT;
 
 
-    string defId=tptpDefId(us);
-    string splitPred = splitsToString(cl->splits());
-    string defStr=getQuantifiedStr(cl)+" <=> ~"+splitPred;
+    vstring defId=tptpDefId(us);
+    vstring splitPred = splitsToString(cl->splits());
+    vstring defStr=getQuantifiedStr(cl)+" <=> ~"+splitPred;
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
 	"inference("+tptpRuleName(Inference::CLAUSIFY)+",[],["+defId+"])", Inference::CLAUSIFY)<<endl;
 
-    stringstream originStm;
+    vostringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",splitPred)
 	      << "])";
@@ -895,7 +902,7 @@ protected:
 //    ASS_EQ(firstComp.cl()->splits()->size(), 1); //the 'definition' clause always has exactly one level in the split history
 //    ASS_EQ(refutation.cl()->length(), 0); //refutation is always an empty clause
 
-//    string inferenceStr="inference("+tptpRuleName(rule)+",[],["+ tptpUnitId(base)+","+
+//    vstring inferenceStr="inference("+tptpRuleName(rule)+",[],["+ tptpUnitId(base)+","+
 //	tptpDefId(firstComp)+","+tptpUnitId(refutation)+"])";
 
 //    out<<getFofString(tptpUnitId(us), getFormulaString(us), inferenceStr, rule)<<endl;
@@ -919,20 +926,20 @@ protected:
     ASS(bddVars);
 
 
-    string premiseIds=tptpUnitId(parent);
+    vstring premiseIds=tptpUnitId(parent);
 
     IntList::Iterator vit(bddVars);
     while(vit.hasNext()) {
       int var=vit.next();
       ASS_G(var,0);
-      string defId="fbd"+Int::toString(var);
+      vstring defId="fbd"+Int::toString(var);
       premiseIds+=","+defId;
       if (!printedBddizeDefs.insert(var)) {
 	continue;
       }
-      string predName;
+      vstring predName;
       //ALWAYS(bdd->getNiceName(var, predName));
-      string defStr= predName+" <=> "+bddPrefix+Int::toString(var);
+      vstring defStr= predName+" <=> "+bddPrefix+Int::toString(var);
       out<<getFofString(defId, defStr, "introduced("+tptpRuleName(rule)+",[])", rule)<<endl;
     }
 
@@ -961,11 +968,14 @@ const char* InferenceStore::TPTPProofPrinter::splitPrefix = "$spl";
 struct InferenceStore::ProofCheckPrinter
 : public InferenceStore::ProofPrinter
 {
+  CLASS_NAME(InferenceStore::ProofCheckPrinter);
+  USE_ALLOCATOR(InferenceStore::ProofCheckPrinter);
+  
   ProofCheckPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {}
 
 protected:
-  //string bddToString(BDDNode* node)
+  //vstring bddToString(BDDNode* node)
   //{
   //  return bdd->toTPTPString(node, "bddPred");
   //}
@@ -1101,11 +1111,9 @@ void InferenceStore::outputProof(ostream& out, UnitList* units)
 
 InferenceStore* InferenceStore::instance()
 {
-  static InferenceStore* inst=0;
-  if (!inst) {
-    inst = new InferenceStore();
-  }
-  return inst;
+  static ScopedPtr<InferenceStore> inst(new InferenceStore());
+  
+  return inst.ptr();
 }
 
 

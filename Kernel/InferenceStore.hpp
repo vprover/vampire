@@ -9,7 +9,6 @@
 
 #include <utility>
 #include <ostream>
-#include <string>
 
 #include "Forwards.hpp"
 
@@ -17,6 +16,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/VString.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
@@ -53,7 +53,7 @@ struct UnitSpec
   }
   Unit* unit() const { ASS(!isEmpty()); return _unit; }
 
-  string toString() const
+  vstring toString() const
   {
     if(isClause()) {
 	return cl()->toString();
@@ -75,6 +75,9 @@ typedef VirtualIterator<UnitSpec> UnitSpecIterator;
 class InferenceStore
 {
 public:
+  CLASS_NAME(InferenceStore);
+  USE_ALLOCATOR(InferenceStore);
+  
   static InferenceStore* instance();
 
   typedef List<int> IntList;
@@ -135,8 +138,8 @@ public:
   UnitSpecIterator getParents(UnitSpec us, Inference::Rule& rule);
   UnitSpecIterator getParents(UnitSpec us);
 
-  std::string getUnitIdStr(UnitSpec cs);
-  std::string getClauseIdSuffix(UnitSpec cs);
+  vstring getUnitIdStr(UnitSpec cs);
+  vstring getClauseIdSuffix(UnitSpec cs);
 
   bool findInference(UnitSpec cs, FullInference*& finf)
   {

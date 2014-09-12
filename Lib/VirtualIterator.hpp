@@ -94,6 +94,9 @@ class EmptyIterator
 : public IteratorCore<T>
 {
 public:
+  CLASS_NAME(EmptyIterator);
+  USE_ALLOCATOR(EmptyIterator);
+
   EmptyIterator() {}
   bool hasNext() { return false; };
   T next() { INVALID_OPERATION("next() called on EmptyIterator object"); };
@@ -295,6 +298,9 @@ class ProxyIterator
 : public IteratorCore<T>
 {
 public:
+  CLASS_NAME(ProxyIterator);
+  USE_ALLOCATOR(ProxyIterator);
+  
   explicit ProxyIterator(Inner inn) :_inn(inn) {}
   bool hasNext() { return _inn.hasNext(); };
   T next() { return _inn.next(); };
@@ -322,7 +328,7 @@ VirtualIterator<ELEMENT_TYPE(Inner)> pvi(Inner it)
 
 
 
-///@}Á
+///@}ï¿½
 
 }
 

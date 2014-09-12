@@ -7,7 +7,6 @@
 #ifndef __SATClause__
 #define __SATClause__
 
-#include <string>
 #include <iosfwd>
 
 #include "Forwards.hpp"
@@ -18,6 +17,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/VString.hpp"
 
 #include "Kernel/InferenceStore.hpp"
 
@@ -95,8 +95,8 @@ public:
 
   void destroy();
 
-  string toString() const;
-  string toDIMACSString() const;
+  vstring toString() const;
+  vstring toDIMACSString() const;
 
   bool hasUniqueVariables() const;
 

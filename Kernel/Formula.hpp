@@ -76,9 +76,9 @@ public:
   XMLElement toXML() const;
 
   // output
-  string toString() const;
-  string toStringInScopeOf(Connective con) const;
-  static string toString(Connective con);
+  vstring toString() const;
+  vstring toStringInScopeOf(Connective con) const;
+  static vstring toString(Connective con);
   bool parenthesesRequired(Connective outer) const;
   // auxiliary functions
   void destroy();
@@ -109,7 +109,7 @@ protected:
   /** connective */
   Connective _connective;
   // auxiliary functions
-  static string _connectiveNames[];
+  static vstring _connectiveNames[];
 }; // class Formula
 
 /**

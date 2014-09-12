@@ -4,7 +4,6 @@
  */
 #if GNUMP
 
-#include <string>
 #include <fstream>
 #include <iostream>
 
@@ -21,6 +20,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/Connective.hpp"
+#include "Lib/VString.hpp"
 
 #include "SMTPAR.hpp"
 #include "Parse/SMTLIB.hpp"
@@ -61,7 +61,7 @@ ConstraintRCList* SMTLib2ConstraintReader::constraints(){
     {
       Formula* f = itef.next();
       if(!(f->connective() == Kernel::AND || f->connective() == Kernel::LITERAL)){
-          string s = "in "+f->toString()+" there is other connective than and! \n This is not supported! ";
+          vstring s = "in "+f->toString()+" there is other connective than and! \n This is not supported! ";
           USER_ERROR(s);
       }
     }
@@ -80,7 +80,7 @@ ConstraintRCList* SMTLib2ConstraintReader::constraints(){
 ConstraintRCPtr SMTLib2ConstraintReader::getConstraint(Literal* literal) {
 	CALL("SMTLib2ConstraintReader::getConstraint(Literal* )");
 	ConstraintType constraintType = CT_EQ;
-	string predName = literal->predicateName();
+	vstring predName = literal->predicateName();
 	if (predName == "$greatereq") {
 		constraintType = CT_GREQ;
 	} else {
@@ -187,11 +187,11 @@ void SMTLib2ConstraintReader::readCoefficients(Term* term,
 /**
  * Helping function which decides whether a string represents a number or not.
  * This function is not intended to work with hexadecimal numbers!
- * @param term the string to be checked if it is a number
- * @return true if the string is a number and false otherwise
+ * @param term the vstring to be checked if it is a number
+ * @return true if the vstring is a number and false otherwise
  **/
 
-bool SMTLib2ConstraintReader::isNumber(string term) {
+bool SMTLib2ConstraintReader::isNumber(vstring term) {
 	CALL("SMTLIB2ConstraintReader::isNumber");
 
 	const char* str = term.c_str();
@@ -367,8 +367,8 @@ ConstraintRCList* MpsConstraintReader::constraints(){
     CALL("MpsConstraintReader::constraints()");
     ConstraintRCList* res = 0;
   
-   std::map<std::string, Variable*>::const_iterator vitr = _model.vars.begin();
-   std::map<std::string, Variable*>::const_iterator vend = _model.vars.end();
+   std::map<vstring, Variable*>::const_iterator vitr = _model.vars.begin();
+   std::map<vstring, Variable*>::const_iterator vend = _model.vars.end();
    CoeffStack coeff(1);
     
    while( vitr != vend )
@@ -380,8 +380,8 @@ ConstraintRCList* MpsConstraintReader::constraints(){
    ConstraintRCPtr c(Constraint::fromIterator(CT_GR, pvi(CoeffStack::Iterator(coeff)),CoeffNumber::zero() ));
    ConstraintRCList::push(c,res);
    
-   std::map<std::string, BaseConstraint*>::const_iterator citr = _model.conss.begin();
-   std::map<std::string, BaseConstraint*>::const_iterator cend = _model.conss.end();
+   std::map<vstring, BaseConstraint*>::const_iterator citr = _model.conss.begin();
+   std::map<vstring, BaseConstraint*>::const_iterator cend = _model.conss.end();
    
    unsigned var = 0;
    CoeffStack coefficients(var+1), negatedCoeff(var+1);
