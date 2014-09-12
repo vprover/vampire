@@ -36,6 +36,8 @@ public:
   virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
   virtual void retractAllAssumptions();
   virtual bool hasAssumptions() const { return _assumptions.isNonEmpty(); }
+
+  virtual void recordSource(unsigned satlitvar, Literal* lit) { _inner->recordSource(satlitvar,lit); };
 private:
 
   void processUnprocessed();

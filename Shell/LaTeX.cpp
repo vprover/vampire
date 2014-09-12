@@ -112,15 +112,15 @@ vstring LaTeX::refutationToString(Unit* ref)
     UnitSpec cs=outKernel.pop();
     InferenceStore::FullInference* finf;
     if(is->findInference(cs, finf)) {
-      InferenceStore::SplittingRecord* srec;
-      if(finf->rule==Inference::SPLITTING && is->findSplitting(cs, srec)) {
-	if(!handledKernel.contains(srec->premise)) {
-	  handledKernel.insert(srec->premise);
-	  outKernel.push(srec->premise);
-	}
-	res+=splittingToString(srec);
-	continue;
-      }
+      //InferenceStore::SplittingRecord* srec;
+      //if(finf->rule==Inference::SPLITTING && is->findSplitting(cs, srec)) {
+//	if(!handledKernel.contains(srec->premise)) {
+//	  handledKernel.insert(srec->premise);
+//	  outKernel.push(srec->premise);
+//	}
+//	res+=splittingToString(srec);
+//	continue;
+  //    }
 
       res+=toStringAsInference(cs, finf);
 
@@ -591,6 +591,7 @@ vstring LaTeX::toStringAsInference(Unit* unit)
   return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
 }
 
+/*
 vstring LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
 {
   CALL("LaTeX::splittingToString");
@@ -636,7 +637,7 @@ vstring LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
 
   return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
 }
-
+*/
 
 
 /**

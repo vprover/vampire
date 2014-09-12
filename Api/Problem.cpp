@@ -209,18 +209,12 @@ void Problem::PreprocessingOptions::setDefaults()
   predicateDefinitionInlining = INL_OFF;
   unusedPredicateDefinitionRemoval = true;
   showNonConstantSkolemFunctionTrace = false;
-  traceInlining = false;
   sineSelection = false;
   sineTolerance = 1.0f;
   sineDepthLimit = 0;
   variableEqualityPropagation = false;
-  traceVariableEqualityPropagation = false;
   eprSkolemization = false;
-  traceEPRSkolemization = false;
   predicateDefinitionMerging = false;
-  tracePredicateDefinitionMerging = false;
-  traceClausification = false;
-  traceUnusedPredicateDefinitionRemoval = false;
   predicateIndexIntroduction = false;
   flatteningTopLevelConjunctions = false;
   equivalenceDiscovery = ED_NONE;
@@ -650,7 +644,7 @@ protected:
 class Problem::VariableEqualityPropagator : public ProblemTransformer
 {
 public:
-  VariableEqualityPropagator(bool trace) : _eqProp(trace) {}
+  VariableEqualityPropagator() : _eqProp() {}
 protected:
   void transformImpl(Kernel::Unit* unit)
   {
@@ -891,8 +885,8 @@ protected:
 class Problem::PredicateDefinitionMerger : public ProblemTransformer
 {
 public:
-  PredicateDefinitionMerger(bool trace)
-      : _trace(trace), _merger(trace)
+  PredicateDefinitionMerger()
+      : _merger()
   {
   }
 
@@ -928,15 +922,14 @@ protected:
     }
   }
 
-  bool _trace;
   Shell::PDMerger _merger;
 };
 
 class Problem::PredicateDefinitionInliner : public ProblemTransformer
 {
 public:
-  PredicateDefinitionInliner(InliningMode mode, bool trace)
-      : _mode(mode), _pdInliner(mode==INL_AXIOMS_ONLY, trace, mode==INL_NON_GROWING)
+  PredicateDefinitionInliner(InliningMode mode)
+      : _mode(mode), _pdInliner(mode==INL_AXIOMS_ONLY, mode==INL_NON_GROWING)
   {
     ASS_NEQ(mode, INL_OFF);
   }
@@ -1060,8 +1053,8 @@ protected:
 class Problem::EPRRestoringInliner : public ProblemTransformer
 {
 public:
-  EPRRestoringInliner(bool trace)
-      : _trace(trace), _eprInliner(trace)
+  EPRRestoringInliner()
+      :  _eprInliner()
   {
   }
 
@@ -1070,7 +1063,7 @@ protected:
   {
     CALL("Problem::EPRRestoringInliner::transformImpl(Problem)");
 
-    p = PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY, _trace).transform(p);
+    p = PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY).transform(p);
 
     Kernel::UnitList* units = 0;
 
@@ -1099,7 +1092,6 @@ protected:
     }
   }
 
-  bool _trace;
   Shell::EPRInlining _eprInliner;
 };
 
@@ -1122,8 +1114,8 @@ protected:
 class Problem::EPRSkolemizer : public ProblemTransformer
 {
 public:
-  EPRSkolemizer(bool trace)
-      : _trace(trace), _eprSkolem(trace)
+  EPRSkolemizer()
+      :  _eprSkolem()
   {
   }
 
@@ -1133,7 +1125,7 @@ protected:
     CALL("Problem::EPRRestoringInliner::transformImpl(Problem)");
 
     p = ConstantSkolemizer().transform(p);
-    p = PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY, _trace).transform(p);
+    p = PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY).transform(p);
 
     Kernel::UnitList* units = 0;
 
@@ -1167,7 +1159,6 @@ protected:
     }
   }
 
-  bool _trace;
   Shell::EPRSkolem _eprSkolem;
 };
 
@@ -1175,8 +1166,8 @@ protected:
 class Problem::UnusedPredicateDefinitionRemover : public ProblemTransformer
 {
 public:
-  UnusedPredicateDefinitionRemover(bool trace=false)
-  : pd(trace)
+  UnusedPredicateDefinitionRemover()
+  : pd()
   {
   }
 
@@ -1301,7 +1292,7 @@ public:
       p.addFormula(af);
     }
 
-    return PredicateDefinitionInliner(INL_NON_GROWING, false).transform(p);
+    return PredicateDefinitionInliner(INL_NON_GROWING).transform(p);
   }
 
 private:
@@ -1367,9 +1358,8 @@ protected:
 class Problem::Clausifier : public ProblemTransformer
 {
 public:
-  Clausifier(int namingThreshold, bool preserveEpr, bool onlySkolemize, bool trace) :
+  Clausifier(int namingThreshold, bool preserveEpr, bool onlySkolemize) :
     namingThreshold(namingThreshold), preserveEpr(preserveEpr), onlySkolemize(onlySkolemize),
-    trace(trace),
     naming(namingThreshold ? namingThreshold : 8, preserveEpr) {}
 
 protected:
@@ -1378,7 +1368,6 @@ protected:
     CALL("Problem::Clausifier::transformImpl");
 
     using namespace Shell;
-    CONDITIONAL_SCOPED_TRACE_TAG(trace,"api_prb_clausifier");
 
     if(unit->isClause()) {
       addUnit(unit);
@@ -1420,7 +1409,6 @@ protected:
   int namingThreshold;
   bool preserveEpr;
   bool onlySkolemize;
-  bool trace;
 
   Shell::CNF cnf;
   Stack<Kernel::Clause*> auxClauseStack;
@@ -1547,7 +1535,7 @@ Problem Problem::singlePreprocessingIteration(const PreprocessingOptions& option
   }
 
   if(options.variableEqualityPropagation) {
-    res = VariableEqualityPropagator(options.traceVariableEqualityPropagation).transform(res);
+    res = VariableEqualityPropagator().transform(res);
   }
 
   if(options.predicateIndexIntroduction) {
@@ -1555,7 +1543,7 @@ Problem Problem::singlePreprocessingIteration(const PreprocessingOptions& option
   }
 
   if(options.predicateDefinitionMerging) {
-    res = PredicateDefinitionMerger(options.tracePredicateDefinitionMerging).transform(res);
+    res = PredicateDefinitionMerger().transform(res);
   }
 
   if(options.equivalenceDiscovery!=ED_NONE) {
@@ -1568,17 +1556,17 @@ Problem Problem::singlePreprocessingIteration(const PreprocessingOptions& option
   }
 
   if(options.eprSkolemization) {
-    res = EPRSkolemizer(options.traceEPRSkolemization).transform(res);
+    res = EPRSkolemizer().transform(res);
   }
 
 inlining:
 
   if(options.predicateDefinitionInlining!=INL_OFF) {
     if(options.predicateDefinitionInlining==INL_EPR_RESTORING) {
-      res = EPRRestoringInliner(options.traceInlining).transform(res);
+      res = EPRRestoringInliner().transform(res);
     }
     else {
-      res = PredicateDefinitionInliner(options.predicateDefinitionInlining,options.traceInlining).transform(res);
+      res = PredicateDefinitionInliner(options.predicateDefinitionInlining).transform(res);
     }
   }
 
@@ -1607,7 +1595,7 @@ inlining:
   }
 
   if(options.unusedPredicateDefinitionRemoval) {
-    res = UnusedPredicateDefinitionRemover(options.traceUnusedPredicateDefinitionRemoval).transform(res);
+    res = UnusedPredicateDefinitionRemover().transform(res);
   }
 
   unsigned arCnt = options._ods.lhs->size();
@@ -1623,7 +1611,7 @@ inlining:
   bool oldTraceVal = env.options->showNonconstantSkolemFunctionTrace();
   env.options->setShowNonconstantSkolemFunctionTrace(options.showNonConstantSkolemFunctionTrace);
 
-  res = Clausifier(options.namingThreshold, options.preserveEpr, options.mode==PM_SKOLEMIZE, options.traceClausification).transform(res);
+  res = Clausifier(options.namingThreshold, options.preserveEpr, options.mode==PM_SKOLEMIZE).transform(res);
 
   env.options->setShowNonconstantSkolemFunctionTrace(oldTraceVal);
   return res;
@@ -1685,7 +1673,7 @@ Problem Problem::performAsymetricRewriting(size_t cnt, Formula* lhsArray, Formul
   CALL("Problem::performAsymetricRewriting");
 
   Problem res = Preprocessor1().transform(*this);
-  PredicateDefinitionInliner inl(INL_NO_DISCOVERED_DEFS, false);
+  PredicateDefinitionInliner inl(INL_NO_DISCOVERED_DEFS);
   for(size_t i=0; i<cnt; i++) {
     if(!inl.addAsymetricDefinition(lhsArray[i], posRhsArray[i], negRhsArray[i], dblRhsArray[i])) {
       throw new ApiException("LHS is already defined");

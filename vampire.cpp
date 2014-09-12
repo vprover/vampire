@@ -133,6 +133,10 @@ int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
  */
 int g_returnValue = 1;
 
+/**
+ * Preprocess input problem
+ *
+ */
 Problem* getPreprocessedProblem()
 {
   CALL("getPreprocessedProblem");
@@ -225,6 +229,7 @@ void programAnalysisMode()
   Lib::Random::setSeed(123456);
   int time = env.options->timeLimitInDeciseconds();
   env.options->setMode(Options::MODE_VAMPIRE);
+  // Seems dangerous, overridng memory limit
   Allocator::setMemoryLimit(1024u * 1048576ul);
 
   vstring inputFile = env.options->inputFile();
@@ -232,7 +237,7 @@ void programAnalysisMode()
     USER_ERROR("Cannot open problem file: "+inputFile);
   }
   else {
-    //default time limit 10 seconds
+    //default time limit 10 seconds (perhaps this belongs in Options)
     if (time == 0) {
       env.options->setTimeLimitInDeciseconds(100);
     }
@@ -277,6 +282,14 @@ void boundPropagationMode(){
 #if GNUMP
   CALL("boundPropagationMode::doSolving()");
 
+  //adjust vampire options in order to serve the purpose of bound propagation
+  if ( env.options->proof() == env.options->PROOF_ON ) {
+    env.options->setProof(env.options->PROOF_OFF);
+  }
+
+  //this ensures the fact that int's read in smtlib file are treated as reals
+  env.options->setSmtlibConsiderIntsReal(true);
+
   if (env.options->bpStartWithPrecise()) {
 	  switchToPreciseNumbers();
   }
@@ -318,22 +331,7 @@ void boundPropagationMode(){
       env.statistics->terminationReason = Statistics::TIME_LIMIT;
     }
   env.statistics->phase = Statistics::FINALIZATION;
-#endif
-}
 
-void solverMode()
-{
-  CALL("solverMode()");
-#if GNUMP
-  //adjust vampire options in order to serve the purpose of bound propagation
-  if ( env.options->proof() == env.options->PROOF_ON ) {
-    env.options->setProof(env.options->PROOF_OFF);
-  }
-
-  //this ensures the fact that int's read in smtlib file are treated as reals
-  env.options->setSmtlibConsiderIntsReal(true);
-
-  boundPropagationMode();
 
   env.beginOutput();
   outputResult(env.out());
@@ -343,8 +341,10 @@ void solverMode()
       || env.statistics->terminationReason==Statistics::SATISFIABLE) {
     g_returnValue=0;
   }
+
 #endif
-} // solverMode
+}
+
 
 /**
  * This mode only preprocesses the input using the current preprocessing
@@ -702,9 +702,9 @@ int main(int argc, char* argv[])
     case Options::MODE_GROUNDING:
       groundingMode();
       break;
-    case Options::MODE_SOLVER:
+    case Options::MODE_BOUND_PROP:
 #if GNUMP
-     solverMode();
+     boundPropagationMode();
 #else
      NOT_IMPLEMENTED;
 #endif

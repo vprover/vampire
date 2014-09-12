@@ -160,7 +160,6 @@ public:
      * If true, details on every definition inlining step will be output
      * to the standard error output.
      */
-    bool traceInlining;
     bool sineSelection;
     /**
      * Sine tolerance parameter.
@@ -197,7 +196,6 @@ public:
      * This formula is true in any model of size at least two, while ![X]: p(X,X) is not.
      */
     bool variableEqualityPropagation;
-    bool traceVariableEqualityPropagation;
 
     /**
      * Where possible, perform EPR preserving skolemization of predicate
@@ -205,30 +203,12 @@ public:
      * property.
      */
     bool eprSkolemization;
-    bool traceEPRSkolemization;
 
     /**
      * Merge predicate definitions that have equivalent body
      * (the equivalency check is incomplete)
      */
     bool predicateDefinitionMerging;
-    bool tracePredicateDefinitionMerging;
-
-    /**
-     * Output information on what formulas are being clausified, and what
-     * clauses were generated.
-     *
-     * The output is directed to standard error output.
-     */
-    bool traceClausification;
-
-    /**
-     * Output information on th progress of unused predicate definition
-     * removal and pure predicate removal.
-     *
-     * The output is directed to standard error output.
-     */
-    bool traceUnusedPredicateDefinitionRemoval;
 
     /**
      * If all atoms of a certain predicate contain distinct constants as

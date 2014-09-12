@@ -9,7 +9,7 @@
 
 namespace Api
 {
-
+/*
 unsigned Tracing::s_traceStackDepth = 0;
 
 void Tracing::enableTrace(vstring traceName, unsigned depth)
@@ -48,5 +48,5 @@ void Tracing::displayHelp()
   CALL("Tracing::displayHelp");
   DISPLAY_HELP();
 }
-
+*/
 }

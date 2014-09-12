@@ -110,7 +110,7 @@ TEST_FUN(eprPDInlining2)
     Problem::PreprocessingOptions opts;
     opts.mode = Problem::PM_EARLY_PREPROCESSING;
     opts.unusedPredicateDefinitionRemoval = false;
-    opts.traceInlining = true;
+    //opts.traceInlining = true;
     opts.predicateDefinitionInlining = Problem::INL_AXIOMS_ONLY;
     iprb=prb.preprocess(opts);
     cout<<"Inlined (axioms only):"<<endl;
@@ -145,7 +145,7 @@ TEST_FUN(eprEPRRestoringInlining)
     Problem::PreprocessingOptions opts;
     opts.mode = Problem::PM_SKOLEMIZE;
     opts.predicateDefinitionInlining = Problem::INL_EPR_RESTORING;
-    opts.traceInlining = true;
+    //opts.traceInlining = true;
     iprb = prb.preprocess(opts);
     cout<<"Skolemized:"<<endl;
     iprb.output(cout);
@@ -177,7 +177,7 @@ TEST_FUN(eprEPRRestoringInliningCycles)
     Problem::PreprocessingOptions opts;
     opts.mode = Problem::PM_SKOLEMIZE;
     opts.predicateDefinitionInlining = Problem::INL_EPR_RESTORING;
-    opts.traceInlining = true;
+    //opts.traceInlining = true;
     iprb = prb.preprocess(opts);
     cout<<"Skolemized:"<<endl;
     iprb.output(cout);
@@ -203,7 +203,7 @@ TEST_FUN(eprEqPropagation)
     opts.predicateDefinitionInlining = Problem::INL_OFF;
     opts.unusedPredicateDefinitionRemoval = false;
     opts.variableEqualityPropagation = true;
-    opts.traceVariableEqualityPropagation = true;
+    //opts.traceVariableEqualityPropagation = true;
     Problem iprb = prb.preprocess(opts);
     cout<<"Propagated:"<<endl;
     iprb.output(cout);
@@ -337,7 +337,7 @@ TEST_FUN(eprUPDRBuiltInPreds)
     Problem::PreprocessingOptions opts;
     opts.mode = Problem::PM_EARLY_PREPROCESSING;
     opts.unusedPredicateDefinitionRemoval = true;
-    opts.traceUnusedPredicateDefinitionRemoval = true;
+    //opts.traceUnusedPredicateDefinitionRemoval = true;
 
     Problem iprb=prb.preprocess(opts);
     cout<<"After updr:"<<endl;
@@ -389,7 +389,7 @@ TEST_FUN(eprEPRSkolem)
     opts.mode = Problem::PM_EARLY_PREPROCESSING;
     opts.unusedPredicateDefinitionRemoval = false;
     opts.eprSkolemization = true;
-    opts.traceEPRSkolemization = true;
+    //opts.traceEPRSkolemization = true;
 
     Problem pprb=prb.preprocess(opts);
     cout<<"Preprocessed:"<<endl;
@@ -397,7 +397,7 @@ TEST_FUN(eprEPRSkolem)
     OutputOptions::setTffFormulas(false);
 
     opts.mode = Problem::PM_SKOLEMIZE;
-    opts.traceEPRSkolemization = false;
+    //opts.traceEPRSkolemization = false;
     Problem sprb=prb.preprocess(opts);
     cout<<"Skolemized:"<<endl;
     sprb.output(cout);
@@ -424,7 +424,7 @@ TEST_FUN(eprPDMerging)
     Problem::PreprocessingOptions opts;
     opts.mode = Problem::PM_EARLY_PREPROCESSING;
     opts.unusedPredicateDefinitionRemoval = false;
-    opts.tracePredicateDefinitionMerging = true;
+    //opts.tracePredicateDefinitionMerging = true;
     opts.predicateDefinitionMerging = true;
     Problem iprb=prb.preprocess(opts);
     cout<<"Merged:"<<endl;

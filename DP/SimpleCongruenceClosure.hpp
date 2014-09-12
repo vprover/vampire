@@ -88,6 +88,10 @@ private:
   void readDistinct(Literal* lit);
 
 
+ /**
+  * Get the representative constant for constant @c
+  * i.e. the representative for its congruence class
+  */
   unsigned deref(unsigned c) const {
     CALL("SimpleCongruenceClosure::deref");
     unsigned repr = _cInfos[c].reprConst;
@@ -95,7 +99,13 @@ private:
     ASS_REP2(_cInfos[res].reprConst==0, _cInfos[res].reprConst, c);
     return res;
   }
+ /**
+  * Get a CPair of constants from a CPair by deref-ing each half of the pair
+  */
   CPair deref(CPair p) const { return CPair(deref(p.first), deref(p.second)); }
+ /**
+  * Get a CPair of constants from a CEq by deref-ing each half
+  */
   CPair deref(CEq p) const { return CPair(deref(p.c1), deref(p.c2)); }
 
   unsigned getClassSize(unsigned c) const {

@@ -1,9 +1,11 @@
 
+#include "Lib/List.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Environment.hpp"
 
 #include "SAT/SATClause.hpp"
 #include "SAT/SATLiteral.hpp"
+#include "SAT/SATInference.hpp"
 #include "SAT/SATSolver.hpp"
 #include "SAT/TWLSolver.hpp"
 
@@ -86,10 +88,37 @@ void testZICert1(SATSolver& s)
 }
 
 
+void testProofWithAssumptions(SATSolver& s)
+{
+  CALL("testProofWithAssumptions");
+
+  s.ensureVarCnt(2);
+  s.addClauses(pvi(getSingletonIterator(getClause("a"))));
+  s.addClauses(pvi(getSingletonIterator(getClause("A"))));
+
+  ASS_EQ(s.getStatus(),SATSolver::UNSATISFIABLE);
+
+  SATClause* refutation = s.getRefutation();
+  PropInference* inf = static_cast<PropInference*>(refutation->inference());
+
+  cout << endl << "Refutation: " << refutation->toString() << endl;
+
+  List<SATClause*>* prems = inf->getPremises();
+
+  cout << "Inference length: " << prems->length() << endl;
+  
+  while(prems){
+    cout << prems->head()->toString() << endl;
+    prems = prems->tail();
+  }
+
+}
 
 TEST_FUN(satSolverZeroImpliedCert)
 {
-  TWLSolver s(*env.options,true);
-  testZICert1(s);
+  TWLSolver s1(*env.options,true);
+  testZICert1(s1);
+  TWLSolver s2(*env.options,true);
+  testProofWithAssumptions(s2);
 }
 

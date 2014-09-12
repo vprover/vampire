@@ -324,12 +324,6 @@ vstring DefaultHelperCore::toString(const Kernel::Clause* clause) const
     res += "$false";
   }
 
-  if(clause->prop() && !BDD::instance()->isFalse(clause->prop())) {
-    if(res!="") {
-      res+=" | ";
-    }
-    res+=BDD::instance()->toTPTPString(clause->prop());
-  }
   return res;
 }
 

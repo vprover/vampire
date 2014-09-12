@@ -25,7 +25,6 @@
 #include "Kernel/Signature.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
-#include "Test/Output.hpp"
 
 vstring SingleTermListToString(const TermList* ts);
 

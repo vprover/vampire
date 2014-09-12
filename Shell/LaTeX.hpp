@@ -62,7 +62,7 @@ private:
 
   vstring getClauseLatexId(UnitSpec cs);
 
-  vstring splittingToString(InferenceStore::SplittingRecord*);
+  //vstring splittingToString(InferenceStore::SplittingRecord*);
   vstring toStringAsInference(Unit*);
   vstring toStringAsInference(UnitSpec cs, InferenceStore::FullInference* inf);
 
