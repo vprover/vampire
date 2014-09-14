@@ -143,7 +143,7 @@ void Environment::checkAllTimeLimits() const
 #endif
     throw TimeLimitExceededException();
   }else if (MainLoopContext::currentContext && options->localTimeLimitInDeciseconds() &&
-	      MainLoopContext::currentContext -> updateTimeCounter() > options -> localTimeLimitInDeciseconds()) {
+	      MainLoopContext::currentContext -> updateTimeCounter() > options -> localTimeLimitInDeciseconds() * 100) {
 	    statistics->terminationReason = Shell::Statistics::LOCAL_TIME_LIMIT;
 	    	ASS(MainLoopContext::currentContext -> checkEnvironment(this));
 #if VDEBUG

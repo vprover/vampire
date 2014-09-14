@@ -59,7 +59,7 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 	void MainLoopContext::switchOut() {
 		CALL("MainLoopContext::switchOut");
 
-	    const int endTime = _env -> timer -> elapsedMilliseconds();
+	    const unsigned int endTime = _env -> timer -> elapsedMilliseconds();
 
 		ASS_GE(endTime,_startTime);
 
@@ -97,11 +97,11 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 		_env -> checkAllTimeLimits();
 	}
 
-	int MainLoopContext::updateTimeCounter() {
-		const int endTime = _env->timer->elapsedMilliseconds();
+	unsigned int MainLoopContext::updateTimeCounter() {
+		const unsigned int endTime = _env->timer->elapsedMilliseconds();
 		ASS_GE(endTime,_startTime);
 		_elapsed += (endTime - _startTime);
 		_startTime = endTime;
-		return _elapsed / 100;
+		return _elapsed; //return in milliseconds
 	}
 }

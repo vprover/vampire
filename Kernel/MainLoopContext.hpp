@@ -32,11 +32,11 @@ public:
 	// Get the ConcurrentMainLoop
 	ConcurrentMainLoop* getMainLoop() const { return _ml; }
 
-	int updateTimeCounter();
-	int elapsedDeciseconds() const {
+	unsigned int updateTimeCounter();
+	unsigned int elapsedDeciseconds() const {
 		return _elapsed / 100;
 	}
-	int elapsed() const {
+	unsigned int elapsed() const {
 		return _elapsed;
 	}
 
@@ -70,7 +70,7 @@ private:
 	Lib::Environment* _env;
 	Lib::Environment* _temp_env; //A variable to preserve the current environment before switching in.
 								 //TODO: a manager pattern for main loops needs to be implemented for context switching
-	int _startTime, _elapsed;
+	unsigned int _startTime, _elapsed;
 };
 
 } /* namespace Kernel */
