@@ -50,9 +50,11 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 		_temp_env = Lib::env;
 		Lib::env = _env; //TODO: Potential change of context by other MainLoop
 		_startTime = _env -> timer-> elapsedMilliseconds();
+#if VDEBUG
 		std::cout << "Switching in: local time limit: " << _env->options->localTimeLimitInDeciseconds() <<
 				" dsec, elapsed so far: " << _elapsed << " msec" <<
 				std::endl;
+#endif //VDEBUG
 		currentContext = this;
 	}
 
@@ -64,11 +66,11 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 		ASS_GE(endTime,_startTime);
 
 		_elapsed += (endTime - _startTime);
-
+#if VDEBUG
 		std::cout << "Switching out: local time limit: " << _env->options->localTimeLimitInDeciseconds() <<
 				" dsec, elapsed so far: " << _elapsed << " msec" <<
 				std::endl;
-
+#endif //VDEBUG
 		Lib::env = _temp_env;
 		currentContext = 0;
 	}
