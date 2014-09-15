@@ -20,6 +20,9 @@ namespace SAT {
 class TransparentSolver : public SATSolver
 {
 public:
+  CLASS_NAME(TransparentSolver);
+  USE_ALLOCATOR(TransparentSolver);
+  
   TransparentSolver(SATSolver* inner);
 
   virtual Status getStatus() { return _inner->getStatus(); }
