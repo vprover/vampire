@@ -105,6 +105,25 @@ LingelingInterfacing::~LingelingInterfacing()
 }
 
 /**
+ * Make the solver handle clauses with variables up to @b newVarCnt-1
+ * 
+ * NOTE: Calling this function is not strictly necessary with lingeling
+ * (adding clauses over "undeclared variables" would work),
+ * but it is a way to "agree" with the caller on the used signature
+ * (see, e.g., the ranges in randomizeAssignment of collectZeroImplied).
+ */
+void LingelingInterfacing::ensureVarCnt(unsigned newVarCnt) 
+{
+  CALL("LingelingInterfacing::ensureVarCnt");
+     
+  // lingeling starts variables from 1, so maxvar == varcount    
+  while(lglmaxvar(_solver) < (int)newVarCnt) {
+    // make it frozen right away
+    lglfreeze(_solver, lglincvar(_solver));
+  }
+}
+
+/**
  * Solve modulo assumptions and set status. 
  */
 void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(int conflictCountLimit) 
@@ -327,15 +346,14 @@ void LingelingInterfacing::randomizeAssignment()
   TimeCounter tc(TC_LINGELING);
   
   ASS_EQ(_status, SATISFIABLE);
-  
-  // TODO: this does not seem to work ...
-  
-  lglsetopt(_solver, "randecint",1); // shouldn't set bellow minimum      
+    
+  // set all variables a random phase
+  for (int v = 1; v <= lglmaxvar(_solver); v++) {
+    lglsetphase(_solver,Random::getBit() ? v : -v);
+  }
   
   solveModuloAssumptionsAndSetStatus();
   ASS_EQ(_status, SATISFIABLE);
-  
-  lglsetopt(_solver, "randecint",1000); // back to default
 }
 
 void LingelingInterfacing::printLingelingStatistics()

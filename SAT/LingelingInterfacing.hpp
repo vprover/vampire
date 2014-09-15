@@ -46,6 +46,8 @@ public:
 		return _status;
 	}
 
+  virtual void ensureVarCnt(unsigned newVarCnt);
+  
 	/**
 	* In case the status of the problem is SATISFIABLE, then return the assigned value for var
 	*/
