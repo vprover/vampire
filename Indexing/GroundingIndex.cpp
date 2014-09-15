@@ -14,6 +14,7 @@
 
 #include "SAT/TWLSolver.hpp"
 #include "SAT/LingelingInterfacing.hpp"
+#include "SAT/MinisatInterfacing.hpp"
 #include "SAT/BufferedSolver.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -38,6 +39,12 @@ GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
     	break;
     case Options::LINGELING:
       _solver = new LingelingInterfacing(opt,true);
+      break;
+    case Options::BUFFERED_MINISAT:
+    	_solver = new BufferedSolver(new MinisatInterfacing(opt, true));
+    	break;
+    case Options::MINISAT:
+      _solver = new MinisatInterfacing(opt,true);
       break;
     default:
       ASSERTION_VIOLATION_REP(opt.satSolver());
