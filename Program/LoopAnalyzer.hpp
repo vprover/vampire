@@ -49,6 +49,9 @@ private:
   /** For every variable, this structure stores information used to
    * write down formulas containing the variable */
   struct VariableInfo {
+    CLASS_NAME(LoopAnalyzer::VariableInfo);
+    USE_ALLOCATOR(LoopAnalyzer::VariableInfo);
+    
     /** true if the variable is updated */
     bool updated;
     /** true if the variable is a counter. Counters are updated and

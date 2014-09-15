@@ -11,6 +11,7 @@
 #include "Debug/Assertion.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/VString.hpp"
+#include "Lib/Allocator.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -93,6 +94,9 @@ class ConstantIntegerExpression
   : public Expression
 {
 public:
+  CLASS_NAME(ConstantIntegerExpression);
+  USE_ALLOCATOR(ConstantIntegerExpression); 
+  
   explicit ConstantIntegerExpression(int val);
   bool lvalue() const;
   int value() const { return _value; }
@@ -110,6 +114,9 @@ class ConstantFunctionExpression
 	: public Expression
 {
 public:
+  CLASS_NAME(ConstantFunctionExpression);
+  USE_ALLOCATOR(ConstantFunctionExpression);   
+  
   bool lvalue() const;
   vstring toString(unsigned priority) const;
   /** return the priority (0 for non-operators) */
@@ -173,6 +180,9 @@ class VariableExpression
   : public Expression
 {
 public:
+  CLASS_NAME(VariableExpression);
+  USE_ALLOCATOR(VariableExpression);  
+  
   explicit VariableExpression(Variable* v);
   bool lvalue() const;
   vstring toString(unsigned priority) const;
@@ -191,6 +201,9 @@ class FunctionApplicationExpression
   : public Expression
 {
 public:
+  CLASS_NAME(FunctionApplicationExpression);
+  USE_ALLOCATOR(FunctionApplicationExpression);     
+  
   explicit FunctionApplicationExpression(Expression* fun);
   bool lvalue() const;
   vstring toString(unsigned priority) const;
@@ -223,6 +236,9 @@ class ArrayApplicationExpression
 	: public Expression
 {
 public:
+  CLASS_NAME(ArrayApplicationExpression);
+  USE_ALLOCATOR(ArrayApplicationExpression);    
+  
   ArrayApplicationExpression(Expression* arr,Expression* arg);
   bool lvalue() const;
   vstring toString(unsigned priority) const;

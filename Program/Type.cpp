@@ -52,7 +52,7 @@ FunctionType::FunctionType(unsigned arity,const Type* valueType)
     _argumentTypes = 0;
     return;
   }
-  _argumentTypes = new const Type*[arity];
+  _argumentTypes = static_cast<const Type**>(ALLOC_KNOWN(sizeof(const Type*)*arity,"FunctionType"));
 #if VDEBUG
   for (int i = arity-1;i >= 0;i--) {
     _argumentTypes[i] = 0;

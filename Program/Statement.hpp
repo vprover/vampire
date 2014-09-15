@@ -116,6 +116,9 @@ class Assignment
   : public Statement
 {
 public:
+  CLASS_NAME(Assignment);
+  USE_ALLOCATOR(Assignment);        
+  
   Assignment(Expression* lhs,Expression* rhs);
   /** the lhs of the assignment */
   Expression* lhs() const {return _lhs;}
@@ -138,6 +141,9 @@ class Block
   : public Statement
 {
 public:
+  CLASS_NAME(Block);
+  USE_ALLOCATOR(Block);   
+  
   explicit Block(unsigned length);
   void setStatement(unsigned number,Statement* st);
   /** return the length (the number of statements) */
@@ -165,6 +171,9 @@ class IfThenElse
   : public Statement
 {
 public:
+  CLASS_NAME(IfThenElse);
+  USE_ALLOCATOR(IfThenElse);     
+  
   /** constructor */
   IfThenElse(Expression* condition,Statement* thenPart,Statement* elsePart)
     : Statement(ITE),
@@ -197,6 +206,9 @@ class IfThen
   : public Statement
 {
 public:
+    CLASS_NAME(IfThen);
+    USE_ALLOCATOR(IfThen);      
+  
     IfThen(Expression* condition, Statement* thenPart)
       :Statement(ITS),
        _condition(condition),
@@ -222,6 +234,9 @@ class WhileDo
   : public Statement
 {
 public:
+  CLASS_NAME(WhileDo);
+  USE_ALLOCATOR(WhileDo);  
+  
   /** constructor */
   WhileDo(Expression* condition,Statement* body)
     : Statement(WHILE_DO),

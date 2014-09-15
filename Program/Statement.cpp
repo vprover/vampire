@@ -29,8 +29,8 @@ Block::Block(unsigned length)
 {
   CALL("Block::Block");
   ASS(length > 0);
-
-  _statements = new Statement*[length];
+    
+  _statements = static_cast<Statement**>(ALLOC_KNOWN(sizeof(Statement*)*length,"Block"));  
 #if VDEBUG
   for (int i = length-1;i >= 0;i--) {
     _statements[i] = 0;

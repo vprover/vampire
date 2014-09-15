@@ -235,7 +235,7 @@ FunctionApplicationExpression::FunctionApplicationExpression(Expression* fun)
     _arguments = 0;
     return;
   }
-  _arguments = new Expression*[_numberOfArguments];
+  _arguments = static_cast<Expression**>(ALLOC_KNOWN(sizeof(Expression*)*_numberOfArguments,"FunctionApplicationExpression"));  
 #if VDEBUG
   for (int n = _numberOfArguments-1;n >= 0;n--) {
     _arguments[n] = 0;

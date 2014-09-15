@@ -11,6 +11,7 @@
 #include "Type.hpp"
 
 #include "Lib/VString.hpp"
+#include "Lib/Allocator.hpp"
 
 namespace Program {
 
@@ -21,6 +22,9 @@ namespace Program {
 class Variable
 {
 public:
+  CLASS_NAME(Variable);
+  USE_ALLOCATOR(Variable);
+  
 	/** the main constructor */
 	explicit Variable(const Lib::vstring& name,const Type* tp) : _name(name),_type(tp) {}
 	/** the name of this variable */
