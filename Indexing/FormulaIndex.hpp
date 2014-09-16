@@ -59,6 +59,9 @@ private:
 
 class AIGFormulaIndex : public FormulaIndex {
 public:
+  CLASS_NAME(AIGFormulaIndex);
+  USE_ALLOCATOR(AIGFormulaIndex);
+  
   virtual FormulaQueryResultIterator getEquivalent(Formula* f);
 
   virtual void insert(FormulaUnit* unit, Formula* f);
