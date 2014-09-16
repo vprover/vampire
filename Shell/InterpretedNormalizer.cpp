@@ -39,6 +39,9 @@ public:
 class InterpretedNormalizer::SuccessorTranslator : public FunctionTranslator
 {
 public:
+  CLASS_NAME(InterpretedNormalizer::SuccessorTranslator);
+  USE_ALLOCATOR(InterpretedNormalizer::SuccessorTranslator);
+  
   SuccessorTranslator()
   {
     CALL("InterpretedNormalizer::BinaryMinusTranslator::BinaryMinusTranslator");
@@ -73,6 +76,9 @@ private:
 class InterpretedNormalizer::BinaryMinusTranslator : public FunctionTranslator
 {
 public:
+  CLASS_NAME(InterpretedNormalizer::BinaryMinusTranslator);
+  USE_ALLOCATOR(InterpretedNormalizer::BinaryMinusTranslator);
+  
   BinaryMinusTranslator(Interpretation bMinus, Interpretation plus, Interpretation uMinus)
   {
     CALL("InterpretedNormalizer::BinaryMinusTranslator::BinaryMinusTranslator");
@@ -109,6 +115,9 @@ private:
 class InterpretedNormalizer::IneqTranslator
 {
 public:
+  CLASS_NAME(InterpretedNormalizer::IneqTranslator);
+  USE_ALLOCATOR(InterpretedNormalizer::IneqTranslator);
+  
   IneqTranslator(Interpretation src, Interpretation tgt, bool swapArguments, bool reversePolarity)
    : _swapArguments(swapArguments), _reversePolarity(reversePolarity)
   {
@@ -148,6 +157,9 @@ private:
 class InterpretedNormalizer::NLiteralTransformer : private TermTransformer
 {
 public:
+  CLASS_NAME(InterpretedNormalizer::NLiteralTransformer);
+  USE_ALLOCATOR(InterpretedNormalizer::NLiteralTransformer);
+  
   NLiteralTransformer()
   : _ineqTransls(env.signature->predicates()),
     _fnTransfs(env.signature->functions())
@@ -246,7 +258,7 @@ private:
    */
   void addSuccessorTransformer()
   {
-    CALL("InterpretedNormalizer::NLiteralTransformer::addMinusTransformer");
+    CALL("InterpretedNormalizer::NLiteralTransformer::addSuccessorTransformer");
 
     if(!env.signature->haveInterpretingSymbol(Theory::INT_SUCCESSOR)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry

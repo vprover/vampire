@@ -78,6 +78,9 @@ private:
 class BDD
 {
 public:
+  CLASS_NAME(BDD);
+  USE_ALLOCATOR(BDD);
+  
   static BDD* instance();
 
   BDD();

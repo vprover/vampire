@@ -87,6 +87,9 @@ public:
 class AIGInliningEngine : public BottomUpAIGEngine
 {
 public:
+  CLASS_NAME(AIGInliningEngine);
+  USE_ALLOCATOR(AIGInliningEngine);
+  
   AIGInliningEngine(AIG& aig) : BottomUpAIGEngine(aig) {}
 
 protected:

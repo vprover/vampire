@@ -85,10 +85,13 @@ struct PDInliner::Applicator
  * Class representing a single predicate definition
  *
  * For in functions that take polarity as argument, the value can be -1, 0, 1.
- * Zero means "double" polarity - this occurrs e.g. inside equivalences.
+ * Zero means "double" polarity - this occurs e.g. inside equivalences.
  */
 struct PDInliner::PDef
 {
+  CLASS_NAME(PDInliner::PDef);
+  USE_ALLOCATOR(PDInliner::PDef);
+  
   PDef(PDInliner* parent, unsigned pred) : _parent(parent), _pred(pred), _asymDef(false) {}
 
   /**

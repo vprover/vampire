@@ -1277,7 +1277,7 @@ void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificati
 /**
  * Add a forward simplifier, so that it is applied before the
  * simplifiers that were added before it. The object takes ownership
- * of the forward simlifier and will take care of destroying it.
+ * of the forward simplifier and will take care of destroying it.
  *
  * Forward demodulation simplifier should be added by the
  * @b setFwDemodulator function, not by this one.
@@ -1291,7 +1291,7 @@ void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngin
 /**
  * Add a backward simplifier, so that it is applied before the
  * simplifiers that were added before it. The object takes ownership
- * of the backward simlifier and will take care of destroying it.
+ * of the backward simplifier and will take care of destroying it.
  */
 void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier)
 {

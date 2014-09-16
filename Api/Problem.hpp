@@ -8,6 +8,7 @@
 
 #include "FormulaBuilder.hpp"
 #include "Lib/VString.hpp"
+#include "Lib/Allocator.hpp"
 
 namespace Api {
 
@@ -136,6 +137,9 @@ public:
    */
   struct PreprocessingOptions
   {
+    CLASS_NAME(Problem::PreprocessingOptions);
+    USE_ALLOCATOR_ARRAY;    
+    
     PreprocessingOptions();
     /**
      * Read options from a string.

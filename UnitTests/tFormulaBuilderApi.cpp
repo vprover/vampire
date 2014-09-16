@@ -7,6 +7,7 @@
 #include "Api/Problem.hpp"
 
 #include "Lib/DHSet.hpp"
+#include "Lib/STLAllocator.hpp"
 
 #include "Kernel/Term.hpp"
 
@@ -317,7 +318,9 @@ TEST_FUN(fbapiErrors)
 
 vstring getId(Term t)
 {
-  static std::map<vstring,vstring> idMap;
+  CALL("getId");
+  
+  static std::map<vstring,vstring,less<vstring>,STLAllocator<pair<const vstring,vstring> > > idMap;
 
   vostringstream newIdStr;
   newIdStr<<"t_"<<idMap.size();
