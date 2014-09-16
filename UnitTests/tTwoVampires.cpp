@@ -40,47 +40,61 @@ using namespace Kernel;
 using namespace Saturation;
 using namespace Shell;
 
-void runChild(UnitList* units, vstring slice) __attribute__((noreturn));
+//void runChild(UnitList* units, vstring slice) __attribute__((noreturn));
 
 void runChild(UnitList* units, vstring slice)
 {
+  CALL("runChild")
+  
   int resultValue=1;
-  env.timer->reset();
-  env.timer->start();
-  TimeCounter::reinitialize();
+  try {    
+    env.timer->reset();
+    env.timer->start();
+    TimeCounter::reinitialize();
 
-  env.options->readFromTestId(slice);
+    env.options->readFromTestId(slice);
 
-  //To make sure the outputs of the two child Vampires don't interfere,
-  //the pipe allows only one process at a time to possess the output for
-  //writing (any other process that needs to output will wait).
+    //To make sure the outputs of the two child Vampires don't interfere,
+    //the pipe allows only one process at a time to possess the output for
+    //writing (any other process that needs to output will wait).
 
-  //However, not to block other processes from running, we claim the output
-  //only when we actually need it -- this we announce it by calling the
-  //functions env.beginOutput() and env.endOutput().
+    //However, not to block other processes from running, we claim the output
+    //only when we actually need it -- this we announce it by calling the
+    //functions env.beginOutput() and env.endOutput().
 
-  //As outputs can happen all over the Vampire, every (non-debugging) output
-  //is now encapsulated by a call to these two functions.
+    //As outputs can happen all over the Vampire, every (non-debugging) output
+    //is now encapsulated by a call to these two functions.
 
-  //Also, to allow easy switching between cout and the pipe, the env.out
-  //member has now become a function env.out().
-  env.beginOutput();
-  env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
-  env.endOutput();
+    //Also, to allow easy switching between cout and the pipe, the env.out
+    //member has now become a function env.out().
+    env.beginOutput();
+    env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
+    env.endOutput();
 
-  Problem prob(units);
-  ProvingHelper::runVampire(prob, *env.options);
+    Problem prob(units);
+    ProvingHelper::runVampire(prob, *env.options);
 
-  //set return value to zero if we were successful
-  if(env.statistics->terminationReason==Statistics::REFUTATION) {
-    resultValue=0;
+    //set return value to zero if we were successful
+    if(env.statistics->terminationReason==Statistics::REFUTATION) {
+      resultValue=0;
+    }
+
+    env.beginOutput();
+    UIHelper::outputResult(env.out());
+    env.endOutput();
+  } 
+  catch (Exception& exception) {        
+    env.beginOutput();
+    exception.cry(env.out());
+    env.endOutput();
+  } catch (std::bad_alloc& _) {    
+    env.beginOutput();
+    env.out() << "Insufficient system memory" << '\n';
+    env.endOutput();
   }
-
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
-
-  exit(resultValue);
+  
+  
+  _Exit(resultValue);
 }
 
 TEST_FUN(two_vampires1)
@@ -106,7 +120,7 @@ TEST_FUN(two_vampires1)
     //we're in child1
     childOutputPipe.neverRead(); //we won't be reading from the pipe in children
     env.setPipeOutput(&childOutputPipe); //direct output into the pipe
-    runChild(units, "dis+10_32_nwc=2.0:sac=on:spl=backtracking_20"); //start proving
+      runChild(units, "dis+10_32_nwc=2.0:sac=on:spl=backtracking_20"); //start proving
   }
 
   pid_t child2=Multiprocessing::instance()->fork();
@@ -137,7 +151,7 @@ TEST_FUN(two_vampires1)
   }
   childOutputPipe.releaseRead(); //declare we have stopped reading from the pipe
 
-
+  
   //retrieve the exit status of the first child
   int status;
   errno=0;
