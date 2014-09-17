@@ -9,6 +9,7 @@
 #define __MainLoopScheduler__
 
 #include <cstddef>
+#include <iostream>
 
 #include "Kernel/MainLoopFwd.hpp"
 #include "Kernel/MainLoopContext.hpp"
@@ -42,7 +43,13 @@ public:
 	static MainLoopContext* context() {
 		return MainLoopContext::currentContext;
 	}
-
+// it won't compile in release mode if some of these are left in!
+#if VDEBUG
+	static std::ostream& log(){
+		std::cout << MainLoopContext::currentContext->_id << ": ";
+		return std::cout;
+	}
+#endif
 protected:
 
 private:

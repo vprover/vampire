@@ -87,6 +87,7 @@ void SSplittingBranchSelector::init(const Options& opts)
     //ASSERTION_VIOLATION("Is this ever turned on?");
     _dp = new ShortConflictMetaDP(new DP::SimpleCongruenceClosure(), *_sat2fo, *_solver);
   }
+
 }
 
 void SSplittingBranchSelector::updateVarCnt()
@@ -94,13 +95,10 @@ void SSplittingBranchSelector::updateVarCnt()
   CALL("SSplittingBranchSelector::ensureVarCnt");
 
   unsigned satVarCnt = _sat2fo -> maxSATVar() + 1;
-  unsigned splitLvlCnt = static_cast<const SaturationAlgorithmContext*>(
-		  MainLoopScheduler::context()) -> splitter() -> splitLevelCnt();
 
   LOG("sspl_var_cnt","ensuring varCnt to "<<satVarCnt);
   _solver->ensureVarCnt(satVarCnt);
-  _selected.expand(splitLvlCnt);
-//  _watcher.expand(varCnt);
+  //splitter()->_selected.expand(_splitLvlCnt+1);
 }
 
 void SSplittingBranchSelector::handleSatRefutation(SATClause* ref)
@@ -162,38 +160,43 @@ void SSplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAs
   CALL("SSplittingBranchSelector::updateSelection");
   ASS_NEQ(asgn, SATSolver::NOT_KNOWN); //we always do full SAT solving, so there shouldn't be unknown variables
 
+
   SplitLevel posLvl = getNameFromLiteral(SATLiteral(satVar, true));
   SplitLevel negLvl = getNameFromLiteral(SATLiteral(satVar, false));
 
+  //MainLoopScheduler::log() << "update selection for " << posLvl << " and " << negLvl << endl;
+
+  ArraySet* _selected = splitter()->getSelected();
+
   switch(asgn) {
   case SATSolver::TRUE:
-    if(!_selected.find(posLvl) && splitter() -> isActiveName(posLvl)) {
-      _selected.insert(posLvl);
+    if(splitter()->isActiveName(posLvl) && !_selected->find(posLvl)) {
+      _selected->insert(posLvl);
       addedComps.push(posLvl);
     }
-    if(_selected.find(negLvl)) {
-      _selected.remove(negLvl);
+    if(splitter()->isActiveName(negLvl) && _selected->find(negLvl)) {
+      _selected->remove(negLvl);
       removedComps.push(negLvl);
     }
     break;
   case SATSolver::FALSE:
-    if(!_selected.find(negLvl) && splitter() -> isActiveName(negLvl)) {
-      _selected.insert(negLvl);
+    if(splitter()->isActiveName(negLvl) && !_selected->find(negLvl)) {
+      _selected->insert(negLvl);
       addedComps.push(negLvl);
     }
-    if(_selected.find(posLvl)) {
-      _selected.remove(posLvl);
+    if(splitter()->isActiveName(posLvl) && _selected->find(posLvl)) {
+      _selected->remove(posLvl);
       removedComps.push(posLvl);
     }
     break;
   case SATSolver::DONT_CARE:
     if(_eagerRemoval) {
-      if(_selected.find(posLvl)) {
-        _selected.remove(posLvl);
+      if(splitter()->isActiveName(posLvl) && _selected->find(posLvl)) {
+        _selected->remove(posLvl);
         removedComps.push(posLvl);
       }
-      if(_selected.find(negLvl)) {
-        _selected.remove(negLvl);
+      if(splitter()->isActiveName(negLvl) && _selected->find(negLvl)) {
+        _selected->remove(negLvl);
         removedComps.push(negLvl);
       }
     }
@@ -212,6 +215,9 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
   ASS(removedComps.isEmpty());
 
   TimeCounter tc(TC_SPLITTING_COMPONENT_SELECTION);
+
+  // Ensure that _solver and _selected are big enough
+  updateVarCnt();
 
 //  _unprocessed.loadFromIterator(
 //      getFilteredIterator(SATClauseStack::ConstIterator(clauses), hasPositiveLiteral) );
@@ -240,14 +246,13 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
   ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
 
   unsigned maxSatVar = _sat2fo -> maxSATVar();
+  //MainLoopScheduler::log() << "maxSatVar:" << maxSatVar << endl;
+  //MainLoopScheduler::log() << "splitLvl:" << _splitLvlCnt << endl;
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = _solver->getAssignment(i);
     updateSelection(i, asgn, addedComps, removedComps);
   }
 
-//
-//
-//
 //  deselectByModel(removedComps);
 //  fixUnprocessed(addedComps);
 //
@@ -330,33 +335,25 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
   );
 }
 
-SplitLevel SSplittingBranchSelector::getNameFromLiteral(SATLiteral lit) const
+SplitLevel SSplittingBranchSelector::getNameFromLiteral(SATLiteral lit, bool update/*=false*/) 
 {
   CALL("SSplittingBranchSelector::getNameFromLiteral");
 
-  SplitLevel res = getNameFromLiteralUnsafe(lit);
-  //XXX: Revert back? ASS_L(res, splitter() -> splitLevelCnt());
+  SplitLevel res = (lit.var()-1)*2 + (lit.polarity() ? 0 : 1);
+  //MainLoopScheduler::log() << "getName " << lit.var() << " res: " << res << endl;
+  //if(update && res > _splitLvlCnt){
+  //  _splitLvlCnt=1+(lit.var()-1)*2;
+  //}
+  //ASS(update || _splitLvlCnt >= res);
   return res;
 }
 
-/**
- * This function can be called with SAT literal for which the split
- * record is not created yet. In this case the result will be larger
- * than the size of _db.
- */
-SplitLevel SSplittingBranchSelector::getNameFromLiteralUnsafe(SATLiteral lit) const
-{
-  CALL("SSplittingBranchSelector::getNameFromLiteralUnsafe");
-
-  return (lit.var()-1)*2 + (lit.polarity() ? 0 : 1);
-}
 
 //////////////
 // SSplitter
 //
 
 SSplitter::SSplitter()
-//: _branchSelector(*this)
 {
   CALL("SSplitter::SSplitter");
 }
@@ -380,7 +377,6 @@ void SSplitter::init(SaturationAlgorithm* sa)
   Splitter::init(sa);
 
   const Options& opts = getOptions();
-  //_branchSelector.init();
   _complBehavior = opts.ssplittingAddComplementary();
   _nonsplComps = opts.ssplittingNonsplittableComponents();
 
@@ -389,28 +385,10 @@ void SSplitter::init(SaturationAlgorithm* sa)
   _flushThreshold = sa->getGeneratedClauseCount() + _flushPeriod;
 
   _congruenceClosure = opts.ssplittingCongruenceClosure();
+
+  _selected = new ArraySet();
 }
 
-//SplitLevel SSplitter::getNameFromLiteral(SATLiteral lit) const
-//{
-//  CALL("SSplitter::getNameFromLiteral");
-//
-//  SplitLevel res = getNameFromLiteralUnsafe(lit);
-//  ASS_L(res, _db.size());
-//  return res;
-//}
-//
-///**
-// * This function can be called with SAT literal for which the split
-// * record is not created yet. In this case the result will be larger
-// * than the size of _db.
-// */
-//SplitLevel SSplitter::getNameFromLiteralUnsafe(SATLiteral lit) const
-//{
-//  CALL("SSplitter::getNameFromLiteralUnsafe");
-//
-//  return (lit.var()-1)*2 + (lit.polarity() ? 0 : 1);
-//}
 SATLiteral SSplitter::getLiteralFromName(SplitLevel compName) const
 {
   CALL("SSplitter::getLiteralFromName");
@@ -483,6 +461,7 @@ void SSplitter::onAllProcessed()
     _branchSelector -> flush(toAdd, toRemove);
   }
   else {
+    _selected->expand(_db.size());
     _branchSelector -> addSatClauses(_clausesToBeAdded, toAdd, toRemove);
     _clausesToBeAdded.reset();
   }
@@ -684,14 +663,21 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
 {
   CALL("SSplitter::tryGetExistingComponentName");
 
+  //MainLoopScheduler::log() << "tryGet ";
+  //for(unsigned i=0;i<size;i++){ cout << lits[i]->toString() << "  "; }
+  //cout << endl;
+
   ClauseIterator existingComponents = _componentIdx -> retrieveVariants(lits, size);
 
   if(!existingComponents.hasNext()) {
+    //MainLoopScheduler::log() << "not found" << endl;
     return false;
   }
   compCl = existingComponents.next();
   ASS(!existingComponents.hasNext());
   comp = _compNames -> get(compCl);
+
+  //MainLoopScheduler::log() << "found " << compCl ->toString() << endl;
 
   // Ensure db big enough
   // Increase by 2 each time as each component has two split levels for positive and negative
@@ -703,6 +689,7 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
   // This means that compCl is from a *different* proof attempt
   if(!_db[comp]){
     compCl = buildAndInsertComponentClause(comp,size,lits,orig,true);
+    MainLoopScheduler::log() << "Importing " << compCl->toString() << endl;
     ASS_EQ(_db[comp]->component,compCl);
   }
   // compCl may still be from a different proof attempt, but if it is
@@ -734,17 +721,22 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
 Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig, bool copy)
 {
   CALL("SSplitter::buildAndInsertComponentClause");
+  if(_db[name]){ MainLoopScheduler::log() << _db[name]->component->toString() << endl; }
   ASS_EQ(_db[name],0);
 
   Unit::InputType inpType = orig ? orig->inputType() : Unit::AXIOM;
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, new Inference(Inference::SAT_SPLITTING_COMPONENT));
 
+  MainLoopScheduler::log() << "Constructing sr for " << name << endl;
   _db[name] = new SplitRecord(compCl);
 
   compCl->setSplits(SplitSet::getSingleton(name));
   LOG_UNIT("sspl_comp_names", compCl);
 
   if(!copy){_componentIdx -> insert(compCl);} // do not add to _componentIdx if a copy, as is already there
+#if VDEBUG
+  else{ ASS((_componentIdx -> retrieveVariants(lits, size)).hasNext()); }
+#endif
   _compNames -> insert(compCl, name);
 
   LOG_UNIT("sspl_comp_names", compCl);
@@ -760,7 +752,7 @@ SplitLevel SSplitter::addNonGroundComponent(unsigned size, Literal* const * lits
   ASS(forAll(getArrayishObjectIterator(lits, size), negPred(isGround))); //none of the literals can be ground
 
   SATLiteral posLit(_sat2fo -> createSpareSatVar(), true);
-  SplitLevel compName = _branchSelector -> getNameFromLiteralUnsafe(posLit);
+  SplitLevel compName = _branchSelector -> getNameFromLiteral(posLit,true);
   ASS_EQ(compName&1,0); //positive levels are even
   ASS_GE(compName,_db.size());
   while(compName>=_db.size()) {
@@ -768,8 +760,6 @@ SplitLevel SSplitter::addNonGroundComponent(unsigned size, Literal* const * lits
 	  _db.push(0);
   }
   ASS_L(compName,_db.size());
-
-  _branchSelector -> updateVarCnt();
 
   compCl = buildAndInsertComponentClause(compName, size, lits, orig,false);
 
@@ -783,28 +773,31 @@ SplitLevel SSplitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& co
   ASS(lit->ground());
 
   SATLiteral satLit = _sat2fo -> toSAT(lit);
-  SplitLevel compName = _branchSelector -> getNameFromLiteralUnsafe(satLit);
+  SplitLevel compName = _branchSelector -> getNameFromLiteral(satLit,true);
 
   if(compName>=_db.size()){
 	  do {
 		  _db.push(0);
 		  _db.push(0);
 	  } while (compName>=_db.size());
-  } else {
-    ASS_EQ(_complBehavior,Options::SSAC_NONE); //otherwise the compement would have been created
-  }
+  } 
   ASS_L(compName,_db.size());
 
   if(_complBehavior!=Options::SSAC_NONE) {
     //we insert both literal and its negation
+
+    // However, as it is possible that another proof attempt could have created
+    // the negation without the literal (they must have SSAC_NONE) we must
+    // first check that the negation does not already exist
     unsigned oppName = compName^1;
     ASS_L(oppName,_db.size());
     Literal* opposite = Literal::complementaryLiteral(lit);
-    buildAndInsertComponentClause(oppName, 1, &opposite, orig,false);
+    SplitLevel oppositeName;
+    if(!tryGetExistingComponentName(1,&opposite,oppositeName,orig,compCl)){
+      buildAndInsertComponentClause(oppName, 1, &opposite, orig,false);
+    }
   }
   compCl = buildAndInsertComponentClause(compName, 1, &lit, orig,false);
-
-  _branchSelector -> updateVarCnt();
 
   return compName;
 }
@@ -978,10 +971,10 @@ void SSplitter::onNewClause(Clause* cl)
   // (a) if it is true it can be immediately frozen
   // (b) if it is false it can be immediately passed to the SAT
   //      solver and kill the current model
-  bool isComponenet = _componentIdx -> retrieveVariants(cl).hasNext();
-  if(isComponenet){
-	RSTAT_CTR_INC("New Clause is Componenet");
-  }
+  //bool isComponenet = _componentIdx -> retrieveVariants(cl).hasNext();
+  //if(isComponenet){
+  //	RSTAT_CTR_INC("New Clause is Componenet");
+  //}
 
   if(!cl->splits()) {
     SplitSet* splits=getNewClauseSplitSet(cl);
@@ -1091,11 +1084,8 @@ void SSplitter::addComponents(const SplitLevelStack& toAdd)
     SplitRecord* sr = _db[sl];
     ASS(sr);
     ASS(!sr->active);
+    MainLoopScheduler::log() << "adding " << sl << endl;
     sr->active = true;
-    //simplifications may set prop part to true, but when we add the
-    //clause, we cannot assume is it still simplified
-    // Giles. simplifications no longer set prop part to true
-    //sr->component->setProp(BDD::instance()->getFalse());
 
     ASS(sr->children.isEmpty());
     //we need to put the component among children, so that it is backtracked
@@ -1114,7 +1104,7 @@ void SSplitter::addComponents(const SplitLevelStack& toAdd)
  */
 void SSplitter::removeComponents(const SplitLevelStack& toRemove)
 {
-  CALL("SSplitter::backtrack");
+  CALL("SSplitter::removeComponents");
   ASS(_sa->clausesFlushed());
 
   Clause::requestAux();
@@ -1134,6 +1124,8 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
     SplitLevel bl=blit.next();
     SplitRecord* sr=_db[bl];
     ASS(sr);
+    MainLoopScheduler::log() << "backtrack " << bl << endl;
+    ASS(sr->active);
 
     while(sr->children.isNonEmpty()) {
       Clause* ccl=sr->children.popWithoutDec();

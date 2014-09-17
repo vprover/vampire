@@ -55,20 +55,23 @@ public:
   /** To be called from SSplitter::init() */
   void init(const Options& opts);
 
-  void updateVarCnt();
   void addSatClauses(const SATClauseStack& clauses, SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
   void clearZeroImpliedSplits(Clause* cl);
 
-  SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
+  //SATLiteral getLiteralFromName(SplitLevel compName) const;
+  SplitLevel getNameFromLiteral(SATLiteral lit, bool update=false);
 
 private:
   SSplittingBranchSelector(const Saturation::SSplittingBranchSelector&) {}
 
+  void updateVarCnt();
+
   void processDPConflicts();
 
   void handleSatRefutation(SATClause* ref);
+
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
@@ -77,23 +80,15 @@ private:
 			  MainLoopScheduler::context()) -> splitter();
   }
 
-  //SATLiteral getLiteralFromName(SplitLevel compName) const;
-  SplitLevel getNameFromLiteral(SATLiteral lit) const;
-
-  //options
-  bool _eagerRemoval;
-
-  //SSplitter& _parent;
   SAT::SAT2FO* _sat2fo;
 
+  bool _eagerRemoval;
+
   unsigned _varCnt;
+  //unsigned _splitLvlCnt;
   SATSolverSCP _solver;
   ScopedPtr<DecisionProcedure> _dp;
 
-  /**
-   * Contains selected component names
-   */
-  ArraySet _selected;
 };
 
 /**
@@ -125,7 +120,7 @@ private:
  *
  * children - Clauses that rely on name (of comp), should be backtracked
  * reduced - The clauses that have been *conditionally* reduced by this clause (and are therefore frozen)
- * active - true if currently frozen (maybe unfrozen, then frozen again) 
+ * active - true if currently active in saturation (not frozen) 
  *
  * Comment by Giles
  */   
@@ -163,19 +158,13 @@ public:
   bool handleEmptyClause(Clause* cl);
 
   SATLiteral getLiteralFromName(SplitLevel compName) const;
-  //SplitLevel getNameFromLiteral(SATLiteral lit) const;
 
   bool isActiveName(SplitLevel name) const {
     CALL("SSplitter::isActiveName");
-    ASS_L(name,_db.size());
-    return _db[name];
+    //ASS_L(name,_db.size());
+    return  name < _db.size() && _db[name];
   }
   Clause* getComponentClause(SplitLevel name) const;
-
-  SplitLevel splitLevelCnt() const { return _db.size(); }
-  //unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
-
-  //SAT2FO& satNaming() { return _sat2fo; }
 
   void setBranchSelector(SSplittingBranchSelector* branchSelector) {
 	  _branchSelector = branchSelector;
@@ -193,9 +182,9 @@ public:
   	  _sat2fo = sat2fo;
   }
 
-private:
+  ArraySet* getSelected() const { return _selected; }
 
-  //SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
+private:
 
   bool shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, Clause*& compCl);
   bool handleNonSplittable(Clause* cl);
@@ -262,6 +251,11 @@ private:
    * correspondence between the SAT model and the clauses in the saturation).
    */
   SATClauseStack _clausesToBeAdded;
+
+  /**
+   * Contains selected component names
+   */
+  ArraySet* _selected;
 };
 
 }
