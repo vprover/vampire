@@ -661,7 +661,7 @@ public:
    * Return time limit in deciseconds, or 0 if there is no time limit
    */
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds; }
-  int localTimeLimitInDeciseconds() const { return _localTimeLimitInDeciseconds; }
+  unsigned int localTimeLimitInDeciseconds() const { return _localTimeLimitInDeciseconds; }
   static int readTimeLimit(const char* val);
   size_t memoryLimit() const { return _memoryLimit; }
   int inequalitySplitting() const { return _inequalitySplitting; }
@@ -1027,7 +1027,7 @@ private:
   bool _theoryAxioms;
   /** Time limit in deciseconds */
   int _timeLimitInDeciseconds;
-  int _localTimeLimitInDeciseconds;
+  unsigned int _localTimeLimitInDeciseconds;
 
   bool _timeStatistics;
   string _traces;
