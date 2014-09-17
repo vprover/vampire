@@ -289,6 +289,9 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
 
+  // Ensure that _solver and _selected are big enough
+  updateVarCnt();
+
   SplitLevel varCnt = _sat2fo -> maxSATVar() + 1;
 
   static ArraySet oldselSet;
