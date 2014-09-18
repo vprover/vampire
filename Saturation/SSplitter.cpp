@@ -587,7 +587,7 @@ bool SSplitter::doSplitting(Clause* cl)
   static Stack<CompRec> comps;
   comps.reset();
   // fills comps with components, returning if not splittable
-  if(!getComponents(cl, comps, false)) {
+  if(!getComponents(cl, comps)) {
     return handleNonSplittable(cl);
   }
 

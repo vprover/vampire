@@ -33,8 +33,7 @@ void Splitter::init(SaturationAlgorithm* sa)
 {
   CALL("Splitter::init");
 
-  _sa = sa;
-  _ansLitMgr = _sa->getAnswerLiteralManager();
+  _sa = sa;  
 }
 
 const Options& Splitter::getOptions() const
@@ -60,24 +59,6 @@ void Splitter::onClauseReduction(Clause* cl, Clause* premise, Clause* replacemen
   onClauseReduction(cl, pvi( getSingletonIterator(premise) ), replacement);
 }
 
-bool Splitter::isAnswerLiteral(Literal* lit)
-{
-  CALL("Splitter::isAnswerLiteral");
-
-  return _ansLitMgr && _ansLitMgr->isAnswerLiteral(lit);
-}
-
-bool Splitter::isSpecial(Literal* lit)
-{
-  CALL("Splitter::isSpecial");
-
-  Signature::Symbol* predSym = env.signature->getPredicate(lit->functor());
-
-  return lit->color()==COLOR_TRANSPARENT &&
-    (!getOptions().showSymbolElimination() || lit->skip()) &&
-    (!predSym->cfName()) && (!isAnswerLiteral(lit));
-}
-
 /**
  * Takes Clause cl and attempts to split it into Components i.e. produces C1...Cn = cl such that
  * all Ci's have a pairwise disjoint set of variables and no Ci can be split further - the
@@ -85,13 +66,11 @@ bool Splitter::isSpecial(Literal* lit)
  *
  * Returns true if this is possible and false otherwise. The result is placed in acc.
  *
- * The putSpecialsTogether option does not appear to be used. What does it do?
- *
  * This is implemented using the Union-Find algorithm.
  *
  * Comment by Giles. 
  */
-bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTogether)
+bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc)
 {
   CALL("Splitter::doSplitting");
   ASS_EQ(acc.size(), 0);
@@ -113,14 +92,6 @@ bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTo
 
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
-    if( putSpecialsTogether && isSpecial(lit) ) {
-      if(coloredMaster==-1) {
-	coloredMaster=i;
-      } else {
-	//colored literals must be in one component
-	components.doUnion(coloredMaster, i);
-      }
-    }
     VariableIterator vit(lit);
     while(vit.hasNext()) {
       unsigned master=varMasters.findOrInsert(vit.next().var(), i);
@@ -132,49 +103,6 @@ bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTo
   components.evalComponents();
 
   unsigned compCnt=components.getComponentCount();
-
-  /*
-  if(standAloneObligations() && compCnt>1) {
-
-    //we will join components without literals that cannot stand alone
-    //to ones that have such (an example of a literal that cannot stand
-    //alone is a negative literal when splitPositive() is true)
-
-    IntUnionFind::ComponentIterator cit(components);
-
-    int someCompEl=-1;
-    bool someCompOK=false;
-    while(cit.hasNext()) {
-      IntUnionFind::ElementIterator elit=cit.next();
-
-      int compEl=elit.next();
-      if(someCompEl==-1) {
-	someCompEl=compEl;
-      }
-      bool saok=false; //ok to stand alone
-      for(;;) {
-	if(canStandAlone((*cl)[compEl])) {
-	  saok=true;
-	  break;
-	}
-	if(!elit.hasNext()) {
-	  break;
-	}
-	compEl=elit.next();
-      }
-      if(!saok || !someCompOK) {
-	components.doUnion(compEl, someCompEl);
-	if(saok) {
-	  someCompOK=true;
-	}
-      }
-    }
-
-    //recompute the components
-    components.evalComponents();
-    compCnt=components.getComponentCount();
-  }
-  */
 
   if(compCnt==1) {
     return false;

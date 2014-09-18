@@ -67,14 +67,10 @@ protected:
       Iterator(const CompRec& obj) : LiteralStack::ConstIterator(obj._lits) {}
     };
   };
-
-  bool isSpecial(Literal* l);
-  bool getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTogether);
-
-  bool isAnswerLiteral(Literal* lit);
+  
+  bool getComponents(Clause* cl, Stack<CompRec>& acc);
 
   SaturationAlgorithm* _sa;
-  AnswerLiteralManager* _ansLitMgr;
 };
 
 };
