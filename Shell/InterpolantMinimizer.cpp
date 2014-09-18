@@ -463,9 +463,6 @@ protected:
     return true;
   }
 
-  virtual bool canSplitOut(Literal* lit) { return true; }
-  virtual bool standAloneObligations() { return false; }
-  virtual bool splittingAllowed(Clause* cl) { return true; }
 private:
 
   Clause* getComponent(Literal* const * lits, unsigned len)

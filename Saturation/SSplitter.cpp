@@ -584,10 +584,6 @@ bool SSplitter::doSplitting(Clause* cl)
 {
   CALL("SSplitter::doSplitting");
 
-  if(!splittingAllowed(cl)) {
-    return false;
-  }
-
   static Stack<CompRec> comps;
   comps.reset();
   // fills comps with components, returning if not splittable
@@ -693,7 +689,6 @@ SplitLevel SSplitter::addNonGroundComponent(unsigned size, Literal* const * lits
   CALL("SSplitter::addNonGroundComponent");
   ASS_REP(_db.size()%2==0, _db.size());
   ASS_G(size,0);
-  //ASS(getOptions().splitPositive() || forAll(getArrayishObjectIterator(lits, size), negPred(isGround))); //none of the literals can be ground
   ASS(forAll(getArrayishObjectIterator(lits, size), negPred(isGround))); //none of the literals can be ground
 
   SATLiteral posLit(_sat2fo.createSpareSatVar(), true);

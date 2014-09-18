@@ -60,37 +60,6 @@ void Splitter::onClauseReduction(Clause* cl, Clause* premise, Clause* replacemen
   onClauseReduction(cl, pvi( getSingletonIterator(premise) ), replacement);
 }
 
-/**
- * Return true if splitting is to be performed only if all
- * resulting clauses contain less positive literals than
- * the original one.
- */
-bool Splitter::splitPositive()
-{
-  return false;//getOptions().splitPositive(); - no longer an option, should remove this function
-}
-
-/**
- * Return true if @b cl fulfills the constraints for clauses
- * to be split.
- */
-bool Splitter::splittingAllowed(Clause* cl)
-{
-  CALL("Splitter::splittingAllowed");
-
- // if(getOptions().splitInputOnly() && !cl->isInput()) {
- //   return false;
- // }
-
- // if(getOptions().splitGoalOnly() && cl->inputType()!=Unit::CONJECTURE) {
- //   return false;
- // }
-
- // both of these options have been removed - perhaps remove splittingAllowed 
-
-  return true;
-}
-
 bool Splitter::isAnswerLiteral(Literal* lit)
 {
   CALL("Splitter::isAnswerLiteral");
@@ -110,27 +79,6 @@ bool Splitter::isSpecial(Literal* lit)
 }
 
 /**
- * Return false for literals that cannot have a splitting component
- * consisting only of them
- */
-bool Splitter::canStandAlone(Literal* lit)
-{
-  if(lit->isNegative() && splitPositive()) {
-    return false;
-  }
-  return true;
-}
-
-/**
- * Return true if there are can be literals that cannot stand alone
- */
-bool Splitter::standAloneObligations()
-{
-  return splitPositive();
-}
-
-
-/**
  * Takes Clause cl and attempts to split it into Components i.e. produces C1...Cn = cl such that
  * all Ci's have a pairwise disjoint set of variables and no Ci can be split further - the
  * splitting is maximal.
@@ -147,10 +95,6 @@ bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTo
 {
   CALL("Splitter::doSplitting");
   ASS_EQ(acc.size(), 0);
-
-  if(!splittingAllowed(cl)) {
-    return false;
-  }
 
   unsigned clen=cl->length();
   ASS_G(clen,0);
@@ -189,6 +133,7 @@ bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTo
 
   unsigned compCnt=components.getComponentCount();
 
+  /*
   if(standAloneObligations() && compCnt>1) {
 
     //we will join components without literals that cannot stand alone
@@ -229,6 +174,7 @@ bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTo
     components.evalComponents();
     compCnt=components.getComponentCount();
   }
+  */
 
   if(compCnt==1) {
     return false;

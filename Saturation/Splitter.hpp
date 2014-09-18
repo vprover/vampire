@@ -69,15 +69,7 @@ protected:
   };
 
   bool isSpecial(Literal* l);
-  virtual bool canStandAlone(Literal* lit);
-  virtual bool standAloneObligations();
-
   bool getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTogether);
-
-
-  bool splitPositive();
-
-  virtual bool splittingAllowed(Clause* cl);
 
   bool isAnswerLiteral(Literal* lit);
 
