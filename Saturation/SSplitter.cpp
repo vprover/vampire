@@ -749,7 +749,7 @@ SplitLevel SSplitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& co
 SplitLevel SSplitter::getComponentName(const CompRec& comp, Clause* orig, Clause*& compCl)
 {
   CALL("SSplitter::getComponentName/3");
-  return getComponentName(comp.size(), comp.array(), orig, compCl);
+  return getComponentName(comp.size(), comp.begin(), orig, compCl);
 }
 
 /**

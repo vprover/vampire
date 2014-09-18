@@ -40,34 +40,8 @@ public:
 
   const Options& getOptions() const;
 protected:
-  class CompRec
-  {
-    LiteralStack _lits;
-    // What does special mean? - putSpecialsTogether?
-    bool _isSpecial;
-  public:
-    CompRec() {}
-    CompRec(Literal** lits, unsigned len);
-
-    void add(Literal* l) { _lits.push(l); }
-    void markSpecial() { _isSpecial = true; }
-
-    unsigned size() const { return _lits.size(); }
-    Literal* operator[](unsigned i) const { return _lits[i]; }
-    Literal* const * array() const { return _lits.begin(); }
-
-    /**
-     * Return true if components were built with putSpecialsTogether set to true
-     * and the current component contains a special literal.
-     */
-    bool special() const { return _isSpecial; }
-
-    class Iterator : public LiteralStack::ConstIterator {
-    public:
-      Iterator(const CompRec& obj) : LiteralStack::ConstIterator(obj._lits) {}
-    };
-  };
-  
+  typedef LiteralStack CompRec;
+    
   bool getComponents(Clause* cl, Stack<CompRec>& acc);
 
   SaturationAlgorithm* _sa;

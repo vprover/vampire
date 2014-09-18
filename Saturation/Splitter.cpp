@@ -22,13 +22,6 @@
 namespace Saturation
 {
 
-Splitter::CompRec::CompRec(Literal** lits, unsigned len)
-{
-  CALL("Splitter::CompRec::CompRec/2");
-
-  _lits.loadFromIterator(getArrayishObjectIterator(lits, len));
-}
-
 void Splitter::init(SaturationAlgorithm* sa)
 {
   CALL("Splitter::init");
@@ -87,8 +80,6 @@ bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc)
   static DHMap<unsigned, unsigned, IdentityHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
-  //index of one literal that cannot be split-out, or -1 if there isn't any
-  int coloredMaster=-1;
 
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
@@ -122,11 +113,7 @@ bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc)
       int litIndex=elit.next();
       Literal* lit = (*cl)[litIndex];
 
-      acc.top().add(lit);
-
-      if(litIndex==coloredMaster) {
-	acc.top().markSpecial();
-      }
+      acc.top().push(lit);
     }
   }
   ASS_EQ(acc.size(),compCnt);

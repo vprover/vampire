@@ -450,7 +450,7 @@ protected:
     CALL("InterpolantMinimizer::ClauseSplitter::buildAndInsertComponents");
 
     for(unsigned i=0; i<compCnt; i++) {
-      Clause* compCl = getComponent(comps[i].array(), comps[i].size());
+      Clause* compCl = getComponent(comps[i].begin(), comps[i].size());
       _acc->push(compCl);
     }
   }
