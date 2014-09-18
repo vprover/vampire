@@ -4,33 +4,14 @@
 * @author Ioan Dragan
 */
 
-#include "Debug/Assertion.hpp"
-
-#include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
-#include "Shell/UIHelper.hpp"
-
-#include "Lib/Exception.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/Timer.hpp"
-#include "Lib/TimeCounter.hpp"
-#include "Lib/System.hpp"
-#include "Lib/ScopedLet.hpp"
+#include "LingelingInterfacing.hpp"
 
 #include "SATInference.hpp"
-#include "SATClause.hpp"
-#include "SATLiteral.hpp"
 
-#include "LingelingInterfacing.hpp"
-#include "Shell/Options.hpp"
-
-#include <csignal>
-
-extern "C" {
-	#include "lglib.h"
-	#include <unistd.h>
-#include <signal.h>
-}
+#include "Debug/Assertion.hpp"
+#include "Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/ScopedLet.hpp"
 
 /**
  * Just as a general hint: assuming one wants to trace all the API calls to Lingeling
@@ -42,8 +23,13 @@ extern "C" {
 namespace SAT
 {
 
-using namespace Shell;  
-using namespace Lib;  
+extern "C" {
+	#include "lglib.h"
+}
+  
+using Shell::Statistics;
+using Shell::Options;
+using Lib::ScopedLet;
 
 /*
  * Constructor for that creates an object containing the Lingeling solver based on the options

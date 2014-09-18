@@ -7,20 +7,17 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Allocator.hpp"
 #include "Shell/Options.hpp"
-#include "Lib/Exception.hpp"
-#include "Lib/List.hpp"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
 
-#include "Lib/Allocator.hpp"
-#include <csignal>
-
-typedef struct LGL LGL;
-
 namespace SAT{
+
+// forward declarations
+struct LGL;
   
 class LingelingInterfacing : public SATSolver
 {
