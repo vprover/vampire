@@ -761,7 +761,6 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
   //(there the control flow goes out of the SaturationAlgorithm class,
   //so we'd better not assume on what's happening out there)
   cl->incRefCnt();
-  
   onNewClause(cl);
   _newClauses.push(cl);
   
@@ -910,7 +909,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   }
 
 
-  if ( _splitter && !_opt.splitAtActivation() ) {
+  if ( _splitter ){//&& !_opt.splitAtActivation() ) {
     if (_splitter->doSplitting(cl)) {
       return false;
     }
@@ -1034,11 +1033,11 @@ bool SaturationAlgorithm::activate(Clause* cl)
     return false;
   }
 
-  if (_splitter && _opt.splitAtActivation()) {
-    if (_splitter->doSplitting(cl)) {
-      return false;
-    }
-  }
+  //if (_splitter && _opt.splitAtActivation()) {
+  //  if (_splitter->doSplitting(cl)) {
+  //    return false;
+  //  }
+  //}
   _clauseActivationInProgress=true;
 
   if (!cl->numSelected()) {

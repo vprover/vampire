@@ -10,6 +10,7 @@
 
 #include "Debug/Assertion.hpp"
 
+#include "Lib/DHMap.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/XML.hpp"
 
@@ -41,7 +42,7 @@ public:
     void setInputFile(const vstring& newVal);
     void checkGlobalOptionConstraints() const;
     
-    void forceIncompleteness() { _forceIncompleteness=true; }
+    void forceIncompleteness() { _forceIncompleteness.actualValue=true; }
     
     static int readTimeLimit(const char* val);
     /**
@@ -52,8 +53,8 @@ public:
      * the problem name is equal to "unknown". The problem name can
      * be set to a specific value using setProblemName().
      */
-    vstring problemName () const { return _problemName; }
-    void setProblemName(vstring str) { _problemName = str; }
+    vstring problemName () const { return _problemName.actualValue; }
+    void setProblemName(vstring str) { _problemName.actualValue = str; }
     
     CLASS_NAME(Options);
     USE_ALLOCATOR(Options);
@@ -374,259 +375,318 @@ public:
   // -currently disabled all setter functions
   //==========================================================
 
-  vstring forcedOptions() const { return _forcedOptions.value; }
-  vstring forbiddenOptions() const { return _forbiddenOptions.value; }
-  vstring testId() const { return _testId.value; }
-  vstring protectedPrefix() const { return _protectedPrefix.value; }
-  Statistics statistics() const { return _statistics.value; }
+  vstring forcedOptions() const { return _forcedOptions.actualValue; }
+  vstring forbiddenOptions() const { return _forbiddenOptions.actualValue; }
+  vstring testId() const { return _testId.actualValue; }
+  vstring protectedPrefix() const { return _protectedPrefix.actualValue; }
+  Statistics statistics() const { return _statistics.actualValue; }
   //void setStatistics(Statistics newVal) { _statistics=newVal; }
-  Proof proof() const { return _proof.value; }
-  bool proofChecking() const { return _proofChecking.value; }
-  int naming() const { return _naming.value; }
+  Proof proof() const { return _proof.actualValue; }
+  bool proofChecking() const { return _proofChecking.actualValue; }
+  int naming() const { return _naming.actualValue; }
   bool setNaming(int newVal);
-  bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.value; }
-  bool eprPreservingNaming() const { return _eprPreservingNaming.value; }
+  bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
+  bool eprPreservingNaming() const { return _eprPreservingNaming.actualValue; }
   //void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
-  bool eprPreservingSkolemization() const { return _eprPreservingSkolemization.value; }
+  bool eprPreservingSkolemization() const { return _eprPreservingSkolemization.actualValue; }
   //void setEprPreservingSkolemization(bool newVal) { _eprPreservingSkolemization = newVal; }
-  bool eprRestoringInlining() const { return _eprRestoringInlining.value; }
+  bool eprRestoringInlining() const { return _eprRestoringInlining.actualValue; }
   //void setEprRestoringInlining(bool newVal) { _eprRestoringInlining = newVal; }
-  InliningMode predicateDefinitionInlining() const { return _predicateDefinitionInlining.value; }
+  InliningMode predicateDefinitionInlining() const { return _predicateDefinitionInlining.actualValue; }
   //void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
-  bool predicateDefinitionMerging() const { return _predicateDefinitionMerging.value; }
+  bool predicateDefinitionMerging() const { return _predicateDefinitionMerging.actualValue; }
   //void setPredicateDefinitionMerging(bool newValue) { _predicateDefinitionMerging = newValue; }
-  PredicateEquivalenceDiscoveryMode predicateEquivalenceDiscovery() const { return _predicateEquivalenceDiscovery.value; }
+  PredicateEquivalenceDiscoveryMode predicateEquivalenceDiscovery() const { return _predicateEquivalenceDiscovery.actualValue; }
   //void setPredicateEquivalenceDiscovery(PredicateEquivalenceDiscoveryMode newValue) { _predicateEquivalenceDiscovery = newValue; }
-  bool predicateEquivalenceDiscoveryAddImplications() const { return _predicateEquivalenceDiscoveryAddImplications.value; }
-  bool predicateEquivalenceDiscoveryRandomSimulation() const { return _predicateEquivalenceDiscoveryRandomSimulation.value; }
-  int predicateEquivalenceDiscoverySatConflictLimit() const { return _predicateEquivalenceDiscoverySatConflictLimit.value; }
-  bool predicateIndexIntroduction() const { return _predicateIndexIntroduction.value; }
+  bool predicateEquivalenceDiscoveryAddImplications() const { return _predicateEquivalenceDiscoveryAddImplications.actualValue; }
+  bool predicateEquivalenceDiscoveryRandomSimulation() const { return _predicateEquivalenceDiscoveryRandomSimulation.actualValue; }
+  int predicateEquivalenceDiscoverySatConflictLimit() const { return _predicateEquivalenceDiscoverySatConflictLimit.actualValue; }
+  bool predicateIndexIntroduction() const { return _predicateIndexIntroduction.actualValue; }
   //void setPredicateIndexIntroduction(bool newValue) { _predicateIndexIntroduction = newValue; }
-  bool aigBddSweeping() const { return _aigBddSweeping.value; }
-  bool aigConditionalRewriting() const { return _aigConditionalRewriting.value; }
-  bool aigDefinitionIntroduction() const { return _aigDefinitionIntroduction.value; }
-  unsigned aigDefinitionIntroductionThreshold() const { return _aigDefinitionIntroductionThreshold.value; }
-  bool aigFormulaSharing() const { return _aigFormulaSharing.value; }
-  bool aigInliner() const { return _aigInliner.value; }
-  Mode mode() const { return _mode.value; }
+  bool aigBddSweeping() const { return _aigBddSweeping.actualValue; }
+  bool aigConditionalRewriting() const { return _aigConditionalRewriting.actualValue; }
+  bool aigDefinitionIntroduction() const { return _aigDefinitionIntroduction.actualValue; }
+  unsigned aigDefinitionIntroductionThreshold() const { return _aigDefinitionIntroductionThreshold.actualValue; }
+  bool aigFormulaSharing() const { return _aigFormulaSharing.actualValue; }
+  bool aigInliner() const { return _aigInliner.actualValue; }
+  Mode mode() const { return _mode.actualValue; }
   //void setMode(Mode newVal);
-  InputSyntax inputSyntax() const { return _inputSyntax.value; }
+  InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   //void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
-  bool normalize() const { return _normalize.value; }
+  bool normalize() const { return _normalize.actualValue; }
   //void setNormalize(bool normalize) { _normalize = normalize; }
-  vstring include() const { return _include.value; }
-  //void setInclude(vstring val) { _include = val; }
-  vstring includeFileName (const vstring& relativeName);
-  vstring logFile() const { return _logFile.value; }
-  vstring inputFile() const { return _inputFile.value; }
-  int randomSeed() const { return _randomSeed.value; }
-  int rowVariableMaxLength() const { return _rowVariableMaxLength.value; }
+  vstring include() const { return _include.actualValue; }
+  //void setInclude(string val) { _include = val; }
+  vstring includeFileName (const string& relativeName);
+  vstring logFile() const { return _logFile.actualValue; }
+  vstring inputFile() const { return _inputFile.actualValue; }
+  int randomSeed() const { return _randomSeed.actualValue; }
+  int rowVariableMaxLength() const { return _rowVariableMaxLength.actualValue; }
   //void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
-  bool printClausifierPremises() const { return _printClausifierPremises.value; }
-  bool showActive() const { return _showActive.value; }
-  bool showBlocked() const { return _showBlocked.value; }
-  bool showDefinitions() const { return _showDefinitions.value; }
-  InterpolantMode showInterpolant() const { return _showInterpolant.value; }
-  bool showNew() const { return _showNew.value; }
-  bool showNewPropositional() const { return _showNewPropositional.value; }
-  bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace.value; }
+  bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
+  bool showActive() const { return _showActive.actualValue; }
+  bool showBlocked() const { return _showBlocked.actualValue; }
+  bool showDefinitions() const { return _showDefinitions.actualValue; }
+  InterpolantMode showInterpolant() const { return _showInterpolant.actualValue; }
+  bool showNew() const { return _showNew.actualValue; }
+  bool showNewPropositional() const { return _showNewPropositional.actualValue; }
+  bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace.actualValue; }
   //void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace = newVal; }
-  OptionTag showOptions() const { return _showOptions.value; }
-  bool showExperimentalOptions() const { return _showExperimentalOptions.value; }
-  bool showHelp() const { return _showHelp.value; }
-  bool showPassive() const { return _showPassive.value; }
-  bool showPreprocessing() const { return _showPreprocessing.value; }
-  bool showSkolemisations() const { return _showSkolemisations.value; }
-  bool showSymbolElimination() const { return _showSymbolElimination.value; }
-  bool showTheoryAxioms() const { return _showTheoryAxioms.value; }
-  bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.value; }
+  OptionTag showOptions() const { return _showOptions.actualValue; }
+  bool showExperimentalOptions() const { return _showExperimentalOptions.actualValue; }
+  bool showHelp() const { return _showHelp.actualValue; }
+  bool showPassive() const { return _showPassive.actualValue; }
+  bool showPreprocessing() const { return _showPreprocessing.actualValue; }
+  bool showSkolemisations() const { return _showSkolemisations.actualValue; }
+  bool showSymbolElimination() const { return _showSymbolElimination.actualValue; }
+  bool showTheoryAxioms() const { return _showTheoryAxioms.actualValue; }
+  bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   //void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval = newVal; }
-  bool weightIncrement() const { return _weightIncrement.value; }
-  bool useDM() const { return _use_dm.value; }
-  SatSolver satSolver() const { return _satSolver.value; }
+  bool weightIncrement() const { return _weightIncrement.actualValue; }
+  bool useDM() const { return _use_dm.actualValue; }
+  SatSolver satSolver() const { return _satSolver.actualValue; }
   //void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
-  SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.value; }
-  //void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm = newVal; }
-  int selection() const { return _selection.value; }
+  SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.actualValue; }
+  void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm.actualValue = newVal; }
+  int selection() const { return _selection.actualValue; }
   bool setSelection(int newValue);
   bool setInstGenSelection(int newValue);
-  vstring latexOutput() const { return _latexOutput.value; }
-  LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.value; }
-  bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution.value; }
-  void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
-  Demodulation forwardDemodulation() const { return _forwardDemodulation.value; }
-  bool binaryResolution() const { return _binaryResolution.value; }
-  bool bfnt() const { return _bfnt.value; }
+  vstring latexOutput() const { return _latexOutput.actualValue; }
+  LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.actualValue; }
+  bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution.actualValue; }
+  //void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
+  Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
+  bool binaryResolution() const { return _binaryResolution.actualValue; }
+  bool bfnt() const { return _bfnt.actualValue; }
   //void setBfnt(bool newVal) { _bfnt = newVal; }
-  URResolution unitResultingResolution() const { return _unitResultingResolution.value; }
-  bool hyperSuperposition() const { return _hyperSuperposition.value; }
-  bool arityCheck() const { return _arityCheck.value; }
+  URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
+  bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
+  bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
-  Demodulation backwardDemodulation() const { return _backwardDemodulation.value; }
-  bool demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.value; }
+  Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
+  bool demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
-  Subsumption backwardSubsumption() const { return _backwardSubsumption.value; }
+  Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
   //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
-  Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution.value; }
-  bool forwardSubsumption() const { return _forwardSubsumption.value; }
-  bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.value; }
-  vstring lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants.value; }
-  int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.value; }
-  int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.value; }
->>>>>>> Changing the way we do options
+  Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution.actualValue; }
+  bool forwardSubsumption() const { return _forwardSubsumption.actualValue; }
+  bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.actualValue; }
+  vstring lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants.actualValue; }
+  int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
+  int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
   bool setLrsFirstTimeCheck(int newVal);
-  int simulatedTimeLimit() const { return _simulatedTimeLimit.value; }
+  int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   //void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit = newVal; }
-  int maxInferenceDepth() const { return _maxInferenceDepth.value; }
-  SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.value; }
+  int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
+  SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   /**
    * Return time limit in deciseconds, or 0 if there is no time limit
    */
-  int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.value; }
-  size_t memoryLimit() const { return _memoryLimit.value; }
-  int inequalitySplitting() const { return _inequalitySplitting.value; }
-  long maxActive() const { return _maxActive.value; }
-  long maxAnswers() const { return _maxAnswers.value; }
+  int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
+  size_t memoryLimit() const { return _memoryLimit.actualValue; }
+  int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
+  long maxActive() const { return _maxActive.actualValue; }
+  long maxAnswers() const { return _maxAnswers.actualValue; }
   //void setMaxAnswers(int newVal) { _maxAnswers = newVal; }
-  long maxPassive() const { return _maxPassive.value; }
-  int maxWeight() const { return _maxWeight.value; }
-  int ageRatio() const { return _ageRatio.value; }
-  int weightRatio() const { return _weightRatio.value; }
-  bool superpositionFromVariables() const { return _superpositionFromVariables.value; }
-  bool equalityPropagation() const { return _equalityPropagation.value; }
+  long maxPassive() const { return _maxPassive.actualValue; }
+  int maxWeight() const { return _maxWeight.actualValue; }
+  int ageRatio() const { return _ageWeightRatio.actualValue; }
+  int weightRatio() const { return _ageWeightRatio.otherValue; }
+  bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
+  bool equalityPropagation() const { return _equalityPropagation.actualValue; }
   //void setEqualityPropagation(bool newVal) { _equalityPropagation = newVal; }
-  EqualityProxy equalityProxy() const { return _equalityProxy.value; }
-  RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.value; }
-  ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.value; }
-  unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.value; }
-  bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.value; }
+  EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
+  RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
+  ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
+  unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
+  bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   
-  float nongoalWeightCoefficient() const { return _nongoalWeightCoefficient.value; }
+  float nongoalWeightCoefficient() const { return _nongoalWeightCoefficient.actualValue; }
   bool setNongoalWeightCoefficient(float newVal);
-  Sos sos() const { return _sos; }
+  Sos sos() const { return _sos.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
-  FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.value; }
-  bool outputAxiomNames() const { return _outputAxiomNames.value; }
+  FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
+  bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   //void setOutputAxiomNames(bool newVal) { _outputAxiomNames = newVal; }
-  QuestionAnsweringMode questionAnswering() const { return _questionAnswering.value; }
+  QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   //void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering = newVal; }
-  vstring xmlOutput() const { return _xmlOutput.value; }
-  vstring thanks() const { return _thanks.value; }
+  vstring xmlOutput() const { return _xmlOutput.actualValue; }
+  vstring thanks() const { return _thanks.actualValue; }
 
-  bool globalSubsumption() const { return _globalSubsumption.value; }
+  bool globalSubsumption() const { return _globalSubsumption.actualValue; }
   /** true if calling set() on non-existing options does not result in a user error */
-  bool ignoreMissing() const { return _ignoreMissing.value; }
+  bool ignoreMissing() const { return _ignoreMissing.actualValue; }
   /** set the "ignore missing options" value to true or false */
   //void setIgnoreMissing(bool newVal) { _ignoreMissing = newVal; }
-  bool increasedNumeralWeight() const { return _increasedNumeralWeight.value; }
-  bool theoryAxioms() const { return _theoryAxioms.value; }
+  bool increasedNumeralWeight() const { return _increasedNumeralWeight.actualValue; }
+  bool theoryAxioms() const { return _theoryAxioms.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
-  bool interpretedSimplification() const { return _interpretedSimplification.value; }
+  bool interpretedSimplification() const { return _interpretedSimplification.actualValue; }
   //void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
-  Condensation condensation() const { return _condensation.value; }
-  RuleActivity generalSplitting() const { return _generalSplitting.value; }
-  vstring namePrefix() const { return _namePrefix.value; }
-  bool timeStatistics() const { return _timeStatistics.value; }
-  bool splitAtActivation() const { return _splitAtActivation.value; }
-  bool splitting() const { return _splitting.value; }
-  bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.value; }
-  unsigned sineDepth() const { return _sineDepth.value; }
-  unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.value; }
-  SineSelection sineSelection() const { return _sineSelection.value; }
+  Condensation condensation() const { return _condensation.actualValue; }
+  RuleActivity generalSplitting() const { return _generalSplitting.actualValue; }
+  vstring namePrefix() const { return _namePrefix.actualValue; }
+  bool timeStatistics() const { return _timeStatistics.actualValue; }
+  bool splitting() const { return _splitting.actualValue; }
+  bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
+  unsigned sineDepth() const { return _sineDepth.actualValue; }
+  unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
+  SineSelection sineSelection() const { return _sineSelection.actualValue; }
   //void setSineSelection(SineSelection val) { _sineSelection=val; }
-  float sineTolerance() const { return _sineTolerance.value; }
-  bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal.value; }
+  float sineTolerance() const { return _sineTolerance.actualValue; }
+  bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal.actualValue; }
   //void setSmtlibConsiderIntsReal( bool newVal ) { _smtlibConsiderIntsReal = newVal; }
-  bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition.value; }
-  bool smtlibIntroduceAIGNames() const { return _smtlibIntroduceAIGNames.value; }
+  bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition.actualValue; }
+  bool smtlibIntroduceAIGNames() const { return _smtlibIntroduceAIGNames.actualValue; }
 
-  bool colorUnblocking() const { return _colorUnblocking.value; }
-  bool distinctProcessor() const { return _distinctProcessor.value; }
-  bool hornRevealing() const { return _hornRevealing.value; }
-  bool trivialPredicateRemoval() const { return _trivialPredicateRemoval.value; }
+  bool colorUnblocking() const { return _colorUnblocking.actualValue; }
+  bool distinctProcessor() const { return _distinctProcessor.actualValue; }
+  bool hornRevealing() const { return _hornRevealing.actualValue; }
+  bool trivialPredicateRemoval() const { return _trivialPredicateRemoval.actualValue; }
 
-  bool tabulationBwRuleSubsumptionResolutionByLemmas() const { return _tabulationBwRuleSubsumptionResolutionByLemmas.value; }
-  bool tabulationFwRuleSubsumptionResolutionByLemmas() const { return _tabulationFwRuleSubsumptionResolutionByLemmas.value; }
-  int tabulationGoalAgeRatio() const { return _tabulationGoalAgeRatio.value; }
-  int tabulationGoalWeightRatio() const { return _tabulationGoalWeightRatio.value; }
-  int tabulationGoalRatio() const { return _tabulationGoalRatio.value; }
-  int tabulationLemmaRatio() const { return _tabulationLemmaRatio.value; }
-  bool tabulationInstantiateProducingRules() const { return _tabulationInstantiateProducingRules.value; }
-  int tabulationLemmaAgeRatio() const { return _tabulationLemmaAgeRatio.value; }
-  int tabulationLemmaWeightRatio() const { return _tabulationLemmaWeightRatio.value; }
+  bool tabulationBwRuleSubsumptionResolutionByLemmas() const { return _tabulationBwRuleSubsumptionResolutionByLemmas.actualValue; }
+  bool tabulationFwRuleSubsumptionResolutionByLemmas() const { return _tabulationFwRuleSubsumptionResolutionByLemmas.actualValue; }
+  int tabulationGoalAgeRatio() const { return _tabulationGoalAgeWeightRatio.actualValue; }
+  int tabulationGoalWeightRatio() const { return _tabulationGoalAgeWeightRatio.otherValue; }
+  int tabulationGoalRatio() const { return _tabulationGoalLemmaRatio.actualValue; }
+  int tabulationLemmaRatio() const { return _tabulationGoalLemmaRatio.otherValue; }
+  bool tabulationInstantiateProducingRules() const { return _tabulationInstantiateProducingRules.actualValue; }
+  int tabulationLemmaAgeRatio() const { return _tabulationLemmaAgeWeightRatio.actualValue; }
+  int tabulationLemmaWeightRatio() const { return _tabulationLemmaAgeWeightRatio.otherValue; }
 
-  float instGenBigRestartRatio() const { return _instGenBigRestartRatio.value; }
-  bool instGenInprocessing() const { return _instGenInprocessing.value; }
-  bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.value; }
-  int instGenResolutionRatioInstGen() const { return _instGenResolutionRatioInstGen.value; }
-  int instGenResolutionRatioResolution() const { return _instGenResolutionRatioResolution.value; }
-  int instGenRestartPeriod() const { return _instGenRestartPeriod.value; }
-  float instGenRestartPeriodQuotient() const { return _instGenRestartPeriodQuotient.value; }
-  int instGenSelection() const { return _instGenSelection.value; }
-  bool instGenWithResolution() const { return _instGenWithResolution.value; }
+  float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
+  bool instGenInprocessing() const { return _instGenInprocessing.actualValue; }
+  bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
+  int instGenResolutionRatioInstGen() const { return _instGenResolutionInstGenRatio.actualValue; }
+  int instGenResolutionRatioResolution() const { return _instGenResolutionInstGenRatio.otherValue; }
+  int instGenRestartPeriod() const { return _instGenRestartPeriod.actualValue; }
+  float instGenRestartPeriodQuotient() const { return _instGenRestartPeriodQuotient.actualValue; }
+  int instGenSelection() const { return _instGenSelection.actualValue; }
+  bool instGenWithResolution() const { return _instGenWithResolution.actualValue; }
 
-  float satClauseActivityDecay() const { return _satClauseActivityDecay.value; }
-  SatClauseDisposer satClauseDisposer() const { return _satClauseDisposer.value; }
-  bool satLearntMinimization() const { return _satLearntMinimization.value; }
-  bool satLearntSubsumptionResolution() const { return _satLearntSubsumptionResolution.value; }
-  int satRestartFixedCount() const { return _satRestartFixedCount.value; }
-  float satRestartGeometricIncrease() const { return _satRestartGeometricIncrease.value; }
-  int satRestartGeometricInit() const { return _satRestartGeometricInit.value; }
-  int satRestartLubyFactor() const { return _satRestartLubyFactor.value; }
-  float satRestartMinisatIncrease() const { return _satRestartMinisatIncrease.value; }
-  int satRestartMinisatInit() const { return _satRestartMinisatInit.value; }
-  SatRestartStrategy satRestartStrategy() const { return _satRestartStrategy.value; }
-  float satVarActivityDecay() const { return _satVarActivityDecay.value; }
-  SatVarSelector satVarSelector() const { return _satVarSelector.value; }
+  float satClauseActivityDecay() const { return _satClauseActivityDecay.actualValue; }
+  SatClauseDisposer satClauseDisposer() const { return _satClauseDisposer.actualValue; }
+  bool satLearntMinimization() const { return _satLearntMinimization.actualValue; }
+  bool satLearntSubsumptionResolution() const { return _satLearntSubsumptionResolution.actualValue; }
+  int satRestartFixedCount() const { return _satRestartFixedCount.actualValue; }
+  float satRestartGeometricIncrease() const { return _satRestartGeometricIncrease.actualValue; }
+  int satRestartGeometricInit() const { return _satRestartGeometricInit.actualValue; }
+  int satRestartLubyFactor() const { return _satRestartLubyFactor.actualValue; }
+  float satRestartMinisatIncrease() const { return _satRestartMinisatIncrease.actualValue; }
+  int satRestartMinisatInit() const { return _satRestartMinisatInit.actualValue; }
+  SatRestartStrategy satRestartStrategy() const { return _satRestartStrategy.actualValue; }
+  float satVarActivityDecay() const { return _satVarActivityDecay.actualValue; }
+  SatVarSelector satVarSelector() const { return _satVarSelector.actualValue; }
 
-  NicenessOption nicenessOption() const { return _nicenessOption.value; }
+  NicenessOption nicenessOption() const { return _nicenessOption.actualValue; }
 
   //void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
   
-  void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.value = 10*newVal; }
-  void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.value = newVal; }
-  int getTimeLimit(){return _timeLimitInDeciseconds.value;}
-  int getWhileNumber(){return _whileNumber.value;}
-  int getFunctionNumber(){return _functionNumber.value;}
+  void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
+  void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
+  int getTimeLimit(){return _timeLimitInDeciseconds.actualValue;}
+  int getWhileNumber(){return _whileNumber.actualValue;}
+  int getFunctionNumber(){return _functionNumber.actualValue;}
 
-  int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator.value; }
-  int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator.value; }
+  int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator.actualValue; }
+  int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator.actualValue; }
 
-  SSplittingNonsplittableComponents ssplittingNonsplittableComponents() const { return _ssplittingNonsplittableComponents.value; }
-  SSplittingComponentSweeping ssplittingComponentSweeping() const { return _ssplittingComponentSweeping.value; }
-  SSplittingAddComplementary ssplittingAddComplementary() const { return _ssplittingAddComplementary.value; }
-  int ssplittingFlushPeriod() const { return _ssplittingFlushPeriod; }
-  float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient.value; }
-  bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval.value; }
-  bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure.value; }
+  SSplittingNonsplittableComponents ssplittingNonsplittableComponents() const { return _ssplittingNonsplittableComponents.actualValue; }
+  SSplittingComponentSweeping ssplittingComponentSweeping() const { return _ssplittingComponentSweeping.actualValue; }
+  SSplittingAddComplementary ssplittingAddComplementary() const { return _ssplittingAddComplementary.actualValue; }
+  int ssplittingFlushPeriod() const { return _ssplittingFlushPeriod.actualValue; }
+  float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient.actualValue; }
+  bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval.actualValue; }
+  bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure.actualValue; }
 
   //void setProof(Proof p) { _proof = p; }
-  bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval.value; }
-  unsigned bpMaximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength.value; }
-  BPAlmostHalfBoundingRemoval bpAlmostHalfBoundingRemoval() const {return _bpAlmostHalfBoundingRemoval.value;}
-  bool bpFmElimination () const {return _bpFmElimination.value;}
-  unsigned bpAllowedFMBalance() const { return _bpAllowedFMBalance.value; }
-  BPAssignmentSelector bpAssignmentSelector() const {return _bpAssignmentSelector.value; }
-  bool bpCollapsingPropagation() const {return _bpCollapsingPropagation.value; }
-  unsigned bpUpdatesByOneConstraint() const {return _updatesByOneConstraint.value; }
-  bool bpConservativeAssignmentSelection() const {return _bpConservativeAssignmentSelection.value; }
-  BPConflictSelector bpConflictSelector() const {return _bpConflictSelector.value; }
-  bool backjumpTargetIsDecisionPoint() const { return _backjumpTargetIsDecisionPoint.value; }
-  bool bpPropagateAfterConflict() const {return _bpPropagateAfterConflict.value; }
-  BPVariableSelector bpVariableSelector() const {return _bpVariableSelector.value; }
-  bool bpSelectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst.value; }
-  bool bpStartWithPrecise() const { return _bpStartWithPrecise.value; }
-  bool bpStartWithRational() const { return _bpStartWithRational.value;}
+  bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval.actualValue; }
+  unsigned bpMaximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength.actualValue; }
+  BPAlmostHalfBoundingRemoval bpAlmostHalfBoundingRemoval() const {return _bpAlmostHalfBoundingRemoval.actualValue;}
+  bool bpFmElimination () const {return _bpFmElimination.actualValue;}
+  unsigned bpAllowedFMBalance() const { return _bpAllowedFMBalance.actualValue; }
+  BPAssignmentSelector bpAssignmentSelector() const {return _bpAssignmentSelector.actualValue; }
+  bool bpCollapsingPropagation() const {return _bpCollapsingPropagation.actualValue; }
+  unsigned bpUpdatesByOneConstraint() const {return _updatesByOneConstraint.actualValue; }
+  bool bpConservativeAssignmentSelection() const {return _bpConservativeAssignmentSelection.actualValue; }
+  BPConflictSelector bpConflictSelector() const {return _bpConflictSelector.actualValue; }
+  bool backjumpTargetIsDecisionPoint() const { return _backjumpTargetIsDecisionPoint.actualValue; }
+  bool bpPropagateAfterConflict() const {return _bpPropagateAfterConflict.actualValue; }
+  BPVariableSelector bpVariableSelector() const {return _bpVariableSelector.actualValue; }
+  bool bpSelectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst.actualValue; }
+  bool bpStartWithPrecise() const { return _bpStartWithPrecise.actualValue; }
+  bool bpStartWithRational() const { return _bpStartWithRational.actualValue;}
   
 
-
+    
+private:
     //==========================================================
     // Variables holding option values
     //==========================================================
-private:
+
   
+    /**
+     * Allows us to give a variable number of option values
+     * This is a bit of a hack, and a nicer solution would be to have a variable argument
+     * constructor. But this is simpler, in some senses.
+     *
+     * Note: It may be necessary to add a new constructor
+     *
+     * @author Giles
+     * @since 30/07/14
+     */
+    struct OptionValues{
+        OptionValues(const char* s1, const char* s2) : _len(2)
+        { makeArray(); _array[0]=s1;_array[1]=s2; }
+        OptionValues(const char* s1, const char* s2, const char* s3) : _len(3)
+        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; }
+        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4) : _len(4)
+        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; _array[3]=s4; }
+        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5) : _len(5)
+        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; _array[3]=s4; _array[4]=s5; }
+        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5,
+                     const char* s6) : _len(6)
+        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; _array[3]=s4; _array[4]=s5; _array[5]=s6; }
+        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5,
+                     const char* s6, const char* s7) : _len(7)
+        { makeArray();_array[0]=s1;_array[1]=s2;_array[2]=s3;_array[3]=s4;_array[4]=s5;_array[5]=s6;_array[6]=s7; }
+        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5,
+                     const char* s6, const char* s7, const char* s8) : _len(8)
+        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; _array[3]=s4; _array[4]=s5; _array[5]=s6;
+            _array[6]=s7; _array[7]=s8; }
+        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5,
+                     const char* s6, const char* s7, const char* s8, const char* s9) : _len(9)
+        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; _array[3]=s4; _array[4]=s5; _array[5]=s6;
+            _array[6]=s7; _array[7]=s8;_array[8]=s9; }
+        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5,
+                     const char* s6,const char* s7,const char* s8,const char* s9,const char* s10) : _len(10)
+        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; _array[3]=s4; _array[4]=s5; _array[5]=s6;
+            _array[6]=s7; _array[7]=s8; _array[8]=s9; _array[9]=s10; }
+        
+        // For mode - lots of modes!
+        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5,
+                     const char* s6, const char* s7, const char* s8, const char* s9, const char* s10,
+                     const char* s11, const char* s12, const char* s13, const char* s14, const char* s15,
+                     const char* s16, const char* s17, const char* s18, const char* s19) : _len(19)
+        { makeArray();_array[0]=s1;_array[1]=s2;_array[2]=s3;_array[3]=s4;_array[4]=s5;_array[5]=s6;_array[6]=s7;
+            _array[7]=s8;_array[8]=s9; _array[9]=s10; _array[10]=s11; _array[11]=s12; _array[12]=s13;
+            _array[13]=s14;_array[14]=s15; _array[15]=s16; _array[16]=s17; _array[17]=s18; _array[18]=s19;
+        }
+        
+        const char**  _array;
+        int _len;
+    private:
+        OptionValues() : _len(0) {};
+        void makeArray(){ _array = new const char*[_len]; }
+    };
+    
+    struct AbstractOptionValue{
+        virtual ~AbstractOptionValue() = 0;
+    };
+    
+    
     template<typename T>
-    class OptionValue {
+    class OptionValue : public AbstractOptionValue {
     public:
         OptionValue() {}
         OptionValue(vstring l, vstring s) : longName(l), shortName(s) {}
@@ -646,10 +706,37 @@ private:
     typedef OptionValue<vstring> StringOptionValue;
     typedef OptionValue<long> LongOptionValue;
     typedef OptionValue<float> FloatOptionValue;
+    class RatioOptionValue : public OptionValue<int> {
+    public:
+        int defaultOtherValue;
+        int otherValue;
+    };
+   
+    struct LookupWrapper {
+        
+        template<typename T>
+        void insert(OptionValue<T>* option_value){
+            _longMap.insert(option_value.longName,option_value);
+            _shortMap.insert(option_value.shortName,option_value);
+        }
+        template<typename T>
+        OptionValue<T>* findLong(string longName){
+            return static_cast<OptionValue<T>*>(_longMap.find(longName));
+        }
+        template<typename T>
+        OptionValue<T>* findShort(string shortName){
+            return static_cast<OptionValue<T>*>(_shortMap.find(shortName));
+        }
+        private:
+        DHMap<string,AbstractOptionValue*> _longMap;
+        DHMap<string,AbstractOptionValue*> _shortMap;
+    };
+    
+    LookupWrapper _lookup;
     
   StringOptionValue _decode;
 
-  StringOptionValue _ageRatio;
+  RatioOptionValue _ageWeightRatio;
   BoolOptionValue _aigBddSweeping;
   BoolOptionValue _aigConditionalRewriting;
   BoolOptionValue _aigDefinitionIntroduction;
@@ -725,8 +812,8 @@ private:
   FloatOptionValue _instGenBigRestartRatio;
   BoolOptionValue _instGenInprocessing;
   BoolOptionValue _instGenPassiveReactivation;
-  IntOptionValue _instGenResolutionRatioInstGen;
-  IntOptionValue _instGenResolutionRatioResolution;
+  RatioOptionValue _instGenResolutionInstGenRatio;
+  //IntOptionValue _instGenResolutionRatioResolution;
   IntOptionValue _instGenRestartPeriod;
   FloatOptionValue _instGenRestartPeriodQuotient;
   IntOptionValue _instGenSelection;
@@ -769,7 +856,7 @@ private:
   IntOptionValue _predicateEquivalenceDiscoverySatConflictLimit;
   BoolOptionValue _predicateIndexIntroduction;
   BoolOptionValue _printClausifierPremises;
-  StrintOptionValue _problemName;
+  StringOptionValue _problemName;
   OptionValue<Proof> _proof;
   BoolOptionValue _proofChecking;
   
@@ -835,13 +922,13 @@ private:
 
   BoolOptionValue _tabulationBwRuleSubsumptionResolutionByLemmas;
   BoolOptionValue _tabulationFwRuleSubsumptionResolutionByLemmas;
-  IntOptionValue _tabulationGoalAgeRatio;
-  IntOptionValue _tabulationGoalWeightRatio;
-  IntOptionValue _tabulationGoalRatio;
-  IntOptionValue _tabulationLemmaRatio;
+  RatioOptionValue _tabulationGoalAgeWeightRatio;
+  //IntOptionValue _tabulationGoalWeightRatio;
+  RatioOptionValue _tabulationGoalLemmaRatio;
+  //IntOptionValue _tabulationLemmaRatio;
   BoolOptionValue _tabulationInstantiateProducingRules;
-  IntOptionValue _tabulationLemmaAgeRatio;
-  IntOptionValue _tabulationLemmaWeightRatio;
+  RatioOptionValue _tabulationLemmaAgeWeightRatio;
+  //IntOptionValue _tabulationLemmaWeightRatio;
   StringOptionValue _testId;
   StringOptionValue _thanks;
   BoolOptionValue _theoryAxioms;
@@ -855,7 +942,6 @@ private:
   UnsignedOptionValue _updatesByOneConstraint;
   BoolOptionValue _use_dm;
   BoolOptionValue _weightIncrement;
-  IntOptionValue _weightRatio;
   IntOptionValue _whileNumber;
 
   StringOptionValue _xmlOutput;

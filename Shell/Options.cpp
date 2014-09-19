@@ -60,12 +60,13 @@ _updatesByOneConstraint(3)
     CALL("Options::Options");
     
    
-    _ageRatio = StringOptionValue("age_weight_ratio","awr");
-    _ageRatio.description=
+    _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr");
+    _ageWeightRatio.description=
              "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age"
              "there will be w selected based on weight.";
-    _ageRatio.defaultValue="1:1";
-    lookup.insert(_ageRatio);
+    _ageWeightRatio.defaultValue=1;
+    _ageWeightRatio.defaultOtherValue=1;
+    lookup.insert(_ageWeightRatio);
     
     _aigBddSweeping = BoolOptionValue("aig_bdd_sweeping","");
     _aigBddSweeping.description="";
@@ -441,16 +442,13 @@ _updatesByOneConstraint(3)
     _instGenPassiveReactivation.defaultValue=false;
     lookup.insert(_instGenPassiveReactivation);
 
-    _instGenResolutionRatioInstGen = IntOptionValue("inst_gen_resolution_ratio","igrr");
-    _instGenResolutionRatioInstGen.description=
+    _instGenResolutionInstGenRatio = RatioOptionValue("inst_gen_resolution_ratio","igrr");
+    _instGenResolutionInstGenRatio.description=
              "ratio of resolution and instantiation steps (applies only if inst_gen_with_resolution is on)";
              false, "1/1"),
-    _instGenResolutionRatioInstGen.defaultValue=1;
-    lookup.insert(_instGenResolutionRatioInstGen);
-
-    //should be suppressed, the other half of the resolution ratio
-    _instGenResolutionRatioResolution = IntOptionValue("___inst_gen_resolution_ratio","");
-    _instGenResolutionRatioResolution.defaultValue=1;
+    _instGenResolutionInstGenRatio.defaultValue=1;
+    _instGenResolutionInstGenRatio.defaultOtherValuse=1;
+    lookup.insert(_instGenResolutionInstGenRatio);
     
     _instGenRestartPeriod = IntOptionValue("inst_gen_restart_period","igrp");
     _instGenRestartPeriod.description="how many clauses are processed before (small?) restart";
@@ -980,160 +978,105 @@ _updatesByOneConstraint(3)
     _symbolPrecedence.defaultValue=ARITY;
     lookup.insert(_symbolPrecedence);
 
-    _tabulationBwRuleSubsumptionResolutionByLemmas = OptionValue("tabulation_bw_rule_subsumption_resolution_by_lemmas","tbsr");
+    _tabulationBwRuleSubsumptionResolutionByLemmas = BoolOptionValue("tabulation_bw_rule_subsumption_resolution_by_lemmas","tbsr");
     _tabulationBwRuleSubsumptionResolutionByLemmas.description="";
     _tabulationBwRuleSubsumptionResolutionByLemmas.defaultValue=true;
     lookup.insert(_tabulationBwRuleSubsumptionResolutionByLemmas);
 
-    _tabulationFwRuleSubsumptionResolutionByLemmas = OptionValue("tabulation_fw_rule_subsumption_resolution_by_lemmas","tfsr");
+    _tabulationFwRuleSubsumptionResolutionByLemmas = BoolOptionValue("tabulation_fw_rule_subsumption_resolution_by_lemmas","tfsr");
     _tabulationFwRuleSubsumptionResolutionByLemmas.description="";
     _tabulationFwRuleSubsumptionResolutionByLemmas.defaultValue=true;
     lookup.insert(_tabulationFwRuleSubsumptionResolutionByLemmas);
 
-    _tabulationGoalAgeRatio = OptionValue("tabulation_goal_awr","tgawr");
-    _tabulationGoalAgeRatio.description=
+    _tabulationGoalAgeWeightRatio = RatioOptionValue("tabulation_goal_awr","tgawr");
+    _tabulationGoalAgeWeightRatio.description=
              "when saturation algorithm is set to tabulation, this option determines the age-weight ratio for selecting next goal clause to process";
-    _tabulationGoalAgeRatio.defaultValue=1;
-    lookup.insert(_tabulationGoalAgeRatio);
-    
-    // Other part of the ratio
-    _tabulationGoalWeightRatio = IntOptionValue("___tabluation_goal_awr","");
-    _tabulationGoalWeightRatio.defaultValue=1;
+    _tabulationGoalAgeWeightRatio.defaultValue=1;
+    _tabulationGoalAgeWeightRatio.defaultOtherValue=1;
+    lookup.insert(_tabulationGoalAgeWeightRatio);
 
-    _tabulationGoalRatio = OptionValue("tabulation_goal_lemma_ratio","tglr");
-    _tabulationGoalRatio.description=
+    _tabulationGoaLemmalRatio = RatioOptionValue("tabulation_goal_lemma_ratio","tglr");
+    _tabulationGoaLemmalRatio.description=
              "when saturation algorithm is set to tabulation, this option determines the ratio of processing new goals and lemmas";
-             false, "1/1"),
-    _tabulationGoalRatio.defaultValue=
-    lookup.insert(_tabulationGoalRatio);
-
-    _ = OptionValue("tabulation_instantiate_producing_rules","tipr");
-    _.description=
+    _tabulationGoaLemmalRatio.defaultValue=1;
+    _tabulationGoaLemmalRatio.defaultOtherValue=1;
+    lookup.insert(_tabulationGoaLemmalRatio);
+    
+    _tabulationInstantiateProducingRules = BoolOptionValue("tabulation_instantiate_producing_rules","tipr");
+    _tabulationInstantiateProducingRules.description=
              "when saturation algorithm is set to tabulation, this option determines whether the producing rules will be made of theory clauses (in case it's off), or of their instances got from the substitution unifying them with the goal";
-             false, "true"),
-    _.defaultValue=
-    lookup.insert();
+    _tabulationInstantiateProducingRules.defaultValue=true;
+    lookup.insert(_tabulationInstantiateProducingRules);
 
-    _ = OptionValue("tabulation_lemma_awr","tlawr");
-    _.description=
+    _tabulationLemmaAgeWeightRatio = RatioOptionValue("tabulation_lemma_awr","tlawr");
+    _tabulationLemmaAgeWeightRatio.description=
              "when saturation algorithm is set to tabulation, this option determines the age-weight ratio for selecting next lemma to process";
-             false, "1/1"), 
-  lookup.insert();
+    _tabulationLemmaAgeWeightRatio.defaultValue=1;
+    _tabulationLemmaAgeWeightRatio.defaultOtherValue=1;
+    lookup.insert(_tabulationLemmaAgeWeightRatio);
 
-    _ = OptionValue("test_id","");
-    _.description="";
-             false, "unspecified_test"),
-    _.defaultValue=
+    _testId = StringOptionValue("test_id","");
+    _testId.description="";
+    _testId.defaultValue="unspecified_test";
     lookup.insert();
 
-    _ = OptionValue("thanks","");
-    _.description="";
-             false, "Tanya"),
-    _.defaultValue=
-    lookup.insert();
+    _thanks = StringOptionValue("thanks","");
+    _thanks.description="";
+    _thanks.defaultValue="Tanya";
+    lookup.insert(_thanks);
 
-    _ = OptionValue("theory_axioms","");
-    _.description="";
-             false, "true"),
-    _.defaultValue=
-    lookup.insert();
+    _theoryAxioms = BoolOptionValue("theory_axioms","");
+    _theoryAxioms.description="";
+    _.defaultValue=true;
+    lookup.insert(_theoryAxioms);
 
-    _ = OptionValue("time_limit","t");
-    _.description=
-             "Time limit in wall clock seconds";
-             false, "600"),
-    _.defaultValue=
-    lookup.insert();
+    _timeLimitInDeciseconds = OptionValue("time_limit","t");
+    _timeLimitInDeciseconds.description="Time limit in wall clock seconds";
+    _timeLimitInDeciseconds.defaultValue=600;
+    lookup.insert(_timeLimitInDeciseconds);
 
-    _ = BoolOptionValue("time_statistics","");
-    _.description=
-             "Show how much running time was spent in each part of the Vampire";
-    _.defaultValue=false;
-    lookup.insert();
+    _timeStatistics = BoolOptionValue("time_statistics","");
+    _timeStatistics.description="Show how much running time was spent in each part of the Vampire";
+    _timeStatistics.defaultValue=false;
+    lookup.insert(_timeStatistics);
 
-    _ = BoolOptionValue("trivial_predicate_removal","");
-    _.description=
-             "remove predicates never occurring only positively or only negatively in a clause";
-    _.defaultValue=false;
-    lookup.insert();
+    _trivialPredicateRemoval = BoolOptionValue("trivial_predicate_removal","");
+    _trivialPredicateRemoval.description= "remove predicates never occurring only positively or only negatively in a clause";
+    _trivialPredicateRemoval.defaultValue=false;
+    lookup.insert(_trivialPredicateRemoval);
 
-    _ = OptionValue("unit_resulting_resolution","urr");
-    _.description=
+    _unitResultingResolution = OptionValue<URResolution>("unit_resulting_resolution","urr");
+    _unitResultingResolution.description=
              "uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";
-             false, "off",OptionValues("ec_only","off","on")),
-    _.defaultValue=
-    lookup.insert();
+    _unitResultingResolution.setOptionValues(OptionValues("ec_only","off","on"));
+    _unitResultingResolution.defaultValue=OFF;
+    lookup.insert(_unitResultingResolution);
 
-    _ = BoolOptionValue("unused_predicate_definition_removal","updr");
-    _.description="";
-             false, "true"),
-    _.defaultValue=
-    lookup.insert();
+    _unusedPredicateDefinitionRemoval = BoolOptionValue("unused_predicate_definition_removal","updr");
+    _unusedPredicateDefinitionRemoval.description="";
+    _unusedPredicateDefinitionRemoval.defaultValue=true;
+    lookup.insert(_unusedPredicateDefinitionRemoval);
 
-    _ = BoolOptionValue("use_dismatching","");
-    _.description="";
-    _.defaultValue=false;
-    lookup.insert();
+    _use_dm = BoolOptionValue("use_dismatching","");
+    _use_dm.description="";
+    _use_dm.defaultValue=false;
+    lookup.insert(_use_dm);
 
-    _ = BoolOptionValue("weight_increment","");
-    _.description="";
-    _.defaultValue=false;
-    lookup.insert();
+    _weightIncrement = BoolOptionValue("weight_increment","");
+    _weightIncrement.description="";
+    _weightIncrement.defaultValue=false;
+    lookup.insert(_weightIncrement);
 
-    _ = OptionValue("while_number","");
-    _.description="";
-             false, "1"),
-    _.defaultValue=
-    lookup.insert();
+    _whileNumber = OptionValue("while_number","");
+    _whileNumber.description="";
+    _whileNumber.defaultValue=1;
+    lookup.insert(_whileNumber);
 
-  OptionName("xml_output","",GLOBAL_TAG,"";
-             false, "off")
-  };
-
-/** Names for all options */
-OptionNameArray Options::Constants::optionNames(_optionNames,
-		  sizeof(_optionNames)/sizeof(OptionName));
-
-
-
-/**
- * Initialize options to the default values.
- *
- * @since 10/07/2003 Manchester, _normalize added
- */
-Options::Options ()
-  :
-  // not sure where these are set or what they control
-  _backjumpTargetIsDecisionPoint(true),
-  _bpCollapsingPropagation(false),
-  _equivalentVariableRemoval(true),
-  _forceIncompleteness(false),
-  _maximalPropagatedEqualityLength(5),
-
-  // will be set in setNongoalWeightCoefficient anyway
-  _nonGoalWeightCoeffitientDenominator(1),
-  _nonGoalWeightCoeffitientNumerator(1),
-
-  // necessary to set here as it uses a function call
-  _randomSeed(Random::seed()),
-
-  // not sure where these are set or what they control
-  _selectUnusedVariablesFirst(false),
-  _updatesByOneConstraint(3)
-
-{
-  CALL("Options::Options");
-
-  //Set the default values
-  for(int i=0;i<Constants::optionNames.length;i++){
-        const char* default_value = Constants::optionNames[i].default_value;
-        const char* longName = Constants::optionNames[i].longName;
-        if(default_value){
-	  set(longName,default_value, i); 
-        }
-  }
-=======
->>>>>>> Changing the way we do options
+    _xmlOutput = StringOptionValue("xml_output","");
+    _xmlOutput.description="";
+    _xmlOutput.defaultValue="off";
+    lookup.insert(_xmlOutput);
+    
 
 } // Options::Options
 

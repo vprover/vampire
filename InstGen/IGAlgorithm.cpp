@@ -52,7 +52,7 @@ namespace InstGen
 using namespace Indexing;
 using namespace Saturation;
 
-IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
+IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 : MainLoop(prb, opt),
     _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
 	opt.instGenResolutionRatioResolution(), 50),
@@ -144,11 +144,16 @@ void IGAlgorithm::init()
 
     _saturationProblem = _prb.copy(true);
 
-    _saturationOptions = _opt;
-    _saturationOptions.setSaturationAlgorithm(Options::OTTER);
+//    _saturationOptions = _opt;
+//    _saturationOptions.setSaturationAlgorithm(Options::OTTER);
 //    _saturationOptions.setPropositionalToBDD(false);
 //    _saturationOptions.setSplitting(Options::SM_OFF);
-    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
+//    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
+
+
+    cout << "WARNING: no longer using Otter here, options as given" << endl;
+    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _opt, _saturationIndexManager.ptr());
+
 
     //we will watch what clauses are derived in the
     //saturation part, so we can take advantage of them
