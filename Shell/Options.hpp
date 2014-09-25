@@ -77,9 +77,7 @@ public:
 private:
     void set(const char* name, const char* value, int index);
     
-    // various read-from-string-write options
-    static void readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio, char separator=':');
-    static vstring boolToOnOff(bool);
+    static string boolToOnOff(bool);
     void outputValue(ostream& str,int optionTag) const;
     friend class Shell::LTB::Builder;
 
@@ -90,13 +88,13 @@ public:
   //==========================================================
   
   //enums for the bound propagation purpose
-  enum BPAlmostHalfBoundingRemoval {
+  enum BPAlmostHalfBoundingRemoval : unsigned int {
     AHR_BOUNDS_ONLY = 0,
     AHR_OFF = 1,
     AHR_ON = 2
   };
 
-  enum BPAssignmentSelector{
+  enum BPAssignmentSelector: unsigned int {
     ASG_ALTERNATIVE = 0,
     ASG_BMP = 1,
     ASG_LOWER = 2,
@@ -109,13 +107,13 @@ public:
     ASG_UPPER = 9
   };
   
-  enum BPConflictSelector{
+  enum BPConflictSelector: unsigned int {
     CS_LEAST_RECENT = 0, 
     CS_MOST_RECENT = 1, 
     CS_SHORTEST_CONSTRAINT = 2
   };
   
-  enum BPVariableSelector{
+  enum BPVariableSelector: unsigned int {
     VS_CONFLICTING = 0, 
     VS_CONFLICTING_AND_COLLAPSING = 1, 
     VS_FIRST = 2, 
@@ -130,7 +128,7 @@ public:
    * Possible values for function_definition_elimination.
    * @since 29/05/2004 Manchester
    */
-  enum FunctionDefinitionElimination {
+  enum FunctionDefinitionElimination : unsigned int {
     FDE_ALL = 0,
     FDE_NONE = 1,
     FDE_UNUSED = 2
@@ -140,7 +138,7 @@ public:
    * Possible values for the input syntax
    * @since 26/08/2009 Redmond
    */
-  enum InputSyntax {
+  enum InputSyntax : unsigned int {
     /** syntax of the Simplify prover */
     IS_SIMPLIFY = 0,
     /** syntax of SMTLIB1.2 */
@@ -157,7 +155,7 @@ public:
   * Possible values for show_option (used in OptionNameArray)
   * @author Giles
   */
-  enum OptionTag{
+  enum OptionTag: unsigned int {
     BP_TAG,
     OFF_TAG,
     GLOBAL_TAG,
@@ -168,7 +166,7 @@ public:
    * Possible values for mode_name.
    * @since 06/05/2007 Manchester
    */
-  enum Mode {
+  enum Mode : unsigned int {
     MODE_AXIOM_SELECTION,
     MODE_BOUND_PROP,
     MODE_CASC,
@@ -192,7 +190,7 @@ public:
 };
 
   /** Various options for the output of statistics in Vampire */
-  enum Statistics {
+  enum Statistics : unsigned int {
     /** changed by the option "--statistics brief" */
     STATISTICS_BRIEF = 0,
     /** changed by the option "--statistics full */
@@ -202,7 +200,7 @@ public:
   };
 
   /** Possible values for sat_solver */
-  enum SatSolver {
+  enum SatSolver : unsigned int {
      BUFFERED_LINGELING = 0,
      BUFFERED_MINISAT = 1,
      BUFFERED_VAMPIRE = 2,
@@ -212,7 +210,7 @@ public:
   };
 
   /** Possible values for saturation_algorithm */
-  enum SaturationAlgorithm {
+  enum SaturationAlgorithm : unsigned int {
      DISCOUNT = 0,
      INST_GEN = 1,
      LRS = 2,
@@ -221,74 +219,74 @@ public:
    };
 
   /** Possible values for activity of some inference rules */
-  enum RuleActivity {
+  enum RuleActivity : unsigned int {
     RA_INPUT_ONLY = 0,
     RA_OFF = 1,
     RA_ON = 2
   };
 
-  enum QuestionAnsweringMode {
+  enum QuestionAnsweringMode : unsigned int {
     QA_ANSWER_LITERAL = 0,
     QA_FROM_PROOF = 1,
     QA_OFF = 2
   };
 
-  enum InliningMode {
+  enum InliningMode : unsigned int {
     INL_AXIOMS_ONLY = 0,
     INL_NON_GROWING = 1,
     INL_OFF = 2,
     INL_ON = 3
   };
 
-  enum InterpolantMode {
+  enum InterpolantMode : unsigned int {
     INTERP_MINIMIZED = 0,
     INTERP_OFF = 1,
     INTERP_ON = 2
   };
 
-  enum LiteralComparisonMode {
+  enum LiteralComparisonMode : unsigned int {
     LCM_PREDICATE = 0,
     LCM_REVERSE = 1,
     LCM_STANDARD = 2
   };
 
-  enum Condensation {
+  enum Condensation : unsigned int {
     CONDENSATION_FAST = 0,
     CONDENSATION_OFF = 1,
     CONDENSATION_ON = 2
   };
 
-  enum Demodulation {
+  enum Demodulation : unsigned int {
     DEMODULATION_ALL = 0,
     DEMODULATION_OFF = 1,
     DEMODULATION_PREORDERED = 2
   };
 
-  enum Subsumption {
+  enum Subsumption : unsigned int {
     SUBSUMPTION_OFF = 0,
     SUBSUMPTION_ON = 1,
     SUBSUMPTION_UNIT_ONLY = 2
   };
 
-  enum URResolution {
+  enum URResolution : unsigned int {
     URR_EC_ONLY = 0,
     URR_OFF = 1,
     URR_ON = 2
   };
 
-  enum SymbolPrecedence {
+  enum SymbolPrecedence : unsigned int {
     BY_ARITY = 0,
     BY_OCCURRENCE = 1,
     BY_REVERSE_ARITY = 2
   };
 
-  enum SineSelection {
+  enum SineSelection : unsigned int {
     SS_AXIOMS = 0,
     SS_INCLUDED = 1,
     SS_OFF = 2
   };
 
-  enum Proof {
+  enum Proof : unsigned int {
     PROOF_OFF = 0,
     PROOF_ON = 1,
     PROOF_PROOFCHECK = 2,
@@ -296,7 +294,7 @@ public:
   };
 
   /** Values for --equality_proxy */
-  enum EqualityProxy {
+  enum EqualityProxy : unsigned int {
     EP_R = 0,
     EP_RS = 1,
     EP_RST = 2,
@@ -305,63 +303,63 @@ public:
   };
 
   /** Values for --extensionality_resolution */
-  enum ExtensionalityResolution {
+  enum ExtensionalityResolution : unsigned int {
     ER_FILTER = 0,
     ER_KNOWN = 1,
     ER_OFF = 2
   };
 
-  enum SatRestartStrategy {
+  enum SatRestartStrategy : unsigned int {
     SRS_FIXED = 0,
     SRS_GEOMETRIC = 1,
     SRS_LUBY = 2,
     SRS_MINISAT = 3,
   };
 
-  enum SatVarSelector {
+  enum SatVarSelector : unsigned int {
     SVS_ACTIVE = 0,
     SVS_NICENESS = 1,
     SVS_RECENTLY_LEARNT = 2,
   };
 
-  enum NicenessOption{
+  enum NicenessOption: unsigned int {
     NICENESS_AVERAGE = 0,
     NICENESS_NONE=1,
     NICENESS_SUM = 2,
     NICENESS_TOP = 3,
   };
 
-  enum SatClauseDisposer {
+  enum SatClauseDisposer : unsigned int {
     SCD_GROWING = 0,
     SCD_MINISAT = 1,
   };
 
-  enum SSplittingComponentSweeping {
+  enum SSplittingComponentSweeping : unsigned int {
     SSCS_ALL = 0,
     SSCS_ITERATED = 1,
     SSCS_NONE = 2,
     SSCS_ONLY_NEW = 3
   };
 
-  enum SSplittingAddComplementary {
+  enum SSplittingAddComplementary : unsigned int {
     SSAC_GROUND = 0,
     SSAC_NONE = 1
   };
 
-  enum SSplittingNonsplittableComponents {
+  enum SSplittingNonsplittableComponents : unsigned int {
     SSNS_ALL = 0,
     SSNS_ALL_DEPENDENT = 1,
     SSNS_KNOWN = 2,
     SSNS_NONE = 3
   };
 
-  enum Sos {
+  enum Sos : unsigned int{
     SOS_ALL = 0,
     SOS_OFF = 1,
     SOS_ON = 2
   };
 
-  enum PredicateEquivalenceDiscoveryMode {
+  enum PredicateEquivalenceDiscoveryMode : unsigned int{
     PED_ALL_ATOMS = 0,
     PED_ALL_FORMULAS = 1,
     PED_DEFINITIONS = 2,
@@ -393,11 +391,11 @@ public:
   bool eprRestoringInlining() const { return _eprRestoringInlining.actualValue; }
   //void setEprRestoringInlining(bool newVal) { _eprRestoringInlining = newVal; }
   InliningMode predicateDefinitionInlining() const { return _predicateDefinitionInlining.actualValue; }
-  //void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
+  //void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining.actualValue = newVal; }
   bool predicateDefinitionMerging() const { return _predicateDefinitionMerging.actualValue; }
   //void setPredicateDefinitionMerging(bool newValue) { _predicateDefinitionMerging = newValue; }
   PredicateEquivalenceDiscoveryMode predicateEquivalenceDiscovery() const { return _predicateEquivalenceDiscovery.actualValue; }
-  //void setPredicateEquivalenceDiscovery(PredicateEquivalenceDiscoveryMode newValue) { _predicateEquivalenceDiscovery = newValue; }
+  void setPredicateEquivalenceDiscovery(PredicateEquivalenceDiscoveryMode newValue) { _predicateEquivalenceDiscovery.actualValue = newValue; }
   bool predicateEquivalenceDiscoveryAddImplications() const { return _predicateEquivalenceDiscoveryAddImplications.actualValue; }
   bool predicateEquivalenceDiscoveryRandomSimulation() const { return _predicateEquivalenceDiscoveryRandomSimulation.actualValue; }
   int predicateEquivalenceDiscoverySatConflictLimit() const { return _predicateEquivalenceDiscoverySatConflictLimit.actualValue; }
@@ -458,7 +456,7 @@ public:
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
   bool bfnt() const { return _bfnt.actualValue; }
-  //void setBfnt(bool newVal) { _bfnt = newVal; }
+  void setBfnt(bool newVal) { _bfnt.actualValue = newVal; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
@@ -532,7 +530,7 @@ public:
   unsigned sineDepth() const { return _sineDepth.actualValue; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
   SineSelection sineSelection() const { return _sineSelection.actualValue; }
-  //void setSineSelection(SineSelection val) { _sineSelection=val; }
+  void setSineSelection(SineSelection val) { _sineSelection.actualValue=val; }
   float sineTolerance() const { return _sineTolerance.actualValue; }
   bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal.actualValue; }
   //void setSmtlibConsiderIntsReal( bool newVal ) { _smtlibConsiderIntsReal = newVal; }
@@ -682,52 +680,118 @@ private:
     
     struct AbstractOptionValue{
         virtual ~AbstractOptionValue() = 0;
+        virtual void check() = 0;
     };
     
     
+// Dangerous as we do not necessarily instantiate... default constructor is called giving
+// default values to contents, then we assign. Want mechanism to ensure everything is set.
+// However, don't want to have to create in init list of Options
     template<typename T>
-    class OptionValue : public AbstractOptionValue {
-    public:
-        OptionValue() {}
-        OptionValue(vstring l, vstring s) : longName(l), shortName(s) {}
+    struct OptionValue : public AbstractOptionValue {
+        OptionValue(vstring l, vstring s,T def) : 
+          longName(l), shortName(s), experimental(false),
+          defaultValue(def), actualValue(def) {}
+
         vstring longName;
         vstring shortName;
         vstring description;
         bool experimental;
         T defaultValue;
         T actualValue;
+
+        virtual void set(const string& value) = 0;
         
-        void setOptionValues(OptionValues choices){}
-        
+#if VDEBUG
+        void check(){ if(longName.empty()){ ASSERTION_VIOLATION;} }
+#endif        
+
     };
-    typedef OptionValue<bool> BoolOptionValue;
-    typedef OptionValue<int> IntOptionValue;
-    typedef OptionValue<unsigned> UnsignedOptionValue;
-    typedef OptionValue<vstring> StringOptionValue;
-    typedef OptionValue<long> LongOptionValue;
-    typedef OptionValue<float> FloatOptionValue;
-    class RatioOptionValue : public OptionValue<int> {
-    public:
+
+    template<typename T>
+    struct ChoiceOptionValue : public OptionValue<T> {
+
+      void setOptionValues(OptionValues choices){}
+      void set(const string& value){}
+
+    };
+
+    struct BoolOptionValue : public OptionValue<bool> {
+      BoolOptionValue(string l,string s, bool d) : OptionValue(l,s,d){} 
+      void set(const string& value){}
+    };
+
+    struct IntOptionValue : public OptionValue<int> {
+      IntOptionValue(string l,string s, int d) : OptionValue(l,s,d){} 
+      void set(const string& value){}
+    };
+
+    struct UnsignedOptionValue : public OptionValue<unsigned> {
+      UnsignedOptionValue(string l,string s, unsigned d) : OptionValue(l,s,d){} 
+      void set(const string& value){}
+    }; 
+
+    struct StringOptionValue : public OptionValue<string> {
+      StringOptionValue(string l,string s, string d) : OptionValue(l,s,d){} 
+      void set(const string& value){}
+    }; 
+
+    struct LongOptionValue : public OptionValue<long> {
+      LongOptionValue(string l,string s, long d) : OptionValue(l,s,d){} 
+      void set(const string& value){}
+    };
+
+    struct FloatOptionValue : public OptionValue<float>{
+      FloatOptionValue(string l,string s, float d) : OptionValue(l,s,d){} 
+      void set(const string& value){}
+    };
+ 
+    struct RatioOptionValue : public OptionValue<int> {
+        RatioOptionValue(string l, string s, int def, int other) :
+          OptionValue(l,s,def), defaultOtherValue(other), otherValue(other) {};
+
+        void readRatio(const char* val, char seperator=':');
+        void set(const string& value){}
+
         int defaultOtherValue;
         int otherValue;
     };
    
     struct LookupWrapper {
         
+        LookupWrapper() : _copied(false) {}
+
+        LookupWrapper operator=(const LookupWrapper&){
+          _copied=true; 
+          return *this;
+        } 
+
         template<typename T>
         void insert(OptionValue<T>* option_value){
-            _longMap.insert(option_value.longName,option_value);
-            _shortMap.insert(option_value.shortName,option_value);
+            if(_copied){ ASSERTION_VIOLATION; return; }
+            _longMap.insert(option_value->longName,option_value);
+            _shortMap.insert(option_value->shortName,option_value);
         }
         template<typename T>
         OptionValue<T>* findLong(string longName){
+            if(_copied){ ASSERTION_VIOLATION; return; }
             return static_cast<OptionValue<T>*>(_longMap.find(longName));
         }
         template<typename T>
         OptionValue<T>* findShort(string shortName){
+            if(_copied){ ASSERTION_VIOLATION; return; }
             return static_cast<OptionValue<T>*>(_shortMap.find(shortName));
         }
+
+#if VDEBUG
+        void check(){
+          DHMap<string,AbstractOptionValue*>::Iterator it(_longMap);
+          while(it.hasNext()){ it.next()->check(); } 
+        }
+#endif
+
         private:
+        bool _copied;
         DHMap<string,AbstractOptionValue*> _longMap;
         DHMap<string,AbstractOptionValue*> _shortMap;
     };
@@ -746,25 +810,25 @@ private:
   BoolOptionValue _arityCheck;
   
   BoolOptionValue _backjumpTargetIsDecisionPoint;
-  OptionValue<Demodulation> _backwardDemodulation;
-  OptionValue<Subsumption> _backwardSubsumption;
-  OptionValue<Subsumption> _backwardSubsumptionResolution;
+  ChoiceOptionValue<Demodulation> _backwardDemodulation;
+  ChoiceOptionValue<Subsumption> _backwardSubsumption;
+  ChoiceOptionValue<Subsumption> _backwardSubsumptionResolution;
   BoolOptionValue _bfnt;
   BoolOptionValue _binaryResolution;
   BoolOptionValue _bpCollapsingPropagation;
   UnsignedOptionValue _bpAllowedFMBalance;
-  OptionValue<BPAlmostHalfBoundingRemoval> _bpAlmostHalfBoundingRemoval;
-  OptionValue<BPAssignmentSelector> _bpAssignmentSelector;
-  OptionValue<BPConflictSelector> _bpConflictSelector;
+  ChoiceOptionValue<BPAlmostHalfBoundingRemoval> _bpAlmostHalfBoundingRemoval;
+  ChoiceOptionValue<BPAssignmentSelector> _bpAssignmentSelector;
+  ChoiceOptionValue<BPConflictSelector> _bpConflictSelector;
   BoolOptionValue _bpConservativeAssignmentSelection;
   BoolOptionValue _bpFmElimination;
   BoolOptionValue _bpPropagateAfterConflict;
   BoolOptionValue _bpStartWithPrecise;
   BoolOptionValue _bpStartWithRational;
-  OptionValue<BPVariableSelector> _bpVariableSelector;
+  ChoiceOptionValue<BPVariableSelector> _bpVariableSelector;
 
   BoolOptionValue _colorUnblocking;
-  OptionValue<Condensation> _condensation;
+  ChoiceOptionValue<Condensation> _condensation;
 
   BoolOptionValue _demodulationRedundancyCheck;
   BoolOptionValue _distinctProcessor;
@@ -773,10 +837,10 @@ private:
   BoolOptionValue _eprPreservingSkolemization;
   BoolOptionValue _eprRestoringInlining;
   BoolOptionValue _equalityPropagation;
-  OptionValue<EqualityProxy> _equalityProxy;
-  OptionValue<RuleActivity> _equalityResolutionWithDeletion;
+  ChoiceOptionValue<EqualityProxy> _equalityProxy;
+  ChoiceOptionValue<RuleActivity> _equalityResolutionWithDeletion;
   BoolOptionValue _equivalentVariableRemoval;
-  OptionValue<ExtensionalityResolution> _extensionalityResolution;
+  ChoiceOptionValue<ExtensionalityResolution> _extensionalityResolution;
   UnsignedOptionValue _extensionalityMaxLength;
   BoolOptionValue _extensionalityAllowPosEq;
   
@@ -784,14 +848,14 @@ private:
   StringOptionValue _forbiddenOptions;
   BoolOptionValue _forceIncompleteness;
   StringOptionValue _forcedOptions;
-  OptionValue<Demodulation> _forwardDemodulation;
+  ChoiceOptionValue<Demodulation> _forwardDemodulation;
   BoolOptionValue _forwardLiteralRewriting;
   BoolOptionValue _forwardSubsumption;
   BoolOptionValue _forwardSubsumptionResolution;
-  OptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
+  ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   IntOptionValue _functionNumber;
   
-  OptionValue<RuleActivity> _generalSplitting;
+  ChoiceOptionValue<RuleActivity> _generalSplitting;
   BoolOptionValue _globalSubsumption;
 
   BoolOptionValue _hornRevealing;
@@ -808,7 +872,7 @@ private:
   BoolOptionValue _increasedNumeralWeight;
   IntOptionValue _inequalitySplitting;
   StringOptionValue _inputFile;
-  OptionValue<InputSyntax> _inputSyntax;
+  ChoiceOptionValue<InputSyntax> _inputSyntax;
   FloatOptionValue _instGenBigRestartRatio;
   BoolOptionValue _instGenInprocessing;
   BoolOptionValue _instGenPassiveReactivation;
@@ -823,7 +887,7 @@ private:
   StringOptionValue _latexOutput;
   StringOptionValue _lingvaAdditionalInvariants;
 
-  OptionValue<LiteralComparisonMode> _literalComparisonMode;
+  ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;
   StringOptionValue _logFile;
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
@@ -834,12 +898,12 @@ private:
   LongOptionValue _maxPassive;
   IntOptionValue _maxWeight;
   UnsignedOptionValue _maximalPropagatedEqualityLength;
-  OptionValue<size_t> _memoryLimit;
-  OptionValue<Mode> _mode;
+  UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
+  ChoiceOptionValue<Mode> _mode;
 
   StringOptionValue _namePrefix;
   IntOptionValue _naming;
-  OptionValue<NicenessOption> _nicenessOption;
+  ChoiceOptionValue<NicenessOption> _nicenessOption;
   FloatOptionValue _nongoalWeightCoefficient;
   IntOptionValue _nonGoalWeightCoeffitientDenominator;
   IntOptionValue _nonGoalWeightCoeffitientNumerator;
@@ -848,27 +912,27 @@ private:
 
   BoolOptionValue _outputAxiomNames;
 
-  OptionValue<InliningMode> _predicateDefinitionInlining;
+  ChoiceOptionValue<InliningMode> _predicateDefinitionInlining;
   BoolOptionValue _predicateDefinitionMerging;
-  OptionValue<PredicateEquivalenceDiscoveryMode> _predicateEquivalenceDiscovery;
+  ChoiceOptionValue<PredicateEquivalenceDiscoveryMode> _predicateEquivalenceDiscovery;
   BoolOptionValue _predicateEquivalenceDiscoveryAddImplications;
   BoolOptionValue _predicateEquivalenceDiscoveryRandomSimulation;
   IntOptionValue _predicateEquivalenceDiscoverySatConflictLimit;
   BoolOptionValue _predicateIndexIntroduction;
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
-  OptionValue<Proof> _proof;
+  ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _proofChecking;
   
   StringOptionValue _protectedPrefix;
 
-  OptionValue<QuestionAnsweringMode> _questionAnswering;
+  ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
   IntOptionValue _randomSeed;
   IntOptionValue _rowVariableMaxLength;
 
   FloatOptionValue _satClauseActivityDecay;
-  OptionValue<SatClauseDisposer> _satClauseDisposer;
+  ChoiceOptionValue<SatClauseDisposer> _satClauseDisposer;
   BoolOptionValue _satLearntMinimization;
   BoolOptionValue _satLearntSubsumptionResolution;
   IntOptionValue _satRestartFixedCount;
@@ -877,21 +941,21 @@ private:
   IntOptionValue _satRestartLubyFactor;
   FloatOptionValue _satRestartMinisatIncrease;
   IntOptionValue _satRestartMinisatInit;
-  OptionValue<SatRestartStrategy> _satRestartStrategy;
+  ChoiceOptionValue<SatRestartStrategy> _satRestartStrategy;
   FloatOptionValue _satVarActivityDecay;
-  OptionValue<SatVarSelector> _satVarSelector;
-  OptionValue<SatSolver> _satSolver;
-  OptionValue<SaturationAlgorithm> _saturationAlgorithm;
+  ChoiceOptionValue<SatVarSelector> _satVarSelector;
+  ChoiceOptionValue<SatSolver> _satSolver;
+  ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
   IntOptionValue _selection;
   BoolOptionValue _selectUnusedVariablesFirst;
   BoolOptionValue _showActive;
   BoolOptionValue _showBlocked;
   BoolOptionValue _showDefinitions;
-  OptionValue<InterpolantMode> _showInterpolant;
+  ChoiceOptionValue<InterpolantMode> _showInterpolant;
   BoolOptionValue _showNew;
   BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;
-  OptionValue<OptionTag> _showOptions;
+  ChoiceOptionValue<OptionTag> _showOptions;
   BoolOptionValue _showExperimentalOptions;
   BoolOptionValue _showHelp;
   BoolOptionValue _showPassive;
@@ -902,23 +966,23 @@ private:
   IntOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
-  OptionValue<SineSelection> _sineSelection;
+  ChoiceOptionValue<SineSelection> _sineSelection;
   FloatOptionValue _sineTolerance;
   BoolOptionValue _smtlibConsiderIntsReal;
   BoolOptionValue _smtlibFletAsDefinition;
   BoolOptionValue _smtlibIntroduceAIGNames;
-  OptionValue<Sos> _sos;
+  ChoiceOptionValue<Sos> _sos;
   BoolOptionValue _splitting;
-  OptionValue<SSplittingAddComplementary> _ssplittingAddComplementary;
-  OptionValue<SSplittingComponentSweeping> _ssplittingComponentSweeping;
+  ChoiceOptionValue<SSplittingAddComplementary> _ssplittingAddComplementary;
+  ChoiceOptionValue<SSplittingComponentSweeping> _ssplittingComponentSweeping;
   BoolOptionValue _ssplittingCongruenceClosure;
   BoolOptionValue _ssplittingEagerRemoval;
   UnsignedOptionValue _ssplittingFlushPeriod;
   FloatOptionValue _ssplittingFlushQuotient;
-  OptionValue<SSplittingNonsplittableComponents> _ssplittingNonsplittableComponents;
-  OptionValue<Statistics> _statistics;
+  ChoiceOptionValue<SSplittingNonsplittableComponents> _ssplittingNonsplittableComponents;
+  ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _superpositionFromVariables;
-  OptionValue<SymbolPrecedence> _symbolPrecedence;
+  ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
 
   BoolOptionValue _tabulationBwRuleSubsumptionResolutionByLemmas;
   BoolOptionValue _tabulationFwRuleSubsumptionResolutionByLemmas;
@@ -937,7 +1001,7 @@ private:
   BoolOptionValue _timeStatistics;
   BoolOptionValue _trivialPredicateRemoval;
 
-  OptionValue<URResolution> _unitResultingResolution;
+  ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   UnsignedOptionValue _updatesByOneConstraint;
   BoolOptionValue _use_dm;
