@@ -93,13 +93,13 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   CompositeISE* res=new CompositeISE();
 
   switch(opt.condensation()) {
-  case Options::CONDENSATION_ON:
+  case Options::Condensation::ON:
     res->addFront(new Condensation());
     break;
-  case Options::CONDENSATION_FAST:
+  case Options::Condensation::FAST:
     res->addFront(new FastCondensation());
     break;
-  case Options::CONDENSATION_OFF:
+  case Options::Condensation::OFF:
     break;
   }
 
@@ -129,10 +129,10 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
   MainLoop* res;
 
   switch (opt.saturationAlgorithm()) {
-  case Options::TABULATION:
+  case Options::SaturationAlgorithm::TABULATION:
     res = new TabulationAlgorithm(prb, opt);
     break;
-  case Options::INST_GEN:
+  case Options::SaturationAlgorithm::INST_GEN:
     res = new IGAlgorithm(prb, opt);
     break;
   default:

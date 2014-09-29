@@ -229,7 +229,8 @@ void programAnalysisMode()
 #if IS_LINGVA
   Lib::Random::setSeed(123456);
   int time = env.options->timeLimitInDeciseconds();
-  env.options->setMode(Options::MODE_VAMPIRE);
+  // Seems dangerous, overridng memory limit
+  env.options->setMode(Options::Mode::VAMPIRE);
   // Seems dangerous, overridng memory limit
   Allocator::setMemoryLimit(1024u * 1048576ul);
 
@@ -492,7 +493,7 @@ void vampireMode()
 {
   CALL("vampireMode()");
 
-  if (env.options->mode() == Options::MODE_CONSEQUENCE_ELIMINATION) {
+  if (env.options->mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
@@ -598,7 +599,7 @@ void axiomSelectionMode()
 {
   CALL("axiomSelectionMode()");
 
-  env.options->setSineSelection(Options::SS_AXIOMS);
+  env.options->setSineSelection(Options::SineSelection::AXIOMS);
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
@@ -690,7 +691,7 @@ int main(int argc, char* argv[])
   CALL ("main");
 
 //#if IS_LINGVA
-//    env.options->setMode(Options::MODE_PROGRAM_ANALYSIS);
+//    env.options->setMode(Options::Mode::PROGRAM_ANALYSIS);
 //#endif
 
   System::registerArgv0(argv[0]);
@@ -716,81 +717,81 @@ int main(int argc, char* argv[])
 
     switch (env.options->mode())
     {
-    case Options::MODE_AXIOM_SELECTION:
+    case Options::Mode::AXIOM_SELECTION:
       axiomSelectionMode();
       break;
-    case Options::MODE_GROUNDING:
+    case Options::Mode::GROUNDING:
       groundingMode();
       break;
-    case Options::MODE_BOUND_PROP:
+    case Options::Mode::SOLVER:
 #if GNUMP
      boundPropagationMode();
 #else
      NOT_IMPLEMENTED;
 #endif
       break;
-    case Options::MODE_SPIDER:
+    case Options::Mode::SPIDER:
       spiderMode();
       break;
-    case Options::MODE_CONSEQUENCE_ELIMINATION:
-    case Options::MODE_VAMPIRE:
+    case Options::Mode::CONSEQUENCE_ELIMINATION:
+    case Options::Mode::VAMPIRE:
       vampireMode();
       break;
-    case Options::MODE_CASC:
+    case Options::Mode::CASC:
       if (CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
-    case Options::MODE_CASC_SAT:
+    case Options::Mode::CASC_SAT:
       CASC::CASCMode::makeSat();
       if (CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
-    case Options::MODE_CASC_EPR:
+    case Options::Mode::CASC_EPR:
       CASC::CASCMode::makeEPR();
       if (CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
-    case Options::MODE_CASC_LTB: {
+    case Options::Mode::CASC_LTB: {
       CASC::CLTBMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-    case Options::MODE_CASC_MZR: {
+    case Options::Mode::CASC_MZR: {
       CASC::CMZRMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
 
-    case Options::MODE_CLAUSIFY:
+    case Options::Mode::CLAUSIFY:
       clausifyMode();
       break;
 
-    case Options::MODE_OUTPUT:
+    case Options::Mode::OUTPUT:
       outputMode();
       break;
 
-    case Options::MODE_PROFILE:
+    case Options::Mode::PROFILE:
       profileMode();
       break;
 
-    case Options::MODE_PROGRAM_ANALYSIS:
+    case Options::Mode::PROGRAM_ANALYSIS:
       std::cout<<"Program analysis mode "<<std::endl;
       programAnalysisMode();
       break;
    
-    case Options::MODE_PREPROCESS:
+    case Options::Mode::PREPROCESS:
       preprocessMode();
       break;
 
-    case Options::MODE_SAT:
+    case Options::Mode::SAT:
       satSolverMode();
       break;
 

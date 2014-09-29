@@ -261,8 +261,8 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:
-      if ( forward ? (opt.forwardDemodulation() == Options::DEMODULATION_PREORDERED)
-		  : (opt.backwardDemodulation() == Options::DEMODULATION_PREORDERED) ) {
+      if ( forward ? (opt.forwardDemodulation() == Options::Demodulation::PREORDERED)
+		  : (opt.backwardDemodulation() == Options::Demodulation::PREORDERED) ) {
 	return TermIterator::getEmpty();
       }
       if (t0.containsAllVariablesOf(t1)) {

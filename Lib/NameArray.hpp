@@ -6,6 +6,11 @@
  * @since 21/04/2005 Manchester
  */
 
+#ifndef __NameArray__
+#define __NameArray__
+
+#include <string>
+
 using namespace std;
 
 namespace Lib {
@@ -31,3 +36,5 @@ private:
 }; // class NameArray
 
 }
+
+#endif

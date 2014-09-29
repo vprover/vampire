@@ -153,7 +153,7 @@ void EqualityAxiomatizer::addLocalAxioms(UnitList*& units, unsigned sort)
     UnitList::push(axR,units);
   }
 
-  if(_opt==Options::EP_RST || _opt==Options::EP_RSTC) {
+  if(_opt==Options::EqualityProxy::RST || _opt==Options::EqualityProxy::RSTC) {
     Clause* axT = new(3) Clause(3, Clause::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
     (*axT)[0]=Literal::createEquality(false,TermList(0,false),TermList(1,false), sort);
     (*axT)[1]=Literal::createEquality(false,TermList(1,false),TermList(2,false), sort);
@@ -175,7 +175,7 @@ UnitList* EqualityAxiomatizer::getAxioms()
     addLocalAxioms(res, srt);
   }
 
-  if(_opt==Options::EP_RSTC) {
+  if(_opt==Options::EqualityProxy::RSTC) {
     addCongruenceAxioms(res);
   }
 
@@ -310,7 +310,7 @@ Clause* EqualityAxiomatizer::getPredCongruenceAxiom(unsigned pred)
 void EqualityAxiomatizer::addCongruenceAxioms(UnitList*& units)
 {
   CALL("EqualityAxiomatizer::addCongruenceAxioms");
-  ASS_EQ(_opt,Options::EP_RSTC);
+  ASS(_opt==Options::EqualityProxy::RSTC);
 
   Stack<TermList> vars1;
   Stack<TermList> vars2;

@@ -41,14 +41,14 @@ TWLSolver::TWLSolver(const Options& opt, bool generateProofs)
 _windex(0), _varCnt(0), _level(1), _assumptionsAdded(false), _assumptionCnt(0), _unsatisfiableAssumptions(false)
 {
   switch(opt.satVarSelector()) {
-  case Options::SVS_ACTIVE:
-    _variableSelector = new ActiveVariableSelector(*this, Options::NICENESS_NONE, opt.satVarActivityDecay());
+  case Options::SatVarSelector::ACTIVE:
+    _variableSelector = new ActiveVariableSelector(*this, Options::Niceness::NONE, opt.satVarActivityDecay());
     break;
-  case Options::SVS_NICENESS:
+  case Options::SatVarSelector::NICENESS:
     //_variableSelector = new ArrayNicenessVariableSelector(*this);
     _variableSelector = new ActiveVariableSelector(*this, opt.nicenessOption(), opt.satVarActivityDecay());
     break;
-  case Options::SVS_RECENTLY_LEARNT:
+  case Options::SatVarSelector::RECENTLY_LEARNT:
     _variableSelector = new RLCVariableSelector(*this);
     break;
   }
@@ -57,25 +57,25 @@ _windex(0), _varCnt(0), _level(1), _assumptionsAdded(false), _assumptionCnt(0), 
 
 
   switch(opt.satRestartStrategy()) {
-  case Options::SRS_FIXED:
+  case Options::SatRestartStrategy::FIXED:
     _restartStrategy = new FixedRestartStrategy(opt.satRestartFixedCount());
     break;
-  case Options::SRS_GEOMETRIC:
+  case Options::SatRestartStrategy::GEOMETRIC:
     _restartStrategy = new GeometricRestartStrategy(opt.satRestartGeometricInit(), opt.satRestartGeometricIncrease());
     break;
-  case Options::SRS_LUBY:
+  case Options::SatRestartStrategy::LUBY:
     _restartStrategy = new LubyRestartStrategy(opt.satRestartLubyFactor());
     break;
-  case Options::SRS_MINISAT:
+  case Options::SatRestartStrategy::MINISAT:
     _restartStrategy = new MinisatRestartStrategy(opt.satRestartMinisatInit(), opt.satRestartMinisatIncrease());
     break;
   }
 
   switch(opt.satClauseDisposer()) {
-  case Options::SCD_GROWING:
+  case Options::SatClauseDisposer::GROWING:
     _clauseDisposer = new GrowingClauseDisposer(*this, opt.satVarActivityDecay());
     break;
-  case Options::SCD_MINISAT:
+  case Options::SatClauseDisposer::MINISAT:
     _clauseDisposer = new MinisatClauseDisposer(*this, opt.satVarActivityDecay());
     break;
   }

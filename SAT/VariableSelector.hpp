@@ -116,9 +116,9 @@ public:
   typedef double CounterType;
 
   // decayFactor default previously 1.05
-  ActiveVariableSelector(TWLSolver& solver, Options::NicenessOption niceness_option, CounterType decayFactor) : 
+  ActiveVariableSelector(TWLSolver& solver, Options::Niceness niceness_option, CounterType decayFactor) : 
 	VariableSelector(solver), _niceness_option(niceness_option),
-        _activityHeap(decayFactor,(niceness_option!=Options::NICENESS_NONE),*this) {}
+        _activityHeap(decayFactor,(niceness_option!=Options::Niceness::NONE),*this) {}
 
   virtual bool selectVariable(unsigned& var);
   virtual void ensureVarCnt(unsigned varCnt);
@@ -246,7 +246,7 @@ protected:
 
   unsigned getNiceness(unsigned var);
 
-  Options::NicenessOption _niceness_option;
+  Options::Niceness _niceness_option;
   //Has initial size 0
   DArray<unsigned> _niceness;
   DHMap<unsigned,Literal*> _sourceMap;

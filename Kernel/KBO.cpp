@@ -643,13 +643,13 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
     aux.initFromIterator(getRangeIterator(0u, _functions), _functions);
 
     switch(opt.symbolPrecedence()) {
-    case Shell::Options::BY_ARITY:
+    case Shell::Options::SymbolPrecedence::ARITY:
       aux.sort(FnArityComparator());
       break;
-    case Shell::Options::BY_REVERSE_ARITY:
+    case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
       aux.sort(FnRevArityComparator());
       break;
-    case Shell::Options::BY_OCCURRENCE:
+    case Shell::Options::SymbolPrecedence::OCCURRENCE:
       break;
     }
 
@@ -661,13 +661,13 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   aux.initFromIterator(getRangeIterator(0u, _predicates), _predicates);
 
   switch(opt.symbolPrecedence()) {
-  case Shell::Options::BY_ARITY:
+  case Shell::Options::SymbolPrecedence::ARITY:
     aux.sort(PredArityComparator());
     break;
-  case Shell::Options::BY_REVERSE_ARITY:
+  case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
     aux.sort(PredRevArityComparator());
     break;
-  case Shell::Options::BY_OCCURRENCE:
+  case Shell::Options::SymbolPrecedence::OCCURRENCE:
     break;
   }
   for(unsigned i=0;i<_predicates;i++) {
@@ -675,11 +675,11 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   }
 
   switch(opt.literalComparisonMode()) {
-  case Shell::Options::LCM_STANDARD:
+  case Shell::Options::LiteralComparisonMode::STANDARD:
     _predicateLevels.init(_predicates, 1);
     break;
-  case Shell::Options::LCM_PREDICATE:
-  case Shell::Options::LCM_REVERSE:
+  case Shell::Options::LiteralComparisonMode::PREDICATE:
+  case Shell::Options::LiteralComparisonMode::REVERSE:
     for(unsigned i=1;i<_predicates;i++) {
       _predicateLevels[i]=_predicatePrecedences[i]+1;
     }
@@ -688,7 +688,7 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   //equality is on the lowest level
   _predicateLevels[0]=0;
 
-  _reverseLCM = opt.literalComparisonMode()==Shell::Options::LCM_REVERSE;
+  _reverseLCM = opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE;
 
   for(unsigned i=1;i<_predicates;i++) {
     Signature::Symbol* predSym = env.signature->getPredicate(i);

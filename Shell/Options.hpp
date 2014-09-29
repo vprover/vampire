@@ -6,11 +6,15 @@
 #ifndef __Options__
 #define __Options__
 
+#include <cstring> 
+
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
 
 #include "Lib/DHMap.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/NameArray.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/XML.hpp"
 
@@ -64,7 +68,6 @@ public:
     typedef Stack<OptionSpec> OptionSpecStack;
     static void readOptionsString(vstring testId, OptionSpecStack& assignments);
     
-    // the following two functions are used by Environment
     bool onOffToBool(const char* onOff,const char* option);
     
     // standard ways of creating options
@@ -88,119 +91,119 @@ public:
   //==========================================================
   
   //enums for the bound propagation purpose
-  enum BPAlmostHalfBoundingRemoval : unsigned int {
-    AHR_BOUNDS_ONLY = 0,
-    AHR_OFF = 1,
-    AHR_ON = 2
+  enum class BPAlmostHalfBoundingRemoval : unsigned int {
+    BOUNDS_ONLY = 0,
+    OFF = 1,
+    ON = 2
   };
 
-  enum BPAssignmentSelector: unsigned int {
-    ASG_ALTERNATIVE = 0,
-    ASG_BMP = 1,
-    ASG_LOWER = 2,
-    ASG_MIDDLE = 3,
-    ASG_RANDOM = 4,
-    ASG_RATIONAL = 5,
-    ASG_SMALLEST = 6,
-    ASG_TIGHT = 7,
-    ASG_TIGHTISH = 8,
-    ASG_UPPER = 9
+  enum class BPAssignmentSelector: unsigned int {
+    ALTERNATIVE = 0,
+    BMP = 1,
+    LOWER = 2,
+    MIDDLE = 3,
+    RANDOM = 4,
+    RATIONAL = 5,
+    SMALLEST = 6,
+    TIGHT = 7,
+    TIGHTISH = 8,
+    UPPER = 9
   };
   
-  enum BPConflictSelector: unsigned int {
-    CS_LEAST_RECENT = 0, 
-    CS_MOST_RECENT = 1, 
-    CS_SHORTEST_CONSTRAINT = 2
+  enum class BPConflictSelector: unsigned int {
+    LEAST_RECENT = 0, 
+    MOST_RECENT = 1, 
+    SHORTEST_CONSTRAINT = 2
   };
   
-  enum BPVariableSelector: unsigned int {
-    VS_CONFLICTING = 0, 
-    VS_CONFLICTING_AND_COLLAPSING = 1, 
-    VS_FIRST = 2, 
-    VS_LOOK_AHEAD =3, 
-    VS_RANDOM = 4, 
-    VS_RECENTLY_CONFLICTING = 5,
-    VS_RECENTLY_COLLAPSING = 6,
-    VS_TIGHTEST_BOUND = 7
+  enum class BPVariableSelector: unsigned int {
+    CONFLICTING = 0, 
+    CONFLICTING_AND_COLLAPSING = 1, 
+    FIRST = 2, 
+    LOOK_AHEAD =3, 
+    RANDOM = 4, 
+    RECENTLY_CONFLICTING = 5,
+    RECENTLY_COLLAPSING = 6,
+    TIGHTEST_BOUND = 7
 
   };
   /**
    * Possible values for function_definition_elimination.
    * @since 29/05/2004 Manchester
    */
-  enum FunctionDefinitionElimination : unsigned int {
-    FDE_ALL = 0,
-    FDE_NONE = 1,
-    FDE_UNUSED = 2
+  enum class FunctionDefinitionElimination : unsigned int {
+    ALL = 0,
+    NONE = 1,
+    UNUSED = 2
   };
 
   /**
    * Possible values for the input syntax
    * @since 26/08/2009 Redmond
    */
-  enum InputSyntax : unsigned int {
+  enum class InputSyntax : unsigned int {
     /** syntax of the Simplify prover */
-    IS_SIMPLIFY = 0,
+    SIMPLIFY = 0,
     /** syntax of SMTLIB1.2 */
-    IS_SMTLIB = 1,
-    IS_SMTLIB2 = 2,
+    SMTLIB = 1,
+    SMTLIB2 = 2,
     /** syntax of the TPTP prover */
-    IS_TPTP = 3, 
-    IS_HUMAN = 4, 
-    IS_MPS = 5, 
-    IS_NETLIB = 6
+    TPTP = 3, 
+    HUMAN = 4, 
+    MPS = 5, 
+    NETLIB = 6
   };
 
  /**
-  * Possible values for show_option (used in OptionNameArray)
+  * Possible values for show_option
   * @author Giles
   */
-  enum OptionTag: unsigned int {
-    BP_TAG,
-    OFF_TAG,
-    GLOBAL_TAG,
-    VAMPIRE_TAG
+  enum class OptionTag: unsigned int {
+    BP,
+    OFF,
+    GLOBAL,
+    VAMPIRE
   };
 
   /**
    * Possible values for mode_name.
    * @since 06/05/2007 Manchester
    */
-  enum Mode : unsigned int {
-    MODE_AXIOM_SELECTION,
-    MODE_BOUND_PROP,
-    MODE_CASC,
-    MODE_CASC_EPR,
-    MODE_CASC_LTB,
-    MODE_CASC_MZR,
-    MODE_CASC_SAT,
-    MODE_CLAUSIFY,
-    MODE_CONSEQUENCE_ELIMINATION,
-    MODE_GROUNDING,
-    MODE_LTB_BUILD,
-    MODE_LTB_SOLVE,
+  enum class Mode : unsigned int {
+    AXIOM_SELECTION,
+    SOLVER,
+    CASC,
+    CASC_EPR,
+    CASC_LTB,
+    CASC_MZR,
+    CASC_SAT,
+    CLAUSIFY,
+    CONSEQUENCE_ELIMINATION,
+    GROUNDING,
+    LTB_BUILD,
+    LTB_SOLVE,
     /** this mode only outputs the input problem, without any preprocessing */
-    MODE_OUTPUT,
-    MODE_PREPROCESS,
-    MODE_PROFILE,
-    MODE_PROGRAM_ANALYSIS,   
-    MODE_SAT, 
-    MODE_SPIDER,
-    MODE_VAMPIRE
+    OUTPUT,
+    PREPROCESS,
+    PROFILE,
+    PROGRAM_ANALYSIS,   
+    SAT, 
+    SPIDER,
+    VAMPIRE
 };
 
   /** Various options for the output of statistics in Vampire */
-  enum Statistics : unsigned int {
+  enum class Statistics : unsigned int {
     /** changed by the option "--statistics brief" */
-    STATISTICS_BRIEF = 0,
+    BRIEF = 0,
     /** changed by the option "--statistics full */
-    STATISTICS_FULL = 1,
+    FULL = 1,
     /** changed by the option "--statistics off" */
-    STATISTICS_NONE = 2
+    NONE = 2
   };
 
   /** Possible values for sat_solver */
-  enum SatSolver : unsigned int {
+  enum class SatSolver : unsigned int {
      BUFFERED_LINGELING = 0,
      BUFFERED_MINISAT = 1,
      BUFFERED_VAMPIRE = 2,
@@ -210,7 +213,7 @@ public:
   };
 
   /** Possible values for saturation_algorithm */
-  enum SaturationAlgorithm : unsigned int {
+  enum class SaturationAlgorithm : unsigned int {
      DISCOUNT = 0,
      INST_GEN = 1,
      LRS = 2,
@@ -219,152 +222,152 @@ public:
    };
 
   /** Possible values for activity of some inference rules */
-  enum RuleActivity : unsigned int {
-    RA_INPUT_ONLY = 0,
-    RA_OFF = 1,
-    RA_ON = 2
+  enum class RuleActivity : unsigned int {
+    INPUT_ONLY = 0,
+    OFF = 1,
+    ON = 2
   };
 
-  enum QuestionAnsweringMode : unsigned int {
-    QA_ANSWER_LITERAL = 0,
-    QA_FROM_PROOF = 1,
-    QA_OFF = 2
+  enum class QuestionAnsweringMode : unsigned int {
+    ANSWER_LITERAL = 0,
+    FROM_PROOF = 1,
+    OFF = 2
   };
 
-  enum InliningMode : unsigned int {
-    INL_AXIOMS_ONLY = 0,
-    INL_NON_GROWING = 1,
-    INL_OFF = 2,
-    INL_ON = 3
+  enum class InliningMode : unsigned int {
+    AXIOMS_ONLY = 0,
+    NON_GROWING = 1,
+    OFF = 2,
+    ON = 3
   };
 
-  enum InterpolantMode : unsigned int {
-    INTERP_MINIMIZED = 0,
-    INTERP_OFF = 1,
-    INTERP_ON = 2
+  enum class InterpolantMode : unsigned int {
+    MINIMIZED = 0,
+    OFF = 1,
+    ON = 2
   };
 
-  enum LiteralComparisonMode : unsigned int {
-    LCM_PREDICATE = 0,
-    LCM_REVERSE = 1,
-    LCM_STANDARD = 2
+  enum class LiteralComparisonMode : unsigned int {
+    PREDICATE = 0,
+    REVERSE = 1,
+    STANDARD = 2
   };
 
-  enum Condensation : unsigned int {
-    CONDENSATION_FAST = 0,
-    CONDENSATION_OFF = 1,
-    CONDENSATION_ON = 2
+  enum class Condensation : unsigned int {
+    FAST = 0,
+    OFF = 1,
+    ON = 2
   };
 
-  enum Demodulation : unsigned int {
-    DEMODULATION_ALL = 0,
-    DEMODULATION_OFF = 1,
-    DEMODULATION_PREORDERED = 2
+  enum class Demodulation : unsigned int {
+    ALL = 0,
+    OFF = 1,
+    PREORDERED = 2
   };
 
-  enum Subsumption : unsigned int {
-    SUBSUMPTION_OFF = 0,
-    SUBSUMPTION_ON = 1,
-    SUBSUMPTION_UNIT_ONLY = 2
+  enum class Subsumption : unsigned int {
+    OFF = 0,
+    ON = 1,
+    UNIT_ONLY = 2
   };
 
-  enum URResolution : unsigned int {
-    URR_EC_ONLY = 0,
-    URR_OFF = 1,
-    URR_ON = 2
+  enum class URResolution : unsigned int {
+    EC_ONLY = 0,
+    OFF = 1,
+    ON = 2
   };
 
-  enum SymbolPrecedence : unsigned int {
-    BY_ARITY = 0,
-    BY_OCCURRENCE = 1,
-    BY_REVERSE_ARITY = 2
+  enum class SymbolPrecedence : unsigned int {
+    ARITY = 0,
+    OCCURRENCE = 1,
+    REVERSE_ARITY = 2
   };
 
-  enum SineSelection : unsigned int {
-    SS_AXIOMS = 0,
-    SS_INCLUDED = 1,
-    SS_OFF = 2
+  enum class SineSelection : unsigned int {
+    AXIOMS = 0,
+    INCLUDED = 1,
+    OFF = 2
   };
 
-  enum Proof : unsigned int {
-    PROOF_OFF = 0,
-    PROOF_ON = 1,
-    PROOF_PROOFCHECK = 2,
-    PROOF_TPTP = 3
+  enum class Proof : unsigned int {
+    OFF = 0,
+    ON = 1,
+    PROOFCHECK = 2,
+    TPTP = 3
   };
 
   /** Values for --equality_proxy */
-  enum EqualityProxy : unsigned int {
-    EP_R = 0,
-    EP_RS = 1,
-    EP_RST = 2,
-    EP_RSTC = 3,
-    EP_OFF = 4,
+  enum class EqualityProxy : unsigned int {
+    R = 0,
+    RS = 1,
+    RST = 2,
+    RSTC = 3,
+    OFF = 4,
   };
 
   /** Values for --extensionality_resolution */
-  enum ExtensionalityResolution : unsigned int {
-    ER_FILTER = 0,
-    ER_KNOWN = 1,
-    ER_OFF = 2
+  enum class ExtensionalityResolution : unsigned int {
+    FILTER = 0,
+    KNOWN = 1,
+    OFF = 2
   };
 
-  enum SatRestartStrategy : unsigned int {
-    SRS_FIXED = 0,
-    SRS_GEOMETRIC = 1,
-    SRS_LUBY = 2,
-    SRS_MINISAT = 3,
+  enum class SatRestartStrategy : unsigned int {
+    FIXED = 0,
+    GEOMETRIC = 1,
+    LUBY = 2,
+    MINISAT = 3,
   };
 
-  enum SatVarSelector : unsigned int {
-    SVS_ACTIVE = 0,
-    SVS_NICENESS = 1,
-    SVS_RECENTLY_LEARNT = 2,
+  enum class SatVarSelector : unsigned int {
+    ACTIVE = 0,
+    NICENESS = 1,
+    RECENTLY_LEARNT = 2,
   };
 
-  enum NicenessOption: unsigned int {
-    NICENESS_AVERAGE = 0,
-    NICENESS_NONE=1,
-    NICENESS_SUM = 2,
-    NICENESS_TOP = 3,
+  enum class Niceness: unsigned int {
+    AVERAGE = 0,
+    NONE=1,
+    SUM = 2,
+    TOP = 3,
   };
 
-  enum SatClauseDisposer : unsigned int {
-    SCD_GROWING = 0,
-    SCD_MINISAT = 1,
+  enum class SatClauseDisposer : unsigned int {
+    GROWING = 0,
+    MINISAT = 1,
   };
 
-  enum SSplittingComponentSweeping : unsigned int {
-    SSCS_ALL = 0,
-    SSCS_ITERATED = 1,
-    SSCS_NONE = 2,
-    SSCS_ONLY_NEW = 3
+  enum class SSplittingComponentSweeping : unsigned int {
+    ALL = 0,
+    ITERATED = 1,
+    NONE = 2,
+    ONLY_NEW = 3
   };
 
-  enum SSplittingAddComplementary : unsigned int {
-    SSAC_GROUND = 0,
-    SSAC_NONE = 1
+  enum class SSplittingAddComplementary : unsigned int {
+    GROUND = 0,
+    NONE = 1
   };
 
-  enum SSplittingNonsplittableComponents : unsigned int {
-    SSNS_ALL = 0,
-    SSNS_ALL_DEPENDENT = 1,
-    SSNS_KNOWN = 2,
-    SSNS_NONE = 3
+  enum class SSplittingNonsplittableComponents : unsigned int {
+    ALL = 0,
+    ALL_DEPENDENT = 1,
+    KNOWN = 2,
+    NONE = 3
   };
 
-  enum Sos : unsigned int{
-    SOS_ALL = 0,
-    SOS_OFF = 1,
-    SOS_ON = 2
+  enum class Sos : unsigned int{
+    ALL = 0,
+    OFF = 1,
+    ON = 2
   };
 
-  enum PredicateEquivalenceDiscoveryMode : unsigned int{
-    PED_ALL_ATOMS = 0,
-    PED_ALL_FORMULAS = 1,
-    PED_DEFINITIONS = 2,
-    PED_OFF = 3,
-    PED_ON = 4
+  enum class PredicateEquivalenceDiscoveryMode : unsigned int{
+    ALL_ATOMS = 0,
+    ALL_FORMULAS = 1,
+    DEFINITIONS = 2,
+    OFF = 3,
+    ON = 4
   };
 
 
@@ -408,7 +411,7 @@ public:
   bool aigFormulaSharing() const { return _aigFormulaSharing.actualValue; }
   bool aigInliner() const { return _aigInliner.actualValue; }
   Mode mode() const { return _mode.actualValue; }
-  //void setMode(Mode newVal);
+  //void setMode(Mode newVal); // warning - code put into setForcedOptions
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   //void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
   bool normalize() const { return _normalize.actualValue; }
@@ -499,8 +502,8 @@ public:
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   
-  float nongoalWeightCoefficient() const { return _nongoalWeightCoefficient.actualValue; }
-  bool setNongoalWeightCoefficient(float newVal);
+  float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
+
   Sos sos() const { return _sos.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
@@ -576,7 +579,7 @@ public:
   float satVarActivityDecay() const { return _satVarActivityDecay.actualValue; }
   SatVarSelector satVarSelector() const { return _satVarSelector.actualValue; }
 
-  NicenessOption nicenessOption() const { return _nicenessOption.actualValue; }
+  Niceness nicenessOption() const { return _nicenessOption.actualValue; }
 
   //void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
   
@@ -586,8 +589,8 @@ public:
   int getWhileNumber(){return _whileNumber.actualValue;}
   int getFunctionNumber(){return _functionNumber.actualValue;}
 
-  int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator.actualValue; }
-  int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator.actualValue; }
+  int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
+  int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
 
   SSplittingNonsplittableComponents ssplittingNonsplittableComponents() const { return _ssplittingNonsplittableComponents.actualValue; }
   SSplittingComponentSweeping ssplittingComponentSweeping() const { return _ssplittingComponentSweeping.actualValue; }
@@ -622,7 +625,6 @@ private:
     // Variables holding option values
     //==========================================================
 
-  
     /**
      * Allows us to give a variable number of option values
      * This is a bit of a hack, and a nicer solution would be to have a variable argument
@@ -634,73 +636,58 @@ private:
      * @since 30/07/14
      */
     struct OptionValues{
-        OptionValues(const char* s1, const char* s2) : _len(2)
-        { makeArray(); _array[0]=s1;_array[1]=s2; }
-        OptionValues(const char* s1, const char* s2, const char* s3) : _len(3)
-        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; }
-        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4) : _len(4)
-        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; _array[3]=s4; }
-        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5) : _len(5)
-        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; _array[3]=s4; _array[4]=s5; }
-        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5,
-                     const char* s6) : _len(6)
-        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; _array[3]=s4; _array[4]=s5; _array[5]=s6; }
-        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5,
-                     const char* s6, const char* s7) : _len(7)
-        { makeArray();_array[0]=s1;_array[1]=s2;_array[2]=s3;_array[3]=s4;_array[4]=s5;_array[5]=s6;_array[6]=s7; }
-        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5,
-                     const char* s6, const char* s7, const char* s8) : _len(8)
-        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; _array[3]=s4; _array[4]=s5; _array[5]=s6;
-            _array[6]=s7; _array[7]=s8; }
-        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5,
-                     const char* s6, const char* s7, const char* s8, const char* s9) : _len(9)
-        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; _array[3]=s4; _array[4]=s5; _array[5]=s6;
-            _array[6]=s7; _array[7]=s8;_array[8]=s9; }
-        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5,
-                     const char* s6,const char* s7,const char* s8,const char* s9,const char* s10) : _len(10)
-        { makeArray();_array[0]=s1;_array[1]=s2; _array[2]=s3; _array[3]=s4; _array[4]=s5; _array[5]=s6;
-            _array[6]=s7; _array[7]=s8; _array[8]=s9; _array[9]=s10; }
         
-        // For mode - lots of modes!
-        OptionValues(const char* s1, const char* s2, const char* s3, const char* s4, const char* s5,
-                     const char* s6, const char* s7, const char* s8, const char* s9, const char* s10,
-                     const char* s11, const char* s12, const char* s13, const char* s14, const char* s15,
-                     const char* s16, const char* s17, const char* s18, const char* s19) : _len(19)
-        { makeArray();_array[0]=s1;_array[1]=s2;_array[2]=s3;_array[3]=s4;_array[4]=s5;_array[5]=s6;_array[6]=s7;
-            _array[7]=s8;_array[8]=s9; _array[9]=s10; _array[10]=s11; _array[11]=s12; _array[12]=s13;
-            _array[13]=s14;_array[14]=s15; _array[15]=s16; _array[16]=s17; _array[17]=s18; _array[18]=s19;
+        OptionValues(){ };
+        OptionValues(std::initializer_list<string> list){
+          _len = list.size();
+          _array = new const char*[_len];
+          unsigned i = 0;
+          for(std::initializer_list<string>::iterator it = list.begin();
+              it!=list.end();++it){
+            _array[i++]=(*it).c_str();
+          }
+          na = new NameArray(_array,_len);
         }
-        
+
+        int find(const char* value) const {
+          ASS(na);
+          return na->find(value);
+        }
+
+    private:
         const char**  _array;
         int _len;
-    private:
-        OptionValues() : _len(0) {};
-        void makeArray(){ _array = new const char*[_len]; }
+        NameArray* na;
     };
     
     struct AbstractOptionValue{
-        virtual ~AbstractOptionValue() = 0;
+
+        AbstractOptionValue(){}
+        AbstractOptionValue(string l,string s) :
+          longName(l), shortName(s), experimental(false) {}
+
         virtual void check() = 0;
+        virtual bool set(const string& value) = 0;
+
+        string longName;
+        string shortName;
+        string description;
+        bool experimental;
     };
-    
     
 // Dangerous as we do not necessarily instantiate... default constructor is called giving
 // default values to contents, then we assign. Want mechanism to ensure everything is set.
 // However, don't want to have to create in init list of Options
     template<typename T>
     struct OptionValue : public AbstractOptionValue {
-        OptionValue(vstring l, vstring s,T def) : 
-          longName(l), shortName(s), experimental(false),
+        OptionValue(){}
+        OptionValue(vstring l, vstring s,T def) : AbstractOptionValue(l,s), 
           defaultValue(def), actualValue(def) {}
 
-        vstring longName;
-        vstring shortName;
-        vstring description;
-        bool experimental;
         T defaultValue;
         T actualValue;
 
-        virtual void set(const string& value) = 0;
+        virtual bool set(const vstring& value) = 0;
         
 #if VDEBUG
         void check(){ if(longName.empty()){ ASSERTION_VIOLATION;} }
@@ -710,49 +697,90 @@ private:
 
     template<typename T>
     struct ChoiceOptionValue : public OptionValue<T> {
+      ChoiceOptionValue(){}
+      ChoiceOptionValue(vstring l, vstring s,T def,OptionValues c) :
+          OptionValue<T>(l,s,def), choices(c) {} 
 
-      void setOptionValues(OptionValues choices){}
-      void set(const string& value){}
+      bool set(const vstring& value){
+        // makes reasonable assumption about ordering of every enum
+        int index = choices.find(value.c_str());
+        // obviously unsafe cast... what if choices is larger than T
+        this->actualValue = static_cast<T>(index);
+        return true;
+      }
 
+      OptionValues choices;
     };
 
     struct BoolOptionValue : public OptionValue<bool> {
-      BoolOptionValue(string l,string s, bool d) : OptionValue(l,s,d){} 
-      void set(const string& value){}
+      BoolOptionValue(){}
+      BoolOptionValue(vstring l,vstring s, bool d) : OptionValue(l,s,d){} 
+      bool set(const vstring& value){
+        const char* cvalue = value.c_str();
+        if (! strcmp(cvalue,"on") || ! strcmp(cvalue,"true")) {
+          actualValue=true;
+           
+        }
+        else if (! strcmp(cvalue,"off") || ! strcmp(cvalue,"false")) {
+          actualValue=false;
+        }
+        else return false;
+          
+        return true;
+      }
     };
 
     struct IntOptionValue : public OptionValue<int> {
-      IntOptionValue(string l,string s, int d) : OptionValue(l,s,d){} 
-      void set(const string& value){}
+      IntOptionValue(){}
+      IntOptionValue(vstring l,vstring s, int d) : OptionValue(l,s,d){} 
+      bool set(const vstring& value){
+        return Int::stringToInt(value.c_str(),actualValue);
+      }
     };
 
     struct UnsignedOptionValue : public OptionValue<unsigned> {
-      UnsignedOptionValue(string l,string s, unsigned d) : OptionValue(l,s,d){} 
-      void set(const string& value){}
+      UnsignedOptionValue(){}
+      UnsignedOptionValue(vstring l,vstring s, unsigned d) : OptionValue(l,s,d){} 
+      bool set(const vstring& value){
+        return Int::stringToUnsignedInt(value.c_str(),actualValue);
+      }
     }; 
 
-    struct StringOptionValue : public OptionValue<string> {
-      StringOptionValue(string l,string s, string d) : OptionValue(l,s,d){} 
-      void set(const string& value){}
+    struct StringOptionValue : public OptionValue<vstring> {
+      StringOptionValue(){}
+      StringOptionValue(vstring l,vstring s, vstring d) : OptionValue(l,s,d){} 
+      bool set(const vstring& value){ actualValue = value; return true; }
     }; 
 
     struct LongOptionValue : public OptionValue<long> {
-      LongOptionValue(string l,string s, long d) : OptionValue(l,s,d){} 
-      void set(const string& value){}
+      LongOptionValue(){}
+      LongOptionValue(vstring l,vstring s, long d) : OptionValue(l,s,d){} 
+      bool set(const vstring& value){
+        return Int::stringToLong(value.c_str(),actualValue);
+      }
     };
 
     struct FloatOptionValue : public OptionValue<float>{
-      FloatOptionValue(string l,string s, float d) : OptionValue(l,s,d){} 
-      void set(const string& value){}
+      FloatOptionValue(){}
+      FloatOptionValue(vstring l,vstring s, float d) : OptionValue(l,s,d){} 
+      bool set(const vstring& value){
+        return Int::stringToFloat(value.c_str(),actualValue);
+      }
     };
  
     struct RatioOptionValue : public OptionValue<int> {
-        RatioOptionValue(string l, string s, int def, int other) :
+        RatioOptionValue(){}
+        RatioOptionValue(vstring l, vstring s, int def, int other) :
           OptionValue(l,s,def), defaultOtherValue(other), otherValue(other) {};
 
         void readRatio(const char* val, char seperator=':');
-        void set(const string& value){}
+        bool set(const vstring& value){
+          if(sep) readRatio(value.c_str(),sep);
+          else readRatio(value.c_str());
+            return true; // TODO readRatio should return bool
+        }
 
+        char sep = 0;
         int defaultOtherValue;
         int otherValue;
     };
@@ -766,34 +794,31 @@ private:
           return *this;
         } 
 
-        template<typename T>
-        void insert(OptionValue<T>* option_value){
-            if(_copied){ ASSERTION_VIOLATION; return; }
+        void insert(AbstractOptionValue* option_value){
+            ASS(!_copied);
             _longMap.insert(option_value->longName,option_value);
             _shortMap.insert(option_value->shortName,option_value);
         }
-        template<typename T>
-        OptionValue<T>* findLong(string longName){
-            if(_copied){ ASSERTION_VIOLATION; return; }
-            return static_cast<OptionValue<T>*>(_longMap.find(longName));
+        AbstractOptionValue* findLong(vstring longName){
+            ASS(!_copied);
+            return _longMap.get(longName);
         }
-        template<typename T>
-        OptionValue<T>* findShort(string shortName){
-            if(_copied){ ASSERTION_VIOLATION; return; }
-            return static_cast<OptionValue<T>*>(_shortMap.find(shortName));
+        AbstractOptionValue* findShort(vstring shortName){
+            ASS(!_copied);
+            return _shortMap.get(shortName);
         }
 
 #if VDEBUG
         void check(){
-          DHMap<string,AbstractOptionValue*>::Iterator it(_longMap);
+          DHMap<vstring,AbstractOptionValue*>::Iterator it(_longMap);
           while(it.hasNext()){ it.next()->check(); } 
         }
 #endif
 
         private:
         bool _copied;
-        DHMap<string,AbstractOptionValue*> _longMap;
-        DHMap<string,AbstractOptionValue*> _shortMap;
+        DHMap<vstring,AbstractOptionValue*> _longMap;
+        DHMap<vstring,AbstractOptionValue*> _shortMap;
     };
     
     LookupWrapper _lookup;
@@ -903,10 +928,7 @@ private:
 
   StringOptionValue _namePrefix;
   IntOptionValue _naming;
-  ChoiceOptionValue<NicenessOption> _nicenessOption;
-  FloatOptionValue _nongoalWeightCoefficient;
-  IntOptionValue _nonGoalWeightCoeffitientDenominator;
-  IntOptionValue _nonGoalWeightCoeffitientNumerator;
+  ChoiceOptionValue<Niceness> _nicenessOption;
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _normalize;
 
@@ -1011,6 +1033,37 @@ private:
   StringOptionValue _xmlOutput;
 >>>>>>> Changing the way we do options
 
+  // Taken from what was previously setNongoalWeightCoefficient
+  struct NonGoalWeightOptionValue : public OptionValue<float>{
+        NonGoalWeightOptionValue(){}
+        NonGoalWeightOptionValue(vstring l, vstring s, float def) :
+        OptionValue(l,s,def), numerator(1), denominator(1) {};
+        
+
+        bool set(const vstring& value){
+            
+            float newValue;
+            if(!Int::stringToFloat(value.c_str(),newValue)) return false;
+            
+            if(newValue <= 0.0) return false;
+            
+            actualValue=newValue;
+            
+            // actualValue contains numerator
+            numerator=static_cast<int>(newValue*100);
+            // otherValue contains denominator
+            denominator=100;
+            
+            return true;
+        }
+      
+        int numerator;
+        int denominator;
+    };
+    
+  NonGoalWeightOptionValue _nonGoalWeightCoefficient;
+    
+    
 }; // class Options
 
 }

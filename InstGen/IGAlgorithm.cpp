@@ -65,22 +65,22 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.instGenSelection());
 
   _use_dm = opt.useDM();
-  _use_niceness = (opt.satVarSelector() == Options::SVS_NICENESS);
+  _use_niceness = (opt.satVarSelector() == Options::SatVarSelector::NICENESS);
 
   _passive.setAgeWeightRatio(_opt.ageRatio(), _opt.weightRatio());
   
   //TODO - Consider using MinimizingSolver here
   switch(opt.satSolver()){
-    case Options::BUFFERED_VAMPIRE:
+    case Options::SatSolver::BUFFERED_VAMPIRE:
       _satSolver = new BufferedSolver(new TWLSolver(opt,true));
       break;
-    case Options::VAMPIRE:
+    case Options::SatSolver::VAMPIRE:
       _satSolver = new TWLSolver(opt,true);
       break;
-    case Options::BUFFERED_LINGELING:
+    case Options::SatSolver::BUFFERED_LINGELING:
       _satSolver = new BufferedSolver(new LingelingInterfacing(opt,true));
       break;
-    case Options::LINGELING:
+    case Options::SatSolver::LINGELING:
       _satSolver = new LingelingInterfacing(opt,true);
       break;
     case Options::BUFFERED_MINISAT:
@@ -169,7 +169,7 @@ void IGAlgorithm::init()
 
   ASSERT_VALID(_prb);
   if(_prb.hasEquality()) {
-    EqualityAxiomatizer ea(Options::EP_RSTC);
+    EqualityAxiomatizer ea(Options::EqualityProxy::RSTC);
     ea.apply(_prb);
   }
 
@@ -774,7 +774,7 @@ MainLoopResult IGAlgorithm::onModelFound()
 
   if(_opt.complete(_prb)) {
     MainLoopResult res(Statistics::SATISFIABLE);
-    if(_opt.proof()!=Options::PROOF_OFF) {
+    if(_opt.proof()!=Options::Proof::OFF) {
       //we need to print this early because model generating can take some time
       if(UIHelper::cascMode) {
 	env.beginOutput();

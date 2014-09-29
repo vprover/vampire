@@ -814,13 +814,13 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
   CALL("InferenceStore::createProofPrinter");
 
   switch(env.options->proof()) {
-  case Options::PROOF_ON:
+  case Options::Proof::ON:
     return new ProofPrinter(out, this);
-  case Options::PROOF_PROOFCHECK:
+  case Options::Proof::PROOFCHECK:
     return new ProofCheckPrinter(out, this);
-  case Options::PROOF_TPTP:
+  case Options::Proof::TPTP:
     return new TPTPProofPrinter(out, this);
-  case Options::PROOF_OFF:
+  case Options::Proof::OFF:
     return 0;
   }
   ASSERTION_VIOLATION;

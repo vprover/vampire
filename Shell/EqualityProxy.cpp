@@ -38,7 +38,7 @@ EqualityProxy::EqualityProxy(Options::EqualityProxy opt)
 : _opt(opt)
 {
   CALL("EqualityProxy::EqualityProxy/1");
-  ASS(opt != Options::EP_OFF);
+  ASS(opt != Options::EqualityProxy::OFF);
 } // EqualityProxy::EqualityProxy
 
 /**
@@ -59,9 +59,9 @@ void EqualityProxy::apply(Problem& prb)
 
   if (hadEquality) {
     switch(_opt) {
-      case Options::EP_R:
-      case Options::EP_RS:
-      case Options::EP_RST:
+      case Options::EqualityProxy::R:
+      case Options::EqualityProxy::RS:
+      case Options::EqualityProxy::RST:
 	prb.reportIncompleteTransformation();
 	break;
       default:
@@ -112,14 +112,14 @@ void EqualityProxy::addLocalAxioms(UnitList*& units, unsigned sort)
   UnitList::push(createEqProxyAxiom(lits),units);
 
   // symmetry
-  if (_opt == Options::EP_RS || _opt == Options::EP_RST || _opt == Options::EP_RSTC) {
+  if (_opt == Options::EqualityProxy::RS || _opt == Options::EqualityProxy::RST || _opt == Options::EqualityProxy::RSTC) {
     lits.reset();
     lits.push(makeProxyLiteral(false,TermList(0,false),TermList(1,false), sort));
     lits.push(makeProxyLiteral(true,TermList(1,false),TermList(0,false), sort));
     UnitList::push(createEqProxyAxiom(lits),units);
   }
   // transitivity
-  if (_opt == Options::EP_RST || _opt == Options::EP_RSTC) {
+  if (_opt == Options::EqualityProxy::RST || _opt == Options::EqualityProxy::RSTC) {
     lits.reset();
     lits.push(makeProxyLiteral(false,TermList(0,false),TermList(1,false), sort));
     lits.push(makeProxyLiteral(false,TermList(1,false),TermList(2,false), sort));
@@ -143,7 +143,7 @@ void EqualityProxy::addAxioms(UnitList*& units)
   // if we're adding congruence axioms, we need to add them before adding the local axioms.
   // Local axioms are added only for sorts on which euality is used, and the congruence axioms
   // may spread the equality use into new sorts
-  if (_opt == Options::EP_RSTC) {
+  if (_opt == Options::EqualityProxy::RSTC) {
     addCongruenceAxioms(units);
   }
 
