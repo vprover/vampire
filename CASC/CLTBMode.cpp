@@ -62,8 +62,8 @@ void CLTBMode::perform()
   env.options->setTimeLimitInSeconds(100000);
 
   UIHelper::cascMode = true;
-  env.options->setProof(Options::PROOF_TPTP);
-  env.options->setStatistics(Options::STATISTICS_NONE);
+  env.options->setProof(Options::Proof::TPTP);
+  env.options->setStatistics(Options::Statistics::NONE);
 
   vstring line;
   ifstream in(env.options->inputFile().c_str());
@@ -309,7 +309,7 @@ int CLTBMode::readInput(istream& in)
     USER_ERROR("\"% SZS end BatchConfiguration\" expected, \"" + line + "\" found.");
   }
   if (_questionAnswering) {
-    env.options->setQuestionAnswering(Options::QA_ANSWER_LITERAL);
+    env.options->setQuestionAnswering(Options::QuestionAnsweringMode::ANSWER_LITERAL);
   }
 
   getline(in, line);

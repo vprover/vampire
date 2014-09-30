@@ -12,6 +12,7 @@
 
 #include "Debug/Assertion.hpp"
 
+#include "Lib/VirtualIterator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/NameArray.hpp"
@@ -381,7 +382,7 @@ public:
   vstring testId() const { return _testId.actualValue; }
   vstring protectedPrefix() const { return _protectedPrefix.actualValue; }
   Statistics statistics() const { return _statistics.actualValue; }
-  //void setStatistics(Statistics newVal) { _statistics=newVal; }
+  void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
   Proof proof() const { return _proof.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
@@ -415,7 +416,7 @@ public:
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   //void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
   bool normalize() const { return _normalize.actualValue; }
-  //void setNormalize(bool normalize) { _normalize = normalize; }
+  void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
   vstring include() const { return _include.actualValue; }
   //void setInclude(string val) { _include = val; }
   vstring includeFileName (const string& relativeName);
@@ -442,7 +443,7 @@ public:
   bool showSymbolElimination() const { return _showSymbolElimination.actualValue; }
   bool showTheoryAxioms() const { return _showTheoryAxioms.actualValue; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
-  //void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval = newVal; }
+  void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   bool weightIncrement() const { return _weightIncrement.actualValue; }
   bool useDM() const { return _use_dm.actualValue; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
@@ -477,7 +478,7 @@ public:
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
   bool setLrsFirstTimeCheck(int newVal);
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
-  //void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit = newVal; }
+  void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
   int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   /**
@@ -510,9 +511,9 @@ public:
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   //void setOutputAxiomNames(bool newVal) { _outputAxiomNames = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
-  //void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering = newVal; }
   vstring xmlOutput() const { return _xmlOutput.actualValue; }
   vstring thanks() const { return _thanks.actualValue; }
+  void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
 
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
   /** true if calling set() on non-existing options does not result in a user error */
@@ -600,7 +601,7 @@ public:
   bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval.actualValue; }
   bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure.actualValue; }
 
-  //void setProof(Proof p) { _proof = p; }
+  void setProof(Proof p) { _proof.actualValue = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval.actualValue; }
   unsigned bpMaximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength.actualValue; }
   BPAlmostHalfBoundingRemoval bpAlmostHalfBoundingRemoval() const {return _bpAlmostHalfBoundingRemoval.actualValue;}
@@ -683,6 +684,7 @@ private:
         OptionValue(){}
         OptionValue(vstring l, vstring s,T def) : AbstractOptionValue(l,s), 
           defaultValue(def), actualValue(def) {}
+
 
         T defaultValue;
         T actualValue;
@@ -814,6 +816,11 @@ private:
           while(it.hasNext()){ it.next()->check(); } 
         }
 #endif
+
+        VirtualIterator<AbstractOptionValue*> values() { 
+         //TODO implement values() in DHMap
+         return _longMap.values();
+        } 
 
         private:
         bool _copied;

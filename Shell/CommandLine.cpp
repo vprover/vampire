@@ -50,6 +50,7 @@ void CommandLine::interpret (Options& options)
     }
     if(strcmp(arg,"--help") || strcmp(arg,"-h")){
       options.set("help","on");
+      env.beginOutput();
       options.output(env.out());
       env.endOutput();
       exit(0);

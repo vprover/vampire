@@ -2713,7 +2713,7 @@ void TPTP::endFof()
 
   switch (_lastInputType) {
   case Unit::CONJECTURE:
-    if (_isQuestion && env.options->mode() == Options::MODE_CLAUSIFY && f->connective() == EXISTS) {
+    if (_isQuestion && env.options->mode() == Options::Mode::CLAUSIFY && f->connective() == EXISTS) {
       // create an answer predicate
       QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
       int arity = g->vars()->length();

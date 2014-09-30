@@ -174,7 +174,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
   UnitList* units;
   switch (opts.inputSyntax()) {
-  case Options::IS_SIMPLIFY:
+  case Options::InputSyntax::SIMPLIFY:
   {
     Shell::LispLexer lexer(*input);
     Shell::LispParser parser(lexer);
@@ -183,7 +183,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     units = simplify.units(expr);
   }
   break;
-  case Options::IS_TPTP:
+  case Options::InputSyntax::TPTP:
     {
       Parse::TPTP parser(*input);
       parser.parse();
@@ -191,7 +191,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
       s_haveConjecture=parser.containsConjecture();
     }
     break;
-  case Options::IS_SMTLIB:
+  case Options::InputSyntax::SMTLIB:
     {
       Parse::SMTLIB parser(opts);
       parser.parse(*input);
@@ -199,7 +199,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
       s_haveConjecture=true;
     }
     break;
-  case Options::IS_SMTLIB2:
+  case Options::InputSyntax::SMTLIB2:
   {
 	  Parse::SMTLIB2 parser(opts);
 	  parser.parse(*input);
@@ -212,9 +212,9 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 	  NOT_IMPLEMENTED;
 	  break;
   }
-  case Options::IS_MPS:
-  case Options::IS_NETLIB:
-  case Options::IS_HUMAN:
+  case Options::InputSyntax::MPS:
+  case Options::InputSyntax::NETLIB:
+  case Options::InputSyntax::HUMAN:
   {
     cout << "This is not supported yet";
     NOT_IMPLEMENTED;
@@ -256,11 +256,11 @@ void UIHelper::outputResult(ostream& out)
       out << "% SZS status " << ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
 	  << " for " << env.options->problemName() << endl;
     }
-    if (env.options->questionAnswering()!=Options::QA_OFF) {
+    if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
       ASS(env.statistics->refutation->isClause());
       AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
     }
-    if (env.options->proof() != Options::PROOF_OFF) {
+    if (env.options->proof() != Options::Proof::OFF) {
       if (cascMode) {
 	out << "% SZS output start Proof for " << env.options->problemName() << endl;
       }
@@ -269,12 +269,12 @@ void UIHelper::outputResult(ostream& out)
 	out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
     }
-    if (env.options->showInterpolant()==Options::INTERP_ON) {
+    if (env.options->showInterpolant()==Options::InterpolantMode::ON) {
       ASS(env.statistics->refutation->isClause());
       Formula* interpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       out << "Interpolant: " << interpolant->toString() << endl;
     }
-    if (env.options->showInterpolant()==Options::INTERP_MINIMIZED) {
+    if (env.options->showInterpolant()==Options::InterpolantMode::MINIMIZED) {
       ASS(env.statistics->refutation->isClause());
 //      {
 //	Formula* oldInterpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
@@ -487,12 +487,12 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
   ConstraintRCList* res;
 
   switch(env.options->inputSyntax()) {
-  case Options::IS_TPTP:
+  case Options::InputSyntax::TPTP:
     USER_ERROR("Format not supported for BPA");
     break;
 #if 0
-  case Options::IS_SMTLIB:
-  case Options::IS_SMTLIB2:
+  case Options::InputSyntax::SMTLIB:
+  case Options::InputSyntax::SMTLIB2:
   {
     Parse::SMTLIB parser(opts);
     parser.parse(*input);
@@ -535,7 +535,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
      */
   }
 #endif
-  case Options::IS_SMTLIB:
+  case Options::InputSyntax::SMTLIB:
   {
     SMTLexer lex(*input);
     SMTParser parser(lex);
@@ -543,7 +543,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     res = rdr.constraints();
     break;
   }
-  case Options::IS_SMTLIB2:
+  case Options::InputSyntax::SMTLIB2:
     {
       Parse::SMTLIB2 parser(opts, Parse::SMTLIB2::DECLARE_SYMBOLS);
       parser.parse(*input);
@@ -552,7 +552,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
       break;
 
     }
-  case Options::IS_MPS:
+  case Options::InputSyntax::MPS:
   {
     Model* m = new Model; 
     MpsInput* mpsin = new MpsInput;
@@ -573,10 +573,10 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
 #endif 
     break;
   }
-  case Options::IS_HUMAN:
+  case Options::InputSyntax::HUMAN:
     USER_ERROR("human syntax is not supported as input syntax");
-  case Options::IS_NETLIB:
- // case Options::IS_SMTLIB2:
+  case Options::InputSyntax::NETLIB:
+ // case Options::InputSyntax::SMTLIB2:
     NOT_IMPLEMENTED;
   default:
     ASSERTION_VIOLATION;
@@ -624,16 +624,16 @@ void UIHelper::outputConstraint(const Constraint& constraint, ostream& out, Opti
   CALL("UIHelper::outputConstraint");
 
   switch(syntax) {
-  case Options::IS_HUMAN:
+  case Options::InputSyntax::HUMAN:
     outputConstraintInHumanFormat(constraint, out);
     // outputConstraintInSMTFormat(constraint,out);
     return;
-  case Options::IS_SMTLIB:
+  case Options::InputSyntax::SMTLIB:
       outputConstraintInSMTFormat(constraint,out);
       return;
-  case Options::IS_MPS:
-  case Options::IS_NETLIB:
-  case Options::IS_SMTLIB2:
+  case Options::InputSyntax::MPS:
+  case Options::InputSyntax::NETLIB:
+  case Options::InputSyntax::SMTLIB2:
     NOT_IMPLEMENTED;
   default:
     ASSERTION_VIOLATION;
@@ -796,7 +796,7 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
   CALL("UIHelper::outputConstraints");
 
   switch(syntax) {
-  case Options::IS_HUMAN:
+  case Options::InputSyntax::HUMAN:
   {
     ConstraintList::Iterator ite(constraints);
     while (ite.hasNext())
@@ -806,7 +806,7 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     }
     return;
   }
-  case Options::IS_SMTLIB:
+  case Options::InputSyntax::SMTLIB:
   {
      out << " (benchmark  SOMENAME" << endl;
     out << " :source {converted from MIPLIB} " << endl;
@@ -846,9 +846,9 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     return;
   }
   
-  case Options::IS_MPS:
-  case Options::IS_NETLIB:
-  case Options::IS_SMTLIB2:
+  case Options::InputSyntax::MPS:
+  case Options::InputSyntax::NETLIB:
+  case Options::InputSyntax::SMTLIB2:
     NOT_IMPLEMENTED;
   default:
     ASSERTION_VIOLATION;
@@ -860,9 +860,9 @@ void UIHelper::outputAssignment(Assignment& assignemt, ostream& out, Shell::Opti
   CALL("UIHelper::outputAssignment");
 
   switch(syntax) {
-  case Options::IS_HUMAN:
-  case Options::IS_MPS:
-  case Options::IS_SMTLIB:
+  case Options::InputSyntax::HUMAN:
+  case Options::InputSyntax::MPS:
+  case Options::InputSyntax::SMTLIB:
   {
     VarIterator vars = assignemt.getAssignedVars();
     while (vars.hasNext()) {
@@ -871,8 +871,8 @@ void UIHelper::outputAssignment(Assignment& assignemt, ostream& out, Shell::Opti
     }
     return;
   }
-  case Options::IS_NETLIB:
-  case Options::IS_SMTLIB2:
+  case Options::InputSyntax::NETLIB:
+  case Options::InputSyntax::SMTLIB2:
     NOT_IMPLEMENTED;
   default:
     ASSERTION_VIOLATION;

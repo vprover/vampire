@@ -476,10 +476,10 @@ Options::Options ()
     _nicenessOption.description="";
     _lookup.insert(&_nicenessOption);
 
-    _nongoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
-    _nongoalWeightCoefficient.description=
+    _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
+    _nonGoalWeightCoefficient.description=
              "coefficient that will multiply the weight of theory clauses (those marked as 'axiom' in TPTP)";
-    _lookup.insert(&_nongoalWeightCoefficient);
+    _lookup.insert(&_nonGoalWeightCoefficient);
 
     _nonliteralsInClauseWeight = BoolOptionValue("nonliterals_in_clause_weight","nicw",false);
     _nonliteralsInClauseWeight.description=
@@ -549,7 +549,7 @@ Options::Options ()
     _lookup.insert(&_predicateIndexIntroduction);
 
     _printClausifierPremises = BoolOptionValue("print_clausifier_premises","",false);
-    _printClausifierPremisesdescription="";
+    _printClausifierPremises.description="";
     _lookup.insert(&_printClausifierPremises);
 
     _problemName = StringOptionValue("problem_name","","");
@@ -790,7 +790,7 @@ Options::Options ()
     _lookup.insert(&_ssplittingFlushQuotient);
 
     _ssplittingNonsplittableComponents = ChoiceOptionValue<SSplittingNonsplittableComponents>("ssplitting_nonsplittable_components","ssnc",
-                                                                                              SSplittingNonSplittableComponents::KNOWN,
+                                                                                              SSplittingNonsplittableComponents::KNOWN,
                                                                                               {"all","all_dependent","known","none"});
     _ssplittingNonsplittableComponents.description=
              "known .. SAT clauses will be learnt from non-splittable clauses that have corresponding components (if there is a component C with name SAT l, clause C | {l1,..ln} will give SAT clause ~l1 \\/ … \\/ ~ln \\/ l). When we add the sat clause, we discard the original FO clause C | {l1,..ln} and let the component selection update model, possibly adding the component clause C | {l}. all .. like known, except when we see a non-splittable clause that doesn't have a name, we introduce the name for it. all_dependent .. like all, but we don't introduce names for non-splittable clauses that don't depend on any components";
@@ -905,7 +905,7 @@ void Options::set(const char* name,const char* value)
 
   try {
     if(!_lookup.findLong(name)->set(value)){
-      USER_ERROR((string)name + " is not a valid option, or has been given an invalid value");
+      USER_ERROR((string)name + " has been given an invalid value");
     }
   }
   catch (const ValueNotFoundException&) {
@@ -939,7 +939,7 @@ void Options::setShort(const char* name,const char* value)
 
   try {
     if(!_lookup.findShort(name)->set(value)){
-      USER_ERROR((string)name + " is not a valid option, or has been given an invalid value");
+      USER_ERROR((string)name + " has been given an invalid value");
     }
   }
   catch (const ValueNotFoundException&) {
@@ -949,37 +949,6 @@ void Options::setShort(const char* name,const char* value)
   }
 } // Options::setShort
 
-/**
- * Convert the string onOff to a boolean value. If onOff is not one
- * of "on" or "off", then raise a user error exception.
- * @since 15/11/2004 Manchester
- * @since 18/01/2014 Manchester, changed to use _ignoreMissing for the splitting option
- * @since 31/07/2014 Manchester, allow true for on and false for off
- * @author Andrei Voronkov
- * TODO remove function
- */
-bool Options::onOffToBool (const char* onOff,const char* option)
-{
-  CALL("Options::onOffToBool");
-
-
-  if (! strcmp(onOff,"on") || ! strcmp(onOff,"true")) {
-    return true;
-  }
-  if (! strcmp(onOff,"off") || ! strcmp(onOff,"false")) {
-    return false;
-  }
-  //TODO hopefully remove the need for this
-  if (_ignoreMissing.actualValue) {
-    if (!strcmp(option,"splitting") || !strcmp(option,"spl")) {
-      if (! strcmp(onOff,"sat")) {
-	return true;
-      }
-    }
-  }
-  
-  USER_ERROR((vstring)"wrong value for " + option + ": " + onOff);
-} // Options::onOffToBool
 
 /**
  * Convert a boolean value to the corresponding string "on"/"off"
@@ -1168,11 +1137,11 @@ void Options::output (ostream& str) const
 {
   CALL("Options::output");
 
-  if(showOptions() != OptionTag::OFF_TAG){
+  if(showOptions() != OptionTag::OFF){
     str << "=========== Options ==========\n";
-    //bool experimental = showExperimentalOptions();
-    //for (int i = 0;i < Constants::optionNames.length;i++) {
-      //Stack<OptionTag>::Iterator tags(Constants::optionNames[i].tags);
+    bool experimental = showExperimentalOptions();
+    for (int i = 0;i < Constants::optionNames.length;i++) {
+      Stack<OptionTag>::Iterator tags(Constants::optionNames[i].tags);
       //while(tags.hasNext()){
         //OptionTag this_tag = tags.next();
         //if(showOptions() == GLOBAL_TAG || this_tag == GLOBAL_TAG || this_tag == showOptions()){
@@ -1181,7 +1150,7 @@ void Options::output (ostream& str) const
        //   }
       //  }
      // }
-    //}
+    }
     str << "======= End of options =======\n";
   }
   if(showHelp()){
@@ -1565,26 +1534,23 @@ vstring Options::generateTestId() const
   //Initially contains current values. The values that we have output
   //as short options we set to default.
   Options cur=*this;
-  //TODO fix the following commented code
-  //bool first=true;
-/*
-  static Set<Tag> forbidden;
+  bool first=true;
+  static Set<AbstractOptionValue> forbidden;
   //we initialize the set if there's nothing inside
   if (forbidden.size()==0) {
     //things we output elsewhere
-    forbidden.insert(SATURATION_ALGORITHM);
-    forbidden.insert(SELECTION);
-    forbidden.insert(AGE_WEIGHT_RATIO);
-    forbidden.insert(TIME_LIMIT);
+    forbidden.insert(_saturationAlgorithm);
+    forbidden.insert(_selected);
+    forbidden.insert(_ageWeightRatio);
+    forbidden.insert(_timeLimit);
 
     //things we don't want to output
-    forbidden.insert(MODE);
-    forbidden.insert(TEST_ID);
-    forbidden.insert(INCLUDE);
-    forbidden.insert(PROBLEM_NAME);
-    forbidden.insert(INPUT_FILE);
+    forbidden.insert(_mode);
+    forbidden.insert(_testId);
+    forbidden.insert(_include);
+    forbidden.insert(_problemName);
+    forbidden.insert(_inputFile);
   }
-*/
   cout << "generateTestId currently brokend" << endl; //TODO fix
   ASSERTION_VIOLATION;
 /*

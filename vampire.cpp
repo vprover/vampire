@@ -85,7 +85,7 @@ using namespace Solving;
 #include "Lib/MemoryLeak.hpp"
 #endif
 
-#define SPIDER 0
+#define USE_SPIDER 0
 #define SAVE_SPIDER_PROPERTIES 0
 
 using namespace Shell;
@@ -705,7 +705,7 @@ int main(int argc, char* argv[])
     cl.interpret(*env.options);
 
 
-    if (env.options->showHelp() || env.options->showOptions()) {
+    if (env.options->showHelp() || env.options->showOptions() != Options::OptionTag::OFF) {
       env.beginOutput();
       env.options->output(env.out());
       env.endOutput();
