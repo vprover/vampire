@@ -32,7 +32,7 @@ SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& op
 		MainLoopContext(prb, opts) {
 	CALL("SaturationAlgorithmContext::SaturationAlgorithmContext");
 
-	AutoSwitch(this);
+	AutoSwitch s(this);
 	SaturationAlgorithm* sa = SaturationAlgorithm::createFromOptions(*_prb, opts);
 	_ml = sa;
 	_splitter = static_cast<SSplitter*>(sa -> splitter());//[dmitry] TODO: Merge Splitter and SSplitter and remove this cast
@@ -51,6 +51,7 @@ SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& op
 SaturationAlgorithmContext::~SaturationAlgorithmContext() {
 	CALL("SaturationAlgorithmContext::~SaturationAlgorithmContext");
 
+	AutoSwitch s(this);
 	delete _ml;
 }
 
