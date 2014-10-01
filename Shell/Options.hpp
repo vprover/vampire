@@ -7,6 +7,7 @@
 #define __Options__
 
 #include <cstring> 
+#include <sstream>
 
 #include "Forwards.hpp"
 
@@ -14,6 +15,7 @@
 
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/NameArray.hpp"
 #include "Lib/Allocator.hpp"
@@ -37,19 +39,23 @@ class Options
 public:
 
     Options ();
+    // used to print help and options
     void output (ostream&) const;
+
+    // for use in testing 
     void readFromTestId (vstring testId);
     void readOptionsString (vstring testId);
     vstring generateTestId() const;
+
+    // deal with completeness
     bool complete(const Problem&) const;
     bool completeForNNE() const;
+    void forceIncompleteness() { _forceIncompleteness.actualValue=true; }
+
+    // deal with options constraints
     void setForcedOptionValues();
-    void setInputFile(const vstring& newVal);
     void checkGlobalOptionConstraints() const;
     
-    void forceIncompleteness() { _forceIncompleteness.actualValue=true; }
-    
-    static int readTimeLimit(const char* val);
     /**
      * Return the problem name
      *
@@ -61,29 +67,17 @@ public:
     vstring problemName () const { return _problemName.actualValue; }
     void setProblemName(vstring str) { _problemName.actualValue = str; }
     
+    void setInputFile(const string& newVal){ _inputFile.set(newVal); }
+    string includeFileName (const string& relativeName);
+
     CLASS_NAME(Options);
     USE_ALLOCATOR(Options);
     
-    /** first is option name, second option value */
-    typedef pair<vstring, vstring> OptionSpec;
-    typedef Stack<OptionSpec> OptionSpecStack;
-    static void readOptionsString(vstring testId, OptionSpecStack& assignments);
-    
-    bool onOffToBool(const char* onOff,const char* option);
-    
     // standard ways of creating options
-    XMLElement toXML() const;
-    bool outputSuppressed() const;
     void set(const vstring& name, const vstring& value);
     void set(const char* name, const char* value);
     void setShort(const char* name, const char* value);
     
-private:
-    void set(const char* name, const char* value, int index);
-    
-    static string boolToOnOff(bool);
-    void outputValue(ostream& str,int optionTag) const;
-    friend class Shell::LTB::Builder;
 
     
 public:
@@ -156,15 +150,22 @@ public:
   };
 
  /**
-  * Possible values for show_option
+  * Possible tags to group options by 
+  * Update _tagNames at the end of Options constructor if you add a tag
   * @author Giles
   */
   enum class OptionTag: unsigned int {
-    BP,
-    OFF,
-    GLOBAL,
-    VAMPIRE
+    OUTPUT,
+    TABULATION,
+    INST_GEN,
+    SAT,
+    AVATAR,
+    INFERENCES,
+    SATURATION,
+    PREPROCESSING,
+    LAST_TAG // Used for counting the number of tags
   };
+  // update _tagNames at the end of Options constructor if you add a tag
 
   /**
    * Possible values for mode_name.
@@ -192,6 +193,23 @@ public:
     SPIDER,
     VAMPIRE
 };
+
+/*
+  enum class Selection : unsigned int {
+    TOTAL,
+    MAXIMAL,
+    TWO,
+    THREE,
+    FOUR,
+    TEN,
+    LOOKAHEAD,
+    BEST_TWO,
+    BEST_THREE,
+    BEST_FOUR,
+    BEST_TEN,
+    BEST_LOOKAHED
+  }
+*/
 
   /** Various options for the output of statistics in Vampire */
   enum class Statistics : unsigned int {
@@ -386,7 +404,6 @@ public:
   Proof proof() const { return _proof.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
-  bool setNaming(int newVal);
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   bool eprPreservingNaming() const { return _eprPreservingNaming.actualValue; }
   //void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
@@ -412,11 +429,11 @@ public:
   bool aigFormulaSharing() const { return _aigFormulaSharing.actualValue; }
   bool aigInliner() const { return _aigInliner.actualValue; }
   Mode mode() const { return _mode.actualValue; }
-  //void setMode(Mode newVal); // warning - code put into setForcedOptions
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   //void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
   bool normalize() const { return _normalize.actualValue; }
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
+  void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
   vstring include() const { return _include.actualValue; }
   //void setInclude(string val) { _include = val; }
   vstring includeFileName (const string& relativeName);
@@ -434,7 +451,7 @@ public:
   bool showNewPropositional() const { return _showNewPropositional.actualValue; }
   bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace.actualValue; }
   //void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace = newVal; }
-  OptionTag showOptions() const { return _showOptions.actualValue; }
+  bool showOptions() const { return _showOptions.actualValue; }
   bool showExperimentalOptions() const { return _showExperimentalOptions.actualValue; }
   bool showHelp() const { return _showHelp.actualValue; }
   bool showPassive() const { return _showPassive.actualValue; }
@@ -451,8 +468,6 @@ public:
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.actualValue; }
   void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm.actualValue = newVal; }
   int selection() const { return _selection.actualValue; }
-  bool setSelection(int newValue);
-  bool setInstGenSelection(int newValue);
   vstring latexOutput() const { return _latexOutput.actualValue; }
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.actualValue; }
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution.actualValue; }
@@ -476,7 +491,6 @@ public:
   vstring lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants.actualValue; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
-  bool setLrsFirstTimeCheck(int newVal);
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
   int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
@@ -627,11 +641,7 @@ private:
     //==========================================================
 
     /**
-     * Allows us to give a variable number of option values
-     * This is a bit of a hack, and a nicer solution would be to have a variable argument
-     * constructor. But this is simpler, in some senses.
-     *
-     * Note: It may be necessary to add a new constructor
+     * TODO: this uses a linear search, for alternative see NameArray 
      *
      * @author Giles
      * @since 30/07/14
@@ -640,62 +650,95 @@ private:
         
         OptionValues(){ };
         OptionValues(std::initializer_list<string> list){
-          _len = list.size();
-          _array = new const char*[_len];
-          unsigned i = 0;
           for(std::initializer_list<string>::iterator it = list.begin();
               it!=list.end();++it){
-            _array[i++]=(*it).c_str();
+              names.push(*it);
+              ASS((*it).size()<70); // or else cannot be printed on a line
           }
-          na = new NameArray(_array,_len);
         }
 
-        int find(const char* value) const {
-          ASS(na);
-          return na->find(value);
+        unsigned find(string value) const {
+          for(unsigned i=0;i<names.length();i++){
+             if(value.compare(names[i])==0) return i;
+          }
+          throw ValueNotFoundException();
         }
+        const int length() const { return names.length(); }
+        const string operator[](int i) const{ return names[i];}
 
     private:
-        const char**  _array;
-        int _len;
-        NameArray* na;
+      Stack<string> names;
     };
     
     struct AbstractOptionValue{
 
         AbstractOptionValue(){}
         AbstractOptionValue(string l,string s) :
-          longName(l), shortName(s), experimental(false) {}
+          longName(l), shortName(s), experimental(false), _tag(OptionTag::LAST_TAG) {}
 
-        virtual void check() = 0;
         virtual bool set(const string& value) = 0;
 
         string longName;
         string shortName;
         string description;
         bool experimental;
+
+// This is a hacky way of allowing the default constructor to assign default values to everything
+// whilst ensuring that all option values are created in the constructor. This check method is
+// called at the end of the Options constructor
+#if VDEBUG
+        void check(){ if(longName.empty()){ ASSERTION_VIOLATION;} }
+#endif        
+
+       void tag(OptionTag tag){ ASS(_tag==OptionTag::LAST_TAG);_tag=tag; }
+       void tag(Mode mode){ _modes.push(mode); }
+       
+       OptionTag getTag(){ return _tag;}
+       bool inMode(Mode mode){
+         if(_modes.isEmpty()) return true;
+         else return _modes.find(mode);
+       }
+
+       virtual void output(stringstream& out) const {
+         out << "--" << longName;
+         if(!shortName.empty()){ out << " (-"<<shortName<<")"; }
+         out << endl; 
+
+         if(!description.empty()){
+           // Break a the description into lines where there have been at least 70 characters
+           // on the line at the next space
+           out << "\t";
+           int count=0;
+           for(const char* p = description.c_str();*p;p++){
+             out << *p; 
+             count++;
+             if(count>70 && *p==' '){
+               out << endl << '\t';
+               count=0;
+             }
+             if(*p=='\n'){ count=0; out << '\t'; }
+           }
+           out << endl;
+         }
+         else{ out << "\tno description provided!" << endl; }
+       }
+
+    private:
+      OptionTag _tag;
+      Lib::Stack<Mode> _modes;
+
     };
     
-// Dangerous as we do not necessarily instantiate... default constructor is called giving
-// default values to contents, then we assign. Want mechanism to ensure everything is set.
-// However, don't want to have to create in init list of Options
     template<typename T>
     struct OptionValue : public AbstractOptionValue {
         OptionValue(){}
         OptionValue(vstring l, vstring s,T def) : AbstractOptionValue(l,s), 
           defaultValue(def), actualValue(def) {}
 
-
         T defaultValue;
         T actualValue;
-
-        virtual bool set(const vstring& value) = 0;
-        
-#if VDEBUG
-        void check(){ if(longName.empty()){ ASSERTION_VIOLATION;} }
-#endif        
-
     };
+
 
     template<typename T>
     struct ChoiceOptionValue : public OptionValue<T> {
@@ -711,6 +754,35 @@ private:
         return true;
       }
 
+      virtual void output(stringstream& out) const {
+        AbstractOptionValue::output(out);
+        out << this->longName << " repeated"<< endl;
+        out << "\tdefault: " << choices[static_cast<int>(this->defaultValue)];
+        out << endl;
+        string values_header = "values: ";
+        out << "\t" << values_header;
+        // Again we restrict line length to 70 characters
+        int count=0;
+        for(int i=0;i<choices.length();i++){
+          if(i==0){
+            out << choices[i];
+          }
+          else{
+            out << ","; 
+            string next = choices[i];
+            if(next.size()+count>60){ // next.size() will be <70, how big is a tab?
+              out << endl << "\t";
+              for(unsigned j=0;j<values_header.size();j++){out << " ";}
+              count = 0;
+            }
+            out << next;
+            count += next.size();
+          }
+        }
+        out << endl;
+      }
+
+    private:
       OptionValues choices;
     };
 
@@ -730,6 +802,10 @@ private:
           
         return true;
       }
+        virtual void output(stringstream& out) const {
+            AbstractOptionValue::output(out);
+            out << "\tdefault: " << (defaultValue ? "on" : "off") << endl;
+        }
     };
 
     struct IntOptionValue : public OptionValue<int> {
@@ -738,6 +814,10 @@ private:
       bool set(const vstring& value){
         return Int::stringToInt(value.c_str(),actualValue);
       }
+        virtual void output(stringstream& out) const {
+            AbstractOptionValue::output(out);
+            out << "\tdefault: " << defaultValue << endl;
+        }
     };
 
     struct UnsignedOptionValue : public OptionValue<unsigned> {
@@ -746,12 +826,23 @@ private:
       bool set(const vstring& value){
         return Int::stringToUnsignedInt(value.c_str(),actualValue);
       }
+        virtual void output(stringstream& out) const {
+            AbstractOptionValue::output(out);
+            out << "\tdefault: " << defaultValue << endl;
+        }
     }; 
 
     struct StringOptionValue : public OptionValue<vstring> {
       StringOptionValue(){}
       StringOptionValue(vstring l,vstring s, vstring d) : OptionValue(l,s,d){} 
       bool set(const vstring& value){ actualValue = value; return true; }
+        virtual void output(stringstream& out) const {
+            AbstractOptionValue::output(out);
+            out << "\tdefault: ";
+            if(defaultValue.empty()){ out << "<empty>";}
+            else{ out << defaultValue;}
+            out << endl;
+        }
     }; 
 
     struct LongOptionValue : public OptionValue<long> {
@@ -760,6 +851,10 @@ private:
       bool set(const vstring& value){
         return Int::stringToLong(value.c_str(),actualValue);
       }
+        virtual void output(stringstream& out) const {
+            AbstractOptionValue::output(out);
+            out << "\tdefault: " << defaultValue << endl;
+        }
     };
 
     struct FloatOptionValue : public OptionValue<float>{
@@ -768,6 +863,10 @@ private:
       bool set(const vstring& value){
         return Int::stringToFloat(value.c_str(),actualValue);
       }
+        virtual void output(stringstream& out) const {
+            AbstractOptionValue::output(out);
+            out << "\tdefault: " << defaultValue << endl;
+        }
     };
  
     struct RatioOptionValue : public OptionValue<int> {
@@ -785,8 +884,73 @@ private:
         char sep = 0;
         int defaultOtherValue;
         int otherValue;
+
+        virtual void output(stringstream& out) const {
+          AbstractOptionValue::output(out);
+          out << "\tdefault left: " << defaultValue << endl;
+          out << "\tdefault right: " << defaultOtherValue << endl;
+        }
+
+    };
+    
+    struct NonGoalWeightOptionValue : public OptionValue<float>{
+        NonGoalWeightOptionValue(){}
+        NonGoalWeightOptionValue(string l, string s, float def) :
+        OptionValue(l,s,def), numerator(1), denominator(1) {};
+        
+        bool set(const string& value);
+        
+        virtual void output(stringstream& out) const {
+            AbstractOptionValue::output(out);
+            out << "\tdefault: " << defaultValue << endl;;
+        }
+        int numerator;
+        int denominator;
+    };
+    
+    // Feels like it should be an enum
+    struct SelectionOptionValue : public OptionValue<int>{
+        SelectionOptionValue(){}
+        SelectionOptionValue(string l,string s, int def):
+        OptionValue(l,s,def){};
+        
+        bool set(const string& value);
+        
+        virtual void output(stringstream& out) const {
+            AbstractOptionValue::output(out);
+            out << "\tdefault: " << defaultValue << endl;;
+        }
+    };
+    
+    struct InputFileOptionValue : public OptionValue<string>{
+        InputFileOptionValue(){}
+        InputFileOptionValue(string l,string s, string def,Options* p):
+        OptionValue(l,s,def), parent(p){};
+        
+        bool set(const string& value);
+        
+        virtual void output(stringstream& out) const {
+            AbstractOptionValue::output(out);
+            out << "\tdefault: " << defaultValue << endl;;
+        }
+    private:
+      Options* parent;
+ 
     };
    
+    struct TimeLimitOptionValue : public OptionValue<int>{
+        TimeLimitOptionValue(){}
+        TimeLimitOptionValue(string l, string s, float def) :
+        OptionValue(l,s,def) {};
+        
+        bool set(const string& value);
+        
+        virtual void output(stringstream& out) const {
+            AbstractOptionValue::output(out);
+            out << "\tdefault: " << defaultValue << endl;;
+        }
+    };
+    
     struct LookupWrapper {
         
         LookupWrapper() : _copied(false) {}
@@ -797,16 +961,21 @@ private:
         } 
 
         void insert(AbstractOptionValue* option_value){
+            CALL("LookupWrapper::insert");
             ASS(!_copied);
             _longMap.insert(option_value->longName,option_value);
             _shortMap.insert(option_value->shortName,option_value);
         }
         AbstractOptionValue* findLong(vstring longName){
+            CALL("LookupWrapper::findLong");
             ASS(!_copied);
+            if(!_longMap.find(longName)){ throw ValueNotFoundException(); }
             return _longMap.get(longName);
         }
         AbstractOptionValue* findShort(vstring shortName){
+            CALL("LookupWrapper::findShort");
             ASS(!_copied);
+            if(!_shortMap.find(shortName)){ throw ValueNotFoundException(); }
             return _shortMap.get(shortName);
         }
 
@@ -817,9 +986,8 @@ private:
         }
 #endif
 
-        VirtualIterator<AbstractOptionValue*> values() { 
-         //TODO implement values() in DHMap
-         return _longMap.values();
+        VirtualIterator<AbstractOptionValue*> values() const { 
+         return _longMap.range();
         } 
 
         private:
@@ -903,7 +1071,6 @@ private:
    */
   BoolOptionValue _increasedNumeralWeight;
   IntOptionValue _inequalitySplitting;
-  StringOptionValue _inputFile;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
   FloatOptionValue _instGenBigRestartRatio;
   BoolOptionValue _instGenInprocessing;
@@ -912,7 +1079,6 @@ private:
   //IntOptionValue _instGenResolutionRatioResolution;
   IntOptionValue _instGenRestartPeriod;
   FloatOptionValue _instGenRestartPeriodQuotient;
-  IntOptionValue _instGenSelection;
   BoolOptionValue _instGenWithResolution;
   BoolOptionValue _interpretedSimplification;
 
@@ -975,7 +1141,6 @@ private:
   ChoiceOptionValue<SatVarSelector> _satVarSelector;
   ChoiceOptionValue<SatSolver> _satSolver;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
-  IntOptionValue _selection;
   BoolOptionValue _selectUnusedVariablesFirst;
   BoolOptionValue _showActive;
   BoolOptionValue _showBlocked;
@@ -984,7 +1149,7 @@ private:
   BoolOptionValue _showNew;
   BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;
-  ChoiceOptionValue<OptionTag> _showOptions;
+  BoolOptionValue _showOptions;
   BoolOptionValue _showExperimentalOptions;
   BoolOptionValue _showHelp;
   BoolOptionValue _showPassive;
@@ -992,7 +1157,7 @@ private:
   BoolOptionValue _showSkolemisations;
   BoolOptionValue _showSymbolElimination;
   BoolOptionValue _showTheoryAxioms;
-  IntOptionValue _simulatedTimeLimit;
+  TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
   ChoiceOptionValue<SineSelection> _sineSelection;
@@ -1026,7 +1191,7 @@ private:
   StringOptionValue _thanks;
   BoolOptionValue _theoryAxioms;
   /** Time limit in deciseconds */
-  IntOptionValue _timeLimitInDeciseconds;
+  TimeLimitOptionValue _timeLimitInDeciseconds;
   BoolOptionValue _timeStatistics;
   BoolOptionValue _trivialPredicateRemoval;
 
@@ -1038,38 +1203,18 @@ private:
   IntOptionValue _whileNumber;
 
   StringOptionValue _xmlOutput;
->>>>>>> Changing the way we do options
 
-  // Taken from what was previously setNongoalWeightCoefficient
-  struct NonGoalWeightOptionValue : public OptionValue<float>{
-        NonGoalWeightOptionValue(){}
-        NonGoalWeightOptionValue(vstring l, vstring s, float def) :
-        OptionValue(l,s,def), numerator(1), denominator(1) {};
-        
+  OptionValues _tagNames;
 
-        bool set(const vstring& value){
-            
-            float newValue;
-            if(!Int::stringToFloat(value.c_str(),newValue)) return false;
-            
-            if(newValue <= 0.0) return false;
-            
-            actualValue=newValue;
-            
-            // actualValue contains numerator
-            numerator=static_cast<int>(newValue*100);
-            // otherValue contains denominator
-            denominator=100;
-            
-            return true;
-        }
-      
-        int numerator;
-        int denominator;
-    };
-    
   NonGoalWeightOptionValue _nonGoalWeightCoefficient;
+
+  SelectionOptionValue _selection;
+  SelectionOptionValue _instGenSelection;
     
+
+
+  InputFileOptionValue _inputFile;
+
     
 }; // class Options
 

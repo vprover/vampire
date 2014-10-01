@@ -722,12 +722,34 @@ private:
   private:
     IteratorBase _base;
   }; // class DHMap::DomainIteratorCore
+    
+    class RangeIteratorCore
+    : public IteratorCore<Val> {
+    public:
+        /** Create a new iterator */
+        inline RangeIteratorCore(const DHMap& map) : _base(map) {}
+        /** True if there exists next element */
+        inline bool hasNext() { return _base.hasNext(); }
+        
+        /**
+         * Return the next key
+         * @warning hasNext() must have been called before
+         */
+        inline Val next() { return _base.next()->_val; }
+    private:
+        IteratorBase _base;
+    }; // class DHMap::RangeIteratorCore
+    
 public:
   VirtualIterator<Key> domain() const
   {
     return VirtualIterator<Key>(new DomainIteratorCore(*this));
   }
-
+  VirtualIterator<Val> range() const
+  {
+    return VirtualIterator<Val>(new RangeIteratorCore(*this));
+  }
+    
   typedef std::pair<Key,Val> Item;
 
 private:

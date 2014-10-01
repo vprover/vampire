@@ -705,7 +705,7 @@ int main(int argc, char* argv[])
     cl.interpret(*env.options);
 
 
-    if (env.options->showHelp() || env.options->showOptions() != Options::OptionTag::OFF) {
+    if (env.options->showHelp() || env.options->showOptions()) {
       env.beginOutput();
       env.options->output(env.out());
       env.endOutput();

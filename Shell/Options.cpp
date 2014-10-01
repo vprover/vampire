@@ -36,6 +36,10 @@ using namespace Shell;
 /**
  * Initialize options to the default values.
  *
+ *
+ * Options are divided by the mode they are applicable to. We then divid by tags where appropriate.
+ * If an option is applicable to multiple modes but is not global it is put in the most obvious mode - usually Vampire.
+ *
  * @since 10/07/2003 Manchester, _normalize added
  */
 Options::Options ()
@@ -49,42 +53,417 @@ Options::Options ()
     _bpCollapsingPropagation = BoolOptionValue("bp_collapsing_propagation","",false);
     _backjumpTargetIsDecisionPoint = BoolOptionValue("backjump_target_is_decision_point","",true);
     
-    _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1);
-    _ageWeightRatio.description=
-             "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age"
-             "there will be w selected based on weight.";
-    _lookup.insert(&_ageWeightRatio);
+//**********************************************************************
+//*********************** GLOBAL, for all modes  ***********************
+//**********************************************************************
+    
+    _memoryLimit = UnsignedOptionValue("memory_limit","m",
+#if VDEBUG
+                                       1000
+#else
+                                       3000
+#endif
+                                       );
+    _memoryLimit.description="Memory limit in MB";
+    _lookup.insert(&_memoryLimit);
+    
+    _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
+                                    {"axiom_selection","bpa","casc","casc_epr",
+                                        "casc_ltb","casc_mzr","casc_sat","clausify",
+                                        "consequence_elimination","grounding",
+                                        "ltb_build","ltb_solve","output","preprocess",
+                                        "profile","program_analysis","sat_solver",
+                                        "spider","vampire"});
+    _mode.description=
+    "consequence_elimination mode forces values of unused_predicate_definition_removal and propositional_to_bdd to be off";
+    _lookup.insert(&_mode);
+    
+    _decode = StringOptionValue("decode","","");
+    _decode.description="";
+    _lookup.insert(&_decode);
+    
+    _forbiddenOptions = StringOptionValue("forbidden_options","","");
+    _forbiddenOptions.description=
+    "If some of the specified options are set to a forbidden state, vampire will fail to start, or in the CASC mode it will skip such strategies.";
+    _lookup.insert(&_forbiddenOptions);
+    
+    _forcedOptions = StringOptionValue("forced_options","","");
+    _forcedOptions.description=
+    "Options in the format <opt1>=<val1>:<opt2>=<val2>:...:<optn>=<valN> that override the option values set by other means (also inside CASC mode strategies)";
+    _lookup.insert(&_forcedOptions);
+    
+    _showHelp = BoolOptionValue("help","h",false);
+    _showHelp.description="display this help";
+    _lookup.insert(&_showHelp);
+    
+    _showOptions = BoolOptionValue("show_options","",false);
+    _showOptions.description="";
+    _lookup.insert(&_showOptions);
+    
+    _showExperimentalOptions = BoolOptionValue("show_experimental_options","",false);
+    _showExperimentalOptions.description="";
+    _lookup.insert(&_showExperimentalOptions);
+    
+    _ignoreMissing = BoolOptionValue("ignore_missing","",false);
+    _ignoreMissing.description=
+    "Ignore any options that have been removed (useful in CASC mode where this can cause errors)";
+    _lookup.insert(&_ignoreMissing);
+    
+    _include = StringOptionValue("include","","");
+    _include.description="Path prefix for the 'include' TPTP directive";
+    _lookup.insert(&_include);
+    
+    _inputFile= InputFileOptionValue("input_file","","",this);
+    _inputFile.description="Problem file to be solved (if not specified, standard input is used)";
+    _lookup.insert(&_inputFile);
+    
+    _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",
+                                                 //in case we compile vampire with bpa, then the default input syntax is smtlib
+#if !GNUMP
+                                                 InputSyntax::TPTP,
+#else
+                                                 InputSyntax::SMTLIB,
+#endif
+                                                 {"simplify","smtlib","smtlib2","tptp","xhuman","xmps","xnetlib"});
+    _inputSyntax.description="";
+    _lookup.insert(&_inputSyntax);
+    
+    _namePrefix = StringOptionValue("name_prefix","","");
+    _namePrefix.description=
+    "Prefix for symbols introduced by Vampire (BDD-related propositional predicates, naming predicates, Skolem functions)";
+    _lookup.insert(&_namePrefix);
+    
+    _problemName = StringOptionValue("problem_name","","");
+    _problemName.description="";
+    _lookup.insert(&_problemName);
+    
+    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp"});
+    _proof.description=
+    "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
+    _lookup.insert(&_proof);
+    
+    _proofChecking = BoolOptionValue("proof_checking","",false);
+    _proofChecking.description="";
+    _lookup.insert(&_proofChecking);
+    
+    _protectedPrefix = StringOptionValue("protected_prefix","","");
+    _protectedPrefix.description="Symbols with this prefix are immune against elimination during preprocessing";
+    _lookup.insert(&_protectedPrefix);
+    
+    _statistics = ChoiceOptionValue<Statistics>("statistics","",Statistics::FULL,{"brief","full","none"});
+    _statistics.description="";
+    _lookup.insert(&_statistics);
+    
+    _testId = StringOptionValue("test_id","","unspecified_test");
+    _testId.description="";
+    _lookup.insert(&_testId);
+    
+    _thanks = StringOptionValue("thanks","","Tanya");
+    _thanks.description="";
+    _lookup.insert(&_thanks);
+    
+    _timeLimitInDeciseconds = TimeLimitOptionValue("time_limit","t",600);
+    _timeLimitInDeciseconds.description="Time limit in wall clock seconds";
+    _lookup.insert(&_timeLimitInDeciseconds);
+    
+    _timeStatistics = BoolOptionValue("time_statistics","",false);
+    _timeStatistics.description="Show how much running time was spent in each part of the Vampire";
+    _lookup.insert(&_timeStatistics);
+    
+//*********************** Preprocessing  ***********************
+    
+
     
     _aigBddSweeping = BoolOptionValue("aig_bdd_sweeping","",false);
-    _aigBddSweeping.description="";
+    _aigBddSweeping.description="For a description of these aig options see the paper 'Preprocessing Techniques for First-Order Clausification'. ";
     _lookup.insert(&_aigBddSweeping);
+    _aigBddSweeping.tag(OptionTag::PREPROCESSING);
     
     _aigConditionalRewriting = BoolOptionValue("aig_conditional_rewriting","",false);
     _aigConditionalRewriting.description="";
     _lookup.insert(&_aigConditionalRewriting);
+    _aigConditionalRewriting.tag(OptionTag::PREPROCESSING);
     
     _aigDefinitionIntroduction = BoolOptionValue("aig_definition_introduction","",false);
     _aigDefinitionIntroduction.description="";
     _lookup.insert(&_aigDefinitionIntroduction);
+    _aigDefinitionIntroduction.tag(OptionTag::PREPROCESSING);
     
     _aigDefinitionIntroductionThreshold = UnsignedOptionValue("aig_definition_introduction_threshold","",4);
     _aigDefinitionIntroductionThreshold.description=
                "number of subformula occurrences needed to introduce a name for it (if aig_definition_introduction is enabled)";
     _lookup.insert(&_aigDefinitionIntroductionThreshold);
+    _aigDefinitionIntroductionThreshold.tag(OptionTag::PREPROCESSING);
 
     _aigFormulaSharing = BoolOptionValue("aig_formula_sharing","",false);
     _aigFormulaSharing.description="Detection and sharing of common subformulas using AIG representation";
     _lookup.insert(&_aigFormulaSharing);
+    _aigFormulaSharing.tag(OptionTag::PREPROCESSING);
     
     _aigInliner = BoolOptionValue("aig_inliner","",false);
     _aigInliner.description="";
     _lookup.insert(&_aigInliner);
+    _aigInliner.tag(OptionTag::PREPROCESSING);
     
     _arityCheck = BoolOptionValue("arity_check","",false);
     _arityCheck.description="The same symbol name cannot be used with multiple arities";
     _lookup.insert(&_arityCheck);
+    _arityCheck.tag(OptionTag::PREPROCESSING);
     
-    // backwardTargetIsDecsisionPoint
+    _distinctProcessor = BoolOptionValue("distinct_processor","",false);
+    _distinctProcessor.description="handles $distinct predicates";
+    _lookup.insert(&_distinctProcessor);
+    _distinctProcessor.tag(OptionTag::PREPROCESSING);
+    
+    _eprPreservingNaming = BoolOptionValue("epr_preserving_naming","",false);
+    _eprPreservingNaming.description=
+    "Naming will not cause introduction of any non-constant functions."
+    "The nonconstant functions can be introduced by naming in a name definition when a universal quantifier turns into an existential one and is skolemized.";
+    _lookup.insert(&_eprPreservingNaming);
+    _eprPreservingNaming.tag(OptionTag::PREPROCESSING);
+    
+    _eprPreservingSkolemization= BoolOptionValue("epr_preserving_skolemization","",false);
+    _eprPreservingSkolemization.description="";
+    _lookup.insert(&_eprPreservingSkolemization);
+    _eprPreservingSkolemization.tag(OptionTag::PREPROCESSING);
+    
+    _eprRestoringInlining= BoolOptionValue("epr_restoring_inlining","",false);
+    _eprRestoringInlining.description="";
+    _lookup.insert(&_eprRestoringInlining);
+    _eprRestoringInlining.tag(OptionTag::PREPROCESSING);
+    
+    _equalityPropagation = BoolOptionValue("equality_propagation","",false);
+    _equalityPropagation.description=
+    "propagate equalities in formulas, for example\n"
+    "X=Y => X=f(Y) ---> X=f(X)\n"
+    "Such propagation can simplify formulas early in the preprocessing and so help other preprocessing rules (namely dealing with predicate definitions).";
+    _lookup.insert(&_equalityPropagation);
+    _equalityPropagation.tag(OptionTag::PREPROCESSING);
+    
+    _flattenTopLevelConjunctions = BoolOptionValue("flatten_top_level_conjunctions","",false);
+    _flattenTopLevelConjunctions.description=
+    "split formulas with top-level (up to universal quantification) conjunctions into several formulas";
+    _lookup.insert(&_flattenTopLevelConjunctions);
+    _flattenTopLevelConjunctions.tag(OptionTag::PREPROCESSING);
+    
+    _functionDefinitionElimination = ChoiceOptionValue<FunctionDefinitionElimination>("function_definition_elimination","fde",
+                                                                                      FunctionDefinitionElimination::ALL,{"all","none","unused"});
+    _functionDefinitionElimination.description=
+    "All literals of set-of-support clauses will be selected";
+    _lookup.insert(&_functionDefinitionElimination);
+    _functionDefinitionElimination.tag(OptionTag::PREPROCESSING);
+    
+    _functionNumber = IntOptionValue("function_number","",1);
+    _functionNumber.description="";
+    _lookup.insert(&_functionNumber);
+    _functionNumber.tag(OptionTag::PREPROCESSING);
+    
+    _generalSplitting = ChoiceOptionValue<RuleActivity>("general_splitting","gsp",RuleActivity::OFF,{"input_only","off","on"});
+    _generalSplitting.description=
+    "Preprocessing rule that splits clauses in order to reduce number of different variables in each clause";
+    _lookup.insert(&_generalSplitting);
+    _generalSplitting.tag(OptionTag::PREPROCESSING);
+    
+    _hornRevealing= BoolOptionValue("horn_revealing","",false);
+    _hornRevealing.description=
+    "Preprocessing rule that tries to discover whether polarities of predicates can be changed, so that problem becomes horn. If successful, marks all clauses with a positive literal as axioms, and those with only negatives as conjectures.";
+    _lookup.insert(&_hornRevealing);
+    _hornRevealing.tag(OptionTag::PREPROCESSING);
+    
+    _predicateDefinitionInlining = ChoiceOptionValue<InliningMode>("predicate_definition_inlining","",InliningMode::OFF,
+                                                                   {"axioms_only","non_growwing","off","on"});
+    _predicateDefinitionInlining.description=
+    "Determines whether predicate definitions should be inlined. Non_growing rules out inlinings that would lead to increase in the size of the problem";
+    _lookup.insert(&_predicateDefinitionInlining);
+    _predicateDefinitionInlining.tag(OptionTag::PREPROCESSING);
+    
+    _predicateDefinitionMerging = BoolOptionValue("predicate_definition_merging","",false);
+    _predicateDefinitionMerging.description=
+    "Determines whether predicates with equivalent definitions will be merged into one. Look for pairs of definitions such as\n"
+    "p(X) <=> F[X]\n"
+    "q(X) <=> F[X]\n"
+    "replace the latter by\n"
+    "q(X) <=> p(X)\n"
+    "and use it to eliminate the predicate q(X).";
+    _lookup.insert(&_predicateDefinitionMerging);
+    _predicateDefinitionMerging.tag(OptionTag::PREPROCESSING);
+    
+    _predicateEquivalenceDiscovery = ChoiceOptionValue<PredicateEquivalenceDiscoveryMode>("predicate_equivalence_discovery","",
+                                                                                          PredicateEquivalenceDiscoveryMode::OFF,
+                                                                                          {"all_atoms","all_formulas","definitions","off","on"});
+    _predicateEquivalenceDiscovery.description=
+    "If enabled, SAT solver will be used to discover predicate equivalences during preprocessing. "
+    "if all_atoms, equivalences between all atoms will be searched for. "
+    "if definitions, we'll look only for equivalences in the shape of predicate definitions (this lies somewhere between on and all_atoms). "
+    "if all_formulas, equivalences between all formulas are searched for";
+    _lookup.insert(&_predicateEquivalenceDiscovery);
+    _predicateEquivalenceDiscovery.tag(OptionTag::PREPROCESSING);
+    
+    _predicateEquivalenceDiscoveryAddImplications = BoolOptionValue("predicate_equivalence_discovery_add_implications","",false);
+    _predicateEquivalenceDiscoveryAddImplications.description=
+    "if predicate_equivalence_discovery is enabled, add also discoveder implications, not only equivalences";
+    _lookup.insert(&_predicateEquivalenceDiscoveryAddImplications);
+    _predicateEquivalenceDiscoveryAddImplications.tag(OptionTag::PREPROCESSING);
+    
+    _predicateEquivalenceDiscoveryRandomSimulation = BoolOptionValue("predicate_equivalence_discovery_random_simulation","",true);
+    _predicateEquivalenceDiscoveryRandomSimulation.description=
+    "use random simulation before the simultaneous sat-sweeping to reduce the amount of candidate equivalences";
+    _lookup.insert(&_predicateEquivalenceDiscoveryRandomSimulation);
+    _predicateEquivalenceDiscoveryRandomSimulation.tag(OptionTag::PREPROCESSING);
+    
+    _predicateEquivalenceDiscoverySatConflictLimit = IntOptionValue("predicate_equivalence_discovery_sat_conflict_limit","",-1);
+    _predicateEquivalenceDiscoverySatConflictLimit.description=
+    "Limit on the number of SAT conflicts in each equivalence check. Default is -1 which stands for unlimited, 0 will restrict equivalence discovery to unit propagation. The implicative sat sweeping has an internal conflict count limit which always starts with zero and is increased geometrically until it reaches the limit set by this value";
+    _lookup.insert(&_predicateEquivalenceDiscoverySatConflictLimit);
+    _predicateEquivalenceDiscoverySatConflictLimit.tag(OptionTag::PREPROCESSING);
+    
+    _predicateIndexIntroduction = BoolOptionValue("predicate_index_introduction","",false);
+    _predicateIndexIntroduction.description=
+    "If all atoms of a certain predicate contain distinct constants as a particular argument, atoms of the predicate"
+    " are replaces by set of fresh predicates, one for each of the distinct constants.\n"
+    "E.g. a problem\n"
+    "p(a,b,X,1)\n"
+    "p(a,c,a,2)\n"
+    "will be transformed into\n"
+    "p_a_1(b,X)\n"
+    "p_a_2(c,a)\n"
+    "(second argument is not removed because constants b and c are not necessarily distinct, and third argment is not replaced because it occurs as a variable)";
+    _lookup.insert(&_predicateIndexIntroduction);
+    _predicateIndexIntroduction.tag(OptionTag::PREPROCESSING);
+
+    _unusedPredicateDefinitionRemoval = BoolOptionValue("unused_predicate_definition_removal","updr",true);
+    _unusedPredicateDefinitionRemoval.description="";
+    _lookup.insert(&_unusedPredicateDefinitionRemoval);
+    _unusedPredicateDefinitionRemoval.tag(OptionTag::PREPROCESSING);
+    
+    _trivialPredicateRemoval = BoolOptionValue("trivial_predicate_removal","",false);
+    _trivialPredicateRemoval.description= "remove predicates never occurring only positively or only negatively in a clause";
+    _lookup.insert(&_trivialPredicateRemoval);
+    _trivialPredicateRemoval.tag(OptionTag::PREPROCESSING);
+    
+//*********************** Output  ***********************
+    
+    // how is this used?
+    _logFile = StringOptionValue("log_file","","off");
+    _logFile.description="";
+    _lookup.insert(&_logFile);
+    _logFile.tag(OptionTag::OUTPUT);
+    
+    //used?
+    _xmlOutput = StringOptionValue("xml_output","","off");
+    _xmlOutput.description="";
+    _lookup.insert(&_xmlOutput);
+    _xmlOutput.tag(OptionTag::OUTPUT);
+    
+    //used?
+    _latexOutput = StringOptionValue("latex_output","","off");
+    _latexOutput.description="File that will contain proof in the LaTeX format.";
+    _lookup.insert(&_latexOutput);
+    _latexOutput.tag(OptionTag::OUTPUT);
+    
+    _outputAxiomNames = BoolOptionValue("output_axiom_names","",false);
+    _outputAxiomNames.description="preserve names of axioms from the problem file in the proof output";
+    _lookup.insert(&_outputAxiomNames);
+    _outputAxiomNames.tag(OptionTag::OUTPUT);
+    
+    
+    _printClausifierPremises = BoolOptionValue("print_clausifier_premises","",false);
+    _printClausifierPremises.description="";
+    _lookup.insert(&_printClausifierPremises);
+    _printClausifierPremises.tag(OptionTag::OUTPUT);
+    
+    _showActive = BoolOptionValue("show_active","",false);
+    _showActive.description="";
+    _lookup.insert(&_showActive);
+    _showActive.tag(OptionTag::OUTPUT);
+    
+    _showBlocked = BoolOptionValue("show_blocked","",false);
+    _showBlocked.description="show generating inferences blocked due to coloring of symbols";
+    _lookup.insert(&_showBlocked);
+    _showBlocked.tag(OptionTag::OUTPUT);
+    
+    _showDefinitions = BoolOptionValue("show_definitions","",false);
+    _showDefinitions.description="";
+    _lookup.insert(&_showDefinitions);
+    _showDefinitions.tag(OptionTag::OUTPUT);
+    
+    
+    _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
+                                                          {"minimized","off","on"});
+    _showInterpolant.description="minimized tries to find a nicer interpolant than the default algorithm does";
+    _lookup.insert(&_showInterpolant);
+    _showInterpolant.tag(OptionTag::OUTPUT);
+    
+    _showNew = BoolOptionValue("show_new","",false);
+    _showNew.description="";
+    _lookup.insert(&_showNew);
+    _showNew.tag(OptionTag::OUTPUT);
+    
+    _showNewPropositional = BoolOptionValue("show_new_propositional","",false);
+    _showNewPropositional.description="";
+    _lookup.insert(&_showNewPropositional);
+    _showNewPropositional.tag(OptionTag::OUTPUT);
+    
+    _showNonconstantSkolemFunctionTrace = BoolOptionValue("show_nonconstant_skolem_function_trace","",false);
+    _showNonconstantSkolemFunctionTrace.description="";
+    _lookup.insert(&_showNonconstantSkolemFunctionTrace);
+    _showNonconstantSkolemFunctionTrace.tag(OptionTag::OUTPUT);
+    
+    
+    _showPassive = BoolOptionValue("show_passive","",false);
+    _showPassive.description="";
+    _lookup.insert(&_showPassive);
+    _showPassive.tag(OptionTag::OUTPUT);
+    
+    _showPreprocessing = BoolOptionValue("show_preprocessing","",false);
+    _showPreprocessing.description="";
+    _lookup.insert(&_showPreprocessing);
+    _showPreprocessing.tag(OptionTag::OUTPUT);
+    
+    _showSkolemisations = BoolOptionValue("show_skolemisations","",false);
+    _showSkolemisations.description="";
+    _lookup.insert(&_showSkolemisations);
+    _showSkolemisations.tag(OptionTag::OUTPUT);
+    
+    _showSymbolElimination = BoolOptionValue("show_symbol_elimination","",false);
+    _showSymbolElimination.description="";
+    _lookup.insert(&_showSymbolElimination);
+    _showSymbolElimination.tag(OptionTag::OUTPUT);
+    
+    _showTheoryAxioms = BoolOptionValue("show_theory_axioms","",false);
+    _showTheoryAxioms.description="";
+    _lookup.insert(&_showTheoryAxioms);
+    _showTheoryAxioms.tag(OptionTag::OUTPUT);
+    
+//************************************************************************
+//*********************** VAMPIRE (includes CASC)  ***********************
+//************************************************************************
+    
+//*********************** Saturation  ***********************    
+    
+    _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1);
+    _ageWeightRatio.description=
+    "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age"
+    "there will be w selected based on weight.";
+    _lookup.insert(&_ageWeightRatio);
+    
+    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",0);
+    _lrsFirstTimeCheck.description=
+    "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
+    _lookup.insert(&_lrsFirstTimeCheck);
+    
+    _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","",false);
+    _lrsWeightLimitOnly.description=
+    "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
+    _lookup.insert(&_lrsWeightLimitOnly);
+    
+    _saturationAlgorithm = ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
+                                                                  {"discount","inst_gen","lrs","otter","tabulation"});
+    _saturationAlgorithm.description=
+    "inst_gen and tabulation aren't influenced by options for the saturation algorithm, apart from those mentioned. tabulation is a special goal-oriented mode for large theories. inst_gen is a simple implementation of instantiation calculus - global_subsumption, unit_resulting_resolution and age_weight_ratio are supported";
+    _lookup.insert(&_saturationAlgorithm);
+    
+//*********************** Inferences  ***********************
     
     _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
                                                             Demodulation::ALL,
@@ -108,90 +487,21 @@ Options::Options ()
              "unit_only means that the subsumption resolution will be performed only by unit clauses";
     _lookup.insert(&_backwardSubsumptionResolution);
     
-    _bfnt = BoolOptionValue("bfnt","bfnt",false);
-    _bfnt.description="";
-    _lookup.insert(&_bfnt);
+ 
 
     _binaryResolution = BoolOptionValue("binary_resolution","br",true);
-    _binaryResolution.description="";
+    _binaryResolution.description=
+          "Standard binary resolution i.e.\n"
+              "C \\/ t     D \\/ s\n"
+              "---------------------\n"
+              "(C \\/ D)θ\n"
+              "where θ = mgu(t,-s) and t selected";
     _lookup.insert(&_binaryResolution);
-
-    _bpCollapsingPropagation = BoolOptionValue("bp_add_collapsing_inequalities","",false); // ASSUMED default, wasn't in Options
-    _bpCollapsingPropagation.description="";
-    _lookup.insert(&_bpCollapsingPropagation);
-
-    _bpAllowedFMBalance = UnsignedOptionValue("bp_allowed_fm_balance","",0);
-    _bpAllowedFMBalance.description="";
-    _lookup.insert(&_bpAllowedFMBalance);
-
-    _bpAlmostHalfBoundingRemoval= ChoiceOptionValue<BPAlmostHalfBoundingRemoval>("bp_almost_half_bounding_removal","",
-                                                                                 BPAlmostHalfBoundingRemoval::ON,{"bounds_on","off","on"});
-    _bpAlmostHalfBoundingRemoval.description="";
-    _lookup.insert(&_bpAlmostHalfBoundingRemoval);
-
-    _bpAssignmentSelector = ChoiceOptionValue<BPAssignmentSelector>("bp_assignment_selector","",
-                                                                    BPAssignmentSelector::RANDOM,
-                                                      {"alternating","bmp","lower_bound",
-                                                       "middle","random","rational","smallest",
-                                                       "tight","tightish","upper_bound"});
-    _bpAssignmentSelector.description="";
-    _lookup.insert(&_bpAssignmentSelector);
-    
-    _updatesByOneConstraint= UnsignedOptionValue("bp_bound_improvement_limit","",3);
-    _updatesByOneConstraint.description="";
-    _lookup.insert(&_updatesByOneConstraint);
-
-    _bpConflictSelector = ChoiceOptionValue<BPConflictSelector>("bp_conflict_selector","",
-                                                                BPConflictSelector::MOST_RECENT,{"least_recent","most_recent","shortest"});
-    _bpConflictSelector.description="";
-    _lookup.insert(&_bpConflictSelector);
-
-    _bpConservativeAssignmentSelection = BoolOptionValue("bp_conservative_assignment_selection","",true);
-    _bpConservativeAssignmentSelection.description="";
-    _lookup.insert(&_bpConservativeAssignmentSelection);
-
-    _bpFmElimination= BoolOptionValue("bp_fm_elimination","",true);
-    _bpFmElimination.description="";
-    _lookup.insert(&_bpFmElimination);
-
-    
-    _maximalPropagatedEqualityLength = UnsignedOptionValue("bp_max_prop_length","",5);
-    _maximalPropagatedEqualityLength.description="";
-    _lookup.insert(&_maximalPropagatedEqualityLength);
-
-    _bpPropagateAfterConflict = BoolOptionValue("bp_propagate_after_conflict","",true);
-    _bpPropagateAfterConflict.description="";
-    _lookup.insert(&_bpPropagateAfterConflict);
-
-    _bpStartWithPrecise = BoolOptionValue("bp_start_with_precise","",false);
-    _bpStartWithPrecise.description="";
-    _lookup.insert(&_bpStartWithPrecise);
-
-    _bpStartWithRational = BoolOptionValue("bp_start_with_rational","",false);
-    _bpStartWithRational.description="";
-    _lookup.insert(&_bpStartWithRational);
-
-    _bpVariableSelector = ChoiceOptionValue<BPVariableSelector>("bp_variable_selector","",
-                                                                BPVariableSelector::TIGHTEST_BOUND,
-                                                    {"conflicting","conflicting_and_collapsing",
-                                                     "first","look_ahead","random","recent_collapsing",
-                                                     "recent_conflicting","tightest_bound"});
-    _bpVariableSelector.description="";
-    _lookup.insert(&_bpVariableSelector);
-    
-    _colorUnblocking = BoolOptionValue("color_unblocking","",false);
-    _colorUnblocking.description="";
-    _lookup.insert(&_colorUnblocking);
 
     _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
     _condensation.description=
              "If 'fast' is specified, we only perform condensations that are easy to check for.";
     _lookup.insert(&_condensation);
-
-
-    _decode = StringOptionValue("decode","","");
-    _decode.description="";
-    _lookup.insert(&_decode);
 
     _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
     _demodulationRedundancyCheck.description=
@@ -203,132 +513,261 @@ Options::Options ()
              "where t > t1 and s = t > C (RHS replaced)";
     _lookup.insert(&_demodulationRedundancyCheck);
 
-    _distinctProcessor = BoolOptionValue("distinct_processor","",false);
-    _distinctProcessor.description="handles $distinct predicates";
-    _lookup.insert(&_distinctProcessor);
-
-    _eprPreservingNaming = BoolOptionValue("epr_preserving_naming","",false);
-    _eprPreservingNaming.description=
-             "Naming will not cause introduction of any non-constant functions."
-             "The nonconstant functions can be introduced by naming in a name definition when a universal quantifier turns into an existential one and is skolemized.";
-    _lookup.insert(&_eprPreservingNaming);
-
-    _eprPreservingSkolemization= BoolOptionValue("epr_preserving_skolemization","",false);
-    _eprPreservingSkolemization.description="";
-    _lookup.insert(&_eprPreservingSkolemization);
-
-    _eprRestoringInlining= BoolOptionValue("epr_restoring_inlining","",false);
-    _eprRestoringInlining.description="";
-    _lookup.insert(&_eprRestoringInlining);
-
-    _equalityPropagation = BoolOptionValue("equality_propagation","",false);
-    _equalityPropagation.description=
-             "propagate equalities in formulas, for example\n"
-             "X=Y => X=f(Y) ---> X=f(X)\n"
-             "Such propagation can simplify formulas early in the preprocessing and so help other preprocessing rules (namely dealing with predicate definitions).";
-    _lookup.insert(&_equalityPropagation);
-
     _equalityProxy = ChoiceOptionValue<EqualityProxy>( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"});
     _equalityProxy.description="";
     _lookup.insert(&_equalityProxy);
-
+    
     _equalityResolutionWithDeletion = ChoiceOptionValue<RuleActivity>( "equality_resolution_with_deletion","erd",
                                                                       RuleActivity::INPUT_ONLY,{"input_only","off","on"});
     _equalityResolutionWithDeletion.description="";
     _lookup.insert(&_equalityResolutionWithDeletion);
-
-  
+    
+    
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
     _extensionalityAllowPosEq.description="";
     _lookup.insert(&_extensionalityAllowPosEq);
-
+    
     _extensionalityMaxLength = UnsignedOptionValue("extensionality_max_length","",0);
     _extensionalityMaxLength.description="";
     _lookup.insert(&_extensionalityMaxLength);
-
+    
     _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
                                                                             ExtensionalityResolution::OFF,{"filter","known","off"});
     _extensionalityResolution.description="";
     _lookup.insert(&_extensionalityResolution);
-
-    _flattenTopLevelConjunctions = BoolOptionValue("flatten_top_level_conjunctions","",false);
-    _flattenTopLevelConjunctions.description=
-             "split formulas with top-level (up to universal quantification) conjunctions into several formulas";
-    _lookup.insert(&_flattenTopLevelConjunctions);
-
-    _forbiddenOptions = StringOptionValue("forbidden_options","","");
-    _forbiddenOptions.description=
-             "If some of the specified options are set to a forbidden state, vampire will fail to start, or in the CASC mode it will skip such strategies.";
-    _lookup.insert(&_forbiddenOptions);
-
-    _forcedOptions = StringOptionValue("forced_options","","");
-    _forcedOptions.description=
-             "Options in the format <opt1>=<val1>:<opt2>=<val2>:...:<optn>=<valN> that override the option values set by other means (also inside CASC mode strategies)";
-    _lookup.insert(&_forcedOptions);
     
     _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
     _forwardDemodulation.description=
-             "Oriented rewriting of newly derived clauses by kept unit equalities\n"
-             "s = t     L[sθ] \\/ C\n"
-             "---------------------  where sθ > tθ\n"
-             " L[tθ] \\/ C\n"
-             "If 'preordered' is set, only equalities s = t where s > t are used for rewriting.";
+    "Oriented rewriting of newly derived clauses by kept unit equalities\n"
+    "s = t     L[sθ] \\/ C\n"
+    "---------------------  where sθ > tθ\n"
+    " L[tθ] \\/ C\n"
+    "If 'preordered' is set, only equalities s = t where s > t are used for rewriting.";
     _lookup.insert(&_forwardDemodulation);
-
+    
     _forwardLiteralRewriting = BoolOptionValue("forward_literal_rewriting","flr",false);
     _forwardLiteralRewriting.description="";
     _lookup.insert(&_forwardLiteralRewriting);
-
+    
     _forwardSubsumption = BoolOptionValue("forward_subsumption","fs",true);
     _forwardSubsumption.description="";
     _lookup.insert(&_forwardSubsumption);
-
+    
     _forwardSubsumptionResolution = BoolOptionValue("forward_subsumption_resolution","fsr",true);
     _forwardSubsumptionResolution.description="";
     _lookup.insert(&_forwardSubsumptionResolution);
-
-    _functionDefinitionElimination = ChoiceOptionValue<FunctionDefinitionElimination>("function_definition_elimination","fde",
-                                                                                      FunctionDefinitionElimination::ALL,{"all","none","unused"});
-    _functionDefinitionElimination.description=
-             "All literals of set-of-support clauses will be selected";
-    _lookup.insert(&_functionDefinitionElimination);
-
-    _functionNumber = IntOptionValue("function_number","",1);
-    _functionNumber.description="";
-    _lookup.insert(&_functionNumber);
-
-    _generalSplitting = ChoiceOptionValue<RuleActivity>("general_splitting","gsp",RuleActivity::OFF,{"input_only","off","on"});
-    _generalSplitting.description=
-             "Preprocessing rule that splits clauses in order to reduce number of different variables in each clause";
-    _lookup.insert(&_generalSplitting);
+    
+    _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
+    _hyperSuperposition.description=
+    "Generating inference that attempts to do several rewritings at once if it will eliminate literals of the original clause (now we aim just for elimination by equality resolution)";
+    _lookup.insert(&_hyperSuperposition);
+    
+    _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
+    _unitResultingResolution.description=
+    "uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";
+    _lookup.insert(&_unitResultingResolution);
+    
+    
+    _superpositionFromVariables = BoolOptionValue("superposition_from_variables","sfv",true);
+    _superpositionFromVariables.description="";
+    _lookup.insert(&_superpositionFromVariables);
+    
+//*********************** InstGen  ***********************
 
     _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);
     _globalSubsumption.description="";
     _lookup.insert(&_globalSubsumption);
+    
+    _instGenBigRestartRatio = FloatOptionValue("inst_gen_big_restart_ratio","igbrr",0.0);
+    _instGenBigRestartRatio.description=
+    "determines how often a big restart (instance generation starts from input clauses) will be performed. Small restart means all clauses generated so far are processed again.";
+    _lookup.insert(&_instGenBigRestartRatio);
+    
+    _instGenInprocessing = BoolOptionValue("inst_gen_inprocessing","",false);
+    _instGenInprocessing.description="";
+    _instGenInprocessing.tag(OptionTag::INST_GEN);
+    _lookup.insert(&_instGenInprocessing);
+    
+    _instGenPassiveReactivation = BoolOptionValue("inst_gen_passive_reactivation","",false);
+    _instGenPassiveReactivation.description="";
+    _lookup.insert(&_instGenPassiveReactivation);
+    
+    _instGenResolutionInstGenRatio = RatioOptionValue("inst_gen_resolution_ratio","igrr",1,1);
+    _instGenResolutionInstGenRatio.description=
+    "ratio of resolution and instantiation steps (applies only if inst_gen_with_resolution is on)";
+    _lookup.insert(&_instGenResolutionInstGenRatio);
+    
+    _instGenRestartPeriod = IntOptionValue("inst_gen_restart_period","igrp",1000);
+    _instGenRestartPeriod.description="how many clauses are processed before (small?) restart";
+    _lookup.insert(&_instGenRestartPeriod);
+    
+    _instGenRestartPeriodQuotient = FloatOptionValue("inst_gen_restart_period_quotient","igrpq",1.0);
+    _instGenRestartPeriodQuotient.description="restart period is multiplied by this number after each restart";
+    _lookup.insert(&_instGenRestartPeriodQuotient);
+    
+    _instGenSelection = SelectionOptionValue("inst_gen_selection","igs",0);
+    _instGenSelection.description=
+    "selection function for InstGen. we don't have the functions 11 and 1011 yet (as it would need special treatment for the look-ahead)";
+    _lookup.insert(&_instGenSelection);
+    
+    _instGenWithResolution = BoolOptionValue("inst_gen_with_resolution","igwr",false);
+    _instGenWithResolution.description=
+    "performs instantiation together with resolution (global subsuption index is shared, also clauses generated by the resolution are added to the instance SAT problem)";
+    _lookup.insert(&_instGenWithResolution);
+    
+    _use_dm = BoolOptionValue("use_dismatching","",false);
+    _use_dm.description="";
+    _lookup.insert(&_use_dm);
+    
+    _nicenessOption = ChoiceOptionValue<Niceness>("niceness_option","no",Niceness::NONE,{"average","none","sum","top"});
+    _nicenessOption.description="";
+    _lookup.insert(&_nicenessOption);
+    
+//*********************** AVATAR  ***********************
+    
+    _splitting = BoolOptionValue("splitting","spl",true);
+    _splitting.description="";
+    _lookup.insert(&_splitting);
+    
+    _ssplittingAddComplementary = ChoiceOptionValue<SSplittingAddComplementary>("ssplitting_add_complementary","ssac",
+                                                                                SSplittingAddComplementary::GROUND,{"ground","none"});
+    _ssplittingAddComplementary.description="";
+    _lookup.insert(&_ssplittingAddComplementary);
+    
+    _ssplittingComponentSweeping = ChoiceOptionValue<SSplittingComponentSweeping>("ssplitting_component_sweeping","",
+                                                                                  SSplittingComponentSweeping::ITERATED,
+                                                                                  {"all","iterated","none","only_new"});
+    _ssplittingComponentSweeping.description=
+    "The idea of component selection is described at the top of SSplitter.hpp. The meaning of options is: none .. no sweeping is done. only_new .. after each SAT model update we do sweeping on the newly selected components. all .. after each SAT model update we do sweeping on all selected components iterated .. like all except that we repeat the sweping while some components are being deselected";
+    _lookup.insert(&_ssplittingComponentSweeping);
+    
+    _ssplittingCongruenceClosure = BoolOptionValue("ssplitting_congruence_closure","sscc",false);
+    _ssplittingCongruenceClosure.description="";
+    _lookup.insert(&_ssplittingCongruenceClosure);
+    
+    _ssplittingEagerRemoval = BoolOptionValue("ssplitting_eager_removal","sser",true);
+    _ssplittingEagerRemoval.description="";
+    _lookup.insert(&_ssplittingEagerRemoval);
+    
+    _ssplittingFlushPeriod = UnsignedOptionValue("ssplitting_flush_period","ssfp",0);
+    _ssplittingFlushPeriod.description=
+    "after given number of generated clauses without deriving an empty clause, the splitting component selection is shuffled. If equal to zero, shuffling is never performed.";
+    _lookup.insert(&_ssplittingFlushPeriod);
+    
+    _ssplittingFlushQuotient = FloatOptionValue("ssplitting_flush_quotient","ssfq",1.5);
+    _ssplittingFlushQuotient.description=
+    "after each flush, the ssplitting_flush_period is multiplied by the quotient";
+    _lookup.insert(&_ssplittingFlushQuotient);
+    
+    _ssplittingNonsplittableComponents = ChoiceOptionValue<SSplittingNonsplittableComponents>("ssplitting_nonsplittable_components","ssnc",
+                                                                                              SSplittingNonsplittableComponents::KNOWN,
+                                                                                              {"all","all_dependent","known","none"});
+    _ssplittingNonsplittableComponents.description=
+    "known .. SAT clauses will be learnt from non-splittable clauses that have corresponding components (if there is a component C with name SAT l, clause C | {l1,..ln} will give SAT clause ~l1 \\/ … \\/ ~ln \\/ l). When we add the sat clause, we discard the original FO clause C | {l1,..ln} and let the component selection update model, possibly adding the component clause C | {l}. all .. like known, except when we see a non-splittable clause that doesn't have a name, we introduce the name for it. all_dependent .. like all, but we don't introduce names for non-splittable clauses that don't depend on any components";
+    _lookup.insert(&_ssplittingNonsplittableComponents);
 
-    _showHelp = BoolOptionValue("help","h",false);
-    _showHelp.description="display this help";
-    _lookup.insert(&_showHelp);
-
-    _hornRevealing= BoolOptionValue("horn_revealing","",false);
-    _hornRevealing.description=
-             "Preprocessing rule that tries to discover whether polarities of predicates can be changed, so that problem becomes horn. If successful, marks all clauses with a positive literal as axioms, and those with only negatives as conjectures.";
-    _lookup.insert(&_hornRevealing);
-
-    _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
-    _hyperSuperposition.description=
-             "Generating inference that attempts to do several rewritings at once if it will eliminate literals of the original clause (now we aim just for elimination by equality resolution)";
-    _lookup.insert(&_hyperSuperposition);
-
-    _ignoreMissing = BoolOptionValue("ignore_missing","",false);
-    _ignoreMissing.description=
-             "Ignore any options that have been removed (useful in CASC mode where this can cause errors)";
-    _lookup.insert(&_ignoreMissing);
-
-    _include = StringOptionValue("include","","");
-    _include.description="Path prefix for the 'include' TPTP directive";
-    _lookup.insert(&_include);
-
+    
+//*********************** SAT solver (used in various places)  ***********************
+    
+    _satClauseActivityDecay = FloatOptionValue("sat_clause_activity_decay","",1.001f);
+    _satClauseActivityDecay.description="";
+    _lookup.insert(&_satClauseActivityDecay);
+    
+    _satClauseDisposer = ChoiceOptionValue<SatClauseDisposer>("sat_clause_disposer","",SatClauseDisposer::MINISAT,
+                                                              {"growing","minisat"});
+    _satClauseDisposer.description="";
+    _lookup.insert(&_satClauseDisposer);
+    
+    _satLearntMinimization = BoolOptionValue("sat_learnt_minimization","",true);
+    _satLearntMinimization.description="";
+    _lookup.insert(&_satLearntMinimization);
+    
+    _satLearntSubsumptionResolution = BoolOptionValue("sat_learnt_subsumption_resolution","",true);
+    _satLearntSubsumptionResolution.description="";
+    _lookup.insert(&_satLearntSubsumptionResolution);
+    
+    _satRestartFixedCount = IntOptionValue("sat_restart_fixed_count","",16000);
+    _satRestartFixedCount.description="";
+    _lookup.insert(&_satRestartFixedCount);
+    
+    _satRestartGeometricIncrease = FloatOptionValue("sat_restart_geometric_increase","",1.1);
+    _satRestartGeometricIncrease.description="";
+    _lookup.insert(&_satRestartGeometricIncrease);
+    
+    _satRestartGeometricInit = IntOptionValue("sat_restart_geometric_init","",32);
+    _satRestartGeometricInit.description="";
+    _lookup.insert(&_satRestartGeometricInit);
+    
+    _satRestartLubyFactor = IntOptionValue("sat_restart_luby_factor","",100);
+    _satRestartLubyFactor.description="";
+    _lookup.insert(&_satRestartLubyFactor);
+    
+    _satRestartMinisatIncrease = FloatOptionValue("sat_restart_minisat_increase","",1.1);
+    _satRestartMinisatIncrease.description="";
+    _lookup.insert(&_satRestartMinisatIncrease);
+    
+    _satRestartMinisatInit = IntOptionValue("sat_restart_minisat_init","",100);
+    _satRestartMinisatInit.description="";
+    _lookup.insert(&_satRestartMinisatInit);
+    
+    _satRestartStrategy = ChoiceOptionValue<SatRestartStrategy>("sat_restart_strategy","",SatRestartStrategy::LUBY,
+                                                                {"fixed","geometric","luby","minisat"});
+    _satRestartStrategy.description="";
+    _lookup.insert(&_satRestartStrategy);
+    
+    _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::VAMPIRE,
+                                              {"buf_lingeling","buf_vampire","lingeling","vampire"});
+    _satSolver.description=
+    "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption. The buf options are experimental (they add buffering).";
+    _lookup.insert(&_satSolver);
+    
+    _satVarActivityDecay = FloatOptionValue("sat_var_activity_decay","",1.05f);
+    _satVarActivityDecay.description="";
+    _lookup.insert(&_satVarActivityDecay);
+    
+    _satVarSelector = ChoiceOptionValue<SatVarSelector>("sat_var_selector","svs",SatVarSelector::ACTIVE,
+                                                        {"active","niceness","recently_learnt"});
+    _satVarSelector.description="";
+    _lookup.insert(&_satVarSelector);
+    
+ //*********************** Tabulation  ***********************
+    
+    _tabulationBwRuleSubsumptionResolutionByLemmas = BoolOptionValue("tabulation_bw_rule_subsumption_resolution_by_lemmas","tbsr",true);
+    _tabulationBwRuleSubsumptionResolutionByLemmas.description="";
+    _lookup.insert(&_tabulationBwRuleSubsumptionResolutionByLemmas);
+    
+    _tabulationFwRuleSubsumptionResolutionByLemmas = BoolOptionValue("tabulation_fw_rule_subsumption_resolution_by_lemmas","tfsr",true);
+    _tabulationFwRuleSubsumptionResolutionByLemmas.description="";
+    _lookup.insert(&_tabulationFwRuleSubsumptionResolutionByLemmas);
+    
+    _tabulationGoalAgeWeightRatio = RatioOptionValue("tabulation_goal_awr","tgawr",1,1);
+    _tabulationGoalAgeWeightRatio.description=
+    "when saturation algorithm is set to tabulation, this option determines the age-weight ratio for selecting next goal clause to process";
+    _lookup.insert(&_tabulationGoalAgeWeightRatio);
+    
+    _tabulationGoalLemmaRatio = RatioOptionValue("tabulation_goal_lemma_ratio","tglr",1,1);
+    _tabulationGoalLemmaRatio.description=
+    "when saturation algorithm is set to tabulation, this option determines the ratio of processing new goals and lemmas";
+    _lookup.insert(&_tabulationGoalLemmaRatio);
+    
+    _tabulationInstantiateProducingRules = BoolOptionValue("tabulation_instantiate_producing_rules","tipr",true);
+    _tabulationInstantiateProducingRules.description=
+    "when saturation algorithm is set to tabulation, this option determines whether the producing rules will be made of theory clauses (in case it's off), or of their instances got from the substitution unifying them with the goal";
+    _lookup.insert(&_tabulationInstantiateProducingRules);
+    
+    _tabulationLemmaAgeWeightRatio = RatioOptionValue("tabulation_lemma_awr","tlawr",1,1);
+    _tabulationLemmaAgeWeightRatio.description=
+    "when saturation algorithm is set to tabulation, this option determines the age-weight ratio for selecting next lemma to process";
+    _lookup.insert(&_tabulationLemmaAgeWeightRatio);
+    
+    //*************************************************************
+    //*********************** which mode or tag?  ************************
+    //*************************************************************
+    
+    _bfnt = BoolOptionValue("bfnt","bfnt",false);
+    _bfnt.description="";
+    _lookup.insert(&_bfnt);
+    
     _increasedNumeralWeight = BoolOptionValue("increased_numeral_weight","",false);
     _increasedNumeralWeight.description=
              "weight of integer constants depends on the logarithm of their absolute value (instead of being 1)";
@@ -338,69 +777,11 @@ Options::Options ()
     _inequalitySplitting.description="";
     _lookup.insert(&_inequalitySplitting);
 
-    _inputFile= StringOptionValue("input_file","","");
-    _inputFile.description="Problem file to be solved (if not specified, standard input is used)";
-    _lookup.insert(&_inputFile);
-
-    _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",
-    //in case we compile vampire with bpa, then the default input syntax is smtlib
-#if !GNUMP
-    InputSyntax::TPTP,
-#else
-    InputSyntax::SMTLIB,
-#endif
-    {"simplify","smtlib","smtlib2","tptp","xhuman","xmps","xnetlib"});
-    _inputSyntax.description="";
-    _lookup.insert(&_inputSyntax);
-
-    _instGenBigRestartRatio = FloatOptionValue("inst_gen_big_restart_ratio","igbrr",0.0);
-    _instGenBigRestartRatio.description=
-             "determines how often a big restart (instance generation starts from input clauses) will be performed. Small restart means all clauses generated so far are processed again.";
-    _lookup.insert(&_instGenBigRestartRatio);
-
-    _instGenInprocessing = BoolOptionValue("inst_gen_inprocessing","",false);
-    _instGenInprocessing.description="";
-    _lookup.insert(&_instGenInprocessing);
-
-    _instGenPassiveReactivation = BoolOptionValue("inst_gen_passive_reactivation","",false);
-    _instGenPassiveReactivation.description="";
-    _lookup.insert(&_instGenPassiveReactivation);
-
-    _instGenResolutionInstGenRatio = RatioOptionValue("inst_gen_resolution_ratio","igrr",1,1);
-    _instGenResolutionInstGenRatio.description=
-             "ratio of resolution and instantiation steps (applies only if inst_gen_with_resolution is on)";
-    _lookup.insert(&_instGenResolutionInstGenRatio);
-    
-    _instGenRestartPeriod = IntOptionValue("inst_gen_restart_period","igrp",1000);
-    _instGenRestartPeriod.description="how many clauses are processed before (small?) restart";
-    _lookup.insert(&_instGenRestartPeriod);
-
-    _instGenRestartPeriodQuotient = FloatOptionValue("inst_gen_restart_period_quotient","igrpq",1.0);
-    _instGenRestartPeriodQuotient.description="restart period is multiplied by this number after each restart";
-    _lookup.insert(&_instGenRestartPeriodQuotient);
-
-    _instGenSelection = IntOptionValue("inst_gen_selection","igs",0);
-    _instGenSelection.description=
-             "selection function for InstGen. we don't have the functions 11 and 1011 yet (as it would need special treatment for the look-ahead)";
-    _lookup.insert(&_instGenSelection);
-
-    _instGenWithResolution = BoolOptionValue("inst_gen_with_resolution","igwr",false);
-    _instGenWithResolution.description=
-             "performs instantiation together with resolution (global subsuption index is shared, also clauses generated by the resolution are added to the instance SAT problem)";
-    _lookup.insert(&_instGenWithResolution);
-
     _interpretedSimplification = BoolOptionValue("interpreted_simplification","",false);
     _interpretedSimplification.description=
              "Performs simplifications of interpreted functions. This option requires interpreted_evaluation to be enabled as well. IMPORTANT - Currently not supported";
     _lookup.insert(&_interpretedSimplification);
 
-    _latexOutput = StringOptionValue("latex_output","","off");
-    _latexOutput.description="File that will contain proof in the LaTeX format.";
-    _lookup.insert(&_latexOutput);
-
-    _lingvaAdditionalInvariants = StringOptionValue("lingva_additional_invariants","","");
-    _lingvaAdditionalInvariants.description="";
-    _lookup.insert(&_lingvaAdditionalInvariants);
 
     _literalComparisonMode = ChoiceOptionValue<LiteralComparisonMode>("literal_comparison_mode","lcm",
                                                                       LiteralComparisonMode::STANDARD,
@@ -408,19 +789,6 @@ Options::Options ()
     _literalComparisonMode.description="";
     _lookup.insert(&_literalComparisonMode);
 
-    _logFile = StringOptionValue("log_file","","off");
-    _logFile.description="";
-    _lookup.insert(&_logFile);
-
-    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",0);
-    _lrsFirstTimeCheck.description=
-             "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
-    _lookup.insert(&_lrsFirstTimeCheck);
-
-    _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","",false);
-    _lrsWeightLimitOnly.description=
-             "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
-    _lookup.insert(&_lrsWeightLimitOnly);
 
     _maxActive = LongOptionValue("max_active","",0);
     _maxActive.description="";
@@ -442,39 +810,15 @@ Options::Options ()
     _maxWeight.description="Weight limit for clauses (0 means no weight limit)";
     _lookup.insert(&_maxWeight);
 
-    _memoryLimit = UnsignedOptionValue("memory_limit","m",
-#if VDEBUG
-             1000
-#else
-             3000
-#endif
-    );
-    _memoryLimit.description="Memory limit in MB";
-   _lookup.insert(&_memoryLimit);
 
-    _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
-                       {"axiom_selection","bpa","casc","casc_epr",
-                                    "casc_ltb","casc_mzr","casc_sat","clausify",
-                                    "consequence_elimination","grounding",
-                                    "ltb_build","ltb_solve","output","preprocess",
-                                    "profile","program_analysis","sat_solver",
-                                    "spider","vampire"});
-    _mode.description=
-             "consequence_elimination mode forces values of unused_predicate_definition_removal and propositional_to_bdd to be off";
-    _lookup.insert(&_mode);
 
-    _namePrefix = StringOptionValue("name_prefix","","");
-    _namePrefix.description=
-             "Prefix for symbols introduced by Vampire (BDD-related propositional predicates, naming predicates, Skolem functions)";
-    _lookup.insert(&_namePrefix);
+
 
     _naming = IntOptionValue("naming","nm",8);
     _naming.description="";
     _lookup.insert(&_naming);
 
-    _nicenessOption = ChoiceOptionValue<Niceness>("niceness_option","no",Niceness::NONE,{"average","none","sum","top"});
-    _nicenessOption.description="";
-    _lookup.insert(&_nicenessOption);
+
 
     _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
     _nonGoalWeightCoefficient.description=
@@ -490,84 +834,7 @@ Options::Options ()
     _normalize.description="";
     _lookup.insert(&_normalize);
 
-    _outputAxiomNames = BoolOptionValue("output_axiom_names","",false);
-    _outputAxiomNames.description="preserve names of axioms from the problem file in the proof output";
-    _lookup.insert(&_outputAxiomNames);
 
-    _predicateDefinitionInlining = ChoiceOptionValue<InliningMode>("predicate_definition_inlining","",InliningMode::OFF,
-                                                                   {"axioms_only","non_growwing","off","on"});
-    _predicateDefinitionInlining.description=
-             "Determines whether predicate definitions should be inlined. Non_growing rules out inlinings that would lead to increase in the size of the problem";
-    _lookup.insert(&_predicateDefinitionInlining);
-
-    _predicateDefinitionMerging = BoolOptionValue("predicate_definition_merging","",false);
-    _predicateDefinitionMerging.description=
-             "Determines whetehr predicates with equivalent definitions will be merged into one. Look for pairs of definitions such as"
-             "p(X) <=> F[X]"
-             "q(X) <=> F[X]"
-             "replace the latter by"
-             "q(X) <=> p(X)"
-             "and use it to eliminate the predicate q(X).";
-    _lookup.insert(&_predicateDefinitionMerging);
-
-    _predicateEquivalenceDiscovery = ChoiceOptionValue<PredicateEquivalenceDiscoveryMode>("predicate_equivalence_discovery","",
-                                                                                          PredicateEquivalenceDiscoveryMode::OFF,
-                                                                         {"all_atoms","all_formulas","definitions","off","on"});
-    _predicateEquivalenceDiscovery.description=
-             "If enabled, SAT solver will be used to discover predicate equivalences during preprocessing. "
-             "if all_atoms, equivalences between all atoms will be searched for. "
-             "if definitions, we'll look only for equivalences in the shape of predicate definitions (this lies somewhere between on and all_atoms). "
-             "if all_formulas, equivalences between all formulas are searched for";
-    _lookup.insert(&_predicateEquivalenceDiscovery);
-
-    _predicateEquivalenceDiscoveryAddImplications = BoolOptionValue("predicate_equivalence_discovery_add_implications","",false);
-    _predicateEquivalenceDiscoveryAddImplications.description=
-             "if predicate_equivalence_discovery is enabled, add also discoveder implications, not only equivalences";
-    _lookup.insert(&_predicateEquivalenceDiscoveryAddImplications);
-
-    _predicateEquivalenceDiscoveryRandomSimulation = BoolOptionValue("predicate_equivalence_discovery_random_simulation","",true);
-    _predicateEquivalenceDiscoveryRandomSimulation.description=
-             "use random simulation before the simultaneous sat-sweeping to reduce the amount of candidate equivalences";
-    _lookup.insert(&_predicateEquivalenceDiscoveryRandomSimulation);
-
-    _predicateEquivalenceDiscoverySatConflictLimit = IntOptionValue("predicate_equivalence_discovery_sat_conflict_limit","",-1);
-    _predicateEquivalenceDiscoverySatConflictLimit.description=
-             "Limit on the number of SAT conflicts in each equivalence check. Default is -1 which stands for unlimited, 0 will restrict equivalence discovery to unit propagation. The implicative sat sweeping has an internal conflict count limit which always starts with zero and is increased geometrically until it reaches the limit set by this value";
-    _lookup.insert(&_predicateEquivalenceDiscoverySatConflictLimit);
-
-    _predicateIndexIntroduction = BoolOptionValue("predicate_index_introduction","",false);
-    _predicateIndexIntroduction.description=
-             "If all atoms of a certain predicate contain distinct constants as a particular argument, atoms of the predicate"
-             " are replaces by set of fresh predicates, one for each of the distinct constants.\n"
-             "E.g. a problem\n"
-             "p(a,b,X,1)\n"
-             "p(a,c,a,2)\n"
-             "will be transformed into\n"
-             "p_a_1(b,X)\n"
-             "p_a_2(c,a)\n"
-             "(second argument is not removed because constants b and c are not necessarily distinct, and third argment is not replaced because it occurs as a variable)";
-    _lookup.insert(&_predicateIndexIntroduction);
-
-    _printClausifierPremises = BoolOptionValue("print_clausifier_premises","",false);
-    _printClausifierPremises.description="";
-    _lookup.insert(&_printClausifierPremises);
-
-    _problemName = StringOptionValue("problem_name","","");
-    _problemName.description="";
-    _lookup.insert(&_problemName);
-
-    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp"});
-    _proof.description=
-             "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
-    _lookup.insert(&_proof);
-
-    _proofChecking = BoolOptionValue("proof_checking","",false);
-    _proofChecking.description="";
-    _lookup.insert(&_proofChecking);
-
-    _protectedPrefix = StringOptionValue("protected_prefix","","");
-    _protectedPrefix.description="Symbols with this prefix are immune against elimination during preprocessing";
-    _lookup.insert(&_protectedPrefix);
 
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","",QuestionAnsweringMode::OFF,
                                                                   {"answer_literal","from_proof","off"});
@@ -582,138 +849,33 @@ Options::Options ()
     _rowVariableMaxLength.description="";
     _lookup.insert(&_rowVariableMaxLength);
 
-    _satClauseActivityDecay = FloatOptionValue("sat_clause_activity_decay","",1.0);
-    _satClauseActivityDecay.description="";
-    _lookup.insert(&_satClauseActivityDecay);
 
-    _satClauseDisposer = ChoiceOptionValue<SatClauseDisposer>("sat_clause_disposer","",SatClauseDisposer::MINISAT,
-                                                              {"growing","minisat"});
-    _satClauseDisposer.description="";
-    _lookup.insert(&_satClauseDisposer);
 
-    _satLearntMinimization = BoolOptionValue("sat_learnt_minimization","",true);
-    _satLearntMinimization.description="";
-    _lookup.insert(&_satLearntMinimization);
+    _selection = SelectionOptionValue("selection","s",10);
+    _selection.description=
+    "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
+    " 0     - Total (select everything)\n"
+    " 1     - Maximal\n"
+    " 2     - ColoredFirst, MaximalSize then Lexigraphical\n"
+    " 3     - ColoredFirst, NoPositiveEquality, LeastTopLevelVariables,\n          LeastDistinctVariables then Lexigraphical\n"
+    " 4     - ColoredFirst, NoPositiveEquality, LeastTopLevelVariables,\n          LeastVariables, MaximalSize then Lexigraphical\n"
+    " 10    - ColoredFirst, NegativeEquality, MaximalSize, Negative then Lexigraphical\n"
+    " 11    - Lookahead\n"
+    " 1002  - Incomplete version of 2\n"
+    " 1003  - Incomplete version of 3\n"
+    " 1004  - Incomplete version of 4\n"
+    " 1010  - Incomplete version of 10\n"
+    " 1011  - Incomplete version of 11\n"
+    "Or negated, which means that reversePolarity is true (?)\n";
 
-    _satLearntSubsumptionResolution = BoolOptionValue("sat_learnt_subsumption_resolution","",true);
-    _satLearntSubsumptionResolution.description="";
-    _lookup.insert(&_satLearntSubsumptionResolution);
-
-    _satRestartFixedCount = IntOptionValue("sat_restart_fixed_count","",16000);
-    _satRestartFixedCount.description="";
-    _lookup.insert(&_satRestartFixedCount);
-
-    _satRestartGeometricIncrease = FloatOptionValue("sat_restart_geometric_increase","",1.1);
-    _satRestartGeometricIncrease.description="";
-    _lookup.insert(&_satRestartGeometricIncrease);
-
-    _satRestartGeometricInit = IntOptionValue("sat_restart_geometric_init","",32);
-    _satRestartGeometricInit.description="";
-    _lookup.insert(&_satRestartGeometricInit);
-
-    _satRestartLubyFactor = IntOptionValue("sat_restart_luby_factor","",100);
-    _satRestartLubyFactor.description="";
-    _lookup.insert(&_satRestartLubyFactor);
-
-    _satRestartMinisatIncrease = FloatOptionValue("sat_restart_minisat_increase","",1.1);
-    _satRestartMinisatIncrease.description="";
-    _lookup.insert(&_satRestartMinisatIncrease);
-
-    _satRestartMinisatInit = IntOptionValue("sat_restart_minisat_init","",100);
-    _satRestartMinisatInit.description="";
-    _lookup.insert(&_satRestartMinisatInit);
-
-    _satRestartStrategy = ChoiceOptionValue<SatRestartStrategy>("sat_restart_strategy","",SatRestartStrategy::LUBY,
-                                                                {"fixed","geometric","luby","minisat"});
-    _satRestartStrategy.description="";
-    _lookup.insert(&_satRestartStrategy);
-
-    _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::VAMPIRE,
-                                               {"buf_lingeling","buf_vampire","lingeling","vampire"});
-    _satSolver.description=
-             "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption. The buf options are experimental (they add buffering).";
-    _lookup.insert(&_satSolver);
-
-    _satVarActivityDecay = FloatOptionValue("sat_var_activity_decay","",1.05);
-    _satVarActivityDecay.description="";
-    _lookup.insert(&_satVarActivityDecay);
-
-    _satVarSelector = ChoiceOptionValue<SatVarSelector>("sat_var_selector","svs",SatVarSelector::ACTIVE,
-                                                        {"active","niceness","recently_learnt"});
-    _satVarSelector.description="";
-    _lookup.insert(&_satVarSelector);
-
-    _saturationAlgorithm = ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
-                                                                  {"discount","inst_gen","lrs","otter","tabulation"});
-    _saturationAlgorithm.description=
-             "inst_gen and tabulation aren't influenced by options for the saturation algorithm, apart from those mentioned. tabulation is a special goal-oriented mode for large theories. inst_gen is a simple implementation of instantiation calculus - global_subsumption, unit_resulting_resolution and age_weight_ratio are supported";
-    _lookup.insert(&_saturationAlgorithm);
-
-    _selection = IntOptionValue("selection","s",10);
-    _selection.description="";
     _lookup.insert(&_selection);
 
     _selectUnusedVariablesFirst = BoolOptionValue("_selectUnusedVariablesFirst","",false);
     // was not previously in options
 
-    _showActive = BoolOptionValue("show_active","",false);
-    _showActive.description="";
-    _lookup.insert(&_showActive);
 
-    _showBlocked = BoolOptionValue("show_blocked","",false);
-    _showBlocked.description="show generating inferences blocked due to coloring of symbols";
-    _lookup.insert(&_showBlocked);
 
-    _showDefinitions = BoolOptionValue("show_definitions","",false);
-    _showDefinitions.description="";
-    _lookup.insert(&_showDefinitions);
-
-    _showExperimentalOptions = BoolOptionValue("show_experimental_options","",false);
-    _showExperimentalOptions.description="";
-    _lookup.insert(&_showExperimentalOptions);
-
-    _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
-                                                          {"minimized","off","on"});
-    _showInterpolant.description="minimized tries to find a nicer interpolant than the default algorithm does";
-    _lookup.insert(&_showInterpolant);
-
-    _showNew = BoolOptionValue("show_new","",false);
-    _showNew.description="";
-    _lookup.insert(&_showNew);
-
-    _showNewPropositional = BoolOptionValue("show_new_propositional","",false);
-    _showNewPropositional.description="";
-    _lookup.insert(&_showNewPropositional);
-
-    _showNonconstantSkolemFunctionTrace = BoolOptionValue("show_nonconstant_skolem_function_trace","",false);
-    _showNonconstantSkolemFunctionTrace.description="";
-    _lookup.insert(&_showNonconstantSkolemFunctionTrace);
-
-    _showOptions = ChoiceOptionValue<OptionTag>("show_options","",OptionTag::OFF,{"bp","off","on","vampire"});
-    _showOptions.description="";
-    _lookup.insert(&_showOptions);
-
-    _showPassive = BoolOptionValue("show_passive","",false);
-    _showPassive.description="";
-    _lookup.insert(&_showPassive);
-
-    _showPreprocessing = BoolOptionValue("show_preprocessing","",false);
-    _showPreprocessing.description="";
-    _lookup.insert(&_showPreprocessing);
-
-    _showSkolemisations = BoolOptionValue("show_skolemisations","",false);
-    _showSkolemisations.description="";
-    _lookup.insert(&_showSkolemisations);
-
-    _showSymbolElimination = BoolOptionValue("show_symbol_elimination","",false);
-    _showSymbolElimination.description="";
-    _lookup.insert(&_showSymbolElimination);
-
-    _showTheoryAxioms = BoolOptionValue("show_theory_axioms","",false);
-    _showTheoryAxioms.description="";
-    _lookup.insert(&_showTheoryAxioms);
-
-    _simulatedTimeLimit = IntOptionValue("simulated_time_limit","stl",0);
+    _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
     _simulatedTimeLimit.description=
              "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
     _lookup.insert(&_simulatedTimeLimit);
@@ -755,124 +917,24 @@ Options::Options ()
     _lookup.insert(&_sos);
 
 
-    _splitting = BoolOptionValue("splitting","spl",true);
-    _splitting.description="";
-    _lookup.insert(&_splitting);
+   
 
-    _ssplittingAddComplementary = ChoiceOptionValue<SSplittingAddComplementary>("ssplitting_add_complementary","ssac",
-                                                                                SSplittingAddComplementary::GROUND,{"ground","none"});
-    _ssplittingAddComplementary.description="";
-    _lookup.insert(&_ssplittingAddComplementary);
 
-    _ssplittingComponentSweeping = ChoiceOptionValue<SSplittingComponentSweeping>("ssplitting_component_sweeping","",
-                                                                                  SSplittingComponentSweeping::ITERATED,
-                                                                                  {"all","iterated","none","only_new"});
-    _ssplittingComponentSweeping.description=
-             "The idea of component selection is described at the top of SSplitter.hpp. The meaning of options is: none .. no sweeping is done. only_new .. after each SAT model update we do sweeping on the newly selected components. all .. after each SAT model update we do sweeping on all selected components iterated .. like all except that we repeat the sweping while some components are being deselected";
-    _lookup.insert(&_ssplittingComponentSweeping);
-
-    _ssplittingCongruenceClosure = BoolOptionValue("ssplitting_congruence_closure","sscc",false);
-    _ssplittingCongruenceClosure.description="";
-    _lookup.insert(&_ssplittingCongruenceClosure);
-
-    _ssplittingEagerRemoval = BoolOptionValue("ssplitting_eager_removal","sser",true);
-    _ssplittingEagerRemoval.description="";
-    _lookup.insert(&_ssplittingEagerRemoval);
-
-    _ssplittingFlushPeriod = UnsignedOptionValue("ssplitting_flush_period","ssfp",0);
-    _ssplittingFlushPeriod.description=
-             "after given number of generated clauses without deriving an empty clause, the splitting component selection is shuffled. If equal to zero, shuffling is never performed.";
-    _lookup.insert(&_ssplittingFlushPeriod);
-
-    _ssplittingFlushQuotient = FloatOptionValue("ssplitting_flush_quotient","ssfq",1.5);
-    _ssplittingFlushQuotient.description=
-             "after each flush, the ssplitting_flush_period is multiplied by the quotient";
-    _lookup.insert(&_ssplittingFlushQuotient);
-
-    _ssplittingNonsplittableComponents = ChoiceOptionValue<SSplittingNonsplittableComponents>("ssplitting_nonsplittable_components","ssnc",
-                                                                                              SSplittingNonsplittableComponents::KNOWN,
-                                                                                              {"all","all_dependent","known","none"});
-    _ssplittingNonsplittableComponents.description=
-             "known .. SAT clauses will be learnt from non-splittable clauses that have corresponding components (if there is a component C with name SAT l, clause C | {l1,..ln} will give SAT clause ~l1 \\/ … \\/ ~ln \\/ l). When we add the sat clause, we discard the original FO clause C | {l1,..ln} and let the component selection update model, possibly adding the component clause C | {l}. all .. like known, except when we see a non-splittable clause that doesn't have a name, we introduce the name for it. all_dependent .. like all, but we don't introduce names for non-splittable clauses that don't depend on any components";
-    _lookup.insert(&_ssplittingNonsplittableComponents);
-
-    _statistics = ChoiceOptionValue<Statistics>("statistics","",Statistics::FULL,{"brief","full","none"});
-    _statistics.description="";
-    _lookup.insert(&_statistics);
-
-    _superpositionFromVariables = BoolOptionValue("superposition_from_variables","sfv",true);
-    _superpositionFromVariables.description="";
-    _lookup.insert(&_superpositionFromVariables);
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
                                                             {"arity","occurrence","reverse_arity"});
     _symbolPrecedence.description="";
     _lookup.insert(&_symbolPrecedence);
 
-    _tabulationBwRuleSubsumptionResolutionByLemmas = BoolOptionValue("tabulation_bw_rule_subsumption_resolution_by_lemmas","tbsr",true);
-    _tabulationBwRuleSubsumptionResolutionByLemmas.description="";
-    _lookup.insert(&_tabulationBwRuleSubsumptionResolutionByLemmas);
 
-    _tabulationFwRuleSubsumptionResolutionByLemmas = BoolOptionValue("tabulation_fw_rule_subsumption_resolution_by_lemmas","tfsr",true);
-    _tabulationFwRuleSubsumptionResolutionByLemmas.description="";
-    _lookup.insert(&_tabulationFwRuleSubsumptionResolutionByLemmas);
-
-    _tabulationGoalAgeWeightRatio = RatioOptionValue("tabulation_goal_awr","tgawr",1,1);
-    _tabulationGoalAgeWeightRatio.description=
-             "when saturation algorithm is set to tabulation, this option determines the age-weight ratio for selecting next goal clause to process";
-    _lookup.insert(&_tabulationGoalAgeWeightRatio);
-
-    _tabulationGoalLemmaRatio = RatioOptionValue("tabulation_goal_lemma_ratio","tglr",1,1);
-    _tabulationGoalLemmaRatio.description=
-             "when saturation algorithm is set to tabulation, this option determines the ratio of processing new goals and lemmas";
-    _lookup.insert(&_tabulationGoalLemmaRatio);
-    
-    _tabulationInstantiateProducingRules = BoolOptionValue("tabulation_instantiate_producing_rules","tipr",true);
-    _tabulationInstantiateProducingRules.description=
-             "when saturation algorithm is set to tabulation, this option determines whether the producing rules will be made of theory clauses (in case it's off), or of their instances got from the substitution unifying them with the goal";
-    _lookup.insert(&_tabulationInstantiateProducingRules);
-
-    _tabulationLemmaAgeWeightRatio = RatioOptionValue("tabulation_lemma_awr","tlawr",1,1);
-    _tabulationLemmaAgeWeightRatio.description=
-             "when saturation algorithm is set to tabulation, this option determines the age-weight ratio for selecting next lemma to process";
-    _lookup.insert(&_tabulationLemmaAgeWeightRatio);
-
-    _testId = StringOptionValue("test_id","","unspecified_test");
-    _testId.description="";
-    _lookup.insert(&_testId);
-
-    _thanks = StringOptionValue("thanks","","Tanya");
-    _thanks.description="";
-    _lookup.insert(&_thanks);
 
     _theoryAxioms = BoolOptionValue("theory_axioms","",true);
     _theoryAxioms.description="";
     _lookup.insert(&_theoryAxioms);
 
-    _timeLimitInDeciseconds = IntOptionValue("time_limit","t",600);
-    _timeLimitInDeciseconds.description="Time limit in wall clock seconds";
-    _lookup.insert(&_timeLimitInDeciseconds);
 
-    _timeStatistics = BoolOptionValue("time_statistics","",false);
-    _timeStatistics.description="Show how much running time was spent in each part of the Vampire";
-    _lookup.insert(&_timeStatistics);
 
-    _trivialPredicateRemoval = BoolOptionValue("trivial_predicate_removal","",false);
-    _trivialPredicateRemoval.description= "remove predicates never occurring only positively or only negatively in a clause";
-    _lookup.insert(&_trivialPredicateRemoval);
 
-    _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
-    _unitResultingResolution.description=
-             "uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";
-    _lookup.insert(&_unitResultingResolution);
-
-    _unusedPredicateDefinitionRemoval = BoolOptionValue("unused_predicate_definition_removal","updr",true);
-    _unusedPredicateDefinitionRemoval.description="";
-    _lookup.insert(&_unusedPredicateDefinitionRemoval);
-
-    _use_dm = BoolOptionValue("use_dismatching","",false);
-    _use_dm.description="";
-    _lookup.insert(&_use_dm);
 
     _weightIncrement = BoolOptionValue("weight_increment","",false);
     _weightIncrement.description="";
@@ -882,13 +944,101 @@ Options::Options ()
     _whileNumber.description="";
     _lookup.insert(&_whileNumber);
 
-    _xmlOutput = StringOptionValue("xml_output","","off");
-    _xmlOutput.description="";
-    _lookup.insert(&_xmlOutput);
+
+ 
+
+    
+    _colorUnblocking = BoolOptionValue("color_unblocking","",false);
+    _colorUnblocking.description="";
+    _lookup.insert(&_colorUnblocking);
+    
+    _lingvaAdditionalInvariants = StringOptionValue("lingva_additional_invariants","","");
+    _lingvaAdditionalInvariants.description="";
+    _lookup.insert(&_lingvaAdditionalInvariants);
+    
+//******************************************************************
+//*********************** Bound Propagation  ***********************
+//******************************************************************
+    
+    _bpCollapsingPropagation = BoolOptionValue("bp_add_collapsing_inequalities","",false); // ASSUMED default, wasn't in Options
+    _bpCollapsingPropagation.description="";
+    _lookup.insert(&_bpCollapsingPropagation);
+    
+    _bpAllowedFMBalance = UnsignedOptionValue("bp_allowed_fm_balance","",0);
+    _bpAllowedFMBalance.description="";
+    _lookup.insert(&_bpAllowedFMBalance);
+    
+    _bpAlmostHalfBoundingRemoval= ChoiceOptionValue<BPAlmostHalfBoundingRemoval>("bp_almost_half_bounding_removal","",
+                                                                                 BPAlmostHalfBoundingRemoval::ON,{"bounds_on","off","on"});
+    _bpAlmostHalfBoundingRemoval.description="";
+    _lookup.insert(&_bpAlmostHalfBoundingRemoval);
+    
+    _bpAssignmentSelector = ChoiceOptionValue<BPAssignmentSelector>("bp_assignment_selector","",
+                                                                    BPAssignmentSelector::RANDOM,
+                                                                    {"alternating","bmp","lower_bound",
+                                                                        "middle","random","rational","smallest",
+                                                                        "tight","tightish","upper_bound"});
+    _bpAssignmentSelector.description="";
+    _lookup.insert(&_bpAssignmentSelector);
+    
+    _updatesByOneConstraint= UnsignedOptionValue("bp_bound_improvement_limit","",3);
+    _updatesByOneConstraint.description="";
+    _lookup.insert(&_updatesByOneConstraint);
+    
+    _bpConflictSelector = ChoiceOptionValue<BPConflictSelector>("bp_conflict_selector","",
+                                                                BPConflictSelector::MOST_RECENT,{"least_recent","most_recent","shortest"});
+    _bpConflictSelector.description="";
+    _lookup.insert(&_bpConflictSelector);
+    
+    _bpConservativeAssignmentSelection = BoolOptionValue("bp_conservative_assignment_selection","",true);
+    _bpConservativeAssignmentSelection.description="";
+    _lookup.insert(&_bpConservativeAssignmentSelection);
+    
+    _bpFmElimination= BoolOptionValue("bp_fm_elimination","",true);
+    _bpFmElimination.description="";
+    _lookup.insert(&_bpFmElimination);
+    
+    
+    _maximalPropagatedEqualityLength = UnsignedOptionValue("bp_max_prop_length","",5);
+    _maximalPropagatedEqualityLength.description="";
+    _lookup.insert(&_maximalPropagatedEqualityLength);
+    
+    _bpPropagateAfterConflict = BoolOptionValue("bp_propagate_after_conflict","",true);
+    _bpPropagateAfterConflict.description="";
+    _lookup.insert(&_bpPropagateAfterConflict);
+    
+    _bpStartWithPrecise = BoolOptionValue("bp_start_with_precise","",false);
+    _bpStartWithPrecise.description="";
+    _lookup.insert(&_bpStartWithPrecise);
+    
+    _bpStartWithRational = BoolOptionValue("bp_start_with_rational","",false);
+    _bpStartWithRational.description="";
+    _lookup.insert(&_bpStartWithRational);
+    
+    _bpVariableSelector = ChoiceOptionValue<BPVariableSelector>("bp_variable_selector","",
+                                                                BPVariableSelector::TIGHTEST_BOUND,
+                                                                {"conflicting","conflicting_and_collapsing",
+                                                                    "first","look_ahead","random","recent_collapsing",
+                                                                    "recent_conflicting","tightest_bound"});
+    _bpVariableSelector.description="";
+    _lookup.insert(&_bpVariableSelector);
+ 
+    
+ // Do check and declare tag names
     
 #if VDEBUG
     _lookup.check();
 #endif
+
+    _tagNames = {"Instance Generation", 
+                 "Saturation",
+                 "Preprocessing",
+                 "Output",
+                 "Inferences",
+                 "Tabulation",
+                 "AVATAR",
+                 "SAT Solving",
+                 "Global"};
 
 } // Options::Options
 
@@ -948,128 +1098,6 @@ void Options::setShort(const char* name,const char* value)
     }
   }
 } // Options::setShort
-
-
-/**
- * Convert a boolean value to the corresponding string "on"/"off"
- * value.
- * @since 15/11/2004 Manchester
- */
-vstring Options::boolToOnOff (bool val)
-{
-  CALL("Options::boolToOnOff");
-
-  static vstring on ("on");
-  static vstring off ("off");
-
-  return val ? on : off;
-} // Options::boolToOnOff
-
-
-/**
- * Set selection to a new value.
- * @since 15/11/2004 Manchester
- */
-bool Options::setSelection(int sel)
-{
-  CALL("Options::setSelection");
-
-  switch (sel) {
-  case 0:
-  case 1:
-  case 2:
-  case 3:
-  case 4:
-  case 10:
-  case 11:
-  case 1002:
-  case 1003:
-  case 1004:
-  case 1010:
-  case 1011:
-  case -1:
-  case -2:
-  case -3:
-  case -4:
-  case -10:
-  case -11:
-  case -1002:
-  case -1003:
-  case -1004:
-  case -1010:
-    _selection.actualValue = sel;
-    return true;
-  default:
-    return false;
-  }
-} // Options::setSelection
-
-/**
- * Set instGenSelection to a new value.
- */
-bool Options::setInstGenSelection(int sel)
-{
-  CALL("Options::setInstGenSelection");
-
-  switch (sel) {
-  case 0:
-  case 1:
-  case 2:
-  case 3:
-  case 4:
-  case 10:
-  case 1002:
-  case 1003:
-  case 1004:
-  case 1010:
-  case -1:
-  case -2:
-  case -3:
-  case -4:
-  case -10:
-  case -1002:
-  case -1003:
-  case -1004:
-  case -1010:
-    _instGenSelection.actualValue = sel;
-    return true;
-  default:
-    return false;
-  }
-} // Options::setSelection
-
-
-
-/**
- * Set naming to a new value.
- * @since 13/07/2005 Haifa
- */
-bool Options::setNaming (int newVal)
-{
-  CALL("Options::setNaming");
-
-  if (newVal > 32767) {
-    return false;
-  }
-  _naming.actualValue = newVal;
-  return true;
-} // Options::setNaming
-
-
-/**
- * Set LRS first time check.
- * @since 15/11/2004 Manchester.
- */
-bool Options::setLrsFirstTimeCheck (int newVal)
-{
-  CALL("Options::setLrsFirstTimeCheck");
-
-  if (newVal < 0 && newVal >= 100) {
-    return false;
-  }
-  _lrsFirstTimeCheck.actualValue = newVal;
-  return true;
-} // Options::setLrsFirstTimeCheck
 
 
 /**
@@ -1137,22 +1165,8 @@ void Options::output (ostream& str) const
 {
   CALL("Options::output");
 
-  if(showOptions() != OptionTag::OFF){
-    str << "=========== Options ==========\n";
-    bool experimental = showExperimentalOptions();
-    for (int i = 0;i < Constants::optionNames.length;i++) {
-      Stack<OptionTag>::Iterator tags(Constants::optionNames[i].tags);
-      //while(tags.hasNext()){
-        //OptionTag this_tag = tags.next();
-        //if(showOptions() == GLOBAL_TAG || this_tag == GLOBAL_TAG || this_tag == showOptions()){
-       //   if(experimental || !Constants::optionNames[i].experimental){
-       //     str << Constants::optionNames[i] << endl;
-       //   }
-      //  }
-     // }
-    }
-    str << "======= End of options =======\n";
-  }
+  str << "In output, showHelp is " << showHelp() << " and showOptions is " << showOptions() << endl;
+
   if(showHelp()){
     str << "=========== Usage ==========\n";
     str << "Call vampire using\n";
@@ -1172,48 +1186,46 @@ void Options::output (ostream& str) const
     str << "=========== End ==========\n";
   }
 
+  if(showOptions()){
+    Mode this_mode = _mode.actualValue;
+    str << "=========== Options ==========\n";
+    bool experimental = showExperimentalOptions();
+
+    VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+
+    Stack<stringstream*> groups;
+    int num_tags = static_cast<int>(OptionTag::LAST_TAG);
+    for(int i=0; i<=num_tags;i++){
+      groups.push(new stringstream);
+    }
+
+    while(options.hasNext()){
+      AbstractOptionValue* option = options.next();
+      if(option->inMode(this_mode) && (experimental || !option->experimental)){
+        int tag = static_cast<int>(option->getTag());
+        option->output(*groups[tag]);
+      }
+    }
+
+    //output them in reverse order
+    for(int i=num_tags;i>=0;i--){
+      string label = "  "+_tagNames[i]+"  ";
+      ASS(label.length() < 40);
+      string br = "******************************";
+      string br_gap = br.substr(0,(br.length()-(label.length()/2)));
+      str << endl << br << br << endl;
+      str << br_gap << label << br_gap << endl;
+      str << br << br << endl << endl;
+      str << (*groups[i]).str();
+      delete groups[i];
+    }
+
+    str << "======= End of options =======\n";
+  }
 
 } // Options::output (ostream& str) const
 
 
-/**
- * Set input file and also update problemName if it was not
- * set before
- */
-void Options::setInputFile(const vstring& inputFile)
-{
-  CALL("Options::setInputFile");
-
-  _inputFile.actualValue = inputFile;
-
-  if (inputFile=="") {
-    return;
-  }
-
-  //update the problem name
-
-  int length = inputFile.length() - 1;
-  const char* name = inputFile.c_str();
-
-  int b = length - 1;
-  while (b >= 0 && name[b] != '/') {
-    b--;
-  }
-  b++;
-
-  int e = length-1;
-  while (e >= b && name[e] != '.') {
-    e--;
-  }
-  if (e < b) {
-    e = length-1;
-  }
-
-  _problemName.actualValue=inputFile.substr(b,e-b);
-}
-
-
-// /**
 //  * Convert options to an XML element.
 //  *
 //  * @since 15/11/2004 Manchester
@@ -1283,24 +1295,107 @@ void Options::RatioOptionValue::readRatio(const char* val, char separator)
   otherValue = weight;
 }
 
+bool Options::NonGoalWeightOptionValue::set(const string& value)
+{
+  CALL("NonGoalWeightOptionValue::set");
 
-/**
- * Read age-weight ratio from a string. The string can be an integer
- * or an expression "a:w", where a,w are integers.
- *
- * @since 25/05/2004 Manchester
- */
-int Options::readTimeLimit(const char* val)
+ float newValue;
+ if(!Int::stringToFloat(value.c_str(),newValue)) return false;
+
+ if(newValue <= 0.0) return false;
+
+ actualValue=newValue;
+
+  // actualValue contains numerator
+  numerator=static_cast<int>(newValue*100);
+  // otherValue contains denominator
+  denominator=100;
+
+  return true;
+
+
+}
+
+bool Options::SelectionOptionValue::set(const string& value)
+{
+  CALL("SelectionOptionValue::set");
+
+  int sel;
+  if(!Int::stringToInt(value,sel)) return false;
+  switch (sel) {
+  case 0:
+  case 1:
+  case 2:
+  case 3:
+  case 4:
+  case 10:
+  case 11:
+  case 1002:
+  case 1003:
+  case 1004:
+  case 1010:
+  case 1011:
+  case -1:
+  case -2:
+  case -3:
+  case -4:
+  case -10:
+  case -11:
+  case -1002:
+  case -1003:
+  case -1004:
+  case -1010:
+    actualValue = sel;
+    return true;
+  default:
+    return false;
+  }
+}
+
+bool Options::InputFileOptionValue::set(const string& value)
+{
+  CALL("InputFileOptionValue::set");
+
+  actualValue=value;
+  if(value.empty()) return true;
+
+  //update the problem name
+
+  int length = value.length() - 1;
+  const char* name = value.c_str();
+
+  int b = length - 1;
+  while (b >= 0 && name[b] != '/') {
+    b--;
+  }
+  b++;
+
+  int e = length-1;
+  while (e >= b && name[e] != '.') {
+    e--;
+  }
+  if (e < b) {
+    e = length-1;
+  }
+
+  parent->_problemName.actualValue=value.substr(b,e-b);
+
+  return true;
+
+}
+
+
+bool Options::TimeLimitOptionValue::set(const string& value)
 {
   CALL("Options::readTimeLimit");
 
-  int length = strlen(val);
+  int length = value.size();
   if (length == 0 || length > 127) {
-    USER_ERROR((vstring)"wrong value for time limit: " + val);
+    USER_ERROR((string)"wrong value for time limit: " + value);
   }
 
   char copy[128];
-  strcpy(copy,val);
+  strcpy(copy,value.c_str());
   char* end = copy;
   // search for the end of the string for
   while (*end) {
@@ -1331,50 +1426,21 @@ int Options::readTimeLimit(const char* val)
 
   float number;
   if (! Int::stringToFloat(copy,number)) {
-    USER_ERROR((vstring)"wrong value for time limit: " + val);
+    USER_ERROR((string)"wrong value for time limit: " + value);
   }
 
 #ifdef _MSC_VER
   // Visual C++ does not know the round function
-  return (int)floor(number * multiplier);
+  actualValue= (int)floor(number * multiplier);
 #else
-  return (int)round(number * multiplier);
+  actualValue= (int)round(number * multiplier);
 #endif
+
+  actualValue = actualValue/10; //TODO check that this is correct wrt old code
+
+  return true;
 } // Options::readTimeLimit(const char* val)
 
-/**
- * Read 
- */
-void Options::readOptionsString(vstring testId, OptionSpecStack& assignments)
-{
-  CALL("Options::readOptionsString");
-  cout << testId << "\n";
-  while (testId != "") {
-    size_t index1 = testId.find('=');
-    if (index1 == vstring::npos) {
-      error: USER_ERROR("bad option specification" + testId);
-    }
-    size_t index = testId.find(':');
-    if (index!=vstring::npos && index1 > index) {
-      goto error;
-    }
-
-    vstring param = testId.substr(0,index1);
-    vstring value;
-    if (index==vstring::npos) {
-      value = testId.substr(index1+1);
-    }
-    else {
-      value = testId.substr(index1+1,index-index1-1);
-    }
-    assignments.push(OptionSpec(param, value));
-
-    if (index==vstring::npos) {
-      break;
-    }
-    testId = testId.substr(index+1);
-  }
-}
 
 /**
  * Assign option values as encoded in the option vstring.
@@ -1454,7 +1520,7 @@ void Options::readFromTestId (vstring testId)
     goto error;
   }
   vstring timeString = testId.substr(index+1);
-  _timeLimitInDeciseconds.actualValue = readTimeLimit(timeString.c_str()) / 10;
+  _timeLimitInDeciseconds.set(timeString);
 
   testId = testId.substr(3,index-3);
   switch (testId[0]) {
@@ -1468,10 +1534,8 @@ void Options::readFromTestId (vstring testId)
   }
 
   index = testId.find('_');
-  int selection;
   vstring sel = testId.substr(0,index);
-  Int::stringToInt(sel,selection);
-  setSelection(selection);
+  _selection.set(sel);
   testId = testId.substr(index+1);
 
   if (testId == "") {
@@ -1533,7 +1597,7 @@ vstring Options::generateTestId() const
   Options def;
   //Initially contains current values. The values that we have output
   //as short options we set to default.
-  Options cur=*this;
+  /*Options cur=*this;
   bool first=true;
   static Set<AbstractOptionValue> forbidden;
   //we initialize the set if there's nothing inside
@@ -1551,6 +1615,7 @@ vstring Options::generateTestId() const
     forbidden.insert(_problemName);
     forbidden.insert(_inputFile);
   }
+*/
   cout << "generateTestId currently brokend" << endl; //TODO fix
   ASSERTION_VIOLATION;
 /*
@@ -1608,17 +1673,6 @@ vstring Options::generateTestId() const
   return res.str();
 */
 }
-/**
- * The standard output is suppressed if either LaTeX or XML
- * output is directed to cout.
- * @since 05/07/2004 Cork
- */
-bool Options::outputSuppressed() const
-{
-  CALL("Options::setLrsFirstTimeCheck");
-
-  return _xmlOutput.actualValue == "on" || _latexOutput.actualValue == "on";
-} // Output::outputSuppressed
 
 
 /**
@@ -1730,6 +1784,11 @@ bool Options::completeForNNE() const
  */
 void Options::checkGlobalOptionConstraints() const
 {
+
+  if (_lrsFirstTimeCheck.actualValue < 0 && _lrsFirstTimeCheck.actualValue >= 100) {
+    USER_ERROR("lrs_first_time_check must be between 0 and 100");
+  }
+
   if (_aigDefinitionIntroductionThreshold.actualValue==0) {
     USER_ERROR("aig_definition_introduction_threshold must be non-zero");
   }
@@ -1776,6 +1835,9 @@ void Options::checkGlobalOptionConstraints() const
     }
     if (_ssplittingFlushQuotient.actualValue<1.0f) {
         USER_ERROR("ssplitting_flush_quotient must greater than or equal to 1");
+    }
+    if(_naming.actualValue > 32767){
+      USER_ERROR("naming cannot be greater than 32767");
     }
   //TODO:implement forbidden options
 }

@@ -48,7 +48,7 @@ void CommandLine::interpret (Options& options)
       cout<<VERSION_STRING<<endl;
       exit(0);
     }
-    if(strcmp(arg,"--help") || strcmp(arg,"-h")){
+    if(strcmp(arg,"--help")==0 || strcmp(arg,"-h")==0){ //TODO what about options that start with h?
       options.set("help","on");
       env.beginOutput();
       options.output(env.out());
