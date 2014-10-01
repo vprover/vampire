@@ -446,22 +446,32 @@ Options::Options ()
     "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age"
     "there will be w selected based on weight.";
     _lookup.insert(&_ageWeightRatio);
+    _ageWeightRatio.tag(OptionTag::SATURATION);
     
     _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",0);
     _lrsFirstTimeCheck.description=
     "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
     _lookup.insert(&_lrsFirstTimeCheck);
+    _lrsFirstTimeCheck.tag(OptionTag::SATURATION);
     
     _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","",false);
     _lrsWeightLimitOnly.description=
     "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
     _lookup.insert(&_lrsWeightLimitOnly);
+    _lrsWeightLimitOnly.tag(OptionTag::SATURATION);
     
     _saturationAlgorithm = ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
                                                                   {"discount","inst_gen","lrs","otter","tabulation"});
     _saturationAlgorithm.description=
-    "inst_gen and tabulation aren't influenced by options for the saturation algorithm, apart from those mentioned. tabulation is a special goal-oriented mode for large theories. inst_gen is a simple implementation of instantiation calculus - global_subsumption, unit_resulting_resolution and age_weight_ratio are supported";
+    "Select the saturation algorithm:\n"
+    " - discount:\n"
+    " - otter:\n"
+    " - limited resource:\n"
+    " - instance generation: a simple implementation of instantiation calculus\n    (global_subsumption, unit_resulting_resolution and age_weight_ratio)\n"
+    " - tabulation: a special goal-oriented mode for large theories.\n"
+    "inst_gen and tabulation aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
+    _saturationAlgorithm.tag(OptionTag::SATURATION);
     
 //*********************** Inferences  ***********************
     
@@ -474,21 +484,22 @@ Options::Options ()
              "---------------------   where sθ > tθ (replaces RHS)\n"
              " L[tθ] \\/ C\n";
     _lookup.insert(&_backwardDemodulation);
+    _backwardDemodulation.tag(OptionTag::INFERENCES);
     
     _backwardSubsumption = ChoiceOptionValue<Subsumption>("backward_subsumption","",
                                                           Subsumption::ON,{"off","on","unit_only"});
     _backwardSubsumption.description=
              "unit_only means that the subsumption will be performed only by unit clauses";
     _lookup.insert(&_backwardSubsumption);
+    _backwardSubsumption.tag(OptionTag::INFERENCES);
     
     _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
                                                                     Subsumption::OFF,{"off","on","unit_only"});
     _backwardSubsumptionResolution.description=
              "unit_only means that the subsumption resolution will be performed only by unit clauses";
     _lookup.insert(&_backwardSubsumptionResolution);
+    _backwardSubsumptionResolution.tag(OptionTag::INFERENCES);
     
- 
-
     _binaryResolution = BoolOptionValue("binary_resolution","br",true);
     _binaryResolution.description=
           "Standard binary resolution i.e.\n"
@@ -497,11 +508,13 @@ Options::Options ()
               "(C \\/ D)θ\n"
               "where θ = mgu(t,-s) and t selected";
     _lookup.insert(&_binaryResolution);
+    _binaryResolution.tag(OptionTag::INFERENCES);
 
     _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
     _condensation.description=
              "If 'fast' is specified, we only perform condensations that are easy to check for.";
     _lookup.insert(&_condensation);
+    _condensation.tag(OptionTag::INFERENCES);
 
     _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
     _demodulationRedundancyCheck.description=
@@ -512,7 +525,9 @@ Options::Options ()
              "t = t1 \\/ C \t\t t != t1 \\/ C\n"
              "where t > t1 and s = t > C (RHS replaced)";
     _lookup.insert(&_demodulationRedundancyCheck);
+    _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
 
+    // preprocessing?
     _equalityProxy = ChoiceOptionValue<EqualityProxy>( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"});
     _equalityProxy.description="";
     _lookup.insert(&_equalityProxy);
@@ -521,20 +536,24 @@ Options::Options ()
                                                                       RuleActivity::INPUT_ONLY,{"input_only","off","on"});
     _equalityResolutionWithDeletion.description="";
     _lookup.insert(&_equalityResolutionWithDeletion);
+    _equalityResolutionWithDeletion.tag(OptionTag::INFERENCES);
     
     
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
     _extensionalityAllowPosEq.description="";
     _lookup.insert(&_extensionalityAllowPosEq);
+    _extensionalityAllowPosEq.tag(OptionTag::INFERENCES);
     
     _extensionalityMaxLength = UnsignedOptionValue("extensionality_max_length","",0);
     _extensionalityMaxLength.description="";
     _lookup.insert(&_extensionalityMaxLength);
+    _extensionalityMaxLength.tag(OptionTag::INFERENCES);
     
     _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
                                                                             ExtensionalityResolution::OFF,{"filter","known","off"});
     _extensionalityResolution.description="";
     _lookup.insert(&_extensionalityResolution);
+    _extensionalityResolution.tag(OptionTag::INFERENCES);
     
     _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
     _forwardDemodulation.description=
@@ -544,84 +563,101 @@ Options::Options ()
     " L[tθ] \\/ C\n"
     "If 'preordered' is set, only equalities s = t where s > t are used for rewriting.";
     _lookup.insert(&_forwardDemodulation);
+    _forwardDemodulation.tag(OptionTag::INFERENCES);
     
     _forwardLiteralRewriting = BoolOptionValue("forward_literal_rewriting","flr",false);
     _forwardLiteralRewriting.description="";
     _lookup.insert(&_forwardLiteralRewriting);
+    _forwardLiteralRewriting.tag(OptionTag::INFERENCES);
     
     _forwardSubsumption = BoolOptionValue("forward_subsumption","fs",true);
     _forwardSubsumption.description="";
     _lookup.insert(&_forwardSubsumption);
+    _forwardSubsumption.tag(OptionTag::INFERENCES);
     
     _forwardSubsumptionResolution = BoolOptionValue("forward_subsumption_resolution","fsr",true);
     _forwardSubsumptionResolution.description="";
     _lookup.insert(&_forwardSubsumptionResolution);
+    _forwardSubsumptionResolution.tag(OptionTag::INFERENCES);
     
     _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
     _hyperSuperposition.description=
     "Generating inference that attempts to do several rewritings at once if it will eliminate literals of the original clause (now we aim just for elimination by equality resolution)";
     _lookup.insert(&_hyperSuperposition);
+    _hyperSuperposition.tag(OptionTag::INFERENCES);
     
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
     _unitResultingResolution.description=
     "uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";
     _lookup.insert(&_unitResultingResolution);
-    
+    _unitResultingResolution.tag(OptionTag::INFERENCES);
     
     _superpositionFromVariables = BoolOptionValue("superposition_from_variables","sfv",true);
     _superpositionFromVariables.description="";
     _lookup.insert(&_superpositionFromVariables);
+    _superpositionFromVariables.tag(OptionTag::INFERENCES);
     
 //*********************** InstGen  ***********************
 
     _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);
     _globalSubsumption.description="";
     _lookup.insert(&_globalSubsumption);
+    _globalSubsumption.tag(OptionTag::INST_GEN);
     
     _instGenBigRestartRatio = FloatOptionValue("inst_gen_big_restart_ratio","igbrr",0.0);
     _instGenBigRestartRatio.description=
     "determines how often a big restart (instance generation starts from input clauses) will be performed. Small restart means all clauses generated so far are processed again.";
     _lookup.insert(&_instGenBigRestartRatio);
+    _instGenBigRestartRatio.tag(OptionTag::INST_GEN);
     
     _instGenInprocessing = BoolOptionValue("inst_gen_inprocessing","",false);
     _instGenInprocessing.description="";
     _instGenInprocessing.tag(OptionTag::INST_GEN);
     _lookup.insert(&_instGenInprocessing);
+    _instGenInprocessing.tag(OptionTag::INST_GEN);
     
     _instGenPassiveReactivation = BoolOptionValue("inst_gen_passive_reactivation","",false);
     _instGenPassiveReactivation.description="";
     _lookup.insert(&_instGenPassiveReactivation);
+    _instGenPassiveReactivation.tag(OptionTag::INST_GEN);
     
     _instGenResolutionInstGenRatio = RatioOptionValue("inst_gen_resolution_ratio","igrr",1,1);
     _instGenResolutionInstGenRatio.description=
     "ratio of resolution and instantiation steps (applies only if inst_gen_with_resolution is on)";
     _lookup.insert(&_instGenResolutionInstGenRatio);
+    _instGenResolutionInstGenRatio.tag(OptionTag::INST_GEN);
     
     _instGenRestartPeriod = IntOptionValue("inst_gen_restart_period","igrp",1000);
     _instGenRestartPeriod.description="how many clauses are processed before (small?) restart";
     _lookup.insert(&_instGenRestartPeriod);
+    _instGenRestartPeriod.tag(OptionTag::INST_GEN);
     
     _instGenRestartPeriodQuotient = FloatOptionValue("inst_gen_restart_period_quotient","igrpq",1.0);
     _instGenRestartPeriodQuotient.description="restart period is multiplied by this number after each restart";
     _lookup.insert(&_instGenRestartPeriodQuotient);
+    _instGenRestartPeriodQuotient.tag(OptionTag::INST_GEN);
     
     _instGenSelection = SelectionOptionValue("inst_gen_selection","igs",0);
     _instGenSelection.description=
     "selection function for InstGen. we don't have the functions 11 and 1011 yet (as it would need special treatment for the look-ahead)";
     _lookup.insert(&_instGenSelection);
+    _instGenSelection.tag(OptionTag::INST_GEN);
     
     _instGenWithResolution = BoolOptionValue("inst_gen_with_resolution","igwr",false);
     _instGenWithResolution.description=
     "performs instantiation together with resolution (global subsuption index is shared, also clauses generated by the resolution are added to the instance SAT problem)";
     _lookup.insert(&_instGenWithResolution);
+    _instGenWithResolution.tag(OptionTag::INST_GEN);
     
     _use_dm = BoolOptionValue("use_dismatching","",false);
     _use_dm.description="";
     _lookup.insert(&_use_dm);
+    _use_dm.tag(OptionTag::INST_GEN);
     
     _nicenessOption = ChoiceOptionValue<Niceness>("niceness_option","no",Niceness::NONE,{"average","none","sum","top"});
     _nicenessOption.description="";
     _lookup.insert(&_nicenessOption);
+    _nicenessOption.tag(OptionTag::INST_GEN);
     
 //*********************** AVATAR  ***********************
     
@@ -963,15 +999,18 @@ Options::Options ()
     _bpCollapsingPropagation = BoolOptionValue("bp_add_collapsing_inequalities","",false); // ASSUMED default, wasn't in Options
     _bpCollapsingPropagation.description="";
     _lookup.insert(&_bpCollapsingPropagation);
+    _bpCollapsingPropagation.tag(Mode::BOUND_PROP);
     
     _bpAllowedFMBalance = UnsignedOptionValue("bp_allowed_fm_balance","",0);
     _bpAllowedFMBalance.description="";
     _lookup.insert(&_bpAllowedFMBalance);
+    _bpAllowedFMBalance.tag(Mode::BOUND_PROP);
     
     _bpAlmostHalfBoundingRemoval= ChoiceOptionValue<BPAlmostHalfBoundingRemoval>("bp_almost_half_bounding_removal","",
                                                                                  BPAlmostHalfBoundingRemoval::ON,{"bounds_on","off","on"});
     _bpAlmostHalfBoundingRemoval.description="";
     _lookup.insert(&_bpAlmostHalfBoundingRemoval);
+    _bpAlmostHalfBoundingRemoval.tag(Mode::BOUND_PROP);
     
     _bpAssignmentSelector = ChoiceOptionValue<BPAssignmentSelector>("bp_assignment_selector","",
                                                                     BPAssignmentSelector::RANDOM,
@@ -980,40 +1019,48 @@ Options::Options ()
                                                                         "tight","tightish","upper_bound"});
     _bpAssignmentSelector.description="";
     _lookup.insert(&_bpAssignmentSelector);
+    _bpAssignmentSelector.tag(Mode::BOUND_PROP);
     
     _updatesByOneConstraint= UnsignedOptionValue("bp_bound_improvement_limit","",3);
     _updatesByOneConstraint.description="";
     _lookup.insert(&_updatesByOneConstraint);
+    _updatesByOneConstraint.tag(Mode::BOUND_PROP);
     
     _bpConflictSelector = ChoiceOptionValue<BPConflictSelector>("bp_conflict_selector","",
                                                                 BPConflictSelector::MOST_RECENT,{"least_recent","most_recent","shortest"});
     _bpConflictSelector.description="";
     _lookup.insert(&_bpConflictSelector);
+    _bpConflictSelector.tag(Mode::BOUND_PROP);
     
     _bpConservativeAssignmentSelection = BoolOptionValue("bp_conservative_assignment_selection","",true);
     _bpConservativeAssignmentSelection.description="";
     _lookup.insert(&_bpConservativeAssignmentSelection);
+    _bpConservativeAssignmentSelection.tag(Mode::BOUND_PROP);
     
     _bpFmElimination= BoolOptionValue("bp_fm_elimination","",true);
     _bpFmElimination.description="";
     _lookup.insert(&_bpFmElimination);
-    
+    _bpFmElimination.tag(Mode::BOUND_PROP);
     
     _maximalPropagatedEqualityLength = UnsignedOptionValue("bp_max_prop_length","",5);
     _maximalPropagatedEqualityLength.description="";
     _lookup.insert(&_maximalPropagatedEqualityLength);
+    _maximalPropagatedEqualityLength.tag(Mode::BOUND_PROP);
     
     _bpPropagateAfterConflict = BoolOptionValue("bp_propagate_after_conflict","",true);
     _bpPropagateAfterConflict.description="";
     _lookup.insert(&_bpPropagateAfterConflict);
+    _bpPropagateAfterConflict.tag(Mode::BOUND_PROP);
     
     _bpStartWithPrecise = BoolOptionValue("bp_start_with_precise","",false);
     _bpStartWithPrecise.description="";
     _lookup.insert(&_bpStartWithPrecise);
+    _bpStartWithPrecise.tag(Mode::BOUND_PROP);
     
     _bpStartWithRational = BoolOptionValue("bp_start_with_rational","",false);
     _bpStartWithRational.description="";
     _lookup.insert(&_bpStartWithRational);
+    _bpStartWithRational.tag(Mode::BOUND_PROP);
     
     _bpVariableSelector = ChoiceOptionValue<BPVariableSelector>("bp_variable_selector","",
                                                                 BPVariableSelector::TIGHTEST_BOUND,
@@ -1022,6 +1069,7 @@ Options::Options ()
                                                                     "recent_conflicting","tightest_bound"});
     _bpVariableSelector.description="";
     _lookup.insert(&_bpVariableSelector);
+    _bpVariableSelector.tag(Mode::BOUND_PROP);
  
     
  // Do check and declare tag names
@@ -1179,8 +1227,8 @@ void Options::output (ostream& str) const
 
     str << "=========== Options ==========\n";
     str << "To see a list of all options use\n  --show_options on\n";
-    str << "To see a list of options for a particular mode use\n";
-    str << "  --show_options <mode>\t(for example --show_options vampire)\n";
+    str << "Options will only be displayed for the current mode (Vampire by default) 
+    str << " use --mode to change mode\n";
     //str << "By default experimental options will not be shown. To show ";
     //str << "these options use\n  --show_experimental_options on\n";
     str << "=========== End ==========\n";

@@ -723,7 +723,7 @@ int main(int argc, char* argv[])
     case Options::Mode::GROUNDING:
       groundingMode();
       break;
-    case Options::Mode::SOLVER:
+    case Options::Mode::BOUND_PROP:
 #if GNUMP
      boundPropagationMode();
 #else

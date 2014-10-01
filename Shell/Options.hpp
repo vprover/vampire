@@ -173,7 +173,7 @@ public:
    */
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
-    SOLVER,
+    BOUND_PROP,
     CASC,
     CASC_EPR,
     CASC_LTB,
