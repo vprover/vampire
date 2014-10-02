@@ -45,6 +45,7 @@ template<class K> struct Equal { bool     operator()(const K& k1, const K& k2) c
 template<class K> struct DeepHash  { uint32_t operator()(const K* k)               const { return hash(*k);  } };
 template<class K> struct DeepEqual { bool     operator()(const K* k1, const K* k2) const { return *k1 == *k2; } };
 
+
 //=================================================================================================
 // Some primes
 //

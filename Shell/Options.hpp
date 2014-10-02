@@ -13,6 +13,7 @@
 
 #include "Debug/Assertion.hpp"
 
+#include "Lib/VString.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
@@ -67,8 +68,8 @@ public:
     vstring problemName () const { return _problemName.actualValue; }
     void setProblemName(vstring str) { _problemName.actualValue = str; }
     
-    void setInputFile(const string& newVal){ _inputFile.set(newVal); }
-    string includeFileName (const string& relativeName);
+    void setInputFile(const vstring& newVal){ _inputFile.set(newVal); }
+    vstring includeFileName (const vstring& relativeName);
 
     CLASS_NAME(Options);
     USE_ALLOCATOR(Options);
@@ -436,7 +437,6 @@ public:
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
   vstring include() const { return _include.actualValue; }
   //void setInclude(string val) { _include = val; }
-  vstring includeFileName (const string& relativeName);
   vstring logFile() const { return _logFile.actualValue; }
   vstring inputFile() const { return _inputFile.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
@@ -673,14 +673,14 @@ private:
     struct AbstractOptionValue{
 
         AbstractOptionValue(){}
-        AbstractOptionValue(string l,string s) :
+        AbstractOptionValue(vstring l,vstring s) :
           longName(l), shortName(s), experimental(false), _tag(OptionTag::LAST_TAG) {}
 
-        virtual bool set(const string& value) = 0;
+        virtual bool set(const vstring& value) = 0;
 
-        string longName;
-        string shortName;
-        string description;
+        vstring longName;
+        vstring shortName;
+        vstring description;
         bool experimental;
 
 // This is a hacky way of allowing the default constructor to assign default values to everything
@@ -699,7 +699,7 @@ private:
          else return _modes.find(mode);
        }
 
-       virtual void output(stringstream& out) const {
+       virtual void output(vstringstream& out) const {
          out << "--" << longName;
          if(!shortName.empty()){ out << " (-"<<shortName<<")"; }
          out << endl; 
@@ -754,7 +754,7 @@ private:
         return true;
       }
 
-      virtual void output(stringstream& out) const {
+      virtual void output(vstringstream& out) const {
         AbstractOptionValue::output(out);
         out << this->longName << " repeated"<< endl;
         out << "\tdefault: " << choices[static_cast<int>(this->defaultValue)];
@@ -802,7 +802,7 @@ private:
           
         return true;
       }
-        virtual void output(stringstream& out) const {
+        virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << (defaultValue ? "on" : "off") << endl;
         }
@@ -814,7 +814,7 @@ private:
       bool set(const vstring& value){
         return Int::stringToInt(value.c_str(),actualValue);
       }
-        virtual void output(stringstream& out) const {
+        virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;
         }
@@ -826,7 +826,7 @@ private:
       bool set(const vstring& value){
         return Int::stringToUnsignedInt(value.c_str(),actualValue);
       }
-        virtual void output(stringstream& out) const {
+        virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;
         }
@@ -836,7 +836,7 @@ private:
       StringOptionValue(){}
       StringOptionValue(vstring l,vstring s, vstring d) : OptionValue(l,s,d){} 
       bool set(const vstring& value){ actualValue = value; return true; }
-        virtual void output(stringstream& out) const {
+        virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: ";
             if(defaultValue.empty()){ out << "<empty>";}
@@ -851,7 +851,7 @@ private:
       bool set(const vstring& value){
         return Int::stringToLong(value.c_str(),actualValue);
       }
-        virtual void output(stringstream& out) const {
+        virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;
         }
@@ -863,7 +863,7 @@ private:
       bool set(const vstring& value){
         return Int::stringToFloat(value.c_str(),actualValue);
       }
-        virtual void output(stringstream& out) const {
+        virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;
         }
@@ -885,7 +885,7 @@ private:
         int defaultOtherValue;
         int otherValue;
 
-        virtual void output(stringstream& out) const {
+        virtual void output(vstringstream& out) const {
           AbstractOptionValue::output(out);
           out << "\tdefault left: " << defaultValue << endl;
           out << "\tdefault right: " << defaultOtherValue << endl;
@@ -895,12 +895,12 @@ private:
     
     struct NonGoalWeightOptionValue : public OptionValue<float>{
         NonGoalWeightOptionValue(){}
-        NonGoalWeightOptionValue(string l, string s, float def) :
+        NonGoalWeightOptionValue(vstring l, vstring s, float def) :
         OptionValue(l,s,def), numerator(1), denominator(1) {};
         
-        bool set(const string& value);
+        bool set(const vstring& value);
         
-        virtual void output(stringstream& out) const {
+        virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;;
         }
@@ -911,25 +911,25 @@ private:
     // Feels like it should be an enum
     struct SelectionOptionValue : public OptionValue<int>{
         SelectionOptionValue(){}
-        SelectionOptionValue(string l,string s, int def):
+        SelectionOptionValue(vstring l,vstring s, int def):
         OptionValue(l,s,def){};
         
-        bool set(const string& value);
+        bool set(const vstring& value);
         
-        virtual void output(stringstream& out) const {
+        virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;;
         }
     };
     
-    struct InputFileOptionValue : public OptionValue<string>{
+    struct InputFileOptionValue : public OptionValue<vstring>{
         InputFileOptionValue(){}
-        InputFileOptionValue(string l,string s, string def,Options* p):
+        InputFileOptionValue(vstring l,vstring s, vstring def,Options* p):
         OptionValue(l,s,def), parent(p){};
         
-        bool set(const string& value);
+        bool set(const vstring& value);
         
-        virtual void output(stringstream& out) const {
+        virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;;
         }
@@ -940,12 +940,12 @@ private:
    
     struct TimeLimitOptionValue : public OptionValue<int>{
         TimeLimitOptionValue(){}
-        TimeLimitOptionValue(string l, string s, float def) :
+        TimeLimitOptionValue(vstring l, vstring s, float def) :
         OptionValue(l,s,def) {};
         
-        bool set(const string& value);
+        bool set(const vstring& value);
         
-        virtual void output(stringstream& out) const {
+        virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;;
         }

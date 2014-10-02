@@ -1241,10 +1241,10 @@ void Options::output (ostream& str) const
 
     VirtualIterator<AbstractOptionValue*> options = _lookup.values();
 
-    Stack<stringstream*> groups;
+    Stack<vstringstream*> groups;
     int num_tags = static_cast<int>(OptionTag::LAST_TAG);
     for(int i=0; i<=num_tags;i++){
-      groups.push(new stringstream);
+      groups.push(new vstringstream);
     }
 
     while(options.hasNext()){
