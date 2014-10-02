@@ -273,8 +273,8 @@ private:
    * See also Allocator::AllowBypassing and the BYPASSING_ALLOCATOR macro.
    */
   static unsigned _tolerantZone;  
-  friend void* ::operator new(size_t) throw(bad_alloc);
-  friend void* ::operator new[](size_t) throw(bad_alloc);
+  friend void* ::operator new(size_t);
+  friend void* ::operator new[](size_t);
   friend void ::operator delete(void*) throw();
   friend void ::operator delete[](void*) throw();
 #endif
