@@ -6,8 +6,6 @@
 #ifndef __Options__
 #define __Options__
 
-#include <cstring> 
-#include <sstream>
 
 #include "Forwards.hpp"
 
@@ -156,6 +154,7 @@ public:
   * @author Giles
   */
   enum class OptionTag: unsigned int {
+    OTHER,
     OUTPUT,
     TABULATION,
     INST_GEN,
@@ -465,6 +464,8 @@ public:
   bool useDM() const { return _use_dm.actualValue; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
   //void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
+  bool satLingelingSimilarModels() const { return _satLingelingSimilarModels.actualValue; }
+  bool satLingelingIncremental() const { return _satLingelingIncremental.actualValue; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.actualValue; }
   void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm.actualValue = newVal; }
   int selection() const { return _selection.actualValue; }
@@ -649,25 +650,25 @@ private:
     struct OptionValues{
         
         OptionValues(){ };
-        OptionValues(std::initializer_list<string> list){
-          for(std::initializer_list<string>::iterator it = list.begin();
+        OptionValues(std::initializer_list<vstring> list){
+          for(std::initializer_list<vstring>::iterator it = list.begin();
               it!=list.end();++it){
               names.push(*it);
               ASS((*it).size()<70); // or else cannot be printed on a line
           }
         }
 
-        unsigned find(string value) const {
+        unsigned find(vstring value) const {
           for(unsigned i=0;i<names.length();i++){
              if(value.compare(names[i])==0) return i;
           }
           throw ValueNotFoundException();
         }
         const int length() const { return names.length(); }
-        const string operator[](int i) const{ return names[i];}
+        const vstring operator[](int i) const{ return names[i];}
 
     private:
-      Stack<string> names;
+      Stack<vstring> names;
     };
     
     struct AbstractOptionValue{
@@ -677,6 +678,7 @@ private:
           longName(l), shortName(s), experimental(false), _tag(OptionTag::LAST_TAG) {}
 
         virtual bool set(const vstring& value) = 0;
+        void setExperimental(){experimental=true;}
 
         vstring longName;
         vstring shortName;
@@ -756,8 +758,7 @@ private:
 
       virtual void output(vstringstream& out) const {
         AbstractOptionValue::output(out);
-        out << this->longName << " repeated"<< endl;
-        out << "\tdefault: " << choices[static_cast<int>(this->defaultValue)];
+        out << "\tdefault: " << choices[static_cast<unsigned>(this->defaultValue)];
         out << endl;
         string values_header = "values: ";
         out << "\t" << values_header;
@@ -769,7 +770,7 @@ private:
           }
           else{
             out << ","; 
-            string next = choices[i];
+            vstring next = choices[i];
             if(next.size()+count>60){ // next.size() will be <70, how big is a tab?
               out << endl << "\t";
               for(unsigned j=0;j<values_header.size();j++){out << " ";}
@@ -790,12 +791,11 @@ private:
       BoolOptionValue(){}
       BoolOptionValue(vstring l,vstring s, bool d) : OptionValue(l,s,d){} 
       bool set(const vstring& value){
-        const char* cvalue = value.c_str();
-        if (! strcmp(cvalue,"on") || ! strcmp(cvalue,"true")) {
+        if (! value.compare("on") || ! value.compare("true")) {
           actualValue=true;
            
         }
-        else if (! strcmp(cvalue,"off") || ! strcmp(cvalue,"false")) {
+        else if (! value.compare("off") || ! value.compare("false")) {
           actualValue=false;
         }
         else return false;
@@ -1140,6 +1140,8 @@ private:
   FloatOptionValue _satVarActivityDecay;
   ChoiceOptionValue<SatVarSelector> _satVarSelector;
   ChoiceOptionValue<SatSolver> _satSolver;
+  BoolOptionValue _satLingelingSimilarModels;
+  BoolOptionValue _satLingelingIncremental;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
   BoolOptionValue _selectUnusedVariablesFirst;
   BoolOptionValue _showActive;

@@ -11,6 +11,7 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
+#include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 
@@ -57,7 +58,7 @@ void CommandLine::interpret (Options& options)
     }
     if (arg[0] == '-') {
       if (_next == _last) {
-	USER_ERROR((string)"no value specified for option " + arg);
+	USER_ERROR((vstring)"no value specified for option " + arg);
       }
       else{
          if (arg[1] == '-') {

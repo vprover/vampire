@@ -83,14 +83,14 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
     case Options::SatSolver::LINGELING:
       _satSolver = new LingelingInterfacing(opt,true);
       break;
-    case Options::BUFFERED_MINISAT:
+    case Options::SatSolver::BUFFERED_MINISAT:
       _satSolver = new BufferedSolver(new MinisatInterfacing(opt,true));
       break;
-    case Options::MINISAT:
+    case Options::SatSolver::MINISAT:
       _satSolver = new MinisatInterfacing(opt,true);
       break;
     default:
-      ASSERTION_VIOLATION_REP(opt.satSolver());
+      ASSERTION_VIOLATION_REP(static_cast<unsigned>(opt.satSolver()));
   }
 
   _gnd = new  IGGrounder(_satSolver);

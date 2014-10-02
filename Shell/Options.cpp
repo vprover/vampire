@@ -9,14 +9,13 @@
 
 // Visual does not know the round function
 #include <cmath>
-#include <sstream>
-#include <cstring> 
 
 #include "Forwards.hpp"
 
 #include "Debug/Tracer.hpp"
 #include "Debug/Assertion.hpp"
 
+#include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
@@ -52,6 +51,7 @@ Options::Options ()
     _equivalentVariableRemoval = BoolOptionValue("equivalentVariableRemoval","",true);
     _bpCollapsingPropagation = BoolOptionValue("bp_collapsing_propagation","",false);
     _backjumpTargetIsDecisionPoint = BoolOptionValue("backjump_target_is_decision_point","",true);
+    _selectUnusedVariablesFirst = BoolOptionValue("_selectUnusedVariablesFirst","",false);
     
 //**********************************************************************
 //*********************** GLOBAL, for all modes  ***********************
@@ -103,6 +103,7 @@ Options::Options ()
     _showExperimentalOptions = BoolOptionValue("show_experimental_options","",false);
     _showExperimentalOptions.description="";
     _lookup.insert(&_showExperimentalOptions);
+    _showExperimentalOptions.setExperimental(); // only we know about it!
     
     _ignoreMissing = BoolOptionValue("ignore_missing","",false);
     _ignoreMissing.description=
@@ -145,6 +146,7 @@ Options::Options ()
     _proofChecking = BoolOptionValue("proof_checking","",false);
     _proofChecking.description="";
     _lookup.insert(&_proofChecking);
+    _proofChecking.setExperimental(); // not sure it works!
     
     _protectedPrefix = StringOptionValue("protected_prefix","","");
     _protectedPrefix.description="Symbols with this prefix are immune against elimination during preprocessing";
@@ -341,6 +343,39 @@ Options::Options ()
     _lookup.insert(&_trivialPredicateRemoval);
     _trivialPredicateRemoval.tag(OptionTag::PREPROCESSING);
     
+    _sineDepth = UnsignedOptionValue("sine_depth","sd",0);
+    _sineDepth.description=
+    "Limit number of iterations of the transitive closure algorithm that selects formulas based on SInE's D-relation (see SInE description). 0 means no limit, 1 is a maximal limit (least selected axioms), 2 allows two iterations, etc...";
+    _lookup.insert(&_sineDepth);
+    _sineDepth.tag(OptionTag::PREPROCESSING);
+    
+    _sineGeneralityThreshold = UnsignedOptionValue("sine_generality_threshold","sgt",0);
+    _sineGeneralityThreshold.description=
+    "Generality of a symbol is the number of input formulas in which a symbol appears. If the generality of a symbol is smaller than the threshold, it is always added into the D-relation with formulas in which it appears.";
+    _lookup.insert(&_sineGeneralityThreshold);
+    _sineGeneralityThreshold.tag(OptionTag::PREPROCESSING);
+    
+    _sineSelection = ChoiceOptionValue<SineSelection>("sine_selection","ss",SineSelection::OFF,{"axioms","included","off"});
+    _sineSelection.description=
+    "If 'axioms', all formulas that are not annotated as 'axiom' (i.e. conjectures and hypotheses) are initially selected, and the SInE selection is performed on those annotated as 'axiom'. If 'included', all formulas that are directly in the problem file are initially selected, and the SInE selection is performed on formulas from included files. The 'included' value corresponds to the behaviour of the original SInE implementation.";
+    _lookup.insert(&_sineSelection);
+    _sineSelection.tag(OptionTag::PREPROCESSING);
+    
+    _sineTolerance = FloatOptionValue("sine_tolerance","st",1.0);
+    _sineTolerance.description="SInE tolerance parameter (sometimes referred to as 'benevolence')";
+    _lookup.insert(&_sineTolerance);
+    _sineTolerance.tag(OptionTag::PREPROCESSING);
+    
+    _naming = IntOptionValue("naming","nm",8);
+    _naming.description="";
+    _lookup.insert(&_naming);
+    _naming.tag(OptionTag::PREPROCESSING);
+    
+    _rowVariableMaxLength = IntOptionValue("row_variable_max_length","",2);
+    _rowVariableMaxLength.description="";
+    _lookup.insert(&_rowVariableMaxLength);
+    _rowVariableMaxLength.tag(OptionTag::PREPROCESSING);
+    
 //*********************** Output  ***********************
     
     // how is this used?
@@ -387,12 +422,6 @@ Options::Options ()
     _lookup.insert(&_showDefinitions);
     _showDefinitions.tag(OptionTag::OUTPUT);
     
-    
-    _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
-                                                          {"minimized","off","on"});
-    _showInterpolant.description="minimized tries to find a nicer interpolant than the default algorithm does";
-    _lookup.insert(&_showInterpolant);
-    _showInterpolant.tag(OptionTag::OUTPUT);
     
     _showNew = BoolOptionValue("show_new","",false);
     _showNew.description="";
@@ -441,6 +470,39 @@ Options::Options ()
     
 //*********************** Saturation  ***********************    
     
+    _saturationAlgorithm = ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
+                                                                  {"discount","inst_gen","lrs","otter","tabulation"});
+    _saturationAlgorithm.description=
+    "Select the saturation algorithm:\n"
+    " - discount:\n"
+    " - otter:\n"
+    " - limited resource:\n"
+    " - instance generation: a simple implementation of instantiation calculus\n    (global_subsumption, unit_resulting_resolution and age_weight_ratio)\n"
+    " - tabulation: a special goal-oriented mode for large theories.\n"
+    "inst_gen and tabulation aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
+    _lookup.insert(&_saturationAlgorithm);
+    _saturationAlgorithm.tag(OptionTag::SATURATION);
+    
+    _selection = SelectionOptionValue("selection","s",10);
+    _selection.description=
+    "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
+    " 0     - Total (select everything)\n"
+    " 1     - Maximal\n"
+    " 2     - ColoredFirst, MaximalSize then Lexigraphical\n"
+    " 3     - ColoredFirst, NoPositiveEquality, LeastTopLevelVariables,\n          LeastDistinctVariables then Lexigraphical\n"
+    " 4     - ColoredFirst, NoPositiveEquality, LeastTopLevelVariables,\n          LeastVariables, MaximalSize then Lexigraphical\n"
+    " 10    - ColoredFirst, NegativeEquality, MaximalSize, Negative then Lexigraphical\n"
+    " 11    - Lookahead\n"
+    " 1002  - Incomplete version of 2\n"
+    " 1003  - Incomplete version of 3\n"
+    " 1004  - Incomplete version of 4\n"
+    " 1010  - Incomplete version of 10\n"
+    " 1011  - Incomplete version of 11\n"
+    "Or negated, which means that reversePolarity is true (?)\n";
+    
+    _lookup.insert(&_selection);
+    _selection.tag(OptionTag::SATURATION);
+    
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1);
     _ageWeightRatio.description=
     "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age"
@@ -460,18 +522,17 @@ Options::Options ()
     _lookup.insert(&_lrsWeightLimitOnly);
     _lrsWeightLimitOnly.tag(OptionTag::SATURATION);
     
-    _saturationAlgorithm = ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
-                                                                  {"discount","inst_gen","lrs","otter","tabulation"});
-    _saturationAlgorithm.description=
-    "Select the saturation algorithm:\n"
-    " - discount:\n"
-    " - otter:\n"
-    " - limited resource:\n"
-    " - instance generation: a simple implementation of instantiation calculus\n    (global_subsumption, unit_resulting_resolution and age_weight_ratio)\n"
-    " - tabulation: a special goal-oriented mode for large theories.\n"
-    "inst_gen and tabulation aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
-    _lookup.insert(&_saturationAlgorithm);
-    _saturationAlgorithm.tag(OptionTag::SATURATION);
+    _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
+    _simulatedTimeLimit.description=
+    "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
+    _lookup.insert(&_simulatedTimeLimit);
+    _simulatedTimeLimit.tag(OptionTag::SATURATION);
+    
+    _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on"});
+    _sos.description=
+    "Set of support strategy. All formulas annotated as theory axioms are put directly among active clauses, without performing any inferences between them. If all, select all literals of set-of-support clauses, ortherwise use the default literal selector.";
+    _lookup.insert(&_sos);
+    _sos.tag(OptionTag::SATURATION);
     
 //*********************** Inferences  ***********************
     
@@ -612,7 +673,6 @@ Options::Options ()
     
     _instGenInprocessing = BoolOptionValue("inst_gen_inprocessing","",false);
     _instGenInprocessing.description="";
-    _instGenInprocessing.tag(OptionTag::INST_GEN);
     _lookup.insert(&_instGenInprocessing);
     _instGenInprocessing.tag(OptionTag::INST_GEN);
     
@@ -653,22 +713,27 @@ Options::Options ()
     _use_dm.description="";
     _lookup.insert(&_use_dm);
     _use_dm.tag(OptionTag::INST_GEN);
+    _use_dm.setExperimental();
     
     _nicenessOption = ChoiceOptionValue<Niceness>("niceness_option","no",Niceness::NONE,{"average","none","sum","top"});
     _nicenessOption.description="";
     _lookup.insert(&_nicenessOption);
     _nicenessOption.tag(OptionTag::INST_GEN);
+    _nicenessOption.setExperimental();
     
 //*********************** AVATAR  ***********************
     
     _splitting = BoolOptionValue("splitting","spl",true);
     _splitting.description="";
     _lookup.insert(&_splitting);
+    _splitting.tag(OptionTag::AVATAR);
     
     _ssplittingAddComplementary = ChoiceOptionValue<SSplittingAddComplementary>("ssplitting_add_complementary","ssac",
                                                                                 SSplittingAddComplementary::GROUND,{"ground","none"});
     _ssplittingAddComplementary.description="";
     _lookup.insert(&_ssplittingAddComplementary);
+    _ssplittingAddComplementary.tag(OptionTag::AVATAR);
+    _ssplittingAddComplementary.setExperimental();
     
     _ssplittingComponentSweeping = ChoiceOptionValue<SSplittingComponentSweeping>("ssplitting_component_sweeping","",
                                                                                   SSplittingComponentSweeping::ITERATED,
@@ -676,24 +741,33 @@ Options::Options ()
     _ssplittingComponentSweeping.description=
     "The idea of component selection is described at the top of SSplitter.hpp. The meaning of options is: none .. no sweeping is done. only_new .. after each SAT model update we do sweeping on the newly selected components. all .. after each SAT model update we do sweeping on all selected components iterated .. like all except that we repeat the sweping while some components are being deselected";
     _lookup.insert(&_ssplittingComponentSweeping);
+    _ssplittingComponentSweeping.tag(OptionTag::AVATAR);
+    _ssplittingComponentSweeping.setExperimental();
     
     _ssplittingCongruenceClosure = BoolOptionValue("ssplitting_congruence_closure","sscc",false);
     _ssplittingCongruenceClosure.description="";
     _lookup.insert(&_ssplittingCongruenceClosure);
+    _ssplittingCongruenceClosure.tag(OptionTag::AVATAR);
     
     _ssplittingEagerRemoval = BoolOptionValue("ssplitting_eager_removal","sser",true);
     _ssplittingEagerRemoval.description="";
     _lookup.insert(&_ssplittingEagerRemoval);
+    _ssplittingEagerRemoval.tag(OptionTag::AVATAR);
+    _ssplittingEagerRemoval.setExperimental();
     
     _ssplittingFlushPeriod = UnsignedOptionValue("ssplitting_flush_period","ssfp",0);
     _ssplittingFlushPeriod.description=
     "after given number of generated clauses without deriving an empty clause, the splitting component selection is shuffled. If equal to zero, shuffling is never performed.";
     _lookup.insert(&_ssplittingFlushPeriod);
+    _ssplittingFlushPeriod.tag(OptionTag::AVATAR);
+    _ssplittingFlushPeriod.setExperimental();
     
     _ssplittingFlushQuotient = FloatOptionValue("ssplitting_flush_quotient","ssfq",1.5);
     _ssplittingFlushQuotient.description=
     "after each flush, the ssplitting_flush_period is multiplied by the quotient";
     _lookup.insert(&_ssplittingFlushQuotient);
+    _ssplittingFlushQuotient.tag(OptionTag::AVATAR);
+    _ssplittingFlushQuotient.setExperimental();
     
     _ssplittingNonsplittableComponents = ChoiceOptionValue<SSplittingNonsplittableComponents>("ssplitting_nonsplittable_components","ssnc",
                                                                                               SSplittingNonsplittableComponents::KNOWN,
@@ -701,6 +775,8 @@ Options::Options ()
     _ssplittingNonsplittableComponents.description=
     "known .. SAT clauses will be learnt from non-splittable clauses that have corresponding components (if there is a component C with name SAT l, clause C | {l1,..ln} will give SAT clause ~l1 \\/ … \\/ ~ln \\/ l). When we add the sat clause, we discard the original FO clause C | {l1,..ln} and let the component selection update model, possibly adding the component clause C | {l}. all .. like known, except when we see a non-splittable clause that doesn't have a name, we introduce the name for it. all_dependent .. like all, but we don't introduce names for non-splittable clauses that don't depend on any components";
     _lookup.insert(&_ssplittingNonsplittableComponents);
+    _ssplittingNonsplittableComponents.tag(OptionTag::AVATAR);
+    _ssplittingNonsplittableComponents.setExperimental();
 
     
 //*********************** SAT solver (used in various places)  ***********************
@@ -708,93 +784,125 @@ Options::Options ()
     _satClauseActivityDecay = FloatOptionValue("sat_clause_activity_decay","",1.001f);
     _satClauseActivityDecay.description="";
     _lookup.insert(&_satClauseActivityDecay);
+    _satClauseActivityDecay.tag(OptionTag::SAT);
     
     _satClauseDisposer = ChoiceOptionValue<SatClauseDisposer>("sat_clause_disposer","",SatClauseDisposer::MINISAT,
                                                               {"growing","minisat"});
     _satClauseDisposer.description="";
     _lookup.insert(&_satClauseDisposer);
+    _satClauseDisposer.tag(OptionTag::SAT);
     
     _satLearntMinimization = BoolOptionValue("sat_learnt_minimization","",true);
     _satLearntMinimization.description="";
     _lookup.insert(&_satLearntMinimization);
+    _satLearntMinimization.tag(OptionTag::SAT);
     
     _satLearntSubsumptionResolution = BoolOptionValue("sat_learnt_subsumption_resolution","",true);
     _satLearntSubsumptionResolution.description="";
     _lookup.insert(&_satLearntSubsumptionResolution);
+    _satLearntSubsumptionResolution.tag(OptionTag::SAT);
     
     _satRestartFixedCount = IntOptionValue("sat_restart_fixed_count","",16000);
     _satRestartFixedCount.description="";
     _lookup.insert(&_satRestartFixedCount);
+    _satRestartFixedCount.tag(OptionTag::SAT);
     
     _satRestartGeometricIncrease = FloatOptionValue("sat_restart_geometric_increase","",1.1);
     _satRestartGeometricIncrease.description="";
     _lookup.insert(&_satRestartGeometricIncrease);
+    _satRestartGeometricIncrease.tag(OptionTag::SAT);
     
     _satRestartGeometricInit = IntOptionValue("sat_restart_geometric_init","",32);
     _satRestartGeometricInit.description="";
     _lookup.insert(&_satRestartGeometricInit);
+    _satRestartGeometricInit.tag(OptionTag::SAT);
     
     _satRestartLubyFactor = IntOptionValue("sat_restart_luby_factor","",100);
     _satRestartLubyFactor.description="";
     _lookup.insert(&_satRestartLubyFactor);
+    _satRestartLubyFactor.tag(OptionTag::SAT);
     
     _satRestartMinisatIncrease = FloatOptionValue("sat_restart_minisat_increase","",1.1);
     _satRestartMinisatIncrease.description="";
     _lookup.insert(&_satRestartMinisatIncrease);
+    _satRestartMinisatIncrease.tag(OptionTag::SAT);
     
     _satRestartMinisatInit = IntOptionValue("sat_restart_minisat_init","",100);
     _satRestartMinisatInit.description="";
     _lookup.insert(&_satRestartMinisatInit);
+    _satRestartMinisatInit.tag(OptionTag::SAT);
     
     _satRestartStrategy = ChoiceOptionValue<SatRestartStrategy>("sat_restart_strategy","",SatRestartStrategy::LUBY,
                                                                 {"fixed","geometric","luby","minisat"});
     _satRestartStrategy.description="";
     _lookup.insert(&_satRestartStrategy);
+    _satRestartStrategy.tag(OptionTag::SAT);
     
     _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::VAMPIRE,
-                                              {"buf_lingeling","buf_vampire","lingeling","vampire"});
+                                              {"buf_lingeling","buf_minisat","buf_vampire","lingeling","minisat","vampire"});
     _satSolver.description=
     "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption. The buf options are experimental (they add buffering).";
     _lookup.insert(&_satSolver);
+    _satSolver.tag(OptionTag::SAT);
     
     _satVarActivityDecay = FloatOptionValue("sat_var_activity_decay","",1.05f);
     _satVarActivityDecay.description="";
     _lookup.insert(&_satVarActivityDecay);
+    _satVarActivityDecay.tag(OptionTag::SAT);
     
     _satVarSelector = ChoiceOptionValue<SatVarSelector>("sat_var_selector","svs",SatVarSelector::ACTIVE,
                                                         {"active","niceness","recently_learnt"});
     _satVarSelector.description="";
     _lookup.insert(&_satVarSelector);
+    _satVarSelector.tag(OptionTag::SAT);
     
+    _satLingelingSimilarModels = BoolOptionValue("sat_lingeling_similar_models","",false);
+    _satLingelingSimilarModels.description="";
+    _lookup.insert(&_satLingelingSimilarModels);
+    _satLingelingSimilarModels.tag(OptionTag::SAT);
+    _satLingelingSimilarModels.setExperimental();
+
+    _satLingelingIncremental = BoolOptionValue("sat_lingeling_incremental","",false);
+    _satLingelingIncremental.description="";
+    _lookup.insert(&_satLingelingIncremental);
+    _satLingelingIncremental.tag(OptionTag::SAT);
+    _satLingelingIncremental.setExperimental();
+
  //*********************** Tabulation  ***********************
     
     _tabulationBwRuleSubsumptionResolutionByLemmas = BoolOptionValue("tabulation_bw_rule_subsumption_resolution_by_lemmas","tbsr",true);
     _tabulationBwRuleSubsumptionResolutionByLemmas.description="";
     _lookup.insert(&_tabulationBwRuleSubsumptionResolutionByLemmas);
+    _tabulationBwRuleSubsumptionResolutionByLemmas.tag(OptionTag::TABULATION);
     
     _tabulationFwRuleSubsumptionResolutionByLemmas = BoolOptionValue("tabulation_fw_rule_subsumption_resolution_by_lemmas","tfsr",true);
     _tabulationFwRuleSubsumptionResolutionByLemmas.description="";
     _lookup.insert(&_tabulationFwRuleSubsumptionResolutionByLemmas);
+    _tabulationFwRuleSubsumptionResolutionByLemmas.tag(OptionTag::TABULATION);
     
     _tabulationGoalAgeWeightRatio = RatioOptionValue("tabulation_goal_awr","tgawr",1,1);
     _tabulationGoalAgeWeightRatio.description=
     "when saturation algorithm is set to tabulation, this option determines the age-weight ratio for selecting next goal clause to process";
     _lookup.insert(&_tabulationGoalAgeWeightRatio);
+    _tabulationGoalAgeWeightRatio.tag(OptionTag::TABULATION);
     
     _tabulationGoalLemmaRatio = RatioOptionValue("tabulation_goal_lemma_ratio","tglr",1,1);
     _tabulationGoalLemmaRatio.description=
     "when saturation algorithm is set to tabulation, this option determines the ratio of processing new goals and lemmas";
     _lookup.insert(&_tabulationGoalLemmaRatio);
+    _tabulationGoalLemmaRatio.tag(OptionTag::TABULATION);
     
     _tabulationInstantiateProducingRules = BoolOptionValue("tabulation_instantiate_producing_rules","tipr",true);
     _tabulationInstantiateProducingRules.description=
     "when saturation algorithm is set to tabulation, this option determines whether the producing rules will be made of theory clauses (in case it's off), or of their instances got from the substitution unifying them with the goal";
     _lookup.insert(&_tabulationInstantiateProducingRules);
+    _tabulationInstantiateProducingRules.tag(OptionTag::TABULATION);
     
     _tabulationLemmaAgeWeightRatio = RatioOptionValue("tabulation_lemma_awr","tlawr",1,1);
     _tabulationLemmaAgeWeightRatio.description=
     "when saturation algorithm is set to tabulation, this option determines the age-weight ratio for selecting next lemma to process";
     _lookup.insert(&_tabulationLemmaAgeWeightRatio);
+    _tabulationLemmaAgeWeightRatio.tag(OptionTag::TABULATION);
     
     //*************************************************************
     //*********************** which mode or tag?  ************************
@@ -803,20 +911,24 @@ Options::Options ()
     _bfnt = BoolOptionValue("bfnt","bfnt",false);
     _bfnt.description="";
     _lookup.insert(&_bfnt);
+    _bfnt.tag(OptionTag::OTHER);
     
     _increasedNumeralWeight = BoolOptionValue("increased_numeral_weight","",false);
     _increasedNumeralWeight.description=
              "weight of integer constants depends on the logarithm of their absolute value (instead of being 1)";
     _lookup.insert(&_increasedNumeralWeight);
+    _increasedNumeralWeight.tag(OptionTag::OTHER);
 
     _inequalitySplitting = IntOptionValue("inequality_splitting","ins",3);
     _inequalitySplitting.description="";
     _lookup.insert(&_inequalitySplitting);
+    _inequalitySplitting.tag(OptionTag::OTHER);
 
     _interpretedSimplification = BoolOptionValue("interpreted_simplification","",false);
     _interpretedSimplification.description=
              "Performs simplifications of interpreted functions. This option requires interpreted_evaluation to be enabled as well. IMPORTANT - Currently not supported";
     _lookup.insert(&_interpretedSimplification);
+    _interpretedSimplifcation.tag(OptionTag::OTHER);
 
 
     _literalComparisonMode = ChoiceOptionValue<LiteralComparisonMode>("literal_comparison_mode","lcm",
@@ -824,136 +936,62 @@ Options::Options ()
                                                                       {"predicate","reverse","standard"});
     _literalComparisonMode.description="";
     _lookup.insert(&_literalComparisonMode);
+    _literalComparisonMode.tag(OptionTag::OTHER);
 
 
     _maxActive = LongOptionValue("max_active","",0);
     _maxActive.description="";
     _lookup.insert(&_maxActive);
+    _maxActive.tag(OptionTag::OTHER);
 
     _maxAnswers = IntOptionValue("max_answers","",1);
     _maxAnswers.description="";
     _lookup.insert(&_maxAnswers);
+    _maxAnswers.tag(OptionTag::OTHER);
 
     _maxInferenceDepth = IntOptionValue("max_inference_depth","",0);
     _maxInferenceDepth.description="";
     _lookup.insert(&_maxInferenceDepth);
+    _maxInferenceDepth.tag(OptionTag::OTHER);
 
     _maxPassive = LongOptionValue("max_passive","",0);
     _maxPassive.description="";
     _lookup.insert(&_maxPassive);
+    _maxPassive.tag(OptionTag::OTHER);
 
     _maxWeight = IntOptionValue("max_weight","",0);
     _maxWeight.description="Weight limit for clauses (0 means no weight limit)";
     _lookup.insert(&_maxWeight);
-
-
-
-
-
-    _naming = IntOptionValue("naming","nm",8);
-    _naming.description="";
-    _lookup.insert(&_naming);
-
-
+    _maxWeight.tag(OptionTag::OTHER);
 
     _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
     _nonGoalWeightCoefficient.description=
              "coefficient that will multiply the weight of theory clauses (those marked as 'axiom' in TPTP)";
     _lookup.insert(&_nonGoalWeightCoefficient);
+    _nonGoalWeightCoefficient.tag(OptionTag::OTHER);
 
     _nonliteralsInClauseWeight = BoolOptionValue("nonliterals_in_clause_weight","nicw",false);
     _nonliteralsInClauseWeight.description=
              "Non-literal parts of clauses (such as BDDs or its split history) will also contribute to the weight";
     _lookup.insert(&_nonliteralsInClauseWeight);
+    _nonliteralsInClauseWeight.tag(OptionTag::OTHER);
 
     _normalize = BoolOptionValue("normalize","",false);
     _normalize.description="";
     _lookup.insert(&_normalize);
-
-
+    _normalize.tag(OptionTag::OTHER);
 
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","",QuestionAnsweringMode::OFF,
                                                                   {"answer_literal","from_proof","off"});
     _questionAnswering.description="Determines whether (and how) we attempt to answer questions";
     _lookup.insert(&_questionAnswering);
+    _questionAnswering.tag(OptionTag::OTHER);
 
     _randomSeed = IntOptionValue("random_seed","",Random::seed());
     _randomSeed.description="";
     _lookup.insert(&_randomSeed);
+    _randomSeed.tag(OptionTag::OTHER);
 
-    _rowVariableMaxLength = IntOptionValue("row_variable_max_length","",2);
-    _rowVariableMaxLength.description="";
-    _lookup.insert(&_rowVariableMaxLength);
-
-
-
-    _selection = SelectionOptionValue("selection","s",10);
-    _selection.description=
-    "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
-    " 0     - Total (select everything)\n"
-    " 1     - Maximal\n"
-    " 2     - ColoredFirst, MaximalSize then Lexigraphical\n"
-    " 3     - ColoredFirst, NoPositiveEquality, LeastTopLevelVariables,\n          LeastDistinctVariables then Lexigraphical\n"
-    " 4     - ColoredFirst, NoPositiveEquality, LeastTopLevelVariables,\n          LeastVariables, MaximalSize then Lexigraphical\n"
-    " 10    - ColoredFirst, NegativeEquality, MaximalSize, Negative then Lexigraphical\n"
-    " 11    - Lookahead\n"
-    " 1002  - Incomplete version of 2\n"
-    " 1003  - Incomplete version of 3\n"
-    " 1004  - Incomplete version of 4\n"
-    " 1010  - Incomplete version of 10\n"
-    " 1011  - Incomplete version of 11\n"
-    "Or negated, which means that reversePolarity is true (?)\n";
-
-    _lookup.insert(&_selection);
-
-    _selectUnusedVariablesFirst = BoolOptionValue("_selectUnusedVariablesFirst","",false);
-    // was not previously in options
-
-
-
-    _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
-    _simulatedTimeLimit.description=
-             "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
-    _lookup.insert(&_simulatedTimeLimit);
-
-    _sineDepth = UnsignedOptionValue("sine_depth","sd",0);
-    _sineDepth.description=
-             "Limit number of iterations of the transitive closure algorithm that selects formulas based on SInE's D-relation (see SInE description). 0 means no limit, 1 is a maximal limit (least selected axioms), 2 allows two iterations, etc...";
-    _lookup.insert(&_sineDepth);
-
-    _sineGeneralityThreshold = UnsignedOptionValue("sine_generality_threshold","sgt",0);
-    _sineGeneralityThreshold.description=
-             "Generality of a symbol is the number of input formulas in which a symbol appears. If the generality of a symbol is smaller than the threshold, it is always added into the D-relation with formulas in which it appears.";
-    _lookup.insert(&_sineGeneralityThreshold);
-
-    _sineSelection = ChoiceOptionValue<SineSelection>("sine_selection","ss",SineSelection::OFF,{"axioms","included","off"});
-    _sineSelection.description=
-             "If 'axioms', all formulas that are not annotated as 'axiom' (i.e. conjectures and hypotheses) are initially selected, and the SInE selection is performed on those annotated as 'axiom'. If 'included', all formulas that are directly in the problem file are initially selected, and the SInE selection is performed on formulas from included files. The 'included' value corresponds to the behaviour of the original SInE implementation.";
-    _lookup.insert(&_sineSelection);
-
-    _sineTolerance = FloatOptionValue("sine_tolerance","st",1.0);
-    _sineTolerance.description="SInE tolerance parameter (sometimes referred to as 'benevolence')";
-    _lookup.insert(&_sineTolerance);
-
-    _smtlibConsiderIntsReal = BoolOptionValue("smtlib_consider_ints_real","",false);
-    _smtlibConsiderIntsReal.description="all integers will be considered to be reals by the SMTLIB parser";
-    _lookup.insert(&_smtlibConsiderIntsReal);
-
-    _smtlibFletAsDefinition = BoolOptionValue("smtlib_flet_as_definition","",false);
-    _smtlibFletAsDefinition.description="";
-    _lookup.insert(&_smtlibFletAsDefinition);
-
-    _smtlibIntroduceAIGNames = BoolOptionValue("smtlib_introduce_aig_names","",true);
-    _smtlibIntroduceAIGNames.description="";
-    _lookup.insert(&_smtlibIntroduceAIGNames);
-
-    _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on"});
-    _sos.description=
-             "Set of support strategy. All formulas annotated as theory axioms are put directly among active clauses, without performing any inferences between them. If all, select all literals of set-of-support clauses, ortherwise use the default literal selector.";
-    _lookup.insert(&_sos);
-
-
-   
 
 
 
@@ -981,16 +1019,46 @@ Options::Options ()
     _lookup.insert(&_whileNumber);
 
 
- 
+    //******************************************************************
+    //*********************** Vinter???  *******************************
+    //******************************************************************
 
     
     _colorUnblocking = BoolOptionValue("color_unblocking","",false);
     _colorUnblocking.description="";
     _lookup.insert(&_colorUnblocking);
+    _colorUnblocking.setExperimental();
+    
+    _smtlibConsiderIntsReal = BoolOptionValue("smtlib_consider_ints_real","",false);
+    _smtlibConsiderIntsReal.description="all integers will be considered to be reals by the SMTLIB parser";
+    _lookup.insert(&_smtlibConsiderIntsReal);
+    _smtlibConsiderIntsReal.setExperimental();
+    
+    _smtlibFletAsDefinition = BoolOptionValue("smtlib_flet_as_definition","",false);
+    _smtlibFletAsDefinition.description="";
+    _lookup.insert(&_smtlibFletAsDefinition);
+    _smtlibFletAsDefinition.setExperimental();
+    
+    _smtlibIntroduceAIGNames = BoolOptionValue("smtlib_introduce_aig_names","",true);
+    _smtlibIntroduceAIGNames.description="";
+    _lookup.insert(&_smtlibIntroduceAIGNames);
+    _smtlibIntroduceAIGNames.setExperimental();
+    
+    _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
+                                                          {"minimized","off","on"});
+    _showInterpolant.description="minimized tries to find a nicer interpolant than the default algorithm does";
+    _lookup.insert(&_showInterpolant);
+    _showInterpolant.tag(OptionTag::OUTPUT);
+    _showInterpolant.setExperimental();
+    
+//******************************************************************
+//*********************** Program Analysis  ************************
+//******************************************************************
     
     _lingvaAdditionalInvariants = StringOptionValue("lingva_additional_invariants","","");
     _lingvaAdditionalInvariants.description="";
     _lookup.insert(&_lingvaAdditionalInvariants);
+    _lingvaAdditionalInvariants.tag(Mode::PROGRAM_ANALYSIS);
     
 //******************************************************************
 //*********************** Bound Propagation  ***********************
@@ -1078,15 +1146,18 @@ Options::Options ()
     _lookup.check();
 #endif
 
-    _tagNames = {"Instance Generation", 
+    _tagNames = {
+                 "Other",
+                 "Output",
+                 "Tabulation",
+                 "Instance Generation", 
+                 "SAT Solving",
+                 "AVATAR",
+                 "Inferences",
                  "Saturation",
                  "Preprocessing",
-                 "Output",
-                 "Inferences",
-                 "Tabulation",
-                 "AVATAR",
-                 "SAT Solving",
-                 "Global"};
+                 "Global"
+                };
 
 } // Options::Options
 
@@ -1103,12 +1174,12 @@ void Options::set(const char* name,const char* value)
 
   try {
     if(!_lookup.findLong(name)->set(value)){
-      USER_ERROR((string)name + " has been given an invalid value");
+      USER_ERROR((vstring)name + " has been given an invalid value");
     }
   }
   catch (const ValueNotFoundException&) {
     if (!_ignoreMissing.actualValue) {
-      USER_ERROR((string)name + " is not a valid option");
+      USER_ERROR((vstring)name + " is not a valid option");
     }
   }
 } // Options::set/2
@@ -1137,12 +1208,12 @@ void Options::setShort(const char* name,const char* value)
 
   try {
     if(!_lookup.findShort(name)->set(value)){
-      USER_ERROR((string)name + " has been given an invalid value");
+      USER_ERROR((vstring)name + " has been given an invalid value");
     }
   }
   catch (const ValueNotFoundException&) {
     if (!_ignoreMissing.actualValue) {
-      USER_ERROR((string)name + " is not a valid option");
+      USER_ERROR((vstring)name + " is not a valid option");
     }
   }
 } // Options::setShort
@@ -1213,8 +1284,6 @@ void Options::output (ostream& str) const
 {
   CALL("Options::output");
 
-  str << "In output, showHelp is " << showHelp() << " and showOptions is " << showOptions() << endl;
-
   if(showHelp()){
     str << "=========== Usage ==========\n";
     str << "Call vampire using\n";
@@ -1227,7 +1296,7 @@ void Options::output (ostream& str) const
 
     str << "=========== Options ==========\n";
     str << "To see a list of all options use\n  --show_options on\n";
-    str << "Options will only be displayed for the current mode (Vampire by default) 
+    str << "Options will only be displayed for the current mode (Vampire by default)\n";
     str << " use --mode to change mode\n";
     //str << "By default experimental options will not be shown. To show ";
     //str << "these options use\n  --show_experimental_options on\n";
@@ -1235,6 +1304,10 @@ void Options::output (ostream& str) const
   }
 
   if(showOptions()){
+
+    //We bypass the allocator here because of the use of vstringstream
+    BYPASSING_ALLOCATOR;
+
     Mode this_mode = _mode.actualValue;
     str << "=========== Options ==========\n";
     bool experimental = showExperimentalOptions();
@@ -1250,21 +1323,22 @@ void Options::output (ostream& str) const
     while(options.hasNext()){
       AbstractOptionValue* option = options.next();
       if(option->inMode(this_mode) && (experimental || !option->experimental)){
-        int tag = static_cast<int>(option->getTag());
+        unsigned tag = static_cast<unsigned>(option->getTag());
         option->output(*groups[tag]);
       }
     }
 
     //output them in reverse order
     for(int i=num_tags;i>=0;i--){
-      string label = "  "+_tagNames[i]+"  ";
+      vstring label = "  "+_tagNames[i]+"  ";
       ASS(label.length() < 40);
-      string br = "******************************";
-      string br_gap = br.substr(0,(br.length()-(label.length()/2)));
+      vstring br = "******************************";
+      vstring br_gap = br.substr(0,(br.length()-(label.length()/2)));
       str << endl << br << br << endl;
       str << br_gap << label << br_gap << endl;
       str << br << br << endl << endl;
       str << (*groups[i]).str();
+      BYPASSING_ALLOCATOR;
       delete groups[i];
     }
 
@@ -1343,7 +1417,7 @@ void Options::RatioOptionValue::readRatio(const char* val, char separator)
   otherValue = weight;
 }
 
-bool Options::NonGoalWeightOptionValue::set(const string& value)
+bool Options::NonGoalWeightOptionValue::set(const vstring& value)
 {
   CALL("NonGoalWeightOptionValue::set");
 
@@ -1364,7 +1438,7 @@ bool Options::NonGoalWeightOptionValue::set(const string& value)
 
 }
 
-bool Options::SelectionOptionValue::set(const string& value)
+bool Options::SelectionOptionValue::set(const vstring& value)
 {
   CALL("SelectionOptionValue::set");
 
@@ -1400,7 +1474,7 @@ bool Options::SelectionOptionValue::set(const string& value)
   }
 }
 
-bool Options::InputFileOptionValue::set(const string& value)
+bool Options::InputFileOptionValue::set(const vstring& value)
 {
   CALL("InputFileOptionValue::set");
 
@@ -1433,13 +1507,13 @@ bool Options::InputFileOptionValue::set(const string& value)
 }
 
 
-bool Options::TimeLimitOptionValue::set(const string& value)
+bool Options::TimeLimitOptionValue::set(const vstring& value)
 {
   CALL("Options::readTimeLimit");
 
   int length = value.size();
   if (length == 0 || length > 127) {
-    USER_ERROR((string)"wrong value for time limit: " + value);
+    USER_ERROR((vstring)"wrong value for time limit: " + value);
   }
 
   char copy[128];
@@ -1474,7 +1548,7 @@ bool Options::TimeLimitOptionValue::set(const string& value)
 
   float number;
   if (! Int::stringToFloat(copy,number)) {
-    USER_ERROR((string)"wrong value for time limit: " + value);
+    USER_ERROR((vstring)"wrong value for time limit: " + value);
   }
 
 #ifdef _MSC_VER

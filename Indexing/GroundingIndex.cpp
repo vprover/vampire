@@ -31,7 +31,7 @@ GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
     case Options::SatSolver::VAMPIRE:
     	_solver = new TWLSolver(opt,true);
     	break;
-    case Options::SatSolver:;BUFFERED_VAMPIRE:
+    case Options::SatSolver::BUFFERED_VAMPIRE:
     	_solver = new BufferedSolver(new TWLSolver(opt,true));
     	break;
     case Options::SatSolver::BUFFERED_LINGELING:
@@ -47,7 +47,7 @@ GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
       _solver = new MinisatInterfacing(opt,true);
       break;
     default:
-      ASSERTION_VIOLATION_REP(opt.satSolver());
+      ASSERTION_VIOLATION_REP(static_cast<unsigned>(opt.satSolver()));
   }
 
 }

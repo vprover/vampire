@@ -431,16 +431,16 @@ void satSolverMode()
   SATSolverSCP solver;
   
   switch(env.options->satSolver()) { 
-    case Options::BUFFERED_VAMPIRE:
-    case Options::VAMPIRE:  
+    case Options::SatSolver::BUFFERED_VAMPIRE:
+    case Options::SatSolver::VAMPIRE:  
       solver = new TWLSolver(*env.options);
       break;          
-    case Options::BUFFERED_LINGELING: 
-    case Options::LINGELING:
+    case Options::SatSolver::BUFFERED_LINGELING: 
+    case Options::SatSolver::LINGELING:
       solver = new LingelingInterfacing(*env.options);
       break;
-    case Options::BUFFERED_MINISAT: 
-    case Options::MINISAT:
+    case Options::SatSolver::BUFFERED_MINISAT: 
+    case Options::SatSolver::MINISAT:
       solver = new MinisatInterfacing(*env.options);
       break;      
     default:
