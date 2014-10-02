@@ -981,7 +981,7 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  * (Note that we ignore the globalHandler issue here.)
  **/ 
   
-void* operator new(size_t sz) throw(bad_alloc) {    
+void* operator new(size_t sz) {    
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   
   if (sz == 0)
@@ -995,7 +995,7 @@ void* operator new(size_t sz) throw(bad_alloc) {
   return res;
 }
 
-void* operator new[](size_t sz) throw(bad_alloc) {  
+void* operator new[](size_t sz) {  
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
   
   if (sz == 0)
