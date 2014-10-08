@@ -32,7 +32,7 @@ class OptionsList
 {
 
 public:
-  inline OptionsList(unsigned len) : _length(len), _alive(0){
+  inline OptionsList(unsigned len) : _set_global(false), _length(len), _alive(0){
     CALL("OptionsList::OptionsList()");
     ASS(len>0);
     //void* mem = ALLOC_KNOWN(len*sizeof(Options),"OptionsList<>");
@@ -57,7 +57,7 @@ public:
   /** Return the number of strategies **/
   unsigned size() const {return _length;}
   /** Return the nth strategy **/
-  Options& operator[](unsigned n) const { return *_strategies[n]; }
+  Options& operator[](unsigned n) const { return *(_strategies[n]); }
   /** Return an iterator for the live strategies
       A strategy is live if it has been given individual options
       If strategy n is live then all strategies m<n are live **/
@@ -67,7 +67,7 @@ public:
 
   /** Update the number of live strategies **/
   void setLive(unsigned n){
-    if(n > _alive){
+    if(n+1 > _alive){
       _alive = n+1;
     }
   }
@@ -101,6 +101,7 @@ private:
     if(n >= _length){ USER_ERROR("You are using more strategies than you said you would!"); }
   }
 
+  bool _set_global;
   unsigned _length;
   unsigned _alive;
   //Options* _strategies;

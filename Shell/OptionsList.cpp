@@ -55,6 +55,7 @@ void OptionsList::set(const char* name,const char* value)
     include(value);
     return;
   }
+  _set_global=true;
   Iterator it = this->getLive();
   while(it.hasNext()){
    it.next().set(name,value);
@@ -71,6 +72,7 @@ void OptionsList::set(const string& name,const string& value)
     include(value);
     return;
   }
+  _set_global=true;
   Iterator it = this->getLive();
   while(it.hasNext()){
    it.next().set(name,value);
@@ -88,6 +90,7 @@ void OptionsList::setShort(const char* name,const char* value)
     include(value);
     return;
   }
+  _set_global=true;
   Iterator it = this->getLive();
   while(it.hasNext()){
    it.next().setShort(name,value);
@@ -131,7 +134,9 @@ void OptionsList::checkGlobalOptionConstraints()
   CALL("OptionsList::checkGlobalOptionsConstraints");
 
   if(_alive < _length){
-    cout << "Warning: " << _length << " strategies specified but only " << _alive << " used, others are default." << endl;
+    if(_length>1 || !_set_global){
+      cout << "Warning: " << _length << " strategies specified but only " << _alive << " used, others are default." << endl;
+    }
   }
 
   Iterator it(*this);

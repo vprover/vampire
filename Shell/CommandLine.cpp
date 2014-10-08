@@ -63,6 +63,7 @@ void CommandLine::interpret ()
         if(!Int::stringToUnsignedInt(*_next,strategies)){
           USER_ERROR("Error parsing strategies");
         }
+        ASS(strategies>0);
         optionsList = new OptionsList(strategies);
         env -> optionsList = SmartPtr<OptionsList>(optionsList);
         env -> options = &((*optionsList)[0]);
@@ -72,6 +73,7 @@ void CommandLine::interpret ()
       }
       else{
         optionsList = new OptionsList(1);
+        optionsList -> setLive(0);
         env -> optionsList = SmartPtr<OptionsList>(optionsList);
         env -> options = &((*optionsList)[0]);
 	cout << "no strategies" << endl;

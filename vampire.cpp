@@ -483,6 +483,8 @@ void vampireMode()
 
   if(env -> isSingleStrategy()) {
           cout << "running in single strategy mode" << endl;
+          cout << "Actually we don't support that at the moment... Aborting!" << endl;
+          return; 
           ScopedPtr<Problem> prb(getPreprocessedProblem());
           ProvingHelper::runVampireSaturation(*prb, *env -> options);
 
@@ -743,6 +745,13 @@ int main(int argc, char* argv[])
       if (CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
+      break;
+    case Options::MODE_CASC_MULTI:
+      CASC::CASCMode::makeMulti();
+      if (CASC::CASCMode::perform(argc, argv)) {
+        //casc mode succeeded in solving the problem, so we return zero
+        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
     case Options::MODE_CASC_SAT:
