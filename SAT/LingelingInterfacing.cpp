@@ -13,6 +13,10 @@
 #include "Lib/Environment.hpp"
 #include "Lib/ScopedLet.hpp"
 
+extern "C" {
+	#include "lglib.h"
+}
+
 /**
  * Just as a general hint: assuming one wants to trace all the API calls to Lingeling
  * can be done by enabling the LGLAPITRACE=filename from command line. Doing so
@@ -22,10 +26,6 @@
  */
 namespace SAT
 {
-
-extern "C" {
-	#include "lglib.h"
-}
   
 using Shell::Statistics;
 using Shell::Options;

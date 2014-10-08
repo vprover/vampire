@@ -14,10 +14,10 @@
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
 
-namespace SAT{
-
 // forward declarations
 struct LGL;
+
+namespace SAT{
   
 class LingelingInterfacing : public SATSolver
 {
