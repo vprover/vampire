@@ -66,7 +66,6 @@ public:
   static const char* _nicenessOptionValues[];
   static const char* _satClauseDisposerValues[];
   static const char* _sosValues[];
-  static const char* _sSplittingComponentSweepingValues[];
   static const char* _sSplittingAddComplementaryValues[];
   static const char* _sSplittingNonsplittableComponentsValues[];
   static const char* _sSplittingModelValues[];
@@ -285,14 +284,9 @@ const char* Options::Constants::_optionNames[] = {
   "smtlib_flet_as_definition",
   "smtlib_introduce_aig_names",
   "sos",
- // "split_add_ground_negation",
   "split_at_activation",
- // "split_goal_only",
- // "split_input_only",
- // "split_positive",
   "splitting",
   "ssplitting_add_complementary",
-  "ssplitting_component_sweeping",
   "ssplitting_congruence_closure",
   "ssplitting_eager_removal",
   "ssplitting_flush_period",
@@ -734,14 +728,6 @@ const char* Options::Constants::_sosValues[] = {
 NameArray Options::Constants::sosValues(_sosValues,
 					sizeof(_sosValues)/sizeof(char*));
 
-const char* Options::Constants::_sSplittingComponentSweepingValues[] = {
-  "all",
-  "iterated",
-  "none",
-  "only_new"};
-NameArray Options::Constants::sSplittingComponentSweepingValues(_sSplittingComponentSweepingValues,
-					  sizeof(_sSplittingComponentSweepingValues)/sizeof(char*));
-
 const char* Options::Constants::_sSplittingAddComplementaryValues[] = {
   "ground",
   "none"};
@@ -1003,7 +989,6 @@ Options::Options ()
   _splitAtActivation(false), // is this even a valid option?
   _splitting(true), // should splitting by on or off by default?
   _ssplittingAddComplementary(SSAC_GROUND),
-  _ssplittingComponentSweeping(SSCS_ITERATED),
   _ssplittingCongruenceClosure(false),
   _ssplittingEagerRemoval(true),
   _ssplittingFlushPeriod(0),
@@ -1040,7 +1025,7 @@ Options::Options ()
   _whileNumber(1),
 
   _xmlOutput("off"),
-  _zeroOpt(true)
+  _zeroOpt(false)
 {
   CALL("Options::Options");
 } // Options::Options
@@ -1691,9 +1676,6 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case SSPLITTING_ADD_COMPLEMENTARY:
       _ssplittingAddComplementary = (SSplittingAddComplementary)Constants::sSplittingAddComplementaryValues.find(value);
-      return;
-    case SSPLITTING_COMPONENT_SWEEPING:
-      _ssplittingComponentSweeping = (SSplittingComponentSweeping)Constants::sSplittingComponentSweepingValues.find(value);
       return;
     case SSPLITTING_CONGRUENCE_CLOSURE:
       _ssplittingCongruenceClosure = onOffToBool(value,name);
@@ -2547,9 +2529,6 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SSPLITTING_ADD_COMPLEMENTARY:
     str << Constants::sSplittingAddComplementaryValues[_ssplittingAddComplementary];
-    return;
-  case SSPLITTING_COMPONENT_SWEEPING:
-    str << Constants::sSplittingComponentSweepingValues[_ssplittingComponentSweeping];
     return;
   case SSPLITTING_CONGRUENCE_CLOSURE:
     str << boolToOnOff(_ssplittingCongruenceClosure);

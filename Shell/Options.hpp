@@ -224,7 +224,6 @@ public:
     //SPLIT_POSITIVE,
     SPLITTING,
     SSPLITTING_ADD_COMPLEMENTARY,
-    SSPLITTING_COMPONENT_SWEEPING,
     SSPLITTING_CONGRUENCE_CLOSURE,
     SSPLITTING_EAGER_REMOVAL,
     SSPLITTING_FLUSH_PERIOD,
@@ -813,7 +812,6 @@ public:
   int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator; }
 
   SSplittingNonsplittableComponents ssplittingNonsplittableComponents() const { return _ssplittingNonsplittableComponents; }
-  SSplittingComponentSweeping ssplittingComponentSweeping() const { return _ssplittingComponentSweeping; }
   SSplittingAddComplementary ssplittingAddComplementary() const { return _ssplittingAddComplementary; }
   int ssplittingFlushPeriod() const { return _ssplittingFlushPeriod; }
   float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient; }
@@ -1034,7 +1032,6 @@ private:
   //bool _splitPositive;
   bool _splitting;
   SSplittingAddComplementary _ssplittingAddComplementary;
-  SSplittingComponentSweeping _ssplittingComponentSweeping;
   bool _ssplittingCongruenceClosure;
   bool _ssplittingEagerRemoval;
   unsigned _ssplittingFlushPeriod;

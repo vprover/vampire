@@ -59,7 +59,6 @@ void SSplittingBranchSelector::init()
   CALL("SSplittingBranchSelector::init");
 
   _eagerRemoval = _parent.getOptions().ssplittingEagerRemoval();
-  //  _sweepingMode = _parent.getOptions().ssplittingComponentSweeping();
   _zeroOpt = _parent.getOptions().zeroOpt();
 
   switch(_parent.getOptions().satSolver()){
