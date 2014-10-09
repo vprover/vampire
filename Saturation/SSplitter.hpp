@@ -163,6 +163,8 @@ public:
   unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
 
   SAT2FO& satNaming() { return _sat2fo; }
+
+  bool getSplitLevelFromClause(Clause* cl, SplitLevel& sl) const { return _compNames.find(cl,sl); }
 private:
 
   SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;

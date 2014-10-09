@@ -595,6 +595,7 @@ bool SSplitter::doSplitting(Clause* cl)
   satClauseLits.reset();
 
   // Add literals for existing constraints 
+  //_branchSelector.clearZeroImpliedSplits(cl);
   collectDependenceLits(cl->splits(), satClauseLits);
 
   ClauseList* namePremises = 0;
@@ -818,6 +819,7 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
   }
 
   Clause* premise0 = premises.next();
+  _branchSelector.clearZeroImpliedSplits(premise0);
   SplitSet* diff=premise0->splits();
   while(premises.hasNext()) {
     Clause* premise=premises.next();
@@ -863,10 +865,14 @@ void SSplittingBranchSelector::clearZeroImpliedSplits(Clause* cl)
 
   if(!_zeroOpt) return;
 
+  SplitLevel this_level;
+  bool has_level =  _parent.getSplitLevelFromClause(cl,this_level);
+
   SplitSet* rem=SplitSet::getEmpty();
   SplitSet::Iterator sit(*(cl->splits()));
   while(sit.hasNext()){
     SplitLevel level = sit.next();
+    if(has_level && level==this_level) continue;
     SATLiteral lit = _parent.getLiteralFromName(level);
     // We're asking if the current assignment of this var is zero implied
     // We can assume that the assignment is consistent with this lit as it
@@ -874,9 +880,11 @@ void SSplittingBranchSelector::clearZeroImpliedSplits(Clause* cl)
     if(_solver->isZeroImplied(lit.var())){
       //TODO use a stack for rem instead
       rem = rem->getUnion(SplitSet::getSingleton(level));
+      //cout << " will clear " << level << endl;
     }
   }
   if(!rem->isEmpty()){
+    //cout << "clearing from " << cl << " with level " << _parent._compNames.get(cl) << endl;
     RSTAT_CTR_INC("clearedZeroImpliedSplits");
     cl->setSplits(cl->splits()->subtract(rem),true);
   }
