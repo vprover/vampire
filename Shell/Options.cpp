@@ -1025,7 +1025,7 @@ Options::Options ()
   _whileNumber(1),
 
   _xmlOutput("off"),
-  _zeroOpt(true)
+  _zeroOpt(false)
 {
   CALL("Options::Options");
 } // Options::Options
