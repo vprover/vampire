@@ -17,7 +17,6 @@
 
 
 #include "Kernel/MainLoop.hpp"
-#include "Kernel/MainLoopScheduler.hpp"
 
 #include "ForkingCM.hpp"
 #include "SpawningCM.hpp"
@@ -102,6 +101,8 @@ bool CASCMode::perform()
   Schedule quick;
   Schedule fallback;
 
+  ASS(_property);
+
   if (_sat) {
     getSchedulesSat(*_property, quick, fallback);
   }
@@ -116,50 +117,16 @@ bool CASCMode::perform()
   if (remainingTime<=0) {
     return false;
   }
-  if(_multi_strategy){
-    //TODO this belongs in MultiCM
-    transformToOptionsList(quick);
-    
-    Problem* prb = UIHelper::getInputProblem(*env -> options);
-    Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList);
-    scheduler.run();
 
-    int resultValue=1;
-    //return value to zero if we were successful
-#if SATISFIABLE_IS_SUCCESS
-    if(env -> statistics->terminationReason==Statistics::REFUTATION ||
-       env -> statistics->terminationReason==Statistics::SATISFIABLE) {
-#else
-    if(env -> statistics->terminationReason==Statistics::REFUTATION) {
-#endif
-      resultValue=0;
-    }
-
-    env -> beginOutput();
-    UIHelper::outputResult(env -> out());
-    env -> endOutput();
-
-    //To use fallback we would need to perform this on top of Forking
-    return resultValue;
+  StrategySet used;
+  if (runSchedule(quick,remainingTime,used,false)) {
+    return true;
   }
-  else{ 
-    StrategySet used;
-    if (runSchedule(quick,remainingTime,used,false)) {
-      return true;
-    }
-    remainingTime=env -> remainingTime()/100;
-    if (remainingTime<=0) {
-      return false;
-    }
-    return runSchedule(fallback,remainingTime,used,true);
+  remainingTime=env -> remainingTime()/100;
+  if (remainingTime<=0) {
+    return false;
   }
-}
-
-void CASCMode::transformToOptionsList(Schedule& schedule)
-{
-  CALL("CASCMode::transformToOptionsList");
-  ASS(env->optionsList);
-
+  return runSchedule(fallback,remainingTime,used,true);
 }
 
 /**
@@ -1312,6 +1279,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ott+10_8:1_nwc=3:sfv=off_900");
     break;
   }
+
 }
 
 unsigned CASCMode::getSliceTime(string sliceCode,string& chopped)

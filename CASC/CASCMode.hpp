@@ -44,6 +44,13 @@ protected:
    */
   virtual bool runSlice(Options& opt) = 0;
 
+  /** 
+   * We can override this if we have a different way of organising the
+   * schedule i.e. in MultiCM
+   */
+  typedef Set<string> StrategySet;
+  virtual bool runSchedule(Schedule&,unsigned ds,StrategySet& remember,bool fallback);
+
   void handleSIGINT() __attribute__((noreturn));
 
   /** The problem property, computed once in the parent process */
@@ -57,14 +64,9 @@ protected:
   static bool _multi_strategy;
 
 private:
-  typedef Set<string> StrategySet;
   bool perform();
-  bool runSchedule(Schedule&,unsigned ds,StrategySet& remember,bool fallback);
   bool runSlice(string sliceCode, unsigned ds);
 
-  // For multi-strategy mode
-  void transformToOptionsList(Schedule& schedule);
-  
 };
 
 }

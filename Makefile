@@ -359,7 +359,8 @@ CASC_OBJ = CASC/CASCMode.o\
            CASC/CLTBMode.o\
            CASC/CMZRMode.o\
            CASC/ForkingCM.o\
-           CASC/SpawningCM.o
+           CASC/SpawningCM.o\
+           CASC/MultiCM.o
 
 VPROG_OBJ = Program/Type.o\
            Program/LoopAnalyzer.o\

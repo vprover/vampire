@@ -9,7 +9,6 @@
 #include "Forwards.hpp"
 
 #include "Lib/ScopedPtr.hpp"
-
 #include "Kernel/Problem.hpp"
 
 #include "CASCMode.hpp"
@@ -22,15 +21,20 @@ using namespace Kernel;
 
 
 class MultiCM
-: public CASCMode
+: public CASCMode 
 {
 public:
-  MultiCM(){};
+  MultiCM(){
+   _prb = UIHelper::getInputProblem(*env -> options);
+   _property = _prb->getProperty();
+  };
 
 protected:
-  bool runSlice(Options& opt){ ASSERTION_VIOLATION; return false;};
+  bool runSchedule(Schedule&,unsigned ds,StrategySet& remember,bool fallback);
+  bool runSlice(Options& opt){ ASSERTION_VIOLATION; };
 
 private:
+  void transformToOptionsList(Schedule& schedule);  
   ScopedPtr<Problem> _prb;
 };
 
