@@ -53,6 +53,8 @@ public:
 
 	static MainLoopContext* currentContext;
 
+	bool isInitialised() const { return _initialised; }
+
 protected:
 	// Switch into this context
 	void switchIn();
@@ -79,6 +81,8 @@ private:
 	Lib::Environment* _temp_env; //A variable to preserve the current environment before switching in.
 								 //TODO: a manager pattern for main loops needs to be implemented for context switching
 	unsigned int _startTime, _elapsed;
+
+	bool _initialised;
 };
 
 } /* namespace Kernel */

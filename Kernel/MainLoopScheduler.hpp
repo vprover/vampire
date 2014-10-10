@@ -9,12 +9,15 @@
 #define __MainLoopScheduler__
 
 #include <cstddef>
+#if VDEBUG
 #include <iostream>
+#endif//VDEBUG
+#include <queue>
 
 #include "Kernel/MainLoopFwd.hpp"
 #include "Kernel/MainLoopContext.hpp"
 #include "Kernel/ProblemFwd.hpp"
-#include "Shell/OptionsListFwd.hpp"
+#include "Shell/OptionsList.hpp"
 
 //namespace Shell {
 
@@ -30,7 +33,10 @@ namespace Kernel {
 
 class MainLoopScheduler {
 public:
+	MainLoopScheduler(Problem& prb, std::size_t capacity);
+	MainLoopScheduler(Problem& prb, std::size_t capacity, Shell::OptionsList& opts);
 	MainLoopScheduler(Problem& prb, Shell::OptionsList& opts);
+
 	~MainLoopScheduler();
 
 	MainLoopResult run();
@@ -50,14 +56,38 @@ public:
 		return std::cout;
 	}
 #endif
+
+	inline
+	void addStrategy(const Shell::Options& opt){
+		optionsQueue.push(opt);
+	}
+
+	void addStrategies(Shell::OptionsList& opts){
+		Shell::OptionsList::Iterator i(opts);
+	    while(i.hasNext()){
+			addStrategy(i.next());
+	    }
+	}
+
+
 protected:
 
 private:
-	// Store the context currently being run
-    //static MainLoopContext* _currentContext;
 
-	static MainLoopContext** _mlcl;
-	static std::size_t _mlclSize;
+	Problem& _prb;
+	MainLoopContext** _mlcl;
+	std::size_t _capacity;
+
+	class CompareOptions{
+	public:
+	    bool operator()(Shell::Options& lhs, Shell::Options& rhs) {
+	       return ( &lhs < &rhs );
+	    }
+	};
+
+	std::priority_queue<Shell::Options, std::vector<Shell::Options>, CompareOptions> optionsQueue;
+
+	static MainLoopContext* createContext(Problem& prb, Shell::Options& opt);
 
 };
 

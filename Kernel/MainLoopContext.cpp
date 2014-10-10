@@ -20,7 +20,7 @@ using Lib::Timer;
 using Shell::Options;
 using Shell::Statistics;
 
-unsigned MainLoopContext::id_counter=0;
+unsigned int MainLoopContext::id_counter = 0;
 
 MainLoopContext* MainLoopContext::currentContext = 0;
 
@@ -28,7 +28,7 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 #if VDEBUG
 			_id(id_counter++),
 #endif
-                        _opts(opts), _startTime(0), _elapsed(0) {
+            _opts(opts), _startTime(0), _elapsed(0), _initialised(false) {
 
 		CALL("MainLoopContext::MainLoopContext");
 
@@ -40,10 +40,17 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 
 		//TODO - why do we need to store prb and opts if they will be in env?
 		_env = new Environment(*Lib::env,opts);
+
+//#if VDEBUG
+//		cout << "_initialised = " << _initialised << endl;
+//#endif
 	}
 
 	MainLoopContext::~MainLoopContext() {
 		CALL("MainLoopContext::~MainLoopContext");
+
+		if(_initialised) cleanup();
+
 		delete _env;
 		delete _prb;
 //		switchOut();
@@ -83,10 +90,16 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 	void MainLoopContext::init(){
 		CALL("MainLoopContext::init");
 
-		AutoSwitch s(this);
+//#if VDEBUG
+//		cout << _id << ": _initialised = " << _initialised << endl;
+//#endif //VDEBUG
 
+		ASS(!_initialised);
+
+		AutoSwitch s(this);
 		_env -> statistics -> phase = Statistics::SATURATION;
 		_ml -> initAlgorithmRun();
+		_initialised = true;
 	}
 
 	void MainLoopContext::cleanup(){
@@ -94,14 +107,23 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 
 		AutoSwitch s(this);
 		_env -> statistics -> phase = Statistics::FINALIZATION;
+		_initialised = false;
 	}
 
 	void MainLoopContext::doStep() {
 		CALL("MainLoopContext::doStep");
+#if VDEBUG
+		cout << "Doing step on " <<  _id << endl;
+#endif //VDEBUG
+
+		if(!_initialised) init(); //Lazy initialisation in order to work with huge number of contexts
 
 		AutoSwitch s(this);
 		_ml -> doOneAlgorithmStep();
 		_env -> checkAllTimeLimits();
+#if VDEBUG
+		cout << "Finished step on " <<  _id << endl;
+#endif //VDEBUG
 	}
 
 	unsigned int MainLoopContext::updateTimeCounter() {

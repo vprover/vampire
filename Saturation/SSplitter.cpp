@@ -692,11 +692,13 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
   // This means that compCl is from a *different* proof attempt
   if(!_db[comp]){
     compCl = buildAndInsertComponentClause(comp,size,lits,orig,true);
+#if VDEBUG
     MainLoopScheduler::log() << "Importing " << compCl->toString() << endl;
+#endif//VDEBUG
     ASS_EQ(_db[comp]->component,compCl);
   }
   // compCl may still be from a different proof attempt, but if it is
-  // it is gaurenteed that _db[comp] contains the one from this proof
+  // it is guaranteed that _db[comp] contains the one from this proof
   // attempt, this holds even if compCl is from this proof attempt
   else{
     compCl = _db[comp]->component;
@@ -724,13 +726,17 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
 Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig, bool copy)
 {
   CALL("SSplitter::buildAndInsertComponentClause");
+#if VDEBUG
   if(_db[name]){ MainLoopScheduler::log() << _db[name]->component->toString() << endl; }
+#endif//VDEBUG
   ASS_EQ(_db[name],0);
 
   Unit::InputType inpType = orig ? orig->inputType() : Unit::AXIOM;
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, new Inference(Inference::SAT_SPLITTING_COMPONENT));
 
+#if VDEBUG
   MainLoopScheduler::log() << "Constructing sr for " << name << endl;
+#endif//VDEBUG
   _db[name] = new SplitRecord(compCl);
 
   compCl->setSplits(SplitSet::getSingleton(name));
@@ -739,7 +745,7 @@ Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size,
   if(!copy){_componentIdx -> insert(compCl);} // do not add to _componentIdx if a copy, as is already there
 #if VDEBUG
   else{ ASS((_componentIdx -> retrieveVariants(lits, size)).hasNext()); }
-#endif
+#endif//VDEBUG
   _compNames -> insert(compCl, name);
 
   LOG_UNIT("sspl_comp_names", compCl);
