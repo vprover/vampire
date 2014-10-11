@@ -106,7 +106,7 @@ private:
 		CALL("MainLoopScheduler::deleteContext");
 		ASS_L(k,_capacity);
 		ASS(!optionsQueue.empty());
-		_mlcl[k] = createContext(_prb, const_cast<Shell::Options&>(*optionsQueue.top()));
+		_mlcl[k] = createContext(_prb, /*const_cast<Shell::Options&>*/(*optionsQueue.top()));
 		ASS(_mlcl[k]);
 		optionsQueue.pop();
 		_contextCounter++;
