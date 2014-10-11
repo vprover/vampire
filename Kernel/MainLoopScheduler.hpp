@@ -86,7 +86,7 @@ private:
 	    	}
 	};
 
-	std::priority_queue<Shell::Options*, std::vector<Shell::Options*>, CompareOptions> optionsQueue;
+	std::priority_queue<Shell::Options*/*, std:vector<Shell::Options*>, CompareOptions*/> optionsQueue;
 
 	static MainLoopContext* createContext(Problem& prb, Shell::Options& opt);
 
