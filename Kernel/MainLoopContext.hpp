@@ -53,7 +53,8 @@ public:
 
 	static MainLoopContext* currentContext;
 
-	bool isInitialised() const { return _initialised; }
+	inline
+	bool initialised() const { return _initialised; }
 
 protected:
 	// Switch into this context

@@ -43,7 +43,8 @@ MainLoopContext* MainLoopScheduler::createContext(Problem& prb, Options& opt) {
 	}
 }
 
-MainLoopScheduler::MainLoopScheduler(Problem& prb, size_t capacity): _prb(prb), _capacity(capacity) {
+MainLoopScheduler::MainLoopScheduler(Problem& prb, size_t capacity):
+		_prb(prb), _capacity(capacity), _contextCounter(0) {
 	  CALL("MainLoopScheduler::MainLoopScheduler");
 	  //_mlclSize = opts.size();
 
@@ -54,6 +55,8 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, size_t capacity): _prb(prb), 
 
 	  _mlcl = static_cast<MainLoopContext**>(
 	  		  ALLOC_KNOWN(sizeof(MainLoopContext*)*_capacity,"MainLoopContext*"));
+	  for(size_t k = 0; k < _capacity; k++) _mlcl[k] = 0;
+
 
 /*	  OptionsList::Iterator i(opts);
 	  size_t k = 0;
@@ -71,8 +74,9 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, size_t capacity): _prb(prb), 
 */
 }
 
-MainLoopScheduler::MainLoopScheduler(Problem& prb, std::size_t capacity, OptionsList& opts):
-		_prb(prb), _capacity(capacity) {
+MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts,
+		std::size_t capacity):
+		_prb(prb), _capacity(capacity), _contextCounter(0) {
 	CALL("MainLoopScheduler::MainLoopScheduler");
 	//MainLoopScheduler::MainLoopScheduler(prb, capacity){
 	ASS_G(_capacity, 0);
@@ -80,12 +84,13 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, std::size_t capacity, Options
 
     _mlcl = static_cast<MainLoopContext**>(
 		  		  ALLOC_KNOWN(sizeof(MainLoopContext*)*_capacity,"MainLoopContext*"));
+    for(size_t k = 0; k < _capacity; k++) _mlcl[k] = 0;
 
 	addStrategies(opts);
 }
 
 MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts):
-		_prb(prb), _capacity(opts.size()) {
+		_prb(prb), _capacity(opts.size()), _contextCounter(0) {
 	CALL("MainLoopScheduler::MainLoopScheduler");
 		//MainLoopScheduler::MainLoopScheduler(prb, opts.size(), opts) {
 	ASS_G(_capacity, 0);
@@ -93,6 +98,7 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts):
 
     _mlcl = static_cast<MainLoopContext**>(
 		  		  ALLOC_KNOWN(sizeof(MainLoopContext*)*_capacity,"MainLoopContext*"));
+    for(size_t k = 0; k < _capacity; k++) _mlcl[k] = 0;
 
     addStrategies(opts);
 }
@@ -104,36 +110,14 @@ MainLoopResult MainLoopScheduler::run() {
 	MainLoopResult* result = 0;
 	try {
 
-		/*for(size_t k = 0; k < _mlclSize; k++) {
-			//_currentContext = _mlcl[k];
-//#if VDEBUG
-//			cout << "initialising context " << k << endl;
-//			cout << "isInitialised()? " << _mlcl[k] -> isInitialised() << endl;
-//#endif
-			_mlcl[k] -> init();
-		}
-//#if VDEBUG
-//		cout << "all context are initialised" << endl;
-//#endif
-		*/
-		size_t live_strategies = 0;
 		while(!result){
 			for(size_t k = 0; k < _capacity; k++) {
-
-				cout << "Working with " << k << endl;
-
-				// TODO - add local timers and stop a strategy if it uses up all of its time (need an option for this)
 				try{
 					if(_mlcl[k]){
 						_mlcl[k] -> doStep();
 					}else{
-						cout << "Empty " << k << endl;
 						if(!optionsQueue.empty()){
-							cout << "Creating " << k << endl;
-							_mlcl[k] = createContext(_prb, const_cast<Options&>(optionsQueue.top()));
-							ASS(_mlcl[k]);
-							optionsQueue.pop();
-							live_strategies++;
+							addContext(k);
 							_mlcl[k] -> doStep();
 						}
 					}
@@ -141,11 +125,9 @@ MainLoopResult MainLoopScheduler::run() {
 #if VDEBUG
 					cout << "Killing " << _mlcl[k] -> _id << " as local time limit exceeded" << endl;
 #endif //VDEBUG
-					delete _mlcl[k];
-					_mlcl[k] = 0;
-					live_strategies--;
+					deleteContext(k);
 					//check if there are any strategies left
-					if(live_strategies==0 && optionsQueue.empty()){
+					if(exausted()){
 						result = new MainLoopResult(Statistics::LOCAL_TIME_LIMIT);
 						break;
 					}
@@ -153,18 +135,10 @@ MainLoopResult MainLoopScheduler::run() {
 #if VDEBUG
 					cout << "Strategy " << _mlcl[k] -> _id << " found result" << endl;
 #endif //VDEBUG
-					if(e.result.terminationReason == Statistics::SATISFIABLE){
+					deleteContext(k);
+					if( (e.result.terminationReason == Statistics::SATISFIABLE) ||
+							exausted()){
 						result =  &e.result;
-						break;
-					}
-					// remove strategy!
-					delete _mlcl[k];
-					_mlcl[k]=0;
-					live_strategies--;
-
-					//check if there are any strategies left
-					if(live_strategies==0 && optionsQueue.empty()){
-						result = &e.result;
 						break;
 					}
 				}
@@ -186,14 +160,7 @@ MainLoopResult MainLoopScheduler::run() {
 	}
 
 	ASS(result);
-
-/*	// do cleanup
 	Lib::Timer::setTimeLimitEnforcement(false);
-	for(size_t k = 0; k < _mlclSize; k++) {
-		if(_mlcl[k]){_mlcl[k] -> cleanup();}
-	}
-*/
-
 	result -> updateStatistics();
 
 	return *result;
@@ -202,6 +169,10 @@ MainLoopResult MainLoopScheduler::run() {
 MainLoopScheduler::~MainLoopScheduler() {
 
 	CALL("MainLoopScheduler::~MainLoopScheduler()");
+
+#if VDEBUG
+		cout << "Deleting scheduler" << endl;
+#endif //VDEBUG
 
 	for(size_t k = 0; k < _capacity; k++) {
 		if(_mlcl[k]){
