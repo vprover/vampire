@@ -51,7 +51,7 @@ void MinimizingSolver::addClauses(SATClauseIterator cit, bool onlyPropagate,bool
   // and not adding clauses to _unprocessed should only result in more variables being marked
   // as DONT_CARE (if they only appear in clauses not to be used in the partial model)
   // - Giles
-  if(useInPartialModel){
+  if(useInPartialModel || ! _splitclausesonly ) {
     //we need to filter out the empty clause -- it won't have any influence on our algorithm
     //(as it will make the problem unsat and we process only satisfiale assignment), but it
     //is a corner case that needs to be handled

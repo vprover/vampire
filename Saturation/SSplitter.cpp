@@ -230,7 +230,9 @@ void SSplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAs
 
 }
 
-void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
+void SSplittingBranchSelector::addSatClauses(
+        const SATClauseStack& regularClauses,
+        const SATClauseStack& conflictClauses,
     SplitLevelStack& addedComps, SplitLevelStack& removedComps)
 {
   CALL("SSplittingBranchSelector::addSatClauses");
@@ -242,12 +244,13 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
 //  _unprocessed.loadFromIterator(
 //      getFilteredIterator(SATClauseStack::ConstIterator(clauses), hasPositiveLiteral) );
 
-  RSTAT_CTR_INC_MANY("ssat_sat_clauses",clauses.size());
+  RSTAT_CTR_INC_MANY("ssat_sat_clauses",regularClauses.size()+conflictClauses.size());
 //  RSTAT_CTR_INC_MANY("ssat_sat_clauses_with_positive",_unprocessed.size());
   {
     TimeCounter tc1(TC_SAT_SOLVER);
     // We do use split clauses in the partial model
-    _solver->addClauses(pvi( SATClauseStack::ConstIterator(clauses) ), false,true);
+    _solver->addClauses(pvi( SATClauseStack::ConstIterator(regularClauses) ), false,true);
+    _solver->addClauses(pvi( SATClauseStack::ConstIterator(conflictClauses) ), false,false);
     processDPConflicts();
   }
 
@@ -426,8 +429,11 @@ void SSplitter::addSATClause(SATClause* cl, bool branchRefutation)
   }
   if(branchRefutation) {
     _haveBranchRefutation = true;
+    _conflictClausesToBeAdded.push(cl);
+  } else {
+    _regularClausesToBeAdded.push(cl);
   }
-  _clausesToBeAdded.push(cl);
+  
 }
 
 void SSplitter::onAllProcessed()
@@ -439,7 +445,8 @@ void SSplitter::onAllProcessed()
     if(_haveBranchRefutation) {
       _flushThreshold = _sa->getGeneratedClauseCount()+_flushPeriod;
     }
-    if(_sa->getGeneratedClauseCount()>=_flushThreshold && _clausesToBeAdded.isEmpty()) {
+    if(_sa->getGeneratedClauseCount()>=_flushThreshold && 
+            _regularClausesToBeAdded.isEmpty() && _conflictClausesToBeAdded.isEmpty()) {
       flushing = true;
       _flushThreshold = _sa->getGeneratedClauseCount()+_flushPeriod;
       _flushPeriod = static_cast<unsigned>(_flushPeriod*_flushQuotient);
@@ -448,7 +455,7 @@ void SSplitter::onAllProcessed()
 
   _haveBranchRefutation = false;
 
-  if(_clausesToBeAdded.isEmpty() && !flushing) {
+  if(_regularClausesToBeAdded.isEmpty() && _conflictClausesToBeAdded.isEmpty() && !flushing) {
     return;
   }
   static SplitLevelStack toAdd;
@@ -459,8 +466,9 @@ void SSplitter::onAllProcessed()
     _branchSelector.flush(toAdd, toRemove);
   }
   else {
-    _branchSelector.addSatClauses(_clausesToBeAdded, toAdd, toRemove);
-    _clausesToBeAdded.reset();
+    _branchSelector.addSatClauses(_regularClausesToBeAdded,_conflictClausesToBeAdded, toAdd, toRemove);
+    _regularClausesToBeAdded.reset();
+    _conflictClausesToBeAdded.reset();
   }
 
   if(toRemove.isNonEmpty()) {

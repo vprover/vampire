@@ -49,7 +49,8 @@ public:
   void init();
 
   void updateVarCnt();
-  void addSatClauses(const SATClauseStack& clauses, SplitLevelStack& addedComps, SplitLevelStack& removedComps);
+  void addSatClauses(const SATClauseStack& regularClauses, const SATClauseStack& conflictClauses,
+                     SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
   void clearZeroImpliedSplits(Clause* cl);
@@ -233,7 +234,8 @@ private:
    * in the saturation algorithm (and so we'll be able to maintain the
    * correspondence between the SAT model and the clauses in the saturation).
    */
-  SATClauseStack _clausesToBeAdded;
+  SATClauseStack _regularClausesToBeAdded;
+  SATClauseStack _conflictClausesToBeAdded;
 };
 
 }
