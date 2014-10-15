@@ -266,8 +266,8 @@ void SSplittingBranchSelector::addSatClauses(
     SATSolver::VarAssignment asgn = _solver->getAssignment(i);
     updateSelection(i, asgn, addedComps, removedComps);
   }
-  if(maxSatVar>1){
-    int percent = (_usedcnt *100) / (maxSatVar-1);
+  if(maxSatVar>=1){
+    int percent = (_usedcnt *100) / maxSatVar;
     RSTAT_MCTR_INC("minimise_model_percent",percent);
   }
 
@@ -311,7 +311,7 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
 	  _solver->addClauses(SATClauseIterator::getEmpty(), false);
   }
   ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
-  //_solver->randomizeAssignment(); //why do we do this?
+  _solver->randomizeAssignment();
 
   processDPConflicts();
   ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
@@ -322,8 +322,8 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
     SATSolver::VarAssignment asgn = _solver->getAssignment(i);
     updateSelection(i, asgn, addedComps, removedComps);
   }
-  if(maxSatVar>1){
-    int percent = (_usedcnt *100) / (maxSatVar-1);
+  if(maxSatVar>=1){
+    int percent = (_usedcnt *100) / maxSatVar;
     RSTAT_MCTR_INC("minimise_model_percent",percent);
   }
 
