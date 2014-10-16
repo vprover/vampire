@@ -30,7 +30,7 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 #if VDEBUG
 			_id(id_counter++),
 #endif
-            _opts(opts), _startTime(0), _elapsed(0), _initialised(false) {
+            _opts(opts), _startTime(0), _elapsed(0), _initialised(false), _steps(0) {
 
 		CALL("MainLoopContext::MainLoopContext");
 
@@ -119,21 +119,32 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 		_initialised = false;
 	}
 
-	void MainLoopContext::doStep() {
+	void MainLoopContext::doStep(unsigned int timeSlice) {
 		CALL("MainLoopContext::doStep");
+
+		const int end = _env -> timer -> elapsedMilliseconds() + timeSlice;
 
 		if(!_initialised) init(); //Lazy initialisation in order to work with huge number of contexts
 
 #if VDEBUG
-		cout << "Doing step in context " <<  _id << endl;
+		cout << "Doing steps in context " <<  _id << " within time slice " << timeSlice << " msec" << endl;
 #endif //VDEBUG
 
 		AutoSwitch s(this);
-		_ml -> doOneAlgorithmStep();
-		_env -> checkAllTimeLimits();
+		do{//ensures at least one step
+			_ml -> doOneAlgorithmStep();
+
 #if VDEBUG
-		cout << "Finished step in context " <<  _id << endl;
+		cout << "Finished step " << _steps << " in context " <<  _id << endl;
 #endif //VDEBUG
+
+			_steps++;
+			_env -> checkAllTimeLimits();
+		}while(_env -> timer -> elapsedMilliseconds() < end);
+#if VDEBUG
+		cout << "Average time " << averageTimeSlice() << " msec per step" << endl;
+#endif //VDEBUG
+
 	}
 
 	unsigned int MainLoopContext::updateTimeCounter() {

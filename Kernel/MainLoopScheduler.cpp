@@ -44,7 +44,7 @@ MainLoopContext* MainLoopScheduler::createContext(Problem& prb, Options& opt) {
 }
 
 MainLoopScheduler::MainLoopScheduler(Problem& prb, size_t capacity):
-		_prb(prb), _capacity(capacity), _contextCounter(0) {
+		_prb(prb), _capacity(capacity), _contextCounter(0), _maxTimeSlice(0) {
 	  CALL("MainLoopScheduler::MainLoopScheduler");
 	  //_mlclSize = opts.size();
 
@@ -76,7 +76,7 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, size_t capacity):
 
 MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts,
 		std::size_t capacity):
-		_prb(prb), _capacity(capacity), _contextCounter(0) {
+		_prb(prb), _capacity(capacity), _contextCounter(0), _maxTimeSlice(0) {
 	CALL("MainLoopScheduler::MainLoopScheduler");
 	//MainLoopScheduler::MainLoopScheduler(prb, capacity){
 	ASS_G(_capacity, 0);
@@ -90,7 +90,7 @@ MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts,
 }
 
 MainLoopScheduler::MainLoopScheduler(Problem& prb, OptionsList& opts):
-		_prb(prb), _capacity(opts.size()), _contextCounter(0) {
+		_prb(prb), _capacity(opts.size()), _contextCounter(0), _maxTimeSlice(0) {
 	CALL("MainLoopScheduler::MainLoopScheduler");
 		//MainLoopScheduler::MainLoopScheduler(prb, opts.size(), opts) {
 	ASS_G(_capacity, 0);
@@ -114,11 +114,11 @@ MainLoopResult MainLoopScheduler::run() {
 			for(size_t k = 0; k < _capacity; k++) {
 				try{
 					if(_mlcl[k]){
-						_mlcl[k] -> doStep();
+						contextStep(k);
 					}else{
 						if(!optionsQueue.empty()){
 							addContext(k);
-							_mlcl[k] -> doStep();
+							contextStep(k);
 						}
 					}
 				}catch(LocalTimeLimitExceededException&) {

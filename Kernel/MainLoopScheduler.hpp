@@ -103,7 +103,7 @@ private:
 
 	inline
 	void addContext(const std::size_t k){
-		CALL("MainLoopScheduler::deleteContext");
+		CALL("MainLoopScheduler::addContext");
 		ASS_L(k,_capacity);
 		ASS(!optionsQueue.empty());
 		_mlcl[k] = createContext(_prb, /*const_cast<Shell::Options&>*/(*optionsQueue.top()));
@@ -117,6 +117,36 @@ private:
 	bool exausted() const{
 		return (_contextCounter == 0) && optionsQueue.empty();
 	}
+
+	inline
+	void contextStep(const std::size_t k){
+		CALL("MainLoopScheduler::contextStep");
+		ASS_L(k,_capacity);
+		_mlcl[k] -> doStep(_maxTimeSlice);
+		timeSliceMagic(k);
+
+	}
+
+	inline
+	void timeSliceMagic(std::size_t k){
+		CALL("MainLoopScheduler::timeSliceMagic");
+
+		//TODO: [dmitry] More nicer slicing scheme needed: some strategies do one derivation step too long
+		const unsigned int timeSlice = _mlcl[k] -> averageTimeSlice();
+		if(_maxTimeSlice <= timeSlice) {
+			_maxTimeSlice = timeSlice;
+			_nmts = 0;
+		}else{
+			_nmts++;
+			if(_nmts >= _capacity){
+				_maxTimeSlice /= 2;
+				_nmts = 0;
+			}
+		}
+
+	}
+
+	unsigned int _maxTimeSlice, _nmts;
 };
 
 } /* namespace Kernel */
