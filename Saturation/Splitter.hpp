@@ -71,17 +71,13 @@ private:
 
   Splitter& _parent;
 
-  unsigned _varCnt;
   SATSolverSCP _solver;
   ScopedPtr<DecisionProcedure> _dp;
-
-  unsigned _usedcnt;
-
+  
   /**
    * Contains selected component names
    */
   ArraySet _selected;
-
 };
 
 /**

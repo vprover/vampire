@@ -120,7 +120,6 @@ void SplittingBranchSelector::updateVarCnt()
 
   _solver->ensureVarCnt(satVarCnt);
   _selected.expand(splitLvlCnt);
-//  _watcher.expand(varCnt);
 }
 
 void SplittingBranchSelector::handleSatRefutation(SATClause* ref)
@@ -151,7 +150,7 @@ void SplittingBranchSelector::processDPConflicts()
   static SATClauseStack conflictClauses;
 
   while(_solver->getStatus()==SATSolver::SATISFIABLE) {
-    gndAssignment.reset();
+    gndAssignment.reset(); // Martin. in fact, not ground. Filtering based on gndness happens inside dp
     s2f.collectAssignment(*_solver, gndAssignment);
 
     _dp->reset();
@@ -172,7 +171,7 @@ void SplittingBranchSelector::processDPConflicts()
 
     {
     	TimeCounter tca(TC_SAT_SOLVER);
-      // We do not use conflict clauses in the partial model      
+      // We do not use conflict clauses in the partial model (hence the last false here below)     
     	_solver->addClauses(pvi( SATClauseStack::Iterator(conflictClauses) ),false,false);
     }
 
@@ -191,8 +190,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
   SplitLevel negLvl = _parent.getNameFromLiteral(SATLiteral(satVar, false));
 
   switch(asgn) {
-  case SATSolver::TRUE:
-    _usedcnt++;
+  case SATSolver::TRUE:    
     if(!_selected.find(posLvl) && _parent.isActiveName(posLvl)) {
       _selected.insert(posLvl);
       addedComps.push(posLvl);
@@ -202,8 +200,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
       removedComps.push(negLvl);
     }
     break;
-  case SATSolver::FALSE:
-    _usedcnt++;
+  case SATSolver::FALSE:    
     if(!_selected.find(negLvl) && _parent.isActiveName(negLvl)) {
       _selected.insert(negLvl);
       addedComps.push(negLvl);
@@ -242,86 +239,69 @@ void SplittingBranchSelector::addSatClauses(
 
   TimeCounter tc(TC_SPLITTING_COMPONENT_SELECTION);
 
-//  _unprocessed.loadFromIterator(
-//      getFilteredIterator(SATClauseStack::ConstIterator(clauses), hasPositiveLiteral) );
-
   RSTAT_CTR_INC_MANY("ssat_sat_clauses",regularClauses.size()+conflictClauses.size());
-//  RSTAT_CTR_INC_MANY("ssat_sat_clauses_with_positive",_unprocessed.size());
   {
     TimeCounter tc1(TC_SAT_SOLVER);
-    // We do use split clauses in the partial model
+    // We do use regular split clauses in the partial model ...
     _solver->addClauses(pvi( SATClauseStack::ConstIterator(regularClauses) ), false,true);
+    // ... but not the clauses derived from conflicts
     _solver->addClauses(pvi( SATClauseStack::ConstIterator(conflictClauses) ), false,false);
     processDPConflicts();
   }
 
   if(_solver->getStatus()==SATSolver::UNSATISFIABLE) {
     SATClause* satRefutation = _solver->getRefutation();
-    handleSatRefutation(satRefutation);
+    handleSatRefutation(satRefutation); // noreturn!
   }
   ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
 
   unsigned maxSatVar = _parent.maxSatVar();
-  _usedcnt=0;
+  unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
-    SATSolver::VarAssignment asgn = _solver->getAssignment(i);
+    SATSolver::VarAssignment asgn = _solver->getAssignment(i);            
     updateSelection(i, asgn, addedComps, removedComps);
+    
+    if (asgn != SATSolver::DONT_CARE) {
+      _usedcnt++;
+    }
   }
   if(maxSatVar>=1){
     int percent = (_usedcnt *100) / maxSatVar;
     RSTAT_MCTR_INC("minimise_model_percent",percent);
   }
-
-//
-//
-//
-//  deselectByModel(removedComps);
-//  fixUnprocessed(addedComps);
-//
-//  sweep(addedComps, removedComps);
   
   RSTAT_CTR_INC_MANY("ssat_usual_activations", addedComps.size());
   RSTAT_CTR_INC_MANY("ssat_usual_deactivations", removedComps.size());
-
 }
 
 /**
- * Switch to a different splitting branch
+ * Switch to a (randomly) different splitting branch.
  */
 void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps)
 {
   CALL("SplittingBranchSelector::flush");
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
-
-  SplitLevel varCnt = _parent.maxSatVar()+1;
-
-  static ArraySet oldselSet;
-  oldselSet.ensure(varCnt);
-  oldselSet.reset();
-
-  if(_solver->getStatus()==SATSolver::UNKNOWN) {
-    //why is this required twice?
+  
+  if(_solver->getStatus()==SATSolver::UNKNOWN) {    
   	TimeCounter tca(TC_SAT_SOLVER);
-    _solver->addClauses(SATClauseIterator::getEmpty(), false);
-  }
-  // calling addClauses with false forces solver to run
-  // without only use propagation
-  {
-	  TimeCounter tc1(TC_SAT_SOLVER);
-	  _solver->addClauses(SATClauseIterator::getEmpty(), false);
-  }
+    _solver->addClauses(SATClauseIterator::getEmpty()); // Martin: just to get a status? Evil!
+  } 
   ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
   _solver->randomizeAssignment();
 
-  processDPConflicts();
+  processDPConflicts(); // Why after the randomization?
   ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
 
   unsigned maxSatVar = _parent.maxSatVar();
-  _usedcnt=0;
+  unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = _solver->getAssignment(i);
     updateSelection(i, asgn, addedComps, removedComps);
+    
+    if (asgn != SATSolver::DONT_CARE) {
+      _usedcnt++;
+    }
   }
   if(maxSatVar>=1){
     int percent = (_usedcnt *100) / maxSatVar;
@@ -334,7 +314,7 @@ void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack
 
 //////////////
 // Splitter
-//
+//////////////
 
 Splitter::Splitter()
 : _branchSelector(*this)
@@ -942,14 +922,13 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
 }
 
 void SplittingBranchSelector::clearZeroImpliedSplits(Clause* cl)
-{
- 
+{ 
   CALL("Splitter::clearZeroImpliedSplits");
 
   if(!_zeroOpt) return;
 
   SplitLevel this_level;
-  bool has_level =  _parent.getSplitLevelFromClause(cl,this_level);
+  bool has_level = _parent.getSplitLevelFromClause(cl,this_level);
 
   SplitSet* rem=SplitSet::getEmpty();
   SplitSet::Iterator sit(*(cl->splits()));
