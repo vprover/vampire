@@ -223,13 +223,13 @@ public:
     //SPLIT_INPUT_ONLY,
     //SPLIT_POSITIVE,
     SPLITTING,
-    SSPLITTING_ADD_COMPLEMENTARY,
-    SSPLITTING_CONGRUENCE_CLOSURE,
-    SSPLITTING_EAGER_REMOVAL,
-    SSPLITTING_FLUSH_PERIOD,
-    SSPLITTING_FLUSH_QUOTIENT,
-    SSPLITTING_MODEL,
-    SSPLITTING_NONSPLITTABLE_COMPONENTS,
+    SPLITTING_ADD_COMPLEMENTARY,
+    SPLITTING_CONGRUENCE_CLOSURE,
+    SPLITTING_EAGER_REMOVAL,
+    SPLITTING_FLUSH_PERIOD,
+    SPLITTING_FLUSH_QUOTIENT,
+    SPLITTING_MODEL,
+    SPLITTING_NONSPLITTABLE_COMPONENTS,
 
     STATISTICS,
     SUPERPOSITION_FROM_VARIABLES,
@@ -514,29 +514,29 @@ public:
     SCD_MINISAT = 1,
   };
 
-  enum SSplittingComponentSweeping {
-    SSCS_ALL = 0,
-    SSCS_ITERATED = 1,
-    SSCS_NONE = 2,
-    SSCS_ONLY_NEW = 3
+  enum SplittingComponentSweeping {
+    SCS_ALL = 0,
+    SCS_ITERATED = 1,
+    SCS_NONE = 2,
+    SCS_ONLY_NEW = 3
   };
 
-  enum SSplittingAddComplementary {
-    SSAC_GROUND = 0,
-    SSAC_NONE = 1
+  enum SplittingAddComplementary {
+    SAC_GROUND = 0,
+    SAC_NONE = 1
   };
 
-  enum SSplittingModel {
-    SSM_MIN_ALL = 0,
-    SSM_MIN_SCO = 1,
-    SSM_TOTAL = 2
+  enum SplittingModel {
+    SM_MIN_ALL = 0,
+    SM_MIN_SCO = 1,
+    SM_TOTAL = 2
   };
 
-  enum SSplittingNonsplittableComponents {
-    SSNS_ALL = 0,
-    SSNS_ALL_DEPENDENT = 1,
-    SSNS_KNOWN = 2,
-    SSNS_NONE = 3
+  enum SplittingNonsplittableComponents {
+    SNS_ALL = 0,
+    SNS_ALL_DEPENDENT = 1,
+    SNS_KNOWN = 2,
+    SNS_NONE = 3
   };
 
   enum Sos {
@@ -811,13 +811,13 @@ public:
   int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator; }
   int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator; }
 
-  SSplittingNonsplittableComponents ssplittingNonsplittableComponents() const { return _ssplittingNonsplittableComponents; }
-  SSplittingAddComplementary ssplittingAddComplementary() const { return _ssplittingAddComplementary; }
-  int ssplittingFlushPeriod() const { return _ssplittingFlushPeriod; }
-  float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient; }
-  bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval; }
-  bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure; }
-  SSplittingModel ssplittingModel() const { return _ssplittingModel; }
+  SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents; }
+  SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary; }
+  int splittingFlushPeriod() const { return _splittingFlushPeriod; }
+  float splittingFlushQuotient() const { return _splittingFlushQuotient; }
+  bool splittingEagerRemoval() const { return _splittingEagerRemoval; }
+  bool splittingCongruenceClosure() const { return _splittingCongruenceClosure; }
+  SplittingModel splittingModel() const { return _splittingModel; }
 
   void setProof(Proof p) { _proof = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval; }
@@ -1031,13 +1031,13 @@ private:
   //bool _splitInputOnly;
   //bool _splitPositive;
   bool _splitting;
-  SSplittingAddComplementary _ssplittingAddComplementary;
-  bool _ssplittingCongruenceClosure;
-  bool _ssplittingEagerRemoval;
-  unsigned _ssplittingFlushPeriod;
-  float _ssplittingFlushQuotient;
-  SSplittingNonsplittableComponents _ssplittingNonsplittableComponents;
-  SSplittingModel _ssplittingModel;
+  SplittingAddComplementary _splittingAddComplementary;
+  bool _splittingCongruenceClosure;
+  bool _splittingEagerRemoval;
+  unsigned _splittingFlushPeriod;
+  float _splittingFlushQuotient;
+  SplittingNonsplittableComponents _splittingNonsplittableComponents;
+  SplittingModel _splittingModel;
   Statistics _statistics;
   bool _superpositionFromVariables;
   SymbolPrecedence _symbolPrecedence;

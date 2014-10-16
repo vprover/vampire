@@ -54,7 +54,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "SSplitter.hpp"
+#include "Splitter.hpp"
 
 #include "ConsequenceFinder.hpp"
 #include "Splitter.hpp"
@@ -1430,7 +1430,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   //case Options::SM_SAT:
   // Splitting is now either on or off. If on it using SSplitter
   if(opt.splitting()){
-    res->_splitter = new SSplitter();
+    res->_splitter = new Splitter();
   }
   if (opt.questionAnswering()==Options::QA_ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();
