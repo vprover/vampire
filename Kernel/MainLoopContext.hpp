@@ -28,7 +28,7 @@ public:
 	virtual ~MainLoopContext();
 
 	// Do one main loop step in this context
-	virtual void doStep();
+	virtual void doStep(unsigned int timeSlice = 100);
 	// Do init required by algorithm, and set phase
 	virtual void init();
 	// Do cleanup required by algorithm, and set phase
@@ -52,6 +52,14 @@ public:
 #endif //VDEBUG
 
 	static MainLoopContext* currentContext;
+
+	inline
+	bool initialised() const { return _initialised; }
+
+	inline
+	unsigned int averageTimeSlice() const {
+		return (_elapsed / _steps);
+	}
 
 protected:
 	// Switch into this context
@@ -79,6 +87,10 @@ private:
 	Lib::Environment* _temp_env; //A variable to preserve the current environment before switching in.
 								 //TODO: a manager pattern for main loops needs to be implemented for context switching
 	unsigned int _startTime, _elapsed;
+
+	bool _initialised;
+
+	unsigned int _steps;
 };
 
 } /* namespace Kernel */

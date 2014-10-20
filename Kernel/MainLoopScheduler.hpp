@@ -9,12 +9,15 @@
 #define __MainLoopScheduler__
 
 #include <cstddef>
+#if VDEBUG
 #include <iostream>
+#endif//VDEBUG
+#include <queue>
 
 #include "Kernel/MainLoopFwd.hpp"
 #include "Kernel/MainLoopContext.hpp"
 #include "Kernel/ProblemFwd.hpp"
-#include "Shell/OptionsListFwd.hpp"
+#include "Shell/OptionsList.hpp"
 
 //namespace Shell {
 
@@ -30,7 +33,10 @@ namespace Kernel {
 
 class MainLoopScheduler {
 public:
+	MainLoopScheduler(Problem& prb, std::size_t capacity);
+	MainLoopScheduler(Problem& prb, Shell::OptionsList& opts, std::size_t capacity);
 	MainLoopScheduler(Problem& prb, Shell::OptionsList& opts);
+
 	~MainLoopScheduler();
 
 	MainLoopResult run();
@@ -50,15 +56,97 @@ public:
 		return std::cout;
 	}
 #endif
+
+	inline
+	void addStrategy(Shell::Options& opt){
+		optionsQueue.push(&opt);
+	}
+
+	void addStrategies(Shell::OptionsList& opts){
+		Shell::OptionsList::Iterator i(opts);
+	    while(i.hasNext()){
+			addStrategy(i.next());
+	    }
+	}
+
+
 protected:
 
 private:
-	// Store the context currently being run
-    //static MainLoopContext* _currentContext;
 
-	static MainLoopContext** _mlcl;
-	static std::size_t _mlclSize;
+	Problem& _prb;
+	std::size_t _capacity;
+	std::size_t _contextCounter;
+	MainLoopContext** _mlcl;
 
+	class CompareOptions{
+		public:
+	    	bool operator()(Shell::Options* lhs, Shell::Options* rhs) {
+	    		return (lhs < rhs);
+	    	}
+	};
+
+	std::priority_queue<Shell::Options*/*, std:vector<Shell::Options*>, CompareOptions*/> optionsQueue;
+
+	static MainLoopContext* createContext(Problem& prb, Shell::Options& opt);
+
+	inline
+	void deleteContext(const std::size_t k){
+		CALL("MainLoopScheduler::deleteContext");
+		ASS(_mlcl[k]);
+		delete _mlcl[k];
+		_mlcl[k] = 0;
+		_contextCounter--;
+		ASS_GE(_contextCounter,0);
+		ASS_LE(_contextCounter,_capacity);
+	}
+
+	inline
+	void addContext(const std::size_t k){
+		CALL("MainLoopScheduler::addContext");
+		ASS_L(k,_capacity);
+		ASS(!optionsQueue.empty());
+		_mlcl[k] = createContext(_prb, /*const_cast<Shell::Options&>*/(*optionsQueue.top()));
+		ASS(_mlcl[k]);
+		optionsQueue.pop();
+		_contextCounter++;
+		ASS_LE(_contextCounter,_capacity);
+	}
+
+	inline
+	bool exausted() const{
+		return (_contextCounter == 0) && optionsQueue.empty();
+	}
+
+	inline
+	void contextStep(const std::size_t k){
+		CALL("MainLoopScheduler::contextStep");
+		ASS_L(k,_capacity);
+		_mlcl[k] -> doStep(_maxTimeSlice);
+		timeSliceMagic(k);
+
+	}
+
+	inline
+	void timeSliceMagic(std::size_t k){
+		CALL("MainLoopScheduler::timeSliceMagic");
+
+		//TODO: [dmitry] More nicer slicing scheme needed: some strategies do one derivation step too long
+		const unsigned int timeSlice = _mlcl[k] -> averageTimeSlice();
+		if(_maxTimeSlice <= timeSlice) {
+			_maxTimeSlice = timeSlice;
+			_nmts = 0;
+		}else{
+			_nmts++;
+			if(_nmts >= _capacity){
+				_maxTimeSlice /= 2;
+				_nmts = 0;
+			}
+		}
+
+	}
+
+	unsigned int _maxTimeSlice, _nmts;
 };
 
 } /* namespace Kernel */
