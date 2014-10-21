@@ -69,7 +69,7 @@ void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
 
   TimeCounter tc(TC_BINARY_RESOLUTION_INDEX_MAINTENANCE);
 
-  int selCnt=c->selected();
+  int selCnt=c->numSelected();
   for(int i=0; i<selCnt; i++) {
     handleLiteral((*c)[i], c, adding);
   }
@@ -130,7 +130,7 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
     return;
   }
   TimeCounter tc(TC_NON_UNIT_LITERAL_INDEX_MAINTENANCE);
-  unsigned activeLen = _selectedOnly ? c->selected() : clen;
+  unsigned activeLen = _selectedOnly ? c->numSelected() : clen;
   for(unsigned i=0; i<activeLen; i++) {
     handleLiteral((*c)[i], c, adding);
   }

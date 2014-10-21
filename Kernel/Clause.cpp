@@ -61,12 +61,12 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _color(COLOR_INVALID),
     _input(0),
     _extensionality(false),
-    _selected(0),
+    _numSelected(0),
     _age(0),
     _weight(0),
     _store(NONE),
     _in_active(0),
-    _inferenceRefCnt(0),
+    _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
     _splits(0),
@@ -206,7 +206,7 @@ Clause* Clause::fromClause(Clause* c)
 bool Clause::shouldBeDestroyed()
 {
 //  return false;
-  return (_store == NONE || _store == BACKTRACKED) && _inferenceRefCnt == 0 &&
+  return (_store == NONE) && _refCnt == 0 &&
     !isFromPreprocessing();
 }
 
@@ -240,7 +240,7 @@ void Clause::destroy()
 	continue;
       }
       Clause* refCl = static_cast<Clause*> (refU);
-      refCl->_inferenceRefCnt--;
+      refCl->_refCnt--;
       if (refCl->shouldBeDestroyed()) {
 	toDestroy.push(refCl);
       }
@@ -431,8 +431,8 @@ vstring Clause::toString() const
   }
 
   result += vstring(" (") + Int::toString(_age) + ':' + Int::toString(weight());
-  if (selected()>0) {
-    result += ':' + Int::toString(selected());
+  if (numSelected()>0) {
+    result += ':' + Int::toString(numSelected());
   }
   result += ") " + inferenceAsString();
   return result;

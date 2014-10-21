@@ -191,7 +191,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
 
   switch(asgn) {
   case SATSolver::TRUE:    
-    if(!_selected.find(posLvl) && _parent.isActiveName(posLvl)) {
+    if(!_selected.find(posLvl) && _parent.isUsedName(posLvl)) {
       _selected.insert(posLvl);
       addedComps.push(posLvl);
     }
@@ -201,7 +201,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
     }
     break;
   case SATSolver::FALSE:    
-    if(!_selected.find(negLvl) && _parent.isActiveName(negLvl)) {
+    if(!_selected.find(negLvl) && _parent.isUsedName(negLvl)) {
       _selected.insert(negLvl);
       addedComps.push(negLvl);
     }
@@ -408,7 +408,7 @@ Clause* Splitter::getComponentClause(SplitLevel name) const
 }
 
 
-void Splitter::addSATClause(SATClause* cl, bool branchRefutation)
+void Splitter::recordSATClauseForAddition(SATClause* cl, bool branchRefutation)
 {
   CALL("Splitter::addSATClause");
 
@@ -421,8 +421,7 @@ void Splitter::addSATClause(SATClause* cl, bool branchRefutation)
     _conflictClausesToBeAdded.push(cl);
   } else {
     _regularClausesToBeAdded.push(cl);
-  }
-  
+  }  
 }
 
 void Splitter::onAllProcessed()
@@ -468,6 +467,7 @@ void Splitter::onAllProcessed()
   }
 }
 
+
 bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, Clause*& compCl)
 {
   CALL("Splitter::shouldAddClauseForNonSplittable");
@@ -481,7 +481,7 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
 
   if(_congruenceClosure && cl->length()==1 && (*cl)[0]->ground() && cl->splits()->isEmpty()) {
     //we add ground unit clauses if we use congruence closure...
-    compName = getComponentName(cl->length(), cl->literals(), cl, compCl);
+    compName = tryGetComponentNameOrAddNew(cl->length(), cl->literals(), cl, compCl);
     RSTAT_CTR_INC("ssat_ground_clauses_for_congruence");
     return true;
   }
@@ -509,7 +509,7 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
       return false;
     }
     RSTAT_CTR_INC("ssat_non_splittable_introduced_components");
-    compName = getComponentName(cl->length(), cl->literals(), cl, compCl);
+    compName = tryGetComponentNameOrAddNew(cl->length(), cl->literals(), cl, compCl);
   }
   ASS_NEQ(cl,compCl);
 
@@ -556,20 +556,19 @@ bool Splitter::handleNonSplittable(Clause* cl)
   ASS_EQ(nameRec.component,compCl);
   ASS_REP2(compCl->store()==Clause::NONE || compCl->store()==Clause::ACTIVE ||
       compCl->store()==Clause::PASSIVE || compCl->store()==Clause::UNPROCESSED, *compCl, compCl->store());
-  if(nameRec.active && nameRec.component->store()==Clause::NONE) {
+  if(nameRec.active && compCl->store()==Clause::NONE) {
     //we need to make sure the clause naming the component is present in this case, as the
     //following scenario may lead to incompleteness:
     //  component C is selected and put to unprocessed
     //  clause C' syntactically equal to C is derived and put into simplification container
     //  component C is made redundant by C'
     //  we name C' as C. The sat clause {C} won't lead to addition of C into FO as C is already selected.
-
-    //compCl->setProp(BDD::instance()->getFalse());
-    compCl->incReductionTimestamp();
+    
+    compCl->invalidateMyReductionRecords();
     _sa->addNewClause(compCl);
   }
 
-  addSATClause(nsClause, false);
+  recordSATClauseForAddition(nsClause, false);
   return true;
 }
 
@@ -669,7 +668,7 @@ bool Splitter::doSplitting(Clause* cl)
   for(unsigned i=0; i<compCnt; ++i) {
     const LiteralStack& comp = comps[i];
     Clause* compCl;
-    SplitLevel compName = getComponentName(comp, cl, compCl);
+    SplitLevel compName = tryGetComponentNameOrAddNew(comp, cl, compCl);
     SATLiteral nameLit = getLiteralFromName(compName);
     satClauseLits.push(nameLit);
     ClauseList::push(compCl, namePremises);
@@ -678,7 +677,7 @@ bool Splitter::doSplitting(Clause* cl)
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
   splitClause->setInference(new FOSplittingInference(cl, namePremises));
 
-  addSATClause(splitClause, false);
+  recordSATClauseForAddition(splitClause, false);
 
   env.statistics->satSplits++;
   return true;
@@ -735,7 +734,8 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   ASS_EQ(_db[name],0);
 
   Unit::InputType inpType = orig ? orig->inputType() : Unit::AXIOM;
-  Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, new Inference(Inference::SAT_SPLITTING_COMPONENT));
+  Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, 
+          new Inference(Inference::SAT_SPLITTING_COMPONENT));
 
   _db[name] = new SplitRecord(compCl);
 
@@ -786,7 +786,9 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
     _db.push(0);
   }
   else {
-    ASS_EQ(_complBehavior,Options::SAC_NONE); //otherwise the complement would have been created
+    ASS_EQ(_complBehavior,Options::SAC_NONE); 
+    //otherwise the complement would have been created below ...
+    // ... in the respective previous pass through this method 
   }
   ASS_L(compName,_db.size());
 
@@ -812,20 +814,22 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
  *
  * @return the propositional name for the Clause (to be passed to the SAT solver)
  */
-SplitLevel Splitter::getComponentName(const LiteralStack& comp, Clause* orig, Clause*& compCl)
+SplitLevel Splitter::tryGetComponentNameOrAddNew(const LiteralStack& comp, Clause* orig, Clause*& compCl)
 {
   CALL("Splitter::getComponentName/3");
-  return getComponentName(comp.size(), comp.begin(), orig, compCl);
+  return tryGetComponentNameOrAddNew(comp.size(), comp.begin(), orig, compCl);
 }
 
 /**
  * @param orig original clause (one being split) used to determine input type of the component.
  *             Can be zero, in that case the input type is Unit::AXIOM
  * @param size The number of literals in the component
- * @param lits The component to be named (as a set of literals)
+ * @param lits The component to be named (as an array of literals)
  * @param compCl The clause that will be used to represent this component - to be filled
+ *
+ * @return the propositional name for the Clause (to be passed to the SAT solver) 
  */
-SplitLevel Splitter::getComponentName(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl)
+SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl)
 {
   CALL("Splitter::getComponentName/4");
 
@@ -907,13 +911,14 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   }
   // else freeze clause
 
+  // TODO: keep statistics in release ?
 //#if VDEBUG
   cl->incFreezeCount();
   RSTAT_MCTR_INC("frozen clauses",cl->getFreezeCount());
   RSTAT_CTR_INC("total_frozen");
 //#endif
 
-  cl->incReductionTimestamp();
+  cl->invalidateMyReductionRecords();
   SplitSet::Iterator dit(*diff);
   while(dit.hasNext()) {
     SplitLevel slev=dit.next();
@@ -970,7 +975,7 @@ void Splitter::onNewClause(Clause* cl)
   CALL("Splitter::onNewClause");
 
   //For now just record if cl is in the variant index
-  // i.e. is a componenent
+  // i.e. is a component
   //TODO - if it is then
   // (a) if it is true it can be immediately frozen
   // (b) if it is false it can be immediately passed to the SAT
@@ -982,7 +987,7 @@ void Splitter::onNewClause(Clause* cl)
   //  isComponent = _componentIdx.retrieveVariants(cl).hasNext();
   //}
   //if(isComponent){
-  //	RSTAT_CTR_INC("New Clause is Componenet");
+  //	RSTAT_CTR_INC("New Clause is a Component");
   //}
 
   if(!cl->splits()) {
@@ -999,7 +1004,7 @@ void Splitter::onNewClause(Clause* cl)
  * Return a split set of a new clause
  *
  * Assumes that clauses referred to by cl->inference() object
- * are actual premisses of @b cl. (This holds when BDDs are not
+ * are actual premises of @b cl. (This holds when BDDs are not
  * used.)
  */
 SplitSet* Splitter::getNewClauseSplitSet(Clause* cl)
@@ -1048,7 +1053,7 @@ void Splitter::SplitRecord::addReduced(Clause* cl)
   CALL("Splitter::SplitRecord::addReduced");
 
   cl->incRefCnt(); //dec when popped from the '_db[slev]->reduced' stack in backtrack method
-  reduced.push(ReductionRecord(cl->getReductionTimestamp(),cl));
+  reduced.push(ReductionRecord(cl));
 }
 
 bool Splitter::handleEmptyClause(Clause* cl)
@@ -1068,7 +1073,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
   
   RSTAT_MCTR_INC("sspl_confl_len", confl->length());
 
-  addSATClause(confl, true);
+  recordSATClauseForAddition(confl, true);
 
   env.statistics->satSplitRefutations++;
   return true;
@@ -1086,11 +1091,7 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
     ASS(sr);
     ASS(!sr->active);
     sr->active = true;
-    //simplifications may set prop part to true, but when we add the
-    //clause, we cannot assume is it still simplified
-    // Giles. simplifications no longer set prop part to true
-    //sr->component->setProp(BDD::instance()->getFalse());
-
+    
     ASS(sr->children.isEmpty());
     //we need to put the component among children, so that it is backtracked
     //when we remove the component
@@ -1108,10 +1109,15 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
  */
 void Splitter::removeComponents(const SplitLevelStack& toRemove)
 {
-  CALL("Splitter::backtrack");
+  CALL("Splitter::removeComponents");
   ASS(_sa->clausesFlushed());
 
-  Clause::requestAux();
+  /* Martin: for marking:
+   * 1) to remove each of the children only once
+   * 2) to restore each reduced only once
+   */
+  Clause::requestAux();  
+  
   static RCClauseStack trashed;
   static RCClauseStack restored;
   ASS(restored.isEmpty());
@@ -1136,7 +1142,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
 	  ASS_EQ(ccl->store(), Clause::NONE);
 	}
 	ccl->setAux(0);
-	ccl->incReductionTimestamp();
+	ccl->invalidateMyReductionRecords();
       }
       ccl->decRefCnt(); //decrease corresponding to sr->children.popWithoutDec()
     }
@@ -1153,8 +1159,8 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     while(sr->reduced.isNonEmpty()) {
       ReductionRecord rrec=sr->reduced.pop();
       Clause* rcl=rrec.clause;
-      if(rrec.timestamp==rcl->getReductionTimestamp()) {
-	restored.push(rcl);
+      if(rcl->validReductionRecord(rrec.timestamp)) {                            
+        restored.push(rcl);
       }
       rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in Splitter::SplitRecord::addReduced
     }
@@ -1163,23 +1169,23 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     sr->active = false;
   }
 
-
-  // add back to _sa using addNewClause - this will get put to unprocssed
+  // add back to _sa using addNewClause - this will get put to unprocessed
   while(restored.isNonEmpty()) {
     Clause* rcl=restored.popWithoutDec();
     if(!rcl->hasAux()) {
       ASS(!rcl->splits()->hasIntersection(backtracked));
       rcl->setAux(0);
       ASS_EQ(rcl->store(), Clause::NONE);
-      rcl->incReductionTimestamp();
-      //rcl->setProp(BDD::instance()->getFalse()); //we asserted it was false in onClauseReduction
+      rcl->invalidateMyReductionRecords();      
       _sa->addNewClause(rcl);
- // #if VDEBUG
+
+      // TODO: keep statistics in release ?
       RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
       RSTAT_CTR_INC("total_unfrozen");
+#if VDEBUG      
       //check that restored clause does not depend on inactive splits
       assertSplitLevelsActive(rcl->splits());
-//  #endif
+#endif
     }
     rcl->decRefCnt(); //belongs to restored.popWithoutDec();
   }

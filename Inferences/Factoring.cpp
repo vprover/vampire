@@ -139,12 +139,12 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
   if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }
-  if(premise->selected()==1 && _salg->getLiteralSelector().isNegativeForSelection((*premise)[0])) {
+  if(premise->numSelected()==1 && _salg->getLiteralSelector().isNegativeForSelection((*premise)[0])) {
     return ClauseIterator::getEmpty();
   }
   return pvi( getMappingIterator(
 	  getMapAndFlattenIterator(
-		  getCombinationIterator(0u,premise->selected(),premise->length()),
+		  getCombinationIterator(0u,premise->numSelected(),premise->length()),
 		  UnificationsFn(premise)),
 	  ResultsFn(premise)) );
 }

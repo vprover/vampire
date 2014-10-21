@@ -143,7 +143,7 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
   if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }
-  ASS(premise->selected()>0);
+  ASS(premise->numSelected()>0);
 
   return pvi( getFilteredIterator(
 	  getMappingIterator(

@@ -611,7 +611,7 @@ simpl_start:
     goto fin;
   }
 
-  ASS(!cl->selected());
+  ASS(!cl->numSelected());
   {
     LiteralSelector& sosSelector = getSosLiteralSelector();
     sosSelector.select(cl);
@@ -779,7 +779,6 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 
     switch(cl->store())
     {
-    case Clause::BACKTRACKED:
     case Clause::UNPROCESSED:
       break;
     case Clause::PASSIVE:
@@ -1042,7 +1041,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
   }
   _clauseActivationInProgress=true;
 
-  if (!cl->selected()) {
+  if (!cl->numSelected()) {
     _selector->select(cl);
   }
 

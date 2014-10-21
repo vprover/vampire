@@ -179,7 +179,7 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
       shouldRemove=cl->getEffectiveWeight(_opt)>weightLimit;
     }
     else {
-      unsigned selCnt=cl->selected();
+      unsigned selCnt=cl->numSelected();
       unsigned maxSelWeight=0;
       for(unsigned i=0;i<selCnt;i++) {
         maxSelWeight=max((*cl)[i]->weight(),maxSelWeight);

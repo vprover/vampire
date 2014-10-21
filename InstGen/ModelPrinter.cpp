@@ -144,7 +144,7 @@ void ModelPrinter::collectTrueLits()
   ClauseIterator ait = _iga.getActive();
   while(ait.hasNext()) {
     Clause* cl = ait.next();
-    unsigned selCnt = cl->selected();
+    unsigned selCnt = cl->numSelected();
     ASS_G(selCnt, 0);
     for(unsigned i=0; i<selCnt; i++) {
       Literal* lit = (*cl)[i];

@@ -75,7 +75,7 @@ private:
   ScopedPtr<DecisionProcedure> _dp;
   
   /**
-   * Contains selected component names
+   * Contains selected component names (splitlevels)
    */
   ArraySet _selected;
 };
@@ -95,21 +95,22 @@ private:
 
   struct ReductionRecord
   {
-    ReductionRecord(unsigned timestamp, Clause* clause) : timestamp(timestamp), clause(clause) {}
-    unsigned timestamp;
+    ReductionRecord(Clause* clause) : clause(clause), 
+        timestamp(clause->getReductionTimestamp()) {}
     Clause* clause;
+    unsigned timestamp;    
   };
 
 /**
  *
  * SplitRecord - records the split information for the clause component
  *
- * Note, there is a SplitLevel associated with comp, which is _compNames.get(comp)
- * A SplitRecord is added to _db[name] where name is the SAT name of comp
+ * Let's call the SplitLevel associated with a comp its name = _compNames.get(comp)
+ * A corresponding SplitRecord is added to _db[name] 
  *
- * children - Clauses that rely on name (of comp), should be backtracked
+ * children - Clauses that rely on name (of comp), should be thrown away "on backtracking"
  * reduced - The clauses that have been *conditionally* reduced by this clause (and are therefore frozen)
- * active - true if currently frozen (maybe unfrozen, then frozen again) 
+ * active - component currently true in the model
  *
  * Comment by Giles
  */   
@@ -133,6 +134,7 @@ private:
     CLASS_NAME(Splitter::SplitRecord);
     USE_ALLOCATOR(SplitRecord);
   };
+  
 public:
   CLASS_NAME(Splitter);
   USE_ALLOCATOR(Splitter);
@@ -154,22 +156,21 @@ public:
   SATLiteral getLiteralFromName(SplitLevel compName) const;
   SplitLevel getNameFromLiteral(SATLiteral lit) const;
 
-  bool isActiveName(SplitLevel name) const {
-    CALL("Splitter::isActiveName");
+  bool isUsedName(SplitLevel name) const {
+    CALL("Splitter::isUsedName");
     ASS_L(name,_db.size());
-    return _db[name];
+    return (_db[name] != 0);
   }
-  Clause* getComponentClause(SplitLevel name) const;
-
+    
   SplitLevel splitLevelCnt() const { return _db.size(); }
   unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
 
   SAT2FO& satNaming() { return _sat2fo; }
 
   bool getSplitLevelFromClause(Clause* cl, SplitLevel& sl) const { return _compNames.find(cl,sl); }
-private:
-  // typedef LiteralStack CompRec;
-    
+private:      
+  Clause* getComponentClause(SplitLevel name) const; // Martin: currently unused
+  
   bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
   
   SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
@@ -188,12 +189,10 @@ private:
 
   Clause* buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig=0);
 
-  SplitLevel getComponentName(const LiteralStack& comp, Clause* orig, Clause*& compCl);
-  SplitLevel getComponentName(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
+  SplitLevel tryGetComponentNameOrAddNew(const LiteralStack& comp, Clause* orig, Clause*& compCl);
+  SplitLevel tryGetComponentNameOrAddNew(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
 
-//  SplitLevel getNewComponentName(Clause* comp);
-
-  void addSATClause(SATClause* cl, bool refutation);
+  void recordSATClauseForAddition(SATClause* cl, bool refutation);
 
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
@@ -212,9 +211,12 @@ private:
   //utility objects
   SplittingBranchSelector _branchSelector;
   ClauseVariantIndex _componentIdx;
-  SAT2FO _sat2fo;
-
-  //state variables
+  /**
+   * Registers all the sat variables and keeps track
+   * of associated ground literals for those variables
+   * which have one.
+   */  
+  SAT2FO _sat2fo;  
   /**
    * Information about a split level. Can be null if a split level does
    * not contain any components (e.g. for negations of non-ground
@@ -225,6 +227,8 @@ private:
    */
   Stack<SplitRecord*> _db;
   DHMap<Clause*,SplitLevel> _compNames;
+  
+  //state variable used for flushing:  
   /** When this number of generated clauses is reached, it will cause flush */
   unsigned _flushThreshold;
   /** true if there is a refutation to be added to the SAT solver */

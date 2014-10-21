@@ -514,13 +514,6 @@ public:
     SCD_MINISAT = 1,
   };
 
-  enum SplittingComponentSweeping {
-    SCS_ALL = 0,
-    SCS_ITERATED = 1,
-    SCS_NONE = 2,
-    SCS_ONLY_NEW = 3
-  };
-
   enum SplittingAddComplementary {
     SAC_GROUND = 0,
     SAC_NONE = 1
