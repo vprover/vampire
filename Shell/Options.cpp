@@ -196,6 +196,7 @@ Options::Options ()
                "number of subformula occurrences needed to introduce a name for it (if aig_definition_introduction is enabled)";
     _lookup.insert(&_aigDefinitionIntroductionThreshold);
     _aigDefinitionIntroductionThreshold.tag(OptionTag::PREPROCESSING);
+    _aigDefinitionIntroductionThreshold.addConstraint(new NotEqual<unsigned>(0));
 
     _aigFormulaSharing = BoolOptionValue("aig_formula_sharing","",false);
     _aigFormulaSharing.description="Detection and sharing of common subformulas using AIG representation";
@@ -265,6 +266,7 @@ Options::Options ()
     "Preprocessing rule that splits clauses in order to reduce number of different variables in each clause";
     _lookup.insert(&_generalSplitting);
     _generalSplitting.tag(OptionTag::PREPROCESSING);
+    _generalSplitting.addConstraint(new NotEqual<RuleActivity>(RuleActivity::ON));
     
     _hornRevealing= BoolOptionValue("horn_revealing","",false);
     _hornRevealing.description=
@@ -365,11 +367,13 @@ Options::Options ()
     _sineTolerance.description="SInE tolerance parameter (sometimes referred to as 'benevolence')";
     _lookup.insert(&_sineTolerance);
     _sineTolerance.tag(OptionTag::PREPROCESSING);
+    _sineTolerance.addConstraint(new Or<float>(new Equal<float>(0.0f),new GreaterThan<float>(1.0f,true) ));
     
     _naming = IntOptionValue("naming","nm",8);
     _naming.description="";
     _lookup.insert(&_naming);
     _naming.tag(OptionTag::PREPROCESSING);
+    _naming.addConstraint(new LessThan<int>(32768));
     
     _rowVariableMaxLength = IntOptionValue("row_variable_max_length","",2);
     _rowVariableMaxLength.description="";
@@ -482,6 +486,8 @@ Options::Options ()
     "inst_gen and tabulation aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
+    _saturationAlgorithm.addConstraint(new Dependence<SaturationAlgorithm,bool>(
+      new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN),&_splitting,new notequals<bool>(true)));
     
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
@@ -515,6 +521,8 @@ Options::Options ()
     "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
     _lookup.insert(&_lrsFirstTimeCheck);
     _lrsFirstTimeCheck.tag(OptionTag::SATURATION);
+    _lrsFirstTimeCheck.addConstraint(new GreaterThan<int>(0,true));
+    _lrsFirstTimeCheck.addConstraint(new LessThan<int>(100));
     
     _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","",false);
     _lrsWeightLimitOnly.description=
@@ -598,6 +606,7 @@ Options::Options ()
     _equalityResolutionWithDeletion.description="";
     _lookup.insert(&_equalityResolutionWithDeletion);
     _equalityResolutionWithDeletion.tag(OptionTag::INFERENCES);
+    _equalityResolutionWithDeletion.addConstraint(new NotEqual<RuleActivity>(RuleActivity::ON));
     
     
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
@@ -609,12 +618,16 @@ Options::Options ()
     _extensionalityMaxLength.description="";
     _lookup.insert(&_extensionalityMaxLength);
     _extensionalityMaxLength.tag(OptionTag::INFERENCES);
+    // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
+    _extensionalityMaxLength.addConstraint(new NotEqual<unsigned>(1));
     
     _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
                                                                             ExtensionalityResolution::OFF,{"filter","known","off"});
     _extensionalityResolution.description="";
     _lookup.insert(&_extensionalityResolution);
     _extensionalityResolution.tag(OptionTag::INFERENCES);
+    _extensionalityResolution.addConstraint(new Dependence<ExtensionalityResolution,int>(
+      new notequals<ExtensionalityResolution>(ExtensionalityResolution::OFF),&_inequalitySplitting,new equals<int>(0)));
     
     _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
     _forwardDemodulation.description=
@@ -670,6 +683,8 @@ Options::Options ()
     "determines how often a big restart (instance generation starts from input clauses) will be performed. Small restart means all clauses generated so far are processed again.";
     _lookup.insert(&_instGenBigRestartRatio);
     _instGenBigRestartRatio.tag(OptionTag::INST_GEN);
+    _instGenBigRestartRatio.addConstraint(new GreaterThan<float>(0.0f,true));
+    _instGenBigRestartRatio.addConstraint(new LessThan<float>(1.0f,true));
     
     _instGenInprocessing = BoolOptionValue("inst_gen_inprocessing","",false);
     _instGenInprocessing.description="";
@@ -696,6 +711,7 @@ Options::Options ()
     _instGenRestartPeriodQuotient.description="restart period is multiplied by this number after each restart";
     _lookup.insert(&_instGenRestartPeriodQuotient);
     _instGenRestartPeriodQuotient.tag(OptionTag::INST_GEN);
+    _instGenRestartPeriodQuotient.addConstraint(new GreaterThan<float>(1.0f,true));
     
     _instGenSelection = SelectionOptionValue("inst_gen_selection","igs",0);
     _instGenSelection.description=
@@ -768,6 +784,7 @@ Options::Options ()
     _lookup.insert(&_ssplittingFlushQuotient);
     _ssplittingFlushQuotient.tag(OptionTag::AVATAR);
     _ssplittingFlushQuotient.setExperimental();
+    _ssplittingFlushQuotient.addConstraint(new GreaterThan<float>(1.0f,true));
     
     _ssplittingNonsplittableComponents = ChoiceOptionValue<SSplittingNonsplittableComponents>("ssplitting_nonsplittable_components","ssnc",
                                                                                               SSplittingNonsplittableComponents::KNOWN,
@@ -785,6 +802,7 @@ Options::Options ()
     _satClauseActivityDecay.description="";
     _lookup.insert(&_satClauseActivityDecay);
     _satClauseActivityDecay.tag(OptionTag::SAT);
+    _satClauseActivityDecay.addConstraint(new GreaterThan<float>(1.0f));
     
     _satClauseDisposer = ChoiceOptionValue<SatClauseDisposer>("sat_clause_disposer","",SatClauseDisposer::MINISAT,
                                                               {"growing","minisat"});
@@ -811,6 +829,7 @@ Options::Options ()
     _satRestartGeometricIncrease.description="";
     _lookup.insert(&_satRestartGeometricIncrease);
     _satRestartGeometricIncrease.tag(OptionTag::SAT);
+    _satRestartGeometricIncrease.addConstraint(new GreaterThan<float>(1.0f));
     
     _satRestartGeometricInit = IntOptionValue("sat_restart_geometric_init","",32);
     _satRestartGeometricInit.description="";
@@ -826,6 +845,7 @@ Options::Options ()
     _satRestartMinisatIncrease.description="";
     _lookup.insert(&_satRestartMinisatIncrease);
     _satRestartMinisatIncrease.tag(OptionTag::SAT);
+    _satRestartMinisatIncrease.addConstraint(new GreaterThan<float>(1.0f));
     
     _satRestartMinisatInit = IntOptionValue("sat_restart_minisat_init","",100);
     _satRestartMinisatInit.description="";
@@ -849,6 +869,7 @@ Options::Options ()
     _satVarActivityDecay.description="";
     _lookup.insert(&_satVarActivityDecay);
     _satVarActivityDecay.tag(OptionTag::SAT);
+    _satVarActivityDecay.addConstraint(new GreaterThan<float>(1.0f));
     
     _satVarSelector = ChoiceOptionValue<SatVarSelector>("sat_var_selector","svs",SatVarSelector::ACTIVE,
                                                         {"active","niceness","recently_learnt"});
@@ -912,6 +933,7 @@ Options::Options ()
     _bfnt.description="";
     _lookup.insert(&_bfnt);
     _bfnt.tag(OptionTag::OTHER);
+    _bfnt.addConstraint(new OnAnd(new RequiresCompleteForNonHorn<bool>()));
     
     _increasedNumeralWeight = BoolOptionValue("increased_numeral_weight","",false);
     _increasedNumeralWeight.description=
@@ -928,7 +950,7 @@ Options::Options ()
     _interpretedSimplification.description=
              "Performs simplifications of interpreted functions. This option requires interpreted_evaluation to be enabled as well. IMPORTANT - Currently not supported";
     _lookup.insert(&_interpretedSimplification);
-    _interpretedSimplifcation.tag(OptionTag::OTHER);
+    _interpretedSimplification.tag(OptionTag::OTHER);
 
 
     _literalComparisonMode = ChoiceOptionValue<LiteralComparisonMode>("literal_comparison_mode","lcm",
@@ -1140,12 +1162,8 @@ Options::Options ()
     _bpVariableSelector.tag(Mode::BOUND_PROP);
  
     
- // Do check and declare tag names
+ // Declare tag names
     
-#if VDEBUG
-    _lookup.check();
-#endif
-
     _tagNames = {
                  "Other",
                  "Output",
@@ -1174,7 +1192,7 @@ void Options::set(const char* name,const char* value)
 
   try {
     if(!_lookup.findLong(name)->set(value)){
-      USER_ERROR((vstring)name + " has been given an invalid value");
+      USER_ERROR((vstring) value +" is an invalid value for "+(vstring)name+", see help");
     }
   }
   catch (const ValueNotFoundException&) {
@@ -1208,12 +1226,12 @@ void Options::setShort(const char* name,const char* value)
 
   try {
     if(!_lookup.findShort(name)->set(value)){
-      USER_ERROR((vstring)name + " has been given an invalid value");
+      USER_ERROR((vstring) value +" is an invalid value for "+(vstring)name+", see help");
     }
   }
   catch (const ValueNotFoundException&) {
     if (!_ignoreMissing.actualValue) {
-      USER_ERROR((vstring)name + " is not a valid option");
+      USER_ERROR((vstring)name + " is not a valid option as a short option");
     }
   }
 } // Options::setShort
@@ -1898,69 +1916,38 @@ bool Options::completeForNNE() const
   return _binaryResolution.actualValue;
 } // Options::completeForNNE
 
+template<typename T>
+vstring Options::RequiresCompleteForNonHorn<T>::check(OptionValue<T>& value){
+  if(!env.options->completeForNNE()){
+    return value.longName + " can only be used with a strategy complete for non-Horn problems without equality";
+  }
+  return 0;
+}
+
 /**
- * Check constraints necessary for options to make sense, and
- * call USER_ERROR if some are violated
+ * Check constraints necessary for options to make sense
  *
  * The function is called after all options are parsed.
  */
 void Options::checkGlobalOptionConstraints() const
 {
+  CALL("Options::checkGlobalOptionsConstraints");
 
-  if (_lrsFirstTimeCheck.actualValue < 0 && _lrsFirstTimeCheck.actualValue >= 100) {
-    USER_ERROR("lrs_first_time_check must be between 0 and 100");
-  }
+  VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+  while(options.hasNext()){ options.next()->checkConstraints(); }
 
-  if (_aigDefinitionIntroductionThreshold.actualValue==0) {
-    USER_ERROR("aig_definition_introduction_threshold must be non-zero");
-  }
-  if (_equalityResolutionWithDeletion.actualValue==RuleActivity::ON) {
-    USER_ERROR("equality_resolution_with_deletion is not implemented for value \"on\"");
-  }
-  // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
-  if (_extensionalityMaxLength.actualValue == 1) {
-    USER_ERROR("extensionality clauses have to be at least of size 2");
-  }
-    
-  if (_bfnt.actualValue && !completeForNNE()) {
-    USER_ERROR("The bfnt option can only be used with a strategy complete for non-Horn problems without equality");
-  }
-  if (_splitting.actualValue && _saturationAlgorithm.actualValue == SaturationAlgorithm::INST_GEN) {
-    USER_ERROR("saturation algorithm inst_gen cannot be used with sat splitting");
-  }
-  if (_extensionalityResolution.actualValue != ExtensionalityResolution::OFF && _inequalitySplitting.actualValue) {
-    USER_ERROR("extensionality resolution can not be used together with inequality splitting");
-  }
-    if (_generalSplitting.actualValue==RuleActivity::ON) {
-        USER_ERROR("general_splitting is not implemented for value \"on\"");
-    }
-    if (_instGenBigRestartRatio.actualValue<0.0f || _instGenBigRestartRatio.actualValue>1.0f) {
-        USER_ERROR("inst_gen_big_restart_ratio must be a number between 0 and 1 (inclusive)");
-	}
-	if (_instGenRestartPeriodQuotient.actualValue<1.0f) {
-        USER_ERROR("inst_gen_restart_period_quotient must be a number at least 1");
-	}
-	if (_satClauseActivityDecay.actualValue<=1.0f) {
-        USER_ERROR("sat_clause_activity_decay must be a number greater than 1");
-	}
-	if (_satRestartGeometricIncrease.actualValue<=1.0f) {
-        USER_ERROR("sat_restart_geometric_increase must be a number greater than 1");
-	}
-	if (_satRestartMinisatIncrease.actualValue<=1.0f) {
-        USER_ERROR("sat_restart_minisat_increase must be a number greater than 1");
-	}
-    if (_satVarActivityDecay.actualValue<=1.0f) {
-        USER_ERROR("sat_var_activity_decay must be a number greater than 1");
-	}
-	if (_sineTolerance.actualValue!=0.0f && _sineTolerance.actualValue<1.0f) {
-        USER_ERROR("sine_tolerance value must be a float number greater than or equal to 1");
-    }
-    if (_ssplittingFlushQuotient.actualValue<1.0f) {
-        USER_ERROR("ssplitting_flush_quotient must greater than or equal to 1");
-    }
-    if(_naming.actualValue > 32767){
-      USER_ERROR("naming cannot be greater than 32767");
-    }
-  //TODO:implement forbidden options
 }
 
+/**
+ * Check whether the option values make sense with respect to the given problem
+ **/
+void Options::checkProblemOptionConstraints(const Problem& prb) const
+{
+   CALL("Options::checkProblemOptionConstraints");
+
+  Property& prop = *prb.getProperty();
+
+  VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+  while(options.hasNext()){ options.next()->checkProblemConstraints(prop); }
+
+}

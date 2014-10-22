@@ -20,6 +20,8 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/XML.hpp"
 
+#include "Property.hpp"
+
 namespace Shell {
 
 using namespace Lib;
@@ -54,6 +56,7 @@ public:
     // deal with options constraints
     void setForcedOptionValues();
     void checkGlobalOptionConstraints() const;
+    void checkProblemOptionConstraints(const Problem&) const;
     
     /**
      * Return the problem name
@@ -658,11 +661,11 @@ private:
           }
         }
 
-        unsigned find(vstring value) const {
+        int find(vstring value) const {
           for(unsigned i=0;i<names.length();i++){
              if(value.compare(names[i])==0) return i;
           }
-          throw ValueNotFoundException();
+          return -1;
         }
         const int length() const { return names.length(); }
         const vstring operator[](int i) const{ return names[i];}
@@ -670,8 +673,19 @@ private:
     private:
       Stack<vstring> names;
     };
+
+    // Declare constraints here so they can be refered to, but define them below
+    template<typename T>
+    struct OptionValueConstraint;
+    struct OptionProblemConstraint;
     
+   /**
+    * OptionValues store information about options, including their value
+    */
     struct AbstractOptionValue{
+
+        CLASS_NAME(AbstractOptionValue);
+        USE_ALLOCATOR(AbstractOptionValue);
 
         AbstractOptionValue(){}
         AbstractOptionValue(vstring l,vstring s) :
@@ -685,12 +699,8 @@ private:
         vstring description;
         bool experimental;
 
-// This is a hacky way of allowing the default constructor to assign default values to everything
-// whilst ensuring that all option values are created in the constructor. This check method is
-// called at the end of the Options constructor
-#if VDEBUG
-        void check(){ if(longName.empty()){ ASSERTION_VIOLATION;} }
-#endif        
+        virtual bool checkConstraints() = 0;
+        virtual bool checkProblemConstraints(Property& prop) = 0;
 
        void tag(OptionTag tag){ ASS(_tag==OptionTag::LAST_TAG);_tag=tag; }
        void tag(Mode mode){ _modes.push(mode); }
@@ -733,17 +743,61 @@ private:
     
     template<typename T>
     struct OptionValue : public AbstractOptionValue {
+
+        CLASS_NAME(OptionValue);
+        USE_ALLOCATOR(OptionValue);
+
         OptionValue(){}
         OptionValue(vstring l, vstring s,T def) : AbstractOptionValue(l,s), 
           defaultValue(def), actualValue(def) {}
 
         T defaultValue;
         T actualValue;
+
+      virtual vstring getStringOfValue(T value) const{ ASSERTION_VIOLATION;} 
+
+      // Adding and checking constraints
+      void addConstraint(OptionValueConstraint<T>* c){ _constraints.push(c); }
+      bool checkConstraints(){
+        CALL("Options::OptionValue::checkConstraints");
+        typename Lib::Stack<OptionValueConstraint<T>*>::Iterator it(_constraints);
+        while(it.hasNext()){ 
+          vstring msg = it.next()->check(*this); 
+          if(!msg.empty()) USER_ERROR(msg);
+        }
+        return true;
+      }
+
+      void addProblemConstraint(OptionProblemConstraint* c){ _prob_constraints.push(c); }
+      virtual bool checkProblemConstraints(Property& prop){
+        CALL("Options::OptionValue::checkProblemConstraints");
+        Lib::Stack<OptionProblemConstraint*>::Iterator it(_prob_constraints);
+        while(it.hasNext()){ 
+          vstring msg = it.next()->check(prop); 
+          if(!msg.empty()) cout << "WARNING: " << msg;
+        }
+        return true;
+      }
+
+      virtual void output(vstringstream& out) const {
+        AbstractOptionValue::output(out);
+        out << "\tdefault: " << getStringOfValue(defaultValue) << endl;
+      }      
+
+      private:
+        //TODO add destructor to delete constraints
+        Lib::Stack<OptionValueConstraint<T>*> _constraints;
+        Lib::Stack<OptionProblemConstraint*> _prob_constraints;
+
     };
 
 
     template<typename T>
     struct ChoiceOptionValue : public OptionValue<T> {
+
+      CLASS_NAME(ChoiceOptionValue);
+      USE_ALLOCATOR(ChoiceOptionValue);
+
       ChoiceOptionValue(){}
       ChoiceOptionValue(vstring l, vstring s,T def,OptionValues c) :
           OptionValue<T>(l,s,def), choices(c) {} 
@@ -751,7 +805,7 @@ private:
       bool set(const vstring& value){
         // makes reasonable assumption about ordering of every enum
         int index = choices.find(value.c_str());
-        // obviously unsafe cast... what if choices is larger than T
+        if(index<0) return false;
         this->actualValue = static_cast<T>(index);
         return true;
       }
@@ -783,6 +837,11 @@ private:
         out << endl;
       }
 
+      vstring getStringOfValue(T value) const {
+          unsigned i = static_cast<unsigned>(value);
+          return choices[i];
+      }
+
     private:
       OptionValues choices;
     };
@@ -802,10 +861,8 @@ private:
           
         return true;
       }
-        virtual void output(vstringstream& out) const {
-            AbstractOptionValue::output(out);
-            out << "\tdefault: " << (defaultValue ? "on" : "off") << endl;
-        }
+
+      vstring getStringOfValue(bool value) const { return (defaultValue ? "on" : "off"); }
     };
 
     struct IntOptionValue : public OptionValue<int> {
@@ -814,10 +871,7 @@ private:
       bool set(const vstring& value){
         return Int::stringToInt(value.c_str(),actualValue);
       }
-        virtual void output(vstringstream& out) const {
-            AbstractOptionValue::output(out);
-            out << "\tdefault: " << defaultValue << endl;
-        }
+      vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
     };
 
     struct UnsignedOptionValue : public OptionValue<unsigned> {
@@ -826,23 +880,19 @@ private:
       bool set(const vstring& value){
         return Int::stringToUnsignedInt(value.c_str(),actualValue);
       }
-        virtual void output(vstringstream& out) const {
-            AbstractOptionValue::output(out);
-            out << "\tdefault: " << defaultValue << endl;
-        }
+      vstring getStringOfValue(unsigned value) const{ return Lib::Int::toString(value); }
     }; 
 
     struct StringOptionValue : public OptionValue<vstring> {
       StringOptionValue(){}
       StringOptionValue(vstring l,vstring s, vstring d) : OptionValue(l,s,d){} 
+      // Is reference safe here?
       bool set(const vstring& value){ actualValue = value; return true; }
-        virtual void output(vstringstream& out) const {
-            AbstractOptionValue::output(out);
-            out << "\tdefault: ";
-            if(defaultValue.empty()){ out << "<empty>";}
-            else{ out << defaultValue;}
-            out << endl;
-        }
+
+      vstring getStringOfValue(vstring value) const{
+            if(value.empty()) return "<empty>";
+            return value;
+      } 
     }; 
 
     struct LongOptionValue : public OptionValue<long> {
@@ -851,10 +901,7 @@ private:
       bool set(const vstring& value){
         return Int::stringToLong(value.c_str(),actualValue);
       }
-        virtual void output(vstringstream& out) const {
-            AbstractOptionValue::output(out);
-            out << "\tdefault: " << defaultValue << endl;
-        }
+      vstring getStringOfValue(long value) const{ return Lib::Int::toString(value); }
     };
 
     struct FloatOptionValue : public OptionValue<float>{
@@ -863,13 +910,14 @@ private:
       bool set(const vstring& value){
         return Int::stringToFloat(value.c_str(),actualValue);
       }
-        virtual void output(vstringstream& out) const {
-            AbstractOptionValue::output(out);
-            out << "\tdefault: " << defaultValue << endl;
-        }
+      vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
     };
  
     struct RatioOptionValue : public OptionValue<int> {
+
+        CLASS_NAME(RatioOptionValue);
+        USE_ALLOCATOR(RatioOptionValue);
+
         RatioOptionValue(){}
         RatioOptionValue(vstring l, vstring s, int def, int other) :
           OptionValue(l,s,def), defaultOtherValue(other), otherValue(other) {};
@@ -894,16 +942,18 @@ private:
     };
     
     struct NonGoalWeightOptionValue : public OptionValue<float>{
+
+        CLASS_NAME(NonGoalWeightOptionValue);
+        USE_ALLOCATOR(NonGoalWeightOptionValue);
+
         NonGoalWeightOptionValue(){}
         NonGoalWeightOptionValue(vstring l, vstring s, float def) :
         OptionValue(l,s,def), numerator(1), denominator(1) {};
         
         bool set(const vstring& value);
         
-        virtual void output(vstringstream& out) const {
-            AbstractOptionValue::output(out);
-            out << "\tdefault: " << defaultValue << endl;;
-        }
+        // output does not output numerator and denominator as they
+        // are produced from defaultValue
         int numerator;
         int denominator;
     };
@@ -951,6 +1001,189 @@ private:
         }
     };
     
+
+   /**
+    * OptionValueConstraints are used to declare constraints on and between option values
+    * these are checked in checkGlobalOptionConstraints, which should be called after Options is updated 
+    *
+    * TODO so they have access to properties about the problem
+    */
+    template<typename T>
+    struct OptionValueConstraint{
+        CLASS_NAME(OptionValueConstraint);
+        USE_ALLOCATOR(OptionValueConstraint);
+        virtual vstring check(OptionValue<T>& value) = 0; 
+    };
+
+    // A constraint that takes two constraints and only requires one to return an empty message
+    // i.e. be satisfied
+    template<typename T>
+    struct Or : public OptionValueConstraint<T>{
+       CLASS_NAME(Or);
+       USE_ALLOCATOR(Or);
+       Or(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
+       vstring check(OptionValue<T>& value){
+          vstring msg = left->check(value);
+          if(msg.empty()) return msg;
+          return right->check(value);
+       }
+       OptionValueConstraint<T>* left;
+       OptionValueConstraint<T>* right;
+    };
+
+    // Add a constraint to a boolean option that only holds when the option is on
+    struct OnAnd : public OptionValueConstraint<bool>{
+        CLASS_NAME(OnAnd);
+        USE_ALLOCATOR(OnAnd);
+       OnAnd(OptionValueConstraint<bool>* other) : _other(other) {}
+       vstring check(OptionValue<bool>& value){
+          if(value.actualValue) return _other->check(value);
+          return "";
+       }
+       OptionValueConstraint<bool>* _other;
+    };
+
+    template<typename T>
+    struct RequiresCompleteForNonHorn : public OptionValueConstraint<T>{
+       CLASS_NAME(RequiresCompleteForNonHorn);
+       USE_ALLOCATOR(RequiresCompleteForNonHorn);
+       RequiresCompleteForNonHorn(){}
+       vstring check(OptionValue<T>& value);
+    }; 
+
+    template<typename T>
+    struct Equal : public OptionValueConstraint<T>{
+       CLASS_NAME(Equal);
+       USE_ALLOCATOR(Equal);
+       Equal(T bv) : _badvalue(bv) {}
+       vstring check(OptionValue<T>& value){
+         if(value.actualValue == _badvalue){
+           return value.longName +  " cannot have value " + value.getStringOfValue(_badvalue);
+         }
+         return "";
+       }
+       T _badvalue;
+    };
+
+    template<typename T>
+    struct NotEqual : public OptionValueConstraint<T>{
+       CLASS_NAME(NotEqual);
+       USE_ALLOCATOR(NotEqual);
+       NotEqual(T bv) : _badvalue(bv) {}
+       vstring check(OptionValue<T>& value){
+         if(value.actualValue == _badvalue){
+           return value.longName +  " cannot have value " + value.getStringOfValue(_badvalue);
+         }
+         return "";
+       }
+       T _badvalue;
+    };
+
+    // Constraint that the value should be less than a given value
+    // optionally we can allow it be equal to that value also
+    template<typename T>
+    struct LessThan : public OptionValueConstraint<T>{
+       CLASS_NAME(LessThan);
+       USE_ALLOCATOR(LessThan);
+       LessThan(T bv,bool eq=false) : _badvalue(bv), _orequal(eq) {}
+       vstring check(OptionValue<T>& value){
+         if(value.actualValue > _badvalue || (!_orequal && value.actualValue==_badvalue)){
+           return value.longName+ " must be less than " + value.getStringOfValue(_badvalue);
+         }
+         return "";
+       }
+       T _badvalue;
+       bool _orequal;
+    };
+
+    // Constraint that the value should be greater than a given value
+    // optionally we can allow it be equal to that value also
+    template<typename T>
+    struct GreaterThan : public OptionValueConstraint<T>{
+       CLASS_NAME(GreaterThan);
+       USE_ALLOCATOR(GreaterThan);
+       GreaterThan(T bv,bool eq=false) : _badvalue(bv), _orequal(eq) {}
+       vstring check(OptionValue<T>& value){
+         if(value.actualValue < _badvalue || (!_orequal && value.actualValue==_badvalue)){
+           return value.longName+ " must be greater than " + value.getStringOfValue(_badvalue);
+         }
+         return "";
+       }
+       T _badvalue;
+       bool _orequal;
+    };
+
+    // A Dependence records the constraint that condition on this -> condition on other 
+    // the condition can be equality or inequality 
+
+    template<typename T>
+    struct Condition { 
+       CLASS_NAME(Condition);
+       USE_ALLOCATOR(Condition);
+       Condition(T v, vstring s) : value(v), str(s) {}
+       virtual bool check(T vp) = 0;
+       T value; vstring str; 
+    };
+
+    template<typename T>
+    struct equals : public Condition<T>{ 
+       CLASS_NAME(equals);
+       USE_ALLOCATOR(equals);
+       equals(T v) : Condition<T>(v,"=="){}
+       bool check(T vp){ return Condition<T>::value==vp;} 
+    };
+
+    template<typename T>
+    struct notequals : Condition<T> { 
+       CLASS_NAME(notequals);
+       USE_ALLOCATOR(notequals);
+       notequals(T v) : Condition<T>(v,"!="){} 
+       bool check(T vp){ return Condition<T>::value!=vp;} 
+    };
+
+    template<typename T, typename S>
+    struct Dependence : public OptionValueConstraint<T>{
+       CLASS_NAME(Dependence);
+       USE_ALLOCATOR(Dependence);
+       Dependence(Condition<T>* c1, OptionValue<S>* o, Condition<S>* c2) :
+           con1(c1), other(o), con2(c2) {}
+
+       vstring check(OptionValue<T>& value){
+           if(con1->check(value.actualValue) && !con2->check(other->actualValue)){
+                vstring s1 = value.longName+con1->str+value.getStringOfValue(con1->value);
+                vstring s2 = other->longName+con2->str+other->getStringOfValue(con2->value);
+                return "when "+s1 + ", it is required that " + s2;
+           }
+           return "";
+       }
+
+       Condition<T>* con1;
+       OptionValue<S>* other;
+       Condition<S>* con2;
+    };
+
+   /**
+    *
+    */
+
+    struct OptionProblemConstraint{
+       virtual vstring check(Property& p) = 0;
+    };
+
+    struct HasCategory : OptionProblemConstraint{
+       HasCategory(Property::Category c) : cat(c) {}
+       vstring check(Property&p){
+          if(p.category()!=cat){
+             return "the problem in category ";
+          }
+          return "";
+       }
+       Property::Category cat;
+    };
+
+   /**
+    *
+    */
     struct LookupWrapper {
         
         LookupWrapper() : _copied(false) {}
@@ -979,14 +1212,8 @@ private:
             return _shortMap.get(shortName);
         }
 
-#if VDEBUG
-        void check(){
-          DHMap<vstring,AbstractOptionValue*>::Iterator it(_longMap);
-          while(it.hasNext()){ it.next()->check(); } 
-        }
-#endif
-
         VirtualIterator<AbstractOptionValue*> values() const { 
+         ASS(!_copied);
          return _longMap.range();
         } 
 

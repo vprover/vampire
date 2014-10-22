@@ -168,6 +168,7 @@ void doProving()
 {
   CALL("doProving()");
   ScopedPtr<Problem> prb(getPreprocessedProblem());
+  env.options->checkProblemOptionConstraints(*prb); // this will provide warning if options don't make sense for problem
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
 
