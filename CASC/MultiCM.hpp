@@ -24,10 +24,7 @@ class MultiCM
 : public CASCMode 
 {
 public:
-  MultiCM(){
-   _prb = UIHelper::getInputProblem(*env -> options);
-   _property = _prb->getProperty();
-  };
+  MultiCM();
 
 protected:
   bool runSchedule(Schedule&,unsigned ds,StrategySet& remember,bool fallback);

@@ -112,6 +112,7 @@ bool CASCMode::perform()
   else {
     getSchedules(*_property, quick, fallback);
   }
+  cout << "quick has " << quick.size() << endl;
 
   int remainingTime=env -> remainingTime()/100;
   if (remainingTime<=0) {

@@ -90,7 +90,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall $(INCLUDES)
+CXXFLAGS = -std=c++11 $(XFLAGS) -Wall $(INCLUDES)
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
