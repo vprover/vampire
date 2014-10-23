@@ -1277,7 +1277,7 @@ static bool lessThan(T a, T b) { return a<b; }
 template<class It>
 bool isSorted(It it)
 {
-  CALL("iteratorsEqual");
+  CALL("isSorted/1");
 
   if(!it.hasNext()) { return true; }
 
@@ -1302,7 +1302,7 @@ bool isSorted(It it)
 template<class It, typename Pred>
 bool isSorted(It it, Pred lessThan)
 {
-  CALL("iteratorsEqual");
+  CALL("isSorted/2");
 
   if(!it.hasNext()) { return true; }
 
@@ -1324,7 +1324,7 @@ bool isSorted(It it, Pred lessThan)
 template<class It, typename Pred>
 bool forAll(It it, Pred pred)
 {
-  CALL("iteratorsEqual");
+  CALL("forAll");
 
   while(it.hasNext()) {
     if(!pred(it.next())) {
@@ -1341,7 +1341,7 @@ bool forAll(It it, Pred pred)
 template<class It, typename Pred>
 ELEMENT_TYPE(It) getFirstTrue(It it, Pred pred)
 {
-  CALL("iteratorsEqual");
+  CALL("getFirstTrue");
 
   while(it.hasNext()) {
     ELEMENT_TYPE(It) el = it.next();
