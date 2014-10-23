@@ -114,13 +114,19 @@ SATSolver::VarAssignment MinisatInterfacing::getAssignment(unsigned var)
 	ASS_EQ(_status, SATISFIABLE);  
   ASS_L((int)var,_solver.nVars());
   lbool res;
-  if ((res = _solver.modelValue(vampireVar2Minisat(var))) == l_True) {
-    return TRUE;
-  } else if (res == l_False) {    
-    return FALSE;
-  } else {    
-    ASSERTION_VIOLATION;
-    return NOT_KNOWN;
+    
+  Minisat::Var mvar = vampireVar2Minisat(var);  
+  if (mvar < _solver.model.size()) {  
+    if ((res = _solver.modelValue(mvar)) == l_True) {
+      return TRUE;
+    } else if (res == l_False) {    
+      return FALSE;
+    } else {              
+      ASSERTION_VIOLATION;
+      return NOT_KNOWN;
+    }
+  } else { // new vars have been added but the model didn't grow yet
+    return DONT_CARE;
   }
 }
 

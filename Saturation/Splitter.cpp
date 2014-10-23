@@ -659,7 +659,7 @@ bool Splitter::doSplitting(Clause* cl)
   satClauseLits.reset();
 
   // Add literals for existing constraints 
-  //_branchSelector.clearZeroImpliedSplits(cl);
+  _branchSelector.clearZeroImpliedSplits(cl);
   collectDependenceLits(cl->splits(), satClauseLits);
 
   ClauseList* namePremises = 0;
@@ -890,24 +890,26 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
 
   SplitSet* unionAll;
   if(replacement) {
-    unionAll = replacement->splits();    
+    unionAll = replacement->splits();
     ASS(forAll(premises, 
             [replacement] (Clause* premise) { 
               return premise->splits()->isSubsetOf(replacement->splits()); 
             } ));
+    /* also clearZeroImpliedSplits has been called on premises when replacement 
+     * got it's splits() assigned in onNewClause */            
   } else {
-    Clause* premise0 = premises.next();  
+    Clause* premise0 = premises.next();
+    _branchSelector.clearZeroImpliedSplits(premise0);
     unionAll=premise0->splits();
     while(premises.hasNext()) {
       Clause* premise=premises.next();
-      ASS(premise);      
+      ASS(premise);
+      _branchSelector.clearZeroImpliedSplits(premise);
       unionAll=unionAll->getUnion(premise->splits());
     }
   }
   SplitSet* diff=unionAll->subtract(cl->splits());      
-  
-  // TODO: _branchSelector.clearZeroImpliedSplits(???);
-      
+        
 #if VDEBUG
   assertSplitLevelsActive(diff);
 #endif
