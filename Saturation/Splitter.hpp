@@ -199,8 +199,6 @@ private:
 
   void assertSplitLevelsActive(SplitSet* s);
 
-  static bool isGround(Literal* l) { return l->ground(); }
-
   //settings
   Options::SplittingAddComplementary _complBehavior;
   Options::SplittingNonsplittableComponents _nonsplComps;

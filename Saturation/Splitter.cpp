@@ -755,7 +755,8 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
   CALL("Splitter::addNonGroundComponent");
   ASS_REP(_db.size()%2==0, _db.size());
   ASS_G(size,0);
-  ASS(forAll(getArrayishObjectIterator(lits, size), negPred(isGround))); //none of the literals can be ground
+  ASS(forAll(getArrayishObjectIterator(lits, size), 
+          [] (Literal* l) { return !l->ground(); } )); //none of the literals can be ground
 
   SATLiteral posLit(_sat2fo.createSpareSatVar(), true);
   SplitLevel compName = getNameFromLiteralUnsafe(posLit);
@@ -887,21 +888,26 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
     return;
   }
 
-  Clause* premise0 = premises.next();
-  _branchSelector.clearZeroImpliedSplits(premise0);
-  SplitSet* diff=premise0->splits();
-  while(premises.hasNext()) {
-    Clause* premise=premises.next();
-    ASS(premise);
-    _branchSelector.clearZeroImpliedSplits(premise);
-    diff=diff->getUnion(premise->splits());
-  }
+  SplitSet* unionAll;
   if(replacement) {
-    _branchSelector.clearZeroImpliedSplits(replacement);
-    diff=diff->getUnion(replacement->splits());
+    unionAll = replacement->splits();    
+    ASS(forAll(premises, 
+            [replacement] (Clause* premise) { 
+              return premise->splits()->isSubsetOf(replacement->splits()); 
+            } ));
+  } else {
+    Clause* premise0 = premises.next();  
+    unionAll=premise0->splits();
+    while(premises.hasNext()) {
+      Clause* premise=premises.next();
+      ASS(premise);      
+      unionAll=unionAll->getUnion(premise->splits());
+    }
   }
-  diff=diff->subtract(cl->splits());
-
+  SplitSet* diff=unionAll->subtract(cl->splits());      
+  
+  // TODO: _branchSelector.clearZeroImpliedSplits(???);
+      
 #if VDEBUG
   assertSplitLevelsActive(diff);
 #endif
