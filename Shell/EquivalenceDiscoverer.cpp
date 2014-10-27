@@ -491,6 +491,7 @@ bool EquivalenceDiscoverer::handleImplication(SATLiteral lhs, SATLiteral rhs, Un
 UnitList* EquivalenceDiscoverer::getEquivalences(UnitList* units, const Options* opts)
 {
   CALL("EquivalenceDiscoverer::getEquivalences");
+  ASS(opts);
 
   Options prepOpts;
   if(opts) { prepOpts = *opts; }

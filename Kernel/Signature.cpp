@@ -865,6 +865,7 @@ void Signature::addToDistinctGroup(unsigned constantSymbol, unsigned groupId)
 bool Signature::isProtectedName(string name)
 {
   CALL("Signature::isProtectedName");
+  ASS(env->options);
 
   if (name=="$distinct") {
     //TODO: remove this hack once we properly support the $distinct predicate

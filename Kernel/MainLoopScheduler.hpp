@@ -59,6 +59,7 @@ public:
 
 	inline
 	void addStrategy(Shell::Options& opt){
+                cout << "Adding a new strategy, currently ignoring that its priority is " << opt.getMultiProofAttemptPriority() << endl;
 		optionsQueue.push(&opt);
 	}
 

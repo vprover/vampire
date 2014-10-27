@@ -210,6 +210,9 @@ const char* Options::Constants::_optionNames[] = {
   "memory_limit",
   "mode",
 
+  "multi_proof_attempt_concurrent",
+  "multi_proof_attempt_priority",
+
   "name_prefix",
   "naming",
   "niceness_option",
@@ -899,6 +902,9 @@ Options::Options ()
 #endif
   _mode(MODE_VAMPIRE),
 
+  _multiProofAttemptPriority(-1), // if -1 then we should overwrite with place in file
+  _multiProofAttemptConcurrent(0), // if 0 we should take the number of strategies
+
   _namePrefix(""),
   _naming(8),
 
@@ -1382,6 +1388,20 @@ void Options::set(const char* name,const char* value, int index)
     case MODE:
       _mode = (Mode)Constants::modeValues.find(value);
       return;
+
+    case MULTI_PROOF_ATTEMPT_CONCURRENT:
+      if(Int::stringToUnsignedInt(value,unsignedValue)){
+         _multiProofAttemptConcurrent=unsignedValue;
+         return;
+      }
+      break;
+
+    case MULTI_PROOF_ATTEMPT_PRIORITY:
+      if(Int::stringToInt(value,intValue)){
+         _multiProofAttemptPriority=intValue;
+         return;
+      }
+      break;
 
     case NAME_PREFIX:
       _namePrefix = value;

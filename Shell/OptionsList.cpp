@@ -118,9 +118,18 @@ void OptionsList::setInputFile(const string& newVal)
 void OptionsList::setForcedOptionValues()
 {
   CALL("OptionsList::setForcedOptionValues");
+
+  int i=1;
   Iterator it(*this);
   while(it.hasNext()){
-   it.next().setForcedOptionValues();
+   Options& o = it.next();
+
+   // If the priority has not been manually set, we override it with its index
+   if(o.getMultiProofAttemptPriority() == -1){
+     o.setMultiProofAttemptPriority(i);
+     i++;
+   }
+   o.setForcedOptionValues();
   }
 }
 

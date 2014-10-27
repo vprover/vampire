@@ -137,6 +137,9 @@ public:
     MEMORY_LIMIT,
     MODE,
 
+    MULTI_PROOF_ATTEMPT_CONCURRENT,
+    MULTI_PROOF_ATTEMPT_PRIORITY,
+
     NAME_PREFIX,
     NAMING,
     NICENESS_OPTION,
@@ -590,6 +593,12 @@ public:
   bool aigInliner() const { return _aigInliner; }
   Mode mode() const { return _mode; }
   void setMode(Mode newVal);
+
+  void setMultiProofAttemptPriority(int p) { _multiProofAttemptPriority=p;}
+  int getMultiProofAttemptPriority() const { return _multiProofAttemptPriority; } 
+  void setMultiProofAttemptConcurrent(unsigned c) { _multiProofAttemptConcurrent=c;}
+  unsigned getMultiProofAttemptConcurrent() const { return _multiProofAttemptConcurrent; } 
+
   InputSyntax inputSyntax() const { return _inputSyntax; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
   bool normalize() const { return _normalize; }
@@ -926,6 +935,9 @@ private:
   unsigned _maximalPropagatedEqualityLength;
   size_t _memoryLimit;
   Mode _mode;
+
+  int _multiProofAttemptPriority;
+  unsigned _multiProofAttemptConcurrent;
 
   string _namePrefix;
   int _naming;

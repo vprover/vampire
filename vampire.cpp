@@ -502,12 +502,19 @@ void vampireMode()
           }
 
   }else{
-          cout << "running in multi strategy mode" << endl;
+          cout << "Running in multi strategy mode with " << env -> optionsList -> size() << " strategies." << endl;
 	  // Preprocessing based on options in first strategy and applied to the problems of all
           // strategies
           ScopedPtr<Problem> prb(getPreprocessedProblem());
-          Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList);
-          scheduler.run();
+          unsigned concurrentProofAttempts = env -> options -> getMultiProofAttemptConcurrent();
+          if(concurrentProofAttempts){
+             Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList, concurrentProofAttempts);
+             scheduler.run();
+          }
+          else{
+             Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList);
+             scheduler.run();
+          }
 
           // Code duplicated as need to have scheduler alive
           env -> beginOutput();
