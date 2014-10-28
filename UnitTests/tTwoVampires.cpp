@@ -94,7 +94,7 @@ void runChild(UnitList* units, vstring slice)
   }
   
   
-  _Exit(resultValue);
+  _exit(resultValue);
 }
 
 TEST_FUN(two_vampires1)
