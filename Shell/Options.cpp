@@ -68,6 +68,7 @@ public:
   static const char* _splittingAddComplementaryValues[];
   static const char* _splittingNonsplittableComponentsValues[];
   static const char* _splittingModelValues[];
+  static const char* _splittingLiteralPolarityAdviceValues[];
   static const char* _predicateEquivalenceDiscoveryModeValues[];
   static const char* _bpAssignmentSelectorValues[];
   static const char* _bpVariableSelectorValues[];
@@ -107,6 +108,7 @@ public:
   static NameArray splittingAddComplementaryValues;
   static NameArray splittingNonsplittableComponentsValues;
   static NameArray splittingModelValues;
+  static NameArray splittingLiteralPolarityAdviceValues;
   static NameArray predicateEquivalenceDiscoveryModeValues;
   static NameArray bpAssignmentSelectorValues;
   static NameArray bpVariableSelectorValues;
@@ -290,6 +292,7 @@ const char* Options::Constants::_optionNames[] = {
   "splitting_flush_period",
   "splitting_flush_quotient",
   "splitting_handle_zero_implied",
+  "splitting_literal_polarity_advice",
   "splitting_model",
   "splitting_nonsplittable_components",
   "statistics",
@@ -380,6 +383,7 @@ const char* Options::Constants::_shortNames[] = {
   "sfv",      
   "sgt",
   "shzi",
+  "slpa",
   "sm",       
   "snc",      
   "sos",      
@@ -464,6 +468,7 @@ int Options::Constants::shortNameIndexes[] = {
   SUPERPOSITION_FROM_VARIABLES,
   SINE_GENERALITY_THRESHOLD,
   SPLITTING_HANDLE_ZERO_IMPLIED,
+  SPLITTING_LITERAL_POLARITY_ADVICE,
   SPLITTING_MODEL,
   SPLITTING_NONSPLITTABLE_COMPONENTS,
   SOS,
@@ -731,6 +736,16 @@ const char* Options::Constants::_splittingModelValues[] = {
 NameArray Options::Constants::splittingModelValues(_splittingModelValues,
                                           sizeof(_splittingModelValues)/sizeof(char*));
 
+const char* Options::Constants::_splittingLiteralPolarityAdviceValues[] = {
+  "force_false",
+  "force_rnd",
+  "none",
+  "suggest_false",
+  "suggest_rnd"
+};
+NameArray Options::Constants::splittingLiteralPolarityAdviceValues(_splittingLiteralPolarityAdviceValues,
+                                          sizeof(_splittingLiteralPolarityAdviceValues)/sizeof(char*));
+
 const char* Options::Constants::_predicateEquivalenceDiscoveryModeValues[] = {
   "all_atoms",
   "all_formulas",
@@ -978,6 +993,7 @@ Options::Options ()
   _splittingHandleZeroImplied(false),
   _splittingNonsplittableComponents(SNS_KNOWN),
   _splittingModel(SM_MIN_ALL),
+  _splittingLiteralPolarityAdvice(SLPA_NONE),
   _statistics(STATISTICS_FULL),
   _superpositionFromVariables(true),
   _symbolPrecedence(BY_ARITY),
@@ -1679,6 +1695,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case SPLITTING_HANDLE_ZERO_IMPLIED:
       _splittingHandleZeroImplied = onOffToBool(value,name);
+    case SPLITTING_LITERAL_POLARITY_ADVICE:
+      _splittingLiteralPolarityAdvice = 
+              (SplittingLitaralPolarityAdvice)Constants::splittingLiteralPolarityAdviceValues.find(value);
       return;      
     case SPLITTING_MODEL:
       _splittingModel = (SplittingModel)Constants::splittingModelValues.find(value);

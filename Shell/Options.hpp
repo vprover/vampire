@@ -225,6 +225,7 @@ public:
     SPLITTING_FLUSH_PERIOD,
     SPLITTING_FLUSH_QUOTIENT,
     SPLITTING_HANDLE_ZERO_IMPLIED,
+    SPLITTING_LITERAL_POLARITY_ADVICE,
     SPLITTING_MODEL,
     SPLITTING_NONSPLITTABLE_COMPONENTS,
 
@@ -511,6 +512,14 @@ public:
     SM_MIN_SCO = 1,
     SM_TOTAL = 2
   };
+  
+  enum SplittingLitaralPolarityAdvice {
+    SLPA_FORCE_FALSE,
+    SLPA_FORCE_RND,
+    SLPA_NONE,
+    SLPA_SUGGEST_FALSE,
+    SLPA_SUGGEST_RND                    
+  };
 
   enum SplittingNonsplittableComponents {
     SNS_ALL = 0,
@@ -792,6 +801,7 @@ public:
   bool splittingCongruenceClosure() const { return _splittingCongruenceClosure; }
   bool splittingHandleZeroImplied() const{ return _splittingHandleZeroImplied;}
   SplittingModel splittingModel() const { return _splittingModel; }
+  SplittingLitaralPolarityAdvice splittingLitaralPolarityAdvice() const { return _splittingLiteralPolarityAdvice; }
 
   void setProof(Proof p) { _proof = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval; }
@@ -1009,6 +1019,7 @@ private:
   bool _splittingHandleZeroImplied;
   SplittingNonsplittableComponents _splittingNonsplittableComponents;
   SplittingModel _splittingModel;
+  SplittingLitaralPolarityAdvice _splittingLiteralPolarityAdvice;
   Statistics _statistics;
   bool _superpositionFromVariables;
   SymbolPrecedence _symbolPrecedence;
