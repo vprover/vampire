@@ -74,6 +74,8 @@ public:
   virtual SATClause* getZeroImpliedCertificate(unsigned var) = 0;
 
   virtual void ensureVarCnt(unsigned newVarCnt) {}
+  virtual void suggestPolarity(unsigned var, unsigned pol) {}
+  virtual void forcePolarity(unsigned var, unsigned pol) {}
 
   void addAssumption(SATLiteral lit, bool onlyPropagate=false) {
     CALL("SATSolver::addAssumption(SATLiteral,bool)");

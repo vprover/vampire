@@ -64,6 +64,18 @@ public:
   virtual SATClause* getZeroImpliedCertificate(unsigned var);
 
   virtual void ensureVarCnt(unsigned newVarCnt);
+  virtual void suggestPolarity(unsigned var, unsigned pol) override {
+    // 0 -> true which means negated, e.g. false in the model
+    bool mpol = pol ? false : true; 
+    _solver.suggestPolarity(vampireVar2Minisat(var),mpol);
+  }
+  virtual void forcePolarity(unsigned var, unsigned pol) override { 
+    // 0 -> l_True which means negated, e.g. false in the model
+    Minisat::lbool mpol = Minisat::lbool((uint8_t)pol); 
+    _solver.setPolarity(vampireVar2Minisat(var),mpol);        
+  }
+  
+  
   
   /**
    * Add an assumption into the solver. If conflictCountLimit==0,
