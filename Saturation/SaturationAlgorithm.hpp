@@ -103,7 +103,7 @@ public:
   static SaturationAlgorithm* tryGetInstance() {
     CALL("SaturationAlgorithm::tryGetInstance");
     if(env->isSingleStrategy()) return s_instance;
-    return static_cast<SaturationAlgorithm*>(MainLoopScheduler::getCurrentMainLoop());
+    return static_cast<SaturationAlgorithm*>(MainLoopContext::currentContext -> getMainLoop());
   }
   static void tryUpdateFinalClauseCount();
 

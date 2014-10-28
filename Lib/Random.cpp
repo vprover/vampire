@@ -46,11 +46,14 @@ long double Random::getDouble (long double min, long double max)
  */
 int Random::bitsPerInt ()
 {
-  int b = getMax() + 1;
+  //[dmitry] b should be unsigned, otherwise becomes negative
+  unsigned int b = getMax() + 1;
   int bits = -1;
 
   while (b != 0) {
-    b /= 2;
+    //std::cout << "b=" << b << std::endl;
+	//[dmitry] faster than division
+    b >>= 1;
     bits ++;
   }
 

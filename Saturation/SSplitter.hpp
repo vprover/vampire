@@ -75,9 +75,10 @@ private:
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
+//  template<typename _Container>
   static const SSplitter* splitter() {
 	  return static_cast<const SaturationAlgorithmContext*>(
-			  MainLoopScheduler::context()) -> splitter();
+			  MainLoopContext::currentContext) -> splitter();
   }
 
   SAT::SAT2FO* _sat2fo;

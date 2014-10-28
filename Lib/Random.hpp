@@ -11,6 +11,9 @@
 #ifndef __RANDOM__
 #  define __RANDOM__
 
+//#if VDEBUG
+//#include <iostream>
+//#endif
 
 #include <cstdlib>
 #include <ctime>
@@ -61,8 +64,10 @@ class Random
       _bits = getInteger();
     }
 
-    int result = _bits % 2;
-    _bits /= 2;
+    //[dmitry] faster than %
+    int result = _bits & 1;
+    //[dmitry] faster than division
+    _bits >>= 1;
     _remainingBits --;
 
     return result;

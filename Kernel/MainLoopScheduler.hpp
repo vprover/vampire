@@ -31,6 +31,7 @@ namespace Kernel {
 //class MainLoopResult;
 //class Problem;
 
+//template< typename _Container = std::vector< MainLoopContext* > >
 class MainLoopScheduler {
 public:
 	MainLoopScheduler(Problem& prb, std::size_t capacity);
@@ -42,13 +43,13 @@ public:
 	MainLoopResult run();
 	//static MainLoopScheduler* createFromOptions(Problem& prb, OptionsList* opts);
 
-	static ConcurrentMainLoop* getCurrentMainLoop() {
-		return MainLoopContext::currentContext -> getMainLoop();
-	}
+//	static ConcurrentMainLoop* getCurrentMainLoop() {
+//		return MainLoopContext::currentContext -> getMainLoop();
+//	}
 
-	static MainLoopContext* context() {
-		return MainLoopContext::currentContext;
-	}
+//	static MainLoopContext* context() {
+//		return MainLoopContext::currentContext;
+//	}
 // it won't compile in release mode if some of these are left in!
 #if VDEBUG
 	static std::ostream& log(){
@@ -62,6 +63,7 @@ public:
 		optionsQueue.push(&opt);
 	}
 
+	inline
 	void addStrategies(Shell::OptionsList& opts){
 		Shell::OptionsList::Iterator i(opts);
 	    while(i.hasNext()){
@@ -79,12 +81,12 @@ private:
 	std::size_t _contextCounter;
 	MainLoopContext** _mlcl;
 
-	class CompareOptions{
+	/*class CompareOptions{
 		public:
 	    	bool operator()(Shell::Options* lhs, Shell::Options* rhs) {
 	    		return (lhs < rhs);
 	    	}
-	};
+	};*/
 
 	std::priority_queue<Shell::Options*/*, std:vector<Shell::Options*>, CompareOptions*/> optionsQueue;
 
@@ -128,7 +130,7 @@ private:
 	}
 
 	inline
-	void timeSliceMagic(std::size_t k){
+	void timeSliceMagic(const std::size_t k){
 		CALL("MainLoopScheduler::timeSliceMagic");
 
 		//TODO: [dmitry] More nicer slicing scheme needed: some strategies do one derivation step too long
