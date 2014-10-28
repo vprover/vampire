@@ -244,6 +244,9 @@ private:
   SATClauseStack _conflictClausesToBeAdded;
   
   SaturationAlgorithm* _sa;
+  
+  //statistics
+  unsigned _clausesSinceEmpty;
 };
 
 }

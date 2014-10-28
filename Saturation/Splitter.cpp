@@ -317,7 +317,7 @@ void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack
 //////////////
 
 Splitter::Splitter()
-: _branchSelector(*this)
+: _branchSelector(*this), _clausesSinceEmpty(0)
 {
   CALL("Splitter::Splitter");
 }
@@ -428,6 +428,10 @@ void Splitter::onAllProcessed()
 {
   CALL("Splitter::onAllProcessed");
 
+  RSTAT_MCTR_INC("splitter_EmptyAtOnce",_conflictClausesToBeAdded.size());
+  RSTAT_MCTR_INC("splitter_callsSinceEmpty",_clausesSinceEmpty);
+  _clausesSinceEmpty = 0;
+  
   bool flushing = false;
   if(_flushPeriod) {
     if(_haveBranchRefutation) {
@@ -648,6 +652,10 @@ bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
 
+  if (_conflictClausesToBeAdded.size() > 0) {
+    _clausesSinceEmpty++;
+  }
+  
   static Stack<LiteralStack> comps;
   comps.reset();
   // fills comps with components, returning if not splittable
