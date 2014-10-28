@@ -52,6 +52,7 @@ public:
   void init();
 
   void updateVarCnt();
+  void considerPolarityAdvice(SATLiteral lit);
   void addSatClauses(const SATClauseStack& regularClauses, const SATClauseStack& conflictClauses,
                      SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
@@ -67,6 +68,7 @@ private:
   //options
   bool _eagerRemoval;
   bool _handleZeroImplied;
+  Options::SplittingLitaralPolarityAdvice _literalPolarityAdvice;
 
   Splitter& _parent;
 

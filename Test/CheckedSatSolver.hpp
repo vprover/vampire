@@ -37,6 +37,8 @@ public:
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
   virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
   virtual void ensureVarCnt(unsigned newVarCnt);
+  virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
+  virtual void forcePolarity(unsigned var,unsigned pol) override { _inner->forcePolarity(var,pol); }
 
   virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
   virtual void retractAllAssumptions();

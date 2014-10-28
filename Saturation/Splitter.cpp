@@ -61,6 +61,7 @@ void SplittingBranchSelector::init()
 
   _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
   _handleZeroImplied = _parent.getOptions().splittingHandleZeroImplied();
+  _literalPolarityAdvice = _parent.getOptions().splittingLitaralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
     case Options::BUFFERED_VAMPIRE:
@@ -121,6 +122,32 @@ void SplittingBranchSelector::updateVarCnt()
   _solver->ensureVarCnt(satVarCnt);
   _selected.expand(splitLvlCnt);
   _zeroImplieds.expand(satVarCnt,false);
+}
+
+/**
+ * The solver should consider making @b lit false by default.
+ */
+void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
+{
+  CALL("SplittingBranchSelector::considerPolarityAdvice");
+
+  switch (_literalPolarityAdvice) {
+    case Options::SLPA_FORCE_FALSE:
+      _solver->forcePolarity(lit.var(),lit.oppositePolarity());
+      break;
+    case Options::SLPA_FORCE_RND:      
+      _solver->forcePolarity(lit.var(),Random::getBit());
+      break;
+    case Options::SLPA_NONE:
+      // do nothing
+      break;
+    case Options::SLPA_SUGGEST_FALSE:
+      _solver->suggestPolarity(lit.var(),lit.oppositePolarity());
+      break;
+    case Options::SLPA_SUGGEST_RND:
+      _solver->suggestPolarity(lit.var(),Random::getBit());
+      break;
+  }
 }
 
 void SplittingBranchSelector::handleSatRefutation(SATClause* ref)
@@ -191,7 +218,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
   SplitLevel negLvl = _parent.getNameFromLiteral(SATLiteral(satVar, false));
 
   switch(asgn) {
-  case SATSolver::TRUE:    
+  case SATSolver::TRUE: 
     if(!_selected.find(posLvl) && _parent.isUsedName(posLvl)) {
       _selected.insert(posLvl);
       addedComps.push(posLvl);
@@ -814,6 +841,7 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
   ASS_L(compName,_db.size());
 
   _branchSelector.updateVarCnt();
+  _branchSelector.considerPolarityAdvice(posLit);
 
   compCl = buildAndInsertComponentClause(compName, size, lits, orig);
 
@@ -850,6 +878,7 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
   compCl = buildAndInsertComponentClause(compName, 1, &lit, orig);
 
   _branchSelector.updateVarCnt();
+  _branchSelector.considerPolarityAdvice(satLit);
 
   return compName;
 }
