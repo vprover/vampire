@@ -317,7 +317,7 @@ void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack
 //////////////
 
 Splitter::Splitter()
-: _branchSelector(*this), _clausesSinceEmpty(0)
+: _branchSelector(*this), _haveBranchRefutation(false), _clausesSinceEmpty(0)
 {
   CALL("Splitter::Splitter");
 }
