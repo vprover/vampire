@@ -48,11 +48,7 @@ void ActiveVariableSelector::onInputClauseAdded(SATClause* cl)
   for(unsigned i=0;i<clen;i++) {
     SATLiteral lit = (*cl)[i];
     unsigned var = lit.var();
-    if(_niceness_option != Options::NICENESS_NONE ||
-       _niceness[var]==0){ //only need to getNiceness once
-      unsigned niceness = lit.getNiceness(_niceness_option);
-      _niceness[var] = niceness;
-    }
+    _niceness[var] = 1; // now defaulted as I removed niceness option
     _activityHeap.markActivity(var);
   }
 }
@@ -160,7 +156,7 @@ void ArrayNicenessVariableSelector::onInputClauseAdded(SATClause* cl)
     SATLiteral lit = (*cl)[i];
     unsigned var = lit.var();
     if(_niceness[var]==0){
-      unsigned niceness = lit.getNiceness(Options::NICENESS_TOP);
+      unsigned niceness = 1; 
       _niceness[var] = niceness;
     }
   }

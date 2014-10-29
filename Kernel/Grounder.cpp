@@ -88,8 +88,6 @@ void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc, bool use_n, Liter
 
   for(unsigned i=0; i<clen; i++) {
     SATLiteral lit = groundNormalized(normLits[i]);
-    // this is recording the FO literal for niceness computation in SATLiteral 
-    if(use_n) lit.recordSource((* cl)[i]); 
     acc.push(lit);
   }
 }
@@ -131,8 +129,6 @@ SATLiteral Grounder::ground(Literal* lit,bool use_n)
   Literal* norm = lit;
   normalize(1, &norm);
   SATLiteral slit = groundNormalized(norm);
-  // this is recording the FO literal for niceness computation later
-  if(use_n) slit.recordSource(lit); 
   return slit;
 }
 

@@ -107,6 +107,8 @@ MainLoopResult MainLoopScheduler::run() {
 
 	CALL("MainLoopScheduler::run");
 
+        cout << "Beginning run with " << _capacity << " concurrent strategies." << endl;
+
 	MainLoopResult* result = 0;
 	try {
 

@@ -359,6 +359,7 @@ SplitLevel SSplittingBranchSelector::getNameFromLiteral(SATLiteral lit, bool upd
 SSplitter::SSplitter()
 {
   CALL("SSplitter::SSplitter");
+  _haveBranchRefutation = false;
 }
 
 SSplitter::~SSplitter()
