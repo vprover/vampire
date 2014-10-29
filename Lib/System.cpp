@@ -12,13 +12,12 @@
 #  include <process.h>
 #else
 #  include <unistd.h>
-#  if !__APPLE__
+#  if !__APPLE__ && !__CYGWIN__
 #    include <sys/prctl.h>
 #  endif
 #endif
 
 #include <cerrno>
-#include <string>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
@@ -35,6 +34,7 @@
 #include "Int.hpp"
 #include "Stack.hpp"
 #include "Timer.hpp"
+#include "VString.hpp"
 
 #include "System.hpp"
 
@@ -99,7 +99,7 @@ unsigned Lib::System::getNumberOfCores()
 
 long long Lib::System::getSystemMemory()
 {
-#if __APPLE__
+#if __APPLE__ || __CYGWIN__
   NOT_IMPLEMENTED;
 #else
   long pages = sysconf(_SC_PHYS_PAGES);
@@ -110,7 +110,7 @@ long long Lib::System::getSystemMemory()
 
 unsigned Lib::System::getNumberOfCores()
 {
-#if __APPLE__
+#if __APPLE__ || __CYGWIN__
   NOT_IMPLEMENTED;
 #else
   return sysconf( _SC_NPROCESSORS_ONLN );
@@ -331,7 +331,7 @@ void System::addInitializationHandler(VoidFunc proc, unsigned priority)
  */
 void System::onInitialization()
 {
-  CALL("System::onTermination");
+  CALL("System::onInitialization");
   ASS(!s_initialized); //onInitialization can be called only once
 
   s_initialized=true;
@@ -401,7 +401,7 @@ void System::terminateImmediately(int resultStatus)
  */
 void System::registerForSIGHUPOnParentDeath()
 {
-#if __APPLE__ || COMPILER_MSVC
+#if __APPLE__ || COMPILER_MSVC || __CYGWIN__
   cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
 //  NOT_IMPLEMENTED;
 #else
@@ -425,15 +425,15 @@ void System::readCmdArgs(int argc, char* argv[], StringStack& res)
   }
 }
 
-string System::extractFileNameFromPath(string str)
+vstring System::extractFileNameFromPath(vstring str)
 {
   CALL("System::extractFileNameFromPath");
 
   size_t index=str.find_last_of("\\/")+1;
-  if(index==string::npos) {
+  if(index==vstring::npos) {
     return str;
   }
-  return string(str, index);
+  return vstring(str, index);
 }
 
 /**
@@ -442,21 +442,22 @@ string System::extractFileNameFromPath(string str)
  *
  * The directory name is extracted without the final '/'.
  */
-bool System::extractDirNameFromPath(string path, string& dir)
+bool System::extractDirNameFromPath(vstring path, vstring& dir)
 {
   CALL("System::extractDirNameFromPath");
 
   size_t index=path.find_last_of("\\/");
-  if(index==string::npos) {
+  if(index==vstring::npos) {
     return false;
   }
   dir = path.substr(0, index);
   return true;
 }
 
-bool System::fileExists(string fname)
+bool System::fileExists(vstring fname)
 {
   CALL("System::fileExists");
+  BYPASSING_ALLOCATOR;
 
   ifstream ifile(fname.c_str());
   return ifile;
@@ -467,11 +468,11 @@ bool System::fileExists(string fname)
  *
  * Guessing means that the returned path might not be correct.
  */
-string System::guessExecutableDirectory()
+vstring System::guessExecutableDirectory()
 {
   CALL("System::guessExecutableDirectory");
 
-  string res;
+  vstring res;
 
   if(s_argv0 && extractDirNameFromPath(s_argv0, res)) {
     return res;
@@ -485,11 +486,11 @@ string System::guessExecutableDirectory()
  *
  * Guessing means that the returned file path might not be correct.
  */
-string System::guessExecutableName()
+vstring System::guessExecutableName()
 {
   CALL("System::guessExecutableName");
 
-  string res;
+  vstring res;
 
   if(s_argv0) {
     return s_argv0;
@@ -514,18 +515,18 @@ pid_t System::getPID()
  * Execute command @c command, pass content of @c input as standard input
  * and return the output of the command in @c output.
  */
-int System::executeCommand(string command, string input, Stack<string>& outputLines)
+int System::executeCommand(vstring command, vstring input, Stack<vstring>& outputLines)
 {
   CALL("System::executeCommand");
 
 #if COMPILER_MSVC
   NOT_IMPLEMENTED;
 #else
-  string pidStr = Int::toString(getPID());
-  string inFile  = "/tmp/vampire_executeCommand_"+pidStr+"_in";
-  string outFile = "/tmp/vampire_executeCommand_"+pidStr+"_out";
+  vstring pidStr = Int::toString(getPID());
+  vstring inFile  = "/tmp/vampire_executeCommand_"+pidStr+"_in";
+  vstring outFile = "/tmp/vampire_executeCommand_"+pidStr+"_out";
 
-  string cmdLine = command + " <" + inFile + " >" + outFile;
+  vstring cmdLine = command + " <" + inFile + " >" + outFile;
 
   {
     ofstream inpFile(inFile.c_str());
@@ -537,7 +538,7 @@ int System::executeCommand(string command, string input, Stack<string>& outputLi
 
   {
     outputLines.reset();
-    string line;
+    vstring line;
     ifstream outpFile(outFile.c_str());
     while (getline(outpFile, line)) {
       outputLines.push(line);

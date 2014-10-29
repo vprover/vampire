@@ -21,6 +21,9 @@ class RefutationSeekerFSE
 : public ForwardSimplificationEngine
 {
 public:
+  CLASS_NAME(RefutationSeekerFSE);
+  USE_ALLOCATOR(RefutationSeekerFSE);
+
   void attach(SaturationAlgorithm* salg);
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);

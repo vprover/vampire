@@ -37,9 +37,9 @@ struct StorageCorruptedException
 typedef SineSymbolExtractor::SymId SymId;
 typedef SineSymbolExtractor::SymIdIterator SymIdIterator;
 
-typedef List<string> StringList;
-typedef Stack<string> StringStack;
-typedef VirtualIterator<string> StringIterator;
+typedef List<vstring> StringList;
+typedef Stack<vstring> StringStack;
+typedef VirtualIterator<vstring> StringIterator;
 
 typedef pair<unsigned, Unit*> DUnitRecord;
 typedef pair<unsigned, SymId> DSymRecord;
@@ -121,8 +121,8 @@ private:
     PREFIX_COUNT
   };
 
-  string getConstKey(KeyPrefix p);
-  string getIntKey(KeyPrefix p, int keyNum);
+  vstring getConstKey(KeyPrefix p);
+  vstring getIntKey(KeyPrefix p, int keyNum);
 
   StringIterator getIntKeyValues(KeyPrefix p, VirtualIterator<int> keyNums);
 

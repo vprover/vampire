@@ -9,6 +9,7 @@
 #define __ProgramType__
 
 #include "Debug/Assertion.hpp"
+#include "Lib/Allocator.hpp"
 
 namespace Program {
 
@@ -19,6 +20,9 @@ namespace Program {
 class Type
 {
 public:
+  CLASS_NAME(Type);
+  USE_ALLOCATOR(Type);
+  
 	enum Kind {
 		/** void type */
 		VOID,
@@ -53,7 +57,7 @@ protected:
 }; // class Type
 
 /**
- * The type of arrays. Only one-dimentional arrays are
+ * The type of arrays. Only one-dimensional arrays are
  * allowed.
  * @since 20/08/2010, Torrevieja
  */
@@ -61,6 +65,9 @@ class ArrayType
 	: public Type
 {
 public:
+  CLASS_NAME(ArrayType);
+  USE_ALLOCATOR(ArrayType);
+  
 	/** returns the value type of the array */
 	const Type* valueType() const { return _valueType; }
 	/** the constructor */
@@ -81,6 +88,9 @@ class FunctionType
   : public Type
 {
 public:
+  CLASS_NAME(FunctionType);
+  USE_ALLOCATOR(FunctionType);      
+  
   /** returns the value type of the array */
   const Type* valueType() const { return _valueType; }
 

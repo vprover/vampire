@@ -7,13 +7,12 @@
 #define __Map__
 
 #include <cstdlib>
-#include <string>
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
-
+#include "VString.hpp"
 #include "Hash.hpp"
 #include "Exception.hpp"
 

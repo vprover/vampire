@@ -10,6 +10,8 @@
 #include "Hash.hpp"
 #include "DHMap.hpp"
 
+#include "Lib/Allocator.hpp"
+
 namespace Lib {
 
 template<typename T>
@@ -20,6 +22,9 @@ private:
   InverseLookup(const InverseLookup&);
   InverseLookup& operator=(const InverseLookup&);
 public:
+  CLASS_NAME(InverseLookup<T>);
+  USE_ALLOCATOR(InverseLookup<T>);
+
   template<typename Arr>
   InverseLookup(Arr arr, size_t size)
   {

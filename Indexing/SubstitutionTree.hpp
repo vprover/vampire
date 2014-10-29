@@ -28,6 +28,8 @@
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Clause.hpp"
 
+#include "Lib/Allocator.hpp"
+
 #include "Index.hpp"
 
 #if VDEBUG
@@ -59,6 +61,9 @@ namespace Indexing {
 class SubstitutionTree
 {
 public:
+  CLASS_NAME(SubstitutionTree);
+  USE_ALLOCATOR(SubstitutionTree);
+
   SubstitutionTree(int nodes);
   ~SubstitutionTree();
 
@@ -639,8 +644,8 @@ public:
 
 #if VDEBUG
 public:
-  static string nodeToString(Node* topNode);
-  string toString() const;
+  static vstring nodeToString(Node* topNode);
+  vstring toString() const;
   bool isEmpty() const;
 
   int _iteratorCnt;

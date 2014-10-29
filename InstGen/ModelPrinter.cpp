@@ -155,7 +155,6 @@ void ModelPrinter::collectTrueLits()
       else {
 	_trueLits.push(lit);
       }
-      LOG("ig_mdl","true literal " << lit->toString() << " implied by " << cl->toString());
     }
   }
 }
@@ -232,7 +231,6 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
 	shouldAdd = MatchingUtils::match(base, inst, false);
       }
       if(shouldAdd) {
-	LOG("ig_mdl","ground instantiation: " << base->toString() << " => " << inst->toString());
 	instSet.insert(inst);
 	instAcc.push(inst);
       }
@@ -324,7 +322,7 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
       continue;
     }
     TermList firstTerm = TermList(Term::create(firstFunc, 0, 0));
-    string firstTermStr = firstTerm.toString();
+    vstring firstTermStr = firstTerm.toString();
     unsigned eqClassSort = SortHelper::getResultSort(firstTerm.term());
     unsigned reprFunc = env -> signature->addStringConstant(firstTermStr);
     FunctionType* reprType = new FunctionType(0,0,eqClassSort);

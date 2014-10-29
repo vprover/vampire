@@ -36,7 +36,7 @@ public:
   }
 
 #if VDEBUG
-  virtual string toString() { return "<not supported>"; }
+  virtual vstring toString() { return "<not supported>"; }
 #endif
 
 };

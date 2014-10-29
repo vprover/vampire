@@ -1,8 +1,6 @@
 
 #include <iostream>
 
-#include "Debug/Log.hpp"
-
 #include "Lib/DHMap.hpp"
 
 #include "Test/UnitTesting.hpp"

@@ -28,6 +28,9 @@ using namespace Lib;
 
 class BufferedSolver : public SATSolver {
 public:
+  CLASS_NAME(BufferedSolver);
+  USE_ALLOCATOR(BufferedSolver);
+
   BufferedSolver(SATSolver* inner);
 
   virtual Status getStatus() { return _inner->getStatus(); }
@@ -48,6 +51,10 @@ public:
 
   virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
   virtual void retractAllAssumptions();
+
+  virtual void recordSource(unsigned var, Literal* lit){
+    _inner->recordSource(var,lit);
+  }
 
 private:
 

@@ -12,6 +12,7 @@
 #include "Kernel/ClauseQueue.hpp"
 #include "ClauseContainer.hpp"
 
+#include "Lib/Allocator.hpp"
 
 namespace Saturation {
 
@@ -53,6 +54,9 @@ class AWPassiveClauseContainer
 : public PassiveClauseContainer
 {
 public:
+  CLASS_NAME(AWPassiveClauseContainer);
+  USE_ALLOCATOR(AWPassiveClauseContainer);
+
   AWPassiveClauseContainer(const Options& opt);
   virtual ~AWPassiveClauseContainer();
   void add(Clause* cl);

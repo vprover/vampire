@@ -147,7 +147,7 @@ public:
     return _stack[n];
   } // operator[]
 
-  /** Return a reference to the n-th element of the stack */
+  /** Return a const reference to the n-th element of the stack */
   inline
   const C& operator[](size_t n) const
   {
@@ -661,6 +661,9 @@ protected:
   {
     Stack* st;
   public:
+    CLASS_NAME(Stack::PushBacktrackObject);
+    USE_ALLOCATOR(Stack::PushBacktrackObject);
+    
     PushBacktrackObject(Stack* st) : st(st) {}
     void backtrack() { st->pop(); }
   };

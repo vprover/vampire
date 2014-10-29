@@ -3,13 +3,11 @@
  * Implements the class IntNameTable for a table of names.
  */
 
-#include <string>
-
 
 #include "IntNameTable.hpp"
 #include "Hash.hpp"
 #include "Exception.hpp"
-
+#include "VString.hpp"
 
 namespace Lib {
 
@@ -28,7 +26,7 @@ IntNameTable::IntNameTable ()
 /**
  * Insert an element in the table and return its number.
  */
-int IntNameTable::insert (const string& str)
+int IntNameTable::insert (const vstring& str)
 {
 #if VDEBUG
   int result = 0;

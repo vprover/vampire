@@ -106,10 +106,8 @@ void ISSatSweeping::createCandidates()
     SATLiteral candLit = SATLiteral(i, candPolarity);
     if(_solver.isZeroImplied(i)) {
       addTrueLit(candLit);
-      LOG("sat_iss_init_cands", "discovered true literal: "<<candLit);
     }
     else {
-      LOG("sat_iss_init_cands", "added candidate literal: "<<candLit);
       candGrp.push(candLit);
       _candidateGroupIndexes.insert(i, 0);
     }
@@ -222,14 +220,12 @@ void ISSatSweeping::splitGroupsByCurrAssignment()
   _candidateGroupIndexes.reset();
   unsigned groupCnt = _candidateGroups.size();
   for(gi=0; gi<groupCnt; gi++) {
-    LOG("sat_iss_grps", "Group "<<gi<<" (size "<<_candidateGroups[gi].size()<<")");
     SATLiteralStack& grp = _candidateGroups[gi];
     ASS_GE(grp.size(),2);
     _unfinishedAmount += grp.size()-1;
     SATLiteralStack::ConstIterator git(grp);
     while(git.hasNext()) {
       SATLiteral lit = git.next();
-      LOG("sat_iss_grps_content", "  "<<lit);
       _candidateGroupIndexes.insert(lit.var(), gi);
     }
   }
@@ -255,8 +251,6 @@ void ISSatSweeping::tryRandomSimulation()
   do {
     unsigned oldUnfinished = _unfinishedAmount;
 
-    LOG("sat_iss_rand_sim", "group cnt: "<<_candidateGroups.size()<<"  unfinishedAmont: "<<_unfinishedAmount);
-
     _solver.randomizeAssignment();
     splitGroupsByCurrAssignment();
 
@@ -267,20 +261,16 @@ void ISSatSweeping::tryRandomSimulation()
       lives = initLives;
     }
   } while(_unfinishedAmount && lives>0);
-  LOG("sat_iss_rand_sim", "random simulation finished at group cnt: "<<_candidateGroups.size()<<"  unfinishedAmont: "<<_unfinishedAmount);
 }
 
 void ISSatSweeping::addImplication(Impl imp, bool& foundEquivalence)
 {
   CALL("ISSatSweeping::addImplication");
-  LOG("sat_iss_impl", "discovered implication: "<<imp.first<<" -> "<<imp.second);
 
   Impl rev = Impl(imp.second, imp.first);
 
   if(_implications.find(rev)) {
     foundEquivalence = _equivalentVars.doUnion(imp.first.var(), imp.second.var());
-    COND_LOG("sat_iss_equiv", foundEquivalence, "discovered equivalence: "<<imp.first<<" <-> "<<imp.second);
-    COND_LOG("sat_iss_impl", !foundEquivalence, "equivalence discovered again: "<<imp.first<<" <-> "<<imp.second);
     _implications.remove(rev);
     onRedundantImplicationDiscovered();
   }
@@ -318,12 +308,9 @@ void ISSatSweeping::doRedundantImplicationSweeping()
 	continue;
       }
     }
-    LOG("sat_iss_redundant_impl_removed","removed impl: "<<imp.first<<" -> "<<imp.second);
     implIt.del();
     removedCnt++;
   }
-
-  LOG("sat_iss_redundant_impl_removal","removed "<<removedCnt<<" redundant implications, remained "<<_implications.size());
 }
 
 void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOpposite,
@@ -331,8 +318,6 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
 {
   CALL("ISSatSweeping::lookForImplications");
   ASS_EQ(probedLit.polarity(),_candidateVarPolarities[probedLit.var()]); //only candidate literals can be passed as probedLit
-  LOG("sat_iss_impl_scan","looking for implications with "<<probedLit
-			<<" assigned as "<<(assignedOpposite ? "opposite" : "normal"));
 
   unsigned probedVar = probedLit.var();
 
@@ -361,7 +346,6 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
     }
     SATLiteral candLit = SATLiteral(litVar, _candidateVarPolarities[litVar]);
     bool candidateLitTrue = lit==candLit;
-    LOG("sat_iss_impl_scan","have propagation implied: "<<lit<<" candidate was "<<candLit);
     if(candidateLitTrue==assignedOpposite) {
       //probed lit cannot be equivalent to candidate lit
       //(see documentation to _candidateVarPolarities)
@@ -403,13 +387,10 @@ bool ISSatSweeping::tryProvingImplication(Impl imp, bool& foundEquivalence)
   CALL("ISSatSweeping::tryProvingImplication");
 
   if(_implications.find(imp)) {
-    LOG("sat_iss_try_impl","implication found in look-up: "<<imp.first<<" -> "<<imp.second);
     return true;
   }
-  LOG("sat_iss_try_impl","attempting to prove implication "<<imp.first<<" -> "<<imp.second);
   bool res = tryProvingImplicationInner(imp, foundEquivalence);
   _solver.retractAllAssumptions();
-  LOG("sat_iss_try_impl","implication "<<imp.first<<" -> "<<imp.second<<" "<<(res ? "proved" : "disproved"));
   return res;
 }
 
@@ -459,7 +440,6 @@ bool ISSatSweeping::tryProvingImplicationInner(Impl imp, bool& foundEquivalence)
   _solver.addAssumption(imp.first, _conflictCountLimit);
   status = _solver.getStatus();
   if(status==SATSolver::UNSATISFIABLE) {
-    LOG("sat_iss_try_impl","assumption of "<<imp.second.opposite()<<" & "<<imp.first<<" unsatisfiable");
     addImplication(imp, foundEquivalence);
     return true;
   }
@@ -520,9 +500,6 @@ bool ISSatSweeping::nextRotation()
   }
   _probingGroupIndex = 0;
   _probingElementIndex = 0;
-
-  LOG("sat_iss_rot","rotation with "<<_conflictCountLimit<<" finished, "
-      <<_candidateGroups.size()<<" candidate groups left, unfinished number is "<<_unfinishedAmount);
 
   if(_conflictCountLimit) {
     if(_conflictCountLimit<UINT_MAX/2) {
@@ -698,7 +675,6 @@ void ISSatSweeping::run()
       _equivStack.push(Equiv(lit1, lit2));
       compSz++;
     }
-    COND_LOG_INT("sat_iss_equiv_class_sizes",compSz>1, compSz);
   }
 }
 

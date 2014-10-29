@@ -74,7 +74,7 @@ public:
     Equiv() {}
     Equiv(AIGRef first_, AIGRef second_);
 
-    string toString() const { return "EQ: "+first.toString()+" <=> "+second.toString(); }
+    vstring toString() const { return "EQ: "+first.toString()+" <=> "+second.toString(); }
 
     AIGRef first;
     AIGRef second;
@@ -87,6 +87,9 @@ public:
 class AIGInliningEngine : public BottomUpAIGEngine
 {
 public:
+  CLASS_NAME(AIGInliningEngine);
+  USE_ALLOCATOR(AIGInliningEngine);
+  
   AIGInliningEngine(AIG& aig) : BottomUpAIGEngine(aig) {}
 
 protected:

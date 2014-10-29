@@ -153,18 +153,34 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   CALL("Superposition::generateClauses");
   Limits* limits=_salg->getLimits();
 
+  // These iterators should be read inside-out, but note that we have a Concatenated Iterator, which gives us two nestings
+
+  // The outer iterator ensures we update the time counter for superposition
   return pvi( getTimeCountedIterator(
+      // Remove null elements - these can come from performSuperposition 
       getFilteredIterator(
+        // Add the results of forward and backward together
 	getConcatenatedIterator(
+          //Perform forward superposition i.e. between 
+          // see performSuperposition
 	  getMappingIterator(
+                  // Get clauses with a literal whose complement unifies with the rewritable subterm, 
+                  // returns a pair with the original pair and the unification result (includes substitution)
 		  getMapAndFlattenIterator(
+                          // Get an iterator of pairs of selected literals and rewritable subterms of those literals
+                          // A subterm is rewritable (see EqHelper) if
+                          //  a) The literal is a positive equality t1=t2 and the subterm is max(t1,t2) wrt ordering
+                          //  b) The subterm is not a variable
 			  getMapAndFlattenIterator(
 				  premise->getSelectedLiteralIterator(),
 				  RewriteableSubtermsFn(_salg->getOrdering())),
 			  ApplicableRewritesFn(_lhsIndex)),
 		  ForwardResultFn(premise, limits, *this)),
+          //Perform backward superposition i.e.
 	  getMappingIterator(
+                  //
 		  getMapAndFlattenIterator(
+                          //
 			  getMapAndFlattenIterator(
 				  premise->getSelectedLiteralIterator(),
 				  EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions())),

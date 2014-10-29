@@ -6,7 +6,6 @@
 #ifndef __CLTBMode__
 #define __CLTBMode__
 
-#include <string>
 #include <utility>
 
 #include "Forwards.hpp"
@@ -15,6 +14,8 @@
 #include "Lib/Portability.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
+
+#include "Lib/VString.hpp"
 
 #include "Lib/Sys/SyncPipe.hpp"
 
@@ -52,12 +53,12 @@ private:
   static ostream& coutLineOutput();
   void loadIncludes();
 
-  typedef List<string> StringList;
-  typedef Stack<string> StringStack;
-  typedef pair<string,string> StringPair;
+  typedef List<vstring> StringList;
+  typedef Stack<vstring> StringStack;
+  typedef pair<vstring,vstring> StringPair;
   typedef Stack<StringPair> StringPairStack;
 
-  string category;
+  vstring category;
   /** per-problem time limit, in milliseconds */
   int _problemTimeLimit;
   /** true if question answers should be given */
@@ -68,7 +69,7 @@ private:
   /** files to be included */
   StringList* _theoryIncludes;
 
-  /** The first string in the pair is problem file, the second
+  /** The first vstring in the pair is problem file, the second
    * one is output file. The problemFiles[0] is the first
    * problem that should be attempted. */
   StringPairStack problemFiles;
@@ -82,14 +83,14 @@ private:
 class CLTBProblem
 {
 public:
-  CLTBProblem(CLTBMode* parent, string problemFile, string outFile);
+  CLTBProblem(CLTBMode* parent, vstring problemFile, vstring outFile);
 
   void searchForProof(int terminationTime) __attribute__((noreturn));
 private:
-  typedef Set<string> StrategySet;
-  typedef Stack<string> Schedule;
+  typedef Set<vstring> StrategySet;
+  typedef Stack<vstring> Schedule;
   bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime);
-  unsigned getSliceTime(string sliceCode,string& chopped);
+  unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
   void performStrategy(int terminationTime);
   void waitForChildAndExitWhenProofFound();
@@ -98,18 +99,18 @@ private:
   static ofstream* writerFileStream;
   static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
   void runWriterChild() __attribute__((noreturn));
-  void runSlice(string slice, unsigned milliseconds) __attribute__((noreturn));
+  void runSlice(vstring slice, unsigned milliseconds) __attribute__((noreturn));
   void runSlice(Options& strategyOpt) __attribute__((noreturn));
 
-  static string problemFinishedString;
+  static vstring problemFinishedString;
 
 #if VDEBUG
   DHSet<pid_t> childIds;
 #endif
 
   CLTBMode* parent;
-  string problemFile;
-  string outFile;
+  vstring problemFile;
+  vstring outFile;
 
   /**
    * Problem that is being solved.

@@ -6,11 +6,9 @@
 #ifndef __Backtrackable__
 #define __Backtrackable__
 
-#include <string>
-
 #include "List.hpp"
 #include "Int.hpp"
-
+#include "VString.hpp"
 
 namespace Lib
 {
@@ -40,7 +38,7 @@ public:
   virtual void backtrack() = 0;
 
 #if VDEBUG
-  virtual std::string toString() const { return "(backtrack object)"; }
+  virtual vstring toString() const { return "(backtrack object)"; }
 #endif
 private:
   /**
@@ -166,11 +164,11 @@ public:
   }
 
 #if VDEBUG
-  std::string toString()
+  vstring toString()
   {
     CALL("BacktrackData::toString");
 
-    std::string res;
+    vstring res;
     unsigned cnt=0;
     BacktrackObject* bobj=_boList;
     while(bobj) {

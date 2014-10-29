@@ -30,6 +30,9 @@ using namespace Kernel;
 
 class TermCodeTree : public CodeTree 
 {
+protected:
+  static void onCodeOpDestroying(CodeOp* op);
+  
 public:
   TermCodeTree();
   

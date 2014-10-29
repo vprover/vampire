@@ -20,10 +20,10 @@
 namespace VUtils
 {
 
-string FOEquivalenceDiscovery::getArgStr(unsigned arity)
+vstring FOEquivalenceDiscovery::getArgStr(unsigned arity)
 {
   if(arity==0) { return ""; }
-  stringstream res;
+  vostringstream res;
   res << "(X0";
   for(unsigned i=1; i<arity; i++) {
     res << ",X" << i;
@@ -37,7 +37,7 @@ int FOEquivalenceDiscovery::perform(int argc, char** argv)
   if(argc<3) {
     USER_ERROR("file name expected as second argument");
   }
-  string fname = argv[2];
+  vstring fname = argv[2];
 
   Options opts;
   opts.setTheoryAxioms(false);
@@ -65,8 +65,8 @@ int FOEquivalenceDiscovery::perform(int argc, char** argv)
     Signature::Symbol* sym1 = env -> signature->getPredicate(preds[i]);
     PredicateType* t1 = sym1->predType();
     unsigned ar1 = sym1->arity();
-    string n1 = sym1->name();
-    string args = getArgStr(ar1);
+    vstring n1 = sym1->name();
+    vstring args = getArgStr(ar1);
     pout << "fof(t_" << n1 << ", claim, " << n1 << args << ")." << endl;
     pout << "fof(f_" << n1 << ", claim, ~" << n1 << args << ")." << endl;
 
@@ -77,7 +77,7 @@ int FOEquivalenceDiscovery::perform(int argc, char** argv)
 	continue;
       }
 
-      string n2 = sym2->name();
+      vstring n2 = sym2->name();
 
       pout << "fof(e_" << n1 << "_" << n2 << ", claim, " << n1 << args << "<=>" << n2 << args << ")." << endl;
       pout << "fof(n_" << n1 << "_" << n2 << ", claim, " << n1 << args << "<=>~" << n2 << args << ")." << endl;

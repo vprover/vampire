@@ -42,12 +42,16 @@ SyncPipe::SyncPipe()
   _readDescriptor=fd[0];
   _writeDescriptor=fd[1];
 
-  _istream=new fdstream(_readDescriptor);
-  _ostream=new fdstream(_writeDescriptor);
-
+  {
+    BYPASSING_ALLOCATOR;
+  
+    _istream=new fdstream(_readDescriptor);
+    _ostream=new fdstream(_writeDescriptor);
+  }
+  
   _istream->rdbuf()->pubsetbuf(0,0);
 
-  //add the priviledges into the semaphore
+  //add the privileges into the semaphore
   _syncSemaphore.set(0,1);
   _syncSemaphore.set(1,1);
   //set the read-ahead byte to empty values
@@ -60,7 +64,7 @@ SyncPipe::~SyncPipe()
 {
   CALL("SyncPipe::~SyncPipe");
 
-  releasePriviledges();
+  releasePrivileges();
   ASS(s_instances->member(this));
   s_instances=s_instances->remove(this);
 
@@ -73,7 +77,7 @@ SyncPipe::~SyncPipe()
 }
 
 /**
- * Acquire a priviledge for this process to read from the pipe
+ * Acquire a privilege for this process to read from the pipe
  */
 void SyncPipe::acquireRead()
 {
@@ -96,7 +100,7 @@ void SyncPipe::acquireRead()
 }
 
 /**
- * Give up the priviledge of this process to read from the pipe
+ * Give up the privilege of this process to read from the pipe
  */
 void SyncPipe::releaseRead()
 {
@@ -131,13 +135,17 @@ void SyncPipe::neverRead()
     SYSTEM_FAIL("Closing read descriptor of a pipe.", errno);
   }
   ASS_EQ(res,0);
-  delete _istream;
-  _istream=0;
+  {
+    BYPASSING_ALLOCATOR;
+  
+    delete _istream;
+    _istream=0;
+  }
 }
 
 
 /**
- * Acquire a priviledge for this process to write into the pipe
+ * Acquire a privilege for this process to write into the pipe
  */
 void SyncPipe::acquireWrite()
 {
@@ -151,7 +159,7 @@ void SyncPipe::acquireWrite()
 }
 
 /**
- * Give up the priviledge of this process to write into the pipe
+ * Give up the privilege of this process to write into the pipe
  */
 void SyncPipe::releaseWrite()
 {
@@ -180,15 +188,19 @@ void SyncPipe::neverWrite()
   }
   ASS_EQ(res,0);
 
-  delete _ostream;
-  _ostream=0;
+  {
+    BYPASSING_ALLOCATOR;
+    
+    delete _ostream;
+    _ostream=0;
+  }
 }
 /**
- * Give up all the priviledges of this object
+ * Give up all the privileges of this object
  */
-void SyncPipe::releasePriviledges()
+void SyncPipe::releasePrivileges()
 {
-  CALL("SyncPipe::releasePriviledges");
+  CALL("SyncPipe::releasePrivileges");
   ASS(_syncSemaphore.hasSemaphore());
 
   if(isReading()) {
@@ -200,7 +212,7 @@ void SyncPipe::releasePriviledges()
 }
 
 /**
- * Give up priviledges of all the object in this process
+ * Give up privileges of all the object in this process
  *
  * This function is called in the beginning of a forked child process.
  */
@@ -211,12 +223,12 @@ void SyncPipe::postForkChildHadler()
   PipeList::Iterator pit(s_instances);
   while(pit.hasNext()) {
     SyncPipe* p=pit.next();
-    p->releasePriviledges();
+    p->releasePrivileges();
   }
 }
 
 /**
- * Give up priviledges of all the object in this process and destroy
+ * Give up privileges of all the object in this process and destroy
  * the list of all pipe objects
  *
  * This function is called before the process termination.
@@ -229,7 +241,7 @@ void SyncPipe::terminationHadler()
   while(listIter) {
     if(listIter->head()) {
       SyncPipe* p=listIter->head();
-      p->releasePriviledges();
+      p->releasePrivileges();
       listIter->setHead(0);
     }
     listIter=listIter->tail();

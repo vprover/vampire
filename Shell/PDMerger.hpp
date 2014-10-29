@@ -48,8 +48,6 @@ private:
     static Comparison compare(Unit* u1, Unit* u2);
   };
 
-  bool _trace;
-
   ScopedPtr<FormulaIndex> _index;
 
   DHMap<FormulaUnit*,FormulaUnit*> _replacements;

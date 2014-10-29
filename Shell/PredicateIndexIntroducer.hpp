@@ -36,7 +36,7 @@ protected:
 private:
   // scanning to determine what to index
 
-  typedef SharedSet<unsigned> DistGrpSet;
+  typedef const SharedSet<unsigned> DistGrpSet;
 
   struct ArgOccInfo {
     ArgOccInfo() : _new(true) {}

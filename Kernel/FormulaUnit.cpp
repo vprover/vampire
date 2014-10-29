@@ -30,10 +30,10 @@ void FormulaUnit::destroy()
 
 
 /**
- * Convert the unit to the string representation.
+ * Convert the unit to the vstring representation.
  * @since 20/05/2007 Manchester
  */
-string FormulaUnit::toString() const
+vstring FormulaUnit::toString() const
 {
   return Int::toString(_number) + ". " + _formula->toString() +
          ' ' + inferenceAsString();

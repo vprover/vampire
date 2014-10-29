@@ -38,7 +38,7 @@ BoundJustification& BoundJustification::operator=(const BoundJustification& j)
   return *this;
 }
 
-string BoundJustification::toString(const BoundsArray& bounds) const
+vstring BoundJustification::toString(const BoundsArray& bounds) const
 {
   CALL("BoundJustification::toString");
 
@@ -46,7 +46,7 @@ string BoundJustification::toString(const BoundsArray& bounds) const
     ASS_EQ(propagatedBounds().size(),0);
     return "{decision bound}";
   }
-  string res = parent()->toString();
+  vstring res = parent()->toString();
 
   BoundSpecArray::ConstIterator bsIt(_propagatedBounds);
   while(bsIt.hasNext()) {
@@ -63,11 +63,11 @@ string BoundJustification::toString(const BoundsArray& bounds) const
  * @c v and that it is left iff @c isLeftBound is true. If @c outputJustification
  * is true, include representation of the justification into the output.
  */
-string BoundInfo::toString(const BoundsArray& bounds, const BoundId& b, bool outputJustification) const
+vstring BoundInfo::toString(const BoundsArray& bounds, const BoundId& b, bool outputJustification) const
 {
   CALL("BoundInfo::toString");
 
-  stringstream stm;
+  vostringstream stm;
   //stm << "[var:" << v << "] ";
   stm << (b.left ? " " : "-");
   stm << env -> signature->varName(b.var);
@@ -233,8 +233,6 @@ void BoundsArray::makeDecisionAssignment(Var v, BoundNumber value)
 {
   CALL("BoundsArray::makeDecisionAssignment");
 
-  TRACE("tkv_decission",tout<<"Making decision point: "<<env -> signature->varName(v)<<"="<<value<<"\n";);
-
   BoundId leftBoundId(v, true);
   BoundId rightBoundId(v, false);
 
@@ -274,11 +272,8 @@ BoundSuggestionResult BoundsArray::suggestBound(const BoundId& b, const BoundInf
 
   _updateQueue.push_back(UpdateInfo(b, stack.size()-1));
 
-  TRACE("tkv_level",tout<<"Bound at level " << getDepth() << " added: " << stack.top().toString(*this, b, true););
-
   if(hasConflict(b.var)) {
     _conflictSet.insert(b.var);
-    TRACE("tkv_level",tout<<"Conflict at level "<<getDepth()<<" conflicting: "<< stack.top().toString(*this,b, true););
     return BS_CONFLICT;
   }
 
@@ -330,11 +325,8 @@ void BoundsArray::tryGetCollapsingInequality(const BoundId& b, size_t boundIndex
       }
       ASS(premiseCollapsingInequality->isTautology());
     }
-    else {
-      TRACE("tkv_collapsing",tout<<"Col for "<<env -> signature->varName(b.var)<<" building on "<<env -> signature->varName(bs.bound.var)<<
-	  " using "<<justification.parent()->toString()<<" :\n\t"<<c->toString()<<"\n\t"<<premiseCollapsingInequality->toString(););
-      Constraint* newC = Constraint::resolve(bs.bound.var, *c, *premiseCollapsingInequality);
-      TRACE("tkv_collapsing",tout<<"\t"<<newC->toString(););
+    else {      
+      Constraint* newC = Constraint::resolve(bs.bound.var, *c, *premiseCollapsingInequality);      
       newC->markCollapsing();
       c = newC;
     }
@@ -390,12 +382,9 @@ void BoundsArray::getConflictCollapsingInequality(Var v, size_t leftIdx, size_t 
     result = collapsingLeft;
     }
   else {
-    TRACE("tkv_collapsing",tout<<"Conflict Collapsing for "<<env -> signature->varName(v)<<
-	" :\nleft:\t"<<collapsingLeft->toString()<<"\nright:\t"<<collapsingRight->toString(););
     Constraint* res = Constraint::resolve(v, *collapsingLeft, *collapsingRight);
     res->markCollapsing();
-    result = res;
-    TRACE("tkv_collapsing",tout<<"\nresult:\t"<<result->toString(););
+    result = res;    
   }
 }
 
@@ -422,8 +411,7 @@ void BoundsArray::backtrack(DecisionLevel maxDepth)
   for(size_t i=0; i<sz; i++) {
     backtrackStack(getBounds(BoundId(i, true)), maxDepth);
     backtrackStack(getBounds(BoundId(i, false)), maxDepth);
-  }
-  TRACE("tkv_bklevel",tout<<"Backtrack to level "<<maxDepth<<"\n";);
+  }  
 }
 
 /**

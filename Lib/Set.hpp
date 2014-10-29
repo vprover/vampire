@@ -20,6 +20,10 @@ namespace Lib {
 /**
  * Defines class Set<Val> of arbitrary sets, implemented in the same way
  * as Map. Values are compared using Hash::equals.
+ *
+ * As defined in Forwards, Hash defaults to Lib::Hash
+ * So, if you want to use default hash then either add it to Lib::Hash
+ * or provide something in place of Hash
  */
 template <typename Val,class Hash>
 class Set

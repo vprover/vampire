@@ -7,14 +7,12 @@
 #ifndef __SATLiteral__
 #define __SATLiteral__
 
-#include <string>
 #include <ostream>
 
 #include "Shell/Options.hpp"
 #include "Debug/Assertion.hpp"
-
+#include "Lib/VString.hpp"
 #include "Kernel/Clause.hpp"
-
 
 namespace SAT {
 
@@ -31,7 +29,7 @@ public:
    *
    * @b var must be greater than 0 and @b polarity either 1 or 0 (for positive or negative)
    */
-  inline SATLiteral(unsigned var, unsigned polarity) :_polarity(polarity), _var(var)
+  inline SATLiteral(unsigned var, unsigned polarity) :_polarity(polarity), _var(var) 
   { ASS_G(var,0); ASS_NEQ(var,0x7FFFFFFF); }
 
 
@@ -59,8 +57,7 @@ public:
   inline bool operator!=(const SATLiteral& l) const
   { return _content!=l._content; }
 
-
-  string toString() const;
+  vstring toString() const;
 
   /**
    * Return a dummy literal that is not equal to any

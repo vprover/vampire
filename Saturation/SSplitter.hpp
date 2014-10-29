@@ -26,6 +26,8 @@
 
 #include "DP/DecisionProcedure.hpp"
 
+#include "Lib/Allocator.hpp"
+
 #include "Splitter.hpp"
 
 //namespace SAT{
@@ -146,6 +148,9 @@ private:
     USE_ALLOCATOR(SplitRecord);
   };
 public:
+  CLASS_NAME(SSplitter);
+  USE_ALLOCATOR(SSplitter);
+
   SSplitter();
   ~SSplitter();
 

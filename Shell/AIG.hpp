@@ -36,7 +36,7 @@ public:
   friend class AIGFormulaSharer;
 
   class Node;
-  typedef SharedSet<unsigned> VarSet;
+  typedef const SharedSet<unsigned> VarSet;
 
   class Ref {
     friend class AIG;
@@ -117,8 +117,8 @@ public:
     bool operator<=(const Ref& r) const { return !(r<(*this)); }
 
     unsigned hash() const;
-    string toString() const;
-    string toInternalString(unsigned depth=1) const;
+    vstring toString() const;
+    vstring toInternalString(unsigned depth=1) const;
 
     static Ref getInvalid() {
       Ref res;

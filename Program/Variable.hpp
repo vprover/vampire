@@ -8,10 +8,10 @@
 #ifndef __ProgramVariable__
 #define __ProgramVariable__
 
-#include <string>
 #include "Type.hpp"
 
-using namespace std;
+#include "Lib/VString.hpp"
+#include "Lib/Allocator.hpp"
 
 namespace Program {
 
@@ -22,15 +22,18 @@ namespace Program {
 class Variable
 {
 public:
+  CLASS_NAME(Variable);
+  USE_ALLOCATOR(Variable);
+  
 	/** the main constructor */
-	explicit Variable(const string& name,const Type* tp) : _name(name),_type(tp) {}
+	explicit Variable(const Lib::vstring& name,const Type* tp) : _name(name),_type(tp) {}
 	/** the name of this variable */
-	const string& name() { return _name; }
+	const Lib::vstring& name() { return _name; }
 	/** the type */
 	const Type* vtype() { return _type; }
 protected:
 	/** the name */
-	const string _name;
+	const Lib::vstring _name;
 	/** the type */
 	const Type* _type;
 }; // class Variable

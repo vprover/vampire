@@ -28,7 +28,7 @@ struct StringFormulaIndex::Entry2QR
   }
 };
 
-string StringFormulaIndex::getKey(Formula* f)
+vstring StringFormulaIndex::getKey(Formula* f)
 {
   CALL("StringFormulaIndex::getKey");
 
@@ -39,7 +39,7 @@ FormulaQueryResultIterator StringFormulaIndex::getEquivalent(Formula* f)
 {
   CALL("StringFormulaIndex::getEquivalent");
 
-  string key = getKey(f);
+  vstring key = getKey(f);
   return pvi( getMappingIterator(_map.keyIterator(key), Entry2QR()) );
 }
 
@@ -47,7 +47,7 @@ void StringFormulaIndex::insert(FormulaUnit* unit, Formula* f)
 {
   CALL("StringFormulaIndex::insert");
 
-  string key = getKey(f);
+  vstring key = getKey(f);
   _map.pushToKey(key, Entry(unit, f));
 }
 
@@ -55,7 +55,7 @@ void StringFormulaIndex::remove(FormulaUnit* unit, Formula* f)
 {
   CALL("StringFormulaIndex::remove");
 
-  string key = getKey(f);
+  vstring key = getKey(f);
   ALWAYS(_map.removeFromKey(key, Entry(unit, f)));
 }
 

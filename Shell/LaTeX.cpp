@@ -55,11 +55,11 @@ using namespace Kernel;
  * Convert the refutation to LaTeX
  * @since 04/01/2004 Manchester
  */
-string LaTeX::refutationToString(Unit* ref)
+vstring LaTeX::refutationToString(Unit* ref)
 {
   CALL("LaTeX::refutationToString(Unit* ref)");
 
-  string res = "\\documentclass[fleqn]{article}\n"
+  vstring res = "\\documentclass[fleqn]{article}\n"
     "\\usepackage{fullpage,latexsym}\n"
 
     "\\newenvironment{VampireProof}{%\n"
@@ -112,15 +112,15 @@ string LaTeX::refutationToString(Unit* ref)
     UnitSpec cs=outKernel.pop();
     InferenceStore::FullInference* finf;
     if(is->findInference(cs, finf)) {
-      InferenceStore::SplittingRecord* srec;
-      if(finf->rule==Inference::SPLITTING && is->findSplitting(cs, srec)) {
-	if(!handledKernel.contains(srec->premise)) {
-	  handledKernel.insert(srec->premise);
-	  outKernel.push(srec->premise);
-	}
-	res+=splittingToString(srec);
-	continue;
-      }
+      //InferenceStore::SplittingRecord* srec;
+      //if(finf->rule==Inference::SPLITTING && is->findSplitting(cs, srec)) {
+//	if(!handledKernel.contains(srec->premise)) {
+//	  handledKernel.insert(srec->premise);
+//	  outKernel.push(srec->premise);
+//	}
+//	res+=splittingToString(srec);
+//	continue;
+  //    }
 
       res+=toStringAsInference(cs, finf);
 
@@ -188,7 +188,7 @@ string LaTeX::refutationToString(Unit* ref)
 }
 
 
-string LaTeX::toString(Unit* u)
+vstring LaTeX::toString(Unit* u)
 {
   CALL("LaTeX::toString(Unit* u)");
 
@@ -208,16 +208,16 @@ string LaTeX::toString(Unit* u)
  * @since 11/12/2004 Manchester, true and false added
  * @since 29/04/2005 Manchester, inequality instead of negation of equality
  */
-string LaTeX::toString (Formula* f) const
+vstring LaTeX::toString (Formula* f) const
 {
   CALL("LaTeX::toString(Formula* f)");
 
-  static string names [] =
+  static vstring names [] =
   { "", " \\Vand ", " \\Vor ", " \\Vimp ", " \\Viff ", " \\Vxor ",
 	  "\\neg ", "\\forall ", "\\exists ", "\bot", "\top"};
 
   Connective c = f->connective();
-  string con = names[(int)c];
+  vstring con = names[(int)c];
   switch (c) {
   case LITERAL:
     return toString(f->literal());
@@ -227,7 +227,7 @@ string LaTeX::toString (Formula* f) const
   {
     FormulaList::Iterator arg(f->args());
     ASS(arg.hasNext());
-    string result = toString(arg.next(),c);
+    vstring result = toString(arg.next(),c);
     while (arg.hasNext()) {
       result += con + toString(arg.next(),c);
     }
@@ -250,10 +250,10 @@ string LaTeX::toString (Formula* f) const
   case FORALL:
   case EXISTS:
   {
-    string result("(");
+    vstring result("(");
     Formula::VarList::Iterator vs(f->vars());
     while (vs.hasNext()) {
-      result += con + varToString(vs.next()) + string(" ");
+      result += con + varToString(vs.next()) + vstring(" ");
     }
     return result + ")" + toString(f->qarg(),c);
   }
@@ -276,12 +276,12 @@ string LaTeX::toString (Formula* f) const
  * @param outer connective of the outer formula
  * @since 09/12/2003 Manchester
  */
-string LaTeX::toString (Formula* f, Connective outer) const
+vstring LaTeX::toString (Formula* f, Connective outer) const
 {
   CALL("LaTeX::toString (Formula* f, Connective outer)");
 
   return f->parenthesesRequired(outer) ?
-	  string("(") + toString(f) + ")" :
+	  vstring("(") + toString(f) + ")" :
 	  toString(f);
 } // LaTeX::toString (const Formula&, Connective outer)
 
@@ -291,11 +291,11 @@ string LaTeX::toString (Formula* f, Connective outer) const
  * @since 23/10/2003 Manchester, implemented as stream output function
  * @since 09/12/2003 Manchester
  */
-string LaTeX::toString (Clause* c)
+vstring LaTeX::toString (Clause* c)
 {
   CALL("LaTeX::toString (Clause* c)");
 
-  string result;
+  vstring result;
 
   if (c->isEmpty()) {
     result = "\\VEmptyClause";
@@ -305,7 +305,7 @@ string LaTeX::toString (Clause* c)
 
     unsigned clen=c->length();
     for(unsigned i=1;i<clen;i++) {
-      result += string(" \\Vor ") + toString((*c)[i]);
+      result += vstring(" \\Vor ") + toString((*c)[i]);
     }
   }
 
@@ -317,7 +317,7 @@ string LaTeX::toString (Clause* c)
  * Convert literal to LaTeX.
  * @since 09/12/2003 Manchester
  */
-string LaTeX::toString (Literal* l) const
+vstring LaTeX::toString (Literal* l) const
 {
   CALL("LaTeX::toString (Literal* l)");
 
@@ -331,13 +331,13 @@ string LaTeX::toString (Literal* l) const
   }
 
 //   if (_map) {
-//     string result;
+//     vstring result;
 //     if (_map->toString(a,*this,result)) {
 //       return result;
 //     }
 //   }
 
-  string res;
+  vstring res;
 
   if (l->isNegative()) {
     res="\\neg ";
@@ -355,19 +355,20 @@ string LaTeX::toString (Literal* l) const
  * @since 23/10/2002 Manchester, changed to handle special KIF names
  * @since 09/09/2003 Manchester, changed to use string instead of char*
  * @since 25/07/2005 Tallinn, changed to parse the name symbol by symbol
+ * @since 07/08/2014 Manchester, changed to use vstring
  */
-string LaTeX::symbolToString (unsigned num, bool pred) const
+vstring LaTeX::symbolToString (unsigned num, bool pred) const
 {
   CALL("LaTeX::symbolToString (unsigned num, bool pred)");
 
-  string symbolName; // the name of this symbol, if any
+  vstring symbolName; // the name of this symbol, if any
 
   if(pred) {
     symbolName = env -> signature->predicateName(num);
   }
   else {
 //    if (f.isSkolemFunction()) {
-//      return (string)"\\sigma_{" + Int::toString(f.number()) + "}";
+//      return (vstring)"\\sigma_{" + Int::toString(f.number()) + "}";
 //    }
     symbolName = env -> signature->functionName(num);
   }
@@ -411,7 +412,7 @@ string LaTeX::symbolToString (unsigned num, bool pred) const
   }
   if (digits == end) {
     *name = 0;
-    return string("\\mathit{") + newName + '}';
+    return vstring("\\mathit{") + newName + '}';
   }
   // copy digits as an index
   *name++ = '_';
@@ -421,7 +422,7 @@ string LaTeX::symbolToString (unsigned num, bool pred) const
   }
   *name++ = '}';
   *name = 0;
-  return string("\\mathit{") + newName + '}';
+  return vstring("\\mathit{") + newName + '}';
 }
 
 
@@ -429,7 +430,7 @@ string LaTeX::symbolToString (unsigned num, bool pred) const
  * Convert term list to LaTeX.
  * @since 09/12/2003 Manchester
  */
-string LaTeX::toString (TermList* terms) const
+vstring LaTeX::toString (TermList* terms) const
 {
   CALL("LaTeX::toString (TermList* terms)");
 
@@ -437,12 +438,12 @@ string LaTeX::toString (TermList* terms) const
     return "";
   }
 
-  string result = string("(");
+  vstring result = vstring("(");
   bool first=true;
   TermList* t=terms;
   while(t->isNonEmpty()) {
 //   if (_map) {
-//     string result;
+//     vstring result;
 //     if (_map->toString(t,*this,result)) {
 //       return result;
 //     }
@@ -473,12 +474,12 @@ string LaTeX::toString (TermList* terms) const
 //  * Convert unit to LaTeX.
 //  * @since 09/12/2003 Manchester
 //  */
-// string LaTeX::toString (const Unit& u) const
+// vstring LaTeX::toString (const Unit& u) const
 // {
 //   TRACER("LaTeX::toString (const Unit& u)");
 
-//   string prefix = Int::toString(u.number()) + ". ";
-//   string postfix = string("(") + Unit::toString(u.inputType()) + ")";
+//   vstring prefix = Int::toString(u.number()) + ". ";
+//   vstring postfix = vstring("(") + Unit::toString(u.inputType()) + ")";
 
 //   switch (u.unitType()) {
 //   case CLAUSE:
@@ -492,16 +493,16 @@ string LaTeX::toString (TermList* terms) const
 //   }
 // } // LaTeX::toString (const Unit& u)
 
-string LaTeX::getClauseLatexId(UnitSpec cs)
+vstring LaTeX::getClauseLatexId(UnitSpec cs)
 {
   return Int::toString(cs.cl()->number())+"_{"+InferenceStore::instance()->getClauseIdSuffix(cs)+"}";
 }
 
-string LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* inf)
+vstring LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* inf)
 {
   CALL("LaTeX::toStringAsInference(ClauseSpec,FullInference*)");
 
-  string res("[$");
+  vstring res("[$");
 
   bool hasParents=inf->premCnt;
   for(unsigned i=0;i<inf->premCnt;i++) {
@@ -544,13 +545,13 @@ string LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* in
  * @since 23/10/2002 Manchester, as stream output function
  * @since 09/12/2003 Manchester
  */
-string LaTeX::toStringAsInference(Unit* unit)
+vstring LaTeX::toStringAsInference(Unit* unit)
 {
   CALL("LaTeX::toStringAsInference(Unit* unit)");
 
   Inference* inf = unit->inference();
 
-  string res("[$");
+  vstring res("[$");
 
   bool hasParents=false;
   Inference::Iterator it = inf->iterator();
@@ -590,17 +591,18 @@ string LaTeX::toStringAsInference(Unit* unit)
   return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
 }
 
-string LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
+/*
+vstring LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
 {
   CALL("LaTeX::splittingToString");
 
-  string res("[$");
+  vstring res("[$");
   res += getClauseLatexId(sr->premise);
 
 
   Stack<pair<int,Clause*> >::Iterator ncit(sr->namedComps);
   while(ncit.hasNext()) {
-    res += string(",")+Int::toString(ncit.next().second->number())+"_D";
+    res += vstring(",")+Int::toString(ncit.next().second->number())+"_D";
   }
   res += "\\rightarrow ";
   res += getClauseLatexId(sr->result)
@@ -635,7 +637,7 @@ string LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
 
   return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
 }
-
+*/
 
 
 /**
@@ -643,12 +645,12 @@ string LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
  * @since 09/12/2003 Manchester
  * @since 17/9/2005 flight Chicago-Frankfurt, row variables case added
  */
-string LaTeX::varToString (unsigned num) const
+vstring LaTeX::varToString (unsigned num) const
 {
   CALL("LaTeX::varToString (unsigned num)");
 
 //  if (v.toInt() < 0) { // row variable
-//    return string("@_{") + Int::toString(-v.toInt()) + "}";
+//    return vstring("@_{") + Int::toString(-v.toInt()) + "}";
 //  }
 //#if KIF_EXPERIMENTS
 //  switch (v.toInt()) {
@@ -668,7 +670,7 @@ string LaTeX::varToString (unsigned num) const
 //    break;
 //  }
 //#endif
-  return string("x_{") + Int::toString(num) + "}";
+  return vstring("x_{") + Int::toString(num) + "}";
 } // LaTeX::toString (Var v)
 
 
@@ -681,11 +683,11 @@ string LaTeX::varToString (unsigned num) const
 // {
 //   TRACER("LaTeX::output (const Refutation& ref)");
 
-//   string fileName = _options.latexOutput();
+//   vstring fileName = _options.latexOutput();
 //   if (fileName == "off") {
 //     return;
 //   }
-//   string refutation = toString(ref);
+//   vstring refutation = toString(ref);
 //   if (fileName == "on") {
 //     cout << refutation;
 //     return;
@@ -704,24 +706,24 @@ string LaTeX::varToString (unsigned num) const
 //  * and arguments args.
 //  * @since 28/09/2005 Redmond
 //  */
-// string LaTeX::toString (const string& funOrPred,const TermList& args) const
+// vstring LaTeX::toString (const vstring& funOrPred,const TermList& args) const
 // {
 //   return funOrPred + toString(args);
 // }
 
 
-string LaTeX::getBDDVarName(int var)
+vstring LaTeX::getBDDVarName(int var)
 {
   CALL("LaTeX::getBDDVarName(int var)");
 
-  string name;
+  vstring name;
   if(BDD::instance()->getNiceName(var, name)) {
-    return string("\\mathit{") + name + '}';
+    return vstring("\\mathit{") + name + '}';
   }
-  return string("\\mathit{b_{") + Int::toString(var) + "}}";
+  return vstring("\\mathit{b_{") + Int::toString(var) + "}}";
 }
 
-string LaTeX::toString(BDDNode* node)
+vstring LaTeX::toString(BDDNode* node)
 {
   CALL("LaTeX::toString(BDDNode*)");
 
@@ -735,13 +737,13 @@ string LaTeX::toString(BDDNode* node)
     return "\\bot";
   }
 
-  string name;
+  vstring name;
   if(_nodeNames.find(node, name)) {
     return name;
   }
 
 
-  string propPred=getBDDVarName(node->_var);
+  vstring propPred=getBDDVarName(node->_var);
   if(inst->isTrue(node->_pos) && inst->isFalse(node->_neg)) {
     return propPred;
   }
@@ -761,11 +763,11 @@ string LaTeX::toString(BDDNode* node)
     return "(\\neg "+propPred+" \\Vor "+toString(node->_pos)+")";
   }
   else {
-    string posDef=toString(node->_pos);
-    string negDef=toString(node->_neg);
+    vstring posDef=toString(node->_pos);
+    vstring negDef=toString(node->_neg);
 
-    string name=string("\\mathit{n_{") + Int::toString(_nextNodeNum++) + "}}";
-    string report="$"+name+" \\Viff ("+propPred+" ? "+posDef+" : "+negDef+")$\\\\\n";
+    vstring name=vstring("\\mathit{n_{") + Int::toString(_nextNodeNum++) + "}}";
+    vstring report="$"+name+" \\Viff ("+propPred+" ? "+posDef+" : "+negDef+")$\\\\\n";
     definitionStack.push(report);
     ALWAYS(_nodeNames.insert(node, name));
 

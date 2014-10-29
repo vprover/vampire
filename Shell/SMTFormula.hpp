@@ -27,14 +27,14 @@ struct SMTFormula__HalfEquiv;
 class SMTFormula
 {
 protected:
-  SMTFormula(string val) : _val(val) {}
+  SMTFormula(vstring val) : _val(val) {}
 public:
   static SMTFormula getTrue() { return SMTFormula("true"); }
   static SMTFormula getFalse() { return SMTFormula("false"); }
 
   static SMTConstant unsignedValue(unsigned val);
-  static SMTConstant name(string name);
-  static SMTConstant name(string n1, string n2);
+  static SMTConstant name(vstring name);
+  static SMTConstant name(vstring n1, vstring n2);
 
   static SMTFormula equals(SMTFormula f1, SMTFormula f2)
   { return SMTFormula("(= " + f1._val + " " + f2._val + ")"); }
@@ -57,7 +57,7 @@ public:
   bool isTrue() const { return _val=="true"; }
   bool isFalse() const { return _val=="false"; }
 
-  operator string() const { return _val; }
+  operator vstring() const { return _val; }
 
   SMTFormula operator!() const
   { return SMTFormula("(not " + _val + ")"); }
@@ -77,12 +77,12 @@ public:
   SMTFormula operator-=(const SMTFormula__HalfEquiv& r) const;
 
 
-  string toString() const { return _val; }
+  vstring toString() const { return _val; }
 private:
   friend class SMTFormula__HalfImpl;
   friend class SMTFormula__HalfEquiv;
 
-  string _val;
+  vstring _val;
 };
 
 //the following is to allow having --> stand for an implication
@@ -108,7 +108,7 @@ class SMTConstant : public SMTFormula
 {
   friend class SMTFormula;
 
-  SMTConstant(string val) : SMTFormula(val) {}
+  SMTConstant(vstring val) : SMTFormula(val) {}
 };
 
 
@@ -119,19 +119,19 @@ public:
   void declarePropositionalConstant(SMTConstant pred);
   void declareRealConstant(SMTConstant pred);
 
-  void addFormula(const SMTFormula& f, string comment="");
+  void addFormula(const SMTFormula& f, vstring comment="");
   void popFormula();
 
   void output(ostream& out);
 private:
-  typedef DHSet<string> StringSet;
-  typedef DHMap<string,string> StringMap;
+  typedef DHSet<vstring> StringSet;
+  typedef DHMap<vstring,vstring> StringMap;
 
   StringSet _predDecls;
   StringMap _funDecls;
 
   Stack<SMTFormula> _formulas;
-  Stack<string> _formulaComments;
+  Stack<vstring> _formulaComments;
 };
 
 class SMTSolverResult
@@ -143,7 +143,7 @@ public:
   };
 
   Status status;
-  DHMap<string,string> assignment;
+  DHMap<vstring,vstring> assignment;
 
   void reset()
   {

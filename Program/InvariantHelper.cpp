@@ -81,12 +81,13 @@ void InvariantHelper::runVampireSaturationN(Problem& prb){
   try{
     Unit::onPreprocessingEnd();
 
-    LOG("pp_output","onPreprocessingEnd(), InvariantHelper::runVampireSaturationN()");
-    TRACE("pp_output",
-        env -> beginOutput();
-        UIHelper::outputAllPremises(cout, prb.units(), "New: ");
-        env -> endOutput();
-    );
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] output: onPreprocessingEnd(),"
+              " InvariantHelper::runVampireSaturationN()" << std::endl;
+      UIHelper::outputAllPremises(env->out(), prb.units(), "New: ");
+      env->endOutput();
+    }        
 
     env -> statistics->phase=Statistics::SATURATION;
     ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, *env -> options));
@@ -126,12 +127,12 @@ void InvariantHelper::runSEI()
   Problem* prb = new Problem(_units);
   preprocessUnits(*prb);
 
-  LOG("pp_output","onPreprocessingEnd(), InvariantHelper");
-  TRACE("pp_output",
-            env -> beginOutput();
-            UIHelper::outputAllPremises(tout, (*prb).units(), "New: ");
-            env -> endOutput();
-        );
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] onPreprocessingEnd(), InvariantHelper" << std::endl;
+    UIHelper::outputAllPremises(env->out(), (*prb).units(), "New: ");
+    env->endOutput();
+  }
   setSEIOptions();
 
 #if false

@@ -1,9 +1,19 @@
 obj/
 doc/
 
+
 Makefile_depend*
 
 version.cpp
 
+vampire
 vampire_dbg
 vampire_rel
+
+vampire.exe
+vampire_dbg.exe
+vampire_rel.exe
+
+.kdbgrc.vampire*
+callgrind.out.*
+valgrind.supp

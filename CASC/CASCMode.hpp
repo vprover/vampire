@@ -6,14 +6,14 @@
 #ifndef __CASCMode__
 #define __CASCMode__
 
-#include <string>
-
 #include "Forwards.hpp"
 
 #include "Lib/Portability.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
+
+#include "Lib/VString.hpp"
 
 #include "Shell/Property.hpp"
 
@@ -29,11 +29,11 @@ public:
   virtual ~CASCMode() { }
   static bool perform(int argc,char* argv []);
 
-  typedef Stack<string> Schedule;
+  typedef Stack<vstring> Schedule;
   static void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
   static void getSchedulesSat(Property& prop, Schedule& quick, Schedule& fallback);
   static void getSchedulesEPR(Property& prop, Schedule& quick, Schedule& fallback);
-  static unsigned getSliceTime(string sliceCode,string& chopped);
+  static unsigned getSliceTime(vstring sliceCode,vstring& chopped);
   static void makeSat() {_sat=true;}
   static void makeEPR() {_epr=true;}
   static void makeMulti() {_multi_strategy=true;}
@@ -48,7 +48,7 @@ protected:
    * We can override this if we have a different way of organising the
    * schedule i.e. in MultiCM
    */
-  typedef Set<string> StrategySet;
+  typedef Set<vstring> StrategySet;
   virtual bool runSchedule(Schedule&,unsigned ds,StrategySet& remember,bool fallback);
 
   void handleSIGINT() __attribute__((noreturn));
@@ -65,7 +65,7 @@ protected:
 
 private:
   bool perform();
-  bool runSlice(string sliceCode, unsigned ds);
+  bool runSlice(vstring sliceCode, unsigned ds);
 
 };
 

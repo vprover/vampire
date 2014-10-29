@@ -99,7 +99,7 @@ int CPAInterpolator::perform(unsigned argc, char** argv)
   return 0;
 }
 
-void CPAInterpolator::collectSMTLIBFileFunctions(string fname, FuncSet& acc)
+void CPAInterpolator::collectSMTLIBFileFunctions(vstring fname, FuncSet& acc)
 {
   CALL("CPAInterpolator::collectSMTLIBFileFunctions");
 
@@ -134,13 +134,13 @@ void CPAInterpolator::declareColors()
   env -> colorUsed = true;
 
   FuncSet leftFuns;
-  Stack<string>::Iterator lfIt(_leftFNames);
+  Stack<vstring>::Iterator lfIt(_leftFNames);
   while(lfIt.hasNext()) {
     collectSMTLIBFileFunctions(lfIt.next(), leftFuns);
   }
 
   FuncSet rightFuns;
-  Stack<string>::Iterator rfIt(_rightFNames);
+  Stack<vstring>::Iterator rfIt(_rightFNames);
   while(rfIt.hasNext()) {
     collectSMTLIBFileFunctions(rfIt.next(), rightFuns);
   }
@@ -157,7 +157,7 @@ void CPAInterpolator::declareColors()
 
     bool isPred = !type->isFunctionType();
 
-    string name = spec.first;
+    vstring name = spec.first;
     unsigned arity = spec.second;
     unsigned symNum;
     Signature::Symbol* sym;
@@ -185,19 +185,19 @@ void CPAInterpolator::loadFormulas()
   _forms = 0;
   _defs = 0;
 
-  Stack<string>::Iterator lfIt(_leftFNames);
+  Stack<vstring>::Iterator lfIt(_leftFNames);
   while(lfIt.hasNext()) {
     loadFormula(lfIt.next());
   }
 
-  Stack<string>::Iterator rfIt(_rightFNames);
+  Stack<vstring>::Iterator rfIt(_rightFNames);
   while(rfIt.hasNext()) {
     loadFormula(rfIt.next());
   }
 
 }
 
-void CPAInterpolator::loadFormula(string fname)
+void CPAInterpolator::loadFormula(vstring fname)
 {
   CALL("CPAInterpolator::loadFormula");
 
@@ -324,8 +324,8 @@ bool CPAInterpolator::runSchedule(Schedule& schedule,StrategySet& ss,bool fallba
   CALL("CPAInterpolator::runSchedule");
 
   while (!schedule.isEmpty()) {
-    string sliceCode = schedule.pop();
-    string chopped;
+    vstring sliceCode = schedule.pop();
+    vstring chopped;
     unsigned sliceTime = CASC::CASCMode::getSliceTime(sliceCode,chopped);
     if (fallback && ss.contains(chopped)) {
       continue;
@@ -346,7 +346,7 @@ bool CPAInterpolator::runSchedule(Schedule& schedule,StrategySet& ss,bool fallba
   return false;
 }
 
-bool CPAInterpolator::runSlice(string slice, unsigned ds)
+bool CPAInterpolator::runSlice(vstring slice, unsigned ds)
 {
   CALL("CPAInterpolator::runSlice/2");
 

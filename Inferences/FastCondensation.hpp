@@ -34,6 +34,9 @@ class FastCondensation
 : public ImmediateSimplificationEngine
 {
 public:
+  CLASS_NAME(FastCondensation);
+  USE_ALLOCATOR(FastCondensation);
+
   Clause* simplify(Clause* cl);
 private:
   struct CondensationBinder;

@@ -111,26 +111,9 @@ void BFNTMainLoop::runChild(size_t modelSize)
 
   ScopedPtr<Problem> childPrb(_bfnt.createProblem(modelSize));
 
-  TRACE("bfnt_loop",
-      tout << "Flattenned problem:" << endl;
-      UnitList::Iterator puit(childPrb->units());
-      while(puit.hasNext()) {
-	Unit* u = puit.next();
-	TRACE_OUTPUT_UNIT(u);
-      }
-  );
-
   ScopedPtr<MainLoop> childMainLoop(MainLoop::createFromOptions(*childPrb, _childOpts));
   MainLoopResult innerRes = childMainLoop->run();
   innerRes.updateStatistics();
-
-  LOG("bfnt_loop","Child termination reason: "
-      << ((innerRes.terminationReason==Statistics::SATISFIABLE) ? "Satisfiable" :
-	  (innerRes.terminationReason==Statistics::REFUTATION) ? "Unsatisfiable" : "Unknown") );
-  COND_TRACE("bfnt_loop", env -> statistics->model!="",
-      tout << "Model: " << endl
-	   << env -> statistics->model;
-  );
 
   if(env -> options->mode()!=Options::MODE_SPIDER) {
     if(innerRes.terminationReason==Statistics::SATISFIABLE || innerRes.terminationReason==Statistics::TIME_LIMIT) {
@@ -237,7 +220,6 @@ MainLoopResult BFNTMainLoop::runImpl()
   for(;;) {
     Timer::syncClock();
     if(env -> timeLimitReached()) { return MainLoopResult(Statistics::TIME_LIMIT); }
-    LOG("bfnt_loop","Trying model size "<<modelSize);
     env -> statistics->maxBFNTModelSize = modelSize;
     MainLoopResult childResult = spawnChild(modelSize);
 

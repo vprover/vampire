@@ -75,16 +75,16 @@ public:
   /** Include a new options file
       If this includes global options these will apply to
       live strategies only **/
-  void include(const string& newVal);
+  void include(const vstring& newVal);
 
   //Functions for setting global options
-  void set(const string& name, const string& value);
+  void set(const vstring& name, const vstring& value);
   void set(const char* name, const char* value);
   void setShort(const char* name, const char* value);
-  void setInputFile(const string& newVal);
+  void setInputFile(const vstring& newVal);
 
   //Functions for setting local options
-  void set(unsigned n, const string& name, const string& value)
+  void set(unsigned n, const vstring& name, const vstring& value)
   { check(n);(*this)[n].set(name,value); setLive(n); }
   void set(unsigned n, const char* name, const char* value)
   { check(n);(*this)[n].set(name,value); setLive(n); }

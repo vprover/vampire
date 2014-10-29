@@ -7,8 +7,8 @@
 #define __API_Tracing__
 
 #include <climits>
-#include <string>
 
+#include "Lib/VString.hpp"
 
 namespace Api {
 
@@ -20,12 +20,12 @@ public:
    * Enable specified trace and either all its children, or children up to
    * specified depth limit.
    */
-  static void enableTrace(std::string traceName, unsigned depth=UINT_MAX);
+  static void enableTrace(Lib::vstring traceName, unsigned depth=UINT_MAX);
   /**
-   * Process string specifying traces to be enabled (call the displayHelp() function
+   * Process vstring specifying traces to be enabled (call the displayHelp() function
    * to see details)
    */
-  static void processTraceString(std::string str);
+  static void processTraceString(Lib::vstring str);
   /**
    * Saves the current state of tracing tags to be restored later by
    * @c popTracingState().

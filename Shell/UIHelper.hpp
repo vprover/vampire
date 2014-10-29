@@ -31,7 +31,7 @@ public:
   static bool haveConjecture() { return s_haveConjecture; }
   static void setConjecturePresence(bool haveConjecture) { s_haveConjecture=haveConjecture; }
 
-  static void outputAllPremises(ostream& out, UnitList* units, string prefix="");
+  static void outputAllPremises(ostream& out, UnitList* units, vstring prefix="");
 
 
   static void outputSatisfiableResult(ostream& out);

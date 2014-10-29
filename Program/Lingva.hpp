@@ -8,9 +8,7 @@
 #ifndef __LINGVA_HPP__
 #define __LINGVA_HPP__
 
-#include <string>
 #include <iostream>
-
 
 #include "Translator/MyASTConsumer.hpp"
 #include "llvm/Support/Host.h"
@@ -29,7 +27,6 @@
 
 #include "Forwards.hpp"
 
-#include "Debug/Log.hpp"
 #include "Debug/Tracer.hpp"
 
 

@@ -30,7 +30,7 @@ namespace Shell {
  */
 class EPRSkolem : public EPRRestoring {
 public:
-  EPRSkolem(bool trace=false) : EPRRestoring(trace), _defs(0) {}
+  EPRSkolem() : EPRRestoring(), _defs(0) {}
 
   void apply(Problem& prb);
   bool apply(UnitList*& units);
@@ -53,7 +53,7 @@ private:
   FormulaUnit* definitionToImplication(FormulaUnit* premise, Literal* lhs,
       Formula* rhs, int topPolarity);
 
-  static string headerToString(unsigned hdr);
+  static vstring headerToString(unsigned hdr);
 
   class Applicator;
   class ConstantSkolemizer;

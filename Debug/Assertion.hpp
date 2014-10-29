@@ -87,7 +87,7 @@ public:
   void cry (std::ostream&);
 private:
   void outputFileAndLine (std::ostream&) const;
-  /** file in which violatin occurred */
+  /** file in which violation occurred */
   const char* _file;
   /** line number in the file */
   int _line;

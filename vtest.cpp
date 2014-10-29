@@ -54,15 +54,15 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
   it.next();
 
   while(it.hasNext()) {
-    string arg(it.next());
+    vstring arg(it.next());
     if(arg=="-tr") {
       it.del();
       if(!it.hasNext()) {
 	USER_ERROR("value for -tr option expected");
       }
-      string traceStr(it.next());
+      vstring traceStr(it.next());
       it.del();
-      PROCESS_TRACE_SPEC_STRING(traceStr);
+      //PROCESS_TRACE_SPEC_STRING(traceStr);
     } 
     //this part is added just for testing
     else if(arg == "-t") {

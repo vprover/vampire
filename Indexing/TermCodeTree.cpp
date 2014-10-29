@@ -24,9 +24,19 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
+void TermCodeTree::onCodeOpDestroying(CodeOp* op)
+{
+  CALL("TermCodeTree::onCodeOpDestroying");
+  
+  if (op->isSuccess()) {    
+    delete static_cast<TermInfo*>(op->getSuccessResult());
+  }
+}
+
 TermCodeTree::TermCodeTree()
 {
   _clauseCodeTree=false;
+  _onCodeOpDestroying = onCodeOpDestroying;
 }
 
 void TermCodeTree::insert(TermInfo* ti)

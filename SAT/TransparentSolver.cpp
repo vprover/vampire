@@ -21,8 +21,6 @@ void TransparentSolver::ensureVarCnt(unsigned newVarCnt)
 {
   CALL("TransparentSolver::ensureVarCnt");
 
-  LOG("sat_ts_in", "TransparentSolver::ensureVarCnt("<<newVarCnt<<")");
-  LOG("sat_ts_out", "_inner->ensureVarCnt("<<newVarCnt<<")");
   _inner->ensureVarCnt(newVarCnt);
   _vars.expand(newVarCnt);
 }
@@ -35,16 +33,7 @@ void TransparentSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
   ASS(_toBeAdded.isEmpty());
 
   _unprocessed.loadFromIterator(cit);
-
-  TRACE("sat_ts_in",
-      tout << "TransparentSolver::addClauses(..., " << onlyPropagate << ")" << endl;
-      SATClauseStack::BottomFirstIterator uit(_unprocessed);
-      while(uit.hasNext()) {
-	SATClause* cl = uit.next();
-	tout << "  " << (*cl) << endl;
-      }
-  );
-
+  
   processUnprocessed();
 
   flushClausesToInner(onlyPropagate);
@@ -53,15 +42,6 @@ void TransparentSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 void TransparentSolver::flushClausesToInner(bool onlyPropagate)
 {
   CALL("TransparentSolver::flushClausesToInner");
-
-  TRACE("sat_ts_out",
-      tout << "_inner->addClauses(..., " << onlyPropagate << ")" << endl;
-      SATClauseStack::BottomFirstIterator uit(_toBeAdded);
-      while(uit.hasNext()) {
-	SATClause* cl = uit.next();
-	tout << "  " << (*cl) << endl;
-      }
-  );
 
   _inner->addClauses(pvi( SATClauseStack::Iterator(_toBeAdded) ), onlyPropagate);
   _toBeAdded.reset();
@@ -114,8 +94,6 @@ void TransparentSolver::makeVarNonPure(unsigned var)
   CALL("TransparentSolver::makeVarNonPure");
   ASS(!_vars[var]._unseen);
   ASS(_vars[var]._isPure);
-
-  LOG("sat_ts_pure","makeVarNonPure: "<<var);
 
   //move away as many watched clauses as possible
   NEVER(tryToSweepPure(var, true)); //we however can't remove all of them
@@ -190,7 +168,6 @@ bool TransparentSolver::tryToSweepPure(unsigned var, bool eager)
 {
   CALL("TransparentSolver::trySweepPure");
   ASS(_vars[var]._isPure);
-  LOG("sat_ts_pure","tryToSweepPure("<<var<<", "<<eager<<")");
 
   VarInfo& vi = _vars[var];
 
@@ -278,9 +255,7 @@ SATSolver::VarAssignment TransparentSolver::getAssignment(unsigned var)
   }
   else {
     res = _inner->getAssignment(var);
-    LOG("sat_ts_out", "_inner->getAssignment("<<var<<") = " << res);
   }
-  LOG("sat_ts_in", "TransparentSolver::getAssignment("<<var<<") = " << res);
   return res;
 }
 
@@ -291,16 +266,13 @@ SATSolver::VarAssignment TransparentSolver::getAssignment(unsigned var)
 void TransparentSolver::addInnerAssumption(SATLiteral lit, unsigned conflictCountLimit)
 {
   CALL("TransparentSolver::addInnerAssumption");
-
-  LOG("sat_ts_out", "_inner->addAssumption("<<lit<<", "<<conflictCountLimit<<")");
+  
   _inner->addAssumption(lit, conflictCountLimit);
 }
 
 void TransparentSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
 {
   CALL("TransparentSolver::addAssumption");
-
-  LOG("sat_ts_in", "TransparentSolver::addAssumption("<<lit<<", "<<conflictCountLimit<<")");
 
   unsigned var = lit.var();
   VarInfo& vi = _vars[var];
@@ -323,7 +295,6 @@ void TransparentSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimi
   vi._assumedPolarity = lit.polarity();
 
   SATSolver::Status innerStatus = _inner->getStatus();
-  LOG("sat_ts_out", "_inner->getStatus() = " << innerStatus);
   if(innerStatus==SATSolver::UNSATISFIABLE) { return; }
 
   if(vi._unit || vi._unseen || !vi._isPure) {
@@ -343,7 +314,6 @@ void TransparentSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimi
   makeVarNonPure(var);
   processUnprocessed();
   //we have to retract assumptions in order to add clauses
-  LOG("sat_ts_out", "_inner->retractAllAssumptions()");
   _inner->retractAllAssumptions();
   flushClausesToInner(true);
 
@@ -359,8 +329,6 @@ void TransparentSolver::retractAllAssumptions()
 {
   CALL("TransparentSolver::retractAllAssumptions");
 
-  LOG("sat_ts_in", "TransparentSolver::retractAllAssumptions()");
-  LOG("sat_ts_out", "_inner->retractAllAssumptions()");
   _inner->retractAllAssumptions();
   while(_assumptions.isNonEmpty()) {
     SATLiteral lit = _assumptions.pop();

@@ -6,18 +6,21 @@
 #ifndef __Sorts__
 #define __Sorts__
 
-#include <string>
-
 #include "Forwards.hpp"
 
 #include "Lib/Map.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/VString.hpp"
 
 namespace Kernel {
 
 class Sorts {
 public:
+  CLASS_NAME(Sorts);
+  USE_ALLOCATOR(Sorts);
+
   /** Various pre-defined sort */
   enum DefaultSorts {
     /** The default sort of all individuals, always in the non-sorted case */
@@ -44,20 +47,23 @@ public:
   class SortInfo
   {
   public:
-    SortInfo(const string& name) : _name(name) {}
+    CLASS_NAME(SortInfo);
+    USE_ALLOCATOR(SortInfo);
+  
+    SortInfo(const vstring& name) : _name(name) {}
     
-    const string& name() const { return _name; }
+    const vstring& name() const { return _name; }
   private:
-    string _name;
+    vstring _name;
   };
 
-  unsigned addSort(const string& name, bool& added);
-  unsigned addSort(const string& name);
+  unsigned addSort(const vstring& name, bool& added);
+  unsigned addSort(const vstring& name);
 
-  bool haveSort(const string& name);
-  bool findSort(const string& name, unsigned& idx);
+  bool haveSort(const vstring& name);
+  bool findSort(const vstring& name, unsigned& idx);
 
-  const string& sortName(unsigned idx) const
+  const vstring& sortName(unsigned idx) const
   {
     CALL("Sorts::sortName");
     return _sorts[idx]->name();
@@ -80,6 +86,9 @@ private:
 class BaseType
 {
 public:
+  CLASS_NAME(BaseType);
+  USE_ALLOCATOR(BaseType);
+
   virtual ~BaseType();
 
   unsigned arg(unsigned idx) const
@@ -97,7 +106,7 @@ public:
   bool operator==(const BaseType& o) const;
   bool operator!=(const BaseType& o) const { return !(*this==o); }
 
-  virtual string toString() const = 0;
+  virtual vstring toString() const = 0;
 
   static BaseType* makeType(unsigned arity, const unsigned* domainSorts, unsigned rangeSort);
   static BaseType* makeType0(unsigned rangeSort);
@@ -108,7 +117,7 @@ public:
 protected:
   BaseType(unsigned arity, const unsigned* sorts=0);
 
-  string argsToString() const;
+  vstring argsToString() const;
 private:
   typedef Vector<unsigned> SortVector;
   SortVector* _args;
@@ -117,15 +126,21 @@ private:
 class PredicateType : public BaseType
 {
 public:
+  CLASS_NAME(PredicateType);
+  USE_ALLOCATOR(PredicateType);
+
   PredicateType(unsigned arity, const unsigned* argumentSorts = 0)
    : BaseType(arity, argumentSorts) {}
 
-  virtual string toString() const;
+  virtual vstring toString() const;
 };
 
 class FunctionType : public BaseType
 {
 public:
+  CLASS_NAME(FunctionType);
+  USE_ALLOCATOR(FunctionType);
+
   FunctionType(unsigned arity, const unsigned* argumentSorts, unsigned resultSort)
    : BaseType(arity, argumentSorts), _result(resultSort) {}
   FunctionType(unsigned arity);
@@ -135,7 +150,7 @@ public:
   virtual bool isSingleSortType(unsigned sort) const;
   virtual bool isFunctionType() const { return true; }
 
-  virtual string toString() const;
+  virtual vstring toString() const;
 private:
   unsigned _result;
 };

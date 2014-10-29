@@ -26,7 +26,7 @@ public:
   unsigned getPremiseNum(Unit* u);
   Unit* getPremiseUnit(unsigned u);
 
-  typedef SharedSet<unsigned> PremiseSet;
+  typedef const SharedSet<unsigned> PremiseSet;
   typedef AIGRef Ref;
 
   typedef Stack<PremiseSet*> PremSetStack;

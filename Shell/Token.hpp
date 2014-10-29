@@ -8,7 +8,7 @@
 #ifndef __Token__
 #define __Token__
 
-#include <string>
+#include "Lib/VString.hpp"
 
 namespace Shell {
 
@@ -222,10 +222,10 @@ class Token
 {
 public:
   TokenType tag;
-  std::string text;
+  Lib::vstring text;
   int line;
 
-  static std::string toString (TokenType);
+  static Lib::vstring toString (TokenType);
 };
 
 }

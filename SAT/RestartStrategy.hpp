@@ -23,6 +23,9 @@ protected:
 
 class FixedRestartStrategy : public RestartStrategy {
 public:
+  CLASS_NAME(FixedRestartStrategy);
+  USE_ALLOCATOR(FixedRestartStrategy);
+
   /**
    * Create restart strategy with specified number of conflicts between
    * restarts
@@ -42,6 +45,9 @@ private:
 
 class GeometricRestartStrategy : public RestartStrategy {
 public:
+  CLASS_NAME(GeometricRestartStrategy);
+  USE_ALLOCATOR(GeometricRestartStrategy);
+
   /**
    * Create a geometric restart strategy with specified parameters
    *
@@ -62,6 +68,9 @@ private:
 
 class LubyRestartStrategy : public RestartStrategy {
 public:
+  CLASS_NAME(LubyRestartStrategy);
+  USE_ALLOCATOR(LubyRestartStrategy);
+
   /**
    * Create a Luby restart strategy with specified factor
    *
@@ -82,6 +91,9 @@ private:
 
 class MinisatRestartStrategy : public RestartStrategy {
 public:
+  CLASS_NAME(MinisatRestartStrategy);
+  USE_ALLOCATOR(MinisatRestartStrategy);
+
   /**
    * Create a Minisat restart strategy with specified parameters
    *

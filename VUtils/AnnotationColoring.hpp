@@ -28,7 +28,7 @@ private:
   typedef SineSymbolExtractor::SymIdIterator SymIdIterator;
   typedef DHSet<SymId> SymIdSet;
 
-  void outputColorInfo(ostream& out, SymId sym, string color);
+  void outputColorInfo(ostream& out, SymId sym, vstring color);
 
   SineSymbolExtractor symEx;
   SymIdSet symbols;

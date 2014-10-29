@@ -31,11 +31,11 @@ class LexerException
   : public Exception
 {
  public:                                
-  LexerException(string message,const Lexer&);
+  LexerException(vstring message,const Lexer&);
   void cry(ostream&);
   ~LexerException() {}
  protected:
-  string _message;
+  vstring _message;
 }; // LexerException
 
 

@@ -30,7 +30,6 @@ class Options
 {
 public:
   enum Tag {
-    ABSTRACTION,
     AGE_WEIGHT_RATIO,
     AIG_BDD_SWEEPING,
     AIG_CONDITIONAL_REWRITING,
@@ -82,6 +81,10 @@ public:
     EQUALITY_PROPAGATION,
     EQUALITY_PROXY,
     EQUALITY_RESOLUTION_WITH_DELETION,
+
+    EXTENSIONALITY_ALLOW_POS_EQ,
+    EXTENSIONALITY_MAX_LENGTH,
+    EXTENSIONALITY_RESOLUTION,
 
     FLATTEN_TOP_LEVEL_CONJUNCTIONS,
     /** If some of the specified options are set to a forbidden state,
@@ -176,6 +179,14 @@ public:
     SAT_CLAUSE_DISPOSER,
     SAT_LEARNT_MINIMIZATION,
     SAT_LEARNT_SUBSUMPTION_RESOLUTION,
+
+    /** @author: ioan
+     * Use lingeling in an incremental way from the beginning
+     */
+    SAT_LINGELING_INCREMENTAL,
+    /** enable similar model generation for lingleling */
+    SAT_LINGELING_SIMILAR_MODELS,
+
     SAT_RESTART_FIXED_COUNT,
     SAT_RESTART_GEOMETRIC_INCREASE,
     SAT_RESTART_GEOMETRIC_INIT,
@@ -198,7 +209,7 @@ public:
     SHOW_NONCONSTANT_SKOLEM_FUNCTION_TRACE,
     SHOW_OPTIONS,
     SHOW_PASSIVE,
-    SHOW_PREPROCESSING_FORMULAS,
+    SHOW_PREPROCESSING,
     SHOW_SKOLEMISATIONS,
     SHOW_SYMBOL_ELIMINATION,
     SHOW_THEORY_AXIOMS,
@@ -241,7 +252,6 @@ public:
     TIME_LIMIT,
     TIME_LIMIT_LOCAL,
     TIME_STATISTICS,
-    TRACES,
     TRIVIAL_PREDICATE_REMOVAL,
 
     UNIT_RESULTING_RESOLUTION,
@@ -331,7 +341,7 @@ public:
    */
   enum Mode {
     MODE_AXIOM_SELECTION,
-    MODE_SOLVER,
+    MODE_BOUND_PROP,
     MODE_CASC,
     MODE_CASC_EPR,
     MODE_CASC_LTB,
@@ -366,9 +376,11 @@ public:
   /** Possible values for sat_solver */
   enum SatSolver {
      BUFFERED_LINGELING = 0,
-     BUFFERED_VAMPIRE = 1,
-     LINGELING = 2,
-     VAMPIRE = 3 
+     BUFFERED_MINISAT = 1,
+     BUFFERED_VAMPIRE = 2,
+     LINGELING = 3,
+     MINISAT = 4,
+     VAMPIRE = 5
   };
 
   /** Possible values for saturation_algorithm */
@@ -475,6 +487,13 @@ public:
     EP_ON = 5
   };
 
+  /** Values for --extensionality_resolution */
+  enum ExtensionalityResolution {
+    ER_FILTER = 0,
+    ER_KNOWN = 1,
+    ER_OFF = 2
+  };
+
   enum SatRestartStrategy {
     SRS_FIXED = 0,
     SRS_GEOMETRIC = 1,
@@ -536,9 +555,9 @@ public:
 public:
   Options ();
   void output (ostream&) const;
-  void readFromTestId (string testId);
-  void readOptionsString (string testId);
-  string generateTestId() const;
+  void readFromTestId (vstring testId);
+  void readOptionsString (vstring testId);
+  vstring generateTestId() const;
   bool complete(const Problem&) const;
   bool completeForNNE() const;
   void setForcedOptionValues();
@@ -554,13 +573,13 @@ public:
    * the problem name is equal to "unknown". The problem name can
    * be set to a specific value using setProblemName().
    */
-  string problemName () const { return _problemName; }
-  void setProblemName(string str) { _problemName = str; }
+  vstring problemName () const { return _problemName; }
+  void setProblemName(vstring str) { _problemName = str; }
 
-  string forcedOptions() const { return _forcedOptions; }
-  string forbiddenOptions() const { return _forbiddenOptions; }
-  string testId() const { return _testId; }
-  string protectedPrefix() const { return _protectedPrefix; }
+  vstring forcedOptions() const { return _forcedOptions; }
+  vstring forbiddenOptions() const { return _forbiddenOptions; }
+  vstring testId() const { return _testId; }
+  vstring protectedPrefix() const { return _protectedPrefix; }
   Statistics statistics() const { return _statistics; }
   void setStatistics(Statistics newVal) { _statistics=newVal; }
   Proof proof() const { return _proof; }
@@ -603,12 +622,12 @@ public:
   void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
   bool normalize() const { return _normalize; }
   void setNormalize(bool normalize) { _normalize = normalize; }
-  string include() const { return _include; }
-  void setInclude(string val) { _include = val; }
-  string includeFileName (const string& relativeName);
-  string logFile() const { return _logFile; }
-  string inputFile() const { return _inputFile; }
-  string optionsFile() const { return _optionsFile;}
+  vstring include() const { return _include; }
+  void setInclude(vstring val) { _include = val; }
+  vstring includeFileName (const vstring& relativeName);
+  vstring logFile() const { return _logFile; }
+  vstring inputFile() const { return _inputFile; }
+  vstring optionsFile() const { return _optionsFile;}
   int randomSeed() const { return _randomSeed; }
   int rowVariableMaxLength() const { return _rowVariableMaxLength; }
   void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
@@ -623,7 +642,7 @@ public:
   void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace = newVal; }
   bool showOptions() const { return _showOptions; }
   bool showPassive() const { return _showPassive; }
-  bool showPreprocessingFormulas() const { return _showPreprocessingFormulas; }
+  bool showPreprocessing() const { return _showPreprocessing; }
   bool showSkolemisations() const { return _showSkolemisations; }
   bool showSymbolElimination() const { return _showSymbolElimination; }
   bool showTheoryAxioms() const { return _showTheoryAxioms; }
@@ -638,7 +657,7 @@ public:
   int selection() const { return _selection; }
   bool setSelection(int newValue);
   bool setInstGenSelection(int newValue);
-  string latexOutput() const { return _latexOutput; }
+  vstring latexOutput() const { return _latexOutput; }
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode; }
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution; }
   void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
@@ -659,7 +678,7 @@ public:
   bool forwardSubsumption() const { return _forwardSubsumption; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting; }
 
-  string lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants; }
+  vstring lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly; }
   bool setLrsFirstTimeCheck(int newVal);
@@ -687,6 +706,10 @@ public:
   void setEqualityPropagation(bool newVal) { _equalityPropagation = newVal; }
   EqualityProxy equalityProxy() const { return _equalityProxy; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion; }
+  ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution; }
+  unsigned extensionalityMaxLength() const { return _extensionalityMaxLength; }
+  bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq; }
+  
   float nongoalWeightCoefficient() const { return _nongoalWeightCoefficient; }
   bool setNongoalWeightCoefficient(float newVal);
   Sos sos() const { return _sos; }
@@ -696,8 +719,8 @@ public:
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering = newVal; }
-  string xmlOutput() const { return _xmlOutput; }
-  string thanks() const { return _thanks; }
+  vstring xmlOutput() const { return _xmlOutput; }
+  vstring thanks() const { return _thanks; }
 
   bool globalSubsumption() const { return _globalSubsumption; }
   /** true if calling set() on non-existing options does not result in a user error */
@@ -711,7 +734,7 @@ public:
   void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
   Condensation condensation() const { return _condensation; }
   RuleActivity generalSplitting() const { return _generalSplitting; }
-  string namePrefix() const { return _namePrefix; }
+  vstring namePrefix() const { return _namePrefix; }
   bool timeStatistics() const { return _timeStatistics; }
 //  bool splitAddGroundNegation() const { return _splitAddGroundNegation; }
   bool splitAtActivation() const { return _splitAtActivation; }
@@ -761,6 +784,8 @@ public:
   float satClauseActivityDecay() const { return _satClauseActivityDecay; }
   SatClauseDisposer satClauseDisposer() const { return _satClauseDisposer; }
   bool satLearntMinimization() const { return _satLearntMinimization; }
+  bool satLingelingIncremental() const { return _satLingelingIncremental; }
+  bool satLingelingSimilarModels() const { return _satLingelingSimilarModels; }
   bool satLearntSubsumptionResolution() const { return _satLearntSubsumptionResolution; }
   int satRestartFixedCount() const { return _satRestartFixedCount; }
   float satRestartGeometricIncrease() const { return _satRestartGeometricIncrease; }
@@ -775,22 +800,19 @@ public:
   NicenessOption nicenessOption() const { return _nicenessOption; }
 
   void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
-  void setOptFileName(const string& newVal){ _optionsFile = newVal; }
-  void setInputFile(const string& newVal);
+  void setOptFileName(const vstring& newVal){ _optionsFile = newVal; }
+  void setInputFile(const vstring& newVal);
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds = newVal; }
   int getTimeLimit(){return _timeLimitInDeciseconds;}
-  string traceSpecString() const { return _traces; }
   int getWhileNumber(){return _whileNumber;}
   int getFunctionNumber(){return _functionNumber;}
 //   // standard ways of creating options
   XMLElement toXML() const;
   bool outputSuppressed() const;
-  void set(const string& name, const string& value);
+  void set(const vstring& name, const vstring& value);
   void set(const char* name, const char* value);
   void setShort(const char* name, const char* value);
-
-  bool abstraction() const { return _abstraction; }
 
   int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator; }
   int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator; }
@@ -802,8 +824,6 @@ public:
   float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient; }
   bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval; }
   bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure; }
-
-  void enableTracesAccordingToOptions() const;
 
   void setProof(Proof p) { _proof = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval; }
@@ -827,9 +847,9 @@ public:
   USE_ALLOCATOR(Options);
 
   /** first is option name, second option value */
-  typedef pair<string, string> OptionSpec;
+  typedef pair<vstring, vstring> OptionSpec;
   typedef Stack<OptionSpec> OptionSpecStack;
-  static void readOptionsString(string testId, OptionSpecStack& assignments);
+  static void readOptionsString(vstring testId, OptionSpecStack& assignments);
 
 private:
   void set(const char* name, const char* value, int index);
@@ -837,7 +857,6 @@ private:
 private:
   class Constants;
 
-  bool _abstraction;
   int _ageRatio;
   bool _aigBddSweeping;
   bool _aigConditionalRewriting;
@@ -877,12 +896,15 @@ private:
   bool _equalityPropagation;
   EqualityProxy _equalityProxy;
   RuleActivity _equalityResolutionWithDeletion;
-
   bool _equivalentVariableRemoval;
+  ExtensionalityResolution _extensionalityResolution;
+  unsigned _extensionalityMaxLength;
+  bool _extensionalityAllowPosEq;
+  
   bool _flattenTopLevelConjunctions;
-  string _forbiddenOptions;
+  vstring _forbiddenOptions;
   bool _forceIncompleteness;
-  string _forcedOptions;
+  vstring _forcedOptions;
   Demodulation _forwardDemodulation;
   bool _forwardLiteralRewriting;
   bool _forwardSubsumption;
@@ -898,7 +920,7 @@ private:
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   bool _ignoreMissing;
-  string _include;
+  vstring _include;
   /** if this option is true, Vampire will add the numeral weight of a clause
    * to its weight. The weight is defined as the sum of binary sizes of all
    * integers occurring in this clause. This option has not been tested and
@@ -906,7 +928,7 @@ private:
    */
   bool _increasedNumeralWeight;
   int _inequalitySplitting;
-  string _inputFile;
+  vstring _inputFile;
   InputSyntax _inputSyntax;
   float _instGenBigRestartRatio;
   bool _instGenInprocessing;
@@ -919,11 +941,11 @@ private:
   bool _instGenWithResolution;
   bool _interpretedSimplification;
 
-  string _latexOutput;
-  string _lingvaAdditionalInvariants;
+  vstring _latexOutput;
+  vstring _lingvaAdditionalInvariants;
 
   LiteralComparisonMode _literalComparisonMode;
-  string _logFile;
+  vstring _logFile;
   int _lrsFirstTimeCheck;
   int _lrsWeightLimitOnly;
 
@@ -939,7 +961,7 @@ private:
   int _multiProofAttemptPriority;
   unsigned _multiProofAttemptConcurrent;
 
-  string _namePrefix;
+  vstring _namePrefix;
   int _naming;
   NicenessOption _nicenessOption;
   float _nongoalWeightCoefficient;
@@ -948,7 +970,7 @@ private:
   bool _nonliteralsInClauseWeight;
   bool _normalize;
 
-  string _optionsFile;
+  vstring _optionsFile;
   bool _outputAxiomNames;
 
   InliningMode _predicateDefinitionInlining;
@@ -959,11 +981,11 @@ private:
   int _predicateEquivalenceDiscoverySatConflictLimit;
   bool _predicateIndexIntroduction;
   bool _printClausifierPremises;
-  string _problemName;
+  vstring _problemName;
   Proof _proof;
   bool _proofChecking;
   
-  string _protectedPrefix;
+  vstring _protectedPrefix;
 
   QuestionAnsweringMode _questionAnswering;
 
@@ -974,6 +996,10 @@ private:
   SatClauseDisposer _satClauseDisposer;
   bool _satLearntMinimization;
   bool _satLearntSubsumptionResolution;
+  /** Lingeling incremental and similar models options */
+  bool _satLingelingIncremental;
+  bool _satLingelingSimilarModels;
+
   int _satRestartFixedCount;
   float _satRestartGeometricIncrease;
   int _satRestartGeometricInit;
@@ -996,7 +1022,7 @@ private:
   bool _showNonconstantSkolemFunctionTrace;
   bool _showOptions;
   bool _showPassive;
-  bool _showPreprocessingFormulas;
+  bool _showPreprocessing;
   bool _showSkolemisations;
   bool _showSymbolElimination;
   bool _showTheoryAxioms;
@@ -1035,15 +1061,14 @@ private:
   bool _tabulationInstantiateProducingRules;
   int _tabulationLemmaAgeRatio;
   int _tabulationLemmaWeightRatio;
-  string _testId;
-  string _thanks;
+  vstring _testId;
+  vstring _thanks;
   bool _theoryAxioms;
   /** Time limit in deciseconds */
   int _timeLimitInDeciseconds;
   unsigned int _localTimeLimitInDeciseconds;
 
   bool _timeStatistics;
-  string _traces;
   bool _trivialPredicateRemoval;
 
   URResolution _unitResultingResolution;
@@ -1054,11 +1079,11 @@ private:
   int _weightRatio;
   int _whileNumber;
 
-  string _xmlOutput;
+  vstring _xmlOutput;
 
   // various read-from-string-write options
   static void readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio, char separator=':');
-  static string boolToOnOff(bool);
+  static vstring boolToOnOff(bool);
   void outputValue(ostream& str,int optionTag) const;
   friend class Shell::LTB::Builder;
 

@@ -11,6 +11,8 @@
 #include "Lib/Set.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Lib/Allocator.hpp"
+
 using namespace Lib;
 using namespace Kernel;
 
@@ -19,6 +21,9 @@ namespace Indexing {
 class TermSharing
 {
 public:
+  CLASS_NAME(TermSharing);
+  USE_ALLOCATOR(TermSharing);
+
   TermSharing();
   ~TermSharing();
 

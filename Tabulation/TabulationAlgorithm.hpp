@@ -30,6 +30,9 @@ using namespace Shell;
 
 class TabulationAlgorithm : public MainLoop {
 public:
+  CLASS_NAME(TabulationAlgorithm);
+  USE_ALLOCATOR(TabulationAlgorithm);    
+  
   TabulationAlgorithm(Problem& prb, const Options& opt);
 
 

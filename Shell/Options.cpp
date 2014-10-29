@@ -53,6 +53,7 @@ public:
   static const char* _satSolverValues[];
   static const char* _satAlgValues[];
   static const char* _equalityProxyValues[];
+  static const char* _extensionalityResolutionValues[];
   static const char* _inputSyntaxValues[];
   static const char* _modeValues[];
   static const char* _ruleActivityValues[];
@@ -91,6 +92,7 @@ public:
   static NameArray satSolverValues;
   static NameArray satAlgValues;
   static NameArray equalityProxyValues;
+  static NameArray extensionalityResolutionValues;
   static NameArray inputSyntaxValues;
   static NameArray modeValues;
   static NameArray ruleActivityValues;
@@ -119,7 +121,6 @@ public:
 
 /** Names for all options */
 const char* Options::Constants::_optionNames[] = {
-  "abstraction",
   "age_weight_ratio",
   "aig_bdd_sweeping",
   "aig_conditional_rewriting",
@@ -161,6 +162,10 @@ const char* Options::Constants::_optionNames[] = {
   "equality_propagation",
   "equality_proxy",
   "equality_resolution_with_deletion",
+  
+  "extensionality_allow_pos_eq",
+  "extensionality_max_length",
+  "extensionality_resolution",
 
   "flatten_top_level_conjunctions",
   "forbidden_options",
@@ -244,6 +249,11 @@ const char* Options::Constants::_optionNames[] = {
   "sat_clause_disposer",
   "sat_learnt_minimization",
   "sat_learnt_subsumption_resolution",
+
+  /** Lingeling options for incremental use and similar models generation*/
+  "sat_lingeling_incremental",
+  "sat_lingeling_similar_models",
+
   "sat_restart_fixed_count",
   "sat_restart_geometric_increase",
   "sat_restart_geometric_init",
@@ -252,6 +262,7 @@ const char* Options::Constants::_optionNames[] = {
   "sat_restart_minisat_init",
   "sat_restart_strategy",
   "sat_solver",
+
   "sat_var_activity_decay",
   "sat_var_selector",
   "saturation_algorithm",
@@ -265,7 +276,7 @@ const char* Options::Constants::_optionNames[] = {
   "show_nonconstant_skolem_function_trace",
   "show_options",
   "show_passive",
-  "show_preprocessing_formulas",
+  "show_preprocessing",
   "show_skolemisations",
   "show_symbol_elimination",
   "show_theory_axioms",
@@ -307,7 +318,6 @@ const char* Options::Constants::_optionNames[] = {
   "time_limit",
   "time_limit_local",
   "time_statistics",
-  "traces",
   "trivial_predicate_removal",
 
   "unit_resulting_resolution",
@@ -336,6 +346,7 @@ const char* Options::Constants::_shortNames[] = {
   "drc",
 
   "ep",
+  "er",
   "erd",
 
   "fd",
@@ -422,6 +433,7 @@ int Options::Constants::shortNameIndexes[] = {
   DEMODULATION_REDUNDANCY_CHECK,
 
   EQUALITY_PROXY,
+  EXTENSIONALITY_RESOLUTION,
   EQUALITY_RESOLUTION_WITH_DELETION,
 
   FORWARD_DEMODULATION,
@@ -551,9 +563,12 @@ NameArray Options::Constants::lcmValues(_lcmValues,
 
 const char* Options::Constants::_satSolverValues[] = {
   "buf_lingeling",
+  "buf_minisat",
   "buf_vampire",
   "lingeling",
-  "vampire"};
+  "minisat",
+  "vampire"    
+};
 NameArray Options::Constants::satSolverValues(_satSolverValues,
                                               sizeof(_satSolverValues)/sizeof(char*));
 
@@ -576,6 +591,13 @@ const char* Options::Constants::_equalityProxyValues[] = {
   "on"};
 NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,
 						  sizeof(_equalityProxyValues)/sizeof(char*));
+
+const char* Options::Constants::_extensionalityResolutionValues[] = {
+  "filter",
+  "known",
+  "off"};
+NameArray Options::Constants::extensionalityResolutionValues(_extensionalityResolutionValues,
+						  sizeof(_extensionalityResolutionValues)/sizeof(char*));
 
 const char* Options::Constants::_ruleActivityValues[] = {
   "input_only",
@@ -651,7 +673,7 @@ const char* Options::Constants::_modeValues[] = {
   "profile",
   "program_analysis",
   //runs the sat solver from vampire
-  //Added for developement reasons, Ioan Oct. 2013
+  //Added for development reasons, Ioan Oct. 2013
   "sat_solver",
 
   "spider",
@@ -802,7 +824,6 @@ bool Options::_ssplittingEagerRemoval = true;
  */
 Options::Options ()
   :
-  _abstraction(false),
   _ageRatio(1),
 
   _aigBddSweeping(false),
@@ -844,6 +865,9 @@ Options::Options ()
   _equalityProxy(EP_OFF), 
   _equalityResolutionWithDeletion(RA_INPUT_ONLY),
   _equivalentVariableRemoval(true),
+  _extensionalityResolution(ER_OFF),
+  _extensionalityMaxLength(0),
+  _extensionalityAllowPosEq(false),
   
   _flattenTopLevelConjunctions(false),
   _forceIncompleteness(false),
@@ -940,6 +964,8 @@ Options::Options ()
   _satClauseDisposer(SCD_MINISAT),
   _satLearntMinimization(true),
   _satLearntSubsumptionResolution(true),
+  _satLingelingIncremental(false),
+  _satLingelingSimilarModels(false),
   _satRestartFixedCount(16000),
   _satRestartGeometricIncrease(1.1f),
   _satRestartGeometricInit(32),
@@ -949,7 +975,7 @@ Options::Options ()
   _satRestartStrategy(SRS_LUBY),
   _satVarActivityDecay(1.05f),
   _satVarSelector(SVS_ACTIVE),
-  _satSolver(VAMPIRE),
+  _satSolver(MINISAT),
   _saturationAlgorithm(LRS),
   _selection(10),
   _selectUnusedVariablesFirst(false),
@@ -962,7 +988,7 @@ Options::Options ()
   _showNonconstantSkolemFunctionTrace(false),
   _showOptions(false),
   _showPassive(false),
-  _showPreprocessingFormulas(false),
+  _showPreprocessing(false),
   _showSkolemisations(false),
   _showSymbolElimination(false),
   _showTheoryAxioms(false),
@@ -1003,7 +1029,6 @@ Options::Options ()
   _timeLimitInDeciseconds(600),
   _localTimeLimitInDeciseconds(600),
   _timeStatistics(false),
-  _traces(""),
   _trivialPredicateRemoval(false),
 
   _unitResultingResolution(URR_OFF),
@@ -1035,7 +1060,7 @@ void Options::set(const char* name,const char* value)
   }
   catch (const ValueNotFoundException&) {
     if (!_ignoreMissing) {
-      USER_ERROR((string)name + " is not a valid option");
+      USER_ERROR((vstring)name + " is not a valid option");
     }
   }
 } // Options::set/2
@@ -1044,7 +1069,7 @@ void Options::set(const char* name,const char* value)
  * Set option by its name and value.
  * @since 06/04/2005 Torrevieja
  */
-void Options::set(const string& name,const string& value)
+void Options::set(const vstring& name,const vstring& value)
 {
   CALL ("Options::set/3");
   set(name.c_str(),value.c_str());
@@ -1066,9 +1091,6 @@ void Options::set(const char* name,const char* value, int index)
 
   try {
     switch (index) {
-    case ABSTRACTION:
-      _abstraction = onOffToBool(value,name);
-      return;
     case AGE_WEIGHT_RATIO:
       readAgeWeightRatio(value, _ageRatio, _weightRatio);
       return;
@@ -1208,6 +1230,23 @@ void Options::set(const char* name,const char* value, int index)
 	USER_ERROR("equality_resolution_with_deletion is not implemented for value \"on\"");
       }
       return;
+    case EXTENSIONALITY_RESOLUTION:
+      _extensionalityResolution = (ExtensionalityResolution)Constants::extensionalityResolutionValues.find(value);
+      return;
+    case EXTENSIONALITY_MAX_LENGTH:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+        // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
+        if (unsignedValue == 1) {
+          USER_ERROR("extensionality clauses have to be at least of size 2");
+        }
+	_extensionalityMaxLength = unsignedValue;
+	return;
+      }
+      break;
+    case EXTENSIONALITY_ALLOW_POS_EQ:
+      _extensionalityAllowPosEq = onOffToBool(value,name);
+      return;
+      
 
     case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
       _flattenTopLevelConjunctions = onOffToBool(value,name);
@@ -1502,6 +1541,14 @@ void Options::set(const char* name,const char* value, int index)
     case SAT_LEARNT_SUBSUMPTION_RESOLUTION:
       _satLearntSubsumptionResolution = onOffToBool(value,name);
       return;
+
+    case SAT_LINGELING_INCREMENTAL:
+      _satLingelingIncremental = onOffToBool(value, name);
+      return;
+    case SAT_LINGELING_SIMILAR_MODELS:
+      _satLingelingSimilarModels = onOffToBool(value, name);
+      return;
+
     case SAT_RESTART_FIXED_COUNT:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
 	_satRestartFixedCount = unsignedValue;
@@ -1601,8 +1648,8 @@ void Options::set(const char* name,const char* value, int index)
     case SHOW_PASSIVE:
       _showPassive = onOffToBool(value,name);
       return;
-    case SHOW_PREPROCESSING_FORMULAS:
-      _showPreprocessingFormulas = onOffToBool(value,name);
+    case SHOW_PREPROCESSING:
+      _showPreprocessing = onOffToBool(value,name);
       return;
     case SHOW_SKOLEMISATIONS:
       _showSkolemisations = onOffToBool(value,name);
@@ -1731,9 +1778,6 @@ void Options::set(const char* name,const char* value, int index)
     case TIME_STATISTICS:
       _timeStatistics = onOffToBool(value,name);
       return;
-    case TRACES:
-      _traces = value;
-      return;
     case TRIVIAL_PREDICATE_REMOVAL:
       _trivialPredicateRemoval = onOffToBool(value,name);
       return;
@@ -1770,7 +1814,7 @@ void Options::set(const char* name,const char* value, int index)
     throw ValueNotFoundException();
   }
   catch(ValueNotFoundException&) {
-    USER_ERROR((string)"wrong value (" + value + ") for " + name);
+    USER_ERROR((vstring)"wrong value (" + value + ") for " + name);
   }
 } // Options::set
 
@@ -1823,7 +1867,7 @@ bool Options::onOffToBool (const char* onOff,const char* option)
     }
   }
   
-  USER_ERROR((string)"wrong value for " + option + ": " + onOff);
+  USER_ERROR((vstring)"wrong value for " + option + ": " + onOff);
 } // Options::onOffToBool
 
 /**
@@ -1831,12 +1875,12 @@ bool Options::onOffToBool (const char* onOff,const char* option)
  * value.
  * @since 15/11/2004 Manchester
  */
-string Options::boolToOnOff (bool val)
+vstring Options::boolToOnOff (bool val)
 {
   CALL("Options::boolToOnOff");
 
-  static string on ("on");
-  static string off ("off");
+  static vstring on ("on");
+  static vstring off ("off");
 
   return val ? on : off;
 } // Options::boolToOnOff
@@ -1973,9 +2017,10 @@ bool Options::setLrsFirstTimeCheck (int newVal)
  *
  * @param relativeName the relative name, must begin and end with "'"
  *        because of the TPTP syntax
- * @since 16/10/2003 Manchester, relativeName change to string from char*
+ * @since 16/10/2003 Manchester, relativeName changed to string from char*
+ * @since 07/08/2014 Manchester, relativeName changed to vstring
  */
-string Options::includeFileName (const string& relativeName)
+vstring Options::includeFileName (const vstring& relativeName)
 {
   CALL("Options::includeFileName");
 
@@ -1990,12 +2035,12 @@ string Options::includeFileName (const string& relativeName)
   // truncatedRelativeName is relative.
   // Use the conventions of Vampire:
   // (a) first search the value of "include"
-  string dir = include();
+  vstring dir = include();
 
   if (dir == "") { // include undefined
     // (b) search in the directory of the 'current file'
     // i.e. the input file
-    string currentFile = inputFile();
+    vstring currentFile = inputFile();
     System::extractDirNameFromPath(currentFile,dir); 
     if(System::fileExists(dir+"/"+relativeName)){
       return dir + "/" + relativeName;
@@ -2058,9 +2103,6 @@ void Options::outputValue (ostream& str,int optionTag) const
   CALL("Options::outputValue");
 
   switch (optionTag) {
-  case ABSTRACTION:
-    str << boolToOnOff(_abstraction);
-    return;
   case AGE_WEIGHT_RATIO:
     str << _ageRatio << ':' << _weightRatio;
     return;
@@ -2172,6 +2214,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case EQUALITY_RESOLUTION_WITH_DELETION:
     str << Constants::ruleActivityValues[_equalityResolutionWithDeletion];
+    return;
+  case EXTENSIONALITY_RESOLUTION:
+    str << Constants::extensionalityResolutionValues[_extensionalityResolution];
     return;
 
   case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
@@ -2380,6 +2425,12 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SAT_LEARNT_SUBSUMPTION_RESOLUTION:
     str << boolToOnOff(_satLearntSubsumptionResolution);
     return;
+  case SAT_LINGELING_INCREMENTAL:
+	str << boolToOnOff(_satLingelingIncremental);
+	return;
+  case SAT_LINGELING_SIMILAR_MODELS:
+	str << boolToOnOff(_satLingelingSimilarModels);
+	return;
   case SAT_RESTART_FIXED_COUNT:
     str << _satRestartFixedCount;
     return;
@@ -2445,8 +2496,8 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SHOW_PASSIVE:
     str << boolToOnOff(_showPassive);
     return;
-  case SHOW_PREPROCESSING_FORMULAS:
-    str << boolToOnOff(_showPreprocessingFormulas);
+  case SHOW_PREPROCESSING:
+    str << boolToOnOff(_showPreprocessing);
     return;
   case SHOW_SKOLEMISATIONS:
     str << boolToOnOff(_showSkolemisations);
@@ -2578,9 +2629,6 @@ void Options::outputValue (ostream& str,int optionTag) const
   case TIME_STATISTICS:
     str << boolToOnOff(_timeStatistics);
     return;
-  case TRACES:
-    str << _traces;
-    return;
   case TRIVIAL_PREDICATE_REMOVAL:
     str << boolToOnOff(_trivialPredicateRemoval);
     return;
@@ -2618,7 +2666,7 @@ void Options::outputValue (ostream& str,int optionTag) const
  * Set input file and also update problemName if it was not
  * set before
  */
-void Options::setInputFile(const string& inputFile)
+void Options::setInputFile(const vstring& inputFile)
 {
   CALL("Options::setInputFile");
 
@@ -2696,19 +2744,19 @@ void Options::readAgeWeightRatio(const char* val, int& ageRatio, int& weightRati
 
   if (found) {
     if (strlen(val) > 127) {
-      USER_ERROR((string)"wrong value for age-weight ratio: " + val);
+      USER_ERROR((vstring)"wrong value for age-weight ratio: " + val);
     }
     char copy[128];
     strcpy(copy,val);
     copy[colonIndex] = 0;
     int age;
     if (! Int::stringToInt(copy,age)) {
-      USER_ERROR((string)"wrong value for age-weight ratio: " + val);
+      USER_ERROR((vstring)"wrong value for age-weight ratio: " + val);
     }
     ageRatio = age;
     int weight;
     if (! Int::stringToInt(copy+colonIndex+1,weight)) {
-      USER_ERROR((string)"wrong value for age-weight ratio: " + val);
+      USER_ERROR((vstring)"wrong value for age-weight ratio: " + val);
     }
     weightRatio = weight;
     return;
@@ -2716,7 +2764,7 @@ void Options::readAgeWeightRatio(const char* val, int& ageRatio, int& weightRati
   ageRatio = 1;
   int weight;
   if (! Int::stringToInt(val,weight)) {
-    USER_ERROR((string)"wrong value for age-weight ratio: " + val);
+    USER_ERROR((vstring)"wrong value for age-weight ratio: " + val);
   }
   weightRatio = weight;
 } // Options::readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio)
@@ -2734,7 +2782,7 @@ int Options::readTimeLimit(const char* val)
 
   int length = strlen(val);
   if (length == 0 || length > 127) {
-    USER_ERROR((string)"wrong value for time limit: " + val);
+    USER_ERROR((vstring)"wrong value for time limit: " + val);
   }
 
   char copy[128];
@@ -2769,7 +2817,7 @@ int Options::readTimeLimit(const char* val)
 
   float number;
   if (! Int::stringToFloat(copy,number)) {
-    USER_ERROR((string)"wrong value for time limit: " + val);
+    USER_ERROR((vstring)"wrong value for time limit: " + val);
   }
 
 #ifdef _MSC_VER
@@ -2783,23 +2831,23 @@ int Options::readTimeLimit(const char* val)
 /**
  * Read 
  */
-void Options::readOptionsString(string testId, OptionSpecStack& assignments)
+void Options::readOptionsString(vstring testId, OptionSpecStack& assignments)
 {
   CALL("Options::readOptionsString");
   cout << testId << "\n";
   while (testId != "") {
     size_t index1 = testId.find('=');
-    if (index1 == string::npos) {
+    if (index1 == vstring::npos) {
       error: USER_ERROR("bad option specification" + testId);
     }
     size_t index = testId.find(':');
-    if (index!=string::npos && index1 > index) {
+    if (index!=vstring::npos && index1 > index) {
       goto error;
     }
 
-    string param = testId.substr(0,index1);
-    string value;
-    if (index==string::npos) {
+    vstring param = testId.substr(0,index1);
+    vstring value;
+    if (index==vstring::npos) {
       value = testId.substr(index1+1);
     }
     else {
@@ -2807,7 +2855,7 @@ void Options::readOptionsString(string testId, OptionSpecStack& assignments)
     }
     assignments.push(OptionSpec(param, value));
 
-    if (index==string::npos) {
+    if (index==vstring::npos) {
       break;
     }
     testId = testId.substr(index+1);
@@ -2815,29 +2863,29 @@ void Options::readOptionsString(string testId, OptionSpecStack& assignments)
 }
 
 /**
- * Assign option values as encoded in the option string.
+ * Assign option values as encoded in the option vstring.
  * according to the argument in the format
  * opt1=val1:opt2=val2:...:optn=valN,
  * for example bs=off:cond=on:drc=off:nwc=1.5:nicw=on:sos=on:sio=off:spl=sat:ssnc=none
  */
-void Options::readOptionsString(string optionsString)
+void Options::readOptionsString(vstring optionsString)
 {
   CALL("Options::readOptionsString");
 
   // repeatedly look for param=value
   while (optionsString != "") {
     size_t index1 = optionsString.find('=');
-    if (index1 == string::npos) {
+    if (index1 == vstring::npos) {
       error: USER_ERROR("bad option specification" + optionsString);
     }
     size_t index = optionsString.find(':');
-    if (index!=string::npos && index1 > index) {
+    if (index!=vstring::npos && index1 > index) {
       goto error;
     }
 
-    string param = optionsString.substr(0,index1);
-    string value;
-    if (index==string::npos) {
+    vstring param = optionsString.substr(0,index1);
+    vstring value;
+    if (index==vstring::npos) {
       value = optionsString.substr(index1+1);
     }
     else {
@@ -2845,7 +2893,7 @@ void Options::readOptionsString(string optionsString)
     }
     setShort(param.c_str(),value.c_str());
 
-    if (index==string::npos) {
+    if (index==vstring::npos) {
       break;
     }
     optionsString = optionsString.substr(index+1);
@@ -2859,14 +2907,14 @@ void Options::readOptionsString(string optionsString)
  *        in deciseconds
  * @throws UserErrorException if the test id is incorrect
  */
-void Options::readFromTestId (string testId)
+void Options::readFromTestId (vstring testId)
 {
   CALL("Options::readFromTestId");
 
   _normalize = true;
   _testId = testId;
 
-  string ma(testId,0,3); // the first 3 characters
+  vstring ma(testId,0,3); // the first 3 characters
   if (ma == "dis") {
     _saturationAlgorithm = DISCOUNT;
   }
@@ -2888,10 +2936,10 @@ void Options::readFromTestId (string testId)
 
   // after last '_' we have time limit
   size_t index = testId.find_last_of('_');
-  if (index == string::npos) { // not found
+  if (index == vstring::npos) { // not found
 	USER_ERROR("No time limit in test id " + _testId);
   }
-  string timeString = testId.substr(index+1);
+  vstring timeString = testId.substr(index+1);
   // Set this as local if we have more than one strategy
   // This will be useful in multi-strategy CASC mode and multi-strategy mode in general where we use decode
   // However, this means that in these modes the timeLimit must be set seperately
@@ -2916,7 +2964,7 @@ void Options::readFromTestId (string testId)
 
   index = testId.find('_');
   int selection;
-  string sel = testId.substr(0,index);
+  vstring sel = testId.substr(0,index);
   Int::stringToInt(sel,selection);
   setSelection(selection);
   testId = testId.substr(index+1);
@@ -2926,9 +2974,9 @@ void Options::readFromTestId (string testId)
   }
 
   index = testId.find('_');
-  string awr = testId.substr(0,index);
+  vstring awr = testId.substr(0,index);
   readAgeWeightRatio(awr.c_str(), _ageRatio, _weightRatio);
-  if (index==string::npos) {
+  if (index==vstring::npos) {
     //there are no extra options
     return;
   }
@@ -2945,13 +2993,13 @@ void Options::setForcedOptionValues()
 }
 
 /**
- * Return testId string that represents current values of the options
+ * Return testId vstring that represents current values of the options
  */
-string Options::generateTestId() const
+vstring Options::generateTestId() const
 {
   CALL("Options::generateTestId");
 
-  stringstream res;
+  vostringstream res;
   //saturation algorithm
   res << ( (saturationAlgorithm()==DISCOUNT) ? "dis" : ( (saturationAlgorithm()==LRS) ? "lrs" : "ott") );
 
@@ -2993,8 +3041,8 @@ string Options::generateTestId() const
     if (forbidden.contains(t)) {
       continue;
     }
-    stringstream valCur;
-    stringstream valDef;
+    vostringstream valCur;
+    vostringstream valDef;
     cur.outputValue(valCur, t);
     def.outputValue(valDef, t);
     if (valCur.str()==valDef.str()) {
@@ -3006,7 +3054,7 @@ string Options::generateTestId() const
     else {
       first=false;
     }
-    string name=Constants::shortNames[i];
+    vstring name=Constants::shortNames[i];
     res << name << "=" << valCur.str();
     cur.set(name.c_str(), valDef.str().c_str(), t);
   }
@@ -3016,8 +3064,8 @@ string Options::generateTestId() const
     if (forbidden.contains(t)) {
       continue;
     }
-    stringstream valCur;
-    stringstream valDef;
+    vostringstream valCur;
+    vostringstream valDef;
     cur.outputValue(valCur, t);
     def.outputValue(valDef, t);
     if (valCur.str()==valDef.str()) {
@@ -3192,6 +3240,9 @@ void Options::checkGlobalOptionConstraints()
   if (_splitting && _saturationAlgorithm == INST_GEN) {
     USER_ERROR("saturation algorithm inst_gen cannot be used with sat splitting");
   }
+  if (_extensionalityResolution != ER_OFF && _inequalitySplitting) {
+    USER_ERROR("extensionality resolution can not be used together with inequality splitting");
+  }
   //TODO:implement forbidden options
 }
 
@@ -3207,21 +3258,3 @@ void Options::setMode(Mode newVal) {
     break;
   }
 }
-
-/**
- * Enable traces that provide output for show_* options that are enabled.
- */
-void Options::enableTracesAccordingToOptions() const
-{
-  CALL("Options::enableTracesAccordingToOptions");
-
-  if (showActive()) { ENABLE_TAG("active_clauses"); }
-  if (showPassive()) { ENABLE_TAG("passive_clauses"); }
-  if (showNew()) { ENABLE_TAG("new_clauses"); }
-  if (showNewPropositional()) { ENABLE_TAG("new_prop_clauses"); }
-  if (showSkolemisations()) { ENABLE_TAG("pp_sk_funs"); }
-  if (showNonconstantSkolemFunctionTrace()) { ENABLE_TAG("pp_sk_nonconst_intr"); }
-  if (showDefinitions()) { ENABLE_TAG("definitions"); }
-  if (showPreprocessingFormulas()) { ENABLE_TAG("pp"); }
-}
-

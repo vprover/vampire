@@ -76,7 +76,7 @@ void CMZRMode::perform()
     USER_ERROR("Input file must be specified for CMZR mode");
   }
 
-  string line;
+  vstring line;
   ifstream in(env -> options->inputFile().c_str());
   if (in.fail()) {
     USER_ERROR("Cannot open input file: "+env -> options->inputFile());
@@ -84,7 +84,7 @@ void CMZRMode::perform()
 
   //support several batches in one file
   while (!in.eof()) {
-    stringstream singleInst;
+    vostringstream singleInst;
     bool ready = false;
     while (!in.eof()) {
       std::getline(in, line);
@@ -98,7 +98,7 @@ void CMZRMode::perform()
       break;
     }
     CMZRMode ltbm;
-    stringstream childInp(singleInst.str());
+    vistringstream childInp(singleInst.str());
     ltbm.perform(childInp);
   }
 }
@@ -111,7 +111,7 @@ void CMZRMode::loadProblems()
   while (pit.hasNext()) {
     ProblemInfo& pi = pit.next();
 
-    string fname = pi.inputFName;
+    vstring fname = pi.inputFName;
     cout<<"% SZS status Started for "<<fname<<endl;;
 
     ifstream inp(fname.c_str());
@@ -120,7 +120,7 @@ void CMZRMode::loadProblems()
     }
     Parse::TPTP parser(inp);
 
-    List<string>::Iterator iit(theoryIncludes);
+    List<vstring>::Iterator iit(theoryIncludes);
     while (iit.hasNext()) {
       parser.addForbiddenInclude(iit.next());
     }
@@ -145,7 +145,7 @@ void CMZRMode::attemptProblem(unsigned idx)
   CALL("CMZRMode::attemptProblem");
   ASS_G(_availCoreCnt,0);
 
-  string strategy = _problems[idx].schedule.pop();
+  vstring strategy = _problems[idx].schedule.pop();
   unsigned timeMs = getSliceTime(strategy);
 
   if (env -> remainingTime()*_parallelProcesses < timeMs*_unsolvedCnt) {
@@ -224,7 +224,7 @@ void CMZRMode::waitForOneFinished()
   cout.flush();
 }
 
-void CMZRMode::startStrategyRun(unsigned prbIdx, string strategy, unsigned timeMs)
+void CMZRMode::startStrategyRun(unsigned prbIdx, vstring strategy, unsigned timeMs)
 {
   CALL("CMZRMode::startStrategyRun");
   ASS_G(_availCoreCnt,0);
@@ -248,7 +248,7 @@ void CMZRMode::startStrategyRun(unsigned prbIdx, string strategy, unsigned timeM
       <<" for "<<timeMs<<" ms"<<endl;
 }
 
-void CMZRMode::strategyRunChild(unsigned prbIdx, string strategy, unsigned timeMs)
+void CMZRMode::strategyRunChild(unsigned prbIdx, vstring strategy, unsigned timeMs)
 {
   CALL("CMZRMode::strategyRunChild");
 
@@ -395,7 +395,7 @@ void CMZRMode::loadIncludes()
 
     StringList::Iterator iit(theoryIncludes);
     while (iit.hasNext()) {
-      string fname=env -> options->includeFileName(iit.next());
+      vstring fname=env -> options->includeFileName(iit.next());
       ifstream inp(fname.c_str());
       if (inp.fail()) {
         USER_ERROR("Cannot open included file: "+fname);
@@ -429,7 +429,7 @@ void CMZRMode::readInput(istream& in)
 {
   CALL("CMZRMode::readInput");
 
-  string line, word;
+  vstring line, word;
 
   std::getline(in, line);
   if (line!="% SZS start BatchConfiguration") {
@@ -446,18 +446,16 @@ void CMZRMode::readInput(istream& in)
   while (!in.eof() && line!="% SZS end BatchConfiguration") {
     lineSegments.reset();
     StringUtils::splitStr(line.c_str(), ' ', lineSegments);
-    string param = lineSegments[0];
+    vstring param = lineSegments[0];
     if (param=="division.category") {
       if (lineSegments.size()!=2) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
       category = lineSegments[1];
-      LOG("ltb_conf","ltb_conf: "<<param<<" = "<<category);
     }
     else if (param=="output.required" || param=="output.desired") {
       if (lineSegments.find("Answer")) {
 	questionAnswering = true;
-	LOG("ltb_conf","ltb_conf: enabled question answering");
       }
     }
     else if (param=="execution.order") {
@@ -467,7 +465,6 @@ void CMZRMode::readInput(istream& in)
       if (lineSegments.size()!=2 || !Int::stringToInt(lineSegments[1], problemTimeLimit)) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
       }
-      LOG("ltb_conf","ltb_conf: "<<param<<" = "<<problemTimeLimit);
     }
     else {
       USER_ERROR("unknown batch configuration parameter: \""+line+"\"");
@@ -497,11 +494,11 @@ void CMZRMode::readInput(istream& in)
   for (std::getline(in, line); line[0]!='%' && !in.eof(); std::getline(in, line)) {
     size_t first=line.find_first_of('\'');
     size_t last=line.find_last_of('\'');
-    if (first==string::npos || first==last) {
+    if (first==vstring::npos || first==last) {
       USER_ERROR("Include specification must contain the file name enclosed in the ' characters:\""+line+"\".");
     }
     ASS_G(last,first);
-    string fname=line.substr(first+1, last-first-1);
+    vstring fname=line.substr(first+1, last-first-1);
     StringList::push(fname, theoryIncludes);
   }
 
@@ -517,11 +514,11 @@ void CMZRMode::readInput(istream& in)
   for (std::getline(in, line); line[0]!='%' && !in.eof(); std::getline(in, line)) {
     size_t spc=line.find(' ');
     size_t lastSpc=line.find(' ', spc+1);
-    if (spc==string::npos || spc==0 || spc==line.length()-1) {
+    if (spc==vstring::npos || spc==0 || spc==line.length()-1) {
       USER_ERROR("Two file names separated by a single space expected:\""+line+"\".");
     }
-    string inp=line.substr(0,spc);
-    string outp=line.substr(spc+1, lastSpc-spc-1);
+    vstring inp=line.substr(0,spc);
+    vstring outp=line.substr(spc+1, lastSpc-spc-1);
     _problems.push(ProblemInfo(inp, outp));
   }
 
@@ -532,15 +529,15 @@ void CMZRMode::readInput(istream& in)
 }
 
 /**
- * Return intended slice time in milliseconds and assign the slice string with
+ * Return intended slice time in milliseconds and assign the slice vstring with
  * chopped time to @b chopped.
  */
-unsigned CMZRMode::getSliceTime(string sliceCode)
+unsigned CMZRMode::getSliceTime(vstring sliceCode)
 {
   CALL("CASCMode::getSliceTime");
 
   unsigned pos=sliceCode.find_last_of('_');
-  string sliceTimeStr=sliceCode.substr(pos+1);
+  vstring sliceTimeStr=sliceCode.substr(pos+1);
   unsigned sliceTime;
   ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
   ASS_G(sliceTime,0); //strategies with zero time don't make sense

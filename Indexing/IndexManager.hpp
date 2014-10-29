@@ -11,6 +11,9 @@
 #include "Lib/DHMap.hpp"
 #include "Index.hpp"
 
+#include "Lib/Allocator.hpp"
+
+
 namespace Indexing
 {
 
@@ -42,6 +45,9 @@ enum IndexType {
 class IndexManager
 {
 public:
+  CLASS_NAME(IndexManager);
+  USE_ALLOCATOR(IndexManager);
+
   /** alg can be zero, then it must be set by setSaturationAlgorithm */
   explicit IndexManager(SaturationAlgorithm* alg);
   ~IndexManager();

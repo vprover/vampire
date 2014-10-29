@@ -20,14 +20,14 @@ using namespace Api;
 using namespace Test;
 
 
-void assertInliningActivation(Problem::InliningMode mode, bool shouldPerform, string prbStr)
+void assertInliningActivation(Problem::InliningMode mode, bool shouldPerform, vstring prbStr)
 {
   Problem::PreprocessingOptions popts;
   popts.mode = Problem::PM_EARLY_PREPROCESSING;
   popts.unusedPredicateDefinitionRemoval = false;
 
   Problem prb;
-  stringstream stm(prbStr);
+  vistringstream stm(prbStr);
   prb.addFromStream(stm);
 
 

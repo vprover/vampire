@@ -31,9 +31,19 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
+void ClauseCodeTree::onCodeOpDestroying(CodeOp* op)
+{
+  CALL("ClauseCodeTree::onCodeOpDestroying");
+    
+  if (op->isLitEnd()) {
+    delete op->getILS(); 
+  }
+}
+
 ClauseCodeTree::ClauseCodeTree()
 {
   _clauseCodeTree=true;
+  _onCodeOpDestroying = onCodeOpDestroying;
 #if VDEBUG
   _clauseMatcherCounter=0;
 #endif
@@ -160,7 +170,7 @@ void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLe
  * Into @b matchedCnt assign number of matched operations and into @b lastAttemptedOp
  * the last operation on which we have attempted matching. If @b matchedCnt==code.size(),
  * the @b lastAttemptedOp is equal to the last operation in the @b code stack, otherwise
- * it is the first operation on which mismatch occured and there was no alternative to
+ * it is the first operation on which mismatch occurred and there was no alternative to
  * proceed to (in this case it therefore holds that @b lastAttemptedOp->alternative==0 ).
  */
 void ClauseCodeTree::matchCode(CodeStack& code, CodeOp* startOp, size_t& matchedCnt, CodeOp*& nextOp)
@@ -400,7 +410,7 @@ bool ClauseCodeTree::LiteralMatcher::next()
 }
 
 /**
- * Perofrm eager matching and return true iff new matches were found
+ * Perform eager matching and return true iff new matches were found
  */
 bool ClauseCodeTree::LiteralMatcher::doEagerMatching()
 {
@@ -617,7 +627,7 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
 
 inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
 {
-  CALL("ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited");
+  CALL("ClauseCodeTree::ClauseMatcher::canEnterLiteral");
   ASS(op->isLitEnd());
   ASS_EQ(lms.top()->op, op);
 
@@ -769,7 +779,7 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQuer
 	  resolvedQueryLit=lInfos[mi->liIndex].litIndex;
 	}
 	else {
-	  //we preffer subsumption to subsumption resolution
+	  //we prefer subsumption to subsumption resolution
 	  resolvedQueryLit=-1;
 	  break;
 	}
@@ -965,10 +975,3 @@ bool ClauseCodeTree::ClauseMatcher::existsCompatibleMatch(ILStruct* si, MatchInf
 }
 
 }
-
-
-
-
-
-
-

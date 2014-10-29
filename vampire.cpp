@@ -2,7 +2,6 @@
  * @file vampire.cpp. Implements the top-level procedures of Vampire.
  */
 
-#include <string>
 #include <iostream>
 #include <ostream>
 #include <fstream>
@@ -19,7 +18,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
-
+#include "Lib/VString.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
@@ -69,6 +68,9 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "SAT/LingelingInterfacing.hpp"
+#include "SAT/MinisatInterfacing.hpp"
+#include "SAT/TWLSolver.hpp"
+#include "SAT/Preprocess.hpp"
 
 #if IS_LINGVA
 #include "Program/Lingva.hpp"
@@ -95,6 +97,7 @@ using namespace Inferences;
 using namespace InstGen;
 
 Problem* globProblem = 0;
+UnitList* globUnitList=0;
 
 /**
  * Return value is non-zero unless we were successful.
@@ -103,7 +106,7 @@ Problem* globProblem = 0;
  * either found refutation or established satisfiability.
  *
  *
- * If Vampire was interupted by a SIGINT, value
+ * If Vampire was interrupted by a SIGINT, value
  * VAMP_RESULT_STATUS_SIGINT is returned,
  * and in case of other signal we return VAMP_RESULT_STATUS_OTHER_SIGNAL. For implementation
  * of these return values see Lib/System.hpp.
@@ -124,7 +127,7 @@ int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
  * either found refutation or established satisfiability.
  *
  *
- * If execution was interupted by a SIGINT, value 3 is returned,
+ * If execution was interrupted by a SIGINT, value 3 is returned,
  * and in case of other signal we return 2. For implementation
  * of these return values see Lib/System.hpp.
  *
@@ -133,18 +136,25 @@ int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
  */
 int g_returnValue = 1;
 
+/**
+ * Preprocess input problem
+ *
+ */
 Problem* getPreprocessedProblem()
 {
-  CALL("getInputClauses");
+  CALL("getPreprocessedProblem");
 
   Problem* prb = UIHelper::getInputProblem(*env -> options);
 
   TimeCounter tc2(TC_PREPROCESSING);
 
-  Preprocess prepro(*env -> options);
+  Shell::Preprocess prepro(*env -> options);
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(*prb);
   globProblem = prb;
+  
+  // TODO: could this be the right way to freeing the currently leaking classes like Units, Clauses and Inferences?
+  // globUnitList = prb->units();
 
   return prb;
 } // getPreprocessedProblem
@@ -169,7 +179,7 @@ void profileMode()
 
   Property* property = prb->getProperty();
   TheoryFinder tf(prb->units(), property);
-  Preprocess prepro(*env -> options);
+  Shell::Preprocess prepro(*env -> options);
   tf.search();
 
   env -> beginOutput();
@@ -188,7 +198,7 @@ void programAnalysisMode()
   // create random seed for the random number generation
 
 #if 0
-  string inputFile = env -> options->inputFile();
+  vstring inputFile = env -> options->inputFile();
   istream* input;
   if (inputFile=="") {
     input=&cin;
@@ -199,9 +209,9 @@ void programAnalysisMode()
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
   }
-  string progString("");
+  vstring progString("");
   while (!input->eof()) {
-    string inp;
+    vstring inp;
     getline(*input,inp);
     progString += inp + '\n';
   }
@@ -218,12 +228,12 @@ void programAnalysisMode()
   env -> options->setMode(Options::MODE_VAMPIRE);
   Allocator::setMemoryLimit(1024u * 1048576ul);
 
-  string inputFile = env -> options->inputFile();
+  vstring inputFile = env -> options->inputFile();
   if (inputFile == "") {
     USER_ERROR("Cannot open problem file: "+inputFile);
   }
   else {
-    //default time limit 10 seconds
+    //default time limit 10 seconds (perhaps this belongs in Options)
     if (time == 0) {
       env -> options->setTimeLimitInDeciseconds(100);
     }
@@ -268,7 +278,15 @@ void boundPropagationMode(){
 #if GNUMP
   CALL("boundPropagationMode::doSolving()");
 
-  if (env -> options->bpStartWithPrecise()) {
+  //adjust vampire options in order to serve the purpose of bound propagation
+  if ( env->options->proof() == env->options->PROOF_ON ) {
+    env->options->setProof(env->options->PROOF_OFF);
+  }
+
+  //this ensures the fact that int's read in smtlib file are treated as reals
+  env.options->setSmtlibConsiderIntsReal(true);
+
+  if (env->options->bpStartWithPrecise()) {
 	  switchToPreciseNumbers();
   }
   if (env -> options->bpStartWithRational()){
@@ -308,23 +326,9 @@ void boundPropagationMode(){
       env -> statistics->phase = Statistics::FINALIZATION;
       env -> statistics->terminationReason = Statistics::TIME_LIMIT;
     }
-  env -> statistics->phase = Statistics::FINALIZATION;
-#endif
-}
 
-void solverMode()
-{
-  CALL("solverMode()");
-#if GNUMP
-  //adjust vampire options in order to serve the purpose of bound propagation
-  if ( env -> options->proof() == env -> options->PROOF_ON ) {
-    env -> options->setProof(env -> options->PROOF_OFF);
-  }
+  env->statistics->phase = Statistics::FINALIZATION;
 
-  //this ensures the fact that int's read in smtlib file are treated as reals
-  env -> options->setSmtlibConsiderIntsReal(true);
-
-  boundPropagationMode();
 
   env -> beginOutput();
   outputResult(env -> out());
@@ -334,8 +338,10 @@ void solverMode()
       || env -> statistics->terminationReason==Statistics::SATISFIABLE) {
     g_returnValue=0;
   }
+
 #endif
-} // solverMode
+}
+
 
 /**
  * This mode only preprocesses the input using the current preprocessing
@@ -356,7 +362,7 @@ void preprocessMode()
   TimeCounter tc2(TC_PREPROCESSING);
 
   // preprocess without clausification
-  Preprocess prepro(*env -> options);
+  Shell::Preprocess prepro(*env -> options);
   prepro.turnClausifierOff();
   prepro.preprocess(*prb);
 
@@ -398,36 +404,55 @@ void outputMode()
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // outputMode
 
-SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
+static SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
 {
   CALL("getInputClauses");
-  TimeCounter tc(TC_PREPROCESSING);
-  unsigned maxVar;
-  SATClauseIterator cit=( DIMACS::parse(fname, maxVar) );
-  varCnt=maxVar+1;
+  TimeCounter tc(TC_PARSING);
 
-  SATClauseList* clauses = 0;
-  SATClauseList::pushFromIterator(cit, clauses);
-  return clauses;
+  return DIMACS::parse(fname, varCnt);
+}
+
+static SATClauseIterator preprocessClauses(SATClauseList* clauses) {
+  CALL("preprocessClauses");
+  TimeCounter tc(TC_PREPROCESSING);
+  
+  return SAT::Preprocess::removeDuplicateLiterals(pvi(SATClauseList::DestructiveIterator(clauses)));
 }
 
 void satSolverMode()
 {
   CALL("satSolverMode()");
   TimeCounter tc(TC_SAT_SOLVER);
-  SATSolverSCP solver(new LingelingInterfacing(*env -> options, false));
-
+  SATSolverSCP solver;
+  
+  switch(env->options->satSolver()) { 
+    case Options::BUFFERED_VAMPIRE:
+    case Options::VAMPIRE:  
+      solver = new TWLSolver(*env->options);
+      break;          
+    case Options::BUFFERED_LINGELING: 
+    case Options::LINGELING:
+      solver = new LingelingInterfacing(*env->options);
+      break;
+    case Options::BUFFERED_MINISAT: 
+    case Options::MINISAT:
+      solver = new MinisatInterfacing(*env->options);
+      break;      
+    default:
+      ASSERTION_VIOLATION_REP(env->options->satSolver());
+  }
+    
   //get the clauses; 
   SATClauseList* clauses;
   unsigned varCnt=0;
 
   SATSolver::Status res; 
   
-  clauses = getInputClauses(env -> options->inputFile().c_str(), varCnt);
-  cout<<"we have : "<<varCnt << " variables\n";
-
-  //add all the clauses to the solver 
-  solver->addClauses(pvi(SATClauseList::Iterator(clauses)));
+  clauses = getInputClauses(env->options->inputFile().c_str(), varCnt);
+  
+  solver->ensureVarCnt(varCnt+1); // allocates one extra slot for the dummy variable 0    
+  
+  solver->addClauses(preprocessClauses(clauses));
   res = solver->getStatus();
 
   env -> statistics->phase = Statistics::FINALIZATION;
@@ -470,7 +495,8 @@ void vampireMode()
     env -> options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  string inputFile = env -> options->inputFile();
+  /*
+  vstring inputFile = env.options->inputFile();
   istream* input;
   if (inputFile == "") {
     input = &cin;
@@ -480,6 +506,7 @@ void vampireMode()
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
   }
+  */
 
   if(env -> isSingleStrategy()) {
           cout << "running in single strategy mode" << endl;
@@ -646,7 +673,7 @@ void groundingMode()
   try {
     ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env -> options));
 
-    Preprocess prepro(*env -> options);
+    Shell::Preprocess prepro(*env -> options);
     prepro.preprocess(*prb);
 
     ClauseIterator clauses = prb->clauseIterator();
@@ -713,9 +740,6 @@ int main(int argc, char* argv[])
     Shell::CommandLine cl(argc, argv);
     cl.interpret();
 
-    PROCESS_TRACE_SPEC_STRING(env -> options->traceSpecString());
-    env -> options->enableTracesAccordingToOptions();
-
     if (env -> options->showOptions()) {
       env -> beginOutput();
       env -> options->output(env -> out());
@@ -734,9 +758,9 @@ int main(int argc, char* argv[])
     case Options::MODE_GROUNDING:
       groundingMode();
       break;
-    case Options::MODE_SOLVER:
+    case Options::MODE_BOUND_PROP:
 #if GNUMP
-     solverMode();
+     boundPropagationMode();
 #else
      NOT_IMPLEMENTED;
 #endif

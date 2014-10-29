@@ -33,12 +33,12 @@ class ParserException
   : public Exception
 {
  public:                                
-  ParserException (string message,const Token&);
+  ParserException (vstring message,const Token&);
   void cry (ostream&);
   XMLElement toXML () const;
   ~ParserException () {}
  protected:
-  string _message;
+  vstring _message;
 }; // ParserException
 
 /**
@@ -70,10 +70,10 @@ protected:
   void readToken(TokenType);
   Token& lookAhead (int lookahead);
   Token& currentToken();
-  void consumeToken(TokenType,string errorMessage);
-  void expectToken(TokenType,string errorMessage);
-  void readToken(TokenType,string errorMessage);
-  void terminate(string errorMessage);
+  void consumeToken(TokenType,vstring errorMessage);
+  void expectToken(TokenType,vstring errorMessage);
+  void readToken(TokenType,vstring errorMessage);
+  void terminate(vstring errorMessage);
   /**
    * If there are no tokens in the buffer, read one.
    * Then return the current token.

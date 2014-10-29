@@ -120,7 +120,7 @@ public:
   unsigned size() const { return _length; }
 
   /** Return a pointer to the array of literals.
-   * Caller should not malipulate literals, with the exception of
+   * Caller should not manipulate literals, with the exception of
    * clause construction and literal selection. */
   Literal** literals() { return _literals; }
 
@@ -129,10 +129,10 @@ public:
 
   void destroy();
   void destroyExceptInferenceObject();
-  string nonPropToString() const;
-  string toString() const;
-  string toTPTPString() const;
-  string toNiceString() const;
+  vstring nonPropToString() const;
+  vstring toString() const;
+  vstring toTPTPString() const;
+  vstring toNiceString() const;
 
   /** Return the clause store */
   Store store() const { return _store; }
@@ -179,6 +179,9 @@ public:
     return static_cast<Color>(_color);
   }
   void computeColor() const;
+
+  bool isExtensionality() const { return _extensionality; }
+  void setExtensionality(bool e) { _extensionality = e; }
 
   bool skip() const;
 
@@ -237,7 +240,7 @@ public:
     _splits=splits;
   }
 
-  VirtualIterator<string> toSimpleClauseStrings();
+  VirtualIterator<vstring> toSimpleClauseStrings();
 
 
   /** Set auxiliary value of this clause. */
@@ -320,6 +323,11 @@ protected:
   mutable unsigned _color : 2;
   /** clause is an input clause for the saturation algorithm */
   unsigned _input : 1;
+  /** Clause was matched as extensionality and is tracked in the extensionality
+    * clause container. The matching happens at activation. If the clause
+    * becomes passive and is removed from the container, also this bit is unset.
+    */
+  unsigned _extensionality : 1;
   /** number of selected literals */
   unsigned _selected;
   /** age */

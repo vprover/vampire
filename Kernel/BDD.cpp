@@ -116,13 +116,13 @@ int BDD::getNewVar(unsigned pred)
  * Return a propositional predicate name that can be used to represent
  * BDD variable @b var
  */
-string BDD::getPropositionalPredicateName(int var)
+vstring BDD::getPropositionalPredicateName(int var)
 {
   CALL("BDD::getPropositionalPredicateName");
 
-  string name;
+  vstring name;
   if(!getNiceName(var, name)) {
-    string prefix(BDD_PREDICATE_PREFIX);
+    vstring prefix(BDD_PREDICATE_PREFIX);
     prefix+=env -> options->namePrefix();
     name = prefix + Int::toString(var);
 
@@ -139,7 +139,7 @@ string BDD::getPropositionalPredicateName(int var)
  * If BDD variable has a corresponding propositional predicate symbol,
  * return true, and assign its name to @b res. Otherwise return false.
  */
-bool BDD::getNiceName(int var, string& res)
+bool BDD::getNiceName(int var, vstring& res)
 {
   CALL("BDD::getNiceName");
 
@@ -338,19 +338,6 @@ bool BDD::findTrivial(BDDNode* n, bool& areImplied, Stack<BDDNode*>& acc)
       acc.push(getAtomic(currVar, false));
     }
   }
-  COND_TRACE("bdd_triv_vars", foundSome,
-      tout << "found trivial (" << (areImplied ? "implied" : "implying") << ") variables in BDD." << endl;
-      tout << "  BDD: " << toTPTPString(n,"n") << endl;
-      tout << "  vars: ";
-      Stack<BDDNode*>::BottomFirstIterator vit(acc);
-      while(vit.hasNext()) {
-	tout << toTPTPString(vit.next(), "n");
-	if(vit.hasNext()) {
-	  tout << ", ";
-	}
-      }
-      tout << endl;
-      );
   ASS(!foundSome || assignValue(n, acc.top()->getVar(), !acc.top()->getPos()->isTrue())->isConst());
   return foundSome;
 }
@@ -750,12 +737,12 @@ BDDNode* BDD::getNode(int varNum, BDDNode* pos, BDDNode* neg)
 
 
 /**
- * Return a string representation of the formula represented by @b node.
+ * Return a vstring representation of the formula represented by @b node.
  */
-string BDD::toString(BDDNode* node)
+vstring BDD::toString(BDDNode* node)
 {
   return getDefinition(node);
-/*  string res="";
+/*  vstring res="";
   static Stack<BDDNode*> nodes(8);
   nodes.push(node);
   while(nodes.isNonEmpty()) {
@@ -768,7 +755,7 @@ string BDD::toString(BDDNode* node)
     } else if(isFalse(n)) {
       res+="$false ";
     } else {
-      res+=string("( ")+getPropositionalPredicateName(n->_var)+" ? ";
+      res+=vstring("( ")+getPropositionalPredicateName(n->_var)+" ? ";
       nodes.push(0);
       nodes.push(n->_neg);
       nodes.push(n->_pos);
@@ -783,13 +770,13 @@ string BDD::toString(BDDNode* node)
 
 /**
  * Return the formula represented by @b node in a TPTP compatible format.
- * The @b bddPrefix string will be added as a prefix to the each BDD
+ * The @b bddPrefix vstring will be added as a prefix to the each BDD
  * variable number to form a predicate symbol name.
  *
  * @warning A recursion is used in this methos, which can lead to
  *   problems with very large BDDs.
  */
-string BDD::toTPTPString(BDDNode* node, string bddPrefix)
+vstring BDD::toTPTPString(BDDNode* node, vstring bddPrefix)
 {
   if(isTrue(node)) {
     return "$true";
@@ -800,7 +787,7 @@ string BDD::toTPTPString(BDDNode* node, string bddPrefix)
   } else if(isFalse(node->_pos) && isTrue(node->_neg)) {
     return "~"+bddPrefix+Int::toString(node->_var);
   } else {
-    return string("( ( ")+bddPrefix+Int::toString(node->_var)+" => "+toTPTPString(node->_pos, bddPrefix)+
+    return vstring("( ( ")+bddPrefix+Int::toString(node->_var)+" => "+toTPTPString(node->_pos, bddPrefix)+
       ") & ( ~"+bddPrefix+Int::toString(node->_var)+" => "+toTPTPString(node->_neg, bddPrefix)+" ) )";
   }
 }
@@ -811,7 +798,7 @@ string BDD::toTPTPString(BDDNode* node, string bddPrefix)
  * @warning A recursion is used in this method, which can lead to
  *   problems with very large BDDs.
  */
-string BDD::toTPTPString(BDDNode* node)
+vstring BDD::toTPTPString(BDDNode* node)
 {
   if(isTrue(node)) {
     return "$true";
@@ -820,13 +807,13 @@ string BDD::toTPTPString(BDDNode* node)
     return "$false";
   }
   else {
-    return string("( ( ")+getPropositionalPredicateName(node->_var)+" => "+toTPTPString(node->_pos)+
+    return vstring("( ( ")+getPropositionalPredicateName(node->_var)+" => "+toTPTPString(node->_pos)+
       ") & ( ~"+getPropositionalPredicateName(node->_var)+" => "+toTPTPString(node->_neg)+" ) )";
   }
 }
 
 
-string BDD::getDefinition(BDDNode* node)
+vstring BDD::getDefinition(BDDNode* node)
 {
   //predicate and function symbols are mixed here, but it's how I understood it should be done
   if(isTrue(node)) {
@@ -836,12 +823,12 @@ string BDD::getDefinition(BDDNode* node)
     return "$false";
   }
 
-  string name;
+  vstring name;
   if(_nodeNames.find(node, name)) {
     return name;
   }
 
-  string propPred=getPropositionalPredicateName(node->_var);
+  vstring propPred=getPropositionalPredicateName(node->_var);
   if(isTrue(node->_pos) && isFalse(node->_neg)) {
     return propPred;
   }
@@ -861,18 +848,18 @@ string BDD::getDefinition(BDDNode* node)
     return "(~"+propPred+" | "+getDefinition(node->_pos)+")";
   }
   else {
-    string posDef=getDefinition(node->_pos); //recursion here
-    string negDef=getDefinition(node->_neg); //recursion here
+    vstring posDef=getDefinition(node->_pos); //recursion here
+    vstring negDef=getDefinition(node->_neg); //recursion here
     return introduceName(node, "("+propPred+" ? "+posDef+" : "+negDef+")");
   }
 
 }
 
-string BDD::introduceName(BDDNode* node, string definition)
+vstring BDD::introduceName(BDDNode* node, vstring definition)
 {
   ASS(!_nodeNames.find(node));
-  string name="$bddnode"+Int::toString(_nextNodeNum++);
-  string report="BDD definition: "+name+" = "+definition;
+  vstring name="$bddnode"+Int::toString(_nextNodeNum++);
+  vstring report="BDD definition: "+name+" = "+definition;
   outputDefinition(report);
   ALWAYS(_nodeNames.insert(node, name));
 
@@ -893,7 +880,7 @@ void BDD::allowDefinitionOutput(bool allow)
   }
 }
 
-void BDD::outputDefinition(string def)
+void BDD::outputDefinition(vstring def)
 {
   if(_allowDefinitionOutput) {
     env -> beginOutput();
@@ -907,11 +894,11 @@ void BDD::outputDefinition(string def)
 }
 
 
-string BDD::getName(BDDNode* node)
+vstring BDD::getName(BDDNode* node)
 {
-  string name;
+  vstring name;
   if(!_nodeNames.find(node, name)) {
-    string def=getDefinition(node);
+    vstring def=getDefinition(node);
     //the name could have been introduced by the getDefinition
     if(!_nodeNames.find(node, name)) {
       name=introduceName(node, def);
@@ -924,7 +911,7 @@ TermList BDD::getConstant(BDDNode* node)
 {
   TermList res;
   if(!_nodeConstants.find(node, res)) {
-    string name=getName(node);
+    vstring name=getName(node);
     unsigned func;
     bool added;
 
@@ -933,7 +920,7 @@ TermList BDD::getConstant(BDDNode* node)
       name+="_1";
       func=env -> signature->addFunction(name, 0, added);
       if(added) {
-        string report="Name collision, BDD node now uses name "+name;
+        vstring report="Name collision, BDD node now uses name "+name;
 	outputDefinition(report);
         _nodeNames.set(node, name);
       }
@@ -981,7 +968,7 @@ Formula* BDD::toFormula(BDDNode* node)
   }
 
   if(!_bddEvalPredicate) {
-    string name="$bddEval";
+    vstring name="$bddEval";
     bool added;
     _bddEvalPredicate=env -> signature->addPredicate(name, 1, added);
     while(!added) {
@@ -997,7 +984,7 @@ Formula* BDD::toFormula(BDDNode* node)
 /*  unsigned var=node->_var;
   unsigned predNum;
   if(!_predicateSymbols.find(var, predNum)) {
-    string name=getPropositionalPredicateName(var);
+    vstring name=getPropositionalPredicateName(var);
     bool added;
     predNum=env -> signature->addPredicate(name, 0, added);
     ASS(added);

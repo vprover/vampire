@@ -25,6 +25,9 @@ class MaximalLiteralSelector
 : public LiteralSelector
 {
 public:
+  CLASS_NAME(MaximalLiteralSelector);
+  USE_ALLOCATOR(MaximalLiteralSelector);
+
   MaximalLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options) {}
 protected:
   void doSelection(Clause* c, unsigned eligible);

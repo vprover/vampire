@@ -9,7 +9,6 @@
 
 #include <utility>
 #include <ostream>
-#include <string>
 
 #include "Forwards.hpp"
 
@@ -17,6 +16,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/VString.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
@@ -37,10 +37,10 @@ struct UnitSpec
 
   static unsigned hash(const UnitSpec& o)
   {
-    //return PtrPairSimpleHash::hash(make_pair(o._unit, o._prop));
-    // I think PtrIdentityHash is a suitable replacement
-    return PtrIdentityHash::hash(o._unit);
+    ASS(!o.isEmpty());
+    return Hash::hash(o._unit);
   }
+  static bool equals(const UnitSpec& left, const UnitSpec& right){ return left==right; }
 
   bool isEmpty() const { return _unit==0; }
   bool isClause() const { ASS(!isEmpty()); return _unit->isClause(); }
@@ -53,13 +53,12 @@ struct UnitSpec
   }
   Unit* unit() const { ASS(!isEmpty()); return _unit; }
 
-  string toString() const
+  vstring toString() const
   {
     if(isClause()) {
 	return cl()->toString();
     }
     else {
-	//ASS(BDD::instance()->isFalse(prop()));
 	return unit()->toString();
     }
     
@@ -75,6 +74,9 @@ typedef VirtualIterator<UnitSpec> UnitSpecIterator;
 class InferenceStore
 {
 public:
+  CLASS_NAME(InferenceStore);
+  USE_ALLOCATOR(InferenceStore);
+  
   static InferenceStore* instance();
 
   typedef List<int> IntList;
@@ -124,7 +126,7 @@ public:
 
   void recordInference(UnitSpec unit, FullInference* inf);
 
-  void recordSplitting(SplittingRecord* srec, unsigned premCnt, UnitSpec* prems);
+  //void recordSplitting(SplittingRecord* srec, unsigned premCnt, UnitSpec* prems);
   void recordSplittingNameLiteral(UnitSpec us, Literal* lit);
 
   void recordIntroducedSymbol(Unit* u, bool func, unsigned number);
@@ -135,8 +137,8 @@ public:
   UnitSpecIterator getParents(UnitSpec us, Inference::Rule& rule);
   UnitSpecIterator getParents(UnitSpec us);
 
-  std::string getUnitIdStr(UnitSpec cs);
-  std::string getClauseIdSuffix(UnitSpec cs);
+  vstring getUnitIdStr(UnitSpec cs);
+  vstring getClauseIdSuffix(UnitSpec cs);
 
   bool findInference(UnitSpec cs, FullInference*& finf)
   {

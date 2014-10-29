@@ -67,8 +67,8 @@ public:
 	Rational(long long value):_num(value),_den(1){}
 	//explicit creation
 	Rational(long long num, long long den);
-	//create a rational number from a string
-	Rational(string value);
+	//create a rational number from a vstring
+	Rational(vstring value);
 	//create a rational number from a double value
 	Rational(double value);
 	Rational(long double value);
@@ -134,7 +134,7 @@ public:
 		return res;
 	}
 
-	string toString() const;
+	vstring toString() const;
 
 	bool isPositive() const{ return this->_num >= 0;}
 	bool isPositiveNonZero() const{return this->_num > 0;}

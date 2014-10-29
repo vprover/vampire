@@ -28,7 +28,7 @@
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
-
+#include "SAT/MinisatInterfacing.hpp"
 
 #include "DP/ShortConflictMetaDP.hpp"
 #include "DP/SimpleCongruenceClosure.hpp"
@@ -74,6 +74,12 @@ void SSplittingBranchSelector::init(const Options& opts)
     case Options::LINGELING: 
       _solver = new MinimizingSolver(new LingelingInterfacing(opts, true));
       break;
+    case Options::BUFFERED_MINISAT:
+      _solver = new MinimizingSolver(new BufferedSolver(new MinisatInterfacing(opts,true)));
+      break;
+    case Options::MINISAT:
+      _solver = new MinimizingSolver(new MinisatInterfacing(opts,true));
+      break;      
     default:
       ASSERTION_VIOLATION(opts.satSolver());
   }
@@ -96,7 +102,6 @@ void SSplittingBranchSelector::updateVarCnt()
 
   unsigned satVarCnt = _sat2fo -> maxSATVar() + 1;
 
-  LOG("sspl_var_cnt","ensuring varCnt to "<<satVarCnt);
   _solver->ensureVarCnt(satVarCnt);
   //splitter()->_selected.expand(_splitLvlCnt+1);
 }
@@ -148,7 +153,10 @@ void SSplittingBranchSelector::processDPConflicts()
       conflictClauses.push(conflCl);
     }
 
-    _solver->addClauses(pvi( SATClauseStack::Iterator(conflictClauses) ));
+    {
+    	TimeCounter tca(TC_SAT_SOLVER);
+    	_solver->addClauses(pvi( SATClauseStack::Iterator(conflictClauses) ));
+    }
     RSTAT_CTR_INC("ssat_dp_conflict");
     RSTAT_CTR_INC_MANY("ssat_dp_conflict_clauses",conflictClauses.size());
   }
@@ -224,14 +232,6 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
 
   RSTAT_CTR_INC_MANY("ssat_sat_clauses",clauses.size());
 //  RSTAT_CTR_INC_MANY("ssat_sat_clauses_with_positive",_unprocessed.size());
-
-  TRACE("sspl_sat_clauses",
-      SATClauseStack::ConstIterator cit(clauses);
-      while(cit.hasNext()) {
-	tout << (*cit.next()) << endl;
-      }
-  );
-
   {
     TimeCounter tc1(TC_SAT_SOLVER);
     _solver->addClauses(pvi( SATClauseStack::ConstIterator(clauses) ), false);
@@ -239,7 +239,6 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
   }
 
   if(_solver->getStatus()==SATSolver::UNSATISFIABLE) {
-    LOG("sspl_sel","cannot fix selection, refutation found");
     SATClause* satRefutation = _solver->getRefutation();
     handleSatRefutation(satRefutation);
   }
@@ -258,23 +257,6 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
 //
 //  sweep(addedComps, removedComps);
 
-  COND_LOG("sspl_sel",addedComps.isNonEmpty()||removedComps.isNonEmpty(), "selection changed by addition of SAT clauses");
-  COND_TRACE("sspl_sel_added",addedComps.isNonEmpty(),
-      tout << "added:" << endl;
-      SplitLevelStack::Iterator cit(addedComps);
-      while(cit.hasNext()) {
-	SplitLevel var = cit.next();
-	tout << "  " << var << "  --  " << (* splitter() -> getComponentClause(var)) << endl;
-      }
-  );
-  COND_TRACE("sspl_sel_removed",removedComps.isNonEmpty(),
-      tout << "removed:" << endl;
-      SplitLevelStack::Iterator cit(removedComps);
-      while(cit.hasNext()) {
-	SplitLevel var = cit.next();
-	tout << "  " << var << "  --  " << (* splitter() -> getComponentClause(var)) << endl;
-      }
-  );
   RSTAT_CTR_INC_MANY("ssat_usual_activations", addedComps.size());
   RSTAT_CTR_INC_MANY("ssat_usual_deactivations", removedComps.size());
 
@@ -300,11 +282,15 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
 
   if(_solver->getStatus()==SATSolver::UNKNOWN) {
     //why is this required twice?
+  	TimeCounter tca(TC_SAT_SOLVER);
     _solver->addClauses(SATClauseIterator::getEmpty(), false);
   }
   // calling addClauses with false forces solver to run
   // without only use propagation
-  _solver->addClauses(SATClauseIterator::getEmpty(), false);
+  {
+	  TimeCounter tc1(TC_SAT_SOLVER);
+	  _solver->addClauses(SATClauseIterator::getEmpty(), false);
+  }
   ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
   //_solver->randomizeAssignment(); //why do we do this?
 
@@ -318,24 +304,7 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
   }
 
   RSTAT_CTR_INC_MANY("ssat_added_by_flush",addedComps.size());
-  RSTAT_CTR_INC_MANY("ssat_removed_by_flush",removedComps.size());
-  COND_LOG("sspl_sel",addedComps.isNonEmpty()||removedComps.isNonEmpty(), "flushing modified component selection");
-  COND_TRACE("sspl_sel_added",addedComps.isNonEmpty(),
-      tout << "added:" << endl;
-      SplitLevelStack::Iterator cit(addedComps);
-      while(cit.hasNext()) {
-	SplitLevel var = cit.next();
-	tout << "  " << var << "  --  " << (* splitter() -> getComponentClause(var)) << endl;
-      }
-  );
-  COND_TRACE("sspl_sel_removed",removedComps.isNonEmpty(),
-      tout << "removed:" << endl;
-      SplitLevelStack::Iterator cit(removedComps);
-      while(cit.hasNext()) {
-	SplitLevel var = cit.next();
-	tout << "  " << var << "  --  " << (* splitter() -> getComponentClause(var)) << endl;
-      }
-  );
+  RSTAT_CTR_INC_MANY("ssat_removed_by_flush",removedComps.size());  
 }
 
 SplitLevel SSplittingBranchSelector::getNameFromLiteral(SATLiteral lit, bool update/*=false*/) 
@@ -461,7 +430,6 @@ void SSplitter::onAllProcessed()
   toAdd.reset();
   toRemove.reset();
   if(flushing) {
-    LOG("sspl_flush","flushing");
     _branchSelector -> flush(toAdd, toRemove);
   }
   else {
@@ -476,16 +444,6 @@ void SSplitter::onAllProcessed()
   if(toAdd.isNonEmpty()) {
     addComponents(toAdd);
   }
-
-  TRACE("sspl_sel_current_comps",
-      unsigned bound = _db.size();
-      tout << "currently selected components:" << endl;
-      for(unsigned i=0; i<bound; ++i) {
-	if(_db[i] && _db[i]->active) {
-	  cout << i << "  --  " << (*_db[i]->component) << endl;
-	}
-      }
-  );
 }
 
 bool SSplitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, Clause*& compCl)
@@ -556,7 +514,6 @@ bool SSplitter::handleNonSplittable(Clause* cl)
     //we derived a component that depends on itself.
     //This derivation is therefore redundant, so we can skip it.
     RSTAT_CTR_INC("ssat_self_dependent_component");
-    LOG_UNIT("sspl_ns_self_dependent",cl);
     return true;
   }
 
@@ -570,8 +527,6 @@ bool SSplitter::handleNonSplittable(Clause* cl)
   nsClause->setInference(new FOSplittingInference(cl, namePremises));
 
   RSTAT_CTR_INC("ssat_non_splittable_sat_clauses");
-  LOG("sspl_ns_sat_clauses","non-splittable "<<(*cl)<<" gave sat clause "<<(*nsClause));
-
 
   SplitRecord& nameRec = *_db[compName];
   ASS_EQ(nameRec.component,compCl);
@@ -601,7 +556,6 @@ bool SSplitter::doSplitting(Clause* cl)
   CALL("SSplitter::doSplitting");
 
   if(!splittingAllowed(cl)) {
-    LOG_UNIT("sspl_nonsplits",cl);
     return false;
   }
 
@@ -609,7 +563,6 @@ bool SSplitter::doSplitting(Clause* cl)
   comps.reset();
   // fills comps with components, returning if not splittable
   if(!getComponents(cl, comps, false)) {
-    LOG_UNIT("sspl_nonsplits",cl);
     return handleNonSplittable(cl);
   }
 
@@ -633,18 +586,6 @@ bool SSplitter::doSplitting(Clause* cl)
 
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
   splitClause->setInference(new FOSplittingInference(cl, namePremises));
-
-  TRACE("sspl_splits",
-      //we do the trace output before the call to addSATClause,
-      //as there the list namePremises might be deleted
-      tout << "splitting "<<(*cl)<<endl;
-      tout << "  components:" << endl;
-      ClauseList::Iterator nit(namePremises);
-      while(nit.hasNext()) {
-	tout << "    " << (*nit.next()) << endl;
-      }
-      tout << "final sat clause: " << (*splitClause) << endl;
-  );
 
   addSATClause(splitClause, false);
 
@@ -671,7 +612,11 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
   //for(unsigned i=0;i<size;i++){ cout << lits[i]->toString() << "  "; }
   //cout << endl;
 
-  ClauseIterator existingComponents = _componentIdx -> retrieveVariants(lits, size);
+  ClauseIterator existingComponents;
+  { 
+    TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_USAGE);
+    existingComponents = _componentIdx->retrieveVariants(lits, size);
+  }
 
   if(!existingComponents.hasNext()) {
     //MainLoopScheduler::log() << "not found" << endl;
@@ -741,15 +686,16 @@ Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size,
   _db[name] = new SplitRecord(compCl);
 
   compCl->setSplits(SplitSet::getSingleton(name));
-  LOG_UNIT("sspl_comp_names", compCl);
 
-  if(!copy){_componentIdx -> insert(compCl);} // do not add to _componentIdx if a copy, as is already there
+  {
+    TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
+    if(!copy){_componentIdx -> insert(compCl);} // do not add to _componentIdx if a copy, as is already there
 #if VDEBUG
-  else{ ASS((_componentIdx -> retrieveVariants(lits, size)).hasNext()); }
+    else{ ASS((_componentIdx -> retrieveVariants(lits, size)).hasNext()); }
 #endif//VDEBUG
+  }
   _compNames -> insert(compCl, name);
 
-  LOG_UNIT("sspl_comp_names", compCl);
   return compCl;
 }
 
@@ -891,26 +837,19 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
     return;
   }
 
-  LOG("sspl_reductions_prems","reduced clause: "<<(*cl));
-
   Clause* premise0 = premises.next();
   SplitSet* diff=premise0->splits();
-  LOG("sspl_reductions_prems","reduction premise: "<<(*premise0));
   while(premises.hasNext()) {
     Clause* premise=premises.next();
-    LOG("sspl_reductions_prems","reduction premise: "<<(*premise));
     ASS(premise);
     _branchSelector -> clearZeroImpliedSplits(premise);
     diff=diff->getUnion(premise->splits());
   }
   if(replacement) {
-    LOG("sspl_reductions_prems","reduction replacement: "<<(*replacement));
     _branchSelector -> clearZeroImpliedSplits(replacement);
     diff=diff->getUnion(replacement->splits());
   }
   diff=diff->subtract(cl->splits());
-  
-  LOG("sspl_reductions","Reduced "<<(*cl)<<". Added to reduced stack on levels {"<<diff->toString()<<"}.");
 
 #if VDEBUG
   assertSplitLevelsActive(diff);
@@ -924,6 +863,7 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
 #if VDEBUG
   cl->incFreezeCount();
   RSTAT_MCTR_INC("frozen clauses",cl->getFreezeCount());
+  RSTAT_CTR_INC("total_frozen");
 #endif
 
   cl->incReductionTimestamp();
@@ -975,21 +915,9 @@ void SSplitter::onNewClause(Clause* cl)
 {
   CALL("SSplitter::onNewClause");
 
-  //For now just record if cl is in the variant index
-  // i.e. is a componenent
-  //TODO - if it is then
-  // (a) if it is true it can be immediately frozen
-  // (b) if it is false it can be immediately passed to the SAT
-  //      solver and kill the current model
-  //bool isComponenet = _componentIdx -> retrieveVariants(cl).hasNext();
-  //if(isComponenet){
-  //	RSTAT_CTR_INC("New Clause is Componenet");
-  //}
-
   if(!cl->splits()) {
     SplitSet* splits=getNewClauseSplitSet(cl);
     assignClauseSplitSet(cl, splits);
-    LOG("sspl_new_cl_levels","New clause assigned levels: "<<(*cl));
   }
 
 #if VDEBUG
@@ -1069,12 +997,7 @@ bool SSplitter::handleEmptyClause(Clause* cl)
   collectDependenceLits(cl->splits(), conflictLits);
   SATClause* confl = SATClause::fromStack(conflictLits);
   confl->setInference(new FOConversionInference(cl));
-
-  LOG("sspl_confl","FO contradiction "<<(*cl)<<" gave SAT conflict clause "<<(*confl));
-  TRACE("sspl_confl_derivations",
-      tout << "conflict derivation:" << endl;
-      Refutation(cl, false).output(tout);
-  );
+  
   RSTAT_MCTR_INC("sspl_confl_len", confl->length());
 
   addSATClause(confl, true);
@@ -1125,8 +1048,6 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
 
   SplitSet* backtracked = SplitSet::getFromArray(toRemove.begin(), toRemove.size());
 
-  LOG("sspl_rm","removal of splitting levels " << backtracked);
-
   // ensure all children are backtracked
   // i.e. removed from _sa and reference counter dec
   SplitSet::Iterator blit(*backtracked);
@@ -1141,7 +1062,6 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
       Clause* ccl=sr->children.popWithoutDec();
       if(!ccl->hasAux()) {
 	ASS(ccl->splits()->member(bl));
-	LOG_UNIT("sspl_rm_backtracked", ccl);
 	if(ccl->store()!=Clause::NONE) {
 	  _sa->removeActiveOrPassiveClause(ccl);
 	  ASS_EQ(ccl->store(), Clause::NONE);
@@ -1187,10 +1107,10 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
       _sa->addNewClause(rcl);
   #if VDEBUG
       RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
+      RSTAT_CTR_INC("total_unfrozen");
       //check that restored clause does not depend on inactive splits
       assertSplitLevelsActive(rcl->splits());
   #endif
-      LOG_UNIT("sspl_rm_restored", rcl);
     }
     rcl->decRefCnt(); //belongs to restored.popWithoutDec();
   }

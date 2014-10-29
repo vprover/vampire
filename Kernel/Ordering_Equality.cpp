@@ -7,12 +7,17 @@
 
 #include "Ordering.hpp"
 
+#include "Lib/Allocator.hpp"
+
 namespace Kernel
 {
 
 class Ordering::EqCmp
 {
 public:
+  CLASS_NAME(EqCmp);
+  USE_ALLOCATOR(EqCmp);
+
   EqCmp(Ordering* ordering) : _ordering(ordering)
   {
 #if VDEBUG
@@ -90,8 +95,6 @@ Ordering::Result Ordering::compareEqualities(Literal* eq1, Literal* eq2) const
   ASS(_eqCmp->inUse);
   _eqCmp->inUse=false;
 #endif
-
-//  LOG("eq cmp: "<<res<<"  "<<(*eq1)<<"   :   "<<(*eq2));
 
   return res;
 }

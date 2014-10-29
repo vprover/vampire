@@ -6,11 +6,10 @@
 #ifndef __Selector__
 #define __Selector__
 
-#include <string>
-
 #include "Forwards.hpp"
 
 #include "Shell/SineUtils.hpp"
+#include "Lib/VString.hpp"
 
 #include "Storage.hpp"
 

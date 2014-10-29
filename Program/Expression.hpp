@@ -8,9 +8,10 @@
 #ifndef __ProgramExpression__
 #define __ProgramExpression__
 
-#include <string>
 #include "Debug/Assertion.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/VString.hpp"
+#include "Lib/Allocator.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -45,7 +46,7 @@ public:
   /** checks whether the expresssion is an lvalue */
   virtual bool lvalue() const = 0;
   /** convert to expression to a string, can be used to output the expression */
-  virtual string toString(unsigned priority=0) const = 0;
+  virtual vstring toString(unsigned priority=0) const = 0;
 
   /** return the type of the expression */
   const Type* etype() const
@@ -93,10 +94,13 @@ class ConstantIntegerExpression
   : public Expression
 {
 public:
+  CLASS_NAME(ConstantIntegerExpression);
+  USE_ALLOCATOR(ConstantIntegerExpression); 
+  
   explicit ConstantIntegerExpression(int val);
   bool lvalue() const;
   int value() const { return _value; }
-  string toString(unsigned priority) const;
+  vstring toString(unsigned priority) const;
 protected:
   /** the value of this expression */
   int _value;
@@ -110,8 +114,11 @@ class ConstantFunctionExpression
 	: public Expression
 {
 public:
+  CLASS_NAME(ConstantFunctionExpression);
+  USE_ALLOCATOR(ConstantFunctionExpression);   
+  
   bool lvalue() const;
-  string toString(unsigned priority) const;
+  vstring toString(unsigned priority) const;
   /** return the priority (0 for non-operators) */
   unsigned priority() const { return _priority; }
   unsigned arity() const;
@@ -130,7 +137,7 @@ public:
   static ConstantFunctionExpression* booleanNeg();
 protected:
   /** the name of this expression */
-  string _name;
+  vstring _name;
   /** priority, used for printing */
   unsigned _priority;
 private:
@@ -173,9 +180,12 @@ class VariableExpression
   : public Expression
 {
 public:
+  CLASS_NAME(VariableExpression);
+  USE_ALLOCATOR(VariableExpression);  
+  
   explicit VariableExpression(Variable* v);
   bool lvalue() const;
-  string toString(unsigned priority) const;
+  vstring toString(unsigned priority) const;
   /** the variable */
   Variable* variable() const {return _variable;}
 protected:
@@ -191,9 +201,12 @@ class FunctionApplicationExpression
   : public Expression
 {
 public:
+  CLASS_NAME(FunctionApplicationExpression);
+  USE_ALLOCATOR(FunctionApplicationExpression);     
+  
   explicit FunctionApplicationExpression(Expression* fun);
   bool lvalue() const;
-  string toString(unsigned priority) const;
+  vstring toString(unsigned priority) const;
   void setArgument(unsigned argNumber,Expression* e);
   /** return the function */
   Expression* function() const { return _function; }
@@ -223,9 +236,12 @@ class ArrayApplicationExpression
 	: public Expression
 {
 public:
+  CLASS_NAME(ArrayApplicationExpression);
+  USE_ALLOCATOR(ArrayApplicationExpression);    
+  
   ArrayApplicationExpression(Expression* arr,Expression* arg);
   bool lvalue() const;
-  string toString(unsigned priority) const;
+  vstring toString(unsigned priority) const;
   /** return the array expression */
   Expression* array() const { return _array; }
   /** return the argument expression */

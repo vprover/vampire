@@ -117,19 +117,7 @@ public:
     try{
 
 
-    getAnyAssignment(result);
-    if(!_hasLeft && !_hasRight) {
-      LOG("tkv_assignment","Decided value for "<<env -> signature->varName(_var)<<" from -oo...oo to be "<<result);
-    }
-    else if(!_hasLeft) {
-      LOG("tkv_assignment","Decided value for "<<env -> signature->varName(_var)<<" from -oo..."<<_rightBound<<" to be "<<result);
-    }
-    else if(!_hasRight) {
-      LOG("tkv_assignment","Decided value for "<<env -> signature->varName(_var)<<" from "<<_leftBound<<"...oo to be "<<result);
-    }
-    else {
-      LOG("tkv_assignment","Decided value for "<<env -> signature->varName(var)<<" from "<<_leftBound<<"..."<<_rightBound<<" to be "<<result);
-    }
+    getAnyAssignment(result);    
     if(_hasLeft && _leftStrict && !usingPreciseNumbers() && result==_leftBound) {
 	throw Solver::NumberImprecisionException();
     }

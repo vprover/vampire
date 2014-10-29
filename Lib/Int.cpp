@@ -114,12 +114,13 @@ bool Int::safeMultiply(int arg1, int arg2, int& res)
  * @since 27/05/2003 Manchester
  * @since 27/08/2003 Vienna, changed to return a string
  * @since 06/12/2003 Manchester, changed to use sprintf
+ * @since 07/08/2014 Manchester, changed to return a vstring
  */
-string Int::toString (int i)
+vstring Int::toString (int i)
 {
   char tmp [20];
   sprintf(tmp,"%d",i);
-  string result(tmp);
+  vstring result(tmp);
 
   return result;
 } // Int::toString (int i)
@@ -131,11 +132,11 @@ string Int::toString (int i)
  * @param d the double
  * @since 09/12/2003 Manchester
  */
-string Int::toString(double d)
+vstring Int::toString(double d)
 {
   char tmp [256];
   sprintf(tmp,"%g",d);
-  string result(tmp);
+  vstring result(tmp);
 
   return result;
 } // Int::toString
@@ -147,11 +148,11 @@ string Int::toString(double d)
  * @param l the long
  * @since 10/02/2004 Manchester
  */
-string Int::toString(long l)
+vstring Int::toString(long l)
 {
   char tmp [256];
   sprintf(tmp,"%ld",l);
-  string result(tmp);
+  vstring result(tmp);
 
   return result;
 } // Int::toString
@@ -161,11 +162,11 @@ string Int::toString(long l)
  * Return the string representation of an unsigned integer.
  * @since 10/02/2004 Manchester
  */
-string Int::toString(unsigned i)
+vstring Int::toString(unsigned i)
 {
   char tmp [256];
   sprintf(tmp,"%d",i);
-  string result(tmp);
+  vstring result(tmp);
 
   return result;
 } // Int::toString
@@ -173,20 +174,20 @@ string Int::toString(unsigned i)
 /**
  * Return the string representation of an unsigned integer.
  */
-string Int::toString(unsigned long i)
+vstring Int::toString(unsigned long i)
 {
   char tmp [256];
   sprintf(tmp,"%lu",i);
-  string result(tmp);
+  vstring result(tmp);
 
   return result;
 } // Int::toString
 
-string Int::toHexString(size_t i)
+vstring Int::toHexString(size_t i)
 {
   char tmp [256];
   sprintf(tmp,"0x%zx",i);
-  string result(tmp);
+  vstring result(tmp);
 
   return result;
 } // Int::toString
@@ -221,20 +222,20 @@ bool Int::stringToLong (const char* str,long& result)
 
 
 /**
- * Convert a string to an integer value.
+ * Convert a vstring to an integer value.
  * @since 30/08/2004 Torrevieja
  */
-bool Int::stringToInt (const string& str,int& result)
+bool Int::stringToInt (const vstring& str,int& result)
 {
   CALL("Int::stringToInt");
   return stringToInt(str.c_str(),result);
 } // Int::stringToInt
 
 /**
- * Convert a string to an unsigned integer value.
+ * Convert a vstring to an unsigned integer value.
  * @since 20/09/2009 Redmond
  */
-bool Int::stringToUnsignedInt (const string& str,unsigned& result)
+bool Int::stringToUnsignedInt (const vstring& str,unsigned& result)
 {
   CALL("Int::stringToUnsignedInt");
   return stringToUnsignedInt(str.c_str(),result);
@@ -343,11 +344,11 @@ bool Int::stringToUnsigned64 (const char* str,long long unsigned& result)
 } // Int::stringToUnsigned64
 
 /**
- * Convert a string to a 64-bit unsigned. No overflow check is made.
+ * Convert a vstring to a 64-bit unsigned. No overflow check is made.
  *
  * @since 30/11/2006 Haifa
  */
-bool Int::stringToUnsigned64 (const string& str,long long unsigned& result)
+bool Int::stringToUnsigned64 (const vstring& str,long long unsigned& result)
 {
   return stringToUnsigned64(str.c_str(),result);
 } // Int::stringToUnsigned64

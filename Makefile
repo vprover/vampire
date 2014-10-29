@@ -12,15 +12,24 @@
 #   UNIX_USE_SIGALRM - the SIGALRM timer will be used even in debug mode
 #   IS_LINGVA 	     - this allows the compilation of lingva. 
 #   GNUMPF           - this option allows us to compile with bound propagation or without it ( value 1 or 0 ) 
+#                      Importantly, it includes the GNU Multiple Precision Arithmetic Library (GMP)
 GNUMPF = 0
 DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
 LLVM_FLAGS = -D_GNU_SOURCE -DGNUMP=$(GNUMPF) -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
+GCOV_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF) -O0 --coverage #-pedantic
+
+MINISAT_DBG_FLAGS = -D DEBUG
+MINISAT_REL_FLAGS = -D NDEBUG
+MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
 XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging only
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -DGNUMP=$(GNUMPF)# memory leaks
 #XFLAGS = $(REL_FLAGS)
+
+# TODO: consider trying -flto (see https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html)
 
 #XFLAGS = -O6 -DVDEBUG=0 -march=native -mtune=native # no debugging 
 #XFLAGS = -O6 -DVDEBUG=0 -msse3 # no debugging 
@@ -58,6 +67,10 @@ XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0
 endif
 ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0
+MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
+endif
+ifneq (,$(filter %_gcov,$(MAKECMDGOALS)))
+XFLAGS = $(GCOV_FLAGS) -DIS_LINGVA=0
 endif
 
 
@@ -95,6 +108,12 @@ CXXFLAGS = -std=c++11 $(XFLAGS) -Wall $(INCLUDES)
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
 ################################################################
+MINISAT_OBJ = Minisat/core/Solver.o\
+  Minisat/simp/SimpSolver.o\
+  Minisat/utils/Options.o\
+  Minisat/utils/System.o\
+  SAT/MinisatInterfacing.o
+
 API_OBJ = Api/FormulaBuilder.o\
 	  Api/Helper.o\
 	  Api/Problem.o\
@@ -102,8 +121,6 @@ API_OBJ = Api/FormulaBuilder.o\
 	  Api/Tracing.o
 
 VD_OBJ = Debug/Assertion.o\
-         Debug/Log.o\
-         Debug/Log_TagDecls.o\
          Debug/RuntimeStatistics.o\
          Debug/Tracer.o
 
@@ -214,6 +231,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/DistinctEqualitySimplifier.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
+         Inferences/ExtensionalityResolution.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
          Inferences/ForwardDemodulation.o\
@@ -253,6 +271,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
+         Saturation/ExtensionalityClauseContainer.o\
          Saturation/Limits.o\
          Saturation/LRS.o\
          Saturation/Otter.o\
@@ -439,8 +458,8 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
 	  Shell/GlobalOptions.o\
-	  ClausifierDependencyFix.o\
 	  version.o
+	  # ClausifierDependencyFix.o\
 
 OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Indexing/LiteralSubstitutionTree.o\
@@ -474,66 +493,10 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/VariableSelector.o\
 	       Test/RecordingSatSolver.o
 
-BP_VD_OBJ = Debug/Assertion.o\
-         Debug/Log.o\
-         Debug/RuntimeStatistics.o\
-         Debug/Tracer.o
 
-BP_VK_OBJ = Kernel/Assignment.o\
-         Kernel/Constraint.o\
-         Kernel/Number.o\
-         Kernel/V2CIndex.o\
-         Kernel/Signature.o
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Indexing Inferences InstGen Solving Shell CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils
 
-BP_VL_OBJ= Lib/Allocator.o\
-        Lib/DHMap.o\
-        Lib/Environment.o\
-        Lib/Event.o\
-        Lib/Exception.o\
-        Lib/Graph.o\
-        Lib/Hash.o\
-        Lib/Int.o\
-        Lib/IntNameTable.o\
-        Lib/IntUnionFind.o\
-        Lib/MemoryLeak.o\
-        Lib/MultiCounter.o\
-        Lib/NameArray.o\
-        Lib/Random.o\
-        Lib/StringUtils.o\
-        Lib/System.o\
-        Lib/TimeCounter.o\
-        Lib/Timer.o
-
-BP_VLS_OBJ= Lib/Sys/Multiprocessing.o\
-         Lib/Sys/Semaphore.o\
-         Lib/Sys/SyncPipe.o
-
-BP_VSOL_OBJ = Solving/AssignmentSelector.o\
-           Solving/BoundsArray.o\
-           Solving/BoundPropagator.o\
-           Solving/ConflictSelector.o\
-           Solving/ConflictingVariableSelector.o\
-           Solving/DecisionStack.o\
-           Solving/Solver.o\
-           Solving/LookAheadVariableSelector.o\
-           Solving/VariableSelector.o
-
-BP_MPS_OBJ = MPSLib/Gmputils.o\
-	MPSLib/Model.o\
-	MPSLib/Mpsinput.o
-
-# testing procedures
-BP_VT_OBJ = Test/UnitTesting.o
-
-BP_VUT_OBJ = UnitTests/tBinaryHeap.o\
-		  UnitTests/tDHMap.o\
-		  UnitTests/tDHMultiset.o\
-		  UnitTests/tSkipList.o
-
-
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Indexing Inferences InstGen Solving Shell CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib
-
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
+VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
 VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o Shell/BFNTMainLoop.o, $(VS_OBJ)) $(PARSE_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) Test/CheckedSatSolver.o $(LIB_DEP)
@@ -553,9 +516,6 @@ VGROUND_DEP = $(VAMP_BASIC) Global.o vground.o
 LINGVA_DEP = $(API_OBJ) $(VAMP_BASIC) $(CASC_OBJ) Saturation/ProvingHelper.o Global.o $(VPROG_OBL) $(VPROG_OBJ) $(TRANSLATOR_OBJ) vampire.o 
 #$(LIBVAPI_DEP) Saturation/ProvingHelper.o $(VPROG_OBJ) $(TRANSLATOR_OBJ)
 
-TKV_BASIC := $(VAMP_BASIC) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) 
-
-TKV_DEP := $(TKV_BASIC) Global.o tkv.o
 
 all:#default make disabled
 
@@ -604,12 +564,16 @@ obj/%X: | obj
 %.o : %.cpp
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -std=c++11 -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.c 
 $(CONF_ID)/%.o : %.c | $(CONF_ID)
-	$(CC) $(CCFLAGS) -c -o $@ $*.c
+	$(CC) $(CCFLAGS) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
 
+%.o : %.cc
+$(CONF_ID)/%.o : %.cc | $(CONF_ID)
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -std=c++11 -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+  
 ################################################################
 # targets for executables
 
@@ -683,7 +647,7 @@ EXEC_DEF_PREREQ = Makefile
 lingva lingva_rel lingva_dbg: $(LINGVA_OBJ) $(EXEC_DEF_PREREQ)
 	$(LLVM_COMPILE_CMD)
 
-vampire vampire_rel vampire_dbg: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
+vampire vampire_rel vampire_dbg vampire_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
@@ -712,10 +676,6 @@ libvapi libvapi_dbg: $(LIBVAPI_OBJ) $(EXEC_DEF_PREREQ)
 
 test_libvapi: $(CONF_ID)/test_libvapi.o $(EXEC_DEF_PREREQ)
 	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ -lvapi -L. -Wl,-R,\$$ORIGIN
-
-
-tkv tkv_rel tkv_dbg: $(TKV_OBJ) $(EXEC_DEF_PREREQ)
-	$(COMPILE_CMD_TKV)
 
 clausify_src:
 	rm -rf $@
@@ -774,23 +734,13 @@ vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
 clean:
 	rm -rf obj version.cpp
 
-DEPEND_CMD = makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 -DUNIX_USE_SIGALRM=1 $(patsubst %, %/*.cpp, $(VAMP_DIRS)) *.cpp
-
-depend:
-	$(DEPEND_CMD)
-
-Makefile_depend:
-	if [ ! -e Makefile_depend ]; then touch Makefile_depend; fi
-	$(DEPEND_CMD)
-
 doc:
 	rm -fr doc/html
 	doxygen config.doc
 
-.PHONY: doc depend clean clausify_src api_src
-
+.PHONY: doc clean clausify_src api_src
 
 ###########################
 # include header dependencies
 
-include Makefile_depend
+include $(shell find obj -name *.d)

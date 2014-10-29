@@ -99,7 +99,7 @@ void MultiCM::transformToOptionsList(Schedule& schedule)
   unsigned index=0;
   Schedule::BottomFirstIterator sit(schedule);
   while(sit.hasNext()){
-    string sliceCode = sit.next();
+    vstring sliceCode = sit.next();
 
     // get the option
     Options& opt = (*env->optionsList)[index++];
@@ -111,7 +111,7 @@ void MultiCM::transformToOptionsList(Schedule& schedule)
     // TODO - would be better to select a set of compatiable options from all sliceCodes
     if(index>1){
       int max=9;
-      string sn[max] = {"fde","gsp","updr","sd","sgt","ss","st","nm","ins"};
+      vstring sn[max] = {"fde","gsp","updr","sd","sgt","ss","st","nm","ins"};
       for(int i=0;i<max;i++){
         std::regex reg(sn[i]+"=[^:]*");
         sliceCode = std::regex_replace(sliceCode,reg,"");

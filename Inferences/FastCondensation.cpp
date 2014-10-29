@@ -121,7 +121,6 @@ Clause* FastCondensation::simplify(Clause* cl)
 	res->setAge(cl->age());
 	env -> statistics->condensations++;
 
-	LOG_SIMPL("inf_cond_fast",cl,res);
 	return res;
       }
     }

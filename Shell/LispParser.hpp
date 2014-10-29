@@ -8,8 +8,6 @@
 #ifndef __LispParser__
 #define __LispParser__
 
-#include <string>
-
 #include "Forwards.hpp"
 #include "Token.hpp"
 
@@ -17,6 +15,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Portability.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/VString.hpp"
 
 namespace Shell {
 
@@ -45,7 +44,7 @@ public:
     /** type of the expression */
     Tag tag;
     /** the value (for atoms and numbers) */
-    string str;
+    vstring str;
     /** list of expressions */
     List<Expression*>* list;
     /** build a list expressions with the list initially empty */
@@ -55,18 +54,18 @@ public:
 	list(0)
     {}
     /** build a string-values expression */
-    Expression(Tag t,string s)
+    Expression(Tag t,vstring s)
       : tag(t),
 	str(s),
 	list(0)
     {}
-    string toString(bool outerParentheses=true) const;
+    vstring toString(bool outerParentheses=true) const;
 
     bool isList() const { return tag==LIST; }
     bool isAtom() const { return tag==ATOM; }
 
-    bool get2Args(string functionName, Expression*& arg1, Expression*& arg2);
-    bool get1Arg(string functionName, Expression*& arg);
+    bool get2Args(vstring functionName, Expression*& arg1, Expression*& arg2);
+    bool get1Arg(vstring functionName, Expression*& arg);
     bool getPair(Expression*& el1, Expression*& el2);
     bool getSingleton(Expression*& el);
   };
@@ -85,11 +84,11 @@ public:
     : public Lib::Exception
   {
   public:                                
-    Exception (string message,const Token&);
+    Exception (vstring message,const Token&);
     void cry (ostream&);
     ~Exception () {}
   protected:
-    string _message;
+    vstring _message;
   }; // Exception
 
 private:
@@ -115,16 +114,16 @@ public:
   }
   explicit LispListReader(LExprList* list) : it(list) {}
 
-  void lispError(LExpr* expr, string reason="error") NO_RETURN;
-  void lispCurrError(string reason="error") NO_RETURN;
+  void lispError(LExpr* expr, vstring reason="error") NO_RETURN;
+  void lispCurrError(vstring reason="error") NO_RETURN;
 
   bool hasNext() { return it.hasNext(); }
   LExpr* peekAtNext();
   LExpr* readNext();
   LExpr* next() { return readNext(); }
 
-  bool tryReadAtom(string& atom);
-  string readAtom();
+  bool tryReadAtom(vstring& atom);
+  vstring readAtom();
 
   bool tryReadListExpr(LExpr*& e);
   LExpr* readListExpr();
@@ -132,8 +131,8 @@ public:
   bool tryReadList(LExprList*& list);
   LExprList* readList();
 
-  bool tryAcceptAtom(string atom);
-  void acceptAtom(string atom);
+  bool tryAcceptAtom(vstring atom);
+  void acceptAtom(vstring atom);
   void acceptAtom() { readAtom(); }
 
   bool tryAcceptList();
@@ -141,7 +140,7 @@ public:
 
   void acceptEOL();
 
-  bool lookAheadAtom(string atom);
+  bool lookAheadAtom(vstring atom);
 
   bool tryAcceptCurlyBrackets();
 private:
@@ -165,7 +164,7 @@ public:
   }
 #endif
 
-  LispListWriter& operator<<(string s)
+  LispListWriter& operator<<(vstring s)
   {
     _elements.push(new LExpr(LispParser::ATOM, s));
     return *this;

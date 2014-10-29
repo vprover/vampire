@@ -7,6 +7,8 @@
 #define __API_Problem__
 
 #include "FormulaBuilder.hpp"
+#include "Lib/VString.hpp"
+#include "Lib/Allocator.hpp"
 
 namespace Api {
 
@@ -135,11 +137,14 @@ public:
    */
   struct PreprocessingOptions
   {
+    CLASS_NAME(Problem::PreprocessingOptions);
+    USE_ALLOCATOR_ARRAY;    
+    
     PreprocessingOptions();
     /**
      * Read options from a string.
      */
-    explicit PreprocessingOptions(string spec);
+    explicit PreprocessingOptions(Lib::vstring spec);
 
     PreprocessingMode mode;
     /**
@@ -160,7 +165,6 @@ public:
      * If true, details on every definition inlining step will be output
      * to the standard error output.
      */
-    bool traceInlining;
     bool sineSelection;
     /**
      * Sine tolerance parameter.
@@ -197,7 +201,6 @@ public:
      * This formula is true in any model of size at least two, while ![X]: p(X,X) is not.
      */
     bool variableEqualityPropagation;
-    bool traceVariableEqualityPropagation;
 
     /**
      * Where possible, perform EPR preserving skolemization of predicate
@@ -205,30 +208,12 @@ public:
      * property.
      */
     bool eprSkolemization;
-    bool traceEPRSkolemization;
 
     /**
      * Merge predicate definitions that have equivalent body
      * (the equivalency check is incomplete)
      */
     bool predicateDefinitionMerging;
-    bool tracePredicateDefinitionMerging;
-
-    /**
-     * Output information on what formulas are being clausified, and what
-     * clauses were generated.
-     *
-     * The output is directed to standard error output.
-     */
-    bool traceClausification;
-
-    /**
-     * Output information on th progress of unused predicate definition
-     * removal and pure predicate removal.
-     *
-     * The output is directed to standard error output.
-     */
-    bool traceUnusedPredicateDefinitionRemoval;
 
     /**
      * If all atoms of a certain predicate contain distinct constants as
@@ -417,7 +402,7 @@ public:
    * @param includeDirectory where the parser will look for included files
    * @param simplifySyntax Simplify syntax will be used instead of the TPTP syntax.
    */
-  void addFromStream(istream& s, string includeDirectory="./", bool simplifySyntax=false);
+  void addFromStream(istream& s, vstring includeDirectory="./", bool simplifySyntax=false);
 
   /**
    * Return the current problem clausified
@@ -473,7 +458,7 @@ public:
    * where &lt;stageX spec&gt; is
    * &lt;option1&gt;=&lt;value1&gt;[:&lt;option2&gt;=&lt;value2&gt;[:...]]
    */
-  void readStageSpecs(string stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs);
+  void readStageSpecs(Lib::vstring stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs);
 
   /**
    * Perform sequence of preprocessing according to array of options @c stageSpecs with
@@ -481,7 +466,7 @@ public:
    *
    */
   Problem preprocessInStages(size_t stageCount, const PreprocessingOptions* stageSpecs);
-  Problem preprocessInStages(string stagesStr);
+  Problem preprocessInStages(Lib::vstring stagesStr);
 
   /**
    * Rewrite occurrences of @c lhs in the problem by posRhs, negRhs or dblRhs,

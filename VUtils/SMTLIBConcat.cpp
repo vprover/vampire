@@ -73,7 +73,6 @@ void SMTLIBConcat::rewriteSmt1FormToSmt2(LExpr* e0)
       ASS(e->isList());
       LispListReader rdr(e);
       if(rdr.lookAheadAtom("flet") || rdr.lookAheadAtom("let")) {
-	LOG("vu_sc_let","let rewriting"<<endl<<"  src:"<<e->toString());
 	LExpr* head = rdr.readNext();
 	LExpr* defs = rdr.readNext();
 	rdr.readNext();
@@ -81,7 +80,6 @@ void SMTLIBConcat::rewriteSmt1FormToSmt2(LExpr* e0)
 
 	head->str = "let";
 	defs->list = (LispListWriter()<<(LispListWriter().append(defs->list))).getList();
-	LOG("vu_sc_let","  tgt:"<<e->toString());
       }
       LExprList::Iterator elit(e->list);
       while(elit.hasNext()) {
@@ -163,7 +161,7 @@ void SMTLIBConcat::rewriteIntsToReals(LExpr* e0)
   }
 }
 
-void SMTLIBConcat::addBenchmark(LExpr* expr, DHSet<string>& funSet, LispListWriter& wrt)
+void SMTLIBConcat::addBenchmark(LExpr* expr, DHSet<vstring>& funSet, LispListWriter& wrt)
 {
   CALL("SMTLIBConcat::readBenchmark");
 
@@ -192,7 +190,7 @@ void SMTLIBConcat::addBenchmark(LExpr* expr, DHSet<string>& funSet, LispListWrit
 	LExpr* funDecl = funIt.next();
 	if(!funDecl->isList() && funDecl->list->head()->isAtom()) { USER_ERROR("function declaration expected: "+funDecl->toString()); }
 
-	string fnName = funDecl->list->head()->str;
+	vstring fnName = funDecl->list->head()->str;
 	if(!funSet.insert(fnName)) {
 	  //duplicate function
 	  continue;
@@ -216,7 +214,7 @@ LExpr* SMTLIBConcat::mergeBenchmarksIntoSmtlib2(Stack<LExpr*>& exprs)
 {
   CALL("SMTLIBConcat::mergeBenchmarks");
 
-  DHSet<string> funSet;
+  DHSet<vstring> funSet;
   Stack<LExpr*> funs;
 
   LispListWriter res;
@@ -248,7 +246,7 @@ LExpr* SMTLIBConcat::mergeBenchmarksIntoSmtlib2(Stack<LExpr*>& exprs)
   return res.get();
 }
 
-LExpr* SMTLIBConcat::parseFile(string fname)
+LExpr* SMTLIBConcat::parseFile(vstring fname)
 {
   CALL("SMTLIBConcat::parseFile");
 
@@ -260,8 +258,6 @@ LExpr* SMTLIBConcat::parseFile(string fname)
   LispLexer lex(fin);
   LispParser parser(lex);
   LExpr* res = parser.parse();
-
-  LOG("vu_sc_files", fname<<":"<<endl<<res->toString());
 
   return res;
 }

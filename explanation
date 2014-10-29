@@ -1,0 +1,51 @@
+These explanation files are in each directory and should be used to give a *brief* explanation of a file, if not obvious from the file name.
+
+Build_LLVM_and_CLANG.txt	Explanation of how to setup LLVM and clang for LINGVA compilation
+ClausifierDependencyFix.cpp	Looks like no longer needed, removed from Makefile
+compit2.cpp			Looks like a framework for running
+compit2.hpp			  benchmarks for unification 
+compit2_impl.cpp		  perhaps belongs in a separate benchmarking area
+config.doc			Configuration for documentation (doxygen)
+Config.hpp			Part of the compit framework
+dummy_main.cpp			Dummy main file (not in Makefile)
+Forwards.hpp			Forward declarations
+Global.cpp			Global static member initialisation
+licence.pl			Perl script for adding licence headers
+ltb_mode			Bash script for running ltb mode (syntax unknown)
+Makefile			Makefile
+				Many targets seem to be a mode-restricted version of vampire
+				Targets are:
+				  -lingva: invariant generation (requiers llvm and clang)
+				  -vampire: standard vampire
+				  -vcompit: unification benchmarks
+				  -vltb: BROKEN 
+				  -vclausify: BROKEN
+				  -vtest: BROKEN
+				  -vutil: BROKEN
+				  -vsat: BROKEN
+				  -vapi: BROKEN
+				  -libvapi: BROKEN
+				  -test_libvapi: BROKEN
+				  -tkv: BROKEN
+				  -clausify_src: BROKEN
+				  -api_src: BROKEN
+				  -vground: BROKEN
+				  -clean
+				  -depend
+out_summary			Bash script for summarising the output of experiments
+README.md			Currently empty readme
+runner.sh			Bash script wrapper for running (with spider)
+test_libvapi.cpp		Main for test_libvapi target
+test_vapi.cpp			Main for test_vapi target
+todo_list.txt			
+ucompit.cpp			Related to compit framework
+vampire.cpp			Main for vampire (and lingva) target
+vclausify.cpp			Main for vclausify target
+vcompit.cpp			Main for vcompit target
+version.cpp			Automatically generated version file
+vground.cpp			Main for vground target
+vinter				Bash script for vinter (uses vutil)
+vltb.cpp			Main for vltb target
+vsat.cpp			Main for vsat target
+vtest.cpp			Main for vtest target
+vutil.cpp			Main for vutil target

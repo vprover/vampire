@@ -67,7 +67,7 @@ public:
     memcached_free(memc);
   }
 
-  string getString(const char* key, size_t keyLen, bool allowMiss=false)
+  vstring getString(const char* key, size_t keyLen, bool allowMiss=false)
   {
     CALL("Storage::StorageImpl::getString");
     ASS_L(keyLen, MEMCACHED_MAX_KEY);
@@ -92,7 +92,7 @@ public:
       return "";
     }
 
-    string valueString(valueChars, valueLen);
+    vstring valueString(valueChars, valueLen);
     free(valueChars);
     return valueString;
   }
@@ -111,18 +111,18 @@ public:
     //there seems to be a problem with the memcached_fetch in the libmemcached library,
     //so we just ask multiple times.
 #if 1
-    Vector<string>* values=Vector<string>::allocate(keys.size());
+    Vector<vstring>* values=Vector<vstring>::allocate(keys.size());
     for(size_t i=0;i<keyCnt;i++) {
       (*values)[i]=getString(keys[i].c_str(), keys[i].size(), true);
     }
-    return pvi( Vector<string>::DestructiveIterator(*values) );
+    return pvi( Vector<vstring>::DestructiveIterator(*values) );
 #else
     if(keyCnt==0) {
       return StringIterator::getEmpty();
     }
 
     if(keyCnt==1) {
-      string key=keys.top();
+      vstring key=keys.top();
       return pvi( getSingletonIterator( getString(key.c_str(), key.size(), true) ) );
     }
 
@@ -149,7 +149,7 @@ public:
     res=memcached_mget(memc, const_cast<char**>(keyPtrs.array()), keyLengths.array(), keyCnt);
     if(res!=MEMCACHED_SUCCESS) { ASSERTION_VIOLATION_REP(res); INVALID_OPERATION("memcached fail"); }
 
-    Vector<string>* values=Vector<string>::allocate(keys.size());
+    Vector<vstring>* values=Vector<vstring>::allocate(keys.size());
 
     //now let's retrieve the results
 
@@ -170,7 +170,7 @@ public:
       }
       if(res!=MEMCACHED_SUCCESS) { ASSERTION_VIOLATION_REP(res); INVALID_OPERATION("memcached fail"); }
       ASS_L(nextResIndex,keyCnt); //if we got a value, we must also have some key without an answer
-      string valueStr(valueChars, valLen);
+      vstring valueStr(valueChars, valLen);
       free(valueChars);
       keyBuf[keyLen]=0;
       //now we have a null-terminated string with key starting at keyBuf.array()
@@ -200,13 +200,13 @@ public:
 
 #if VDEBUG
     for(size_t i=0;i<keyCnt;i++) {
-      string fetched=(*values)[i];
-      string check=getString(keys[i].c_str(), keys[i].size(), true);
+      vstring fetched=(*values)[i];
+      vstring check=getString(keys[i].c_str(), keys[i].size(), true);
       ASS_REP2(fetched==check, fetched.size(), check.size());
     }
 #endif
 
-    return pvi( Vector<string>::DestructiveIterator(*values) );
+    return pvi( Vector<vstring>::DestructiveIterator(*values) );
 #endif
   }
 
@@ -253,7 +253,7 @@ Storage::~Storage()
   delete _impl;
 }
 
-string Storage::getConstKey(KeyPrefix p)
+vstring Storage::getConstKey(KeyPrefix p)
 {
   CALL("Storage::getConstKey");
 
@@ -261,7 +261,7 @@ string Storage::getConstKey(KeyPrefix p)
   return _impl->getString(&key,1);
 }
 
-string Storage::getIntKey(KeyPrefix p, int keyNum)
+vstring Storage::getIntKey(KeyPrefix p, int keyNum)
 {
   CALL("Storage::getIntKey");
 
@@ -284,7 +284,7 @@ StringIterator Storage::getIntKeyValues(KeyPrefix p, VirtualIterator<int> keyNum
   while(keyNums.hasNext()) {
     SymId s=keyNums.next();
     size_t keyLen=1+dumpInt(s, keyBuf+1);
-    keys.push(string(keyBuf, keyLen));
+    keys.push(vstring(keyBuf, keyLen));
   }
 
   return _impl->getStrings(keys);
@@ -340,7 +340,7 @@ void Storage::getSignatureSize(int& preds, int& funs)
 {
   CALL("Storage::getSignatureSize");
 
-  string data=getConstKey(PRED_FUN_CNT);
+  vstring data=getConstKey(PRED_FUN_CNT);
   const char* ptr=data.c_str();
   ptr+=readInt(ptr,preds);
   ptr+=readInt(ptr,funs);
@@ -375,13 +375,13 @@ VirtualIterator<pair<bool, unsigned> > Storage::getGlobalSymbols(Stack<pair<bool
     else {
       sym=env -> signature->getFunction(id.second);
     }
-    string name=Signature::key(sym->name(),sym->arity());
+    vstring name=Signature::key(sym->name(),sym->arity());
 
     size_t keyLen=1+name.size();
     buf.ensure(keyLen);
     buf[0]= id.first ? PRED_TO_NUM : FUN_TO_NUM;
     memcpy(buf.array()+1, name.c_str(), name.size());
-    queries.push(string(buf.array(), keyLen));
+    queries.push(vstring(buf.array(), keyLen));
   }
 
   StringIterator responses=_impl->getStrings(queries);
@@ -391,7 +391,7 @@ VirtualIterator<pair<bool, unsigned> > Storage::getGlobalSymbols(Stack<pair<bool
   Stack<pair<bool, unsigned> >::BottomFirstIterator symIt2(syms);
   while(responses.hasNext()) {
     ALWAYS(symIt2.hasNext());
-    string response=responses.next();
+    vstring response=responses.next();
     pair<bool, unsigned> loc=symIt2.next();
 
     if(response.size()==0) {
@@ -440,9 +440,6 @@ void Storage::addCorrespondingLocalSymbols(VirtualIterator<pair<bool,unsigned> >
       //able to pair it with the right local symbol)
       symIt0.del();
 //      if(id.first) {
-//	LOG("known pred: "<<id.second<<" orig name "<<getIntKey(PRED_NUM_NAME, id.second)
-//	    <<" arity: "<<env -> signature->predicateArity(_glob2loc.get(id))
-//	    <<" loc name: "<<env -> signature->predicateName(_glob2loc.get(id)));
 //      }
       continue;
     }
@@ -458,7 +455,7 @@ void Storage::addCorrespondingLocalSymbols(VirtualIterator<pair<bool,unsigned> >
 
     keyBuf[0]= id.first ? PRED_NUM_ARITY : FUN_NUM_ARITY;
     size_t keyLen=1+dumpInt(id.second, keyBuf+1);
-    queries.push(string(keyBuf, keyLen));
+    queries.push(vstring(keyBuf, keyLen));
   }
   ASS_EQ(globStack.size(), queries.size());
 
@@ -468,21 +465,20 @@ void Storage::addCorrespondingLocalSymbols(VirtualIterator<pair<bool,unsigned> >
   StringIterator responses=_impl->getStrings(queries);
   size_t index=0;
   while(responses.hasNext()) {
-    string response=responses.next();
+    vstring response=responses.next();
     pair<bool,unsigned> globSym=globStack[index++];
 
     int arity;
     size_t valLen=readInt(response.c_str(), arity);
     ASS_EQ(valLen, response.size());
 
-    string locName=string("$$g")+(globSym.first ? "pred" : "fun")+Int::toString(globSym.second);
+    vstring locName=vstring("$$g")+(globSym.first ? "pred" : "fun")+Int::toString(globSym.second);
     unsigned locNum;
     bool added;
     if(globSym.first) {
       ASS_NEQ(globSym.second, 0); //equality must always correspond to equality, so we cannot add it this way
       locNum=env -> signature->addPredicate(locName, arity, added);
       ASS(added);
-//      LOG("added pred: "<<globSym.second<<" orig name "<<getIntKey(PRED_NUM_NAME, globSym.second)<<" arity: "<<arity);
     }
     else {
       locNum=env -> signature->addFunction(locName, arity, added);
@@ -497,14 +493,14 @@ void Storage::addCorrespondingLocalSymbols(VirtualIterator<pair<bool,unsigned> >
 StringList* Storage::getTheoryFileNames()
 {
   char key=THEORY_FILES;
-  string nameList=_impl->getString(&key, 1);
+  vstring nameList=_impl->getString(&key, 1);
 
   const char* ptr=nameList.c_str();
   const char* afterLast=ptr+nameList.size();
 
   StringList* res=0;
   while(ptr!=afterLast) {
-    string fname(ptr);
+    vstring fname(ptr);
     ptr+=fname.size()+1;
     StringList::push(fname, res);
   }
@@ -528,7 +524,7 @@ SymIdIterator Storage::getDRelatedSymbols(Stack<SymId>& qsymbols, unsigned itole
   static Stack<SymId> rsymbols;
   rsymbols.reset();
   while(values.hasNext()) {
-    string val=values.next();
+    vstring val=values.next();
     const char* ptr=val.c_str();
     const char* afterLast=ptr+val.size();
     while(ptr!=afterLast) {
@@ -563,7 +559,7 @@ VirtualIterator<unsigned> Storage::getDRelatedUnitNumbers(SymIdIterator qsymbols
   static Stack<unsigned> unitNums;
   unitNums.reset();
   while(values.hasNext()) {
-    string val=values.next();
+    vstring val=values.next();
     const char* ptr=val.c_str();
     const char* afterLast=ptr+val.size();
     while(ptr!=afterLast) {
@@ -592,7 +588,7 @@ VirtualIterator<unsigned> Storage::getNumbersOfUnitsWithoutSymbols()
 
   List<unsigned>* res=0;
 
-  string val=getConstKey(UNITS_WITHOUT_SYMBOLS);
+  vstring val=getConstKey(UNITS_WITHOUT_SYMBOLS);
   const char* ptr=val.c_str();
   const char* afterLast=ptr+val.size();
   while(ptr!=afterLast) {
@@ -620,7 +616,7 @@ UnitList* Storage::getClausesByUnitNumbers(VirtualIterator<unsigned> numIt)
   DHSet<pair<bool, unsigned> > usedSymbols;
   int num;
   while(clauseStrings.hasNext()) {
-    string str=clauseStrings.next();
+    vstring str=clauseStrings.next();
     ASS_EQ(str.size()%storedIntMaxSize, 0);
     const char* ptr=str.c_str();
     const char* afterLast=ptr+str.size();
@@ -753,8 +749,8 @@ bool Storage::getEmptyClausePossession()
 {
   CALL("Storage::storeEmptyClausePossession");
 
-  string val=getConstKey(HAS_EMPTY_CLAUSE);
-  return val==string("1");
+  vstring val=getConstKey(HAS_EMPTY_CLAUSE);
+  return val==vstring("1");
 }
 
 ///////////////////////////////////
@@ -772,7 +768,7 @@ bool Storage::getEmptyClausePossession()
  *
  * Literals are stored in the postfix notation. Variables are stored as negative
  * numbers decreased by one, term symbols as positive numbers increased by one.
- * Positive occurences of predicate symbols are stored as positive numbers increased
+ * Positive occurrences of predicate symbols are stored as positive numbers increased
  * by one, negative ones as negative decreased by one.
  *
  * This is done because zero is used as a separator.
@@ -958,7 +954,7 @@ void Storage::storeTheoryFileNames(StringStack& fnames)
   char* pbuf=buf.array();
   StringStack::Iterator fnit2(fnames);
   while(fnit2.hasNext()) {
-    string fname=fnit2.next();
+    vstring fname=fnit2.next();
     strcpy(pbuf, fname.c_str());
     pbuf+=fname.length()+1;
   }
@@ -1014,7 +1010,7 @@ void Storage::storeSymbolInfo(Signature::Symbol* sym, int symIndex, bool functio
   static DArray<char> arityBuf(storedIntMaxSize);
 
   unsigned arity=sym->arity();
-  string name=Signature::key(sym->name(), arity);
+  vstring name=Signature::key(sym->name(), arity);
 
   size_t nameLen=name.length();
   nameBuf.ensure(nameLen+2);

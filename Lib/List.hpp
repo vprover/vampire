@@ -480,6 +480,9 @@ public:
   /** iterator over the list elements */
   class Iterator {
   public:
+    CLASS_NAME(List::Iterator);
+    USE_ALLOCATOR(List::Iterator);
+    
     DECL_ELEMENT_TYPE(C);
 
     inline Iterator() : _lst (0) {}
@@ -528,6 +531,9 @@ public:
   /** iterator over references to list elements */
   class RefIterator {
    public:
+     CLASS_NAME(List::RefIterator);
+     USE_ALLOCATOR(List::RefIterator);
+     
      DECL_ELEMENT_TYPE(C&);
 
     inline explicit
@@ -563,6 +569,9 @@ public:
   class PtrIterator
   {
   public:
+    CLASS_NAME(List::PtrIterator);
+    USE_ALLOCATOR(List::PtrIterator);
+    
     DECL_ELEMENT_TYPE(C*);
     inline
     PtrIterator(List* lst) : _l(lst) {}
@@ -583,7 +592,10 @@ public:
   /** Iterator that allows one to delete the current element */
   class DelIterator {
    public:
-
+     CLASS_NAME(List::DelIterator);
+     USE_ALLOCATOR(List::DelIterator);
+     
+    DECL_ELEMENT_TYPE(C);
     inline DelIterator (List*& l)
       :
       _lst(l),
@@ -717,6 +729,9 @@ public:
    */
   class DestructiveIterator {
   public:
+    CLASS_NAME(List::DestructiveIterator);
+    USE_ALLOCATOR(List::DestructiveIterator);
+    
     DECL_ELEMENT_TYPE(C);
 
     inline explicit
@@ -794,7 +809,7 @@ typename List<T>::Iterator getContentIterator(List<T>* lst)
   return typename List<T>::Iterator(lst);
 }
 
-///@}Á
+///@}?
 
 
 ///@addtogroup Reflection
@@ -819,7 +834,7 @@ struct IteratorTypeInfo<const List<T>*>
   typedef typename List<T>::Iterator Type;
 };
 
-///@}Á
+///@}?
 
 #if VDEBUG
 

@@ -6,8 +6,6 @@
  * @since 21/04/2005 Manchester
  */
 
-#include <string>
-
 using namespace std;
 
 namespace Lib {

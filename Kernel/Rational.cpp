@@ -119,11 +119,11 @@ Rational::Rational(long double value){
 }
 
 /**
- * Constructor that initializes the rational number from a string
+ * Constructor that initializes the rational number from a vstring
  * @b value
  */
-Rational::Rational(string value){
-	CALL("Rational::Rational(string value)");
+Rational::Rational(vstring value){
+	CALL("Rational::Rational(vstring value)");
 	double doubleNumber;
 	if ( !(Int::stringToDouble(value, doubleNumber))){
 		throw NumberImprecisionException();
@@ -375,13 +375,13 @@ Rational Rational::canonical(){
 
 }
 
-string Rational::toString() const{
+vstring Rational::toString() const{
 	char tmp_num[256];
 	sprintf(tmp_num, "%lld",_num);
-	string num(tmp_num);
+	vstring num(tmp_num);
 	char tmp_den[256];
 	sprintf(tmp_den,"%lld",_den);
-	string den(tmp_den);
+	vstring den(tmp_den);
 	return num+"/"+den;
 }
 

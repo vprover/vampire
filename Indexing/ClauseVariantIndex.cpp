@@ -34,6 +34,13 @@ ClauseVariantIndex::~ClauseVariantIndex()
       delete _strees[i];
     }
   }
+     
+  _emptyClauses->destroy();
+  
+  DHMap<Literal*, ClauseList*>::Iterator it(_groundUnits);
+  while (it.hasNext()) {
+    it.next()->destroy();
+  }
 }
 
 /**

@@ -35,20 +35,38 @@ void* SATClause::operator new(size_t sz,unsigned lits)
 {
   CALL("SATClause::operator new");
 
-  env -> statistics->satClauses++;
-  if(lits==1) {
-    env -> statistics->unitSatClauses++;
-  }
-  else if(lits==2) {
-    env -> statistics->binarySatClauses++;
-  }
   //We have to get sizeof(SATClause) + (_length-1)*sizeof(SATLiteral*)
   //this way, because _length-1 wouldn't behave well for
   //_length==0 on x64 platform.
   size_t size=sz+lits*sizeof(SATLiteral);
-  size-=sizeof(SATLiteral);
+  /*
+    it's not safe to save memory for the empty clause,
+    since the compiler wants to call a constructor 
+    on the only officially declared literal, see:
+  
+    SATLiteral _literals[1];
+  */
+  if (lits > 0)
+    size-=sizeof(SATLiteral);
 
   return ALLOC_KNOWN(size,"SATClause");
+}
+
+SATClause::SATClause(unsigned length,bool kept)
+  : _activity(0), _length(length), _kept(kept?1:0), _nonDestroyable(0), _inference(0)
+//      , _genCounter(0xFFFFFFFF)
+{
+  env->statistics->satClauses++;
+  if(length==1) {
+    env->statistics->unitSatClauses++;
+  }
+  else if(length==2) {
+    env->statistics->binarySatClauses++;
+  }
+
+  // call a constructor on the literals
+  for (size_t i = 1; i < _length; i++)
+    new (&_literals[i]) SATLiteral();
 }
 
 /**
@@ -67,13 +85,21 @@ void SATClause::destroy()
   if(_inference) {
     delete _inference;
   }
-
+  
   //We have to get sizeof(SATClause) + (_length-1)*sizeof(SATLiteral*)
   //this way, because _length-1 wouldn't behave well for
   //_length==0 on x64 platform.
   size_t size=sizeof(SATClause)+_length*sizeof(SATLiteral);
-  size-=sizeof(SATLiteral);
+  if (_length > 0) // see comment in operator new(size_t sz,unsigned lits) above
+    size-=sizeof(SATLiteral);
 
+  // call a destructor on the excess literals
+  for (size_t i = 1; i < _length; i++)
+    _literals[i].~SATLiteral();    
+  
+  // call a destructor of the clause object (will destroy _literals[0])
+  this->~SATClause();
+    
   DEALLOC_KNOWN(this, size,"SATClause");
 } // SATClause::destroy
 
@@ -227,11 +253,11 @@ SATLiteral SATClause::litToSAT(NamingContext& context, Literal* lit)
 /**
  * Convert the clause to the string representation.
  */
-string SATClause::toString() const
+vstring SATClause::toString() const
 {
   CALL("SATClause::toString");
 
-  string result;
+  vstring result;
   if (_length == 0) {
     result = "#";
   } else {
@@ -249,7 +275,7 @@ string SATClause::toString() const
 /**
  * Convert the clause to the DIMACS string representation.
  */
-string SATClause::toDIMACSString() const
+vstring SATClause::toDIMACSString() const
 {
   CALL("SATClause::toDIMACSString");
 
@@ -257,7 +283,7 @@ string SATClause::toDIMACSString() const
     return "0";
   }
 
-  string result;
+  vstring result;
   for(unsigned i=0;i<_length;i++) {
     ASS_G(_literals[i].var(),0);
     if(i!=0) {

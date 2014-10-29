@@ -41,26 +41,26 @@ private:
   Unit* getZ3Refutation();
 
 
-  static string hypothesesToString(List<TermList>* hypotheses);
+  static vstring hypothesesToString(List<TermList>* hypotheses);
 
   struct ProofObject {
     ProofObject() {}
     ProofObject(Unit* unit, List<TermList>* hypotheses)
     : unit(unit), hypotheses(hypotheses) {}
 
-    string hypothesesToString()
+    vstring hypothesesToString()
     { return ZIE::hypothesesToString(hypotheses); }
 
     Unit* unit;
     List<TermList>* hypotheses;
   };
 
-  unsigned getFunctionNumber(string fnName, unsigned arity);
+  unsigned getFunctionNumber(vstring fnName, unsigned arity);
 
   bool tryReadNumber(LExpr* expr, TermList& res);
 
-  bool isTermVariable(string name) { return name[0]=='$' || name[0]=='?'; }
-  bool isProofVariable(string name) { return name[0]=='@'; }
+  bool isTermVariable(vstring name) { return name[0]=='$' || name[0]=='?'; }
+  bool isProofVariable(vstring name) { return name[0]=='@'; }
 
   bool readLet(LExpr* expr, LExpr*& tail);
   void processLets();
@@ -70,19 +70,19 @@ private:
   TermList readTerm(LExpr* term);
   ProofObject readProofObject(LExpr* term);
 
-  TermList getTermAssignment(string name);
-  ProofObject getProofObjectAssignment(string name);
+  TermList getTermAssignment(vstring name);
+  ProofObject getProofObjectAssignment(vstring name);
 
   Formula* termToFormula(TermList trm);
   Formula* termToFormula(TermList trm, List<TermList>* hypotheses);
 
   void resolveHypotheses(List<TermList>*& hypotheses, TermList lemma);
 
-  typedef pair<string,LExpr*> LetRecord;
+  typedef pair<vstring,LExpr*> LetRecord;
   Stack<LetRecord> _letRecords;
 
-  DHMap<string, TermList> _termAssignments;
-  DHMap<string, ProofObject> _proofAssignments;
+  DHMap<vstring, TermList> _termAssignments;
+  DHMap<vstring, ProofObject> _proofAssignments;
 
   /**
    * All units in the proof.
@@ -118,7 +118,7 @@ private:
 
   bool colorProof(TermColoring& colorer, UnitStack& derivation, UnitStack& coloredDerivationTgt);
 
-  void collectSMTLIB1FileFunctionNames(const char* fname, DHSet<string>& acc);
+  void collectSMTLIB1FileFunctionNames(const char* fname, DHSet<vstring>& acc);
 
   TermColoring* createRangeColorer();
   TermColoring* createFileColorer(unsigned leftCnt, char** leftFNames, unsigned rightCnt, char** rightFNames);

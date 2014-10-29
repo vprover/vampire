@@ -359,6 +359,46 @@ private:
   bool _nextStored;
 };
 
+template<class Inner, class Functor>
+class FilteredDelIterator
+{
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+
+  FilteredDelIterator(Inner inn, Functor func)
+  : _func(func), _inn(inn), _nextStored(false) {}
+  bool hasNext()
+  {
+    if(_nextStored) {
+      return true;
+    }
+    while(_inn.hasNext()) {
+      _next=_inn.next();
+      if(_func(_next)) {
+	_nextStored=true;
+	return true;
+      } else {
+        _inn.del();
+      }
+    }
+    return false;
+  };
+  OWN_ELEMENT_TYPE next()
+  {
+    if(!_nextStored) {
+      ALWAYS(hasNext());
+      ASS(_nextStored);
+    }
+    _nextStored=false;
+    return _next;
+  };
+private:
+  Functor _func;
+  Inner _inn;
+  OWN_ELEMENT_TYPE _next;
+  bool _nextStored;
+};
+
 /**
  * Return an iterator object that returns elements of the @b inn iterator
  * for which the functor @b func returns true
@@ -370,6 +410,13 @@ inline
 FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
 {
   return FilteredIterator<Inner,Functor>(inn, func);
+}
+
+template<class Inner, class Functor>
+inline
+FilteredDelIterator<Inner,Functor> getFilteredDelIterator(Inner inn, Functor func)
+{
+  return FilteredDelIterator<Inner,Functor>(inn, func);
 }
 
 
@@ -1353,13 +1400,13 @@ T minFn(T a1, T a2) { return min(a1,a2); }
 template<class It>
 struct StmJoinAuxStruct
 {
-  StmJoinAuxStruct(string glue, It it) : _glue(glue), _it(it) {}
-  string _glue;
+  StmJoinAuxStruct(vstring glue, It it) : _glue(glue), _it(it) {}
+  vstring _glue;
   It _it;
 };
 
 template<class It>
-StmJoinAuxStruct<It> join(string glue, It it)
+StmJoinAuxStruct<It> join(vstring glue, It it)
 {
   return StmJoinAuxStruct<It>(glue, it);
 }

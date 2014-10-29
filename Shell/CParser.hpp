@@ -8,10 +8,10 @@
 #ifndef __CParser__
 #define __CParser__
 
-#include <string>
 #include <vector>
 
 #include "Lib/Exception.hpp"
+#include "Lib/VString.hpp"
 
 using namespace std;
 
@@ -32,11 +32,11 @@ public:
     : public Lib::Exception
   {
   public:                                
-    LexerException(const CParser&,unsigned pos,string message);
+    LexerException(const CParser&,unsigned pos,Lib::vstring message);
     void cry(ostream&);
     ~LexerException() {}
   protected:
-    string _message;
+    Lib::vstring _message;
     unsigned _pos;
   }; // CParser::LexerException
 
@@ -48,11 +48,11 @@ public:
     : public Lib::Exception
   {
   public:                                
-    ParserException(const CParser&,unsigned pos,string message);
+    ParserException(const CParser&,unsigned pos,Lib::vstring message);
     void cry(ostream&);
     ~ParserException() {}
   protected:
-    string _message;
+    Lib::vstring _message;
     unsigned _pos;
   }; // CParser::ParserException
 

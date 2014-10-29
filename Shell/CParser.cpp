@@ -415,7 +415,7 @@ unsigned CParser::skipToEndOfComment(unsigned pos)
 /**
  * Create a new lexer exception.
  */
-CParser::LexerException::LexerException (const CParser& parser,unsigned pos,string message)
+CParser::LexerException::LexerException (const CParser& parser,unsigned pos,vstring message)
 {
   _message = message + " at position " + Int::toString(pos) + "\n>>>" + Int::toString(int(parser.input()[pos])) + "<<<" +
     "\n---------------" + (parser.input()+pos) + "\n---------------\n";
@@ -432,7 +432,7 @@ void CParser::LexerException::cry (ostream& out)
 /**
  * Create a new parser exception.
  */
-CParser::ParserException::ParserException (const CParser& parser,unsigned pos,string message)
+CParser::ParserException::ParserException (const CParser& parser,unsigned pos,vstring message)
 {
   _message = message + " at position " + Int::toString(pos) + "\n>>>" + Int::toString(int(parser.input()[pos])) + "<<<" +
     "\n---------------" + (parser.input()+pos) + "\n---------------\n";
@@ -796,7 +796,7 @@ void CParser::tokenize()
     case '"':
       end = stringConstant(pos);
       if (!end) {
-	throw LexerException(*this,pos,"non-terminated string constant");
+	throw LexerException(*this,pos,"non-terminated vstring constant");
       }
       token.type = LT_STRING_CONST;
       break;
@@ -810,7 +810,7 @@ void CParser::tokenize()
       break;
 
     default:
-      throw LexerException(*this,pos,(string)"unrecognized symbol " + _input[pos] + " in the input");
+      throw LexerException(*this,pos,(vstring)"unrecognized symbol " + _input[pos] + " in the input");
     }
     // if (end <= pos) {
     //   cout << "ERRRRRRRRRRRRRRRRRRRRRRR\n" << pos << ':' << end << ':' << _input[pos];
@@ -1182,7 +1182,7 @@ bool CParser::consumeToken(LTType t,unsigned pos,bool backtrack)
   default:
     ASS(false);
   }
-  throw ParserException(*this,pos,(string)what + " expected");
+  throw ParserException(*this,pos,(vstring)what + " expected");
 } // consumeToken
 
 /**

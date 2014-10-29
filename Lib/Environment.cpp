@@ -100,17 +100,14 @@ Environment::~Environment()
     endOutput();
   }
 
-#if CHECK_LEAKS
-  cout << "running this code" << endl;
+// #if CHECK_LEAKS
   delete sharing;
   if(signature){delete signature; signature = 0;}
   delete sorts;
   if(timer){ delete timer; timer = 0;}
   delete statistics;
   delete options;
-#endif
-
-
+//#endif
 
 }
 

@@ -12,10 +12,9 @@
 #ifndef __IntNameTable__
 #define __IntNameTable__
 
-#include <string>
-
 #include "Array.hpp"
 #include "Map.hpp"
+#include "VString.hpp"
 
 using namespace std;
 
@@ -25,14 +24,14 @@ class IntNameTable
 {
  public:
   IntNameTable();
-  int insert(const string& str);
+  int insert(const vstring& str);
 //  /** return name number n */
-//  inline string operator[] (int n) const { return _names[n]; }
+//  inline vstring operator[] (int n) const { return _names[n]; }
 //   int numberOfSymbols();
 
  private:
-  Map <string,int,Hash> _map;
-//  Array<string> _names;
+  Map <vstring,int,Hash> _map;
+//  Array<vstring> _names;
   int _nextNumber;
 }; // class NameTable
 

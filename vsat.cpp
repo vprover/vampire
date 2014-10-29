@@ -40,7 +40,7 @@ struct SatOptions
   bool minimizingSolver;
   bool checkingSolver;
   bool testLingeling;
-  string fileName;
+  vstring fileName;
 
   SatOptions()
   : simulateIncremental(false),
@@ -266,7 +266,7 @@ bool processArgs(StringStack& args, SatOptions& opts)
   bool flag=true;
   StringStack::StableDelIterator it(args);
   while(it.hasNext()) {
-    string arg = it.next();
+    vstring arg = it.next();
     if(arg=="-incr") {
       opts.simulateIncremental = true;
       it.del();
@@ -288,7 +288,7 @@ bool processArgs(StringStack& args, SatOptions& opts)
       if(!it.hasNext()) {
 	USER_ERROR("value for -tr option expected");
       }
-      string traceStr(it.next());
+      vstring traceStr(it.next());
       it.del();
       PROCESS_TRACE_SPEC_STRING(traceStr);
     }
@@ -297,7 +297,7 @@ bool processArgs(StringStack& args, SatOptions& opts)
     	if(!it.hasNext()){
     		USER_ERROR("value for -t option expected");
     	}
-    	string timelimit(it.next());
+    	vstring timelimit(it.next());
     	it.del();
     	int timeout;
     	Lib::Int::stringToInt(timelimit, timeout);

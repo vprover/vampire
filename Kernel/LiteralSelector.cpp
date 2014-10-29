@@ -225,10 +225,6 @@ void LiteralSelector::select(Clause* c, unsigned eligibleInp)
 
   ASS_G(eligible,1);
   doSelection(c, eligible);
-
-  COND_TRACE("ls", isPositiveForSelection((*c)[0]),
-      tout << "Selected "<<c->selected()<<" positive literals in " << (*c) << endl;
-  );
 }
 
 /**

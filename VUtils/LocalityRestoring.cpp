@@ -167,7 +167,6 @@ Unit* LocalityRestoring::getUnitWithMappedInference(Unit* u, DHMap<Unit*,Unit*>&
   Inference::Iterator iit(origInf->iterator());
   while(origInf->hasNext(iit)) {
     Unit* premise = origInf->next(iit);
-//      LOGV(premise->toString());
     Unit* newPremise;
     if(map.find(premise, newPremise)) {
       modified = true;
@@ -473,7 +472,6 @@ void LocalityRestoring::addComponent(UnitStack& units)
   UnitStack::Iterator mit(units);
   while(mit.hasNext()) {
     Unit* member = mit.next();
-//    LOGV(member->toString());
     UnitSpecIterator pars = InferenceStore::instance()->getParents(UnitSpec(member));
     while(pars.hasNext()) {
       Unit* parent = pars.next().unit();
@@ -483,11 +481,9 @@ void LocalityRestoring::addComponent(UnitStack& units)
       if(!fringeSet.insert(parent)) {
 	continue;
       }
-//      LOGV(parent->toString());
       rec->fringe.push(parent);
     }
   }
-//  LOGV(rec->fringe.size());
 
   rec->preprocessComponent();
   _comps.push(rec);
@@ -512,7 +508,6 @@ void LocalityRestoring::collectColorsAndLocality()
 
     Color unitColor = getColor(u);
     _unitColors.insert(u, unitColor);
-//    if(unitColor==COLOR_INVALID) { LOGV(u->toString()); }
 
     bool local = isLocal(u);
     _allLocal &= local;
@@ -786,8 +781,6 @@ private:
 
       Unit* lastReferring;
       if(_comp.lastReferringUnits.find(fOrigin, lastReferring) && lastReferring==processedUnit) {
-//        LOG("Retired "<<form->toString()<<" coming from "<<fOrigin->toString()<<" due to "<<processedUnit->toString());
-//        LOGV(qform->toString());
         bfit.del();
         qfit.del();
       }
@@ -884,10 +877,6 @@ void LocalityRestoring::processComponent(CompRecord& comp)
 
     Color fuColor = _unitColors.get(member);
 
-//    LOGV(member->toString());
-//    LOG("");
-//    LOGV(newFringe->toString());
-
     if(fuColor!=COLOR_TRANSPARENT && fuColor!=_nonQuantifiedColor) {
       ALWAYS(_processingResultMap.insert(member, newFringe));
     }
@@ -897,9 +886,7 @@ void LocalityRestoring::processComponent(CompRecord& comp)
       Unit* transpWithFringePremise =
 	  copyWithNewInference(member, new Inference1(Inference::COLOR_UNBLOCKING, newFringe));
       ALWAYS(_processingResultMap.insert(member, transpWithFringePremise));
-//      LOGV(transpWithFringePremise->toString());
     }
-//    LOG("\n");
   }
 }
 
@@ -950,8 +937,6 @@ void LocalityRestoring::processComponents()
     }
   }
 
-
-//  LOG("?????");
 //  {
 //    UnitStack::BottomFirstIterator uit2(_nscDer);
 //    while(uit2.hasNext()) {
@@ -960,35 +945,15 @@ void LocalityRestoring::processComponents()
 //      unsigned unitNumber = 3728;
 //      if(u->number()==unitNumber) {
 //	Unit* tgt;
-//	if(_localConversionMap.find(u, tgt)) {
-//	  LOG(unitNumber<<" converted to "<<tgt->toString());
-//	}
-//	else {
-//	  LOG(unitNumber<<" not converted");
-//	}
-//	if(_processingResultMap.find(u, tgt)) {
-//	  LOG(unitNumber<<" processed to "<<tgt->toString());
-//	}
-//	else {
-//	  LOG(unitNumber<<" not processed");
-//	}
-//	LOGV(_toBeProcessed.find(u));
 //      }
 //
 //      while(pit.hasNext()) {
 //	Unit* par = pit.next().unit();
 ////	if(_processingResultMap.find(par)) {
-////	  LOGV(u->toString());
-////	  LOGV(par->toString());
 ////	}
-//	if(par->number()==2921) {
-//	  LOG("2921 child is "<<u->toString());
-//	}
 //      }
 //    }
-//    LOG("------");
 ////    InferenceStore::instance()->outputProof(cout, _locDer.top());
-////    LOG("------");
 //  }
 }
 

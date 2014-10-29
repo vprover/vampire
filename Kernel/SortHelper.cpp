@@ -35,7 +35,7 @@ BaseType& SortHelper::getType(Term* t)
  */
 unsigned SortHelper::getResultSort(Term* t)
 {
-  CALL("SortHelper::getArgSort(Term*,unsigned)");
+  CALL("SortHelper::getResultSort(Term*)");
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
@@ -279,7 +279,6 @@ void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
       if (args->isOrdinaryVar()) {
 	unsigned varNum = args->var();
 	unsigned varSort = getArgSort(t, idx);
-	LOG("srt_collect_var_sorts","seen variable "<<varNum<<" in "<<t->toString()<<" with sort "<<env -> sorts->sortName(varSort));
 	if (!map.insert(varNum, varSort)) {
 	  ASS_EQ(varSort, map.get(varNum));
 	}
@@ -298,7 +297,6 @@ void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
 void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
 {
   CALL("SortHelper::collectVariableSorts(Formula*,...)");
-  LOG("srt_collect_var_sorts","collecting variable sorts for formula " << f->toString());
 
   SubformulaIterator sfit(f);
   while (sfit.hasNext()) {
@@ -306,7 +304,6 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
     if (sf->connective() != LITERAL) {
       continue;
     }
-    LOG("srt_collect_var_sorts","collecting for subformula: "<<sf->toString());
     Literal* lit = sf->literal();
 
     collectVariableSorts(lit, map);
@@ -321,8 +318,6 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
 void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,unsigned>& map)
 {
   CALL("SortHelper::collectVariableSorts(Unit*,...)");
-
-  LOG("srt_collect_var_sorts","collection variable sorts for unit " << u->toString());
 
   if (!u->isClause()) {
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);

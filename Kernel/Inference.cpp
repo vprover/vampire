@@ -219,7 +219,7 @@ Unit* Inference::next(Iterator&)
  * Return the rule name, such as "binary resolution".
  * @since 04/01/2008 Torrevieja
  */
-string Inference::ruleName(Rule rule)
+vstring Inference::ruleName(Rule rule)
 {
   CALL("Inference::ruleName");
 
@@ -286,6 +286,8 @@ string Inference::ruleName(Rule rule)
     return "equality proxy definition";
   case EQUALITY_PROXY_AXIOM2:
     return "equality proxy axiom";
+  case EXTENSIONALITY_RESOLUTION:
+    return "extensionality resolution";
   case DEFINITION_UNFOLDING:
     return "definition unfolding";
   case DEFINITION_FOLDING:
@@ -353,14 +355,8 @@ string Inference::ruleName(Rule rule)
     return "theory axiom";
   case BOOLEAN_TERM_ENCODING:
     return "boolean term encoding";
-  case SPLITTING_COMPONENT:
-    return "splitting component introduction";
-  case SPLITTING:
-    return "splitting";
-  //case BACKTRACKING_SPLITTING_COMPONENT:
-  //  return "backtracking splitting component";
-  //case BACKTRACKING_SPLIT_REFUTATION:
-  //  return "backtracking split refutation";
+ // case SPLITTING_COMPONENT:
+ //   return "splitting component introduction";
   case SAT_SPLITTING_COMPONENT:
     return "sat splitting component";
   case SAT_SPLITTING_REFUTATION:

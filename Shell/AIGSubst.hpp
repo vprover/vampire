@@ -14,6 +14,8 @@
 
 #include "Kernel/SubstHelper.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "AIG.hpp"
 
 
@@ -27,7 +29,7 @@ public:
   AIGRef apply(Applicator apl, AIGRef aig);
 
 private:
-  typedef SharedSet<unsigned> VarSet;
+  typedef const SharedSet<unsigned> VarSet;
 
   template<class Applicator>
   VarSet* getSubstFreeVars(Applicator apl, AIGRef aig);
@@ -278,10 +280,14 @@ AIGRef AIGSubst::apply(Applicator apl, AIGRef aig)
 	  tgt = _aig.getQuant(false, newQVars, parTgt);
 	}
 	map.insert(curr, tgt);
-	LOG("pp_aig_subst_quant", "quant subst:"<<endl
-	    <<"  src: "<<curr.first<<endl
-	    <<"  tgt: "<<tgt<<endl
-	    <<"  new quant: "<<newQVars->toString());
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_subst_quant: quant subst:" << std::endl
+            <<"  src: "<<curr.first<<endl
+            <<"  tgt: "<<tgt<<endl
+            <<"  new quant: "<<newQVars->toString()<<endl;
+    env->endOutput();
+  }	
       }
       else {
 	toDo.push(qpar);
@@ -318,7 +324,11 @@ AIGRef AIGSubst::apply(Applicator apl, AIGRef aig)
 
   AIGRef tgt = aig.polarity() ? tqTgt : tqTgt.neg();
 
-  LOG("pp_aig_subst", "aig subst from "<<aig<<" to "<<tgt);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_subst: aig subst from "<<aig<<" to "<<tgt << std::endl;
+    env->endOutput();
+  }
 
   return tgt;
 }

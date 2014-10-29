@@ -20,6 +20,9 @@ class CTFwSubsAndRes
 : public ForwardSimplificationEngine
 {
 public:
+  CLASS_NAME(CTFwSubsAndRes);
+  USE_ALLOCATOR(CTFwSubsAndRes);
+
   CTFwSubsAndRes(bool subsumptionResolution)
   : _subsumptionResolution(subsumptionResolution) {}
   

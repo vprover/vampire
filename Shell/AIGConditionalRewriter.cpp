@@ -13,6 +13,10 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/SubstHelper.hpp"
 
+#include "Lib/Environment.hpp"
+
+#include "Shell/Options.hpp"
+
 #include "AIGCompressor.hpp"
 #include "AIGSubst.hpp"
 #include "Flattening.hpp"
@@ -172,7 +176,11 @@ public:
   {
     CALL("AIGPrenexTransformer::QuantUnifier::QuantUnifier");
 
-    LOG("pp_aig_pren_qu", "QuantUnifier init");
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_pren_qu: QuantUnifier init" << std::endl;
+      env->endOutput();
+    }
 
     _usedVars.loadFromIterator(AIG::VarSet::Iterator(*freeVars));
 
@@ -200,11 +208,21 @@ private:
 
     if(q1.isValid() && tgtVar!=q1.var) {
       ALWAYS(_rnm1.insert(q1.var, TermList(tgtVar, false)));
-      LOG("pp_aig_pren_qu", "adding rewrite to 1: "<< q1.var << " --> "<<tgtVar);
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] aig_pren_qu: adding rewrite to 1: "
+                << q1.var << " --> "<<tgtVar << std::endl;
+        env->endOutput();
+      }
     }
     if(q2.isValid() && tgtVar!=q2.var) {
       ALWAYS(_rnm2.insert(q2.var, TermList(tgtVar, false)));
-      LOG("pp_aig_pren_qu", "adding rewrite to 2: "<< q2.var << " --> "<<tgtVar);
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] aig_pren_qu: adding rewrite to 2: "
+                << q2.var << " --> "<<tgtVar << std::endl;
+        env->endOutput();
+      }
     }
 
     _qres.push(QuantInfo(tgtVar, univ));
@@ -331,9 +349,13 @@ AIGRef AIGPrenexTransformer::processConjunction(AIGRef a)
 
   AIGRef res = quantifyBySpec(unifQuants, resConj);
 
-  LOG("pp_aig_pren_conj_res", "conj prenex transform:"<<endl<<
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_pren_conj_res: conj prenex transform:"<<endl<<
       "  src: "<<a<<endl<<
-      "  tgt: "<<res);
+      "  tgt: "<<res << std::endl;
+    env->endOutput();
+  }  
 
   return res;
 }
@@ -348,19 +370,24 @@ public:
   {
     CALL("AIGPrenexTransformer::QuantUnifier::QuantUnifier");
 
-    LOG("pp_aig_pren_qu", "QuantUnifier init, freeVars: "<<freeVars->toString()<<" aigCnt: "<<aigCnt);
-    TRACE("pp_aig_pren_qu_args", tout << "  quantifier blocks:" <<endl;
-	for(size_t i=0; i<aigCnt; i++) {
-	  tout << "  aig "<<i<<":" <<endl;
-	  QIStack::BottomFirstIterator qit(aigs[i].second);
-	  while(qit.hasNext()) {
-	    QuantInfo qi = qit.next();
-	    tout << "    "<<(qi.univ ? "un " : "ex ")<<qi.var<<endl;
-	  }
-	}
-    );
-
-
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      ostream& out = env->out();
+      out << "[PP] aig_pren_qu: QuantUnifier init, freeVars: "
+              <<freeVars->toString()<<" aigCnt: "<<aigCnt << std::endl
+              << "  quantifier blocks:" <<endl;
+      for(size_t i=0; i<aigCnt; i++) {
+        out << "  aig "<<i<<":" <<endl;
+        QIStack::BottomFirstIterator qit(aigs[i].second);
+        while(qit.hasNext()) {
+          QuantInfo qi = qit.next();
+          out << "    "<<(qi.univ ? "un " : "ex ")<<qi.var<<endl;
+        }
+      }
+      
+      env->endOutput();
+    }
+    
     _usedVars.loadFromIterator(AIG::VarSet::Iterator(*freeVars));
     process();
   }
@@ -380,7 +407,12 @@ private:
     if(!_usedVars.insert(tgtVar)) {
       tgtVar = getNextFreshVar();
     }
-    LOG("pp_aig_pren_qu","added exQuant for aig "<<aigIdx<<" locVar: "<< q.var <<" globVar: "<<tgtVar);
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_pren_qu: added exQuant for aig "
+              <<aigIdx<<" locVar: "<< q.var <<" globVar: "<<tgtVar << std::endl;
+      env->endOutput();
+    }
     if(tgtVar!=q.var) {
       ALWAYS(_rnm[aigIdx].insert(q.var, TermList(tgtVar, false)));
     }
@@ -454,12 +486,21 @@ private:
       tgtVar = getNextFreshVar();
     }
 
-    LOG("pp_aig_pren_qu","added univQuant, globVar: "<<tgtVar);
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_pren_qu: added univQuant, globVar: "<<tgtVar << std::endl;
+      env->endOutput();
+    }
     size_t cnt = aigQuants.size();
     for(size_t i=0; i<cnt; i++) {
       ASS(aigQuants[i].univ);
       unsigned locVar = aigQuants[i].var;
-      LOG("pp_aig_pren_qu","  in aig "<<aigIndexes[i]<<" locVar: "<< locVar);
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] aig_pren_qu:   in aig "<<aigIndexes[i]
+                <<" locVar: "<< locVar << std::endl;
+        env->endOutput();
+      }
       if(tgtVar!=locVar) {
 	size_t locIdx = aigIndexes[i];
         ALWAYS(_rnm[locIdx].insert(locVar, TermList(tgtVar, false)));
@@ -484,7 +525,12 @@ private:
 	QIStack& quants = _aigs[aIdx].second;
 	size_t& qIdx = qIndexes[aIdx];
 	while(qIdx<quants.size() && !quants[qIdx].univ) {
-	  LOG("pp_aig_pren_qu","ex aIdx: "<<aIdx<<" var: "<<quants[qIdx].var<<" qIdx: "<< qIdx);
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_pren_qu: ex aIdx: "<<aIdx<<" var: "
+              <<quants[qIdx].var<<" qIdx: "<< qIdx << std::endl;
+      env->endOutput();
+    }
 	  addExQuantifier(quants[qIdx], aIdx);
 	  qIdx++;
 	}
@@ -509,7 +555,12 @@ private:
 	ASS_L(qIdx,quants.size());
 	ASS(quants[qIdx].univ);
 
-	LOG("pp_aig_pren_qu","un aIdx: "<<aIdx<<" var: "<<quants[qIdx].var<<" qIdx: "<< qIdx);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_pren_qu: un aIdx: "<<aIdx<<" var: "
+            <<quants[qIdx].var<<" qIdx: "<< qIdx << std::endl;
+    env->endOutput();
+  }
 	univQuants.push(quants[qIdx]);
 	qIdx++;
       }
@@ -627,9 +678,13 @@ struct AIGPrenexTransformer::RecursiveVisitor
       posRes.first =_aig.makeConjunction(qu.getResultingInnerAigs());
       posRes.second = qu.getResQuantInfo();
 
-      LOG("pp_aig_pren_conj_res", "conj prenex transform:"<<endl<<
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] aig_pren_conj_res: conj prenex transform:"<<endl<<
           "  src: "<<objPos<<endl<<
-          "  tgt: "<<_parent.quantifyBySpec(posRes.second, posRes.first));
+          "  tgt: "<<_parent.quantifyBySpec(posRes.second, posRes.first) << std::endl;
+        env->endOutput();
+      }      
     }
 
     if(!cached) {
@@ -775,9 +830,13 @@ AIGRef AIGMiniscopingTransformer::processQuantifier(AIGRef a)
   else {
     res = a;
   }
-  COND_LOG("pp_aig_minis_step", res!=a,"miniscoping step:"<<endl<<
-      "  src: "<<a<<endl<<
-      "  tgt: "<<res);
+  if (res!=a && env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_minis_step: miniscoping step:" << endl <<
+                  "  src: " << a << endl <<
+                  "  tgt: " << res << std::endl;
+    env->endOutput();
+  }
   return res;
 }
 
@@ -862,15 +921,23 @@ struct AIGFactorizingTransformer::LocalFactorizer
   {
     CALL("AIGFactorizingTransformer::LocalFactorizer::apply");
 
-    LOG("pp_aig_fact_lcl_steps","local factorization call started");
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_fact_lcl_steps: local factorization call started"  << std::endl;
+      env->endOutput();
+    }
 
     _subAigs.reset();
     _occMap.reset();
 
     size_t conjCnt0 = conjs.size();
     makeUnique(conjs);
-    COND_LOG("pp_aig_fact_lcl_steps",conjCnt0!=conjs.size(),
-	"removed duplicate conjuncts, cnt0="<<conjCnt0<<" cnt="<<conjs.size());
+    if (conjCnt0!=conjs.size() && env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_fact_lcl_steps: removed duplicate conjuncts, cnt0="
+              <<conjCnt0<<" cnt="<<conjs.size() << std::endl;
+      env->endOutput();
+    }
     scan(conjs);
 
     static DHSet<AIGRef> removedConjs;
@@ -886,16 +953,19 @@ struct AIGFactorizingTransformer::LocalFactorizer
       ASS_GE(occStack.size(),2);
 
       AIGRef mergedDisj = getFactoredDisjunctionAndUpdateOccData(fdisj, occStack);
-      TRACE("pp_aig_fact_lcl_steps",
-	  tout<<"local factorization step:"<<endl<<
-	    "  disjunct: "<<fdisj<<endl<<
-	    "  merged:   "<<mergedDisj<<endl;
-	  AIGStack::ConstIterator rmIt(occStack);
-	  while(rmIt.hasNext()) {
-	    tout << "  removed:  " << rmIt.next()<<endl;
-	  }
-      );
-
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        ostream& out = env->out();
+        out << "[PP] aig_fact_lcl_steps: local factorization step:" <<endl<<
+                  "  disjunct: "<<fdisj<<endl<<
+                  "  merged:   "<<mergedDisj<<endl;
+        AIGStack::ConstIterator rmIt(occStack);
+        while(rmIt.hasNext()) {
+          out << "  removed:  " << rmIt.next()<<endl;
+        }                                        
+        env->endOutput();
+      }
+	     
       removedConjs.loadFromIterator(AIGStack::ConstIterator(occStack));
       addedConjs.push(mergedDisj);
       occStack.reset();
@@ -910,7 +980,11 @@ struct AIGFactorizingTransformer::LocalFactorizer
       }
     }
     conjs.loadFromIterator(AIGStack::ConstIterator(addedConjs));
-    LOG("pp_aig_fact_lcl_steps","local factorization call finished");
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_fact_lcl_steps: local factorization call finished" << std::endl;
+      env->endOutput();
+    }
   }
 
 private:
@@ -1049,9 +1123,14 @@ struct AIGFactorizingTransformer::RecursiveVisitor
       _parent.doLocalFactorization(childNodes);
       posRes = _aig.makeConjunction(childNodes);
 
-      COND_LOG("pp_aig_fact_conj_transf", obj.getPositive()!=posRes, "factor transf:"<<endl<<
-	  "  src: "<<obj.getPositive()<<endl<<
-	  "  tgt: "<<posRes);
+      if (obj.getPositive()!=posRes && env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] aig_fact_conj_transf: " << 
+                "factor transf:"<<endl<<
+                "  src: "<<obj.getPositive()<<endl<<
+            	  "  tgt: "<<posRes << std::endl;
+        env->endOutput();
+      }             
     }
 
     ALWAYS(_transfCache.insert(obj.getPositive(), posRes));
@@ -1107,7 +1186,11 @@ void AIGConditionalRewriter::apply(UnitList*& units)
       leftAside.push(u);
       continue;
     }
-    LOG_UNIT("pp_aig_cr_inp", u);
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_cr_inp: " << u->toString() << std::endl;
+      env->endOutput();
+    }
     AIGRef unitAig;
     if(u->isClause()) {
       Clause* cl = static_cast<Clause*>(u);
@@ -1132,13 +1215,17 @@ void AIGConditionalRewriter::apply(UnitList*& units)
 
   TopLevelFlatten().apply(units);
 
-  TRACE("pp_aig_cr_out",
-      UnitList::Iterator uit(units);
-      while(uit.hasNext()) {
-	Unit* u = uit.next();
-	TRACE_OUTPUT_UNIT(u);
-      }
-      );
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    ostream& out = env->out();
+    out << "[PP] aig_cr_out: " << std::endl;
+    UnitList::Iterator uit(units);
+    while(uit.hasNext()) {
+      Unit* u = uit.next();
+      out << u->toString() << std::endl;      
+    }        
+    env->endOutput();
+  }  
 }
 
 /**
@@ -1254,15 +1341,18 @@ AIGRef AIGConditionalRewriter::applyInner(AIGRef a0)
   AIGStack premises;
   AIGRef a = _engine->apply(a0, &premises);
 //  AIGRef a = a0;
-  COND_TRACE("pp_aig_cr_engine_step", a!=a0,
-      tout << "pp_aig_cr_engine_step"<<endl;
-      tout << "  src: "<<a0<<endl;
-      tout << "  tgt: "<<a<<endl;
-      AIGStack::ConstIterator pit(premises);
-      while(pit.hasNext()) {
-	tout << "  prem: " << pit.next() << endl;
-      }
-      );
+  if (a!=a0 && env->options->showPreprocessing()) {
+    env->beginOutput();
+    ostream& out = env->out();
+    out << "[PP] aig_cr_engine_step: " << std::endl;
+    out << "  src: "<<a0<<endl;
+    out << "  tgt: "<<a<<endl;
+    AIGStack::ConstIterator pit(premises);
+    while(pit.hasNext()) {
+      out << "  prem: " << pit.next() << endl;
+    }
+    env->endOutput();
+  }
 
   if(!a.isConjunction()) {
     return a;
@@ -1279,7 +1369,11 @@ AIGRef AIGConditionalRewriter::applyInner(AIGRef a0)
     collectEquivs(conjs, eqs);
     while(eqs.isNonEmpty()) {
       Equiv eq = eqs.pop();
-      LOG("pp_aig_cr_equiv", "pp_aig_cr_equiv: "<< eq.toString());
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] aig_cr_equiv: "<< eq.toString() << std::endl;
+        env->endOutput();
+      }
       conjs.push(eq.getDisjunctiveRepr(_aig));
     }
   }
@@ -1323,11 +1417,14 @@ AIGRef AIGConditionalRewriter::applyInner(AIGRef a0)
 
   AIGRef res = _aig.makeConjunction(conjs);
 
-  COND_LOG("pp_aig_cr_inner_step", a0!=res,
-	 "pp_aig_cr_inner_step"<<endl
-      << "  src: "<<a0<<endl
-      << "  tgt: "<<res);
-
+  if (a0!=res && env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_cr_inner_step: " << std::endl
+            << "  src: "<<a0<<endl
+            << "  tgt: "<<res << endl;
+    env->endOutput();
+  }
+  
   return res;
 }
 
@@ -1338,16 +1435,27 @@ AIGRef AIGConditionalRewriter::apply(AIGRef a0)
   _freshnessGuard.use();
 
   AIGRef outer = a0;
-
-  LOG("pp_aig_cr_progress","prenex transformation");
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_cr_progress: prenex transformation" << std::endl;
+    env->endOutput();
+  }
   AIGPrenexTransformer apt(_aig);
   outer = apt.apply(outer);
 
-  LOG("pp_aig_cr_progress","factorization");
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_cr_progress: factorization" << std::endl;
+    env->endOutput();
+  }
   AIGFactorizingTransformer factor(_aig);
   outer = factor.apply(outer);
 
-  LOG("pp_aig_cr_progress","inner conditional rewriting");
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_cr_progress: inner conditional rewriting" << std::endl;
+    env->endOutput();
+  }
   AIGRef inner;
   apt.collectQuants(outer, _prenexQuantifiers, inner);
 
@@ -1361,53 +1469,34 @@ AIGRef AIGConditionalRewriter::apply(AIGRef a0)
 
   outer = apt.quantifyBySpec(_prenexQuantifiers, inner);
 
-  LOG("pp_aig_cr_progress","miniscoping");
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_cr_progress: miniscoping" << std::endl;
+    env->endOutput();
+  }
   AIGMiniscopingTransformer minis(_aig);
   outer = minis.apply(outer);
 
   return outer;
 
-
-//  LOG("bug","init:  "<<a0);
-//  LOG("bug","pren: "<<aPrenex);
-//  LOG("bug","fact: "<<aFactor);
-//  LOG("bug","mnsc: "<<aMinis);
-//  LOG("bug","-----------------------");
-//  LOG("bug","-----------------------");
-//  LOG("bug","-----------------------");
-//
 //  AIGStack conjs;
 //  _aig.collectConjuncts(factInner, conjs);
 //
 //  EquivStack eqs;
 //  collectEquivs(conjs, eqs);
 //
-//  LOGV("bug",conjs.size());
-//
 //  AIGCompressor aCompr(_aig);
 //
 //  while(conjs.isNonEmpty()) {
 //    AIGRef conjunct = conjs.pop();
 //    AIGRef conjSimp = aCompr.compress(conjunct);
-//    LOGV("bug", conjunct);
-//    if(conjunct!=conjSimp) {
-//      LOGV("bug", conjSimp);
-//    }
 //  }
 //
-//  while(eqs.isNonEmpty()) {
-//    LOGV("bug", eqs.pop().toString());
-//  }
-//
-////  LOG("bug","-----------------------");
-////  LOG("bug","-----------------------");
-////  LOG("bug","-----------------------");
+
 ////
 ////  _aig.collectConjuncts(aMinis, conjs);
-////  LOGV("bug",conjs.size());
 ////
 ////  while(conjs.isNonEmpty()) {
-////    LOGV("bug", conjs.pop());
 ////  }
 //
 //  return aPrenex;

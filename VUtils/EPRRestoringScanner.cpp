@@ -80,7 +80,6 @@ void EPRRestoringScanner::computeEprResults(Problem& prb)
   _eprRes = UNDEF;
 
   int origArity = prb.getProperty()->maxFunArity();
-  LOGV("vu_ers", origArity);
   if(origArity!=0) {
     _eprRes = FORM_NON_EPR;
   }
@@ -91,18 +90,15 @@ void EPRRestoringScanner::computeEprResults(Problem& prb)
   prepro.preprocess(prbCl);
 
   countClauses(prbCl, _baseClauseCnt, _baseNonEPRClauseCnt);
-  LOG("vu_ers", "Ordinary preprocessing finished, clause count: " << _baseClauseCnt <<" non-epr: " << _baseNonEPRClauseCnt);
 
   {
     EquivalenceDiscoverer ed(_useVariableNormalizationForSatEqDiscovery,
 	_useUnitPropagationForSatEqDiscovery ? 0 : UINT_MAX, EquivalenceDiscoverer::CR_EQUIVALENCES, false, true, true);
     _satDiscovered0 = ed.getEquivalences(prbCl.clauseIterator())->length();
-    LOG("vu_ers", "Sat solver discoveder: " << _satDiscovered0 <<" equivlences in the unprocessed problem");
   }
 
 
   int clArity = prbCl.getProperty()->maxFunArity();
-  LOGV("vu_ers", clArity);
   if(clArity==0 && _eprRes==UNDEF) {
     _eprRes = EASY_EPR;
   }
@@ -119,12 +115,10 @@ void EPRRestoringScanner::computeEprResults(Problem& prb)
   Preprocess prepro2(optsER);
   prepro2.preprocess(prbClRest);
 
-  countClauses(prbClRest, _erClauseCnt, _erNonEPRClauseCnt);
-  LOG("vu_ers", "Restoring preprocessing finished, clause count: " << _erClauseCnt <<" non-epr: " << _erNonEPRClauseCnt);
+  countClauses(prbClRest, _erClauseCnt, _erNonEPRClauseCnt); 
 
   int restArity = prbClRest.getProperty()->maxFunArity();
 
-  LOGV("vu_ers", restArity);
   if(_eprRes==UNDEF) {
     if(restArity==0) {
       _eprRes = MADE_EPR_WITH_RESTORING;
@@ -147,24 +141,19 @@ void EPRRestoringScanner::computeInliningResults(Problem& prb0)
   EqualityPropagator().apply(prb);
 
   _predDefCnt = countDefinitions(prb);
-  LOG("vu_ers", "Definition count:" << _predDefCnt);
-
 
   Problem prbNG;
   prb.copyInto(prbNG, false);
   PDInliner(false, false,true).apply(prbNG);
   _predDefsNonGrowing = _predDefCnt - countDefinitions(prbNG);
-  LOG("vu_ers", "Non-growing pred-defs: " << _predDefsNonGrowing);
 
   Problem prbDM;
   prb.copyInto(prbDM, false);
   PDMerger().apply(prbDM);
   _predDefsMerged = _predDefCnt - countDefinitions(prbDM);
-  LOG("vu_ers", "Merged pred-defs: " << _predDefsMerged);
 
   PDMerger().apply(prbNG);
   _predDefsAfterNGAndMerge = countDefinitions(prbNG);
-  LOG("vu_ers", "Definition count after non-growing inlining and merging: " << _predDefsAfterNGAndMerge);
 
   Options optsDMNG = _opts;
 
@@ -186,7 +175,6 @@ start:
 
   if(firstIteration) {
     countClauses(prbCl, _ngmClauseCnt, _ngmNonEPRClauseCnt);
-    LOG("vu_ers", "Non-growing inlining and merging clause count: " << _ngmClauseCnt <<" non-epr: " << _ngmNonEPRClauseCnt);
   }
 
   EquivalenceDiscoverer ed(_useVariableNormalizationForSatEqDiscovery,
@@ -195,11 +183,7 @@ start:
   unsigned currentlyDiscovered = equivs->length();
   if(firstIteration) {
     _satDiscoveredAfterNGM = currentlyDiscovered;
-    LOG("vu_ers", "Sat solver discovered: " << _satDiscoveredAfterNGM <<" equivlences in problem after non-growing inlining and merging");
     firstIteration = false;
-  }
-  else {
-    LOG("vu_ers", "next iteration discovered "<<currentlyDiscovered);
   }
   _satDiscoveredIterativelyAfterNGM += currentlyDiscovered;
   if(currentlyDiscovered!=0 && _satDiscoveryIterationCnt<10) {
@@ -242,7 +226,7 @@ int EPRRestoringScanner::perform(int argc, char** argv)
   if(argc<3) {
     USER_ERROR("file name expected as second argument");
   }
-  string fname = argv[2];
+  vstring fname = argv[2];
 
   _opts.setTheoryAxioms(false);
   _opts.setInputFile(fname);

@@ -13,7 +13,7 @@
 namespace Lib
 {
 
-bool OptionsReader::tryReadBool(string val, bool& tgt)
+bool OptionsReader::tryReadBool(vstring val, bool& tgt)
 {
   CALL("OptionsReader::tryReadBool");
 
@@ -28,7 +28,7 @@ bool OptionsReader::tryReadBool(string val, bool& tgt)
   return false;
 }
 
-bool OptionsReader::readOption(string name, string value) const
+bool OptionsReader::readOption(vstring name, vstring value) const
 {
   CALL("OptionsReader::readOption");
 
@@ -48,19 +48,16 @@ bool OptionsReader::readOption(string name, string value) const
       tgt = UINT_MAX;
       return true;
     }
-    LOG("or_fail","wrong int value: "<<name<<" = "<<value);
     return false;
   }
   else if(_floatOptTargets.find(name)) {
     if(!Int::stringToFloat(value.c_str(), *_floatOptTargets.get(name))) {
-      LOG("or_fail","wrong float value: "<<name<<" = "<<value);
       return false;
     }
     return true;
   }
   else if(_boolOptTargets.find(name)) {
     if(!tryReadBool(value, *_boolOptTargets.get(name))) {
-      LOG("or_fail","wrong boolean value: "<<name<<" = "<<value);
       return false;
     }
     return true;
@@ -69,40 +66,34 @@ bool OptionsReader::readOption(string name, string value) const
     int* tgt = _enumOptTargets.get(name);
     const EnumReaderBase& rdr = _enumOptVals.get(name);
     if(!rdr.tryRead(value, *tgt)) {
-      LOG("or_fail","bad enum value: "<<name<<" = "<<value);
-      LOG("or_fail","possible values: "<<rdr.toString());
       return false;
     }
     return true;
   }
-  LOG("or_fail","unknown option name: "<<name<<" = "<<value);
   return false;
 }
 
-bool OptionsReader::readOptions(string str) const
+bool OptionsReader::readOptions(vstring str) const
 {
   CALL("OptionsReader::readOptions");
 
-  DHMap<string,string> optVals;
+  DHMap<vstring,vstring> optVals;
   if(!StringUtils::readEqualities(str.c_str(), ':', '=', optVals)) {
-    LOG("or_fail","wrong sequence of equalities: "<<str);
     return false;
   }
 
-  DHMap<string,string>::Iterator oit(optVals);
+  DHMap<vstring,vstring>::Iterator oit(optVals);
   while(oit.hasNext()) {
-    string name, val;
+    vstring name, val;
     oit.next(name, val);
     if(!readOption(name, val)) {
-      LOG("or_fail","could not set option: "<<name<<" = "<<val);
       return false;
     }
-    LOG("or_set","have set option: "<<name<<" = "<<val);
   }
   return true;
 }
 
-void OptionsReader::printOptionValue(string name, ostream& out)
+void OptionsReader::printOptionValue(vstring name, ostream& out)
 {
   CALL("OptionsReader::printOptionValue");
 
@@ -130,22 +121,23 @@ void OptionsReader::printOptionValue(string name, ostream& out)
   }
 }
 
-string OptionsReader::getOptionStringValue(string optName)
+vstring OptionsReader::getOptionStringValue(vstring optName)
 {
   CALL("OptionsReader::getOptionStringValue");
-
-  stringstream stm;
+  
+  vostringstream stm;
+  
   printOptionValue(optName, stm);
   return stm.str();
 }
 
-void OptionsReader::printOptionValues(ostream& out, OptionsReader* defOpts, string linePrefix)
+void OptionsReader::printOptionValues(ostream& out, OptionsReader* defOpts, vstring linePrefix)
 {
   CALL("OptionsReader::printOptionValues");
 
   StringStack::BottomFirstIterator nameIt(_longNames);
   while(nameIt.hasNext()) {
-    string nm = nameIt.next();
+    vstring nm = nameIt.next();
 
     out << linePrefix << nm << ": ";
     printOptionValue(nm, out);
