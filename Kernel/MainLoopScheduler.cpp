@@ -61,7 +61,9 @@ MainLoopResult MainLoopScheduler::run() {
 
 	CALL("MainLoopScheduler::run");
 
-        cout << "Beginning run with " << _capacity << " concurrent strategies." << endl;
+#if VDEBUG
+     cout << "Beginning run with " << _capacity << " concurrent strategies." << endl;
+#endif //VDEBUG
 
 	MainLoopResult* result = 0;
 	try {

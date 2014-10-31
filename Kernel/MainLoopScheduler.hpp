@@ -56,11 +56,13 @@ public:
 		std::cout << MainLoopContext::currentContext->_id << ": ";
 		return std::cout;
 	}
-#endif
+#endif //VDEBUG
 
 	inline
 	void addStrategy(Shell::Options& opt){
-                cout << "Adding a new strategy, currently ignoring that its priority is " << opt.getMultiProofAttemptPriority() << endl;
+#if VDEBUG
+                cout << "Adding a new strategy, its priority is " << opt.getMultiProofAttemptPriority() << endl;
+#endif //VDEBUG
 		optionsQueue.push(&opt);
 	}
 
@@ -82,14 +84,17 @@ private:
 	std::size_t _contextCounter;
 	MainLoopContext** _mlcl;
 
-	/*class CompareOptions{
+	class CompareOptions{
 		public:
-	    	bool operator()(Shell::Options* lhs, Shell::Options* rhs) {
-	    		return (lhs < rhs);
-	    	}
-	};*/
 
-	std::priority_queue<Shell::Options*/*, std:vector<Shell::Options*>, CompareOptions*/> optionsQueue;
+		//Reversed priority order: 0 - TOP priority
+		inline
+	    	bool operator()(Shell::Options* lhs, Shell::Options* rhs) const {
+	    		return (lhs -> getMultiProofAttemptPriority() > rhs ->getMultiProofAttemptPriority());
+	    	}
+	};
+
+	std::priority_queue<Shell::Options*, std::vector<Shell::Options*>, CompareOptions> optionsQueue;
 
 	static MainLoopContext* createContext(Problem& prb, Shell::Options& opt);
 
