@@ -417,6 +417,8 @@ void Splitter::init(SaturationAlgorithm* sa)
   _flushThreshold = sa->getGeneratedClauseCount() + _flushPeriod;
 
   _congruenceClosure = opts.splittingCongruenceClosure();
+  
+  _fastRestart = opts.splittingFastRestart();
 }
 
 SplitLevel Splitter::getNameFromLiteral(SATLiteral lit) const
@@ -533,8 +535,24 @@ void Splitter::onAllProcessed()
   if(toAdd.isNonEmpty()) {
     addComponents(toAdd);
   }
+
   if (newZeroImplied.isNonEmpty()) {
     processNewZeroImplied(newZeroImplied);
+  }
+  
+  // now that new activ-ness has been determined  
+  // we can put back the fast clauses, if any
+  while(_fastClauses.isNonEmpty()) {
+    Clause* rcl=_fastClauses.popWithoutDec();
+
+    if (allSplitLevelsActive(rcl->splits())) {
+      RSTAT_CTR_INC("fast_clauses_restored");
+      _sa->addNewClause(rcl);
+    } else {
+      RSTAT_CTR_INC("fast_clauses_released");
+    }
+    
+    rcl->decRefCnt(); //belongs to _fastClauses.popWithoutDec();
   }
 }
 
@@ -718,6 +736,11 @@ bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
 
+  if (_fastRestart && _conflictClausesToBeAdded.size() > 0) {
+    _fastClauses.push(cl);
+    return true; // the clause is ours now
+  }
+  
   if (_conflictClausesToBeAdded.size() > 0) {
     _clausesSinceEmpty++;
   }
@@ -980,9 +1003,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   }
   SplitSet* diff=unionAll->subtract(cl->splits());      
         
-#if VDEBUG
-  assertSplitLevelsActive(diff);
-#endif
+  ASS(allSplitLevelsActive(diff));
 
   if(diff->isEmpty()) {
     return;
@@ -1004,17 +1025,20 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   }
 }
 
-void Splitter::assertSplitLevelsActive(SplitSet* s)
+bool Splitter::allSplitLevelsActive(SplitSet* s)
 {
-  CALL("Splitter::assertSplitLevelsActive");
+  CALL("Splitter::allSplitLevelsActive");
 
   SplitSet::Iterator sit(*s);
   while(sit.hasNext()) {
     SplitLevel lev=sit.next();
     ASS_REP(lev<_db.size(), lev);
     ASS_REP(_db[lev]!=0, lev);
-    ASS_REP(_db[lev]->active, lev);
+    if (!_db[lev]->active) {
+      return false;
+    }
   }
+  return true;
 }
 
 void Splitter::onNewClause(Clause* cl)
@@ -1042,9 +1066,7 @@ void Splitter::onNewClause(Clause* cl)
     assignClauseSplitSet(cl, splits);
   }
 
-#if VDEBUG
-  assertSplitLevelsActive(cl->splits());
-#endif
+  ASS(allSplitLevelsActive(cl->splits()));  
 }
 
 /**
@@ -1226,10 +1248,9 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       // TODO: keep statistics in release ?
       RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
       RSTAT_CTR_INC("total_unfrozen");
-#if VDEBUG      
+
       //check that restored clause does not depend on inactive splits
-      assertSplitLevelsActive(rcl->splits());
-#endif
+      ASS(allSplitLevelsActive(rcl->splits()));
     }
     rcl->decRefCnt(); //belongs to restored.popWithoutDec();
   }

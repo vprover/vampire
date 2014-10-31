@@ -203,7 +203,7 @@ private:
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
 
-  void assertSplitLevelsActive(SplitSet* s);
+  bool allSplitLevelsActive(SplitSet* s);
 
   //settings
   Options::SplittingAddComplementary _complBehavior;
@@ -248,6 +248,14 @@ private:
    */
   SATClauseStack _regularClausesToBeAdded;
   SATClauseStack _conflictClausesToBeAdded;
+    
+  bool _fastRestart; // option's value copy
+  /**
+   * We are postponing to consider these clauses for a split 
+   * because a conflict clause has been derived
+   * and will invariably change the SAT model.
+   */
+  RCClauseStack _fastClauses;
   
   SaturationAlgorithm* _sa;
   
