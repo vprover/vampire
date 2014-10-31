@@ -289,6 +289,7 @@ const char* Options::Constants::_optionNames[] = {
   "splitting_add_complementary",
   "splitting_congruence_closure",
   "splitting_eager_removal",
+  "splitting_fast_restart",
   "splitting_flush_period",
   "splitting_flush_quotient",
   "splitting_handle_zero_implied",
@@ -379,7 +380,8 @@ const char* Options::Constants::_shortNames[] = {
   "sd",       
   "ser",      
   "sfp",      
-  "sfq",      
+  "sfq",
+  "sfr",
   "sfv",      
   "sgt",
   "shzi",
@@ -465,6 +467,7 @@ int Options::Constants::shortNameIndexes[] = {
   SPLITTING_EAGER_REMOVAL,
   SPLITTING_FLUSH_PERIOD,
   SPLITTING_FLUSH_QUOTIENT,
+  SPLITTING_FAST_RESTART,
   SUPERPOSITION_FROM_VARIABLES,
   SINE_GENERALITY_THRESHOLD,
   SPLITTING_HANDLE_ZERO_IMPLIED,
@@ -988,6 +991,7 @@ Options::Options ()
   _splittingAddComplementary(SAC_GROUND),
   _splittingCongruenceClosure(false),
   _splittingEagerRemoval(true),
+  _splittingFastRestart(false),
   _splittingFlushPeriod(0),
   _splittingFlushQuotient(1.5f),
   _splittingHandleZeroImplied(false),
@@ -1681,6 +1685,9 @@ void Options::set(const char* name,const char* value, int index)
     case SPLITTING_EAGER_REMOVAL:
       _splittingEagerRemoval = onOffToBool(value,name);
       return;
+    case SPLITTING_FAST_RESTART:
+      _splittingFastRestart = onOffToBool(value,name);
+      return;      
     case SPLITTING_FLUSH_PERIOD:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
 	_splittingFlushPeriod = unsignedValue;
@@ -2524,6 +2531,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SPLITTING_EAGER_REMOVAL:
     str << boolToOnOff(_splittingEagerRemoval);
     return;
+  case SPLITTING_FAST_RESTART:
+    str << boolToOnOff(_splittingFastRestart);
+    return;    
   case SPLITTING_FLUSH_PERIOD:
     str << _splittingFlushPeriod;
     return;

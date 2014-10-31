@@ -222,6 +222,7 @@ public:
     SPLITTING_ADD_COMPLEMENTARY,
     SPLITTING_CONGRUENCE_CLOSURE,
     SPLITTING_EAGER_REMOVAL,
+    SPLITTING_FAST_RESTART,
     SPLITTING_FLUSH_PERIOD,
     SPLITTING_FLUSH_QUOTIENT,
     SPLITTING_HANDLE_ZERO_IMPLIED,
@@ -797,11 +798,12 @@ public:
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary; }
   int splittingFlushPeriod() const { return _splittingFlushPeriod; }
   float splittingFlushQuotient() const { return _splittingFlushQuotient; }
-  bool splittingEagerRemoval() const { return _splittingEagerRemoval; }
-  bool splittingCongruenceClosure() const { return _splittingCongruenceClosure; }
-  bool splittingHandleZeroImplied() const{ return _splittingHandleZeroImplied;}
-  SplittingModel splittingModel() const { return _splittingModel; }
-  SplittingLitaralPolarityAdvice splittingLitaralPolarityAdvice() const { return _splittingLiteralPolarityAdvice; }
+  bool splittingEagerRemoval() const { return _splittingEagerRemoval; }  
+  bool splittingCongruenceClosure() const { return _splittingCongruenceClosure; }  
+  bool splittingFastRestart() const { return _splittingFastRestart; }
+  bool splittingHandleZeroImplied() const{ return _splittingHandleZeroImplied;}  
+  SplittingLitaralPolarityAdvice splittingLitaralPolarityAdvice() const { return _splittingLiteralPolarityAdvice; }    
+  SplittingModel splittingModel() const { return _splittingModel; } 
 
   void setProof(Proof p) { _proof = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval; }
@@ -1014,6 +1016,7 @@ private:
   SplittingAddComplementary _splittingAddComplementary;
   bool _splittingCongruenceClosure;
   bool _splittingEagerRemoval;
+  bool _splittingFastRestart;
   unsigned _splittingFlushPeriod;
   float _splittingFlushQuotient;
   bool _splittingHandleZeroImplied;
