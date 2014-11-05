@@ -485,6 +485,7 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
 
   if(_congruenceClosure && cl->length()==1 && (*cl)[0]->ground() && cl->splits()->isEmpty()) {
     //we add ground unit clauses if we use congruence closure...
+    // (immediately zero implied!)
     compName = tryGetComponentNameOrAddNew(cl->length(), cl->literals(), cl, compCl);
     RSTAT_CTR_INC("ssat_ground_clauses_for_congruence");
     return true;
@@ -1134,10 +1135,8 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
    */
   Clause::requestAux();  
   
-  static RCClauseStack trashed;
   static RCClauseStack restored;
-  ASS(restored.isEmpty());
-  ASS(trashed.isEmpty());
+  ASS(restored.isEmpty());  
 
   SplitSet* backtracked = SplitSet::getFromArray(toRemove.begin(), toRemove.size());
 
