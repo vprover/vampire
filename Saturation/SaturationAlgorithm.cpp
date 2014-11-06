@@ -152,9 +152,9 @@ SaturationAlgorithm::~SaturationAlgorithm()
   if (_generator) {
     _generator->detach();
   }
-  if (_immediateSimplifier) {
-    _immediateSimplifier->detach();
-  }
+  //if (_immediateSimplifier) {
+  //  _immediateSimplifier->detach();
+  //}
 
   while (_fwSimplifiers) {
     ForwardSimplificationEngine* fse = FwSimplList::pop(_fwSimplifiers);
@@ -1389,7 +1389,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   res->setGeneratingInferenceEngine(gie);
 
-  res->setImmediateSimplificationEngine(createISE(prb, opt));
+  res ->_immediateSimplifier = static_cast<SaturationAlgorithmContext*>(MainLoopContext::currentContext) -> immediateSimplifier();
+  //res->setImmediateSimplificationEngine(createISE(prb, opt));
 
   // create forward simplification engine
   if (opt.hyperSuperposition()) {

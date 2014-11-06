@@ -10,6 +10,8 @@
 #include "Kernel/MainLoopContextFwd.hpp"
 #include "Kernel/ProblemFwd.hpp"
 
+//#include "Lib/SmartPtr.hpp"
+
 #include "SAT/SAT2FO.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -28,17 +30,28 @@ SSplittingBranchSelector SaturationAlgorithmContext::_branchSelector(&Saturation
 ClauseVariantIndex SaturationAlgorithmContext::_componentIdx;
 Lib::DHMap<Kernel::Clause*,Kernel::SplitLevel> SaturationAlgorithmContext::_compNames;
 
+std::unique_ptr<Inferences::ImmediateSimplificationEngine> SaturationAlgorithmContext::_immediateSimplifier;
+
 SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts):
 		MainLoopContext(prb, opts) {
 	CALL("SaturationAlgorithmContext::SaturationAlgorithmContext");
 
-	AutoSwitch s(this);
+#if VDEBUG
+	std::cout << "Creating context for saturation algorithm " << _id << std::endl;
+#endif //VDEBUG
+
+	TypedAutoSwitch<MainLoopContext> s(this);
+	//[dmitry] immediate simplifier must be initialised before creation of saturation algorithms
+	if( ! (_immediateSimplifier) ){
+#if VDEBUG
+	std::cout << "Initialising immediate simplifier for saturation algorithms" << std::endl;
+#endif //VDEBUG
+		_immediateSimplifier = std::unique_ptr<Inferences::ImmediateSimplificationEngine>(SaturationAlgorithm:: createISE(*_prb, opts));
+	}
 	SaturationAlgorithm* sa = SaturationAlgorithm::createFromOptions(*_prb, opts);
 	_ml = sa;
 	_splitter = static_cast<SSplitter*>(sa -> splitter());//[dmitry] TODO: Merge Splitter and SSplitter and remove this cast
 	if(!_branchSelectorInitialised){
-		//_sat2fo = SAT2FO();
-		//_branchSelector = SSplittingBranchSelector(&_sat2fo);
 		_branchSelector.init(opts);
 		_branchSelectorInitialised = true;
 	}
@@ -51,8 +64,36 @@ SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& op
 SaturationAlgorithmContext::~SaturationAlgorithmContext() {
 	CALL("SaturationAlgorithmContext::~SaturationAlgorithmContext");
 
-	AutoSwitch s(this);
+#if VDEBUG
+	std::cout << "Deleting context for saturation algorithm " << _id << std::endl;
+#endif //VDEBUG
+
+	TypedAutoSwitch<MainLoopContext> s(this);
 	delete _ml;
+}
+
+void SaturationAlgorithmContext::switchIn(){
+	CALL("SaturationAlgorithmContext::switchIn");
+
+	MainLoopContext::switchIn();
+	ASS(_ml);
+	ASS(_immediateSimplifier);
+
+#if VDEBUG
+	std::cout << "Attaching saturation algorithm to immediate simplifier" << std::endl;
+#endif //VDEBUG
+	_immediateSimplifier ->attach(static_cast<SaturationAlgorithm*>(_ml));
+}
+
+void SaturationAlgorithmContext::switchOut(){
+	CALL("SaturationAlgorithmContext::switchOut");
+
+	ASS(_immediateSimplifier && _immediateSimplifier ->attached());
+#if VDEBUG
+	std::cout << "Detaching saturation algorithm from immediate simplifier" << std::endl;
+#endif //VDEBUG
+	_immediateSimplifier -> detach();
+	MainLoopContext::switchOut();
 }
 
 };

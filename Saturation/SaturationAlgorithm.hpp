@@ -169,7 +169,7 @@ protected:
   ActiveClauseContainer* _active;
 
   ScopedPtr<GeneratingInferenceEngine> _generator;
-  ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
+  ImmediateSimplificationEngine* _immediateSimplifier;
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;

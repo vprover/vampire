@@ -8,12 +8,17 @@
 #ifndef __SaturationAlgorithmContext__
 #define __SaturationAlgorithmContext__
 
-#include "Forwards.hpp"
+//#include "Forwards.hpp"
+
+#include <memory>
 
 #include "Lib/DHMap.hpp"
+//include "Lib/SmartPtr.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/MainLoopContext.hpp"
+
+#include "Inferences/InferenceEngine.hpp"
 
 //#include "SAT/SAT2FO.hpp"
 
@@ -43,6 +48,13 @@ namespace Saturation {
 		~SaturationAlgorithmContext();
 
 		const SSplitter* splitter() const { return _splitter; }
+		Inferences::ImmediateSimplificationEngine* immediateSimplifier() const { return _immediateSimplifier.get(); };
+
+	protected:
+		// Switch into this context
+		virtual void switchIn();
+		// Switch out from the context
+		virtual void switchOut();
 
 	private:
 		static bool _branchSelectorInitialised;
@@ -52,6 +64,8 @@ namespace Saturation {
 		SSplitter* _splitter;
 		//static ClauseVariantIndex _componentIdx;
 		static SAT::SAT2FO _sat2fo;
+
+		static std::unique_ptr<Inferences::ImmediateSimplificationEngine>_immediateSimplifier;
 	};
 
 } /* namespace Saturation */

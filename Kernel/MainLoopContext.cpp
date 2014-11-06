@@ -30,7 +30,7 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 #if VDEBUG
 			_id(id_counter++),
 #endif
-            _opts(opts), _startTime(0), _elapsed(0), _initialised(false), _steps(0) {
+            _ml(0), _opts(opts), _startTime(0), _elapsed(0), _initialised(false), _steps(0) {
 
 		CALL("MainLoopContext::MainLoopContext");
 

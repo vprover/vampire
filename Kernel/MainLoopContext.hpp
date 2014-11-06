@@ -63,9 +63,9 @@ public:
 
 protected:
 	// Switch into this context
-	void switchIn();
+	virtual void switchIn();
 	// Switch out from the context
-	void switchOut();
+	virtual void switchOut();
 
 	class AutoSwitch{
 		public:
@@ -75,6 +75,18 @@ protected:
 	        MainLoopContext* _cntxt;
 	};
 	friend class AutoSwitch;
+
+	template<class T>
+	class TypedAutoSwitch{
+			public:
+		        TypedAutoSwitch(T* c) : _cntxt(c) { _cntxt -> T::switchIn(); }
+		        ~TypedAutoSwitch(){ _cntxt -> T::switchOut(); }
+			private:
+		        T* _cntxt;
+	};
+	template<class T>
+	friend class TypedAutoSwitch;
+
 
 	ConcurrentMainLoop* _ml;
 	const Shell::Options& _opts;

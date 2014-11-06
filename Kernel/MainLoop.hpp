@@ -49,6 +49,7 @@ public:
 
   MainLoopResult run();
   static MainLoop* createFromOptions(Problem& prb, const Options& opt);
+  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt);
 
   /**
    * A struct that is thrown as an exception when a refutation is found
@@ -91,7 +92,7 @@ public:
 
 protected:
   static bool isRefutation(Clause* cl);
-  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt);
+  //static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt);
 
   /**
    * This function is called after all initialization of the main loop
