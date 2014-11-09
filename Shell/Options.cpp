@@ -196,7 +196,7 @@ Options::Options ()
                "number of subformula occurrences needed to introduce a name for it (if aig_definition_introduction is enabled)";
     _lookup.insert(&_aigDefinitionIntroductionThreshold);
     _aigDefinitionIntroductionThreshold.tag(OptionTag::PREPROCESSING);
-    _aigDefinitionIntroductionThreshold.addConstraint(new NotEqual<unsigned>(0));
+    _aigDefinitionIntroductionThreshold.addConstraint(notEqual(0u));
 
     _aigFormulaSharing = BoolOptionValue("aig_formula_sharing","",false);
     _aigFormulaSharing.description="Detection and sharing of common subformulas using AIG representation";
@@ -266,7 +266,7 @@ Options::Options ()
     "Preprocessing rule that splits clauses in order to reduce number of different variables in each clause";
     _lookup.insert(&_generalSplitting);
     _generalSplitting.tag(OptionTag::PREPROCESSING);
-    _generalSplitting.addConstraint(new NotEqual<RuleActivity>(RuleActivity::ON));
+    _generalSplitting.addConstraint(notEqual(RuleActivity::ON));
     
     _hornRevealing= BoolOptionValue("horn_revealing","",false);
     _hornRevealing.description=
@@ -350,12 +350,17 @@ Options::Options ()
     "Limit number of iterations of the transitive closure algorithm that selects formulas based on SInE's D-relation (see SInE description). 0 means no limit, 1 is a maximal limit (least selected axioms), 2 allows two iterations, etc...";
     _lookup.insert(&_sineDepth);
     _sineDepth.tag(OptionTag::PREPROCESSING);
+    // Captures that if the value is not default then sineSelection must be on
+    _sineDepth.addConstraint(new DefaultDependence<unsigned,SineSelection>(&_sineSelection,new notequals<SineSelection>(SineSelection::OFF)));
     
     _sineGeneralityThreshold = UnsignedOptionValue("sine_generality_threshold","sgt",0);
     _sineGeneralityThreshold.description=
     "Generality of a symbol is the number of input formulas in which a symbol appears. If the generality of a symbol is smaller than the threshold, it is always added into the D-relation with formulas in which it appears.";
     _lookup.insert(&_sineGeneralityThreshold);
     _sineGeneralityThreshold.tag(OptionTag::PREPROCESSING);
+    // Captures that if the value is not default then sineSelection must be on
+    _sineGeneralityThreshold.addConstraint(
+        new DefaultDependence<unsigned,SineSelection>(&_sineSelection,new notequals<SineSelection>(SineSelection::OFF)));
     
     _sineSelection = ChoiceOptionValue<SineSelection>("sine_selection","ss",SineSelection::OFF,{"axioms","included","off"});
     _sineSelection.description=
@@ -367,13 +372,15 @@ Options::Options ()
     _sineTolerance.description="SInE tolerance parameter (sometimes referred to as 'benevolence')";
     _lookup.insert(&_sineTolerance);
     _sineTolerance.tag(OptionTag::PREPROCESSING);
-    _sineTolerance.addConstraint(new Or<float>(new Equal<float>(0.0f),new GreaterThan<float>(1.0f,true) ));
+    _sineTolerance.addConstraint(equal(0.0f)->Or(greaterThanEq(1.0f) ));
+    // Captures that if the value is not 1.0 then sineSelection must be on
+    _sineTolerance.addConstraint(new DefaultDependence<float,SineSelection>(&_sineSelection,new notequals<SineSelection>(SineSelection::OFF)));
     
     _naming = IntOptionValue("naming","nm",8);
     _naming.description="";
     _lookup.insert(&_naming);
     _naming.tag(OptionTag::PREPROCESSING);
-    _naming.addConstraint(new LessThan<int>(32768));
+    _naming.addConstraint(lessThan(32768));
     
     _rowVariableMaxLength = IntOptionValue("row_variable_max_length","",2);
     _rowVariableMaxLength.description="";
@@ -486,8 +493,9 @@ Options::Options ()
     "inst_gen and tabulation aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
+    // Captures that if the saturation algorithm is InstGen then splitting must be off
     _saturationAlgorithm.addConstraint(new Dependence<SaturationAlgorithm,bool>(
-      new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN),&_splitting,new notequals<bool>(true)));
+        new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN),&_splitting,new notequals<bool>(true)));
     
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
@@ -521,8 +529,8 @@ Options::Options ()
     "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
     _lookup.insert(&_lrsFirstTimeCheck);
     _lrsFirstTimeCheck.tag(OptionTag::SATURATION);
-    _lrsFirstTimeCheck.addConstraint(new GreaterThan<int>(0,true));
-    _lrsFirstTimeCheck.addConstraint(new LessThan<int>(100));
+    _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
+    _lrsFirstTimeCheck.addConstraint(lessThan(100));
     
     _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","",false);
     _lrsWeightLimitOnly.description=
@@ -541,6 +549,9 @@ Options::Options ()
     "Set of support strategy. All formulas annotated as theory axioms are put directly among active clauses, without performing any inferences between them. If all, select all literals of set-of-support clauses, ortherwise use the default literal selector.";
     _lookup.insert(&_sos);
     _sos.tag(OptionTag::SATURATION);
+    // Captures that if Sos is not off then the Saturation Algorithm cannot be Tabulation
+    _sos.addConstraint(new Dependence<Sos,SaturationAlgorithm>(
+      new notequals<Sos>(Sos::OFF),&_saturationAlgorithm,new notequals<SaturationAlgorithm>(SaturationAlgorithm::TABULATION)));
     
 //*********************** Inferences  ***********************
     
@@ -606,7 +617,7 @@ Options::Options ()
     _equalityResolutionWithDeletion.description="";
     _lookup.insert(&_equalityResolutionWithDeletion);
     _equalityResolutionWithDeletion.tag(OptionTag::INFERENCES);
-    _equalityResolutionWithDeletion.addConstraint(new NotEqual<RuleActivity>(RuleActivity::ON));
+    _equalityResolutionWithDeletion.addConstraint(notEqual(RuleActivity::ON));
     
     
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
@@ -619,13 +630,14 @@ Options::Options ()
     _lookup.insert(&_extensionalityMaxLength);
     _extensionalityMaxLength.tag(OptionTag::INFERENCES);
     // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
-    _extensionalityMaxLength.addConstraint(new NotEqual<unsigned>(1));
+    _extensionalityMaxLength.addConstraint(notEqual(1u));
     
     _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
                                                                             ExtensionalityResolution::OFF,{"filter","known","off"});
     _extensionalityResolution.description="";
     _lookup.insert(&_extensionalityResolution);
     _extensionalityResolution.tag(OptionTag::INFERENCES);
+    // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
     _extensionalityResolution.addConstraint(new Dependence<ExtensionalityResolution,int>(
       new notequals<ExtensionalityResolution>(ExtensionalityResolution::OFF),&_inequalitySplitting,new equals<int>(0)));
     
@@ -665,6 +677,9 @@ Options::Options ()
     "uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";
     _lookup.insert(&_unitResultingResolution);
     _unitResultingResolution.tag(OptionTag::INFERENCES);
+    _unitResultingResolution.addConstraint(new DefaultDependence<URResolution,SaturationAlgorithm>(&_saturationAlgorithm, 
+                                                                   new notequals<SaturationAlgorithm>(SaturationAlgorithm::TABULATION)));
+    //_unitResultingResolution.addConstraint(new Dependence
     
     _superpositionFromVariables = BoolOptionValue("superposition_from_variables","sfv",true);
     _superpositionFromVariables.description="";
@@ -683,47 +698,65 @@ Options::Options ()
     "determines how often a big restart (instance generation starts from input clauses) will be performed. Small restart means all clauses generated so far are processed again.";
     _lookup.insert(&_instGenBigRestartRatio);
     _instGenBigRestartRatio.tag(OptionTag::INST_GEN);
-    _instGenBigRestartRatio.addConstraint(new GreaterThan<float>(0.0f,true));
-    _instGenBigRestartRatio.addConstraint(new LessThan<float>(1.0f,true));
+    _instGenBigRestartRatio.addConstraint(greaterThanEq(0.0f)->And(lessThanEq(1.0f)));
+    // Captures that this is only non-default when saturationAlgorithm is instgen
+    _instGenBigRestartRatio.addConstraint(
+        new DefaultDependence<float,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
     
     _instGenInprocessing = BoolOptionValue("inst_gen_inprocessing","",false);
     _instGenInprocessing.description="";
     _lookup.insert(&_instGenInprocessing);
     _instGenInprocessing.tag(OptionTag::INST_GEN);
+    _instGenInprocessing.addConstraint(
+        new DefaultDependence<bool,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
     
     _instGenPassiveReactivation = BoolOptionValue("inst_gen_passive_reactivation","",false);
     _instGenPassiveReactivation.description="";
     _lookup.insert(&_instGenPassiveReactivation);
     _instGenPassiveReactivation.tag(OptionTag::INST_GEN);
+    _instGenPassiveReactivation.addConstraint(
+        new DefaultDependence<bool,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
     
     _instGenResolutionInstGenRatio = RatioOptionValue("inst_gen_resolution_ratio","igrr",1,1);
     _instGenResolutionInstGenRatio.description=
     "ratio of resolution and instantiation steps (applies only if inst_gen_with_resolution is on)";
     _lookup.insert(&_instGenResolutionInstGenRatio);
     _instGenResolutionInstGenRatio.tag(OptionTag::INST_GEN);
+    _instGenResolutionInstGenRatio.addConstraint(
+        new DefaultRatioDependence<SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
+    _instGenResolutionInstGenRatio.addConstraint(
+        new DefaultRatioDependence<bool>(&_instGenWithResolution,new equals<bool>(true)));
     
     _instGenRestartPeriod = IntOptionValue("inst_gen_restart_period","igrp",1000);
     _instGenRestartPeriod.description="how many clauses are processed before (small?) restart";
     _lookup.insert(&_instGenRestartPeriod);
     _instGenRestartPeriod.tag(OptionTag::INST_GEN);
+    _instGenRestartPeriod.addConstraint(
+        new DefaultDependence<int,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
     
     _instGenRestartPeriodQuotient = FloatOptionValue("inst_gen_restart_period_quotient","igrpq",1.0);
     _instGenRestartPeriodQuotient.description="restart period is multiplied by this number after each restart";
     _lookup.insert(&_instGenRestartPeriodQuotient);
     _instGenRestartPeriodQuotient.tag(OptionTag::INST_GEN);
-    _instGenRestartPeriodQuotient.addConstraint(new GreaterThan<float>(1.0f,true));
+    _instGenRestartPeriodQuotient.addConstraint(greaterThanEq(1.0f));
+    _instGenRestartPeriodQuotient.addConstraint(
+        new DefaultDependence<float,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
     
     _instGenSelection = SelectionOptionValue("inst_gen_selection","igs",0);
     _instGenSelection.description=
     "selection function for InstGen. we don't have the functions 11 and 1011 yet (as it would need special treatment for the look-ahead)";
     _lookup.insert(&_instGenSelection);
     _instGenSelection.tag(OptionTag::INST_GEN);
+    _instGenSelection.addConstraint(
+        new DefaultDependence<int,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
     
     _instGenWithResolution = BoolOptionValue("inst_gen_with_resolution","igwr",false);
     _instGenWithResolution.description=
     "performs instantiation together with resolution (global subsuption index is shared, also clauses generated by the resolution are added to the instance SAT problem)";
     _lookup.insert(&_instGenWithResolution);
     _instGenWithResolution.tag(OptionTag::INST_GEN);
+    _instGenWithResolution.addConstraint(
+        new DefaultDependence<bool,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
     
     _use_dm = BoolOptionValue("use_dismatching","",false);
     _use_dm.description="";
@@ -784,7 +817,7 @@ Options::Options ()
     _lookup.insert(&_ssplittingFlushQuotient);
     _ssplittingFlushQuotient.tag(OptionTag::AVATAR);
     _ssplittingFlushQuotient.setExperimental();
-    _ssplittingFlushQuotient.addConstraint(new GreaterThan<float>(1.0f,true));
+    _ssplittingFlushQuotient.addConstraint(greaterThanEq(1.0f));
     
     _ssplittingNonsplittableComponents = ChoiceOptionValue<SSplittingNonsplittableComponents>("ssplitting_nonsplittable_components","ssnc",
                                                                                               SSplittingNonsplittableComponents::KNOWN,
@@ -802,7 +835,7 @@ Options::Options ()
     _satClauseActivityDecay.description="";
     _lookup.insert(&_satClauseActivityDecay);
     _satClauseActivityDecay.tag(OptionTag::SAT);
-    _satClauseActivityDecay.addConstraint(new GreaterThan<float>(1.0f));
+    _satClauseActivityDecay.addConstraint(greaterThan(1.0f));
     
     _satClauseDisposer = ChoiceOptionValue<SatClauseDisposer>("sat_clause_disposer","",SatClauseDisposer::MINISAT,
                                                               {"growing","minisat"});
@@ -829,7 +862,7 @@ Options::Options ()
     _satRestartGeometricIncrease.description="";
     _lookup.insert(&_satRestartGeometricIncrease);
     _satRestartGeometricIncrease.tag(OptionTag::SAT);
-    _satRestartGeometricIncrease.addConstraint(new GreaterThan<float>(1.0f));
+    _satRestartGeometricIncrease.addConstraint(greaterThan(1.0f));
     
     _satRestartGeometricInit = IntOptionValue("sat_restart_geometric_init","",32);
     _satRestartGeometricInit.description="";
@@ -845,7 +878,7 @@ Options::Options ()
     _satRestartMinisatIncrease.description="";
     _lookup.insert(&_satRestartMinisatIncrease);
     _satRestartMinisatIncrease.tag(OptionTag::SAT);
-    _satRestartMinisatIncrease.addConstraint(new GreaterThan<float>(1.0f));
+    _satRestartMinisatIncrease.addConstraint(greaterThan(1.0f));
     
     _satRestartMinisatInit = IntOptionValue("sat_restart_minisat_init","",100);
     _satRestartMinisatInit.description="";
@@ -869,7 +902,7 @@ Options::Options ()
     _satVarActivityDecay.description="";
     _lookup.insert(&_satVarActivityDecay);
     _satVarActivityDecay.tag(OptionTag::SAT);
-    _satVarActivityDecay.addConstraint(new GreaterThan<float>(1.0f));
+    _satVarActivityDecay.addConstraint(greaterThan(1.0f));
     
     _satVarSelector = ChoiceOptionValue<SatVarSelector>("sat_var_selector","svs",SatVarSelector::ACTIVE,
                                                         {"active","niceness","recently_learnt"});
@@ -1386,6 +1419,22 @@ void Options::output (ostream& str) const
 //   return options;
 // } // Options::toXML
 
+template<typename T>
+Options::OptionValueConstraint<T>* Options::OptionValue<T>::is(OptionValueConstraint<T>* c)
+{
+    return new WrappedConstraint<T>(&this,c);
+}
+
+template<typename T>
+Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::And(OptionValueConstraint<T>* another)
+{
+    return new AndWrapper<T>(this,another);
+}
+template<typename T>
+Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::Or(OptionValueConstraint<T>* another)
+{
+    return new OrWrapper<T>(this,another);
+}
 
 /**
  * Read age-weight ratio from a string. The string can be an integer

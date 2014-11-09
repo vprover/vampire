@@ -516,13 +516,22 @@ InterpretedLiteralEvaluator::~InterpretedLiteralEvaluator()
   }
 }
 
+/**
+ * Used to evaluate a literal, setting isConstant, resLit and resConst in the process
+ *
+ * Returns true if it has been evaluated, in which case resLit is set 
+ * isConstant is true if the literal predicate evaluates to a constant value
+ * resConst is set iff isConstant and gives the constant value (true/false) of resLit 
+ */
 bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst)
 {
   CALL("InterpretedLiteralEvaluator::evaluate");
 
+  // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
   resLit = TermTransformer::transform(lit);
   unsigned pred = resLit->functor();
 
+  // Now we try and evaluate the predicate
   Evaluator* predEv = getPredEvaluator(pred);
   if (predEv) {
     if (predEv->tryEvaluatePred(resLit, resConst)) {

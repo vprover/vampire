@@ -438,7 +438,7 @@ public:
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
   vstring include() const { return _include.actualValue; }
-  //void setInclude(string val) { _include = val; }
+  void setInclude(vstring val) { _include.actualValue = val; }
   vstring logFile() const { return _logFile.actualValue; }
   vstring inputFile() const { return _inputFile.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
@@ -452,7 +452,7 @@ public:
   bool showNew() const { return _showNew.actualValue; }
   bool showNewPropositional() const { return _showNewPropositional.actualValue; }
   bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace.actualValue; }
-  //void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace = newVal; }
+  void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace.actualValue = newVal; }
   bool showOptions() const { return _showOptions.actualValue; }
   bool showExperimentalOptions() const { return _showExperimentalOptions.actualValue; }
   bool showHelp() const { return _showHelp.actualValue; }
@@ -527,7 +527,7 @@ public:
   //void setSos(Sos newVal) { _sos = newVal; }
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
-  //void setOutputAxiomNames(bool newVal) { _outputAxiomNames = newVal; }
+  void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   vstring xmlOutput() const { return _xmlOutput.actualValue; }
   vstring thanks() const { return _thanks.actualValue; }
@@ -600,7 +600,7 @@ public:
 
   Niceness nicenessOption() const { return _nicenessOption.actualValue; }
 
-  //void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
+  void setMemoryLimit(size_t newVal) { _memoryLimit.actualValue = newVal; }
   
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
@@ -767,6 +767,8 @@ private:
         }
         return true;
       }
+
+      OptionValueConstraint<T>* is(OptionValueConstraint<T>* c);
 
       void addProblemConstraint(OptionProblemConstraint* c){ _prob_constraints.push(c); }
       virtual bool checkProblemConstraints(Property& prop){
@@ -939,6 +941,8 @@ private:
           out << "\tdefault right: " << defaultOtherValue << endl;
         }
 
+        virtual vstring getStringOfValue(int value) const{ ASSERTION_VIOLATION_REP("Shouldn't do this for Ratio");}
+
     };
     
     struct NonGoalWeightOptionValue : public OptionValue<float>{
@@ -956,6 +960,8 @@ private:
         // are produced from defaultValue
         int numerator;
         int denominator;
+
+        virtual vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
     };
     
     // Feels like it should be an enum
@@ -970,6 +976,8 @@ private:
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;;
         }
+
+        virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
     };
     
     struct InputFileOptionValue : public OptionValue<vstring>{
@@ -983,6 +991,7 @@ private:
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;;
         }
+        virtual vstring getStringOfValue(vstring value) const{ return value; }
     private:
       Options* parent;
  
@@ -999,6 +1008,7 @@ private:
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;;
         }
+        virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
     };
     
 
@@ -1013,18 +1023,55 @@ private:
         CLASS_NAME(OptionValueConstraint);
         USE_ALLOCATOR(OptionValueConstraint);
         virtual vstring check(OptionValue<T>& value) = 0; 
+
+        OptionValueConstraint<T>* And(OptionValueConstraint<T>* another);
+        OptionValueConstraint<T>* Or(OptionValueConstraint<T>* another);
+    };
+
+
+    // A Wrapped Constraint takes an OptionValue and a Constraint
+    // It allows us to supply a constraint on another OptionValue in an If constraint for example
+    template<typename T>
+    struct WrappedConstraint : public OptionValueConstraint<T> {
+        CLASS_NAME(WrappedConstraint);
+        USE_ALLOCATOR(WrappedConstraint);
+
+        WrappedConstraint(OptionValue<T>& v, OptionValueConstraint<T>* c) : value(v), con(c) {}
+
+        vstring check(OptionValue<T>&){
+            return con->check(value);
+        }
+
+        OptionValue<T>& value;
+        OptionValueConstraint<T>* con;
     };
 
     // A constraint that takes two constraints and only requires one to return an empty message
     // i.e. be satisfied
     template<typename T>
-    struct Or : public OptionValueConstraint<T>{
-       CLASS_NAME(Or);
-       USE_ALLOCATOR(Or);
-       Or(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
+    struct OrWrapper : public OptionValueConstraint<T>{
+       CLASS_NAME(OrWrapper);
+       USE_ALLOCATOR(OrWrapper);
+       OrWrapper(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
        vstring check(OptionValue<T>& value){
           vstring msg = left->check(value);
           if(msg.empty()) return msg;
+          return right->check(value);
+       }
+       OptionValueConstraint<T>* left;
+       OptionValueConstraint<T>* right;
+    };
+
+    // A constraint that takes two constraints and requires both to return an empty message
+    // i.e. be satisfied
+    template<typename T>
+    struct AndWrapper : public OptionValueConstraint<T>{
+       CLASS_NAME(AndWrapper);
+       USE_ALLOCATOR(AndWrapper);
+       AndWrapper(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
+       vstring check(OptionValue<T>& value){
+          vstring msg = left->check(value);
+          if(!msg.empty()) return msg;
           return right->check(value);
        }
        OptionValueConstraint<T>* left;
@@ -1064,6 +1111,10 @@ private:
        }
        T _badvalue;
     };
+    template<typename T>
+    static OptionValueConstraint<T>* equal(T bv){
+        return new Equal<T>(bv);
+    }
 
     template<typename T>
     struct NotEqual : public OptionValueConstraint<T>{
@@ -1078,6 +1129,10 @@ private:
        }
        T _badvalue;
     };
+    template<typename T>
+    static OptionValueConstraint<T>* notEqual(T bv){
+        return new NotEqual<T>(bv);
+    }
 
     // Constraint that the value should be less than a given value
     // optionally we can allow it be equal to that value also
@@ -1095,6 +1150,14 @@ private:
        T _badvalue;
        bool _orequal;
     };
+    template<typename T>
+    static OptionValueConstraint<T>* lessThan(T bv){
+        return new LessThan<T>(bv,false);
+    }
+    template<typename T>
+    static OptionValueConstraint<T>* lessThanEq(T bv){
+        return new LessThan<T>(bv,true);
+    }
 
     // Constraint that the value should be greater than a given value
     // optionally we can allow it be equal to that value also
@@ -1112,6 +1175,14 @@ private:
        T _badvalue;
        bool _orequal;
     };
+    template<typename T>
+    static OptionValueConstraint<T>* greaterThan(T bv){
+        return new GreaterThan<T>(bv,false);
+    }
+    template<typename T>
+    static OptionValueConstraint<T>* greaterThanEq(T bv){
+        return new GreaterThan<T>(bv,true);
+    }
 
     // A Dependence records the constraint that condition on this -> condition on other 
     // the condition can be equality or inequality 
@@ -1148,7 +1219,7 @@ private:
        Dependence(Condition<T>* c1, OptionValue<S>* o, Condition<S>* c2) :
            con1(c1), other(o), con2(c2) {}
 
-       vstring check(OptionValue<T>& value){
+       virtual vstring check(OptionValue<T>& value){
            if(con1->check(value.actualValue) && !con2->check(other->actualValue)){
                 vstring s1 = value.longName+con1->str+value.getStringOfValue(con1->value);
                 vstring s2 = other->longName+con2->str+other->getStringOfValue(con2->value);
@@ -1160,6 +1231,47 @@ private:
        Condition<T>* con1;
        OptionValue<S>* other;
        Condition<S>* con2;
+    };
+    // Condition 2 is that the other option is (bool and) on
+    template<typename T>
+    struct BoolDependence : public Dependence<T,bool>{
+       BoolDependence(Condition<T>* c1, OptionValue<bool>* o) :
+         Dependence<T,bool>(c1,o,new equals<bool>(true)) {}
+    };
+    // Condition 1 is that this option has not got default value 
+    template<typename T, typename S>
+    struct DefaultDependence : public Dependence<T,S>{
+        DefaultDependence(OptionValue<S>* o, Condition<S>* c2) :
+           Dependence<T,S>(0,o,c2) {}
+
+        virtual vstring check(OptionValue<T>& value){
+           Dependence<T,S>::con1 = new notequals<T>(value.defaultValue);
+           return Dependence<T,S>::check(value);
+        }
+    };
+    // Combine Bool and Default Dependence 
+    template<typename T>
+    struct BoolDefaultDependence : public DefaultDependence<T,bool>{
+       BoolDefaultDependence(OptionValue<bool>* o) :
+         DefaultDependence<T,bool>(0,o,new equals<bool>(true)) {}
+    };
+    // DefaultDependence for Ratios
+    template<typename S>
+    struct DefaultRatioDependence : public Dependence<int,S>{
+        DefaultRatioDependence(OptionValue<S>* o, Condition<S>* c2) :
+           Dependence<int,S>(0,o,c2) {}
+      
+        virtual vstring check(OptionValue<int>& value){
+            RatioOptionValue& rvalue = static_cast<RatioOptionValue&>(value);
+            if((rvalue.defaultValue != rvalue.actualValue || rvalue.defaultOtherValue != rvalue.otherValue) &&
+               !Dependence<int,S>::con2->check(Dependence<int,S>::other->actualValue)){
+                   vstring s1 = value.longName+"!="+Lib::Int::toString(rvalue.defaultValue)+"/"+Lib::Int::toString(rvalue.defaultOtherValue);
+                   vstring s2 = Dependence<int,S>::other->longName+Dependence<int,S>::con2->str+Dependence<int,S>::other->getStringOfValue(Dependence<int,S>::con2->value);
+                   return "when "+s1 + ", it is required that " + s2;
+            }
+            return "";
+        }
+
     };
 
    /**

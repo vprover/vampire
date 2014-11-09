@@ -339,6 +339,8 @@ private:
     : public Type
   {
   public:
+    CLASS_NAME(AtomicType);
+    USE_ALLOCATOR(AtomicType);
     explicit AtomicType(unsigned sortNumber)
       : Type(TT_ATOMIC), _sortNumber(sortNumber)
     {}
@@ -354,6 +356,8 @@ private:
     : public Type
   {
   public:
+    CLASS_NAME(ArrowType);
+    USE_ALLOCATOR(ArrowType);
     ArrowType(Type* lhs,Type* rhs)
       : Type(TT_ARROW), _lhs(lhs), _rhs(rhs)
     {}
@@ -376,6 +380,8 @@ private:
     : public Type
   {
   public:
+    CLASS_NAME(ProductType);
+    USE_ALLOCATOR(ProductType);
     ProductType(Type* lhs,Type* rhs)
       : Type(TT_PRODUCT), _lhs(lhs), _rhs(rhs)
     {}
