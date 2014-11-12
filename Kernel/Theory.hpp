@@ -199,6 +199,7 @@ public:
     REAL_IS_INT,
     REAL_IS_RAT,
     REAL_IS_REAL,
+    REAL_EQUAL,
     REAL_GREATER,
     REAL_GREATER_EQUAL,
     REAL_LESS,
@@ -294,6 +295,8 @@ public:
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
 
+  bool invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result);
+
   Interpretation interpretFunction(unsigned func);
   Interpretation interpretFunction(Term* t);
   Interpretation interpretFunction(TermList t);
@@ -302,6 +305,8 @@ public:
 
   unsigned getFnNum(Interpretation itp);
   unsigned getPredNum(Interpretation itp);
+
+  vstring tryGetInterpretedLaTeXName(unsigned func, bool pred, bool& infix);
 
   Term* fun1(Interpretation itp, TermList arg);
   Term* fun2(Interpretation itp, TermList arg1, TermList arg2);

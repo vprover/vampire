@@ -1,10 +1,13 @@
 
+#include "Forwards.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Sorts.hpp"
 
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 
@@ -80,4 +83,23 @@ TEST_FUN(interpFunc3)
   Literal* lit = Literal::create2(greater,true, multTwoThree, five);
 
   interpret(lit);
+}
+
+// Interpret y(5)*x=5 
+TEST_FUN(interpFunc4)
+{
+
+  unsigned m = theory->getFnNum(Theory::REAL_MULTIPLY);
+  TermList two(theory->representConstant(RealConstantType("2")));
+  TermList five(theory->representConstant(RealConstantType("5")));
+
+  unsigned y = env.signature->addFunction("y",1);
+  env.signature->getFunction(y)->setType(BaseType::makeType1(Sorts::SRT_REAL,Sorts::SRT_REAL));
+  TermList y5 = TermList(Term::create1(y,five));
+
+  TermList mult(Term::create2(m, two, y5));
+  Literal* lit = Literal::createEquality(true, mult, five, Sorts::SRT_REAL);
+
+  interpret(lit);
+
 }

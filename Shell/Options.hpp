@@ -473,6 +473,7 @@ public:
   void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm.actualValue = newVal; }
   int selection() const { return _selection.actualValue; }
   vstring latexOutput() const { return _latexOutput.actualValue; }
+  bool latexUseDefault() const { return _latexUseDefaultSymbols.actualValue; }
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.actualValue; }
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution.actualValue; }
   //void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
@@ -1422,6 +1423,7 @@ private:
   BoolOptionValue _interpretedSimplification;
 
   StringOptionValue _latexOutput;
+  BoolOptionValue _latexUseDefaultSymbols;
   StringOptionValue _lingvaAdditionalInvariants;
 
   ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;

@@ -345,6 +345,11 @@ Options::Options ()
     _lookup.insert(&_trivialPredicateRemoval);
     _trivialPredicateRemoval.tag(OptionTag::PREPROCESSING);
     
+    _theoryAxioms = BoolOptionValue("theory_axioms","",true);
+    _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
+    _lookup.insert(&_theoryAxioms);
+    _theoryAxioms.tag(OptionTag::PREPROCESSING);
+
     _sineDepth = UnsignedOptionValue("sine_depth","sd",0);
     _sineDepth.description=
     "Limit number of iterations of the transitive closure algorithm that selects formulas based on SInE's D-relation (see SInE description). 0 means no limit, 1 is a maximal limit (least selected axioms), 2 allows two iterations, etc...";
@@ -401,11 +406,16 @@ Options::Options ()
     _lookup.insert(&_xmlOutput);
     _xmlOutput.tag(OptionTag::OUTPUT);
     
-    //used?
     _latexOutput = StringOptionValue("latex_output","","off");
     _latexOutput.description="File that will contain proof in the LaTeX format.";
     _lookup.insert(&_latexOutput);
     _latexOutput.tag(OptionTag::OUTPUT);
+
+    _latexUseDefaultSymbols = BoolOptionValue("latex_use_default_symbols","",true);
+    _latexUseDefaultSymbols.description="Interpretted symbols such as product have default LaTeX symbols"
+        " that can be used. They can be overriden in the normal way. This option can turn them off";
+    _latexUseDefaultSymbols.tag(OptionTag::OUTPUT); 
+    _lookup.insert(&_latexUseDefaultSymbols);
     
     _outputAxiomNames = BoolOptionValue("output_axiom_names","",false);
     _outputAxiomNames.description="preserve names of axioms from the problem file in the proof output";
@@ -1048,21 +1058,10 @@ Options::Options ()
     _randomSeed.tag(OptionTag::OTHER);
 
 
-
-
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
                                                             {"arity","occurrence","reverse_arity"});
     _symbolPrecedence.description="";
     _lookup.insert(&_symbolPrecedence);
-
-
-
-    _theoryAxioms = BoolOptionValue("theory_axioms","",true);
-    _theoryAxioms.description="";
-    _lookup.insert(&_theoryAxioms);
-
-
-
 
 
     _weightIncrement = BoolOptionValue("weight_increment","",false);

@@ -3,6 +3,7 @@
  * Implements class InterpretedLiteralEvaluator.
  */
 
+#include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
 
@@ -49,6 +50,76 @@ public:
   virtual bool canEvaluate(Interpretation interp) = 0;
   virtual bool tryEvaluateFunc(Term* trm, Term*& res) { return false; }
   virtual bool tryEvaluatePred(Literal* trm, bool& res)  { return false; }
+};
+
+
+/**
+ *
+ * @author Giles
+ * @since 10/11/14
+ */
+class InterpretedLiteralEvaluator::EqualityEvaluator
+  : public Evaluator
+{
+
+  virtual bool canEvaluate(Interpretation interp)
+  {
+    return interp==Interpretation::EQUAL; 
+  }
+
+  virtual bool tryEvaluateFunc(Term* trm, Term*& res)
+  {
+    ASSERTION_VIOLATION; // EQUAL is a predicate, not a function!
+  }
+
+  template<typename T>
+  bool checkEquality(Literal* lit, bool& res)
+  {
+    CALL("InterpretedLiteralEvaluator::EqualityEvaluator::checkEquality");
+    //cout << "checkEquality on " << lit->toString() << endl;
+    T arg1;
+    if(!theory->tryInterpretConstant(lit->nthArgument(0)->term(),arg1)){ 
+      return false; 
+    }
+    T arg2;
+    if(!theory->tryInterpretConstant(lit->nthArgument(1)->term(),arg2)){ 
+      return false;
+    }
+
+    res = (arg1 == arg2);
+
+    return true;
+  }
+
+  bool tryEvaluatePred(Literal* lit, bool& res)
+  {
+    CALL("InterpretedLiteralEvaluator::EqualityEvaluator::tryEvaluatePred");
+
+    try{
+
+
+      Interpretation itp = theory->interpretPredicate(lit);
+      ASS(itp==Interpretation::EQUAL);
+      ASS(theory->getArity(itp)==2);
+    
+      bool okay = checkEquality<IntegerConstantType>(lit,res)  ||
+                  checkEquality<RationalConstantType>(lit,res) ||
+                  checkEquality<RealConstantType>(lit,res);
+
+      if(!okay) return false;
+
+      if(lit->isNegative()){ res = !res; }
+
+      return true;
+
+    }
+    catch(ArithmeticException&)
+    {
+      return false;
+    }
+
+  }
+
 };
 
 class InterpretedLiteralEvaluator::ConversionEvaluator
@@ -169,7 +240,7 @@ public:
         return opSort==T::getSort();
     }
     
-    if (!theory->hasSingleSort(interp)) { return false; } //there are other rules to evaluate equality
+    if (!theory->hasSingleSort(interp)) { return false; } //To skip conversions and EQUAL
 
     unsigned opSort = theory->getOperationSort(interp);
     return opSort==T::getSort();
@@ -501,6 +572,7 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
   _evals.push(new RatEvaluator());
   _evals.push(new RealEvaluator());
   _evals.push(new ConversionEvaluator());
+  _evals.push(new EqualityEvaluator());
 
   _funEvaluators.ensure(0);
   _predEvaluators.ensure(0);
@@ -517,6 +589,124 @@ InterpretedLiteralEvaluator::~InterpretedLiteralEvaluator()
 }
 
 /**
+ *
+ * @author Giles
+ * @since 11/11/14
+ */
+bool InterpretedLiteralEvaluator::balancable(Literal* lit)
+{
+  CALL("InterpretedLiteralEvaluator::balancable");
+  // Check that lit is compatible with this balancing operation
+  // One thing that we cannot check, but assume is that it has already been simplified once
+
+  // lit must be an interpretted predicate
+  if(!theory->isInterpretedPredicate(lit->functor())) return false;
+
+  // the perdicate must be binary
+  Interpretation ip = theory->interpretPredicate(lit->functor());
+  if(theory->getArity(ip)!=2) return false;
+
+  // one side must be a constant and the other interpretted
+  // the other side can contain at most one variable or uninterpreted subterm 
+  // but we do not check this second condition here, instead we detect it in balance
+  TermList t1 = *lit->nthArgument(0);
+  TermList t2 = *lit->nthArgument(1);
+  if(theory->isInterpretedConstant(t1)){
+    if(theory->isInterpretedConstant(t2)) return false; // already balanced
+    if(t2.isVar()) return false; // already balanced
+    if(!theory->isInterpretedFunction(t2)) return false; // cannot balance
+  }else if(theory->isInterpretedConstant(t2)){
+    if(theory->isInterpretedConstant(t1)) return false; // already balanced
+    if(t1.isVar()) return false;//already balanced
+    if(!theory->isInterpretedFunction(t1)) return false; // cannot balance
+
+  }else { return false; } // neither side constant
+
+  return true;
+}
+
+/**
+ *
+ * @author Giles
+ * @since 11/11/14
+ */
+bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
+{
+  CALL("InterpretedLiteralEvaluator::balance");
+  ASS(balancable(lit));
+
+  ASS(theory->isInterpretedPredicate(lit->functor()));
+
+  // currently only works for equality!!
+  // because I don't deal with inverting inequalities when dividing by negatives
+  if(theory->interpretPredicate(lit->functor())!=Interpretation::EQUAL) return false;
+
+  //cout << "Attempting to balance " << lit->toString() << endl;
+
+  TermList t1;
+  TermList t2;
+  // t1 is the constant
+  if(theory->isInterpretedConstant(*lit->nthArgument(0))){
+    t1 = *lit->nthArgument(0); t2 = *lit->nthArgument(1);
+  }else{
+    t1 = *lit->nthArgument(1); t2 = *lit->nthArgument(0);
+  }
+
+  // Implied by balancable
+  //if(t2.isVar()){ return true;} //already balanced!
+  //if(!theory->isInterpretedFunction(t2)){ return false;} // cannot start
+
+  // Recurse over structure of t2, applying interpreted functions to t1
+  while(theory->isInterpretedFunction(t2)){
+    //cout << "reducing " << t2.toString() << endl;
+    //find non-constant argument
+    TermList* args = t2.term()->args();
+    
+    TermList* non_constant=0;
+    while(args->isNonEmpty()){
+      if(!theory->isInterpretedConstant(*args)){
+        if(non_constant){
+          return false; // we can only have one!!
+        }
+        non_constant=args;
+      } 
+      args= args->next();
+    }
+    ASS(non_constant);
+    
+    //get function inverse, need information about parameter order
+    //  i.e. inverse of multiply is divide where multiply(x,_) and multiply(_,x) => divide(_,x) 
+    //
+    // it is of the form (orig,non-con-arg,replacement) 
+    // i.e. f(t,c1),t,c2 => f^(c1,c2) ... where f^ is f inverted and the ordering of its args are
+    //      decided in invertInterptedFunction
+    TermList rep; 
+    if(!theory->invertInterpretedFunction(t2.term(),non_constant,t1,rep)){
+      // if no inverse then return false... cannot balance
+      return false;
+    }
+
+    // update t1
+    t1=rep;
+    // set t2 to the non-constant argument
+    t2 = *non_constant;
+  }
+
+  //Evaluate t1
+  Evaluator* funcEv = getFuncEvaluator(t1.term()->functor());
+  ASS(funcEv);
+  Term* res;
+  if(!funcEv->tryEvaluateFunc(t1.term(),res)){
+    // if the evaluation returns false then there must be something like division by zero
+    return false;
+  }
+
+  TermList new_args[] = {TermList(res),t2}; 
+  resLit = Literal::create(lit,new_args);
+  return true;
+}
+
+/**
  * Used to evaluate a literal, setting isConstant, resLit and resConst in the process
  *
  * Returns true if it has been evaluated, in which case resLit is set 
@@ -527,8 +717,25 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 {
   CALL("InterpretedLiteralEvaluator::evaluate");
 
+
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
   resLit = TermTransformer::transform(lit);
+
+  if(balancable(resLit)){
+      Literal* new_resLit=resLit;
+      bool balance_result = balance(resLit,new_resLit);
+      ASS(balance_result || resLit==new_resLit);
+      resLit=new_resLit;
+  }
+
+  // If resLit contains variables the predicate cannot be interpreted
+  VariableIterator vit(lit);
+  if(vit.hasNext()){
+    isConstant=false;
+    return (lit!=resLit);
+  }
+  //cout << lit->toString()<< " is variable free, evaluating..." << endl;
+
   unsigned pred = resLit->functor();
 
   // Now we try and evaluate the predicate

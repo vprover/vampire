@@ -209,6 +209,8 @@ void RationalConstantType::init(InnerType num, InnerType den)
   _num = num;
   _den = den;
   cannonize();
+
+  if(_den.toInt()==0) throw ArithmeticException();
 }
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
@@ -687,7 +689,7 @@ bool Theory::hasSingleSort(Interpretation i)
   CALL("Theory::hasSingleSort");
 
   switch(i) {
-  case EQUAL:
+  case EQUAL:  // This not SingleSort because we don't know the sorts of its args
   case INT_TO_RAT:
   case INT_TO_REAL:
   case RAT_TO_INT:
@@ -1450,6 +1452,138 @@ unsigned Theory::getPredNum(Interpretation itp)
   
   return env.signature->getInterpretingSymbol(itp);
 }
+
+// This infix thing is currently a hack, we want to replace it by a
+// more general template
+vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred, bool& infix)
+{
+  CALL("Theory::tryGetInterpretedLaTeXName");
+
+  Interpretation i;
+
+  if(pred){
+    if(!isInterpretedPredicate(func)) return "";
+    i = interpretPredicate(func);
+  }
+  else{
+    if(!isInterpretedFunction(func)) return "";
+    i = interpretFunction(func);
+  }
+
+
+  // All interpretations of binary functions are infix
+  infix = getArity(i)==2;
+
+  switch(i){
+  case INT_SUCCESSOR: return "++"; // is this right? it will be prefix
+  case INT_UNARY_MINUS:
+  case RAT_UNARY_MINUS:
+  case REAL_UNARY_MINUS: return "-";
+
+  case EQUAL:return "=";
+
+  case INT_GREATER: return " > ";
+  case INT_GREATER_EQUAL: return " \\geq ";
+  case INT_LESS: return " < ";
+  case INT_LESS_EQUAL: return " \\leq ";
+  case INT_DIVIDES: return "\\|"; // check?
+
+  case RAT_GREATER: return " > ";
+  case RAT_GREATER_EQUAL: return " \\geq ";
+  case RAT_LESS: return " < ";
+  case RAT_LESS_EQUAL: return " \\leq ";
+  case RAT_DIVIDES: return "";
+
+  case REAL_GREATER: return " > "; 
+  case REAL_GREATER_EQUAL: return " \\geq ";
+  case REAL_LESS: return " < ";
+  case REAL_LESS_EQUAL: return " \\leq ";
+  case REAL_DIVIDES: return "";
+
+  case INT_PLUS: return "+";
+  case INT_MINUS: return "-";
+  case INT_MULTIPLY: return "\\times";
+  case INT_DIVIDE: return "/";
+  case INT_MODULO: return "\\%";
+
+  case RAT_PLUS: return "+";
+  case RAT_MINUS: return "-";
+  case RAT_MULTIPLY: return "\\times";
+  case RAT_DIVIDE: return "/";
+
+  case REAL_PLUS: return "+";
+  case REAL_MINUS: return "-";
+  case REAL_MULTIPLY: return "\\times";
+  case REAL_DIVIDE: return "/";
+
+  default: return "";
+  } 
+
+  return "";
+
+}
+
+/**
+ *
+ *
+ * @author Giles
+ * @since 12/11/14
+ */
+ bool Theory::invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result)
+ {
+   CALL("Theory::invertInterpetedFunction");
+
+   cout << "term = " << term->toString() << endl;
+   ASS(isInterpretedFunction(term->functor()));
+   Interpretation f = interpretFunction(term->functor());
+   Interpretation inverted_f;
+
+switch(f){
+  //case INT_SUCCESSOR: 
+  //case INT_UNARY_MINUS:
+  //case RAT_UNARY_MINUS:
+  //case REAL_UNARY_MINUS: 
+
+  case INT_PLUS: inverted_f = INT_MINUS; break; 
+  case INT_MINUS: inverted_f = INT_PLUS; break;
+  //case INT_MULTIPLY: 
+  //case INT_DIVIDE: 
+  //case INT_MODULO: 
+
+  case RAT_PLUS: inverted_f = RAT_MINUS; break;
+  case RAT_MINUS: inverted_f = RAT_PLUS; break;
+  case RAT_MULTIPLY: inverted_f = RAT_DIVIDE; break;
+  case RAT_DIVIDE: inverted_f = RAT_MULTIPLY; break;
+
+  case REAL_PLUS: inverted_f = REAL_MINUS; break; 
+  case REAL_MINUS: inverted_f = REAL_PLUS; break;
+  case REAL_MULTIPLY: inverted_f = REAL_DIVIDE; break;
+  case REAL_DIVIDE: inverted_f = REAL_MULTIPLY; break;
+
+  default: // cannot be inverted
+    return false;
+ }
+
+ // In all cases here the replacement should be the first of the two
+ // arguments to a binary function.
+ // NOTE: If the interpreted functions supported changes this might change
+
+ // i.e. if we have term=multiply(6,product(x,5)), arg=product(x,6) and rep=4
+ //      the result should be divide(4,6)
+ //      if the arguments to multiply are the other way around this is still true
+
+ // Work out if arg is first or second argument to term and get the other one
+ ASS(term->arity()==2);
+ TermList other;
+ if(term->nthArgument(0)==arg) other=*term->nthArgument(1);
+ else if(term->nthArgument(1)==arg) other=*term->nthArgument(0);
+ else { ASSERTION_VIOLATION;} //arg must be one of the args!
+
+ TermList args[] = {rep,other};
+ result = TermList(Term::create(getFnNum(inverted_f),2,args));
+ return true;
+
+ }
 
 }
 

@@ -62,6 +62,7 @@
 #include "Shell/SpecialTermElimination.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/LaTeX.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -349,6 +350,46 @@ void boundPropagationMode(){
 }
 
 
+void outputProblemToLaTeX(Problem* prb)
+{
+  CALL("outputProblemToLaTeX");
+  ASS(env.options->latexOutput()!="off");
+
+  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
+
+  LaTeX latex;
+  ofstream latexOut(env.options->latexOutput().c_str());
+  latexOut << latex.header() << endl;
+  latexOut << "\\section{Problem "<<env.options->problemName() << "}" << endl;
+  //TODO output more header
+  latexOut << "\\[\n\\begin{array}{ll}" << endl;
+
+  //TODO  get symbol declarations into LaTeX
+  //UIHelper::outputSymbolDeclarations(env.out());
+
+  UnitList::Iterator units(prb->units());
+
+  unsigned index = 0;
+  while (units.hasNext()) {
+    Unit* u = units.next();
+    vstring stringform = latex.toString(u);
+    latexOut << index++ << " & "; 
+    unsigned count = 0;
+    for(const char* p = stringform.c_str();*p;p++){
+      latexOut << *p;
+      count++;
+      if(count>80 && *p==' '){
+        latexOut << "\\\\ \n & ~~~~~";
+        count=0;
+      }
+    }
+    latexOut << "\\\\" << endl;
+  }
+  latexOut  << "\\end{array}\n\\]" << latex.footer() << "\n";
+
+  //close ofstream?
+}
+
 /**
  * This mode only preprocesses the input using the current preprocessing
  * options and outputs it to stdout. It is useful for either preprocessing
@@ -381,6 +422,8 @@ void preprocessMode()
   }
   env.endOutput();
 
+  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb); }
+
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // preprocessMode
@@ -400,11 +443,14 @@ void outputMode()
   env.beginOutput();
   UIHelper::outputSymbolDeclarations(env.out());
   UnitList::Iterator units(prb->units());
+
   while (units.hasNext()) {
     Unit* u = units.next();
     env.out() << TPTPPrinter::toString(u) << "\n";
   }
   env.endOutput();
+
+  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb); }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
