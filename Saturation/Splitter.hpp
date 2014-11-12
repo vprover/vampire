@@ -56,7 +56,6 @@ public:
                      SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
-  void clearZeroImpliedSplits(Clause* cl);
 private:
 
   void processDPConflicts();
@@ -78,6 +77,12 @@ private:
    * Contains selected component names (splitlevels)
    */
   ArraySet _selected;
+  
+  /**
+   * Remember variables which were zero implied before
+   * to only report on the new ones.
+   */
+  DArray<bool> _zeroImplieds;
 };
 
 /**
@@ -166,8 +171,6 @@ public:
   unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
 
   SAT2FO& satNaming() { return _sat2fo; }
-
-  bool getSplitLevelFromClause(Clause* cl, SplitLevel& sl) const { return _compNames.find(cl,sl); }
 private:      
   Clause* getComponentClause(SplitLevel name) const; // Martin: currently unused
   

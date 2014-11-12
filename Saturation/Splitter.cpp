@@ -120,6 +120,7 @@ void SplittingBranchSelector::updateVarCnt()
 
   _solver->ensureVarCnt(satVarCnt);
   _selected.expand(splitLvlCnt);
+  _zeroImplieds.expand(satVarCnt,false);
 }
 
 void SplittingBranchSelector::handleSatRefutation(SATClause* ref)
@@ -668,7 +669,6 @@ bool Splitter::doSplitting(Clause* cl)
   satClauseLits.reset();
 
   // Add literals for existing constraints 
-  _branchSelector.clearZeroImpliedSplits(cl);
   collectDependenceLits(cl->splits(), satClauseLits);
 
   ClauseList* namePremises = 0;
@@ -890,8 +890,6 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   CALL("Splitter::onClauseReduction");
   ASS(cl);
 
-  _branchSelector.clearZeroImpliedSplits(cl);
-
   if(!premises.hasNext()) {
     ASS(!replacement || cl->splits()==replacement->splits());
     return;
@@ -904,16 +902,12 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
             [replacement] (Clause* premise) { 
               return premise->splits()->isSubsetOf(replacement->splits()); 
             } ));
-    /* also clearZeroImpliedSplits has been called on premises when replacement 
-     * got it's splits() assigned in onNewClause */            
   } else {
     Clause* premise0 = premises.next();
-    _branchSelector.clearZeroImpliedSplits(premise0);
     unionAll=premise0->splits();
     while(premises.hasNext()) {
       Clause* premise=premises.next();
       ASS(premise);
-      _branchSelector.clearZeroImpliedSplits(premise);
       unionAll=unionAll->getUnion(premise->splits());
     }
   }
@@ -940,37 +934,6 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   while(dit.hasNext()) {
     SplitLevel slev=dit.next();
     _db[slev]->addReduced(cl);
-  }
-}
-
-void SplittingBranchSelector::clearZeroImpliedSplits(Clause* cl)
-{ 
-  CALL("Splitter::clearZeroImpliedSplits");
-
-  if(!_zeroOpt) return;
-
-  SplitLevel this_level;
-  bool has_level = _parent.getSplitLevelFromClause(cl,this_level);
-
-  SplitSet* rem=SplitSet::getEmpty();
-  SplitSet::Iterator sit(*(cl->splits()));
-  while(sit.hasNext()){
-    SplitLevel level = sit.next();
-    if(has_level && level==this_level) continue;
-    SATLiteral lit = _parent.getLiteralFromName(level);
-    // We're asking if the current assignment of this var is zero implied
-    // We can assume that the assignment is consistent with this lit as it
-    // is currently asserted
-    if(_solver->isZeroImplied(lit.var())){
-      //TODO use a stack for rem instead
-      rem = rem->getUnion(SplitSet::getSingleton(level));
-      //cout << " will clear " << level << endl;
-    }
-  }
-  if(!rem->isEmpty()){
-    //cout << "clearing from " << cl << " with level " << _parent._compNames.get(cl) << endl;
-    RSTAT_CTR_INC("clearedZeroImpliedSplits");
-    cl->setSplits(cl->splits()->subtract(rem),true);
   }
 }
 
@@ -1045,7 +1008,6 @@ SplitSet* Splitter::getNewClauseSplitSet(Clause* cl)
       //the premise comes from preprocessing
       continue;
     }
-    _branchSelector.clearZeroImpliedSplits(prem);
     res=res->getUnion(prem->splits());
   }
   return res;
