@@ -78,7 +78,7 @@ Options::Options ()
     "consequence_elimination mode forces values of unused_predicate_definition_removal and propositional_to_bdd to be off";
     _lookup.insert(&_mode);
     
-    _decode = StringOptionValue("decode","","");
+    _decode = DecodeOptionValue("decode","",this);
     _decode.description="";
     _lookup.insert(&_decode);
     

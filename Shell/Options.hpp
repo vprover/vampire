@@ -998,6 +998,22 @@ private:
  
     };
    
+    struct DecodeOptionValue : public OptionValue<vstring>{
+        DecodeOptionValue(){}
+        DecodeOptionValue(vstring l,vstring s,Options* p):
+          OptionValue(l,s,""), parent(p){}
+
+        bool set(const vstring& value){
+          parent->readFromTestId(value);
+          return true;
+        }
+        virtual vstring getStringOfValue(vstring value) const{ return value; }
+
+      private:
+        Options* parent;
+
+    };
+
     struct TimeLimitOptionValue : public OptionValue<int>{
         TimeLimitOptionValue(){}
         TimeLimitOptionValue(vstring l, vstring s, float def) :
@@ -1338,7 +1354,7 @@ private:
     
     LookupWrapper _lookup;
     
-  StringOptionValue _decode;
+  DecodeOptionValue _decode;
 
   RatioOptionValue _ageWeightRatio;
   BoolOptionValue _aigBddSweeping;
