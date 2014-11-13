@@ -306,7 +306,16 @@ public:
   unsigned getFnNum(Interpretation itp);
   unsigned getPredNum(Interpretation itp);
 
-  vstring tryGetInterpretedLaTeXName(unsigned func, bool pred, bool& infix);
+  void registerLaTeXPredName(unsigned func, bool polarity, vstring temp);
+  void registerLaTeXFuncName(unsigned func, vstring temp);
+  vstring tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity=true);
+  
+private:
+  DHMap<unsigned,vstring> _predLaTeXnamesPos;
+  DHMap<unsigned,vstring> _predLaTeXnamesNeg;
+  DHMap<unsigned,vstring> _funcLaTeXnames;
+
+public:
 
   Term* fun1(Interpretation itp, TermList arg);
   Term* fun2(Interpretation itp, TermList arg1, TermList arg2);

@@ -312,6 +312,7 @@ void UIHelper::outputResult(ostream& out)
 
     }
     if (env.options->latexOutput() != "off") {
+      BYPASSING_ALLOCATOR; // for ofstream 
       ofstream latexOut(env.options->latexOutput().c_str());
 
       LaTeX formatter;

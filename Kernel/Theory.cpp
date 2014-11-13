@@ -452,7 +452,9 @@ vstring RealConstantType::toNiceString() const
   if (denominator().toInt()==1) {
     return numerator().toString()+".0";
   }
-  return toString();
+  float frep = (float) numerator().toInt() /(float) denominator().toInt();
+  return Int::toString(frep);
+  //return toString();
 }
 
 /////////////////
@@ -1453,68 +1455,101 @@ unsigned Theory::getPredNum(Interpretation itp)
   return env.signature->getInterpretingSymbol(itp);
 }
 
-// This infix thing is currently a hack, we want to replace it by a
-// more general template
-vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred, bool& infix)
+void Theory::registerLaTeXPredName(unsigned func, bool polarity, vstring temp)
+{
+  CALL("Theory::registerPredLaTeXName");
+  if(polarity){
+    _predLaTeXnamesPos.insert(func,temp);
+  }else{
+    _predLaTeXnamesNeg.insert(func,temp); 
+  }
+}
+void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
+{
+  CALL("Theory::registerFuncLaTeXName");
+   cout << "register " << func << endl;
+  _funcLaTeXnames.insert(func,temp);
+}
+
+/**
+ *
+ *
+ * polarity only makes sense if pred=true
+ */
+vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
 {
   CALL("Theory::tryGetInterpretedLaTeXName");
+
+   //cout << "Get LaTeX for " << func << endl;
 
   Interpretation i;
 
   if(pred){
+    if(polarity){
+      if(_predLaTeXnamesPos.find(func)){ return _predLaTeXnamesPos.get(func); }
+      else if(_predLaTeXnamesNeg.find(func)){ 
+        return "\neg ("+_predLaTeXnamesNeg.get(func)+")";
+      }
+    }
+    else{ 
+      if(_predLaTeXnamesNeg.find(func)){ return _predLaTeXnamesNeg.get(func); }
+      else if(_predLaTeXnamesPos.find(func)){ 
+        return "\neg ("+_predLaTeXnamesPos.get(func)+")";
+      }
+    }
     if(!isInterpretedPredicate(func)) return "";
     i = interpretPredicate(func);
   }
   else{
+    if(_funcLaTeXnames.find(func)){ return _funcLaTeXnames.get(func); }
     if(!isInterpretedFunction(func)) return "";
     i = interpretFunction(func);
   }
 
-
-  // All interpretations of binary functions are infix
-  infix = getArity(i)==2;
+  // There are some default templates
+  vstring pol = polarity ? "" : " \\not ";
 
   switch(i){
-  case INT_SUCCESSOR: return "++"; // is this right? it will be prefix
+  case INT_SUCCESSOR: return "a0++"; // is this right? it will be prefix
   case INT_UNARY_MINUS:
   case RAT_UNARY_MINUS:
-  case REAL_UNARY_MINUS: return "-";
+  case REAL_UNARY_MINUS: return "-a0";
 
-  case EQUAL:return "=";
+  case EQUAL:return "a0 "+pol+"= a1";
 
-  case INT_GREATER: return " > ";
-  case INT_GREATER_EQUAL: return " \\geq ";
-  case INT_LESS: return " < ";
-  case INT_LESS_EQUAL: return " \\leq ";
-  case INT_DIVIDES: return "\\|"; // check?
+  case INT_GREATER: return "a0 "+pol+"> a1";
+  case INT_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
+  case INT_LESS: return "a0 "+pol+"< a1";
+  case INT_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
+  case INT_DIVIDES: return "a0 "+pol+"\\| a1"; // check?
 
-  case RAT_GREATER: return " > ";
-  case RAT_GREATER_EQUAL: return " \\geq ";
-  case RAT_LESS: return " < ";
-  case RAT_LESS_EQUAL: return " \\leq ";
+  case RAT_GREATER: return "a0 "+pol+"> a1";
+  case RAT_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
+  case RAT_LESS: return "a0 "+pol+"< a1";
+  case RAT_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
   case RAT_DIVIDES: return "";
 
-  case REAL_GREATER: return " > "; 
-  case REAL_GREATER_EQUAL: return " \\geq ";
-  case REAL_LESS: return " < ";
-  case REAL_LESS_EQUAL: return " \\leq ";
+  case REAL_GREATER: return "a0 "+pol+"> a1"; 
+  case REAL_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
+  case REAL_LESS: return "a0 "+pol+"< a1";
+  case REAL_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
   case REAL_DIVIDES: return "";
 
-  case INT_PLUS: return "+";
-  case INT_MINUS: return "-";
-  case INT_MULTIPLY: return "\\times";
-  case INT_DIVIDE: return "/";
-  case INT_MODULO: return "\\%";
+  case INT_PLUS: return "a0 + a1";
+  case INT_MINUS: return "a0 - a1";
+  case INT_MULTIPLY: return "a0 \\cdot a1";
+  case INT_DIVIDE: return "a0 / a1";
+  case INT_MODULO: return "a0 \\% a1";
 
-  case RAT_PLUS: return "+";
-  case RAT_MINUS: return "-";
-  case RAT_MULTIPLY: return "\\times";
-  case RAT_DIVIDE: return "/";
+  case RAT_PLUS: return "a0 + a1";
+  case RAT_MINUS: return "a0 - a1";
+  case RAT_MULTIPLY: return "a0 \\cdot a1";
+  case RAT_DIVIDE: return "a0 / a1";
 
-  case REAL_PLUS: return "+";
-  case REAL_MINUS: return "-";
-  case REAL_MULTIPLY: return "\\times";
-  case REAL_DIVIDE: return "/";
+  case REAL_PLUS: return "a0 + a1";
+  case REAL_MINUS: return "a0 - a1";
+  case REAL_MULTIPLY: return "a0 \\cdot a1";
+  case REAL_DIVIDE: return "a0 / a1";
 
   default: return "";
   } 
@@ -1533,7 +1568,6 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred, bool& infix
  {
    CALL("Theory::invertInterpetedFunction");
 
-   cout << "term = " << term->toString() << endl;
    ASS(isInterpretedFunction(term->functor()));
    Interpretation f = interpretFunction(term->functor());
    Interpretation inverted_f;

@@ -348,32 +348,28 @@ vstring LaTeX::toString (Literal* l) const
 //     }
 //   }
 
-  vstring res;
-
-  if (l->isNegative()) {
-    res="\\neg ";
-  }
   //Check if this is an interpreted predicate 
-  bool infix=false;
-  vstring interpSymbol = theory->tryGetInterpretedLaTeXName(l->functor(),true,infix);
+  vstring interpSymbol = theory->tryGetInterpretedLaTeXName(l->functor(),true,l->isNegative());
 
   if(interpSymbol.empty()){
-    res+=symbolToString(l->functor(), true) + toString(l->args());
+    vstring res;
+    if (l->isNegative()) { res="\\neg ";}
+    return res+symbolToString(l->functor(), true) + toString(l->args());
   }
   else{
-    if(infix){
-      ASS(l->arity()==2);
-      if(l->isNegative()) interpSymbol = "\\not "+interpSymbol;
-      vstring t = toString(l->nthArgument(0),true) + interpSymbol + toString(l->nthArgument(1),true);
-      //if(l->isNegative()) res+= " ("+t+")";
-      //else res += t;
-      res = t;
-    }else{
-      res+= interpSymbol + toString(l->args());
+    // replace arguments in the template, arg0 replaces 0 etc.
+    for(unsigned i=0;i<l->arity();i++){
+      vstring from = "a"+Lib::Int::toString(i);
+      vstring to = toString(l->nthArgument(i),true);
+      size_t start_pos = 0;
+      while((start_pos = interpSymbol.find(from, start_pos)) != std::string::npos) {
+         interpSymbol.replace(start_pos, from.length(), to);
+         start_pos += to.length(); 
+      }
     }
+    return interpSymbol;
   }
 
-  return res;
 } // LaTeX::toString (const Literal& l)
 
 
@@ -485,7 +481,7 @@ vstring LaTeX::toString (TermList* terms,bool single) const
     return "";
   }
 
-  vstring result = vstring(" (");
+  vstring result = single ? "" : " (";
   bool first=true;
   TermList* t=terms;
   while(t->isNonEmpty()) {
@@ -512,28 +508,30 @@ vstring LaTeX::toString (TermList* terms,bool single) const
       Term* trm=t->term();
 
       //Check if this is an interpreted function
-      bool infix=false;
-      vstring interpSymbol = theory->tryGetInterpretedLaTeXName(trm->functor(),false,infix);
+      vstring interpSymbol = theory->tryGetInterpretedLaTeXName(trm->functor(),false);
    
       if(interpSymbol.empty()){
         result += symbolToString(trm->functor(), false) + toString(trm->args());
       }
       else{
-        if(infix){
-          ASS(trm->arity()==2); 
-          result += toString(trm->nthArgument(0),true) + interpSymbol + 
-                    toString(trm->nthArgument(1),true); 
+        // replace arguments in the template, arg0 replaces 0 etc.
+        for(unsigned i=0;i<trm->arity();i++){
+          vstring from = "a"+Lib::Int::toString(i);
+          vstring to = toString(trm->nthArgument(i),true);
+          size_t start_pos = 0;
+          while((start_pos = interpSymbol.find(from, start_pos)) != std::string::npos) {
+            interpSymbol.replace(start_pos, from.length(), to);
+            start_pos += to.length();
+          }
         }
-        else{
-          result += interpSymbol + toString(trm->args());
-        }
+        result += interpSymbol;
       }
     }
 
     if(single) break;
     t=t->next();
   }
-  return result + ")";
+  return single? result : result + ")";
 }
 
 
@@ -737,6 +735,20 @@ vstring LaTeX::varToString (unsigned num) const
 //    break;
 //  }
 //#endif
+
+  // If the signature uses 6 or fewer variables we use x,y,z,u,v,w
+  if(env.signature->vars()<6){
+    switch(num){
+      case 0 : return "x";
+      case 1 : return "y";
+      case 2 : return "z";
+      case 3 : return "u";
+      case 4 : return "v";
+      case 5 : return "w";
+      default: ASSERTION_VIOLATION;
+    }
+  }
+
   return vstring("x_{") + Int::toString(num) + "}";
 } // LaTeX::toString (Var v)
 

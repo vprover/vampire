@@ -576,7 +576,7 @@ Options::Options ()
     _lookup.insert(&_backwardDemodulation);
     _backwardDemodulation.tag(OptionTag::INFERENCES);
     
-    _backwardSubsumption = ChoiceOptionValue<Subsumption>("backward_subsumption","",
+    _backwardSubsumption = ChoiceOptionValue<Subsumption>("backward_subsumption","bs",
                                                           Subsumption::ON,{"off","on","unit_only"});
     _backwardSubsumption.description=
              "unit_only means that the subsumption will be performed only by unit clauses";
