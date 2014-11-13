@@ -28,6 +28,7 @@ enum TimeCounterUnit
    * both in adding new clauses and also in adding new assumptions
    */
   TC_LINGELING,
+  TC_MINIMIZING_SOLVER,
   TC_TERM_SHARING,
   TC_SPLITTING_COMPONENT_SELECTION,
   TC_CONGRUENCE_CLOSURE,

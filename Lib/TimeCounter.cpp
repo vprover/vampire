@@ -281,8 +281,11 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     out<<"TWLSolver add clauses";
     break;
   case TC_LINGELING:
-	out<<"Lingeling solver time";
-	break;
+    out<<"Lingeling solver time";
+    break;
+  case TC_MINIMIZING_SOLVER:
+    out << "Minizing solver time";
+    break;        
   case TC_SUPERPOSITION:
     out<<"superposition";
     break;
