@@ -1017,7 +1017,9 @@ void SSplitter::addComponents(const SplitLevelStack& toAdd)
     SplitRecord* sr = _db[sl];
     ASS(sr);
     ASS(!sr->active);
+#if VDEBUG
     MainLoopScheduler::log() << "adding " << sl << endl;
+#endif
     sr->active = true;
 
     ASS(sr->children.isEmpty());
@@ -1055,7 +1057,9 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
     SplitLevel bl=blit.next();
     SplitRecord* sr=_db[bl];
     ASS(sr);
+#if VDEBUG
     MainLoopScheduler::log() << "backtrack " << bl << endl;
+#endif
     ASS(sr->active);
 
     while(sr->children.isNonEmpty()) {
