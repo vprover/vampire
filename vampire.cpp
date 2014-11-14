@@ -507,7 +507,7 @@ void vampireMode()
     }
   }
   */
-
+/*
   if(env -> isSingleStrategy()) {
           cout << "running in single strategy mode" << endl;
           cout << "Actually we don't support that at the moment... Aborting!" << endl;
@@ -529,6 +529,7 @@ void vampireMode()
           }
 
   }else{
+*/
           cout << "Running in multi strategy mode with " << env -> optionsList -> size() << " strategies." << endl;
 	  // Preprocessing based on options in first strategy and applied to the problems of all
           // strategies
@@ -556,7 +557,7 @@ void vampireMode()
           #endif
              vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
           }
-  }
+  //}
 
 } // vampireMode
 
