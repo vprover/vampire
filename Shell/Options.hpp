@@ -764,12 +764,13 @@ private:
         typename Lib::Stack<OptionValueConstraint<T>*>::Iterator it(_constraints);
         while(it.hasNext()){ 
           vstring msg = it.next()->check(*this); 
-          if(!msg.empty()) USER_ERROR(msg);
+          if(!msg.empty()) USER_ERROR("Broken Constraint: "+msg);
         }
         return true;
       }
 
       OptionValueConstraint<T>* is(OptionValueConstraint<T>* c);
+      virtual OptionValueConstraint<T>* isDefault();
 
       void addProblemConstraint(OptionProblemConstraint* c){ _prob_constraints.push(c); }
       virtual bool checkProblemConstraints(Property& prop){
@@ -1040,6 +1041,7 @@ private:
         CLASS_NAME(OptionValueConstraint);
         USE_ALLOCATOR(OptionValueConstraint);
         virtual vstring check(OptionValue<T>& value) = 0; 
+        virtual vstring check(){ ASSERTION_VIOLATION; }
 
         OptionValueConstraint<T>* And(OptionValueConstraint<T>* another);
         OptionValueConstraint<T>* Or(OptionValueConstraint<T>* another);
@@ -1056,6 +1058,9 @@ private:
         WrappedConstraint(OptionValue<T>& v, OptionValueConstraint<T>* c) : value(v), con(c) {}
 
         vstring check(OptionValue<T>&){
+            return con->check(value);
+        }
+        vstring check(){
             return con->check(value);
         }
 
@@ -1122,7 +1127,7 @@ private:
        Equal(T bv) : _badvalue(bv) {}
        vstring check(OptionValue<T>& value){
          if(value.actualValue == _badvalue){
-           return value.longName +  " cannot have value " + value.getStringOfValue(_badvalue);
+           return value.longName +  " equals " + value.getStringOfValue(_badvalue);
          }
          return "";
        }
@@ -1140,7 +1145,7 @@ private:
        NotEqual(T bv) : _badvalue(bv) {}
        vstring check(OptionValue<T>& value){
          if(value.actualValue == _badvalue){
-           return value.longName +  " cannot have value " + value.getStringOfValue(_badvalue);
+           return value.longName +  " does not equal " + value.getStringOfValue(_badvalue);
          }
          return "";
        }
@@ -1160,7 +1165,7 @@ private:
        LessThan(T bv,bool eq=false) : _badvalue(bv), _orequal(eq) {}
        vstring check(OptionValue<T>& value){
          if(value.actualValue > _badvalue || (!_orequal && value.actualValue==_badvalue)){
-           return value.longName+ " must be less than " + value.getStringOfValue(_badvalue);
+           return value.longName+ " is less than " + value.getStringOfValue(_badvalue);
          }
          return "";
        }
@@ -1185,7 +1190,7 @@ private:
        GreaterThan(T bv,bool eq=false) : _badvalue(bv), _orequal(eq) {}
        vstring check(OptionValue<T>& value){
          if(value.actualValue < _badvalue || (!_orequal && value.actualValue==_badvalue)){
-           return value.longName+ " must be greater than " + value.getStringOfValue(_badvalue);
+           return value.longName+ " is greater than " + value.getStringOfValue(_badvalue);
          }
          return "";
        }
@@ -1201,95 +1206,81 @@ private:
         return new GreaterThan<T>(bv,true);
     }
 
-    // A Dependence records the constraint that condition on this -> condition on other 
-    // the condition can be equality or inequality 
-
-    template<typename T>
-    struct Condition { 
-       CLASS_NAME(Condition);
-       USE_ALLOCATOR(Condition);
-       Condition(T v, vstring s) : value(v), str(s) {}
-       virtual bool check(T vp) = 0;
-       T value; vstring str; 
-    };
-
-    template<typename T>
-    struct equals : public Condition<T>{ 
-       CLASS_NAME(equals);
-       USE_ALLOCATOR(equals);
-       equals(T v) : Condition<T>(v,"=="){}
-       bool check(T vp){ return Condition<T>::value==vp;} 
-    };
-
-    template<typename T>
-    struct notequals : Condition<T> { 
-       CLASS_NAME(notequals);
-       USE_ALLOCATOR(notequals);
-       notequals(T v) : Condition<T>(v,"!="){} 
-       bool check(T vp){ return Condition<T>::value!=vp;} 
-    };
+   /**
+    * If constraints
+    */
 
     template<typename T, typename S>
-    struct Dependence : public OptionValueConstraint<T>{
-       CLASS_NAME(Dependence);
-       USE_ALLOCATOR(Dependence);
-       Dependence(Condition<T>* c1, OptionValue<S>* o, Condition<S>* c2) :
-           con1(c1), other(o), con2(c2) {}
+    struct IfConstraint : public OptionValueConstraint<T>{
+       CLASS_NAME(If);
+       USE_ALLOCATOR(If);
+       If(OptionValueConstraint<T>* c) :if_con(c) {}
 
+       void then(OptionValueConstraint<S>* c){
+         then_con=c;
+       }
+
+       // we check for the negation of the if-then
+       // i.e. it should be not A or B so we make it A and not B
+       // not that A is true if A_m is empty
        virtual vstring check(OptionValue<T>& value){
-           if(con1->check(value.actualValue) && !con2->check(other->actualValue)){
-                vstring s1 = value.longName+con1->str+value.getStringOfValue(con1->value);
-                vstring s2 = other->longName+con2->str+other->getStringOfValue(con2->value);
-                return "when "+s1 + ", it is required that " + s2;
+           ASS(then_con);
+           vstring if_m = if_con->check(value);
+           vstring then_m = check_then(value);
+           if(if_m.empty() && !then_m.empty() ){
+                return "if "+if_m +" then "+then_m; 
            }
            return "";
        }
 
-       Condition<T>* con1;
-       OptionValue<S>* other;
-       Condition<S>* con2;
+       protected:
+       // Not sure if this will work. The idea is that the first will be called when
+       // T=S and the second when T != S. I might need to subclass to make it work
+       vstring check_then(OptionValue<T>& value){
+         return then_con->check();
+       } 
+       vstring check_then(OptionValue<S>& value){
+         return then_con->check(value);
+       } 
+
+       OptionValueConstraint<T>* if_con;
+       OptionValueConstraint<S>* then_con;
     };
-    // Condition 2 is that the other option is (bool and) on
+
     template<typename T>
-    struct BoolDependence : public Dependence<T,bool>{
-       BoolDependence(Condition<T>* c1, OptionValue<bool>* o) :
-         Dependence<T,bool>(c1,o,new equals<bool>(true)) {}
-    };
-    // Condition 1 is that this option has not got default value 
-    template<typename T, typename S>
-    struct DefaultDependence : public Dependence<T,S>{
-        DefaultDependence(OptionValue<S>* o, Condition<S>* c2) :
-           Dependence<T,S>(0,o,c2) {}
+    static OptionValueConstraint<T>* If(OptionValueConstraint<T>* c){
+        return new If(c)
+    }
+  /**
+   * Default Value constraints
+   */
+
+    template<typename T>
+    struct DefaultConstraint { 
+        DefaultConstraint() {}
 
         virtual vstring check(OptionValue<T>& value){
-           Dependence<T,S>::con1 = new notequals<T>(value.defaultValue);
-           return Dependence<T,S>::check(value);
+           OptionValueConstraint<T>* c = equal(value.defaultValue); 
+           vstring res = c->check(value);
+           delete c;
+           return res;
         }
     };
-    // Combine Bool and Default Dependence 
     template<typename T>
-    struct BoolDefaultDependence : public DefaultDependence<T,bool>{
-       BoolDefaultDependence(OptionValue<bool>* o) :
-         DefaultDependence<T,bool>(0,o,new equals<bool>(true)) {}
-    };
-    // DefaultDependence for Ratios
-    template<typename S>
-    struct DefaultRatioDependence : public Dependence<int,S>{
-        DefaultRatioDependence(OptionValue<S>* o, Condition<S>* c2) :
-           Dependence<int,S>(0,o,c2) {}
+    struct DefaultRatioConstraint {
+        DefaultRatioConstraint() {}
       
         virtual vstring check(OptionValue<int>& value){
             RatioOptionValue& rvalue = static_cast<RatioOptionValue&>(value);
-            if((rvalue.defaultValue != rvalue.actualValue || rvalue.defaultOtherValue != rvalue.otherValue) &&
-               !Dependence<int,S>::con2->check(Dependence<int,S>::other->actualValue)){
-                   vstring s1 = value.longName+"!="+Lib::Int::toString(rvalue.defaultValue)+"/"+Lib::Int::toString(rvalue.defaultOtherValue);
-                   vstring s2 = Dependence<int,S>::other->longName+Dependence<int,S>::con2->str+Dependence<int,S>::other->getStringOfValue(Dependence<int,S>::con2->value);
-                   return "when "+s1 + ", it is required that " + s2;
+            if(rvalue.defaultValue != rvalue.actualValue || 
+               rvalue.defaultOtherValue != rvalue.otherValue){ 
+              return "is not default";
             }
             return "";
         }
 
     };
+
 
    /**
     *
