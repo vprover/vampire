@@ -5,6 +5,9 @@
  * @since 06/06/2001 Manchester, completely rewritten
  *
  * @since Sep 14 rewritten by Giles
+ *
+ *
+ * IMPORTANT --> see .hpp file for instructions on how to add an option
  */
 
 // Visual does not know the round function
@@ -35,9 +38,12 @@ using namespace Shell;
 /**
  * Initialize options to the default values.
  *
+ * Options are divided by the mode they are applicable to. 
+ * We then divid by tags where appropriate.
+ * If an option is applicable to multiple modes but is not global it should be
+ *  put in the most obvious mode - usually Vampire.
  *
- * Options are divided by the mode they are applicable to. We then divid by tags where appropriate.
- * If an option is applicable to multiple modes but is not global it is put in the most obvious mode - usually Vampire.
+ * IMPORTANT --> see .hpp file for instructions on how to add an option
  *
  * @since 10/07/2003 Manchester, _normalize added
  */
@@ -356,16 +362,15 @@ Options::Options ()
     _lookup.insert(&_sineDepth);
     _sineDepth.tag(OptionTag::PREPROCESSING);
     // Captures that if the value is not default then sineSelection must be on
-    _sineDepth.addConstraint(new DefaultDependence<unsigned,SineSelection>(&_sineSelection,new notequals<SineSelection>(SineSelection::OFF)));
-    
+    _sineDepth.addConstraintIfNotDefault(_sineSelection.is(notEqual(SineSelection::OFF)));
+
     _sineGeneralityThreshold = UnsignedOptionValue("sine_generality_threshold","sgt",0);
     _sineGeneralityThreshold.description=
     "Generality of a symbol is the number of input formulas in which a symbol appears. If the generality of a symbol is smaller than the threshold, it is always added into the D-relation with formulas in which it appears.";
     _lookup.insert(&_sineGeneralityThreshold);
     _sineGeneralityThreshold.tag(OptionTag::PREPROCESSING);
     // Captures that if the value is not default then sineSelection must be on
-    _sineGeneralityThreshold.addConstraint(
-        new DefaultDependence<unsigned,SineSelection>(&_sineSelection,new notequals<SineSelection>(SineSelection::OFF)));
+    _sineGeneralityThreshold.addConstraintIfNotDefault(_sineSelection.is(notEqual(SineSelection::OFF)));
     
     _sineSelection = ChoiceOptionValue<SineSelection>("sine_selection","ss",SineSelection::OFF,{"axioms","included","off"});
     _sineSelection.description=
@@ -379,7 +384,7 @@ Options::Options ()
     _sineTolerance.tag(OptionTag::PREPROCESSING);
     _sineTolerance.addConstraint(equal(0.0f)->Or(greaterThanEq(1.0f) ));
     // Captures that if the value is not 1.0 then sineSelection must be on
-    _sineTolerance.addConstraint(new DefaultDependence<float,SineSelection>(&_sineSelection,new notequals<SineSelection>(SineSelection::OFF)));
+    _sineTolerance.addConstraintIfNotDefault(_sineSelection.is(notEqual(SineSelection::OFF)));
     
     _naming = IntOptionValue("naming","nm",8);
     _naming.description="";
@@ -504,8 +509,7 @@ Options::Options ()
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
     // Captures that if the saturation algorithm is InstGen then splitting must be off
-    _saturationAlgorithm.addConstraint(new Dependence<SaturationAlgorithm,bool>(
-        new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN),&_splitting,new notequals<bool>(true)));
+    _saturationAlgorithm.addConstraint(If(equal(SaturationAlgorithm::INST_GEN)).then(_splitting.is(notEqual(true))));
     
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
@@ -560,8 +564,7 @@ Options::Options ()
     _lookup.insert(&_sos);
     _sos.tag(OptionTag::SATURATION);
     // Captures that if Sos is not off then the Saturation Algorithm cannot be Tabulation
-    _sos.addConstraint(new Dependence<Sos,SaturationAlgorithm>(
-      new notequals<Sos>(Sos::OFF),&_saturationAlgorithm,new notequals<SaturationAlgorithm>(SaturationAlgorithm::TABULATION)));
+    _sos.addConstraint(If(notEqual(Sos::OFF)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION))));
     
 //*********************** Inferences  ***********************
     
@@ -599,6 +602,9 @@ Options::Options ()
               "where θ = mgu(t,-s) and t selected";
     _lookup.insert(&_binaryResolution);
     _binaryResolution.tag(OptionTag::INFERENCES);
+    // If urr is off then binary resolution should be on
+    _binaryResolution.addConstraint(
+      If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
 
     _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
     _condensation.description=
@@ -648,8 +654,8 @@ Options::Options ()
     _lookup.insert(&_extensionalityResolution);
     _extensionalityResolution.tag(OptionTag::INFERENCES);
     // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
-    _extensionalityResolution.addConstraint(new Dependence<ExtensionalityResolution,int>(
-      new notequals<ExtensionalityResolution>(ExtensionalityResolution::OFF),&_inequalitySplitting,new equals<int>(0)));
+    _extensionalityResolution.addConstraint(
+        If(notEqual(ExtensionalityResolution::OFF)).then(_inequalitySplitting.is(equal(0))));
     
     _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
     _forwardDemodulation.description=
@@ -687,9 +693,14 @@ Options::Options ()
     "uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";
     _lookup.insert(&_unitResultingResolution);
     _unitResultingResolution.tag(OptionTag::INFERENCES);
-    _unitResultingResolution.addConstraint(new DefaultDependence<URResolution,SaturationAlgorithm>(&_saturationAlgorithm, 
-                                                                   new notequals<SaturationAlgorithm>(SaturationAlgorithm::TABULATION)));
-    //_unitResultingResolution.addConstraint(new Dependence
+    _unitResultingResolution.addConstraintIfNotDefault(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
+
+    //TODO - this is a problematic constraint. Current issue is that the two wrapped
+    //       constraints in the and need to be unwrapped with URResolution
+    //       probably need to add And to WrappedConstraint and supply the type
+    _unitResultingResolution.addConstraintIfNotDefault(
+      _saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->And<URResolution,bool>(
+        _instGenWithResolution.is(notEqual(true))));
     
     _superpositionFromVariables = BoolOptionValue("superposition_from_variables","sfv",true);
     _superpositionFromVariables.description="";
@@ -710,63 +721,54 @@ Options::Options ()
     _instGenBigRestartRatio.tag(OptionTag::INST_GEN);
     _instGenBigRestartRatio.addConstraint(greaterThanEq(0.0f)->And(lessThanEq(1.0f)));
     // Captures that this is only non-default when saturationAlgorithm is instgen
-    _instGenBigRestartRatio.addConstraint(
-        new DefaultDependence<float,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
+    _instGenBigRestartRatio.addConstraintIfNotDefault(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     
     _instGenInprocessing = BoolOptionValue("inst_gen_inprocessing","",false);
     _instGenInprocessing.description="";
     _lookup.insert(&_instGenInprocessing);
     _instGenInprocessing.tag(OptionTag::INST_GEN);
-    _instGenInprocessing.addConstraint(
-        new DefaultDependence<bool,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
+    _instGenInprocessing.addConstraintIfNotDefault(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     
     _instGenPassiveReactivation = BoolOptionValue("inst_gen_passive_reactivation","",false);
     _instGenPassiveReactivation.description="";
     _lookup.insert(&_instGenPassiveReactivation);
     _instGenPassiveReactivation.tag(OptionTag::INST_GEN);
-    _instGenPassiveReactivation.addConstraint(
-        new DefaultDependence<bool,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
+    _instGenPassiveReactivation.addConstraintIfNotDefault(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     
     _instGenResolutionInstGenRatio = RatioOptionValue("inst_gen_resolution_ratio","igrr",1,1);
     _instGenResolutionInstGenRatio.description=
     "ratio of resolution and instantiation steps (applies only if inst_gen_with_resolution is on)";
     _lookup.insert(&_instGenResolutionInstGenRatio);
     _instGenResolutionInstGenRatio.tag(OptionTag::INST_GEN);
-    _instGenResolutionInstGenRatio.addConstraint(
-        new DefaultRatioDependence<SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
-    _instGenResolutionInstGenRatio.addConstraint(
-        new DefaultRatioDependence<bool>(&_instGenWithResolution,new equals<bool>(true)));
+    _instGenResolutionInstGenRatio.addConstraintIfNotDefault(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
+    _instGenResolutionInstGenRatio.addConstraintIfNotDefault(_instGenWithResolution.is(equal(true)));
     
     _instGenRestartPeriod = IntOptionValue("inst_gen_restart_period","igrp",1000);
     _instGenRestartPeriod.description="how many clauses are processed before (small?) restart";
     _lookup.insert(&_instGenRestartPeriod);
     _instGenRestartPeriod.tag(OptionTag::INST_GEN);
-    _instGenRestartPeriod.addConstraint(
-        new DefaultDependence<int,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
+    _instGenRestartPeriod.addConstraintIfNotDefault(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     
     _instGenRestartPeriodQuotient = FloatOptionValue("inst_gen_restart_period_quotient","igrpq",1.0);
     _instGenRestartPeriodQuotient.description="restart period is multiplied by this number after each restart";
     _lookup.insert(&_instGenRestartPeriodQuotient);
     _instGenRestartPeriodQuotient.tag(OptionTag::INST_GEN);
     _instGenRestartPeriodQuotient.addConstraint(greaterThanEq(1.0f));
-    _instGenRestartPeriodQuotient.addConstraint(
-        new DefaultDependence<float,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
+    _instGenRestartPeriodQuotient.addConstraintIfNotDefault(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     
     _instGenSelection = SelectionOptionValue("inst_gen_selection","igs",0);
     _instGenSelection.description=
     "selection function for InstGen. we don't have the functions 11 and 1011 yet (as it would need special treatment for the look-ahead)";
     _lookup.insert(&_instGenSelection);
     _instGenSelection.tag(OptionTag::INST_GEN);
-    _instGenSelection.addConstraint(
-        new DefaultDependence<int,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
+    _instGenSelection.addConstraintIfNotDefault(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     
     _instGenWithResolution = BoolOptionValue("inst_gen_with_resolution","igwr",false);
     _instGenWithResolution.description=
     "performs instantiation together with resolution (global subsuption index is shared, also clauses generated by the resolution are added to the instance SAT problem)";
     _lookup.insert(&_instGenWithResolution);
     _instGenWithResolution.tag(OptionTag::INST_GEN);
-    _instGenWithResolution.addConstraint(
-        new DefaultDependence<bool,SaturationAlgorithm>(&_saturationAlgorithm,new equals<SaturationAlgorithm>(SaturationAlgorithm::INST_GEN)));
+    _instGenWithResolution.addConstraintIfNotDefault(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     
     _use_dm = BoolOptionValue("use_dismatching","",false);
     _use_dm.description="";
@@ -786,6 +788,8 @@ Options::Options ()
     _splitting.description="";
     _lookup.insert(&_splitting);
     _splitting.tag(OptionTag::AVATAR);
+    // TODO - put the tabulation constraint here but inst_gen constraint on sa... why?
+    _splitting.addConstraint(If(equal(true)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION))));
     
     _ssplittingAddComplementary = ChoiceOptionValue<SSplittingAddComplementary>("ssplitting_add_complementary","ssac",
                                                                                 SSplittingAddComplementary::GROUND,{"ground","none"});
@@ -1037,9 +1041,11 @@ Options::Options ()
 
     _nonliteralsInClauseWeight = BoolOptionValue("nonliterals_in_clause_weight","nicw",false);
     _nonliteralsInClauseWeight.description=
-             "Non-literal parts of clauses (such as BDDs or its split history) will also contribute to the weight";
+             "Non-literal parts of clauses (such as its split history) will also contribute to the weight";
     _lookup.insert(&_nonliteralsInClauseWeight);
     _nonliteralsInClauseWeight.tag(OptionTag::OTHER);
+    _nonliteralsInClauseWeight.addConstraintIfNotDefault(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))); 
+    _nonliteralsInClauseWeight.addConstraintIfNotDefault(_splitting.is(notEqual(false)));
 
     _normalize = BoolOptionValue("normalize","",false);
     _normalize.description="";
@@ -1419,9 +1425,57 @@ void Options::output (ostream& str) const
 // } // Options::toXML
 
 template<typename T>
-Options::OptionValueConstraint<T>* Options::OptionValue<T>::is(OptionValueConstraint<T>* c)
+bool Options::OptionValue<T>::checkConstraints(){
+     CALL("Options::OptionValue::checkConstraints");
+     typename Lib::Stack<OptionValueConstraint<T>*>::Iterator it(_constraints);
+     while(it.hasNext()){
+       OptionValueConstraint<T>* con = it.next();
+       if(!con->check(*this)){
+       switch(env.options->getBadOptionChoice()){
+         case BadOption::HARD :
+             USER_ERROR("\nBroken Constraint: "+con->msg(*this));
+         case BadOption::SOFT :
+             cout << "WARNING Broken Constraint: "+con->msg(*this) << endl;
+         case BadOption::FORCED :
+             if(con->force(*this)){
+               cout << "Forced constraint " + con->msg(*this) << endl;
+             }else{
+               USER_ERROR("\nCould not force Constraint: "+con->msg(*this));
+             }
+         case BadOption::OFF: break;
+         default: ASSERTION_VIOLATION;
+        }
+     }
+    }
+    return true;
+}
+
+template<typename T>
+bool Options::OptionValue<T>::checkProblemConstraints(Property& prop){
+    CALL("Options::OptionValue::checkProblemConstraints");
+    Lib::Stack<OptionProblemConstraint*>::Iterator it(_prob_constraints);
+    while(it.hasNext()){
+      OptionProblemConstraint* con = it.next();
+      if(!con->check(prop)){
+         cout << "WARNING: " << longName << con->msg();
+         return false;
+      }
+    }
+    return true;
+}
+
+
+template<typename T>
+Options::WrappedConstraint<T>* Options::OptionValue<T>::is(OptionValueConstraint<T>* c)
 {
-    return new WrappedConstraint<T>(&this,c);
+    return new WrappedConstraint<T>(*this,c);
+}
+
+template<typename T>
+template<typename S, typename R>
+Options::OptionValueConstraint<S>* Options::WrappedConstraint<T>::And(WrappedConstraint<R>* another)
+{
+    return new AndWrapper<S>(new UnWrappedConstraint<S,T>(this), new UnWrappedConstraint<S,R>(another));
 }
 
 template<typename T>
@@ -1433,6 +1487,18 @@ template<typename T>
 Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::Or(OptionValueConstraint<T>* another)
 {
     return new OrWrapper<T>(this,another);
+}
+template<typename T>
+template<typename S>
+Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::And(WrappedConstraint<S>* another)
+{
+    return new AndWrapper<T>(this,new UnWrappedConstraint<T,S>(another));
+}
+template<typename T>
+template<typename S>
+Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::Or(WrappedConstraint<S>* another)
+{
+    return new OrWrapper<T>(this,new UnWrappedConstraint<T,S>(another));
 }
 
 /**
@@ -1965,11 +2031,8 @@ bool Options::completeForNNE() const
 } // Options::completeForNNE
 
 template<typename T>
-vstring Options::RequiresCompleteForNonHorn<T>::check(OptionValue<T>& value){
-  if(!env.options->completeForNNE()){
-    return value.longName + " can only be used with a strategy complete for non-Horn problems without equality";
-  }
-  return 0;
+bool Options::RequiresCompleteForNonHorn<T>::check(OptionValue<T>& value){
+  return env.options->completeForNNE();
 }
 
 /**

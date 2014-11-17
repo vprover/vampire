@@ -1,6 +1,26 @@
 /**
  * @file Options.hpp
  * Defines Vampire options.
+ *
+ * INSTRUCTIONS on Adding a new Option
+ *
+ * Firstly, the easiest thing to do is copy what's been done for an existing option
+ *
+ * In Options.hpp
+ * - Add an OptionValue object (see NOTE on OptionValues below) 
+ * - Add enum for choices if ChoiceOptionValue
+ * - Add getter for OptionValue
+ * - Only if necessary (usually not), add setter for OptionValue
+ *
+ * In Options.cpp
+ * - Initialise the OptionValue member, to do this you need to
+ * -- Call the constructor with at least a long name, short name and default value
+ * -- Provide a description
+ * -- Insert the option into lookup (this is essential)
+ * -- Tag the option, otherwise it will not appear nicely in showOptions
+ * -- Add value constraints, they can be soft or hard (see NOTE on OptionValueConstraints below)
+ * -- Add problem constraints (see NOTE on OptionProblemConstraints)
+ *
  */
 
 #ifndef __Options__
@@ -87,6 +107,13 @@ public:
   // The Enums for Option Values
   //==========================================================
   
+  enum class BadOption : unsigned int {
+    HARD,
+    FORCED,
+    OFF,
+    SOFT
+  };
+
   //enums for the bound propagation purpose
   enum class BPAlmostHalfBoundingRemoval : unsigned int {
     BOUNDS_ONLY = 0,
@@ -395,9 +422,10 @@ public:
 
   //==========================================================
   // Getter functions
-  // -currently disabled all setter functions
+  // -currently disabled all unecessary setter functions
   //==========================================================
 
+  BadOption getBadOptionChoice() const { return _badOption.actualValue; }
   vstring forcedOptions() const { return _forcedOptions.actualValue; }
   vstring forbiddenOptions() const { return _forbiddenOptions.actualValue; }
   vstring testId() const { return _testId.actualValue; }
@@ -678,6 +706,8 @@ private:
     // Declare constraints here so they can be refered to, but define them below
     template<typename T>
     struct OptionValueConstraint;
+    template<typename T>
+    struct WrappedConstraint;
     struct OptionProblemConstraint;
     
    /**
@@ -759,29 +789,19 @@ private:
 
       // Adding and checking constraints
       void addConstraint(OptionValueConstraint<T>* c){ _constraints.push(c); }
-      bool checkConstraints(){
-        CALL("Options::OptionValue::checkConstraints");
-        typename Lib::Stack<OptionValueConstraint<T>*>::Iterator it(_constraints);
-        while(it.hasNext()){ 
-          vstring msg = it.next()->check(*this); 
-          if(!msg.empty()) USER_ERROR("Broken Constraint: "+msg);
-        }
-        return true;
+      template<typename S>
+      void addConstraintIfNotDefault(WrappedConstraint<S>* c){
+        _constraints.push(If(isNotDefault<T>()).then(c));
       }
+      void addConstraintIfNotDefault(OptionValueConstraint<T>* c){
+        _constraints.push(If(isNotDefault<T>()).then(c));
+      }
+      bool checkConstraints();
 
-      OptionValueConstraint<T>* is(OptionValueConstraint<T>* c);
-      virtual OptionValueConstraint<T>* isDefault();
+      WrappedConstraint<T>* is(OptionValueConstraint<T>* c);
 
       void addProblemConstraint(OptionProblemConstraint* c){ _prob_constraints.push(c); }
-      virtual bool checkProblemConstraints(Property& prop){
-        CALL("Options::OptionValue::checkProblemConstraints");
-        Lib::Stack<OptionProblemConstraint*>::Iterator it(_prob_constraints);
-        while(it.hasNext()){ 
-          vstring msg = it.next()->check(prop); 
-          if(!msg.empty()) cout << "WARNING: " << msg;
-        }
-        return true;
-      }
+      virtual bool checkProblemConstraints(Property& prop);
 
       virtual void output(vstringstream& out) const {
         AbstractOptionValue::output(out);
@@ -926,6 +946,11 @@ private:
         RatioOptionValue(vstring l, vstring s, int def, int other) :
           OptionValue(l,s,def), defaultOtherValue(other), otherValue(other) {};
 
+      template<typename S>
+      void addConstraintIfNotDefault(WrappedConstraint<S>* c){
+        addConstraint(If(isNotDefaultRatio()).then(c));
+      }
+
         void readRatio(const char* val, char seperator=':');
         bool set(const vstring& value){
           if(sep) readRatio(value.c_str(),sep);
@@ -1031,71 +1056,119 @@ private:
     
 
    /**
-    * OptionValueConstraints are used to declare constraints on and between option values
-    * these are checked in checkGlobalOptionConstraints, which should be called after Options is updated 
+    * NOTE on OptionValueConstraints
     *
-    * TODO so they have access to properties about the problem
+    * OptionValueConstraints are used to declare constraints on and between option values
+    * these are checked in checkGlobalOptionConstraints, which should be called after 
+    * Options is updated 
+    *
+    * As usual, see Options.cpp for examples. 
+    *
+    * There are two kinds of ValueConstraints (see below for ProblemConstraints) 
+    * 
+    * - Unary constraints such as greaterThan, equals, ...
+    * - If-then constraints that capture dependencies
+    *
+    * In both cases an attempt has been made to make the declaration of constraints
+    * in Options.cpp as readable as possible. For example, an If-then constraint is
+    * written as follows
+    *
+    *  If(equals(0)).then(_otherOption.is(lessThan(5)))
+    *
+    * Note that the equals(0) will apply to the OptionValue that the constraint belongs to
+    *
+    * WrappedConstraints are produced by OptionValue.is and are used to provide constraints
+    * on other OptionValues, as seen in the example above. Most functions work with both
+    * OptionValueConstraint and WrappedConstraint but in some cases one of these options
+    * may need to be added. In this case see examples from AddWrapper below. 
+    *
     */
+    template<typename T>
+    struct WrappedConstraint;
+
     template<typename T>
     struct OptionValueConstraint{
         CLASS_NAME(OptionValueConstraint);
         USE_ALLOCATOR(OptionValueConstraint);
-        virtual vstring check(OptionValue<T>& value) = 0; 
-        virtual vstring check(){ ASSERTION_VIOLATION; }
+        virtual bool check(OptionValue<T>& value) = 0; 
+        virtual bool check(){ ASSERTION_VIOLATION; }
+        virtual vstring msg(OptionValue<T>& value) = 0;
+        virtual vstring msg() { ASSERTION_VIOLATION; }
+
+        // By default cannot force constraint
+        virtual bool force(OptionValue<T>& value){ return false;}
 
         OptionValueConstraint<T>* And(OptionValueConstraint<T>* another);
         OptionValueConstraint<T>* Or(OptionValueConstraint<T>* another);
+
+        template<typename S>
+        OptionValueConstraint<T>* And(WrappedConstraint<S>* another);
+        template<typename S>
+        OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
+        
     };
 
 
     // A Wrapped Constraint takes an OptionValue and a Constraint
     // It allows us to supply a constraint on another OptionValue in an If constraint for example
     template<typename T>
-    struct WrappedConstraint : public OptionValueConstraint<T> {
+    struct WrappedConstraint{ 
         CLASS_NAME(WrappedConstraint);
         USE_ALLOCATOR(WrappedConstraint);
 
         WrappedConstraint(OptionValue<T>& v, OptionValueConstraint<T>* c) : value(v), con(c) {}
 
-        vstring check(OptionValue<T>&){
+        bool check(){
             return con->check(value);
         }
-        vstring check(){
-            return con->check(value);
+        vstring msg(){
+            return con->msg(value);
         }
+
+        template<typename S, typename R>
+        OptionValueConstraint<S>* And(WrappedConstraint<R>* another);
 
         OptionValue<T>& value;
         OptionValueConstraint<T>* con;
     };
 
-    // A constraint that takes two constraints and only requires one to return an empty message
-    // i.e. be satisfied
+    template<typename T, typename S>
+    struct UnWrappedConstraint : public OptionValueConstraint<T>{
+      CLASS_NAME(UnWrappedConstraint);
+      USE_ALLOCATOR(UnWrappedConstraint);
+
+      UnWrappedConstraint(WrappedConstraint<S>* c) : con(c) {}
+
+      bool check(OptionValue<T>&){ return con->check(); }
+      vstring msg(OptionValue<T>&){ return con->msg(); }
+      
+      WrappedConstraint<S>* con;
+    };
+
     template<typename T>
     struct OrWrapper : public OptionValueConstraint<T>{
        CLASS_NAME(OrWrapper);
        USE_ALLOCATOR(OrWrapper);
        OrWrapper(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
-       vstring check(OptionValue<T>& value){
-          vstring msg = left->check(value);
-          if(msg.empty()) return msg;
-          return right->check(value);
+       bool check(OptionValue<T>& value){
+         return left->check(value) || right->check(value);
        }
+       vstring msg(OptionValue<T>& value){ return left->msg(value) + " or " + right->msg(value); }
+
        OptionValueConstraint<T>* left;
        OptionValueConstraint<T>* right;
     };
 
-    // A constraint that takes two constraints and requires both to return an empty message
-    // i.e. be satisfied
     template<typename T>
     struct AndWrapper : public OptionValueConstraint<T>{
        CLASS_NAME(AndWrapper);
        USE_ALLOCATOR(AndWrapper);
        AndWrapper(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
-       vstring check(OptionValue<T>& value){
-          vstring msg = left->check(value);
-          if(!msg.empty()) return msg;
-          return right->check(value);
+       bool check(OptionValue<T>& value){
+          return left->check(value) && right->check(value);
        }
+       vstring msg(OptionValue<T>& value){ return left->msg(value) + " and " + right->msg(value); }
+
        OptionValueConstraint<T>* left;
        OptionValueConstraint<T>* right;
     };
@@ -1105,10 +1178,11 @@ private:
         CLASS_NAME(OnAnd);
         USE_ALLOCATOR(OnAnd);
        OnAnd(OptionValueConstraint<bool>* other) : _other(other) {}
-       vstring check(OptionValue<bool>& value){
+       bool check(OptionValue<bool>& value){
           if(value.actualValue) return _other->check(value);
-          return "";
+          return true;
        }
+       vstring msg(OptionValue<bool>& value){ return value.longName+" is on and "+_other->msg(value); }
        OptionValueConstraint<bool>* _other;
     };
 
@@ -1117,21 +1191,20 @@ private:
        CLASS_NAME(RequiresCompleteForNonHorn);
        USE_ALLOCATOR(RequiresCompleteForNonHorn);
        RequiresCompleteForNonHorn(){}
-       vstring check(OptionValue<T>& value);
+       bool check(OptionValue<T>& value);
+       vstring msg(OptionValue<T>& value){ return value.longName+" is complete for non-horn"; }
     }; 
 
     template<typename T>
     struct Equal : public OptionValueConstraint<T>{
        CLASS_NAME(Equal);
        USE_ALLOCATOR(Equal);
-       Equal(T bv) : _badvalue(bv) {}
-       vstring check(OptionValue<T>& value){
-         if(value.actualValue == _badvalue){
-           return value.longName +  " equals " + value.getStringOfValue(_badvalue);
-         }
-         return "";
+       Equal(T gv) : _goodvalue(gv) {}
+       bool check(OptionValue<T>& value){
+         return value.actualValue == _goodvalue;
        }
-       T _badvalue;
+       vstring msg(OptionValue<T>& value){ return value.longName+" is equal to " + value.getStringOfValue(_goodvalue); }
+       T _goodvalue;
     };
     template<typename T>
     static OptionValueConstraint<T>* equal(T bv){
@@ -1143,12 +1216,10 @@ private:
        CLASS_NAME(NotEqual);
        USE_ALLOCATOR(NotEqual);
        NotEqual(T bv) : _badvalue(bv) {}
-       vstring check(OptionValue<T>& value){
-         if(value.actualValue == _badvalue){
-           return value.longName +  " does not equal " + value.getStringOfValue(_badvalue);
-         }
-         return "";
+       bool check(OptionValue<T>& value){
+         return value.actualValue != _badvalue;
        }
+       vstring msg(OptionValue<T>& value){ return value.longName+" is not equal to " + value.getStringOfValue(_badvalue); }
        T _badvalue;
     };
     template<typename T>
@@ -1162,14 +1233,16 @@ private:
     struct LessThan : public OptionValueConstraint<T>{
        CLASS_NAME(LessThan);
        USE_ALLOCATOR(LessThan);
-       LessThan(T bv,bool eq=false) : _badvalue(bv), _orequal(eq) {}
-       vstring check(OptionValue<T>& value){
-         if(value.actualValue > _badvalue || (!_orequal && value.actualValue==_badvalue)){
-           return value.longName+ " is less than " + value.getStringOfValue(_badvalue);
-         }
-         return "";
+       LessThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
+       bool check(OptionValue<T>& value){
+         return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
        }
-       T _badvalue;
+       vstring msg(OptionValue<T>& value){
+         if(_orequal) return value.longName+" is less than or equal to " + value.getStringOfValue(_goodvalue);
+         return value.longName+" is less than "+ value.getStringOfValue(_goodvalue);
+       }
+
+       T _goodvalue;
        bool _orequal;
     };
     template<typename T>
@@ -1187,14 +1260,17 @@ private:
     struct GreaterThan : public OptionValueConstraint<T>{
        CLASS_NAME(GreaterThan);
        USE_ALLOCATOR(GreaterThan);
-       GreaterThan(T bv,bool eq=false) : _badvalue(bv), _orequal(eq) {}
-       vstring check(OptionValue<T>& value){
-         if(value.actualValue < _badvalue || (!_orequal && value.actualValue==_badvalue)){
-           return value.longName+ " is greater than " + value.getStringOfValue(_badvalue);
-         }
-         return "";
+       GreaterThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
+       bool check(OptionValue<T>& value){
+         return (value.actualValue > _goodvalue || (_orequal && value.actualValue==_goodvalue));
        }
-       T _badvalue;
+
+       vstring msg(OptionValue<T>& value){
+         if(_orequal) return value.longName+" is greater than or equal to " + value.getStringOfValue(_goodvalue);
+         return value.longName+" is greater than "+ value.getStringOfValue(_goodvalue);
+       }
+
+       T _goodvalue;
        bool _orequal;
     };
     template<typename T>
@@ -1209,95 +1285,109 @@ private:
    /**
     * If constraints
     */
+    
+    template<typename T>
+    struct IfConstraint;
 
-    template<typename T, typename S>
-    struct IfConstraint : public OptionValueConstraint<T>{
-       CLASS_NAME(If);
-       USE_ALLOCATOR(If);
-       If(OptionValueConstraint<T>* c) :if_con(c) {}
+    template<typename T>
+    struct IfThenConstraint : public OptionValueConstraint<T>{
+       CLASS_NAME(IfThenConstraint);
+       USE_ALLOCATOR(IfThenConstraint);
 
-       void then(OptionValueConstraint<S>* c){
-         then_con=c;
-       }
+       IfThenConstraint(OptionValueConstraint<T>* ic, OptionValueConstraint<T>* c) :
+         if_con(ic), then_con(c) {} 
 
-       // we check for the negation of the if-then
-       // i.e. it should be not A or B so we make it A and not B
-       // not that A is true if A_m is empty
-       virtual vstring check(OptionValue<T>& value){
+       bool check(OptionValue<T>& value){
            ASS(then_con);
-           vstring if_m = if_con->check(value);
-           vstring then_m = check_then(value);
-           if(if_m.empty() && !then_m.empty() ){
-                return "if "+if_m +" then "+then_m; 
-           }
-           return "";
+           return !if_con->check(value) || then_con->check(value); 
        }
 
-       protected:
-       // Not sure if this will work. The idea is that the first will be called when
-       // T=S and the second when T != S. I might need to subclass to make it work
-       vstring check_then(OptionValue<T>& value){
-         return then_con->check();
-       } 
-       vstring check_then(OptionValue<S>& value){
-         return then_con->check(value);
-       } 
+       vstring msg(OptionValue<T>& value){
+         return "if "+if_con->msg(value)+" then "+ then_con->msg(value);
+       }
 
        OptionValueConstraint<T>* if_con;
-       OptionValueConstraint<S>* then_con;
+       OptionValueConstraint<T>* then_con;
     };
 
     template<typename T>
-    static OptionValueConstraint<T>* If(OptionValueConstraint<T>* c){
-        return new If(c)
+    struct IfConstraint {
+       CLASS_NAME(IfConstraint);
+       USE_ALLOCATOR(IfConstraint);
+       IfConstraint(OptionValueConstraint<T>* c) :if_con(c) {}
+
+       OptionValueConstraint<T>* then(OptionValueConstraint<T>* c){
+         return new IfThenConstraint<T>(if_con,c);  
+       }
+       template<typename S>
+       OptionValueConstraint<T>* then(WrappedConstraint<S>* c){
+         return new IfThenConstraint<T>(if_con,new UnWrappedConstraint<T,S>(c));  
+       }
+
+       OptionValueConstraint<T>* if_con;
+    };
+
+    template<typename T>
+    static IfConstraint<T> If(OptionValueConstraint<T>* c){
+        return IfConstraint<T>(c);
     }
   /**
    * Default Value constraints
    */
 
     template<typename T>
-    struct DefaultConstraint { 
-        DefaultConstraint() {}
+    struct NotDefaultConstraint : public OptionValueConstraint<T> { 
+        NotDefaultConstraint() {}
 
-        virtual vstring check(OptionValue<T>& value){
-           OptionValueConstraint<T>* c = equal(value.defaultValue); 
-           vstring res = c->check(value);
-           delete c;
-           return res;
+        bool check(OptionValue<T>& value){
+          return value.defaultValue != value.actualValue;
         }
+        vstring msg(OptionValue<T>& value) { return value.longName+" is not default ("+value.getStringOfValue(value.defaultValue)+")";}
     };
-    template<typename T>
-    struct DefaultRatioConstraint {
-        DefaultRatioConstraint() {}
+    struct NotDefaultRatioConstraint : public OptionValueConstraint<int> {
+        NotDefaultRatioConstraint() {}
       
-        virtual vstring check(OptionValue<int>& value){
+        bool check(OptionValue<int>& value){
             RatioOptionValue& rvalue = static_cast<RatioOptionValue&>(value);
-            if(rvalue.defaultValue != rvalue.actualValue || 
-               rvalue.defaultOtherValue != rvalue.otherValue){ 
-              return "is not default";
-            }
-            return "";
+            return (rvalue.defaultValue != rvalue.actualValue || 
+               rvalue.defaultOtherValue != rvalue.otherValue);
         }
+        vstring msg(OptionValue<int>& value) { return value.longName+" is not default";}
 
     };
+
+    // You will need to provide the type, optionally use addConstraintIfNotDefault
+    template<typename T>
+    static OptionValueConstraint<T>* isNotDefault(){
+        return new NotDefaultConstraint<T>();
+    }
+    // You will need to provide the type, optionally use addConstraintIfNotDefault
+    static OptionValueConstraint<int>* isNotDefaultRatio(){
+        return new NotDefaultRatioConstraint();
+    }
 
 
    /**
+    * NOTE on OptionProblemConstraint
+    * 
+    * OptionProblemConstraints are used to capture properties of a problem that
+    * should be present when an option is used. The idea being that a warning will
+    * be emited if an option is used for an inappropriate problem.
     *
+    * TODO - this element of Options is still under development
     */
 
     struct OptionProblemConstraint{
-       virtual vstring check(Property& p) = 0;
+       virtual bool check(Property& p) = 0;
+       virtual vstring msg() = 0;
     };
 
     struct HasCategory : OptionProblemConstraint{
        HasCategory(Property::Category c) : cat(c) {}
-       vstring check(Property&p){
-          if(p.category()!=cat){
-             return "the problem in category ";
-          }
-          return "";
+       bool check(Property&p){
+          return p.category()==cat;
        }
+       vstring msg(){ return " not useful for property in category "+cat; }
        Property::Category cat;
     };
 
@@ -1345,6 +1435,27 @@ private:
     
     LookupWrapper _lookup;
     
+ /** 
+  * NOTE on OptionValues
+  *
+  * An OptionValue stores the value for an Option as well as all the meta-data
+  * See the definitions of different OptionValue objects above for details
+  * but the main OptionValuse are
+  *  - BoolOptionValue
+  *  - IntOptionValue, UnsignedOptionValue, FloatOptionValue, LongOptionValue
+  *  - StringOptionValue
+  *  - ChoiceOptionValue
+  *  - RatioOptionValue
+  *
+  * ChoiceOptionValue requires you to define an enum for the choice values
+  *
+  * For examples of how the different OptionValues are used see Options.cpp
+  *
+  * If an OptionValue needs custom assignment you will need to create a custom
+  *  OptionValue. See DecodeOptionValue and SelectionOptionValue for examples. 
+  *
+  */
+
   DecodeOptionValue _decode;
 
   RatioOptionValue _ageWeightRatio;
@@ -1357,6 +1468,7 @@ private:
   BoolOptionValue _arityCheck;
   
   BoolOptionValue _backjumpTargetIsDecisionPoint;
+  ChoiceOptionValue<BadOption> _badOption;
   ChoiceOptionValue<Demodulation> _backwardDemodulation;
   ChoiceOptionValue<Subsumption> _backwardSubsumption;
   ChoiceOptionValue<Subsumption> _backwardSubsumptionResolution;
