@@ -55,7 +55,12 @@ private:
   static bool isNonEmptyClause(SATClause* cl);
 
   bool admitsDontcare(unsigned var) { 
-    return _watcher[var].isEmpty(); // TODO: add && !_inner->isZeroImplied(var);
+    return _watcher[var].isEmpty() && !_inner->isZeroImplied(var);
+    
+    /**
+     * TODO: as an optimization, the _watcher stack for isZeroImplied
+     * vars could be reset. It will not be needed anymore.
+     */
   }
   
   void selectVariable(unsigned var);
