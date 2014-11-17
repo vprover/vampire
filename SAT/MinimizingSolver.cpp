@@ -12,7 +12,7 @@ namespace SAT
 
 MinimizingSolver::MinimizingSolver(SATSolver* inner,bool splitclausesonly)
  : _varCnt(0), _inner(inner), _splitclausesonly(splitclausesonly),
-   _assignmentValid(false)
+   _assignmentValid(false), _heap(CntComparator(_unsClCnt))
 {
   CALL("MinimizingSolver::MinimizingSolver");
 
@@ -25,11 +25,10 @@ void MinimizingSolver::ensureVarCnt(unsigned newVarCnt)
   _varCnt = std::max(_varCnt, newVarCnt);
   _inner->ensureVarCnt(newVarCnt);
   _asgn.expand(newVarCnt);
-  _watcher.expand(newVarCnt);
-
-  unsigned vc2 = newVarCnt*2;
-  _unsClCnt.expand(vc2, 0);
-  _clIdx.expand(vc2);
+  _watcher.expand(newVarCnt);  
+  _unsClCnt.expand(newVarCnt, 0);
+  _heap.elMap().expand(newVarCnt);
+  _clIdx.expand(newVarCnt);
   _assignmentValid = false;
 }
 
@@ -76,7 +75,7 @@ SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)
     return _assumptions.get(var) ? SATSolver::TRUE : SATSolver::FALSE;
   }
 
-  if(_watcher[var].isEmpty()) {
+  if(admitsDontcare(var)) {
     return SATSolver::DONT_CARE;
   }
   return _asgn[var] ? SATSolver::TRUE : SATSolver::FALSE;
@@ -91,45 +90,14 @@ bool MinimizingSolver::isZeroImplied(unsigned var)
 }
 
 /**
- * Return a true SATLiteral that will satisfy the most unsatisfied
- * clauses, or SATLiteral::dummy() if there isn't any literal that
- * satisfies unsatisfied clauses.
+ * Give a concrete value (as opposed to don't-care) to the given variable.
  */
-SATLiteral MinimizingSolver::getMostSatisfyingTrueLiteral()
+void MinimizingSolver::selectVariable(unsigned var)
 {
-  CALL("MinimizingSolver::getMostSatisfyingTrueLiteral");
-
-  //TODO:use a heap for this
-  // Giles: Definitely use a heap! This is iterating over all literals
-  // in the SAT solver on each call, and will be called many times
-  unsigned best=0;
-  SATLiteral bestLit = SATLiteral::dummy();
-
-  unsigned ctrSz = _varCnt*2;
-  for(unsigned i=0; i<ctrSz; i++) {
-    SATLiteral lit(i);
-    if(_asgn[lit.var()]!=lit.polarity()) {
-      continue;
-    }
-    if(_unsClCnt[i]>best) {
-      best = _unsClCnt[i];
-      bestLit = lit;
-    }
-  }
-  return bestLit;
-}
-
-/**
- * Add a literal into the resulting assignment
- */
-void MinimizingSolver::selectLiteral(SATLiteral lit)
-{
-  CALL("MinimizingSolver::selectLiteral");
-  ASS_EQ(lit.polarity(), _asgn[lit.var()]); //literal is true in the inner assignment
-
-  unsigned var = lit.var();
-
-  SATClauseStack& satisfied = _clIdx[lit.content()];
+  CALL("MinimizingSolver::selectVariable");  
+  ASS_G(_unsClCnt[var],0);
+  
+  SATClauseStack& satisfied = _clIdx[var];
   SATClauseStack& watch = _watcher[var];
   while(satisfied.isNonEmpty()) {
     SATClause* cl = satisfied.pop();
@@ -139,11 +107,17 @@ void MinimizingSolver::selectLiteral(SATLiteral lit)
     watch.push(cl);
     SATClause::Iterator cit(*cl);
     while(cit.hasNext()) {
-      SATLiteral lit = cit.next();
-      ASS_G(_unsClCnt[lit.content()], 0);
-      _unsClCnt[lit.content()]--;
+      SATLiteral cl_lit = cit.next();
+      unsigned cl_var = cl_lit.var(); 
+      if (cl_lit.polarity() == _asgn[cl_var]) {
+        ASS_G(_unsClCnt[cl_var], 0);
+        _unsClCnt[cl_var]--;
+        if (cl_var != var) { // var has been just popped
+          _heap.notifyIncrease(cl_var); //It was an increase wrt max-heap
+        }
+      }
     }
-  }
+  }  
 }
 
 void MinimizingSolver::putIntoIndex(SATClause* cl)
@@ -153,10 +127,12 @@ void MinimizingSolver::putIntoIndex(SATClause* cl)
   SATClause::Iterator cit(*cl);
   while(cit.hasNext()) {
     SATLiteral lit = cit.next();
+    unsigned var = lit.var();
 
-    unsigned i = lit.content();
-    _clIdx[i].push(cl);
-    _unsClCnt[i]++;
+    if (lit.polarity() == _asgn[var]) {
+      _clIdx[var].push(cl);
+      _unsClCnt[var]++;
+    }
   }
 }
 
@@ -168,7 +144,7 @@ bool MinimizingSolver::tryPuttingToAnExistingWatch(SATClause* cl)
   while(cit.hasNext()) {
     SATLiteral lit = cit.next();
     unsigned var = lit.var();
-    if(_asgn[var]==lit.polarity() && _watcher[var].isNonEmpty()) {
+    if(_asgn[var]==lit.polarity() && !admitsDontcare(var)) {
       ALWAYS(_satisfiedClauses.insert(cl));
       _watcher[var].push(cl);
       return true;
@@ -181,7 +157,7 @@ bool MinimizingSolver::tryPuttingToAnExistingWatch(SATClause* cl)
  * Move satisfied unprocessed clauses into an appropriate watch, and
  * unsatisfied unprocessed clauses into _clIdx
  */
-void MinimizingSolver::processUnprocessed()
+void MinimizingSolver::processUnprocessedAndFillHeap()
 {
   CALL("MinimizingSolver::processUnprocessed");
 
@@ -192,6 +168,14 @@ void MinimizingSolver::processUnprocessed()
       putIntoIndex(cl);
     }
   }
+  
+  for(unsigned var=0; var<_varCnt; var++) {
+    ASS(!_heap.contains(var));
+    if(_unsClCnt[var]>0) {            
+      _heap.addToEnd(var);      
+    }
+  }
+  _heap.heapify();    
 }
 
 /**
@@ -239,16 +223,19 @@ void MinimizingSolver::updateAssignment()
   TimeCounter tca(TC_MINIMIZING_SOLVER);
   
   processInnerAssignmentChanges();
-  processUnprocessed();
+  processUnprocessedAndFillHeap();
 
-  for(;;) {
-    SATLiteral lit = getMostSatisfyingTrueLiteral();
-    if(lit==SATLiteral::dummy()) {
-      break;
+  while (!_heap.isEmpty()) {
+    unsigned best_var = _heap.pop();
+    if (_unsClCnt[best_var] > 0) {
+      selectVariable(best_var);
+      ASS_EQ(_unsClCnt[best_var],0);
+      ASS(_clIdx[best_var].isEmpty());
+    } else {
+      _clIdx[best_var].reset();
     }
-    selectLiteral(lit);
   }
-
+  
   _assignmentValid = true;
 }
 

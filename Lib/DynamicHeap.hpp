@@ -29,6 +29,36 @@ public:
   DynamicHeap(Comparator cmp=Comparator()) : _heap(0), _cmp(cmp) {}
 
   /**
+   * Add @c obj to the end of the heap 
+   * (heap property not being maintained).
+   *
+   * An object can appear in the heap at most once.
+   */
+  void addToEnd(TArg obj)
+  {
+    CALL("DynamicHeap::addToEnd");
+    ASS(!contains(obj));
+
+    size_t newIdx1 = size()+1;
+    _heap.expand(newIdx1);
+    getData1()[newIdx1] = obj;
+    _elMap.insert(obj, newIdx1);    
+  }  
+
+  /**
+   * Restore heap property (after a series of addToEnd calls
+   * and/or un-notified Increases/Decreases)
+   */  
+  void heapify()
+  {
+    CALL("DynamicHeap::heapify");
+        
+    for (size_t i = (size() >> 1); i > 0; i--) {
+      fixIncrease1(i);
+    }
+  }
+  
+  /**
    * Insert @c obj into the heap
    *
    * An object can appear in the heap at most once.
@@ -36,15 +66,12 @@ public:
   void insert(TArg obj)
   {
     CALL("DynamicHeap::insert");
-    ASS(!contains(obj));
-
-    size_t newIdx1 = size()+1;
-    _heap.expand(newIdx1);
-    getData1()[newIdx1] = obj;
-    _elMap.insert(obj, newIdx1);
+    
+    addToEnd(obj);
+    size_t newIdx1 = size();
     fixDecrease1(newIdx1);
   }
-
+  
   T pop()
   {
     CALL("DynamicHeap::pop");
@@ -68,7 +95,7 @@ public:
   void notifyIncrease(TArg obj)
   {
     CALL("DynamicHeap::notifyIncrease");
-
+    
     size_t idx = _elMap.get(obj);
     ASS(idx==1 || !isGreater1(idx/2, idx)); //check that we didn't decrease
     fixIncrease1(idx);

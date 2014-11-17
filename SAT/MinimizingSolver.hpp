@@ -13,6 +13,8 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/DynamicHeap.hpp"
+#include "Lib/ArrayMap.hpp"
 
 #include "SATSolver.hpp"
 
@@ -34,7 +36,6 @@ public:
   virtual bool hasAssumptions() const { return _inner->hasAssumptions(); }
   virtual void randomizeAssignment() { _inner->randomizeAssignment(); _assignmentValid = false; }
 
-
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel);
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var);
@@ -51,19 +52,20 @@ public:
   }
 
 private:
-
   static bool isNonEmptyClause(SATClause* cl);
 
-  SATLiteral getMostSatisfyingTrueLiteral();
-  void selectLiteral(SATLiteral lit);
+  bool admitsDontcare(unsigned var) { 
+    return _watcher[var].isEmpty(); // TODO: add && !_inner->isZeroImplied(var);
+  }
+  
+  void selectVariable(unsigned var);
 
   bool tryPuttingToAnExistingWatch(SATClause* cl);
   void putIntoIndex(SATClause* cl);
 
   void processInnerAssignmentChanges();
-  void processUnprocessed();
+  void processUnprocessedAndFillHeap();
   void updateAssignment();
-
 
   unsigned _varCnt;
   SATSolverSCP _inner;
@@ -77,7 +79,6 @@ private:
    */
   bool _assignmentValid;
 
-
   /**
    * Clauses of which we yet need to ensure they are satisfied
    *
@@ -86,39 +87,73 @@ private:
   SATClauseStack _unprocessed;
 
   /**
-   * A total extension of the current assignment. A variable is
-   * don't-care in the current assignment if its _watcher stack
-   * is empty.
+   * A total extension of the current assignment. 
+   * The current assignment will report don't-care for those variables
+   * for which admitsDontcare is true.
+   * 
+   * We define a literal "corresponding to variable var in _asgn"
+   * as SATLiteral(var,_asgn[var]). Used below.
    */
   DArray<bool> _asgn;
 
   /**
-   * Array of clauses kept satisfied by selecting or non-selecting
-   * a particular variable
+   * Array of clauses made satisfied by giving up the don't-care value
+   * for a particular variable and using the value dictated by _asgn instead.   
    *
    * The length of the array is _varCnt.
    */
   DArray<SATClauseStack> _watcher;
 
+  typedef DArray<unsigned> CntArray;
+  
   /**
-   * Number of unsatisfied clauses for each literal.
+   * Number of unsatisfied clauses for each literal
+   * corresponding to a variable in _asgn.
+   * 
+   * Indexed by literal's var.
    *
-   * The length of the array is _varCnt*2.
+   * The length of the array is _varCnt.
    */
-  DArray<unsigned> _unsClCnt;
+  CntArray _unsClCnt;
 
+  struct CntComparator
+  {
+    CntComparator(CntArray& ctr) : _ctr(ctr) {}
+
+    Comparison compare(unsigned v1, unsigned v2)
+    {
+      // DynamicHeap is minimal and we want maximum, 
+      // so we need to swap the arguments
+      return Int::compare(_ctr[v2], _ctr[v1]);
+    }
+    CntArray& _ctr;
+  };
+  
   /**
-   * Not yet satisfied clauses indexed by their literals
+   * Heap "on top of" _unsClCnt to facilitate fast "extract max" operation.
+   * 
+   * Heap is empty when _assignmentValid.
+   */  
+  DynamicHeap<unsigned, CntComparator, ArrayMap<size_t> > _heap;
+  
+  /**
+   * Not yet satisfied clauses indexed by each variable
+   * whose corresponding literal in _asgn can make the clause true.
    *
-   * A clause appears once for every literal.
-   * Index in the array translates as SatLiteral::content()
+   * A clause appears once for every such literal.
+   * All entries should be empty when _assignmentValid.
    *
-   * The length of the array is _varCnt*2.
+   * The length of the array is _varCnt.
    */
   DArray<SATClauseStack> _clIdx;
 
+  /**
+   * A set of satisfied clauses. To correctly maintain
+   * _unsClCnt, when there is more than one way to make clause
+   * satisfied.
+   */  
   DHSet<SATClause*> _satisfiedClauses;
-
+  
 };
 
 }
