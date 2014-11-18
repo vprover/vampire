@@ -313,6 +313,37 @@ void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack
   RSTAT_CTR_INC_MANY("ssat_removed_by_flush",removedComps.size());  
 }
 
+/**
+ * Return split levels whose corresponding variable
+ * has become zero implied in the solver since the last call of this function. 
+ */
+void SplittingBranchSelector::getNewZeroImpliedSplits(SplitLevelStack& res)
+{
+  CALL("SplittingBranchSelector::getNewZeroImpliedSplits");  
+  ASS(res.isEmpty());  
+  
+  if (!_zeroOpt) {
+    return;
+  }    
+  
+  unsigned maxSatVar = _parent.maxSatVar();
+  for(unsigned i=1; i<=maxSatVar; i++) {
+    if (!_zeroImplieds[i] && _solver->isZeroImplied(i)) {
+      _zeroImplieds[i] = true;
+      
+      SplitLevel posLvl = _parent.getNameFromLiteral(SATLiteral(i, true));
+      SplitLevel negLvl = _parent.getNameFromLiteral(SATLiteral(i, false));
+      
+      if (_parent.isUsedName(posLvl)) {
+        res.push(posLvl);
+      }
+      if (_parent.isUsedName(negLvl)) {
+        res.push(negLvl);
+      }
+    }
+  }
+}
+
 //////////////
 // Splitter
 //////////////
@@ -453,8 +484,9 @@ void Splitter::onAllProcessed()
   }
   static SplitLevelStack toAdd;
   static SplitLevelStack toRemove;
+  
   toAdd.reset();
-  toRemove.reset();
+  toRemove.reset();  
   if(flushing) {
     _branchSelector.flush(toAdd, toRemove);
   }
@@ -464,11 +496,18 @@ void Splitter::onAllProcessed()
     _conflictClausesToBeAdded.reset();
   }
 
+  static SplitLevelStack newZeroImplied;
+  newZeroImplied.reset();
+  _branchSelector.getNewZeroImpliedSplits(newZeroImplied);
+  
   if(toRemove.isNonEmpty()) {
     removeComponents(toRemove);
   }
   if(toAdd.isNonEmpty()) {
     addComponents(toAdd);
+  }
+  if (newZeroImplied.isNonEmpty()) {
+    processNewZeroImplied(newZeroImplied);
   }
 }
 
@@ -476,11 +515,9 @@ void Splitter::onAllProcessed()
 bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, Clause*& compCl)
 {
   CALL("Splitter::shouldAddClauseForNonSplittable");
-
-  SplitSet* sset = cl->splits();
+  
   //!! this check is important or we might end up looping !!
-  if(sset->size()==1 && _db[sset->sval()]->component==cl) {
-    //the clause is already a component
+  if(cl->isComponent()) {    
     return false;
   }
 
@@ -503,7 +540,7 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
       canCreate = true;
       break;
     case Options::SNS_ALL_DEPENDENT:
-      canCreate = !sset->isEmpty();
+      canCreate = !cl->splits()->isEmpty();
       break;
     case Options::SNS_KNOWN:
       canCreate = false;
@@ -749,6 +786,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   _db[name] = new SplitRecord(compCl);
 
   compCl->setSplits(SplitSet::getSingleton(name));
+  compCl->setComponent(true);
 
   {
     TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
@@ -1168,6 +1206,52 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
   }
 
   Clause::releaseAux();
+}
+
+/**
+ * A zero implied split will never change from active to non-active
+ * (or the other way round) anymore. We can reduce the bookkeeping 
+ * and remove dependencies on the split. 
+ * 
+ * Currently, we only handle active zero implied splits.
+ * 
+ */
+void Splitter::processNewZeroImplied(const SplitLevelStack& newZeroImplied)
+{
+  CALL("Splitter::processNewZeroImplied");
+  
+  SplitLevelStack::ConstIterator slit(newZeroImplied);
+  while(slit.hasNext()) {
+    SplitLevel sl = slit.next();
+    SplitRecord* sr = _db[sl];
+    ASS(sr);
+    
+    if (!sr->active) {
+      continue;
+    }
+    
+    RSTAT_CTR_INC("clearedZeroImpliedSplitLevels");
+    
+    SplitSet* myLevelSet = SplitSet::getSingleton(sl);
+    
+    while(sr->children.isNonEmpty()) {
+      Clause* ccl=sr->children.popWithoutDec();
+      
+      ccl->setSplits(ccl->splits()->subtract(myLevelSet),true);
+                  
+      ccl->decRefCnt(); //decrease corresponding to sr->children.popWithoutDec()
+    }
+    
+    while(sr->reduced.isNonEmpty()) {
+      ReductionRecord rrec=sr->reduced.pop();
+      
+      Clause* rcl=rrec.clause;
+      
+      rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in Splitter::SplitRecord::addReduced
+    }
+    
+    // TODO: release also sr->component ?    
+  }
 }
 
 }

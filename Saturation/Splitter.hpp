@@ -56,8 +56,8 @@ public:
                      SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
+  void getNewZeroImpliedSplits(SplitLevelStack& res);
 private:
-
   void processDPConflicts();
 
   void handleSatRefutation(SATClause* ref);
@@ -184,6 +184,7 @@ private:
 
   void addComponents(const SplitLevelStack& toAdd);
   void removeComponents(const SplitLevelStack& toRemove);
+  void processNewZeroImplied(const SplitLevelStack& newZeroImplied);
 
   void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const;
 

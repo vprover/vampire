@@ -181,6 +181,9 @@ public:
   bool isExtensionality() const { return _extensionality; }
   void setExtensionality(bool e) { _extensionality = e; }
 
+  bool isComponent() const { return _component; }
+  void setComponent(bool c) { _component = c; }
+  
   bool skip() const;
 
   unsigned getLiteralPosition(Literal* lit);
@@ -319,7 +322,7 @@ public:
 
 protected:
   /** number of literals */
-  unsigned _length : 29;
+  unsigned _length : 27;
   /** clause color, or COLOR_INVALID if not determined yet */
   mutable unsigned _color : 2;
   /** clause is an input clause for the saturation algorithm */
@@ -329,6 +332,8 @@ protected:
     * becomes passive and is removed from the container, also this bit is unset.
     */
   unsigned _extensionality : 1;
+  /** Clause is a splitting component. */
+  unsigned _component : 1;
   /** number of selected literals */
   unsigned _numSelected;
   /** age */
