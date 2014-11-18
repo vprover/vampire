@@ -51,7 +51,13 @@ Options::Options ()
 
 {
     CALL("Options::Options");
+    init();
+}
     
+void Options::Options::init()
+{
+   CALL("Options::init");
+
    // some options that were not give names previously
     _forceIncompleteness = BoolOptionValue("force_incompleteness","",false);
     _equivalentVariableRemoval = BoolOptionValue("equivalentVariableRemoval","",true);
@@ -116,6 +122,15 @@ Options::Options ()
     "Ignore any options that have been removed (useful in CASC mode where this can cause errors)";
     _lookup.insert(&_ignoreMissing);
     
+    _badOption = ChoiceOptionValue<BadOption>("bad_option","",BadOption::SOFT,{"hard","forced","off","soft"});
+    _badOption.description = "What should be done if a bad option is encountered:\n"
+       " - hard: will cause a user error\n"
+       " - soft: will only report the error if it is still safe\n"
+       " - forced: will try and change the value and those of unset options to make it okay\n"
+       " - off: will ignore safe errors\n"
+       "Note that unsafe errors will aways lead to a user error";
+    _lookup.insert(&_badOption);
+
     _include = StringOptionValue("include","","");
     _include.description="Path prefix for the 'include' TPTP directive";
     _lookup.insert(&_include);
@@ -1215,7 +1230,55 @@ Options::Options ()
                  "Global"
                 };
 
-} // Options::Options
+} // Options::init
+
+void Options::copyValuesFrom(const Options& that)
+{
+  //copy across the actual values in that
+  VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+
+  while(options.hasNext()){
+    AbstractOptionValue* opt = options.next();
+    if(opt->shouldCopy()){
+      AbstractOptionValue* other = that.getOptionValueByName(opt->longName);
+      bool status = opt -> set(other->getStringOfActual());
+      ASS(status);
+    }
+  }
+}
+void Options::copyValuesFrom(Options& that)
+{
+  //copy across the actual values in that
+  VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+
+  while(options.hasNext()){
+    AbstractOptionValue* opt = options.next();
+    if(opt->shouldCopy()){
+      AbstractOptionValue* other = that.getOptionValueByName(opt->longName);
+      //ASS(other == env.options->getOptionValueByName(opt->longName));
+      ASS(opt!=other);
+      bool status = opt -> set(other->getStringOfActual());
+      ASS(status);
+      //cout << "copying " << opt->longName << " with value " << other->getStringOfActual() << endl;
+    }
+  }
+}
+Options::Options(const Options& that)
+{
+  init();
+  copyValuesFrom(that);
+}
+Options::Options(Options& that)
+{
+  init();
+  copyValuesFrom(that);
+}
+
+Options& Options::operator=(const Options& that)
+{
+  copyValuesFrom(that);
+  return *this;
+}
 
 
 /**
@@ -1431,14 +1494,17 @@ bool Options::OptionValue<T>::checkConstraints(){
      while(it.hasNext()){
        OptionValueConstraint<T>* con = it.next();
        if(!con->check(*this)){
+       if(con->isHard()){ USER_ERROR("\nBroken Constraint: "+con->msg(*this)); }
        switch(env.options->getBadOptionChoice()){
          case BadOption::HARD :
              USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          case BadOption::SOFT :
              cout << "WARNING Broken Constraint: "+con->msg(*this) << endl;
+             break;
          case BadOption::FORCED :
              if(con->force(*this)){
                cout << "Forced constraint " + con->msg(*this) << endl;
+               break;
              }else{
                USER_ERROR("\nCould not force Constraint: "+con->msg(*this));
              }
@@ -1468,7 +1534,7 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property& prop){
 template<typename T>
 Options::WrappedConstraint<T>* Options::OptionValue<T>::is(OptionValueConstraint<T>* c)
 {
-    return new WrappedConstraint<T>(*this,c);
+    return new WrappedConstraint<T>(this,c);
 }
 
 template<typename T>
@@ -1728,7 +1794,7 @@ void Options::readOptionsString(vstring optionsString)
     setShort(param.c_str(),value.c_str());
 
     if (index==vstring::npos) {
-      break;
+      return;
     }
     optionsString = optionsString.substr(index+1);
   }
@@ -1765,7 +1831,7 @@ void Options::readFromTestId (vstring testId)
     _saturationAlgorithm.actualValue = SaturationAlgorithm::INST_GEN;
   }
   else {
-  error: USER_ERROR("bad test id " + _testId.actualValue);
+  error: ASSERTION_VIOLATION; //USER_ERROR("bad test id " + _testId.actualValue);
   }
 
   // after last '_' we have time limit
@@ -1811,6 +1877,8 @@ void Options::readFromTestId (vstring testId)
 void Options::setForcedOptionValues()
 {
   CALL("Options::setForcedOptionValues");
+
+  if(_forcedOptions.actualValue.empty()) return;
 
   readOptionsString(_forcedOptions.actualValue);
 

@@ -1619,6 +1619,8 @@ bool CASCMode::runSlice(vstring slice, unsigned ds)
 {
   CALL("CASCMode::runSlice");
 
+
+  // Copy options - it is import options can be copied nicely
   Options opt=*env.options;
   opt.readFromTestId(slice);
   opt.setTimeLimitInDeciseconds(ds);

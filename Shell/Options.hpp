@@ -60,6 +60,13 @@ class Options
 public:
 
     Options ();
+    void init();
+    void copyValuesFrom(Options& that);
+    void copyValuesFrom(const Options& that);
+    Options(Options& that);
+    Options(const Options& that);
+    Options& operator=(const Options& that);
+
     // used to print help and options
     void output (ostream&) const;
 
@@ -425,6 +432,7 @@ public:
   // -currently disabled all unecessary setter functions
   //==========================================================
 
+
   BadOption getBadOptionChoice() const { return _badOption.actualValue; }
   vstring forcedOptions() const { return _forcedOptions.actualValue; }
   vstring forbiddenOptions() const { return _forbiddenOptions.actualValue; }
@@ -720,7 +728,11 @@ private:
 
         AbstractOptionValue(){}
         AbstractOptionValue(vstring l,vstring s) :
-          longName(l), shortName(s), experimental(false), _tag(OptionTag::LAST_TAG) {}
+          longName(l), shortName(s), experimental(false), _should_copy(true), _tag(OptionTag::LAST_TAG) {}
+
+        // Never copy an OptionValue... the Constraint system would break
+        AbstractOptionValue(const AbstractOptionValue& that){ ASSERTION_VIOLATION; }
+        public:
 
         virtual bool set(const vstring& value) = 0;
         void setExperimental(){experimental=true;}
@@ -742,6 +754,7 @@ private:
          else return _modes.find(mode);
        }
 
+       virtual vstring getStringOfActual() const = 0; 
        virtual void output(vstringstream& out) const {
          out << "--" << longName;
          if(!shortName.empty()){ out << " (-"<<shortName<<")"; }
@@ -766,6 +779,10 @@ private:
          else{ out << "\tno description provided!" << endl; }
        }
 
+      bool _should_copy;
+      bool shouldCopy() const { return _should_copy; }
+
+
     private:
       OptionTag _tag;
       Lib::Stack<Mode> _modes;
@@ -786,6 +803,7 @@ private:
         T actualValue;
 
       virtual vstring getStringOfValue(T value) const{ ASSERTION_VIOLATION;} 
+      virtual vstring getStringOfActual() const { return getStringOfValue(actualValue); }
 
       // Adding and checking constraints
       void addConstraint(OptionValueConstraint<T>* c){ _constraints.push(c); }
@@ -886,7 +904,7 @@ private:
         return true;
       }
 
-      vstring getStringOfValue(bool value) const { return (defaultValue ? "on" : "off"); }
+      vstring getStringOfValue(bool value) const { return (value ? "on" : "off"); }
     };
 
     struct IntOptionValue : public OptionValue<int> {
@@ -911,7 +929,10 @@ private:
       StringOptionValue(){}
       StringOptionValue(vstring l,vstring s, vstring d) : OptionValue(l,s,d){} 
       // Is reference safe here?
-      bool set(const vstring& value){ actualValue = value; return true; }
+      bool set(const vstring& value){ 
+        actualValue = (value=="<empty>") ? "" : value;
+         return true; 
+      }
 
       vstring getStringOfValue(vstring value) const{
             if(value.empty()) return "<empty>";
@@ -968,7 +989,10 @@ private:
           out << "\tdefault right: " << defaultOtherValue << endl;
         }
 
-        virtual vstring getStringOfValue(int value) const{ ASSERTION_VIOLATION_REP("Shouldn't do this for Ratio");}
+        virtual vstring getStringOfValue(int value) const{ ASSERTION_VIOLATION;}
+        virtual vstring getStringOfActual() const{ 
+          return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue); 
+        }
 
     };
     
@@ -1025,9 +1049,9 @@ private:
     };
    
     struct DecodeOptionValue : public OptionValue<vstring>{
-        DecodeOptionValue(){}
+        DecodeOptionValue(){ AbstractOptionValue::_should_copy=false;}
         DecodeOptionValue(vstring l,vstring s,Options* p):
-          OptionValue(l,s,""), parent(p){}
+          OptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
 
         bool set(const vstring& value){
           parent->readFromTestId(value);
@@ -1097,6 +1121,8 @@ private:
 
         // By default cannot force constraint
         virtual bool force(OptionValue<T>& value){ return false;}
+        // TODO - allow for hard constraints
+        virtual bool isHard(){ return false; }
 
         OptionValueConstraint<T>* And(OptionValueConstraint<T>* another);
         OptionValueConstraint<T>* Or(OptionValueConstraint<T>* another);
@@ -1116,19 +1142,19 @@ private:
         CLASS_NAME(WrappedConstraint);
         USE_ALLOCATOR(WrappedConstraint);
 
-        WrappedConstraint(OptionValue<T>& v, OptionValueConstraint<T>* c) : value(v), con(c) {}
+        WrappedConstraint(OptionValue<T>* v, OptionValueConstraint<T>* c) : value(v), con(c) {}
 
         bool check(){
-            return con->check(value);
+            return con->check(*value);
         }
         vstring msg(){
-            return con->msg(value);
+            return con->msg(*value);
         }
 
         template<typename S, typename R>
         OptionValueConstraint<S>* And(WrappedConstraint<R>* another);
 
-        OptionValue<T>& value;
+        OptionValue<T>* value;
         OptionValueConstraint<T>* con;
     };
 
@@ -1182,7 +1208,7 @@ private:
           if(value.actualValue) return _other->check(value);
           return true;
        }
-       vstring msg(OptionValue<bool>& value){ return value.longName+" is on and "+_other->msg(value); }
+       vstring msg(OptionValue<bool>& value){ return value.longName+"("+value.getStringOfActual()+") is on and "+_other->msg(value); }
        OptionValueConstraint<bool>* _other;
     };
 
@@ -1192,7 +1218,7 @@ private:
        USE_ALLOCATOR(RequiresCompleteForNonHorn);
        RequiresCompleteForNonHorn(){}
        bool check(OptionValue<T>& value);
-       vstring msg(OptionValue<T>& value){ return value.longName+" is complete for non-horn"; }
+       vstring msg(OptionValue<T>& value){ return value.longName+"("+value.getStringOfActual()+") is complete for non-horn"; }
     }; 
 
     template<typename T>
@@ -1203,7 +1229,9 @@ private:
        bool check(OptionValue<T>& value){
          return value.actualValue == _goodvalue;
        }
-       vstring msg(OptionValue<T>& value){ return value.longName+" is equal to " + value.getStringOfValue(_goodvalue); }
+       vstring msg(OptionValue<T>& value){ 
+         return value.longName+"("+value.getStringOfActual()+") is equal to " + value.getStringOfValue(_goodvalue); 
+       }
        T _goodvalue;
     };
     template<typename T>
@@ -1219,7 +1247,7 @@ private:
        bool check(OptionValue<T>& value){
          return value.actualValue != _badvalue;
        }
-       vstring msg(OptionValue<T>& value){ return value.longName+" is not equal to " + value.getStringOfValue(_badvalue); }
+       vstring msg(OptionValue<T>& value){ return value.longName+"("+value.getStringOfActual()+") is not equal to " + value.getStringOfValue(_badvalue); }
        T _badvalue;
     };
     template<typename T>
@@ -1238,8 +1266,8 @@ private:
          return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
        }
        vstring msg(OptionValue<T>& value){
-         if(_orequal) return value.longName+" is less than or equal to " + value.getStringOfValue(_goodvalue);
-         return value.longName+" is less than "+ value.getStringOfValue(_goodvalue);
+         if(_orequal) return value.longName+"("+value.getStringOfActual()+") is less than or equal to " + value.getStringOfValue(_goodvalue);
+         return value.longName+"("+value.getStringOfActual()+") is less than "+ value.getStringOfValue(_goodvalue);
        }
 
        T _goodvalue;
@@ -1266,8 +1294,8 @@ private:
        }
 
        vstring msg(OptionValue<T>& value){
-         if(_orequal) return value.longName+" is greater than or equal to " + value.getStringOfValue(_goodvalue);
-         return value.longName+" is greater than "+ value.getStringOfValue(_goodvalue);
+         if(_orequal) return value.longName+"("+value.getStringOfActual()+") is greater than or equal to " + value.getStringOfValue(_goodvalue);
+         return value.longName+"("+value.getStringOfActual()+") is greater than "+ value.getStringOfValue(_goodvalue);
        }
 
        T _goodvalue;
@@ -1342,7 +1370,7 @@ private:
         bool check(OptionValue<T>& value){
           return value.defaultValue != value.actualValue;
         }
-        vstring msg(OptionValue<T>& value) { return value.longName+" is not default ("+value.getStringOfValue(value.defaultValue)+")";}
+        vstring msg(OptionValue<T>& value) { return value.longName+"("+value.getStringOfActual()+") is not default("+value.getStringOfValue(value.defaultValue)+")";}
     };
     struct NotDefaultRatioConstraint : public OptionValueConstraint<int> {
         NotDefaultRatioConstraint() {}
@@ -1352,7 +1380,7 @@ private:
             return (rvalue.defaultValue != rvalue.actualValue || 
                rvalue.defaultOtherValue != rvalue.otherValue);
         }
-        vstring msg(OptionValue<int>& value) { return value.longName+" is not default";}
+        vstring msg(OptionValue<int>& value) { return value.longName+"("+value.getStringOfActual()+") is not default";}
 
     };
 
@@ -1396,45 +1424,51 @@ private:
     */
     struct LookupWrapper {
         
-        LookupWrapper() : _copied(false) {}
+        LookupWrapper() {}
 
-        LookupWrapper operator=(const LookupWrapper&){
-          _copied=true; 
-          return *this;
-        } 
+        // When copying a lookup wrapper do not copy any of its contents
+        // The copy constructor for Options recreates the LookupWrapper
+        LookupWrapper operator=(const LookupWrapper&){ return LookupWrapper(); } 
 
         void insert(AbstractOptionValue* option_value){
             CALL("LookupWrapper::insert");
-            ASS(!_copied);
-            _longMap.insert(option_value->longName,option_value);
-            _shortMap.insert(option_value->shortName,option_value);
+            ASS(!option_value->longName.empty());
+            bool new_long =  _longMap.insert(option_value->longName,option_value);
+            bool new_short = true;
+            if(!option_value->shortName.empty()){ 
+              new_short = _shortMap.insert(option_value->shortName,option_value);
+            }
+            //if(!new_long || !new_short){ cout << "Bad " << option_value->longName << endl; }
+            ASS(new_long && new_short);
         }
-        AbstractOptionValue* findLong(vstring longName){
+        AbstractOptionValue* findLong(vstring longName) const{
             CALL("LookupWrapper::findLong");
-            ASS(!_copied);
             if(!_longMap.find(longName)){ throw ValueNotFoundException(); }
             return _longMap.get(longName);
         }
-        AbstractOptionValue* findShort(vstring shortName){
+        AbstractOptionValue* findShort(vstring shortName) const{
             CALL("LookupWrapper::findShort");
-            ASS(!_copied);
             if(!_shortMap.find(shortName)){ throw ValueNotFoundException(); }
             return _shortMap.get(shortName);
         }
 
         VirtualIterator<AbstractOptionValue*> values() const { 
-         ASS(!_copied);
          return _longMap.range();
         } 
 
         private:
-        bool _copied;
         DHMap<vstring,AbstractOptionValue*> _longMap;
         DHMap<vstring,AbstractOptionValue*> _shortMap;
     };
     
     LookupWrapper _lookup;
     
+public:
+  // The const is a lie - we can alter the resulting OptionValue
+  AbstractOptionValue* getOptionValueByName(vstring name) const{
+    return _lookup.findLong(name);
+  }
+private:
  /** 
   * NOTE on OptionValues
   *
