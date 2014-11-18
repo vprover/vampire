@@ -598,6 +598,7 @@ bool InterpretedLiteralEvaluator::balancable(Literal* lit)
   CALL("InterpretedLiteralEvaluator::balancable");
   // Check that lit is compatible with this balancing operation
   // One thing that we cannot check, but assume is that it has already been simplified once
+  // balance applies further checks
 
   // lit must be an interpretted predicate
   if(!theory->isInterpretedPredicate(lit->functor())) return false;
@@ -672,7 +673,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
       } 
       args= args->next();
     }
-    ASS(non_constant);
+    if(!non_constant){ return false;} //constant right-hand-side 
     
     //get function inverse, need information about parameter order
     //  i.e. inverse of multiply is divide where multiply(x,_) and multiply(_,x) => divide(_,x) 
