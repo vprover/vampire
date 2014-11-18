@@ -546,7 +546,7 @@ void Options::Options::init()
     _lookup.insert(&_selection);
     _selection.tag(OptionTag::SATURATION);
     
-    _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1);
+    _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,'/');
     _ageWeightRatio.description=
     "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age"
     "there will be w selected based on weight.";
@@ -750,7 +750,7 @@ void Options::Options::init()
     _instGenPassiveReactivation.tag(OptionTag::INST_GEN);
     _instGenPassiveReactivation.addConstraintIfNotDefault(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     
-    _instGenResolutionInstGenRatio = RatioOptionValue("inst_gen_resolution_ratio","igrr",1,1);
+    _instGenResolutionInstGenRatio = RatioOptionValue("inst_gen_resolution_ratio","igrr",1,1,'/');
     _instGenResolutionInstGenRatio.description=
     "ratio of resolution and instantiation steps (applies only if inst_gen_with_resolution is on)";
     _lookup.insert(&_instGenResolutionInstGenRatio);
@@ -1573,7 +1573,7 @@ Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::Or(Wrapped
  *
  * @since 25/05/2004 Manchester
  */
-void Options::RatioOptionValue::readRatio(const char* val, char separator)
+bool Options::RatioOptionValue::readRatio(const char* val, char separator)
 {
   CALL("RatioOptionValue::readRatio");
 
@@ -1590,29 +1590,30 @@ void Options::RatioOptionValue::readRatio(const char* val, char separator)
 
   if (found) {
     if (strlen(val) > 127) {
-      USER_ERROR((vstring)"wrong value for age-weight ratio: " + val);
+      return false;
     }
     char copy[128];
     strcpy(copy,val);
     copy[colonIndex] = 0;
     int age;
     if (! Int::stringToInt(copy,age)) {
-      USER_ERROR((vstring)"wrong value for age-weight ratio: " + val);
+      return false;
     }
     actualValue = age;
     int weight;
     if (! Int::stringToInt(copy+colonIndex+1,weight)) {
-      USER_ERROR((vstring)"wrong value for age-weight ratio: " + val);
+      return false;
     }
     otherValue = weight;
-    return;
+    return true;
   }
   actualValue = 1;
   int weight;
   if (! Int::stringToInt(val,weight)) {
-    USER_ERROR((vstring)"wrong value for age-weight ratio: " + val);
+    return false;
   }
   otherValue = weight;
+  return true;
 }
 
 bool Options::NonGoalWeightOptionValue::set(const vstring& value)
@@ -1864,7 +1865,7 @@ void Options::readFromTestId (vstring testId)
 
   index = testId.find('_');
   vstring awr = testId.substr(0,index);
-  _ageWeightRatio.readRatio(awr.c_str());
+  _ageWeightRatio.set(awr.c_str());
   if (index==string::npos) {
     //there are no extra options
     return;

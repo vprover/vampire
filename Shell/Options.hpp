@@ -964,22 +964,20 @@ private:
         USE_ALLOCATOR(RatioOptionValue);
 
         RatioOptionValue(){}
-        RatioOptionValue(vstring l, vstring s, int def, int other) :
-          OptionValue(l,s,def), defaultOtherValue(other), otherValue(other) {};
+        RatioOptionValue(vstring l, vstring s, int def, int other, char sp=':') :
+          OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
 
       template<typename S>
       void addConstraintIfNotDefault(WrappedConstraint<S>* c){
         addConstraint(If(isNotDefaultRatio()).then(c));
       }
 
-        void readRatio(const char* val, char seperator=':');
+        bool readRatio(const char* val,char seperator);
         bool set(const vstring& value){
-          if(sep) readRatio(value.c_str(),sep);
-          else readRatio(value.c_str());
-            return true; // TODO readRatio should return bool
+          return readRatio(value.c_str(),sep);
         }
 
-        char sep = 0;
+        char sep;
         int defaultOtherValue;
         int otherValue;
 

@@ -133,8 +133,8 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("ott+3_8:1_bd=off:bs=off:bsr=unit_only:drc=off:fsr=off:nwc=2.5:sos=all:sio=off:spl=on:ssfp=10000:ssfq=1.0:ssnc=none:updr=off_12");
       quick.push("dis+11_2_bs=off:bsr=unit_only:drc=off:fde=none:lcm=reverse:nwc=1.5:sio=off:spl=on:sser=off:ssnc=none_23");
       quick.push("ott+1011_8:1_bs=off:cond=fast:drc=off:nwc=1.3:sos=all:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none_5");
-      quick.push("dis+11_4_bs=off:cond=fast:drc=off:ep=on:fde=none:nwc=1.7:nicw=on:sio=off:spl=on:ssfq=1.4:ssnc=none_68");
-      quick.push("ott+11_2_bd=off:bs=off:bsr=unit_only:cond=on:drc=off:ep=on:fde=none:lcm=reverse:nwc=1.2:nicw=on:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none_36");
+      //quick.push("dis+11_4_bs=off:cond=fast:drc=off:ep=on:fde=none:nwc=1.7:nicw=on:sio=off:spl=on:ssfq=1.4:ssnc=none_68");
+      //quick.push("ott+11_2_bd=off:bs=off:bsr=unit_only:cond=on:drc=off:ep=on:fde=none:lcm=reverse:nwc=1.2:nicw=on:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none_36");
       quick.push("dis+1011_10_bs=off:drc=off:fsr=off:nwc=10:sos=on:sio=off:spl=on:ssnc=none_29");
       quick.push("dis+1011_24_cond=fast:drc=off:nwc=10:sio=off:spl=on:sser=off:ssfq=1.4:ssnc=none_120");
       quick.push("ott+10_4:1_bd=off:bs=off:bsr=unit_only:drc=off:nwc=2:nicw=on:sos=all:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on:updr=off_117");
@@ -142,35 +142,35 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("ott+1011_3_bs=off:bsr=unit_only:fde=none:nwc=2:sio=off:spl=on:ssfq=1.0:ssnc=none_55");
       quick.push("ott+11_2_bs=off:cond=fast:drc=off:gsp=input_only:lcm=predicate:nwc=3:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:sp=reverse_arity_228");
       quick.push("dis+11_64_bs=off:drc=off:fde=none:lcm=predicate:nwc=4:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none:sp=occurrence_283");
-      quick.push("ott+11_8:1_drc=off:ep=on:nwc=1.5:nicw=on:sio=off:spl=on:ssnc=none:sp=occurrence:updr=off_480");
+      //quick.push("ott+11_8:1_drc=off:ep=on:nwc=1.5:nicw=on:sio=off:spl=on:ssnc=none:sp=occurrence:updr=off_480");
       quick.push("dis+1011_64_bs=off:drc=off:nwc=2:nicw=on:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none_44");
       quick.push("ott+11_8:1_bs=off:drc=off:flr=on:lcm=predicate:nwc=2:sos=all:sio=off:spo=on:sfv=off_110");
     }
     else if (prop == 1) {
       if (atoms > 175) {
-	quick.push("ott+2_1_bs=off:cond=on:drc=off:ep=on:nwc=1.7:nicw=on:ss=axioms:sos=all:sio=off:urr=on_1");
-	quick.push("dis+1011_10_bs=off:drc=off:fsr=off:nwc=10:sos=on:sio=off:spl=sat:ssnc=none_2");
-	quick.push("dis-1010_3:1_bs=off:drc=off:ep=RS:flr=on:nwc=5:sio=off:spl=sat:sser=off:ssfp=100000:ssfq=1.0:ssnc=none_2");
-	quick.push("dis+1011_6_bs=off:drc=off:ep=on:fde=none:nwc=1.1:sio=off:spl=sat:sser=off:ssnc=none_38");
-	quick.push("dis+10_8:1_bs=off:br=off:cond=fast:drc=off:ep=RST:gsp=input_only:nwc=1:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none:urr=on_29");
-	quick.push("ott+11_2:3_bs=off:drc=off:flr=on:lcm=predicate:nwc=2.5:sio=off:spl=sat:sser=off:ssfp=100000:ssnc=none:sp=occurrence_57");
-	quick.push("ott-11_2:3_bs=off:drc=off:fsr=off:lcm=predicate:nwc=5:nicw=on:sac=ground:sio=off:spo=on:sp=reverse_arity_26");
-	quick.push("dis-1002_2:3_bs=off:drc=off:gsp=input_only:nwc=1.7:sos=all:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none:sp=occurrence_3");
-	quick.push("dis+1011_64_bs=off:drc=off:nwc=2:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none_1");
-	quick.push("dis-11_28_bs=off:drc=off:flr=on:lcm=predicate:nwc=1.7:sos=on:sio=off:spl=sat:ssfq=1.0:ssnc=none_48");
-	quick.push("ott-11_40_bd=off:bs=off:drc=off:flr=on:fsr=off:lcm=predicate:nwc=10:nicw=on:sos=on:sio=off:spl=sat:sser=off:ssfq=1.4:ssnc=none:updr=off_42");
-	quick.push("ott+1_3:1_bs=off:br=off:drc=off:flr=on:lcm=predicate:nwc=1.7:sio=off:spl=sat:ssfp=10000:ssfq=1.4:ssnc=none:sp=occurrence:urr=on_11");
-	quick.push("ott+11_50_bd=off:bs=off:drc=off:ep=on:lcm=reverse:nwc=5:nicw=on:sio=off:spl=sat:sser=off:ssnc=none:sfv=off_56");
-	quick.push("dis+11_8:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=reverse:nwc=1.7:sos=on:sio=off:spl=sat:ssfq=2.0:ssnc=none:sp=occurrence_33");
-	quick.push("dis+10_1024_bs=off:drc=off:flr=on:fsr=off:nwc=1.1:sio=off:spl=sat:ssfq=1.4:ssnc=none_76");
-	quick.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=ground:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_65");
-	quick.push("ott+1011_8:1_bs=off:cond=fast:drc=off:nwc=1.3:sos=all:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none_72");
-	quick.push("lrs+2_64_bd=off:bs=off:br=off:cond=on:drc=off:flr=on:fde=none:nwc=1.7:stl=30:sio=off:spl=sat:ssfp=1000:ssfq=1.4:ssnc=none:urr=on_54");
-	quick.push("lrs+1011_14_bd=off:bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=1.7:stl=60:sio=off:spo=on:spl=sat:ssfp=1000:ssfq=1.0:ssnc=none:urr=on_211");
+	//quick.push("ott+2_1_bs=off:cond=on:drc=off:ep=on:nwc=1.7:nicw=on:ss=axioms:sos=all:sio=off:urr=on_1");
+	quick.push("dis+1011_10_bs=off:drc=off:fsr=off:nwc=10:sos=on:sio=off:spl=on:ssnc=none_2");
+	quick.push("dis-1010_3:1_bs=off:drc=off:ep=RS:flr=on:nwc=5:sio=off:spl=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=none_2");
+	//quick.push("dis+1011_6_bs=off:drc=off:ep=on:fde=none:nwc=1.1:sio=off:spl=on:sser=off:ssnc=none_38");
+	quick.push("dis+10_8:1_bs=off:br=off:cond=fast:drc=off:ep=RST:gsp=input_only:nwc=1:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on_29");
+	quick.push("ott+11_2:3_bs=off:drc=off:flr=on:lcm=predicate:nwc=2.5:sio=off:spl=on:sser=off:ssfp=100000:ssnc=none:sp=occurrence_57");
+	quick.push("ott-11_2:3_bs=off:drc=off:fsr=off:lcm=predicate:nwc=5:nicw=on:sac=on:sio=off:spo=on:sp=reverse_arity_26");
+	quick.push("dis-1002_2:3_bs=off:drc=off:gsp=input_only:nwc=1.7:sos=all:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:sp=occurrence_3");
+	quick.push("dis+1011_64_bs=off:drc=off:nwc=2:nicw=on:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none_1");
+	quick.push("dis-11_28_bs=off:drc=off:flr=on:lcm=predicate:nwc=1.7:sos=on:sio=off:spl=on:ssfq=1.0:ssnc=none_48");
+	quick.push("ott-11_40_bd=off:bs=off:drc=off:flr=on:fsr=off:lcm=predicate:nwc=10:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfq=1.4:ssnc=none:updr=off_42");
+	quick.push("ott+1_3:1_bs=off:br=off:drc=off:flr=on:lcm=predicate:nwc=1.7:sio=off:spl=on:ssfp=10000:ssfq=1.4:ssnc=none:sp=occurrence:urr=on_11");
+	//quick.push("ott+11_50_bd=off:bs=off:drc=off:ep=on:lcm=reverse:nwc=5:nicw=on:sio=off:spl=on:sser=off:ssnc=none:sfv=off_56");
+	quick.push("dis+11_8:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=reverse:nwc=1.7:sos=on:sio=off:spl=on:ssfq=2.0:ssnc=none:sp=occurrence_33");
+	quick.push("dis+10_1024_bs=off:drc=off:flr=on:fsr=off:nwc=1.1:sio=off:spl=on:ssfq=1.4:ssnc=none_76");
+	quick.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=on:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_65");
+	quick.push("ott+1011_8:1_bs=off:cond=fast:drc=off:nwc=1.3:sos=all:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none_72");
+	quick.push("lrs+2_64_bd=off:bs=off:br=off:cond=on:drc=off:flr=on:fde=none:nwc=1.7:stl=30:sio=off:spl=on:ssfp=1000:ssfq=1.4:ssnc=none:urr=on_54");
+	//quick.push("lrs+1011_14_bd=off:bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=1.7:stl=60:sio=off:spo=on:spl=on:ssfp=1000:ssfq=1.0:ssnc=none:urr=on_211");
 	quick.push("ott+11_8:1_bs=off:drc=off:flr=on:lcm=predicate:nwc=2:sos=all:sio=off:spo=on:sfv=off_171");
 	quick.push("dis+10_1_bs=off:cond=fast:drc=off:lcm=predicate:nwc=1.5:sos=on:sio=off:spl=on:sser=off:ssnc=none_1");
-	quick.push("ott+11_8:1_drc=off:ep=on:nwc=1.5:nicw=on:sio=off:spl=on:ssnc=none:sp=occurrence:updr=off_16");
-	quick.push("ott+11_2_bd=off:bs=off:bsr=unit_only:cond=on:drc=off:ep=on:fde=none:lcm=reverse:nwc=1.2:nicw=on:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none_101");
+	//quick.push("ott+11_8:1_drc=off:ep=on:nwc=1.5:nicw=on:sio=off:spl=on:ssnc=none:sp=occurrence:updr=off_16");
+	//quick.push("ott+11_2_bd=off:bs=off:bsr=unit_only:cond=on:drc=off:ep=on:fde=none:lcm=reverse:nwc=1.2:nicw=on:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none_101");
       }
       else {
 	quick.push("dis+3_4_bs=off:br=off:cond=on:drc=off:ep=RSTC:nwc=4:nicw=on:sos=all:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none:urr=on_2");
@@ -183,52 +183,52 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("lrs+2_14_bd=off:bs=off:bsr=unit_only:cond=on:drc=off:nwc=1.1:stl=30:sio=off:spl=on:ssac=none:ssfp=1000:ssfq=2.0:ssnc=none:sp=occurrence:updr=off_227");
 	quick.push("lrs+4_24_bd=off:bs=off:cond=on:drc=off:lcm=predicate:nwc=2.5:stl=60:sio=off:spl=on:ssfp=4000:ssfq=1.2:ssnc=none_540");
 	quick.push("ott+10_64_bd=off:bs=off:drc=off:flr=on:gsp=input_only:lcm=predicate:nwc=2:nicw=on:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none_212");
-	quick.push("ott+11_3_bd=off:bs=off:drc=off:ep=on:flr=on:nwc=1:sio=off:spl=on:ssfq=1.1:ssnc=none:sfv=off_46");
+	//quick.push("ott+11_3_bd=off:bs=off:drc=off:ep=on:flr=on:nwc=1:sio=off:spl=on:ssfq=1.1:ssnc=none:sfv=off_46");
       }
     }
     else if (prop == 3) {
       if (atoms <= 2000) {
-	quick.push("dis+11_8:1_bs=off:cond=fast:drc=off:ep=on:nwc=10:nicw=on:sio=off:spl=on:ssnc=none:urr=on_8");
+	//quick.push("dis+11_8:1_bs=off:cond=fast:drc=off:ep=on:nwc=10:nicw=on:sio=off:spl=on:ssnc=none:urr=on_8");
 	quick.push("ott+10_4:1_bd=off:bs=off:bsr=unit_only:drc=off:nwc=2:nicw=on:sos=all:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on:updr=off_95");
-	quick.push("ott+2_1_bs=off:cond=on:drc=off:ep=on:nwc=1.7:nicw=on:ss=axioms:sos=all:sio=off:urr=on_23");
-	quick.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=ground:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_2");
-	quick.push("ott+1011_3_bs=off:cond=on:drc=off:ep=on:fde=none:nwc=1.2:sio=off:spl=sat:ssfq=1.4:ssnc=none_69");
-	quick.push("dis+4_8:1_bs=off:drc=off:ep=RS:nwc=2:sd=2:ss=axioms:st=3.0:sos=all:sio=off:spl=sat:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=none_20");
+	//quick.push("ott+2_1_bs=off:cond=on:drc=off:ep=on:nwc=1.7:nicw=on:ss=axioms:sos=all:sio=off:urr=on_23");
+	quick.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=on:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_2");
+	//quick.push("ott+1011_3_bs=off:cond=on:drc=off:ep=on:fde=none:nwc=1.2:sio=off:spl=on:ssfq=1.4:ssnc=none_69");
+	quick.push("dis+4_8:1_bs=off:drc=off:ep=RS:nwc=2:sd=2:ss=axioms:st=3.0:sos=all:sio=off:spl=on:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=none_20");
 	quick.push("ins+2_5_bs=off:cond=fast:ep=RSTC:flr=on:gs=on:igbrr=0.7:igrr=1/4:igrp=700:igrpq=1.2:igwr=on:lcm=reverse:nwc=2:sio=off:urr=on_5");
 	quick.push("dis+2_24_bs=off:cond=fast:drc=off:fsr=off:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfp=100000:ssfq=2.0:ssnc=none_1");
-	quick.push("ott+11_3_bd=off:bs=off:drc=off:ep=on:flr=on:nwc=1:sio=off:spl=on:ssfq=1.1:ssnc=none:sfv=off_46");
+	//quick.push("ott+11_3_bd=off:bs=off:drc=off:ep=on:flr=on:nwc=1:sio=off:spl=on:ssfq=1.1:ssnc=none:sfv=off_46");
 	quick.push("dis+1002_4:1_bs=off:cond=fast:drc=off:ep=RST:nwc=3:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none_25");
 	quick.push("ott+10_2_bd=off:bs=off:drc=off:flr=on:fsr=off:nwc=1.7:sio=off:spl=on:ssfq=2.0:ssnc=none_91");
 	quick.push("lrs+10_1_bs=off:cond=fast:nwc=5:stl=20:sio=off:spl=on:ssfq=1.1:ssnc=none_4");
-	quick.push("dis+1011_64_bs=off:drc=off:ep=on:flr=on:nwc=1.7:nicw=on:sio=off:spl=on:sser=off:ssnc=none:sp=occurrence_50");
+	//quick.push("dis+1011_64_bs=off:drc=off:ep=on:flr=on:nwc=1.7:nicw=on:sio=off:spl=on:sser=off:ssnc=none:sp=occurrence_50");
 	quick.push("dis+1011_1024_bs=unit_only:cond=fast:lcm=reverse:nwc=1.1:sos=on:sio=off:spl=on:sser=off:ssnc=none:sfv=off_48");
 	quick.push("dis+1_8:1_bs=off:drc=off:lcm=reverse:nwc=1.5:sos=all:sio=off:spl=on:ssfq=2.0:ssnc=none:sfv=off_96");
-	quick.push("dis+1011_2_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:nwc=1.5:nicw=on:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on:updr=off_202");
+	//quick.push("dis+1011_2_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:nwc=1.5:nicw=on:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on:updr=off_202");
 	quick.push("lrs+2_3_bd=off:cond=on:drc=off:flr=on:nwc=1.3:stl=30:sio=off:spl=on:ssfq=1.4:ssnc=none:sfv=off:sp=reverse_arity_96");
 	quick.push("ott+11_2:3_bs=off:drc=off:flr=on:lcm=predicate:nwc=2.5:sio=off:spl=on:sser=off:ssfp=100000:ssnc=none:sp=occurrence_256");
 	quick.push("dis+10_8:1_bs=off:br=off:cond=fast:drc=off:ep=RST:gsp=input_only:nwc=1:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on_140");
 	quick.push("dis+2_4:1_bs=unit_only:cond=on:flr=on:lcm=predicate:nwc=1:ssac=none:ssfp=100000:ssfq=2.0:ssnc=all:sfv=off:urr=on_257");
-	quick.push("dis+1011_6_bs=off:drc=off:ep=on:fde=none:nwc=1.1:sio=off:spl=on:sser=off:ssnc=none_106");
+	//quick.push("dis+1011_6_bs=off:drc=off:ep=on:fde=none:nwc=1.1:sio=off:spl=on:sser=off:ssnc=none_106");
       }
       else {
 	quick.push("dis-1010_3:1_bs=off:drc=off:ep=RS:flr=on:nwc=5:sio=off:spl=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=none_3");
-	quick.push("ott+1011_3_bs=off:cond=on:drc=off:ep=on:fde=none:nwc=1.2:sio=off:spl=on:ssfq=1.4:ssnc=none_27");
+	//quick.push("ott+1011_3_bs=off:cond=on:drc=off:ep=on:fde=none:nwc=1.2:sio=off:spl=on:ssfq=1.4:ssnc=none_27");
 	quick.push("dis+10_10_bs=off:cond=fast:drc=off:gs=on:nwc=1.7:nicw=on:sd=1:ss=axioms:st=3.0_2");
-	quick.push("dis-1002_5:1_bs=off:cond=fast:drc=off:ep=on:nwc=1.1:sd=4:ss=axioms:sos=on:sio=off:spl=sat:urr=on_17");
-	quick.push("ott-11_2:3_bs=off:drc=off:fsr=off:lcm=predicate:nwc=5:nicw=on:sac=ground:sio=off:spo=on:sp=reverse_arity_14");
+	//quick.push("dis-1002_5:1_bs=off:cond=fast:drc=off:ep=on:nwc=1.1:sd=4:ss=axioms:sos=on:sio=off:spl=on:urr=on_17");
+	quick.push("ott-11_2:3_bs=off:drc=off:fsr=off:lcm=predicate:nwc=5:nicw=on:sac=on:sio=off:spo=on:sp=reverse_arity_14");
 	quick.push("dis+11_4:1_bs=off:drc=off:gsp=input_only:nwc=3:sos=on_23");
 	quick.push("dis+4_8:1_bs=off:drc=off:ep=RS:nwc=2:sd=2:ss=axioms:st=3.0:sos=all:sio=off:spl=on:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=none_2");
 	quick.push("dis+2_24_bs=off:cond=fast:drc=off:fsr=off:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfp=100000:ssfq=2.0:ssnc=none_2");
 	quick.push("ott+1011_8:1_bs=off:cond=fast:drc=off:nwc=1.3:sos=all:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none_31");
-	quick.push("ott+2_1_bs=off:cond=on:drc=off:ep=on:nwc=1.7:nicw=on:ss=axioms:sos=all:sio=off:urr=on_2");
+	//quick.push("ott+2_1_bs=off:cond=on:drc=off:ep=on:nwc=1.7:nicw=on:ss=axioms:sos=all:sio=off:urr=on_2");
 	quick.push("dis+3_8:1_bs=off:drc=off:fsr=off:fde=none:nwc=10:sio=off:spl=on:ssfp=10000:ssfq=1.4:ssnc=none:sp=reverse_arity_17");
 	quick.push("ins-1010_8:1_bs=off:ep=RSTC:fsr=off:igbrr=1.0:igrr=1/128:igrp=700:igrpq=1.5:igwr=on:nwc=3:sos=on:sgo=on:sio=off_70");
-	quick.push("ott-1010_2:1_bs=off:cond=fast:drc=off:nwc=3:sd=1:ss=axioms:st=2.0:sio=off:spl=sat:sser=off:ssnc=none_36");
-	quick.push("dis+1_8:1_bs=off:drc=off:lcm=reverse:nwc=1.5:sos=all:sio=off:spl=sat:ssfq=2.0:ssnc=none:sfv=off_90");
-	quick.push("ott+1_10_bd=off:bs=off:drc=off:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:sos=on:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none_111");
-	quick.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=ground:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_246");
-	quick.push("lrs+2_3:1_bs=off:br=off:cond=fast:drc=off:flr=on:nwc=4:stl=60:sio=off:spo=on:spl=sat:sser=off:ssfq=1.2:ssnc=none:sp=reverse_arity:urr=on_250");
-	quick.push("lrs+1011_14_bd=off:bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=1.7:stl=60:sio=off:spo=on:spl=sat:ssfp=1000:ssfq=1.0:ssnc=none:urr=on_549");
+	quick.push("ott-1010_2:1_bs=off:cond=fast:drc=off:nwc=3:sd=1:ss=axioms:st=2.0:sio=off:spl=on:sser=off:ssnc=none_36");
+	quick.push("dis+1_8:1_bs=off:drc=off:lcm=reverse:nwc=1.5:sos=all:sio=off:spl=on:ssfq=2.0:ssnc=none:sfv=off_90");
+	quick.push("ott+1_10_bd=off:bs=off:drc=off:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none_111");
+	quick.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=on:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_246");
+	quick.push("lrs+2_3:1_bs=off:br=off:cond=fast:drc=off:flr=on:nwc=4:stl=60:sio=off:spo=on:spl=on:sser=off:ssfq=1.2:ssnc=none:sp=reverse_arity:urr=on_250");
+	//quick.push("lrs+1011_14_bd=off:bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=1.7:stl=60:sio=off:spo=on:spl=on:ssfp=1000:ssfq=1.0:ssnc=none:urr=on_549");
       }
     }
     else {
@@ -236,24 +236,24 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("dis+1011_1024_bs=unit_only:cond=fast:lcm=reverse:nwc=1.1:sos=on:sio=off:spl=on:sser=off:ssnc=none:sfv=off_6");
       quick.push("dis+11_8:1_bs=off:drc=off:ep=RS:nwc=10:nicw=on:sio=off:spl=on:ssfp=40000:ssfq=2.0:ssnc=none_2");
       quick.push("dis+2_2:3_bs=off:cond=fast:drc=off:gsp=input_only:lcm=predicate:nwc=1:nicw=on:sos=all:sio=off:spl=on:ssfq=1.1:ssnc=none:urr=on_7");
-      quick.push("ott+1011_3_bs=off:cond=on:drc=off:ep=on:fde=none:nwc=1.2:sio=off:spl=on:ssfq=1.4:ssnc=none_12");
+      //quick.push("ott+1011_3_bs=off:cond=on:drc=off:ep=on:fde=none:nwc=1.2:sio=off:spl=on:ssfq=1.4:ssnc=none_12");
       quick.push("dis+2_5_cond=fast:drc=off:fsr=off:lcm=reverse:nwc=3:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.2:ssnc=none_9");
-      quick.push("dis-1010_6_bs=off:drc=off:ep=on:gsp=input_only:nwc=10:nicw=on:sos=all:sp=occurrence_13");
+      //quick.push("dis-1010_6_bs=off:drc=off:ep=on:gsp=input_only:nwc=10:nicw=on:sos=all:sp=occurrence_13");
       quick.push("dis+11_4:1_bs=off:drc=off:gsp=input_only:nwc=3:sos=on_1");
-      quick.push("dis+2_24_bs=off:cond=fast:drc=off:fsr=off:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=sat:sser=off:ssfp=100000:ssfq=2.0:ssnc=none_4");
-      quick.push("dis+11_24_bs=off:cond=fast:drc=off:nwc=2.5:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none:urr=on_1");
-      quick.push("dis+10_1_bs=off:cond=fast:drc=off:lcm=predicate:nwc=1.5:sos=on:sio=off:spl=sat:sser=off:ssnc=none_19");
-      quick.push("lrs-1010_3_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:nwc=1.1:nicw=on:stl=30:sos=on:sac=ground:sio=off_3");
-      quick.push("dis+11_20_bs=off:cond=fast:fde=none:lcm=reverse:nwc=3:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.2:ssnc=none:sp=reverse_arity_9");
-      quick.push("lrs-1002_6_bs=off:bsr=unit_only:cond=fast:fde=none:gsp=input_only:lcm=reverse:nwc=1:stl=30:spl=sat:sser=off:ssfq=1.2:ssnc=none:sp=occurrence_11");
-      quick.push("dis-1002_3:2_bs=off:cond=fast:drc=off:ep=RST:flr=on:fde=none:lcm=predicate:nwc=10:nicw=on:sio=off:spl=sat:ssfq=2.0:ssnc=none:updr=off_8");
-      quick.push("lrs+1010_24_bd=off:bs=off:cond=on:drc=off:gsp=input_only:nwc=1.3:nicw=on:stl=10:sio=off:spo=on:spl=sat:sser=off:ssfq=1.0:ssnc=none:updr=off_18");
-      quick.push("dis+1002_4:1_bs=off:cond=fast:drc=off:ep=RST:nwc=3:nicw=on:sos=on:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none_10");
-      quick.push("dis-1002_12_bs=off:cond=on:drc=off:ep=on:gsp=input_only:nwc=10:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none_1");
-      quick.push("dis+11_64_bs=off:drc=off:fde=none:lcm=predicate:nwc=4:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none:sp=occurrence_26");
-      quick.push("dis+1011_6_bs=off:drc=off:ep=on:fde=none:nwc=1.1:sio=off:spl=sat:sser=off:ssnc=none_30");
-      quick.push("ott+1011_8:1_bs=off:cond=fast:drc=off:nwc=1.3:sos=all:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none_252");
-      quick.push("dis+11_4_ep=on:fde=none:lcm=reverse:nwc=10:sos=on:sio=off:spl=sat:ssnc=none_240");
+      quick.push("dis+2_24_bs=off:cond=fast:drc=off:fsr=off:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfp=100000:ssfq=2.0:ssnc=none_4");
+      quick.push("dis+11_24_bs=off:cond=fast:drc=off:nwc=2.5:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:urr=on_1");
+      quick.push("dis+10_1_bs=off:cond=fast:drc=off:lcm=predicate:nwc=1.5:sos=on:sio=off:spl=on:sser=off:ssnc=none_19");
+      //quick.push("lrs-1010_3_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:nwc=1.1:nicw=on:stl=30:sos=on:sac=on:sio=off_3");
+      quick.push("dis+11_20_bs=off:cond=fast:fde=none:lcm=reverse:nwc=3:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.2:ssnc=none:sp=reverse_arity_9");
+      quick.push("lrs-1002_6_bs=off:bsr=unit_only:cond=fast:fde=none:gsp=input_only:lcm=reverse:nwc=1:stl=30:spl=on:sser=off:ssfq=1.2:ssnc=none:sp=occurrence_11");
+      quick.push("dis-1002_3:2_bs=off:cond=fast:drc=off:ep=RST:flr=on:fde=none:lcm=predicate:nwc=10:nicw=on:sio=off:spl=on:ssfq=2.0:ssnc=none:updr=off_8");
+      quick.push("lrs+1010_24_bd=off:bs=off:cond=on:drc=off:gsp=input_only:nwc=1.3:nicw=on:stl=10:sio=off:spo=on:spl=on:sser=off:ssfq=1.0:ssnc=none:updr=off_18");
+      quick.push("dis+1002_4:1_bs=off:cond=fast:drc=off:ep=RST:nwc=3:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none_10");
+      //quick.push("dis-1002_12_bs=off:cond=on:drc=off:ep=on:gsp=input_only:nwc=10:nicw=on:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none_1");
+      quick.push("dis+11_64_bs=off:drc=off:fde=none:lcm=predicate:nwc=4:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none:sp=occurrence_26");
+      //quick.push("dis+1011_6_bs=off:drc=off:ep=on:fde=none:nwc=1.1:sio=off:spl=on:sser=off:ssnc=none_30");
+      quick.push("ott+1011_8:1_bs=off:cond=fast:drc=off:nwc=1.3:sos=all:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none_252");
+      //quick.push("dis+11_4_ep=on:fde=none:lcm=reverse:nwc=10:sos=on:sio=off:spl=on:ssnc=none_240");
       quick.push("ins+2_5_bs=off:cond=fast:ep=RSTC:flr=on:gs=on:igbrr=0.7:igrr=1/4:igrp=700:igrpq=1.2:igwr=on:lcm=reverse:nwc=2:sio=off:urr=on_1");
       quick.push("dis+1011_64_bs=off:drc=off:nwc=2:nicw=on:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none_26");
       quick.push("dis-1002_2:3_bs=off:drc=off:gsp=input_only:nwc=1.7:sos=all:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:sp=occurrence_60");
@@ -301,13 +301,13 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       }
     }
     else if (prop == 1) {
-      quick.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:stl=30:sac=ground:sio=off_14");
-      quick.push("dis-1003_128_drc=off:nwc=1.3:sos=all:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none_40");
-      quick.push("lrs+3_40_bs=unit_only:bsr=on:cond=on:drc=off:fsr=off:nwc=1.1:nicw=on:stl=100:sio=off:spl=sat:ssfq=1.2:ssnc=none:urr=on:updr=off_645");
-      quick.push("dis+10_64_bd=off:cond=fast:drc=off:nwc=3:sos=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.1:ssnc=none_115");
-      quick.push("dis+1_2_bd=off:bs=off:drc=off:flr=on:fsr=off:nwc=1.1:nicw=on:sio=off:spl=sat:ssfq=1.4:ssnc=none_278");
-      quick.push("dis+2_7_bd=off:drc=off:flr=on:fsr=off:nwc=1.1:nicw=on:sio=off:spl=sat:ssfq=1.4:ssnc=none:sfv=off_544");
-      quick.push("lrs+3_4_bsr=unit_only:drc=off:fsr=off:nwc=1:stl=150:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none:urr=on_1006");
+      //quick.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:stl=30:sac=on:sio=off_14");
+      quick.push("dis-1003_128_drc=off:nwc=1.3:sos=all:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none_40");
+      quick.push("lrs+3_40_bs=unit_only:bsr=on:cond=on:drc=off:fsr=off:nwc=1.1:nicw=on:stl=100:sio=off:spl=on:ssfq=1.2:ssnc=none:urr=on:updr=off_645");
+      quick.push("dis+10_64_bd=off:cond=fast:drc=off:nwc=3:sos=on:sio=off:spl=on:sser=off:ssfp=10000:ssfq=1.1:ssnc=none_115");
+      quick.push("dis+1_2_bd=off:bs=off:drc=off:flr=on:fsr=off:nwc=1.1:nicw=on:sio=off:spl=on:ssfq=1.4:ssnc=none_278");
+      quick.push("dis+2_7_bd=off:drc=off:flr=on:fsr=off:nwc=1.1:nicw=on:sio=off:spl=on:ssfq=1.4:ssnc=none:sfv=off_544");
+      quick.push("lrs+3_4_bsr=unit_only:drc=off:fsr=off:nwc=1:stl=150:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:urr=on_1006");
     }
     else {
       quick.push("dis-1010_14_bs=off:drc=off:gsp=input_only:nwc=1.5:nicw=on:sio=off:spl=sat:ssfq=2.0:ssnc=none_18");
@@ -376,20 +376,20 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       if (atoms > 3000) {
 	quick.push("dis-1002_3_bs=off:cond=on:drc=off:ep=RS:nwc=1.5:nicw=on:sio=off:spl=on:ssnc=none_19");
 	quick.push("ins+1011_6_bs=off:bsr=unit_only:cond=on:ep=RSTC:fde=none:igbrr=0.2:igrr=8/1:igrp=1400:igrpq=1.5:igwr=on:nwc=1.1:sos=on_15");
-	quick.push("dis-1002_8_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:nwc=1.7:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=sat:sser=off:updr=off_15");
-	quick.push("ott+1011_5:4_bs=off:cond=fast:drc=off:flr=on:fsr=off:nwc=2:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_63");
-	quick.push("ott+10_8:1_bd=off:bs=off:cond=fast:drc=off:flr=on:nwc=1.3:sio=off:spl=sat:sser=off:ssfq=1.4:ssnc=none:urr=on_15");
-	quick.push("dis-1010_3:2_bs=off:drc=off:ep=on:nwc=3:sac=ground:sgo=on:sio=off:spo=on:sfv=off_41");
-	quick.push("dis+10_8:1_bs=off:br=off:cond=on:drc=off:ep=RST:fsr=off:nwc=1.3:sd=4:ss=axioms:st=3.0:spl=sat:sser=off:ssfq=2.0:ssnc=none:urr=on_89");
+	//quick.push("dis-1002_8_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:nwc=1.7:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=on:sser=off:updr=off_15");
+	quick.push("ott+1011_5:4_bs=off:cond=fast:drc=off:flr=on:fsr=off:nwc=2:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_63");
+	quick.push("ott+10_8:1_bd=off:bs=off:cond=fast:drc=off:flr=on:nwc=1.3:sio=off:spl=on:sser=off:ssfq=1.4:ssnc=none:urr=on_15");
+	//quick.push("dis-1010_3:2_bs=off:drc=off:ep=on:nwc=3:sac=on:sgo=on:sio=off:spo=on:sfv=off_41");
+	quick.push("dis+10_8:1_bs=off:br=off:cond=on:drc=off:ep=RST:fsr=off:nwc=1.3:sd=4:ss=axioms:st=3.0:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on_89");
 	quick.push("ins-1003_7_bs=off:ep=RSTC:flr=on:igbrr=0.0:igrr=1/128:igrp=1400:igrpq=1.1:igwr=on:nwc=1.3:sos=on:sio=off:spl=off_223");
 	quick.push("lrs+1011_8:1_bd=off:bs=off:bsr=unit_only:cond=fast:drc=off:fde=none:nwc=1:nicw=on:stl=240:sos=all:sio=off:spo=on:ssac=none:ssfp=1000:ssfq=1.1:ssnc=all_dependent_737");
 	quick.push("ott+1011_2:3_bs=off:br=off:cond=on:drc=off:gs=on:nwc=10:sd=1:ss=axioms:st=1.2:spl=on:sser=off:urr=on_11");
       }
       else {
-	quick.push("dis-1002_8_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:nwc=1.7:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=on:sser=off:updr=off_1");
-	quick.push("dis+11_28_bd=off:bs=off:cond=fast:drc=off:ep=on:fsr=off:lcm=reverse:nwc=5:sos=on:sio=off:spl=on:ssfq=1.0:ssnc=none:sp=occurrence_10");
+	//quick.push("dis-1002_8_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:nwc=1.7:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=on:sser=off:updr=off_1");
+	//quick.push("dis+11_28_bd=off:bs=off:cond=fast:drc=off:ep=on:fsr=off:lcm=reverse:nwc=5:sos=on:sio=off:spl=on:ssfq=1.0:ssnc=none:sp=occurrence_10");
 	quick.push("ott+1011_5:1_bs=off:bsr=unit_only:cond=on:drc=off:nwc=2:sd=2:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off_1");
-	quick.push("ins-1010_3:2_bs=unit_only:drc=off:ep=on:fde=none:igbrr=0.5:igrr=1/128:igrpq=1.3:igwr=on:nwc=1.7_35");
+	//quick.push("ins-1010_3:2_bs=unit_only:drc=off:ep=on:fde=none:igbrr=0.5:igrr=1/128:igrpq=1.3:igwr=on:nwc=1.7_35");
 	quick.push("ott+2_8:1_bs=off:bsr=on:drc=off:fde=none:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfp=100000:ssfq=1.2:ssnc=none:urr=on_75");
 	quick.push("dis+10_8:1_bs=off:br=off:cond=on:drc=off:ep=RST:fsr=off:nwc=1.3:sd=4:ss=axioms:st=3.0:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on_21");
 	quick.push("lrs+11_4_cond=fast:drc=off:flr=on:lcm=reverse:nwc=10:stl=50:sos=on:sio=off:spl=on:ssfp=100000:ssfq=1.4:ssnc=none:sp=reverse_arity_4");
@@ -400,15 +400,15 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("ott+1011_8:1_bs=off:cond=fast:drc=off:nwc=2.5:nicw=on:sio=off:spl=on:ssfp=1000:ssfq=1.0:ssnc=none_182");
 	quick.push("lrs+1_6_bs=off:drc=off:nwc=3:stl=360:sos=all:sio=off:spl=on:ssac=none:sscc=on:sser=off:ssfp=100000:ssfq=2.0:ssnc=none:sp=reverse_arity:updr=off_167");
 	quick.push("ins+10_2:3_bs=unit_only:flr=on:fde=none:igbrr=0.7:igrr=1/32:igrp=200:igrpq=1.0:igwr=on:lcm=predicate:nwc=1.7:sd=2:ss=axioms:st=3.0:sos=all:sio=off:spl=off_92");
-	quick.push("lrs-1004_32_bs=off:br=off:cond=fast:drc=off:flr=on:gs=on:lcm=reverse:nwc=1:nicw=on:stl=30:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none:urr=on_132");
-	quick.push("dis-1_3_bsr=unit_only:drc=off:lcm=reverse:nwc=4:sos=all:sac=ground:sgo=on:sio=off:spo=on:sp=reverse_arity_144");
-	quick.push("lrs-1010_7_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:lcm=predicate:nwc=1.7:stl=30:sgo=on:spo=on:spl=sat:ssfq=1.1:ssnc=none:sp=occurrence_291");
-	quick.push("ott+1011_5:4_bs=off:cond=fast:drc=off:flr=on:fsr=off:nwc=2:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_298");
+	quick.push("lrs-1004_32_bs=off:br=off:cond=fast:drc=off:flr=on:gs=on:lcm=reverse:nwc=1:nicw=on:stl=30:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none:urr=on_132");
+	quick.push("dis-1_3_bsr=unit_only:drc=off:lcm=reverse:nwc=4:sos=all:sac=on:sgo=on:sio=off:spo=on:sp=reverse_arity_144");
+	//quick.push("lrs-1010_7_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:lcm=predicate:nwc=1.7:stl=30:sgo=on:spo=on:spl=on:ssfq=1.1:ssnc=none:sp=occurrence_291");
+	quick.push("ott+1011_5:4_bs=off:cond=fast:drc=off:flr=on:fsr=off:nwc=2:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_298");
       }
     }
     else if (prop == 1) {
       if (atoms > 125) {
-	quick.push("dis-10_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=4:sgt=10:ss=axioms:sos=on:spl=on:sp=occurrence_8");
+	//quick.push("dis-10_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=4:sgt=10:ss=axioms:sos=on:spl=on:sp=occurrence_8");
 	quick.push("ott+11_50_bs=off:cond=on:drc=off:fde=none:lcm=reverse:nwc=3:sos=on:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none:sp=reverse_arity:urr=on_7");
 	quick.push("ins+11_3:1_bd=off:bs=off:cond=fast:drc=off:igbrr=0.9:igrr=1/128:igrp=200:igrpq=1.2:igwr=on:lcm=predicate:nwc=1:sos=all:sp=occurrence_1");
 	quick.push("ott-1003_24_drc=off:nwc=2:sio=off:spl=on:ssfp=1000:ssfq=2.0:ssnc=none:urr=on_2");
@@ -417,7 +417,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("ott+11_10_bs=off:bsr=unit_only:cond=fast:drc=off:flr=on:nwc=1:nicw=on:sio=off:spo=on:spl=on:sser=off:ssfp=4000:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=on_10");
 	quick.push("dis+1011_14_bd=off:bs=off:cond=fast:drc=off:nwc=4:sio=off:spl=on:ssfq=1.0:ssnc=none_54");
 	quick.push("dis+1_2:3_bs=off:drc=off:lcm=predicate:nwc=3:nicw=on:ss=included:st=1.5:sos=on:sagn=off:sio=off:spl=on:sser=off:sp=occurrence_168");
-	quick.push("ott+1_3:1_bd=off:bs=off:bsr=unit_only:ep=on:nwc=10:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:spl=on_80");
+	//quick.push("ott+1_3:1_bd=off:bs=off:bsr=unit_only:ep=on:nwc=10:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:spl=on_80");
 	quick.push("dis+11_32_bs=off:nwc=1.1:sio=off:spl=off:updr=off_198");
 	quick.push("ott+1011_5:1_bs=off:bsr=unit_only:cond=on:drc=off:nwc=2:sd=2:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off_12");
       }
@@ -477,7 +477,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("lrs+10_20_bs=off:drc=off:nwc=1.1:nicw=on:stl=90:sio=off:spl=on:ssfp=40000:ssfq=2.0:ssnc=none_551");
       }
       else if (atoms < 900) {
-	quick.push("ins-1010_3:2_bs=unit_only:drc=off:ep=on:fde=none:igbrr=0.5:igrr=1/128:igrpq=1.3:igwr=on:nwc=1.7_30");
+	//quick.push("ins-1010_3:2_bs=unit_only:drc=off:ep=on:fde=none:igbrr=0.5:igrr=1/128:igrpq=1.3:igwr=on:nwc=1.7_30");
 	quick.push("dis+1011_3_bs=off:cond=fast:drc=off:fsr=off:fde=none:gs=on:nwc=1.1:nicw=on:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none_71");
 	quick.push("dis-1010_4:1_bs=off:drc=off:lcm=predicate:nwc=2:nicw=on:sio=off_165");
 	quick.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=ground:sio=off:urr=on_498");
@@ -485,11 +485,11 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       }
       else {
 	quick.push("dis+1011_1_bs=off:drc=off:nwc=1.2:nicw=on:sio=off:spl=on:ssfp=1000:ssfq=2.0:ssnc=none_20");
-	quick.push("ins-1010_3:2_bs=unit_only:drc=off:ep=on:fde=none:igbrr=0.5:igrr=1/128:igrpq=1.3:igwr=on:nwc=1.7_55");
-	quick.push("ott+11_1024_bd=off:bs=off:br=off:cond=fast:drc=off:ep=RSTC:nwc=1:sio=off:spl=sat:ssfq=1.2:ssnc=none:urr=on_127");
-	quick.push("dis+4_10_bs=off:drc=off:flr=on:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:sio=off:spl=sat:ssfp=10000:ssfq=1.4:ssnc=none_274");
-	quick.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=ground:sio=off:urr=on_560");
-	quick.push("dis-1010_3:1_bd=off:bs=off:cond=fast:gs=on:lcm=reverse:nwc=1.1:sac=ground_505");
+	//quick.push("ins-1010_3:2_bs=unit_only:drc=off:ep=on:fde=none:igbrr=0.5:igrr=1/128:igrpq=1.3:igwr=on:nwc=1.7_55");
+	quick.push("ott+11_1024_bd=off:bs=off:br=off:cond=fast:drc=off:ep=RSTC:nwc=1:sio=off:spl=on:ssfq=1.2:ssnc=none:urr=on_127");
+	quick.push("dis+4_10_bs=off:drc=off:flr=on:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:sio=off:spl=on:ssfp=10000:ssfq=1.4:ssnc=none_274");
+	quick.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=on:sio=off:urr=on_560");
+	quick.push("dis-1010_3:1_bd=off:bs=off:cond=fast:gs=on:lcm=reverse:nwc=1.1:sac=on_505");
       }
     }
     else if (prop == 131087) {
@@ -497,41 +497,41 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("dis-1002_6_bs=off:cond=on:drc=off:fde=none:nwc=1.5:sd=1:ss=included:sos=on:sagn=off:spl=on:sser=off:ssfq=1.4:ssnc=none_23");
 	quick.push("ott+1011_5:1_bs=off:bsr=unit_only:cond=on:drc=off:nwc=2:sd=2:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off_98");
 	quick.push("dis+10_8:1_bs=off:cond=fast:drc=off:lcm=predicate:nwc=1.1:nicw=on:sd=2:sgt=5:ss=axioms:st=5.0:sos=on:spl=on:sp=reverse_arity_39");
-	quick.push("ott+1_2_bs=off:drc=off:ep=on:nwc=3:nicw=on:sd=2:sgt=20:ss=axioms:sos=on:sagn=off:spl=on:sser=off_43");
+	//quick.push("ott+1_2_bs=off:drc=off:ep=on:nwc=3:nicw=on:sd=2:sgt=20:ss=axioms:sos=on:sagn=off:spl=on:sser=off_43");
 	quick.push("ott+2_3:1_bs=off:br=off:drc=off:nwc=1.1:nicw=on:sd=3:ss=axioms:st=3.0:sos=all:sio=off:spl=off:urr=on_22");
-	quick.push("dis-1010_2:3_bs=off:drc=off:nwc=3:sd=2:ss=axioms:st=1.5:sac=ground:sio=off_20");
-	quick.push("dis+1_3_bs=off:cond=on:drc=off:lcm=predicate:nwc=2.5:sd=1:ss=included:st=2.0:sagn=off:sio=off:spl=sat:sser=off:ssnc=none_134");
-	quick.push("dis+1011_10_bs=off:drc=off:nwc=1.3:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=sat:sser=off_95");
-	quick.push("dis+11_3:1_bs=off:br=off:cond=on:drc=off:ep=on:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:sio=off:spl=sat:sser=off:urr=on_24");
+	quick.push("dis-1010_2:3_bs=off:drc=off:nwc=3:sd=2:ss=axioms:st=1.5:sac=on:sio=off_20");
+	quick.push("dis+1_3_bs=off:cond=on:drc=off:lcm=predicate:nwc=2.5:sd=1:ss=included:st=2.0:sagn=off:sio=off:spl=on:sser=off:ssnc=none_134");
+	quick.push("dis+1011_10_bs=off:drc=off:nwc=1.3:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=on:sser=off_95");
+	//quick.push("dis+11_3:1_bs=off:br=off:cond=on:drc=off:ep=on:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:sio=off:spl=on:sser=off:urr=on_24");
 	quick.push("dis-4_4:1_bs=off:ep=RST:gsp=input_only:gs=on:nwc=5:sd=1:ss=included:st=5.0:sos=on:sio=off:sfv=off:sp=occurrence_16");
 	quick.push("ott+1_2:3_bs=off:bsr=unit_only:drc=off:lcm=predicate:nwc=1.3:sd=3:sgt=7:ss=axioms:st=3.0:sos=on:spl=on_136");
-	quick.push("ott+4_40_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:gsp=input_only:lcm=predicate:nwc=5:nicw=on:sd=2:sgt=10:ss=axioms:st=3.0:sos=on:spl=on:sser=off:updr=off_33");
+	//quick.push("ott+4_40_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:gsp=input_only:lcm=predicate:nwc=5:nicw=on:sd=2:sgt=10:ss=axioms:st=3.0:sos=on:spl=on:sser=off:updr=off_33");
 	quick.push("ott+1011_8:1_bs=off:drc=off:fde=none:nwc=2.5:sd=1:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off:sp=occurrence_51");
-	quick.push("ott+1_3:1_bd=off:bs=off:bsr=unit_only:ep=on:nwc=10:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:spl=on_42");
+	//quick.push("ott+1_3:1_bd=off:bs=off:bsr=unit_only:ep=on:nwc=10:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:spl=on_42");
 	quick.push("dis-1002_16_bs=off:cond=fast:drc=off:flr=on:nwc=1:nicw=on:sd=3:ss=axioms:st=1.5:sos=on:sagn=off:sio=off:spl=on:sser=off_47");
-	quick.push("dis-2_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=1.5:sd=3:sgt=10:ss=axioms:sos=on:spl=on_168");
+	//quick.push("dis-2_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=1.5:sd=3:sgt=10:ss=axioms:sos=on:spl=on_168");
 	quick.push("dis-1004_3:2_bs=off:cond=fast:drc=off:ep=RST:gsp=input_only:nwc=2.5:sd=2:sgt=3:ss=axioms:st=1.2:sos=on:spl=on_129");
 	quick.push("ott+10_8:1_bd=off:bs=off:drc=off:fde=none:gsp=input_only:nwc=1:sd=3:ss=axioms:sos=on:sio=off:spl=off:urr=on_213");
 	quick.push("ott+10_2:3_bs=off:drc=off:gs=on:nwc=1.5:sd=2:ss=axioms:sos=on:sio=off:spl=on:ssfq=2.0:ssnc=none:urr=on_111");
 	quick.push("ott+11_2:1_bs=off:br=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=predicate:nwc=1.5:sd=2:ss=axioms:st=1.5:sos=all:sio=off:spl=on:sser=off:ssfp=40000:ssfq=1.0:ssnc=none:urr=on_121");
-	quick.push("dis-10_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=4:sgt=10:ss=axioms:sos=on:spl=on:sp=occurrence_149");
+	//quick.push("dis-10_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=4:sgt=10:ss=axioms:sos=on:spl=on:sp=occurrence_149");
 	quick.push("ott+1011_8:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:nwc=10:sd=2:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off_305");
       }
       else if (atoms > 70000) {
 	quick.push("ott+1011_8:1_bs=off:drc=off:fde=none:nwc=2.5:sd=1:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off:sp=occurrence_13");
 	quick.push("ott+11_2:1_bs=off:br=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=predicate:nwc=1.5:sd=2:ss=axioms:st=1.5:sos=all:sio=off:spl=on:sser=off:ssfp=40000:ssfq=1.0:ssnc=none:urr=on_16");
-	quick.push("ott+1_2_bs=off:drc=off:ep=on:nwc=3:nicw=on:sd=2:sgt=20:ss=axioms:sos=on:sagn=off:spl=on:sser=off_17");
-	quick.push("dis+2_1_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:nwc=1:sd=2:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off_19");
+	//quick.push("ott+1_2_bs=off:drc=off:ep=on:nwc=3:nicw=on:sd=2:sgt=20:ss=axioms:sos=on:sagn=off:spl=on:sser=off_17");
+	//quick.push("dis+2_1_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:nwc=1:sd=2:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off_19");
 	quick.push("dis-1002_6_bs=off:cond=on:drc=off:fde=none:nwc=1.5:sd=1:ss=included:sos=on:sagn=off:spl=on:sser=off:ssfq=1.4:ssnc=none_9");
 	quick.push("dis-1002_40_bs=off:ep=RST:flr=on:gs=on:lcm=predicate:nwc=2.5:nicw=on:sd=5:ss=axioms:st=1.5:sos=on:sio=off:spl=on:ssnc=none:sp=reverse_arity_8");
 	quick.push("dis+10_8:1_bs=off:cond=fast:drc=off:lcm=predicate:nwc=1.1:nicw=on:sd=2:sgt=5:ss=axioms:st=5.0:sos=on:spl=on:sp=reverse_arity_40");
 	quick.push("dis-1010_2_bd=off:bs=off:cond=fast:drc=off:nwc=5:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=on:sser=off:sp=occurrence_37");
 	quick.push("ott+1_2:3_bs=off:bsr=unit_only:drc=off:lcm=predicate:nwc=1.3:sd=3:sgt=7:ss=axioms:st=3.0:sos=on:spl=on_64");
 	quick.push("ott+1011_5:1_bs=off:bsr=unit_only:cond=on:drc=off:nwc=2:sd=2:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off_86");
-	quick.push("dis+11_3:1_bs=off:br=off:cond=on:drc=off:ep=on:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:sio=off:spl=on:sser=off:urr=on_9");
-	quick.push("dis-2_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=1.5:sd=3:sgt=10:ss=axioms:sos=on:spl=on_87");
+	//quick.push("dis+11_3:1_bs=off:br=off:cond=on:drc=off:ep=on:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:sio=off:spl=on:sser=off:urr=on_9");
+	//quick.push("dis-2_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=1.5:sd=3:sgt=10:ss=axioms:sos=on:spl=on_87");
 	quick.push("dis-1002_16_bs=off:cond=fast:drc=off:flr=on:nwc=1:nicw=on:sd=3:ss=axioms:st=1.5:sos=on:sagn=off:sio=off:spl=on:sser=off_19");
-	quick.push("dis-10_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=4:sgt=10:ss=axioms:sos=on:spl=on:sp=occurrence_63");
+	//quick.push("dis-10_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=4:sgt=10:ss=axioms:sos=on:spl=on:sp=occurrence_63");
 	quick.push("dis-1004_3:2_bs=off:cond=fast:drc=off:ep=RST:gsp=input_only:nwc=2.5:sd=2:sgt=3:ss=axioms:st=1.2:sos=on:spl=on_103");
 	quick.push("dis+1_3_bs=off:cond=on:drc=off:lcm=predicate:nwc=2.5:sd=1:ss=included:st=2.0:sagn=off:sio=off:spl=on:sser=off:ssnc=none_135");
 	quick.push("ott+1011_3:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:nwc=1.5:sd=3:ss=axioms:sos=all:sio=off:spl=off_276");
@@ -540,37 +540,37 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("ott+10_8:1_bd=off:bs=off:drc=off:fde=none:gsp=input_only:nwc=1:sd=3:ss=axioms:sos=on:sio=off:spl=off:urr=on_122");
 	quick.push("ott+10_2:3_bs=off:drc=off:gs=on:nwc=1.5:sd=2:ss=axioms:sos=on:sio=off:spl=on:ssfq=2.0:ssnc=none:urr=on_275");
 	quick.push("dis+1011_10_bs=off:drc=off:nwc=1.3:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=on:sser=off_142");
-	quick.push("dis-1002_8_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:nwc=1.7:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=on:sser=off:updr=off_11");
+	//quick.push("dis-1002_8_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:nwc=1.7:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=on:sser=off:updr=off_11");
       }
       else if (atoms > 3200) {
 	quick.push("dis-1002_6_bs=off:cond=on:drc=off:fde=none:nwc=1.5:sd=1:ss=included:sos=on:sagn=off:spl=on:sser=off:ssfq=1.4:ssnc=none_8");
 	quick.push("dis-1002_16_bs=off:cond=fast:drc=off:flr=on:nwc=1:nicw=on:sd=3:ss=axioms:st=1.5:sos=on:sagn=off:sio=off:spl=on:sser=off_3");
 	quick.push("ott+1011_5:1_bs=off:bsr=unit_only:cond=on:drc=off:nwc=2:sd=2:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off_21");
-	quick.push("ott+1_3:1_bd=off:bs=off:bsr=unit_only:ep=on:nwc=10:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:spl=on_10");
+	//quick.push("ott+1_3:1_bd=off:bs=off:bsr=unit_only:ep=on:nwc=10:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:spl=on_10");
 	quick.push("dis+10_8:1_bs=off:cond=fast:drc=off:lcm=predicate:nwc=1.1:nicw=on:sd=2:sgt=5:ss=axioms:st=5.0:sos=on:spl=on:sp=reverse_arity_40");
 	quick.push("ott+1011_3:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:nwc=1.5:sd=3:ss=axioms:sos=all:sio=off:spl=off_47");
 	quick.push("dis-4_4:1_bs=off:ep=RST:gsp=input_only:gs=on:nwc=5:sd=1:ss=included:st=5.0:sos=on:sio=off:sfv=off:sp=occurrence_7");
-	quick.push("dis+2_4_bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=4:sd=1:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off:sp=occurrence_3");
-	quick.push("ott+1_2_bs=off:drc=off:ep=on:nwc=3:nicw=on:sd=2:sgt=20:ss=axioms:sos=on:sagn=off:spl=on:sser=off_55");
+	//quick.push("dis+2_4_bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=4:sd=1:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off:sp=occurrence_3");
+	//quick.push("ott+1_2_bs=off:drc=off:ep=on:nwc=3:nicw=on:sd=2:sgt=20:ss=axioms:sos=on:sagn=off:spl=on:sser=off_55");
 	quick.push("dis-1010_1024_bs=off:cond=fast:drc=off:fde=none:nwc=1:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none_5");
 	quick.push("dis+1011_1_bs=off:drc=off:nwc=1.2:nicw=on:sio=off:spl=on:ssfp=1000:ssfq=2.0:ssnc=none_10");
-	quick.push("dis-2_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=1.5:sd=3:sgt=10:ss=axioms:sos=on:spl=on_36");
+	//quick.push("dis-2_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=1.5:sd=3:sgt=10:ss=axioms:sos=on:spl=on_36");
 	quick.push("ott+2_3:1_bs=off:br=off:drc=off:nwc=1.1:nicw=on:sd=3:ss=axioms:st=3.0:sos=all:sio=off:spl=off:urr=on_13");
 	quick.push("dis+2_8:1_bd=off:bs=off:bsr=on:drc=off:lcm=reverse:nwc=4:nicw=on:sd=3:sgt=5:ss=axioms:st=1.5:sos=on:spl=on:sser=off:sp=reverse_arity_28");
 	quick.push("ott+1_2:3_bs=off:bsr=unit_only:drc=off:lcm=predicate:nwc=1.3:sd=3:sgt=7:ss=axioms:st=3.0:sos=on:spl=on_141");
 	quick.push("dis+2_4_bs=off:drc=off:ep=RST:lcm=predicate:nwc=10:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off:sp=occurrence_24");
-	quick.push("dis-10_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=4:sgt=10:ss=axioms:sos=on:spl=on:sp=occurrence_21");
+	//quick.push("dis-10_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=4:sgt=10:ss=axioms:sos=on:spl=on:sp=occurrence_21");
 	quick.push("ott+2_4:1_bd=off:bs=off:drc=off:gsp=input_only:nwc=1.1:nicw=on:sd=3:ss=axioms:sos=on:spl=on:urr=on_23");
 	quick.push("ott+10_2:3_bs=off:drc=off:gs=on:nwc=1.5:sd=2:ss=axioms:sos=on:sio=off:spl=on:ssfq=2.0:ssnc=none:urr=on_53");
-	quick.push("dis+11_3:1_bs=off:br=off:cond=on:drc=off:ep=on:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:sio=off:spl=on:sser=off:urr=on_259");
+	//quick.push("dis+11_3:1_bs=off:br=off:cond=on:drc=off:ep=on:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:sio=off:spl=on:sser=off:urr=on_259");
 	quick.push("dis+1_14_bd=off:bs=off:drc=off:fde=none:gsp=input_only:lcm=reverse:nwc=4:sos=on:sio=off:spo=on:sp=reverse_arity_114");
 	quick.push("ott+11_2:1_bs=off:br=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=predicate:nwc=1.5:sd=2:ss=axioms:st=1.5:sos=all:sio=off:spl=on:sser=off:ssfp=40000:ssfq=1.0:ssnc=none:urr=on_175");
 	quick.push("dis+2_4_bs=off:drc=off:ep=RST:flr=on:lcm=reverse:nwc=1.5:sos=on:sio=off:spl=on:ssfq=1.4:ssnc=none:sp=reverse_arity_179");
-	quick.push("dis+2_1_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:nwc=1:sd=2:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off_8");
+	//quick.push("dis+2_1_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:nwc=1:sd=2:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off_8");
 	quick.push("ott+1011_8:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:nwc=10:sd=2:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off_102");
       }
       else if (atoms > 2200) {
-	quick.push("ott+1_3:1_bd=off:bs=off:bsr=unit_only:ep=on:nwc=10:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:spl=on_22");
+	//quick.push("ott+1_3:1_bd=off:bs=off:bsr=unit_only:ep=on:nwc=10:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:spl=on_22");
 	quick.push("ott+11_2:1_bs=off:br=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=predicate:nwc=1.5:sd=2:ss=axioms:st=1.5:sos=all:sio=off:spl=on:sser=off:ssfp=40000:ssfq=1.0:ssnc=none:urr=on_5");
 	quick.push("ott+1011_2:1_bs=off:cond=fast:drc=off:nwc=1:nicw=on:sos=all:sio=off:spo=on_29");
 	quick.push("dis+1011_12_bs=off:cond=fast:drc=off:ep=RS:flr=on:nwc=1.5:nicw=on:sio=off:spl=on:ssfq=1.4:ssnc=none_104");
@@ -583,13 +583,13 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("ott-1002_5:1_bs=off:bsr=on:cond=fast:drc=off:gsp=input_only:nwc=2:sos=all:sio=off:spo=on:urr=on_2");
 	quick.push("ott+1011_3:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:nwc=1.5:sd=3:ss=axioms:sos=all:sio=off:spl=off_47");
 	quick.push("dis+1011_4_bs=off:drc=off:nwc=4:sgo=on_58");
-	quick.push("dis+1010_2:3_bs=off:bsr=unit_only:drc=off:ep=on:fsr=off:fde=none:lcm=predicate:nwc=1.5:sos=on:sac=ground:sio=off:spo=on:sp=occurrence_424");
-	quick.push("ott+2_20_cond=fast:drc=off:flr=on:lcm=reverse:nwc=1.1:nicw=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.2:ssnc=none:sp=reverse_arity:updr=off_249");
-	quick.push("ott-1010_4:1_bs=off:bsr=on:cond=on:drc=off:fde=none:gsp=input_only:nwc=2.5:sd=1:ss=axioms:sos=all:spl=sat:ssfq=1.0:ssnc=none_287");
-	quick.push("ott-1010_3_bd=off:bs=off:bsr=unit_only:drc=off:fde=none:nwc=1:nicw=on:sos=all:sio=off:spl=sat:ssfp=10000:ssfq=2.0:ssnc=none:sp=reverse_arity:updr=off_325");
-	quick.push("dis+2_4_bs=off:drc=off:ep=RST:lcm=predicate:nwc=10:sgt=2:ss=axioms:st=1.2:sos=on:spl=sat:sser=off:sp=occurrence_7");
-	quick.push("ott+2_8:1_bs=off:bsr=on:drc=off:fde=none:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=sat:sser=off:ssfp=100000:ssfq=1.2:ssnc=none:urr=on_36");
-	quick.push("ott+1011_8:1_bs=off:drc=off:fde=none:nwc=2.5:sd=1:ss=axioms:sos=all:spl=sat:sser=off:ssfq=1.0:ssnc=none:sfv=off:sp=occurrence_86");
+	//quick.push("dis+1010_2:3_bs=off:bsr=unit_only:drc=off:ep=on:fsr=off:fde=none:lcm=predicate:nwc=1.5:sos=on:sac=on:sio=off:spo=on:sp=occurrence_424");
+	quick.push("ott+2_20_cond=fast:drc=off:flr=on:lcm=reverse:nwc=1.1:nicw=on:sio=off:spl=on:sser=off:ssfp=10000:ssfq=1.2:ssnc=none:sp=reverse_arity:updr=off_249");
+	quick.push("ott-1010_4:1_bs=off:bsr=on:cond=on:drc=off:fde=none:gsp=input_only:nwc=2.5:sd=1:ss=axioms:sos=all:spl=on:ssfq=1.0:ssnc=none_287");
+	quick.push("ott-1010_3_bd=off:bs=off:bsr=unit_only:drc=off:fde=none:nwc=1:nicw=on:sos=all:sio=off:spl=on:ssfp=10000:ssfq=2.0:ssnc=none:sp=reverse_arity:updr=off_325");
+	quick.push("dis+2_4_bs=off:drc=off:ep=RST:lcm=predicate:nwc=10:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off:sp=occurrence_7");
+	quick.push("ott+2_8:1_bs=off:bsr=on:drc=off:fde=none:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfp=100000:ssfq=1.2:ssnc=none:urr=on_36");
+	quick.push("ott+1011_8:1_bs=off:drc=off:fde=none:nwc=2.5:sd=1:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off:sp=occurrence_86");
       }
       else {
 	quick.push("ott-1010_4:1_bs=off:bsr=on:cond=on:drc=off:fde=none:gsp=input_only:nwc=2.5:sd=1:ss=axioms:sos=all:spl=on:ssfq=1.0:ssnc=none_7");
@@ -612,7 +612,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("ott+11_1_bs=off:drc=off:ep=RS:flr=on:fde=none:nwc=4:sos=all:sgo=on:sio=off_2");
 	quick.push("dis+1011_4_bs=off:drc=off:nwc=4:sgo=on_11");
 	quick.push("dis+2_8:1_bd=off:bs=off:bsr=on:drc=off:lcm=reverse:nwc=4:nicw=on:sd=3:sgt=5:ss=axioms:st=1.5:sos=on:spl=on:sser=off:sp=reverse_arity_12");
-	quick.push("dis-10_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=4:sgt=10:ss=axioms:sos=on:spl=on:sp=occurrence_2");
+	//quick.push("dis-10_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=4:sgt=10:ss=axioms:sos=on:spl=on:sp=occurrence_2");
 	quick.push("dis-1010_2_bs=off:bsr=on:drc=off:nwc=4:ssac=none:sscc=on:ssfp=100000:ssfq=1.4:ssnc=all_4");
 	quick.push("dis+1_128_bs=off:cond=fast:drc=off:gsp=input_only:lcm=predicate:nwc=10:sd=2:ss=included:st=2.0:sagn=off:sio=off:spl=on:ssnc=none_3");
 	quick.push("ins+10_2:3_bs=unit_only:flr=on:fde=none:igbrr=0.7:igrr=1/32:igrp=200:igrpq=1.0:igwr=on:lcm=predicate:nwc=1.7:sd=2:ss=axioms:st=3.0:sos=all:sio=off:spl=off_26");
@@ -623,18 +623,18 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("dis+1011_12_bs=off:drc=off:nwc=5:nicw=on:sio=off:spl=on:ssfq=1.2:ssnc=none_14");
 	quick.push("ott+11_3:2_bs=off:cond=on:drc=off:ep=RSTC:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sagn=off:sio=off:spl=on:urr=on_3");
 	quick.push("dis+2_4_bs=off:br=off:drc=off:nwc=1.2:sd=2:ss=axioms:st=2.0:sio=off:urr=on_24");
-	quick.push("ott-1010_2:3_bs=off:cond=fast:drc=off:nwc=1.7:sos=on:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none_9");
-	quick.push("dis+1010_32_cond=fast:drc=off:ep=RS:fsr=off:nwc=1.7:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none_66");
-	quick.push("lrs-1002_3_bd=off:bs=off:drc=off:ep=on:nwc=1.7:stl=150:sos=on:sac=ground:sio=off_21");
+	quick.push("ott-1010_2:3_bs=off:cond=fast:drc=off:nwc=1.7:sos=on:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none_9");
+	quick.push("dis+1010_32_cond=fast:drc=off:ep=RS:fsr=off:nwc=1.7:nicw=on:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none_66");
+	//quick.push("lrs-1002_3_bd=off:bs=off:drc=off:ep=on:nwc=1.7:stl=150:sos=on:sac=on:sio=off_21");
 	quick.push("tab+10_1_ep=RST:gsp=input_only:sd=4:ss=axioms:st=2.0:sio=off:tbsr=off:tgawr=1/32:tglr=1/5:tipr=off:tlawr=8/1_73");
 	quick.push("ott+1011_3:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:nwc=1.5:sd=3:ss=axioms:sos=all:sio=off:spl=off_183");
 	quick.push("ott-1002_5:1_bs=off:bsr=on:cond=fast:drc=off:gsp=input_only:nwc=2:sos=all:sio=off:spo=on:urr=on_122");
 	quick.push("dis+1011_12_bs=off:cond=fast:drc=off:ep=RS:flr=on:nwc=1.5:nicw=on:sio=off:spl=on:ssfq=1.4:ssnc=none_28");
 	quick.push("ott+1011_5:4_bs=off:cond=fast:drc=off:flr=on:fsr=off:nwc=2:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_32");
 	quick.push("dis+10_8:1_bs=off:br=off:cond=on:drc=off:ep=RST:fsr=off:nwc=1.3:sd=4:ss=axioms:st=3.0:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on_92");
-	quick.push("dis+2_1_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:nwc=1:sd=2:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off_148");
+	//quick.push("dis+2_1_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:nwc=1:sd=2:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off_148");
 	quick.push("lrs+1011_8_bd=off:bs=unit_only:bsr=on:drc=off:lcm=reverse:nwc=1:nicw=on:stl=270:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.0:ssnc=none:sp=occurrence_1");
-	quick.push("dis+11_4_bs=off:drc=off:ep=on:gsp=input_only:nwc=5:sgt=15:ss=axioms:sos=on:spl=on_1");
+	//quick.push("dis+11_4_bs=off:drc=off:ep=on:gsp=input_only:nwc=5:sgt=15:ss=axioms:sos=on:spl=on_1");
 	quick.push("dis-1010_7_bs=off:cond=fast:drc=off:fde=none:nwc=1.1:nicw=on:sd=1:ss=axioms:st=3.0:sio=off:spl=on_2");
 	quick.push("ott+10_8:1_bd=off:bs=off:cond=fast:drc=off:flr=on:nwc=1.3:sio=off:spl=on:sser=off:ssfq=1.4:ssnc=none:urr=on_4");
 	quick.push("ott+1011_64_bs=off:cond=fast:drc=off:gsp=input_only:nwc=1:ss=axioms:st=1.2:spl=on:sser=off:urr=on_5");
@@ -648,33 +648,33 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("dis+10_24_bs=off:br=off:drc=off:nwc=4:sd=5:ss=axioms:st=1.5:sgo=on:sio=off:spl=on:ssac=none:ssfp=1000:ssfq=1.0:ssnc=all:urr=on_1");
 	quick.push("ott+11_4:1_bs=off:cond=on:drc=off:flr=on:nwc=3:sos=all:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:sfv=off_20");
 	quick.push("dis-1010_64_bs=off:drc=off:nwc=2.5:nicw=on:sgo=on:sio=off:spo=on:sser=off:ssfp=40000:ssfq=1.0:ssnc=none_2");
-	quick.push("dis+1_2:3_bs=off:drc=off:lcm=predicate:nwc=3:nicw=on:ss=included:st=1.5:sos=on:sagn=off:sio=off:spl=sat:sser=off:sp=occurrence_25");
-	quick.push("dis-1002_1024_bs=off:cond=on:drc=off:nwc=3:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none_1");
-	quick.push("dis-1010_2_bd=off:bs=off:cond=fast:drc=off:nwc=5:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=sat:sser=off:sp=occurrence_27");
-	quick.push("lrs-11_6_bs=off:bsr=unit_only:drc=off:gsp=input_only:lcm=predicate:nwc=10:stl=30:sos=on:sio=off:spl=sat:ssfq=1.4:ssnc=none:urr=on:updr=off_11");
-	quick.push("dis+1011_12_bs=off:drc=off:nwc=5:nicw=on:sio=off:spl=sat:ssfq=1.2:ssnc=none_68");
-	quick.push("dis+2_4_bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=4:sd=1:sgt=2:ss=axioms:st=1.2:sos=on:spl=sat:sser=off:sp=occurrence_19");
-	quick.push("dis-1_3_bsr=unit_only:drc=off:lcm=reverse:nwc=4:sos=all:sac=ground:sgo=on:sio=off:spo=on:sp=reverse_arity_146");
-	quick.push("dis+1_24_bs=off:drc=off:ep=on:lcm=predicate:nwc=3:nicw=on:ss=included:st=5.0:sos=on:sagn=off:spl=sat:sser=off:ssnc=none_33");
-	quick.push("ott+1_8:1_bs=off:cond=fast:drc=off:gsp=input_only:nwc=1.3:nicw=on:sd=2:sgt=10:ss=axioms:sagn=off:spl=sat:sser=off_72");
-	quick.push("ott+1_2:3_bs=off:cond=fast:drc=off:flr=on:lcm=predicate:nwc=1.3:sio=off:spl=sat:sser=off:ssfq=1.2:ssnc=none:sp=reverse_arity:urr=on_20");
-	quick.push("dis-1010_3:2_bs=off:drc=off:ep=on:nwc=3:sac=ground:sgo=on:sio=off:spo=on:sfv=off_242");
-	quick.push("ott+1010_5_bd=off:bs=off:cond=fast:drc=off:nwc=2.5:nicw=on:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_189");
-	quick.push("dis+2_16_bs=off:drc=off:ep=on:gsp=input_only:lcm=reverse:nwc=1:sio=off:spl=sat:ssfp=10000:ssfq=1.1:ssnc=none_420");
-	quick.push("ott+1011_2_bs=off:drc=off:nwc=5:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none:updr=off_227");
+	quick.push("dis+1_2:3_bs=off:drc=off:lcm=predicate:nwc=3:nicw=on:ss=included:st=1.5:sos=on:sagn=off:sio=off:spl=on:sser=off:sp=occurrence_25");
+	quick.push("dis-1002_1024_bs=off:cond=on:drc=off:nwc=3:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none_1");
+	quick.push("dis-1010_2_bd=off:bs=off:cond=fast:drc=off:nwc=5:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=on:sser=off:sp=occurrence_27");
+	quick.push("lrs-11_6_bs=off:bsr=unit_only:drc=off:gsp=input_only:lcm=predicate:nwc=10:stl=30:sos=on:sio=off:spl=on:ssfq=1.4:ssnc=none:urr=on:updr=off_11");
+	quick.push("dis+1011_12_bs=off:drc=off:nwc=5:nicw=on:sio=off:spl=on:ssfq=1.2:ssnc=none_68");
+	//quick.push("dis+2_4_bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=4:sd=1:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off:sp=occurrence_19");
+	quick.push("dis-1_3_bsr=unit_only:drc=off:lcm=reverse:nwc=4:sos=all:sac=on:sgo=on:sio=off:spo=on:sp=reverse_arity_146");
+	//quick.push("dis+1_24_bs=off:drc=off:ep=on:lcm=predicate:nwc=3:nicw=on:ss=included:st=5.0:sos=on:sagn=off:spl=on:sser=off:ssnc=none_33");
+	quick.push("ott+1_8:1_bs=off:cond=fast:drc=off:gsp=input_only:nwc=1.3:nicw=on:sd=2:sgt=10:ss=axioms:sagn=off:spl=on:sser=off_72");
+	quick.push("ott+1_2:3_bs=off:cond=fast:drc=off:flr=on:lcm=predicate:nwc=1.3:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none:sp=reverse_arity:urr=on_20");
+	//quick.push("dis-1010_3:2_bs=off:drc=off:ep=on:nwc=3:sac=on:sgo=on:sio=off:spo=on:sfv=off_242");
+	quick.push("ott+1010_5_bd=off:bs=off:cond=fast:drc=off:nwc=2.5:nicw=on:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_189");
+	//quick.push("dis+2_16_bs=off:drc=off:ep=on:gsp=input_only:lcm=reverse:nwc=1:sio=off:spl=on:ssfp=10000:ssfq=1.1:ssnc=none_420");
+	quick.push("ott+1011_2_bs=off:drc=off:nwc=5:nicw=on:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none:updr=off_227");
 	quick.push("dis+2_2:3_bs=off:drc=off:lcm=reverse:nwc=2.5:sos=all:sser=off:ssfp=10000:ssfq=2.0:ssnc=all_231");
 	quick.push("dis+2_4_bs=off:br=off:drc=off:nwc=1.2:sd=2:ss=axioms:st=2.0:sio=off:urr=on_1");
 	quick.push("ott+1011_2:1_bs=off:cond=fast:drc=off:nwc=1:nicw=on:sos=all:sio=off:spo=on_23");
       }
       else {
-	quick.push("lrs-1010_7_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:lcm=predicate:nwc=1.7:stl=30:sgo=on:spo=on:spl=on:ssfq=1.1:ssnc=none:sp=occurrence_1");
+	//quick.push("lrs-1010_7_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:lcm=predicate:nwc=1.7:stl=30:sgo=on:spo=on:spl=on:ssfq=1.1:ssnc=none:sp=occurrence_1");
 	quick.push("dis-1002_6_bs=off:drc=off:nwc=1.1:nicw=on:sd=1:ss=axioms:st=3.0:sio=off:spl=on:sser=off_1");
 	quick.push("ott+1_5:1_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=5:ss=axioms:sos=all_4");
 	quick.push("ott+2_20_cond=fast:drc=off:flr=on:lcm=reverse:nwc=1.1:nicw=on:sio=off:spl=on:sser=off:ssfp=10000:ssfq=1.2:ssnc=none:sp=reverse_arity:updr=off_25");
 	quick.push("lrs+1011_8:1_bd=off:bs=off:bsr=unit_only:cond=fast:drc=off:fde=none:nwc=1:nicw=on:stl=240:sos=all:sio=off:spo=on:ssac=none:ssfp=1000:ssfq=1.1:ssnc=all_dependent_1");
 	quick.push("dis+1_2:3_bs=off:drc=off:lcm=predicate:nwc=3:nicw=on:ss=included:st=1.5:sos=on:sagn=off:sio=off:spl=on:sser=off:sp=occurrence_97");
 	quick.push("lrs+1011_8_bd=off:bs=unit_only:bsr=on:drc=off:lcm=reverse:nwc=1:nicw=on:stl=270:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.0:ssnc=none:sp=occurrence_8");
-	quick.push("dis+2_4_bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=4:sd=1:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off:sp=occurrence_18");
+	//quick.push("dis+2_4_bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=4:sd=1:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off:sp=occurrence_18");
 	quick.push("lrs+10_20_bs=off:drc=off:nwc=1.1:nicw=on:stl=90:sio=off:spl=on:ssfp=40000:ssfq=2.0:ssnc=none_860");
 	quick.push("ott-1002_8:1_bd=off:bs=off:bsr=unit_only:cond=fast:drc=off:fde=none:nwc=1.1:sos=all:sio=off:spo=on:sp=occurrence_26");
 	quick.push("dis+1011_14_bd=off:bs=off:cond=fast:drc=off:nwc=4:sio=off:spl=on:ssfq=1.0:ssnc=none_262");
@@ -707,7 +707,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("dis-1010_2:3_bs=off:drc=off:nwc=3:sd=2:ss=axioms:st=1.5:sac=ground:sio=off_105");
       quick.push("ott-1002_8:1_bd=off:bs=off:bsr=unit_only:cond=fast:drc=off:fde=none:nwc=1.1:sos=all:sio=off:spo=on:sp=occurrence_110");
       quick.push("dis+1003_1024_bs=off:drc=off:fsr=off:nwc=1.7:nicw=on:sos=on:sio=off:spl=on:ssfq=2.0:ssnc=none_38");
-      quick.push("lrs+10_20_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:lcm=predicate:nwc=2.5:stl=80:sos=on:sio=off:spl=on:sser=off:ssfp=10000:ssfq=1.2:ssnc=none_59");
+      //quick.push("lrs+10_20_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:lcm=predicate:nwc=2.5:stl=80:sos=on:sio=off:spl=on:sser=off:ssfp=10000:ssfq=1.2:ssnc=none_59");
       quick.push("ott+10_3:1_bd=off:drc=off:lcm=reverse:nwc=10:nicw=on:sio=off:spo=on:ssac=none:sscc=on:sser=off:ssfp=1000:ssfq=1.2:ssnc=all_667");
       quick.push("dis-1010_50_bs=unit_only:bsr=on:drc=off:lcm=predicate:nwc=1.3:sos=all:sio=off:spl=on:sser=off:ssfq=1.4:ssnc=none_580");
       quick.push("ins-1010_1_bs=unit_only:drc=off:igbrr=0.0:igrr=1/4:igrp=4000:igrpq=1.0:igwr=on:nwc=1.1_12");
@@ -729,8 +729,8 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("ott+11_4:1_bs=off:cond=on:drc=off:flr=on:nwc=3:sos=all:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:sfv=off_6");
       quick.push("dis+2_128_bs=off:drc=off:lcm=reverse:nwc=1.3:nicw=on:sos=on:sio=off:spl=on:ssnc=none_2");
       quick.push("ott-1010_4:1_bs=off:bsr=on:cond=on:drc=off:fde=none:gsp=input_only:nwc=2.5:sd=1:ss=axioms:sos=all:spl=on:ssfq=1.0:ssnc=none_187");
-      quick.push("dis+1010_1_bs=off:cond=fast:ep=on:flr=on:fde=none:gsp=input_only:nwc=1.5:sio=off:spl=on:sser=off:ssfp=1000:ssfq=2.0:ssnc=none_441");
-      quick.push("lrs+10_20_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:lcm=predicate:nwc=2.5:stl=80:sos=on:sio=off:spl=on:sser=off:ssfp=10000:ssfq=1.2:ssnc=none_474");
+      //quick.push("dis+1010_1_bs=off:cond=fast:ep=on:flr=on:fde=none:gsp=input_only:nwc=1.5:sio=off:spl=on:sser=off:ssfp=1000:ssfq=2.0:ssnc=none_441");
+      //quick.push("lrs+10_20_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:lcm=predicate:nwc=2.5:stl=80:sos=on:sio=off:spl=on:sser=off:ssfp=10000:ssfq=1.2:ssnc=none_474");
     }
     else if (prop == 131074) {
       quick.push("ott+1011_5:1_bs=off:bsr=unit_only:cond=on:drc=off:nwc=2:sd=2:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off_2");
@@ -741,28 +741,28 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("ott+11_4:1_bs=off:cond=on:drc=off:flr=on:nwc=3:sos=all:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:sfv=off_236");
       quick.push("dis-1010_64_bs=off:drc=off:nwc=2.5:nicw=on:sgo=on:sio=off:spo=on:sser=off:ssfp=40000:ssfq=1.0:ssnc=none_27");
       quick.push("dis+1011_4_bs=off:drc=off:nwc=4:sgo=on_56");
-      quick.push("ott+4_40_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:gsp=input_only:lcm=predicate:nwc=5:nicw=on:sd=2:sgt=10:ss=axioms:st=3.0:sos=on:spl=on:sser=off:updr=off_157");
+      //quick.push("ott+4_40_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:gsp=input_only:lcm=predicate:nwc=5:nicw=on:sd=2:sgt=10:ss=axioms:st=3.0:sos=on:spl=on:sser=off:updr=off_157");
     }
     else {
       quick.push("ott+1011_10_bs=off:cond=on:drc=off:nwc=1.5:nicw=on:sos=on:sio=off:spl=on:ssnc=none_4");
       quick.push("ins+10_2:3_bs=off:cond=fast:ep=RSTC:igbrr=0.8:igrr=1/2:igrp=100:igrpq=1.0:igwr=on:nwc=2:sos=all:sio=off:urr=on_1");
       quick.push("dis+2_2:3_bs=off:drc=off:lcm=reverse:nwc=2.5:sos=all:sser=off:ssfp=10000:ssfq=2.0:ssnc=all_9");
-      quick.push("dis+4_5:1_bs=off:drc=off:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:ss=axioms:st=2.0:sac=ground:sio=off:sp=occurrence:urr=on_3");
-      quick.push("dis+11_2:3_bs=off:bsr=unit_only:drc=off:ep=R:lcm=reverse:nwc=2:sos=on:sio=off:spl=sat:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=on_1");
-      quick.push("dis+1011_28_cond=on:drc=off:nwc=5:nicw=on:sio=off:spl=sat:ssfq=2.0:ssnc=none:updr=off_12");
-      quick.push("dis+1011_12_bs=off:cond=fast:drc=off:ep=RS:flr=on:nwc=1.5:nicw=on:sio=off:spl=sat:ssfq=1.4:ssnc=none_1");
-      quick.push("dis+1011_10_bs=off:drc=off:nwc=1.3:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=sat:sser=off_37");
-      quick.push("ins+1011_8:1_bs=off:cond=fast:drc=off:ep=on:igbrr=0.1:igrr=1/4:igrpq=1.0:igwr=on:nwc=1.3:sos=all:sio=off:sfv=off:urr=on:updr=off_8");
+      quick.push("dis+4_5:1_bs=off:drc=off:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:ss=axioms:st=2.0:sac=on:sio=off:sp=occurrence:urr=on_3");
+      quick.push("dis+11_2:3_bs=off:bsr=unit_only:drc=off:ep=R:lcm=reverse:nwc=2:sos=on:sio=off:spl=on:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=on_1");
+      quick.push("dis+1011_28_cond=on:drc=off:nwc=5:nicw=on:sio=off:spl=on:ssfq=2.0:ssnc=none:updr=off_12");
+      quick.push("dis+1011_12_bs=off:cond=fast:drc=off:ep=RS:flr=on:nwc=1.5:nicw=on:sio=off:spl=on:ssfq=1.4:ssnc=none_1");
+      quick.push("dis+1011_10_bs=off:drc=off:nwc=1.3:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=on:sser=off_37");
+      //quick.push("ins+1011_8:1_bs=off:cond=fast:drc=off:ep=on:igbrr=0.1:igrr=1/4:igrpq=1.0:igwr=on:nwc=1.3:sos=all:sio=off:sfv=off:urr=on:updr=off_8");
       quick.push("dis+1010_12_bs=off:drc=off:fde=none:nwc=1.3:nicw=on:sio=off:spl=on:ssnc=none:sfv=off_1");
-      quick.push("lrs-1010_7_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:lcm=predicate:nwc=1.7:stl=30:sgo=on:spo=on:spl=on:ssfq=1.1:ssnc=none:sp=occurrence_17");
+      //quick.push("lrs-1010_7_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:lcm=predicate:nwc=1.7:stl=30:sgo=on:spo=on:spl=on:ssfq=1.1:ssnc=none:sp=occurrence_17");
       quick.push("dis+1011_14_bd=off:bs=off:cond=fast:drc=off:nwc=4:sio=off:spl=on:ssfq=1.0:ssnc=none_7");
       quick.push("ott+11_1024_bd=off:bs=off:br=off:cond=fast:drc=off:ep=RSTC:nwc=1:sio=off:spl=on:ssfq=1.2:ssnc=none:urr=on_128");
       quick.push("ott+1_5:1_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=5:ss=axioms:sos=all_40");
-      quick.push("dis+11_1_bs=off:drc=off:ep=on:flr=on:lcm=predicate:nwc=5:nicw=on:ss=included:st=5.0:sos=all:sagn=off:spl=sat:sser=off:ssnc=none:updr=off_24");
-      quick.push("dis+1010_2:3_bs=off:bsr=unit_only:drc=off:ep=on:fsr=off:fde=none:lcm=predicate:nwc=1.5:sos=on:sac=ground:sio=off:spo=on:sp=occurrence_9");
-      quick.push("dis-1010_3:2_bs=off:drc=off:ep=on:nwc=3:sac=ground:sgo=on:sio=off:spo=on:sfv=off_8");
-      quick.push("lrs+1011_8_bd=off:bs=unit_only:bsr=on:drc=off:lcm=reverse:nwc=1:nicw=on:stl=270:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.0:ssnc=none:sp=occurrence_10");
-      quick.push("dis+11_3:1_bs=off:br=off:cond=on:drc=off:ep=on:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:sio=off:spl=sat:sser=off:urr=on_48");
+      //quick.push("dis+11_1_bs=off:drc=off:ep=on:flr=on:lcm=predicate:nwc=5:nicw=on:ss=included:st=5.0:sos=all:sagn=off:spl=on:sser=off:ssnc=none:updr=off_24");
+      //quick.push("dis+1010_2:3_bs=off:bsr=unit_only:drc=off:ep=on:fsr=off:fde=none:lcm=predicate:nwc=1.5:sos=on:sac=on:sio=off:spo=on:sp=occurrence_9");
+      //quick.push("dis-1010_3:2_bs=off:drc=off:ep=on:nwc=3:sac=on:sgo=on:sio=off:spo=on:sfv=off_8");
+      quick.push("lrs+1011_8_bd=off:bs=unit_only:bsr=on:drc=off:lcm=reverse:nwc=1:nicw=on:stl=270:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.0:ssnc=none:sp=occurrence_10");
+      //quick.push("dis+11_3:1_bs=off:br=off:cond=on:drc=off:ep=on:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:sio=off:spl=on:sser=off:urr=on_48");
       quick.push("lrs+1011_8:1_bd=off:bs=off:bsr=unit_only:cond=fast:drc=off:fde=none:nwc=1:nicw=on:stl=240:sos=all:sio=off:spo=on:ssac=none:ssfp=1000:ssfq=1.1:ssnc=all_dependent_12");
       quick.push("dis+10_24_bs=off:br=off:drc=off:nwc=4:sd=5:ss=axioms:st=1.5:sgo=on:sio=off:spl=on:ssac=none:ssfp=1000:ssfq=1.0:ssnc=all:urr=on_7");
       quick.push("dis+1011_2_bs=off:drc=off:nwc=1.1:sos=all:sio=off:spl=on:ssfp=10000:ssfq=1.1:ssnc=none:sfv=off:urr=on_53");
@@ -770,13 +770,13 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("ins+2_4:1_bs=off:cond=on:ep=RSTC:gs=on:igbrr=0.4:igrr=1/128:igrpq=1.05:igwr=on:nwc=5:sos=on:sio=off:urr=on_1");
       quick.push("ott+1011_8:1_bs=off:drc=off:fde=none:nwc=2.5:sd=1:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off:sp=occurrence_108");
       quick.push("dis-1010_7_bs=off:cond=fast:drc=off:fde=none:nwc=1.1:nicw=on:sd=1:ss=axioms:st=3.0:sio=off:spl=on_165");
-      quick.push("dis+1_24_bs=off:drc=off:ep=on:lcm=predicate:nwc=3:nicw=on:ss=included:st=5.0:sos=on:sagn=off:spl=on:sser=off:ssnc=none_31");
+      //quick.push("dis+1_24_bs=off:drc=off:ep=on:lcm=predicate:nwc=3:nicw=on:ss=included:st=5.0:sos=on:sagn=off:spl=on:sser=off:ssnc=none_31");
       quick.push("ott+2_8:1_bs=off:bsr=on:drc=off:fde=none:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfp=100000:ssfq=1.2:ssnc=none:urr=on_23");
-      quick.push("dis+1010_1_bs=off:cond=fast:ep=on:flr=on:fde=none:gsp=input_only:nwc=1.5:sio=off:spl=on:sser=off:ssfp=1000:ssfq=2.0:ssnc=none_118");
+      //quick.push("dis+1010_1_bs=off:cond=fast:ep=on:flr=on:fde=none:gsp=input_only:nwc=1.5:sio=off:spl=on:sser=off:ssfp=1000:ssfq=2.0:ssnc=none_118");
       quick.push("ott+1011_5:1_bs=off:bsr=unit_only:cond=on:drc=off:nwc=2:sd=2:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off_296");
       quick.push("ott+1011_64_bs=off:cond=fast:drc=off:gsp=input_only:nwc=1:ss=axioms:st=1.2:spl=on:sser=off:urr=on_212");
-      quick.push("dis+11_4_bs=off:drc=off:ep=on:gsp=input_only:nwc=5:sgt=15:ss=axioms:sos=on:spl=on_164");
-      quick.push("lrs+10_20_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:lcm=predicate:nwc=2.5:stl=80:sos=on:sio=off:spl=on:sser=off:ssfp=10000:ssfq=1.2:ssnc=none_14");
+      //quick.push("dis+11_4_bs=off:drc=off:ep=on:gsp=input_only:nwc=5:sgt=15:ss=axioms:sos=on:spl=on_164");
+      //quick.push("lrs+10_20_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:lcm=predicate:nwc=2.5:stl=80:sos=on:sio=off:spl=on:sser=off:ssfp=10000:ssfq=1.2:ssnc=none_14");
       quick.push("lrs+11_4_cond=fast:drc=off:flr=on:lcm=reverse:nwc=10:stl=50:sos=on:sio=off:spl=on:ssfp=100000:ssfq=1.4:ssnc=none:sp=reverse_arity_24");
     }
     break;
@@ -861,7 +861,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("ott+10_64_drc=off:nwc=1.1_298");
       }
       else if (atoms <= 20) {
-	quick.push("ott+2_10_bs=off:drc=off:ep=on:fsr=off:fde=none:gsp=input_only:nwc=1.7:nicw=on:sio=off:spo=on:spl=on:sser=off:ssfq=1.1:ssnc=none_111");
+	//quick.push("ott+2_10_bs=off:drc=off:ep=on:fsr=off:fde=none:gsp=input_only:nwc=1.7:nicw=on:sio=off:spo=on:spl=on:sser=off:ssfq=1.1:ssnc=none_111");
 	quick.push("lrs+10_2:1_bs=off:drc=off:fsr=off:nwc=2.5:stl=60:sp=occurrence_14");
 	quick.push("lrs+10_14_drc=off:fde=none:nwc=2.5:stl=180_149");
 	quick.push("ott+10_2_bs=off:drc=off:fsr=off:fde=none:gsp=input_only:nwc=1.2:sp=reverse_arity_158");
@@ -869,12 +869,12 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("ins+3_2_bs=off:bfnt=on:br=off:cond=on:fsr=off:fde=none:igbrr=0.9:igrr=1/64:igrpq=2.0:igwr=on:nwc=10:sio=off:urr=on_900");
       }
       else {
-	quick.push("lrs+10_2:3_bs=unit_only:cond=on:drc=off:ep=on:fsr=off:gs=on:nwc=1:stl=20:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none:sp=occurrence_61");
+	//quick.push("lrs+10_2:3_bs=unit_only:cond=on:drc=off:ep=on:fsr=off:gs=on:nwc=1:stl=20:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none:sp=occurrence_61");
 	quick.push("lrs+10_8_bs=off:cond=fast:drc=off:fsr=off:gsp=input_only:gs=on:nwc=2:stl=120:urr=on_1148");
       }
     }
     else if (atoms <= 2) {
-      quick.push("ott+2_10_bs=off:drc=off:ep=on:fsr=off:fde=none:gsp=input_only:nwc=1.7:nicw=on:sio=off:spo=on:spl=on:sser=off:ssfq=1.1:ssnc=none_17");
+      //quick.push("ott+2_10_bs=off:drc=off:ep=on:fsr=off:fde=none:gsp=input_only:nwc=1.7:nicw=on:sio=off:spo=on:spl=on:sser=off:ssfq=1.1:ssnc=none_17");
       quick.push("dis+10_12_bs=off:bsr=unit_only:fsr=off:nwc=2_1");
       quick.push("ins+4_8_bs=off:bfnt=on:br=off:cond=fast:flr=on:fsr=off:igbrr=0.1:igrr=1/128:igrp=100:igrpq=2.0:igwr=on:nwc=1.3:sos=all:urr=on_1");
       quick.push("ott+10_7_bd=off:bs=off:drc=off:fsr=off:fde=none:nwc=1.1:sp=occurrence_87");
@@ -920,40 +920,40 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 
   switch (cat) {
   case Property::NEQ:
-    fallback.push("dis-1010_6_bs=off:drc=off:ep=on:gsp=input_only:nwc=10:nicw=on:sos=all:sp=occurrence_300");
+    //fallback.push("dis-1010_6_bs=off:drc=off:ep=on:gsp=input_only:nwc=10:nicw=on:sos=all:sp=occurrence_300");
     fallback.push("ott+11_2:3_bs=off:drc=off:flr=on:lcm=predicate:nwc=2.5:sio=off:spl=on:sser=off:ssfp=100000:ssnc=none:sp=occurrence_300");
     fallback.push("dis+10_5_bs=off:cond=fast:gsp=input_only:lcm=predicate:nwc=5:nicw=on:sgo=on:sio=off:sp=occurrence_100");
-    fallback.push("dis+1011_6_bs=off:drc=off:ep=on:fde=none:nwc=1.1:sio=off:spl=on:sser=off:ssnc=none_300");
+    //fallback.push("dis+1011_6_bs=off:drc=off:ep=on:fde=none:nwc=1.1:sio=off:spl=on:sser=off:ssnc=none_300");
     fallback.push("ott+1011_8:1_bs=off:cond=fast:drc=off:nwc=1.3:sos=all:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none_300");
     fallback.push("dis+11_64_bs=off:drc=off:fde=none:lcm=predicate:nwc=4:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none:sp=occurrence_300");
     fallback.push("ott+10_4:1_bd=off:bs=off:bsr=unit_only:drc=off:nwc=2:nicw=on:sos=all:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on:updr=off_300");
     fallback.push("dis+11_8:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=reverse:nwc=1.7:sos=on:sio=off:spl=on:ssfq=2.0:ssnc=none:sp=occurrence_300");
     fallback.push("ott-1010_2:1_bs=off:cond=fast:drc=off:nwc=3:sd=1:ss=axioms:st=2.0:sio=off:spl=on:sser=off:ssnc=none_300");
     fallback.push("lrs+10_1_bs=off:cond=fast:nwc=5:sio=off:spl=on:ssfq=1.1:ssnc=none_200");
-    fallback.push("ott+11_3_bd=off:bs=off:drc=off:ep=on:flr=on:nwc=1:sio=off:spl=on:ssfq=1.1:ssnc=none:sfv=off_300");
+    //fallback.push("ott+11_3_bd=off:bs=off:drc=off:ep=on:flr=on:nwc=1:sio=off:spl=on:ssfq=1.1:ssnc=none:sfv=off_300");
     fallback.push("dis-11_10_bfnt=on:cond=fast:lcm=predicate:nwc=1.2:sio=off:spl=off:sp=occurrence_600");
     fallback.push("dis+11_4:1_bs=off:drc=off:gsp=input_only:nwc=3:sos=on_300");
-    fallback.push("dis+10_8:1_bs=off:br=off:cond=fast:drc=off:ep=RST:gsp=input_only:nwc=1:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none:urr=on_300");
-    fallback.push("dis+2_24_bs=off:cond=fast:drc=off:fsr=off:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=sat:sser=off:ssfp=100000:ssfq=2.0:ssnc=none_300");
-    fallback.push("dis+11_4:1_bs=off:cond=fast:drc=off:nwc=10:sio=off:spl=sat:sser=off:ssnc=none_300");
-    fallback.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=ground:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_300");
-    fallback.push("dis+1_40_bs=off:ep=RSTC:nwc=1.1:sio=off:spl=sat:sser=off:ssnc=none:urr=on_300");
-    fallback.push("ott+1011_3_bs=off:cond=on:drc=off:ep=on:fde=none:nwc=1.2:sio=off:spl=sat:ssfq=1.4:ssnc=none_300");
-    fallback.push("dis+1011_24_cond=fast:drc=off:nwc=10:sio=off:spl=sat:sser=off:ssfq=1.4:ssnc=none_300");
-    fallback.push("ott+11_3:1_bs=off:drc=off:ep=on:nwc=2:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none_300");
-    fallback.push("lrs+2_3:1_bs=off:br=off:cond=fast:drc=off:flr=on:nwc=4:sio=off:spo=on:spl=sat:sser=off:ssfq=1.2:ssnc=none:sp=reverse_arity:urr=on_600");
-    fallback.push("dis-11_28_bs=off:drc=off:flr=on:lcm=predicate:nwc=1.7:sos=on:sio=off:spl=sat:ssfq=1.0:ssnc=none_300");
+    fallback.push("dis+10_8:1_bs=off:br=off:cond=fast:drc=off:ep=RST:gsp=input_only:nwc=1:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on_300");
+    fallback.push("dis+2_24_bs=off:cond=fast:drc=off:fsr=off:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfp=100000:ssfq=2.0:ssnc=none_300");
+    fallback.push("dis+11_4:1_bs=off:cond=fast:drc=off:nwc=10:sio=off:spl=on:sser=off:ssnc=none_300");
+    fallback.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=on:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_300");
+    fallback.push("dis+1_40_bs=off:ep=RSTC:nwc=1.1:sio=off:spl=on:sser=off:ssnc=none:urr=on_300");
+    //fallback.push("ott+1011_3_bs=off:cond=on:drc=off:ep=on:fde=none:nwc=1.2:sio=off:spl=on:ssfq=1.4:ssnc=none_300");
+    fallback.push("dis+1011_24_cond=fast:drc=off:nwc=10:sio=off:spl=on:sser=off:ssfq=1.4:ssnc=none_300");
+    //fallback.push("ott+11_3:1_bs=off:drc=off:ep=on:nwc=2:nicw=on:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none_300");
+    fallback.push("lrs+2_3:1_bs=off:br=off:cond=fast:drc=off:flr=on:nwc=4:sio=off:spo=on:spl=on:sser=off:ssfq=1.2:ssnc=none:sp=reverse_arity:urr=on_600");
+    fallback.push("dis-11_28_bs=off:drc=off:flr=on:lcm=predicate:nwc=1.7:sos=on:sio=off:spl=on:ssfq=1.0:ssnc=none_300");
     fallback.push("ins-1010_8:1_bs=off:ep=RSTC:fsr=off:igbrr=1.0:igrr=1/128:igrp=700:igrpq=1.5:igwr=on:nwc=3:sos=on:sgo=on:sio=off_300");
-    fallback.push("ott+11_2_bd=off:bs=off:bsr=unit_only:cond=on:drc=off:ep=on:fde=none:lcm=reverse:nwc=1.2:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.2:ssnc=none_300");
-    fallback.push("dis+4_8:1_bs=off:drc=off:ep=RS:nwc=2:sd=2:ss=axioms:st=3.0:sos=all:sio=off:spl=sat:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=none_200");
-    fallback.push("lrs+1011_14_bd=off:bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=1.7:sio=off:spo=on:spl=sat:ssfp=1000:ssfq=1.0:ssnc=none:urr=on_600");
-    fallback.push("ott+11_8:1_drc=off:ep=on:nwc=1.5:nicw=on:sio=off:spl=sat:ssnc=none:sp=occurrence:updr=off_600");
-    fallback.push("dis+1011_2_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:nwc=1.5:nicw=on:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none:urr=on:updr=off_300");
-    fallback.push("ott+11_50_bd=off:bs=off:drc=off:ep=on:lcm=reverse:nwc=5:nicw=on:sio=off:spl=sat:sser=off:ssnc=none:sfv=off_300");
-    fallback.push("lrs+2_64_bd=off:bs=off:br=off:cond=on:drc=off:flr=on:fde=none:nwc=1.7:sio=off:spl=sat:ssfp=1000:ssfq=1.4:ssnc=none:urr=on_300");
-    fallback.push("dis+10_3:1_bs=off:bfnt=on:cond=on:lcm=predicate:nwc=1:nicw=on:sac=ground:sio=off:spl=sat:sp=reverse_arity:urr=on:updr=off_300");
-    fallback.push("dis-1002_5:1_bs=off:cond=fast:drc=off:ep=on:nwc=1.1:sd=4:ss=axioms:sos=on:sio=off:spl=sat:urr=on_300");
-    fallback.push("ott+3_8:1_bd=off:bs=off:bsr=unit_only:drc=off:fsr=off:nwc=2.5:sos=all:sio=off:spl=sat:ssfp=10000:ssfq=1.0:ssnc=none:updr=off_300");
+    //fallback.push("ott+11_2_bd=off:bs=off:bsr=unit_only:cond=on:drc=off:ep=on:fde=none:lcm=reverse:nwc=1.2:nicw=on:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none_300");
+    fallback.push("dis+4_8:1_bs=off:drc=off:ep=RS:nwc=2:sd=2:ss=axioms:st=3.0:sos=all:sio=off:spl=on:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=none_200");
+    //fallback.push("lrs+1011_14_bd=off:bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=1.7:sio=off:spo=on:spl=on:ssfp=1000:ssfq=1.0:ssnc=none:urr=on_600");
+    //fallback.push("ott+11_8:1_drc=off:ep=on:nwc=1.5:nicw=on:sio=off:spl=on:ssnc=none:sp=occurrence:updr=off_600");
+    //fallback.push("dis+1011_2_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:nwc=1.5:nicw=on:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on:updr=off_300");
+    //fallback.push("ott+11_50_bd=off:bs=off:drc=off:ep=on:lcm=reverse:nwc=5:nicw=on:sio=off:spl=on:sser=off:ssnc=none:sfv=off_300");
+    fallback.push("lrs+2_64_bd=off:bs=off:br=off:cond=on:drc=off:flr=on:fde=none:nwc=1.7:sio=off:spl=on:ssfp=1000:ssfq=1.4:ssnc=none:urr=on_300");
+    fallback.push("dis+10_3:1_bs=off:bfnt=on:cond=on:lcm=predicate:nwc=1:nicw=on:sac=on:sio=off:spl=on:sp=reverse_arity:urr=on:updr=off_300");
+    //fallback.push("dis-1002_5:1_bs=off:cond=fast:drc=off:ep=on:nwc=1.1:sd=4:ss=axioms:sos=on:sio=off:spl=on:urr=on_300");
+    fallback.push("ott+3_8:1_bd=off:bs=off:bsr=unit_only:drc=off:fsr=off:nwc=2.5:sos=all:sio=off:spl=on:ssfp=10000:ssfq=1.0:ssnc=none:updr=off_300");
     fallback.push("ins+10_1_bfnt=on:gsp=input_only:igbrr=1.0:igrp=400:igrpq=1.5:nwc=5:sio=off_300");
     fallback.push("dis+10_1024_bs=off:drc=off:flr=on:fsr=off:nwc=1.1:sio=off:spl=on:ssfq=1.4:ssnc=none_300");
     fallback.push("dis+1_8:1_bs=off:drc=off:lcm=reverse:nwc=1.5:sos=all:sio=off:spl=on:ssfq=2.0:ssnc=none:sfv=off_300");
@@ -961,7 +961,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("dis-11_1024_bs=off:bfnt=on:lcm=predicate:nwc=2.5:nicw=on:sio=off:spl=on:sser=off:sp=occurrence:urr=on_300");
     fallback.push("dis+1011_10_bs=off:drc=off:fsr=off:nwc=10:sos=on:sio=off:spl=on:ssnc=none_300");
     fallback.push("dis+10_10_bs=off:cond=fast:drc=off:gs=on:nwc=1.7:nicw=on:sd=1:ss=axioms:st=3.0_300");
-    fallback.push("dis+11_4_bs=off:cond=fast:drc=off:ep=on:fde=none:nwc=1.7:nicw=on:sio=off:spl=on:ssfq=1.4:ssnc=none_300");
+    //fallback.push("dis+11_4_bs=off:cond=fast:drc=off:ep=on:fde=none:nwc=1.7:nicw=on:sio=off:spl=on:ssfq=1.4:ssnc=none_300");
     fallback.push("ins+2_5_bs=off:cond=fast:ep=RSTC:flr=on:gs=on:igbrr=0.7:igrr=1/4:igrp=700:igrpq=1.2:igwr=on:lcm=reverse:nwc=2:sio=off:urr=on_300");
     fallback.push("ott+1011_3_bs=off:bsr=unit_only:fde=none:nwc=2:sio=off:spl=sat:ssfq=1.0:ssnc=none_300");
     fallback.push("lrs+1010_24_bd=off:bs=off:cond=on:drc=off:gsp=input_only:nwc=1.3:nicw=on:sio=off:spo=on:spl=sat:sser=off:ssfq=1.0:ssnc=none:updr=off_100");
@@ -979,15 +979,15 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("lrs+2_3_bd=off:cond=on:drc=off:flr=on:nwc=1.3:sio=off:spl=on:ssfq=1.4:ssnc=none:sfv=off:sp=reverse_arity_300");
     fallback.push("ott+11_2_bs=off:cond=fast:drc=off:gsp=input_only:lcm=predicate:nwc=3:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:sp=reverse_arity_300");
     fallback.push("dis+11_20_bs=off:cond=fast:fde=none:lcm=reverse:nwc=3:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.2:ssnc=none:sp=reverse_arity_300");
-    fallback.push("dis+11_4_ep=on:fde=none:lcm=reverse:nwc=10:sos=on:sio=off:spl=on:ssnc=none_300");
+    //fallback.push("dis+11_4_ep=on:fde=none:lcm=reverse:nwc=10:sos=on:sio=off:spl=on:ssnc=none_300");
     fallback.push("ott+1_10_bd=off:bs=off:drc=off:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none_300");
     fallback.push("dis+1011_1024_bs=unit_only:cond=fast:lcm=reverse:nwc=1.1:sos=on:sio=off:spl=on:sser=off:ssnc=none:sfv=off_300");
     fallback.push("dis+10_1_bs=off:cond=fast:drc=off:lcm=predicate:nwc=1.5:sos=on:sio=off:spl=on:sser=off:ssnc=none_300");
     fallback.push("dis+1002_4:1_bs=off:cond=fast:drc=off:ep=RST:nwc=3:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none_300");
     fallback.push("ott+10_64_bd=off:bs=off:drc=off:flr=on:gsp=input_only:lcm=predicate:nwc=2:nicw=on:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none_300");
-    fallback.push("dis+1011_64_bs=off:drc=off:ep=on:flr=on:nwc=1.7:nicw=on:sio=off:spl=on:sser=off:ssnc=none:sp=occurrence_300");
+    //fallback.push("dis+1011_64_bs=off:drc=off:ep=on:flr=on:nwc=1.7:nicw=on:sio=off:spl=on:sser=off:ssnc=none:sp=occurrence_300");
     fallback.push("ott+11_8:1_bs=off:drc=off:flr=on:lcm=predicate:nwc=2:sos=all:sio=off:spo=on:sfv=off_200");
-    fallback.push("dis-1002_12_bs=off:cond=on:drc=off:ep=on:gsp=input_only:nwc=10:nicw=on:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none_300");
+    //fallback.push("dis-1002_12_bs=off:cond=on:drc=off:ep=on:gsp=input_only:nwc=10:nicw=on:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none_300");
     fallback.push("dis+1011_1024_bs=unit_only:drc=off:gsp=input_only:nwc=1.1:sio=off:spo=on:urr=on_300");
     fallback.push("dis+1_2:1_bs=off:bsr=on:cond=fast:ep=RSTC:gs=on:lcm=predicate:nwc=1.5:nicw=on:sio=off:spl=on:sser=off:ssfp=1000:ssfq=2.0:ssnc=none:sp=occurrence:urr=on_900");
     fallback.push("lrs+4_24_bd=off:bs=off:cond=on:drc=off:lcm=predicate:nwc=2.5:sio=off:spl=on:ssfp=4000:ssfq=1.2:ssnc=none_600");
@@ -1027,14 +1027,14 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("lrs+3_4_bsr=unit_only:drc=off:fsr=off:nwc=1:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:urr=on_1500");
     fallback.push("dis+2_7_bd=off:drc=off:flr=on:fsr=off:nwc=1.1:nicw=on:sio=off:spl=on:ssfq=1.4:ssnc=none:sfv=off_600");
     fallback.push("ins+1_20_bsr=on:br=off:cond=fast:drc=off:fsr=off:fde=none:igbrr=0.3:igrr=1/32:igrp=4000:igrpq=2.0:igwr=on:lcm=reverse:nwc=1.2:sgo=on:sio=off:sp=occurrence:urr=on_400");
-    fallback.push("dis+1_2_bd=off:bs=off:drc=off:flr=on:fsr=off:nwc=1.1:nicw=on:sio=off:spl=sat:ssfq=1.4:ssnc=none_300");
-    fallback.push("ott+2_20_bs=off:cond=fast:drc=off:fde=none:nwc=2:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none:sp=occurrence_300");
-    fallback.push("ott+3_4:1_bsr=unit_only:cond=on:drc=off:fsr=off:fde=none:gs=on:nwc=1:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none:sp=occurrence:urr=on_300");
-    fallback.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:sac=ground:sio=off_300");
-    fallback.push("dis-1004_1024_bs=off:cond=fast:drc=off:nwc=1.3:sio=off:spl=sat:ssfq=1.4:ssnc=none_300");
-    fallback.push("ott+11_2:3_bd=off:drc=off:nwc=4:nicw=on:sio=off:spl=sat:sser=off:ssfp=4000:ssfq=1.0:ssnc=none:updr=off_300");
-    fallback.push("ott+3_128_bs=off:drc=off:nwc=1.1:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none:sp=occurrence_600");
-    fallback.push("dis+11_32_bd=off:bsr=on:fsr=off:nwc=1.2:nicw=on:sio=off:spl=sat:sser=off:ssfp=100000:ssfq=1.4:ssnc=none_600");
+    fallback.push("dis+1_2_bd=off:bs=off:drc=off:flr=on:fsr=off:nwc=1.1:nicw=on:sio=off:spl=on:ssfq=1.4:ssnc=none_300");
+    fallback.push("ott+2_20_bs=off:cond=fast:drc=off:fde=none:nwc=2:sio=off:spl=on:sser=off:ssfq=2.0:ssnc=none:sp=occurrence_300");
+    fallback.push("ott+3_4:1_bsr=unit_only:cond=on:drc=off:fsr=off:fde=none:gs=on:nwc=1:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none:sp=occurrence:urr=on_300");
+    //fallback.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:sac=on:sio=off_300");
+    fallback.push("dis-1004_1024_bs=off:cond=fast:drc=off:nwc=1.3:sio=off:spl=on:ssfq=1.4:ssnc=none_300");
+    fallback.push("ott+11_2:3_bd=off:drc=off:nwc=4:nicw=on:sio=off:spl=on:sser=off:ssfp=4000:ssfq=1.0:ssnc=none:updr=off_300");
+    fallback.push("ott+3_128_bs=off:drc=off:nwc=1.1:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none:sp=occurrence_600");
+    fallback.push("dis+11_32_bd=off:bsr=on:fsr=off:nwc=1.2:nicw=on:sio=off:spl=on:sser=off:ssfp=100000:ssfq=1.4:ssnc=none_600");
     fallback.push("ins+10_1_bfnt=on:igbrr=0.8:igrp=400:igrpq=2.0:nwc=1.7:sio=off_1500");
     fallback.push("lrs+4_14_cond=on:drc=off:flr=on:nwc=3:spl=on:sser=off:ssnc=none_1800");
     break;
@@ -1110,33 +1110,33 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("dis-1002_6_bs=off:cond=on:drc=off:fde=none:nwc=1.5:sd=1:ss=included:sos=on:sagn=off:spl=on:sser=off:ssfq=1.4:ssnc=none_300");
     fallback.push("dis+1011_12_bs=off:drc=off:nwc=5:nicw=on:sio=off:spl=on:ssfq=1.2:ssnc=none_300");
     fallback.push("ott+1011_3:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:nwc=1.5:sd=3:ss=axioms:sos=all:sio=off:spl=off_300");
-    fallback.push("ott+1_2_bs=off:drc=off:ep=on:nwc=3:nicw=on:sd=2:sgt=20:ss=axioms:sos=on:sagn=off:spl=on:sser=off_300");
+    //fallback.push("ott+1_2_bs=off:drc=off:ep=on:nwc=3:nicw=on:sd=2:sgt=20:ss=axioms:sos=on:sagn=off:spl=on:sser=off_300");
     fallback.push("dis+2_2:3_bs=off:drc=off:lcm=reverse:nwc=2.5:sos=all:sser=off:ssfp=10000:ssfq=2.0:ssnc=all_300");
-    fallback.push("ins-1010_3:2_bs=unit_only:drc=off:ep=on:fde=none:igbrr=0.5:igrr=1/128:igrpq=1.3:igwr=on:nwc=1.7_300");
+    //fallback.push("ins-1010_3:2_bs=unit_only:drc=off:ep=on:fde=none:igbrr=0.5:igrr=1/128:igrpq=1.3:igwr=on:nwc=1.7_300");
     fallback.push("tab+10_1_ep=RST:gsp=input_only:sd=4:ss=axioms:st=2.0:sio=off:tbsr=off:tgawr=1/32:tglr=1/5:tipr=off:tlawr=8/1_100");
     fallback.push("ins+3_10_bs=off:drc=off:fde=none:igbrr=0.8:igrr=1/128:igrp=100:igrpq=1.0:igwr=on:nwc=2.5:sio=off:spl=off_300");
     fallback.push("ott+2_12_bd=off:drc=off:lcm=reverse:nwc=2:sio=off:spo=on_600");
     fallback.push("ins+10_2:3_bs=off:cond=fast:ep=RSTC:igbrr=0.8:igrr=1/2:igrp=100:igrpq=1.0:igwr=on:nwc=2:sos=all:sio=off:urr=on_300");
-    fallback.push("dis-1010_2:3_bs=off:drc=off:nwc=3:sd=2:ss=axioms:st=1.5:sac=ground:sio=off_300");
-    fallback.push("ott+1_2:3_bs=off:bsr=unit_only:drc=off:lcm=predicate:nwc=1.3:sd=3:sgt=7:ss=axioms:st=3.0:sos=on:spl=sat_300");
-    fallback.push("dis-2_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=1.5:sd=3:sgt=10:ss=axioms:sos=on:spl=sat_300");
-    fallback.push("ott+1011_8:1_bs=off:drc=off:fde=none:nwc=2.5:sd=1:ss=axioms:sos=all:spl=sat:sser=off:ssfq=1.0:ssnc=none:sfv=off:sp=occurrence_300");
-    fallback.push("ott+11_4:1_bs=off:cond=on:drc=off:flr=on:nwc=3:sos=all:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none:sfv=off_300");
-    fallback.push("dis-1002_1024_bs=off:cond=on:drc=off:nwc=3:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none_300");
-    fallback.push("dis+1_10_bs=off:cond=on:drc=off:lcm=predicate:nwc=2.5:sd=7:ss=axioms:st=1.5:sio=off:spl=sat:ssfq=1.4:ssnc=none:urr=on_400");
-    fallback.push("ott+1011_2_bs=off:drc=off:nwc=5:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none:updr=off_300");
-    fallback.push("dis+1_2:3_bs=off:drc=off:lcm=predicate:nwc=3:nicw=on:ss=included:st=1.5:sos=on:sagn=off:sio=off:spl=sat:sser=off:sp=occurrence_300");
+    fallback.push("dis-1010_2:3_bs=off:drc=off:nwc=3:sd=2:ss=axioms:st=1.5:sac=on:sio=off_300");
+    fallback.push("ott+1_2:3_bs=off:bsr=unit_only:drc=off:lcm=predicate:nwc=1.3:sd=3:sgt=7:ss=axioms:st=3.0:sos=on:spl=on_300");
+    //fallback.push("dis-2_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=1.5:sd=3:sgt=10:ss=axioms:sos=on:spl=on_300");
+    fallback.push("ott+1011_8:1_bs=off:drc=off:fde=none:nwc=2.5:sd=1:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off:sp=occurrence_300");
+    fallback.push("ott+11_4:1_bs=off:cond=on:drc=off:flr=on:nwc=3:sos=all:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:sfv=off_300");
+    fallback.push("dis-1002_1024_bs=off:cond=on:drc=off:nwc=3:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none_300");
+    fallback.push("dis+1_10_bs=off:cond=on:drc=off:lcm=predicate:nwc=2.5:sd=7:ss=axioms:st=1.5:sio=off:spl=on:ssfq=1.4:ssnc=none:urr=on_400");
+    fallback.push("ott+1011_2_bs=off:drc=off:nwc=5:nicw=on:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none:updr=off_300");
+    fallback.push("dis+1_2:3_bs=off:drc=off:lcm=predicate:nwc=3:nicw=on:ss=included:st=1.5:sos=on:sagn=off:sio=off:spl=on:sser=off:sp=occurrence_300");
     fallback.push("dis-4_4:1_bs=off:ep=RST:gsp=input_only:gs=on:nwc=5:sd=1:ss=included:st=5.0:sos=on:sio=off:sfv=off:sp=occurrence_300");
-    fallback.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=ground:sio=off:urr=on_600");
-    fallback.push("ott+10_2:3_bs=off:drc=off:gs=on:nwc=1.5:sd=2:ss=axioms:sos=on:sio=off:spl=sat:ssfq=2.0:ssnc=none:urr=on_300");
-    fallback.push("lrs-1_10_bs=off:cond=fast:drc=off:nwc=1.5:nicw=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.4:ssnc=none_200");
-    fallback.push("ott+1_3:1_bd=off:bs=off:bsr=unit_only:ep=on:nwc=10:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:spl=sat_300");
-    fallback.push("dis+1010_1_bs=off:cond=fast:ep=on:flr=on:fde=none:gsp=input_only:nwc=1.5:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=2.0:ssnc=none_500");
-    fallback.push("dis+1011_10_bs=off:drc=off:nwc=1.3:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=sat:sser=off_300");
-    fallback.push("dis-1010_7_bs=off:cond=fast:drc=off:fde=none:nwc=1.1:nicw=on:sd=1:ss=axioms:st=3.0:sio=off:spl=sat_300");
-    fallback.push("ott+11_2:1_bs=off:br=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=predicate:nwc=1.5:sd=2:ss=axioms:st=1.5:sos=all:sio=off:spl=sat:sser=off:ssfp=40000:ssfq=1.0:ssnc=none:urr=on_300");
-    fallback.push("dis-1004_3:2_bs=off:cond=fast:drc=off:ep=RST:gsp=input_only:nwc=2.5:sd=2:sgt=3:ss=axioms:st=1.2:sos=on:spl=sat_300");
-    fallback.push("ott+4_32_bs=off:flr=on:nwc=4:sio=off:spl=sat:sser=off:ssnc=none:sp=occurrence_300");
+    fallback.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=on:sio=off:urr=on_600");
+    fallback.push("ott+10_2:3_bs=off:drc=off:gs=on:nwc=1.5:sd=2:ss=axioms:sos=on:sio=off:spl=on:ssfq=2.0:ssnc=none:urr=on_300");
+    fallback.push("lrs-1_10_bs=off:cond=fast:drc=off:nwc=1.5:nicw=on:sio=off:spl=on:sser=off:ssfp=10000:ssfq=1.4:ssnc=none_200");
+    //fallback.push("ott+1_3:1_bd=off:bs=off:bsr=unit_only:ep=on:nwc=10:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:spl=on_300");
+    //fallback.push("dis+1010_1_bs=off:cond=fast:ep=on:flr=on:fde=none:gsp=input_only:nwc=1.5:sio=off:spl=on:sser=off:ssfp=1000:ssfq=2.0:ssnc=none_500");
+    fallback.push("dis+1011_10_bs=off:drc=off:nwc=1.3:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=on:sser=off_300");
+    fallback.push("dis-1010_7_bs=off:cond=fast:drc=off:fde=none:nwc=1.1:nicw=on:sd=1:ss=axioms:st=3.0:sio=off:spl=on_300");
+    fallback.push("ott+11_2:1_bs=off:br=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=predicate:nwc=1.5:sd=2:ss=axioms:st=1.5:sos=all:sio=off:spl=on:sser=off:ssfp=40000:ssfq=1.0:ssnc=none:urr=on_300");
+    fallback.push("dis-1004_3:2_bs=off:cond=fast:drc=off:ep=RST:gsp=input_only:nwc=2.5:sd=2:sgt=3:ss=axioms:st=1.2:sos=on:spl=on_300");
+    fallback.push("ott+4_32_bs=off:flr=on:nwc=4:sio=off:spl=on:sser=off:ssnc=none:sp=occurrence_300");
     fallback.push("ott+1_5_bs=off:drc=off:nwc=4:sio=off:sp=occurrence_300");
     fallback.push("dis+10_8:1_bs=off:cond=fast:drc=off:lcm=predicate:nwc=1.1:nicw=on:sd=2:sgt=5:ss=axioms:st=5.0:sos=on:spl=on:sp=reverse_arity_300");
     fallback.push("lrs+1_6_bs=off:drc=off:nwc=3:sos=all:sio=off:spl=on:ssac=none:sscc=on:sser=off:ssfp=100000:ssfq=2.0:ssnc=none:sp=reverse_arity:updr=off_3600");
@@ -1146,35 +1146,35 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ott-1002_8:1_bd=off:bs=off:bsr=unit_only:cond=fast:drc=off:fde=none:nwc=1.1:sos=all:sio=off:spo=on:sp=occurrence_300");
     fallback.push("dis+10_8:1_bs=off:br=off:cond=on:drc=off:ep=RST:fsr=off:nwc=1.3:sd=4:ss=axioms:st=3.0:spl=on:sser=off:ssfq=2.0:ssnc=none:urr=on_300");
     fallback.push("ott+1011_64_bs=off:cond=fast:drc=off:gsp=input_only:nwc=1:ss=axioms:st=1.2:spl=on:sser=off:urr=on_300");
-    fallback.push("dis+2_1_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:nwc=1:sd=2:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off_300");
-    fallback.push("dis-10_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=4:sgt=10:ss=axioms:sos=on:spl=on:sp=occurrence_300");
+    //fallback.push("dis+2_1_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:nwc=1:sd=2:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sser=off_300");
+    //fallback.push("dis-10_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=4:sgt=10:ss=axioms:sos=on:spl=on:sp=occurrence_300");
     fallback.push("dis+1011_12_bs=off:cond=fast:drc=off:ep=RS:flr=on:nwc=1.5:nicw=on:sio=off:spl=on:ssfq=1.4:ssnc=none_300");
     fallback.push("ott-1002_5:1_bs=off:bsr=on:cond=fast:drc=off:gsp=input_only:nwc=2:sos=all:sio=off:spo=on:urr=on_300");
     fallback.push("dis+4_40_cond=on:drc=off:flr=on:lcm=predicate:nwc=1.1:nicw=on:sio=off:spl=on:ssfp=1000:ssfq=1.0:ssnc=none:sp=occurrence_300");
-    fallback.push("dis+11_3:1_bs=off:br=off:cond=on:drc=off:ep=on:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:sio=off:spl=on:sser=off:urr=on_300");
-    fallback.push("lrs-1010_7_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:lcm=predicate:nwc=1.7:sgo=on:spo=on:spl=on:ssfq=1.1:ssnc=none:sp=occurrence_300");
+    //fallback.push("dis+11_3:1_bs=off:br=off:cond=on:drc=off:ep=on:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:sio=off:spl=on:sser=off:urr=on_300");
+    //fallback.push("lrs-1010_7_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:lcm=predicate:nwc=1.7:sgo=on:spo=on:spl=on:ssfq=1.1:ssnc=none:sp=occurrence_300");
     fallback.push("ott+10_8:1_bd=off:bs=off:drc=off:fde=none:gsp=input_only:nwc=1:sd=3:ss=axioms:sos=on:sio=off:spl=off:urr=on_300");
     fallback.push("ott+10_3:1_bsr=unit_only:cond=fast:fsr=off:lcm=reverse:nwc=1.5:nicw=on:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none:urr=on:updr=off_300");
     fallback.push("ins-1003_7_bs=off:ep=RSTC:flr=on:igbrr=0.0:igrr=1/128:igrp=1400:igrpq=1.1:igwr=on:nwc=1.3:sos=on:sio=off:spl=off_300");
     fallback.push("ott+11_24_bs=off:cond=fast:drc=off:fde=none:gs=on:nwc=1.1:nicw=on:sio=off:spl=on:ssfp=40000:ssfq=1.4:ssnc=none:sp=reverse_arity_400");
     fallback.push("dis+2_4_bs=off:br=off:drc=off:nwc=1.2:sd=2:ss=axioms:st=2.0:sio=off:urr=on_300");
-    fallback.push("dis+11_4_bs=off:drc=off:ep=on:gsp=input_only:nwc=5:sgt=15:ss=axioms:sos=on:spl=on_300");
+    //fallback.push("dis+11_4_bs=off:drc=off:ep=on:gsp=input_only:nwc=5:sgt=15:ss=axioms:sos=on:spl=on_300");
     fallback.push("ott-1010_4:1_bs=off:bsr=on:cond=on:drc=off:fde=none:gsp=input_only:nwc=2.5:sd=1:ss=axioms:sos=all:spl=on:ssfq=1.0:ssnc=none_300");
     fallback.push("dis+11_10_bs=off:lcm=predicate:nwc=1.3:sio=off_300");
-    fallback.push("dis+10_2_bs=off:cond=on:drc=off:fde=none:lcm=predicate:nwc=2:sgt=2:ss=axioms:st=1.2:sos=on:spl=sat:sp=reverse_arity_300");
-    fallback.push("dis+2_8:1_bd=off:bs=off:bsr=on:drc=off:lcm=reverse:nwc=4:nicw=on:sd=3:sgt=5:ss=axioms:st=1.5:sos=on:spl=sat:sser=off:sp=reverse_arity_300");
-    fallback.push("ott+11_3:2_bs=off:cond=on:drc=off:ep=RSTC:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sagn=off:sio=off:spl=sat:urr=on_300");
-    fallback.push("ott+1011_8:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:nwc=10:sd=2:ss=axioms:sos=all:spl=sat:sser=off:ssfq=1.0:ssnc=none:sfv=off_300");
-    fallback.push("ott+10_1024_bs=off:cond=on:drc=off:gsp=input_only:nwc=1.2:sio=off:spl=sat:ssfp=10000:ssnc=none:updr=off_600");
-    fallback.push("lrs+10_20_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:lcm=predicate:nwc=2.5:sos=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.2:ssnc=none_800");
-    fallback.push("ott-1010_3_bd=off:bs=off:bsr=unit_only:drc=off:fde=none:nwc=1:nicw=on:sos=all:sio=off:spl=sat:ssfp=10000:ssfq=2.0:ssnc=none:sp=reverse_arity:updr=off_400");
-    fallback.push("dis+1010_2:3_bs=off:bsr=unit_only:drc=off:ep=on:fsr=off:fde=none:lcm=predicate:nwc=1.5:sos=on:sac=ground:sio=off:spo=on:sp=occurrence_600");
-    fallback.push("dis+1_24_bs=off:drc=off:ep=on:lcm=predicate:nwc=3:nicw=on:ss=included:st=5.0:sos=on:sagn=off:spl=sat:sser=off:ssnc=none_300");
-    fallback.push("dis-1_3_bsr=unit_only:drc=off:lcm=reverse:nwc=4:sos=all:sac=ground:sgo=on:sio=off:spo=on:sp=reverse_arity_300");
-    fallback.push("dis-1010_50_bs=unit_only:bsr=on:drc=off:lcm=predicate:nwc=1.3:sos=all:sio=off:spl=sat:sser=off:ssfq=1.4:ssnc=none_900");
-    fallback.push("ott+10_8:1_bd=off:bs=off:cond=fast:drc=off:flr=on:nwc=1.3:sio=off:spl=sat:sser=off:ssfq=1.4:ssnc=none:urr=on_300");
-    fallback.push("dis+4_2:1_bs=off:br=off:drc=off:fsr=off:nwc=1:sos=all:sio=off:spl=sat:ssfp=100000:ssfq=1.2:ssnc=none:urr=on_200");
-    fallback.push("ott+1011_5:4_bs=off:cond=fast:drc=off:flr=on:fsr=off:nwc=2:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_300");
+    fallback.push("dis+10_2_bs=off:cond=on:drc=off:fde=none:lcm=predicate:nwc=2:sgt=2:ss=axioms:st=1.2:sos=on:spl=on:sp=reverse_arity_300");
+    fallback.push("dis+2_8:1_bd=off:bs=off:bsr=on:drc=off:lcm=reverse:nwc=4:nicw=on:sd=3:sgt=5:ss=axioms:st=1.5:sos=on:spl=on:sser=off:sp=reverse_arity_300");
+    fallback.push("ott+11_3:2_bs=off:cond=on:drc=off:ep=RSTC:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sagn=off:sio=off:spl=on:urr=on_300");
+    fallback.push("ott+1011_8:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:nwc=10:sd=2:ss=axioms:sos=all:spl=on:sser=off:ssfq=1.0:ssnc=none:sfv=off_300");
+    fallback.push("ott+10_1024_bs=off:cond=on:drc=off:gsp=input_only:nwc=1.2:sio=off:spl=on:ssfp=10000:ssnc=none:updr=off_600");
+    //fallback.push("lrs+10_20_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:lcm=predicate:nwc=2.5:sos=on:sio=off:spl=on:sser=off:ssfp=10000:ssfq=1.2:ssnc=none_800");
+    fallback.push("ott-1010_3_bd=off:bs=off:bsr=unit_only:drc=off:fde=none:nwc=1:nicw=on:sos=all:sio=off:spl=on:ssfp=10000:ssfq=2.0:ssnc=none:sp=reverse_arity:updr=off_400");
+    //fallback.push("dis+1010_2:3_bs=off:bsr=unit_only:drc=off:ep=on:fsr=off:fde=none:lcm=predicate:nwc=1.5:sos=on:sac=on:sio=off:spo=on:sp=occurrence_600");
+    //fallback.push("dis+1_24_bs=off:drc=off:ep=on:lcm=predicate:nwc=3:nicw=on:ss=included:st=5.0:sos=on:sagn=off:spl=on:sser=off:ssnc=none_300");
+    fallback.push("dis-1_3_bsr=unit_only:drc=off:lcm=reverse:nwc=4:sos=all:sac=on:sgo=on:sio=off:spo=on:sp=reverse_arity_300");
+    fallback.push("dis-1010_50_bs=unit_only:bsr=on:drc=off:lcm=predicate:nwc=1.3:sos=all:sio=off:spl=on:sser=off:ssfq=1.4:ssnc=none_900");
+    fallback.push("ott+10_8:1_bd=off:bs=off:cond=fast:drc=off:flr=on:nwc=1.3:sio=off:spl=on:sser=off:ssfq=1.4:ssnc=none:urr=on_300");
+    fallback.push("dis+4_2:1_bs=off:br=off:drc=off:fsr=off:nwc=1:sos=all:sio=off:spl=on:ssfp=100000:ssfq=1.2:ssnc=none:urr=on_200");
+    fallback.push("ott+1011_5:4_bs=off:cond=fast:drc=off:flr=on:fsr=off:nwc=2:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_300");
     fallback.push("ott+11_1_bs=off:drc=off:ep=RS:flr=on:fde=none:nwc=4:sos=all:sgo=on:sio=off_300");
     fallback.push("dis+1010_32_cond=fast:drc=off:ep=RS:fsr=off:nwc=1.7:nicw=on:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none_300");
     fallback.push("ott+1011_10_bs=off:cond=on:drc=off:nwc=1.5:nicw=on:sos=on:sio=off:spl=on:ssnc=none_200");
@@ -1187,23 +1187,23 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ott+2_8:1_bs=off:bsr=on:drc=off:fde=none:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=on:sser=off:ssfp=100000:ssfq=1.2:ssnc=none:urr=on_300");
     fallback.push("ott-3_10_bs=off:br=off:drc=off:nwc=1.5:nicw=on:sio=off:spl=on:sser=off:ssfq=1.4:ssnc=none:urr=on_300");
     fallback.push("dis+1003_1024_bs=off:drc=off:fsr=off:nwc=1.7:nicw=on:sos=on:sio=off:spl=on:ssfq=2.0:ssnc=none_300");
-    fallback.push("ott+4_40_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:gsp=input_only:lcm=predicate:nwc=5:nicw=on:sd=2:sgt=10:ss=axioms:st=3.0:sos=on:spl=on:sser=off:updr=off_300");
+    //fallback.push("ott+4_40_bs=off:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:gsp=input_only:lcm=predicate:nwc=5:nicw=on:sd=2:sgt=10:ss=axioms:st=3.0:sos=on:spl=on:sser=off:updr=off_300");
     fallback.push("dis+1011_4_bs=off:drc=off:nwc=4:sgo=on_100");
     fallback.push("dis+2_4_bs=off:drc=off:ep=RST:flr=on:lcm=reverse:nwc=1.5:sos=on:sio=off:spl=on:ssfq=1.4:ssnc=none:sp=reverse_arity_300");
     fallback.push("ott+10_24_bs=off:drc=off:fde=none:nwc=1.3:nicw=on:sio=off:spl=on:sser=off:ssnc=none_300");
     fallback.push("dis+1_128_bs=off:cond=fast:drc=off:gsp=input_only:lcm=predicate:nwc=10:sd=2:ss=included:st=2.0:sagn=off:sio=off:spl=on:ssnc=none_300");
     fallback.push("ins+2_4:1_bs=off:cond=on:ep=RSTC:gs=on:igbrr=0.4:igrr=1/128:igrpq=1.05:igwr=on:nwc=5:sos=on:sio=off:urr=on_300");
-    fallback.push("dis-1002_8:1_bs=off:cond=on:drc=off:flr=on:gs=on:nwc=4:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none:urr=on_300");
-    fallback.push("dis+11_28_bd=off:bs=off:cond=fast:drc=off:ep=on:fsr=off:lcm=reverse:nwc=5:sos=on:sio=off:spl=sat:ssfq=1.0:ssnc=none:sp=occurrence_300");
-    fallback.push("dis+1011_1_bs=off:drc=off:nwc=1.2:nicw=on:sio=off:spl=sat:ssfp=1000:ssfq=2.0:ssnc=none_300");
-    fallback.push("ott+11_2:1_bs=off:cond=fast:drc=off:ep=RS:flr=on:fde=none:gsp=input_only:lcm=reverse:nwc=2.5:sio=off:spl=sat:ssfq=1.1:ssnc=none:sp=occurrence_300");
-    fallback.push("ott+2_20_cond=fast:drc=off:flr=on:lcm=reverse:nwc=1.1:nicw=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.2:ssnc=none:sp=reverse_arity:updr=off_300");
-    fallback.push("lrs-1004_12_bs=off:bsr=unit_only:drc=off:nwc=1.7:nicw=on:sio=off:spl=sat:sser=off:ssfp=4000:ssfq=1.4:ssnc=none_600");
-    fallback.push("lrs-1002_3_bd=off:bs=off:drc=off:ep=on:nwc=1.7:sos=on:sac=ground:sio=off_1500");
-    fallback.push("dis+1010_40_bs=off:drc=off:ep=RS:nwc=1:sio=off:spo=on:spl=sat:ssnc=none_300");
-    fallback.push("dis+1011_3_bs=off:cond=fast:drc=off:fsr=off:fde=none:gs=on:nwc=1.1:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none_300");
-    fallback.push("lrs+1_5_bs=off:cond=fast:drc=off:flr=on:nwc=10:sac=ground:sio=off:urr=on_300");
-    fallback.push("dis+2_128_bs=off:drc=off:lcm=reverse:nwc=1.3:nicw=on:sos=on:sio=off:spl=sat:ssnc=none_300");
+    fallback.push("dis-1002_8:1_bs=off:cond=on:drc=off:flr=on:gs=on:nwc=4:nicw=on:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:urr=on_300");
+    //fallback.push("dis+11_28_bd=off:bs=off:cond=fast:drc=off:ep=on:fsr=off:lcm=reverse:nwc=5:sos=on:sio=off:spl=on:ssfq=1.0:ssnc=none:sp=occurrence_300");
+    fallback.push("dis+1011_1_bs=off:drc=off:nwc=1.2:nicw=on:sio=off:spl=on:ssfp=1000:ssfq=2.0:ssnc=none_300");
+    fallback.push("ott+11_2:1_bs=off:cond=fast:drc=off:ep=RS:flr=on:fde=none:gsp=input_only:lcm=reverse:nwc=2.5:sio=off:spl=on:ssfq=1.1:ssnc=none:sp=occurrence_300");
+    fallback.push("ott+2_20_cond=fast:drc=off:flr=on:lcm=reverse:nwc=1.1:nicw=on:sio=off:spl=on:sser=off:ssfp=10000:ssfq=1.2:ssnc=none:sp=reverse_arity:updr=off_300");
+    fallback.push("lrs-1004_12_bs=off:bsr=unit_only:drc=off:nwc=1.7:nicw=on:sio=off:spl=on:sser=off:ssfp=4000:ssfq=1.4:ssnc=none_600");
+    //fallback.push("lrs-1002_3_bd=off:bs=off:drc=off:ep=on:nwc=1.7:sos=on:sac=on:sio=off_1500");
+    fallback.push("dis+1010_40_bs=off:drc=off:ep=RS:nwc=1:sio=off:spo=on:spl=on:ssnc=none_300");
+    fallback.push("dis+1011_3_bs=off:cond=fast:drc=off:fsr=off:fde=none:gs=on:nwc=1.1:nicw=on:sio=off:spl=on:sser=off:ssfq=1.0:ssnc=none_300");
+    fallback.push("lrs+1_5_bs=off:cond=fast:drc=off:flr=on:nwc=10:sac=on:sio=off:urr=on_300");
+    fallback.push("dis+2_128_bs=off:drc=off:lcm=reverse:nwc=1.3:nicw=on:sos=on:sio=off:spl=on:ssnc=none_300");
     fallback.push("dis+1_14_bd=off:bs=off:drc=off:fde=none:gsp=input_only:lcm=reverse:nwc=4:sos=on:sio=off:spo=on:sp=reverse_arity_200");
     fallback.push("dis+11_32_bs=off:nwc=1.1:sio=off:spl=off:updr=off_300");
     fallback.push("dis+2_20_drc=off:ep=RST:nwc=1.3:sio=off:spl=on:ssfq=1.4:ssnc=none:sp=occurrence_300");
@@ -1211,12 +1211,12 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ott+1010_5_bd=off:bs=off:cond=fast:drc=off:nwc=2.5:nicw=on:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_300");
     fallback.push("lrs+1_64_bs=off:drc=off:gsp=input_only:nwc=1.7:nicw=on:sio=off:spl=on:sser=off:ssfq=1.1:ssnc=none:updr=off_600");
     fallback.push("dis-1010_64_bs=off:drc=off:nwc=2.5:nicw=on:sgo=on:sio=off:spo=on:sser=off:ssfp=40000:ssfq=1.0:ssnc=none_300");
-    fallback.push("lrs-1_5:1_bs=off:cond=fast:drc=off:nwc=4:sio=off:spl=sat:ssfp=4000:ssfq=2.0:ssnc=none_1200");
-    fallback.push("dis-1010_3:1_bd=off:bs=off:cond=fast:gs=on:lcm=reverse:nwc=1.1:sac=ground_900");
-    fallback.push("ott+4_14_bs=unit_only:cond=fast:drc=off:nwc=1.2:sio=off:spl=sat:ssfq=2.0:ssnc=none:sp=occurrence_600");
-    fallback.push("dis+2_16_bs=off:drc=off:ep=on:gsp=input_only:lcm=reverse:nwc=1:sio=off:spl=sat:ssfp=10000:ssfq=1.1:ssnc=none_600");
-    fallback.push("ott+11_10_bs=off:bsr=unit_only:cond=fast:drc=off:flr=on:nwc=1:nicw=on:sio=off:spo=on:spl=sat:sser=off:ssfp=4000:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=on_1200");
-    fallback.push("lrs-11_12_bs=off:drc=off:fde=none:gsp=input_only:gs=on:lcm=predicate:nwc=4:nicw=on:sos=all:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.2:ssnc=none:sfv=off:sp=occurrence:urr=on:updr=off_3000");
+    fallback.push("lrs-1_5:1_bs=off:cond=fast:drc=off:nwc=4:sio=off:spl=on:ssfp=4000:ssfq=2.0:ssnc=none_1200");
+    fallback.push("dis-1010_3:1_bd=off:bs=off:cond=fast:gs=on:lcm=reverse:nwc=1.1:sac=on_900");
+    fallback.push("ott+4_14_bs=unit_only:cond=fast:drc=off:nwc=1.2:sio=off:spl=on:ssfq=2.0:ssnc=none:sp=occurrence_600");
+    //fallback.push("dis+2_16_bs=off:drc=off:ep=on:gsp=input_only:lcm=reverse:nwc=1:sio=off:spl=on:ssfp=10000:ssfq=1.1:ssnc=none_600");
+    fallback.push("ott+11_10_bs=off:bsr=unit_only:cond=fast:drc=off:flr=on:nwc=1:nicw=on:sio=off:spo=on:spl=on:sser=off:ssfp=4000:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=on_1200");
+    fallback.push("lrs-11_12_bs=off:drc=off:fde=none:gsp=input_only:gs=on:lcm=predicate:nwc=4:nicw=on:sos=all:sio=off:spl=on:sser=off:ssfp=1000:ssfq=1.2:ssnc=none:sfv=off:sp=occurrence:urr=on:updr=off_3000");
     fallback.push("ott+10_3:1_bd=off:drc=off:lcm=reverse:nwc=10:nicw=on:sio=off:spo=on:ssac=none:sscc=on:sser=off:ssfp=1000:ssfq=1.2:ssnc=all_900");
     fallback.push("ott+4_64_bd=off:bs=off:br=off:cond=on:drc=off:fsr=off:gs=on:nwc=1.7:sos=on:sio=off:spl=on:sser=off:ssfp=4000:ssfq=1.0:ssnc=none:urr=on_900");
     break;
@@ -1250,11 +1250,11 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ott+10_8:1_bs=off:drc=off:fsr=off:nwc=1.7_600");
     fallback.push("ott+10_7_bs=off:drc=off:fsr=off:gsp=input_only:nwc=1.5_600");
     fallback.push("dis+4_5:1_bs=off:br=off:ep=RSTC:fsr=off:nwc=3:sos=all:sio=off:spl=on:ssfq=1.4:ssnc=none:urr=on_300");
-    fallback.push("ott+2_10_bs=off:drc=off:ep=on:fsr=off:fde=none:gsp=input_only:nwc=1.7:nicw=on:sio=off:spo=on:spl=on:sser=off:ssfq=1.1:ssnc=none_200");
+    //fallback.push("ott+2_10_bs=off:drc=off:ep=on:fsr=off:fde=none:gsp=input_only:nwc=1.7:nicw=on:sio=off:spo=on:spl=on:sser=off:ssfq=1.1:ssnc=none_200");
     fallback.push("lrs+10_20_bd=off:bs=unit_only:drc=off:fsr=off:nwc=1.2_900");
     fallback.push("dis+2_14_bs=off:br=off:ep=RSTC:flr=on:fsr=off:nwc=2.5:nicw=on:sos=all:sio=off:spl=on:ssnc=none:urr=on_100");
     fallback.push("lrs+10_5:1_nwc=1_900");
-    fallback.push("lrs+10_2:3_bs=unit_only:cond=on:drc=off:ep=on:fsr=off:gs=on:nwc=1:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none:sp=occurrence_200");
+    //fallback.push("lrs+10_2:3_bs=unit_only:cond=on:drc=off:ep=on:fsr=off:gs=on:nwc=1:sio=off:spl=on:sser=off:ssfq=1.2:ssnc=none:sp=occurrence_200");
     fallback.push("ott+10_20_bs=off:drc=off:fsr=off:gsp=input_only:nwc=1.3:sp=occurrence_600");
     fallback.push("ott+10_8:1_bs=off:bsr=on:nwc=4_300");
     fallback.push("ott+10_64_drc=off:nwc=1.1_400");
@@ -1324,8 +1324,8 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
       quick.push("ins+10_1_bfnt=on:igbrr=0.8:igrp=400:igrpq=2.0:nwc=1.7:sio=off_1284");
     }
     else {
-      quick.push("dis+4_12_bs=off:cond=fast:nwc=1.1:nicw=on:sio=off:spl=sat:ssnc=none_2");
-      quick.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:stl=30:sac=ground:sio=off_6");
+      quick.push("dis+4_12_bs=off:cond=fast:nwc=1.1:nicw=on:sio=off:spl=on:ssnc=none_2");
+      //quick.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:stl=30:sac=on:sio=off_6");
       quick.push("dis-3_28_bd=off:cond=on:nwc=1.5:sio=off_340");
       quick.push("ins+1_8:1_bs=off:bfnt=on:igbrr=0.8:igrr=2/1:igrpq=1.2:igwr=on:nwc=3:sos=all:sgo=on_92");
       quick.push("dis+11_32_bd=off:bsr=on:fsr=off:nwc=1.2:nicw=on:sio=off:spl=on:sser=off:ssfp=100000:ssfq=1.4:ssnc=none_467");
@@ -1370,7 +1370,7 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
       quick.push("ins+10_1_bfnt=on:gsp=input_only:igbrr=0.8:igrp=2000:igrpq=2.0:nwc=1:sio=off_330");
     }
     else {
-      quick.push("lrs-1002_3_bd=off:bs=off:drc=off:ep=on:nwc=1.7:stl=150:sos=on:sac=ground:sio=off_1");
+      //quick.push("lrs-1002_3_bd=off:bs=off:drc=off:ep=on:nwc=1.7:stl=150:sos=on:sac=on:sio=off_1");
       quick.push("dis+11_10_bs=off:lcm=predicate:nwc=1.3:sio=off_3");
       quick.push("dis+10_8:1_bs=off:nwc=4:sio=off:spl=off_1");
       quick.push("ott+11_8:1_bfnt=on:cond=on:fde=none:lcm=predicate:nwc=1.2:nicw=on:sio=off:spl=on:sp=occurrence:urr=on:updr=off_13");
@@ -1456,8 +1456,8 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
     fallback.push("dis-3_28_bd=off:cond=on:nwc=1.5:sio=off_600");
     fallback.push("dis+1_40_bs=unit_only:bsr=unit_only:nwc=1:sio=off:spl=on:ssfp=10000:ssfq=2.0:ssnc=none_900");
     fallback.push("ins+3_2_bs=off:bfnt=on:br=off:cond=on:fsr=off:fde=none:igbrr=0.9:igrr=1/64:igrpq=2.0:igwr=on:nwc=10:sio=off:urr=on_900");
-    fallback.push("ott+11_8_bs=off:bfnt=on:cond=fast:nwc=1:sio=off:spl=sat:sser=off:ssfp=100000:ssnc=none_300");
-    fallback.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:sac=ground:sio=off_300");
+    fallback.push("ott+11_8_bs=off:bfnt=on:cond=fast:nwc=1:sio=off:spl=on:sser=off:ssfp=100000:ssnc=none_300");
+    //fallback.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:sac=on:sio=off_300");
     fallback.push("dis-11_10_bfnt=on:cond=fast:lcm=predicate:nwc=1.2:sio=off:spl=off:sp=occurrence_600");
     fallback.push("dis+1_1024_nwc=1.1:sio=off:spl=off:updr=off_400");
     fallback.push("ins+1_8:1_bs=off:bfnt=on:igbrr=0.8:igrr=2/1:igrpq=1.2:igwr=on:nwc=3:sos=all:sgo=on_300");
