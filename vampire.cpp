@@ -752,7 +752,7 @@ int main(int argc, char* argv[])
     cl.interpret(*env.options);
 
 
-    if (env.options->showHelp() || env.options->showOptions()) {
+    if (env.options->showHelp() || env.options->showOptions() || !env.options->explainOption().empty()) {
       env.beginOutput();
       env.options->output(env.out());
       env.endOutput();

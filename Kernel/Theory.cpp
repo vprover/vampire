@@ -1467,7 +1467,6 @@ void Theory::registerLaTeXPredName(unsigned func, bool polarity, vstring temp)
 void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
 {
   CALL("Theory::registerFuncLaTeXName");
-   cout << "register " << func << endl;
   _funcLaTeXnames.insert(func,temp);
 }
 

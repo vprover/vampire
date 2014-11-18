@@ -492,6 +492,7 @@ public:
   bool showOptions() const { return _showOptions.actualValue; }
   bool showExperimentalOptions() const { return _showExperimentalOptions.actualValue; }
   bool showHelp() const { return _showHelp.actualValue; }
+  vstring explainOption() const { return _explainOption.actualValue; }
   bool showPassive() const { return _showPassive.actualValue; }
   bool showPreprocessing() const { return _showPreprocessing.actualValue; }
   bool showSkolemisations() const { return _showSkolemisations.actualValue; }
@@ -1461,12 +1462,10 @@ private:
     
     LookupWrapper _lookup;
     
-public:
   // The const is a lie - we can alter the resulting OptionValue
   AbstractOptionValue* getOptionValueByName(vstring name) const{
     return _lookup.findLong(name);
   }
-private:
  /** 
   * NOTE on OptionValues
   *
@@ -1646,6 +1645,7 @@ private:
   BoolOptionValue _showOptions;
   BoolOptionValue _showExperimentalOptions;
   BoolOptionValue _showHelp;
+  StringOptionValue _explainOption;
   BoolOptionValue _showPassive;
   BoolOptionValue _showPreprocessing;
   BoolOptionValue _showSkolemisations;

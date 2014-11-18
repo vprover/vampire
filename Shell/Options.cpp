@@ -105,17 +105,21 @@ void Options::Options::init()
     _lookup.insert(&_forcedOptions);
     
     _showHelp = BoolOptionValue("help","h",false);
-    _showHelp.description="display this help";
+    _showHelp.description="Display this help";
     _lookup.insert(&_showHelp);
     
     _showOptions = BoolOptionValue("show_options","",false);
-    _showOptions.description="";
+    _showOptions.description="List all available options";
     _lookup.insert(&_showOptions);
     
     _showExperimentalOptions = BoolOptionValue("show_experimental_options","",false);
-    _showExperimentalOptions.description="";
+    _showExperimentalOptions.description="Include experimental options in showOption";
     _lookup.insert(&_showExperimentalOptions);
     _showExperimentalOptions.setExperimental(); // only we know about it!
+
+    _explainOption = StringOptionValue("explain_option","explain","");
+    _explainOption.description = "Use to explain a single option";
+    _lookup.insert(&_explainOption);
     
     _ignoreMissing = BoolOptionValue("ignore_missing","",false);
     _ignoreMissing.description=
@@ -963,13 +967,13 @@ void Options::Options::init()
     _lookup.insert(&_tabulationFwRuleSubsumptionResolutionByLemmas);
     _tabulationFwRuleSubsumptionResolutionByLemmas.tag(OptionTag::TABULATION);
     
-    _tabulationGoalAgeWeightRatio = RatioOptionValue("tabulation_goal_awr","tgawr",1,1);
+    _tabulationGoalAgeWeightRatio = RatioOptionValue("tabulation_goal_awr","tgawr",1,1,'/');
     _tabulationGoalAgeWeightRatio.description=
     "when saturation algorithm is set to tabulation, this option determines the age-weight ratio for selecting next goal clause to process";
     _lookup.insert(&_tabulationGoalAgeWeightRatio);
     _tabulationGoalAgeWeightRatio.tag(OptionTag::TABULATION);
     
-    _tabulationGoalLemmaRatio = RatioOptionValue("tabulation_goal_lemma_ratio","tglr",1,1);
+    _tabulationGoalLemmaRatio = RatioOptionValue("tabulation_goal_lemma_ratio","tglr",1,1,'/');
     _tabulationGoalLemmaRatio.description=
     "when saturation algorithm is set to tabulation, this option determines the ratio of processing new goals and lemmas";
     _lookup.insert(&_tabulationGoalLemmaRatio);
@@ -981,7 +985,7 @@ void Options::Options::init()
     _lookup.insert(&_tabulationInstantiateProducingRules);
     _tabulationInstantiateProducingRules.tag(OptionTag::TABULATION);
     
-    _tabulationLemmaAgeWeightRatio = RatioOptionValue("tabulation_lemma_awr","tlawr",1,1);
+    _tabulationLemmaAgeWeightRatio = RatioOptionValue("tabulation_lemma_awr","tlawr",1,1,'/');
     _tabulationLemmaAgeWeightRatio.description=
     "when saturation algorithm is set to tabulation, this option determines the age-weight ratio for selecting next lemma to process";
     _lookup.insert(&_tabulationLemmaAgeWeightRatio);
@@ -1402,6 +1406,29 @@ vstring Options::includeFileName (const vstring& relativeName)
 void Options::output (ostream& str) const
 {
   CALL("Options::output");
+
+  if(!explainOption().empty()){
+
+    //We bypass the allocator here because of the use of vstringstream
+    BYPASSING_ALLOCATOR;
+
+     AbstractOptionValue* option;
+     try{
+       option = _lookup.findLong(explainOption());
+     }
+     catch(const ValueNotFoundException&){ 
+       try{
+         option = _lookup.findShort(explainOption());
+       }
+       catch(const ValueNotFoundException&){
+         str << explainOption() << " not a known option, see help" << endl;
+       }
+     }
+     vstringstream vs;
+     option->output(vs);
+     str << vs.str();
+
+  }
 
   if(showHelp()){
     str << "=========== Usage ==========\n";
