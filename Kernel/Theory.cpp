@@ -1579,7 +1579,27 @@ switch(f){
 
   case INT_PLUS: inverted_f = INT_MINUS; break; 
   case INT_MINUS: inverted_f = INT_PLUS; break;
-  //case INT_MULTIPLY: 
+  case INT_MULTIPLY: 
+    // conservative checks that this is safe
+    // TODO extend
+    if(isInterpretedConstant(rep)){
+      // otherside is constant
+      IntegerConstantType a;
+      if(!tryInterpretConstant(rep,a)) return false;
+      IntegerConstantType b;
+      if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
+         (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
+      {
+        // we have a problem of the form b.c=a
+        // to invert it to c = a/b we need to check that a/b is safe
+        if(b.toInt()==0) return false;
+        if(a.toInt() % b.toInt() == 0){
+          inverted_f = INT_DIVIDE; break;
+        }
+      }
+    }
+    return false;
+
   //case INT_DIVIDE: 
   //case INT_MODULO: 
 

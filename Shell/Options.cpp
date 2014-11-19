@@ -93,6 +93,14 @@ void Options::Options::init()
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="";
     _lookup.insert(&_decode);
+ 
+    _randomStrategy = BoolOptionValue("random_strategy","",false);
+    _randomStrategy.description = 
+      "Create a random strategy. Randomisation will occur after all other options have been "
+      "set, whatever order they have been given in. A random number of options will be selected "
+      " and set with a safe (possibly default) value.";
+    _lookup.insert(&_randomStrategy);
+    _randomStrategy.addHardConstraintIfNotDefault(_mode.is(equal(Mode::VAMPIRE)));
     
     _forbiddenOptions = StringOptionValue("forbidden_options","","");
     _forbiddenOptions.description=
@@ -190,7 +198,7 @@ void Options::Options::init()
     _lookup.insert(&_thanks);
     
     _timeLimitInDeciseconds = TimeLimitOptionValue("time_limit","t",600);
-    _timeLimitInDeciseconds.description="Time limit in wall clock seconds";
+    _timeLimitInDeciseconds.description="Time limit in wall clock deciseconds";
     _lookup.insert(&_timeLimitInDeciseconds);
     
     _timeStatistics = BoolOptionValue("time_statistics","",false);
@@ -528,7 +536,7 @@ void Options::Options::init()
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
     // Captures that if the saturation algorithm is InstGen then splitting must be off
-    _saturationAlgorithm.addConstraint(If(equal(SaturationAlgorithm::INST_GEN)).then(_splitting.is(notEqual(true))));
+    _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::INST_GEN)).then(_splitting.is(notEqual(true))));
     
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
@@ -1789,6 +1797,13 @@ bool Options::TimeLimitOptionValue::set(const vstring& value)
   return true;
 } // Options::readTimeLimit(const char* val)
 
+void Options::randomizeStrategy()
+{
+  CALL("Options::randomizeStrategy");
+  if(!_randomStrategy.actualValue) return;
+
+
+}
 
 /**
  * Assign option values as encoded in the option vstring.

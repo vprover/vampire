@@ -84,6 +84,9 @@ public:
     void setForcedOptionValues();
     void checkGlobalOptionConstraints() const;
     void checkProblemOptionConstraints(const Problem&) const;
+
+    // randomize strategy (will only work if randomStrategy=on)
+    void randomizeStrategy();
     
     /**
      * Return the problem name
@@ -433,6 +436,7 @@ public:
   //==========================================================
 
 
+  bool randomStrategy() const {return _randomStrategy.actualValue; }
   BadOption getBadOptionChoice() const { return _badOption.actualValue; }
   vstring forcedOptions() const { return _forcedOptions.actualValue; }
   vstring forbiddenOptions() const { return _forbiddenOptions.actualValue; }
@@ -808,12 +812,24 @@ private:
 
       // Adding and checking constraints
       void addConstraint(OptionValueConstraint<T>* c){ _constraints.push(c); }
+      void addHardConstraint(OptionValueConstraint<T>* c){ c->setHard();addConstraint(c); }
       template<typename S>
       void addConstraintIfNotDefault(WrappedConstraint<S>* c){
         _constraints.push(If(isNotDefault<T>()).then(c));
       }
+      template<typename S>
+      void addHardConstraintIfNotDefault(WrappedConstraint<S>* c){
+       OptionValueConstraint<T>* tc = If(isNotDefault<T>()).then(c);
+       tc->setHard();
+        _constraints.push(tc);
+      }
       void addConstraintIfNotDefault(OptionValueConstraint<T>* c){
         _constraints.push(If(isNotDefault<T>()).then(c));
+      }
+      void addHardConstraintIfNotDefault(OptionValueConstraint<T>* c){
+       OptionValueConstraint<T>* tc = If(isNotDefault<T>()).then(c);
+       tc->setHard();
+        _constraints.push(tc);
       }
       bool checkConstraints();
 
@@ -1076,7 +1092,7 @@ private:
         }
         virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
     };
-    
+
 
    /**
     * NOTE on OptionValueConstraints
@@ -1113,6 +1129,8 @@ private:
     struct OptionValueConstraint{
         CLASS_NAME(OptionValueConstraint);
         USE_ALLOCATOR(OptionValueConstraint);
+        OptionValueConstraint() : _hard(false) {}
+
         virtual bool check(OptionValue<T>& value) = 0; 
         virtual bool check(){ ASSERTION_VIOLATION; }
         virtual vstring msg(OptionValue<T>& value) = 0;
@@ -1121,7 +1139,9 @@ private:
         // By default cannot force constraint
         virtual bool force(OptionValue<T>& value){ return false;}
         // TODO - allow for hard constraints
-        virtual bool isHard(){ return false; }
+        bool isHard(){ return _hard; }
+        void setHard(){ _hard=true;}
+        bool _hard;
 
         OptionValueConstraint<T>* And(OptionValueConstraint<T>* another);
         OptionValueConstraint<T>* Or(OptionValueConstraint<T>* another);
@@ -1487,6 +1507,7 @@ private:
   *
   */
 
+  BoolOptionValue _randomStrategy;
   DecodeOptionValue _decode;
 
   RatioOptionValue _ageWeightRatio;

@@ -84,6 +84,7 @@ void TPTP::parse()
   _states.push(UNIT_LIST);
   while (!_states.isEmpty()) {
     State s = _states.pop();
+    //cout << "PARSE " << toString(s) << endl;
 #if DEBUG_SHOW_TOKENS
 #endif
     switch (s) {
