@@ -1179,16 +1179,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
 {
   CALL("Splitter::removeComponents");
   ASS(_sa->clausesFlushed());
-
-  /* Martin: for marking:
-   * 1) to remove each of the children only once
-   * 2) to restore each reduced only once
-   */
-  Clause::requestAux();  
   
-  static RCClauseStack restored;
-  ASS(restored.isEmpty());  
-
   SplitSet* backtracked = SplitSet::getFromArray(toRemove.begin(), toRemove.size());
 
   // ensure all children are backtracked
@@ -1200,23 +1191,21 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     ASS(sr);
 
     while(sr->children.isNonEmpty()) {
-      Clause* ccl=sr->children.popWithoutDec();
-      if(!ccl->hasAux()) {
-	ASS(ccl->splits()->member(bl));
-	if(ccl->store()!=Clause::NONE) {
-	  _sa->removeActiveOrPassiveClause(ccl);
-	  ASS_EQ(ccl->store(), Clause::NONE);
-	}
-	ccl->setAux(0);
-	ccl->invalidateMyReductionRecords();
-      }
+      Clause* ccl=sr->children.popWithoutDec();      
+      ASS(ccl->splits()->member(bl));
+      if(ccl->store()!=Clause::NONE) {
+        _sa->removeActiveOrPassiveClause(ccl);
+        ASS_EQ(ccl->store(), Clause::NONE);
+      }      
+      ccl->invalidateMyReductionRecords();      
       ccl->decRefCnt(); //decrease corresponding to sr->children.popWithoutDec()
     }
   }
 
-  // perform unfreezing
-
-  // add all reduced clauses to restored (if the record relates to most recent reduction)
+  // perform unfreezing  
+  
+  // pick all reduced clauses (if the record relates to most recent reduction)
+  // and them add back to _sa using addNewClause - this will get put to unprocessed
   SplitSet::Iterator blit2(*backtracked);
   while(blit2.hasNext()) {
     SplitLevel bl=blit2.next();
@@ -1225,8 +1214,21 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     while(sr->reduced.isNonEmpty()) {
       ReductionRecord rrec=sr->reduced.pop();
       Clause* rcl=rrec.clause;
-      if(rcl->validReductionRecord(rrec.timestamp)) {                            
-        restored.push(rcl);
+      if(rcl->validReductionRecord(rrec.timestamp)) {
+        ASS(!rcl->splits()->hasIntersection(backtracked));      
+        ASS_EQ(rcl->store(), Clause::NONE);
+        
+        rcl->invalidateMyReductionRecords(); // to make sure we don't unfreeze this clause a second time
+        _sa->addNewClause(rcl);
+              
+        // TODO: keep statistics in release ?
+        RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
+        RSTAT_CTR_INC("total_unfrozen");
+#if VDEBUG      
+        //check that restored clause does not depend on inactive splits
+        ASS(allSplitLevelsActive(rcl->splits()));
+#endif
+        
       }
       rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in Splitter::SplitRecord::addReduced
     }
@@ -1234,28 +1236,6 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     ASS(sr->active);
     sr->active = false;
   }
-
-  // add back to _sa using addNewClause - this will get put to unprocessed
-  while(restored.isNonEmpty()) {
-    Clause* rcl=restored.popWithoutDec();
-    if(!rcl->hasAux()) {
-      ASS(!rcl->splits()->hasIntersection(backtracked));
-      rcl->setAux(0);
-      ASS_EQ(rcl->store(), Clause::NONE);
-      rcl->invalidateMyReductionRecords();      
-      _sa->addNewClause(rcl);
-
-      // TODO: keep statistics in release ?
-      RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
-      RSTAT_CTR_INC("total_unfrozen");
-
-      //check that restored clause does not depend on inactive splits
-      ASS(allSplitLevelsActive(rcl->splits()));
-    }
-    rcl->decRefCnt(); //belongs to restored.popWithoutDec();
-  }
-
-  Clause::releaseAux();
 }
 
 /**
