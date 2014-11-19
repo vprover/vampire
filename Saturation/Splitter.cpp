@@ -416,9 +416,9 @@ void Splitter::init(SaturationAlgorithm* sa)
   _flushQuotient = opts.splittingFlushQuotient();
   _flushThreshold = sa->getGeneratedClauseCount() + _flushPeriod;
 
-  _congruenceClosure = opts.splittingCongruenceClosure();
-  
+  _congruenceClosure = opts.splittingCongruenceClosure();  
   _fastRestart = opts.splittingFastRestart();
+  _deleteDeactivated = opts.splittingDeleteDeactivated();    
 }
 
 SplitLevel Splitter::getNameFromLiteral(SATLiteral lit) const
@@ -1006,6 +1006,8 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   ASS(allSplitLevelsActive(diff));
 
   if(diff->isEmpty()) {
+    // TODO: with _splittingDeleteDeactivated = false could mark this clause as unconditionally deleted!    
+    
     return;
   }
   // else freeze clause
@@ -1160,12 +1162,23 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
     ASS(!sr->active);
     sr->active = true;
     
-    ASS(sr->children.isEmpty());
-    //we need to put the component among children, so that it is backtracked
-    //when we remove the component
-    sr->children.push(sr->component);
-
-    _sa->addNewClause(sr->component);
+    if (_deleteDeactivated) {
+      ASS(sr->children.isEmpty());
+      //we need to put the component among children, so that it is backtracked
+      //when we remove the component
+      sr->children.push(sr->component);
+      _sa->addNewClause(sr->component);
+    } else {
+      // children were kept, so we just put them back
+      RCClauseStack::Iterator chit(sr->children);
+      while (chit.hasNext()) {
+        Clause* cl = chit.next();
+        cl->incNumActiveSplits();
+        if (cl->getNumActiveSplits() == cl->splits()->size()) {
+          _sa->addNewClause(sr->component);
+        }
+      }
+    }
   }
 }
 
@@ -1190,15 +1203,20 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     SplitRecord* sr=_db[bl];
     ASS(sr);
 
-    while(sr->children.isNonEmpty()) {
-      Clause* ccl=sr->children.popWithoutDec();      
+    RCClauseStack::Iterator chit(sr->children);
+    while (chit.hasNext()) {
+      Clause* ccl=chit.next();
       ASS(ccl->splits()->member(bl));
       if(ccl->store()!=Clause::NONE) {
         _sa->removeActiveOrPassiveClause(ccl);
         ASS_EQ(ccl->store(), Clause::NONE);
-      }      
-      ccl->invalidateMyReductionRecords();      
-      ccl->decRefCnt(); //decrease corresponding to sr->children.popWithoutDec()
+      }
+      ccl->invalidateMyReductionRecords();
+      ccl->decNumActiveSplits();
+    }
+    
+    if (_deleteDeactivated) {
+      sr->children.reset();
     }
   }
 

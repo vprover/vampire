@@ -221,6 +221,7 @@ public:
     SPLITTING,
     SPLITTING_ADD_COMPLEMENTARY,
     SPLITTING_CONGRUENCE_CLOSURE,
+    SPLITTING_DELETE_DEACITVATED,
     SPLITTING_EAGER_REMOVAL,
     SPLITTING_FAST_RESTART,
     SPLITTING_FLUSH_PERIOD,
@@ -798,8 +799,10 @@ public:
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary; }
   int splittingFlushPeriod() const { return _splittingFlushPeriod; }
   float splittingFlushQuotient() const { return _splittingFlushQuotient; }
+
   bool splittingEagerRemoval() const { return _splittingEagerRemoval; }  
   bool splittingCongruenceClosure() const { return _splittingCongruenceClosure; }  
+  bool splittingDeleteDeactivated() const { return _splittingDeleteDeactivated; }  
   bool splittingFastRestart() const { return _splittingFastRestart; }
   bool splittingHandleZeroImplied() const{ return _splittingHandleZeroImplied;}  
   SplittingLitaralPolarityAdvice splittingLitaralPolarityAdvice() const { return _splittingLiteralPolarityAdvice; }    
@@ -1015,6 +1018,7 @@ private:
   bool _splitting;
   SplittingAddComplementary _splittingAddComplementary;
   bool _splittingCongruenceClosure;
+  bool _splittingDeleteDeactivated;
   bool _splittingEagerRemoval;
   bool _splittingFastRestart;
   unsigned _splittingFlushPeriod;

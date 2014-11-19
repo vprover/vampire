@@ -288,6 +288,7 @@ const char* Options::Constants::_optionNames[] = {
   "splitting",
   "splitting_add_complementary",
   "splitting_congruence_closure",
+  "splitting_delete_deactivated",
   "splitting_eager_removal",
   "splitting_fast_restart",
   "splitting_flush_period",
@@ -990,6 +991,7 @@ Options::Options ()
   _splitting(true), 
   _splittingAddComplementary(SAC_GROUND),
   _splittingCongruenceClosure(false),
+  _splittingDeleteDeactivated(true),
   _splittingEagerRemoval(true),
   _splittingFastRestart(false),
   _splittingFlushPeriod(0),
@@ -1682,6 +1684,9 @@ void Options::set(const char* name,const char* value, int index)
     case SPLITTING_CONGRUENCE_CLOSURE:
       _splittingCongruenceClosure = onOffToBool(value,name);
       return;
+    case SPLITTING_DELETE_DEACITVATED:
+      _splittingDeleteDeactivated = onOffToBool(value,name);
+      return;        
     case SPLITTING_EAGER_REMOVAL:
       _splittingEagerRemoval = onOffToBool(value,name);
       return;
@@ -2528,6 +2533,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SPLITTING_CONGRUENCE_CLOSURE:
     str << boolToOnOff(_splittingCongruenceClosure);
     return;
+  case SPLITTING_DELETE_DEACITVATED:
+    str << boolToOnOff(_splittingDeleteDeactivated);
+    return;    
   case SPLITTING_EAGER_REMOVAL:
     str << boolToOnOff(_splittingEagerRemoval);
     return;

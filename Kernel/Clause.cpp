@@ -71,6 +71,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _reductionTimestamp(0),
     _literalPositions(0),
     _splits(0),
+    _numActiveSplits(0),
     _auxTimestamp(0)
 {
 //#if VDEBUG

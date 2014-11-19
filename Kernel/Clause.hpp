@@ -243,6 +243,11 @@ public:
     ASS(replace || !_splits);
     _splits=splits;
   }
+  
+  unsigned getNumActiveSplits() const { return _numActiveSplits; }
+  void setNumActiveSplits(unsigned newVal) { _numActiveSplits = newVal; }
+  void incNumActiveSplits() { _numActiveSplits++; }
+  void decNumActiveSplits() { _numActiveSplits--; }
 
   VirtualIterator<vstring> toSimpleClauseStrings();
 
@@ -352,6 +357,7 @@ protected:
   InverseLookup<Literal>* _literalPositions;
 
   SplitSet* _splits;
+  unsigned _numActiveSplits;
 
   size_t _auxTimestamp;
   void* _auxData;
