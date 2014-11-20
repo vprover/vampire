@@ -1186,11 +1186,11 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
       RCClauseStack::Iterator chit(sr->children);
       unsigned reactivated_cnt = 0;
       while (chit.hasNext()) {
-        Clause* cl = chit.next();        
+        Clause* cl = chit.next();
         cl->incNumActiveSplits();
         if (cl->getNumActiveSplits() == (int)cl->splits()->size()) {
           reactivated_cnt++;
-          _sa->addNewClause(sr->component);
+          _sa->addNewClause(cl);
 #if VDEBUG
           //check that restored clause does not depend on inactive splits
           assertSplitLevelsActive(cl->splits());
