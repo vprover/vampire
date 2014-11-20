@@ -12,6 +12,8 @@
 
 //#include "Lib/SmartPtr.hpp"
 
+#include "Indexing/IndexManager.hpp"
+
 #include "SAT/SAT2FO.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -31,6 +33,7 @@ ClauseVariantIndex SaturationAlgorithmContext::_componentIdx;
 Lib::DHMap<Kernel::Clause*,Kernel::SplitLevel> SaturationAlgorithmContext::_compNames;
 
 std::unique_ptr<Inferences::ImmediateSimplificationEngine> SaturationAlgorithmContext::_immediateSimplifier;
+Indexing::IndexManager SaturationAlgorithmContext::_indexManager(0);
 
 SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts, bool join):
 		MainLoopContext(prb, opts, join) {
@@ -59,6 +62,8 @@ SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& op
 	_splitter -> setComponentIndex(&_componentIdx);
 	_splitter -> setSAT2FO(&_sat2fo);
 	_splitter -> setComponentNames(&_compNames);
+
+	_indexManager.setSaturationAlgorithm(sa);
 }
 
 SaturationAlgorithmContext::~SaturationAlgorithmContext() {

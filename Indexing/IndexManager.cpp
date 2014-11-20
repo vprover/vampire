@@ -43,7 +43,7 @@ IndexManager::~IndexManager()
 void IndexManager::setSaturationAlgorithm(SaturationAlgorithm* alg)
 {
   CALL("IndexManager::setSaturationAlgorithm");
-  ASS(!_alg);
+  //ASS(!_alg);
   ASS(alg);
 
   _alg = alg;

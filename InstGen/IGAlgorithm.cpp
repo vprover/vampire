@@ -127,10 +127,7 @@ void IGAlgorithm::init()
   CALL("IGAlgorithm::init");
 
   if(_opt.instGenWithResolution()) {
-    _saturationIndexManager = new IndexManager(0);
-    if(_opt.globalSubsumption()) {
-      _saturationIndexManager->provideIndex(GLOBAL_SUBSUMPTION_INDEX, _groundingIndex.ptr());
-    }
+  //  _saturationIndexManager = new IndexManager(0);
 
     _saturationProblem = _prb.copy(true);
 
@@ -141,6 +138,10 @@ void IGAlgorithm::init()
     _saturationAlgorithmContext = new SaturationAlgorithmContext(*_saturationProblem.ptr(),_saturationOptions, true);
     _saturationAlgorithm = static_cast<SaturationAlgorithm*>(_saturationAlgorithmContext ->getMainLoop());//TODO: Share IndexManager
     //_saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
+
+    if(_opt.globalSubsumption()) {
+          SaturationAlgorithmContext::indexManager().provideIndex(GLOBAL_SUBSUMPTION_INDEX, _groundingIndex.ptr());
+     }
 
     //we will watch what clauses are derived in the
     //saturation part, so we can take advantage of them

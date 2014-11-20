@@ -30,6 +30,7 @@
 
 namespace Indexing {
 	class ClauseVariantIndex;
+	class IndexManager;
 }
 
 namespace SAT {
@@ -50,6 +51,8 @@ namespace Saturation {
 		const SSplitter* splitter() const { return _splitter; }
 		Inferences::ImmediateSimplificationEngine* immediateSimplifier() const { return _immediateSimplifier.get(); };
 
+		inline static Indexing::IndexManager& indexManager() { return _indexManager; }
+
 	protected:
 		// Switch into this context
 		virtual void switchIn();
@@ -66,6 +69,8 @@ namespace Saturation {
 		static SAT::SAT2FO _sat2fo;
 
 		static std::unique_ptr<Inferences::ImmediateSimplificationEngine>_immediateSimplifier;
+
+		static Indexing::IndexManager _indexManager;
 	};
 
 } /* namespace Saturation */
