@@ -978,7 +978,7 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
   }
 }
 
-static const int UNCONDITIONALLY_REDUCED_MARK = -1;
+static const int UNCONDITIONALLY_REDUCED_MARK = 0;
 
 /**
  * Register the reduction of the @b cl clause
@@ -1183,18 +1183,13 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
       _sa->addNewClause(sr->component);
     } else {            
       // children were kept, so we just put them back
-      RCClauseStack::DelIterator chit(sr->children);
+      RCClauseStack::Iterator chit(sr->children);
       unsigned reactivated_cnt = 0;
       while (chit.hasNext()) {
         Clause* cl = chit.next();        
-        if (cl->getNumActiveSplits() == UNCONDITIONALLY_REDUCED_MARK) {
-          RSTAT_CTR_INC("unconditionally reduced child removed");
-          chit.del();
-          continue;
-        }
         cl->incNumActiveSplits();
         if (cl->getNumActiveSplits() == (int)cl->splits()->size()) {
-          reactivated_cnt++;                    
+          reactivated_cnt++;
           _sa->addNewClause(sr->component);
 #if VDEBUG
           //check that restored clause does not depend on inactive splits
@@ -1227,8 +1222,8 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     SplitLevel bl=blit.next();
     SplitRecord* sr=_db[bl];
     ASS(sr);
-
-    RCClauseStack::Iterator chit(sr->children);
+        
+    RCClauseStack::DelIterator chit(sr->children);
     while (chit.hasNext()) {
       Clause* ccl=chit.next();
       ASS(ccl->splits()->member(bl));
@@ -1238,6 +1233,10 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       }
       ccl->invalidateMyReductionRecords();
       ccl->decNumActiveSplits();
+      if (ccl->getNumActiveSplits() < UNCONDITIONALLY_REDUCED_MARK) {
+        RSTAT_CTR_INC("unconditionally reduced child removed");
+        chit.del();
+      }
     }
     
     if (_deleteDeactivated) {
