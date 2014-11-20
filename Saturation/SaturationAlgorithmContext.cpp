@@ -46,7 +46,7 @@ SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& op
 #if VDEBUG
 	std::cout << "Initialising immediate simplifier for saturation algorithms" << std::endl;
 #endif //VDEBUG
-		_immediateSimplifier = std::unique_ptr<Inferences::ImmediateSimplificationEngine>(SaturationAlgorithm:: createISE(*_prb, opts));
+		_immediateSimplifier.reset(SaturationAlgorithm:: createISE(*_prb, opts));
 	}
 	SaturationAlgorithm* sa = SaturationAlgorithm::createFromOptions(*_prb, opts);
 	_ml = sa;
