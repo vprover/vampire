@@ -63,7 +63,7 @@ SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& op
 	_splitter -> setSAT2FO(&_sat2fo);
 	_splitter -> setComponentNames(&_compNames);
 
-	_indexManager.setSaturationAlgorithm(sa);
+	//_indexManager.setSaturationAlgorithm(sa);
 }
 
 SaturationAlgorithmContext::~SaturationAlgorithmContext() {

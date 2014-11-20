@@ -1372,7 +1372,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   else {
     res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
   }*/
+  SaturationAlgorithmContext::indexManager().setSaturationAlgorithm(res);
   res ->_imgr = &SaturationAlgorithmContext::indexManager();
+
 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();

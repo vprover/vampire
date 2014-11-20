@@ -226,6 +226,7 @@ Index* IndexManager::create(IndexType t)
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }
+  ASS(_alg);
   if(isGenerating) {
     res->attachContainer(_alg->getGeneratingClauseContainer());
   }
