@@ -834,10 +834,16 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
           new Inference(Inference::SAT_SPLITTING_COMPONENT));
 
   _db[name] = new SplitRecord(compCl);
-
   compCl->setSplits(SplitSet::getSingleton(name));
   compCl->setComponent(true);
 
+  if (!_deleteDeactivated) {
+    // in this mode, compCl is assumed to be a child since the beginning of times
+    _db[name]->children.push(compCl);
+    
+    // (with _deleteDeactivated true, compCl is always inserted anew on activation)
+  }
+  
   {
     TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
     _componentIdx.insert(compCl);
@@ -967,7 +973,12 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
     SplitLevel slev=bsit.next();
     _db[slev]->children.push(cl);
   }
+  if (!_deleteDeactivated) {
+    cl->setNumActiveSplits(splits->size());
+  }
 }
+
+static const int UNCONDITIONALLY_REDUCED_MARK = -1;
 
 /**
  * Register the reduction of the @b cl clause
@@ -1006,8 +1017,10 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   ASS(allSplitLevelsActive(diff));
 
   if(diff->isEmpty()) {
-    // TODO: with _splittingDeleteDeactivated = false could mark this clause as unconditionally deleted!    
-    
+    if (!_deleteDeactivated) {
+      cl->setNumActiveSplits(UNCONDITIONALLY_REDUCED_MARK);
+    }
+        
     return;
   }
   // else freeze clause
@@ -1168,16 +1181,28 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
       //when we remove the component
       sr->children.push(sr->component);
       _sa->addNewClause(sr->component);
-    } else {
+    } else {            
       // children were kept, so we just put them back
-      RCClauseStack::Iterator chit(sr->children);
+      RCClauseStack::DelIterator chit(sr->children);
+      unsigned reactivated_cnt = 0;
       while (chit.hasNext()) {
-        Clause* cl = chit.next();
+        Clause* cl = chit.next();        
+        if (cl->getNumActiveSplits() == UNCONDITIONALLY_REDUCED_MARK) {
+          RSTAT_CTR_INC("unconditionally reduced child removed");
+          chit.del();
+          continue;
+        }
         cl->incNumActiveSplits();
-        if (cl->getNumActiveSplits() == cl->splits()->size()) {
+        if (cl->getNumActiveSplits() == (int)cl->splits()->size()) {
+          reactivated_cnt++;                    
           _sa->addNewClause(sr->component);
+#if VDEBUG
+          //check that restored clause does not depend on inactive splits
+          assertSplitLevelsActive(cl->splits());
+#endif
         }
       }
+      RSTAT_MCTR_INC("reactivated clauses",reactivated_cnt);      
     }
   }
 }
