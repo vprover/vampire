@@ -43,7 +43,7 @@ namespace Saturation {
 
 	class SaturationAlgorithmContext: public Kernel::MainLoopContext {
 	public:
-		SaturationAlgorithmContext(Kernel::Problem& prb, Shell::Options& opts);
+		SaturationAlgorithmContext(Kernel::Problem& prb, Shell::Options& opts, bool join = false);
 
 		~SaturationAlgorithmContext();
 

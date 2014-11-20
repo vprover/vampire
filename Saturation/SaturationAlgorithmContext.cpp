@@ -32,8 +32,8 @@ Lib::DHMap<Kernel::Clause*,Kernel::SplitLevel> SaturationAlgorithmContext::_comp
 
 std::unique_ptr<Inferences::ImmediateSimplificationEngine> SaturationAlgorithmContext::_immediateSimplifier;
 
-SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts):
-		MainLoopContext(prb, opts) {
+SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts, bool join):
+		MainLoopContext(prb, opts, join) {
 	CALL("SaturationAlgorithmContext::SaturationAlgorithmContext");
 
 #if VDEBUG

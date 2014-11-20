@@ -26,7 +26,7 @@ unsigned int MainLoopContext::id_counter = 0;
 
 MainLoopContext* MainLoopContext::currentContext = 0;
 
-	MainLoopContext::MainLoopContext(Problem& prb, Options& opts):
+	MainLoopContext::MainLoopContext(Problem& prb, Options& opts, bool join):
 #if VDEBUG
 			_id(id_counter++),
 #endif
@@ -45,7 +45,13 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 		_prb = prb.copy(true);
 
 		//TODO - why do we need to store prb and opts if they will be in env?
-		_env = new Environment(*Lib::env,opts);
+		_env = new Environment(*Lib::env,opts);//XXX: should we share environment when joining in
+
+		if(join){//TODO: make a virtual protected function for join
+			ASS(MainLoopContext::currentContext);
+			_startTime = MainLoopContext::currentContext->_startTime;
+			_elapsed = MainLoopContext::currentContext->_elapsed;
+		}
 	}
 
 	MainLoopContext::~MainLoopContext() {

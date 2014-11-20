@@ -20,7 +20,7 @@ namespace Kernel {
 
 class MainLoopContext {
 public:
-	MainLoopContext(Problem& prb, Shell::Options& opts);
+	MainLoopContext(Problem& prb, Shell::Options& opts, bool join = false);
 #if VDEBUG
 	const unsigned _id;
 #endif

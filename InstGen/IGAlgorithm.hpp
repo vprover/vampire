@@ -39,6 +39,10 @@
 
 #include "Kernel/Grounder.hpp"
 
+namespace Saturation{
+	class SaturationAlgorithmContext;
+}
+
 namespace InstGen {
 
 using namespace Kernel;
@@ -125,6 +129,7 @@ private:
   ScopedPtr<IndexManager> _saturationIndexManager;
   ScopedPtr<Problem> _saturationProblem;
   ScopedPtr<SaturationAlgorithm> _saturationAlgorithm;
+  ScopedPtr<SaturationAlgorithmContext> _saturationAlgorithmContext;
 
   OrderingSP _ordering;
   ScopedPtr<LiteralSelector> _selector;

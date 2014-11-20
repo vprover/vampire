@@ -30,6 +30,7 @@
 #include "SAT/BufferedSolver.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/SaturationAlgorithmContext.hpp"
 
 #include "Shell/EquivalenceDiscoverer.hpp"
 #include "Shell/EqualityAxiomatizer.hpp"
@@ -137,14 +138,16 @@ void IGAlgorithm::init()
     _saturationOptions.setSaturationAlgorithm(Options::OTTER);
 //    _saturationOptions.setPropositionalToBDD(false);
 //    _saturationOptions.setSplitting(Options::SM_OFF);
-    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
+    _saturationAlgorithmContext = new SaturationAlgorithmContext(*_saturationProblem.ptr(),_saturationOptions, true);
+    _saturationAlgorithm = static_cast<SaturationAlgorithm*>(_saturationAlgorithmContext ->getMainLoop());//TODO: Share IndexManager
+    //_saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
 
     //we will watch what clauses are derived in the
     //saturation part, so we can take advantage of them
     _saturationAlgorithm->getSimplifyingClauseContainer()->addedEvent.subscribe(this, &IGAlgorithm::onResolutionClauseDerived);
 
     //init the saturation algorithm run
-    _saturationAlgorithm->initAlgorithmRun();
+    //_saturationAlgorithm->initAlgorithmRun();
   }
   else {
     //if there's no resolution, we always do instGen
@@ -480,12 +483,12 @@ void IGAlgorithm::doResolutionStep()
 {
   CALL("IGAlgorithm::doResolutionStep");
 
-  if(!_saturationAlgorithm) {
+  if(!_saturationAlgorithmContext) {
     return;
   }
 
   try {
-    _saturationAlgorithm->doOneAlgorithmStep();
+    _saturationAlgorithmContext->doStep();
   }
   catch(MainLoopFinishedException e)
   {
