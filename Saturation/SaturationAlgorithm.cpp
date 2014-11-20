@@ -756,7 +756,7 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addNewClause");
 
-  cout << cl->toString() << endl;
+  //cout << cl->toString() << endl;
 
   //we increase the reference counter here so that the clause wouldn't
   //get destroyed during handling in the onNewClause handler

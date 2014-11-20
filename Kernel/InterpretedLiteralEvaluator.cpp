@@ -718,7 +718,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 {
   CALL("InterpretedLiteralEvaluator::evaluate");
 
-  cout << "evaluate " << lit->toString() << endl;
+  //cout << "evaluate " << lit->toString() << endl;
 
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
   resLit = TermTransformer::transform(lit);
@@ -736,7 +736,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
     isConstant=false;
     return (lit!=resLit);
   }
-  cout << lit->toString()<< " is variable free, evaluating..." << endl;
+  //cout << lit->toString()<< " is variable free, evaluating..." << endl;
 
   unsigned pred = resLit->functor();
 
@@ -744,7 +744,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   Evaluator* predEv = getPredEvaluator(pred);
   if (predEv) {
     if (predEv->tryEvaluatePred(resLit, resConst)) {
-        cout << "pred evaluated " << resConst << endl;
+        //cout << "pred evaluated " << resConst << endl;
 	isConstant = true;
 	return true;
     }

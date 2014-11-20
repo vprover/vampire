@@ -301,6 +301,7 @@ void RationalConstantType::cannonize()
     _num = -_num;
     _den = -_den;
   }
+  if(_num==0 && _den!=0){ _den=1; }
 }
 
 Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, RationalConstantType n2)
