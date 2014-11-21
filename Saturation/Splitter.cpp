@@ -376,7 +376,8 @@ void SplittingBranchSelector::getNewZeroImpliedSplits(SplitLevelStack& res)
 //////////////
 
 Splitter::Splitter()
-: _branchSelector(*this), _haveBranchRefutation(false), _clausesSinceEmpty(0)
+: _deleteDeactivated(true), _branchSelector(*this), 
+  _haveBranchRefutation(false), _clausesSinceEmpty(0) 
 {
   CALL("Splitter::Splitter");
 }
@@ -654,6 +655,13 @@ bool Splitter::handleNonSplittable(Clause* cl)
     
     compCl->invalidateMyReductionRecords();
     _sa->addNewClause(compCl);
+    if (!_deleteDeactivated && !nameRec.children.find(compCl)) {
+      // corner case within a corner case:
+      // the compCl was already shown unconditionally redundant,
+      // but now we must must put it back (TODO: do we really?)
+      // so we should also keep track about it
+      nameRec.children.push(compCl);
+    }    
   }
 
   recordSATClauseForAddition(nsClause, false);
@@ -964,7 +972,7 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
 {
   CALL("Splitter::assignClauseSplitSet");
   ASS(!cl->splits());
-
+    
   cl->setSplits(splits);
 
   //update "children" field of relevant SplitRecords
@@ -1191,10 +1199,8 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
         if (cl->getNumActiveSplits() == (int)cl->splits()->size()) {
           reactivated_cnt++;
           _sa->addNewClause(cl);
-#if VDEBUG
           //check that restored clause does not depend on inactive splits
-          assertSplitLevelsActive(cl->splits());
-#endif
+          ASS(allSplitLevelsActive(cl->splits()));
         }
       }
       RSTAT_MCTR_INC("reactivated clauses",reactivated_cnt);      
@@ -1222,7 +1228,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     SplitLevel bl=blit.next();
     SplitRecord* sr=_db[bl];
     ASS(sr);
-        
+    
     RCClauseStack::DelIterator chit(sr->children);
     while (chit.hasNext()) {
       Clause* ccl=chit.next();
@@ -1245,7 +1251,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
   }
 
   // perform unfreezing  
-  
+    
   // pick all reduced clauses (if the record relates to most recent reduction)
   // and them add back to _sa using addNewClause - this will get put to unprocessed
   SplitSet::Iterator blit2(*backtracked);
