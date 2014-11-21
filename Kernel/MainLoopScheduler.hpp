@@ -17,6 +17,9 @@
 #include "Kernel/MainLoopFwd.hpp"
 #include "Kernel/MainLoopContext.hpp"
 #include "Kernel/ProblemFwd.hpp"
+
+#include "Lib/STLAllocator.hpp"
+
 #include "Shell/OptionsList.hpp"
 
 //namespace Shell {
@@ -97,7 +100,7 @@ private:
 	    	}
 	};
 
-	std::priority_queue<Shell::Options*, std::vector<Shell::Options*>, CompareOptions> optionsQueue;
+	std::priority_queue<Shell::Options*, std::vector<Shell::Options*, Lib::STLAllocator<Shell::Options*>>, CompareOptions> optionsQueue;
 
 	static MainLoopContext* createContext(Problem& prb, Shell::Options& opt);
 
