@@ -53,6 +53,8 @@ public:
   typedef ArrayishObjectIterator<OptionsList> Iterator;
   DECL_ELEMENT_TYPE(Options&);
   DECL_ITERATOR_TYPE(Iterator);
+  CLASS_NAME(OptionsList);
+  USE_ALLOCATOR(OptionsList);
 
   /** Return the number of strategies **/
   unsigned size() const {return _length;}

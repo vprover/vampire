@@ -27,6 +27,8 @@ void OptionsList::include(const vstring& includeFile)
   //We parse this file that must be relative to the current
   //directory. If any units are extracted we have an error
 
+  BYPASSING_ALLOCATOR;
+
   istream* stream=new ifstream(includeFile.c_str());
   if (stream->fail()) {
       USER_ERROR("Cannot open problem file: "+includeFile);

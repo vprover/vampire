@@ -982,7 +982,7 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  **/ 
   
 void* operator new(size_t sz) {    
-  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
+  //ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   
   if (sz == 0)
     sz = 1;

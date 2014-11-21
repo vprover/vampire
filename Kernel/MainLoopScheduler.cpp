@@ -134,11 +134,21 @@ MainLoopScheduler::~MainLoopScheduler() {
 
 	for(size_t k = 0; k < _capacity; k++) {
 		if(_mlcl[k]){
+                        ASS(_mlcl[k]);
+                        cout << "deleting " << _mlcl[k] << endl;
 			delete _mlcl[k]; //TODO: should be DEALLOC_UNKNOWN but SaturationAlgorithm::createFromOptions allocates via "new"
 		}
 	}
+#if VDEBUG
+        cout << "Deleted all remaining contexts" << endl;
+#endif
 
 	DEALLOC_KNOWN(_mlcl, sizeof(MainLoopContext*)*_capacity, "MainLoopContext*");
+
+#if VDEBUG
+        cout << "Deallocated memory for contexts" << endl;
+#endif
+
 }
 
 }

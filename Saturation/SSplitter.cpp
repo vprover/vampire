@@ -985,7 +985,9 @@ bool SSplitter::handleEmptyClause(Clause* cl)
 {
   CALL("SSplitter::handleEmptyClause");
 
+#if VDEBUG
   cout << "handle empty clause in ssplitter" << endl;
+#endif
 
   if(cl->splits()->isEmpty()) {
     return false;

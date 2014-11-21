@@ -81,7 +81,7 @@ void InterpolantMinimizer::prettyPrint(Formula* formula, ostream& out)
 {
   CALL("SMTLibPrinter::prettyPrint");
         
-  Signature *sig = env -> signature;
+  Signature *sig = env -> signature.ptr();
   unsigned symbNum;
   Symbol* symb;
   TermList* args;
@@ -166,7 +166,7 @@ void InterpolantMinimizer::prettyPrint(Formula* formula, ostream& out)
 /*print terms in SMT*/    
 void InterpolantMinimizer::prettyPrint(Term* term, ostream& out)
 {
-    Signature *sig = env -> signature;
+    Signature *sig = env -> signature.ptr();
     unsigned int symbNum = term->functor();
     Symbol* symb = sig->getFunction(symbNum);
         

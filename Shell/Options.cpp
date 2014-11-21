@@ -815,7 +815,6 @@ NameArray Options::Constants::bpAlmostHalfBoundingRemovalValues(_bpAlmostHalfBou
 								sizeof(_bpAlmostHalfBoundingRemovalValues)/sizeof(char*));
 
 
-bool Options::_ssplittingEagerRemoval = true;
 
 /**
  * Initialize options to the default values.

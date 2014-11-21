@@ -489,6 +489,7 @@ void vampireMode()
   CALL("vampireMode()");
 
   if (env -> options->mode() == Options::MODE_CONSEQUENCE_ELIMINATION) {
+    USER_ERROR("not supported");
     if(!env -> isSingleStrategy()){
       USER_ERROR("Only single strategy mode supported for consequence elimination");
     }
@@ -535,14 +536,11 @@ void vampireMode()
           // strategies
           ScopedPtr<Problem> prb(getPreprocessedProblem());
           unsigned concurrentProofAttempts = env -> options -> getMultiProofAttemptConcurrent();
-          if(concurrentProofAttempts){
-             Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList, concurrentProofAttempts);
-             scheduler.run();
-          }
-          else{
-             Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList);
-             scheduler.run();
-          }
+          if(concurrentProofAttempts==0) concurrentProofAttempts = env -> optionsList -> size();
+
+{
+          Kernel::MainLoopScheduler scheduler(*prb, *env -> optionsList, concurrentProofAttempts);
+          scheduler.run();
 
           // Code duplicated as need to have scheduler alive
           env -> beginOutput();
@@ -557,7 +555,13 @@ void vampireMode()
           #endif
              vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
           }
+
+// hopefully doing it at end of block only bypasses for the destructors
+// MainLoopScheduler uses std::priorityqueue
+BYPASSING_ALLOCATOR;
+}
   //}
+  cout << "got to end " << endl;
 
 } // vampireMode
 
@@ -772,6 +776,7 @@ int main(int argc, char* argv[])
     case Options::MODE_CONSEQUENCE_ELIMINATION:
     case Options::MODE_VAMPIRE:
       vampireMode();
+      cout << "HERE" << endl;
       break;
     case Options::MODE_CASC:
       if (CASC::CASCMode::perform(argc, argv)) {
@@ -846,8 +851,10 @@ int main(int argc, char* argv[])
       MemoryLeak leak;
       leak.release(globUnitList);
     }
-    delete env -> signature;
-    env -> signature = 0;
+    if(env){
+      delete env -> signature;
+      env -> signature = 0;
+    }
 #endif
   }
 #if VDEBUG
@@ -888,7 +895,9 @@ int main(int argc, char* argv[])
   }
 //   delete env -> allocator;
   if(env){
+    cout << "deleting env" << endl;
     delete env;
+    cout << "env deleted" << endl;
   }
 
   return vampireReturnValue;

@@ -34,6 +34,9 @@ namespace Kernel {
 //template< typename _Container = std::vector< MainLoopContext* > >
 class MainLoopScheduler {
 public:
+        CLASS_NAME(MainLoopScheduler);
+        USE_ALLOCATOR(MainLoopScheduler);
+
 	MainLoopScheduler(Problem& prb, std::size_t capacity);
 	MainLoopScheduler(Problem& prb, Shell::OptionsList& opts, std::size_t capacity);
 	MainLoopScheduler(Problem& prb, Shell::OptionsList& opts);

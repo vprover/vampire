@@ -10,6 +10,7 @@
 
 #include <iostream>
 
+#include "Lib/Allocator.hpp"
 #include "Lib/EnvironmentFwd.hpp"
 #include "Kernel/ConcurrentMainLoopFwd.hpp"
 #include "Kernel/ProblemFwd.hpp"
@@ -24,6 +25,9 @@ public:
 #if VDEBUG
 	const unsigned _id;
 #endif
+
+       CLASS_NAME(MainLoopContext);
+       USE_ALLOCATOR(MainLoopContext);
 
 	virtual ~MainLoopContext();
 
