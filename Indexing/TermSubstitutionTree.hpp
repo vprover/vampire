@@ -21,6 +21,9 @@ class TermSubstitutionTree
 : public TermIndexingStructure, SubstitutionTree
 {
 public:
+  CLASS_NAME(TermSubstitutionTree);
+  USE_ALLOCATOR(TermSubstitutionTree);
+
   TermSubstitutionTree();
 
   void insert(TermList t, Literal* lit, Clause* cls);

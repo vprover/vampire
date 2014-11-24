@@ -7,7 +7,6 @@
 #ifndef __SATClause__
 #define __SATClause__
 
-#include <string>
 #include <iosfwd>
 
 #include "Forwards.hpp"
@@ -18,6 +17,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/VString.hpp"
 
 #include "Kernel/InferenceStore.hpp"
 
@@ -45,11 +45,8 @@ public:
   typedef double ActivityType;
 
   /** New clause */
-  SATClause(unsigned length,bool kept=true)
-    : _activity(0), _length(length), _kept(kept?1:0), _nonDestroyable(0), _inference(0)
-//      , _genCounter(0xFFFFFFFF)
-  {}
-
+  SATClause(unsigned length,bool kept=true);
+  
   SATInference* inference() const { return _inference; }
   void setInference(SATInference* val);
 
@@ -98,8 +95,8 @@ public:
 
   void destroy();
 
-  string toString() const;
-  string toDIMACSString() const;
+  vstring toString() const;
+  vstring toDIMACSString() const;
 
   bool hasUniqueVariables() const;
 

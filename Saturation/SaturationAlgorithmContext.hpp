@@ -44,6 +44,9 @@ namespace Saturation {
 
 	class SaturationAlgorithmContext: public Kernel::MainLoopContext {
 	public:
+        CLASS_NAME(SaturationAlgorithmContext);
+        USE_ALLOCATOR(SaturationAlgorithmContext);
+
 		SaturationAlgorithmContext(Kernel::Problem& prb, Shell::Options& opts, bool join = false);
 
 		~SaturationAlgorithmContext();

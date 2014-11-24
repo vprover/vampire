@@ -35,6 +35,7 @@
 #include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
+#include "Inferences/ExtensionalityResolution.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
@@ -46,6 +47,8 @@
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/URResolution.hpp"
+
+#include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
@@ -119,6 +122,13 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
   _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
 
+  if (opt.extensionalityResolution() != Options::ER_OFF) {
+    _extensionality = new ExtensionalityClauseContainer(opt);
+    //_active->addedEvent.subscribe(_extensionality, &ExtensionalityClauseContainer::addIfExtensionality);
+  } else {
+    _extensionality = 0;
+  }
+  
   if (opt.maxWeight()) {
     _limits.setLimits(0,opt.maxWeight());
   }
@@ -182,6 +192,9 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
   }
   env -> statistics->finalActiveClauses = inst->_active->size();
   env -> statistics->finalPassiveClauses = inst->_passive->size();
+  if (inst->_extensionality != 0) {
+    env->statistics->finalExtensionalityClauses = inst->_extensionality->size();
+  }
 }
 
 /**
@@ -221,8 +234,11 @@ size_t SaturationAlgorithm::passiveClauseCount()
  */
 void SaturationAlgorithm::onActiveAdded(Clause* c)
 {
-  LOG_UNIT("sa_active_added", c);
-  LOG_INT("sa_active_size", _active->size());
+  if (env->options->showActive()) {
+    env->beginOutput();    
+    env->out() << "[SA] active: " << c->toString() << std::endl;
+    env->endOutput();             
+  }          
 }
 
 /**
@@ -231,9 +247,6 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
 void SaturationAlgorithm::onActiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onActiveRemoved");
-
-  LOG_UNIT("sa_active_removed", c);
-  LOG_INT("sa_active_size", _active->size());
 
   ASS(c->store()==Clause::ACTIVE);
   c->setStore(Clause::NONE);
@@ -263,9 +276,12 @@ void SaturationAlgorithm::onAllProcessed()
  */
 void SaturationAlgorithm::onPassiveAdded(Clause* c)
 {
-  LOG_UNIT("sa_passive_added", c);
-  LOG_INT("sa_passive_size", _passive->size());
-
+  if (env->options->showPassive()) {
+    env->beginOutput();
+    env->out() << "[SA] passive: " << c->toString() << std::endl;
+    env->endOutput();
+  }
+  
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
@@ -279,10 +295,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
 void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onPassiveRemoved");
-
-  LOG_UNIT("sa_passive_removed", c);
-  LOG_INT("sa_passive_size", _passive->size());
-
+  
   ASS(c->store()==Clause::PASSIVE);
   c->setStore(Clause::NONE);
   //at this point the c object can be deleted
@@ -297,8 +310,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
-  LOG_UNIT("sa_passive_selected", c);
-  LOG_INT("sa_passive_size", _passive->size());
+
 }
 
 /**
@@ -306,7 +318,7 @@ void SaturationAlgorithm::onPassiveSelected(Clause* c)
  */
 void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
 {
-  LOG_UNIT("sa_unprocessed_added", c);
+  
 }
 
 /**
@@ -314,12 +326,12 @@ void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
  */
 void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
 {
-  LOG_UNIT("sa_unprocessed_removed", c);
+  
 }
 
 void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 {
-  LOG_UNIT("sa_unprocessed_selected", c);
+  
 }
 
 /**
@@ -365,7 +377,12 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 //    }
 //  }
 
-  LOG_UNIT("sa_new_clause", cl);
+   
+  if (env->options->showNew()) {
+    env->beginOutput();
+    env->out() << "[SA] new: " << cl->toString() << std::endl;
+    env->endOutput();
+  }
 
   if (cl->isPropositional()) {
     onNewUsefulPropositionalClause(cl);
@@ -380,8 +397,12 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
 {
   CALL("SaturationAlgorithm::onNewUsefulPropositionalClause");
   ASS(c->isPropositional());
-
-  LOG_UNIT("sa_new_prop_clause", c);
+  
+  if (env->options->showNewPropositional()) {
+    env->beginOutput();
+    env->out() << "[SA] new propositional: " << c->toString() << std::endl;
+    env->endOutput();
+  }
 
   if (_consFinder) {
     _consFinder->onNewPropositionalClause(c);
@@ -395,7 +416,6 @@ void SaturationAlgorithm::onClauseRetained(Clause* cl)
 {
   CALL("SaturationAlgorithm::onClauseRetained");
 
-  LOG_UNIT("sa_retained_clause", cl);
 }
 
 /**
@@ -656,21 +676,6 @@ public:
     ASS(_cl);
 
     //BDDNode* oldClProp=_cl->prop();
-
-    LOG_UNIT("sa_fw_simpl_red_clause",_cl);
-    TRACE("sa_fw_simpl",
-	tout << "->>--------\n";
-	ClauseList* lst=0;
-	while (premises.hasNext()) {
-	  Clause* premise=premises.next();
-	  ASS(willPerform(premise));
-	  ClauseList::push(premise, lst);
-	  tout << ":" << (*premise) << endl;
-	}
-	cout << "-" << (*_cl) << endl;
-	premises=pvi( ClauseList::DestructiveIterator(lst) );
-    );
-
     if (replacement) {
     // No prop parts.
     //  replacement->initProp(oldClProp);
@@ -683,14 +688,6 @@ public:
     //_cl->setProp(bdd->getTrue());
     //InferenceStore::instance()->recordPropReduce(_cl, oldClProp, bdd->getTrue());
     _cl=0;
-
-    TRACE("sa_fw_simpl",
-	if (replacement) {
-	  tout << "+" << (*replacement) << endl;
-	}
-	tout << "removed\n";
-	tout << "^^^^^^^^^^^^\n";
-    );
   }
 
   bool willPerform(Clause* premise)
@@ -764,33 +761,9 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
   //(there the control flow goes out of the SaturationAlgorithm class,
   //so we'd better not assume on what's happening out there)
   cl->incRefCnt();
-
-  if (_opt.abstraction() && cl->number()%100000==(24788+(env -> statistics->inputClauses%50000)) && env -> statistics->inputClauses%3==0) {
-    Clause* newCl = 0;
-    if (cl->length()>1) {
-      LiteralStack lits;
-      lits.loadFromIterator(Clause::Iterator(*cl));
-      newCl = Clause::fromStack(lits, cl->inputType(), cl->inference());
-    }
-    else if (cl->length()==1) {
-      Literal* lit = (*cl)[0];
-      if (lit->arity()) {
-	TermList orig = *lit->nthArgument(0);
-	Literal* newLit = EqHelper::replace(lit, orig, TermList(lit->vars(), false));
-	newCl = Clause::fromIterator(getSingletonIterator(newLit), cl->inputType(), cl->inference());
-      }
-    }
-    if (newCl) {
-      cl->incRefCnt();
-      newCl->incRefCnt();
-      cl=newCl;
-    }
-  }
-
   onNewClause(cl);
-
-
   _newClauses.push(cl);
+  
   //we can decrease the counter here -- it won't get deleted because
   //the _newClauses RC stack already took over the clause
   cl->decRefCnt();
@@ -978,7 +951,6 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       if (replacement) {
 	addNewClause(replacement);
       }
-      LOG_UNIT("sa_bw_simpl_red_clause",redundant);
       onClauseReduction(redundant, replacement, cl, 0, false);
 
 
@@ -989,18 +961,6 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       redundant->incRefCnt(); //we don't want the clause deleted before we record the simplification
 
       removeActiveOrPassiveClause(redundant);
-
-
-      TRACE("sa_bw_simpl",
-	tout << "-<<--------\n";
-	tout << ":" << (*cl) << endl;
-	tout << "-" << (*redundant) << endl;
-	if (replacement) {
-	  tout << "+" << (*replacement) << endl;
-	}
-	tout << "removed\n";
-	tout << "^^^^^^^^^^^\n";
-      );
 
       redundant->decRefCnt();
     }
@@ -1097,8 +1057,6 @@ bool SaturationAlgorithm::activate(Clause* cl)
     Clause* genCl=toAdd.next();
 
     addNewClause(genCl);
-
-    LOG_UNIT("sa_generated_clause", genCl);
 
     Inference::Iterator iit=genCl->inference()->iterator();
     while (genCl->inference()->hasNext(iit)) {
@@ -1321,7 +1279,7 @@ void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificati
 /**
  * Add a forward simplifier, so that it is applied before the
  * simplifiers that were added before it. The object takes ownership
- * of the forward simlifier and will take care of destroying it.
+ * of the forward simplifier and will take care of destroying it.
  *
  * Forward demodulation simplifier should be added by the
  * @b setFwDemodulator function, not by this one.
@@ -1335,7 +1293,7 @@ void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngin
 /**
  * Add a backward simplifier, so that it is applied before the
  * simplifiers that were added before it. The object takes ownership
- * of the backward simlifier and will take care of destroying it.
+ * of the backward simplifier and will take care of destroying it.
  */
 void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier)
 {
@@ -1390,6 +1348,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.unitResultingResolution() != Options::URR_OFF) {
     gie->addFront(new URResolution());
   }
+  if (opt.extensionalityResolution() != Options::ER_OFF) {
+    gie->addFront(new ExtensionalityResolution());
+  }
+  
   res->setGeneratingInferenceEngine(gie);
 
   res ->_immediateSimplifier = static_cast<SaturationAlgorithmContext*>(MainLoopContext::currentContext) -> immediateSimplifier();

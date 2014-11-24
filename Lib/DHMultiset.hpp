@@ -32,10 +32,10 @@ namespace Lib {
  * @param Val values, a pointer or integral value (e.g., integer or long):
  *        anything that can be hashed to an unsigned integer
  *        and compared using ==
- * @param Hash1 class containig the hash function for values which
+ * @param Hash1 class containing the hash function for values which
  *	  determines position of entry in hashtable when no collision
  *	  occurs.
- * @param Hash2 class containig the hash function for values which
+ * @param Hash2 class containing the hash function for values which
  *	  will be used when collision occurs. Otherwise it will not be
  *	  enumerated.
  */
@@ -43,6 +43,9 @@ template <typename Val, class Hash1=Hash, class Hash2=Hash>
 class DHMultiset
 {
 public:
+  CLASS_NAME(DHMultiset);
+  USE_ALLOCATOR(DHMultiset);
+  
   /** Create a new DHMultiset */
   DHMultiset()
   : _size(0), _multiplicities(0), _deleted(0), _capacityIndex(0), _capacity(0),

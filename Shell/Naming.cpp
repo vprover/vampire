@@ -21,6 +21,7 @@
 #include "Kernel/Term.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -60,7 +61,11 @@ FormulaUnit* Naming::apply (FormulaUnit* unit,UnitList*& defs)
   ASS_REP(unit->formula()->freeVariables()==0, *unit);
   ASS(!_varsInScope); //_varsInScope can be true only when traversing inside a formula
 
-  LOG_UNIT("pp_naming_args",unit);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] naming args: " << unit->toString() << std::endl;
+    env->endOutput();
+  }
 
   Formula* f = unit->formula();
   switch (f->connective()) {
@@ -564,7 +569,12 @@ Formula* Naming::introduceDefinition (Formula* f,bool iff)
   env -> statistics->formulaNames++;
   UnitList::push(definition,_defs);
 
-  LOG_UNIT("pp_naming_defs",definition);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] naming defs: " << definition->toString() << std::endl;
+    env->endOutput();
+  }
+  
   return name;
 } // Naming::introduceDefinition
 

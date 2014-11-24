@@ -24,6 +24,9 @@ using namespace Kernel;
 
 class BFNTMainLoop : public MainLoop {
 public:
+  CLASS_NAME(BFNTMainLoop);
+  USE_ALLOCATOR(BFNTMainLoop);     
+  
   BFNTMainLoop(Problem& prb, const Options& opt);
 
 protected:
@@ -32,7 +35,7 @@ protected:
 
 private:
 
-  /** If proble has sorts, we set this to true and just terminate with unknown
+  /** If problem has sorts, we set this to true and just terminate with unknown
    * (at least until we have proper handling of sorts in BFNT) */
   bool _hasSorts;
 

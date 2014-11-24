@@ -19,6 +19,9 @@ class InterpretedLiteralEvaluator
   :  private TermTransformer
 {
 public:
+  CLASS_NAME(InterpretedLiteralEvaluator);
+  USE_ALLOCATOR(InterpretedLiteralEvaluator);
+  
   InterpretedLiteralEvaluator();
   ~InterpretedLiteralEvaluator();
 

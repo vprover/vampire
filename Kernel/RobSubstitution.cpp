@@ -27,7 +27,6 @@
 #if VDEBUG
 #include "Lib/Int.hpp"
 #include "Debug/Tracer.hpp"
-#include <string>
 #include <iostream>
 using namespace Debug;
 #endif
@@ -779,13 +778,10 @@ SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
   CALL("RobSubstitution::getAssocIterator");
 
   if( !Literal::headersMatch(l1,l2,complementary) ) {
+    // We also get here if the sorts of equality literals do not match.
     return SubstIterator::getEmpty();
   }
-  if( l1->isEquality() &&
-      SortHelper::getEqualityArgumentSort(l1)!=SortHelper::getEqualityArgumentSort(l2) ) {
-    //the sorts of equalities don't match
-    return SubstIterator::getEmpty();
-  }
+
   if( !l1->commutative() ) {
     return pvi( getContextualIterator(getSingletonIterator(subst),
 	    AssocContext<Fn>(l1, l1Index, l2, l2Index)) );
@@ -988,10 +984,10 @@ struct RobSubstitution::UnificationFn {
 
 
 #if VDEBUG
-string RobSubstitution::toString(bool deref) const
+vstring RobSubstitution::toString(bool deref) const
 {
   CALL("RobSubstitution::toString");
-  string res;
+  vstring res;
   BankType::Iterator bit(_bank);
   while(bit.hasNext()) {
     VarSpec v;
@@ -1016,7 +1012,7 @@ string RobSubstitution::toString(bool deref) const
   return res;
 }
 
-std::string RobSubstitution::VarSpec::toString() const
+vstring RobSubstitution::VarSpec::toString() const
 {
   if(index==SPECIAL_INDEX) {
     return "S"+Int::toString(var);
@@ -1025,7 +1021,7 @@ std::string RobSubstitution::VarSpec::toString() const
   }
 }
 
-string RobSubstitution::TermSpec::toString() const
+vstring RobSubstitution::TermSpec::toString() const
 {
   return term.toString()+"/"+Int::toString(index);
 }

@@ -34,7 +34,7 @@ bool Shell::UIHelper::satisfiableStatusWasAlreadyOutput=false;
 /**
  * String names of connectives. Used in the function toXML().
  */
-string Kernel::Formula::_connectiveNames[] =
+Lib::vstring Kernel::Formula::_connectiveNames[] =
   {"atomic", "and", "or", "imp", "iff", "xor", "not", "forall", "exists"};
 
 

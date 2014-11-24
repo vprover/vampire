@@ -128,7 +128,7 @@ Problem::PreprocessingOptions::PreprocessingOptions()
   setDefaults();
 }
 
-Problem::PreprocessingOptions::PreprocessingOptions(string spec)
+Problem::PreprocessingOptions::PreprocessingOptions(vstring spec)
 {
   CALL("Problem::PreprocessingOptions::PreprocessingOptions/1");
 
@@ -209,18 +209,12 @@ void Problem::PreprocessingOptions::setDefaults()
   predicateDefinitionInlining = INL_OFF;
   unusedPredicateDefinitionRemoval = true;
   showNonConstantSkolemFunctionTrace = false;
-  traceInlining = false;
   sineSelection = false;
   sineTolerance = 1.0f;
   sineDepthLimit = 0;
   variableEqualityPropagation = false;
-  traceVariableEqualityPropagation = false;
   eprSkolemization = false;
-  traceEPRSkolemization = false;
   predicateDefinitionMerging = false;
-  tracePredicateDefinitionMerging = false;
-  traceClausification = false;
-  traceUnusedPredicateDefinitionRemoval = false;
   predicateIndexIntroduction = false;
   flatteningTopLevelConjunctions = false;
   equivalenceDiscovery = ED_NONE;
@@ -328,6 +322,9 @@ typedef List<AnnotatedFormula> AFList;
 class Problem::PData
 {
 public:
+  CLASS_NAME(Problem::PData);
+  USE_ALLOCATOR(Problem::PData);
+  
   PData() : _size(0), _forms(0), _refCnt(0)
   {
   }
@@ -458,13 +455,13 @@ bool Problem::empty()
 ///////////////////////////////////////
 // Parsing
 
-void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySyntax)
+void Problem::addFromStream(istream& s, vstring includeDirectory, bool simplifySyntax)
 {
   CALL("Problem::addFromStream");
 
   using namespace Shell;
 
-  string originalInclude=env -> options->include();
+  vstring originalInclude=env -> options->include();
   env -> options->setInclude(includeDirectory);
 
   Kernel::UnitList* units;
@@ -549,8 +546,6 @@ protected:
     ASS(!_transforming);
     ASS(_defs.isEmpty());
 
-    LOG("api_prb_transf","transforming: "<<f);
-
     _transforming = true;
     if(OutputOptions::assignFormulaNames()) {
       _origName = f.name();
@@ -581,11 +576,10 @@ protected:
     _res->addFormula(af);
     if(unit==_origUnit) {
       //if added formula is the original one, we don't assign name to it
-      LOG("api_prb_transf","formula not transformed: "<<af);
       return;
     }
 
-    string unitName;
+    vstring unitName;
     //we don't worry about making the names unique, that's the business of
     //the AnnotatedFormula::assignName() function
     if(_transformingDef) {
@@ -595,7 +589,6 @@ protected:
       unitName=_origName;
     }
     AnnotatedFormula::assignName(af, unitName);
-    LOG("api_prb_transf","formula transformation result: "<<af);
   }
 
   void handleDefs(Kernel::UnitList*& defLst)
@@ -611,7 +604,7 @@ protected:
 
   bool _transforming;
   bool _transformingDef;
-  string _origName;
+  vstring _origName;
   Kernel::Unit* _origUnit;
   AnnotatedFormula _origAF;
 
@@ -654,7 +647,7 @@ protected:
 class Problem::VariableEqualityPropagator : public ProblemTransformer
 {
 public:
-  VariableEqualityPropagator(bool trace) : _eqProp(trace) {}
+  VariableEqualityPropagator() : _eqProp() {}
 protected:
   void transformImpl(Kernel::Unit* unit)
   {
@@ -767,7 +760,6 @@ protected:
       AnnotatedFormula af(u, p._data->getApiHelper());
       AnnotatedFormula::assignName(af, "def");
       _res->addFormula(af);
-      LOG("api_prb_transf","definitions introduced for AIG: "<<af);
     }
   }
 
@@ -896,8 +888,8 @@ protected:
 class Problem::PredicateDefinitionMerger : public ProblemTransformer
 {
 public:
-  PredicateDefinitionMerger(bool trace)
-      : _trace(trace), _merger(trace)
+  PredicateDefinitionMerger()
+      : _merger()
   {
   }
 
@@ -933,15 +925,14 @@ protected:
     }
   }
 
-  bool _trace;
   Shell::PDMerger _merger;
 };
 
 class Problem::PredicateDefinitionInliner : public ProblemTransformer
 {
 public:
-  PredicateDefinitionInliner(InliningMode mode, bool trace)
-      : _mode(mode), _pdInliner(mode==INL_AXIOMS_ONLY, trace, mode==INL_NON_GROWING)
+  PredicateDefinitionInliner(InliningMode mode)
+      : _mode(mode), _pdInliner(mode==INL_AXIOMS_ONLY, mode==INL_NON_GROWING)
   {
     ASS_NEQ(mode, INL_OFF);
   }
@@ -979,7 +970,11 @@ protected:
     static DHSet<Kernel::Unit*> defs;
     defs.reset();
 
-    LOG("pp_inl","api: started def inlining");
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] api: started def inlining" << std::endl;
+      env.endOutput();
+    }    
 
     AnnotatedFormulaIterator fit;
     if(_mode!=INL_NO_DISCOVERED_DEFS) {
@@ -990,7 +985,11 @@ protected:
 	  AnnotatedFormula f=fit.next();
 	  _pdInliner.updatePredOccCounts(f.unit);
 	}
-	LOG("pp_inl","api: non-growing counting finished");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] api: non-growing counting finished" << std::endl;
+    env.endOutput();
+  }
       }
 
       fit=p.formulas();
@@ -1004,7 +1003,11 @@ protected:
 	  defs.insert(fu);
 	}
       }
-      LOG("pp_inl","api: predicate equivalence scan finished");
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] api: predicate equivalence scan finished" << std::endl;
+        env.endOutput();
+      }
 
       if(_mode!=INL_PREDICATE_EQUIVALENCES_ONLY) {
 	fit=p.formulas();
@@ -1018,7 +1021,11 @@ protected:
 	    defs.insert(fu);
 	  }
 	}
-	LOG("pp_inl","api: other definition scan finished");
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] api: other definition scan finished" << std::endl;
+    env.endOutput();
+  }
       }
     }
 
@@ -1049,8 +1056,8 @@ protected:
 class Problem::EPRRestoringInliner : public ProblemTransformer
 {
 public:
-  EPRRestoringInliner(bool trace)
-      : _trace(trace), _eprInliner(trace)
+  EPRRestoringInliner()
+      :  _eprInliner()
   {
   }
 
@@ -1059,7 +1066,7 @@ protected:
   {
     CALL("Problem::EPRRestoringInliner::transformImpl(Problem)");
 
-    p = PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY, _trace).transform(p);
+    p = PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY).transform(p);
 
     Kernel::UnitList* units = 0;
 
@@ -1088,7 +1095,6 @@ protected:
     }
   }
 
-  bool _trace;
   Shell::EPRInlining _eprInliner;
 };
 
@@ -1111,8 +1117,8 @@ protected:
 class Problem::EPRSkolemizer : public ProblemTransformer
 {
 public:
-  EPRSkolemizer(bool trace)
-      : _trace(trace), _eprSkolem(trace)
+  EPRSkolemizer()
+      :  _eprSkolem()
   {
   }
 
@@ -1122,7 +1128,7 @@ protected:
     CALL("Problem::EPRRestoringInliner::transformImpl(Problem)");
 
     p = ConstantSkolemizer().transform(p);
-    p = PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY, _trace).transform(p);
+    p = PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY).transform(p);
 
     Kernel::UnitList* units = 0;
 
@@ -1156,7 +1162,6 @@ protected:
     }
   }
 
-  bool _trace;
   Shell::EPRSkolem _eprSkolem;
 };
 
@@ -1164,8 +1169,8 @@ protected:
 class Problem::UnusedPredicateDefinitionRemover : public ProblemTransformer
 {
 public:
-  UnusedPredicateDefinitionRemover(bool trace=false)
-  : pd(trace)
+  UnusedPredicateDefinitionRemover()
+  : pd()
   {
   }
 
@@ -1288,10 +1293,9 @@ public:
       AnnotatedFormula af(u, p._data->getApiHelper());
       AnnotatedFormula::assignName(af, "equiv");
       p.addFormula(af);
-      LOG("api_prb_transf","discovered predicate equivalence: "<<af);
     }
 
-    return PredicateDefinitionInliner(INL_NON_GROWING, false).transform(p);
+    return PredicateDefinitionInliner(INL_NON_GROWING).transform(p);
   }
 
 private:
@@ -1357,9 +1361,8 @@ protected:
 class Problem::Clausifier : public ProblemTransformer
 {
 public:
-  Clausifier(int namingThreshold, bool preserveEpr, bool onlySkolemize, bool trace) :
+  Clausifier(int namingThreshold, bool preserveEpr, bool onlySkolemize) :
     namingThreshold(namingThreshold), preserveEpr(preserveEpr), onlySkolemize(onlySkolemize),
-    trace(trace),
     naming(namingThreshold ? namingThreshold : 8, preserveEpr) {}
 
 protected:
@@ -1368,13 +1371,11 @@ protected:
     CALL("Problem::Clausifier::transformImpl");
 
     using namespace Shell;
-    CONDITIONAL_SCOPED_TRACE_TAG(trace,"api_prb_clausifier");
 
     if(unit->isClause()) {
       addUnit(unit);
       return;
     }
-    LOG("api_prb_clausifier","Clausifying formula: "<<(*unit));
 
     Kernel::FormulaUnit* fu = static_cast<Kernel::FormulaUnit*>(unit);
 
@@ -1403,7 +1404,6 @@ protected:
       cnf.clausify(fu,auxClauseStack);
       while (! auxClauseStack.isEmpty()) {
 	Unit* cl = auxClauseStack.pop();
-	LOG("api_prb_clausifier","Generated clause: "<<(*cl));
 	addUnit(cl);
       }
     }
@@ -1412,7 +1412,6 @@ protected:
   int namingThreshold;
   bool preserveEpr;
   bool onlySkolemize;
-  bool trace;
 
   Shell::CNF cnf;
   Stack<Kernel::Clause*> auxClauseStack;
@@ -1483,18 +1482,16 @@ Problem Problem::preprocessInStages(size_t stageCount, const PreprocessingOption
 
   Problem res = *this;
   for(size_t idx=0; idx<stageCount; idx++) {
-    LOG("api_prb_prepr_progress", "api_prb_prepr_progress: running preprocessing stage number "<<idx);
     res = res.preprocess(stageSpecs[idx]);
-    LOG("api_prb_prepr_progress", "api_prb_prepr_progress: preprocessing stage number "<<idx<<" finished");
   }
   return res;
 }
 
-void Problem::readStageSpecs(string stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs)
+void Problem::readStageSpecs(vstring stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs)
 {
   CALL("Problem::readStageSpecs");
 
-  Stack<string> singleSpecs;
+  Stack<vstring> singleSpecs;
   StringUtils::splitStr(stagesStr.c_str(), ';', singleSpecs);
 
   stageCnt = singleSpecs.size();
@@ -1502,9 +1499,9 @@ void Problem::readStageSpecs(string stagesStr, size_t& stageCnt, PreprocessingOp
 
   unsigned idx = 0;
 
-  Stack<string>::BottomFirstIterator specIt(singleSpecs);
+  Stack<vstring>::BottomFirstIterator specIt(singleSpecs);
   while(specIt.hasNext()) {
-    string spec = specIt.next();
+    vstring spec = specIt.next();
     stageSpecs[idx] = PreprocessingOptions(spec);
     idx++;
   }
@@ -1512,7 +1509,7 @@ void Problem::readStageSpecs(string stagesStr, size_t& stageCnt, PreprocessingOp
 }
 
 
-Problem Problem::preprocessInStages(string stagesStr)
+Problem Problem::preprocessInStages(vstring stagesStr)
 {
   CALL("Problem::preprocessInStages");
 
@@ -1534,31 +1531,25 @@ Problem Problem::singlePreprocessingIteration(const PreprocessingOptions& option
   Problem res = *this;
 
   if(options.sineSelection) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: sine selection");
     res = SineSelector(options.sineTolerance, options.sineDepthLimit).transform(res);
   }
   if(options.mode==PM_SELECTION_ONLY) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: PM_SELECTION_ONLY finished");
     return res;
   }
 
   if(options.variableEqualityPropagation) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: variable equality propagation");
-    res = VariableEqualityPropagator(options.traceVariableEqualityPropagation).transform(res);
+    res = VariableEqualityPropagator().transform(res);
   }
 
   if(options.predicateIndexIntroduction) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: predicate index introduction");
     res = PredicateIndexIntroducer().transform(res);
   }
 
   if(options.predicateDefinitionMerging) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: predicate definition merging");
-    res = PredicateDefinitionMerger(options.tracePredicateDefinitionMerging).transform(res);
+    res = PredicateDefinitionMerger().transform(res);
   }
 
   if(options.equivalenceDiscovery!=ED_NONE) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: equivalence discovery (SAT sweeping)");
     res = PredicateEquivalenceDiscoverer(options.equivalenceDiscovery,
 	options.equivalenceDiscoverySatConflictLimit, options.equivalenceDiscoveryRandomSimulation,
 	options.equivalenceDiscoveryAddImplications,
@@ -1568,75 +1559,62 @@ Problem Problem::singlePreprocessingIteration(const PreprocessingOptions& option
   }
 
   if(options.eprSkolemization) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: epr skolemization");
-    res = EPRSkolemizer(options.traceEPRSkolemization).transform(res);
+    res = EPRSkolemizer().transform(res);
   }
 
 inlining:
 
   if(options.predicateDefinitionInlining!=INL_OFF) {
     if(options.predicateDefinitionInlining==INL_EPR_RESTORING) {
-      LOG("api_prb_prepr_progress","api_prb_prepr_progress: EPR restoring inlining");
-      res = EPRRestoringInliner(options.traceInlining).transform(res);
+      res = EPRRestoringInliner().transform(res);
     }
     else {
-      LOG("api_prb_prepr_progress","api_prb_prepr_progress: predicate definition inlining");
-      res = PredicateDefinitionInliner(options.predicateDefinitionInlining,options.traceInlining).transform(res);
+      res = PredicateDefinitionInliner(options.predicateDefinitionInlining).transform(res);
     }
   }
 
   if(options.flatteningTopLevelConjunctions) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: flattening top-level conjunctions");
     size_t sz0 = res.size();
     res = TopLevelFlattener().transform(res);
     if(res.size()!=sz0) {
-      LOG("api_prb_prepr_progress","api_prb_prepr_progress: conjunctions flattened, retrying inlining");
       goto inlining;
     }
   }
 
   if(options.aigBddSweeping) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: bdd sweeping");
     res = BDDSweeper(options.aigBddSweepingMaximumBddAtomCount).transform(res);
   }
 
   if(options.aigInlining) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: AIG inlining");
     res = AIGInliner().transform(res);
   }
 
   if(options.aigConditionalRewriting) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: AIG conditional rewriting");
     res = AIGConditionalRewriter().transform(res);
   }
 
   if(options.aigDefinitionIntroduction) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: AIG definition introduction");
     res = AIGDefinitionIntroducer().transform(res);
   }
 
   if(options.unusedPredicateDefinitionRemoval) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: unused predicate definition removal");
-    res = UnusedPredicateDefinitionRemover(options.traceUnusedPredicateDefinitionRemoval).transform(res);
+    res = UnusedPredicateDefinitionRemover().transform(res);
   }
 
   unsigned arCnt = options._ods.lhs->size();
   if(arCnt>0) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: asymmetric rewriting");
     res = res.performAsymetricRewriting(arCnt, options._ods.lhs->begin(), options._ods.posRhs->begin(),
 	options._ods.negRhs->begin(), options._ods.dblRhs->begin());
   }
 
   if(options.mode==PM_EARLY_PREPROCESSING) {
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: PM_EARLY_PREPROCESSING finished");
     return res;
   }
 
   bool oldTraceVal = env -> options->showNonconstantSkolemFunctionTrace();
   env -> options->setShowNonconstantSkolemFunctionTrace(options.showNonConstantSkolemFunctionTrace);
 
-  LOG("api_prb_prepr_progress","api_prb_prepr_progress: clausification");
-  res = Clausifier(options.namingThreshold, options.preserveEpr, options.mode==PM_SKOLEMIZE, options.traceClausification).transform(res);
+  res = Clausifier(options.namingThreshold, options.preserveEpr, options.mode==PM_SKOLEMIZE).transform(res);
 
   env -> options->setShowNonconstantSkolemFunctionTrace(oldTraceVal);
   return res;
@@ -1647,11 +1625,8 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
   CALL("Problem::preprocess");
   options.validate();
 
-  LOG("api_prb_prepr_progress","api_prb_prepr_progress: preprocess function called");
-
   Problem res = *this;
 
-  LOG("api_prb_prepr_progress","api_prb_prepr_progress: initial preprocessing");
   res = Preprocessor1().transform(res);
 
   unsigned iterIdx = 0;
@@ -1662,17 +1637,14 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
 
     Problem old = res;
 
-    LOG("api_prb_prepr_progress","api_prb_prepr_progress: running iteration "<<iterIdx);
     res = res.singlePreprocessingIteration(options);
 
     if(fixpointReached(options.repetitionEarlyTermination, old, res)) {
-      LOG("api_prb_prepr_progress","api_prb_prepr_progress: early termination due to reached fixpoint");
       break;
     }
 
     iterIdx++;
   }
-  LOG("api_prb_prepr_progress","api_prb_prepr_progress: preprocess function finished");
 
   return res;
 }
@@ -1704,7 +1676,7 @@ Problem Problem::performAsymetricRewriting(size_t cnt, Formula* lhsArray, Formul
   CALL("Problem::performAsymetricRewriting");
 
   Problem res = Preprocessor1().transform(*this);
-  PredicateDefinitionInliner inl(INL_NO_DISCOVERED_DEFS, false);
+  PredicateDefinitionInliner inl(INL_NO_DISCOVERED_DEFS);
   for(size_t i=0; i<cnt; i++) {
     if(!inl.addAsymetricDefinition(lhsArray[i], posRhsArray[i], negRhsArray[i], dblRhsArray[i])) {
       throw new ApiException("LHS is already defined");
@@ -1747,7 +1719,7 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
     return;
   }
 
-  string symName = dummyNames ? (DefaultHelperCore::getDummyName(!function, symNumber)) : sym->name();
+  vstring symName = dummyNames ? (DefaultHelperCore::getDummyName(!function, symNumber)) : sym->name();
 
   out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
       << symName << ": ";

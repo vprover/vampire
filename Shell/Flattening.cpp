@@ -13,6 +13,9 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Lib/Environment.hpp"
+#include "Shell/Options.hpp"
+
 #include "Flattening.hpp"
 
 namespace Shell
@@ -51,11 +54,19 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   CALL("Flattening::flatten (Unit*)");
   ASS(! unit->isClause());
 
-  LOG_UNIT("pp_flt_inp", unit);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] flatten in: " << unit->toString() << std::endl;
+    env->endOutput();
+  }
   Formula* f = unit->formula();
   Formula* g = flatten(f);
   if (f == g) { // not changed
-    LOG_UNIT("pp_flt_out", unit);
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] flatten out: " << unit->toString() << std::endl;
+      env->endOutput();
+    }
     return unit;
   }
 
@@ -65,7 +76,11 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   if(unit->included()) {
     res->markIncluded();
   }
-  LOG_UNIT("pp_flt_out", res);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] flatten out: " << res->toString() << std::endl;
+    env->endOutput();
+  }
   return res;
 } // Flattening::flatten
 
@@ -302,7 +317,11 @@ bool TopLevelFlatten::apply(FormulaUnit* fu, Stack<FormulaUnit*>& acc)
     return false;
   }
   RSTAT_CTR_INC("top level flattened formulas")
-  LOG_UNIT("pp_tlf_processed", fu);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] tlf_processed: " << fu->toString() << std::endl;
+    env->endOutput();
+  }
   FormulaList::Iterator fit(f->args());
   while(fit.hasNext()) {
     Formula* sf = fit.next();
@@ -319,7 +338,12 @@ bool TopLevelFlatten::apply(FormulaUnit* fu, Stack<FormulaUnit*>& acc)
       sfu = Flattening::flatten(sfu);
     }
     acc.push(sfu);
-    LOG_UNIT("pp_tlf_res", sfu);
+    
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] tlf_res: " << sfu->toString() << std::endl;
+      env->endOutput();
+    }
     RSTAT_CTR_INC("top level flattenning results")
   }
   return true;

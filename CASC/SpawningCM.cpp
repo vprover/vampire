@@ -21,7 +21,7 @@
 
 using namespace CASC;
 
-SpawningCM::SpawningCM(string executable)
+SpawningCM::SpawningCM(vstring executable)
   : _executable(executable)
 {
   CALL("SpawningCM::SpawningCM");
@@ -44,8 +44,8 @@ bool SpawningCM::runSlice(Options& opt)
 {
   CALL("SpawningCM::runSlice");
 
-  string strategy = opt.generateTestId();
-  string cmdLine = _executable + " --decode " + strategy + " --input_file " + _inputFile;
+  vstring strategy = opt.generateTestId();
+  vstring cmdLine = _executable + " --decode " + strategy + " --input_file " + _inputFile;
 
   if (env -> options->include() != "") {
     cmdLine += " --include " + env -> options->include();

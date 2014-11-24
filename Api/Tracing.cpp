@@ -3,23 +3,22 @@
  * Implements class Tracing.
  */
 
-#include "Debug/Log.hpp"
 #include "Debug/Tracer.hpp"
 
 #include "Tracing.hpp"
 
 namespace Api
 {
-
+/*
 unsigned Tracing::s_traceStackDepth = 0;
 
-void Tracing::enableTrace(std::string traceName, unsigned depth)
+void Tracing::enableTrace(vstring traceName, unsigned depth)
 {
   CALL("Tracing::enableTrace");
   ENABLE_TAG_LIMITED(traceName.c_str(), depth);
 }
 
-void Tracing::processTraceString(std::string str)
+void Tracing::processTraceString(vstring str)
 {
   CALL("Tracing::processTraceString");
   PROCESS_TRACE_SPEC_STRING(str);
@@ -49,5 +48,5 @@ void Tracing::displayHelp()
   CALL("Tracing::displayHelp");
   DISPLAY_HELP();
 }
-
+*/
 }

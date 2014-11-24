@@ -20,12 +20,14 @@ namespace Shell {
  * @author Giles
  */
 
-void OptionsList::include(const string& includeFile)
+void OptionsList::include(const vstring& includeFile)
 {
   CALL("OptionsList::include");
 
   //We parse this file that must be relative to the current
   //directory. If any units are extracted we have an error
+
+  BYPASSING_ALLOCATOR;
 
   istream* stream=new ifstream(includeFile.c_str());
   if (stream->fail()) {
@@ -65,7 +67,7 @@ void OptionsList::set(const char* name,const char* value)
  * Set global option in OptionsList
  * @author Giles
  */
-void OptionsList::set(const string& name,const string& value)
+void OptionsList::set(const vstring& name,const vstring& value)
 {
   CALL ("OptionsList::set/2");
   if(name.compare("include_options")){
@@ -102,7 +104,7 @@ void OptionsList::setShort(const char* name,const char* value)
  * TODO - should this just be stored in OptionsList?
  * @author Giles
  */
-void OptionsList::setInputFile(const string& newVal)
+void OptionsList::setInputFile(const vstring& newVal)
 {
   CALL("OptionsList::setInputFile");
   Iterator it(*this);

@@ -9,12 +9,11 @@
 #ifndef __Vector__
 #define __Vector__
 
-#include <string>
-
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
+#include "VString.hpp"
 
 namespace Lib {
 
@@ -79,9 +78,9 @@ public:
    * Convert the vector to its string representation. To use this function,
    * elements must have a toString() function too.
    */
-  string toString()
+  vstring toString()
   {
-    string res;
+    vstring res;
     for(size_t i=0;i<_length;i++) {
       if (i>0) {
 	res+=",";

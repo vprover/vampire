@@ -24,6 +24,8 @@
 
 #include "Inferences/InferenceEngine.hpp"
 
+#include "Saturation/ExtensionalityClauseContainer.hpp"
+
 #include "Limits.hpp"
 
 #if VDEBUG
@@ -41,6 +43,9 @@ using namespace Inferences;
 class SaturationAlgorithm : public MainLoop, public ConcurrentMainLoop
 {
 public:
+  CLASS_NAME(SaturationAlgorithm);
+  USE_ALLOCATOR(SaturationAlgorithm);
+
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
@@ -75,6 +80,9 @@ public:
 
   virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
   virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
+  ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
+    return _extensionality;
+  }
 
   ClauseIterator activeClauses();
   ClauseIterator passiveClauses();
@@ -167,6 +175,7 @@ protected:
   UnprocessedClauseContainer* _unprocessed;
   PassiveClauseContainer* _passive;
   ActiveClauseContainer* _active;
+  ExtensionalityClauseContainer* _extensionality;
 
   ScopedPtr<GeneratingInferenceEngine> _generator;
   ImmediateSimplificationEngine* _immediateSimplifier;

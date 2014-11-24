@@ -23,7 +23,7 @@ unsigned VarManager::getVarAlias(unsigned var)
   return _fact->getVarAlias(var);
 }
 
-string VarManager::getVarName(unsigned var)
+vstring VarManager::getVarName(unsigned var)
 {
   CALL("VarManager::getVarName");
   ASS(_fact);

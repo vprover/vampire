@@ -1,0 +1,16 @@
+This is just used in Program (program analysis) and Test,UnitTests
+Not compiled for vampire target
+
+Used to construct problems consisting of formulas. For example see UnitTesting/tITE.cpp
+
+FormulaBuilder.cpp
+FormulaBuilder.hpp
+Helper.cpp
+Helper.hpp
+Helper_Internal.hpp
+Problem.cpp
+Problem.hpp
+ResourceLimits.cpp
+ResourceLimits.hpp
+Tracing.cpp
+Tracing.hpp

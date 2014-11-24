@@ -17,6 +17,9 @@
 #include "Kernel/MainLoopFwd.hpp"
 #include "Kernel/MainLoopContext.hpp"
 #include "Kernel/ProblemFwd.hpp"
+
+#include "Lib/STLAllocator.hpp"
+
 #include "Shell/OptionsList.hpp"
 
 //namespace Shell {
@@ -34,6 +37,9 @@ namespace Kernel {
 //template< typename _Container = std::vector< MainLoopContext* > >
 class MainLoopScheduler {
 public:
+        CLASS_NAME(MainLoopScheduler);
+        USE_ALLOCATOR(MainLoopScheduler);
+
 	MainLoopScheduler(Problem& prb, std::size_t capacity);
 	MainLoopScheduler(Problem& prb, Shell::OptionsList& opts, std::size_t capacity);
 	MainLoopScheduler(Problem& prb, Shell::OptionsList& opts);
@@ -94,7 +100,7 @@ private:
 	    	}
 	};
 
-	std::priority_queue<Shell::Options*, std::vector<Shell::Options*>, CompareOptions> optionsQueue;
+	std::priority_queue<Shell::Options*, std::vector<Shell::Options*, Lib::STLAllocator<Shell::Options*>>, CompareOptions> optionsQueue;
 
 	static MainLoopContext* createContext(Problem& prb, Shell::Options& opt);
 

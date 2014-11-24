@@ -17,6 +17,9 @@ class LiteralIndex
 : public Index
 {
 public:
+  CLASS_NAME(LiteralIndex);
+  USE_ALLOCATOR(LiteralIndex);
+
   virtual ~LiteralIndex();
 
   SLQueryResultIterator getAll();
@@ -45,6 +48,9 @@ class GeneratingLiteralIndex
 : public LiteralIndex
 {
 public:
+  CLASS_NAME(GeneratingLiteralIndex);
+  USE_ALLOCATOR(GeneratingLiteralIndex);
+
   GeneratingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
@@ -55,6 +61,9 @@ class SimplifyingLiteralIndex
 : public LiteralIndex
 {
 public:
+  CLASS_NAME(SimplifyingLiteralIndex);
+  USE_ALLOCATOR(SimplifyingLiteralIndex);
+
   SimplifyingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
@@ -65,6 +74,9 @@ class FwSubsSimplifyingLiteralIndex
 : public LiteralIndex
 {
 public:
+  CLASS_NAME(FwSubsSimplifyingLiteralIndex);
+  USE_ALLOCATOR(FwSubsSimplifyingLiteralIndex);
+
   FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
@@ -75,6 +87,9 @@ class UnitClauseLiteralIndex
 : public LiteralIndex
 {
 public:
+  CLASS_NAME(UnitClauseLiteralIndex);
+  USE_ALLOCATOR(UnitClauseLiteralIndex);
+
   UnitClauseLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
@@ -85,6 +100,9 @@ class NonUnitClauseLiteralIndex
 : public LiteralIndex
 {
 public:
+  CLASS_NAME(NonUnitClauseLiteralIndex);
+  USE_ALLOCATOR(NonUnitClauseLiteralIndex);
+
   NonUnitClauseLiteralIndex(LiteralIndexingStructure* is, bool selectedOnly=false)
   : LiteralIndex(is), _selectedOnly(selectedOnly) {};
 protected:
@@ -97,6 +115,9 @@ class RewriteRuleIndex
 : public LiteralIndex
 {
 public:
+  CLASS_NAME(RewriteRuleIndex);
+  USE_ALLOCATOR(RewriteRuleIndex);
+
   RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering);
   ~RewriteRuleIndex();
 
@@ -119,6 +140,9 @@ class DismatchingLiteralIndex
 : public LiteralIndex
 {
 public:
+  CLASS_NAME(DismatchingLiteralIndex);
+  USE_ALLOCATOR(DismatchingLiteralIndex);
+
   DismatchingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
   void handleClause(Clause* c, bool adding);

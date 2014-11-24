@@ -19,6 +19,9 @@ namespace Kernel
 class InterpretedLiteralEvaluator::Evaluator
 {
 public:
+  CLASS_NAME(InterpretedLiteralEvaluator::Evaluator);
+  USE_ALLOCATOR(InterpretedLiteralEvaluator::Evaluator);
+  
   virtual ~Evaluator() {}
 
   bool canEvaluateFunc(unsigned func)
@@ -62,7 +65,6 @@ public:
   {
     CALL("InterpretedLiteralEvaluator::ConversionEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
-    LOG("inf_ie","conv eval trying " << trm->toString());
 
     try {
       Interpretation itp = theory->interpretFunction(trm);

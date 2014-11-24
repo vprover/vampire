@@ -6,9 +6,7 @@
 #ifndef __Forwards__
 #define __Forwards__
 
-#include <string>
-
-#include "Debug/Log.hpp"
+#include "Lib/VString.hpp"
 
 #include "Config.hpp"
 
@@ -70,9 +68,9 @@ class ArraySet;
 typedef List<int> IntList;
 typedef List<VoidFunc> VoidFuncList;
 
-typedef Stack<std::string> StringStack;
+typedef Stack<vstring> StringStack;
 
-typedef Map<std::string,unsigned,Hash> SymbolMap;
+typedef Map<vstring,unsigned,Hash> SymbolMap;
 
 
 template<typename T> struct FirstHashTypeInfo;
@@ -176,6 +174,8 @@ typedef List<Unit*> UnitList;
 typedef Stack<Unit*> UnitStack;
 typedef VirtualIterator<Unit*> UnitIterator;
 
+struct UnitSpec;
+
 class FormulaUnit;
 class Formula;
 typedef List<Formula*> FormulaList;
@@ -229,7 +229,7 @@ class BDD;
 class BDDNode;
 
 typedef unsigned SplitLevel;
-typedef SharedSet<SplitLevel> SplitSet;
+typedef const SharedSet<SplitLevel> SplitSet;
 
 struct UnitSpec;
 

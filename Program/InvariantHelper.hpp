@@ -6,7 +6,6 @@
 #ifndef INVARIANTHELPER_H_
 #define INVARIANTHELPER_H_
 
-#include <string>
 #include "Lib/Set.hpp"
 #include "Lib/List.hpp"
 

@@ -8,6 +8,11 @@
 namespace DP
 {
 
+/**
+ * Computes number of literals in core not implied at the zero level
+ * of the SAT solver i.e. those that have not been fully decided and
+ * can be backtracked.
+ */
 unsigned ShortConflictMetaDP::getCoreSize(const LiteralStack& core)
 {
   CALL("ShortConflictMetaDP::getCoreSize");
@@ -27,6 +32,10 @@ unsigned ShortConflictMetaDP::getCoreSize(const LiteralStack& core)
   return res;
 }
 
+/**
+ * Gets status of inner. If this is unsat then filter unsat cores so that we only
+ * keep cores that are the smallest or one larger than the smallest.
+ */
 DecisionProcedure::Status ShortConflictMetaDP::getStatus(bool getMultipleCores)
 {
   CALL("ShortConflictMetaDP::getStatus");
@@ -52,6 +61,8 @@ DecisionProcedure::Status ShortConflictMetaDP::getStatus(bool getMultipleCores)
   static Stack<CoreWithSize> cores;
   ASS(cores.isEmpty());
 
+  // Record cores with their sizes in cores stack and
+  // keep track of smallest core size in minSz
   for(unsigned i=0; i<ucCnt; i++) {
     cores.push(CoreWithSize());
     LiteralStack& core = cores.top().first;
@@ -64,6 +75,7 @@ DecisionProcedure::Status ShortConflictMetaDP::getStatus(bool getMultipleCores)
     }
   }
 
+  // Only keep cores that are at most one literal larger than the smallest size
   while(cores.isNonEmpty()) {
     LiteralStack& core = cores.top().first;
     unsigned& sz = cores.top().second;
@@ -83,6 +95,9 @@ DecisionProcedure::Status ShortConflictMetaDP::getStatus(bool getMultipleCores)
   return DecisionProcedure::UNSATISFIABLE;
 }
 
+/**
+ * Get the unsat core (literal stack) at coreIndex
+ */
 void ShortConflictMetaDP::getUnsatCore(LiteralStack& res, unsigned coreIndex)
 {
   CALL("ShortConflictMetaDP::getUnsatCore");

@@ -20,7 +20,7 @@ WARNINGS         	= YES
 #
 
 INPUT			= .
-FILE_PATTERNS		= *.cpp *.hpp
+FILE_PATTERNS		= *.cpp *.hpp *.cc *.h
 RECURSIVE		= YES
 EXCLUDE_SYMLINKS = YES
 
@@ -33,6 +33,8 @@ HTML_OUTPUT		= html
 
 ALPHABETICAL_INDEX = YES
 COLS_IN_ALPHA_INDEX = 2
+
+SOURCE_BROWSER = YES
 
 #
 # LaTeX-related options

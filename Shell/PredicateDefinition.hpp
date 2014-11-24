@@ -68,9 +68,7 @@ private:
 
   void eliminatePredicateDefinition(unsigned pred, ReplMap& replacements);
   void replacePurePred(unsigned pred, ReplMap& replacements);
-
-  bool _trace;
-
+  
   Problem* _processedPrb;
 
   unsigned _predCnt;

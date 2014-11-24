@@ -107,12 +107,12 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   CALL("ProvingHelper::runVampireSaturationImpl");
 
   Unit::onPreprocessingEnd();
-  LOG("pp_output", "onPreprocessingEnd(), Proving Helper");
-  TRACE("pp_output",
-      env -> beginOutput();
-      UIHelper::outputAllPremises(tout, prb.units(), "New: ");
-      env -> endOutput();
-  );
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] onPreprocessingEnd(), Proving Helper" << std::endl;
+    UIHelper::outputAllPremises(env->out(), prb.units(), "New: ");
+    env->endOutput();
+  }
 
   env -> statistics->phase=Statistics::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));

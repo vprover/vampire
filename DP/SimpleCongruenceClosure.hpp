@@ -28,6 +28,9 @@ using namespace Kernel;
 class SimpleCongruenceClosure : public DecisionProcedure
 {
 public:
+  CLASS_NAME(SimpleCongruenceClosure);
+  USE_ALLOCATOR(SimpleCongruenceClosure);
+
   SimpleCongruenceClosure();
 
   virtual void addLiterals(LiteralIterator lits);
@@ -55,8 +58,8 @@ private:
      : c1(c1), c2(c2), foOrigin(false) {}
 
     bool isInvalid() const { ASS_EQ(c1==0, c2==0); return c1==0; }
-    string toString() const;
-    string toString(SimpleCongruenceClosure& parent) const;
+    vstring toString() const;
+    vstring toString(SimpleCongruenceClosure& parent) const;
 
     unsigned c1;
     unsigned c2;
@@ -85,15 +88,24 @@ private:
   void readDistinct(Literal* lit);
 
 
+ /**
+  * Get the representative constant for constant @c
+  * i.e. the representative for its congruence class
+  */
   unsigned deref(unsigned c) const {
     CALL("SimpleCongruenceClosure::deref");
     unsigned repr = _cInfos[c].reprConst;
     unsigned res = (repr==0) ? c : repr;
-    COND_LOG("bug", _cInfos[res].reprConst!=0, "res: "<<res);
     ASS_REP2(_cInfos[res].reprConst==0, _cInfos[res].reprConst, c);
     return res;
   }
+ /**
+  * Get a CPair of constants from a CPair by deref-ing each half of the pair
+  */
   CPair deref(CPair p) const { return CPair(deref(p.first), deref(p.second)); }
+ /**
+  * Get a CPair of constants from a CEq by deref-ing each half
+  */
   CPair deref(CEq p) const { return CPair(deref(p.c1), deref(p.c2)); }
 
   unsigned getClassSize(unsigned c) const {

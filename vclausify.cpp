@@ -2,7 +2,6 @@
  * @file vclausify.cpp. Implements the main function for a separate executable that only performs clausification.
  */
 
-#include <string>
 #include <iostream>
 
 #include "Debug/Tracer.hpp"
@@ -16,7 +15,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
-
+#include "Lib/VString.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
@@ -59,7 +58,7 @@ Problem* globProblem=0;
  * either found refutation or established satisfiability.
  *
  *
- * If Vampire was interupted by a SIGINT, value 3 is returned,
+ * If Vampire was interrupted by a SIGINT, value 3 is returned,
  * and in case of other signal we return 2. For implementation
  * of these return values see Lib/System.hpp.
  *

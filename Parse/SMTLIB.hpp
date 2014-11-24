@@ -33,12 +33,12 @@ public:
    * Information from a function or predicate declaration
    */
   struct FunctionInfo {
-    FunctionInfo(string name, Stack<string> argSorts, string domainSort)
+    FunctionInfo(vstring name, Stack<vstring> argSorts, vstring domainSort)
      : name(name), argSorts(argSorts), rangeSort(domainSort) {}
 
-    string name;
-    Stack<string> argSorts;
-    string rangeSort;
+    vstring name;
+    Stack<vstring> argSorts;
+    vstring rangeSort;
   };
 
   SMTLIB(const Options& opts, Mode mode = BUILD_FORMULA);
@@ -51,7 +51,7 @@ public:
   void parse(istream& str);
 
   //these functions can be used after a call to a parse() function
-  const Stack<string>& getUserSortNames() const { return _userSorts; }
+  const Stack<vstring>& getUserSortNames() const { return _userSorts; }
   const Stack<FunctionInfo>& getFuncInfos() const { return _funcs; }
   LExpr* getLispFormula() const { ASS(_lispFormula); return _lispFormula; }
 
@@ -85,24 +85,24 @@ private:
   };
   static const char * s_builtInSortNameStrings[];
 
-  static BuiltInSorts getBuiltInSort(string str);
+  static BuiltInSorts getBuiltInSort(vstring str);
 
   void readBenchmark(LExprList* bench);
-  void readSort(string name);
+  void readSort(vstring name);
   void readFunction(LExprList* decl);
   void readPredicate(LExprList* decl);
 
-  unsigned getSort(string name);
+  unsigned getSort(vstring name);
   unsigned getSort(BuiltInSorts srt);
   void doSortDeclarations();
   void doFunctionDeclarations();
 
   void introduceAigNames(UnitList*& forms);
 
-  string _benchName;
-  string _statusStr;
+  vstring _benchName;
+  vstring _statusStr;
 
-  Stack<string> _userSorts;
+  Stack<vstring> _userSorts;
   Stack<FunctionInfo> _funcs;
   LExprList* _lispAssumptions;
   LExpr* _lispFormula;
@@ -180,8 +180,8 @@ private:
 
   //lets are set when we their scope appears on a to-do stack and unset
   //when we remove them from there
-  DHMap<string,Formula*> _formVars;
-  DHMap<string,TermList> _termVars;
+  DHMap<vstring,Formula*> _formVars;
+  DHMap<vstring,TermList> _termVars;
 
   /** Next quantified variable index to be used */
   unsigned _nextQuantVar;
@@ -214,12 +214,12 @@ private:
 
   void requestSubexpressionProcessing(LExpr* subExpr, bool formula);
 
-  static FormulaSymbol getFormulaSymbol(string str);
-  static TermSymbol getTermSymbol(string str, unsigned arity);
+  static FormulaSymbol getFormulaSymbol(vstring str);
+  static TermSymbol getTermSymbol(vstring str, unsigned arity);
   static Interpretation getFormulaSymbolInterpretation(FormulaSymbol ts, unsigned firstArgSort);
   static Interpretation getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort);
   static unsigned getMandatoryConnectiveArgCnt(FormulaSymbol fsym);
-//  unsigned getPredSymbolArity(FormulaSymbol fsym, string str);
+//  unsigned getPredSymbolArity(FormulaSymbol fsym, vstring str);
 
   unsigned getSort(TermList t);
   void ensureArgumentSorts(bool pred, unsigned symNum, TermList* args);
@@ -227,12 +227,12 @@ private:
   bool readTermArgs(LExpr* parent, LispListReader& rdr, TermStack& args);
 
 
-  TermList readTermFromAtom(string str);
+  TermList readTermFromAtom(vstring str);
   bool tryReadTermIte(LExpr* e, TermList& res);
   unsigned getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermStack& args);
   bool tryReadTerm(LExpr* e, TermList& res);
 
-  Formula* readFormulaFromAtom(string str);
+  Formula* readFormulaFromAtom(vstring str);
   bool tryReadNonPropAtom(FormulaSymbol fsym, LExpr* e, Literal*& res);
   bool tryReadConnective(FormulaSymbol fsym, LExpr* e, Formula*& res);
   bool tryReadQuantifier(bool univ, LExpr* e, Formula*& res);
@@ -243,7 +243,7 @@ private:
   Formula* readFormula(LExpr* e);
   void buildFormula();
 
-  Formula* nameFormula(Formula* f, string fletVarName);
+  Formula* nameFormula(Formula* f, vstring fletVarName);
 
 };
 

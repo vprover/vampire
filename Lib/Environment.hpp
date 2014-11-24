@@ -34,22 +34,27 @@ public:
   Environment(const Environment& e, Shell::Options& o);
   ~Environment();
 
+  CLASS_NAME(Environment);
+  USE_ALLOCATOR(Environment);
+
   /** options container for all proof attempts */
   Lib::SmartPtr<Shell::OptionsList> optionsList;
-  /** options for the current proof attempt */
-  Shell::Options* options;
   /** currently used sorts */
-  Kernel::Sorts* sorts;
+  Lib::SmartPtr<Kernel::Sorts> sorts;
   /** currently used signature */
-  Kernel::Signature* signature;
+  Lib::SmartPtr<Kernel::Signature> signature;
   /** Term sharing structure */
-  Indexing::TermSharing* sharing;
-  /** Currently used statistics */
-  Shell::Statistics* statistics;
+  Lib::SmartPtr<Indexing::TermSharing> sharing;
+  /** Currently used timer, this is used by all timers as a global clock */
+  Lib::SmartPtr<Timer> timer;
+
+
   /** Last read properties */
   Shell::Property* property;
-  /** Currently used timer */
-  Timer* timer;
+  /** Currently used statistics */
+  Shell::Statistics* statistics;
+  /** options for the current proof attempt */
+  Shell::Options* options;
 
   bool haveOutput();
   void beginOutput();

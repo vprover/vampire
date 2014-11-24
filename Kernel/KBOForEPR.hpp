@@ -22,6 +22,9 @@ class KBOForEPR
 : public KBOBase
 {
 public:
+  CLASS_NAME(KBOForEPR);
+  USE_ALLOCATOR(KBOForEPR);
+
   KBOForEPR(Problem& prb, const Options& opt);
 
   virtual Result compare(Literal* l1, Literal* l2) const;

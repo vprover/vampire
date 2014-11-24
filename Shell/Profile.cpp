@@ -389,32 +389,32 @@ void Profile::scan(const TermList* ts)
  * ARE CURRENTLY OUTPUT.
  * @since 15/06/2008 Kemerovo
  */
-string Profile::toString () const
+vstring Profile::toString () const
 {
-  string result("");
+  vstring result("");
 
-  result += (string)"Variables\n";
+  result += (vstring)"Variables\n";
   for (int i = 0; i < HOW_MANY-1;i++) {
-    result += string("  ") + Int::toString(i) + ':'
+    result += vstring("  ") + Int::toString(i) + ':'
       + Int::toString(_vars[i]) + '\n';
   }
-  result += string(" >") + Int::toString(HOW_MANY-2) + ':'
+  result += vstring(" >") + Int::toString(HOW_MANY-2) + ':'
     + Int::toString(_vars[HOW_MANY-1]) + '\n';
 
-  result += (string)"Symbols\n";
+  result += (vstring)"Symbols\n";
   for (int i = 0; i < HOW_MANY-1;i++) {
-    result += string("  ") + Int::toString(i) + ':'
+    result += vstring("  ") + Int::toString(i) + ':'
       + Int::toString(_syms[i]) + '\n';
   }
-  result += string(" >") + Int::toString(HOW_MANY-2) + ':'
+  result += vstring(" >") + Int::toString(HOW_MANY-2) + ':'
     + Int::toString(_syms[HOW_MANY-1]) + '\n';
 
-  result += (string)"Literals\n";
+  result += (vstring)"Literals\n";
   for (int i = 0; i < HOW_MANY-1;i++) {
-    result += string("  ") + Int::toString(i) + ':'
+    result += vstring("  ") + Int::toString(i) + ':'
       + Int::toString(_lits[i]) + '\n';
   }
-  result += string(" >") + Int::toString(HOW_MANY-2) + ':'
+  result += vstring(" >") + Int::toString(HOW_MANY-2) + ':'
     + Int::toString(_lits[HOW_MANY-1]) + '\n';
 
   Signature* sig = env -> signature;
@@ -423,7 +423,7 @@ string Profile::toString () const
   int fn = sig->functions();
   for (int i = fn-1;i >= 0;i--) {
     if (_funs[i] > 10) {
-      result += string("  ") + Int::toString(_funs[i]) + ": " +
+      result += vstring("  ") + Int::toString(_funs[i]) + ": " +
 	sig->functionName(i) + '\n';
     }
   }
@@ -433,7 +433,7 @@ string Profile::toString () const
     int pos = _posPreds[i];
     int neg = _negPreds[i];
     if (pos < 2 || neg < 2 || pos+neg > 10) {
-      result += string("  ") + Int::toString(pos) + '/' + Int::toString(neg)
+      result += vstring("  ") + Int::toString(pos) + '/' + Int::toString(neg)
 	+ ": " + sig->predicateName(i) + '\n';
     }
   }

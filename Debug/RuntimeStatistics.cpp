@@ -56,14 +56,12 @@ void RSMultiStatistic::print(ostream& out)
 	  max=val;
 	}
       }
-
-      string statSum;
-      statSum+="cnt: "+Int::toString(cnt)+
-	  ", avg: "+Int::toString(static_cast<float>(sum)/cnt)+
-	  ", min: "+Int::toString(min)+
-	  ", max: "+Int::toString(max);
-
-      out << "  " << i << ": " << statSum << endl;
+      
+      out << "  " << i << ": " << 
+              "cnt: "+Int::toString(cnt)+
+              ", avg: "+Int::toString(static_cast<float>(sum)/cnt)+
+              ", min: "+Int::toString(min)+
+              ", max: "+Int::toString(max) << endl;
     }
   }
 }

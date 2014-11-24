@@ -89,7 +89,7 @@ void CommandLine::interpret ()
     //Check if this is an option
     if (arg[0] == '-') {
       if (_next == _last) {
-	USER_ERROR((string)"no value specified for option " + arg);
+	USER_ERROR((vstring)"no value specified for option " + arg);
       }
       if (arg[1] == '-') {
 	optionsList->set(arg+2,*_next);

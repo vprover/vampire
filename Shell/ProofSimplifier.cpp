@@ -42,15 +42,9 @@ void ProofTransformer::perform()
       _newProof.push(tgt);
       //maybe we've simplified some unit into a refutation earlier...
       if(isRefutation(tgt)) {
-	LOG("pt_units","proof transf:"<<endl<<
-	      "  src: "<<u.toString()<<endl<<
-	      "  tgt: "<<(tgt.isEmpty() ? "<empty>" : tgt.toString()));
 	break;
       }
     }
-    LOG("pt_units","proof transf:"<<endl<<
-	"  src: "<<u.toString()<<endl<<
-	"  tgt: "<<(tgt.isEmpty() ? "<empty>" : tgt.toString()));
   }
 }
 
@@ -106,28 +100,6 @@ void ProofTransformer::derefInference(UnitSpec src, UnitSpec tgt)
     ASS(srcClr!=COLOR_INVALID);
     ASS(tgtClr!=COLOR_INVALID);
 
-    if(tgtParClr==COLOR_TRANSPARENT && tgtClr!=COLOR_TRANSPARENT) {
-      LOG("bug", "--tgt--");
-      LOGV("bug", tgtClr);
-      LOGV("bug", tgt.toString());
-      TRACE("bug",
-	  Stack<UnitSpec>::Iterator pit2(tgtPrems);
-	  while(pit2.hasNext()) {
-	    UnitSpec tgtPar = pit2.next();
-	    tout << tgtPar.toString() << endl;
-	  }
-      );
-      LOG("bug", "--src--");
-      LOGV("bug", srcClr);
-       LOGV("bug", src.toString());
-       TRACE("bug",
-	  UnitSpecIterator pit2 = inf->getParents(tgt);
- 	  while(pit2.hasNext()) {
- 	    UnitSpec srcPar = pit2.next();
- 	    tout << srcPar.toString() << endl;
- 	  }
-       );
-    }
     ASS(srcParClr!=COLOR_TRANSPARENT  || srcClr==COLOR_TRANSPARENT);
     ASS(tgtParClr!=COLOR_TRANSPARENT  || tgtClr==COLOR_TRANSPARENT);
   }
@@ -233,11 +205,9 @@ UnitSpec ProofSimplifier::transformUnit(UnitSpec u)
   CALL("ProofSimplifier::transformUnit");
 
   AIGRef a = getAIG(u);
-  LOGV("pt_simpl_aig", a);
 
   AIGInliner::PremSet* prems;
   AIGRef simplA = _inl.apply(a, prems);
-  LOGV("pt_simpl_aig", simplA);
   if(simplA.isTrue()) {
     return UnitSpec(0);
   }

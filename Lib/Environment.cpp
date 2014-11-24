@@ -15,6 +15,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
 
+#include "Shell/Property.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -45,47 +46,40 @@ nullstream nullStream;
  * @since 06/05/2007 Manchester
  */
 Environment::Environment()
-  : options(0),
-	signature(0),
-    sharing(0),
-    property(0),
+  : sorts(new Sorts),
+    signature(new Signature),
+    sharing(new TermSharing),
+    timer(new Timer),
+    property(0), 
+    statistics(new Statistics),
+    options(0),
     ordering(0),
     colorUsed(false),
     _outputDepth(0),
     _priorityOutput(0),
     _pipe(0)
 {
-  // Will be set in Shell::CommandLine::interpret
-  //options = new Options();//TODO This object is needed only because of global iostream
-  //optionsList = 0;
-  statistics = new Statistics;
-  timer = new Timer;
-  sorts = new Sorts;
-  signature = new Signature;
-  sharing = new TermSharing;
+  // options and optinsList will be set in Shell::CommandLine::interpret
 
   timer->start();
 } // Environment::Environment
 
 Environment::Environment(const Environment& e, Options& opts)
-	  : options(&opts),
-	    signature(0),
-	    sharing(0),
+	  : optionsList(e.optionsList),
+            sorts(e.sorts),
+            signature(e.signature),
+	    sharing(e.sharing),
+            timer(e.timer),
 	    property(0),
+            statistics(new Statistics),
+	    options(&opts),
 	    ordering(0),
 	    colorUsed(false),
 	    _outputDepth(0),
 	    _priorityOutput(0),
 	    _pipe(0)
 	{
-	  optionsList = e.optionsList;
-	  statistics = new Statistics;
-	  timer = e.timer;
-	  sorts = e.sorts;
-	  signature = e.signature;
-	  sharing = e.sharing;
 
-	  //timer->start();//Timer is already started in e
 	} // Environment::Environment
 
 Environment::~Environment()
@@ -100,18 +94,7 @@ Environment::~Environment()
     endOutput();
   }
 
-#if CHECK_LEAKS
-  cout << "running this code" << endl;
-  delete sharing;
-  if(signature){delete signature; signature = 0;}
-  delete sorts;
-  if(timer){ delete timer; timer = 0;}
-  delete statistics;
-  delete options;
-#endif
-
-
-
+  // Everything that is shared is in a SmartPtr
 }
 
 /**

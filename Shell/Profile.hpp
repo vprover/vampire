@@ -38,7 +38,7 @@ class Profile
   ~Profile();
 
   void scan(const UnitList*);
-  string toString() const;
+  vstring toString() const;
   bool lessThan(const Clause*,const Clause*);
   bool lessThan(const Literal*,const Literal*);
 

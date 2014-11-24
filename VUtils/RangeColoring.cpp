@@ -52,14 +52,14 @@ TermList TermColoring::applyToTerm(TermList trm)
   }
 
   Color clr = getColor(trm);
-  string name = trm.toString();
+  vstring name = trm.toString();
   size_t nlen = name.size();
   for(size_t i=0; i<nlen; i++) {
     if(name[i]=='(' || name[i]==')' || name[i]=='\'') {
       name[i] = '_';
     }
   }
-  string name0 = name;
+  vstring name0 = name;
   int i=0;
   while(env -> signature->functionExists(name, 0)) {
     i++;
@@ -107,7 +107,6 @@ void TermColoring::applyToDerivation(UnitStack& inp, UnitStack& out)
   while(uit.hasNext()){
     FormulaUnit* fu = static_cast<FormulaUnit*>(uit.next());
     ASS(!fu->isClause());
-//    LOGV(fu->toString());
 
     Formula* newForm = applyToFormula(fu->formula());
 
@@ -116,7 +115,6 @@ void TermColoring::applyToDerivation(UnitStack& inp, UnitStack& out)
     Inference::Iterator iit(origInf->iterator());
     while(origInf->hasNext(iit)) {
       Unit* premise = origInf->next(iit);
-//      LOGV(premise->toString());
       Unit* newPremise = translated.get(premise);
       UnitList::push(newPremise, newPrems);
     }
@@ -250,7 +248,7 @@ Color RangeColoring::getColor(TermList term)
 // NameMapColoring
 //
 
-string NameMapColoring::normalizeName(string str)
+vstring NameMapColoring::normalizeName(vstring str)
 {
   CALL("NameMapColoring::normalizeName");
 
@@ -264,7 +262,7 @@ bool NameMapColoring::isColoredFunction(unsigned func)
 {
   CALL("NameMapColoring::isColoredFunction");
 
-  string nm = normalizeName(env -> signature->functionName(func));
+  vstring nm = normalizeName(env -> signature->functionName(func));
   return _funcColors.find(nm);
 }
 Color NameMapColoring::getColor(TermList term)
@@ -272,7 +270,7 @@ Color NameMapColoring::getColor(TermList term)
   CALL("NameMapColoring::getColor");
   ASS(term.isTerm());
 
-  string nm = normalizeName(term.term()->functionName());
+  vstring nm = normalizeName(term.term()->functionName());
   return _funcColors.get(nm);
 }
 

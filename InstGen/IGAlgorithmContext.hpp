@@ -14,6 +14,9 @@ namespace InstGen {
 
 	class IGAlgorithmContext: public Kernel::MainLoopContext {
 	public:
+                CLASS_NAME(IGAlgorithmContext);
+                USE_ALLOCATOR(IGAlgorithmContext);
+
 		IGAlgorithmContext(Kernel::Problem& prb, Shell::Options& opts);
 
 		~IGAlgorithmContext();

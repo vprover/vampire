@@ -63,6 +63,7 @@ MainLoopContext* MainLoopContext::currentContext = 0;
 		cout << "Deleting context " <<  _id << endl;
 #endif //VDEBUG
 
+                ASS(_env); ASS(_prb);
 		delete _env;
 		delete _prb;
 	}

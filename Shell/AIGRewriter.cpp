@@ -9,9 +9,10 @@
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 
+#include "Lib/Environment.hpp"
+#include "Shell/Options.hpp"
+
 #include "AIGRewriter.hpp"
-
-
 
 namespace Shell
 {
@@ -171,7 +172,12 @@ void AIGRewriter::collectUsed(Ref r, const RefMap& map, RefEdgeMap& edges)
   while(ait.hasNext()) {
     Ref p = ait.next();
     if(map.find(p) && p!=r) { //TODO: Make sure we don't want to include r itself among dependencies!
-      LOG("pp_aigtr_sat_deps","dep: " << r << " <-- " << p);
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] aigtr_sat_deps: " << "dep: " << r << " <-- " << p << std::endl;
+        env->endOutput();
+      }
+
       edges.pushToKey(r, p);
     }
   }
@@ -187,7 +193,11 @@ void AIGRewriter::restrictToGetOrderedDomain(RefMap& map, AIGStack& domainOrder)
 {
   CALL("AIGRewriter::restrictToGetOrderedDomain");
 
-  LOG("pp_aigtr_sat","ordering domain");
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] ordering domain" << std::endl;
+    env->endOutput();
+  }
 
   static DHSet<Ref> seen;
   seen.reset();
@@ -200,7 +210,11 @@ void AIGRewriter::restrictToGetOrderedDomain(RefMap& map, AIGStack& domainOrder)
 
   while(domIt.hasNext()) {
     Ref d = domIt.next();
-    LOG("pp_aigtr_inp_map",d<<" --> "<<map.get(d).first);
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aigtr_inp_map: " << d<<" --> "<<map.get(d).first << std::endl;
+      env->endOutput();
+    }
     collectUsed(d, map, edgeMap);
   }
 
@@ -214,7 +228,11 @@ void AIGRewriter::restrictToGetOrderedDomain(RefMap& map, AIGStack& domainOrder)
     AIGStack::ConstIterator brIt(an0.breakingNodes());
     while(brIt.hasNext()) {
       Ref br = brIt.next();
-      LOG("pp_aigtr_sat","domain element removed to break cycles: "<<br);
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] domain element removed to break cycles: "<<br << std::endl;
+        env->endOutput();
+      }      
       map.remove(br);
     }
     Subgraph<RefGraph> subGr(gr, AIGStack::ConstIterator(an0.breakingNodes()));
@@ -227,7 +245,11 @@ void AIGRewriter::restrictToGetOrderedDomain(RefMap& map, AIGStack& domainOrder)
     const AIGStack& comp = cit.next();
     ASS_EQ(comp.size(),1);
     domainOrder.push(comp.top());
-    LOG("pp_aigtr_sat","domain element to process: "<<comp.top());
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] domain element to process: "<<comp.top() << std::endl;
+      env->endOutput();
+    }
   }
 }
 
@@ -241,7 +263,11 @@ void AIGRewriter::restrictToGetOrderedDomain(RefMap& map, AIGStack& domainOrder)
 void AIGRewriter::applyWithCaching(Ref r0, RefMap& map)
 {
   CALL("AIGRewriter::applyWithCaching");
-  LOG("pp_aigtr_sat","applyWithCaching -- "<<r0);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] applyWithCaching -- "<<r0 << std::endl;
+    env->endOutput();
+  }
 
   static AIGInsideOutPosIterator ait;
   ait.reset(r0);

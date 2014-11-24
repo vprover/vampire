@@ -13,6 +13,8 @@
 
 #include "Shell/Statistics.hpp"
 
+#include "Lib/Allocator.hpp"
+
 namespace Shell {
   class Property;
 };
@@ -42,7 +44,10 @@ struct MainLoopResult
 
 
 class MainLoop {
-public:
+public:  
+  CLASS_NAME(MainLoop);
+  USE_ALLOCATOR(MainLoop);
+
   MainLoop(Problem& prb, const Options& opt) : _prb(prb), _opt(opt) {}
   virtual ~MainLoop() {}
 

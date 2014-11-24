@@ -122,11 +122,9 @@ pid_t Multiprocessing::waitForChildTermination(int& resValue)
 
   if(WIFEXITED(status)) {
     resValue = WEXITSTATUS(status);
-    LOG("mp_wait","child process " << childPid << " terminated with status " << resValue);
   }
   else {
     ASS(WIFSIGNALED(status));
-    LOG("mp_wait","child process " << childPid << " terminated by signal " << WTERMSIG(status));
     resValue = WTERMSIG(status)+256;
   }
   return childPid;
@@ -172,11 +170,9 @@ pid_t Multiprocessing::waitForChildTerminationOrTime(unsigned timeMs,int& resVal
 
   if(WIFEXITED(status)) {
     resValue = WEXITSTATUS(status);
-    LOG("mp_wait","child process " << childPid << " terminated with status " << resValue);
   }
   else {
     ASS(WIFSIGNALED(status));
-    LOG("mp_wait","child process " << childPid << " terminated by signal " << WTERMSIG(status));
     resValue = WTERMSIG(status)+256;
   }
   return childPid;
@@ -209,11 +205,9 @@ void Multiprocessing::waitForParticularChildTermination(pid_t child, int& resVal
 
   if(WIFEXITED(status)) {
     resValue = WEXITSTATUS(status);
-    LOG("mp_wait","waited for process " << child << " terminated with status " << resValue);
   }
   else {
     ASS(WIFSIGNALED(status));
-    LOG("mp_wait","waited for process " << child << " terminated by signal " << WTERMSIG(status));
     resValue = WTERMSIG(status)+256;
   }
 #endif

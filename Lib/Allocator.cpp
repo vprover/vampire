@@ -11,8 +11,6 @@
 #include <cstring>
 #include "DHMap.hpp"
 
-#include "Kernel/Clause.hpp"
-using namespace Kernel;
 #endif
 
 #include <cstdlib>
@@ -35,17 +33,12 @@ using namespace Kernel;
 # endif
 #endif
 
-
-/** set this to 1 to print all allocations/deallocations to stdout */
+/** set this to 1 to print all allocations/deallocations to stdout -- only with VDEBUG */
 #define TRACE_ALLOCATIONS 0
 
 /** Size of a page prefix (part of the page used for bookkeeping the
  * page itself) */
 #define PAGE_PREFIX_SIZE (sizeof(Page)-sizeof(void*))
-
-/** Number of bytes used for bookkeeping by the compiler when
- *  it allocates a page */
-#define PAGE_SHIFT 8
 
 // To watch an address define the following values:
 //   WATCH_FIRST     - the first watch point
@@ -70,11 +63,9 @@ unsigned watchAddressLastValue = 0;
 #include "Debug/Tracer.hpp"
 
 #include "Shell/Statistics.hpp"
-#include "Shell/Options.hpp"
 
 #include "Exception.hpp"
 #include "Environment.hpp"
-#include "Timer.hpp"
 #include "Allocator.hpp"
 
 #if CHECK_LEAKS
@@ -100,6 +91,7 @@ size_t Allocator::Descriptor::maxEntries;
 size_t Allocator::Descriptor::capacity;
 Allocator::Descriptor* Allocator::Descriptor::map;
 Allocator::Descriptor* Allocator::Descriptor::afterLast;
+unsigned Allocator::_tolerantZone;
 #endif
 
 #if VDEBUG && USE_PRECISE_CLASS_NAMES && defined(__GNUC__)
@@ -115,7 +107,7 @@ string Lib::___prettyFunToClassName(std::string str)
   string noPref = str.substr(19);
   size_t fnNamePos = noPref.find("::className()");
   string className = noPref.substr(0,fnNamePos);
-  //either empty, or contains one space folowed by values of
+  //either empty, or contains one space followed by values of
   //template params
   string templateInfo = noPref.substr(fnNamePos+13);
   return className+templateInfo;
@@ -140,6 +132,20 @@ Allocator::Allocator()
   _myPages = 0;
 #endif
 } // Allocator::Allocator
+
+/**
+ * Returns all pages to the global manager.
+ * 
+ * @since 18/03/2008 Torrevieja
+ */
+Lib::Allocator::~Allocator ()
+{
+  CALL("Allocator::~Allocator");
+
+  while (_myPages) {
+    deallocatePages(_myPages);
+  }
+} // Allocator::~allocator
 
 /**
  * Initialise all static structures and create a default allocator.
@@ -194,13 +200,13 @@ void Allocator::addressStatus(const void* address)
       continue;
     }
     // found
-    cout << "Descriptor: " << d.toString() << '\n'
+    cout << "Descriptor: " << d << '\n'
 	 << "Offset: " << diff << '\n'
 	 << "End of status\n";
     return;
   }
   if (pg) {
-    cout << "Not found but belongs to allocated page: " << pg->toString() << '\n';
+    cout << "Not found but belongs to allocated page: " << *pg << '\n';
   }
   else {
     cout << "Does not belong to an allocated page\n";
@@ -249,14 +255,15 @@ void Allocator::reportUsageByClasses()
 void Allocator::cleanup()
 {
   CALL("Allocator::cleanup");
+  BYPASSING_ALLOCATOR;
 
+  // delete all allocators
+  for (int i = _total-1;i >= 0;i--) {
+    delete _all[i];
+  }
+       
 #if CHECK_LEAKS
   if (MemoryLeak::report()) {
-    // delete all allocators
-    for (int i = _total-1;i >= 0;i--) {
-      delete _all[i];
-    }
-
     int leaks = 0;
     for (int i = Descriptor::capacity-1;i >= 0;i--) {
       Descriptor& d = Descriptor::map[i];
@@ -273,6 +280,32 @@ void Allocator::cleanup()
     }
   }
 #endif
+
+  // release all the pages
+  for (int i = MAX_PAGES-1;i >= 0;i--) {
+#if VDEBUG && TRACE_ALLOCATIONS
+    int cnt = 0;
+#endif    
+    while (_pages[i]) {
+      Page* pg = _pages[i];
+      _pages[i] = pg->next;
+      
+      char* mem = reinterpret_cast<char*>(pg);
+      ::delete[] mem;
+#if VDEBUG && TRACE_ALLOCATIONS
+      cnt++;
+#endif    
+    }
+#if VDEBUG && TRACE_ALLOCATIONS    
+      if (cnt) {
+        cout << "deleted " << cnt << " global page(s) of size " << VPAGE_SIZE*(i+1) << endl;
+      }
+#endif        
+  }
+    
+#if VDEBUG
+  delete[] Descriptor::map;
+#endif  
 } // Allocator::initialise
 
 
@@ -296,7 +329,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
   Descriptor* desc = Descriptor::find(obj);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
-  cout << desc->toString() << ": DK\n" << flush;
+  cout << *desc << ": DK\n" << flush;
 #endif
   ASS_EQ(desc->address, obj);
   ASS_STR_EQ(desc->cls,className);
@@ -345,7 +378,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
       watchAddressLastValue = currentValue;
       cout << "  Value: " << (void*)watchAddressLastValue << '\n';
     }
-    cout << "  " << desc->toString() << '\n'
+    cout << "  " << *desc << '\n'
 	 << "Watch! end\n";
   }
 #endif
@@ -370,7 +403,7 @@ void Allocator::deallocateUnknown(void* obj)
   Descriptor* desc = Descriptor::find(obj);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
-  cout << desc->toString() << ": DU\n" << flush;
+  cout << *desc << ": DU\n" << flush;
 #endif
   ASS_EQ(desc->address, obj);
   ASS_STR_EQ(desc->cls,className);
@@ -419,7 +452,7 @@ void Allocator::deallocateUnknown(void* obj)
       watchAddressLastValue = currentValue;
       cout << "  Value: " << (void*)watchAddressLastValue << '\n';
     }
-    cout << "  " << desc->toString() << '\n'
+    cout << "  " << *desc << '\n'
 	 << "Watch! end\n";
   }
 #endif
@@ -432,6 +465,8 @@ void Allocator::deallocateUnknown(void* obj)
 Allocator* Allocator::newAllocator()
 {
   CALL("Allocator::newAllocator");
+  BYPASSING_ALLOCATOR;
+  
 #if VDEBUG && USE_SYSTEM_ALLOCATION
   ASSERTION_VIOLATION;
 #else
@@ -446,7 +481,7 @@ Allocator* Allocator::newAllocator()
 } // Allocator::newAllocator
 
 /**
- * Allocate a page able to store a structure of size @b size
+ * Allocate a (multi)page able to store a structure of size @b size
  * @since 12/01/2008 Manchester
  */
 Allocator::Page* Allocator::allocatePages(size_t size)
@@ -460,10 +495,10 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   size += PAGE_PREFIX_SIZE;
 
   Page* result;
-  size_t index = (size-1)/PAGE_SIZE;
-  size_t realSize = PAGE_SIZE*(index+1);
+  size_t index = (size-1)/VPAGE_SIZE;
+  size_t realSize = VPAGE_SIZE*(index+1);
 
-  // check if the allocatio isn't too big
+  // check if the allocation isn't too big
   if(index>=MAX_PAGES) {
 #if SAFE_OUT_OF_MEM_SOLUTION
     env -> beginOutput();
@@ -481,7 +516,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
     throw Lib::MemoryLimitExceededException();
 #endif
   }
-  // check if there is a page in the skip list available
+  // check if there is a page in the list available
   if (_pages[index]) {
     result = _pages[index];
     _pages[index] = result->next;
@@ -513,6 +548,8 @@ Allocator::Page* Allocator::allocatePages(size_t size)
 
     char* mem;
     try {
+      BYPASSING_ALLOCATOR;
+      
       mem = new char[realSize];
     } catch(bad_alloc)
     {
@@ -535,7 +572,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   desc->page = 1;
 
 #if TRACE_ALLOCATIONS
-  cout << desc->toString() << ": AP\n" << flush;
+  cout << *desc << ": AP\n" << flush;
 #endif // TRACE_ALLOCATIONS
 #endif // VDEBUG
 
@@ -588,7 +625,7 @@ void Allocator::deallocatePages(Page* page)
   Descriptor* desc = Descriptor::find(page);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
-  cout << desc->toString() << ": DP\n" << flush;
+  cout << *desc << ": DP\n" << flush;
 #endif
   ASS(desc->address == page);
   ASS_STR_EQ(desc->cls,"Allocator::Page");
@@ -600,7 +637,7 @@ void Allocator::deallocatePages(Page* page)
 #endif
 
   size_t size = page->size;
-  int index = (size-1)/PAGE_SIZE;
+  int index = (size-1)/VPAGE_SIZE;
 
   Page* next = page->next;
   if (next) {
@@ -642,8 +679,7 @@ void Allocator::deallocatePages(Page* page)
 
 
 /**
- * Allocate object of size @b size. If @b size is REQUIRES_PAGE
- * or more it is allocated as a large object using allocateLarge.
+ * Allocate object of size @b size. 
  * @since 12/01/2008 Manchester
  */
 #if VDEBUG
@@ -669,7 +705,7 @@ void* Allocator::allocateKnown(size_t size)
   desc->known = 1;
   desc->page = 0;
 #if TRACE_ALLOCATIONS
-  cout << desc->toString() << ": AK\n" << flush;
+  cout << *desc << ": AK\n" << flush;
 #endif
 #endif
 
@@ -689,7 +725,7 @@ void* Allocator::allocateKnown(size_t size)
       watchAddressLastValue = currentValue;
       cout << "  Value: " << (void*)watchAddressLastValue << '\n';
     }
-    cout << "  " << desc->toString() << '\n'
+    cout << "  " << *desc << '\n'
 	 << "Watch! end\n";
   }
 #endif
@@ -699,6 +735,8 @@ void* Allocator::allocateKnown(size_t size)
 
 /**
  * Allocate a piece of memory of a given size.
+ * If @b size is REQUIRES_PAGE or more it is 
+ * allocated on a separate page.
  * @since 15/01/2008 Manchester
  */
 char* Allocator::allocatePiece(size_t size)
@@ -741,14 +779,14 @@ char* Allocator::allocatePiece(size_t size)
 	desc->size = _reserveBytesAvailable;
 	desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
-	cout << desc->toString() << ": RR\n" << flush;
+	cout << *desc << ": RR\n" << flush;
 #endif
 #endif
 	save->next = _freeList[index];
 	_freeList[index] = save;
       }
       Page* page = allocatePages(0);
-      _reserveBytesAvailable = PAGE_SIZE-PAGE_PREFIX_SIZE;
+      _reserveBytesAvailable = VPAGE_SIZE-PAGE_PREFIX_SIZE;
       _nextAvailableReserve = reinterpret_cast<char*>(&page->content);
       goto use_reserve;
     }
@@ -793,7 +831,7 @@ void* Allocator::allocateUnknown(size_t size)
   desc->page = 0;
 
 #if TRACE_ALLOCATIONS
-  cout << desc->toString() << ": AU\n" << flush;
+  cout << *desc << ": AU\n" << flush;
 #endif
 #endif
 
@@ -813,7 +851,7 @@ void* Allocator::allocateUnknown(size_t size)
       watchAddressLastValue = currentValue;
       cout << "  Value: " << (void*)watchAddressLastValue << '\n';
     }
-    cout << "  " << desc->toString() << '\n'
+    cout << "  " << *desc << '\n'
 	 << "Watch! end\n";
   }
 #endif
@@ -827,8 +865,9 @@ void* Allocator::allocateUnknown(size_t size)
  * @since 14/12/2005 Bellevue
  */
 Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
-{
+{    
   CALL("Allocator::Descriptor::find");
+  BYPASSING_ALLOCATOR;
 
   if (noOfEntries >= maxEntries) { // too many entries
     // expand the hash table first
@@ -875,45 +914,25 @@ Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
   return desc;
 } // Allocator::Descriptor::find
 
-
 /**
- * Should return all pages to the global manager :) not yet though
- * @since 18/03/2008 Torrevieja
+ * Output the string description of the descriptor to an ostream.
+ * @author Martin Suda
+ * @since 12/08/2014 Manchester
  */
-Allocator::~Allocator ()
-{
-  CALL("Allocator::~Allocator");
-
-#if VDEBUG
-  while (_myPages) {
-    deallocatePages(_myPages);
-  }
-#endif
-} // Allocator::~allocator
-
-
-/**
- * A string description of the descriptor.
- * @since 17/12/2005 Vancouver
- */
-std::string Allocator::Descriptor::toString() const
-{
-  CALL("Allocator::Descriptor::toString");
-
-  // the order is selected so that the output lines can be sorted by
-  // (address,timestamp)
-  ostringstream out;
-  out << (size_t)this
-      << " [address:" << address
-      << ",timestamp:" << timestamp
-      << ",class:" << cls
-      << ",size:" << size
-      << ",allocated:" << (allocated ? "yes" : "no")
-      << ",known:" << (known ? "yes" : "no")
-      << ",page:" << (page ? "yes" : "no") << ']';
-  return out.str();
-} // Allocator::Descriptor::toString
-
+ostream& Lib::operator<<(ostream& out, const Allocator::Descriptor& d) {
+  CALL("operator<<(ostream,Allocator::Descriptor)");
+  
+  out << (size_t)(&d)
+      << " [address:" << d.address
+      << ",timestamp:" << d.timestamp
+      << ",class:" << d.cls
+      << ",size:" << d.size
+      << ",allocated:" << (d.allocated ? "yes" : "no")
+      << ",known:" << (d.known ? "yes" : "no")
+      << ",page:" << (d.page ? "yes" : "no") << ']';  
+  
+  return out;
+}
 
 /**
  * Initialise a descriptor.
@@ -948,6 +967,58 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 } // Allocator::Descriptor::hash(const char* str)
 
 #endif
+
+#if VDEBUG
+/**
+ * In debug mode we replace the global new and delete (also the array versions)
+ * and terminate in cases when they are used "unwillingly".
+ * Where "unwillingly" means people didn't mark the code explicitly with BYPASSING_ALLOCATOR
+ * and yet they attempt to call global new (and not the class specific versions 
+ * built on top of Allocator).
+ * 
+ * This is a link about some requirements on new/delete: 
+ * http://stackoverflow.com/questions/7194127/how-should-i-write-iso-c-standard-conformant-custom-new-and-delete-operators/
+ * (Note that we ignore the globalHandler issue here.)
+ **/ 
+  
+void* operator new(size_t sz) {    
+  //ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
+  
+  if (sz == 0)
+    sz = 1;
+      
+  void* res = malloc(sz);  
+  
+  if (!res)
+    throw bad_alloc();
+  
+  return res;
+}
+
+void* operator new[](size_t sz) {  
+  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
+  
+  if (sz == 0)
+    sz = 1;
+      
+  void* res = malloc(sz);  
+  
+  if (!res)
+    throw bad_alloc();
+  
+  return res;
+}
+
+void operator delete(void* obj) throw() {  
+  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");    
+  free(obj);
+}
+
+void operator delete[](void* obj) throw() {  
+  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");  
+  free(obj);
+}
+#endif // VDEBUG
 
 #if VTEST
 

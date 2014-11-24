@@ -11,8 +11,6 @@
 #include <iostream>
 #include <fstream>
 
-#include "Debug/Log.hpp"
-
 #include "Lib/Comparison.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"

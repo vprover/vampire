@@ -144,7 +144,7 @@ int ProblemColoring::perform(int argc, char** argv)
 
   env -> beginOutput();
   for(int cIndex=0;cIndex<2;cIndex++) {
-    string cstr=(cIndex==0)?"left":"right";
+    const char* const cstr=(cIndex==0)?"left":"right";
     Color reqCol=(cIndex==0)?LEFT:RIGHT;
     for(SymId i=1;i<symIdBound;i++) {
       if(!symEx.validSymId(i)) {
@@ -177,7 +177,7 @@ int ProblemColoring::perform(int argc, char** argv)
   for(int cIndex=0;cIndex<3;cIndex++) {
     Color reqColor=(cIndex==0)?LEFT:(cIndex==1?RIGHT:TRANSPARENT);
     if(cIndex<2) {
-      string cstr=(cIndex==0)?"left":"right";
+      const char* const cstr=(cIndex==0)?"left":"right";
       env -> out()<<"vampire("<<cstr<<"_formula)."<<endl;
     }
 

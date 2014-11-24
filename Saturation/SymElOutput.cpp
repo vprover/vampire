@@ -141,7 +141,7 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
   }
   env -> out()<<" symbol elimination"<<endl;
 
-  string cname = "inv"+Int::toString(_symElNextClauseNumber);
+  vstring cname = "inv"+Int::toString(_symElNextClauseNumber);
   while(env -> signature->isPredicateName(cname, 0)) {
     _symElNextClauseNumber++;
     cname = "inv"+Int::toString(_symElNextClauseNumber);

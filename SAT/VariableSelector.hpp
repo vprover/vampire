@@ -21,6 +21,9 @@ using namespace Shell;
 class VariableSelector
 {
 public:
+  CLASS_NAME(VariableSelector);
+  USE_ALLOCATOR(VariableSelector);
+
   VariableSelector(TWLSolver& solver) : _solver(solver) {}
   virtual ~VariableSelector() {}
 
@@ -37,6 +40,7 @@ public:
   virtual void onConflict() {}
   virtual void onInputClauseAdded(SATClause* cl) {}
   virtual void onRestart() {}
+  virtual void recordSource(unsigned satlit, Literal* lit) {}
 
 protected:
   bool isUndefined(unsigned var);
@@ -48,6 +52,9 @@ protected:
 class AlternatingVariableSelector : public VariableSelector
 {
 public:
+  CLASS_NAME(AlternatingVariableSelector);
+  USE_ALLOCATOR(AlternatingVariableSelector);
+
   AlternatingVariableSelector(TWLSolver& solver, VariableSelector* s1, VariableSelector* s2)
    : VariableSelector(solver) {
     CALL("AlternatingVariableSelector::AlternatingVariableSelector");
@@ -103,6 +110,9 @@ private:
 class ActiveVariableSelector : public VariableSelector
 {
 public:
+  CLASS_NAME(ActiveVariableSelector);
+  USE_ALLOCATOR(ActiveVariableSelector);
+
   typedef double CounterType;
 
   // decayFactor default previously 1.05
@@ -134,6 +144,13 @@ public:
 
     _activityHeap.decay();
   }
+
+  virtual void recordSource(unsigned satlit, Literal* lit)
+  {
+    CALL("ActiveVaraibleSelector::recordSource");
+    _sourceMap.insert(satlit,lit);
+  }
+
 protected:
 
   class VariableActivityHeap
@@ -227,8 +244,12 @@ protected:
     DynamicHeap<unsigned, VAComparator, ArrayMap<size_t> > _heap;
   };
 
+  unsigned getNiceness(unsigned var);
+
   Options::NicenessOption _niceness_option;
+  //Has initial size 0
   DArray<unsigned> _niceness;
+  DHMap<unsigned,Literal*> _sourceMap;
   VariableActivityHeap _activityHeap;
 };
 
@@ -237,6 +258,9 @@ protected:
  */
 class ArrayActiveVariableSelector : public VariableSelector {
 public:
+  CLASS_NAME(ArrayActiveVariableSelector);
+  USE_ALLOCATOR(ArrayActiveVariableSelector);
+
   ArrayActiveVariableSelector(TWLSolver& solver) : VariableSelector(solver) {}
 
   virtual bool selectVariable(unsigned& var);
@@ -268,6 +292,9 @@ protected:
  */
 class RLCVariableSelector : public ArrayActiveVariableSelector {
 public:
+  CLASS_NAME(RLCVariableSelector);
+  USE_ALLOCATOR(RLCVariableSelector);
+
   RLCVariableSelector(TWLSolver& solver) : ArrayActiveVariableSelector(solver) {}
 
   virtual bool selectVariable(unsigned& var);
@@ -280,6 +307,9 @@ public:
  */
 class ArrayNicenessVariableSelector : public ArrayActiveVariableSelector {
 public:
+  CLASS_NAME(ArrayNicenessVariableSelector);
+  USE_ALLOCATOR(ArrayNicenessVariableSelector);
+
   ArrayNicenessVariableSelector(TWLSolver& solver) : ArrayActiveVariableSelector(solver) {}
 
 

@@ -131,6 +131,9 @@ class IdentitySubstitution
 : public ResultSubstitution
 {
 public:
+  CLASS_NAME(IdentitySubstitution);
+  USE_ALLOCATOR(IdentitySubstitution);
+  
   static ResultSubstitutionSP instance();
 
   TermList applyToQuery(TermList t) { return t; }
@@ -144,6 +147,9 @@ class DisjunctQueryAndResultVariablesSubstitution
 : public ResultSubstitution
 {
 public:
+  CLASS_NAME(DisjunctQueryAndResultVariablesSubstitution);
+  USE_ALLOCATOR(DisjunctQueryAndResultVariablesSubstitution);
+  
   TermList applyToQuery(TermList t);
   Literal* applyToQuery(Literal* l);
   TermList applyToResult(TermList t);

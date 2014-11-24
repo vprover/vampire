@@ -60,6 +60,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _length(length),
     _color(COLOR_INVALID),
     _input(0),
+    _extensionality(false),
     _selected(0),
     _age(0),
     _weight(0),
@@ -358,7 +359,7 @@ bool Clause::noSplits() const
 }
 
 //struct StrComparator {
-//  Comparison compare(string s1, string s2)
+//  Comparison compare(vstring s1, vstring s2)
 //  {
 //    int res=strcmp(s1.c_str(), s2.c_str());
 //    return (res==0)?EQUAL:(res>0)?GREATER:LESS;
@@ -366,16 +367,16 @@ bool Clause::noSplits() const
 //};
 
 /**
- * Convert non-propositional part of the clause to string.
+ * Convert non-propositional part of the clause to vstring.
  */
-string Clause::nonPropToString() const
+vstring Clause::nonPropToString() const
 {
   CALL("Clause::nonPropToString");
 
   if (_length == 0) {
     return "$false";
   } else {
-    string result;
+    vstring result;
     result += _literals[0]->toString();
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
@@ -386,50 +387,50 @@ string Clause::nonPropToString() const
 }
 
 /**
- * Convert the clause to the TPTP-compatible string representation.
+ * Convert the clause to the TPTP-compatible vstring representation.
  *
  * The split history is omitted.
  */
-string Clause::toTPTPString() const
+vstring Clause::toTPTPString() const
 {
   CALL("Clause::toTPTPString()");
 
-  string result = nonPropToString();
+  vstring result = nonPropToString();
 
   return result;
 }
 
 /**
- * Convert the clause to easily readable string representation.
+ * Convert the clause to easily readable vstring representation.
  */
-string Clause::toNiceString() const
+vstring Clause::toNiceString() const
 {
   CALL("Clause::toNiceString()");
 
-  string result = nonPropToString();
+  vstring result = nonPropToString();
 
   if (splits() && !splits()->isEmpty()) {
-    result += string(" {") + splits()->toString() + "}";
+    result += vstring(" {") + splits()->toString() + "}";
   }
 
   return result;
 }
 
 /**
- * Convert the clause to the string representation
+ * Convert the clause to the vstring representation
  * Includes splitting, age, weight, selected and inference
  */
-string Clause::toString() const
+vstring Clause::toString() const
 {
   CALL("Clause::toString()");
 
-  string result = Int::toString(_number) + ". " + nonPropToString();
+  vstring result = Int::toString(_number) + ". " + nonPropToString();
 
   if (splits() && !splits()->isEmpty()) {
-    result += string(" {") + splits()->toString() + "}";
+    result += vstring(" {") + splits()->toString() + "}";
   }
 
-  result += string(" (") + Int::toString(_age) + ':' + Int::toString(weight());
+  result += vstring(" (") + Int::toString(_age) + ':' + Int::toString(weight());
   if (selected()>0) {
     result += ':' + Int::toString(selected());
   }
@@ -442,22 +443,22 @@ string Clause::toString() const
  * Convert the clause into sequence of strings, each containing
  * a proper clause
  */
-VirtualIterator<string> Clause::toSimpleClauseStrings()
+VirtualIterator<vstring> Clause::toSimpleClauseStrings()
 {
   CALL("toSimpleClauseStrings");
     return pvi(getSingletonIterator(nonPropToString()));
 
- // string np(length() ? (nonPropToString() + " | ") : string(""));
+ // vstring np(length() ? (nonPropToString() + " | ") : vstring(""));
 
  // static BDDClausifier clausifier(true, false);
  // static SATClauseStack sclAcc;
  // sclAcc.reset();
  // clausifier.clausify(prop(), sclAcc);
- // List<string>* res = 0;
+ // List<vstring>* res = 0;
 
  // while (sclAcc.isNonEmpty()) {
  //   SATClause* sc = sclAcc.pop();
- //   string rstr(np);
+ //   vstring rstr(np);
 
  //   for(unsigned i = 0; i < sc->length(); i++) {
  //     if (i) {
@@ -467,18 +468,18 @@ VirtualIterator<string> Clause::toSimpleClauseStrings()
 //	rstr += '~';
 //      }
 //      unsigned bddVar = (*sc)[i].var();
-//      string varName;
+//      vstring varName;
 //      if (!bdd->getNiceName(bddVar, varName)) {
 //	varName = bdd->getPropositionalPredicateName(bddVar);
 //      }
 //      rstr += varName;
 //    }
 //
-//    List<string>::push(rstr, res);
+//    List<vstring>::push(rstr, res);
 //    sc->destroy();
 //  }
 //
-//  return pvi(List<string>::DestructiveIterator(res));
+//  return pvi(List<vstring>::DestructiveIterator(res));
 }
 
 /**

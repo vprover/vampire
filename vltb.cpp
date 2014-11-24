@@ -2,7 +2,6 @@
  * @file vampire.cpp. Implements the top-level procedures of Vampire.
  */
 
-#include <string>
 #include <iostream>
 #include <ostream>
 #include <fstream>
@@ -18,7 +17,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
-
+#include "Lib/VString.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
@@ -84,7 +83,7 @@ ClauseIterator getProblemClauses()
   {
     TimeCounter tc1(TC_PARSING);
 
-    string inputFile = env -> options->inputFile();
+    vstring inputFile = env -> options->inputFile();
 
     istream* input;
     if(inputFile=="") {
@@ -196,7 +195,7 @@ void ltbBuildMode()
 {
   CALL("ltbBuildMode");
 
-  string inputFile = env -> options->inputFile();
+  vstring inputFile = env -> options->inputFile();
 
   istream* input0;
   if(inputFile=="") {
@@ -209,22 +208,22 @@ void ltbBuildMode()
   }
   istream& input=*input0;
 
-  Stack<string> nameStack;
+  Stack<vstring> nameStack;
   char lineBuf[1024];
 
   while(!input.eof()) {
     input.getline(lineBuf, 1024);
-    string line(lineBuf);
+    vstring line(lineBuf);
     if(line.length()<12 || line.substr(0,9)!="include('" || line.substr(line.length()-3,3)!="').") {
       continue;
     }
-    string fname(line, 9, line.length()-3-9);
+    vstring fname(line, 9, line.length()-3-9);
 
     nameStack.push(fname);
   }
 
   Shell::LTB::Builder builder;
-  builder.build(pvi( Stack<string>::Iterator(nameStack) ));
+  builder.build(pvi( Stack<vstring>::Iterator(nameStack) ));
 
   if(inputFile!="") {
     delete static_cast<ifstream*>(&input);

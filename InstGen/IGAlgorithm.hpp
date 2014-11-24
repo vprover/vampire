@@ -54,6 +54,9 @@ using namespace Shell;
 
 class IGAlgorithm : public MainLoop, public ConcurrentMainLoop {
 public:
+  CLASS_NAME(IGAlgorithm);
+  USE_ALLOCATOR(IGAlgorithm);  
+  
   typedef Statistics::TerminationReason TerminationReason;
 
   IGAlgorithm(Problem& prb, const Options& opt);
@@ -118,8 +121,8 @@ private:
   RatioKeeper _instGenResolutionRatio;
 
 
-  IGGrounder _gnd;
-  SATSolverSCP _satSolver;
+  SATSolver* _satSolver;
+  ScopedPtr<IGGrounder> _gnd;
 
   /** Used by global subsumption */
   ScopedPtr<GroundingIndex> _groundingIndex;

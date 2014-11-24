@@ -20,6 +20,7 @@
 #include "Lib/Array.hpp"
 #include "Lib/Map.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/VString.hpp"
 
 #include "Kernel/Unit.hpp"
 
@@ -42,44 +43,44 @@ class collectionOfObjects {
 public:
   collectionOfObjects();
   void trySEI(Program::Statement* s);
-  bool insertVariableExpression(std::string key,
+  bool insertVariableExpression(vstring key,
 	  Program::VariableExpression* obj);
   void insertConstantIntegerExpr(int val,
 	  Program::ConstantIntegerExpression* obj);
-  void insertAssignment(std::string key, Program::Assignment* obj);
-  void insertBlock(std::string key, Program::Block* obj);
-  void insertFunctionApplication(std::string key,
+  void insertAssignment(vstring key, Program::Assignment* obj);
+  void insertBlock(vstring key, Program::Block* obj);
+  void insertFunctionApplication(vstring key,
 	  Program::FunctionApplicationExpression* obj);
-  void insertArrayApplication(std::string key,
+  void insertArrayApplication(vstring key,
 	  Program::ArrayApplicationExpression* obj);
-  void insertWhileDo(std::string key, Program::WhileDo* obj);
-  void insertIfThenElse(std::string key, Program::IfThenElse* obj);
-  void insertIfThen(std::string key, Program::IfThen* obj);
-  Program::Assignment* getAssignment(std::string key);
-  Program::Block* getBlock(std::string key);
-  Program::VariableExpression* getVarExpression(std::string key);
+  void insertWhileDo(vstring key, Program::WhileDo* obj);
+  void insertIfThenElse(vstring key, Program::IfThenElse* obj);
+  void insertIfThen(vstring key, Program::IfThen* obj);
+  Program::Assignment* getAssignment(vstring key);
+  Program::Block* getBlock(vstring key);
+  Program::VariableExpression* getVarExpression(vstring key);
   Program::ConstantIntegerExpression* getConstantIntegerExpr(int key);
   Program::FunctionApplicationExpression* getFunctionApplicationExpression(
-	  std::string key);
+	  vstring key);
   Program::ArrayApplicationExpression* getArrayApplicationExpression(
-	  std::string key);
-  Program::WhileDo* getWhile(std::string key);
-  Program::IfThenElse* getIfThenElse(std::string key);
-  Program::IfThen* getIfThen(std::string key);
-  bool findAssignemt(std::string key);
-  bool findBlock(std::string key);
-  bool findVarExpression(std::string key);
+	  vstring key);
+  Program::WhileDo* getWhile(vstring key);
+  Program::IfThenElse* getIfThenElse(vstring key);
+  Program::IfThen* getIfThen(vstring key);
+  bool findAssignemt(vstring key);
+  bool findBlock(vstring key);
+  bool findVarExpression(vstring key);
   bool findConstantInteger(int key);
-  bool findFunctionApplication(std::string key);
-  bool findArrayApplication(std::string key);
-  bool findWhileDo(std::string key);
-  bool findIfThenElse(std::string key);
-  bool findIfThen(std::string key);
+  bool findFunctionApplication(vstring key);
+  bool findArrayApplication(vstring key);
+  bool findWhileDo(vstring key);
+  bool findIfThenElse(vstring key);
+  bool findIfThen(vstring key);
   void insertMainProgramStatement(int number, Program::Statement* stmt);
   void insertMainProgramStatement(Program::Statement* stmt);
-  void insertVariable(std::string key, Program::Variable* obj);
-  bool findVariable(std::string key);
-  Program::Variable* getVariable(std::string key);
+  void insertVariable(vstring key, Program::Variable* obj);
+  bool findVariable(vstring key);
+  Program::Variable* getVariable(vstring key);
 
   bool multipleLoops(Program::Statement* s);
 
@@ -87,22 +88,22 @@ public:
 
   void runAnalysis(int n);
   Statement* getWhile(int wNumber);
-  bool testASS(std::string key);
-  int chekMaps(std::string key);
+  bool testASS(vstring key);
+  int chekMaps(vstring key);
   Lib::Stack<Program::VariableExpression*> getVarExpStack();
 private:
 
-  Lib::Map<std::string, Program::Block*> _mapOfBlocks;
-  Lib::Map<std::string, Program::ArrayApplicationExpression*> _mapOfArrayApplic;
-  Lib::Map<std::string, Program::Assignment*> _mapOfAssignments;
-  Lib::Map<std::string, Program::FunctionApplicationExpression*> _mapOfFcApplic;
-  Lib::Map<std::string, Program::VariableExpression*> _mapOfVariableExpr;
+  Lib::Map<vstring, Program::Block*> _mapOfBlocks;
+  Lib::Map<vstring, Program::ArrayApplicationExpression*> _mapOfArrayApplic;
+  Lib::Map<vstring, Program::Assignment*> _mapOfAssignments;
+  Lib::Map<vstring, Program::FunctionApplicationExpression*> _mapOfFcApplic;
+  Lib::Map<vstring, Program::VariableExpression*> _mapOfVariableExpr;
   Lib::Map<int, Program::ConstantIntegerExpression*> _mapOfIntegers;
-  Lib::Map<std::string, Program::Variable*> _mapOfVariables;
+  Lib::Map<vstring, Program::Variable*> _mapOfVariables;
 
-  Lib::Map<std::string, Program::WhileDo*> _mapOfWhile;
-  Lib::Map<std::string, Program::IfThenElse*> _mapOfThenElse;
-  Lib::Map<std::string, Program::IfThen*> _mapOfIfThen;
+  Lib::Map<vstring, Program::WhileDo*> _mapOfWhile;
+  Lib::Map<vstring, Program::IfThenElse*> _mapOfThenElse;
+  Lib::Map<vstring, Program::IfThen*> _mapOfIfThen;
   Lib::Map<int, Program::Statement*> _mapOfMainProgramStatements;
 
 };

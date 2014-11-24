@@ -27,17 +27,17 @@ private:
   void doProving();
   void displayResult();
 
-  void loadFormula(string fname);
+  void loadFormula(vstring fname);
 
-  typedef pair<string,unsigned> FuncSpec;
+  typedef pair<vstring,unsigned> FuncSpec;
   typedef DHSet<FuncSpec> FuncSet;
   typedef DHMap<FuncSpec,BaseType*> FuncTypeMap;
 
-  void collectSMTLIBFileFunctions(string fname, FuncSet& acc);
+  void collectSMTLIBFileFunctions(vstring fname, FuncSet& acc);
 
 
-  Stack<string> _leftFNames;
-  Stack<string> _rightFNames;
+  Stack<vstring> _leftFNames;
+  Stack<vstring> _rightFNames;
 
   FuncTypeMap _funcTypes;
 
@@ -48,11 +48,11 @@ private:
 private:
   //slicing
 
-  typedef DHSet<string> StrategySet;
-  typedef Stack<string> Schedule;
+  typedef DHSet<vstring> StrategySet;
+  typedef Stack<vstring> Schedule;
 
   bool runSchedule(Schedule& schedule,StrategySet& ss,bool fallback);
-  bool runSlice(string slice, unsigned ds);
+  bool runSlice(vstring slice, unsigned ds);
   bool runSlice(Options& opt);
   void childRun(Options& opt);
 

@@ -23,6 +23,9 @@ class GlobalSubsumption
 : public ForwardSimplificationEngine
 {
 public:
+  CLASS_NAME(GlobalSubsumption);
+  USE_ALLOCATOR(GlobalSubsumption);
+
   GlobalSubsumption() : _index(0), _allowExtraAttachment(false) {}
   /**
    * The attach function must not be called when the constructor is used

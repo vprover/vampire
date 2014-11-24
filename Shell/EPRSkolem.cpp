@@ -24,6 +24,8 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "Flattening.hpp"
 #include "PDUtils.hpp"
 #include "Skolem.hpp"
@@ -42,8 +44,6 @@ namespace Shell
 class EPRSkolem::ConstantSkolemizer : private PolarityAwareFormulaTransformer
 {
 public:
-  ConstantSkolemizer(bool trace=false) : _trace(trace) {}
-
   FormulaUnit* transform(FormulaUnit* f);
   bool transform(UnitList*& units);
 
@@ -67,9 +67,7 @@ public:
 protected:
   Formula* applyLiteral(Formula* f);
   Formula* applyQuantified(Formula* f);
-private:
-  bool _trace;
-
+private:  
   bool _extraQuantifiers;
 
   typedef DHMap<unsigned,TermList> BindingMap;
@@ -103,7 +101,11 @@ bool EPRSkolem::ConstantSkolemizer::transform(UnitList*& units)
 FormulaUnit* EPRSkolem::ConstantSkolemizer::transform(FormulaUnit* fu)
 {
   CALL("EPRSkolem::ConstantSkolemizer::transform(FormulaUnit*)");
-  LOG_UNIT("pp_esk_cs_args", fu);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] esk_cs_args: " << fu->toString() << std::endl;
+    env->endOutput();
+  }
 
   ASS(_introducedSkolemFuns.isEmpty());
   Formula* form = fu->formula();
@@ -119,7 +121,12 @@ FormulaUnit* EPRSkolem::ConstantSkolemizer::transform(FormulaUnit* fu)
     InferenceStore::instance()->recordIntroducedSymbol(res, true, fn);
   }
 
-  LOG("pp_esk","Constant skolemizer:\n  from: " << (*fu) << "\n  to:   " << (*res));
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] Constant skolemizer:\n  from: " <<
+            (*fu) << "\n  to:   " << (*res) << std::endl;
+    env->endOutput();
+  }
 
   return res;
 }
@@ -225,7 +232,7 @@ protected:
 private:
   Literal* getSkolemLiteral(unsigned var);
 
-  void generateSKUnit(Literal* inst, unsigned pred, unsigned var, string nameSuffix);
+  void generateSKUnit(Literal* inst, unsigned pred, unsigned var, vstring nameSuffix);
 
   void propagateInstancesToLiteral(Literal* lit, bool negated);
 
@@ -275,7 +282,11 @@ Formula* EPRSkolem::Applicator::applyLiteral(Formula* f)
 void EPRSkolem::Applicator::propagateInstancesToLiteral(Literal* lit, bool negated)
 {
   CALL("EPRSkolem::Applicator::propagateInstancesToLiteral");
-  LOG("pp_esk","Propagating instances to literal: " << (*lit));
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] Propagating instances to literal: " << (*lit) << std::endl;
+    env->endOutput();
+  }
 
   unsigned hdr = lit->header() ^ (negated ? 1 : 0);
   if(!_parent._inlinedHeaders.find(hdr)) {
@@ -333,12 +344,12 @@ void EPRSkolem::Applicator::propagateInstancesToLiteral(Literal* lit, bool negat
   }
 }
 
-void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigned var, string nameSuffix)
+void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigned var, vstring nameSuffix)
 {
   CALL("EPRSkolem::Applicator::generateSKUnit");
   ASS_EQ(inst->functor(), _lhs->functor());
 
-  string argsStr;
+  vstring argsStr;
 
   static Stack<TermList> args;
   args.reset();
@@ -351,21 +362,31 @@ void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigne
     argsStr += t->toString();
   }
 
-  string suffix = nameSuffix;
-  if(!argsStr.empty() && argsStr.find_first_of("('")==string::npos) {
+  vstring suffix = nameSuffix;
+  if(!argsStr.empty() && argsStr.find_first_of("('")==vstring::npos) {
     suffix += "_" + argsStr;
   }
 
 
   unsigned skFunSort = getVarSort(var);
   unsigned skFun = Skolem::addSkolemFunction(0, 0, skFunSort, suffix.c_str());
-
-  LOG("pp_esk","New Skolem function: " << env -> signature->functionName(skFun) << " suffix: " << suffix);
+  
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] New Skolem function: " << env->signature->functionName(skFun) 
+            << " suffix: " << suffix << std::endl;
+    env->endOutput();
+  }
 
 
   TermList skTerm = TermList(Term::createConstant(skFun));
 
-  LOG("pp_esk_contst","skolem const " << skTerm << " for X"<<var << " at instatiation " << (*inst));
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] skolem const " << skTerm << " for X"<<var 
+            << " at instatiation " << (*inst) << std::endl;    
+    env->endOutput();
+  }
   ALWAYS(_skolemFns.insert(make_pair(inst,var), skTerm)); //formula should be rectified and instances unique
 
   args.push(skTerm);
@@ -376,7 +397,11 @@ void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigne
   Inference* inf = new Inference(Inference::SKOLEM_PREDICATE_INTRODUCTION);
   FormulaUnit* skUnit = new FormulaUnit(skForm, inf, Unit::AXIOM);
 
-  LOG("pp_esk","New Skolem unit: " << (*skUnit));
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] New Skolem unit: " << (*skUnit) << std::endl;
+    env->endOutput();
+  }
   UnitList::push(skUnit, _skUnits);
 }
 
@@ -386,7 +411,7 @@ Literal* EPRSkolem::Applicator::getSkolemLiteral(unsigned var)
   CALL("EPRSkolem::Applicator::getSkolemLiteral");
   ASS(!_lhs->containsSubterm(TermList(var,false)));
 
-  string nameSuffix = _lhs->predicateName();
+  vstring nameSuffix = _lhs->predicateName();
   if(VarManager::varNamePreserving()) {
     nameSuffix += "_" + VarManager::getVarName(var);
   }
@@ -437,8 +462,13 @@ Formula* EPRSkolem::Applicator::applyQuantified(Formula* f)
     throw CannotEPRSkolemize();
   }
 
-  bool toBeSkolemized = (f->connective()==EXISTS) == (polarity()==1);
-  LOG("pp_esk_quant","Quantified subformula " << (*f) << " to be skolemized: " << toBeSkolemized);
+  bool toBeSkolemized = (f->connective()==EXISTS) == (polarity()==1);  
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] Quantified subformula " << (*f) << " to be skolemized: "
+            << toBeSkolemized << std::endl;
+    env->endOutput();
+  }
   if(!toBeSkolemized) {
     ScopedLet<bool> eqLet(_extraQuantifiers, true);
     _universalVars.loadFromIterator(Formula::VarList::Iterator(f->vars()));
@@ -489,12 +519,21 @@ void EPRSkolem::processLiteralHeader(Literal* lit, unsigned header)
 
   if(!_inlinedHeaders.find(header)) {
     return;
+  }  
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] added instance " << (*lit) << " as " 
+            << ((header & 1) ? "positive" : "negative") << std::endl;
+    env->endOutput();
   }
-  LOG("pp_esk_inst","added instance " << (*lit) << " as " <<((header&1) ? "positive" : "negative"));
   _insts.pushToKey(header, lit);
   if(!lit->ground()) {
     _inlinedHeaders.remove(header);
-    LOG("pp_esk","Disabled header " << headerToString(header));
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] Disabled header " << headerToString(header) << std::endl;
+      env->endOutput();
+    }
   }
 }
 
@@ -553,7 +592,11 @@ void EPRSkolem::processProblemFormula(FormulaUnit* fu)
 void EPRSkolem::enableLiteralHeader(unsigned header)
 {
   _inlinedHeaders.insert(header);
-  LOG("pp_esk","Enabled header " << headerToString(header));
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] Enabled header " << headerToString(header) << std::endl;
+    env->endOutput();
+  }
 }
 
 void EPRSkolem::processActiveDefinitions(UnitList* units)
@@ -603,8 +646,12 @@ void EPRSkolem::processActiveDefinitions(UnitList* units)
   while(apit2.hasNext()) {
     unsigned pred = apit2.next();
     FormulaUnit* def = _nonEprDefs[pred];
-    LOG("pp_esk","Processing definition of " << env -> signature->predicateName(pred)<<": "
-	   << (*def));
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] Processing definition of " << env->signature->predicateName(pred)
+              <<": " << (*def) << std::endl;
+      env->endOutput();
+    }
     processDefinition(def);
   }
 }
@@ -636,24 +683,40 @@ bool EPRSkolem::applyToDefinitionHalf(FormulaUnit* fu, Literal* lhs, Formula* rh
     int topPolarity, UnitList*& res)
 {
   CALL("EPRSkolem::applyToDefinitionHalf");
-
-  LOG("pp_esk","Applying to " << ((topPolarity==1) ? "=>" : "<=") << " of "<< (*fu));
+ 
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] Applying to " << ((topPolarity==1) ? "=>" : "<=") 
+            << " of "<< (*fu) << std::endl;
+    env->endOutput();
+  }
 
   Applicator apl(*this, lhs, topPolarity);
   Formula* newRhs = apl.transform(rhs);
-  LOG("pp_esk","Transformed rhs: " << (*newRhs));
-
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] Transformed rhs: " << (*newRhs) << std::endl;
+    env->endOutput();
+  }
 
   if(apl.hasInstances()) {
     FormulaUnit* resDef = definitionToImplication(fu, lhs, newRhs, topPolarity);
     res = UnitList::concat(res, apl._skUnits);
     apl._skUnits = 0;
     UnitList::push(resDef, res);
-    LOG("pp_esk","New half-definition: " << (*resDef));
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] New half-definition: " << (*resDef) << std::endl;
+      env->endOutput();
+    }
   }
   else {
     ASS_EQ(apl._skUnits, 0);
-    LOG("pp_esk","Half-definition not introduced because there are no instances.");
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] Half-definition not introduced because there are no instances." << std::endl;
+      env->endOutput();
+    }
   }
   return true;
 }
@@ -662,7 +725,11 @@ void EPRSkolem::processDefinition(FormulaUnit* unit)
 {
   CALL("EPRSkolem::processDefinition");
 
-  LOG("pp_esk","Processing definition: " << (*unit));
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] Processing definition: " << (*unit) << std::endl;
+    env->endOutput();
+  }
 
   Literal* lhs;
   Formula* rhs;
@@ -675,7 +742,12 @@ void EPRSkolem::processDefinition(FormulaUnit* unit)
   bool inlineNeg = _inlinedHeaders.find(negHdr);
   bool inlinePos = _inlinedHeaders.find(posHdr);
   if(!inlineNeg && !inlinePos) {
-    LOG("pp_esk","Skipping definition because both polarities are disabled: " << (*unit));
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] Skipping definition because both polarities are disabled: " 
+              << (*unit) << std::endl;
+      env->endOutput();
+    }
     processProblemFormula(unit);
     return;
   }
@@ -696,7 +768,11 @@ void EPRSkolem::processDefinition(FormulaUnit* unit)
   catch (CannotEPRSkolemize) {
     res->destroy();
     processProblemFormula(unit);
-    LOG("pp_esk","Cannot skolemize " << (*unit));
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] Cannot skolemize " << (*unit) << std::endl;
+      env->endOutput();
+    }
     return;
   }
 
@@ -739,21 +815,26 @@ void EPRSkolem::apply(Problem& prb)
 bool EPRSkolem::apply(UnitList*& units)
 {
   CALL("EPRSkolem::apply(UnitList*&)");
-
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_esk");
-
-  LOG("pp_esk","EPR skolemization start");
-  LOG("pp_esk","Constant skolemization");
+  
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] EPR skolemization start\nConstant skolemization" << std::endl;
+    env->endOutput();
+  }  
 
   bool modified = false;
 
   {
-    ConstantSkolemizer skol(_trace);
+    ConstantSkolemizer skol;
     bool csModified = skol.transform(units);
     modified |= csModified;
   }
 
-  LOG("pp_esk","Predicate equivalence removal");
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] Predicate equivalence removal" << std::endl;
+    env->endOutput();
+  }
 
   {
     //remove predicate equivalences
@@ -762,7 +843,11 @@ bool EPRSkolem::apply(UnitList*& units)
     modified |= eqInlinerModified;
   }
 
-  LOG("pp_esk","Definition replacement");
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] Definition replacement" << std::endl;
+    env->endOutput();
+  }
 
   scan(units);
 
@@ -777,7 +862,11 @@ bool EPRSkolem::apply(UnitList*& units)
     uit.del();
     modified = true;
   }
-  LOG("pp_esk","EPR skolemization done");
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] EPR skolemization done" << std::endl;
+    env->endOutput();
+  }
 
   return modified;
 }
@@ -796,7 +885,7 @@ bool EPRSkolem::apply(Unit* unit, UnitList*& acc)
   return true;
 }
 
-string EPRSkolem::headerToString(unsigned header)
+vstring EPRSkolem::headerToString(unsigned header)
 {
   CALL("EPRSkolem::headerToString");
 

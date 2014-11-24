@@ -70,7 +70,7 @@ public:
     _propagatedBounds.initFromIterator(boundSpecIt);
   }
 
-  string toString(const BoundsArray& bounds) const;
+  vstring toString(const BoundsArray& bounds) const;
 
 private:
   ConstraintRCPtr _parent;
@@ -154,7 +154,7 @@ public:
   Constraint* tryGetCachedCollapsingInequality() const { return _cachedCollapsingInequality.ptr(); }
   void setCachedCollapsingInequality(Constraint* c) const { _cachedCollapsingInequality = c; }
 
-  string toString(const BoundsArray& bounds, const BoundId& b, bool outputJustification=true) const;
+  vstring toString(const BoundsArray& bounds, const BoundId& b, bool outputJustification=true) const;
 private:
   void assignDepth(DecisionLevel depth) {
     CALL("BoundInfo::assignDepth");

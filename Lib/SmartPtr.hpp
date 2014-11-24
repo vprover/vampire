@@ -1,5 +1,5 @@
 /**
- * @file Unit.hpp
+ * @file SmartPtr.hpp
  * Defines class SmartPtr for smart pointers
  *
  * @since 08/05/2007 Manchester
@@ -13,11 +13,23 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
+#include "Lib/Allocator.hpp"
+
 namespace Lib
 {
 
 template<typename T>
 class SmartPtr {
+private:
+  struct RefCounter {
+    CLASS_NAME(SmartPtr::RefCounter);
+    USE_ALLOCATOR(SmartPtr::RefCounter);
+  
+    inline explicit RefCounter(int v) : _val(v) {}
+  
+    int _val;
+  };
+
 public:
   inline
   SmartPtr() : _obj(0), _refCnt(0) {}
@@ -28,12 +40,12 @@ public:
    */
   inline
   explicit SmartPtr(T* obj, bool nondisposable=false)
-  : _obj(obj), _refCnt(nondisposable ? 0 : new int(1)) {ASS(obj);}
+  : _obj(obj), _refCnt(nondisposable ? 0 : new RefCounter(1)) {ASS(obj);}
   inline
   SmartPtr(const SmartPtr& ptr) : _obj(ptr._obj), _refCnt(ptr._refCnt)
   {
     if(_obj && _refCnt) {
-      (*_refCnt)++;
+      (_refCnt->_val)++;
     }
   }
   inline
@@ -42,9 +54,9 @@ public:
     if(!_obj || !_refCnt) {
       return;
     }
-    (*_refCnt)--;
-    ASS(*_refCnt>=0);
-    if(! *_refCnt) {
+    (_refCnt->_val)--;
+    ASS(_refCnt->_val >= 0);
+    if(! _refCnt->_val) {
       checked_delete(_obj);
       delete _refCnt;
     }
@@ -54,20 +66,20 @@ public:
     CALL("SmartPtr::operator=");
 
     T* oldObj=_obj;
-    int* oldCnt=_refCnt;
+    RefCounter* oldCnt=_refCnt;
     _obj=ptr._obj;
     _refCnt=ptr._refCnt;
 
     if(_obj && _refCnt) {
-      (*_refCnt)++;
+      (_refCnt->_val)++;
     }
 
     if(oldObj && oldCnt) {
-      (*oldCnt)--;
-      ASS(*oldCnt>=0);
-      if(! *oldCnt) {
-	checked_delete(oldObj);
-	delete oldCnt;
+      (oldCnt->_val)--;
+      ASS(oldCnt->_val >= 0);
+      if(! oldCnt->_val) {
+        checked_delete(oldObj);
+        delete oldCnt;
       }
     }
     return *this;
@@ -97,7 +109,7 @@ private:
   template<typename U> friend class SmartPtr;
 
   T* _obj;
-  int* _refCnt;
+  RefCounter* _refCnt;
 };
 
 };

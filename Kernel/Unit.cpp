@@ -137,7 +137,7 @@ void Unit::destroy()
   }
 }
 
-string Unit::toString() const
+vstring Unit::toString() const
 {
   CALL("Unit::toString");
 
@@ -218,11 +218,11 @@ void Unit::collectPredicates(Stack<unsigned>& acc)
 }
 
 /**
- * Print the inference as a string (used in printing units in
+ * Print the inference as a vstring (used in printing units in
  * refutations).
  * @since 04/01/2008 Torrevieja
  */
-string Unit::inferenceAsString(BDDNode* propPart) const
+vstring Unit::inferenceAsString(BDDNode* propPart) const
 {
   CALL("Unit::inferenceAsString");
 
@@ -234,7 +234,7 @@ string Unit::inferenceAsString(BDDNode* propPart) const
   UnitSpec us = propPart ? UnitSpec(const_cast<Unit*>(this), propPart) : UnitSpec(const_cast<Unit*>(this));
   parents = infS.getParents(us, rule);
 
-  string result = (string)"[" + Inference::ruleName(rule);
+  vstring result = (vstring)"[" + Inference::ruleName(rule);
   bool first = true;
   while (parents.hasNext()) {
     UnitSpec parent = parents.next();
@@ -244,7 +244,7 @@ string Unit::inferenceAsString(BDDNode* propPart) const
   }
   return result + ']';
 #else
-  string result = (string)"[" + _inference->name();
+  vstring result = (vstring)"[" + _inference->name();
    bool first = true;
    Inference::Iterator it = _inference->iterator();
    while (_inference->hasNext(it)) {

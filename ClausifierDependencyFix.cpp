@@ -23,7 +23,7 @@ void Saturation::SaturationAlgorithm::tryUpdateFinalClauseCount()
 {
 }
 
-Shell::InterpolantMinimizer::InterpolantMinimizer(OptimizationTarget, bool, bool, string)
+Shell::InterpolantMinimizer::InterpolantMinimizer(OptimizationTarget, bool, bool, vstring)
 {
 }
 Shell::InterpolantMinimizer::~InterpolantMinimizer()

@@ -30,18 +30,18 @@ TEST_FUN(stackDelIterator)
     ALWAYS(dit1.next()==1);
   }
 
-  ASS_EQ(st1.size(),cnt-1);
+  ASS_EQ((int)st1.size(),cnt-1);
   
   {
     Stack<unsigned>::StableDelIterator dit2(st1);
     for(int i=1;i<cnt;i++) {
       ALWAYS(dit2.hasNext());
-      ALWAYS(dit2.next()==i);
+      ALWAYS((int)dit2.next()==i);
     }
     dit2.del();
   }
-  ASS_EQ(st1.size(),cnt-2);
-  ASS_EQ(st1.top(),cnt-2);
+  ASS_EQ((int)st1.size(),cnt-2);
+  ASS_EQ((int)st1.top(),cnt-2);
   st1.push(cnt-1);
 
   {
@@ -52,7 +52,7 @@ TEST_FUN(stackDelIterator)
       }
     }
   }
-  ASS_EQ(st1.size(),cnt/2);
+  ASS_EQ((int)st1.size(),cnt/2);
   {
     Stack<unsigned>::StableDelIterator dit4(st1);
     while(dit4.hasNext()) {

@@ -54,16 +54,16 @@ private:
 class NameMapColoring : public TermColoring
 {
 public:
-  void loadColors(const DHMap<string,Color>& cols) {
+  void loadColors(const DHMap<vstring,Color>& cols) {
     _funcColors.loadFromMap(cols);
   }
 protected:
   virtual bool isColoredFunction(unsigned func);
   virtual Color getColor(TermList term);
 private:
-  static string normalizeName(string str);
+  static vstring normalizeName(vstring str);
 
-  DHMap<string,Color> _funcColors;
+  DHMap<vstring,Color> _funcColors;
 
 };
 

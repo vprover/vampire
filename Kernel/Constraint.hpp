@@ -95,7 +95,7 @@ public:
 	&& (freeCoeff().isPositive() || (freeCoeff().isZero() && type()==CT_GR));
   }
 
-  string toString() const;
+  vstring toString() const;
 
   void incRefCnt() { _refCnt++; }
   void decRefCnt() {

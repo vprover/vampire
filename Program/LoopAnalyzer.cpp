@@ -43,9 +43,10 @@
 
 #include "Parse/TPTP.hpp"
 
-#include <string>
 #include <fstream>
 #include <iostream>
+
+#include "Lib/VString.hpp"
 
 using namespace Kernel;
 using namespace Program;
@@ -62,7 +63,7 @@ LoopAnalyzer::LoopAnalyzer(WhileDo* loop)
   _n=Term::createConstant(getIntConstant("$counter"));
 }
 
-unsigned LoopAnalyzer::getIntConstant(string name){
+unsigned LoopAnalyzer::getIntConstant(vstring name){
   //if the constant to be inserted is the internal counter mark it for elimination 
   return ("$counter"==name? getIntFunction(name,0,true):getIntFunction(name, 0));
 
@@ -114,7 +115,7 @@ void LoopAnalyzer::analyze()
   generateIterationDefinition();
 
   //check if we have additional information to be added to the units
-  string additionalInvariants = env -> options->lingvaAdditionalInvariants();
+  vstring additionalInvariants = env -> options->lingvaAdditionalInvariants();
   if ( additionalInvariants != "") {
     //retrieve the file containing the additional information
     istream* additional = new ifstream(additionalInvariants.c_str());
@@ -264,7 +265,7 @@ void LoopAnalyzer::analyzeVariables()
 
     // adding the symbol to the signature
     unsigned arity = vinfo->scalar ? 0 : 1;
-    string name(v->name());
+    vstring name(v->name());
     vinfo->signatureNumber = getIntFunction(name,arity,false);
     if (arity == 0) {
       vinfo->constant = Term::create(vinfo->signatureNumber,0,0);
@@ -379,7 +380,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp, bool magic)
     {
 
       Variable* expVar=  static_cast<VariableExpression*>(exp)->variable();
-      string expName=expVar->name() ;
+      vstring expName=expVar->name() ;
       if (!magic)
         {
           TermList var(Term::createConstant(getIntConstant(expName)));
@@ -397,7 +398,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp, bool magic)
      {
        //create term for array variable
        Expression*  expArray=  static_cast<ArrayApplicationExpression*>(exp)->array();
-       string varName=expArray->toString();
+       vstring varName=expArray->toString();
        unsigned arrayFct=getIntFunction(varName,1,false);
        //create term represenation for array arguments
        Expression*  expArrayArguments=  static_cast<ArrayApplicationExpression*>(exp)->argument();
@@ -449,7 +450,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp, bool magic)
       //rhs is an uninterpreted function f(e1), 
       //create term for uninterpreted function
       Expression*  uiFct=  app->function();
-      string uiFctName=uiFct->toString();
+      vstring uiFctName=uiFct->toString();
       unsigned uiFctNameTerm=getIntFunction(uiFctName,1,false);
       //create term representation for arguments e1
       Expression* e1 = app->getArgument(0);
@@ -577,7 +578,7 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
       Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
       Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
       TermList argTerms = expressionToTerm(lhsArrayArguments);
-      string arrayName=lhsArray->toString();
+      vstring arrayName=lhsArray->toString();
       unsigned arrayFct1=getIntFunction(arrayName,1,false);
       TermList x1;
       x1.makeVar(1);
@@ -611,7 +612,7 @@ Formula* LoopAnalyzer::letTranslationOfVar(VariableMap::Iterator& varit, Formula
   VariableInfo* winfo;
   varit.next(w,winfo);
   if (winfo->counter) { // do this only for updated scalar variables
-    string warName=w->name();
+    vstring warName=w->name();
     TermList war(Term::createConstant(getIntConstant(warName)));
     unsigned warFun = getIntFunction(warName,1,false);
     // term x0
@@ -639,7 +640,7 @@ Formula* LoopAnalyzer::letTranslationOfArray(Map<Variable*,bool>::Iterator &sit,
   sit.next(v,updated);
   bool array = (v->vtype()->kind() == Type::ARRAY);
   if (updated & array) {//it is an updated array
-    string varName=v->name();
+    vstring varName=v->name();
     unsigned arrayFct1=getIntFunction(varName,1,false);
     unsigned arrayFct2=getIntFunction(varName,2,true);
     // term x0
@@ -688,7 +689,7 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
 	  Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
 	  Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 	  TermList argTerms = expressionToTerm(lhsArrayArguments);
-	  string arrayName=lhsArray->toString();
+	  vstring arrayName=lhsArray->toString();
 	  unsigned arrayFct1=getIntFunction(arrayName,1,false);
 	  TermList x1;
 	  x1.makeVar(1);
@@ -702,14 +703,12 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
       default:
 	ASSERTION_VIOLATION;
       }
-      LOG("lin_letCondition","let conditon: "<< condition->toString());
       return letCondition(sit,condition, condPos, currPos+1);
     }
   case Statement::BLOCK:
   case Statement::WHILE_DO:
   case Statement::ITE: 
   case Statement::ITS:
-    LOG("lin_letCondition","let condition: "<<condition->toString());
     return letCondition(sit,condition, condPos, currPos+1);
   default:
     ASSERTION_VIOLATION;
@@ -761,7 +760,6 @@ Formula* LoopAnalyzer::letTranslationOfGuards(Path* path, Path::Iterator &sit, F
     Formula* cond= conditions.pop();
     letFormula = new BinaryFormula(IMP, cond, letFormula);
   }
-  LOG("lin_letTransG","translation of guards: "<<letFormula->toString());
   return letFormula; 
 }
 
@@ -787,7 +785,7 @@ void LoopAnalyzer::generateLetExpressions()
       }
       bool scalar = (v->vtype()->kind() == Type::INT);
       bool array = (v->vtype()->kind() == Type::ARRAY);
-      string varName=v->name();
+      vstring varName=v->name();
       TermList var;
       TermList varX01;
       Theory* theory = Theory::instance();
@@ -840,7 +838,6 @@ void LoopAnalyzer::generateLetExpressions()
       //process updated scalars 
       VariableMap::Iterator varit(_variableInfo);
       letFormula = letTranslationOfVar(varit,letFormula);
-      LOG("lin_let","let expression: "<<letFormula->toString());
     }
   }
 }
@@ -875,7 +872,7 @@ TermList LoopAnalyzer::arrayUpdateValue(Path::Iterator &sit, TermList exp, int p
 	Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
 	Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 	TermList argTerms = expressionToTerm(lhsArrayArguments);
-	string arrayName=lhsArray->toString();
+	vstring arrayName=lhsArray->toString();
 	unsigned arrayFct1=getIntFunction(arrayName,1,false);
 	TermList x1;
 	x1.makeVar(1);
@@ -915,7 +912,7 @@ int LoopAnalyzer::arrayIsUpdatedOnPath(Path* path, Variable *v)
 	Expression* lhs = static_cast<Assignment*>(stat)->lhs();
 	if (lhs->kind()==Expression::ARRAY_APPLICATION) { 
 	  Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
-	  string arrayName=lhsArray->toString();
+	  vstring arrayName=lhsArray->toString();
 	  if (arrayName == v->name()) {
 	    updated =1;
 	  }
@@ -962,7 +959,7 @@ TermList LoopAnalyzer::arrayUpdatePosition(Path::Iterator &sit, TermList updPosE
 	Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
 	Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 	TermList argTerms = expressionToTerm(lhsArrayArguments);
-	string arrayName=lhsArray->toString();
+	vstring arrayName=lhsArray->toString();
 	unsigned arrayFct1=getIntFunction(arrayName,1,false);
 	TermList x1;
 	x1.makeVar(1);
@@ -1045,7 +1042,6 @@ Formula* LoopAnalyzer::arrayUpdateCondition(Path* path, Path::Iterator &sit, int
     }
   }
   
-  LOG("lin_arrayUpdateCond","array update condition: "<<arrayUpdCondition->toString());
   return arrayUpdCondition;
 }
 
@@ -1078,7 +1074,7 @@ Formula* LoopAnalyzer::updatePredicateOfArray2(Path* path, Path::Iterator &sit, 
 	  Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
 	  Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 	  TermList arrayArgs=expressionToTerm(lhsArrayArguments);
-	  string arrayName=lhsArray->toString();
+	  vstring arrayName=lhsArray->toString();
 	  if (arrayName == v->name()) {
 	    //compute an update predicate of v
 	    Path::Iterator pit(path);
@@ -1128,7 +1124,6 @@ Formula* LoopAnalyzer::updatePredicateOfArray2(Path* path, Path::Iterator &sit, 
       arrayUpdPredicate=new JunctionFormula(OR,interForm);
     }
   }
-  LOG("lin_arrayUpdPred","array upd pred: "<<arrayUpdPredicate->toString());
   return arrayUpdPredicate;  
 }
 
@@ -1160,7 +1155,7 @@ Formula* LoopAnalyzer::updatePredicateOfArray3(Path* path, Path::Iterator &sit, 
 	  Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
 	  Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 	  TermList arrayArgs=expressionToTerm(lhsArrayArguments);
-	  string arrayName=lhsArray->toString();
+	  vstring arrayName=lhsArray->toString();
 	  if (arrayName == v->name()) {
 	    //compute an update predicate of v
 	    Path::Iterator pit(path);
@@ -1211,12 +1206,10 @@ Formula* LoopAnalyzer::updatePredicateOfArray3(Path* path, Path::Iterator &sit, 
     if (firstUpdFormula) {
       arrayUpdPredicate = updPred;
       firstUpdFormula=0;
-      LOG("lin_arrayUpdPred","array upd pred: "<<arrayUpdPredicate->toString());
     }
     else {
       FormulaList* interForm = (new FormulaList(arrayUpdPredicate))->cons(updPred);
       arrayUpdPredicate=new JunctionFormula(OR,interForm);
-      LOG("lin_arrayUpdPred","array upd pred: "<<arrayUpdPredicate->toString());
     }
   }    
   return arrayUpdPredicate;  
@@ -1257,7 +1250,7 @@ Formula* LoopAnalyzer::updPredicateStack(Stack<Formula*> &updStack)
  * generate last update property of an array ARRAY
  * using the update predicate UpdPRED of the ARRAY
  */
-Formula* LoopAnalyzer::lastUpdateProperty(Literal* updPred, string array, TermList position, TermList updValue)
+Formula* LoopAnalyzer::lastUpdateProperty(Literal* updPred, vstring array, TermList position, TermList updValue)
 {
   CALL("LoopAnalyzer::lastUpdateProperty");
   unsigned arrayFct1=getIntFunction(array,1);
@@ -1271,7 +1264,7 @@ Formula* LoopAnalyzer::lastUpdateProperty(Literal* updPred, string array, TermLi
  * using the update predicate UpdPRED of the ARRAY
  * that is: (iter(ITERATION) => ~UpdPred(ITERATION,POSITION)) => ARRAY(POSITION) = ARRAY0(POSITION)
  */
-Formula* LoopAnalyzer::stabilityProperty(Literal* updPred, string array, TermList position, TermList iteration)
+Formula* LoopAnalyzer::stabilityProperty(Literal* updPred, vstring array, TermList position, TermList iteration)
 {
   CALL("LoopAnalyzer::stabilityProperty");
 
@@ -1292,7 +1285,6 @@ Formula* LoopAnalyzer::stabilityProperty(Literal* updPred, string array, TermLis
   QuantifiedFormula* qf = new QuantifiedFormula(FORALL, new Formula::VarList(0), stabilityCondition);
   
   Formula* stabilityProp = new BinaryFormula(IMP,qf,new AtomicFormula(stabilityImplication));
-  LOG("lin_stability","stability properties: "<<stabilityProp->toString());
   return stabilityProp;
 }
 
@@ -1344,7 +1336,7 @@ void LoopAnalyzer::generateUpdatePredicates()
     Formula* loopUpdPredicateV2=updPredicateStack(updPredicatesV2);
     Formula* loopUpdPredicateV3=updPredicateStack(updPredicatesV3);
     //create updV predicates in the signature
-    string updName="upd"+v->name();
+    vstring updName="upd"+v->name();
     TermList x2;//variable for update position
     x2.makeVar(2);
     TermList x0;
@@ -1366,19 +1358,15 @@ void LoopAnalyzer::generateUpdatePredicates()
     //generate stability property: (iter(x0)=>~updV(x0,x2)) => V(X2)=V0(X2)
     Formula* stabProp = stabilityProperty(upd1, v->name(), x2, x0);
 
-    LOG("lin_arrayUpdateCond","update def: " << updDefV1->toString());
     _units = _units->cons(new FormulaUnit(updDefV1,
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));
-    LOG("lin_arrayUpdateCond","update def: "<<updDefV2->toString());
     _units = _units->cons(new FormulaUnit(updDefV2,
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));
-    LOG("lin_arrayUpdateCond","last update: "<<lastUpd->toString());
     _units = _units->cons(new FormulaUnit(lastUpd,
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));	
-    LOG("lin_arrayUpdateCond","stability prop: "<<stabProp->toString());
     _units = _units->cons(new FormulaUnit(stabProp,
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));	
@@ -1444,13 +1432,10 @@ void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
 			     new FormulaUnit(initialValFctCorresp,
 					     new Inference(Inference::PROGRAM_ANALYSIS),
 					     Unit::ASSUMPTION));
-       LOG("lin_initial",
-	   "initialValue: "<<initialValFctCorresp->toString());
        _units = _units->cons(
 			     new FormulaUnit(finalValFctCorresp,
 					     new Inference(Inference::PROGRAM_ANALYSIS),
 					     Unit::ASSUMPTION));
-       LOG("lin_initial", "finalVlaue: "<<finalValFctCorresp->toString());
      }
      if (scalar) {
        //create final and initial scalar functions
@@ -1467,11 +1452,9 @@ void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
        _units = _units->cons(new FormulaUnit(finalValFctCorresp,
 					     new Inference(Inference::PROGRAM_ANALYSIS),
 					     Unit::ASSUMPTION));	
-       LOG("lin_initial","scalar final: "<<finalValFctCorresp->toString());
        _units = _units->cons(new FormulaUnit(initialValFctCorresp,
 					     new Inference(Inference::PROGRAM_ANALYSIS),
 					     Unit::ASSUMPTION));	
-       LOG("lin_initial","scalar initial: "<<initialValFctCorresp->toString());
      }
    }
 }
@@ -1504,9 +1487,6 @@ void LoopAnalyzer::generateLoopConditionProperty()
   Formula* loopConditionProp =
     new BinaryFormula(IMP,new AtomicFormula(iterPred),condition);
     
-
-  LOG("lin_lCond","loop condition: "<< loopConditionProp->toString());
-
   _units = _units->cons(new FormulaUnit(loopConditionProp,
 					new Inference(Inference::PROGRAM_ANALYSIS),
 					Unit::ASSUMPTION));	
@@ -1542,7 +1522,6 @@ void LoopAnalyzer::generateIterationDefinition()//TermList n)
   //generate the prop: iter <=> ...
   Formula* iterProp = new BinaryFormula(IFF, new AtomicFormula(iterPred), iterDef);
 
-  LOG("lin_ite","iteration definition: "<<iterProp->toString());
  _units = _units->cons(new FormulaUnit(iterProp,
 					new Inference(Inference::PROGRAM_ANALYSIS),
 					Unit::AXIOM));
@@ -1567,7 +1546,6 @@ Formula* LoopAnalyzer::relativePathCondition(Formula* condition)
   //process updated scalars 
   VariableMap::Iterator varit(_variableInfo);
   relativeCondition = letTranslationOfVar(varit,condition);    
-  LOG("lin_relativePath","relative path condition: "<< relativeCondition->toString());
   return relativeCondition;
 }
 
@@ -1757,7 +1735,7 @@ void LoopAnalyzer::generateAxiomsForCounters()
  *  Last change: ioan, 21.05.2013
  */
 
-void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
+void LoopAnalyzer::generateCounterAxiom(const vstring& name, int min, int max,
 					int gcd, Formula* branch) {
   CALL("LoopAnalyzer::generateCounterAxiom");
   // value of the counter at position 0
@@ -1789,7 +1767,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
       eq = createIntEquality(true, cx0, sum);
     }
     (*cls)[0] = eq;
-    LOG("lin_counter", "1 counter axiom: "<<cls->toString());
     _units = _units->cons(cls);
     return;
   }
@@ -1801,7 +1778,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
     Clause* cls = new (1) Clause(1, Unit::ASSUMPTION,
 				 new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
-    LOG("lin_counter", "2 counter axioms: "<<cls->toString());
     _units = _units->cons(cls);
 
   }
@@ -1817,8 +1793,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
     _units = _units->cons(new FormulaUnit(new AtomicFormula(ineg),
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));
-    
-    LOG("lin_counter", "3 counter axioms: "<<ineg->toString());
   }
   else {
     TermList c_max(theory->representConstant(IntegerConstantType(max)));
@@ -1831,7 +1805,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
     Clause* cls = new (1) Clause(1, Unit::ASSUMPTION,
 				 new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
-    LOG("lin_counter","4 counter axiom: "<<ineq->toString());
     _units = _units->cons(cls);
   }
 
@@ -1843,9 +1816,7 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
     TermList cx(Term::create(fun, 1, &yy));
     Literal* ineqN = theory->pred2(Theory::INT_GREATER_EQUAL, true, cx, cx0);
     BinaryFormula* res = new BinaryFormula(IMP, new AtomicFormula(x0greq0), new AtomicFormula(ineqN));
-    _units = _units->cons(new FormulaUnit(res, new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
-    LOG("lin_counter", "5 counter axiom: "<<res->toString());
-    
+    _units = _units->cons(new FormulaUnit(res, new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));   
   }
   else if (min == 1 || min == -1) { // c(x0) >= c +- x_0
     TermList yy;
@@ -1858,7 +1829,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
 			       cX0, yy));
     Literal* cX0YGsum = theory->pred2(Theory::INT_GREATER_EQUAL, true, cX0Y,
 				      sum2);
-    LOG("lin_counter", "6 counter axiom: "<<cX0YGsum->toString());
     _units = _units->cons(new FormulaUnit(new AtomicFormula(cX0YGsum),
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));
@@ -1871,7 +1841,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
     Literal* ineq = theory->pred2(Theory::INT_GREATER_EQUAL, true, cx0, sum);
     Clause* cls = new (1) Clause(1, Unit::ASSUMPTION, new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
-    LOG("lin_counter", "7 counter axiom: "<<ineq->toString());
     _units = _units->cons(cls);
   }
   
@@ -1909,7 +1878,6 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
     FormulaList* right = (new FormulaList(cKequalV))->cons(nfK)->cons(condition_with_iteration);
     Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
 					 new JunctionFormula(AND, right));
-    LOG("lin_density","density axioms: " << lhs->toString() << " => "<< rhs->toString());
     _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs),
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));
@@ -1937,12 +1905,11 @@ void LoopAnalyzer::generateCounterAxiom(const string& name, int min, int max,
         
     Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
 					 new JunctionFormula(AND, right));
-    LOG("lin_density","density axioms: " << lhs->toString() << " => " << rhs->toString());
     _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs), new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
   }
 }
 
-unsigned LoopAnalyzer::getIntFunction(string name, unsigned arity, bool setColor)
+unsigned LoopAnalyzer::getIntFunction(vstring name, unsigned arity, bool setColor)
 {
   CALL("LoopAnalyzer::getIntFunction");
 
@@ -1969,7 +1936,7 @@ unsigned LoopAnalyzer::getIntFunction(string name, unsigned arity, bool setColor
   return res;
 }
 
-unsigned LoopAnalyzer::getIntPredicate(string name, unsigned arity, bool setColor)
+unsigned LoopAnalyzer::getIntPredicate(vstring name, unsigned arity, bool setColor)
 {
   CALL("LoopAnalyzer::getIntPredicate");
 

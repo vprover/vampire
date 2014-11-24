@@ -15,6 +15,8 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "Flattening.hpp"
 #include "SimplifyFalseTrue.hpp"
 #include "Statistics.hpp"
@@ -392,25 +394,38 @@ Unit* EqualityPropagator::apply(Unit* u)
 FormulaUnit* EqualityPropagator::apply(FormulaUnit* u)
 {
   CALL("EqualityPropagator::apply(FormulaUnit*)");
-  CONDITIONAL_SCOPED_TRACE_TAG(_trace, "pp_ep")
 
   ASS(!u->isClause());
-  LOG_UNIT("pp_ep_args",u);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] ep_args: " << u->toString() << std::endl;
+    env->endOutput();
+  }
 
   Formula* form = u->formula();
   Formula* newForm = applyTopLevel(form);
 
   if(form!=newForm) {
-    env -> statistics->propagatedEqualities++;
-    LOG("pp_ep", "Equality propagator transformed\n  "<<(*form)<<" into\n  "<<(*newForm));
+    env->statistics->propagatedEqualities++;
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] Equality propagator transformed\n  "<<(*form)
+              <<" into\n  "<<(*newForm) << std::endl;
+      env->endOutput();
+    }
   }
 
   static SingletonVariableRemover svr;
   Formula* svrForm = svr.removeSingletonVars(newForm);
 
   if(newForm!=svrForm) {
-    env -> statistics->removedSingletonVariables++;
-    LOG("pp_ep", "Singleton varible remover transformed\n  "<<(*newForm)<<" into\n  "<<(*svrForm));
+    env->statistics->removedSingletonVariables++;
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] Singleton variable remover transformed\n  "<<(*newForm)
+              <<" into\n  "<<(*svrForm) << std::endl;
+      env->endOutput();
+    }
   }
 
   if(form==svrForm) {

@@ -108,7 +108,6 @@ SATLiteral MinimizingSolver::getMostSatisfyingTrueLiteral()
       bestLit = lit;
     }
   }
-  COND_LOG("sat_min_sel", best!=0, "selected literal "<<bestLit<<" satisfying "<<best<<" clauses");
   return bestLit;
 }
 
@@ -129,7 +128,6 @@ void MinimizingSolver::selectLiteral(SATLiteral lit)
     if(!_satisfiedClauses.insert(cl)) {
       continue;
     }
-    LOG("sat_min_satisfied_clauses", "made sat: "<<(*cl));
     watch.push(cl);
     SATClause::Iterator cit(*cl);
     while(cit.hasNext()) {
@@ -164,7 +162,6 @@ bool MinimizingSolver::tryPuttingToAnExistingWatch(SATClause* cl)
     unsigned var = lit.var();
     if(_asgn[var]==lit.polarity() && _watcher[var].isNonEmpty()) {
       ALWAYS(_satisfiedClauses.insert(cl));
-      LOG("sat_min_satisfied_clauses", "made sat: "<<(*cl));
       _watcher[var].push(cl);
       return true;
     }
@@ -220,14 +217,6 @@ void MinimizingSolver::processInnerAssignmentChanges()
 
     if(changed) {
       SATClauseStack& watch = _watcher[v];
-      LOG("sat_min_mdl_chng", "assignment of "<<v<<" changed to "<<_asgn[v]<<" invalidating "<<watch.size()<<" clauses");
-      TRACE("sat_min_satisfied_clauses",
-	  SATClauseStack::Iterator cit(watch);
-	  while(cit.hasNext()) {
-	    SATClause* cl =  cit.next();
-	    tout << "made unsat: " << (*cl) << endl;
-	  }
-	);
       _unprocessed.loadFromIterator(SATClauseStack::Iterator(watch));
       _satisfiedClauses.removeIteratorElements(SATClauseStack::Iterator(watch));
       watch.reset();
@@ -238,7 +227,6 @@ void MinimizingSolver::processInnerAssignmentChanges()
 void MinimizingSolver::updateAssignment()
 {
   CALL("MinimizingSolver::updateAssignment");
-  LOG("sat_min_au","assignment update started");
 
   processInnerAssignmentChanges();
   processUnprocessed();
@@ -252,17 +240,6 @@ void MinimizingSolver::updateAssignment()
   }
 
   _assignmentValid = true;
-  LOG("sat_min_au","assignment update done");
-
-  TRACE("sat_min_sz",
-      unsigned watchCnt = 0;
-      for(unsigned i=0; i<_varCnt; i++) {
-	if(_watcher[i].isNonEmpty()) {
-	  watchCnt++;
-	}
-      }
-      tout << "minimized model size: "<<watchCnt<<" out of "<<(_varCnt-1)<<" variables"<<endl;
-  );
 }
 
 

@@ -6,16 +6,16 @@
 #ifndef __API_FormulaBuilder__
 #define __API_FormulaBuilder__
 
-#include <string>
 #include <ostream>
 #include <climits>
 
 #include "Helper.hpp"
 
+#include "Lib/VString.hpp"
+
 namespace Api {
 
 using namespace std;
-
 
 /**
  * Exception that is thrown when some of the Api code
@@ -24,13 +24,13 @@ using namespace std;
 class ApiException
 {
 public:
-  ApiException(string msg)
+  ApiException(Lib::vstring msg)
   : _msg(msg) {}
 
   /** Description of the cause of the exception */
-  string msg() const { return _msg; }
+  Lib::vstring msg() const { return _msg; }
 protected:
-  string _msg;
+  Lib::vstring _msg;
 };
 
 /**
@@ -41,7 +41,7 @@ class FormulaBuilderException
 : public ApiException
 {
 public:
-  FormulaBuilderException(string msg)
+  FormulaBuilderException(Lib::vstring msg)
   : ApiException(msg) {}
 };
 
@@ -54,7 +54,7 @@ class SortMismatchException
 : public FormulaBuilderException
 {
 public:
-  SortMismatchException(string msg)
+  SortMismatchException(Lib::vstring msg)
   : FormulaBuilderException(msg) {}
 };
 
@@ -66,13 +66,13 @@ class InvalidTPTPNameException
 : public FormulaBuilderException
 {
 public:
-  InvalidTPTPNameException(string msg, string name)
+  InvalidTPTPNameException(Lib::vstring msg, Lib::vstring name)
   : FormulaBuilderException(msg), _name(name) {}
 
   /** The invalid name that caused the exception to be thrown */
-  string name() const { return _name; }
+  Lib::vstring name() const { return _name; }
 private:
-  string _name;
+  Lib::vstring _name;
 };
 
 typedef unsigned Var;
@@ -97,7 +97,7 @@ public:
    * @param checkBindingBoundVariables if true, then an attempt to bind an already bound variable
    *        will result in an exception
    * @param allowImplicitlyTypedVariables allow creating variables without explicitely
-   *        specifying a type. If false, the Var var(const string& varName) function
+   *        specifying a type. If false, the Var var(const Lib::vstring& varName) function
    *        will throw and exception.
    * @param outputDummyNames if true, dummy names are output instead of actual predicate names
    */
@@ -140,7 +140,7 @@ public:
   /**
    * Create, or retrieve already existing sort with name @c sortName.
    */
-  Sort sort(const string& sortName);
+  Sort sort(const Lib::vstring& sortName);
   /** Return sort for integers */
   Sort integerSort();
   /** Return sort for rationals */
@@ -158,7 +158,7 @@ public:
    *        with a capital-case letter. If the variable name does not conform to TPTP, an exception
    *        will be raised.
    */
-  Var var(const string& varName);
+  Var var(const Lib::vstring& varName);
 
   /** Create a variable
    * @param varName name of the variable. Must be a valid TPTP variable name, that is, start
@@ -166,17 +166,17 @@ public:
    *        will be raised.
    * @param varSort sort of the new variable
    */
-  Var var(const string& varName, Sort varSort);
+  Var var(const Lib::vstring& varName, Sort varSort);
 
   /**
-   * Create a function symbol using default sorts. If @b builtIn if true, the symbol will not be
+   * Create a function symbol using default sorts. If @b builtIn is true, the symbol will not be
    * eliminated during preprocessing.
    *
    * @warning Functions of the same name and arity must have always
    * also the same type, even across different instances of the
    * FormulaBuilder class.
    */
-  Function function(const string& funName, unsigned arity, bool builtIn=false);
+  Function function(const Lib::vstring& funName, unsigned arity, bool builtIn=false);
 
   /**
    * Create a function symbol with specified range and domain sorts. If @b builtIn is
@@ -185,7 +185,7 @@ public:
    * @warning Functions of the same name and arity must have always
    * also the same type, even across different instances of the
    * FormulaBuilder class. */
-  Function function(const string& funName, unsigned arity, Sort rangeSort, Sort* domainSorts, bool builtIn=false);
+  Function function(const Lib::vstring& funName, unsigned arity, Sort rangeSort, Sort* domainSorts, bool builtIn=false);
 
   /** Return constant representing @c i */
   Function integerConstant(int i);
@@ -195,7 +195,7 @@ public:
    * @c FormulaBuilderException may be thrown if @c i is not a proper value, or too large
    * for Vampire internal representation.
    */
-  Function integerConstant(string i);
+  Function integerConstant(Lib::vstring i);
 
   /**
    * Create a predicate symbol using default sorts. If @b builtIn if true, the symbol will not be
@@ -204,7 +204,7 @@ public:
    * @warning Predicates of the same name and arity must have always
    * also the same type, even across different instances of the
    * FormulaBuilder class. */
-  Predicate predicate(const string& predName, unsigned arity, bool builtIn=false);
+  Predicate predicate(const Lib::vstring& predName, unsigned arity, bool builtIn=false);
 
   /**
    * Create a predicate symbol with specified domain sorts. If @b builtIn if true, the symbol will not be
@@ -213,7 +213,7 @@ public:
    * @warning Predicates of the same name and arity must have always
    * also the same type, even across different instances of the
    * FormulaBuilder class. */
-  Predicate predicate(const string& predName, unsigned arity, Sort* domainSorts, bool builtIn=false);
+  Predicate predicate(const Lib::vstring& predName, unsigned arity, Sort* domainSorts, bool builtIn=false);
 
   /**
    * Create interpreted predicate
@@ -223,46 +223,46 @@ public:
   /**
    * Return name of the sort @c s.
    */
-  string getSortName(Sort s);
+  Lib::vstring getSortName(Sort s);
   /**
    * Return name of the predicate @c p.
    *
    * If the output of dummy names is enabled, the dummy name will be returned here.
    */
-  string getPredicateName(Predicate p);
+  Lib::vstring getPredicateName(Predicate p);
   /**
    * Return name of the function @c f.
    *
    * If the output of dummy names is enabled, the dummy name will be returned here.
    */
-  string getFunctionName(Function f);
+  Lib::vstring getFunctionName(Function f);
   /**
    * Return name of the variable @c v.
    *
    * If the output of dummy names is enabled, the dummy name will be returned here.
    */
-  string getVariableName(Var v);
+  Lib::vstring getVariableName(Var v);
 
 
 
 
-  void addAttribute(Predicate p, string name, string value);
+  void addAttribute(Predicate p, Lib::vstring name, Lib::vstring value);
   unsigned attributeCount(Predicate p);
-  string getAttributeName(Predicate p, unsigned index);
-  string getAttributeValue(Predicate p, unsigned index);
-  string getAttributeValue(Predicate p, string attributeName);
+  Lib::vstring getAttributeName(Predicate p, unsigned index);
+  Lib::vstring getAttributeValue(Predicate p, unsigned index);
+  Lib::vstring getAttributeValue(Predicate p, Lib::vstring attributeName);
 
-  void addAttribute(Function fn, string name, string value);
+  void addAttribute(Function fn, Lib::vstring name, Lib::vstring value);
   unsigned attributeCount(Function fn);
-  string getAttributeName(Function fn, unsigned index);
-  string getAttributeValue(Function fn, unsigned index);
-  string getAttributeValue(Function fn, string attributeName);
+  Lib::vstring getAttributeName(Function fn, unsigned index);
+  Lib::vstring getAttributeValue(Function fn, unsigned index);
+  Lib::vstring getAttributeValue(Function fn, Lib::vstring attributeName);
 
-  void addAttribute(Sort s, string name, string value);
+  void addAttribute(Sort s, Lib::vstring name, Lib::vstring value);
   unsigned attributeCount(Sort s);
-  string getAttributeName(Sort s, unsigned index);
-  string getAttributeValue(Sort s, unsigned index);
-  string getAttributeValue(Sort s, string attributeName);
+  Lib::vstring getAttributeName(Sort s, unsigned index);
+  Lib::vstring getAttributeValue(Sort s, unsigned index);
+  Lib::vstring getAttributeValue(Sort s, Lib::vstring attributeName);
 
   /** build a variable term */
   Term varTerm(const Var& v);
@@ -324,7 +324,7 @@ public:
   Formula formula(const Predicate& p,const Term& t1,const Term& t2,const Term& t3);
 
   /** build an annotated formula (i.e. formula that is either axiom, goal, etc...) */
-  AnnotatedFormula annotatedFormula(Formula f, Annotation a, string name="");
+  AnnotatedFormula annotatedFormula(Formula f, Annotation a, Lib::vstring name="");
 
 
   /**
@@ -416,26 +416,26 @@ class StringIterator
 {
 public:
   StringIterator() : _impl(0) {};
-  explicit StringIterator(const VirtualIterator<string>& vit);
+  explicit StringIterator(const VirtualIterator<Lib::vstring>& vit);
   ~StringIterator();
   StringIterator(const StringIterator& it);
   StringIterator& operator=(const StringIterator& it);
 
   /**
-   * Return true if there is a string to be returned by a call
+   * Return true if there is a Lib::vstring to be returned by a call
    * to the @b next() function
    */
   bool hasNext();
   /**
-   * Return the next available string
+   * Return the next available Lib::vstring
    *
    * The @b hasNext() function must return true before a call
    * to this function.
    */
-  string next();
+  Lib::vstring next();
 
 private:
-  VirtualIterator<string>* _impl;
+  VirtualIterator<Lib::vstring>* _impl;
 };
 
 class Sort
@@ -476,7 +476,7 @@ class Term
 public:
   Term() : content(0) {}
 
-  string toString() const;
+  Lib::vstring toString() const;
 
   /**
    * Return true if this object is not initialized to a term
@@ -536,7 +536,7 @@ class Formula
 public:
   Formula() : form(0) {}
 
-  string toString() const;
+  Lib::vstring toString() const;
 
   /**
    * Return true if this object is not initialized to a formula
@@ -630,7 +630,7 @@ class AnnotatedFormula
 public:
   AnnotatedFormula() : unit(0) {}
 
-  string toString() const;
+  Lib::vstring toString() const;
 
   /**
    * Return name of the annotated formula
@@ -639,7 +639,7 @@ public:
    * @b FormulaBuilder::annotatedFormula() function, that name is
    * returned, otherwise an automatically generated one is returned.
    */
-  string name() const;
+  Lib::vstring name() const;
 
   /**
    * Return true if this object is not initialized to
@@ -676,7 +676,7 @@ public:
     return toString()==o.toString();
   }
 private:
-  static void assignName(AnnotatedFormula& form, string name);
+  static void assignName(AnnotatedFormula& form, Lib::vstring name);
 
   Kernel::Unit* unit;
   ApiHelper _aux;

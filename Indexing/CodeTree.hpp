@@ -35,13 +35,24 @@ using namespace Kernel;
 class CodeTree
 {
 public:
-  CodeTree();
-
-public:
-
   struct ILStruct;
   struct SearchStruct;
-
+  struct CodeOp;
+  
+protected:  
+  /**
+  * During the destruction of the CodeTree,
+  * onCodeOpDestroying is called on each CodeOp
+  * as an opportunity to release dynamically
+  * allocated memory "owned" by the particular CodeOp
+  * (the details are expected to be descendant specific)
+  */
+  void (*_onCodeOpDestroying)(CodeOp* op);
+      
+public:
+  CodeTree();
+  ~CodeTree();
+  
   struct LitInfo
   {
     LitInfo() {}
@@ -164,7 +175,7 @@ public:
     /**
      * Return true iff CodeOp contains a success instruction
      *
-     * A succes instruction is either SUCCESS or SUCCESS2, because
+     * A success instruction is either SUCCESS or SUCCESS2, because
      * on some architectures, pointers are only 4-byte aligned and
      * the instruction is stored in first three bits.
      */
@@ -228,8 +239,8 @@ public:
     /**
      * Pointer to an alternative operation
      *
-     * If nonzero, always points to the first operation of
-     * a @b CodeBlock.
+     * If nonzero, either points to the first operation of
+     * a @b CodeBlock or to a @b landingOp of a @b SearchStruct.
      */
     CodeOp* _alternative;
   };

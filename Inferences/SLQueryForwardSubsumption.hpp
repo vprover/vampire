@@ -24,6 +24,9 @@ class SLQueryForwardSubsumption
 : public ForwardSimplificationEngine
 {
 public:
+  CLASS_NAME(SLQueryForwardSubsumption);
+  USE_ALLOCATOR(SLQueryForwardSubsumption);
+
   void attach(SaturationAlgorithm* salg);
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);

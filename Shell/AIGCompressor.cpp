@@ -6,6 +6,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/SharedSet.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Inferences/DistinctEqualitySimplifier.hpp"
 
@@ -13,6 +14,8 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Kernel/Problem.hpp"
+
+#include "Shell/Options.hpp"
 
 #include "Flattening.hpp"
 #include "PDUtils.hpp"
@@ -540,7 +543,12 @@ bool AIGCompressor::doHistoryLookUp(AIGRef aig, BDDNode* bdd, AIGRef& tgt)
   AIGRef* lookupEntry;
   if(_lookUp.getValuePtr(bdd, lookupEntry)) {
     *lookupEntry = aig;
-    LOG("pp_aig_compr_lookup_added", "added lookup for "<<bdd<<" to be "<<aig);
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_compr_lookup_added: added lookup for "
+              <<bdd<<" to be "<<aig << std::endl;
+      env->endOutput();
+    }
     return false;
   }
   AIGRef lookupBase = *lookupEntry;
@@ -558,9 +566,13 @@ bool AIGCompressor::doHistoryLookUp(AIGRef aig, BDDNode* bdd, AIGRef& tgt)
   ASS_REP2(atCmpResult!=EQUAL, aig, lookupBase);
   if(atCmpResult==LESS) {
     tgt = lookupBase;
-    LOG("pp_aig_compr_lookup_hit", "bdd look-up hit:"<<endl
-  	  <<"  src: "<<aig<<endl
-  	  <<"  tgt: "<<tgt);
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_compr_lookup_hit: bdd look-up hit" << std::endl
+              <<"  src: "<<aig<<endl
+              <<"  tgt: "<<tgt<<endl;
+      env->endOutput();
+    }        
     return true;
   }
   ASS_EQ(atCmpResult,GREATER);
@@ -571,14 +583,22 @@ bool AIGCompressor::doHistoryLookUp(AIGRef aig, BDDNode* bdd, AIGRef& tgt)
   ALWAYS(_lookUpImprovement.insert(lookupBase, imprTgt));
   *lookupEntry = imprTgt;
 
-  LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-    <<"  src: "<<lookupBase<<endl
-    <<"  tgt: "<<imprTgt);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_compr_lookup_improvement: bdd look-up improvement" << std::endl
+        <<"  src: "<<lookupBase<<endl
+        <<"  tgt: "<<imprTgt << std::endl;    
+    env->endOutput();
+  }  
 
   if(aig!=imprTgt) {
-    LOG("pp_aig_compr_lookup_hit", "bdd look-up improvement from improvement map:"<<endl
-  	  <<"  src: "<<aig<<endl
-  	  <<"  tgt: "<<tgt);
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_compr_lookup_hit: bdd look-up improvement from improvement map:" << std::endl
+              <<"  src: "<<aig<<endl
+              <<"  tgt: "<<tgt<<endl;
+      env->endOutput();
+    }    
     tgt = imprTgt;
     return true;
   }
@@ -589,18 +609,12 @@ bool AIGCompressor::doHistoryLookUp(AIGRef aig, BDDNode* bdd, AIGRef& tgt)
 //      AIGWithSize* improvementEntry;
 //      if(_lookUpImprovement.getValuePtr(bdd, improvementEntry)) {
 //        *improvementEntry = curr;
-//        LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-//  	<<"  src: "<<lookupEntry->first<<endl
-//  	<<"  tgt: "<<aig);
 //      }
 //      else {
 //        Comparison aiCmpResult;
 //        ALWAYS(tryCompareAIGGoodness(curr, *improvementEntry, aiCmpResult));
 //        if(aiCmpResult==LESS) {
 //  	*improvementEntry = curr;
-//  	LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-//  	  <<"  src: "<<lookupEntry->first<<endl
-//  	  <<"  tgt: "<<aig);
 //        }
 //      }
 //    }
@@ -617,35 +631,23 @@ bool AIGCompressor::doHistoryLookUp(AIGRef aig, BDDNode* bdd, AIGRef& tgt)
 //    }
 //    if(aiCmpResult==LESS) {
 //      _lookUpImprovement.set(bdd, curr);
-//      LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-//	  <<"  src: "<<lookupEntry->first<<endl
-//	  <<"  tgt: "<<aig);
 //    }
 //  }
 //  else if(atCmpResult==LESS) {
 //    AIGWithSize* improvementEntry;
 //    if(_lookUpImprovement.getValuePtr(bdd, improvementEntry)) {
 //      *improvementEntry = curr;
-//      LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-//	<<"  src: "<<lookupEntry->first<<endl
-//	<<"  tgt: "<<aig);
 //    }
 //    else {
 //      Comparison aiCmpResult;
 //      ALWAYS(tryCompareAIGGoodness(curr, *improvementEntry, aiCmpResult));
 //      if(aiCmpResult==LESS) {
 //	*improvementEntry = curr;
-//	LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
-//	  <<"  src: "<<lookupEntry->first<<endl
-//	  <<"  tgt: "<<aig);
 //      }
 //    }
 //  }
 //
 //  tgt = lookupEntry->first;
-//  LOG("pp_aig_compr_lookup_hit", "bdd look-up hit:"<<endl
-//	  <<"  src: "<<lookupEntry->first<<endl
-//	  <<"  tgt: "<<aig);
 //
 //  if(!_lookUpNeedsImprovement) {
 //    _lookUpNeedsImprovement = _lookUpImprovement.find(bdd);
@@ -692,14 +694,22 @@ void AIGCompressor::doLookUpImprovement(AIGTransformer::RefMap& mapToFix)
     AIGRef imprTgt = AIGTransformer::lev0Deref(tgt, _lookUpImprovement);
     if(imprTgt==tgt) {
       imprTgt = _atr.lev1Deref(tgt, improvementFullMap);
-      COND_LOG("pp_aig_compr_lookup_map_improvement", imprTgt!=tgt, "bdd look-up deref1 improvement in map:"<<endl
-	  <<"  src: "<<tgt<<endl
-	  <<"  tgt: "<<imprTgt);
+      if (imprTgt!=tgt && env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] aig_compr_lookup_map_improvement: bdd look-up deref1 improvement in map:" << std::endl
+                <<"  src: "<<tgt<<endl
+                <<"  tgt: "<<imprTgt<<endl;
+        env->endOutput();
+      }      
     }
     else {
-      LOG("pp_aig_compr_lookup_map_improvement", "bdd look-up deref0 improvement in map:"<<endl
-	  <<"  src: "<<tgt<<endl
-	  <<"  tgt: "<<imprTgt);
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] aig_compr_lookup_map_improvement: bdd look-up deref0 improvement in map:" << std::endl
+                <<"  src: "<<tgt<<endl
+                <<"  tgt: "<<imprTgt<<endl;
+        env->endOutput();
+      }     
     }
     if(imprTgt==tgt) {
       //no improvement
@@ -713,9 +723,13 @@ void AIGCompressor::doLookUpImprovement(AIGTransformer::RefMap& mapToFix)
     AIGRef val = mtfRwrIt.next();
     AIGRef tgt = AIGTransformer::lev0Deref(val, improvementFullMap);
     if(tgt!=val) {
-      LOG("pp_aig_compr_lookup_map_improvement", "bdd look-up improvement in map:"<<endl
-	  <<"  src: "<<val<<endl
-	  <<"  tgt: "<<tgt);
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] aig_compr_lookup_map_improvement: bdd look-up improvement in map:" << std::endl
+                <<"  src: "<<val<<endl
+                <<"  tgt: "<<tgt<<endl;
+        env->endOutput();
+      }      
       ASS(tgt.getFreeVars()->isSubsetOf(val.getFreeVars()));
       mtfRwrIt.setValue(tgt);
     }
@@ -740,11 +754,15 @@ bool AIGCompressor::localCompressByBDD(AIGRef aig, AIGRef& tgt, bool historyLook
   BDDNode* bRep = _ba.a2b(aig);
   AIGRef aCompr = _ba.b2a(bRep);
 
-  LOG("pp_aig_compr_bdd","aig compr: "<<endl
-      <<"  src: "<<aig.toString()<<endl
-      <<"  tgt: "<<aCompr.toString()<<endl
-      <<"  bdd: "<<BDD::instance()->toTPTPString(bRep, "n"));
-
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_compr_bdd: aig compr:" << std::endl
+            <<"  src: "<<aig.toString()<<endl
+            <<"  tgt: "<<aCompr.toString()<<endl
+            <<"  bdd: "<<BDD::instance()->toTPTPString(bRep, "n")<<endl;
+    env->endOutput();
+  }
+  
   if(aCompr==aig) {
     return false;
   }
@@ -752,8 +770,14 @@ bool AIGCompressor::localCompressByBDD(AIGRef aig, AIGRef& tgt, bool historyLook
   size_t origSz = getAIGDagSize(aig);
   size_t comprSz = getAIGDagSize(aCompr);
 
-  COND_LOG("pp_aig_compr_growth",comprSz>origSz,"aig compr growth: "<<endl<<"  src: "<<aig.toString()<<endl<<"  tgt: "<<aCompr.toString());
-
+  if (comprSz>origSz && env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_compr_growth: aig compr growth: " << std::endl
+            <<"  src: "<<aig.toString()<<endl
+            <<"  tgt: "<<aCompr.toString()<<endl;
+    env->endOutput();
+  }  
+  
   if(comprSz>=origSz) {
     if(historyLookUp) {
       usedLookUp = true;
@@ -762,7 +786,13 @@ bool AIGCompressor::localCompressByBDD(AIGRef aig, AIGRef& tgt, bool historyLook
     return false;
   }
   tgt = aCompr;
-  LOG("pp_aig_compr_loc_succ","aig compr local success: "<<endl<<"  src: "<<aig.toString()<<endl<<"  tgt: "<<aCompr.toString());
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_compr_loc_succ: aig compr local success:" << std::endl
+            <<"  src: "<< aig.toString()<<endl
+            <<"  tgt: "<< aCompr.toString()<< std::endl;
+    env->endOutput();
+  }  
   return true;
 }
 
@@ -771,7 +801,11 @@ AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
   CALL("AIGCompressor::tryCompressAtom");
   ASS(atom.isAtom());
 
-  LOG("pp_aig_compr_atom", "trying to compress atom "<<atom);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_compr_atom: trying to compress atom "<<atom << std::endl;
+    env->endOutput();
+  }
 
   bool isNeg = !atom.polarity();
   Literal* lit0 = atom.getPositiveAtom();
@@ -780,11 +814,19 @@ AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
   if(lit->isEquality()) {
     unsigned distGroup;
     if(*lit->nthArgument(0)==*lit->nthArgument(1)) {
-      LOG("pp_aig_compr_atom", "compressed trivial equality");
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] aig_compr_atom: compressed trivial equality" << std::endl;
+        env->endOutput();
+      }
       return isNeg ? _aig.getFalse() : _aig.getTrue();
     }
     if(Inferences::DistinctEqualitySimplifier::mustBeDistinct(*lit->nthArgument(0), *lit->nthArgument(1), distGroup)) {
-      LOG("pp_aig_compr_atom", "compressed distinct equality");
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] aig_compr_atom: compressed distinct equality" << std::endl;
+        env->endOutput();
+      }
 //      if(distGroup<=Signature::LAST_BUILT_IN_DISTINCT_GROUP) {
 	return isNeg ? _aig.getTrue() : _aig.getFalse();
 //      }
@@ -800,7 +842,11 @@ AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
     Literal* litVal;
     if(_ilEval->evaluate(lit, isConst, litVal, constVal)) {
       if(isConst) {
-	LOG("pp_aig_compr_atom", "compressed interptered tautology");
+        if (env->options->showPreprocessing()) {
+          env->beginOutput();
+          env->out() << "[PP] aig_compr_atom: compressed interpreted tautology" << std::endl;
+          env->endOutput();
+        }
 	return (constVal^isNeg) ? _aig.getTrue() : _aig.getFalse();
       }
       else {
@@ -809,12 +855,20 @@ AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
     }
   }
   if(lit==lit0) {
-    LOG("pp_aig_compr_atom", "no compression achieved");
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_compr_atom: no compression achieved" << std::endl;
+      env->endOutput();
+    }
     return atom;
   }
   else {
     AIGRef newPos = _aig.getLit(lit);
-    LOG("pp_aig_compr_atom", "compressed to atom "<<(isNeg ? newPos.neg() : newPos));
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_compr_atom: compressed to atom "<<(isNeg ? newPos.neg() : newPos) << std::endl;
+      env->endOutput();
+    }
     return isNeg ? newPos.neg() : newPos;
   }
 }
@@ -915,9 +969,7 @@ void AIGCompressor::populateBDDCompressingMap(AIGInsideOutPosIterator& aigIt, AI
   CALL("AIGCompressor::populateBDDCompressingMap");
   ASS(_lookUpImprovement.isEmpty());
   ASS(!_lookUpNeedsImprovement);
-
-
-  typedef SharedSet<unsigned> USharedSet;
+  
   /** For processed AIGs contains set of refered atoms, or zero
    * if the set of processed atoms was too big. */
   static DHMap<AIGRef,USharedSet*> refAtoms;
@@ -968,7 +1020,13 @@ AIGRef AIGCompressor::attemptCompressByBDD(AIGRef aig0)
 
   AIGRef res = _atr.lev0Deref(aig0, map);
 
-  LOG("pp_aig_compr_attempts","aig compression attempt:"<<endl<<"  src: "<<aig0<<endl<<"  tgt: "<<res);
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_compr_attempts: aig compression attempt:"<<endl
+            <<"  src: "<<aig0<<endl
+            <<"  tgt: "<<res << std::endl;
+    env->endOutput();
+  }
   return res;
 }
 
@@ -985,12 +1043,22 @@ AIGRef AIGCompressor::compressByBDD(AIGRef aig)
   size_t origSz = getAIGDagSize(aig);
   size_t comprSz = getAIGDagSize(aCompr);
 
-  LOG("pp_aig_compr_all","aig compr: "<<endl
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_compr_all: aig compr: " << std::endl
       <<"  src("<<origSz<<"): "<<aig.toString()<<endl
-      <<"  tgt("<<comprSz<<"): "<<aCompr.toString());
-
+      <<"  tgt("<<comprSz<<"): "<<aCompr.toString()<<endl;
+    env->endOutput();
+  }
+  
   if(origSz*_reqFactorDenom>comprSz*_reqFactorNum) {
-    LOG("pp_aig_compr_succ","aig compr succeeded: "<<endl<<"  src: "<<aig.toString()<<endl<<"  tgt: "<<aCompr.toString());
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_compr_succ: aig compr succeeded: "<<endl
+              <<"  src: "<<aig.toString()<<endl
+              <<"  tgt: "<<aCompr.toString()<<endl;              
+      env->endOutput();
+    }
     return aCompr;
   }
   else {
@@ -1028,11 +1096,23 @@ Formula* AIGCompressingTransformer::apply(Formula* f)
     return f;
   }
   if(simpl.isTrue()) {
-    LOG("pp_aig_compr_forms","aig compr forms"<<endl<<"  src: "<<(*f)<<endl<<"  tgt: $true");
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] aig_compr_forms: aig compr forms"<<endl
+              <<"  src: "<<(*f)<<endl
+              <<"  tgt: $true" <<endl;
+      env->endOutput();
+    }
     return 0;
   }
   Formula* res = _fsh.aigToFormula(simpl);
-  LOG("pp_aig_compr_forms","aig compr forms"<<endl<<"  src: "<<(*f)<<endl<<"  tgt: "<<(*res));
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_compr_forms: aig compr forms"<<endl
+            <<"  src: "<<(*f)<<endl
+            <<"  tgt: "<<(*res)<<endl;
+    env->endOutput();
+  }
   return res;
 }
 
@@ -1076,7 +1156,14 @@ bool AIGCompressingTransformer::applyToDefinition(FormulaUnit* unit, Unit*& res)
   FormulaUnit* res0 = new FormulaUnit(f, new Inference1(Inference::LOCAL_SIMPLIFICATION, unit), unit->inputType());
 
   res = Flattening::flatten(res0);
-  LOG_SIMPL("pp_aig_compr_units",unit,res);
+    
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_compr_units: simplification:" << endl          
+       << "   <- " << unit->toString() << endl
+       << "   -> " << res->toString() << endl;
+    env->endOutput();
+  }
 
   return true;
 }
@@ -1100,8 +1187,15 @@ bool AIGCompressingTransformer::apply(FormulaUnit* unit, Unit*& res)
   }
   FormulaUnit* res0 = new FormulaUnit(fSimpl, new Inference1(Inference::LOCAL_SIMPLIFICATION, unit), unit->inputType());
   res = Flattening::flatten(res0);
-
-  LOG_SIMPL("pp_aig_compr_units",unit,res);
+    
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] aig_compr_units: simplification:" << endl
+              << "   <- " << unit->toString() << endl
+              << "   -> " << res->toString() << endl;
+    env->endOutput();
+  }
+  
   return true;
 }
 

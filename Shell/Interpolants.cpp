@@ -247,8 +247,6 @@ Formula* Interpolants::getInterpolant(Unit* unit)
       //cout<<"generate interpolant of transparent clause: "<<st.us().toString()<<"\n";
 	  ASS_REP2(color==COLOR_TRANSPARENT, st.us().toString(), st.inheritedColor);
 	  generateInterpolant(st);
-	  LOG("itp_sub","intermediate interpolant for "<<st.us().toString()<<endl<<
-	      "  "<<(*st.interpolant));
 	}
 	st.processed = true;
 	processed.insert(st.us(), st);

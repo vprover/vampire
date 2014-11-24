@@ -176,7 +176,7 @@ int main( int argc, char *argv[] )
       compitTimer.stop();
     }
   printf("Indexing time without compiling:\t%d ms\nIndexing time:\t%d ms\n",
-	  compitTimer.elapsedMilliseconds(), timer.elapsedMilliseconds());
+	  compitTimer.elapsedMilliseconds(), env.timer->elapsedMilliseconds());
 
   printf("ops:%d, +:%d, -:%d.\n",operations,insertions,deletions);
   return 0;

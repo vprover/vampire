@@ -32,7 +32,7 @@ public:
 
   IntegerConstantType() {}
   IntegerConstantType(InnerType v) : _val(v) {}
-  explicit IntegerConstantType(const string& str);
+  explicit IntegerConstantType(const vstring& str);
 
   IntegerConstantType operator+(const IntegerConstantType& num) const;
   IntegerConstantType operator-(const IntegerConstantType& num) const;
@@ -55,7 +55,7 @@ public:
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
 
-  string toString() const;
+  vstring toString() const;
 private:
   InnerType _val;
 };
@@ -82,7 +82,7 @@ struct RationalConstantType {
   RationalConstantType() {}
 
   RationalConstantType(InnerType num, InnerType den);
-  RationalConstantType(const string& num, const string& den);
+  RationalConstantType(const vstring& num, const vstring& den);
 
   RationalConstantType operator+(const RationalConstantType& num) const;
   RationalConstantType operator-(const RationalConstantType& num) const;
@@ -101,7 +101,7 @@ struct RationalConstantType {
   bool operator<=(const RationalConstantType& o) const { return !((*this)>o); }
 
 
-  string toString() const;
+  vstring toString() const;
 
   const InnerType& numerator() const { return _num; }
   const InnerType& denominator() const { return _den; }
@@ -130,7 +130,7 @@ public:
   static unsigned getSort() { return Sorts::SRT_REAL; }
 
   RealConstantType() {}
-  explicit RealConstantType(const string& number);
+  explicit RealConstantType(const vstring& number);
   explicit RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
 
   RealConstantType operator+(const RealConstantType& num) const
@@ -144,11 +144,11 @@ public:
   RealConstantType operator/(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator/(num)); }
 
-  string toNiceString() const;
+  vstring toNiceString() const;
 
   static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
 private:
-  static bool parseDouble(const string& num, RationalConstantType& res);
+  static bool parseDouble(const vstring& num, RationalConstantType& res);
 
 };
 
@@ -267,9 +267,16 @@ public:
     
   static FunctionType* getArrayOperationType(Interpretation i);
 
+  static bool isArraySort(unsigned sort);
   static bool isArrayOperation(Interpretation i);
+  static unsigned getArraySelectFunctor(unsigned sort);
+  static unsigned getArrayStoreFunctor(unsigned sort);
   static unsigned getArrayOperationSort(Interpretation i);
   static unsigned  getArrayDomainSort(Interpretation i);
+
+  unsigned getArrayExtSkolemFunction(unsigned i);
+    
+  static Theory theory_obj;
     
   static Theory* instance();
 
@@ -348,11 +355,13 @@ public:
   Term* representConstant(const RationalConstantType& num);
   Term* representConstant(const RealConstantType& num);
 
-  Term* representIntegerConstant(string str);
-  Term* representRealConstant(string str);
+  Term* representIntegerConstant(vstring str);
+  Term* representRealConstant(vstring str);
 private:
   Theory();
   static FunctionType* getConversionOperationType(Interpretation i);
+  unsigned _array1SkolemFunction;
+  unsigned _array2SkolemFunction;
 };
 
 typedef Theory::Interpretation Interpretation;

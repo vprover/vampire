@@ -26,9 +26,7 @@ class EPRRestoring {
 public:
   void scan(UnitList* units);
   virtual ~EPRRestoring() {}
-protected:
-  EPRRestoring(bool trace) : _trace(trace) {}
-
+protected:  
   virtual void processActiveDefinitions(UnitList* units) {}
 
 
@@ -64,8 +62,7 @@ protected:
    * lhs contains a negated predicate.
    */
   ZIArray<int> _nonEprDefPolarities;
-
-  bool _trace;
+  
 private:
   bool scanDefinition(FormulaUnit* unit);
   void performClosure();
@@ -87,7 +84,7 @@ private:
 
 class EPRInlining : public EPRRestoring {
 public:
-  EPRInlining(bool trace=false) : EPRRestoring(trace), _inliner(false, trace) {}
+  EPRInlining() : EPRRestoring(), _inliner(false) {}
 
   Unit* apply(Unit* unit);
   bool apply(UnitList*& units);

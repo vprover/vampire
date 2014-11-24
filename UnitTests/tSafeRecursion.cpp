@@ -75,10 +75,10 @@ TEST_FUN(safeRecMaxDeg)
 
 struct StrRepWorker : public SRWorkerBase
 {
-  string post(unsigned obj, size_t childCnt, string* childRes)
+  vstring post(unsigned obj, size_t childCnt, vstring* childRes)
   {
     CALL("MaxDegreeRetrievalWorker::post");
-    string res = Int::toString(obj);
+    vstring res = Int::toString(obj);
     if(childCnt==0) {
       return res;
     }
@@ -98,7 +98,7 @@ TEST_FUN(safeRecStrRep)
 {
   StrRepWorker wrk;
 
-  string res = SafeRecursion<unsigned,string,StrRepWorker>(wrk)(0);
+  vstring res = SafeRecursion<unsigned,vstring,StrRepWorker>(wrk)(0);
   ASS_EQ(res,"0(1,2,3(4,5,6(8,9),7))");
 }
 

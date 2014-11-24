@@ -37,7 +37,7 @@ void SMTLexer::skipWhiteSpacesAndComments()
   for (;;) {
     if (_eof) {
       if (comment == 2) {
-	throw LexerException((string)"non-terminated comment",
+	throw LexerException((vstring)"non-terminated comment",
 			     *this);
       }
       return;
@@ -236,7 +236,7 @@ SMTLexer::CharType SMTLexer::currentCharacterType () const
     return WHITE;
 
   default:
-    throw LexerException((string)"illegal character " + (char)_lastCharacter,
+    throw LexerException((vstring)"illegal character " + (char)_lastCharacter,
 			 *this);
   }
 } // SMTLexer::currentCharacterType()

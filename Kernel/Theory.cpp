@@ -11,6 +11,8 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
+#include "Shell/Skolem.hpp"
+
 #include "Signature.hpp"
 
 #include "Theory.hpp"
@@ -24,9 +26,9 @@ using namespace Lib;
 // IntegerConstantType
 //
 
-IntegerConstantType::IntegerConstantType(const string& str)
+IntegerConstantType::IntegerConstantType(const vstring& str)
 {
-  CALL("IntegerConstantType::IntegerConstantType(string)");
+  CALL("IntegerConstantType::IntegerConstantType(vstring)");
 
   if (!Int::stringToInt(str, _val)) {
     //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
@@ -175,7 +177,7 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
   }
 }
 
-string IntegerConstantType::toString() const
+vstring IntegerConstantType::toString() const
 {
   CALL("IntegerConstantType::toString");
 
@@ -193,7 +195,7 @@ RationalConstantType::RationalConstantType(InnerType num, InnerType den)
   init(num, den);
 }
 
-RationalConstantType::RationalConstantType(const string& num, const string& den)
+RationalConstantType::RationalConstantType(const vstring& num, const vstring& den)
 {
   CALL("RationalConstantType::RationalConstantType");
 
@@ -269,12 +271,12 @@ bool RationalConstantType::operator>(const RationalConstantType& o) const
 }
 
 
-string RationalConstantType::toString() const
+vstring RationalConstantType::toString() const
 {
   CALL("RationalConstantType::toString");
 
-  string numStr = _num.toString();
-  string denStr = _den.toString();
+  vstring numStr = _num.toString();
+  vstring denStr = _den.toString();
 
 //  return "("+numStr+"/"+denStr+")";
   return numStr+"/"+denStr;
@@ -366,12 +368,12 @@ Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstant
   return RationalConstantType::comparePrecedence(n1, n2);
 }
 
-bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
+bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res)
 {
   CALL("RealConstantType::parseDouble");
 
   try {
-    string newNum;
+    vstring newNum;
     IntegerConstantType denominator = 1;
     bool haveDecimal = false;
     bool neg = false;
@@ -409,11 +411,10 @@ bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
   } catch(ArithmeticException) {
     return false;
   }
-  LOG("arith_num_parsing","Real parsing: \""<<num<<"\" --> "<<res.toString());
   return true;
 }
 
-RealConstantType::RealConstantType(const string& number)
+RealConstantType::RealConstantType(const vstring& number)
 {
   CALL("RealConstantType::RealConstantType");
 
@@ -432,7 +433,6 @@ RealConstantType::RealConstantType(const string& number)
   while(floor(numDbl)!=numDbl) {
     denominator = denominator*10;
     numDbl *= 10;
-    LOG("arith_num_parsing","multiplying double to get integer: "<<numDbl);
   }
 
   InnerType::InnerType numerator = static_cast<InnerType::InnerType>(numDbl);
@@ -443,7 +443,7 @@ RealConstantType::RealConstantType(const string& number)
   init(numerator, denominator);
 }
 
-string RealConstantType::toNiceString() const
+vstring RealConstantType::toNiceString() const
 {
   CALL("RealConstantType::toNiceString");
 
@@ -457,16 +457,16 @@ string RealConstantType::toNiceString() const
 // Theory
 //
 
-Theory* theory = Theory::instance();
+Theory Theory::theory_obj;  // to facilitate destructor call at deinitization
+
+Theory* theory = &Theory::theory_obj;
 
 /**
  * Accessor for the singleton instance of the Theory class.
  */
 Theory* Theory::instance()
 {
-  static Theory* inst=new Theory;
-
-  return inst;
+  return theory;
 }
 
 /**
@@ -475,6 +475,7 @@ Theory* Theory::instance()
  * The constructor is private, since Theory is a singleton class.
  */
 Theory::Theory()
+  : _array1SkolemFunction(0), _array2SkolemFunction(0)
 {
 
 }
@@ -791,6 +792,17 @@ bool Theory::isConversionOperation(Interpretation i)
   }
 }
 
+bool Theory::isArraySort(unsigned sort) {
+  CALL("Theory::isArraySort");
+  
+  switch(sort) {
+  case Sorts::SRT_ARRAY1:
+  case Sorts::SRT_ARRAY2:
+    return true;
+  default:
+    return false;
+  }
+}
     
 /**
  * Return true if interpreted function @c i is an array operation.
@@ -811,9 +823,33 @@ bool Theory::isArrayOperation(Interpretation i)
       return false;
   }
 }
-   
-    
-    
+
+unsigned Theory::getArraySelectFunctor(unsigned sort) {
+  CALL("Theory::getArraySelectFunctor");
+  
+  switch(sort) {
+  case Sorts::SRT_ARRAY1:
+    return env->signature->getInterpretingSymbol(Theory::SELECT1_INT);
+  case Sorts::SRT_ARRAY2:
+    return env->signature->getInterpretingSymbol(Theory::SELECT2_INT);
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
+unsigned Theory::getArrayStoreFunctor(unsigned sort) {
+  CALL("Theory::getArrayStoreFunctor");
+  
+  switch(sort) {
+  case Sorts::SRT_ARRAY1:
+    return env->signature->getInterpretingSymbol(Theory::STORE1_INT);
+  case Sorts::SRT_ARRAY2:
+    return env->signature->getInterpretingSymbol(Theory::STORE2_INT);
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
 /**
 * This function can be called for array operations 
 * it returns the range domain (the sort of the output) of select and store
@@ -862,7 +898,47 @@ unsigned Theory::getArrayDomainSort(Interpretation i)
         }
 }
 
-    
+/**
+ * Get the number of the skolem function symbol used in the clause form of the
+ * array extensionality axiom (of particular sort).
+ *
+ * select(X,sk(X,Y)) != select(Y,sk(X,Y)) | X = Y
+ * 
+ * If the symbol does not exist yet, it is added to the signature. We use 0 to
+ * represent that the symbol not yet exists, assuming that at call time of this
+ * method, at least the array function are already in the signature.
+ *
+ * We want to have this function available e.g. in simplification rules.
+ */
+unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
+  unsigned* ptr;
+  Interpretation store;
+  Interpretation select;
+  
+  switch(sort) {
+  case Sorts::SRT_ARRAY1:
+    ptr = &_array1SkolemFunction;
+    store = Theory::STORE1_INT;
+    select = Theory::SELECT1_INT;
+    break;
+  case Sorts::SRT_ARRAY2:
+    ptr = &_array2SkolemFunction;
+    store = Theory::STORE2_INT;
+    select = Theory::SELECT2_INT;
+    break;
+  default:
+    ASSERTION_VIOLATION;
+  }
+
+  if (*ptr == 0) {
+    unsigned arraySort = getArrayOperationSort(store);
+    unsigned indexSort = theory->getArrayDomainSort(select);
+    unsigned params[] = {arraySort, arraySort};
+    *ptr = Shell::Skolem::addSkolemFunction(2, params, indexSort, "arrayDiff");
+  }
+
+  return *ptr;
+}
 
     
 /**
@@ -1253,7 +1329,7 @@ Term* Theory::representConstant(const RealConstantType& num)
   return Term::create(func, 0, 0);
 }
 
-Term* Theory::representIntegerConstant(string str)
+Term* Theory::representIntegerConstant(vstring str)
 {
   CALL("Theory::representIntegerConstant");
 
@@ -1274,7 +1350,7 @@ Term* Theory::representIntegerConstant(string str)
   }
 }
 
-Term* Theory::representRealConstant(string str)
+Term* Theory::representRealConstant(vstring str)
 {
   CALL("Theory::representRealConstant");
   try {

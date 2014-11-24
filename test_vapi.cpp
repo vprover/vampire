@@ -6,11 +6,11 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <string>
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/VString.hpp"
 #include "Shell/Options.hpp"
 
 #include "Api/FormulaBuilder.hpp"
@@ -230,13 +230,13 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
   it.next();
 
   while(it.hasNext()) {
-    string arg(it.next());
+    vstring arg(it.next());
     if(arg=="-tr") {
       it.del();
       if(!it.hasNext()) {
 	USER_ERROR("value for -tr option expected");
       }
-      string traceStr(it.next());
+      vstring traceStr(it.next());
       it.del();
       PROCESS_TRACE_SPEC_STRING(traceStr);
     }
@@ -245,7 +245,7 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
       if(!it.hasNext()) {
 	USER_ERROR("value for -m option expected");
       }
-      string memLimitStr = it.next();
+      vstring memLimitStr = it.next();
       it.del();
       unsigned memLimit;
       if(!Int::stringToUnsignedInt(memLimitStr, memLimit)) {
@@ -309,9 +309,9 @@ int main(int argc, char* argv [])
   cout<<fit1.next().toString()<<endl;
 
 
-//  string fs=af.toString();
+//  vstring fs=af.toString();
 //
-//  stringstream sstr(fs);
+//  vostringstream sstr(fs);
 //
 //  Problem p2;
 //  p2.addFromStream(sstr);

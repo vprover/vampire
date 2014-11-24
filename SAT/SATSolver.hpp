@@ -77,12 +77,7 @@ public:
 
   void addAssumption(SATLiteral lit, bool onlyPropagate=false) {
     CALL("SATSolver::addAssumption(SATLiteral,bool)");
-    if(onlyPropagate) {
-    addAssumption(lit, false);
-    }
-    else {
-    	addAssumption(lit, UINT_MAX);
-    }
+    addAssumption(lit, onlyPropagate ? 0 : UINT_MAX);
   }
   /**
    * Add an assumption into the solver. If conflictCountLimit==0,
@@ -120,6 +115,12 @@ public:
     VarAssignment desired = lit.polarity() ? FALSE: TRUE;
     return asgn==desired;
   }
+
+ /**
+  * Record the association between a SATLiteral var and a Literal
+  * In TWLSolver this is used for computing niceness values
+  */
+  virtual void recordSource(unsigned satlitvar, Literal* lit) = 0;
 };
 
 }

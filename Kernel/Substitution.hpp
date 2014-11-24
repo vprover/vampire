@@ -10,10 +10,9 @@
 #ifndef __Substitution__
 #define __Substitution__
 
-#include <string>
-
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/VString.hpp"
 
 #include "Term.hpp"
 
@@ -38,7 +37,7 @@ public:
   void unbind(int var);
   void reset();
 #if VDEBUG
-  string toString() const;
+  vstring toString() const;
 #endif
 private:
   DHMap<unsigned,TermList> _map;

@@ -9,10 +9,10 @@
 #define __Inference__
 
 #include <cstdlib>
-#include <string>
 
 #include "Kernel/Unit.hpp"
 #include "Lib/Allocator.hpp"
+#include "Lib/VString.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -168,6 +168,8 @@ public:
     EQUALITY_FACTORING,
     /** equality resolution inference */
     EQUALITY_RESOLUTION,
+    /** redundant inference with extensionality-like clause */
+    EXTENSIONALITY_RESOLUTION,
     /** forward demodulation inference */
     FORWARD_DEMODULATION,
     /** backward demodulation inference */
@@ -203,17 +205,9 @@ public:
     /** Elimination of if-then-else and let...in special terms and let...in
      * formula connectives */
     SPECIAL_TERM_ELIMINATION,
-    /** splitting */
-    SPLITTING,
-    /** component introduced by splitting */
-    SPLITTING_COMPONENT,
-    /** component introduced by backtracking splitting */
-    //BACKTRACKING_SPLITTING_COMPONENT,
-    /** refutation of a backtracking splitting branch */
-    //BACKTRACKING_SPLIT_REFUTATION,
-    /** component introduced by backtracking splitting */
+    /** component introduced by sat splitting */
     SAT_SPLITTING_COMPONENT,
-    /** refutation of a backtracking splitting branch */
+    /** refutation of a sat splitting branch */
     SAT_SPLITTING_REFUTATION,
     /** result of general splitting */
     GENERAL_SPLITTING,
@@ -272,8 +266,8 @@ public:
    */
   virtual ~Inference() {}
 
-  static string ruleName(Rule rule);
-  string name() const { return ruleName(_rule); }
+  static vstring ruleName(Rule rule);
+  vstring name() const { return ruleName(_rule); }
 
   CLASS_NAME(Inference);
   USE_ALLOCATOR(Inference);

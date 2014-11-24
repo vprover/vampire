@@ -85,9 +85,9 @@ bool Substitution::findBinding(int var, TermList& res) const
 
 
 #if VDEBUG
-// string Substitution::toString() const
+// vstring Substitution::toString() const
 // {
-//   string result("[");
+//   vstring result("[");
 //   if (_height >= 0) {
 //     bool first = true;
 //     for (const Node* node = _left.nodes[0]; node; node=node->nodes[0]) {
@@ -97,7 +97,7 @@ bool Substitution::findBinding(int var, TermList& res) const
 //       else {
 // 	result += ',';
 //       }
-//       result += string("X") + Int::toString(node->var) +
+//       result += vstring("X") + Int::toString(node->var) +
 //                 "->" + node->term->toString();
 //     }
 //   }

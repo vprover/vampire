@@ -56,10 +56,10 @@ TEST_FUN(arraycopy)
   ConstantIntegerExpression* one = new ConstantIntegerExpression(1);
 
   // 1   a = 0;
-  Assignment* a_ASS_0 = new Assignment(a,zero);
+  Program::Assignment* a_ASS_0 = new Program::Assignment(a,zero);
 
   // 2   b = 0;
-  Assignment* b_ASS_0 = new Assignment(b,zero);
+  Program::Assignment* b_ASS_0 = new Program::Assignment(b,zero);
 
   // (a < m) in
   // 3   while ( a < m ) {
@@ -82,11 +82,11 @@ TEST_FUN(arraycopy)
   b_plus_1->setArgument(1,one);
 
   //6       a = a+1;
-  Assignment* a_ASS_a_plus_1 = new Assignment(a,a_plus_1);
+  Program::Assignment* a_ASS_a_plus_1 = new Program::Assignment(a,a_plus_1);
   //5       b = b+1;
-  Assignment* b_ASS_b_plus_1 = new Assignment(b,b_plus_1);
+  Program::Assignment* b_ASS_b_plus_1 = new Program::Assignment(b,b_plus_1);
   //4       bb[b] = aa[a];
-  Assignment* bb_b_ASS_aa_a = new Assignment(bb_b,aa_a);
+  Program::Assignment* bb_b_ASS_aa_a = new Program::Assignment(bb_b,aa_a);
   
   // 4-5  bb[b] = aa[a]; b = b+1;
   Block* loopBody = new Block(3);

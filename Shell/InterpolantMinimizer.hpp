@@ -31,7 +31,7 @@ public:
   };
 
   InterpolantMinimizer(OptimizationTarget target=OT_WEIGHT, bool noSlicing=false,
-      bool showStats=false, string statsPrefix="");
+      bool showStats=false, vstring statsPrefix="");
   ~InterpolantMinimizer();
 
   typedef List<UnitSpec> USList;
@@ -98,9 +98,9 @@ private:
       gParents.reset();
     }
 
-    Stack<string> rParents;
-    Stack<string> bParents;
-    Stack<string> gParents;
+    Stack<vstring> rParents;
+    Stack<vstring> bParents;
+    Stack<vstring> gParents;
   };
 
   enum PredType
@@ -127,15 +127,15 @@ private:
     V
   };
 
-  SMTConstant pred(PredType t, string node);
+  SMTConstant pred(PredType t, vstring node);
   SMTConstant costFunction();
 
-  void addDistinctColorsFormula(string n);
+  void addDistinctColorsFormula(vstring n);
 
-  void addLeafNodePropertiesFormula(string n);
-  void addGreyNodePropertiesFormula(string n, ParentSummary& parents);
-  void addColoredParentPropertiesFormulas(string n, ParentSummary& parents);
-  void addNodeFormulas(string n, ParentSummary& parents);
+  void addLeafNodePropertiesFormula(vstring n);
+  void addGreyNodePropertiesFormula(vstring n, ParentSummary& parents);
+  void addColoredParentPropertiesFormulas(vstring n, ParentSummary& parents);
+  void addNodeFormulas(vstring n, ParentSummary& parents);
 
   void addFringeFormulas(UnitSpec u);
     
@@ -145,19 +145,19 @@ private:
   void addAtomImplicationFormula(UnitSpec u);
   void addCostFormula();
 
-  void collectAtoms(FormulaUnit* f, Stack<string>& atoms);
-  string getComponentId(Clause* cl);
-  void collectAtoms(UnitSpec u, Stack<string>& atoms);
+  void collectAtoms(FormulaUnit* f, Stack<vstring>& atoms);
+  vstring getComponentId(Clause* cl);
+  void collectAtoms(UnitSpec u, Stack<vstring>& atoms);
 
   class ClauseSplitter;
 
-  DHMap<Clause*, string> _atomIds;
-  DHMap<string, string> _formulaAtomIds;
+  DHMap<Clause*, vstring> _atomIds;
+  DHMap<vstring, vstring> _formulaAtomIds;
 
-  typedef DHMap<string, unsigned> WeightMap;
+  typedef DHMap<vstring, unsigned> WeightMap;
   WeightMap _atomWeights;
 
-  DHMap<string,UnitSpec> _unitsById;
+  DHMap<vstring,UnitSpec> _unitsById;
 
   ClauseSplitter* _splitter;
 private:
@@ -165,7 +165,7 @@ private:
 
   void collectSlicedOffNodes(SMTSolverResult& solverResult, DHSet<UnitSpec>& acc);
 
-  string getUnitId(UnitSpec u);
+  vstring getUnitId(UnitSpec u);
 
   void addNodeFormulas(UnitSpec u);
 
@@ -174,7 +174,7 @@ private:
   OptimizationTarget _optTarget;
   bool _noSlicing;
   bool _showStats;
-  string _statsPrefix;
+  vstring _statsPrefix;
   SMTBenchmark _resBenchmark;
 };
 

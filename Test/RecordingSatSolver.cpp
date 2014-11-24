@@ -20,12 +20,12 @@ namespace Test
 // RecordingSatSolver
 //
 
-#define REC(x) LOG("sat_recorder",getHdr()<<x)
+#define REC(x) 
 
 /**
  * Return header to be used for log outputs of this solver
  */
-string RecordingSatSolver::getHdr() const
+vstring RecordingSatSolver::getHdr() const
 {
   CALL("RecordingSatSolver::getHdr");
 
@@ -40,7 +40,7 @@ void RecordingSatSolver::addClauses(SATClauseIterator cit0, bool onlyPropagate)
   SATClauseList::pushFromIterator(cit0, clauses);
   clauses = clauses->reverse();
 
-  stringstream clausesStm;
+  vostringstream clausesStm;
   SATClauseList::Iterator cit(clauses);
   while(cit.hasNext()) {
     SATClause* cl = cit.next();
@@ -109,7 +109,7 @@ SolverReplayer::ActionSpec::ActionSpec()
   rdr.registerUnsignedOption(&aaConflictCountLimit, "ccl");
 }
 
-SATClause* SolverReplayer::ActionSpec::readClause(string str)
+SATClause* SolverReplayer::ActionSpec::readClause(vstring str)
 {
   CALL("SolverReplayer::ActionSpec::readClause");
 
@@ -124,7 +124,7 @@ SATClause* SolverReplayer::ActionSpec::readClause(string str)
 
   StringStack::BottomFirstIterator vsit(varStrings);
   while(vsit.hasNext()) {
-    string varSpec = vsit.next();
+    vstring varSpec = vsit.next();
     int val;
     ALWAYS(Int::stringToInt(varSpec, val));
     clauseLits.push(SATLiteral(abs(val), val>0));
@@ -134,12 +134,11 @@ SATClause* SolverReplayer::ActionSpec::readClause(string str)
   return res;
 }
 
-void SolverReplayer::ActionSpec::readCommand(string str)
+void SolverReplayer::ActionSpec::readCommand(vstring str)
 {
   CALL("SolverReplayer::ActionSpec::readCommand");
 
   if(!rdr.readOptions(str)) {
-    LOG("bug","Invalid command string: "<<str);
     ASSERTION_VIOLATION;
   }
 
@@ -151,7 +150,7 @@ void SolverReplayer::ActionSpec::readCommand(string str)
 
     acClauses.reset();
     while(csit.hasNext()) {
-      string clauseString = csit.next();
+      vstring clauseString = csit.next();
       acClauses.push(readClause(clauseString));
     }
   }
@@ -177,7 +176,7 @@ const EnumReader<SolverReplayer::ReplayAction>& SolverReplayer::getReplayActionR
   return rdr;
 }
 
-void SolverReplayer::performStep(string cmd)
+void SolverReplayer::performStep(vstring cmd)
 {
   CALL("SolverReplayer::performStep");
 
@@ -204,18 +203,18 @@ void SolverReplayer::performStep(string cmd)
   }
 }
 
-void SolverReplayer::runFromStream(istream& stm, string prefix)
+void SolverReplayer::runFromStream(istream& stm, vstring prefix)
 {
   CALL("SolverReplayer::runFromStream");
 
   size_t prefLen = prefix.length();
   do {
-    string line;
+    vstring line;
     getline(stm, line);
     if(line.substr(0,prefLen)!=prefix) {
       continue;
     }
-    string cmd = line.substr(prefLen);
+    vstring cmd = line.substr(prefLen);
     performStep(cmd);
   } while(!stm.eof());
 }

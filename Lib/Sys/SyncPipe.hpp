@@ -33,7 +33,7 @@ public:
   void acquireWrite() { NOT_IMPLEMENTED; }
   void releaseWrite() { NOT_IMPLEMENTED; }
   void neverWrite() { NOT_IMPLEMENTED; }
-  void releasePriviledges() { NOT_IMPLEMENTED; }
+  void releasePrivileges() { NOT_IMPLEMENTED; }
   istream& in() { NOT_IMPLEMENTED; }
   ostream& out() { NOT_IMPLEMENTED; }
 };
@@ -45,28 +45,28 @@ public:
   SyncPipe();
   ~SyncPipe();
 
-  /** Return true iff the current object has acquired the read priviledge */
+  /** Return true iff the current object has acquired the read privilege */
   bool isReading() const { return _isReading; }
-  /** Return true iff the current object can acquire read priviledges */
+  /** Return true iff the current object can acquire read privileges */
   bool canRead() const { return _istream; }
 
   void acquireRead();
   void releaseRead();
   void neverRead();
 
-  /** Return true iff the current object has acquired the write priviledge */
+  /** Return true iff the current object has acquired the write privilege */
   bool isWriting() const { return _isWriting; }
-  /** Return true iff the current object can acquire write priviledges */
+  /** Return true iff the current object can acquire write privileges */
   bool canWrite() const { return _ostream; }
 
   void acquireWrite();
   void releaseWrite();
   void neverWrite();
 
-  void releasePriviledges();
+  void releasePrivileges();
 
   /**
-   * If we have read privilidges, return reference to an istream object
+   * If we have read privileges, return reference to an istream object
    */
   istream& in()
   {
@@ -79,7 +79,7 @@ public:
   }
 
   /**
-   * If we have write privilidges, return reference to an ostream object
+   * If we have write privileges, return reference to an ostream object
    */
   ostream& out()
   {
@@ -113,7 +113,7 @@ private:
    * one contains the value of the read-ahead byte from the pipe, or
    * 256 if there is not any.
    *
-   * When the semaphore value is one, anyone can acquire a priviledge,
+   * When the semaphore value is one, anyone can acquire a privilege,
    * when it is zero, the acquire function will wait until it
    * increases.
    */

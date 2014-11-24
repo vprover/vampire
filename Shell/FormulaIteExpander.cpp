@@ -19,6 +19,8 @@
 
 #include "FormulaIteExpander.hpp"
 
+#include "Shell/Options.hpp"
+
 namespace Shell
 {
 
@@ -179,10 +181,18 @@ Formula* FormulaIteExpander::apply(Formula* f)
       }
       if(c->connective()!=LITERAL) {
 	c = introduceDefinition(c);
-	LOG("pp_fite","processing ite "<<(*f)<<" with introduced definition "<<(*c));
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "processing ite "<<(*f)<<" with introduced definition "<<(*c)<<std::endl;
+      env->endOutput();
+    }	
       }
       else {
-	LOG("pp_fite","processing ite "<<(*f)<<" without definition introduction");
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "processing ite "<<(*f)<<" without definition introduction"<<std::endl;
+      env->endOutput();
+    }
       }
       ASS(c->connective()==LITERAL)
 

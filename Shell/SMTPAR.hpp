@@ -8,9 +8,9 @@
 #ifndef __SMTParser__
 #define __SMTParser__
 
-#include <string>
 #include <iostream>
 
+#include "Lib/VString.hpp"
 #include "../Lib/Exception.hpp"
 #include "PARSER_TKV.hpp"
 
@@ -56,18 +56,18 @@ public:
   /** Annotations, pair attribute-value  */
   struct Annotation {
     /** attribute */
-    string attribute;
+    vstring attribute;
     /** value */
-    string value;
+    vstring value;
     /** next annotation in the list */
     Annotation* next;
   }; 
 
   /** Function declarations, correpond to the :extrafuns in the SMT LIB syntax */
   struct FunctionDeclaration {
-    FunctionDeclaration(const string& name);
+    FunctionDeclaration(const vstring& name);
     /** name of the function */
-    string name;
+    vstring name;
     /** sort */
     Sort sort;
     /** annotations */
@@ -78,9 +78,9 @@ public:
 
   /** Predicate declarations, correpond to the :extrapreds in the SMT LIB syntax */
   struct PredicateDeclaration {
-    PredicateDeclaration(const string& name);
+    PredicateDeclaration(const vstring& name);
     /** name of the predicate */
-    string name;
+    vstring name;
     /** sort */
     Sort sort;
     /** annotations */
@@ -123,8 +123,8 @@ public:
   struct Term {
     /** term kind */
     TermType kind;
-    /** function symbol or number written as a string */
-    string fun;
+    /** function symbol or number written as a vstring */
+    vstring fun;
     /** list of arguments */
     Term* args;
     /** next subformula, if this term is part of a list */
@@ -133,7 +133,7 @@ public:
      *  arguments and null next term */
     /** occasional annotation(s) */
     Annotation* annotations;
-    Term(TermType tt,string str)
+    Term(TermType tt,vstring str)
       : kind(tt),
 	fun(str),
 	args(0),
@@ -156,13 +156,13 @@ public:
   /** atomic formula in the SMT syntax */
   struct Atom {
     /** Create a new atom with a given name and no arguments */
-    Atom(string nm)
+    Atom(vstring nm)
       : pred(nm),
 	args(0),
 	annotations(0)
     {}
     /** predicate symbol */
-    string pred;
+    vstring pred;
     /** arguments */
     Term* args;
     /** occasional annotation(s) */
@@ -199,9 +199,9 @@ public:
 
   /** Benchmark */
   struct Benchmark {
-    Benchmark(const string& nm);
+    Benchmark(const vstring& nm);
     /** name */
-    string name;
+    vstring name;
     /** logic used */
     Logic logic;
     /** status */

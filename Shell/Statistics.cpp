@@ -62,6 +62,8 @@ Statistics::Statistics()
     selfSuperposition(0),
     equalityFactoring(0),
     equalityResolution(0),
+    forwardExtensionalityResolution(0),
+    backwardExtensionalityResolution(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -83,10 +85,12 @@ Statistics::Statistics()
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
+    extensionalityClauses(0),
     discardedNonRedundantClauses(0),
     inferencesSkippedDueToColors(0),
     finalPassiveClauses(0),
     finalActiveClauses(0),
+    finalExtensionalityClauses(0),
     reactivatedClauses(0),
     splitClauses(0),
     splitComponents(0),
@@ -105,6 +109,15 @@ Statistics::Statistics()
     backtrackingSplitsRefutedZeroLevel(0),
     satSplits(0),
     satSplitRefutations(0),
+
+    satLingelingAssumptions(0),
+    satLingelingClauses(0),
+    satLingelingVariables(0),
+    satLingelingSATCalls(0),
+    /**TODO Remove the next var*/
+    satTWLClauseCount(0),
+    satTWLVariablesCount(0),
+    satTWLSATCalls(0),
 
     instGenGeneratedClauses(0),
     instGenRedundantClauses(0),
@@ -201,9 +214,11 @@ void Statistics::print(ostream& out)
 
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
+  COND_OUT("Extensionality clauses", extensionalityClauses);
   COND_OUT("Generated clauses", generatedClauses);
   COND_OUT("Final active clauses", finalActiveClauses);
   COND_OUT("Final passive clauses", finalPassiveClauses);
+  COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
   COND_OUT("Input clauses", inputClauses);
   COND_OUT("Input formulas", inputFormulas);
   COND_OUT("Initial clauses", initialClauses);
@@ -257,6 +272,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Self superposition", selfSuperposition);
   COND_OUT("Equality factoring", equalityFactoring);
   COND_OUT("Equality resolution", equalityResolution);
+  COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);
+  COND_OUT("Bw extensionality resolution", backwardExtensionalityResolution);
   SEPARATOR;
 
   COND_OUT("Split clauses", splitClauses);
@@ -287,6 +304,15 @@ void Statistics::print(ostream& out)
   COND_OUT("Max BFNT model size", maxBFNTModelSize);
   SEPARATOR;
 
+  COND_OUT("Lingeling assumptions", satLingelingAssumptions);
+  COND_OUT("Lingeling vampire count variables", satLingelingVariables);
+  COND_OUT("Lingeling vampire count clauses", satLingelingClauses);
+  COND_OUT("Lingeling calls for satisfiability", satLingelingSATCalls);
+  COND_OUT("TWLsolver clauses", satTWLClauseCount);
+  COND_OUT("TWLsolver variables", satTWLVariablesCount);
+  COND_OUT("TWLsolver calls for satisfiability", satTWLSATCalls);
+  SEPARATOR;
+
   COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
 
   addCommentIfCASC(out);
@@ -297,7 +323,6 @@ void Statistics::print(ostream& out)
   out << "------------------------------\n";
 
   RSTAT_PRINT(out);
-  DISPLAY_TRACE_STATS(out);
   addCommentIfCASC(out);
   out << "------------------------------\n";
 
