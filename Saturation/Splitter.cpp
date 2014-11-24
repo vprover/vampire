@@ -965,6 +965,8 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
   return res;
 }
 
+static const int NOT_WORTH_REINTRODUCING = 0;
+
 /**
  * Assign the @b SplitSet @b splits to the clause @b cl.
  */
@@ -977,16 +979,25 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
 
   //update "children" field of relevant SplitRecords
   SplitSet::Iterator bsit(*splits);
+  bool should_reintroduce = true;
+  int cl_weight = cl->weight();
   while(bsit.hasNext()) {
     SplitLevel slev=bsit.next();
-    _db[slev]->children.push(cl);
-  }
-  if (!_deleteDeactivated) {
-    cl->setNumActiveSplits(splits->size());
+    _db[slev]->children.push(cl);    
+    if (cl_weight > _db[slev]->component->weight()) {
+      should_reintroduce = false;
+    }
+  }  
+  
+  /**
+   * Heuristic idea -- if the clause is heavier than at least
+   * on of the component clauses on which it depends, 
+   * then it shouldn't be kept for reintroduction.
+   */  
+  if (!_deleteDeactivated) {    
+    cl->setNumActiveSplits(should_reintroduce ? splits->size() : NOT_WORTH_REINTRODUCING);
   }
 }
-
-static const int UNCONDITIONALLY_REDUCED_MARK = 0;
 
 /**
  * Register the reduction of the @b cl clause
@@ -1026,7 +1037,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
 
   if(diff->isEmpty()) {
     if (!_deleteDeactivated) {
-      cl->setNumActiveSplits(UNCONDITIONALLY_REDUCED_MARK);
+      cl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
     }
         
     return;
@@ -1189,7 +1200,7 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
       //when we remove the component
       sr->children.push(sr->component);
       _sa->addNewClause(sr->component);
-    } else {            
+    } else {
       // children were kept, so we just put them back
       RCClauseStack::Iterator chit(sr->children);
       unsigned reactivated_cnt = 0;
@@ -1239,8 +1250,8 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       }
       ccl->invalidateMyReductionRecords();
       ccl->decNumActiveSplits();
-      if (ccl->getNumActiveSplits() < UNCONDITIONALLY_REDUCED_MARK) {
-        RSTAT_CTR_INC("unconditionally reduced child removed");
+      if (ccl->getNumActiveSplits() < NOT_WORTH_REINTRODUCING) {
+        RSTAT_CTR_INC("unworthy child removed");
         chit.del();
       }
     }
