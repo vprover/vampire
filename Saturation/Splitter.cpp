@@ -979,22 +979,22 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
 
   //update "children" field of relevant SplitRecords
   SplitSet::Iterator bsit(*splits);
-  bool should_reintroduce = true;
+  bool should_reintroduce = false;
   int cl_weight = cl->weight();
   while(bsit.hasNext()) {
     SplitLevel slev=bsit.next();
     _db[slev]->children.push(cl);    
-    if (cl_weight > _db[slev]->component->weight()) {
-      should_reintroduce = false;
+    if (cl_weight <= _db[slev]->component->weight()) {
+      should_reintroduce = true;
     }
   }  
   
   /**
-   * Heuristic idea -- if the clause is heavier than at least
-   * on of the component clauses on which it depends, 
-   * then it shouldn't be kept for reintroduction.
-   */  
-  if (!_deleteDeactivated) {    
+   * Heuristic idea -- only if the clause is lighter than at least
+   * one of the component clauses on which it depends, 
+   * it will be kept for reintroduction.
+   */
+  if (!_deleteDeactivated) {
     cl->setNumActiveSplits(should_reintroduce ? splits->size() : NOT_WORTH_REINTRODUCING);
   }
 }
