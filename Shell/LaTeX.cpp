@@ -348,26 +348,27 @@ vstring LaTeX::toString (Literal* l) const
 //     }
 //   }
 
-  //Check if this is an interpreted predicate 
-  vstring interpSymbol = theory->tryGetInterpretedLaTeXName(l->functor(),true,l->isNegative());
+  //Check if this symbol has an interpreted LaTeX name
+  // this should be true for all known interpreted symbols and any recorded symbols
+  vstring template_str = theory->tryGetInterpretedLaTeXName(l->functor(),true,l->isNegative());
 
-  if(interpSymbol.empty()){
+  if(template_str.empty()){
     vstring res;
     if (l->isNegative()) { res="\\neg ";}
     return res+symbolToString(l->functor(), true) + toString(l->args());
   }
   else{
-    // replace arguments in the template, arg0 replaces 0 etc.
+    // replace arguments in the template, arg0 replaces a0 etc.
     for(unsigned i=0;i<l->arity();i++){
       vstring from = "a"+Lib::Int::toString(i);
       vstring to = toString(l->nthArgument(i),true);
       size_t start_pos = 0;
-      while((start_pos = interpSymbol.find(from, start_pos)) != std::string::npos) {
-         interpSymbol.replace(start_pos, from.length(), to);
+      while((start_pos = template_str.find(from, start_pos)) != std::string::npos) {
+         template_str.replace(start_pos, from.length(), to);
          start_pos += to.length(); 
       }
     }
-    return interpSymbol;
+    return template_str;
   }
 
 } // LaTeX::toString (const Literal& l)
@@ -425,6 +426,7 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
   else{
     if(digits[-1] == '.'){
       //check if this is a real digit-only name
+      // i.e. of the form digts.digits
       const char* digits_real = digits;
       digits_real--;
       while(nm != digits_real){
@@ -471,6 +473,11 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
 
 /**
  * Convert term list to LaTeX.
+ *
+ * If it is a single term then we do not look at the next term in the
+ * TermList (important to dictate in some cases) and we do not place it
+ * in brackets to try and reduce the number of brackets
+ *
  * @since 09/12/2003 Manchester
  */
 vstring LaTeX::toString (TermList* terms,bool single) const
@@ -507,24 +514,25 @@ vstring LaTeX::toString (TermList* terms,bool single) const
       ASS(t->isTerm());
       Term* trm=t->term();
 
-      //Check if this is an interpreted function
-      vstring interpSymbol = theory->tryGetInterpretedLaTeXName(trm->functor(),false);
+     //Check if this symbol has an interpreted LaTeX name
+     // this should be true for all known interpreted symbols and any recorded symbols
+      vstring template_str = theory->tryGetInterpretedLaTeXName(trm->functor(),false);
    
-      if(interpSymbol.empty()){
+      if(template_str.empty()){
         result += symbolToString(trm->functor(), false) + toString(trm->args());
       }
       else{
-        // replace arguments in the template, arg0 replaces 0 etc.
+        // replace arguments in the template, arg0 replaces a0 etc.
         for(unsigned i=0;i<trm->arity();i++){
           vstring from = "a"+Lib::Int::toString(i);
           vstring to = toString(trm->nthArgument(i),true);
           size_t start_pos = 0;
-          while((start_pos = interpSymbol.find(from, start_pos)) != std::string::npos) {
-            interpSymbol.replace(start_pos, from.length(), to);
+          while((start_pos = template_str.find(from, start_pos)) != std::string::npos) {
+            template_str.replace(start_pos, from.length(), to);
             start_pos += to.length();
           }
         }
-        result += interpSymbol;
+        result += template_str;
       }
     }
 

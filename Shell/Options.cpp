@@ -818,6 +818,12 @@ void Options::Options::init()
     // TODO - put the tabulation constraint here but inst_gen constraint on sa... why?
     _splitting.addConstraint(If(equal(true)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION))));
     
+    _splitAtActivation = BoolOptionValue("split_at_activation","",false);
+    _splitAtActivation.description="Split a clause when it is activated, default is to split when it is processed";
+    _lookup.insert(&_splitAtActivation);
+    _splitAtActivation.addConstraintIfNotDefault(_splitting.is(equal(true)));
+    _splitAtActivation.tag(OptionTag::AVATAR);
+
     _ssplittingAddComplementary = ChoiceOptionValue<SSplittingAddComplementary>("ssplitting_add_complementary","ssac",
                                                                                 SSplittingAddComplementary::GROUND,{"ground","none"});
     _ssplittingAddComplementary.description="";

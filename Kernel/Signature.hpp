@@ -481,7 +481,7 @@ private:
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
 
-  /** Number of Skolem functions */
+  /** Number of Skolem functions (this is just for LaTeX output) */
   unsigned _skolemFunctionCount;
 
   /** Map from symbol names to variable numbers*/

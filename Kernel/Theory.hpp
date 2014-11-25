@@ -199,7 +199,6 @@ public:
     REAL_IS_INT,
     REAL_IS_RAT,
     REAL_IS_REAL,
-    REAL_EQUAL,
     REAL_GREATER,
     REAL_GREATER_EQUAL,
     REAL_LESS,
@@ -311,6 +310,7 @@ public:
   vstring tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity=true);
   
 private:
+  // For recording the templates for predicate and function symbols
   DHMap<unsigned,vstring> _predLaTeXnamesPos;
   DHMap<unsigned,vstring> _predLaTeXnamesNeg;
   DHMap<unsigned,vstring> _funcLaTeXnames;

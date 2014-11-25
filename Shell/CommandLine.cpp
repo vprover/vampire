@@ -49,7 +49,13 @@ void CommandLine::interpret (Options& options)
       cout<<VERSION_STRING<<endl;
       exit(0);
     }
-    if(strcmp(arg,"--help")==0 || strcmp(arg,"-h")==0){ //TODO what about options that start with h?
+    // If --help or -h are used without arguments we still print help
+    // If --help is used at all we print help
+    // If -h is included at the end of the argument list we print help
+    if(strcmp(arg,"--help")==0 || 
+       (strcmp(arg,"-h")==0 && _next==_last) //if -h and there is no more
+      ){ 
+      cout << _next << " " << _last << endl;
       options.set("help","on");
       env.beginOutput();
       options.output(env.out());

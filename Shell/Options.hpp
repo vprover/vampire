@@ -36,7 +36,6 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/NameArray.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/XML.hpp"
 
@@ -653,6 +652,7 @@ public:
   int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
   int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
 
+  bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
   SSplittingNonsplittableComponents ssplittingNonsplittableComponents() const { return _ssplittingNonsplittableComponents.actualValue; }
   SSplittingComponentSweeping ssplittingComponentSweeping() const { return _ssplittingComponentSweeping.actualValue; }
   SSplittingAddComplementary ssplittingAddComplementary() const { return _ssplittingAddComplementary.actualValue; }
@@ -1682,6 +1682,7 @@ private:
   BoolOptionValue _smtlibIntroduceAIGNames;
   ChoiceOptionValue<Sos> _sos;
   BoolOptionValue _splitting;
+  BoolOptionValue _splitAtActivation;
   ChoiceOptionValue<SSplittingAddComplementary> _ssplittingAddComplementary;
   ChoiceOptionValue<SSplittingComponentSweeping> _ssplittingComponentSweeping;
   BoolOptionValue _ssplittingCongruenceClosure;
@@ -1696,12 +1697,9 @@ private:
   BoolOptionValue _tabulationBwRuleSubsumptionResolutionByLemmas;
   BoolOptionValue _tabulationFwRuleSubsumptionResolutionByLemmas;
   RatioOptionValue _tabulationGoalAgeWeightRatio;
-  //IntOptionValue _tabulationGoalWeightRatio;
   RatioOptionValue _tabulationGoalLemmaRatio;
-  //IntOptionValue _tabulationLemmaRatio;
   BoolOptionValue _tabulationInstantiateProducingRules;
   RatioOptionValue _tabulationLemmaAgeWeightRatio;
-  //IntOptionValue _tabulationLemmaWeightRatio;
   StringOptionValue _testId;
   StringOptionValue _thanks;
   BoolOptionValue _theoryAxioms;

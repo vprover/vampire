@@ -84,7 +84,6 @@ void TPTP::parse()
   _states.push(UNIT_LIST);
   while (!_states.isEmpty()) {
     State s = _states.pop();
-    //cout << "PARSE " << toString(s) << endl;
 #if DEBUG_SHOW_TOKENS
 #endif
     switch (s) {
@@ -2877,7 +2876,6 @@ void TPTP::endTff()
     symbol = env.signature->getPredicate(pred);
   }
   else {
-    cout << "creating function " << name << endl;
     unsigned fun = arity == 0
                    ? addUninterpretedConstant(name,added)
                    : env.signature->addFunction(name,arity,added);
@@ -3612,6 +3610,7 @@ void TPTP::vampire()
       throw Exception("either atom or number expected as a value of a Vampire option",tok);
     }
   }
+  // Allows us to insert LaTeX templates for predicate and function symbols
   else if(nm == "latex"){
     consumeToken(T_COMMA);
     vstring kind = name();

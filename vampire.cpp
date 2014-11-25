@@ -169,7 +169,8 @@ void doProving()
 {
   CALL("doProving()");
   ScopedPtr<Problem> prb(getPreprocessedProblem());
-  env.options->checkProblemOptionConstraints(*prb); // this will provide warning if options don't make sense for problem
+  // this will provide warning if options don't make sense for problem
+  env.options->checkProblemOptionConstraints(*prb); 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
 
@@ -231,9 +232,8 @@ void programAnalysisMode()
 #if IS_LINGVA
   Lib::Random::setSeed(123456);
   int time = env.options->timeLimitInDeciseconds();
-  // Seems dangerous, overridng memory limit
   env.options->setMode(Options::Mode::VAMPIRE);
-  // Seems dangerous, overridng memory limit
+  // Seems dangerous, overriding memory limit
   Allocator::setMemoryLimit(1024u * 1048576ul);
 
   vstring inputFile = env.options->inputFile();
@@ -349,6 +349,7 @@ void boundPropagationMode(){
 #endif
 }
 
+// prints Unit u at an index to latexOut using the LaTeX object
 void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
 {
     vstring stringform = latex.toString(u);
@@ -365,6 +366,7 @@ void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
     latexOut << "\\\\" << endl;
 }
 
+// print the clauses of a problem to a LaTeX file
 void outputClausesToLaTeX(Problem* prb)
 {
   CALL("outputClausesToLaTeX");
@@ -399,6 +401,7 @@ void outputClausesToLaTeX(Problem* prb)
   //close ofstream?
 }
 
+// print the formulas of a problem to a LaTeX file
 void outputProblemToLaTeX(Problem* prb)
 {
   CALL("outputProblemToLaTeX");
@@ -792,6 +795,7 @@ int main(int argc, char* argv[])
     cl.interpret(*env.options);
 
 
+    // If any of these options are set then we just need to output and exit
     if (env.options->showHelp() || env.options->showOptions() || !env.options->explainOption().empty()) {
       env.beginOutput();
       env.options->output(env.out());

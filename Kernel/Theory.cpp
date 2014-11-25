@@ -210,6 +210,7 @@ void RationalConstantType::init(InnerType num, InnerType den)
   _den = den;
   cannonize();
 
+  // Dividing by zero is bad!
   if(_den.toInt()==0) throw ArithmeticException();
 }
 
@@ -301,6 +302,9 @@ void RationalConstantType::cannonize()
     _num = -_num;
     _den = -_den;
   }
+  // Normalize zeros
+  // If it is of the form 0/c then rewrite it to 0/1
+  // Unless it is of the form 0/0
   if(_num==0 && _den!=0){ _den=1; }
 }
 
@@ -1456,15 +1460,23 @@ unsigned Theory::getPredNum(Interpretation itp)
   return env.signature->getInterpretingSymbol(itp);
 }
 
-void Theory::registerLaTeXPredName(unsigned func, bool polarity, vstring temp)
+/**
+ * Register that a predicate pred with a given polarity has the given
+ * template. See tryGetInterpretedLaTeXName for explanation of templates 
+ */
+void Theory::registerLaTeXPredName(unsigned pred, bool polarity, vstring temp)
 {
   CALL("Theory::registerPredLaTeXName");
   if(polarity){
-    _predLaTeXnamesPos.insert(func,temp);
+    _predLaTeXnamesPos.insert(pred,temp);
   }else{
-    _predLaTeXnamesNeg.insert(func,temp); 
+    _predLaTeXnamesNeg.insert(pred,temp); 
   }
 }
+/**
+ * Register that a function has the given template
+ * See tryGetInterpretedLaTeXName for explanation of templates 
+ */
 void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
 {
   CALL("Theory::registerFuncLaTeXName");
@@ -1472,9 +1484,23 @@ void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
 }
 
 /**
+ * We try and get a LaTeX special name for an interpeted function/predicate.
+ * Note: the functions may not necessarily be interpreted in the sense that we treat
+ *       them as interpreted in Vampire. They are just called that here as we have an
+ *       interpretation for them. So we can have LaTeX symbols for any predicate or
+ *       function if they are recorded e.g. skolem functions are recorded in Signature.
  *
+ * See Shell/LaTeX for usage.
  *
- * polarity only makes sense if pred=true
+ * Polarity only makes sense if pred=true
+ *
+ * First we look in the recorded templates and if one is not found we fallback to the
+ * default templates for known interprted functions. Note that in most cases the known
+ * interpreted functions will use these defaults.
+ *
+ * A template is a string with "ai" representing parameter i. These will be
+ * replaced by the actual parameters elsewhere. For example, the template for 
+ * not greater or equal to is "a0 \not \geq a1"
  */
 vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
 {
@@ -1482,35 +1508,41 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
 
    //cout << "Get LaTeX for " << func << endl;
 
+  // Used if no recorded template is found
   Interpretation i;
 
   if(pred){
     if(polarity){
       if(_predLaTeXnamesPos.find(func)){ return _predLaTeXnamesPos.get(func); }
       else if(_predLaTeXnamesNeg.find(func)){ 
+        // If a negative record is found but no positive we negate it
         return "\neg ("+_predLaTeXnamesNeg.get(func)+")";
       }
     }
     else{ 
       if(_predLaTeXnamesNeg.find(func)){ return _predLaTeXnamesNeg.get(func); }
       else if(_predLaTeXnamesPos.find(func)){ 
+        // If a positive record is found but no negative we negate it
         return "\neg ("+_predLaTeXnamesPos.get(func)+")";
       }
     }
+    // We get here if no record is found for a predicate
     if(!isInterpretedPredicate(func)) return "";
     i = interpretPredicate(func);
   }
   else{
     if(_funcLaTeXnames.find(func)){ return _funcLaTeXnames.get(func); }
+    // We get here if no record is found for a function
     if(!isInterpretedFunction(func)) return "";
     i = interpretFunction(func);
   }
 
   // There are some default templates
+  // For predicates these include the notion of polarity
   vstring pol = polarity ? "" : " \\not ";
 
   switch(i){
-  case INT_SUCCESSOR: return "a0++"; // is this right? it will be prefix
+  case INT_SUCCESSOR: return "a0++"; 
   case INT_UNARY_MINUS:
   case RAT_UNARY_MINUS:
   case REAL_UNARY_MINUS: return "-a0";
@@ -1559,7 +1591,20 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
 }
 
 /**
+ * This attempts to invert an interpreted function and returns false if the function
+ * does not have an inverse. In some cases functions have an inverse in special cases,
+ * i.e. integer division, here we attempt to check these cases.
  *
+ * term is the term whose function we wish to invert 
+ * arg is the argument of that term that should be moved
+ * rep is the other term the funcion should be applied to
+ * result is where the resultant term should be placed
+ *
+ * So at the end we should have result = f^(arg,rep)
+ * If term=f(arg,t) and f^ is the inverse of f
+ * This is modulo the ordering of arguments in f, which this function should work out
+ *
+ * See Kernel/InterpretedLiteralEvaluator.cpp for usage
  *
  * @author Giles
  * @since 12/11/14
@@ -1572,6 +1617,10 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
    Interpretation f = interpretFunction(term->functor());
    Interpretation inverted_f;
 
+// Commented functions are those without an inverse
+// Currently all invertable functions are of the same form so we record their inverse
+// and perform the inversion at the end. If this changes we will need to organise this
+// differently.
 switch(f){
   //case INT_SUCCESSOR: 
   //case INT_UNARY_MINUS:
@@ -1580,6 +1629,7 @@ switch(f){
 
   case INT_PLUS: inverted_f = INT_MINUS; break; 
   case INT_MINUS: inverted_f = INT_PLUS; break;
+  // This has no universal inverse but we are conservative
   case INT_MULTIPLY: 
     // conservative checks that this is safe
     // TODO extend
