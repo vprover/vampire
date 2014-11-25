@@ -349,6 +349,55 @@ void boundPropagationMode(){
 #endif
 }
 
+void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
+{
+    vstring stringform = latex.toString(u);
+    latexOut << index++ << " & ";
+    unsigned count = 0;
+    for(const char* p = stringform.c_str();*p;p++){
+      latexOut << *p;
+      count++;
+      if(count>80 && *p==' '){
+        latexOut << "\\\\ \n & ~~~~~";
+        count=0;
+      }
+    }
+    latexOut << "\\\\" << endl;
+}
+
+void outputClausesToLaTeX(Problem* prb)
+{
+  CALL("outputClausesToLaTeX");
+  ASS(env.options->latexOutput()!="off");
+
+  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
+
+  LaTeX latex;
+  ofstream latexOut(env.options->latexOutput().c_str());
+  latexOut << latex.header() << endl;
+  latexOut << "\\section{Problem "<<env.options->problemName() << "}" << endl;
+  //TODO output more header
+  latexOut << "\\[\n\\begin{array}{ll}" << endl;
+
+  CompositeISE simplifier;
+  simplifier.addFront(new TrivialInequalitiesRemovalISE());
+  simplifier.addFront(new TautologyDeletionISE());
+  simplifier.addFront(new DuplicateLiteralRemovalISE());
+
+  unsigned index=0;
+  ClauseIterator cit = prb->clauseIterator();
+  while (cit.hasNext()) {
+    Clause* cl = cit.next();
+    cl = simplifier.simplify(cl);
+    if (!cl) {
+      continue;
+    }
+    outputUnitToLaTeX(latex,latexOut,cl,index++);
+  }
+  latexOut  << "\\end{array}\n\\]" << latex.footer() << "\n";
+
+  //close ofstream?
+}
 
 void outputProblemToLaTeX(Problem* prb)
 {
@@ -372,18 +421,7 @@ void outputProblemToLaTeX(Problem* prb)
   unsigned index = 0;
   while (units.hasNext()) {
     Unit* u = units.next();
-    vstring stringform = latex.toString(u);
-    latexOut << index++ << " & "; 
-    unsigned count = 0;
-    for(const char* p = stringform.c_str();*p;p++){
-      latexOut << *p;
-      count++;
-      if(count>80 && *p==' '){
-        latexOut << "\\\\ \n & ~~~~~";
-        count=0;
-      }
-    }
-    latexOut << "\\\\" << endl;
+    outputUnitToLaTeX(latex,latexOut,u,index++);
   }
   latexOut  << "\\end{array}\n\\]" << latex.footer() << "\n";
 
@@ -637,6 +675,8 @@ void clausifyMode()
     env.out() << TPTPPrinter::toString(cl) << "\n";
   }
   env.endOutput();
+
+if(env.options->latexOutput()!="off"){ outputClausesToLaTeX(prb.ptr()); }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
