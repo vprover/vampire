@@ -404,8 +404,8 @@ SimpleCongruenceClosure::CEq SimpleCongruenceClosure::convertFOEquality(Literal*
  *     if positive equality add eq as a pending equality
  *     otherwise add eq to _negEqualities
  *
- * - if distinct predicate (a special predicate in teh TFF language of TPTP that
- *     gaurentees that its arguments are distinct)
+ * - if distinct predicate (a special predicate in the TFF language of TPTP that
+ *     guarantees that its arguments are distinct)
  *     add to distinctConstraints or negDistinctConstraints appropriately
  *
  * - otherwise build an integer representative of the term and
@@ -618,7 +618,7 @@ DecisionProcedure::Status SimpleCongruenceClosure::checkNegativeDistincts(bool r
       if(reprs.find(rep)) {
 	//distinct constraint is false, we're happy
 	isFalse = true;
-	continue;
+	continue; // Martin: why not break?
       }
       reprs.insert(rep, c);
     }
@@ -650,9 +650,10 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultip
     if(!retrieveMultipleCores) {
       return DecisionProcedure::UNSATISFIABLE;
     }
+    // Martin: else?
   }
 
-  //The intuition is that we want to fail on as early equialities as possible
+  //The intuition is that we want to fail on as early equalities as possible
   //(to improve back-jumping), so we have a BottomUpIterator here.
   //A possible problem with this is that the non-equality true!=false is the
   //first one, so whenever we have a contradiction with non-equality predicates,
@@ -662,6 +663,7 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultip
   //        is based on order added to SAT solver, which is not necessarily indicative
   //        of ordering in SAT solver splitting tree
   //        Cannot see why true!=false would be first non-equality
+  // Martin: agree with first, can explain the second (see the constructor and reset())
   Stack<CEq>::BottomFirstIterator neqIt(_negEqualities);
   while(neqIt.hasNext()) {
     CEq neq = neqIt.next();
@@ -751,7 +753,7 @@ void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stac
  */
 void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex)
 {
-  CALL("SimpleCongruenceClosure::getUnsatisfiableSubset");
+  CALL("SimpleCongruenceClosure::getUnsatCore");
   ASS(res.isEmpty());
   ASS_L(coreIndex,_unsatEqs.size());
 

@@ -1,6 +1,6 @@
 /**
  * @file SimpleCongruenceClosure.hpp
- * Defines class SimpleCongruenceClosure for implementing conguence closure
+ * Defines class SimpleCongruenceClosure for implementing congruence closure
  */
 
 #ifndef __SimpleCongruenceClosure__
@@ -142,7 +142,7 @@ private:
     /** (0,0) means the constant doesn't name a pair */
     CPair namedPair;
 
-    /** 0 means the symbol is its own representant */
+    /** 0 means the symbol is its own representative */
     unsigned reprConst;
 
     /**
@@ -163,7 +163,7 @@ private:
     /**
      * If reprConst==0, contains list of pair names in whose pairs this
      * constant appears as a representative of one of the arguments.
-     * Irregardless of the value f reprConst, also contains representatives
+     * Irregardless of the value of reprConst, also contains representatives
      * of all pairs that have this very constant as one of arguments.
      */
     Stack<unsigned> useList;
@@ -213,7 +213,11 @@ private:
   };
   typedef Stack<DistinctEntry> DistinctStack;
   DistinctStack _distinctConstraints;
-  /** Negated distinct constraints, these can lead to an UNKNOWN satisfiability result */
+  /** Negated distinct constraints, these can lead to an UNKNOWN satisfiability result 
+   * 
+   * Martin: Strictly speaking these are not part of TPTP: 
+   * http://www.cs.miami.edu/~tptp/TPTP/SyntaxBNF.html
+   * "It can be used only as a fact, not under any connective." */  
   DistinctStack _negDistinctConstraints;
 
   /**
