@@ -171,6 +171,7 @@ void doProving()
   ScopedPtr<Problem> prb(getPreprocessedProblem());
   // this will provide warning if options don't make sense for problem
   env.options->checkProblemOptionConstraints(*prb); 
+  env.options->randomizeStrategy(*prb->getProperty()); // this will only randomize non-default things if an option is set to do so
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
 

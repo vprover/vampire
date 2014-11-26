@@ -44,7 +44,7 @@ bool SpawningCM::runSlice(Options& opt)
 {
   CALL("SpawningCM::runSlice");
 
-  vstring strategy = opt.generateTestId();
+  vstring strategy = opt.generateEncodedOptions();
   vstring cmdLine = _executable + " --decode " + strategy + " --input_file " + _inputFile;
 
   if (env.options->include() != "") {

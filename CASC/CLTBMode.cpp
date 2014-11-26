@@ -1875,7 +1875,7 @@ void CLTBProblem::runSlice(vstring sliceCode, unsigned timeLimitInMilliseconds)
   CALL("CLTBProblem::runSlice");
 
   Options opt = *env.options;
-  opt.readFromTestId(sliceCode);
+  opt.readFromEncodedOptions(sliceCode);
   opt.setTimeLimitInDeciseconds(timeLimitInMilliseconds/100);
   int stl = opt.simulatedTimeLimit();
   if (stl) {
