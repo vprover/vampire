@@ -168,9 +168,7 @@ void SplittingBranchSelector::processDPConflicts()
   if(!_dp || _solver->getStatus()==SATSolver::UNSATISFIABLE) {
     return;
   }
-
-  TimeCounter tc(TC_CONGRUENCE_CLOSURE);
-
+  
   SAT2FO& s2f = _parent.satNaming();
   static LiteralStack gndAssignment;
   static LiteralStack unsatCore;
@@ -178,25 +176,29 @@ void SplittingBranchSelector::processDPConflicts()
   static SATClauseStack conflictClauses;
 
   while(_solver->getStatus()==SATSolver::SATISFIABLE) {
-    gndAssignment.reset(); // Martin. in fact, not ground. Filtering based on gndness happens inside dp
-    s2f.collectAssignment(*_solver, gndAssignment);
+    {
+      TimeCounter tc(TC_CONGRUENCE_CLOSURE);
+    
+      gndAssignment.reset(); // Martin. in fact, not ground. Filtering based on gndness happens inside dp
+      s2f.collectAssignment(*_solver, gndAssignment);
 
-    _dp->reset();
-    _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ));
-    DecisionProcedure::Status dpStatus = _dp->getStatus(true);
-    if(dpStatus!=DecisionProcedure::UNSATISFIABLE) {
-      break;
+      _dp->reset();
+      _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ));
+      DecisionProcedure::Status dpStatus = _dp->getStatus(true);
+      if(dpStatus!=DecisionProcedure::UNSATISFIABLE) {
+        break;
+      }
+
+      conflictClauses.reset();
+      unsigned unsatCoreCnt = _dp->getUnsatCoreCount();
+      for(unsigned i=0; i<unsatCoreCnt; i++) {
+        unsatCore.reset();
+        _dp->getUnsatCore(unsatCore, i);
+        SATClause* conflCl = s2f.createConflictClause(unsatCore);
+        conflictClauses.push(conflCl);
+      }
     }
-
-    conflictClauses.reset();
-    unsigned unsatCoreCnt = _dp->getUnsatCoreCount();
-    for(unsigned i=0; i<unsatCoreCnt; i++) {
-      unsatCore.reset();
-      _dp->getUnsatCore(unsatCore, i);
-      SATClause* conflCl = s2f.createConflictClause(unsatCore);
-      conflictClauses.push(conflCl);
-    }
-
+      
     {
     	TimeCounter tca(TC_SAT_SOLVER);
       // We do not use conflict clauses in the partial model (hence the last false here below)     
@@ -273,9 +275,9 @@ void SplittingBranchSelector::addSatClauses(
     // We do use regular split clauses in the partial model ...
     _solver->addClauses(pvi( SATClauseStack::ConstIterator(regularClauses) ), false,true);
     // ... but not the clauses derived from conflicts
-    _solver->addClauses(pvi( SATClauseStack::ConstIterator(conflictClauses) ), false,false);
-    processDPConflicts();
+    _solver->addClauses(pvi( SATClauseStack::ConstIterator(conflictClauses) ), false,false);    
   }
+  processDPConflicts();
 
   if(_solver->getStatus()==SATSolver::UNSATISFIABLE) {
     SATClause* satRefutation = _solver->getRefutation();
