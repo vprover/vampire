@@ -376,7 +376,7 @@ void SplittingBranchSelector::getNewZeroImpliedSplits(SplitLevelStack& res)
 //////////////
 
 Splitter::Splitter()
-: _deleteDeactivated(true), _branchSelector(*this), 
+: _deleteDeactivated(Options::SDD_ON), _branchSelector(*this), 
   _haveBranchRefutation(false), _clausesSinceEmpty(0) 
 {
   CALL("Splitter::Splitter");
@@ -655,7 +655,8 @@ bool Splitter::handleNonSplittable(Clause* cl)
     
     compCl->invalidateMyReductionRecords();
     _sa->addNewClause(compCl);
-    if (!_deleteDeactivated && !nameRec.children.find(compCl)) {
+    if ((_deleteDeactivated != Options::SDD_ON) &&
+            !nameRec.children.find(compCl)) {
       // corner case within a corner case:
       // the compCl was already shown unconditionally redundant,
       // but now we must must put it back (TODO: do we really?)
@@ -845,11 +846,11 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   compCl->setSplits(SplitSet::getSingleton(name));
   compCl->setComponent(true);
 
-  if (!_deleteDeactivated) {
+  if (_deleteDeactivated != Options::SDD_ON) {
     // in this mode, compCl is assumed to be a child since the beginning of times
     _db[name]->children.push(compCl);
     
-    // (with _deleteDeactivated true, compCl is always inserted anew on activation)
+    // (with _deleteDeactivated on, compCl is always inserted anew on activation)
   }
   
   {
@@ -994,8 +995,10 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
    * one of the component clauses on which it depends, 
    * it will be kept for reintroduction.
    */
-  if (!_deleteDeactivated) {
-    cl->setNumActiveSplits(should_reintroduce ? splits->size() : NOT_WORTH_REINTRODUCING);
+  if (_deleteDeactivated != Options::SDD_ON) {
+    cl->setNumActiveSplits(
+      (_deleteDeactivated == Options::SDD_OFF || should_reintroduce) ? 
+        splits->size() : NOT_WORTH_REINTRODUCING);
   }
 }
 
@@ -1036,7 +1039,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   ASS(allSplitLevelsActive(diff));
 
   if(diff->isEmpty()) {
-    if (!_deleteDeactivated) {
+    if (_deleteDeactivated != Options::SDD_ON) {
       cl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
     }
         
@@ -1194,7 +1197,7 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
     ASS(!sr->active);
     sr->active = true;
     
-    if (_deleteDeactivated) {
+    if (_deleteDeactivated == Options::SDD_ON) {
       ASS(sr->children.isEmpty());
       //we need to put the component among children, so that it is backtracked
       //when we remove the component
@@ -1256,7 +1259,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       }
     }
     
-    if (_deleteDeactivated) {
+    if (_deleteDeactivated == Options::SDD_ON) {
       sr->children.reset();
     }
   }

@@ -66,6 +66,7 @@ public:
   static const char* _satClauseDisposerValues[];
   static const char* _sosValues[];
   static const char* _splittingAddComplementaryValues[];
+  static const char* _splittingDeleteDeactivatedValues[];
   static const char* _splittingNonsplittableComponentsValues[];
   static const char* _splittingModelValues[];
   static const char* _splittingLiteralPolarityAdviceValues[];
@@ -106,6 +107,7 @@ public:
   static NameArray sosValues;
   static NameArray splittingComponentSweepingValues;
   static NameArray splittingAddComplementaryValues;
+  static NameArray splittingDeleteDeactivatedValues;
   static NameArray splittingNonsplittableComponentsValues;
   static NameArray splittingModelValues;
   static NameArray splittingLiteralPolarityAdviceValues;
@@ -378,7 +380,8 @@ const char* Options::Constants::_shortNames[] = {
   "sac",      
   "sas",      
   "scc",      
-  "sd",       
+  "sd", 
+  "sdd",
   "ser",      
   "sfp",      
   "sfq",
@@ -465,6 +468,7 @@ int Options::Constants::shortNameIndexes[] = {
   SAT_SOLVER,
   SPLITTING_CONGRUENCE_CLOSURE,
   SINE_DEPTH,
+  SPLITTING_DELETE_DEACTIVATED,
   SPLITTING_EAGER_REMOVAL,
   SPLITTING_FLUSH_PERIOD,
   SPLITTING_FLUSH_QUOTIENT,
@@ -724,6 +728,13 @@ const char* Options::Constants::_splittingAddComplementaryValues[] = {
   "none"};
 NameArray Options::Constants::splittingAddComplementaryValues(_splittingAddComplementaryValues,
 					  sizeof(_splittingAddComplementaryValues)/sizeof(char*));
+
+const char* Options::Constants::_splittingDeleteDeactivatedValues[] = {
+  "large",
+  "off",
+  "on"};
+NameArray Options::Constants::splittingDeleteDeactivatedValues(_splittingDeleteDeactivatedValues,
+					  sizeof(_splittingDeleteDeactivatedValues)/sizeof(char*));
 
 const char* Options::Constants::_splittingNonsplittableComponentsValues[] = {
   "all",
@@ -991,7 +1002,7 @@ Options::Options ()
   _splitting(true), 
   _splittingAddComplementary(SAC_GROUND),
   _splittingCongruenceClosure(false),
-  _splittingDeleteDeactivated(true),
+  _splittingDeleteDeactivated(SDD_ON),
   _splittingEagerRemoval(true),
   _splittingFastRestart(false),
   _splittingFlushPeriod(0),
@@ -1684,8 +1695,8 @@ void Options::set(const char* name,const char* value, int index)
     case SPLITTING_CONGRUENCE_CLOSURE:
       _splittingCongruenceClosure = onOffToBool(value,name);
       return;
-    case SPLITTING_DELETE_DEACITVATED:
-      _splittingDeleteDeactivated = onOffToBool(value,name);
+    case SPLITTING_DELETE_DEACTIVATED:
+      _splittingDeleteDeactivated = (SplittingDeleteDeactivated)Constants::splittingDeleteDeactivatedValues.find(value);
       return;        
     case SPLITTING_EAGER_REMOVAL:
       _splittingEagerRemoval = onOffToBool(value,name);
@@ -2533,8 +2544,8 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SPLITTING_CONGRUENCE_CLOSURE:
     str << boolToOnOff(_splittingCongruenceClosure);
     return;
-  case SPLITTING_DELETE_DEACITVATED:
-    str << boolToOnOff(_splittingDeleteDeactivated);
+  case SPLITTING_DELETE_DEACTIVATED:
+    str << Constants::splittingDeleteDeactivatedValues[_splittingDeleteDeactivated];
     return;    
   case SPLITTING_EAGER_REMOVAL:
     str << boolToOnOff(_splittingEagerRemoval);

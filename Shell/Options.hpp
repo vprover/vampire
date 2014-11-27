@@ -221,7 +221,7 @@ public:
     SPLITTING,
     SPLITTING_ADD_COMPLEMENTARY,
     SPLITTING_CONGRUENCE_CLOSURE,
-    SPLITTING_DELETE_DEACITVATED,
+    SPLITTING_DELETE_DEACTIVATED,
     SPLITTING_EAGER_REMOVAL,
     SPLITTING_FAST_RESTART,
     SPLITTING_FLUSH_PERIOD,
@@ -509,6 +509,12 @@ public:
     SAC_NONE = 1
   };
 
+  enum SplittingDeleteDeactivated {
+    SDD_LARGE_ONLY = 0,
+    SDD_OFF = 1,    
+    SDD_ON = 2    
+  };
+  
   enum SplittingModel {
     SM_MIN_ALL = 0,
     SM_MIN_SCO = 1,
@@ -802,7 +808,7 @@ public:
 
   bool splittingEagerRemoval() const { return _splittingEagerRemoval; }  
   bool splittingCongruenceClosure() const { return _splittingCongruenceClosure; }  
-  bool splittingDeleteDeactivated() const { return _splittingDeleteDeactivated; }  
+  SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated; }
   bool splittingFastRestart() const { return _splittingFastRestart; }
   bool splittingHandleZeroImplied() const{ return _splittingHandleZeroImplied;}  
   SplittingLitaralPolarityAdvice splittingLitaralPolarityAdvice() const { return _splittingLiteralPolarityAdvice; }    
@@ -1018,7 +1024,7 @@ private:
   bool _splitting;
   SplittingAddComplementary _splittingAddComplementary;
   bool _splittingCongruenceClosure;
-  bool _splittingDeleteDeactivated;
+  SplittingDeleteDeactivated _splittingDeleteDeactivated;
   bool _splittingEagerRemoval;
   bool _splittingFastRestart;
   unsigned _splittingFlushPeriod;

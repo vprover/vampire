@@ -211,7 +211,7 @@ private:
   unsigned _flushPeriod;
   float _flushQuotient;
   bool _congruenceClosure;
-  bool _deleteDeactivated;
+  Options::SplittingDeleteDeactivated _deleteDeactivated;
 
   //utility objects
   SplittingBranchSelector _branchSelector;
