@@ -143,28 +143,10 @@ void Options::Options::init()
        "Note that unsafe errors will aways lead to a user error";
     _lookup.insert(&_badOption);
 
-    _include = StringOptionValue("include","","");
-    _include.description="Path prefix for the 'include' TPTP directive";
-    _lookup.insert(&_include);
-    
-    _inputFile= InputFileOptionValue("input_file","","",this);
-    _inputFile.description="Problem file to be solved (if not specified, standard input is used)";
-    _lookup.insert(&_inputFile);
-    
-    _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",
-                                                 //in case we compile vampire with bpa, then the default input syntax is smtlib
-#if !GNUMP
-                                                 InputSyntax::TPTP,
-#else
-                                                 InputSyntax::SMTLIB,
-#endif
-                                                 {"simplify","smtlib","smtlib2","tptp","xhuman","xmps","xnetlib"});
-    _inputSyntax.description="";
-    _lookup.insert(&_inputSyntax);
     
     _namePrefix = StringOptionValue("name_prefix","","");
     _namePrefix.description=
-    "Prefix for symbols introduced by Vampire (BDD-related propositional predicates, naming predicates, Skolem functions)";
+    "Prefix for symbols introduced by Vampire (naming predicates, Skolem functions)";
     _lookup.insert(&_namePrefix);
     
     _problemName = StringOptionValue("problem_name","","");
@@ -204,10 +186,68 @@ void Options::Options::init()
     _timeStatistics = BoolOptionValue("time_statistics","",false);
     _timeStatistics.description="Show how much running time was spent in each part of the Vampire";
     _lookup.insert(&_timeStatistics);
+
+//*********************** Input  ***********************
+    
+    _include = StringOptionValue("include","","");
+    _include.description="Path prefix for the 'include' TPTP directive";
+    _lookup.insert(&_include);
+    _include.tag(OptionTag::INPUT);
+    
+    _inputFile= InputFileOptionValue("input_file","","",this);
+    _inputFile.description="Problem file to be solved (if not specified, standard input is used)";
+    _lookup.insert(&_inputFile);
+    _inputFile.tag(OptionTag::INPUT);
+    
+    _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",
+                                                 //in case we compile vampire with bpa, then the default input syntax is smtlib
+#if !GNUMP
+                                                 InputSyntax::TPTP,
+#else
+                                                 InputSyntax::SMTLIB,
+#endif
+                                                 {"simplify","smtlib","smtlib2","tptp","xhuman","xmps","xnetlib"});
+    _inputSyntax.description="";
+    _lookup.insert(&_inputSyntax);
+    _inputSyntax.tag(OptionTag::INPUT);
+    
+    _smtlibConsiderIntsReal = BoolOptionValue("smtlib_consider_ints_real","",false);
+    _smtlibConsiderIntsReal.description="all integers will be considered to be reals by the SMTLIB parser";
+    _lookup.insert(&_smtlibConsiderIntsReal);
+    _smtlibConsiderIntsReal.setExperimental();
+    _smtlibConsiderIntsReal.tag(OptionTag::INPUT);
+    
+    _smtlibFletAsDefinition = BoolOptionValue("smtlib_flet_as_definition","",false);
+    _smtlibFletAsDefinition.description="";
+    _lookup.insert(&_smtlibFletAsDefinition);
+    _smtlibFletAsDefinition.setExperimental();
+    _smtlibFletAsDefinition.tag(OptionTag::INPUT);
+    
+    _smtlibIntroduceAIGNames = BoolOptionValue("smtlib_introduce_aig_names","",true);
+    _smtlibIntroduceAIGNames.description="";
+    _lookup.insert(&_smtlibIntroduceAIGNames);
+    _smtlibIntroduceAIGNames.setExperimental();
+    _smtlibIntroduceAIGNames.tag(OptionTag::INPUT);
     
 //*********************** Preprocessing  ***********************
+   
+    _inequalitySplitting = IntOptionValue("inequality_splitting","ins",3);
+    _inequalitySplitting.description="";
+    _lookup.insert(&_inequalitySplitting);
+    _inequalitySplitting.tag(OptionTag::PREPROCESSING);
     
-
+    _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on"});
+    _sos.description=
+    "Set of support strategy. All formulas annotated as theory axioms are put directly among active clauses, without performing any inferences between them. If all, select all literals of set-of-support clauses, ortherwise use the default literal selector.";
+    _lookup.insert(&_sos);
+    _sos.tag(OptionTag::PREPROCESSING);
+    // Captures that if Sos is not off then the Saturation Algorithm cannot be Tabulation
+    _sos.addConstraint(If(notEqual(Sos::OFF)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION))));
+ 
+    _equalityProxy = ChoiceOptionValue<EqualityProxy>( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"});
+    _equalityProxy.description="";
+    _lookup.insert(&_equalityProxy);
+    _equalityProxy.tag(OptionTag::PREPROCESSING);
     
     _aigBddSweeping = BoolOptionValue("aig_bdd_sweeping","",false);
     _aigBddSweeping.description="For a description of these aig options see the paper 'Preprocessing Techniques for First-Order Clausification'. ";
@@ -288,11 +328,6 @@ void Options::Options::init()
     "All literals of set-of-support clauses will be selected";
     _lookup.insert(&_functionDefinitionElimination);
     _functionDefinitionElimination.tag(OptionTag::PREPROCESSING);
-    
-    _functionNumber = IntOptionValue("function_number","",1);
-    _functionNumber.description="";
-    _lookup.insert(&_functionNumber);
-    _functionNumber.tag(OptionTag::PREPROCESSING);
     
     _generalSplitting = ChoiceOptionValue<RuleActivity>("general_splitting","gsp",RuleActivity::OFF,{"input_only","off","on"});
     _generalSplitting.description=
@@ -426,10 +461,6 @@ void Options::Options::init()
     _naming.tag(OptionTag::PREPROCESSING);
     _naming.addConstraint(lessThan(32768));
     
-    _rowVariableMaxLength = IntOptionValue("row_variable_max_length","",2);
-    _rowVariableMaxLength.description="";
-    _lookup.insert(&_rowVariableMaxLength);
-    _rowVariableMaxLength.tag(OptionTag::PREPROCESSING);
     
 //*********************** Output  ***********************
     
@@ -656,11 +687,6 @@ void Options::Options::init()
              "where t > t1 and s = t > C (RHS replaced)";
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
-
-    // preprocessing?
-    _equalityProxy = ChoiceOptionValue<EqualityProxy>( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"});
-    _equalityProxy.description="";
-    _lookup.insert(&_equalityProxy);
     
     _equalityResolutionWithDeletion = ChoiceOptionValue<RuleActivity>( "equality_resolution_with_deletion","erd",
                                                                       RuleActivity::INPUT_ONLY,{"input_only","off","on"});
@@ -883,6 +909,14 @@ void Options::Options::init()
     _ssplittingNonsplittableComponents.setExperimental();
 
     
+    _nonliteralsInClauseWeight = BoolOptionValue("nonliterals_in_clause_weight","nicw",false);
+    _nonliteralsInClauseWeight.description=
+    "Non-literal parts of clauses (such as its split history) will also contribute to the weight";
+    _lookup.insert(&_nonliteralsInClauseWeight);
+    _nonliteralsInClauseWeight.tag(OptionTag::OTHER);
+    _nonliteralsInClauseWeight.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)));
+    _nonliteralsInClauseWeight.reliesOn(_splitting.is(notEqual(false)));
+    
 //*********************** SAT solver (used in various places)  ***********************
     
     _satClauseActivityDecay = FloatOptionValue("sat_clause_activity_decay","",1.001f);
@@ -1028,10 +1062,6 @@ void Options::Options::init()
     _lookup.insert(&_increasedNumeralWeight);
     _increasedNumeralWeight.tag(OptionTag::OTHER);
 
-    _inequalitySplitting = IntOptionValue("inequality_splitting","ins",3);
-    _inequalitySplitting.description="";
-    _lookup.insert(&_inequalitySplitting);
-    _inequalitySplitting.tag(OptionTag::OTHER);
 
     _interpretedSimplification = BoolOptionValue("interpreted_simplification","",false);
     _interpretedSimplification.description=
@@ -1079,13 +1109,7 @@ void Options::Options::init()
     _lookup.insert(&_nonGoalWeightCoefficient);
     _nonGoalWeightCoefficient.tag(OptionTag::OTHER);
 
-    _nonliteralsInClauseWeight = BoolOptionValue("nonliterals_in_clause_weight","nicw",false);
-    _nonliteralsInClauseWeight.description=
-             "Non-literal parts of clauses (such as its split history) will also contribute to the weight";
-    _lookup.insert(&_nonliteralsInClauseWeight);
-    _nonliteralsInClauseWeight.tag(OptionTag::OTHER);
-    _nonliteralsInClauseWeight.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))); 
-    _nonliteralsInClauseWeight.reliesOn(_splitting.is(notEqual(false)));
+
 
     _normalize = BoolOptionValue("normalize","",false);
     _normalize.description="";
@@ -1108,15 +1132,23 @@ void Options::Options::init()
                                                             {"arity","occurrence","reverse_arity"});
     _symbolPrecedence.description="";
     _lookup.insert(&_symbolPrecedence);
-
+    _symbolPrecedence.tag(OptionTag::OTHER);
 
     _weightIncrement = BoolOptionValue("weight_increment","",false);
     _weightIncrement.description="";
     _lookup.insert(&_weightIncrement);
+    _weightIncrement.tag(OptionTag::OTHER);
 
-    _whileNumber = IntOptionValue("while_number","",1);
-    _whileNumber.description="";
-    _lookup.insert(&_whileNumber);
+    //******************************************************************
+    //*********************** Unused ??  *******************************
+    //******************************************************************
+
+    _rowVariableMaxLength = IntOptionValue("row_variable_max_length","",2);
+    _rowVariableMaxLength.description="";
+    _lookup.insert(&_rowVariableMaxLength);
+    _rowVariableMaxLength.tag(OptionTag::UNUSED);
+    _rowVariableMaxLength.setExperimental();
+
 
 
     //******************************************************************
@@ -1128,21 +1160,8 @@ void Options::Options::init()
     _colorUnblocking.description="";
     _lookup.insert(&_colorUnblocking);
     _colorUnblocking.setExperimental();
+    _colorUnblocking.tag(OptionTag::OTHER);
     
-    _smtlibConsiderIntsReal = BoolOptionValue("smtlib_consider_ints_real","",false);
-    _smtlibConsiderIntsReal.description="all integers will be considered to be reals by the SMTLIB parser";
-    _lookup.insert(&_smtlibConsiderIntsReal);
-    _smtlibConsiderIntsReal.setExperimental();
-    
-    _smtlibFletAsDefinition = BoolOptionValue("smtlib_flet_as_definition","",false);
-    _smtlibFletAsDefinition.description="";
-    _lookup.insert(&_smtlibFletAsDefinition);
-    _smtlibFletAsDefinition.setExperimental();
-    
-    _smtlibIntroduceAIGNames = BoolOptionValue("smtlib_introduce_aig_names","",true);
-    _smtlibIntroduceAIGNames.description="";
-    _lookup.insert(&_smtlibIntroduceAIGNames);
-    _smtlibIntroduceAIGNames.setExperimental();
     
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
                                                           {"minimized","off","on"});
@@ -1163,6 +1182,17 @@ void Options::Options::init()
 //******************************************************************
 //*********************** Bound Propagation  ***********************
 //******************************************************************
+    
+    _whileNumber = IntOptionValue("while_number","",1);
+    _whileNumber.description="";
+    _lookup.insert(&_whileNumber);
+    _whileNumber.tag(Mode::BOUND_PROP);
+    
+    _functionNumber = IntOptionValue("function_number","",1);
+    _functionNumber.description="";
+    _lookup.insert(&_functionNumber);
+    _functionNumber.tag(Mode::BOUND_PROP);
+    _functionNumber.tag(OptionTag::PREPROCESSING);
     
     _bpCollapsingPropagation = BoolOptionValue("bp_add_collapsing_inequalities","",false); // ASSUMED default, wasn't in Options
     _bpCollapsingPropagation.description="";
@@ -1256,6 +1286,7 @@ void Options::Options::init()
  // Declare tag names
     
     _tagNames = {
+                 "Unused",
                  "Other",
                  "Output",
                  "Tabulation",
@@ -1265,6 +1296,7 @@ void Options::Options::init()
                  "Inferences",
                  "Saturation",
                  "Preprocessing",
+                 "Input",
                  "Global"
                 };
 

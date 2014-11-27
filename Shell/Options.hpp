@@ -126,6 +126,7 @@ public:
      * @author Giles
      */
     enum class OptionTag: unsigned int {
+        UNUSED,
         OTHER,
         OUTPUT,
         TABULATION,
@@ -135,6 +136,7 @@ public:
         INFERENCES,
         SATURATION,
         PREPROCESSING,
+        INPUT,
         LAST_TAG // Used for counting the number of tags
     };
     // update _tagNames at the end of Options constructor if you add a tag
