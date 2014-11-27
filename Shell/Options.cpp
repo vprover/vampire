@@ -44,7 +44,6 @@ public:
   static const char* _demodulationValues[];
   static const char* _subsumptionValues[];
   static const char* _urResolutionValues[];
-//  static const char* _splittingModeValues[];
   static const char* _fdeValues[];
   static const char* _lcmValues[];
   static const char* _satSolverValues[];
@@ -83,7 +82,6 @@ public:
   static NameArray demodulationValues;
   static NameArray subsumptionValues;
   static NameArray urResolutionValues;
-//  static NameArray splittingModeValues;
   static NameArray fdeValues;
   static NameArray lcmValues;
   static NameArray satSolverValues;
@@ -374,16 +372,12 @@ const char* Options::Constants::_shortNames[] = {
   "sa",
   "sac",
   "sas",
-  //"sagn",
   "sd",
   "sfv",
-  //"sgo",
   "sgt",
-  //"sio",
   "sos",
   "sp",
   "spl",
-  //"spo",
   "ss",
   "ssac",
   "sscc",
@@ -461,18 +455,13 @@ int Options::Constants::shortNameIndexes[] = {
   SATURATION_ALGORITHM,
   SPLIT_AT_ACTIVATION,
   SAT_SOLVER,
-  //SPLIT_ADD_GROUND_NEGATION,
   SINE_DEPTH,
   SUPERPOSITION_FROM_VARIABLES,
-  //SPLIT_GOAL_ONLY,
   SINE_GENERALITY_THRESHOLD,
-  //SPLIT_INPUT_ONLY,
   SOS,
   SYMBOL_PRECEDENCE,
   SPLITTING,
-  //SPLIT_POSITIVE,
   SINE_SELECTION,
-
   SPLITTING_ADD_COMPLEMENTARY,
   SPLITTING_CONGRUENCE_CLOSURE,
   SPLITTING_EAGER_REMOVAL,
@@ -531,13 +520,6 @@ const char* Options::Constants::_urResolutionValues[] = {
   "on"};
 NameArray Options::Constants::urResolutionValues(_urResolutionValues,
 						 sizeof(_urResolutionValues)/sizeof(char*));
-
-//const char* Options::Constants::_splittingModeValues[] = {
-//  "input",
-//  "off",
-//  "sat"};
-//NameArray Options::Constants::splittingModeValues(_splittingModeValues,
-//					sizeof(_splittingModeValues)/sizeof(char*));
 
 const char* Options::Constants::_fdeValues[] = {
   "all",
@@ -986,8 +968,8 @@ Options::Options ()
   _smtlibFletAsDefinition(false),
   _smtlibIntroduceAIGNames(true),
   _sos(SOS_OFF),
-  _splitAtActivation(false), // is this even a valid option?
-  _splitting(true), // should splitting by on or off by default?
+  _splitAtActivation(true), 
+  _splitting(true), 
   _splittingAddComplementary(SAC_GROUND),
   _splittingCongruenceClosure(false),
   _splittingEagerRemoval(true),
@@ -1672,7 +1654,7 @@ void Options::set(const char* name,const char* value, int index)
       _splitAtActivation = onOffToBool(value,name);
       return;
     case SPLITTING:
-      _splitting = onOffToBool(value,name);//(SplittingMode)Constants::splittingModeValues.find(value);
+      _splitting = onOffToBool(value,name);
       return;
     case SPLITTING_ADD_COMPLEMENTARY:
       _splittingAddComplementary = (SplittingAddComplementary)Constants::splittingAddComplementaryValues.find(value);
@@ -2509,23 +2491,11 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SOS:
     str << Constants::sosValues[_sos];
     return;
-//  case SPLIT_ADD_GROUND_NEGATION:
-//    str << boolToOnOff(_splitAddGroundNegation);
-//    return;
   case SPLIT_AT_ACTIVATION:
     str << boolToOnOff(_splitAtActivation);
     return;
-//  case SPLIT_GOAL_ONLY:
-//    str << boolToOnOff(_splitGoalOnly);
-//    return;
-//  case SPLIT_INPUT_ONLY:
-//    str << boolToOnOff(_splitInputOnly);
-//    return;
-//  case SPLIT_POSITIVE:
-//    str << boolToOnOff(_splitPositive);
-//    return;
   case SPLITTING:
-    str << boolToOnOff(_splitting); //Constants::splittingModeValues[_splitting];
+    str << boolToOnOff(_splitting);
     return;
   case SPLITTING_ADD_COMPLEMENTARY:
     str << Constants::splittingAddComplementaryValues[_splittingAddComplementary];
