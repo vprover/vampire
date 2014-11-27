@@ -60,7 +60,7 @@ void SplittingBranchSelector::init()
   CALL("SplittingBranchSelector::init");
 
   _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
-  _zeroOpt = _parent.getOptions().zeroOpt();
+  _handleZeroImplied = _parent.getOptions().splittingHandleZeroImplied();
 
   switch(_parent.getOptions().satSolver()){
     case Options::BUFFERED_VAMPIRE:
@@ -322,7 +322,7 @@ void SplittingBranchSelector::getNewZeroImpliedSplits(SplitLevelStack& res)
   CALL("SplittingBranchSelector::getNewZeroImpliedSplits");  
   ASS(res.isEmpty());  
   
-  if (!_zeroOpt) {
+  if (!_handleZeroImplied) {
     return;
   }    
   

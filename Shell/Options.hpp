@@ -224,6 +224,7 @@ public:
     SPLITTING_EAGER_REMOVAL,
     SPLITTING_FLUSH_PERIOD,
     SPLITTING_FLUSH_QUOTIENT,
+    SPLITTING_HANDLE_ZERO_IMPLIED,
     SPLITTING_MODEL,
     SPLITTING_NONSPLITTABLE_COMPONENTS,
 
@@ -253,8 +254,6 @@ public:
 
     XML_OUTPUT,
    
-    ZERO_OPT,
-
     NUMBER_OF_OPTIONS // must be the last one!
   };
 
@@ -408,14 +407,6 @@ public:
     INTERP_OFF = 1,
     INTERP_ON = 2
   };
-
-  /** Possible values for splitting */
-// Now just on or off
-//  enum SplittingMode {
-//    SM_INPUT = 0,
-//    SM_OFF = 1,
-//    SM_SAT = 2
-//  };
 
   enum LiteralComparisonMode {
     LCM_PREDICATE = 0,
@@ -703,9 +694,7 @@ public:
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering = newVal; }
   vstring xmlOutput() const { return _xmlOutput; }
   vstring thanks() const { return _thanks; }
-
-  bool zeroOpt() const{ return _zeroOpt;}
-
+  
   bool globalSubsumption() const { return _globalSubsumption; }
   /** true if calling set() on non-existing options does not result in a user error */
   bool ignoreMissing() const { return _ignoreMissing; }
@@ -719,14 +708,7 @@ public:
   Condensation condensation() const { return _condensation; }
   RuleActivity generalSplitting() const { return _generalSplitting; }
   vstring namePrefix() const { return _namePrefix; }
-  bool timeStatistics() const { return _timeStatistics; }
-//  bool splitAddGroundNegation() const { return _splitAddGroundNegation; }
-  bool splitAtActivation() const { return _splitAtActivation; }
-//  bool splitGoalOnly() const { return _splitGoalOnly; }
-//  bool splitInputOnly() const { return _splitInputOnly; }
-//  bool splitPositive() const { return _splitPositive; }
-  bool splitting() const { return _splitting; }
-//  void setSplitting(SplittingMode newVal) { _splitting = newVal; }
+  bool timeStatistics() const { return _timeStatistics; }    
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
 
   unsigned sineDepth() const { return _sineDepth; }
@@ -800,12 +782,15 @@ public:
   int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator; }
   int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator; }
 
+  bool splitting() const { return _splitting; }
+  bool splitAtActivation() const { return _splitAtActivation; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents; }
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary; }
   int splittingFlushPeriod() const { return _splittingFlushPeriod; }
   float splittingFlushQuotient() const { return _splittingFlushQuotient; }
   bool splittingEagerRemoval() const { return _splittingEagerRemoval; }
   bool splittingCongruenceClosure() const { return _splittingCongruenceClosure; }
+  bool splittingHandleZeroImplied() const{ return _splittingHandleZeroImplied;}
   SplittingModel splittingModel() const { return _splittingModel; }
 
   void setProof(Proof p) { _proof = p; }
@@ -1014,17 +999,14 @@ private:
   bool _smtlibFletAsDefinition;
   bool _smtlibIntroduceAIGNames;
   Sos _sos;
-  //bool _splitAddGroundNegation;
   bool _splitAtActivation;
-  //bool _splitGoalOnly;
-  //bool _splitInputOnly;
-  //bool _splitPositive;
   bool _splitting;
   SplittingAddComplementary _splittingAddComplementary;
   bool _splittingCongruenceClosure;
   bool _splittingEagerRemoval;
   unsigned _splittingFlushPeriod;
   float _splittingFlushQuotient;
+  bool _splittingHandleZeroImplied;
   SplittingNonsplittableComponents _splittingNonsplittableComponents;
   SplittingModel _splittingModel;
   Statistics _statistics;
@@ -1057,8 +1039,6 @@ private:
   int _whileNumber;
 
   vstring _xmlOutput;
-
-  bool _zeroOpt;
 
   // various read-from-string-write options
   static void readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio, char separator=':');

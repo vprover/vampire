@@ -289,6 +289,7 @@ const char* Options::Constants::_optionNames[] = {
   "splitting_eager_removal",
   "splitting_flush_period",
   "splitting_flush_quotient",
+  "splitting_handle_zero_implied",
   "splitting_model",
   "splitting_nonsplittable_components",
   "statistics",
@@ -314,9 +315,7 @@ const char* Options::Constants::_optionNames[] = {
   "weight_increment",
   "while_number",
 
-  "xml_output",
-  "zero_opt"
-
+  "xml_output"
   };
 
 /** Names for all options */
@@ -368,27 +367,28 @@ const char* Options::Constants::_shortNames[] = {
 
   "p",
 
-  "s",
-  "sa",
-  "sac",
-  "sas",
-  "sd",
-  "sfv",
+  "s",        
+  "sa",       
+  "saa",      
+  "sac",      
+  "sas",      
+  "scc",      
+  "sd",       
+  "ser",      
+  "sfp",      
+  "sfq",      
+  "sfv",      
   "sgt",
-  "sos",
-  "sp",
-  "spl",
-  "ss",
-  "ssac",
-  "sscc",
-  "sser",
-  "ssfp",
-  "ssfq",
-  "ssm",
-  "ssnc",
-  "st",
-  "stl",
-  "svs",
+  "shzi",
+  "sm",       
+  "snc",      
+  "sos",      
+  "sp",       
+  "spl",      
+  "ss",       
+  "st",       
+  "stl",      
+  "svs", 
 
   "t",
   "tbsr",
@@ -454,24 +454,24 @@ int Options::Constants::shortNameIndexes[] = {
   SELECTION,
   SATURATION_ALGORITHM,
   SPLIT_AT_ACTIVATION,
+  SPLITTING_ADD_COMPLEMENTARY,
   SAT_SOLVER,
+  SPLITTING_CONGRUENCE_CLOSURE,
   SINE_DEPTH,
+  SPLITTING_EAGER_REMOVAL,
+  SPLITTING_FLUSH_PERIOD,
+  SPLITTING_FLUSH_QUOTIENT,
   SUPERPOSITION_FROM_VARIABLES,
   SINE_GENERALITY_THRESHOLD,
+  SPLITTING_HANDLE_ZERO_IMPLIED,
+  SPLITTING_MODEL,
+  SPLITTING_NONSPLITTABLE_COMPONENTS,
   SOS,
   SYMBOL_PRECEDENCE,
   SPLITTING,
   SINE_SELECTION,
-  SPLITTING_ADD_COMPLEMENTARY,
-  SPLITTING_CONGRUENCE_CLOSURE,
-  SPLITTING_EAGER_REMOVAL,
-  SPLITTING_FLUSH_PERIOD,
-  SPLITTING_FLUSH_QUOTIENT,
-  SPLITTING_MODEL,
-  SPLITTING_NONSPLITTABLE_COMPONENTS,
   SINE_TOLERANCE,
   SIMULATED_TIME_LIMIT,
-
   SAT_VAR_SELECTOR,
 
   TIME_LIMIT,
@@ -975,6 +975,7 @@ Options::Options ()
   _splittingEagerRemoval(true),
   _splittingFlushPeriod(0),
   _splittingFlushQuotient(1.5f),
+  _splittingHandleZeroImplied(false),
   _splittingNonsplittableComponents(SNS_KNOWN),
   _splittingModel(SM_MIN_ALL),
   _statistics(STATISTICS_FULL),
@@ -1006,8 +1007,7 @@ Options::Options ()
   _weightRatio(1),
   _whileNumber(1),
 
-  _xmlOutput("off"),
-  _zeroOpt(false)
+  _xmlOutput("off")  
 {
   CALL("Options::Options");
 } // Options::Options
@@ -1677,6 +1677,9 @@ void Options::set(const char* name,const char* value, int index)
       }
       _splittingFlushQuotient = floatValue;
       return;
+    case SPLITTING_HANDLE_ZERO_IMPLIED:
+      _splittingHandleZeroImplied = onOffToBool(value,name);
+      return;      
     case SPLITTING_MODEL:
       _splittingModel = (SplittingModel)Constants::splittingModelValues.find(value);
       return;
@@ -1753,10 +1756,6 @@ void Options::set(const char* name,const char* value, int index)
 
     case XML_OUTPUT:
       _xmlOutput = value;
-      return;
-
-    case ZERO_OPT:
-      _zeroOpt = onOffToBool(value,name);
       return;
 
 #if VDEBUG

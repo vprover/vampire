@@ -66,7 +66,7 @@ private:
 
   //options
   bool _eagerRemoval;
-  bool _zeroOpt;
+  bool _handleZeroImplied;
 
   Splitter& _parent;
 
