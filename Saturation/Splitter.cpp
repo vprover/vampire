@@ -537,24 +537,26 @@ void Splitter::onAllProcessed()
     addComponents(toAdd);
   }
 
-  if (newZeroImplied.isNonEmpty()) {
-    processNewZeroImplied(newZeroImplied);
-  }
-  
   // now that new activ-ness has been determined  
   // we can put back the fast clauses, if any
   while(_fastClauses.isNonEmpty()) {
     Clause* rcl=_fastClauses.popWithoutDec();
 
+    // TODO: could use a check based on "NumActiveSplits" instead,
+    // but would need to maintain them even when _deleteDeactivated == Options::SDD_ON
     if (allSplitLevelsActive(rcl->splits())) {
       RSTAT_CTR_INC("fast_clauses_restored");
       _sa->addNewClause(rcl);
     } else {
-      RSTAT_CTR_INC("fast_clauses_released");
+      RSTAT_CTR_INC("fast_clauses_not_restored");
     }
     
     rcl->decRefCnt(); //belongs to _fastClauses.popWithoutDec();
-  }
+  }  
+  
+  if (newZeroImplied.isNonEmpty()) {
+    processNewZeroImplied(newZeroImplied);
+  }  
 }
 
 
@@ -660,7 +662,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
       // corner case within a corner case:
       // the compCl was already shown unconditionally redundant,
       // but now we must must put it back (TODO: do we really?)
-      // so we should also keep track about it
+      // so we must also keep track of it
       nameRec.children.push(compCl);
     }    
   }
@@ -1039,7 +1041,9 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   ASS(allSplitLevelsActive(diff));
 
   if(diff->isEmpty()) {
+    // unconditionally reduced
     if (_deleteDeactivated != Options::SDD_ON) {
+      // let others know not to keep the clause in children
       cl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
     }
         
@@ -1199,8 +1203,8 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
     
     if (_deleteDeactivated == Options::SDD_ON) {
       ASS(sr->children.isEmpty());
-      //we need to put the component among children, so that it is backtracked
-      //when we remove the component
+      //we need to put the component clause among children, 
+      //so that it is backtracked when we remove the component
       sr->children.push(sr->component);
       _sa->addNewClause(sr->component);
     } else {
@@ -1318,31 +1322,40 @@ void Splitter::processNewZeroImplied(const SplitLevelStack& newZeroImplied)
     SplitRecord* sr = _db[sl];
     ASS(sr);
     
-    if (!sr->active) {
-      continue;
-    }
-    
-    RSTAT_CTR_INC("clearedZeroImpliedSplitLevels");
-    
-    SplitSet* myLevelSet = SplitSet::getSingleton(sl);
-    
-    while(sr->children.isNonEmpty()) {
-      Clause* ccl=sr->children.popWithoutDec();
+    if (sr->active) {
+      RSTAT_CTR_INC("zero implied active"); // forever active from now on
       
-      ccl->setSplits(ccl->splits()->subtract(myLevelSet),true);
-                  
-      ccl->decRefCnt(); //decrease corresponding to sr->children.popWithoutDec()
-    }
-    
-    while(sr->reduced.isNonEmpty()) {
-      ReductionRecord rrec=sr->reduced.pop();
+      SplitSet* myLevelSet = SplitSet::getSingleton(sl);
+      // we don't need to maintain children anymore ...
+      while(sr->children.isNonEmpty()) {
+        Clause* ccl=sr->children.popWithoutDec();
+        ASS(ccl->splits()->member(sl));
+        ccl->setSplits(ccl->splits()->subtract(myLevelSet),true);
+        if (_deleteDeactivated != Options::SDD_ON) { //NumActiveSplits being maintained
+          ccl->decNumActiveSplits();
+        }        
+        ccl->decRefCnt(); //decrease corresponding to sr->children.popWithoutDec()
+      }
+
+      // ... nor the reduction records
+      while(sr->reduced.isNonEmpty()) {
+        ReductionRecord rrec=sr->reduced.pop();
+        Clause* rcl=rrec.clause;
+        rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in Splitter::SplitRecord::addReduced
+      }
+      // TODO: release also sr->component ?                
+    } else {
+      RSTAT_CTR_INC("zero implied !active"); // forever !active from now on
       
-      Clause* rcl=rrec.clause;
+      ASS(sr->children.isEmpty() || _deleteDeactivated != Options::SDD_ON);
+      while(sr->children.isNonEmpty()) {
+        Clause* ccl=sr->children.popWithoutDec();
+        ccl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
+        ccl->decRefCnt(); //decrease corresponding to sr->children.popWithoutDec()
+      }
       
-      rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in Splitter::SplitRecord::addReduced
+      ASS(sr->reduced.isEmpty());
     }
-    
-    // TODO: release also sr->component ?    
   }
 }
 
