@@ -135,9 +135,9 @@ bool Producer::isRuleSubsumedBy(Clause* candidateRule, Clause* subsumingRule)
   CALL("Producer::isRuleSubsumedBy");
 
   unsigned slen = subsumingRule->length();
-  unsigned ssel = subsumingRule->selected();
+  unsigned ssel = subsumingRule->numSelected();
   unsigned clen = candidateRule->length();
-  unsigned csel = candidateRule->selected();
+  unsigned csel = candidateRule->numSelected();
 
   if(csel==clen) {
     if(ssel==slen) {
@@ -212,15 +212,15 @@ void Producer::performRuleAddition(Clause* rule)
 {
   CALL("Producer::performRuleAddition");
   ASS(rule->length()>0);
-  ASS_G(rule->selected(),0);
-  ASS_GE(rule->selected(),rule->length()-1);
+  ASS_G(rule->numSelected(),0);
+  ASS_GE(rule->numSelected(),rule->length()-1);
 
   if(isRuleForwardSubsumed(rule)) {
     return;
   }
 
   Literal* head = 0;
-  if(rule->selected()==rule->length()-1) {
+  if(rule->numSelected()==rule->length()-1) {
     ASS_GE(rule->length(), 2);
     head = (*rule)[rule->length()-1];
 
@@ -242,7 +242,7 @@ void Producer::performRuleAddition(Clause* rule)
 
   rule->incRefCnt();
   performURR(rule);
-  ASS_G(rule->selected(),0);
+  ASS_G(rule->numSelected(),0);
   _activeCont.add(rule);
 
   if(head) {
@@ -262,7 +262,7 @@ void Producer::performRuleRemoval(Clause* rule)
   CALL("Producer::performRuleRemoval");
 
   _activeCont.remove(rule);
-  if(rule->selected()==rule->length()-1) {
+  if(rule->numSelected()==rule->length()-1) {
     Literal* head = (*rule)[rule->length()-1];
     _ruleHeadIndex->remove(head, rule);
   }
@@ -385,7 +385,7 @@ Clause* Producer::doForwardLemmaSubsumptionResolution(Clause* rule)
 {
   CALL("Producer::doForwardLemmaSubsumptionResolution");
 
-  unsigned rsel = rule->selected();
+  unsigned rsel = rule->numSelected();
 
   unsigned i = 0;
   while(i<rsel) {
@@ -405,12 +405,12 @@ Clause* Producer::doForwardLemmaSubsumptionResolution(Clause* rule)
     if(!newRule) {
       return 0; //rule became either lemma or refutation
     }
-    ASS_REP2(newRule->selected()<rsel, rule->toString(), newRule->toString());
+    ASS_REP2(newRule->numSelected()<rsel, rule->toString(), newRule->toString());
     ASS_G(rule->length(),1);
     ASS_L(newRule->length(), rule->length());
     ASS(i==0 || (*newRule)[i-1]==(*rule)[i-1]); //the earlier literals don't change
     rule = newRule;
-    rsel = rule->selected();
+    rsel = rule->numSelected();
     ASS_GE(rsel,1);
   }
   return rule;
@@ -426,7 +426,7 @@ Clause* Producer::performLemmaSubsumptionResolution(Clause* tgtRule, Clause* lem
 
   Literal* lemmaLit = (*lemma)[0];
   unsigned clen = tgtRule->length();
-  unsigned csel = tgtRule->selected();
+  unsigned csel = tgtRule->numSelected();
 
   static LiteralStack lits;
   lits.reset();
@@ -469,7 +469,7 @@ void Producer::processLemma()
   ASS(!_unprocLemmaCont.isEmpty());
 
   Clause* lemma = _unprocLemmaCont.popSelected();
-  ASS_EQ(lemma->selected(),1);
+  ASS_EQ(lemma->numSelected(),1);
   performURR(lemma);
   _activeCont.add(lemma);
 }

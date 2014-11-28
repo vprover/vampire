@@ -4,37 +4,17 @@
 * @author Ioan Dragan
 */
 
-#include "Debug/Assertion.hpp"
-
-#include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
-#include "Shell/UIHelper.hpp"
-
-#include "Lib/Exception.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/Timer.hpp"
-#include "Lib/TimeCounter.hpp"
-#include "Lib/System.hpp"
-#include "Lib/ScopedLet.hpp"
+#include "LingelingInterfacing.hpp"
 
 #include "SATInference.hpp"
-#include "SATClause.hpp"
-#include "SATLiteral.hpp"
 
-#include "LingelingInterfacing.hpp"
-
-#include "Shell/Options.hpp"
-
-#include "LingelingInterfacing.hpp"
-#include "TWLSolver.hpp"
-#include "MinimizingSolver.hpp"
-
-#include <csignal>
+#include "Debug/Assertion.hpp"
+#include "Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/ScopedLet.hpp"
 
 extern "C" {
 	#include "lglib.h"
-	#include <unistd.h>
-#include <signal.h>
 }
 
 /**
@@ -46,9 +26,10 @@ extern "C" {
  */
 namespace SAT
 {
-
-using namespace Shell;  
-using namespace Lib;  
+  
+using Shell::Statistics;
+using Shell::Options;
+using Lib::ScopedLet;
 
 /*
  * Constructor for that creates an object containing the Lingeling solver based on the options
@@ -161,7 +142,7 @@ void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(int conflictCountL
 }
 
 void LingelingInterfacing::addClauses(SATClauseIterator cit,
-		bool onlyPropagate)
+		bool onlyPropagate, bool useInPartialModel) // useInPartialModel ignored as this solver produces a total model
 {
 	CALL("LingelingInterfacing::addClause(SatClauseIte, bool onlyPropagate)");
   
@@ -297,7 +278,7 @@ void LingelingInterfacing::addCAssumption(SATClause* clause,
 }
 
 /**
- * get the assigment for @param var
+ * get the assignment for @param var
  */
 SATSolver::VarAssignment LingelingInterfacing::getAssignment(unsigned var)
 {

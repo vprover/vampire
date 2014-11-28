@@ -152,7 +152,7 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c, unsigned eligible)
     return;
   }
 
-  unsigned selCnt=c->selected();
+  unsigned selCnt=c->numSelected();
 
   for(unsigned i=0;i<selCnt;i++) {
     if((*c)[i]->color()!=COLOR_TRANSPARENT) {

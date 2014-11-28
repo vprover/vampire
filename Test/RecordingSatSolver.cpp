@@ -32,7 +32,7 @@ vstring RecordingSatSolver::getHdr() const
   return "sat_"+Int::toHexString(reinterpret_cast<size_t>(this))+" ";
 }
 
-void RecordingSatSolver::addClauses(SATClauseIterator cit0, bool onlyPropagate)
+void RecordingSatSolver::addClauses(SATClauseIterator cit0, bool onlyPropagate,bool useInPartialModel)
 {
   CALL("RecordingSatSolver::addClauses");
 
@@ -49,6 +49,8 @@ void RecordingSatSolver::addClauses(SATClauseIterator cit0, bool onlyPropagate)
       clausesStm << "|";
     }
   }
+
+  ASSERTION_VIOLATION_REP("Does not record useInPartialModel");
 
   REC("act=ac:op="<<onlyPropagate<<":clauses="<<clausesStm.str());
 

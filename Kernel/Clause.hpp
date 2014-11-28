@@ -70,12 +70,10 @@ public:
     /** queue of unprocessed clauses */
     UNPROCESSED = 2u,
     /** anything else */
-    NONE = 3u,
-    /** clause removed by backtracking splitting */
-    BACKTRACKED = 4u,
+    NONE = 3u,  
     /** clause is selected from the passive container
      * and is not added to the active one yet */
-    SELECTED = 5u
+    SELECTED = 4u
   };
 
   Clause(unsigned length,InputType it,Inference* inf);
@@ -145,13 +143,13 @@ public:
   void setAge(int a) { _age = a; }
 
   /** Return the number of selected literals */
-  unsigned selected() const { return _selected; }
+  unsigned numSelected() const { return _numSelected; }
   /** Mark the first s literals as selected */
   void setSelected(unsigned s)
   {
     ASS(s >= 0);
     ASS(s <= _length);
-    _selected = s;
+    _numSelected = s;
     notifyLiteralReorder();
   }
 
@@ -183,6 +181,9 @@ public:
   bool isExtensionality() const { return _extensionality; }
   void setExtensionality(bool e) { _extensionality = e; }
 
+  bool isComponent() const { return _component; }
+  void setComponent(bool c) { _component = c; }
+  
   bool skip() const;
 
   unsigned getLiteralPosition(Literal* lit);
@@ -191,27 +192,30 @@ public:
   bool shouldBeDestroyed();
   void destroyIfUnnecessary();
 
-  void incRefCnt() { _inferenceRefCnt++; }
+  void incRefCnt() { _refCnt++; }
   void decRefCnt()
   {
     CALL("Clause::decRefCnt");
 
-    ASS_G(_inferenceRefCnt,0);
-    _inferenceRefCnt--;
+    ASS_G(_refCnt,0);
+    _refCnt--;
     destroyIfUnnecessary();
   }
 
   unsigned getReductionTimestamp() { return _reductionTimestamp; }
-  void incReductionTimestamp()
+  void invalidateMyReductionRecords()
   {
     _reductionTimestamp++;
     if(_reductionTimestamp==0) {
       INVALID_OPERATION("Clause reduction timestamp overflow!");
     }
   }
+  bool validReductionRecord(unsigned savedTimestamp) {
+    return savedTimestamp == _reductionTimestamp;
+  }
 
   ArrayishObjectIterator<Clause> getSelectedLiteralIterator()
-  { return ArrayishObjectIterator<Clause>(*this,selected()); }
+  { return ArrayishObjectIterator<Clause>(*this,numSelected()); }
 
   bool isGround();
   bool isPropositional();
@@ -219,12 +223,12 @@ public:
 
   VirtualIterator<unsigned> getVariableIterator();
 
-#if VDEBUG
+//#if VDEBUG
   bool contains(Literal* lit);
   void assertValid();
   void incFreezeCount(){ _freeze_count++;}
   int getFreezeCount(){ return _freeze_count;}
-#endif
+//#endif
 
   /** Mark clause as input clause for the saturation algorithm */
   void markInput() { _input=1; }
@@ -239,6 +243,11 @@ public:
     ASS(replace || !_splits);
     _splits=splits;
   }
+  
+  int getNumActiveSplits() const { return _numActiveSplits; }
+  void setNumActiveSplits(int newVal) { _numActiveSplits = newVal; }
+  void incNumActiveSplits() { _numActiveSplits++; }
+  void decNumActiveSplits() { _numActiveSplits--; }
 
   VirtualIterator<vstring> toSimpleClauseStrings();
 
@@ -318,7 +327,7 @@ public:
 
 protected:
   /** number of literals */
-  unsigned _length : 29;
+  unsigned _length : 27;
   /** clause color, or COLOR_INVALID if not determined yet */
   mutable unsigned _color : 2;
   /** clause is an input clause for the saturation algorithm */
@@ -328,8 +337,10 @@ protected:
     * becomes passive and is removed from the container, also this bit is unset.
     */
   unsigned _extensionality : 1;
+  /** Clause is a splitting component. */
+  unsigned _component : 1;
   /** number of selected literals */
-  unsigned _selected;
+  unsigned _numSelected;
   /** age */
   unsigned _age;
   /** weight */
@@ -338,14 +349,15 @@ protected:
   Store _store;
   /** in active index **/
   bool _in_active;
-  /** number of references to this clause by inference rules */
-  unsigned _inferenceRefCnt;
-  /** timestamp marking when has the clause been reduced or restored by a backtracking splitting most recently */
+  /** number of references to this clause */
+  unsigned _refCnt;
+  /** for splitting: timestamp marking when has the clause been reduced or restored by splitting */
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
 
   SplitSet* _splits;
+  int _numActiveSplits;
 
   size_t _auxTimestamp;
   void* _auxData;
@@ -353,8 +365,9 @@ protected:
   static size_t _auxCurrTimestamp;
 #if VDEBUG
   static bool _auxInUse;
-  int _freeze_count;
 #endif
+  int _freeze_count;
+//#endif
 
   /** Array of literals of this unit */
   Literal* _literals[1];

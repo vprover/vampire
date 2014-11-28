@@ -217,19 +217,19 @@ public:
     SMTLIB_FLET_AS_DEFINITION,
     SMTLIB_INTRODUCE_AIG_NAMES,
     SOS,
-    //SPLIT_ADD_GROUND_NEGATION,
-    SPLIT_AT_ACTIVATION, // should be checked
-    //SPLIT_GOAL_ONLY,
-    //SPLIT_INPUT_ONLY,
-    //SPLIT_POSITIVE,
+    SPLIT_AT_ACTIVATION,
     SPLITTING,
-    SSPLITTING_ADD_COMPLEMENTARY,
-    SSPLITTING_COMPONENT_SWEEPING,
-    SSPLITTING_CONGRUENCE_CLOSURE,
-    SSPLITTING_EAGER_REMOVAL,
-    SSPLITTING_FLUSH_PERIOD,
-    SSPLITTING_FLUSH_QUOTIENT,
-    SSPLITTING_NONSPLITTABLE_COMPONENTS,
+    SPLITTING_ADD_COMPLEMENTARY,
+    SPLITTING_CONGRUENCE_CLOSURE,
+    SPLITTING_DELETE_DEACTIVATED,
+    SPLITTING_EAGER_REMOVAL,
+    SPLITTING_FAST_RESTART,
+    SPLITTING_FLUSH_PERIOD,
+    SPLITTING_FLUSH_QUOTIENT,
+    SPLITTING_HANDLE_ZERO_IMPLIED,
+    SPLITTING_LITERAL_POLARITY_ADVICE,
+    SPLITTING_MODEL,
+    SPLITTING_NONSPLITTABLE_COMPONENTS,
 
     STATISTICS,
     SUPERPOSITION_FROM_VARIABLES,
@@ -256,7 +256,7 @@ public:
     WHILE_NUMBER,
 
     XML_OUTPUT,
-
+   
     NUMBER_OF_OPTIONS // must be the last one!
   };
 
@@ -411,14 +411,6 @@ public:
     INTERP_ON = 2
   };
 
-  /** Possible values for splitting */
-// Now just on or off
-//  enum SplittingMode {
-//    SM_INPUT = 0,
-//    SM_OFF = 1,
-//    SM_SAT = 2
-//  };
-
   enum LiteralComparisonMode {
     LCM_PREDICATE = 0,
     LCM_REVERSE = 1,
@@ -512,23 +504,36 @@ public:
     SCD_MINISAT = 1,
   };
 
-  enum SSplittingComponentSweeping {
-    SSCS_ALL = 0,
-    SSCS_ITERATED = 1,
-    SSCS_NONE = 2,
-    SSCS_ONLY_NEW = 3
+  enum SplittingAddComplementary {
+    SAC_GROUND = 0,
+    SAC_NONE = 1
   };
 
-  enum SSplittingAddComplementary {
-    SSAC_GROUND = 0,
-    SSAC_NONE = 1
+  enum SplittingDeleteDeactivated {
+    SDD_LARGE_ONLY = 0,
+    SDD_OFF = 1,    
+    SDD_ON = 2    
+  };
+  
+  enum SplittingModel {
+    SM_MIN_ALL = 0,
+    SM_MIN_SCO = 1,
+    SM_TOTAL = 2
+  };
+  
+  enum SplittingLitaralPolarityAdvice {
+    SLPA_FORCE_FALSE,
+    SLPA_FORCE_RND,
+    SLPA_NONE,
+    SLPA_SUGGEST_FALSE,
+    SLPA_SUGGEST_RND                    
   };
 
-  enum SSplittingNonsplittableComponents {
-    SSNS_ALL = 0,
-    SSNS_ALL_DEPENDENT = 1,
-    SSNS_KNOWN = 2,
-    SSNS_NONE = 3
+  enum SplittingNonsplittableComponents {
+    SNS_ALL = 0,
+    SNS_ALL_DEPENDENT = 1,
+    SNS_KNOWN = 2,
+    SNS_NONE = 3
   };
 
   enum Sos {
@@ -706,7 +711,7 @@ public:
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering = newVal; }
   vstring xmlOutput() const { return _xmlOutput; }
   vstring thanks() const { return _thanks; }
-
+  
   bool globalSubsumption() const { return _globalSubsumption; }
   /** true if calling set() on non-existing options does not result in a user error */
   bool ignoreMissing() const { return _ignoreMissing; }
@@ -720,14 +725,7 @@ public:
   Condensation condensation() const { return _condensation; }
   RuleActivity generalSplitting() const { return _generalSplitting; }
   vstring namePrefix() const { return _namePrefix; }
-  bool timeStatistics() const { return _timeStatistics; }
-//  bool splitAddGroundNegation() const { return _splitAddGroundNegation; }
-  bool splitAtActivation() const { return _splitAtActivation; }
-//  bool splitGoalOnly() const { return _splitGoalOnly; }
-//  bool splitInputOnly() const { return _splitInputOnly; }
-//  bool splitPositive() const { return _splitPositive; }
-  bool splitting() const { return _splitting; }
-//  void setSplitting(SplittingMode newVal) { _splitting = newVal; }
+  bool timeStatistics() const { return _timeStatistics; }    
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
 
   unsigned sineDepth() const { return _sineDepth; }
@@ -801,13 +799,20 @@ public:
   int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator; }
   int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator; }
 
-  SSplittingNonsplittableComponents ssplittingNonsplittableComponents() const { return _ssplittingNonsplittableComponents; }
-  SSplittingComponentSweeping ssplittingComponentSweeping() const { return _ssplittingComponentSweeping; }
-  SSplittingAddComplementary ssplittingAddComplementary() const { return _ssplittingAddComplementary; }
-  int ssplittingFlushPeriod() const { return _ssplittingFlushPeriod; }
-  float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient; }
-  bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval; }
-  bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure; }
+  bool splitting() const { return _splitting; }
+  bool splitAtActivation() const { return _splitAtActivation; }
+  SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents; }
+  SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary; }
+  int splittingFlushPeriod() const { return _splittingFlushPeriod; }
+  float splittingFlushQuotient() const { return _splittingFlushQuotient; }
+
+  bool splittingEagerRemoval() const { return _splittingEagerRemoval; }  
+  bool splittingCongruenceClosure() const { return _splittingCongruenceClosure; }  
+  SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated; }
+  bool splittingFastRestart() const { return _splittingFastRestart; }
+  bool splittingHandleZeroImplied() const{ return _splittingHandleZeroImplied;}  
+  SplittingLitaralPolarityAdvice splittingLitaralPolarityAdvice() const { return _splittingLiteralPolarityAdvice; }    
+  SplittingModel splittingModel() const { return _splittingModel; } 
 
   void setProof(Proof p) { _proof = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval; }
@@ -1015,19 +1020,19 @@ private:
   bool _smtlibFletAsDefinition;
   bool _smtlibIntroduceAIGNames;
   Sos _sos;
-  //bool _splitAddGroundNegation;
   bool _splitAtActivation;
-  //bool _splitGoalOnly;
-  //bool _splitInputOnly;
-  //bool _splitPositive;
   bool _splitting;
-  SSplittingAddComplementary _ssplittingAddComplementary;
-  SSplittingComponentSweeping _ssplittingComponentSweeping;
-  bool _ssplittingCongruenceClosure;
-  bool _ssplittingEagerRemoval;
-  unsigned _ssplittingFlushPeriod;
-  float _ssplittingFlushQuotient;
-  SSplittingNonsplittableComponents _ssplittingNonsplittableComponents;
+  SplittingAddComplementary _splittingAddComplementary;
+  bool _splittingCongruenceClosure;
+  SplittingDeleteDeactivated _splittingDeleteDeactivated;
+  bool _splittingEagerRemoval;
+  bool _splittingFastRestart;
+  unsigned _splittingFlushPeriod;
+  float _splittingFlushQuotient;
+  bool _splittingHandleZeroImplied;
+  SplittingNonsplittableComponents _splittingNonsplittableComponents;
+  SplittingModel _splittingModel;
+  SplittingLitaralPolarityAdvice _splittingLiteralPolarityAdvice;
   Statistics _statistics;
   bool _superpositionFromVariables;
   SymbolPrecedence _symbolPrecedence;

@@ -101,9 +101,9 @@ struct URResolution::Item
     }
     _atMostOneNonGround = nonGroundCnt<=1;
 
-    _activeLength = selectedOnly ? cl->selected() : clen;
+    _activeLength = selectedOnly ? cl->numSelected() : clen;
 //    ASS_GE(_activeLength, clen-1);
-    ASS_REP2(_activeLength>=clen-1, cl->toString(), cl->selected());
+    ASS_REP2(_activeLength>=clen-1, cl->toString(), cl->numSelected());
   }
 
   /**
@@ -341,7 +341,7 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
 
     Item* itm = new Item(ucl, _selectedOnly, *this, _emptyClauseOnly);
     unsigned pos = ucl->getLiteralPosition(unif.literal);
-    ASS(!_selectedOnly || pos<ucl->selected());
+    ASS(!_selectedOnly || pos<ucl->numSelected());
     swap(itm->_lits[0], itm->_lits[pos]);
     itm->resolveLiteral(0, unif, cl, false);
 

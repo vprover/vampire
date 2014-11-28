@@ -129,8 +129,27 @@ TEST_FUN(testProofWithAssums)
 
 void testInterface(SATSolver &s) {
   ensurePrepared(s);
-  
+      
   ASS_EQ(s.getStatus(),SATSolver::SATISFIABLE);
+  
+  unsigned a = getLit('a').var();
+  unsigned b = getLit('b').var();
+  unsigned c = getLit('c').var();
+  unsigned d = getLit('d').var();
+  
+  s.suggestPolarity(a,0);
+  s.addClauses(SATClauseIterator::getEmpty());
+  ASS(s.trueInAssignment(getLit('a')));
+  s.suggestPolarity(a,1);
+  s.addClauses(SATClauseIterator::getEmpty());
+  ASS(!s.trueInAssignment(getLit('a')));
+  
+  s.forcePolarity(a,0);
+  s.addClauses(SATClauseIterator::getEmpty());
+  ASS(s.trueInAssignment(getLit('a')));
+  s.forcePolarity(a,1);
+  s.addClauses(SATClauseIterator::getEmpty());
+  ASS(!s.trueInAssignment(getLit('a')));      
   
   s.addClauses(pvi(getSingletonIterator(getClause("ab"))),true);
   ASS_EQ(s.getStatus(),SATSolver::UNKNOWN);
@@ -145,10 +164,7 @@ void testInterface(SATSolver &s) {
   ASS(s.trueInAssignment(getLit('b')));
   ASS(s.falseInAssignment(getLit('c')));
   
-  unsigned a = getLit('a').var();
-  unsigned b = getLit('b').var();
-  unsigned c = getLit('c').var();
-  unsigned d = getLit('d').var();
+  
   
   // for a and b depends on learned clauses, which depend on decide polarity
   // but should be both at the same time, or none of the two

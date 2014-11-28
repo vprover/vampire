@@ -130,8 +130,10 @@ void TWLSolver::ensureVarCnt(unsigned newVarCnt)
  * 
  * Memory-wise, the clauses are owned by the solver from now on.
  * (TODO: this may not be a good assumption - check on the caller sides)
+ *
+ * @useInPartialModel is ignored as this solver generates a total model
  */
-void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
+void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate, bool useInPartialModel)
 {
   CALL("TWLSolver::addClauses");
   TimeCounter tc(TC_TWLSOLVER_ADD);
@@ -1122,13 +1124,17 @@ SATSolver::VarAssignment TWLSolver::getAssignment(unsigned var)
   CALL("TWLSolver::getAssignment");
   ASS_EQ(getStatus(), SATISFIABLE);
   ASS_L(var, _varCnt);
-  ASS(!isUndefined(var));
-
+          
   if(isTrue(var)) {
     return SATSolver::TRUE;
   }
   else if(isUndefined(var)) {
-    return SATSolver::NOT_KNOWN;
+     /* This can happen when there has been a request for new variables
+      * after the SATISFIABLE status has been established.
+      * In practice, when interacting with the minimizing solver...
+      * We need to return DONT_CARE.
+    */      
+    return SATSolver::DONT_CARE;
   }
   else {
     return SATSolver::FALSE;
@@ -1138,6 +1144,8 @@ SATSolver::VarAssignment TWLSolver::getAssignment(unsigned var)
 bool TWLSolver::isZeroImplied(unsigned var)
 {
   CALL("TWLSolver::isZeroImplied");
+
+  // cout << "get zeroI of " << var << ", varcnt is " << _varCnt << endl;
 
   return getAssignmentLevel(var)==1;
 }

@@ -7,18 +7,15 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Allocator.hpp"
 #include "Shell/Options.hpp"
-#include "Lib/Exception.hpp"
-#include "Lib/List.hpp"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
 
-#include "Lib/Allocator.hpp"
-#include <csignal>
-
-typedef struct LGL LGL;
+// forward declarations
+struct LGL;
 
 namespace SAT{
   
@@ -36,7 +33,7 @@ public:
 	* The add clause is the incremental way for the lingeling sat solver. It is used in order to add new clause
 	* to the current problem
 	**/
-	virtual void addClauses(SATClauseIterator clauseIterator, bool onlyPropagate);
+	virtual void addClauses(SATClauseIterator clauseIterator, bool onlyPropagate,bool useInPartialModel);
 	
 	/**
 	* return the current status of the problem

@@ -1,7 +1,7 @@
 /**
- * @file DArray.hpp
- * Defines a class of self-deallocating arrays. They should be used instead
- * of Array when the size is known in advance
+ * @file ArrayMap.hpp
+ * Defines a class ArrayMap, a map from a bounded range of unsigned keys
+ * with constant time reset via timestamps.
  *
  * @since 30/12/2007 Manchester
  */
@@ -165,7 +165,7 @@ public:
 
   /**
    * Return @b true if key @b index has an object assigned and assign
-   * its value into @c val. Otherwive return false and leave @c val
+   * its value into @c val. Otherwise return false and leave @c val
    * unmodified.
    *
    * Even for this function the value of @b index must be

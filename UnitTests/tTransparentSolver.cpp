@@ -18,7 +18,7 @@ using namespace SAT;
 using namespace Test;
 
 
-
+/*
 TEST_FUN(transpSolver1)
 {
   SATSolverSCP solver(new TransparentSolver(new TWLSolver(*env.options, false)));
@@ -55,3 +55,4 @@ TEST_FUN(transpSolver1)
   ASS_EQ(solver->getStatus(),SATSolver::UNSATISFIABLE);
 }
 
+*/

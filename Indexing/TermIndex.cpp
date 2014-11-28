@@ -49,7 +49,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 
   TimeCounter tc(TC_BACKWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
-  unsigned selCnt=c->selected();
+  unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
     TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit,_ord);
@@ -70,7 +70,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 
   TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
-  unsigned selCnt=c->selected();
+  unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
     TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);

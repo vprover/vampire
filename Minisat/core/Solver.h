@@ -92,6 +92,7 @@ public:
     
     // Variable mode:
     // 
+    void    suggestPolarity(Var v, bool b);
     void    setPolarity    (Var v, lbool b); // Declare which polarity the decision heuristic should use for a variable. Requires mode 'polarity_user'.
     void    setDecisionVar (Var v, bool b);  // Declare if a variable should be eligible for selection in the decision heuristic.
 
@@ -362,7 +363,8 @@ inline int      Solver::nLearnts      ()      const   { return num_learnts; }
 inline int      Solver::nVars         ()      const   { return next_var; }
 // TODO: nFreeVars() is not quite correct, try to calculate right instead of adapting it like below:
 inline int      Solver::nFreeVars     ()      const   { return (int)dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]); }
-inline void     Solver::setPolarity   (Var v, lbool b){ user_pol[v] = b; }
+inline void     Solver::suggestPolarity(Var v, bool b) { polarity[v] = b; }
+inline void     Solver::setPolarity   (Var v, lbool b) { user_pol[v] = b; }
 inline void     Solver::setDecisionVar(Var v, bool b) 
 { 
     if      ( b && !decision[v]) dec_vars++;

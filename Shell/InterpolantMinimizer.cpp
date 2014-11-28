@@ -24,7 +24,7 @@
 #include "Interpolants.hpp"
 #include "Options.hpp"
 
-#include "Saturation/SSplitter.hpp"
+#include "Saturation/Splitter.hpp"
 
 #include "InterpolantMinimizer.hpp"
 
@@ -411,17 +411,24 @@ void InterpolantMinimizer::addFringeFormulas(UnitSpec u)
 //
 
 /**
- * Class that splits a clause into components, faciliating also
+ * Class that splits a clause into components, facilitating also
  * sharing of the components
  */
-class InterpolantMinimizer::ClauseSplitter : protected Saturation::SSplitter
+class InterpolantMinimizer::ClauseSplitter 
+  : protected Saturation::Splitter 
+  /* Martin: whatever this class is supposed to be doing,
+   * the fact that it inherits from Splitter and then 
+   * only ever uses it to call doSplitting is extremely suspicious.
+   * 
+   * I smell a hack and maybe even an unfinished one :)
+   */
 {
 public:
   CLASS_NAME(InterpolantMinimizer::ClauseSplitter);
   USE_ALLOCATOR(InterpolantMinimizer::ClauseSplitter);
 
   ClauseSplitter() : _acc(0) {}
-
+  
   /**
    * Into @c acc push clauses that correspond to components of @c cl.
    * The components are shared among calls to the function, so for
@@ -444,18 +451,19 @@ public:
   }
 protected:
 
-  virtual void buildAndInsertComponents(Clause* cl, const CompRec* comps,
+  // Martin: unused! (?)
+  void buildAndInsertComponents(Clause* cl, const LiteralStack* comps,
       unsigned compCnt, bool firstIsMaster)
   {
     CALL("InterpolantMinimizer::ClauseSplitter::buildAndInsertComponents");
 
     for(unsigned i=0; i<compCnt; i++) {
-      Clause* compCl = getComponent(comps[i].array(), comps[i].size());
+      Clause* compCl = getComponent(comps[i].begin(), comps[i].size());
       _acc->push(compCl);
     }
-  }
+  }  
 
-  virtual bool handleNoSplit(Clause* cl)
+  bool handleNoSplit(Clause* cl)
   {
     CALL("InterpolantMinimizer::ClauseSplitter::handleNoSplit");
 
@@ -463,9 +471,6 @@ protected:
     return true;
   }
 
-  virtual bool canSplitOut(Literal* lit) { return true; }
-  virtual bool standAloneObligations() { return false; }
-  virtual bool splittingAllowed(Clause* cl) { return true; }
 private:
 
   Clause* getComponent(Literal* const * lits, unsigned len)

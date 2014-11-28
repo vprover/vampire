@@ -74,7 +74,7 @@ protected:
 
 #if VDEBUG
     ensureSomeColoredSelected(c, eligible);
-    ASS_EQ(c->selected(), 1); //if there is colored, it should be selected by the QComparator
+    ASS_EQ(c->numSelected(), 1); //if there is colored, it should be selected by the QComparator
 #endif
   }
 

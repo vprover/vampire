@@ -93,7 +93,7 @@ void TabulationAlgorithm::addLemma(Clause* cl)
   CALL("TabulationAlgorithm::addLemma");
   ASS_EQ(cl->length(), 1);
 
-  if(cl->selected()==0) {
+  if(cl->numSelected()==0) {
     Clause* cl0 = cl;
     cl = Clause::fromIterator(Clause::Iterator(*cl0), cl0->inputType(),
                               new Inference1(Inference::REORDER_LITERALS, cl0));
@@ -149,7 +149,7 @@ void TabulationAlgorithm::selectGoalLiteral(Clause*& cl)
 
 
 
-  if(cl->selected()!=1 || (*cl)[0]!=selected) {
+  if(cl->numSelected()!=1 || (*cl)[0]!=selected) {
     Clause* cl2 = Clause::fromIterator(Clause::Iterator(*cl), cl->inputType(),
 	new Inference1(Inference::REORDER_LITERALS, cl));
     unsigned selIdx = cl->getLiteralPosition(selected);
@@ -293,8 +293,8 @@ void TabulationAlgorithm::addProducingRule(Clause* cl, Literal* head, ResultSubs
     return;
   }
 
-  bool wellSet = (!head && cl->selected()==clen)
-      || (head && cl->selected()==clen-1 && (*cl)[clen-1]==head);
+  bool wellSet = (!head && cl->numSelected()==clen)
+      || (head && cl->numSelected()==clen-1 && (*cl)[clen-1]==head);
   if(!wellSet && !freshClause) {
     Clause* cl0 = cl;
     cl = Clause::fromIterator(Clause::Iterator(*cl), Unit::ASSUMPTION,
@@ -325,7 +325,7 @@ void TabulationAlgorithm::addProducingRule(Clause* cl, Literal* head, ResultSubs
 void TabulationAlgorithm::addGoalProducingRule(Clause* oldGoal)
 {
   CALL("TabulationAlgorithm::addGoalProducingRule");
-  ASS_EQ(oldGoal->selected(), 1);
+  ASS_EQ(oldGoal->numSelected(), 1);
 
   if(oldGoal->length()==1) {
     return;
@@ -352,7 +352,7 @@ void TabulationAlgorithm::processGoal(Clause* cl)
   ASS_EQ(cl->store(), Clause::PASSIVE);
 
   selectGoalLiteral(cl);
-  ASS_EQ(cl->selected(),1);
+  ASS_EQ(cl->numSelected(),1);
 
   addGoalProducingRule(cl);
 

@@ -23,7 +23,7 @@ class RecordingSatSolver : public SATSolver {
 public:
   RecordingSatSolver(SATSolver* inner) : _inner(inner) {}
 
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
+  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel);
   virtual void randomizeAssignment();
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);

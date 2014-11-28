@@ -44,7 +44,6 @@ public:
   static const char* _demodulationValues[];
   static const char* _subsumptionValues[];
   static const char* _urResolutionValues[];
-//  static const char* _splittingModeValues[];
   static const char* _fdeValues[];
   static const char* _lcmValues[];
   static const char* _satSolverValues[];
@@ -66,9 +65,11 @@ public:
   static const char* _nicenessOptionValues[];
   static const char* _satClauseDisposerValues[];
   static const char* _sosValues[];
-  static const char* _sSplittingComponentSweepingValues[];
-  static const char* _sSplittingAddComplementaryValues[];
-  static const char* _sSplittingNonsplittableComponentsValues[];
+  static const char* _splittingAddComplementaryValues[];
+  static const char* _splittingDeleteDeactivatedValues[];
+  static const char* _splittingNonsplittableComponentsValues[];
+  static const char* _splittingModelValues[];
+  static const char* _splittingLiteralPolarityAdviceValues[];
   static const char* _predicateEquivalenceDiscoveryModeValues[];
   static const char* _bpAssignmentSelectorValues[];
   static const char* _bpVariableSelectorValues[];
@@ -83,7 +84,6 @@ public:
   static NameArray demodulationValues;
   static NameArray subsumptionValues;
   static NameArray urResolutionValues;
-//  static NameArray splittingModeValues;
   static NameArray fdeValues;
   static NameArray lcmValues;
   static NameArray satSolverValues;
@@ -105,9 +105,12 @@ public:
   static NameArray nicenessOptionValues;
   static NameArray satClauseDisposerValues;
   static NameArray sosValues;
-  static NameArray sSplittingComponentSweepingValues;
-  static NameArray sSplittingAddComplementaryValues;
-  static NameArray sSplittingNonsplittableComponentsValues;
+  static NameArray splittingComponentSweepingValues;
+  static NameArray splittingAddComplementaryValues;
+  static NameArray splittingDeleteDeactivatedValues;
+  static NameArray splittingNonsplittableComponentsValues;
+  static NameArray splittingModelValues;
+  static NameArray splittingLiteralPolarityAdviceValues;
   static NameArray predicateEquivalenceDiscoveryModeValues;
   static NameArray bpAssignmentSelectorValues;
   static NameArray bpVariableSelectorValues;
@@ -283,19 +286,19 @@ const char* Options::Constants::_optionNames[] = {
   "smtlib_flet_as_definition",
   "smtlib_introduce_aig_names",
   "sos",
- // "split_add_ground_negation",
   "split_at_activation",
- // "split_goal_only",
- // "split_input_only",
- // "split_positive",
   "splitting",
-  "ssplitting_add_complementary",
-  "ssplitting_component_sweeping",
-  "ssplitting_congruence_closure",
-  "ssplitting_eager_removal",
-  "ssplitting_flush_period",
-  "ssplitting_flush_quotient",
-  "ssplitting_nonsplittable_components",
+  "splitting_add_complementary",
+  "splitting_congruence_closure",
+  "splitting_delete_deactivated",
+  "splitting_eager_removal",
+  "splitting_fast_restart",
+  "splitting_flush_period",
+  "splitting_flush_quotient",
+  "splitting_handle_zero_implied",
+  "splitting_literal_polarity_advice",
+  "splitting_model",
+  "splitting_nonsplittable_components",
   "statistics",
   "superposition_from_variables",
   "symbol_precedence",
@@ -319,7 +322,8 @@ const char* Options::Constants::_optionNames[] = {
   "weight_increment",
   "while_number",
 
-  "xml_output"};
+  "xml_output"
+  };
 
 /** Names for all options */
 NameArray Options::Constants::optionNames(_optionNames,
@@ -370,30 +374,31 @@ const char* Options::Constants::_shortNames[] = {
 
   "p",
 
-  "s",
-  "sa",
-  "sac",
-  "sas",
-  //"sagn",
-  "sd",
-  "sfv",
-  //"sgo",
+  "s",        
+  "sa",       
+  "saa",      
+  "sac",      
+  "sas",      
+  "scc",      
+  "sd", 
+  "sdd",
+  "ser",      
+  "sfp",      
+  "sfq",
+  "sfr",
+  "sfv",      
   "sgt",
-  //"sio",
-  "sos",
-  "sp",
-  "spl",
-  //"spo",
-  "ss",
-  "ssac",
-  "sscc",
-  "sser",
-  "ssfp",
-  "ssfq",
-  "ssnc",
-  "st",
-  "stl",
-  "svs",
+  "shzi",
+  "slpa",
+  "sm",       
+  "snc",      
+  "sos",      
+  "sp",       
+  "spl",      
+  "ss",       
+  "st",       
+  "stl",      
+  "svs", 
 
   "t",
   "tbsr",
@@ -459,28 +464,27 @@ int Options::Constants::shortNameIndexes[] = {
   SELECTION,
   SATURATION_ALGORITHM,
   SPLIT_AT_ACTIVATION,
+  SPLITTING_ADD_COMPLEMENTARY,
   SAT_SOLVER,
-  //SPLIT_ADD_GROUND_NEGATION,
+  SPLITTING_CONGRUENCE_CLOSURE,
   SINE_DEPTH,
+  SPLITTING_DELETE_DEACTIVATED,
+  SPLITTING_EAGER_REMOVAL,
+  SPLITTING_FLUSH_PERIOD,
+  SPLITTING_FLUSH_QUOTIENT,
+  SPLITTING_FAST_RESTART,
   SUPERPOSITION_FROM_VARIABLES,
-  //SPLIT_GOAL_ONLY,
   SINE_GENERALITY_THRESHOLD,
-  //SPLIT_INPUT_ONLY,
+  SPLITTING_HANDLE_ZERO_IMPLIED,
+  SPLITTING_LITERAL_POLARITY_ADVICE,
+  SPLITTING_MODEL,
+  SPLITTING_NONSPLITTABLE_COMPONENTS,
   SOS,
   SYMBOL_PRECEDENCE,
   SPLITTING,
-  //SPLIT_POSITIVE,
   SINE_SELECTION,
-
-  SSPLITTING_ADD_COMPLEMENTARY,
-  SSPLITTING_CONGRUENCE_CLOSURE,
-  SSPLITTING_EAGER_REMOVAL,
-  SSPLITTING_FLUSH_PERIOD,
-  SSPLITTING_FLUSH_QUOTIENT,
-  SSPLITTING_NONSPLITTABLE_COMPONENTS,
   SINE_TOLERANCE,
   SIMULATED_TIME_LIMIT,
-
   SAT_VAR_SELECTOR,
 
   TIME_LIMIT,
@@ -529,13 +533,6 @@ const char* Options::Constants::_urResolutionValues[] = {
   "on"};
 NameArray Options::Constants::urResolutionValues(_urResolutionValues,
 						 sizeof(_urResolutionValues)/sizeof(char*));
-
-//const char* Options::Constants::_splittingModeValues[] = {
-//  "input",
-//  "off",
-//  "sat"};
-//NameArray Options::Constants::splittingModeValues(_splittingModeValues,
-//					sizeof(_splittingModeValues)/sizeof(char*));
 
 const char* Options::Constants::_fdeValues[] = {
   "all",
@@ -726,27 +723,43 @@ const char* Options::Constants::_sosValues[] = {
 NameArray Options::Constants::sosValues(_sosValues,
 					sizeof(_sosValues)/sizeof(char*));
 
-const char* Options::Constants::_sSplittingComponentSweepingValues[] = {
-  "all",
-  "iterated",
-  "none",
-  "only_new"};
-NameArray Options::Constants::sSplittingComponentSweepingValues(_sSplittingComponentSweepingValues,
-					  sizeof(_sSplittingComponentSweepingValues)/sizeof(char*));
-
-const char* Options::Constants::_sSplittingAddComplementaryValues[] = {
+const char* Options::Constants::_splittingAddComplementaryValues[] = {
   "ground",
   "none"};
-NameArray Options::Constants::sSplittingAddComplementaryValues(_sSplittingAddComplementaryValues,
-					  sizeof(_sSplittingAddComplementaryValues)/sizeof(char*));
+NameArray Options::Constants::splittingAddComplementaryValues(_splittingAddComplementaryValues,
+					  sizeof(_splittingAddComplementaryValues)/sizeof(char*));
 
-const char* Options::Constants::_sSplittingNonsplittableComponentsValues[] = {
+const char* Options::Constants::_splittingDeleteDeactivatedValues[] = {
+  "large",
+  "off",
+  "on"};
+NameArray Options::Constants::splittingDeleteDeactivatedValues(_splittingDeleteDeactivatedValues,
+					  sizeof(_splittingDeleteDeactivatedValues)/sizeof(char*));
+
+const char* Options::Constants::_splittingNonsplittableComponentsValues[] = {
   "all",
   "all_dependent",
   "known",
   "none"};
-NameArray Options::Constants::sSplittingNonsplittableComponentsValues(_sSplittingNonsplittableComponentsValues,
-					  sizeof(_sSplittingNonsplittableComponentsValues)/sizeof(char*));
+NameArray Options::Constants::splittingNonsplittableComponentsValues(_splittingNonsplittableComponentsValues,
+					  sizeof(_splittingNonsplittableComponentsValues)/sizeof(char*));
+
+const char* Options::Constants::_splittingModelValues[] = {
+  "min_all",
+  "min_sco",  // sco stands for split clauses only
+  "total"};
+NameArray Options::Constants::splittingModelValues(_splittingModelValues,
+                                          sizeof(_splittingModelValues)/sizeof(char*));
+
+const char* Options::Constants::_splittingLiteralPolarityAdviceValues[] = {
+  "force_false",
+  "force_rnd",
+  "none",
+  "suggest_false",
+  "suggest_rnd"
+};
+NameArray Options::Constants::splittingLiteralPolarityAdviceValues(_splittingLiteralPolarityAdviceValues,
+                                          sizeof(_splittingLiteralPolarityAdviceValues)/sizeof(char*));
 
 const char* Options::Constants::_predicateEquivalenceDiscoveryModeValues[] = {
   "all_atoms",
@@ -985,15 +998,19 @@ Options::Options ()
   _smtlibFletAsDefinition(false),
   _smtlibIntroduceAIGNames(true),
   _sos(SOS_OFF),
-  _splitAtActivation(false), // is this even a valid option?
-  _splitting(true), // should splitting by on or off by default?
-  _ssplittingAddComplementary(SSAC_GROUND),
-  _ssplittingComponentSweeping(SSCS_ITERATED),
-  _ssplittingCongruenceClosure(false),
-  _ssplittingEagerRemoval(true),
-  _ssplittingFlushPeriod(0),
-  _ssplittingFlushQuotient(1.5f),
-  _ssplittingNonsplittableComponents(SSNS_KNOWN),
+  _splitAtActivation(true), 
+  _splitting(true), 
+  _splittingAddComplementary(SAC_GROUND),
+  _splittingCongruenceClosure(false),
+  _splittingDeleteDeactivated(SDD_ON),
+  _splittingEagerRemoval(true),
+  _splittingFastRestart(false),
+  _splittingFlushPeriod(0),
+  _splittingFlushQuotient(1.5f),
+  _splittingHandleZeroImplied(false),
+  _splittingNonsplittableComponents(SNS_KNOWN),
+  _splittingModel(SM_MIN_ALL),
+  _splittingLiteralPolarityAdvice(SLPA_NONE),
   _statistics(STATISTICS_FULL),
   _superpositionFromVariables(true),
   _symbolPrecedence(BY_ARITY),
@@ -1023,7 +1040,7 @@ Options::Options ()
   _weightRatio(1),
   _whileNumber(1),
 
-  _xmlOutput("off")
+  _xmlOutput("off")  
 {
   CALL("Options::Options");
 } // Options::Options
@@ -1670,34 +1687,46 @@ void Options::set(const char* name,const char* value, int index)
       _splitAtActivation = onOffToBool(value,name);
       return;
     case SPLITTING:
-      _splitting = onOffToBool(value,name);//(SplittingMode)Constants::splittingModeValues.find(value);
+      _splitting = onOffToBool(value,name);
       return;
-    case SSPLITTING_ADD_COMPLEMENTARY:
-      _ssplittingAddComplementary = (SSplittingAddComplementary)Constants::sSplittingAddComplementaryValues.find(value);
+    case SPLITTING_ADD_COMPLEMENTARY:
+      _splittingAddComplementary = (SplittingAddComplementary)Constants::splittingAddComplementaryValues.find(value);
       return;
-    case SSPLITTING_COMPONENT_SWEEPING:
-      _ssplittingComponentSweeping = (SSplittingComponentSweeping)Constants::sSplittingComponentSweepingValues.find(value);
+    case SPLITTING_CONGRUENCE_CLOSURE:
+      _splittingCongruenceClosure = onOffToBool(value,name);
       return;
-    case SSPLITTING_CONGRUENCE_CLOSURE:
-      _ssplittingCongruenceClosure = onOffToBool(value,name);
+    case SPLITTING_DELETE_DEACTIVATED:
+      _splittingDeleteDeactivated = (SplittingDeleteDeactivated)Constants::splittingDeleteDeactivatedValues.find(value);
+      return;        
+    case SPLITTING_EAGER_REMOVAL:
+      _splittingEagerRemoval = onOffToBool(value,name);
       return;
-    case SSPLITTING_EAGER_REMOVAL:
-      _ssplittingEagerRemoval = onOffToBool(value,name);
-      return;
-    case SSPLITTING_FLUSH_PERIOD:
+    case SPLITTING_FAST_RESTART:
+      _splittingFastRestart = onOffToBool(value,name);
+      return;      
+    case SPLITTING_FLUSH_PERIOD:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	_ssplittingFlushPeriod = unsignedValue;
+	_splittingFlushPeriod = unsignedValue;
 	return;
       }
       break;
-    case SSPLITTING_FLUSH_QUOTIENT:
+    case SPLITTING_FLUSH_QUOTIENT:
       if (!Int::stringToFloat(value,floatValue) || (floatValue<1.0f)) {
-	USER_ERROR("ssplitting_flush_quotient must greater than or equal to 1");
+	USER_ERROR("splitting_flush_quotient must greater than or equal to 1");
       }
-      _ssplittingFlushQuotient = floatValue;
+      _splittingFlushQuotient = floatValue;
       return;
-    case SSPLITTING_NONSPLITTABLE_COMPONENTS:
-      _ssplittingNonsplittableComponents = (SSplittingNonsplittableComponents)Constants::sSplittingNonsplittableComponentsValues.find(value);
+    case SPLITTING_HANDLE_ZERO_IMPLIED:
+      _splittingHandleZeroImplied = onOffToBool(value,name);
+    case SPLITTING_LITERAL_POLARITY_ADVICE:
+      _splittingLiteralPolarityAdvice = 
+              (SplittingLitaralPolarityAdvice)Constants::splittingLiteralPolarityAdviceValues.find(value);
+      return;      
+    case SPLITTING_MODEL:
+      _splittingModel = (SplittingModel)Constants::splittingModelValues.find(value);
+      return;
+    case SPLITTING_NONSPLITTABLE_COMPONENTS:
+      _splittingNonsplittableComponents = (SplittingNonsplittableComponents)Constants::splittingNonsplittableComponentsValues.find(value);
       return;
       
     case STATISTICS:
@@ -1770,7 +1799,6 @@ void Options::set(const char* name,const char* value, int index)
     case XML_OUTPUT:
       _xmlOutput = value;
       return;
-
 
 #if VDEBUG
     default:
@@ -2504,44 +2532,35 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SOS:
     str << Constants::sosValues[_sos];
     return;
-//  case SPLIT_ADD_GROUND_NEGATION:
-//    str << boolToOnOff(_splitAddGroundNegation);
-//    return;
   case SPLIT_AT_ACTIVATION:
     str << boolToOnOff(_splitAtActivation);
     return;
-//  case SPLIT_GOAL_ONLY:
-//    str << boolToOnOff(_splitGoalOnly);
-//    return;
-//  case SPLIT_INPUT_ONLY:
-//    str << boolToOnOff(_splitInputOnly);
-//    return;
-//  case SPLIT_POSITIVE:
-//    str << boolToOnOff(_splitPositive);
-//    return;
   case SPLITTING:
-    str << boolToOnOff(_splitting); //Constants::splittingModeValues[_splitting];
+    str << boolToOnOff(_splitting);
     return;
-  case SSPLITTING_ADD_COMPLEMENTARY:
-    str << Constants::sSplittingAddComplementaryValues[_ssplittingAddComplementary];
+  case SPLITTING_ADD_COMPLEMENTARY:
+    str << Constants::splittingAddComplementaryValues[_splittingAddComplementary];
     return;
-  case SSPLITTING_COMPONENT_SWEEPING:
-    str << Constants::sSplittingComponentSweepingValues[_ssplittingComponentSweeping];
+  case SPLITTING_CONGRUENCE_CLOSURE:
+    str << boolToOnOff(_splittingCongruenceClosure);
     return;
-  case SSPLITTING_CONGRUENCE_CLOSURE:
-    str << boolToOnOff(_ssplittingCongruenceClosure);
+  case SPLITTING_DELETE_DEACTIVATED:
+    str << Constants::splittingDeleteDeactivatedValues[_splittingDeleteDeactivated];
+    return;    
+  case SPLITTING_EAGER_REMOVAL:
+    str << boolToOnOff(_splittingEagerRemoval);
     return;
-  case SSPLITTING_EAGER_REMOVAL:
-    str << boolToOnOff(_ssplittingEagerRemoval);
+  case SPLITTING_FAST_RESTART:
+    str << boolToOnOff(_splittingFastRestart);
+    return;    
+  case SPLITTING_FLUSH_PERIOD:
+    str << _splittingFlushPeriod;
     return;
-  case SSPLITTING_FLUSH_PERIOD:
-    str << _ssplittingFlushPeriod;
+  case SPLITTING_FLUSH_QUOTIENT:
+    str << _splittingFlushQuotient;
     return;
-  case SSPLITTING_FLUSH_QUOTIENT:
-    str << _ssplittingFlushQuotient;
-    return;
-  case SSPLITTING_NONSPLITTABLE_COMPONENTS:
-    str << Constants::sSplittingNonsplittableComponentsValues[_ssplittingNonsplittableComponents];
+  case SPLITTING_NONSPLITTABLE_COMPONENTS:
+    str << Constants::splittingNonsplittableComponentsValues[_splittingNonsplittableComponents];
     return;
   case STATISTICS:
     str << Constants::statisticsValues[_statistics];

@@ -54,7 +54,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "SSplitter.hpp"
+#include "Splitter.hpp"
 
 #include "ConsequenceFinder.hpp"
 #include "Splitter.hpp"
@@ -611,7 +611,7 @@ simpl_start:
     goto fin;
   }
 
-  ASS(!cl->selected());
+  ASS(!cl->numSelected());
   {
     LiteralSelector& sosSelector = getSosLiteralSelector();
     sosSelector.select(cl);
@@ -779,7 +779,6 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 
     switch(cl->store())
     {
-    case Clause::BACKTRACKED:
     case Clause::UNPROCESSED:
       break;
     case Clause::PASSIVE:
@@ -1042,7 +1041,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
   }
   _clauseActivationInProgress=true;
 
-  if (!cl->selected()) {
+  if (!cl->numSelected()) {
     _selector->select(cl);
   }
 
@@ -1430,7 +1429,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   //case Options::SM_SAT:
   // Splitting is now either on or off. If on it using SSplitter
   if(opt.splitting()){
-    res->_splitter = new SSplitter();
+    res->_splitter = new Splitter();
   }
   if (opt.questionAnswering()==Options::QA_ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();

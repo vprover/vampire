@@ -417,7 +417,7 @@ void IGAlgorithm::selectAndAddToIndex(Clause* cl)
 
   _selector->select(cl, selIdx);
 
-  unsigned selCnt = cl->selected();
+  unsigned selCnt = cl->numSelected();
   for(unsigned i=0; i<selCnt; i++) {
     _selected->insert((*cl)[i], cl);
   }
@@ -428,7 +428,7 @@ void IGAlgorithm::removeFromIndex(Clause* cl)
 {
   CALL("IGAlgorithm::removeFromIndex");
 
-  unsigned selCnt = cl->selected();
+  unsigned selCnt = cl->numSelected();
   for(unsigned i=0; i<selCnt; i++) {
     _selected->remove((*cl)[i], cl);
   }

@@ -39,7 +39,7 @@ public:
   virtual void randomizeAssignment() { flushUnadded(); _inner->randomizeAssignment(); }
 
 
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate=false);
+  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel);
   virtual VarAssignment getAssignment(unsigned var);
 
   virtual bool isZeroImplied(unsigned var){ return _inner->isZeroImplied(var); }
@@ -47,7 +47,8 @@ public:
   virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
 
   virtual void ensureVarCnt(unsigned newVarCnt){ _inner->ensureVarCnt(newVarCnt);_tmaxVar=newVarCnt; }
-
+  virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
+  virtual void forcePolarity(unsigned var,unsigned pol) override { _inner->forcePolarity(var,pol); }
 
   virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
   virtual void retractAllAssumptions();
@@ -86,7 +87,8 @@ private:
    * Clauses that have not been added to _inner as they are either implied by the assignment of _inner
    * or the variables implicitly set in _literalBuffer
    */
-  SATClauseStack _unadded;
+  SATClauseStack _unadded_in_partial;
+  SATClauseStack _unadded_not_in_partial;
 
  /**
   * The maximum variable added to the SATSolver, used to detect new variables
@@ -96,15 +98,6 @@ private:
   unsigned _maxVar;
   // We use a temp to track the max added since last flush
   unsigned _tmaxVar;
-
- /**
-  * This represents the alterantive *new* SATLiterlas that could have been selected when
-  * setting a SATLiteral in the _literalCache. This is used if a clause containing new literals
-  * cannot be made true by the current ground assignment and _literalCache.
-  *
-  * TODO - implement functionality
-  */
-  //DHMap< unsigned, DHSet<SATLiteral> > _alternatives;
 
 };
 

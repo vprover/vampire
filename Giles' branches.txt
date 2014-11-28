@@ -1,0 +1,18 @@
+*) total_model_option contains the 'split clauses only minimisation' 
+
+*) zero_implied contains the fixed version of that optimisation
+[The zero_implied thing is half in master already, just commented out... it was added before we started using git!]
+
+--- Both are still relevant in the sense that we want to experiment with them 
+
+<<< BOTH HAVE BEEN ADDED TO AVATARING !!!
+
+*) frozen_in_indices should allow us to not delete a clause from the indices when it gets frozen, just filter it out of results.
+ Another experiment that we should do.
+
+*) compclauses_case is definitely not implemented properly atm but the idea was to look at what happens if we add a clause that's already a component. 
+If the component is true in the model then the clause can be immediately frozen; if it is false we can kill the current model. 
+Currently we check this case if the clause is nonsplittable but don't take all of those actions. 
+One issue is that checking if a clause is a component is reasonably expensive and we should not repeat this unnecessarily.
+
+*) giles shouldn't contain anything useful but I will check. -- there is stuff - did he check?

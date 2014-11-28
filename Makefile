@@ -275,7 +275,6 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ProvingHelper.o\
          Saturation/SaturationAlgorithm.o\
          Saturation/Splitter.o\
-         Saturation/SSplitter.o\
          Saturation/SymElOutput.o
 
 VS_OBJ = Shell/AIG.o\

@@ -115,7 +115,7 @@ void UnitTesting::spawnTest(TestProc proc)
   pid_t fres = Multiprocessing::instance()->fork();
   if(!fres) {
     proc();
-    _Exit(0); // don't call parent's atexit! 
+    _exit(0); // don't call parent's atexit! 
   }
   int childRes;
   Multiprocessing::instance()->waitForParticularChildTermination(fres, childRes);

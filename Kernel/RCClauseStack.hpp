@@ -113,6 +113,19 @@ public:
     Clause* curr;
   };
 
+  bool find(Clause* cl) const
+  {
+    CALL("RCClauseStack::find");
+
+    Iterator it(const_cast<RCClauseStack&>(*this));
+    while(it.hasNext()) {
+      if(it.next()==cl) {
+	return true;
+      }
+    }
+    return false;
+  }
+  
 private:
   ClauseStack _s;
 };

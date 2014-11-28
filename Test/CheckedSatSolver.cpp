@@ -26,17 +26,21 @@ void CheckedSatSolver::ensureVarCnt(unsigned newVarCnt)
   _inner->ensureVarCnt(newVarCnt);
 }
 
-void CheckedSatSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
+void CheckedSatSolver::addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel)
 {
   CALL("CheckedSatSolver::addClauses");
 
   static SATClauseStack newClauses;
   newClauses.reset();
   newClauses.loadFromIterator(cit);
+  
+  if (useInPartialModel) { // This is a bit ugly, ...
+    // ... but we need to be less strict for the case when checking
+    // a minimizing solver and the splitting_model option being min_sco
+    _clauses.loadFromIterator(SATClauseStack::BottomFirstIterator(newClauses));
+  }
 
-  _clauses.loadFromIterator(SATClauseStack::BottomFirstIterator(newClauses));
-
-  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(newClauses)), onlyPropagate);
+  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(newClauses)), onlyPropagate, useInPartialModel);
   _checked = false;
 }
 

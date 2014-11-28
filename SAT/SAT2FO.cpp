@@ -97,7 +97,7 @@ void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
     ASS(solver.trueInAssignment(sl));
     Literal* lit = toFO(sl);
     if(!lit) {
-      //SAT literal doesn't have corresnponding FO one
+      //SAT literal doesn't have corresponding FO one
       continue;
     }
     res.push(lit);

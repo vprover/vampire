@@ -37,7 +37,7 @@ public:
    *
    * A requirement is that in each clause, each variable occurs at most once.
    */
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate=false) = 0;
+  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate=false, bool useInPartialMode=true) = 0;
   virtual Status getStatus() = 0;
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
@@ -74,6 +74,8 @@ public:
   virtual SATClause* getZeroImpliedCertificate(unsigned var) = 0;
 
   virtual void ensureVarCnt(unsigned newVarCnt) {}
+  virtual void suggestPolarity(unsigned var, unsigned pol) {}
+  virtual void forcePolarity(unsigned var, unsigned pol) {}
 
   void addAssumption(SATLiteral lit, bool onlyPropagate=false) {
     CALL("SATSolver::addAssumption(SATLiteral,bool)");
