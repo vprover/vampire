@@ -86,6 +86,9 @@ void CommandLine::interpret (Options& options)
   }
   options.setForcedOptionValues();
   options.checkGlobalOptionConstraints();
+  if(options.encodeStrategy()){
+    cout << options.generateEncodedOptions();
+  }
 } // CommandLine::interpret
 
 

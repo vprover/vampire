@@ -795,7 +795,6 @@ int main(int argc, char* argv[])
     Shell::CommandLine cl(argc, argv);
     cl.interpret(*env.options);
 
-
     // If any of these options are set then we just need to output and exit
     if (env.options->showHelp() || env.options->showOptions() || !env.options->explainOption().empty()) {
       env.beginOutput();

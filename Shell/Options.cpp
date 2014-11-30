@@ -87,13 +87,29 @@ void Options::Options::init()
                                         "profile","program_analysis","sat_solver",
                                         "spider","vampire"});
     _mode.description=
-    "consequence_elimination mode forces values of unused_predicate_definition_removal and propositional_to_bdd to be off";
+    "Select the mode of operation. Choices are:\n"
+    "  -vampire: the standard mode of operation for first-order theorem proving\n"
+    "  -casc,casc_epr,casc_ltb,casc_mzr,casc_sat: these are all portfolio modes\n   that use predefined "
+    " sets of strategies in vampire mode.\n"
+    "  -preprocess,axiom_select,clausify,grounding: modes for producing output\n   for other solvers.\n"
+    "  -output,profile: output information about the problem\n"
+    "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n   directly\n"
+    "Some modes are not currently maintained:\n"
+    "  -ltb_build,ltb_solve: for Large Theory Batch processing\n"
+    "  -program_analysis: run Lingva\n"
+    "  -bpa: perform bound propagation\n"
+    "  -consequence_elimination: perform consequence elimination\n";
+    //"consequence_elimination mode forces values of unused_predicate_definition_removal to be off";
     _lookup.insert(&_mode);
     
     _decode = DecodeOptionValue("decode","",this);
-    _decode.description="";
+    _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the option --encode on";
     _lookup.insert(&_decode);
  
+    _encode = BoolOptionValue("encode","",false);
+    _encode.description="Output an encoding of the strategy to be used with the --decode option";
+    _lookup.insert(&_encode);
+    
     _randomStrategy = BoolOptionValue("random_strategy","",false);
     _randomStrategy.description = 
       "Create a random strategy. Randomisation will occur after all other options have been "
@@ -104,7 +120,7 @@ void Options::Options::init()
     
     _forbiddenOptions = StringOptionValue("forbidden_options","","");
     _forbiddenOptions.description=
-    "If some of the specified options are set to a forbidden state, vampire will fail to start, or in the CASC mode it will skip such strategies.";
+    "If some of the specified options are set to a forbidden state, vampire will fail to start, or in the CASC mode it will skip such strategies. The expected syntax is <opt1>=<val1>:<opt2>:<val2>:...:<optn>=<valN>";
     _lookup.insert(&_forbiddenOptions);
     
     _forcedOptions = StringOptionValue("forced_options","","");
@@ -126,7 +142,7 @@ void Options::Options::init()
     _showExperimentalOptions.setExperimental(); // only we know about it!
 
     _explainOption = StringOptionValue("explain_option","explain","");
-    _explainOption.description = "Use to explain a single option";
+    _explainOption.description = "Use to explain a single option i.e. -explain explain";
     _lookup.insert(&_explainOption);
     
     _ignoreMissing = BoolOptionValue("ignore_missing","",false);
@@ -135,9 +151,9 @@ void Options::Options::init()
     _lookup.insert(&_ignoreMissing);
     
     _badOption = ChoiceOptionValue<BadOption>("bad_option","",BadOption::SOFT,{"hard","forced","off","soft"});
-    _badOption.description = "What should be done if a bad option is encountered:\n"
+    _badOption.description = "What should be done if a bad option value (wrt constraints) is encountered:\n"
        " - hard: will cause a user error\n"
-       " - soft: will only report the error if it is still safe\n"
+       " - soft: will only report the error (unless it is unsafe)\n"
        " - forced: will try and change the value and those of unset options to make it okay\n"
        " - off: will ignore safe errors\n"
        "Note that unsafe errors will aways lead to a user error";
@@ -149,9 +165,10 @@ void Options::Options::init()
     "Prefix for symbols introduced by Vampire (naming predicates, Skolem functions)";
     _lookup.insert(&_namePrefix);
     
+    // Do we really need to be able to set this externally?
     _problemName = StringOptionValue("problem_name","","");
     _problemName.description="";
-    _lookup.insert(&_problemName);
+    //_lookup.insert(&_problemName);
     
     _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp"});
     _proof.description=
@@ -161,30 +178,32 @@ void Options::Options::init()
     _proofChecking = BoolOptionValue("proof_checking","",false);
     _proofChecking.description="";
     _lookup.insert(&_proofChecking);
-    _proofChecking.setExperimental(); // not sure it works!
+    _proofChecking.setExperimental(); // don't think it works!
     
     _protectedPrefix = StringOptionValue("protected_prefix","","");
     _protectedPrefix.description="Symbols with this prefix are immune against elimination during preprocessing";
     _lookup.insert(&_protectedPrefix);
     
     _statistics = ChoiceOptionValue<Statistics>("statistics","",Statistics::FULL,{"brief","full","none"});
-    _statistics.description="";
+    _statistics.description="The level of statistics to report at the end of the run.";
     _lookup.insert(&_statistics);
     
     _testId = StringOptionValue("test_id","","unspecified_test");
     _testId.description="";
     _lookup.insert(&_testId);
+    _testId.setExperimental();
     
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";
     _lookup.insert(&_thanks);
+    _thanks.setExperimental();
     
     _timeLimitInDeciseconds = TimeLimitOptionValue("time_limit","t",600);
     _timeLimitInDeciseconds.description="Time limit in wall clock deciseconds";
     _lookup.insert(&_timeLimitInDeciseconds);
     
     _timeStatistics = BoolOptionValue("time_statistics","",false);
-    _timeStatistics.description="Show how much running time was spent in each part of the Vampire";
+    _timeStatistics.description="Show how much running time was spent in each part of Vampire";
     _lookup.insert(&_timeStatistics);
 
 //*********************** Input  ***********************
@@ -198,6 +217,7 @@ void Options::Options::init()
     _inputFile.description="Problem file to be solved (if not specified, standard input is used)";
     _lookup.insert(&_inputFile);
     _inputFile.tag(OptionTag::INPUT);
+    _inputFile.setExperimental();
     
     _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",
                                                  //in case we compile vampire with bpa, then the default input syntax is smtlib
@@ -207,7 +227,7 @@ void Options::Options::init()
                                                  InputSyntax::SMTLIB,
 #endif
                                                  {"simplify","smtlib","smtlib2","tptp","xhuman","xmps","xnetlib"});
-    _inputSyntax.description="";
+    _inputSyntax.description="Input syntax";
     _lookup.insert(&_inputSyntax);
     _inputSyntax.tag(OptionTag::INPUT);
     
@@ -232,7 +252,10 @@ void Options::Options::init()
 //*********************** Preprocessing  ***********************
    
     _inequalitySplitting = IntOptionValue("inequality_splitting","ins",3);
-    _inequalitySplitting.description="";
+    _inequalitySplitting.description=
+    "Defines a weight threshold w such that any clause C \\/ s!=t where s (or conversely t) is ground "
+    "and has weight less than w is replaced by C \\/ p(s) with the additional clause ~p(t) being added "
+    "for fresh predicate p. ";
     _lookup.insert(&_inequalitySplitting);
     _inequalitySplitting.tag(OptionTag::PREPROCESSING);
     
@@ -245,7 +268,16 @@ void Options::Options::init()
     _sos.addConstraint(If(notEqual(Sos::OFF)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION))));
  
     _equalityProxy = ChoiceOptionValue<EqualityProxy>( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"});
-    _equalityProxy.description="";
+    _equalityProxy.description="Aplies the equality proxy transformation to the problem. It works as follows:\n"
+     " - All literals s=t are replaced by E(s,t)\n"
+     " - All literals s!=t are replaced by ~E(s,t)\n"
+     " - If S the symmetry clause ~E(x,y) \\/ E(y,x) is added\n"
+     " - If T the transitivity clause ~E(x,y) \\/ ~E(y,z) \\/ E(x,z) is added\n"
+     " - If C the congruence clauses are added as follows:\n"
+     "    for predicates p that are not E or equality add\n"
+     "     ~E(x1,y1) \\/ ... \\/ ~E(xN,yN) \\/ ~p(x1,...,xN) \\/ p(y1,...,yN)\n"
+     "    for non-constant functions f add\n"
+     "     ~E(x1,y1) \\/ ... \\/ ~E(xN,yN) \\/ E(f(x1,...,xN),f(y1,...,yN))";
     _lookup.insert(&_equalityProxy);
     _equalityProxy.tag(OptionTag::PREPROCESSING);
     
@@ -287,7 +319,7 @@ void Options::Options::init()
     _arityCheck.tag(OptionTag::PREPROCESSING);
     
     _distinctProcessor = BoolOptionValue("distinct_processor","",false);
-    _distinctProcessor.description="handles $distinct predicates";
+    _distinctProcessor.description="Handles $distinct predicates from the TPTP language";
     _lookup.insert(&_distinctProcessor);
     _distinctProcessor.tag(OptionTag::PREPROCESSING);
     
@@ -331,7 +363,8 @@ void Options::Options::init()
     
     _generalSplitting = ChoiceOptionValue<RuleActivity>("general_splitting","gsp",RuleActivity::OFF,{"input_only","off","on"});
     _generalSplitting.description=
-    "Preprocessing rule that splits clauses in order to reduce number of different variables in each clause";
+    "Preprocessing rule that splits clauses in order to reduce number of different variables in each clause."
+    " Only input_only and off are valid values.";
     _lookup.insert(&_generalSplitting);
     _generalSplitting.tag(OptionTag::PREPROCESSING);
     _generalSplitting.addConstraint(notEqual(RuleActivity::ON));
@@ -623,13 +656,6 @@ void Options::Options::init()
     _lookup.insert(&_simulatedTimeLimit);
     _simulatedTimeLimit.tag(OptionTag::SATURATION);
     
-    _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on"});
-    _sos.description=
-    "Set of support strategy. All formulas annotated as theory axioms are put directly among active clauses, without performing any inferences between them. If all, select all literals of set-of-support clauses, ortherwise use the default literal selector.";
-    _lookup.insert(&_sos);
-    _sos.tag(OptionTag::SATURATION);
-    // Captures that if Sos is not off then the Saturation Algorithm cannot be Tabulation
-    _sos.addConstraint(If(notEqual(Sos::OFF)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION))));
     
 //*********************** Inferences  ***********************
     
@@ -1311,25 +1337,9 @@ void Options::copyValuesFrom(const Options& that)
     AbstractOptionValue* opt = options.next();
     if(opt->shouldCopy()){
       AbstractOptionValue* other = that.getOptionValueByName(opt->longName);
-      bool status = opt -> set(other->getStringOfActual());
-      ASS(status);
-    }
-  }
-}
-void Options::copyValuesFrom(Options& that)
-{
-  //copy across the actual values in that
-  VirtualIterator<AbstractOptionValue*> options = _lookup.values();
-
-  while(options.hasNext()){
-    AbstractOptionValue* opt = options.next();
-    if(opt->shouldCopy()){
-      AbstractOptionValue* other = that.getOptionValueByName(opt->longName);
-      //ASS(other == env.options->getOptionValueByName(opt->longName));
       ASS(opt!=other);
       bool status = opt -> set(other->getStringOfActual());
       ASS(status);
-      //cout << "copying " << opt->longName << " with value " << other->getStringOfActual() << endl;
     }
   }
 }
@@ -1338,14 +1348,10 @@ Options::Options(const Options& that)
   init();
   copyValuesFrom(that);
 }
-Options::Options(Options& that)
-{
-  init();
-  copyValuesFrom(that);
-}
 
 Options& Options::operator=(const Options& that)
 {
+  if(this==&that) return *this;
   copyValuesFrom(that);
   return *this;
 }
@@ -1355,6 +1361,7 @@ Options& Options::operator=(const Options& that)
  * Set option by its name and value.
  * @since 13/11/2004 Manchester
  * @since 18/01/2014 Manchester, changed to use _ignoreMissing
+ * @since 14/09/2014 updated to use _lookup
  * @author Andrei Voronkov
  */
 void Options::set(const char* name,const char* value)
@@ -1915,12 +1922,13 @@ void Options::randomizeStrategy(Property& prop)
 }
 
 /**
- * Assign option values as encoded in the option vstring.
+ * Assign option values as encoded in the option vstring if assign=true, otherwise check that
+ * the option values are not currently set to those values.
  * according to the argument in the format
  * opt1=val1:opt2=val2:...:optn=valN,
  * for example bs=off:cond=on:drc=off:nwc=1.5:nicw=on:sos=on:sio=off:spl=sat:ssnc=none
  */
-void Options::readOptionsString(vstring optionsString)
+void Options::readOptionsString(vstring optionsString,bool assign)
 {
   CALL("Options::readOptionsString");
 
@@ -1943,14 +1951,21 @@ void Options::readOptionsString(vstring optionsString)
     else {
       value = optionsString.substr(index1+1,index-index1-1);
     }
-
-    if(_lookup.findShort(param)){ 
-      setShort(param.c_str(),value.c_str());
+    AbstractOptionValue* opt = getOptionValueByName(param);
+    if(opt){
+        if(assign){
+            opt->set(value);
+        }
+        else{
+            vstring current = opt->getStringOfActual();
+            if(value==current){
+                USER_ERROR("option "+param+" uses forbidden value "+value);
+            }
+        }
     }
-    else if(_lookup.findLong(param)){
-      set(param.c_str(),value.c_str());
+    else{
+     USER_ERROR("option "+param+" not known");
     }
-    else USER_ERROR("option "+param+" not known");
 
     if (index==vstring::npos) {
       return;
@@ -2231,10 +2246,14 @@ bool Options::RequiresCompleteForNonHorn<T>::check(OptionValue<T>& value){
  *
  * The function is called after all options are parsed.
  */
-void Options::checkGlobalOptionConstraints() const
+void Options::checkGlobalOptionConstraints()
 {
   CALL("Options::checkGlobalOptionsConstraints");
 
+  //Check forbidden options
+  readOptionsString(_forbiddenOptions.actualValue,false);
+    
+  // Check recorded option constraints
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
   while(options.hasNext()){ options.next()->checkConstraints(); }
 
@@ -2243,7 +2262,7 @@ void Options::checkGlobalOptionConstraints() const
 /**
  * Check whether the option values make sense with respect to the given problem
  **/
-void Options::checkProblemOptionConstraints(const Problem& prb) const
+void Options::checkProblemOptionConstraints(const Problem& prb)
 {
    CALL("Options::checkProblemOptionConstraints");
 

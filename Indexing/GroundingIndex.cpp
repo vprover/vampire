@@ -47,8 +47,7 @@ GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
       _solver = new MinisatInterfacing(opt,true);
       break;
     default:
-      // static_cast necessary due to use of class enums
-      ASSERTION_VIOLATION_REP(static_cast<unsigned>(opt.satSolver()));
+      ASSERTION_VIOLATION_REP(opt.satSolver());
   }
 
 }

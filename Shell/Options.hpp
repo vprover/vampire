@@ -26,6 +26,7 @@
 #ifndef __Options__
 #define __Options__
 
+#include <type_traits>
 #include <functional>
 
 #include "Forwards.hpp"
@@ -62,9 +63,7 @@ public:
     Options ();
     // It is important that we can safely copy Options for use in CASC mode
     void init();
-    void copyValuesFrom(Options& that);
     void copyValuesFrom(const Options& that);
-    Options(Options& that);
     Options(const Options& that);
     Options& operator=(const Options& that);
 
@@ -73,7 +72,7 @@ public:
 
     // Dealing with encoded options. Used by --decode option
     void readFromEncodedOptions (vstring testId);
-    void readOptionsString (vstring testId);
+    void readOptionsString (vstring testId,bool assign=true);
     vstring generateEncodedOptions() const;
 
     // deal with completeness
@@ -83,8 +82,8 @@ public:
 
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
-    void checkGlobalOptionConstraints() const;
-    void checkProblemOptionConstraints(const Problem&) const;
+    void checkGlobalOptionConstraints();
+    void checkProblemOptionConstraints(const Problem&); 
 
     // randomize strategy (will only work if randomStrategy=on)
     // should only be called after all other options are set
@@ -119,7 +118,8 @@ public:
   //==========================================================
   //
   // If you create a ChoiceOptionValue you will also need to create an enum
-    
+   
+ 
     /**
      * Possible tags to group options by
      * Update _tagNames at the end of Options constructor if you add a tag
@@ -1322,6 +1322,7 @@ private:
   //
   // This is how options are accessed so if you add a new option you should add a getter
 public:
+  bool encodeStrategy() const{ return _encode.actualValue;}
   bool randomStrategy() const {return _randomStrategy.actualValue; }
   BadOption getBadOptionChoice() const { return _badOption.actualValue; }
   vstring forcedOptions() const { return _forcedOptions.actualValue; }
@@ -1572,9 +1573,9 @@ private:
         
         LookupWrapper() {}
         
-        // When copying a lookup wrapper do not copy any of its contents
-        // The copy constructor for Options recreates the LookupWrapper
-        LookupWrapper operator=(const LookupWrapper&){ return LookupWrapper(); }
+        private:
+          LookupWrapper operator=(const LookupWrapper&){}
+        public:
         
         void insert(AbstractOptionValue* option_value){
             CALL("LookupWrapper::insert");
@@ -1584,7 +1585,7 @@ private:
             if(!option_value->shortName.empty()){
                 new_short = _shortMap.insert(option_value->shortName,option_value);
             }
-            //if(!new_long || !new_short){ cout << "Bad " << option_value->longName << endl; }
+            if(!new_long || !new_short){ cout << "Bad " << option_value->longName << endl; }
             ASS(new_long && new_short);
         }
         AbstractOptionValue* findLong(vstring longName) const{
@@ -1611,7 +1612,17 @@ private:
     
     // The const is a lie - we can alter the resulting OptionValue
     AbstractOptionValue* getOptionValueByName(vstring name) const{
-        return _lookup.findLong(name);
+        try{
+          return _lookup.findLong(name);
+        }
+        catch(ValueNotFoundException&){
+          try{
+            return _lookup.findShort(name);
+          }
+          catch(ValueNotFoundException&){
+            return 0;
+          }
+        }
     }
     
     //==========================================================
@@ -1641,6 +1652,7 @@ private:
 
   BoolOptionValue _randomStrategy;
   DecodeOptionValue _decode;
+  BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;
   BoolOptionValue _aigBddSweeping;
@@ -1862,6 +1874,14 @@ private:
 
     
 }; // class Options
+
+// Allow printing of enums
+template<typename T,
+         typename = typename std::enable_if<std::is_enum<T>::value>::type>
+std::ostream& operator<< (std::ostream& str,const T& val)
+{
+  return str << static_cast<typename std::underlying_type<T>::type>(val);
+}
 
 }
 

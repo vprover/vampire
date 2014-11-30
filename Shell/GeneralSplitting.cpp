@@ -76,6 +76,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 {
   CALL("GeneralSplitting::apply");
 
+
   unsigned clen=cl->length();
   if(clen<=1) {
     return false;
@@ -95,6 +96,8 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     while(vit.hasNext()) {
       litVars.insert(vit.next().var());
     }
+
+    //TODO can move varCnt check to here!
 
     //we insert a complete graph containing variables from the literal
     Set<unsigned>::Iterator sit(litVars);

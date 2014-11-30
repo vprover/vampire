@@ -63,7 +63,7 @@ void URResolution::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(GENERATING_NON_UNIT_CLAUSE_SUBST_TREE) );
 
   Options::URResolution optSetting = _salg->getOptions().unitResultingResolution();
-  ASS(optSetting != Options::URResolution::OFF);
+  ASS_NEQ(optSetting,  Options::URResolution::OFF);
   _emptyClauseOnly = optSetting==Options::URResolution::EC_ONLY;
 }
 

@@ -90,8 +90,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
       _satSolver = new MinisatInterfacing(opt,true);
       break;
     default:
-      // static_cast necessary due to use of class enums
-      ASSERTION_VIOLATION_REP(static_cast<unsigned>(opt.satSolver()));
+      ASSERTION_VIOLATION_REP(opt.satSolver());
   }
 
   _gnd = new  IGGrounder(_satSolver);
