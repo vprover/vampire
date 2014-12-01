@@ -8,6 +8,7 @@
 #include "Kernel/Grounder.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/SaturationAlgorithmContext.hpp"
 
 #include "ArithmeticIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
@@ -62,13 +63,14 @@ Index* IndexManager::request(IndexType t)
   CALL("IndexManager::request");
 
   Entry e;
-  if(_store.find(t,e)) {
+  if(getEntry(t,e)){
     e.refCnt++;
   } else {
-    e.index=create(t);
-    e.refCnt=1;
+      e.index = create(t);
+      e.refCnt=1;
+      e.local = isLocalIndex(t);
   }
-  _store.set(t,e);
+  putEntry(t,e);
   return e.index;
 }
 
@@ -76,7 +78,12 @@ void IndexManager::release(IndexType t)
 {
   CALL("IndexManager::release");
 
-  Entry e=_store.get(t);
+  Entry e;
+
+  cout << "release " << t << endl;
+  if(!getEntry(t,e)){
+    ASSERTION_VIOLATION;
+  }
 
   e.refCnt--;
   if(e.refCnt==0) {
@@ -84,15 +91,16 @@ void IndexManager::release(IndexType t)
       _genLitIndex=0;
     }
     delete e.index;
-    _store.remove(t);
+    removeFromStore(t,e);
   } else {
-    _store.set(t,e);
+    putEntry(t,e); 
   }
 }
 
 bool IndexManager::contains(IndexType t)
 {
-  return _store.find(t);
+  Entry e;
+  return getEntry(t,e);
 }
 
 /**
@@ -103,7 +111,10 @@ bool IndexManager::contains(IndexType t)
  */
 Index* IndexManager::get(IndexType t)
 {
-  return _store.get(t).index;
+  Entry e;
+  getEntry(t,e);
+  // will be null if getEntry returns false
+  return e.index;
 }
 
 /**
@@ -115,12 +126,15 @@ Index* IndexManager::get(IndexType t)
 void IndexManager::provideIndex(IndexType t, Index* index)
 {
   CALL("IndexManager::provideIndex");
-  ASS(!_store.find(t));
 
   Entry e;
+
+  ASS(!getEntry(t,e));
+
   e.index = index;
   e.refCnt = 1; //reference to 1, so that we never delete the provided index
-  _store.set(t,e);
+  e.local= isLocalIndex(t);
+  putEntry(t,e);
 }
 
 Index* IndexManager::create(IndexType t)

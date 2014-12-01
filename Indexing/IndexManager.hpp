@@ -11,8 +11,13 @@
 #include "Lib/DHMap.hpp"
 #include "Index.hpp"
 
+#include "Saturation/SaturationAlgorithmContext.hpp"
+
 #include "Lib/Allocator.hpp"
 
+namespace Saturation{
+  class SaturationAlgorithm;
+}
 
 namespace Indexing
 {
@@ -60,16 +65,58 @@ public:
   void provideIndex(IndexType t, Index* index);
 
   LiteralIndexingStructure* getGeneratingLiteralIndexingStructure() { ASS(_genLitIndex); return _genLitIndex; };
+
 private:
+
+  static bool isLocalIndex(IndexType t){
+    switch(t){
+      //case BW_SUBSUMPTION_SUBST_TREE:
+      // list other global indexes here
+      //  return false;
+
+      default: return true;
+    }
+  }
 
   void attach(SaturationAlgorithm* salg);
 
   struct Entry {
     Index* index;
     int refCnt;
+    bool local;
   };
   SaturationAlgorithm* _alg;
-  DHMap<IndexType,Entry> _store;
+
+  bool getEntry(IndexType t,Entry& e){
+    if(!_globalStore.find(t,e)){
+      SaturationAlgorithmContext* ctx = static_cast<SaturationAlgorithmContext*> (MainLoopContext::currentContext);
+      auto p = pair<SaturationAlgorithmContext*,IndexType>(ctx,t);
+      return _localStore.find(p,e);
+    }
+    else return true;
+  }
+  void putEntry(IndexType t,Entry& e){
+    if(e.local){
+      SaturationAlgorithmContext* ctx = static_cast<SaturationAlgorithmContext*> (MainLoopContext::currentContext);
+      auto p = pair<SaturationAlgorithmContext*,IndexType>(ctx,t);
+       _localStore.insert(p,e);
+    }
+    else _globalStore.insert(t,e);
+  }
+
+  void removeFromStore(IndexType t, Entry e){
+    if(e.local){
+      SaturationAlgorithmContext* ctx = static_cast<SaturationAlgorithmContext*> (MainLoopContext::currentContext);
+      auto p = pair<SaturationAlgorithmContext*,IndexType>(ctx,t);
+       _localStore.remove(p);
+    }
+    else _globalStore.remove(t);
+  }
+
+
+  //TODO - replace with Entry* ?
+  DHMap<IndexType,Entry> _globalStore;
+  DHMap<pair<SaturationAlgorithmContext*,IndexType>,Entry> _localStore;
 
   LiteralIndexingStructure* _genLitIndex;
 
