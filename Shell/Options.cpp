@@ -780,10 +780,6 @@ void Options::Options::init()
     _lookup.insert(&_unitResultingResolution);
     _unitResultingResolution.tag(OptionTag::INFERENCES);
     _unitResultingResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
-
-    //TODO - this is a problematic constraint. Current issue is that the two wrapped
-    //       constraints in the and need to be unwrapped with URResolution
-    //       probably need to add And to WrappedConstraint and supply the type
     _unitResultingResolution.reliesOn(
       _saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->And<URResolution,bool>(
         _instGenWithResolution.is(notEqual(true))));
@@ -882,57 +878,105 @@ void Options::Options::init()
     _lookup.insert(&_splitAtActivation);
     _splitAtActivation.reliesOn(_splitting.is(equal(true)));
     _splitAtActivation.tag(OptionTag::AVATAR);
+ 
 
-    _ssplittingAddComplementary = ChoiceOptionValue<SSplittingAddComplementary>("ssplitting_add_complementary","ssac",
-                                                                                SSplittingAddComplementary::GROUND,{"ground","none"});
-    _ssplittingAddComplementary.description="";
-    _lookup.insert(&_ssplittingAddComplementary);
-    _ssplittingAddComplementary.tag(OptionTag::AVATAR);
-    _ssplittingAddComplementary.setExperimental();
+    _splittingAddComplementary = ChoiceOptionValue<SplittingAddComplementary>("splitting_add_complementary","ssac",
+                                                                                SplittingAddComplementary::GROUND,{"ground","none"});
+    _splittingAddComplementary.description="";
+    _lookup.insert(&_splittingAddComplementary);
+    _splittingAddComplementary.tag(OptionTag::AVATAR);
+    _splittingAddComplementary.setExperimental();
+    _splittingAddComplementary.reliesOn(_splitting.is(equal(true)));
     
-    _ssplittingComponentSweeping = ChoiceOptionValue<SSplittingComponentSweeping>("ssplitting_component_sweeping","",
-                                                                                  SSplittingComponentSweeping::ITERATED,
-                                                                                  {"all","iterated","none","only_new"});
-    _ssplittingComponentSweeping.description=
-    "The idea of component selection is described at the top of SSplitter.hpp. The meaning of options is: none .. no sweeping is done. only_new .. after each SAT model update we do sweeping on the newly selected components. all .. after each SAT model update we do sweeping on all selected components iterated .. like all except that we repeat the sweping while some components are being deselected";
-    _lookup.insert(&_ssplittingComponentSweeping);
-    _ssplittingComponentSweeping.tag(OptionTag::AVATAR);
-    _ssplittingComponentSweeping.setExperimental();
     
-    _ssplittingCongruenceClosure = BoolOptionValue("ssplitting_congruence_closure","sscc",false);
-    _ssplittingCongruenceClosure.description="";
-    _lookup.insert(&_ssplittingCongruenceClosure);
-    _ssplittingCongruenceClosure.tag(OptionTag::AVATAR);
+    _splittingCongruenceClosure = BoolOptionValue("splitting_congruence_closure","sscc",false);
+    _splittingCongruenceClosure.description="";
+    _lookup.insert(&_splittingCongruenceClosure);
+    _splittingCongruenceClosure.tag(OptionTag::AVATAR);
+    _splittingCongruenceClosure.reliesOn(_splitting.is(equal(true)));
     
-    _ssplittingEagerRemoval = BoolOptionValue("ssplitting_eager_removal","sser",true);
-    _ssplittingEagerRemoval.description="";
-    _lookup.insert(&_ssplittingEagerRemoval);
-    _ssplittingEagerRemoval.tag(OptionTag::AVATAR);
-    _ssplittingEagerRemoval.setExperimental();
+
+    _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
+                                                "splittingLiteralPolarityAdvice","slpa",
+                                                SplittingLiteralPolarityAdvice::NONE,
+                                                {"forced_false","forced_rnd","suggest_false","suggest_rnd","none"});
+    _splittingLiteralPolarityAdvice.description="";
+    _lookup.insert(&_splittingLiteralPolarityAdvice);
+    _splittingLiteralPolarityAdvice.tag(OptionTag::AVATAR);
+    _splittingLiteralPolarityAdvice.reliesOn(_splitting.is(equal(true)));
+    _splittingLiteralPolarityAdvice.reliesOn(
+              _satSolver.is(equal(SatSolver::MINISAT))->
+              Or<SplittingLiteralPolarityAdvice>(_satSolver.is(equal(SatSolver::BUFFERED_MINISAT))));
+
+    _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("splitting_minimize_model","smm",
+                                                                        SplittingMinimizeModel::SCO,{"off","sco","all"});
     
-    _ssplittingFlushPeriod = UnsignedOptionValue("ssplitting_flush_period","ssfp",0);
-    _ssplittingFlushPeriod.description=
+    _splittingMinimizeModel.description="Minimize the SAT-solver model by replacing concrete values with don't-cares"
+                                        " provided <all> the sat clauses (or only the split clauses with <sco>) remain provably satisfied"
+                                        " by the partial model.";
+    _lookup.insert(&_splittingMinimizeModel);
+    _splittingMinimizeModel.tag(OptionTag::AVATAR);
+    _splittingMinimizeModel.setExperimental();
+    _splittingMinimizeModel.reliesOn(_splitting.is(equal(true)));
+    
+    _splittingEagerRemoval = BoolOptionValue("splitting_eager_removal","sser",true);
+    _splittingEagerRemoval.description="";
+    _lookup.insert(&_splittingEagerRemoval);
+    _splittingEagerRemoval.tag(OptionTag::AVATAR);
+    _splittingEagerRemoval.setExperimental();
+    _splittingEagerRemoval.reliesOn(_splitting.is(equal(true)));
+
+    _splittingHandleZeroImplied = BoolOptionValue("splitting_handle_zero_implied","shzi",false);
+    _splittingHandleZeroImplied.description="If on ensure that splitting decisions implied by the top level"
+         " of the SAT solver are considered unconditional when performing clause reductions.";
+    _lookup.insert(&_splittingHandleZeroImplied);
+    _splittingHandleZeroImplied.tag(OptionTag::AVATAR);
+    _splittingHandleZeroImplied.setExperimental();
+    _splittingHandleZeroImplied.reliesOn(_splitting.is(equal(true)));
+
+    _splittingFastRestart = BoolOptionValue("splitting_fast_restart","sfr",false);
+    _splittingFastRestart.description="";
+    _lookup.insert(&_splittingFastRestart);
+    _splittingFastRestart.tag(OptionTag::AVATAR);
+    _splittingFastRestart.setExperimental();
+    _splittingFastRestart.reliesOn(_splitting.is(equal(true)));
+
+    _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("splitting_delete_deactivated","sdd",
+                                                                        SplittingDeleteDeactivated::ON,{"on","large","off"});
+    
+    _splittingDeleteDeactivated.description="";
+    _lookup.insert(&_splittingDeleteDeactivated);
+    _splittingDeleteDeactivated.tag(OptionTag::AVATAR);
+    _splittingDeleteDeactivated.setExperimental();
+    _splittingDeleteDeactivated.reliesOn(_splitting.is(equal(true)));
+
+    
+    _splittingFlushPeriod = UnsignedOptionValue("splitting_flush_period","ssfp",0);
+    _splittingFlushPeriod.description=
     "after given number of generated clauses without deriving an empty clause, the splitting component selection is shuffled. If equal to zero, shuffling is never performed.";
-    _lookup.insert(&_ssplittingFlushPeriod);
-    _ssplittingFlushPeriod.tag(OptionTag::AVATAR);
-    _ssplittingFlushPeriod.setExperimental();
+    _lookup.insert(&_splittingFlushPeriod);
+    _splittingFlushPeriod.tag(OptionTag::AVATAR);
+    _splittingFlushPeriod.setExperimental();
+    _splittingFlushPeriod.reliesOn(_splitting.is(equal(true)));
     
-    _ssplittingFlushQuotient = FloatOptionValue("ssplitting_flush_quotient","ssfq",1.5);
-    _ssplittingFlushQuotient.description=
-    "after each flush, the ssplitting_flush_period is multiplied by the quotient";
-    _lookup.insert(&_ssplittingFlushQuotient);
-    _ssplittingFlushQuotient.tag(OptionTag::AVATAR);
-    _ssplittingFlushQuotient.setExperimental();
-    _ssplittingFlushQuotient.addConstraint(greaterThanEq(1.0f));
+    _splittingFlushQuotient = FloatOptionValue("splitting_flush_quotient","ssfq",1.5);
+    _splittingFlushQuotient.description=
+    "after each flush, the splitting_flush_period is multiplied by the quotient";
+    _lookup.insert(&_splittingFlushQuotient);
+    _splittingFlushQuotient.tag(OptionTag::AVATAR);
+    _splittingFlushQuotient.setExperimental();
+    _splittingFlushQuotient.addConstraint(greaterThanEq(1.0f));
+    _splittingFlushQuotient.reliesOn(_splitting.is(equal(true)));
     
-    _ssplittingNonsplittableComponents = ChoiceOptionValue<SSplittingNonsplittableComponents>("ssplitting_nonsplittable_components","ssnc",
-                                                                                              SSplittingNonsplittableComponents::KNOWN,
+    _splittingNonsplittableComponents = ChoiceOptionValue<SplittingNonsplittableComponents>("splitting_nonsplittable_components","ssnc",
+                                                                                              SplittingNonsplittableComponents::KNOWN,
                                                                                               {"all","all_dependent","known","none"});
-    _ssplittingNonsplittableComponents.description=
+    _splittingNonsplittableComponents.description=
     "known .. SAT clauses will be learnt from non-splittable clauses that have corresponding components (if there is a component C with name SAT l, clause C | {l1,..ln} will give SAT clause ~l1 \\/ … \\/ ~ln \\/ l). When we add the sat clause, we discard the original FO clause C | {l1,..ln} and let the component selection update model, possibly adding the component clause C | {l}. all .. like known, except when we see a non-splittable clause that doesn't have a name, we introduce the name for it. all_dependent .. like all, but we don't introduce names for non-splittable clauses that don't depend on any components";
-    _lookup.insert(&_ssplittingNonsplittableComponents);
-    _ssplittingNonsplittableComponents.tag(OptionTag::AVATAR);
-    _ssplittingNonsplittableComponents.setExperimental();
+    _lookup.insert(&_splittingNonsplittableComponents);
+    _splittingNonsplittableComponents.tag(OptionTag::AVATAR);
+    _splittingNonsplittableComponents.setExperimental();
+    _splittingNonsplittableComponents.reliesOn(_splitting.is(equal(true)));
 
     
     _nonliteralsInClauseWeight = BoolOptionValue("nonliterals_in_clause_weight","nicw",false);
@@ -1662,6 +1706,12 @@ template<typename S, typename R>
 Options::OptionValueConstraint<S>* Options::WrappedConstraint<T>::And(WrappedConstraint<R>* another)
 {
     return new AndWrapper<S>(new UnWrappedConstraint<S,T>(this), new UnWrappedConstraint<S,R>(another));
+}
+template<typename T>
+template<typename S, typename R>
+Options::OptionValueConstraint<S>* Options::WrappedConstraint<T>::Or(WrappedConstraint<R>* another)
+{
+    return new OrWrapper<S>(new UnWrappedConstraint<S,T>(this), new UnWrappedConstraint<S,R>(another));
 }
 
 template<typename T>

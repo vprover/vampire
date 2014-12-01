@@ -403,19 +403,38 @@ public:
     MINISAT = 1,
   };
 
-  enum class SSplittingComponentSweeping : unsigned int {
+  enum class SplittingComponentSweeping : unsigned int {
     ALL = 0,
     ITERATED = 1,
     NONE = 2,
     ONLY_NEW = 3
   };
 
-  enum class SSplittingAddComplementary : unsigned int {
+  enum class SplittingLiteralPolarityAdvice : unsigned int {
+    FORCE_FALSE,
+    FORCE_RND,
+    SUGGEST_FALSE,
+    SUGGEST_RND,
+    NONE
+  };
+
+  enum class SplittingMinimizeModel : unsigned int {
+    OFF = 0,
+    SCO = 1,
+    ALL = 2
+  };
+  enum class SplittingDeleteDeactivated : unsigned int {
+    ON,
+    LARGE_ONLY,
+    OFF
+  };
+    
+  enum class SplittingAddComplementary : unsigned int {
     GROUND = 0,
     NONE = 1
   };
 
-  enum class SSplittingNonsplittableComponents : unsigned int {
+  enum class SplittingNonsplittableComponents : unsigned int {
     ALL = 0,
     ALL_DEPENDENT = 1,
     KNOWN = 2,
@@ -1048,6 +1067,8 @@ private:
         
         template<typename S, typename R>
         OptionValueConstraint<S>* And(WrappedConstraint<R>* another);
+        template<typename S, typename R>
+        OptionValueConstraint<S>* Or(WrappedConstraint<R>* another);
         
         OptionValue<T>* value;
         OptionValueConstraint<T>* con;
@@ -1536,13 +1557,18 @@ public:
   int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
-  SSplittingNonsplittableComponents ssplittingNonsplittableComponents() const { return _ssplittingNonsplittableComponents.actualValue; }
-  SSplittingComponentSweeping ssplittingComponentSweeping() const { return _ssplittingComponentSweeping.actualValue; }
-  SSplittingAddComplementary ssplittingAddComplementary() const { return _ssplittingAddComplementary.actualValue; }
-  int ssplittingFlushPeriod() const { return _ssplittingFlushPeriod.actualValue; }
-  float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient.actualValue; }
-  bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval.actualValue; }
-  bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure.actualValue; }
+  SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
+  SplittingComponentSweeping splittingComponentSweeping() const { return _splittingComponentSweeping.actualValue; }
+  SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary.actualValue; }
+  SplittingMinimizeModel splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
+  SplittingLiteralPolarityAdvice splittingLiteralPolarityAdvice() const { return _splittingLiteralPolarityAdvice.actualValue; }
+  SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated.actualValue;}
+  bool splittingHandleZeroImplied() const { return _splittingHandleZeroImplied.actualValue;}
+  bool splittingFastRestart() const { return _splittingFastRestart.actualValue; }
+  int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
+  float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
+  bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
+  bool splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval.actualValue; }
@@ -1574,7 +1600,7 @@ private:
         LookupWrapper() {}
         
         private:
-          LookupWrapper operator=(const LookupWrapper&){}
+          LookupWrapper operator=(const LookupWrapper&){ NOT_IMPLEMENTED;}
         public:
         
         void insert(AbstractOptionValue* option_value){
@@ -1827,13 +1853,19 @@ private:
   ChoiceOptionValue<Sos> _sos;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
-  ChoiceOptionValue<SSplittingAddComplementary> _ssplittingAddComplementary;
-  ChoiceOptionValue<SSplittingComponentSweeping> _ssplittingComponentSweeping;
-  BoolOptionValue _ssplittingCongruenceClosure;
-  BoolOptionValue _ssplittingEagerRemoval;
-  UnsignedOptionValue _ssplittingFlushPeriod;
-  FloatOptionValue _ssplittingFlushQuotient;
-  ChoiceOptionValue<SSplittingNonsplittableComponents> _ssplittingNonsplittableComponents;
+  ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
+  ChoiceOptionValue<SplittingComponentSweeping> _splittingComponentSweeping;
+  BoolOptionValue _splittingCongruenceClosure;
+  BoolOptionValue _splittingEagerRemoval;
+  UnsignedOptionValue _splittingFlushPeriod;
+  FloatOptionValue _splittingFlushQuotient;
+  ChoiceOptionValue<SplittingNonsplittableComponents> _splittingNonsplittableComponents;
+  ChoiceOptionValue<SplittingMinimizeModel> _splittingMinimizeModel;
+  ChoiceOptionValue<SplittingLiteralPolarityAdvice> _splittingLiteralPolarityAdvice;
+  ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
+  BoolOptionValue _splittingHandleZeroImplied;
+  BoolOptionValue _splittingFastRestart;
+
   ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _superpositionFromVariables;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;

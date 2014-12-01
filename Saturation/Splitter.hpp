@@ -68,7 +68,7 @@ private:
   //options
   bool _eagerRemoval;
   bool _handleZeroImplied;
-  Options::SplittingLitaralPolarityAdvice _literalPolarityAdvice;
+  Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
 
   Splitter& _parent;
 

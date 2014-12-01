@@ -61,43 +61,43 @@ void SplittingBranchSelector::init()
 
   _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
   _handleZeroImplied = _parent.getOptions().splittingHandleZeroImplied();
-  _literalPolarityAdvice = _parent.getOptions().splittingLitaralPolarityAdvice();
+  _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
-    case Options::BUFFERED_VAMPIRE:
+    case Options::SatSolver::BUFFERED_VAMPIRE:
       _solver = new BufferedSolver(new TWLSolver(_parent.getOptions(),true));
       break;
-    case Options::VAMPIRE:  
+    case Options::SatSolver::VAMPIRE:  
       _solver = new TWLSolver(_parent.getOptions(), true);
       break;
-    case Options::BUFFERED_LINGELING: 
+    case Options::SatSolver::BUFFERED_LINGELING: 
       _solver = new BufferedSolver(new LingelingInterfacing(_parent.getOptions(), true));
       break;
-    case Options::LINGELING: 
+    case Options::SatSolver::LINGELING: 
       _solver = new LingelingInterfacing(_parent.getOptions(), true);
       break;
-    case Options::BUFFERED_MINISAT:
+    case Options::SatSolver::BUFFERED_MINISAT:
       _solver = new BufferedSolver(new MinisatInterfacing(_parent.getOptions(),true));
       break;
-    case Options::MINISAT:
+    case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
       break;      
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
   }
 
-  switch(_parent.getOptions().splittingModel()){
-    case Options::SM_TOTAL:
+  switch(_parent.getOptions().splittingMinimizeModel()){
+    case Options::SplittingMinimizeModel::OFF:
       // Do nothing - we don't want to minimise the model
       break;
-    case Options::SM_MIN_ALL:
+    case Options::SplittingMinimizeModel::ALL:
       _solver = new MinimizingSolver(_solver.release(),false);
       break;
-    case  Options::SM_MIN_SCO:
+    case  Options::SplittingMinimizeModel::SCO:
       _solver = new MinimizingSolver(_solver.release(),true);
       break;
     default:
-      ASSERTION_VIOLATION_REP(_parent.getOptions().splittingModel());
+      ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
   }
 
 
@@ -132,19 +132,19 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
   CALL("SplittingBranchSelector::considerPolarityAdvice");
 
   switch (_literalPolarityAdvice) {
-    case Options::SLPA_FORCE_FALSE:
+    case Options::SplittingLiteralPolarityAdvice::FORCE_FALSE:
       _solver->forcePolarity(lit.var(),lit.oppositePolarity());
       break;
-    case Options::SLPA_FORCE_RND:      
+    case Options::SplittingLiteralPolarityAdvice::FORCE_RND:      
       _solver->forcePolarity(lit.var(),Random::getBit());
       break;
-    case Options::SLPA_NONE:
+    case Options::SplittingLiteralPolarityAdvice::NONE:
       // do nothing
       break;
-    case Options::SLPA_SUGGEST_FALSE:
+    case Options::SplittingLiteralPolarityAdvice::SUGGEST_FALSE:
       _solver->suggestPolarity(lit.var(),lit.oppositePolarity());
       break;
-    case Options::SLPA_SUGGEST_RND:
+    case Options::SplittingLiteralPolarityAdvice::SUGGEST_RND:
       _solver->suggestPolarity(lit.var(),Random::getBit());
       break;
   }
@@ -376,7 +376,7 @@ void SplittingBranchSelector::getNewZeroImpliedSplits(SplitLevelStack& res)
 //////////////
 
 Splitter::Splitter()
-: _deleteDeactivated(Options::SDD_ON), _branchSelector(*this), 
+: _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this), 
   _haveBranchRefutation(false), _clausesSinceEmpty(0) 
 {
   CALL("Splitter::Splitter");
@@ -543,7 +543,7 @@ void Splitter::onAllProcessed()
     Clause* rcl=_fastClauses.popWithoutDec();
 
     // TODO: could use a check based on "NumActiveSplits" instead,
-    // but would need to maintain them even when _deleteDeactivated == Options::SDD_ON
+    // but would need to maintain them even when _deleteDeactivated == Options::SplittingDeleteDeactivated::ON
     if (allSplitLevelsActive(rcl->splits())) {
       RSTAT_CTR_INC("fast_clauses_restored");
       _sa->addNewClause(rcl);
@@ -577,20 +577,20 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
     return true;
   }
 
-  if(_nonsplComps==Options::SNS_NONE) {
+  if(_nonsplComps==Options::SplittingNonsplittableComponents::NONE) {
     return false;
   }
 
   if(!tryGetExistingComponentName(cl->length(), cl->literals(), compName, compCl)) {
     bool canCreate;
     switch(_nonsplComps) {
-    case Options::SNS_ALL:
+    case Options::SplittingNonsplittableComponents::ALL:
       canCreate = true;
       break;
-    case Options::SNS_ALL_DEPENDENT:
+    case Options::SplittingNonsplittableComponents::ALL_DEPENDENT:
       canCreate = !cl->splits()->isEmpty();
       break;
-    case Options::SNS_KNOWN:
+    case Options::SplittingNonsplittableComponents::KNOWN:
       canCreate = false;
       break;
     default:
@@ -619,7 +619,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     return false;
   }
 
-  if(_nonsplComps==Options::SNS_NONE) {
+  if(_nonsplComps==Options::SplittingNonsplittableComponents::NONE) {
     return false;
   }
 
@@ -657,7 +657,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     
     compCl->invalidateMyReductionRecords();
     _sa->addNewClause(compCl);
-    if ((_deleteDeactivated != Options::SDD_ON) &&
+    if ((_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) &&
             !nameRec.children.find(compCl)) {
       // corner case within a corner case:
       // the compCl was already shown unconditionally redundant,
@@ -848,7 +848,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   compCl->setSplits(SplitSet::getSingleton(name));
   compCl->setComponent(true);
 
-  if (_deleteDeactivated != Options::SDD_ON) {
+  if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) {
     // in this mode, compCl is assumed to be a child since the beginning of times
     _db[name]->children.push(compCl);
     
@@ -902,13 +902,13 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
     _db.push(0);
   }
   else {
-    ASS_EQ(_complBehavior,Options::SAC_NONE); 
+    ASS_EQ(_complBehavior,Options::SplittingAddComplementary::NONE); 
     //otherwise the complement would have been created below ...
     // ... in the respective previous pass through this method 
   }
   ASS_L(compName,_db.size());
 
-  if(_complBehavior!=Options::SAC_NONE) {
+  if(_complBehavior!=Options::SplittingAddComplementary::NONE) {
     //we insert both literal and its negation
     unsigned oppName = compName^1;
     ASS_L(oppName,_db.size());
@@ -997,9 +997,9 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
    * one of the component clauses on which it depends, 
    * it will be kept for reintroduction.
    */
-  if (_deleteDeactivated != Options::SDD_ON) {
+  if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) {
     cl->setNumActiveSplits(
-      (_deleteDeactivated == Options::SDD_OFF || should_reintroduce) ? 
+      (_deleteDeactivated == Options::SplittingDeleteDeactivated::OFF || should_reintroduce) ? 
         splits->size() : NOT_WORTH_REINTRODUCING);
   }
 }
@@ -1042,7 +1042,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
 
   if(diff->isEmpty()) {
     // unconditionally reduced
-    if (_deleteDeactivated != Options::SDD_ON) {
+    if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) {
       // let others know not to keep the clause in children
       cl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
     }
@@ -1201,7 +1201,7 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
     ASS(!sr->active);
     sr->active = true;
     
-    if (_deleteDeactivated == Options::SDD_ON) {
+    if (_deleteDeactivated == Options::SplittingDeleteDeactivated::ON) {
       ASS(sr->children.isEmpty());
       //we need to put the component clause among children, 
       //so that it is backtracked when we remove the component
@@ -1263,7 +1263,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       }
     }
     
-    if (_deleteDeactivated == Options::SDD_ON) {
+    if (_deleteDeactivated == Options::SplittingDeleteDeactivated::ON) {
       sr->children.reset();
     }
   }
@@ -1331,7 +1331,7 @@ void Splitter::processNewZeroImplied(const SplitLevelStack& newZeroImplied)
         Clause* ccl=sr->children.popWithoutDec();
         ASS(ccl->splits()->member(sl));
         ccl->setSplits(ccl->splits()->subtract(myLevelSet),true);
-        if (_deleteDeactivated != Options::SDD_ON) { //NumActiveSplits being maintained
+        if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) { //NumActiveSplits being maintained
           ccl->decNumActiveSplits();
         }        
         ccl->decRefCnt(); //decrease corresponding to sr->children.popWithoutDec()
@@ -1347,7 +1347,7 @@ void Splitter::processNewZeroImplied(const SplitLevelStack& newZeroImplied)
     } else {
       RSTAT_CTR_INC("zero implied !active"); // forever !active from now on
       
-      ASS(sr->children.isEmpty() || _deleteDeactivated != Options::SDD_ON);
+      ASS(sr->children.isEmpty() || _deleteDeactivated != Options::SplittingDeleteDeactivated::ON);
       while(sr->children.isNonEmpty()) {
         Clause* ccl=sr->children.popWithoutDec();
         ccl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
