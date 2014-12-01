@@ -1718,6 +1718,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case SPLITTING_HANDLE_ZERO_IMPLIED:
       _splittingHandleZeroImplied = onOffToBool(value,name);
+      return;
     case SPLITTING_LITERAL_POLARITY_ADVICE:
       _splittingLiteralPolarityAdvice = 
               (SplittingLitaralPolarityAdvice)Constants::splittingLiteralPolarityAdviceValues.find(value);
@@ -2558,6 +2559,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SPLITTING_FLUSH_QUOTIENT:
     str << _splittingFlushQuotient;
+    return;
+  case SPLITTING_HANDLE_ZERO_IMPLIED:
+    str << boolToOnOff(_splittingHandleZeroImplied);
     return;
   case SPLITTING_NONSPLITTABLE_COMPONENTS:
     str << Constants::splittingNonsplittableComponentsValues[_splittingNonsplittableComponents];
