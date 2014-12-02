@@ -3,6 +3,9 @@
  * Implements class SSplitter.
  */
 
+#include "SSplitter.hpp"
+#include "Forwards.hpp"
+
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/DHSet.hpp"
@@ -24,6 +27,7 @@
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
+//#include "SAT/SATSolver.hpp"
 #include "SAT/TWLSolver.hpp"
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinimizingSolver.hpp"
@@ -33,9 +37,7 @@
 #include "DP/ShortConflictMetaDP.hpp"
 #include "DP/SimpleCongruenceClosure.hpp"
 
-#include "SSplitter.hpp"
-#include "SaturationAlgorithm.hpp"
-
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #define DEBUG_MIN_SOLVER VDEBUG
 
@@ -49,6 +51,9 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
+//using SAT::SATSolver;
+//using Lib::ScopedPtr;
+//using SAT::SATSolverSCP;
 
 /////////////////////////////
 // SSplittingBranchSelector
@@ -91,7 +96,7 @@ void SSplittingBranchSelector::init(const Options& opts)
   //Giles. Currently false by default.
   if(opts.ssplittingCongruenceClosure()) {
     //ASSERTION_VIOLATION("Is this ever turned on?");
-    _dp = new ShortConflictMetaDP(new DP::SimpleCongruenceClosure(), *_sat2fo, *_solver);
+    _dp = new DP::ShortConflictMetaDP(new DP::SimpleCongruenceClosure(), *_sat2fo, *_solver);
   }
 
 }

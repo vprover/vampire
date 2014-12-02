@@ -7,33 +7,35 @@
 #ifndef __Discount__
 #define __Discount__
 
-#include "Forwards.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
-#include "SaturationAlgorithm.hpp"
+namespace Kernel{
+	class Problem;
+}
+
+namespace Shell{
+	class Options;
+}
 
 namespace Saturation {
 
-using namespace Kernel;
+class Discount: public SaturationAlgorithm {
 
-class Discount
-: public SaturationAlgorithm
-{
 public:
   CLASS_NAME(Discount);
   USE_ALLOCATOR(Discount);
 
-  Discount(Problem& prb, const Options& opt)
-    : SaturationAlgorithm(prb, opt) {}
+  Discount(Kernel::Problem& prb, const Shell::Options& opt): SaturationAlgorithm(prb, opt) {}
 
-  ClauseContainer* getSimplifyingClauseContainer();
+  Kernel::ClauseContainer* getSimplifyingClauseContainer();
 
 protected:
 
   //overrides SaturationAlgorithm::handleClauseBeforeActivation
-  bool handleClauseBeforeActivation(Clause* cl);
+  bool handleClauseBeforeActivation(Kernel::Clause* cl);
 
 };
 
-};
+}
 
 #endif /* __Discount__ */

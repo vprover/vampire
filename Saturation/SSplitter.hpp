@@ -6,7 +6,7 @@
 #ifndef __SSplitter__
 #define __SSplitter__
 
-#include "Forwards.hpp"
+//#include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
 #include "Lib/ArrayMap.hpp"
@@ -27,24 +27,39 @@
 #include "DP/DecisionProcedure.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/ScopedPtr.hpp"
 
-#include "Splitter.hpp"
+#include "Saturation/Splitter.hpp"
 
-//namespace SAT{
-//class SAT2FO;
-//}
+//#include "Forwards.hpp"
+
+namespace SAT{
+	class SAT2FO;
+}
 
 namespace Saturation {
 
-using namespace Lib;
-using namespace Kernel;
-using namespace SAT;
-using namespace DP;
+//using namespace Lib;
+//using namespace Kernel;
+//using namespace SAT;
+//using namespace DP;
+
+using DP::DecisionProcedure;
+
+using Lib::ScopedPtr;
+
+using SAT::SATClauseStack;
+using SAT::SATLiteral;
+using SAT::SATClause;
+using SAT::SATSolver;
+using SAT::SATSolverSCP;
+using SAT::SAT2FO;
+using SAT::SATLiteralStack;
 
 typedef Stack<SplitLevel> SplitLevelStack;
 
 //class SaturationAlgorithmContext;
-class SSplitter;
+//class SSplitter;
 
 /**
  * Object that decides which splitting components are to be selected
@@ -89,8 +104,8 @@ private:
 
   unsigned _varCnt;
   //unsigned _splitLvlCnt;
-  SATSolverSCP _solver;
-  ScopedPtr<DecisionProcedure> _dp;
+  Lib::ScopedPtr<SAT::SATSolver> _solver;
+  Lib::ScopedPtr<DP::DecisionProcedure> _dp;
 
 };
 

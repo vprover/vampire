@@ -33,7 +33,7 @@ ClauseVariantIndex SaturationAlgorithmContext::_componentIdx;
 Lib::DHMap<Kernel::Clause*,Kernel::SplitLevel> SaturationAlgorithmContext::_compNames;
 
 std::unique_ptr<Inferences::ImmediateSimplificationEngine> SaturationAlgorithmContext::_immediateSimplifier;
-Indexing::IndexManager SaturationAlgorithmContext::_indexManager(0);
+Indexing::IndexManager SaturationAlgorithmContext::_indexManager;
 
 SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& opts, bool join):
 		MainLoopContext(prb, opts, join) {
@@ -51,18 +51,26 @@ SaturationAlgorithmContext::SaturationAlgorithmContext(Problem& prb, Options& op
 #endif //VDEBUG
 		_immediateSimplifier.reset(SaturationAlgorithm:: createISE(*_prb, opts));
 	}
-	SaturationAlgorithm* sa = SaturationAlgorithm::createFromOptions(*_prb, opts);
-	_ml = sa;
-	_splitter = static_cast<SSplitter*>(sa -> splitter());//[dmitry] TODO: Merge Splitter and SSplitter and remove this cast
-	if(!_branchSelectorInitialised){
-		_branchSelector.init(opts);
-		_branchSelectorInitialised = true;
-	}
-	_splitter -> setBranchSelector(&_branchSelector);
-	_splitter -> setComponentIndex(&_componentIdx);
-	_splitter -> setSAT2FO(&_sat2fo);
-	_splitter -> setComponentNames(&_compNames);
 
+	SaturationAlgorithm* sa = SaturationAlgorithm::create(*_prb, opts);
+	_ml = sa;
+    sa -> initFromOptions(*_prb, opts);
+    //_indexManager.request(Indexing::GENERATING_SUBST_TREE);
+
+	if(opts.splitting()){
+
+		_splitter = sa -> splitter();//[dmitry] TODO: Merge Splitter and SSplitter
+
+		if(!_branchSelectorInitialised){
+			_branchSelector.init(opts);
+			_branchSelectorInitialised = true;
+		}
+
+		_splitter -> setBranchSelector(&_branchSelector);
+		_splitter -> setComponentIndex(&_componentIdx);
+		_splitter -> setSAT2FO(&_sat2fo);
+		_splitter -> setComponentNames(&_compNames);
+	}
 	//_indexManager.setSaturationAlgorithm(sa);
 }
 
@@ -74,6 +82,7 @@ SaturationAlgorithmContext::~SaturationAlgorithmContext() {
 #endif //VDEBUG
 
 	TypedAutoSwitch<MainLoopContext> s(this);
+//	_indexManager.release(Indexing::GENERATING_SUBST_TREE);
 	delete _ml;
 }
 
@@ -87,7 +96,9 @@ void SaturationAlgorithmContext::switchIn(){
 #if VDEBUG
 	std::cout << "Attaching saturation algorithm to immediate simplifier" << std::endl;
 #endif //VDEBUG
-	_immediateSimplifier ->attach(static_cast<SaturationAlgorithm*>(_ml));
+	 SaturationAlgorithm* sa = static_cast<SaturationAlgorithm*>(_ml);
+	_immediateSimplifier ->attach(sa);
+	//_indexManager -> attach(sa);
 }
 
 void SaturationAlgorithmContext::switchOut(){
@@ -97,6 +108,7 @@ void SaturationAlgorithmContext::switchOut(){
 #if VDEBUG
 	std::cout << "Detaching saturation algorithm from immediate simplifier" << std::endl;
 #endif //VDEBUG
+	//_indexManager -> detach();
 	_immediateSimplifier -> detach();
 	MainLoopContext::switchOut();
 }

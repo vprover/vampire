@@ -349,7 +349,7 @@ class SATLiteral;
 class SATInference;
 
 class SATSolver;
-typedef ScopedPtr<SATSolver> SATSolverSCP;
+typedef Lib::ScopedPtr<SATSolver> SATSolverSCP;
 class TWLSolver;
 class LingelingInterfacing;
 

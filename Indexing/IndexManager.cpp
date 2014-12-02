@@ -23,25 +23,25 @@
 using namespace Lib;
 using namespace Indexing;
 
-IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0)
+/*IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0)
 {
   CALL("IndexManager::IndexManager");
 
   if(alg) {
     attach(alg);
   }
-}
+}*/
 
-IndexManager::~IndexManager()
+/*IndexManager::~IndexManager()
 {
   CALL("IndexManager::~IndexManager");
 
   if(_alg) {
     release(GENERATING_SUBST_TREE);
   }
-}
+}*/
 
-void IndexManager::setSaturationAlgorithm(SaturationAlgorithm* alg)
+/*void IndexManager::setSaturationAlgorithm(SaturationAlgorithm* alg)
 {
   CALL("IndexManager::setSaturationAlgorithm");
   //ASS(!_alg);
@@ -49,14 +49,14 @@ void IndexManager::setSaturationAlgorithm(SaturationAlgorithm* alg)
 
   _alg = alg;
   attach(alg);
-}
+}*/
 
-void IndexManager::attach(SaturationAlgorithm* salg)
+/*void IndexManager::attach(SaturationAlgorithm* salg)
 {
   CALL("IndexManager::attach");
 
   request(GENERATING_SUBST_TREE);
-}
+}*/
 
 Index* IndexManager::request(IndexType t)
 {
@@ -145,6 +145,10 @@ Index* IndexManager::create(IndexType t)
   LiteralIndexingStructure* is;
   TermIndexingStructure* tis;
 
+  SaturationAlgorithm* alg = static_cast<SaturationAlgorithm*>(MainLoopContext::currentContext ->getMainLoop());
+
+  //cout << "creating index " << t << endl;
+
   bool isGenerating;
   switch(t) {
   case GENERATING_SUBST_TREE:
@@ -154,8 +158,14 @@ Index* IndexManager::create(IndexType t)
     is=new LiteralSubstitutionTree();
 #endif
     _genLitIndex=is;
+
+    //cout << "#1 " << endl;
+
     res=new GeneratingLiteralIndex(is);
     isGenerating = true;
+
+    //cout << "#2 " << endl;
+
     break;
   case SIMPLIFYING_SUBST_TREE:
     is=new LiteralSubstitutionTree();
@@ -185,12 +195,12 @@ Index* IndexManager::create(IndexType t)
 #else
     tis=new TermSubstitutionTree();
 #endif
-    res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
+    res=new SuperpositionSubtermIndex(tis, alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
     tis=new TermSubstitutionTree();
-    res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res=new SuperpositionLHSIndex(tis, alg->getOrdering(), alg->getOptions());
     isGenerating = true;
     break;
 
@@ -202,7 +212,7 @@ Index* IndexManager::create(IndexType t)
   case DEMODULATION_LHS_SUBST_TREE:
 //    tis=new TermSubstitutionTree();
     tis=new CodeTreeTIS();
-    res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res=new DemodulationLHSIndex(tis, alg->getOrdering(), alg->getOptions());
     isGenerating = false;
     break;
 
@@ -220,14 +230,14 @@ Index* IndexManager::create(IndexType t)
 
   case REWRITE_RULE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
-    res=new RewriteRuleIndex(is, _alg->getOrdering());
+    res=new RewriteRuleIndex(is, alg->getOrdering());
     isGenerating = false;
     break;
 
   case GLOBAL_SUBSUMPTION_INDEX:
   {
     Grounder* gnd = new GlobalSubsumptionGrounder();
-    res = new GroundingIndex(gnd, _alg->getOptions());
+    res = new GroundingIndex(gnd, alg->getOptions());
     isGenerating = false;
     break;
   }
@@ -240,12 +250,17 @@ Index* IndexManager::create(IndexType t)
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }
-  ASS(_alg);
+  //ASS(_alg);
   if(isGenerating) {
-    res->attachContainer(_alg->getGeneratingClauseContainer());
+	//cout << "#3 " << endl;
+
+    res->attachContainer(alg->getGeneratingClauseContainer());
+
+    //cout << "#4 " << endl;
+
   }
   else {
-    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    res->attachContainer(alg->getSimplifyingClauseContainer());
   }
   return res;
 }

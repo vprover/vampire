@@ -3,6 +3,8 @@
  * Implementing SaturationAlgorithm class.
  */
 
+#include "SaturationAlgorithm.hpp"
+
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/DHSet.hpp"
@@ -1309,137 +1311,22 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 {
   CALL("SaturationAlgorithm::createFromOptions");
 
-  SaturationAlgorithm* res;
-  switch(opt.saturationAlgorithm()) {
-  case Shell::Options::DISCOUNT:
-    res=new Discount(prb, opt);
-    break;
-  case Shell::Options::LRS:
-    res=new LRS(prb, opt);
-    break;
-  case Shell::Options::OTTER:
-    res=new Otter(prb, opt);
-    break;
-  default:
-    NOT_IMPLEMENTED;
-  }
-  /*if (indexMgr) {
-    res->_imgr = SmartPtr<IndexManager>(indexMgr, true);
-    indexMgr->setSaturationAlgorithm(res);
-  }
-  else {
-    res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
-  }*/
-  SaturationAlgorithmContext::indexManager().setSaturationAlgorithm(res);
-  res ->_imgr = &SaturationAlgorithmContext::indexManager();
-
-
-  // create generating inference engine
-  CompositeGIE* gie=new CompositeGIE();
-  if (prb.hasEquality()) {
-    gie->addFront(new EqualityFactoring());
-    gie->addFront(new EqualityResolution());
-    gie->addFront(new Superposition());
-  }
-  gie->addFront(new Factoring());
-  if (opt.binaryResolution()) {
-    gie->addFront(new BinaryResolution());
-  }
-  if (opt.unitResultingResolution() != Options::URR_OFF) {
-    gie->addFront(new URResolution());
-  }
-  if (opt.extensionalityResolution() != Options::ER_OFF) {
-    gie->addFront(new ExtensionalityResolution());
-  }
-  
-  res->setGeneratingInferenceEngine(gie);
-
-  res ->_immediateSimplifier = static_cast<SaturationAlgorithmContext*>(MainLoopContext::currentContext) -> immediateSimplifier();
-  //res->setImmediateSimplificationEngine(createISE(prb, opt));
-
-  // create forward simplification engine
-  if (opt.hyperSuperposition()) {
-    res->addForwardSimplifierToFront(new HyperSuperposition());
-  }
-  if (opt.globalSubsumption()) {
-    res->addForwardSimplifierToFront(new GlobalSubsumption());
-  }
-  if (opt.forwardLiteralRewriting()) {
-    res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
-  }
-  if (prb.hasEquality()) {
-    switch(opt.forwardDemodulation()) {
-    case Options::DEMODULATION_ALL:
-    case Options::DEMODULATION_PREORDERED:
-      res->addForwardSimplifierToFront(new ForwardDemodulation());
-      break;
-    case Options::DEMODULATION_OFF:
-      break;
-#if VDEBUG
-    default:
-      ASSERTION_VIOLATION;
-#endif
-    }
-  }
-  if (opt.forwardSubsumption()) {
-    if (opt.forwardSubsumptionResolution()) {
-      res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
-    }
-    else {
-      res->addForwardSimplifierToFront(new CTFwSubsAndRes(false));
-    }
-  }
-  else if (opt.forwardSubsumptionResolution()) {
-    USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
-  }
-
-  // create backward simplification engine
-  if (prb.hasEquality()) {
-    switch(opt.backwardDemodulation()) {
-    case Options::DEMODULATION_ALL:
-    case Options::DEMODULATION_PREORDERED:
-      res->addBackwardSimplifierToFront(new BackwardDemodulation());
-      break;
-    case Options::DEMODULATION_OFF:
-      break;
-#if VDEBUG
-    default:
-      ASSERTION_VIOLATION;
-#endif
-    }
-  }
-  if (opt.backwardSubsumption() != Options::SUBSUMPTION_OFF) {
-    bool byUnitsOnly=opt.backwardSubsumption()==Options::SUBSUMPTION_UNIT_ONLY;
-    res->addBackwardSimplifierToFront(new SLQueryBackwardSubsumption(byUnitsOnly));
-  }
-  if (opt.backwardSubsumptionResolution() != Options::SUBSUMPTION_OFF) {
-    bool byUnitsOnly=opt.backwardSubsumptionResolution()==Options::SUBSUMPTION_UNIT_ONLY;
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionResolution(byUnitsOnly));
-  }
-
-  if (opt.mode()==Options::MODE_CONSEQUENCE_ELIMINATION) {
-    res->_consFinder=new ConsequenceFinder();
-  }
-  if (opt.showSymbolElimination()) {
-    res->_symEl=new SymElOutput();
-  }
-
-  // switch(opt.splitting()) {
-  // case Options::SM_OFF:
-  //  break;
-  // case Options::SM_BACKTRACKING:
-  //   res->_splitter=new BSplitter();
-  //   break;
-  //case Options::SM_INPUT:
-  //  res->_splitter=new SWBSplitterWithoutBDDs();
-  //  break;
-  //case Options::SM_SAT:
-  // Splitting is now either on or off. If on it using SSplitter
-  if(opt.splitting()){
-    res->_splitter = new SSplitter();
-  }
-  if (opt.questionAnswering()==Options::QA_ANSWER_LITERAL) {
-    res->_answerLiteralManager = AnswerLiteralManager::getInstance();
-  }
+  SaturationAlgorithm* res = create(prb, opt);
+  res->initFromOptions(prb,opt);
   return res;
 } // SaturationAlgorithm::createFromOptions
+
+SaturationAlgorithm* SaturationAlgorithm::create(Problem& prb, const Options& opt){
+	CALL("SaturationAlgorithm::create");
+
+	  switch(opt.saturationAlgorithm()) {
+	    case Shell::Options::DISCOUNT:
+	      return new Discount(prb, opt);
+	    case Shell::Options::LRS:
+	      return new LRS(prb, opt);
+	    case Shell::Options::OTTER:
+	      return new Otter(prb, opt);
+	    default:
+	      NOT_IMPLEMENTED;
+	    }
+  }

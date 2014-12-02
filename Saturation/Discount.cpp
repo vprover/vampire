@@ -3,20 +3,14 @@
  * Implements class Discount.
  */
 
-#include "Lib/Environment.hpp"
-#include "Lib/VirtualIterator.hpp"
-#include "Kernel/Clause.hpp"
-#include "Kernel/LiteralSelector.hpp"
-#include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
-
 #include "Discount.hpp"
 
-using namespace Lib;
-using namespace Kernel;
-using namespace Shell;
-using namespace Saturation;
+#include "Kernel/Clause.hpp"
 
+namespace Saturation{
+
+using Kernel::Clause;
+using Kernel::ClauseContainer;
 
 ClauseContainer* Discount::getSimplifyingClauseContainer()
 {
@@ -36,3 +30,4 @@ bool Discount::handleClauseBeforeActivation(Clause* cl)
   return true;
 }
 
+}//namespace Saturation

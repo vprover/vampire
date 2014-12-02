@@ -54,9 +54,10 @@ public:
   USE_ALLOCATOR(IndexManager);
 
   /** alg can be zero, then it must be set by setSaturationAlgorithm */
-  explicit IndexManager(SaturationAlgorithm* alg);
-  ~IndexManager();
-  void setSaturationAlgorithm(SaturationAlgorithm* alg);
+ // explicit IndexManager(SaturationAlgorithm* alg);
+  explicit IndexManager(): _genLitIndex(0) {}
+  ~IndexManager() {}
+  //void setSaturationAlgorithm(SaturationAlgorithm* alg);
   Index* request(IndexType t);
   void release(IndexType t);
   bool contains(IndexType t);
@@ -78,14 +79,15 @@ private:
     }
   }
 
-  void attach(SaturationAlgorithm* salg);
+  //void attach(SaturationAlgorithm* salg);
 
   struct Entry {
     Index* index;
     int refCnt;
     bool local;
   };
-  SaturationAlgorithm* _alg;
+
+  //SaturationAlgorithm* _alg;
 
   bool getEntry(IndexType t,Entry& e){
     if(!_globalStore.find(t,e)){
