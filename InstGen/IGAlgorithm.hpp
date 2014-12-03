@@ -131,7 +131,7 @@ private:
   Options _saturationOptions;
   ScopedPtr<IndexManager> _saturationIndexManager;
   ScopedPtr<Problem> _saturationProblem;
-  ScopedPtr<SaturationAlgorithm> _saturationAlgorithm;
+  //ScopedPtr<SaturationAlgorithm> _saturationAlgorithm;
   ScopedPtr<SaturationAlgorithmContext> _saturationAlgorithmContext;
 
   OrderingSP _ordering;

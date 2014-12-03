@@ -90,16 +90,20 @@ private:
   //SaturationAlgorithm* _alg;
 
   bool getEntry(IndexType t,Entry& e){
+    cout << "getEntry " << t << endl; 
     if(!_globalStore.find(t,e)){
       SaturationAlgorithmContext* ctx = static_cast<SaturationAlgorithmContext*> (MainLoopContext::currentContext);
+      cout << "getEntry uses " << ctx << endl;
       auto p = pair<SaturationAlgorithmContext*,IndexType>(ctx,t);
       return _localStore.find(p,e);
     }
     else return true;
   }
   void putEntry(IndexType t,Entry& e){
+    cout << "putEntry " << t << endl; 
     if(e.local){
       SaturationAlgorithmContext* ctx = static_cast<SaturationAlgorithmContext*> (MainLoopContext::currentContext);
+      cout << "putEntry uses " << ctx << endl;
       auto p = pair<SaturationAlgorithmContext*,IndexType>(ctx,t);
        _localStore.insert(p,e);
     }

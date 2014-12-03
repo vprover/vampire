@@ -143,11 +143,9 @@ void IGAlgorithm::init()
 
     _saturationOptions = _opt;
     _saturationOptions.setSaturationAlgorithm(Options::OTTER);
-//    _saturationOptions.setPropositionalToBDD(false);
-//    _saturationOptions.setSplitting(Options::SM_OFF);
+    _saturationOptions.setSplitting(false);
     _saturationAlgorithmContext = new SaturationAlgorithmContext(*_saturationProblem.ptr(),_saturationOptions, true);
-    _saturationAlgorithm = static_cast<SaturationAlgorithm*>(_saturationAlgorithmContext ->getMainLoop());//TODO: Share IndexManager
-    //_saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
+    SaturationAlgorithm* saturationAlgorithm = static_cast<SaturationAlgorithm*>(_saturationAlgorithmContext ->getMainLoop());//TODO: Share IndexManager
 
     if(_opt.globalSubsumption()) {
           SaturationAlgorithmContext::indexManager().provideIndex(GLOBAL_SUBSUMPTION_INDEX, _groundingIndex.ptr());
@@ -155,10 +153,8 @@ void IGAlgorithm::init()
 
     //we will watch what clauses are derived in the
     //saturation part, so we can take advantage of them
-    _saturationAlgorithm->getSimplifyingClauseContainer()->addedEvent.subscribe(this, &IGAlgorithm::onResolutionClauseDerived);
+    saturationAlgorithm->getSimplifyingClauseContainer()->addedEvent.subscribe(this, &IGAlgorithm::onResolutionClauseDerived);
 
-    //init the saturation algorithm run
-    //_saturationAlgorithm->initAlgorithmRun();
   }
   else {
     //if there's no resolution, we always do instGen
@@ -512,7 +508,7 @@ void IGAlgorithm::doResolutionStep()
     case Statistics::LOCAL_TIME_LIMIT:
     case Statistics::MEMORY_LIMIT:
       //refutation algorithm finished, we just get rid of it
-      _saturationAlgorithm = 0;
+      _saturationAlgorithmContext = 0;
       _instGenResolutionRatio.alwaysDoFirst();
       break;
     }

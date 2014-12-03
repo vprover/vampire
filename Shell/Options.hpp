@@ -742,7 +742,7 @@ public:
 //  bool splitInputOnly() const { return _splitInputOnly; }
 //  bool splitPositive() const { return _splitPositive; }
   bool splitting() const { return _splitting; }
-//  void setSplitting(SplittingMode newVal) { _splitting = newVal; }
+  void setSplitting(bool newVal) { _splitting = newVal; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
 
   unsigned sineDepth() const { return _sineDepth; }
