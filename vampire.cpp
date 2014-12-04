@@ -165,12 +165,23 @@ void explainException(Exception& exception)
   env.endOutput();
 } // explainException
 
+void getRandomStrategy()
+{
+  CALL("getRandomStrategy()");
+  ScopedPtr<Problem> prb(getPreprocessedProblem());
+  // We might have set random_strategy sat
+  if(env.options->randomStrategy()==Options::RandomStrategy::OFF){
+    env.options->setRandomStrategy(Options::RandomStrategy::ON);
+  }
+  env.options->randomizeStrategy(*prb->getProperty()); 
+}
+
 void doProving()
 {
   CALL("doProving()");
   ScopedPtr<Problem> prb(getPreprocessedProblem());
   // this will provide warning if options don't make sense for problem
-  env.options->checkProblemOptionConstraints(*prb); 
+  env.options->checkProblemOptionConstraints(*prb->getProperty()); 
   env.options->randomizeStrategy(*prb->getProperty()); // this will only randomize non-default things if an option is set to do so
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
@@ -823,6 +834,9 @@ int main(int argc, char* argv[])
       break;
     case Options::Mode::SPIDER:
       spiderMode();
+      break;
+    case Options::Mode::RANDOM_STRATEGY:
+      getRandomStrategy();
       break;
     case Options::Mode::CONSEQUENCE_ELIMINATION:
     case Options::Mode::VAMPIRE:

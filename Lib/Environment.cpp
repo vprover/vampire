@@ -80,7 +80,10 @@ Environment::~Environment()
   delete signature;
   delete sorts;
   delete statistics;
-  delete options;
+  {
+    BYPASSING_ALLOCATOR; // use of std::function in options
+    delete options;
+  }
 // #endif
 }
 

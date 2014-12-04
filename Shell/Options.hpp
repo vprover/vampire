@@ -27,7 +27,6 @@
 #define __Options__
 
 #include <type_traits>
-#include <functional>
 
 #include "Forwards.hpp"
 
@@ -36,6 +35,7 @@
 #include "Lib/VString.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Allocator.hpp"
@@ -82,8 +82,8 @@ public:
 
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
-    void checkGlobalOptionConstraints();
-    void checkProblemOptionConstraints(const Problem&); 
+    bool checkGlobalOptionConstraints(bool fail_early=false);
+    bool checkProblemOptionConstraints(Property&, bool fail_early=false); 
 
     // randomize strategy (will only work if randomStrategy=on)
     // should only be called after all other options are set
@@ -141,6 +141,12 @@ public:
     };
     // update _tagNames at the end of Options constructor if you add a tag
     
+  enum class RandomStrategy : unsigned int {
+    ON,
+    OFF,
+    SAT
+  };
+
   enum class BadOption : unsigned int {
     HARD,
     FORCED,
@@ -235,6 +241,7 @@ public:
     PREPROCESS,
     PROFILE,
     PROGRAM_ANALYSIS,   
+    RANDOM_STRATEGY,
     SAT, 
     SPIDER,
     VAMPIRE
@@ -510,6 +517,8 @@ private:
     template<typename T>
     struct WrappedConstraint;
     struct OptionProblemConstraint;
+    static OptionProblemConstraint* isRandOn();
+    static OptionProblemConstraint* isRandSat();
     
     /**
      * An AbstractOptionValue includes all the information and functionality that does not
@@ -527,7 +536,7 @@ private:
         
         AbstractOptionValue(){}
         AbstractOptionValue(vstring l,vstring s) :
-        longName(l), shortName(s), experimental(false), _should_copy(true), _tag(OptionTag::LAST_TAG) {}
+        longName(l), shortName(s), experimental(false), is_set(false),_should_copy(true), _tag(OptionTag::LAST_TAG) {}
         
         // Never copy an OptionValue... the Constraint system would break
     private:
@@ -535,10 +544,16 @@ private:
     public:
         // This is the main method, it sets the value of the option using an input string
         // Returns false if we cannot set (will cause a UserError in Options::set)
-        virtual bool set(const vstring& value) = 0;
+        virtual bool setValue(const vstring& value) = 0;
+
+        bool set(const vstring& value){
+          bool okay = setValue(value); 
+          if(okay) is_set=true;
+          return okay;
+        }
         
         // Set to a random value
-        virtual bool randomize() = 0;
+        virtual bool randomize(Property& P) = 0;
 
         // Experimental options are not included in help
         void setExperimental(){experimental=true;}
@@ -548,6 +563,7 @@ private:
         vstring shortName;
         vstring description;
         bool experimental;
+        bool is_set;
         
         // Checking constraits
         virtual bool checkConstraints() = 0;
@@ -597,11 +613,37 @@ private:
         // the Options object is copied.
         bool _should_copy;
         bool shouldCopy() const { return _should_copy; }
-        
+       
+        typedef pair<OptionProblemConstraint*,DArray<vstring>*> RandEntry;
+
+        void setRandomChoices(std::initializer_list<vstring> list){
+          rand_choices.push(RandEntry(0,toArray(list)));
+        }
+        void setRandomChoices(std::initializer_list<vstring> list,
+                              std::initializer_list<vstring> list_sat){
+          rand_choices.push(RandEntry(isRandOn(),toArray(list)));
+          rand_choices.push(RandEntry(isRandSat(),toArray(list_sat)));
+        }
+        void setRandomChoices(OptionProblemConstraint* c,
+                              std::initializer_list<vstring> list){
+          rand_choices.push(RandEntry(c,toArray(list)));
+        }
+ 
     private:
         // Tag state
         OptionTag _tag;
         Lib::Stack<Options::Mode> _modes;
+
+        DArray<vstring>* toArray(std::initializer_list<vstring>& list){
+          DArray<vstring>* array = new DArray<vstring>(list.size());
+          unsigned index=0;
+          for(typename std::initializer_list<vstring>::iterator it = list.begin();
+           it!=list.end();++it){ (*array)[index++] =*it; }
+          return array;
+        }
+    protected:
+        // Note has LIFO semantics so use BottomFirstIterator
+        Stack<RandEntry> rand_choices;
         
     };
     
@@ -677,25 +719,13 @@ private:
             out << "\tdefault: " << getStringOfValue(defaultValue) << endl;
         }
        
-        //void setRandomChoices(std::initializer_list<T> list){
-        //    for(typename std::initializer_list<T>::iterator it = list.begin();
-        //        it!=list.end();++it){
-        //        rand_choices.push(*it);
-        //    }
-        //}
-        //void setRandomChoicesGen(std::function<std::initializer_list<T> (Property&)> f){
-        //  rand_choice_func=f;
-        //}
         // This is where actual randomisation happens
-        bool randomize();
+        bool randomize(Property& p);
  
     private:
         //TODO add destructor to delete constraints, currently a memory leak
         Lib::Stack<OptionValueConstraint<T>*> _constraints;
         Lib::Stack<OptionProblemConstraint*> _prob_constraints;
-    protected:
-        //Stack<T> rand_choices;
-        //std::function<std::initializer_list<T> (Property&)> rand_choice_func;
     };
     
     /**
@@ -721,7 +751,7 @@ private:
         ChoiceOptionValue(vstring l, vstring s,T def,OptionChoiceValues c) :
         OptionValue<T>(l,s,def), choices(c) {}
         
-        bool set(const vstring& value){
+        bool setValue(const vstring& value){
             // makes reasonable assumption about ordering of every enum
             int index = choices.find(value.c_str());
             if(index<0) return false;
@@ -729,15 +759,6 @@ private:
             return true;
         }
         
-        //void setRandomChoices(std::initializer_list<vstring> list){
-        //    for(std::initializer_list<vstring>::iterator it = list.begin();
-        //        it!=list.end();++it){
-        //        int index = choices.find(it->c_str());
-        //        ASS(index>=0);
-        //        OptionValue<T>::rand_choices.push(static_cast<T>(index));
-        //    }
-        //}
-
         virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << choices[static_cast<unsigned>(this->defaultValue)];
@@ -780,7 +801,7 @@ private:
     struct BoolOptionValue : public OptionValue<bool> {
         BoolOptionValue(){}
         BoolOptionValue(vstring l,vstring s, bool d) : OptionValue(l,s,d){}
-        bool set(const vstring& value){
+        bool setValue(const vstring& value){
             if (! value.compare("on") || ! value.compare("true")) {
                 actualValue=true;
                 
@@ -798,7 +819,7 @@ private:
     struct IntOptionValue : public OptionValue<int> {
         IntOptionValue(){}
         IntOptionValue(vstring l,vstring s, int d) : OptionValue(l,s,d){}
-        bool set(const vstring& value){
+        bool setValue(const vstring& value){
             return Int::stringToInt(value.c_str(),actualValue);
         }
         vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
@@ -807,7 +828,7 @@ private:
     struct UnsignedOptionValue : public OptionValue<unsigned> {
         UnsignedOptionValue(){}
         UnsignedOptionValue(vstring l,vstring s, unsigned d) : OptionValue(l,s,d){}
-        bool set(const vstring& value){
+        bool setValue(const vstring& value){
             return Int::stringToUnsignedInt(value.c_str(),actualValue);
         }
         vstring getStringOfValue(unsigned value) const{ return Lib::Int::toString(value); }
@@ -816,7 +837,7 @@ private:
     struct StringOptionValue : public OptionValue<vstring> {
         StringOptionValue(){}
         StringOptionValue(vstring l,vstring s, vstring d) : OptionValue(l,s,d){}
-        bool set(const vstring& value){
+        bool setValue(const vstring& value){
             actualValue = (value=="<empty>") ? "" : value;
             return true;
         }
@@ -829,7 +850,7 @@ private:
     struct LongOptionValue : public OptionValue<long> {
         LongOptionValue(){}
         LongOptionValue(vstring l,vstring s, long d) : OptionValue(l,s,d){}
-        bool set(const vstring& value){
+        bool setValue(const vstring& value){
             return Int::stringToLong(value.c_str(),actualValue);
         }
         vstring getStringOfValue(long value) const{ return Lib::Int::toString(value); }
@@ -838,7 +859,7 @@ private:
     struct FloatOptionValue : public OptionValue<float>{
         FloatOptionValue(){}
         FloatOptionValue(vstring l,vstring s, float d) : OptionValue(l,s,d){}
-        bool set(const vstring& value){
+        bool setValue(const vstring& value){
             return Int::stringToFloat(value.c_str(),actualValue);
         }
         vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
@@ -864,7 +885,7 @@ private:
         }
         
         bool readRatio(const char* val,char seperator);
-        bool set(const vstring& value){
+        bool setValue(const vstring& value){
             return readRatio(value.c_str(),sep);
         }
         
@@ -901,7 +922,7 @@ private:
         NonGoalWeightOptionValue(vstring l, vstring s, float def) :
         OptionValue(l,s,def), numerator(1), denominator(1) {};
         
-        bool set(const vstring& value);
+        bool setValue(const vstring& value);
         
         // output does not output numerator and denominator as they
         // are produced from defaultValue
@@ -921,7 +942,7 @@ private:
         SelectionOptionValue(vstring l,vstring s, int def):
         OptionValue(l,s,def){};
         
-        bool set(const vstring& value);
+        bool setValue(const vstring& value);
         
         virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
@@ -940,7 +961,7 @@ private:
         InputFileOptionValue(vstring l,vstring s, vstring def,Options* p):
         OptionValue(l,s,def), parent(p){};
         
-        bool set(const vstring& value);
+        bool setValue(const vstring& value);
         
         virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
@@ -960,7 +981,7 @@ private:
         DecodeOptionValue(vstring l,vstring s,Options* p):
         OptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
         
-        bool set(const vstring& value){
+        bool setValue(const vstring& value){
             parent->readFromEncodedOptions(value);
             return true;
         }
@@ -980,7 +1001,7 @@ private:
         TimeLimitOptionValue(vstring l, vstring s, float def) :
         OptionValue(l,s,def) {};
         
-        bool set(const vstring& value);
+        bool setValue(const vstring& value);
         
         virtual void output(vstringstream& out) const {
             AbstractOptionValue::output(out);
@@ -1129,15 +1150,6 @@ private:
     };
     
     template<typename T>
-    struct RequiresCompleteForNonHorn : public OptionValueConstraint<T>{
-        CLASS_NAME(RequiresCompleteForNonHorn);
-        USE_ALLOCATOR(RequiresCompleteForNonHorn);
-        RequiresCompleteForNonHorn(){}
-        bool check(OptionValue<T>& value);
-        vstring msg(OptionValue<T>& value){ return value.longName+"("+value.getStringOfActual()+") is complete for non-horn"; }
-    };
-    
-    template<typename T>
     struct Equal : public OptionValueConstraint<T>{
         CLASS_NAME(Equal);
         USE_ALLOCATOR(Equal);
@@ -1275,6 +1287,10 @@ private:
     static IfConstraint<T> If(OptionValueConstraint<T>* c){
         return IfConstraint<T>(c);
     }
+    template<typename T,typename S>
+    static IfConstraint<T> If(WrappedConstraint<S>* c){
+        return IfConstraint<T>(new UnWrappedConstraint<T,S>(c));
+    }
     /**
      * Default Value constraints
      */
@@ -1326,16 +1342,143 @@ private:
         virtual vstring msg() = 0;
     };
     
-    struct HasCategory : OptionProblemConstraint{
-        HasCategory(Property::Category c) : cat(c) {}
+    struct CategoryCondition : OptionProblemConstraint{
+        CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
         bool check(Property&p){
-            return p.category()==cat;
+            CALL("Options::CategoryCondition::check");
+            return has ? p.category()==cat : p.category()!=cat;
         }
-        vstring msg(){ return " not useful for property in category "+cat; }
+        vstring msg(){ 
+          vstring m =" not useful for property ";
+          if(has) m+="not";
+          return m+" in category "+Property::categoryToString(cat);
+        }
         Property::Category cat;
+        bool has;
     };
-    
+    struct UsesEquality : OptionProblemConstraint{
+        bool check(Property&p){
+          CALL("Options::UsesEquality::check");
+          return (p.equalityAtoms() != 0);
+        }
+        vstring msg(){ return " only useful with equality"; }
+    };
+    struct HasNonUnits : OptionProblemConstraint{
+        bool check(Property&p){
+          CALL("Options::HasNonUnits::check");
+          return p.unitClauses()!=0; 
+        }
+        vstring msg(){ return " only useful with non-unit clauses"; }
+    };
+    struct HasPredicates : OptionProblemConstraint{
+        bool check(Property&p){
+          CALL("Options::HasPredicates::check");
+          return (p.category()==Property::PEQ || p.category()==Property::UEQ);
+        }
+        vstring msg(){ return " only useful with predicates"; }
+    };
+    struct AtomConstraint : OptionProblemConstraint{
+      AtomConstraint(int a,bool g) : atoms(a),greater(g) {}
+      int atoms;
+      bool greater;
+      bool check(Property&p){ 
+        CALL("Options::AtomConstraint::check");
+        return greater ? p.atoms()>atoms : p.atoms()<atoms;
+      }
+          
+      vstring msg(){ 
+        vstring m = " not with ";
+        if(greater){ m+="more";}else{m+="less";}
+        return m+" than "+Lib::Int::toString(atoms)+" atoms";
+      }
+    };
 
+    // Factory methods
+    static OptionProblemConstraint* notWithCat(Property::Category c){
+      return new CategoryCondition(c,false);
+    }
+    static OptionProblemConstraint* hasCat(Property::Category c){
+      return new CategoryCondition(c,true);
+    }
+    static OptionProblemConstraint* hasEquality(){ return new UsesEquality; }
+    static OptionProblemConstraint* hasNonUnits(){ return new HasNonUnits; }
+    static OptionProblemConstraint* hasPredicates(){ return new HasPredicates; }
+    static OptionProblemConstraint* atomsMoreThan(int a){
+      return new AtomConstraint(a,true);
+    }
+    static OptionProblemConstraint* atomsLessThan(int a){
+      return new AtomConstraint(a,false);
+    }
+
+
+    //Cheating - we refer to env.options to ask about option values
+    // There is an assumption that the option values used have been
+    // set to their final values
+    // These are used in randomisation where we gaurentee a certain
+    // set of options will not be randomized and some will be randomized first
+
+    struct OptionHasValue : OptionProblemConstraint{
+      OptionHasValue(vstring ov,vstring v) : option_value(ov),value(v) {}
+      bool check(Property&p);
+      vstring msg(){ return option_value+" has value "+value; } 
+      vstring option_value;
+      vstring value; 
+    };
+
+    struct ManyOptionProblemConstraints : OptionProblemConstraint {
+      ManyOptionProblemConstraints(bool a) : is_and(a) {}
+
+      bool check(Property&p){
+        CALL("Options::ManyOptionProblemConstraints::check");
+        bool res = is_and;
+        Stack<OptionProblemConstraint*>::Iterator it(cons);
+        while(it.hasNext()){ 
+          bool n=it.next()->check(p);res = is_and ? (res && n) : (res || n);}
+        return res;
+      } 
+
+      vstring msg(){
+        vstring res="";
+        Stack<OptionProblemConstraint*>::Iterator it(cons);
+        if(it.hasNext()){ res=it.next()->msg();}
+        while(it.hasNext()){ res+=",and\n"+it.next()->msg();}
+        return res;
+      }
+
+      void add(OptionProblemConstraint* c){ cons.push(c);}
+      Stack<OptionProblemConstraint*> cons; 
+      bool is_and;
+    };
+
+    static OptionProblemConstraint* And(OptionProblemConstraint* left,
+                                        OptionProblemConstraint* right){
+       ManyOptionProblemConstraints* c = new ManyOptionProblemConstraints(true);
+       c->add(left);c->add(right);
+       return c;
+    }
+    static OptionProblemConstraint* And(OptionProblemConstraint* left,
+                                        OptionProblemConstraint* mid,
+                                        OptionProblemConstraint* right){
+       ManyOptionProblemConstraints* c = new ManyOptionProblemConstraints(true);
+       c->add(left);c->add(mid);c->add(right);
+       return c;
+    }
+    static OptionProblemConstraint* Or(OptionProblemConstraint* left,
+                                        OptionProblemConstraint* right){
+       ManyOptionProblemConstraints* c = new ManyOptionProblemConstraints(false);
+       c->add(left);c->add(right);
+       return c;
+    }
+    static OptionProblemConstraint* Or(OptionProblemConstraint* left,
+                                        OptionProblemConstraint* mid,
+                                        OptionProblemConstraint* right){
+       ManyOptionProblemConstraints* c = new ManyOptionProblemConstraints(false);
+       c->add(left);c->add(mid);c->add(right);
+       return c;
+    }
+    static OptionProblemConstraint* saNotInstGen();
+    static OptionProblemConstraint* isBfnt();
+    
   //==========================================================
   // Getter functions
   // -currently disabled all unecessary setter functions
@@ -1344,7 +1487,8 @@ private:
   // This is how options are accessed so if you add a new option you should add a getter
 public:
   bool encodeStrategy() const{ return _encode.actualValue;}
-  bool randomStrategy() const {return _randomStrategy.actualValue; }
+  RandomStrategy randomStrategy() const {return _randomStrategy.actualValue; }
+  void setRandomStrategy(RandomStrategy newVal){ _randomStrategy.actualValue=newVal;}
   BadOption getBadOptionChoice() const { return _badOption.actualValue; }
   vstring forcedOptions() const { return _forcedOptions.actualValue; }
   vstring forbiddenOptions() const { return _forbiddenOptions.actualValue; }
@@ -1676,7 +1820,7 @@ private:
   *
   */
 
-  BoolOptionValue _randomStrategy;
+  ChoiceOptionValue<RandomStrategy> _randomStrategy;
   DecodeOptionValue _decode;
   BoolOptionValue _encode;
 
@@ -1900,7 +2044,6 @@ private:
   SelectionOptionValue _selection;
   SelectionOptionValue _instGenSelection;
     
-
 
   InputFileOptionValue _inputFile;
 

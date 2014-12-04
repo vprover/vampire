@@ -118,6 +118,7 @@ public:
 
   /** Return the CASC category of the problem */
   Category category() const { return _category;}
+  static vstring categoryToString(Category cat);
   vstring categoryString() const;
 
   vstring toString() const;
