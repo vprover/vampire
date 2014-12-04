@@ -24,6 +24,16 @@ using namespace Kernel;
 
 /**
  * Implementation of congruence closure.
+ * 
+ * Martin: seems to be inspired Nieuwenhuis, Oliveras (2007) Fast Congruence Closure and Extensions
+ * (at least the congruence closure itself and also the proof recording
+ * explanations [the unsat core extraction] seem to be simpler and suboptimal 
+ * -- the HighestNode trick ? )
+ * 
+ * Hint: understand _pairNames as "Lookup" from the paper.
+ * 
+ * However, classList of a representative 
+ * does not (physically) contain that representative (only logically)
  */
 class SimpleCongruenceClosure : public DecisionProcedure
 {

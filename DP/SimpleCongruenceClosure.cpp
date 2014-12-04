@@ -91,6 +91,8 @@ void SimpleCongruenceClosure::ConstInfo::resetEquivalences(SimpleCongruenceClosu
   seen.reset();
 
   Stack<unsigned>::DelIterator ulit(useList);
+  // Martin: keep only those namedPairs in useList for which selfIndex
+  // is one of the arguments, and keep each such exactly once
   while(ulit.hasNext()) {
     unsigned p = ulit.next();
     ConstInfo& pInfo = parent._cInfos[p];
@@ -235,11 +237,15 @@ unsigned SimpleCongruenceClosure::getPairName(CPair p)
 
   _cInfos[p.first].useList.push(res);
   if(_cInfos[p.first].reprConst!=0) {
+    // Martin: if we are here, the above insertion was not needed now,
+    // but will become necessary after reset(); see resetEquivalences
     unsigned fRepr = _cInfos[p.first].reprConst;
     _cInfos[fRepr].useList.push(res);
   }
   _cInfos[p.second].useList.push(res);
   if(_cInfos[p.second].reprConst!=0) {
+    // Martin: if we are here, the above insertion was not needed now,
+    // but will become necessary after reset(); see resetEquivalences
     unsigned sRepr = _cInfos[p.second].reprConst;
     _cInfos[sRepr].useList.push(res);
   }
@@ -334,11 +340,13 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
   unsigned res;
   if(_litNames.find(lit, res)) {
     return res;
-  }
+  }  
   if(_litNames.find(Literal::complementaryLiteral(lit), res)) {
     _litNames.insert(lit, res);
     return res;
   }
+  // Martin: in any case, the logical negation is encoded by the caller;
+  // notice that we ignore the polarity below:
 
   res = getSignatureConst(lit->functor(), false);
   Term::Iterator ait(lit);
@@ -346,6 +354,7 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
     TermList a = ait.next();
     unsigned argConst = convertFO(a);
     res = getPairName(CPair(res, argConst));
+    //Martin: same way to currify like in FOConversionWorker::post
   }
   _cInfos[res].lit = lit;
 
@@ -470,7 +479,9 @@ void SimpleCongruenceClosure::makeProofRepresentant(unsigned c)
   }
 
   //this kind of traversal may possibly cause quadratic complexity!
-
+  
+  //Martin: it shouldn't, because we always reorder a path in the smaller proof tree
+  
   CEq transfPrem; //initialized as invalid
   unsigned prevC = 0;
 
@@ -549,7 +560,7 @@ void SimpleCongruenceClosure::propagate()
       CPair usedPair = _cInfos[usePairConst].namedPair;
       ASS(usedPair!=CPair(0,0)); //the constant must be a name of a pair
       CPair derefPair = deref(usedPair);
-      ASS(usedPair!=derefPair);
+      ASS(usedPair!=derefPair); // Martin: (at least) one of the arguments was aRep, now is bRep
 
       unsigned* pDerefPairName;
       if(!_pairNames.getValuePtr(derefPair, pDerefPairName)) {
@@ -650,7 +661,8 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultip
     if(!retrieveMultipleCores) {
       return DecisionProcedure::UNSATISFIABLE;
     }
-    // Martin: else?
+    ASS(_unsatEqs.isNonEmpty());
+    // Martin: else continue collecting other potential reasons for unsat    
   }
 
   //The intuition is that we want to fail on as early equalities as possible
@@ -715,7 +727,14 @@ void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stac
   CALL("SimpleCongruenceClosure::collectUnifyingPath");
   ASS_EQ(deref(c1), deref(c2));
 
-  //this function could be probably made more efficient if we use some time-stamping the the ConstInfo object
+  //this function could be probably made more efficient if we use some time-stamping of the ConstInfo object
+  
+  // Martin: paper says, proof can be found in O(k), where k is size of the proof
+  // My idea: go from both in parallel and start marking the paths, when one hits
+  // a marked node, the other should go back here too and then they both return home, "printing"
+  
+  // Martin: this is probably not the whole story; some parts of these proofs might have been output already
+  // (see the paper for more details) [probably only if this is shown to be a bottleneck]
 
   unsigned depth1 = getProofDepth(c1);
   unsigned depth2 = getProofDepth(c2);
@@ -792,7 +811,7 @@ void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex
       if(prem.foOrigin) {
 	if(prem.foPremise) {
 	  res.push(prem.foPremise);
-	}
+	} // Martin: this should be only null for the "built-in" dis-equality (_posLitConst != _negLitConst)
       }
       else {
 	//the equality was implied by congruence between the following two pairs:
