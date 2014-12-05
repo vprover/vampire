@@ -9,6 +9,10 @@ version.cpp
 vampire
 vampire_dbg
 vampire_rel
+vampire_gcov
+vampire_starexec
+vtest
+vtest_dbg
 
 vampire.exe
 vampire_dbg.exe

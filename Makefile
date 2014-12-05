@@ -85,8 +85,9 @@ ifneq (,$(filter %_rel_static,$(MAKECMDGOALS)))
 XFLAGS = -static $(REL_FLAGS) -DIS_LINGVA=0
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
-ifneq (,$(filter %_starexec,$(MAKECMDGOALS)))
+ifneq (,$(filter %_static,$(MAKECMDGOALS)))
 XFLAGS = -static $(REL_FLAGS) -DIS_LINGVA=0
+MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
 

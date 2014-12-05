@@ -1,5 +1,5 @@
 /**
- * @file Solving/VariableSelector.hpp
+ * @file BoundProp/VariableSelector.hpp
  * Defines class VariableSelector.
  */
 
@@ -8,7 +8,7 @@
 #if GNUMP
 #include "Forwards.hpp"
 
-namespace Solving {
+namespace BoundProp {
 
 using namespace Kernel;
 using namespace Shell;

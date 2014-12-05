@@ -27,7 +27,7 @@
 #undef LOGGING
 #define LOGGING 0
 
-namespace Solving
+namespace BoundProp
 {
 
 using namespace Lib;

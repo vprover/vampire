@@ -9,7 +9,7 @@
 
 #include "Forwards.hpp"
 
-namespace Solving {
+namespace BoundProp {
 
 using namespace Kernel;
 using namespace Shell;
