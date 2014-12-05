@@ -1,0 +1,3 @@
+vampire(option,1,ignore_missing,on).
+vampire(option,1,decode,"ott+1_8:1_bs=off:cond=on:gs=on:nwc=3:sos=all:sio=off:spl=on:sser=off:ssnc=none_3000").
+

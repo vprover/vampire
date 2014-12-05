@@ -1,0 +1,3 @@
+vampire(option,1,ignore_missing,on).
+vampire(option,1,decode,"lrs+1002_128_bs=off:cond=on:flr=on:lcm=reverse:nwc=1:stl=120:spo=on_3000").
+

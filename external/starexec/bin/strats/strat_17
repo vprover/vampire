@@ -1,0 +1,3 @@
+vampire(option,1,ignore_missing,on).
+vampire(option,1,decode,"ott+10_64_drc=off:nwc=1.1_3000").
+

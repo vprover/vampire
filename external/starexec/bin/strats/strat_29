@@ -1,0 +1,3 @@
+vampire(option,1,ignore_missing,on).
+vampire(option,1,decode,"lrs+4_14_cond=on:drc=off:flr=on:nwc=3:spl=on:sser=off:ssnc=none_3000").
+

@@ -1,0 +1,7 @@
+bin/vampire
+bin/vampire_dbg
+bin/vampire_rel
+bin/vampire_gcov
+bin/vampire_starexec
+
+bin.zip
