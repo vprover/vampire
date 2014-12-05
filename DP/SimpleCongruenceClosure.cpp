@@ -12,8 +12,10 @@
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/SafeRecursion.hpp"
+#include "Lib/DynamicHeap.hpp"
 
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Shell/DistinctProcessor.hpp"
 
@@ -131,7 +133,8 @@ void SimpleCongruenceClosure::ConstInfo::assertValid(SimpleCongruenceClosure& pa
 #endif
 
 
-SimpleCongruenceClosure::SimpleCongruenceClosure()
+SimpleCongruenceClosure::SimpleCongruenceClosure(Ordering& ord) :
+  _ord(ord)
 {
   CALL("SimpleCongruenceClosure::SimpleCongruenceClosure");
 
@@ -831,5 +834,255 @@ void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex
   }
 }
 
+struct SimpleCongruenceClosure::ConstOrderingComparator {
+  ConstOrderingComparator(DArray<ConstInfo>& cInfos, Ordering& ord) 
+    : _cInfos(cInfos), _ord(ord) {}
+  
+  Comparison compare(unsigned c1, unsigned c2)
+  {
+    TermList c1NF = _cInfos[c1].normalForm;
+    TermList c2NF = _cInfos[c2].normalForm;
+        
+    // we don't care about the order of partial applications 
+    // as long as they are smaller than the proper terms
+    
+    if (c1NF.isEmpty()) {
+      if (c2NF.isEmpty()) {
+        return EQUAL;
+      } else {
+        return LESS;
+      }
+    } else {
+      if (c2NF.isEmpty()) {
+        return GREATER;
+      } else { // two proper terms
+        switch(_ord.compare(c1NF,c2NF)) {
+          case Ordering::Result::GREATER:
+            return GREATER;    
+          case Ordering::Result::LESS:
+            return LESS;
+          case Ordering::Result::EQUAL:
+            return EQUAL;    
+          default:
+            ASSERTION_VIOLATION;
+        }
+      }
+    }
+  }
+  
+  DArray<ConstInfo>& _cInfos;
+  Ordering& _ord;
+};
+
+/**
+ * Const @c c is a namedPair and both of its arguments are normalized.
+ * 
+ * We can compute normal form for @c c, provided it names a term at all.
+ */
+void SimpleCongruenceClosure::computeConstsNormalForm(unsigned c, NFMap& normalForms) 
+{
+  CALL("SimpleCongruenceClosure::computeConstsNormalForm");
+      
+  ConstInfo& cInfo = _cInfos[c];
+  if (!cInfo.term.isEmpty() && cInfo.normalForm.isEmpty()) {
+    Term* t = cInfo.term.term();
+    unsigned idx = t->arity();
+    unsigned d = c;
+    
+    static DArray<TermList> args(8);
+    args.ensure(idx);
+    while (idx-->0) {
+      CPair pair = _cInfos[d].namedPair;
+      ASS(pair !=CPair(0,0)); 
+      args[idx] = normalForms.get(deref(pair.second));             
+      ASS(args[idx].isTerm());
+      d = pair.first;
+    }
+    ASS_EQ(_cInfos[d].sigSymbol,t->functor());
+    cInfo.normalForm = TermList(Term::create(t,args.array()));
+  }
+}
+
+/**
+ * Return a reduced rewrite system compatible with the current ordering
+ * equivalent to the previously given positive equations
+ * in the form of a set of equational literals.
+ * 
+ * Based on the algorithm suggested by Wayne Snyder (1993),
+ * A Fast Algorithm for Generating Reduced Ground Rewriting Systems from a Set of Ground Equations.
+ */
+void SimpleCongruenceClosure::getModel(LiteralStack& model)
+{
+  CALL("SimpleCongruenceClosure::getModel");
+  
+  // a heap of candidate constants to process
+  static DynamicHeap<unsigned, ConstOrderingComparator, ArrayMap<unsigned> >
+    candidates(ConstOrderingComparator(_cInfos,_ord));
+  ASS(candidates.isEmpty());
+  
+  // a map of already computed normal forms, indexed by class representatives
+  static NFMap normalForms;
+  normalForms.reset();
+  
+  unsigned maxConst = getMaxConst();
+  candidates.elMap().expand(maxConst+1);
+  
+  // we process even predicates/literals but they will not show up in the result
+  // (because they are not in a class associated with a term)
+  // TODO: alternatively we could propagate up from the predicate symbols
+  // the fact a particular constant can be skipped
+  
+  // initialize the info associated with constants
+  // and the heap of potential candidates    
+  for (unsigned c = 3; // skip 0=unused, 1=_posLitConst and 2=_negLitConst
+                c <= maxConst; c++) {
+    ConstInfo& cInfo = _cInfos[c];
+    
+    // cout << "init for " << c;
+    
+    cInfo.processed = false;    
+    cInfo.half_normalized = false;
+    cInfo.normalForm.makeEmpty();                
+    
+    if (cInfo.sigSymbol != NO_SIG_SYMBOL) { // either a symbol ...
+      // cout << " is sigsym ";
+      
+      // this copies the term for constants and an empty termlist for function symbols of arity > 0
+      cInfo.normalForm = cInfo.term;
+      
+      //cout << " and term " << cInfo.term.toString() << endl;      
+      //if (cInfo.lit) {
+      //  cout << " and a lit " << cInfo.lit->toString() << endl;
+      //}
+      
+      // it is important that the normal form has already been assigned, 
+      // since the insertion into the heap starts calling compare
+      candidates.insert(c);
+    } else { // ... or a named pair      
+    	ASS_NEQ(cInfo.namedPair.first,0);
+      ASS_NEQ(cInfo.namedPair.second,0);
+      
+      //cout << " names a pair (" << cInfo.namedPair.first << ", " 
+      //                          << cInfo.namedPair.second << ")";
+      //cout << " and term " << cInfo.term.toString();      
+      //if (cInfo.lit) {
+      //  cout << " and a lit " << cInfo.lit->toString();
+      //}
+      
+      unsigned lRep = deref(cInfo.namedPair.first);
+      unsigned rRep = deref(cInfo.namedPair.second);
+      ASS_NEQ(lRep,c); // the left child is necessarily in a different class
+      _cInfos[lRep].upEdges.push(c);
+      
+      //cout << " adds a left edge to " << lRep;
+      
+      if (rRep != deref(c)) { // for the right child, don't store upEdges within a class
+        _cInfos[rRep].upEdges.push(c);
+        
+        //cout << " adds a right edge to " << rRep;
+      }
+      //cout << endl;      
+    }
+  }
+  
+  // cout << "processing" << endl;
+  
+  while (!candidates.isEmpty()) {
+    unsigned c = candidates.pop();
+    unsigned r = deref(c);
+    ConstInfo& rInfo = _cInfos[r];
+    
+    //cout << "Picking candidate " << c << " with repr " << r << endl;
+    
+    if (!rInfo.processed) {
+      //cout << "Class not processed yet." << endl;
+      ConstInfo& cInfo = _cInfos[c];
+                  
+      rInfo.processed = true;
+      if (!cInfo.normalForm.isEmpty()) { // Are we considering a class with true terms (not partial applications)?
+        // c was the smallest candidate from this class,
+        // we will now keep c's normal form under the index r for everybody "above" to access
+        ALWAYS(normalForms.insert(r,cInfo.normalForm));
+      }
+
+      Stack<unsigned>::Iterator rUseIt(rInfo.upEdges);
+      while(rUseIt.hasNext()) {                
+        unsigned s = rUseIt.next(); // a super-term refers to a term in our class    
+        ConstInfo& sInfo = _cInfos[s];
+        ASS(sInfo.namedPair!=CPair(0,0)); //must be a name of a pair
+        
+        // cout << "superterm " << s;
+        
+        if (sInfo.half_normalized) {                     
+          // now becomes fully
+          computeConstsNormalForm(s,normalForms);
+          
+          //cout << " gets its normal form " << sInfo.normalForm.toString();
+          
+          // and can be inserted among candidates
+          candidates.insert(s);
+        } else {
+          //cout << " becoming half_normalized";
+          
+          sInfo.half_normalized = true;
+        }
+        
+        //cout << endl;
+      }
+      // upEdges must be kept clean between the calls to this function
+      rInfo.upEdges.reset();
+    }
+  }
+  
+  // start preparing the result
+  // avoid generating trivial equalities and duplicates (by hashing the pairs)
+  NFMap::Iterator nfIt(normalForms);
+  while(nfIt.hasNext()) {
+    unsigned r;
+    TermList nf;
+    nfIt.next(r,nf);
+    
+    //cout << "Outputting for class " << r << " with nf " << nf.toString() << endl;
+    
+    static DHSet<TermList> seen;
+    seen.reset();
+    seen.insert(nf); // this way we avoid generating the identity equality
+    
+    // for the representative
+    computeConstsNormalForm(r,normalForms); // maybe calling for a second time, but that's cheap    
+    if (!seen.contains(_cInfos[r].normalForm)) {
+      //cout << _cInfos[r].normalForm << " -> " << nf << endl;
+      model.push(Literal::createEquality(true,_cInfos[r].normalForm,nf,SortHelper::getResultSort(nf.term())));
+      seen.insert(_cInfos[r].normalForm);
+    }
+    
+    // and for all other members of the class
+    Stack<unsigned>::Iterator classIt(_cInfos[r].classList);
+    while (classIt.hasNext()) {
+      unsigned c = classIt.next();
+      
+      computeConstsNormalForm(c,normalForms); // maybe calling for a second time, but that's cheap
+      if (!seen.contains(_cInfos[c].normalForm)) {
+        //cout << _cInfos[c].normalForm << " -> " << nf << endl;
+        model.push(Literal::createEquality(true,_cInfos[c].normalForm,nf,SortHelper::getResultSort(nf.term())));
+        seen.insert(_cInfos[c].normalForm);
+      }
+    }
+  }
+  
+  DEBUG_CODE( assertModelInfoClean(); );  
+}
+
+#ifdef VDEBUG
+void SimpleCongruenceClosure::assertModelInfoClean() const
+{
+  CALL("SimpleCongruenceClosure::assertModelInfoClean");
+  unsigned maxConst = getMaxConst();
+  for (unsigned c = 0; c <= maxConst; c++) {
+    const ConstInfo& cInfo = _cInfos[c];
+    ASS(cInfo.upEdges.isEmpty());
+  }
+}
+#endif 
 
 }

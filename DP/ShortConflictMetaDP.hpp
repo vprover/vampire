@@ -47,6 +47,10 @@ public:
 
   virtual Status getStatus(bool getMultipleCores);
 
+  void getModel(LiteralStack& model) override {
+    _inner->getModel(model);
+  }
+
   /**
    * Return number of unsatisfiable cores that can be retrieved.
    * 0 is returned if the status is SATISFIABLE or UNKNOWN. If UNSATISFIABLE,

@@ -14,6 +14,7 @@
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Term.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "DecisionProcedure.hpp"
 
@@ -41,7 +42,7 @@ public:
   CLASS_NAME(SimpleCongruenceClosure);
   USE_ALLOCATOR(SimpleCongruenceClosure);
 
-  SimpleCongruenceClosure();
+  SimpleCongruenceClosure(Ordering& ord);
 
   virtual void addLiterals(LiteralIterator lits);
 
@@ -49,9 +50,13 @@ public:
   virtual unsigned getUnsatCoreCount() { return _unsatEqs.size(); }
   virtual void getUnsatCore(LiteralStack& res, unsigned coreIndex);
 
+  void getModel(LiteralStack& model) override;
+  
   virtual void reset();
 
 private:
+  Ordering& _ord;
+  
   /**
    * Constant pair
    *
@@ -177,8 +182,42 @@ private:
      * of all pairs that have this very constant as one of arguments.
      */
     Stack<unsigned> useList;
+        
+    // needed for getModel:    
+    /**
+     * Meaningful for representatives. Marking processed classes.
+     */
+    bool processed;
+    /**
+     * Meaningful for representatives. A list of edges leaving the class "upwards".
+     */
+    Stack<unsigned> upEdges;
+    /**
+     * Meaningful for namedPairs. 
+     * 
+     * One of the arguments have been normalized.
+     * When we learn about the other, we put it to potential candidates.
+     */
+    bool half_normalized;
+    
+    /**
+     * Meaningful for classes which represent a FO term (not just a partial application).
+     * 
+     * Consists of the original term's function symbol and normalised
+     * sub-terms obtained by replacing the original sub-term by its class's
+     * representative's normal form.
+     */
+    TermList normalForm;    
   };
 
+  struct ConstOrderingComparator;  
+  typedef DHMap<unsigned,TermList> NFMap;
+  void computeConstsNormalForm(unsigned c, NFMap& normalForms);
+  
+#ifdef VDEBUG
+  void assertModelInfoClean() const;
+#endif  
+  
   /**
    * Information on constants used in the algorithm
    *

@@ -36,6 +36,10 @@ public:
   /** return the result */
   virtual Status getStatus(bool getMultipleCores=false) = 0;
 
+  // TODO: this is needed for the model experiment with the SimpleCongruenceClosure class
+  // but does it make sense for a general dp?
+  virtual void getModel(LiteralStack& model) = 0;
+
   /**
    * Return number of unsatisfiable cores that can be retrieved.
    * 0 is returned if the status is SATISFIABLE or UNKNOWN. If UNSATISFIABLE,

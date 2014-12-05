@@ -33,7 +33,6 @@
 #include "SAT/MinisatInterfacing.hpp"
 
 #include "DP/ShortConflictMetaDP.hpp"
-#include "DP/SimpleCongruenceClosure.hpp"
 
 #include "SaturationAlgorithm.hpp"
 
@@ -106,11 +105,10 @@ void SplittingBranchSelector::init()
 #endif
 
   if(_parent.getOptions().splittingCongruenceClosure()) {
-    _dp = new DP::SimpleCongruenceClosure();
+    _dp = new DP::SimpleCongruenceClosure(_parent.getOrdering());
     if (_parent.getOptions().ccUnsatCores() == Options::CCUnsatCores::SMALL_ONES) {
       _dp = new ShortConflictMetaDP(_dp.release(), _parent.satNaming(), *_solver);
     }
-
     _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
   }
 }
@@ -211,6 +209,16 @@ void SplittingBranchSelector::processDPConflicts()
     RSTAT_CTR_INC("ssat_dp_conflict");
     RSTAT_CTR_INC_MANY("ssat_dp_conflict_clauses",conflictClauses.size());
   }
+  
+  static LiteralStack model;
+  model.reset();
+  _dp->getModel(model);
+  
+  cout << "Obtained a model " << endl;
+  LiteralStack::Iterator it(model);
+  while(it.hasNext()) {
+    cout << it.next()->toString() << endl;
+  }  
 }
 
 void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
@@ -406,6 +414,15 @@ const Options& Splitter::getOptions() const
 
   return _sa->getOptions();
 }
+
+Ordering& Splitter::getOrdering() const
+{
+  CALL("Splitter::getOrdering");
+  ASS(_sa);
+
+  return _sa->getOrdering();
+}
+
 
 void Splitter::init(SaturationAlgorithm* sa)
 {

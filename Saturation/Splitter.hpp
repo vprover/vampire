@@ -25,6 +25,7 @@
 #include "SAT/SATSolver.hpp"
 
 #include "DP/DecisionProcedure.hpp"
+#include "DP/SimpleCongruenceClosure.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -152,6 +153,7 @@ public:
   ~Splitter();
 
   const Options& getOptions() const;
+  Ordering& getOrdering() const;
   
   void init(SaturationAlgorithm* sa);
 
