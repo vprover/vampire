@@ -113,7 +113,11 @@ void SplittingBranchSelector::init()
     _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
 
     _ccModel = _parent.getOptions().splittingCongruenceClosure() == Options::SplittingCongruenceClosure::MODEL;
-  }
+    
+    // because all positive and negative ground equations enter the _dp,
+    // we also want to be able to accommodate all these in the SAT<->FO part
+    ASS(!_ccModel || _parent.getOptions().splittingAddComplementary() == Options::SplittingAddComplementary::GROUND);
+  }    
 }
 
 void SplittingBranchSelector::updateVarCnt()
@@ -183,8 +187,10 @@ void SplittingBranchSelector::processDPConflicts()
     {
       TimeCounter tc(TC_CONGRUENCE_CLOSURE);
     
-      gndAssignment.reset(); // Martin. in fact, not ground. Filtering based on gndness happens inside dp
-      s2f.collectAssignment(*_solver, gndAssignment);
+      gndAssignment.reset();
+      // collects only ground literals, because it known only about them ...
+      s2f.collectAssignment(*_solver, gndAssignment); 
+      // ... morerover, _dp->addLiterals will filter the set anyway
 
       _dp->reset();
       _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ));
