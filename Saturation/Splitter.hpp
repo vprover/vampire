@@ -47,7 +47,7 @@ class Splitter;
  */
 class SplittingBranchSelector {
 public:
-  SplittingBranchSelector(Splitter& parent) : _parent(parent) {}
+  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent)  {}
 
   /** To be called from Splitter::init() */
   void init();
@@ -70,8 +70,10 @@ private:
   //options
   bool _eagerRemoval;
   bool _handleZeroImplied;
+
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
   bool _ccMultipleCores;
+  bool _ccModel;
 
   Splitter& _parent;
 
@@ -214,8 +216,8 @@ private:
   Options::SplittingNonsplittableComponents _nonsplComps;
   unsigned _flushPeriod;
   float _flushQuotient;
-  bool _congruenceClosure;
   Options::SplittingDeleteDeactivated _deleteDeactivated;
+  Options::SplittingCongruenceClosure _congruenceClosure;
 
   //utility objects
   SplittingBranchSelector _branchSelector;

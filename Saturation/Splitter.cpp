@@ -104,12 +104,15 @@ void SplittingBranchSelector::init()
   _solver = new Test::CheckedSatSolver(_solver.release());
 #endif
 
-  if(_parent.getOptions().splittingCongruenceClosure()) {
+
+  if(_parent.getOptions().splittingCongruenceClosure() != Options::SplittingCongruenceClosure::OFF) {
     _dp = new DP::SimpleCongruenceClosure(_parent.getOrdering());
     if (_parent.getOptions().ccUnsatCores() == Options::CCUnsatCores::SMALL_ONES) {
       _dp = new ShortConflictMetaDP(_dp.release(), _parent.satNaming(), *_solver);
     }
     _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
+
+    _ccModel = _parent.getOptions().splittingCongruenceClosure() == Options::SplittingCongruenceClosure::MODEL;
   }
 }
 
@@ -210,15 +213,17 @@ void SplittingBranchSelector::processDPConflicts()
     RSTAT_CTR_INC_MANY("ssat_dp_conflict_clauses",conflictClauses.size());
   }
   
-  static LiteralStack model;
-  model.reset();
-  _dp->getModel(model);
+  if (_ccModel) {
+    static LiteralStack model;
+    model.reset();
+    _dp->getModel(model);
   
-  cout << "Obtained a model " << endl;
-  LiteralStack::Iterator it(model);
-  while(it.hasNext()) {
-    cout << it.next()->toString() << endl;
-  }  
+    cout << "Obtained a model " << endl;
+    LiteralStack::Iterator it(model);
+    while(it.hasNext()) {
+      cout << it.next()->toString() << endl;
+    }  
+  }
 }
 
 void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
@@ -591,7 +596,8 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
     return false;
   }
 
-  if(_congruenceClosure && cl->length()==1 && (*cl)[0]->ground() && cl->splits()->isEmpty()) {
+  if(_congruenceClosure != Options::SplittingCongruenceClosure::OFF
+      && cl->length()==1 && (*cl)[0]->ground() && cl->splits()->isEmpty()) {
     //we add ground unit clauses if we use congruence closure...
     // (immediately zero implied!)
     compName = tryGetComponentNameOrAddNew(cl->length(), cl->literals(), cl, compCl);

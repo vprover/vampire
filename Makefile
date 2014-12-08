@@ -609,6 +609,10 @@ $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT
 @#strip $@
 endef
 
+define COMPILE_CMD_SIMPLE
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(LGMP)
+endef
+
 define COMPILE_CMD_TKV
 $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ -lgmp -lgmpxx
 @#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
@@ -656,6 +660,9 @@ lingva lingva_rel lingva_dbg: $(LINGVA_OBJ) $(EXEC_DEF_PREREQ)
 
 vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
+
+vampire: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
+	$(COMPILE_CMD_SIMPLE)
 
 vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
