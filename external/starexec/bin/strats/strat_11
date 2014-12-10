@@ -1,3 +1,3 @@
 vampire(option,1,ignore_missing,on).
 vampire(option,1,decode,"ins-1010_3:2_bs=unit_only:spl=off:drc=off:ep=on:fde=none:igbrr=0.5:igrr=1/128:igrpq=1.3:igwr=on:nwc=1.7_3000").
-
+vampire(option,1,time_limit_local,3000).
