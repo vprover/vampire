@@ -544,7 +544,8 @@ version.cpp: .git/HEAD .git/index Makefile
 # separate directory for object files implementation
 
 # different directory for each configuration, so there is no need for "make clean"
-CONF_ID := obj/$(shell echo -n "$(XFLAGS)"|sum|cut -d' ' -f1)X
+COND_AND_BRANCH := $(XFLAGS)$(shell git branch | grep "\*" | cut -d ' ' -f 2)
+CONF_ID := obj/$(shell echo -n "$(COND_AND_BRACH)"|sum|cut -d' ' -f1)X
 
 obj:
 	-mkdir obj
