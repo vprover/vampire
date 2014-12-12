@@ -62,11 +62,13 @@ XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging onl
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
+# Flags can either by _dbg or _rel, if both are given the later is taken
+# gcov and static add extra flags
 ifneq (,$(filter %_dbg,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0
+XFLAGS := $(DBG_FLAGS) -DIS_LINGVA=0
 endif
 ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0
+XFLAGS := $(REL_FLAGS) -DIS_LINGVA=0
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
@@ -86,8 +88,7 @@ XFLAGS = -static $(REL_FLAGS) -DIS_LINGVA=0
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 ifneq (,$(filter %_static,$(MAKECMDGOALS)))
-XFLAGS = -static $(REL_FLAGS) -DIS_LINGVA=0
-MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
+XFLAGS := -static $(XFLAGS) 
 endif
 
 
@@ -658,7 +659,11 @@ EXEC_DEF_PREREQ = Makefile
 lingva lingva_rel lingva_dbg: $(LINGVA_OBJ) $(EXEC_DEF_PREREQ)
 	$(LLVM_COMPILE_CMD)
 
+<<<<<<< HEAD
 vampire vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
+=======
+vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
+>>>>>>> updating Makefile
 	$(COMPILE_CMD)
 
 vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
