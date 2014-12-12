@@ -14,6 +14,8 @@
 
 #include "Kernel/Term.hpp"
 
+#include "SAT/SAT2FO.hpp"
+
 namespace Kernel {
 
 using namespace Lib;
@@ -24,16 +26,17 @@ public:
   CLASS_NAME(Grounder);
   USE_ALLOCATOR(Grounder);
   
-  Grounder() : _nextSatVar(1), _satSolver(0) {}
-  Grounder(SATSolver* satSolver) : _nextSatVar(1), _satSolver(satSolver) {}
+  Grounder() : _nextSatVar(1) {}
+  Grounder(SATSolverSP satSolver) : _nextSatVar(1), _satSolver(satSolver) {}
   virtual ~Grounder() { CALL("Kernel::~Grounder"); }
+  void useSAT2FO(SAT2FO& sat2fo){ _sat2fo = &sat2fo;}
 
-  SATClauseIterator ground(Clause* cl,bool use_n);
+  SATClauseIterator ground(Clause* cl,bool use_n,bool ignore_splits=true);
   SATClause* groundNonProp(Clause* cl, bool use_n, Literal** normLits=0);
   void groundNonProp(Clause* cl, SATLiteralStack& acc, bool use_n, Literal** normLits=0);
   SATLiteral ground(Literal* lit,bool use_n);
 
-  unsigned satVarCnt() const { return _nextSatVar; }
+  unsigned satVarCnt() const { if(_sat2fo){ return 1+_sat2fo->maxSATVar();} return _nextSatVar; }
 
   static void recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause);
 
@@ -52,11 +55,13 @@ private:
 
 
   unsigned _nextSatVar;
+  SAT2FO* _sat2fo;
+
   /** Map from positive literals to SAT variable numbers */
   DHMap<Literal*, unsigned> _asgn;
   /** Used to communicate source literals, should be 0 unless this is IGGrounded */
   // IGAlgorithm will delete this
-  SATSolver* _satSolver;
+  SATSolverSP _satSolver;
 };
 
 class GlobalSubsumptionGrounder : public Grounder {
@@ -77,7 +82,7 @@ public:
   CLASS_NAME(IGGrounder);
   USE_ALLOCATOR(IGGrounder);
 
-  IGGrounder(SATSolver* satSolver);
+  IGGrounder(SATSolverSP satSolver);
 private:
   TermList _tgtTerm;
 protected:

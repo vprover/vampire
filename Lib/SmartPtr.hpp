@@ -105,6 +105,14 @@ public:
   template<class Target>
   inline
   Target* pcast() const { return static_cast<Target*>(_obj); }
+
+  /** Remove object from the scoped pointer without deleting it */
+  T* release() {
+    T* res = _obj;
+    _obj = 0;
+    return res;
+  }
+
 private:
   template<typename U> friend class SmartPtr;
 

@@ -30,15 +30,18 @@ using namespace Kernel;
  * Return SATClauseIterator with SAT clauses that are results
  * of grounding of @c cl.
  * use_n indcates whether we record the source for use in niceness computation
+ *
+ * ignore_splits means that we will ground cl even if it has splits
  */
-SATClauseIterator Grounder::ground(Clause* cl,bool use_n)
+SATClauseIterator Grounder::ground(Clause* cl,bool use_n, bool ignore_splits)
 {
   CALL("Grounder::ground(Clause*)");
 
-  if(!cl->noSplits()) {
+  if(!ignore_splits && !cl->noSplits()) {
     NOT_IMPLEMENTED;
   }
 
+  //cout << "grounding " << cl->toString() << endl;
   SATClause* gndNonProp = groundNonProp(cl,use_n);
 //  cout<<gndNonProp->toString()<<endl;
 
@@ -144,15 +147,20 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
 {
   CALL("Grounder::groundNormalized");
 
+  if(_sat2fo){
+    return _sat2fo->toSAT(lit);
+  }
+
   bool isPos = lit->isPositive();
   Literal* posLit = Literal::positiveLiteral(lit);
 
   unsigned* pvar;
   if(_asgn.getValuePtr(posLit, pvar)) {
-    *pvar = _nextSatVar++;
+    *pvar = _nextSatVar++; 
   }
   return SATLiteral(*pvar, isPos);
 }
+
 
 LiteralIterator Grounder::groundedLits()
 {
@@ -262,7 +270,7 @@ void GlobalSubsumptionGrounder::normalize(unsigned cnt, Literal** lits)
 // IGGrounder
 //
 
-IGGrounder::IGGrounder(SATSolver* satSolver) : Grounder(satSolver)
+IGGrounder::IGGrounder(SATSolverSP satSolver) : Grounder(satSolver)
 {
   _tgtTerm = TermList(0, false);
   //TODO: make instantiation happen with the most prolific symbol of each sort
@@ -294,6 +302,8 @@ public:
 Literal* IGGrounder::collapseVars(Literal* lit)
 {
   CALL("IGGrounder::collapseVars");
+  ASS(lit);
+  //cout << "Collapse vars of " << lit->toString() << endl;
 
   CollapsingApplicator apl(_tgtTerm);
   return SubstHelper::apply(lit, apl);

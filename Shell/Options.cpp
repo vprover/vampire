@@ -633,8 +633,6 @@ void Options::Options::init()
     "inst_gen and tabulation aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
-    // Captures that if the saturation algorithm is InstGen then splitting must be off
-    _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::INST_GEN)).then(_splitting.is(notEqual(true))));
     // Note order of adding constraints matters (we assume previous gaurds are false)
     _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen"});
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
@@ -951,6 +949,26 @@ void Options::Options::init()
     _instGenWithResolution.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     _instGenWithResolution.setRandomChoices({"on","off"});
     
+    _instGenWithSATSharing = BoolOptionValue("inst_gen_with_sat_sharing","igwss",false);
+    _instGenWithSATSharing.description= "Share the SAT Solver used with resolution with splitting.";
+    _lookup.insert(&_instGenWithSATSharing);
+    _instGenWithSATSharing.tag(OptionTag::INST_GEN);
+    _instGenWithSATSharing.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
+    _instGenWithSATSharing.reliesOn(_instGenWithResolution.is(equal(true)));
+    _instGenWithSATSharing.reliesOn(_splitting.is(equal(true)));
+    _instGenWithSATSharing.setRandomChoices({"on","off"});
+    _instGenWithSATSharing.setExperimental();
+
+    // Does not belong here but placed here for now as it is part of an experiment with the above option
+    //  and migh become default depending on the outcome of the experiment.
+    _splittingWithInstances = BoolOptionValue("splitting_with_instances","swi",false);
+    _splittingWithInstances.description= 
+      "AVATAR Splitting introduces a -> C[c] for each component C[X] named a where c is a unique new constant, which "
+      "is the same as the one used by inst_gen if instGenWithResolution is on";
+    _lookup.insert(&_splittingWithInstances);
+    _splittingWithInstances.setRandomChoices({"on","off"});
+    _splittingWithInstances.setExperimental();
+
     _use_dm = BoolOptionValue("use_dismatching","",false);
     _use_dm.description="";
     _lookup.insert(&_use_dm);
@@ -969,7 +987,7 @@ void Options::Options::init()
     _splitting.description="";
     _lookup.insert(&_splitting);
     _splitting.tag(OptionTag::AVATAR);
-    // TODO - put the tabulation constraint here but inst_gen constraint on sa... why?
+    _splitting.addConstraint(If(equal(true)->And(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)))).then(_instGenWithResolution.is(equal(true))));
     _splitting.addConstraint(If(equal(true)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION))));
     _splitting.addProblemConstraint(hasNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?

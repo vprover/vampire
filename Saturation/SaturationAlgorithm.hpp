@@ -25,6 +25,9 @@
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #include "Limits.hpp"
+#include "Splitter.hpp"
+
+#include "SAT/SAT2FO.hpp"
 
 #if VDEBUG
 #include<iostream>
@@ -37,6 +40,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Inferences;
+using namespace SAT;
 
 class SaturationAlgorithm : public MainLoop
 {
@@ -53,6 +57,9 @@ public:
   //the following two functions allow to run the saturation algorithm step by step.
   void initAlgorithmRun();
   void doOneAlgorithmStep();
+
+  void setSplittingSATSolver(SATSolverSP solver){ _splitter->setSATSolver(solver); }
+  void setSplittingGrounder(SmartPtr<IGGrounder> gnd){ _splitter->setGrounder(gnd); }
 
   UnitList* collectSaturatedSet();
 
@@ -92,6 +99,7 @@ public:
   AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
   Ordering& getOrdering() const { return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
+  SAT2FO& getSatNaming(){ return _splitter->satNaming(); }
 
   /** Return the number of clauses that entered the passive container */
   unsigned getGeneratedClauseCount() { return _generatedClauseCount; }

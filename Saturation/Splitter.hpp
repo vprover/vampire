@@ -17,6 +17,7 @@
 #include "Shell/Options.hpp"
 
 #include "Kernel/RCClauseStack.hpp"
+#include "Kernel/Grounder.hpp"
 
 #include "Indexing/ClauseVariantIndex.hpp"
 
@@ -48,7 +49,8 @@ class SplittingBranchSelector {
 public:
   SplittingBranchSelector(Splitter& parent) : _parent(parent) {}
 
-  /** To be called from Splitter::init() */
+  void setSATSolver(SATSolverSP solver){ _solver=solver; }
+  void setGrounder(SmartPtr<IGGrounder> gnd){ _gnd=gnd; }
   void init();
 
   void updateVarCnt();
@@ -58,6 +60,8 @@ public:
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
   void getNewZeroImpliedSplits(SplitLevelStack& res);
+
+  void recordVarUsage(SATLiteral lit, Clause* component);
 
 private:
   void processDPConflicts();
@@ -70,11 +74,14 @@ private:
   bool _eagerRemoval;
   bool _handleZeroImplied;
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
+  bool _addInstances;
+  bool _use_niceness;
 
   Splitter& _parent;
 
-  SATSolverSCP _solver;
+  SATSolverSP _solver;
   ScopedPtr<DecisionProcedure> _dp;
+  SmartPtr<IGGrounder> _gnd; // This will be null unless set by setGrounder
   
   /**
    * Contains selected component names (splitlevels)
@@ -86,6 +93,20 @@ private:
    * to only report on the new ones.
    */
   DArray<bool> _zeroImplieds;
+
+  /**
+   * Remeber the variables that came from Splitter - we assume anything else
+   * came from somebody else using the SATSolver i.e. inst gen
+   */
+   DArray<bool> _fromHere;
+
+ /**
+  * If _addInstances is on then as new variables are connected to components we
+  * create their instance SATClauses i.e. name -> ground(component)
+  * This gets flushed to the SATSolver whenever we add new Clauses to it
+  * TODO: when the SATSolver interface changes we can add them straight away!
+  */
+  SATClauseStack instanceClauses;
 };
 
 /**
@@ -152,6 +173,8 @@ public:
 
   const Options& getOptions() const;
   
+  void setSATSolver(SATSolverSP solver){ _branchSelector.setSATSolver(solver); }
+  void setGrounder(SmartPtr<IGGrounder> gnd){ _branchSelector.setGrounder(gnd); }
   void init(SaturationAlgorithm* sa);
 
   bool doSplitting(Clause* cl);
@@ -161,7 +184,7 @@ public:
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);
 
-  SATLiteral getLiteralFromName(SplitLevel compName) const;
+  SATLiteral getLiteralFromName(SplitLevel compName);
   SplitLevel getNameFromLiteral(SATLiteral lit) const;
 
   bool isUsedName(SplitLevel name) const {
@@ -189,7 +212,7 @@ private:
   void removeComponents(const SplitLevelStack& toRemove);
   void processNewZeroImplied(const SplitLevelStack& newZeroImplied);
 
-  void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const;
+  void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc);
 
   SplitLevel addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
   SplitLevel addGroundComponent(Literal* lit, Clause* orig, Clause*& compCl);

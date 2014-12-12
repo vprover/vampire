@@ -72,28 +72,28 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   //TODO - Consider using MinimizingSolver here
   switch(opt.satSolver()){
     case Options::SatSolver::BUFFERED_VAMPIRE:
-      _satSolver = new BufferedSolver(new TWLSolver(opt,true));
+      _satSolver = SmartPtr<SATSolver>(new BufferedSolver(new TWLSolver(opt,true)));
       break;
     case Options::SatSolver::VAMPIRE:
-      _satSolver = new TWLSolver(opt,true);
+      _satSolver = SmartPtr<SATSolver>(new TWLSolver(opt,true));
       break;
     case Options::SatSolver::BUFFERED_LINGELING:
-      _satSolver = new BufferedSolver(new LingelingInterfacing(opt,true));
+      _satSolver = SmartPtr<SATSolver>(new BufferedSolver(new LingelingInterfacing(opt,true)));
       break;
     case Options::SatSolver::LINGELING:
-      _satSolver = new LingelingInterfacing(opt,true);
+      _satSolver = SmartPtr<SATSolver>(new LingelingInterfacing(opt,true));
       break;
     case Options::SatSolver::BUFFERED_MINISAT:
-      _satSolver = new BufferedSolver(new MinisatInterfacing(opt,true));
+      _satSolver = SmartPtr<SATSolver>(new BufferedSolver(new MinisatInterfacing(opt,true)));
       break;
     case Options::SatSolver::MINISAT:
-      _satSolver = new MinisatInterfacing(opt,true);
+      _satSolver = SmartPtr<SATSolver>(new MinisatInterfacing(opt,true));
       break;
     default:
       ASSERTION_VIOLATION_REP(opt.satSolver());
   }
 
-  _gnd = new  IGGrounder(_satSolver);
+  _gnd = SmartPtr<IGGrounder>(new  IGGrounder(_satSolver));
 
   if(_opt.globalSubsumption()) {
     _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder(), opt);
@@ -112,7 +112,6 @@ IGAlgorithm::~IGAlgorithm()
 
   delete _selected;
   delete _variantIdx;
-  delete _satSolver;
 }
 
 ClauseIterator IGAlgorithm::getActive()
@@ -144,22 +143,22 @@ void IGAlgorithm::init()
 
     _saturationProblem = _prb.copy(true);
 
-//    _saturationOptions = _opt;
-//    _saturationOptions.setSaturationAlgorithm(Options::OTTER);
-//    _saturationOptions.setPropositionalToBDD(false);
-//    _saturationOptions.setSplitting(Options::SM_OFF);
-//    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
-
-
-    cout << "WARNING: no longer using Otter here, options as given" << endl;
-    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _opt, _saturationIndexManager.ptr());
-
+    _saturationOptions = _opt;
+    _saturationOptions.setSaturationAlgorithm(Options::SaturationAlgorithm::OTTER);
+    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
 
     //we will watch what clauses are derived in the
     //saturation part, so we can take advantage of them
     _saturationAlgorithm->getSimplifyingClauseContainer()->addedEvent.subscribe(this, &IGAlgorithm::onResolutionClauseDerived);
 
     //init the saturation algorithm run
+    if(_opt.instGenWithSATSharing()){
+      _saturationAlgorithm->setSplittingSATSolver(_satSolver);
+      _gnd->useSAT2FO(_saturationAlgorithm->getSatNaming());
+      if(_opt.splittingWithInstances()){
+        _saturationAlgorithm->setSplittingGrounder(_gnd);
+      }
+    }
     _saturationAlgorithm->initAlgorithmRun();
   }
   else {
@@ -443,9 +442,11 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
 {
   CALL("IGAlgorithm::onResolutionClauseDerived");
 
-  if(!cl->noSplits()) {
+  if(!cl->noSplits() || cl->inference()->rule() == Inference::INPUT) {
+    RSTAT_CTR_INC("Clause import blocked");
     return;
   }
+  RSTAT_CTR_INC("Clauses imported from resolution");
 
   SATClauseIterator scit = _gnd->ground(cl,_use_niceness);
   scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver

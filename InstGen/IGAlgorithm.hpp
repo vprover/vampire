@@ -110,8 +110,8 @@ private:
   RatioKeeper _instGenResolutionRatio;
 
 
-  SATSolver* _satSolver;
-  ScopedPtr<IGGrounder> _gnd;
+  SATSolverSP _satSolver;
+  SmartPtr<IGGrounder> _gnd;
 
   /** Used by global subsumption */
   ScopedPtr<GroundingIndex> _groundingIndex;

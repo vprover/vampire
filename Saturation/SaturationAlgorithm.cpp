@@ -344,39 +344,6 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     _splitter->onNewClause(cl);
   }
 
-// Giles.
-// Clauses no longer  have prop parts
-// This code used to add the disjunction of all prop parts of premises
-// 
-//
-//  if (!cl->prop()) {
-//    BDD* bdd=BDD::instance();
-//    BDDNode* prop=bdd->getFalse();
-//
-//    Inference* inf=cl->inference();
-//    Inference::Iterator it=inf->iterator();
-//    while (inf->hasNext(it)) {
-//      Unit* premu=inf->next(it);
-//      if (!premu->isClause()) {
-//	//the premise comes from preprocessing
-//	continue;
-//      }
-//      Clause* prem=static_cast<Clause*>(premu);
-//      if (!prem->prop()) {
-//	//the premise comes from preprocessing
-//	continue;
-//      }
-//
-//      prop=bdd->disjunction(prop, prem->prop());
-//    }
-//
-//    cl->initProp(prop);
-//    if (!bdd->isTrue(prop)) {
-//      InferenceStore::instance()->recordNonPropInference(cl);
-//    }
-//  }
-
-   
   if (env.options->showNew()) {
     env.beginOutput();
     env.out() << "[SA] new: " << cl->toString() << std::endl;
@@ -1152,7 +1119,6 @@ void SaturationAlgorithm::initAlgorithmRun()
   init();
 }
 
-
 UnitList* SaturationAlgorithm::collectSaturatedSet()
 {
   CALL("SaturationAlgorithm::collectSaturatedSet");
@@ -1415,17 +1381,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_symEl=new SymElOutput();
   }
 
-  // switch(opt.splitting()) {
-  // case Options::SM_OFF:
-  //  break;
-  // case Options::SM_BACKTRACKING:
-  //   res->_splitter=new BSplitter();
-  //   break;
-  //case Options::SM_INPUT:
-  //  res->_splitter=new SWBSplitterWithoutBDDs();
-  //  break;
-  //case Options::SM_SAT:
-  // Splitting is now either on or off. If on it using SSplitter
   if(opt.splitting()){
     res->_splitter = new Splitter();
   }

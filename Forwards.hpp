@@ -350,6 +350,7 @@ class SATInference;
 
 class SATSolver;
 typedef ScopedPtr<SATSolver> SATSolverSCP;
+typedef Lib::SmartPtr<SATSolver> SATSolverSP;
 class TWLSolver;
 class LingelingInterfacing;
 

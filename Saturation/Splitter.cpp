@@ -19,6 +19,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/RCClauseStack.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/Grounder.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Refutation.hpp"
@@ -62,28 +63,33 @@ void SplittingBranchSelector::init()
   _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
   _handleZeroImplied = _parent.getOptions().splittingHandleZeroImplied();
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
+  _addInstances = _parent.getOptions().splittingWithInstances();
+  _use_niceness = (_parent.getOptions().satVarSelector() == Options::SatVarSelector::NICENESS); 
 
-  switch(_parent.getOptions().satSolver()){
-    case Options::SatSolver::BUFFERED_VAMPIRE:
-      _solver = new BufferedSolver(new TWLSolver(_parent.getOptions(),true));
-      break;
-    case Options::SatSolver::VAMPIRE:  
-      _solver = new TWLSolver(_parent.getOptions(), true);
-      break;
-    case Options::SatSolver::BUFFERED_LINGELING: 
-      _solver = new BufferedSolver(new LingelingInterfacing(_parent.getOptions(), true));
-      break;
-    case Options::SatSolver::LINGELING: 
-      _solver = new LingelingInterfacing(_parent.getOptions(), true);
-      break;
-    case Options::SatSolver::BUFFERED_MINISAT:
-      _solver = new BufferedSolver(new MinisatInterfacing(_parent.getOptions(),true));
-      break;
-    case Options::SatSolver::MINISAT:
-      _solver = new MinisatInterfacing(_parent.getOptions(),true);
-      break;      
-    default:
-      ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
+  // We set the SATSolver unless it has been set already by setSATSolver
+  if(!_solver.ptr()){
+    switch(_parent.getOptions().satSolver()){
+      case Options::SatSolver::BUFFERED_VAMPIRE:
+        _solver = SmartPtr<SATSolver>(new BufferedSolver(new TWLSolver(_parent.getOptions(),true)));
+        break;
+      case Options::SatSolver::VAMPIRE:  
+        _solver = SmartPtr<SATSolver>(new TWLSolver(_parent.getOptions(), true));
+        break;
+      case Options::SatSolver::BUFFERED_LINGELING: 
+        _solver = SmartPtr<SATSolver>(new BufferedSolver(new LingelingInterfacing(_parent.getOptions(), true)));
+        break;
+      case Options::SatSolver::LINGELING: 
+        _solver = SmartPtr<SATSolver>(new LingelingInterfacing(_parent.getOptions(), true));
+        break;
+      case Options::SatSolver::BUFFERED_MINISAT:
+        _solver = SmartPtr<SATSolver>(new BufferedSolver(new MinisatInterfacing(_parent.getOptions(),true)));
+        break;
+      case Options::SatSolver::MINISAT:
+        _solver = SmartPtr<SATSolver>(new MinisatInterfacing(_parent.getOptions(),true));
+        break;      
+      default:
+        ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
+    }
   }
 
   switch(_parent.getOptions().splittingMinimizeModel()){
@@ -91,10 +97,10 @@ void SplittingBranchSelector::init()
       // Do nothing - we don't want to minimise the model
       break;
     case Options::SplittingMinimizeModel::ALL:
-      _solver = new MinimizingSolver(_solver.release(),false);
+      _solver = SmartPtr<SATSolver>(new MinimizingSolver(_solver.release(),false));
       break;
     case  Options::SplittingMinimizeModel::SCO:
-      _solver = new MinimizingSolver(_solver.release(),true);
+      _solver = SmartPtr<SATSolver>(new MinimizingSolver(_solver.release(),true));
       break;
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
@@ -102,7 +108,7 @@ void SplittingBranchSelector::init()
 
 
 #if DEBUG_MIN_SOLVER
-  _solver = new Test::CheckedSatSolver(_solver.release());
+  _solver = SmartPtr<SATSolver>(new Test::CheckedSatSolver(_solver.release()));
 #endif
 
   //Giles. Currently false by default.
@@ -122,6 +128,7 @@ void SplittingBranchSelector::updateVarCnt()
   _solver->ensureVarCnt(satVarCnt);
   _selected.expand(splitLvlCnt);
   _zeroImplieds.expand(satVarCnt,false);
+  _fromHere.expand(satVarCnt,false);
 }
 
 /**
@@ -208,6 +215,47 @@ void SplittingBranchSelector::processDPConflicts()
   }
 }
 
+void SplittingBranchSelector::recordVarUsage(SATLiteral lit, Clause* component){
+  CALL("SplittingBranchSelector::recordVarUsage");
+
+  // This is where we record that a variable is from here!
+
+  updateVarCnt();
+  if(!_fromHere[lit.var()] && _addInstances){
+
+    ASS(component);
+    cout << "record " << lit.toString() << " as " << component->toString() << endl;
+
+    ASS(_gnd.ptr());
+    SATClauseIterator sc = _gnd->ground(component,_use_niceness,true);// the true means ignore splits
+    sc = Preprocess::removeDuplicateLiterals(sc);
+    while(sc.hasNext()){
+      SATClause* cl = sc.next();
+      // add -satVar to this
+      SATLiteralStack lit_stack;
+      unsigned clen = cl->length();
+      for(unsigned i=0;i<clen;i++){
+        lit_stack.push((*cl)[i]); 
+      }
+      // inverse polarity of lit
+      lit = SATLiteral(lit.var(),lit.oppositePolarity());
+      lit_stack.push(lit);
+
+      SATClause* to_add = SATClause::fromStack(lit_stack);
+      to_add->setInference(SATInference::copy(cl->inference()));
+
+      cout << "Adding " << to_add->toString() << " as instance SAT clause" << endl;
+
+      instanceClauses.push(to_add);  
+
+      cl->destroy(); // tidy up
+
+    }
+  }
+
+  _fromHere[lit.var()] = true;
+}
+
 void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
     SplitLevelStack& addedComps, SplitLevelStack& removedComps)
 {
@@ -264,8 +312,10 @@ void SplittingBranchSelector::addSatClauses(
   CALL("SplittingBranchSelector::addSatClauses");
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
+  updateVarCnt();
 
   TimeCounter tc(TC_SPLITTING_COMPONENT_SELECTION);
+
 
   RSTAT_CTR_INC_MANY("ssat_sat_clauses",regularClauses.size()+conflictClauses.size());
   {
@@ -274,6 +324,10 @@ void SplittingBranchSelector::addSatClauses(
     _solver->addClauses(pvi( SATClauseStack::ConstIterator(regularClauses) ), false,true);
     // ... but not the clauses derived from conflicts
     _solver->addClauses(pvi( SATClauseStack::ConstIterator(conflictClauses) ), false,false);
+    // ... or instance clauses
+    _solver->addClauses(pvi( SATClauseStack::ConstIterator(instanceClauses) ),false,false);
+    // We clear the instance clauses once they've been added
+    instanceClauses.reset();
     processDPConflicts();
   }
 
@@ -286,11 +340,13 @@ void SplittingBranchSelector::addSatClauses(
   unsigned maxSatVar = _parent.maxSatVar();
   unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
-    SATSolver::VarAssignment asgn = _solver->getAssignment(i);            
-    updateSelection(i, asgn, addedComps, removedComps);
+    if(_fromHere[i]){
+      SATSolver::VarAssignment asgn = _solver->getAssignment(i);            
+      updateSelection(i, asgn, addedComps, removedComps);
     
-    if (asgn != SATSolver::DONT_CARE) {
-      _usedcnt++;
+      if (asgn != SATSolver::DONT_CARE) {
+        _usedcnt++;
+      }
     }
   }
   if(maxSatVar>=1){
@@ -310,6 +366,8 @@ void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack
   CALL("SplittingBranchSelector::flush");
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
+
+  updateVarCnt();
   
   if(_solver->getStatus()==SATSolver::UNKNOWN) {    
   	TimeCounter tca(TC_SAT_SOLVER);
@@ -324,11 +382,13 @@ void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack
   unsigned maxSatVar = _parent.maxSatVar();
   unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
-    SATSolver::VarAssignment asgn = _solver->getAssignment(i);
-    updateSelection(i, asgn, addedComps, removedComps);
+    if(_fromHere[i]){
+      SATSolver::VarAssignment asgn = _solver->getAssignment(i);
+      updateSelection(i, asgn, addedComps, removedComps);
     
-    if (asgn != SATSolver::DONT_CARE) {
-      _usedcnt++;
+      if (asgn != SATSolver::DONT_CARE) {
+        _usedcnt++;
+      }
     }
   }
   if(maxSatVar>=1){
@@ -352,10 +412,12 @@ void SplittingBranchSelector::getNewZeroImpliedSplits(SplitLevelStack& res)
   if (!_handleZeroImplied) {
     return;
   }    
-  
+
+  updateVarCnt();  
+
   unsigned maxSatVar = _parent.maxSatVar();
   for(unsigned i=1; i<=maxSatVar; i++) {
-    if (!_zeroImplieds[i] && _solver->isZeroImplied(i)) {
+    if (_fromHere[i] && !_zeroImplieds[i] && _solver->isZeroImplied(i)) {
       _zeroImplieds[i] = true;
       
       SplitLevel posLvl = _parent.getNameFromLiteral(SATLiteral(i, true));
@@ -442,16 +504,17 @@ SplitLevel Splitter::getNameFromLiteralUnsafe(SATLiteral lit) const
 
   return (lit.var()-1)*2 + (lit.polarity() ? 0 : 1);
 }
-SATLiteral Splitter::getLiteralFromName(SplitLevel compName) const
+SATLiteral Splitter::getLiteralFromName(SplitLevel compName) 
 {
   CALL("Splitter::getLiteralFromName");
   ASS_L(compName, _db.size());
 
   unsigned var = compName/2 + 1;
   bool polarity = (compName&1)==0;
+
   return SATLiteral(var, polarity);
 }
-void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const
+void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) 
 {
   SplitSet::Iterator sit(*splits);
   while(sit.hasNext()) {
@@ -484,6 +547,7 @@ void Splitter::recordSATClauseForAddition(SATClause* cl, bool branchRefutation)
   } else {
     _regularClausesToBeAdded.push(cl);
   }  
+
 }
 
 void Splitter::onAllProcessed()
@@ -747,6 +811,7 @@ bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
 
+
   if (_fastRestart && _conflictClausesToBeAdded.size() > 0) {
     _fastClauses.push(cl);
     return true; // the clause is ours now
@@ -876,14 +941,22 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
   SplitLevel compName = getNameFromLiteralUnsafe(posLit);
   ASS_EQ(compName&1,0); //positive levels are even
   ASS_GE(compName,_db.size());
-  _db.push(0);
-  _db.push(0);
+
+  // Might need to expand _db by an arbitary amount
+  while(compName>=_db.size()){
+    _db.push(0);
+    _db.push(0);
+  }
   ASS_L(compName,_db.size());
 
   _branchSelector.updateVarCnt();
   _branchSelector.considerPolarityAdvice(posLit);
 
   compCl = buildAndInsertComponentClause(compName, size, lits, orig);
+
+  // This records that the var is used in splitting and adds the instance
+  // for this component to the SATSolver if required
+  _branchSelector.recordVarUsage(posLit,compCl);
 
   return compName;
 }
@@ -897,14 +970,27 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
   SATLiteral satLit = _sat2fo.toSAT(lit);
   SplitLevel compName = getNameFromLiteralUnsafe(satLit);
 
-  if(compName>=_db.size()) {
+  if(compName < _db.size()){ 
+    // This means can be caused by two conditions
+    // - if splitting_add_complementary is none then the complementary
+    //    ground literal was added but this was not, so there is a space
+    //    for this lit but it has not been recorded
+    // - if using inst_gen with resolution and sat sharing this ground
+    //    component we might have the following situation
+    //    * inst gen produces lit as a ground component, giving it a compName > _db.size
+    //    * saturation produces some components, which fast forwards _db.size to after
+    //       this point so that those components can be recorded
+   //     * saturation produces lit, which 
+    if(env.options->instGenWithResolution() && env.options->instGenWithSATSharing()){
+      cout << "Produced " << lit->toString() << ", which must be in inst_gen" << endl;
+    }else{
+      ASS_EQ(_complBehavior,Options::SplittingAddComplementary::NONE);
+    }
+   }
+  // Might need to expand _db by an arbitary amount
+  while(compName>=_db.size()) {
     _db.push(0);
     _db.push(0);
-  }
-  else {
-    ASS_EQ(_complBehavior,Options::SplittingAddComplementary::NONE); 
-    //otherwise the complement would have been created below ...
-    // ... in the respective previous pass through this method 
   }
   ASS_L(compName,_db.size());
 

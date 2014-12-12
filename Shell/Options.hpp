@@ -7,9 +7,9 @@
  * Firstly, the easiest thing to do is copy what's been done for an existing option
  *
  * In Options.hpp
- * - Add an OptionValue object (see NOTE on OptionValues below) 
- * - Add enum for choices if ChoiceOptionValue
- * - Add getter for OptionValue
+ * - Add an OptionValue object at the bottom of this file (search for "NOTE on OptionValues") 
+ * - Add enum for choices if ChoiceOptionValue (search for "Enums for OptionValues")
+ * - Add getter for OptionValue (search for "Getter functions")
  * - Only if necessary (usually not), add setter for OptionValue
  *
  * In Options.cpp
@@ -747,7 +747,7 @@ private:
     };
     
     /**
-     * We now define particular OptionValues, see NOTE on OptionValues for high level usage
+     * We now define particular OptionValues, see below for high level usage
      */
     
     /**
@@ -1657,6 +1657,7 @@ public:
   vstring namePrefix() const { return _namePrefix.actualValue; }
   bool timeStatistics() const { return _timeStatistics.actualValue; }
   bool splitting() const { return _splitting.actualValue; }
+  bool splittingWithInstances() const { return _splittingWithInstances.actualValue; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
   unsigned sineDepth() const { return _sineDepth.actualValue; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
@@ -1692,6 +1693,7 @@ public:
   float instGenRestartPeriodQuotient() const { return _instGenRestartPeriodQuotient.actualValue; }
   int instGenSelection() const { return _instGenSelection.actualValue; }
   bool instGenWithResolution() const { return _instGenWithResolution.actualValue; }
+  bool instGenWithSATSharing() const { return _instGenWithSATSharing.actualValue; }
 
   float satClauseActivityDecay() const { return _satClauseActivityDecay.actualValue; }
   SatClauseDisposer satClauseDisposer() const { return _satClauseDisposer.actualValue; }
@@ -1925,6 +1927,7 @@ private:
   IntOptionValue _instGenRestartPeriod;
   FloatOptionValue _instGenRestartPeriodQuotient;
   BoolOptionValue _instGenWithResolution;
+  BoolOptionValue _instGenWithSATSharing;
   BoolOptionValue _interpretedSimplification;
 
   StringOptionValue _latexOutput;
@@ -2016,6 +2019,7 @@ private:
   BoolOptionValue _smtlibIntroduceAIGNames;
   ChoiceOptionValue<Sos> _sos;
   BoolOptionValue _splitting;
+  BoolOptionValue _splittingWithInstances;
   BoolOptionValue _splitAtActivation;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   ChoiceOptionValue<SplittingComponentSweeping> _splittingComponentSweeping;
