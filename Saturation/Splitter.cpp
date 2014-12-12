@@ -92,6 +92,7 @@ void SplittingBranchSelector::init()
     }
   }
 
+  // Even if the SAT Solver is set we might still wrap it up in a minimizer
   switch(_parent.getOptions().splittingMinimizeModel()){
     case Options::SplittingMinimizeModel::OFF:
       // Do nothing - we don't want to minimise the model
@@ -116,6 +117,12 @@ void SplittingBranchSelector::init()
     // ASSERTION_VIOLATION_REP("Is this ever turned on?");
     _dp = new ShortConflictMetaDP(new DP::SimpleCongruenceClosure(), _parent.satNaming(), *_solver);
   }
+
+  // If we are going to use the grounder we need to ensure it is set
+  if(_addInstances && !_gnd.ptr()){
+    _gnd = SmartPtr<IGGrounder>(new  IGGrounder(_solver)); // Do we need to pass it _solver, this is just for niceness but I'm not sure this is applicable outside of instance generation
+  }
+
 }
 
 void SplittingBranchSelector::updateVarCnt()
