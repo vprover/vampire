@@ -154,7 +154,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("dis+1011_6_bs=off:drc=off:ep=on:fde=none:nwc=1.1:sio=off:spl=sat:sser=off:ssnc=none_38");
 	quick.push("dis+10_8:1_bs=off:br=off:cond=fast:drc=off:ep=RST:gsp=input_only:nwc=1:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none:urr=on_29");
 	quick.push("ott+11_2:3_bs=off:drc=off:flr=on:lcm=predicate:nwc=2.5:sio=off:spl=sat:sser=off:ssfp=100000:ssnc=none:sp=occurrence_57");
-	quick.push("ott-11_2:3_bs=off:drc=off:fsr=off:lcm=predicate:nwc=5:nicw=on:sac=on:sio=off:spo=on:sp=reverse_arity_26");
+	quick.push("ott-11_2:3_bs=off:drc=off:fsr=off:lcm=predicate:nwc=5:nicw=on:sac=ground:sio=off:spo=on:sp=reverse_arity_26");
 	quick.push("dis-1002_2:3_bs=off:drc=off:gsp=input_only:nwc=1.7:sos=all:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none:sp=occurrence_3");
 	quick.push("dis+1011_64_bs=off:drc=off:nwc=2:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none_1");
 	quick.push("dis-11_28_bs=off:drc=off:flr=on:lcm=predicate:nwc=1.7:sos=on:sio=off:spl=sat:ssfq=1.0:ssnc=none_48");
@@ -163,7 +163,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("ott+11_50_bd=off:bs=off:drc=off:ep=on:lcm=reverse:nwc=5:nicw=on:sio=off:spl=sat:sser=off:ssnc=none:sfv=off_56");
 	quick.push("dis+11_8:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=reverse:nwc=1.7:sos=on:sio=off:spl=sat:ssfq=2.0:ssnc=none:sp=occurrence_33");
 	quick.push("dis+10_1024_bs=off:drc=off:flr=on:fsr=off:nwc=1.1:sio=off:spl=sat:ssfq=1.4:ssnc=none_76");
-	quick.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=on:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_65");
+	quick.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=ground:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_65");
 	quick.push("ott+1011_8:1_bs=off:cond=fast:drc=off:nwc=1.3:sos=all:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none_72");
 	quick.push("lrs+2_64_bd=off:bs=off:br=off:cond=on:drc=off:flr=on:fde=none:nwc=1.7:stl=30:sio=off:spl=sat:ssfp=1000:ssfq=1.4:ssnc=none:urr=on_54");
 	quick.push("lrs+1011_14_bd=off:bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=1.7:stl=60:sio=off:spo=on:spl=sat:ssfp=1000:ssfq=1.0:ssnc=none:urr=on_211");
@@ -191,7 +191,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("dis+11_8:1_bs=off:cond=fast:drc=off:ep=on:nwc=10:nicw=on:sio=off:spl=sat:ssnc=none:urr=on_8");
 	quick.push("ott+10_4:1_bd=off:bs=off:bsr=unit_only:drc=off:nwc=2:nicw=on:sos=all:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none:urr=on:updr=off_95");
 	quick.push("ott+2_1_bs=off:cond=on:drc=off:ep=on:nwc=1.7:nicw=on:ss=axioms:sos=all:sio=off:urr=on_23");
-	quick.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=on:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_2");
+	quick.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=ground:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_2");
 	quick.push("ott+1011_3_bs=off:cond=on:drc=off:ep=on:fde=none:nwc=1.2:sio=off:spl=sat:ssfq=1.4:ssnc=none_69");
 	quick.push("dis+4_8:1_bs=off:drc=off:ep=RS:nwc=2:sd=2:ss=axioms:st=3.0:sos=all:sio=off:spl=sat:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=none_20");
 	quick.push("ins+2_5_bs=off:cond=fast:ep=RSTC:flr=on:gs=on:igbrr=0.7:igrr=1/4:igrp=700:igrpq=1.2:igwr=on:lcm=reverse:nwc=2:sio=off:urr=on_5");
@@ -215,7 +215,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("ott+1011_3_bs=off:cond=on:drc=off:ep=on:fde=none:nwc=1.2:sio=off:spl=sat:ssfq=1.4:ssnc=none_27");
 	quick.push("dis+10_10_bs=off:cond=fast:drc=off:gs=on:nwc=1.7:nicw=on:sd=1:ss=axioms:st=3.0_2");
 	quick.push("dis-1002_5:1_bs=off:cond=fast:drc=off:ep=on:nwc=1.1:sd=4:ss=axioms:sos=on:sio=off:spl=sat:urr=on_17");
-	quick.push("ott-11_2:3_bs=off:drc=off:fsr=off:lcm=predicate:nwc=5:nicw=on:sac=on:sio=off:spo=on:sp=reverse_arity_14");
+	quick.push("ott-11_2:3_bs=off:drc=off:fsr=off:lcm=predicate:nwc=5:nicw=on:sac=ground:sio=off:spo=on:sp=reverse_arity_14");
 	quick.push("dis+11_4:1_bs=off:drc=off:gsp=input_only:nwc=3:sos=on_23");
 	quick.push("dis+4_8:1_bs=off:drc=off:ep=RS:nwc=2:sd=2:ss=axioms:st=3.0:sos=all:sio=off:spl=sat:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=none_2");
 	quick.push("dis+2_24_bs=off:cond=fast:drc=off:fsr=off:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=sat:sser=off:ssfp=100000:ssfq=2.0:ssnc=none_2");
@@ -226,7 +226,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("ott-1010_2:1_bs=off:cond=fast:drc=off:nwc=3:sd=1:ss=axioms:st=2.0:sio=off:spl=sat:sser=off:ssnc=none_36");
 	quick.push("dis+1_8:1_bs=off:drc=off:lcm=reverse:nwc=1.5:sos=all:sio=off:spl=sat:ssfq=2.0:ssnc=none:sfv=off_90");
 	quick.push("ott+1_10_bd=off:bs=off:drc=off:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:sos=on:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none_111");
-	quick.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=on:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_246");
+	quick.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=ground:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_246");
 	quick.push("lrs+2_3:1_bs=off:br=off:cond=fast:drc=off:flr=on:nwc=4:stl=60:sio=off:spo=on:spl=sat:sser=off:ssfq=1.2:ssnc=none:sp=reverse_arity:urr=on_250");
 	quick.push("lrs+1011_14_bd=off:bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=1.7:stl=60:sio=off:spo=on:spl=sat:ssfp=1000:ssfq=1.0:ssnc=none:urr=on_549");
       }
@@ -243,7 +243,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("dis+2_24_bs=off:cond=fast:drc=off:fsr=off:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=sat:sser=off:ssfp=100000:ssfq=2.0:ssnc=none_4");
       quick.push("dis+11_24_bs=off:cond=fast:drc=off:nwc=2.5:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none:urr=on_1");
       quick.push("dis+10_1_bs=off:cond=fast:drc=off:lcm=predicate:nwc=1.5:sos=on:sio=off:spl=sat:sser=off:ssnc=none_19");
-      quick.push("lrs-1010_3_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:nwc=1.1:nicw=on:stl=30:sos=on:sac=on:sio=off_3");
+      quick.push("lrs-1010_3_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:nwc=1.1:nicw=on:stl=30:sos=on:sac=ground:sio=off_3");
       quick.push("dis+11_20_bs=off:cond=fast:fde=none:lcm=reverse:nwc=3:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.2:ssnc=none:sp=reverse_arity_9");
       quick.push("lrs-1002_6_bs=off:bsr=unit_only:cond=fast:fde=none:gsp=input_only:lcm=reverse:nwc=1:stl=30:spl=sat:sser=off:ssfq=1.2:ssnc=none:sp=occurrence_11");
       quick.push("dis-1002_3:2_bs=off:cond=fast:drc=off:ep=RST:flr=on:fde=none:lcm=predicate:nwc=10:nicw=on:sio=off:spl=sat:ssfq=2.0:ssnc=none:updr=off_8");
@@ -301,7 +301,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       }
     }
     else if (prop == 1) {
-      quick.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:stl=30:sac=on:sio=off_14");
+      quick.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:stl=30:sac=ground:sio=off_14");
       quick.push("dis-1003_128_drc=off:nwc=1.3:sos=all:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none_40");
       quick.push("lrs+3_40_bs=unit_only:bsr=on:cond=on:drc=off:fsr=off:nwc=1.1:nicw=on:stl=100:sio=off:spl=sat:ssfq=1.2:ssnc=none:urr=on:updr=off_645");
       quick.push("dis+10_64_bd=off:cond=fast:drc=off:nwc=3:sos=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.1:ssnc=none_115");
@@ -317,7 +317,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("dis-1004_1024_bs=off:cond=fast:drc=off:nwc=1.3:sio=off:spl=sat:ssfq=1.4:ssnc=none_72");
       quick.push("ott+11_3_bd=off:bs=unit_only:bsr=unit_only:drc=off:fsr=off:nwc=1.5:sio=off:spo=on:spl=sat:ssfp=10000:ssfq=1.2:ssnc=none_39");
       quick.push("ott+2_20_bs=off:cond=fast:drc=off:fde=none:nwc=2:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none:sp=occurrence_116");
-      quick.push("ott-1003_8_bs=off:bsr=on:cond=on:drc=off:fsr=off:gs=on:nwc=5:sac=on:sio=off:sp=occurrence_156");
+      quick.push("ott-1003_8_bs=off:bsr=on:cond=on:drc=off:fsr=off:gs=on:nwc=5:sac=ground:sio=off:sp=occurrence_156");
       quick.push("ins+1_20_bsr=on:br=off:cond=fast:drc=off:fsr=off:fde=none:igbrr=0.3:igrr=1/32:igrp=4000:igrpq=2.0:igwr=on:lcm=reverse:nwc=1.2:sgo=on:sio=off:sp=occurrence:urr=on_159");
       quick.push("ott+3_128_bs=off:drc=off:nwc=1.1:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none:sp=occurrence_321");
     }
@@ -379,7 +379,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("dis-1002_8_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:nwc=1.7:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=sat:sser=off:updr=off_15");
 	quick.push("ott+1011_5:4_bs=off:cond=fast:drc=off:flr=on:fsr=off:nwc=2:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_63");
 	quick.push("ott+10_8:1_bd=off:bs=off:cond=fast:drc=off:flr=on:nwc=1.3:sio=off:spl=sat:sser=off:ssfq=1.4:ssnc=none:urr=on_15");
-	quick.push("dis-1010_3:2_bs=off:drc=off:ep=on:nwc=3:sac=on:sgo=on:sio=off:spo=on:sfv=off_41");
+	quick.push("dis-1010_3:2_bs=off:drc=off:ep=on:nwc=3:sac=ground:sgo=on:sio=off:spo=on:sfv=off_41");
 	quick.push("dis+10_8:1_bs=off:br=off:cond=on:drc=off:ep=RST:fsr=off:nwc=1.3:sd=4:ss=axioms:st=3.0:spl=sat:sser=off:ssfq=2.0:ssnc=none:urr=on_89");
 	quick.push("ins-1003_7_bs=off:ep=RSTC:flr=on:igbrr=0.0:igrr=1/128:igrp=1400:igrpq=1.1:igwr=on:nwc=1.3:sos=on:sio=off:spl=off_223");
 	quick.push("lrs+1011_8:1_bd=off:bs=off:bsr=unit_only:cond=fast:drc=off:fde=none:nwc=1:nicw=on:stl=240:sos=all:sio=off:spo=on:ssac=none:ssfp=1000:ssfq=1.1:ssnc=all_dependent_737");
@@ -401,7 +401,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("lrs+1_6_bs=off:drc=off:nwc=3:stl=360:sos=all:sio=off:spl=sat:ssac=none:sscc=on:sser=off:ssfp=100000:ssfq=2.0:ssnc=none:sp=reverse_arity:updr=off_167");
 	quick.push("ins+10_2:3_bs=unit_only:flr=on:fde=none:igbrr=0.7:igrr=1/32:igrp=200:igrpq=1.0:igwr=on:lcm=predicate:nwc=1.7:sd=2:ss=axioms:st=3.0:sos=all:sio=off:spl=off_92");
 	quick.push("lrs-1004_32_bs=off:br=off:cond=fast:drc=off:flr=on:gs=on:lcm=reverse:nwc=1:nicw=on:stl=30:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none:urr=on_132");
-	quick.push("dis-1_3_bsr=unit_only:drc=off:lcm=reverse:nwc=4:sos=all:sac=on:sgo=on:sio=off:spo=on:sp=reverse_arity_144");
+	quick.push("dis-1_3_bsr=unit_only:drc=off:lcm=reverse:nwc=4:sos=all:sac=ground:sgo=on:sio=off:spo=on:sp=reverse_arity_144");
 	quick.push("lrs-1010_7_bs=unit_only:bsr=unit_only:cond=fast:drc=off:ep=on:flr=on:lcm=predicate:nwc=1.7:stl=30:sgo=on:spo=on:spl=sat:ssfq=1.1:ssnc=none:sp=occurrence_291");
 	quick.push("ott+1011_5:4_bs=off:cond=fast:drc=off:flr=on:fsr=off:nwc=2:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_298");
       }
@@ -439,7 +439,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     else if (prop == 0) {
       if (atoms < 8) {
       quick.push("ott+10_4_bs=off:drc=off:nwc=3:nicw=on:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none:sp=occurrence_1");
-      quick.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=on:sio=off:urr=on_424");
+      quick.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=ground:sio=off:urr=on_424");
       quick.push("lrs+1011_8_bd=off:bs=unit_only:bsr=on:drc=off:lcm=reverse:nwc=1:nicw=on:stl=270:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.0:ssnc=none:sp=occurrence_1841");
       }
       else if (atoms < 12) {
@@ -480,7 +480,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("ins-1010_3:2_bs=unit_only:drc=off:ep=on:fde=none:igbrr=0.5:igrr=1/128:igrpq=1.3:igwr=on:nwc=1.7_30");
 	quick.push("dis+1011_3_bs=off:cond=fast:drc=off:fsr=off:fde=none:gs=on:nwc=1.1:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none_71");
 	quick.push("dis-1010_4:1_bs=off:drc=off:lcm=predicate:nwc=2:nicw=on:sio=off_165");
-	quick.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=on:sio=off:urr=on_498");
+	quick.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=ground:sio=off:urr=on_498");
 	quick.push("ott+11_10_bs=off:bsr=unit_only:cond=fast:drc=off:flr=on:nwc=1:nicw=on:sio=off:spo=on:spl=sat:sser=off:ssfp=4000:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=on_929");
       }
       else {
@@ -488,8 +488,8 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("ins-1010_3:2_bs=unit_only:drc=off:ep=on:fde=none:igbrr=0.5:igrr=1/128:igrpq=1.3:igwr=on:nwc=1.7_55");
 	quick.push("ott+11_1024_bd=off:bs=off:br=off:cond=fast:drc=off:ep=RSTC:nwc=1:sio=off:spl=sat:ssfq=1.2:ssnc=none:urr=on_127");
 	quick.push("dis+4_10_bs=off:drc=off:flr=on:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:sio=off:spl=sat:ssfp=10000:ssfq=1.4:ssnc=none_274");
-	quick.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=on:sio=off:urr=on_560");
-	quick.push("dis-1010_3:1_bd=off:bs=off:cond=fast:gs=on:lcm=reverse:nwc=1.1:sac=on_505");
+	quick.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=ground:sio=off:urr=on_560");
+	quick.push("dis-1010_3:1_bd=off:bs=off:cond=fast:gs=on:lcm=reverse:nwc=1.1:sac=ground_505");
       }
     }
     else if (prop == 131087) {
@@ -499,7 +499,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("dis+10_8:1_bs=off:cond=fast:drc=off:lcm=predicate:nwc=1.1:nicw=on:sd=2:sgt=5:ss=axioms:st=5.0:sos=on:spl=sat:sp=reverse_arity_39");
 	quick.push("ott+1_2_bs=off:drc=off:ep=on:nwc=3:nicw=on:sd=2:sgt=20:ss=axioms:sos=on:sagn=off:spl=sat:sser=off_43");
 	quick.push("ott+2_3:1_bs=off:br=off:drc=off:nwc=1.1:nicw=on:sd=3:ss=axioms:st=3.0:sos=all:sio=off:spl=off:urr=on_22");
-	quick.push("dis-1010_2:3_bs=off:drc=off:nwc=3:sd=2:ss=axioms:st=1.5:sac=on:sio=off_20");
+	quick.push("dis-1010_2:3_bs=off:drc=off:nwc=3:sd=2:ss=axioms:st=1.5:sac=ground:sio=off_20");
 	quick.push("dis+1_3_bs=off:cond=on:drc=off:lcm=predicate:nwc=2.5:sd=1:ss=included:st=2.0:sagn=off:sio=off:spl=sat:sser=off:ssnc=none_134");
 	quick.push("dis+1011_10_bs=off:drc=off:nwc=1.3:nicw=on:sd=2:ss=axioms:st=1.5:sos=on:sio=off:spl=sat:sser=off_95");
 	quick.push("dis+11_3:1_bs=off:br=off:cond=on:drc=off:ep=on:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:sio=off:spl=sat:sser=off:urr=on_24");
@@ -578,12 +578,12 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("lrs-11_12_bs=off:drc=off:fde=none:gsp=input_only:gs=on:lcm=predicate:nwc=4:nicw=on:stl=300:sos=all:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.2:ssnc=none:sfv=off:sp=occurrence:urr=on:updr=off_1612");
       }
       else if (atoms > 900) {
-	quick.push("lrs+1_5_bs=off:cond=fast:drc=off:flr=on:nwc=10:stl=30:sac=on:sio=off:urr=on_6");
+	quick.push("lrs+1_5_bs=off:cond=fast:drc=off:flr=on:nwc=10:stl=30:sac=ground:sio=off:urr=on_6");
 	quick.push("ott+1_5:1_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=5:ss=axioms:sos=all_40");
 	quick.push("ott-1002_5:1_bs=off:bsr=on:cond=fast:drc=off:gsp=input_only:nwc=2:sos=all:sio=off:spo=on:urr=on_2");
 	quick.push("ott+1011_3:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:nwc=1.5:sd=3:ss=axioms:sos=all:sio=off:spl=off_47");
 	quick.push("dis+1011_4_bs=off:drc=off:nwc=4:sgo=on_58");
-	quick.push("dis+1010_2:3_bs=off:bsr=unit_only:drc=off:ep=on:fsr=off:fde=none:lcm=predicate:nwc=1.5:sos=on:sac=on:sio=off:spo=on:sp=occurrence_424");
+	quick.push("dis+1010_2:3_bs=off:bsr=unit_only:drc=off:ep=on:fsr=off:fde=none:lcm=predicate:nwc=1.5:sos=on:sac=ground:sio=off:spo=on:sp=occurrence_424");
 	quick.push("ott+2_20_cond=fast:drc=off:flr=on:lcm=reverse:nwc=1.1:nicw=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.2:ssnc=none:sp=reverse_arity:updr=off_249");
 	quick.push("ott-1010_4:1_bs=off:bsr=on:cond=on:drc=off:fde=none:gsp=input_only:nwc=2.5:sd=1:ss=axioms:sos=all:spl=sat:ssfq=1.0:ssnc=none_287");
 	quick.push("ott-1010_3_bd=off:bs=off:bsr=unit_only:drc=off:fde=none:nwc=1:nicw=on:sos=all:sio=off:spl=sat:ssfp=10000:ssfq=2.0:ssnc=none:sp=reverse_arity:updr=off_325");
@@ -625,7 +625,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("dis+2_4_bs=off:br=off:drc=off:nwc=1.2:sd=2:ss=axioms:st=2.0:sio=off:urr=on_24");
 	quick.push("ott-1010_2:3_bs=off:cond=fast:drc=off:nwc=1.7:sos=on:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none_9");
 	quick.push("dis+1010_32_cond=fast:drc=off:ep=RS:fsr=off:nwc=1.7:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none_66");
-	quick.push("lrs-1002_3_bd=off:bs=off:drc=off:ep=on:nwc=1.7:stl=150:sos=on:sac=on:sio=off_21");
+	quick.push("lrs-1002_3_bd=off:bs=off:drc=off:ep=on:nwc=1.7:stl=150:sos=on:sac=ground:sio=off_21");
 	quick.push("tab+10_1_ep=RST:gsp=input_only:sd=4:ss=axioms:st=2.0:sio=off:tbsr=off:tgawr=1/32:tglr=1/5:tipr=off:tlawr=8/1_73");
 	quick.push("ott+1011_3:1_bs=off:cond=fast:drc=off:fde=none:gsp=input_only:nwc=1.5:sd=3:ss=axioms:sos=all:sio=off:spl=off_183");
 	quick.push("ott-1002_5:1_bs=off:bsr=on:cond=fast:drc=off:gsp=input_only:nwc=2:sos=all:sio=off:spo=on:urr=on_122");
@@ -654,11 +654,11 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("lrs-11_6_bs=off:bsr=unit_only:drc=off:gsp=input_only:lcm=predicate:nwc=10:stl=30:sos=on:sio=off:spl=sat:ssfq=1.4:ssnc=none:urr=on:updr=off_11");
 	quick.push("dis+1011_12_bs=off:drc=off:nwc=5:nicw=on:sio=off:spl=sat:ssfq=1.2:ssnc=none_68");
 	quick.push("dis+2_4_bs=off:cond=on:drc=off:ep=on:lcm=predicate:nwc=4:sd=1:sgt=2:ss=axioms:st=1.2:sos=on:spl=sat:sser=off:sp=occurrence_19");
-	quick.push("dis-1_3_bsr=unit_only:drc=off:lcm=reverse:nwc=4:sos=all:sac=on:sgo=on:sio=off:spo=on:sp=reverse_arity_146");
+	quick.push("dis-1_3_bsr=unit_only:drc=off:lcm=reverse:nwc=4:sos=all:sac=ground:sgo=on:sio=off:spo=on:sp=reverse_arity_146");
 	quick.push("dis+1_24_bs=off:drc=off:ep=on:lcm=predicate:nwc=3:nicw=on:ss=included:st=5.0:sos=on:sagn=off:spl=sat:sser=off:ssnc=none_33");
 	quick.push("ott+1_8:1_bs=off:cond=fast:drc=off:gsp=input_only:nwc=1.3:nicw=on:sd=2:sgt=10:ss=axioms:sagn=off:spl=sat:sser=off_72");
 	quick.push("ott+1_2:3_bs=off:cond=fast:drc=off:flr=on:lcm=predicate:nwc=1.3:sio=off:spl=sat:sser=off:ssfq=1.2:ssnc=none:sp=reverse_arity:urr=on_20");
-	quick.push("dis-1010_3:2_bs=off:drc=off:ep=on:nwc=3:sac=on:sgo=on:sio=off:spo=on:sfv=off_242");
+	quick.push("dis-1010_3:2_bs=off:drc=off:ep=on:nwc=3:sac=ground:sgo=on:sio=off:spo=on:sfv=off_242");
 	quick.push("ott+1010_5_bd=off:bs=off:cond=fast:drc=off:nwc=2.5:nicw=on:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.1:ssnc=none_189");
 	quick.push("dis+2_16_bs=off:drc=off:ep=on:gsp=input_only:lcm=reverse:nwc=1:sio=off:spl=sat:ssfp=10000:ssfq=1.1:ssnc=none_420");
 	quick.push("ott+1011_2_bs=off:drc=off:nwc=5:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none:updr=off_227");
@@ -692,7 +692,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 	quick.push("lrs+1_6_bs=off:drc=off:nwc=3:stl=360:sos=all:sio=off:spl=sat:ssac=none:sscc=on:sser=off:ssfp=100000:ssfq=2.0:ssnc=none:sp=reverse_arity:updr=off_48");
 	quick.push("ott+1_5_bs=off:drc=off:nwc=4:sio=off:sp=occurrence_245");
 	quick.push("ott+11_24_bs=off:cond=fast:drc=off:fde=none:gs=on:nwc=1.1:nicw=on:sio=off:spl=sat:ssfp=40000:ssfq=1.4:ssnc=none:sp=reverse_arity_178");
-	quick.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=on:sio=off:urr=on_577");
+	quick.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=ground:sio=off:urr=on_577");
 	quick.push("ott+4_14_bs=unit_only:cond=fast:drc=off:nwc=1.2:sio=off:spl=sat:ssfq=2.0:ssnc=none:sp=occurrence_383");
 	quick.push("ins-1010_1_bs=unit_only:drc=off:igbrr=0.0:igrr=1/4:igrp=4000:igrpq=1.0:igwr=on:nwc=1.1_73");
 	quick.push("lrs+10_20_bs=off:cond=on:drc=off:gs=on:nwc=1.1:stl=10:sos=all:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none_80");
@@ -704,7 +704,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("dis+1_2:3_bs=off:drc=off:lcm=predicate:nwc=3:nicw=on:ss=included:st=1.5:sos=on:sagn=off:sio=off:spl=sat:sser=off:sp=occurrence_1");
       quick.push("dis-1002_16_bs=off:cond=fast:drc=off:flr=on:nwc=1:nicw=on:sd=3:ss=axioms:st=1.5:sos=on:sagn=off:sio=off:spl=sat:sser=off_7");
       quick.push("dis-1002_1024_bs=off:cond=on:drc=off:nwc=3:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none_16");
-      quick.push("dis-1010_2:3_bs=off:drc=off:nwc=3:sd=2:ss=axioms:st=1.5:sac=on:sio=off_105");
+      quick.push("dis-1010_2:3_bs=off:drc=off:nwc=3:sd=2:ss=axioms:st=1.5:sac=ground:sio=off_105");
       quick.push("ott-1002_8:1_bd=off:bs=off:bsr=unit_only:cond=fast:drc=off:fde=none:nwc=1.1:sos=all:sio=off:spo=on:sp=occurrence_110");
       quick.push("dis+1003_1024_bs=off:drc=off:fsr=off:nwc=1.7:nicw=on:sos=on:sio=off:spl=sat:ssfq=2.0:ssnc=none_38");
       quick.push("lrs+10_20_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:lcm=predicate:nwc=2.5:stl=80:sos=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.2:ssnc=none_59");
@@ -747,7 +747,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("ott+1011_10_bs=off:cond=on:drc=off:nwc=1.5:nicw=on:sos=on:sio=off:spl=sat:ssnc=none_4");
       quick.push("ins+10_2:3_bs=off:cond=fast:ep=RSTC:igbrr=0.8:igrr=1/2:igrp=100:igrpq=1.0:igwr=on:nwc=2:sos=all:sio=off:urr=on_1");
       quick.push("dis+2_2:3_bs=off:drc=off:lcm=reverse:nwc=2.5:sos=all:sser=off:ssfp=10000:ssfq=2.0:ssnc=all_9");
-      quick.push("dis+4_5:1_bs=off:drc=off:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:ss=axioms:st=2.0:sac=on:sio=off:sp=occurrence:urr=on_3");
+      quick.push("dis+4_5:1_bs=off:drc=off:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:ss=axioms:st=2.0:sac=ground:sio=off:sp=occurrence:urr=on_3");
       quick.push("dis+11_2:3_bs=off:bsr=unit_only:drc=off:ep=R:lcm=reverse:nwc=2:sos=on:sio=off:spl=sat:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=on_1");
       quick.push("dis+1011_28_cond=on:drc=off:nwc=5:nicw=on:sio=off:spl=sat:ssfq=2.0:ssnc=none:updr=off_12");
       quick.push("dis+1011_12_bs=off:cond=fast:drc=off:ep=RS:flr=on:nwc=1.5:nicw=on:sio=off:spl=sat:ssfq=1.4:ssnc=none_1");
@@ -759,8 +759,8 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("ott+11_1024_bd=off:bs=off:br=off:cond=fast:drc=off:ep=RSTC:nwc=1:sio=off:spl=sat:ssfq=1.2:ssnc=none:urr=on_128");
       quick.push("ott+1_5:1_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=5:ss=axioms:sos=all_40");
       quick.push("dis+11_1_bs=off:drc=off:ep=on:flr=on:lcm=predicate:nwc=5:nicw=on:ss=included:st=5.0:sos=all:sagn=off:spl=sat:sser=off:ssnc=none:updr=off_24");
-      quick.push("dis+1010_2:3_bs=off:bsr=unit_only:drc=off:ep=on:fsr=off:fde=none:lcm=predicate:nwc=1.5:sos=on:sac=on:sio=off:spo=on:sp=occurrence_9");
-      quick.push("dis-1010_3:2_bs=off:drc=off:ep=on:nwc=3:sac=on:sgo=on:sio=off:spo=on:sfv=off_8");
+      quick.push("dis+1010_2:3_bs=off:bsr=unit_only:drc=off:ep=on:fsr=off:fde=none:lcm=predicate:nwc=1.5:sos=on:sac=ground:sio=off:spo=on:sp=occurrence_9");
+      quick.push("dis-1010_3:2_bs=off:drc=off:ep=on:nwc=3:sac=ground:sgo=on:sio=off:spo=on:sfv=off_8");
       quick.push("lrs+1011_8_bd=off:bs=unit_only:bsr=on:drc=off:lcm=reverse:nwc=1:nicw=on:stl=270:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=1.0:ssnc=none:sp=occurrence_10");
       quick.push("dis+11_3:1_bs=off:br=off:cond=on:drc=off:ep=on:gs=on:nwc=4:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:sio=off:spl=sat:sser=off:urr=on_48");
       quick.push("lrs+1011_8:1_bd=off:bs=off:bsr=unit_only:cond=fast:drc=off:fde=none:nwc=1:nicw=on:stl=240:sos=all:sio=off:spo=on:ssac=none:ssfp=1000:ssfq=1.1:ssnc=all_dependent_12");
@@ -785,7 +785,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     if (atoms > 200) {
       quick.push("ins+10_1_gsp=input_only:igbrr=0.9:igrp=100:igrpq=1.1:nwc=2_5");
       quick.push("dis+11_50_bs=off:bsr=on:cond=on:lcm=reverse:nwc=1:sio=off:spl=sat:sser=off:ssnc=none:updr=off_267");
-      quick.push("dis+4_128_bs=off:cond=on:flr=on:nwc=1.2:sos=on:sac=on_20");
+      quick.push("dis+4_128_bs=off:cond=on:flr=on:nwc=1.2:sos=on:sac=ground_20");
       quick.push("dis+1011_3_bs=off:cond=fast:flr=on:gsp=input_only:nwc=5:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none_59");
       quick.push("tab+10_1_spl=off:tbsr=off:tfsr=off:tgawr=3/1:tglr=1/20:tipr=off:tlawr=8/1_114");
       quick.push("dis+3_6_flr=on:fsr=off:nwc=5:nicw=on:sio=off:spl=sat:sser=off:ssfp=100000:ssfq=1.2:ssnc=none:sp=occurrence_34");
@@ -829,7 +829,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
       quick.push("dis+1_40_bs=unit_only:bsr=unit_only:nwc=1:sio=off:spl=sat:ssfp=10000:ssfq=2.0:ssnc=none_560");
     }
     else if (atoms > 450) {
-      quick.push("dis-10_5:4_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=1.1:sac=on:sio=off:spo=on_5");
+      quick.push("dis-10_5:4_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=1.1:sac=ground:sio=off:spo=on_5");
       quick.push("ins+10_1_bs=unit_only:br=off:cond=on:drc=off:gsp=input_only:igbrr=0.7:igrr=1/4:igrp=400:igrpq=1.5:igwr=on:nwc=1.2:sio=off:urr=on:updr=off_22");
       quick.push("ins+11_50_bs=off:cond=fast:drc=off:flr=on:gsp=input_only:igbrr=0.7:igrr=1/8:igrp=2000:igrpq=1.5:igwr=on:nwc=1.2:urr=on_56");
       quick.push("ins+3_50_bs=off:br=off:drc=off:igbrr=0.7:igrr=1/128:igrp=100:igrpq=1.05:igwr=on:lcm=predicate:nwc=2:sp=occurrence:urr=on_501");
@@ -936,7 +936,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("dis+10_8:1_bs=off:br=off:cond=fast:drc=off:ep=RST:gsp=input_only:nwc=1:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none:urr=on_300");
     fallback.push("dis+2_24_bs=off:cond=fast:drc=off:fsr=off:lcm=reverse:nwc=1.2:nicw=on:sos=on:sio=off:spl=sat:sser=off:ssfp=100000:ssfq=2.0:ssnc=none_300");
     fallback.push("dis+11_4:1_bs=off:cond=fast:drc=off:nwc=10:sio=off:spl=sat:sser=off:ssnc=none_300");
-    fallback.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=on:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_300");
+    fallback.push("ott+1_1024_bs=off:br=off:cond=on:drc=off:flr=on:gs=on:nwc=2.5:nicw=on:sd=1:ss=axioms:st=1.2:sac=ground:sio=off:sscc=on:sser=off:ssfp=100000:ssfq=1.0:ssnc=all_dependent:urr=on:updr=off_300");
     fallback.push("dis+1_40_bs=off:ep=RSTC:nwc=1.1:sio=off:spl=sat:sser=off:ssnc=none:urr=on_300");
     fallback.push("ott+1011_3_bs=off:cond=on:drc=off:ep=on:fde=none:nwc=1.2:sio=off:spl=sat:ssfq=1.4:ssnc=none_300");
     fallback.push("dis+1011_24_cond=fast:drc=off:nwc=10:sio=off:spl=sat:sser=off:ssfq=1.4:ssnc=none_300");
@@ -951,7 +951,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("dis+1011_2_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:nwc=1.5:nicw=on:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none:urr=on:updr=off_300");
     fallback.push("ott+11_50_bd=off:bs=off:drc=off:ep=on:lcm=reverse:nwc=5:nicw=on:sio=off:spl=sat:sser=off:ssnc=none:sfv=off_300");
     fallback.push("lrs+2_64_bd=off:bs=off:br=off:cond=on:drc=off:flr=on:fde=none:nwc=1.7:sio=off:spl=sat:ssfp=1000:ssfq=1.4:ssnc=none:urr=on_300");
-    fallback.push("dis+10_3:1_bs=off:bfnt=on:cond=on:lcm=predicate:nwc=1:nicw=on:sac=on:sio=off:spl=sat:sp=reverse_arity:urr=on:updr=off_300");
+    fallback.push("dis+10_3:1_bs=off:bfnt=on:cond=on:lcm=predicate:nwc=1:nicw=on:sac=ground:sio=off:spl=sat:sp=reverse_arity:urr=on:updr=off_300");
     fallback.push("dis-1002_5:1_bs=off:cond=fast:drc=off:ep=on:nwc=1.1:sd=4:ss=axioms:sos=on:sio=off:spl=sat:urr=on_300");
     fallback.push("ott+3_8:1_bd=off:bs=off:bsr=unit_only:drc=off:fsr=off:nwc=2.5:sos=all:sio=off:spl=sat:ssfp=10000:ssfq=1.0:ssnc=none:updr=off_300");
     fallback.push("ins+10_1_bfnt=on:gsp=input_only:igbrr=1.0:igrp=400:igrpq=1.5:nwc=5:sio=off_300");
@@ -972,7 +972,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("dis+11_8:1_bs=off:drc=off:ep=RS:nwc=10:nicw=on:sio=off:spl=sat:ssfp=40000:ssfq=2.0:ssnc=none_300");
     fallback.push("ott+10_2_bd=off:bs=off:drc=off:flr=on:fsr=off:nwc=1.7:sio=off:spl=sat:ssfq=2.0:ssnc=none_300");
     fallback.push("ott+10_28_bd=off:bs=off:drc=off:nwc=1.5:sio=off:spl=sat:ssnc=none_300");
-    fallback.push("ott-11_2:3_bs=off:drc=off:fsr=off:lcm=predicate:nwc=5:nicw=on:sac=on:sio=off:spo=on:sp=reverse_arity_300");
+    fallback.push("ott-11_2:3_bs=off:drc=off:fsr=off:lcm=predicate:nwc=5:nicw=on:sac=ground:sio=off:spo=on:sp=reverse_arity_300");
     fallback.push("ott-11_40_bd=off:bs=off:drc=off:flr=on:fsr=off:lcm=predicate:nwc=10:nicw=on:sos=on:sio=off:spl=sat:sser=off:ssfq=1.4:ssnc=none:updr=off_300");
     fallback.push("dis+3_4_bs=off:br=off:cond=on:drc=off:ep=RSTC:nwc=4:nicw=on:sos=all:sio=off:spl=sat:sser=off:ssfq=1.2:ssnc=none:urr=on_100");
     fallback.push("ins+1_3:1_bs=off:cond=on:ep=RSTC:flr=on:gs=on:igbrr=0.8:igrr=1/4:igrp=400:igrpq=1.1:igwr=on:nwc=1.5:sio=off:urr=on_300");
@@ -1030,7 +1030,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("dis+1_2_bd=off:bs=off:drc=off:flr=on:fsr=off:nwc=1.1:nicw=on:sio=off:spl=sat:ssfq=1.4:ssnc=none_300");
     fallback.push("ott+2_20_bs=off:cond=fast:drc=off:fde=none:nwc=2:sio=off:spl=sat:sser=off:ssfq=2.0:ssnc=none:sp=occurrence_300");
     fallback.push("ott+3_4:1_bsr=unit_only:cond=on:drc=off:fsr=off:fde=none:gs=on:nwc=1:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none:sp=occurrence:urr=on_300");
-    fallback.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:sac=on:sio=off_300");
+    fallback.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:sac=ground:sio=off_300");
     fallback.push("dis-1004_1024_bs=off:cond=fast:drc=off:nwc=1.3:sio=off:spl=sat:ssfq=1.4:ssnc=none_300");
     fallback.push("ott+11_2:3_bd=off:drc=off:nwc=4:nicw=on:sio=off:spl=sat:sser=off:ssfp=4000:ssfq=1.0:ssnc=none:updr=off_300");
     fallback.push("ott+3_128_bs=off:drc=off:nwc=1.1:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none:sp=occurrence_600");
@@ -1041,7 +1041,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
 
   case Property::EPR:
     fallback.push("ins+10_1_bs=unit_only:br=off:cond=on:drc=off:gsp=input_only:igbrr=0.7:igrr=1/4:igrp=400:igrpq=1.5:igwr=on:nwc=1.2:sio=off:urr=on:updr=off_2100");
-    fallback.push("dis-10_5:4_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=1.1:sac=on:sio=off:spo=on_300");
+    fallback.push("dis-10_5:4_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=1.1:sac=ground:sio=off:spo=on_300");
     fallback.push("ott+10_1024_bs=off:br=off:ep=RSTC:nwc=1:sio=off:spl=sat:ssfp=10000:ssfq=1.2:ssnc=none:urr=on_300");
     fallback.push("ins+3_50_bs=off:br=off:drc=off:igbrr=0.7:igrr=1/128:igrp=100:igrpq=1.05:igwr=on:lcm=predicate:nwc=2:sp=occurrence:urr=on_600");
     fallback.push("ins+11_50_bs=off:cond=fast:drc=off:flr=on:gsp=input_only:igbrr=0.7:igrr=1/8:igrp=2000:igrpq=1.5:igwr=on:nwc=1.2:urr=on_300");
@@ -1061,14 +1061,14 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ott+11_8_bs=off:bfnt=on:cond=fast:nwc=1:sio=off:spl=sat:sser=off:ssfp=100000:ssnc=none_300");
     fallback.push("lrs+10_3:2_bs=off:cond=fast:nwc=10:sio=off:spo=on_900");
     fallback.push("lrs+1_128_bs=off:cond=on:gs=on:nwc=4:nicw=on:sio=off_900");
-    fallback.push("dis+11_24_bs=off:cond=fast:nwc=1.3:nicw=on:sac=on:sio=off_300");
+    fallback.push("dis+11_24_bs=off:cond=fast:nwc=1.3:nicw=on:sac=ground:sio=off_300");
     fallback.push("dis-11_8:1_bs=off:nwc=2.5:sio=off:spl=off_300");
     fallback.push("ott+1003_28_bs=off:cond=on:flr=on:fsr=off:lcm=predicate:nwc=1:nicw=on:sio=off:spl=off_300");
     fallback.push("lrs+3_4_bs=off:cond=fast:flr=on:nwc=1:nicw=on:sio=off:spl=sat:ssnc=none_300");
     fallback.push("dis+11_2:3_bs=off:cond=fast:fsr=off:nwc=10:sio=off:spl=sat:sser=off:ssnc=none_300");
     fallback.push("dis+2_5:4_cond=fast:flr=on:lcm=predicate:nwc=1.5:sio=off:spl=off_600");
     fallback.push("lrs+1011_64_bs=unit_only:bsr=unit_only:cond=fast:flr=on:nwc=1:sio=off:spl=sat:ssfq=2.0_1800");
-    fallback.push("dis+10_4_bs=off:nwc=5:sac=on:sio=off_200");
+    fallback.push("dis+10_4_bs=off:nwc=5:sac=ground:sio=off_200");
     fallback.push("lrs+11_128_cond=fast:lcm=reverse:nwc=1.5:nicw=on:sio=off:spl=sat:ssfp=100000:ssfq=2.0:ssnc=none_600");
     fallback.push("ott+1_8:1_bs=off:cond=on:gs=on:nwc=3:sos=all:sio=off:spl=sat:sser=off:ssnc=none_300");
     fallback.push("lrs+10_8:1_bs=off:cond=fast:flr=on:fsr=off:nwc=2.5:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none_900");
@@ -1079,10 +1079,10 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("dis+1011_12_bs=off:cond=fast:nwc=1.3:sos=all:sio=off:spl=sat:sser=off:ssfp=100000:ssfq=1.0:ssnc=none_900");
     fallback.push("ins+11_12_bs=off:bfnt=on:gsp=input_only:igbrr=0.9:igrr=4/1:igrp=400:igrpq=2.0:nwc=4_300");
     fallback.push("dis-1010_14_bsr=on:cond=on:nwc=1.5:sio=off:spl=sat:ssfp=100000:ssfq=1.1:ssnc=none_300");
-    fallback.push("ott+1_20_bfnt=on:cond=on:nwc=3:sac=on:sgo=on:sio=off:spl=sat:sser=off:ssfp=40000:ssfq=1.4_300");
+    fallback.push("ott+1_20_bfnt=on:cond=on:nwc=3:sac=ground:sgo=on:sio=off:spl=sat:sser=off:ssfp=40000:ssfq=1.4_300");
     fallback.push("dis+1011_16_bs=unit_only:cond=on:fsr=off:gsp=input_only:nwc=1.7:sos=all:sgo=on:sio=off:spl=sat:ssfq=2.0:ssnc=all_200");
     fallback.push("dis-11_40_bs=off:lcm=predicate:nwc=1.2:sio=off:spl=sat:ssac=none:ssfp=40000:ssfq=2.0:ssnc=none_300");
-    fallback.push("ott+4_2:1_bs=off:cond=on:lcm=predicate:nwc=10:nicw=on:sac=on:sio=off_300");
+    fallback.push("ott+4_2:1_bs=off:cond=on:lcm=predicate:nwc=10:nicw=on:sac=ground:sio=off_300");
     fallback.push("dis-1_16_bs=off:bfnt=on:cond=on:lcm=predicate:nwc=1.2:nicw=on:ssfq=1.1:ssnc=none:sp=occurrence_100");
     fallback.push("dis+1_28_bs=off:bfnt=on:cond=on:fsr=off:gsp=input_only:lcm=predicate:nwc=1.7:sio=off:spl=off:sp=occurrence_300");
     fallback.push("ott-3_16_bs=off:gsp=input_only:nwc=2:nicw=on:sos=all:sio=off:spl=sat:ssnc=none_300");
@@ -1117,7 +1117,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ins+3_10_bs=off:drc=off:fde=none:igbrr=0.8:igrr=1/128:igrp=100:igrpq=1.0:igwr=on:nwc=2.5:sio=off:spl=off_300");
     fallback.push("ott+2_12_bd=off:drc=off:lcm=reverse:nwc=2:sio=off:spo=on_600");
     fallback.push("ins+10_2:3_bs=off:cond=fast:ep=RSTC:igbrr=0.8:igrr=1/2:igrp=100:igrpq=1.0:igwr=on:nwc=2:sos=all:sio=off:urr=on_300");
-    fallback.push("dis-1010_2:3_bs=off:drc=off:nwc=3:sd=2:ss=axioms:st=1.5:sac=on:sio=off_300");
+    fallback.push("dis-1010_2:3_bs=off:drc=off:nwc=3:sd=2:ss=axioms:st=1.5:sac=ground:sio=off_300");
     fallback.push("ott+1_2:3_bs=off:bsr=unit_only:drc=off:lcm=predicate:nwc=1.3:sd=3:sgt=7:ss=axioms:st=3.0:sos=on:spl=sat_300");
     fallback.push("dis-2_4:1_bs=off:drc=off:ep=on:lcm=predicate:nwc=1.5:sd=3:sgt=10:ss=axioms:sos=on:spl=sat_300");
     fallback.push("ott+1011_8:1_bs=off:drc=off:fde=none:nwc=2.5:sd=1:ss=axioms:sos=all:spl=sat:sser=off:ssfq=1.0:ssnc=none:sfv=off:sp=occurrence_300");
@@ -1127,7 +1127,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ott+1011_2_bs=off:drc=off:nwc=5:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none:updr=off_300");
     fallback.push("dis+1_2:3_bs=off:drc=off:lcm=predicate:nwc=3:nicw=on:ss=included:st=1.5:sos=on:sagn=off:sio=off:spl=sat:sser=off:sp=occurrence_300");
     fallback.push("dis-4_4:1_bs=off:ep=RST:gsp=input_only:gs=on:nwc=5:sd=1:ss=included:st=5.0:sos=on:sio=off:sfv=off:sp=occurrence_300");
-    fallback.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=on:sio=off:urr=on_600");
+    fallback.push("ott-1010_64_bs=off:br=off:drc=off:flr=on:gs=on:nwc=1:sac=ground:sio=off:urr=on_600");
     fallback.push("ott+10_2:3_bs=off:drc=off:gs=on:nwc=1.5:sd=2:ss=axioms:sos=on:sio=off:spl=sat:ssfq=2.0:ssnc=none:urr=on_300");
     fallback.push("lrs-1_10_bs=off:cond=fast:drc=off:nwc=1.5:nicw=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.4:ssnc=none_200");
     fallback.push("ott+1_3:1_bd=off:bs=off:bsr=unit_only:ep=on:nwc=10:nicw=on:sd=2:sgt=10:ss=axioms:sos=on:sagn=off:spl=sat_300");
@@ -1168,9 +1168,9 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ott+10_1024_bs=off:cond=on:drc=off:gsp=input_only:nwc=1.2:sio=off:spl=sat:ssfp=10000:ssnc=none:updr=off_600");
     fallback.push("lrs+10_20_bs=off:cond=fast:drc=off:ep=on:gsp=input_only:lcm=predicate:nwc=2.5:sos=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.2:ssnc=none_800");
     fallback.push("ott-1010_3_bd=off:bs=off:bsr=unit_only:drc=off:fde=none:nwc=1:nicw=on:sos=all:sio=off:spl=sat:ssfp=10000:ssfq=2.0:ssnc=none:sp=reverse_arity:updr=off_400");
-    fallback.push("dis+1010_2:3_bs=off:bsr=unit_only:drc=off:ep=on:fsr=off:fde=none:lcm=predicate:nwc=1.5:sos=on:sac=on:sio=off:spo=on:sp=occurrence_600");
+    fallback.push("dis+1010_2:3_bs=off:bsr=unit_only:drc=off:ep=on:fsr=off:fde=none:lcm=predicate:nwc=1.5:sos=on:sac=ground:sio=off:spo=on:sp=occurrence_600");
     fallback.push("dis+1_24_bs=off:drc=off:ep=on:lcm=predicate:nwc=3:nicw=on:ss=included:st=5.0:sos=on:sagn=off:spl=sat:sser=off:ssnc=none_300");
-    fallback.push("dis-1_3_bsr=unit_only:drc=off:lcm=reverse:nwc=4:sos=all:sac=on:sgo=on:sio=off:spo=on:sp=reverse_arity_300");
+    fallback.push("dis-1_3_bsr=unit_only:drc=off:lcm=reverse:nwc=4:sos=all:sac=ground:sgo=on:sio=off:spo=on:sp=reverse_arity_300");
     fallback.push("dis-1010_50_bs=unit_only:bsr=on:drc=off:lcm=predicate:nwc=1.3:sos=all:sio=off:spl=sat:sser=off:ssfq=1.4:ssnc=none_900");
     fallback.push("ott+10_8:1_bd=off:bs=off:cond=fast:drc=off:flr=on:nwc=1.3:sio=off:spl=sat:sser=off:ssfq=1.4:ssnc=none:urr=on_300");
     fallback.push("dis+4_2:1_bs=off:br=off:drc=off:fsr=off:nwc=1:sos=all:sio=off:spl=sat:ssfp=100000:ssfq=1.2:ssnc=none:urr=on_200");
@@ -1199,10 +1199,10 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ott+11_2:1_bs=off:cond=fast:drc=off:ep=RS:flr=on:fde=none:gsp=input_only:lcm=reverse:nwc=2.5:sio=off:spl=sat:ssfq=1.1:ssnc=none:sp=occurrence_300");
     fallback.push("ott+2_20_cond=fast:drc=off:flr=on:lcm=reverse:nwc=1.1:nicw=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.2:ssnc=none:sp=reverse_arity:updr=off_300");
     fallback.push("lrs-1004_12_bs=off:bsr=unit_only:drc=off:nwc=1.7:nicw=on:sio=off:spl=sat:sser=off:ssfp=4000:ssfq=1.4:ssnc=none_600");
-    fallback.push("lrs-1002_3_bd=off:bs=off:drc=off:ep=on:nwc=1.7:sos=on:sac=on:sio=off_1500");
+    fallback.push("lrs-1002_3_bd=off:bs=off:drc=off:ep=on:nwc=1.7:sos=on:sac=ground:sio=off_1500");
     fallback.push("dis+1010_40_bs=off:drc=off:ep=RS:nwc=1:sio=off:spo=on:spl=sat:ssnc=none_300");
     fallback.push("dis+1011_3_bs=off:cond=fast:drc=off:fsr=off:fde=none:gs=on:nwc=1.1:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.0:ssnc=none_300");
-    fallback.push("lrs+1_5_bs=off:cond=fast:drc=off:flr=on:nwc=10:sac=on:sio=off:urr=on_300");
+    fallback.push("lrs+1_5_bs=off:cond=fast:drc=off:flr=on:nwc=10:sac=ground:sio=off:urr=on_300");
     fallback.push("dis+2_128_bs=off:drc=off:lcm=reverse:nwc=1.3:nicw=on:sos=on:sio=off:spl=sat:ssnc=none_300");
     fallback.push("dis+1_14_bd=off:bs=off:drc=off:fde=none:gsp=input_only:lcm=reverse:nwc=4:sos=on:sio=off:spo=on:sp=reverse_arity_200");
     fallback.push("dis+11_32_bs=off:nwc=1.1:sio=off:spl=off:updr=off_300");
@@ -1212,7 +1212,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("lrs+1_64_bs=off:drc=off:gsp=input_only:nwc=1.7:nicw=on:sio=off:spl=sat:sser=off:ssfq=1.1:ssnc=none:updr=off_600");
     fallback.push("dis-1010_64_bs=off:drc=off:nwc=2.5:nicw=on:sgo=on:sio=off:spo=on:sser=off:ssfp=40000:ssfq=1.0:ssnc=none_300");
     fallback.push("lrs-1_5:1_bs=off:cond=fast:drc=off:nwc=4:sio=off:spl=sat:ssfp=4000:ssfq=2.0:ssnc=none_1200");
-    fallback.push("dis-1010_3:1_bd=off:bs=off:cond=fast:gs=on:lcm=reverse:nwc=1.1:sac=on_900");
+    fallback.push("dis-1010_3:1_bd=off:bs=off:cond=fast:gs=on:lcm=reverse:nwc=1.1:sac=ground_900");
     fallback.push("ott+4_14_bs=unit_only:cond=fast:drc=off:nwc=1.2:sio=off:spl=sat:ssfq=2.0:ssnc=none:sp=occurrence_600");
     fallback.push("dis+2_16_bs=off:drc=off:ep=on:gsp=input_only:lcm=reverse:nwc=1:sio=off:spl=sat:ssfp=10000:ssfq=1.1:ssnc=none_600");
     fallback.push("ott+11_10_bs=off:bsr=unit_only:cond=fast:drc=off:flr=on:nwc=1:nicw=on:sio=off:spo=on:spl=sat:sser=off:ssfp=4000:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=on_1200");
@@ -1228,7 +1228,7 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("ott+1_7_bs=off:bsr=unit_only:fsr=off:gsp=input_only:nwc=1.5:spo=on_600");
     fallback.push("dis+11_50_bs=off:bsr=on:cond=on:lcm=reverse:nwc=1:sio=off:spl=sat:sser=off:ssnc=none:updr=off_300");
     fallback.push("ott+1011_50_bs=off:gs=on:nwc=2.5:nicw=on:sio=off:spl=sat:ssnc=none:urr=on:updr=off_300");
-    fallback.push("dis+4_128_bs=off:cond=on:flr=on:nwc=1.2:sos=on:sac=on_300");
+    fallback.push("dis+4_128_bs=off:cond=on:flr=on:nwc=1.2:sos=on:sac=ground_300");
     fallback.push("dis+1004_10_bs=off:nwc=1.5:sagn=off:sio=off:spl=sat:ssnc=none_900");
     fallback.push("dis+4_10_bs=off:cond=fast:flr=on:fsr=off:gsp=input_only:lcm=predicate:nwc=1.2:sio=off:spl=sat:ssfp=1000:ssfq=1.0:ssnc=none:sp=occurrence:updr=off_300");
     fallback.push("tab+10_1_spl=off:tbsr=off:tfsr=off:tgawr=3/1:tglr=1/20:tipr=off:tlawr=8/1_300");
@@ -1302,7 +1302,7 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
     quick.push("dis+1_40_bs=off:ep=RSTC:nwc=1.1:sio=off:spl=sat:sser=off:ssnc=none:urr=on_39");
     quick.push("dis-1_24_bs=off:bfnt=on:lcm=predicate:nwc=10:sgo=on:sp=occurrence_21");
     quick.push("ins+10_1_bfnt=on:gsp=input_only:igbrr=1.0:igrp=400:igrpq=1.5:nwc=5:sio=off_124");
-    quick.push("dis+10_3:1_bs=off:bfnt=on:cond=on:lcm=predicate:nwc=1:nicw=on:sac=on:sio=off:spl=sat:sp=reverse_arity:urr=on:updr=off_196");
+    quick.push("dis+10_3:1_bs=off:bfnt=on:cond=on:lcm=predicate:nwc=1:nicw=on:sac=ground:sio=off:spl=sat:sp=reverse_arity:urr=on:updr=off_196");
     quick.push("dis-1_128_bfnt=on:fsr=off:nwc=1.5:nicw=on:spo=on:spl=sat:sser=off:ssfp=4000:ssfq=1.2:ssnc=all_207");
     quick.push("dis-11_10_bfnt=on:cond=fast:lcm=predicate:nwc=1.2:sio=off:spl=off:sp=occurrence_464");
     quick.push("dis+1_2:1_bs=off:bsr=on:cond=fast:ep=RSTC:gs=on:lcm=predicate:nwc=1.5:nicw=on:sio=off:spl=sat:sser=off:ssfp=1000:ssfq=2.0:ssnc=none:sp=occurrence:urr=on_554");
@@ -1325,7 +1325,7 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
     }
     else {
       quick.push("dis+4_12_bs=off:cond=fast:nwc=1.1:nicw=on:sio=off:spl=sat:ssnc=none_2");
-      quick.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:stl=30:sac=on:sio=off_6");
+      quick.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:stl=30:sac=ground:sio=off_6");
       quick.push("dis-3_28_bd=off:cond=on:nwc=1.5:sio=off_340");
       quick.push("ins+1_8:1_bs=off:bfnt=on:igbrr=0.8:igrr=2/1:igrpq=1.2:igwr=on:nwc=3:sos=all:sgo=on_92");
       quick.push("dis+11_32_bd=off:bsr=on:fsr=off:nwc=1.2:nicw=on:sio=off:spl=sat:sser=off:ssfp=100000:ssfq=1.4:ssnc=none_467");
@@ -1334,9 +1334,9 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
     break;
 
   case Property::HNE:
-    quick.push("dis+10_4_bs=off:nwc=5:sac=on:sio=off_1");
+    quick.push("dis+10_4_bs=off:nwc=5:sac=ground:sio=off_1");
     quick.push("ott+11_8_bs=off:bfnt=on:cond=fast:nwc=1:sio=off:spl=sat:sser=off:ssfp=100000:ssnc=none_1");
-    quick.push("dis+11_24_bs=off:cond=fast:nwc=1.3:nicw=on:sac=on:sio=off_4");
+    quick.push("dis+11_24_bs=off:cond=fast:nwc=1.3:nicw=on:sac=ground:sio=off_4");
     quick.push("dis-11_8:1_bs=off:nwc=2.5:sio=off:spl=off_23");
     break;
 
@@ -1344,8 +1344,8 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
      quick.push("dis-11_40_bs=off:lcm=predicate:nwc=1.2:sio=off:spl=sat:ssac=none:ssfp=40000:ssfq=2.0:ssnc=none_1");
       quick.push("ott+11_1024_bs=off:cond=on:gsp=input_only:lcm=predicate:nwc=1.3:nicw=on:sio=off:spl=sat:sser=off:ssfp=4000:ssfq=2.0:ssnc=none:sp=occurrence_1");
       quick.push("ins+11_12_bs=off:bfnt=on:gsp=input_only:igbrr=0.9:igrr=4/1:igrp=400:igrpq=2.0:nwc=4_144");
-      quick.push("ott+1_20_bfnt=on:cond=on:nwc=3:sac=on:sgo=on:sio=off:spl=sat:sser=off:ssfp=40000:ssfq=1.4_87");
-      quick.push("ott+4_2:1_bs=off:cond=on:lcm=predicate:nwc=10:nicw=on:sac=on:sio=off_70");
+      quick.push("ott+1_20_bfnt=on:cond=on:nwc=3:sac=ground:sgo=on:sio=off:spl=sat:sser=off:ssfp=40000:ssfq=1.4_87");
+      quick.push("ott+4_2:1_bs=off:cond=on:lcm=predicate:nwc=10:nicw=on:sac=ground:sio=off_70");
       quick.push("dis-1_16_bs=off:bfnt=on:cond=on:lcm=predicate:nwc=1.2:nicw=on:ssfq=1.1:ssnc=none:sp=occurrence_47");
       quick.push("dis+1_28_bs=off:bfnt=on:cond=on:fsr=off:gsp=input_only:lcm=predicate:nwc=1.7:sio=off:spl=off:sp=occurrence_152");
       quick.push("ins+10_1_bfnt=on:gsp=input_only:igbrr=0.7:igrpq=2.0:nwc=4_238");
@@ -1370,7 +1370,7 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
       quick.push("ins+10_1_bfnt=on:gsp=input_only:igbrr=0.8:igrp=2000:igrpq=2.0:nwc=1:sio=off_330");
     }
     else {
-      quick.push("lrs-1002_3_bd=off:bs=off:drc=off:ep=on:nwc=1.7:stl=150:sos=on:sac=on:sio=off_1");
+      quick.push("lrs-1002_3_bd=off:bs=off:drc=off:ep=on:nwc=1.7:stl=150:sos=on:sac=ground:sio=off_1");
       quick.push("dis+11_10_bs=off:lcm=predicate:nwc=1.3:sio=off_3");
       quick.push("dis+10_8:1_bs=off:nwc=4:sio=off:spl=off_1");
       quick.push("ott+11_8:1_bfnt=on:cond=on:fde=none:lcm=predicate:nwc=1.2:nicw=on:sio=off:spl=sat:sp=occurrence:urr=on:updr=off_13");
@@ -1389,7 +1389,7 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
     }
     else if (atoms > 3000) {
       quick.push("dis-11_1024_bs=off:cond=fast:gsp=input_only:nwc=3:sio=off:spl=off_3");
-      quick.push("ott+1_128_bs=off:bfnt=on:fsr=off:nwc=1:nicw=on:sac=on:sgo=on:sio=off:updr=off_10");
+      quick.push("ott+1_128_bs=off:bfnt=on:fsr=off:nwc=1:nicw=on:sac=ground:sgo=on:sio=off:updr=off_10");
       quick.push("ins+11_3:1_bs=unit_only:br=off:gsp=input_only:igbrr=0.6:igrr=1/2:igrp=100:igrpq=2.0:igwr=on:nwc=1.5:sio=off:spl=off:urr=on_14");
       quick.push("dis+11_3:2_cond=fast:nwc=5:sio=off:spl=sat:sser=off:ssfp=4000:ssfq=2.0:ssnc=none_9");
       quick.push("dis+2_4:1_bs=off:fsr=off:gsp=input_only:nwc=2:sio=off:spl=off_1779");
@@ -1402,13 +1402,13 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
       quick.push("dis-11_2:3_bs=off:bfnt=on:cond=fast:lcm=predicate:nwc=4:sio=off:spl=sat:sser=off:ssfp=4000:ssfq=1.1:ssnc=none:sp=occurrence_1");
       quick.push("ott-11_32_bs=off:cond=on:lcm=predicate:nwc=1.2:nicw=on:sio=off:spl=sat:sser=off:ssfp=10000:ssfq=1.2:ssnc=none:sp=reverse_arity_1");
       quick.push("dis+2_1024_bs=off:cond=on:fsr=off:gsp=input_only:nwc=2:sio=off:spl=sat_73");
-      quick.push("dis+11_28_bs=off:cond=fast:lcm=predicate:nwc=1.5:sac=on:sp=occurrence:urr=on_63");
+      quick.push("dis+11_28_bs=off:cond=fast:lcm=predicate:nwc=1.5:sac=ground:sp=occurrence:urr=on_63");
       quick.push("ins+11_3:1_bs=unit_only:br=off:gsp=input_only:igbrr=0.6:igrr=1/2:igrp=100:igrpq=2.0:igwr=on:nwc=1.5:sio=off:spl=off:urr=on_1030");
-      quick.push("ott+1_1024_bs=off:cond=fast:lcm=predicate:nwc=2.5:sac=on:sio=off:spo=on_251");
+      quick.push("ott+1_1024_bs=off:cond=fast:lcm=predicate:nwc=2.5:sac=ground:sio=off:spo=on_251");
       quick.push("dis+2_4:1_bs=off:bfnt=on:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:sio=off:spl=sat:ssfp=10000:ssfq=1.0:ssnc=none:sp=occurrence_104");
     }
     else {
-      quick.push("dis+11_28_bs=off:cond=fast:lcm=predicate:nwc=1.5:sac=on:sp=occurrence:urr=on_1");
+      quick.push("dis+11_28_bs=off:cond=fast:lcm=predicate:nwc=1.5:sac=ground:sp=occurrence:urr=on_1");
       quick.push("ott+3_8:1_bs=off:cond=on:nwc=1.3:sio=off_1");
       quick.push("dis+1_8_bs=off:bfnt=on:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:sp=occurrence_1");
       quick.push("ott+1_7_bs=off:bsr=unit_only:fsr=off:gsp=input_only:nwc=1.5:spo=on_1");
@@ -1416,7 +1416,7 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
       quick.push("ins-3_64_bsr=on:br=off:cond=fast:flr=on:igbrr=0.6:igrr=4/1:igrp=4000:igrpq=2.0:igwr=on:nwc=2:sos=all:sgo=on:urr=on:updr=off_319");
       quick.push("ott+10_40_bs=off:fsr=off:nwc=10:sio=off:spo=on_86");
       quick.push("ins+1_5_bs=off:br=off:cond=on:igbrr=0.7:igrr=1/4:igrp=1400:igrpq=2.0:igwr=on:nwc=5:sos=all:urr=on_623");
-      quick.push("ott+1_1024_bs=off:cond=fast:lcm=predicate:nwc=2.5:sac=on:sio=off:spo=on_1");
+      quick.push("ott+1_1024_bs=off:cond=fast:lcm=predicate:nwc=2.5:sac=ground:sio=off:spo=on_1");
     }
     break;
 
@@ -1457,21 +1457,21 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
     fallback.push("dis+1_40_bs=unit_only:bsr=unit_only:nwc=1:sio=off:spl=sat:ssfp=10000:ssfq=2.0:ssnc=none_900");
     fallback.push("ins+3_2_bs=off:bfnt=on:br=off:cond=on:fsr=off:fde=none:igbrr=0.9:igrr=1/64:igrpq=2.0:igwr=on:nwc=10:sio=off:urr=on_900");
     fallback.push("ott+11_8_bs=off:bfnt=on:cond=fast:nwc=1:sio=off:spl=sat:sser=off:ssfp=100000:ssnc=none_300");
-    fallback.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:sac=on:sio=off_300");
+    fallback.push("lrs-1_128_bs=off:cond=fast:ep=on:nwc=1.2:nicw=on:sac=ground:sio=off_300");
     fallback.push("dis-11_10_bfnt=on:cond=fast:lcm=predicate:nwc=1.2:sio=off:spl=off:sp=occurrence_600");
     fallback.push("dis+1_1024_nwc=1.1:sio=off:spl=off:updr=off_400");
     fallback.push("ins+1_8:1_bs=off:bfnt=on:igbrr=0.8:igrr=2/1:igrpq=1.2:igwr=on:nwc=3:sos=all:sgo=on_300");
     fallback.push("ott+11_16_bfnt=on:cond=fast:nwc=1.1:nicw=on:sio=off:spo=on:spl=sat:sser=off:ssfp=1000:ssfq=2.0:sp=reverse_arity_1200");
-    fallback.push("ott+1_20_bfnt=on:cond=on:nwc=3:sac=on:sgo=on:sio=off:spl=sat:sser=off:ssfp=40000:ssfq=1.4_300");
-    fallback.push("dis+11_24_bs=off:cond=fast:nwc=1.3:nicw=on:sac=on:sio=off_300");
+    fallback.push("ott+1_20_bfnt=on:cond=on:nwc=3:sac=ground:sgo=on:sio=off:spl=sat:sser=off:ssfp=40000:ssfq=1.4_300");
+    fallback.push("dis+11_24_bs=off:cond=fast:nwc=1.3:nicw=on:sac=ground:sio=off_300");
     fallback.push("dis+1_40_bs=off:ep=RSTC:nwc=1.1:sio=off:spl=sat:sser=off:ssnc=none:urr=on_300");
     fallback.push("dis-11_40_bs=off:lcm=predicate:nwc=1.2:sio=off:spl=sat:ssac=none:ssfp=40000:ssfq=2.0:ssnc=none_300");
     fallback.push("dis+10_12_bs=off:bsr=unit_only:fsr=off:nwc=2_300");
-    fallback.push("ott+4_2:1_bs=off:cond=on:lcm=predicate:nwc=10:nicw=on:sac=on:sio=off_300");
+    fallback.push("ott+4_2:1_bs=off:cond=on:lcm=predicate:nwc=10:nicw=on:sac=ground:sio=off_300");
     fallback.push("dis-11_8:1_bs=off:nwc=2.5:sio=off:spl=off_300");
     fallback.push("ins+10_1_bfnt=on:gsp=input_only:igbrr=0.7:igrpq=2.0:nwc=4_500");
     fallback.push("dis+1_28_bs=off:bfnt=on:cond=on:fsr=off:gsp=input_only:lcm=predicate:nwc=1.7:sio=off:spl=off:sp=occurrence_300");
-    fallback.push("dis+10_3:1_bs=off:bfnt=on:cond=on:lcm=predicate:nwc=1:nicw=on:sac=on:sio=off:spl=sat:sp=reverse_arity:urr=on:updr=off_300");
+    fallback.push("dis+10_3:1_bs=off:bfnt=on:cond=on:lcm=predicate:nwc=1:nicw=on:sac=ground:sio=off:spl=sat:sp=reverse_arity:urr=on:updr=off_300");
     fallback.push("ins+10_1_bfnt=on:gsp=input_only:igbrr=1.0:igrp=400:igrpq=1.5:nwc=5:sio=off_300");
     fallback.push("dis-1_16_bs=off:bfnt=on:cond=on:lcm=predicate:nwc=1.2:nicw=on:ssfq=1.1:ssnc=none:sp=occurrence_100");
     fallback.push("dis+2_1024_bd=off:bs=off:cond=fast:fsr=off:nwc=1:sio=off:spl=off_900");
@@ -1480,7 +1480,7 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
     fallback.push("ins+4_8_bs=off:bfnt=on:br=off:cond=fast:flr=on:fsr=off:igbrr=0.1:igrr=1/128:igrp=100:igrpq=2.0:igwr=on:nwc=1.3:sos=all:urr=on_300");
     fallback.push("ott+11_20_bs=off:bfnt=on:cond=fast:fsr=off:lcm=predicate:nwc=2.5:nicw=on:sio=off:spl=sat:ssfp=1000:ssfq=1.1:ssnc=none:sp=reverse_arity_300");
     fallback.push("dis-1_128_bfnt=on:fsr=off:nwc=1.5:nicw=on:spo=on:spl=sat:sser=off:ssfp=4000:ssfq=1.2:ssnc=all_500");
-    fallback.push("dis+10_4_bs=off:nwc=5:sac=on:sio=off_200");
+    fallback.push("dis+10_4_bs=off:nwc=5:sac=ground:sio=off_200");
     fallback.push("ott+2_20_bs=off:bsr=unit_only:nwc=5:nicw=on:sio=off:spl=sat:ssnc=none_300");
     fallback.push("dis+3_1024_bfnt=on:cond=fast:fsr=off:nwc=5:sio=off:spl=off_100");
     fallback.push("dis+10_1024_bs=off:cond=fast:fsr=off:lcm=predicate:nwc=3:sio=off:spl=off:sp=occurrence:urr=on_300");
@@ -1511,7 +1511,7 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
     fallback.push("ins+10_1_bfnt=on:gsp=input_only:igbrr=0.3:igrp=700:igrpq=1.2:nwc=1.7_200");
     fallback.push("ins+11_3:1_bs=unit_only:br=off:gsp=input_only:igbrr=0.6:igrr=1/2:igrp=100:igrpq=2.0:igwr=on:nwc=1.5:sio=off:spl=off:urr=on_1200");
     fallback.push("dis+2_4:1_bs=off:fsr=off:gsp=input_only:nwc=2:sio=off:spl=off_2100");
-    fallback.push("dis+11_28_bs=off:cond=fast:lcm=predicate:nwc=1.5:sac=on:sp=occurrence:urr=on_200");
+    fallback.push("dis+11_28_bs=off:cond=fast:lcm=predicate:nwc=1.5:sac=ground:sp=occurrence:urr=on_200");
     fallback.push("dis-11_2:3_bs=off:bfnt=on:cond=fast:lcm=predicate:nwc=4:sio=off:spl=sat:sser=off:ssfp=4000:ssfq=1.1:ssnc=none:sp=occurrence_300");
     fallback.push("ins+4_64_bs=off:bfnt=on:br=off:igbrr=0.6:igrr=1/128:igrp=200:igrpq=2.0:igwr=on:nwc=2:sos=all:urr=on:updr=off_300");
     fallback.push("ott+1_128_bs=unit_only:bfnt=on:cond=fast:fsr=off:lcm=predicate:nwc=1.2:nicw=on:sio=off:spl=sat:ssfq=2.0:ssnc=none:sp=occurrence_300");
@@ -1520,7 +1520,7 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
     fallback.push("ott+1_7_bs=off:bsr=unit_only:fsr=off:gsp=input_only:nwc=1.5:spo=on_600");
     fallback.push("ott+4_8:1_bs=off:cond=on:lcm=predicate:nwc=1.7:sio=off:spl=sat:sser=off:ssfp=40000:ssfq=1.0:ssnc=none:sp=occurrence_300");
     fallback.push("ott+3_8:1_bs=off:cond=on:nwc=1.3:sio=off_300");
-    fallback.push("ott+1_128_bs=off:bfnt=on:fsr=off:nwc=1:nicw=on:sac=on:sgo=on:sio=off:updr=off_300");
+    fallback.push("ott+1_128_bs=off:bfnt=on:fsr=off:nwc=1:nicw=on:sac=ground:sgo=on:sio=off:updr=off_300");
     fallback.push("ins+1_5_bs=off:br=off:cond=on:igbrr=0.7:igrr=1/4:igrp=1400:igrpq=2.0:igwr=on:nwc=5:sos=all:urr=on_900");
     break;
   }
@@ -1553,7 +1553,7 @@ void CASCMode::getSchedulesEPR(Property& property, Schedule& quick, Schedule& fa
     quick.push("dis+1_40_bs=unit_only:bsr=unit_only:nwc=1:sio=off:spl=sat:ssfp=10000:ssfq=2.0:ssnc=none_560");
   }
   else if (atoms > 450) {
-    quick.push("dis-10_5:4_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=1.1:sac=on:sio=off:spo=on_5");
+    quick.push("dis-10_5:4_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=1.1:sac=ground:sio=off:spo=on_5");
     quick.push("ins+10_1_bs=unit_only:br=off:cond=on:drc=off:gsp=input_only:igbrr=0.7:igrr=1/4:igrp=400:igrpq=1.5:igwr=on:nwc=1.2:sio=off:urr=on:updr=off_22");
     quick.push("ins+11_50_bs=off:cond=fast:drc=off:flr=on:gsp=input_only:igbrr=0.7:igrr=1/8:igrp=2000:igrpq=1.5:igwr=on:nwc=1.2:urr=on_56");
     quick.push("ins+3_50_bs=off:br=off:drc=off:igbrr=0.7:igrr=1/128:igrp=100:igrpq=1.05:igwr=on:lcm=predicate:nwc=2:sp=occurrence:urr=on_501");
