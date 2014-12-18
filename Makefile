@@ -17,7 +17,7 @@ GNUMPF = 0
 DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
 LLVM_FLAGS = -D_GNU_SOURCE -DGNUMP=$(GNUMPF) -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
-GCOV_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF) -O0 --coverage #-pedantic
+GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
 MINISAT_REL_FLAGS = -D NDEBUG
@@ -69,8 +69,21 @@ ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
-ifneq (,$(filter %_gcov,$(MAKECMDGOALS)))
-XFLAGS = $(GCOV_FLAGS) -DIS_LINGVA=0
+
+ifneq (,$(filter %_dbg_gcov,$(MAKECMDGOALS)))
+XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0 $(GCOV_FLAGS)
+endif
+ifneq (,$(filter %_rel_gcov,$(MAKECMDGOALS)))
+XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0 $(GCOV_FLAGS)
+MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
+endif
+
+ifneq (,$(filter %_dbg_static,$(MAKECMDGOALS)))
+XFLAGS = -static $(DBG_FLAGS) -DIS_LINGVA=0 
+endif
+ifneq (,$(filter %_rel_static,$(MAKECMDGOALS)))
+XFLAGS = -static $(REL_FLAGS) -DIS_LINGVA=0
+MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
 
@@ -103,7 +116,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall $(INCLUDES)
+CXXFLAGS = -std=c++11 $(XFLAGS) -Wall $(INCLUDES)
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
@@ -486,7 +499,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Test/RecordingSatSolver.o
 
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Indexing Inferences InstGen Solving Shell CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Indexing Inferences InstGen BoundProp Shell CASC Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o Test/RecordingSatSolver.o 
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
@@ -544,8 +557,9 @@ version.cpp: .git/HEAD .git/index Makefile
 # separate directory for object files implementation
 
 # different directory for each configuration, so there is no need for "make clean"
-CONF_B=$(shell git branch | grep "\*" | cut -d ' ' -f 2) $(XFLAGS)
-CONF_ID := obj/$(shell echo -n "$(CONF_B)"|sum|cut -d ' ' -f1)X
+BRANCH=$(shell git branch | grep "\*" | cut -d ' ' -f 2)
+COM_CNT=$(shell git rev-list HEAD --count)
+CONF_ID := obj/$(shell echo -n "$(BRANCH) $(XFLAGS)"|sum|cut -d ' ' -f1)X
 
 obj:
 	-mkdir obj
@@ -590,7 +604,7 @@ ifneq (,$(filter 1,$(GNUMPF)))
 LGMP = -lgmp -lgmpxx
 endif 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(LGMP)
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(LGMP)
 @#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
 @#strip $@
 endef
@@ -640,7 +654,7 @@ EXEC_DEF_PREREQ = Makefile
 lingva lingva_rel lingva_dbg: $(LINGVA_OBJ) $(EXEC_DEF_PREREQ)
 	$(LLVM_COMPILE_CMD)
 
-vampire vampire_rel vampire_dbg vampire_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
+vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
