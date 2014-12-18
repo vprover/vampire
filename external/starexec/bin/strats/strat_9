@@ -1,3 +1,0 @@
-vampire(option,1,ignore_missing,on).
-vampire(option,1,decode,"dis-10_5:4_bs=off:bsr=unit_only:cond=fast:drc=off:nwc=1.1:sac=on:sio=off:spo=on_3000").
-vampire(option,1,time_limit_local,3000).

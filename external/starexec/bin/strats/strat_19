@@ -1,3 +1,0 @@
-vampire(option,1,ignore_missing,on).
-vampire(option,1,decode,"ins+10_1_bfnt=on:spl=off:gsp=input_only:igbrr=0.7:igrpq=2.0:nwc=4_3000").
-vampire(option,1,time_limit_local,3000).
