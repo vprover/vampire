@@ -654,7 +654,7 @@ EXEC_DEF_PREREQ = Makefile
 lingva lingva_rel lingva_dbg: $(LINGVA_OBJ) $(EXEC_DEF_PREREQ)
 	$(LLVM_COMPILE_CMD)
 
-vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
+vampire vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
