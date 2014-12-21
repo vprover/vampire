@@ -1023,9 +1023,22 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   SplitSet* unionAll;
   if(replacement) {
     unionAll = replacement->splits();
+    cout << "Replacement: " << replacement->toString() << endl;
     ASS(forAll(premises, 
-            [replacement] (Clause* premise) { 
-              return premise->splits()->isSubsetOf(replacement->splits()); 
+            [replacement,this] (Clause* premise) { 
+              cout << premise->toString() << endl;
+              SplitSet* difference = premise->splits()->subtract(replacement->splits());
+              if(difference->isEmpty()) return true; // isSubsetOf true
+              // Now check if those in the difference are zero implied
+              SplitSet::Iterator dsit(*difference);
+              while(dsit.hasNext()){
+                SplitLevel sl = dsit.next();
+                // check if zero-implied
+                SATLiteral sat_lit = getLiteralFromName(sl);
+                if(!_branchSelector.isZeroImplied(sat_lit)) return false;
+              }
+              return true; // all okay              
+              //return premise->splits()->isSubsetOf(replacement->splits()); 
             } ));
   } else {
     Clause* premise0 = premises.next();
