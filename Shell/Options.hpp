@@ -586,6 +586,7 @@ private:
         
         // For use in showOptions and explainOption
         virtual void output(vstringstream& out) const {
+            CALL("Options::AbstractOptionValue::output");
             out << "--" << longName;
             if(!shortName.empty()){ out << " (-"<<shortName<<")"; }
             out << endl;
@@ -715,6 +716,7 @@ private:
         virtual bool checkProblemConstraints(Property& prop);
         
         virtual void output(vstringstream& out) const {
+            CALL("Options::OptionValue::output");
             AbstractOptionValue::output(out);
             out << "\tdefault: " << getStringOfValue(defaultValue) << endl;
         }
@@ -1004,6 +1006,7 @@ private:
         bool setValue(const vstring& value);
         
         virtual void output(vstringstream& out) const {
+            CALL("Options::TimeLimitOptionValue::output");
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;;
         }

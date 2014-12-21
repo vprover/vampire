@@ -1667,12 +1667,15 @@ void Options::output (ostream& str) const
          option = _lookup.findShort(explainOption());
        }
        catch(const ValueNotFoundException&){
-         str << explainOption() << " not a known option, see help" << endl;
+         option = 0;
        }
      }
-     vstringstream vs;
-     option->output(vs);
-     str << vs.str();
+     if(!option){ str << explainOption() << " not a known option, see help" << endl; }
+     else{
+       vstringstream vs;
+       option->output(vs);
+       str << vs.str();
+     }
 
   }
 
@@ -2035,7 +2038,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
     end++;
   }
   end--;
-  float multiplier = 10.0;
+  float multiplier = 1.0;
   switch (*end) {
   case 's': // seconds
     multiplier = 10.0;
@@ -2069,8 +2072,6 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   actualValue= (int)round(number * multiplier);
 #endif
 
-  actualValue = actualValue/10; //TODO check that this is correct wrt old code
-
   return true;
 } // Options::readTimeLimit(const char* val)
 
@@ -2078,6 +2079,8 @@ void Options::randomizeStrategy(Property& prop)
 {
   CALL("Options::randomizeStrategy");
   if(_randomStrategy.actualValue==RandomStrategy::OFF) return;
+
+  TimeCounter tc(TC_RAND_OPT);
 
   // The pseudo random sequence is deterministic given a seed.
   // By default the seed is 1

@@ -154,6 +154,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     out << "% ";
   }
   switch(tcu) {
+  case TC_RAND_OPT:
+    out << "random option generation";
+    break;
   case TC_BACKWARD_DEMODULATION:
     out<<"backward demodulation";
     break;
