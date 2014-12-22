@@ -998,6 +998,7 @@ void Options::Options::init()
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
     _splittingMinimizeModel.setExperimental();
     _splittingMinimizeModel.reliesOn(_splitting.is(equal(true)));
+    _splittingMinimizeModel.setRandomChoices({"off","sco","all"});
     
     _splittingEagerRemoval = BoolOptionValue("splitting_eager_removal","sser",true);
     _splittingEagerRemoval.description="";
@@ -1014,6 +1015,7 @@ void Options::Options::init()
     _splittingHandleZeroImplied.tag(OptionTag::AVATAR);
     _splittingHandleZeroImplied.setExperimental();
     _splittingHandleZeroImplied.reliesOn(_splitting.is(equal(true)));
+    _splittingHandleZeroImplied.setRandomChoices({"on","off"});
 
     _splittingFastRestart = BoolOptionValue("splitting_fast_restart","sfr",false);
     _splittingFastRestart.description="";
@@ -1021,6 +1023,7 @@ void Options::Options::init()
     _splittingFastRestart.tag(OptionTag::AVATAR);
     _splittingFastRestart.setExperimental();
     _splittingFastRestart.reliesOn(_splitting.is(equal(true)));
+    _splittingFastRestart.setRandomChoices({"on","off"});
 
     _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("splitting_delete_deactivated","sdd",
                                                                         SplittingDeleteDeactivated::ON,{"on","large","off"});
@@ -1030,6 +1033,7 @@ void Options::Options::init()
     _splittingDeleteDeactivated.tag(OptionTag::AVATAR);
     _splittingDeleteDeactivated.setExperimental();
     _splittingDeleteDeactivated.reliesOn(_splitting.is(equal(true)));
+    _splittingDeleteDeactivated.setRandomChoices({"on","large","off"});
 
     
     _splittingFlushPeriod = UnsignedOptionValue("splitting_flush_period","ssfp",0);
@@ -2229,7 +2233,7 @@ void Options::readFromEncodedOptions (vstring testId)
     _saturationAlgorithm.actualValue = SaturationAlgorithm::INST_GEN;
   }
   else {
-  error: ASSERTION_VIOLATION; //USER_ERROR("bad test id " + _testId.actualValue);
+  error: USER_ERROR("bad test id " + _testId.actualValue);
   }
 
   // after last '_' we have time limit
@@ -2302,7 +2306,17 @@ vstring Options::generateEncodedOptions() const
   BYPASSING_ALLOCATOR;
   vostringstream res;
   //saturation algorithm
-  res << _saturationAlgorithm.getStringOfActual();
+  vstring sat;
+  switch(_saturationAlgorithm.actualValue){
+    case LRS : sat="lrs"; break;
+    case DISCOUNT : sat="dis"; break;
+    case OTTER : sat="ott"; break;
+    case TABULATION : sat="tab"; break;
+    case INST_GEN : sat="ins"; break;
+    default : ASSERTION_VIOLATION;
+  }
+
+  res << sat; 
 
   //selection function
   res << (selection() < 0 ? "-" : "+") << abs(selection());
