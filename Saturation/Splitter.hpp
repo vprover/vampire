@@ -59,10 +59,6 @@ public:
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
   void getNewZeroImpliedSplits(SplitLevelStack& res);
 
-  // For Debugging
-  bool isZeroImplied(SATLiteral lit){ 
-   return _solver->isZeroImplied(lit.var()); 
-  }
 private:
   void processDPConflicts();
 
