@@ -2308,11 +2308,11 @@ vstring Options::generateEncodedOptions() const
   //saturation algorithm
   vstring sat;
   switch(_saturationAlgorithm.actualValue){
-    case LRS : sat="lrs"; break;
-    case DISCOUNT : sat="dis"; break;
-    case OTTER : sat="ott"; break;
-    case TABULATION : sat="tab"; break;
-    case INST_GEN : sat="ins"; break;
+    case SaturationAlgorithm::LRS : sat="lrs"; break;
+    case SaturationAlgorithm::DISCOUNT : sat="dis"; break;
+    case SaturationAlgorithm::OTTER : sat="ott"; break;
+    case SaturationAlgorithm::TABULATION : sat="tab"; break;
+    case SaturationAlgorithm::INST_GEN : sat="ins"; break;
     default : ASSERTION_VIOLATION;
   }
 
