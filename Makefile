@@ -86,14 +86,6 @@ XFLAGS = -static $(REL_FLAGS) -DIS_LINGVA=0
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
-ifneq (,$(filter %_dbg_static,$(MAKECMDGOALS)))
-XFLAGS = -static $(DBG_FLAGS) -DIS_LINGVA=0 
-endif
-ifneq (,$(filter %_rel_static,$(MAKECMDGOALS)))
-XFLAGS = -static $(REL_FLAGS) -DIS_LINGVA=0
-MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
-endif
-
 
 ################################################################
 # Specific build options for some targets
@@ -662,11 +654,7 @@ EXEC_DEF_PREREQ = Makefile
 lingva lingva_rel lingva_dbg: $(LINGVA_OBJ) $(EXEC_DEF_PREREQ)
 	$(LLVM_COMPILE_CMD)
 
-<<<<<<< HEAD
-vampire vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
-=======
 vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
->>>>>>> updating Makefile
 	$(COMPILE_CMD)
 
 vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
