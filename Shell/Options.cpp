@@ -1523,7 +1523,7 @@ void Options::set(const char* name,const char* value)
 
   try {
     if(!_lookup.findLong(name)->set(value)){
-      USER_ERROR((vstring) value +" is an invalid value for "+(vstring)name+", see help");
+      USER_ERROR((vstring) value +" is an invalid value for "+(vstring)name+"\nSee help or use explain i.e. vampire -explain mode");
     }
   }
   catch (const ValueNotFoundException&) {
