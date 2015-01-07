@@ -272,7 +272,7 @@ void IGAlgorithm::processUnprocessed()
   
   _satSolver->addClauses(scit);
 
-  if(_satSolver->getStatus()==SATSolver::UNSATISFIABLE) {
+  if(_satSolver->solve()==SATSolver::UNSATISFIABLE) {
     Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
     throw RefutationFoundException(foRefutation);
   }
@@ -451,9 +451,9 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
   scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
 
   _satSolver->ensureVarCnt(_gnd->satVarCnt());
-  _satSolver->addClauses(scit, true);
+  _satSolver->addClauses(scit);
 
-  if(_satSolver->getStatus()==SATSolver::UNSATISFIABLE) {
+  if(_satSolver->solve(true)==SATSolver::UNSATISFIABLE) {
     Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
     throw RefutationFoundException(foRefutation);
   }
@@ -705,7 +705,7 @@ MainLoopResult IGAlgorithm::runImpl()
     while(_unprocessed.isNonEmpty() || !_passive.isEmpty()) {
       env.statistics->instGenIterations++;
       processUnprocessed();
-      ASS_EQ(_satSolver->getStatus(), SATSolver::SATISFIABLE);
+      // ASS_EQ(_satSolver->getStatus(), SATSolver::SATISFIABLE);
 
       unsigned activatedCnt = max(10u, _passive.size()/4);
       for(unsigned i=0; i<activatedCnt && !_passive.isEmpty() && _instGenResolutionRatio.shouldDoFirst(); i++) {

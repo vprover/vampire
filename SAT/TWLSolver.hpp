@@ -42,7 +42,7 @@ struct Watch
 typedef Stack<Watch> WatchStack;
 
 
-class TWLSolver : public SATSolver {
+class TWLSolver : public SATSolverWithAssumptions {
   friend class ClauseDisposer;
   friend class VariableSelector;
   friend class RLCVariableSelector;
@@ -53,8 +53,8 @@ public:
   TWLSolver(const Options& opt, bool generateProofs=false);
   ~TWLSolver();
 
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate, bool useInPartialModel=true);
-  virtual Status getStatus() { return _status; };
+  virtual void addClauses(SATClauseIterator cit);
+  virtual Status solve(unsigned conflictCountLimit) override;
   
   /*
    * Because variables are integers greater than zero and we use them for indexing,
@@ -69,13 +69,13 @@ public:
   virtual void collectZeroImplied(SATLiteralStack& acc);
   virtual SATClause* getZeroImpliedCertificate(unsigned var);
 
-  virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
+  virtual void addAssumption(SATLiteral lit);
   virtual void retractAllAssumptions();
   virtual bool hasAssumptions() const { return _assumptionsAdded; }
 
   virtual SATClause* getRefutation() {
     CALL("TWLSolver::getRefutation");
-    ASS_EQ(getStatus(),SATSolver::UNSATISFIABLE);
+    ASS_EQ(_status,SATSolver::UNSATISFIABLE);
     return _refutation;
   }
 
@@ -239,7 +239,7 @@ private:
   unsigned _level;
 
   /** True it used added assumptions and they weren't retracted yet.
-   * If false, _assumptionCnt==0, but te converse doesn't need to hold,
+   * If false, _assumptionCnt==0, but the converse doesn't need to hold,
    * as the user assumptions might not have been put on the stack due
    * to redundancy. */
   bool _assumptionsAdded;

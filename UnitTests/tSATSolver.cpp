@@ -67,7 +67,7 @@ void ensurePrepared(SATSolver& s)
   s.ensureVarCnt(27);
 }
 
-void testZICert1(SATSolver& s)
+void testZICert1(SATSolverWithAssumptions& s)
 {
   CALL("testZICert1");
 
@@ -103,7 +103,7 @@ void testProofWithAssumptions(SATSolver& s)
   s.addClauses(pvi(getSingletonIterator(getClause("a"))));
   s.addClauses(pvi(getSingletonIterator(getClause("A"))));
 
-  ASS_EQ(s.getStatus(),SATSolver::UNSATISFIABLE);
+  ASS_EQ(s.solve(),SATSolver::UNSATISFIABLE);
 
   SATClause* refutation = s.getRefutation();
   PropInference* inf = static_cast<PropInference*>(refutation->inference());
@@ -127,10 +127,10 @@ TEST_FUN(testProofWithAssums)
   testProofWithAssumptions(s);    
 }
 
-void testInterface(SATSolver &s) {
+void testInterface(SATSolverWithAssumptions &s) {
   ensurePrepared(s);
       
-  ASS_EQ(s.getStatus(),SATSolver::SATISFIABLE);
+  ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
   
   unsigned a = getLit('a').var();
   unsigned b = getLit('b').var();
@@ -151,14 +151,14 @@ void testInterface(SATSolver &s) {
   s.addClauses(SATClauseIterator::getEmpty());
   ASS(!s.trueInAssignment(getLit('a')));      
   
-  s.addClauses(pvi(getSingletonIterator(getClause("ab"))),true);
-  ASS_EQ(s.getStatus(),SATSolver::UNKNOWN);
-  s.addClauses(pvi(getSingletonIterator(getClause("aB"))),true);
-  ASS_EQ(s.getStatus(),SATSolver::UNKNOWN);
-  s.addClauses(pvi(getSingletonIterator(getClause("Ab"))),true);
-  ASS_EQ(s.getStatus(),SATSolver::UNKNOWN);
+  s.addClauses(pvi(getSingletonIterator(getClause("ab"))));
+  ASS_EQ(s.solve(true),SATSolver::UNKNOWN);
+  s.addClauses(pvi(getSingletonIterator(getClause("aB"))));
+  ASS_EQ(s.solve(true),SATSolver::UNKNOWN);
+  s.addClauses(pvi(getSingletonIterator(getClause("Ab"))));
+  ASS_EQ(s.solve(true),SATSolver::UNKNOWN);
   s.addClauses(pvi(getSingletonIterator(getClause("C"))));
-  ASS_EQ(s.getStatus(),SATSolver::SATISFIABLE);
+  ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
   
   ASS(s.trueInAssignment(getLit('a')));
   ASS(s.trueInAssignment(getLit('b')));
@@ -186,32 +186,32 @@ void testInterface(SATSolver &s) {
   
   s.addAssumption(getLit('a'));
   ASS(s.hasAssumptions());
-  ASS_EQ(s.getStatus(),SATSolver::SATISFIABLE);
+  ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
   s.retractAllAssumptions();
   ASS(!s.hasAssumptions());
   // bloody interface
-  ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);  
+  // ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);  
   
   ASS(!s.hasAssumptions());
   s.addAssumption(getLit('A'));
   ASS(s.hasAssumptions());
-  ASS_EQ(s.getStatus(),SATSolver::UNSATISFIABLE);
+  ASS_EQ(s.solve(),SATSolver::UNSATISFIABLE);
   s.retractAllAssumptions();
   ASS(!s.hasAssumptions());
-  ASS_EQ(s.getStatus(),SATSolver::UNKNOWN);
+  ASS_EQ(s.solve(),SATSolver::UNKNOWN);
     
   s.addAssumption(getLit('a'));  
   ASS(s.hasAssumptions());
-  ASS_EQ(s.getStatus(),SATSolver::SATISFIABLE);
+  ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
   s.retractAllAssumptions();
   ASS(!s.hasAssumptions());
   // bloody interface
-  ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);  
+  //ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);  
   
   // stupid interface, must call addClauses with empty,
   //  to let it know the status again
   s.addClauses(SATClauseIterator::getEmpty());
-  ASS_EQ(s.getStatus(),SATSolver::SATISFIABLE);    
+  ASS_EQ(s.solve(),SATSolver::SATISFIABLE);    
 }
 
 TEST_FUN(testSATSolverInterface)

@@ -61,7 +61,7 @@ public:
   void getNewZeroImpliedSplits(SplitLevelStack& res);
 
 private:
-  void processDPConflicts();
+  SATSolver::Status processDPConflicts();
 
   void handleSatRefutation(SATClause* ref);
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
@@ -70,9 +70,9 @@ private:
   //options
   bool _eagerRemoval;
   bool _handleZeroImplied;
-
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
   bool _ccMultipleCores;
+  bool _minSCO; // minimize wrt splitting clauses only
   bool _ccModel;
 
   Splitter& _parent;

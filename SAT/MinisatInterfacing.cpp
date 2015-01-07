@@ -59,17 +59,11 @@ void MinisatInterfacing::solveModuloAssumptionsAndSetStatus(unsigned conflictCou
 }
 
 /**
- * Add clauses into the solver and saturate.
+ * Add clauses into the solver.
  *
- * If @c onlyPropagate is true, only unit propagation is done. If
- * unsatisfiability isn't shown in this case, the status is set to UNKNOWN.
- * 
  * Memory-wise, the clauses are owned by the solver from now on.
- * 
- * @useInPartialModel is ignored as this solver generates a total model
  */
-void MinisatInterfacing::addClauses(SATClauseIterator cit, 
-        bool onlyPropagate, bool useInPartialModel)
+void MinisatInterfacing::addClauses(SATClauseIterator cit)
 {
   CALL("MinisatInterfacing::addClauses");
   
@@ -95,17 +89,24 @@ void MinisatInterfacing::addClauses(SATClauseIterator cit,
     
     _solver.addClause(mcl);          
   }
-  
-  solveModuloAssumptionsAndSetStatus(onlyPropagate ? 0 : UINT_MAX);
 }
 
-void MinisatInterfacing::addAssumption(SATLiteral lit, unsigned conflictCountLimit) 
+/**
+ * Perform solving and return status.
+ */
+SATSolver::Status MinisatInterfacing::solve(unsigned conflictCountLimit)
+{
+  CALL("MinisatInterfacing::solve");
+  
+  solveModuloAssumptionsAndSetStatus(conflictCountLimit);
+  return _status;
+}
+
+void MinisatInterfacing::addAssumption(SATLiteral lit) 
 {
   CALL("MinisatInterfacing::addAssumption");
   
   _assumptions.push(vampireLit2Minisat(lit));
-  
-  solveModuloAssumptionsAndSetStatus(conflictCountLimit);
 }
 
 SATSolver::VarAssignment MinisatInterfacing::getAssignment(unsigned var) 

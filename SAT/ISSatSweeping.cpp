@@ -23,7 +23,7 @@ namespace SAT
  * @param conflictLimit ???
  * @param collectImplications ???
  */
-ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver, IntIterator interestingVarIterator,
+ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolverWithAssumptions& solver, IntIterator interestingVarIterator,
 			     bool doRandomSimulation, unsigned conflictLimit, bool collectImplications)
 : _doRandomSimulation(doRandomSimulation),
   _conflictUpperLimit(conflictLimit),
@@ -41,7 +41,7 @@ ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver, IntIterator int
   _solver(solver)
 {
   CALL("ISSatSweeping::ISSatSweeping");
-  ASS_EQ(solver.getStatus(),SATSolver::SATISFIABLE);
+  // ASS_EQ(solver.getStatus(),SATSolver::SATISFIABLE);
   ASS(!solver.hasAssumptions());
 
   if(interestingVarIterator.isInvalid()) {
@@ -77,9 +77,8 @@ void ISSatSweeping::addTrueLit(SATLiteral lit)
 void ISSatSweeping::createCandidates()
 {
   CALL("ISSatSweeping::createCandidates");
-  ASS_EQ(_solver.getStatus(),SATSolver::SATISFIABLE);
+  // ASS_EQ(_solver.getStatus(),SATSolver::SATISFIABLE);
   ASS(_candidateGroups.isEmpty());
-
 
   _candidateGroups.push(SATLiteralStack());
   SATLiteralStack& candGrp = _candidateGroups.top();
@@ -135,7 +134,7 @@ void ISSatSweeping::splitByCurrAssignment(SATLiteralStack& orig, SATLiteralStack
   CALL("ISSatSweeping::splitByCurrAssignment");
   ASS_GE(orig.size(),2);
   ASS_EQ(newGrp.size(),0);
-  ASS_EQ(_solver.getStatus(),SATSolver::SATISFIABLE);
+  // ASS_EQ(_solver.getStatus(),SATSolver::SATISFIABLE);
 
   SATLiteralStack::DelIterator oit(orig);
   while(oit.hasNext()) {
@@ -240,10 +239,9 @@ void ISSatSweeping::tryRandomSimulation()
     return;
   }
 
-  if(_solver.getStatus()!=SATSolver::SATISFIABLE) {
-    _solver.addClauses(SATClauseIterator::getEmpty());
-  }
-  ASS_EQ(_solver.getStatus(), SATSolver::SATISFIABLE);
+  // TODO: this may be here just to make sure that the solver's internal status
+  // in not UNKNOWN, which would violate assertion in randomizeAssignment
+  ALWAYS(_solver.solve() == SATSolver::SATISFIABLE);
 
   unsigned initLives = 3;
   unsigned lives = initLives;
@@ -332,7 +330,7 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
     unsigned litVar = lit.var();
 
     ASS(_solver.isZeroImplied(litVar));
-    ASS(_solver.getStatus()==SATSolver::UNKNOWN || _solver.trueInAssignment(lit));
+    // ASS(_solver.getStatus()==SATSolver::UNKNOWN || _solver.trueInAssignment(lit));
 
     if(!_interestingVarsSet.find(litVar)) {
       continue;
@@ -351,8 +349,8 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
       //(see documentation to _candidateVarPolarities)
       //We assert the below non-equality because we assume
       //splitGroupsByCurrAssignment() to have been already
-      //called on the current assignment.
-      ASS_REP2(_solver.getStatus()==SATSolver::UNKNOWN || !sameCandGroup(litVar,probedVar), lit, probedLit);
+      //called on the current assignment.      
+      //ASS_REP2(_solver.getStatus()==SATSolver::UNKNOWN || !sameCandGroup(litVar,probedVar), lit, probedLit);
       Impl imp;
       if(assignedOpposite) {
 	//~p --> c
@@ -410,8 +408,8 @@ bool ISSatSweeping::tryProvingImplicationInner(Impl imp, bool& foundEquivalence)
   ASS(!_solver.hasAssumptions());
   ASS(sameCandGroup(imp.first.var(),imp.second.var()));
 
-  _solver.addAssumption(imp.second.opposite(), _conflictCountLimit);
-  SATSolver::Status status = _solver.getStatus();
+  _solver.addAssumption(imp.second.opposite());
+  SATSolver::Status status = _solver.solve(_conflictCountLimit);
   if(status==SATSolver::UNSATISFIABLE) {
     addTrueLit(imp.second);
     foundEquivalence = true;
@@ -437,8 +435,8 @@ bool ISSatSweeping::tryProvingImplicationInner(Impl imp, bool& foundEquivalence)
     return false;
   }
 
-  _solver.addAssumption(imp.first, _conflictCountLimit);
-  status = _solver.getStatus();
+  _solver.addAssumption(imp.first);
+  status = _solver.solve(_conflictCountLimit);
   if(status==SATSolver::UNSATISFIABLE) {
     addImplication(imp, foundEquivalence);
     return true;

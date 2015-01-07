@@ -56,8 +56,8 @@ private:
   DHSet<Literal*> _restrictedRangeSet2;
 
   GlobalSubsumptionGrounder _gnd;
-  ScopedPtr<SATSolver> _solver;
-  ScopedPtr<SATSolver> _proofRecordingSolver;
+  ScopedPtr<SATSolverWithAssumptions> _solver;
+  ScopedPtr<SATSolverWithAssumptions> _proofRecordingSolver;
 
   SATLiteralStack _eligibleSatLits;
 
@@ -71,7 +71,7 @@ private:
 
   Literal* getFOLit(SATLiteral slit) const;
 
-  SATSolver& getProofRecordingSolver();
+  SATSolverWithAssumptions& getProofRecordingSolver();
   void getImplicationPremises(SATLiteral l1, SATLiteral l2, Stack<UnitSpec>& acc);
   Inference* getInference(SATLiteral l1, SATLiteral l2, bool equivalence);
 

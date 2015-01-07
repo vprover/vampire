@@ -26,7 +26,7 @@ void CheckedSatSolver::ensureVarCnt(unsigned newVarCnt)
   _inner->ensureVarCnt(newVarCnt);
 }
 
-void CheckedSatSolver::addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel)
+void CheckedSatSolver::addClauses(SATClauseIterator cit)
 {
   CALL("CheckedSatSolver::addClauses");
 
@@ -34,20 +34,38 @@ void CheckedSatSolver::addClauses(SATClauseIterator cit, bool onlyPropagate,bool
   newClauses.reset();
   newClauses.loadFromIterator(cit);
   
-  if (useInPartialModel) { // This is a bit ugly, ...
-    // ... but we need to be less strict for the case when checking
-    // a minimizing solver and the splitting_model option being min_sco
-    _clauses.loadFromIterator(SATClauseStack::BottomFirstIterator(newClauses));
-  }
+  _clauses.loadFromIterator(SATClauseStack::BottomFirstIterator(newClauses));
 
-  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(newClauses)), onlyPropagate, useInPartialModel);
+  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(newClauses)));
   _checked = false;
+}
+
+void CheckedSatSolver::addClausesIgnoredInPartialModel(SATClauseIterator cit)
+{
+  CALL("CheckedSatSolver::addClausesIgnoredInPartialModel");
+
+  // It is a bit ugly to ignore these clauses for checking
+  // but we need to be less strict for the case when checking a minimizing solver 
+  
+  // TODO: consider checking that the returned partial model
+  // can be extended to a full model that satisfies even these clauses
+  
+  _inner->addClauses(cit);
+  _checked = false;  
+}
+
+SATSolver::Status CheckedSatSolver::solve(unsigned conflictCountLimit)
+{
+  CALL("CheckedSatSolver::solve");
+  
+  _checked = false;
+  return _inner->solve(conflictCountLimit);
 }
 
 SATSolver::VarAssignment CheckedSatSolver::getAssignment(unsigned var)
 {
   CALL("CheckedSatSolver::getAssignment");
-  ASS_EQ(_inner->getStatus(), SATISFIABLE);
+  //ASS_EQ(_inner->getStatus(), SATISFIABLE);
 
   ensureChecked();
   return _inner->getAssignment(var);
@@ -71,12 +89,6 @@ void CheckedSatSolver::doCheck()
 {
   CALL("CheckedSatSolver::doCheck");
 
-  Status st = _inner->getStatus();
-  if(st!=SATISFIABLE) {
-    //TODO: add proofchecking here one day
-    return;
-  }
-
   SATClauseStack::Iterator cit(_clauses);
   while(cit.hasNext()) {
     SATClause* cl = cit.next();
@@ -87,7 +99,7 @@ void CheckedSatSolver::doCheck()
   }
 }
 
-
+/*
 void CheckedSatSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
 {
   CALL("CheckedSatSolver::addAssumption");
@@ -105,6 +117,6 @@ void CheckedSatSolver::retractAllAssumptions()
   _checked = false;
   _inner->retractAllAssumptions();
 }
-
+*/
 
 }

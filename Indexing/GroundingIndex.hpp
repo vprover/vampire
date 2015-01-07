@@ -26,14 +26,14 @@ public:
 
   GroundingIndex(Grounder* gnd, const Options& opt);
 
-  SATSolver& getSolver() { return *_solver; }
+  SATSolverWithAssumptions& getSolver() { return *_solver; }
   Grounder& getGrounder() { return *_grounder; }
 
 protected:
   virtual void handleClause(Clause* c, bool adding);
 
 private:
-  SATSolverSCP _solver;
+  ScopedPtr<SATSolverWithAssumptions> _solver;
   GrounderSCP _grounder;
 };
 

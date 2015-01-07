@@ -10,12 +10,10 @@
 namespace SAT
 {
 
-MinimizingSolver::MinimizingSolver(SATSolver* inner,bool splitclausesonly)
- : _varCnt(0), _inner(inner), _splitclausesonly(splitclausesonly),
-   _assignmentValid(false), _heap(CntComparator(_unsClCnt))
+MinimizingSolver::MinimizingSolver(SATSolver* inner)
+ : _varCnt(0), _inner(inner), _assignmentValid(false), _heap(CntComparator(_unsClCnt))
 {
   CALL("MinimizingSolver::MinimizingSolver");
-
 }
 
 void MinimizingSolver::ensureVarCnt(unsigned newVarCnt)
@@ -37,7 +35,7 @@ bool MinimizingSolver::isNonEmptyClause(SATClause* cl)
   return cl->length()!=0;
 }
 
-void MinimizingSolver::addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel)
+void MinimizingSolver::addClauses(SATClauseIterator cit)
 {
   CALL("MinimizingSolver::addClauses");
 
@@ -45,34 +43,41 @@ void MinimizingSolver::addClauses(SATClauseIterator cit, bool onlyPropagate,bool
   newClauses.reset();
   newClauses.loadFromIterator(cit);
 
-  // We only need to keep track of these clauses if they need to be covered by the partial model
-  // This is safe as the model produced is always a 'sub-model' of that produced by inner
-  // and not adding clauses to _unprocessed should only result in more variables being marked
-  // as DONT_CARE (if they only appear in clauses not to be used in the partial model)
-  // - Giles
-  if(useInPartialModel || ! _splitclausesonly ) {
-    //we need to filter out the empty clause -- it won't have any influence on our algorithm
-    //(as it will make the problem unsat and we process only satisfiale assignment), but it
-    //is a corner case that needs to be handled
-    _unprocessed.loadFromIterator(
-        getFilteredIterator(SATClauseStack::BottomFirstIterator(newClauses), isNonEmptyClause));
-  }
-
-  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(newClauses)), onlyPropagate,useInPartialModel);
+  // pass them to inner ...
+  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(newClauses)));
   _assignmentValid = false;
+  
+  // ... and also keep track of them for minimization
+  _unprocessed.loadFromIterator(
+      getFilteredIterator(SATClauseStack::BottomFirstIterator(newClauses), isNonEmptyClause));
+  //we need to filter out the empty clause -- it won't have any influence on our algorithm
+  //(as it will make the problem unsat and we process only satisfiable assignment), but it
+  //is a corner case that needs to be handled
+}
+
+void MinimizingSolver::addClausesIgnoredInPartialModel(SATClauseIterator cit)
+{
+  CALL("MinimizingSolver::addClausesIgnoredInPartialModel");
+  
+  // just passing to _inner, but for minimization they will be ignored
+  _inner->addClauses(cit);
+  _assignmentValid = false;
+}
+
+SATSolver::Status MinimizingSolver::solve(unsigned conflictCountLimit) 
+{
+  CALL("MinimizingSolver::solve");
+  _assignmentValid = false;
+  return _inner->solve(conflictCountLimit);
 }
 
 SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)
 {
   CALL("MinimizingSolver::getAssignment");
-  ASS_EQ(_inner->getStatus(), SATISFIABLE);
+  // ASS_EQ(_inner->getStatus(), SATISFIABLE);
 
   if(!_assignmentValid) {
     updateAssignment();
-  }
-
-  if(!_assumptions.isEmpty() && _assumptions.find(var)) {
-    return _assumptions.get(var) ? SATSolver::TRUE : SATSolver::FALSE;
   }
 
   if(admitsDontcare(var)) {
@@ -238,24 +243,5 @@ void MinimizingSolver::updateAssignment()
   
   _assignmentValid = true;
 }
-
-
-void MinimizingSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
-{
-  CALL("MinimizingSolver::addAssumption");
-
-  _assumptions.insert(lit.var(), lit.polarity());
-  _assignmentValid = false;
-  _inner->addAssumption(lit, conflictCountLimit);
-}
-
-void MinimizingSolver::retractAllAssumptions()
-{
-  CALL("MinimizingSolver::retractAllAssumptions");
-
-  _assumptions.reset();
-  _inner->retractAllAssumptions();
-}
-
 
 }

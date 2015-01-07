@@ -90,14 +90,13 @@ void SplittingBranchSelector::init()
       // Do nothing - we don't want to minimise the model
       break;
     case Options::SplittingMinimizeModel::ALL:
-      _solver = new MinimizingSolver(_solver.release(),false);
-      break;
-    case  Options::SplittingMinimizeModel::SCO:
-      _solver = new MinimizingSolver(_solver.release(),true);
+    case Options::SplittingMinimizeModel::SCO:
+      _solver = new MinimizingSolver(_solver.release());
       break;
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
   }
+  _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
 
 
 #if DEBUG_MIN_SOLVER
@@ -168,13 +167,13 @@ void SplittingBranchSelector::handleSatRefutation(SATClause* ref)
   throw MainLoop::RefutationFoundException(foRef);
 }
 
-void SplittingBranchSelector::processDPConflicts()
+SATSolver::Status SplittingBranchSelector::processDPConflicts()
 {
   CALL("SplittingBranchSelector::processDPConflicts");
-  ASS(_solver->getStatus()==SATSolver::SATISFIABLE || _solver->getStatus()==SATSolver::UNSATISFIABLE);
+  // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
 
-  if(!_dp || _solver->getStatus()==SATSolver::UNSATISFIABLE) {
-    return;
+  if(!_dp) {
+    return SATSolver::SATISFIABLE;
   }
   
   SAT2FO& s2f = _parent.satNaming();
@@ -183,7 +182,7 @@ void SplittingBranchSelector::processDPConflicts()
 
   static SATClauseStack conflictClauses;
 
-  while(_solver->getStatus()==SATSolver::SATISFIABLE) {
+  while (true) { // breaks inside
     {
       TimeCounter tc(TC_CONGRUENCE_CLOSURE);
     
@@ -208,17 +207,25 @@ void SplittingBranchSelector::processDPConflicts()
         conflictClauses.push(conflCl);
       }
     }
-      
-    {
-    	TimeCounter tca(TC_SAT_SOLVER);
-      // We do not use conflict clauses in the partial model (hence the last false here below)     
-    	_solver->addClauses(pvi( SATClauseStack::Iterator(conflictClauses) ),false,false);
-    }
 
     RSTAT_CTR_INC("ssat_dp_conflict");
-    RSTAT_CTR_INC_MANY("ssat_dp_conflict_clauses",conflictClauses.size());
+    RSTAT_CTR_INC_MANY("ssat_dp_conflict_clauses",conflictClauses.size());    
+    
+    {
+    	TimeCounter tca(TC_SAT_SOLVER);
+      if (_minSCO) {
+        _solver->addClausesIgnoredInPartialModel(pvi( SATClauseStack::Iterator(conflictClauses)));
+      } else {
+        _solver->addClauses(pvi( SATClauseStack::Iterator(conflictClauses)));
+      }
+    	
+      if (_solver->solve() == SATSolver::UNSATISFIABLE) {
+        return SATSolver::UNSATISFIABLE;
+      }
+    }
   }
   
+  // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
   if (_ccModel) {
     static LiteralStack model;
     model.reset();
@@ -230,6 +237,8 @@ void SplittingBranchSelector::processDPConflicts()
       cout << it.next()->toString() << endl;
     }  
   }
+  
+  return SATSolver::SATISFIABLE;
 }
 
 void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
@@ -291,21 +300,28 @@ void SplittingBranchSelector::addSatClauses(
 
   TimeCounter tc(TC_SPLITTING_COMPONENT_SELECTION);
 
-  RSTAT_CTR_INC_MANY("ssat_sat_clauses",regularClauses.size()+conflictClauses.size());
+  RSTAT_CTR_INC_MANY("ssat_sat_clauses",regularClauses.size()+conflictClauses.size());  
+  
+  _solver->addClauses(pvi( SATClauseStack::ConstIterator(regularClauses) ));
+  if (_minSCO) {
+    _solver->addClausesIgnoredInPartialModel(pvi( SATClauseStack::ConstIterator(conflictClauses) ));
+  } else {
+    _solver->addClauses(pvi( SATClauseStack::ConstIterator(conflictClauses) ));
+  }
+  
+  SATSolver::Status stat;
   {
     TimeCounter tc1(TC_SAT_SOLVER);
-    // We do use regular split clauses in the partial model ...
-    _solver->addClauses(pvi( SATClauseStack::ConstIterator(regularClauses) ), false,true);
-    // ... but not the clauses derived from conflicts
-    _solver->addClauses(pvi( SATClauseStack::ConstIterator(conflictClauses) ), false,false);    
+    stat = _solver->solve();
   }
-  processDPConflicts();
-
-  if(_solver->getStatus()==SATSolver::UNSATISFIABLE) {
+  if (stat != SATSolver::UNSATISFIABLE) {
+    stat = processDPConflicts();
+  }
+  if(stat == SATSolver::UNSATISFIABLE) {
     SATClause* satRefutation = _solver->getRefutation();
     handleSatRefutation(satRefutation); // noreturn!
   }
-  ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
+  ASS_EQ(stat,SATSolver::SATISFIABLE);
 
   unsigned maxSatVar = _parent.maxSatVar();
   unsigned _usedcnt=0; // for the statistics below
@@ -335,15 +351,21 @@ void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
   
-  if(_solver->getStatus()==SATSolver::UNKNOWN) {    
+  // if(_solver->getStatus()==SATSolver::UNKNOWN) 
+  {    
   	TimeCounter tca(TC_SAT_SOLVER);
-    _solver->addClauses(SATClauseIterator::getEmpty()); // Martin: just to get a status? Evil!
-  } 
-  ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
+    // TODO: this may be here just to make sure that the solver's internal status
+    // in not UNKNOWN, which would violate assertion in randomizeAssignment
+    _solver->solve();
+  }
+  // ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
   _solver->randomizeAssignment();
 
-  processDPConflicts(); // Why after the randomization?
-  ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
+  if(processDPConflicts() == SATSolver::UNSATISFIABLE) {
+    SATClause* satRefutation = _solver->getRefutation();
+    handleSatRefutation(satRefutation); // noreturn!
+  }
+  // ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
 
   unsigned maxSatVar = _parent.maxSatVar();
   unsigned _usedcnt=0; // for the statistics below

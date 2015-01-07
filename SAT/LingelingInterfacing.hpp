@@ -19,7 +19,7 @@ struct LGL;
 
 namespace SAT{
   
-class LingelingInterfacing : public SATSolver
+class LingelingInterfacing : public SATSolverWithAssumptions
 {
 public: 
   CLASS_NAME(LingelingInterfacing);
@@ -33,16 +33,10 @@ public:
 	* The add clause is the incremental way for the lingeling sat solver. It is used in order to add new clause
 	* to the current problem
 	**/
-	virtual void addClauses(SATClauseIterator clauseIterator, bool onlyPropagate,bool useInPartialModel);
+	virtual void addClauses(SATClauseIterator clauseIterator);
 	
-	/**
-	* return the current status of the problem
-	*/
-	virtual Status getStatus(){
-		CALL("LingelingInterfacing::getStatus()");		
-		return _status;
-	}
-
+  virtual Status solve(unsigned conflictCountLimit) override;
+  
   virtual void ensureVarCnt(unsigned newVarCnt);
   
 	/**
@@ -80,12 +74,9 @@ public:
 	virtual SATClause* getZeroImpliedCertificate(unsigned var){ return 0; }
 	
 	/**
-	*Adds an assumption to the solver. 
-	* If conflictingCountLimit == 0 => do only unit propagation 
-	* if conflictingCountLimit == UINT_MAX => do full satisfiability check
-	* if the value is in between, then simply set that as the upper bound on conflictCountLimit
+	* Adds an assumption to the solver. 
 	*/
-	virtual void addAssumption(SATLiteral literal, unsigned conflictCountLimit);
+	virtual void addAssumption(SATLiteral literal);
   
   //since lingeling allows assumption of clauses, let's have a function which does that
 	void addCAssumption(SATClause* clause, unsigned conflictingCountLimit);

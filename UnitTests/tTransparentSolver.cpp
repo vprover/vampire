@@ -3,7 +3,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/ScopedPtr.hpp"
 
-#include "SAT/TransparentSolver.hpp"
+// #include "SAT/TransparentSolver.hpp"  // no longer supported!
 #include "SAT/TWLSolver.hpp"
 
 #include "Test/TestUtils.hpp"

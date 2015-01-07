@@ -19,8 +19,6 @@
 #include "SAT/SATInference.hpp"
 #include "SAT/TWLSolver.hpp"
 
-#include "Test/RecordingSatSolver.hpp"
-
 #include "EquivalenceDiscoverer.hpp"
 #include "Flattening.hpp"
 #include "PDInliner.hpp"
@@ -251,11 +249,11 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
     env.endOutput();
   }
     
-  if(_solver->getStatus()==SATSolver::UNSATISFIABLE) {
+  if(_solver->solve()==SATSolver::UNSATISFIABLE) {
     //we might have built a refutation clause here but this is highly unlikely case anyway...
     return 0;
   }
-  ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
+  // ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
 
   //the actual equivalence finding
   if (env.options->showPreprocessing()) {
@@ -277,7 +275,7 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
   return res;
 }
 
-SATSolver& EquivalenceDiscoverer::getProofRecordingSolver()
+SATSolverWithAssumptions& EquivalenceDiscoverer::getProofRecordingSolver()
 {
   CALL("EquivalenceDiscoverer::getProofRecordingSolver");
 
@@ -294,17 +292,11 @@ SATSolver& EquivalenceDiscoverer::getProofRecordingSolver()
       clauseCopies.push(clCopy);
     }
 
-    // a relict of the LOGGING module -- could RecordingSatSolver be still useful?
-    /*if(TAG_ENABLED("sat_recorder")) {
-      _proofRecordingSolver = new Test::RecordingSatSolver(new TWLSolver(*env.options, true));
-    }
-    else*/ {
-      _proofRecordingSolver = new TWLSolver(*env.options, true);
-    }
+    _proofRecordingSolver = new TWLSolver(*env.options, true);    
     _proofRecordingSolver->ensureVarCnt(_maxSatVar+1);
-    _proofRecordingSolver->addClauses(pvi(SATClauseStack::Iterator(clauseCopies)), true);
+    _proofRecordingSolver->addClauses(pvi(SATClauseStack::Iterator(clauseCopies)));
   }
-  ASS_NEQ(_proofRecordingSolver->getStatus(), SATSolver::UNSATISFIABLE);
+  // ASS_NEQ(_proofRecordingSolver->getStatus(), SATSolver::UNSATISFIABLE);
   ASS(!_proofRecordingSolver->hasAssumptions());
   return *_proofRecordingSolver;
 }
@@ -323,14 +315,14 @@ void EquivalenceDiscoverer::getImplicationPremises(SATLiteral l1, SATLiteral l2,
     return;
   }
 
-  SATSolver& ps = getProofRecordingSolver();
+  SATSolverWithAssumptions& ps = getProofRecordingSolver();
   ASS(!ps.hasAssumptions());
 
   if(l1!=SATLiteral::dummy()) {
-    ps.addAssumption(l1,true);
+    ps.addAssumption(l1);
   }
-  ps.addAssumption(l2.opposite(),false);
-  ASS_EQ(ps.getStatus(), SATSolver::UNSATISFIABLE);
+  ps.addAssumption(l2.opposite());
+  ALWAYS(ps.solve() == SATSolver::UNSATISFIABLE);
   SATClause* ref = ps.getRefutation();
   SATInference::collectFOPremises(ref, acc);
   ps.retractAllAssumptions();
@@ -369,7 +361,7 @@ Inference* EquivalenceDiscoverer::getInference(SATLiteral l1, SATLiteral l2, boo
 void EquivalenceDiscoverer::doISSatDiscovery(UnitList*& res)
 {
   CALL("EquivalenceDiscoverer::doISSatDiscovery");
-  ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
+  // ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
 
   ISSatSweeping sswp(_maxSatVar+1, *_solver,
       pvi( getMappingIteratorKnownRes<int>(SATLiteralStack::ConstIterator(_eligibleSatLits), satLiteralVar) ),

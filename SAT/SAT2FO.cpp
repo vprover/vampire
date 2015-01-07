@@ -82,7 +82,7 @@ SATClause* SAT2FO::toSAT(Clause* cl)
 void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
 {
   CALL("SAT2FO::collectAssignment");
-  ASS_EQ(solver.getStatus(), SATSolver::SATISFIABLE);
+  // ASS_EQ(solver.getStatus(), SATSolver::SATISFIABLE);
   ASS(res.isEmpty());
 
   unsigned maxVar = maxSATVar();

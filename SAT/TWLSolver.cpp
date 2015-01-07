@@ -130,10 +130,8 @@ void TWLSolver::ensureVarCnt(unsigned newVarCnt)
  * 
  * Memory-wise, the clauses are owned by the solver from now on.
  * (TODO: this may not be a good assumption - check on the caller sides)
- *
- * @useInPartialModel is ignored as this solver generates a total model
  */
-void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate, bool useInPartialModel)
+void TWLSolver::addClauses(SATClauseIterator cit)
 {
   CALL("TWLSolver::addClauses");
   TimeCounter tc(TC_TWLSOLVER_ADD);
@@ -144,54 +142,69 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate, bool useIn
   if(_status==UNSATISFIABLE) { // TODO: a potential memory leak !
     return;
   }
-
-  try {
-
-    while(cit.hasNext()) {
-  	  /**@author ioan.
-  	   * reason: in order to count how many clauses are added to vampire solver
-   	   */
-   	  env.statistics->satTWLClauseCount++;
-
-      SATClause* cl=cit.next();
-      ASS(cl->hasUniqueVariables());
-      cl->setKept(true);
-      
-      _addedClauses.push(cl);
-      
-      if(cl->length()==0) {
-    	  throw UnsatException(cl);
-      } else if(cl->length()==1) {
-    	  addUnitClause(cl);
-      }
-      else {
-    	  addClause(cl);
-      }
-      _variableSelector->onInputClauseAdded(cl);
-      _clauseDisposer->onNewInputClause(cl);
-    }
-    //when adding clauses, after we are done with adding all of them we call solving procedure
-    //hence we increase by one here
-    env.statistics->satTWLSATCalls++;
-    doSolving(onlyPropagate ? 0 : UINT_MAX);
-
-  } catch (const UnsatException& e)
-  {
-    // make sure the rest of clauses will get released
-    while(cit.hasNext())
-      _addedClauses.push(cit.next());
   
+  if (cit.hasNext()) {
+    _status = UNKNOWN;
+  }
+  
+  while(cit.hasNext()) {
+    /**@author ioan.
+     * reason: in order to count how many clauses are added to vampire solver
+     */
+    env.statistics->satTWLClauseCount++;
+
+    SATClause* cl=cit.next();
+    ASS(cl->hasUniqueVariables());
+    cl->setKept(true);
+
+    _addedClauses.push(cl);
+
+    if(cl->length()==0) {
+      _status=UNSATISFIABLE;
+      _refutation = cl;
+
+      // make sure the rest of clauses will get released
+      while(cit.hasNext()) {
+        _addedClauses.push(cit.next());
+      }
+      break;
+    } else if(cl->length()==1) {
+      addUnitClause(cl);
+    }
+    else {
+      addClause(cl);
+    }
+    _variableSelector->onInputClauseAdded(cl);
+    _clauseDisposer->onNewInputClause(cl);
+  }
+  
+  // TODO: what is this here for ?
+  env.statistics->satTWLVariablesCount = _varCnt;
+}
+
+SATSolver::Status TWLSolver::solve(unsigned conflictCountLimit) {
+  CALL("TWLSolver::solve(unsigned)");
+  
+  if(_status==UNSATISFIABLE) {
+    return UNSATISFIABLE;
+  }
+  
+  try {
+    env.statistics->satTWLSATCalls++;
+    doSolving(conflictCountLimit);  // sets _status to SAT or raises
+  } catch (const UnsatException& e) {     
     _status=UNSATISFIABLE;
     _refutation = e.refutation;
     ASS(!_generateProofs || _refutation);
   }
-
-  env.statistics->satTWLVariablesCount = _varCnt;
+  
+  return _status;
 }
 
-void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
+
+void TWLSolver::addAssumption(SATLiteral lit)
 {
-  CALL("TWLSolver::addAssumption(SATLiteral,unsigned)");
+  CALL("TWLSolver::addAssumption");
   TimeCounter ttc(TC_SAT_SOLVER);
   _assumptionsAdded = true;
 
@@ -212,9 +225,6 @@ void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
       return;
     }
     makeAssumptionAssignment(lit);  //increases _assumptionCnt
-    //increase the count of solving calls for TWLiteral
-    env.statistics->satTWLSATCalls++;
-    doSolving(conflictCountLimit);
   } catch (const UnsatException& e)
   {
     _unsatisfiableAssumptions = true;
@@ -1122,7 +1132,7 @@ bool TWLSolver::isTrue(SATClause* cl) const
 SATSolver::VarAssignment TWLSolver::getAssignment(unsigned var)
 {
   CALL("TWLSolver::getAssignment");
-  ASS_EQ(getStatus(), SATISFIABLE);
+  ASS_EQ(_status, SATISFIABLE);
   ASS_L(var, _varCnt);
           
   if(isTrue(var)) {
@@ -1153,7 +1163,7 @@ bool TWLSolver::isZeroImplied(unsigned var)
 void TWLSolver::collectZeroImplied(SATLiteralStack& acc)
 {
   CALL("TWLSolver::collectZeroImplied");
-  ASS_NEQ(getStatus(),UNSATISFIABLE);
+  ASS_NEQ(_status,UNSATISFIABLE);
 
   Stack<USRec>::BottomFirstIterator usit(_unitStack);
   while(usit.hasNext()) {
@@ -1382,7 +1392,7 @@ TWLSolver::SatLoopResult TWLSolver::runSatLoop(unsigned conflictCountLimit)
 void TWLSolver::randomizeAssignment()
 {
   CALL("TWLSolver::randomizeAssignment");
-  ASS_EQ(getStatus(), SATSolver::SATISFIABLE);
+  ASS_EQ(_status, SATSolver::SATISFIABLE);
 
   backtrack(1);
 
@@ -1397,7 +1407,7 @@ void TWLSolver::randomizeAssignment()
   catch (UnsatException&) {
     ASSERTION_VIOLATION;
   }
-  ASS_EQ(getStatus(), SATSolver::SATISFIABLE);
+  ASS_EQ(_status, SATSolver::SATISFIABLE);
 }
 
 }
