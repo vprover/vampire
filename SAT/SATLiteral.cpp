@@ -30,12 +30,10 @@ vstring SATLiteral::toString() const
   }
 }
 
-};
-
 std::ostream& operator<< (std::ostream& out, const SAT::SATLiteral& lit )
 {
   return out<<lit.toString();
 }
 
-
+};
 

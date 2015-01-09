@@ -298,11 +298,11 @@ vstring SATClause::toDIMACSString() const
   return result;
 }
 
-
-};
-
 std::ostream& operator<< (std::ostream& out, const SAT::SATClause& cl )
 {
   return out<<cl.toString();
 }
+
+};
+
 
