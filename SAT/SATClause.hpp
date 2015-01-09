@@ -143,8 +143,8 @@ protected:
   SATLiteral _literals[1];
 }; // class SATClause
 
-};
-
 std::ostream& operator<< (std::ostream& out, const SAT::SATClause& cl );
+
+};
 
 #endif /* __SATClause__ */

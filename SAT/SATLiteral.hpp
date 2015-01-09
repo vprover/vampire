@@ -78,8 +78,8 @@ private:
  
 };
 
-};
-
 std::ostream& operator<< (std::ostream& out, const SAT::SATLiteral& lit );
+
+};
 
 #endif /* __SATLiteral__ */
