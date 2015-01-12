@@ -65,11 +65,11 @@ private:
   /** Number of terms stored */
   unsigned _totalTerms;
   /** Number of ground terms stored */
-  unsigned _groundTerms;
+  // unsigned _groundTerms; // MS: unused
   /** Number of literals stored */
   unsigned _totalLiterals;
   /** Number of ground literals stored */
-  unsigned _groundLiterals;
+  // unsigned _groundLiterals; // MS: unused
   /** Number of literal insertions */
   unsigned _literalInsertions;
   /** Number of term insertions */

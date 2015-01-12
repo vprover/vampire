@@ -24,9 +24,9 @@ using namespace Indexing;
  */
 TermSharing::TermSharing()
   : _totalTerms(0),
-    _groundTerms(0),
+    // _groundTerms(0), //MS: unused
     _totalLiterals(0),
-    _groundLiterals(0),
+    // _groundLiterals(0), //MS: unused
     _literalInsertions(0),
     _termInsertions(0)
 {

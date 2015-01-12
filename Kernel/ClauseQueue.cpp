@@ -185,9 +185,6 @@ void ClauseQueue::removeAll()
 #if VDEBUG
 void ClauseQueue::output(ostream& str) const
 {
-  if (_height < 0) {
-    return;
-  }
   for (const Node* node = _left.nodes[0]; node; node=node->nodes[0]) {
     str << node->clause->toString() << '\n';
   }

@@ -85,7 +85,7 @@ public:
     void destroy(unsigned bindCnt);
 
 
-    friend class ILStruct;
+    friend struct ILStruct;
 
     //these functions are undefined as we take care of the MatchInfo initialisation
     //and destruction ourselves

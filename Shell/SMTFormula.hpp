@@ -18,7 +18,7 @@ namespace Shell {
 
 using namespace Lib;
 
-struct SMTConstant;
+class SMTConstant;
 
 
 struct SMTFormula__HalfImpl;
@@ -79,8 +79,8 @@ public:
 
   vstring toString() const { return _val; }
 private:
-  friend class SMTFormula__HalfImpl;
-  friend class SMTFormula__HalfEquiv;
+  friend struct SMTFormula__HalfImpl;
+  friend struct SMTFormula__HalfEquiv;
 
   vstring _val;
 };
