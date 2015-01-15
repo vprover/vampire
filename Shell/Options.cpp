@@ -81,6 +81,9 @@ void Options::Options::init()
                                        );
     _memoryLimit.description="Memory limit in MB";
     _lookup.insert(&_memoryLimit);
+#if !__APPLE__ && !__CYGWIN__
+    _memoryLimit.addHardConstraint(lessThanEq((unsigned)Lib::System::getSystemMemory()));
+#endif
     
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection","bpa","casc","casc_epr",
@@ -202,7 +205,7 @@ void Options::Options::init()
     _thanks.setExperimental();
     
     _timeLimitInDeciseconds = TimeLimitOptionValue("time_limit","t",600);
-    _timeLimitInDeciseconds.description="Time limit in wall clock deciseconds";
+    _timeLimitInDeciseconds.description="Time limit in wall clock seconds, you can use s,m,h,d suffixes also i.e. 60s, 5m";
     _lookup.insert(&_timeLimitInDeciseconds);
     
     _timeStatistics = BoolOptionValue("time_statistics","",false);
@@ -2042,7 +2045,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
     end++;
   }
   end--;
-  float multiplier = 1.0;
+  float multiplier = 10.0; // by default assume seconds
   switch (*end) {
   case 's': // seconds
     multiplier = 10.0;
