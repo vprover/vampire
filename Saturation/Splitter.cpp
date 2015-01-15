@@ -194,6 +194,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
       _dp->reset();
       _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ));
       DecisionProcedure::Status dpStatus = _dp->getStatus(_ccMultipleCores);
+
       if(dpStatus!=DecisionProcedure::UNSATISFIABLE) {
         break;
       }
