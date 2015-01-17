@@ -568,32 +568,37 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     }
     modified = true;
   }
-  bool haveSelectArray1= prop->hasInterpretedOperation(Theory::SELECT1_INT);
-  bool haveSelectArray2= prop->hasInterpretedOperation(Theory::SELECT2_INT);
-  bool haveStoreArray1= prop->hasInterpretedOperation(Theory::STORE1_INT);
-  bool haveStoreArray2= prop->hasInterpretedOperation(Theory::STORE2_INT);
-  
-  if (haveStoreArray1) { //addArraySelectAxioms(Theory::SELECT1_INT,units);
-    unsigned sk = theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY1);
-    addArrayExtensionalityAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, sk, units);
-    addArrayWriteAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, units);
-    modified = true;
+
+
+  VirtualIterator<unsigned> arraySorts = env.sorts->getArraySorts();
+  while(arraySorts.hasNext()){
+    unsigned arraySort = arraySorts.next();
+
+    //cout << "Consider arraySort " << arraySort << endl;
+
+    // Get Interpretation objects for functions 
+    Interpretation arraySelect = theory->getInterpretation(arraySort,Theory::StructuredSortInterpretation::ARRAY_SELECT);
+    Interpretation arrayStore  = theory->getInterpretation(arraySort,Theory::StructuredSortInterpretation::ARRAY_STORE);
+
+    // Check if they are used
+    bool haveSelect = prop->hasInterpretedOperation(arraySelect);
+    bool haveStore = prop->hasInterpretedOperation(arrayStore);
+
+    if(haveSelect) { 
+      unsigned sk = theory->getArrayExtSkolemFunction(arraySort);
+      addArrayExtensionalityAxioms(arraySelect, arrayStore, sk, units);
+      modified=true;
+    }
+    if(haveStore){
+      unsigned sk = theory->getArrayExtSkolemFunction(arraySort);
+      addArrayExtensionalityAxioms(arraySelect,arrayStore,sk,units);
+      addArrayWriteAxioms(arraySelect,arrayStore, units);
+      modified=true;
+    }
+
   }
-  else if (haveSelectArray1) {
-    unsigned sk = theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY1);
-    addArrayExtensionalityAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, sk, units);
-    modified = true;
-  }
-  if (haveStoreArray2) {//addArraySelectAxioms(Theory::SELECT1_INT,units);
-    unsigned sk = theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY2);
-    addArrayExtensionalityAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, sk, units);
-    addArrayWriteAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, units);
-    modified = true;
-  }
-  else if (haveSelectArray2) {
-    unsigned sk = theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY2);
-    addArrayExtensionalityAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, sk, units);
-    modified = true;
-  }
+
   return modified;
 } // TheoryAxioms::apply
+
+

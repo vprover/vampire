@@ -140,18 +140,12 @@ public:
     /** $real */
     T_REAL_TYPE,
     /** $fot, probably useless */
-    T_ARRAY1_TYPE,
-    /** $array1 type*/
-    T_ARRAY2_TYPE,
-    /** $array2 type*/
-    T_SELECT1,
-    /** array select1 on terms (int, array1)*/
-    T_SELECT2,
-    /** array select2 on terms (int, array2)*/
-    T_STORE1,
-    /** array store1  on terms (array1, int, int)*/
-    T_STORE2,
-    /** array store2 on terms (array2, int, int)*/
+    T_ARRAY_TYPE,
+    /** $array type*/
+    T_SELECT,
+    /** array select*/
+    T_STORE,
+    /** array store*/
     T_FOT,
     /** $fof, probably useless */
     T_FOF,
@@ -245,22 +239,14 @@ public:
     END_LETFT,
     /** end of $letff formula */
     END_LETFF,
-    /** select1 on array1 term*/
-    SELECT1, 
-    /** end of select1 array terms */
-    END_SELECT1,
-    /** select1 on array2 term*/
-    SELECT2, 
-    /** end of select2 array terms */
-    END_SELECT2,
-    /** store1 on array1 term*/
-    STORE1, 
-    /** end of store1 array terms */
-    END_STORE1,
-    /** store2 on array2 term*/
-    STORE2, 
-    /** end of store2 on array terms */
-    END_STORE2,
+    /** select on array term*/
+    SELECT, 
+    /** end of select array terms */
+    END_SELECT,
+    /** store on array term*/
+    STORE, 
+    /** end of store array terms */
+    END_STORE
 
   };
 
@@ -330,6 +316,8 @@ private:
    */
   class Type {
   public:
+    CLASS_NAME(Type);
+    USE_ALLOCATOR(Type);
     explicit Type(TypeTag tag) : _tag(tag) {}
     /** return the kind of this sort */
     TypeTag tag() const {return _tag;}
@@ -632,10 +620,8 @@ private:
   void type();
   void itef();
   void itet();
-  void select1();
-  void select2();
-  void store1();
-  void store2();
+  void select();
+  void store();
   void endItef();
   void endItet();
   void letff();
@@ -644,10 +630,8 @@ private:
   void endLetft();
   void endLettf();
   void endLettt();
-  void endSelect1();
-  void endSelect2();
-  void endStore1();
-  void endStore2();
+  void endSelect();
+  void endStore();
   void addTagState(Tag);
   static void checkFlat(const TermList& t);
   static void checkFlat(const Term* t);

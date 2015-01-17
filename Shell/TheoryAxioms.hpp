@@ -50,6 +50,7 @@ private:
   void addTheoryUnitClause(Literal* lit, UnitList*& units);
   void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3=0);
   void addAndOutputTheoryUnit(Unit* unit,UnitList*& units);
+
 };
 
 }

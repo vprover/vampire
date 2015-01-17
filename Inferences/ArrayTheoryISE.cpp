@@ -27,12 +27,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;
 
-ArrayTermTransformer::ArrayTermTransformer() :
-  _select1Functor(env.signature->getInterpretingSymbol(Theory::SELECT1_INT)),
-  _select2Functor(env.signature->getInterpretingSymbol(Theory::SELECT2_INT)),
-  _store1Functor(env.signature->getInterpretingSymbol(Theory::STORE1_INT)),
-  _store2Functor(env.signature->getInterpretingSymbol(Theory::STORE2_INT))
-{}
+ArrayTermTransformer::ArrayTermTransformer() {}
 
 ArrayTermTransformer::~ArrayTermTransformer() {}
 
@@ -45,10 +40,12 @@ TermList ArrayTermTransformer::transformSubterm(TermList trm)
   }
   
   Term* term = trm.term();
-  
-  if (term->functor() == _select1Functor ||
-      term->functor() == _select2Functor)
-  {
+  Interpretation interp = theory->interpretFunction(term->functor());
+  if(!theory->isArrayOperation(interp)) return trm;
+
+  switch(theory->convertToStructured(interp){
+
+  case StructuredStoreInterpretation::ARRAY_SELECT :
     TermList* array = term->nthArgument(0);
     
     if (array->isTerm() &&
@@ -64,17 +61,18 @@ TermList ArrayTermTransformer::transformSubterm(TermList trm)
       if (selectIndex->sameContent(storeIndex)) {
         return *store->nthArgument(2);
       }
-    }
-  } else if (term->functor() == _store1Functor ||
-             term->functor() == _store2Functor)
-  {
+      break;
+  case StructuredStoreInterpretation::ARRAY_STORE:
     TermList* array = term->nthArgument(0);
     TermList* value = term->nthArgument(2);
     
-    if (array->isTerm() &&
-        (array->term()->functor() == _store1Functor ||
-         array->term()->functor() == _store2Functor))
-    {
+    if (array->isTerm()){
+
+      Interpretation arrayInterp = theory->getInterpretation(array->term()->functor());
+      if(!(theory->isArrayOperation(arrayInterp) &&
+           theory->convertToStructured(arrayInterp)==StructuredSortInterpretation::ARRAY_STORE))
+      { break;}
+
       // w(w(A,I,V1),I,V2) => w(A,I,V2)
       Term* store = array->term();
       TermList* outerIndex = term->nthArgument(1);
@@ -87,10 +85,13 @@ TermList ArrayTermTransformer::transformSubterm(TermList trm)
         args[2] = *value;
         return TermList(Term::create(term, args));
       }
-    } else if (value->isTerm() &&
-               (value->term()->functor() == _select1Functor ||
-                value->term()->functor() == _select2Functor))
-    {
+    } else if (value->isTerm()){ 
+
+      Interpretation valueInterp = theory->getInterpretation(value->term()->functor());
+      if(!(theory->isArrayOperation(valueInterp) &&
+           theory->convertToStructured(valueInterp)==StructuredSortInterpretation::ARRAY_SELECT))
+      { break;}
+
       // w(A,I,r(A,I)) => A
       TermList* selectArray = value->term()->nthArgument(0);
       TermList* selectIndex = value->term()->nthArgument(1);
@@ -101,6 +102,10 @@ TermList ArrayTermTransformer::transformSubterm(TermList trm)
         return *array;
       }
     }
+    break;
+
+  default: ASSERTION_VIOLATION;
+
   }
   
   return trm;
@@ -112,19 +117,9 @@ Literal* ArrayTermTransformer::rewriteNegEqByExtensionality(Literal* l)
   
   if (l->isEquality() && l->isNegative()) {
     unsigned sort = SortHelper::getEqualityArgumentSort(l);
-    unsigned select;
-    unsigned valSort;
+    unsigned select = theory->getArraySelectFunctor(sort);
+    unsigned valSort = theory->getArrayOperationSort(theory->interpretFunction(select));
 
-    if (sort == Sorts::SRT_ARRAY1) {
-      select = _select1Functor;
-      valSort = Sorts::SRT_INTEGER;
-    } else if (sort == Sorts::SRT_ARRAY2) {
-      select = _select2Functor;
-      valSort = Sorts::SRT_ARRAY1;
-    } else {
-      return l;
-    }
-    
     //cout << l->toString() << endl;
     TermList* lhs = l->nthArgument(0);
     TermList* rhs = l->nthArgument(1);

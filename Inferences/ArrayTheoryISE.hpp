@@ -29,11 +29,6 @@ public:
   Literal* rewriteNegEqByExtensionality(Literal* l);
 protected:
   TermList transformSubterm(TermList trm);
-private:
-  unsigned _select1Functor;
-  unsigned _select2Functor;
-  unsigned _store1Functor;
-  unsigned _store2Functor;
 };
 
 class ArrayTheoryISE

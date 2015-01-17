@@ -755,6 +755,8 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addNewClause");
 
+  //cout << "new clause: " << cl->toString() << endl;
+
   //we increase the reference counter here so that the clause wouldn't
   //get destroyed during handling in the onNewClause handler
   //(there the control flow goes out of the SaturationAlgorithm class,

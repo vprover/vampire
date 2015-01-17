@@ -4,19 +4,11 @@
  */
 
 #include "Lib/Environment.hpp"
+#include "Kernel/Theory.hpp"
 
 #include "Sorts.hpp"
 
 using namespace Kernel;
-
-//const unsigned Sorts::SRT_DEFAULT = 0;
-//const unsigned Sorts::SRT_BOOL = 1;
-//const unsigned Sorts::SRT_INTEGER = 2;
-//const unsigned Sorts::SRT_RATIONAL = 3;
-//const unsigned Sorts::SRT_REAL = 4;
-//const unsigned Sorts::FIRST_USER_SORT = 5;
-//const unsigned Sorts::SRT_ARRAY1 = 6;
-//const unsigned Sorts::SRT_ARRAY2 = 7;
 
 /**
  * Initialise sorts by adding the default sort
@@ -43,12 +35,6 @@ Sorts::Sorts()
 
   aux = addSort("$real");
   ASS_EQ(aux, SRT_REAL);
-  
-  aux = addSort("$array1");
-  ASS_EQ(aux, SRT_ARRAY1);
-    
-  aux = addSort("$array2");
-  ASS_EQ(aux, SRT_ARRAY2);
   
   aux = addSort("$fus");
   ASS_EQ(aux,FIRST_USER_SORT);
@@ -96,11 +82,64 @@ unsigned Sorts::addSort(const vstring& name, bool& added)
   }
   _hasSort = true;
   result = _sorts.length();
-  _sorts.push(new SortInfo(name));
+  _sorts.push(new SortInfo(name,result));
   _sortNames.insert(name,result);
   added = true;
   return result;
 } // Sorts::addSort
+
+
+/**
+ *
+ * @author Giles
+ */
+unsigned Sorts::addArraySort(const unsigned innerSort)
+{
+  CALL("Sorts::addArraySort");
+
+  // First check if it already exists
+  vstring name = "$array["+env.sorts->sortName(innerSort)+"]";
+  unsigned result;
+  if(_sortNames.find(name,result)){
+    return result;
+  }
+
+  // Do we need to set _hasSort?
+  result = _sorts.length(); 
+  // Next create ArraySort and register it
+  ArraySort* sort = new ArraySort(name,innerSort,result);
+  _sorts.push(sort);
+  _sortNames.insert(name,result);
+
+  // Next create and register the STORE and SELECT functions for this sort with Theory
+  
+  Theory::instance()->addStructuredSortInterpretation(result,Theory::StructuredSortInterpretation::ARRAY_STORE);
+  Theory::instance()->addStructuredSortInterpretation(result,Theory::StructuredSortInterpretation::ARRAY_SELECT);
+
+  // TheoryAxioms will automatically get the array sorts via getArraySorts
+
+  // We are done
+  return result;
+}
+
+struct SortInfoToInt{
+  DECL_RETURN_TYPE(unsigned);
+  unsigned operator()(Sorts::SortInfo* s){ return s->id(); }
+};
+
+/**
+ *
+ * @author Giles
+ */ 
+VirtualIterator<unsigned> Sorts::getArraySorts()
+{
+  CALL("Sorts::getArraySorts");
+  Stack<SortInfo*>::Iterator all(_sorts);
+  VirtualIterator<SortInfo*> arraySorts = pvi(getFilteredIterator(all,
+               [](SortInfo* s){ return s->hasStructuredSort(StructuredSort::ARRAY);}));
+  //auto map = ([](SortInfo* s)->unsigned{ return s->id(); });
+  return pvi(getMappingIterator(arraySorts,SortInfoToInt()));
+}
 
 /**
  * True if this collection contains the sort @c name.

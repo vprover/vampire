@@ -22,6 +22,7 @@ public:
   USE_ALLOCATOR(Sorts);
 
   /** Various pre-defined sort */
+  // Note that this is not closed, these will be treated as unsigned ints within the code
   enum DefaultSorts {
     /** The default sort of all individuals, always in the non-sorted case */
     SRT_DEFAULT = 0,
@@ -33,12 +34,16 @@ public:
     SRT_RATIONAL = 3,
     /** sort of reals */
     SRT_REAL = 4,
-    /** array of integers */
-    SRT_ARRAY1 = 5,
-    /** array of arrays of integers */
-    SRT_ARRAY2 = 6,
     /** this is not a sort, it is just used to denote the first index of a user-define sort */
-    FIRST_USER_SORT = 7
+    FIRST_USER_SORT = 5
+  };
+
+  /** Various structured sorts */
+  enum class StructuredSort {
+    /** The structured sort for arrays **/
+    ARRAY,
+    /** The structured sort for lists, currently unused **/
+    LIST
   };
 
   Sorts();
@@ -50,18 +55,77 @@ public:
     CLASS_NAME(SortInfo);
     USE_ALLOCATOR(SortInfo);
   
-    SortInfo(const vstring& name) : _name(name) {}
+    SortInfo(const vstring& name,const unsigned id) : _name(name), _id(id) {}
+    virtual ~SortInfo() {}
     
     const vstring& name() const { return _name; }
-  private:
+    const unsigned id() const { return _id; }
+
+    virtual bool hasStructuredSort(StructuredSort sort) { return false; }
+  protected:
     vstring _name;
+    unsigned _id;
+  };
+
+  /**
+   *
+   * @author Giles
+   */
+  class StructuredSortInfo : public SortInfo
+  {
+  public:
+    CLASS_NAME(StructuredSortInfo);
+    USE_ALLOCATOR(StructuredSortInfo);
+
+    StructuredSortInfo(vstring name, StructuredSort sort,unsigned id): 
+      SortInfo(name,id), _sort(sort){}
+
+  private:
+    StructuredSort _sort;
+  };
+
+  /**
+   *
+   * @author Giles
+   */
+  class ArraySort : public StructuredSortInfo
+  {
+  public:
+    CLASS_NAME(ArraySort);
+    USE_ALLOCATOR(ArraySort);
+
+    ArraySort(vstring name, unsigned innerSort,unsigned id) : 
+      StructuredSortInfo(name,StructuredSort::ARRAY, id), _innerSort(innerSort)
+    { cout << "Creating ArraySort " << name << " with id " << id << endl; }
+
+    bool hasStructuredSort(StructuredSort sort) override { 
+      return sort==StructuredSort::ARRAY; 
+    }
+    unsigned getInnerSort(){ return _innerSort; }
+
+  private:
+    // the SortInfo can be found using Sorts
+    unsigned _innerSort;
+
   };
 
   unsigned addSort(const vstring& name, bool& added);
   unsigned addSort(const vstring& name);
 
+  unsigned addArraySort(unsigned innerSort);
+  VirtualIterator<unsigned> getArraySorts();
+  ArraySort* getArraySort(unsigned sort){
+    ASS(hasStructuredSort(sort,StructuredSort::ARRAY));
+    return static_cast<ArraySort*>(_sorts[sort]);
+  }
+
   bool haveSort(const vstring& name);
   bool findSort(const vstring& name, unsigned& idx);
+
+  bool hasStructuredSort(unsigned sort, StructuredSort structured){
+    if(sort > _sorts.size()) return false;
+    return _sorts[sort]->hasStructuredSort(structured);
+  }
 
   const vstring& sortName(unsigned idx) const
   {
@@ -81,6 +145,14 @@ private:
   Stack<SortInfo*> _sorts;
   /** true if there is a sort different from built-ins */
   bool _hasSort;
+
+  static vstring getStructuredSortName(StructuredSort sort){
+    switch(sort){
+      case StructuredSort::ARRAY : return "$array"; 
+      default : ASSERTION_VIOLATION;
+    }
+  }
+
 };
 
 class BaseType
