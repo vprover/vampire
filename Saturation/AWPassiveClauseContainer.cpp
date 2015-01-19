@@ -31,7 +31,7 @@ using namespace Kernel;
 
 
 AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
-: _clauseHavingWeightChanged(0), _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
+:  _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
 {
   CALL("AWPassiveClauseContainer::AWPassiveClauseContainer");
 
@@ -41,8 +41,6 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
   ASS_GE(_weightRatio, 0);
   ASS(_ageRatio > 0 || _weightRatio > 0);
 
-  _beforeClausePropUpdateSD = Clause::beforePropChange.subscribe(this, &AWPassiveClauseContainer::beforeClausePropChange);
-  _afterClausePropUpdateSD = Clause::afterPropChange.subscribe(this, &AWPassiveClauseContainer::afterClausePropChange);
 }
 
 AWPassiveClauseContainer::~AWPassiveClauseContainer()
@@ -53,11 +51,6 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
     ASS(cl->store()==Clause::PASSIVE);
     cl->setStore(Clause::NONE);
   }
-
-  ASS(!_beforeClausePropUpdateSD.isEmpty());
-  _beforeClausePropUpdateSD->unsubscribe();
-  ASS(!_afterClausePropUpdateSD.isEmpty());
-  _afterClausePropUpdateSD->unsubscribe();
 }
 
 ClauseIterator AWPassiveClauseContainer::iterator()
@@ -80,7 +73,7 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
   unsigned cl2Weight=cl2->weight();
 
   if (opt.nonliteralsInClauseWeight()) {
-    cl1Weight+= cl1->splitWeight(); // propWeight removed
+    cl1Weight+= cl1->splitWeight(); 
     cl2Weight+= cl2->splitWeight();
   }
 
@@ -179,6 +172,8 @@ void AWPassiveClauseContainer::add(Clause* cl)
   CALL("AWPassiveClauseContainer::add");
   ASS(_ageRatio > 0 || _weightRatio > 0);
 
+  cout << "AWP add " << cl->toString() << endl;
+
   if (_ageRatio) {
     _ageQueue.insert(cl);
   }
@@ -199,6 +194,8 @@ void AWPassiveClauseContainer::remove(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::remove");
   ASS(cl->store()==Clause::PASSIVE);
+
+  cout << "AWP remove " << cl->toString() << endl;
 
   if (_ageRatio) {
     ALWAYS(_ageQueue.remove(cl));
@@ -247,91 +244,17 @@ Clause* AWPassiveClauseContainer::popSelected()
     Clause* cl = _weightQueue.pop();
     _ageQueue.remove(cl);
     selectedEvent.fire(cl);
+    cout << "AWP select " << cl->toString() << endl;
     return cl;
   }
   _balance += _weightRatio;
   Clause* cl = _ageQueue.pop();
   _weightQueue.remove(cl);
   selectedEvent.fire(cl);
+  cout << "AWP select " << cl->toString() << endl;
   return cl;
 } // AWPassiveClauseContainer::popSelected
 
-void AWPassiveClauseContainer::beforeClausePropChange(Clause* cl)
-{
-  CALL("AWPassiveClauseContainer::beforeClausePropChange");
-
-  if (cl->store()==Clause::PASSIVE && _opt.nonliteralsInClauseWeight()) {
-    beforePassiveClauseWeightChange(cl);
-  }
-}
-
-void AWPassiveClauseContainer::afterClausePropChange(Clause* cl)
-{
-  CALL("AWPassiveClauseContainer::afterClausePropChange");
-
-  if (cl->store()==Clause::PASSIVE && _opt.nonliteralsInClauseWeight()) {
-    afterPassiveClauseWeightChange(cl);
-  }
-}
-
-/**
- * This function should be called before clause @b cl is modified in a
- * way that could affect its placement in age and weight queues of the
- * passive container.
- *
- * The function needs to be called for clauses
- * that are contained in this container, the function can handle cases when
- * a clause not from this container is passed.
- *
- * The function @b afterPassiveClauseUpdated must be called after the modification
- * is done.
- */
-void AWPassiveClauseContainer::beforePassiveClauseWeightChange(Clause* cl)
-{
-  CALL("AWPassiveClauseContainer::beforePassiveClauseUpdated");
-  ASS(!_clauseHavingWeightChanged);
-
-  _clauseHavingWeightChanged = cl;
-
-  bool clauseWasPresent;
-  if (_ageRatio) {
-    clauseWasPresent = _ageQueue.remove(cl);
-    if (_weightRatio && clauseWasPresent) {
-      ALWAYS(_weightQueue.remove(cl));
-    }
-  }
-  else {
-    ASS(_weightRatio);
-    clauseWasPresent = _weightQueue.remove(cl);
-  }
-  _clauseHavingWeightChangedWasInContainer = clauseWasPresent;
-}
-
-/**
- * This function should be called after clause @b cl is modified in a
- * way that could affect its placement in age and weight queues of the
- * passive container. The function should be called only for clauses
- * that are contained in this container. The function
- * @b beforePassiveClauseUpdated must have been called before the
- * modification was done.
- */
-void AWPassiveClauseContainer::afterPassiveClauseWeightChange(Clause* cl)
-{
-  CALL("AWPassiveClauseContainer::afterPassiveClauseUpdated");
-  ASS_EQ(_clauseHavingWeightChanged, cl);
-
-  _clauseHavingWeightChanged=0;
-  if (!_clauseHavingWeightChangedWasInContainer) {
-    return;
-  }
-
-  if (_ageRatio) {
-    _ageQueue.insert(cl);
-  }
-  if (_weightRatio) {
-    _weightQueue.insert(cl);
-  }
-}
 
 
 void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)

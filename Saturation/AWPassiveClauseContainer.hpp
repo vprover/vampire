@@ -74,34 +74,12 @@ public:
 
   virtual unsigned size() const { return _size; }
 
-  void beforePassiveClauseWeightChange(Clause* cl);
-  void afterPassiveClauseWeightChange(Clause* cl);
-
 
   static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt);
 protected:
   void onLimitsUpdated(LimitsChangeType change);
 
 private:
-
-  void beforeClausePropChange(Clause* cl);
-  void afterClausePropChange(Clause* cl);
-
-  SubscriptionData _beforeClausePropUpdateSD;
-  SubscriptionData _afterClausePropUpdateSD;
-
-  /**
-   * If between calls to beforePassiveClauseWeightChange() and
-   * afterPassiveClauseWeightChange(), contains the clause that is being
-   * updated. Otherwise contains zero.
-   */
-  Clause* _clauseHavingWeightChanged;
-  /**
-   * Value of this variable is being set in the afterPassiveClauseWeightChange() function.
-   * True if the updated clause was actually inthe container. This will mean
-   * that the clause will be inserted afterward.
-   */
-  bool _clauseHavingWeightChangedWasInContainer;
 
   /** The age queue, empty if _ageRatio=0 */
   AgeQueue _ageQueue;

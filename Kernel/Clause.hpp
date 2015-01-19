@@ -35,16 +35,6 @@ using namespace Lib;
  * - Fill the Clause with Literals
  * - Increase a relevant counter in the env.statistics object
  * - Set Clause's age if it is not supposed to be zero
- * - Assign Clause's non-propositional part if Clause appears in the
- *   SaturationAlgorithm loop
- * 	- should be done by the SaturationAlgorithm object
- *   Giles. no longer do this - no prop part.
- *
- * - Register Clause's inference in the InferenceStore by
- *   @code InferenceStore::instance()->recordNonPropInference(clause); @endcode
- * 	- should be done by the SaturationAlgorithm object
- *   Giles. no longer do this - this was only required when clauses had
- *   propositional parts.
  *
  */
 class Clause
@@ -321,9 +311,6 @@ public:
 
   void collectVars(DHSet<unsigned>& acc);
   unsigned varCnt();
-
-  static ClauseEvent beforePropChange;
-  static ClauseEvent afterPropChange;
 
 protected:
   /** number of literals */

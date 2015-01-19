@@ -35,6 +35,8 @@ void ClauseQueue::insert(Clause* c)
 {
   CALL("ClauseQueue::insert");
 
+  cout << "CQ insert " << c->toString() << endl;
+
   // select a random height between 0 and top
   unsigned h = 0;
   while (Random::getBit()) {
@@ -82,6 +84,8 @@ void ClauseQueue::insert(Clause* c)
 bool ClauseQueue::remove(Clause* c)
 {
   CALL("ClauseQueue::remove");
+
+  cout << "CQ remove " << c->toString() << endl;
 
   unsigned h = _height;
   Node* left = &_left;
@@ -151,6 +155,9 @@ Clause* ClauseQueue::pop()
   while (_height > 0 && ! _left.nodes[_height]) {
     _height--;
   }
+
+  cout << "CQ pop " << c->toString() << endl;
+
   return c;
 } // ClauseQueue::pop
 

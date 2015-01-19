@@ -41,13 +41,6 @@ using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
 
-/**
- * Event that is being triggered when the propositional part of some
- * clause changes
- */
-ClauseEvent Clause::beforePropChange;
-ClauseEvent Clause::afterPropChange;
-
 size_t Clause::_auxCurrTimestamp = 0;
 #if VDEBUG
 bool Clause::_auxInUse = false;
@@ -360,14 +353,6 @@ bool Clause::noSplits() const
   return !this->splits() || this->splits()->isEmpty();
 }
 
-//struct StrComparator {
-//  Comparison compare(vstring s1, vstring s2)
-//  {
-//    int res=strcmp(s1.c_str(), s2.c_str());
-//    return (res==0)?EQUAL:(res>0)?GREATER:LESS;
-//  }
-//};
-
 /**
  * Convert non-propositional part of the clause to vstring.
  */
@@ -450,38 +435,6 @@ VirtualIterator<vstring> Clause::toSimpleClauseStrings()
   CALL("toSimpleClauseStrings");
     return pvi(getSingletonIterator(nonPropToString()));
 
- // vstring np(length() ? (nonPropToString() + " | ") : vstring(""));
-
- // static BDDClausifier clausifier(true, false);
- // static SATClauseStack sclAcc;
- // sclAcc.reset();
- // clausifier.clausify(prop(), sclAcc);
- // List<vstring>* res = 0;
-
- // while (sclAcc.isNonEmpty()) {
- //   SATClause* sc = sclAcc.pop();
- //   vstring rstr(np);
-
- //   for(unsigned i = 0; i < sc->length(); i++) {
- //     if (i) {
-//	rstr += " | ";
-//      }
-//      if (!(*sc)[i].polarity()) {
-//	rstr += '~';
-//      }
-//      unsigned bddVar = (*sc)[i].var();
-//      vstring varName;
-//      if (!bdd->getNiceName(bddVar, varName)) {
-//	varName = bdd->getPropositionalPredicateName(bddVar);
-//      }
-//      rstr += varName;
-//    }
-//
-//    List<vstring>::push(rstr, res);
-//    sc->destroy();
-//  }
-//
-//  return pvi(List<vstring>::DestructiveIterator(res));
 }
 
 /**

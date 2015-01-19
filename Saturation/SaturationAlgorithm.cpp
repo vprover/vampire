@@ -295,6 +295,8 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
 void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onPassiveRemoved");
+
+  cout << "RECORD passive removed " << c->toString() << endl;
   
   ASS(c->store()==Clause::PASSIVE);
   c->setStore(Clause::NONE);
@@ -310,7 +312,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
-
+   cout << "RECORD passive selected " << c->toString() << endl;
 }
 
 /**
@@ -977,7 +979,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
  */
 void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
 {
-  CALL("SaturationAlgorithm::removeBackwardSimplifiedClause");
+  CALL("SaturationAlgorithm::removeActiveOrPassiveClause");
 
   if (_clauseActivationInProgress) {
     //we cannot remove clause now, as there indexes might be traversed now,
@@ -985,6 +987,8 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     _postponedClauseRemovals.push(cl);
     return;
   }
+
+  cout << "Removing " << cl->toString() << endl;
 
   switch(cl->store()) {
   case Clause::PASSIVE:
@@ -1009,6 +1013,8 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
 
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
+
+  cout << "Add to passive " << cl->toString() << endl;
 
   _passive->add(cl);
 }
