@@ -448,6 +448,12 @@ public:
     NONE = 3
   };
 
+  enum class CCUnsatCores : unsigned int {
+    FIRST = 0,
+    SMALL_ONES = 1,
+    ALL = 2
+  };
+
   enum class Sos : unsigned int{
     ALL = 0,
     OFF = 1,
@@ -1716,6 +1722,7 @@ public:
   float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
   bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
   bool splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
+  CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval.actualValue; }
@@ -2003,6 +2010,7 @@ private:
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   ChoiceOptionValue<SplittingComponentSweeping> _splittingComponentSweeping;
   BoolOptionValue _splittingCongruenceClosure;
+  ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
   BoolOptionValue _splittingEagerRemoval;
   UnsignedOptionValue _splittingFlushPeriod;
   FloatOptionValue _splittingFlushQuotient;

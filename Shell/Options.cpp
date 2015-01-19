@@ -978,6 +978,13 @@ void Options::Options::init()
     _splittingCongruenceClosure.addProblemConstraint(hasEquality());
     _splittingCongruenceClosure.setRandomChoices({"on","off"});
     
+    _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
+                                                     {"first", "small_ones", "all"});
+    _ccUnsatCores.description="";
+    _lookup.insert(&_ccUnsatCores);
+    _ccUnsatCores.tag(OptionTag::AVATAR);
+    _ccUnsatCores.reliesOn(_splittingCongruenceClosure.is(equal(true)));
+    _ccUnsatCores.setRandomChoices({"first", "small_ones", "all"});
 
     _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
                                                 "splittingLiteralPolarityAdvice","slpa",
