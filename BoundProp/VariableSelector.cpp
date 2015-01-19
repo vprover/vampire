@@ -1,5 +1,5 @@
 /**
- * @file Solving/VariableSelector.cpp
+ * @file BoundProp/VariableSelector.cpp
  * Implements class VariableSelector.
  */
 #if GNUMP
@@ -22,7 +22,7 @@
 #undef LOGGING
 #define LOGGING 0
 
-using namespace Solving;
+using namespace BoundProp;
 using namespace Lib;
 using namespace Shell;
 

@@ -209,6 +209,9 @@ void RationalConstantType::init(InnerType num, InnerType den)
   _num = num;
   _den = den;
   cannonize();
+
+  // Dividing by zero is bad!
+  if(_den.toInt()==0) throw ArithmeticException();
 }
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
@@ -299,6 +302,10 @@ void RationalConstantType::cannonize()
     _num = -_num;
     _den = -_den;
   }
+  // Normalize zeros
+  // If it is of the form 0/c then rewrite it to 0/1
+  // Unless it is of the form 0/0
+  if(_num==0 && _den!=0){ _den=1; }
 }
 
 Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, RationalConstantType n2)
@@ -450,7 +457,9 @@ vstring RealConstantType::toNiceString() const
   if (denominator().toInt()==1) {
     return numerator().toString()+".0";
   }
-  return toString();
+  float frep = (float) numerator().toInt() /(float) denominator().toInt();
+  return Int::toString(frep);
+  //return toString();
 }
 
 /////////////////
@@ -687,7 +696,7 @@ bool Theory::hasSingleSort(Interpretation i)
   CALL("Theory::hasSingleSort");
 
   switch(i) {
-  case EQUAL:
+  case EQUAL:  // This not SingleSort because we don't know the sorts of its args
   case INT_TO_RAT:
   case INT_TO_REAL:
   case RAT_TO_INT:
@@ -1450,6 +1459,235 @@ unsigned Theory::getPredNum(Interpretation itp)
   
   return env.signature->getInterpretingSymbol(itp);
 }
+
+/**
+ * Register that a predicate pred with a given polarity has the given
+ * template. See tryGetInterpretedLaTeXName for explanation of templates 
+ */
+void Theory::registerLaTeXPredName(unsigned pred, bool polarity, vstring temp)
+{
+  CALL("Theory::registerPredLaTeXName");
+  if(polarity){
+    _predLaTeXnamesPos.insert(pred,temp);
+  }else{
+    _predLaTeXnamesNeg.insert(pred,temp); 
+  }
+}
+/**
+ * Register that a function has the given template
+ * See tryGetInterpretedLaTeXName for explanation of templates 
+ */
+void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
+{
+  CALL("Theory::registerFuncLaTeXName");
+  _funcLaTeXnames.insert(func,temp);
+}
+
+/**
+ * We try and get a LaTeX special name for an interpeted function/predicate.
+ * Note: the functions may not necessarily be interpreted in the sense that we treat
+ *       them as interpreted in Vampire. They are just called that here as we have an
+ *       interpretation for them. So we can have LaTeX symbols for any predicate or
+ *       function if they are recorded e.g. skolem functions are recorded in Signature.
+ *
+ * See Shell/LaTeX for usage.
+ *
+ * Polarity only makes sense if pred=true
+ *
+ * First we look in the recorded templates and if one is not found we fallback to the
+ * default templates for known interprted functions. Note that in most cases the known
+ * interpreted functions will use these defaults.
+ *
+ * A template is a string with "ai" representing parameter i. These will be
+ * replaced by the actual parameters elsewhere. For example, the template for 
+ * not greater or equal to is "a0 \not \geq a1"
+ */
+vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
+{
+  CALL("Theory::tryGetInterpretedLaTeXName");
+
+   //cout << "Get LaTeX for " << func << endl;
+
+  // Used if no recorded template is found
+  Interpretation i;
+
+  if(pred){
+    if(polarity){
+      if(_predLaTeXnamesPos.find(func)){ return _predLaTeXnamesPos.get(func); }
+      else if(_predLaTeXnamesNeg.find(func)){ 
+        // If a negative record is found but no positive we negate it
+        return "\neg ("+_predLaTeXnamesNeg.get(func)+")";
+      }
+    }
+    else{ 
+      if(_predLaTeXnamesNeg.find(func)){ return _predLaTeXnamesNeg.get(func); }
+      else if(_predLaTeXnamesPos.find(func)){ 
+        // If a positive record is found but no negative we negate it
+        return "\neg ("+_predLaTeXnamesPos.get(func)+")";
+      }
+    }
+    // We get here if no record is found for a predicate
+    if(!isInterpretedPredicate(func)) return "";
+    i = interpretPredicate(func);
+  }
+  else{
+    if(_funcLaTeXnames.find(func)){ return _funcLaTeXnames.get(func); }
+    // We get here if no record is found for a function
+    if(!isInterpretedFunction(func)) return "";
+    i = interpretFunction(func);
+  }
+
+  // There are some default templates
+  // For predicates these include the notion of polarity
+  vstring pol = polarity ? "" : " \\not ";
+
+  switch(i){
+  case INT_SUCCESSOR: return "a0++"; 
+  case INT_UNARY_MINUS:
+  case RAT_UNARY_MINUS:
+  case REAL_UNARY_MINUS: return "-a0";
+
+  case EQUAL:return "a0 "+pol+"= a1";
+
+  case INT_GREATER: return "a0 "+pol+"> a1";
+  case INT_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
+  case INT_LESS: return "a0 "+pol+"< a1";
+  case INT_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
+  case INT_DIVIDES: return "a0 "+pol+"\\| a1"; // check?
+
+  case RAT_GREATER: return "a0 "+pol+"> a1";
+  case RAT_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
+  case RAT_LESS: return "a0 "+pol+"< a1";
+  case RAT_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
+  case RAT_DIVIDES: return "";
+
+  case REAL_GREATER: return "a0 "+pol+"> a1"; 
+  case REAL_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
+  case REAL_LESS: return "a0 "+pol+"< a1";
+  case REAL_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
+  case REAL_DIVIDES: return "";
+
+  case INT_PLUS: return "a0 + a1";
+  case INT_MINUS: return "a0 - a1";
+  case INT_MULTIPLY: return "a0 \\cdot a1";
+  case INT_DIVIDE: return "a0 / a1";
+  case INT_MODULO: return "a0 \\% a1";
+
+  case RAT_PLUS: return "a0 + a1";
+  case RAT_MINUS: return "a0 - a1";
+  case RAT_MULTIPLY: return "a0 \\cdot a1";
+  case RAT_DIVIDE: return "a0 / a1";
+
+  case REAL_PLUS: return "a0 + a1";
+  case REAL_MINUS: return "a0 - a1";
+  case REAL_MULTIPLY: return "a0 \\cdot a1";
+  case REAL_DIVIDE: return "a0 / a1";
+
+  default: return "";
+  } 
+
+  return "";
+
+}
+
+/**
+ * This attempts to invert an interpreted function and returns false if the function
+ * does not have an inverse. In some cases functions have an inverse in special cases,
+ * i.e. integer division, here we attempt to check these cases.
+ *
+ * term is the term whose function we wish to invert 
+ * arg is the argument of that term that should be moved
+ * rep is the other term the funcion should be applied to
+ * result is where the resultant term should be placed
+ *
+ * So at the end we should have result = f^(arg,rep)
+ * If term=f(arg,t) and f^ is the inverse of f
+ * This is modulo the ordering of arguments in f, which this function should work out
+ *
+ * See Kernel/InterpretedLiteralEvaluator.cpp for usage
+ *
+ * @author Giles
+ * @since 12/11/14
+ */
+ bool Theory::invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result)
+ {
+   CALL("Theory::invertInterpetedFunction");
+
+   ASS(isInterpretedFunction(term->functor()));
+   Interpretation f = interpretFunction(term->functor());
+   Interpretation inverted_f;
+
+// Commented functions are those without an inverse
+// Currently all invertable functions are of the same form so we record their inverse
+// and perform the inversion at the end. If this changes we will need to organise this
+// differently.
+switch(f){
+  //case INT_SUCCESSOR: 
+  //case INT_UNARY_MINUS:
+  //case RAT_UNARY_MINUS:
+  //case REAL_UNARY_MINUS: 
+
+  case INT_PLUS: inverted_f = INT_MINUS; break; 
+  case INT_MINUS: inverted_f = INT_PLUS; break;
+  // This has no universal inverse but we are conservative
+  case INT_MULTIPLY: 
+    // conservative checks that this is safe
+    // TODO extend
+    if(isInterpretedConstant(rep)){
+      // otherside is constant
+      IntegerConstantType a;
+      if(!tryInterpretConstant(rep,a)) return false;
+      IntegerConstantType b;
+      if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
+         (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
+      {
+        // we have a problem of the form b.c=a
+        // to invert it to c = a/b we need to check that a/b is safe
+        if(b.toInt()==0) return false;
+        if(a.toInt() % b.toInt() == 0){
+          inverted_f = INT_DIVIDE; break;
+        }
+      }
+    }
+    return false;
+
+  //case INT_DIVIDE: 
+  //case INT_MODULO: 
+
+  case RAT_PLUS: inverted_f = RAT_MINUS; break;
+  case RAT_MINUS: inverted_f = RAT_PLUS; break;
+  case RAT_MULTIPLY: inverted_f = RAT_DIVIDE; break;
+  case RAT_DIVIDE: inverted_f = RAT_MULTIPLY; break;
+
+  case REAL_PLUS: inverted_f = REAL_MINUS; break; 
+  case REAL_MINUS: inverted_f = REAL_PLUS; break;
+  case REAL_MULTIPLY: inverted_f = REAL_DIVIDE; break;
+  case REAL_DIVIDE: inverted_f = REAL_MULTIPLY; break;
+
+  default: // cannot be inverted
+    return false;
+ }
+
+ // In all cases here the replacement should be the first of the two
+ // arguments to a binary function.
+ // NOTE: If the interpreted functions supported changes this might change
+
+ // i.e. if we have term=multiply(6,product(x,5)), arg=product(x,6) and rep=4
+ //      the result should be divide(4,6)
+ //      if the arguments to multiply are the other way around this is still true
+
+ // Work out if arg is first or second argument to term and get the other one
+ ASS(term->arity()==2);
+ TermList other;
+ if(term->nthArgument(0)==arg) other=*term->nthArgument(1);
+ else if(term->nthArgument(1)==arg) other=*term->nthArgument(0);
+ else { ASSERTION_VIOLATION;} //arg must be one of the args!
+
+ TermList args[] = {rep,other};
+ result = TermList(Term::create(getFnNum(inverted_f),2,args));
+ return true;
+
+ }
 
 }
 

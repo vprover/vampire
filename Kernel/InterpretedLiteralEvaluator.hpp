@@ -28,6 +28,7 @@ public:
   bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst);
 protected:
   class Evaluator;
+  class EqualityEvaluator;
   class ConversionEvaluator;
   template<class T> class TypedEvaluator;
   class IntEvaluator;
@@ -41,6 +42,9 @@ protected:
   EvalStack _evals;
   DArray<Evaluator*> _funEvaluators;
   DArray<Evaluator*> _predEvaluators;
+
+  bool balancable(Literal* lit);
+  bool balance(Literal* lit,Literal*& res);
 };
 
 

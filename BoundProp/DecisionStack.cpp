@@ -5,7 +5,7 @@
 #if GNUMP
 #include "DecisionStack.hpp"
 
-namespace Solving
+namespace BoundProp
 {
 
 /**

@@ -170,6 +170,7 @@ Signature::Signature ()
   : _funs(32),
     _preds(32),
     _nextFreshSymbolNumber(0),
+    _skolemFunctionCount(0),
     _strings(0),
     _integers(0),
     _rationals(0),
@@ -774,7 +775,13 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
 {
   CALL("Signature::addSkolemFunction");
 
-  return addFreshFunction(arity, "sK", suffix);
+  unsigned f = addFreshFunction(arity, "sK", suffix);
+
+  // Register it as a LaTeX function
+  theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
+  _skolemFunctionCount++;
+
+  return f;
 } // addSkolemFunction
 
 /**

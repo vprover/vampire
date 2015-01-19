@@ -58,7 +58,7 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       if(cl==qr.clause || cl==counterpart) {
 	continue;
       }
-
+      
       Literal* rhs0 = (qr.literal==(*qr.clause)[0]) ? (*qr.clause)[1] : (*qr.clause)[0];
       Literal* rhs = lit->isNegative() ? rhs0 : Literal::complementaryLiteral(rhs0);
 
@@ -74,10 +74,18 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       }
 
       Clause* premise=lit->isNegative() ? qr.clause : counterpart;
+      // Martin: reductionPremise does not justify soundness of the inference
+      //  (and brings in extra dependency which confuses splitter).
+      //  Is there any other use for it?
+      // TODO - reductionPremise is required for proof construction only,
+      //        it should be included in some kind of Inference object. Consider this
+      //        when reviewing proof construction
+      /*
       Clause* reductionPremise=lit->isNegative() ? counterpart : qr.clause;
       if(reductionPremise==premise) {
 	reductionPremise=0;
       }
+      */
 
       Inference* inf = new Inference2(Inference::FORWARD_LITERAL_REWRITING, cl, premise);
       Unit::InputType inpType = (Unit::InputType)
@@ -99,7 +107,7 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       res->setAge(cl->age());
       env.statistics->forwardLiteralRewrites++;
 
-      simplPerformer->perform(premise, res, reductionPremise);
+      simplPerformer->perform(premise, res);
       if(!simplPerformer->clauseKept()) {
 	return;
       }

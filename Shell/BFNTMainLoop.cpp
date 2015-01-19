@@ -115,7 +115,7 @@ void BFNTMainLoop::runChild(size_t modelSize)
   MainLoopResult innerRes = childMainLoop->run();
   innerRes.updateStatistics();
 
-  if(env.options->mode()!=Options::MODE_SPIDER) {
+  if(env.options->mode()!=Options::Mode::SPIDER) {
     if(innerRes.terminationReason==Statistics::SATISFIABLE || innerRes.terminationReason==Statistics::TIME_LIMIT) {
       env.beginOutput();
       env.statistics->print(env.out());
@@ -123,7 +123,7 @@ void BFNTMainLoop::runChild(size_t modelSize)
     }
   }
 
-  if(env.options->mode()!=Options::MODE_SPIDER && innerRes.terminationReason==Statistics::SATISFIABLE) {
+  if(env.options->mode()!=Options::Mode::SPIDER && innerRes.terminationReason==Statistics::SATISFIABLE) {
     env.beginOutput();
     UIHelper::outputSatisfiableResult(env.out());
     env.endOutput();

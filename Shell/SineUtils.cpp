@@ -207,7 +207,7 @@ void SineBase::initGeneralityFunction(UnitList* units)
 }
 
 SineSelector::SineSelector(const Options& opt)
-: _onIncluded(opt.sineSelection()==Options::SS_INCLUDED),
+: _onIncluded(opt.sineSelection()==Options::SineSelection::INCLUDED),
   _genThreshold(opt.sineGeneralityThreshold()),
   _tolerance(opt.sineTolerance()),
   _depthLimit(opt.sineDepth())
@@ -547,7 +547,7 @@ void SineTheorySelector::perform(UnitList*& units)
   DHSet<Unit*> selected;
   Deque<Unit*> newlySelected;
 
-  bool sineOnIncluded=_opt.sineSelection()==Options::SS_INCLUDED;
+  bool sineOnIncluded=_opt.sineSelection()==Options::SineSelection::INCLUDED;
 
   //build the D-relation and select the non-axiom formulas
   UnitList::Iterator uit2(units);

@@ -49,14 +49,14 @@ private:
   UnitList* getAxioms();
 public:
   /**
-   * Which axioms to add. Can be one of EP_RS, EP_RST, EP_RSTC.
+   * Which axioms to add. Can be one of EqualityProxy::RS, EqualityProxy::RST, EqualityProxy::RSTC.
    *
-   * EP_R is not an option, because since we're using the built-in equality literals,
+   * EqualityProxy::R is not an option, because since we're using the built-in equality literals,
    * symmetry is implicit due to normalization in term sharing.
    */
   EqualityAxiomatizer(Options::EqualityProxy opt) : _opt(opt)
   {
-    ASS_REP(opt==Options::EP_RS || opt==Options::EP_RST || opt==Options::EP_RSTC, opt);
+    ASS_REP(opt==Options::EqualityProxy::RS || opt==Options::EqualityProxy::RST || opt==Options::EqualityProxy::RSTC, static_cast<int>(opt));
   }
 
   void apply(Problem& prb);

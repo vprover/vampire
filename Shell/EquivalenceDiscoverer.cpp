@@ -531,7 +531,7 @@ UnitList* EquivalenceDiscoverer::getEquivalences(UnitList* units, const Options*
 
   Options prepOpts;
   if(opts) { prepOpts = *opts; }
-  prepOpts.setPredicateEquivalenceDiscovery(Options::PED_OFF);
+  prepOpts.setPredicateEquivalenceDiscovery(Options::PredicateEquivalenceDiscoveryMode::OFF);
 
   Problem prb(units->copy());
 
@@ -717,20 +717,20 @@ bool EquivalenceDiscoveringTransformer::apply(UnitList*& units)
 
   EquivalenceDiscoverer::CandidateRestriction restr;
   switch(_opts.predicateEquivalenceDiscovery()) {
-  case Options::PED_ALL_ATOMS:
+  case Options::PredicateEquivalenceDiscoveryMode::ALL_ATOMS:
     restr = EquivalenceDiscoverer::CR_NONE;
     break;
-  case Options::PED_DEFINITIONS:
+  case Options::PredicateEquivalenceDiscoveryMode::DEFINITIONS:
     restr = EquivalenceDiscoverer::CR_DEFINITIONS;
     break;
-  case Options::PED_ON:
+  case Options::PredicateEquivalenceDiscoveryMode::ON:
     restr = EquivalenceDiscoverer::CR_EQUIVALENCES;
     break;
-  case Options::PED_ALL_FORMULAS:
+  case Options::PredicateEquivalenceDiscoveryMode::ALL_FORMULAS:
     restr = EquivalenceDiscoverer::CR_NONE;
     formulaDiscovery = true;
     break;
-  case Options::PED_OFF:
+  case Options::PredicateEquivalenceDiscoveryMode::OFF:
   default:
     ASSERTION_VIOLATION;
   }

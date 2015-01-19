@@ -48,7 +48,7 @@ public:
     _maxLen(opt.extensionalityMaxLength()),
     _allowPosEq(opt.extensionalityAllowPosEq())
   {
-    _onlyKnown = (opt.extensionalityResolution() == Options::ER_KNOWN);
+    _onlyKnown = (opt.extensionalityResolution() == Options::ExtensionalityResolution::KNOWN);
     _sortCnt = env.sorts->sorts();
     _clausesBySort.init(_sortCnt, 0);
   }

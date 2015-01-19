@@ -62,6 +62,7 @@
 #include "Shell/SpecialTermElimination.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/LaTeX.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -85,7 +86,7 @@ using namespace Solving;
 #include "Lib/MemoryLeak.hpp"
 #endif
 
-#define SPIDER 0
+#define USE_SPIDER 0
 #define SAVE_SPIDER_PROPERTIES 0
 
 using namespace Shell;
@@ -164,10 +165,24 @@ void explainException(Exception& exception)
   env.endOutput();
 } // explainException
 
+void getRandomStrategy()
+{
+  CALL("getRandomStrategy()");
+  ScopedPtr<Problem> prb(getPreprocessedProblem());
+  // We might have set random_strategy sat
+  if(env.options->randomStrategy()==Options::RandomStrategy::OFF){
+    env.options->setRandomStrategy(Options::RandomStrategy::ON);
+  }
+  env.options->randomizeStrategy(*prb->getProperty()); 
+}
+
 void doProving()
 {
   CALL("doProving()");
   ScopedPtr<Problem> prb(getPreprocessedProblem());
+  // this will provide warning if options don't make sense for problem
+  env.options->checkProblemOptionConstraints(*prb->getProperty()); 
+  env.options->randomizeStrategy(*prb->getProperty()); // this will only randomize non-default things if an option is set to do so
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
 
@@ -229,8 +244,8 @@ void programAnalysisMode()
 #if IS_LINGVA
   Lib::Random::setSeed(123456);
   int time = env.options->timeLimitInDeciseconds();
-  env.options->setMode(Options::MODE_VAMPIRE);
-  // Seems dangerous, overridng memory limit
+  env.options->setMode(Options::Mode::VAMPIRE);
+  // Seems dangerous, overriding memory limit
   Allocator::setMemoryLimit(1024u * 1048576ul);
 
   vstring inputFile = env.options->inputFile();
@@ -346,6 +361,87 @@ void boundPropagationMode(){
 #endif
 }
 
+// prints Unit u at an index to latexOut using the LaTeX object
+void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
+{
+    vstring stringform = latex.toString(u);
+    latexOut << index++ << " & ";
+    unsigned count = 0;
+    for(const char* p = stringform.c_str();*p;p++){
+      latexOut << *p;
+      count++;
+      if(count>80 && *p==' '){
+        latexOut << "\\\\ \n & ~~~~~";
+        count=0;
+      }
+    }
+    latexOut << "\\\\" << endl;
+}
+
+// print the clauses of a problem to a LaTeX file
+void outputClausesToLaTeX(Problem* prb)
+{
+  CALL("outputClausesToLaTeX");
+  ASS(env.options->latexOutput()!="off");
+
+  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
+
+  LaTeX latex;
+  ofstream latexOut(env.options->latexOutput().c_str());
+  latexOut << latex.header() << endl;
+  latexOut << "\\section{Problem "<<env.options->problemName() << "}" << endl;
+  //TODO output more header
+  latexOut << "\\[\n\\begin{array}{ll}" << endl;
+
+  CompositeISE simplifier;
+  simplifier.addFront(new TrivialInequalitiesRemovalISE());
+  simplifier.addFront(new TautologyDeletionISE());
+  simplifier.addFront(new DuplicateLiteralRemovalISE());
+
+  unsigned index=0;
+  ClauseIterator cit = prb->clauseIterator();
+  while (cit.hasNext()) {
+    Clause* cl = cit.next();
+    cl = simplifier.simplify(cl);
+    if (!cl) {
+      continue;
+    }
+    outputUnitToLaTeX(latex,latexOut,cl,index++);
+  }
+  latexOut  << "\\end{array}\n\\]" << latex.footer() << "\n";
+
+  //close ofstream?
+}
+
+// print the formulas of a problem to a LaTeX file
+void outputProblemToLaTeX(Problem* prb)
+{
+  CALL("outputProblemToLaTeX");
+  ASS(env.options->latexOutput()!="off");
+
+  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
+
+  LaTeX latex;
+  ofstream latexOut(env.options->latexOutput().c_str());
+  latexOut << latex.header() << endl;
+  latexOut << "\\section{Problem "<<env.options->problemName() << "}" << endl;
+  //TODO output more header
+  latexOut << "\\[\n\\begin{array}{ll}" << endl;
+
+  //TODO  get symbol declarations into LaTeX
+  //UIHelper::outputSymbolDeclarations(env.out());
+
+  UnitList::Iterator units(prb->units());
+
+  unsigned index = 0;
+  while (units.hasNext()) {
+    Unit* u = units.next();
+    outputUnitToLaTeX(latex,latexOut,u,index++);
+  }
+  latexOut  << "\\end{array}\n\\]" << latex.footer() << "\n";
+
+  //close ofstream?
+}
 
 /**
  * This mode only preprocesses the input using the current preprocessing
@@ -379,6 +475,8 @@ void preprocessMode()
   }
   env.endOutput();
 
+  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb); }
+
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // preprocessMode
@@ -398,11 +496,14 @@ void outputMode()
   env.beginOutput();
   UIHelper::outputSymbolDeclarations(env.out());
   UnitList::Iterator units(prb->units());
+
   while (units.hasNext()) {
     Unit* u = units.next();
     env.out() << TPTPPrinter::toString(u) << "\n";
   }
   env.endOutput();
+
+  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb); }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -430,16 +531,16 @@ void satSolverMode()
   SATSolverSCP solver;
   
   switch(env.options->satSolver()) { 
-    case Options::BUFFERED_VAMPIRE:
-    case Options::VAMPIRE:  
+    case Options::SatSolver::BUFFERED_VAMPIRE:
+    case Options::SatSolver::VAMPIRE:  
       solver = new TWLSolver(*env.options);
       break;          
-    case Options::BUFFERED_LINGELING: 
-    case Options::LINGELING:
+    case Options::SatSolver::BUFFERED_LINGELING: 
+    case Options::SatSolver::LINGELING:
       solver = new LingelingInterfacing(*env.options);
       break;
-    case Options::BUFFERED_MINISAT: 
-    case Options::MINISAT:
+    case Options::SatSolver::BUFFERED_MINISAT: 
+    case Options::SatSolver::MINISAT:
       solver = new MinisatInterfacing(*env.options);
       break;      
     default:
@@ -492,7 +593,7 @@ void vampireMode()
 {
   CALL("vampireMode()");
 
-  if (env.options->mode() == Options::MODE_CONSEQUENCE_ELIMINATION) {
+  if (env.options->mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
@@ -590,6 +691,8 @@ void clausifyMode()
   }
   env.endOutput();
 
+if(env.options->latexOutput()!="off"){ outputClausesToLaTeX(prb.ptr()); }
+
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // clausifyMode
@@ -598,7 +701,7 @@ void axiomSelectionMode()
 {
   CALL("axiomSelectionMode()");
 
-  env.options->setSineSelection(Options::SS_AXIOMS);
+  env.options->setSineSelection(Options::SineSelection::AXIOMS);
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
@@ -690,7 +793,7 @@ int main(int argc, char* argv[])
   CALL ("main");
 
 //#if IS_LINGVA
-//    env.options->setMode(Options::MODE_PROGRAM_ANALYSIS);
+//    env.options->setMode(Options::Mode::PROGRAM_ANALYSIS);
 //#endif
 
   System::registerArgv0(argv[0]);
@@ -703,10 +806,12 @@ int main(int argc, char* argv[])
     Shell::CommandLine cl(argc, argv);
     cl.interpret(*env.options);
 
-    if (env.options->showOptions()) {
+    // If any of these options are set then we just need to output and exit
+    if (env.options->showHelp() || env.options->showOptions() || !env.options->explainOption().empty()) {
       env.beginOutput();
       env.options->output(env.out());
       env.endOutput();
+      exit(0);
     }
 
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
@@ -714,81 +819,84 @@ int main(int argc, char* argv[])
 
     switch (env.options->mode())
     {
-    case Options::MODE_AXIOM_SELECTION:
+    case Options::Mode::AXIOM_SELECTION:
       axiomSelectionMode();
       break;
-    case Options::MODE_GROUNDING:
+    case Options::Mode::GROUNDING:
       groundingMode();
       break;
-    case Options::MODE_BOUND_PROP:
+    case Options::Mode::BOUND_PROP:
 #if GNUMP
      boundPropagationMode();
 #else
      NOT_IMPLEMENTED;
 #endif
       break;
-    case Options::MODE_SPIDER:
+    case Options::Mode::SPIDER:
       spiderMode();
       break;
-    case Options::MODE_CONSEQUENCE_ELIMINATION:
-    case Options::MODE_VAMPIRE:
+    case Options::Mode::RANDOM_STRATEGY:
+      getRandomStrategy();
+      break;
+    case Options::Mode::CONSEQUENCE_ELIMINATION:
+    case Options::Mode::VAMPIRE:
       vampireMode();
       break;
-    case Options::MODE_CASC:
+    case Options::Mode::CASC:
       if (CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
-    case Options::MODE_CASC_SAT:
+    case Options::Mode::CASC_SAT:
       CASC::CASCMode::makeSat();
       if (CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
-    case Options::MODE_CASC_EPR:
+    case Options::Mode::CASC_EPR:
       CASC::CASCMode::makeEPR();
       if (CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
-    case Options::MODE_CASC_LTB: {
+    case Options::Mode::CASC_LTB: {
       CASC::CLTBMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-    case Options::MODE_CASC_MZR: {
+    case Options::Mode::CASC_MZR: {
       CASC::CMZRMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
 
-    case Options::MODE_CLAUSIFY:
+    case Options::Mode::CLAUSIFY:
       clausifyMode();
       break;
 
-    case Options::MODE_OUTPUT:
+    case Options::Mode::OUTPUT:
       outputMode();
       break;
 
-    case Options::MODE_PROFILE:
+    case Options::Mode::PROFILE:
       profileMode();
       break;
 
-    case Options::MODE_PROGRAM_ANALYSIS:
+    case Options::Mode::PROGRAM_ANALYSIS:
       std::cout<<"Program analysis mode "<<std::endl;
       programAnalysisMode();
       break;
    
-    case Options::MODE_PREPROCESS:
+    case Options::Mode::PREPROCESS:
       preprocessMode();
       break;
 
-    case Options::MODE_SAT:
+    case Options::Mode::SAT:
       satSolverMode();
       break;
 

@@ -52,7 +52,7 @@ namespace InstGen
 using namespace Indexing;
 using namespace Saturation;
 
-IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
+IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 : MainLoop(prb, opt),
     _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
 	opt.instGenResolutionRatioResolution(), 50),
@@ -65,28 +65,28 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.instGenSelection());
 
   _use_dm = opt.useDM();
-  _use_niceness = (opt.satVarSelector() == Options::SVS_NICENESS);
+  _use_niceness = (opt.satVarSelector() == Options::SatVarSelector::NICENESS);
 
   _passive.setAgeWeightRatio(_opt.ageRatio(), _opt.weightRatio());
   
   //TODO - Consider using MinimizingSolver here
   switch(opt.satSolver()){
-    case Options::BUFFERED_VAMPIRE:
+    case Options::SatSolver::BUFFERED_VAMPIRE:
       _satSolver = new BufferedSolver(new TWLSolver(opt,true));
       break;
-    case Options::VAMPIRE:
+    case Options::SatSolver::VAMPIRE:
       _satSolver = new TWLSolver(opt,true);
       break;
-    case Options::BUFFERED_LINGELING:
+    case Options::SatSolver::BUFFERED_LINGELING:
       _satSolver = new BufferedSolver(new LingelingInterfacing(opt,true));
       break;
-    case Options::LINGELING:
+    case Options::SatSolver::LINGELING:
       _satSolver = new LingelingInterfacing(opt,true);
       break;
-    case Options::BUFFERED_MINISAT:
+    case Options::SatSolver::BUFFERED_MINISAT:
       _satSolver = new BufferedSolver(new MinisatInterfacing(opt,true));
       break;
-    case Options::MINISAT:
+    case Options::SatSolver::MINISAT:
       _satSolver = new MinisatInterfacing(opt,true);
       break;
     default:
@@ -144,11 +144,16 @@ void IGAlgorithm::init()
 
     _saturationProblem = _prb.copy(true);
 
-    _saturationOptions = _opt;
-    _saturationOptions.setSaturationAlgorithm(Options::OTTER);
+//    _saturationOptions = _opt;
+//    _saturationOptions.setSaturationAlgorithm(Options::OTTER);
 //    _saturationOptions.setPropositionalToBDD(false);
 //    _saturationOptions.setSplitting(Options::SM_OFF);
-    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
+//    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
+
+
+    cout << "WARNING: no longer using Otter here, options as given" << endl;
+    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _opt, _saturationIndexManager.ptr());
+
 
     //we will watch what clauses are derived in the
     //saturation part, so we can take advantage of them
@@ -164,7 +169,7 @@ void IGAlgorithm::init()
 
   ASSERT_VALID(_prb);
   if(_prb.hasEquality()) {
-    EqualityAxiomatizer ea(Options::EP_RSTC);
+    EqualityAxiomatizer ea(Options::EqualityProxy::RSTC);
     ea.apply(_prb);
   }
 
@@ -769,7 +774,7 @@ MainLoopResult IGAlgorithm::onModelFound()
 
   if(_opt.complete(_prb)) {
     MainLoopResult res(Statistics::SATISFIABLE);
-    if(_opt.proof()!=Options::PROOF_OFF) {
+    if(_opt.proof()!=Options::Proof::OFF) {
       //we need to print this early because model generating can take some time
       if(UIHelper::cascMode) {
 	env.beginOutput();

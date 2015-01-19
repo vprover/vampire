@@ -28,22 +28,22 @@ GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
   CALL("GroundingIndex::GroundingIndex");
 
   switch(opt.satSolver()){
-    case Options::VAMPIRE:
+    case Options::SatSolver::VAMPIRE:
     	_solver = new TWLSolver(opt,true);
     	break;
-    case Options::BUFFERED_VAMPIRE:
+    case Options::SatSolver::BUFFERED_VAMPIRE:
     	_solver = new BufferedSolver(new TWLSolver(opt,true));
     	break;
-    case Options::BUFFERED_LINGELING:
+    case Options::SatSolver::BUFFERED_LINGELING:
     	_solver = new BufferedSolver(new LingelingInterfacing(opt, true));
     	break;
-    case Options::LINGELING:
+    case Options::SatSolver::LINGELING:
       _solver = new LingelingInterfacing(opt,true);
       break;
-    case Options::BUFFERED_MINISAT:
+    case Options::SatSolver::BUFFERED_MINISAT:
     	_solver = new BufferedSolver(new MinisatInterfacing(opt, true));
     	break;
-    case Options::MINISAT:
+    case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(opt,true);
       break;
     default:

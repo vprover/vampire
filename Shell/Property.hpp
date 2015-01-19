@@ -118,6 +118,7 @@ public:
 
   /** Return the CASC category of the problem */
   Category category() const { return _category;}
+  static vstring categoryToString(Category cat);
   vstring categoryString() const;
 
   vstring toString() const;
@@ -142,6 +143,8 @@ public:
   bool hasFormulas() const { return _axiomFormulas || _goalFormulas; }
   /** Maximal arity of a function in the problem */
   int maxFunArity() const { return _maxFunArity; }
+  /** Total number of variables in problem */
+  int totalNumberOfVariables() const { return _totalNumberOfVariables;}
 
 
   /** The problem has property p */

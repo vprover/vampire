@@ -78,7 +78,7 @@ unsigned ActiveVariableSelector::getNiceness(unsigned var)
   CALL("ActiveVariableSelector::getNiceness");
 
   // If niceness is switched off use 1
-  if(_niceness_option == Options::NICENESS_NONE){
+  if(_niceness_option == Options::Niceness::NONE){
     return 1;
   }
 
@@ -105,9 +105,9 @@ unsigned ActiveVariableSelector::getNiceness(unsigned var)
   unsigned count = 0;
   bool divide = false;
   switch(_niceness_option){
-    case Options::NICENESS_NONE:
+    case Options::Niceness::NONE:
       return 1;
-    case Options::NICENESS_TOP:
+    case Options::Niceness::TOP:
       // Search for highest variable/constant
       while(!_stack.isEmpty() && !found){
         level++;
@@ -131,9 +131,9 @@ for(const TermList* t = _stack.pop(); !t->isEmpty(); t = t->next()){
       level = level*level_multiplier;
       RSTAT_MCTR_INC("nscore",level);
       return level;
-    case Options::NICENESS_AVERAGE:
+    case Options::Niceness::AVERAGE:
       divide=true;
-    case Options::NICENESS_SUM:
+    case Options::Niceness::SUM:
       //sum the levels of all variables/constants
       while(!_stack.isEmpty()){
         level++;
@@ -157,7 +157,7 @@ for(const TermList* t = _stack.pop(); !t->isEmpty(); t = t->next()){
       // if we want average, we set divid=true earlier
       if(divide){ level_sum = (level_sum/count);}//This division will truncate
       return level_sum;
-    default: ASSERTION_VIOLATION_REP("Invalid niceness option: "+_niceness_option);
+    default: ASSERTION_VIOLATION_REP("Invalid niceness option: "+static_cast<int>(_niceness_option));
   }
 
   return 1;

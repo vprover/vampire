@@ -214,7 +214,7 @@ void Preprocess::preprocess (Problem& prb)
     Normalisation().normalise(prb);
   }
 
-  if (_options.sineSelection()!=Options::SS_OFF) {
+  if (_options.sineSelection()!=Options::SineSelection::OFF) {
     env.statistics->phase=Statistics::SINE_SELECTION;
     if (env.options->showPreprocessing())
       env.out() << "sine selection" << std::endl;
@@ -222,7 +222,7 @@ void Preprocess::preprocess (Problem& prb)
     SineSelector(_options).perform(prb);
   }
 
-  if (_options.questionAnswering()==Options::QA_ANSWER_LITERAL) {
+  if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
     env.statistics->phase=Statistics::UNKNOWN_PHASE;
     if (env.options->showPreprocessing())
       env.out() << "answer literal addition" << std::endl;
@@ -281,13 +281,13 @@ void Preprocess::preprocess (Problem& prb)
     PredicateIndexIntroducer().apply(prb);
   }
 
-  if (_options.predicateDefinitionInlining()!=Options::INL_OFF) {
+  if (_options.predicateDefinitionInlining()!=Options::InliningMode::OFF) {
     env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
     if (env.options->showPreprocessing())
       env.out() << "inlining" << std::endl;
 
-    PDInliner pdInliner(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY,
-	_options.predicateDefinitionInlining()==Options::INL_NON_GROWING);
+    PDInliner pdInliner(_options.predicateDefinitionInlining()==Options::InliningMode::AXIOMS_ONLY,
+	_options.predicateDefinitionInlining()==Options::InliningMode::NON_GROWING);
     pdInliner.apply(prb);
 
     if (_options.flattenTopLevelConjunctions()) {
@@ -298,8 +298,8 @@ void Preprocess::preprocess (Problem& prb)
           if (env.options->showPreprocessing())
             env.out() << "inlining" << std::endl;
 
-          PDInliner pdInliner2(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY,
-              _options.predicateDefinitionInlining()==Options::INL_NON_GROWING);
+          PDInliner pdInliner2(_options.predicateDefinitionInlining()==Options::InliningMode::AXIOMS_ONLY,
+              _options.predicateDefinitionInlining()==Options::InliningMode::NON_GROWING);
           pdInliner2.apply(prb);
         }
     }
@@ -318,7 +318,7 @@ void Preprocess::preprocess (Problem& prb)
     DistinctProcessor().apply(prb);
   }
 
-  if (_options.predicateEquivalenceDiscovery()!=Options::PED_OFF) {
+  if (_options.predicateEquivalenceDiscovery()!=Options::PredicateEquivalenceDiscoveryMode::OFF) {
     if (env.options->showPreprocessing())
       env.out() << "equivalence discovery" << std::endl;
 
@@ -459,11 +459,11 @@ void Preprocess::preprocess (Problem& prb)
     if (env.options->showPreprocessing())
       env.out() << "function definition elimination" << std::endl;
 
-    if (_options.functionDefinitionElimination() == Options::FDE_ALL) {
+    if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
       FunctionDefinition fd;
       fd.removeAllDefinitions(prb);
     }
-    else if (_options.functionDefinitionElimination() == Options::FDE_UNUSED) {
+    else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
       FunctionDefinition::removeUnusedDefinitions(prb);
     }
   }
@@ -496,7 +496,7 @@ void Preprocess::preprocess (Problem& prb)
 //     }
 //   }
 
-   if (_options.equalityResolutionWithDeletion()!=Options::RA_OFF &&
+   if (_options.equalityResolutionWithDeletion()!=Options::RuleActivity::OFF &&
 	   prb.mayHaveInequalityResolvableWithDeletion() ) {
      env.statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
      if (env.options->showPreprocessing())
@@ -514,7 +514,7 @@ void Preprocess::preprocess (Problem& prb)
      TrivialPredicateRemover().apply(prb);
    }
 
-   if (_options.generalSplitting()!=Options::RA_OFF) {
+   if (_options.generalSplitting()!=Options::RuleActivity::OFF) {
      env.statistics->phase=Statistics::GENERAL_SPLITTING;
      if (env.options->showPreprocessing())
        env.out() << "general splitting" << std::endl;
@@ -532,8 +532,8 @@ void Preprocess::preprocess (Problem& prb)
      hr.apply(prb);
    }
 
-   if (_options.equalityProxy()!=Options::EP_OFF && prb.mayHaveEquality() &&
-	   (prb.mayHaveXEqualsY() || _options.equalityProxy()!=Options::EP_ON) ) {
+   if (_options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality() &&
+	   prb.mayHaveXEqualsY() ) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
        env.out() << "equality proxy" << std::endl;

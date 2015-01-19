@@ -31,6 +31,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/Theory.hpp"
 
 // #define KIF_EXPERIMENTS 0
 
@@ -50,31 +51,24 @@ using namespace Kernel;
 // {
 // } // LaTeX::LaTeX
 
-
-/**
- * Convert the refutation to LaTeX
- * @since 04/01/2004 Manchester
- */
-vstring LaTeX::refutationToString(Unit* ref)
+vstring LaTeX::header()
 {
-  CALL("LaTeX::refutationToString(Unit* ref)");
-
-  vstring res = "\\documentclass[fleqn]{article}\n"
+    vstring res =  "\\documentclass[fleqn]{article}\n"
     "\\usepackage{fullpage,latexsym}\n"
 
     "\\newenvironment{VampireProof}{%\n"
-    "	\\section{Proof}}{}\n"
+    "   \\section{Proof}}{}\n"
     "\\newenvironment{VampireInference}{%\n"
-    "	\\begin{array}{c}}{\\end{array}}\n"
+    "   \\begin{array}{c}}{\\end{array}}\n"
     "\\newenvironment{VampireInferencePremises}{}{}\n"
     "\\newenvironment{VampirePremise}%\n"
-    "	{\\begin{array}{l}}%\n"
-    "	{\\end{array}}\n"
+    "   {\\begin{array}{l}}%\n"
+    "   {\\end{array}}\n"
     "\\newenvironment{VampireConclusion}%\n"
-    "	{\\begin{array}{l}}%\n"
-    "	{\\end{array}}\n"
+    "   {\\begin{array}{l}}%\n"
+    "   {\\end{array}}\n"
     "\\newcommand{\\VampireUnit}[3]{%\n"
-    "	#1.~#2~[#3]}\n"
+    "   #1.~#2~[#3]}\n"
 
     "\\newcommand{\\VPremiseSeparator}{\\\\}\n"
     "\\newcommand{\\VConclusionSeparator}{\\\\ \\hline}\n"
@@ -87,9 +81,26 @@ vstring LaTeX::refutationToString(Unit* ref)
 
     "\\newcommand{\\VEmptyClause}{\\Box}\n"
 
-    "\\begin{document}\n"
-    "\\begin{VampireProof}\n";
+    "\\begin{document}\n";
 
+    return res;
+}
+
+vstring LaTeX::footer()
+{
+    return "\\end{document}\n";
+}
+
+
+/**
+ * Convert the refutation to LaTeX
+ * @since 04/01/2004 Manchester
+ */
+vstring LaTeX::refutationToString(Unit* ref)
+{
+  CALL("LaTeX::refutationToString(Unit* ref)");
+
+  vstring res = header() + "\\begin{VampireProof}\n"; 
 
   InferenceStore* is=InferenceStore::instance();
 
@@ -183,8 +194,8 @@ vstring LaTeX::refutationToString(Unit* ref)
     }
   }
 
-  return res + "\\end{VampireProof}\n"
-    "\\end{document}\n";
+  return res + "\\end{VampireProof}\n" + footer(); 
+
 }
 
 
@@ -323,10 +334,10 @@ vstring LaTeX::toString (Literal* l) const
 
   if (l->isEquality()) {
     if (l->isNegative()) {
-      return toString(l->nthArgument(0)) + " \\neq " + toString(l->nthArgument(1));
+      return toString(l->nthArgument(0),true) + " \\neq " + toString(l->nthArgument(1),true);
     }
     else {
-      return toString(l->nthArgument(0)) + "=" + toString(l->nthArgument(1));
+      return toString(l->nthArgument(0),true) + " = " + toString(l->nthArgument(1),true);
     }
   }
 
@@ -337,14 +348,29 @@ vstring LaTeX::toString (Literal* l) const
 //     }
 //   }
 
-  vstring res;
+  //Check if this symbol has an interpreted LaTeX name
+  // this should be true for all known interpreted symbols and any recorded symbols
+  vstring template_str = theory->tryGetInterpretedLaTeXName(l->functor(),true,l->isNegative());
 
-  if (l->isNegative()) {
-    res="\\neg ";
+  if(template_str.empty()){
+    vstring res;
+    if (l->isNegative()) { res="\\neg ";}
+    return res+symbolToString(l->functor(), true) + toString(l->args());
   }
-  res+=symbolToString(l->functor(), true) + toString(l->args());
+  else{
+    // replace arguments in the template, arg0 replaces a0 etc.
+    for(unsigned i=0;i<l->arity();i++){
+      vstring from = "a"+Lib::Int::toString(i);
+      vstring to = toString(l->nthArgument(i),true);
+      size_t start_pos = 0;
+      while((start_pos = template_str.find(from, start_pos)) != std::string::npos) {
+         template_str.replace(start_pos, from.length(), to);
+         start_pos += to.length(); 
+      }
+    }
+    return template_str;
+  }
 
-  return res;
 } // LaTeX::toString (const Literal& l)
 
 
@@ -397,6 +423,25 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
   if (digits == nm) { // digit-only name
     return symbolName;
   }
+  else{
+    if(digits[-1] == '.'){
+      //check if this is a real digit-only name
+      // i.e. of the form digts.digits
+      const char* digits_real = digits;
+      digits_real--;
+      while(nm != digits_real){
+        if (digits_real[-1] >= '0' && digits_real[-1] <= '9') {
+          digits_real--;
+        }
+        else {
+          break;
+        }
+      }
+      if(digits_real == nm){ // real digit-only name
+        return symbolName;
+      }
+    }
+  }
   while (nm < digits) {
     switch (*nm) {
     case '$':
@@ -428,9 +473,14 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
 
 /**
  * Convert term list to LaTeX.
+ *
+ * If it is a single term then we do not look at the next term in the
+ * TermList (important to dictate in some cases) and we do not place it
+ * in brackets to try and reduce the number of brackets
+ *
  * @since 09/12/2003 Manchester
  */
-vstring LaTeX::toString (TermList* terms) const
+vstring LaTeX::toString (TermList* terms,bool single) const
 {
   CALL("LaTeX::toString (TermList* terms)");
 
@@ -438,10 +488,18 @@ vstring LaTeX::toString (TermList* terms) const
     return "";
   }
 
-  vstring result = vstring("(");
+  vstring result = single ? "" : " (";
   bool first=true;
   TermList* t=terms;
   while(t->isNonEmpty()) {
+
+    if(first){
+      first=false;
+    }
+    else{
+        result += ",";
+    }
+
 //   if (_map) {
 //     vstring result;
 //     if (_map->toString(t,*this,result)) {
@@ -450,23 +508,38 @@ vstring LaTeX::toString (TermList* terms) const
 //   }
     if(t->isVar()) {
       ASS(t->isOrdinaryVar());
-
+      result += varToString(t->var()); 
     }
     else {
       ASS(t->isTerm());
       Term* trm=t->term();
-      result += symbolToString(trm->functor(), false) + toString(trm->args());
+
+     //Check if this symbol has an interpreted LaTeX name
+     // this should be true for all known interpreted symbols and any recorded symbols
+      vstring template_str = theory->tryGetInterpretedLaTeXName(trm->functor(),false);
+   
+      if(template_str.empty()){
+        result += symbolToString(trm->functor(), false) + toString(trm->args());
+      }
+      else{
+        // replace arguments in the template, arg0 replaces a0 etc.
+        for(unsigned i=0;i<trm->arity();i++){
+          vstring from = "a"+Lib::Int::toString(i);
+          vstring to = toString(trm->nthArgument(i),true);
+          size_t start_pos = 0;
+          while((start_pos = template_str.find(from, start_pos)) != std::string::npos) {
+            template_str.replace(start_pos, from.length(), to);
+            start_pos += to.length();
+          }
+        }
+        result += template_str;
+      }
     }
 
+    if(single) break;
     t=t->next();
-    if (first) {
-      first=false;
-    }
-    else if(t->isNonEmpty()){
-      result += ",";
-    }
   }
-  return result + ")";
+  return single? result : result + ")";
 }
 
 
@@ -670,6 +743,20 @@ vstring LaTeX::varToString (unsigned num) const
 //    break;
 //  }
 //#endif
+
+  // If the signature uses 6 or fewer variables we use x,y,z,u,v,w
+  if(env.signature->vars()<6){
+    switch(num){
+      case 0 : return "x";
+      case 1 : return "y";
+      case 2 : return "z";
+      case 3 : return "u";
+      case 4 : return "v";
+      case 5 : return "w";
+      default: ASSERTION_VIOLATION;
+    }
+  }
+
   return vstring("x_{") + Int::toString(num) + "}";
 } // LaTeX::toString (Var v)
 

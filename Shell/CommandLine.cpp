@@ -11,6 +11,8 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
+#include "Lib/VString.hpp"
+#include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 
 #include "CommandLine.hpp"
@@ -47,17 +49,32 @@ void CommandLine::interpret (Options& options)
       cout<<VERSION_STRING<<endl;
       exit(0);
     }
+    // If --help or -h are used without arguments we still print help
+    // If --help is used at all we print help
+    // If -h is included at the end of the argument list we print help
+    if(strcmp(arg,"--help")==0 || 
+       (strcmp(arg,"-h")==0 && _next==_last) //if -h and there is no more
+      ){ 
+      cout << _next << " " << _last << endl;
+      options.set("help","on");
+      env.beginOutput();
+      options.output(env.out());
+      env.endOutput();
+      exit(0);
+    }
     if (arg[0] == '-') {
       if (_next == _last) {
 	USER_ERROR((vstring)"no value specified for option " + arg);
       }
-      if (arg[1] == '-') {
-	options.set(arg+2,*_next);
+      else{
+         if (arg[1] == '-') {
+   	  options.set(arg+2,*_next);
+         }
+         else {
+	  options.setShort(arg+1,*_next);
+        }
+        _next++;
       }
-      else {
-	options.setShort(arg+1,*_next);
-      }
-      _next++;
     }
     else { // next is not an option but a file name
       if (fileGiven) {
@@ -69,6 +86,9 @@ void CommandLine::interpret (Options& options)
   }
   options.setForcedOptionValues();
   options.checkGlobalOptionConstraints();
+  if(options.encodeStrategy()){
+    cout << options.generateEncodedOptions();
+  }
 } // CommandLine::interpret
 
 

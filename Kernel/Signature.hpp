@@ -279,7 +279,7 @@ class Signature
     return _vars[number]->name();
   }
   
-  /**return the number of functions */
+  /**return the number of variables */
   size_t vars() const {return _vars.length(); }
   
   
@@ -480,6 +480,9 @@ private:
   SymbolMap _arityCheck;
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
+
+  /** Number of Skolem functions (this is just for LaTeX output) */
+  unsigned _skolemFunctionCount;
 
   /** Map from symbol names to variable numbers*/
   SymbolMap _varNames;

@@ -18,7 +18,7 @@
 #include "Kernel/Signature.hpp"
 #include "BoundsArray.hpp"
 
-namespace Solving {
+namespace BoundProp {
 
 using namespace std;
 using namespace Shell;

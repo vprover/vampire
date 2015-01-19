@@ -148,7 +148,7 @@ void Statistics::addCommentIfCASC(ostream& out)
 
 void Statistics::print(ostream& out)
 {
-  if (env.options->statistics()==Options::STATISTICS_NONE) {
+  if (env.options->statistics()==Options::Statistics::NONE) {
     return;
   }
 

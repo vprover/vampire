@@ -16,7 +16,7 @@
 #undef LOGGING
 #define LOGGING 0
 
-namespace Solving
+namespace BoundProp
 {
 
 BoundJustification::BoundJustification(const BoundJustification& j)

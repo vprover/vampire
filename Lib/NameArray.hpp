@@ -3,8 +3,13 @@
  * Defines ordered immutable arrays of integers.
  * Previously they were used in Options.
  *
+ * TODO : not currently used, but could be used in OptionValues
+ *
  * @since 21/04/2005 Manchester
  */
+
+#ifndef __NameArray__
+#define __NameArray__
 
 using namespace std;
 
@@ -31,3 +36,5 @@ private:
 }; // class NameArray
 
 }
+
+#endif

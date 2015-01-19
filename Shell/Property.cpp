@@ -549,8 +549,11 @@ void Property::scanForInterpreted(Term* t)
 vstring Property::categoryString() const
 {
   CALL("vstring Property::categoryString() const");
-
-  switch (_category)
+  return categoryToString(_category);
+}
+vstring Property::categoryToString(Category cat)
+{
+  switch (cat)
     {
     case NEQ:
       return "NEQ";

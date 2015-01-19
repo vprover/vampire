@@ -18,6 +18,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/Theory.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -2713,7 +2714,7 @@ void TPTP::endFof()
 
   switch (_lastInputType) {
   case Unit::CONJECTURE:
-    if (_isQuestion && env.options->mode() == Options::MODE_CLAUSIFY && f->connective() == EXISTS) {
+    if (_isQuestion && env.options->mode() == Options::Mode::CLAUSIFY && f->connective() == EXISTS) {
       // create an answer predicate
       QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
       int arity = g->vars()->length();
@@ -3223,7 +3224,6 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 {
   CALL("TPTP::aion");
    
-
   if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
     if (arity > 0) {
       return env.signature->addFunction(name,arity,added);
@@ -3609,6 +3609,53 @@ void TPTP::vampire()
     default:
       throw Exception("either atom or number expected as a value of a Vampire option",tok);
     }
+  }
+  // Allows us to insert LaTeX templates for predicate and function symbols
+  else if(nm == "latex"){
+    consumeToken(T_COMMA);
+    vstring kind = name();
+    bool pred;
+    if (kind == "predicate") {
+      pred = true;
+    }
+    else if (kind == "function") {
+      pred = false;
+    }
+    else {
+      throw Exception("either 'predicate' or 'function' expected",getTok(0));
+    }
+    consumeToken(T_COMMA);
+    vstring symb = name();
+    consumeToken(T_COMMA);
+    Token tok = getTok(0);
+    if (tok.tag != T_INT) {
+      throw Exception("a non-negative integer (denoting arity) expected",tok);
+    }
+    unsigned arity;
+    if (!Int::stringToUnsignedInt(tok.content,arity)) {
+      throw Exception("a number denoting arity expected",tok);
+    }
+    resetToks();
+    consumeToken(T_COMMA);
+    tok = getTok(0);
+    if(tok.tag != T_STRING){
+      throw Exception("a template string expected",tok);
+    }
+    vstring temp = tok.content;
+    resetToks();
+    if(pred){
+      consumeToken(T_COMMA);
+      vstring pol= name();
+      bool polarity; 
+      if(pol=="true"){polarity=true;}else if(pol=="false"){polarity=false;}
+      else{ throw Exception("polarity expected (true/false)",getTok(0)); } 
+      unsigned f = env.signature->addPredicate(symb,arity);
+      theory->registerLaTeXPredName(f,polarity,temp);
+    }
+    else{
+      unsigned f = env.signature->addFunction(symb,arity);
+      theory->registerLaTeXFuncName(f,temp);
+    }    
   }
   else if (nm == "symbol") {
     consumeToken(T_COMMA);

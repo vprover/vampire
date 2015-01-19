@@ -41,6 +41,8 @@ class LaTeX
 public:
   LaTeX() : _nextNodeNum(0) {}
 
+  vstring header();
+  vstring footer();
   vstring refutationToString(Unit* ref);
 
 //  LaTeX(const Options& options,const SymbolMap* map);
@@ -54,7 +56,7 @@ private:
 //  /** symbol map for printing atoms, functions and variables */
 //  const SymbolMap* _map;
   vstring varToString(unsigned num) const;
-  vstring toString(TermList*) const;
+  vstring toString(TermList*,bool single=false) const;
   vstring toString(Literal*) const;
   vstring toString(Clause*);
   vstring toString(Formula*) const;

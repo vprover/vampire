@@ -294,6 +294,8 @@ public:
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
 
+  bool invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result);
+
   Interpretation interpretFunction(unsigned func);
   Interpretation interpretFunction(Term* t);
   Interpretation interpretFunction(TermList t);
@@ -302,6 +304,18 @@ public:
 
   unsigned getFnNum(Interpretation itp);
   unsigned getPredNum(Interpretation itp);
+
+  void registerLaTeXPredName(unsigned func, bool polarity, vstring temp);
+  void registerLaTeXFuncName(unsigned func, vstring temp);
+  vstring tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity=true);
+  
+private:
+  // For recording the templates for predicate and function symbols
+  DHMap<unsigned,vstring> _predLaTeXnamesPos;
+  DHMap<unsigned,vstring> _predLaTeXnamesNeg;
+  DHMap<unsigned,vstring> _funcLaTeXnames;
+
+public:
 
   Term* fun1(Interpretation itp, TermList arg);
   Term* fun2(Interpretation itp, TermList arg1, TermList arg2);

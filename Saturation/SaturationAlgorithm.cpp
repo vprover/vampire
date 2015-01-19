@@ -122,7 +122,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
   _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
 
-  if (opt.extensionalityResolution() != Options::ER_OFF) {
+  if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     _extensionality = new ExtensionalityClauseContainer(opt);
     //_active->addedEvent.subscribe(_extensionality, &ExtensionalityClauseContainer::addIfExtensionality);
   } else {
@@ -547,7 +547,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     _symEl->onInputClause(cl);
   }
 
-  if (_opt.sos() != Options::SOS_OFF && cl->inputType()==Clause::AXIOM) {
+  if (_opt.sos() != Options::Sos::OFF && cl->inputType()==Clause::AXIOM) {
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -563,7 +563,7 @@ LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
 {
   CALL("SaturationAlgorithm::getSosLiteralSelector");
 
-  if (_opt.sos() == Options::SOS_ALL) {
+  if (_opt.sos() == Options::Sos::ALL) {
     if (!_sosLiteralSelector) {
       _sosLiteralSelector = new TotalLiteralSelector(getOrdering(), getOptions());
     }
@@ -761,7 +761,6 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
   //(there the control flow goes out of the SaturationAlgorithm class,
   //so we'd better not assume on what's happening out there)
   cl->incRefCnt();
-  
   onNewClause(cl);
   _newClauses.push(cl);
   
@@ -1185,7 +1184,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     MainLoopResult::TerminationReason termReason =
 	isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND;
     MainLoopResult res(termReason);
-    if (termReason == Statistics::SATISFIABLE && getOptions().proof() != Options::PROOF_OFF) {
+    if (termReason == Statistics::SATISFIABLE && getOptions().proof() != Options::Proof::OFF) {
       res.saturatedSet = collectSaturatedSet();
     }
     throw MainLoopFinishedException(res);
@@ -1308,13 +1307,13 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   SaturationAlgorithm* res;
   switch(opt.saturationAlgorithm()) {
-  case Shell::Options::DISCOUNT:
+  case Shell::Options::SaturationAlgorithm::DISCOUNT:
     res=new Discount(prb, opt);
     break;
-  case Shell::Options::LRS:
+  case Shell::Options::SaturationAlgorithm::LRS:
     res=new LRS(prb, opt);
     break;
-  case Shell::Options::OTTER:
+  case Shell::Options::SaturationAlgorithm::OTTER:
     res=new Otter(prb, opt);
     break;
   default:
@@ -1339,10 +1338,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.binaryResolution()) {
     gie->addFront(new BinaryResolution());
   }
-  if (opt.unitResultingResolution() != Options::URR_OFF) {
+  if (opt.unitResultingResolution() != Options::URResolution::OFF) {
     gie->addFront(new URResolution());
   }
-  if (opt.extensionalityResolution() != Options::ER_OFF) {
+  if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution());
   }
   
@@ -1362,11 +1361,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (prb.hasEquality()) {
     switch(opt.forwardDemodulation()) {
-    case Options::DEMODULATION_ALL:
-    case Options::DEMODULATION_PREORDERED:
+    case Options::Demodulation::ALL:
+    case Options::Demodulation::PREORDERED:
       res->addForwardSimplifierToFront(new ForwardDemodulation());
       break;
-    case Options::DEMODULATION_OFF:
+    case Options::Demodulation::OFF:
       break;
 #if VDEBUG
     default:
@@ -1389,11 +1388,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create backward simplification engine
   if (prb.hasEquality()) {
     switch(opt.backwardDemodulation()) {
-    case Options::DEMODULATION_ALL:
-    case Options::DEMODULATION_PREORDERED:
+    case Options::Demodulation::ALL:
+    case Options::Demodulation::PREORDERED:
       res->addBackwardSimplifierToFront(new BackwardDemodulation());
       break;
-    case Options::DEMODULATION_OFF:
+    case Options::Demodulation::OFF:
       break;
 #if VDEBUG
     default:
@@ -1401,16 +1400,16 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if (opt.backwardSubsumption() != Options::SUBSUMPTION_OFF) {
-    bool byUnitsOnly=opt.backwardSubsumption()==Options::SUBSUMPTION_UNIT_ONLY;
+  if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
+    bool byUnitsOnly=opt.backwardSubsumption()==Options::Subsumption::UNIT_ONLY;
     res->addBackwardSimplifierToFront(new SLQueryBackwardSubsumption(byUnitsOnly));
   }
-  if (opt.backwardSubsumptionResolution() != Options::SUBSUMPTION_OFF) {
-    bool byUnitsOnly=opt.backwardSubsumptionResolution()==Options::SUBSUMPTION_UNIT_ONLY;
+  if (opt.backwardSubsumptionResolution() != Options::Subsumption::OFF) {
+    bool byUnitsOnly=opt.backwardSubsumptionResolution()==Options::Subsumption::UNIT_ONLY;
     res->addBackwardSimplifierToFront(new BackwardSubsumptionResolution(byUnitsOnly));
   }
 
-  if (opt.mode()==Options::MODE_CONSEQUENCE_ELIMINATION) {
+  if (opt.mode()==Options::Mode::CONSEQUENCE_ELIMINATION) {
     res->_consFinder=new ConsequenceFinder();
   }
   if (opt.showSymbolElimination()) {
@@ -1431,7 +1430,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(opt.splitting()){
     res->_splitter = new Splitter();
   }
-  if (opt.questionAnswering()==Options::QA_ANSWER_LITERAL) {
+  if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();
   }
   return res;

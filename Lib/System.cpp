@@ -43,13 +43,13 @@ bool outputAllowed()
 #if VDEBUG
   return true;
 #else
-  return !Lib::env.options || Lib::env.options->mode()!=Shell::Options::MODE_SPIDER;
+  return !Lib::env.options || Lib::env.options->mode()!=Shell::Options::Mode::SPIDER;
 #endif
 }
 
 bool inSpiderMode()
 {
-  return Lib::env.options && Lib::env.options->mode()==Shell::Options::MODE_SPIDER;
+  return Lib::env.options && Lib::env.options->mode()==Shell::Options::Mode::SPIDER;
 }
 
 void reportSpiderFail()

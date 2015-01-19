@@ -47,7 +47,7 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_SUBST_TREE) );
 
-  _preorderedOnly=getOptions().forwardDemodulation()==Options::DEMODULATION_PREORDERED;
+  _preorderedOnly=getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED;
 }
 
 void ForwardDemodulation::detach()

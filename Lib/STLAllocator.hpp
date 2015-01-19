@@ -70,6 +70,8 @@ public :
     inline bool operator!=(STLAllocator const& a) const { return !operator==(a); }
 };    //    end of class STLAllocator 
 
+extern const STLAllocator<void> global_stl_allocator;
+
 } // namespace Lib
 
 #endif // __STLAllocator__

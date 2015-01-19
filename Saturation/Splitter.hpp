@@ -58,6 +58,7 @@ public:
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
   void getNewZeroImpliedSplits(SplitLevelStack& res);
+
 private:
   void processDPConflicts();
 
@@ -68,7 +69,7 @@ private:
   //options
   bool _eagerRemoval;
   bool _handleZeroImplied;
-  Options::SplittingLitaralPolarityAdvice _literalPolarityAdvice;
+  Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
 
   Splitter& _parent;
 

@@ -12,7 +12,7 @@
 
 #include "VariableSelector.hpp"
 
-namespace Solving {
+namespace BoundProp {
 
 using namespace Kernel;
 

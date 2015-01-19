@@ -261,7 +261,7 @@ void CMZRMode::strategyRunChild(unsigned prbIdx, vstring strategy, unsigned time
 
   Options opt=*env.options;
   opt.setProblemName(pi.inputFName);
-  opt.readFromTestId(strategy);
+  opt.readFromEncodedOptions(strategy);
 
   unsigned dsTime = timeMs/100;
   if (dsTime==0) {

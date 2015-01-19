@@ -41,7 +41,7 @@ class Random
   static inline int getMax () { return RAND_MAX; }
 
   /** Return a new random integer between 0 and RAND_MAX */
-  static inline int getInteger () { return rand(); }
+  static inline int getInteger () { return rand(); } 
   /** Return a new random integer between 0 and modulus-1 */
   static inline int getInteger (int modulus)
   { return getInteger () % modulus; }

@@ -10,7 +10,7 @@
 
 #include "Lib/Stack.hpp"
 
-namespace Solving {
+namespace BoundProp {
 
 using namespace Lib;
 using namespace Kernel;
