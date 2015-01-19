@@ -77,6 +77,9 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       // Martin: reductionPremise does not justify soundness of the inference
       //  (and brings in extra dependency which confuses splitter).
       //  Is there any other use for it?
+      // TODO - reductionPremise is required for proof construction only,
+      //        it should be included in some kind of Inference object. Consider this
+      //        when reviewing proof construction
       /*
       Clause* reductionPremise=lit->isNegative() ? counterpart : qr.clause;
       if(reductionPremise==premise) {
