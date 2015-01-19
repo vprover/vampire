@@ -70,6 +70,7 @@ private:
   bool _eagerRemoval;
   bool _handleZeroImplied;
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
+  bool _ccMultipleCores;
 
   Splitter& _parent;
 

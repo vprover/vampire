@@ -105,10 +105,13 @@ void SplittingBranchSelector::init()
   _solver = new Test::CheckedSatSolver(_solver.release());
 #endif
 
-  //Giles. Currently false by default.
   if(_parent.getOptions().splittingCongruenceClosure()) {
-    // ASSERTION_VIOLATION_REP("Is this ever turned on?");
-    _dp = new ShortConflictMetaDP(new DP::SimpleCongruenceClosure(), _parent.satNaming(), *_solver);
+    _dp = new DP::SimpleCongruenceClosure();
+    if (_parent.getOptions().ccUnsatCores() == Options::CCUnsatCores::SMALL_ONES) {
+      _dp = new ShortConflictMetaDP(_dp.release(), _parent.satNaming(), *_solver);
+    }
+
+    _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
   }
 }
 
@@ -184,7 +187,7 @@ void SplittingBranchSelector::processDPConflicts()
 
       _dp->reset();
       _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ));
-      DecisionProcedure::Status dpStatus = _dp->getStatus(true);
+      DecisionProcedure::Status dpStatus = _dp->getStatus(_ccMultipleCores);
       if(dpStatus!=DecisionProcedure::UNSATISFIABLE) {
         break;
       }
