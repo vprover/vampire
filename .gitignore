@@ -7,12 +7,8 @@ Makefile_depend*
 version.cpp
 
 vampire
-vampire_dbg
-vampire_rel
-vampire_gcov
-vampire_starexec
+vampire_*
 vtest
-vtest_dbg
 
 vampire.exe
 vampire_dbg.exe
