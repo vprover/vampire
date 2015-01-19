@@ -231,7 +231,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     static LiteralStack model;
     model.reset();
     _dp->getModel(model);
-  
+
     cout << "Obtained a model " << endl;
     LiteralStack::Iterator it(model);
     while(it.hasNext()) {
