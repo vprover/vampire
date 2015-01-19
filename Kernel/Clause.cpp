@@ -209,7 +209,7 @@ Clause* Clause::fromClause(Clause* c)
 bool Clause::shouldBeDestroyed()
 {
 //  return false;
-  return (_store == NONE) && _refCnt == 0 &&
+  return (_store == NONE) && _inferenceRefCnt == 0 &&
     !isFromPreprocessing();
 }
 
@@ -243,7 +243,7 @@ void Clause::destroy()
 	continue;
       }
       Clause* refCl = static_cast<Clause*> (refU);
-      refCl->_refCnt--;
+      refCl->_inferenceRefCnt--;
       if (refCl->shouldBeDestroyed()) {
 	toDestroy.push(refCl);
       }

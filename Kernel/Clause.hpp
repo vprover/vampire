@@ -73,7 +73,7 @@ public:
     NONE = 3u,  
     /** clause is selected from the passive container
      * and is not added to the active one yet */
-    SELECTED = 4u
+    SELECTED = 4u,
     /* clause is frozen after being processed */
     FROZEN_PROCESSED = 5u,
     /* clause is frozen before (during) being processed */
@@ -214,13 +214,13 @@ public:
   bool shouldBeDestroyed();
   void destroyIfUnnecessary();
 
-  void incRefCnt() { _refCnt++; }
+  void incRefCnt() { _inferenceRefCnt++; }
   void decRefCnt()
   {
     CALL("Clause::decRefCnt");
 
-    ASS_G(_refCnt,0);
-    _refCnt--;
+    ASS_G(_inferenceRefCnt,0);
+    _inferenceRefCnt--;
     destroyIfUnnecessary();
   }
 
