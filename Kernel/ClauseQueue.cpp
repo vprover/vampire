@@ -35,7 +35,7 @@ void ClauseQueue::insert(Clause* c)
 {
   CALL("ClauseQueue::insert");
 
-  cout << "CQ insert " << c->toString() << endl;
+  cout << "CQ("<<this<<") insert " << c->toString() << endl;
 
   // select a random height between 0 and top
   unsigned h = 0;
@@ -85,7 +85,7 @@ bool ClauseQueue::remove(Clause* c)
 {
   CALL("ClauseQueue::remove");
 
-  cout << "CQ remove " << c->toString() << endl;
+  cout << "CQ("<<this<<") remove " << c->toString() << endl;
 
   unsigned h = _height;
   Node* left = &_left;
@@ -117,6 +117,14 @@ bool ClauseQueue::remove(Clause* c)
 
     if (next == 0 || lessThan(c,next->clause)) {
       if(h==0) {
+
+#if VDEBUG
+       ClauseQueue::Iterator it(*this);
+       while(it.hasNext()){
+         ASS(it.next()!=c);
+       }
+#endif
+
 	return false;
       }
       h--;
@@ -156,7 +164,7 @@ Clause* ClauseQueue::pop()
     _height--;
   }
 
-  cout << "CQ pop " << c->toString() << endl;
+  cout << "CQ("<<this<<") pop " << c->toString() << endl;
 
   return c;
 } // ClauseQueue::pop
