@@ -2962,9 +2962,9 @@ unsigned TPTP::readSort()
   case T_ARRAY_TYPE:
   {
     resetToks();
-    consumeToken(T_LBRA);
+    consumeToken(T_LPAR);
     unsigned innerSort = readSort();
-    consumeToken(T_RBRA);
+    consumeToken(T_RPAR);
     return env.sorts->addArraySort(innerSort);
   }
   default:
