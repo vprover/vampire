@@ -62,6 +62,7 @@ public:
 
 private:
   SATSolver::Status processDPConflicts();
+  SATSolver::VarAssignment getSolverAssimentConsideringCCModel(unsigned var);
 
   void handleSatRefutation(SATClause* ref);
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
@@ -86,11 +87,17 @@ private:
   ArraySet _selected;
   
   /**
+   * Keeps track of positive ground equalities true in the last ccmodel.
+   */
+  ArraySet _trueInCCModel;
+
+  /**
    * Remember variables which were zero implied before
    * to only report on the new ones.
    */
   DArray<bool> _zeroImplieds;
 };
+
 
 /**
  * SplitLevel meanings:

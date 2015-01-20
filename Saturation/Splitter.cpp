@@ -112,11 +112,7 @@ void SplittingBranchSelector::init()
     _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
 
     _ccModel = _parent.getOptions().splittingCongruenceClosure() == Options::SplittingCongruenceClosure::MODEL;
-    
-    // because all positive and negative ground equations enter the _dp,
-    // we also want to be able to accommodate all these in the SAT<->FO part
-    ASS(!_ccModel || _parent.getOptions().splittingAddComplementary() == Options::SplittingAddComplementary::GROUND);
-  }    
+  }
 }
 
 void SplittingBranchSelector::updateVarCnt()
@@ -128,6 +124,7 @@ void SplittingBranchSelector::updateVarCnt()
 
   _solver->ensureVarCnt(satVarCnt);
   _selected.expand(splitLvlCnt);
+  _trueInCCModel.expand(splitLvlCnt);
   _zeroImplieds.expand(satVarCnt,false);
 }
 
@@ -165,6 +162,26 @@ void SplittingBranchSelector::handleSatRefutation(SATClause* ref)
   Inference* foInf = new InferenceMany(Inference::SAT_SPLITTING_REFUTATION, prems);
   Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
   throw MainLoop::RefutationFoundException(foRef);
+}
+
+SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCCModel(unsigned var) {
+  CALL("SplittingBranchSelector::getSolverAssimentConsideringCCModel");
+
+  SATSolver::VarAssignment asgn = _solver->getAssignment(var);
+
+  if (!_ccModel || asgn == SATSolver::FALSE) {
+    return asgn;
+  }
+
+  SAT2FO& s2f = _parent.satNaming();
+
+  Literal* lit = s2f.toFO(SATLiteral(var,true));
+
+  if (lit->isEquality() && lit->ground()) {
+    return _trueInCCModel.find(var) ? SATSolver::TRUE : SATSolver::DONT_CARE;
+  } else {
+    return asgn;
+  }
 }
 
 SATSolver::Status SplittingBranchSelector::processDPConflicts()
@@ -327,7 +344,7 @@ void SplittingBranchSelector::addSatClauses(
   unsigned maxSatVar = _parent.maxSatVar();
   unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
-    SATSolver::VarAssignment asgn = _solver->getAssignment(i);            
+    SATSolver::VarAssignment asgn = getSolverAssimentConsideringCCModel(i);
     updateSelection(i, asgn, addedComps, removedComps);
     
     if (asgn != SATSolver::DONT_CARE) {
@@ -371,7 +388,7 @@ void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack
   unsigned maxSatVar = _parent.maxSatVar();
   unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
-    SATSolver::VarAssignment asgn = _solver->getAssignment(i);
+    SATSolver::VarAssignment asgn = getSolverAssimentConsideringCCModel(i);
     updateSelection(i, asgn, addedComps, removedComps);
     
     if (asgn != SATSolver::DONT_CARE) {
