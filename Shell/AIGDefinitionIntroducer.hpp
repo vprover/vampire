@@ -62,7 +62,7 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
   };
 
   //options
-  bool _eprPreserving;
+  // bool _eprPreserving; // MS: unused
   unsigned _namingRefCntThreshold;
   unsigned _mergeEquivDefs;
 

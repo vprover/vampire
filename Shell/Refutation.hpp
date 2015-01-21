@@ -34,7 +34,7 @@ private:
   /** The last unit of the refutation  */
   Unit* _goal;
   /** True if the output should also include include formula inferences */
-  bool _detailed;
+  // bool _detailed; // MS: unused
 }; // class Refutation
 
 }

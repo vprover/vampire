@@ -163,7 +163,7 @@ void ProofTransformer::loadProof(UnitSpec refutation, Stack<UnitSpec>& tgt)
 //
 
 ProofSimplifier::ProofSimplifier(const Problem& prb, UnitSpec refutation, UnitList* defs)
- : ProofTransformer(refutation), _prb(prb), _defs(defs), _aig(_inl.aig()), _fsh(_inl.fsh()), _bddAig(_aig)
+ : ProofTransformer(refutation), /*_prb(prb), MS: unused */ _defs(defs), _aig(_inl.aig()), _fsh(_inl.fsh()), _bddAig(_aig)
 {
   _bddAig.loadBDDAssignmentFromProblem(prb);
 }

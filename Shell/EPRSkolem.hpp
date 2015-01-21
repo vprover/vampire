@@ -30,7 +30,7 @@ namespace Shell {
  */
 class EPRSkolem : public EPRRestoring {
 public:
-  EPRSkolem() : EPRRestoring(), _defs(0) {}
+  EPRSkolem() : EPRRestoring()/*, _defs(0) MS: unused*/ {}
 
   void apply(Problem& prb);
   bool apply(UnitList*& units);
@@ -80,7 +80,7 @@ private:
   /** Map from definitions to their replacements */
   ReplacementMap _replacements;
 
-  UnitList* _defs;
+  // UnitList* _defs; // MS: unused
 };
 
 }

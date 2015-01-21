@@ -66,7 +66,7 @@ protected:
 private:
   AIGRef getAIG(UnitSpec u);
 
-  const Problem& _prb;
+  // const Problem& _prb; // MS: unused
   UnitList* _defs;
 
   AIGInliner _inl;

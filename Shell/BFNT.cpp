@@ -39,7 +39,7 @@ using namespace Kernel;
  * @since 30/07/2011 Manchester
  */
 BFNT::BFNT(Property* prop)
-  : _property(prop)
+ // : _property(prop) // MS: unused
 {
   _proxy = env.signature->addFreshPredicate(2,"equalish");
 }
