@@ -50,7 +50,7 @@ public:
   Formula* transform(Formula* f)
   {
     _extraQuantifiers = false;
-    return PolarityAwareFormulaTransformer::transform(f,1);
+    return PolarityAwareFormulaTransformer::transformWithPolarity(f,1);
   }
 
   using PolarityAwareFormulaTransformer::apply;
@@ -220,7 +220,7 @@ public:
     _extraQuantifiers = false;
     _universalVars.reset();
 
-    Formula* res = PolarityAwareFormulaTransformer::transform(f, _topPolarity);
+    Formula* res = PolarityAwareFormulaTransformer::transformWithPolarity(f, _topPolarity);
     return Flattening::flatten(res);
   }
 

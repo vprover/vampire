@@ -236,7 +236,7 @@ unsigned PolarityAwareFormulaTransformer::getVarSort(unsigned var) const
   return _varSorts->get(var, Sorts::SRT_DEFAULT);
 }
 
-Formula* PolarityAwareFormulaTransformer::transform(Formula* f, int polarity)
+Formula* PolarityAwareFormulaTransformer::transformWithPolarity(Formula* f, int polarity)
 {
   CALL("PolarityAwareFormulaTransformer::transform");
   ASS_REP(polarity==0 || polarity==1 || polarity==-1, polarity);
