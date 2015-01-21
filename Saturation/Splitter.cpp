@@ -111,7 +111,7 @@ void SplittingBranchSelector::init()
     }
     _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
 
-    _ccModel = _parent.getOptions().splittingCongruenceClosure() == Options::SplittingCongruenceClosure::MODEL;
+    _ccModel = (_parent.getOptions().splittingCongruenceClosure() == Options::SplittingCongruenceClosure::MODEL);
   }
 }
 
@@ -179,7 +179,7 @@ SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCC
 
   Literal* lit = s2f.toFO(SATLiteral(var,true));
 
-  if (lit->isEquality() && lit->ground()) {
+  if (lit && lit->isEquality() && lit->ground()) {
     return _trueInCCModel.find(var) ? SATSolver::TRUE : SATSolver::DONT_CARE;
   } else {
     return asgn;
@@ -253,12 +253,12 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     _dp->getModel(model);
     _trueInCCModel.reset();
 
-    cout << "Obtained a model " << endl;
+    // cout << "Obtained a model " << endl;
     LiteralStack::Iterator it(model);
     while(it.hasNext()) {
       Literal* lit = it.next();
 
-      cout << lit->toString() << endl;
+      // cout << lit->toString() << endl;
 
       ASS(lit->isPositive());
       ASS(lit->isEquality());
