@@ -119,8 +119,10 @@ void ConsequenceFinder::onAllProcessed()
       _index[red]=0;
       while(rlist->isNonEmpty()) {
         Clause* rcl=rlist->pop();
-        // Martin: comma in an if-statement? Highly suspicious!
-        if(rcl->store()!=Clause::UNPROCESSED && rcl->store()!=Clause::NONE, rcl->store()) {
+        // Martin: there was comma in an if-statement -- Highly suspicious!
+        // This has the same effect and doesn't trigger a warning, but should be revised when this code is understood.
+        (void)(rcl->store()!=Clause::UNPROCESSED && rcl->store()!=Clause::NONE);
+        if(rcl->store()) {
           //this case is not very likely to happen, but possible -- one clause is redundant
           //both due to the consequence-finding mode and to some backward simplification
           continue;
