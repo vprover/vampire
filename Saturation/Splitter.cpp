@@ -124,7 +124,7 @@ void SplittingBranchSelector::updateVarCnt()
 
   _solver->ensureVarCnt(satVarCnt);
   _selected.expand(splitLvlCnt);
-  _trueInCCModel.expand(splitLvlCnt);
+  _trueInCCModel.expand(satVarCnt);
   _zeroImplieds.expand(satVarCnt,false);
 }
 
@@ -172,6 +172,8 @@ SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCC
   if (!_ccModel || asgn == SATSolver::FALSE) {
     return asgn;
   }
+
+  // if we work with ccModel, the cc-model overrides the satsolver, but only for positive ground equalities
 
   SAT2FO& s2f = _parent.satNaming();
 
@@ -247,13 +249,28 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   if (_ccModel) {
     static LiteralStack model;
     model.reset();
+
     _dp->getModel(model);
+    _trueInCCModel.reset();
 
     cout << "Obtained a model " << endl;
     LiteralStack::Iterator it(model);
     while(it.hasNext()) {
-      cout << it.next()->toString() << endl;
-    }  
+      Literal* lit = it.next();
+
+      cout << lit->toString() << endl;
+
+      ASS(lit->isPositive());
+      ASS(lit->isEquality());
+      ASS(lit->ground());
+
+      Clause* compCl;
+      SplitLevel level = _parent.tryGetComponentNameOrAddNew(1,&lit,0,compCl);
+
+      SATLiteral slit = _parent.getLiteralFromName(level);
+      ASS(slit.polarity());
+      _trueInCCModel.insert(slit.var());
+    }
   }
   
   return SATSolver::SATISFIABLE;

@@ -186,7 +186,9 @@ public:
   unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
 
   SAT2FO& satNaming() { return _sat2fo; }
-private:      
+private:
+  friend class SplittingBranchSelector;
+
   Clause* getComponentClause(SplitLevel name) const; // Martin: currently unused
   
   bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
