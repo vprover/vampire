@@ -157,7 +157,7 @@ for(const TermList* t = _stack.pop(); !t->isEmpty(); t = t->next()){
       // if we want average, we set divid=true earlier
       if(divide){ level_sum = (level_sum/count);}//This division will truncate
       return level_sum;
-    default: ASSERTION_VIOLATION_REP("Invalid niceness option: "+static_cast<int>(_niceness_option));
+    default: ASSERTION_VIOLATION_REP2("Invalid niceness option: ",static_cast<int>(_niceness_option));
   }
 
   return 1;
