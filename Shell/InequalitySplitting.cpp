@@ -73,6 +73,7 @@ bool InequalitySplitting::perform(UnitList*& units)
 Clause* InequalitySplitting::trySplitClause(Clause* cl)
 {
   CALL("InequalitySplitting::trySplitClause");
+  ASS(cl);
 
   unsigned clen=cl->length();
 

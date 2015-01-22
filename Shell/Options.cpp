@@ -1587,7 +1587,7 @@ void Options::setShort(const char* name,const char* value)
 } // Options::setShort
 
 
-bool Options::OptionHasValue::check(Property&p){
+bool Options::OptionHasValue::check(Property*p){
           CALL("Options::OptionHasValue::check");
           AbstractOptionValue* opt = env.options->getOptionValueByName(option_value);
           ASS(opt);
@@ -1787,16 +1787,25 @@ void Options::output (ostream& str) const
 // } // Options::toXML
 
 template<typename T>
-bool Options::OptionValue<T>::randomize(Property& prop){
+bool Options::OptionValue<T>::randomize(Property* prop){
   CALL("Options::OptionValue::randomize()");
 
   DArray<vstring>* choices = 0;
+
+  // Only randomize if we have a property and need it or don't have one and don't need it!
+  if( (prop && !hasProblemConstraints()) ||
+      (!prop && hasProblemConstraints())
+    ){
+    return false;
+  }
+  // Note that if we supressed the problem constraints
+  // the checks will be skipped
 
   //Search for the first set of random choices that is valid
   Stack<RandEntry>::BottomFirstIterator entry_it(rand_choices);
   while(entry_it.hasNext()){
     auto entry = entry_it.next();
-    if(!entry.first || entry.first->check(prop)){
+    if(!entry.first || (prop && entry.first->check(prop))){
       choices = entry.second;
     }  
   }
@@ -1843,7 +1852,7 @@ bool Options::OptionValue<T>::checkConstraints(){
 }
 
 template<typename T>
-bool Options::OptionValue<T>::checkProblemConstraints(Property& prop){
+bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
     CALL("Options::OptionValue::checkProblemConstraints");
 
     Lib::Stack<OptionProblemConstraint*>::Iterator it(_prob_constraints);
@@ -2098,7 +2107,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   return true;
 } // Options::readTimeLimit(const char* val)
 
-void Options::randomizeStrategy(Property& prop)
+void Options::randomizeStrategy(Property* prop)
 {
   CALL("Options::randomizeStrategy");
   if(_randomStrategy.actualValue==RandomStrategy::OFF) return;
@@ -2132,6 +2141,8 @@ void Options::randomizeStrategy(Property& prop)
     if(!option->is_set){
       // try 5 random values before giving up
       vstring def = option->getStringOfActual();
+
+      // This is where we check the NoProperty condition if prop=0
       bool can_rand = option->randomize(prop);
       // If we cannot randomize then skip (invariant, if this is false value is unchanged)
       if(can_rand){
@@ -2528,7 +2539,7 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
 /**
  * Check whether the option values make sense with respect to the given problem
  **/
-bool Options::checkProblemOptionConstraints(Property& prop,bool fail_early)
+bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
 {
    CALL("Options::checkProblemOptionConstraints");
 

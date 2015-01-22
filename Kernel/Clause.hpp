@@ -130,7 +130,7 @@ public:
   /** Return the age */
   int age() const { return _age; }
   /** Set the age to @b a */
-  void setAge(int a) { _age = a; cout << "Setting age of " << this->toString() << endl; }
+  void setAge(int a) { _age = a; } 
 
   /** Return the number of selected literals */
   unsigned numSelected() const { return _numSelected; }

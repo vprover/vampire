@@ -83,11 +83,19 @@ public:
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
     bool checkGlobalOptionConstraints(bool fail_early=false);
-    bool checkProblemOptionConstraints(Property&, bool fail_early=false); 
+    bool checkProblemOptionConstraints(Property*, bool fail_early=false); 
 
-    // randomize strategy (will only work if randomStrategy=on)
+    // Randomize strategy (will only work if randomStrategy=on)
     // should only be called after all other options are set
-    void randomizeStrategy(Property& prop);
+    //
+    // The usage is overloaded. If prop=0 then this function will randomize
+    // options that do not require a Property (no ProblemConstraints) 
+    // (note it is possible to supress the requirement, see Options.cpp)
+    // Otherwise all other options will be randomized.
+    //
+    // This dual usage is required as the property object is created during
+    // the preprocessing stage. This means that in vampire.cpp we call this twice
+    void randomizeStrategy(Property* prop);
     
     /**
      * Return the problem name
@@ -536,7 +544,7 @@ private:
         
         AbstractOptionValue(){}
         AbstractOptionValue(vstring l,vstring s) :
-        longName(l), shortName(s), experimental(false), is_set(false),_should_copy(true), _tag(OptionTag::LAST_TAG) {}
+        longName(l), shortName(s), experimental(false), is_set(false),_should_copy(true), _tag(OptionTag::LAST_TAG), supress_problemconstraints(false) {}
         
         // Never copy an OptionValue... the Constraint system would break
     private:
@@ -553,7 +561,7 @@ private:
         }
         
         // Set to a random value
-        virtual bool randomize(Property& P) = 0;
+        virtual bool randomize(Property* P) = 0;
 
         // Experimental options are not included in help
         void setExperimental(){experimental=true;}
@@ -567,7 +575,7 @@ private:
         
         // Checking constraits
         virtual bool checkConstraints() = 0;
-        virtual bool checkProblemConstraints(Property& prop) = 0;
+        virtual bool checkProblemConstraints(Property* prop) = 0;
         
         // Tagging: options can be filtered by mode and are organised by Tag in showOptions
         void tag(OptionTag tag){ ASS(_tag==OptionTag::LAST_TAG);_tag=tag; }
@@ -629,6 +637,11 @@ private:
                               std::initializer_list<vstring> list){
           rand_choices.push(RandEntry(c,toArray(list)));
         }
+        void setNoPropertyRandomChoices(std::initializer_list<vstring> list){
+          rand_choices.push(RandEntry(0,toArray(list)));
+          supress_problemconstraints=true;
+        }
+
  
     private:
         // Tag state
@@ -645,7 +658,7 @@ private:
     protected:
         // Note has LIFO semantics so use BottomFirstIterator
         Stack<RandEntry> rand_choices;
-        
+        bool supress_problemconstraints;
     };
     
     /**
@@ -713,7 +726,10 @@ private:
         
         // Problem constraints place a restriction on problem properties and option values
         void addProblemConstraint(OptionProblemConstraint* c){ _prob_constraints.push(c); }
-        virtual bool checkProblemConstraints(Property& prop);
+        bool hasProblemConstraints(){ 
+          return !supress_problemconstraints && !_prob_constraints.isEmpty(); 
+        }
+        virtual bool checkProblemConstraints(Property* prop);
         
         virtual void output(vstringstream& out) const {
             CALL("Options::OptionValue::output");
@@ -722,7 +738,7 @@ private:
         }
        
         // This is where actual randomisation happens
-        bool randomize(Property& p);
+        bool randomize(Property* p);
  
     private:
         //TODO add destructor to delete constraints, currently a memory leak
@@ -1340,15 +1356,16 @@ private:
      */
     
     struct OptionProblemConstraint{
-        virtual bool check(Property& p) = 0;
+        virtual bool check(Property* p) = 0;
         virtual vstring msg() = 0;
     };
     
     struct CategoryCondition : OptionProblemConstraint{
         CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
-        bool check(Property&p){
+        bool check(Property*p){
             CALL("Options::CategoryCondition::check");
-            return has ? p.category()==cat : p.category()!=cat;
+            ASS(p);
+            return has ? p->category()==cat : p->category()!=cat;
         }
         vstring msg(){ 
           vstring m =" not useful for property ";
@@ -1359,23 +1376,24 @@ private:
         bool has;
     };
     struct UsesEquality : OptionProblemConstraint{
-        bool check(Property&p){
+        bool check(Property*p){
           CALL("Options::UsesEquality::check");
-          return (p.equalityAtoms() != 0);
+          ASS(p)
+          return (p->equalityAtoms() != 0);
         }
         vstring msg(){ return " only useful with equality"; }
     };
     struct HasNonUnits : OptionProblemConstraint{
-        bool check(Property&p){
+        bool check(Property*p){
           CALL("Options::HasNonUnits::check");
-          return p.unitClauses()!=0; 
+          return p->unitClauses()!=0; 
         }
         vstring msg(){ return " only useful with non-unit clauses"; }
     };
     struct HasPredicates : OptionProblemConstraint{
-        bool check(Property&p){
+        bool check(Property*p){
           CALL("Options::HasPredicates::check");
-          return (p.category()==Property::PEQ || p.category()==Property::UEQ);
+          return (p->category()==Property::PEQ || p->category()==Property::UEQ);
         }
         vstring msg(){ return " only useful with predicates"; }
     };
@@ -1383,9 +1401,9 @@ private:
       AtomConstraint(int a,bool g) : atoms(a),greater(g) {}
       int atoms;
       bool greater;
-      bool check(Property&p){ 
+      bool check(Property*p){ 
         CALL("Options::AtomConstraint::check");
-        return greater ? p.atoms()>atoms : p.atoms()<atoms;
+        return greater ? p->atoms()>atoms : p->atoms()<atoms;
       }
           
       vstring msg(){ 
@@ -1421,7 +1439,7 @@ private:
 
     struct OptionHasValue : OptionProblemConstraint{
       OptionHasValue(vstring ov,vstring v) : option_value(ov),value(v) {}
-      bool check(Property&p);
+      bool check(Property*p);
       vstring msg(){ return option_value+" has value "+value; } 
       vstring option_value;
       vstring value; 
@@ -1430,7 +1448,7 @@ private:
     struct ManyOptionProblemConstraints : OptionProblemConstraint {
       ManyOptionProblemConstraints(bool a) : is_and(a) {}
 
-      bool check(Property&p){
+      bool check(Property*p){
         CALL("Options::ManyOptionProblemConstraints::check");
         bool res = is_and;
         Stack<OptionProblemConstraint*>::Iterator it(cons);
