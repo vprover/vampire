@@ -296,8 +296,6 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onPassiveRemoved");
 
-  cout << "RECORD passive removed " << c->toString() << endl;
-  
   ASS(c->store()==Clause::PASSIVE);
   c->setStore(Clause::NONE);
   //at this point the c object can be deleted
@@ -312,7 +310,6 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
-   cout << "RECORD passive selected " << c->toString() << endl;
 }
 
 /**
@@ -988,8 +985,6 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     return;
   }
 
-  cout << "Removing " << cl->toString() << endl;
-
   switch(cl->store()) {
   case Clause::PASSIVE:
     _passive->remove(cl);
@@ -1013,8 +1008,6 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
 
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
-
-  cout << "Add to passive " << cl->toString() << endl;
 
   _passive->add(cl);
 }

@@ -139,8 +139,6 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("AgeQueue::lessThan");
 
-  cout << "checking lessthan for\n\t" << c1->toString() << "\n\t" << c2->toString() << endl;
-
   if (c1->age() < c2->age()) {
     return true;
   }
@@ -148,14 +146,10 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
     return false;
   }
 
-  cout << "same age" << endl;
-
   Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
   if (weightCmp!=EQUAL) {
     return weightCmp==LESS;
   }
-
-  cout << "same weight" << endl;
 
   if (c1->inputType() < c2->inputType()) {
     return false;
@@ -163,9 +157,6 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
   if (c2->inputType() < c1->inputType()) {
     return true;
   }
-
-  cout << "same input type" << endl;
-  cout << "compare " << c1->number() << " with " << c2->number() << endl;
 
   return c1->number() < c2->number();
 } // WeightQueue::lessThan
@@ -178,8 +169,6 @@ void AWPassiveClauseContainer::add(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::add");
   ASS(_ageRatio > 0 || _weightRatio > 0);
-
-  cout << "AWP add " << cl->toString() << endl;
 
   if (_ageRatio) {
     _ageQueue.insert(cl);
@@ -201,8 +190,6 @@ void AWPassiveClauseContainer::remove(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::remove");
   ASS(cl->store()==Clause::PASSIVE);
-
-  cout << "AWP remove " << cl->toString() << endl;
 
   if (_ageRatio) {
     ALWAYS(_ageQueue.remove(cl));
@@ -251,14 +238,12 @@ Clause* AWPassiveClauseContainer::popSelected()
     Clause* cl = _weightQueue.pop();
     _ageQueue.remove(cl);
     selectedEvent.fire(cl);
-    cout << "AWP select " << cl->toString() << endl;
     return cl;
   }
   _balance += _weightRatio;
   Clause* cl = _ageQueue.pop();
   _weightQueue.remove(cl);
   selectedEvent.fire(cl);
-  cout << "AWP select " << cl->toString() << endl;
   return cl;
 } // AWPassiveClauseContainer::popSelected
 
