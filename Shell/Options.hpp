@@ -1139,19 +1139,6 @@ private:
         OptionValueConstraint<T>* right;
     };
     
-    // Add a constraint to a boolean option that only holds when the option is on
-    struct OnAnd : public OptionValueConstraint<bool>{
-        CLASS_NAME(OnAnd);
-        USE_ALLOCATOR(OnAnd);
-        OnAnd(OptionValueConstraint<bool>* other) : _other(other) {}
-        bool check(OptionValue<bool>& value){
-            if(value.actualValue) return _other->check(value);
-            return true;
-        }
-        vstring msg(OptionValue<bool>& value){ return value.longName+"("+value.getStringOfActual()+") is on and "+_other->msg(value); }
-        OptionValueConstraint<bool>* _other;
-    };
-    
     template<typename T>
     struct Equal : public OptionValueConstraint<T>{
         CLASS_NAME(Equal);
@@ -1294,6 +1281,18 @@ private:
     static IfConstraint<T> If(WrappedConstraint<S>* c){
         return IfConstraint<T>(new UnWrappedConstraint<T,S>(c));
     }
+
+    template<typename T>
+    static OptionValueConstraint<T>* ifOnThen(OptionValueConstraint<T>* c){
+      IfConstraint<bool> ifc(equal(true));
+      return ifc.then(c);
+    }
+    template<typename T>
+    static OptionValueConstraint<T>* ifOnThen(WrappedConstraint<T>* c){
+      IfConstraint<bool> ifc(equal(true));
+      return ifc.then(c);
+    }
+
     /**
      * Default Value constraints
      */

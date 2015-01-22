@@ -479,6 +479,7 @@ void Clause::computeColor() const
  * Compute the weight of the clause.
  * @pre All literals are shared, so their weight is computed properly.
  * @since 02/01/2008 Manchester.
+ * @since 22/01/2015 include splitWeight in weight
  */
 void Clause::computeWeight() const
 {
@@ -489,6 +490,15 @@ void Clause::computeWeight() const
     ASS(_literals[i]->shared());
     _weight += _literals[i]->weight();
   }
+
+  // We now include this directly in weight()
+  // This is so that we can reduce the split set and keep the original weight
+  // The alternative would be to remove the clause and reenter it into the passive queue whenever
+  // The split set was changed
+  if (env.options->nonliteralsInClauseWeight()) {
+    _weight+=+splitWeight(); // no longer includes propWeight
+  }
+
 } // Clause::computeWeight
 
 
@@ -563,6 +573,7 @@ unsigned Clause::getNumeralWeight()
 /**
  * Return effective weight of the clause (i.e. weight multiplied
  * by the nongoal weight coefficient, if applicable)
+ * @since 22/1/15 weight uses splitWeight
  */
 float Clause::getEffectiveWeight(const Options& opt)
 {
@@ -571,9 +582,10 @@ float Clause::getEffectiveWeight(const Options& opt)
   static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
 
   unsigned w=weight();
-  if (opt.nonliteralsInClauseWeight()) {
-    w+=+splitWeight(); // no longer includes propWeight
-  }
+  // Now in weight() by default
+  //if (opt.nonliteralsInClauseWeight()) {
+  //  w+=+splitWeight(); // no longer includes propWeight
+  //}
   if (opt.increasedNumeralWeight()) {
     return (2*w+getNumeralWeight()) * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
   }

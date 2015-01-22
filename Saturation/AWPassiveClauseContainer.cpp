@@ -69,13 +69,10 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
 {
   CALL("AWPassiveClauseContainer::compareWeight");
 
+  // TODO consider using Clause::getEffectiveWeight
+  // since 22/1/15 weight now includes splitWeight
   unsigned cl1Weight=cl1->weight();
   unsigned cl2Weight=cl2->weight();
-
-  if (opt.nonliteralsInClauseWeight()) {
-    cl1Weight+= cl1->splitWeight(); 
-    cl2Weight+= cl2->splitWeight();
-  }
 
   if (opt.increasedNumeralWeight()) {
     cl1Weight=cl1Weight*2+cl1->getNumeralWeight();
@@ -142,6 +139,8 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("AgeQueue::lessThan");
 
+  cout << "checking lessthan for\n\t" << c1->toString() << "\n\t" << c2->toString() << endl;
+
   if (c1->age() < c2->age()) {
     return true;
   }
@@ -149,10 +148,14 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
     return false;
   }
 
+  cout << "same age" << endl;
+
   Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
   if (weightCmp!=EQUAL) {
     return weightCmp==LESS;
   }
+
+  cout << "same weight" << endl;
 
   if (c1->inputType() < c2->inputType()) {
     return false;
@@ -160,6 +163,10 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
   if (c2->inputType() < c1->inputType()) {
     return true;
   }
+
+  cout << "same input type" << endl;
+  cout << "compare " << c1->number() << " with " << c2->number() << endl;
+
   return c1->number() < c2->number();
 } // WeightQueue::lessThan
 
@@ -378,6 +385,7 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
       }
       //here we don't use the effective weight, as from a nongoal clause
       //can be the goal one inferred.
+      // splitWeight is now used in weight() though
       if (cl->weight()-maxSelWeight>=weightLimit) {
 	//and also over weight limit
         shouldStay=false;

@@ -1018,6 +1018,7 @@ void Options::Options::init()
     _splittingHandleZeroImplied.tag(OptionTag::AVATAR);
     _splittingHandleZeroImplied.setExperimental();
     _splittingHandleZeroImplied.reliesOn(_splitting.is(equal(true)));
+    _splittingHandleZeroImplied.addHardConstraint(ifOnThen(_nonliteralsInClauseWeight.is(equal(false))));
     _splittingHandleZeroImplied.setRandomChoices({"on","off"});
 
     _splittingFastRestart = BoolOptionValue("splitting_fast_restart","sfr",false);
