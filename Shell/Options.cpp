@@ -2155,11 +2155,11 @@ void Options::randomizeStrategy(Property* prop)
       // If we cannot randomize then skip (invariant, if this is false value is unchanged)
       if(can_rand){
         // We need to check ALL constraints - rather inefficient
-        bool valid = checkGlobalOptionConstraints(true) && checkProblemOptionConstraints(prop,true);
+        bool valid = checkGlobalOptionConstraints(true) && (!prop || checkProblemOptionConstraints(prop,true));
         unsigned i=4;
         while(!valid && i-- > 0){
           option->randomize(prop);
-          valid = checkGlobalOptionConstraints(true) && checkProblemOptionConstraints(prop,true);
+          valid = checkGlobalOptionConstraints(true) && (!prop || checkProblemOptionConstraints(prop,true));
         }
         if(!valid){
            //cout << "Failed for " << option->longName << endl;
@@ -2177,8 +2177,8 @@ void Options::randomizeStrategy(Property* prop)
 
   //When we reach this place all constraints should be holding
   //However, there is one we haven't checked yet: bfnt completeness
-  //If this fails we restart this with bfnt set to off
-  if(!checkGlobalOptionConstraints()){
+  //If this fails we restart this with bfnt set to off... only if it was on before
+  if(!checkGlobalOptionConstraints() && _bfnt.actualValue){
     _bfnt.set("off");
     randomizeStrategy(prop);
   }
