@@ -782,30 +782,38 @@ void Options::Options::init()
     _equalityResolutionWithDeletion.setRandomChoices({"input_only","off"});
     
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
-    _extensionalityAllowPosEq.description="";
+    _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
+      " whether we allow other positive equalities when recognising extensionality clauses";
     _lookup.insert(&_extensionalityAllowPosEq);
     _extensionalityAllowPosEq.tag(OptionTag::INFERENCES);
-    //TODO does this depend on anything?
-    //TODO is there a problemConstraint?
+    _extensionalityAllowPosEq.reliesOn(_extensionalityResolution.is(equal(ExtensionalityResolution::FILTER)));
     _extensionalityAllowPosEq.setRandomChoices({"on","off","off"}); // Prefer off
     
     _extensionalityMaxLength = UnsignedOptionValue("extensionality_max_length","",0);
-    _extensionalityMaxLength.description="";
+    _extensionalityMaxLength.description="Sets the maximum length (number of literals) an extensionality"
+      " clause can have when doing recognition for extensionality resolution. If zero there is no maximum.";
     _lookup.insert(&_extensionalityMaxLength);
     _extensionalityMaxLength.tag(OptionTag::INFERENCES);
     // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
     _extensionalityMaxLength.addConstraint(notEqual(1u));
+    _extensionalityMaxLength.reliesOn(_extensionalityResolution.is(notEqual(ExtensionalityResolution::OFF)));
     //TODO does this depend on anything?
     _extensionalityMaxLength.setRandomChoices({"0","0","0","2","3"}); // TODO what are good values?
     
     _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
                                                                             ExtensionalityResolution::OFF,{"filter","known","off"});
-    _extensionalityResolution.description="";
+    _extensionalityResolution.description=
+      "Turns on the following inference rule:\n"
+      "  x=y \\/ C    s != t \\/ D\n"
+      "  -----------------------\n"
+      "  C{x → s, y → t} \\/ D\n"
+      "Where s!=t is selected in s!=t \\/D and x=y \\/ C is a recognised as an extensionality clause - how clauses are recognised depends on the value of this option.\n"
+      "If filter we attempt to recognise all extensionality clauses i.e. those that have exactly one X=Y, no inequality of the same sort as X-Y (and optionally no equality except X=Y, see extensionality_allow_pos_eq).\n" 
+      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.";
     _lookup.insert(&_extensionalityResolution);
     _extensionalityResolution.tag(OptionTag::INFERENCES);
     // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
-    _extensionalityResolution.addConstraint(
-        If(notEqual(ExtensionalityResolution::OFF)).then(_inequalitySplitting.is(equal(0))));
+    _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
     _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
     
     _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
@@ -2175,7 +2183,7 @@ void Options::randomizeStrategy(Property* prop)
     randomizeStrategy(prop);
   }
   else{
-    cout << "Random strategy: " + generateEncodedOptions() << endl;
+    if(prop) cout << "Random strategy: " + generateEncodedOptions() << endl;
   }
 }
 
