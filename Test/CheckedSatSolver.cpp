@@ -50,7 +50,7 @@ void CheckedSatSolver::addClausesIgnoredInPartialModel(SATClauseIterator cit)
   // TODO: consider checking that the returned partial model
   // can be extended to a full model that satisfies even these clauses
   
-  _inner->addClauses(cit);
+  _inner->addClausesIgnoredInPartialModel(cit);
   _checked = false;  
 }
 
