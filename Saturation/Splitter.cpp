@@ -120,7 +120,7 @@ void SplittingBranchSelector::init()
 
   // If we are going to use the grounder we need to ensure it is set
   if(_addInstances && !_gnd.ptr()){
-    _gnd = SmartPtr<IGGrounder>(new  IGGrounder(_solver)); // Do we need to pass it _solver, this is just for niceness but I'm not sure this is applicable outside of instance generation
+    _gnd = SmartPtr<IGGrounder>(new  IGGrounder(_solver.ptr())); // Do we need to pass it _solver, this is just for niceness but I'm not sure this is applicable outside of instance generation
     _gnd->useSAT2FO(_parent.satNaming());
   }
 

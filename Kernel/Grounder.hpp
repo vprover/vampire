@@ -26,8 +26,8 @@ public:
   CLASS_NAME(Grounder);
   USE_ALLOCATOR(Grounder);
   
-  Grounder() : _nextSatVar(1) {}
-  Grounder(SATSolverSP satSolver) : _nextSatVar(1), _satSolver(satSolver) {}
+  Grounder() : _nextSatVar(1), _sat2fo(0), _satSolver(0) {}
+  Grounder(SATSolver* satSolver) : _nextSatVar(1), _sat2fo(0), _satSolver(satSolver) {}
   virtual ~Grounder() { CALL("Kernel::~Grounder"); }
   void useSAT2FO(SAT2FO& sat2fo){ _sat2fo = &sat2fo;}
 
@@ -61,7 +61,7 @@ private:
   DHMap<Literal*, unsigned> _asgn;
   /** Used to communicate source literals, should be 0 unless this is IGGrounded */
   // IGAlgorithm will delete this
-  SATSolverSP _satSolver;
+  SATSolver* _satSolver;
 };
 
 class GlobalSubsumptionGrounder : public Grounder {
@@ -82,7 +82,7 @@ public:
   CLASS_NAME(IGGrounder);
   USE_ALLOCATOR(IGGrounder);
 
-  IGGrounder(SATSolverSP satSolver);
+  IGGrounder(SATSolver* satSolver);
 private:
   TermList _tgtTerm;
 protected:

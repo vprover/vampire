@@ -633,6 +633,8 @@ void Options::Options::init()
     "inst_gen and tabulation aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
+   // Captures that if the saturation algorithm is InstGen then splitting must be off
+   _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::INST_GEN)).then(_splitting.is(notEqual(true))));
     // Note order of adding constraints matters (we assume previous gaurds are false)
     _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen"});
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});

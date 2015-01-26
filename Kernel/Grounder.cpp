@@ -41,9 +41,9 @@ SATClauseIterator Grounder::ground(Clause* cl,bool use_n, bool ignore_splits)
     NOT_IMPLEMENTED;
   }
 
-  cout << "grounding " << cl->toString() << endl;
+  //cout << "grounding " << cl->toString() << endl;
   SATClause* gndNonProp = groundNonProp(cl,use_n);
-  cout<< "grounded is " << gndNonProp->toString()<<endl;
+  //cout<< "grounded is " << gndNonProp->toString()<<endl;
 
   SATInference* inf = new FOConversionInference(UnitSpec(cl));
   gndNonProp->setInference(inf);
@@ -148,12 +148,13 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
   CALL("Grounder::groundNormalized");
 
   if(_sat2fo){
+    cout << "using " << _sat2fo << endl;
     SATLiteral l =  _sat2fo->toSAT(lit);
-    cout << "groundNormalized " << lit->toString() << " is " << l.toString();
+    //cout << "groundNormalized " << lit->toString() << " is " << l.toString();
     return l; 
   }
   else{
-    cout << "no sat2fo" << endl;
+    //cout << "no sat2fo" << endl;
   }
 
   bool isPos = lit->isPositive();
@@ -275,7 +276,7 @@ void GlobalSubsumptionGrounder::normalize(unsigned cnt, Literal** lits)
 // IGGrounder
 //
 
-IGGrounder::IGGrounder(SATSolverSP satSolver) : Grounder(satSolver)
+IGGrounder::IGGrounder(SATSolver* satSolver) : Grounder(satSolver) 
 {
   _tgtTerm = TermList(0, false);
   //TODO: make instantiation happen with the most prolific symbol of each sort
@@ -308,7 +309,7 @@ Literal* IGGrounder::collapseVars(Literal* lit)
 {
   CALL("IGGrounder::collapseVars");
   ASS(lit);
-  cout << "Collapse vars of " << lit->toString() << endl;
+  //cout << "Collapse vars of " << lit->toString() << endl;
 
   CollapsingApplicator apl(_tgtTerm);
   return SubstHelper::apply(lit, apl);

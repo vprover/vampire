@@ -93,7 +93,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
       ASSERTION_VIOLATION_REP(opt.satSolver());
   }
 
-  _gnd = SmartPtr<IGGrounder>(new  IGGrounder(_satSolver));
+  _gnd = SmartPtr<IGGrounder>(new  IGGrounder(_satSolver.ptr()));
 
   if(_opt.globalSubsumption()) {
     _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder(), opt);
