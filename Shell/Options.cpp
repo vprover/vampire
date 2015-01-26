@@ -2281,6 +2281,8 @@ void Options::readFromEncodedOptions (vstring testId)
   }
   vstring timeString = testId.substr(index+1);
   _timeLimitInDeciseconds.set(timeString);
+  // setting assumes seconds as default, but encoded strings use deciseconds 
+  _timeLimitInDeciseconds.actualValue = _timeLimitInDeciseconds.actualValue/10;
 
   testId = testId.substr(3,index-3);
   switch (testId[0]) {
