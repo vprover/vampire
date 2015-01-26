@@ -41,9 +41,9 @@ SATClauseIterator Grounder::ground(Clause* cl,bool use_n, bool ignore_splits)
     NOT_IMPLEMENTED;
   }
 
-  //cout << "grounding " << cl->toString() << endl;
+  cout << "grounding " << cl->toString() << endl;
   SATClause* gndNonProp = groundNonProp(cl,use_n);
-//  cout<<gndNonProp->toString()<<endl;
+  cout<< "grounded is " << gndNonProp->toString()<<endl;
 
   SATInference* inf = new FOConversionInference(UnitSpec(cl));
   gndNonProp->setInference(inf);
@@ -148,7 +148,12 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
   CALL("Grounder::groundNormalized");
 
   if(_sat2fo){
-    return _sat2fo->toSAT(lit);
+    SATLiteral l =  _sat2fo->toSAT(lit);
+    cout << "groundNormalized " << lit->toString() << " is " << l.toString();
+    return l; 
+  }
+  else{
+    cout << "no sat2fo" << endl;
   }
 
   bool isPos = lit->isPositive();
@@ -303,7 +308,7 @@ Literal* IGGrounder::collapseVars(Literal* lit)
 {
   CALL("IGGrounder::collapseVars");
   ASS(lit);
-  //cout << "Collapse vars of " << lit->toString() << endl;
+  cout << "Collapse vars of " << lit->toString() << endl;
 
   CollapsingApplicator apl(_tgtTerm);
   return SubstHelper::apply(lit, apl);

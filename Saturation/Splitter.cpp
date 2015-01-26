@@ -121,6 +121,7 @@ void SplittingBranchSelector::init()
   // If we are going to use the grounder we need to ensure it is set
   if(_addInstances && !_gnd.ptr()){
     _gnd = SmartPtr<IGGrounder>(new  IGGrounder(_solver)); // Do we need to pass it _solver, this is just for niceness but I'm not sure this is applicable outside of instance generation
+    _gnd->useSAT2FO(_parent.satNaming());
   }
 
 }
@@ -238,24 +239,35 @@ void SplittingBranchSelector::recordVarUsage(SATLiteral lit, Clause* component){
     sc = Preprocess::removeDuplicateLiterals(sc);
     while(sc.hasNext()){
       SATClause* cl = sc.next();
-      // add -satVar to this
-      SATLiteralStack lit_stack;
-      unsigned clen = cl->length();
-      for(unsigned i=0;i<clen;i++){
-        lit_stack.push((*cl)[i]); 
+
+      cout << "grounded is " << cl->toString() << endl;
+
+      // if cl=0 then it was a tautology
+      if(cl){
+        // Do not need to do this as a component is always dependent on itself at creation
+        //
+        // add -satVar to this
+        //SATLiteralStack lit_stack;
+        //unsigned clen = cl->length();
+        //for(unsigned i=0;i<clen;i++){
+        //  lit_stack.push((*cl)[i]); 
+        //}
+        // inverse polarity of lit
+        //lit = SATLiteral(lit.var(),lit.oppositePolarity());
+        //lit_stack.push(lit);
+
+        //SATClause* to_add = SATClause::fromStack(lit_stack);
+        //to_add->setInference(SATInference::copy(cl->inference()));
+
+        SATClause* to_add = cl;
+
+        cout << "Adding " << to_add->toString() << " as instance SAT clause" << endl;
+
+        instanceClauses.push(to_add);  
+
+        //cl->destroy(); // tidy up
+
       }
-      // inverse polarity of lit
-      lit = SATLiteral(lit.var(),lit.oppositePolarity());
-      lit_stack.push(lit);
-
-      SATClause* to_add = SATClause::fromStack(lit_stack);
-      to_add->setInference(SATInference::copy(cl->inference()));
-
-      cout << "Adding " << to_add->toString() << " as instance SAT clause" << endl;
-
-      instanceClauses.push(to_add);  
-
-      cl->destroy(); // tidy up
 
     }
   }

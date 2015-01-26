@@ -967,6 +967,7 @@ void Options::Options::init()
       "is the same as the one used by inst_gen if instGenWithResolution is on";
     _lookup.insert(&_splittingWithInstances);
     _splittingWithInstances.setRandomChoices({"on","off"});
+    _splittingWithInstances.reliesOn(_instGenWithSATSharing.is(equal(true)));
     _splittingWithInstances.setExperimental();
 
     _use_dm = BoolOptionValue("use_dismatching","",false);
