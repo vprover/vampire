@@ -983,6 +983,7 @@ void Options::Options::init()
     _lookup.insert(&_nicenessOption);
     _nicenessOption.tag(OptionTag::INST_GEN);
     _nicenessOption.setExperimental();
+    _nicenessOption.setRandomChoices({"none","none","none","none","average","sum","top"});
     
 //*********************** AVATAR  ***********************
     
