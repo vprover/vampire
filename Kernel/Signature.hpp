@@ -70,6 +70,8 @@ class Signature
     mutable BaseType* _type;
     /** List of distinct groups the constant is a member of */
     List<unsigned>* _distinctGroups;
+    /** number of times it is used in the problem */
+    unsigned _usageCount;
 
     ~Symbol();
   public:
@@ -121,6 +123,11 @@ class Signature
     inline bool answerPredicate() const { return _answerPredicate; }
     /** Return true iff symbol is an equality proxy */
     inline bool equalityProxy() const { return _equalityProxy; }
+
+    /** Increase the usage count of this symbol **/
+    inline void incUsageCnt(){ _usageCount++; }
+    /** Return the usage count of this symbol **/
+    inline unsigned usageCnt() const { return _usageCount; }
 
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
