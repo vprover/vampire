@@ -305,6 +305,15 @@ IGGrounder::IGGrounder(SATSolver* satSolver) : Grounder(satSolver)
   //   that do not already exist in map
   
   // First we consider builtin sorts
+  // Currently do not cover SRT_BOOL or SRT_ARRAY1/2 as these will change soon
+  if(!map.find(Sorts::SRT_DEFAULT)){
+      bool added;
+      unsigned constant = env.signature->addFunction("$default_default",0,added);
+      ASS(added);
+      Signature::Symbol* symbol = env.signature->getFunction(constant);
+      symbol->setType(BaseType::makeType(0,0,Sorts::SRT_DEFAULT));
+      _tgtTerms.set(Sorts::SRT_DEFAULT,TermList(Term::createConstant(constant)));
+  }
   if(!map.find(Sorts::SRT_INTEGER)){
     unsigned constant = env.signature->addIntegerConstant("0",false);
     _tgtTerms.set(Sorts::SRT_INTEGER,TermList(Term::createConstant(constant)));
