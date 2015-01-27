@@ -299,6 +299,36 @@ IGGrounder::IGGrounder(SATSolver* satSolver) : Grounder(satSolver)
      }
   }
  
+  // Some sorts may not have constants in the problem so we should create some
+  // For this we should check the sorts of variables but I don't have this
+  // So instead we will create constants for all builtin sorts and user-defined sorts
+  //   that do not already exist in map
+  
+  // First we consider builtin sorts
+  if(!map.find(Sorts::SRT_INTEGER)){
+    unsigned constant = env.signature->addIntegerConstant("0",false);
+    _tgtTerms.set(Sorts::SRT_INTEGER,TermList(Term::createConstant(constant)));
+  }
+  if(!map.find(Sorts::SRT_REAL)){
+    unsigned constant = env.signature->addRealConstant("0",false);
+    _tgtTerms.set(Sorts::SRT_REAL,TermList(Term::createConstant(constant)));
+  }
+  if(!map.find(Sorts::SRT_RATIONAL)){
+    unsigned constant = env.signature->addRationalConstant("1","1",false);
+    _tgtTerms.set(Sorts::SRT_RATIONAL,TermList(Term::createConstant(constant)));
+  } 
+
+  // Next user-defined sorts
+  for(unsigned sort = Sorts::FIRST_USER_SORT;sort<env.sorts->sorts();sort++){ 
+    if(!map.find(sort)){
+      bool added;
+      unsigned constant = env.signature->addFunction("$default_"+env.sorts->sortName(sort),0,added);
+      ASS(added);
+      Signature::Symbol* symbol = env.signature->getFunction(constant);
+      symbol->setType(BaseType::makeType(0,0,sort));
+      _tgtTerms.set(sort,TermList(Term::createConstant(constant)));
+    }
+  }
 }
 
 class IGGrounder::CollapsingApplicator
