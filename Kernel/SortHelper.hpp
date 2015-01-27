@@ -29,6 +29,7 @@ public:
 
   static bool tryGetVariableSort(unsigned var, Formula* f, unsigned& res);
   static unsigned getVariableSort(TermList var, Term* t);
+  static unsigned getVariableSort(unsigned var, Term* t);
   static unsigned getTermSort(TermList trm, Literal* lit);
 
   static void collectVariableSorts(Unit* u, DHMap<unsigned,unsigned>& map);

@@ -84,8 +84,12 @@ public:
 
   IGGrounder(SATSolver* satSolver);
 private:
-  TermList _tgtTerm;
+  DHMap<unsigned,TermList> _tgtTerms;
 protected:
+  TermList getConstant(unsigned sort){
+    ASS(_tgtTerms.find(sort));
+    return _tgtTerms.get(sort);
+  }
   virtual void normalize(unsigned cnt, Literal** lits);
 private:
   class CollapsingApplicator;

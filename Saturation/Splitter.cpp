@@ -229,43 +229,44 @@ void SplittingBranchSelector::recordVarUsage(SATLiteral lit, Clause* component){
   // This is where we record that a variable is from here!
 
   updateVarCnt();
-  if(!_fromHere[lit.var()] && _addInstances){
+  //if(!_fromHere[lit.var()] && _addInstances){
+  ASS(!_fromHere[lit.var()]); // as the component should be fresh
+  if(_addInstances){
 
     ASS(component);
-    cout << "record " << lit.toString() << " as " << component->toString() << endl;
+    //DEBUG_CODE(cout << "record " << lit.toString() << " as " << component->toString() << endl);
 
     ASS(_gnd.ptr());
+    // TODO - we are not sharing the component index, which would be nice,
+    //        if Splitter created a ground clause it should have the same
+    //        variable as the instgen one but that's not happening
     SATClauseIterator sc = _gnd->ground(component,_use_niceness,true);// the true means ignore splits
     sc = Preprocess::removeDuplicateLiterals(sc);
     while(sc.hasNext()){
       SATClause* cl = sc.next();
 
-      cout << "grounded is " << cl->toString() << endl;
+      //DEBUG_CODE(cout << "grounded is " << cl->toString() << endl);
 
       // if cl=0 then it was a tautology
       if(cl){
-        // Do not need to do this as a component is always dependent on itself at creation
-        //
         // add -satVar to this
-        //SATLiteralStack lit_stack;
-        //unsigned clen = cl->length();
-        //for(unsigned i=0;i<clen;i++){
-        //  lit_stack.push((*cl)[i]); 
-        //}
+        SATLiteralStack lit_stack;
+        unsigned clen = cl->length();
+        for(unsigned i=0;i<clen;i++){
+          lit_stack.push((*cl)[i]); 
+        }
         // inverse polarity of lit
-        //lit = SATLiteral(lit.var(),lit.oppositePolarity());
-        //lit_stack.push(lit);
+        lit = SATLiteral(lit.var(),lit.oppositePolarity());
+        lit_stack.push(lit);
 
-        //SATClause* to_add = SATClause::fromStack(lit_stack);
-        //to_add->setInference(SATInference::copy(cl->inference()));
+        SATClause* to_add = SATClause::fromStack(lit_stack);
+        to_add->setInference(SATInference::copy(cl->inference()));
 
-        SATClause* to_add = cl;
-
-        cout << "Adding " << to_add->toString() << " as instance SAT clause" << endl;
+        DEBUG_CODE(cout << "Adding split instance " << to_add->toString() << endl);
 
         instanceClauses.push(to_add);  
 
-        //cl->destroy(); // tidy up
+        cl->destroy(); // tidy up
 
       }
 
@@ -1001,7 +1002,7 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
     //       this point so that those components can be recorded
    //     * saturation produces lit, which 
     if(env.options->instGenWithResolution() && env.options->instGenWithSATSharing()){
-      cout << "Produced " << lit->toString() << ", which must be in inst_gen" << endl;
+      DEBUG_CODE(cout << "Produced " << lit->toString() << ", which must be in inst_gen" << endl);
     }else{
       ASS_EQ(_complBehavior,Options::SplittingAddComplementary::NONE);
     }

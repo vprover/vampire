@@ -37,7 +37,8 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _numericConstant(numericConstant ? 1: 0),
     _answerPredicate(0),
     _type(0),
-    _distinctGroups(0)
+    _distinctGroups(0),
+    _usageCount(0)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);

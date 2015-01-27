@@ -148,7 +148,6 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
   CALL("Grounder::groundNormalized");
 
   if(_sat2fo){
-    cout << "using " << _sat2fo << endl;
     SATLiteral l =  _sat2fo->toSAT(lit);
     //cout << "groundNormalized " << lit->toString() << " is " << l.toString();
     return l; 
@@ -278,26 +277,35 @@ void GlobalSubsumptionGrounder::normalize(unsigned cnt, Literal** lits)
 
 IGGrounder::IGGrounder(SATSolver* satSolver) : Grounder(satSolver) 
 {
-  _tgtTerm = TermList(0, false);
-  //TODO: make instantiation happen with the most prolific symbol of each sort
-/*  unsigned funs = env.signature->functions();
+  // For each sort select the most prolific constant
+
+  DHMap<unsigned,unsigned> map; 
+  // Search the constant function symbols
+  unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    if(env.signature->functionArity(i)==0) {
-      _tgtTerm = TermList(Term::createConstant(i));
-      break;
-    }
-  }*/
+     if(env.signature->functionArity(i)==0) {
+       Signature::Symbol* sym = env.signature->getFunction(i);
+       unsigned usage = sym->usageCnt();
+       unsigned sort = sym->fnType()->result(); 
+       if(!map.find(sort) || map.get(sort) < usage){
+         _tgtTerms.insert(sort,TermList(Term::createConstant(i)));
+         map.insert(sort,usage);
+       }
+     }
+  }
+ 
 }
 
 class IGGrounder::CollapsingApplicator
 {
-  TermList _tgtTerm;
+  Literal* _lit;
+  IGGrounder* _parent;
 public:
-  CollapsingApplicator(TermList tgtTerm) : _tgtTerm(tgtTerm) {}
+  CollapsingApplicator(Literal* lit,IGGrounder* parent) : _lit(lit), _parent(parent) {}
   TermList apply(unsigned var)
   {
-//    return TermList(0, false);
-    return _tgtTerm;
+    unsigned sort = SortHelper::getVariableSort(var,_lit);
+    return _parent->getConstant(sort);
   }
 };
 
@@ -309,9 +317,8 @@ Literal* IGGrounder::collapseVars(Literal* lit)
 {
   CALL("IGGrounder::collapseVars");
   ASS(lit);
-  //cout << "Collapse vars of " << lit->toString() << endl;
 
-  CollapsingApplicator apl(_tgtTerm);
+  CollapsingApplicator apl(lit,this);
   return SubstHelper::apply(lit, apl);
 }
 

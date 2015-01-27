@@ -266,6 +266,14 @@ void IGAlgorithm::processUnprocessed()
   }
   _satSolver->ensureVarCnt(_gnd->satVarCnt());
 
+#if VDEBUG
+  SATClauseIterator scitt = pvi( SATClauseStack::Iterator(satClauses) );
+  while(scitt.hasNext()){
+    cout << "Adding ground inst gen clause " << scitt.next()->toString() << endl;
+  }
+#endif
+
+
   SATClauseIterator scit = pvi( SATClauseStack::Iterator(satClauses) );
   scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
   

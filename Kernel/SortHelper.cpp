@@ -229,6 +229,20 @@ unsigned SortHelper::getVariableSort(TermList var, Term* t)
 }
 
 /**
+ * Return sort of variable @c var in term or literal @c t
+ *
+ * Variable @c var must occurr in @c t.
+ */
+unsigned SortHelper::getVariableSort(unsigned var, Term* t)
+{
+  CALL("SortHelper::getVariableSort(TermList,Term*)");
+
+  unsigned res;
+  ALWAYS(tryGetVariableSort(TermList(var,false), t, res));
+  return res;
+}
+
+/**
  * Return sort of variable @c var in formula @c f.
  *
  * The variable
