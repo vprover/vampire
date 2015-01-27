@@ -288,8 +288,13 @@ IGGrounder::IGGrounder(SATSolver* satSolver) : Grounder(satSolver)
        unsigned usage = sym->usageCnt();
        unsigned sort = sym->fnType()->result(); 
        if(!map.find(sort) || map.get(sort) < usage){
-         _tgtTerms.insert(sort,TermList(Term::createConstant(i)));
-         map.insert(sort,usage);
+         cout << "selecting new constant for sort " << sort << " with usage " << usage << endl;
+#if VDEBUG
+         if(!map.find(sort)) cout << "new sort " << sort << endl;
+         else cout << "old usage " << map.get(sort) << endl;
+#endif
+         _tgtTerms.set(sort,TermList(Term::createConstant(i)));
+         map.set(sort,usage);
        }
      }
   }
