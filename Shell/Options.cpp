@@ -2230,7 +2230,9 @@ void Options::readOptionsString(vstring optionsString,bool assign)
         }
     }
     else{
-     USER_ERROR("option "+param+" not known");
+      if(!ignoreMissing()){
+       USER_ERROR("option "+param+" not known");
+      }
     }
 
     if (index==vstring::npos) {
