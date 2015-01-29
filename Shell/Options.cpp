@@ -335,7 +335,7 @@ void Options::Options::init()
     _lookup.insert(&_arityCheck);
     _arityCheck.tag(OptionTag::PREPROCESSING);
     
-    _distinctProcessor = BoolOptionValue("distinct_processor","",false);
+    _distinctProcessor = BoolOptionValue("distinct_processor","",true);
     _distinctProcessor.description="Handles $distinct predicates from the TPTP language";
     _lookup.insert(&_distinctProcessor);
     _distinctProcessor.tag(OptionTag::PREPROCESSING);
