@@ -943,7 +943,16 @@ int main(int argc, char* argv[])
     MemoryLeak::cancelReport();
 #endif
     explainException(exception);
-  } catch (Exception& exception) {
+  } 
+catch (Parse::TPTP::ParseErrorException& exception) {
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+    reportSpiderFail();
+#if CHECK_LEAKS
+    MemoryLeak::cancelReport();
+#endif
+    explainException(exception);
+  }
+  catch (Exception& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
 #if CHECK_LEAKS
