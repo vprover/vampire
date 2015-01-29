@@ -266,6 +266,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
       Clause* compCl;
       SplitLevel level = _parent.tryGetComponentNameOrAddNew(1,&lit,0,compCl);
+      // TODO: there is no obvious parent for the new component, how should we initialize its age ?
 
       SATLiteral slit = _parent.getLiteralFromName(level);
       ASS(slit.polarity());
