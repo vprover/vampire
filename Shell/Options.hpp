@@ -701,19 +701,20 @@ private:
         // These are defined for OptionValueConstraints and WrappedConstraints - see below for explanation
         template<typename S>
         void reliesOn(WrappedConstraint<S>* c){
-            _constraints.push(If(isNotDefault<T>()).then(c));
+            _constraints.push(If(getNotDefault()).then(c));
         }
+        virtual OptionValueConstraint<T>* getNotDefault(){ return isNotDefault<T>(); }
         template<typename S>
         void reliesOnHard(WrappedConstraint<S>* c){
-            OptionValueConstraint<T>* tc = If(isNotDefault<T>()).then(c);
+            OptionValueConstraint<T>* tc = If(getNotDefault()).then(c);
             tc->setHard();
             _constraints.push(tc);
         }
         void reliesOn(OptionValueConstraint<T>* c){
-            _constraints.push(If(isNotDefault<T>()).then(c));
+            _constraints.push(If(getNotDefault()).then(c));
         }
         void reliesOnHard(OptionValueConstraint<T>* c){
-            OptionValueConstraint<T>* tc = If(isNotDefault<T>()).then(c);
+            OptionValueConstraint<T>* tc = If(getNotDefault()).then(c);
             tc->setHard();
             _constraints.push(tc);
         }
@@ -897,6 +898,8 @@ private:
         RatioOptionValue(vstring l, vstring s, int def, int other, char sp=':') :
         OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
         
+        virtual OptionValueConstraint<int>* getNotDefault(){ return isNotDefaultRatio(); }
+
         template<typename S>
         void addConstraintIfNotDefault(WrappedConstraint<S>* c){
             addConstraint(If(isNotDefaultRatio()).then(c));
@@ -918,7 +921,7 @@ private:
         }
         
         virtual vstring getStringOfValue(int value) const{ ASSERTION_VIOLATION;}
-        virtual vstring getStringOfActual() const{
+        virtual vstring getStringOfActual() const override {
             return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue);
         }
         
@@ -1066,13 +1069,13 @@ private:
         USE_ALLOCATOR(OptionValueConstraint);
         OptionValueConstraint() : _hard(false) {}
         
-        virtual bool check(OptionValue<T>& value) = 0;
+        virtual bool check(OptionValue<T>* value) = 0;
         virtual bool check(){ ASSERTION_VIOLATION; }
-        virtual vstring msg(OptionValue<T>& value) = 0;
+        virtual vstring msg(OptionValue<T>* value) = 0;
         virtual vstring msg() { ASSERTION_VIOLATION; }
         
         // By default cannot force constraint
-        virtual bool force(OptionValue<T>& value){ return false;}
+        virtual bool force(OptionValue<T>* value){ return false;}
         // TODO - allow for hard constraints
         bool isHard(){ return _hard; }
         void setHard(){ _hard=true;}
@@ -1099,10 +1102,10 @@ private:
         WrappedConstraint(OptionValue<T>* v, OptionValueConstraint<T>* c) : value(v), con(c) {}
         
         bool check(){
-            return con->check(*value);
+            return con->check(value);
         }
         vstring msg(){
-            return con->msg(*value);
+            return con->msg(value);
         }
         
         template<typename S, typename R>
@@ -1121,8 +1124,8 @@ private:
         
         UnWrappedConstraint(WrappedConstraint<S>* c) : con(c) {}
         
-        bool check(OptionValue<T>&){ return con->check(); }
-        vstring msg(OptionValue<T>&){ return con->msg(); }
+        bool check(OptionValue<T>*){ return con->check(); }
+        vstring msg(OptionValue<T>*){ return con->msg(); }
         
         WrappedConstraint<S>* con;
     };
@@ -1132,10 +1135,10 @@ private:
         CLASS_NAME(OrWrapper);
         USE_ALLOCATOR(OrWrapper);
         OrWrapper(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
-        bool check(OptionValue<T>& value){
+        bool check(OptionValue<T>* value){
             return left->check(value) || right->check(value);
         }
-        vstring msg(OptionValue<T>& value){ return left->msg(value) + " or " + right->msg(value); }
+        vstring msg(OptionValue<T>* value){ return left->msg(value) + " or " + right->msg(value); }
         
         OptionValueConstraint<T>* left;
         OptionValueConstraint<T>* right;
@@ -1146,10 +1149,10 @@ private:
         CLASS_NAME(AndWrapper);
         USE_ALLOCATOR(AndWrapper);
         AndWrapper(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
-        bool check(OptionValue<T>& value){
+        bool check(OptionValue<T>* value){
             return left->check(value) && right->check(value);
         }
-        vstring msg(OptionValue<T>& value){ return left->msg(value) + " and " + right->msg(value); }
+        vstring msg(OptionValue<T>* value){ return left->msg(value) + " and " + right->msg(value); }
         
         OptionValueConstraint<T>* left;
         OptionValueConstraint<T>* right;
@@ -1160,11 +1163,11 @@ private:
         CLASS_NAME(Equal);
         USE_ALLOCATOR(Equal);
         Equal(T gv) : _goodvalue(gv) {}
-        bool check(OptionValue<T>& value){
-            return value.actualValue == _goodvalue;
+        bool check(OptionValue<T>* value){
+            return value->actualValue == _goodvalue;
         }
-        vstring msg(OptionValue<T>& value){
-            return value.longName+"("+value.getStringOfActual()+") is equal to " + value.getStringOfValue(_goodvalue);
+        vstring msg(OptionValue<T>* value){
+            return value->longName+"("+value->getStringOfActual()+") is equal to " + value->getStringOfValue(_goodvalue);
         }
         T _goodvalue;
     };
@@ -1178,10 +1181,10 @@ private:
         CLASS_NAME(NotEqual);
         USE_ALLOCATOR(NotEqual);
         NotEqual(T bv) : _badvalue(bv) {}
-        bool check(OptionValue<T>& value){
-            return value.actualValue != _badvalue;
+        bool check(OptionValue<T>* value){
+            return value->actualValue != _badvalue;
         }
-        vstring msg(OptionValue<T>& value){ return value.longName+"("+value.getStringOfActual()+") is not equal to " + value.getStringOfValue(_badvalue); }
+        vstring msg(OptionValue<T>* value){ return value->longName+"("+value->getStringOfActual()+") is not equal to " + value->getStringOfValue(_badvalue); }
         T _badvalue;
     };
     template<typename T>
@@ -1196,12 +1199,12 @@ private:
         CLASS_NAME(LessThan);
         USE_ALLOCATOR(LessThan);
         LessThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(OptionValue<T>& value){
-            return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
+        bool check(OptionValue<T>* value){
+            return (value->actualValue < _goodvalue || (_orequal && value->actualValue==_goodvalue));
         }
-        vstring msg(OptionValue<T>& value){
-            if(_orequal) return value.longName+"("+value.getStringOfActual()+") is less than or equal to " + value.getStringOfValue(_goodvalue);
-            return value.longName+"("+value.getStringOfActual()+") is less than "+ value.getStringOfValue(_goodvalue);
+        vstring msg(OptionValue<T>* value){
+            if(_orequal) return value->longName+"("+value->getStringOfActual()+") is less than or equal to " + value->getStringOfValue(_goodvalue);
+            return value->longName+"("+value->getStringOfActual()+") is less than "+ value->getStringOfValue(_goodvalue);
         }
         
         T _goodvalue;
@@ -1223,13 +1226,13 @@ private:
         CLASS_NAME(GreaterThan);
         USE_ALLOCATOR(GreaterThan);
         GreaterThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(OptionValue<T>& value){
-            return (value.actualValue > _goodvalue || (_orequal && value.actualValue==_goodvalue));
+        bool check(OptionValue<T>* value){
+            return (value->actualValue > _goodvalue || (_orequal && value->actualValue==_goodvalue));
         }
         
-        vstring msg(OptionValue<T>& value){
-            if(_orequal) return value.longName+"("+value.getStringOfActual()+") is greater than or equal to " + value.getStringOfValue(_goodvalue);
-            return value.longName+"("+value.getStringOfActual()+") is greater than "+ value.getStringOfValue(_goodvalue);
+        vstring msg(OptionValue<T>* value){
+            if(_orequal) return value->longName+"("+value->getStringOfActual()+") is greater than or equal to " + value->getStringOfValue(_goodvalue);
+            return value->longName+"("+value->getStringOfActual()+") is greater than "+ value->getStringOfValue(_goodvalue);
         }
         
         T _goodvalue;
@@ -1259,12 +1262,12 @@ private:
         IfThenConstraint(OptionValueConstraint<T>* ic, OptionValueConstraint<T>* c) :
         if_con(ic), then_con(c) {}
         
-        bool check(OptionValue<T>& value){
+        bool check(OptionValue<T>* value){
             ASS(then_con);
             return !if_con->check(value) || then_con->check(value);
         }
         
-        vstring msg(OptionValue<T>& value){
+        vstring msg(OptionValue<T>* value){
             return "if "+if_con->msg(value)+" then "+ then_con->msg(value);
         }
         
@@ -1317,20 +1320,20 @@ private:
     struct NotDefaultConstraint : public OptionValueConstraint<T> {
         NotDefaultConstraint() {}
         
-        bool check(OptionValue<T>& value){
-            return value.defaultValue != value.actualValue;
+        bool check(OptionValue<T>* value){
+            return value->defaultValue != value->actualValue;
         }
-        vstring msg(OptionValue<T>& value) { return value.longName+"("+value.getStringOfActual()+") is not default("+value.getStringOfValue(value.defaultValue)+")";}
+        vstring msg(OptionValue<T>* value) { return value->longName+"("+value->getStringOfActual()+") is not default("+value->getStringOfValue(value->defaultValue)+")";}
     };
     struct NotDefaultRatioConstraint : public OptionValueConstraint<int> {
         NotDefaultRatioConstraint() {}
         
-        bool check(OptionValue<int>& value){
-            RatioOptionValue& rvalue = static_cast<RatioOptionValue&>(value);
-            return (rvalue.defaultValue != rvalue.actualValue ||
-                    rvalue.defaultOtherValue != rvalue.otherValue);
+        bool check(OptionValue<int>* value){
+            RatioOptionValue* rvalue = static_cast<RatioOptionValue*>(value);
+            return (rvalue->defaultValue != rvalue->actualValue ||
+                    rvalue->defaultOtherValue != rvalue->otherValue);
         }
-        vstring msg(OptionValue<int>& value) { return value.longName+"("+value.getStringOfActual()+") is not default";}
+        vstring msg(OptionValue<int>* value) { return value->longName+"("+value->getStringOfActual()+") is not default";}
         
     };
     

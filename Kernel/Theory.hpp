@@ -6,6 +6,8 @@
 #ifndef __Theory__
 #define __Theory__
 
+#include <math.h>
+
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
@@ -40,6 +42,21 @@ public:
   IntegerConstantType operator*(const IntegerConstantType& num) const;
   IntegerConstantType operator/(const IntegerConstantType& num) const;
   IntegerConstantType operator%(const IntegerConstantType& num) const;
+  
+  float realDivide(const IntegerConstantType& num) const { 
+    if(num._val==0) throw ArithmeticException();
+    return ((float)_val)/num._val; 
+  }
+  IntegerConstantType quotientE(const IntegerConstantType& num) const { 
+    if(num._val>0) return IntegerConstantType(::floor(realDivide(num)));
+    else return IntegerConstantType(::ceil(realDivide(num)));
+  }
+  IntegerConstantType quotientT(const IntegerConstantType& num) const { 
+    return IntegerConstantType(::trunc(realDivide(num)));
+  }
+  IntegerConstantType quotientF(const IntegerConstantType& num) const { 
+    return IntegerConstantType(::floor(realDivide(num)));
+  }
 
   bool operator==(const IntegerConstantType& num) const;
   bool operator>(const IntegerConstantType& num) const;
@@ -210,9 +227,8 @@ public:
 
     INT_SUCCESSOR,
     INT_UNARY_MINUS,
-    INT_PLUS,
-    INT_DIFFERENCE,
-    INT_MINUS,
+    INT_PLUS,  // sum in TPTP
+    INT_MINUS, // difference in TPTP
     INT_MULTIPLY,
     INT_DIVIDE,
     INT_MODULO,
@@ -228,9 +244,8 @@ public:
     INT_ROUND,
 
     RAT_UNARY_MINUS,
-    RAT_PLUS,
-    RAT_DIFFERENCE,
-    RAT_MINUS,
+    RAT_PLUS, // sum in TPTP
+    RAT_MINUS,// difference in TPTP
     RAT_MULTIPLY,
     RAT_DIVIDE,
     RAT_QUOTIENT,
@@ -246,9 +261,8 @@ public:
     RAT_ROUND,
 
     REAL_UNARY_MINUS,
-    REAL_PLUS,
-    REAL_DIFFERENCE,
-    REAL_MINUS,
+    REAL_PLUS,  // plus in TPTP
+    REAL_MINUS, // difference in TPTP
     REAL_MULTIPLY,
     REAL_DIVIDE,
     REAL_QUOTIENT,

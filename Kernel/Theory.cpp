@@ -523,6 +523,22 @@ unsigned Theory::getArity(Interpretation i)
   case INT_UNARY_MINUS:
   case RAT_UNARY_MINUS:
   case REAL_UNARY_MINUS:
+
+  case INT_FLOOR:
+  case INT_CEILING:
+  case INT_TRUNCATE:
+  case INT_ROUND:
+
+  case RAT_FLOOR:
+  case RAT_CEILING:
+  case RAT_TRUNCATE:
+  case RAT_ROUND:
+
+  case REAL_FLOOR:
+  case REAL_CEILING:
+  case REAL_TRUNCATE:
+  case REAL_ROUND:
+
     return 1;
 
   case EQUAL:
@@ -550,16 +566,37 @@ unsigned Theory::getArity(Interpretation i)
   case INT_MULTIPLY:
   case INT_DIVIDE:
   case INT_MODULO:
+  case INT_QUOTIENT_E:
+  case INT_QUOTIENT_T:
+  case INT_QUOTIENT_F:
+  case INT_REMAINDER_E:
+  case INT_REMAINDER_T:
+  case INT_REMAINDER_F:
 
   case RAT_PLUS:
   case RAT_MINUS:
   case RAT_MULTIPLY:
   case RAT_DIVIDE:
+  case RAT_QUOTIENT:
+  case RAT_QUOTIENT_E:
+  case RAT_QUOTIENT_T:
+  case RAT_QUOTIENT_F:
+  case RAT_REMAINDER_E:
+  case RAT_REMAINDER_T:
+  case RAT_REMAINDER_F:
 
   case REAL_PLUS:
   case REAL_MINUS:
   case REAL_MULTIPLY:
   case REAL_DIVIDE:
+  case REAL_QUOTIENT:
+  case REAL_QUOTIENT_E:
+  case REAL_QUOTIENT_T:
+  case REAL_QUOTIENT_F:
+  case REAL_REMAINDER_E:
+  case REAL_REMAINDER_T:
+  case REAL_REMAINDER_F:
+
   case SELECT1_INT:
   case SELECT2_INT:
     return 2;
@@ -603,16 +640,48 @@ bool Theory::isFunction(Interpretation i)
   case INT_MULTIPLY:
   case INT_DIVIDE:
   case INT_MODULO:
+  case INT_QUOTIENT_E:
+  case INT_QUOTIENT_T:
+  case INT_QUOTIENT_F:
+  case INT_REMAINDER_E:
+  case INT_REMAINDER_T:
+  case INT_REMAINDER_F:
+  case INT_FLOOR:
+  case INT_CEILING:
+  case INT_TRUNCATE:
+  case INT_ROUND:
 
   case RAT_PLUS:
   case RAT_MINUS:
   case RAT_MULTIPLY:
   case RAT_DIVIDE:
+  case RAT_QUOTIENT:
+  case RAT_QUOTIENT_E:
+  case RAT_QUOTIENT_T:
+  case RAT_QUOTIENT_F:
+  case RAT_REMAINDER_E:
+  case RAT_REMAINDER_T:
+  case RAT_REMAINDER_F:
+  case RAT_FLOOR:
+  case RAT_CEILING:
+  case RAT_TRUNCATE:
+  case RAT_ROUND:
 
   case REAL_PLUS:
   case REAL_MINUS:
   case REAL_MULTIPLY:
   case REAL_DIVIDE:
+  case REAL_QUOTIENT:
+  case REAL_QUOTIENT_E:
+  case REAL_QUOTIENT_T:
+  case REAL_QUOTIENT_F:
+  case REAL_REMAINDER_E:
+  case REAL_REMAINDER_T:
+  case REAL_REMAINDER_F:
+  case REAL_FLOOR:
+  case REAL_CEILING:
+  case REAL_TRUNCATE:
+  case REAL_ROUND:
           
   case SELECT1_INT:
   case SELECT2_INT:          
@@ -734,6 +803,16 @@ unsigned Theory::getOperationSort(Interpretation i)
   case INT_MULTIPLY:
   case INT_DIVIDE:
   case INT_MODULO:
+  case INT_QUOTIENT_E:
+  case INT_QUOTIENT_T:
+  case INT_QUOTIENT_F:
+  case INT_REMAINDER_E:
+  case INT_REMAINDER_T:
+  case INT_REMAINDER_F:
+  case INT_FLOOR:
+  case INT_CEILING:
+  case INT_TRUNCATE:
+  case INT_ROUND:
 
   case INT_TO_INT:
   case INT_IS_INT:
@@ -746,6 +825,17 @@ unsigned Theory::getOperationSort(Interpretation i)
   case RAT_MINUS:
   case RAT_MULTIPLY:
   case RAT_DIVIDE:
+  case RAT_QUOTIENT:
+  case RAT_QUOTIENT_E:
+  case RAT_QUOTIENT_T:
+  case RAT_QUOTIENT_F:
+  case RAT_REMAINDER_E:
+  case RAT_REMAINDER_T:
+  case RAT_REMAINDER_F:
+  case RAT_FLOOR:
+  case RAT_CEILING:
+  case RAT_TRUNCATE:
+  case RAT_ROUND:
   case RAT_GREATER:
   case RAT_GREATER_EQUAL:
   case RAT_LESS:
@@ -763,6 +853,17 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_MINUS:
   case REAL_MULTIPLY:
   case REAL_DIVIDE:
+  case REAL_QUOTIENT:
+  case REAL_QUOTIENT_E:
+  case REAL_QUOTIENT_T:
+  case REAL_QUOTIENT_F:
+  case REAL_REMAINDER_E:
+  case REAL_REMAINDER_T:
+  case REAL_REMAINDER_F:
+  case REAL_FLOOR:
+  case REAL_CEILING:
+  case REAL_TRUNCATE:
+  case REAL_ROUND:
   case REAL_GREATER:
   case REAL_GREATER_EQUAL:
   case REAL_LESS:
@@ -1541,6 +1642,8 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   // For predicates these include the notion of polarity
   vstring pol = polarity ? "" : " \\not ";
 
+  //TODO do we want special symbols for quotient, remainder, floor, ceiling, truncate, round?
+
   switch(i){
   case INT_SUCCESSOR: return "a0++"; 
   case INT_UNARY_MINUS:
@@ -1571,7 +1674,7 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   case INT_MINUS: return "a0 - a1";
   case INT_MULTIPLY: return "a0 \\cdot a1";
   case INT_DIVIDE: return "a0 / a1";
-  case INT_MODULO: return "a0 \\% a1";
+  //case INT_MODULO: return "a0 \\% a1";
 
   case RAT_PLUS: return "a0 + a1";
   case RAT_MINUS: return "a0 - a1";
