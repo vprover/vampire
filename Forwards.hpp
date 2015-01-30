@@ -117,7 +117,7 @@ namespace Kernel
 using namespace Lib;
 
 class IntegerConstantType;
-class RationalConstantType;
+struct RationalConstantType;
 class RealConstantType;
 
 /** Index of a variable */
@@ -279,8 +279,8 @@ class TermSharing;
 class ResultSubstitution;
 typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 
-class SLQueryResult;
-class TermQueryResult;
+struct SLQueryResult;
+struct TermQueryResult;
 
 class GeneratingLiteralIndex;
 class SimplifyingLiteralIndex;

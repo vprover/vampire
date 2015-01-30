@@ -168,21 +168,36 @@ void explainException(Exception& exception)
 void getRandomStrategy()
 {
   CALL("getRandomStrategy()");
-  ScopedPtr<Problem> prb(getPreprocessedProblem());
   // We might have set random_strategy sat
   if(env.options->randomStrategy()==Options::RandomStrategy::OFF){
     env.options->setRandomStrategy(Options::RandomStrategy::ON);
   }
-  env.options->randomizeStrategy(*prb->getProperty()); 
+
+  // One call to randomize before preprocessing (see Options)
+  env.options->randomizeStrategy(0); 
+  ScopedPtr<Problem> prb(getPreprocessedProblem());
+  // Then again when the property is here
+  env.options->randomizeStrategy(prb->getProperty()); 
+
+  // It is possible that the random strategy is still incorrect as we don't
+  // have access to the Property when setting preprocessing
+  env.options->checkProblemOptionConstraints(prb->getProperty());
 }
 
 void doProving()
 {
   CALL("doProving()");
+  // One call to randomize before preprocessing (see Options)
+  env.options->randomizeStrategy(0);
+
   ScopedPtr<Problem> prb(getPreprocessedProblem());
+
+  // Then again when the property is here (this will only randomize non-default things if an option is set to do so)
+  env.options->randomizeStrategy(prb->getProperty()); 
+
   // this will provide warning if options don't make sense for problem
-  env.options->checkProblemOptionConstraints(*prb->getProperty()); 
-  env.options->randomizeStrategy(*prb->getProperty()); // this will only randomize non-default things if an option is set to do so
+  env.options->checkProblemOptionConstraints(prb->getProperty()); 
+
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
 
@@ -928,7 +943,16 @@ int main(int argc, char* argv[])
     MemoryLeak::cancelReport();
 #endif
     explainException(exception);
-  } catch (Exception& exception) {
+  } 
+catch (Parse::TPTP::ParseErrorException& exception) {
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+    reportSpiderFail();
+#if CHECK_LEAKS
+    MemoryLeak::cancelReport();
+#endif
+    explainException(exception);
+  }
+  catch (Exception& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
 #if CHECK_LEAKS

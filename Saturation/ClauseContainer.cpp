@@ -184,6 +184,14 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
       for(unsigned i=0;i<selCnt;i++) {
         maxSelWeight=max((*cl)[i]->weight(),maxSelWeight);
       }
+      // This weight() value now includes splitWeights (if the appropriate option is set, 
+      //                                                which it didn't before)
+      // Makes sense as weight() is used like this elsewhere to reflect whether
+      // the clause is used.
+      // Note that the idea behind this branch seems to be that we want to check if
+      //  the clause is still too heavy without the heaviest selected literal.
+      //  Increasing weight() will make this more likely, increasing the liklihood of
+      //  highly dependent clauses being discarded (in LRS)
       shouldRemove=cl->weight()-(int)maxSelWeight>=weightLimit;
     }
 

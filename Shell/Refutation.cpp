@@ -20,8 +20,8 @@ using namespace Kernel;
 using namespace Shell;
 
 Refutation::Refutation(Unit* unit,bool detailed)
-  : _goal(unit),
-    _detailed(detailed)
+  : _goal(unit)/*,
+    _detailed(detailed) MS: unused */
 {
 }
 

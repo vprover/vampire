@@ -264,6 +264,8 @@ void Options::Options::init()
     _lookup.insert(&_inequalitySplitting);
     _inequalitySplitting.tag(OptionTag::PREPROCESSING);
 
+    //TODO randomly switch to different values for testing?
+
     _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on"});
     _sos.description=
     "Set of support strategy. All formulas annotated as theory axioms are put directly among active clauses, without performing any inferences between them. If all, select all literals of set-of-support clauses, ortherwise use the default literal selector.";
@@ -291,6 +293,10 @@ void Options::Options::init()
      "     ~E(x1,y1) \\/ ... \\/ ~E(xN,yN) \\/ E(f(x1,...,xN),f(y1,...,yN))";
     _lookup.insert(&_equalityProxy);
     _equalityProxy.tag(OptionTag::PREPROCESSING);
+    _equalityProxy.addProblemConstraint(hasEquality());
+    _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
+    
+    //TODO add random choices for _aig options so that they can be tested
 
     _aigBddSweeping = BoolOptionValue("aig_bdd_sweeping","",false);
     _aigBddSweeping.description="For a description of these aig options see the paper 'Preprocessing Techniques for First-Order Clausification'. ";
@@ -328,8 +334,8 @@ void Options::Options::init()
     _arityCheck.description="The same symbol name cannot be used with multiple arities";
     _lookup.insert(&_arityCheck);
     _arityCheck.tag(OptionTag::PREPROCESSING);
-
-    _distinctProcessor = BoolOptionValue("distinct_processor","",false);
+    
+    _distinctProcessor = BoolOptionValue("distinct_processor","",true);
     _distinctProcessor.description="Handles $distinct predicates from the TPTP language";
     _lookup.insert(&_distinctProcessor);
     _distinctProcessor.tag(OptionTag::PREPROCESSING);
@@ -367,7 +373,8 @@ void Options::Options::init()
     "split formulas with top-level (up to universal quantification) conjunctions into several formulas";
     _lookup.insert(&_flattenTopLevelConjunctions);
     _flattenTopLevelConjunctions.tag(OptionTag::PREPROCESSING);
-
+    _flattenTopLevelConjunctions.setRandomChoices({"off","off","off","on"}); // Added random choices biased to default
+    
     _functionDefinitionElimination = ChoiceOptionValue<FunctionDefinitionElimination>("function_definition_elimination","fde",
                                                                                       FunctionDefinitionElimination::ALL,{"all","none","unused"});
     _functionDefinitionElimination.description=
@@ -770,29 +777,45 @@ void Options::Options::init()
     _lookup.insert(&_equalityResolutionWithDeletion);
     _equalityResolutionWithDeletion.tag(OptionTag::INFERENCES);
     _equalityResolutionWithDeletion.addConstraint(notEqual(RuleActivity::ON));
-
-
+    //TODO does this depend on anything?
+    //TODO is there a problemConstraint?
+    _equalityResolutionWithDeletion.setRandomChoices({"input_only","off"});
+    
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
-    _extensionalityAllowPosEq.description="";
+    _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
+      " whether we allow other positive equalities when recognising extensionality clauses";
     _lookup.insert(&_extensionalityAllowPosEq);
     _extensionalityAllowPosEq.tag(OptionTag::INFERENCES);
-
+    _extensionalityAllowPosEq.reliesOn(_extensionalityResolution.is(equal(ExtensionalityResolution::FILTER)));
+    _extensionalityAllowPosEq.setRandomChoices({"on","off","off"}); // Prefer off
+    
     _extensionalityMaxLength = UnsignedOptionValue("extensionality_max_length","",0);
-    _extensionalityMaxLength.description="";
+    _extensionalityMaxLength.description="Sets the maximum length (number of literals) an extensionality"
+      " clause can have when doing recognition for extensionality resolution. If zero there is no maximum.";
     _lookup.insert(&_extensionalityMaxLength);
     _extensionalityMaxLength.tag(OptionTag::INFERENCES);
     // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
     _extensionalityMaxLength.addConstraint(notEqual(1u));
-
+    _extensionalityMaxLength.reliesOn(_extensionalityResolution.is(notEqual(ExtensionalityResolution::OFF)));
+    //TODO does this depend on anything?
+    _extensionalityMaxLength.setRandomChoices({"0","0","0","2","3"}); // TODO what are good values?
+    
     _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
                                                                             ExtensionalityResolution::OFF,{"filter","known","off"});
-    _extensionalityResolution.description="";
+    _extensionalityResolution.description=
+      "Turns on the following inference rule:\n"
+      "  x=y \\/ C    s != t \\/ D\n"
+      "  -----------------------\n"
+      "  C{x → s, y → t} \\/ D\n"
+      "Where s!=t is selected in s!=t \\/D and x=y \\/ C is a recognised as an extensionality clause - how clauses are recognised depends on the value of this option.\n"
+      "If filter we attempt to recognise all extensionality clauses i.e. those that have exactly one X=Y, no inequality of the same sort as X-Y (and optionally no equality except X=Y, see extensionality_allow_pos_eq).\n" 
+      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.";
     _lookup.insert(&_extensionalityResolution);
     _extensionalityResolution.tag(OptionTag::INFERENCES);
     // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
-    _extensionalityResolution.addConstraint(
-        If(notEqual(ExtensionalityResolution::OFF)).then(_inequalitySplitting.is(equal(0))));
-
+    _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
+    _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
+    
     _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
     _forwardDemodulation.description=
     "Oriented rewriting of newly derived clauses by kept unit equalities\n"
@@ -802,7 +825,8 @@ void Options::Options::init()
     "If 'preordered' is set, only equalities s = t where s > t are used for rewriting.";
     _lookup.insert(&_forwardDemodulation);
     _forwardDemodulation.tag(OptionTag::INFERENCES);
-
+    _forwardDemodulation.setRandomChoices({"all","all","all","off","preordered"});
+    
     _forwardLiteralRewriting = BoolOptionValue("forward_literal_rewriting","flr",false);
     _forwardLiteralRewriting.description="";
     _lookup.insert(&_forwardLiteralRewriting);
@@ -1027,6 +1051,7 @@ void Options::Options::init()
     _splittingHandleZeroImplied.tag(OptionTag::AVATAR);
     _splittingHandleZeroImplied.setExperimental();
     _splittingHandleZeroImplied.reliesOn(_splitting.is(equal(true)));
+    _splittingHandleZeroImplied.addHardConstraint(ifOnThen(_nonliteralsInClauseWeight.is(equal(false))));
     _splittingHandleZeroImplied.setRandomChoices({"on","off"});
 
     _splittingFastRestart = BoolOptionValue("splitting_fast_restart","sfr",false);
@@ -1580,7 +1605,7 @@ void Options::setShort(const char* name,const char* value)
 } // Options::setShort
 
 
-bool Options::OptionHasValue::check(Property&p){
+bool Options::OptionHasValue::check(Property*p){
           CALL("Options::OptionHasValue::check");
           AbstractOptionValue* opt = env.options->getOptionValueByName(option_value);
           ASS(opt);
@@ -1780,16 +1805,25 @@ void Options::output (ostream& str) const
 // } // Options::toXML
 
 template<typename T>
-bool Options::OptionValue<T>::randomize(Property& prop){
+bool Options::OptionValue<T>::randomize(Property* prop){
   CALL("Options::OptionValue::randomize()");
 
   DArray<vstring>* choices = 0;
+
+  // Only randomize if we have a property and need it or don't have one and don't need it!
+  if( (prop && !hasProblemConstraints()) ||
+      (!prop && hasProblemConstraints())
+    ){
+    return false;
+  }
+  // Note that if we supressed the problem constraints
+  // the checks will be skipped
 
   //Search for the first set of random choices that is valid
   Stack<RandEntry>::BottomFirstIterator entry_it(rand_choices);
   while(entry_it.hasNext()){
     auto entry = entry_it.next();
-    if(!entry.first || entry.first->check(prop)){
+    if(!entry.first || (prop && entry.first->check(prop))){
       choices = entry.second;
     }  
   }
@@ -1801,30 +1835,31 @@ bool Options::OptionValue<T>::randomize(Property& prop){
   return true;
 }
 
+//TODO should not use cout, should use env.out
 template<typename T>
 bool Options::OptionValue<T>::checkConstraints(){
      CALL("Options::OptionValue::checkConstraints");
      typename Lib::Stack<OptionValueConstraint<T>*>::Iterator it(_constraints);
      while(it.hasNext()){
        OptionValueConstraint<T>* con = it.next();
-       if(!con->check(*this)){
+       if(!con->check(this)){
          if(con->isHard()){ 
            if(env.options->randomStrategy()!=RandomStrategy::OFF)
               return false; // Skip warning for Hard
-           USER_ERROR("\nBroken Constraint: "+con->msg(*this)); 
+           USER_ERROR("\nBroken Constraint: "+con->msg(this)); 
          }
          switch(env.options->getBadOptionChoice()){
            case BadOption::HARD :
-               USER_ERROR("\nBroken Constraint: "+con->msg(*this));
+               USER_ERROR("\nBroken Constraint: "+con->msg(this));
            case BadOption::SOFT :
-               cout << "WARNING Broken Constraint: "+con->msg(*this) << endl;
+               cout << "WARNING Broken Constraint: "+con->msg(this) << endl;
                return false;
            case BadOption::FORCED :
-               if(con->force(*this)){
-                 cout << "Forced constraint " + con->msg(*this) << endl;
+               if(con->force(this)){
+                 cout << "Forced constraint " + con->msg(this) << endl;
                  break;
                }else{
-                 USER_ERROR("\nCould not force Constraint: "+con->msg(*this));
+                 USER_ERROR("\nCould not force Constraint: "+con->msg(this));
                }
            case BadOption::OFF: 
              return false;
@@ -1836,7 +1871,7 @@ bool Options::OptionValue<T>::checkConstraints(){
 }
 
 template<typename T>
-bool Options::OptionValue<T>::checkProblemConstraints(Property& prop){
+bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
     CALL("Options::OptionValue::checkProblemConstraints");
 
     Lib::Stack<OptionProblemConstraint*>::Iterator it(_prob_constraints);
@@ -2091,7 +2126,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   return true;
 } // Options::readTimeLimit(const char* val)
 
-void Options::randomizeStrategy(Property& prop)
+void Options::randomizeStrategy(Property* prop)
 {
   CALL("Options::randomizeStrategy");
   if(_randomStrategy.actualValue==RandomStrategy::OFF) return;
@@ -2125,15 +2160,17 @@ void Options::randomizeStrategy(Property& prop)
     if(!option->is_set){
       // try 5 random values before giving up
       vstring def = option->getStringOfActual();
+
+      // This is where we check the NoProperty condition if prop=0
       bool can_rand = option->randomize(prop);
       // If we cannot randomize then skip (invariant, if this is false value is unchanged)
       if(can_rand){
         // We need to check ALL constraints - rather inefficient
-        bool valid = checkGlobalOptionConstraints(true) && checkProblemOptionConstraints(prop,true);
+        bool valid = checkGlobalOptionConstraints(true) && (!prop || checkProblemOptionConstraints(prop,true));
         unsigned i=4;
         while(!valid && i-- > 0){
           option->randomize(prop);
-          valid = checkGlobalOptionConstraints(true) && checkProblemOptionConstraints(prop,true);
+          valid = checkGlobalOptionConstraints(true) && (!prop || checkProblemOptionConstraints(prop,true));
         }
         if(!valid){
            //cout << "Failed for " << option->longName << endl;
@@ -2151,13 +2188,13 @@ void Options::randomizeStrategy(Property& prop)
 
   //When we reach this place all constraints should be holding
   //However, there is one we haven't checked yet: bfnt completeness
-  //If this fails we restart this with bfnt set to off
-  if(!checkGlobalOptionConstraints()){
+  //If this fails we restart this with bfnt set to off... only if it was on before
+  if(!checkGlobalOptionConstraints() && _bfnt.actualValue){
     _bfnt.set("off");
     randomizeStrategy(prop);
   }
   else{
-    cout << "Random strategy: " + generateEncodedOptions() << endl;
+    if(prop) cout << "Random strategy: " + generateEncodedOptions() << endl;
   }
 }
 
@@ -2204,7 +2241,9 @@ void Options::readOptionsString(vstring optionsString,bool assign)
         }
     }
     else{
-     USER_ERROR("option "+param+" not known");
+      if(!ignoreMissing()){
+       USER_ERROR("option "+param+" not known");
+      }
     }
 
     if (index==vstring::npos) {
@@ -2255,6 +2294,8 @@ void Options::readFromEncodedOptions (vstring testId)
   }
   vstring timeString = testId.substr(index+1);
   _timeLimitInDeciseconds.set(timeString);
+  // setting assumes seconds as default, but encoded strings use deciseconds 
+  _timeLimitInDeciseconds.actualValue = _timeLimitInDeciseconds.actualValue/10;
 
   testId = testId.substr(3,index-3);
   switch (testId[0]) {
@@ -2521,7 +2562,7 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
 /**
  * Check whether the option values make sense with respect to the given problem
  **/
-bool Options::checkProblemOptionConstraints(Property& prop,bool fail_early)
+bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
 {
    CALL("Options::checkProblemOptionConstraints");
 

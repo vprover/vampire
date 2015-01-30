@@ -110,7 +110,8 @@ public:
     const unsigned int S[] = {1, 2, 4, 8, 16};
     int i;
 
-    register unsigned int r = 0; // result of log2(v) will go here
+    /*register*/ // MS: register keyword is deprecated
+    unsigned int r = 0; // result of log2(v) will go here
     for (i = 4; i >= 0; i--) // unroll for speed...
     {
       if (v & b[i])

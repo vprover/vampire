@@ -41,13 +41,6 @@ using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
 
-/**
- * Event that is being triggered when the propositional part of some
- * clause changes
- */
-ClauseEvent Clause::beforePropChange;
-ClauseEvent Clause::afterPropChange;
-
 size_t Clause::_auxCurrTimestamp = 0;
 #if VDEBUG
 bool Clause::_auxInUse = false;
@@ -360,14 +353,6 @@ bool Clause::noSplits() const
   return !this->splits() || this->splits()->isEmpty();
 }
 
-//struct StrComparator {
-//  Comparison compare(vstring s1, vstring s2)
-//  {
-//    int res=strcmp(s1.c_str(), s2.c_str());
-//    return (res==0)?EQUAL:(res>0)?GREATER:LESS;
-//  }
-//};
-
 /**
  * Convert non-propositional part of the clause to vstring.
  */
@@ -450,38 +435,6 @@ VirtualIterator<vstring> Clause::toSimpleClauseStrings()
   CALL("toSimpleClauseStrings");
     return pvi(getSingletonIterator(nonPropToString()));
 
- // vstring np(length() ? (nonPropToString() + " | ") : vstring(""));
-
- // static BDDClausifier clausifier(true, false);
- // static SATClauseStack sclAcc;
- // sclAcc.reset();
- // clausifier.clausify(prop(), sclAcc);
- // List<vstring>* res = 0;
-
- // while (sclAcc.isNonEmpty()) {
- //   SATClause* sc = sclAcc.pop();
- //   vstring rstr(np);
-
- //   for(unsigned i = 0; i < sc->length(); i++) {
- //     if (i) {
-//	rstr += " | ";
-//      }
-//      if (!(*sc)[i].polarity()) {
-//	rstr += '~';
-//      }
-//      unsigned bddVar = (*sc)[i].var();
-//      vstring varName;
-//      if (!bdd->getNiceName(bddVar, varName)) {
-//	varName = bdd->getPropositionalPredicateName(bddVar);
-//      }
-//      rstr += varName;
-//    }
-//
-//    List<vstring>::push(rstr, res);
-//    sc->destroy();
-//  }
-//
-//  return pvi(List<vstring>::DestructiveIterator(res));
 }
 
 /**
@@ -526,6 +479,7 @@ void Clause::computeColor() const
  * Compute the weight of the clause.
  * @pre All literals are shared, so their weight is computed properly.
  * @since 02/01/2008 Manchester.
+ * @since 22/01/2015 include splitWeight in weight
  */
 void Clause::computeWeight() const
 {
@@ -536,6 +490,15 @@ void Clause::computeWeight() const
     ASS(_literals[i]->shared());
     _weight += _literals[i]->weight();
   }
+
+  // We now include this directly in weight()
+  // This is so that we can reduce the split set and keep the original weight
+  // The alternative would be to remove the clause and reenter it into the passive queue whenever
+  // The split set was changed
+  if (env.options->nonliteralsInClauseWeight()) {
+    _weight+=+splitWeight(); // no longer includes propWeight
+  }
+
 } // Clause::computeWeight
 
 
@@ -610,6 +573,7 @@ unsigned Clause::getNumeralWeight()
 /**
  * Return effective weight of the clause (i.e. weight multiplied
  * by the nongoal weight coefficient, if applicable)
+ * @since 22/1/15 weight uses splitWeight
  */
 float Clause::getEffectiveWeight(const Options& opt)
 {
@@ -618,9 +582,10 @@ float Clause::getEffectiveWeight(const Options& opt)
   static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
 
   unsigned w=weight();
-  if (opt.nonliteralsInClauseWeight()) {
-    w+=+splitWeight(); // no longer includes propWeight
-  }
+  // Now in weight() by default
+  //if (opt.nonliteralsInClauseWeight()) {
+  //  w+=+splitWeight(); // no longer includes propWeight
+  //}
   if (opt.increasedNumeralWeight()) {
     return (2*w+getNumeralWeight()) * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
   }

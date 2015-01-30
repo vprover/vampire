@@ -411,7 +411,7 @@ public:
   unsigned next ();
 private:
   /** True if the next variable is found */
-  bool _hasNext;
+  // bool _hasNext; // MS: unused
   /** next variable, previously found */
   unsigned _next;
   /** Stack of term lists (not terms!) */

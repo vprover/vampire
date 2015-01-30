@@ -83,11 +83,19 @@ public:
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
     bool checkGlobalOptionConstraints(bool fail_early=false);
-    bool checkProblemOptionConstraints(Property&, bool fail_early=false); 
+    bool checkProblemOptionConstraints(Property*, bool fail_early=false); 
 
-    // randomize strategy (will only work if randomStrategy=on)
+    // Randomize strategy (will only work if randomStrategy=on)
     // should only be called after all other options are set
-    void randomizeStrategy(Property& prop);
+    //
+    // The usage is overloaded. If prop=0 then this function will randomize
+    // options that do not require a Property (no ProblemConstraints) 
+    // (note it is possible to supress the requirement, see Options.cpp)
+    // Otherwise all other options will be randomized.
+    //
+    // This dual usage is required as the property object is created during
+    // the preprocessing stage. This means that in vampire.cpp we call this twice
+    void randomizeStrategy(Property* prop);
     
     /**
      * Return the problem name
@@ -549,7 +557,7 @@ private:
         
         AbstractOptionValue(){}
         AbstractOptionValue(vstring l,vstring s) :
-        longName(l), shortName(s), experimental(false), is_set(false),_should_copy(true), _tag(OptionTag::LAST_TAG) {}
+        longName(l), shortName(s), experimental(false), is_set(false),_should_copy(true), _tag(OptionTag::LAST_TAG), supress_problemconstraints(false) {}
         
         // Never copy an OptionValue... the Constraint system would break
     private:
@@ -566,7 +574,7 @@ private:
         }
         
         // Set to a random value
-        virtual bool randomize(Property& P) = 0;
+        virtual bool randomize(Property* P) = 0;
 
         // Experimental options are not included in help
         void setExperimental(){experimental=true;}
@@ -580,7 +588,7 @@ private:
         
         // Checking constraits
         virtual bool checkConstraints() = 0;
-        virtual bool checkProblemConstraints(Property& prop) = 0;
+        virtual bool checkProblemConstraints(Property* prop) = 0;
         
         // Tagging: options can be filtered by mode and are organised by Tag in showOptions
         void tag(OptionTag tag){ ASS(_tag==OptionTag::LAST_TAG);_tag=tag; }
@@ -642,6 +650,11 @@ private:
                               std::initializer_list<vstring> list){
           rand_choices.push(RandEntry(c,toArray(list)));
         }
+        void setNoPropertyRandomChoices(std::initializer_list<vstring> list){
+          rand_choices.push(RandEntry(0,toArray(list)));
+          supress_problemconstraints=true;
+        }
+
  
     private:
         // Tag state
@@ -658,7 +671,7 @@ private:
     protected:
         // Note has LIFO semantics so use BottomFirstIterator
         Stack<RandEntry> rand_choices;
-        
+        bool supress_problemconstraints;
     };
     
     /**
@@ -701,19 +714,20 @@ private:
         // These are defined for OptionValueConstraints and WrappedConstraints - see below for explanation
         template<typename S>
         void reliesOn(WrappedConstraint<S>* c){
-            _constraints.push(If(isNotDefault<T>()).then(c));
+            _constraints.push(If(getNotDefault()).then(c));
         }
+        virtual OptionValueConstraint<T>* getNotDefault(){ return isNotDefault<T>(); }
         template<typename S>
         void reliesOnHard(WrappedConstraint<S>* c){
-            OptionValueConstraint<T>* tc = If(isNotDefault<T>()).then(c);
+            OptionValueConstraint<T>* tc = If(getNotDefault()).then(c);
             tc->setHard();
             _constraints.push(tc);
         }
         void reliesOn(OptionValueConstraint<T>* c){
-            _constraints.push(If(isNotDefault<T>()).then(c));
+            _constraints.push(If(getNotDefault()).then(c));
         }
         void reliesOnHard(OptionValueConstraint<T>* c){
-            OptionValueConstraint<T>* tc = If(isNotDefault<T>()).then(c);
+            OptionValueConstraint<T>* tc = If(getNotDefault()).then(c);
             tc->setHard();
             _constraints.push(tc);
         }
@@ -726,7 +740,10 @@ private:
         
         // Problem constraints place a restriction on problem properties and option values
         void addProblemConstraint(OptionProblemConstraint* c){ _prob_constraints.push(c); }
-        virtual bool checkProblemConstraints(Property& prop);
+        bool hasProblemConstraints(){ 
+          return !supress_problemconstraints && !_prob_constraints.isEmpty(); 
+        }
+        virtual bool checkProblemConstraints(Property* prop);
         
         virtual void output(vstringstream& out) const {
             CALL("Options::OptionValue::output");
@@ -735,7 +752,7 @@ private:
         }
        
         // This is where actual randomisation happens
-        bool randomize(Property& p);
+        bool randomize(Property* p);
  
     private:
         //TODO add destructor to delete constraints, currently a memory leak
@@ -894,6 +911,8 @@ private:
         RatioOptionValue(vstring l, vstring s, int def, int other, char sp=':') :
         OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
         
+        virtual OptionValueConstraint<int>* getNotDefault(){ return isNotDefaultRatio(); }
+
         template<typename S>
         void addConstraintIfNotDefault(WrappedConstraint<S>* c){
             addConstraint(If(isNotDefaultRatio()).then(c));
@@ -915,7 +934,7 @@ private:
         }
         
         virtual vstring getStringOfValue(int value) const{ ASSERTION_VIOLATION;}
-        virtual vstring getStringOfActual() const{
+        virtual vstring getStringOfActual() const override {
             return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue);
         }
         
@@ -1063,13 +1082,13 @@ private:
         USE_ALLOCATOR(OptionValueConstraint);
         OptionValueConstraint() : _hard(false) {}
         
-        virtual bool check(OptionValue<T>& value) = 0;
+        virtual bool check(OptionValue<T>* value) = 0;
         virtual bool check(){ ASSERTION_VIOLATION; }
-        virtual vstring msg(OptionValue<T>& value) = 0;
+        virtual vstring msg(OptionValue<T>* value) = 0;
         virtual vstring msg() { ASSERTION_VIOLATION; }
         
         // By default cannot force constraint
-        virtual bool force(OptionValue<T>& value){ return false;}
+        virtual bool force(OptionValue<T>* value){ return false;}
         // TODO - allow for hard constraints
         bool isHard(){ return _hard; }
         void setHard(){ _hard=true;}
@@ -1096,10 +1115,10 @@ private:
         WrappedConstraint(OptionValue<T>* v, OptionValueConstraint<T>* c) : value(v), con(c) {}
         
         bool check(){
-            return con->check(*value);
+            return con->check(value);
         }
         vstring msg(){
-            return con->msg(*value);
+            return con->msg(value);
         }
         
         template<typename S, typename R>
@@ -1118,8 +1137,8 @@ private:
         
         UnWrappedConstraint(WrappedConstraint<S>* c) : con(c) {}
         
-        bool check(OptionValue<T>&){ return con->check(); }
-        vstring msg(OptionValue<T>&){ return con->msg(); }
+        bool check(OptionValue<T>*){ return con->check(); }
+        vstring msg(OptionValue<T>*){ return con->msg(); }
         
         WrappedConstraint<S>* con;
     };
@@ -1129,10 +1148,10 @@ private:
         CLASS_NAME(OrWrapper);
         USE_ALLOCATOR(OrWrapper);
         OrWrapper(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
-        bool check(OptionValue<T>& value){
+        bool check(OptionValue<T>* value){
             return left->check(value) || right->check(value);
         }
-        vstring msg(OptionValue<T>& value){ return left->msg(value) + " or " + right->msg(value); }
+        vstring msg(OptionValue<T>* value){ return left->msg(value) + " or " + right->msg(value); }
         
         OptionValueConstraint<T>* left;
         OptionValueConstraint<T>* right;
@@ -1143,26 +1162,13 @@ private:
         CLASS_NAME(AndWrapper);
         USE_ALLOCATOR(AndWrapper);
         AndWrapper(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
-        bool check(OptionValue<T>& value){
+        bool check(OptionValue<T>* value){
             return left->check(value) && right->check(value);
         }
-        vstring msg(OptionValue<T>& value){ return left->msg(value) + " and " + right->msg(value); }
+        vstring msg(OptionValue<T>* value){ return left->msg(value) + " and " + right->msg(value); }
         
         OptionValueConstraint<T>* left;
         OptionValueConstraint<T>* right;
-    };
-    
-    // Add a constraint to a boolean option that only holds when the option is on
-    struct OnAnd : public OptionValueConstraint<bool>{
-        CLASS_NAME(OnAnd);
-        USE_ALLOCATOR(OnAnd);
-        OnAnd(OptionValueConstraint<bool>* other) : _other(other) {}
-        bool check(OptionValue<bool>& value){
-            if(value.actualValue) return _other->check(value);
-            return true;
-        }
-        vstring msg(OptionValue<bool>& value){ return value.longName+"("+value.getStringOfActual()+") is on and "+_other->msg(value); }
-        OptionValueConstraint<bool>* _other;
     };
     
     template<typename T>
@@ -1170,11 +1176,11 @@ private:
         CLASS_NAME(Equal);
         USE_ALLOCATOR(Equal);
         Equal(T gv) : _goodvalue(gv) {}
-        bool check(OptionValue<T>& value){
-            return value.actualValue == _goodvalue;
+        bool check(OptionValue<T>* value){
+            return value->actualValue == _goodvalue;
         }
-        vstring msg(OptionValue<T>& value){
-            return value.longName+"("+value.getStringOfActual()+") is equal to " + value.getStringOfValue(_goodvalue);
+        vstring msg(OptionValue<T>* value){
+            return value->longName+"("+value->getStringOfActual()+") is equal to " + value->getStringOfValue(_goodvalue);
         }
         T _goodvalue;
     };
@@ -1188,10 +1194,10 @@ private:
         CLASS_NAME(NotEqual);
         USE_ALLOCATOR(NotEqual);
         NotEqual(T bv) : _badvalue(bv) {}
-        bool check(OptionValue<T>& value){
-            return value.actualValue != _badvalue;
+        bool check(OptionValue<T>* value){
+            return value->actualValue != _badvalue;
         }
-        vstring msg(OptionValue<T>& value){ return value.longName+"("+value.getStringOfActual()+") is not equal to " + value.getStringOfValue(_badvalue); }
+        vstring msg(OptionValue<T>* value){ return value->longName+"("+value->getStringOfActual()+") is not equal to " + value->getStringOfValue(_badvalue); }
         T _badvalue;
     };
     template<typename T>
@@ -1206,12 +1212,12 @@ private:
         CLASS_NAME(LessThan);
         USE_ALLOCATOR(LessThan);
         LessThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(OptionValue<T>& value){
-            return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
+        bool check(OptionValue<T>* value){
+            return (value->actualValue < _goodvalue || (_orequal && value->actualValue==_goodvalue));
         }
-        vstring msg(OptionValue<T>& value){
-            if(_orequal) return value.longName+"("+value.getStringOfActual()+") is less than or equal to " + value.getStringOfValue(_goodvalue);
-            return value.longName+"("+value.getStringOfActual()+") is less than "+ value.getStringOfValue(_goodvalue);
+        vstring msg(OptionValue<T>* value){
+            if(_orequal) return value->longName+"("+value->getStringOfActual()+") is less than or equal to " + value->getStringOfValue(_goodvalue);
+            return value->longName+"("+value->getStringOfActual()+") is less than "+ value->getStringOfValue(_goodvalue);
         }
         
         T _goodvalue;
@@ -1233,13 +1239,13 @@ private:
         CLASS_NAME(GreaterThan);
         USE_ALLOCATOR(GreaterThan);
         GreaterThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(OptionValue<T>& value){
-            return (value.actualValue > _goodvalue || (_orequal && value.actualValue==_goodvalue));
+        bool check(OptionValue<T>* value){
+            return (value->actualValue > _goodvalue || (_orequal && value->actualValue==_goodvalue));
         }
         
-        vstring msg(OptionValue<T>& value){
-            if(_orequal) return value.longName+"("+value.getStringOfActual()+") is greater than or equal to " + value.getStringOfValue(_goodvalue);
-            return value.longName+"("+value.getStringOfActual()+") is greater than "+ value.getStringOfValue(_goodvalue);
+        vstring msg(OptionValue<T>* value){
+            if(_orequal) return value->longName+"("+value->getStringOfActual()+") is greater than or equal to " + value->getStringOfValue(_goodvalue);
+            return value->longName+"("+value->getStringOfActual()+") is greater than "+ value->getStringOfValue(_goodvalue);
         }
         
         T _goodvalue;
@@ -1269,12 +1275,12 @@ private:
         IfThenConstraint(OptionValueConstraint<T>* ic, OptionValueConstraint<T>* c) :
         if_con(ic), then_con(c) {}
         
-        bool check(OptionValue<T>& value){
+        bool check(OptionValue<T>* value){
             ASS(then_con);
             return !if_con->check(value) || then_con->check(value);
         }
         
-        vstring msg(OptionValue<T>& value){
+        vstring msg(OptionValue<T>* value){
             return "if "+if_con->msg(value)+" then "+ then_con->msg(value);
         }
         
@@ -1307,6 +1313,18 @@ private:
     static IfConstraint<T> If(WrappedConstraint<S>* c){
         return IfConstraint<T>(new UnWrappedConstraint<T,S>(c));
     }
+
+    template<typename T>
+    static OptionValueConstraint<T>* ifOnThen(OptionValueConstraint<T>* c){
+      IfConstraint<bool> ifc(equal(true));
+      return ifc.then(c);
+    }
+    template<typename T>
+    static OptionValueConstraint<T>* ifOnThen(WrappedConstraint<T>* c){
+      IfConstraint<bool> ifc(equal(true));
+      return ifc.then(c);
+    }
+
     /**
      * Default Value constraints
      */
@@ -1315,20 +1333,20 @@ private:
     struct NotDefaultConstraint : public OptionValueConstraint<T> {
         NotDefaultConstraint() {}
         
-        bool check(OptionValue<T>& value){
-            return value.defaultValue != value.actualValue;
+        bool check(OptionValue<T>* value){
+            return value->defaultValue != value->actualValue;
         }
-        vstring msg(OptionValue<T>& value) { return value.longName+"("+value.getStringOfActual()+") is not default("+value.getStringOfValue(value.defaultValue)+")";}
+        vstring msg(OptionValue<T>* value) { return value->longName+"("+value->getStringOfActual()+") is not default("+value->getStringOfValue(value->defaultValue)+")";}
     };
     struct NotDefaultRatioConstraint : public OptionValueConstraint<int> {
         NotDefaultRatioConstraint() {}
         
-        bool check(OptionValue<int>& value){
-            RatioOptionValue& rvalue = static_cast<RatioOptionValue&>(value);
-            return (rvalue.defaultValue != rvalue.actualValue ||
-                    rvalue.defaultOtherValue != rvalue.otherValue);
+        bool check(OptionValue<int>* value){
+            RatioOptionValue* rvalue = static_cast<RatioOptionValue*>(value);
+            return (rvalue->defaultValue != rvalue->actualValue ||
+                    rvalue->defaultOtherValue != rvalue->otherValue);
         }
-        vstring msg(OptionValue<int>& value) { return value.longName+"("+value.getStringOfActual()+") is not default";}
+        vstring msg(OptionValue<int>* value) { return value->longName+"("+value->getStringOfActual()+") is not default";}
         
     };
     
@@ -1354,15 +1372,16 @@ private:
      */
     
     struct OptionProblemConstraint{
-        virtual bool check(Property& p) = 0;
+        virtual bool check(Property* p) = 0;
         virtual vstring msg() = 0;
     };
     
     struct CategoryCondition : OptionProblemConstraint{
         CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
-        bool check(Property&p){
+        bool check(Property*p){
             CALL("Options::CategoryCondition::check");
-            return has ? p.category()==cat : p.category()!=cat;
+            ASS(p);
+            return has ? p->category()==cat : p->category()!=cat;
         }
         vstring msg(){ 
           vstring m =" not useful for property ";
@@ -1373,23 +1392,24 @@ private:
         bool has;
     };
     struct UsesEquality : OptionProblemConstraint{
-        bool check(Property&p){
+        bool check(Property*p){
           CALL("Options::UsesEquality::check");
-          return (p.equalityAtoms() != 0);
+          ASS(p)
+          return (p->equalityAtoms() != 0);
         }
         vstring msg(){ return " only useful with equality"; }
     };
     struct HasNonUnits : OptionProblemConstraint{
-        bool check(Property&p){
+        bool check(Property*p){
           CALL("Options::HasNonUnits::check");
-          return p.unitClauses()!=0; 
+          return p->unitClauses()!=0; 
         }
         vstring msg(){ return " only useful with non-unit clauses"; }
     };
     struct HasPredicates : OptionProblemConstraint{
-        bool check(Property&p){
+        bool check(Property*p){
           CALL("Options::HasPredicates::check");
-          return (p.category()==Property::PEQ || p.category()==Property::UEQ);
+          return (p->category()==Property::PEQ || p->category()==Property::UEQ);
         }
         vstring msg(){ return " only useful with predicates"; }
     };
@@ -1397,9 +1417,9 @@ private:
       AtomConstraint(int a,bool g) : atoms(a),greater(g) {}
       int atoms;
       bool greater;
-      bool check(Property&p){ 
+      bool check(Property*p){ 
         CALL("Options::AtomConstraint::check");
-        return greater ? p.atoms()>atoms : p.atoms()<atoms;
+        return greater ? p->atoms()>atoms : p->atoms()<atoms;
       }
           
       vstring msg(){ 
@@ -1435,7 +1455,7 @@ private:
 
     struct OptionHasValue : OptionProblemConstraint{
       OptionHasValue(vstring ov,vstring v) : option_value(ov),value(v) {}
-      bool check(Property&p);
+      bool check(Property*p);
       vstring msg(){ return option_value+" has value "+value; } 
       vstring option_value;
       vstring value; 
@@ -1444,7 +1464,7 @@ private:
     struct ManyOptionProblemConstraints : OptionProblemConstraint {
       ManyOptionProblemConstraints(bool a) : is_and(a) {}
 
-      bool check(Property&p){
+      bool check(Property*p){
         CALL("Options::ManyOptionProblemConstraints::check");
         bool res = is_and;
         Stack<OptionProblemConstraint*>::Iterator it(cons);

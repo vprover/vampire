@@ -163,7 +163,7 @@ void Analyze::preprocessStatement(Statement* statement)
 	break;
       }
       List<Statement* >* statements(0);
-      unsigned ifPosition;
+      unsigned ifPosition = 0; // MS: added initialization to silence a warning (could be hiding a bug?)
       for (unsigned i = 0; i < length; i++) {
 	Statement* s = block->getStatement(i);
 	if (s->kind() == Statement::ITE || s->kind() == Statement::ITS) {

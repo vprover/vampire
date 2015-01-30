@@ -65,7 +65,7 @@ protected:
   class LargeNode
     : public Node
   {
-  private:
+  protected: // MS: private would trigger unused field warning
     Node* _[MAX_HEIGHT];
   };
   /** Height of the leftmost node minus 1 */

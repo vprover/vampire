@@ -31,7 +31,7 @@ using namespace Kernel;
 
 
 AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
-: _clauseHavingWeightChanged(0), _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
+:  _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
 {
   CALL("AWPassiveClauseContainer::AWPassiveClauseContainer");
 
@@ -41,8 +41,6 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
   ASS_GE(_weightRatio, 0);
   ASS(_ageRatio > 0 || _weightRatio > 0);
 
-  _beforeClausePropUpdateSD = Clause::beforePropChange.subscribe(this, &AWPassiveClauseContainer::beforeClausePropChange);
-  _afterClausePropUpdateSD = Clause::afterPropChange.subscribe(this, &AWPassiveClauseContainer::afterClausePropChange);
 }
 
 AWPassiveClauseContainer::~AWPassiveClauseContainer()
@@ -53,11 +51,6 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
     ASS(cl->store()==Clause::PASSIVE);
     cl->setStore(Clause::NONE);
   }
-
-  ASS(!_beforeClausePropUpdateSD.isEmpty());
-  _beforeClausePropUpdateSD->unsubscribe();
-  ASS(!_afterClausePropUpdateSD.isEmpty());
-  _afterClausePropUpdateSD->unsubscribe();
 }
 
 ClauseIterator AWPassiveClauseContainer::iterator()
@@ -76,13 +69,10 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
 {
   CALL("AWPassiveClauseContainer::compareWeight");
 
+  // TODO consider using Clause::getEffectiveWeight
+  // since 22/1/15 weight now includes splitWeight
   unsigned cl1Weight=cl1->weight();
   unsigned cl2Weight=cl2->weight();
-
-  if (opt.nonliteralsInClauseWeight()) {
-    cl1Weight+= cl1->splitWeight(); // propWeight removed
-    cl2Weight+= cl2->splitWeight();
-  }
 
   if (opt.increasedNumeralWeight()) {
     cl1Weight=cl1Weight*2+cl1->getNumeralWeight();
@@ -167,6 +157,7 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
   if (c2->inputType() < c1->inputType()) {
     return true;
   }
+
   return c1->number() < c2->number();
 } // WeightQueue::lessThan
 
@@ -256,82 +247,6 @@ Clause* AWPassiveClauseContainer::popSelected()
   return cl;
 } // AWPassiveClauseContainer::popSelected
 
-void AWPassiveClauseContainer::beforeClausePropChange(Clause* cl)
-{
-  CALL("AWPassiveClauseContainer::beforeClausePropChange");
-
-  if (cl->store()==Clause::PASSIVE && _opt.nonliteralsInClauseWeight()) {
-    beforePassiveClauseWeightChange(cl);
-  }
-}
-
-void AWPassiveClauseContainer::afterClausePropChange(Clause* cl)
-{
-  CALL("AWPassiveClauseContainer::afterClausePropChange");
-
-  if (cl->store()==Clause::PASSIVE && _opt.nonliteralsInClauseWeight()) {
-    afterPassiveClauseWeightChange(cl);
-  }
-}
-
-/**
- * This function should be called before clause @b cl is modified in a
- * way that could affect its placement in age and weight queues of the
- * passive container.
- *
- * The function needs to be called for clauses
- * that are contained in this container, the function can handle cases when
- * a clause not from this container is passed.
- *
- * The function @b afterPassiveClauseUpdated must be called after the modification
- * is done.
- */
-void AWPassiveClauseContainer::beforePassiveClauseWeightChange(Clause* cl)
-{
-  CALL("AWPassiveClauseContainer::beforePassiveClauseUpdated");
-  ASS(!_clauseHavingWeightChanged);
-
-  _clauseHavingWeightChanged = cl;
-
-  bool clauseWasPresent;
-  if (_ageRatio) {
-    clauseWasPresent = _ageQueue.remove(cl);
-    if (_weightRatio && clauseWasPresent) {
-      ALWAYS(_weightQueue.remove(cl));
-    }
-  }
-  else {
-    ASS(_weightRatio);
-    clauseWasPresent = _weightQueue.remove(cl);
-  }
-  _clauseHavingWeightChangedWasInContainer = clauseWasPresent;
-}
-
-/**
- * This function should be called after clause @b cl is modified in a
- * way that could affect its placement in age and weight queues of the
- * passive container. The function should be called only for clauses
- * that are contained in this container. The function
- * @b beforePassiveClauseUpdated must have been called before the
- * modification was done.
- */
-void AWPassiveClauseContainer::afterPassiveClauseWeightChange(Clause* cl)
-{
-  CALL("AWPassiveClauseContainer::afterPassiveClauseUpdated");
-  ASS_EQ(_clauseHavingWeightChanged, cl);
-
-  _clauseHavingWeightChanged=0;
-  if (!_clauseHavingWeightChangedWasInContainer) {
-    return;
-  }
-
-  if (_ageRatio) {
-    _ageQueue.insert(cl);
-  }
-  if (_weightRatio) {
-    _weightQueue.insert(cl);
-  }
-}
 
 
 void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
@@ -455,6 +370,7 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
       }
       //here we don't use the effective weight, as from a nongoal clause
       //can be the goal one inferred.
+      // splitWeight is now used in weight() though
       if (cl->weight()-maxSelWeight>=weightLimit) {
 	//and also over weight limit
         shouldStay=false;

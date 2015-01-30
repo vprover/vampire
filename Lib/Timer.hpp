@@ -46,7 +46,8 @@ class Timer
     _mustIncludeChildren(mustIncludeChildren),
     _running(false),
     _elapsed(0)
-  { ensureTimerInitialized(); }
+  { (void)_mustIncludeChildren; // MS: to get it of the unused private field warning when UNIX_USE_SIGALRM
+    ensureTimerInitialized(); }
 
   ~Timer() { deinitializeTimer(); }
   friend void ::checked_delete<Timer>(Timer*);

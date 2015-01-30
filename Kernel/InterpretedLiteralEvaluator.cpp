@@ -361,6 +361,13 @@ protected:
     case Theory::INT_SUCCESSOR:
       res = arg+1;
       return true;
+    case Theory::INT_FLOOR:
+    case Theory::INT_CEILING:
+    case Theory::INT_TRUNCATE:
+    case Theory::INT_ROUND:
+       // For integers these do nothing
+      res = arg;
+      return true;
     default:
       return false;
     }
@@ -386,6 +393,25 @@ protected:
       return true;
     case Theory::INT_MODULO:
       res = arg1%arg2;
+      return true;
+    case Theory::INT_QUOTIENT_E:
+      res = arg1.quotientE(arg2);
+      return true;
+    case Theory::INT_QUOTIENT_T:
+      res = arg1.quotientT(arg2);
+      return true;
+    case Theory::INT_QUOTIENT_F:
+      res = arg1.quotientF(arg2);
+      return true;
+    // The remainder is left - (quotient * right)
+    case Theory::INT_REMAINDER_E:
+      res = arg1 - (arg1.quotientE(arg2)*arg2);
+      return true;
+    case Theory::INT_REMAINDER_T:
+      res = arg1 - (arg1.quotientT(arg2)*arg2);
+      return true;
+    case Theory::INT_REMAINDER_F:
+      res = arg1 - (arg1.quotientF(arg2)*arg2);
       return true;
     default:
       return false;

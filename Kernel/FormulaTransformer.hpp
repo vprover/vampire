@@ -89,7 +89,7 @@ class PolarityAwareFormulaTransformer : protected FormulaTransformer {
 public:
   ~PolarityAwareFormulaTransformer();
 
-  virtual Formula* transform(Formula* f, int polarity=1);
+  virtual Formula* transformWithPolarity(Formula* f, int polarity=1);
 protected:
   PolarityAwareFormulaTransformer();
 

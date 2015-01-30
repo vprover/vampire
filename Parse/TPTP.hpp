@@ -278,18 +278,22 @@ public:
   /**
    * Implements lexer and parser exceptions.
    */
-  class Exception 
+  class ParseErrorException 
     : public ::Exception
   {
   public:
-    Exception(vstring message,Token& tok);
-    Exception(vstring message,int position);
+    ParseErrorException(vstring message) : _message(message) {}
+    ParseErrorException(vstring message,Token& tok);
+    ParseErrorException(vstring message,int position);
     void cry(ostream&);
-    ~Exception() {}
+    ~ParseErrorException() {}
   protected:
     vstring _message;
-  }; // TPTP::Exception
+  }; // TPTP::ParseErrorException
   friend class Exception;
+
+#define PARSE_ERROR(msg,tok) \
+  throw ParseErrorException(msg,tok)
 
   TPTP(istream& in);
   ~TPTP();

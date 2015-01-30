@@ -47,7 +47,7 @@ private:
   // /** constants from the problem, used when the problem has no equality */
   // Set<Term*> _problemConstants;
   /** problem properties, passed in the constructor */
-  Property* _property;
+  // Property* _property; // MS: unused
 };
 
 };

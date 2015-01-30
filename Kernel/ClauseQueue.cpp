@@ -113,6 +113,14 @@ bool ClauseQueue::remove(Clause* c)
 
     if (next == 0 || lessThan(c,next->clause)) {
       if(h==0) {
+
+#if VDEBUG
+       ClauseQueue::Iterator it(*this);
+       while(it.hasNext()){
+         ASS(it.next()!=c);
+       }
+#endif
+
 	return false;
       }
       h--;
@@ -151,6 +159,7 @@ Clause* ClauseQueue::pop()
   while (_height > 0 && ! _left.nodes[_height]) {
     _height--;
   }
+
   return c;
 } // ClauseQueue::pop
 
@@ -170,9 +179,6 @@ void ClauseQueue::removeAll()
 #if VDEBUG
 void ClauseQueue::output(ostream& str) const
 {
-  if (_height < 0) {
-    return;
-  }
   for (const Node* node = _left.nodes[0]; node; node=node->nodes[0]) {
     str << node->clause->toString() << '\n';
   }

@@ -366,7 +366,7 @@ struct AIGPrenexTransformer::QuantUnifierN
 {
 public:
   QuantUnifierN(AIGPrenexTransformer& parent, AIG::VarSet* freeVars, size_t aigCnt, QuantAIG* aigs)
-   : _parent(parent), _aig(parent._aig), _nextAvailVar(0), _rnm(aigCnt), _aigCnt(aigCnt), _aigs(aigs)
+   : /*_parent(parent), MS: unused */ _aig(parent._aig), _nextAvailVar(0), _rnm(aigCnt), _aigCnt(aigCnt), _aigs(aigs)
   {
     CALL("AIGPrenexTransformer::QuantUnifier::QuantUnifier");
 
@@ -596,7 +596,7 @@ private:
     return res;
   }
 
-  AIGPrenexTransformer& _parent;
+  // AIGPrenexTransformer& _parent; // MS: unused
   AIG& _aig;
 
   DHSet<unsigned> _usedVars;
@@ -879,7 +879,7 @@ AIGRef AIGMiniscopingTransformer::apply(AIGRef a0)
 
 struct AIGFactorizingTransformer::LocalFactorizer
 {
-  LocalFactorizer(AIGFactorizingTransformer& parent) : _parent(parent), _aig(parent._aig) {}
+  LocalFactorizer(AIGFactorizingTransformer& parent) : /*_parent(parent), MS: unused*/ _aig(parent._aig) {}
 
   static AIGRef getSiblingDisjunct(AIGRef disjunction, AIGRef oneChild)
   {
@@ -1046,7 +1046,7 @@ private:
    */
   DHMap<AIGRef,AIGStack> _occMap;
 
-  AIGFactorizingTransformer& _parent;
+  // AIGFactorizingTransformer& _parent; // MS: unused
   AIG& _aig;
 };
 

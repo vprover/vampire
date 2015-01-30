@@ -295,7 +295,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
 void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onPassiveRemoved");
-  
+
   ASS(c->store()==Clause::PASSIVE);
   c->setStore(Clause::NONE);
   //at this point the c object can be deleted
@@ -310,7 +310,6 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
-
 }
 
 /**
@@ -977,7 +976,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
  */
 void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
 {
-  CALL("SaturationAlgorithm::removeBackwardSimplifiedClause");
+  CALL("SaturationAlgorithm::removeActiveOrPassiveClause");
 
   if (_clauseActivationInProgress) {
     //we cannot remove clause now, as there indexes might be traversed now,

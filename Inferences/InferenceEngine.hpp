@@ -198,6 +198,7 @@ public:
   }
 };
 
+/*
 class DummyFSE
 : public ForwardSimplificationEngine
 {
@@ -225,7 +226,7 @@ public:
     simplifications=BwSimplificationRecordIterator::getEmpty();
   }
 };
-
+*/
 
 class CompositeISE
 : public ImmediateSimplificationEngine

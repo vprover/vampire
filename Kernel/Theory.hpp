@@ -6,6 +6,8 @@
 #ifndef __Theory__
 #define __Theory__
 
+#include <math.h>
+
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
@@ -40,6 +42,21 @@ public:
   IntegerConstantType operator*(const IntegerConstantType& num) const;
   IntegerConstantType operator/(const IntegerConstantType& num) const;
   IntegerConstantType operator%(const IntegerConstantType& num) const;
+  
+  float realDivide(const IntegerConstantType& num) const { 
+    if(num._val==0) throw ArithmeticException();
+    return ((float)_val)/num._val; 
+  }
+  IntegerConstantType quotientE(const IntegerConstantType& num) const { 
+    if(num._val>0) return IntegerConstantType(::floor(realDivide(num)));
+    else return IntegerConstantType(::ceil(realDivide(num)));
+  }
+  IntegerConstantType quotientT(const IntegerConstantType& num) const { 
+    return IntegerConstantType(::trunc(realDivide(num)));
+  }
+  IntegerConstantType quotientF(const IntegerConstantType& num) const { 
+    return IntegerConstantType(::floor(realDivide(num)));
+  }
 
   bool operator==(const IntegerConstantType& num) const;
   bool operator>(const IntegerConstantType& num) const;
@@ -210,24 +227,55 @@ public:
 
     INT_SUCCESSOR,
     INT_UNARY_MINUS,
-    INT_PLUS,
-    INT_MINUS,
+    INT_PLUS,  // sum in TPTP
+    INT_MINUS, // difference in TPTP
     INT_MULTIPLY,
     INT_DIVIDE,
     INT_MODULO,
+    INT_QUOTIENT_E,
+    INT_QUOTIENT_T,
+    INT_QUOTIENT_F,
+    INT_REMAINDER_E,
+    INT_REMAINDER_T,
+    INT_REMAINDER_F,
+    INT_FLOOR,
+    INT_CEILING,
+    INT_TRUNCATE,
+    INT_ROUND,
 
     RAT_UNARY_MINUS,
-    RAT_PLUS,
-    RAT_MINUS,
+    RAT_PLUS, // sum in TPTP
+    RAT_MINUS,// difference in TPTP
     RAT_MULTIPLY,
     RAT_DIVIDE,
+    RAT_QUOTIENT,
+    RAT_QUOTIENT_E,
+    RAT_QUOTIENT_T,
+    RAT_QUOTIENT_F,
+    RAT_REMAINDER_E,
+    RAT_REMAINDER_T,
+    RAT_REMAINDER_F,
+    RAT_FLOOR,
+    RAT_CEILING,
+    RAT_TRUNCATE,
+    RAT_ROUND,
 
     REAL_UNARY_MINUS,
-    REAL_PLUS,
-    REAL_MINUS,
+    REAL_PLUS,  // plus in TPTP
+    REAL_MINUS, // difference in TPTP
     REAL_MULTIPLY,
     REAL_DIVIDE,
-
+    REAL_QUOTIENT,
+    REAL_QUOTIENT_E,
+    REAL_QUOTIENT_T,
+    REAL_QUOTIENT_F,
+    REAL_REMAINDER_E,
+    REAL_REMAINDER_T,
+    REAL_REMAINDER_F,
+    REAL_FLOOR,
+    REAL_CEILING,
+    REAL_TRUNCATE,
+    REAL_ROUND,
 
     //conversion functions
     INT_TO_INT,
