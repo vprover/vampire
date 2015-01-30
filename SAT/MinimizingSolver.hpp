@@ -76,7 +76,6 @@ private:
 
   unsigned _varCnt;
   SATSolverSCP _inner;
-  bool _splitclausesonly;
 
   /**
    * If true, _asgn assignment corresponds to the assignment in
