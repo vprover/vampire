@@ -186,6 +186,42 @@ SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCC
   }
 }
 
+static const int AGE_NOT_FILLED = -1;
+
+int SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge()
+{
+  CALL("SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge");
+
+  int max = 0;
+
+  unsigned maxSatVar = _parent.maxSatVar();
+  for(unsigned i=1; i<=maxSatVar; i++) {
+    SATSolver::VarAssignment asgn = _solver->getAssignment(i);
+    if(asgn==SATSolver::DONT_CARE) {
+      continue;
+    }
+    SATLiteral sl(i, asgn==SATSolver::TRUE);
+    SplitLevel name = _parent.getNameFromLiteral(sl);
+    if (!_parent.isUsedName(name)) {
+      continue;
+    }
+    Clause* compCl = _parent.getComponentClause(name);
+    if (compCl->length() != 1) {
+      continue;
+    }
+    Literal* l = (*compCl)[0];
+    if (l->ground() && l->isEquality() && l->isPositive()) {
+      int clAge = compCl->age();
+
+      if (clAge > max) {
+        max = clAge;
+      }
+    }
+  }
+
+  return max;
+}
+
 SATSolver::Status SplittingBranchSelector::processDPConflicts()
 {
   CALL("SplittingBranchSelector::processDPConflicts");
@@ -266,7 +302,14 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
       Clause* compCl;
       SplitLevel level = _parent.tryGetComponentNameOrAddNew(1,&lit,0,compCl);
-      // TODO: there is no obvious parent for the new component, how should we initialize its age ?
+      if (compCl->age() == AGE_NOT_FILLED) { // added new
+        int parentMaxAge = assertedGroundPositiveEqualityCompomentMaxAge();
+        // This is the max of all the positive ground units that went into the DP.
+        // As such, is overestimates that "true age" that could be computed
+        // as the max over the true parents of this equality
+        // (we are lazy and cannot know the true parents without effort).
+        compCl->setAge(parentMaxAge);
+      }
 
       SATLiteral slit = _parent.getLiteralFromName(level);
       ASS(slit.polarity());
@@ -936,7 +979,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, 
           new Inference(Inference::SAT_SPLITTING_COMPONENT));
 
-  compCl->setAge(orig ? orig->age() : 0);
+  compCl->setAge(orig ? orig->age() : AGE_NOT_FILLED);
 
   _db[name] = new SplitRecord(compCl);
   compCl->setSplits(SplitSet::getSingleton(name));

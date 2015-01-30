@@ -68,6 +68,8 @@ private:
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
+  int assertedGroundPositiveEqualityCompomentMaxAge();
+
   //options
   bool _eagerRemoval;
   bool _handleZeroImplied;
@@ -181,7 +183,8 @@ public:
     ASS_L(name,_db.size());
     return (_db[name] != 0);
   }
-    
+  Clause* getComponentClause(SplitLevel name) const;
+
   SplitLevel splitLevelCnt() const { return _db.size(); }
   unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
 
@@ -189,8 +192,6 @@ public:
 private:
   friend class SplittingBranchSelector;
 
-  Clause* getComponentClause(SplitLevel name) const; // Martin: currently unused
-  
   bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
   
   SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
