@@ -844,6 +844,8 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, 
           new Inference(Inference::SAT_SPLITTING_COMPONENT));
 
+  compCl->setAge(orig ? orig->age() : 0);
+
   _db[name] = new SplitRecord(compCl);
   compCl->setSplits(SplitSet::getSingleton(name));
   compCl->setComponent(true);
