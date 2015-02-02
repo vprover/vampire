@@ -379,8 +379,6 @@ void SplittingBranchSelector::addSatClauses(
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
 
-  TimeCounter tc(TC_SPLITTING_COMPONENT_SELECTION);
-
   RSTAT_CTR_INC_MANY("ssat_sat_clauses",regularClauses.size()+conflictClauses.size());  
   
   _solver->addClauses(pvi( SATClauseStack::ConstIterator(regularClauses) ));
@@ -403,6 +401,8 @@ void SplittingBranchSelector::addSatClauses(
     handleSatRefutation(satRefutation); // noreturn!
   }
   ASS_EQ(stat,SATSolver::SATISFIABLE);
+
+  TimeCounter tc(TC_SPLITTING_COMPONENT_SELECTION);
 
   unsigned maxSatVar = _parent.maxSatVar();
   unsigned _usedcnt=0; // for the statistics below
