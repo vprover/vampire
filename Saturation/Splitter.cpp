@@ -244,7 +244,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
       gndAssignment.reset();
       // collects only ground literals, because it known only about them ...
       s2f.collectAssignment(*_solver, gndAssignment); 
-      // ... morerover, _dp->addLiterals will filter the set anyway
+      // ... moreover, _dp->addLiterals will filter the set anyway
 
       _dp->reset();
       _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ));
@@ -283,6 +283,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
   if (_ccModel) {
+    TimeCounter tc(TC_CCMODEL);
+
     static LiteralStack model;
     model.reset();
 
