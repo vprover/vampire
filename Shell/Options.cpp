@@ -1032,7 +1032,7 @@ void Options::Options::init()
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
     _splittingEagerRemoval.setExperimental();
     _splittingEagerRemoval.reliesOn(_splitting.is(equal(true)));
-    _splittingEagerRemoval.reliesOn(_splittingNonsplittableComponents.is(notEqual(SplittingNonsplittableComponents::NONE)));
+    _splittingEagerRemoval.reliesOn(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::OFF)));
     _splittingEagerRemoval.setRandomChoices({"on","off"});
 
     _splittingHandleZeroImplied = BoolOptionValue("splitting_handle_zero_implied","shzi",false);
