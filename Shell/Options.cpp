@@ -1032,7 +1032,9 @@ void Options::Options::init()
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
     _splittingEagerRemoval.setExperimental();
     _splittingEagerRemoval.reliesOn(_splitting.is(equal(true)));
-    _splittingEagerRemoval.reliesOn(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::OFF)));
+    // if minimize is off then makes no difference
+    // if minimize is sco then we could have a conflict clause added infinitely often
+    _splittingEagerRemoval.reliesOn(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
     _splittingEagerRemoval.setRandomChoices({"on","off"});
 
     _splittingHandleZeroImplied = BoolOptionValue("splitting_handle_zero_implied","shzi",false);
@@ -1556,7 +1558,18 @@ void Options::set(const char* name,const char* value)
   }
   catch (const ValueNotFoundException&) {
     if (!_ignoreMissing.actualValue) {
-      USER_ERROR((vstring)name + " is not a valid option");
+      vstring msg = (vstring)name + " is not a valid option";
+      Stack<vstring> sim = getSimilarOptionNames(name,false);
+      Stack<vstring>::Iterator sit(sim);
+      if(sit.hasNext()){
+        vstring first = sit.next();
+        msg += "\n\tMaybe you meant ";
+        if(sit.hasNext()) msg += "one of:\n\t\t";
+        msg += first;
+        while(sit.hasNext()){ msg+="\n\t\t"+sit.next();}
+        msg+="\n\tYou can use -explain <option> to explain an option";
+      }
+      USER_ERROR(msg);
     }
   }
 } // Options::set/2
@@ -1590,7 +1603,18 @@ void Options::setShort(const char* name,const char* value)
   }
   catch (const ValueNotFoundException&) {
     if (!_ignoreMissing.actualValue) {
-      USER_ERROR((vstring)name + " is not a valid option as a short option");
+      vstring msg = (vstring)name + " is not a valid short option (did you mean --?)";
+      Stack<vstring> sim = getSimilarOptionNames(name,true);
+      Stack<vstring>::Iterator sit(sim);
+      if(sit.hasNext()){
+        vstring first = sit.next();
+        msg += "\n\tMaybe you meant ";
+        if(sit.hasNext()) msg += "one of:\n\t\t";
+        msg += first;
+        while(sit.hasNext()){ msg+="\n\t\t"+sit.next();}
+        msg+="\n\tYou can use -explain <option> to explain an option";
+      }
+      USER_ERROR(msg);
     }
   }
 } // Options::setShort
@@ -1691,18 +1715,33 @@ void Options::output (ostream& str) const
     BYPASSING_ALLOCATOR;
 
      AbstractOptionValue* option;
+     vstring name = explainOption();
      try{
-       option = _lookup.findLong(explainOption());
+       option = _lookup.findLong(name);
      }
      catch(const ValueNotFoundException&){ 
        try{
-         option = _lookup.findShort(explainOption());
+         option = _lookup.findShort(name);
        }
        catch(const ValueNotFoundException&){
          option = 0;
        }
      }
-     if(!option){ str << explainOption() << " not a known option, see help" << endl; }
+     if(!option){ 
+       str << name << " not a known option" << endl;
+       Stack<vstring> sim_s = getSimilarOptionNames(name,true);
+       Stack<vstring> sim_l = getSimilarOptionNames(name,false);
+       VirtualIterator<vstring> sit = pvi(getConcatenatedIterator(
+           Stack<vstring>::Iterator(sim_s),Stack<vstring>::Iterator(sim_l))); 
+        if(sit.hasNext()){
+          vstring first = sit.next();
+          str << "\tMaybe you meant ";
+          if(sit.hasNext()) str << "one of:\n\t\t";
+          str << first;
+          while(sit.hasNext()){ str << "\n\t\t"+sit.next();}
+          str << endl;
+        }
+     }
      else{
        vstringstream vs;
        option->output(vs);
