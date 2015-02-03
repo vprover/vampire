@@ -974,7 +974,7 @@ void Options::Options::init()
     _splitting.addProblemConstraint(hasNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
     
-    _splitAtActivation = BoolOptionValue("split_at_activation","",false);
+    _splitAtActivation = BoolOptionValue("split_at_activation","sac",false);
     _splitAtActivation.description="Split a clause when it is activated, default is to split when it is processed";
     _lookup.insert(&_splitAtActivation);
     _splitAtActivation.reliesOn(_splitting.is(equal(true)));
