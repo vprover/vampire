@@ -202,9 +202,8 @@ void Options::Options::init()
     _thanks.description="";
     _lookup.insert(&_thanks);
     _thanks.setExperimental();
-
-    _timeLimitInDeciseconds = TimeLimitOptionValue("time_limit","t",600);
-    _timeLimitInDeciseconds.description="Time limit in wall clock seconds, you can use s,m,h,d suffixes also i.e. 60s, 5m";
+    _timeLimitInDeciseconds = TimeLimitOptionValue("time_limit","t",600); // stores deciseconds, but reads seconds from the user by default
+    _timeLimitInDeciseconds.description="Time limit in wall clock seconds, you can use d,s,m,h,D suffixes also i.e. 60s, 5m";
     _lookup.insert(&_timeLimitInDeciseconds);
 
     _timeStatistics = BoolOptionValue("time_statistics","",false);
@@ -973,8 +972,7 @@ void Options::Options::init()
     _splitting.addConstraint(If(equal(true)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION))));
     _splitting.addProblemConstraint(hasNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
-
-    _splitAtActivation = BoolOptionValue("split_at_activation","saa",false);
+    _splitAtActivation = BoolOptionValue("split_at_activation","sac",false);
     _splitAtActivation.description="Split a clause when it is activated, default is to split when it is processed";
     _lookup.insert(&_splitAtActivation);
     _splitAtActivation.reliesOn(_splitting.is(equal(true)));
@@ -1042,6 +1040,9 @@ void Options::Options::init()
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
     _splittingEagerRemoval.setExperimental();
     _splittingEagerRemoval.reliesOn(_splitting.is(equal(true)));
+    // if minimize is off then makes no difference
+    // if minimize is sco then we could have a conflict clause added infinitely often
+    _splittingEagerRemoval.reliesOn(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
     _splittingEagerRemoval.setRandomChoices({"on","off"});
 
     _splittingHandleZeroImplied = BoolOptionValue("splitting_handle_zero_implied","shzi",false);
@@ -1565,7 +1566,18 @@ void Options::set(const char* name,const char* value)
   }
   catch (const ValueNotFoundException&) {
     if (!_ignoreMissing.actualValue) {
-      USER_ERROR((vstring)name + " is not a valid option");
+      vstring msg = (vstring)name + " is not a valid option";
+      Stack<vstring> sim = getSimilarOptionNames(name,false);
+      Stack<vstring>::Iterator sit(sim);
+      if(sit.hasNext()){
+        vstring first = sit.next();
+        msg += "\n\tMaybe you meant ";
+        if(sit.hasNext()) msg += "one of:\n\t\t";
+        msg += first;
+        while(sit.hasNext()){ msg+="\n\t\t"+sit.next();}
+        msg+="\n\tYou can use -explain <option> to explain an option";
+      }
+      USER_ERROR(msg);
     }
   }
 } // Options::set/2
@@ -1599,7 +1611,18 @@ void Options::setShort(const char* name,const char* value)
   }
   catch (const ValueNotFoundException&) {
     if (!_ignoreMissing.actualValue) {
-      USER_ERROR((vstring)name + " is not a valid option as a short option");
+      vstring msg = (vstring)name + " is not a valid short option (did you mean --?)";
+      Stack<vstring> sim = getSimilarOptionNames(name,true);
+      Stack<vstring>::Iterator sit(sim);
+      if(sit.hasNext()){
+        vstring first = sit.next();
+        msg += "\n\tMaybe you meant ";
+        if(sit.hasNext()) msg += "one of:\n\t\t";
+        msg += first;
+        while(sit.hasNext()){ msg+="\n\t\t"+sit.next();}
+        msg+="\n\tYou can use -explain <option> to explain an option";
+      }
+      USER_ERROR(msg);
     }
   }
 } // Options::setShort
@@ -1700,18 +1723,33 @@ void Options::output (ostream& str) const
     BYPASSING_ALLOCATOR;
 
      AbstractOptionValue* option;
+     vstring name = explainOption();
      try{
-       option = _lookup.findLong(explainOption());
+       option = _lookup.findLong(name);
      }
      catch(const ValueNotFoundException&){ 
        try{
-         option = _lookup.findShort(explainOption());
+         option = _lookup.findShort(name);
        }
        catch(const ValueNotFoundException&){
          option = 0;
        }
      }
-     if(!option){ str << explainOption() << " not a known option, see help" << endl; }
+     if(!option){ 
+       str << name << " not a known option" << endl;
+       Stack<vstring> sim_s = getSimilarOptionNames(name,true);
+       Stack<vstring> sim_l = getSimilarOptionNames(name,false);
+       VirtualIterator<vstring> sit = pvi(getConcatenatedIterator(
+           Stack<vstring>::Iterator(sim_s),Stack<vstring>::Iterator(sim_l))); 
+        if(sit.hasNext()){
+          vstring first = sit.next();
+          str << "\tMaybe you meant ";
+          if(sit.hasNext()) str << "one of:\n\t\t";
+          str << first;
+          while(sit.hasNext()){ str << "\n\t\t"+sit.next();}
+          str << endl;
+        }
+     }
      else{
        vstringstream vs;
        option->output(vs);
@@ -2091,6 +2129,10 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   end--;
   float multiplier = 10.0; // by default assume seconds
   switch (*end) {
+  case 'd': // deciseconds
+      multiplier = 1.0;
+      *end = 0;
+      break;
   case 's': // seconds
     multiplier = 10.0;
     *end = 0;
@@ -2103,7 +2145,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
     multiplier = 36000.0;
     *end = 0;
     break;
-  case 'd': // days
+  case 'D': // days
     multiplier = 864000.0;
     *end = 0;
     break;
