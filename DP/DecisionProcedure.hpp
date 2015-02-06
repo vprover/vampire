@@ -32,7 +32,7 @@ public:
 
   virtual ~DecisionProcedure() {}
   /** add literals */
-  virtual void addLiterals(LiteralIterator lits) = 0;
+  virtual void addLiterals(LiteralIterator lits, bool onlyEqualites = false) = 0;
   /** return the result */
   virtual Status getStatus(bool getMultipleCores=false) = 0;
 

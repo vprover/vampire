@@ -288,7 +288,11 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     static LiteralStack model;
     model.reset();
 
+    _dp->reset();
+    _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ),true /*only equalities now*/);
+    ALWAYS(_dp->getStatus() == DecisionProcedure::SATISFIABLE);
     _dp->getModel(model);
+
     _trueInCCModel.reset();
 
     // cout << "Obtained a model " << endl;

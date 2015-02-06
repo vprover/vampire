@@ -44,7 +44,7 @@ public:
 
   SimpleCongruenceClosure(Ordering& ord);
 
-  virtual void addLiterals(LiteralIterator lits);
+  virtual void addLiterals(LiteralIterator lits, bool onlyEqualites);
 
   virtual Status getStatus(bool retrieveMultipleCores);
   virtual unsigned getUnsatCoreCount() { return _unsatEqs.size(); }

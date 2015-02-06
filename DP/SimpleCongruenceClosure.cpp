@@ -151,7 +151,7 @@ void SimpleCongruenceClosure::reset()
 {
   CALL("SimpleCongruenceClosure::reset");
 
-#if 0
+#if 1
   _cInfos.expand(1);
   _sigConsts.reset();
   _pairNames.reset();
@@ -425,7 +425,7 @@ SimpleCongruenceClosure::CEq SimpleCongruenceClosure::convertFOEquality(Literal*
  *    otherwise, equate it with a negative constant
  *
  */
-void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
+void SimpleCongruenceClosure::addLiterals(LiteralIterator lits, bool onlyEqualites)
 {
   CALL("SimpleCongruenceClosure::addLiterals");
   ASS(!_hadPropagated);
@@ -436,16 +436,23 @@ void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
       //for now we ignore non-ground literals
       continue;
     }
-    if(l->isEquality()) {
+    bool isEq = l->isEquality();
+
+    if(isEq && l->isPositive()) {
       CEq eq = convertFOEquality(l);
-      if(l->isPositive()) {
-	addPendingEquality(eq);
-      }
-      else {
-	_negEqualities.push(eq);
-      }
+      addPendingEquality(eq);
+      continue;
     }
-    else if(isDistinctPred(l)) {
+
+    if (onlyEqualites) {
+      continue;
+    }
+
+    if (isEq) {
+      ASS(!(l->isPositive()));
+      CEq eq = convertFOEquality(l);
+      _negEqualities.push(eq);
+    } else if(isDistinctPred(l)) {
       readDistinct(l);
     }
     else {
