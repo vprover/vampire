@@ -151,7 +151,7 @@ void SimpleCongruenceClosure::reset()
 {
   CALL("SimpleCongruenceClosure::reset");
 
-#if 1
+#if 0
   _cInfos.expand(1);
   _sigConsts.reset();
   _pairNames.reset();

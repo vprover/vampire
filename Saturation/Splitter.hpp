@@ -82,6 +82,7 @@ private:
 
   SATSolverSCP _solver;
   ScopedPtr<DecisionProcedure> _dp;
+  ScopedPtr<SimpleCongruenceClosure> _dpModel;
   
   /**
    * Contains selected component names (splitlevels)

@@ -112,6 +112,9 @@ void SplittingBranchSelector::init()
     _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
 
     _ccModel = (_parent.getOptions().splittingCongruenceClosure() == Options::SplittingCongruenceClosure::MODEL);
+    if (_ccModel) {
+      _dpModel = new DP::SimpleCongruenceClosure(_parent.getOrdering());
+    }
   }
 }
 
@@ -288,10 +291,10 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     static LiteralStack model;
     model.reset();
 
-    _dp->reset();
-    _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ),true /*only equalities now*/);
-    ALWAYS(_dp->getStatus() == DecisionProcedure::SATISFIABLE);
-    _dp->getModel(model);
+    _dpModel->reset();
+    _dpModel->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ),true /*only equalities now*/);
+    ALWAYS(_dpModel->getStatus(false) == DecisionProcedure::SATISFIABLE);
+    _dpModel->getModel(model);
 
     _trueInCCModel.reset();
 
