@@ -204,8 +204,8 @@ void Options::Options::init()
     _lookup.insert(&_thanks);
     _thanks.setExperimental();
     
-    _timeLimitInDeciseconds = TimeLimitOptionValue("time_limit","t",600);
-    _timeLimitInDeciseconds.description="Time limit in wall clock seconds, you can use s,m,h,d suffixes also i.e. 60s, 5m";
+    _timeLimitInDeciseconds = TimeLimitOptionValue("time_limit","t",600); // stores deciseconds, but reads seconds from the user by default
+    _timeLimitInDeciseconds.description="Time limit in wall clock seconds, you can use d,s,m,h,D suffixes also i.e. 60s, 5m";
     _lookup.insert(&_timeLimitInDeciseconds);
     
     _timeStatistics = BoolOptionValue("time_statistics","",false);
@@ -2121,6 +2121,10 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   end--;
   float multiplier = 10.0; // by default assume seconds
   switch (*end) {
+  case 'd': // deciseconds
+      multiplier = 1.0;
+      *end = 0;
+      break;
   case 's': // seconds
     multiplier = 10.0;
     *end = 0;
@@ -2133,7 +2137,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
     multiplier = 36000.0;
     *end = 0;
     break;
-  case 'd': // days
+  case 'D': // days
     multiplier = 864000.0;
     *end = 0;
     break;

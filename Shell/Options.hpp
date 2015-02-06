@@ -1058,8 +1058,8 @@ private:
         
     };
     /**
-     * Need to read the time limit. By default it assumes deciseconds but you can give
-     * a multiplier i.e. s,m,h,d for seconds,minutes,hours,days
+     * Need to read the time limit. By default it assumes seconds (and stores deciseconds) but you can give
+     * a multiplier i.e. d,s,m,h,D for deciseconds,seconds,minutes,hours,Days
      * @author Giles
      */
     struct TimeLimitOptionValue : public OptionValue<int>{
@@ -1072,9 +1072,9 @@ private:
         virtual void output(vstringstream& out) const {
             CALL("Options::TimeLimitOptionValue::output");
             AbstractOptionValue::output(out);
-            out << "\tdefault: " << defaultValue << endl;;
+            out << "\tdefault: " << defaultValue << "d" << endl;
         }
-        virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
+        virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value)+"d"; }
     };
     
     /**
@@ -1761,7 +1761,7 @@ public:
   
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
-  int getTimeLimit(){return _timeLimitInDeciseconds.actualValue;}
+  // int getTimeLimit(){return _timeLimitInDeciseconds.actualValue;} // MS: unused and the name does not stipulate the units (deciseconds)
   int getWhileNumber(){return _whileNumber.actualValue;}
   int getFunctionNumber(){return _functionNumber.actualValue;}
 
