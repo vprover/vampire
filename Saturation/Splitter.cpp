@@ -640,6 +640,8 @@ void Splitter::recordSATClauseForAddition(SATClause* cl, bool branchRefutation)
 
   cl = Preprocess::removeDuplicateLiterals(cl);
   if(!cl) {
+    RSTAT_CTR_INC("splitter_tautology");
+
     return;
   }
   if(branchRefutation) {
