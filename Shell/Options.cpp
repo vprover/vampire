@@ -2375,11 +2375,7 @@ void Options::setForcedOptionValues()
 {
   CALL("Options::setForcedOptionValues");
 
-  if(_forcedOptions.actualValue.empty()) return;
-
-  readOptionsString(_forcedOptions.actualValue);
-
-  // Also set the options forced by mode
+  // Set the options forced by mode
   switch (_mode.actualValue) {
   case Mode::CASC:
   case Mode::CASC_LTB:
@@ -2389,6 +2385,11 @@ void Options::setForcedOptionValues()
   default:
     break;
   }
+
+  if(_forcedOptions.actualValue.empty()) return;
+
+  readOptionsString(_forcedOptions.actualValue);
+
 }
 
 /**
