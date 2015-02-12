@@ -369,6 +369,23 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
         _selected.remove(negLvl);
         removedComps.push(negLvl);
       }
+    } else {
+      if(_ccModel && _selected.find(negLvl) && (_solver->getAssignment(satVar) == SATSolver::TRUE)) {
+        // The minimized model from the SATSolver says that a removal should happen for the negative equality.
+        // At the same ccModel has a better way of expressing the (positive version of the) equality and so said don't-care instead.
+        // But we must remove the negative equality now (even though we are lazy about removals in general here)
+#ifdef VDEBUG
+        {
+          Clause* cc = _parent.getComponentClause(negLvl);
+          ASS(cc && cc->size() == 1);
+          Literal* l = (*cc)[0];
+          ASS(l->ground() && l->isEquality() && l->isNegative());
+        }
+#endif
+
+        _selected.remove(negLvl);
+        removedComps.push(negLvl);
+      }
     }
     break;
   default:
