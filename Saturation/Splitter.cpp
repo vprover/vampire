@@ -288,6 +288,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   if (_ccModel) {
     TimeCounter tc(TC_CCMODEL);
 
+    RSTAT_CTR_INC("ssat_dp_model");
+
     static LiteralStack model;
     model.reset();
 
@@ -295,6 +297,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     _dpModel->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ),true /*only equalities now*/);
     ALWAYS(_dpModel->getStatus(false) == DecisionProcedure::SATISFIABLE);
     _dpModel->getModel(model);
+
+    RSTAT_MCTR_INC("ssat_dp_model_size",model.size());
 
     _trueInCCModel.reset();
 
@@ -313,6 +317,9 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
       SplitLevel level = _parent.tryGetComponentNameOrAddNew(1,&lit,0,compCl);
       if (compCl->age() == AGE_NOT_FILLED) { // added new
         int parentMaxAge = assertedGroundPositiveEqualityCompomentMaxAge();
+
+        RSTAT_CTR_INC("ssat_dp_model_components");
+
         // This is the max of all the positive ground units that went into the DP.
         // As such, is overestimates that "true age" that could be computed
         // as the max over the true parents of this equality
