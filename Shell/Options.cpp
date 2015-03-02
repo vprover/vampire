@@ -1015,7 +1015,7 @@ void Options::Options::init()
               Or<SplittingLiteralPolarityAdvice>(_satSolver.is(equal(SatSolver::BUFFERED_MINISAT))));
 
     _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("splitting_minimize_model","smm",
-                                                                        SplittingMinimizeModel::SCO,{"off","sco","all"});
+                                                                        SplittingMinimizeModel::ALL,{"off","sco","all"});
     
     _splittingMinimizeModel.description="Minimize the SAT-solver model by replacing concrete values with don't-cares"
                                         " provided <all> the sat clauses (or only the split clauses with <sco>) remain provably satisfied"
