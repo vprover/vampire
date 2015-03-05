@@ -368,12 +368,14 @@ void Options::Options::init()
     _equalityPropagation.addProblemConstraint(notWithCat(Property::FEQ));
     _equalityPropagation.setRandomChoices({"on","off"});
     
+    // Get rid of because of AVATAR? Andrei suggests
     _flattenTopLevelConjunctions = BoolOptionValue("flatten_top_level_conjunctions","",false);
     _flattenTopLevelConjunctions.description=
     "split formulas with top-level (up to universal quantification) conjunctions into several formulas";
     _lookup.insert(&_flattenTopLevelConjunctions);
     _flattenTopLevelConjunctions.tag(OptionTag::PREPROCESSING);
     _flattenTopLevelConjunctions.setRandomChoices({"off","off","off","on"}); // Added random choices biased to default
+    _flattenTopLevelConjunctions.setExperimental();
     
     _functionDefinitionElimination = ChoiceOptionValue<FunctionDefinitionElimination>("function_definition_elimination","fde",
                                                                                       FunctionDefinitionElimination::ALL,{"all","none","unused"});
@@ -399,6 +401,7 @@ void Options::Options::init()
     "Preprocessing rule that tries to discover whether polarities of predicates can be changed, so that problem becomes horn. If successful, marks all clauses with a positive literal as axioms, and those with only negatives as conjectures.";
     _lookup.insert(&_hornRevealing);
     _hornRevealing.tag(OptionTag::PREPROCESSING);
+    _hornRevealing.setExperimental();
     
     _predicateDefinitionInlining = ChoiceOptionValue<InliningMode>("predicate_definition_inlining","",InliningMode::OFF,
                                                                    {"axioms_only","non_growwing","off","on"});
@@ -406,6 +409,7 @@ void Options::Options::init()
     "Determines whether predicate definitions should be inlined. Non_growing rules out inlinings that would lead to increase in the size of the problem";
     _lookup.insert(&_predicateDefinitionInlining);
     _predicateDefinitionInlining.tag(OptionTag::PREPROCESSING);
+    _predicateDefinitionInlining.setExperimental();
     
     _predicateDefinitionMerging = BoolOptionValue("predicate_definition_merging","",false);
     _predicateDefinitionMerging.description=
@@ -417,6 +421,8 @@ void Options::Options::init()
     "and use it to eliminate the predicate q(X).";
     _lookup.insert(&_predicateDefinitionMerging);
     _predicateDefinitionMerging.tag(OptionTag::PREPROCESSING);
+    // Unsound??
+    _predicateDefinitionMerging.setExperimental();
     
     _predicateEquivalenceDiscovery = ChoiceOptionValue<PredicateEquivalenceDiscoveryMode>("predicate_equivalence_discovery","",
                                                                                           PredicateEquivalenceDiscoveryMode::OFF,
