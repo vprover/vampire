@@ -436,8 +436,6 @@ void SplittingBranchSelector::addSatClauses(
   }
   ASS_EQ(stat,SATSolver::SATISFIABLE);
 
-  TimeCounter tc(TC_SPLITTING_COMPONENT_SELECTION);
-
   unsigned maxSatVar = _parent.maxSatVar();
   unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
@@ -448,6 +446,7 @@ void SplittingBranchSelector::addSatClauses(
       _usedcnt++;
     }
   }
+  /*
   if(maxSatVar>=1){
     int percent = (_usedcnt *100) / maxSatVar;
     RSTAT_MCTR_INC("minimise_model_percent",percent);
@@ -455,6 +454,7 @@ void SplittingBranchSelector::addSatClauses(
   
   RSTAT_CTR_INC_MANY("ssat_usual_activations", addedComps.size());
   RSTAT_CTR_INC_MANY("ssat_usual_deactivations", removedComps.size());
+  */
 }
 
 /**
@@ -492,13 +492,15 @@ void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack
       _usedcnt++;
     }
   }
+  /*
   if(maxSatVar>=1){
     int percent = (_usedcnt *100) / maxSatVar;
     RSTAT_MCTR_INC("minimise_model_percent",percent);
   }
 
   RSTAT_CTR_INC_MANY("ssat_added_by_flush",addedComps.size());
-  RSTAT_CTR_INC_MANY("ssat_removed_by_flush",removedComps.size());  
+  RSTAT_CTR_INC_MANY("ssat_removed_by_flush",removedComps.size());
+  */
 }
 
 /**
@@ -660,8 +662,8 @@ void Splitter::onAllProcessed()
 {
   CALL("Splitter::onAllProcessed");
 
-  RSTAT_MCTR_INC("splitter_EmptyAtOnce",_conflictClausesToBeAdded.size());
-  RSTAT_MCTR_INC("splitter_callsSinceEmpty",_clausesSinceEmpty);
+  // RSTAT_MCTR_INC("splitter_EmptyAtOnce",_conflictClausesToBeAdded.size());
+  // RSTAT_MCTR_INC("splitter_callsSinceEmpty",_clausesSinceEmpty);
   _clausesSinceEmpty = 0;
   
   bool flushing = false;
@@ -700,33 +702,37 @@ void Splitter::onAllProcessed()
   newZeroImplied.reset();
   _branchSelector.getNewZeroImpliedSplits(newZeroImplied);
   
-  if(toRemove.isNonEmpty()) {
-    removeComponents(toRemove);
-  }
-  if(toAdd.isNonEmpty()) {
-    addComponents(toAdd);
-  }
+  {
+    TimeCounter tc(TC_SPLITTING_MODEL_UPDATE); // includes component removals and additions, also processing fast clauses and zero implied splits
 
-  // now that new activ-ness has been determined  
-  // we can put back the fast clauses, if any
-  while(_fastClauses.isNonEmpty()) {
-    Clause* rcl=_fastClauses.popWithoutDec();
+    if(toRemove.isNonEmpty()) {
+      removeComponents(toRemove);
+    }
+    if(toAdd.isNonEmpty()) {
+      addComponents(toAdd);
+    }
 
-    // TODO: could use a check based on "NumActiveSplits" instead,
-    // but would need to maintain them even when _deleteDeactivated == Options::SplittingDeleteDeactivated::ON
-    if (allSplitLevelsActive(rcl->splits())) {
-      RSTAT_CTR_INC("fast_clauses_restored");
-      _sa->addNewClause(rcl);
-    } else {
-      RSTAT_CTR_INC("fast_clauses_not_restored");
+    // now that new activ-ness has been determined
+    // we can put back the fast clauses, if any
+    while(_fastClauses.isNonEmpty()) {
+      Clause* rcl=_fastClauses.popWithoutDec();
+
+      // TODO: could use a check based on "NumActiveSplits" instead,
+      // but would need to maintain them even when _deleteDeactivated == Options::SplittingDeleteDeactivated::ON
+      if (allSplitLevelsActive(rcl->splits())) {
+        RSTAT_CTR_INC("fast_clauses_restored");
+        _sa->addNewClause(rcl);
+      } else {
+        RSTAT_CTR_INC("fast_clauses_not_restored");
+      }
+
+      rcl->decRefCnt(); //belongs to _fastClauses.popWithoutDec();
     }
     
-    rcl->decRefCnt(); //belongs to _fastClauses.popWithoutDec();
-  }  
-  
-  if (newZeroImplied.isNonEmpty()) {
-    processNewZeroImplied(newZeroImplied);
-  }  
+    if (newZeroImplied.isNonEmpty()) {
+      processNewZeroImplied(newZeroImplied);
+    }
+  }
 }
 
 
@@ -1238,7 +1244,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   // TODO: keep statistics in release ?
 //#if VDEBUG
   cl->incFreezeCount();
-  RSTAT_MCTR_INC("frozen clauses",cl->getFreezeCount());
+  // RSTAT_MCTR_INC("frozen clauses",cl->getFreezeCount());
   RSTAT_CTR_INC("total_frozen");
 //#endif
 
@@ -1364,7 +1370,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
   SATClause* confl = SATClause::fromStack(conflictLits);
   confl->setInference(new FOConversionInference(cl));
   
-  RSTAT_MCTR_INC("sspl_confl_len", confl->length());
+  // RSTAT_MCTR_INC("sspl_confl_len", confl->length());
 
   recordSATClauseForAddition(confl, true);
 
@@ -1405,7 +1411,7 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
           ASS(allSplitLevelsActive(cl->splits()));
         }
       }
-      RSTAT_MCTR_INC("reactivated clauses",reactivated_cnt);      
+      // RSTAT_MCTR_INC("reactivated clauses",reactivated_cnt);
     }
   }
 }
@@ -1472,7 +1478,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
         _sa->addNewClause(rcl);
               
         // TODO: keep statistics in release ?
-        RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
+        // RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
         RSTAT_CTR_INC("total_unfrozen");
 #if VDEBUG      
         //check that restored clause does not depend on inactive splits

@@ -235,8 +235,8 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_SPLITTING_COMPONENT_INDEX_USAGE:
     out<<"splitting component index usage";
     break;
-  case TC_SPLITTING_COMPONENT_SELECTION:
-    out<<"splitting component selection";
+  case TC_SPLITTING_MODEL_UPDATE:
+    out<<"splitting model update";
     break;
   case TC_CONGRUENCE_CLOSURE:
     out<<"congruence closure";
