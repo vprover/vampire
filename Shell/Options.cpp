@@ -1017,14 +1017,11 @@ void Options::Options::init()
     _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
                                                 "splittingLiteralPolarityAdvice","slpa",
                                                 SplittingLiteralPolarityAdvice::NONE,
-                                                {"forced_false","forced_rnd","suggest_false","suggest_rnd","none"});
-    _splittingLiteralPolarityAdvice.description="";
+                                                {"false","true","none"});
+    _splittingLiteralPolarityAdvice.description="Override SAT-solver's default polarity/phase setting for variables abstracting clause components.";
     _lookup.insert(&_splittingLiteralPolarityAdvice);
     _splittingLiteralPolarityAdvice.tag(OptionTag::AVATAR);
     _splittingLiteralPolarityAdvice.reliesOn(_splitting.is(equal(true)));
-    _splittingLiteralPolarityAdvice.reliesOn(
-              _satSolver.is(equal(SatSolver::MINISAT))->
-              Or<SplittingLiteralPolarityAdvice>(_satSolver.is(equal(SatSolver::BUFFERED_MINISAT))));
 
     _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("splitting_minimize_model","smm",
                                                                         SplittingMinimizeModel::ALL,{"off","sco","all"});

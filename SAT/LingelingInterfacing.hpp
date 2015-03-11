@@ -38,7 +38,8 @@ public:
   virtual Status solve(unsigned conflictCountLimit) override;
   
   virtual void ensureVarCnt(unsigned newVarCnt);
-  
+  virtual void suggestPolarity(unsigned var, unsigned pol) override;
+
 	/**
 	* In case the status of the problem is SATISFIABLE, then return the assigned value for var
 	*/

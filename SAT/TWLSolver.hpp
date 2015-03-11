@@ -64,6 +64,11 @@ public:
    * and if not update everything accordingly to save this slot.
    */
   virtual void ensureVarCnt(unsigned newVarCnt);
+  virtual void suggestPolarity(unsigned var, unsigned pol) override {
+    CALL("TWLSolver::suggestPolarity");
+    ASS_L(var,_varCnt);
+    _lastAssignments[var] = pol;
+  }
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var);
   virtual void collectZeroImplied(SATLiteralStack& acc);

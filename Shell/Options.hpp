@@ -471,10 +471,8 @@ public:
   };
 
   enum class SplittingLiteralPolarityAdvice : unsigned int {
-    FORCE_FALSE,
-    FORCE_RND,
-    SUGGEST_FALSE,
-    SUGGEST_RND,
+    FALSE,
+    TRUE,
     NONE
   };
 

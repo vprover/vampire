@@ -241,7 +241,7 @@ void ISSatSweeping::tryRandomSimulation()
 
   // TODO: this may be here just to make sure that the solver's internal status
   // in not UNKNOWN, which would violate assertion in randomizeAssignment
-  ALWAYS(_solver.solve() == SATSolver::SATISFIABLE);
+
 
   unsigned initLives = 3;
   unsigned lives = initLives;
@@ -249,7 +249,9 @@ void ISSatSweeping::tryRandomSimulation()
   do {
     unsigned oldUnfinished = _unfinishedAmount;
 
-    _solver.randomizeAssignment();
+    _solver.randomizeForNextAssignment(_varCnt);
+    ALWAYS(_solver.solve() == SATSolver::SATISFIABLE);
+
     splitGroupsByCurrAssignment();
 
     if(oldUnfinished==_unfinishedAmount) {

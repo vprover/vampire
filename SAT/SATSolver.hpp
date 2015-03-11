@@ -74,13 +74,6 @@ public:
   virtual VarAssignment getAssignment(unsigned var) = 0;
 
   /**
-   * Try to find another assignment which is likely to be different from the current one
-   *
-   * @pre Solver must be in SATISFIABLE status
-   */
-  virtual void randomizeAssignment() = 0;
-
-  /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
@@ -103,8 +96,18 @@ public:
   virtual SATClause* getZeroImpliedCertificate(unsigned var) = 0;
 
   virtual void ensureVarCnt(unsigned newVarCnt) {}
-  virtual void suggestPolarity(unsigned var, unsigned pol) {}
-  virtual void forcePolarity(unsigned var, unsigned pol) {}
+  virtual void suggestPolarity(unsigned var, unsigned pol) = 0;
+
+  /**
+   * Suggest random polarity for variables up to varLimit,
+   * so that the next call to solver will tend to produce
+   * a different model (provided the status will be satisfiable).
+   */
+  virtual void randomizeForNextAssignment(unsigned varLimit) {
+    for (unsigned var=0; var<varLimit; var++) {
+      suggestPolarity(var,Random::getBit());
+    }
+  }
 
   virtual SATClause* getRefutation() = 0;
 

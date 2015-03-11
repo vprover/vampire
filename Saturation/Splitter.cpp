@@ -139,21 +139,15 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
   CALL("SplittingBranchSelector::considerPolarityAdvice");
 
   switch (_literalPolarityAdvice) {
-    case Options::SplittingLiteralPolarityAdvice::FORCE_FALSE:
-      _solver->forcePolarity(lit.var(),lit.oppositePolarity());
-      break;
-    case Options::SplittingLiteralPolarityAdvice::FORCE_RND:      
-      _solver->forcePolarity(lit.var(),Random::getBit());
-      break;
+    case Options::SplittingLiteralPolarityAdvice::FALSE:
+      _solver->suggestPolarity(lit.var(),lit.oppositePolarity());
+    break;
+    case Options::SplittingLiteralPolarityAdvice::TRUE:
+      _solver->suggestPolarity(lit.var(),lit.polarity());
+    break;
     case Options::SplittingLiteralPolarityAdvice::NONE:
       // do nothing
-      break;
-    case Options::SplittingLiteralPolarityAdvice::SUGGEST_FALSE:
-      _solver->suggestPolarity(lit.var(),lit.oppositePolarity());
-      break;
-    case Options::SplittingLiteralPolarityAdvice::SUGGEST_RND:
-      _solver->suggestPolarity(lit.var(),Random::getBit());
-      break;
+    break;
   }
 }
 
@@ -466,23 +460,18 @@ void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
   
-  // if(_solver->getStatus()==SATSolver::UNKNOWN) 
-  {    
-  	TimeCounter tca(TC_SAT_SOLVER);
-    // TODO: this may be here just to make sure that the solver's internal status
-    // in not UNKNOWN, which would violate assertion in randomizeAssignment
-    _solver->solve();
+  unsigned maxSatVar = _parent.maxSatVar();
+  {
+    TimeCounter tca(TC_SAT_SOLVER);
+    _solver->randomizeForNextAssignment(maxSatVar+1);
+    ALWAYS(_solver->solve() == SATSolver::SATISFIABLE);
   }
-  // ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
-  _solver->randomizeAssignment();
 
   if(processDPConflicts() == SATSolver::UNSATISFIABLE) {
     SATClause* satRefutation = _solver->getRefutation();
     handleSatRefutation(satRefutation); // noreturn!
   }
-  // ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
 
-  unsigned maxSatVar = _parent.maxSatVar();
   unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = getSolverAssimentConsideringCCModel(i);

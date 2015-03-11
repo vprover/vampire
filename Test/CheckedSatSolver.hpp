@@ -30,7 +30,9 @@ public:
     // TODO: consider checking the proof
     return _inner->getRefutation(); 
   }
-  virtual void randomizeAssignment() { _inner->randomizeAssignment(); _checked = false; ensureChecked(); }
+  virtual void randomizeForNextAssignment(unsigned varLimit) override {
+    _inner->randomizeForNextAssignment(varLimit); _checked = false;
+  }
 
   virtual void addClauses(SATClauseIterator cit) override;
   virtual void addClausesIgnoredInPartialModel(SATClauseIterator cit) override;
@@ -41,7 +43,6 @@ public:
   virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
-  virtual void forcePolarity(unsigned var,unsigned pol) override { _inner->forcePolarity(var,pol); }
 
   // the interface of SATSolverWithAssumptions not needed now
   // virtual bool hasAssumptions() const { return _inner->hasAssumptions(); }

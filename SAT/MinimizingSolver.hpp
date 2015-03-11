@@ -33,7 +33,9 @@ public:
   MinimizingSolver(SATSolver* inner);
 
   virtual SATClause* getRefutation() { return _inner->getRefutation(); }
-  virtual void randomizeAssignment() { _inner->randomizeAssignment(); _assignmentValid = false; }
+  virtual void randomizeForNextAssignment(unsigned varLimit) override {
+    _inner->randomizeForNextAssignment(varLimit); _assignmentValid = false;
+  }
 
   virtual void addClauses(SATClauseIterator cit) override;
   virtual void addClausesIgnoredInPartialModel(SATClauseIterator cit) override;
@@ -46,8 +48,6 @@ public:
 
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual void suggestPolarity(unsigned var, unsigned pol) override { _inner->suggestPolarity(var,pol); }
-  virtual void forcePolarity(unsigned var, unsigned pol) override { _inner->forcePolarity(var,pol); }
-  
   virtual void recordSource(unsigned var, Literal* lit){
     _inner->recordSource(var,lit);
   }

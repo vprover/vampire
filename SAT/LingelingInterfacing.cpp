@@ -104,6 +104,14 @@ void LingelingInterfacing::ensureVarCnt(unsigned newVarCnt)
   }
 }
 
+void LingelingInterfacing::suggestPolarity(unsigned var, unsigned pol)
+{
+   CALL("LingelingInterfacing::suggestPolarity");
+   int vvar = vampireVar2Lingeling(var);
+   ASS_LE(vvar,lglmaxvar(_solver));
+   lglsetphase(_solver,pol ? vvar : -vvar);
+ }
+
 /**
  * Solve modulo assumptions and set status. 
  */

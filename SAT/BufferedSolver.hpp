@@ -32,7 +32,14 @@ public:
   BufferedSolver(SATSolver* inner);
 
   virtual SATClause* getRefutation() { return _inner->getRefutation(); }
-  virtual void randomizeAssignment() { flushUnadded(); _inner->randomizeAssignment(); }
+  virtual void randomizeForNextAssignment(unsigned varLimit) override {
+    _inner->randomizeForNextAssignment(varLimit);
+
+    // This is not ideal, but we can't wait till solve, because
+    // BufferedSolver would not be forced to consult inner if it already "has an assignment in mind"
+    flushUnadded();
+    _lastStatus = _inner->solve();
+  }
 
   virtual void addClauses(SATClauseIterator cit);
   virtual Status solve(unsigned conflictCountLimit) override;
@@ -47,8 +54,6 @@ public:
 
   virtual void ensureVarCnt(unsigned newVarCnt){ _inner->ensureVarCnt(newVarCnt);_tmaxVar=newVarCnt; }
   virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
-  virtual void forcePolarity(unsigned var,unsigned pol) override { _inner->forcePolarity(var,pol); }   
-
   virtual void recordSource(unsigned var, Literal* lit){
     _inner->recordSource(var,lit);
   }
