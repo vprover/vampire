@@ -671,7 +671,7 @@ void Options::Options::init()
     _selection.setRandomChoices(And(isRandSat(),saNotInstGen()),{"0","1","2","3","4","10","11","-1","-2","-3","-4","-10","-11"});
     _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010","-1011"});
     
-    _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,'/');
+    _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
     "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age"
     "there will be w selected based on weight.";
