@@ -936,9 +936,10 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
   
   // we process even predicates/literals but they will not show up in the result
   // (because they are not in a class associated with a term)
-  // TODO: alternatively we could propagate up from the predicate symbols
-  // the fact a particular constant can be skipped
   
+  // moreover, it is encouraged that a separate copy of the SimpleCongruenceClosure
+  // is used for the purposes of calling getModel, a copy which never receives predicates or even dis-equalities
+
   // initialize the info associated with constants
   // and the heap of potential candidates    
   for (unsigned c = 3; // skip 0=unused, 1=_posLitConst and 2=_negLitConst
@@ -1014,7 +1015,13 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
 
       Stack<unsigned>::Iterator rUseIt(rInfo.upEdges);
       while(rUseIt.hasNext()) {                
-        unsigned s = rUseIt.next(); // a super-term refers to a term in our class    
+        unsigned s = rUseIt.next(); // a super-term refers to a term in our class
+
+        // Giles suggested an optimization: don't consider terms from already normalized classes as candidates
+        if (_cInfos[deref(s)].processed) {
+          continue;
+        }
+
         ConstInfo& sInfo = _cInfos[s];
         ASS(sInfo.namedPair!=CPair(0,0)); //must be a name of a pair
         

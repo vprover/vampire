@@ -82,6 +82,7 @@ private:
 
   SATSolverSCP _solver;
   ScopedPtr<DecisionProcedure> _dp;
+  // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
   ScopedPtr<SimpleCongruenceClosure> _dpModel;
   
   /**
