@@ -52,7 +52,7 @@ void runChild(UnitList* units, vstring slice)
     env.timer->start();
     TimeCounter::reinitialize();
 
-    env.options->readFromTestId(slice);
+    env.options->readFromEncodedOptions(slice);
 
     //To make sure the outputs of the two child Vampires don't interfere,
     //the pipe allows only one process at a time to possess the output for
