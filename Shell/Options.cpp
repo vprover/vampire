@@ -1879,6 +1879,12 @@ bool Options::OptionValue<T>::checkConstraints(){
      while(it.hasNext()){
        OptionValueConstraint<T>* con = it.next();
        if(!con->check(this)){
+
+         if(env.options->mode()==Mode::SPIDER){
+           reportSpiderFail();
+           USER_ERROR("\nBroken Constraint: "+con->msg(this));
+         }
+
          if(con->isHard()){ 
            if(env.options->randomStrategy()!=RandomStrategy::OFF)
               return false; // Skip warning for Hard
@@ -1915,6 +1921,12 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
       OptionProblemConstraint* con = it.next();
       // Constraint should hold whenever the option is set
       if(is_set && !con->check(prop)){
+
+         if(env.options->mode()==Mode::SPIDER){
+           reportSpiderFail();
+           USER_ERROR("WARNING: " + longName + con->msg());
+         }
+
          switch(env.options->getBadOptionChoice()){
          case BadOption::OFF: break;
          default:
