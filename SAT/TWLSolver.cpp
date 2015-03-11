@@ -147,39 +147,42 @@ void TWLSolver::addClauses(SATClauseIterator cit)
     _status = UNKNOWN;
   }
   
-  while(cit.hasNext()) {
-    /**@author ioan.
-     * reason: in order to count how many clauses are added to vampire solver
-     */
-    env.statistics->satTWLClauseCount++;
+  try {
+    while(cit.hasNext()) {
+      /**@author ioan.
+       * reason: in order to count how many clauses are added to vampire solver
+       */
+      env.statistics->satTWLClauseCount++;
 
-    SATClause* cl=cit.next();
-    ASS(cl->hasUniqueVariables());
-    cl->setKept(true);
+      SATClause* cl=cit.next();
+      ASS(cl->hasUniqueVariables());
+      cl->setKept(true);
 
-    _addedClauses.push(cl);
+      _addedClauses.push(cl);
 
-    if(cl->length()==0) {
-      _status=UNSATISFIABLE;
-      _refutation = cl;
+      if(cl->length()==0) {
+        _status=UNSATISFIABLE;
+        _refutation = cl;
 
-      // make sure the rest of clauses will get released
-      while(cit.hasNext()) {
-        _addedClauses.push(cit.next());
+        // make sure the rest of clauses will get released
+        while(cit.hasNext()) {
+          _addedClauses.push(cit.next());
+        }
+        break;
+      } else if(cl->length()==1) {
+        addUnitClause(cl);
       }
-      break;
-    } else if(cl->length()==1) {
-      addUnitClause(cl);
+      else {
+        addClause(cl);
+      }
+      _variableSelector->onInputClauseAdded(cl);
+      _clauseDisposer->onNewInputClause(cl);
     }
-    else {
-      addClause(cl);
-    }
-    _variableSelector->onInputClauseAdded(cl);
-    _clauseDisposer->onNewInputClause(cl);
+  } catch (const UnsatException& e) {
+    _status=UNSATISFIABLE;
+    _refutation = e.refutation;
+    ASS(!_generateProofs || _refutation);
   }
-  
-  // TODO: what is this here for ?
-  env.statistics->satTWLVariablesCount = _varCnt;
 }
 
 SATSolver::Status TWLSolver::solve(unsigned conflictCountLimit) {
