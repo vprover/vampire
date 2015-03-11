@@ -303,6 +303,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     _trueInCCModel.reset();
 
     // cout << "Obtained a model " << endl;
+    int parentMaxAge = AGE_NOT_FILLED;
     LiteralStack::Iterator it(model);
     while(it.hasNext()) {
       Literal* lit = it.next();
@@ -316,14 +317,16 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
       Clause* compCl;
       SplitLevel level = _parent.tryGetComponentNameOrAddNew(1,&lit,0,compCl);
       if (compCl->age() == AGE_NOT_FILLED) { // added new
-        int parentMaxAge = assertedGroundPositiveEqualityCompomentMaxAge();
-
         RSTAT_CTR_INC("ssat_dp_model_components");
 
-        // This is the max of all the positive ground units that went into the DP.
-        // As such, is overestimates that "true age" that could be computed
-        // as the max over the true parents of this equality
-        // (we are lazy and cannot know the true parents without effort).
+        if (parentMaxAge == AGE_NOT_FILLED) {
+          // This is the max of all the positive ground units that went into the DP.
+          // As such, is overestimates that "true age" that could be computed
+          // as the max over the true parents of this equality
+          // (we are lazy and cannot know the true parents without effort).
+          parentMaxAge = assertedGroundPositiveEqualityCompomentMaxAge();
+        }
+
         compCl->setAge(parentMaxAge);
       }
 
