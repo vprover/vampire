@@ -43,7 +43,7 @@ bool outputAllowed()
 #if VDEBUG
   return true;
 #else
-  return !Lib::env.options || Lib::env.options->mode()!=Shell::Options::Mode::SPIDER;
+  return !Lib::env.options || Lib::env.options->mode()!=Shell::Options::Mode::SPIDER || headerPrinted;
 #endif
 }
 
@@ -57,11 +57,10 @@ void reportSpiderFail()
   reportSpiderStatus('!');
 }
 
+static bool headerPrinted=false;
 void reportSpiderStatus(char status)
 {
   using namespace Lib;
-
-  static bool headerPrinted=false;
 
   if(inSpiderMode() && !headerPrinted) {
     headerPrinted=true;

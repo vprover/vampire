@@ -977,7 +977,7 @@ void Options::Options::init()
     _splitting.tag(OptionTag::AVATAR);
     // TODO - put the tabulation constraint here but inst_gen constraint on sa... why?
     _splitting.addConstraint(If(equal(true)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION))));
-    _splitting.addProblemConstraint(hasNonUnits());
+    //_splitting.addProblemConstraint(hasNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
     
     _splitAtActivation = BoolOptionValue("split_at_activation","sac",false);
@@ -986,7 +986,6 @@ void Options::Options::init()
     _splitAtActivation.reliesOn(_splitting.is(equal(true)));
     _splitAtActivation.tag(OptionTag::AVATAR);
     _splitAtActivation.setRandomChoices({"on","off"});
-    _splitAtActivation.addProblemConstraint(hasNonUnits());
  
 
     _splittingAddComplementary = ChoiceOptionValue<SplittingAddComplementary>("splitting_add_complementary","ssac",
