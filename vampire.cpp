@@ -644,12 +644,14 @@ void vampireMode()
 void spiderMode()
 {
   CALL("spiderMode()");
-  Exception* exception;
+  Exception* exception = 0;
   bool noException = true;
   try {
     doProving();
   } catch (Exception& e) {
     exception = &e;
+    noException = false;
+  } catch (...) {
     noException = false;
   }
 
