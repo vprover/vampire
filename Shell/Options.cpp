@@ -601,6 +601,11 @@ void Options::Options::init()
     _lookup.insert(&_showPassive);
     _showPassive.tag(OptionTag::OUTPUT);
     
+    _showReductions = BoolOptionValue("show_reductions","",false);
+    _showReductions.description="";
+    _showReductions.tag(OptionTag::OUTPUT);
+    _lookup.insert(&_showReductions); 
+
     _showPreprocessing = BoolOptionValue("show_preprocessing","",false);
     _showPreprocessing.description="";
     _lookup.insert(&_showPreprocessing);

@@ -1618,6 +1618,7 @@ public:
   bool showHelp() const { return _showHelp.actualValue; }
   vstring explainOption() const { return _explainOption.actualValue; }
   bool showPassive() const { return _showPassive.actualValue; }
+  bool showReductions() const { return _showReductions.actualValue; }
   bool showPreprocessing() const { return _showPreprocessing.actualValue; }
   bool showSkolemisations() const { return _showSkolemisations.actualValue; }
   bool showSymbolElimination() const { return _showSymbolElimination.actualValue; }
@@ -2067,6 +2068,7 @@ private:
   BoolOptionValue _showHelp;
   StringOptionValue _explainOption;
   BoolOptionValue _showPassive;
+  BoolOptionValue _showReductions;
   BoolOptionValue _showPreprocessing;
   BoolOptionValue _showSkolemisations;
   BoolOptionValue _showSymbolElimination;
