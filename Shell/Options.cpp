@@ -719,7 +719,7 @@ void Options::Options::init()
     _backwardDemodulation.setRandomChoices({"all","off"});
     
     _backwardSubsumption = ChoiceOptionValue<Subsumption>("backward_subsumption","bs",
-                                                          Subsumption::ON,{"off","on","unit_only"});
+                                                          Subsumption::OFF,{"off","on","unit_only"});
     _backwardSubsumption.description=
              "unit_only means that the subsumption will be performed only by unit clauses";
     _lookup.insert(&_backwardSubsumption);
