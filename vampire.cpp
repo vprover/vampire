@@ -196,7 +196,7 @@ void doProving()
   env.options->randomizeStrategy(prb->getProperty()); 
 
   // this will provide warning if options don't make sense for problem
-  env.options->checkProblemOptionConstraints(prb->getProperty()); 
+  //env.options->checkProblemOptionConstraints(prb->getProperty()); 
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
@@ -644,10 +644,12 @@ void vampireMode()
 void spiderMode()
 {
   CALL("spiderMode()");
+  Exception* exception;
   bool noException = true;
   try {
     doProving();
-  } catch (...) {
+  } catch (Exception& e) {
+    exception = &e;
     noException = false;
   }
 
@@ -676,6 +678,7 @@ void spiderMode()
     env.statistics->print(env.out());
   } else {
     reportSpiderFail();
+    explainException(*exception);
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
   }
   env.endOutput();

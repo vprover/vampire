@@ -28,6 +28,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/URResolution.hpp"
+#include "Inferences/DistinctEqualitySimplifier.hpp"
 
 #include "SAT/SATSolver.hpp"
 
@@ -151,6 +152,7 @@ private:
   DuplicateLiteralRemovalISE _duplicateLiteralRemoval;
   TrivialInequalitiesRemovalISE _trivialInequalityRemoval;
   TautologyDeletionISE _tautologyDeletion;
+  DistinctEqualitySimplifier _distinctEqualitySimplifier;
 
   bool _use_niceness;
   bool _use_dm;

@@ -186,6 +186,7 @@ void IGAlgorithm::addClause(Clause* cl)
   cl = _duplicateLiteralRemoval.simplify(cl);
   if(cl) { cl = _tautologyDeletion.simplify(cl); }
   if(cl) { cl = _trivialInequalityRemoval.simplify(cl); }
+  if(cl) { cl = _distinctEqualitySimplifier.simplify(cl); }
   if(!cl) {
     return;
   }

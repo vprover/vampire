@@ -669,8 +669,8 @@ void Options::Options::init()
     _selection.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _selection.setRandomChoices(And(isRandSat(),saNotInstGen()),{"0","1","2","3","4","10","11","-1","-2","-3","-4","-10","-11"});
     _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010","-1011"});
-
-    _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,'/');
+    
+    _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
     "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age"
     "there will be w selected based on weight.";
@@ -976,7 +976,7 @@ void Options::Options::init()
     _splitting.tag(OptionTag::AVATAR);
     // TODO - put the tabulation constraint here but inst_gen constraint on sa... why?
     _splitting.addConstraint(If(equal(true)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION))));
-    _splitting.addProblemConstraint(hasNonUnits());
+    //_splitting.addProblemConstraint(hasNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
     _splitAtActivation = BoolOptionValue("split_at_activation","sac",false);
     _splitAtActivation.description="Split a clause when it is activated, default is to split when it is processed";
@@ -984,8 +984,6 @@ void Options::Options::init()
     _splitAtActivation.reliesOn(_splitting.is(equal(true)));
     _splitAtActivation.tag(OptionTag::AVATAR);
     _splitAtActivation.setRandomChoices({"on","off"});
-    _splitAtActivation.addProblemConstraint(hasNonUnits());
-
 
     _splittingAddComplementary = ChoiceOptionValue<SplittingAddComplementary>("splitting_add_complementary","ssac",
                                                                                 SplittingAddComplementary::GROUND,{"ground","none"});
@@ -1887,6 +1885,12 @@ bool Options::OptionValue<T>::checkConstraints(){
      while(it.hasNext()){
        OptionValueConstraint<T>* con = it.next();
        if(!con->check(this)){
+
+         if(env.options->mode()==Mode::SPIDER){
+           reportSpiderFail();
+           USER_ERROR("\nBroken Constraint: "+con->msg(this));
+         }
+
          if(con->isHard()){ 
            if(env.options->randomStrategy()!=RandomStrategy::OFF)
               return false; // Skip warning for Hard
@@ -1923,6 +1927,12 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
       OptionProblemConstraint* con = it.next();
       // Constraint should hold whenever the option is set
       if(is_set && !con->check(prop)){
+
+         if(env.options->mode()==Mode::SPIDER){
+           reportSpiderFail();
+           USER_ERROR("WARNING: " + longName + con->msg());
+         }
+
          switch(env.options->getBadOptionChoice()){
          case BadOption::OFF: break;
          default:

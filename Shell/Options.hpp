@@ -1447,7 +1447,7 @@ private:
     struct HasNonUnits : OptionProblemConstraint{
         bool check(Property*p){
           CALL("Options::HasNonUnits::check");
-          return p->unitClauses()!=0; 
+          return (p->clauses()-p->unitClauses())!=0; 
         }
         vstring msg(){ return " only useful with non-unit clauses"; }
     };

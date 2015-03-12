@@ -43,7 +43,7 @@ bool outputAllowed()
 #if VDEBUG
   return true;
 #else
-  return !Lib::env.options || Lib::env.options->mode()!=Shell::Options::Mode::SPIDER;
+  return !Lib::env.options || Lib::env.options->mode()!=Shell::Options::Mode::SPIDER; 
 #endif
 }
 
