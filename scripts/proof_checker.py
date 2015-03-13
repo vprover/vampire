@@ -2,9 +2,16 @@ import sys
 import subprocess 
 
 VAMPIRE='../vampire_rel_master'
-EPROVER='~/Vampire/prover-bin/eprover --auto --tptp3-in --proof-object'
+
+time_out=str(10)
+EPROVER='~/Vampire/prover-bin/eprover --auto --tptp3-in --proof-object --cpu-limit='+time_out
+US='../vampire_rel_master -p off --ignore_missing on --mode casc --time_limit '+time_out
+IPROVER='~/Vampire/prover-bin/iproveropt --clausifier ../vampire_rel_master --clausifier_options "--mode clausify" --time_out_real '+time_out
+CHECK_WITH=IPROVER
 
 verbose=False
+
+ignores=set(['%negated conjecture','%sat splitting component'])
 
 if(len(sys.argv)<2):
   print "You should provide arguments"
@@ -22,34 +29,40 @@ checked=0
 for line in OUT.split('\n'):
   line = line.strip()
 
-  if '%#' in line and len(obligation)>0 and all('%negated conjecture' not in o for o in obligation):
-    #Finished obligation, run it
+  if '%#' in line and len(obligation)>0:
 
-    checked+=1
-    if verbose:
-      print "Dealing with obligation:"
-      print '\n'.join(obligation)
+    if all(ignore not in o for o in obligation for ignore in ignores):
+      #Finished obligation, run it
 
-    #Create a temp file
-    with open('tmp_proof_obligation', 'w') as tmp:
-      tmp.write('\n'.join(obligation))
+      checked+=1
+      if verbose:
+        print "Dealing with obligation:"
+        print '\n'.join(obligation)
 
-    #Run prover
-    prover_result=""
-    try:
-      prover_result = subprocess.check_output(EPROVER+' tmp_proof_obligation',shell=True)
-    except subprocess.CalledProcessError as err:
-      prover_result = err.output
+      #Create a temp file
+      with open('tmp_proof_obligation', 'w') as tmp:
+        tmp.write('\n'.join(obligation))
 
-    for prover_line in prover_result.split('\n'):
-      if 'SZS status' in prover_line:
-        if verbose:
-          print prover_line
-        if 'Theorem' not in prover_line:
-          print '************************'
-          print 'Failed proof obligation:'
-          print '\n'.join(obligation)
+      #Run prover
+      prover_result=""
+      try:
+        prover_result = subprocess.check_output(CHECK_WITH+' tmp_proof_obligation',shell=True)
+      except subprocess.CalledProcessError as err:
+        prover_result = err.output
 
+      proved=False
+      for prover_line in prover_result.split('\n'):
+        if 'SZS status' in prover_line:
+          if verbose:
+            print prover_line
+          if 'Theorem' in prover_line:
+            proved=True
+
+      if not proved:
+        print '************************'
+        print 'Failed proof obligation:'
+        print '\n'.join(obligation)
+ 
     #Reset obligation
     obligation=[]
   elif refutation:

@@ -8,6 +8,7 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Lib/System.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Random.hpp"
@@ -777,6 +778,9 @@ MainLoopResult IGAlgorithm::onModelFound()
 	    << " for " << _opt.problemName() << endl << flush;
 	env.endOutput();
 	UIHelper::satisfiableStatusWasAlreadyOutput = true;
+      }
+      if(_opt.mode()==Options::Mode::SPIDER){
+        reportSpiderStatus('-');
       }
 
 
