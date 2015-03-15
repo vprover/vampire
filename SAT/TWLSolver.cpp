@@ -1146,6 +1146,8 @@ bool TWLSolver::isZeroImplied(unsigned var)
   CALL("TWLSolver::isZeroImplied");
 
   // cout << "get zeroI of " << var << ", varcnt is " << _varCnt << endl;
+ 
+  if(isUndefined(var)) return false;
 
   return getAssignmentLevel(var)==1;
 }
