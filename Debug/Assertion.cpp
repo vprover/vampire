@@ -38,7 +38,7 @@ void Assertion::violated (const char* file,int line,const char* cond)
 	<< " violated:\n" << cond << "\n"
 	<< "----- stack dump -----\n";
     Tracer::printStack(cout);
-    cout << "----- end of stack dump -----\n";
+    cout << "----- end of stack dump -----" << endl;
   }
 } // Assertion::violated
 
