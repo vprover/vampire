@@ -42,7 +42,20 @@ public:
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel);
   virtual VarAssignment getAssignment(unsigned var);
 
-  virtual bool isZeroImplied(unsigned var){ return _inner->isZeroImplied(var); }
+  virtual bool falseInAssignment(SATLiteral lit)
+  {
+    if(lit.var() >= _maxVar) return false;
+    return _inner->falseInAssignment(lit);
+  }
+  virtual bool trueInAssignment(SATLiteral lit)
+  {
+    if(lit.var() >= _maxVar) return false;
+    return _inner->trueInAssignment(lit);
+  }
+  virtual bool isZeroImplied(unsigned var){ 
+    if(var >= _maxVar) return false;
+    return _inner->isZeroImplied(var); 
+  }
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
   virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
 
