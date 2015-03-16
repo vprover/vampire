@@ -496,7 +496,7 @@ void Clause::computeWeight() const
   // The alternative would be to remove the clause and reenter it into the passive queue whenever
   // The split set was changed
   if (env.options->nonliteralsInClauseWeight()) {
-    _weight+=+splitWeight(); // no longer includes propWeight
+    _weight+=splitWeight(); // no longer includes propWeight
   }
 
 } // Clause::computeWeight

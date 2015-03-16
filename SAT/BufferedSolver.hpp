@@ -38,9 +38,9 @@ public:
   virtual Status solve(unsigned conflictCountLimit) override;
   virtual VarAssignment getAssignment(unsigned var);
 
-  virtual bool isZeroImplied(unsigned var){ 
+  virtual bool isZeroImplied(unsigned var) {
     CALL("BufferedSolver::isZeroImplied");
-    return (var > _maxVar) ? false : _inner->isZeroImplied(var);   
+    return (var > _maxVar) ? false : _inner->isZeroImplied(var);
   }
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
   virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }

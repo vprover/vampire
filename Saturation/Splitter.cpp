@@ -796,34 +796,14 @@ bool Splitter::handleNonSplittable(Clause* cl)
     return false;
   }
 
-  if(_nonsplComps==Options::SplittingNonsplittableComponents::NONE) {
-    return false;
-  }
-
-  SplitSet* sset = cl->splits();
-  ASS(sset->size()!=1 || _db[sset->sval()]->component!=cl);
-  if(sset->member(compName)) {
-    //we derived a component that depends on itself.
-    //This derivation is therefore redundant, so we can skip it.
-    RSTAT_CTR_INC("ssat_self_dependent_component");
-    return true;
-  }
-
-  static SATLiteralStack satLits;
-  satLits.reset();
-  collectDependenceLits(cl->splits(), satLits);
-  satLits.push(getLiteralFromName(compName));
-
-  SATClause* nsClause = SATClause::fromStack(satLits);
-  ClauseList* namePremises = new ClauseList(compCl,0);
-  nsClause->setInference(new FOSplittingInference(cl, namePremises));
-
-  RSTAT_CTR_INC("ssat_non_splittable_sat_clauses");
+  // OK, we will handle the clause, this means for the FO part we will pretend it was redundant
+  // and instead we will record information about it in the SAT solver
 
   SplitRecord& nameRec = *_db[compName];
   ASS_EQ(nameRec.component,compCl);
   ASS_REP2(compCl->store()==Clause::NONE || compCl->store()==Clause::ACTIVE ||
       compCl->store()==Clause::PASSIVE || compCl->store()==Clause::UNPROCESSED, *compCl, compCl->store());
+
   if(nameRec.active && compCl->store()==Clause::NONE) {
     //we need to make sure the clause naming the component is present in this case, as the
     //following scenario may lead to incompleteness:
@@ -831,7 +811,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     //  clause C' syntactically equal to C is derived and put into simplification container
     //  component C is made redundant by C'
     //  we name C' as C. The sat clause {C} won't lead to addition of C into FO as C is already selected.
-    
+
     compCl->invalidateMyReductionRecords();
     _sa->addNewClause(compCl);
     if ((_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) &&
@@ -841,10 +821,32 @@ bool Splitter::handleNonSplittable(Clause* cl)
       // but now we must must put it back (TODO: do we really?)
       // so we must also keep track of it
       nameRec.children.push(compCl);
-    }    
+    }
   }
 
-  recordSATClauseForAddition(nsClause, false);
+  SplitSet* sset = cl->splits();
+  ASS(sset->size()!=1 || _db[sset->sval()]->component!=cl);
+  if(sset->member(compName)) {
+    //we derived a component that depends on itself.
+    //This derivation is therefore redundant, so we can skip it.
+    // (would result in a propositional tautology)
+
+    RSTAT_CTR_INC("ssat_self_dependent_component");
+  } else {
+    static SATLiteralStack satLits;
+    satLits.reset();
+    collectDependenceLits(cl->splits(), satLits);
+    satLits.push(getLiteralFromName(compName));
+
+    SATClause* nsClause = SATClause::fromStack(satLits);
+    ClauseList* namePremises = new ClauseList(compCl,0);
+    nsClause->setInference(new FOSplittingInference(cl, namePremises));
+
+    recordSATClauseForAddition(nsClause, false);
+
+    RSTAT_CTR_INC("ssat_non_splittable_sat_clauses");
+  }
+
   return true;
 }
 
