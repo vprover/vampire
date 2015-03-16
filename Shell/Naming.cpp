@@ -39,12 +39,10 @@ using namespace Shell;
  * @param preserveEpr If true, names will not be introduced if it would
  *   lead to introduction of non-constant Skolem functions.
  */
-Naming::Naming (int threshold, bool preserveEpr)
-  : _threshold(threshold+1), _preserveEpr(preserveEpr), _varsInScope(false)
-{
+Naming::Naming(int threshold, bool preserveEpr) :
+    _threshold(threshold + 1), _preserveEpr(preserveEpr), _varsInScope(false) {
   ASS(threshold < 32768);
 } // Naming::Naming
-
 
 /**
  * Apply naming to a unit.
@@ -54,11 +52,10 @@ Naming::Naming (int threshold, bool preserveEpr)
  * @since 13/07/2005 Haifa
  * @since 14/07/2005 Tel-Aviv airport, changed to replace the unit
  */
-FormulaUnit* Naming::apply (FormulaUnit* unit,UnitList*& defs)
-{
+FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   CALL("Naming::apply(Unit*)");
-  ASS(! unit->isClause());
-  ASS_REP(unit->formula()->freeVariables()==0, *unit);
+  ASS(!unit->isClause());
+  ASS_REP(unit->formula()->freeVariables() == 0, *unit);
   ASS(!_varsInScope); //_varsInScope can be true only when traversing inside a formula
 
   if (env.options->showPreprocessing()) {
@@ -77,25 +74,655 @@ FormulaUnit* Naming::apply (FormulaUnit* unit,UnitList*& defs)
     break;
   }
 
-  int pos;
-  int neg;
   _defs = UnitList::empty();
-  Formula* g = apply(f,ON_TOP,pos,neg);
+
+  // The original recursive call was here:
+
+  // int pos;
+  // int neg;
+  // Formula* g = apply_sub(f,ON_TOP,pos,neg);
+
+  Formula* g = apply_iter(f);
+
   if (f == g) { // not changed
     ASS(_defs->isEmpty());
     defs = UnitList::empty();
     return unit;
   }
-  ASS(! _defs->isEmpty());
+  ASS(!_defs->isEmpty());
   defs = _defs;
   UnitList* premises = _defs->copy();
   UnitList::push(unit, premises);
   return new FormulaUnit(g,
-			 new InferenceMany(Inference::DEFINITION_FOLDING,premises),
-			 unit->inputType());
+      new InferenceMany(Inference::DEFINITION_FOLDING, premises),
+      unit->inputType());
 } // Naming::apply
 
+Formula* Naming::apply_iter(Formula* top_f) {
+  CALL("Naming::apply_iter");
 
+  Stack<Task> todo_stack;
+  Stack<Result> result_stack;
+
+  {
+    Task t;
+    t.fncTag = APPLY_SUB_TOP;
+    t.taskApplySub = {top_f, ON_TOP};
+    todo_stack.push(t);
+  }
+
+  while(todo_stack.isNonEmpty()) {
+    // Careful: this is a potentially risky practice,
+    // referencess to the stack become invalid after push !!!
+    Task& t = todo_stack.top();
+
+    switch (t.fncTag) {
+    case APPLY_SUB_TOP: {
+      TaskApplySub& tas = t.taskApplySub;
+
+      switch (tas.f->connective()) {
+      case LITERAL: {
+        Result r;
+        r.resSub = {1,1,tas.f};
+        result_stack.push(r);
+        todo_stack.pop(); // finished with the current Task
+      } break;
+
+      case AND: {
+        FormulaList* fs = tas.f->args();
+        int length = fs->length();
+        void* mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
+        int* cls = array_new<int>(mem, length);
+        int* negCls = 0;
+        if (tas.where == UNDER_IFF) {
+          mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
+          negCls = array_new<int>(mem, length);
+        }
+
+        t.fncTag = APPLY_SUB_AND;
+        tas.taskAndOr = {cls,negCls};
+
+        // fs = apply_list(fs, where, cls, negCls);
+        Task t_new;
+        t_new.fncTag = APPLY_LIST_TOP;
+        t_new.taskApplyList = {fs,tas.where,cls,negCls};
+
+        todo_stack.push(t_new);
+      } break;
+
+      case OR: {
+        FormulaList* fs = tas.f->args();
+        int length = fs->length();
+        void* mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
+        int* cls = array_new<int>(mem, length);
+        int* negCls = 0;
+        if (tas.where == UNDER_IFF) {
+          mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
+          negCls = array_new<int>(mem, length);
+        }
+        if (tas.where == ON_TOP) {
+          tas.where = OTHER;
+        }
+
+        t.fncTag = APPLY_SUB_OR;
+        tas.taskAndOr = {cls,negCls};
+
+        // fs = apply_list(fs, where, cls, negCls);
+        Task t_new;
+        t_new.fncTag = APPLY_LIST_TOP;
+        t_new.taskApplyList = {fs,tas.where,cls,negCls};
+
+        todo_stack.push(t_new);
+      } break;
+
+      case IFF:
+      case XOR: {
+        //there is no need to call the canBeInDefinition function here, since
+        //the arguments will in the end appear both positive and negative anyway
+
+        Formula* f = tas.f; // important to have the copy, we touch f after push!
+
+        /*
+        if (con == IFF) {
+          l = apply_sub(f->left(), UNDER_IFF, posl, negl);
+          r = apply_sub(f->right(), UNDER_IFF, posr, negr);
+        } else {
+          l = apply_sub(f->left(), UNDER_IFF, negl, posl);
+          r = apply_sub(f->right(), UNDER_IFF, negr, posr);
+        }
+        */
+
+        t.fncTag = APPLY_SUB_IFFXOR;
+        {
+          Task t_new;
+          t_new.fncTag = APPLY_SUB_TOP;
+          t_new.taskApplySub.where = UNDER_IFF;
+
+          // left done first; must be pushed later
+          t_new.taskApplySub.f = f->right();
+          todo_stack.push(t_new);
+          t_new.taskApplySub.f = f->left();
+          todo_stack.push(t_new);
+        }
+      } break;
+
+      case FORALL:
+      case EXISTS: {
+        tas.taskForallExists.varFlagSet = tas.f->connective() == FORALL && !_varsInScope;
+        if (tas.taskForallExists.varFlagSet) {
+          _varsInScope = true;
+        }
+
+        // Formula* g = apply_sub(f->qarg(), where, pos, neg);
+        t.fncTag = APPLY_SUB_FORALLEXISTS;
+        {
+          Task t_new;
+          t_new.fncTag = APPLY_SUB_TOP;
+          t_new.taskApplySub = {tas.f->qarg(),tas.where};
+
+          todo_stack.push(t_new);
+        }
+      } break;
+
+#if VDEBUG
+      default:
+        ASSERTION_VIOLATION_REP(*tas.f)
+        ;
+#endif
+      }
+    } break;
+
+    case APPLY_SUB_AND: {
+      TaskApplySub& tas = t.taskApplySub;
+      SubtaskAndOr& sand = tas.taskAndOr;
+
+      Formula* f = tas.f;
+      FormulaList* fs = f->args();
+      int length = fs->length();
+
+      // fs = apply_list(fs, where, cls, negCls);
+      {
+        Result r = result_stack.pop();
+        fs = r.resList.res;
+      }
+
+      bool split = false;
+      // formula array, initialised only upon demand
+      Formula** gs = 0;
+      // WARNING: QUADRATIC ALGORITHM BELOW, SHOULD BE IMPROVED
+      for (;;) {
+        int sum = 0; // result: the sum of all members
+        int product = 1;
+        int maxPos = 0;
+        int maxNeg = 0;
+        int maxPosIndex = 0;
+        int maxNegIndex = 0;
+        FormulaList* currArg = f->args();
+        for (int i = 0; i < length; i++) {
+          int c = sand.cls[i];
+          sum = Int::min(_threshold, sum + c);
+          bool canBeDefEvaluated = false;
+          bool canBeDef;
+          if (c > maxPos) {
+            canBeDefEvaluated = true;
+            canBeDef = canBeInDefinition(currArg->head(), tas.where);
+            if (canBeDef) {
+              maxPos = c;
+              maxPosIndex = i;
+            }
+          }
+          if (tas.where == UNDER_IFF) {
+            int d = sand.negCls[i];
+            product = Int::min(_threshold, product * d);
+            if (d > maxNeg) {
+              if (!canBeDefEvaluated) {
+                canBeDef = canBeInDefinition(currArg->head(), tas.where);
+              }
+              if (canBeDef) {
+                maxNeg = d;
+                maxNegIndex = i;
+              }
+            }
+          }
+          currArg = currArg->tail();
+        }
+        ASS(currArg == 0);
+        ASS(maxPos > 0 || _preserveEpr);
+        ASS(tas.where != UNDER_IFF || maxNeg > 0);
+        // splitWhat & 1 => split due to the positive part
+        // splitWhat & 2 => split due to the negative part
+        int splitWhat = 0;
+        if (tas.where != UNDER_IFF || product > 1) { // not all formulas are atomic
+          if (tas.where != ON_TOP && maxPos > 1 && sum >= _threshold) {
+            splitWhat |= 1;
+          }
+          if (tas.where == UNDER_IFF && product >= _threshold && maxNeg > 1) {
+            splitWhat |= 2;
+          }
+        }
+        if (!splitWhat) { // no more splits
+          if (split) {
+            FormulaList* rs = FormulaList::empty();
+            for (int i = length - 1; i >= 0; i--) {
+              FormulaList::push(gs[i], rs);
+            }
+            f = new JunctionFormula(AND, rs);
+            DEALLOC_UNKNOWN(gs, "Naming::apply");
+          } else if (fs != f->args()) {
+            f = new JunctionFormula(AND, fs);
+          }
+          DEALLOC_UNKNOWN(sand.cls, "Naming::apply");
+          if (sand.negCls) {
+            DEALLOC_UNKNOWN(sand.negCls, "Naming::apply");
+          }
+
+          {
+            Result r;
+            r.resSub.neg = product;
+            r.resSub.pos = sum;
+            r.resSub.res = f;
+            result_stack.push(r);
+          }
+
+          todo_stack.pop();  // finished
+          break; // for (;;)
+        }
+
+        // conjunction under disjunction or IFF, should be split
+        split = true;
+        if (!gs) {
+          void* mem = ALLOC_UNKNOWN(length * sizeof(Formula*), "Naming::apply");
+          gs = array_new<Formula*>(mem, length);
+          int j = 0;
+          FormulaList::Iterator hs(fs);
+          while (hs.hasNext()) {
+            gs[j] = hs.next();
+            j++;
+          }
+        }
+        // gs has been initialised
+        int maxIndex =
+            splitWhat == 1 || (splitWhat == 3 && sum > product) || maxNeg == 1 ?
+                maxPosIndex : maxNegIndex;
+
+        Formula* nm = introduceDefinition(gs[maxIndex], tas.where == UNDER_IFF);
+        gs[maxIndex] = nm;
+        sand.cls[maxIndex] = 1;
+        if (tas.where == UNDER_IFF) {
+          sand.negCls[maxIndex] = 1;
+        }
+      } // for (;;)
+    } break;
+
+    case APPLY_SUB_OR: {
+      TaskApplySub& tas = t.taskApplySub;
+      SubtaskAndOr& sor = tas.taskAndOr;
+
+      Formula* f = tas.f;
+      FormulaList* fs = f->args();
+      int length = fs->length();
+
+      // fs = apply_list(fs, where, cls, negCls);
+      {
+        Result r = result_stack.pop();
+        fs = r.resList.res;
+      }
+
+      bool split = false;
+      // formula array, initialised only upon demand
+      Formula** gs = 0;
+      // WARNING: QUADRATIC ALGORITHM BELOW, SHOULD BE IMPROVED
+      for (;;) {
+        int sum = 0; // result: the sum of all members
+        int product = 1;
+        int maxPos = 0;
+        int maxNeg = 0;
+        int maxPosIndex = 0;
+        int maxNegIndex = 0;
+        FormulaList* currArg = f->args();
+        for (int i = 0; i < length; i++) {
+          int c = sor.cls[i];
+          product = Int::min(_threshold, product * c);
+          bool canBeDefEvaluated = false;
+          bool canBeDef;
+          if (c > maxPos) {
+            canBeDefEvaluated = true;
+            canBeDef = canBeInDefinition(currArg->head(), tas.where);
+            if (canBeDef) {
+              maxPos = c;
+              maxPosIndex = i;
+            }
+          }
+          if (tas.where == UNDER_IFF) {
+            int d = sor.negCls[i];
+            sum = Int::min(_threshold, sum + d);
+            if (d > maxNeg) {
+              if (!canBeDefEvaluated) {
+                canBeDef = canBeInDefinition(currArg->head(), tas.where);
+              }
+              if (canBeDef) {
+                maxNeg = d;
+                maxNegIndex = i;
+              }
+            }
+          }
+          currArg = currArg->tail();
+        }
+        ASS(currArg == 0);
+        ASS(maxPos > 0 || _preserveEpr);
+        ASS(tas.where != UNDER_IFF || maxNeg > 0);
+        // splitWhat & 1 => split due to the positive part
+        // splitWhat & 2 => split due to the negative part
+        int splitWhat = 0;
+        if (maxPos > 0 && (tas.where != UNDER_IFF || product > 1)) { // not all formulas are atomic
+          if (product >= _threshold && maxPos > 1) {
+            splitWhat |= 1;
+          }
+          if (tas.where == UNDER_IFF && sum >= _threshold && maxNeg > 1) {
+            splitWhat |= 2;
+          }
+        }
+        if (!splitWhat) { // no more splits
+          if (split) {
+            FormulaList* rs = FormulaList::empty();
+            for (int i = length - 1; i >= 0; i--) {
+              FormulaList::push(gs[i], rs);
+            }
+            f = new JunctionFormula(OR, rs);
+            DEALLOC_UNKNOWN(gs, "Naming::apply");
+          } else if (fs != f->args()) {
+            f = new JunctionFormula(OR, fs);
+          }
+          DEALLOC_UNKNOWN(sor.cls, "Naming::apply");
+          if (sor.negCls) {
+            DEALLOC_UNKNOWN(sor.negCls, "Naming::apply");
+          }
+
+          {
+            Result r;
+            r.resSub.neg = sum;
+            r.resSub.pos = product;
+            r.resSub.res = f;
+            result_stack.push(r);
+          }
+
+          todo_stack.pop();  // finished
+          break; // for (;;)
+        }
+
+        // splitWhat != 0
+        split = true;
+        if (!gs) {
+          void* mem = ALLOC_UNKNOWN(length * sizeof(Formula*), "Naming::apply");
+          gs = array_new<Formula*>(mem, length);
+
+          int j = 0;
+          FormulaList::Iterator hs(fs);
+          while (hs.hasNext()) {
+            gs[j] = hs.next();
+            j++;
+          }
+        }
+        // gs has been initialised
+        int maxIndex =
+            splitWhat == 1 || (splitWhat == 3 && product > sum) || maxNeg == 1 ?
+                maxPosIndex : maxNegIndex;
+
+        Formula* nm = introduceDefinition(gs[maxIndex], tas.where == UNDER_IFF);
+        gs[maxIndex] = nm;
+        sor.cls[maxIndex] = 1;
+        if (tas.where == UNDER_IFF) {
+          sor.negCls[maxIndex] = 1;
+        }
+      } // for (;;)
+
+    } break;
+
+    case APPLY_SUB_IFFXOR: {
+      TaskApplySub& tas = t.taskApplySub;
+
+      Formula* f = tas.f;
+      int negl;
+      int posl;
+      int negr;
+      int posr;
+      Connective con = f->connective();
+      Formula* l;
+      Formula* r;
+
+      /*
+      if (con == IFF) {
+        l = apply_sub(f->left(), UNDER_IFF, posl, negl);
+        r = apply_sub(f->right(), UNDER_IFF, posr, negr);
+      } else {
+        l = apply_sub(f->left(), UNDER_IFF, negl, posl);
+        r = apply_sub(f->right(), UNDER_IFF, negr, posr);
+      }
+      */
+
+      {
+        Result rr = result_stack.pop();
+        r = rr.resSub.res;
+        if (con == IFF) {
+          posr = rr.resSub.pos;
+          negr = rr.resSub.neg;
+        } else {
+          negr = rr.resSub.pos;
+          posr = rr.resSub.neg;
+        }
+        Result lr = result_stack.pop();
+        l = lr.resSub.res;
+        if (con == IFF) {
+          posl = lr.resSub.pos;
+          negl = lr.resSub.neg;
+        } else {
+          negl = lr.resSub.pos;
+          posl = lr.resSub.neg;
+        }
+      }
+
+      if (tas.where == ON_TOP
+          && ((posl == 1 && posr == 1) || (negl == 1 && negr == 1))) {
+        if (l != f->left() || r != f->right()) {
+          f = new BinaryFormula(con, l, r);
+        }
+
+        // pos = Int::min(_threshold, Int::max(posl, posr));
+        // return f;
+
+        {
+          Result r;
+          r.resSub.pos = Int::min(_threshold, Int::max(posl, posr));
+          r.resSub.res = f;
+          result_stack.push(r);
+        }
+
+        todo_stack.pop();  // finished
+        break; // case APPLY_SUB_IFFXOR
+      }
+      int pos = Int::min(negl * posr + negr * posl, _threshold);
+      int neg = Int::min(posl * posr + negl * negr, _threshold);
+      bool left; // name left
+      if (pos < _threshold) {
+        if (tas.where != UNDER_IFF || neg < _threshold) {
+          if (l != f->left() || r != f->right()) {
+            f = new BinaryFormula(con, l, r);
+          }
+          // return f
+          {
+            Result r;
+            r.resSub.pos = pos;
+            r.resSub.neg = neg;
+            r.resSub.res = f;
+            result_stack.push(r);
+          }
+
+          todo_stack.pop();  // finished
+          break; // case APPLY_SUB_IFFXOR
+        }
+        // must be split because of the neg
+        left = posl * posr > negl * negr ? (posl >= posr) : (negl >= negr);
+      } else { // pos == threshold
+        left = negl * posr > negr * posl ? (negl >= posr) : (posl >= negr);
+        // checking if both must be named
+        bool splitBoth =
+            left ? (posr + negr >= _threshold) : (posl + negl >= _threshold);
+        if (splitBoth) {
+          Formula* newl = introduceDefinition(l, true);
+          Formula* newr = introduceDefinition(r, true);
+          f = new BinaryFormula(con, newl, newr);
+
+          // neg = 2;
+          // pos = 2;
+          // return f;
+          {
+            Result r;
+            r.resSub = {2,2,f};
+            result_stack.push(r);
+          }
+
+          todo_stack.pop();  // finished
+          break; // case APPLY_SUB_IFFXOR
+        }
+      }
+
+      if (left) {
+        Formula* newl = introduceDefinition(l, true);
+        f = new BinaryFormula(con, newl, r);
+        // neg = Int::min(posr + negr, _threshold);
+        // pos = neg;
+        // return f;
+        {
+          Result r;
+          r.resSub.neg = Int::min(posr + negr, _threshold);
+          r.resSub.pos = neg;
+          r.resSub.res = f;
+          result_stack.push(r);
+        }
+
+        todo_stack.pop();  // finished
+        break; // case APPLY_SUB_IFFXOR
+      }
+
+      Formula* newr = introduceDefinition(r, true);
+      f = new BinaryFormula(con, l, newr);
+      // neg = Int::min(posl + negl, _threshold);
+      // pos = neg;
+      // return f;
+      {
+        Result r;
+        r.resSub.neg = Int::min(posl + negl, _threshold);
+        r.resSub.pos = neg;
+        r.resSub.res = f;
+        result_stack.push(r);
+      }
+      todo_stack.pop();  // finished
+    } break;
+
+    case APPLY_SUB_FORALLEXISTS: {
+      TaskApplySub& tas = t.taskApplySub;
+      SubtaskForallExists& tfe = t.taskApplySub.taskForallExists;
+
+      Formula* f = tas.f;
+      Formula* g;
+      int pos;
+      int neg;
+
+      // Formula* g = apply_sub(f->qarg(), where, pos, neg);
+      {
+        Result r = result_stack.pop();
+        g = r.resSub.res;
+        pos = r.resSub.pos;
+        neg = r.resSub.neg;
+      }
+      ASS(pos <= _threshold || _preserveEpr);
+      if (g != f->qarg()) {
+        f = new QuantifiedFormula(f->connective(), f->vars(), g);
+      }
+      if (tfe.varFlagSet) {
+        _varsInScope = false;
+      }
+      // return f;
+      {
+        Result r;
+        r.resSub.pos = pos;
+        r.resSub.neg = neg;
+        r.resSub.res = f;
+        result_stack.push(r);
+      }
+
+      todo_stack.pop();  // finished
+    } break;
+
+    case APPLY_LIST_TOP: {
+      TaskApplyList& tal = t.taskApplyList;
+
+      if (tal.fs->isEmpty()) {
+        Result r;
+        r.resList.res = tal.fs;
+        result_stack.push(r);
+
+        todo_stack.pop();  // finished
+      } else {
+        // two subcalls, in reverse order:
+
+        t.fncTag = APPLY_LIST_POST;
+
+        // FormulaList* gs = apply_list(fs->tail(), where, results + 1, negResults + 1);
+        Task t1;
+        t1.fncTag = APPLY_LIST_TOP;
+        t1.taskApplyList = {tal.fs->tail(),tal.where,tal.results+1,tal.negResults+1};
+
+        // Formula* g = apply_sub(fs->head(), where, results[0], neg);
+        Task t2;
+        t2.fncTag = APPLY_SUB_TOP;
+        t2.taskApplySub = {tal.fs->head(),tal.where};
+
+        todo_stack.push(t1);
+        todo_stack.push(t2);
+      }
+    } break;
+
+    case APPLY_LIST_POST: {
+      TaskApplyList& tal = t.taskApplyList;
+      FormulaList* fs = tal.fs;
+
+      // retrieve results for the two recursive calls (again fetched in reversed order)
+
+      // FormulaList* gs = apply_list(fs->tail(), where, results + 1, negResults + 1);
+      FormulaList* gs = result_stack.pop().resList.res;
+
+      // Formula* g = apply_sub(fs->head(), where, results[0], neg);
+      Formula* g;
+      {
+        Result r = result_stack.pop();
+        g = r.resSub.res;
+        tal.results[0] = r.resSub.pos;
+        if (tal.where == UNDER_IFF) {
+          tal.negResults[0] = r.resSub.neg;
+        }
+      }
+      if (g != fs->head() || gs != fs->tail()) {
+        fs = new FormulaList(g, gs);
+      }
+
+      // return fs;
+      {
+        Result r;
+        r.resList.res = fs;
+        result_stack.push(r);
+      }
+      todo_stack.pop();  // finished
+    } break;
+
+    default:
+      ASSERTION_VIOLATION;
+    }
+  }
+
+  ASS_EQ(result_stack.size(),1);
+  return result_stack.top().resSub.res;
+}
 
 /**
  * Apply naming to a subformula.
@@ -108,9 +735,8 @@ FormulaUnit* Naming::apply (FormulaUnit* unit,UnitList*& defs)
  * @since 01/07/2005 Manchester
  * @since 11/07/2005 flight Barcelona-Tel-Aviv
  */
-Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
-{
-  CALL("Naming::apply(Formula* ...)");
+Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
+  CALL("Naming::apply_sub(Formula* ...)");
 
   switch (f->connective()) {
   case LITERAL:
@@ -121,14 +747,14 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
   case AND: {
     FormulaList* fs = f->args();
     int length = fs->length();
-    void* mem = ALLOC_UNKNOWN(length*sizeof(int),"Naming::apply");
+    void* mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
     int* cls = array_new<int>(mem, length);
     int* negCls = 0;
     if (where == UNDER_IFF) {
-      mem = ALLOC_UNKNOWN(length*sizeof(int),"Naming::apply");
+      mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
       negCls = array_new<int>(mem, length);
     }
-    fs = apply(fs,where,cls,negCls);
+    fs = apply_list(fs, where, cls, negCls);
     bool split = false;
     // formula array, initialised only upon demand
     Formula** gs = 0;
@@ -141,92 +767,89 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
       int maxPosIndex = 0;
       int maxNegIndex = 0;
       FormulaList* currArg = f->args();
-      for (int i = 0;i < length;i++) {
-	int c = cls[i];
-	sum = Int::min(_threshold,sum+c);
-	bool canBeDefEvaluated=false;
-	bool canBeDef;
-	if (c > maxPos) {
-	  canBeDefEvaluated=true;
-	  canBeDef=canBeInDefinition(currArg->head(), where);
-	  if(canBeDef) {
-	    maxPos = c;
-	    maxPosIndex=i;
-	  }
-	}
-	if (where == UNDER_IFF) {
-	  int d = negCls[i];
-	  product = Int::min(_threshold,product*d);
-	  if (d > maxNeg) {
-	    if(!canBeDefEvaluated) {
-	      canBeDef=canBeInDefinition(currArg->head(), where);
-	    }
-	    if(canBeDef) {
-	      maxNeg = d;
-	      maxNegIndex=i;
-	    }
-	  }
-	}
-	currArg=currArg->tail();
+      for (int i = 0; i < length; i++) {
+        int c = cls[i];
+        sum = Int::min(_threshold, sum + c);
+        bool canBeDefEvaluated = false;
+        bool canBeDef;
+        if (c > maxPos) {
+          canBeDefEvaluated = true;
+          canBeDef = canBeInDefinition(currArg->head(), where);
+          if (canBeDef) {
+            maxPos = c;
+            maxPosIndex = i;
+          }
+        }
+        if (where == UNDER_IFF) {
+          int d = negCls[i];
+          product = Int::min(_threshold, product * d);
+          if (d > maxNeg) {
+            if (!canBeDefEvaluated) {
+              canBeDef = canBeInDefinition(currArg->head(), where);
+            }
+            if (canBeDef) {
+              maxNeg = d;
+              maxNegIndex = i;
+            }
+          }
+        }
+        currArg = currArg->tail();
       }
-      ASS(currArg==0);
+      ASS(currArg == 0);
       ASS(maxPos > 0 || _preserveEpr);
       ASS(where != UNDER_IFF || maxNeg > 0);
       // splitWhat & 1 => split due to the positive part
       // splitWhat & 2 => split due to the negative part
       int splitWhat = 0;
       if (where != UNDER_IFF || product > 1) { // not all formulas are atomic
-	if (where != ON_TOP && maxPos > 1 && sum >= _threshold) {
-	  splitWhat |= 1;
-	}
-	if (where == UNDER_IFF && product >= _threshold && maxNeg > 1) {
-	  splitWhat |= 2;
-	}
+        if (where != ON_TOP && maxPos > 1 && sum >= _threshold) {
+          splitWhat |= 1;
+        }
+        if (where == UNDER_IFF && product >= _threshold && maxNeg > 1) {
+          splitWhat |= 2;
+        }
       }
-      if (! splitWhat) { // no more splits
-	if (split) {
-	  FormulaList* rs = FormulaList::empty();
-	  for (int i = length-1;i >= 0;i--) {
-	    FormulaList::push(gs[i],rs);
-	  }
-	  f = new JunctionFormula(AND,rs);
- 	  DEALLOC_UNKNOWN(gs,"Naming::apply");
-	}
-	else if (fs != f->args()) {
-	  f = new JunctionFormula(AND,fs);
-	}
- 	DEALLOC_UNKNOWN(cls,"Naming::apply");
-	if (negCls) {
- 	  DEALLOC_UNKNOWN(negCls,"Naming::apply");
-	}
-	neg = product;
-	pos = sum;
-	return f;
+      if (!splitWhat) { // no more splits
+        if (split) {
+          FormulaList* rs = FormulaList::empty();
+          for (int i = length - 1; i >= 0; i--) {
+            FormulaList::push(gs[i], rs);
+          }
+          f = new JunctionFormula(AND, rs);
+          DEALLOC_UNKNOWN(gs, "Naming::apply");
+        } else if (fs != f->args()) {
+          f = new JunctionFormula(AND, fs);
+        }
+        DEALLOC_UNKNOWN(cls, "Naming::apply");
+        if (negCls) {
+          DEALLOC_UNKNOWN(negCls, "Naming::apply");
+        }
+        neg = product;
+        pos = sum;
+        return f;
       }
 
       // conjunction under disjunction or IFF, should be split
       split = true;
-      if (! gs) {
-	void* mem = ALLOC_UNKNOWN(length*sizeof(Formula*),"Naming::apply");
-	gs = array_new<Formula*>(mem, length);
-	int j = 0;
-	FormulaList::Iterator hs(fs);
-	while (hs.hasNext()) {
-	  gs[j] = hs.next();
-	  j++;
-	}
+      if (!gs) {
+        void* mem = ALLOC_UNKNOWN(length * sizeof(Formula*), "Naming::apply");
+        gs = array_new<Formula*>(mem, length);
+        int j = 0;
+        FormulaList::Iterator hs(fs);
+        while (hs.hasNext()) {
+          gs[j] = hs.next();
+          j++;
+        }
       }
       // gs has been initialised
-      int maxIndex = splitWhat == 1 ||
-                     (splitWhat == 3 && sum > product) ||
-                     maxNeg == 1
-                       ? maxPosIndex
-	               : maxNegIndex;
-      Formula* nm = introduceDefinition(gs[maxIndex],where==UNDER_IFF);
+      int maxIndex =
+          splitWhat == 1 || (splitWhat == 3 && sum > product) || maxNeg == 1 ?
+              maxPosIndex : maxNegIndex;
+      Formula* nm = introduceDefinition(gs[maxIndex], where == UNDER_IFF);
       gs[maxIndex] = nm;
       cls[maxIndex] = 1;
       if (where == UNDER_IFF) {
-	negCls[maxIndex] = 1;
+        negCls[maxIndex] = 1;
       }
     } // for (;;)
   } // case AND
@@ -234,17 +857,17 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
   case OR: {
     FormulaList* fs = f->args();
     int length = fs->length();
-    void* mem = ALLOC_UNKNOWN(length*sizeof(int),"Naming::apply");
+    void* mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
     int* cls = array_new<int>(mem, length);
     int* negCls = 0;
     if (where == UNDER_IFF) {
-      mem = ALLOC_UNKNOWN(length*sizeof(int),"Naming::apply");
+      mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
       negCls = array_new<int>(mem, length);
     }
-    if(where==ON_TOP) {
-      where=OTHER;
+    if (where == ON_TOP) {
+      where = OTHER;
     }
-    fs = apply(fs,where,cls,negCls);
+    fs = apply_list(fs, where, cls, negCls);
     bool split = false;
     // formula array, initialised only upon demand
     Formula** gs = 0;
@@ -257,92 +880,89 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
       int maxPosIndex = 0;
       int maxNegIndex = 0;
       FormulaList* currArg = f->args();
-      for (int i = 0;i < length;i++) {
-	int c = cls[i];
-	product = Int::min(_threshold,product*c);
-	bool canBeDefEvaluated=false;
-	bool canBeDef;
-	if (c > maxPos) {
-	  canBeDefEvaluated=true;
-	  canBeDef=canBeInDefinition(currArg->head(), where);
-	  if(canBeDef) {
-	    maxPos = c;
-	    maxPosIndex=i;
-	  }
-	}
-	if (where == UNDER_IFF) {
-	  int d = negCls[i];
-	  sum = Int::min(_threshold,sum+d);
-	  if (d > maxNeg) {
-	    if(!canBeDefEvaluated) {
-	      canBeDef=canBeInDefinition(currArg->head(), where);
-	    }
-	    if(canBeDef) {
-	      maxNeg = d;
-	      maxNegIndex=i;
-	    }
-	  }
-	}
-	currArg = currArg->tail();
+      for (int i = 0; i < length; i++) {
+        int c = cls[i];
+        product = Int::min(_threshold, product * c);
+        bool canBeDefEvaluated = false;
+        bool canBeDef;
+        if (c > maxPos) {
+          canBeDefEvaluated = true;
+          canBeDef = canBeInDefinition(currArg->head(), where);
+          if (canBeDef) {
+            maxPos = c;
+            maxPosIndex = i;
+          }
+        }
+        if (where == UNDER_IFF) {
+          int d = negCls[i];
+          sum = Int::min(_threshold, sum + d);
+          if (d > maxNeg) {
+            if (!canBeDefEvaluated) {
+              canBeDef = canBeInDefinition(currArg->head(), where);
+            }
+            if (canBeDef) {
+              maxNeg = d;
+              maxNegIndex = i;
+            }
+          }
+        }
+        currArg = currArg->tail();
       }
-      ASS(currArg==0);
+      ASS(currArg == 0);
       ASS(maxPos > 0 || _preserveEpr);
       ASS(where != UNDER_IFF || maxNeg > 0);
       // splitWhat & 1 => split due to the positive part
       // splitWhat & 2 => split due to the negative part
       int splitWhat = 0;
-      if ( maxPos>0 && (where != UNDER_IFF || product > 1) ) { // not all formulas are atomic
-	if (product >= _threshold && maxPos>1) {
-	  splitWhat |= 1;
-	}
-	if (where == UNDER_IFF && sum >= _threshold && maxNeg>1) {
-	  splitWhat |= 2;
-	}
+      if (maxPos > 0 && (where != UNDER_IFF || product > 1)) { // not all formulas are atomic
+        if (product >= _threshold && maxPos > 1) {
+          splitWhat |= 1;
+        }
+        if (where == UNDER_IFF && sum >= _threshold && maxNeg > 1) {
+          splitWhat |= 2;
+        }
       }
-      if (! splitWhat) { // no more splits
-	if (split) {
-	  FormulaList* rs = FormulaList::empty();
-	  for (int i = length-1;i >= 0;i--) {
-	    FormulaList::push(gs[i],rs);
-	  }
-	  f = new JunctionFormula(OR,rs);
- 	  DEALLOC_UNKNOWN(gs,"Naming::apply");
-	}
-	else if (fs != f->args()) {
-	  f = new JunctionFormula(OR,fs);
-	}
- 	DEALLOC_UNKNOWN(cls,"Naming::apply");
- 	if (negCls) {
- 	  DEALLOC_UNKNOWN(negCls,"Naming::apply");
-	}
-	neg = sum;
-	pos = product;
-	return f;
+      if (!splitWhat) { // no more splits
+        if (split) {
+          FormulaList* rs = FormulaList::empty();
+          for (int i = length - 1; i >= 0; i--) {
+            FormulaList::push(gs[i], rs);
+          }
+          f = new JunctionFormula(OR, rs);
+          DEALLOC_UNKNOWN(gs, "Naming::apply");
+        } else if (fs != f->args()) {
+          f = new JunctionFormula(OR, fs);
+        }
+        DEALLOC_UNKNOWN(cls, "Naming::apply");
+        if (negCls) {
+          DEALLOC_UNKNOWN(negCls, "Naming::apply");
+        }
+        neg = sum;
+        pos = product;
+        return f;
       }
 
       // splitWhat != 0
       split = true;
-      if (! gs) {
-	void* mem = ALLOC_UNKNOWN(length*sizeof(Formula*),"Naming::apply");
-	gs = array_new<Formula*>(mem, length);
-	int j = 0;
-	FormulaList::Iterator hs(fs);
-	while (hs.hasNext()) {
-	  gs[j] = hs.next();
-	  j++;
-	}
+      if (!gs) {
+        void* mem = ALLOC_UNKNOWN(length * sizeof(Formula*), "Naming::apply");
+        gs = array_new<Formula*>(mem, length);
+        int j = 0;
+        FormulaList::Iterator hs(fs);
+        while (hs.hasNext()) {
+          gs[j] = hs.next();
+          j++;
+        }
       }
       // gs has been initialised
-      int maxIndex = splitWhat == 1 ||
-	             (splitWhat == 3 && product > sum) ||
-	             maxNeg == 1
-                       ? maxPosIndex
-	               : maxNegIndex;
-      Formula* nm = introduceDefinition(gs[maxIndex],where==UNDER_IFF);
+      int maxIndex =
+          splitWhat == 1 || (splitWhat == 3 && product > sum) || maxNeg == 1 ?
+              maxPosIndex : maxNegIndex;
+      Formula* nm = introduceDefinition(gs[maxIndex], where == UNDER_IFF);
       gs[maxIndex] = nm;
       cls[maxIndex] = 1;
       if (where == UNDER_IFF) {
-	negCls[maxIndex] = 1;
+        negCls[maxIndex] = 1;
       }
     } // for (;;)
   } // case OR
@@ -360,89 +980,84 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
     Formula* l;
     Formula* r;
     if (con == IFF) {
-      l = apply(f->left(),UNDER_IFF,posl,negl);
-      r = apply(f->right(),UNDER_IFF,posr,negr);
+      l = apply_sub(f->left(), UNDER_IFF, posl, negl);
+      r = apply_sub(f->right(), UNDER_IFF, posr, negr);
+    } else {
+      l = apply_sub(f->left(), UNDER_IFF, negl, posl);
+      r = apply_sub(f->right(), UNDER_IFF, negr, posr);
     }
-    else {
-      l = apply(f->left(),UNDER_IFF,negl,posl);
-      r = apply(f->right(),UNDER_IFF,negr,posr);
-    }
-    if (where == ON_TOP && ((posl == 1 && posr == 1) ||
-			    (negl == 1 && negr == 1))) {
+    if (where == ON_TOP
+        && ((posl == 1 && posr == 1) || (negl == 1 && negr == 1))) {
       if (l != f->left() || r != f->right()) {
- 	f = new BinaryFormula(con,l,r);
+        f = new BinaryFormula(con, l, r);
       }
-      pos = Int::min(_threshold,Int::max(posl,posr));
+      pos = Int::min(_threshold, Int::max(posl, posr));
       return f;
     }
-    pos = Int::min(negl*posr + negr*posl,_threshold);
-    neg = Int::min(posl*posr+negl*negr,_threshold);
+    pos = Int::min(negl * posr + negr * posl, _threshold);
+    neg = Int::min(posl * posr + negl * negr, _threshold);
     bool left; // name left
     if (pos < _threshold) {
       if (where != UNDER_IFF || neg < _threshold) {
-	if (l != f->left() || r != f->right()) {
-	  f = new BinaryFormula(con,l,r);
-	}
-	return f;
+        if (l != f->left() || r != f->right()) {
+          f = new BinaryFormula(con, l, r);
+        }
+
+        return f;
       }
       // must be split because of the neg
-      left = posl*posr > negl*negr
-             ? (posl >= posr)
-	     : (negl >= negr);
-    }
-    else { // pos == threshold
-      left = negl*posr > negr*posl
-	     ? (negl >= posr)
-	     : (posl >= negr);
+      left = posl * posr > negl * negr ? (posl >= posr) : (negl >= negr);
+    } else { // pos == threshold
+      left = negl * posr > negr * posl ? (negl >= posr) : (posl >= negr);
       // checking if both must be named
-      bool splitBoth = left
-	               ? (posr+negr >= _threshold)
-	               : (posl+negl >= _threshold);
+      bool splitBoth =
+          left ? (posr + negr >= _threshold) : (posl + negl >= _threshold);
       if (splitBoth) {
-	Formula* newl = introduceDefinition(l,true);
-	Formula* newr = introduceDefinition(r,true);
-	f = new BinaryFormula(con,newl,newr);
-	neg = 2;
-	pos = 2;
-	return f;
+        Formula* newl = introduceDefinition(l, true);
+        Formula* newr = introduceDefinition(r, true);
+        f = new BinaryFormula(con, newl, newr);
+        neg = 2;
+        pos = 2;
+        return f;
       }
     }
 
     if (left) {
-      Formula* newl = introduceDefinition(l,true);
-      f = new BinaryFormula(con,newl,r);
-      neg = Int::min(posr+negr,_threshold);
+      Formula* newl = introduceDefinition(l, true);
+      f = new BinaryFormula(con, newl, r);
+      neg = Int::min(posr + negr, _threshold);
       pos = neg;
       return f;
     }
 
-    Formula* newr = introduceDefinition(r,true);
-    f = new BinaryFormula(con,l,newr);
-    neg = Int::min(posl+negl,_threshold);
+    Formula* newr = introduceDefinition(r, true);
+    f = new BinaryFormula(con, l, newr);
+    neg = Int::min(posl + negl, _threshold);
     pos = neg;
     return f;
   }
 
   case FORALL:
   case EXISTS: {
-    bool varFlagSet=f->connective()==FORALL && !_varsInScope;
-    if(varFlagSet) {
-      _varsInScope=true;
+    bool varFlagSet = f->connective() == FORALL && !_varsInScope;
+    if (varFlagSet) {
+      _varsInScope = true;
     }
-    Formula* g = apply(f->qarg(),where,pos,neg);
-    ASS (pos <= _threshold || _preserveEpr);
+    Formula* g = apply_sub(f->qarg(), where, pos, neg);
+    ASS(pos <= _threshold || _preserveEpr);
     if (g != f->qarg()) {
-      f = new QuantifiedFormula(f->connective(),f->vars(),g);
+      f = new QuantifiedFormula(f->connective(), f->vars(), g);
     }
-    if(varFlagSet) {
-      _varsInScope=false;
+    if (varFlagSet) {
+      _varsInScope = false;
     }
     return f;
   }
 
 #if VDEBUG
   default:
-    ASSERTION_VIOLATION_REP(*f);
+    ASSERTION_VIOLATION_REP(*f)
+    ;
 #endif
   }
 } // Naming::apply
@@ -450,60 +1065,58 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
 /**
  * Return true if a definition for the formula @b f may be introduced
  */
-bool Naming::canBeInDefinition(Formula* f, Where where)
-{
+bool Naming::canBeInDefinition(Formula* f, Where where) {
   CALL("Naming::canBeInDefinition");
 
-  if(!_preserveEpr) {
+  if (!_preserveEpr) {
     return true;
   }
 
-  bool unQuant=false;
-  bool exQuant=false;
+  bool unQuant = false;
+  bool exQuant = false;
   SubformulaIterator sfit(f);
-  while(sfit.hasNext()) {
-    Formula* sf=sfit.next();
-    if(sf->connective()==FORALL) {
-      unQuant=true;
+  while (sfit.hasNext()) {
+    Formula* sf = sfit.next();
+    if (sf->connective() == FORALL) {
+      unQuant = true;
     }
-    if(sf->connective()==EXISTS) {
-      exQuant=true;
+    if (sf->connective() == EXISTS) {
+      exQuant = true;
     }
   }
 
-
-  Formula::VarList* fvars=f->freeVariables();
-  bool freeVars=fvars;
+  Formula::VarList* fvars = f->freeVariables();
+  bool freeVars = fvars;
   fvars->destroy();
 
-  if(!_varsInScope && freeVars && (exQuant|| (unQuant && where==UNDER_IFF))) {
+  if (!_varsInScope && freeVars
+      && (exQuant || (unQuant && where == UNDER_IFF))) {
     return false;
   }
 
   return true;
 }
 
-Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars)
-{
+Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   CALL("Naming::getDefinitionLiteral");
 
   int length = freeVars->length();
   unsigned pred = env.signature->addNamePredicate(length);
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
 
-  if(env.colorUsed) {
-    Color fc=f->getColor();
-    if(fc!=COLOR_TRANSPARENT) {
+  if (env.colorUsed) {
+    Color fc = f->getColor();
+    if (fc != COLOR_TRANSPARENT) {
       predSym->addColor(fc);
     }
-    if(f->getSkip()) {
+    if (f->getSkip()) {
       predSym->markSkip();
     }
   }
 
   static Stack<unsigned> domainSorts;
   static Stack<TermList> predArgs;
-  static DHMap<unsigned,unsigned> varSorts;
+  static DHMap<unsigned, unsigned> varSorts;
   domainSorts.reset();
   predArgs.reset();
   varSorts.reset();
@@ -511,7 +1124,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars)
   SortHelper::collectVariableSorts(f, varSorts);
 
   Formula::VarList::Iterator vit(freeVars);
-  while(vit.hasNext()) {
+  while (vit.hasNext()) {
     unsigned uvar = vit.next();
     domainSorts.push(varSorts.get(uvar, Sorts::SRT_DEFAULT));
     predArgs.push(TermList(uvar, false));
@@ -533,9 +1146,9 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars)
  *
  * @since 01/07/2005 Manchester
  */
-Formula* Naming::introduceDefinition (Formula* f,bool iff)
-{
+Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   CALL("Naming::introduceDefinition");
+
   ASS_NEQ(f->connective(), LITERAL);
   ASS_NEQ(f->connective(), NOT);
 
@@ -547,37 +1160,35 @@ Formula* Naming::introduceDefinition (Formula* f,bool iff)
   Formula* name = new AtomicFormula(atom);
   Formula* def;
   if (iff) {
-    def = new BinaryFormula(IFF,name,f);
+    def = new BinaryFormula(IFF, name, f);
   }
   // iff = false
   else {
-    FormulaList* fs = f->connective() == OR
-  		      ? f->args()
-                      : new FormulaList(f);
+    FormulaList* fs = f->connective() == OR ? f->args() : new FormulaList(f);
     Formula* nameFormula = new NegatedFormula(name);
-    FormulaList::push(nameFormula,fs);
-    def = new JunctionFormula(OR,fs);
+    FormulaList::push(nameFormula, fs);
+    def = new JunctionFormula(OR, fs);
   }
   if (vs->isNonEmpty()) {
-    def = new QuantifiedFormula(FORALL,vs,def);
+    def = new QuantifiedFormula(FORALL, vs, def);
   }
   Inference* inf = new Inference(Inference::PREDICATE_DEFINITION);
-  Unit* definition = new FormulaUnit(def,inf,Unit::AXIOM);
+  Unit* definition = new FormulaUnit(def, inf, Unit::AXIOM);
 
-  InferenceStore::instance()->recordIntroducedSymbol(definition,false,atom->functor());
+  InferenceStore::instance()->recordIntroducedSymbol(definition, false,
+      atom->functor());
 
   env.statistics->formulaNames++;
-  UnitList::push(definition,_defs);
+  UnitList::push(definition, _defs);
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] naming defs: " << definition->toString() << std::endl;
     env.endOutput();
   }
-  
+
   return name;
 } // Naming::introduceDefinition
-
 
 /**
  * Apply naming to a list of subformulas.
@@ -591,25 +1202,24 @@ Formula* Naming::introduceDefinition (Formula* f,bool iff)
  * @returns the number of clauses
  * @since 01/07/2005 Manchester
  */
-FormulaList* Naming::apply (FormulaList* fs,Where where,
-			    int* results,int* negResults)
-{
-  CALL("Naming::apply (FormulaList*...)");
+FormulaList* Naming::apply_list(FormulaList* fs, Where where, int* results,
+    int* negResults) {
+  CALL("Naming::apply_list(FormulaList*...)");
 
   if (fs->isEmpty()) {
     return fs;
   }
 
   int neg;
-  Formula* g = apply(fs->head(),where,results[0],neg);
+  Formula* g = apply_sub(fs->head(), where, results[0], neg);
   if (where == UNDER_IFF) {
     negResults[0] = neg;
   }
-  FormulaList* gs = apply(fs->tail(),where,results+1,negResults+1);
-  if (g == fs->head() && gs == fs->tail()) {
-    return fs;
-  }
-  return new FormulaList(g,gs);
-} // Naming::apply (FormulaList&...)
+  FormulaList* gs = apply_list(fs->tail(), where, results + 1, negResults + 1);
 
+  if (g != fs->head() || gs != fs->tail()) {
+    fs = new FormulaList(g, gs);
+  }
+  return fs;
+} // Naming::apply (FormulaList&...)
 
