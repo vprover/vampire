@@ -75,6 +75,10 @@ void BufferedSolver::addClauses(SATClauseIterator cit, bool onlyPropagate,bool u
 {
   CALL("BufferedSolver::addClauses");
 
+  if (getStatus() == SATSolver::UNSATISFIABLE) {
+    return;
+  }
+
   static SATClauseStack newClauses;
   newClauses.reset();
   newClauses.loadFromIterator(cit);
