@@ -77,13 +77,13 @@ void GlobalSubsumption::addClauseToIndex(Clause* cl)
   SATSolver& solver = _index->getSolver();
   Grounder& grounder = _index->getGrounder();
 
-  ASS_NEQ(solver.getStatus(),SATSolver::UNSATISFIABLE);
+  // ASS_NEQ(solver.getStatus(),SATSolver::UNSATISFIABLE);
 
   SATClauseIterator sclIt = grounder.ground(cl,false);
   solver.ensureVarCnt(grounder.satVarCnt());
-  solver.addClauses(sclIt, true);
+  solver.addClauses(sclIt);
 
-  if(solver.getStatus()==SATSolver::UNSATISFIABLE) {
+  if(solver.solve(true)==SATSolver::UNSATISFIABLE) {
     //just a dummy inference, the correct one will be in the InferenceStore
     Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
     Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, inf);
@@ -146,16 +146,16 @@ Clause* GlobalSubsumption::tryResolvingAway(Clause* cl, unsigned litIdx, SATLite
   bool uprOnly = true;
 
   unsigned clen = cl->length();
-  SATSolver& solver = _index->getSolver();
+  SATSolverWithAssumptions& solver = _index->getSolver();
 
   // for each literal except litIdx (resolved)
   for(unsigned i = 0; i<clen; i++) {
     if(i==litIdx) {
 	continue;
     }
-    solver.addAssumption(slits[i].opposite(), uprOnly);
+    solver.addAssumption(slits[i].opposite());
 
-    if(solver.getStatus()==SATSolver::UNSATISFIABLE) {
+    if(solver.solve(uprOnly)==SATSolver::UNSATISFIABLE) {
 	static LiteralStack survivors;
 	survivors.reset();
 

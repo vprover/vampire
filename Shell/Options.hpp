@@ -483,6 +483,7 @@ public:
     SCO = 1,
     ALL = 2
   };
+
   enum class SplittingDeleteDeactivated : unsigned int {
     ON,
     LARGE_ONLY,
@@ -493,12 +494,24 @@ public:
     GROUND = 0,
     NONE = 1
   };
+  
+  enum class SplittingCongruenceClosure : unsigned int {
+    MODEL = 0,
+    OFF = 1,
+    ON = 2
+  };
 
   enum class SplittingNonsplittableComponents : unsigned int {
     ALL = 0,
     ALL_DEPENDENT = 1,
     KNOWN = 2,
     NONE = 3
+  };
+
+  enum class CCUnsatCores : unsigned int {
+    FIRST = 0,
+    SMALL_ONES = 1,
+    ALL = 2
   };
 
   enum class Sos : unsigned int{
@@ -1781,7 +1794,8 @@ public:
   int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
   float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
   bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
-  bool splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
+  SplittingCongruenceClosure splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
+  CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval.actualValue; }
@@ -1800,8 +1814,6 @@ public:
   bool bpSelectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst.actualValue; }
   bool bpStartWithPrecise() const { return _bpStartWithPrecise.actualValue; }
   bool bpStartWithRational() const { return _bpStartWithRational.actualValue;}
-  
-
     
 private:
     
@@ -2086,7 +2098,8 @@ private:
   BoolOptionValue _splitAtActivation;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   ChoiceOptionValue<SplittingComponentSweeping> _splittingComponentSweeping;
-  BoolOptionValue _splittingCongruenceClosure;
+  ChoiceOptionValue<SplittingCongruenceClosure> _splittingCongruenceClosure;
+  ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
   BoolOptionValue _splittingEagerRemoval;
   UnsignedOptionValue _splittingFlushPeriod;
   FloatOptionValue _splittingFlushQuotient;
@@ -2110,6 +2123,7 @@ private:
   StringOptionValue _testId;
   StringOptionValue _thanks;
   BoolOptionValue _theoryAxioms;
+
   /** Time limit in deciseconds */
   TimeLimitOptionValue _timeLimitInDeciseconds;
   BoolOptionValue _timeStatistics;

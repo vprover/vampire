@@ -17,3 +17,10 @@ vampire_rel.exe
 .kdbgrc.vampire*
 callgrind.out.*
 valgrind.supp
+
+._*
+.DS_Store
+.cproject
+.project
+.settings/
+

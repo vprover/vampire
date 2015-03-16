@@ -12,8 +12,10 @@
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/SafeRecursion.hpp"
+#include "Lib/DynamicHeap.hpp"
 
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Shell/DistinctProcessor.hpp"
 
@@ -91,6 +93,8 @@ void SimpleCongruenceClosure::ConstInfo::resetEquivalences(SimpleCongruenceClosu
   seen.reset();
 
   Stack<unsigned>::DelIterator ulit(useList);
+  // Martin: keep only those namedPairs in useList for which selfIndex
+  // is one of the arguments, and keep each such exactly once
   while(ulit.hasNext()) {
     unsigned p = ulit.next();
     ConstInfo& pInfo = parent._cInfos[p];
@@ -129,7 +133,8 @@ void SimpleCongruenceClosure::ConstInfo::assertValid(SimpleCongruenceClosure& pa
 #endif
 
 
-SimpleCongruenceClosure::SimpleCongruenceClosure()
+SimpleCongruenceClosure::SimpleCongruenceClosure(Ordering& ord) :
+  _ord(ord)
 {
   CALL("SimpleCongruenceClosure::SimpleCongruenceClosure");
 
@@ -235,11 +240,15 @@ unsigned SimpleCongruenceClosure::getPairName(CPair p)
 
   _cInfos[p.first].useList.push(res);
   if(_cInfos[p.first].reprConst!=0) {
+    // Martin: if we are here, the above insertion was not needed now,
+    // but will become necessary after reset(); see resetEquivalences
     unsigned fRepr = _cInfos[p.first].reprConst;
     _cInfos[fRepr].useList.push(res);
   }
   _cInfos[p.second].useList.push(res);
   if(_cInfos[p.second].reprConst!=0) {
+    // Martin: if we are here, the above insertion was not needed now,
+    // but will become necessary after reset(); see resetEquivalences
     unsigned sRepr = _cInfos[p.second].reprConst;
     _cInfos[sRepr].useList.push(res);
   }
@@ -334,11 +343,13 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
   unsigned res;
   if(_litNames.find(lit, res)) {
     return res;
-  }
+  }  
   if(_litNames.find(Literal::complementaryLiteral(lit), res)) {
     _litNames.insert(lit, res);
     return res;
   }
+  // Martin: in any case, the logical negation is encoded by the caller;
+  // notice that we ignore the polarity below:
 
   res = getSignatureConst(lit->functor(), false);
   Term::Iterator ait(lit);
@@ -346,6 +357,7 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
     TermList a = ait.next();
     unsigned argConst = convertFO(a);
     res = getPairName(CPair(res, argConst));
+    //Martin: same way to currify like in FOConversionWorker::post
   }
   _cInfos[res].lit = lit;
 
@@ -404,8 +416,8 @@ SimpleCongruenceClosure::CEq SimpleCongruenceClosure::convertFOEquality(Literal*
  *     if positive equality add eq as a pending equality
  *     otherwise add eq to _negEqualities
  *
- * - if distinct predicate (a special predicate in teh TFF language of TPTP that
- *     gaurentees that its arguments are distinct)
+ * - if distinct predicate (a special predicate in the TFF language of TPTP that
+ *     guarantees that its arguments are distinct)
  *     add to distinctConstraints or negDistinctConstraints appropriately
  *
  * - otherwise build an integer representative of the term and
@@ -413,7 +425,7 @@ SimpleCongruenceClosure::CEq SimpleCongruenceClosure::convertFOEquality(Literal*
  *    otherwise, equate it with a negative constant
  *
  */
-void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
+void SimpleCongruenceClosure::addLiterals(LiteralIterator lits, bool onlyEqualites)
 {
   CALL("SimpleCongruenceClosure::addLiterals");
   ASS(!_hadPropagated);
@@ -424,16 +436,23 @@ void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
       //for now we ignore non-ground literals
       continue;
     }
-    if(l->isEquality()) {
+    bool isEq = l->isEquality();
+
+    if(isEq && l->isPositive()) {
       CEq eq = convertFOEquality(l);
-      if(l->isPositive()) {
-	addPendingEquality(eq);
-      }
-      else {
-	_negEqualities.push(eq);
-      }
+      addPendingEquality(eq);
+      continue;
     }
-    else if(isDistinctPred(l)) {
+
+    if (onlyEqualites) {
+      continue;
+    }
+
+    if (isEq) {
+      ASS(!(l->isPositive()));
+      CEq eq = convertFOEquality(l);
+      _negEqualities.push(eq);
+    } else if(isDistinctPred(l)) {
       readDistinct(l);
     }
     else {
@@ -470,7 +489,9 @@ void SimpleCongruenceClosure::makeProofRepresentant(unsigned c)
   }
 
   //this kind of traversal may possibly cause quadratic complexity!
-
+  
+  //Martin: it shouldn't, because we always reorder a path in the smaller proof tree
+  
   CEq transfPrem; //initialized as invalid
   unsigned prevC = 0;
 
@@ -549,7 +570,7 @@ void SimpleCongruenceClosure::propagate()
       CPair usedPair = _cInfos[usePairConst].namedPair;
       ASS(usedPair!=CPair(0,0)); //the constant must be a name of a pair
       CPair derefPair = deref(usedPair);
-      ASS(usedPair!=derefPair);
+      ASS(usedPair!=derefPair); // Martin: (at least) one of the arguments was aRep, now is bRep
 
       unsigned* pDerefPairName;
       if(!_pairNames.getValuePtr(derefPair, pDerefPairName)) {
@@ -618,7 +639,7 @@ DecisionProcedure::Status SimpleCongruenceClosure::checkNegativeDistincts(bool r
       if(reprs.find(rep)) {
 	//distinct constraint is false, we're happy
 	isFalse = true;
-	continue;
+	continue; // Martin: why not break?
       }
       reprs.insert(rep, c);
     }
@@ -650,9 +671,11 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultip
     if(!retrieveMultipleCores) {
       return DecisionProcedure::UNSATISFIABLE;
     }
+    ASS(_unsatEqs.isNonEmpty());
+    // Martin: else continue collecting other potential reasons for unsat    
   }
 
-  //The intuition is that we want to fail on as early equialities as possible
+  //The intuition is that we want to fail on as early equalities as possible
   //(to improve back-jumping), so we have a BottomUpIterator here.
   //A possible problem with this is that the non-equality true!=false is the
   //first one, so whenever we have a contradiction with non-equality predicates,
@@ -662,6 +685,7 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultip
   //        is based on order added to SAT solver, which is not necessarily indicative
   //        of ordering in SAT solver splitting tree
   //        Cannot see why true!=false would be first non-equality
+  // Martin: agree with first, can explain the second (see the constructor and reset())
   Stack<CEq>::BottomFirstIterator neqIt(_negEqualities);
   while(neqIt.hasNext()) {
     CEq neq = neqIt.next();
@@ -713,7 +737,14 @@ void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stac
   CALL("SimpleCongruenceClosure::collectUnifyingPath");
   ASS_EQ(deref(c1), deref(c2));
 
-  //this function could be probably made more efficient if we use some time-stamping the the ConstInfo object
+  //this function could be probably made more efficient if we use some time-stamping of the ConstInfo object
+  
+  // Martin: paper says, proof can be found in O(k), where k is size of the proof
+  // My idea: go from both in parallel and start marking the paths, when one hits
+  // a marked node, the other should go back here too and then they both return home, "printing"
+  
+  // Martin: this is probably not the whole story; some parts of these proofs might have been output already
+  // (see the paper for more details) [probably only if this is shown to be a bottleneck]
 
   unsigned depth1 = getProofDepth(c1);
   unsigned depth2 = getProofDepth(c2);
@@ -751,7 +782,7 @@ void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stac
  */
 void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex)
 {
-  CALL("SimpleCongruenceClosure::getUnsatisfiableSubset");
+  CALL("SimpleCongruenceClosure::getUnsatCore");
   ASS(res.isEmpty());
   ASS_L(coreIndex,_unsatEqs.size());
 
@@ -790,7 +821,7 @@ void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex
       if(prem.foOrigin) {
 	if(prem.foPremise) {
 	  res.push(prem.foPremise);
-	}
+	} // Martin: this should be only null for the "built-in" dis-equality (_posLitConst != _negLitConst)
       }
       else {
 	//the equality was implied by congruence between the following two pairs:
@@ -810,5 +841,262 @@ void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex
   }
 }
 
+struct SimpleCongruenceClosure::ConstOrderingComparator {
+  ConstOrderingComparator(DArray<ConstInfo>& cInfos, Ordering& ord) 
+    : _cInfos(cInfos), _ord(ord) {}
+  
+  Comparison compare(unsigned c1, unsigned c2)
+  {
+    TermList c1NF = _cInfos[c1].normalForm;
+    TermList c2NF = _cInfos[c2].normalForm;
+        
+    // we don't care about the order of partial applications 
+    // as long as they are smaller than the proper terms
+    
+    if (c1NF.isEmpty()) {
+      if (c2NF.isEmpty()) {
+        return EQUAL;
+      } else {
+        return LESS;
+      }
+    } else {
+      if (c2NF.isEmpty()) {
+        return GREATER;
+      } else { // two proper terms
+        switch(_ord.compare(c1NF,c2NF)) {
+          case Ordering::Result::GREATER:
+            return GREATER;    
+          case Ordering::Result::LESS:
+            return LESS;
+          case Ordering::Result::EQUAL:
+            return EQUAL;    
+          default:
+            ASSERTION_VIOLATION;
+        }
+      }
+    }
+  }
+  
+  DArray<ConstInfo>& _cInfos;
+  Ordering& _ord;
+};
+
+/**
+ * Const @c c is a namedPair and both of its arguments are normalized.
+ * 
+ * We can compute normal form for @c c, provided it names a term at all.
+ */
+void SimpleCongruenceClosure::computeConstsNormalForm(unsigned c, NFMap& normalForms) 
+{
+  CALL("SimpleCongruenceClosure::computeConstsNormalForm");
+      
+  ConstInfo& cInfo = _cInfos[c];
+  if (!cInfo.term.isEmpty() && cInfo.normalForm.isEmpty()) {
+    Term* t = cInfo.term.term();
+    unsigned idx = t->arity();
+    unsigned d = c;
+    
+    static DArray<TermList> args(8);
+    args.ensure(idx);
+    while (idx-->0) {
+      CPair pair = _cInfos[d].namedPair;
+      ASS(pair !=CPair(0,0)); 
+      args[idx] = normalForms.get(deref(pair.second));             
+      ASS(args[idx].isTerm());
+      d = pair.first;
+    }
+    ASS_EQ(_cInfos[d].sigSymbol,t->functor());
+    cInfo.normalForm = TermList(Term::create(t,args.array()));
+  }
+}
+
+/**
+ * Return a reduced rewrite system compatible with the current ordering
+ * equivalent to the previously given positive equations
+ * in the form of a set of equational literals.
+ * 
+ * Based on the algorithm suggested by Wayne Snyder (1993),
+ * A Fast Algorithm for Generating Reduced Ground Rewriting Systems from a Set of Ground Equations.
+ */
+void SimpleCongruenceClosure::getModel(LiteralStack& model)
+{
+  CALL("SimpleCongruenceClosure::getModel");
+  
+  // a heap of candidate constants to process
+  static DynamicHeap<unsigned, ConstOrderingComparator, ArrayMap<unsigned> >
+    candidates(ConstOrderingComparator(_cInfos,_ord));
+  ASS(candidates.isEmpty());
+  
+  // a map of already computed normal forms, indexed by class representatives
+  static NFMap normalForms;
+  normalForms.reset();
+  
+  unsigned maxConst = getMaxConst();
+  candidates.elMap().expand(maxConst+1);
+  
+  // we process even predicates/literals but they will not show up in the result
+  // (because they are not in a class associated with a term)
+  
+  // moreover, it is encouraged that a separate copy of the SimpleCongruenceClosure
+  // is used for the purposes of calling getModel, a copy which never receives predicates or even dis-equalities
+
+  // initialize the info associated with constants
+  // and the heap of potential candidates    
+  for (unsigned c = 3; // skip 0=unused, 1=_posLitConst and 2=_negLitConst
+                c <= maxConst; c++) {
+    ConstInfo& cInfo = _cInfos[c];
+    
+    // cout << "init for " << c;
+    
+    cInfo.processed = false;    
+    cInfo.half_normalized = false;
+    cInfo.normalForm.makeEmpty();                
+    
+    if (cInfo.sigSymbol != NO_SIG_SYMBOL) { // either a symbol ...
+      // cout << " is sigsym ";
+      
+      // this copies the term for constants and an empty termlist for function symbols of arity > 0
+      cInfo.normalForm = cInfo.term;
+      
+      //cout << " and term " << cInfo.term.toString() << endl;      
+      //if (cInfo.lit) {
+      //  cout << " and a lit " << cInfo.lit->toString() << endl;
+      //}
+      
+      // it is important that the normal form has already been assigned, 
+      // since the insertion into the heap starts calling compare
+      candidates.insert(c);
+    } else { // ... or a named pair      
+    	ASS_NEQ(cInfo.namedPair.first,0);
+      ASS_NEQ(cInfo.namedPair.second,0);
+      
+      //cout << " names a pair (" << cInfo.namedPair.first << ", " 
+      //                          << cInfo.namedPair.second << ")";
+      //cout << " and term " << cInfo.term.toString();      
+      //if (cInfo.lit) {
+      //  cout << " and a lit " << cInfo.lit->toString();
+      //}
+      
+      unsigned lRep = deref(cInfo.namedPair.first);
+      unsigned rRep = deref(cInfo.namedPair.second);
+      ASS_NEQ(lRep,c); // the left child is necessarily in a different class
+      _cInfos[lRep].upEdges.push(c);
+      
+      //cout << " adds a left edge to " << lRep;
+      
+      if (rRep != deref(c)) { // for the right child, don't store upEdges within a class
+        _cInfos[rRep].upEdges.push(c);
+        
+        //cout << " adds a right edge to " << rRep;
+      }
+      //cout << endl;      
+    }
+  }
+  
+  // cout << "processing" << endl;
+  
+  while (!candidates.isEmpty()) {
+    unsigned c = candidates.pop();
+    unsigned r = deref(c);
+    ConstInfo& rInfo = _cInfos[r];
+    
+    //cout << "Picking candidate " << c << " with repr " << r << endl;
+    
+    if (!rInfo.processed) {
+      //cout << "Class not processed yet." << endl;
+      ConstInfo& cInfo = _cInfos[c];
+                  
+      rInfo.processed = true;
+      if (!cInfo.normalForm.isEmpty()) { // Are we considering a class with true terms (not partial applications)?
+        // c was the smallest candidate from this class,
+        // we will now keep c's normal form under the index r for everybody "above" to access
+        ALWAYS(normalForms.insert(r,cInfo.normalForm));
+      }
+
+      Stack<unsigned>::Iterator rUseIt(rInfo.upEdges);
+      while(rUseIt.hasNext()) {                
+        unsigned s = rUseIt.next(); // a super-term refers to a term in our class
+
+        // Giles suggested an optimization: don't consider terms from already normalized classes as candidates
+        if (_cInfos[deref(s)].processed) {
+          continue;
+        }
+
+        ConstInfo& sInfo = _cInfos[s];
+        ASS(sInfo.namedPair!=CPair(0,0)); //must be a name of a pair
+        
+        // cout << "superterm " << s;
+        
+        if (sInfo.half_normalized) {                     
+          // now becomes fully
+          computeConstsNormalForm(s,normalForms);
+          
+          //cout << " gets its normal form " << sInfo.normalForm.toString();
+          
+          // and can be inserted among candidates
+          candidates.insert(s);
+        } else {
+          //cout << " becoming half_normalized";
+          
+          sInfo.half_normalized = true;
+        }
+        
+        //cout << endl;
+      }
+      // upEdges must be kept clean between the calls to this function
+      rInfo.upEdges.reset();
+    }
+  }
+  
+  // start preparing the result
+  // avoid generating trivial equalities and duplicates (by hashing the pairs)
+  NFMap::Iterator nfIt(normalForms);
+  while(nfIt.hasNext()) {
+    unsigned r;
+    TermList nf;
+    nfIt.next(r,nf);
+    
+    //cout << "Outputting for class " << r << " with nf " << nf.toString() << endl;
+    
+    static DHSet<TermList> seen;
+    seen.reset();
+    seen.insert(nf); // this way we avoid generating the identity equality
+    
+    // for the representative
+    computeConstsNormalForm(r,normalForms); // maybe calling for a second time, but that's cheap    
+    if (!seen.contains(_cInfos[r].normalForm)) {
+      //cout << _cInfos[r].normalForm << " -> " << nf << endl;
+      model.push(Literal::createEquality(true,_cInfos[r].normalForm,nf,SortHelper::getResultSort(nf.term())));
+      seen.insert(_cInfos[r].normalForm);
+    }
+    
+    // and for all other members of the class
+    Stack<unsigned>::Iterator classIt(_cInfos[r].classList);
+    while (classIt.hasNext()) {
+      unsigned c = classIt.next();
+      
+      computeConstsNormalForm(c,normalForms); // maybe calling for a second time, but that's cheap
+      if (!seen.contains(_cInfos[c].normalForm)) {
+        //cout << _cInfos[c].normalForm << " -> " << nf << endl;
+        model.push(Literal::createEquality(true,_cInfos[c].normalForm,nf,SortHelper::getResultSort(nf.term())));
+        seen.insert(_cInfos[c].normalForm);
+      }
+    }
+  }
+  
+  DEBUG_CODE( assertModelInfoClean(); );  
+}
+
+#ifdef VDEBUG
+void SimpleCongruenceClosure::assertModelInfoClean() const
+{
+  CALL("SimpleCongruenceClosure::assertModelInfoClean");
+  unsigned maxConst = getMaxConst();
+  for (unsigned c = 0; c <= maxConst; c++) {
+    const ConstInfo& cInfo = _cInfos[c];
+    ASS(cInfo.upEdges.isEmpty());
+  }
+}
+#endif 
 
 }

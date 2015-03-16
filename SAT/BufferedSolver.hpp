@@ -20,8 +20,6 @@
 
 #include "SATSolver.hpp"
 
-
-
 namespace SAT {
 
 using namespace Lib;
@@ -33,30 +31,23 @@ public:
 
   BufferedSolver(SATSolver* inner);
 
-  virtual Status getStatus() { return _inner->getStatus(); }
   virtual SATClause* getRefutation() { return _inner->getRefutation(); }
-  virtual bool hasAssumptions() const { return _inner->hasAssumptions(); }
   virtual void randomizeAssignment() { flushUnadded(); _inner->randomizeAssignment(); }
 
-
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel);
-
-  // Overriding this makes trueInAssignment and falseInAssignment work with this
+  virtual void addClauses(SATClauseIterator cit);
+  virtual Status solve(unsigned conflictCountLimit) override;
   virtual VarAssignment getAssignment(unsigned var);
 
-  virtual bool isZeroImplied(unsigned var){ 
-    if(var >= _maxVar) return false;
-    return _inner->isZeroImplied(var); 
+  virtual bool isZeroImplied(unsigned var) {
+    CALL("BufferedSolver::isZeroImplied");
+    return (var > _maxVar) ? false : _inner->isZeroImplied(var);
   }
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
   virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
 
   virtual void ensureVarCnt(unsigned newVarCnt){ _inner->ensureVarCnt(newVarCnt);_tmaxVar=newVarCnt; }
   virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
-  virtual void forcePolarity(unsigned var,unsigned pol) override { _inner->forcePolarity(var,pol); }
-
-  virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
-  virtual void retractAllAssumptions();
+  virtual void forcePolarity(unsigned var,unsigned pol) override { _inner->forcePolarity(var,pol); }   
 
   virtual void recordSource(unsigned var, Literal* lit){
     _inner->recordSource(var,lit);
@@ -68,33 +59,32 @@ private:
   // if we choose not to add it at this point
   bool checkAndRecordImplied(SATClause* cl);
 
-  // Add any clauses that have been buffered
+  // Add any clauses that have been buffered to _inner and solve.
   void flushUnadded();
 
-
-// Records whether all adds seen the last flush have been onlyPropagate
-  bool _allOnlyPropagate;
   SATSolverSCP _inner;
-
 
  /**
   * A buffer for new literals that do not yet appear in the solver
   */
   DHMap<unsigned, bool> _literalBuffer;
 
- /**
-  * A record of the assumed literals. We cannot store this in buffer as we may empty the buffer 
-  * part way between an incremental SAT check
-  */
-  DHMap<unsigned,bool> _assumptions;
-
   /**
    * Clauses that have not been added to _inner as they are either implied by the assignment of _inner
    * or the variables implicitly set in _literalBuffer
    */
-  SATClauseStack _unadded_in_partial;
-  SATClauseStack _unadded_not_in_partial;
+  SATClauseStack _unadded;
+  
+  /**
+   * Index (to _unadded) of the least clause not yet checked wrt the current model.
+   */ 
+  unsigned _checkedIdx;
 
+  /**
+   * Remember the last status returned by solve.
+   */
+  Status _lastStatus;
+  
  /**
   * The maximum variable added to the SATSolver, used to detect new variables
   *

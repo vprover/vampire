@@ -16,7 +16,7 @@ namespace DP
 unsigned ShortConflictMetaDP::getCoreSize(const LiteralStack& core)
 {
   CALL("ShortConflictMetaDP::getCoreSize");
-  ASS_EQ(_solver.getStatus(), SATSolver::SATISFIABLE);
+  // ASS_EQ(_solver.getStatus(), SATSolver::SATISFIABLE);
 
   unsigned res = 0;
   LiteralStack::ConstIterator cit(core);

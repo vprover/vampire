@@ -1,6 +1,6 @@
 /**
  * @file SimpleCongruenceClosure.hpp
- * Defines class SimpleCongruenceClosure for implementing conguence closure
+ * Defines class SimpleCongruenceClosure for implementing congruence closure
  */
 
 #ifndef __SimpleCongruenceClosure__
@@ -14,6 +14,7 @@
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Term.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "DecisionProcedure.hpp"
 
@@ -24,6 +25,16 @@ using namespace Kernel;
 
 /**
  * Implementation of congruence closure.
+ * 
+ * Martin: seems to be inspired Nieuwenhuis, Oliveras (2007) Fast Congruence Closure and Extensions
+ * (at least the congruence closure itself and also the proof recording
+ * explanations [the unsat core extraction] seem to be simpler and suboptimal 
+ * -- the HighestNode trick ? )
+ * 
+ * Hint: understand _pairNames as "Lookup" from the paper.
+ * 
+ * However, classList of a representative 
+ * does not (physically) contain that representative (only logically)
  */
 class SimpleCongruenceClosure : public DecisionProcedure
 {
@@ -31,17 +42,21 @@ public:
   CLASS_NAME(SimpleCongruenceClosure);
   USE_ALLOCATOR(SimpleCongruenceClosure);
 
-  SimpleCongruenceClosure();
+  SimpleCongruenceClosure(Ordering& ord);
 
-  virtual void addLiterals(LiteralIterator lits);
+  virtual void addLiterals(LiteralIterator lits, bool onlyEqualites);
 
   virtual Status getStatus(bool retrieveMultipleCores);
   virtual unsigned getUnsatCoreCount() { return _unsatEqs.size(); }
   virtual void getUnsatCore(LiteralStack& res, unsigned coreIndex);
 
+  void getModel(LiteralStack& model) override;
+  
   virtual void reset();
 
 private:
+  Ordering& _ord;
+  
   /**
    * Constant pair
    *
@@ -142,7 +157,7 @@ private:
     /** (0,0) means the constant doesn't name a pair */
     CPair namedPair;
 
-    /** 0 means the symbol is its own representant */
+    /** 0 means the symbol is its own representative */
     unsigned reprConst;
 
     /**
@@ -163,12 +178,46 @@ private:
     /**
      * If reprConst==0, contains list of pair names in whose pairs this
      * constant appears as a representative of one of the arguments.
-     * Irregardless of the value f reprConst, also contains representatives
+     * Irregardless of the value of reprConst, also contains representatives
      * of all pairs that have this very constant as one of arguments.
      */
     Stack<unsigned> useList;
+        
+    // needed for getModel:    
+    /**
+     * Meaningful for representatives. Marking processed classes.
+     */
+    bool processed;
+    /**
+     * Meaningful for representatives. A list of edges leaving the class "upwards".
+     */
+    Stack<unsigned> upEdges;
+    /**
+     * Meaningful for namedPairs. 
+     * 
+     * One of the arguments have been normalized.
+     * When we learn about the other, we put it to potential candidates.
+     */
+    bool half_normalized;
+    
+    /**
+     * Meaningful for classes which represent a FO term (not just a partial application).
+     * 
+     * Consists of the original term's function symbol and normalised
+     * sub-terms obtained by replacing the original sub-term by its class's
+     * representative's normal form.
+     */
+    TermList normalForm;    
   };
 
+  struct ConstOrderingComparator;  
+  typedef DHMap<unsigned,TermList> NFMap;
+  void computeConstsNormalForm(unsigned c, NFMap& normalForms);
+  
+#ifdef VDEBUG
+  void assertModelInfoClean() const;
+#endif  
+  
   /**
    * Information on constants used in the algorithm
    *
@@ -213,7 +262,11 @@ private:
   };
   typedef Stack<DistinctEntry> DistinctStack;
   DistinctStack _distinctConstraints;
-  /** Negated distinct constraints, these can lead to an UNKNOWN satisfiability result */
+  /** Negated distinct constraints, these can lead to an UNKNOWN satisfiability result 
+   * 
+   * Martin: Strictly speaking these are not part of TPTP: 
+   * http://www.cs.miami.edu/~tptp/TPTP/SyntaxBNF.html
+   * "It can be used only as a fact, not under any connective." */  
   DistinctStack _negDistinctConstraints;
 
   /**

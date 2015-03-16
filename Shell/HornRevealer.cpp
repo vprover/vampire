@@ -38,9 +38,9 @@ void HornRevealer::apply(UnitList*& units)
   buildSatProblem(units);
 
   _solver.ensureVarCnt(env.signature->predicates()+1);
-  _solver.addClauses(pvi( SATClauseStack::Iterator(_satPrb) ), false);
+  _solver.addClauses(pvi( SATClauseStack::Iterator(_satPrb) ));
 
-  if(_solver.getStatus()==SATSolver::SATISFIABLE) {
+  if(_solver.solve(false /* default not inherited ? */)==SATSolver::SATISFIABLE) {
     if (env.options->showPreprocessing()) {
       env.beginOutput();
       env.out() << "[PP] Horn discovered" << std::endl;
@@ -93,7 +93,7 @@ void HornRevealer::discoverGoals(UnitList*& units)
 bool HornRevealer::isReversed(unsigned pred)
 {
   CALL("HornRevealer::isReversed");
-  ASS_EQ(_solver.getStatus(),SATSolver::SATISFIABLE);
+  // ASS_EQ(_solver.getStatus(),SATSolver::SATISFIABLE);
 
   //if prop variable is true, we don't reverse the predicate
   return _solver.getAssignment(pred2var(pred))==SATSolver::FALSE;

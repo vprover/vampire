@@ -34,9 +34,9 @@ public:
   ShortConflictMetaDP(DecisionProcedure* inner, SAT2FO& sat2fo, SATSolver& solver)
   : _inner(inner), _sat2fo(sat2fo), _solver(solver) {}
 
-  virtual void addLiterals(LiteralIterator lits) {
+  virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) {
     CALL("ShortConflictMetaDP::addLiterals");
-    _inner->addLiterals(lits);
+    _inner->addLiterals(lits, onlyEqualites);
   }
 
   virtual void reset() {
@@ -46,6 +46,10 @@ public:
   }
 
   virtual Status getStatus(bool getMultipleCores);
+
+  void getModel(LiteralStack& model) override {
+    _inner->getModel(model);
+  }
 
   /**
    * Return number of unsatisfiable cores that can be retrieved.

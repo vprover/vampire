@@ -33,7 +33,6 @@
 #include "SAT/MinisatInterfacing.hpp"
 
 #include "DP/ShortConflictMetaDP.hpp"
-#include "DP/SimpleCongruenceClosure.hpp"
 
 #include "SaturationAlgorithm.hpp"
 
@@ -91,24 +90,31 @@ void SplittingBranchSelector::init()
       // Do nothing - we don't want to minimise the model
       break;
     case Options::SplittingMinimizeModel::ALL:
-      _solver = new MinimizingSolver(_solver.release(),false);
-      break;
-    case  Options::SplittingMinimizeModel::SCO:
-      _solver = new MinimizingSolver(_solver.release(),true);
+    case Options::SplittingMinimizeModel::SCO:
+      _solver = new MinimizingSolver(_solver.release());
       break;
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
   }
+  _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
 
 
 #if DEBUG_MIN_SOLVER
   _solver = new Test::CheckedSatSolver(_solver.release());
 #endif
 
-  //Giles. Currently false by default.
-  if(_parent.getOptions().splittingCongruenceClosure()) {
-    // ASSERTION_VIOLATION_REP("Is this ever turned on?");
-    _dp = new ShortConflictMetaDP(new DP::SimpleCongruenceClosure(), _parent.satNaming(), *_solver);
+
+  if(_parent.getOptions().splittingCongruenceClosure() != Options::SplittingCongruenceClosure::OFF) {
+    _dp = new DP::SimpleCongruenceClosure(_parent.getOrdering());
+    if (_parent.getOptions().ccUnsatCores() == Options::CCUnsatCores::SMALL_ONES) {
+      _dp = new ShortConflictMetaDP(_dp.release(), _parent.satNaming(), *_solver);
+    }
+    _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
+
+    _ccModel = (_parent.getOptions().splittingCongruenceClosure() == Options::SplittingCongruenceClosure::MODEL);
+    if (_ccModel) {
+      _dpModel = new DP::SimpleCongruenceClosure(_parent.getOrdering());
+    }
   }
 }
 
@@ -121,6 +127,7 @@ void SplittingBranchSelector::updateVarCnt()
 
   _solver->ensureVarCnt(satVarCnt);
   _selected.expand(splitLvlCnt);
+  _trueInCCModel.expand(satVarCnt);
   _zeroImplieds.expand(satVarCnt,false);
 }
 
@@ -160,52 +167,176 @@ void SplittingBranchSelector::handleSatRefutation(SATClause* ref)
   throw MainLoop::RefutationFoundException(foRef);
 }
 
-void SplittingBranchSelector::processDPConflicts()
-{
-  CALL("SplittingBranchSelector::processDPConflicts");
-  ASS(_solver->getStatus()==SATSolver::SATISFIABLE || _solver->getStatus()==SATSolver::UNSATISFIABLE);
+SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCCModel(unsigned var) {
+  CALL("SplittingBranchSelector::getSolverAssimentConsideringCCModel");
 
-  if(!_dp || _solver->getStatus()==SATSolver::UNSATISFIABLE) {
-    return;
+  SATSolver::VarAssignment asgn = _solver->getAssignment(var);
+
+  if (!_ccModel || asgn == SATSolver::FALSE) {
+    return asgn;
   }
 
-  TimeCounter tc(TC_CONGRUENCE_CLOSURE);
+  // if we work with ccModel, the cc-model overrides the satsolver, but only for positive ground equalities
 
+  SAT2FO& s2f = _parent.satNaming();
+
+  Literal* lit = s2f.toFO(SATLiteral(var,true));
+
+  if (lit && lit->isEquality() && lit->ground()) {
+    return _trueInCCModel.find(var) ? SATSolver::TRUE : SATSolver::DONT_CARE;
+  } else {
+    return asgn;
+  }
+}
+
+static const int AGE_NOT_FILLED = -1;
+
+int SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge()
+{
+  CALL("SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge");
+
+  int max = 0;
+
+  unsigned maxSatVar = _parent.maxSatVar();
+  for(unsigned i=1; i<=maxSatVar; i++) {
+    SATSolver::VarAssignment asgn = _solver->getAssignment(i);
+    if(asgn==SATSolver::DONT_CARE) {
+      continue;
+    }
+    SATLiteral sl(i, asgn==SATSolver::TRUE);
+    SplitLevel name = _parent.getNameFromLiteral(sl);
+    if (!_parent.isUsedName(name)) {
+      continue;
+    }
+    Clause* compCl = _parent.getComponentClause(name);
+    if (compCl->length() != 1) {
+      continue;
+    }
+    Literal* l = (*compCl)[0];
+    if (l->ground() && l->isEquality() && l->isPositive()) {
+      int clAge = compCl->age();
+
+      if (clAge > max) {
+        max = clAge;
+      }
+    }
+  }
+
+  return max;
+}
+
+SATSolver::Status SplittingBranchSelector::processDPConflicts()
+{
+  CALL("SplittingBranchSelector::processDPConflicts");
+  // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
+
+  if(!_dp) {
+    return SATSolver::SATISFIABLE;
+  }
+  
   SAT2FO& s2f = _parent.satNaming();
   static LiteralStack gndAssignment;
   static LiteralStack unsatCore;
 
   static SATClauseStack conflictClauses;
 
-  while(_solver->getStatus()==SATSolver::SATISFIABLE) {
-    gndAssignment.reset(); // Martin. in fact, not ground. Filtering based on gndness happens inside dp
-    s2f.collectAssignment(*_solver, gndAssignment);
-
-    _dp->reset();
-    _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ));
-    DecisionProcedure::Status dpStatus = _dp->getStatus(true);
-    if(dpStatus!=DecisionProcedure::UNSATISFIABLE) {
-      break;
-    }
-
-    conflictClauses.reset();
-    unsigned unsatCoreCnt = _dp->getUnsatCoreCount();
-    for(unsigned i=0; i<unsatCoreCnt; i++) {
-      unsatCore.reset();
-      _dp->getUnsatCore(unsatCore, i);
-      SATClause* conflCl = s2f.createConflictClause(unsatCore);
-      conflictClauses.push(conflCl);
-    }
-
+  while (true) { // breaks inside
     {
-    	TimeCounter tca(TC_SAT_SOLVER);
-      // We do not use conflict clauses in the partial model (hence the last false here below)     
-    	_solver->addClauses(pvi( SATClauseStack::Iterator(conflictClauses) ),false,false);
+      TimeCounter tc(TC_CONGRUENCE_CLOSURE);
+    
+      gndAssignment.reset();
+      // collects only ground literals, because it known only about them ...
+      s2f.collectAssignment(*_solver, gndAssignment); 
+      // ... moreover, _dp->addLiterals will filter the set anyway
+
+      _dp->reset();
+      _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ));
+      DecisionProcedure::Status dpStatus = _dp->getStatus(_ccMultipleCores);
+
+      if(dpStatus!=DecisionProcedure::UNSATISFIABLE) {
+        break;
+      }
+
+      conflictClauses.reset();
+      unsigned unsatCoreCnt = _dp->getUnsatCoreCount();
+      for(unsigned i=0; i<unsatCoreCnt; i++) {
+        unsatCore.reset();
+        _dp->getUnsatCore(unsatCore, i);
+        SATClause* conflCl = s2f.createConflictClause(unsatCore);
+        conflictClauses.push(conflCl);
+      }
     }
 
     RSTAT_CTR_INC("ssat_dp_conflict");
-    RSTAT_CTR_INC_MANY("ssat_dp_conflict_clauses",conflictClauses.size());
+    RSTAT_CTR_INC_MANY("ssat_dp_conflict_clauses",conflictClauses.size());    
+    
+    {
+    	TimeCounter tca(TC_SAT_SOLVER);
+      if (_minSCO) {
+        _solver->addClausesIgnoredInPartialModel(pvi( SATClauseStack::Iterator(conflictClauses)));
+      } else {
+        _solver->addClauses(pvi( SATClauseStack::Iterator(conflictClauses)));
+      }
+    	
+      if (_solver->solve() == SATSolver::UNSATISFIABLE) {
+        return SATSolver::UNSATISFIABLE;
+      }
+    }
   }
+  
+  // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
+  if (_ccModel) {
+    TimeCounter tc(TC_CCMODEL);
+
+    RSTAT_CTR_INC("ssat_dp_model");
+
+    static LiteralStack model;
+    model.reset();
+
+    _dpModel->reset();
+    _dpModel->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ),true /*only equalities now*/);
+    ALWAYS(_dpModel->getStatus(false) == DecisionProcedure::SATISFIABLE);
+    _dpModel->getModel(model);
+
+    RSTAT_MCTR_INC("ssat_dp_model_size",model.size());
+
+    _trueInCCModel.reset();
+
+    // cout << "Obtained a model " << endl;
+    int parentMaxAge = AGE_NOT_FILLED;
+    LiteralStack::Iterator it(model);
+    while(it.hasNext()) {
+      Literal* lit = it.next();
+
+      // cout << lit->toString() << endl;
+
+      ASS(lit->isPositive());
+      ASS(lit->isEquality());
+      ASS(lit->ground());
+
+      Clause* compCl;
+      SplitLevel level = _parent.tryGetComponentNameOrAddNew(1,&lit,0,compCl);
+      if (compCl->age() == AGE_NOT_FILLED) { // added new
+        RSTAT_CTR_INC("ssat_dp_model_components");
+
+        if (parentMaxAge == AGE_NOT_FILLED) {
+          // This is the max of all the positive ground units that went into the DP.
+          // As such, is overestimates that "true age" that could be computed
+          // as the max over the true parents of this equality
+          // (we are lazy and cannot know the true parents without effort).
+          parentMaxAge = assertedGroundPositiveEqualityCompomentMaxAge();
+        }
+
+        compCl->setAge(parentMaxAge);
+      }
+
+      SATLiteral slit = _parent.getLiteralFromName(level);
+      ASS(slit.polarity());
+      _trueInCCModel.insert(slit.var());
+    }
+  }
+  
+  return SATSolver::SATISFIABLE;
 }
 
 void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
@@ -248,6 +379,23 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
         _selected.remove(negLvl);
         removedComps.push(negLvl);
       }
+    } else {
+      if(_ccModel && _selected.find(negLvl) && (_solver->getAssignment(satVar) == SATSolver::TRUE)) {
+        // The minimized model from the SATSolver says that a removal should happen for the negative equality.
+        // At the same ccModel has a better way of expressing the (positive version of the) equality and so said don't-care instead.
+        // But we must remove the negative equality now (even though we are lazy about removals in general here)
+#ifdef VDEBUG
+        {
+          Clause* cc = _parent.getComponentClause(negLvl);
+          ASS(cc && cc->size() == 1);
+          Literal* l = (*cc)[0];
+          ASS(l->ground() && l->isEquality() && l->isNegative());
+        }
+#endif
+
+        _selected.remove(negLvl);
+        removedComps.push(negLvl);
+      }
     }
     break;
   default:
@@ -265,26 +413,33 @@ void SplittingBranchSelector::addSatClauses(
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
 
-  RSTAT_CTR_INC_MANY("ssat_sat_clauses",regularClauses.size()+conflictClauses.size());
+  RSTAT_CTR_INC_MANY("ssat_sat_clauses",regularClauses.size()+conflictClauses.size());  
+  
+  _solver->addClauses(pvi( SATClauseStack::ConstIterator(regularClauses) ));
+  if (_minSCO) {
+    _solver->addClausesIgnoredInPartialModel(pvi( SATClauseStack::ConstIterator(conflictClauses) ));
+  } else {
+    _solver->addClauses(pvi( SATClauseStack::ConstIterator(conflictClauses) ));
+  }
+  
+  SATSolver::Status stat;
   {
     TimeCounter tc1(TC_SAT_SOLVER);
-    // We do use regular split clauses in the partial model ...
-    _solver->addClauses(pvi( SATClauseStack::ConstIterator(regularClauses) ), false,true);
-    // ... but not the clauses derived from conflicts
-    _solver->addClauses(pvi( SATClauseStack::ConstIterator(conflictClauses) ), false,false);
-    processDPConflicts();
+    stat = _solver->solve();
   }
-
-  if(_solver->getStatus()==SATSolver::UNSATISFIABLE) {
+  if (stat != SATSolver::UNSATISFIABLE) {
+    stat = processDPConflicts();
+  }
+  if(stat == SATSolver::UNSATISFIABLE) {
     SATClause* satRefutation = _solver->getRefutation();
     handleSatRefutation(satRefutation); // noreturn!
   }
-  ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
+  ASS_EQ(stat,SATSolver::SATISFIABLE);
 
   unsigned maxSatVar = _parent.maxSatVar();
   unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
-    SATSolver::VarAssignment asgn = _solver->getAssignment(i);            
+    SATSolver::VarAssignment asgn = getSolverAssimentConsideringCCModel(i);
     updateSelection(i, asgn, addedComps, removedComps);
     
     if (asgn != SATSolver::DONT_CARE) {
@@ -311,20 +466,26 @@ void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
   
-  if(_solver->getStatus()==SATSolver::UNKNOWN) {    
+  // if(_solver->getStatus()==SATSolver::UNKNOWN) 
+  {    
   	TimeCounter tca(TC_SAT_SOLVER);
-    _solver->addClauses(SATClauseIterator::getEmpty()); // Martin: just to get a status? Evil!
-  } 
-  ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
+    // TODO: this may be here just to make sure that the solver's internal status
+    // in not UNKNOWN, which would violate assertion in randomizeAssignment
+    _solver->solve();
+  }
+  // ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
   _solver->randomizeAssignment();
 
-  processDPConflicts(); // Why after the randomization?
-  ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
+  if(processDPConflicts() == SATSolver::UNSATISFIABLE) {
+    SATClause* satRefutation = _solver->getRefutation();
+    handleSatRefutation(satRefutation); // noreturn!
+  }
+  // ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE); 
 
   unsigned maxSatVar = _parent.maxSatVar();
   unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
-    SATSolver::VarAssignment asgn = _solver->getAssignment(i);
+    SATSolver::VarAssignment asgn = getSolverAssimentConsideringCCModel(i);
     updateSelection(i, asgn, addedComps, removedComps);
     
     if (asgn != SATSolver::DONT_CARE) {
@@ -403,6 +564,15 @@ const Options& Splitter::getOptions() const
 
   return _sa->getOptions();
 }
+
+Ordering& Splitter::getOrdering() const
+{
+  CALL("Splitter::getOrdering");
+  ASS(_sa);
+
+  return _sa->getOrdering();
+}
+
 
 void Splitter::init(SaturationAlgorithm* sa)
 {
@@ -575,7 +745,8 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
     return false;
   }
 
-  if(_congruenceClosure && cl->length()==1 && (*cl)[0]->ground() && cl->splits()->isEmpty()) {
+  if(_congruenceClosure != Options::SplittingCongruenceClosure::OFF
+      && cl->length()==1 && (*cl)[0]->ground() && cl->splits()->isEmpty()) {
     //we add ground unit clauses if we use congruence closure...
     // (immediately zero implied!)
     compName = tryGetComponentNameOrAddNew(cl->length(), cl->literals(), cl, compCl);
@@ -852,7 +1023,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, 
           new Inference(Inference::SAT_SPLITTING_COMPONENT));
 
-  compCl->setAge(orig ? orig->age() : 0);
+  compCl->setAge(orig ? orig->age() : AGE_NOT_FILLED);
 
   _db[name] = new SplitRecord(compCl);
   compCl->setSplits(SplitSet::getSingleton(name));

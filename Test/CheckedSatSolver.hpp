@@ -26,12 +26,15 @@ public:
   
   CheckedSatSolver(SATSolver* inner);
 
-  virtual Status getStatus() { ensureChecked(); return _inner->getStatus(); }
-  virtual SATClause* getRefutation() { ensureChecked(); return _inner->getRefutation(); }
-  virtual bool hasAssumptions() const { return _inner->hasAssumptions(); }
+  virtual SATClause* getRefutation() { 
+    // TODO: consider checking the proof
+    return _inner->getRefutation(); 
+  }
   virtual void randomizeAssignment() { _inner->randomizeAssignment(); _checked = false; ensureChecked(); }
 
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel);
+  virtual void addClauses(SATClauseIterator cit) override;
+  virtual void addClausesIgnoredInPartialModel(SATClauseIterator cit) override;
+  virtual Status solve(unsigned conflictCountLimit) override;
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var) { return _inner->isZeroImplied(var); }
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
@@ -40,8 +43,10 @@ public:
   virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
   virtual void forcePolarity(unsigned var,unsigned pol) override { _inner->forcePolarity(var,pol); }
 
-  virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
-  virtual void retractAllAssumptions();
+  // the interface of SATSolverWithAssumptions not needed now
+  // virtual bool hasAssumptions() const { return _inner->hasAssumptions(); }
+  // virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
+  // virtual void retractAllAssumptions();
 
   virtual void recordSource(unsigned var, Literal* lit){
     _inner->recordSource(var,lit);

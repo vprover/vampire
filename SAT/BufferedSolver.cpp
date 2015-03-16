@@ -13,7 +13,7 @@ namespace SAT
 {
 
 BufferedSolver::BufferedSolver(SATSolver* inner)
- : _allOnlyPropagate(true), _inner(inner), _maxVar(0)
+ : _inner(inner), _checkedIdx(0), _lastStatus(SATISFIABLE), _maxVar(0)
 {
   CALL("BufferedSolver::BufferedSolver");
 }
@@ -66,50 +66,13 @@ bool BufferedSolver::checkAndRecordImplied(SATClause* cl)
 /**
  * Add clauses to sat solver
  *
- * If all clauses are implied we add them to buffer, but if any are not we must
- * flush all unadded clauses.
- *
  * @author Giles
  */
-void BufferedSolver::addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel)
+void BufferedSolver::addClauses(SATClauseIterator cit)
 {
   CALL("BufferedSolver::addClauses");
 
-  if (getStatus() == SATSolver::UNSATISFIABLE) {
-    return;
-  }
-
-  static SATClauseStack newClauses;
-  newClauses.reset();
-  newClauses.loadFromIterator(cit);
-
-  // add clauses to _unadded
-  if(useInPartialModel){
-    _unadded_in_partial.loadFromIterator(SATClauseStack::BottomFirstIterator(newClauses));
-  }
-  else{
-    _unadded_not_in_partial.loadFromIterator(SATClauseStack::BottomFirstIterator(newClauses));
-  }
-
-  // check if clauses are implied by current ground model and bufferd literals
-  bool all_implied = true;
-  SATClauseStack::Iterator newIt(newClauses);
-  while(newIt.hasNext()){
-    SATClause* cl = newIt.next();
-    if(!checkAndRecordImplied(cl)){
-      all_implied=false;
-      RSTAT_CTR_INC("solver_buffer_miss");
-      break;
-    }
-  }
-
-  //record onlyPropagate value
-  _allOnlyPropagate &= onlyPropagate;
-
-  // if there are any not implied clauses then flush all unadded to inner 
-  if(!all_implied) flushUnadded();
-  else RSTAT_CTR_INC("solver_buffer_hit");
-
+  _unadded.loadFromIterator(cit);
 }
 
 /**
@@ -129,20 +92,53 @@ void BufferedSolver::flushUnadded()
   _maxVar=_tmaxVar;
 
   // flush _unadded to _inner
-  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(_unadded_in_partial)),_allOnlyPropagate,true);
-  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(_unadded_not_in_partial)),_allOnlyPropagate,false);
+  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(_unadded)));
 
   // reset
-  _unadded_in_partial.reset();
-  _unadded_not_in_partial.reset();
+  _unadded.reset();
+  _checkedIdx = 0;
   _literalBuffer.reset();
-  _allOnlyPropagate=true;
 }
 
 /**
- * To get the assignment for a variable we first check the buffer
- * and then set of assumptions.
+ * Check unadded clauses.
+ * 
+ * If all are implied we add keep them in buffer, 
+ * but if any are not we must flush all unadded clauses.
  *
+ * @author Martin
+ */
+SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
+{
+  CALL("BufferedSolver::solve"); 
+  
+  // BufferedSolver does not support "UNKNOWN" status as
+  // it needs _inner to have either a model or to be provably unsat
+  ASS_EQ(conflictCountLimit, UINT_MAX);
+  
+  if (_lastStatus == UNSATISFIABLE) {
+    return UNSATISFIABLE;
+  }
+  
+  ASS_EQ(_lastStatus,SATISFIABLE);
+  
+  // check if clauses are implied by current ground model and buffered literals
+  size_t sz = _unadded.size();
+  while(_checkedIdx < sz){
+    SATClause* cl = _unadded[_checkedIdx++];
+    if(!checkAndRecordImplied(cl)){
+      RSTAT_CTR_INC("solver_buffer_miss");
+      flushUnadded();
+      return (_lastStatus = _inner->solve(conflictCountLimit));
+    }
+  }
+
+  RSTAT_CTR_INC("solver_buffer_hit");
+  return SATSolver::SATISFIABLE;
+}
+
+/**
+ * To get the assignment for a variable we first check the buffer.
  * If a variable is not in the sat solver we return DONT_CARE
  *
  * @author Giles
@@ -155,10 +151,6 @@ SATSolver::VarAssignment BufferedSolver::getAssignment(unsigned var)
   if(!_literalBuffer.isEmpty() && _literalBuffer.find(var)) {
     return _literalBuffer.get(var) ? SATSolver::TRUE : SATSolver::FALSE;
   }
-  // check assumptions
-  if(!_assumptions.isEmpty() && _assumptions.find(var)) {
-    return _assumptions.get(var) ? SATSolver::TRUE : SATSolver::FALSE;
-  }
 
   // refer to inner if variable not new
   if(var < _maxVar){
@@ -168,46 +160,5 @@ SATSolver::VarAssignment BufferedSolver::getAssignment(unsigned var)
    return SATSolver::DONT_CARE; // If it is new and not yet assigned in buffer
   }
 }
-
-
-/**
- * Add an assumption if it is not already implied
- *
- * @author Giles
- */
-void BufferedSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
-{
-  CALL("BufferedSolver::addAssumption");
-
-  _assumptions.insert(lit.var(), lit.polarity());
-
-  // only add assumption if it is not already satisfied
-  // note that trueInAssignment will query buffer also
-  if(!trueInAssignment(lit)){
-  	_inner->addAssumption(lit, conflictCountLimit);
-  }
-}
-
-/**
- *
- * Retract all assumptions. This requires flushing as some buffered clauses
- * may rely on assumptions.
- *
- * @author Giles
- */
-void BufferedSolver::retractAllAssumptions()
-{
-  CALL("BufferedSolver::retractAllAssumptions");
-  // only need to retract if there are any
-  if(!_assumptions.isEmpty()){
-    _inner->retractAllAssumptions();
-    _assumptions.reset();
-    //also need to flush the buffer as they may rely on assumptions
-    //TODO - we could track which unadded clauses rely on assumptions,
-    // but it is unlikely to be many
-    flushUnadded();
-  }
-}
-
 
 }

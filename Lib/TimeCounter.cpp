@@ -241,6 +241,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_CONGRUENCE_CLOSURE:
     out<<"congruence closure";
     break;
+  case TC_CCMODEL:
+    out<<"model from congruence closure";
+    break;
   case TC_INST_GEN_SAT_SOLVING:
     out<<"inst gen SAT solving";
     break;
@@ -287,7 +290,7 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     out<<"Lingeling solver time";
     break;
   case TC_MINIMIZING_SOLVER:
-    out << "Minizing solver time";
+    out << "minimizing solver time";
     break;        
   case TC_SUPERPOSITION:
     out<<"superposition";

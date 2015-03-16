@@ -29,7 +29,7 @@ public:
   typedef pair<SATLiteral,SATLiteral> Impl;
   typedef pair<SATLiteral,SATLiteral> Equiv;
 
-  ISSatSweeping(unsigned varCnt, SATSolver& solver,
+  ISSatSweeping(unsigned varCnt, SATSolverWithAssumptions& solver,
       IntIterator interestingVarIterator = IntIterator::getInvalid(),
       bool doRandomSimulation = true, unsigned conflictLimit = UINT_MAX, bool collectImplications=true);
 
@@ -165,7 +165,7 @@ private:
   DHSet<unsigned> _trueVarSet;
   SATLiteralStack _trueLits;
 
-  SATSolver& _solver;
+  SATSolverWithAssumptions& _solver;
 };
 
 }

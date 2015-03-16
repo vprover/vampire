@@ -123,6 +123,8 @@ void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(int conflictCountL
     lglassume(_solver,vampireLit2Lingeling(_assumptions[i]));
   }  
   
+  TimeCounter tc(TC_LINGELING);
+  
   unsigned result = lglsat(_solver);  
   
 	switch (result) {
@@ -141,15 +143,14 @@ void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(int conflictCountL
 	}
 }
 
-void LingelingInterfacing::addClauses(SATClauseIterator cit,
-		bool onlyPropagate, bool useInPartialModel) // useInPartialModel ignored as this solver produces a total model
+void LingelingInterfacing::addClauses(SATClauseIterator cit) 
 {
-	CALL("LingelingInterfacing::addClause(SatClauseIte, bool onlyPropagate)");
+	CALL("LingelingInterfacing::addClauses");
   
   ASS_EQ(_assumptions.size(),0);
   
 	//TAKE CARE HOW ONE ADDS CLAUSES. a call to lgladd(_solver, 0) terminates the clause
-	TimeCounter tc(TC_LINGELING);
+	
 	//iterate over all the clauses from the problem
 	//if the solver is in UNSATISFIABLE state, adding a new clause keeps it unsatisfiable so simply return
 	if (_status == SATSolver::UNSATISFIABLE) {
@@ -180,9 +181,15 @@ void LingelingInterfacing::addClauses(SATClauseIterator cit,
 
   /* TODO: reconsider implementing env.options->satLingelingIncremental()
    * or removing the option! */
-  
-  solveModuloAssumptionsAndSetStatus(onlyPropagate ? 0 : -1);
 }
+
+SATSolver::Status LingelingInterfacing::solve(unsigned conflictCountLimit) 
+{
+  CALL("LingelingInterfacing::solve");      
+  solveModuloAssumptionsAndSetStatus(conflictCountLimit == UINT_MAX ? -1 : (int)conflictCountLimit);  
+  return _status;
+}
+
 
 SATClause* LingelingInterfacing::getRefutation()
 {
@@ -247,15 +254,11 @@ void LingelingInterfacing::printAssignment()
 
 //as this function is used, we only assume single units
 //lingeling allows us to also assume more than units, clauses
-void LingelingInterfacing::addAssumption(SATLiteral literal,
-		unsigned conflictCountLimit) {
-	CALL("LingelingInterfacing::addAssumption(SATLiteral, unsigned condlictCountLimit)");
+void LingelingInterfacing::addAssumption(SATLiteral literal) {
+	CALL("LingelingInterfacing::addAssumption");
 	TimeCounter tc(TC_LINGELING);
-	env.statistics->satLingelingAssumptions++;
-	
+	env.statistics->satLingelingAssumptions++;	
   _assumptions.push(literal);
-
-  solveModuloAssumptionsAndSetStatus(conflictCountLimit);
 }
   
 void LingelingInterfacing::addCAssumption(SATClause* clause,

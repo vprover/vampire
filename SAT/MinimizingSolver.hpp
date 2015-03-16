@@ -1,6 +1,7 @@
 /**
  * @file MinimizingSolver.hpp
- * Defines class MinimizingSolver.
+ * 
+ * Defines class MinimizingSolver which supports partial models.
  */
 
 #ifndef __MinimizingSolver__
@@ -29,14 +30,15 @@ public:
   CLASS_NAME(MinimizingSolver);
   USE_ALLOCATOR(MinimizingSolver);
 
-  MinimizingSolver(SATSolver* inner,bool splitclausesonly);
+  MinimizingSolver(SATSolver* inner);
 
-  virtual Status getStatus() { return _inner->getStatus(); }
   virtual SATClause* getRefutation() { return _inner->getRefutation(); }
-  virtual bool hasAssumptions() const { return _inner->hasAssumptions(); }
   virtual void randomizeAssignment() { _inner->randomizeAssignment(); _assignmentValid = false; }
 
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel);
+  virtual void addClauses(SATClauseIterator cit) override;
+  virtual void addClausesIgnoredInPartialModel(SATClauseIterator cit) override;
+  virtual Status solve(unsigned conflictCountLimit) override;
+  
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var);
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
@@ -45,10 +47,7 @@ public:
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual void suggestPolarity(unsigned var, unsigned pol) override { _inner->suggestPolarity(var,pol); }
   virtual void forcePolarity(unsigned var, unsigned pol) override { _inner->forcePolarity(var,pol); }
-
-  virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
-  virtual void retractAllAssumptions();
-
+  
   virtual void recordSource(unsigned var, Literal* lit){
     _inner->recordSource(var,lit);
   }
@@ -57,6 +56,7 @@ private:
   static bool isNonEmptyClause(SATClause* cl);
 
   bool admitsDontcare(unsigned var) { 
+    CALL("MinimizingSolver::admitsDontcare");
     return _watcher[var].isEmpty() && !_inner->isZeroImplied(var);
     
     /**
@@ -76,9 +76,6 @@ private:
 
   unsigned _varCnt;
   SATSolverSCP _inner;
-  bool _splitclausesonly;
-
-  DHMap<unsigned, bool> _assumptions;
 
   /**
    * If true, _asgn assignment corresponds to the assignment in

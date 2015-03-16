@@ -14,7 +14,7 @@
 
 namespace SAT{
 
-class MinisatInterfacing : public SATSolver
+class MinisatInterfacing : public SATSolverWithAssumptions
 {
 public: 
   CLASS_NAME(MinisatInterfacing);
@@ -27,8 +27,10 @@ public:
    *
    * A requirement is that in each clause, each variable occurs at most once.
    */
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate, bool useInPartialModel);
-  virtual Status getStatus() { return _status; }
+  virtual void addClauses(SATClauseIterator cit);
+  
+  virtual Status solve(unsigned conflictCountLimit) override;
+  
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
@@ -75,16 +77,10 @@ public:
     _solver.setPolarity(vampireVar2Minisat(var),mpol);        
   }
   
-  
-  
   /**
-   * Add an assumption into the solver. If conflictCountLimit==0,
-   * do only unit propagation, if conflictCountLimit==UINT_MAX, do
-   * full satisfiability check, and for values in between, restrict
-   * the number of conflicts, and in case it is reached, stop with
-   * solving and assign the status to UNKNOWN.
+   * Add an assumption into the solver.
    */
-  virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
+  virtual void addAssumption(SATLiteral lit);
   
   virtual void retractAllAssumptions() {
     _assumptions.clear();

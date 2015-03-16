@@ -25,6 +25,7 @@
 #include "SAT/SATSolver.hpp"
 
 #include "DP/DecisionProcedure.hpp"
+#include "DP/SimpleCongruenceClosure.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -46,7 +47,7 @@ class Splitter;
  */
 class SplittingBranchSelector {
 public:
-  SplittingBranchSelector(Splitter& parent) : _parent(parent) {}
+  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent)  {}
 
   /** To be called from Splitter::init() */
   void init();
@@ -60,21 +61,29 @@ public:
   void getNewZeroImpliedSplits(SplitLevelStack& res);
 
 private:
-  void processDPConflicts();
+  SATSolver::Status processDPConflicts();
+  SATSolver::VarAssignment getSolverAssimentConsideringCCModel(unsigned var);
 
   void handleSatRefutation(SATClause* ref);
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
+  int assertedGroundPositiveEqualityCompomentMaxAge();
+
   //options
   bool _eagerRemoval;
   bool _handleZeroImplied;
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
+  bool _ccMultipleCores;
+  bool _minSCO; // minimize wrt splitting clauses only
+  bool _ccModel;
 
   Splitter& _parent;
 
   SATSolverSCP _solver;
   ScopedPtr<DecisionProcedure> _dp;
+  // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
+  ScopedPtr<SimpleCongruenceClosure> _dpModel;
   
   /**
    * Contains selected component names (splitlevels)
@@ -82,11 +91,17 @@ private:
   ArraySet _selected;
   
   /**
+   * Keeps track of positive ground equalities true in the last ccmodel.
+   */
+  ArraySet _trueInCCModel;
+
+  /**
    * Remember variables which were zero implied before
    * to only report on the new ones.
    */
   DArray<bool> _zeroImplieds;
 };
+
 
 /**
  * SplitLevel meanings:
@@ -151,6 +166,7 @@ public:
   ~Splitter();
 
   const Options& getOptions() const;
+  Ordering& getOrdering() const;
   
   void init(SaturationAlgorithm* sa);
 
@@ -169,14 +185,15 @@ public:
     ASS_L(name,_db.size());
     return (_db[name] != 0);
   }
-    
+  Clause* getComponentClause(SplitLevel name) const;
+
   SplitLevel splitLevelCnt() const { return _db.size(); }
   unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
 
   SAT2FO& satNaming() { return _sat2fo; }
-private:      
-  Clause* getComponentClause(SplitLevel name) const; // Martin: currently unused
-  
+private:
+  friend class SplittingBranchSelector;
+
   bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
   
   SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
@@ -211,8 +228,8 @@ private:
   Options::SplittingNonsplittableComponents _nonsplComps;
   unsigned _flushPeriod;
   float _flushQuotient;
-  bool _congruenceClosure;
   Options::SplittingDeleteDeactivated _deleteDeactivated;
+  Options::SplittingCongruenceClosure _congruenceClosure;
 
   //utility objects
   SplittingBranchSelector _branchSelector;

@@ -573,7 +573,7 @@ void satSolverMode()
   solver->ensureVarCnt(varCnt+1); // allocates one extra slot for the dummy variable 0      
   solver->addClauses(preprocessClauses(clauses));
 
-  res = solver->getStatus();
+  res = solver->solve();
 
   env.statistics->phase = Statistics::FINALIZATION;
 
