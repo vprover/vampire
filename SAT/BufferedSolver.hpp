@@ -40,18 +40,10 @@ public:
 
 
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate,bool useInPartialModel);
+
+  // Overriding this makes trueInAssignment and falseInAssignment work with this
   virtual VarAssignment getAssignment(unsigned var);
 
-  virtual bool falseInAssignment(SATLiteral lit)
-  {
-    if(lit.var() >= _maxVar) return false;
-    return _inner->falseInAssignment(lit);
-  }
-  virtual bool trueInAssignment(SATLiteral lit)
-  {
-    if(lit.var() >= _maxVar) return false;
-    return _inner->trueInAssignment(lit);
-  }
   virtual bool isZeroImplied(unsigned var){ 
     if(var >= _maxVar) return false;
     return _inner->isZeroImplied(var); 
