@@ -334,11 +334,6 @@ void Options::Options::init()
     _lookup.insert(&_arityCheck);
     _arityCheck.tag(OptionTag::PREPROCESSING);
     
-    _distinctProcessor = BoolOptionValue("distinct_processor","",true);
-    _distinctProcessor.description="Handles $distinct predicates from the TPTP language";
-    _lookup.insert(&_distinctProcessor);
-    _distinctProcessor.tag(OptionTag::PREPROCESSING);
-
     _eprPreservingNaming = BoolOptionValue("epr_preserving_naming","",false);
     _eprPreservingNaming.description=
     "Naming will not cause introduction of any non-constant functions."

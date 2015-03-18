@@ -2342,7 +2342,50 @@ void TPTP::midAtom()
 	_formulas.push(new AtomicFormula(createEquality(true,lhs,rhs)));
 	return;
       }
-      // not equality
+      if (pred == -2){ // distinct
+        // TODO check that we are top-level
+        // If fewer than 5 things are distinct then we add the disequalities
+        if(arity<5){
+          static Stack<TermList> distincts;
+          distincts.reset();
+          for(int i=arity-1;i >= 0; i--){
+            distincts.push(_termLists.pop());
+          } 
+          Formula* distinct_formula = 0;
+
+          Stack<TermList>::Iterator distincts_it(distincts);
+          while(distincts_it.hasNext()){
+            Stack<TermList>::Iterator other_distinct_it(distincts);
+            TermList a = distincts_it.next();
+            ASS(a.isSafe());
+            while(other_distinct_it.hasNext()){
+              TermList b = other_distinct_it.next();
+              if(a.term()==b.term()) break;
+              Formula* new_dis = new AtomicFormula(createEquality(false,a,b));
+              if(distinct_formula){
+                distinct_formula = makeJunction((Connective) AND, new_dis,distinct_formula);
+              }
+              else distinct_formula = new_dis;
+            }
+          }
+          _formulas.push(distinct_formula);
+
+        }else{
+        // Otherwise record them as being in a distinct group
+          unsigned grpIdx = env.signature->createDistinctGroup(0);
+          for(int i = arity-1;i >=0; i--){
+            TermList ts = _termLists.pop();
+            if(!ts.isTerm() || ts.term()->arity()!=0){
+              USER_ERROR("$distinct should only be used positively with constants");
+            }
+            env.signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
+          }
+        
+          _formulas.push(new Formula(true)); // we ignore it, it evalutes to true as we have recorded it elsewhere
+        }
+        return;
+      }
+      // not equality or distinct
       Literal* lit = new(arity) Literal(pred,arity,true,false);
       bool safe = true;
       for (int i = arity-1;i >= 0;i--) {
@@ -3341,6 +3384,10 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
 				  Theory::INT_IS_RAT,
 				  Theory::RAT_IS_RAT,
 				  Theory::REAL_IS_RAT);
+  }
+  if(name == "$distinct"){
+    // special case for distinct, dealt with in midAtom
+    return -2; 
   }
   USER_ERROR((vstring)"Invalid predicate name: " + name);
 } // addPredicate

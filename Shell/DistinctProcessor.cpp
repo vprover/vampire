@@ -63,6 +63,8 @@ bool DistinctProcessor::apply(FormulaUnit* unit, Unit*& res)
 	while(distConsts.isNonEmpty()) {
 	  env.signature->addToDistinctGroup(distConsts.pop(), grpIdx);
 	}
+      }else{
+        USER_ERROR("$distinct should only be used positively with constants");
       }
     }
   }

@@ -20,7 +20,6 @@
 #include "AIGInliner.hpp"
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
-#include "DistinctProcessor.hpp"
 #include "EPRInlining.hpp"
 #include "EPRSkolem.hpp"
 #include "EqResWithDeletion.hpp"
@@ -311,12 +310,6 @@ void Preprocess::preprocess (Problem& prb)
     TopLevelFlatten().apply(prb);
   }
 
-  if (_options.distinctProcessor()) {
-    if (env.options->showPreprocessing())
-      env.out() << "processing distinct declarations" << std::endl;
-    
-    DistinctProcessor().apply(prb);
-  }
 
   if (_options.predicateEquivalenceDiscovery()!=Options::PredicateEquivalenceDiscoveryMode::OFF) {
     if (env.options->showPreprocessing())

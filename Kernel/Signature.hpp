@@ -68,7 +68,7 @@ class Signature
     unsigned _answerPredicate : 1;
     /** Either a FunctionType of a PredicateType object */
     mutable BaseType* _type;
-    /** List of distinct groups the constant is a member of */
+    /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
     List<unsigned>* _distinctGroups;
 
     ~Symbol();

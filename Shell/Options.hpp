@@ -1731,7 +1731,6 @@ public:
   bool smtlibIntroduceAIGNames() const { return _smtlibIntroduceAIGNames.actualValue; }
 
   bool colorUnblocking() const { return _colorUnblocking.actualValue; }
-  bool distinctProcessor() const { return _distinctProcessor.actualValue; }
   bool hornRevealing() const { return _hornRevealing.actualValue; }
   bool trivialPredicateRemoval() const { return _trivialPredicateRemoval.actualValue; }
 
@@ -1954,7 +1953,6 @@ private:
   ChoiceOptionValue<Condensation> _condensation;
 
   BoolOptionValue _demodulationRedundancyCheck;
-  BoolOptionValue _distinctProcessor;
 
   BoolOptionValue _eprPreservingNaming;
   BoolOptionValue _eprPreservingSkolemization;
