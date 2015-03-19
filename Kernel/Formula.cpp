@@ -779,4 +779,10 @@ std::ostream& operator<< (ostream& out, const Formula& f)
   return out << f.toString();
 }
 
+std::ostream& operator<< (ostream& out, const Formula* f)
+{
+  CALL("operator <<(ostream&, const Formula&)");
+  return out << f->toString();
+}
+
 }

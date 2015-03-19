@@ -549,6 +549,7 @@ TermList Formula::termLetRhs() const {
 // operators
 
 std::ostream& operator<< (ostream& out, const Formula& f);
+std::ostream& operator<< (ostream& out, const Formula* f);
 
 }
 
