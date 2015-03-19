@@ -56,7 +56,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
   for(unsigned i=0;i<group_members.size();i++){
     Stack<unsigned>* members = group_members[i];
-    if(members->size() != 0){
+    if(members->size() > 1){
  
       // If the non-empty distinct group represents numbers then we need to keep
       // the distinct processing later as new numbers can be generated from the
