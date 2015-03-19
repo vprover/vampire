@@ -105,7 +105,7 @@ public:
    */
   virtual void randomizeForNextAssignment(unsigned varLimit) {
     CALL("SATSolver::randomizeForNextAssignment");
-    for (unsigned var=0; var<varLimit; var++) {
+    for (unsigned var=1; var<varLimit; var++) {
       suggestPolarity(var,Random::getBit());
     }
   }
