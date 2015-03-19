@@ -103,7 +103,8 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     break;
   }
 
-  if(prb.hasEquality()) {
+  // Only add if there are distinct groups 
+  if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());
   }
   if(prb.hasInterpretedOperations()) {

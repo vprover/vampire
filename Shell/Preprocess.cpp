@@ -20,6 +20,7 @@
 #include "AIGInliner.hpp"
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
+#include "DistinctGroupExpansion.hpp"
 #include "EPRInlining.hpp"
 #include "EPRSkolem.hpp"
 #include "EqResWithDeletion.hpp"
@@ -202,6 +203,14 @@ void Preprocess::preprocess (Problem& prb)
       env.out() << "special term elimination" << std::endl;
 
     SpecialTermElimination().apply(prb);
+  }
+  
+  // Expansion of distinct groups happens before other preprocessing
+  // If a distinct group is small enough it will add inequality to describe it
+  if(env.signature->hasDistinctGroups()){
+    if(env.options->showPreprocessing())
+      env.out() << "distinct group expansion" << std::endl;
+    DistinctGroupExpansion().apply(prb);
   }
 
   // reorder units

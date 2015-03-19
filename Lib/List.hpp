@@ -477,6 +477,18 @@ public:
     return this;
   } // List::split
 
+#if VDEBUG
+// Only works if called on a List of elements with toString functions
+  vstring toString(){
+    CALL("List::toString");
+    vstring h = _head->toString();
+    if(_tail){
+      return h+","+_tail->toString();
+    }
+    else return h;
+  }
+#endif
+
   /** iterator over the list elements */
   class Iterator {
   public:

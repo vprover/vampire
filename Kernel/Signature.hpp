@@ -143,7 +143,9 @@ class Signature
     { ASS(realConstant()); return static_cast<const RealSymbol*>(this)->_realValue; }
 
     const List<unsigned>* distinctGroups() const { return _distinctGroups; }
-    void addToDistinctGroup(unsigned group);
+    /** This takes the symbol number of this symbol as the symbol doesn't know it
+        Note that this should only be called on a constant **/
+    void addToDistinctGroup(unsigned group,unsigned this_number);
 
     void setType(BaseType* type);
     FunctionType* fnType() const;
@@ -213,7 +215,6 @@ class Signature
       CALL("IntegerSymbol");
 
       setType(new FunctionType(0, 0, Sorts::SRT_INTEGER));
-      addToDistinctGroup(INTEGER_DISTINCT_GROUP);
     }
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
@@ -234,7 +235,6 @@ class Signature
       CALL("RationalSymbol");
 
       setType(new FunctionType(0, 0, Sorts::SRT_RATIONAL));
-      addToDistinctGroup(RATIONAL_DISTINCT_GROUP);
     }
     CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
@@ -255,7 +255,6 @@ class Signature
       CALL("RealSymbol");
 
       setType(new FunctionType(0, 0, Sorts::SRT_REAL));
-      addToDistinctGroup(REAL_DISTINCT_GROUP);
     }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
@@ -439,6 +438,9 @@ class Signature
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
+  bool hasDistinctGroups(){ return _distinctGroupsAddedTo; }
+  void noDistinctGroupsLeft(){ _distinctGroupsAddedTo=false; }
+  Stack<Stack<unsigned>*> getDistinctGroupMembers(){ return _distinctGroupMembers; }
 
   static vstring key(const vstring& name,int arity);
 
@@ -487,7 +489,12 @@ private:
   /** Map from symbol names to variable numbers*/
   SymbolMap _varNames;
   
+  // Store the premise of a distinct group for proof printing, if 0 then group is input
   Stack<Unit*> _distinctGroupPremises;
+  // We only store members up until a hard-coded limit i.e. the limit at which we will expand the group
+  Stack<Stack<unsigned>*> _distinctGroupMembers;
+  // Flag to indicate if any distinct groups have members
+  bool _distinctGroupsAddedTo;
 
   /**
    * Map from Interpretation values to function and predicate symbols representing them

@@ -103,8 +103,10 @@ void Signature::Symbol::destroyPredSymbol()
  *
  * A constant can be added into one particular distinct group
  * at most once
+ *
+ * We also record the symbol in the group's members, under certain conditions
  */
-void Signature::Symbol::addToDistinctGroup(unsigned group)
+void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 {
   CALL("Signature::Symbol::addToDistinctGroup");
 
@@ -112,6 +114,12 @@ void Signature::Symbol::addToDistinctGroup(unsigned group)
   ASS(!_distinctGroups->member(group))
 
   List<unsigned>::push(group, _distinctGroups);
+
+  env.signature->_distinctGroupsAddedTo=true;
+
+  Stack<unsigned>* members = env.signature->_distinctGroupMembers[group];
+  if(members->size()<6 || env.options->bfnt()) members->push(this_number);
+
 } // addToDistinctGroup
 
 /**
@@ -171,6 +179,7 @@ Signature::Signature ()
     _preds(32),
     _nextFreshSymbolNumber(0),
     _skolemFunctionCount(0),
+    _distinctGroupsAddedTo(false),
     _strings(0),
     _integers(0),
     _rationals(0),
@@ -303,7 +312,7 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
   _integers++;
   result = _funs.length();
   Symbol* sym = new Symbol(number,0,false,false,true);
-  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP);
+  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
@@ -324,8 +333,10 @@ unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
   }
   _integers++;
   result = _funs.length();
-  _funs.push(new IntegerSymbol(value));
+  Symbol* sym = new IntegerSymbol(value);
+  _funs.push(sym);
   _funNames.insert(key,result);
+  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
   return result;
 } // addIntegerConstant
 
@@ -355,7 +366,8 @@ unsigned Signature::addRationalConstant(const vstring& numerator, const vstring&
   Symbol* sym = new Symbol(name,0,false,false,true);
   // integer distinct group here is intentional, since rationals are distinct
   // from integers (maybe)
-  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP);
+  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
+  sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(key,result);
   return result;
@@ -401,7 +413,9 @@ unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
   Symbol* sym = new Symbol(number,0,false,false,true);
   // integer distinct group here is intentional, since rationals are distinct
   // from integers (maybe)
-  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP);
+  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
+  sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP,result);
+  sym->addToDistinctGroup(REAL_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(key,result);
   return result;
@@ -643,7 +657,7 @@ unsigned Signature::addStringConstant(const vstring& name)
   vstring quotedName = "\"" + name + "\"";
   result = _funs.length();
   Symbol* sym = new Symbol(quotedName,0,false,true);
-  sym->addToDistinctGroup(STRING_DISTINCT_GROUP);
+  sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
@@ -843,6 +857,8 @@ unsigned Signature::createDistinctGroup(Unit* premise)
 
   unsigned res = _distinctGroupPremises.size();
   _distinctGroupPremises.push(premise);
+  Stack<unsigned>* stack = new Stack<unsigned>;
+  _distinctGroupMembers.push(stack);
   return res;
 }
 
@@ -866,7 +882,7 @@ void Signature::addToDistinctGroup(unsigned constantSymbol, unsigned groupId)
   CALL("Signature::addToDistinctGroup");
 
   Symbol* sym = getFunction(constantSymbol);
-  sym->addToDistinctGroup(groupId);
+  sym->addToDistinctGroup(groupId,constantSymbol);
 }
 
 bool Signature::isProtectedName(vstring name)

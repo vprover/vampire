@@ -22,6 +22,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/DistinctGroupExpansion.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -2346,28 +2347,12 @@ void TPTP::midAtom()
         // TODO check that we are top-level
         // If fewer than 5 things are distinct then we add the disequalities
         if(arity<5){
-          static Stack<TermList> distincts;
+          static Stack<unsigned> distincts;
           distincts.reset();
           for(int i=arity-1;i >= 0; i--){
-            distincts.push(_termLists.pop());
+            distincts.push(_termLists.pop().term()->functor());
           } 
-          Formula* distinct_formula = 0;
-
-          Stack<TermList>::Iterator distincts_it(distincts);
-          while(distincts_it.hasNext()){
-            Stack<TermList>::Iterator other_distinct_it(distincts);
-            TermList a = distincts_it.next();
-            ASS(a.isSafe());
-            while(other_distinct_it.hasNext()){
-              TermList b = other_distinct_it.next();
-              if(a.term()==b.term()) break;
-              Formula* new_dis = new AtomicFormula(createEquality(false,a,b));
-              if(distinct_formula){
-                distinct_formula = makeJunction((Connective) AND, new_dis,distinct_formula);
-              }
-              else distinct_formula = new_dis;
-            }
-          }
+          Formula* distinct_formula = DistinctGroupExpansion().expand(distincts);
           _formulas.push(distinct_formula);
 
         }else{
