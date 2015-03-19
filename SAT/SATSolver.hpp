@@ -104,6 +104,7 @@ public:
    * a different model (provided the status will be satisfiable).
    */
   virtual void randomizeForNextAssignment(unsigned varLimit) {
+    CALL("SATSolver::randomizeForNextAssignment");
     for (unsigned var=0; var<varLimit; var++) {
       suggestPolarity(var,Random::getBit());
     }

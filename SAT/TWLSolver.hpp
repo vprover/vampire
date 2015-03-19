@@ -114,7 +114,7 @@ private:
 
   /** Return true iff variable @c var is undefined in the current assignment */
   bool isUndefined(unsigned var) const {
-    ASS(var <= _varCnt);
+    ASS_L(var,_varCnt);
     return _assignment[var] == AS_UNDEFINED;
   }
   /** Return true iff variable @c var is true in the current assignment */

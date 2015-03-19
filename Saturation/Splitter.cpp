@@ -116,11 +116,14 @@ void SplittingBranchSelector::init()
       _dpModel = new DP::SimpleCongruenceClosure(_parent.getOrdering());
     }
   }
+
+  // TODO: fix TWL such that it either officially ignores slot for variables 0, or better translates variable indices down by 1
+  updateVarCnt();
 }
 
 void SplittingBranchSelector::updateVarCnt()
 {
-  CALL("SplittingBranchSelector::ensureVarCnt");
+  CALL("SplittingBranchSelector::updateVarCnt");
 
   unsigned satVarCnt = _parent.maxSatVar()+1;
   unsigned splitLvlCnt = _parent.splitLevelCnt();
@@ -459,7 +462,7 @@ void SplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStack
   CALL("SplittingBranchSelector::flush");
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
-  
+
   unsigned maxSatVar = _parent.maxSatVar();
   {
     TimeCounter tca(TC_SAT_SOLVER);
