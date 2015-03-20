@@ -288,6 +288,10 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 	  applyImpl<ProcessSpecVars>(sd->getRhsTerm(), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing)
 	  );
+    case Term::SF_FORMULA:
+      return Term::createFormula(
+      applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
+      );
     }
     ASSERTION_VIOLATION;
   }

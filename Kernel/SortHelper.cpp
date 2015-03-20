@@ -134,6 +134,9 @@ bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, Te
       }
       break;
     }
+    case Term::SF_FORMULA:
+      // will we have a problem with a term being sorted as bool here?
+      resultSort = Sorts::SRT_BOOL;
     default:
       ASS(!t->isSpecial());
       resultSort = getResultSort(t);

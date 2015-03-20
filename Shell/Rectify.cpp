@@ -179,6 +179,15 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createTermLet(orig, tgt, body);
   }
+  case Term::SF_FORMULA:
+  {
+    ASS_EQ(t->arity(),0);
+    Formula* orig = rectify(sd->getFormula());
+    if(orig==sd->getFormula()) {
+      return t;
+    }
+    return Term::createFormula(orig);
+  }
   default:
     ASSERTION_VIOLATION;
   }

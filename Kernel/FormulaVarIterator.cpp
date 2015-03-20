@@ -224,6 +224,10 @@ bool FormulaVarIterator::processSpecialTerm(const TermList* ts)
     _instructions.push(FVI_TERM);
     _terms.push(t->args());
   }
+  else if(t->functor()==Term::SF_FORMULA) {
+	_instructions.push(FVI_FORMULA);
+	_formulas.push(sd->getFormula());
+  }
   else {
     _instructions.push(FVI_TERM);
     _terms.push(t->args());

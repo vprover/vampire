@@ -518,6 +518,12 @@ void Property::scanSpecialTerm(Term* t)
     scan(t->args());
     break;
   }
+  case Term::SF_FORMULA:
+  {
+    ASS_EQ(t->arity(),0);
+    scan(sd->getFormula());
+    break;
+  }
   default:
     ASSERTION_VIOLATION;
   }
