@@ -1015,7 +1015,7 @@ void Options::Options::init()
     _ccUnsatCores.setRandomChoices({"first", "small_ones", "all"});
 
     _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
-                                                "splittingLiteralPolarityAdvice","slpa",
+                                                "splitting_literal_polarity_advice","slpa",
                                                 SplittingLiteralPolarityAdvice::NONE,
                                                 {"false","true","none"});
     _splittingLiteralPolarityAdvice.description="Override SAT-solver's default polarity/phase setting for variables abstracting clause components.";
