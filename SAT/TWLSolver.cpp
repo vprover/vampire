@@ -31,6 +31,16 @@
 #undef LOGGING
 #define LOGGING 0
 
+#if LOGGING
+#define LOG1(arg) cout << arg << endl;
+#define LOG2(a1,a2) cout << a1 << a2 << endl;
+#define LOG3(a1,a2,a3) cout << a1 << a2 << a3 << endl;
+#else
+#define LOG1(arg)
+#define LOG2(a1,a2)
+#define LOG3(a1,a2,a3)
+#endif
+
 namespace SAT
 {
 
@@ -139,6 +149,8 @@ void TWLSolver::addClauses(SATClauseIterator cit)
   ASS_EQ(_assumptionCnt, 0);
   ASS(!_unsatisfiableAssumptions);
 
+  LOG2((void*)this," addClauses");
+
   if(_status==UNSATISFIABLE) { // TODO: a potential memory leak !
     return;
   }
@@ -149,14 +161,13 @@ void TWLSolver::addClauses(SATClauseIterator cit)
   
   try {
     while(cit.hasNext()) {
-      /**@author ioan.
-       * reason: in order to count how many clauses are added to vampire solver
-       */
       env.statistics->satTWLClauseCount++;
 
       SATClause* cl=cit.next();
       ASS(cl->hasUniqueVariables());
       cl->setKept(true);
+
+      LOG1(cl->toString());
 
       _addedClauses.push(cl);
 
@@ -202,6 +213,8 @@ SATSolver::Status TWLSolver::solve(unsigned conflictCountLimit) {
     if(_assumptionsAdded){ _unsatisfiableAssumptions=true;}
   }
   
+  LOG3((void*)this," solve ",_status);
+
   return _status;
 }
 
@@ -211,6 +224,8 @@ void TWLSolver::addAssumption(SATLiteral lit)
   CALL("TWLSolver::addAssumption");
   TimeCounter ttc(TC_SAT_SOLVER);
   _assumptionsAdded = true;
+
+  LOG2("addAssumption ",lit);
 
   if(_status==UNSATISFIABLE) {
     return;
@@ -243,6 +258,8 @@ void TWLSolver::retractAllAssumptions()
   CALL("TWLSolver::retractAllAssumptions");
   TimeCounter ttc(TC_SAT_SOLVER);
   _assumptionsAdded = false;
+
+  LOG1("retractAllAssumptions");
 
   if(_unsatisfiableAssumptions) {
     _status = UNKNOWN;
