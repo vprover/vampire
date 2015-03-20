@@ -199,6 +199,7 @@ SATSolver::Status TWLSolver::solve(unsigned conflictCountLimit) {
     _status=UNSATISFIABLE;
     _refutation = e.refutation;
     ASS(!_generateProofs || _refutation);
+    if(_assumptionsAdded){ _unsatisfiableAssumptions=true;}
   }
   
   return _status;
