@@ -1005,6 +1005,8 @@ void Options::Options::init()
     _splittingCongruenceClosure.setRandomChoices({"model","off","on"});
     _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
                                                   then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));
+    _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
+                                                      then(_splittingHandleZeroImplied.is(notEqual(true))));
     
     _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
                                                      {"first", "small_ones", "all"});
