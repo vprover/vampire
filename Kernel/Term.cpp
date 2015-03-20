@@ -41,6 +41,7 @@ using namespace Kernel;
 const unsigned Term::SF_TERM_ITE;
 const unsigned Term::SF_LET_TERM_IN_TERM;
 const unsigned Term::SF_LET_FORMULA_IN_TERM;
+const unsigned Term::SF_FORMULA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 #endif
 
@@ -355,7 +356,7 @@ vstring Term::variableToString(TermList var)
 } // variableToString
 
 /**
- * Convert a term if-then-else or a let...in expression to vstring
+ * Convert an if-then-else, let...in or formula term to vstring
  */
 vstring Term::specialTermToString() const
 {
@@ -363,6 +364,12 @@ vstring Term::specialTermToString() const
   ASS(isSpecial());
 
   switch(functor()) {
+  case SF_FORMULA:
+  {
+    ASS_EQ(arity(),0);
+    vstring s = getSpecialData()->getFormula()->toString();
+    return s;
+  }
   case SF_LET_FORMULA_IN_TERM:
   {
     ASS_EQ(arity(),1);
@@ -777,6 +784,20 @@ Term* Term::createFormulaLet(Literal* lhs, Formula* rhs, TermList t)
   ASS(ss->next()->isEmpty());
   s->getSpecialData()->_formulaLetData.lhs = lhs;
   s->getSpecialData()->_formulaLetData.rhs = rhs;
+  return s;
+}
+
+/**
+ * Create a formula expression and return
+ * the resulting term
+ */
+Term* Term::createFormula(Formula* formula)
+{
+  CALL("Term::createFormula");
+
+  Term* s = new(0,sizeof(SpecialTermData)) Term;
+  s->makeSymbol(SF_FORMULA, 0);
+  s->getSpecialData()->_formulaData.formula = formula;
   return s;
 }
 

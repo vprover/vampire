@@ -204,7 +204,8 @@ public:
   static const unsigned SF_TERM_ITE = 0xFFFFFFFF;
   static const unsigned SF_LET_TERM_IN_TERM = 0xFFFFFFFE;
   static const unsigned SF_LET_FORMULA_IN_TERM = 0xFFFFFFFD;
-  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFD;
+  static const unsigned SF_FORMULA = 0xFFFFFFFC;
+  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFC;
 
   class SpecialTermData
   {
@@ -224,6 +225,9 @@ public:
         Literal * lhs;
         Formula * rhs;
       } _formulaLetData;
+      struct {
+        Formula * formula;
+      } _formulaData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
@@ -238,6 +242,7 @@ public:
     TermList getRhsTerm() const { ASS_EQ(getType(), SF_LET_TERM_IN_TERM); return TermList(_termLetData.rhs); }
     Literal* getLhsLiteral() const { ASS_EQ(getType(), SF_LET_FORMULA_IN_TERM); return _formulaLetData.lhs; }
     Formula* getRhsFormula() const { ASS_EQ(getType(), SF_LET_FORMULA_IN_TERM); return _formulaLetData.rhs; }
+    Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
   };
 
 
@@ -256,6 +261,7 @@ public:
   static Term* createTermITE(Formula * condition, TermList thenBranch, TermList elseBranch);
   static Term* createTermLet(TermList lhs, TermList rhs, TermList t);
   static Term* createFormulaLet(Literal* lhs, Formula* rhs, TermList t);
+  static Term* createFormula(Formula* formula);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
