@@ -336,6 +336,9 @@ public:
      LINGELING = 3,
      MINISAT = 4,
      VAMPIRE = 5
+#if VZ3
+     ,Z3 = 6
+#endif
   };
 
   /** Possible values for saturation_algorithm */
