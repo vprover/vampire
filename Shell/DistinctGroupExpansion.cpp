@@ -103,12 +103,12 @@ Formula* DistinctGroupExpansion::expand(Stack<unsigned> constants)
   // Otherwise create a formula list of disequalities
   FormulaList* diseqs = 0; 
 
-  for(int i=0;i<constants.size();i++){
+  for(unsigned i=0;i<constants.size();i++){
     TermList a = TermList(Term::createConstant(constants[i]));
     ASS(a.isSafe());
     unsigned sort = SortHelper::getResultSort(a.term());
 
-    for(int j=0;j<i;j++){
+    for(unsigned j=0;j<i;j++){
       TermList b = TermList(Term::createConstant(constants[j]));
       ASS(b.isSafe());
       
