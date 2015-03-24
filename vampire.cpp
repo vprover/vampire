@@ -570,8 +570,8 @@ void satSolverMode()
   
   clauses = getInputClauses(env.options->inputFile().c_str(), varCnt);
   
-  solver->ensureVarCnt(varCnt+1); // allocates one extra slot for the dummy variable 0      
-  solver->addClauses(preprocessClauses(clauses));
+  solver->ensureVarCount(varCnt);
+  solver->addClausesIter(preprocessClauses(clauses));
 
   res = solver->solve();
 

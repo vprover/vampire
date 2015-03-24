@@ -54,8 +54,9 @@ public:
 
   void updateVarCnt();
   void considerPolarityAdvice(SATLiteral lit);
-  void addSatClauses(const SATClauseStack& regularClauses, const SATClauseStack& conflictClauses,
-                     SplitLevelStack& addedComps, SplitLevelStack& removedComps);
+
+  void addSatClauseToSolver(SATClause* cl, bool refutation);
+  void recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize = false);
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
   void getNewZeroImpliedSplits(SplitLevelStack& res);
@@ -216,7 +217,7 @@ private:
   SplitLevel tryGetComponentNameOrAddNew(const LiteralStack& comp, Clause* orig, Clause*& compCl);
   SplitLevel tryGetComponentNameOrAddNew(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
 
-  void recordSATClauseForAddition(SATClause* cl, bool refutation);
+  void addSatClauseToSolver(SATClause* cl, bool refutation);
 
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
@@ -254,19 +255,10 @@ private:
   //state variable used for flushing:  
   /** When this number of generated clauses is reached, it will cause flush */
   unsigned _flushThreshold;
-  /** true if there is a refutation to be added to the SAT solver */
+  /** true if there was a clause added to the SAT solver since last call to onAllProcessed */
+  bool _clausesAdded;
+  /** true if there was a refutation added to the SAT solver */
   bool _haveBranchRefutation;
-
-  /**
-   * New SAT clauses to be added to the SAT solver
-   *
-   * We postpone adding clauses to the SAT solver to the next call of the
-   * onAllProvessed() function, as at that point we may add and remove clauses
-   * in the saturation algorithm (and so we'll be able to maintain the
-   * correspondence between the SAT model and the clauses in the saturation).
-   */
-  SATClauseStack _regularClausesToBeAdded;
-  SATClauseStack _conflictClausesToBeAdded;
     
   bool _fastRestart; // option's value copy
   /**
@@ -277,9 +269,6 @@ private:
   RCClauseStack _fastClauses;
   
   SaturationAlgorithm* _sa;
-  
-  //statistics
-  unsigned _clausesSinceEmpty;
 };
 
 }

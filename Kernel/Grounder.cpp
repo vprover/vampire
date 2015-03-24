@@ -31,7 +31,7 @@ using namespace Kernel;
  * of grounding of @c cl.
  * use_n indcates whether we record the source for use in niceness computation
  */
-SATClauseIterator Grounder::ground(Clause* cl,bool use_n)
+SATClause* Grounder::ground(Clause* cl,bool use_n)
 {
   CALL("Grounder::ground(Clause*)");
 
@@ -45,7 +45,7 @@ SATClauseIterator Grounder::ground(Clause* cl,bool use_n)
   SATInference* inf = new FOConversionInference(UnitSpec(cl));
   gndNonProp->setInference(inf);
 
-  return pvi( getSingletonIterator(gndNonProp) );
+  return gndNonProp;
 }
 
 /**

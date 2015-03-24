@@ -6,8 +6,6 @@
 #ifndef __SATSolver__
 #define __SATSolver__
 
-#include "Lib/MaybeBool.hpp"
-
 #include "SATLiteral.hpp"
 
 namespace SAT {
@@ -17,43 +15,50 @@ public:
   enum VarAssignment {
     TRUE,
     FALSE,
-    DONT_CARE,
+    DONT_CARE,  // to represent partial models
     NOT_KNOWN
   };
   enum Status {
     SATISFIABLE,
     UNSATISFIABLE,
     /**
-     * This value is used when new clauses or assumptions are added to
-     * the SAT solver, but the full saturation hasn't been performed
-     */
+     * Solving for just a bounded number of conflicts may return UNKNOWN.
+     **/
     UNKNOWN
   };
 
   virtual ~SATSolver() {}
-
-  // TODO: since addClauses does not cause solve anymore, 
-  // a simple addClause would be an option too (and arguably a simpler)
   
   /**
-   * Can be called only when all assumptions are retracted
+   * Add a clause to the solver.
    *
-   * A requirement is that in each clause, each variable occurs at most once.
+   * In the clause each variable occurs at most once. (No repeated literals, no tautologies.)
+   *
+   * Memory-wise, the clause is NOT owned by the solver. Yet it shouldn't be destroyed while the solver lives.
+   * TODO: This is not ideal and should be addressed! (reference counting?)
    */
-  virtual void addClauses(SATClauseIterator cit) = 0;
-  
+  virtual void addClause(SATClause* cl) = 0;
+
+  // TODO: rename to addClauses later on
+  void addClausesIter(SATClauseIterator cit) {
+    CALL("SATSolver::addClauses");
+    while (cit.hasNext()) {
+      addClause(cit.next());
+    }
+  }
+
   /**
    * When a solver supports partial models (via DONT_CARE values in the assignment),
    * a partial model P computed must satisfy all the clauses added to the solver
-   * via addClauses and there must be a full model extending P which also 
-   * satisfies clauses added via addClausesIgnoredInPartialModel.
+   * via addClause and there must be a full model extending P which also
+   * satisfies clauses added via addClauseIgnoredInPartialModel.
    * 
-   * This is a default implementation of addClausesIgnoredInPartialModel 
+   * This is a default implementation of addClauseIgnoredInPartialModel
    * for all the solvers which return total models
-   * for which addClauses and addClausesIgnoredInPartialModel 
+   * for which addClause and addClauseIgnoredInPartialModel
    * naturally coincide.
    */  
-  virtual void addClausesIgnoredInPartialModel(SATClauseIterator cit) { addClauses(cit); }
+  virtual void addClauseIgnoredInPartialModel(SATClause* cl) { addClause(cl); }
   
   /**
    * Establish Status of the clause set inserted so far.
@@ -74,7 +79,7 @@ public:
   virtual VarAssignment getAssignment(unsigned var) = 0;
 
   /**
-   * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
+   * If status is @c SATISFIABLE, return true if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
   virtual bool isZeroImplied(unsigned var) = 0;
@@ -95,17 +100,20 @@ public:
    */
   virtual SATClause* getZeroImpliedCertificate(unsigned var) = 0;
 
-  virtual void ensureVarCnt(unsigned newVarCnt) {}
+  /**
+   * Ensure that clauses mentioning variables 1..newVarCnt can be handled.
+   */
+  virtual void ensureVarCount(unsigned newVarCnt) {}
   virtual void suggestPolarity(unsigned var, unsigned pol) = 0;
 
   /**
-   * Suggest random polarity for variables up to varLimit,
+   * Suggest random polarity for variables up to maxVar (inclusive),
    * so that the next call to solver will tend to produce
    * a different model (provided the status will be satisfiable).
    */
-  virtual void randomizeForNextAssignment(unsigned varLimit) {
+  virtual void randomizeForNextAssignment(unsigned maxVar) {
     CALL("SATSolver::randomizeForNextAssignment");
-    for (unsigned var=1; var<varLimit; var++) {
+    for (unsigned var=1; var <= maxVar; var++) {
       suggestPolarity(var,Random::getBit());
     }
   }

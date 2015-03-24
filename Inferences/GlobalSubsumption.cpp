@@ -79,9 +79,9 @@ void GlobalSubsumption::addClauseToIndex(Clause* cl)
 
   // ASS_NEQ(solver.getStatus(),SATSolver::UNSATISFIABLE);
 
-  SATClauseIterator sclIt = grounder.ground(cl,false);
-  solver.ensureVarCnt(grounder.satVarCnt());
-  solver.addClauses(sclIt);
+  SATClause* scl = grounder.ground(cl,false);
+  solver.ensureVarCount(grounder.satVarCnt());
+  solver.addClause(scl);
 
   if(solver.solve(true)==SATSolver::UNSATISFIABLE) {
     //just a dummy inference, the correct one will be in the InferenceStore

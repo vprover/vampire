@@ -34,7 +34,7 @@ public:
    */
   virtual bool selectVariable(unsigned& var) = 0;
 
-  virtual void ensureVarCnt(unsigned varCnt) { _varCnt = varCnt; }
+  virtual void ensureVarCount(unsigned varCnt) { _varCnt = varCnt; }
   virtual void onVariableInConflict(unsigned var) {}
   virtual void onVariableUnassigned(unsigned var) {}
   virtual void onConflict() {}
@@ -68,12 +68,12 @@ public:
     return _sels[_ctr%4==0]->selectVariable(var);
   }
 
-  virtual void ensureVarCnt(unsigned varCnt) {
-    CALL("AlternatingVariableSelector::ensureVarCnt");
+  virtual void ensureVarCount(unsigned varCnt) override {
+    CALL("AlternatingVariableSelector::ensureVarCount");
 
-    VariableSelector::ensureVarCnt(varCnt);
-    _sels[0]->ensureVarCnt(varCnt);
-    _sels[1]->ensureVarCnt(varCnt);
+    VariableSelector::ensureVarCount(varCnt);
+    _sels[0]->ensureVarCount(varCnt);
+    _sels[1]->ensureVarCount(varCnt);
   }
 
   virtual void onVariableInConflict(unsigned var) {
@@ -121,12 +121,14 @@ public:
         _activityHeap(decayFactor,(niceness_option!=Options::Niceness::NONE),*this) {}
 
   virtual bool selectVariable(unsigned& var);
-  virtual void ensureVarCnt(unsigned varCnt);
+  virtual void ensureVarCount(unsigned varCnt) override;
   virtual void onInputClauseAdded(SATClause* cl);
 
   virtual void onVariableInConflict(unsigned var)
   {
     CALL("ActiveVariableSelector::onVariableInConflict");
+
+    ASS_G(var,0); ASS_LE(var,_varCnt);
 
     _activityHeap.markActivity(var);
   }
@@ -134,6 +136,8 @@ public:
   virtual void onVariableUnassigned(unsigned var)
   {
     CALL("ActiveVariableSelector::onVariableUnassigned");
+
+    ASS_G(var,0); ASS_LE(var,_varCnt);
 
     _activityHeap.ensureIncluded(var);
   }
@@ -162,13 +166,17 @@ protected:
     : _use_niceness(use_niceness), _parent(parent), _decayFactor(decayFactor),
       _inc(1e-30f), _heap(VAComparator(_activities)) {}
 
-    void ensureVarCnt(unsigned varCnt)
+    void ensureVarCount(unsigned varCnt)
     {
       unsigned oldVarCnt = _activities.size();
-      _activities.expand(varCnt, 0);
-      _heap.elMap().expand(varCnt);
+      if (oldVarCnt == 0) { // ignore the unused variable 0
+        oldVarCnt = 1;
+      }
 
-      for(unsigned i=oldVarCnt; i<varCnt; i++) {
+      _activities.expand(varCnt+1, 0);
+      _heap.elMap().expand(varCnt+1);
+
+      for(unsigned i=oldVarCnt; i<=varCnt; i++) {
 	ensureIncluded(i);
       }
     }
@@ -176,6 +184,7 @@ protected:
     void markActivity(unsigned var)
     {
       CALL("ActiveVariableSelector::VariableActivityHeap::markActivity");
+      ASS_G(var,0);
 
       CounterType this_inc = _inc;
       if(_use_niceness){
@@ -212,6 +221,7 @@ protected:
     void ensureIncluded(unsigned var)
     {
       CALL("ActiveVariableSelector::VariableActivityHeap::ensureIncluded");
+      ASS_G(var,0);
 
       if(!_heap.contains(var)) {
 	_heap.insert(var);
@@ -265,10 +275,10 @@ public:
 
   virtual bool selectVariable(unsigned& var);
 
-  virtual void ensureVarCnt(unsigned varCnt)
+  virtual void ensureVarCount(unsigned varCnt) override
   {
-    VariableSelector::ensureVarCnt(varCnt);
-    _activities.expand(varCnt, 0);
+    VariableSelector::ensureVarCount(varCnt);
+    _activities.expand(varCnt+1, 0);
   }
 
   virtual void onInputClauseAdded(SATClause* cl);
@@ -276,6 +286,9 @@ public:
   virtual void onVariableInConflict(unsigned var)
   {
     CALL("ActiveVariableSelector::onVariableInConflict");
+
+    ASS_G(var,0); ASS_LE(var,_varCnt);
+
     _activities[var]++;
   }
 
@@ -316,15 +329,18 @@ public:
   virtual void onVariableInConflict(unsigned var)
   {
     CALL("ActiveVariableSelector::onVariableInConflict");
+
+    ASS_G(var,0); ASS_LE(var,_varCnt);
+
     _activities[var]+=_niceness[var];
   }
 
   virtual void onInputClauseAdded(SATClause* cl);
 
-  virtual void ensureVarCnt(unsigned varCnt)
+  virtual void ensureVarCount(unsigned varCnt) override
   {
-    ArrayActiveVariableSelector::ensureVarCnt(varCnt);
-    _niceness.expand(varCnt, 0);
+    ArrayActiveVariableSelector::ensureVarCount(varCnt);
+    _niceness.expand(varCnt+1, 0);
   }
 
 private:
@@ -333,3 +349,4 @@ private:
 
 }
 #endif // __VariableSelector__
+

@@ -37,8 +37,8 @@ void HornRevealer::apply(UnitList*& units)
 
   buildSatProblem(units);
 
-  _solver.ensureVarCnt(env.signature->predicates()+1);
-  _solver.addClauses(pvi( SATClauseStack::Iterator(_satPrb) ));
+  _solver.ensureVarCount(env.signature->predicates());
+  _solver.addClausesIter(pvi( SATClauseStack::Iterator(_satPrb) ));
 
   if(_solver.solve(false /* default not inherited ? */)==SATSolver::SATISFIABLE) {
     if (env.options->showPreprocessing()) {

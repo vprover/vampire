@@ -16,51 +16,47 @@ MinimizingSolver::MinimizingSolver(SATSolver* inner)
   CALL("MinimizingSolver::MinimizingSolver");
 }
 
-void MinimizingSolver::ensureVarCnt(unsigned newVarCnt)
+void MinimizingSolver::ensureVarCount(unsigned newVarCnt)
 {
-  CALL("MinimizingSolver::ensureVarCnt");
+  CALL("MinimizingSolver::ensureVarCount");
 
-  _varCnt = std::max(_varCnt, newVarCnt);
-  _inner->ensureVarCnt(newVarCnt);
-  _asgn.expand(newVarCnt);
-  _watcher.expand(newVarCnt);  
-  _unsClCnt.expand(newVarCnt, 0);
-  _heap.elMap().expand(newVarCnt);
-  _clIdx.expand(newVarCnt);
+  if (newVarCnt<= _varCnt) {
+    return;
+  }
+  _varCnt = newVarCnt;
+  _inner->ensureVarCount(newVarCnt);
+  _asgn.expand(newVarCnt+1);
+  _watcher.expand(newVarCnt+1);
+  _unsClCnt.expand(newVarCnt+1, 0);
+  _heap.elMap().expand(newVarCnt+1);
+  _clIdx.expand(newVarCnt+1);
   _assignmentValid = false;
 }
 
-bool MinimizingSolver::isNonEmptyClause(SATClause* cl)
+void MinimizingSolver::addClause(SATClause* cl)
 {
-  return cl->length()!=0;
-}
+  CALL("MinimizingSolver::addClause");
 
-void MinimizingSolver::addClauses(SATClauseIterator cit)
-{
-  CALL("MinimizingSolver::addClauses");
-
-  static SATClauseStack newClauses;
-  newClauses.reset();
-  newClauses.loadFromIterator(cit);
-
-  // pass them to inner ...
-  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(newClauses)));
+  // pass it to inner ...
+  _inner->addClause(cl);
   _assignmentValid = false;
   
-  // ... and also keep track of them for minimization
-  _unprocessed.loadFromIterator(
-      getFilteredIterator(SATClauseStack::BottomFirstIterator(newClauses), isNonEmptyClause));
-  //we need to filter out the empty clause -- it won't have any influence on our algorithm
-  //(as it will make the problem unsat and we process only satisfiable assignment), but it
-  //is a corner case that needs to be handled
+  // ... and also keep track for minimization
+  if (cl->length()!=0) {
+    //we need to filter out the empty clause -- it won't have any influence on our algorithm
+    //(as it will make the problem unsat and we process only satisfiable assignment), but it
+    //is a corner case that needs to be handled
+
+    _unprocessed.push(cl);
+  }
 }
 
-void MinimizingSolver::addClausesIgnoredInPartialModel(SATClauseIterator cit)
+void MinimizingSolver::addClauseIgnoredInPartialModel(SATClause* cl)
 {
-  CALL("MinimizingSolver::addClausesIgnoredInPartialModel");
+  CALL("MinimizingSolver::addClauseIgnoredInPartialModel");
   
-  // just passing to _inner, but for minimization they will be ignored
-  _inner->addClauses(cit);
+  // just passing to _inner, but for minimization it will be ignored
+  _inner->addClause(cl);
   _assignmentValid = false;
 }
 
@@ -74,7 +70,7 @@ SATSolver::Status MinimizingSolver::solve(unsigned conflictCountLimit)
 SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)
 {
   CALL("MinimizingSolver::getAssignment");
-  // ASS_EQ(_inner->getStatus(), SATISFIABLE);
+  ASS_G(var,0); ASS_LE(var,_varCnt);
 
   if(!_assignmentValid) {
     updateAssignment();
@@ -89,8 +85,10 @@ SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)
 bool MinimizingSolver::isZeroImplied(unsigned var)
 {
   CALL("MinimizingSolver::isZeroImplied");
+  ASS_G(var,0); ASS_LE(var,_varCnt);
+
   bool res = _inner->isZeroImplied(var);
-  ASS(!res || getAssignment(var)!=DONT_CARE); //zero-implied variables cannot become a don't care
+  ASS(!res || getAssignment(var)!=DONT_CARE); //zero-implied variables will not become a don't care
   return res;
 }
 
@@ -100,6 +98,7 @@ bool MinimizingSolver::isZeroImplied(unsigned var)
 void MinimizingSolver::selectVariable(unsigned var)
 {
   CALL("MinimizingSolver::selectVariable");  
+  ASS_G(var,0); ASS_LE(var,_varCnt);
   ASS_G(_unsClCnt[var],0);
   
   SATClauseStack& satisfied = _clIdx[var];
@@ -174,7 +173,7 @@ void MinimizingSolver::processUnprocessedAndFillHeap()
     }
   }
   
-  for(unsigned var=0; var<_varCnt; var++) {
+  for(unsigned var=1; var<=_varCnt; var++) {
     ASS(!_heap.contains(var));
     if(_unsClCnt[var]>0) {            
       _heap.addToEnd(var);      
@@ -191,7 +190,7 @@ void MinimizingSolver::processInnerAssignmentChanges()
 {
   CALL("MinimizingSolver::processInnerAssignmentChanges");
 
-  for(unsigned v=1; v<_varCnt; v++) {
+  for(unsigned v=1; v<=_varCnt; v++) {
     VarAssignment va = _inner->getAssignment(v);
     bool changed;
     switch(va) {

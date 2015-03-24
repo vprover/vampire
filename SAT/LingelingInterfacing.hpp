@@ -28,29 +28,18 @@ public:
 	//constructor for the instantiation of Lingeling
 	LingelingInterfacing(const Shell::Options& opts, bool generateProofs=false);
 	~LingelingInterfacing();
-
-	/**
-	* The add clause is the incremental way for the lingeling sat solver. It is used in order to add new clause
-	* to the current problem
-	**/
-	virtual void addClauses(SATClauseIterator clauseIterator);
 	
+	virtual void addClause(SATClause* cl) override;
+
   virtual Status solve(unsigned conflictCountLimit) override;
   
-  virtual void ensureVarCnt(unsigned newVarCnt);
+  virtual void ensureVarCount(unsigned newVarCnt) override;
   virtual void suggestPolarity(unsigned var, unsigned pol) override;
 
 	/**
 	* In case the status of the problem is SATISFIABLE, then return the assigned value for var
 	*/
 	virtual VarAssignment getAssignment(unsigned var);
-
-	/**
-	* Try to find another assignment which is likely to be different from the current one. 
-	* 
-	* as a precondition, the solver must have SATISFIABLE status
-	*/
-	virtual void randomizeAssignment();
 	
 	/**
 	* In case the solver has status SATISFIABLE and the assignment of @c var was done at level 1, 

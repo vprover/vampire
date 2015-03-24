@@ -242,9 +242,6 @@ void IGAlgorithm::processUnprocessed()
 
   TimeCounter tc(TC_INST_GEN_SAT_SOLVING);
 
-  static SATClauseStack satClauses;
-  satClauses.reset();
-
   while(_unprocessed.isNonEmpty()) {
     Clause* cl = _unprocessed.popWithoutDec();
 
@@ -258,15 +255,12 @@ void IGAlgorithm::processUnprocessed()
       env.endOutput();
     }
 
-    SATClauseIterator sc = _gnd->ground(cl,_use_niceness);
-    satClauses.loadFromIterator(sc);
-  }
-  _satSolver->ensureVarCnt(_gnd->satVarCnt());
+    SATClause* sc = _gnd->ground(cl,_use_niceness);
+    sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
 
-  SATClauseIterator scit = pvi( SATClauseStack::Iterator(satClauses) );
-  scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
-  
-  _satSolver->addClauses(scit);
+    _satSolver->ensureVarCount(_gnd->satVarCnt());
+    _satSolver->addClause(sc);
+  }
 
   if(_satSolver->solve()==SATSolver::UNSATISFIABLE) {
     Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
@@ -443,11 +437,11 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
     return;
   }
 
-  SATClauseIterator scit = _gnd->ground(cl,_use_niceness);
-  scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
+  SATClause* sc = _gnd->ground(cl,_use_niceness);
+  sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
 
-  _satSolver->ensureVarCnt(_gnd->satVarCnt());
-  _satSolver->addClauses(scit);
+  _satSolver->ensureVarCount(_gnd->satVarCnt());
+  _satSolver->addClause(sc);
 
   if(_satSolver->solve(true)==SATSolver::UNSATISFIABLE) {
     Clause* foRefutation = getFORefutation(_satSolver->getRefutation());

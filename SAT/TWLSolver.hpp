@@ -53,7 +53,7 @@ public:
   TWLSolver(const Options& opt, bool generateProofs=false);
   ~TWLSolver();
 
-  virtual void addClauses(SATClauseIterator cit);
+  virtual void addClause(SATClause* cl) override;
   virtual Status solve(unsigned conflictCountLimit) override;
   
   /*
@@ -63,10 +63,10 @@ public:
    * TODO: See whether the assumption about vars > 0 is essential in some way
    * and if not update everything accordingly to save this slot.
    */
-  virtual void ensureVarCnt(unsigned newVarCnt);
+  virtual void ensureVarCount(unsigned newVarCnt) override;
   virtual void suggestPolarity(unsigned var, unsigned pol) override {
     CALL("TWLSolver::suggestPolarity");
-    ASS_L(var,_varCnt);
+    ASS_G(var,0); ASS_LE(var,_varCnt);
     _lastAssignments[var] = pol;
   }
   virtual VarAssignment getAssignment(unsigned var);
@@ -83,8 +83,6 @@ public:
     ASS_EQ(_status,SATSolver::UNSATISFIABLE);
     return _refutation;
   }
-
-  virtual void randomizeAssignment();
 
   void assertValid();
   void printAssignment();
@@ -114,24 +112,23 @@ private:
 
   /** Return true iff variable @c var is undefined in the current assignment */
   bool isUndefined(unsigned var) const {
-    ASS_L(var,_varCnt);
+    ASS_G(var,0); ASS_LE(var,_varCnt);
     return _assignment[var] == AS_UNDEFINED;
   }
   /** Return true iff variable @c var is true in the current assignment */
   bool isTrue(unsigned var) const {
+    ASS_G(var,0); ASS_LE(var,_varCnt);
     return _assignment[var] == AS_TRUE;
   }
 
   bool isFalse(SATClause* cl) const;
   bool isTrue(SATClause* cl) const;
 
-
   unsigned getAssignmentLevel(SATLiteral lit) const;
   unsigned getAssignmentLevel(unsigned var) const;
 
-
   unsigned selectTwoNonFalseLiterals(SATClause* cl) const;
-  void addClause(SATClause* cl);
+  void addNonunitClause(SATClause* cl);
   void addUnitClause(SATClause* cl);
 
   void handleTopLevelConflict(SATClause* cl);
@@ -239,6 +236,12 @@ private:
    */
   DArray<WatchStack> _windex;
 
+  /**
+   * Number of variables the solver is able to handle.
+   * Since variables start from 1 and we (currently) use variables
+   * as indices to zero based arrays, these arrays need to be allocated
+   * with an additional never used slot 0.
+   */
   unsigned _varCnt;
 
   /** Level 1 is the first level which is not preceded by any choice point */
@@ -269,13 +272,6 @@ private:
    */
   SATClauseStack _learntClauses;
   
-  /**
-   * Stack of added clauses
-   * 
-   * We remember them separately to delete them at the end.
-  */
-  SATClauseStack _addedClauses;
-
   ArrayMap<EmptyStruct> _propagationScheduled;
   Deque<unsigned> _toPropagate;
 

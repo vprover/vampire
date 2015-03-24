@@ -32,8 +32,8 @@ public:
   BufferedSolver(SATSolver* inner);
 
   virtual SATClause* getRefutation() { return _inner->getRefutation(); }
-  virtual void randomizeForNextAssignment(unsigned varLimit) override {
-    _inner->randomizeForNextAssignment(varLimit);
+  virtual void randomizeForNextAssignment(unsigned maxVar) override {
+    _inner->randomizeForNextAssignment(maxVar);
 
     // This is not ideal, but we can't wait till solve, because
     // BufferedSolver would not be forced to consult inner if it already "has an assignment in mind"
@@ -41,18 +41,20 @@ public:
     _lastStatus = _inner->solve();
   }
 
-  virtual void addClauses(SATClauseIterator cit);
+  virtual void addClause(SATClause* cl) override;
   virtual Status solve(unsigned conflictCountLimit) override;
-  virtual VarAssignment getAssignment(unsigned var);
+  virtual VarAssignment getAssignment(unsigned var) override;
 
   virtual bool isZeroImplied(unsigned var) {
     CALL("BufferedSolver::isZeroImplied");
-    return (var > _maxVar) ? false : _inner->isZeroImplied(var);
+    ASS_G(var,0); ASS_LE(var,_varCnt);
+    // alternatively, we could directly refer to _inner, it must handle variables up to _varCnt as well
+    return (var > _varCntInnerOld) ? false : _inner->isZeroImplied(var);
   }
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
   virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
 
-  virtual void ensureVarCnt(unsigned newVarCnt){ _inner->ensureVarCnt(newVarCnt);_tmaxVar=newVarCnt; }
+  virtual void ensureVarCount(unsigned newVarCnt) override { _inner->ensureVarCount(newVarCnt); _varCnt=max(_varCnt,newVarCnt); }
   virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
   virtual void recordSource(unsigned var, Literal* lit){
     _inner->recordSource(var,lit);
@@ -89,16 +91,18 @@ private:
    * Remember the last status returned by solve.
    */
   Status _lastStatus;
-  
- /**
-  * The maximum variable added to the SATSolver, used to detect new variables
-  *
-  * Obviously relies on variable numbers being increasing 
-  */
-  unsigned _maxVar;
-  // We use a temp to track the max added since last flush
-  unsigned _tmaxVar;
 
+  /**
+   * Our current varCnt and (of _inner as well).
+   */
+  unsigned _varCnt;
+  
+  /**
+  * varCnt of _inner at the time of the last flush.
+  *
+  * Variables larger than this are handled by Buffered
+  */
+  unsigned _varCntInnerOld;
 };
 
 }

@@ -91,11 +91,11 @@ LingelingInterfacing::~LingelingInterfacing()
  * NOTE: Calling this function is not strictly necessary with lingeling
  * (adding clauses over "undeclared variables" would work),
  * but it is a way to "agree" with the caller on the used signature
- * (see, e.g., the ranges in randomizeAssignment of collectZeroImplied).
+ * (see, e.g., the ranges in collectZeroImplied).
  */
-void LingelingInterfacing::ensureVarCnt(unsigned newVarCnt) 
+void LingelingInterfacing::ensureVarCount(unsigned newVarCnt)
 {
-  CALL("LingelingInterfacing::ensureVarCnt");
+  CALL("LingelingInterfacing::ensureVarCount");
      
   // lingeling starts variables from 1, so maxvar == varcount    
   while(lglmaxvar(_solver) < (int)newVarCnt) {
@@ -107,8 +107,9 @@ void LingelingInterfacing::ensureVarCnt(unsigned newVarCnt)
 void LingelingInterfacing::suggestPolarity(unsigned var, unsigned pol)
 {
    CALL("LingelingInterfacing::suggestPolarity");
+   ASS_G(var,0); ASS_LE(var,lglmaxvar(_solver));
+
    int vvar = vampireVar2Lingeling(var);
-   ASS_LE(vvar,lglmaxvar(_solver));
    lglsetphase(_solver,pol ? vvar : -vvar);
  }
 
@@ -151,41 +152,33 @@ void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(int conflictCountL
 	}
 }
 
-void LingelingInterfacing::addClauses(SATClauseIterator cit) 
+void LingelingInterfacing::addClause(SATClause* cl)
 {
 	CALL("LingelingInterfacing::addClauses");
   
   ASS_EQ(_assumptions.size(),0);
-  
-	//TAKE CARE HOW ONE ADDS CLAUSES. a call to lgladd(_solver, 0) terminates the clause
-	
-	//iterate over all the clauses from the problem
-	//if the solver is in UNSATISFIABLE state, adding a new clause keeps it unsatisfiable so simply return
+
 	if (_status == SATSolver::UNSATISFIABLE) {
 		return;
 	}
 
-  while(cit.hasNext()) {
-    SATClause* cl=cit.next();
-    
-    // store to later generate the refutation
-    SATClauseList::push(cl,_addedClauses);    
+  // store to later generate the refutation
+  SATClauseList::push(cl,_addedClauses);
 
-    //add the statistics for Lingeling total number of clauses
-		env.statistics->satLingelingClauses++;
+  //add the statistics for Lingeling total number of clauses
+	env.statistics->satLingelingClauses++;
             
-    unsigned clen=cl->length();
-    for(unsigned i=0;i<clen;i++) {
-      SATLiteral l = (*cl)[i];      
+  unsigned clen=cl->length();
+  for(unsigned i=0;i<clen;i++) {
+    SATLiteral l = (*cl)[i];
+
+    int v = vampireVar2Lingeling(l.var());
+    ASS(lglusable(_solver, v));
       
-      int v = vampireVar2Lingeling(l.var());
-      ASS(lglusable(_solver, v));
-      
-      lgladd(_solver, vampireLit2Lingeling(l));
-			lglfreeze(_solver, v);           
-    }
-    lgladd(_solver, 0); //add the marker for clause termination
+    lgladd(_solver, vampireLit2Lingeling(l));
+	  lglfreeze(_solver, v);
   }
+  lgladd(_solver, 0); //add the marker for clause termination
 
   /* TODO: reconsider implementing env.options->satLingelingIncremental()
    * or removing the option! */
@@ -309,7 +302,7 @@ SATSolver::VarAssignment LingelingInterfacing::getAssignment(unsigned var)
 		ASSERTION_VIOLATION;
 	}
 	//Added just in order to get rid of compiler warning!
-	return SATSolver::DONT_CARE;
+	return SATSolver::NOT_KNOWN;
 }
 
 void LingelingInterfacing::retractAllAssumptions()
@@ -326,28 +319,6 @@ bool LingelingInterfacing::hasAssumptions() const
   return !_assumptions.isEmpty();
 }
 
-/**
- * Works by creating a copy of the SAT solver and getting it to solve the problem
- * in a different way
- *
- * Not currently in use - review before using
- */
-void LingelingInterfacing::randomizeAssignment()
-{
-	CALL("LingelingInterfacing::randomizeAssignment()");
-  TimeCounter tc(TC_LINGELING);
-  
-  ASS_EQ(_status, SATISFIABLE);
-    
-  // set all variables a random phase
-  for (int v = 1; v <= lglmaxvar(_solver); v++) {
-    lglsetphase(_solver,Random::getBit() ? v : -v);
-  }
-  
-  solveModuloAssumptionsAndSetStatus();
-  ASS_EQ(_status, SATISFIABLE);
-}
-
 void LingelingInterfacing::printLingelingStatistics()
 {
 	CALL("LingelingInterfacing::printLingelingStatistics");
@@ -362,6 +333,7 @@ void LingelingInterfacing::printLingelingStatistics()
 bool LingelingInterfacing::isZeroImplied(unsigned var)
 {
   CALL("LingelingInterfacing::isZeroImplied");
+  ASS_G(var,0); ASS_LE(var,lglmaxvar(_solver));
   
   return lglfixed(_solver, vampireVar2Lingeling(var));
 }

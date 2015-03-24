@@ -229,7 +229,7 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
   }
 
   _filteredSatClauses.loadFromIterator(
-      SAT::Preprocess::filterPureLiterals(_maxSatVar+1,
+      SAT::Preprocess::filterPureLiterals(_maxSatVar,
 	  SAT::Preprocess::removeDuplicateLiterals(pvi(SATClauseStack::Iterator(_satClauses)))));
 
   collectRelevantLits();
@@ -240,8 +240,8 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
     env.endOutput();
   }
   
-  _solver->ensureVarCnt(_maxSatVar+1);
-  _solver->addClauses(pvi(SATClauseStack::Iterator(_filteredSatClauses)));
+  _solver->ensureVarCount(_maxSatVar);
+  _solver->addClausesIter(pvi(SATClauseStack::Iterator(_filteredSatClauses)));
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
@@ -284,17 +284,15 @@ SATSolverWithAssumptions& EquivalenceDiscoverer::getProofRecordingSolver()
     //we need to make copies of clauses as the same clause object
     //cannot be in two SAT solver objects at once (SAT solvers can modify clauses)
 
-    SATClauseStack clauseCopies;
+    _proofRecordingSolver = new TWLSolver(*env.options, true);
+    _proofRecordingSolver->ensureVarCount(_maxSatVar);
+
     SATClauseStack::Iterator cit(_filteredSatClauses);
     while(cit.hasNext()) {
       SATClause* cl = cit.next();
       SATClause* clCopy = SATClause::copy(cl);
-      clauseCopies.push(clCopy);
+      _proofRecordingSolver->addClause(clCopy);
     }
-
-    _proofRecordingSolver = new TWLSolver(*env.options, true);    
-    _proofRecordingSolver->ensureVarCnt(_maxSatVar+1);
-    _proofRecordingSolver->addClauses(pvi(SATClauseStack::Iterator(clauseCopies)));
   }
   // ASS_NEQ(_proofRecordingSolver->getStatus(), SATSolver::UNSATISFIABLE);
   ASS(!_proofRecordingSolver->hasAssumptions());
@@ -363,7 +361,7 @@ void EquivalenceDiscoverer::doISSatDiscovery(UnitList*& res)
   CALL("EquivalenceDiscoverer::doISSatDiscovery");
   // ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
 
-  ISSatSweeping sswp(_maxSatVar+1, *_solver,
+  ISSatSweeping sswp(_maxSatVar, *_solver,
       pvi( getMappingIteratorKnownRes<int>(SATLiteralStack::ConstIterator(_eligibleSatLits), satLiteralVar) ),
       _doRandomSimulation, _satConflictCountLimit, _discoverImplications);
 
