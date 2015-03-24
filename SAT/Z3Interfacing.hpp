@@ -2,17 +2,18 @@
  * @file Z3Interfacing.hpp
  * Defines class Z3Interfacing
  */
+
 #ifndef __Z3Interfacing__
 #define __Z3Interfacing__
+
+#if VZ3
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
 #include "SATInference.hpp"
 
-#include<z3++.h>
-using namespace z3;
-
+#include "z3++.h"
 
 namespace SAT{
 
@@ -22,15 +23,17 @@ public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
   
-	Z3Interfacing(const Shell::Options& opts, bool generateProofs=false);
+  Z3Interfacing(const Shell::Options& opts, bool generateProofs=false);
 
   /**
    * Can be called only when all assumptions are retracted
    *
    * A requirement is that in each clause, each variable occurs at most once.
    */
-  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate, bool useInPartialModel);
-  virtual Status getStatus() { return _status; }
+  virtual void addClauses(SATClauseIterator cit);
+  void addClause(SATClause* cl);
+
+  virtual Status solve(unsigned conflictCountLimit) override;
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
@@ -98,12 +101,17 @@ public:
   };
   
 private:
-  context _context;
-  solver _solver;
+
+  z3::expr getRepresentation(unsigned var);
+
   Status _status;
-  model* _z3_model;
+  z3::context _context;
+  z3::solver _solver;
+  z3::model _model;
+  SATClauseList* _addedClauses;
 };
 
 }//end SAT namespace
 
- #endif /*Z3Interfacing*/
+#endif /* if VZ3 */
+#endif /*Z3Interfacing*/

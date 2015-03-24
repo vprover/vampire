@@ -1,3 +1,5 @@
+#if VZ3
+
 #include<iostream>
 #include<z3++.h>
 using namespace z3;
@@ -61,16 +63,18 @@ TEST_FUN(our_usage){
 
   s.add(v1 || v2,"c1");
   s.add(!v1 || v3,"c2");
-/*
   cout << s.check() << endl;
 
   cout << "model" << endl;
   model m = s.get_model();
-  for(unsigned i=0; i < m.size(); i++){
-    func_decl v = m[i];
-    cout << v.name() << " = " << m.get_const_interp(v) << endl;
-  }
-*/
+  //for(unsigned i=0; i < m.size(); i++){
+  //  func_decl v = m[i];
+  //  cout << v.name() << " = " << m.get_const_interp(v) << endl;
+  //}
+  cout << "v1: " << m.eval(v1) << endl;
+  cout << "v2: " << m.eval(v2) << endl;
+  cout << "v3: " << m.eval(v3) << endl;
+
   s.add(!v3,"c3");
   s.add(!v2 || v3,"c4");
   cout << s.check() << endl;
@@ -85,4 +89,6 @@ TEST_FUN(our_usage){
   }
 
 }
+
+#endif
 

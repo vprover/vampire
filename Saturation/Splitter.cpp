@@ -31,6 +31,7 @@
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
 #include "SAT/MinisatInterfacing.hpp"
+#include "SAT/Z3Interfacing.hpp"
 
 #include "DP/ShortConflictMetaDP.hpp"
 
@@ -81,6 +82,13 @@ void SplittingBranchSelector::init()
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
       break;      
+#if VZ3
+    case Options::SatSolver::Z3:
+      { BYPASSING_ALLOCATOR
+      _solver = new Z3Interfacing(_parent.getOptions(),true);
+      }
+      break;
+#endif
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
   }

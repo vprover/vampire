@@ -7,6 +7,10 @@
 #include <fstream>
 #include <csignal>
 
+#if VZ3
+#include "z3++.h"
+#endif
+
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Exception.hpp"
@@ -939,6 +943,14 @@ int main(int argc, char* argv[])
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
+  }
+#endif
+#if VZ3
+  catch(z3::exception& exception){
+    BYPASSING_ALLOCATOR;
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+    cout << "Z3 exception:\n" << exception.msg() << endl;
+    reportSpiderFail();
   }
 #endif
   catch (UserErrorException& exception) {

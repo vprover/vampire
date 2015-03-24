@@ -67,7 +67,7 @@ XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging onl
 INCLUDES= -I.
 Z3FLAG= -DVZ3=0
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
-INCLUDES= -I. libz3.dylib 
+INCLUDES= -I. -Linclude -lz3 -Iz3/api -Iz3/api/c++
 Z3FLAG= -DVZ3=1
 endif
 
@@ -283,6 +283,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/TWLSolver.o\
          SAT/VariableSelector.o\
          SAT/LingelingInterfacing.o\
+	 SAT/Z3Interfacing.o\
          SAT/lglib.o\
 	 SAT/BufferedSolver.o
 #         SAT/SATClauseSharing.o\
@@ -431,8 +432,6 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/Output.o\
          Test/TestUtils.o\
          Test/UnitTesting.o
-
-Z3_OBJ = SAT/Z3Interfacing.o
 
 VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))
 
