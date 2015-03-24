@@ -167,23 +167,18 @@ void SplittingBranchSelector::handleSatRefutation(SATClause* ref)
 SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCCModel(unsigned var) {
   CALL("SplittingBranchSelector::getSolverAssimentConsideringCCModel");
 
-  SATSolver::VarAssignment asgn = _solver->getAssignment(var);
+  if (_ccModel) {
+    // if we work with ccModel, the cc-model overrides the satsolver, but only for positive ground equalities
+    SAT2FO& s2f = _parent.satNaming();
+    Literal* lit = s2f.toFO(SATLiteral(var,true));
 
-  if (!_ccModel || asgn == SATSolver::FALSE) {
-    return asgn;
+    if (lit && lit->isEquality() && lit->ground()) {
+      return _trueInCCModel.find(var) ? SATSolver::TRUE : SATSolver::DONT_CARE;
+    }
+    // "fall-through" to consult _solver anyway
   }
 
-  // if we work with ccModel, the cc-model overrides the satsolver, but only for positive ground equalities
-
-  SAT2FO& s2f = _parent.satNaming();
-
-  Literal* lit = s2f.toFO(SATLiteral(var,true));
-
-  if (lit && lit->isEquality() && lit->ground()) {
-    return _trueInCCModel.find(var) ? SATSolver::TRUE : SATSolver::DONT_CARE;
-  } else {
-    return asgn;
-  }
+  return _solver->getAssignment(var);
 }
 
 static const int AGE_NOT_FILLED = -1;
