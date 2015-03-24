@@ -431,15 +431,6 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
   CALL("SaturationAlgorithm::onClauseReduction/5");
   ASS(cl);
 
-  if (env.options->showReductions()) {
-    env.beginOutput();
-    env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl; 
-    if(replacement){ env.out() << "     replaced by " << replacement->toString() << endl; }
-    if(premise){ env.out() << "     using " << premise->toString() << endl; }
-    if(reductionPremise){ env.out() << "     and " << reductionPremise->toString() << endl; }
-    env.endOutput();
-  }
-
   ClauseIterator premises;
   
   if (reductionPremise) {
@@ -462,10 +453,21 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
   CALL("SaturationAlgorithm::onClauseReduction/4");
   ASS(cl);
 
-
   static ClauseStack premStack;
   premStack.reset();
   premStack.loadFromIterator(premises);
+
+  if (env.options->showReductions()) {
+    env.beginOutput();
+    env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
+    if(replacement){ env.out() << "     replaced by " << replacement->toString() << endl; }
+    ClauseStack::Iterator pit(premStack);
+    while(pit.hasNext()){ 
+      Clause* premise = pit.next();
+      if(premise){ env.out() << "     using " << premise->toString() << endl; }
+    }
+    env.endOutput();
+  }
 
   if (_splitter) {
     _splitter->onClauseReduction(cl, pvi( ClauseStack::Iterator(premStack) ), replacement);
@@ -667,10 +669,7 @@ void SaturationAlgorithm::init()
 /**
  * Class of @b ForwardSimplificationPerformer objects that
  * perform the forward simplification only if it leads to
- * deletion of the clause being simplified. (Other
- * possibility would be to also perform simplifications that
- * only alter the propositional part of simplified clause,
- * not delete it.)
+ * deletion of the clause being simplified. 
  */
 class SaturationAlgorithm::TotalSimplificationPerformer
 : public ForwardSimplificationPerformer
@@ -683,18 +682,12 @@ public:
     CALL("TotalSimplificationPerformer::perform");
     ASS(_cl);
 
-    //BDDNode* oldClProp=_cl->prop();
     if (replacement) {
-    // No prop parts.
-    //  replacement->initProp(oldClProp);
-    //  InferenceStore::instance()->recordNonPropInference(replacement);
       _sa->addNewClause(replacement);
     }
     _sa->onClauseReduction(_cl, replacement, premises);
 
     // Remove clause - so no longer kept
-    //_cl->setProp(bdd->getTrue());
-    //InferenceStore::instance()->recordPropReduce(_cl, oldClProp, bdd->getTrue());
     _cl=0;
   }
 
@@ -706,18 +699,9 @@ public:
     if (!premise) {
       return true;
     }
-
     if ( !ColorHelper::compatible(_cl->color(), premise->color()) ) {
       return false;
     }
-
-    // I don't think this needs an equivalent check on literals
-    // Checks that premise->cl is not a true constant formula
-    // It cannot be as it is false. 
-    //BDD* bdd=BDD::instance();
-    //if (!bdd->isXOrNonYConstant(_cl->prop(), premise->prop(), true)) {
-    //  return false;
-    //}
     return true;
   }
 

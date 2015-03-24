@@ -113,8 +113,8 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
-  res->addFront(new DuplicateLiteralRemovalISE());
   res->addFront(new TautologyDeletionISE());
+  res->addFront(new DuplicateLiteralRemovalISE());
 
   return res;
 }
