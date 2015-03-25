@@ -290,7 +290,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     ALWAYS(_dpModel->getStatus(false) == DecisionProcedure::SATISFIABLE);
     _dpModel->getModel(model);
 
-    RSTAT_MCTR_INC("ssat_dp_model_size",model.size());
+    // RSTAT_MCTR_INC("ssat_dp_model_size",model.size());
 
     _trueInCCModel.reset();
 
