@@ -2270,7 +2270,7 @@ void Options::readOptionsString(vstring optionsString,bool assign)
   while (optionsString != "") {
     size_t index1 = optionsString.find('=');
     if (index1 == vstring::npos) {
-      error: USER_ERROR("bad option specification" + optionsString);
+      error: USER_ERROR("bad option specification '" + optionsString+"'");
     }
     size_t index = optionsString.find(':');
     if (index!=vstring::npos && index1 > index) {

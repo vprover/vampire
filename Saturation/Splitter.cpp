@@ -167,23 +167,18 @@ void SplittingBranchSelector::handleSatRefutation(SATClause* ref)
 SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCCModel(unsigned var) {
   CALL("SplittingBranchSelector::getSolverAssimentConsideringCCModel");
 
-  SATSolver::VarAssignment asgn = _solver->getAssignment(var);
+  if (_ccModel) {
+    // if we work with ccModel, the cc-model overrides the satsolver, but only for positive ground equalities
+    SAT2FO& s2f = _parent.satNaming();
+    Literal* lit = s2f.toFO(SATLiteral(var,true));
 
-  if (!_ccModel || asgn == SATSolver::FALSE) {
-    return asgn;
+    if (lit && lit->isEquality() && lit->ground()) {
+      return _trueInCCModel.find(var) ? SATSolver::TRUE : SATSolver::FALSE;
+    }
+    // "fall-through" to consult _solver anyway
   }
 
-  // if we work with ccModel, the cc-model overrides the satsolver, but only for positive ground equalities
-
-  SAT2FO& s2f = _parent.satNaming();
-
-  Literal* lit = s2f.toFO(SATLiteral(var,true));
-
-  if (lit && lit->isEquality() && lit->ground()) {
-    return _trueInCCModel.find(var) ? SATSolver::TRUE : SATSolver::DONT_CARE;
-  } else {
-    return asgn;
-  }
+  return _solver->getAssignment(var);
 }
 
 static const int AGE_NOT_FILLED = -1;
@@ -373,23 +368,6 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
         removedComps.push(posLvl);
       }
       if(_selected.find(negLvl)) {
-        _selected.remove(negLvl);
-        removedComps.push(negLvl);
-      }
-    } else {
-      if(_ccModel && _selected.find(negLvl) && (_solver->getAssignment(satVar) == SATSolver::TRUE)) {
-        // The minimized model from the SATSolver says that a removal should happen for the negative equality.
-        // At the same ccModel has a better way of expressing the (positive version of the) equality and so said don't-care instead.
-        // But we must remove the negative equality now (even though we are lazy about removals in general here)
-#ifdef VDEBUG
-        {
-          Clause* cc = _parent.getComponentClause(negLvl);
-          ASS(cc && cc->size() == 1);
-          Literal* l = (*cc)[0];
-          ASS(l->ground() && l->isEquality() && l->isNegative());
-        }
-#endif
-
         _selected.remove(negLvl);
         removedComps.push(negLvl);
       }
