@@ -329,7 +329,7 @@ void Options::Options::init()
     _lookup.insert(&_aigInliner);
     _aigInliner.tag(OptionTag::PREPROCESSING);
 
-    _arityCheck = BoolOptionValue("arity_check","",true);
+    _arityCheck = BoolOptionValue("arity_check","",false);
     _arityCheck.description="The same symbol name cannot be used with multiple arities";
     _lookup.insert(&_arityCheck);
     _arityCheck.tag(OptionTag::PREPROCESSING);

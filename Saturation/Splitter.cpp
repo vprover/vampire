@@ -716,7 +716,7 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
   }
 
   if(_congruenceClosure != Options::SplittingCongruenceClosure::OFF
-      && cl->length()==1 && (*cl)[0]->ground() && cl->splits()->isEmpty()) {
+      && cl->length()==1 && (*cl)[0]->ground() ) {
     //we add ground unit clauses if we use congruence closure...
     // (immediately zero implied!)
     compName = tryGetComponentNameOrAddNew(cl->length(), cl->literals(), cl, compCl);
