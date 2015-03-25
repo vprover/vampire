@@ -71,7 +71,7 @@ void Z3Interfacing::addClause(SATClause* cl)
     z3clause = z3clause || e;
   }
   
-  cout << "add " << z3clause << endl;
+  //cout << "add " << z3clause << endl;
   _solver.add(z3clause);
 
 }
@@ -83,7 +83,7 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
 
   z3::check_result result = _solver.check();
 
-  cout << "solve result: " << result << endl;
+  //cout << "solve result: " << result << endl;
 
   switch(result){
     case z3::check_result::unsat:
@@ -92,11 +92,11 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
     case z3::check_result::sat:
       _status = SATISFIABLE;
       _model = _solver.get_model();
-      cout << "model : " << endl;
-      for(unsigned i=0; i < _model.size(); i++){
-        z3::func_decl v = _model[i];
-        cout << v.name() << " = " << _model.get_const_interp(v) << endl;
-      }
+      //cout << "model : " << endl;
+      //for(unsigned i=0; i < _model.size(); i++){
+      //  z3::func_decl v = _model[i];
+      //  cout << v.name() << " = " << _model.get_const_interp(v) << endl;
+      //}
       break;
     case z3::check_result::unknown:
       _status = UNKNOWN;
@@ -122,25 +122,20 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   ASS_EQ(_status,SATISFIABLE);
 
   z3::expr rep = getRepresentation(var);
-  cout << "rep is " << rep << endl;
   z3::expr assignment = _model.eval(rep);
-  cout << "ass is " << assignment << endl;
+  //cout << "ass is " << assignment << endl;
 
-  static z3::expr t = _context.bool_val(true);
-  static z3::expr f = _context.bool_val(false);
 
-  cout << t << " and " << f << endl;
-
-  if(assignment == t){ 
-  cout << "returning true for " << var << endl;
+  if(Z3_get_bool_value(_context,assignment)==Z3_L_TRUE){
+  //cout << "returning true for " << var << endl;
     return TRUE;
   }
-  if(assignment == f){ 
-  cout << "returning false for " << var << endl;
+  if(Z3_get_bool_value(_context,assignment)==Z3_L_FALSE){
+  //cout << "returning false for " << var << endl;
     return FALSE;
   }
 
-  cout << "returning don't care for " << var << endl;
+  //cout << "returning don't care for " << var << endl;
   return DONT_CARE;
 }
 
@@ -191,7 +186,7 @@ SATClause* Z3Interfacing::getRefutation()
     SATClause* refutation = new(0) SATClause(0);
     refutation->setInference(new PropInference(prems));
 
-    cout << "returing refutation " << refutation << endl;
+    //cout << "returing refutation " << refutation << endl;
 
     return refutation;
 
