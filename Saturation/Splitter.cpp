@@ -63,26 +63,21 @@ void SplittingBranchSelector::init()
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
-    case Options::SatSolver::BUFFERED_VAMPIRE:
-      _solver = new BufferedSolver(new TWLSolver(_parent.getOptions(),true));
-      break;
     case Options::SatSolver::VAMPIRE:  
       _solver = new TWLSolver(_parent.getOptions(), true);
       break;
-    case Options::SatSolver::BUFFERED_LINGELING: 
-      _solver = new BufferedSolver(new LingelingInterfacing(_parent.getOptions(), true));
-      break;
     case Options::SatSolver::LINGELING: 
       _solver = new LingelingInterfacing(_parent.getOptions(), true);
-      break;
-    case Options::SatSolver::BUFFERED_MINISAT:
-      _solver = new BufferedSolver(new MinisatInterfacing(_parent.getOptions(),true));
       break;
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
       break;      
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
+  }
+
+  if (_parent.getOptions().splittingBufferedSolver()) {
+    _solver = new BufferedSolver(_solver.release());
   }
 
   switch(_parent.getOptions().splittingMinimizeModel()){

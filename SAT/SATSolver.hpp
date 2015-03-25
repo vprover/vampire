@@ -39,7 +39,6 @@ public:
    */
   virtual void addClause(SATClause* cl) = 0;
 
-  // TODO: rename to addClauses later on
   void addClausesIter(SATClauseIterator cit) {
     CALL("SATSolver::addClauses");
     while (cit.hasNext()) {
@@ -71,7 +70,7 @@ public:
    */
   virtual Status solve(unsigned conflictCountLimit) = 0;
   
-  Status solve(bool onlyPropagate=false) { return solve(onlyPropagate ? 0 : UINT_MAX); }
+  Status solve(bool onlyPropagate=false) { return solve(onlyPropagate ? 0u : UINT_MAX); }
     
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var

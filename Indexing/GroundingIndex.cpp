@@ -29,15 +29,12 @@ GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
 
   switch(opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
-    case Options::SatSolver::BUFFERED_VAMPIRE: // Buffering ignored for global subsumption
     	_solver = new TWLSolver(opt,true);
     	break;
     case Options::SatSolver::LINGELING:
-    case Options::SatSolver::BUFFERED_LINGELING: // Buffering ignored for global subsumption
       _solver = new LingelingInterfacing(opt,true);
     	break;
     case Options::SatSolver::MINISAT:
-    case Options::SatSolver::BUFFERED_MINISAT: // Buffering ignored for global subsumption
       _solver = new MinisatInterfacing(opt,true);
     	break;
     default:

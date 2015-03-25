@@ -1064,6 +1064,14 @@ void Options::Options::init()
     _splittingFastRestart.reliesOn(_splitting.is(equal(true)));
     _splittingFastRestart.setRandomChoices({"on","off"});
 
+    _splittingBufferedSolver = BoolOptionValue("splitting_buffered_solver","sbs",false);
+    _splittingBufferedSolver.description="Added buffering funcitonality to the SAT solver used in AVATAR.";
+    _lookup.insert(&_splittingBufferedSolver);
+    _splittingBufferedSolver.tag(OptionTag::AVATAR);
+    _splittingBufferedSolver.setExperimental();
+    _splittingBufferedSolver.reliesOn(_splitting.is(equal(true)));
+    _splittingBufferedSolver.setRandomChoices({"on","off"});
+
     _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("splitting_delete_deactivated","sdd",
                                                                         SplittingDeleteDeactivated::ON,{"on","large","off"});
 
@@ -1179,9 +1187,9 @@ void Options::Options::init()
     _satRestartStrategy.tag(OptionTag::SAT);
 
     _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::VAMPIRE,
-                                              {"buf_lingeling","buf_minisat","buf_vampire","lingeling","minisat","vampire"});
+                                              {"lingeling","minisat","vampire"});
     _satSolver.description=
-    "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption. The buf options are experimental (they add buffering).";
+    "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption.";
     _lookup.insert(&_satSolver);
     _satSolver.tag(OptionTag::SAT);
 

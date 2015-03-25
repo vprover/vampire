@@ -330,12 +330,9 @@ public:
 
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
-     BUFFERED_LINGELING = 0,
-     BUFFERED_MINISAT = 1,
-     BUFFERED_VAMPIRE = 2,
-     LINGELING = 3,
-     MINISAT = 4,
-     VAMPIRE = 5
+     LINGELING = 1,
+     MINISAT = 2,
+     VAMPIRE = 3
   };
 
   /** Possible values for saturation_algorithm */
@@ -1788,6 +1785,7 @@ public:
   SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated.actualValue;}
   bool splittingHandleZeroImplied() const { return _splittingHandleZeroImplied.actualValue;}
   bool splittingFastRestart() const { return _splittingFastRestart.actualValue; }
+  bool splittingBufferedSolver() const { return _splittingBufferedSolver.actualValue; }
   int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
   float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
   bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
@@ -2105,6 +2103,7 @@ private:
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
   BoolOptionValue _splittingHandleZeroImplied;
   BoolOptionValue _splittingFastRestart;
+  BoolOptionValue _splittingBufferedSolver;
 
   ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _superpositionFromVariables;
