@@ -64,7 +64,7 @@ SATClause* getClause(const char* spec)
 }
 void ensurePrepared(SATSolver& s)
 {
-  s.ensureVarCnt(27);
+  s.ensureVarCount(27);
 }
 
 void testZICert1(SATSolverWithAssumptions& s)
@@ -72,8 +72,8 @@ void testZICert1(SATSolverWithAssumptions& s)
   CALL("testZICert1");
 
   ensurePrepared(s);
-  s.addClauses(pvi(getSingletonIterator(getClause("ab"))));
-  s.addClauses(pvi(getSingletonIterator(getClause("c"))));
+  s.addClause(getClause("ab"));
+  s.addClause(getClause("c"));
 
   unsigned cVar = getLit('c').var();
   ASS(s.isZeroImplied(cVar));
@@ -104,9 +104,9 @@ void testProofWithAssumptions(SATSolver& s)
 {
   CALL("testProofWithAssumptions");
 
-  s.ensureVarCnt(2);
-  s.addClauses(pvi(getSingletonIterator(getClause("a"))));
-  s.addClauses(pvi(getSingletonIterator(getClause("A"))));
+  s.ensureVarCount(2);
+  s.addClause(getClause("a"));
+  s.addClause(getClause("A"));
 
   ASS_EQ(s.solve(),SATSolver::UNSATISFIABLE);
 
@@ -158,13 +158,13 @@ void testInterface(SATSolverWithAssumptions &s) {
   ASS(!s.trueInAssignment(getLit('a')));
   */
   
-  s.addClauses(pvi(getSingletonIterator(getClause("ab"))));
+  s.addClause(getClause("ab"));
   ASS_EQ(s.solve(true),SATSolver::UNKNOWN);
-  s.addClauses(pvi(getSingletonIterator(getClause("aB"))));
+  s.addClause(getClause("aB"));
   ASS_EQ(s.solve(true),SATSolver::UNKNOWN);
-  s.addClauses(pvi(getSingletonIterator(getClause("Ab"))));
+  s.addClause(getClause("Ab"));
   ASS_EQ(s.solve(true),SATSolver::UNKNOWN);
-  s.addClauses(pvi(getSingletonIterator(getClause("C"))));
+  s.addClause(getClause("C"));
   ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
   
   ASS(s.trueInAssignment(getLit('a')));
@@ -180,7 +180,8 @@ void testInterface(SATSolverWithAssumptions &s) {
 
   cout << " Random: ";
   for (int i = 0; i < 10; i++) {    
-    s.randomizeAssignment();
+    s.randomizeForNextAssignment(27);
+    s.solve();
     cout << s.trueInAssignment(getLit('d'));
   }
   cout << "  Fixed: ";      
