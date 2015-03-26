@@ -180,7 +180,8 @@ void testInterface(SATSolverWithAssumptions &s) {
 
   cout << " Random: ";
   for (int i = 0; i < 10; i++) {    
-    s.randomizeAssignment();
+    s.randomizeForNextAssignment(27);
+    s.solve();
     cout << s.trueInAssignment(getLit('d'));
   }
   cout << "  Fixed: ";      
