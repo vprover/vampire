@@ -173,7 +173,17 @@ SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCC
     Literal* lit = s2f.toFO(SATLiteral(var,true));
 
     if (lit && lit->isEquality() && lit->ground()) {
-      return _trueInCCModel.find(var) ? SATSolver::TRUE : SATSolver::FALSE;
+      if (_trueInCCModel.find(var)) {
+        ASS(_solver->getAssignment(var) != SATSolver::FALSE || var > lastCheckedVar);
+        // only a newly introduced variable can be false in the SATSolver for no good reason
+
+        return SATSolver::TRUE;
+      }
+      // else we can force neither FALSE not DONT_CARE here, because
+      // the former could introduce a disequality that shouldn't be in FO anymore
+      // and the latter could prevent a removal (if we are not eager)
+      // In sum, the model which this function exposes to the outside world
+      // must still satisfy all the clauses in _solver !
     }
     // "fall-through" to consult _solver anyway
   }
@@ -279,6 +289,11 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
   if (_ccModel) {
     TimeCounter tc(TC_CCMODEL);
+
+#ifdef VDEBUG
+    // to keep track of SAT variables introduce just for the sake of the latest call to _ccModel
+    lastCheckedVar = _parent.maxSatVar();
+#endif
 
     RSTAT_CTR_INC("ssat_dp_model");
 
