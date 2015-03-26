@@ -193,6 +193,9 @@ TermList SpecialTermElimination::processSpecialTerm(Term* t)
 
     return TermList(t);
   }
+  else if (t->functor()==Term::SF_FORMULA) {
+    NOT_IMPLEMENTED;
+  }
   else {
     if(t->functor()==Term::SF_LET_FORMULA_IN_TERM) {
       _letStack.push(LetSpec(sd->getLhsLiteral(), sd->getRhsFormula()));

@@ -20,6 +20,10 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 
+#ifdef VDEBUG
+#define DEBUG_SHOW_STATE
+#endif
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -193,12 +197,18 @@ public:
     SIMPLE_FORMULA,
     /** build formula from a connective and one or more formulas */
     END_FORMULA,
+    /** read a formula that whould be put inside a term */
+    FORMULA_INSIDE_TERM,
+    /** */
+    TERM_INFIX,
+    /** wrap built formula inside a term */
+    END_FORMULA_INSIDE_TERM,
     /** read a variable list (for a quantifier) */
     VAR_LIST,
     /** read an atom */
     ATOM,
-    /** process mid-atom: either end of atom or = or != */
-    MID_ATOM,
+    /** process application of = or != to an atom */
+    FORMULA_INFIX,
     /** read arguments */
     ARGS,
     /** read term */
@@ -616,14 +626,18 @@ private:
   void args();
   void varList();
   void term();
+  void termInfix();
   void endTerm();
   void endArgs();
   Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
+  Formula* createAtomic(vstring name,unsigned arity);
   void makeTerm(TermList& ts,Token& tok);
-  void midAtom();
   void endEquality();
   void midEquality();
+  void formulaInfix();
   void endFormula();
+  void formulaInsideTerm();
+  void endFormulaInsideTerm();
   void endType();
   void tag();
   void endFof();
@@ -683,6 +697,9 @@ private:
   void printStates(vstring extra);
   void printInts(vstring extra);
   const char* toString(State s);
+#endif
+#ifdef DEBUG_SHOW_STATE
+  void printStacks();
 #endif
 }; // class TPTP
 

@@ -33,7 +33,6 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Parse;
 
-#define DEBUG_SHOW_TOKENS 0
 #define DEBUG_SHOW_UNITS 0
 
 DHMap<unsigned, vstring> TPTP::_axiomNames;
@@ -85,7 +84,12 @@ void TPTP::parse()
   _states.push(UNIT_LIST);
   while (!_states.isEmpty()) {
     State s = _states.pop();
-#if DEBUG_SHOW_TOKENS
+#ifdef DEBUG_SHOW_STATE
+    cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+    cout << toString(s) << endl;
+    cout << "----------------------------------------" << endl;
+    printStacks();
+    cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl << endl;
 #endif
     switch (s) {
     case UNIT_LIST:
@@ -115,14 +119,17 @@ void TPTP::parse()
     case TERM:
       term();
       break;
+    case TERM_INFIX:
+      termInfix();
+      break;
     case END_TERM:
       endTerm();
       break;
     case END_ARGS:
       endArgs();
       break;
-    case MID_ATOM:
-      midAtom();
+    case FORMULA_INFIX:
+      formulaInfix();
       break;
     case END_EQ:
       endEquality();
@@ -144,6 +151,12 @@ void TPTP::parse()
       break;
     case END_FORMULA:
       endFormula();
+      break;
+    case FORMULA_INSIDE_TERM:
+      formulaInsideTerm();
+      break;
+    case END_FORMULA_INSIDE_TERM:
+      endFormulaInsideTerm();
       break;
     case INCLUDE:
       include();
@@ -379,7 +392,7 @@ vstring TPTP::toString(Tag tag)
 } // toString(Tag)
 
 /**
- * Read all tokens one by one 
+ * Read all tokens one by one
  * @since 08/04/2011 Manchester
  */
 bool TPTP::readToken(Token& tok)
@@ -1054,7 +1067,7 @@ TPTP::Tag TPTP::readNumber(Token& tok)
       shiftChars(pos);
     }
     return T_REAL;
-  case '.': 
+  case '.':
     {
       int p = pos;
       do {
@@ -1175,7 +1188,7 @@ void TPTP::unitList()
       delete _in;
     }
     _in = _inputs.pop();
-    _includeDirectory = _includeDirectories.pop();    
+    _includeDirectory = _includeDirectories.pop();
     delete _allowedNames;
     _allowedNames = _allowedNamesStack.pop();
     _states.push(UNIT_LIST);
@@ -1245,12 +1258,12 @@ void TPTP::fof(bool fo)
   default:
     PARSE_ERROR("Unit name expected",tok);
   }
-  
+
   consumeToken(T_COMMA);
   tok = getTok(0);
   int start = tok.start;
   vstring tp = name();
-   
+
   _isQuestion = false;
   if (tp == "axiom" || tp == "plain") {
     _lastInputType = Unit::AXIOM;
@@ -1318,7 +1331,7 @@ void TPTP::tff()
   default:
     PARSE_ERROR("Unit name expected",tok);
   }
-  
+
   consumeToken(T_COMMA);
   tok = getTok(0);
   int start = tok.start;
@@ -1444,7 +1457,8 @@ void TPTP::letff()
   addTagState(T_COMMA);
   _states.push(FORMULA);
   addTagState(T_COMMA);
-  _states.push(ATOM);
+  _states.push(FORMULA_INFIX);
+  _states.push(ATOM); // should be changed?
 } // letff()
 
 /**
@@ -1475,10 +1489,10 @@ void TPTP::lettf()
 void TPTP::select1()
 {
     CALL("TPTP::select1");
-    
+
     resetToks();
     consumeToken(T_LPAR);
-    
+
     _states.push(END_SELECT1);
     addTagState(T_RPAR);
     _states.push(TERM);
@@ -1495,10 +1509,10 @@ void TPTP::select1()
 void TPTP::select2()
 {
     CALL("TPTP::select2");
-    
+
     resetToks();
     consumeToken(T_LPAR);
-    
+
     _states.push(END_SELECT1);
     addTagState(T_RPAR);
     _states.push(TERM);
@@ -1515,10 +1529,10 @@ void TPTP::select2()
 void TPTP::store1()
 {
     CALL("TPTP::store1");
-    
+
     resetToks();
     consumeToken(T_LPAR);
-    
+
     _states.push(END_STORE1);
     addTagState(T_RPAR);
     _states.push(TERM);
@@ -1537,10 +1551,10 @@ void TPTP::store1()
 void TPTP::store2()
 {
     CALL("TPTP::store2");
-    
+
     resetToks();
     consumeToken(T_LPAR);
-    
+
     _states.push(END_STORE1);
     addTagState(T_RPAR);
     _states.push(TERM);
@@ -1661,10 +1675,10 @@ void TPTP::endLettt()
 void TPTP::endSelect1()
 {
     CALL("TPTP::endSelect1");
-    
+
     TermList index = _termLists.pop();
     TermList array = _termLists.pop();
-    
+
     if (sortOf(index) != Sorts::SRT_INTEGER) {
       USER_ERROR((vstring)"sort of the array index is not INT");
     }
@@ -1683,10 +1697,10 @@ void TPTP::endSelect1()
  */
 void TPTP::endSelect2()
 {
-    CALL("TPTP::endSelect2");    
+    CALL("TPTP::endSelect2");
 
     TermList index = _termLists.pop();
-    TermList array = _termLists.pop();    
+    TermList array = _termLists.pop();
     if (sortOf(index) != Sorts::SRT_INTEGER) {
         USER_ERROR((vstring)"sort of the array index is not INT");
     }
@@ -1706,11 +1720,11 @@ void TPTP::endSelect2()
 void TPTP::endStore1()
 {
     CALL("TPTP::endStore1");
-    
+
     TermList value = _termLists.pop();
     TermList index = _termLists.pop();
     TermList array = _termLists.pop();
-    
+
     if (sortOf(value) != Sorts::SRT_INTEGER) {
       USER_ERROR((vstring)"sort of the array elements is not INT");
     }
@@ -1725,7 +1739,7 @@ void TPTP::endStore1()
     TermList args[] = {array, index, value};
     TermList ts(Term::create(func, 3, args));
 
-    _termLists.push(ts);   
+    _termLists.push(ts);
 } // endStore1
 
 /**
@@ -1736,11 +1750,11 @@ void TPTP::endStore1()
 void TPTP::endStore2()
 {
     CALL("TPTP::endStore2");
-    
+
     TermList value = _termLists.pop();
     TermList index = _termLists.pop();
     TermList array = _termLists.pop();
-    
+
     if (sortOf(value) != Sorts::SRT_ARRAY1)
     {USER_ERROR((vstring)"sort of the array elements is not ARRAY1");}
 
@@ -1776,14 +1790,14 @@ void TPTP::checkFlat(const TermList& ts)
 } // TPTP::checkFlat
 
 /**
- * Check that a sequence of arguments to a term t is a sequence of distinct variables. 
+ * Check that a sequence of arguments to a term t is a sequence of distinct variables.
  * If not, raise an exception.
  * @since 27/07/2011 Manchester
  */
 void TPTP::checkFlat(const Term* t)
 {
   CALL("TPTP::checkFlat(Term*)");
-      
+
   Set<int> vs;
   for (const TermList* ts = t->args(); !ts->isEmpty(); ts = ts->next()) {
     if (!ts->isVar() || vs.contains(ts->var())) {
@@ -1794,14 +1808,14 @@ void TPTP::checkFlat(const Term* t)
 } // TPTP::checkFlat
 
 /**
- * Check that a sequence of arguments to a literal t is a sequence of distinct variables. 
+ * Check that a sequence of arguments to a literal t is a sequence of distinct variables.
  * If not, raise an exception.
  * @since 27/07/2011 Manchester
  */
 void TPTP::checkFlat(const Literal* l)
 {
   CALL("TPTP::checkFlat(Literal*)");
-    
+
    Set<int> vs;
   for (const TermList* ts = l->args(); !ts->isEmpty(); ts = ts->next()) {
     if (!ts->isVar() || vs.contains(ts->var())) {
@@ -1878,7 +1892,7 @@ void TPTP::include()
   // the TPTP standard, so far we just set it to ""
   _includeDirectory = "";
   vstring fileName(env.options->includeFileName(relativeName));
-  { 
+  {
     BYPASSING_ALLOCATOR; // we cannot make ifstream allocated via Allocator
     _in = new ifstream(fileName.c_str());
   }
@@ -1934,11 +1948,47 @@ void TPTP::consumeToken(Tag t)
 void TPTP::formula()
 {
   CALL("TPTP::formula");
- 
+
   _connectives.push(-1);
   _states.push(END_FORMULA);
    _states.push(SIMPLE_FORMULA);
   } // formula
+
+/**
+ *
+ * @since 26/03/2015 Manchester
+ */
+void TPTP::termInfix()
+{
+  CALL("TPTP::termInfix");
+  Token tok = getTok(0);
+  switch (tok.tag) {
+    case T_EQUAL:
+    case T_NEQ:
+      _states.push(END_FORMULA_INSIDE_TERM);
+      _states.push(FORMULA_INFIX);
+      return;
+    case T_COMMA:
+    case T_RPAR:
+      _states.push(END_TERM);
+      return;
+    case T_AND:
+    case T_NOT_AND:
+    case T_NOT_OR:
+    case T_OR:
+    case T_XOR:
+    case T_IFF:
+    case T_IMPLY:
+    case T_REVERSE_IMP:
+      _connectives.push(-1);
+      _states.push(END_FORMULA_INSIDE_TERM);
+      _states.push(END_FORMULA);
+      _states.push(FORMULA_INFIX);
+      return;
+    default:
+      PARSE_ERROR("term or formula expected", tok);
+  }
+} // termInfix
 
 /**
  * Read a TPTP type expression
@@ -1955,7 +2005,8 @@ void TPTP::type()
 } // type
 
 /**
- * Read an atom and save the resulting literal
+ * Read an atomic expression (a function application, a predicate
+ * application or a variable) and save the resulting literal
  * @since 10/04/2011 Manchester
  */
 void TPTP::atom()
@@ -1963,18 +2014,17 @@ void TPTP::atom()
   CALL("TPTP::atom");
     // remember the name
   Token& tok = getTok(0);
-   ASS(tok.tag == T_NAME);
-  _strings.push(tok.content);
+  ASS(tok.tag == T_NAME || tok.tag == T_VAR);
   resetToks();
-  _states.push(MID_ATOM);
+  _strings.push(tok.content);
 
-  tok = getTok(0);
-  if (tok.tag == T_LPAR) {
+  if (tok.tag == T_VAR) {
+    _ints.push(-1); // dummy arity to indicate a variable
+  } else if (getTok(0).tag == T_LPAR) {
     resetToks();
     _states.push(ARGS);
-    _ints.push(1); // number of next argument
-  }
-  else {
+    _ints.push(1); // the arity of the function symbol is at least 1
+  } else {
     _ints.push(0); // arity
   }
 } // TPTP::atom
@@ -2022,7 +2072,7 @@ void TPTP::endArgs()
 void TPTP::bindVariable(int var,unsigned sortNumber)
 {
   CALL("TPTP::bindVariable");
- 
+
   SortList* bindings;
   if (_variableSorts.find(var,bindings)) {
     _variableSorts.replace(var,new SortList(sortNumber,bindings));
@@ -2040,11 +2090,11 @@ void TPTP::bindVariable(int var,unsigned sortNumber)
 void TPTP::varList()
 {
   CALL("TPTP::varList");
-  
+
   Stack<int> vars;
   for (;;) {
     Token& tok = getTok(0);
-     
+
     if (tok.tag != T_VAR) {
       PARSE_ERROR("variable expected",tok);
     }
@@ -2103,36 +2153,10 @@ void TPTP::term()
   Tag tag = tok.tag;
   switch (tag) {
   case T_NAME:
-    {
-      vstring nm = tok.content;
-      resetToks();
-      tok = getTok(0);
-      if (tok.tag != T_LPAR) {
-	// this is just a constant
-	TermList ts;
-	Term* t = new(0) Term;
-	bool dummy;
-	t->makeSymbol(addUninterpretedConstant(nm,dummy),0);
-	t = env.sharing->insert(t);
-	ts.setTerm(t);
-	_termLists.push(ts);
-	return;
-      }
-      else {
-	_strings.push(nm);
-	resetToks();
-	_states.push(END_TERM);
-	_states.push(ARGS);
-	_ints.push(1); // number of next argument
-      }
-    }
-    return;
   case T_VAR:
     {
-      TermList ts;
-      ts.makeVar(_vars.insert(tok.content));
-      _termLists.push(ts);
-      resetToks();
+      _states.push(TERM_INFIX);
+      _states.push(ATOM);
     }
     return;
   case T_STRING:
@@ -2220,7 +2244,7 @@ void TPTP::term()
     }
   case T_SELECT1:
       {
-         
+
           resetToks();
           consumeToken(T_LPAR);
           _states.push(END_SELECT1);
@@ -2267,30 +2291,46 @@ void TPTP::term()
           _states.push(TERM);
           return;
       }
-          
+
  default:
-    PARSE_ERROR("term expected",tok);
+   _states.push(FORMULA_INSIDE_TERM);
   }
 } // term
 
 /**
- * Build a term assembled by term() 
+ * Build a term assembled by term()
  * @since 09/07/2011 Manchester
  */
 void TPTP::endTerm()
 {
   CALL("TPTP::endTerm");
 
+  vstring name = _strings.pop();
   int arity = _ints.pop();
+
+  if (arity == -1) {
+    // it was a variable
+    TermList ts;
+    ts.makeVar(_vars.insert(name));
+    _termLists.push(ts);
+    return;
+  }
+
+  if (env.signature->predicateExists(name, arity)) {
+    // if the function symbol is actually a predicate,
+    // we need to construct a formula and wrap it inside a term
+    _formulas.push(createAtomic(name, arity));
+    _states.push(END_FORMULA_INSIDE_TERM);
+    return;
+  }
+
   TermList ts;
   bool dummy;
   unsigned fun;
   if (arity > 0) {
-      
-    fun = addFunction(_strings.pop(),arity,dummy,_termLists.top());
-  }
-  else {
-    fun = addUninterpretedConstant(_strings.pop(),dummy);
+    fun = addFunction(name,arity,dummy,_termLists.top());
+  } else {
+    fun = addUninterpretedConstant(name,dummy);
   }
   Term* t = new(arity) Term;
   t->makeSymbol(fun,arity);
@@ -2311,81 +2351,43 @@ void TPTP::endTerm()
  * Read after an end of atom or after lhs of an equality or inequality
  * @since 10/04/2011 Manchester
  */
-void TPTP::midAtom()
+void TPTP::formulaInfix()
 {
-  CALL("TPTP::midAtom");
+  CALL("TPTP::formulaInfix");
 
   Token tok = getTok(0);
   switch (tok.tag) {
   case T_EQUAL:
   case T_NEQ:
-    endTerm();
     resetToks();
     _bools.push(tok.tag == T_EQUAL);
     _states.push(END_EQ);
     _states.push(TERM);
+    _states.push(END_TERM);
     return;
   default:
-    {
-      int arity = _ints.pop();
-      vstring name = _strings.pop();
-      int pred;
-      if (arity > 0) {
-	bool dummy;
-	pred = addPredicate(name,arity,dummy,_termLists.top());
-      }
-      else {
-	pred = env.signature->addPredicate(name,0);
-      }
-      if (pred == -1) { // equality
-	TermList rhs = _termLists.pop();
-	TermList lhs = _termLists.pop();
-	_formulas.push(new AtomicFormula(createEquality(true,lhs,rhs)));
-	return;
-      }
-      if (pred == -2){ // distinct
-        // TODO check that we are top-level
-        // If fewer than 5 things are distinct then we add the disequalities
-        if(arity<5){
-          static Stack<unsigned> distincts;
-          distincts.reset();
-          for(int i=arity-1;i >= 0; i--){
-            distincts.push(_termLists.pop().term()->functor());
-          } 
-          Formula* distinct_formula = DistinctGroupExpansion().expand(distincts);
-          _formulas.push(distinct_formula);
+    vstring name = _strings.pop();
+    int arity = _ints.pop();
 
-        }else{
-        // Otherwise record them as being in a distinct group
-          unsigned grpIdx = env.signature->createDistinctGroup(0);
-          for(int i = arity-1;i >=0; i--){
-            TermList ts = _termLists.pop();
-            if(!ts.isTerm() || ts.term()->arity()!=0){
-              USER_ERROR("$distinct should only be used positively with constants");
-            }
-            env.signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
-          }
-        
-          _formulas.push(new Formula(true)); // we ignore it, it evalutes to true as we have recorded it elsewhere
-        }
-        return;
-      }
-      // not equality or distinct
-      Literal* lit = new(arity) Literal(pred,arity,true,false);
-      bool safe = true;
-      for (int i = arity-1;i >= 0;i--) {
-	TermList ts = _termLists.pop();
-	safe = safe && ts.isSafe();
-	*(lit->nthArgument(i)) = ts;
-      }
-      if (safe) {
-	lit = env.sharing->insert(lit);
-      }
-      _formulas.push(new AtomicFormula(lit));
+    if (arity >= 0) {
+      _formulas.push(createAtomic(name, arity));
       return;
     }
+
+    // that was a variable
+    TermList var;
+    var.makeVar(_vars.insert(tok.content));
+
+    if (sortOf(var) != Sorts::SRT_BOOL) {
+      PARSE_ERROR("Non-boolean variable " + name + " used in a formula context", tok.start);
+    }
+
+    TermList tru;
+    tru.setTerm(Term::createFormula(new Formula(true)));
+    Literal *l = createEquality(true, var, tru);
+    _formulas.push(new AtomicFormula(l));
   }
-} // midAtom
+} // formulaInfix
 
 /**
  * Read after an end of equality or inequality and save the (in)equality formula.
@@ -2393,13 +2395,14 @@ void TPTP::midAtom()
  */
 void TPTP::endEquality()
 {
-  CALL("TPTP::endEquality");  
- 
+  CALL("TPTP::endEquality");
+
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
 
   if (sortOf(rhs) != sortOf(lhs)) {
-    
+    cout << "Sort of " << lhs.toString() << " is " << sortOf(lhs) << endl;
+    cout << "Sort of " << rhs.toString() << " is " << sortOf(rhs) << endl;
     USER_ERROR("Cannot create equality between terms of different types.");
   }
 
@@ -2408,7 +2411,7 @@ void TPTP::endEquality()
 } // endEquality
 
 /**
- * Read 
+ * Read
  * @since 09/07/2011 Manchester
  */
 void TPTP::midEquality()
@@ -2455,6 +2458,61 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
 
   return Literal::createEquality(polarity,lhs,rhs,sortNumber);
 } // TPTP::createEquality
+
+Formula* TPTP::createAtomic(vstring name, unsigned arity)
+{
+  ASS_GE(_termLists.size(), arity);
+
+  int pred;
+  if (arity > 0) {
+    bool dummy;
+    pred = addPredicate(name,arity,dummy,_termLists.top());
+  }
+  else {
+    pred = env.signature->addPredicate(name,0);
+  }
+  if (pred == -1) { // equality
+    TermList rhs = _termLists.pop();
+    TermList lhs = _termLists.pop();
+    return new AtomicFormula(createEquality(true,lhs,rhs));
+  }
+  if (pred == -2){ // distinct
+    // TODO check that we are top-level
+    // If fewer than 5 things are distinct then we add the disequalities
+    if(arity<5){
+      static Stack<unsigned> distincts;
+      distincts.reset();
+      for(int i=arity-1;i >= 0; i--){
+        distincts.push(_termLists.pop().term()->functor());
+      }
+      Formula* distinct_formula = DistinctGroupExpansion().expand(distincts);
+      return distinct_formula;
+    }else{
+      // Otherwise record them as being in a distinct group
+      unsigned grpIdx = env.signature->createDistinctGroup(0);
+      for(int i = arity-1;i >=0; i--){
+        TermList ts = _termLists.pop();
+        if(!ts.isTerm() || ts.term()->arity()!=0){
+          USER_ERROR("$distinct should only be used positively with constants");
+        }
+        env.signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
+      }
+      return new Formula(true); // we ignore it, it evalutes to true as we have recorded it elsewhere
+    }
+  }
+  // not equality or distinct
+  Literal* lit = new(arity) Literal(pred,arity,true,false);
+  bool safe = true;
+  for (int i = arity-1;i >= 0;i--) {
+    TermList ts = _termLists.pop();
+    safe = safe && ts.isSafe();
+    *(lit->nthArgument(i)) = ts;
+  }
+  if (safe) {
+    lit = env.sharing->insert(lit);
+  }
+  return new AtomicFormula(lit);
+} // createAtomic
 
 /**
  * Build a formula from previousy built subformulas
@@ -2525,6 +2583,15 @@ void TPTP::endFormula()
     cReverse = true;
     c = IMP;
     break;
+  case T_EQUAL:
+  case T_NEQ: {
+    // not connectives, but we allow formulas to be arguments to = and !=
+    _states.push(END_EQ);
+    _states.push(TERM);
+    _states.push(MID_EQ);
+    _states.push(END_FORMULA_INSIDE_TERM);
+    return;
+  }
   default:
     // the formula does not end at a binary connective, build the formula and terminate
     switch (con) {
@@ -2547,7 +2614,7 @@ void TPTP::endFormula()
       _formulas.push(f);
       _states.push(END_FORMULA);
       return;
-      
+
     case AND:
     case OR:
       f = _formulas.pop();
@@ -2572,7 +2639,7 @@ void TPTP::endFormula()
   if (higherPrecedence(con,c)) {
     f = _formulas.pop();
     Formula* g = _formulas.pop();
-    if (con == AND || c == OR) {
+    if (con == AND || con == OR) {
       f = makeJunction((Connective)con,g,f);
       if (conReverse) {
 	f = new NegatedFormula(f);
@@ -2602,6 +2669,22 @@ void TPTP::endFormula()
   _states.push(END_FORMULA);
   _states.push(SIMPLE_FORMULA);
 } // endFormula
+
+void TPTP::formulaInsideTerm()
+{
+  CALL("TPTP::formulaInsideTerm");
+  _states.push(END_FORMULA_INSIDE_TERM);
+  _states.push(FORMULA);
+} // formulaInsideTerm
+
+void TPTP::endFormulaInsideTerm()
+{
+  CALL("TPTP::endFormulaInsideTerm");
+  Formula* f = _formulas.pop();
+  TermList ts;
+  ts.setTerm(Term::createFormula(f));
+  _termLists.push(ts);
+} // endFormulaInsideTerm
 
 /**
  * Build a type from previousy built types
@@ -2840,7 +2923,7 @@ void TPTP::endTff()
     USER_ERROR("product types are not supported");
   }
 
-    
+
   //atomic types: 0-ary predicates (propositions) and constants (0-ary functions, eg. int constant, array1 constants)
   if (t->tag() == TT_ATOMIC) {
     unsigned sortNumber = static_cast<AtomicType*>(t)->sortNumber();
@@ -2861,7 +2944,7 @@ void TPTP::endTff()
     return;
   }
 
-  //non-atomic types, i.e. with arrows  
+  //non-atomic types, i.e. with arrows
   ASS(t->tag() == TT_ARROW);
   ArrowType* at = static_cast<ArrowType*>(t);
   Type* rhs = at->returnType();
@@ -2959,7 +3042,7 @@ void TPTP::simpleFormula()
 
   Token& tok = getTok(0);
   Tag tag = tok.tag;
-    
+
   switch (tag) {
   case T_NOT:
     resetToks();
@@ -2975,7 +3058,7 @@ void TPTP::simpleFormula()
     _states.push(UNBIND_VARIABLES);
     _states.push(SIMPLE_FORMULA);
     addTagState(T_COLON);
-    _states.push(VAR_LIST); 
+    _states.push(VAR_LIST);
     return;
 
   case T_LPAR:
@@ -2988,7 +3071,6 @@ void TPTP::simpleFormula()
   case T_INT:
   case T_RAT:
   case T_REAL:
-  case T_VAR:
   case T_ITET:
   case T_LETTT:
   case T_LETFT:
@@ -3030,6 +3112,8 @@ void TPTP::simpleFormula()
     _formulas.push(new Formula(false));
     return;
   case T_NAME:
+  case T_VAR:
+    _states.push(FORMULA_INFIX);
     _states.push(ATOM);
     return;
   case T_ITEF:
@@ -3042,7 +3126,7 @@ void TPTP::simpleFormula()
     _states.push(LETFF);
     return;
   default:
-    PARSE_ERROR("formula expected",tok);
+    PARSE_ERROR("formula or term expected",tok);
   }
 } // simpleFormula
 
@@ -3251,7 +3335,7 @@ Formula* TPTP::makeJunction (Connective c,Formula* lhs,Formula* rhs)
 unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 {
   CALL("TPTP::aion");
-   
+
   if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
     if (arity > 0) {
       return env.signature->addFunction(name,arity,added);
@@ -3371,8 +3455,8 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
 				  Theory::REAL_IS_RAT);
   }
   if(name == "$distinct"){
-    // special case for distinct, dealt with in midAtom
-    return -2; 
+    // special case for distinct, dealt with in formulaInfix
+    return -2;
   }
   USER_ERROR((vstring)"Invalid predicate name: " + name);
 } // addPredicate
@@ -3382,8 +3466,8 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
 //                                     Theory::Interpretation array_select)
 //{
 //    CALL("TPTP::addOverloadedArrayFunction");
-//    
-//    
+//
+//
 //    if (arity != symbolArity) {
 //        USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
 //    }
@@ -3394,7 +3478,7 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
 //    }
 //    if (srt == Sorts::SRT_ARRAY2) {
 //        return env.signature->addInterpretedFunction(array_select,name);
-//    } 
+//    }
 //The first argument of select is an INT
 //    if (srt == Sorts::SRT_INTEGER) {
 //        return env.signature->addInterpretedFunction(array_select,name);
@@ -3467,13 +3551,13 @@ unsigned TPTP::sortOf(TermList& t)
       bindVariable(t.var(),Sorts::SRT_DEFAULT);
       return Sorts::SRT_DEFAULT;
     }
-    Term* s = t.term();
-    if (s->isSpecial()) {
-      t = *s->nthArgument(0);
-      continue;
+    unsigned sort;
+    TermList mvar;
+    if (SortHelper::getResultSortOrMasterVariable(t.term(), sort, mvar)) {
+      return sort;
+    } else {
+      t = mvar;
     }
-    // t is not a variable and not a special term
-    return SortHelper::getResultSort(s);
   }
 } // sortOf
 
@@ -3678,16 +3762,16 @@ void TPTP::vampire()
     if(pred){
       consumeToken(T_COMMA);
       vstring pol= name();
-      bool polarity; 
+      bool polarity;
       if(pol=="true"){polarity=true;}else if(pol=="false"){polarity=false;}
-      else{ PARSE_ERROR("polarity expected (true/false)",getTok(0)); } 
+      else{ PARSE_ERROR("polarity expected (true/false)",getTok(0)); }
       unsigned f = env.signature->addPredicate(symb,arity);
       theory->registerLaTeXPredName(f,polarity,temp);
     }
     else{
       unsigned f = env.signature->addFunction(symb,arity);
       theory->registerLaTeXFuncName(f,temp);
-    }    
+    }
   }
   else if (nm == "symbol") {
     consumeToken(T_COMMA);
@@ -3777,16 +3861,22 @@ const char* TPTP::toString(State s)
     return "SIMPLE_FORMULA";
   case END_FORMULA:
     return "END_FORMULA";
+  case FORMULA_INSIDE_TERM:
+    return "FORMULA_INSIDE_TERM";
+  case END_FORMULA_INSIDE_TERM:
+    return "END_FORMULA_INSIDE_TERM";
   case VAR_LIST:
     return "VAR_LIST";
   case ATOM:
     return "ATOM";
-  case MID_ATOM:
-    return "MID_ATOM";
+  case FORMULA_INFIX:
+    return "FORMULA_INFIX";
   case ARGS:
     return "ARGS";
   case TERM:
     return "TERM";
+  case TERM_INFIX:
+    return "TERM_INFIX";
   case END_TERM:
     return "END_TERM";
   case TAG:
@@ -3853,3 +3943,54 @@ const char* TPTP::toString(State s)
 }
 #endif
 
+#ifdef DEBUG_SHOW_STATE
+void TPTP::printStacks() {
+  Stack<State>::Iterator stit(_states);
+  cout << "States:";
+  if   (!stit.hasNext()) cout << " <empty>";
+  while (stit.hasNext()) cout << " " << toString(stit.next());
+  cout << endl;
+
+  Stack<Type*>::Iterator tyit(_types);
+  cout << "Types:";
+  if   (!tyit.hasNext()) cout << " <empty>";
+  while (tyit.hasNext()) cout << " " << tyit.next()->tag();
+  cout << endl;
+
+  Stack<int>::Iterator cit(_connectives);
+  cout << "Connectives:";
+  if   (!cit.hasNext()) cout << " <empty>";
+  while (cit.hasNext()) cout << " " << cit.next();
+  cout << endl;
+
+  Stack<vstring>::Iterator sit(_strings);
+  cout << "Strings:";
+  if   (!sit.hasNext()) cout << " <empty>";
+  while (sit.hasNext()) cout << " " << sit.next();
+  cout << endl;
+
+  Stack<int>::Iterator iit(_ints);
+  cout << "Ints:";
+  if   (!iit.hasNext()) cout << " <empty>";
+  while (iit.hasNext()) cout << " " << iit.next();
+  cout << endl;
+
+  Stack<bool>::Iterator bit(_bools);
+  cout << "Bools:";
+  if   (!bit.hasNext()) cout << " <empty>";
+  while (bit.hasNext()) cout << " " << bit.next();
+  cout << endl;
+
+  Stack<TermList>::Iterator tit(_termLists);
+  cout << "Terms:";
+  if   (!tit.hasNext()) cout << " <empty>";
+  while (tit.hasNext()) cout << " " << tit.next().toString();
+  cout << endl;
+
+  Stack<Formula*>::Iterator fit(_formulas);
+  cout << "Formulas:";
+  if   (!fit.hasNext()) cout << " <empty>";
+  while (fit.hasNext()) cout << " " << fit.next()->toString();
+  cout << endl;
+}
+#endif

@@ -137,6 +137,7 @@ bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, Te
     case Term::SF_FORMULA:
       // will we have a problem with a term being sorted as bool here?
       resultSort = Sorts::SRT_BOOL;
+      return true;
     default:
       ASS(!t->isSpecial());
       resultSort = getResultSort(t);

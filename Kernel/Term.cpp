@@ -367,7 +367,9 @@ vstring Term::specialTermToString() const
   case SF_FORMULA:
   {
     ASS_EQ(arity(),0);
-    vstring s = getSpecialData()->getFormula()->toString();
+    vstring s = "$formula{";
+    s += getSpecialData()->getFormula()->toString();
+    s += "}";
     return s;
   }
   case SF_LET_FORMULA_IN_TERM:
