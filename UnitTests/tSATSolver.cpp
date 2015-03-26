@@ -190,6 +190,7 @@ void testInterface(SATSolverWithAssumptions &s) {
   }
   cout << endl;  
   
+  s.addAssumption(getLit('d'));
   s.addAssumption(getLit('a'));
   ASS(s.hasAssumptions());
   ASS_EQ(s.solve(),SATSolver::SATISFIABLE);

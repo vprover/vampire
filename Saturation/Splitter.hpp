@@ -101,6 +101,10 @@ private:
    * to only report on the new ones.
    */
   DArray<bool> _zeroImplieds;
+
+#ifdef VDEBUG
+  unsigned lastCheckedVar;
+#endif
 };
 
 

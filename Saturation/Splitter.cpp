@@ -162,23 +162,28 @@ void SplittingBranchSelector::handleSatRefutation(SATClause* ref)
 SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCCModel(unsigned var) {
   CALL("SplittingBranchSelector::getSolverAssimentConsideringCCModel");
 
-  SATSolver::VarAssignment asgn = _solver->getAssignment(var);
+  if (_ccModel) {
+    // if we work with ccModel, the cc-model overrides the satsolver, but only for positive ground equalities
+    SAT2FO& s2f = _parent.satNaming();
+    Literal* lit = s2f.toFO(SATLiteral(var,true));
 
-  if (!_ccModel || asgn == SATSolver::FALSE) {
-    return asgn;
+    if (lit && lit->isEquality() && lit->ground()) {
+      if (_trueInCCModel.find(var)) {
+        ASS(_solver->getAssignment(var) != SATSolver::FALSE || var > lastCheckedVar);
+        // only a newly introduced variable can be false in the SATSolver for no good reason
+
+        return SATSolver::TRUE;
+      }
+      // else we can force neither FALSE not DONT_CARE here, because
+      // the former could introduce a disequality that shouldn't be in FO anymore
+      // and the latter could prevent a removal (if we are not eager)
+      // In sum, the model which this function exposes to the outside world
+      // must still satisfy all the clauses in _solver !
+    }
+    // "fall-through" to consult _solver anyway
   }
 
-  // if we work with ccModel, the cc-model overrides the satsolver, but only for positive ground equalities
-
-  SAT2FO& s2f = _parent.satNaming();
-
-  Literal* lit = s2f.toFO(SATLiteral(var,true));
-
-  if (lit && lit->isEquality() && lit->ground()) {
-    return _trueInCCModel.find(var) ? SATSolver::TRUE : SATSolver::DONT_CARE;
-  } else {
-    return asgn;
-  }
+  return _solver->getAssignment(var);
 }
 
 static const int AGE_NOT_FILLED = -1;
@@ -277,6 +282,11 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   if (_ccModel) {
     TimeCounter tc(TC_CCMODEL);
 
+#ifdef VDEBUG
+    // to keep track of SAT variables introduce just for the sake of the latest call to _ccModel
+    lastCheckedVar = _parent.maxSatVar();
+#endif
+
     RSTAT_CTR_INC("ssat_dp_model");
 
     static LiteralStack model;
@@ -287,7 +297,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     ALWAYS(_dpModel->getStatus(false) == DecisionProcedure::SATISFIABLE);
     _dpModel->getModel(model);
 
-    RSTAT_MCTR_INC("ssat_dp_model_size",model.size());
+    // RSTAT_MCTR_INC("ssat_dp_model_size",model.size());
 
     _trueInCCModel.reset();
 
@@ -365,23 +375,6 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
         removedComps.push(posLvl);
       }
       if(_selected.find(negLvl)) {
-        _selected.remove(negLvl);
-        removedComps.push(negLvl);
-      }
-    } else {
-      if(_ccModel && _selected.find(negLvl) && (_solver->getAssignment(satVar) == SATSolver::TRUE)) {
-        // The minimized model from the SATSolver says that a removal should happen for the negative equality.
-        // At the same ccModel has a better way of expressing the (positive version of the) equality and so said don't-care instead.
-        // But we must remove the negative equality now (even though we are lazy about removals in general here)
-#ifdef VDEBUG
-        {
-          Clause* cc = _parent.getComponentClause(negLvl);
-          ASS(cc && cc->size() == 1);
-          Literal* l = (*cc)[0];
-          ASS(l->ground() && l->isEquality() && l->isNegative());
-        }
-#endif
-
         _selected.remove(negLvl);
         removedComps.push(negLvl);
       }
@@ -672,7 +665,7 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
   }
 
   if(_congruenceClosure != Options::SplittingCongruenceClosure::OFF
-      && cl->length()==1 && (*cl)[0]->ground() && cl->splits()->isEmpty()) {
+      && cl->length()==1 && (*cl)[0]->ground() ) {
     //we add ground unit clauses if we use congruence closure...
     // (immediately zero implied!)
     compName = tryGetComponentNameOrAddNew(cl->length(), cl->literals(), cl, compCl);

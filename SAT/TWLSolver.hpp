@@ -69,6 +69,17 @@ public:
     ASS_G(var,0); ASS_LE(var,_varCnt);
     _lastAssignments[var] = pol;
   }
+  virtual void randomizeForNextAssignment(unsigned varLimit) override {
+    CALL("TWLSolver::randomizeForNextAssignment");
+
+    // make sure we are back to base level, so that randomization is not ignored
+    backtrack(1);
+
+    SATSolver::randomizeForNextAssignment(varLimit);
+  }
+
+
+
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var);
   virtual void collectZeroImplied(SATLiteralStack& acc);

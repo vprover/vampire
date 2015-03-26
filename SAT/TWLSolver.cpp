@@ -31,6 +31,16 @@
 #undef LOGGING
 #define LOGGING 0
 
+#if LOGGING
+#define LOG1(arg) cout << arg << endl;
+#define LOG2(a1,a2) cout << a1 << a2 << endl;
+#define LOG3(a1,a2,a3) cout << a1 << a2 << a3 << endl;
+#else
+#define LOG1(arg)
+#define LOG2(a1,a2)
+#define LOG3(a1,a2,a3)
+#endif
+
 namespace SAT
 {
 
@@ -132,6 +142,8 @@ void TWLSolver::addClause(SATClause* cl)
   ASS_EQ(_assumptionCnt, 0);
   ASS(!_unsatisfiableAssumptions);
 
+  LOG2((void*)this," addClauses");
+
   if(_status==UNSATISFIABLE) {
     return;
   }
@@ -143,6 +155,8 @@ void TWLSolver::addClause(SATClause* cl)
 
     ASS(cl->hasUniqueVariables());
     cl->setKept(true);
+
+    LOG1(cl->toString());
 
     if(cl->length()==0) {
       _status=UNSATISFIABLE;
@@ -181,8 +195,11 @@ SATSolver::Status TWLSolver::solve(unsigned conflictCountLimit) {
     _status=UNSATISFIABLE;
     _refutation = e.refutation;
     ASS(!_generateProofs || _refutation);
+    if(_assumptionsAdded){ _unsatisfiableAssumptions=true;}
   }
   
+  LOG3((void*)this," solve ",_status);
+
   return _status;
 }
 
@@ -192,10 +209,17 @@ void TWLSolver::addAssumption(SATLiteral lit)
   CALL("TWLSolver::addAssumption");
   _assumptionsAdded = true;
 
+  LOG2("addAssumption ",lit);
+
   if(_status==UNSATISFIABLE) {
     return;
   }
-  ASS(!anythingToPropagate());
+
+  // Adding an assumption used to mean full solving (see the call to doSolving below).
+  // If we don't do that, we cannot expect propagations to happen either.
+  // CAREFUL: This is a preliminary measure: can we later correctly propagate more than one assumption at once?
+
+  // ASS(!anythingToPropagate());
 
   try
   {
@@ -209,6 +233,7 @@ void TWLSolver::addAssumption(SATLiteral lit)
       return;
     }
     makeAssumptionAssignment(lit);  //increases _assumptionCnt
+    // doSolving(UINT_MAX);
   } catch (const UnsatException& e)
   {
     _unsatisfiableAssumptions = true;
@@ -222,6 +247,8 @@ void TWLSolver::retractAllAssumptions()
 {
   CALL("TWLSolver::retractAllAssumptions");
   _assumptionsAdded = false;
+
+  LOG1("retractAllAssumptions");
 
   if(_unsatisfiableAssumptions) {
     _status = UNKNOWN;
