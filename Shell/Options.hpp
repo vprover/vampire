@@ -330,9 +330,9 @@ public:
 
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
-     LINGELING = 1,
-     MINISAT = 2,
-     VAMPIRE = 3
+     LINGELING = 0,
+     MINISAT = 1,
+     VAMPIRE = 2
   };
 
   /** Possible values for saturation_algorithm */

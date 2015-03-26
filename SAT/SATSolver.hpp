@@ -154,19 +154,48 @@ public:
 
 class SATSolverWithAssumptions: 
       public SATSolver {
-public:  
-  // TODO: instead of storing assumptions internally,
-  // consider just adding an overload of solve
-  // with a set of assumptions as an argument
+public:
   
-  // TODO: support for assumption UNSAT core (explicit minimisation on top?)
+  // The first three functions represent the original TWLSolver-style of interface ...
   
-  /**
-   * Add an assumption into the solver. 
-   */
   virtual void addAssumption(SATLiteral lit) = 0;
   virtual void retractAllAssumptions() = 0;
   virtual bool hasAssumptions() const = 0;
+
+  // ... a better alternative could be the interface below,
+  // which is currently implemented in terms of the one above
+  // (but may be overridden in SATSolver implementations).
+  // Note the the below interface allows the solver
+  // to identify a subset of the given assumptions that were only needed for
+  // previous contradiction to be derived.
+
+  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) {
+    CALL("SATSolver::solveUnderAssumptions");
+
+    ASS(!hasAssumptions());
+    SATLiteralStack::ConstIterator it(assumps);
+    while (it.hasNext()) {
+      addAssumption(it.next());
+    }
+    Status res = solve(conflictCountLimit);
+
+    // TODO: here we could call solve after each addition to discover an assumption subset in a form of a "prefix" of the whole set
+
+    if (res == UNSATISFIABLE) {
+      _failedAssumptionBuffer.reset();
+      _failedAssumptionBuffer.loadFromIterator(SATLiteralStack::BottomFirstIterator(assumps));
+    }
+    retractAllAssumptions();
+    return res;
+  }
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, bool onlyPropagate=false) { return solveUnderAssumptions(assumps,onlyPropagate ? 0u : UINT_MAX); }
+
+  virtual const SATLiteralStack& failedAssumptions() {
+    return _failedAssumptionBuffer;
+  }
+
+private:
+  SATLiteralStack _failedAssumptionBuffer;
 };
 
 }
