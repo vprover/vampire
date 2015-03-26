@@ -230,7 +230,12 @@ void TWLSolver::addAssumption(SATLiteral lit)
   if(_status==UNSATISFIABLE) {
     return;
   }
-  ASS(!anythingToPropagate());
+
+  // Adding an assumption used to mean full solving (see the call to doSolving below).
+  // If we don't do that, we cannot expect propagations to happen either.
+  // CAREFUL: This is a preliminary measure: can we later correctly propagate more than one assumption at once?
+
+  // ASS(!anythingToPropagate());
 
   try
   {
@@ -244,6 +249,7 @@ void TWLSolver::addAssumption(SATLiteral lit)
       return;
     }
     makeAssumptionAssignment(lit);  //increases _assumptionCnt
+    // doSolving(UINT_MAX);
   } catch (const UnsatException& e)
   {
     _unsatisfiableAssumptions = true;
