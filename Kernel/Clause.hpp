@@ -128,9 +128,9 @@ public:
   void setStore(Store s);
 
   /** Return the age */
-  int age() const { return _age; }
+  unsigned age() const { return _age; }
   /** Set the age to @b a */
-  void setAge(int a) { _age = a; } 
+  void setAge(unsigned a) { _age = a; }
 
   /** Return the number of selected literals */
   unsigned numSelected() const { return _numSelected; }
@@ -149,7 +149,7 @@ public:
   void toggle_in_active() {_in_active=!_in_active;}
 
   /** Return the weight */
-  int weight() const
+  unsigned weight() const
   {
     if(!_weight) {
       computeWeight();
