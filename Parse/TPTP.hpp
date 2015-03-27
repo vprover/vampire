@@ -165,10 +165,8 @@ public:
     T_THF,
     /** anything that begins with $$ */
     T_DOLLARS,
-    /** $ite_f: if-then-else on formulas */
-    T_ITEF,
-    /** $ite_t: if-then-else on terms */
-    T_ITET,
+    /** all variations of if-then-else: $ite, $ite_t and $ite_f */
+    T_ITE,
     /** $let_tt: a form of $let */
     T_LETTT,
     /** $let_tf: a form of $let */
@@ -177,6 +175,8 @@ public:
     T_LETFT,
     /** $let_ff: a form of $let */
     T_LETFF,
+    /** $let: FOOL level-polymorphic let-in */
+    T_LET,
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -203,10 +203,12 @@ public:
     TERM_INFIX,
     /** wrap built formula inside a term */
     END_FORMULA_INSIDE_TERM,
+    /** make built boolean term a formula */
+    END_TERM_AS_FORMULA,
     /** read a variable list (for a quantifier) */
     VAR_LIST,
-    /** read an atom */
-    ATOM,
+    /** read a function application */
+    FUN_APP,
     /** process application of = or != to an atom */
     FORMULA_INFIX,
     /** read arguments */
@@ -233,12 +235,8 @@ public:
     SIMPLE_TYPE,
     /** unbinding previously quantified variables */
     UNBIND_VARIABLES,
-    /** if-then-else on formulas */
-    ITEF,
-    /** end of if-then-else on formulas */
-    END_ITEF,
-    /** end of if-then-else on terms */
-    END_ITET,
+    /** end of an if-then-else expression */
+    END_ITE,
     /** check the end of arguments */
     END_ARGS,
     /** middle of equality */
@@ -620,7 +618,7 @@ private:
   void consumeToken(Tag);
   vstring name();
   void formula();
-  void atom();
+  void funApp();
   void simpleFormula();
   void simpleType();
   void args();
@@ -630,7 +628,9 @@ private:
   void endTerm();
   void endArgs();
   Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
-  Formula* createAtomic(vstring name,unsigned arity);
+  Formula* createPredicateApplication(vstring name,unsigned arity);
+  TermList createFunctionApplication(vstring name,unsigned arity);
+  Formula* createFormula(TermList& term);
   void makeTerm(TermList& ts,Token& tok);
   void endEquality();
   void midEquality();
@@ -638,20 +638,18 @@ private:
   void endFormula();
   void formulaInsideTerm();
   void endFormulaInsideTerm();
+  void endTermAsFormula();
   void endType();
   void tag();
   void endFof();
   void endTff();
   void include();
   void type();
-  void itef();
-  void itet();
   void select1();
   void select2();
   void store1();
   void store2();
-  void endItef();
-  void endItet();
+  void endIte();
   void letff();
   void lettf();
   void endLetff();

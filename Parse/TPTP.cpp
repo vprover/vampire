@@ -110,8 +110,8 @@ void TPTP::parse()
     case FORMULA:
       formula();
       break;
-    case ATOM:
-      atom();
+    case FUN_APP:
+      funApp();
       break;
     case ARGS:
       args();
@@ -158,6 +158,9 @@ void TPTP::parse()
     case END_FORMULA_INSIDE_TERM:
       endFormulaInsideTerm();
       break;
+    case END_TERM_AS_FORMULA:
+      endTermAsFormula();
+      break;
     case INCLUDE:
       include();
       break;
@@ -179,14 +182,8 @@ void TPTP::parse()
     case VAMPIRE:
       vampire();
       break;
-    case ITEF:
-      itef();
-      break;
-    case END_ITEF:
-      endItef();
-      break;
-    case END_ITET:
-      endItet();
+    case END_ITE:
+      endIte();
       break;
     case LETFF:
       letff();
@@ -364,10 +361,8 @@ vstring TPTP::toString(Tag tag)
     return "$tff";
   case T_THF:
     return "$thf";
-  case T_ITET:
-    return "$ite_t";
-  case T_ITEF:
-    return "$ite_f";
+  case T_ITE:
+    return "$ite";
   case T_LETTT:
     return "$let_tt";
   case T_LETTF:
@@ -376,6 +371,8 @@ vstring TPTP::toString(Tag tag)
     return "$let_ft";
   case T_LETFF:
     return "$let_ff";
+  case T_LET:
+    return "$let";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -891,11 +888,10 @@ void TPTP::readReserved(Token& tok)
   else if (tok.content == "$false") {
     tok.tag = T_FALSE;
   }
-  else if (tok.content == "$ite_f") {
-    tok.tag = T_ITEF;
-  }
-  else if (tok.content == "$ite_t") {
-    tok.tag = T_ITET;
+  else if (tok.content == "$ite_f" || tok.content == "$ite_t" || tok.content == "$ite") {
+    tok.tag = T_ITE;
+    // $ite_t and $ite_f are left for compatibility, $ite is a generalisation of them
+    tok.content = "$ite";
   }
   else if (tok.content == "$let_tt") {
     tok.tag = T_LETTT;
@@ -908,6 +904,9 @@ void TPTP::readReserved(Token& tok)
   }
   else if (tok.content == "$let_ff") {
     tok.tag = T_LETFF;
+  }
+  else if (tok.content == "$let") {
+    tok.tag = T_LET;
   }
   else if (tok.content == "$tType") {
     tok.tag = T_TTYPE;
@@ -1421,26 +1420,6 @@ void TPTP::tff()
 } // tff()
 
 /**
- * Process $itef declaration
- * @since 27/07/2011 Manchester
- */
-void TPTP::itef()
-{
-  CALL("TPTP::itef");
-
-  resetToks();
-  consumeToken(T_LPAR);
-
-  _states.push(END_ITEF);
-  addTagState(T_RPAR);
-  _states.push(FORMULA);
-  addTagState(T_COMMA);
-  _states.push(FORMULA);
-  addTagState(T_COMMA);
-  _states.push(FORMULA);
-} // itef()
-
-/**
  * Process $let_ff declaration
  * @since 27/07/2011 Manchester
  */
@@ -1458,7 +1437,7 @@ void TPTP::letff()
   _states.push(FORMULA);
   addTagState(T_COMMA);
   _states.push(FORMULA_INFIX);
-  _states.push(ATOM); // should be changed?
+  _states.push(FUN_APP); // should be changed?
 } // letff()
 
 /**
@@ -1565,21 +1544,6 @@ void TPTP::store2()
 } // store2()
 
 /**
- * Process the end of the itef() formula
- * @since 27/07/2011 Manchester
- */
-void TPTP::endItef()
-{
-  CALL("TPTP::endItef");
-
-  Formula* f3 = _formulas.pop();
-  Formula* f2 = _formulas.pop();
-  Formula* f1 = _formulas.pop();
-
-  _formulas.push(new IteFormula(f1,f2,f3));
-} // endItef
-
-/**
  * Process the end of the letff() formula
  * @since 27/07/2011 Manchester
  */
@@ -1636,9 +1600,9 @@ void TPTP::endLetft()
  * Process the end of the itet() term
  * @since 27/07/2011 Manchester
  */
-void TPTP::endItet()
+void TPTP::endIte()
 {
-  CALL("TPTP::endItet");
+  CALL("TPTP::endIte");
 
   TermList t2 = _termLists.pop();
   TermList t1 = _termLists.pop();
@@ -1648,10 +1612,10 @@ void TPTP::endItet()
     USER_ERROR((vstring)"sorts of terms in the if-then-else expression "+ts.toString()+" are not the same");
   }
   _termLists.push(ts);
-} // endItet
+} // endIte
 
 /**
- * Process the end of the itet() term
+ * Process the end of the let_tt() term
  * @since 27/07/2011 Manchester
  */
 void TPTP::endLettt()
@@ -2005,29 +1969,45 @@ void TPTP::type()
 } // type
 
 /**
- * Read an atomic expression (a function application, a predicate
- * application or a variable) and save the resulting literal
+ * Read a function application or a variable and save the resulting literal
  * @since 10/04/2011 Manchester
  */
-void TPTP::atom()
+void TPTP::funApp()
 {
-  CALL("TPTP::atom");
-    // remember the name
+  CALL("TPTP::funApp");
   Token& tok = getTok(0);
-  ASS(tok.tag == T_NAME || tok.tag == T_VAR);
   resetToks();
-  _strings.push(tok.content);
 
-  if (tok.tag == T_VAR) {
-    _ints.push(-1); // dummy arity to indicate a variable
-  } else if (getTok(0).tag == T_LPAR) {
-    resetToks();
-    _states.push(ARGS);
-    _ints.push(1); // the arity of the function symbol is at least 1
-  } else {
-    _ints.push(0); // arity
+  switch (tok.tag) {
+    case T_ITE:
+      _strings.push(tok.content);
+      consumeToken(T_LPAR);
+      _states.push(ARGS);
+      addTagState(T_COMMA);
+      _states.push(FORMULA);
+      _ints.push(1); // the arity of the function symbol is at least 1
+      return;
+
+    case T_VAR:
+      _strings.push(tok.content);
+      _ints.push(-1); // dummy arity to indicate a variable
+      return;
+
+    case T_NAME:
+      _strings.push(tok.content);
+      if (getTok(0).tag == T_LPAR) {
+        resetToks();
+        _states.push(ARGS);
+        _ints.push(1); // the arity of the function symbol is at least 1
+      } else {
+        _ints.push(0); // arity
+      }
+      return;
+
+    default:
+      PARSE_ERROR("unexpectd token", tok);
   }
-} // TPTP::atom
+} // TPTP::funApp
 
 /**
  * Read a non-empty sequence of arguments, including the right parentheses
@@ -2154,147 +2134,80 @@ void TPTP::term()
   switch (tag) {
   case T_NAME:
   case T_VAR:
-    {
-      _states.push(TERM_INFIX);
-      _states.push(ATOM);
-    }
+  case T_ITE:
+    _states.push(TERM_INFIX);
+    _states.push(FUN_APP);
     return;
-  case T_STRING:
-    {
-      TermList ts;
-      Term* t = new(0) Term;
-      t->makeSymbol(env.signature->addStringConstant(tok.content),0);
-      t = env.sharing->insert(t);
-      ts.setTerm(t);
-      _termLists.push(ts);
-      resetToks();
-    }
-    return;
-  case T_INT:
-    {
-      TermList ts;
-      Term* t = new(0) Term;
-      t->makeSymbol(addIntegerConstant(tok.content),0);
-      t = env.sharing->insert(t);
-      ts.setTerm(t);
-      _termLists.push(ts);
-      resetToks();
-    }
-    return;
-  case T_REAL:
-    {
-      TermList ts;
-      Term* t = new(0) Term;
-      t->makeSymbol(addRealConstant(tok.content),0);
-      t = env.sharing->insert(t);
-      ts.setTerm(t);
-      _termLists.push(ts);
-      resetToks();
-    }
-    return;
-  case T_RAT:
-    {
-      TermList ts;
-      Term* t = new(0) Term;
-      t->makeSymbol(addRationalConstant(tok.content),0);
-      t = env.sharing->insert(t);
-      ts.setTerm(t);
-      _termLists.push(ts);
-      resetToks();
-    }
-    return;
-  case T_ITET:
-    {
-      resetToks();
-      consumeToken(T_LPAR);
-      _states.push(END_ITET);
-      addTagState(T_RPAR);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(FORMULA);
-      return;
-    }
-  case T_LETTT:
-    {
-      resetToks();
-      consumeToken(T_LPAR);
-      _states.push(END_LETTT);
-      addTagState(T_RPAR);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(TERM);
-      return;
-    }
-  case T_LETFT:
-    {
-      resetToks();
-      consumeToken(T_LPAR);
-      _states.push(END_LETFT);
-      addTagState(T_RPAR);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(FORMULA);
-      addTagState(T_COMMA);
-      _states.push(SIMPLE_FORMULA);
-      return;
-    }
-  case T_SELECT1:
-      {
 
-          resetToks();
-          consumeToken(T_LPAR);
-          _states.push(END_SELECT1);
-          addTagState(T_RPAR);
-          _states.push(TERM);
-          addTagState(T_COMMA);
-          _states.push(TERM);
-          return;
-      }
-  case T_SELECT2:
-    {
-          resetToks();
-          consumeToken(T_LPAR);
-          _states.push(END_SELECT2);
-          addTagState(T_RPAR);
-          _states.push(TERM);
-          addTagState(T_COMMA);
-          _states.push(TERM);
-          return;
+  case T_STRING:
+  case T_INT:
+  case T_REAL:
+  case T_RAT: {
+    resetToks();
+    unsigned number;
+    switch (tag) {
+      case T_STRING:
+        number = env.signature->addStringConstant(tok.content);
+        break;
+      case T_INT:
+        number = addIntegerConstant(tok.content);
+        break;
+      case T_REAL:
+        number = addRealConstant(tok.content);
+        break;
+      default: // T_RAT
+        number = addRationalConstant(tok.content);
+        break;
     }
+    Term *t = new(0) Term;
+    t->makeSymbol(number, 0);
+    t = env.sharing->insert(t);
+    TermList constant;
+    constant.setTerm(t);
+    _termLists.push(constant);
+    return;
+  }
+
+  case T_LETTT:
+  case T_LETFT:
+    resetToks();
+    consumeToken(T_LPAR);
+    _states.push(tok.tag == T_LETTT ? END_LETTT : END_LETFT);
+    addTagState(T_RPAR);
+    _states.push(TERM);
+    addTagState(T_COMMA);
+    _states.push(TERM);
+    addTagState(T_COMMA);
+    _states.push(tok.tag ==T_LETTT ? TERM : SIMPLE_FORMULA);
+    return;
+
+  case T_SELECT1:
+  case T_SELECT2:
+    resetToks();
+    consumeToken(T_LPAR);
+    _states.push(tok.tag == T_SELECT1 ? END_SELECT1 : END_SELECT2);
+    addTagState(T_RPAR);
+    _states.push(TERM);
+    addTagState(T_COMMA);
+    _states.push(TERM);
+    return;
+
   case T_STORE1:
-      {
-          resetToks();
-          consumeToken(T_LPAR);
-          _states.push(END_STORE1);
-          addTagState(T_RPAR);
-          _states.push(TERM);
-          addTagState(T_COMMA);
-          _states.push(TERM);
-          addTagState(T_COMMA);
-          _states.push(TERM);
-          return;
-      }
   case T_STORE2:
-      {
-          resetToks();
-          consumeToken(T_LPAR);
-          _states.push(END_STORE2);
-          addTagState(T_RPAR);
-          _states.push(TERM);
-          addTagState(T_COMMA);
-          _states.push(TERM);
-          addTagState(T_COMMA);
-          _states.push(TERM);
-          return;
-      }
+    resetToks();
+    consumeToken(T_LPAR);
+    _states.push(tag == T_STORE1 ? END_STORE1 : END_STORE2);
+    addTagState(T_RPAR);
+    _states.push(TERM);
+    addTagState(T_COMMA);
+    _states.push(TERM);
+    addTagState(T_COMMA);
+    _states.push(TERM);
+    return;
 
  default:
    _states.push(FORMULA_INSIDE_TERM);
-  }
+ }
 } // term
 
 /**
@@ -2310,41 +2223,29 @@ void TPTP::endTerm()
 
   if (arity == -1) {
     // it was a variable
-    TermList ts;
-    ts.makeVar(_vars.insert(name));
-    _termLists.push(ts);
+    TermList var;
+    var.makeVar(_vars.insert(name));
+    _termLists.push(var);
+    return;
+  }
+
+  if (name == toString(T_ITE)) {
+    if (arity != 2) {
+      USER_ERROR("if-then-else expression takes exactly 3 arguments");
+    }
+    _states.push(END_ITE);
     return;
   }
 
   if (env.signature->predicateExists(name, arity)) {
     // if the function symbol is actually a predicate,
     // we need to construct a formula and wrap it inside a term
-    _formulas.push(createAtomic(name, arity));
+    _formulas.push(createPredicateApplication(name, arity));
     _states.push(END_FORMULA_INSIDE_TERM);
     return;
   }
 
-  TermList ts;
-  bool dummy;
-  unsigned fun;
-  if (arity > 0) {
-    fun = addFunction(name,arity,dummy,_termLists.top());
-  } else {
-    fun = addUninterpretedConstant(name,dummy);
-  }
-  Term* t = new(arity) Term;
-  t->makeSymbol(fun,arity);
-  bool safe = true;
-  for (int i = arity-1;i >= 0;i--) {
-    TermList ss = _termLists.pop();
-    *(t->nthArgument(i)) = ss;
-    safe = safe && ss.isSafe();
-  }
-  if (safe) {
-    t = env.sharing->insert(t);
-  }
-  ts.setTerm(t);
-  _termLists.push(ts);
+  _termLists.push(createFunctionApplication(name, arity));
 } // endTerm
 
 /**
@@ -2369,23 +2270,28 @@ void TPTP::formulaInfix()
     vstring name = _strings.pop();
     int arity = _ints.pop();
 
-    if (arity >= 0) {
-      _formulas.push(createAtomic(name, arity));
+    if (arity == -1) {
+      // that was a variable
+      TermList var;
+      var.makeVar(_vars.insert(tok.content));
+      _termLists.push(var);
+      if (sortOf(var) != Sorts::SRT_BOOL) {
+        PARSE_ERROR("Non-boolean expression " + name + " used in a formula context", tok.start);
+      }
+      _states.push(END_TERM_AS_FORMULA);
       return;
     }
 
-    // that was a variable
-    TermList var;
-    var.makeVar(_vars.insert(tok.content));
-
-    if (sortOf(var) != Sorts::SRT_BOOL) {
-      PARSE_ERROR("Non-boolean variable " + name + " used in a formula context", tok.start);
+    if (name == toString(T_ITE)) {
+      if (arity != 2) {
+        USER_ERROR("if-then-else expression takes exactly 3 arguments");
+      }
+      _states.push(END_TERM_AS_FORMULA);
+      _states.push(END_ITE);
+      return;
     }
 
-    TermList tru;
-    tru.setTerm(Term::createFormula(new Formula(true)));
-    Literal *l = createEquality(true, var, tru);
-    _formulas.push(new AtomicFormula(l));
+    _formulas.push(createPredicateApplication(name, arity));
   }
 } // formulaInfix
 
@@ -2401,8 +2307,6 @@ void TPTP::endEquality()
   TermList lhs = _termLists.pop();
 
   if (sortOf(rhs) != sortOf(lhs)) {
-    cout << "Sort of " << lhs.toString() << " is " << sortOf(lhs) << endl;
-    cout << "Sort of " << rhs.toString() << " is " << sortOf(rhs) << endl;
     USER_ERROR("Cannot create equality between terms of different types.");
   }
 
@@ -2459,8 +2363,15 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
   return Literal::createEquality(polarity,lhs,rhs,sortNumber);
 } // TPTP::createEquality
 
-Formula* TPTP::createAtomic(vstring name, unsigned arity)
+/**
+ * Creates a formula that is a predicate application literal from
+ * provided predicate symbol name and arity. If arity is greater than zero,
+ * the arguments are assumed to be on the _termLists stack.
+ * @since 27/03/1015 Manchester
+ */
+Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
 {
+  CALL("TPTP::createPredicateApplication");
   ASS_GE(_termLists.size(), arity);
 
   int pred;
@@ -2512,7 +2423,55 @@ Formula* TPTP::createAtomic(vstring name, unsigned arity)
     lit = env.sharing->insert(lit);
   }
   return new AtomicFormula(lit);
-} // createAtomic
+} // createPredicateApplication
+
+/**
+ * Creates a term that is a function application from
+ * provided function symbol name and arity. If arity is greater than zero,
+ * the arguments are assumed to be on the _termLists stack.
+ * @since 27/03/1015 Manchester
+ */
+TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
+{
+  CALL("TPTP::createFunctionApplication");
+  ASS_GE(_termLists.size(), arity);
+
+  TermList ts;
+  bool dummy;
+  unsigned fun;
+  if (arity > 0) {
+    fun = addFunction(name,arity,dummy,_termLists.top());
+  } else {
+    fun = addUninterpretedConstant(name,dummy);
+  }
+  Term* t = new(arity) Term;
+  t->makeSymbol(fun,arity);
+  bool safe = true;
+  for (int i = arity-1;i >= 0;i--) {
+    TermList ss = _termLists.pop();
+    *(t->nthArgument(i)) = ss;
+    safe = safe && ss.isSafe();
+  }
+  if (safe) {
+    t = env.sharing->insert(t);
+  }
+  ts.setTerm(t);
+  return ts;
+}
+
+/**
+ * Creates a formula from a given boolean term
+ * @since 27/03/2015
+ */
+Formula* TPTP::createFormula(TermList& term)
+{
+  CALL("TPTP::createFormula");
+  ASS(sortOf(term) == Sorts::SRT_BOOL);
+  static TermList tru;
+  tru.setTerm(Term::createFormula(new Formula(true)));
+  Literal *l = createEquality(true, term, tru);
+  return new AtomicFormula(l);
+}
 
 /**
  * Build a formula from previousy built subformulas
@@ -2670,6 +2629,11 @@ void TPTP::endFormula()
   _states.push(SIMPLE_FORMULA);
 } // endFormula
 
+/**
+ * Builds a term that really is a formula
+ * @author Evgeny Kotelnikov
+ * @since 27/03/2015 Manchester
+ */
 void TPTP::formulaInsideTerm()
 {
   CALL("TPTP::formulaInsideTerm");
@@ -2677,6 +2641,11 @@ void TPTP::formulaInsideTerm()
   _states.push(FORMULA);
 } // formulaInsideTerm
 
+/**
+ * Wraps a formula inside a term
+ * @author Evgeny Kotelnikov
+ * @since 27/03/2015 Manchester
+ */
 void TPTP::endFormulaInsideTerm()
 {
   CALL("TPTP::endFormulaInsideTerm");
@@ -2685,6 +2654,19 @@ void TPTP::endFormulaInsideTerm()
   ts.setTerm(Term::createFormula(f));
   _termLists.push(ts);
 } // endFormulaInsideTerm
+
+/**
+ * Makes a boolean term a formula
+ * @author Evgeny Kotelnikov
+ * @since 27/03/2015 Manchester
+ */
+void TPTP::endTermAsFormula()
+{
+  CALL("TPTP::endTermAsFormula");
+  TermList t = _termLists.pop();
+  ASS(sortOf(t) == Sorts::SRT_BOOL);
+  _formulas.push(createFormula(t));
+} // endTermAsFormula
 
 /**
  * Build a type from previousy built types
@@ -3071,32 +3053,14 @@ void TPTP::simpleFormula()
   case T_INT:
   case T_RAT:
   case T_REAL:
-  case T_ITET:
-  case T_LETTT:
-  case T_LETFT:
     _states.push(END_EQ);
     _states.push(TERM);
     _states.push(MID_EQ);
     _states.push(TERM);
     return;
   case T_SELECT1:
-     _states.push(END_EQ);
-    _states.push(TERM);
-    _states.push(MID_EQ);
-    _states.push(TERM);
-    return;
   case T_SELECT2:
-    _states.push(END_EQ);
-    _states.push(TERM);
-    _states.push(MID_EQ);
-    _states.push(TERM);
-    return;
   case T_STORE1:
-    _states.push(END_EQ);
-    _states.push(TERM);
-    _states.push(MID_EQ);
-    _states.push(TERM);
-    return;
   case T_STORE2:
     _states.push(END_EQ);
     _states.push(TERM);
@@ -3113,11 +3077,9 @@ void TPTP::simpleFormula()
     return;
   case T_NAME:
   case T_VAR:
+  case T_ITE:
     _states.push(FORMULA_INFIX);
-    _states.push(ATOM);
-    return;
-  case T_ITEF:
-    _states.push(ITEF);
+    _states.push(FUN_APP);
     return;
   case T_LETTF:
     _states.push(LETTF);
@@ -3865,10 +3827,12 @@ const char* TPTP::toString(State s)
     return "FORMULA_INSIDE_TERM";
   case END_FORMULA_INSIDE_TERM:
     return "END_FORMULA_INSIDE_TERM";
+  case END_TERM_AS_FORMULA:
+    return "END_TERM_AS_TERM";
   case VAR_LIST:
     return "VAR_LIST";
-  case ATOM:
-    return "ATOM";
+  case FUN_APP:
+    return "FUN_APP";
   case FORMULA_INFIX:
     return "FORMULA_INFIX";
   case ARGS:
@@ -3895,10 +3859,6 @@ const char* TPTP::toString(State s)
     return "END_TYPE";
   case SIMPLE_TYPE:
     return "SIMPLE_TYPE";
-  case ITEF:
-    return "ITEF";
-  case END_ITEF:
-    return "END_ITEF";
   case SELECT1:
     return "SELECT1";
   case END_SELECT1:
@@ -3915,8 +3875,8 @@ const char* TPTP::toString(State s)
     return "STORE2";
   case END_STORE2:
     return "END_STORE2";
-  case END_ITET:
-    return "END_ITET";
+  case END_ITE:
+    return "END_ITE";
   case END_ARGS:
     return "END_ARGS";
   case MID_EQ:
