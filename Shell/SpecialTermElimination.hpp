@@ -16,9 +16,6 @@ using namespace Kernel;
 /**
  * A class with function @b apply() that eliminates all let...in and
  * term if-then-else expressions.
- *
- * Formula if-then-else expressions are not eliminated here but in
- * the @b FormulaIteExpander class.
  */
 class SpecialTermElimination {
 public:

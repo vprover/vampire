@@ -159,17 +159,6 @@ Formula* Flattening::flatten (Formula* f)
 				   arg->qarg());
     }
 
-  case ITE:
-    {
-      Formula* c = flatten(f->condArg());
-      Formula* t = flatten(f->thenArg());
-      Formula* e = flatten(f->elseArg());
-      if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
-	return f;
-      }
-      return new IteFormula(c,t,e);
-    }
-
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

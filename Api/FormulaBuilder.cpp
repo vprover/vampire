@@ -594,19 +594,6 @@ Formula FormulaBuilder::formula(Connective q,const Var& v,const Formula& f)
   return res;
 }
 
-Formula FormulaBuilder::formula(Connective c,const Formula& cond,const Formula& thenBranch,const Formula& elseBranch)
-{
-  CALL("FormulaBuilder::formula(Connective,const Formula&,const Formula&,const Formula&)");
-
-  if(c!=ITE) {
-    throw FormulaBuilderException("Invalid if-then-else connective");
-  }
-
-  Formula res(new IteFormula(cond.form, thenBranch.form, elseBranch.form));
-  res._aux=_aux;
-  return res;
-}
-
 AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a, vstring name)
 {
   CALL("FormulaBuilder::annotatedFormula");
@@ -965,8 +952,6 @@ FormulaBuilder::Connective Formula::connective() const
     return FormulaBuilder::FORALL;
   case Kernel::EXISTS:
     return FormulaBuilder::EXISTS;
-  case Kernel::ITE:
-    return FormulaBuilder::ITE;
   case Kernel::TRUE:
     return FormulaBuilder::TRUE;
   case Kernel::FALSE:
@@ -1018,8 +1003,6 @@ unsigned Formula::argCnt() const
   case Kernel::FORALL:
   case Kernel::EXISTS:
     return 1;
-  case Kernel::ITE:
-    return 3;
   case Kernel::TRUE:
   case Kernel::FALSE:
     return 0;
@@ -1060,20 +1043,6 @@ Formula Formula::formulaArg(unsigned i)
   case Kernel::EXISTS:
     if(i==0) {
       res = form->qarg();
-    }
-    break;
-  case Kernel::ITE:
-    switch(i) {
-    case 0:
-      res = form->condArg();
-      break;
-    case 1:
-      res = form->thenArg();
-      break;
-    case 2:
-      res = form->elseArg();
-      break;
-    default:;
     }
     break;
   case Kernel::TRUE:

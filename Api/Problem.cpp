@@ -34,7 +34,6 @@
 #include "Shell/EqualityPropagator.hpp"
 #include "Shell/EquivalenceDiscoverer.hpp"
 #include "Shell/Flattening.hpp"
-#include "Shell/FormulaIteExpander.hpp"
 #include "Shell/LispLexer.hpp"
 #include "Shell/LispParser.hpp"
 #include "Shell/Naming.hpp"
@@ -636,9 +635,6 @@ protected:
     fu = Rectify::rectify(fu);
     fu = SimplifyFalseTrue::simplify(fu);
     fu = Flattening::flatten(fu);
-
-    fu = FormulaIteExpander().apply(fu, newDefs);
-    handleDefs(newDefs);
 
     addUnit(fu);
   }

@@ -314,7 +314,6 @@ VS_OBJ = Shell/AIG.o\
          Shell/EqualityProxy.o\
          Shell/EquivalenceDiscoverer.o\
          Shell/Flattening.o\
-         Shell/FormulaIteExpander.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
          Shell/GlobalOptions.o\

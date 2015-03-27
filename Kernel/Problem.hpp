@@ -108,16 +108,6 @@ public:
     invalidateProperty();
     _hasSpecialTermsOrLets = false;
   }
-  void reportFormulaIteEliminated()
-  {
-    invalidateProperty();
-    _hasFormulaItes = false;
-  }
-  void reportFormulaIteAdded()
-  {
-    invalidateProperty();
-    _hasFormulaItes = true;
-  }
   /**
    * Report that equality was added into the problem
    *
@@ -186,7 +176,6 @@ private:
   mutable MaybeBool _hasEquality;
   mutable MaybeBool _hasInterpretedOperations;
   mutable MaybeBool _hasSpecialTermsOrLets;
-  mutable MaybeBool _hasFormulaItes;
 
   mutable bool _propertyValid;
   mutable Property* _property;

@@ -57,8 +57,7 @@ Property::Property()
     _props(0),
     _hasInterpreted(false),
     _hasNonDefaultSorts(false),
-    _hasSpecialTermsOrLets(false),
-    _hasFormulaItes(false)
+    _hasSpecialTermsOrLets(false)
 {
   _interpretationPresence.init(Theory::MAX_INTERPRETED_ELEMENT+1, false);
   env.property = this;
@@ -335,9 +334,6 @@ void Property::scan(Formula* formula)
     _subformulas++;
     Formula* f = fs.next();
     switch(f->connective()) {
-    case ITE:
-      _hasFormulaItes = true;
-      break;
     case FORMULA_LET:
     case TERM_LET:
       _hasSpecialTermsOrLets = true;
@@ -785,15 +781,6 @@ bool Property::hasXEqualsY(const Formula* f)
 	}
       }
       forms.push(f->qarg());
-      pols.push(pol);
-      break;
-
-    case ITE:
-      forms.push(f->condArg());
-      pols.push(0);
-      forms.push(f->thenArg());
-      pols.push(pol);
-      forms.push(f->elseArg());
       pols.push(pol);
       break;
 

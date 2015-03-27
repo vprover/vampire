@@ -1028,7 +1028,7 @@ bool SMTLIB::tryReadConnective(FormulaSymbol fsym, LExpr* e, Formula*& res)
     break;
   }
   case FS_IF_THEN_ELSE:
-    res = new IteFormula(argForms[0], argForms[1], argForms[2]);
+    res = Formula::createITE(argForms[0], argForms[1], argForms[2]);
     break;
   default:
     ASSERTION_VIOLATION;

@@ -169,7 +169,6 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasSpecialTermsOrLets() const { return _hasSpecialTermsOrLets; }
-  bool hasFormulaItes() const { return _hasFormulaItes; }
  private:
   // constructor, operators new and delete
   explicit Property();
@@ -244,7 +243,6 @@ public:
   DArray<bool> _interpretationPresence;
 
   bool _hasSpecialTermsOrLets;
-  bool _hasFormulaItes;
 }; // class Property
 
 }

@@ -172,13 +172,6 @@ Formula* SubformulaIterator::next (int& resultPolarity)
     _currentPolarity = resultPolarity;
     break;
 
-  case ITE:
-    _current = result->condArg();
-    _currentPolarity = 0;
-    _reserve = new Element(result->elseArg(), resultPolarity, _reserve);
-    _reserve = new Element(result->thenArg(), resultPolarity, _reserve);
-    break;
-
   case TERM_LET:
   case FORMULA_LET:
     //we do not consider the other parts of let expressions (origin and target) to be subformulas

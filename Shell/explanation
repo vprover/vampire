@@ -54,8 +54,6 @@ EquivalentVariableRemover.hpp
 explanation
 Flattening.cpp
 Flattening.hpp
-FormulaIteExpander.cpp
-FormulaIteExpander.hpp
 FunctionDefinition.cpp
 FunctionDefinition.hpp
 GeneralSplitting.cpp

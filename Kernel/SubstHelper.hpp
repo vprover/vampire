@@ -504,17 +504,6 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
     return new QuantifiedFormula(f->connective(),newVars,arg);
   }
 
-  case ITE:
-  {
-    Formula* c = applyImpl<ProcessSpecVars>(f->condArg(), applicator, noSharing);
-    Formula* t = applyImpl<ProcessSpecVars>(f->thenArg(), applicator, noSharing);
-    Formula* e = applyImpl<ProcessSpecVars>(f->elseArg(), applicator, noSharing);
-    if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
-      return f;
-    }
-    return new IteFormula(c,t,e);
-  }
-
   case TERM_LET:
   {
     //the lhs term binds variables in it, and on all bound

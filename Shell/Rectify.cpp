@@ -442,17 +442,6 @@ Formula* Rectify::rectify (Formula* f)
     return new QuantifiedFormula(f->connective(),vs,arg);
   }
 
-  case ITE:
-  {
-    Formula* c = rectify(f->condArg());
-    Formula* t = rectify(f->thenArg());
-    Formula* e = rectify(f->elseArg());
-    if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
-      return f;
-    }
-    return new IteFormula(c,t,e);
-  }
-
   case TERM_LET:
   {
     TermList o = f->termLetLhs();

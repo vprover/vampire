@@ -49,7 +49,6 @@ bool SpecialTermElimination::hasSpecials(FormulaUnit* fu)
 	return true;
       }
       break;
-    case ITE:
     case TERM_LET:
     case FORMULA_LET:
       return true;
@@ -417,23 +416,6 @@ Formula* SpecialTermElimination::process(Formula* f)
     return new QuantifiedFormula(f->connective(),f->vars(),arg);
   }
 
-  case ITE:
-  {
-    Formula* c = process(f->condArg());
-    Formula* t = process(f->thenArg());
-    Formula* e = process(f->elseArg());
-    if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
-      return f;
-    }
-    IteFormula* formula = new IteFormula(c,t,e);
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP]: " << formula->toString() << std::endl;
-      env.endOutput();
-    }
-    return new IteFormula(c,t,e);
-  }
-
   case TERM_LET:
   case FORMULA_LET:
   {
@@ -541,18 +523,8 @@ Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList the
     env.out() << "[PP] ste_if: "<< "\n eqThen "<<eqThen->toString() 
             <<"\n eqElse "<<eqElse->toString();
   }
-  Formula* def = new IteFormula(condition, new AtomicFormula(eqThen), new AtomicFormula(eqElse));
-  if (env.options->showPreprocessing()) {
-    env.out() <<"\n new iteFormula"<<def->toString() << std::endl;
-    env.endOutput();
-  }
 
-  FormulaUnit* defUnit = new FormulaUnit(def, new Inference(Inference::TERM_IF_THEN_ELSE_DEFINITION), Unit::AXIOM);
-  UnitList::push(defUnit, _defs);
-  if(_currentPrb) {
-    _currentPrb->reportEqualityAdded(true);
-    _currentPrb->reportFormulaIteAdded();
-  }
+  NOT_IMPLEMENTED;
 
   //now put the actual then and else branches on the argument
   //stack and build the new term

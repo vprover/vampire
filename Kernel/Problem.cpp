@@ -271,7 +271,6 @@ void Problem::readDetailsFromProperty() const
   _hasEquality = _property->equalityAtoms()!=0;
   _hasInterpretedOperations = _property->hasInterpretedOperations();
   _hasSpecialTermsOrLets = _property->hasSpecialTermsOrLets();
-  _hasFormulaItes = _property->hasFormulaItes();
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
@@ -292,7 +291,6 @@ void Problem::invalidateEverything()
   _hasEquality = MaybeBool::UNKNOWN;
   _hasInterpretedOperations = MaybeBool::UNKNOWN;
   _hasSpecialTermsOrLets = MaybeBool::UNKNOWN;
-  _hasFormulaItes = MaybeBool::UNKNOWN;
 
   _mayHaveFormulas = true;
   _mayHaveEquality = true;
@@ -314,7 +312,6 @@ void Problem::invalidateByRemoval()
   _hasEquality.mightBecameFalse();
   _hasInterpretedOperations.mightBecameFalse();
   _hasSpecialTermsOrLets.mightBecameFalse();
-  _hasFormulaItes.mightBecameFalse();
 }
 
 /**
@@ -366,14 +363,6 @@ bool Problem::hasSpecialTermsOrLets() const
 
   if(!_hasSpecialTermsOrLets.known()) { refreshProperty(); }
   return _hasSpecialTermsOrLets.value();
-}
-
-bool Problem::hasFormulaItes() const
-{
-  CALL("Problem::hasFormulaItes");
-
-  if(!_hasFormulaItes.known()) { refreshProperty(); }
-  return _hasFormulaItes.value();
 }
 
 

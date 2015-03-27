@@ -635,7 +635,6 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
 	      : new QuantifiedFormula(con,f->vars(),arg);
     }
   }
-  case ITE:
   case FORMULA_LET:
   case TERM_LET:
     ASSERTION_VIOLATION;

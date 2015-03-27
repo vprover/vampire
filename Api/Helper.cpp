@@ -256,10 +256,6 @@ vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
     return result + "] : (" + toString(f->qarg()) + ") )";
   }
 
-  case ITE:
-    return vstring("(") + toString(f->condArg()) + " ? " +
-	toString(f->thenArg()) + " : " + toString(f->elseArg()) + ")";
-
   case FORMULA_LET:
     return "let "+toString(f->formulaLetLhs()) + " := " + toString(f->formulaLetRhs()) +
 	" in " + toString(f->letBody());

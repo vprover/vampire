@@ -64,9 +64,6 @@ Formula* FormulaTransformer::apply(Formula* f)
   case EXISTS:
     res = applyExists(f);
     break;
-  case ITE:
-    res = applyIte(f);
-    break;
   case TERM_LET:
     res = applyTermLet(f);
     break;
@@ -154,21 +151,6 @@ Formula* FormulaTransformer::applyQuantified(Formula* f)
     return f;
   }
   return new QuantifiedFormula(f->connective(), f->vars(), newArg);
-}
-
-
-Formula* FormulaTransformer::applyIte(Formula* f)
-{
-  CALL("FormulaTransformer::applyIte");
-  ASS_EQ(f->connective(), ITE);
-
-  Formula* newCond = apply(f->condArg());
-  Formula* newThen = apply(f->thenArg());
-  Formula* newElse = apply(f->elseArg());
-  if(newCond==f->condArg() && newThen==f->thenArg() && newElse==f->elseArg()) {
-    return f;
-  }
-  return new IteFormula(newCond, newThen, newElse);
 }
 
 Formula* FormulaTransformer::applyTermLet(Formula* f)
@@ -284,24 +266,6 @@ Formula* PolarityAwareFormulaTransformer::applyBinary(Formula* f)
 
   ScopedLet<int> plet(_polarity, 0);
   return FormulaTransformer::applyBinary(f);
-}
-
-Formula* PolarityAwareFormulaTransformer::applyIte(Formula* f)
-{
-  CALL("PolarityAwareFormulaTransformer::applyIte");
-  ASS_EQ(f->connective(), ITE);
-
-  Formula* newCond;
-  {
-    ScopedLet<int> plet(_polarity, 0);
-    newCond = apply(f->condArg());
-  }
-  Formula* newThen = apply(f->thenArg());
-  Formula* newElse = apply(f->elseArg());
-  if(newCond==f->condArg() && newThen==f->thenArg() && newElse==f->elseArg()) {
-    return f;
-  }
-  return new IteFormula(newCond, newThen, newElse);
 }
 
 Formula* PolarityAwareFormulaTransformer::applyFormulaLet(Formula* f)

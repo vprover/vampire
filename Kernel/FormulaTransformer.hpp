@@ -70,7 +70,6 @@ protected:
 
   virtual Formula* applyTrueFalse(Formula* f) { return f; }
 
-  virtual Formula* applyIte(Formula* f);
   virtual Formula* applyTermLet(Formula* f);
   virtual Formula* applyFormulaLet(Formula* f);
 };
@@ -99,7 +98,6 @@ protected:
 
   virtual Formula* applyBinary(Formula* f);
 
-  virtual Formula* applyIte(Formula* f);
   virtual Formula* applyFormulaLet(Formula* f);
 
   int polarity() const { return _polarity; }

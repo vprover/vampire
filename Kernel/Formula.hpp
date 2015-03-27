@@ -46,9 +46,6 @@ public:
   Literal* formulaLetLhs() const;
   Formula* formulaLetRhs() const;
   Formula* letBody() const;
-  Formula* condArg() const;
-  Formula* thenArg() const;
-  Formula* elseArg() const;
   const FormulaList* args() const;
   FormulaList* args();
   FormulaList** argsPtr();
@@ -96,6 +93,8 @@ public:
 
   static Formula* trueFormula();
   static Formula* falseFormula();
+
+  static Formula* createITE(Formula* condition, Formula* thenArg, Formula* elseArg);
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(Formula);
@@ -276,37 +275,6 @@ class JunctionFormula
   /** list of immediate subformulas */
   FormulaList* _args;
 }; // class JunctionFormula
-
-/**
- * If-then-else formula.
- */
-class IteFormula
-  : public Formula
-{
- public:
-  IteFormula(Formula* condarg, Formula* thenarg, Formula* elsearg)
-    : Formula(ITE),
-      _condarg(condarg),
-      _thenarg(thenarg),
-      _elsearg(elsearg)
-  {
-  }
-
-  /** Return the subformula serving as the condition */
-  Formula* condArg() const { return _condarg; }
-  /** Return the subformula serving as the then branch */
-  Formula* thenArg() const { return _thenarg; }
-  /** Return the subformula serving as the else branch */
-  Formula* elseArg() const { return _elsearg; }
-
-  // use allocator to (de)allocate objects of this class
-  CLASS_NAME(IteFormula);
-  USE_ALLOCATOR(IteFormula);
- protected:
-  Formula* _condarg;
-  Formula* _thenarg;
-  Formula* _elsearg;
-}; // class IteFormula
 
 /**
  * Formula let...in formula.
@@ -496,24 +464,6 @@ Formula* Formula::right()
 {
   ASS(_connective == IFF || _connective == XOR || _connective == IMP);
   return static_cast<BinaryFormula*>(this)->rhs();
-}
-/** Return the condition subformula of an if-then-else formula */
-inline
-Formula* Formula::condArg() const {
-  ASS(_connective == ITE);
-  return static_cast<const IteFormula*>(this)->condArg();
-}
-/** Return the then-branch subformula of an if-then-else formula */
-inline
-Formula* Formula::thenArg() const {
-  ASS(_connective == ITE);
-  return static_cast<const IteFormula*>(this)->thenArg();
-}
-/** Return the else-branch subformula of an if-then-else formula */
-inline
-Formula* Formula::elseArg() const {
-  ASS(_connective == ITE);
-  return static_cast<const IteFormula*>(this)->elseArg();
 }
 inline
 Formula* Formula::letBody() const {

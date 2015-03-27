@@ -28,7 +28,6 @@
 #include "EqualityProxy.hpp"
 #include "EquivalenceDiscoverer.hpp"
 #include "Flattening.hpp"
-#include "FormulaIteExpander.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
 #include "HornRevealer.hpp"
@@ -262,13 +261,6 @@ void Preprocess::preprocess (Problem& prb)
   // discover known theories
 //   TheoryFinder theoryFinder(_problem,0);
 //   theoryFinder.search();
-
-  if (prb.hasFormulaItes()){
-    if (env.options->showPreprocessing())
-      env.out() << "expand ite formulas" << std::endl;
-    
-    FormulaIteExpander().apply(prb);
-  }
 
   if ( _options.equalityPropagation() && prb.mayHaveEquality()) {
     //Another equality propagation is between preprocess2 and preprocess3.

@@ -98,10 +98,6 @@ void Formula::destroy ()
     delete static_cast<QuantifiedFormula*>(this);
     return;
 
-  case ITE:
-    delete static_cast<IteFormula*>(this);
-    return;
-
   case TRUE:
   case FALSE:
     delete this;
@@ -297,10 +293,6 @@ vstring Formula::toString () const
       return result + qarg()->toStringInScopeOf(c);
     }
 
-  case ITE:
-    return "$ite_f(" + condArg()->toStringInScopeOf(c) + "," + thenArg()->toStringInScopeOf(c) + "," +
-           elseArg()->toStringInScopeOf(c) + ")";
-
   case FORMULA_LET:
     return "let "+formulaLetLhs()->toString() + " := " + formulaLetRhs()->toStringInScopeOf(c) +
 	" in " + letBody()->toStringInScopeOf(c);
@@ -346,7 +338,6 @@ bool Formula::parenthesesRequired (Connective outer) const
     case IMP:
     case IFF:
     case XOR:
-    case ITE:
     case FORMULA_LET:
     case TERM_LET:
       return true;
@@ -692,6 +683,25 @@ Formula* Formula::falseFormula()
   return res;
 }
 
+Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseArg)
+{
+  CALL("Formula::createITE");
+
+  TermList thenTerm;
+  thenTerm.setTerm(Term::createFormula(thenArg));
+
+  TermList elseTerm;
+  thenTerm.setTerm(Term::createFormula(elseArg));
+
+  TermList iteTerm;
+  iteTerm.setTerm(Term::createTermITE(condition, thenTerm, elseTerm));
+
+  TermList tru;
+  tru.setTerm(Term::createFormula(new Formula(true)));
+  Literal *l = Literal::createEquality(true, iteTerm, tru, Sorts::SRT_BOOL);
+  return new AtomicFormula(l);
+}
+
 Formula* Formula::quantify(Formula* f)
 {
   Set<unsigned> vars;
@@ -761,7 +771,6 @@ Formula* Formula::fromClause(Clause* cl)
   case NOT:
   case FORALL:
   case EXISTS:
-  case ITE:
   case TERM_LET:
   case FORMULA_LET:
   case TRUE:

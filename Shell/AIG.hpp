@@ -352,7 +352,6 @@ private:
   ARes applyNot(Formula* f);
   ARes applyBinary(Formula* f);
   ARes applyQuantified(Formula* f);
-  ARes applyIte(Formula* f);
 
   void buildQuantAigFormulaRepr(AIGRef aig, Stack<AIGRef>& toBuild);
   bool tryBuildEquivalenceFormulaRepr(AIGRef aig, Stack<AIGRef>& toBuild);
