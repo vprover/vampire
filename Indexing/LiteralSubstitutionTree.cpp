@@ -170,7 +170,10 @@ struct LiteralSubstitutionTree::PropositionalLDToSLQueryResultWithSubstFn
 {
   PropositionalLDToSLQueryResultWithSubstFn()
   {
-    _subst=ResultSubstitutionSP (new IdentitySubstitution());
+    /* Back to DisjunctQueryAndResultVariablesSubstitution, Identity was wrong (as confirmed by more unsoudness results),
+     * but "Disjunct" does doubling and may overflow under specific conditions, which need to be investigated. 
+    */
+    _subst=ResultSubstitutionSP (new DisjunctQueryAndResultVariablesSubstitution()); 
   }
   DECL_RETURN_TYPE(SLQueryResult);
   OWN_RETURN_TYPE operator() (const LeafData& ld) {
