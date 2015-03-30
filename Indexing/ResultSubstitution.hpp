@@ -11,7 +11,7 @@
 
 #include "Lib/SmartPtr.hpp"
 #include "Kernel/Term.hpp"
-
+#include "Kernel/Renaming.hpp"
 
 namespace Indexing {
 
@@ -155,12 +155,10 @@ public:
   TermList applyToResult(TermList t);
   Literal* applyToResult(Literal* l);
 
-  /**
-   * we can return true because nothing is bound to the result
-   */
-  bool isIdentityOnQueryWhenResultBound() {return true;}
+  bool isIdentityOnQueryWhenResultBound() {return false;}
 private:
   struct Applicator;
+  Renaming _renaming;
 };
 
 };

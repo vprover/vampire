@@ -170,9 +170,6 @@ struct LiteralSubstitutionTree::PropositionalLDToSLQueryResultWithSubstFn
 {
   PropositionalLDToSLQueryResultWithSubstFn()
   {
-    /* Back to DisjunctQueryAndResultVariablesSubstitution, Identity was wrong (as confirmed by more unsoudness results),
-     * but "Disjunct" does doubling and may overflow under specific conditions, which need to be investigated. 
-    */
     _subst=ResultSubstitutionSP (new DisjunctQueryAndResultVariablesSubstitution()); 
   }
   DECL_RETURN_TYPE(SLQueryResult);
@@ -198,6 +195,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
   if(root->isLeaf()) {
     LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
     if(retrieveSubstitutions) {
+      // a single substitution will be used for all in ldit, but that's OK
       return pvi( getMappingIterator(ldit,PropositionalLDToSLQueryResultWithSubstFn()) );
     } else {
       return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );
@@ -270,6 +268,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
   if(root->isLeaf()) {
     LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
     if(retrieveSubstitutions) {
+      // a single substitution will be used for all in ldit, but that's OK
       return pvi( getMappingIterator(ldit,PropositionalLDToSLQueryResultWithSubstFn()) );
     } else {
       return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );

@@ -206,17 +206,20 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
   CALL("BinaryResolution::generateClauses");
 
-  Limits* limits=_salg->getLimits();
-  return pvi( getTimeCountedIterator(
-    getFilteredIterator(
-      getMappingIterator(
-	  getFlattenedIterator(
-		  getMappingIterator(
-			  premise->getSelectedLiteralIterator(),
-			  UnificationsFn(_index))),
-	  ResultFn(premise, limits, *this)),
-      NonzeroFn()
-    ), TC_RESOLUTION ) );
+  Limits* limits = _salg->getLimits();
+
+  // generate pairs of the form (literal selected in premise, unifying object in index)
+  auto it1 = getMappingIterator(premise->getSelectedLiteralIterator(),UnificationsFn(_index));
+  // actually, we got one iterator per selected literal; we flatten the obtained iterator of iterators:
+  auto it2 = getFlattenedIterator(it1);
+  // perform binary resolution on these pairs
+  auto it3 = getMappingIterator(it2,ResultFn(premise, limits, *this));
+  // filter out only non-zero results
+  auto it4 = getFilteredIterator(it3, NonzeroFn());
+  // measure time (on the TC_RESOLUTION budget) of the overall processing
+  auto it5 = getTimeCountedIterator(it4,TC_RESOLUTION);
+
+  return pvi(it5);
 }
 
 }
