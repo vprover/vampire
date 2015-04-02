@@ -46,6 +46,8 @@ using namespace std;
 using namespace Lib;
 
 bool Timer::s_timeLimitEnforcement = true;
+bool Timer::inSatSolver = false;
+
 
 #if UNIX_USE_SIGALRM
 
@@ -106,10 +108,9 @@ timer_sigalrm_handler (int sig)
   }
 #endif
 
-
   timer_sigalrm_counter++;
 
-  if(Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
+  if(!Timer::inSatSolver && Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
     timeLimitReached();
   }
 

@@ -81,6 +81,11 @@ public:
   { _running = false;
     _elapsed = 0; }
 
+  /** Pretend the time didn't pass for the last lapse milliseconds. */
+  void simulateTimeLapse(int lapse) {
+    _elapsed -= lapse;
+  }
+
   /** Stop the timer. Precondition: the timer must be running */
   inline void stop()
   {
@@ -130,6 +135,8 @@ public:
   static void syncClock();
 
   static bool s_timeLimitEnforcement;
+
+  static bool inSatSolver;
 private:
   /** true if the timer must account for the time spent in
    * children (otherwise it may or may not) */

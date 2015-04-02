@@ -109,6 +109,11 @@ void TimeCounter::startMeasuring(TimeCounterUnit tcu)
   previousTop = s_currTop;
   s_currTop = this;
 
+  if (_tcu == TC_SAT_SOLVER) {
+    // to prevent the asynchronous check terminating via timeLimitReached
+    Timer::inSatSolver = true;
+  }
+
   int currTime=env.timer->elapsedMilliseconds();
 
   _tcu=tcu;
@@ -125,15 +130,23 @@ void TimeCounter::stopMeasuring()
   }
   ASS_GE(s_measureInitTimes[_tcu], 0);
 
-  int currTime=env.timer->elapsedMilliseconds();
-  int measuredTime = currTime-s_measureInitTimes[_tcu];
-  s_measuredTimes[_tcu] += measuredTime;
+  Timer* timer = env.timer;
+  int currTime=timer->elapsedMilliseconds();
+  int interval = currTime-s_measureInitTimes[_tcu];
+  s_measuredTimes[_tcu] += interval;
+
+  // for the sake of an experiment, the time spent in the SAT solver does not contribute to overall time!
+  if (_tcu == TC_SAT_SOLVER) {
+    timer->simulateTimeLapse(interval);
+    Timer::inSatSolver = false;
+  }
+
   s_measureInitTimes[_tcu]=-1;
 
   if (previousTop) {
-    s_measuredTimesChildren[previousTop->_tcu] += measuredTime;
+    s_measuredTimesChildren[previousTop->_tcu] += interval;
   } else {
-    s_measuredTimesChildren[TC_OTHER] += measuredTime;
+    s_measuredTimesChildren[TC_OTHER] += interval;
   }
 
   ASS_EQ(s_currTop,this);
