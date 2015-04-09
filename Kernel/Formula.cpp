@@ -217,7 +217,7 @@ vstring Formula::toString (Connective c)
 {
   static vstring names [] =
 //    { "", "&", "\\/", "=>", "<=>", "<~>", "~", "!", "?", "false", "true"};
-    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "<ite>", "<formula_let>", "<term_let>", "$false", "$true"};
+    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "<formula_let>", "<term_let>", "$false", "$true"};
   ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
 
   return names[(int)c];
