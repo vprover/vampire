@@ -59,7 +59,8 @@ Property::Property()
     _hasNonDefaultSorts(false),
     _hasSpecialTermsOrLets(false)
 {
-  _interpretationPresence.init(Theory::MAX_INTERPRETED_ELEMENT+1, false);
+  //TODO now MaxInterpretedElement is stateful this might be in the wrong place
+  _interpretationPresence.init(Theory::instance()->MaxInterpretedElement()+1, false);
   env.property = this;
 } // Property::Property
 

@@ -484,7 +484,6 @@ Theory* Theory::instance()
  * The constructor is private, since Theory is a singleton class.
  */
 Theory::Theory()
-  : _array1SkolemFunction(0), _array2SkolemFunction(0)
 {
 
 }
@@ -496,7 +495,15 @@ Theory::Theory()
 unsigned Theory::getArity(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::getArity");
-  ASS_LE(i,MAX_INTERPRETED_ELEMENT);
+  ASS(theory->isValidInterpretation(i));
+
+  if(theory->isStructuredSortInterpretation(i)){
+    switch(theory->convertToStructured(i)){
+      case StructuredSortInterpretation::ARRAY_SELECT: return 2;
+      case StructuredSortInterpretation::ARRAY_STORE: return 3;
+      default: ASSERTION_VIOLATION;
+    }
+  }
 
   switch(i) {
   case INT_IS_INT:
@@ -589,21 +596,8 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_MINUS:
   case REAL_MULTIPLY:
   case REAL_DIVIDE:
-  case REAL_QUOTIENT:
-  case REAL_QUOTIENT_E:
-  case REAL_QUOTIENT_T:
-  case REAL_QUOTIENT_F:
-  case REAL_REMAINDER_E:
-  case REAL_REMAINDER_T:
-  case REAL_REMAINDER_F:
-
-  case SELECT1_INT:
-  case SELECT2_INT:
     return 2;
           
-  case STORE1_INT:
-  case STORE2_INT: 
-    return 3;
           
   default:
     ASSERTION_VIOLATION;
@@ -617,7 +611,17 @@ unsigned Theory::getArity(Interpretation i)
 bool Theory::isFunction(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::isFunction");
-  ASS_LE(i,MAX_INTERPRETED_ELEMENT);
+  ASS(theory->isValidInterpretation(i));
+
+  if(theory->isStructuredSortInterpretation(i)){
+    switch(theory->convertToStructured(i)){
+      case StructuredSortInterpretation::ARRAY_SELECT:
+      case StructuredSortInterpretation::ARRAY_STORE:
+        return true;
+      default:
+        return false;
+    }
+  }
 
   switch(i) {
   case INT_TO_INT:
@@ -683,10 +687,6 @@ bool Theory::isFunction(Interpretation i)
   case REAL_TRUNCATE:
   case REAL_ROUND:
           
-  case SELECT1_INT:
-  case SELECT2_INT:          
-  case STORE1_INT:
-  case STORE2_INT:
     return true;
 
   case EQUAL:
@@ -732,7 +732,7 @@ bool Theory::isFunction(Interpretation i)
 bool Theory::isInequality(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::isInequality");
-  ASS_LE(i,MAX_INTERPRETED_ELEMENT);
+  ASS(theory->isValidInterpretation(i));
 
   switch(i) {
   case INT_GREATER:
@@ -788,7 +788,7 @@ unsigned Theory::getOperationSort(Interpretation i)
 
   
   ASS(hasSingleSort(i));
-  ASS_LE(i,MAX_INTERPRETED_ELEMENT);
+  ASS(theory->isValidInterpretation(i));
 
   switch(i) {
   case INT_GREATER:
@@ -902,16 +902,26 @@ bool Theory::isConversionOperation(Interpretation i)
   }
 }
 
+void Theory::addStructuredSortInterpretation(unsigned sort, StructuredSortInterpretation i){
+    ALWAYS(_structuredSortInterpretations.insert(
+                pair<unsigned,StructuredSortInterpretation>(sort,i),
+                MaxInterpretedElement()+1));
+
+    // Doing this ensures that the symbol is register in signature
+    //unsigned f = env.signature->getInterpretingSymbol(getInterpretation(sort,i));
+    //cout << "for interp " << getInterpretation(sort,i) << " f is " << f << endl;
+}
+
+
+unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp)
+{
+    return env.signature->getInterpretingSymbol(getInterpretation(sort,interp));
+}
+
 bool Theory::isArraySort(unsigned sort) {
   CALL("Theory::isArraySort");
   
-  switch(sort) {
-  case Sorts::SRT_ARRAY1:
-  case Sorts::SRT_ARRAY2:
-    return true;
-  default:
-    return false;
-  }
+  return env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::ARRAY);
 }
     
 /**
@@ -922,42 +932,21 @@ bool Theory::isArraySort(unsigned sort) {
 bool Theory::isArrayOperation(Interpretation i)
 {
   CALL("Theory::isArrayFunction");
-        
-  switch(i) {
-    case SELECT1_INT:
-    case SELECT2_INT:          
-    case STORE1_INT:
-    case STORE2_INT:
-      return true;
-    default:
-      return false;
-  }
+  if(!theory->isStructuredSortInterpretation(i)) return false;
+  return env.sorts->hasStructuredSort(theory->getSort(i),Sorts::StructuredSort::ARRAY);      
 }
 
 unsigned Theory::getArraySelectFunctor(unsigned sort) {
   CALL("Theory::getArraySelectFunctor");
-  
-  switch(sort) {
-  case Sorts::SRT_ARRAY1:
-    return env.signature->getInterpretingSymbol(Theory::SELECT1_INT);
-  case Sorts::SRT_ARRAY2:
-    return env.signature->getInterpretingSymbol(Theory::SELECT2_INT);
-  default:
-    ASSERTION_VIOLATION;
-  }
+  ASS(isArraySort(sort));  
+  return theory->getSymbolForStructuredSort(sort,Theory::StructuredSortInterpretation::ARRAY_SELECT);
 }
 
 unsigned Theory::getArrayStoreFunctor(unsigned sort) {
   CALL("Theory::getArrayStoreFunctor");
   
-  switch(sort) {
-  case Sorts::SRT_ARRAY1:
-    return env.signature->getInterpretingSymbol(Theory::STORE1_INT);
-  case Sorts::SRT_ARRAY2:
-    return env.signature->getInterpretingSymbol(Theory::STORE2_INT);
-  default:
-    ASSERTION_VIOLATION;
-  }
+  ASS(isArraySort(sort));
+  return theory->getSymbolForStructuredSort(sort,Theory::StructuredSortInterpretation::ARRAY_STORE);
 }
 
 /**
@@ -971,17 +960,16 @@ unsigned Theory::getArrayOperationSort(Interpretation i)
     CALL("Theory::getArrayOperationSort");
     ASS(isArrayOperation(i));
     
-    switch(i) {
-        case SELECT1_INT:
-            return Sorts::SRT_INTEGER;
-        case SELECT2_INT:
-            return Sorts::SRT_ARRAY1;
-        case STORE1_INT:
-            return Sorts::SRT_ARRAY1;
-        case STORE2_INT:
-            return Sorts::SRT_ARRAY2;
-        default:
-            ASSERTION_VIOLATION;
+    unsigned sort = theory->getSort(i);
+
+    switch(theory->convertToStructured(i))
+    {
+      case StructuredSortInterpretation::ARRAY_SELECT:
+        return env.sorts->getArraySort(sort)->getInnerSort(); 
+      case StructuredSortInterpretation::ARRAY_STORE:
+        return sort; 
+      default:
+        ASSERTION_VIOLATION;
     }
 }
     
@@ -997,15 +985,7 @@ unsigned Theory::getArrayDomainSort(Interpretation i)
     CALL("Theory::getArrayDomainSort");
     ASS(isArrayOperation(i));
         
-    switch(i) {
-        case SELECT1_INT:
-        case SELECT2_INT:
-        case STORE1_INT:
-        case STORE2_INT:
-            return Sorts::SRT_INTEGER;
-        default:
-            ASSERTION_VIOLATION;
-        }
+    return Sorts::SRT_INTEGER;
 }
 
 /**
@@ -1021,33 +1001,22 @@ unsigned Theory::getArrayDomainSort(Interpretation i)
  * We want to have this function available e.g. in simplification rules.
  */
 unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
-  unsigned* ptr;
-  Interpretation store;
-  Interpretation select;
-  
-  switch(sort) {
-  case Sorts::SRT_ARRAY1:
-    ptr = &_array1SkolemFunction;
-    store = Theory::STORE1_INT;
-    select = Theory::SELECT1_INT;
-    break;
-  case Sorts::SRT_ARRAY2:
-    ptr = &_array2SkolemFunction;
-    store = Theory::STORE2_INT;
-    select = Theory::SELECT2_INT;
-    break;
-  default:
-    ASSERTION_VIOLATION;
+
+  if(_arraySkolemFunctions.find(sort)){
+    return _arraySkolemFunctions.get(sort);
   }
 
-  if (*ptr == 0) {
-    unsigned arraySort = getArrayOperationSort(store);
-    unsigned indexSort = theory->getArrayDomainSort(select);
-    unsigned params[] = {arraySort, arraySort};
-    *ptr = Shell::Skolem::addSkolemFunction(2, params, indexSort, "arrayDiff");
-  }
+  Interpretation store = getInterpretation(sort,StructuredSortInterpretation::ARRAY_STORE);
+  Interpretation select = getInterpretation(sort,StructuredSortInterpretation::ARRAY_SELECT);
 
-  return *ptr;
+  unsigned arraySort = getArrayOperationSort(store);
+  unsigned indexSort = theory->getArrayDomainSort(select);
+  unsigned params[] = {arraySort, arraySort};
+  unsigned skolemFunction = Shell::Skolem::addSkolemFunction(2, params, indexSort, "arrayDiff");
+
+  _arraySkolemFunctions.insert(sort,skolemFunction);
+
+  return skolemFunction; 
 }
 
     
@@ -1107,30 +1076,26 @@ FunctionType* Theory::getArrayOperationType(Interpretation i)
     CALL("Theory::getArrayOperationType");
     ASS(isArrayOperation(i));
     
-    unsigned arrSort, indexSort, valueSort;
     BaseType* res;
-    indexSort = getArrayDomainSort(i);
-    switch(i) {
-        case SELECT1_INT: 
-            valueSort=Sorts::SRT_INTEGER;//we only handle arrays of int, for now
-            arrSort=Sorts::SRT_ARRAY1;
-            res= BaseType::makeType2(arrSort, indexSort, valueSort);
-            break;
-        case SELECT2_INT:
-            arrSort=Sorts::SRT_ARRAY2;
-            valueSort=Sorts::SRT_ARRAY1;
-            res= BaseType::makeType2(arrSort, indexSort, valueSort);
-            break;
-        case STORE1_INT:
-            arrSort=Sorts::SRT_ARRAY1;
-            valueSort=Sorts::SRT_INTEGER;//we only handle arrays of int, for now
-            res= BaseType::makeType3(arrSort, indexSort, valueSort, arrSort);
-            break;
-        case STORE2_INT:
-            arrSort=Sorts::SRT_ARRAY2;
-            valueSort=Sorts::SRT_ARRAY1;
-            res= BaseType::makeType3(arrSort, indexSort, valueSort, arrSort);
-            break;
+
+    // Not sure we need all of these
+    unsigned indexSort = getArrayDomainSort(i);
+    unsigned arrSort = theory->getSort(i);
+    unsigned valueSort = getArrayOperationSort(i);
+    unsigned innerSort = env.sorts->getArraySort(arrSort)->getInnerSort(); 
+
+    //cout << "for Interp " << i << " : " << indexSort << ", " << arrSort << ", " << valueSort << endl;
+
+    switch(theory->convertToStructured(i)) {
+
+        case StructuredSortInterpretation::ARRAY_SELECT:
+          res = BaseType::makeType2(arrSort, indexSort, valueSort);
+          break;
+
+        case StructuredSortInterpretation::ARRAY_STORE:
+          res = BaseType::makeType3(arrSort, indexSort,innerSort, valueSort);
+          break;
+
         default:
             ASSERTION_VIOLATION;
     }

@@ -446,12 +446,27 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
 {
   CALL("Signature::getInterpretingSymbol");
   
+  ASS(Theory::instance()->isValidInterpretation(interp));
     
   unsigned res;
   if (_iSymbols.find(interp, res)) {
     return res;
   }
   vstring name;
+
+  if(theory->isStructuredSortInterpretation(interp)){
+    switch(theory->convertToStructured(interp)){
+      case Theory::StructuredSortInterpretation::ARRAY_SELECT:
+        name="$select";
+        break;
+      case Theory::StructuredSortInterpretation::ARRAY_STORE:
+        name="$store";
+        break;
+      default: ASSERTION_VIOLATION;
+    } 
+  }
+  else{
+
   switch(interp) {
   case Theory::INT_SUCCESSOR:
     //this one is not according the TPTP arithmetic (it doesn't have successor)
@@ -533,20 +548,10 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::REAL_TO_REAL:
     name="$to_real";
     break;
-  case Theory::SELECT1_INT:
-    name = "$select1";
-    break;
-  case Theory::SELECT2_INT:
-    name="$select2";
-    break;
-  case Theory::STORE1_INT:
-    name="$store1";
-    break;
-  case Theory::STORE2_INT:
-    name="$store2";
-    break;
   default:
     ASSERTION_VIOLATION;
+  }
+
   }
 
   unsigned arity = Theory::getArity(interp);

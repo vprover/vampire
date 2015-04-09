@@ -8,6 +8,7 @@
 #define __Metaiterators__
 
 #include <utility>
+#include <functional>
 
 #include "Forwards.hpp"
 
@@ -264,6 +265,28 @@ StaticCastIterator<To,Inner> getStaticCastIterator(Inner it)
 {
   return StaticCastIterator<To,Inner>(it);
 }
+
+
+template <typename T>
+struct identity
+{
+  typedef T type;
+};
+/**
+ * A functor class that transforms a lambda object into a Functor with a return type
+ * @author Giles
+ */
+template<typename Out,typename In>
+struct Lambda
+{
+  Lambda(typename identity<std::function<Out(In)>>::type f) : _lambda(f) {}
+  DECL_RETURN_TYPE(Out);
+  Out operator()(In obj){ return _lambda(obj); }
+  function<Out(In)> _lambda;
+};
+
+template<typename T,typename S>
+Lambda<T,S> lambda(function<T(S)> f){ return Lambda<T,S>(f); }
 
 /**
  * A functor class that returns true if the argument is non-zero
@@ -595,6 +618,18 @@ template<typename Inner, typename Functor>
 MappingIterator<Inner,Functor,RETURN_TYPE(Functor)> getMappingIterator(Inner it, Functor f)
 {
   return MappingIterator<Inner,Functor,RETURN_TYPE(Functor)>(it, f);
+}
+
+/**
+ * Return iterator that returns elements of @b it transformed by
+ * the lambda @b f
+ *
+ * @see MappingIterator
+ */
+template<typename Inner, typename Functor,typename ResultType>
+MappingIterator<Inner,Functor,ResultType> getMappingIterator(Inner it, std::function<ResultType(Inner)> f)
+{
+  return MappingIterator<Inner,Functor,ResultType>(it, f);
 }
 
 /**

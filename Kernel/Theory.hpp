@@ -286,15 +286,14 @@ public:
     RAT_TO_REAL,
     REAL_TO_INT,
     REAL_TO_RAT,
-    REAL_TO_REAL,
+    REAL_TO_REAL
+
+    // IMPORTANT - if you add something to end of this, update it in LastNonStructuredInterepretation 
     
-    //array functions for array1 of INT->INT
-    SELECT1_INT,
-    STORE1_INT,
-      
-    //array functions for array2 of INT->INT
-    SELECT2_INT,
-    STORE2_INT, 
+    //INVALID_INTERPRETATION
+  };
+
+  unsigned LastNonStructuredInterepretation(){ return REAL_TO_REAL; }
 
     /**
      * Maximal element number in the enum Interpretation
@@ -302,9 +301,46 @@ public:
      * At some points we make use of the fact that we can iterate through all
      * interpretations by going through the set {0,...,MAX_INTERPRETED_ELEMENT}.
      */
-    MAX_INTERPRETED_ELEMENT = STORE2_INT,
-    INVALID_INTERPRETATION
+  unsigned MaxInterpretedElement(){
+    return LastNonStructuredInterepretation() + _structuredSortInterpretations.size(); 
+  }
+
+  bool isValidInterpretation(Interpretation i){
+    return i <= MaxInterpretedElement();
+  }
+
+ /*
+  * StructuredSortInterpretations begin from the last interpretation in Interpretation
+  *
+  * They will be initialised as MaxInterpretedElement()+1
+  *
+  */
+
+
+  /** enum for the kinds of StructuredSort interpretations **/
+  enum class StructuredSortInterpretation
+  {
+    ARRAY_SELECT,
+    ARRAY_STORE,
+    // currently unused
+    LIST_HEAD,
+    LIST_TAIL,
+    LIST_CONS,
+    LIST_IS_EMPTY
   };
+  void addStructuredSortInterpretation(unsigned sort, StructuredSortInterpretation i);
+  unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp);
+  Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i){
+    ASS(_structuredSortInterpretations.find(pair<unsigned,StructuredSortInterpretation>(sort,i)));
+    return static_cast<Interpretation>(_structuredSortInterpretations.get(pair<unsigned,StructuredSortInterpretation>(sort,i)));
+  }
+  bool isStructuredSortInterpretation(Interpretation i){
+    return i > LastNonStructuredInterepretation();
+  }
+  unsigned getSort(Interpretation i){
+    return getData(i).first;
+  }
+
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
@@ -422,8 +458,25 @@ public:
 private:
   Theory();
   static FunctionType* getConversionOperationType(Interpretation i);
-  unsigned _array1SkolemFunction;
-  unsigned _array2SkolemFunction;
+
+  DHMap<unsigned,unsigned> _arraySkolemFunctions;
+
+public:
+  StructuredSortInterpretation convertToStructured(Interpretation i){
+    return getData(i).second;
+  }
+private:    
+  pair<unsigned,StructuredSortInterpretation> getData(Interpretation i){
+    ASS(isStructuredSortInterpretation(i));
+    auto it = _structuredSortInterpretations.items();
+    while(it.hasNext()){
+      auto entry = it.next();
+      if(entry.second==i) return entry.first;
+    }
+    ASSERTION_VIOLATION;
+  }
+
+  DHMap<pair<unsigned,StructuredSortInterpretation>,unsigned> _structuredSortInterpretations;
 };
 
 typedef Theory::Interpretation Interpretation;

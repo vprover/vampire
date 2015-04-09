@@ -33,6 +33,7 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Parse;
 
+#define DEBUG_SHOW_TOKENS 0
 #define DEBUG_SHOW_UNITS 0
 
 DHMap<unsigned, vstring> TPTP::_axiomNames;
@@ -203,29 +204,17 @@ void TPTP::parse()
     case END_LETFF:
       endLetff();
       break;
-    case SELECT1:
-      select1();
+    case SELECT:
+      select();
       break;
-    case END_SELECT1:
-      endSelect1();
+    case END_SELECT:
+      endSelect();
       break;
-    case SELECT2:
-      select2();
+    case STORE:
+      store();
       break;
-    case END_SELECT2:
-      endSelect2();
-      break;
-    case STORE1:
-      store1();
-      break;
-    case END_STORE1:
-      endStore1();
-      break;
-    case STORE2:
-      store2();
-      break;
-    case END_STORE2:
-      endStore2();
+    case END_STORE:
+      endStore();
       break;
     default:
 #if VDEBUG
@@ -341,18 +330,12 @@ vstring TPTP::toString(Tag tag)
     return "$real";
   case T_INTEGER_TYPE:
     return "$int";
-  case T_ARRAY1_TYPE:
-    return "$array1";
-  case T_ARRAY2_TYPE:
-    return "$array2";
-  case T_SELECT1:
-    return "$select1";
-  case T_SELECT2:
-    return "$select2";
-  case T_STORE1:
-    return "$store1";
-  case T_STORE2:
-    return "$store2";
+  case T_ARRAY_TYPE:
+    return "$array";
+  case T_SELECT:
+    return "$select";
+  case T_STORE:
+    return "$store";
   case T_FOT:
     return "$fot";
   case T_FOF:
@@ -926,23 +909,14 @@ void TPTP::readReserved(Token& tok)
   else if (tok.content == "$real") {
     tok.tag = T_REAL_TYPE;
   }
-  else if (tok.content == "$array1") {
-      tok.tag = T_ARRAY1_TYPE;
+  else if (tok.content == "$array") {
+      tok.tag = T_ARRAY_TYPE;
   }
-  else if (tok.content == "$array2") {
-      tok.tag = T_ARRAY2_TYPE;
+  else if (tok.content == "$select"){
+      tok.tag = T_SELECT;
   }
-  else if (tok.content == "$select1"){
-      tok.tag = T_SELECT1;
-  }
-  else if (tok.content == "$select2"){
-      tok.tag = T_SELECT2;
-  }
-  else if (tok.content == "$store1"){
-      tok.tag = T_STORE1;
-  }
-  else if (tok.content == "$store2"){
-      tok.tag = T_STORE2;
+  else if (tok.content == "$store"){
+      tok.tag = T_STORE;
   }
   else if (tok.content == "$fot") {
     tok.tag = T_FOT;
@@ -1461,87 +1435,47 @@ void TPTP::lettf()
 } // lettf()
 
 /**
- * Process $select1 term
+ * Process $select term
  * @author Laura Kovacs
  * @since 31/08/2012, Vienna
+ * @since 16/1/2015, Giles updated for StructuredSorts
  */
-void TPTP::select1()
+void TPTP::select()
 {
-    CALL("TPTP::select1");
-
+    CALL("TPTP::select");
+    
     resetToks();
     consumeToken(T_LPAR);
-
-    _states.push(END_SELECT1);
+    
+    _states.push(END_SELECT);
     addTagState(T_RPAR);
     _states.push(TERM);
     addTagState(T_COMMA);
     _states.push(TERM);
-} // select1()
+} // select()
 
 
 /**
- * Process $select2 term
+ * Process $store term
  * @author Laura Kovacs
  * @since 3/09/2012 Vienna
+ * @since 16/1/2015, Giles updated for StructuredSorts
  */
-void TPTP::select2()
+void TPTP::store()
 {
-    CALL("TPTP::select2");
-
+    CALL("TPTP::store");
+    
     resetToks();
     consumeToken(T_LPAR);
-
-    _states.push(END_SELECT1);
-    addTagState(T_RPAR);
-    _states.push(TERM);
-    addTagState(T_COMMA);
-    _states.push(TERM);
-} // select2()
-
-
-/**
- * Process $store1 term
- * @author Laura Kovacs
- * @since 3/09/2012 Vienna
- */
-void TPTP::store1()
-{
-    CALL("TPTP::store1");
-
-    resetToks();
-    consumeToken(T_LPAR);
-
-    _states.push(END_STORE1);
+    
+    _states.push(END_STORE);
     addTagState(T_RPAR);
     _states.push(TERM);
     addTagState(T_COMMA);
     _states.push(TERM);
     addTagState(T_COMMA);
     _states.push(TERM);
-} // store1()
-
-
-/**
- * Process $store2 term
- * @author Laura Kovacs
- * @since 3/09/2012 Vienna
- */
-void TPTP::store2()
-{
-    CALL("TPTP::store2");
-
-    resetToks();
-    consumeToken(T_LPAR);
-
-    _states.push(END_STORE1);
-    addTagState(T_RPAR);
-    _states.push(TERM);
-    addTagState(T_COMMA);
-    _states.push(TERM);
-    addTagState(T_COMMA);
-    _states.push(TERM);
-} // store2()
+} // store()
 
 /**
  * Process the end of the letff() formula
@@ -1632,110 +1566,72 @@ void TPTP::endLettt()
 } // endLettt
 
 /**
- * Process the end of the select1() term
+ * Process the end of the select() term
  * @author Laura Kovacs
  * @since 3/09/2012 Vienna
+ * @since 16/1/2015 Timisoara, Giles changed to endSelect when introduced StructuredSort
  */
-void TPTP::endSelect1()
+void TPTP::endSelect()
 {
-    CALL("TPTP::endSelect1");
-
+    CALL("TPTP::endSelect");
+    
     TermList index = _termLists.pop();
     TermList array = _termLists.pop();
+    
+    unsigned array_sort = sortOf(array);     
 
-    if (sortOf(index) != Sorts::SRT_INTEGER) {
-      USER_ERROR((vstring)"sort of the array index is not INT");
+    //Check that array_sort is defined
+    if(!env.sorts->hasStructuredSort(array_sort,Sorts::StructuredSort::ARRAY)){
+      USER_ERROR("select is being incorrectly used on a type of array that has not be defined");
     }
-    if (sortOf(array) != Sorts::SRT_ARRAY1) {
-      USER_ERROR((vstring)"sort of the array  is not ARRAY1");
-    }
-    unsigned func = env.signature->getInterpretingSymbol(Theory::SELECT1_INT);
+
+    Interpretation select = Theory::instance()->getInterpretation(array_sort,
+                              Theory::StructuredSortInterpretation::ARRAY_SELECT);
+
+    unsigned func = env.signature->getInterpretingSymbol(select);
     TermList ts(Term::create2(func, array, index));
     _termLists.push(ts);
-} // endSelect1
+} // endSelect
 
 /**
- * Process the end of the select2() term
+ * Process the end of the store() term
  * @author Laura Kovacs
  * @since 3/09/2012 Vienna
+ * @since 16/1/2015 Timisoara, Giles changed to endStore when introduced StructuredSort
  */
-void TPTP::endSelect2()
-{
-    CALL("TPTP::endSelect2");
-
-    TermList index = _termLists.pop();
-    TermList array = _termLists.pop();
-    if (sortOf(index) != Sorts::SRT_INTEGER) {
-        USER_ERROR((vstring)"sort of the array index is not INT");
-    }
-    if (sortOf(array) != Sorts::SRT_ARRAY2) {
-        USER_ERROR((vstring)"sort of the array  is not ARRAY2");
-    }
-    unsigned func = env.signature->getInterpretingSymbol(Theory::SELECT2_INT);
-    TermList ts(Term::create2(func, array, index));
-    _termLists.push(ts);
-} // endSelect2
-
-/**
- * Process the end of the store1() term
- * @author Laura Kovacs
- * @since 3/09/2012 Vienna
- */
-void TPTP::endStore1()
+void TPTP::endStore()
 {
     CALL("TPTP::endStore1");
-
+    
     TermList value = _termLists.pop();
     TermList index = _termLists.pop();
     TermList array = _termLists.pop();
-
-    if (sortOf(value) != Sorts::SRT_INTEGER) {
-      USER_ERROR((vstring)"sort of the array elements is not INT");
-    }
+    
     if (sortOf(index) != Sorts::SRT_INTEGER) {
       USER_ERROR((vstring)"sort of the array index is not INT");
     }
-    if (sortOf(array) != Sorts::SRT_ARRAY1) {
-      USER_ERROR((vstring)"sort of the array  is not ARRAY1");
+
+    unsigned array_sort = sortOf(array);
+
+    //Check that array_sort is defined
+    if(!env.sorts->hasStructuredSort(array_sort,Sorts::StructuredSort::ARRAY)){
+      USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
     }
 
-    unsigned func = env.signature->getInterpretingSymbol(Theory::STORE1_INT);
+    unsigned innerSort = env.sorts->getArraySort(array_sort)->getInnerSort();
+    if(sortOf(value) != innerSort){
+      USER_ERROR((vstring)"sort of value is not the same as the sort of the array");
+    }
+
+    Interpretation store = Theory::instance()->getInterpretation(array_sort,
+                             Theory::StructuredSortInterpretation::ARRAY_STORE);    
+
+    unsigned func = env.signature->getInterpretingSymbol(store);
     TermList args[] = {array, index, value};
     TermList ts(Term::create(func, 3, args));
 
-    _termLists.push(ts);
-} // endStore1
-
-/**
- * Process the end of the store2() term
- * @author Laura Kovacs
- * @since 3/09/2012 Vienna
- */
-void TPTP::endStore2()
-{
-    CALL("TPTP::endStore2");
-
-    TermList value = _termLists.pop();
-    TermList index = _termLists.pop();
-    TermList array = _termLists.pop();
-
-    if (sortOf(value) != Sorts::SRT_ARRAY1)
-    {USER_ERROR((vstring)"sort of the array elements is not ARRAY1");}
-
-    if (sortOf(index) != Sorts::SRT_INTEGER) {
-    USER_ERROR((vstring)"sort of the array index is not INT");
-   }
-
-   if (sortOf(array) != Sorts::SRT_ARRAY2) {
-      USER_ERROR((vstring)"sort of the array  is not ARRAY2");
-   }
-
-   unsigned func = env.signature->getInterpretingSymbol(Theory::STORE2_INT);
-   TermList args[] = {array, index, value};
-   TermList ts(Term::create(func, 3, args));
-
-   _termLists.push(ts);
-} // endStore2
+    _termLists.push(ts);   
+} // endStore
 
 
 /**
@@ -2090,7 +1986,10 @@ void TPTP::varList()
 	PARSE_ERROR("two declarations of variable sort",tok);
       }
       resetToks();
-      bindVariable(var,readSort());
+      {
+        unsigned sort = readSort();
+        bindVariable(var,sort);
+      }
       sortDeclared = true;
       goto afterVar;
 
@@ -2181,22 +2080,20 @@ void TPTP::term()
     _states.push(tok.tag ==T_LETTT ? TERM : SIMPLE_FORMULA);
     return;
 
-  case T_SELECT1:
-  case T_SELECT2:
+  case T_SELECT:
     resetToks();
     consumeToken(T_LPAR);
-    _states.push(tok.tag == T_SELECT1 ? END_SELECT1 : END_SELECT2);
+    _states.push(END_SELECT);
     addTagState(T_RPAR);
     _states.push(TERM);
     addTagState(T_COMMA);
     _states.push(TERM);
     return;
 
-  case T_STORE1:
-  case T_STORE2:
+  case T_STORE:
     resetToks();
     consumeToken(T_LPAR);
-    _states.push(tag == T_STORE1 ? END_STORE1 : END_STORE2);
+    _states.push(END_STORE);
     addTagState(T_RPAR);
     _states.push(TERM);
     addTagState(T_COMMA);
@@ -3058,10 +2955,8 @@ void TPTP::simpleFormula()
     _states.push(MID_EQ);
     _states.push(TERM);
     return;
-  case T_SELECT1:
-  case T_SELECT2:
-  case T_STORE1:
-  case T_STORE2:
+  case T_SELECT:
+  case T_STORE:
     _states.push(END_EQ);
     _states.push(TERM);
     _states.push(MID_EQ);
@@ -3170,14 +3065,14 @@ unsigned TPTP::readSort()
     resetToks();
     return Sorts::SRT_REAL;
 
-  case T_ARRAY1_TYPE:
+  case T_ARRAY_TYPE:
+  {
     resetToks();
-    return Sorts::SRT_ARRAY1;
-
-  case T_ARRAY2_TYPE:
-    resetToks();
-    return Sorts::SRT_ARRAY2;
-
+    consumeToken(T_LPAR);
+    unsigned innerSort = readSort();
+    consumeToken(T_RPAR);
+    return env.sorts->addArraySort(innerSort);
+  }
   default:
     PARSE_ERROR("sort expected",tok);
   }
@@ -3352,7 +3247,7 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_TO_REAL,
 				 Theory::REAL_TO_REAL);
   }
-  //if (name == "$select1") {
+  //if (name == "$select") {
   //      return addOverloadedArrayFunction(name,arity,2,added,arg,
    //                                  Theory::SELECT1_INT
    //                                 );
@@ -3506,6 +3401,7 @@ unsigned TPTP::sortOf(TermList& t)
     if (t.isVar()) {
       SortList* sorts;
       if (_variableSorts.find(t.var(),sorts)) {
+        ASS_REP(sorts,t);
 	return sorts->head();
       }
       // there might be variables whose sort is undeclared,
@@ -3859,24 +3755,14 @@ const char* TPTP::toString(State s)
     return "END_TYPE";
   case SIMPLE_TYPE:
     return "SIMPLE_TYPE";
-  case SELECT1:
-    return "SELECT1";
-  case END_SELECT1:
-    return "END_SELECT1";
-  case SELECT2:
-    return "SELECT2";
-  case END_SELECT2:
-    return "END_SELECT2";
-  case STORE1:
-    return "STORE1";
-  case END_STORE1:
-    return "END_STORE1";
-  case STORE2:
-    return "STORE2";
-  case END_STORE2:
-    return "END_STORE2";
-  case END_ITE:
-    return "END_ITE";
+  case SELECT:
+    return "SELECT";
+  case END_SELECT:
+    return "END_SELECT";
+  case STORE:
+    return "STORE";
+  case END_STORE:
+    return "END_STORE";
   case END_ARGS:
     return "END_ARGS";
   case MID_EQ:
