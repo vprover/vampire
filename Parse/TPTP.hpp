@@ -247,12 +247,8 @@ public:
     END_LETFT,
     /** end of $letff formula */
     END_LETFF,
-    /** select on array term*/
-    SELECT,
     /** end of select array terms */
     END_SELECT,
-    /** store on array term*/
-    STORE,
     /** end of store array terms */
     END_STORE
   };
@@ -632,8 +628,6 @@ private:
   void endTff();
   void include();
   void type();
-  void select();
-  void store();
   void endIte();
   void letff();
   void lettf();

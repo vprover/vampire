@@ -204,14 +204,8 @@ void TPTP::parse()
     case END_LETFF:
       endLetff();
       break;
-    case SELECT:
-      select();
-      break;
     case END_SELECT:
       endSelect();
-      break;
-    case STORE:
-      store();
       break;
     case END_STORE:
       endStore();
@@ -1435,49 +1429,6 @@ void TPTP::lettf()
 } // lettf()
 
 /**
- * Process $select term
- * @author Laura Kovacs
- * @since 31/08/2012, Vienna
- * @since 16/1/2015, Giles updated for StructuredSorts
- */
-void TPTP::select()
-{
-    CALL("TPTP::select");
-    
-    resetToks();
-    consumeToken(T_LPAR);
-    
-    _states.push(END_SELECT);
-    addTagState(T_RPAR);
-    _states.push(TERM);
-    addTagState(T_COMMA);
-    _states.push(TERM);
-} // select()
-
-
-/**
- * Process $store term
- * @author Laura Kovacs
- * @since 3/09/2012 Vienna
- * @since 16/1/2015, Giles updated for StructuredSorts
- */
-void TPTP::store()
-{
-    CALL("TPTP::store");
-    
-    resetToks();
-    consumeToken(T_LPAR);
-    
-    _states.push(END_STORE);
-    addTagState(T_RPAR);
-    _states.push(TERM);
-    addTagState(T_COMMA);
-    _states.push(TERM);
-    addTagState(T_COMMA);
-    _states.push(TERM);
-} // store()
-
-/**
  * Process the end of the letff() formula
  * @since 27/07/2011 Manchester
  */
@@ -1875,12 +1826,18 @@ void TPTP::funApp()
   resetToks();
 
   switch (tok.tag) {
+    // predefined functions
+    case T_SELECT:
+    case T_STORE:
     case T_ITE:
       _strings.push(tok.content);
       consumeToken(T_LPAR);
       _states.push(ARGS);
-      addTagState(T_COMMA);
-      _states.push(FORMULA);
+      // $ite is parsed slightly differently -- we expect a formula as a first argument
+      if (tok.tag == T_ITE) {
+        addTagState(T_COMMA);
+        _states.push(FORMULA);
+      }
       _ints.push(1); // the arity of the function symbol is at least 1
       return;
 
@@ -2034,6 +1991,8 @@ void TPTP::term()
   case T_NAME:
   case T_VAR:
   case T_ITE:
+  case T_SELECT:
+  case T_STORE:
     _states.push(TERM_INFIX);
     _states.push(FUN_APP);
     return;
@@ -2080,28 +2039,6 @@ void TPTP::term()
     _states.push(tok.tag ==T_LETTT ? TERM : SIMPLE_FORMULA);
     return;
 
-  case T_SELECT:
-    resetToks();
-    consumeToken(T_LPAR);
-    _states.push(END_SELECT);
-    addTagState(T_RPAR);
-    _states.push(TERM);
-    addTagState(T_COMMA);
-    _states.push(TERM);
-    return;
-
-  case T_STORE:
-    resetToks();
-    consumeToken(T_LPAR);
-    _states.push(END_STORE);
-    addTagState(T_RPAR);
-    _states.push(TERM);
-    addTagState(T_COMMA);
-    _states.push(TERM);
-    addTagState(T_COMMA);
-    _states.push(TERM);
-    return;
-
  default:
    _states.push(FORMULA_INSIDE_TERM);
  }
@@ -2128,9 +2065,23 @@ void TPTP::endTerm()
 
   if (name == toString(T_ITE)) {
     if (arity != 2) {
+      // 3 arguments because we parsed the first one as formula and
+      // didn't count it as proper term argument
       USER_ERROR("if-then-else expression takes exactly 3 arguments");
     }
     _states.push(END_ITE);
+    return;
+  } else if (name == toString(T_SELECT)) {
+    if (arity != 2) {
+      USER_ERROR("$select expression takes exactly 2 arguments");
+    }
+    _states.push(END_SELECT);
+    return;
+  } else if (name == toString(T_STORE)) {
+    if (arity != 2) {
+      USER_ERROR("$store expression takes exactly 2 arguments");
+    }
+    _states.push(END_STORE);
     return;
   }
 
@@ -2955,13 +2906,6 @@ void TPTP::simpleFormula()
     _states.push(MID_EQ);
     _states.push(TERM);
     return;
-  case T_SELECT:
-  case T_STORE:
-    _states.push(END_EQ);
-    _states.push(TERM);
-    _states.push(MID_EQ);
-    _states.push(TERM);
-    return;
   case T_TRUE:
     resetToks();
     _formulas.push(new Formula(true));
@@ -2973,6 +2917,8 @@ void TPTP::simpleFormula()
   case T_NAME:
   case T_VAR:
   case T_ITE:
+  case T_SELECT:
+  case T_STORE:
     _states.push(FORMULA_INFIX);
     _states.push(FUN_APP);
     return;
@@ -3755,12 +3701,8 @@ const char* TPTP::toString(State s)
     return "END_TYPE";
   case SIMPLE_TYPE:
     return "SIMPLE_TYPE";
-  case SELECT:
-    return "SELECT";
   case END_SELECT:
     return "END_SELECT";
-  case STORE:
-    return "STORE";
   case END_STORE:
     return "END_STORE";
   case END_ARGS:
