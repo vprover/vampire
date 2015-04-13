@@ -365,40 +365,26 @@ vstring Term::specialTermToString() const
 
   switch(functor()) {
   case SF_FORMULA:
-  {
     ASS_EQ(arity(),0);
-    vstring s = "$formula{";
-    s += getSpecialData()->getFormula()->toString();
-    s += "}";
-    return s;
-  }
+    return "$formula{" + getSpecialData()->getFormula()->toString() + "}";
+
   case SF_LET_FORMULA_IN_TERM:
-  {
     ASS_EQ(arity(),1);
-    vstring s = "(let " + getSpecialData()->getLhsLiteral()->toString();
-    s += " := " + getSpecialData()->getRhsFormula()->toString();
-    s += " in " + nthArgument(0)->toString();
-    s += " )";
-    return s;
-  }
+    return "$let_ft(" + getSpecialData()->getLhsLiteral()->toString() + ", " +
+                        getSpecialData()->getRhsFormula()->toString() + ", " +
+                        nthArgument(0)->toString() + ")";
+
   case SF_LET_TERM_IN_TERM:
-  {
     ASS_EQ(arity(),1);
-    vstring s = "( let " + getSpecialData()->getLhsTerm().toString();
-    s += " := " + getSpecialData()->getRhsTerm().toString();
-    s += " in " + nthArgument(0)->toString();
-    s += " )";
-    return s;
-  }
+    return "$let_tt(" + getSpecialData()->getLhsTerm().toString() + ", " +
+                        getSpecialData()->getRhsTerm().toString() + ", " +
+                        nthArgument(0)->toString() + ")";
+
   case SF_TERM_ITE:
-  {
     ASS_EQ(arity(),2);
-    vstring s = "$ite(" + getSpecialData()->getCondition()->toString();
-    s += "," + nthArgument(0)->toString();
-    s += "," + nthArgument(1)->toString();
-    s += ")";
-    return s;
-  }
+    return "$ite(" + getSpecialData()->getCondition()->toString() + "," +
+                     nthArgument(0)->toString() + "," +
+                     nthArgument(1)->toString() + ")";
   }
   ASSERTION_VIOLATION;
 }

@@ -1393,19 +1393,6 @@ void TPTP::tff()
  */
 void TPTP::letff()
 {
-  CALL("TPTP::letff");
-
-  resetToks();
-  consumeToken(T_LPAR);
-
-  _states.push(END_LETFF);
-  addTagState(T_RPAR);
-  _states.push(FORMULA);
-  addTagState(T_COMMA);
-  _states.push(FORMULA);
-  addTagState(T_COMMA);
-  _states.push(FORMULA_INFIX);
-  _states.push(FUN_APP); // should be changed?
 } // letff()
 
 /**
@@ -1414,18 +1401,6 @@ void TPTP::letff()
  */
 void TPTP::lettf()
 {
-  CALL("TPTP::lettf");
-
-  resetToks();
-  consumeToken(T_LPAR);
-
-  _states.push(END_LETTF);
-  addTagState(T_RPAR);
-  _states.push(FORMULA);
-  addTagState(T_COMMA);
-  _states.push(TERM);
-  addTagState(T_COMMA);
-  _states.push(TERM);
 } // lettf()
 
 /**
@@ -1825,12 +1800,13 @@ void TPTP::funApp()
   Token tok = getTok(0);
   resetToks();
 
+  _strings.push(tok.content);
+
   switch (tok.tag) {
     // predefined functions
     case T_SELECT:
     case T_STORE:
     case T_ITE:
-      _strings.push(tok.content);
       consumeToken(T_LPAR);
       _states.push(ARGS);
       // $ite is parsed slightly differently -- we expect a formula as a first argument
@@ -1841,13 +1817,35 @@ void TPTP::funApp()
       _ints.push(1); // the arity of the function symbol is at least 1
       return;
 
+    case T_LETTT:
+    case T_LETFT:
+      consumeToken(T_LPAR);
+      addTagState(T_RPAR);
+      _states.push(TERM);
+      addTagState(T_COMMA);
+      _states.push(tok.tag == T_LETTT ? TERM : FORMULA);
+      addTagState(T_COMMA);
+      _states.push(tok.tag == T_LETTT ? TERM : SIMPLE_FORMULA);
+      _ints.push(-2); // dummy arity, not to be used anywhere
+      return;
+
+    case T_LETTF:
+    case T_LETFF:
+      consumeToken(T_LPAR);
+      addTagState(T_RPAR);
+      _states.push(FORMULA);
+      addTagState(T_COMMA);
+      _states.push(tok.tag == T_LETTF ? TERM : FORMULA);
+      addTagState(T_COMMA);
+      _states.push(tok.tag == T_LETTF ? TERM : SIMPLE_FORMULA);
+      _ints.push(-2); // dummy arity, not to be used anywhere
+      return;
+
     case T_VAR:
-      _strings.push(tok.content);
       _ints.push(-1); // dummy arity to indicate a variable
       return;
 
     case T_NAME:
-      _strings.push(tok.content);
       if (getTok(0).tag == T_LPAR) {
         resetToks();
         _states.push(ARGS);
@@ -1981,67 +1979,56 @@ void TPTP::varList()
 /**
  * Read a term and save the resulting TermList
  * @since 10/04/2011 Manchester
+ * @since 13/04/2015 Gothenburg, major changes to support FOOL
  */
 void TPTP::term()
 {
   CALL("TPTP::term");
   Token tok = getTok(0);
-  Tag tag = tok.tag;
-  switch (tag) {
-  case T_NAME:
-  case T_VAR:
-  case T_ITE:
-  case T_SELECT:
-  case T_STORE:
-    _states.push(TERM_INFIX);
-    _states.push(FUN_APP);
-    return;
+  switch (tok.tag) {
+    case T_NAME:
+    case T_VAR:
+    case T_ITE:
+    case T_SELECT:
+    case T_STORE:
+    case T_LETTT:
+    case T_LETFT:
+      _states.push(TERM_INFIX);
+      _states.push(FUN_APP);
+      return;
 
-  case T_STRING:
-  case T_INT:
-  case T_REAL:
-  case T_RAT: {
-    resetToks();
-    unsigned number;
-    switch (tag) {
-      case T_STRING:
-        number = env.signature->addStringConstant(tok.content);
-        break;
-      case T_INT:
-        number = addIntegerConstant(tok.content);
-        break;
-      case T_REAL:
-        number = addRealConstant(tok.content);
-        break;
-      default: // T_RAT
-        number = addRationalConstant(tok.content);
-        break;
+    case T_STRING:
+    case T_INT:
+    case T_REAL:
+    case T_RAT: {
+      resetToks();
+      unsigned number;
+      switch (tok.tag) {
+        case T_STRING:
+          number = env.signature->addStringConstant(tok.content);
+          break;
+        case T_INT:
+          number = addIntegerConstant(tok.content);
+          break;
+        case T_REAL:
+          number = addRealConstant(tok.content);
+          break;
+        default: // T_RAT
+          number = addRationalConstant(tok.content);
+          break;
+      }
+      Term *t = new(0) Term;
+      t->makeSymbol(number, 0);
+      t = env.sharing->insert(t);
+      TermList constant;
+      constant.setTerm(t);
+      _termLists.push(constant);
+      return;
     }
-    Term *t = new(0) Term;
-    t->makeSymbol(number, 0);
-    t = env.sharing->insert(t);
-    TermList constant;
-    constant.setTerm(t);
-    _termLists.push(constant);
-    return;
+
+    default:
+      _states.push(FORMULA_INSIDE_TERM);
   }
-
-  case T_LETTT:
-  case T_LETFT:
-    resetToks();
-    consumeToken(T_LPAR);
-    _states.push(tok.tag == T_LETTT ? END_LETTT : END_LETFT);
-    addTagState(T_RPAR);
-    _states.push(TERM);
-    addTagState(T_COMMA);
-    _states.push(tok.tag == T_LETTT ? TERM : FORMULA);
-    addTagState(T_COMMA);
-    _states.push(tok.tag == T_LETTT ? TERM : SIMPLE_FORMULA);
-    return;
-
- default:
-   _states.push(FORMULA_INSIDE_TERM);
- }
 } // term
 
 /**
@@ -2071,19 +2058,34 @@ void TPTP::endTerm()
     }
     _states.push(END_ITE);
     return;
-  } else if (name == toString(T_SELECT)) {
+  }
+
+  if (name == toString(T_SELECT)) {
     if (arity != 2) {
       USER_ERROR("$select expression takes exactly 2 arguments");
     }
     _states.push(END_SELECT);
     return;
-  } else if (name == toString(T_STORE)) {
+  }
+
+  if (name == toString(T_STORE)) {
     if (arity != 2) {
       USER_ERROR("$store expression takes exactly 2 arguments");
     }
     _states.push(END_STORE);
     return;
   }
+
+  if (name == toString(T_LETTT)) {
+    _states.push(END_LETTT);
+    return;
+  }
+
+  if (name == toString(T_LETFT)) {
+    _states.push(END_LETFT);
+    return;
+  }
+
 
   if (env.signature->predicateExists(name, arity)) {
     // if the function symbol is actually a predicate,
@@ -2137,18 +2139,32 @@ void TPTP::formulaInfix()
       _states.push(END_TERM_AS_FORMULA);
       _states.push(END_ITE);
       return;
-    } else if (name == toString(T_SELECT)) {
+    }
+
+    if (name == toString(T_SELECT)) {
       if (arity != 2) {
         USER_ERROR("$select expression takes exactly 2 arguments");
       }
       _states.push(END_SELECT);
       return;
-    } else if (name == toString(T_STORE)) {
+    }
+
+    if (name == toString(T_STORE)) {
       if (arity != 2) {
         USER_ERROR("$store expression takes exactly 2 arguments");
       }
       // the sort of $store(...) is never $o
       USER_ERROR("$store expression cannot be used as formula");
+    }
+
+    if (name == toString(T_LETFF)) {
+      _states.push(END_LETFF);
+      return;
+    }
+
+    if (name == toString(T_LETTF)) {
+      _states.push(END_LETTF);
+      return;
     }
 
     _formulas.push(createPredicateApplication(name, arity));
@@ -2931,14 +2947,12 @@ void TPTP::simpleFormula()
   case T_ITE:
   case T_SELECT:
   case T_STORE:
+  case T_LETTT:
+  case T_LETFT:
+  case T_LETTF:
+  case T_LETFF:
     _states.push(FORMULA_INFIX);
     _states.push(FUN_APP);
-    return;
-  case T_LETTF:
-    _states.push(LETTF);
-    return;
-  case T_LETFF:
-    _states.push(LETFF);
     return;
   default:
     PARSE_ERROR("formula or term expected",tok);

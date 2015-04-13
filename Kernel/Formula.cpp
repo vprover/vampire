@@ -294,12 +294,14 @@ vstring Formula::toString () const
     }
 
   case FORMULA_LET:
-    return "let "+formulaLetLhs()->toString() + " := " + formulaLetRhs()->toStringInScopeOf(c) +
-	" in " + letBody()->toStringInScopeOf(c);
+    return "$let_ff(" + formulaLetLhs()->toString() + ", " +
+                        formulaLetRhs()->toStringInScopeOf(c) + ", " +
+                        letBody()->toStringInScopeOf(c) + ")";
 
   case TERM_LET:
-    return "let "+termLetLhs().toString() + " := " + termLetRhs().toString() +
-	" in " + letBody()->toStringInScopeOf(c);
+    return "$let_tf(" + termLetLhs().toString() + ", " +
+                        termLetRhs().toString() + ", " +
+                        letBody()->toStringInScopeOf(c) + ")";
 
   case TRUE:
   case FALSE:
