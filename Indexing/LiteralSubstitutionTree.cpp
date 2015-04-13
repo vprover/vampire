@@ -170,7 +170,7 @@ struct LiteralSubstitutionTree::PropositionalLDToSLQueryResultWithSubstFn
 {
   PropositionalLDToSLQueryResultWithSubstFn()
   {
-    _subst=ResultSubstitutionSP (new DisjunctQueryAndResultVariablesSubstitution());
+    _subst=ResultSubstitutionSP (new DisjunctQueryAndResultVariablesSubstitution()); 
   }
   DECL_RETURN_TYPE(SLQueryResult);
   OWN_RETURN_TYPE operator() (const LeafData& ld) {
@@ -195,6 +195,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
   if(root->isLeaf()) {
     LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
     if(retrieveSubstitutions) {
+      // a single substitution will be used for all in ldit, but that's OK
       return pvi( getMappingIterator(ldit,PropositionalLDToSLQueryResultWithSubstFn()) );
     } else {
       return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );
@@ -267,6 +268,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
   if(root->isLeaf()) {
     LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
     if(retrieveSubstitutions) {
+      // a single substitution will be used for all in ldit, but that's OK
       return pvi( getMappingIterator(ldit,PropositionalLDToSLQueryResultWithSubstFn()) );
     } else {
       return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );

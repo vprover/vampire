@@ -55,7 +55,7 @@ private:
 
   Clause* processSubsumedGoalLiterals(Clause* goal);
 
-  Clause* generateGoal(Clause* cl, Literal* resolved, int parentGoalAge=0, ResultSubstitution* subst=0, bool result=false);
+  Clause* generateGoal(Clause* cl, Literal* resolved, unsigned parentGoalAge=0, ResultSubstitution* subst=0, bool result=false);
 
   void addGoalProducingRule(Clause* oldGoal);
   void addProducingRule(Clause* cl, Literal* head=0, ResultSubstitution* subst=0, bool result=false);

@@ -147,7 +147,7 @@ struct URResolution::Item
 
     UnitList* premLst = 0;
     UnitList::push(_orig, premLst);
-    int premisesAge = _orig->age();
+    unsigned premisesAge = _orig->age();
     Literal* single = 0;
     unsigned clen = _lits.size();
     for(unsigned i=0; i<clen; i++) {

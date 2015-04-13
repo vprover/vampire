@@ -186,7 +186,7 @@ SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCC
   return _solver->getAssignment(var);
 }
 
-static const int AGE_NOT_FILLED = -1;
+static const unsigned AGE_NOT_FILLED = UINT_MAX;
 
 int SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge()
 {
@@ -327,6 +327,18 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
         }
 
         compCl->setAge(parentMaxAge);
+
+        // we could have actually created two clauses
+        unsigned oppLevel = level^1;
+        if (_parent.isUsedName(oppLevel)) {
+          Clause* negCompCl = _parent.getComponentClause(oppLevel);
+          ASS(negCompCl);
+
+          if (negCompCl->age() == AGE_NOT_FILLED) { // it could have age from before, if it was not introduced by ccModel
+            ASS(_parent._complBehavior!=Options::SplittingAddComplementary::NONE);  // but only for "ssac = ground"
+            negCompCl->setAge(parentMaxAge);
+          }
+        }
       }
 
       SATLiteral slit = _parent.getLiteralFromName(level);

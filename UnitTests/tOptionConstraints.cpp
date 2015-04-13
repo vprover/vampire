@@ -12,13 +12,12 @@ using namespace Shell;
 bool testGlobal(Options& o)
 {
   try{
-    o.checkGlobalOptionConstraints();
+    return o.checkGlobalOptionConstraints();
   }
   catch(Lib::UserErrorException& e){
     e.cry(cout);
     return false;
   }
-  return true;
 }
 
 bool testOption(bool bad, vstring name,vstring value)
