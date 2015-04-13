@@ -2137,6 +2137,18 @@ void TPTP::formulaInfix()
       _states.push(END_TERM_AS_FORMULA);
       _states.push(END_ITE);
       return;
+    } else if (name == toString(T_SELECT)) {
+      if (arity != 2) {
+        USER_ERROR("$select expression takes exactly 2 arguments");
+      }
+      _states.push(END_SELECT);
+      return;
+    } else if (name == toString(T_STORE)) {
+      if (arity != 2) {
+        USER_ERROR("$store expression takes exactly 2 arguments");
+      }
+      // the sort of $store(...) is never $o
+      USER_ERROR("$store expression cannot be used as formula");
     }
 
     _formulas.push(createPredicateApplication(name, arity));
