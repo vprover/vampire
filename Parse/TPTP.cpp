@@ -1985,7 +1985,7 @@ void TPTP::varList()
 void TPTP::term()
 {
   CALL("TPTP::term");
-  Token& tok = getTok(0);
+  Token tok = getTok(0);
   Tag tag = tok.tag;
   switch (tag) {
   case T_NAME:
