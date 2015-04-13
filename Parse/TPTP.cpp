@@ -1822,7 +1822,7 @@ void TPTP::type()
 void TPTP::funApp()
 {
   CALL("TPTP::funApp");
-  Token& tok = getTok(0);
+  Token tok = getTok(0);
   resetToks();
 
   switch (tok.tag) {
@@ -3735,6 +3735,8 @@ const char* TPTP::toString(State s)
     return "END_LETFF";
   case UNBIND_VARIABLES:
     return "UNBIND_VARIABLES";
+  case END_ITE:
+    return "END_ITE";
   default:
     cout << (int)s << "\n";
     ASS(false);
