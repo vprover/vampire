@@ -161,14 +161,10 @@ public:
     T_DOLLARS,
     /** all variations of if-then-else: $ite, $ite_t and $ite_f */
     T_ITE,
-    /** $let_tt: a form of $let */
-    T_LETTT,
-    /** $let_tf: a form of $let */
-    T_LETTF,
-    /** $let_ft: a form of $let */
-    T_LETFT,
-    /** $let_ff: a form of $let */
-    T_LETFF,
+    /** $let_t: $let-binding of a term */
+    T_LETT,
+    /** $let_f: $let-binding of a formula */
+    T_LETF,
     /** $let: FOOL level-polymorphic let-in */
     T_LET,
   };
@@ -235,18 +231,10 @@ public:
     END_ARGS,
     /** middle of equality */
     MID_EQ,
-    /** $lettf formula */
-    LETTF,
-    /** $letff formula */
-    LETFF,
     /** end of $lettt term */
     END_LETTT,
-    /** end of $lettf formula */
-    END_LETTF,
     /** end of $letft term */
     END_LETFT,
-    /** end of $letff formula */
-    END_LETFF,
     /** end of select array terms */
     END_SELECT,
     /** end of store array terms */
@@ -629,11 +617,7 @@ private:
   void include();
   void type();
   void endIte();
-  void letff();
-  void lettf();
-  void endLetff();
   void endLetft();
-  void endLettf();
   void endLettt();
   void endSelect();
   void endStore();

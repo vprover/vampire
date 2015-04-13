@@ -186,23 +186,11 @@ void TPTP::parse()
     case END_ITE:
       endIte();
       break;
-    case LETFF:
-      letff();
-      break;
-    case LETTF:
-      lettf();
-      break;
     case END_LETTT:
       endLettt();
       break;
     case END_LETFT:
       endLetft();
-      break;
-    case END_LETTF:
-      endLettf();
-      break;
-    case END_LETFF:
-      endLetff();
       break;
     case END_SELECT:
       endSelect();
@@ -340,14 +328,10 @@ vstring TPTP::toString(Tag tag)
     return "$thf";
   case T_ITE:
     return "$ite";
-  case T_LETTT:
-    return "$let_tt";
-  case T_LETTF:
-    return "$let_tf";
-  case T_LETFT:
-    return "$let_ft";
-  case T_LETFF:
-    return "$let_ff";
+  case T_LETT:
+    return "$let_t";
+  case T_LETF:
+    return "$let_f";
   case T_LET:
     return "$let";
   case T_NAME:
@@ -870,17 +854,13 @@ void TPTP::readReserved(Token& tok)
     // $ite_t and $ite_f are left for compatibility, $ite is a generalisation of them
     tok.content = "$ite";
   }
-  else if (tok.content == "$let_tt") {
-    tok.tag = T_LETTT;
+  else if (tok.content == "$let_tt" || tok.content == "$let_tf") {
+    tok.tag = T_LETT;
+    tok.content = "$let_t";
   }
-  else if (tok.content == "$let_tf") {
-    tok.tag = T_LETTF;
-  }
-  else if (tok.content == "$let_ft") {
-    tok.tag = T_LETFT;
-  }
-  else if (tok.content == "$let_ff") {
-    tok.tag = T_LETFF;
+  else if (tok.content == "$let_ft" || tok.content == "$let_ff") {
+    tok.tag = T_LETF;
+    tok.content = "$let_f";
   }
   else if (tok.content == "$let") {
     tok.tag = T_LET;
@@ -1388,56 +1368,6 @@ void TPTP::tff()
 } // tff()
 
 /**
- * Process $let_ff declaration
- * @since 27/07/2011 Manchester
- */
-void TPTP::letff()
-{
-} // letff()
-
-/**
- * Process $let_tf declaration
- * @since 27/07/2011 Manchester
- */
-void TPTP::lettf()
-{
-} // lettf()
-
-/**
- * Process the end of the letff() formula
- * @since 27/07/2011 Manchester
- */
-void TPTP::endLetff()
-{
-  CALL("TPTP::endLetff");
-
-  Formula* f3 = _formulas.pop();
-  Formula* f2 = _formulas.pop();
-  AtomicFormula* f1 = static_cast<AtomicFormula*>(_formulas.pop());
-  ASS(f1->connective() == LITERAL);
-  ASS(f1->literal()->polarity());
-
-  checkFlat(f1->literal());
-  _formulas.push(new FormulaLetFormula(f1->literal(),f2,f3));
-} // endLetff
-
-/**
- * Process the end of the lettf() formula
- * @since 27/07/2011 Manchester
- */
-void TPTP::endLettf()
-{
-  CALL("TPTP::endLettf");
-
-  Formula* f = _formulas.pop();
-  TermList t2 = _termLists.pop();
-  TermList t1 = _termLists.pop();
-
-  checkFlat(t1);
-  _formulas.push(new TermLetFormula(t1,t2,f));
-} // endLettf
-
-/**
  * Process the end of the letft() formula
  * @since 27/07/2011 Manchester
  */
@@ -1818,27 +1748,15 @@ void TPTP::funApp()
       _ints.push(1); // the arity of the function symbol is at least 1
       return;
 
-    case T_LETTT:
-    case T_LETFT:
+    case T_LETT:
+    case T_LETF:
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       _states.push(TERM);
       addTagState(T_COMMA);
-      _states.push(tok.tag == T_LETTT ? TERM : FORMULA);
+      _states.push(tok.tag == T_LETT ? TERM : FORMULA);
       addTagState(T_ASS);
-      _states.push(tok.tag == T_LETTT ? TERM : SIMPLE_FORMULA);
-      _ints.push(-2); // dummy arity, not to be used anywhere
-      return;
-
-    case T_LETTF:
-    case T_LETFF:
-      consumeToken(T_LPAR);
-      addTagState(T_RPAR);
-      _states.push(FORMULA);
-      addTagState(T_COMMA);
-      _states.push(tok.tag == T_LETTF ? TERM : FORMULA);
-      addTagState(T_ASS);
-      _states.push(tok.tag == T_LETTF ? TERM : SIMPLE_FORMULA);
+      _states.push(tok.tag == T_LETT ? TERM : SIMPLE_FORMULA);
       _ints.push(-2); // dummy arity, not to be used anywhere
       return;
 
@@ -1992,8 +1910,8 @@ void TPTP::term()
     case T_ITE:
     case T_SELECT:
     case T_STORE:
-    case T_LETTT:
-    case T_LETFT:
+    case T_LETT:
+    case T_LETF:
       _states.push(TERM_INFIX);
       _states.push(FUN_APP);
       return;
@@ -2077,12 +1995,12 @@ void TPTP::endTerm()
     return;
   }
 
-  if (name == toString(T_LETTT)) {
+  if (name == toString(T_LETT)) {
     _states.push(END_LETTT);
     return;
   }
 
-  if (name == toString(T_LETFT)) {
+  if (name == toString(T_LETF)) {
     _states.push(END_LETFT);
     return;
   }
@@ -2157,13 +2075,15 @@ void TPTP::formulaInfix()
       USER_ERROR("$store expression cannot be used as formula");
     }
 
-    if (name == toString(T_LETFF)) {
-      _states.push(END_LETFF);
+    if (name == toString(T_LETF)) {
+      _states.push(END_TERM_AS_FORMULA);
+      _states.push(END_LETFT);
       return;
     }
 
-    if (name == toString(T_LETTF)) {
-      _states.push(END_LETTF);
+    if (name == toString(T_LETT)) {
+      _states.push(END_TERM_AS_FORMULA);
+      _states.push(END_LETTT);
       return;
     }
 
@@ -2947,10 +2867,8 @@ void TPTP::simpleFormula()
   case T_ITE:
   case T_SELECT:
   case T_STORE:
-  case T_LETTT:
-  case T_LETFT:
-  case T_LETTF:
-  case T_LETFF:
+  case T_LETT:
+  case T_LETF:
     _states.push(FORMULA_INFIX);
     _states.push(FUN_APP);
     return;
@@ -3735,18 +3653,10 @@ const char* TPTP::toString(State s)
     return "END_ARGS";
   case MID_EQ:
     return "MID_EQ";
-  case LETTF:
-    return "LETTF";
-  case LETFF:
-    return "LETFF";
   case END_LETTT:
     return "END_LETTT";
   case END_LETFT:
     return "END_LETFT";
-  case END_LETTF:
-    return "END_LETTF";
-  case END_LETFF:
-    return "END_LETFF";
   case UNBIND_VARIABLES:
     return "UNBIND_VARIABLES";
   case END_ITE:
