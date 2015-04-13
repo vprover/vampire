@@ -49,9 +49,6 @@ bool SpecialTermElimination::hasSpecials(FormulaUnit* fu)
 	return true;
       }
       break;
-    case TERM_LET:
-    case FORMULA_LET:
-      return true;
     default:
       break;
     }
@@ -414,24 +411,6 @@ Formula* SpecialTermElimination::process(Formula* f)
       return f;
     }
     return new QuantifiedFormula(f->connective(),f->vars(),arg);
-  }
-
-  case TERM_LET:
-  case FORMULA_LET:
-  {
-    if(f->connective()==TERM_LET) {
-      _letStack.push(LetSpec(f->termLetLhs(), f->termLetRhs()));
-    }
-    else {
-      ASS_EQ(f->connective(),FORMULA_LET);
-      _letStack.push(LetSpec(f->formulaLetLhs(), f->formulaLetRhs()));
-    }
-    //eliminate inner let expression...
-    Formula* b1 = process(f->letBody());
-    _letStack.pop();
-    //and proceed with what we've been eliminating before
-    Formula* b2 = process(b1);
-    return b2;
   }
 
   case TRUE:

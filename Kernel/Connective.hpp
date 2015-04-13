@@ -37,14 +37,10 @@ enum Connective
   FORALL = 7u,
   /** quantiffier there exists */
   EXISTS = 8u,
-  /** let P <- F in G (P is literal, F and G formulas) */
-  FORMULA_LET = 9u,
-  /** let S <- T in F (S and T are terms, F is formula) */
-  TERM_LET = 10u,
   /** constant false */
-  FALSE = 11u,
+  FALSE = 9u,
   /** constant true */
-  TRUE = 12u,
+  TRUE = 10u,
 }; // enum Connective
 
 }

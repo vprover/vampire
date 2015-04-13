@@ -98,41 +98,22 @@ TEST_FUN(iteTerm)
 
   Literal* x0EQx1=Literal::createEquality(true, x0, x1, Sorts::SRT_DEFAULT);
   Formula* fletTgt = new BinaryFormula(IMP, new AtomicFormula(p01), new AtomicFormula(x0EQx1));
-  Formula* flet = new FormulaLetFormula(p01, fletTgt, new AtomicFormula(x0EQtlet));  //formula let in formula
-  Formula* flet2 = new TermLetFormula(g1, x1, flet);  //term let in formula
-
-  cout << flet2->toString() <<endl;
-
 
   Formula* simple1 = new AtomicFormula(Literal::create1(q, true, gITE));
-  Formula* simple2 = new TermLetFormula(g1, x1, simple1);
-  Formula* simple3 = new FormulaLetFormula(p01, new AtomicFormula(x0EQx1), simple2);
-  Formula* simple4 = new FormulaLetFormula(p01, fletTgt, simple2);
 
   TermList t1 = TermList(Term::createTermLet(g1,x1,gITE));
   TermList t2 = TermList(Term::createFormulaLet(p01,new AtomicFormula(x0EQx1),t1));
-  TermList t3 = TermList(Term::createFormulaLet(p01,flet,t1));
-
-  FormulaUnit* u = new FormulaUnit(flet2, new Inference(Inference::INPUT), Unit::CONJECTURE);
 
   FormulaUnit* us1 = new FormulaUnit(simple1, new Inference(Inference::INPUT), Unit::AXIOM);
-  FormulaUnit* us2 = new FormulaUnit(simple2, new Inference(Inference::INPUT), Unit::AXIOM);
-  FormulaUnit* us3 = new FormulaUnit(simple3, new Inference(Inference::INPUT), Unit::AXIOM);
-  FormulaUnit* us4 = new FormulaUnit(simple4, new Inference(Inference::INPUT), Unit::AXIOM);
 
   FormulaUnit* ut1 = new FormulaUnit(new AtomicFormula(Literal::create1(q, true, t1)), new Inference(Inference::INPUT), Unit::AXIOM);
   FormulaUnit* ut2 = new FormulaUnit(new AtomicFormula(Literal::create1(q, true, t2)), new Inference(Inference::INPUT), Unit::AXIOM);
-  FormulaUnit* ut3 = new FormulaUnit(new AtomicFormula(Literal::create1(q, true, t3)), new Inference(Inference::INPUT), Unit::AXIOM);
 
   UnitList* probUnits = 0;
 
   UnitList::push(u, probUnits);
-  UnitList::push(ut3, probUnits);
   UnitList::push(ut2, probUnits);
   UnitList::push(ut1, probUnits);
-  UnitList::push(us4, probUnits);
-  UnitList::push(us3, probUnits);
-  UnitList::push(us2, probUnits);
   UnitList::push(us1, probUnits);
 
   UnitList::Iterator uit0(probUnits);

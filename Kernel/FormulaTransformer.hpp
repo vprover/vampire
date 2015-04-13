@@ -69,9 +69,6 @@ protected:
 
 
   virtual Formula* applyTrueFalse(Formula* f) { return f; }
-
-  virtual Formula* applyTermLet(Formula* f);
-  virtual Formula* applyFormulaLet(Formula* f);
 };
 
 class TermTransformingFormulaTransformer : public FormulaTransformer
@@ -97,8 +94,6 @@ protected:
   virtual Formula* applyImp(Formula* f);
 
   virtual Formula* applyBinary(Formula* f);
-
-  virtual Formula* applyFormulaLet(Formula* f);
 
   int polarity() const { return _polarity; }
 

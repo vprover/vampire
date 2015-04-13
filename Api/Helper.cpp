@@ -256,14 +256,6 @@ vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
     return result + "] : (" + toString(f->qarg()) + ") )";
   }
 
-  case FORMULA_LET:
-    return "let "+toString(f->formulaLetLhs()) + " := " + toString(f->formulaLetRhs()) +
-	" in " + toString(f->letBody());
-
-  case TERM_LET:
-    return "let "+toString(f->termLetLhs()) + " := " + toString(f->termLetRhs()) +
-	" in " + toString(f->letBody());
-
   case FALSE:
   case TRUE:
     return con;

@@ -1729,8 +1729,6 @@ AIGFormulaSharer::ARes AIGFormulaSharer::getSharedFormula(Formula* f)
     res = applyQuantified(f);
     break;
 
-  case TERM_LET:
-  case FORMULA_LET:
   default:
     ASSERTION_VIOLATION;
   }

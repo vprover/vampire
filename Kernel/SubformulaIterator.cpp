@@ -172,13 +172,6 @@ Formula* SubformulaIterator::next (int& resultPolarity)
     _currentPolarity = resultPolarity;
     break;
 
-  case TERM_LET:
-  case FORMULA_LET:
-    //we do not consider the other parts of let expressions (origin and target) to be subformulas
-    _current = result->letBody();
-    _currentPolarity = resultPolarity;
-    break;
-
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

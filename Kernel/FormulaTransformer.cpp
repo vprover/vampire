@@ -64,12 +64,6 @@ Formula* FormulaTransformer::apply(Formula* f)
   case EXISTS:
     res = applyExists(f);
     break;
-  case TERM_LET:
-    res = applyTermLet(f);
-    break;
-  case FORMULA_LET:
-    res = applyFormulaLet(f);
-    break;
 
   case TRUE:
   case FALSE:
@@ -152,32 +146,6 @@ Formula* FormulaTransformer::applyQuantified(Formula* f)
   }
   return new QuantifiedFormula(f->connective(), f->vars(), newArg);
 }
-
-Formula* FormulaTransformer::applyTermLet(Formula* f)
-{
-  CALL("FormulaTransformer::applyTermLet");
-  ASS_EQ(f->connective(), TERM_LET);
-
-  Formula* newBody = apply(f->letBody());
-  if(newBody==f->letBody()) {
-    return f;
-  }
-  return new TermLetFormula(f->termLetLhs(), f->termLetRhs(), newBody);
-}
-
-Formula* FormulaTransformer::applyFormulaLet(Formula* f)
-{
-  CALL("FormulaTransformer::applyFormulaLet");
-  ASS_EQ(f->connective(), FORMULA_LET);
-
-  Formula* newBody = apply(f->letBody());
-  Formula* newRhs = apply(f->formulaLetRhs());
-  if(newBody==f->letBody() && newRhs==f->formulaLetRhs()) {
-    return f;
-  }
-  return new FormulaLetFormula(f->formulaLetLhs(), newRhs, newBody);
-}
-
 
 ///////////////////////////////////////
 // TermTransformingFormulaTransformer
@@ -266,22 +234,6 @@ Formula* PolarityAwareFormulaTransformer::applyBinary(Formula* f)
 
   ScopedLet<int> plet(_polarity, 0);
   return FormulaTransformer::applyBinary(f);
-}
-
-Formula* PolarityAwareFormulaTransformer::applyFormulaLet(Formula* f)
-{
-  CALL("PolarityAwareFormulaTransformer::applyFormulaLet");
-
-  Formula* newBody = apply(f->letBody());
-  Formula* newRhs;
-  {
-    ScopedLet<int> plet(_polarity, 0);
-    newRhs = apply(f->formulaLetRhs());
-  }
-  if(newBody==f->letBody() && newRhs==f->formulaLetRhs()) {
-    return f;
-  }
-  return new FormulaLetFormula(f->formulaLetLhs(), newRhs, newBody);
 }
 
 ///////////////////////////

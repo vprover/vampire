@@ -216,8 +216,7 @@ void Formula::destroy ()
 vstring Formula::toString (Connective c)
 {
   static vstring names [] =
-//    { "", "&", "\\/", "=>", "<=>", "<~>", "~", "!", "?", "false", "true"};
-    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "<formula_let>", "<term_let>", "$false", "$true"};
+    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$false", "$true"};
   ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
 
   return names[(int)c];
@@ -293,16 +292,6 @@ vstring Formula::toString () const
       return result + qarg()->toStringInScopeOf(c);
     }
 
-  case FORMULA_LET:
-    return "$let_ff(" + formulaLetLhs()->toString() + " := " +
-                        formulaLetRhs()->toStringInScopeOf(c) + ", " +
-                        letBody()->toStringInScopeOf(c) + ")";
-
-  case TERM_LET:
-    return "$let_tf(" + termLetLhs().toString() + " := " +
-                        termLetRhs().toString() + ", " +
-                        letBody()->toStringInScopeOf(c) + ")";
-
   case TRUE:
   case FALSE:
     return con;
@@ -340,8 +329,6 @@ bool Formula::parenthesesRequired (Connective outer) const
     case IMP:
     case IFF:
     case XOR:
-    case FORMULA_LET:
-    case TERM_LET:
       return true;
 
 #if VDEBUG
@@ -685,6 +672,15 @@ Formula* Formula::falseFormula()
   return res;
 }
 
+Formula* Formula::fromTerm(TermList ts)
+{
+  CALL("Formula::fromTerm(TermList*)");
+  TermList tru;
+  tru.setTerm(Term::createFormula(new Formula(true)));
+  Literal *l = Literal::createEquality(true, ts, tru, Sorts::SRT_BOOL);
+  return new AtomicFormula(l);
+}
+
 Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseArg)
 {
   CALL("Formula::createITE");
@@ -698,10 +694,31 @@ Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseA
   TermList iteTerm;
   iteTerm.setTerm(Term::createTermITE(condition, thenTerm, elseTerm));
 
-  TermList tru;
-  tru.setTerm(Term::createFormula(new Formula(true)));
-  Literal *l = Literal::createEquality(true, iteTerm, tru, Sorts::SRT_BOOL);
-  return new AtomicFormula(l);
+  return Formula::fromTerm(iteTerm);
+}
+
+Formula* Formula::createTermLet(TermList lhs, TermList rhs, Formula* body)
+{
+  CALL("Formula::createTermLet");
+  TermList bodyTerm;
+  bodyTerm.setTerm(Term::createFormula(body));
+
+  TermList letTerm;
+  letTerm.setTerm(Term::createTermLet(lhs, rhs, bodyTerm));
+
+  return Formula::fromTerm(letTerm);
+}
+
+Formula* Formula::createFormulaLet(Literal* lhs, Formula* rhs, Formula* body)
+{
+  CALL("Formula::createFormulaLet");
+  TermList bodyTerm;
+  bodyTerm.setTerm(Term::createFormula(body));
+
+  TermList letTerm;
+  letTerm.setTerm(Term::createFormulaLet(lhs, rhs, bodyTerm));
+
+  return Formula::fromTerm(letTerm);
 }
 
 Formula* Formula::quantify(Formula* f)
@@ -773,8 +790,6 @@ Formula* Formula::fromClause(Clause* cl)
   case NOT:
   case FORALL:
   case EXISTS:
-  case TERM_LET:
-  case FORMULA_LET:
   case TRUE:
   case FALSE:
 #if VDEBUG

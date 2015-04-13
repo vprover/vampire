@@ -114,32 +114,6 @@ bool FormulaVarIterator::hasNext()
 	case TRUE:
 	case FALSE:
 	  break;
-
-	case FORMULA_LET:
-	case TERM_LET:
-	{
-	  _instructions.push(FVI_FORMULA);
-	  _formulas.push(f->letBody());
-	  _instructions.push(FVI_UNBIND);
-	  _formulas.push(f);
-	  countFormulaLetLhsVars(f, true);
-	  if(f->connective()==FORMULA_LET) {
-	    _instructions.push(FVI_FORMULA);
-	    _formulas.push(f->formulaLetRhs());
-	  }
-	  else {
-	    TermList rhs = f->termLetRhs();
-	    if(rhs.isTerm()) {
-	      _instructions.push(FVI_TERM);
-	      _terms.push(rhs.term()->args());
-	    }
-	    else {
-	      if(suggestNextVar(rhs.var())) {
-		return true;
-	      }
-	    }
-	  }
-	}
 	}
       }
       break;
@@ -173,15 +147,10 @@ bool FormulaVarIterator::hasNext()
       {
 	const Formula* f = _formulas.pop();
 	Connective con = f->connective();
-	if(con==FORMULA_LET || con==TERM_LET) {
-	  countFormulaLetLhsVars(f, false);
-	}
-	else {
-	  ASS(con==EXISTS || con==FORALL)
-	  IntList::Iterator vs(f->vars());
-	  while (vs.hasNext()) {
-	    _bound.dec(vs.next());
-	  }
+	ASS(con==EXISTS || con==FORALL)
+	IntList::Iterator vs(f->vars());
+	while (vs.hasNext()) {
+	  _bound.dec(vs.next());
 	}
       }
       break;
@@ -259,38 +228,6 @@ bool FormulaVarIterator::suggestNextVar(unsigned v)
   _found = true;
   _free.inc(v);
   return true;
-}
-
-/**
- * Add or remove (based on the last arg) variables of LHS of
- * let formula @c f.
- */
-void FormulaVarIterator::countFormulaLetLhsVars(const Formula* f, bool inc)
-{
-  CALL("FormulaVarIterator::countFormulaLetLhsVars");
-
-  static VariableIterator vit;
-  if(f->connective()==FORMULA_LET) {
-    vit.reset(f->formulaLetLhs());
-  }
-  else {
-    ASS_EQ(f->connective(), TERM_LET);
-    if(f->termLetLhs().isTerm()) {
-      vit.reset(f->termLetLhs().term());
-    }
-    else {
-      INVALID_OPERATION("Let expressions with variable lhs are currently not handled");
-    }
-  }
-  while(vit.hasNext()) {
-    TermList var = vit.next();
-    if(inc) {
-      _bound.inc(var.var());
-    }
-    else {
-      _bound.dec(var.var());
-    }
-  }
 }
 
 /**

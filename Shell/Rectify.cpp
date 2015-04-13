@@ -442,30 +442,6 @@ Formula* Rectify::rectify (Formula* f)
     return new QuantifiedFormula(f->connective(),vs,arg);
   }
 
-  case TERM_LET:
-  {
-    TermList o = f->termLetLhs();
-    TermList t = f->termLetRhs();
-    rectifyTermLet(o, t);
-    Formula* b = rectify(f->letBody());
-    if(o==f->termLetLhs() && t==f->termLetRhs() && b==f->letBody()) {
-      return f;
-    }
-    return new TermLetFormula(o,t,b);
-  }
-
-  case FORMULA_LET:
-  {
-    Literal* o = f->formulaLetLhs();
-    Formula* t = f->formulaLetRhs();
-    rectifyFormulaLet(o, t);
-    Formula* b = rectify(f->letBody());
-    if(o==f->formulaLetLhs() && t==f->formulaLetRhs() && b==f->letBody()) {
-      return f;
-    }
-    return new FormulaLetFormula(o, t, b);
-  }
-
   case TRUE:
   case FALSE:
     return f;

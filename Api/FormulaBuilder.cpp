@@ -723,7 +723,7 @@ Formula FormulaBuilder::replaceConstant(Formula f, Term replaced, Term target)
     }
   }
 
-  Kernel::Formula* letForm = new TermLetFormula(replaced, target, f.form);
+  Kernel::Formula* letForm = Formula::createTermLet(replaced, target, f.form);
   Shell::SpecialTermElimination ste;
   FormulaUnit* auxUnit = new FormulaUnit(letForm, new Inference(Inference::INPUT), Unit::AXIOM);
   UnitList* defs = 0;
@@ -956,8 +956,6 @@ FormulaBuilder::Connective Formula::connective() const
     return FormulaBuilder::TRUE;
   case Kernel::FALSE:
     return FormulaBuilder::FALSE;
-  case Kernel::TERM_LET:
-  case Kernel::FORMULA_LET:
   default:
     ASSERTION_VIOLATION;
   }
@@ -1006,8 +1004,6 @@ unsigned Formula::argCnt() const
   case Kernel::TRUE:
   case Kernel::FALSE:
     return 0;
-  case Kernel::TERM_LET:
-  case Kernel::FORMULA_LET:
   default:
     ASSERTION_VIOLATION;
   }
@@ -1048,8 +1044,6 @@ Formula Formula::formulaArg(unsigned i)
   case Kernel::TRUE:
   case Kernel::FALSE:
     break;
-  case Kernel::TERM_LET:
-  case Kernel::FORMULA_LET:
   default:
     ASSERTION_VIOLATION;
   }

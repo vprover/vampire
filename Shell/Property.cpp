@@ -335,10 +335,6 @@ void Property::scan(Formula* formula)
     _subformulas++;
     Formula* f = fs.next();
     switch(f->connective()) {
-    case FORMULA_LET:
-    case TERM_LET:
-      _hasSpecialTermsOrLets = true;
-      break;
     case LITERAL:
     {
       _atoms++;
@@ -785,11 +781,6 @@ bool Property::hasXEqualsY(const Formula* f)
       pols.push(pol);
       break;
 
-    case TERM_LET:
-    case FORMULA_LET:
-      //these two may introduce the X=Y literal but it would be too complicated to check for it
-      break;
-      
     case TRUE:
     case FALSE:
       break;

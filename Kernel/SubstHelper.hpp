@@ -504,32 +504,6 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
     return new QuantifiedFormula(f->connective(),newVars,arg);
   }
 
-  case TERM_LET:
-  {
-    //the lhs term binds variables in it, and on all bound
-    //variables the substitution must be identity
-    ASS(f->termLetLhs() == applyImpl<ProcessSpecVars>(f->termLetLhs(), applicator, noSharing));
-    TermList t = applyImpl<ProcessSpecVars>(f->termLetRhs(), applicator, noSharing);
-    Formula* b = applyImpl<ProcessSpecVars>(f->letBody(), applicator, noSharing);
-    if(t==f->termLetRhs() && b==f->letBody()) {
-      return f;
-    }
-    return new TermLetFormula(f->termLetLhs(), t, b);
-  }
-
-  case FORMULA_LET:
-  {
-    //the lhs term binds variables in it, and on all bound
-    //variables the substitution must be identity
-    ASS(f->formulaLetLhs() == applyImpl<ProcessSpecVars>(f->formulaLetLhs(), applicator, noSharing));
-    Formula* t = applyImpl<ProcessSpecVars>(f->formulaLetRhs(), applicator, noSharing);
-    Formula* b = applyImpl<ProcessSpecVars>(f->letBody(), applicator, noSharing);
-    if(t==f->formulaLetRhs() && b==f->letBody()) {
-      return f;
-    }
-    return new FormulaLetFormula(f->formulaLetLhs(), t, b);
-  }
-
   case TRUE:
   case FALSE:
     return f;

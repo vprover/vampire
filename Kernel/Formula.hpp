@@ -94,7 +94,11 @@ public:
   static Formula* trueFormula();
   static Formula* falseFormula();
 
+  static Formula* fromTerm(TermList term);
+
   static Formula* createITE(Formula* condition, Formula* thenArg, Formula* elseArg);
+  static Formula* createTermLet(TermList lhs, TermList rhs, Formula* body);
+  static Formula* createFormulaLet(Literal* lhs, Formula* rhs, Formula* body);
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(Formula);
@@ -276,78 +280,6 @@ class JunctionFormula
   FormulaList* _args;
 }; // class JunctionFormula
 
-/**
- * Formula let...in formula.
- */
-class FormulaLetFormula
-  : public Formula
-{
- public:
-  /**
-   * Create a formula (let lhs := rhs in body)
-   */
-  FormulaLetFormula (Literal* lhs, Formula* rhs, Formula* body)
-    : Formula(FORMULA_LET),
-      _lhs(lhs),
-      _rhs(rhs),
-      _body(body)
-  {
-    ASS(lhs->hasOnlyDistinctVariableArgs());
-    ASS(lhs->shared());
-  }
-
-  /** Return the literal that should be replaced */
-  Literal* lhs() const { return _lhs; }
-  /** Return the formula that should replace the @b lhs() literal */
-  Formula* rhs() const { return _rhs; }
-  /** Return body on which the replacement is performed */
-  Formula* body() const { return _body; }
-
-  // use allocator to (de)allocate objects of this class
-  CLASS_NAME(FormulaLetFormula);
-  USE_ALLOCATOR(FormulaLetFormula);
- protected:
-  Literal* _lhs;
-  Formula* _rhs;
-  Formula* _body;
-}; // class FormulaLetFormula
-
-/**
- * Term let...in formula.
- */
-class TermLetFormula
-  : public Formula
-{
- public:
-  /**
-   * Create a formula (let lhs := rhs in body)
-   */
-  TermLetFormula (TermList lhs, TermList rhs, Formula* body)
-    : Formula(TERM_LET),
-      _lhs(lhs),
-      _rhs(rhs),
-      _body(body)
-  {
-    ASS(lhs.isSafe());
-    ASS(lhs.isVar() || lhs.term()->hasOnlyDistinctVariableArgs());
-  }
-
-  /** Return the term that should be replaced */
-  TermList lhs() const { return _lhs; }
-  /** Return the term that should replace the @b lhs() term */
-  TermList rhs() const { return _rhs; }
-  /** Return body on which the replacement is performed */
-  Formula* body() const { return _body; }
-
-  // use allocator to (de)allocate objects of this class
-  CLASS_NAME(TermLetFormula);
-  USE_ALLOCATOR(TermLetFormula);
- protected:
-  TermList _lhs;
-  TermList _rhs;
-  Formula* _body;
-}; // class TermLetFormula
-
 // definitions, had to be put out of class
 
 /** Return the list of variables of a quantified formula */
@@ -464,36 +396,6 @@ Formula* Formula::right()
 {
   ASS(_connective == IFF || _connective == XOR || _connective == IMP);
   return static_cast<BinaryFormula*>(this)->rhs();
-}
-inline
-Formula* Formula::letBody() const {
-  if(_connective == TERM_LET) {
-    return static_cast<const TermLetFormula*>(this)->body();
-  }
-  else {
-    ASS(_connective == FORMULA_LET)
-    return static_cast<const FormulaLetFormula*>(this)->body();
-  }
-}
-inline
-Literal* Formula::formulaLetLhs() const {
-  ASS(_connective == FORMULA_LET)
-  return static_cast<const FormulaLetFormula*>(this)->lhs();
-}
-inline
-Formula* Formula::formulaLetRhs() const {
-  ASS(_connective == FORMULA_LET)
-  return static_cast<const FormulaLetFormula*>(this)->rhs();
-}
-inline
-TermList Formula::termLetLhs() const {
-  ASS(_connective == TERM_LET);
-  return static_cast<const TermLetFormula*>(this)->lhs();
-}
-inline
-TermList Formula::termLetRhs() const {
-  ASS(_connective == TERM_LET);
-  return static_cast<const TermLetFormula*>(this)->rhs();
 }
 
 // operators
