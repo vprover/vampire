@@ -2034,9 +2034,9 @@ void TPTP::term()
     addTagState(T_RPAR);
     _states.push(TERM);
     addTagState(T_COMMA);
-    _states.push(TERM);
+    _states.push(tok.tag == T_LETTT ? TERM : FORMULA);
     addTagState(T_COMMA);
-    _states.push(tok.tag ==T_LETTT ? TERM : SIMPLE_FORMULA);
+    _states.push(tok.tag == T_LETTT ? TERM : SIMPLE_FORMULA);
     return;
 
  default:
