@@ -370,13 +370,13 @@ vstring Term::specialTermToString() const
 
   case SF_LET_FORMULA_IN_TERM:
     ASS_EQ(arity(),1);
-    return "$let_ft(" + getSpecialData()->getLhsLiteral()->toString() + ", " +
+    return "$let_ft(" + getSpecialData()->getLhsLiteral()->toString() + " := " +
                         getSpecialData()->getRhsFormula()->toString() + ", " +
                         nthArgument(0)->toString() + ")";
 
   case SF_LET_TERM_IN_TERM:
     ASS_EQ(arity(),1);
-    return "$let_tt(" + getSpecialData()->getLhsTerm().toString() + ", " +
+    return "$let_tt(" + getSpecialData()->getLhsTerm().toString() + " := " +
                         getSpecialData()->getRhsTerm().toString() + ", " +
                         nthArgument(0)->toString() + ")";
 

@@ -1756,6 +1756,7 @@ void TPTP::termInfix()
       return;
     case T_COMMA:
     case T_RPAR:
+    case T_ASS:
       _states.push(END_TERM);
       return;
     case T_AND:
@@ -1824,7 +1825,7 @@ void TPTP::funApp()
       _states.push(TERM);
       addTagState(T_COMMA);
       _states.push(tok.tag == T_LETTT ? TERM : FORMULA);
-      addTagState(T_COMMA);
+      addTagState(T_ASS);
       _states.push(tok.tag == T_LETTT ? TERM : SIMPLE_FORMULA);
       _ints.push(-2); // dummy arity, not to be used anywhere
       return;
@@ -1836,7 +1837,7 @@ void TPTP::funApp()
       _states.push(FORMULA);
       addTagState(T_COMMA);
       _states.push(tok.tag == T_LETTF ? TERM : FORMULA);
-      addTagState(T_COMMA);
+      addTagState(T_ASS);
       _states.push(tok.tag == T_LETTF ? TERM : SIMPLE_FORMULA);
       _ints.push(-2); // dummy arity, not to be used anywhere
       return;
@@ -2085,7 +2086,6 @@ void TPTP::endTerm()
     _states.push(END_LETFT);
     return;
   }
-
 
   if (env.signature->predicateExists(name, arity)) {
     // if the function symbol is actually a predicate,
