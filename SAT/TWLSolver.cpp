@@ -414,7 +414,7 @@ void TWLSolver::doSubsumptionResolution(SATLiteralStack& lits, SATClauseList*& p
   CALL("TWLSolver::doSubsumptionResolution");
 
   static ArraySet litSet;
-  litSet.ensure(_varCnt*2);
+  litSet.ensure((_varCnt+1)*2);
   litSet.reset();
 
   SATLiteralStack::Iterator litScanIt(lits);
@@ -503,7 +503,7 @@ bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars, SATClauseList*& 
   CALL("TWLSolver::isRedundant");
 
   static ArraySet varsSeenHere;
-  varsSeenHere.ensure(_varCnt);
+  varsSeenHere.ensure(_varCnt+1);
   varsSeenHere.reset();
   static Stack<unsigned> toDo;
   toDo.reset();
@@ -554,7 +554,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   //The learnt clause must contradict assignment
   //to at least one of these variables.
   static ArraySet seenVars;
-  seenVars.ensure(_varCnt);
+  seenVars.ensure(_varCnt+1);
   seenVars.reset();
 
   static SATLiteralStack resLits;
@@ -1034,7 +1034,7 @@ void TWLSolver::assertValid()
 {
   CALL("TWLSolver::assertValid");
 
-  for(unsigned i=0;i<_varCnt;i++) {
+  for(unsigned i=1;i<=_varCnt;i++) {
     if(_assignment[i]!=AS_UNDEFINED) {
       ASS_LE(getAssignmentLevel(i),_level);
     }
@@ -1221,7 +1221,7 @@ SATClause* TWLSolver::getZeroImpliedCertificate(unsigned var)
 
 
   static ArraySet seen;
-  seen.ensure(_varCnt);
+  seen.ensure(_varCnt+1);
   seen.reset();
   static Stack<unsigned> toDo;
   toDo.reset();
@@ -1275,7 +1275,7 @@ void TWLSolver::printAssignment()
 {
   CALL("TWLSolver::printAssignment");
 
-  for(unsigned i=0;i<_varCnt;i++) {
+  for(unsigned i=1;i<=_varCnt;i++) {
     if(_assignment[i]==AS_UNDEFINED) {
       cout<<i<<"\t"<<static_cast<AsgnVal>(_assignment[i])<<endl;
     } else {
