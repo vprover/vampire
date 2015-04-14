@@ -8,10 +8,13 @@
 
 #if VZ3
 
+#include "Lib/DHMap.hpp"
+
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
 #include "SATInference.hpp"
+#include "SAT2FO.hpp"
 
 #include "z3++.h"
 #include "z3_api.h"
@@ -24,7 +27,7 @@ public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
   
-  Z3Interfacing(const Shell::Options& opts, bool generateProofs=false);
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool generateProofs=false);
 
   /**
    * Can be called only when all assumptions are retracted
@@ -103,7 +106,13 @@ public:
   
 private:
 
-  z3::expr getRepresentation(unsigned var);
+  // Memory belongs to Splitter
+  SAT2FO& sat2fo;
+
+  DHMap<unsigned,Z3_sort> _sorts;
+  z3::sort getz3sort(unsigned s);
+  z3::expr getz3expr(Term* trm,bool islit);
+  z3::expr getRepresentation(SATLiteral lit);
 
   Status _status;
   z3::context _context;

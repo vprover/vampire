@@ -134,6 +134,7 @@ namespace z3 {
         context(config & c) { init(c); }
         ~context() { Z3_del_context(m_ctx); }
         operator Z3_context() const { return m_ctx; }
+        Z3_context const get() { return m_ctx; }
 
         /**
            \brief Auxiliary method used to check for API usage errors.
