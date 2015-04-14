@@ -602,7 +602,6 @@ private:
   Formula* createPredicateApplication(vstring name,unsigned arity);
   TermList createFunctionApplication(vstring name,unsigned arity);
   Formula* createFormula(TermList& term);
-  void makeTerm(TermList& ts,Token& tok);
   void endEquality();
   void midEquality();
   void formulaInfix();

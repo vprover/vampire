@@ -2817,11 +2817,9 @@ void TPTP::simpleFormula()
 {
   CALL("TPTP::simpleFormula");
 
-
   Token& tok = getTok(0);
-  Tag tag = tok.tag;
 
-  switch (tag) {
+  switch (tok.tag) {
   case T_NOT:
     resetToks();
     _connectives.push(NOT);
@@ -2832,7 +2830,7 @@ void TPTP::simpleFormula()
   case T_EXISTS:
     resetToks();
     consumeToken(T_LBRA);
-    _connectives.push(tag == T_FORALL ? FORALL : EXISTS);
+    _connectives.push(tok.tag == T_FORALL ? FORALL : EXISTS);
     _states.push(UNBIND_VARIABLES);
     _states.push(SIMPLE_FORMULA);
     addTagState(T_COLON);
@@ -2967,61 +2965,6 @@ unsigned TPTP::readSort()
     PARSE_ERROR("sort expected",tok);
   }
 } // readSort
-
-/**
- * Make a non-compound term, that is, a string constant, a variable,
- * or a number
- */
-void TPTP::makeTerm(TermList& ts,Token& tok)
-{
-  CALL("TPTP::makeTerm");
-
-  switch (tok.tag) {
-  case T_STRING:
-    {
-      unsigned fun = env.signature->addStringConstant(tok.content);
-      Term* t = new(0) Term;
-      t->makeSymbol(fun,0);
-      t = env.sharing->insert(t);
-      ts.setTerm(t);
-    }
-    return;
-  case T_VAR:
-    ts.makeVar(_vars.insert(tok.content));
-    return;
-  case T_INT:
-    {
-      unsigned fun = addIntegerConstant(tok.content);
-      Term* t = new(0) Term;
-      t->makeSymbol(fun,0);
-      t = env.sharing->insert(t);
-      ts.setTerm(t);
-    }
-    return;
-  case T_REAL:
-    {
-      unsigned fun = addRealConstant(tok.content);
-      Term* t = new(0) Term;
-      t->makeSymbol(fun,0);
-      t = env.sharing->insert(t);
-      ts.setTerm(t);
-    }
-    return;
-  case T_RAT:
-    {
-      unsigned fun = addRationalConstant(tok.content);
-      Term* t = new(0) Term;
-      t->makeSymbol(fun,0);
-      t = env.sharing->insert(t);
-      ts.setTerm(t);
-    }
-    return;
-#if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
-#endif
-  }
-} // makeTerm
 
 /**
  * True if c1 has a strictly higher priority than c2.
