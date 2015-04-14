@@ -3459,7 +3459,7 @@ unsigned TPTP::sortOf(TermList& t)
   for (;;) {
     if (t.isVar()) {
       SortList* sorts;
-      if (_variableSorts.find(t.var(),sorts)) {
+      if (_variableSorts.find(t.var(),sorts) && sorts->isNonEmpty()) {
 	return sorts->head();
       }
       // there might be variables whose sort is undeclared,
