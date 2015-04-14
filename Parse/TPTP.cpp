@@ -2029,62 +2029,61 @@ void TPTP::formulaInfix()
   CALL("TPTP::formulaInfix");
 
   Token tok = getTok(0);
-  switch (tok.tag) {
-  case T_EQUAL:
-  case T_NEQ:
+
+  if (tok.tag == T_EQUAL || tok.tag == T_NEQ) {
     resetToks();
     _bools.push(tok.tag == T_EQUAL);
     _states.push(END_EQ);
     _states.push(TERM);
     _states.push(END_TERM);
     return;
-  default:
-    vstring name = _strings.pop();
-
-    if (name == toString(T_ITE)) {
-      _states.push(END_TERM_AS_FORMULA);
-      _states.push(END_ITE);
-      return;
-    }
-
-    if (name == toString(T_SELECT)) {
-      _states.push(END_SELECT);
-      return;
-    }
-
-    if (name == toString(T_STORE)) {
-      // the sort of $store(...) is never $o
-      USER_ERROR("$store expression cannot be used as formula");
-    }
-
-    if (name == toString(T_LETF)) {
-      _states.push(END_TERM_AS_FORMULA);
-      _states.push(END_LETFT);
-      return;
-    }
-
-    if (name == toString(T_LETT)) {
-      _states.push(END_TERM_AS_FORMULA);
-      _states.push(END_LETTT);
-      return;
-    }
-
-    int arity = _ints.pop();
-
-    if (arity == -1) {
-      // that was a variable
-      TermList var;
-      var.makeVar(_vars.insert(tok.content));
-      _termLists.push(var);
-      if (sortOf(var) != Sorts::SRT_BOOL) {
-        PARSE_ERROR("Non-boolean expression " + name + " used in a formula context", tok.start);
-      }
-      _states.push(END_TERM_AS_FORMULA);
-      return;
-    }
-
-    _formulas.push(createPredicateApplication(name, arity));
   }
+
+  vstring name = _strings.pop();
+
+  if (name == toString(T_ITE)) {
+    _states.push(END_TERM_AS_FORMULA);
+    _states.push(END_ITE);
+    return;
+  }
+
+  if (name == toString(T_SELECT)) {
+    _states.push(END_SELECT);
+    return;
+  }
+
+  if (name == toString(T_STORE)) {
+    // the sort of $store(...) is never $o
+    USER_ERROR("$store expression cannot be used as formula");
+  }
+
+  if (name == toString(T_LETF)) {
+    _states.push(END_TERM_AS_FORMULA);
+    _states.push(END_LETFT);
+    return;
+  }
+
+  if (name == toString(T_LETT)) {
+    _states.push(END_TERM_AS_FORMULA);
+    _states.push(END_LETTT);
+    return;
+  }
+
+  int arity = _ints.pop();
+
+  if (arity == -1) {
+    // that was a variable
+    TermList var;
+    var.makeVar(_vars.insert(name));
+    if (sortOf(var) != Sorts::SRT_BOOL) {
+      PARSE_ERROR("Non-boolean expression " + name + " used in a formula context", tok.start);
+    }
+    _termLists.push(var);
+    _states.push(END_TERM_AS_FORMULA);
+    return;
+  }
+
+  _formulas.push(createPredicateApplication(name, arity));
 } // formulaInfix
 
 /**
