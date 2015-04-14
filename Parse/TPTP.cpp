@@ -1736,16 +1736,31 @@ void TPTP::funApp()
   switch (tok.tag) {
     // predefined functions
     case T_SELECT:
+      consumeToken(T_LPAR);
+      addTagState(T_RPAR);
+      _states.push(TERM);
+      addTagState(T_COMMA);
+      _states.push(TERM);
+      return;
+
     case T_STORE:
+      consumeToken(T_LPAR);
+      addTagState(T_RPAR);
+      _states.push(TERM);
+      addTagState(T_COMMA);
+      _states.push(TERM);
+      addTagState(T_COMMA);
+      _states.push(TERM);
+      return;
+
     case T_ITE:
       consumeToken(T_LPAR);
-      _states.push(ARGS);
-      // $ite is parsed slightly differently -- we expect a formula as a first argument
-      if (tok.tag == T_ITE) {
-        addTagState(T_COMMA);
-        _states.push(FORMULA);
-      }
-      _ints.push(1); // the arity of the function symbol is at least 1
+      addTagState(T_RPAR);
+      _states.push(TERM);
+      addTagState(T_COMMA);
+      _states.push(TERM);
+      addTagState(T_COMMA);
+      _states.push(FORMULA);
       return;
 
     case T_LETT:
@@ -1757,7 +1772,6 @@ void TPTP::funApp()
       _states.push(tok.tag == T_LETT ? TERM : FORMULA);
       addTagState(T_ASS);
       _states.push(tok.tag == T_LETT ? TERM : SIMPLE_FORMULA);
-      _ints.push(-2); // dummy arity, not to be used anywhere
       return;
 
     case T_VAR:
@@ -1959,38 +1973,18 @@ void TPTP::endTerm()
   CALL("TPTP::endTerm");
 
   vstring name = _strings.pop();
-  int arity = _ints.pop();
-
-  if (arity == -1) {
-    // it was a variable
-    TermList var;
-    var.makeVar(_vars.insert(name));
-    _termLists.push(var);
-    return;
-  }
 
   if (name == toString(T_ITE)) {
-    if (arity != 2) {
-      // 3 arguments because we parsed the first one as formula and
-      // didn't count it as proper term argument
-      USER_ERROR("if-then-else expression takes exactly 3 arguments");
-    }
     _states.push(END_ITE);
     return;
   }
 
   if (name == toString(T_SELECT)) {
-    if (arity != 2) {
-      USER_ERROR("$select expression takes exactly 2 arguments");
-    }
     _states.push(END_SELECT);
     return;
   }
 
   if (name == toString(T_STORE)) {
-    if (arity != 2) {
-      USER_ERROR("$store expression takes exactly 2 arguments");
-    }
     _states.push(END_STORE);
     return;
   }
@@ -2002,6 +1996,16 @@ void TPTP::endTerm()
 
   if (name == toString(T_LETF)) {
     _states.push(END_LETFT);
+    return;
+  }
+
+  int arity = _ints.pop();
+
+  if (arity == -1) {
+    // it was a variable
+    TermList var;
+    var.makeVar(_vars.insert(name));
+    _termLists.push(var);
     return;
   }
 
@@ -2036,41 +2040,19 @@ void TPTP::formulaInfix()
     return;
   default:
     vstring name = _strings.pop();
-    int arity = _ints.pop();
-
-    if (arity == -1) {
-      // that was a variable
-      TermList var;
-      var.makeVar(_vars.insert(tok.content));
-      _termLists.push(var);
-      if (sortOf(var) != Sorts::SRT_BOOL) {
-        PARSE_ERROR("Non-boolean expression " + name + " used in a formula context", tok.start);
-      }
-      _states.push(END_TERM_AS_FORMULA);
-      return;
-    }
 
     if (name == toString(T_ITE)) {
-      if (arity != 2) {
-        USER_ERROR("if-then-else expression takes exactly 3 arguments");
-      }
       _states.push(END_TERM_AS_FORMULA);
       _states.push(END_ITE);
       return;
     }
 
     if (name == toString(T_SELECT)) {
-      if (arity != 2) {
-        USER_ERROR("$select expression takes exactly 2 arguments");
-      }
       _states.push(END_SELECT);
       return;
     }
 
     if (name == toString(T_STORE)) {
-      if (arity != 2) {
-        USER_ERROR("$store expression takes exactly 2 arguments");
-      }
       // the sort of $store(...) is never $o
       USER_ERROR("$store expression cannot be used as formula");
     }
@@ -2084,6 +2066,20 @@ void TPTP::formulaInfix()
     if (name == toString(T_LETT)) {
       _states.push(END_TERM_AS_FORMULA);
       _states.push(END_LETTT);
+      return;
+    }
+
+    int arity = _ints.pop();
+
+    if (arity == -1) {
+      // that was a variable
+      TermList var;
+      var.makeVar(_vars.insert(tok.content));
+      _termLists.push(var);
+      if (sortOf(var) != Sorts::SRT_BOOL) {
+        PARSE_ERROR("Non-boolean expression " + name + " used in a formula context", tok.start);
+      }
+      _states.push(END_TERM_AS_FORMULA);
       return;
     }
 
