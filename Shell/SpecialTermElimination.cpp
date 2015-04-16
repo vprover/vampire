@@ -184,7 +184,7 @@ TermList SpecialTermElimination::processSpecialTerm(Term* t)
       }
     }
     else if(cond!=newCond || thenBranch!=*t->nthArgument(0) || elseBranch!=*t->nthArgument(1)) {
-      t = Term::createTermITE(newCond, thenBranch, elseBranch);
+      t = Term::createITE(newCond, thenBranch, elseBranch);
     }
 
     return TermList(t);

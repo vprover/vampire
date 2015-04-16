@@ -215,7 +215,7 @@ public:
     union {
       struct {
         Formula * condition;
-      } _termITEData;
+      } _iteData;
       struct {
 	//The size_t stands for TermList expression which cannot be here
 	//since C++ doesnot allow objects with constructor inside a union
@@ -234,7 +234,7 @@ public:
       ASS_GE(res,SPECIAL_FUNCTOR_LOWER_BOUND);
       return res;
     }
-    Formula* getCondition() const { ASS_EQ(getType(), SF_TERM_ITE); return _termITEData.condition; }
+    Formula* getCondition() const { ASS_EQ(getType(), SF_TERM_ITE); return _iteData.condition; }
     TermList getLhs() const { ASS_EQ(getType(), SF_TERM_LET); return TermList(_letData.lhs); }
     TermList getRhs() const { ASS_EQ(getType(), SF_TERM_LET); return TermList(_letData.rhs); }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
@@ -253,7 +253,7 @@ public:
   static Term* createConstant(const vstring& name);
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
-  static Term* createTermITE(Formula * condition, TermList thenBranch, TermList elseBranch);
+  static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch);
   static Term* createLet(TermList lhs, TermList rhs, TermList t);
   static Term* createFormula(Formula* formula);
   static Term* create1(unsigned fn, TermList arg);

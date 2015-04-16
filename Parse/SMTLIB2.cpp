@@ -619,7 +619,7 @@ bool SMTLIB2::tryReadTermIte(LExpr* e, TermList& res)
   if(!gotAll) {
     return false;
   }
-  res = TermList(Term::createTermITE(cond, thenBranch, elseBranch));
+  res = TermList(Term::createITE(cond, thenBranch, elseBranch));
   return true;
 }
 

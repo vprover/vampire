@@ -88,7 +88,7 @@ TEST_FUN(iteTerm)
   TermList g0=TermList(Term::create1(g, x0));
   TermList g1=TermList(Term::create1(g, x1));
   Literal* pg0x0=Literal::create2(p, true, g0, x0);
-  TermList gITE=TermList(Term::createTermITE(new AtomicFormula(pg0x0), g0, g1));
+  TermList gITE=TermList(Term::createITE(new AtomicFormula(pg0x0), g0, g1));
 
   TermList gf01=TermList(Term::create1(g, f01));
   TermList tlet=TermList(Term::createTermLet(f01, gITE, gf01));  //term let in term

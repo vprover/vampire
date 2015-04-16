@@ -1399,7 +1399,7 @@ void TPTP::endIte()
   TermList t2 = _termLists.pop();
   TermList t1 = _termLists.pop();
   Formula* c = _formulas.pop();
-  TermList ts(Term::createTermITE(c,t1,t2));
+  TermList ts(Term::createITE(c,t1,t2));
   if (sortOf(t1) != sortOf(t2)) {
     USER_ERROR((vstring)"sorts of terms in the if-then-else expression "+ts.toString()+" are not the same");
   }

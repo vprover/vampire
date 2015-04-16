@@ -153,7 +153,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     if(c==sd->getCondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1)) {
 	return t;
     }
-    return Term::createTermITE(c, th, el);
+    return Term::createITE(c, th, el);
   }
   case Term::SF_TERM_LET:
   {

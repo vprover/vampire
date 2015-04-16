@@ -269,7 +269,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     Term::SpecialTermData* sd = trm->getSpecialData();
     switch(trm->functor()) {
     case Term::SF_TERM_ITE:
-      return Term::createTermITE(
+      return Term::createITE(
 	  applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing)

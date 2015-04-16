@@ -585,7 +585,7 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
       TermList arrayX1(Term::create(arrayFct1,1,&x1));
       Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
       TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
-      TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
+      TermList arrayITE=TermList(Term::createITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
       return TermList(Term::createLet(lhsTerm, arrayITE, exp));
     }
 
@@ -696,7 +696,7 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
 	  TermList arrayX1(Term::create(arrayFct1,1,&x1));
 	  Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
 	  TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
-	  TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
+	  TermList arrayITE=TermList(Term::createITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
 	  condition=Formula::createTermLet(lhsTerm, arrayITE, condition);
 	  break;
 	}
@@ -879,7 +879,7 @@ TermList LoopAnalyzer::arrayUpdateValue(Path::Iterator &sit, TermList exp, int p
 	TermList arrayX1(Term::create(arrayFct1,1,&x1));
 	Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
 	TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
-	TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
+	TermList arrayITE=TermList(Term::createITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
 	exp=TermList(Term::createLet(lhsTerm, arrayITE, exp));
 	return exp;
       }
@@ -966,7 +966,7 @@ TermList LoopAnalyzer::arrayUpdatePosition(Path::Iterator &sit, TermList updPosE
 	TermList arrayX1(Term::create(arrayFct1,1,&x1));
 	Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
 	TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
-	TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
+	TermList arrayITE=TermList(Term::createITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
 	updPosExp=TermList(Term::createLet(lhsTerm, arrayITE, updPosExp));
 	break;
       }

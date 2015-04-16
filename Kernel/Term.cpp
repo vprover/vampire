@@ -714,9 +714,9 @@ Term* Term::createNonShared(Term* t,TermList* args)
  * Create a (condition ? thenBranch : elseBranch) expression
  * and return the resulting term
  */
-Term* Term::createTermITE(Formula * condition, TermList thenBranch, TermList elseBranch)
+Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBranch)
 {
-  CALL("Term::createTermITE");
+  CALL("Term::createITE");
   Term* s = new(2,sizeof(SpecialTermData)) Term;
   s->makeSymbol(SF_TERM_ITE, 2);
   TermList* ss = s->args();
@@ -724,7 +724,7 @@ Term* Term::createTermITE(Formula * condition, TermList thenBranch, TermList els
   ss = ss->next();
   *ss = elseBranch;
   ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_termITEData.condition = condition;
+  s->getSpecialData()->_iteData.condition = condition;
   return s;
 }
 
