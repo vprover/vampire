@@ -1849,9 +1849,10 @@ void TPTP::bindVariable(int var,unsigned sortNumber)
 } // bindVariable
 
 /**
- * Read a non-empty sequence of variable, including the right bracket
- * and save the resulting sequence of TermList and their number
+ * Read a non-empty sequence of variable and save the resulting
+ * sequence of TermList and their number
  * @since 07/07/2011 Manchester
+ * @since 16/04/2015 Gothenburg, do not parse the closing ']'
  */
 void TPTP::varList()
 {
@@ -1890,12 +1891,11 @@ void TPTP::varList()
       resetToks();
       break;
 
-    case T_RBRA:
+    default:
       {
 	if (!sortDeclared) {
 	  bindVariable(var,Sorts::SRT_DEFAULT);
 	}
-	resetToks();
 	Formula::VarList* vs = Formula::VarList::empty();
 	while (!vars.isEmpty()) {
 	  vs = new Formula::VarList(vars.pop(),vs);
@@ -1904,9 +1904,6 @@ void TPTP::varList()
 	_bindLists.push(vs);
 	return;
       }
-
-    default:
-      PARSE_ERROR("] or , expected after a variable name",tok);
     }
   }
 } // varList
@@ -2833,6 +2830,7 @@ void TPTP::simpleFormula()
     _states.push(UNBIND_VARIABLES);
     _states.push(SIMPLE_FORMULA);
     addTagState(T_COLON);
+    addTagState(T_RBRA);
     _states.push(VAR_LIST);
     return;
 
