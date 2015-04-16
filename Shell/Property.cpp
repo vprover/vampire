@@ -491,22 +491,14 @@ void Property::scanSpecialTerm(Term* t)
     scan(t->args());
     break;
   }
-  case Term::SF_LET_FORMULA_IN_TERM:
-  {
-    ASS_EQ(t->arity(),1);
-    scan(sd->getLhsLiteral());
-    scan(sd->getRhsFormula());
-    scan(t->args());
-    break;
-  }
-  case Term::SF_LET_TERM_IN_TERM:
+  case Term::SF_TERM_LET:
   {
     ASS_EQ(t->arity(),1);
     //this is a trick creating an artificial term list with terms we want to traverse
     TermList aux[3];
     aux[0].makeEmpty();
-    aux[1] = sd->getRhsTerm();
-    aux[2] = sd->getLhsTerm();
+    aux[1] = sd->getRhs();
+    aux[2] = sd->getLhs();
     scan(aux+2);
     scan(t->args());
     break;

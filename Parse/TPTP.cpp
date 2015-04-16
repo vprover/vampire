@@ -1377,12 +1377,14 @@ void TPTP::endLetft()
 
   TermList t = _termLists.pop();
   Formula* f2 = _formulas.pop();
-  AtomicFormula* f1 = static_cast<AtomicFormula*>(_formulas.pop());
+  Formula* f1 = _formulas.pop();
   ASS(f1->connective() == LITERAL);
   ASS(f1->literal()->polarity());
 
   checkFlat(f1->literal());
-  TermList ts(Term::createFormulaLet(f1->literal(),f2,t));
+  TermList binder(Term::createFormula(f1));
+  TermList body(Term::createFormula(f2));
+  TermList ts(Term::createLet(binder,body,t));
   _termLists.push(ts);
 } // endLetft
 
@@ -1417,7 +1419,7 @@ void TPTP::endLettt()
   TermList t1 = _termLists.pop();
 
   checkFlat(t1);
-  TermList ts(Term::createTermLet(t1,t2,t));
+  TermList ts(Term::createLet(t1,t2,t));
   _termLists.push(ts);
 } // endLettt
 
@@ -1967,6 +1969,7 @@ void TPTP::term()
 /**
  * Build a term assembled by term()
  * @since 09/07/2011 Manchester
+ * @since 14/04/2015 Gothenburg, major changes to support FOOL
  */
 void TPTP::endTerm()
 {
@@ -2023,6 +2026,7 @@ void TPTP::endTerm()
 /**
  * Read after an end of atom or after lhs of an equality or inequality
  * @since 10/04/2011 Manchester
+ * @since 13/04/2015 Gothenburg, major changes to support FOOL
  */
 void TPTP::formulaInfix()
 {
@@ -2220,7 +2224,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
  * Creates a term that is a function application from
  * provided function symbol name and arity. If arity is greater than zero,
  * the arguments are assumed to be on the _termLists stack.
- * @since 27/03/1015 Manchester
+ * @since 13/04/2015 Gothenburg, major changes to support FOOL
  */
 TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
 {

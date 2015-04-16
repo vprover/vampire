@@ -274,18 +274,11 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing)
 	  );
-    case Term::SF_LET_FORMULA_IN_TERM:
-      ASS_EQ(sd->getLhsLiteral(), applyImpl<ProcessSpecVars>(sd->getLhsLiteral(), applicator, noSharing));
-      return Term::createFormulaLet(
-	  sd->getLhsLiteral(),
-	  applyImpl<ProcessSpecVars>(sd->getRhsFormula(), applicator, noSharing),
-	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing)
-	  );
-    case Term::SF_LET_TERM_IN_TERM:
-      ASS_EQ(sd->getLhsTerm(), applyImpl<ProcessSpecVars>(sd->getLhsTerm(), applicator, noSharing));
-      return Term::createTermLet(
-	  sd->getLhsTerm(),
-	  applyImpl<ProcessSpecVars>(sd->getRhsTerm(), applicator, noSharing),
+    case Term::SF_TERM_LET:
+      ASS_EQ(sd->getLhs(), applyImpl<ProcessSpecVars>(sd->getLhs(), applicator, noSharing));
+      return Term::createLet(
+	  sd->getLhs(),
+	  applyImpl<ProcessSpecVars>(sd->getRhs(), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing)
 	  );
     case Term::SF_FORMULA:

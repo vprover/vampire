@@ -204,10 +204,9 @@ class Term
 public:
   //special functor values
   static const unsigned SF_TERM_ITE = 0xFFFFFFFF;
-  static const unsigned SF_LET_TERM_IN_TERM = 0xFFFFFFFE;
-  static const unsigned SF_LET_FORMULA_IN_TERM = 0xFFFFFFFD;
-  static const unsigned SF_FORMULA = 0xFFFFFFFC;
-  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFC;
+  static const unsigned SF_TERM_LET = 0xFFFFFFFE;
+  static const unsigned SF_FORMULA = 0xFFFFFFFD;
+  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFD;
 
   class SpecialTermData
   {
@@ -222,11 +221,7 @@ public:
 	//since C++ doesnot allow objects with constructor inside a union
         size_t lhs;
         size_t rhs;
-      } _termLetData;
-      struct {
-        Literal * lhs;
-        Formula * rhs;
-      } _formulaLetData;
+      } _letData;
       struct {
         Formula * formula;
       } _formulaData;
@@ -240,10 +235,8 @@ public:
       return res;
     }
     Formula* getCondition() const { ASS_EQ(getType(), SF_TERM_ITE); return _termITEData.condition; }
-    TermList getLhsTerm() const { ASS_EQ(getType(), SF_LET_TERM_IN_TERM); return TermList(_termLetData.lhs); }
-    TermList getRhsTerm() const { ASS_EQ(getType(), SF_LET_TERM_IN_TERM); return TermList(_termLetData.rhs); }
-    Literal* getLhsLiteral() const { ASS_EQ(getType(), SF_LET_FORMULA_IN_TERM); return _formulaLetData.lhs; }
-    Formula* getRhsFormula() const { ASS_EQ(getType(), SF_LET_FORMULA_IN_TERM); return _formulaLetData.rhs; }
+    TermList getLhs() const { ASS_EQ(getType(), SF_TERM_LET); return TermList(_letData.lhs); }
+    TermList getRhs() const { ASS_EQ(getType(), SF_TERM_LET); return TermList(_letData.rhs); }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
   };
 
@@ -261,8 +254,7 @@ public:
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createTermITE(Formula * condition, TermList thenBranch, TermList elseBranch);
-  static Term* createTermLet(TermList lhs, TermList rhs, TermList t);
-  static Term* createFormulaLet(Literal* lhs, Formula* rhs, TermList t);
+  static Term* createLet(TermList lhs, TermList rhs, TermList t);
   static Term* createFormula(Formula* formula);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);

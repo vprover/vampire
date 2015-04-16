@@ -155,29 +155,17 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createTermITE(c, th, el);
   }
-  case Term::SF_LET_FORMULA_IN_TERM:
+  case Term::SF_TERM_LET:
   {
     ASS_EQ(t->arity(),1);
-    Literal* orig = sd->getLhsLiteral();
-    Formula* tgt = sd->getRhsFormula();
-    rectifyFormulaLet(orig, tgt);
-    TermList body = rectify(*t->nthArgument(0));
-    if(orig==sd->getLhsLiteral() && tgt==sd->getRhsFormula() && body==*t->nthArgument(0)) {
-      return t;
-    }
-    return Term::createFormulaLet(orig, tgt, body);
-  }
-  case Term::SF_LET_TERM_IN_TERM:
-  {
-    ASS_EQ(t->arity(),1);
-    TermList orig = sd->getLhsTerm();
-    TermList tgt = sd->getRhsTerm();
+    TermList orig = sd->getLhs();
+    TermList tgt = sd->getRhs();
     rectifyTermLet(orig, tgt);
     TermList body = rectify(*t->nthArgument(0));
-    if(orig==sd->getLhsTerm() && tgt==sd->getRhsTerm() && body==*t->nthArgument(0)) {
+    if(orig==sd->getLhs() && tgt==sd->getRhs() && body==*t->nthArgument(0)) {
       return t;
     }
-    return Term::createTermLet(orig, tgt, body);
+    return Term::createLet(orig, tgt, body);
   }
   case Term::SF_FORMULA:
   {

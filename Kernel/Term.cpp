@@ -39,8 +39,7 @@ using namespace Kernel;
 
 #if !COMPILER_MSVC 
 const unsigned Term::SF_TERM_ITE;
-const unsigned Term::SF_LET_TERM_IN_TERM;
-const unsigned Term::SF_LET_FORMULA_IN_TERM;
+const unsigned Term::SF_TERM_LET;
 const unsigned Term::SF_FORMULA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 #endif
@@ -368,17 +367,11 @@ vstring Term::specialTermToString() const
     ASS_EQ(arity(),0);
     return "$formula{" + getSpecialData()->getFormula()->toString() + "}";
 
-  case SF_LET_FORMULA_IN_TERM:
+  case SF_TERM_LET:
     ASS_EQ(arity(),1);
-    return "$let_f(" + getSpecialData()->getLhsLiteral()->toString() + " := " +
-                       getSpecialData()->getRhsFormula()->toString() + ", " +
-                       nthArgument(0)->toString() + ")";
-
-  case SF_LET_TERM_IN_TERM:
-    ASS_EQ(arity(),1);
-    return "$let_t(" + getSpecialData()->getLhsTerm().toString() + " := " +
-                       getSpecialData()->getRhsTerm().toString() + ", " +
-                       nthArgument(0)->toString() + ")";
+    return "$let(" + getSpecialData()->getLhs().toString() + " := " +
+                     getSpecialData()->getRhs().toString() + ", " +
+                     nthArgument(0)->toString() + ")";
 
   case SF_TERM_ITE:
     ASS_EQ(arity(),2);
@@ -739,39 +732,24 @@ Term* Term::createTermITE(Formula * condition, TermList thenBranch, TermList els
  * Create (let lhs <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createTermLet(TermList lhs, TermList rhs, TermList t)
+Term* Term::createLet(TermList lhs, TermList rhs, TermList t)
 {
   CALL("Term::createTermLet");
-  ASS(lhs.isSafe());
-  ASS(lhs.isVar() || lhs.term()->hasOnlyDistinctVariableArgs());
+  if (lhs.term()->_functor == SF_FORMULA) {
+    ASS(lhs.term()->getSpecialData()->getFormula()->literal()->shared());
+    ASS(lhs.term()->getSpecialData()->getFormula()->literal()->hasOnlyDistinctVariableArgs());
+  } else {
+    ASS(lhs.term()->shared());
+    ASS(lhs.term()->hasOnlyDistinctVariableArgs());
+  }
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_LET_TERM_IN_TERM, 1);
+  s->makeSymbol(SF_TERM_LET, 1);
   TermList* ss = s->args();
   *ss = t;
   ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_termLetData.lhs = lhs.content();
-  s->getSpecialData()->_termLetData.rhs = rhs.content();
-  return s;
-}
-
-/**
- * Create (let lhs <- rhs in f) expression and return
- * the resulting term
- */
-Term* Term::createFormulaLet(Literal* lhs, Formula* rhs, TermList t)
-{
-  CALL("Term::createFormulaLet");
-  ASS(lhs->shared());
-  ASS(lhs->hasOnlyDistinctVariableArgs());
-
-  Term* s = new(1,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_LET_FORMULA_IN_TERM, 1);
-  TermList* ss = s->args();
-  *ss = t;
-  ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_formulaLetData.lhs = lhs;
-  s->getSpecialData()->_formulaLetData.rhs = rhs;
+  s->getSpecialData()->_letData.lhs = lhs.content();
+  s->getSpecialData()->_letData.rhs = rhs.content();
   return s;
 }
 

@@ -193,13 +193,7 @@ TermList SpecialTermElimination::processSpecialTerm(Term* t)
     NOT_IMPLEMENTED;
   }
   else {
-    if(t->functor()==Term::SF_LET_FORMULA_IN_TERM) {
-      _letStack.push(LetSpec(sd->getLhsLiteral(), sd->getRhsFormula()));
-    }
-    else {
-      ASS_EQ(t->functor(), Term::SF_LET_TERM_IN_TERM);
-      _letStack.push(LetSpec(sd->getLhsTerm(), sd->getRhsTerm()));
-    }
+    _letStack.push(LetSpec(sd->getLhs(), sd->getRhs()));
     //eliminate inner let expressions
     TermList body = process(*t->nthArgument(0));
     _letStack.pop();

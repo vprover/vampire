@@ -681,43 +681,44 @@ Formula* Formula::fromTerm(TermList ts)
   return new AtomicFormula(l);
 }
 
+/**
+ * Creates a formula of the form $ite(c, a, b), where a, b, c are formulas
+ * @since 16/04/2015 Gothenburg
+ */
 Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseArg)
 {
   CALL("Formula::createITE");
-
-  TermList thenTerm;
-  thenTerm.setTerm(Term::createFormula(thenArg));
-
-  TermList elseTerm;
-  thenTerm.setTerm(Term::createFormula(elseArg));
-
-  TermList iteTerm;
-  iteTerm.setTerm(Term::createTermITE(condition, thenTerm, elseTerm));
-
+  TermList thenTerm(Term::createFormula(thenArg));
+  TermList elseTerm(Term::createFormula(elseArg));
+  TermList iteTerm(Term::createTermITE(condition, thenTerm, elseTerm));
   return Formula::fromTerm(iteTerm);
 }
 
+/**
+ * Creates a formula of the form $let(lhs := rhs, body), where body is a formula
+ * and lhs and rhs form a binding for a function
+ * @since 16/04/2015 Gothenburg
+ */
 Formula* Formula::createTermLet(TermList lhs, TermList rhs, Formula* body)
 {
   CALL("Formula::createTermLet");
-  TermList bodyTerm;
-  bodyTerm.setTerm(Term::createFormula(body));
-
-  TermList letTerm;
-  letTerm.setTerm(Term::createTermLet(lhs, rhs, bodyTerm));
-
+  TermList bodyTerm(Term::createFormula(body));
+  TermList letTerm(Term::createLet(lhs, rhs, bodyTerm));
   return Formula::fromTerm(letTerm);
 }
 
+/**
+ * Creates a formula of the form $let(lhs := rhs, body), where body is a formula
+ * and lhs and rhs form a binding for a predicate
+ * @since 16/04/2015 Gothenburg
+ */
 Formula* Formula::createFormulaLet(Literal* lhs, Formula* rhs, Formula* body)
 {
   CALL("Formula::createFormulaLet");
-  TermList bodyTerm;
-  bodyTerm.setTerm(Term::createFormula(body));
-
-  TermList letTerm;
-  letTerm.setTerm(Term::createFormulaLet(lhs, rhs, bodyTerm));
-
+  TermList bodyTerm(Term::createFormula(body));
+  TermList function(lhs);
+  TermList functionBody(Term::createFormula(rhs));
+  TermList letTerm(Term::createLet(function, functionBody, bodyTerm));
   return Formula::fromTerm(letTerm);
 }
 

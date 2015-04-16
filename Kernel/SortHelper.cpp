@@ -122,8 +122,7 @@ bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, Te
       }
       break;
     }
-    case Term::SF_LET_TERM_IN_TERM:
-    case Term::SF_LET_FORMULA_IN_TERM:
+    case Term::SF_TERM_LET:
     {
       TermList arg1 = *t->nthArgument(0);
       if (arg1.isTerm()) {
