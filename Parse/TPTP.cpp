@@ -186,11 +186,14 @@ void TPTP::parse()
     case END_ITE:
       endIte();
       break;
-    case END_LETTT:
-      endLettt();
+    case BINDING:
+      binding();
       break;
-    case END_LETFT:
-      endLetft();
+    case END_BINDING:
+      endBinding();
+      break;
+    case END_LET:
+      endLet();
       break;
     case END_SELECT:
       endSelect();
@@ -328,10 +331,6 @@ vstring TPTP::toString(Tag tag)
     return "$thf";
   case T_ITE:
     return "$ite";
-  case T_LETT:
-    return "$let_t";
-  case T_LETF:
-    return "$let_f";
   case T_LET:
     return "$let";
   case T_NAME:
@@ -854,16 +853,10 @@ void TPTP::readReserved(Token& tok)
     // $ite_t and $ite_f are left for compatibility, $ite is a generalisation of them
     tok.content = "$ite";
   }
-  else if (tok.content == "$let_tt" || tok.content == "$let_tf") {
-    tok.tag = T_LETT;
-    tok.content = "$let_t";
-  }
-  else if (tok.content == "$let_ft" || tok.content == "$let_ff") {
-    tok.tag = T_LETF;
-    tok.content = "$let_f";
-  }
-  else if (tok.content == "$let") {
+  else if (tok.content == "$let_tt" || tok.content == "$let_tf" || tok.content == "$let_ft" || tok.content == "$let_ff" || tok.content == "$let") {
     tok.tag = T_LET;
+    // all tokens of the form $let_XY are left for compatibility, $let is a generalisation of them
+    tok.content = "$let";
   }
   else if (tok.content == "$tType") {
     tok.tag = T_TTYPE;
@@ -1368,29 +1361,25 @@ void TPTP::tff()
 } // tff()
 
 /**
- * Process the end of the letft() formula
+ * Process the end of the $let expression
  * @since 27/07/2011 Manchester
  */
-void TPTP::endLetft()
+void TPTP::endLet()
 {
-  CALL("TPTP::endLetft");
+  CALL("TPTP::endLet");
 
-  TermList t = _termLists.pop();
-  Formula* f2 = _formulas.pop();
-  Formula* f1 = _formulas.pop();
-  ASS(f1->connective() == LITERAL);
-  ASS(f1->literal()->polarity());
+  TermList body = _termLists.pop();
+  TermList function = _termLists.pop();
+  TermList functionBody = _termLists.pop();
 
-  checkFlat(f1->literal());
-  TermList binder(Term::createFormula(f1));
-  TermList body(Term::createFormula(f2));
-  TermList ts(Term::createLet(binder,body,t));
-  _termLists.push(ts);
-} // endLetft
+  TermList let(Term::createLet(function, functionBody, body));
+  _termLists.push(let);
+} // endLet
 
 /**
- * Process the end of the itet() term
+ * Process the end of the $ite expression
  * @since 27/07/2011 Manchester
+ * @since 16/04/2015 Gothenburg, major changes to support FOOL
  */
 void TPTP::endIte()
 {
@@ -1405,23 +1394,6 @@ void TPTP::endIte()
   }
   _termLists.push(ts);
 } // endIte
-
-/**
- * Process the end of the let_tt() term
- * @since 27/07/2011 Manchester
- */
-void TPTP::endLettt()
-{
-  CALL("TPTP::endLettt");
-
-  TermList t = _termLists.pop();
-  TermList t2 = _termLists.pop();
-  TermList t1 = _termLists.pop();
-
-  checkFlat(t1);
-  TermList ts(Term::createLet(t1,t2,t));
-  _termLists.push(ts);
-} // endLettt
 
 /**
  * Process the end of the select() term
@@ -1490,67 +1462,6 @@ void TPTP::endStore()
 
     _termLists.push(ts);   
 } // endStore
-
-
-/**
- * Check that a term used in the lhs of a let() definition is flat. If not, raise
- * an exception.
- * @since 27/07/2011 Manchester
- */
-void TPTP::checkFlat(const TermList& ts)
-{
-  CALL("TPTP::checkFlat(TermList&)");
-
-  if (!ts.isTerm()) {
-    reportNonFlat(ts.toString());
-  }
-  checkFlat(ts.term());
-} // TPTP::checkFlat
-
-/**
- * Check that a sequence of arguments to a term t is a sequence of distinct variables.
- * If not, raise an exception.
- * @since 27/07/2011 Manchester
- */
-void TPTP::checkFlat(const Term* t)
-{
-  CALL("TPTP::checkFlat(Term*)");
-
-  Set<int> vs;
-  for (const TermList* ts = t->args(); !ts->isEmpty(); ts = ts->next()) {
-    if (!ts->isVar() || vs.contains(ts->var())) {
-      reportNonFlat(t->toString());
-    }
-    vs.insert(ts->var());
-  }
-} // TPTP::checkFlat
-
-/**
- * Check that a sequence of arguments to a literal t is a sequence of distinct variables.
- * If not, raise an exception.
- * @since 27/07/2011 Manchester
- */
-void TPTP::checkFlat(const Literal* l)
-{
-  CALL("TPTP::checkFlat(Literal*)");
-
-   Set<int> vs;
-  for (const TermList* ts = l->args(); !ts->isEmpty(); ts = ts->next()) {
-    if (!ts->isVar() || vs.contains(ts->var())) {
-      reportNonFlat(l->toString());
-    }
-    vs.insert(ts->var());
-  }
-} // TPTP::checkFlat
-
-/**
- * Report that a term is non-flat
- * @since 27/07/2011 Manchester
- */
-void TPTP::reportNonFlat(vstring expr)
-{
-  USER_ERROR((vstring)"The left-hand-side of a let-expression is not flat: " + expr);
-} // TPTP::reportNonFlat
 
 /**
  * Process include() declaration
@@ -1765,15 +1676,12 @@ void TPTP::funApp()
       _states.push(FORMULA);
       return;
 
-    case T_LETT:
-    case T_LETF:
-      consumeToken(T_LPAR);
+    case T_LET:
       addTagState(T_RPAR);
       _states.push(TERM);
       addTagState(T_COMMA);
-      _states.push(tok.tag == T_LETT ? TERM : FORMULA);
-      addTagState(T_ASS);
-      _states.push(tok.tag == T_LETT ? TERM : SIMPLE_FORMULA);
+      _states.push(BINDING);
+      consumeToken(T_LPAR);
       return;
 
     case T_VAR:
@@ -1794,6 +1702,52 @@ void TPTP::funApp()
       PARSE_ERROR("unexpectd token", tok);
   }
 } // TPTP::funApp
+
+void TPTP::binding()
+{
+  CALL("TPTP::binding");
+  Token tok = getTok(0);
+  resetToks();
+
+  if (tok.tag != T_NAME) {
+    USER_ERROR("Function or predicate definition expected inside $let");
+  }
+
+  _strings.push(tok.content);
+
+  _states.push(END_BINDING);
+  _states.push(TERM);
+  addTagState(T_ASS);
+  addTagState(T_RPAR);
+  _states.push(VAR_LIST);
+  addTagState(T_LPAR);
+}
+
+void TPTP::endBinding()
+{
+  CALL("TPTP::endBinding");
+  TermList body = _termLists.top();
+
+  Formula::VarList::Iterator vs(_bindLists.top());
+  unsigned arity = 0;
+  while (vs.hasNext()) {
+    arity++;
+    TermList var;
+    var.makeVar(vs.next());
+    _termLists.push(var);
+  }
+
+  vstring name = _strings.pop();
+  if (sortOf(body) == Sorts::SRT_BOOL) {
+    Formula* predicateApplication = createPredicateApplication(name, arity);
+    TermList predicate(Term::createFormula(predicateApplication));
+    _termLists.push(predicate);
+  } else {
+    TermList functionApplication = createFunctionApplication(name, arity);
+    _termLists.push(functionApplication);
+  }
+  _states.push(UNBIND_VARIABLES);
+}
 
 /**
  * Read a non-empty sequence of arguments, including the right parentheses
@@ -1923,8 +1877,7 @@ void TPTP::term()
     case T_ITE:
     case T_SELECT:
     case T_STORE:
-    case T_LETT:
-    case T_LETF:
+    case T_LET:
       _states.push(TERM_INFIX);
       _states.push(FUN_APP);
       return;
@@ -1989,13 +1942,8 @@ void TPTP::endTerm()
     return;
   }
 
-  if (name == toString(T_LETT)) {
-    _states.push(END_LETTT);
-    return;
-  }
-
-  if (name == toString(T_LETF)) {
-    _states.push(END_LETFT);
+  if (name == toString(T_LET)) {
+    _states.push(END_LET);
     return;
   }
 
@@ -2058,15 +2006,9 @@ void TPTP::formulaInfix()
     USER_ERROR("$store expression cannot be used as formula");
   }
 
-  if (name == toString(T_LETF)) {
+  if (name == toString(T_LET)) {
     _states.push(END_TERM_AS_FORMULA);
-    _states.push(END_LETFT);
-    return;
-  }
-
-  if (name == toString(T_LETT)) {
-    _states.push(END_TERM_AS_FORMULA);
-    _states.push(END_LETTT);
+    _states.push(END_LET);
     return;
   }
 
@@ -2076,9 +2018,6 @@ void TPTP::formulaInfix()
     // that was a variable
     TermList var;
     var.makeVar(_vars.insert(name));
-    if (sortOf(var) != Sorts::SRT_BOOL) {
-      PARSE_ERROR("Non-boolean expression " + name + " used in a formula context", tok.start);
-    }
     _termLists.push(var);
     _states.push(END_TERM_AS_FORMULA);
     return;
@@ -2456,7 +2395,9 @@ void TPTP::endTermAsFormula()
 {
   CALL("TPTP::endTermAsFormula");
   TermList t = _termLists.pop();
-  ASS(sortOf(t) == Sorts::SRT_BOOL);
+  if (sortOf(t) != Sorts::SRT_BOOL) {
+    USER_ERROR("Non-boolean term " + t.toString() + " is used in a formula context");
+  }
   _formulas.push(createFormula(t));
 } // endTermAsFormula
 
@@ -2862,8 +2803,7 @@ void TPTP::simpleFormula()
   case T_ITE:
   case T_SELECT:
   case T_STORE:
-  case T_LETT:
-  case T_LETF:
+  case T_LET:
     _states.push(FORMULA_INFIX);
     _states.push(FUN_APP);
     return;
@@ -3593,10 +3533,12 @@ const char* TPTP::toString(State s)
     return "END_ARGS";
   case MID_EQ:
     return "MID_EQ";
-  case END_LETTT:
-    return "END_LETTT";
-  case END_LETFT:
-    return "END_LETFT";
+  case BINDING:
+    return "BINDING";
+  case END_BINDING:
+    return "END_BINDING";
+  case END_LET:
+    return "END_LET";
   case UNBIND_VARIABLES:
     return "UNBIND_VARIABLES";
   case END_ITE:

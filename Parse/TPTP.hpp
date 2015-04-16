@@ -159,12 +159,8 @@ public:
     T_THF,
     /** anything that begins with $$ */
     T_DOLLARS,
-    /** all variations of if-then-else: $ite, $ite_t and $ite_f */
+    /** $ite: FOOL level-polymorphic if-then-else */
     T_ITE,
-    /** $let_t: $let-binding of a term */
-    T_LETT,
-    /** $let_f: $let-binding of a formula */
-    T_LETF,
     /** $let: FOOL level-polymorphic let-in */
     T_LET,
   };
@@ -231,10 +227,12 @@ public:
     END_ARGS,
     /** middle of equality */
     MID_EQ,
-    /** end of $lettt term */
-    END_LETTT,
-    /** end of $letft term */
-    END_LETFT,
+    /** end of $let expression */
+    END_LET,
+    /** start of function or predicate binding inside $let */
+    BINDING,
+    /** end of function or predicate binding inside $let */
+    END_BINDING,
     /** end of select array terms */
     END_SELECT,
     /** end of store array terms */
@@ -616,15 +614,12 @@ private:
   void include();
   void type();
   void endIte();
-  void endLetft();
-  void endLettt();
+  void binding();
+  void endBinding();
+  void endLet();
   void endSelect();
   void endStore();
   void addTagState(Tag);
-  static void checkFlat(const TermList& t);
-  static void checkFlat(const Term* t);
-  static void checkFlat(const Literal* t);
-  static void reportNonFlat(vstring);
 
   unsigned readSort();
   void bindVariable(int var,unsigned sortNumber);
