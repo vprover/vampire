@@ -58,7 +58,8 @@ TPTP::TPTP(istream& in)
     _allowedNames(0),
     _in(&in),
     _includeDirectory(""),
-    _currentColor(COLOR_TRANSPARENT)
+    _currentColor(COLOR_TRANSPARENT),
+    _functionCounter(0)
 {
 } // TPTP::TPTP
 
@@ -1374,6 +1375,14 @@ void TPTP::endLet()
 
   TermList let(Term::createLet(function, functionBody, body));
   _termLists.push(let);
+
+  List<LetFunctionName>::Iterator letFunctionsIterator(_letFunctionsBinds.pop());
+  while (letFunctionsIterator.hasNext()) {
+    LetFunctionName name = letFunctionsIterator.next();
+    List<LetFunctionReference> *letFunctions;
+    ALWAYS(_letFunctionsRenamings.find(name, letFunctions));
+    _letFunctionsRenamings.replace(name, letFunctions->tail());
+  }
 } // endLet
 
 /**
@@ -1706,19 +1715,20 @@ void TPTP::funApp()
 void TPTP::binding()
 {
   CALL("TPTP::binding");
-  _strings.push(name());
   _states.push(END_BINDING);
   _states.push(TERM);
   addTagState(T_ASS);
   addTagState(T_RPAR);
   _states.push(VAR_LIST);
   addTagState(T_LPAR);
+  _strings.push(name());
+  _letFunctionsBinds.push(0);
 }
 
-void TPTP::endBinding()
-{
+void TPTP::endBinding() {
   CALL("TPTP::endBinding");
   TermList body = _termLists.top();
+  bool isPredicate = sortOf(body) == Sorts::SRT_BOOL;
 
   Formula::VarList::Iterator vs(_bindLists.top());
   unsigned arity = 0;
@@ -1730,7 +1740,36 @@ void TPTP::endBinding()
   }
 
   vstring name = _strings.pop();
-  if (sortOf(body) == Sorts::SRT_BOOL) {
+
+  vstring newName = name;
+  unsigned newNumber;
+  bool renamed = false;
+  for (unsigned index = 0;; index++) {
+    if (!env.signature->functionExists(newName, arity) && !env.signature->predicateExists(newName, arity)) {
+      newNumber = isPredicate ? env.signature->addPredicate(newName, arity)
+                              : env.signature->addFunction(newName, arity);
+      if (index > 0) {
+        renamed = true;
+      }
+      break;
+    }
+    newName = name + Int::toString(index);
+  }
+
+  if (renamed) {
+    LetFunctionName function(name, arity);
+    _letFunctionsBinds.push(new List<LetFunctionName>(function, _letFunctionsBinds.pop()));
+
+    LetFunctionReference letFunction(isPredicate, newNumber);
+    List<LetFunctionReference> *letFunctions;
+    if (_letFunctionsRenamings.find(function, letFunctions)) {
+      _letFunctionsRenamings.replace(function, new List<LetFunctionReference>(letFunction, letFunctions));
+    } else {
+      _letFunctionsRenamings.insert(function, new List<LetFunctionReference>(letFunction));
+    }
+  }
+
+  if (isPredicate) {
     Formula* predicateApplication = createPredicateApplication(name, arity);
     TermList predicate(Term::createFormula(predicateApplication));
     _termLists.push(predicate);
@@ -1738,6 +1777,7 @@ void TPTP::endBinding()
     TermList functionApplication = createFunctionApplication(name, arity);
     _termLists.push(functionApplication);
   }
+
   _states.push(UNBIND_VARIABLES);
 }
 
@@ -1948,7 +1988,11 @@ void TPTP::endTerm()
     return;
   }
 
-  if (env.signature->predicateExists(name, arity)) {
+  LetFunctionName letFunction(name, arity);
+  List<LetFunctionReference>* letFunctions;
+  if (env.signature->predicateExists(name, arity) ||
+          (_letFunctionsRenamings.find(letFunction, letFunctions) &&
+                  letFunctions->isNonEmpty() && letFunctions->head().first)) {
     // if the function symbol is actually a predicate,
     // we need to construct a formula and wrap it inside a term
     _formulas.push(createPredicateApplication(name, arity));
@@ -2097,12 +2141,19 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
   ASS_GE(_termLists.size(), arity);
 
   int pred;
-  if (arity > 0) {
-    bool dummy;
-    pred = addPredicate(name,arity,dummy,_termLists.top());
-  }
-  else {
-    pred = env.signature->addPredicate(name,0);
+
+  List<LetFunctionReference>* letFunctions;
+  LetFunctionName function(name, arity);
+  if (_letFunctionsRenamings.find(function, letFunctions) && letFunctions->isNonEmpty()) {
+    ASS(letFunctions->head().first);
+    pred = letFunctions->head().second;
+  } else {
+    if (arity > 0) {
+      bool dummy;
+      pred = addPredicate(name, arity, dummy, _termLists.top());
+    } else {
+      pred = env.signature->addPredicate(name, 0);
+    }
   }
   if (pred == -1) { // equality
     TermList rhs = _termLists.pop();
@@ -2158,12 +2209,20 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   CALL("TPTP::createFunctionApplication");
   ASS_GE(_termLists.size(), arity);
 
-  bool dummy;
   unsigned fun;
-  if (arity > 0) {
-    fun = addFunction(name,arity,dummy,_termLists.top());
+
+  List<LetFunctionReference>* letFunctions;
+  LetFunctionName function(name, arity);
+  if (_letFunctionsRenamings.find(function, letFunctions) && letFunctions->isNonEmpty()) {
+    ASS(!letFunctions->head().first);
+    fun = letFunctions->head().second;
   } else {
-    fun = addUninterpretedConstant(name,dummy);
+    bool dummy;
+    if (arity > 0) {
+      fun = addFunction(name, arity, dummy, _termLists.top());
+    } else {
+      fun = addUninterpretedConstant(name, dummy);
+    }
   }
   Term* t = new(arity) Term;
   t->makeSymbol(fun,arity);
@@ -3587,6 +3646,24 @@ void TPTP::printStacks() {
   cout << "Formulas:";
   if   (!fit.hasNext()) cout << " <empty>";
   while (fit.hasNext()) cout << " " << fit.next()->toString();
+  cout << endl;
+
+  Map<LetFunctionName,List<LetFunctionReference>*>::Iterator lfit(_letFunctionsRenamings);
+  cout << "Let functions renamings:";
+  if (!lfit.hasNext()) cout << " <empty>";
+  LetFunctionName key;
+  List<LetFunctionReference>* val;
+  while (lfit.hasNext()) {
+    lfit.next(key, val);
+    cout << " (" << key.first << "/" << key.second << " ->";
+    List<LetFunctionReference>::Iterator i(val);
+    if (!i.hasNext()) cout << " <empty>";
+    while (i.hasNext()) {
+      LetFunctionReference f = i.next();
+      cout << " " << (f.first ? env.signature->predicateName(f.second) : env.signature->functionName(f.second));
+    }
+    cout << ")";
+  }
   cout << endl;
 }
 #endif

@@ -485,6 +485,14 @@ private:
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
+  typedef pair<vstring,unsigned> LetFunctionName;
+  typedef pair<bool,unsigned> LetFunctionReference;
+  /** function name and arity, mapped to function name in the signature */
+  Map<LetFunctionName,List<LetFunctionReference>*> _letFunctionsRenamings;
+
+  Stack<List<LetFunctionName>*> _letFunctionsBinds;
+
+  int _functionCounter;
 
   /**
    * Get the next characters at the position pos.
