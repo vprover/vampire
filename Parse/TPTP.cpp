@@ -1706,15 +1706,7 @@ void TPTP::funApp()
 void TPTP::binding()
 {
   CALL("TPTP::binding");
-  Token tok = getTok(0);
-  resetToks();
-
-  if (tok.tag != T_NAME) {
-    USER_ERROR("Function or predicate definition expected inside $let");
-  }
-
-  _strings.push(tok.content);
-
+  _strings.push(name());
   _states.push(END_BINDING);
   _states.push(TERM);
   addTagState(T_ASS);
@@ -1905,8 +1897,7 @@ void TPTP::term()
       Term *t = new(0) Term;
       t->makeSymbol(number, 0);
       t = env.sharing->insert(t);
-      TermList constant;
-      constant.setTerm(t);
+      TermList constant(t);
       _termLists.push(constant);
       return;
     }
@@ -2167,7 +2158,6 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   CALL("TPTP::createFunctionApplication");
   ASS_GE(_termLists.size(), arity);
 
-  TermList ts;
   bool dummy;
   unsigned fun;
   if (arity > 0) {
@@ -2186,7 +2176,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   if (safe) {
     t = env.sharing->insert(t);
   }
-  ts.setTerm(t);
+  TermList ts(t);
   return ts;
 }
 
@@ -2198,8 +2188,7 @@ Formula* TPTP::createFormula(TermList& term)
 {
   CALL("TPTP::createFormula");
   ASS(sortOf(term) == Sorts::SRT_BOOL);
-  static TermList tru;
-  tru.setTerm(Term::createFormula(new Formula(true)));
+  static TermList tru(Term::createFormula(new Formula(true)));
   Literal *l = createEquality(true, term, tru);
   return new AtomicFormula(l);
 }
@@ -2381,8 +2370,7 @@ void TPTP::endFormulaInsideTerm()
 {
   CALL("TPTP::endFormulaInsideTerm");
   Formula* f = _formulas.pop();
-  TermList ts;
-  ts.setTerm(Term::createFormula(f));
+  TermList ts(Term::createFormula(f));
   _termLists.push(ts);
 } // endFormulaInsideTerm
 
