@@ -155,7 +155,10 @@ public:
   TermList applyToResult(TermList t);
   Literal* applyToResult(Literal* l);
 
-  bool isIdentityOnQueryWhenResultBound() {return false;}
+  /**
+   * we can return true because nothing is bound to the result
+   */
+  bool isIdentityOnQueryWhenResultBound() {return true;}
 private:
   struct Applicator;
   Renaming _renaming;
