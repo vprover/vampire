@@ -310,7 +310,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     _trueInCCModel.reset();
 
     // cout << "Obtained a model " << endl;
-    int parentMaxAge = AGE_NOT_FILLED;
+    unsigned parentMaxAge = AGE_NOT_FILLED;
     LiteralStack::Iterator it(model);
     while(it.hasNext()) {
       Literal* lit = it.next();
@@ -1161,7 +1161,7 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
   //update "children" field of relevant SplitRecords
   SplitSet::Iterator bsit(*splits);
   bool should_reintroduce = false;
-  int cl_weight = cl->weight();
+  unsigned cl_weight = cl->weight();
   while(bsit.hasNext()) {
     SplitLevel slev=bsit.next();
     _db[slev]->children.push(cl);    

@@ -37,11 +37,11 @@ public:
 
   LimitsChangeEvent changedEvent;
 
-  int ageLimit() { return _maxAge; }
+  unsigned ageLimit() { return _maxAge; }                       // implicit cast will turn -1 to UINT_MAX, which may be intended
   bool ageLimited() { return _maxAge!=-1; }
 
-  int weightLimit() { return _maxWeight; }
-  int nonGoalWeightLimit() { return _maxNonGoalWeight; }
+  unsigned weightLimit() { return _maxWeight; }                 // implicit cast will turn -1 to UINT_MAX, which may be intended
+  unsigned nonGoalWeightLimit() { return _maxNonGoalWeight; }   // implicit cast will turn -1 to UINT_MAX, which may be intended
   bool weightLimited() { return _maxWeight!=-1; }
 
   bool fulfillsLimits(Clause* cl);

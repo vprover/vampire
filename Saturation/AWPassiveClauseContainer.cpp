@@ -347,8 +347,8 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   //of clauses, differing only in their order.
   //(unless one of _ageRation or _weightRatio is equal to 0)
 
-  int ageLimit=limits->ageLimit();
-  int weightLimit=limits->weightLimit();
+  unsigned ageLimit=limits->ageLimit();
+  unsigned weightLimit=limits->weightLimit();
 
   static Stack<Clause*> toRemove(256);
   ClauseQueue::Iterator wit(_weightQueue);
