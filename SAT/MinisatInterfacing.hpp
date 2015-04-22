@@ -93,7 +93,7 @@ protected:
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);
   
   Minisat::Var vampireVar2Minisat(unsigned vvar) {
-    ASS_G(vvar,0); ASS_LE(vvar,_solver.nVars());
+    ASS_G(vvar,0); ASS_LE(vvar,(unsigned)_solver.nVars());
     return (vvar-1);
   }
   

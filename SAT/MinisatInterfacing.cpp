@@ -108,7 +108,7 @@ SATSolver::VarAssignment MinisatInterfacing::getAssignment(unsigned var)
 {
   CALL("MinisatInterfacing::getAssignment");
 	ASS_EQ(_status, SATISFIABLE);  
-	ASS_G(var,0); ASS_LE(var,_solver.nVars());
+	ASS_G(var,0); ASS_LE(var,(unsigned)_solver.nVars());
   lbool res;
     
   Minisat::Var mvar = vampireVar2Minisat(var);  
@@ -129,7 +129,7 @@ SATSolver::VarAssignment MinisatInterfacing::getAssignment(unsigned var)
 bool MinisatInterfacing::isZeroImplied(unsigned var)
 {
   CALL("MinisatInterfacing::isZeroImplied");
-  ASS_G(var,0); ASS_LE(var,_solver.nVars());
+  ASS_G(var,0); ASS_LE(var,(unsigned)_solver.nVars());
   
   /* between calls to _solver.solve*
    value is undefined for all accept zero implied variables */

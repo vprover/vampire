@@ -107,7 +107,7 @@ void LingelingInterfacing::ensureVarCount(unsigned newVarCnt)
 void LingelingInterfacing::suggestPolarity(unsigned var, unsigned pol)
 {
    CALL("LingelingInterfacing::suggestPolarity");
-   ASS_G(var,0); ASS_LE(var,lglmaxvar(_solver));
+   ASS_G(var,0); ASS_LE(var,(unsigned)lglmaxvar(_solver));
 
    int vvar = vampireVar2Lingeling(var);
    lglsetphase(_solver,pol ? vvar : -vvar);
@@ -333,7 +333,7 @@ void LingelingInterfacing::printLingelingStatistics()
 bool LingelingInterfacing::isZeroImplied(unsigned var)
 {
   CALL("LingelingInterfacing::isZeroImplied");
-  ASS_G(var,0); ASS_LE(var,lglmaxvar(_solver));
+  ASS_G(var,0); ASS_LE(var,(unsigned)lglmaxvar(_solver));
   
   return lglfixed(_solver, vampireVar2Lingeling(var));
 }
