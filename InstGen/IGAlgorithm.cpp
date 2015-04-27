@@ -265,7 +265,7 @@ bool IGAlgorithm::isSelected(Literal* lit)
 {
   CALL("IGAlgorithm::isSelected");
 
-  return _satSolver->trueInAssignment(_gnd->ground(lit,_use_niceness));
+  return _satSolver->trueInAssignment(_gnd->groundLiteral(lit,_use_niceness));
 }
 
 /**

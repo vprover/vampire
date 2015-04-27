@@ -38,7 +38,7 @@ public:
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
   Clause* perform(Clause* cl);
 private:
-  void addClauseToIndex(Clause* cl);
+  void addClauseToIndex(Clause* cl, SATLiteralStack& satLits);
 
   Clause* tryResolvingAway(Clause* cl, unsigned litIdx, SATLiteralStack& slits);
 

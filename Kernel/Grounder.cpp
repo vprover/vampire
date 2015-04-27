@@ -122,7 +122,7 @@ SATClause* Grounder::groundNonProp(Clause* cl, bool use_n, Literal** normLits)
  * Return SATLiteral corresponding to @c lit.
  * use_n indcates whether we record the source for use in niceness computation
  */
-SATLiteral Grounder::ground(Literal* lit,bool use_n)
+SATLiteral Grounder::groundLiteral(Literal* lit,bool use_n)
 {
   CALL("Grounder::ground(Literal*)");
 

@@ -20,6 +20,7 @@
 
 #include "SAT/SATClause.hpp"
 #include "SAT/SATSolver.hpp"
+#include "SAT/SATInference.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -66,20 +67,27 @@ void GlobalSubsumption::detach()
 }
 
 /**
- * Add clause to the SATSolver in the index. If the resuting set is
+ * Add clause to the SATSolver in the index.
+ * The clause has already been grounded and the corresponding literals come in @b satLits,
+ * but a propositional clause now needs to be created from them.
+ *
+ * If the resulting set is
  * unsatisfiable, it means we have a refutation and
  * @c MainLoop::RefutationFoundException is thrown.
  */
-void GlobalSubsumption::addClauseToIndex(Clause* cl)
+void GlobalSubsumption::addClauseToIndex(Clause* cl, SATLiteralStack& satLits)
 {
   CALL("GlobalSubsumption::addClauseToIndex");
 
   SATSolver& solver = _index->getSolver();
   Grounder& grounder = _index->getGrounder();
 
-   ASS_NEQ(solver.solve(true),SATSolver::UNSATISFIABLE);
+  ASS_NEQ(solver.solve(true),SATSolver::UNSATISFIABLE);
 
-  SATClause* scl = grounder.ground(cl,false);
+  SATClause* scl = SATClause::fromStack(satLits);
+  SATInference* inf = new FOConversionInference(UnitSpec(cl));
+  scl->setInference(inf);
+
   solver.ensureVarCount(grounder.satVarCnt());
   solver.addClause(scl);
 
@@ -108,13 +116,7 @@ Clause* GlobalSubsumption::perform(Clause* cl)
     return cl;
   }
 
-
   if(cl->color()==COLOR_LEFT) {
-    return cl;
-  }
-
-  if(cl->length()==1) {
-    addClauseToIndex(cl);
     return cl;
   }
 
@@ -122,13 +124,15 @@ Clause* GlobalSubsumption::perform(Clause* cl)
 
   static SATLiteralStack slits;
   slits.reset();
-
   grounder.groundNonProp(cl, slits, false);
 
-  addClauseToIndex(cl);
+  addClauseToIndex(cl,slits);
+
+  if(cl->length()==1) {
+    return cl;
+  }
 
   unsigned clen = slits.size();
-
 
   for(unsigned resolvedIdx = 0; resolvedIdx<clen; resolvedIdx++) {
     Clause* replacement = tryResolvingAway(cl, resolvedIdx, slits);

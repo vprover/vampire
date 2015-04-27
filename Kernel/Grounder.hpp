@@ -26,12 +26,13 @@ public:
   
   Grounder() : _nextSatVar(1), _satSolver(0) {}
   Grounder(SATSolver* satSolver) : _nextSatVar(1), _satSolver(satSolver) {}
-  virtual ~Grounder() { CALL("Kernel::~Grounder"); }
+  virtual ~Grounder() { CALL("Grounder::~Grounder"); }
 
+  // TODO: sort out the intended semantics and the names of these four beasts:
+  SATLiteral groundLiteral(Literal* lit,bool use_n);
   SATClause* ground(Clause* cl,bool use_n);
   SATClause* groundNonProp(Clause* cl, bool use_n, Literal** normLits=0);
   void groundNonProp(Clause* cl, SATLiteralStack& acc, bool use_n, Literal** normLits=0);
-  SATLiteral ground(Literal* lit,bool use_n);
 
   unsigned satVarCnt() const { return _nextSatVar-1; }
 
@@ -49,7 +50,6 @@ protected:
 
 private:
   SATLiteral groundNormalized(Literal*);
-
 
   unsigned _nextSatVar;
   /** Map from positive literals to SAT variable numbers */
