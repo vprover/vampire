@@ -91,7 +91,6 @@ public:
 
   virtual SATClause* getRefutation() {
     CALL("TWLSolver::getRefutation");
-    ASS_EQ(_status,SATSolver::UNSATISFIABLE);
     return _refutation;
   }
 
