@@ -231,3 +231,50 @@ TEST_FUN(testSATSolverInterface)
   testInterface(sTWL);  
 }
 
+void testAssumptions(SATSolverWithAssumptions &s) {
+  CALL("testAssumptions");
+
+  ensurePrepared(s);
+
+  s.addClause(getClause("ab"));
+  s.addClause(getClause("cde"));
+
+  static SATLiteralStack assumps;
+  assumps.reset();
+
+  assumps.push(getLit('X'));
+  assumps.push(getLit('A'));
+  assumps.push(getLit('B'));
+  assumps.push(getLit('C'));
+  assumps.push(getLit('D'));
+  assumps.push(getLit('E'));
+  assumps.push(getLit('Y'));
+
+  ASS_EQ(s.solveUnderAssumptions(assumps),SATSolver::UNSATISFIABLE);
+
+  const SATLiteralStack& failed = s.failedAssumptions();
+  for (int i = 0; i < failed.size(); i++) {
+    SATLiteral lit = failed[i];
+    if (lit.polarity()) {
+      cout << (char)('A' + lit.var()-1);
+    } else {
+      cout << (char)('a' + lit.var()-1);
+    }
+  }
+  cout << endl;
+}
+
+TEST_FUN(testSolvingUnderAssumptions)
+{
+  cout << endl << "Minisat" << endl;
+  MinisatInterfacing sMini(*env.options,true);
+  testAssumptions(sMini);
+
+  cout << endl << "Lingeling" << endl;
+  LingelingInterfacing sLing(*env.options,true);
+  testAssumptions(sLing);
+
+  cout << endl << "TWL" << endl;
+  TWLSolver sTWL(*env.options,true);
+  testAssumptions(sTWL);
+}

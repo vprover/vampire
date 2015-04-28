@@ -89,6 +89,8 @@ public:
     // unsupported by minisat; intentionally no-op
   };
   
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+
 protected:    
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);
   

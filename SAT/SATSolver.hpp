@@ -173,28 +173,41 @@ public:
     CALL("SATSolver::solveUnderAssumptions");
 
     ASS(!hasAssumptions());
+    _failedAssumptionBuffer.reset();
+
+    Status res = solve(conflictCountLimit);
+    if (res == UNSATISFIABLE) {
+      return res;
+    }
+
     SATLiteralStack::ConstIterator it(assumps);
     while (it.hasNext()) {
-      addAssumption(it.next());
-    }
-    Status res = solve(conflictCountLimit);
+      SATLiteral lit = it.next();
+      addAssumption(lit);
+      _failedAssumptionBuffer.push(lit);
 
-    // TODO: here we could call solve after each addition to discover an assumption subset in a form of a "prefix" of the whole set
-
-    if (res == UNSATISFIABLE) {
-      _failedAssumptionBuffer.reset();
-      _failedAssumptionBuffer.loadFromIterator(SATLiteralStack::BottomFirstIterator(assumps));
+      res = solve(conflictCountLimit);
+      if (res == UNSATISFIABLE) {
+        break;
+      }
     }
+
     retractAllAssumptions();
     return res;
   }
+
   Status solveUnderAssumptions(const SATLiteralStack& assumps, bool onlyPropagate=false) { return solveUnderAssumptions(assumps,onlyPropagate ? 0u : UINT_MAX); }
 
+  /**
+   * When solveUnderAssumptions(assumps) returns UNSATISFIABLE,
+   * failedAssumptions contain a subset of assumps that is sufficient
+   * for this UNSATISFIABLE status.
+   */
   virtual const SATLiteralStack& failedAssumptions() {
     return _failedAssumptionBuffer;
   }
 
-private:
+protected:
   SATLiteralStack _failedAssumptionBuffer;
 };
 

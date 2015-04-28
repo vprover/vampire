@@ -92,8 +92,10 @@ public:
 	//Not used in Lingeling
 	virtual void recordSource(unsigned var, Literal* lit) { /* intentionally no-op */ };
 
+	Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+
 protected:
-  void solveModuloAssumptionsAndSetStatus(int conflictCountLimit = -1);
+  void solveModuloAssumptionsAndSetStatus(const SATLiteralStack& assumps, int conflictCountLimit = -1);
   
   static int vampireVar2Lingeling(unsigned vvar) {
     ASS_G(vvar,0);

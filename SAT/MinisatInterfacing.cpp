@@ -37,6 +37,32 @@ void MinisatInterfacing::ensureVarCount(unsigned newVarCnt)
   }
 }
 
+SATSolver::Status MinisatInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+{
+  CALL("MinisatInterfacing::solveUnderAssumptions");
+
+  ASS(!hasAssumptions());
+
+  // load assumptions:
+  SATLiteralStack::ConstIterator it(assumps);
+  while (it.hasNext()) {
+    _assumptions.push(vampireLit2Minisat(it.next()));
+  }
+
+  solveModuloAssumptionsAndSetStatus(conflictCountLimit);
+
+  if (_status == SATSolver::UNSATISFIABLE) {
+    // unload minisat's internal conflict clause to _failedAssumptionBuffer
+    _failedAssumptionBuffer.reset();
+    Minisat::LSet& conflict = _solver.conflict;
+    for (int i = 0; i < conflict.size(); i++) {
+      _failedAssumptionBuffer.push(minisatLit2Vampire(conflict[i]).opposite());
+    }
+  }
+
+  return _status;
+}
+
 /**
  * Solve modulo assumptions and set status.
  * @b conflictCountLimit as with addAssumption.
@@ -47,7 +73,7 @@ void MinisatInterfacing::solveModuloAssumptionsAndSetStatus(unsigned conflictCou
   
   // TODO: consider calling simplify(); or only from time to time?
     
-  _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty     
+  _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty
   lbool res = _solver.solveLimited(_assumptions);
   
   if (res == l_True) {

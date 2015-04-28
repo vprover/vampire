@@ -113,10 +113,33 @@ void LingelingInterfacing::suggestPolarity(unsigned var, unsigned pol)
    lglsetphase(_solver,pol ? vvar : -vvar);
  }
 
+SATSolver::Status LingelingInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+{
+  CALL("LingelingInterfacing::solveUnderAssumptions");
+
+  ASS(!hasAssumptions());
+
+  solveModuloAssumptionsAndSetStatus(assumps,conflictCountLimit);
+
+  if (_status == SATSolver::UNSATISFIABLE) {
+    // fill _failedAssumptionBuffer
+    _failedAssumptionBuffer.reset();
+    for (int i = 0; i < assumps.size(); i++) {
+      SATLiteral assump = assumps[i];
+      int lassump = vampireLit2Lingeling(assump);
+      if (lglfailed(_solver,lassump)) {
+        _failedAssumptionBuffer.push(assump);
+      }
+    }
+  }
+
+  return _status;
+}
+
 /**
  * Solve modulo assumptions and set status. 
  */
-void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(int conflictCountLimit) 
+void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(const SATLiteralStack& assumps, int conflictCountLimit)
 {
   CALL("LingelingInterfacing::solveModuloAssumptionsAndSetStatus");
   
@@ -128,8 +151,8 @@ void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(int conflictCountL
   lglsetopt(_solver,"memlim",remMem);  
   lglsetopt(_solver,"clim",conflictCountLimit);
   
-  for (size_t i=0; i < _assumptions.size(); i++) {
-    lglassume(_solver,vampireLit2Lingeling(_assumptions[i]));
+  for (size_t i=0; i < assumps.size(); i++) {
+    lglassume(_solver,vampireLit2Lingeling(assumps[i]));
   }  
   
   TimeCounter tc(TC_LINGELING);
@@ -187,7 +210,7 @@ void LingelingInterfacing::addClause(SATClause* cl)
 SATSolver::Status LingelingInterfacing::solve(unsigned conflictCountLimit) 
 {
   CALL("LingelingInterfacing::solve");      
-  solveModuloAssumptionsAndSetStatus(conflictCountLimit == UINT_MAX ? -1 : (int)conflictCountLimit);  
+  solveModuloAssumptionsAndSetStatus(_assumptions,conflictCountLimit == UINT_MAX ? -1 : (int)conflictCountLimit);
   return _status;
 }
 
