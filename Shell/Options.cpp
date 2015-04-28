@@ -887,13 +887,13 @@ void Options::Options::init()
 
 //*********************** InstGen  ***********************
 
-    _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);
+    _globalSubsumption = ChoiceOptionValue<GlobalSubsumption>("global_subsumption","gs",GlobalSubsumption::OFF,{"off","on","full"});
     _globalSubsumption.description="";
     _lookup.insert(&_globalSubsumption);
     _globalSubsumption.tag(OptionTag::INST_GEN);
     _globalSubsumption.addProblemConstraint(hasNonUnits());
     _globalSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
-    _globalSubsumption.setRandomChoices({"on","off"});
+    _globalSubsumption.setRandomChoices({"off","on","full"});
 
     _instGenBigRestartRatio = FloatOptionValue("inst_gen_big_restart_ratio","igbrr",0.0);
     _instGenBigRestartRatio.description=

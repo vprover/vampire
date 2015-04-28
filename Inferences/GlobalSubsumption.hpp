@@ -26,12 +26,12 @@ public:
   CLASS_NAME(GlobalSubsumption);
   USE_ALLOCATOR(GlobalSubsumption);
 
-  GlobalSubsumption() : _index(0), _allowExtraAttachment(false) {}
+  GlobalSubsumption(bool full) : _index(0), _allowExtraAttachment(false), _uprOnly(!full) {}
   /**
    * The attach function must not be called when the constructor is used
    */
-  GlobalSubsumption(GroundingIndex* idx, bool allowExtraAttachment=false)
-  : _index(idx), _allowExtraAttachment(allowExtraAttachment) {}
+  GlobalSubsumption(GroundingIndex* idx, bool full, bool allowExtraAttachment=false)
+  : _index(idx), _allowExtraAttachment(allowExtraAttachment), _uprOnly(!full) {}
 
   void attach(SaturationAlgorithm* salg);
   void detach();
@@ -48,6 +48,11 @@ private:
    * be attached to multiple saturation algorithms
    */
   bool _allowExtraAttachment;
+
+  /**
+   * Call the SAT solver using the cheap, unit-propagation-only calls.
+   */
+  bool _uprOnly;
 };
 
 };

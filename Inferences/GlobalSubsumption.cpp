@@ -91,7 +91,7 @@ void GlobalSubsumption::addClauseToIndex(Clause* cl, SATLiteralStack& satLits)
   solver.ensureVarCount(grounder.satVarCnt());
   solver.addClause(scl);
 
-  if(solver.solve(true)==SATSolver::UNSATISFIABLE) {
+  if(solver.solve(_uprOnly)==SATSolver::UNSATISFIABLE) {
     //just a dummy inference, the correct one will be in the InferenceStore
     Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
     Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, inf);
@@ -147,8 +147,6 @@ Clause* GlobalSubsumption::tryResolvingAway(Clause* cl, unsigned litIdx, SATLite
 {
   CALL("GlobalSubsumption::tryResolvingAway");
 
-  bool uprOnly = true;
-
   unsigned clen = cl->length();
   SATSolverWithAssumptions& solver = _index->getSolver();
 
@@ -159,7 +157,7 @@ Clause* GlobalSubsumption::tryResolvingAway(Clause* cl, unsigned litIdx, SATLite
     }
     solver.addAssumption(slits[i].opposite());
 
-    if(solver.solve(uprOnly)==SATSolver::UNSATISFIABLE) {
+    if(solver.solve(_uprOnly)==SATSolver::UNSATISFIABLE) {
 	static LiteralStack survivors;
 	survivors.reset();
 

@@ -89,9 +89,9 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 
   _gnd = new  IGGrounder(_satSolver);
 
-  if(_opt.globalSubsumption()) {
+  if(_opt.globalSubsumption() != Options::GlobalSubsumption::OFF) {
     _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder(), opt);
-    _globalSubsumption = new GlobalSubsumption(_groundingIndex.ptr());
+    _globalSubsumption = new GlobalSubsumption(_groundingIndex.ptr(),_opt.globalSubsumption()==Options::GlobalSubsumption::FULL);
   }
 
   _variantIdx = new ClauseVariantIndex();
@@ -132,7 +132,7 @@ void IGAlgorithm::init()
 
   if(_opt.instGenWithResolution()) {
     _saturationIndexManager = new IndexManager(0);
-    if(_opt.globalSubsumption()) {
+    if(_opt.globalSubsumption()!= Options::GlobalSubsumption::OFF) {
       _saturationIndexManager->provideIndex(GLOBAL_SUBSUMPTION_INDEX, _groundingIndex.ptr());
     }
 
