@@ -40,8 +40,6 @@ public:
 private:
   void addClauseToIndex(Clause* cl, SATLiteralStack& satLits);
 
-  Clause* tryResolvingAway(Clause* cl, unsigned litIdx, SATLiteralStack& slits);
-
   GroundingIndex* _index;
   /**
    * If true, the attach and detach functions do nothing, so that the rule can

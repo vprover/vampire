@@ -155,9 +155,9 @@ public:
 class SATSolverWithAssumptions: 
       public SATSolver {
 public:
-  
+
   // The first three functions represent the original TWLSolver-style of interface ...
-  
+  // (consider them deprecated!)
   virtual void addAssumption(SATLiteral lit) = 0;
   virtual void retractAllAssumptions() = 0;
   virtual bool hasAssumptions() const = 0;
