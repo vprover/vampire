@@ -251,8 +251,12 @@ void IGAlgorithm::processUnprocessed()
     SATClause* sc = _gnd->ground(cl,_use_niceness);
     sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
 
+    // sc could have been a tautology, in which case sc == 0 after the removeDuplicateLiterals call
+    // however, _satSolver needs to now about all potentially new variables
     _satSolver->ensureVarCount(_gnd->satVarCnt());
-    _satSolver->addClause(sc);
+    if (sc) {
+      _satSolver->addClause(sc);
+    }
   }
 
   if(_satSolver->solve()==SATSolver::UNSATISFIABLE) {
@@ -433,8 +437,12 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
   SATClause* sc = _gnd->ground(cl,_use_niceness);
   sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
 
+  // sc could have been a tautology, in which case sc == 0 after the removeDuplicateLiterals call
+  // however, _satSolver needs to now about all potentially new variables
   _satSolver->ensureVarCount(_gnd->satVarCnt());
-  _satSolver->addClause(sc);
+  if (sc) {
+    _satSolver->addClause(sc);
+  }
 
   if(_satSolver->solve(true)==SATSolver::UNSATISFIABLE) {
     Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
