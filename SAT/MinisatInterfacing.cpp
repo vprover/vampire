@@ -60,6 +60,8 @@ SATSolver::Status MinisatInterfacing::solveUnderAssumptions(const SATLiteralStac
     }
   }
 
+  _assumptions.clear();
+
   return _status;
 }
 
