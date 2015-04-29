@@ -111,6 +111,13 @@ Comparison PDMerger::Normalizer::compare(Formula* fm1, Formula* fm2)
       }
       break;
 
+    case BOOL_TERM:
+      comp = compare(f1->toEquality()->literal(),f2->literal());
+      if (comp != EQUAL) {
+        return comp;
+      }
+      break;
+
     case FORALL:
     case EXISTS:
       comp = Int::compare(f1->vars()->length(),f2->vars()->length());

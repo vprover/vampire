@@ -341,7 +341,7 @@ vstring TPTPPrinter::toString(const Formula* f)
   CALL("TPTPPrinter::toString(const Formula*)");
   static vstring names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
-      "~", "!", "?", "", "", "", "$false", "$true"};
+      "~", "!", "?", "$term", "$false", "$true"};
   ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
   Connective c = f->connective();
   vstring con = names[(int)c];
@@ -386,6 +386,10 @@ vstring TPTPPrinter::toString(const Formula* f)
       }
       return result + "] : (" + toString(f->qarg()) + ") )";
     }
+
+  case BOOL_TERM:
+    return f->getBooleanTerm().toString();
+
   case FALSE:
   case TRUE:
     return con;

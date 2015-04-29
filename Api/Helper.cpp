@@ -192,7 +192,7 @@ vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
 
   static vstring names [] =
   { "", " & ", " | ", " => ", " <=> ", " <~> ",
-      "~", "!", "?", "", "", "", "$false", "$true"};
+      "~", "!", "?", "$term", "$false", "$true"};
   ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
   Connective c = f->connective();
   vstring con = names[(int)c];
@@ -255,6 +255,9 @@ vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
     }
     return result + "] : (" + toString(f->qarg()) + ") )";
   }
+
+  case BOOL_TERM:
+    return f->getBooleanTerm().toString();
 
   case FALSE:
   case TRUE:

@@ -497,6 +497,9 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
     return new QuantifiedFormula(f->connective(),newVars,arg);
   }
 
+  case BOOL_TERM:
+    return applyImpl<ProcessSpecVars>(f->toEquality(), applicator, noSharing);
+
   case TRUE:
   case FALSE:
     return f;

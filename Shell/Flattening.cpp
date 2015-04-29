@@ -101,6 +101,7 @@ Formula* Flattening::flatten (Formula* f)
   case LITERAL:
   case TRUE:
   case FALSE:
+  case BOOL_TERM:
     return f;
 
   case AND:

@@ -148,6 +148,9 @@ void InterpolantMinimizer::prettyPrint(Formula* formula, ostream& out)
         return;
     case EXISTS:
         return;
+    case BOOL_TERM:
+        out << formula->getBooleanTerm().toString();
+        return;
     case TRUE:
         out << "true";
         return;

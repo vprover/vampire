@@ -777,6 +777,9 @@ bool Property::hasXEqualsY(const Formula* f)
     case FALSE:
       break;
 
+    case BOOL_TERM:
+      return true;
+
 #if VDEBUG
     default:
       ASSERTION_VIOLATION;

@@ -646,6 +646,7 @@ private:
       case XOR:
       case FORALL:
       case EXISTS:
+      case BOOL_TERM:
 	flattenable = false;
 	break;
       default:
@@ -828,6 +829,9 @@ Formula* PDInliner::PDef::apply(int polarity, Formula* form)
     return new QuantifiedFormula(con, vars, newArg);
   }
 
+  case BOOL_TERM:
+    return apply(polarity, form->toEquality());
+
   case TRUE:
   case FALSE:
     return form;
@@ -958,6 +962,9 @@ Formula* PDInliner::apply(int polarity, Formula* form, InliningState& state)
     Formula::VarList* vars = form->vars()->copy();
     return new QuantifiedFormula(con, vars, newArg);
   }
+
+    case BOOL_TERM:
+      return apply(polarity, form->toEquality(), state);
 
   case TRUE:
   case FALSE:

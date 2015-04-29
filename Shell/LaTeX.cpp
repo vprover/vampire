@@ -269,6 +269,9 @@ vstring LaTeX::toString (Formula* f) const
     return result + ")" + toString(f->qarg(),c);
   }
 
+  case BOOL_TERM:
+    return f->getBooleanTerm().toString();
+
   case FALSE:
   case TRUE:
     return con;

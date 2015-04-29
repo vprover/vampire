@@ -2247,9 +2247,7 @@ Formula* TPTP::createFormula(TermList& term)
 {
   CALL("TPTP::createFormula");
   ASS(sortOf(term) == Sorts::SRT_BOOL);
-  static TermList tru(Term::createFormula(new Formula(true)));
-  Literal *l = createEquality(true, term, tru);
-  return new AtomicFormula(l);
+  return new BoolTermFormula(term);
 }
 
 /**

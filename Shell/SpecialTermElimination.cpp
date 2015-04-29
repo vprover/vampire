@@ -407,6 +407,11 @@ Formula* SpecialTermElimination::process(Formula* f)
     return new QuantifiedFormula(f->connective(),f->vars(),arg);
   }
 
+  case BOOL_TERM:
+  {
+    return f->toEquality();
+  }
+
   case TRUE:
   case FALSE:
     return f;

@@ -41,11 +41,6 @@ public:
   /** Return the connective */
   Connective connective () const { return _connective; }
 
-  TermList termLetLhs() const;
-  TermList termLetRhs() const;
-  Literal* formulaLetLhs() const;
-  Formula* formulaLetRhs() const;
-  Formula* letBody() const;
   const FormulaList* args() const;
   FormulaList* args();
   FormulaList** argsPtr();
@@ -61,6 +56,10 @@ public:
   Formula* uarg();
   const Literal* literal() const;
   Literal* literal();
+  const Formula* toEquality() const;
+  Formula* toEquality();
+  const TermList getBooleanTerm() const;
+  TermList getBooleanTerm();
   VarList* freeVariables () const;
   VarList* boundVariables () const;
 
@@ -93,8 +92,6 @@ public:
 
   static Formula* trueFormula();
   static Formula* falseFormula();
-
-  static Formula* fromTerm(TermList term);
 
   static Formula* createITE(Formula* condition, Formula* thenArg, Formula* elseArg);
   static Formula* createTermLet(TermList lhs, TermList rhs, Formula* body);
@@ -280,6 +277,36 @@ class JunctionFormula
   FormulaList* _args;
 }; // class JunctionFormula
 
+
+/**
+ * A formula that is just a boolean term.
+ * @since 02/06/2007 Manchester
+ */
+class BoolTermFormula
+  : public Formula
+{
+ public:
+  BoolTermFormula (TermList ts)
+    : Formula(BOOL_TERM),
+      _ts(ts)
+  {}
+
+  /** Return the variable */
+  const TermList getTerm() const { return _ts; }
+  TermList getTerm() { return _ts; }
+
+  /** trivially convert to x = $true */
+  const Formula* toEquality() const;
+  Formula* toEquality();
+
+  // use allocator to (de)allocate objects of this class
+  CLASS_NAME(BoolTermFormula);
+  USE_ALLOCATOR(BoolTermFormula);
+ protected:
+  /** boolean term */
+  TermList _ts;
+}; // class BoolTermFormula
+
 // definitions, had to be put out of class
 
 /** Return the list of variables of a quantified formula */
@@ -396,6 +423,34 @@ Formula* Formula::right()
 {
   ASS(_connective == IFF || _connective == XOR || _connective == IMP);
   return static_cast<BinaryFormula*>(this)->rhs();
+}
+
+/** Convert a boolean variable formula to equality */
+inline
+const Formula* Formula::toEquality() const
+{
+  ASS(_connective == BOOL_TERM);
+  return static_cast<const BoolTermFormula*>(this)->toEquality();
+}
+/** Convert a boolean variable formula to equality */
+inline
+Formula* Formula::toEquality()
+{
+  ASS(_connective == BOOL_TERM);
+  return static_cast<BoolTermFormula*>(this)->toEquality();
+}
+
+inline
+const TermList Formula::getBooleanTerm() const
+{
+  ASS(_connective == BOOL_TERM);
+  return static_cast<const BoolTermFormula*>(this)->getTerm();
+}
+inline
+TermList Formula::getBooleanTerm()
+{
+  ASS(_connective == BOOL_TERM);
+  return static_cast<BoolTermFormula*>(this)->getTerm();
 }
 
 // operators

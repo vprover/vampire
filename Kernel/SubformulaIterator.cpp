@@ -172,6 +172,10 @@ Formula* SubformulaIterator::next (int& resultPolarity)
     _currentPolarity = resultPolarity;
     break;
 
+  case BOOL_TERM:
+    _current = result->toEquality();
+    break;
+
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

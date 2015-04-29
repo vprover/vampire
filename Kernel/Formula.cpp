@@ -98,6 +98,9 @@ void Formula::destroy ()
     delete static_cast<QuantifiedFormula*>(this);
     return;
 
+  case BOOL_TERM:
+    delete static_cast<BoolTermFormula*>(this);
+
   case TRUE:
   case FALSE:
     delete this;
@@ -216,7 +219,7 @@ void Formula::destroy ()
 vstring Formula::toString (Connective c)
 {
   static vstring names [] =
-    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$false", "$true"};
+    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true"};
   ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
 
   return names[(int)c];
@@ -292,6 +295,9 @@ vstring Formula::toString () const
       return result + qarg()->toStringInScopeOf(c);
     }
 
+  case BOOL_TERM:
+    return "$term{" + getBooleanTerm().toString() + "}";
+
   case TRUE:
   case FALSE:
     return con;
@@ -320,6 +326,7 @@ bool Formula::parenthesesRequired (Connective outer) const
     case NOT:
     case FORALL:
     case EXISTS:
+    case BOOL_TERM:
     case TRUE:
     case FALSE:
       return false;
@@ -554,6 +561,10 @@ void Formula::collectPredicatesWithPolarity(Stack<pair<unsigned,int> >& acc, int
       qarg()->collectPredicatesWithPolarity(acc,polarity);
       return;
 
+    case BOOL_TERM:
+      toEquality()->collectPredicatesWithPolarity(acc, polarity);
+      return;
+
     case TRUE:
     case FALSE:
       return;
@@ -608,6 +619,16 @@ Formula* JunctionFormula::generalJunction(Connective c, FormulaList* args)
     return FormulaList::pop(args);
   }
   return new JunctionFormula(c, args);
+}
+
+const Formula* BoolTermFormula::toEquality() const {
+  static TermList tru(Term::createFormula(trueFormula()));
+  return new AtomicFormula(Literal::createEquality(true, _ts, tru, Sorts::SRT_BOOL));
+}
+
+Formula* BoolTermFormula::toEquality() {
+  static TermList tru(Term::createFormula(trueFormula()));
+  return new AtomicFormula(Literal::createEquality(true, _ts, tru, Sorts::SRT_BOOL));
 }
 
 /**
@@ -672,15 +693,6 @@ Formula* Formula::falseFormula()
   return res;
 }
 
-Formula* Formula::fromTerm(TermList ts)
-{
-  CALL("Formula::fromTerm(TermList*)");
-  TermList tru;
-  tru.setTerm(Term::createFormula(new Formula(true)));
-  Literal *l = Literal::createEquality(true, ts, tru, Sorts::SRT_BOOL);
-  return new AtomicFormula(l);
-}
-
 /**
  * Creates a formula of the form $ite(c, a, b), where a, b, c are formulas
  * @since 16/04/2015 Gothenburg
@@ -691,7 +703,7 @@ Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseA
   TermList thenTerm(Term::createFormula(thenArg));
   TermList elseTerm(Term::createFormula(elseArg));
   TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm));
-  return Formula::fromTerm(iteTerm);
+  return new BoolTermFormula(iteTerm);
 }
 
 /**
@@ -704,7 +716,7 @@ Formula* Formula::createTermLet(TermList lhs, TermList rhs, Formula* body)
   CALL("Formula::createTermLet");
   TermList bodyTerm(Term::createFormula(body));
   TermList letTerm(Term::createLet(lhs, rhs, bodyTerm));
-  return Formula::fromTerm(letTerm);
+  return new BoolTermFormula(letTerm);
 }
 
 /**
@@ -719,7 +731,7 @@ Formula* Formula::createFormulaLet(Literal* lhs, Formula* rhs, Formula* body)
   TermList function(lhs);
   TermList functionBody(Term::createFormula(rhs));
   TermList letTerm(Term::createLet(function, functionBody, bodyTerm));
-  return Formula::fromTerm(letTerm);
+  return new BoolTermFormula(letTerm);
 }
 
 Formula* Formula::quantify(Formula* f)

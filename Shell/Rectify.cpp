@@ -434,6 +434,9 @@ Formula* Rectify::rectify (Formula* f)
   case FALSE:
     return f;
 
+  case BOOL_TERM:
+    return rectify(f->toEquality());
+
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

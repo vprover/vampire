@@ -144,6 +144,10 @@ void SymCounter::count (const Formula* f,int polarity,int add)
       count (f->qarg(), polarity, add);
       return;
 
+    case BOOL_TERM:
+      count (f->toEquality(), polarity, add);
+      return;
+
   case TRUE:
   case FALSE:
     return;

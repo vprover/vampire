@@ -246,6 +246,9 @@ Formula* Skolem::skolemise (Formula* f)
       return g;
     }
 
+  case BOOL_TERM:
+      return skolemise(f->toEquality());
+
   case TRUE:
   case FALSE:
     return f;

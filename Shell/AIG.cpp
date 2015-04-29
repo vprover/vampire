@@ -1728,6 +1728,9 @@ AIGFormulaSharer::ARes AIGFormulaSharer::getSharedFormula(Formula* f)
   case EXISTS:
     res = applyQuantified(f);
     break;
+  case BOOL_TERM:
+    res = applyLiteral(f->toEquality());
+    break;
 
   default:
     ASSERTION_VIOLATION;

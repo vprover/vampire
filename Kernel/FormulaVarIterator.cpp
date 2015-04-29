@@ -111,6 +111,11 @@ bool FormulaVarIterator::hasNext()
 	  }
 	  break;
 
+	  case BOOL_TERM:
+	    _instructions.push(FVI_FORMULA);
+	    _formulas.push(f->toEquality());
+	    break;
+
 	case TRUE:
 	case FALSE:
 	  break;

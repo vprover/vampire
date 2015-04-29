@@ -434,6 +434,10 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
     }
     return new Formula(value^f->literal()->isNegative());
   }
+
+  case BOOL_TERM:
+    return replacePurePredicates(f->toEquality());
+
   case TRUE:
   case FALSE:
     return f;
@@ -804,6 +808,10 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
     case FORALL:
     case EXISTS:
       count (f->qarg(), polarity, add, unit);
+      return;
+
+    case BOOL_TERM:
+      count (f->toEquality(), polarity, add, unit);
       return;
 
     case TRUE:

@@ -582,6 +582,9 @@ Formula* PDInliner::apply(int polarity, Formula* form, InliningState& state)
     return new QuantifiedFormula(con, vars, newArg);
   }
 
+  case BOOL_TERM:
+    return apply(polarity, form->toEquality(), state);
+
   case TRUE:
   case FALSE:
     return form;

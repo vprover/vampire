@@ -125,6 +125,8 @@ void SMTPrinter::smtPrint(Formula* formula, ostream& out)
     return;
   case EXISTS:
     return;
+  case BOOL_TERM:
+    smtPrint(formula->getBooleanTerm().term(), out);
   case TRUE:
     out << "true";
     return;
