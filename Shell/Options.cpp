@@ -1194,6 +1194,7 @@ void Options::Options::init()
     "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption.";
     _lookup.insert(&_satSolver);
     _satSolver.tag(OptionTag::SAT);
+    _satSolver.setRandomChoices({"lingeling","minisat","vampire"});
 
     _satVarActivityDecay = FloatOptionValue("sat_var_activity_decay","",1.05f);
     _satVarActivityDecay.description="";
