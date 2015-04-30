@@ -477,6 +477,9 @@ public:
 
   /** Return true if term is either an if-then-else or a let...in expression */
   bool isSpecial() const { return functor()>=SPECIAL_FUNCTOR_LOWER_BOUND; }
+  bool isITE() const { return functor() == SF_TERM_ITE; }
+  bool isLet() const { return functor() == SF_TERM_LET; }
+  bool isFormula() const { return functor() == SF_FORMULA; }
   /** Return pointer to structure containing extra data for special terms such as
    * if-then-else or let...in */
   const SpecialTermData* getSpecialData() const { return const_cast<Term*>(this)->getSpecialData(); }
