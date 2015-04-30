@@ -99,6 +99,8 @@ public:
 
   virtual void recordSource(unsigned satlit, Literal* lit);
 
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+
 private:
 
   void doSolving(unsigned conflictNumberLimit);

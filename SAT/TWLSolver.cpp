@@ -177,6 +177,55 @@ void TWLSolver::addClause(SATClause* cl)
 }
 
 /**
+ * This implementation follows the scheme of the original implementation of global subsumption
+ *  which relied on the old SAT Solver interface and on TWLSolver as the only SAT solver.
+ *
+ * TODO: Can we deal with assumptions as minisat does, to naturally discover a nice(ish) subset
+ * via the conflict clause learning mechanism?
+ */
+SATSolver::Status TWLSolver::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+{
+  CALL("TWLSolver::solveUnderAssumptions");
+
+  ASS(!hasAssumptions());
+
+  Status res;
+  SATLiteral lit;
+  unsigned sz = assumps.size();
+
+  for (unsigned i = 0; i < sz; i++) { // which one to leave out for now
+    _failedAssumptionBuffer.reset();
+    retractAllAssumptions(); // no-op for the first pass
+
+    for (unsigned j = 0; j < sz; j++) {
+      if (i == j) {
+        continue;
+      }
+
+      lit = assumps[j];
+      addAssumption(lit);
+      _failedAssumptionBuffer.push(lit);
+      res = solve(conflictCountLimit);
+
+      if (res == UNSATISFIABLE) {
+        retractAllAssumptions();
+        return res;
+      }
+    }
+  }
+
+  // we must also check with all of them; the last left out was (sz-1)-th
+  lit = assumps[sz-1];
+  addAssumption(lit);
+  _failedAssumptionBuffer.push(lit);
+
+  res = solve(conflictCountLimit);
+  retractAllAssumptions();
+  return res;
+}
+
+
+/**
  * Perform saturation for @c conflictCountLimit conflicts.
  *
  * If concrete status is not established by then, return UNKNOWN.
