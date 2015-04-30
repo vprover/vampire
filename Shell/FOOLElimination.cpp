@@ -1,6 +1,6 @@
 /**
- * @file SpecialTermElimination.cpp
- * Implements class SpecialTermElimination.
+ * @file FOOLElimination.cpp
+ * Implements class FOOLElimination.
  */
 
 #include "Lib/List.hpp"
@@ -22,7 +22,7 @@
 
 #include "Rectify.hpp"
 
-#include "SpecialTermElimination.hpp"
+#include "FOOLElimination.hpp"
 
 namespace Shell
 {
@@ -30,15 +30,15 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
-SpecialTermElimination::SpecialTermElimination()
+FOOLElimination::FOOLElimination()
 : _defs(0), _currentPrb(0)
 {
 
 }
 
-bool SpecialTermElimination::hasSpecials(FormulaUnit* fu)
+bool FOOLElimination::hasSpecials(FormulaUnit* fu)
 {
-  CALL("SpecialTermElimination::hasSpecials");
+  CALL("FOOLElimination::hasSpecials");
 
   SubformulaIterator sfit(fu->formula());
   while(sfit.hasNext()) {
@@ -49,6 +49,8 @@ bool SpecialTermElimination::hasSpecials(FormulaUnit* fu)
 	return true;
       }
       break;
+    case BOOL_TERM:
+      return true;
     default:
       break;
     }
@@ -56,19 +58,19 @@ bool SpecialTermElimination::hasSpecials(FormulaUnit* fu)
   return false;
 }
 
-void SpecialTermElimination::apply(Problem& prb)
+void FOOLElimination::apply(Problem& prb)
 {
-  CALL("SpecialTermElimination::apply(Problem*)");
+  CALL("FOOLElimination::apply(Problem*)");
 
   ScopedLet<Problem*> plet(_currentPrb, &prb);
   apply(prb.units());
-  prb.reportSpecialTermsAndLetsEliminated();
+  prb.reportFOOLEliminated();
   prb.invalidateProperty();
 }
 
-void SpecialTermElimination::apply(UnitList*& units)
+void FOOLElimination::apply(UnitList*& units)
 {
-  CALL("SpecialTermElimination::apply(UnitList*&)");
+  CALL("FOOLElimination::apply(UnitList*&)");
 
   UnitList::DelIterator us(units);
   while(us.hasNext()) {
@@ -95,12 +97,12 @@ void SpecialTermElimination::apply(UnitList*& units)
 }
 
 /**
- * Apply SpecialTermElimination to formula @b fu and add introduced definitions
+ * Apply FOOLElimination to formula @b fu and add introduced definitions
  * into @b defs
  */
-FormulaUnit* SpecialTermElimination::apply(FormulaUnit* fu, UnitList*& defs)
+FormulaUnit* FOOLElimination::apply(FormulaUnit* fu, UnitList*& defs)
 {
-  CALL("SpecialTermElimination::apply(FormulaUnit*, UnitList*&)");
+  CALL("FOOLElimination::apply(FormulaUnit*, UnitList*&)");
 
   swap(defs, _defs);
   FormulaUnit* res = apply(fu);
@@ -108,9 +110,9 @@ FormulaUnit* SpecialTermElimination::apply(FormulaUnit* fu, UnitList*& defs)
   return res;
 }
 
-FormulaUnit* SpecialTermElimination::apply(FormulaUnit* fu0)
+FormulaUnit* FOOLElimination::apply(FormulaUnit* fu0)
 {
-  CALL("SpecialTermElimination::apply(FormulaUnit*)");
+  CALL("FOOLElimination::apply(FormulaUnit*)");
   ASS(_letStack.isEmpty())
 
   if(!hasSpecials(fu0)) {
@@ -128,7 +130,7 @@ FormulaUnit* SpecialTermElimination::apply(FormulaUnit* fu0)
   if(f==g) {
     return fu;
   }
-  FormulaUnit* res = new FormulaUnit(g, new Inference1(Inference::SPECIAL_TERM_ELIMINATION,fu), fu->inputType());
+  FormulaUnit* res = new FormulaUnit(g, new Inference1(Inference::FOOL_ELIMINATION,fu), fu->inputType());
   if(fu0->included()) {
     res->markIncluded();
   }
@@ -141,9 +143,9 @@ FormulaUnit* SpecialTermElimination::apply(FormulaUnit* fu0)
   return res;
 }
 
-bool SpecialTermElimination::checkForTermLetReplacement(TermList t, TermList& res)
+bool FOOLElimination::checkForTermLetReplacement(TermList t, TermList& res)
 {
-  CALL("SpecialTermElimination::checkForTermReplacement");
+  CALL("FOOLElimination::checkForTermReplacement");
 
   if(!t.isSafe() || !eliminatingTermLet() || !MatchingUtils::matchTerms(_letStack.top().tLhs(), t)) {
     return false;
@@ -160,9 +162,9 @@ bool SpecialTermElimination::checkForTermLetReplacement(TermList t, TermList& re
  * propagate the let expression at the top of the stack. Otherwise also eliminate
  * all term ITE expressions.
  */
-TermList SpecialTermElimination::processSpecialTerm(Term* t)
+TermList FOOLElimination::processSpecialTerm(Term* t)
 {
-  CALL("SpecialTermElimination::processSpecialTerm");
+  CALL("FOOLElimination::processSpecialTerm");
   ASS(t->isSpecial());
 
   Term::SpecialTermData* sd = t->getSpecialData();
@@ -210,9 +212,9 @@ TermList SpecialTermElimination::processSpecialTerm(Term* t)
  * propagate the let expression at the top of the stack. Otherwise also eliminate
  * all term ITE expressions.
  */
-TermList SpecialTermElimination::process(TermList t)
+TermList FOOLElimination::process(TermList t)
 {
-  CALL("SpecialTermElimination::process(TermList)");
+  CALL("FOOLElimination::process(TermList)");
 
   if(t.isVar()) {
     TermList repRes;
@@ -241,9 +243,9 @@ TermList SpecialTermElimination::process(TermList t)
  * propagate the let expression at the top of the stack. Otherwise also eliminate
  * all term ITE expressions.
  */
-Term* SpecialTermElimination::process(Term* t0)
+Term* FOOLElimination::process(Term* t0)
 {
-  CALL("SpecialTermElimination::process(Term*)");
+  CALL("FOOLElimination::process(Term*)");
   ASS(!t0->isSpecial());
 
   Stack<TermList*> toDo(8);
@@ -345,9 +347,9 @@ Term* SpecialTermElimination::process(Term* t0)
  * propagate the let expression at the top of the stack. Otherwise also eliminate
  * all term ITE expressions.
  */
-Formula* SpecialTermElimination::process(Formula* f)
+Formula* FOOLElimination::process(Formula* f)
 {
-  CALL("SpecialTermElimination::process(Formula*)");
+  CALL("FOOLElimination::process(Formula*)");
 
   switch (f->connective()) {
   case LITERAL:
@@ -424,7 +426,7 @@ Formula* SpecialTermElimination::process(Formula* f)
  * propagate the let expression at the top of the stack. Otherwise also eliminate
  * all term ITE expressions.
  */
-FormulaList* SpecialTermElimination::process(FormulaList* fs)
+FormulaList* FOOLElimination::process(FormulaList* fs)
 {
   CALL ("Rectify::rectify (FormulaList*)");
 
@@ -447,9 +449,9 @@ FormulaList* SpecialTermElimination::process(FormulaList* fs)
  * Eliminate term ITE expression @b t and return the resulting term.
  * Add the definition for introduced function into the @b _defs list.
  */
-Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList thenBranch, TermList elseBranch)
+Term* FOOLElimination::eliminateTermIte(Formula * condition, TermList thenBranch, TermList elseBranch)
 {
-  CALL("SpecialTermElimination::eliminateTermIte");
+  CALL("FOOLElimination::eliminateTermIte");
 
   Formula::VarList* freeVars = condition->freeVariables();
   //TODO: add reusing of definitions belonging to simple formulas

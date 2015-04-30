@@ -270,7 +270,7 @@ void Problem::readDetailsFromProperty() const
   _hasFormulas = _property->hasFormulas();
   _hasEquality = _property->equalityAtoms()!=0;
   _hasInterpretedOperations = _property->hasInterpretedOperations();
-  _hasSpecialTermsOrLets = _property->hasSpecialTermsOrLets();
+  _hasFOOL = _property->hasFOOL();
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
@@ -290,7 +290,7 @@ void Problem::invalidateEverything()
   _hasFormulas = MaybeBool::UNKNOWN;
   _hasEquality = MaybeBool::UNKNOWN;
   _hasInterpretedOperations = MaybeBool::UNKNOWN;
-  _hasSpecialTermsOrLets = MaybeBool::UNKNOWN;
+  _hasFOOL = MaybeBool::UNKNOWN;
 
   _mayHaveFormulas = true;
   _mayHaveEquality = true;
@@ -311,7 +311,7 @@ void Problem::invalidateByRemoval()
   _hasFormulas.mightBecameFalse();
   _hasEquality.mightBecameFalse();
   _hasInterpretedOperations.mightBecameFalse();
-  _hasSpecialTermsOrLets.mightBecameFalse();
+  _hasFOOL.mightBecameFalse();
 }
 
 /**
@@ -357,12 +357,12 @@ bool Problem::hasInterpretedOperations() const
   return _hasInterpretedOperations.value();
 }
 
-bool Problem::hasSpecialTermsOrLets() const
+bool Problem::hasFOOL() const
 {
-  CALL("Problem::hasSpecialTermsOrLets");
+  CALL("Problem::hasFOOL");
 
-  if(!_hasSpecialTermsOrLets.known()) { refreshProperty(); }
-  return _hasSpecialTermsOrLets.value();
+  if(!_hasFOOL.known()) { refreshProperty(); }
+  return _hasFOOL.value();
 }
 
 

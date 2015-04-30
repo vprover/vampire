@@ -57,7 +57,7 @@ Property::Property()
     _props(0),
     _hasInterpreted(false),
     _hasNonDefaultSorts(false),
-    _hasSpecialTermsOrLets(false)
+    _hasFOOL(false)
 {
   //TODO now MaxInterpretedElement is stateful this might be in the wrong place
   _interpretationPresence.init(Theory::instance()->MaxInterpretedElement()+1, false);
@@ -346,11 +346,15 @@ void Property::scan(Formula* formula)
 	}
       }
       if (!lit->shared()) {
-	_hasSpecialTermsOrLets = true;
+	_hasFOOL = true;
       }
       scan(lit);
       break;
     }
+    case BOOL_TERM:
+      _hasFOOL = true;
+      scan(f->toEquality());
+      break;
     default:
       break;
     }

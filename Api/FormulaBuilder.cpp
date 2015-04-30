@@ -30,7 +30,7 @@
 #include "Parse/TPTP.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/SpecialTermElimination.hpp"
+#include "Shell/FOOLElimination.hpp"
 #include "Shell/TPTPPrinter.hpp"
 
 
@@ -724,10 +724,10 @@ Formula FormulaBuilder::replaceConstant(Formula f, Term replaced, Term target)
   }
 
   Kernel::Formula* letForm = Formula::createTermLet(replaced, target, f.form);
-  Shell::SpecialTermElimination ste;
+  Shell::FOOLElimination fe;
   FormulaUnit* auxUnit = new FormulaUnit(letForm, new Inference(Inference::INPUT), Unit::AXIOM);
   UnitList* defs = 0;
-  FormulaUnit* auxReplaced = ste.apply(auxUnit, defs);
+  FormulaUnit* auxReplaced = fe.apply(auxUnit, defs);
   ASS_EQ(defs, 0);
   return Formula(auxReplaced->formula(), _aux);
 }

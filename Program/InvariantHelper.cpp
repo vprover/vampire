@@ -33,7 +33,6 @@
 #include "Shell/Property.hpp"
 #include "Shell/Preprocess.hpp"
 #include "Shell/UIHelper.hpp"
-#include "Shell/SpecialTermElimination.hpp"
 #include "Shell/TheoryFinder.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/InterpretedNormalizer.hpp"

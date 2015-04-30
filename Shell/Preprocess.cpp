@@ -48,7 +48,7 @@
 #include "SimplifyFalseTrue.hpp"
 #include "SineUtils.hpp"
 #include "Statistics.hpp"
-#include "SpecialTermElimination.hpp"
+#include "FOOLElimination.hpp"
 #include "TheoryAxioms.hpp"
 #include "TrivialPredicateRemover.hpp"
 
@@ -197,11 +197,11 @@ void Preprocess::preprocess (Problem& prb)
     env.interpretedOperationsUsed = true;
   }
 
-  if (prb.hasSpecialTermsOrLets()) {
+  if (prb.hasFOOL()) {
     if (env.options->showPreprocessing())
-      env.out() << "special term elimination" << std::endl;
+      env.out() << "FOOL elimination" << std::endl;
 
-    SpecialTermElimination().apply(prb);
+    FOOLElimination().apply(prb);
   }
   
   // Expansion of distinct groups happens before other preprocessing

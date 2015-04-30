@@ -1,10 +1,10 @@
 /**
- * @file SpecialTermElimination.hpp
- * Defines class SpecialTermElimination.
+ * @file FOOLElimination.hpp
+ * Defines class FOOLElimination.
  */
 
-#ifndef __SpecialTermElimination__
-#define __SpecialTermElimination__
+#ifndef __FOOLElimination__
+#define __FOOLElimination__
 
 #include "Forwards.hpp"
 
@@ -14,12 +14,16 @@ namespace Shell {
 using namespace Kernel;
 
 /**
- * A class with function @b apply() that eliminates all let...in and
- * term if-then-else expressions.
+ * A class with function @b apply() that eliminates all expressions
+ * that are not syntactically first-order, that is:
+ * - formulas in term context
+ * - terms in formula context
+ * - $ite
+ * - $let
  */
-class SpecialTermElimination {
+class FOOLElimination {
 public:
-  SpecialTermElimination();
+  FOOLElimination();
 
   void apply(Problem& prb);
   void apply(UnitList*& units);
@@ -42,7 +46,7 @@ private:
   public:
     LetSpec(TermList o, TermList t) : _term(true)
     {
-      CALL("SpecialTermElimination::LetSpec::LetSpec(TermList...)");
+      CALL("FOOLElimination::LetSpec::LetSpec(TermList...)");
       ASS(o.isSafe());
       //here we assert that the lhs is either variable or a function
       //applied to pairwise distinct variables
@@ -54,7 +58,7 @@ private:
     }
     LetSpec(Literal* o, Formula* t) : _term(false)
     {
-      CALL("SpecialTermElimination::LetSpec::LetSpec(Literal*...)");
+      CALL("FOOLElimination::LetSpec::LetSpec(Literal*...)");
       //here we assert that the lhs is a predicate applied to
       //pairwise distinct variables
       ASS_EQ(o->weight(),o->arity()+1);
@@ -108,4 +112,4 @@ private:
 
 }
 
-#endif // __SpecialTermElimination__
+#endif // __FOOLElimination__

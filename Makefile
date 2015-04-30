@@ -347,7 +347,7 @@ VS_OBJ = Shell/AIG.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
          Shell/SMTPrinter.o\
-         Shell/SpecialTermElimination.o\
+         Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Shell/SymCounter.o\
          Shell/TheoryAxioms.o\

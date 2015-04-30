@@ -48,7 +48,7 @@
 #include "Shell/SimplifyFalseTrue.hpp"
 #include "Shell/SimplifyProver.hpp"
 #include "Shell/SineUtils.hpp"
-#include "Shell/SpecialTermElimination.hpp"
+#include "Shell/FOOLElimination.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/VarManager.hpp"
 
@@ -628,7 +628,7 @@ protected:
 
     Kernel::FormulaUnit* fu = static_cast<Kernel::FormulaUnit*>(unit);
     Kernel::UnitList* newDefs=0;
-    fu = SpecialTermElimination().apply(fu, newDefs);
+    fu = FOOLElimination().apply(fu, newDefs);
     handleDefs(newDefs);
 
 

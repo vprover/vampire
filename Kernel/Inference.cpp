@@ -240,8 +240,8 @@ vstring Inference::ruleName(Rule rule)
     return "formula ite expansion";
   case TERM_IF_THEN_ELSE_DEFINITION:
     return "term if then else definition";
-  case SPECIAL_TERM_ELIMINATION:
-    return "special term elimination";
+  case FOOL_ELIMINATION:
+    return "FOOL elimination";
 //  case CHOICE_AXIOM:
 //  case MONOTONE_REPLACEMENT:
 //  case FORALL_ELIMINATION:

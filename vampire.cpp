@@ -59,7 +59,7 @@
 #include "Shell/TheoryFinder.hpp"
 #include "Shell/TPTPPrinter.hpp"
 #include "Parse/TPTP.hpp"
-#include "Shell/SpecialTermElimination.hpp"
+#include "Shell/FOOLElimination.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/LaTeX.hpp"
@@ -725,8 +725,8 @@ void axiomSelectionMode()
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
-  if (prb->hasSpecialTermsOrLets()) {
-    SpecialTermElimination().apply(*prb);
+  if (prb->hasFOOL()) {
+    FOOLElimination().apply(*prb);
   }
 
   // reorder units

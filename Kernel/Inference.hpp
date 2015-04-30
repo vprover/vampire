@@ -202,9 +202,8 @@ public:
     /** Introduction of definitions to handle the term <i>if F then s else t</i>
      *  Such formulas have the form F->f(x)=s or ~F->f(x)=t */
     TERM_IF_THEN_ELSE_DEFINITION,
-    /** Elimination of if-then-else and let...in special terms and let...in
-     * formula connectives */
-    SPECIAL_TERM_ELIMINATION,
+    /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
+    FOOL_ELIMINATION,
     /** component introduced by sat splitting */
     SAT_SPLITTING_COMPONENT,
     /** refutation of a sat splitting branch */

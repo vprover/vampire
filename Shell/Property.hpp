@@ -168,7 +168,7 @@ public:
   bool hasInterpretedOperations() const { return _hasInterpreted; }
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
-  bool hasSpecialTermsOrLets() const { return _hasSpecialTermsOrLets; }
+  bool hasFOOL() const { return _hasFOOL; }
  private:
   // constructor, operators new and delete
   explicit Property();
@@ -242,7 +242,7 @@ public:
   bool _hasNonDefaultSorts;
   DArray<bool> _interpretationPresence;
 
-  bool _hasSpecialTermsOrLets;
+  bool _hasFOOL;
 }; // class Property
 
 }

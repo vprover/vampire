@@ -132,8 +132,8 @@ SMTPAR.cpp
 SMTPAR.hpp
 SMTPrinter.cpp
 SMTPrinter.hpp
-SpecialTermElimination.cpp
-SpecialTermElimination.hpp
+FOOLElimination.cpp
+FOOLElimination.hpp
 Statistics.cpp
 Statistics.hpp
 SubsumptionRemover.cpp

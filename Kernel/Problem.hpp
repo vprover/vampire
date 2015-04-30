@@ -92,9 +92,8 @@ public:
   bool hasEquality() const;
   /** Problem contains an interpreted symbol different from equality */
   bool hasInterpretedOperations() const;
-  bool hasFormulaItes() const;
   /** Problem contains let terms or formulas, or term if-then-else */
-  bool hasSpecialTermsOrLets() const;
+  bool hasFOOL() const;
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -103,10 +102,10 @@ public:
   bool mayHaveXEqualsY() const { return _mayHaveXEqualsY; }
 
 
-  void reportSpecialTermsAndLetsEliminated()
+  void reportFOOLEliminated()
   {
     invalidateProperty();
-    _hasSpecialTermsOrLets = false;
+    _hasFOOL = false;
   }
   /**
    * Report that equality was added into the problem
@@ -175,7 +174,7 @@ private:
   mutable MaybeBool _hasFormulas;
   mutable MaybeBool _hasEquality;
   mutable MaybeBool _hasInterpretedOperations;
-  mutable MaybeBool _hasSpecialTermsOrLets;
+  mutable MaybeBool _hasFOOL;
 
   mutable bool _propertyValid;
   mutable Property* _property;
