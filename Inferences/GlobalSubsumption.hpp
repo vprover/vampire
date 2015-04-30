@@ -26,12 +26,12 @@ public:
   CLASS_NAME(GlobalSubsumption);
   USE_ALLOCATOR(GlobalSubsumption);
 
-  GlobalSubsumption(bool full) : _index(0), _allowExtraAttachment(false), _uprOnly(!full) {}
+  GlobalSubsumption(bool uprOnly) : _index(0), _allowExtraAttachment(false), _uprOnly(uprOnly) {}
   /**
    * The attach function must not be called when the constructor is used
    */
-  GlobalSubsumption(GroundingIndex* idx, bool full, bool allowExtraAttachment=false)
-  : _index(idx), _allowExtraAttachment(allowExtraAttachment), _uprOnly(!full) {}
+  GlobalSubsumption(GroundingIndex* idx, bool uprOnly, bool allowExtraAttachment=false)
+  : _index(idx), _allowExtraAttachment(allowExtraAttachment), _uprOnly(uprOnly) {}
 
   void attach(SaturationAlgorithm* salg);
   void detach();

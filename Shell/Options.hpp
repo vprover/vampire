@@ -509,10 +509,14 @@ public:
     ALL = 2
   };
 
-  enum class GlobalSubsumption : unsigned int {
-    OFF = 0,
-    ON = 1,
-    FULL = 2
+  enum class GlobalSubsumptionSatSolverPower : unsigned int {
+    PROPAGATION_ONLY,
+    FULL
+  };
+
+  enum class GlobalSubsumptionAvatarAssumptions : unsigned int {
+    FROM_CURRENT,
+    FULL_MODEL
   };
 
   enum class Sos : unsigned int{
@@ -1705,7 +1709,10 @@ public:
   vstring xmlOutput() const { return _xmlOutput.actualValue; }
   vstring thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
-  GlobalSubsumption globalSubsumption() const { return _globalSubsumption.actualValue; }
+  bool globalSubsumption() const { return _globalSubsumption.actualValue; }
+  GlobalSubsumptionSatSolverPower globalSubsumptionSatSolverPower() const { return _globalSubsumptionSatSolverPower.actualValue; }
+  GlobalSubsumptionAvatarAssumptions globalSubsumptionAvatarAssumptions() const { return _globalSubsumptionAvatarAssumptions.actualValue; }
+
   /** true if calling set() on non-existing options does not result in a user error */
   bool ignoreMissing() const { return _ignoreMissing.actualValue; }
   /** set the "ignore missing options" value to true or false */
@@ -1979,7 +1986,9 @@ private:
   IntOptionValue _functionNumber;
   
   ChoiceOptionValue<RuleActivity> _generalSplitting;
-  ChoiceOptionValue<GlobalSubsumption> _globalSubsumption;
+  BoolOptionValue _globalSubsumption;
+  ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
+  ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
 
   BoolOptionValue _hornRevealing;
   BoolOptionValue _hyperSuperposition;

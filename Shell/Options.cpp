@@ -887,13 +887,30 @@ void Options::Options::init()
 
 //*********************** InstGen  ***********************
 
-    _globalSubsumption = ChoiceOptionValue<GlobalSubsumption>("global_subsumption","gs",GlobalSubsumption::OFF,{"off","on","full"});
-    _globalSubsumption.description="";
+    _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);
+    _globalSubsumption.description="Global subsumption reduction.";
     _lookup.insert(&_globalSubsumption);
     _globalSubsumption.tag(OptionTag::INST_GEN);
     _globalSubsumption.addProblemConstraint(hasNonUnits());
     _globalSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
-    _globalSubsumption.setRandomChoices({"off","on","full"});
+    _globalSubsumption.setRandomChoices({"off","on"});
+
+    _globalSubsumptionSatSolverPower = ChoiceOptionValue<GlobalSubsumptionSatSolverPower>("global_subsumption_sat_solver_power","gsssp",
+          GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY,{"propagation_only","full"});
+    _globalSubsumptionSatSolverPower.description="";
+    _lookup.insert(&_globalSubsumption);
+    _globalSubsumptionSatSolverPower.tag(OptionTag::INST_GEN);
+    _globalSubsumptionSatSolverPower.reliesOn(_globalSubsumption.is(equal(true)));
+    _globalSubsumptionSatSolverPower.setRandomChoices({"propagation_only","full"});
+
+    _globalSubsumptionAvatarAssumptions = ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions>("global_subsumption_avatar_assumptions","gsaa",
+        GlobalSubsumptionAvatarAssumptions::FROM_CURRENT,{"from_current","full_model"});
+    _globalSubsumptionAvatarAssumptions.description="";
+    _lookup.insert(&_globalSubsumption);
+    _globalSubsumptionAvatarAssumptions.tag(OptionTag::INST_GEN);
+    _globalSubsumptionAvatarAssumptions.reliesOn(_globalSubsumption.is(equal(true)));
+    _globalSubsumptionAvatarAssumptions.reliesOn(_splitting.is(equal(true)));
+    _globalSubsumptionAvatarAssumptions.setRandomChoices({"from_current","full_model"});
 
     _instGenBigRestartRatio = FloatOptionValue("inst_gen_big_restart_ratio","igbrr",0.0);
     _instGenBigRestartRatio.description=
