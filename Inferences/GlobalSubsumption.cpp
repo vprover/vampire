@@ -82,7 +82,7 @@ void GlobalSubsumption::addClauseToIndex(Clause* cl, SATLiteralStack& satLits)
   SATSolver& solver = _index->getSolver();
   Grounder& grounder = _index->getGrounder();
 
-  ASS_NEQ(solver.solve(true),SATSolver::UNSATISFIABLE);
+  ASS_NEQ(solver.solve(_uprOnly),SATSolver::UNSATISFIABLE);
 
   SATClause* scl = SATClause::fromStack(satLits);
   SATInference* inf = new FOConversionInference(UnitSpec(cl));
@@ -144,34 +144,29 @@ Clause* GlobalSubsumption::perform(Clause* cl)
     assumps.push(slits[i].opposite());
   }
 
-  // allow one conflict for _uprOnly, otherwise minisat does not consider assumps at all!
-  SATSolver::Status res = solver.solveUnderAssumptions(assumps, _uprOnly ? 1u : UINT_MAX);
-
+  ALWAYS(solver.solveUnderAssumptions(assumps,_uprOnly) == SATSolver::UNSATISFIABLE);
   // UNSATISFIABLE, because abstracted cl has just been added above
-  ASS(_uprOnly || res == SATSolver::UNSATISFIABLE);
 
-  if (res == SATSolver::UNSATISFIABLE) {
-    const SATLiteralStack& failed = solver.failedAssumptions();
+  const SATLiteralStack& failed = solver.failedAssumptions();
 
-    if (failed.size() < assumps.size()) {
-      static LiteralStack survivors;
-      survivors.reset();
+  if (failed.size() < assumps.size()) {
+    static LiteralStack survivors;
+    survivors.reset();
 
-      for (unsigned i = 0; i < failed.size(); i++) {
-        survivors.push(lookup.get(failed[i].opposite())); // back to the original polarity to lookup the corresponding FO literal
-      }
-
-      //just a dummy inference, the correct one will be in the InferenceStore
-      Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
-      Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),cl->inputType(), inf);
-      replacement->setAge(cl->age());
-
-      Grounder::recordInference(cl, solver.getRefutation(), replacement);
-      env.statistics->globalSubsumption++;
-      ASS_L(replacement->length(), clen);
-
-      return replacement;
+    for (unsigned i = 0; i < failed.size(); i++) {
+      survivors.push(lookup.get(failed[i].opposite())); // back to the original polarity to lookup the corresponding FO literal
     }
+
+    //just a dummy inference, the correct one will be in the InferenceStore
+    Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
+    Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),cl->inputType(), inf);
+    replacement->setAge(cl->age());
+
+    Grounder::recordInference(cl, solver.getRefutation(), replacement);
+    env.statistics->globalSubsumption++;
+    ASS_L(replacement->length(), clen);
+
+    return replacement;
   }
 
   return cl;
