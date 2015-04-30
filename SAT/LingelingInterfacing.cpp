@@ -119,6 +119,10 @@ SATSolver::Status LingelingInterfacing::solveUnderAssumptions(const SATLiteralSt
 
   ASS(!hasAssumptions());
 
+  // We don't want "UNKNOWN" before all assumptions were loaded
+  // TODO: is this sufficient? Isn't it too much?
+  conflictCountLimit += assumps.size();
+
   solveModuloAssumptionsAndSetStatus(assumps,conflictCountLimit);
 
   if (_status == SATSolver::UNSATISFIABLE) {
