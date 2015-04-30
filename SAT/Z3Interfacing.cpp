@@ -116,7 +116,7 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
 void Z3Interfacing::addAssumption(SATLiteral lit, unsigned conflictCountLimit) 
 {
   CALL("Z3Interfacing::addAssumption");
-  
+  NOT_IMPLEMENTED;  
 }
 
 SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var) 
@@ -153,18 +153,20 @@ bool Z3Interfacing::isZeroImplied(unsigned var)
 {
   CALL("Z3Interfacing::isZeroImplied");
   
+  // Safe. TODO consider getting zoer-implied
   return false; 
 }
 
 void Z3Interfacing::collectZeroImplied(SATLiteralStack& acc)
 {
   CALL("Z3Interfacing::collectZeroImplied");
-  
+  NOT_IMPLEMENTED;
 }
 
 SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
 {
   CALL("Z3Interfacing::getZeroImpliedCertificate");
+  NOT_IMPLEMENTED;
   
   return 0;
 }
@@ -197,6 +199,7 @@ SATClause* Z3Interfacing::getRefutation()
 
 }
 
+//TODO: should handle function/predicate types really
 z3::sort Z3Interfacing::getz3sort(unsigned s)
 {
   CALL("Z3Interfacing::getz3sort");
@@ -205,11 +208,9 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
   if(s==Sorts::SRT_BOOL) return _context.bool_sort(); 
   if(s==Sorts::SRT_INTEGER) return _context.int_sort();
   if(s==Sorts::SRT_REAL) return _context.real_sort(); 
+  if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
 
-  // Not sure what to do with rationals yet 
-  //if(s==SRT_RATIONAL) return sort(_context,Z3__SORT);
-
-  // Cannot currently deal with Array Sorts, they will be treated as user sorts
+  // Do not currently deal with Array Sorts, they will be treated as user sorts
 
   // If sort exists, return it
   if(_sorts.find(s)){
@@ -223,33 +224,68 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
 
 }
 
+/**
+ * Translate a Vampire term into a Z3 term
+ * - Assumes term is ground
+ * - Translates the ground structure
+ * - Some interpretted functions/predicates are handled
+ */
 z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
 {
   CALL("Z3Interfacing::getz3expr");
   BYPASSING_ALLOCATOR;
+  ASS(trm);
+  ASS(trm->ground());
+
+  cout << "getz3expr of " << trm->toString() << endl;
 
     Signature::Symbol* symb; 
     unsigned range_sort;
     BaseType* type;
+    bool is_equality = false;
     if(isLit){
       symb = env.signature->getPredicate(trm->functor());
       PredicateType* ptype = symb->predType();
       type = ptype;
       range_sort = Sorts::SRT_BOOL;
+      // check for equality
+      if(trm->functor()==0){
+         is_equality=true;
+         ASS(trm->arity()==2);
+      }
     }else{
       symb = env.signature->getFunction(trm->functor());
       FunctionType* ftype = symb->fnType(); 
       type = ftype;
       range_sort = ftype->result();
     }
-    z3::sort_vector domain_sorts = z3::sort_vector(_context); 
+
+    //if constant treat specially
+    if(trm->arity()==0){
+      if(symb->integerConstant()){
+        IntegerConstantType value = symb->integerValue();
+        return _context.int_val(value.toInt());
+      }
+      if(symb->realConstant()){
+        RealConstantType value = symb->realValue();
+        return _context.real_val(value.numerator().toInt(),value.denominator().toInt());
+      }
+      if(symb->rationalConstant()){
+        RationalConstantType value = symb->rationalValue();
+        return _context.real_val(value.numerator().toInt(),value.denominator().toInt());
+      }
+
+      // If not value then create constant symbol
+      return _context.constant(symb->name().c_str(),getz3sort(range_sort));
+    }
+    ASS(trm->arity()>0);
+
+    // Next translate term arguments
+    //TODO check domain_sorts for args in equality and interpretted?
+    z3::sort_vector domain_sorts = z3::sort_vector(_context);
     for(unsigned i=0;i<type->arity();i++){
       domain_sorts.push_back(getz3sort(type->arg(i)));
     }
-    z3::symbol name = _context.str_symbol(symb->name().c_str());
-    z3::func_decl f = _context.function(name,domain_sorts,getz3sort(range_sort)); 
-
-    // Next translate term arguments
     z3::expr_vector args = z3::expr_vector(_context);
     for(unsigned i=0;i<trm->arity();i++){
       TermList* arg = trm->nthArgument(i);
@@ -257,13 +293,77 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
       args.push_back(getz3expr(arg->term(),false));
     }
 
-    if(symb->isInterpreted()){
+   //Check for equality
+    if(is_equality){
+      cout << "is equality" << endl;
+      cout << args[0] << " and " << args[1] << endl;
+      z3::expr r =  args[0] == args[1];
+      cout << "ret is " << r << endl;
+      return r;
+    }
 
+    if(symb->interpreted()){
+      // constants dealt with above 
+      ASS(trm->arity()==2);
+      //cout << "is interpreted" << endl;
+
+      Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
+
+      // Currently all intepretation functions are binary?
+      switch(interp){
+        // Numerical operations
+        case Theory::INT_PLUS:
+        case Theory::RAT_PLUS:
+        case Theory::REAL_PLUS:
+          return args[0] + args[1];
+
+        case Theory::INT_MINUS:
+        case Theory::RAT_MINUS:
+        case Theory::REAL_MINUS:
+          return args[0] - args[1];
+
+        case Theory::INT_MULTIPLY:
+        case Theory::RAT_MULTIPLY:
+        case Theory::REAL_MULTIPLY:
+          return args[0] * args[1];
+
+        case Theory::INT_DIVIDE: //TODO check that they are the same
+        case Theory::RAT_DIVIDE:
+        case Theory::REAL_DIVIDE:
+          return args[0] / args[1];
+
+       // Numerical comparisons
+       case Theory::INT_LESS:
+       case Theory::RAT_LESS:
+       case Theory::REAL_LESS:
+          return args[0] < args[1];
+
+       case Theory::INT_GREATER:
+       case Theory::RAT_GREATER:
+       case Theory::REAL_GREATER:
+          return args[0] > args[1];
+          
+       case Theory::INT_LESS_EQUAL:
+       case Theory::RAT_LESS_EQUAL:
+       case Theory::REAL_LESS_EQUAL:
+          return args[0] <= args[1];
+
+       case Theory::INT_GREATER_EQUAL:
+       case Theory::RAT_GREATER_EQUAL:
+       case Theory::REAL_GREATER_EQUAL:
+          return args[0] >= args[1];
+
+        default: break; //skip it and treat the function as uninterpretted
+      }
 
     }
+    //cout << "creating.." << endl;
+    z3::symbol name = _context.str_symbol(symb->name().c_str());
+    z3::func_decl f = _context.function(name,domain_sorts,getz3sort(range_sort));
 
     // Finally create expr
     z3::expr e = f(args); 
+    //cout << "created " << e << endl;
     return e;
 }
 
@@ -272,13 +372,20 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
   CALL("Z3Interfacing::getRepresentation");
   BYPASSING_ALLOCATOR;
 
-  //First, is does this represents a ground literal 
+  //First, does this represents a ground literal 
   Literal* lit = sat2fo.toFO(slit);
   if(lit && lit->ground()){
+    cout << "getRepresentation of " << lit->toString() << endl;
     // Now translate it into an SMT object 
-    z3::expr e = getz3expr(lit,true);
-    if(slit.isNegative()) return !e;
-    return e;
+    try{
+      z3::expr e = getz3expr(lit,true);
+      cout << "got rep " << e << endl;
+      if(slit.isNegative()) return !e;
+      return e;
+    }catch(z3::exception& exception){
+     cout << "Z3 exception:\n" << exception.msg() << endl;
+     ASSERTION_VIOLATION_REP("Failed to create Z3 rep for " + lit->toString());
+    }
   }
   //if non ground then just create a propositional variable
   vstring name = "v"+Lib::Int::toString(slit.var());

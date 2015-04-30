@@ -111,7 +111,9 @@ private:
 
   DHMap<unsigned,Z3_sort> _sorts;
   z3::sort getz3sort(unsigned s);
+public:
   z3::expr getz3expr(Term* trm,bool islit);
+private:
   z3::expr getRepresentation(SATLiteral lit);
 
   Status _status;

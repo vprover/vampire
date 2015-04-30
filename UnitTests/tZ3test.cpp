@@ -6,8 +6,16 @@ using namespace z3;
 
 #include "Test/UnitTesting.hpp"
 #include "Lib/Allocator.hpp"
+#include "Kernel/Term.hpp"
+#include "Lib/Environment.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Sorts.hpp"
+#include "SAT/SAT2FO.hpp"
+#include "SAT/Z3Interfacing.hpp"
+#include "Indexing/TermSharing.hpp"
 
 using namespace Lib;
+using namespace Kernel;
 
 #define UNIT_ID z3
 UT_CREATE;
@@ -44,7 +52,6 @@ TEST_FUN(incremental3){ // taken from z3.codeplex.com/SourceControl/latest#examp
   cout << s.check(a2) << endl;
 
 }
-*/
 TEST_FUN(our_usage){
   cout << endl;
   BYPASSING_ALLOCATOR;
@@ -89,6 +96,43 @@ TEST_FUN(our_usage){
   }
 
 }
+*/
+TEST_FUN(seg_issue){
+  cout << endl;
+  BYPASSING_ALLOCATOR;
 
+  Term* one = new(0) Term;
+  one->makeSymbol(env.signature->addIntegerConstant("1",false),0);
+  one = env.sharing->insert(one);
+  Term* six = new(0) Term;
+  six->makeSymbol(env.signature->addIntegerConstant("6",false),0);
+  six = env.sharing->insert(six);
+  Term* twelve = new(0) Term;
+  twelve->makeSymbol(env.signature->addIntegerConstant("12",false),0);
+  twelve = env.sharing->insert(twelve);
+  
+  unsigned pow2 = env.signature->addPredicate("pow2",1); 
+  unsigned sk0 = env.signature->addSkolemFunction(1);
+
+  Signature::Symbol* symbol = env.signature->getFunction(sk0);
+  symbol->setType(BaseType::makeType1(Sorts::SRT_INTEGER,Sorts::SRT_INTEGER));
+
+  symbol = env.signature->getPredicate(pow2);
+  symbol->setType(BaseType::makeType1(Sorts::SRT_INTEGER,Sorts::SRT_BOOL));
+
+  Term* sk0_12 = Term::create1(sk0,TermList(twelve));
+
+  Literal* pow2_12 = Literal::create1(pow2,true,TermList(twelve));
+  Literal* pow2_1 = Literal::create1(pow2,true,TermList(one));
+  Literal* sk0_12_eq_6 = Literal::createEquality(true,TermList(sk0_12),TermList(six),Sorts::SRT_INTEGER);
+
+  SAT::SAT2FO s2f;
+  SAT::Z3Interfacing* sat = new SAT::Z3Interfacing(*env.options,s2f,false);
+
+  expr pow2_12_rep = sat->getz3expr(pow2_12,true);
+  expr pow2_1_rep = sat->getz3expr(pow2_1,true);
+  expr sk0_12_eq_6_rep = sat->getz3expr(sk0_12_eq_6,true);
+
+}
 #endif
 
