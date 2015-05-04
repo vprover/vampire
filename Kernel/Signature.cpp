@@ -18,6 +18,19 @@ const unsigned Signature::REAL_DISTINCT_GROUP = 3;
 const unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 3;
 
 /**
+ * In order to support reasoning in FOOL, we need to introduce constants that represent logical true and false.
+ * The Sorts::SRT_BOOL sort is normally used to type predicate symbols and Vampire internally preserves the separation
+ * between predicate and function symbols (they are stored separately in the signature and FunctionType and
+ * PredicateType are separate classes). However, as an exception, in this case we use Sorts::SRT_BOOL to type
+ * constants, since there are actually no asserts or checks anywhere that verify that terms cannot be boolean.
+ * An alternative implementation would be to define an interpreted boolean sort that is different from SRT_BOOL.
+ *
+ * @since 04/05/2015 Gothenburg
+ */
+const unsigned Signature::FOOL_FALSE = 0;
+const unsigned Signature::FOOL_TRUE  = 1;
+
+/**
  * Standard constructor.
  * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
@@ -173,6 +186,7 @@ PredicateType* Signature::Symbol::predType() const
 /**
  * Create a Signature.
  * @since 07/05/2007 Manchester
+ * @since 04/05/2015 Gothenburg -- add true and false
  */
 Signature::Signature ()
   : _funs(32),
@@ -201,6 +215,18 @@ Signature::Signature ()
   ASS_EQ(RATIONAL_DISTINCT_GROUP, aux);
   aux = createDistinctGroup();
   ASS_EQ(REAL_DISTINCT_GROUP, aux);
+
+  // it is safe to reuse "$true" and "$false" for constants
+  // because the user cannot define constants with these names herself
+  // and the formula, obtained by toString() with "$true" or "$false"
+  // in term position would be syntactically valid in FOOL
+  aux = addFunction("$false", 0);
+  ASS_EQ(aux, FOOL_FALSE);
+  aux = addFunction("$true", 0);
+  ASS_EQ(aux, FOOL_TRUE);
+
+  getFunction(FOOL_FALSE)->setType(new FunctionType(0, 0, Sorts::SRT_BOOL));
+  getFunction(FOOL_TRUE)->setType(new FunctionType(0, 0, Sorts::SRT_BOOL));
 } // Signature::Signature
 
 /**
@@ -926,11 +952,14 @@ bool Signature::isProtectedName(vstring name)
  *
  * $distinct predicate is not quoted
  *
+ * $true and $false -- the names of FOOL term-level boolean constants are not quoted
+ *
  * For interpreted symbols its legal to start with $
  *
  * It's legal for symbols to start with $$.
  *
  * @since 03/05/2013 train Manchester-London
+ * @since 04/05/2015 Gothenburg -- do not quote FOOL true and false
  */
 bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity)
 {
@@ -938,6 +967,10 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   ASS_G(name.length(),0);
 
   if (interpreted && (name=="=" || arity==0)) {
+    return false;
+  }
+
+  if (name == "$true" || name == "$false") {
     return false;
   }
 

@@ -459,6 +459,9 @@ class Signature
   static const unsigned REAL_DISTINCT_GROUP;
   static const unsigned LAST_BUILT_IN_DISTINCT_GROUP;
 
+  static const unsigned FOOL_FALSE;
+  static const unsigned FOOL_TRUE;
+
 private:
   static bool isProtectedName(vstring name);
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
