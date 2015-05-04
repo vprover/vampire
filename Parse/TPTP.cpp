@@ -2072,8 +2072,12 @@ void TPTP::endEquality()
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
 
-  if (sortOf(rhs) != sortOf(lhs)) {
-    USER_ERROR("Cannot create equality between terms of different types.");
+  unsigned lhsSort = sortOf(lhs);
+  unsigned rhsSort = sortOf(rhs);
+
+  if (lhsSort != rhsSort) {
+    USER_ERROR("Cannot create equality between " + lhs.toString() + " of sort " + env.sorts->sortName(lhsSort) + " and " +
+                                                   rhs.toString() + " of sort " + env.sorts->sortName(rhsSort) + ".");
   }
 
   Literal* l = createEquality(_bools.pop(),lhs,rhs);
