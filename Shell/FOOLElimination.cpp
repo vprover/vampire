@@ -91,6 +91,7 @@ void FOOLElimination::apply(UnitList*& units)
 	us.replace(v);
     }
   }
+  appendAxioms();
   units = UnitList::concat(_defs, units);
   _defs = 0;
 
@@ -141,6 +142,28 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* fu0)
     env.endOutput();
   }
   return res;
+}
+
+void FOOLElimination::appendAxioms() {
+  // append "$true != $false"
+  TermList t(Term::createConstant(Signature::FOOL_TRUE));
+  TermList f(Term::createConstant(Signature::FOOL_FALSE));
+
+  Formula* dc = new AtomicFormula(Literal::createEquality(false, t, f, Sorts::SRT_BOOL));
+  Unit* disjoint_constants = new FormulaUnit(dc, new Inference(Inference::FOOL_AXIOM), Unit::AXIOM);
+
+  _defs = new UnitList(disjoint_constants, _defs);
+
+  // append "![X : $o]: X = $true | X = $false"
+  TermList x;
+  x.makeVar(0);
+  Formula* xet = new AtomicFormula(Literal::createEquality(true, x, t, Sorts::SRT_BOOL));
+  Formula* xef = new AtomicFormula(Literal::createEquality(true, x, f, Sorts::SRT_BOOL));
+  List<Formula*>* xb = new List<Formula*>(xet, new List<Formula*>(xef));
+  Formula* fd = new QuantifiedFormula(FORALL, new List<int>(0), new JunctionFormula(OR, xb));
+  Unit* finite_domain = new FormulaUnit(fd, new Inference(Inference::FOOL_AXIOM), Unit::AXIOM);
+
+  _defs = new UnitList(finite_domain, _defs);
 }
 
 bool FOOLElimination::checkForTermLetReplacement(TermList t, TermList& res)

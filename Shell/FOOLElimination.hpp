@@ -83,6 +83,8 @@ private:
   FormulaList* process(FormulaList* fs);
   FormulaUnit* apply(FormulaUnit* fu);
 
+  void appendAxioms();
+
   Term* eliminateTermIte(Formula * condition, TermList thenBranch, TermList elseBranch);
 
   bool checkForTermLetReplacement(TermList t, TermList& res);

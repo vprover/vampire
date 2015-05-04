@@ -353,6 +353,8 @@ vstring Inference::ruleName(Rule rule)
     return "equality axiom";
   case THEORY:
     return "theory axiom";
+  case FOOL_AXIOM:
+    return "fool axiom";
   case BOOLEAN_TERM_ENCODING:
     return "boolean term encoding";
  // case SPLITTING_COMPONENT:
