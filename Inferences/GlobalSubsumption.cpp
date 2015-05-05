@@ -168,7 +168,13 @@ Clause* GlobalSubsumption::perform(Clause* cl)
       env.statistics->globalSubsumption++;
       ASS_L(replacement->length(), clen);
 
-      return replacement;
+      if (replacement->length() == 0) {
+        ASS(_uprOnly); // with full solver power this would have to be caught in addClauseToIndex already
+
+        throw MainLoop::RefutationFoundException(replacement);
+      } else {
+        return replacement;
+      }
     }
   }
 
