@@ -47,6 +47,7 @@
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/URResolution.hpp"
+#include "Inferences/Instantiation.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1321,6 +1322,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
+
+  if(opt.instantiation()){
+    gie->addFront(new Instantiation());
+  }
+
   if (prb.hasEquality()) {
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());

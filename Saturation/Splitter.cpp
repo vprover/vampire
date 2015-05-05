@@ -437,7 +437,7 @@ void SplittingBranchSelector::addSatClauses(
     TimeCounter tc1(TC_SAT_SOLVER);
     stat = _solver->solve();
   }
-  if (stat != SATSolver::UNSATISFIABLE) {
+  if (stat == SATSolver::SATISFIABLE) {
     stat = processDPConflicts();
   }
   if(stat == SATSolver::UNSATISFIABLE) {

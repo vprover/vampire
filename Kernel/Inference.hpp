@@ -253,6 +253,8 @@ public:
     FMB_FUNC_DEF,
     /* Definition Introduction for FMB */
     FMB_DEF_INTRO, 
+    /* Instantiation */
+    INSTANTIATION,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

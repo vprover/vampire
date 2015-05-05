@@ -705,6 +705,11 @@ void Options::Options::init()
 
 //*********************** Inferences  ***********************
 
+    _instantiation = BoolOptionValue("instantiation","inst",false);
+    _instantiation.description = "Heuristically instantiate variables";
+    _instantiation.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_instantiation);
+
     _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
                                                             Demodulation::ALL,
                                                             {"all","off","preordered"});
