@@ -219,7 +219,7 @@ SATClause* LingelingInterfacing::getRefutation()
 {
 	CALL("LingelingInterfacing::getRefutation");
 
-  ASS_EQ(_status,UNSATISFIABLE);
+  // ASS_EQ(_status,UNSATISFIABLE); // can be SAT/UNKNOWN after explicit minimization
   
   // connect the added clauses ... 
   SATClauseList* prems = _addedClauses;
