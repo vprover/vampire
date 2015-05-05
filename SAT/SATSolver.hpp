@@ -223,6 +223,58 @@ public:
     return _failedAssumptionBuffer;
   }
 
+  /**
+   * Apply fixpoint minimization to already obtained failed assumption set
+   * and return the result (as failedAssumptions).
+   */
+  const SATLiteralStack& explicitlyMinimizedFailedAssumptions(bool onlyPropagate=false) {
+    return explicitlyMinimizedFailedAssumptions(onlyPropagate ? 0u : UINT_MAX);
+  }
+
+  virtual const SATLiteralStack& explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit) {
+    CALL("SATSolver::explicitlyMinimizeFailedAssumptions");
+
+    // assumes solveUnderAssumptions(...,conflictCountLimit,...) just returned UNSAT and initialized _failedAssumptionBuffer
+
+    ASS(!hasAssumptions());
+
+    unsigned sz = _failedAssumptionBuffer.size();
+
+    // TODO: use a random permutation not to bias minimization "from one side only"
+    /*
+    static DArray<unsigned> permutation;
+    permutation.initFromIterator(getRangeIterator(0u,sz), sz);
+    for(unsigned i=sz-1; i>0; i--) {
+      unsigned tgtPos=Random::getInteger(i+1);
+      std::swap(permutation[i], permutation[tgtPos]);
+    }
+    unsigned idx = permutation[i];
+    */
+
+    unsigned i = 0;
+    while (i < sz) {
+      // load all but i-th
+      for (unsigned j = 0; j < sz; j++) {
+        if (j != i) {
+          addAssumption(_failedAssumptionBuffer[j]);
+        }
+      }
+
+      if (solve(conflictCountLimit) == UNSATISFIABLE) {
+        // leave out forever by overwriting by the last one (buffer shrinks implicitly)
+        _failedAssumptionBuffer[i] = _failedAssumptionBuffer[--sz];
+      } else {
+        // move on
+        i++;
+      }
+
+      retractAllAssumptions();
+    }
+
+    _failedAssumptionBuffer.truncate(sz);
+    return _failedAssumptionBuffer;
+  }
+
 protected:
   SATLiteralStack _failedAssumptionBuffer;
 };
