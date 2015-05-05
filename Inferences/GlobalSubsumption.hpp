@@ -26,12 +26,12 @@ public:
   CLASS_NAME(GlobalSubsumption);
   USE_ALLOCATOR(GlobalSubsumption);
 
-  GlobalSubsumption(bool uprOnly) : _index(0), _allowExtraAttachment(false), _uprOnly(uprOnly) {}
+  GlobalSubsumption(bool uprOnly, Splitter* splitter) : _index(0), _allowExtraAttachment(false), _uprOnly(uprOnly), _splitter(splitter) {}
   /**
    * The attach function must not be called when the constructor is used
    */
   GlobalSubsumption(GroundingIndex* idx, bool uprOnly, bool allowExtraAttachment=false)
-  : _index(idx), _allowExtraAttachment(allowExtraAttachment), _uprOnly(uprOnly) {}
+  : _index(idx), _allowExtraAttachment(allowExtraAttachment), _uprOnly(uprOnly), _splitter(0) {}
 
   void attach(SaturationAlgorithm* salg);
   void detach();
@@ -51,6 +51,11 @@ private:
    * Call the SAT solver using the cheap, unit-propagation-only calls.
    */
   bool _uprOnly;
+
+  /*
+   * GS needs a splitter when FULL_MODEL value is specified for the interaction with AVATAR.
+   */
+  Splitter* _splitter;
 };
 
 };

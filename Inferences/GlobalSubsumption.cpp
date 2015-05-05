@@ -51,6 +51,8 @@ void GlobalSubsumption::attach(SaturationAlgorithm* salg)
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<GroundingIndex*>(
 	  _salg->getIndexManager()->request(GLOBAL_SUBSUMPTION_INDEX) );
+
+
 }
 
 void GlobalSubsumption::detach()
