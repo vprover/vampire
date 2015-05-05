@@ -169,7 +169,7 @@ public:
   // to identify a subset of the given assumptions that were only needed for
   // previous contradiction to be derived.
 
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) {
+  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) {
     CALL("SATSolver::solveUnderAssumptions");
 
     ASS(!hasAssumptions());
@@ -196,7 +196,23 @@ public:
     return res;
   }
 
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, bool onlyPropagate=false) { return solveUnderAssumptions(assumps,onlyPropagate ? 0u : UINT_MAX); }
+  /**
+   * Solve under the given set of assumptions @b assumps.
+   * If UNSATISFIABLE is returned, a subsequent call to
+   * failedAssumptions() returns a subset of these
+   * that are already sufficient for the unsatisfiability.
+   *
+   * @b onlyPropagate suggests that a limited (and potentially incomplete)
+   * solving strategy should be employed which only performs unit propagation.
+   *
+   * If @b onlyProperSubusets, time can be saved by
+   * skipping the case when all the given assumptions
+   * would need to be considered to obtain unsatisfiability
+   * and UNKOWN can be returned instead right away.
+   */
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, bool onlyPropagate=false, bool onlyProperSubusets=false) {
+    return solveUnderAssumptions(assumps,onlyPropagate ? 0u : UINT_MAX,onlyProperSubusets);
+  }
 
   /**
    * When solveUnderAssumptions(assumps) returns UNSATISFIABLE,

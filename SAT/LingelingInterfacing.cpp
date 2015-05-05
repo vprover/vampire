@@ -113,22 +113,18 @@ void LingelingInterfacing::suggestPolarity(unsigned var, unsigned pol)
    lglsetphase(_solver,pol ? vvar : -vvar);
  }
 
-SATSolver::Status LingelingInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+SATSolver::Status LingelingInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool)
 {
   CALL("LingelingInterfacing::solveUnderAssumptions");
 
   ASS(!hasAssumptions());
-
-  // We don't want "UNKNOWN" before all assumptions were loaded
-  // TODO: is this sufficient? Isn't it too much?
-  conflictCountLimit += assumps.size();
 
   solveModuloAssumptionsAndSetStatus(assumps,conflictCountLimit);
 
   if (_status == SATSolver::UNSATISFIABLE) {
     // fill _failedAssumptionBuffer
     _failedAssumptionBuffer.reset();
-    for (int i = 0; i < assumps.size(); i++) {
+    for (unsigned i = 0; i < assumps.size(); i++) {
       SATLiteral assump = assumps[i];
       int lassump = vampireLit2Lingeling(assump);
       if (lglfailed(_solver,lassump)) {

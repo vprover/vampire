@@ -183,7 +183,7 @@ void TWLSolver::addClause(SATClause* cl)
  * TODO: Can we deal with assumptions as minisat does, to naturally discover a nice(ish) subset
  * via the conflict clause learning mechanism?
  */
-SATSolver::Status TWLSolver::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+SATSolver::Status TWLSolver::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets)
 {
   CALL("TWLSolver::solveUnderAssumptions");
 
@@ -214,12 +214,16 @@ SATSolver::Status TWLSolver::solveUnderAssumptions(const SATLiteralStack& assump
     }
   }
 
-  // we must also check with all of them; the last left out was (sz-1)-th
-  lit = assumps[sz-1];
-  addAssumption(lit);
-  _failedAssumptionBuffer.push(lit);
+  if (!onlyProperSubusets) {
+    // we must also check with all of them; the last left out was (sz-1)-th
+    lit = assumps[sz-1];
+    addAssumption(lit);
+    _failedAssumptionBuffer.push(lit);
+    res = solve(conflictCountLimit);
+  } else {
+    res = UNKNOWN;
+  }
 
-  res = solve(conflictCountLimit);
   retractAllAssumptions();
   return res;
 }

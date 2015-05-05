@@ -92,7 +92,7 @@ public:
 	//Not used in Lingeling
 	virtual void recordSource(unsigned var, Literal* lit) { /* intentionally no-op */ };
 
-	Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+	Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
 
 protected:
   void solveModuloAssumptionsAndSetStatus(const SATLiteralStack& assumps, int conflictCountLimit = -1);

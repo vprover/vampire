@@ -99,7 +99,7 @@ public:
 
   virtual void recordSource(unsigned satlit, Literal* lit);
 
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
 
 private:
 

@@ -146,29 +146,30 @@ Clause* GlobalSubsumption::perform(Clause* cl)
     assumps.push(slits[i].opposite());
   }
 
-  ALWAYS(solver.solveUnderAssumptions(assumps,_uprOnly) == SATSolver::UNSATISFIABLE);
-  // UNSATISFIABLE, because abstracted cl has just been added above
+  SATSolver::Status res = solver.solveUnderAssumptions(assumps, _uprOnly, true /* only proper subsets */);
 
-  const SATLiteralStack& failed = solver.failedAssumptions();
+  if (res == SATSolver::UNSATISFIABLE) {
+    const SATLiteralStack& failed = solver.failedAssumptions();
 
-  if (failed.size() < assumps.size()) {
-    static LiteralStack survivors;
-    survivors.reset();
+    if (failed.size() < assumps.size()) {
+      static LiteralStack survivors;
+      survivors.reset();
 
-    for (unsigned i = 0; i < failed.size(); i++) {
-      survivors.push(lookup.get(failed[i].opposite())); // back to the original polarity to lookup the corresponding FO literal
+      for (unsigned i = 0; i < failed.size(); i++) {
+        survivors.push(lookup.get(failed[i].opposite())); // back to the original polarity to lookup the corresponding FO literal
+      }
+
+      //just a dummy inference, the correct one will be in the InferenceStore
+      Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
+      Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),cl->inputType(), inf);
+      replacement->setAge(cl->age());
+
+      Grounder::recordInference(cl, solver.getRefutation(), replacement);
+      env.statistics->globalSubsumption++;
+      ASS_L(replacement->length(), clen);
+
+      return replacement;
     }
-
-    //just a dummy inference, the correct one will be in the InferenceStore
-    Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
-    Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),cl->inputType(), inf);
-    replacement->setAge(cl->age());
-
-    Grounder::recordInference(cl, solver.getRefutation(), replacement);
-    env.statistics->globalSubsumption++;
-    ASS_L(replacement->length(), clen);
-
-    return replacement;
   }
 
   return cl;

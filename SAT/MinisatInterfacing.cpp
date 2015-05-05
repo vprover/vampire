@@ -37,7 +37,7 @@ void MinisatInterfacing::ensureVarCount(unsigned newVarCnt)
   }
 }
 
-SATSolver::Status MinisatInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+SATSolver::Status MinisatInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool)
 {
   CALL("MinisatInterfacing::solveUnderAssumptions");
 
