@@ -149,7 +149,7 @@ Clause* GlobalSubsumption::perform(Clause* cl)
   SATSolver::Status res = solver.solveUnderAssumptions(assumps, _uprOnly, true /* only proper subsets */);
 
   if (res == SATSolver::UNSATISFIABLE) {
-    const SATLiteralStack& failed = solver.explicitlyMinimizedFailedAssumptions();
+    const SATLiteralStack& failed = solver.explicitlyMinimizedFailedAssumptions(_uprOnly);
 
     if (failed.size() < assumps.size()) {
       static LiteralStack survivors;
