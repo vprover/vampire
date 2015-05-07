@@ -66,8 +66,10 @@ XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging onl
 
 INCLUDES= -I.
 Z3FLAG= -DVZ3=0
+Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
-INCLUDES= -I. -Linclude -lz3 -Iz3/api -Iz3/api/c++
+INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ 
+Z3LIB= -lz3 -lgomp -lpthread -lrt
 Z3FLAG= -DVZ3=1
 endif
 
@@ -620,7 +622,7 @@ LGMP = -lgmp -lgmpxx
 endif 
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(LGMP)
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(LGMP) $(Z3LIB)
 @#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
 @#strip $@
 endef
