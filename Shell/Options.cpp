@@ -2478,7 +2478,7 @@ vstring Options::generateEncodedOptions() const
   }
 
   if(!first){ res << "_"; }
-  res << _timeLimitInDeciseconds.getStringOfActual();
+  res << Lib::Int::toString(_timeLimitInDeciseconds.actualValue);
  
   return res.str();
  
