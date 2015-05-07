@@ -36,8 +36,13 @@ TEST_FUN(instances)
   Clause * cl = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::INPUT));
   (* cl)[0] = lit;
 
+  TermList twenty(theory->representConstant(IntegerConstantType("20")));
+  Literal* l2 = Literal::createEquality(true,twenty,twenty,Sorts::SRT_INTEGER);
+  Clause* cl2 = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::INPUT));
+  (* cl2)[0] = l2;
+
   Instantiation inst;
-  cout << "GENERATING" << endl;
+  inst.registerClause(cl2);
   ClauseIterator clauses = inst.generateClauses(cl);
   while(clauses.hasNext()){ cout << clauses.next()->toString() << endl; }
 

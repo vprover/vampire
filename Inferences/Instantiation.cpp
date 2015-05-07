@@ -10,6 +10,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/DArray.hpp"
+#include "Lib/Set.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
@@ -18,6 +19,7 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Theory.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -29,13 +31,61 @@ namespace Inferences
 using namespace Lib;
 using namespace Kernel;
 
-struct IntToTermFn
+void Instantiation::registerClause(Clause* cl)
 {
-  IntToTermFn(){}
+  CALL("Instantiation::registerClause");
+
+  //cout << "register " << cl->toString() << endl;
+
+  Clause::Iterator cit(*cl);
+  while(cit.hasNext()){
+    Literal* lit = cit.next();
+    SubtermIterator it(lit);
+    while(it.hasNext()){
+      TermList t = it.next();
+      if(t.isTerm() && t.term()->ground()){
+        unsigned sort;
+        if(SortHelper::tryGetResultSort(t,sort)){
+          Set<Term*>* cans;
+          if(!sorted_candidates.find(sort,cans)){
+            cans = new Set<Term*>();
+            sorted_candidates.insert(sort,cans);
+          }
+          //cout << "record " << t.toString() << " for " << sort << endl;
+          cans->insert(t.term());
+        }
+      }
+    }
+  }
+
+}
+
+
+struct IntToIntTermFn
+{
+  IntToIntTermFn(){}
   DECL_RETURN_TYPE(Term*);
   OWN_RETURN_TYPE operator()(unsigned int i)
   {
     return theory->representConstant(IntegerConstantType(i));
+  }
+};
+struct IntToRatTermFn
+{
+  IntToRatTermFn(){}
+  DECL_RETURN_TYPE(Term*);
+  OWN_RETURN_TYPE operator()(unsigned int i)
+  {
+    return theory->representConstant(RationalConstantType(i,1));
+  }
+};
+struct IntToRealTermFn
+{
+  IntToRealTermFn(){}
+  DECL_RETURN_TYPE(Term*);
+  OWN_RETURN_TYPE operator()(unsigned int i)
+  {
+    return theory->representConstant(RealConstantType(RationalConstantType(i,1)));
   }
 };
 
@@ -43,11 +93,23 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
 {
   CALL("Instantiation::getCandidateTerms");
 
+  Set<Term*>* cans;
+  if(!sorted_candidates.find(sort,cans)){
+    return VirtualIterator<Term*>::getEmpty();
+  }
+  Set<Term*>::Iterator res(*cans);
+
   if(sort==Sorts::SRT_INTEGER){
-    return pvi(getMappingIterator(getRangeIterator(0u,10u),IntToTermFn()));
+    return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(0u,10u),IntToIntTermFn())));
+  }
+  if(sort==Sorts::SRT_RATIONAL){
+    return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(0u,10u),IntToRatTermFn())));
+  }
+  if(sort==Sorts::SRT_REAL){
+    return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(0u,10u),IntToRealTermFn())));
   }
 
-  return VirtualIterator<Term*>::getEmpty(); 
+  return pvi(res);
 }
 
 class Instantiation::AllSubstitutionsIterator{
@@ -84,7 +146,7 @@ public:
       // check deals with case where there are no candidates and no binding
       if(cans->size()!=0) sub.bind(v,(* cans)[at]);
     }
-    cout << "sub is " << sub.toString() << endl;
+    //cout << "sub is " << sub.toString() << endl;
 
     // now update points and set finished if we are
     if(candidates.get(currently)->size()==0 || 
@@ -119,6 +181,7 @@ struct Instantiation::ResultFn
     Inference* inf = new Inference1(Inference::INSTANTIATION,_cl);
     unsigned clen = _cl->length();
     Clause* res = new(clen) Clause(clen,_cl->inputType(),inf);
+    res->setAge(_cl->age()+1);
 
     for(unsigned i=0;i<clen;i++){
       (*res)[i] = SubstHelper::apply((*_cl)[i],sub);

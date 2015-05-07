@@ -540,9 +540,7 @@ void Property::scanForInterpreted(Term* t)
     itp = theory->interpretFunction(t);
   }
   _interpretationPresence[itp] = true;
-  if (itp!=Theory::EQUAL) {
-    _hasInterpreted = true;
-  }
+  _hasInterpreted = true;
 }
 
 /**

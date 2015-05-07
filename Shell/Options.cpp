@@ -706,7 +706,8 @@ void Options::Options::init()
 //*********************** Inferences  ***********************
 
     _instantiation = BoolOptionValue("instantiation","inst",false);
-    _instantiation.description = "Heuristically instantiate variables";
+    _instantiation.description = "Heuristically instantiate variables"
+                                 ", note that this is often at odds with forward subsumption.";
     _instantiation.tag(OptionTag::INFERENCES);
     _lookup.insert(&_instantiation);
 

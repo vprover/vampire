@@ -8,6 +8,7 @@
 #define __Instantiation__
 
 #include "Forwards.hpp"
+#include "Lib/Set.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -27,10 +28,14 @@ public:
 
   ClauseIterator generateClauses(Clause* premise);
 
+  void registerClause(Clause* cl);
+
 private:
   VirtualIterator<Term*> getCandidateTerms(Clause* cl, unsigned var,unsigned sort);
   class AllSubstitutionsIterator;
   struct ResultFn;
+
+  DHMap<unsigned,Lib::Set<Term*>*> sorted_candidates;
 
 };
 

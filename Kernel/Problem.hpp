@@ -90,7 +90,7 @@ public:
 
   bool hasFormulas() const;
   bool hasEquality() const;
-  /** Problem contains an interpreted symbol different from equality */
+  /** Problem contains an interpreted symbol including equality */
   bool hasInterpretedOperations() const;
   bool hasFormulaItes() const;
   /** Problem contains let terms or formulas, or term if-then-else */

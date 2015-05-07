@@ -345,39 +345,6 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     _splitter->onNewClause(cl);
   }
 
-// Giles.
-// Clauses no longer  have prop parts
-// This code used to add the disjunction of all prop parts of premises
-// 
-//
-//  if (!cl->prop()) {
-//    BDD* bdd=BDD::instance();
-//    BDDNode* prop=bdd->getFalse();
-//
-//    Inference* inf=cl->inference();
-//    Inference::Iterator it=inf->iterator();
-//    while (inf->hasNext(it)) {
-//      Unit* premu=inf->next(it);
-//      if (!premu->isClause()) {
-//	//the premise comes from preprocessing
-//	continue;
-//      }
-//      Clause* prem=static_cast<Clause*>(premu);
-//      if (!prem->prop()) {
-//	//the premise comes from preprocessing
-//	continue;
-//      }
-//
-//      prop=bdd->disjunction(prop, prem->prop());
-//    }
-//
-//    cl->initProp(prop);
-//    if (!bdd->isTrue(prop)) {
-//      InferenceStore::instance()->recordNonPropInference(cl);
-//    }
-//  }
-
-   
   if (env.options->showNew()) {
     env.beginOutput();
     env.out() << "[SA] new: " << cl->toString() << std::endl;
@@ -416,6 +383,8 @@ void SaturationAlgorithm::onClauseRetained(Clause* cl)
 {
   CALL("SaturationAlgorithm::onClauseRetained");
 
+  //cout << "[SA] retained " << cl->toString() << endl;
+
 }
 
 /**
@@ -453,6 +422,20 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
 {
   CALL("SaturationAlgorithm::onClauseReduction/4");
   ASS(cl);
+
+  if (env.options->showReductions()) {
+    env.beginOutput();
+    env.out() << "[SA] " << (forward ? "forward" : "") << " reduce: " << cl->toString() << endl;
+    if(replacement){ env.out() << "     replaced by " << replacement->toString() << endl; }
+    static ClauseStack p; p.reset(); p.loadFromIterator(premises);
+    if(!p.isEmpty()){
+      ClauseStack::Iterator it(p);
+      env.out() << "     using ";
+      while(it.hasNext()){ env.out() << it.next()->toString() << "  "; }
+      env.out() << endl;
+    }
+    env.endOutput();
+  }
 
   static ClauseStack premStack;
   premStack.reset();
@@ -562,6 +545,10 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
+  }
+
+  if(_instantiation){
+    _instantiation->registerClause(cl);
   }
 
   env.statistics->initialClauses++;
@@ -703,6 +690,7 @@ public:
     if ( !ColorHelper::compatible(_cl->color(), premise->color()) ) {
       return false;
     }
+
     return true;
   }
 
@@ -1324,7 +1312,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   CompositeGIE* gie=new CompositeGIE();
 
   if(opt.instantiation()){
-    gie->addFront(new Instantiation());
+    res->_instantiation = new Instantiation();
+    gie->addFront(res->_instantiation);
   }
 
   if (prb.hasEquality()) {
