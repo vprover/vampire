@@ -240,16 +240,12 @@ public:
 
     unsigned sz = _failedAssumptionBuffer.size();
 
-    // TODO: use a random permutation not to bias minimization "from one side only"
-    /*
-    static DArray<unsigned> permutation;
-    permutation.initFromIterator(getRangeIterator(0u,sz), sz);
+    // randomly permute the content of _failedAssumptionBuffer
+    // not to bias minimization from one side or another
     for(unsigned i=sz-1; i>0; i--) {
       unsigned tgtPos=Random::getInteger(i+1);
-      std::swap(permutation[i], permutation[tgtPos]);
+      std::swap(_failedAssumptionBuffer[i], _failedAssumptionBuffer[tgtPos]);
     }
-    unsigned idx = permutation[i];
-    */
 
     unsigned i = 0;
     while (i < sz) {
