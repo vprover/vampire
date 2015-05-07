@@ -285,6 +285,8 @@ void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
 	if (!map.insert(varNum, varSort)) {
 	  ASS_EQ(varSort, map.get(varNum));
 	}
+      } else if (args->isTerm() && args->term()->isFormula()) {
+        collectVariableSorts(args->term()->getSpecialData()->getFormula(), map);
       }
       idx++;
       args=args->next();
@@ -304,12 +306,25 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
   SubformulaIterator sfit(f);
   while (sfit.hasNext()) {
     Formula* sf = sfit.next();
-    if (sf->connective() != LITERAL) {
-      continue;
-    }
-    Literal* lit = sf->literal();
+    switch (sf->connective()) {
+      case LITERAL:
+        collectVariableSorts(sf->literal(), map);
+        break;
 
-    collectVariableSorts(lit, map);
+      case BOOL_TERM: {
+        TermList ts = sf->getBooleanTerm();
+        if (!ts.isVar()) {
+          continue;
+        }
+        if (!map.insert(ts.var(), Sorts::SRT_FOOL_BOOL)) {
+          ASS_EQ(Sorts::SRT_FOOL_BOOL, map.get(ts.var()));
+        }
+        break;
+      }
+
+      default:
+        continue;
+    }
   }
 }
 
