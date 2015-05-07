@@ -89,6 +89,9 @@ public:
   virtual void retractAllAssumptions();
   virtual bool hasAssumptions() const { return _assumptionsAdded; }
 
+  /**
+   * Is only valid until the next call to solve()!
+   */
   virtual SATClause* getRefutation() {
     CALL("TWLSolver::getRefutation");
     return _refutation;
@@ -100,6 +103,7 @@ public:
   virtual void recordSource(unsigned satlit, Literal* lit);
 
   Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
+  const SATLiteralStack& explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit) override;
 
 private:
 

@@ -224,6 +224,10 @@ SATClause* LingelingInterfacing::getRefutation()
   // connect the added clauses ... 
   SATClauseList* prems = _addedClauses;
   
+  // TODO: the assumption set will be empty after a call to solveUnderAssumptions()
+  // This does not matter much since refutations are only ever passed to collectFOPremises
+  // and there are no FO premises of assumption inferences
+
   // ... with the current assumptions
   for (size_t i=0; i < _assumptions.size(); i++) {
     SATClause* unit = new(1) SATClause(1);

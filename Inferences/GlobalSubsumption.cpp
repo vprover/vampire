@@ -149,14 +149,16 @@ Clause* GlobalSubsumption::perform(Clause* cl)
   SATSolver::Status res = solver.solveUnderAssumptions(assumps, _uprOnly, true /* only proper subsets */);
 
   if (res == SATSolver::UNSATISFIABLE) {
-    const SATLiteralStack& failed = solver.explicitlyMinimizedFailedAssumptions(_uprOnly);
+    const SATLiteralStack& failed = solver.failedAssumptions();
 
     if (failed.size() < assumps.size()) {
+      const SATLiteralStack& failedFinal = true /* shall be an option */ ? solver.explicitlyMinimizedFailedAssumptions(_uprOnly) : failed;
+
       static LiteralStack survivors;
       survivors.reset();
 
-      for (unsigned i = 0; i < failed.size(); i++) {
-        survivors.push(lookup.get(failed[i].opposite())); // back to the original polarity to lookup the corresponding FO literal
+      for (unsigned i = 0; i < failedFinal.size(); i++) {
+        survivors.push(lookup.get(failedFinal[i].opposite())); // back to the original polarity to lookup the corresponding FO literal
       }
 
       //just a dummy inference, the correct one will be in the InferenceStore

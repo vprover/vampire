@@ -228,6 +228,26 @@ SATSolver::Status TWLSolver::solveUnderAssumptions(const SATLiteralStack& assump
   return res;
 }
 
+const SATLiteralStack& TWLSolver::explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit)
+{
+  CALL("TWLSolver::explicitlyMinimizedFailedAssumptions");
+
+  // minimize _failedAssumptionBuffer using parent's code:
+  SATSolverWithAssumptions::explicitlyMinimizedFailedAssumptions(conflictCountLimit);
+
+  // the following is only necessary, because during explicit minimization calls to solve may invalidate _refutation
+  // TODO: a better solution?
+
+  unsigned sz = _failedAssumptionBuffer.size();
+  for (unsigned i = 0; i < sz; i++) {
+    addAssumption(_failedAssumptionBuffer[i]);
+  }
+  ALWAYS(solve(conflictCountLimit) == UNSATISFIABLE);
+  retractAllAssumptions();
+
+  return _failedAssumptionBuffer;
+}
+
 
 /**
  * Perform saturation for @c conflictCountLimit conflicts.
