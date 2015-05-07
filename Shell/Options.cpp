@@ -710,6 +710,7 @@ void Options::Options::init()
                                  ", note that this is often at odds with forward subsumption.";
     _instantiation.tag(OptionTag::INFERENCES);
     _lookup.insert(&_instantiation);
+    _instantiation.setRandomChoices({"off","off","off","off","off","off","off","off","off","on"}); // Turn this on rarely
 
     _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
                                                             Demodulation::ALL,
@@ -853,6 +854,7 @@ void Options::Options::init()
     _forwardSubsumption.description="";
     _lookup.insert(&_forwardSubsumption);
     _forwardSubsumption.tag(OptionTag::INFERENCES);
+    _forwardSubsumption.setRandomChoices({"on","on","on","on","on","on","on","on","on","off"}); // turn this off rarely
 
     _forwardSubsumptionResolution = BoolOptionValue("forward_subsumption_resolution","fsr",true);
     _forwardSubsumptionResolution.description="";
