@@ -2444,8 +2444,9 @@ void TPTP::endTermAsFormula()
 {
   CALL("TPTP::endTermAsFormula");
   TermList t = _termLists.pop();
-  if (sortOf(t) != Sorts::SRT_BOOL) {
-    USER_ERROR("Non-boolean term " + t.toString() + " is used in a formula context");
+  if (sortOf(t) != Sorts::SRT_FOOL_BOOL) {
+    vstring sortName = env.sorts->sortName(sortOf(t));
+    USER_ERROR("Non-boolean term " + t.toString() + " of sort " + sortName + " is used in a formula context");
   }
   _formulas.push(createFormula(t));
 } // endTermAsFormula
