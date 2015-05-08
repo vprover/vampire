@@ -240,6 +240,10 @@ public:
 
     unsigned sz = _failedAssumptionBuffer.size();
 
+    if (!sz) { // a special case. Because of the bloody unsigned (see below)!
+      return _failedAssumptionBuffer;
+    }
+
     // randomly permute the content of _failedAssumptionBuffer
     // not to bias minimization from one side or another
     for(unsigned i=sz-1; i>0; i--) {
