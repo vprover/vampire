@@ -43,25 +43,22 @@ void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 {
   CALL("GlobalSubsumption::attach");
 
-  if(_allowExtraAttachment) {
-    return;
-  }
   ASS(!_index);
 
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<GroundingIndex*>(
 	  _salg->getIndexManager()->request(GLOBAL_SUBSUMPTION_INDEX) );
 
-
+  if (_salg->getOptions().globalSubsumptionAvatarAssumptions() == Options::GlobalSubsumptionAvatarAssumptions::FULL_MODEL) {
+    _splitter=_salg->getSplitter();
+  } else {
+    _splitter = 0;
+  }
 }
 
 void GlobalSubsumption::detach()
 {
   CALL("GlobalSubsumption::detach");
-
-  if(_allowExtraAttachment) {
-    return;
-  }
 
   _index=0;
   _salg->getIndexManager()->release(GLOBAL_SUBSUMPTION_INDEX);
@@ -152,7 +149,7 @@ Clause* GlobalSubsumption::perform(Clause* cl)
     const SATLiteralStack& failed = solver.failedAssumptions();
 
     if (failed.size() < assumps.size()) {
-      const SATLiteralStack& failedFinal = true /* shall be an option */ ? solver.explicitlyMinimizedFailedAssumptions(_uprOnly) : failed;
+      const SATLiteralStack& failedFinal = _explicitMinim ? solver.explicitlyMinimizedFailedAssumptions(_uprOnly,_randomizeMinim) : failed;
 
       static LiteralStack survivors;
       survivors.reset();

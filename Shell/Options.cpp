@@ -903,14 +903,22 @@ void Options::Options::init()
     _globalSubsumptionSatSolverPower.reliesOn(_globalSubsumption.is(equal(true)));
     _globalSubsumptionSatSolverPower.setRandomChoices({"propagation_only","full"});
 
+    _globalSubsumptionExplicitMinim = ChoiceOptionValue<GlobalSubsumptionExplicitMinim>("global_subsumption_explicit_minim","gsem",
+        GlobalSubsumptionExplicitMinim::RANDOMIZED,{"off","on","randomized"});
+    _globalSubsumptionSatSolverPower.description="Explicitly minimize the result of global sumsumption reduction.";
+    _lookup.insert(&_globalSubsumptionExplicitMinim);
+    _globalSubsumptionExplicitMinim.tag(OptionTag::INST_GEN);
+    _globalSubsumptionExplicitMinim.reliesOn(_globalSubsumption.is(equal(true)));
+    _globalSubsumptionExplicitMinim.setRandomChoices({"off","on","randomized"});
+
     _globalSubsumptionAvatarAssumptions = ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions>("global_subsumption_avatar_assumptions","gsaa",
-        GlobalSubsumptionAvatarAssumptions::FROM_CURRENT,{"from_current","full_model"});
+        GlobalSubsumptionAvatarAssumptions::OFF,{"off","from_current","full_model"});
     _globalSubsumptionAvatarAssumptions.description="";
     _lookup.insert(&_globalSubsumptionAvatarAssumptions);
     _globalSubsumptionAvatarAssumptions.tag(OptionTag::INST_GEN);
     _globalSubsumptionAvatarAssumptions.reliesOn(_globalSubsumption.is(equal(true)));
     _globalSubsumptionAvatarAssumptions.reliesOn(_splitting.is(equal(true)));
-    _globalSubsumptionAvatarAssumptions.setRandomChoices({"from_current","full_model"});
+    _globalSubsumptionAvatarAssumptions.setRandomChoices({"off","from_current","full_model"});
 
     _instGenBigRestartRatio = FloatOptionValue("inst_gen_big_restart_ratio","igbrr",0.0);
     _instGenBigRestartRatio.description=

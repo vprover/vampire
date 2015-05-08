@@ -109,6 +109,8 @@ public:
   static SaturationAlgorithm* tryGetInstance() { return s_instance; }
   static void tryUpdateFinalClauseCount();
 
+  Splitter* getSplitter() { return _splitter; }
+
 protected:
   virtual void init();
   virtual MainLoopResult runImpl();

@@ -227,11 +227,11 @@ public:
    * Apply fixpoint minimization to already obtained failed assumption set
    * and return the result (as failedAssumptions).
    */
-  const SATLiteralStack& explicitlyMinimizedFailedAssumptions(bool onlyPropagate=false) {
-    return explicitlyMinimizedFailedAssumptions(onlyPropagate ? 0u : UINT_MAX);
+  const SATLiteralStack& explicitlyMinimizedFailedAssumptions(bool onlyPropagate=false, bool randomize = false) {
+    return explicitlyMinimizedFailedAssumptions(onlyPropagate ? 0u : UINT_MAX, randomize);
   }
 
-  virtual const SATLiteralStack& explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit) {
+  virtual const SATLiteralStack& explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit, bool randomize) {
     CALL("SATSolver::explicitlyMinimizeFailedAssumptions");
 
     // assumes solveUnderAssumptions(...,conflictCountLimit,...) just returned UNSAT and initialized _failedAssumptionBuffer
@@ -244,11 +244,13 @@ public:
       return _failedAssumptionBuffer;
     }
 
-    // randomly permute the content of _failedAssumptionBuffer
-    // not to bias minimization from one side or another
-    for(unsigned i=sz-1; i>0; i--) {
-      unsigned tgtPos=Random::getInteger(i+1);
-      std::swap(_failedAssumptionBuffer[i], _failedAssumptionBuffer[tgtPos]);
+    if (randomize) {
+      // randomly permute the content of _failedAssumptionBuffer
+      // not to bias minimization from one side or another
+      for(unsigned i=sz-1; i>0; i--) {
+        unsigned tgtPos=Random::getInteger(i+1);
+        std::swap(_failedAssumptionBuffer[i], _failedAssumptionBuffer[tgtPos]);
+      }
     }
 
     unsigned i = 0;

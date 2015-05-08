@@ -91,7 +91,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 
   if(_opt.globalSubsumption()) {
     _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder(), opt);
-    _globalSubsumption = new GlobalSubsumption(_groundingIndex.ptr(),_opt.globalSubsumptionSatSolverPower()==Options::GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY);
+    _globalSubsumption = new GlobalSubsumption(_opt,_groundingIndex.ptr());
   }
 
   _variantIdx = new ClauseVariantIndex();

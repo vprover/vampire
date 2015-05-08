@@ -8,6 +8,7 @@
 
 #include "Forwards.hpp"
 #include "Indexing/GroundingIndex.hpp"
+#include "Shell/Options.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -26,12 +27,17 @@ public:
   CLASS_NAME(GlobalSubsumption);
   USE_ALLOCATOR(GlobalSubsumption);
 
-  GlobalSubsumption(bool uprOnly, Splitter* splitter) : _index(0), _allowExtraAttachment(false), _uprOnly(uprOnly), _splitter(splitter) {}
+  GlobalSubsumption(const Options& opts) : _index(0),
+      _uprOnly(opts.globalSubsumptionSatSolverPower()==Options::GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY),
+      _explicitMinim(opts.globalSubsumptionExplicitMinim()!=Options::GlobalSubsumptionExplicitMinim::OFF),
+      _randomizeMinim(opts.globalSubsumptionExplicitMinim()==Options::GlobalSubsumptionExplicitMinim::RANDOMIZED),
+      _avatarAssumptions(opts.globalSubsumptionAvatarAssumptions()!= Options::GlobalSubsumptionAvatarAssumptions::OFF),
+      _splitter(0) {}
+
   /**
-   * The attach function must not be called when the constructor is used
+   * The attach function must not be called when this constructor is used.
    */
-  GlobalSubsumption(GroundingIndex* idx, bool uprOnly, bool allowExtraAttachment=false)
-  : _index(idx), _allowExtraAttachment(allowExtraAttachment), _uprOnly(uprOnly), _splitter(0) {}
+  GlobalSubsumption(const Options& opts, GroundingIndex* idx) : GlobalSubsumption(opts) { _index = idx; }
 
   void attach(SaturationAlgorithm* salg);
   void detach();
@@ -41,16 +47,26 @@ private:
   void addClauseToIndex(Clause* cl, SATLiteralStack& satLits);
 
   GroundingIndex* _index;
-  /**
-   * If true, the attach and detach functions do nothing, so that the rule can
-   * be attached to multiple saturation algorithms
-   */
-  bool _allowExtraAttachment;
 
   /**
    * Call the SAT solver using the cheap, unit-propagation-only calls.
    */
   bool _uprOnly;
+
+  /**
+   * Explicitly minimize the obtained assumption set.
+   */
+  bool _explicitMinim;
+
+  /**
+   * Randomize order for explicit minimization.
+   */
+  bool _randomizeMinim;
+
+  /**
+   * Implement conditional GS when running with AVATAR.
+   */
+  bool _avatarAssumptions;
 
   /*
    * GS needs a splitter when FULL_MODEL value is specified for the interaction with AVATAR.

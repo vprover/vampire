@@ -1350,9 +1350,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->addForwardSimplifierToFront(new HyperSuperposition());
   }
   if (opt.globalSubsumption()) {
-    res->addForwardSimplifierToFront(
-        new GlobalSubsumption(opt.globalSubsumptionSatSolverPower()==Options::GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY,
-            opt.globalSubsumptionAvatarAssumptions() == Options::GlobalSubsumptionAvatarAssumptions::FULL_MODEL ? res->_splitter : 0));
+    res->addForwardSimplifierToFront(new GlobalSubsumption(opt));
   }
   if (opt.forwardLiteralRewriting()) {
     res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
