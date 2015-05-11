@@ -3213,7 +3213,7 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
  * @since 03/05/2013 train Manchester-London bug fix
  * @author Andrei Voronkov
  */
-unsigned TPTP::sortOf(TermList& t)
+unsigned TPTP::sortOf(TermList t)
 {
   CALL("TPTP::sortOf");
 

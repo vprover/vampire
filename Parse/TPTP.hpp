@@ -646,7 +646,7 @@ private:
   unsigned addRationalConstant(const vstring&);
   unsigned addRealConstant(const vstring&);
   unsigned addUninterpretedConstant(const vstring& name,bool& added);
-  unsigned sortOf(TermList& term);
+  unsigned sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
 
 private:
