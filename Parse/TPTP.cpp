@@ -2791,7 +2791,7 @@ void TPTP::simpleFormula()
 {
   CALL("TPTP::simpleFormula");
 
-  Token& tok = getTok(0);
+  Token tok = getTok(0);
 
   switch (tok.tag) {
   case T_NOT:
