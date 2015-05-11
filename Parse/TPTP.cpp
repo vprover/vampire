@@ -1730,13 +1730,13 @@ void TPTP::endBinding() {
   TermList body = _termLists.top();
   bool isPredicate = sortOf(body) == Sorts::SRT_BOOL;
 
-  Formula::VarList::Iterator vs(_varLists.pop());
-  unsigned arity = 0;
+  Formula::VarList* vars = _varLists.pop();
+  unsigned arity = (unsigned)vars->length();
+
+  Formula::VarList::Iterator vs(vars);
   while (vs.hasNext()) {
-    arity++;
-    TermList var;
-    var.makeVar(vs.next());
-    _termLists.push(var);
+    unsigned var = (unsigned)vs.next();
+    _termLists.push(TermList(var, false));
   }
 
   vstring name = _strings.pop();
@@ -1982,9 +1982,8 @@ void TPTP::endTerm()
 
   if (arity == -1) {
     // it was a variable
-    TermList var;
-    var.makeVar(_vars.insert(name));
-    _termLists.push(var);
+    unsigned var = (unsigned)_vars.insert(name);
+    _termLists.push(TermList(var, false));
     return;
   }
 
@@ -2051,9 +2050,8 @@ void TPTP::formulaInfix()
 
   if (arity == -1) {
     // that was a variable
-    TermList var;
-    var.makeVar(_vars.insert(name));
-    _termLists.push(var);
+    unsigned var = (unsigned)_vars.insert(name);
+    _termLists.push(TermList(var, false));
     _states.push(END_TERM_AS_FORMULA);
     return;
   }
@@ -2241,17 +2239,6 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   }
   TermList ts(t);
   return ts;
-}
-
-/**
- * Creates a formula from a given boolean term
- * @since 27/03/2015
- */
-Formula* TPTP::createFormula(TermList& term)
-{
-  CALL("TPTP::createFormula");
-  ASS(sortOf(term) == Sorts::SRT_BOOL);
-  return new BoolTermFormula(term);
 }
 
 /**
@@ -2448,7 +2435,7 @@ void TPTP::endTermAsFormula()
     vstring sortName = env.sorts->sortName(sortOf(t));
     USER_ERROR("Non-boolean term " + t.toString() + " of sort " + sortName + " is used in a formula context");
   }
-  _formulas.push(createFormula(t));
+  _formulas.push(new BoolTermFormula(t));
 } // endTermAsFormula
 
 /**
@@ -3544,7 +3531,7 @@ const char* TPTP::toString(State s)
   case END_FORMULA_INSIDE_TERM:
     return "END_FORMULA_INSIDE_TERM";
   case END_TERM_AS_FORMULA:
-    return "END_TERM_AS_TERM";
+    return "END_TERM_AS_FORMULA";
   case VAR_LIST:
     return "VAR_LIST";
   case FUN_APP:
