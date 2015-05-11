@@ -1730,7 +1730,7 @@ void TPTP::endBinding() {
   TermList body = _termLists.top();
   bool isPredicate = sortOf(body) == Sorts::SRT_BOOL;
 
-  Formula::VarList::Iterator vs(_bindLists.top());
+  Formula::VarList::Iterator vs(_varLists.pop());
   unsigned arity = 0;
   while (vs.hasNext()) {
     arity++;
@@ -3649,6 +3649,31 @@ void TPTP::printStacks() {
   cout << "Formulas:";
   if   (!fit.hasNext()) cout << " <empty>";
   while (fit.hasNext()) cout << " " << fit.next()->toString();
+  cout << endl;
+
+  Stack<Formula::VarList*>::Iterator vlit(_varLists);
+  cout << "Var lists:";
+  if   (!vlit.hasNext()) cout << " <empty>";
+  while (vlit.hasNext()) {
+    Formula::VarList::Iterator vit(vlit.next());
+    if (!vit.hasNext()) cout << " <empty>";
+    if  (vit.hasNext()) cout << " " << vit.next();
+  }
+  cout << endl;
+
+  Map<int, SortList*>::Iterator vsit(_variableSorts);
+  cout << "Variables sorts:";
+  if   (!vsit.hasNext()) cout << "<empty>";
+  int vsitKey;
+  SortList* vsitVal;
+  while (vsit.hasNext()) {
+    vsit.next(vsitKey, vsitVal);
+    cout << " (" << vsitKey << " ->";
+    SortList::Iterator slit(vsitVal);
+    if   (!slit.hasNext()) cout << " <empty>";
+    while (slit.hasNext()) cout << " " << env.sorts->sortName(slit.next());
+    cout << ")";
+  }
   cout << endl;
 
   Map<LetFunctionName,List<LetFunctionReference>*>::Iterator lfit(_letFunctionsRenamings);
