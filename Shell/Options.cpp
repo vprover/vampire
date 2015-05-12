@@ -961,6 +961,7 @@ void Options::Options::init()
     _lookup.insert(&_use_dm);
     _use_dm.tag(OptionTag::INST_GEN);
     _use_dm.setExperimental();
+    _use_dm.setRandomChoices({"on","off","off","off","off","off","off","off","off","off"});
 
     _nicenessOption = ChoiceOptionValue<Niceness>("niceness_option","no",Niceness::NONE,{"average","none","sum","top"});
     _nicenessOption.description="";
