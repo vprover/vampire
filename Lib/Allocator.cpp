@@ -968,7 +968,7 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 
 #endif
 
-#if VDEBUG
+#if 0 
 /**
  * In debug mode we replace the global new and delete (also the array versions)
  * and terminate in cases when they are used "unwillingly".
