@@ -34,6 +34,7 @@ using namespace Kernel;
 void Instantiation::registerClause(Clause* cl)
 {
   CALL("Instantiation::registerClause");
+  ASS(cl);
 
   //cout << "register " << cl->toString() << endl;
 
@@ -47,11 +48,12 @@ void Instantiation::registerClause(Clause* cl)
         unsigned sort;
         if(SortHelper::tryGetResultSort(t,sort)){
           Set<Term*>* cans;
-          if(!sorted_candidates.find(sort,cans)){
+          cout << "find " << sort << endl;
+          if(sorted_candidates.isEmpty() || !sorted_candidates.find(sort,cans)){
             cans = new Set<Term*>();
             sorted_candidates.insert(sort,cans);
           }
-          //cout << "record " << t.toString() << " for " << sort << endl;
+          cout << "record " << t.toString() << " for " << sort << endl;
           cans->insert(t.term());
         }
       }

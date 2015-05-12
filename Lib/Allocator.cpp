@@ -1019,7 +1019,7 @@ void operator delete(void* obj) throw() {
 
 void operator delete[](void* obj) throw() {  
   //ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");  
-  if(Allocator::_tolerantZone==0){ cout << "Warning, custom new matched by global delete" << endl; }
+  if(Allocator::_tolerantZone==0){ cout << "Warning, custom new matched by global delete[]" << endl; }
   free(obj);
 }
 #endif // VDEBUG

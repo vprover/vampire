@@ -771,7 +771,7 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     case Clause::SELECTED:
     case Clause::ACTIVE:
       //such clauses should not appear as new ones
-      ASSERTION_VIOLATION;
+      ASSERTION_VIOLATION_REP(cl->store());
 #endif
     }
     cl->decRefCnt(); //belongs to _newClauses.popWithoutDec()

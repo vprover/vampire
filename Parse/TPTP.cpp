@@ -2383,7 +2383,10 @@ void TPTP::midAtom()
       if (safe) {
 	lit = env.sharing->insert(lit);
       }
-      _formulas.push(new AtomicFormula(lit));
+      ASS(lit);
+      Formula* f = new AtomicFormula(lit);
+      ASS(f);
+      _formulas.push(f);
       return;
     }
   }
