@@ -220,6 +220,7 @@ VI_OBJ = Indexing/ClauseCodeTree.o\
          Indexing/LiteralIndex.o\
          Indexing/LiteralMiniIndex.o\
          Indexing/LiteralSubstitutionTree.o\
+	 Indexing/LiteralSubstitutionTreeWithoutTop.o\
          Indexing/ResultSubstitution.o\
          Indexing/SubstitutionTree.o\
          Indexing/SubstitutionTree_FastGen.o\
