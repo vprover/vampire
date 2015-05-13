@@ -518,7 +518,7 @@ private:
   void ensureExpanded()
   {
     if(_size+_deleted>=_nextExpansionOccupancy) {
-      cout << this << ", " << _size << ", " << _deleted << ", " << _nextExpansionOccupancy << endl;
+      //cout << this << ", " << _size << ", " << _deleted << ", " << _nextExpansionOccupancy << endl;
       expand();
     }
   }
@@ -536,7 +536,7 @@ private:
     void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"DHMap::Entry");
 //    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),typeid(Entry).name());
 
-    std::cout << (_size+_deleted) << std::endl;
+    //std::cout << (_size+_deleted) << std::endl;
 
     Entry* oldEntries=_entries;
     Entry* oldAfterLast=_afterLast;
@@ -561,7 +561,7 @@ private:
       }
       (ep++)->~Entry();
     }
-    std::cout << "copied" << std::endl;
+    //std::cout << "copied" << std::endl;
     if(oldCapacity) {
       DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
 //      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),typeid(Entry).name());
