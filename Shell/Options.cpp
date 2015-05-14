@@ -962,12 +962,16 @@ void Options::Options::init()
     _use_dm.tag(OptionTag::INST_GEN);
     _use_dm.setExperimental();
     _use_dm.setRandomChoices({"on","off","off","off","off","off","off","off","off","off"});
+    _use_dm.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
 
-    _nicenessOption = ChoiceOptionValue<Niceness>("niceness_option","no",Niceness::NONE,{"average","none","sum","top"});
+    _nicenessOption = ChoiceOptionValue<Niceness>("niceness_option","none",Niceness::NONE,{"average","none","sum","top"});
     _nicenessOption.description="";
     _lookup.insert(&_nicenessOption);
     _nicenessOption.tag(OptionTag::INST_GEN);
     _nicenessOption.setExperimental();
+    _nicenessOption.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
+    _nicenessOption.reliesOn(_satSolver.is(equal(SatSolver::VAMPIRE)));
+    _nicenessOption.setRandomChoices({"none","none","none","none","none","average","sum","top"});
 
 //*********************** AVATAR  ***********************
 
