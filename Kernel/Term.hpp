@@ -135,6 +135,8 @@ public:
 
   bool isSafe() const;
 
+  IntList* freeVariables() const;
+
   Formula* toFormula();
 
 #if VDEBUG
@@ -259,6 +261,7 @@ public:
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
+  IntList* freeVariables() const;
 
   /** Return number of bytes before the start of the term that belong to it */
   size_t getPreDataSize() { return isSpecial() ? sizeof(SpecialTermData) : 0; }

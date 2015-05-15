@@ -1,19 +1,17 @@
 /**
  * @file FormulaVarIterator.cpp
  * Implements a class FormulaVarIterator that iterates
- * over free variables in a formula formulas.
+ * over free variables in a formula or a term.
  *
  * @since 06/01/2004, Manchester
  * @since 02/09/2009 Redmond, reimplemented to work with non-rectified
  * formulas and return each variable only once
+ * @since 15/05/2015 Gothenburg, FOOL support added
  */
 
 #include "Debug/Tracer.hpp"
 
 #include "FormulaVarIterator.hpp"
-#include "Formula.hpp"
-#include "Term.hpp"
-#include "TermIterators.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -22,26 +20,42 @@ using namespace Kernel;
  * Build an iterator over f.
  * @since 02/09/2009 Redmond
  */
-FormulaVarIterator::FormulaVarIterator (const Formula* f)
+FormulaVarIterator::FormulaVarIterator(const Formula* f)
   : _found(false)
 {
   _instructions.push(FVI_FORMULA);
   _formulas.push(f);
 } // FormulaVarIterator::FormulaVarIterator
 
-FormulaVarIterator::FormulaVarIterator (const Term* trm)
+/**
+ * Build an iterator over a term.
+ * @since 15/05/2015 Gothenburg
+ */
+FormulaVarIterator::FormulaVarIterator(const Term* t)
   : _found(false)
 {
-  CALL("FormulaVarIterator::FormulaVarIterator(const Literal*)");
+  CALL("FormulaVarIterator::FormulaVarIterator(Term*)");
   _instructions.push(FVI_TERM);
-  _terms.push(trm->args());
+  _terms.push(t);
+} // FormulaVarIterator::FormulaVarIterator
+
+/**
+ * Build an iterator over a list of terms.
+ * @since 15/05/2015 Gothenburg
+ */
+FormulaVarIterator::FormulaVarIterator(const TermList* ts)
+  : _found(false)
+{
+  CALL("FormulaVarIterator::FormulaVarIterator(TermList)");
+  _instructions.push(FVI_TERM_LIST);
+  _termLists.push(*ts);
 } // FormulaVarIterator::FormulaVarIterator
 
 /**
  * Return the next free variable.
  * @since 06/01/2004 Manchester
  */
-int FormulaVarIterator::next ()
+int FormulaVarIterator::next()
 {
   CALL("FormulaVarIterator::next");
 
@@ -54,199 +68,157 @@ int FormulaVarIterator::next ()
  * True if there is the next free variable.
  * @since 06/01/2004 Manchester
  * @since 11/12/2004 Manchester, true and false added
+ * @since 15/05/2015 Gothenburg, FOOL support added
  */
 bool FormulaVarIterator::hasNext()
 {
   CALL("FormulaVarIterator::hasNext");
 
   if (_found) return true;
-  
-  while (! _instructions.isEmpty()) {
+
+  while (_instructions.isNonEmpty()) {
     switch (_instructions.pop()) {
-    case FVI_FORMULA:
-      {
-	const Formula* f = _formulas.pop();
-	switch (f->connective()) {
-	case LITERAL:
-	  _instructions.push(FVI_TERM);
-	  _terms.push(f->literal()->args());
-	  break;
+      case FVI_FORMULA: {
+        const Formula* f = _formulas.pop();
+        switch (f->connective()) {
+          case LITERAL:
+            _instructions.push(FVI_TERM);
+            _terms.push(f->literal());
+            break;
 
-	case AND:
-	case OR:
-	  {
-	    FormulaList::Iterator fs(f->args());
-	    while (fs.hasNext()) {
-	      _instructions.push(FVI_FORMULA);
-	      _formulas.push(fs.next());
-	    }
-	  }
-	  break;
+          case AND:
+          case OR: {
+            FormulaList::Iterator fs(f->args());
+            while (fs.hasNext()) {
+              _instructions.push(FVI_FORMULA);
+              _formulas.push(fs.next());
+            }
+            break;
+          }
 
-	case IMP:
-	case IFF:
-	case XOR:
-	  _instructions.push(FVI_FORMULA);
-	  _formulas.push(f->left());
-	  _instructions.push(FVI_FORMULA);
-	  _formulas.push(f->right());
-	  break;
+          case IMP:
+          case IFF:
+          case XOR:
+            _instructions.push(FVI_FORMULA);
+            _formulas.push(f->left());
+            _instructions.push(FVI_FORMULA);
+            _formulas.push(f->right());
+            break;
 
-	case NOT:
-	  _instructions.push(FVI_FORMULA);
-	  _formulas.push(f->uarg());
-	  break;
+          case NOT:
+            _instructions.push(FVI_FORMULA);
+            _formulas.push(f->uarg());
+            break;
 
-	case FORALL:
-	case EXISTS:
-	  {
-	    IntList::Iterator vs(f->vars());
-	    while (vs.hasNext()) {
-	      _bound.inc(vs.next());
-	    }
-	    _instructions.push(FVI_UNBIND);
-	    _formulas.push(f);
-	    _instructions.push(FVI_FORMULA);
-	    _formulas.push(f->qarg());
-	  }
-	  break;
+          case FORALL:
+          case EXISTS:
+            _instructions.push(FVI_UNBIND);
+            _instructions.push(FVI_FORMULA);
+            _formulas.push(f->qarg());
+            _instructions.push(FVI_BIND);
+            _vars.push(f->vars());
+            break;
 
-	  case BOOL_TERM:
-	    _instructions.push(FVI_FORMULA);
-	    _formulas.push(f->toEquality());
-	    break;
+          case BOOL_TERM:
+            _instructions.push(FVI_TERM_LIST);
+            _termLists.push(f->getBooleanTerm());
+            break;
 
-	case TRUE:
-	case FALSE:
-	  break;
-	}
+          case TRUE:
+          case FALSE:
+            break;
+        }
+        break;
       }
-      break;
-    case FVI_TERM:
-      {
-	const TermList* ts = _terms.pop();
-	if (ts->isEmpty()) break;
-	_instructions.push(FVI_TERM);
-	_terms.push(ts->next());
-	if (ts->isVar()) {
-	  unsigned v = ts->var();
-	  if(suggestNextVar(v)) {
-	    return true;
-	  }
-	}
-	else {
-	  const Term* trm = ts->term();
-	  if(trm->isSpecial()) {
-	    if(processSpecialTerm(ts)) {
-	      return true;
-	    }
-	  }
-	  else {
-	    _instructions.push(FVI_TERM);
-	    _terms.push(trm->args());
-	  }
-	}
+
+      case FVI_TERM: {
+        const Term* t = _terms.pop();
+
+        // TODO: is there a better iterator over arguments of const Term*?
+        Term::Iterator ts(const_cast<Term*>(t));
+        while (ts.hasNext()) {
+          _instructions.push(FVI_TERM_LIST);
+          _termLists.push(ts.next());
+        }
+
+        if (t->isSpecial()) {
+          const Term::SpecialTermData* sd = t->getSpecialData();
+          switch (t->functor()) {
+            case Term::SF_TERM_ITE:
+              _instructions.push(FVI_FORMULA);
+              _formulas.push(sd->getCondition());
+              break;
+
+            case Term::SF_FORMULA:
+              _instructions.push(FVI_FORMULA);
+              _formulas.push(sd->getFormula());
+              break;
+
+            case Term::SF_TERM_LET: {
+              Term* lhs = sd->getLhs().term();
+
+              Formula::VarList* vars(0);
+              TermList* arguments = lhs->isFormula() ? lhs->getSpecialData()->getFormula()->literal()->args()
+                                                     : lhs->args();
+              for (; arguments->isNonEmpty(); arguments = arguments->next()) {
+                vars = new Formula::VarList(arguments->var(), vars);
+              }
+
+              _instructions.push(FVI_UNBIND);
+
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getRhs());
+
+              _instructions.push(FVI_BIND);
+              _vars.push(vars);
+
+              break;
+            }
+
+#if VDEBUG
+            default:
+              ASSERTION_VIOLATION;
+#endif
+          }
+        }
+
+        break;
       }
-      break;
-    case FVI_UNBIND:
-      {
-	const Formula* f = _formulas.pop();
-	Connective con = f->connective();
-	ASS(con==EXISTS || con==FORALL)
-	IntList::Iterator vs(f->vars());
-	while (vs.hasNext()) {
-	  _bound.dec(vs.next());
-	}
+
+      case FVI_TERM_LIST: {
+        TermList ts = _termLists.pop();
+        if (ts.isVar()) {
+          unsigned var = ts.var();
+          if (!_free.get(var) && !_bound.get(var)) {
+            _nextVar = var;
+            _found = true;
+            _free.inc(var);
+            return true;
+          }
+        } else {
+          _instructions.push(FVI_TERM);
+          _terms.push(ts.term());
+        }
+        break;
       }
-      break;
-    case FVI_UNBIND_TERM_LET:
-      {
-	const TermList* t = _terms.pop();
-	countTermLetLhsVars(t->term(), false);
+
+      case FVI_BIND: {
+        Formula::VarList::Iterator vs(_vars.top());
+        while (vs.hasNext()) {
+          _bound.inc(vs.next());
+        }
+        break;
       }
-      break;
+
+      case FVI_UNBIND: {
+        Formula::VarList::Iterator vs(_vars.pop());
+        while (vs.hasNext()) {
+          _bound.dec(vs.next());
+        }
+        break;
+      }
     }
   }
+
   return false;
 } // FormulaVarIterator::hasNext
-
-/**
- * Process special term @c ts. If variable acceptable as the next variable
- * returned by the iterator is found, make it the next variable and return
- * true. Otherwise return false.
- */
-bool FormulaVarIterator::processSpecialTerm(const TermList* ts)
-{
-  CALL("FormulaVarIterator::processSpecialTerm");
-
-  const Term* t = ts->term();
-  ASS(t->isSpecial())
-
-  const Term::SpecialTermData* sd = t->getSpecialData();
-  if(t->functor()==Term::SF_TERM_ITE) {
-    _instructions.push(FVI_FORMULA);
-    _formulas.push(sd->getCondition());
-    _instructions.push(FVI_TERM);
-    _terms.push(t->args());
-  }
-  else if(t->functor()==Term::SF_FORMULA) {
-	_instructions.push(FVI_FORMULA);
-	_formulas.push(sd->getFormula());
-  }
-  else {
-    _instructions.push(FVI_TERM);
-    _terms.push(t->args());
-    _instructions.push(FVI_UNBIND_TERM_LET);
-    _terms.push(ts);
-    countTermLetLhsVars(t, true);
-    TermList rhs = sd->getRhs();
-    if(rhs.isTerm()) {
-      _instructions.push(FVI_TERM);
-      _terms.push(rhs.term()->args());
-    }
-    else {
-      if(suggestNextVar(rhs.var())) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-/**
- * If variable @c v is acceptable as the next variable returned by the iterator,
- * make it the next variable and return true. Otherwise return false.
- */
-bool FormulaVarIterator::suggestNextVar(unsigned v)
-{
-  CALL("FormulaVarIterator::suggestNextVar");
-
-  if (_free.get(v)) return false;
-  if (_bound.get(v)) return false;
-  _nextVar = v;
-  _found = true;
-  _free.inc(v);
-  return true;
-}
-
-/**
- * Add or remove (based on the last arg) variables of LHS of
- * let term @c t.
- */
-void FormulaVarIterator::countTermLetLhsVars(const Term* t, bool inc)
-{
-  CALL("FormulaVarIterator::countTermLetLhsVars");
-
-  static VariableIterator vit;
-  const Term::SpecialTermData* sd = t->getSpecialData();
-  vit.reset(sd->getLhs().term());
-  while(vit.hasNext()) {
-    TermList var = vit.next();
-    if(inc) {
-      _bound.inc(var.var());
-    }
-    else {
-      _bound.dec(var.var());
-    }
-  }
-}

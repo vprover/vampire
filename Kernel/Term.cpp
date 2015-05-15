@@ -27,6 +27,7 @@
 #include "TermIterators.hpp"
 
 #include "Term.hpp"
+#include "FormulaVarIterator.hpp"
 
 /** If non-zero, term ite functors will be always expanded to
  * the ( p ? x : y ) notation on output */
@@ -123,6 +124,27 @@ bool TermList::isSafe() const
 
   return isVar() || term()->shared();
 }
+
+/**
+ * Return the list of all free variables of the term.
+ * The result is only non-empty when there are quantified
+ * formulas or $let-terms inside the term.
+ * Each variable in the term is returned just once.
+ *
+ * @since 15/05/2015 Gothenburg
+ */
+IntList* TermList::freeVariables() const
+{
+  CALL("TermList::freeVariables");
+
+  FormulaVarIterator fvi(this);
+  Formula::VarList* result = Formula::VarList::empty();
+  Formula::VarList::FIFO stack(result);
+  while (fvi.hasNext()) {
+    stack.push(fvi.next());
+  }
+  return result;
+} // TermList::freeVariables
 
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
@@ -813,6 +835,26 @@ Term* Term::create2(unsigned fn, TermList arg1, TermList arg2)
   return Term::create(fn, 2, args);
 }
 
+/**
+ * Return the list of all free variables of the term.
+ * The result is only non-empty when there are quantified
+ * formulas or $let-terms inside the term.
+ * Each variable in the term is returned just once.
+ *
+ * @since 07/05/2015 Gothenburg
+ */
+IntList* Term::freeVariables() const
+{
+  CALL("Term::freeVariables");
+
+  FormulaVarIterator fvi(this);
+  Formula::VarList* result = Formula::VarList::empty();
+  Formula::VarList::FIFO stack(result);
+  while (fvi.hasNext()) {
+    stack.push(fvi.next());
+  }
+  return result;
+} // Term::freeVariables
 
 unsigned Term::computeDistinctVars() const
 {
