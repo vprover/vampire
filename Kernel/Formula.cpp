@@ -623,12 +623,12 @@ Formula* JunctionFormula::generalJunction(Connective c, FormulaList* args)
 
 const Formula* BoolTermFormula::toEquality() const {
   static TermList tru(Term::createConstant(Signature::FOOL_TRUE));
-  return new AtomicFormula(Literal::createEquality(true, _ts, tru, Sorts::SRT_BOOL));
+  return new AtomicFormula(Literal::createEquality(true, _ts, tru, Sorts::SRT_FOOL_BOOL));
 }
 
 Formula* BoolTermFormula::toEquality() {
   static TermList tru(Term::createConstant(Signature::FOOL_TRUE));
-  return new AtomicFormula(Literal::createEquality(true, _ts, tru, Sorts::SRT_BOOL));
+  return new AtomicFormula(Literal::createEquality(true, _ts, tru, Sorts::SRT_FOOL_BOOL));
 }
 
 /**

@@ -34,8 +34,10 @@ public:
     SRT_RATIONAL = 3,
     /** sort of reals */
     SRT_REAL = 4,
+    /** FOOL boolean sort */
+    SRT_FOOL_BOOL = 5,
     /** this is not a sort, it is just used to denote the first index of a user-define sort */
-    FIRST_USER_SORT = 5
+    FIRST_USER_SORT = 6
   };
 
   /** Various structured sorts */
@@ -214,7 +216,11 @@ public:
   USE_ALLOCATOR(FunctionType);
 
   FunctionType(unsigned arity, const unsigned* argumentSorts, unsigned resultSort)
-   : BaseType(arity, argumentSorts), _result(resultSort) {}
+   : BaseType(arity, argumentSorts), _result(resultSort) {
+    // $o cannot be the return sort of a function symbol
+    // rather, it should be a predicate symbol
+    ASS_NEQ(resultSort, Sorts::SRT_BOOL);
+  }
   FunctionType(unsigned arity);
 
   unsigned result() const { return _result; }

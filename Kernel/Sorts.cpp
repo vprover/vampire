@@ -35,7 +35,10 @@ Sorts::Sorts()
 
   aux = addSort("$real");
   ASS_EQ(aux, SRT_REAL);
-  
+
+  aux = addSort("$bool");
+  ASS_EQ(aux, SRT_FOOL_BOOL);
+
   aux = addSort("$fus");
   ASS_EQ(aux,FIRST_USER_SORT);
     
@@ -264,6 +267,11 @@ BaseType::BaseType(unsigned arity, const unsigned* sorts)
   }
   // initialise all the argument types to thos taken from sorts
   for (unsigned i = 0; i < arity; i++) {
+    /**
+     * A function argument cannot have sort SRT_BOOL.
+     * It can be SRT_FOOL_BOOL, though.
+     */
+    ASS_NEQ(sorts[i], Sorts::SRT_BOOL);
     (*_args)[i] = sorts[i];
   }
 } // BaseType::BaseType

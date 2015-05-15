@@ -18,12 +18,12 @@ const unsigned Signature::REAL_DISTINCT_GROUP = 3;
 const unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 3;
 
 /**
- * In order to support reasoning in FOOL, we need to introduce constants that represent logical true and false.
- * The Sorts::SRT_BOOL sort is normally used to type predicate symbols and Vampire internally preserves the separation
- * between predicate and function symbols (they are stored separately in the signature and FunctionType and
- * PredicateType are separate classes). However, as an exception, in this case we use Sorts::SRT_BOOL to type
- * constants, since there are actually no asserts or checks anywhere that verify that terms cannot be boolean.
- * An alternative implementation would be to define an interpreted boolean sort that is different from SRT_BOOL.
+ * In order to support reasoning in FOOL, we define a theory of booleans, that consists of the sort
+ * SRT_FOOL_BOOL (defined in Sorts.hpp) and two constants FOOL_TRUE and FOOL_FALSE, that represent
+ * logical true and false.
+ *
+ * Note that we still maintain the invariant that SRT_BOOL cannot be the sort of an argument to
+ * a function or predicate symbol and it is a return sort of a symbol iff it is a predicate.
  *
  * @since 04/05/2015 Gothenburg
  */
@@ -220,13 +220,13 @@ Signature::Signature ()
   // because the user cannot define constants with these names herself
   // and the formula, obtained by toString() with "$true" or "$false"
   // in term position would be syntactically valid in FOOL
-  aux = addFunction("$false", 0);
+  aux = addFunction("$$false", 0);
   ASS_EQ(aux, FOOL_FALSE);
-  aux = addFunction("$true", 0);
+  aux = addFunction("$$true", 0);
   ASS_EQ(aux, FOOL_TRUE);
 
-  getFunction(FOOL_FALSE)->setType(new FunctionType(0, 0, Sorts::SRT_BOOL));
-  getFunction(FOOL_TRUE)->setType(new FunctionType(0, 0, Sorts::SRT_BOOL));
+  getFunction(FOOL_FALSE)->setType(new FunctionType(0, 0, Sorts::SRT_FOOL_BOOL));
+  getFunction(FOOL_TRUE)->setType(new FunctionType(0, 0, Sorts::SRT_FOOL_BOOL));
 } // Signature::Signature
 
 /**

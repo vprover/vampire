@@ -1728,7 +1728,7 @@ void TPTP::binding()
 void TPTP::endBinding() {
   CALL("TPTP::endBinding");
   TermList body = _termLists.top();
-  bool isPredicate = sortOf(body) == Sorts::SRT_BOOL;
+  bool isPredicate = sortOf(body) == Sorts::SRT_FOOL_BOOL;
 
   Formula::VarList* vars = _varLists.pop();
   unsigned arity = (unsigned)vars->length();
@@ -1839,6 +1839,7 @@ void TPTP::bindVariable(int var,unsigned sortNumber)
  * sequence of TermList and their number
  * @since 07/07/2011 Manchester
  * @since 16/04/2015 Gothenburg, do not parse the closing ']'
+ * @since 11/05/2015 Gothenburg, parse SRT_BOOL as SRT_FOOL_BOOL
  */
 void TPTP::varList()
 {
@@ -1865,6 +1866,9 @@ void TPTP::varList()
       resetToks();
       {
         unsigned sort = readSort();
+        if (sort == Sorts::SRT_BOOL) {
+          sort = Sorts::SRT_FOOL_BOOL;
+        }
         bindVariable(var,sort);
       }
       sortDeclared = true;
@@ -2712,9 +2716,17 @@ void TPTP::endTff()
     switch (tp->tag()) {
     case TT_ARROW:
       USER_ERROR("higher-order types are not supported");
-    case TT_ATOMIC:
-      sorts.push(static_cast<AtomicType*>(tp)->sortNumber());
+    case TT_ATOMIC: {
+      unsigned sortNumber = static_cast<AtomicType *>(tp)->sortNumber();
+      if (sortNumber == Sorts::SRT_BOOL) {
+        // $o cannot be the sort of an argument,
+        // the implementation of FOOL replaces it with it's own built sort
+        sorts.push(Sorts::SRT_FOOL_BOOL);
+      } else {
+        sorts.push(sortNumber);
+      }
       break;
+    }
     case TT_PRODUCT:
       {
 	ProductType* pt = static_cast<ProductType*>(tp);
