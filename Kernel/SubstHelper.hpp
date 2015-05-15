@@ -498,7 +498,7 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
   }
 
   case BOOL_TERM:
-    return applyImpl<ProcessSpecVars>(f->toEquality(), applicator, noSharing);
+    return new BoolTermFormula(applyImpl<ProcessSpecVars>(f->getBooleanTerm(), applicator, noSharing));
 
   case TRUE:
   case FALSE:
