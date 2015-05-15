@@ -329,16 +329,17 @@ void Rectify::rectifyTermLet(TermList& lhs, TermList& rhs)
 
   //the variables of the lhs will be bound in the rhs, so we
   //need to rectify them
-  VarList* vs = 0;
-  VariableIterator vit(lhs);
-  VarList::pushFromIterator(getMappingIterator(
-	getUniquePersistentIteratorFromPtr(&vit), OrdVarNumberExtractorFn()), vs);
+  Formula::VarList* argumentVars(0);
+  TermList* arguments = lhs.term()->isFormula() ? lhs.term()->getSpecialData()->getFormula()->literal()->args()
+                                                : lhs.term()->args();
+  for (; arguments->isNonEmpty(); arguments = arguments->next()) {
+    argumentVars = new Formula::VarList(arguments->var(), argumentVars);
+  }
   //we don't need the resultof variable rectification, we just needed to do the binding
-  bindVars(vs);
-  lhs = rectify(lhs);
+  bindVars(argumentVars);
   rhs = rectify(rhs);
-  unbindVars(vs);
-  vs->destroy();
+  unbindVars(argumentVars);
+  argumentVars->destroy();
 }
 
 void Rectify::rectifyFormulaLet(Literal*& lhs, Formula*& rhs)
@@ -435,7 +436,7 @@ Formula* Rectify::rectify (Formula* f)
     return f;
 
   case BOOL_TERM:
-    return rectify(f->toEquality());
+     return new BoolTermFormula(rectify(f->getBooleanTerm()));
 
 #if VDEBUG
   default:
