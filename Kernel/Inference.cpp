@@ -242,6 +242,10 @@ vstring Inference::ruleName(Rule rule)
     return "term if then else definition";
   case FOOL_ELIMINATION:
     return "FOOL elimination";
+  case FOOL_ITE_ELIMINATION:
+    return "FOOL $ite elimination";
+  case FOOL_LET_ELIMINATION:
+    return "FOOL $let elimination";
 //  case CHOICE_AXIOM:
 //  case MONOTONE_REPLACEMENT:
 //  case FORALL_ELIMINATION:

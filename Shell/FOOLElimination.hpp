@@ -8,7 +8,6 @@
 
 #include "Forwards.hpp"
 
-
 namespace Shell {
 
 using namespace Kernel;
@@ -18,8 +17,8 @@ using namespace Kernel;
  * that are not syntactically first-order, that is:
  * - formulas in term context
  * - terms in formula context
- * - $ite
- * - $let
+ * - $ite-terms
+ * - $let-terms
  */
 class FOOLElimination {
 public:
@@ -27,89 +26,42 @@ public:
 
   void apply(Problem& prb);
   void apply(UnitList*& units);
-  FormulaUnit* apply(FormulaUnit* fu, UnitList*& defs);
-  static bool hasSpecials(FormulaUnit* fu);
+
+  static bool containsFOOL(FormulaUnit* unit);
+
 private:
-  class LetSpec
-  {
-    bool _term;
-    union {
-      struct {
-	size_t lhs; //size_t here stands for TermList
-	size_t rhs;
-      } _t;
-      struct {
-	Literal* lhs;
-	Formula* rhs;
-      } _f;
-    };
-  public:
-    LetSpec(TermList o, TermList t) : _term(true)
-    {
-      CALL("FOOLElimination::LetSpec::LetSpec(TermList...)");
-      ASS(o.isSafe());
-      //here we assert that the lhs is either variable or a function
-      //applied to pairwise distinct variables
-      ASS(!o.isTerm() || o.term()->weight()==o.term()->arity()+1);
-      ASS(!o.isTerm() || o.term()->getDistinctVars()==o.term()->arity());
-
-      _t.lhs = o.content();
-      _t.rhs = t.content();
-    }
-    LetSpec(Literal* o, Formula* t) : _term(false)
-    {
-      CALL("FOOLElimination::LetSpec::LetSpec(Literal*...)");
-      //here we assert that the lhs is a predicate applied to
-      //pairwise distinct variables
-      ASS_EQ(o->weight(),o->arity()+1);
-      ASS_EQ(o->getDistinctVars(),o->arity());
-
-
-      _f.lhs = o;
-      _f.rhs = t;
-    }
-    bool term() const { return _term; }
-    TermList tLhs() const { ASS(term()); return TermList(_t.lhs); }
-    TermList tRhs() const { ASS(term()); return TermList(_t.rhs); }
-    Literal* fLhs() const { ASS(!term()); return _f.lhs; }
-    Formula* fRhs() const { ASS(!term()); return _f.rhs; }
-  };
-
-  TermList processSpecialTerm(Term* t);
-
-  TermList process(TermList t);
-  Term* process(Term* t);
-  Formula* process(Formula* f);
-  FormulaList* process(FormulaList* fs);
   FormulaUnit* apply(FormulaUnit* fu);
 
-  void appendAxioms();
+  /** The currenly processed unit */
+  Unit* _unit;
 
-  Term* eliminateTermIte(Formula * condition, TermList thenBranch, TermList elseBranch);
-
-  bool checkForTermLetReplacement(TermList t, TermList& res);
-
-  bool eliminatingTermLet() const { return _letStack.isNonEmpty() && _letStack.top().term(); }
-  bool eliminatingFormulaLet() const { return _letStack.isNonEmpty() && !_letStack.top().term(); }
-  bool eliminatingTermIte() const { return _letStack.isEmpty(); }
-
+  /** A list of definitions, produced during preprocessing */
   UnitList* _defs;
 
-  /**
-   * Variable sorts of the currently processed FormulaUnit
-   *
-   * Populated in apply(FormulaUnit*).
-   */
-  DHMap<unsigned,unsigned> _currentFormulaVarSorts;
+  /** Add a new definitions to _defs */
+  void addDefinition(FormulaUnit* unit);
 
-  /**
-   * For each let...in expression we put an entry on the stack and traverse its body
-   * once with it on the stack and then when we remove it from the stack. When the
-   * stack is empty, we perform elimination of the term-ite expressions.
-   */
-  Stack<LetSpec> _letStack;
+  /** Lexical scope of the current unit */
+  DHMap<unsigned,unsigned> _varSorts;
 
-  Problem* _currentPrb;
+  /** Process a given part of the unit */
+  FormulaList* process(FormulaList* fs);
+  Formula* process(Formula* f);
+  Literal* process(Literal* literal);
+  TermList process(TermList ts);
+  TermList process(Term* t);
+
+  /** Processing helper functions */
+  TermList buildFunctionApplication(unsigned function, Formula::VarList* vars);
+  Literal* buildPredicateApplication(unsigned predicate, Formula::VarList* vars);
+  Stack<unsigned> collectSorts(Formula::VarList* vars);
+
+  /** Replace an occurrence of a symbol with freshSymbol, appending freeVars as additional arguments */
+  // TODO: should a combination of MatcherUtils, SubstHelper be used instead?
+  FormulaList* replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, FormulaList* formulas);
+  Formula* replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Formula* formula);
+  TermList replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, TermList ts);
+  Term* replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Term* term);
 };
 
 }

@@ -829,8 +829,24 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
   return f;
 } // addSkolemFunction
 
+unsigned Signature::addBooleanFunction(unsigned arity, unsigned* argSorts)
+{
+  CALL("Signature::addBooleanFunction");
+
+  unsigned res = addFreshFunction(arity, "bG");
+
+  BaseType* type = BaseType::makeType(arity, argSorts, Sorts::SRT_FOOL_BOOL);
+  getFunction(res)->setType(type);
+  //TODO find a better way to get rid of the sG functions!
+  //this is a quick fix for the elimination of sG from the invariants
+  env.colorUsed = true;
+  getFunction(res)->addColor(COLOR_LEFT);
+
+  return res;
+} // addBooleanFunction
+
 /**
- * Return number of a new function to be used in if-then-else elimination
+ * Return number of a fresh function to be used in if-then-else elimination
  *
  * @c argSorts and @c resSort specifies the sort of the arguments and of the result
  * of the function.
@@ -850,6 +866,47 @@ unsigned Signature::addIteFunction(unsigned arity, unsigned* argSorts, unsigned 
 
   return res;
 } // addIteFunction
+
+/**
+ * Return number of a fresh function symbol to be used in $let-elimination
+ *
+ * @c argSorts and @c resSort specifies the sort of the arguments and of the result
+ * of the function.
+ */
+unsigned Signature::addLetFunction(unsigned arity, unsigned* argSorts, unsigned resSort)
+{
+  CALL("Signature::addLetFunction");
+
+  unsigned res = addFreshFunction(arity, "lG");
+
+  BaseType* type = BaseType::makeType(arity, argSorts, resSort);
+  getFunction(res)->setType(type);
+  //TODO find a better way to get rid of the sG functions!
+  //this is a quick fix for the elimination of sG from the invariants
+  env.colorUsed = true;
+  getFunction(res)->addColor(COLOR_LEFT);
+
+  return res;
+} // addLetFunction
+
+/**
+ * Return number of a fresh predicate symbol to be used in $let-elimination
+ */
+unsigned Signature::addLetPredicate(unsigned arity, unsigned* argSorts)
+{
+  CALL("Signature::addLetPredicates");
+
+  unsigned res = addFreshPredicate(arity, "lG");
+
+  BaseType* type = BaseType::makeType(arity, argSorts, Sorts::SRT_BOOL);
+  getPredicate(res)->setType(type);
+  //TODO find a better way to get rid of the lG functions!
+  //this is a quick fix for the elimination of sG from the invariants
+  env.colorUsed = true;
+  getPredicate(res)->addColor(COLOR_LEFT);
+
+  return res;
+} // addLetPredicate
 
 /**
  * Return the key "name_arity" used for hashing. This key is obtained by

@@ -206,6 +206,10 @@ public:
     TERM_IF_THEN_ELSE_DEFINITION,
     /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
     FOOL_ELIMINATION,
+    /** Elimination of $ite expressions */
+    FOOL_ITE_ELIMINATION,
+    /** Elimination of $let expressions */
+    FOOL_LET_ELIMINATION,
     /** component introduced by sat splitting */
     SAT_SPLITTING_COMPONENT,
     /** refutation of a sat splitting branch */
