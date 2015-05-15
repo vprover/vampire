@@ -499,11 +499,10 @@ void Property::scanSpecialTerm(Term* t)
   {
     ASS_EQ(t->arity(),1);
     //this is a trick creating an artificial term list with terms we want to traverse
-    TermList aux[3];
+    TermList aux[2];
     aux[0].makeEmpty();
-    aux[1] = sd->getRhs();
-    aux[2] = sd->getLhs();
-    scan(aux+2);
+    aux[1] = sd->getBody();
+    scan(aux+1);
     scan(t->args());
     break;
   }

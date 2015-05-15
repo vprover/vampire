@@ -94,8 +94,8 @@ public:
   static Formula* falseFormula();
 
   static Formula* createITE(Formula* condition, Formula* thenArg, Formula* elseArg);
-  static Formula* createTermLet(TermList lhs, TermList rhs, Formula* body);
-  static Formula* createFormulaLet(Literal* lhs, Formula* rhs, Formula* body);
+  static Formula* createLet(unsigned functor, Formula::VarList* variables, TermList body, Formula* contents);
+  static Formula* createLet(unsigned predicate, Formula::VarList* variables, Formula* body, Formula* contents);
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(Formula);

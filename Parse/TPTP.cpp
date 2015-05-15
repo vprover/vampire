@@ -1369,11 +1369,13 @@ void TPTP::endLet()
 {
   CALL("TPTP::endLet");
 
-  TermList body = _termLists.pop();
-  TermList function = _termLists.pop();
-  TermList functionBody = _termLists.pop();
+  TermList contents = _termLists.pop();
 
-  TermList let(Term::createLet(function, functionBody, body));
+  unsigned function = (unsigned)_ints.pop();
+  Formula::VarList* variables = _varLists.pop();
+  TermList body = _termLists.pop();
+
+  TermList let(Term::createLet(function, variables, body, contents));
   _termLists.push(let);
 
   List<LetFunctionName>::Iterator letFunctionsIterator(_letFunctionsBinds.pop());
@@ -1730,14 +1732,8 @@ void TPTP::endBinding() {
   TermList body = _termLists.top();
   bool isPredicate = sortOf(body) == Sorts::SRT_FOOL_BOOL;
 
-  Formula::VarList* vars = _varLists.pop();
+  Formula::VarList* vars = _varLists.top(); // will be poped in endLet()
   unsigned arity = (unsigned)vars->length();
-
-  Formula::VarList::Iterator vs(vars);
-  while (vs.hasNext()) {
-    unsigned var = (unsigned)vs.next();
-    _termLists.push(TermList(var, false));
-  }
 
   vstring name = _strings.pop();
 
@@ -1769,14 +1765,7 @@ void TPTP::endBinding() {
     }
   }
 
-  if (isPredicate) {
-    Formula* predicateApplication = createPredicateApplication(name, arity);
-    TermList predicate(Term::createFormula(predicateApplication));
-    _termLists.push(predicate);
-  } else {
-    TermList functionApplication = createFunctionApplication(name, arity);
-    _termLists.push(functionApplication);
-  }
+  _ints.push(newNumber);
 
   _states.push(UNBIND_VARIABLES);
 }

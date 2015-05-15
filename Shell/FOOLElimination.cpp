@@ -360,31 +360,18 @@ TermList FOOLElimination::process(Term* term) {
        *  4) Replace the term with t'
        */
 
-      Term* symbolDefinition = sd->getLhs().term();
-      TermList body = sd->getRhs(); // deliberately unprocessed here
+      TermList body = sd->getBody(); // deliberately unprocessed here
 
       /**
        * $let-expressions are used for binding both function and predicate symbols.
-       * The binding f(Y1, ..., Yk) := s, however, is always stored as a pair of
-       * terms f(Y1, ..., Yk) and s. In case f is a predicate symbol, both of them
-       * are formulas, wrapped inside a term. This is how we check that it is a
-       * predicate binding.
+       * The body of the binding, however, is always stored as a term. When f is a
+       * predicate, the body is a formula, wrapped in a term. So, this is how we
+       * check that it is a predicate binding.
        */
-      bool isPredicate = symbolDefinition->isFormula();
-      ASS_EQ(isPredicate, body.isTerm() && body.term()->isFormula());
-
-      // in case of predicate binding, take the literal of the definition
-      Literal* predicateDefinition;
-      if (isPredicate) {
-        predicateDefinition = symbolDefinition->getSpecialData()->getFormula()->literal();
-      }
+      bool isPredicate = body.isTerm() && body.term()->isFormula();
 
       // collect variables Y1, ..., Yk
-      Formula::VarList* argumentVars(0);
-      TermList* arguments = isPredicate ? predicateDefinition->args() : symbolDefinition->args();
-      for (; arguments->isNonEmpty(); arguments = arguments->next()) {
-        argumentVars = new Formula::VarList(arguments->var(), argumentVars);
-      }
+      Formula::VarList* argumentVars = sd->getVariables();
 
       // collect variables X1, ..., Xn
       Formula::VarList* bodyFreeVars(0);
@@ -401,8 +388,8 @@ TermList FOOLElimination::process(Term* term) {
       Stack<unsigned> sorts = collectSorts(vars);
 
       // take the defined function symbol and its result sort
-      unsigned symbol   = isPredicate ? predicateDefinition->functor() : symbolDefinition->functor();
-      unsigned bodySort = isPredicate ? Sorts::SRT_BOOL : SortHelper::getResultSort(body, _varSorts);
+      unsigned symbol   = sd->getFunctor();
+      unsigned bodySort = SortHelper::getResultSort(body, _varSorts);
 
       /**
        * Here we can take a simple shortcut. If the there are no free variables,
@@ -634,10 +621,11 @@ Term* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula::V
       }
 
       case Term::SF_LET: {
-        TermList lhs = sd->getLhs();
-        TermList rhs = replace(symbol, freshSymbol, freeVars, sd->getRhs());
+        unsigned functor = sd->getFunctor();
+        IntList* variables = sd->getVariables();
+        TermList body = replace(symbol, freshSymbol, freeVars, sd->getBody());
         TermList contents = replace(symbol, freshSymbol, freeVars, *term->nthArgument(0));
-        return Term::createLet(lhs, rhs, contents);
+        return Term::createLet(functor, variables, body, contents);
       }
 
       case Term::SF_FORMULA: {

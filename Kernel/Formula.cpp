@@ -711,11 +711,11 @@ Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseA
  * and lhs and rhs form a binding for a function
  * @since 16/04/2015 Gothenburg
  */
-Formula* Formula::createTermLet(TermList lhs, TermList rhs, Formula* body)
+Formula* Formula::createLet(unsigned functor, Formula::VarList* variables, TermList body, Formula* contents)
 {
-  CALL("Formula::createTermLet");
-  TermList bodyTerm(Term::createFormula(body));
-  TermList letTerm(Term::createLet(lhs, rhs, bodyTerm));
+  CALL("Formula::createLet(TermList)");
+  TermList contentsTerm(Term::createFormula(contents));
+  TermList letTerm(Term::createLet(functor, variables, body, contentsTerm));
   return new BoolTermFormula(letTerm);
 }
 
@@ -724,13 +724,12 @@ Formula* Formula::createTermLet(TermList lhs, TermList rhs, Formula* body)
  * and lhs and rhs form a binding for a predicate
  * @since 16/04/2015 Gothenburg
  */
-Formula* Formula::createFormulaLet(Literal* lhs, Formula* rhs, Formula* body)
+Formula* Formula::createLet(unsigned predicate, Formula::VarList* variables, Formula* body, Formula* contents)
 {
-  CALL("Formula::createFormulaLet");
+  CALL("Formula::createLet(Formula*)");
   TermList bodyTerm(Term::createFormula(body));
-  TermList function(lhs);
-  TermList functionBody(Term::createFormula(rhs));
-  TermList letTerm(Term::createLet(function, functionBody, bodyTerm));
+  TermList contentsTerm(Term::createFormula(contents));
+  TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm));
   return new BoolTermFormula(letTerm);
 }
 

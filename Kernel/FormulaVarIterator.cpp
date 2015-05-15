@@ -155,22 +155,13 @@ bool FormulaVarIterator::hasNext()
               break;
 
             case Term::SF_LET: {
-              Term* lhs = sd->getLhs().term();
-
-              Formula::VarList* vars(0);
-              TermList* arguments = lhs->isFormula() ? lhs->getSpecialData()->getFormula()->literal()->args()
-                                                     : lhs->args();
-              for (; arguments->isNonEmpty(); arguments = arguments->next()) {
-                vars = new Formula::VarList(arguments->var(), vars);
-              }
-
               _instructions.push(FVI_UNBIND);
 
               _instructions.push(FVI_TERM_LIST);
-              _termLists.push(sd->getRhs());
+              _termLists.push(sd->getBody());
 
               _instructions.push(FVI_BIND);
-              _vars.push(vars);
+              _vars.push(sd->getVariables());
 
               break;
             }

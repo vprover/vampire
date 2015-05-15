@@ -144,7 +144,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
 
   Term::SpecialTermData* sd = t->getSpecialData();
   switch(t->functor()) {
-  case Term::SF_TERM_ITE:
+  case Term::SF_ITE:
   {
     ASS_EQ(t->arity(),2);
     Formula* c = rectify(sd->getCondition());
@@ -155,17 +155,22 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createITE(c, th, el);
   }
-  case Term::SF_TERM_LET:
+  case Term::SF_LET:
   {
     ASS_EQ(t->arity(),1);
-    TermList orig = sd->getLhs();
-    TermList tgt = sd->getRhs();
-    rectifyTermLet(orig, tgt);
-    TermList body = rectify(*t->nthArgument(0));
-    if(orig==sd->getLhs() && tgt==sd->getRhs() && body==*t->nthArgument(0)) {
+    TermList body = sd->getBody();
+
+    Formula::VarList* variables = sd->getVariables();
+
+    bindVars(variables);
+    body = rectify(body);
+    unbindVars(variables);
+
+    TermList contents = rectify(*t->nthArgument(0));
+    if(body == sd->getBody() && contents == *t->nthArgument(0)) {
       return t;
     }
-    return Term::createLet(orig, tgt, body);
+    return Term::createLet(sd->getFunctor(), variables, body, contents);
   }
   case Term::SF_FORMULA:
   {
@@ -322,44 +327,6 @@ TermList Rectify::rectify(TermList t)
   ASS(t.isOrdinaryVar());
   return TermList(rectifyVar(t.var()), false);
 }
-
-void Rectify::rectifyTermLet(TermList& lhs, TermList& rhs)
-{
-  CALL("Rectify::rectifyTermLet");
-
-  //the variables of the lhs will be bound in the rhs, so we
-  //need to rectify them
-  Formula::VarList* argumentVars(0);
-  TermList* arguments = lhs.term()->isFormula() ? lhs.term()->getSpecialData()->getFormula()->literal()->args()
-                                                : lhs.term()->args();
-  for (; arguments->isNonEmpty(); arguments = arguments->next()) {
-    argumentVars = new Formula::VarList(arguments->var(), argumentVars);
-  }
-  //we don't need the resultof variable rectification, we just needed to do the binding
-  bindVars(argumentVars);
-  rhs = rectify(rhs);
-  unbindVars(argumentVars);
-  argumentVars->destroy();
-}
-
-void Rectify::rectifyFormulaLet(Literal*& lhs, Formula*& rhs)
-{
-  CALL("Rectify::rectifyFormulaLet");
-
-  //the variables of the lhs will be bound in the rhs, so we
-  //need to rectify them
-  VarList* vs = 0;
-  VariableIterator vit(lhs);
-  VarList::pushFromIterator(getMappingIterator(
-	getUniquePersistentIteratorFromPtr(&vit), OrdVarNumberExtractorFn()), vs);
-  //we don't need the resultof variable rectification, we just needed to do the binding
-  bindVars(vs);
-  lhs = rectify(lhs);
-  rhs = rectify(rhs);
-  unbindVars(vs);
-  vs->destroy();
-}
-
 
 /**
  * Rectify a formula.

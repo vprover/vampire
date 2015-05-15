@@ -275,10 +275,10 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing)
 	  );
     case Term::SF_LET:
-      ASS_EQ(sd->getLhs(), applyImpl<ProcessSpecVars>(sd->getLhs(), applicator, noSharing));
       return Term::createLet(
-	  sd->getLhs(),
-	  applyImpl<ProcessSpecVars>(sd->getRhs(), applicator, noSharing),
+	  sd->getFunctor(),
+	  sd->getVariables(),
+	  applyImpl<ProcessSpecVars>(sd->getBody(), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing)
 	  );
     case Term::SF_FORMULA:

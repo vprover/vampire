@@ -219,10 +219,11 @@ public:
         Formula * condition;
       } _iteData;
       struct {
+        unsigned functor;
+        IntList* variables;
 	//The size_t stands for TermList expression which cannot be here
 	//since C++ doesnot allow objects with constructor inside a union
-        size_t lhs;
-        size_t rhs;
+        size_t body;
       } _letData;
       struct {
         Formula * formula;
@@ -237,8 +238,9 @@ public:
       return res;
     }
     Formula* getCondition() const { ASS_EQ(getType(), SF_ITE); return _iteData.condition; }
-    TermList getLhs() const { ASS_EQ(getType(), SF_LET); return TermList(_letData.lhs); }
-    TermList getRhs() const { ASS_EQ(getType(), SF_LET); return TermList(_letData.rhs); }
+    unsigned getFunctor() const { ASS_EQ(getType(), SF_LET); return _letData.functor; }
+    IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
+    TermList getBody() const { ASS_EQ(getType(), SF_LET); return TermList(_letData.body); }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
   };
 
@@ -256,7 +258,7 @@ public:
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch);
-  static Term* createLet(TermList lhs, TermList rhs, TermList t);
+  static Term* createLet(unsigned functor, IntList* variables, TermList body, TermList t);
   static Term* createFormula(Formula* formula);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
@@ -454,8 +456,6 @@ public:
     return true;
 #endif
   }
-
-  bool hasOnlyDistinctVariableArgs() const;
 
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(Term* t);

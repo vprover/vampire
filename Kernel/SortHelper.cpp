@@ -303,10 +303,10 @@ void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
 
 void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSort, DHMap<unsigned,unsigned>& map) {
   CALL("SortHelper::collectVariableSortsSpecialTerm(Term*,...)");
-  ASS(term->isSpecial());
 
   if (!term->isSpecial()) {
     collectVariableSorts(term, map);
+    return;
   }
 
   Stack<TermList*> ts(0);
@@ -323,12 +323,32 @@ void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSor
     }
 
     case Term::SF_LET: {
-      Term* funDef = sd->getLhs().term();
+      TermList body = sd->getBody();
+      bool isPredicate = body.isTerm() && body.term()->isFormula();
+      Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
+                                              : env.signature->getFunction(sd->getFunctor());
+      unsigned position = 0;
+      Formula::VarList::Iterator vit(sd->getVariables());
+      while (vit.hasNext()) {
+        unsigned var = (unsigned)vit.next();
+        unsigned sort = isPredicate ? symbol->predType()->arg(position) : symbol->fnType()->arg(position);
+        if (!map.insert(var, sort)) {
+          ASS_EQ(sort, map.get(var));
+        }
+        position++;
+      }
 
-      if (funDef->isFormula()) {
-        collectVariableSorts(funDef->getSpecialData()->getFormula()->literal(), map);
+      if (isPredicate) {
+        collectVariableSorts(body.term()->getSpecialData()->getFormula(), map);
       } else {
-        collectVariableSorts(funDef, map);
+        unsigned functionSort = symbol->fnType()->result();
+        if (body.isOrdinaryVar()) {
+          if (!map.insert(body.var(), functionSort)) {
+            ASS_EQ(functionSort, map.get(body.var()));
+          }
+        } else {
+          collectVariableSortsSpecialTerm(body.term(), functionSort, map);
+        }
       }
 
       ts.push(term->nthArgument(0));

@@ -723,7 +723,7 @@ Formula FormulaBuilder::replaceConstant(Formula f, Term replaced, Term target)
     }
   }
 
-  Kernel::Formula* letForm = Formula::createTermLet(replaced, target, f.form);
+  Kernel::Formula* letForm = Formula::createLet(replaced.functor(), 0, target, f.form);
   Shell::FOOLElimination fe;
   FormulaUnit* auxUnit = new FormulaUnit(letForm, new Inference(Inference::INPUT), Unit::AXIOM);
   UnitList* defs = 0;

@@ -568,7 +568,11 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
       if (lhs->kind() == Expression::VARIABLE) {
 	TermList lhsTerm=expressionToTerm(lhs);
 	TermList rhsTerm=expressionToTerm(rhs);
-	return TermList(Term::createLet(lhsTerm, rhsTerm, exp));
+        Formula::VarList* vars(0);
+        for (TermList arg = lhsTerm; arg.isNonEmpty(); arg = *arg.next()) {
+          vars = new Formula::VarList(arg.var(), vars);
+        }
+	return TermList(Term::createLet(lhsTerm.term()->functor(), vars, rhsTerm, exp));
       }
       if (lhs->kind() != Expression::ARRAY_APPLICATION) {
 	ASSERTION_VIOLATION;
@@ -583,9 +587,8 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
       x1.makeVar(1);
       TermList arrayX1(Term::create(arrayFct1,1,&x1));
       Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
-      TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
       TermList arrayITE=TermList(Term::createITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
-      return TermList(Term::createLet(lhsTerm, arrayITE, exp));
+      return TermList(Term::createLet(arrayFct1, new Formula::VarList(1, 0), arrayITE, exp));
     }
 
   case Statement::BLOCK:
@@ -612,14 +615,14 @@ Formula* LoopAnalyzer::letTranslationOfVar(VariableMap::Iterator& varit, Formula
   varit.next(w,winfo);
   if (winfo->counter) { // do this only for updated scalar variables
     vstring warName=w->name();
-    TermList war(Term::createConstant(getIntConstant(warName)));
+    Term* war = Term::createConstant(getIntConstant(warName));
     unsigned warFun = getIntFunction(warName,1,false);
     // term x0
     TermList x0;
     x0.makeVar(0);
     // term w(x0)
     TermList warX0(Term::create(warFun,1,&x0));
-    letFormula= Formula::createTermLet(war, warX0, letFormula);
+    letFormula= Formula::createLet(war->functor(), 0, warX0, letFormula);
   }
   return letTranslationOfVar(varit,letFormula);
 }
@@ -643,16 +646,12 @@ Formula* LoopAnalyzer::letTranslationOfArray(Map<Variable*,bool>::Iterator &sit,
     unsigned arrayFct1=getIntFunction(varName,1,false);
     unsigned arrayFct2=getIntFunction(varName,2,true);
     // term x0
-    TermList x0;
-    x0.makeVar(0);
+    TermList x0(0, false);
     // term x1
-    TermList x1;
-    x1.makeVar(1);
-    //term A(x1);
-    TermList arrayX1(Term::create(arrayFct1,1,&x1));
+    TermList x1(1, false);
     // term A(x0,x1)
     TermList arrayX01(Term::create2(arrayFct2,x0,x1));
-    exp=Formula::createTermLet(arrayX1, arrayX01, exp);
+    exp=Formula::createLet(arrayFct1, new Formula::VarList(1, 0), arrayX01, exp);
   }
   return letTranslationOfArray(sit,exp);
 }
@@ -678,8 +677,12 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
       case Expression::VARIABLE:
 	{
 	  TermList lhsTerm=expressionToTerm(lhs);
-	  TermList rhsTerm=expressionToTerm(rhs);	
-	  condition=Formula::createTermLet(lhsTerm, rhsTerm, condition);
+	  TermList rhsTerm=expressionToTerm(rhs);
+	  Formula::VarList* vars(0);
+	  for (TermList arg = lhsTerm; arg.isNonEmpty(); arg = *arg.next()) {
+	    vars = new Formula::VarList(arg.var(), vars);
+	  }
+	  condition=Formula::createLet(lhsTerm.term()->functor(), vars, rhsTerm, condition);
 	}
 	break;
       case Expression::ARRAY_APPLICATION:
@@ -694,9 +697,8 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
 	  x1.makeVar(1);
 	  TermList arrayX1(Term::create(arrayFct1,1,&x1));
 	  Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
-	  TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
 	  TermList arrayITE=TermList(Term::createITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
-	  condition=Formula::createTermLet(lhsTerm, arrayITE, condition);
+	  condition=Formula::createLet(arrayFct1, new Formula::VarList(1, 0), arrayITE, condition);
 	  break;
 	}
       default:
@@ -863,7 +865,11 @@ TermList LoopAnalyzer::arrayUpdateValue(Path::Iterator &sit, TermList exp, int p
       if (lhs->kind() == Expression::VARIABLE) {
 	TermList lhsTerm=expressionToTerm(lhs);
 	TermList rhsTerm=expressionToTerm(rhs);
-	exp=TermList(Term::createLet(lhsTerm, rhsTerm, exp));
+        Formula::VarList* vars(0);
+        for (TermList arg = lhsTerm; arg.isNonEmpty(); arg = *arg.next()) {
+          vars = new Formula::VarList(arg.var(), vars);
+        }
+	exp=TermList(Term::createLet(lhsTerm.term()->functor(), vars, rhsTerm, exp));
 	return exp;
       }
       if (lhs->kind() == Expression::ARRAY_APPLICATION) { 
@@ -877,9 +883,8 @@ TermList LoopAnalyzer::arrayUpdateValue(Path::Iterator &sit, TermList exp, int p
 	x1.makeVar(1);
 	TermList arrayX1(Term::create(arrayFct1,1,&x1));
 	Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
-	TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
 	TermList arrayITE=TermList(Term::createITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
-	exp=TermList(Term::createLet(lhsTerm, arrayITE, exp));
+	exp=TermList(Term::createLet(arrayFct1, new Formula::VarList(1, 0), arrayITE, exp));
 	return exp;
       }
       return exp;
@@ -949,8 +954,12 @@ TermList LoopAnalyzer::arrayUpdatePosition(Path::Iterator &sit, TermList updPosE
       Expression* rhs = static_cast<Assignment*>(stat)->rhs();
       if (lhs->kind() == Expression::VARIABLE) {
 	TermList lhsTerm=expressionToTerm(lhs);
-	TermList rhsTerm=expressionToTerm(rhs);	
-	updPosExp=TermList(Term::createLet(lhsTerm, rhsTerm, updPosExp));
+	TermList rhsTerm=expressionToTerm(rhs);
+        Formula::VarList* vars(0);
+        for (TermList arg = lhsTerm; arg.isNonEmpty(); arg = *arg.next()) {
+          vars = new Formula::VarList(arg.var(), vars);
+        }
+	updPosExp=TermList(Term::createLet(lhsTerm.term()->functor(), vars, rhsTerm, updPosExp));
 	break;
       }
       if (lhs->kind() == Expression::ARRAY_APPLICATION) { 
@@ -964,9 +973,8 @@ TermList LoopAnalyzer::arrayUpdatePosition(Path::Iterator &sit, TermList updPosE
 	x1.makeVar(1);
 	TermList arrayX1(Term::create(arrayFct1,1,&x1));
 	Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
-	TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
 	TermList arrayITE=TermList(Term::createITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
-	updPosExp=TermList(Term::createLet(lhsTerm, arrayITE, updPosExp));
+	updPosExp=TermList(Term::createLet(arrayFct1, new Formula::VarList(1, 0), arrayITE, updPosExp));
 	break;
       }
       break;
