@@ -23,6 +23,8 @@ using namespace Kernel;
  */
 BaseType& SortHelper::getType(Term* t)
 {
+  CALL("SortHelper::getType(Term*)");
+
   if (t->isLiteral()) {
     return *(env.signature->getPredicate(t->functor())->predType());
   }
@@ -134,8 +136,7 @@ bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, Te
       break;
     }
     case Term::SF_FORMULA:
-      // will we have a problem with a term being sorted as bool here?
-      resultSort = Sorts::SRT_BOOL;
+      resultSort = Sorts::SRT_FOOL_BOOL;
       return true;
     default:
       ASS(!t->isSpecial());
@@ -264,35 +265,100 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, unsigned& res)
  * variable is in map already (or appears multiple times), assert that the sorts
  * are equal. @c t0 can be either term or literal.
  * @since 04/05/2013 Manchester, new NonVariableIterator is used
- * @author Andrei Voronkov
+ * @since 15/05/2015 Gothenburg, FOOL support added
+ * @author Andrei Voronkov, Evgeny Kotelnikov
  */
 void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
 {
   CALL("SortHelper::collectVariableSorts(Term*,...)");
+  ASS(!t0->isSpecial());
 
   NonVariableIterator sit(t0,true);
   while (sit.hasNext()) {
-    int idx = 0;
+    unsigned idx = 0;
     Term* t = sit.next().term();
     if (t->shared() && t->ground()) {
       sit.right();
     }
     TermList* args = t->args();
     while (!args->isEmpty()) {
-      if (args->isOrdinaryVar()) {
-	unsigned varNum = args->var();
-	unsigned varSort = getArgSort(t, idx);
-	if (!map.insert(varNum, varSort)) {
-	  ASS_EQ(varSort, map.get(varNum));
-	}
-      } else if (args->isTerm() && args->term()->isFormula()) {
-        collectVariableSorts(args->term()->getSpecialData()->getFormula(), map);
+      unsigned argSort = getArgSort(t, idx);
+      if (args->isTerm()) {
+        if (args->term()->isSpecial()) {
+          collectVariableSortsSpecialTerm(args->term(), argSort, map);
+        } else {
+          collectVariableSorts(args->term(), map);
+        }
+      } else if (args->isOrdinaryVar()) {
+        unsigned varNum = args->var();
+        if (!map.insert(varNum, argSort)) {
+          ASS_EQ(argSort, map.get(varNum));
+        }
       }
       idx++;
       args=args->next();
     }
   }
 } // SortHelper::collectVariableSorts
+
+void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSort, DHMap<unsigned,unsigned>& map) {
+  CALL("SortHelper::collectVariableSortsSpecialTerm(Term*,...)");
+  ASS(term->isSpecial());
+
+  if (!term->isSpecial()) {
+    collectVariableSorts(term, map);
+  }
+
+  Stack<TermList*> ts(0);
+
+  Term::SpecialTermData* sd = term->getSpecialData();
+
+  switch (term->functor()) {
+    case Term::SF_TERM_ITE: {
+      collectVariableSorts(sd->getCondition(), map);
+
+      ts.push(term->nthArgument(0));
+      ts.push(term->nthArgument(1));
+      break;
+    }
+
+    case Term::SF_TERM_LET: {
+      Term* funDef = sd->getLhs().term();
+
+      if (funDef->isFormula()) {
+        collectVariableSorts(funDef->getSpecialData()->getFormula()->literal(), map);
+      } else {
+        collectVariableSorts(funDef, map);
+      }
+
+      ts.push(term->nthArgument(0));
+      break;
+    }
+
+    case Term::SF_FORMULA: {
+      collectVariableSorts(sd->getFormula(), map);
+      break;
+    }
+
+#if VDEBUG
+    default:
+      ASSERTION_VIOLATION;
+#endif
+  }
+
+  Stack<TermList*>::Iterator tit(ts);
+  while (tit.hasNext()) {
+    TermList* t = tit.next();
+    if (t->isTerm()) {
+      collectVariableSortsSpecialTerm(t->term(), contextSort, map);
+    } else if (t->isOrdinaryVar()) {
+      unsigned varNum = t->var();
+      if (!map.insert(varNum, contextSort)) {
+        ASS_EQ(contextSort, map.get(varNum));
+      }
+    }
+  }
+} // SortHelper::collectVariableSortsSpecialTerm
 
 /**
  * Insert variable sorts from @c f into @c map. If a variable
@@ -313,11 +379,13 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
 
       case BOOL_TERM: {
         TermList ts = sf->getBooleanTerm();
-        if (!ts.isVar()) {
-          continue;
-        }
-        if (!map.insert(ts.var(), Sorts::SRT_FOOL_BOOL)) {
-          ASS_EQ(Sorts::SRT_FOOL_BOOL, map.get(ts.var()));
+        if (ts.isVar()) {
+          if (!map.insert(ts.var(), Sorts::SRT_FOOL_BOOL)) {
+            ASS_EQ(Sorts::SRT_FOOL_BOOL, map.get(ts.var()));
+          }
+        } else {
+          ASS(ts.isTerm() && ts.term()->isSpecial());
+          collectVariableSortsSpecialTerm(ts.term(), Sorts::SRT_FOOL_BOOL, map);
         }
         break;
       }
