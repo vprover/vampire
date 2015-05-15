@@ -5,6 +5,7 @@
  *
  * @since 06/01/2004 Manchester
  * @since 02/06/2007 Manchester changed to new datastructures
+ * @since 06/05/2015 Gothenburg in order to support FOOL, we need to search for formulas inside terms as well
  */
 
 #include "Debug/Tracer.hpp"
@@ -19,21 +20,41 @@ namespace Kernel {
 class SubformulaIterator::Element {
 public:
   Element (FormulaList* list, int polarity, Element* rest)
-    : _isList(true),
-      _list(list),
+    : _tag(FORMULA_LIST),
+      _formulaList(list),
       _polarity(polarity),
       _rest(rest)
   {}
   Element (Formula* f, int polarity, Element* rest)
-    : _isList(false),
+    : _tag(FORMULA),
       _formula(f),
       _polarity(polarity),
       _rest(rest)
   {}
-  bool _isList;
+  Element (TermList* ts, int polarity, Element* rest)
+    : _tag(TERM_LIST),
+      _termList(ts),
+      _polarity(polarity),
+      _rest(rest)
+  {}
+  Element (Term* t, int polarity, Element* rest)
+    : _tag(TERM),
+      _term(t),
+      _polarity(polarity),
+      _rest(rest)
+  {}
+  enum Tag {
+    FORMULA_LIST,
+    FORMULA,
+    TERM_LIST,
+    TERM
+  };
+  Tag _tag;
   union{
-    FormulaList* _list;
+    FormulaList* _formulaList;
     Formula* _formula;
+    TermList* _termList;
+    Term* _term;
   };
   int _polarity;
   Element* _rest;
@@ -71,6 +92,7 @@ SubformulaIterator::SubformulaIterator (FormulaList* ts)
  * @since 06/01/2004 Manchester
  * @since 22/08/2004 Torrevieja, a bug fixed causing reserve formulas
  *                   to be ignored
+ * @since 06/05/2015 Gothenburg look inside terms in search for formulas, used by FOOL
  */
 bool SubformulaIterator::hasNext ()
 {
@@ -82,27 +104,64 @@ bool SubformulaIterator::hasNext ()
 
   // try to set _current
   while (_reserve) {
-    if (_reserve->_isList) {
-      FormulaList* first = _reserve->_list;
-      if (first->isEmpty()) {
-	Element* rest = _reserve->_rest;
-	delete _reserve;
-	_reserve = rest;
+    switch (_reserve->_tag) {
+      case Element::Tag::FORMULA_LIST: {
+        FormulaList *first = _reserve->_formulaList;
+        if (first->isEmpty()) {
+          Element *rest = _reserve->_rest;
+          delete _reserve;
+          _reserve = rest;
+          break;
+        } else { // first is non-empty
+          _current = first->head();
+          _currentPolarity = _reserve->_polarity;
+          _reserve->_formulaList = first->tail();
+          return true;
+        }
       }
-      else { // first is non-empty
-	_current = first->head();
-	_currentPolarity = _reserve->_polarity;
-	_reserve->_list = first->tail();
-	return true;
+
+      case Element::Tag::FORMULA: {
+        _current = _reserve->_formula;
+        _currentPolarity = _reserve->_polarity;
+        Element *rest = _reserve->_rest;
+        delete _reserve;
+        _reserve = rest;
+        return true;
       }
-    }
-    else { // _reserve is a formula
-      _current = _reserve->_formula;
-      _currentPolarity = _reserve->_polarity;
-      Element* rest = _reserve->_rest;
-      delete _reserve;
-      _reserve = rest;
-      return true;
+
+      case Element::Tag::TERM_LIST: {
+        TermList* first = _reserve->_termList;
+        if (!first->isTerm()) {
+          Element *rest = _reserve->_rest;
+          delete _reserve;
+          _reserve = rest;
+        } else { // first is non-empty
+          _reserve->_termList = first->next();
+          _reserve = new Element(first->term(), _reserve->_polarity, _reserve);
+        }
+        break;
+      }
+
+      case Element::Tag::TERM: {
+        if (!_reserve->_term->isFormula()) {
+          Element *rest = _reserve->_rest;
+          delete _reserve;
+          _reserve = rest;
+          break;
+        } else {
+          _current = _reserve->_term->getSpecialData()->getFormula();
+          _currentPolarity = _reserve->_polarity;
+          Element *rest = _reserve->_rest;
+          delete _reserve;
+          _reserve = rest;
+          return true;
+        }
+      }
+
+#if VDEBUG
+      default:
+        ASSERTION_VIOLATION;
+#endif
     }
   }
   // _reserve is empty
@@ -127,6 +186,7 @@ Formula* SubformulaIterator::next ()
  *
  * @since 06/01/2004 Manchester
  * @since 11/12/2004 Manchester, true and false added
+ * @since 06/05/2015 Gothenburg look inside terms in search for formulas, used by FOOL
  */
 Formula* SubformulaIterator::next (int& resultPolarity)
 {
@@ -137,6 +197,10 @@ Formula* SubformulaIterator::next (int& resultPolarity)
 
   switch (result->connective()) {
   case LITERAL:
+    _reserve = new Element(result->literal()->args(), resultPolarity, _reserve);
+    _current = 0;
+    break;
+
   case TRUE:
   case FALSE:
     _current = 0;
@@ -172,9 +236,15 @@ Formula* SubformulaIterator::next (int& resultPolarity)
     _currentPolarity = resultPolarity;
     break;
 
-  case BOOL_TERM:
-    _current = result->toEquality();
+  case BOOL_TERM: {
+    _current = 0;
+    TermList ts = result->getBooleanTerm();
+    if (!ts.isVar()) {
+      // here we rely on the fact that TermList can only be either a variable, a $ite or a $let
+      _reserve = new Element(ts.term(), resultPolarity, _reserve);
+    }
     break;
+  }
 
 #if VDEBUG
   default:
