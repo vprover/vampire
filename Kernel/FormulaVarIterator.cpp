@@ -144,7 +144,7 @@ bool FormulaVarIterator::hasNext()
         if (t->isSpecial()) {
           const Term::SpecialTermData* sd = t->getSpecialData();
           switch (t->functor()) {
-            case Term::SF_TERM_ITE:
+            case Term::SF_ITE:
               _instructions.push(FVI_FORMULA);
               _formulas.push(sd->getCondition());
               break;
@@ -154,7 +154,7 @@ bool FormulaVarIterator::hasNext()
               _formulas.push(sd->getFormula());
               break;
 
-            case Term::SF_TERM_LET: {
+            case Term::SF_LET: {
               Term* lhs = sd->getLhs().term();
 
               Formula::VarList* vars(0);

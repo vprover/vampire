@@ -488,14 +488,14 @@ void Property::scanSpecialTerm(Term* t)
 
   Term::SpecialTermData* sd = t->getSpecialData();
   switch(t->functor()) {
-  case Term::SF_TERM_ITE:
+  case Term::SF_ITE:
   {
     ASS_EQ(t->arity(),2);
     scan(sd->getCondition());
     scan(t->args());
     break;
   }
-  case Term::SF_TERM_LET:
+  case Term::SF_LET:
   {
     ASS_EQ(t->arity(),1);
     //this is a trick creating an artificial term list with terms we want to traverse

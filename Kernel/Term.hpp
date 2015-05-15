@@ -205,8 +205,8 @@ class Term
 {
 public:
   //special functor values
-  static const unsigned SF_TERM_ITE = 0xFFFFFFFF;
-  static const unsigned SF_TERM_LET = 0xFFFFFFFE;
+  static const unsigned SF_ITE = 0xFFFFFFFF;
+  static const unsigned SF_LET = 0xFFFFFFFE;
   static const unsigned SF_FORMULA = 0xFFFFFFFD;
   static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFD;
 
@@ -236,9 +236,9 @@ public:
       ASS_GE(res,SPECIAL_FUNCTOR_LOWER_BOUND);
       return res;
     }
-    Formula* getCondition() const { ASS_EQ(getType(), SF_TERM_ITE); return _iteData.condition; }
-    TermList getLhs() const { ASS_EQ(getType(), SF_TERM_LET); return TermList(_letData.lhs); }
-    TermList getRhs() const { ASS_EQ(getType(), SF_TERM_LET); return TermList(_letData.rhs); }
+    Formula* getCondition() const { ASS_EQ(getType(), SF_ITE); return _iteData.condition; }
+    TermList getLhs() const { ASS_EQ(getType(), SF_LET); return TermList(_letData.lhs); }
+    TermList getRhs() const { ASS_EQ(getType(), SF_LET); return TermList(_letData.rhs); }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
   };
 
@@ -480,8 +480,8 @@ public:
 
   /** Return true if term is either an if-then-else or a let...in expression */
   bool isSpecial() const { return functor()>=SPECIAL_FUNCTOR_LOWER_BOUND; }
-  bool isITE() const { return functor() == SF_TERM_ITE; }
-  bool isLet() const { return functor() == SF_TERM_LET; }
+  bool isITE() const { return functor() == SF_ITE; }
+  bool isLet() const { return functor() == SF_LET; }
   bool isFormula() const { return functor() == SF_FORMULA; }
   /** Return pointer to structure containing extra data for special terms such as
    * if-then-else or let...in */

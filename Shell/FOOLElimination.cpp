@@ -297,7 +297,7 @@ TermList FOOLElimination::process(Term* term) {
    */
 
   switch (term->functor()) {
-    case Term::SF_TERM_ITE: {
+    case Term::SF_ITE: {
       /**
        * Having a term of the form $ite(f, s, t) and the list X1, ..., Xn of
        * its free variables (it is the union of free variables of f, s and t)
@@ -342,7 +342,7 @@ TermList FOOLElimination::process(Term* term) {
       break;
     }
 
-    case Term::SF_TERM_LET: {
+    case Term::SF_LET: {
       /**
        * Having a term of the form $let(f(Y1, ..., Yk) := s, t), where f is a
        * function or predicate symbol and the list X1, ..., Xn of free variables
@@ -626,14 +626,14 @@ Term* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula::V
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (term->functor()) {
-      case Term::SF_TERM_ITE: {
+      case Term::SF_ITE: {
         Formula* formula    = replace(symbol, freshSymbol, freeVars, sd->getCondition());
         TermList thenBranch = replace(symbol, freshSymbol, freeVars, *term->nthArgument(0));
         TermList elseBranch = replace(symbol, freshSymbol, freeVars, *term->nthArgument(1));
         return Term::createITE(formula, thenBranch, elseBranch);
       }
 
-      case Term::SF_TERM_LET: {
+      case Term::SF_LET: {
         TermList lhs = sd->getLhs();
         TermList rhs = replace(symbol, freshSymbol, freeVars, sd->getRhs());
         TermList contents = replace(symbol, freshSymbol, freeVars, *term->nthArgument(0));

@@ -203,7 +203,7 @@ void Preprocess::preprocess (Problem& prb)
 
     FOOLElimination().apply(prb);
   }
-  
+
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it
   if(env.signature->hasDistinctGroups()){

@@ -106,7 +106,7 @@ bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, Te
 
   for (;;) {
     switch(t->functor()) {
-    case Term::SF_TERM_ITE:
+    case Term::SF_ITE:
     {
       TermList arg1 = *t->nthArgument(0);
       TermList arg2 = *t->nthArgument(1);
@@ -124,7 +124,7 @@ bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, Te
       }
       break;
     }
-    case Term::SF_TERM_LET:
+    case Term::SF_LET:
     {
       TermList arg1 = *t->nthArgument(0);
       if (arg1.isTerm()) {
@@ -314,7 +314,7 @@ void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSor
   Term::SpecialTermData* sd = term->getSpecialData();
 
   switch (term->functor()) {
-    case Term::SF_TERM_ITE: {
+    case Term::SF_ITE: {
       collectVariableSorts(sd->getCondition(), map);
 
       ts.push(term->nthArgument(0));
@@ -322,7 +322,7 @@ void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSor
       break;
     }
 
-    case Term::SF_TERM_LET: {
+    case Term::SF_LET: {
       Term* funDef = sd->getLhs().term();
 
       if (funDef->isFormula()) {

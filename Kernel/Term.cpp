@@ -39,8 +39,8 @@ using namespace Lib;
 using namespace Kernel;
 
 #if !COMPILER_MSVC 
-const unsigned Term::SF_TERM_ITE;
-const unsigned Term::SF_TERM_LET;
+const unsigned Term::SF_ITE;
+const unsigned Term::SF_LET;
 const unsigned Term::SF_FORMULA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 #endif
@@ -389,13 +389,13 @@ vstring Term::specialTermToString() const
     ASS_EQ(arity(),0);
     return "$formula{" + getSpecialData()->getFormula()->toString() + "}";
 
-  case SF_TERM_LET:
+  case SF_LET:
     ASS_EQ(arity(),1);
     return "$let(" + getSpecialData()->getLhs().toString() + " := " +
                      getSpecialData()->getRhs().toString() + ", " +
                      nthArgument(0)->toString() + ")";
 
-  case SF_TERM_ITE:
+  case SF_ITE:
     ASS_EQ(arity(),2);
     return "$ite(" + getSpecialData()->getCondition()->toString() + "," +
                      nthArgument(0)->toString() + "," +
@@ -740,7 +740,7 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
 {
   CALL("Term::createITE");
   Term* s = new(2,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_TERM_ITE, 2);
+  s->makeSymbol(SF_ITE, 2);
   TermList* ss = s->args();
   *ss = thenBranch;
   ss = ss->next();
@@ -766,7 +766,7 @@ Term* Term::createLet(TermList lhs, TermList rhs, TermList t)
   }
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_TERM_LET, 1);
+  s->makeSymbol(SF_LET, 1);
   TermList* ss = s->args();
   *ss = t;
   ASS(ss->next()->isEmpty());
