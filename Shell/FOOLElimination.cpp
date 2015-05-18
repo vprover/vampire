@@ -280,7 +280,9 @@ TermList FOOLElimination::process(Term* term) {
    * Note that we don't have to treat in a similar way occurrences of function
    * symbols, defined in $let-expressions, because the parser already made sure
    * to resolve scope issues, made them global (by renaming) and added them to
-   * the signature.
+   * the signature. The only thing to be cautious about is that processing of
+   * the contents of the $let-term should be done after the occurrences of the
+   * defined symbol in it are replaced with the fresh one.
    */
 
   // collect free variables X1, ..., Xn of the term and their sorts
@@ -290,10 +292,9 @@ TermList FOOLElimination::process(Term* term) {
   /**
    * Note that we collected free variables before processing subterms. That
    * assumes that process() preserves free variables. This assumption relies
-   * on the following:
-   *  1) All variables are disjoint within a term or formula, therefore we never
-   *     have to rename them.
-   *  2) Free variables of the term always occur in the processed term.
+   * on the fact that $ite and formula terms are rewritten into an fresh symbol
+   * applied to free variables, and the processing of $let-terms itself doesn't
+   * remove occurrences of variables.
    */
 
   switch (term->functor()) {
