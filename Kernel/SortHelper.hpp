@@ -33,6 +33,7 @@ public:
 
   static void collectVariableSorts(Unit* u, DHMap<unsigned,unsigned>& map);
   static void collectVariableSorts(Term* t, DHMap<unsigned,unsigned>& map);
+  static void collectVariableSorts(TermList ts, unsigned contextSort, DHMap<unsigned,unsigned>& map);
   static void collectVariableSortsSpecialTerm(Term* t, unsigned contextSort, DHMap<unsigned,unsigned>& map);
   static void collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map);
 

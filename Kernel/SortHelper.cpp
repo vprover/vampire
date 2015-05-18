@@ -268,35 +268,37 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, unsigned& res)
  * @since 15/05/2015 Gothenburg, FOOL support added
  * @author Andrei Voronkov, Evgeny Kotelnikov
  */
-void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
+void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,unsigned>& map)
 {
   CALL("SortHelper::collectVariableSorts(Term*,...)");
-  ASS(!t0->isSpecial());
 
-  NonVariableIterator sit(t0,true);
-  while (sit.hasNext()) {
-    unsigned idx = 0;
-    Term* t = sit.next().term();
-    if (t->shared() && t->ground()) {
-      sit.right();
+  unsigned position = 0;
+  for (TermList* ts = term->args(); ts->isNonEmpty(); ts = ts->next()) {
+    collectVariableSorts(*ts, getArgSort(term, position++), map);
+  }
+} // SortHelper::collectVariableSorts
+
+/**
+ * Context sort is needed for FOOL support. For some of the special terms,
+ * the sort of the occurrence of a variable cannot be derived from the functor.
+ * Example: $let(f := c, X). Here the sort of X is the sort of the occurence of
+ * the $let-term, therefore we need to pass the context around explicitly.
+ */
+void SortHelper::collectVariableSorts(TermList ts, unsigned contextSort, DHMap<unsigned,unsigned>& map)
+{
+  CALL("SortHelper::collectVariableSorts(TermList,...)");
+
+  if (ts.isTerm()) {
+    Term* term = ts.term();
+    if (term->isSpecial()) {
+      collectVariableSortsSpecialTerm(term, contextSort, map);
+    } else {
+      collectVariableSorts(term, map);
     }
-    TermList* args = t->args();
-    while (!args->isEmpty()) {
-      unsigned argSort = getArgSort(t, idx);
-      if (args->isTerm()) {
-        if (args->term()->isSpecial()) {
-          collectVariableSortsSpecialTerm(args->term(), argSort, map);
-        } else {
-          collectVariableSorts(args->term(), map);
-        }
-      } else if (args->isOrdinaryVar()) {
-        unsigned varNum = args->var();
-        if (!map.insert(varNum, argSort)) {
-          ASS_EQ(argSort, map.get(varNum));
-        }
-      }
-      idx++;
-      args=args->next();
+  } else if (ts.isOrdinaryVar()) {
+    unsigned var = ts.var();
+    if (!map.insert(var, contextSort)) {
+      ASS_EQ(contextSort, map.get(var));
     }
   }
 } // SortHelper::collectVariableSorts
@@ -304,10 +306,7 @@ void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
 void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSort, DHMap<unsigned,unsigned>& map) {
   CALL("SortHelper::collectVariableSortsSpecialTerm(Term*,...)");
 
-  if (!term->isSpecial()) {
-    collectVariableSorts(term, map);
-    return;
-  }
+  ASS(term->isSpecial());
 
   Stack<TermList*> ts(0);
 
@@ -341,24 +340,16 @@ void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSor
       if (isPredicate) {
         collectVariableSorts(body.term()->getSpecialData()->getFormula(), map);
       } else {
-        unsigned functionSort = symbol->fnType()->result();
-        if (body.isOrdinaryVar()) {
-          if (!map.insert(body.var(), functionSort)) {
-            ASS_EQ(functionSort, map.get(body.var()));
-          }
-        } else {
-          collectVariableSortsSpecialTerm(body.term(), functionSort, map);
-        }
+        collectVariableSorts(body, symbol->fnType()->result(), map);
       }
 
       ts.push(term->nthArgument(0));
       break;
     }
 
-    case Term::SF_FORMULA: {
+    case Term::SF_FORMULA:
       collectVariableSorts(sd->getFormula(), map);
       break;
-    }
 
 #if VDEBUG
     default:
@@ -368,15 +359,7 @@ void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSor
 
   Stack<TermList*>::Iterator tit(ts);
   while (tit.hasNext()) {
-    TermList* t = tit.next();
-    if (t->isTerm()) {
-      collectVariableSortsSpecialTerm(t->term(), contextSort, map);
-    } else if (t->isOrdinaryVar()) {
-      unsigned varNum = t->var();
-      if (!map.insert(varNum, contextSort)) {
-        ASS_EQ(contextSort, map.get(varNum));
-      }
-    }
+    collectVariableSorts(*tit.next(), contextSort, map);
   }
 } // SortHelper::collectVariableSortsSpecialTerm
 
