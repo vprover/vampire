@@ -394,13 +394,21 @@ vstring Term::specialTermToString() const
   case SF_LET: {
     ASS_EQ(arity(), 1);
     TermList body = sd->getBody();
-    vstring functor = body.isTerm() && body.term()->isFormula() ? env.signature->predicateName(sd->getFunctor())
-                                                                : env.signature->functionName(sd->getFunctor());
+    bool isPredicate = body.isTerm() && body.term()->isFormula();
+    vstring functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
+                                  : env.signature->functionName(sd->getFunctor());
+    BaseType* type = isPredicate ? (BaseType*)env.signature->getPredicate(sd->getFunctor())->predType()
+                                 : (BaseType*)env.signature->getFunction(sd->getFunctor())->fnType();
 
     const IntList* variables = sd->getVariables();
     vstring variablesList = "";
-    for (int i = 0; i < variables->length(); i++) {
-      variablesList += variableToString((unsigned) variables->nth(i));
+    for (unsigned i = 0; i < (unsigned)variables->length(); i++) {
+      unsigned var = (unsigned)variables->nth(i);
+      variablesList += variableToString(var);
+      unsigned sort = type->arg(i);
+      if (sort != Sorts::SRT_DEFAULT) {
+        variablesList += " : " + env.sorts->sortName(sort);
+      }
       if (i < variables->length() - 1) {
         variablesList += ", ";
       }
