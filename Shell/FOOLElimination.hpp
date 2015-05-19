@@ -77,10 +77,10 @@ private:
 
   /** Replace an occurrence of a symbol with freshSymbol, appending freeVars as additional arguments */
   // TODO: should a combination of MatcherUtils, SubstHelper be used instead?
-  FormulaList* replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, FormulaList* formulas);
-  Formula* replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Formula* formula);
-  TermList replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, TermList ts);
-  Term* replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Term* term);
+  FormulaList* replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, FormulaList* formulas);
+  Formula* replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Formula* formula);
+  TermList replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, TermList ts);
+  Term* replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Term* term);
 };
 
 }

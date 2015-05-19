@@ -579,9 +579,9 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
         }
 
         if (context == FORMULA_CONTEXT) {
-          contentsFormula = replace(symbol, freshSymbol, bodyFreeVars, contentsFormula);
+          contentsFormula = replace(isPredicate, symbol, freshSymbol, bodyFreeVars, contentsFormula);
         } else {
-          contents = replace(symbol, freshSymbol, bodyFreeVars, contents);
+          contents = replace(isPredicate, symbol, freshSymbol, bodyFreeVars, contents);
         }
 
         if (env.options->showPreprocessing()) {
@@ -784,28 +784,28 @@ Formula* FOOLElimination::toEquality(TermList booleanTerm) {
   return new AtomicFormula(equality);
 }
 
-Term* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Term* term) {
+Term* FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Term* term) {
   CALL("FOOLElimination::replace(..., Term*)");
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (term->functor()) {
       case Term::SF_ITE: {
-        Formula* formula    = replace(symbol, freshSymbol, freeVars, sd->getCondition());
-        TermList thenBranch = replace(symbol, freshSymbol, freeVars, *term->nthArgument(0));
-        TermList elseBranch = replace(symbol, freshSymbol, freeVars, *term->nthArgument(1));
+        Formula* formula    = replace(isPredicate, symbol, freshSymbol, freeVars, sd->getCondition());
+        TermList thenBranch = replace(isPredicate, symbol, freshSymbol, freeVars, *term->nthArgument(0));
+        TermList elseBranch = replace(isPredicate, symbol, freshSymbol, freeVars, *term->nthArgument(1));
         return Term::createITE(formula, thenBranch, elseBranch);
       }
 
       case Term::SF_LET: {
         unsigned functor = sd->getFunctor();
         IntList* variables = sd->getVariables();
-        TermList body = replace(symbol, freshSymbol, freeVars, sd->getBody());
-        TermList contents = replace(symbol, freshSymbol, freeVars, *term->nthArgument(0));
+        TermList body = replace(isPredicate, symbol, freshSymbol, freeVars, sd->getBody());
+        TermList contents = replace(isPredicate, symbol, freshSymbol, freeVars, *term->nthArgument(0));
         return Term::createLet(functor, variables, body, contents);
       }
 
       case Term::SF_FORMULA: {
-        Formula* formula = replace(symbol, freshSymbol, freeVars, sd->getFormula());
+        Formula* formula = replace(isPredicate, symbol, freshSymbol, freeVars, sd->getFormula());
         return Term::createFormula(formula);
       }
 
@@ -819,7 +819,7 @@ Term* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula::V
   unsigned arity = term->arity();
   unsigned function = term->functor();
 
-  bool renaming = function == symbol;
+  bool renaming = !isPredicate && (function == symbol);
 
   if (renaming) {
     function = freshSymbol;
@@ -838,23 +838,23 @@ Term* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula::V
 
   Term::Iterator it(term);
   while (it.hasNext()) {
-    arguments.push(replace(symbol, freshSymbol, freeVars, it.next()));
+    arguments.push(replace(isPredicate, symbol, freshSymbol, freeVars, it.next()));
   }
 
   return Term::create(function, arity, arguments.begin());
 }
 
-TermList FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, TermList ts) {
+TermList FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, TermList ts) {
   CALL("FOOLElimination::replace(..., TermList)");
 
   if (!ts.isTerm()) {
     return ts;
   }
 
-  return TermList(replace(symbol, freshSymbol, freeVars, ts.term()));
+  return TermList(replace(isPredicate, symbol, freshSymbol, freeVars, ts.term()));
 }
 
-Formula* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Formula* formula) {
+Formula* FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Formula* formula) {
   CALL("FOOLElimination::replace(..., Formula*)");
   switch (formula->connective()) {
     case LITERAL: {
@@ -864,7 +864,7 @@ Formula* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula
       bool polarity = (bool)literal->polarity();
       bool commutative = (bool)literal->commutative();
 
-      bool renaming = functor == symbol;
+      bool renaming = isPredicate && (functor == symbol);
 
       if (renaming) {
         functor = freshSymbol;
@@ -882,7 +882,7 @@ Formula* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula
 
       Term::Iterator lit(literal);
       while (lit.hasNext()) {
-        arguments.push(replace(symbol, freshSymbol, freeVars, lit.next()));
+        arguments.push(replace(isPredicate, symbol, freshSymbol, freeVars, lit.next()));
       }
 
       return new AtomicFormula(Literal::create(functor, arity, polarity, commutative, arguments.begin()));
@@ -890,25 +890,25 @@ Formula* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula
 
     case AND:
     case OR:
-      return new JunctionFormula(formula->connective(), replace(symbol, freshSymbol, freeVars, formula->args()));
+      return new JunctionFormula(formula->connective(), replace(isPredicate, symbol, freshSymbol, freeVars, formula->args()));
 
     case IMP:
     case IFF:
     case XOR:
       return new BinaryFormula(formula->connective(),
-                               replace(symbol, freshSymbol, freeVars, formula->left()),
-                               replace(symbol, freshSymbol, freeVars, formula->right()));
+                               replace(isPredicate, symbol, freshSymbol, freeVars, formula->left()),
+                               replace(isPredicate, symbol, freshSymbol, freeVars, formula->right()));
 
     case NOT:
-      return new NegatedFormula(replace(symbol, freshSymbol, freeVars, formula->uarg()));
+      return new NegatedFormula(replace(isPredicate, symbol, freshSymbol, freeVars, formula->uarg()));
 
     case FORALL:
     case EXISTS:
       return new QuantifiedFormula(formula->connective(), formula->vars(),
-                                   replace(symbol, freshSymbol, freeVars, formula->qarg()));
+                                   replace(isPredicate, symbol, freshSymbol, freeVars, formula->qarg()));
 
     case BOOL_TERM:
-      return new BoolTermFormula(replace(symbol, freshSymbol, freeVars, formula->getBooleanTerm()));
+      return new BoolTermFormula(replace(isPredicate, symbol, freshSymbol, freeVars, formula->getBooleanTerm()));
 
     case TRUE:
     case FALSE:
@@ -921,10 +921,10 @@ Formula* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula
   }
 }
 
-FormulaList* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, FormulaList* formulas) {
+FormulaList* FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, FormulaList* formulas) {
   CALL("FOOLElimination::replace(..., FormulaList*)");
-  return formulas->isEmpty() ? formulas : new FormulaList(replace(symbol, freshSymbol, freeVars, formulas->head()),
-                                                          replace(symbol, freshSymbol, freeVars, formulas->tail()));
+  return formulas->isEmpty() ? formulas : new FormulaList(replace(isPredicate, symbol, freshSymbol, freeVars, formulas->head()),
+                                                          replace(isPredicate, symbol, freshSymbol, freeVars, formulas->tail()));
 }
 
 }
