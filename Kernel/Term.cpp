@@ -402,10 +402,10 @@ vstring Term::specialTermToString() const
 
     const IntList* variables = sd->getVariables();
     vstring variablesList = "";
-    for (unsigned i = 0; i < (unsigned)variables->length(); i++) {
+    for (int i = 0; i < variables->length(); i++) {
       unsigned var = (unsigned)variables->nth(i);
       variablesList += variableToString(var);
-      unsigned sort = type->arg(i);
+      unsigned sort = type->arg((unsigned)i);
       if (sort != Sorts::SRT_DEFAULT) {
         variablesList += " : " + env.sorts->sortName(sort);
       }
