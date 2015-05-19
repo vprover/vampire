@@ -48,13 +48,32 @@ private:
   FormulaList* process(FormulaList* fs);
   Formula* process(Formula* f);
   Literal* process(Literal* literal);
-  TermList process(TermList ts);
-  TermList process(Term* t);
+
+  // A context in one of two possible values, so we model it with bool constants
+  typedef bool context;
+  static const context TERM_CONTEXT = true;
+  static const context FORMULA_CONTEXT = false;
+
+  // Processing of TermList and Term* returns a TermList or a Formula*,
+  // depending on the context
+  void process(TermList ts, context context, TermList& termResult, Formula*& formulaResult);
+  void process(Term* term, context context, TermList& termResult, Formula*& formulaResult);
+
+  // Shortcuts for process(TermList)
+  TermList process(TermList terms);
+  Formula* processAsFormula(TermList terms);
+
+  // Shortcuts for process(Term*)
+  TermList process(Term* term);
+  Formula* processAsFormula(Term* term);
 
   /** Processing helper functions */
   TermList buildFunctionApplication(unsigned function, Formula::VarList* vars);
-  Literal* buildPredicateApplication(unsigned predicate, Formula::VarList* vars);
+  Formula* buildPredicateApplication(unsigned predicate, Formula::VarList* vars);
   Stack<unsigned> collectSorts(Formula::VarList* vars);
+
+  // Converts a boolean term t to a formula 't = true'
+  Formula* toEquality(TermList booleanTerm);
 
   /** Replace an occurrence of a symbol with freshSymbol, appending freeVars as additional arguments */
   // TODO: should a combination of MatcherUtils, SubstHelper be used instead?

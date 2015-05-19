@@ -1,6 +1,10 @@
 /**
  * @file FOOLElimination.cpp
- * Implements class FOOLElimination.
+ * Implements the FOOL-to-FOL translation procedure, described in "A First
+ * Class Boolean Sort in First-Order Theorem Proving and TPTP" [1] by
+ * Kotelnikov, Kovacs and Voronkov.
+ *
+ * [1] http://arxiv.org/abs/1505.01682
  */
 
 #include "Indexing/TermSharing.hpp"
@@ -156,14 +160,7 @@ Formula* FOOLElimination::process(Formula* formula) {
       return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
 
     case BOOL_TERM: {
-      /**
-       * Having a boolean term t in a formula context,
-       * we simply replace it with t = true, where true is FOOL truth.
-       */
-      TermList terms = process(formula->getBooleanTerm());
-      TermList truth(Term::createConstant(Signature::FOOL_TRUE));
-      Literal* equality = Literal::createEquality(true, terms, truth, Sorts::SRT_FOOL_BOOL);
-      Formula* processedFormula = new AtomicFormula(equality);
+      Formula* processedFormula = processAsFormula(formula->getBooleanTerm());
 
       if (env.options->showPreprocessing()) {
         env.beginOutput();
@@ -221,16 +218,56 @@ Literal* FOOLElimination::process(Literal* literal) {
   return processedLiteral;
 }
 
-TermList FOOLElimination::process(TermList ts) {
-  CALL("FOOLElimination::process(TermList*)");
+/**
+ * Processes a list of terms.
+ *
+ * Takes a context argument (whos value is either TERM_CONTEXT or
+ * FORMULA_CONTEXT) and rather than returning the result of processing, writes
+ * it to termResult (when context is TERM_CONTEXT) or formulaResult (when
+ * context is FORMULA_CONTEXT). In other words, the result of processing is
+ * either a term or a formula, depending on the context.
+ *
+ * The meaning of the context is the following. Rather than having two versions
+ * of e.g. $ite-expressions (term-level and formula-level), this implementation
+ * considers only the term-level case, the formula case is encoded using the
+ * formula-inside-term special case of term. That is, the formula $ite(C, A, B),
+ * where A, B and C are all formulas, is stored as $formula{$ite(C, $term{A}, $term{B})}.
+ * The processing of an $ite-term should be different, depending on whether or
+ * not it occures directly under $formula. In the former case, we should unpack
+ * A and B from $term and introduce a fresh predicate symbol, whereas in the
+ * latter case we should introduce a fresh function symbol. So, the context
+ * argument tells the process function if the term is inside of a $formula.
+ *
+ * A similar reasoning is applied to the way $let-terms are stored.
+ *
+ * An alternative and slightly simpler implementation would have been to always
+ * go for the TERM_CONTEXT case. That way, instead of introducing a fresh
+ * predicate symbol when inside $formula, we would introduce a fresh function
+ * symbol of the sort FOOL_BOOL. That would result, however, in more
+ * definitions with more boilerplate. In particular, instead of predicate
+ * applications we would have equalities of function symbol applications to
+ * FOOL_TRUE all over the place.
+ */
+void FOOLElimination::process(TermList ts, context context, TermList& termResult, Formula*& formulaResult) {
+  CALL("FOOLElimination::process(TermList ts, context context, ...)");
 
   if (!ts.isTerm() || !ts.term()->isSpecial()) {
-    return ts;
+    if (context == TERM_CONTEXT) {
+      termResult = ts;
+    } else {
+      formulaResult = toEquality(ts);
+    }
+    return;
   }
 
-  TermList processedTermList = process(ts.term());
-  if (processedTermList.isTerm() && !processedTermList.term()->shared()) {
-    Term* processedTerm = processedTermList.term();
+  process(ts.term(), context, termResult, formulaResult);
+
+  if (context == FORMULA_CONTEXT) {
+    return;
+  }
+
+  if (termResult.isTerm() && !termResult.term()->shared()) {
+    Term* processedTerm = termResult.term();
     if (processedTerm->isLiteral()) {
       Literal* processedLiteral = static_cast<Literal*>(processedTerm);
       if (processedLiteral->isTwoVarEquality()) {
@@ -241,28 +278,67 @@ TermList FOOLElimination::process(TermList ts) {
     } else {
       processedTerm = env.sharing->insert(processedTerm);
     }
-    processedTermList = TermList(processedTerm);
+    termResult = TermList(processedTerm);
   }
 
-  return processedTermList;
+  // preprocessing of the term does not affect the sort
+  ASS_EQ(SortHelper::getResultSort(ts, _varSorts),
+         SortHelper::getResultSort(termResult, _varSorts));
+}
+
+/**
+ * A shortcut of process(TermList, context) for TERM_CONTEXT.
+ */
+TermList FOOLElimination::process(TermList terms) {
+  CALL("FOOLElimination::process(TermList terms)");
+  TermList ts;
+  Formula* dummy;
+  process(terms, TERM_CONTEXT, ts, dummy);
+  return ts;
+}
+
+/**
+ * A shortcut of process(TermList, context) for FORMULA_CONTEXT.
+ */
+Formula* FOOLElimination::processAsFormula(TermList terms) {
+  CALL("FOOLElimination::processAsFormula(TermList terms)");
+  Formula* formula;
+  TermList dummy;
+  process(terms, FORMULA_CONTEXT, dummy, formula);
+  return formula;
 }
 
 /**
  * Process a given term. The actual work is done if the term is special.
+ *
+ * Similarly to process(TermList, context, ...) takes a context as an argument
+ * and depending on its value (TERM_CONTEXT or FORMULA_CONTEXT) writes the
+ * result to termResult or formulaResult, respectively.
+ *
  * Returns TermList rather than Term* to cover the situation when $let-term
  * with a variable body is processed. That way, the result would be just the
  * variable, and we cannot put it inside Term*.
  */
-TermList FOOLElimination::process(Term* term) {
-  CALL("FOOLElimination::process(Term*)");
+void FOOLElimination::process(Term* term, context context, TermList& termResult, Formula*& formulaResult) {
+  CALL("FOOLElimination::process(Term* term, context context, ...)");
 
   if (!term->isSpecial()) {
-    return TermList(term);
+    if (context == TERM_CONTEXT) {
+      termResult = TermList(term);
+    } else {
+      formulaResult = toEquality(TermList(term));
+    }
+    return;
   }
 
   Term::SpecialTermData* sd = term->getSpecialData();
 
-  TermList processedTerm;
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] FOOL in: " << term->toString() << std::endl;
+    env.endOutput();
+  }
+
   /**
    * In order to process a special term (that is, a term that is syntactically
    * valid in FOOL but not in FOL), we will replace the whole term or some of
@@ -311,35 +387,84 @@ TermList FOOLElimination::process(Term* term) {
        *  3) Replace the term with g(X1, ..., Xn)
        */
 
-      Formula* condition  = process(sd->getCondition());
-      TermList thenBranch = process(*term->nthArgument(0));
-      TermList elseBranch = process(*term->nthArgument(1));
+      Formula* condition = process(sd->getCondition());
+
+      TermList thenBranch = *term->nthArgument(0);
+      TermList elseBranch = *term->nthArgument(1);
+
+      Formula* thenBranchFormula;
+      Formula* elseBranchFormula;
+
+      if (context == FORMULA_CONTEXT) {
+        ASS(thenBranch.isTerm() && thenBranch.term()->isFormula());
+        ASS(elseBranch.isTerm() && elseBranch.term()->isFormula());
+        thenBranchFormula = process(thenBranch.term()->getSpecialData()->getFormula());
+        elseBranchFormula = process(elseBranch.term()->getSpecialData()->getFormula());
+      } else {
+        thenBranch = process(thenBranch);
+        elseBranch = process(elseBranch);
+      }
+
+      bool isPredicate = context == FORMULA_CONTEXT;
 
       // the sort of the term is the sort of the then branch
       unsigned resultSort = SortHelper::getResultSort(thenBranch, _varSorts);
       ASS_EQ(resultSort, SortHelper::getResultSort(elseBranch, _varSorts));
 
-      // create a fresh symbol g and build g(X1, ..., Xn)
+      // create a fresh symbol g
       unsigned arity = (unsigned)freeVarsSorts.length();
-      unsigned freshSymbol = env.signature->addIteFunction(arity, freeVarsSorts.begin(), resultSort);
-      TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
+      unsigned freshSymbol = isPredicate ? env.signature->addItePredicate(arity, freeVarsSorts.begin())
+                                         : env.signature->addIteFunction (arity, freeVarsSorts.begin(), resultSort);
 
-      // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) = s)
-      Literal* thenEquality = Literal::createEquality(true, freshSymbolApplication, thenBranch, resultSort);
-      Formula* thenImplication = new BinaryFormula(IMP, condition, new AtomicFormula(thenEquality));
-      Formula* thenFormula = arity > 0 ? (Formula*)new QuantifiedFormula(FORALL, freeVars, thenImplication) : thenImplication;
+      // build g(X1, ..., Xn)
+      TermList freshFunctionApplication;
+      Formula* freshPredicateApplication;
+      if (isPredicate) {
+        freshPredicateApplication = buildPredicateApplication(freshSymbol, freeVars);
+      } else {
+        freshFunctionApplication  = buildFunctionApplication (freshSymbol, freeVars);
+      }
 
-      // build ![X1, ..., Xn]: (~f => g(X1, ..., Xn) = t)
-      Literal* elseEquality = Literal::createEquality(true, freshSymbolApplication, elseBranch, resultSort);
-      Formula* elseImplication = new BinaryFormula(IMP, new NegatedFormula(condition), new AtomicFormula(elseEquality));
-      Formula* elseFormula = arity > 0 ? (Formula*)new QuantifiedFormula(FORALL, freeVars, elseImplication) : elseImplication;
+      // build g(X1, ..., Xn) == s
+      Formula* thenEq;
+      if (isPredicate) {
+        thenEq = new BinaryFormula(IFF, freshPredicateApplication, thenBranchFormula);
+      } else {
+        thenEq = new AtomicFormula(Literal::createEquality(true, freshFunctionApplication, thenBranch, resultSort));
+      }
+
+      // build (f => g(X1, ..., Xn) == s)
+      Formula* thenImplication = new BinaryFormula(IMP, condition, thenEq);
+
+      // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
+      Formula* thenFormula = arity > 0 ? (Formula*)new QuantifiedFormula(FORALL, freeVars, thenImplication)
+                                       : thenImplication;
+
+      // build g(X1, ..., Xn) == t
+      Formula* elseEq;
+      if (isPredicate) {
+        elseEq = new BinaryFormula(IFF, freshPredicateApplication, elseBranchFormula);
+      } else {
+        elseEq = new AtomicFormula(Literal::createEquality(true, freshFunctionApplication, elseBranch, resultSort));
+      }
+
+      // build ~f => g(X1, ..., Xn) == t
+      Formula* elseImplication = new BinaryFormula(IMP, new NegatedFormula(condition), elseEq);
+
+      // build ![X1, ..., Xn]: (~f => g(X1, ..., Xn) == t)
+      Formula* elseFormula = arity > 0 ? (Formula*)new QuantifiedFormula(FORALL, freeVars, elseImplication)
+                                       : elseImplication;
 
       // add both definitions
       Inference* iteInference = new Inference1(Inference::FOOL_ITE_ELIMINATION, _unit);
       addDefinition(new FormulaUnit(thenFormula, iteInference, _unit->inputType()));
       addDefinition(new FormulaUnit(elseFormula, iteInference, _unit->inputType()));
 
-      processedTerm = freshSymbolApplication;
+      if (isPredicate) {
+        formulaResult = freshPredicateApplication;
+      } else {
+        termResult = freshFunctionApplication;
+      }
       break;
     }
 
@@ -415,10 +540,10 @@ TermList FOOLElimination::process(Term* term) {
         Formula* formula = process(body.term()->getSpecialData()->getFormula());
 
         // build g(X1, ..., Xn, Y1, ..., Yk)
-        Literal* freshSymbolApplication = buildPredicateApplication(freshSymbol, vars);
+        Formula* freshPredicateApplication = buildPredicateApplication(freshSymbol, vars);
 
         // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) <=> s
-        freshSymbolDefinition = new BinaryFormula(IFF, new AtomicFormula(freshSymbolApplication), formula);
+        freshSymbolDefinition = new BinaryFormula(IFF, freshPredicateApplication, formula);
       } else {
         // process the body of the function that is a term
         body = process(body);
@@ -439,32 +564,57 @@ TermList FOOLElimination::process(Term* term) {
 
       TermList contents = *term->nthArgument(0); // deliberately unprocessed here
 
+      Formula* contentsFormula;
+      if (context == FORMULA_CONTEXT) {
+        ASS(contents.isTerm() && contents.term()->isFormula());
+        contentsFormula = contents.term()->getSpecialData()->getFormula();
+      }
+
       // replace occurrences of f(t1, ..., tk) by g(X1, ..., Xn, t1, ..., tk)
       if (renameSymbol) {
         if (env.options->showPreprocessing()) {
           env.beginOutput();
           env.out() << "[PP] FOOL replace in: " << contents.toString() << std::endl;
+          env.endOutput();
         }
-        contents = replace(symbol, freshSymbol, bodyFreeVars, contents);
+
+        if (context == FORMULA_CONTEXT) {
+          contentsFormula = replace(symbol, freshSymbol, bodyFreeVars, contentsFormula);
+        } else {
+          contents = replace(symbol, freshSymbol, bodyFreeVars, contents);
+        }
+
         if (env.options->showPreprocessing()) {
+          env.beginOutput();
           env.out() << "[PP] FOOL replace out: " << contents.toString() << std::endl;
           env.endOutput();
         }
       }
 
-      processedTerm = process(contents);
+      if (context == FORMULA_CONTEXT) {
+        formulaResult = process(contentsFormula);
+      } else {
+        termResult = process(contents);
+      }
       break;
     }
 
     case Term::SF_FORMULA: {
+      if (context == FORMULA_CONTEXT) {
+        formulaResult = process(sd->getFormula());
+        break;
+      }
+
       Connective connective = sd->getFormula()->connective();
 
       if (connective == TRUE) {
-        return TermList(Term::createConstant(Signature::FOOL_TRUE));
+        termResult = TermList(Term::createConstant(Signature::FOOL_TRUE));
+        break;
       }
 
       if (connective == FALSE) {
-        return TermList(Term::createConstant(Signature::FOOL_FALSE));
+        termResult = TermList(Term::createConstant(Signature::FOOL_FALSE));
+        break;
       }
 
       /**
@@ -484,16 +634,14 @@ TermList FOOLElimination::process(Term* term) {
       TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
 
       // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
-      static TermList truth(Term::createConstant(Signature::FOOL_TRUE));
-      Literal* equality = Literal::createEquality(true, freshSymbolApplication, truth, Sorts::SRT_FOOL_BOOL);
-      Formula* equivalence = new BinaryFormula(IFF, formula, new AtomicFormula(equality));
+      Formula* equivalence = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
       Formula* def = arity > 0 ? (Formula*) new QuantifiedFormula(FORALL, freeVars, equivalence) : equivalence;
 
       // add the introduced definition
       Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, _unit);
       addDefinition(new FormulaUnit(def, inference, _unit->inputType()));
 
-      processedTerm = freshSymbolApplication;
+      termResult = freshSymbolApplication;
       break;
     }
 
@@ -503,37 +651,58 @@ TermList FOOLElimination::process(Term* term) {
 #endif
   }
 
-  if (processedTerm != TermList(term) && env.options->showPreprocessing()) {
+  if (env.options->showPreprocessing()) {
     env.beginOutput();
-    env.out() << "[PP] FOOL in: " << term->toString() << std::endl;
-    env.out() << "[PP] FOOL out: " << processedTerm.toString() << std::endl;
+    env.out() << "[PP] FOOL out: " << (context == FORMULA_CONTEXT
+                                       ? formulaResult->toString()
+                                       : termResult.toString()) << std::endl;
     env.endOutput();
   }
 
 #if VDEBUG
-  // a check that freeVars and processedTerm->freeVariables() coincide
+  if (context == TERM_CONTEXT) {
+    // freeVars and processedTerm->freeVariables() coincide
+    Formula::VarList* processedFreeVars = termResult.isVar() ? new List<int>(termResult.var())
+                                                             : termResult.term()->freeVariables();
 
-  Formula::VarList* processedFreeVars = processedTerm.isVar() ? new List<int>(processedTerm.var())
-                                                              : processedTerm.term()->freeVariables();
+    Formula::VarList::Iterator ufv(freeVars);
+    while (ufv.hasNext()) {
+      unsigned var = (unsigned)ufv.next();
+      ASS_REP(processedFreeVars->member(var), var);
+    }
+    Formula::VarList::Iterator pfv(processedFreeVars);
+    while (pfv.hasNext()) {
+      unsigned var = (unsigned)pfv.next();
+      ASS_REP(freeVars->member(var), var);
+    }
 
-  Formula::VarList::Iterator ufv(freeVars);
-  while (ufv.hasNext()) {
-    unsigned var = (unsigned)ufv.next();
-    ASS_REP(processedFreeVars->member(var), var);
-  }
-  Formula::VarList::Iterator pfv(processedFreeVars);
-  while (pfv.hasNext()) {
-    unsigned var = (unsigned)pfv.next();
-    ASS_REP(freeVars->member(var), var);
+    // special subterms should be eliminated
+    ASS(termResult.isSafe());
   }
 #endif
+}
 
-  // process(TermList*) expects that literals are still literals after processing
-  ASS_EQ(term->isLiteral(), processedTerm.isTerm() && processedTerm.term()->isLiteral());
+/**
+ * A shortcut of process(Term*, context) for TERM_CONTEXT.
+ */
+TermList FOOLElimination::process(Term* term) {
+  CALL("FOOLElimination::process(Term* term)");
+  TermList termList;
+  Formula* dummy;
+  process(term, TERM_CONTEXT, termList, dummy);
+  return termList;
+}
 
-  ASS(processedTerm.isSafe());
-
-  return processedTerm;
+/**
+ * A shortcut of process(Term*, context) for FORMULA_CONTEXT.
+ */
+Formula* FOOLElimination::processAsFormula(Term* term) {
+  CALL("FOOLElimination::processAsFormula(Term* term)");
+  Formula* formula;
+  TermList dummy;
+  process(term, FORMULA_CONTEXT, dummy, formula);
+  ASS(formula);
+  return formula;
 }
 
 /**
@@ -557,9 +726,9 @@ TermList FOOLElimination::buildFunctionApplication(unsigned function, Formula::V
 
 /**
  * Given a predicate symbol g of a given arity n and a list of variables X1, ..., Xn
- * builds a term g(X1, ..., Xn).
+ * builds a literal g(X1, ..., Xn).
  */
-Literal* FOOLElimination::buildPredicateApplication(unsigned predicate, Formula::VarList* vars) {
+Formula* FOOLElimination::buildPredicateApplication(unsigned predicate, Formula::VarList* vars) {
   CALL("FOOLElimination::buildPredicateApplication");
 
   unsigned arity = (unsigned)vars->length();
@@ -571,7 +740,7 @@ Literal* FOOLElimination::buildPredicateApplication(unsigned predicate, Formula:
     unsigned var = (unsigned)vit.next();
     arguments.push(TermList(var, false));
   }
-  return Literal::create(predicate, arity, true, false, arguments.begin());
+  return new AtomicFormula(Literal::create(predicate, arity, true, false, arguments.begin()));
 }
 
 /**
@@ -607,6 +776,12 @@ void FOOLElimination::addDefinition(FormulaUnit* def) {
     env.out() << "[PP] FOOL added definition: " << def->toString() << std::endl;
     env.endOutput();
   }
+}
+
+Formula* FOOLElimination::toEquality(TermList booleanTerm) {
+  TermList truth(Term::createConstant(Signature::FOOL_TRUE));
+  Literal* equality = Literal::createEquality(true, booleanTerm, truth, Sorts::SRT_FOOL_BOOL);
+  return new AtomicFormula(equality);
 }
 
 Term* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Term* term) {
@@ -729,7 +904,8 @@ Formula* FOOLElimination::replace(unsigned symbol, unsigned freshSymbol, Formula
 
     case FORALL:
     case EXISTS:
-      return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
+      return new QuantifiedFormula(formula->connective(), formula->vars(),
+                                   replace(symbol, freshSymbol, freeVars, formula->qarg()));
 
     case BOOL_TERM:
       return new BoolTermFormula(replace(symbol, freshSymbol, freeVars, formula->getBooleanTerm()));

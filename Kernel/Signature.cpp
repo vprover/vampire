@@ -868,6 +868,28 @@ unsigned Signature::addIteFunction(unsigned arity, unsigned* argSorts, unsigned 
 } // addIteFunction
 
 /**
+ * Return number of a fresh predicate to be used in if-then-else elimination
+ *
+ * @c argSorts and @c resSort specifies the sort of the arguments and of the result
+ * of the function.
+ */
+unsigned Signature::addItePredicate(unsigned arity, unsigned* argSorts)
+{
+  CALL("Signature::addItePredicate");
+
+  unsigned res = addFreshPredicate(arity, "sG");
+
+  BaseType* type = BaseType::makeType(arity, argSorts, Sorts::SRT_BOOL);
+  getPredicate(res)->setType(type);
+  //TODO find a better way to get rid of the sG functions!
+  //this is a quick fix for the elimination of sG from the invariants
+  env.colorUsed = true;
+  getPredicate(res)->addColor(COLOR_LEFT);
+
+  return res;
+} // addItePredicate
+
+/**
  * Return number of a fresh function symbol to be used in $let-elimination
  *
  * @c argSorts and @c resSort specifies the sort of the arguments and of the result
