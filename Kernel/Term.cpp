@@ -405,7 +405,10 @@ vstring Term::specialTermToString() const
         variablesList += ", ";
       }
     }
-    return "$let(" + functor + "(" + variablesList + ") := " +
+    if (variables->length()) {
+      variablesList = "(" + variablesList + ")";
+    }
+    return "$let(" + functor + variablesList + " := " +
                      body.toString() + ", " +
                      nthArgument(0)->toString() + ")";
   }

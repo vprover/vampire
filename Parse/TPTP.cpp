@@ -1717,14 +1717,31 @@ void TPTP::funApp()
 void TPTP::binding()
 {
   CALL("TPTP::binding");
-  _states.push(END_BINDING);
-  _states.push(TERM);
-  addTagState(T_ASS);
-  addTagState(T_RPAR);
-  _states.push(VAR_LIST);
-  addTagState(T_LPAR);
-  _strings.push(name());
   _letFunctionsBinds.push(0);
+  _strings.push(name());
+
+  Token tok = getTok(0);
+
+  switch (tok.tag) {
+    case T_ASS:
+    case T_LPAR:
+      resetToks();
+      _states.push(END_BINDING);
+      _states.push(TERM);
+      if (tok.tag == T_LPAR) {
+        addTagState(T_ASS);
+        addTagState(T_RPAR);
+        _states.push(VAR_LIST);
+      } else {
+        // empty list of vars
+        _varLists.push(0);
+        _bindLists.push(0);
+      }
+      break;
+
+    default:
+      PARSE_ERROR(toString(T_LPAR) + " or " + toString(T_ASS) + "expected", tok);
+  }
 }
 
 void TPTP::endBinding() {
