@@ -68,19 +68,19 @@ private:
   Formula* processAsFormula(Term* term);
 
   /** Processing helper functions */
-  TermList buildFunctionApplication(unsigned function, Formula::VarList* vars);
-  Formula* buildPredicateApplication(unsigned predicate, Formula::VarList* vars);
+  static TermList buildFunctionApplication(unsigned function, Formula::VarList* vars);
+  static Formula* buildPredicateApplication(unsigned predicate, Formula::VarList* vars);
   Stack<unsigned> collectSorts(Formula::VarList* vars);
 
   // Converts a boolean term t to a formula 't = true'
-  Formula* toEquality(TermList booleanTerm);
+  static Formula* toEquality(TermList booleanTerm);
 
   /** Replace an occurrence of a symbol with freshSymbol, appending freeVars as additional arguments */
   // TODO: should a combination of MatcherUtils, SubstHelper be used instead?
-  FormulaList* replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, FormulaList* formulas);
-  Formula* replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Formula* formula);
-  TermList replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, TermList ts);
-  Term* replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Term* term);
+  static FormulaList* replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, FormulaList* formulas);
+  static Formula* replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Formula* formula);
+  static TermList replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, TermList ts);
+  static Term* replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Term* term);
 };
 
 }
