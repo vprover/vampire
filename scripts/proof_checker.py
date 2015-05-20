@@ -7,7 +7,8 @@ if(len(sys.argv)<2):
   print "You should provide a command to proof_check i.e. ../vampire_rel_master -sa inst_gen TPTP/Problems/SYN/SYN001+1.p" 
   sys.exit(0)
 
-VAMPIRE_ROOT = sys.argv[1]
+TPTP='~/TPTP/TPTP-v6.1.0/'
+VAMPIRE_ROOT = sys.argv[1]+' --include '+TPTP
 
 # Set the time out for all proof attempts
 time_out=str(10)
@@ -15,14 +16,18 @@ time_out=str(10)
 EPROVER='~/Vampire/prover-bin/eprover --auto --tptp3-in --proof-object --cpu-limit='+time_out
 VAMPIRE= VAMPIRE_ROOT+' -p off --ignore_missing on --mode casc --time_limit '+time_out
 IPROVER='~/Vampire/prover-bin/iproveropt --clausifier ../vampire_rel_master --clausifier_options "--mode clausify" --time_out_real '+time_out
-CVC4='cvc4 --tlimit='+time_out+'000' # to convert seconds to ms
+CVC4='cvc4 --lang tptp --tlimit='+time_out+'000' # to convert seconds to ms
 SPASS='~/Vampire/prover-bin/SPASS -Auto=1 -TPTP=1 -TimeLimit='+time_out  
 CHECK_WITH=set()
+CHECK_WITH.add(EPROVER)
+CHECK_WITH.add(VAMPIRE)
+CHECK_WITH.add(IPROVER)
+CHECK_WITH.add(CVC4)
 CHECK_WITH.add(SPASS)
 
 verbose=False
 
-ignores=set(['%negated conjecture','%sat splitting component'])
+ignores=set(['%negated conjecture','%sat splitting component','%theory axiom'])
 
 ARGS= " -p proofcheck "+(' '.join(sys.argv[2:]))
 print "Running vampire on "+ ARGS 
@@ -68,7 +73,7 @@ for line in OUT.split('\n'):
         	if 'SZS status' in prover_line:
           		if verbose:
             			print prover_line
-          		if 'Theorem' in prover_line:
+          		if 'Theorem' in prover_line or 'Unsatisfiable' in prover_line:
 	            		proved=True
 			break
 		if 'SPASS beiseite: Proof found.' in prover_line:
@@ -79,11 +84,11 @@ for line in OUT.split('\n'):
         	print 'Failed proof obligation: ',checked,' using ',prover
 		any_failed=True
         	
-	if not any_failed:
-		os.remove('proof_obligation_'+str(checked))
+      if not any_failed:
+          os.remove('proof_obligation_'+str(checked))
  
-    	#Reset obligation
-    	obligation=[]
+      #Reset obligation
+      obligation=[]
 
   elif refutation:
   	obligation.append(line)
