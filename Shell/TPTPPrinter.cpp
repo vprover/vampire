@@ -130,7 +130,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u)
     }
   }
   else {
-    NOT_IMPLEMENTED;
+    return static_cast<FormulaUnit*>(u)->formula()->toString();
   }
   return res.str();
 }
