@@ -1747,7 +1747,8 @@ void TPTP::binding()
 void TPTP::endBinding() {
   CALL("TPTP::endBinding");
   TermList body = _termLists.top();
-  bool isPredicate = sortOf(body) == Sorts::SRT_FOOL_BOOL;
+  unsigned bodySort = sortOf(body);
+  bool isPredicate = bodySort == Sorts::SRT_FOOL_BOOL;
 
   Formula::VarList* vars = _varLists.top(); // will be poped in endLet()
   unsigned arity = (unsigned)vars->length();
@@ -1768,6 +1769,20 @@ void TPTP::endBinding() {
     }
     newName = name + Int::toString(index);
   }
+
+  Stack<unsigned> argSorts(0);
+  Formula::VarList::Iterator vit(vars);
+  while (vit.hasNext()) {
+    unsigned var = (unsigned)vit.next();
+    ASS_REP(_variableSorts.find(var), var);
+    ASS_REP(_variableSorts.get(var)->isNonEmpty(), var);
+    argSorts.push(_variableSorts.get(var)->head());
+  }
+
+  BaseType* type = BaseType::makeType(arity, argSorts.begin(), isPredicate ? Sorts::SRT_BOOL : bodySort);
+  Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(newNumber)
+                                          : env.signature->getFunction(newNumber);
+  symbol->setType(type);
 
   if (renamed) {
     LetFunctionName function(name, arity);
