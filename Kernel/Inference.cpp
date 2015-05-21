@@ -236,10 +236,6 @@ vstring Inference::ruleName(Rule rule)
     return "closure";
   case FLATTEN:
     return "flattening";
-  case FORMULA_ITE_EXPANSION:
-    return "formula ite expansion";
-  case TERM_IF_THEN_ELSE_DEFINITION:
-    return "term if then else definition";
   case FOOL_ELIMINATION:
     return "FOOL elimination";
   case FOOL_ITE_ELIMINATION:

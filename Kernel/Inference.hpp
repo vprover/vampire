@@ -71,10 +71,6 @@ public:
     CLOSURE,
     /** obtained by flattening (quantifiers, junctions) */
     FLATTEN,
-    /** obtained by expansion of the formula if-then-else connective */
-    FORMULA_ITE_EXPANSION,
-    /** a definition introduced for the term if-then-else operator */
-    TERM_ITE_DEFINITION,
     /** obtained by reordering literals */
     REORDER_LITERALS,
     /** obtained by transformation into ENNF */
@@ -201,9 +197,6 @@ public:
     /** Introduction of formula to convert formulas used as argument positions.
      *  Such formulas have the form F->f(x)=1 or ~F->f(x)=0 */
     BOOLEAN_TERM_ENCODING,
-    /** Introduction of definitions to handle the term <i>if F then s else t</i>
-     *  Such formulas have the form F->f(x)=s or ~F->f(x)=t */
-    TERM_IF_THEN_ELSE_DEFINITION,
     /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
     FOOL_ELIMINATION,
     /** Elimination of $ite expressions */
