@@ -18,6 +18,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 
@@ -377,6 +378,7 @@ void Property::scanSort(unsigned sort)
     return;
   }
   _hasNonDefaultSorts = true;
+  env.statistics->hasTypes=true;
   switch(sort) {
   case Sorts::SRT_INTEGER:
     addProp(PR_HAS_INTEGERS);

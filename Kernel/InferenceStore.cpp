@@ -15,6 +15,7 @@
 
 #include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -26,6 +27,7 @@
 #include "Inference.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "SortHelper.hpp"
 
 #include "InferenceStore.hpp"
 
@@ -171,19 +173,30 @@ UnitSpecIterator InferenceStore::getParents(UnitSpec us)
  * It is caller's responsibility to ensure that variables in @b vars are unique.
  */
 template<typename VarContainer>
-vstring getQuantifiedStr(const VarContainer& vars, vstring inner, bool innerParentheses=true)
-{
-  CALL("getQuantifiedStr(VarContainer, vstring)");
+vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned,unsigned>& t_map, bool innerParentheses=true){
+  CALL("getQuantifiedStr(VarContainer, vstring, map)");
 
   VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
   vstring varStr;
   bool first=true;
   while(vit.hasNext()) {
-    unsigned var=vit.next();
+    unsigned var =vit.next();
     if (!first) {
       varStr+=",";
     }
-    varStr+=vstring("X")+Int::toString(var);
+    vstring ty="";
+    unsigned t;
+    if(t_map.find(var,t)){
+      switch(t){
+        //create types for variable
+        case Sorts::SRT_DEFAULT : ty=""; break; // alternatively could do $i
+        case Sorts::SRT_INTEGER : ty=":$int";break;
+        case Sorts::SRT_RATIONAL : ty=":$rat";break;
+        case Sorts::SRT_REAL    : ty=":$real";break;
+        default: ASSERTION_VIOLATION_REP(t); // user-defined sorts require sort definitions
+      }
+    }
+    varStr+=vstring("X")+Int::toString(var)+ty;
     first=false;
   }
 
@@ -201,10 +214,20 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, bool innerPare
 }
 
 /**
- * Return vstring containing quantified unit @b u.
+ * Return @b inner quentified over variables in @b vars
  *
- * If @b u is clause, only non-propositional part of the clause is
- * returned. (BDD part and the split history are ommitted.)
+ * It is caller's responsibility to ensure that variables in @b vars are unique.
+ */
+template<typename VarContainer>
+vstring getQuantifiedStr(const VarContainer& vars, vstring inner, bool innerParentheses=true)
+{
+  CALL("getQuantifiedStr(VarContainer, vstring)");
+  static DHMap<unsigned,unsigned> d;
+  return getQuantifiedStr(vars,inner,d,innerParentheses);
+}
+
+/**
+ * Return vstring containing quantified unit @b u.
  */
 vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 {
@@ -212,6 +235,8 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 
   Set<unsigned> vars;
   vstring res;
+  DHMap<unsigned,unsigned> t_map;
+  SortHelper::collectVariableSorts(u,t_map);
   if (u->isClause()) {
     Clause* cl=static_cast<Clause*>(u);
     unsigned clen=cl->length();
@@ -239,7 +264,7 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
     res=formula->toString();
   }
 
-  return getQuantifiedStr(vars, res);
+  return getQuantifiedStr(vars, res, t_map);
 }
 
 struct InferenceStore::ProofPrinter
@@ -765,17 +790,23 @@ struct InferenceStore::ProofCheckPrinter
 protected:
   void printStep(UnitSpec cs)
   {
+    CALL("InferenceStore::ProofCheckPrinter::printStep");
     Inference::Rule rule;
     UnitSpecIterator parents=_is->getParents(cs, rule);
+ 
+    vstring kind = "fof";
+    if(env.statistics->hasTypes){ kind="tff"; } 
 
-    out << "fof(r"<<_is->getUnitIdStr(cs)
+    out << kind
+        << "(r"<<_is->getUnitIdStr(cs)
     	<< ",conjecture, "
     	<< getQuantifiedStr(cs.unit()) 
     	<< " ). %"<<Inference::ruleName(rule)<<"\n";
 
     while(parents.hasNext()) {
       UnitSpec prem=parents.next();
-      out << "fof(pr"<<_is->getUnitIdStr(prem)
+      out << kind 
+        << "(pr"<<_is->getUnitIdStr(prem)
   	<< ",axiom, "
   	<< getQuantifiedStr(prem.unit());
       out << " ).\n";

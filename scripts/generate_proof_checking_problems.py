@@ -2,9 +2,10 @@ import random
 import os
 import subprocess
 
-N=100
+N=1000
 VAMPIRE='../vampire_rel_master'
 TPTP='~/TPTP/TPTP-v6.1.0/'
+read_from='try_these' #'all_relevant_problems'
 
 directory='generated_proof_obligations'
 if not os.path.exists(directory):
@@ -12,13 +13,19 @@ if not os.path.exists(directory):
 
 #randomly generate N problems for proof checking
 all_problems=set()
-with open('all_relevant_problems','r') as probs:
+with open(read_from,'r') as probs:
 	for line in probs:
 		all_problems.add(line.strip())
-problem_set = random.sample(all_problems,N)
+
+#problem_set = random.sample(all_problems,N)
+problem_set = all_problems
 
 # For each problem generate obligations
 for problem in problem_set:
+
+	if os.path.exists(directory+problem):
+		continue
+
 	print "Dealing with ",problem
 
 	#Solve problem using casc mode
