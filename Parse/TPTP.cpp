@@ -3412,6 +3412,11 @@ unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool
     USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
   }
   unsigned srt = sortOf(arg);
+  TermList* n = arg.next();
+  while(!n->isEmpty()){
+    if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
+    n = n->next();
+  }
   if (srt == Sorts::SRT_INTEGER) {
     return env.signature->addInterpretedFunction(integer,name);
   }
@@ -3434,6 +3439,12 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
     USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
   }
   unsigned srt = sortOf(arg);
+  TermList* n = arg.next();
+  while(!n->isEmpty()){ 
+    if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
+    n = n->next(); 
+  }
+  
   if (srt == Sorts::SRT_INTEGER) {
     return env.signature->addInterpretedPredicate(integer,name);
   }
