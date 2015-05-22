@@ -509,11 +509,31 @@ Comparison KBOBase::compareFunctors(unsigned fun1, unsigned fun2) const
 
 /**
  * Compare precedences of two function symbols
+ *
+ * @since 22/05/2015 Gothenburg, tweak the ordering of FOOL_FALSE and FOOL_TRUE.
+ * The intended new ordering is that FOOL_FALSE is smaller than any other term
+ * and FOOL_TRUE is smaller than any other term except FOOL_TRUE.
  */
 Ordering::Result KBOBase::compareFunctionPrecedences(unsigned fun1, unsigned fun2) const
 {
   CALL("KBOBase::compareFunctionPrecedences");
   ASS_NEQ(fun1, fun2);
+
+  if (fun1 == Signature::FOOL_FALSE) {
+    return LESS;
+  }
+
+  if (fun2 == Signature::FOOL_FALSE) {
+    return GREATER;
+  }
+
+  if (fun1 == Signature::FOOL_TRUE) {
+    return LESS;
+  }
+
+  if (fun2 == Signature::FOOL_TRUE) {
+    return GREATER;
+  }
 
   Signature::Symbol* s1=env.signature->getFunction(fun1);
   Signature::Symbol* s2=env.signature->getFunction(fun2);
