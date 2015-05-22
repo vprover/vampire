@@ -3413,7 +3413,7 @@ unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool
   }
   unsigned srt = sortOf(arg);
   TermList* n = arg.next();
-  while(!n->isEmpty()){
+  for(int i=1;i<arity;i++){
     if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
     n = n->next();
   }
@@ -3440,7 +3440,7 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
   }
   unsigned srt = sortOf(arg);
   TermList* n = arg.next();
-  while(!n->isEmpty()){ 
+  for(int i=1;i<arity;i++){
     if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
     n = n->next(); 
   }
