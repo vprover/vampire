@@ -27,7 +27,7 @@ CHECK_WITH.add(SPASS)
 
 verbose=False
 
-ignores=set(['%negated conjecture','%sat splitting component','%theory axiom'])
+ignores=set(['%negated conjecture','%sat splitting component','%theory axiom','%cnf transformation','%flattening','%ennf transformation','%general splitting','%general splitting component introduction','%global subsumption'])
 
 ARGS= " -p proofcheck "+(' '.join(sys.argv[2:]))
 print "Running vampire on "+ ARGS 

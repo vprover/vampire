@@ -5,7 +5,7 @@ import subprocess
 N=1000
 VAMPIRE='../vampire_rel_master'
 TPTP='~/TPTP/TPTP-v6.1.0/'
-read_from='try_these' #'all_relevant_problems'
+read_from='all_relevant_problems'
 
 directory='generated_proof_obligations'
 if not os.path.exists(directory):
@@ -17,8 +17,8 @@ with open(read_from,'r') as probs:
 	for line in probs:
 		all_problems.add(line.strip())
 
-#problem_set = random.sample(all_problems,N)
-problem_set = all_problems
+problem_set = random.sample(all_problems,N)
+#problem_set = all_problems
 
 # For each problem generate obligations
 for problem in problem_set:
@@ -58,10 +58,10 @@ for problem in problem_set:
 	#Move them all to a directory for that problem
 	obligations = [ f for f in os.listdir('.') if f.startswith('proof_obligation')]
 	if obligations:
-		if os.path.exists(problem):
+		pdir = directory+'/'+problem
+		if os.path.exists(pdir):
 			print "Oh dear, we did ", problem, " before!"
 		else:
-			pdir = directory+'/'+problem
 			os.makedirs(pdir)
 			for o in obligations:
 				os.rename(o,pdir+'/'+o)
