@@ -1634,6 +1634,7 @@ public:
   bool showSkolemisations() const { return _showSkolemisations.actualValue; }
   bool showSymbolElimination() const { return _showSymbolElimination.actualValue; }
   bool showTheoryAxioms() const { return _showTheoryAxioms.actualValue; }
+  bool showFOOL() const { return _showFOOL.actualValue; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   bool weightIncrement() const { return _weightIncrement.actualValue; }
@@ -2081,6 +2082,7 @@ private:
   BoolOptionValue _showSkolemisations;
   BoolOptionValue _showSymbolElimination;
   BoolOptionValue _showTheoryAxioms;
+  BoolOptionValue _showFOOL;
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
@@ -2144,7 +2146,7 @@ private:
 
   InputFileOptionValue _inputFile;
 
-    
+
 }; // class Options
 
 // Allow printing of enums

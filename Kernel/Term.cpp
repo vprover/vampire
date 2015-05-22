@@ -19,6 +19,8 @@
 
 #include "Indexing/TermSharing.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "Formula.hpp"
 #include "Signature.hpp"
 #include "SortHelper.hpp"
@@ -387,9 +389,11 @@ vstring Term::specialTermToString() const
   const SpecialTermData* sd = getSpecialData();
 
   switch(functor()) {
-  case SF_FORMULA:
-    ASS_EQ(arity(),0);
-    return "$formula{" + sd->getFormula()->toString() + "}";
+  case SF_FORMULA: {
+    ASS_EQ(arity(), 0);
+    vstring formula = sd->getFormula()->toString();
+    return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
+  }
 
   case SF_LET: {
     ASS_EQ(arity(), 1);

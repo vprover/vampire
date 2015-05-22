@@ -5,9 +5,12 @@
 
 #include "Debug/Tracer.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/MultiCounter.hpp"
 #include "Lib/VString.hpp"
+
+#include "Shell/Options.hpp"
 
 #include "BDD.hpp"
 #include "Clause.hpp"
@@ -295,8 +298,10 @@ vstring Formula::toString () const
       return result + qarg()->toStringInScopeOf(c);
     }
 
-  case BOOL_TERM:
-    return "$term{" + getBooleanTerm().toString() + "}";
+  case BOOL_TERM: {
+    vstring term = getBooleanTerm().toString();
+    return env.options->showFOOL() ? "$formula{" + term + "}" : term;
+  }
 
   case TRUE:
   case FALSE:

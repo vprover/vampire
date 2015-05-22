@@ -663,8 +663,16 @@ unsigned Signature::addFunction (const vstring& name,
   }
 
   result = _funs.length();
-  _funs.push(new Symbol(name,arity));
-  _funNames.insert(symbolKey,result);
+  if (env.options->showFOOL() && result == FOOL_FALSE) {
+    _funs.push(new Symbol("$false", arity));
+    _funNames.insert(key("$false",arity), result);
+  } else if (env.options->showFOOL() && result == FOOL_TRUE) {
+    _funs.push(new Symbol("$true", arity));
+    _funNames.insert(key("$true",arity), result);
+  } else {
+    _funs.push(new Symbol(name, arity));
+    _funNames.insert(symbolKey, result);
+  }
   added = true;
   return result;
 } // Signature::addFunction

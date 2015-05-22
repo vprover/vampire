@@ -620,6 +620,11 @@ void Options::Options::init()
     _lookup.insert(&_showTheoryAxioms);
     _showTheoryAxioms.tag(OptionTag::OUTPUT);
 
+    _showFOOL = BoolOptionValue("show_fool","",false);
+    _showFOOL.description="Reveal the internal representation of FOOL terms";
+    _lookup.insert(&_showFOOL);
+    _showFOOL.tag(OptionTag::OUTPUT);
+
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
