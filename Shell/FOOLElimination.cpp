@@ -572,10 +572,11 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
           env.endOutput();
         }
 
+        SymbolOccurrenceReplacement replacement(isPredicate, symbol, freshSymbol, bodyFreeVars);
         if (context == FORMULA_CONTEXT) {
-          contentsFormula = replace(isPredicate, symbol, freshSymbol, bodyFreeVars, contentsFormula);
+          contentsFormula = replacement.process(contentsFormula);
         } else {
-          contents = replace(isPredicate, symbol, freshSymbol, bodyFreeVars, contents);
+          contents = replacement.process(contents);
         }
 
         if (env.options->showPreprocessing()) {
@@ -778,30 +779,19 @@ Formula* FOOLElimination::toEquality(TermList booleanTerm) {
   return new AtomicFormula(equality);
 }
 
-Term* FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Term* term) {
-  CALL("FOOLElimination::replace(..., Term*)");
+Term* FOOLElimination::SymbolOccurrenceReplacement::process(Term* term) {
+  CALL("FOOLElimination::SymbolOccurrenceReplacement::process(Term*)");
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (term->functor()) {
-      case Term::SF_ITE: {
-        Formula* formula    = replace(isPredicate, symbol, freshSymbol, freeVars, sd->getCondition());
-        TermList thenBranch = replace(isPredicate, symbol, freshSymbol, freeVars, *term->nthArgument(0));
-        TermList elseBranch = replace(isPredicate, symbol, freshSymbol, freeVars, *term->nthArgument(1));
-        return Term::createITE(formula, thenBranch, elseBranch);
-      }
+      case Term::SF_ITE:
+        return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)));
 
-      case Term::SF_LET: {
-        unsigned functor = sd->getFunctor();
-        IntList* variables = sd->getVariables();
-        TermList body = replace(isPredicate, symbol, freshSymbol, freeVars, sd->getBody());
-        TermList contents = replace(isPredicate, symbol, freshSymbol, freeVars, *term->nthArgument(0));
-        return Term::createLet(functor, variables, body, contents);
-      }
+      case Term::SF_LET:
+        return Term::createLet(sd->getFunctor(), sd->getVariables(), process(sd->getBody()), process(*term->nthArgument(0)));
 
-      case Term::SF_FORMULA: {
-        Formula* formula = replace(isPredicate, symbol, freshSymbol, freeVars, sd->getFormula());
-        return Term::createFormula(formula);
-      }
+      case Term::SF_FORMULA:
+        return Term::createFormula(process(sd->getFormula()));
 
 #if VDEBUG
       default:
@@ -813,17 +803,17 @@ Term* FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned fresh
   unsigned arity = term->arity();
   unsigned function = term->functor();
 
-  bool renaming = !isPredicate && (function == symbol);
+  bool renaming = !_isPredicate && (function == _symbol);
 
   if (renaming) {
-    function = freshSymbol;
-    arity += freeVars->length();
+    function = _freshSymbol;
+    arity += _freeVars->length();
   }
 
   Stack<TermList> arguments;
 
   if (renaming) {
-    Formula::VarList::Iterator fvit(freeVars);
+    Formula::VarList::Iterator fvit(_freeVars);
     while (fvit.hasNext()) {
       unsigned var = (unsigned)fvit.next();
       arguments.push(TermList(var, false));
@@ -832,24 +822,24 @@ Term* FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned fresh
 
   Term::Iterator it(term);
   while (it.hasNext()) {
-    arguments.push(replace(isPredicate, symbol, freshSymbol, freeVars, it.next()));
+    arguments.push(process(it.next()));
   }
 
   return Term::create(function, arity, arguments.begin());
 }
 
-TermList FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, TermList ts) {
-  CALL("FOOLElimination::replace(..., TermList)");
+TermList FOOLElimination::SymbolOccurrenceReplacement::process(TermList ts) {
+  CALL("FOOLElimination::SymbolOccurrenceReplacement::process(TermList)");
 
   if (!ts.isTerm()) {
     return ts;
   }
 
-  return TermList(replace(isPredicate, symbol, freshSymbol, freeVars, ts.term()));
+  return TermList(process(ts.term()));
 }
 
-Formula* FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Formula* formula) {
-  CALL("FOOLElimination::replace(..., Formula*)");
+Formula* FOOLElimination::SymbolOccurrenceReplacement::process(Formula* formula) {
+  CALL("FOOLElimination::SymbolOccurrenceReplacement::process(Formula*)");
   switch (formula->connective()) {
     case LITERAL: {
       Literal *literal = formula->literal();
@@ -858,17 +848,17 @@ Formula* FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned fr
       bool polarity = (bool)literal->polarity();
       bool commutative = (bool)literal->commutative();
 
-      bool renaming = isPredicate && (functor == symbol);
+      bool renaming = _isPredicate && (functor == _symbol);
 
       if (renaming) {
-        functor = freshSymbol;
-        arity += freeVars->length();
+        functor = _freshSymbol;
+        arity += _freeVars->length();
       }
 
       Stack<TermList> arguments;
 
       if (renaming) {
-        Formula::VarList::Iterator fvit(freeVars);
+        Formula::VarList::Iterator fvit(_freeVars);
         while (fvit.hasNext()) {
           arguments.push(TermList((unsigned)fvit.next(), false));
         }
@@ -876,7 +866,7 @@ Formula* FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned fr
 
       Term::Iterator lit(literal);
       while (lit.hasNext()) {
-        arguments.push(replace(isPredicate, symbol, freshSymbol, freeVars, lit.next()));
+        arguments.push(process(lit.next()));
       }
 
       return new AtomicFormula(Literal::create(functor, arity, polarity, commutative, arguments.begin()));
@@ -884,25 +874,22 @@ Formula* FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned fr
 
     case AND:
     case OR:
-      return new JunctionFormula(formula->connective(), replace(isPredicate, symbol, freshSymbol, freeVars, formula->args()));
+      return new JunctionFormula(formula->connective(), process(formula->args()));
 
     case IMP:
     case IFF:
     case XOR:
-      return new BinaryFormula(formula->connective(),
-                               replace(isPredicate, symbol, freshSymbol, freeVars, formula->left()),
-                               replace(isPredicate, symbol, freshSymbol, freeVars, formula->right()));
+      return new BinaryFormula(formula->connective(), process(formula->left()), process(formula->right()));
 
     case NOT:
-      return new NegatedFormula(replace(isPredicate, symbol, freshSymbol, freeVars, formula->uarg()));
+      return new NegatedFormula(process(formula->uarg()));
 
     case FORALL:
     case EXISTS:
-      return new QuantifiedFormula(formula->connective(), formula->vars(),
-                                   replace(isPredicate, symbol, freshSymbol, freeVars, formula->qarg()));
+      return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
 
     case BOOL_TERM:
-      return new BoolTermFormula(replace(isPredicate, symbol, freshSymbol, freeVars, formula->getBooleanTerm()));
+      return new BoolTermFormula(process(formula->getBooleanTerm()));
 
     case TRUE:
     case FALSE:
@@ -915,10 +902,9 @@ Formula* FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned fr
   }
 }
 
-FormulaList* FOOLElimination::replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, FormulaList* formulas) {
-  CALL("FOOLElimination::replace(..., FormulaList*)");
-  return formulas->isEmpty() ? formulas : new FormulaList(replace(isPredicate, symbol, freshSymbol, freeVars, formulas->head()),
-                                                          replace(isPredicate, symbol, freshSymbol, freeVars, formulas->tail()));
+FormulaList* FOOLElimination::SymbolOccurrenceReplacement::process(FormulaList* formulas) {
+  CALL("FOOLElimination::SymbolOccurrenceReplacement::process(FormulaList*)");
+  return formulas->isEmpty() ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
 }
 
 }

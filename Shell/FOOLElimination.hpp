@@ -75,12 +75,32 @@ private:
   // Converts a boolean term t to a formula 't = true'
   static Formula* toEquality(TermList booleanTerm);
 
-  /** Replace an occurrence of a symbol with freshSymbol, appending freeVars as additional arguments */
+  /**
+   * A helper class that performs replacement of all terms/literals of the form
+   * f(t1, ..., tk) by g(X1, ..., Xn, t1, ..., tk) for given f, g and X1,...,Xn
+   */
   // TODO: should a combination of MatcherUtils, SubstHelper be used instead?
-  static FormulaList* replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, FormulaList* formulas);
-  static Formula* replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Formula* formula);
-  static TermList replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, TermList ts);
-  static Term* replace(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars, Term* term);
+  class SymbolOccurrenceReplacement {
+    public:
+      /**
+       * symbol = f
+       * freshSymbol = g
+       * freeVars = X1, ..., Xn
+       * isPredicate = whether or not f and g are predicate symbols
+       */
+      SymbolOccurrenceReplacement(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars)
+        : _isPredicate(isPredicate), _symbol(symbol), _freshSymbol(freshSymbol), _freeVars(freeVars) {}
+      Formula* process(Formula* formula);
+      FormulaList* process(FormulaList* formulas);
+      Term* process(Term* term);
+      TermList process(TermList ts);
+
+    private:
+      const bool _isPredicate;
+      const unsigned _symbol;
+      const unsigned _freshSymbol;
+      const Formula::VarList* _freeVars;
+  };
 };
 
 }
