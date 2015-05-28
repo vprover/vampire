@@ -55,7 +55,7 @@ private:
   DHSet<Literal*> _restrictedRangeSet1;
   DHSet<Literal*> _restrictedRangeSet2;
 
-  GlobalSubsumptionGrounder _gnd;
+  ScopedPtr<GlobalSubsumptionGrounder> _gnd;
   ScopedPtr<SATSolverWithAssumptions> _solver;
   ScopedPtr<SATSolverWithAssumptions> _proofRecordingSolver;
 

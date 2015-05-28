@@ -24,17 +24,17 @@ public:
   CLASS_NAME(GroundingIndex);
   USE_ALLOCATOR(GroundingIndex);
 
-  GroundingIndex(Grounder* gnd, const Options& opt);
+  GroundingIndex(const Options& opt);
 
   SATSolverWithAssumptions& getSolver() { return *_solver; }
-  Grounder& getGrounder() { return *_grounder; }
+  GlobalSubsumptionGrounder& getGrounder() { return *_grounder; }
 
 protected:
   virtual void handleClause(Clause* c, bool adding);
 
 private:
   ScopedPtr<SATSolverWithAssumptions> _solver;
-  GrounderSCP _grounder;
+  ScopedPtr<GlobalSubsumptionGrounder> _grounder;
 };
 
 }

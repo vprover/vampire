@@ -22,8 +22,7 @@
 namespace Indexing
 {
 
-GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
- : _grounder(gnd)
+GroundingIndex::GroundingIndex(const Options& opt)
 {
   CALL("GroundingIndex::GroundingIndex");
 
@@ -40,7 +39,8 @@ GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
     default:
       ASSERTION_VIOLATION_REP(opt.satSolver());
   }
-
+  
+  _grounder = new GlobalSubsumptionGrounder(_solver.ptr());
 }
 
 void GroundingIndex::handleClause(Clause* c, bool adding)

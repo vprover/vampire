@@ -40,13 +40,14 @@ EquivalenceDiscoverer::EquivalenceDiscoverer(bool normalizeForSAT, unsigned satC
       _discoverImplications(discoverImplications),
       _doRandomSimulation(doRandomSimulation),
       _proofTracing(proofTracing),
-      _restrictedRange(false),
-      _gnd(normalizeForSAT),
+      _restrictedRange(false),      
       _maxSatVar(0)
 {
   CALL("EquivalenceDiscoverer::EquivalenceDiscoverer");
 
   _solver = new TWLSolver(*env.options, false);
+  
+  _gnd = new GlobalSubsumptionGrounder(_solver.ptr(),normalizeForSAT);
 }
 
 /**
@@ -69,7 +70,7 @@ void EquivalenceDiscoverer::addGrounding(Clause* cl)
   static DArray<Literal*> normLits;
   normLits.ensure(clen);
 
-  SATClause* scl = _gnd.groundNonProp(cl, false, normLits.array());
+  SATClause* scl = _gnd->groundNonProp(cl, false, normLits.array());
   scl->setInference(new FOConversionInference(cl));
   _satClauses.push(scl);
 

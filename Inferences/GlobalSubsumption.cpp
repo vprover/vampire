@@ -87,7 +87,6 @@ void GlobalSubsumption::addClauseToIndex(Clause* cl, SATLiteralStack& satLits)
   SATInference* inf = new FOConversionInference(UnitSpec(cl));
   scl->setInference(inf);
 
-  solver.ensureVarCount(grounder.satVarCnt());
   solver.addClause(scl);
 
   if(solver.solve(_uprOnly)==SATSolver::UNSATISFIABLE) {

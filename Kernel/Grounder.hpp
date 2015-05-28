@@ -24,8 +24,7 @@ public:
   CLASS_NAME(Grounder);
   USE_ALLOCATOR(Grounder);
   
-  Grounder() : _nextSatVar(1), _satSolver(0) {}
-  Grounder(SATSolver* satSolver) : _nextSatVar(1), _satSolver(satSolver) {}
+  Grounder(SATSolver* satSolver) : _satSolver(satSolver) {}
   virtual ~Grounder() { CALL("Grounder::~Grounder"); }
 
   // TODO: sort out the intended semantics and the names of these four beasts:
@@ -33,8 +32,6 @@ public:
   SATClause* ground(Clause* cl,bool use_n);
   SATClause* groundNonProp(Clause* cl, bool use_n, Literal** normLits=0);
   void groundNonProp(Clause* cl, SATLiteralStack& acc, bool use_n, Literal** normLits=0);
-
-  unsigned satVarCnt() const { return _nextSatVar-1; }
 
   static void recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause);
 
@@ -51,11 +48,13 @@ protected:
 private:
   SATLiteral groundNormalized(Literal*);
 
-  unsigned _nextSatVar;
   /** Map from positive literals to SAT variable numbers */
   DHMap<Literal*, unsigned> _asgn;
-  /** Used to communicate source literals, should be 0 unless this is IGGrounded */
-  // IGAlgorithm will delete this
+  
+  /** Pointer to a SATSolver instance for which the grounded clauses
+   * are being prepared. Used to request new variables from the Solver.
+   *
+   * Also used to communicate source literals with IGGrounder. */
   SATSolver* _satSolver;
 };
 
@@ -67,7 +66,8 @@ public:
   CLASS_NAME(GlobalSubsumptionGrounder);
   USE_ALLOCATOR(GlobalSubsumptionGrounder);
 
-  GlobalSubsumptionGrounder(bool doNormalization=true) : _doNormalization(doNormalization) {}
+  GlobalSubsumptionGrounder(SATSolver* satSolver, bool doNormalization=true) 
+          : Grounder(satSolver), _doNormalization(doNormalization) {}
 protected:
   virtual void normalize(unsigned cnt, Literal** lits);
 };

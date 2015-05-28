@@ -90,7 +90,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   _gnd = new  IGGrounder(_satSolver);
 
   if(_opt.globalSubsumption()) {
-    _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder(), opt);
+    _groundingIndex = new GroundingIndex(opt);
     _globalSubsumption = new GlobalSubsumption(_opt,_groundingIndex.ptr());
   }
 
@@ -252,8 +252,6 @@ void IGAlgorithm::processUnprocessed()
     sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
 
     // sc could have been a tautology, in which case sc == 0 after the removeDuplicateLiterals call
-    // however, _satSolver needs to now about all potentially new variables
-    _satSolver->ensureVarCount(_gnd->satVarCnt());
     if (sc) {
       _satSolver->addClause(sc);
     }
@@ -438,8 +436,6 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
   sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
 
   // sc could have been a tautology, in which case sc == 0 after the removeDuplicateLiterals call
-  // however, _satSolver needs to now about all potentially new variables
-  _satSolver->ensureVarCount(_gnd->satVarCnt());
   if (sc) {
     _satSolver->addClause(sc);
   }
