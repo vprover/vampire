@@ -86,7 +86,7 @@ unsigned Sorts::addSort(const vstring& name, bool& added)
   }
   _hasSort = true;
   result = _sorts.length();
-  if (result == SRT_FOOL_BOOL && env.options->showFOOL()) {
+  if (result == SRT_FOOL_BOOL && !env.options->showFOOL()) {
     _sorts.push(new SortInfo("$o", result));
     _sortNames.insert("$o", result);
   } else {
