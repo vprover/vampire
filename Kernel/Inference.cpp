@@ -242,6 +242,8 @@ vstring Inference::ruleName(Rule rule)
     return "FOOL $ite elimination";
   case FOOL_LET_ELIMINATION:
     return "FOOL $let elimination";
+  case FOOL_PARAMODULATION:
+    return "FOOL paramodulation";
 //  case CHOICE_AXIOM:
 //  case MONOTONE_REPLACEMENT:
 //  case FORALL_ELIMINATION:

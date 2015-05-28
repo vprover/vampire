@@ -203,6 +203,8 @@ public:
     FOOL_ITE_ELIMINATION,
     /** Elimination of $let expressions */
     FOOL_LET_ELIMINATION,
+    /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */
+    FOOL_PARAMODULATION,
     /** component introduced by sat splitting */
     SAT_SPLITTING_COMPONENT,
     /** refutation of a sat splitting branch */

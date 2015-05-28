@@ -36,6 +36,7 @@
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
 #include "Inferences/ExtensionalityResolution.hpp"
+#include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
@@ -799,6 +800,7 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 #if VDEBUG
     case Clause::SELECTED:
     case Clause::ACTIVE:
+      cout << "FAIL: " << cl->toString() << endl;
       //such clauses should not appear as new ones
       ASSERTION_VIOLATION;
 #endif
@@ -1354,7 +1356,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution());
   }
-  
+  if (opt.FOOLParamodulation()) {
+    gie->addFront(new FOOLParamodulation());
+  }
+
   res->setGeneratingInferenceEngine(gie);
 
   res->setImmediateSimplificationEngine(createISE(prb, opt));

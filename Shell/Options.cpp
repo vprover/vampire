@@ -825,7 +825,19 @@ void Options::Options::init()
     // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
     _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
     _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
-    
+
+    _FOOLParamodulation = BoolOptionValue("fool_paramodulation","",false);
+    _FOOLParamodulation.description=
+      "Turns on the following inference rule:\n"
+      "       C[s]"
+      "--------------------,"
+      "C[true] \\/ s = false"
+      "where s is a boolean term that is not a variable, true or false, C[true] is\n"
+      "the C clause with s substituted by true. This rule is needed for an effecient\n"
+      "treatment of boolean terms.";
+    _lookup.insert(&_FOOLParamodulation);
+    _FOOLParamodulation.tag(OptionTag::OUTPUT);
+
     _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
     _forwardDemodulation.description=
     "Oriented rewriting of newly derived clauses by kept unit equalities\n"
