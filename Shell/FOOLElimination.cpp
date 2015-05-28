@@ -85,14 +85,8 @@ void FOOLElimination::apply(UnitList*& units) {
     }
   }
 
-  // append the FOOL axiom "$true != $false"
-  TermList t(Term::createConstant(Signature::FOOL_TRUE));
-  TermList f(Term::createConstant(Signature::FOOL_FALSE));
-
-  Formula* dc = new AtomicFormula(Literal::createEquality(false, t, f, Sorts::SRT_FOOL_BOOL));
-  FormulaUnit* disjointConstants = new FormulaUnit(dc, new Inference(Inference::FOOL_AXIOM), Unit::AXIOM);
-
-  addDefinition(disjointConstants);
+  // Note that the "$true != $false" axiom is treated as a theory axiom and
+  // added in TheoryAxiom.cpp
 
   units = UnitList::concat(_defs, units);
   _defs = 0;

@@ -51,6 +51,7 @@ private:
   void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3=0);
   void addAndOutputTheoryUnit(Unit* unit,UnitList*& units);
 
+  void addBooleanDomainAxiom(UnitList*& units);
 };
 
 }
