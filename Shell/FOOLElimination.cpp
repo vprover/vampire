@@ -25,11 +25,9 @@
 
 #include "FOOLElimination.hpp"
 
-namespace Shell
-{
-
 using namespace Lib;
 using namespace Kernel;
+using namespace Shell;
 
 FOOLElimination::FOOLElimination() : _defs(0) {}
 
@@ -905,6 +903,4 @@ Formula* FOOLElimination::SymbolOccurrenceReplacement::process(Formula* formula)
 FormulaList* FOOLElimination::SymbolOccurrenceReplacement::process(FormulaList* formulas) {
   CALL("FOOLElimination::SymbolOccurrenceReplacement::process(FormulaList*)");
   return formulas->isEmpty() ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
-}
-
 }

@@ -8,9 +8,8 @@
 
 #include "Forwards.hpp"
 
-namespace Shell {
-
 using namespace Kernel;
+using namespace Shell;
 
 /**
  * A class with function @b apply() that eliminates all expressions
@@ -102,7 +101,5 @@ private:
       const Formula::VarList* _freeVars;
   };
 };
-
-}
 
 #endif // __FOOLElimination__
