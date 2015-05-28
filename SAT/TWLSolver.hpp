@@ -64,6 +64,9 @@ public:
    * and if not update everything accordingly to save this slot.
    */
   virtual void ensureVarCount(unsigned newVarCnt) override;
+  
+  virtual unsigned newVar() override;
+  
   virtual void suggestPolarity(unsigned var, unsigned pol) override {
     CALL("TWLSolver::suggestPolarity");
     ASS_G(var,0); ASS_LE(var,_varCnt);

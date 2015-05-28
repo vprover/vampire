@@ -59,6 +59,9 @@ public:
   virtual SATClause* getZeroImpliedCertificate(unsigned var);
 
   virtual void ensureVarCount(unsigned newVarCnt) override;
+  
+  virtual unsigned newVar() override;
+  
   virtual void suggestPolarity(unsigned var, unsigned pol) override {
     // 0 -> true which means negated, e.g. false in the model
     bool mpol = pol ? false : true; 

@@ -127,6 +127,25 @@ void TWLSolver::ensureVarCount(unsigned newVarCnt)
   _variableSelector->ensureVarCount(newVarCnt);
 }
 
+unsigned TWLSolver::newVar()
+{
+  CALL("TWLSolver::newVar");
+  
+  _varCnt++;
+  
+  _assignment.expand(_varCnt+1, AS_UNDEFINED);
+  _assignmentLevels.expand(_varCnt+1);
+  _assignmentPremises.expand(_varCnt+1, 0);
+  _lastAssignments.expand(_varCnt+1, AS_UNDEFINED);
+  _propagationScheduled.expand(_varCnt+1);
+
+  _windex.expand((_varCnt+1)*2);
+
+  _variableSelector->ensureVarCount(_varCnt);
+  
+  return _varCnt;
+}
+
 /**
  * Add a clause into the SAT solver noticing obvious conflicts.
  *

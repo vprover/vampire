@@ -37,6 +37,13 @@ void MinisatInterfacing::ensureVarCount(unsigned newVarCnt)
   }
 }
 
+unsigned MinisatInterfacing::newVar() 
+{
+  CALL("MinisatInterfacing::ensureVarCount");
+  
+  return minisatVar2Vampire(_solver.newVar());
+}
+
 SATSolver::Status MinisatInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool)
 {
   CALL("MinisatInterfacing::solveUnderAssumptions");

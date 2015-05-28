@@ -94,11 +94,13 @@ public:
 
 	Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
 
+  virtual unsigned newVar() override { return ++_varCnt; }
+  
 protected:
   void solveModuloAssumptionsAndSetStatus(const SATLiteralStack& assumps, int conflictCountLimit = -1);
   
-  static int vampireVar2Lingeling(unsigned vvar) {
-    ASS_G(vvar,0);
+  int vampireVar2Lingeling(unsigned vvar) {
+    ASS_G(vvar,0); ASS_LE(vvar,_varCnt);
     return (int)vvar;
   }
   
@@ -106,7 +108,7 @@ protected:
     return (unsigned)lvar;
   }
   
-  static int vampireLit2Lingeling(SATLiteral vlit) {
+  int vampireLit2Lingeling(SATLiteral vlit) {
     int lit = vampireVar2Lingeling(vlit.var());
     if (vlit.isNegative()) {
       return -lit;
@@ -121,6 +123,11 @@ protected:
   }
   
 private:
+  /**
+   * Number of variables the solver is able to handle.
+   */
+  unsigned _varCnt;  
+  
 	Status _status;
   SATLiteralStack _assumptions;  
   SATClauseList* _addedClauses; 

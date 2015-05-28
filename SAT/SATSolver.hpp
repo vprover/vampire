@@ -101,8 +101,20 @@ public:
 
   /**
    * Ensure that clauses mentioning variables 1..newVarCnt can be handled.
+   * 
+   * See also newVar for a different (and conceptually incompatible)
+   * way for managing variables in the solver.
    */
   virtual void ensureVarCount(unsigned newVarCnt) {}
+  
+  /**
+   * Allocate a slot for a new (previosly unused) variable in the solver
+   * and return the variable. 
+   * 
+   * Variables start from 1 and keep increasing by 1.
+   */
+  virtual unsigned newVar() = 0;
+  
   virtual void suggestPolarity(unsigned var, unsigned pol) = 0;
 
   /**

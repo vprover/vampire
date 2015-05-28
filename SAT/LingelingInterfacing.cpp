@@ -43,7 +43,7 @@ using Lib::ScopedLet;
  */
 LingelingInterfacing::LingelingInterfacing(const Options& opts,
 		bool generateProofs) :
-		_status(SATISFIABLE), _addedClauses(0)
+		_varCnt(0), _status(SATISFIABLE), _addedClauses(0)
 {
 	CALL("LingelingInterfacing::LingelingInterfacing");
 	//here we should take care of all the options passed from the caller
