@@ -72,7 +72,7 @@ void FOOLElimination::apply(UnitList*& units) {
       for (unsigned i = 0; i < cl->length(); i++) {
         // we do not allow special terms in clauses so we check that all clause literals
         // are shared (special terms can not be shared)
-        ASS((*cl)[i]->shared());
+        ASS_REP((*cl)[i]->shared(), (*cl)[i]->toString());
       }
 #endif
       continue;
@@ -388,8 +388,8 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
       Formula* elseBranchFormula;
 
       if (context == FORMULA_CONTEXT) {
-        ASS(thenBranch.isTerm() && thenBranch.term()->isFormula());
-        ASS(elseBranch.isTerm() && elseBranch.term()->isFormula());
+        ASS_REP(thenBranch.isTerm() && thenBranch.term()->isFormula(), thenBranch.toString());
+        ASS_REP(elseBranch.isTerm() && elseBranch.term()->isFormula(), elseBranch.toString());
         thenBranchFormula = process(thenBranch.term()->getSpecialData()->getFormula());
         elseBranchFormula = process(elseBranch.term()->getSpecialData()->getFormula());
       } else {
@@ -558,7 +558,7 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
 
       Formula* contentsFormula;
       if (context == FORMULA_CONTEXT) {
-        ASS(contents.isTerm() && contents.term()->isFormula());
+        ASS_REP(contents.isTerm() && contents.term()->isFormula(), contents.toString());
         contentsFormula = contents.term()->getSpecialData()->getFormula();
       }
 
@@ -670,7 +670,7 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
     }
 
     // special subterms should be eliminated
-    ASS(termResult.isSafe());
+    ASS_REP(termResult.isSafe(), termResult);
   }
 #endif
 }
@@ -694,7 +694,6 @@ Formula* FOOLElimination::processAsFormula(Term* term) {
   Formula* formula;
   TermList dummy;
   process(term, FORMULA_CONTEXT, dummy, formula);
-  ASS(formula);
   return formula;
 }
 
