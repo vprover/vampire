@@ -381,23 +381,13 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
 
       Formula* condition = process(sd->getCondition());
 
-      TermList thenBranch = *term->nthArgument(0);
-      TermList elseBranch = *term->nthArgument(1);
-
+      TermList thenBranch;
       Formula* thenBranchFormula;
+      process(*term->nthArgument(0), context, thenBranch, thenBranchFormula);
+
+      TermList elseBranch;
       Formula* elseBranchFormula;
-
-      if (context == FORMULA_CONTEXT) {
-        ASS_REP(thenBranch.isTerm() && thenBranch.term()->isFormula(), thenBranch.toString());
-        ASS_REP(elseBranch.isTerm() && elseBranch.term()->isFormula(), elseBranch.toString());
-        thenBranchFormula = process(thenBranch.term()->getSpecialData()->getFormula());
-        elseBranchFormula = process(elseBranch.term()->getSpecialData()->getFormula());
-      } else {
-        thenBranch = process(thenBranch);
-        elseBranch = process(elseBranch);
-      }
-
-      bool isPredicate = context == FORMULA_CONTEXT;
+      process(*term->nthArgument(1), context, elseBranch, elseBranchFormula);
 
       // the sort of the term is the sort of the then branch
       unsigned resultSort = SortHelper::getResultSort(thenBranch, _varSorts);
@@ -405,13 +395,14 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
 
       // create a fresh symbol g
       unsigned arity = (unsigned)freeVarsSorts.length();
-      unsigned freshSymbol = isPredicate ? env.signature->addItePredicate(arity, freeVarsSorts.begin())
-                                         : env.signature->addIteFunction (arity, freeVarsSorts.begin(), resultSort);
+      unsigned freshSymbol = context == FORMULA_CONTEXT
+                             ? env.signature->addItePredicate(arity, freeVarsSorts.begin())
+                             : env.signature->addIteFunction (arity, freeVarsSorts.begin(), resultSort);
 
       // build g(X1, ..., Xn)
       TermList freshFunctionApplication;
       Formula* freshPredicateApplication;
-      if (isPredicate) {
+      if (context == FORMULA_CONTEXT) {
         freshPredicateApplication = buildPredicateApplication(freshSymbol, freeVars);
       } else {
         freshFunctionApplication  = buildFunctionApplication (freshSymbol, freeVars);
@@ -419,7 +410,7 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
 
       // build g(X1, ..., Xn) == s
       Formula* thenEq;
-      if (isPredicate) {
+      if (context == FORMULA_CONTEXT) {
         thenEq = new BinaryFormula(IFF, freshPredicateApplication, thenBranchFormula);
       } else {
         thenEq = new AtomicFormula(Literal::createEquality(true, freshFunctionApplication, thenBranch, resultSort));
@@ -434,7 +425,7 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
 
       // build g(X1, ..., Xn) == t
       Formula* elseEq;
-      if (isPredicate) {
+      if (context == FORMULA_CONTEXT) {
         elseEq = new BinaryFormula(IFF, freshPredicateApplication, elseBranchFormula);
       } else {
         elseEq = new AtomicFormula(Literal::createEquality(true, freshFunctionApplication, elseBranch, resultSort));
@@ -452,7 +443,7 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
       addDefinition(new FormulaUnit(thenFormula, iteInference, _unit->inputType()));
       addDefinition(new FormulaUnit(elseFormula, iteInference, _unit->inputType()));
 
-      if (isPredicate) {
+      if (context == FORMULA_CONTEXT) {
         formulaResult = freshPredicateApplication;
       } else {
         termResult = freshFunctionApplication;
@@ -525,28 +516,28 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
                                   : env.signature->addLetFunction (arity, sorts.begin(), bodySort);
       }
 
+      // process the body of the function
+      TermList processedBody;
+      Formula* processedBodyFormula;
+      process(body, context, processedBody, processedBodyFormula);
+
       // build the definition of the function or predicate symbol
       Formula* freshSymbolDefinition;
       if (isPredicate) {
-        // process the body of the function that is a formula
-        Formula* formula = process(body.term()->getSpecialData()->getFormula());
-
         // build g(X1, ..., Xn, Y1, ..., Yk)
         Formula* freshPredicateApplication = buildPredicateApplication(freshSymbol, vars);
 
-        // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) <=> s
-        freshSymbolDefinition = new BinaryFormula(IFF, freshPredicateApplication, formula);
+        // build g(X1, ..., Xn, Y1, ..., Yk) <=> s
+        freshSymbolDefinition = new BinaryFormula(IFF, freshPredicateApplication, processedBodyFormula);
       } else {
-        // process the body of the function that is a term
-        body = process(body);
-
         // build g(X1, ..., Xn, Y1, ..., Yk)
         TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, vars);
 
-        // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) = s
-        freshSymbolDefinition = new AtomicFormula(Literal::createEquality(true, freshSymbolApplication, body, bodySort));
+        // build g(X1, ..., Xn, Y1, ..., Yk) = s
+        freshSymbolDefinition = new AtomicFormula(Literal::createEquality(true, freshSymbolApplication, processedBody, bodySort));
       }
 
+      // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) == s
       Formula* definition = arity > 0 ? (Formula*) new QuantifiedFormula(FORALL, vars, freshSymbolDefinition)
                                       : freshSymbolDefinition;
 
@@ -555,12 +546,6 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
       addDefinition(new FormulaUnit(definition, letInference, _unit->inputType()));
 
       TermList contents = *term->nthArgument(0); // deliberately unprocessed here
-
-      Formula* contentsFormula;
-      if (context == FORMULA_CONTEXT) {
-        ASS_REP(contents.isTerm() && contents.term()->isFormula(), contents.toString());
-        contentsFormula = contents.term()->getSpecialData()->getFormula();
-      }
 
       // replace occurrences of f(t1, ..., tk) by g(X1, ..., Xn, t1, ..., tk)
       if (renameSymbol) {
@@ -571,11 +556,7 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
         }
 
         SymbolOccurrenceReplacement replacement(isPredicate, symbol, freshSymbol, bodyFreeVars);
-        if (context == FORMULA_CONTEXT) {
-          contentsFormula = replacement.process(contentsFormula);
-        } else {
-          contents = replacement.process(contents);
-        }
+        contents = replacement.process(contents);
 
         if (env.options->showPreprocessing()) {
           env.beginOutput();
@@ -584,11 +565,8 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
         }
       }
 
-      if (context == FORMULA_CONTEXT) {
-        formulaResult = process(contentsFormula);
-      } else {
-        termResult = process(contents);
-      }
+      process(contents, context, termResult, formulaResult);
+
       break;
     }
 
