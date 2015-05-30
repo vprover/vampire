@@ -785,6 +785,12 @@ Term* FOOLElimination::SymbolOccurrenceReplacement::process(Term* term) {
         return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)));
 
       case Term::SF_LET:
+        if (_isPredicate == sd->getBody().isTerm() && sd->getBody().term()->isFormula()) {
+          // function symbols, defined inside $let are expected to be
+          // disjoint and fresh symbols are expected to be fresh
+          ASS_NEQ(sd->getFunctor(), _symbol);
+          ASS_NEQ(sd->getFunctor(), _freshSymbol);
+        }
         return Term::createLet(sd->getFunctor(), sd->getVariables(), process(sd->getBody()), process(*term->nthArgument(0)));
 
       case Term::SF_FORMULA:

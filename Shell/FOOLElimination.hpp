@@ -88,7 +88,21 @@ private:
        * isPredicate = whether or not f and g are predicate symbols
        */
       SymbolOccurrenceReplacement(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars)
-        : _isPredicate(isPredicate), _symbol(symbol), _freshSymbol(freshSymbol), _freeVars(freeVars) {}
+        : _isPredicate(isPredicate), _symbol(symbol), _freshSymbol(freshSymbol), _freeVars(freeVars) {
+        // An actual replacement should take place
+        ASS_NEQ(symbol, freshSymbol);
+        // The implementation of this class doesn't requite freeVars to be
+        // non-empty, however, its use case expects this constraint
+        ASS(freeVars);
+        // Arities of symbols should coincide
+        if (isPredicate) {
+          ASS_EQ(env.signature->getPredicate(symbol)->arity() + freeVars->length(),
+                 env.signature->getPredicate(freshSymbol)->arity());
+        } else {
+          ASS_EQ(env.signature->getFunction(symbol)->arity() + freeVars->length(),
+                 env.signature->getFunction(freshSymbol)->arity());
+        }
+      }
       Formula* process(Formula* formula);
       FormulaList* process(FormulaList* formulas);
       Term* process(Term* term);
