@@ -362,7 +362,8 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
    * assumes that process() preserves free variables. This assumption relies
    * on the fact that $ite and formula terms are rewritten into an fresh symbol
    * applied to free variables, and the processing of $let-terms itself doesn't
-   * remove occurrences of variables.
+   * remove occurrences of variables. An assertion at the end of this method
+   * checks that free variables of the input and the result coincide.
    */
 
   switch (term->functor()) {
@@ -631,23 +632,27 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
   }
 
 #if VDEBUG
+  // free variables of the input and the result should coincide
+  Formula::VarList* resultFreeVars;
   if (context == TERM_CONTEXT) {
-    // freeVars and processedTerm->freeVariables() coincide
-    Formula::VarList* processedFreeVars = termResult.isVar() ? new List<int>(termResult.var())
-                                                             : termResult.term()->freeVariables();
+    resultFreeVars = termResult.isVar() ? new List<int>(termResult.var()) : termResult.term()->freeVariables();
+  } else {
+    resultFreeVars = formulaResult->freeVariables();
+  }
 
-    Formula::VarList::Iterator ufv(freeVars);
-    while (ufv.hasNext()) {
-      unsigned var = (unsigned)ufv.next();
-      ASS_REP(processedFreeVars->member(var), var);
-    }
-    Formula::VarList::Iterator pfv(processedFreeVars);
-    while (pfv.hasNext()) {
-      unsigned var = (unsigned)pfv.next();
-      ASS_REP(freeVars->member(var), var);
-    }
+  Formula::VarList::Iterator ufv(freeVars);
+  while (ufv.hasNext()) {
+    unsigned var = (unsigned)ufv.next();
+    ASS_REP(resultFreeVars->member(var), var);
+  }
+  Formula::VarList::Iterator pfv(resultFreeVars);
+  while (pfv.hasNext()) {
+    unsigned var = (unsigned)pfv.next();
+    ASS_REP(freeVars->member(var), var);
+  }
 
-    // special subterms should be eliminated
+  // special subterms should be eliminated
+  if (context == TERM_CONTEXT) {
     ASS_REP(termResult.isSafe(), termResult);
   }
 #endif
