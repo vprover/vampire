@@ -240,8 +240,8 @@ Literal* FOOLElimination::process(Literal* literal) {
  * applications we would have equalities of function symbol applications to
  * FOOL_TRUE all over the place.
  */
-void FOOLElimination::process(TermList ts, context context, TermList& termResult, Formula*& formulaResult) {
-  CALL("FOOLElimination::process(TermList ts, context context, ...)");
+void FOOLElimination::process(TermList ts, Context context, TermList& termResult, Formula*& formulaResult) {
+  CALL("FOOLElimination::process(TermList ts, Context context, ...)");
 
   if (!ts.isTerm() || !ts.term()->isSpecial()) {
     if (context == TERM_CONTEXT) {
@@ -311,8 +311,8 @@ Formula* FOOLElimination::processAsFormula(TermList terms) {
  * with a variable body is processed. That way, the result would be just the
  * variable, and we cannot put it inside Term*.
  */
-void FOOLElimination::process(Term* term, context context, TermList& termResult, Formula*& formulaResult) {
-  CALL("FOOLElimination::process(Term* term, context context, ...)");
+void FOOLElimination::process(Term* term, Context context, TermList& termResult, Formula*& formulaResult) {
+  CALL("FOOLElimination::process(Term* term, Context context, ...)");
 
   if (!term->isSpecial()) {
     if (context == TERM_CONTEXT) {
@@ -403,11 +403,7 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
       // build g(X1, ..., Xn)
       TermList freshFunctionApplication;
       Formula* freshPredicateApplication;
-      if (context == FORMULA_CONTEXT) {
-        freshPredicateApplication = buildPredicateApplication(freshSymbol, freeVars);
-      } else {
-        freshFunctionApplication  = buildFunctionApplication (freshSymbol, freeVars);
-      }
+      buildApplication(freshSymbol, freeVars, context, freshFunctionApplication, freshPredicateApplication);
 
       // build g(X1, ..., Xn) == s
       Formula* thenEq;
@@ -427,8 +423,10 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
       // build g(X1, ..., Xn) == t
       Formula* elseEq;
       if (context == FORMULA_CONTEXT) {
+        // build g(X1, ..., Xn) <=> t
         elseEq = new BinaryFormula(IFF, freshPredicateApplication, elseBranchFormula);
       } else {
+        // build g(X1, ..., Xn) = t
         elseEq = new AtomicFormula(Literal::createEquality(true, freshFunctionApplication, elseBranch, resultSort));
       }
 
@@ -476,9 +474,10 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
        * $let-expressions are used for binding both function and predicate symbols.
        * The body of the binding, however, is always stored as a term. When f is a
        * predicate, the body is a formula, wrapped in a term. So, this is how we
-       * check that it is a predicate binding.
+       * check that it is a predicate binding and the body of the function stands in
+       * the formula context
        */
-      bool isPredicate = body.isTerm() && body.term()->isFormula();
+      Context bodyContext = body.isTerm() && body.term()->isFormula() ? FORMULA_CONTEXT : TERM_CONTEXT;
 
       // collect variables Y1, ..., Yk
       Formula::VarList* argumentVars = sd->getVariables();
@@ -513,29 +512,29 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
       unsigned arity = (unsigned)vars->length();
       unsigned freshSymbol = symbol;
       if (renameSymbol) {
-        freshSymbol = isPredicate ? env.signature->addLetPredicate(arity, sorts.begin())
-                                  : env.signature->addLetFunction (arity, sorts.begin(), bodySort);
+        freshSymbol = bodyContext == FORMULA_CONTEXT
+                      ? env.signature->addLetPredicate(arity, sorts.begin())
+                      : env.signature->addLetFunction(arity, sorts.begin(), bodySort);
       }
 
       // process the body of the function
       TermList processedBody;
       Formula* processedBodyFormula;
-      process(body, context, processedBody, processedBodyFormula);
+      process(body, bodyContext, processedBody, processedBodyFormula);
 
-      // build the definition of the function or predicate symbol
+      // build g(X1, ..., Xn, Y1, ..., Yk)
+      TermList freshFunctionApplication;
+      Formula* freshPredicateApplication;
+      buildApplication(freshSymbol, vars, bodyContext, freshFunctionApplication, freshPredicateApplication);
+
+      // build g(X1, ..., Xn, Y1, ..., Yk) == s
       Formula* freshSymbolDefinition;
-      if (isPredicate) {
-        // build g(X1, ..., Xn, Y1, ..., Yk)
-        Formula* freshPredicateApplication = buildPredicateApplication(freshSymbol, vars);
-
+      if (bodyContext == FORMULA_CONTEXT) {
         // build g(X1, ..., Xn, Y1, ..., Yk) <=> s
         freshSymbolDefinition = new BinaryFormula(IFF, freshPredicateApplication, processedBodyFormula);
       } else {
-        // build g(X1, ..., Xn, Y1, ..., Yk)
-        TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, vars);
-
         // build g(X1, ..., Xn, Y1, ..., Yk) = s
-        freshSymbolDefinition = new AtomicFormula(Literal::createEquality(true, freshSymbolApplication, processedBody, bodySort));
+        freshSymbolDefinition = new AtomicFormula(Literal::createEquality(true, freshFunctionApplication, processedBody, bodySort));
       }
 
       // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) == s
@@ -556,7 +555,7 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
           env.endOutput();
         }
 
-        SymbolOccurrenceReplacement replacement(isPredicate, symbol, freshSymbol, bodyFreeVars);
+        SymbolOccurrenceReplacement replacement(bodyContext == FORMULA_CONTEXT, symbol, freshSymbol, bodyFreeVars);
         contents = replacement.process(contents);
 
         if (env.options->showPreprocessing()) {
@@ -663,9 +662,12 @@ void FOOLElimination::process(Term* term, context context, TermList& termResult,
  */
 TermList FOOLElimination::process(Term* term) {
   CALL("FOOLElimination::process(Term* term)");
+
   TermList termList;
   Formula* dummy;
+
   process(term, TERM_CONTEXT, termList, dummy);
+
   return termList;
 }
 
@@ -674,48 +676,72 @@ TermList FOOLElimination::process(Term* term) {
  */
 Formula* FOOLElimination::processAsFormula(Term* term) {
   CALL("FOOLElimination::processAsFormula(Term* term)");
+
   Formula* formula;
   TermList dummy;
+
   process(term, FORMULA_CONTEXT, dummy, formula);
+
   return formula;
 }
 
 /**
- * Given a function symbol g of a given arity n and a list of variables X1, ..., Xn
- * builds a term g(X1, ..., Xn).
+ * Given a symbol g of a given arity n and a list of variables X1, ..., Xn
+ * builds a term g(X1, ..., Xn). Depending on a context, g is assumed to be
+ * a function or a predicate symbol. In the former case, the result in written
+ * to functionApplication, otherwise to predicateApplication.
+ */
+void FOOLElimination::buildApplication(unsigned symbol, Formula::VarList* vars, Context context,
+                                       TermList& functionApplication, Formula*& predicateApplication) {
+  CALL("FOOLElimination::buildApplication");
+
+  unsigned arity = (unsigned)vars->length();
+  if (context == FORMULA_CONTEXT) {
+    ASS_EQ(env.signature->predicateArity(symbol), arity);
+  } else {
+    ASS_EQ(env.signature->functionArity(symbol), arity);
+  }
+
+  Stack<TermList> arguments;
+  Formula::VarList::Iterator vit(vars);
+  while (vit.hasNext()) {
+    unsigned var = (unsigned)vit.next();
+    arguments.push(TermList(var, false));
+  }
+
+  if (context == FORMULA_CONTEXT) {
+    predicateApplication = new AtomicFormula(Literal::create(symbol, arity, true, false, arguments.begin()));
+  } else {
+    functionApplication = TermList(Term::create(symbol, arity, arguments.begin()));
+  }
+}
+
+/**
+ * A shortcut of buildApplication for TERM_CONTEXT.
  */
 TermList FOOLElimination::buildFunctionApplication(unsigned function, Formula::VarList* vars) {
   CALL("FOOLElimination::buildFunctionApplication");
 
-  unsigned arity = (unsigned)vars->length();
-  ASS_EQ(env.signature->functionArity(function), arity);
+  TermList functionApplication;
+  Formula* dummy;
 
-  Stack<TermList> arguments;
-  Formula::VarList::Iterator vit(vars);
-  while (vit.hasNext()) {
-    unsigned var = (unsigned)vit.next();
-    arguments.push(TermList(var, false));
-  }
-  return TermList(Term::create(function, arity, arguments.begin()));
+  buildApplication(function, vars, TERM_CONTEXT, functionApplication, dummy);
+
+  return functionApplication;
 }
 
 /**
- * Given a predicate symbol g of a given arity n and a list of variables X1, ..., Xn
- * builds a literal g(X1, ..., Xn).
+ * A shortcut of buildApplication for FORMULA_CONTEXT.
  */
 Formula* FOOLElimination::buildPredicateApplication(unsigned predicate, Formula::VarList* vars) {
   CALL("FOOLElimination::buildPredicateApplication");
 
-  unsigned arity = (unsigned)vars->length();
-  ASS_EQ(env.signature->predicateArity(predicate), arity);
+  TermList dummy;
+  Formula* predicateApplication;
 
-  Stack<TermList> arguments;
-  Formula::VarList::Iterator vit(vars);
-  while (vit.hasNext()) {
-    unsigned var = (unsigned)vit.next();
-    arguments.push(TermList(var, false));
-  }
-  return new AtomicFormula(Literal::create(predicate, arity, true, false, arguments.begin()));
+  buildApplication(predicate, vars, FORMULA_CONTEXT, dummy, predicateApplication);
+
+  return predicateApplication;
 }
 
 /**

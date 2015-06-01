@@ -49,14 +49,14 @@ private:
   Literal* process(Literal* literal);
 
   // A context in one of two possible values, so we model it with bool constants
-  typedef bool context;
-  static const context TERM_CONTEXT = true;
-  static const context FORMULA_CONTEXT = false;
+  typedef bool Context;
+  static const Context TERM_CONTEXT = true;
+  static const Context FORMULA_CONTEXT = false;
 
   // Processing of TermList and Term* returns a TermList or a Formula*,
   // depending on the context
-  void process(TermList ts, context context, TermList& termResult, Formula*& formulaResult);
-  void process(Term* term, context context, TermList& termResult, Formula*& formulaResult);
+  void process(TermList ts, Context context, TermList& termResult, Formula*& formulaResult);
+  void process(Term* term, Context context, TermList& termResult, Formula*& formulaResult);
 
   // Shortcuts for process(TermList)
   TermList process(TermList terms);
@@ -67,8 +67,12 @@ private:
   Formula* processAsFormula(Term* term);
 
   /** Processing helper functions */
+  static void buildApplication(unsigned function, Formula::VarList* vars, Context context,
+                               TermList& functionApplication, Formula*& predicateApplication);
+  // Shortcuts for buildApplication
   static TermList buildFunctionApplication(unsigned function, Formula::VarList* vars);
   static Formula* buildPredicateApplication(unsigned predicate, Formula::VarList* vars);
+
   Stack<unsigned> collectSorts(Formula::VarList* vars);
 
   // Converts a boolean term t to a formula 't = true'
