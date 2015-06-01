@@ -406,41 +406,33 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
       buildApplication(freshSymbol, freeVars, context, freshFunctionApplication, freshPredicateApplication);
 
       // build g(X1, ..., Xn) == s
-      Formula* thenEq;
-      if (context == FORMULA_CONTEXT) {
-        thenEq = new BinaryFormula(IFF, freshPredicateApplication, thenBranchFormula);
-      } else {
-        thenEq = new AtomicFormula(Literal::createEquality(true, freshFunctionApplication, thenBranch, resultSort));
-      }
+      Formula* thenEq = buildEq(context, freshPredicateApplication, thenBranchFormula,
+                                         freshFunctionApplication, thenBranch, resultSort);
 
       // build (f => g(X1, ..., Xn) == s)
       Formula* thenImplication = new BinaryFormula(IMP, condition, thenEq);
 
       // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
-      Formula* thenFormula = arity > 0 ? (Formula*)new QuantifiedFormula(FORALL, freeVars, thenImplication)
-                                       : thenImplication;
+      if (arity > 0) {
+        thenImplication = new QuantifiedFormula(FORALL, freeVars, thenImplication);
+      }
 
       // build g(X1, ..., Xn) == t
-      Formula* elseEq;
-      if (context == FORMULA_CONTEXT) {
-        // build g(X1, ..., Xn) <=> t
-        elseEq = new BinaryFormula(IFF, freshPredicateApplication, elseBranchFormula);
-      } else {
-        // build g(X1, ..., Xn) = t
-        elseEq = new AtomicFormula(Literal::createEquality(true, freshFunctionApplication, elseBranch, resultSort));
-      }
+      Formula* elseEq = buildEq(context, freshPredicateApplication, elseBranchFormula,
+                                         freshFunctionApplication, elseBranch, resultSort);
 
       // build ~f => g(X1, ..., Xn) == t
       Formula* elseImplication = new BinaryFormula(IMP, new NegatedFormula(condition), elseEq);
 
       // build ![X1, ..., Xn]: (~f => g(X1, ..., Xn) == t)
-      Formula* elseFormula = arity > 0 ? (Formula*)new QuantifiedFormula(FORALL, freeVars, elseImplication)
-                                       : elseImplication;
+      if (arity > 0) {
+        elseImplication = new QuantifiedFormula(FORALL, freeVars, elseImplication);
+      }
 
       // add both definitions
       Inference* iteInference = new Inference1(Inference::FOOL_ITE_ELIMINATION, _unit);
-      addDefinition(new FormulaUnit(thenFormula, iteInference, _unit->inputType()));
-      addDefinition(new FormulaUnit(elseFormula, iteInference, _unit->inputType()));
+      addDefinition(new FormulaUnit(thenImplication, iteInference, _unit->inputType()));
+      addDefinition(new FormulaUnit(elseImplication, iteInference, _unit->inputType()));
 
       if (context == FORMULA_CONTEXT) {
         formulaResult = freshPredicateApplication;
@@ -514,7 +506,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
       if (renameSymbol) {
         freshSymbol = bodyContext == FORMULA_CONTEXT
                       ? env.signature->addLetPredicate(arity, sorts.begin())
-                      : env.signature->addLetFunction(arity, sorts.begin(), bodySort);
+                      : env.signature->addLetFunction (arity, sorts.begin(), bodySort);
       }
 
       // process the body of the function
@@ -528,22 +520,17 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
       buildApplication(freshSymbol, vars, bodyContext, freshFunctionApplication, freshPredicateApplication);
 
       // build g(X1, ..., Xn, Y1, ..., Yk) == s
-      Formula* freshSymbolDefinition;
-      if (bodyContext == FORMULA_CONTEXT) {
-        // build g(X1, ..., Xn, Y1, ..., Yk) <=> s
-        freshSymbolDefinition = new BinaryFormula(IFF, freshPredicateApplication, processedBodyFormula);
-      } else {
-        // build g(X1, ..., Xn, Y1, ..., Yk) = s
-        freshSymbolDefinition = new AtomicFormula(Literal::createEquality(true, freshFunctionApplication, processedBody, bodySort));
-      }
+      Formula* freshSymbolDefinition = buildEq(bodyContext, freshPredicateApplication, processedBodyFormula,
+                                                            freshFunctionApplication, processedBody, bodySort);
 
       // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) == s
-      Formula* definition = arity > 0 ? (Formula*) new QuantifiedFormula(FORALL, vars, freshSymbolDefinition)
-                                      : freshSymbolDefinition;
+      if (arity > 0) {
+        freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, freshSymbolDefinition);
+      }
 
       // add the introduced definition
       Inference* letInference = new Inference1(Inference::FOOL_LET_ELIMINATION, _unit);
-      addDefinition(new FormulaUnit(definition, letInference, _unit->inputType()));
+      addDefinition(new FormulaUnit(freshSymbolDefinition, letInference, _unit->inputType()));
 
       TermList contents = *term->nthArgument(0); // deliberately unprocessed here
 
@@ -604,13 +591,17 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
       unsigned freshSymbol = env.signature->addBooleanFunction(arity, freeVarsSorts.begin());
       TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
 
+      // build f <=> g(X1, ..., Xn) = true
+      Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
+
       // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
-      Formula* equivalence = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
-      Formula* def = arity > 0 ? (Formula*) new QuantifiedFormula(FORALL, freeVars, equivalence) : equivalence;
+      if (arity > 0) {
+        freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars, freshSymbolDefinition);
+      }
 
       // add the introduced definition
       Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, _unit);
-      addDefinition(new FormulaUnit(def, inference, _unit->inputType()));
+      addDefinition(new FormulaUnit(freshSymbolDefinition, inference, _unit->inputType()));
 
       termResult = freshSymbolApplication;
       break;
@@ -742,6 +733,23 @@ Formula* FOOLElimination::buildPredicateApplication(unsigned predicate, Formula:
   buildApplication(predicate, vars, FORMULA_CONTEXT, dummy, predicateApplication);
 
   return predicateApplication;
+}
+
+/**
+ * Builds an equivalence or an equality between provided pairs of expressions.
+ * The context argument guides which pair is takes and which of the two eq's is built.
+ */
+Formula* FOOLElimination::buildEq(Context context, Formula* lhsFormula, Formula* rhsFormula,
+                                                   TermList lhsTerm, TermList rhsTerm, unsigned termSort) {
+  CALL("FOOLElimination::buildEq");
+
+  if (context == FORMULA_CONTEXT) {
+    // build equivalence
+    return new BinaryFormula(IFF, lhsFormula, rhsFormula);
+  } else {
+    // build equality
+    return new AtomicFormula(Literal::createEquality(true, lhsTerm, rhsTerm, termSort));
+  }
 }
 
 /**

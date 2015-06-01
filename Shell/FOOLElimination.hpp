@@ -73,6 +73,13 @@ private:
   static TermList buildFunctionApplication(unsigned function, Formula::VarList* vars);
   static Formula* buildPredicateApplication(unsigned predicate, Formula::VarList* vars);
 
+  // Depending on the context, build an equivalence or an equality
+  // between pairs of arguments
+  static Formula* buildEq(Context context, Formula* lhsFormula, Formula* rhsFormula,
+                                           TermList lhsTerm, TermList rhsTerm, unsigned termSort);
+
+  // Creates a stack of sorts for the given variables, using the sorting
+  // context of the current formula
   Stack<unsigned> collectSorts(Formula::VarList* vars);
 
   // Converts a boolean term t to a formula 't = true'
