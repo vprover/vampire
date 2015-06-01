@@ -20,10 +20,12 @@
 
 #include "Tabulation/TabulationAlgorithm.hpp"
 
+#include "FMB/FiniteModelBuilder.hpp"
+
 #include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
 
-#include "BDD.hpp"
+#include "Signature.hpp"
 #include "Clause.hpp"
 #include "Problem.hpp"
 
@@ -33,6 +35,7 @@ using namespace Kernel;
 using namespace InstGen;
 using namespace Saturation;
 using namespace Tabulation;
+using namespace FMB;
 
 void MainLoopResult::updateStatistics()
 {
@@ -78,9 +81,7 @@ bool MainLoop::isRefutation(Clause* cl)
 {
   CALL("MainLoop::isRefutation");
 
-  // No prop part
-  //BDD* bdd=BDD::instance();
-  return cl->isEmpty() && cl->noSplits(); //&& (!cl->prop() || bdd->isFalse(cl->prop()));
+  return cl->isEmpty() && cl->noSplits();
 }
 
 /**
@@ -135,6 +136,9 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     break;
   case Options::SaturationAlgorithm::INST_GEN:
     res = new IGAlgorithm(prb, opt);
+    break;
+  case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
+    res = new FiniteModelBuilder(prb,opt);
     break;
   default:
     res = SaturationAlgorithm::createFromOptions(prb, opt);

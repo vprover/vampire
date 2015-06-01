@@ -627,21 +627,23 @@ void Options::Options::init()
 //*********************** Saturation  ***********************
 
     _saturationAlgorithm = ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
-                                                                  {"discount","inst_gen","lrs","otter","tabulation"});
+                                                                  {"discount","fmb","inst_gen","lrs","otter","tabulation"});
     _saturationAlgorithm.description=
     "Select the saturation algorithm:\n"
     " - discount:\n"
     " - otter:\n"
     " - limited resource:\n"
-    " - instance generation: a simple implementation of instantiation calculus\n    (global_subsumption, unit_resulting_resolution and age_weight_ratio)\n"
+    " - instance generation: a simple implementation of instantiation calculus\n"
+    "    (global_subsumption, unit_resulting_resolution and age_weight_ratio)\n"
     " - tabulation: a special goal-oriented mode for large theories.\n"
-    "inst_gen and tabulation aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
+    " - fmb : finite model building for satisfiable problems.\n"
+    "inst_gen, tabulation and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
     // Captures that if the saturation algorithm is InstGen then splitting must be off
     _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::INST_GEN)).then(_splitting.is(notEqual(true))));
     // Note order of adding constraints matters (we assume previous gaurds are false)
-    _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen"});
+    _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen","fmb"});
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
     _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter","tabulation"});
 

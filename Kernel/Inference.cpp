@@ -399,6 +399,10 @@ vstring Inference::ruleName(Rule rule)
     return "BNFT distinct";
   case BFNT_TOTALITY:
     return "BNFT totality";
+  case FMB_FLATTENING:
+    return "flattening (finite model building)";
+  case FMB_FUNC_DEF:
+    return "functional definition (finite model building)";
 
   default:
     ASSERTION_VIOLATION;

@@ -341,10 +341,11 @@ public:
   /** Possible values for saturation_algorithm */
   enum class SaturationAlgorithm : unsigned int {
      DISCOUNT = 0,
-     INST_GEN = 1,
-     LRS = 2,
-     OTTER = 3,
-     TABULATION = 4
+     FINITE_MODEL_BUILDING = 1,
+     INST_GEN = 2,
+     LRS = 3,
+     OTTER = 4,
+     TABULATION = 5
    };
 
   /** Possible values for activity of some inference rules */

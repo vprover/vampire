@@ -2350,7 +2350,9 @@ void TPTP::midAtom()
           static Stack<unsigned> distincts;
           distincts.reset();
           for(int i=arity-1;i >= 0; i--){
-            distincts.push(_termLists.pop().term()->functor());
+            TermList t = _termLists.pop();
+            if(t.term()->arity()!=0) USER_ERROR("$distinct can only be used with constants");
+            distincts.push(t.term()->functor());
           } 
           Formula* distinct_formula = DistinctGroupExpansion().expand(distincts);
           _formulas.push(distinct_formula);

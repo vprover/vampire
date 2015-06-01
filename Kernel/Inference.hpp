@@ -247,6 +247,10 @@ public:
     BFNT_DISTINCT,
     /** BNFT totality axioms R(x,1) \/ ... \/ R(x,n) */
     BFNT_TOTALITY,
+    /* FMB flattening */
+    FMB_FLATTENING,
+    /* Functional definition for FMB */
+    FMB_FUNC_DEF,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);
