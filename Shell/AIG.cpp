@@ -1729,8 +1729,7 @@ AIGFormulaSharer::ARes AIGFormulaSharer::getSharedFormula(Formula* f)
     res = applyQuantified(f);
     break;
   case BOOL_TERM:
-    res = applyLiteral(f->toEquality());
-    break;
+    ASSERTION_VIOLATION;
 
   default:
     ASSERTION_VIOLATION;

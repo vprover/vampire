@@ -247,7 +247,7 @@ Formula* Skolem::skolemise (Formula* f)
     }
 
   case BOOL_TERM:
-      return skolemise(f->toEquality());
+    ASSERTION_VIOLATION;
 
   case TRUE:
   case FALSE:

@@ -152,7 +152,7 @@ Formula* NNF::ennf (Formula* f, bool polarity)
     }
 
   case BOOL_TERM:
-    return ennf(f->toEquality(), polarity);
+    ASSERTION_VIOLATION;
 
   case TRUE:
   case FALSE:
@@ -314,7 +314,7 @@ Formula* NNF::nnf (Formula* f, bool polarity)
     }
 
   case BOOL_TERM:
-    return nnf(f->toEquality(), polarity);
+    ASSERTION_VIOLATION;
 
   case TRUE:
   case FALSE:

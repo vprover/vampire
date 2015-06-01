@@ -65,8 +65,7 @@ Formula* FormulaTransformer::apply(Formula* f)
     res = applyExists(f);
     break;
   case BOOL_TERM:
-    res = applyLiteral(f->toEquality());
-    break;
+    ASSERTION_VIOLATION;
 
   case TRUE:
   case FALSE:

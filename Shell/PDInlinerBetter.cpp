@@ -583,7 +583,7 @@ Formula* PDInliner::apply(int polarity, Formula* form, InliningState& state)
   }
 
   case BOOL_TERM:
-    return apply(polarity, form->toEquality(), state);
+    ASSERTION_VIOLATION;
 
   case TRUE:
   case FALSE:

@@ -436,7 +436,7 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
   }
 
   case BOOL_TERM:
-    return replacePurePredicates(f->toEquality());
+    ASSERTION_VIOLATION;
 
   case TRUE:
   case FALSE:
@@ -811,8 +811,7 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
       return;
 
     case BOOL_TERM:
-      count (f->toEquality(), polarity, add, unit);
-      return;
+      ASSERTION_VIOLATION;
 
     case TRUE:
     case FALSE:

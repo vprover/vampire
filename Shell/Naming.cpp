@@ -128,12 +128,8 @@ Formula* Naming::apply_iter(Formula* top_f) {
         todo_stack.pop(); // finished with the current Task
       } break;
 
-      case BOOL_TERM: {
-        Result r;
-        r.resSub = {1,1,tas.f->toEquality()};
-        result_stack.push(r);
-        todo_stack.pop(); // finished with the current Task
-      } break;
+      case BOOL_TERM:
+        ASSERTION_VIOLATION;
 
       case AND: {
         FormulaList* fs = tas.f->args();

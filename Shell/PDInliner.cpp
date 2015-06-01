@@ -830,7 +830,7 @@ Formula* PDInliner::PDef::apply(int polarity, Formula* form)
   }
 
   case BOOL_TERM:
-    return apply(polarity, form->toEquality());
+    ASSERTION_VIOLATION;
 
   case TRUE:
   case FALSE:
@@ -963,8 +963,8 @@ Formula* PDInliner::apply(int polarity, Formula* form, InliningState& state)
     return new QuantifiedFormula(con, vars, newArg);
   }
 
-    case BOOL_TERM:
-      return apply(polarity, form->toEquality(), state);
+  case BOOL_TERM:
+    ASSERTION_VIOLATION;
 
   case TRUE:
   case FALSE:

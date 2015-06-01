@@ -137,8 +137,6 @@ public:
 
   IntList* freeVariables() const;
 
-  Formula* toFormula();
-
 #if VDEBUG
   void assertValid() const;
 #endif

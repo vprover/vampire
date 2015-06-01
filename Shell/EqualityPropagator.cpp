@@ -255,7 +255,7 @@ Formula* EqualityPropagator::SingletonVariableRemover::apply(Formula* form)
     return apply(static_cast<QuantifiedFormula*>(form));
 
   case BOOL_TERM:
-    return apply(form->toEquality());
+    ASSERTION_VIOLATION;
 
 #if VDEBUG
   default:
@@ -515,7 +515,7 @@ Formula* EqualityPropagator::apply(Formula* form)
     return apply(static_cast<QuantifiedFormula*>(form));
 
   case BOOL_TERM:
-    return apply(form->toEquality());
+    ASSERTION_VIOLATION;
 
 #if VDEBUG
   default:

@@ -56,8 +56,6 @@ public:
   Formula* uarg();
   const Literal* literal() const;
   Literal* literal();
-  const Formula* toEquality() const;
-  Formula* toEquality();
   const TermList getBooleanTerm() const;
   TermList getBooleanTerm();
   VarList* freeVariables () const;
@@ -298,10 +296,6 @@ class BoolTermFormula
   const TermList getTerm() const { return _ts; }
   TermList getTerm() { return _ts; }
 
-  /** trivially convert to x = $true */
-  const Formula* toEquality() const;
-  Formula* toEquality();
-
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(BoolTermFormula);
   USE_ALLOCATOR(BoolTermFormula);
@@ -426,21 +420,6 @@ Formula* Formula::right()
 {
   ASS(_connective == IFF || _connective == XOR || _connective == IMP);
   return static_cast<BinaryFormula*>(this)->rhs();
-}
-
-/** Convert a boolean variable formula to equality */
-inline
-const Formula* Formula::toEquality() const
-{
-  ASS(_connective == BOOL_TERM);
-  return static_cast<const BoolTermFormula*>(this)->toEquality();
-}
-/** Convert a boolean variable formula to equality */
-inline
-Formula* Formula::toEquality()
-{
-  ASS(_connective == BOOL_TERM);
-  return static_cast<BoolTermFormula*>(this)->toEquality();
 }
 
 inline

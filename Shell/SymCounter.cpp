@@ -145,8 +145,7 @@ void SymCounter::count (const Formula* f,int polarity,int add)
       return;
 
     case BOOL_TERM:
-      count (f->toEquality(), polarity, add);
-      return;
+      ASSERTION_VIOLATION;
 
   case TRUE:
   case FALSE:

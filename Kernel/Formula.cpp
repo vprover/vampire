@@ -567,8 +567,7 @@ void Formula::collectPredicatesWithPolarity(Stack<pair<unsigned,int> >& acc, int
       return;
 
     case BOOL_TERM:
-      toEquality()->collectPredicatesWithPolarity(acc, polarity);
-      return;
+      ASSERTION_VIOLATION;
 
     case TRUE:
     case FALSE:
@@ -624,16 +623,6 @@ Formula* JunctionFormula::generalJunction(Connective c, FormulaList* args)
     return FormulaList::pop(args);
   }
   return new JunctionFormula(c, args);
-}
-
-const Formula* BoolTermFormula::toEquality() const {
-  static TermList tru(Term::createConstant(Signature::FOOL_TRUE));
-  return new AtomicFormula(Literal::createEquality(true, _ts, tru, Sorts::SRT_FOOL_BOOL));
-}
-
-Formula* BoolTermFormula::toEquality() {
-  static TermList tru(Term::createConstant(Signature::FOOL_TRUE));
-  return new AtomicFormula(Literal::createEquality(true, _ts, tru, Sorts::SRT_FOOL_BOOL));
 }
 
 /**

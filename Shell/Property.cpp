@@ -351,10 +351,14 @@ void Property::scan(Formula* formula)
       scan(lit);
       break;
     }
-    case BOOL_TERM:
+    case BOOL_TERM: {
       _hasFOOL = true;
-      scan(f->toEquality());
+      TermList aux[2];
+      aux[0].makeEmpty();
+      aux[1] = f->getBooleanTerm();
+      scan(aux+1);
       break;
+    }
     default:
       break;
     }
