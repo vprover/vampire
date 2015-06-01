@@ -103,7 +103,20 @@ void LingelingInterfacing::ensureVarCount(unsigned newVarCnt)
   while(lglmaxvar(_solver) < (int)newVarCnt) {
     // make it frozen right away
     lglfreeze(_solver, lglincvar(_solver));
+    _varCnt++;
   }
+  
+  ASS_EQ(newVarCnt,_varCnt);
+}
+
+unsigned LingelingInterfacing::newVar() 
+{ 
+  CALL("LingelingInterfacing::newVar");
+  
+  // just to do the same thing as ensureVarCount inside
+  lglfreeze(_solver, lglincvar(_solver));
+  
+  return ++_varCnt; 
 }
 
 void LingelingInterfacing::suggestPolarity(unsigned var, unsigned pol)

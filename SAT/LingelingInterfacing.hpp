@@ -35,6 +35,7 @@ public:
   virtual Status solve(unsigned conflictCountLimit) override;
   
   virtual void ensureVarCount(unsigned newVarCnt) override;
+  virtual unsigned newVar() override;
   virtual void suggestPolarity(unsigned var, unsigned pol) override;
 
 	/**
@@ -94,8 +95,6 @@ public:
 	virtual void recordSource(unsigned var, Literal* lit) { /* intentionally no-op */ };
 
 	Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
-
-  virtual unsigned newVar() override { return ++_varCnt; }
   
 protected:
   void solveModuloAssumptionsAndSetStatus(const SATLiteralStack& assumps, int conflictCountLimit = -1);
