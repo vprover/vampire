@@ -42,10 +42,11 @@ public:
   void attach(SaturationAlgorithm* salg);
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
-  Clause* perform(Clause* cl);
-private:
-  void addClauseToIndex(Clause* cl, SATLiteralStack& satLits);
-
+  
+  Clause* perform(Clause* cl, Stack<UnitSpec>& prems);  
+private:  
+  struct UnitSpec2ClFn;
+      
   GroundingIndex* _index;
 
   /**
@@ -68,6 +69,18 @@ private:
    */
   bool _avatarAssumptions;
 
+  /**
+   * A map binding split levels to variables assigned to them in our SAT solver.
+   * 
+   * (Should this be rather a part of _index?)
+   */
+  DHMap<unsigned, unsigned> _levels2vars;
+  
+  /**
+   * An inverse of the above map, for convenience.
+   */  
+  DHMap<unsigned, unsigned> _vars2levels;
+  
   /*
    * GS needs a splitter when FULL_MODEL value is specified for the interaction with AVATAR.
    */

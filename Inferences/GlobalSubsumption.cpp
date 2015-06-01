@@ -66,130 +66,181 @@ void GlobalSubsumption::detach()
 }
 
 /**
- * Add clause to the SATSolver in the index.
- * The clause has already been grounded and the corresponding literals come in @b satLits,
- * but a propositional clause now needs to be created from them.
- *
- * If the resulting set is
- * unsatisfiable, it means we have a refutation and
- * @c MainLoop::RefutationFoundException is thrown.
+ * Perform GS on cl and return the reduced clause,
+ * or cl itself if GS does not reduce.
+ * 
+ * If reduced, initialize prems with reduction premises (including cl). 
  */
-void GlobalSubsumption::addClauseToIndex(Clause* cl, SATLiteralStack& satLits)
-{
-  CALL("GlobalSubsumption::addClauseToIndex");
-
-  SATSolver& solver = _index->getSolver();
-  Grounder& grounder = _index->getGrounder();
-
-  ASS_NEQ(solver.solve(_uprOnly),SATSolver::UNSATISFIABLE);
-
-  SATClause* scl = SATClause::fromStack(satLits);
-  SATInference* inf = new FOConversionInference(UnitSpec(cl));
-  scl->setInference(inf);
-
-  solver.addClause(scl);
-
-  if(solver.solve(_uprOnly)==SATSolver::UNSATISFIABLE) {
-    //just a dummy inference, the correct one will be in the InferenceStore
-    Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
-    Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, inf);
-    refutation->setAge(cl->age());
-
-    Grounder::recordInference(cl, solver.getRefutation(), refutation);
-
-    env.statistics->globalSubsumption++;
-    throw MainLoop::RefutationFoundException(refutation);
-  }
-}
-
-Clause* GlobalSubsumption::perform(Clause* cl)
+Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
 {
   CALL("GlobalSubsumption::perform/1");
 
   TimeCounter tc(TC_GLOBAL_SUBSUMPTION);
 
-  if(cl->splits() && cl->splits()->size()!=0) {
-    //Since we don't remove clauses, we must ignore clauses with splitting
-    //history, because it wouldn't be possible to backtrack them
-    return cl;
-  }
-
   if(cl->color()==COLOR_LEFT) {
     return cl;
   }
-
+   
+  if(!_avatarAssumptions && cl->splits() && cl->splits()->size()!=0) {
+    return cl;
+  }
+  
   Grounder& grounder = _index->getGrounder();
   SATSolverWithAssumptions& solver = _index->getSolver();
 
-  static SATLiteralStack slits;
-  slits.reset();
-  grounder.groundNonProp(cl, slits, false);
-
-  addClauseToIndex(cl,slits);
-
-  if(cl->length()==1) {
-    return cl;
-  }
-
-  unsigned clen = slits.size();
-
-  static DHMap<SATLiteral,Literal*> lookup;
-  lookup.reset();
+  // SAT literals of the prop. abstraction of cl
+  static SATLiteralStack plits;
+  plits.reset();
+  
+  // assumptions corresponding to the negation of the new prop clause
   static SATLiteralStack assumps;
   assumps.reset();
+  
+  // lookup to retrieve the FO lits later back
+  static DHMap<SATLiteral,Literal*> lookup;
+  lookup.reset();
+    
+  // first abstract cl's FO literals using grounder,
+  // start filling assumps and initialize lookup
+  grounder.groundNonProp(cl, plits, false);
+  
+  unsigned clen = plits.size();    
   for (unsigned i = 0; i < clen; i++) {
-    lookup.insert(slits[i],(*cl)[i]);
-    assumps.push(slits[i].opposite());
+    lookup.insert(plits[i],(*cl)[i]);
+    assumps.push(plits[i].opposite());
   }
+    
+  // then add literals corresponding to cl's split levels,
+  // and keep filling assumps
+  if (cl->splits() && cl->splits()->size()!=0) {
+    ASS(_avatarAssumptions);
+    
+    SplitSet::Iterator sit(*cl->splits());
+    while(sit.hasNext()) {
+      SplitLevel l = sit.next();
+      
+      unsigned* pvar;
+      if(_levels2vars.getValuePtr(l, pvar)) {    
+        *pvar = solver.newVar();
+        ALWAYS(_vars2levels.insert(*pvar,l));
+      }
+      
+      plits.push(SATLiteral(*pvar,false)); // negative
+      assumps.push(SATLiteral(*pvar,true)); // positive
+    }
+  }
+  
+  ASS_NEQ(solver.solve(_uprOnly),SATSolver::UNSATISFIABLE);
 
+  // create SAT clause and add to solver
+  SATClause* scl = SATClause::fromStack(plits);
+  SATInference* inf = new FOConversionInference(UnitSpec(cl));
+  scl->setInference(inf);
+  solver.addClause(scl);
+
+  // check for subsuming clause looking for a proper subset of used assumptions
   SATSolver::Status res = solver.solveUnderAssumptions(assumps, _uprOnly, true /* only proper subsets */);
 
-  if (res == SATSolver::UNSATISFIABLE) {
+  if (res == SATSolver::UNSATISFIABLE) { 
+    // it should always be UNSAT with full assumps,
+    // but we may not get that far with limited solving power (_uprOnly)    
+    
     const SATLiteralStack& failed = solver.failedAssumptions();
 
     if (failed.size() < assumps.size()) {
+      // proper subset sufficed for UNSAT - that's the interesting case
+      
       const SATLiteralStack& failedFinal = _explicitMinim ? solver.explicitlyMinimizedFailedAssumptions(_uprOnly,_randomizeMinim) : failed;
 
       static LiteralStack survivors;
       survivors.reset();
 
       for (unsigned i = 0; i < failedFinal.size(); i++) {
-        survivors.push(lookup.get(failedFinal[i].opposite())); // back to the original polarity to lookup the corresponding FO literal
+        Literal* lit;
+        if (lookup.find(failedFinal[i].opposite(),lit)) { // back to the original polarity to lookup the corresponding FO literal
+          survivors.push(lit);
+        } // otherwise it was a split level assumption
       }
 
-      //just a dummy inference, the correct one will be in the InferenceStore
-      Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
-      Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),cl->inputType(), inf);
-      replacement->setAge(cl->age());
+      // this is the main check -- whether we have a proper subclause (no matter the split level assumptions)
+      if (survivors.size() < clen) {                
+        SATClause* ref = solver.getRefutation(); // aren't we leaking the refutation clause with Minisat and Lingeling?       
 
-      Grounder::recordInference(cl, solver.getRefutation(), replacement);
-      env.statistics->globalSubsumption++;
-      ASS_L(replacement->length(), clen);
+        prems.reset();
 
-      if (replacement->length() == 0) {
-        ASS(_uprOnly); // with full solver power this would have to be caught in addClauseToIndex already
+        prems.push(UnitSpec(cl));
+        SATInference::collectFilteredFOPremises(ref, prems,
+          [this,cl] (SATClause* prem) {
+            // don't keep any premise which mentions an unassumed split level assumption
+            unsigned prem_sz = prem->size();
+            for (unsigned i = 0; i < prem_sz; i++ ) {
+              SATLiteral lit = (*prem)[i];
+              SplitLevel lev;
+              if (_vars2levels.find(lit.var(),lev)) {
+                ASS(lit.isNegative());                
+                // TODO: adapt to full_model option
+                if (!cl->splits()->member(lev)) {
+                  return false;
+                }
+              }
+            }
+            return true;
+          } );
+        
+        UnitList* premList = 0;
+        Stack<UnitSpec>::Iterator it(prems); 
+        while (it.hasNext()) {
+          UnitSpec us = it.next();
+          UnitList::push(us.unit(), premList);
+        }
+        
+        Inference* inf = new InferenceMany(Inference::GLOBAL_SUBSUMPTION, premList);
+        Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),cl->inputType(), inf);
+           
+        replacement->setAge(cl->age());
+        // Splitter will set replacement's splitSet, so we don't have to do it here
+        
+        // TODO: However, it will depend on the premises collected abowe
+        // and with silly implementation of solver.getRefutation()
+        // there will be many of them
 
-        throw MainLoop::RefutationFoundException(replacement);
-      } else {
-        return replacement;
-      }
+        env.statistics->globalSubsumption++;
+        ASS_L(replacement->length(), clen);
+        
+        return replacement;       
+      }                  
     }
   }
 
   return cl;
 }
 
+/**
+ * Functor that extracts a clause from UnitSpec.
+ */
+struct GlobalSubsumption::UnitSpec2ClFn
+{
+  DECL_RETURN_TYPE(Clause*);
+  OWN_RETURN_TYPE operator() (const UnitSpec& us) {
+    return us.cl();
+  }
+};
+
 void GlobalSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
 {
   CALL("GlobalSubsumption::perform/2");
 
-  Clause* newCl = perform(cl);
+  static Stack<UnitSpec> prems;  
+  
+  Clause* newCl = perform(cl,prems);
   if(newCl==cl) {
     return;
   }
-
+    
+  Stack<UnitSpec>::BottomFirstIterator it(prems);
+              
   ALWAYS(simplPerformer->willPerform(0));
-  simplPerformer->perform(0, newCl);
+  simplPerformer->perform(pvi( getMappingIterator(it, UnitSpec2ClFn()) ), newCl);
   ALWAYS(!simplPerformer->clauseKept());
 }
 

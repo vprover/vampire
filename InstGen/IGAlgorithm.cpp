@@ -203,11 +203,18 @@ redundancy_check:
   cl->incRefCnt();
   _variantIdx->insert(cl);
   if(_globalSubsumption) {
-    Clause* newCl = _globalSubsumption->perform(cl);
+    static Stack<UnitSpec> prems_dummy;
+    
+    Clause* newCl = _globalSubsumption->perform(cl,prems_dummy);
     if(newCl!=cl) {
       ASS_L(newCl->length(), cl->length());
-      ASS_G(newCl->length(), 0);
-
+      
+      if (newCl->length() == 0) {
+        // A future integration of instgen with AVATAR should consider the case
+        // of conditional empty clause
+        throw RefutationFoundException(newCl);
+      }
+                  
       cl = newCl;
       goto redundancy_check;
     }
