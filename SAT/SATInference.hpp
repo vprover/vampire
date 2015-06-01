@@ -59,6 +59,7 @@ public:
 
   virtual InfType getType() const { return PROP_INF; }
   SATClauseList* getPremises() const { return const_cast<SATClauseList*>(_premises); }
+  void setPremises(SATClauseList* prems) { _premises = prems; }
 private:
   SATClauseList* _premises;
 };

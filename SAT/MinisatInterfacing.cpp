@@ -16,9 +16,12 @@ using namespace Lib;
 using namespace Minisat;
   
 MinisatInterfacing::MinisatInterfacing(const Shell::Options& opts, bool generateProofs):
-  _status(SATISFIABLE), _addedClauses(0)
+  _status(SATISFIABLE), _addedClauses(0), 
+  _refutation(new(0) SATClause(0)), _refutationInference(new PropInference(SATClauseList::empty()))
 {
   CALL("MinisatInterfacing::MinisatInterfacing");
+  
+  _refutation->setInference(_refutationInference);    
   
   // TODO: consider tuning minisat's options to be set for _solver
   // (or even forwarding them to vampire's options)  
@@ -206,26 +209,30 @@ SATClause* MinisatInterfacing::getRefutation()
   CALL("MinisatInterfacing::getRefutation");
   
 	// ASS_EQ(_status,UNSATISFIABLE); // can be SAT/UNKNOWN after explicit minimization
-  
+ 
   // connect the added clauses ... 
-  SATClauseList* prems = _addedClauses;
+  SATClauseList* prems = _addedClauses;  
+
+  // ... with the current assumptions
   
   // TODO: the assumption set will be empty after a call to solveUnderAssumptions()
   // This does not matter much since refutations are only ever passed to collectFOPremises
   // and there are no FO premises of assumption inferences
-
-  // ... with the current assumptions
-  for (int i=0; i < _assumptions.size(); i++) {
+  
+  // So the below is commented out to prevent useless leaking
+  
+  /*
+  for (size_t i=0; i < _assumptions.size(); i++) {
     SATClause* unit = new(1) SATClause(1);
-    (*unit)[0] = minisatLit2Vampire(_assumptions[i]);
+    (*unit)[0] = _assumptions[i];
     unit->setInference(new AssumptionInference());
     SATClauseList::push(unit,prems);
   }
-  	        
-	SATClause* refutation = new(0) SATClause(0);
-	refutation->setInference(new PropInference(prems));
+  */
+	  
+  _refutationInference->setPremises(prems);
 
-	return refutation; 
+	return _refutation; 
 }
 
 } // namespace SAT

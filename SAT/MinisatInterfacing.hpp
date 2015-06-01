@@ -121,10 +121,18 @@ private:
   Minisat::Solver _solver;
   
   // to be used for the premises of a refutation
-  // TODO: who should now free the list? 
-  // (and when it's passed as part of the refutation?, perhaps more than once?) 
-  // -- consider moving responsibility to the caller
+  // TODO: currently, the list is never free-ed
   SATClauseList* _addedClauses;
+  
+  /**
+   * Empty clause to be returned by the getRefutation call.
+   * Recycled between consecutive getRefutation calls.
+   */
+  SATClause* _refutation;
+  /**
+   * The inference inside _refutation.
+   */
+  PropInference* _refutationInference;
 };
 
 }//end SAT namespace

@@ -129,6 +129,13 @@ public:
     }
   }
 
+  /**
+   * Immediately after a call to solveXXX that returned UNSAT,
+   * this method can be used to obtain the corresponding
+   * empty SATClause as a root of a corresponding refutation tree.
+   * 
+   * (However, the empty clause may be invalidated later on.)
+   */    
   virtual SATClause* getRefutation() = 0;
 
   /**

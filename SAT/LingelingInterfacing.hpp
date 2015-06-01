@@ -13,6 +13,7 @@
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
+#include "SATInference.hpp"
 
 // forward declarations
 struct LGL;
@@ -129,8 +130,21 @@ private:
   unsigned _varCnt;  
   
 	Status _status;
-  SATLiteralStack _assumptions;  
-  SATClauseList* _addedClauses; 
+  SATLiteralStack _assumptions;
+  
+  // to be used for the premises of a refutation
+  // TODO: currently, the list is never free-ed
+  SATClauseList* _addedClauses;
+  
+  /**
+   * Empty clause to be returned by the getRefutation call.
+   * Recycled between consecutive getRefutation calls.
+   */
+  SATClause* _refutation;
+  /**
+   * The inference inside _refutation.
+   */
+  PropInference* _refutationInference;
   		
 	LGL * _solver;
 };
