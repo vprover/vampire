@@ -20,10 +20,6 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 
-#ifdef VDEBUG
-#define DEBUG_SHOW_STATE
-#endif
-
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -63,6 +59,8 @@ public:
     T_COMMA,
     /** ':' */
     T_COLON,
+    /** ';' */
+    T_SEMICOLON,
     /** '~' */
     T_NOT,
     /** '&' */
@@ -485,14 +483,16 @@ private:
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
+  /** function name and arity*/
   typedef pair<vstring,unsigned> LetFunctionName;
+  /** a predicate/function flag with a symbol number */
   typedef pair<bool,unsigned> LetFunctionReference;
   /** function name and arity, mapped to function name in the signature */
   Map<LetFunctionName,List<LetFunctionReference>*> _letFunctionsRenamings;
-
+  /** scope of nested $let-functions */
   Stack<List<LetFunctionName>*> _letFunctionsBinds;
-
-  int _functionCounter;
+  /** function symbols, bound inside a $let-term */
+  Stack<unsigned> _letFunctions;
 
   /**
    * Get the next characters at the position pos.

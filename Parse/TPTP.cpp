@@ -58,8 +58,7 @@ TPTP::TPTP(istream& in)
     _allowedNames(0),
     _in(&in),
     _includeDirectory(""),
-    _currentColor(COLOR_TRANSPARENT),
-    _functionCounter(0)
+    _currentColor(COLOR_TRANSPARENT)
 {
 } // TPTP::TPTP
 
@@ -244,6 +243,8 @@ vstring TPTP::toString(Tag tag)
     return ",";
   case T_COLON:
     return ":";
+  case T_SEMICOLON:
+    return ";";
   case T_NOT:
     return "~";
   case T_AND:
@@ -473,6 +474,10 @@ bool TPTP::readToken(Token& tok)
     }
     tok.tag = T_COLON;
     shiftChars(1);
+    return true;
+  case ';':
+    tok.tag = T_SEMICOLON;
+    resetChars();
     return true;
   case '~':
     if (getChar(1) == '&') {
@@ -1369,13 +1374,10 @@ void TPTP::endLet()
 {
   CALL("TPTP::endLet");
 
-  TermList contents = _termLists.pop();
-
-  unsigned function = (unsigned)_ints.pop();
-  Formula::VarList* variables = _varLists.pop();
-  TermList body = _termLists.pop();
-
-  TermList let(Term::createLet(function, variables, body, contents));
+  TermList let = _termLists.pop();
+  for (int i = _ints.pop(); i > 0; i--) {
+    let = TermList(Term::createLet(_letFunctions.pop(), _varLists.pop(), _termLists.pop(), let));
+  }
   _termLists.push(let);
 
   List<LetFunctionName>::Iterator letFunctionsIterator(_letFunctionsBinds.pop());
@@ -1609,6 +1611,7 @@ void TPTP::termInfix()
       _states.push(FORMULA_INFIX);
       return;
     case T_COMMA:
+    case T_SEMICOLON:
     case T_RPAR:
     case T_ASS:
       _states.push(END_TERM);
@@ -1693,6 +1696,7 @@ void TPTP::funApp()
       addTagState(T_COMMA);
       _states.push(BINDING);
       consumeToken(T_LPAR);
+      _ints.push(1); // the number of bindings in a parallel $let-term
       return;
 
     case T_VAR:
@@ -1746,6 +1750,14 @@ void TPTP::binding()
 
 void TPTP::endBinding() {
   CALL("TPTP::endBinding");
+
+  Token tok = getTok(0);
+  if (tok.tag == T_SEMICOLON) {
+    resetToks();
+    _ints.push(_ints.pop() + 1);
+    _states.push(BINDING);
+  }
+
   TermList body = _termLists.top();
   unsigned bodySort = sortOf(body);
   bool isPredicate = bodySort == Sorts::SRT_FOOL_BOOL;
@@ -1797,7 +1809,7 @@ void TPTP::endBinding() {
     }
   }
 
-  _ints.push(newNumber);
+  _letFunctions.push(newNumber);
 
   _states.push(UNBIND_VARIABLES);
 }
@@ -3676,8 +3688,16 @@ void TPTP::printStacks() {
   if   (!vlit.hasNext()) cout << " <empty>";
   while (vlit.hasNext()) {
     Formula::VarList::Iterator vit(vlit.next());
-    if (!vit.hasNext()) cout << " <empty>";
-    if  (vit.hasNext()) cout << " " << vit.next();
+    if (!vit.hasNext()) {
+      cout << " <empty>";
+    } else {
+      cout << " [";
+      while (vit.hasNext()) {
+        cout << vit.next();
+        if (vit.hasNext()) cout << " ";
+      }
+      cout << "]";
+    }
   }
   cout << endl;
 
@@ -3688,29 +3708,54 @@ void TPTP::printStacks() {
   SortList* vsitVal;
   while (vsit.hasNext()) {
     vsit.next(vsitKey, vsitVal);
-    cout << " (" << vsitKey << " ->";
+    cout << " {" << vsitKey << " ->";
     SortList::Iterator slit(vsitVal);
     if   (!slit.hasNext()) cout << " <empty>";
     while (slit.hasNext()) cout << " " << env.sorts->sortName(slit.next());
-    cout << ")";
+    cout << "}";
   }
   cout << endl;
 
-  Map<LetFunctionName,List<LetFunctionReference>*>::Iterator lfit(_letFunctionsRenamings);
+  Stack<unsigned>::Iterator lfit(_letFunctions);
+  cout << "Let functions:";
+  if   (!lfit.hasNext()) cout << " <empty>";
+  while (lfit.hasNext()) cout << " " << lfit.next();
+  cout << endl;
+
+  Map<LetFunctionName,List<LetFunctionReference>*>::Iterator lfrit(_letFunctionsRenamings);
   cout << "Let functions renamings:";
-  if (!lfit.hasNext()) cout << " <empty>";
+  if (!lfrit.hasNext()) cout << " <empty>";
   LetFunctionName key;
   List<LetFunctionReference>* val;
-  while (lfit.hasNext()) {
-    lfit.next(key, val);
-    cout << " (" << key.first << "/" << key.second << " ->";
+  while (lfrit.hasNext()) {
+    lfrit.next(key, val);
+    cout << " {" << key.first << "/" << key.second << " ->";
     List<LetFunctionReference>::Iterator i(val);
     if (!i.hasNext()) cout << " <empty>";
     while (i.hasNext()) {
       LetFunctionReference f = i.next();
       cout << " " << (f.first ? env.signature->predicateName(f.second) : env.signature->functionName(f.second));
     }
-    cout << ")";
+    cout << "}";
+  }
+  cout << endl;
+
+  Stack<List<LetFunctionName>*>::Iterator lfbit(_letFunctionsBinds);
+  cout << "Let functions binds:";
+  if   (!lfbit.hasNext()) cout << " <empty>";
+  while (lfbit.hasNext()) {
+    List<LetFunctionName>::Iterator lfnit(lfbit.next());
+    if (!lfnit.hasNext()) {
+      cout << " <empty>";
+    } else {
+      cout << " [";
+      while (lfnit.hasNext()) {
+        LetFunctionName lfn = lfnit.next();
+        cout << lfn.first << "/" << lfn.second;
+        if (lfnit.hasNext()) cout << " ";
+      }
+      cout << "]";
+    }
   }
   cout << endl;
 }
