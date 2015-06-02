@@ -243,6 +243,15 @@ Literal* FOOLElimination::process(Literal* literal) {
 void FOOLElimination::process(TermList ts, Context context, TermList& termResult, Formula*& formulaResult) {
   CALL("FOOLElimination::process(TermList ts, Context context, ...)");
 
+#if VDEBUG
+  // A term can only be processed in a formula context if it has boolean sort
+  // The opposite does not hold - a boolean term can stand in a term context
+  unsigned sort = SortHelper::getResultSort(ts, _varSorts);
+  if (context == FORMULA_CONTEXT) {
+    ASS_REP(sort == Sorts::SRT_FOOL_BOOL, ts.toString());
+  }
+#endif
+
   if (!ts.isTerm()) {
     if (context == TERM_CONTEXT) {
       termResult = ts;
@@ -274,8 +283,7 @@ void FOOLElimination::process(TermList ts, Context context, TermList& termResult
   }
 
   // preprocessing of the term does not affect the sort
-  ASS_EQ(SortHelper::getResultSort(ts, _varSorts),
-         SortHelper::getResultSort(termResult, _varSorts));
+  ASS_EQ(sort, SortHelper::getResultSort(termResult, _varSorts));
 }
 
 /**
