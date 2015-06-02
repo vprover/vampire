@@ -2347,6 +2347,9 @@ void Options::readFromEncodedOptions (vstring testId)
   else if (ma == "ins") {
     _saturationAlgorithm.actualValue = SaturationAlgorithm::INST_GEN;
   }
+  else if (ma == "fmb") {
+    _saturationAlgorithm.actualValue = SaturationAlgorithm::FINITE_MODEL_BUILDING;
+  }
   else {
   error: USER_ERROR("bad test id " + _testId.actualValue);
   }
@@ -2431,6 +2434,7 @@ vstring Options::generateEncodedOptions() const
     case SaturationAlgorithm::OTTER : sat="ott"; break;
     case SaturationAlgorithm::TABULATION : sat="tab"; break;
     case SaturationAlgorithm::INST_GEN : sat="ins"; break;
+    case SaturationAlgorithm::FINITE_MODEL_BUILDING : sat="fmb"; break;
     default : ASSERTION_VIOLATION;
   }
 
