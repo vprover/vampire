@@ -46,7 +46,6 @@ private:
   /** Process a given part of the unit */
   FormulaList* process(FormulaList* fs);
   Formula* process(Formula* f);
-  Formula* process(Literal* literal);
 
   // A context in one of two possible values, so we model it with bool constants
   typedef bool Context;

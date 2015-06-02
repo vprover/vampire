@@ -132,8 +132,40 @@ Formula* FOOLElimination::process(Formula* formula) {
   CALL("FOOLElimination::process(Formula*)");
 
   switch (formula->connective()) {
-    case LITERAL:
-      return process(formula->literal());
+    case LITERAL: {
+      /**
+       * Processing of a literal simply propagates processing to its arguments,
+       * except for a case when it is an equality between two formula-as-terms.
+       * In that case we build an equivalence between processed underlying formulas.
+       *
+       * The semantics of FOOL does not distinguish between equality and equivalence
+       * between boolean terms and this special case implements a more natural way of
+       * expressing an equality between formulas in FOL. It is not, however, strictly
+       * needed - without it the equality would be processed simply as equality
+       * between FOOL boolean terms.
+       */
+
+      Literal* literal = formula->literal();
+
+      if (literal->isEquality()) {
+        ASS_EQ(literal->arity(), 2); // can there be equality between several terms?
+        TermList lhs = *literal->nthArgument(0);
+        TermList rhs = *literal->nthArgument(1);
+        if (lhs.isTerm() && lhs.term()->isFormula() && rhs.isTerm() && rhs.term()->isFormula()) {
+          Formula *lhsFormula = lhs.term()->getSpecialData()->getFormula();
+          Formula *rhsFormula = rhs.term()->getSpecialData()->getFormula();
+          return new BinaryFormula(literal->polarity() ? IFF : XOR, process(lhsFormula), process(rhsFormula));
+        }
+      }
+
+      Stack<TermList> arguments;
+      Term::Iterator lit(literal);
+      while (lit.hasNext()) {
+        arguments.push(process(lit.next()));
+      }
+
+      return new AtomicFormula(Literal::create(literal, arguments.begin()));
+    }
 
     case AND:
     case OR:
@@ -178,41 +210,6 @@ Formula* FOOLElimination::process(Formula* formula) {
 FormulaList* FOOLElimination::process(FormulaList* formulas) {
   CALL ("FOOLElimination::process(FormulaList*)");
   return formulas->isEmpty() ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
-}
-
-/**
- * Processing of a literal simply propagates processing to its arguments,
- * except for a case when it is an equality between two formula-as-terms.
- * In that case we build an equivalence between processed underlying formulas.
- *
- * The semantics of FOOL does not distinguish between equality and equivalence
- * between boolean terms and this special case implements a more natural way of
- * expressing an equality between formulas in FOL. It is not, however, strictly
- * needed - without it the equality would be processed simply as equality
- * between FOOL boolean terms.
- */
-Formula* FOOLElimination::process(Literal* literal) {
-  CALL("FOOLElimination::process(Literal*)");
-
-  if (literal->isEquality()) {
-    ASS_EQ(literal->arity(), 2); // can there be equality between several terms?
-    TermList lhs = *literal->nthArgument(0);
-    TermList rhs = *literal->nthArgument(1);
-    if (lhs.isTerm() && lhs.term()->isFormula() && rhs.isTerm() && rhs.term()->isFormula()) {
-      Formula* lhsFormula = lhs.term()->getSpecialData()->getFormula();
-      Formula* rhsFormula = rhs.term()->getSpecialData()->getFormula();
-      return new BinaryFormula(literal->polarity() ? IFF : XOR, process(lhsFormula), process(rhsFormula));
-    }
-  }
-
-  Stack<TermList> arguments;
-
-  Term::Iterator lit(literal);
-  while (lit.hasNext()) {
-    arguments.push(process(lit.next()));
-  }
-
-  return new AtomicFormula(Literal::create(literal, arguments.begin()));
 }
 
 /**
