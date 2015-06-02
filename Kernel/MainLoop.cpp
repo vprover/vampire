@@ -138,7 +138,7 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     res = new IGAlgorithm(prb, opt);
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
-    if(prb.hasInterpretedOperations()){ 
+    if(prb.hasInterpretedOperations() || env.sorts->hasSort()){ 
       USER_ERROR("Finite Model Builder (sa=fmb) cannot be used with Theory problems"); 
     }
     res = new FiniteModelBuilder(prb,opt);
