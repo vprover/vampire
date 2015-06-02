@@ -318,12 +318,6 @@ Formula* FOOLElimination::processAsFormula(TermList terms) {
 void FOOLElimination::process(Term* term, Context context, TermList& termResult, Formula*& formulaResult) {
   CALL("FOOLElimination::process(Term* term, Context context, ...)");
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] FOOL in:  " << term->toString() << endl;
-    env.endOutput();
-  }
-
   // collect free variables of the term and their sorts
   Formula::VarList* freeVars = term->freeVariables();
   Stack<unsigned> freeVarsSorts = collectSorts(freeVars);
@@ -623,15 +617,27 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 #if VDEBUG
       default:
         ASSERTION_VIOLATION;
- #endif
+#endif
     }
-  }
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] FOOL out: " << (context == FORMULA_CONTEXT
-                                       ? formulaResult->toString()
-                                       : termResult.toString()) << endl;
-    env.endOutput();
+
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      vstring inputRepr  = term->toString();
+      vstring outputRepr = context == FORMULA_CONTEXT ? formulaResult->toString() : termResult.toString();
+      if (inputRepr != outputRepr) {
+        /**
+         * If show_fool is set to off, the string representations of the input
+         * and the output of process() may in some cases coincide, despite the
+         * input and the output being different. Example: $term{$true} and
+         * $true. In order to avoid misleading log messages with the input and
+         * the output seeming the same, we will not log such processings at
+         * all. Setting show_fool to on, however, will display everything.
+         */
+        env.out() << "[PP] FOOL in:  " << inputRepr  << endl;
+        env.out() << "[PP] FOOL out: " << outputRepr << endl;
+      }
+      env.endOutput();
+    }
   }
 
 #if VDEBUG
