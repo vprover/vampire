@@ -210,6 +210,14 @@ SATSolver::Status TWLSolver::solveUnderAssumptions(const SATLiteralStack& assump
 
   Status res;
   SATLiteral lit;
+  
+  // first check the empty set of assumptions
+  _failedAssumptionBuffer.reset();
+  res = solve(conflictCountLimit);
+  if (res == UNSATISFIABLE) {
+    return res;
+  }
+  
   unsigned sz = assumps.size();
 
   for (unsigned i = 0; i < sz; i++) { // which one to leave out for now
