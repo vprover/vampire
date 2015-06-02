@@ -379,6 +379,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
     // pass clauses and assumption to SAT Solver
     _solver->addClauses(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
+    _clausesToBeAdded.reset();
     _solver->addAssumption(SATLiteral(domSizeVar,true));
 
     // if the clauses are satisfiable then we have found a finite model
