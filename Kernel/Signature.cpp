@@ -216,16 +216,12 @@ Signature::Signature ()
   aux = createDistinctGroup();
   ASS_EQ(REAL_DISTINCT_GROUP, aux);
 
-  // it is safe to reuse "$true" and "$false" for constants
-  // because the user cannot define constants with these names herself
-  // and the formula, obtained by toString() with "$true" or "$false"
-  // in term position would be syntactically valid in FOOL
   aux = addFunction("$$false", 0);
   ASS_EQ(aux, FOOL_FALSE);
+  getFunction(FOOL_FALSE)->setType(new FunctionType(0, 0, Sorts::SRT_FOOL_BOOL));
+
   aux = addFunction("$$true", 0);
   ASS_EQ(aux, FOOL_TRUE);
-
-  getFunction(FOOL_FALSE)->setType(new FunctionType(0, 0, Sorts::SRT_FOOL_BOOL));
   getFunction(FOOL_TRUE)->setType(new FunctionType(0, 0, Sorts::SRT_FOOL_BOOL));
 } // Signature::Signature
 
@@ -607,6 +603,25 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   return _iSymbols.get(interp);
 }
 
+const vstring& Signature::functionName(int number)
+{
+  CALL("Signature::functionName");
+
+  // it is safe to reuse "$true" and "$false" for constants
+  // because the user cannot define constants with these names herself
+  // and the formula, obtained by toString() with "$true" or "$false"
+  // in term position would be syntactically valid in FOOL
+  if (!env.options->showFOOL() && number == Signature::FOOL_FALSE) {
+    static vstring fols("$false");
+    return fols;
+  }
+  if (!env.options->showFOOL() && number == Signature::FOOL_TRUE) {
+    static vstring troo("$true");
+    return troo;
+  }
+  return _funs[number]->name();
+}
+
 /**
  * Return true if specified function exists
  */
@@ -663,16 +678,8 @@ unsigned Signature::addFunction (const vstring& name,
   }
 
   result = _funs.length();
-  if (!env.options->showFOOL() && result == FOOL_FALSE) {
-    _funs.push(new Symbol("$false", arity));
-    _funNames.insert(key("$false",arity), result);
-  } else if (!env.options->showFOOL() && result == FOOL_TRUE) {
-    _funs.push(new Symbol("$true", arity));
-    _funNames.insert(key("$true",arity), result);
-  } else {
-    _funs.push(new Symbol(name, arity));
-    _funNames.insert(symbolKey, result);
-  }
+  _funs.push(new Symbol(name, arity));
+  _funNames.insert(symbolKey, result);
   added = true;
   return result;
 } // Signature::addFunction
@@ -1054,10 +1061,6 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   ASS_G(name.length(),0);
 
   if (interpreted && (name=="=" || arity==0)) {
-    return false;
-  }
-
-  if (name == "$true" || name == "$false") {
     return false;
   }
 

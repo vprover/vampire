@@ -372,10 +372,7 @@ class Signature
   }
 
   /** return the name of a function with a given number */
-  const vstring& functionName(int number)
-  {
-    return _funs[number]->name();
-  }
+  const vstring& functionName(int number);
   /** return the name of a predicate with a given number */
   const vstring& predicateName(int number)
   {
