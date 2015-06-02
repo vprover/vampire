@@ -459,14 +459,7 @@ public:
     GROWING = 0,
     MINISAT = 1,
   };
-
-  enum class SplittingComponentSweeping : unsigned int {
-    ALL = 0,
-    ITERATED = 1,
-    NONE = 2,
-    ONLY_NEW = 3
-  };
-
+  
   enum class SplittingLiteralPolarityAdvice : unsigned int {
     FALSE,
     TRUE,
@@ -1799,7 +1792,6 @@ public:
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
-  SplittingComponentSweeping splittingComponentSweeping() const { return _splittingComponentSweeping.actualValue; }
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary.actualValue; }
   SplittingMinimizeModel splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
   SplittingLiteralPolarityAdvice splittingLiteralPolarityAdvice() const { return _splittingLiteralPolarityAdvice.actualValue; }
@@ -2115,7 +2107,6 @@ private:
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
-  ChoiceOptionValue<SplittingComponentSweeping> _splittingComponentSweeping;
   ChoiceOptionValue<SplittingCongruenceClosure> _splittingCongruenceClosure;
   ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
   BoolOptionValue _splittingEagerRemoval;
