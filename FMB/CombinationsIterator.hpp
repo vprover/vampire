@@ -6,9 +6,12 @@
 #ifndef __CombinationsIterator__
 #define __CombinationsIterator__
 
+#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/DArray.hpp"
+
 #include "Forwards.hpp"
 
 namespace FMB {
@@ -33,10 +36,26 @@ namespace FMB {
       cout << endl;
     }
 #endif
+
+//TODO - this should all be moved elsewhere!!
     static Term* getConstant(unsigned constant){
       CALL("SubstCombination::getConstant");
       while(constant >= created){
-        vstring name = "fmb_" + Lib::Int::toString(created);
+        vstring name; 
+        bool found=false;
+/*
+        while(!found && fchecked<env.signature->functions()){
+          fchecked++;
+          Signature::Symbol* fun = env.signature->getFunction(fchecked); 
+          if(fun->arity()==0){
+            found=true;
+            name=fun->name(); 
+          }
+        }
+*/
+        if(!found){
+          name = "fmb_" + Lib::Int::toString(created);
+        }
         constants[created] = Term::createConstant(name);
         created++;
       }
@@ -46,30 +65,27 @@ namespace FMB {
     DArray<unsigned> _ar;
     static Array<Term*> constants;
     static unsigned created;
+    static unsigned fchecked; 
   };
 
   Array<Term*> SubstCombination::constants;
   unsigned SubstCombination::created = 0;
+  unsigned SubstCombination::fchecked = 0;
   
 
   class CombinationsIterator {
 
   public:
-    CombinationsIterator(unsigned k, unsigned n) : _ar(k), _K(k), _N(n),_hasN(0),_hadEmpty(false) { 
+    CombinationsIterator(unsigned k, unsigned n, bool all=false) : _ar(k), _K(k), _N(n),_hasN(0) { 
       CALL("CombinationsIterator::CombinationsIterator");
-      if(k==0) return; // an empty substitution 
-
+      ASS_G(k,0);
       for(unsigned i=0;i<k;i++) _ar[i]=1;
       _ar[k-1]=0;
+      if(all) _hasN = 1;
     }
     
     bool hasNext(){
       CALL("CombinationsIterator::hasNext");
-
-      if(_K==0 && !_hadEmpty){
-        _hadEmpty=true;
-        return true;
-      }
 
       start:
         for(unsigned i=_K-1;i+1!=0;i--){
@@ -94,7 +110,6 @@ namespace FMB {
     private:
       DArray<unsigned> _ar;
       unsigned _K, _N, _hasN;
-      bool _hadEmpty;
   };
 
 } // namespace FMB

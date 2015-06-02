@@ -66,6 +66,38 @@ bool GeneralSplitting::apply(UnitList*& units)
 }
 
 /**
+ * Perform general splitting on clauses in @c clauses and return true if successful
+ * TODO fix sharing with apply(UnitList)
+ */
+bool GeneralSplitting::apply(ClauseList*& clauses)
+{
+  CALL("GeneralSplitting::apply(UnitList*&)");
+
+  bool modified = false;
+
+  UnitList* splitRes=0;
+
+  ClauseList::DelIterator cit(clauses);
+  while(cit.hasNext()) {
+    Clause* cl=cit.next();
+    bool performed=false;
+    while(apply(cl, splitRes)) {
+      performed=true;
+    }
+    if(performed) {
+      modified = true;
+      cit.del();
+      UnitList::push(cl, splitRes);
+    }
+  }
+  ASS_EQ(modified, splitRes->isNonEmpty());
+  ClauseList* splitResC = 0;
+  ClauseList::pushFromIterator(getStaticCastIterator<Clause*>(UnitList::Iterator(splitRes)),splitResC);
+  clauses=ClauseList::concat(splitResC, clauses);
+  return modified;
+}
+
+/**
  * Find variable that occurs in literals with the smallest number
  * of other variables, and split out into a new clause all the literals
  * that contain this variable. (The name predicate will then have all
@@ -75,7 +107,6 @@ bool GeneralSplitting::apply(UnitList*& units)
 bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 {
   CALL("GeneralSplitting::apply");
-
 
   unsigned clen=cl->length();
   if(clen<=1) {

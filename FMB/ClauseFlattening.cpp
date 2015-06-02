@@ -9,7 +9,6 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Renaming.hpp"
 
 #include "Lib/Map.hpp"
 #include "Lib/Stack.hpp"
@@ -122,7 +121,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
   cl = resolveNegativeVariableEqualities(cl);
 
   // new, find the maximal variable number
-  int maxVar = -1;
+  unsigned maxVar = 0;
   VirtualIterator<unsigned> varIt = cl->getVariableIterator();
   while (varIt.hasNext()) {
     int var = varIt.next();
@@ -154,8 +153,9 @@ Clause* ClauseFlattening::flatten(Clause* cl)
     //cout << "Flattening " << lit->toString() << endl;
     // Could combine check and flattening
     if(isShallow(lit)){
-      lit = Renaming::normalize(lit);
-      result.push(lit);
+      if(!result.find(lit)){
+        result.push(lit);
+      }
     }
     else{
       updated=true;
@@ -238,7 +238,6 @@ Clause* ClauseFlattening::flatten(Clause* cl)
   // If no new literals were added just return cl
   if(!updated) return cl;
 
-  // Otherwise create new clause from new literals
   return Clause::fromStack(result,cl->inputType(),
                             new Inference1(Inference::FMB_FLATTENING,cl));
 }

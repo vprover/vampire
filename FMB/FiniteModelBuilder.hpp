@@ -43,6 +43,7 @@ private:
   ScopedPtr<SATSolverWithAssumptions> _solver;
   unsigned _maxSatVar;
   DHMap<Literal*,unsigned> _lookup;
+  DHMap<unsigned,Literal*> _revLookup;
 
   void addSATClause(SATClause* cl);
   SATClauseStack _clausesToBeAdded;

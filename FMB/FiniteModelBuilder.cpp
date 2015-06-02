@@ -9,6 +9,8 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/EqHelper.hpp"
+#include "Kernel/Renaming.hpp"
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/TWLSolver.hpp"
@@ -22,6 +24,7 @@
 #include "Lib/Stack.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/GeneralSplitting.hpp"
 
 #include "ClauseFlattening.hpp"
 #include "CombinationsIterator.hpp"
@@ -61,12 +64,53 @@ void FiniteModelBuilder::init()
 
   // Preprocess all clauses
   ClauseIterator cit = _prb.clauseIterator();
+initLoop:
   while(cit.hasNext()){
     Clause* c = cit.next();
     c = ClauseFlattening::flatten(c);
+    //cout << "Flattened " << c->toString() << endl;
     ASS(c);
-    //TODO filter out clauses with no variables here (just add once)
-    _clauses = _clauses->cons(c);
+
+    //TODO factr out
+    if(c->varCnt()==0){
+      static SATLiteralStack satClauseLits;
+      satClauseLits.reset();
+      //cout << "Init: ";
+      for(unsigned i=0;i<c->length();i++){
+        Literal* lit = (*c)[i];
+        // if tautology ignore clause
+        if(EqHelper::isEqTautology(lit)){ goto initLoop; }
+        // if false, skip literal (okay because ground)
+        if(lit->isEquality() && !lit->isPositive() &&
+            (*lit->nthArgument(0))==(*lit->nthArgument(1))){
+          continue;
+        }
+        //cout << lit->toString() < " | ";
+        SATLiteral slit = getSATLiteral(lit);
+        satClauseLits.push(slit);
+      }
+      //cout << endl;
+      SATClause* satCl = SATClause::fromStack(satClauseLits);
+      addSATClause(satCl);
+    }else{
+      _clauses = _clauses->cons(c);
+    }
+  }
+
+  // Apply GeneralSplitting
+  GeneralSplitting splitter;
+  splitter.apply(_clauses);
+
+  // Normalise in place
+  ClauseList::Iterator it(_clauses);
+  while(it.hasNext()){
+    Renaming n;
+    Clause* c = it.next();
+    for(unsigned i=0;i<c->length();i++){
+      Literal* l = (*c)[i];
+      n.normalizeVariables(l);
+      (*c)[i] = n.apply(l);
+    }
   }
 
   // Create function definition clauses
@@ -119,25 +163,34 @@ void FiniteModelBuilder::addNewInstances(unsigned size)
 
     unsigned fvars = c->varCnt();
 
-    // Will deal with special case where fvars=0
     CombinationsIterator it(fvars,size);
 
+instanceLoop:
     while(it.hasNext()){
       SubstCombination subst = it.next();
 
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
 
+       //cout << "Instance: ";
       // Ground and translate each literal into a SATLiteral
       for(unsigned i=0;i<c->length();i++){
         Literal* lit = SubstHelper::apply((*c)[i],subst);
+
+        // if tautology ignore clause
+        if(EqHelper::isEqTautology(lit)){ goto instanceLoop; }
+        // if false, skip literal (okay because ground)
+        if(lit->isEquality() && !lit->isPositive() &&
+            (*lit->nthArgument(0))==(*lit->nthArgument(1))){
+          continue;
+        }
+        //cout << lit->toString() << " | ";
         SATLiteral slit = getSATLiteral(lit);
         satClauseLits.push(slit);
       }
+      //cout << endl;
 
       SATClause* satCl = SATClause::fromStack(satClauseLits);
-      //TODO consider removal trivial clauses, i.e. ones that become true
-      //  after substitution e.g. x=y when x and y have the same value
       addSATClause(satCl);
     }
   }
@@ -163,7 +216,11 @@ void FiniteModelBuilder::addNewFunctionalDefs(unsigned size)
     Clause* c = cit.next();
     ASS(c);
     unsigned fvars = c->varCnt();
+    ASS_G(fvars,0);
+
     CombinationsIterator it(fvars,size);
+
+funDefLoop:
     while(it.hasNext()){
       SubstCombination subst = it.next();
 
@@ -179,6 +236,12 @@ void FiniteModelBuilder::addNewFunctionalDefs(unsigned size)
       // Ground and translate each literal into a SATLiteral
       for(unsigned i=0;i<c->length();i++){
         Literal* lit = SubstHelper::apply((*c)[i],subst);
+       if(EqHelper::isEqTautology(lit)){ goto funDefLoop; }
+        // if false, skip literal (okay because ground)
+        if(lit->isEquality() && !lit->isPositive() &&
+            (*lit->nthArgument(0))==(*lit->nthArgument(1))){
+          continue;
+        }
         SATLiteral slit = getSATLiteral(lit);
         satClauseLits.push(slit);
       }
@@ -204,14 +267,30 @@ unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size)
     ASS(t);
     //cout << "Totals for " << t->toString() << endl;
 
+    unsigned rSort = SortHelper::getResultSort(t);
     unsigned fvars = t->arity();
-    CombinationsIterator it(fvars,size);
+
+    if(fvars==0){
+      static SATLiteralStack satClauseLits;
+      satClauseLits.reset();
+      satClauseLits.push(domSizeLit);
+      for(unsigned i=0;i<size;i++){
+        Term* c = SubstCombination::getConstant(i+1);
+        Literal* lit = Literal::createEquality(true,TermList(t),TermList(c),rSort);
+        SATLiteral slit = getSATLiteral(lit);
+        satClauseLits.push(slit);
+      }
+      SATClause* satCl = SATClause::fromStack(satClauseLits);
+      addSATClause(satCl); 
+      continue;
+    }
+
+    CombinationsIterator it(fvars,size,true); //true indicates we want ALL
     while(it.hasNext()){
       SubstCombination subst = it.next();
       //cout << "Using ";subst.print();
 
       Term* tsub = SubstHelper::apply(t,subst);
-      unsigned rSort = SortHelper::getResultSort(tsub);
 
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
@@ -230,7 +309,6 @@ unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size)
       SATClause* satCl = SATClause::fromStack(satClauseLits);
       addSATClause(satCl);
     }
-
   }
   
   return domSizeVar;
@@ -248,17 +326,16 @@ unsigned FiniteModelBuilder::getNextSATVar()
 SATLiteral FiniteModelBuilder::getSATLiteral(Literal* lit)
 {
   CALL("FiniteModelBuilder::getSATLiteral");
+  bool polarity = lit->polarity();
+  if(!polarity) lit = Literal::complementaryLiteral(lit);
   unsigned var;
   if(!_lookup.find(lit,var)){
     var = getNextSATVar();
     //cout << "STORING " << var << " -> " << lit->toString() << endl;
     _lookup.insert(lit,var);
-
-    // I think this is necessary, check
-    Literal* cLit = Literal::complementaryLiteral(lit);
-    _lookup.insert(cLit,var);
+    _revLookup.insert(var,lit);
   }
-  return SATLiteral(var,lit->polarity());
+  return SATLiteral(var,polarity);
 }
 
 void FiniteModelBuilder::addSATClause(SATClause* cl)
@@ -280,7 +357,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
   unsigned modelSize = 1;
   int domSizeVar = -1;
   while(true){
-    //cout << "TRYING " << modelSize << endl;
+    cout << "TRYING " << modelSize << endl;
     Timer::syncClock();
     if(env.timeLimitReached()){ return MainLoopResult(Statistics::TIME_LIMIT); }
 
@@ -289,7 +366,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
       satClauseLits.push(SATLiteral(domSizeVar,false));
-      _clausesToBeAdded.push(SATClause::fromStack(satClauseLits));
+      addSATClause(SATClause::fromStack(satClauseLits));
     }
 
     // add the new clauses to _clausesToBeAdded
@@ -307,8 +384,18 @@ MainLoopResult FiniteModelBuilder::runImpl()
     // if the clauses are satisfiable then we have found a finite model
     if(_solver->solve() == SATSolver::SATISFIABLE){
 
-      //TODO output model
       cout << "Found model of size " << modelSize << endl;
+      for(unsigned i=1;i<_maxSatVar;i++){
+        Literal* lit;
+        if(_revLookup.find(i,lit)){
+          bool pol = _solver->trueInAssignment(SATLiteral(i,true)); 
+          ASS(pol || !lit->isEquality() || lit->nthArgument(0)!=lit->nthArgument(1));
+          if(!pol) lit = Literal::complementaryLiteral(lit);
+          if(!lit->isEquality() || (pol && !EqHelper::isEqTautology(lit))){ 
+            cout << lit->toString() << endl;
+          }
+        }
+      }
 
       return MainLoopResult(Statistics::SATISFIABLE);
     }
