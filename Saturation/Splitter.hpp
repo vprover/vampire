@@ -273,6 +273,15 @@ private:
   RCClauseStack _fastClauses;
   
   SaturationAlgorithm* _sa;
+
+public:
+  // for observing the current model
+  
+  SplitLevel splitLevelBound() { return _db.size(); }
+  bool splitLevelActive(SplitLevel lev) {
+    ASS_REP(lev<_db.size(), lev);
+    return (_db[lev]!=0 && _db[lev]->active);
+  }
 };
 
 }

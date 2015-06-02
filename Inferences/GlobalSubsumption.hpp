@@ -44,6 +44,7 @@ public:
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
   
   Clause* perform(Clause* cl, Stack<UnitSpec>& prems);  
+ 
 private:  
   struct UnitSpec2ClFn;
       
@@ -69,6 +70,13 @@ private:
    */
   bool _avatarAssumptions;
 
+  /*
+   * GS needs a splitter when FULL_MODEL value is specified for the interaction with AVATAR.
+   * 
+   * In fact, _splitter!=0 iff we want to do the FULL_MODEL option.
+   */
+  Splitter* _splitter;
+  
   /**
    * A map binding split levels to variables assigned to them in our SAT solver.
    * 
@@ -80,11 +88,26 @@ private:
    * An inverse of the above map, for convenience.
    */  
   DHMap<unsigned, unsigned> _vars2levels;
+      
+protected:  
+  unsigned splitLevelToVar(SplitLevel lev) {        
+    CALL("GlobalSubsumption::splitLevelToVar");
+    unsigned* pvar;
+              
+    if(_levels2vars.getValuePtr(lev, pvar)) { 
+      SATSolver& solver = _index->getSolver();
+      *pvar = solver.newVar();
+      ALWAYS(_vars2levels.insert(*pvar,lev));
+    }
+    
+    return *pvar;
+  }  
   
-  /*
-   * GS needs a splitter when FULL_MODEL value is specified for the interaction with AVATAR.
-   */
-  Splitter* _splitter;
+  bool isSplitLevelVar(unsigned var, SplitLevel& lev) {
+    CALL("GlobalSubsumption::isSplitLevelVar");
+    
+    return _vars2levels.find(var,lev);
+  }
 };
 
 };

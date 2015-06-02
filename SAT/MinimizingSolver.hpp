@@ -47,6 +47,15 @@ public:
   virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
 
   virtual void ensureVarCount(unsigned newVarCnt) override;
+
+  virtual unsigned newVar() override {
+    CALL("MinimizingSolver::newVar");
+    unsigned oldVC = _varCnt;
+    ensureVarCount(_varCnt+1);
+    ASS_EQ(_varCnt,oldVC+1);
+    return _varCnt;
+  }
+
   virtual void suggestPolarity(unsigned var, unsigned pol) override { _inner->suggestPolarity(var,pol); }
   virtual void recordSource(unsigned var, Literal* lit){
     _inner->recordSource(var,lit);

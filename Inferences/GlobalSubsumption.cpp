@@ -28,6 +28,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "GlobalSubsumption.hpp"
+#include "Saturation/Splitter.hpp"
 
 #undef LOGGING
 #define LOGGING 0
@@ -86,13 +87,13 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
   }
   
   Grounder& grounder = _index->getGrounder();
-  SATSolverWithAssumptions& solver = _index->getSolver();
-
+  
   // SAT literals of the prop. abstraction of cl
   static SATLiteralStack plits;
   plits.reset();
   
   // assumptions corresponding to the negation of the new prop clause
+  // (and perhaps additional ones used to "activate" avatar-conditional clauses)
   static SATLiteralStack assumps;
   assumps.reset();
   
@@ -110,25 +111,38 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
     assumps.push(plits[i].opposite());
   }
     
-  // then add literals corresponding to cl's split levels,
-  // and keep filling assumps
+  // then add literals corresponding to cl's split levels
+  //
+  // also keep filling assumps for gsaa=crom_curent
   if (cl->splits() && cl->splits()->size()!=0) {
     ASS(_avatarAssumptions);
     
     SplitSet::Iterator sit(*cl->splits());
     while(sit.hasNext()) {
-      SplitLevel l = sit.next();
-      
-      unsigned* pvar;
-      if(_levels2vars.getValuePtr(l, pvar)) {    
-        *pvar = solver.newVar();
-        ALWAYS(_vars2levels.insert(*pvar,l));
+      SplitLevel l = sit.next();      
+      unsigned var = splitLevelToVar(l);
+                
+      plits.push(SATLiteral(var,false)); // negative
+      if (!_splitter) {
+        assumps.push(SATLiteral(var,true)); // positive
       }
-      
-      plits.push(SATLiteral(*pvar,false)); // negative
-      assumps.push(SATLiteral(*pvar,true)); // positive
     }
   }
+  
+  // for gsaa=full_model, assume all active split levels instead
+  if (_splitter) {
+    ASS(_avatarAssumptions);
+    
+    SplitLevel bound = _splitter->splitLevelBound();
+    for (SplitLevel lev = 0; lev < bound; lev++) {
+      if (_splitter->splitLevelActive(lev)) {
+        unsigned var = splitLevelToVar(lev);
+        assumps.push(SATLiteral(var,true)); // positive
+      }
+    }
+  }
+  
+  SATSolverWithAssumptions& solver = _index->getSolver();
   
   ASS_NEQ(solver.solve(_uprOnly),SATSolver::UNSATISFIABLE);
 
@@ -138,7 +152,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
   scl->setInference(inf);
   solver.addClause(scl);
 
-  // check for subsuming clause looking for a proper subset of used assumptions
+  // check for subsuming clause by looking for a proper subset of used assumptions
   SATSolver::Status res = solver.solveUnderAssumptions(assumps, _uprOnly, true /* only proper subsets */);
 
   if (res == SATSolver::UNSATISFIABLE) { 
@@ -164,24 +178,28 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
 
       // this is the main check -- whether we have a proper subclause (no matter the split level assumptions)
       if (survivors.size() < clen) {                
-        SATClause* ref = solver.getRefutation(); // aren't we leaking the refutation clause with Minisat and Lingeling?       
+        SATClause* ref = solver.getRefutation();
 
         prems.reset();
-
         prems.push(UnitSpec(cl));
+                
         SATInference::collectFilteredFOPremises(ref, prems,
+          // Some solvers may return "all the clauses added so far" in the refutation.
+          // That must be filtered since a derived clause cannot depend on inactive splits
           [this,cl] (SATClause* prem) {
             // don't keep any premise which mentions an unassumed split level assumption
             unsigned prem_sz = prem->size();
             for (unsigned i = 0; i < prem_sz; i++ ) {
               SATLiteral lit = (*prem)[i];
               SplitLevel lev;
-              if (_vars2levels.find(lit.var(),lev)) {
-                ASS(lit.isNegative());                
-                // TODO: adapt to full_model option
-                if (!cl->splits()->member(lev)) {
+              if (isSplitLevelVar(lit.var(),lev)) {
+                ASS(lit.isNegative());
+                if (_splitter && !_splitter->splitLevelActive(lev)) {
                   return false;
                 }
+                if (!_splitter && !cl->splits()->member(lev)) {
+                  return false;
+                }               
               }
             }
             return true;
@@ -198,12 +216,9 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
         Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),cl->inputType(), inf);
            
         replacement->setAge(cl->age());
-        // Splitter will set replacement's splitSet, so we don't have to do it here
         
-        // TODO: However, it will depend on the premises collected abowe
-        // and with silly implementation of solver.getRefutation()
-        // there will be many of them
-
+        // Splitter will set replacement's splitSet, so we don't have to do it here
+                
         env.statistics->globalSubsumption++;
         ASS_L(replacement->length(), clen);
         

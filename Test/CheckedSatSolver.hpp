@@ -42,6 +42,14 @@ public:
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
   virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
   virtual void ensureVarCount(unsigned newVarCnt) override;
+
+  virtual unsigned newVar() override {
+    CALL("CheckedSatSolver::newVar");
+
+    ALWAYS(_inner->newVar() == ++_varCnt);
+    return _varCnt;
+  }
+
   virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
 
   // the interface of SATSolverWithAssumptions not needed now
