@@ -8,13 +8,12 @@
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
-#include "SATInference.hpp"
 
 #include "Minisat/core/Solver.h"
 
 namespace SAT{
 
-class MinisatInterfacing : public SATSolverWithAssumptions
+class MinisatInterfacing : public PrimitiveProofRecordingSATSolver
 {
 public: 
   CLASS_NAME(MinisatInterfacing);
@@ -82,8 +81,6 @@ public:
     return (_assumptions.size() > 0);
   };
 
-  virtual SATClause* getRefutation();
-
  /**
   * Record the association between a SATLiteral var and a Literal
   * In TWLSolver this is used for computing niceness values
@@ -119,20 +116,6 @@ private:
   Status _status;
   Minisat::vec<Minisat::Lit> _assumptions;  
   Minisat::Solver _solver;
-  
-  // to be used for the premises of a refutation
-  // TODO: currently, the list is never free-ed
-  SATClauseList* _addedClauses;
-  
-  /**
-   * Empty clause to be returned by the getRefutation call.
-   * Recycled between consecutive getRefutation calls.
-   */
-  SATClause* _refutation;
-  /**
-   * The inference inside _refutation.
-   */
-  PropInference* _refutationInference;
 };
 
 }//end SAT namespace

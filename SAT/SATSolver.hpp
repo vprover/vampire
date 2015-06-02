@@ -7,6 +7,7 @@
 #define __SATSolver__
 
 #include "SATLiteral.hpp"
+#include "SATInference.hpp"
 
 namespace SAT {
 
@@ -299,6 +300,77 @@ public:
 protected:
   SATLiteralStack _failedAssumptionBuffer;
 };
+
+/**
+ * A conveniece class for solvers which do not track actual refutations
+ * and so return the whole set of clauses added so far as refutations.
+ * 
+ * This need not necessarily inherit from SATSolverWithAssumptions,
+ * but why bother with multiple inheritance if we know the only 
+ * to descendants of this class will need it...
+ */
+class PrimitiveProofRecordingSATSolver : public SATSolverWithAssumptions {
+public:
+  PrimitiveProofRecordingSATSolver() :  
+    _addedClauses(0), _refutation(new(0) SATClause(0)), _refutationInference(new PropInference(SATClauseList::empty()))
+    {
+      CALL("PrimitiveProofRecordingSATSolver::PrimitiveProofRecordingSATSolver");
+      
+      _refutation->setInference(_refutationInference);    
+    }
+  
+  virtual void addClause(SATClause* cl) override 
+  {
+    CALL("PrimitiveProofRecordingSATSolver::addClause");
+    
+    SATClauseList::push(cl,_addedClauses);
+  }
+  
+  virtual SATClause* getRefutation() override
+  {
+    CALL("PrimitiveProofRecordingSATSolver::getRefutation");
+
+    // connect the added clauses ... 
+    SATClauseList* prems = _addedClauses;  
+
+    // ... with the current assumptions
+
+    // TODO: the assumption set will be empty after a call to solveUnderAssumptions()
+    // This does not matter much since refutations are only ever passed to collectFOPremises
+    // and there are no FO premises of assumption inferences
+
+    // So the below is commented out to prevent useless leaking
+
+    /*
+    for (size_t i=0; i < _assumptions.size(); i++) {
+      SATClause* unit = new(1) SATClause(1);
+      (*unit)[0] = _assumptions[i];
+      unit->setInference(new AssumptionInference());
+      SATClauseList::push(unit,prems);
+    }
+    */
+
+    _refutationInference->setPremises(prems);
+
+    return _refutation; 
+  }
+  
+private:
+  // to be used for the premises of a refutation
+  // TODO: currently, the list is never free-ed
+  SATClauseList* _addedClauses;
+  
+  /**
+   * Empty clause to be returned by the getRefutation call.
+   * Recycled between consecutive getRefutation calls.
+   */
+  SATClause* _refutation;
+  /**
+   * The inference inside _refutation.
+   */
+  PropInference* _refutationInference;  
+};
+
 
 }
 

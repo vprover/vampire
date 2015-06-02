@@ -41,12 +41,9 @@ using Lib::ScopedLet;
  */
 LingelingInterfacing::LingelingInterfacing(const Options& opts,
 		bool generateProofs) :
-		_varCnt(0), _status(SATISFIABLE), _addedClauses(0), 
-    _refutation(new(0) SATClause(0)), _refutationInference(new PropInference(SATClauseList::empty()))
+		_varCnt(0), _status(SATISFIABLE)
 {
 	CALL("LingelingInterfacing::LingelingInterfacing");
-  
-  _refutation->setInference(_refutationInference);  
   
 	//here we should take care of all the options passed from the caller
 	//TimeCounter ntc(TC_LINGELING);
@@ -201,7 +198,7 @@ void LingelingInterfacing::addClause(SATClause* cl)
 	}
 
   // store to later generate the refutation
-  SATClauseList::push(cl,_addedClauses);
+  PrimitiveProofRecordingSATSolver::addClause(cl);
 
   //add the statistics for Lingeling total number of clauses
 	env.statistics->satLingelingClauses++;
@@ -227,38 +224,6 @@ SATSolver::Status LingelingInterfacing::solve(unsigned conflictCountLimit)
   CALL("LingelingInterfacing::solve");      
   solveModuloAssumptionsAndSetStatus(_assumptions,conflictCountLimit == UINT_MAX ? -1 : (int)conflictCountLimit);
   return _status;
-}
-
-
-SATClause* LingelingInterfacing::getRefutation()
-{
-	CALL("LingelingInterfacing::getRefutation");
-
-  // ASS_EQ(_status,UNSATISFIABLE); // can be SAT/UNKNOWN after explicit minimization
-  
-  // connect the added clauses ... 
-  SATClauseList* prems = _addedClauses;  
-
-  // ... with the current assumptions
-  
-  // TODO: the assumption set will be empty after a call to solveUnderAssumptions()
-  // This does not matter much since refutations are only ever passed to collectFOPremises
-  // and there are no FO premises of assumption inferences
-  
-  // So the below is commented out to prevent useless leaking
-  
-  /*
-  for (size_t i=0; i < _assumptions.size(); i++) {
-    SATClause* unit = new(1) SATClause(1);
-    (*unit)[0] = _assumptions[i];
-    unit->setInference(new AssumptionInference());
-    SATClauseList::push(unit,prems);
-  }
-  */
-	  
-  _refutationInference->setPremises(prems);
-
-	return _refutation; 
 }
   
 /*

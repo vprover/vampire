@@ -13,14 +13,13 @@
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
-#include "SATInference.hpp"
 
 // forward declarations
 struct LGL;
 
 namespace SAT{
   
-class LingelingInterfacing : public SATSolverWithAssumptions
+class LingelingInterfacing : public PrimitiveProofRecordingSATSolver
 {
 public: 
   CLASS_NAME(LingelingInterfacing);
@@ -83,11 +82,6 @@ public:
 	*/
 	virtual bool hasAssumptions() const;
 
-	/**
-	* get the refutation
-	*/
-	virtual SATClause* getRefutation();
-
 	void printLingelingStatistics();
 	void printAssignment();
 
@@ -130,21 +124,7 @@ private:
   
 	Status _status;
   SATLiteralStack _assumptions;
-  
-  // to be used for the premises of a refutation
-  // TODO: currently, the list is never free-ed
-  SATClauseList* _addedClauses;
-  
-  /**
-   * Empty clause to be returned by the getRefutation call.
-   * Recycled between consecutive getRefutation calls.
-   */
-  SATClause* _refutation;
-  /**
-   * The inference inside _refutation.
-   */
-  PropInference* _refutationInference;
-  		
+    		
 	LGL * _solver;
 };
 

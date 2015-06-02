@@ -16,13 +16,10 @@ using namespace Lib;
 using namespace Minisat;
   
 MinisatInterfacing::MinisatInterfacing(const Shell::Options& opts, bool generateProofs):
-  _status(SATISFIABLE), _addedClauses(0), 
-  _refutation(new(0) SATClause(0)), _refutationInference(new PropInference(SATClauseList::empty()))
+  _status(SATISFIABLE)
 {
   CALL("MinisatInterfacing::MinisatInterfacing");
-  
-  _refutation->setInference(_refutationInference);    
-  
+   
   // TODO: consider tuning minisat's options to be set for _solver
   // (or even forwarding them to vampire's options)  
 }
@@ -105,13 +102,13 @@ void MinisatInterfacing::addClause(SATClause* cl)
 {
   CALL("MinisatInterfacing::addClause");
   
+  // store to later generate the refutation
+  PrimitiveProofRecordingSATSolver::addClause(cl);
+  
   // TODO: consider measuring time
   
   ASS_EQ(_assumptions.size(),0);
-    
-  // store to later generate the refutation
-  SATClauseList::push(cl,_addedClauses);
-          
+                
   static vec<Lit> mcl;
   mcl.clear();
     
@@ -202,37 +199,6 @@ SATClause* MinisatInterfacing::getZeroImpliedCertificate(unsigned)
    implementing functions like this one properly */
   
   return 0;
-}
-
-SATClause* MinisatInterfacing::getRefutation() 
-{
-  CALL("MinisatInterfacing::getRefutation");
-  
-	// ASS_EQ(_status,UNSATISFIABLE); // can be SAT/UNKNOWN after explicit minimization
- 
-  // connect the added clauses ... 
-  SATClauseList* prems = _addedClauses;  
-
-  // ... with the current assumptions
-  
-  // TODO: the assumption set will be empty after a call to solveUnderAssumptions()
-  // This does not matter much since refutations are only ever passed to collectFOPremises
-  // and there are no FO premises of assumption inferences
-  
-  // So the below is commented out to prevent useless leaking
-  
-  /*
-  for (size_t i=0; i < _assumptions.size(); i++) {
-    SATClause* unit = new(1) SATClause(1);
-    (*unit)[0] = _assumptions[i];
-    unit->setInference(new AssumptionInference());
-    SATClauseList::push(unit,prems);
-  }
-  */
-	  
-  _refutationInference->setPremises(prems);
-
-	return _refutation; 
 }
 
 } // namespace SAT
