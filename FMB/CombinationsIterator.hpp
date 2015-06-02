@@ -76,7 +76,7 @@ namespace FMB {
   class CombinationsIterator {
 
   public:
-    CombinationsIterator(unsigned k, unsigned n, bool all=false) : _ar(k), _K(k), _N(n),_hasN(0) { 
+    CombinationsIterator(unsigned k, unsigned n, bool all=false) : _ar(k), _k(k), _n(n),_hasN(0) { 
       CALL("CombinationsIterator::CombinationsIterator");
       ASS_G(k,0);
       for(unsigned i=0;i<k;i++) _ar[i]=1;
@@ -88,13 +88,13 @@ namespace FMB {
       CALL("CombinationsIterator::hasNext");
 
       start:
-        for(unsigned i=_K-1;i+1!=0;i--){
-          if(_ar[i]==_N){
+        for(unsigned i=_k-1;i+1!=0;i--){
+          if(_ar[i]==_n){
             _ar[i]=1;
             _hasN--;
           }else{
             _ar[i]++;
-            if(_ar[i]==_N){_hasN++;}
+            if(_ar[i]==_n){_hasN++;}
             if(_hasN) return true;
             else goto start;
           }
@@ -109,7 +109,7 @@ namespace FMB {
    
     private:
       DArray<unsigned> _ar;
-      unsigned _K, _N, _hasN;
+      unsigned _k, _n, _hasN;
   };
 
 } // namespace FMB
