@@ -120,8 +120,8 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
-    env.out() << "[PP] " << unit->toString() << std::endl;
-    env.out() << "[PP] " << res->toString()  << std::endl;
+    env.out() << "[PP] " << unit->toString() << endl;
+    env.out() << "[PP] " << res->toString()  << endl;
     env.endOutput();
   }
 
@@ -156,8 +156,8 @@ Formula* FOOLElimination::process(Formula* formula) {
 
       if (env.options->showPreprocessing()) {
         env.beginOutput();
-        env.out() << "[PP] FOOL in: " << formula->toString() << std::endl;
-        env.out() << "[PP] FOOL out: " << processedFormula->toString() << std::endl;
+        env.out() << "[PP] FOOL in:  " << formula->toString() << endl;
+        env.out() << "[PP] FOOL out: " << processedFormula->toString() << endl;
         env.endOutput();
       }
 
@@ -243,7 +243,7 @@ Literal* FOOLElimination::process(Literal* literal) {
 void FOOLElimination::process(TermList ts, Context context, TermList& termResult, Formula*& formulaResult) {
   CALL("FOOLElimination::process(TermList ts, Context context, ...)");
 
-  if (!ts.isTerm() || !ts.term()->isSpecial()) {
+  if (!ts.isTerm()) {
     if (context == TERM_CONTEXT) {
       termResult = ts;
     } else {
@@ -310,50 +310,21 @@ Formula* FOOLElimination::processAsFormula(TermList terms) {
  * Returns TermList rather than Term* to cover the situation when $let-term
  * with a variable body is processed. That way, the result would be just the
  * variable, and we cannot put it inside Term*.
+ *
+ * Note that process() is called recursively on all the subterms of the given
+ * term. That way, every definition that is put into _defs doesn't have FOOL
+ * subterms and we don't have to further process it.
  */
 void FOOLElimination::process(Term* term, Context context, TermList& termResult, Formula*& formulaResult) {
   CALL("FOOLElimination::process(Term* term, Context context, ...)");
 
-  if (!term->isSpecial()) {
-    if (context == TERM_CONTEXT) {
-      termResult = TermList(term);
-    } else {
-      formulaResult = toEquality(TermList(term));
-    }
-    return;
-  }
-
-  Term::SpecialTermData* sd = term->getSpecialData();
-
   if (env.options->showPreprocessing()) {
     env.beginOutput();
-    env.out() << "[PP] FOOL in: " << term->toString() << std::endl;
+    env.out() << "[PP] FOOL in:  " << term->toString() << endl;
     env.endOutput();
   }
 
-  /**
-   * In order to process a special term (that is, a term that is syntactically
-   * valid in FOOL but not in FOL), we will replace the whole term or some of
-   * its parts with an application of a fresh function symbol and add one or
-   * more definitions of this symbol to _defs.
-   *
-   * Note that process() is called recursively on all the subterms of the given
-   * term. That way, every definition that is put into _defs doesn't have FOOL
-   * subterms and we don't have to further process it.
-   *
-   * To prevent variables from escaping their lexical scope, we collect those
-   * of them, that have free occurrences in the term and make the applications
-   * of the fresh symbol take them as arguments.
-   *
-   * Note that we don't have to treat in a similar way occurrences of function
-   * symbols, defined in $let-expressions, because the parser already made sure
-   * to resolve scope issues, made them global (by renaming) and added them to
-   * the signature. The only thing to be cautious about is that processing of
-   * the contents of the $let-term should be done after the occurrences of the
-   * defined symbol in it are replaced with the fresh one.
-   */
-
-  // collect free variables X1, ..., Xn of the term and their sorts
+  // collect free variables of the term and their sorts
   Formula::VarList* freeVars = term->freeVariables();
   Stack<unsigned> freeVarsSorts = collectSorts(freeVars);
 
@@ -366,261 +337,300 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
    * checks that free variables of the input and the result coincide.
    */
 
-  switch (term->functor()) {
-    case Term::SF_ITE: {
-      /**
-       * Having a term of the form $ite(f, s, t) and the list X1, ..., Xn of
-       * its free variables (it is the union of free variables of f, s and t)
-       * we will do the following:
-       *  1) Create a fresh function symbol g of arity n that spans over sorts
-       *     of X1, ..., Xn and the return sort of the term
-       *  2) Add two definitions:
-       *     * ![X1, ..., Xn]: ( f => g(X1, ..., Xn) = s)
-       *     * ![X1, ..., Xn]: (~f => g(X1, ..., Xn) = t)
-       *  3) Replace the term with g(X1, ..., Xn)
-       */
+  if (!term->isSpecial()) {
+    /**
+     * If term is not special, simply propagate processing to its arguments.
+     */
 
-      Formula* condition = process(sd->getCondition());
-
-      TermList thenBranch;
-      Formula* thenBranchFormula;
-      process(*term->nthArgument(0), context, thenBranch, thenBranchFormula);
-
-      TermList elseBranch;
-      Formula* elseBranchFormula;
-      process(*term->nthArgument(1), context, elseBranch, elseBranchFormula);
-
-      // the sort of the term is the sort of the then branch
-      unsigned resultSort;
-      if (context == TERM_CONTEXT) {
-        resultSort = SortHelper::getResultSort(thenBranch, _varSorts);
-        ASS_EQ(resultSort, SortHelper::getResultSort(elseBranch, _varSorts));
-      }
-
-      // create a fresh symbol g
-      unsigned arity = (unsigned)freeVarsSorts.length();
-      unsigned freshSymbol = context == FORMULA_CONTEXT
-                             ? env.signature->addItePredicate(arity, freeVarsSorts.begin())
-                             : env.signature->addIteFunction (arity, freeVarsSorts.begin(), resultSort);
-
-      // build g(X1, ..., Xn)
-      TermList freshFunctionApplication;
-      Formula* freshPredicateApplication;
-      buildApplication(freshSymbol, freeVars, context, freshFunctionApplication, freshPredicateApplication);
-
-      // build g(X1, ..., Xn) == s
-      Formula* thenEq = buildEq(context, freshPredicateApplication, thenBranchFormula,
-                                         freshFunctionApplication, thenBranch, resultSort);
-
-      // build (f => g(X1, ..., Xn) == s)
-      Formula* thenImplication = new BinaryFormula(IMP, condition, thenEq);
-
-      // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
-      if (arity > 0) {
-        thenImplication = new QuantifiedFormula(FORALL, freeVars, thenImplication);
-      }
-
-      // build g(X1, ..., Xn) == t
-      Formula* elseEq = buildEq(context, freshPredicateApplication, elseBranchFormula,
-                                         freshFunctionApplication, elseBranch, resultSort);
-
-      // build ~f => g(X1, ..., Xn) == t
-      Formula* elseImplication = new BinaryFormula(IMP, new NegatedFormula(condition), elseEq);
-
-      // build ![X1, ..., Xn]: (~f => g(X1, ..., Xn) == t)
-      if (arity > 0) {
-        elseImplication = new QuantifiedFormula(FORALL, freeVars, elseImplication);
-      }
-
-      // add both definitions
-      Inference* iteInference = new Inference1(Inference::FOOL_ITE_ELIMINATION, _unit);
-      addDefinition(new FormulaUnit(thenImplication, iteInference, _unit->inputType()));
-      addDefinition(new FormulaUnit(elseImplication, iteInference, _unit->inputType()));
-
-      if (context == FORMULA_CONTEXT) {
-        formulaResult = freshPredicateApplication;
-      } else {
-        termResult = freshFunctionApplication;
-      }
-      break;
+    Stack<TermList> arguments;
+    Term::Iterator ait(term);
+    while (ait.hasNext()) {
+      arguments.push(process(ait.next()));
     }
 
-    case Term::SF_LET: {
-      /**
-       * Having a term of the form $let(f(Y1, ..., Yk) := s, t), where f is a
-       * function or predicate symbol and the list X1, ..., Xn of free variables
-       * of the binding of f (it is the set of free variables of s minus
-       * Y1, ..., Yk) we will do the following:
-       *  1) Create a fresh function or predicate symbol g (depending on which
-       *     one is f) of arity n + k that spans over sorts of
-       *     X1, ..., Xn, Y1, ..., Yk
-       *  2) If f is a predicate symbol, add the following definition:
-       *       ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) <=> s
-       *     Otherwise, add
-       *       ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) = s
-       *  3) Build a term t' by replacing all of its subterms of the form
-       *     f(t1, ..., tk) by g(X1, ..., Xn, t1, ..., tk)
-       *  4) Replace the term with t'
-       */
+    TermList processedTerm = TermList(Term::create(term->functor(), term->arity(), arguments.begin()));
 
-      TermList body = sd->getBody(); // deliberately unprocessed here
-
-      /**
-       * $let-expressions are used for binding both function and predicate symbols.
-       * The body of the binding, however, is always stored as a term. When f is a
-       * predicate, the body is a formula, wrapped in a term. So, this is how we
-       * check that it is a predicate binding and the body of the function stands in
-       * the formula context
-       */
-      Context bodyContext = body.isTerm() && body.term()->isFormula() ? FORMULA_CONTEXT : TERM_CONTEXT;
-
-      // collect variables Y1, ..., Yk
-      Formula::VarList* argumentVars = sd->getVariables();
-
-      // collect variables X1, ..., Xn
-      Formula::VarList* bodyFreeVars(0);
-      Formula::VarList::Iterator bfvi(body.freeVariables());
-      while (bfvi.hasNext()) {
-        int var = bfvi.next();
-        if (!argumentVars->member(var)) {
-          bodyFreeVars = new Formula::VarList(var, bodyFreeVars);
-        }
-      }
-
-      // build the list X1, ..., Xn, Y1, ..., Yk of variables and their sorts
-      Formula::VarList* vars = bodyFreeVars->append(argumentVars);
-      Stack<unsigned> sorts = collectSorts(vars);
-
-      // take the defined function symbol and its result sort
-      unsigned symbol   = sd->getFunctor();
-      unsigned bodySort = SortHelper::getResultSort(body, _varSorts);
-
-      /**
-       * Here we can take a simple shortcut. If the there are no free variables,
-       * f and g would have the same type, but g would have an ugly generated name.
-       * So, in this case, instead of creating a new symbol, we will just
-       * reuse f and leave the t term as it is.
-       */
-      bool renameSymbol = bodyFreeVars->isNonEmpty();
-
-      // create a fresh function or predicate symbol g
-      unsigned arity = (unsigned)vars->length();
-      unsigned freshSymbol = symbol;
-      if (renameSymbol) {
-        freshSymbol = bodyContext == FORMULA_CONTEXT
-                      ? env.signature->addLetPredicate(arity, sorts.begin())
-                      : env.signature->addLetFunction (arity, sorts.begin(), bodySort);
-      }
-
-      // process the body of the function
-      TermList processedBody;
-      Formula* processedBodyFormula;
-      process(body, bodyContext, processedBody, processedBodyFormula);
-
-      // build g(X1, ..., Xn, Y1, ..., Yk)
-      TermList freshFunctionApplication;
-      Formula* freshPredicateApplication;
-      buildApplication(freshSymbol, vars, bodyContext, freshFunctionApplication, freshPredicateApplication);
-
-      // build g(X1, ..., Xn, Y1, ..., Yk) == s
-      Formula* freshSymbolDefinition = buildEq(bodyContext, freshPredicateApplication, processedBodyFormula,
-                                                            freshFunctionApplication, processedBody, bodySort);
-
-      // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) == s
-      if (arity > 0) {
-        freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, freshSymbolDefinition);
-      }
-
-      // add the introduced definition
-      Inference* letInference = new Inference1(Inference::FOOL_LET_ELIMINATION, _unit);
-      addDefinition(new FormulaUnit(freshSymbolDefinition, letInference, _unit->inputType()));
-
-      TermList contents = *term->nthArgument(0); // deliberately unprocessed here
-
-      // replace occurrences of f(t1, ..., tk) by g(X1, ..., Xn, t1, ..., tk)
-      if (renameSymbol) {
-        if (env.options->showPreprocessing()) {
-          env.beginOutput();
-          env.out() << "[PP] FOOL replace in: " << contents.toString() << std::endl;
-          env.endOutput();
-        }
-
-        SymbolOccurrenceReplacement replacement(bodyContext == FORMULA_CONTEXT, symbol, freshSymbol, bodyFreeVars);
-        contents = replacement.process(contents);
-
-        if (env.options->showPreprocessing()) {
-          env.beginOutput();
-          env.out() << "[PP] FOOL replace out: " << contents.toString() << std::endl;
-          env.endOutput();
-        }
-      }
-
-      process(contents, context, termResult, formulaResult);
-
-      break;
+    if (context == FORMULA_CONTEXT) {
+      formulaResult = toEquality(processedTerm);
+    } else {
+      termResult = processedTerm;
     }
+  } else {
+    /**
+     * In order to process a special term (that is, a term that is syntactically
+     * valid in FOOL but not in FOL), we will replace the whole term or some of
+     * its parts with an application of a fresh function symbol and add one or
+     * more definitions of this symbol to _defs.
+     *
+     * To prevent variables from escaping their lexical scope, we collect those
+     * of them, that have free occurrences in the term and make the applications
+     * of the fresh symbol take them as arguments.
+     *
+     * Note that we don't have to treat in a similar way occurrences of function
+     * symbols, defined in $let-expressions, because the parser already made sure
+     * to resolve scope issues, made them global (by renaming) and added them to
+     * the signature. The only thing to be cautious about is that processing of
+     * the contents of the $let-term should be done after the occurrences of the
+     * defined symbol in it are replaced with the fresh one.
+     */
 
-    case Term::SF_FORMULA: {
-      if (context == FORMULA_CONTEXT) {
-        formulaResult = process(sd->getFormula());
+    Term::SpecialTermData* sd = term->getSpecialData();
+
+    switch (term->functor()) {
+      case Term::SF_ITE: {
+        /**
+         * Having a term of the form $ite(f, s, t) and the list X1, ..., Xn of
+         * its free variables (it is the union of free variables of f, s and t)
+         * we will do the following:
+         *  1) Create a fresh function symbol g of arity n that spans over sorts
+         *     of X1, ..., Xn and the return sort of the term
+         *  2) Add two definitions:
+         *     * ![X1, ..., Xn]: ( f => g(X1, ..., Xn) = s)
+         *     * ![X1, ..., Xn]: (~f => g(X1, ..., Xn) = t)
+         *  3) Replace the term with g(X1, ..., Xn)
+         */
+
+        Formula* condition = process(sd->getCondition());
+
+        TermList thenBranch;
+        Formula* thenBranchFormula;
+        process(*term->nthArgument(0), context, thenBranch, thenBranchFormula);
+
+        TermList elseBranch;
+        Formula* elseBranchFormula;
+        process(*term->nthArgument(1), context, elseBranch, elseBranchFormula);
+
+        // the sort of the term is the sort of the then branch
+        unsigned resultSort;
+        if (context == TERM_CONTEXT) {
+          resultSort = SortHelper::getResultSort(thenBranch, _varSorts);
+          ASS_EQ(resultSort, SortHelper::getResultSort(elseBranch, _varSorts));
+        }
+
+        // create a fresh symbol g
+        unsigned arity = (unsigned)freeVarsSorts.length();
+        unsigned freshSymbol = context == FORMULA_CONTEXT
+                               ? env.signature->addItePredicate(arity, freeVarsSorts.begin())
+                               : env.signature->addIteFunction (arity, freeVarsSorts.begin(), resultSort);
+
+        // build g(X1, ..., Xn)
+        TermList freshFunctionApplication;
+        Formula* freshPredicateApplication;
+        buildApplication(freshSymbol, freeVars, context, freshFunctionApplication, freshPredicateApplication);
+
+        // build g(X1, ..., Xn) == s
+        Formula* thenEq = buildEq(context, freshPredicateApplication, thenBranchFormula,
+                                           freshFunctionApplication, thenBranch, resultSort);
+
+        // build (f => g(X1, ..., Xn) == s)
+        Formula* thenImplication = new BinaryFormula(IMP, condition, thenEq);
+
+        // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
+        if (arity > 0) {
+          thenImplication = new QuantifiedFormula(FORALL, freeVars, thenImplication);
+        }
+
+        // build g(X1, ..., Xn) == t
+        Formula* elseEq = buildEq(context, freshPredicateApplication, elseBranchFormula,
+                                           freshFunctionApplication, elseBranch, resultSort);
+
+        // build ~f => g(X1, ..., Xn) == t
+        Formula* elseImplication = new BinaryFormula(IMP, new NegatedFormula(condition), elseEq);
+
+        // build ![X1, ..., Xn]: (~f => g(X1, ..., Xn) == t)
+        if (arity > 0) {
+          elseImplication = new QuantifiedFormula(FORALL, freeVars, elseImplication);
+        }
+
+        // add both definitions
+        Inference* iteInference = new Inference1(Inference::FOOL_ITE_ELIMINATION, _unit);
+        addDefinition(new FormulaUnit(thenImplication, iteInference, _unit->inputType()));
+        addDefinition(new FormulaUnit(elseImplication, iteInference, _unit->inputType()));
+
+        if (context == FORMULA_CONTEXT) {
+          formulaResult = freshPredicateApplication;
+        } else {
+          termResult = freshFunctionApplication;
+        }
         break;
       }
 
-      Connective connective = sd->getFormula()->connective();
+      case Term::SF_LET: {
+        /**
+         * Having a term of the form $let(f(Y1, ..., Yk) := s, t), where f is a
+         * function or predicate symbol and the list X1, ..., Xn of free variables
+         * of the binding of f (it is the set of free variables of s minus
+         * Y1, ..., Yk) we will do the following:
+         *  1) Create a fresh function or predicate symbol g (depending on which
+         *     one is f) of arity n + k that spans over sorts of
+         *     X1, ..., Xn, Y1, ..., Yk
+         *  2) If f is a predicate symbol, add the following definition:
+         *       ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) <=> s
+         *     Otherwise, add
+         *       ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) = s
+         *  3) Build a term t' by replacing all of its subterms of the form
+         *     f(t1, ..., tk) by g(X1, ..., Xn, t1, ..., tk)
+         *  4) Replace the term with t'
+         */
 
-      if (connective == TRUE) {
-        termResult = TermList(Term::createConstant(Signature::FOOL_TRUE));
+        TermList body = sd->getBody(); // deliberately unprocessed here
+
+        /**
+         * $let-expressions are used for binding both function and predicate symbols.
+         * The body of the binding, however, is always stored as a term. When f is a
+         * predicate, the body is a formula, wrapped in a term. So, this is how we
+         * check that it is a predicate binding and the body of the function stands in
+         * the formula context
+         */
+        Context bodyContext = body.isTerm() && body.term()->isFormula() ? FORMULA_CONTEXT : TERM_CONTEXT;
+
+        // collect variables Y1, ..., Yk
+        Formula::VarList* argumentVars = sd->getVariables();
+
+        // collect variables X1, ..., Xn
+        Formula::VarList* bodyFreeVars(0);
+        Formula::VarList::Iterator bfvi(body.freeVariables());
+        while (bfvi.hasNext()) {
+          int var = bfvi.next();
+          if (!argumentVars->member(var)) {
+            bodyFreeVars = new Formula::VarList(var, bodyFreeVars);
+          }
+        }
+
+        // build the list X1, ..., Xn, Y1, ..., Yk of variables and their sorts
+        Formula::VarList* vars = bodyFreeVars->append(argumentVars);
+        Stack<unsigned> sorts = collectSorts(vars);
+
+        // take the defined function symbol and its result sort
+        unsigned symbol   = sd->getFunctor();
+        unsigned bodySort = SortHelper::getResultSort(body, _varSorts);
+
+        /**
+         * Here we can take a simple shortcut. If the there are no free variables,
+         * f and g would have the same type, but g would have an ugly generated name.
+         * So, in this case, instead of creating a new symbol, we will just
+         * reuse f and leave the t term as it is.
+         */
+        bool renameSymbol = bodyFreeVars->isNonEmpty();
+
+        // create a fresh function or predicate symbol g
+        unsigned arity = (unsigned)vars->length();
+        unsigned freshSymbol = symbol;
+        if (renameSymbol) {
+          freshSymbol = bodyContext == FORMULA_CONTEXT
+                        ? env.signature->addLetPredicate(arity, sorts.begin())
+                        : env.signature->addLetFunction (arity, sorts.begin(), bodySort);
+        }
+
+        // process the body of the function
+        TermList processedBody;
+        Formula* processedBodyFormula;
+        process(body, bodyContext, processedBody, processedBodyFormula);
+
+        // build g(X1, ..., Xn, Y1, ..., Yk)
+        TermList freshFunctionApplication;
+        Formula* freshPredicateApplication;
+        buildApplication(freshSymbol, vars, bodyContext, freshFunctionApplication, freshPredicateApplication);
+
+        // build g(X1, ..., Xn, Y1, ..., Yk) == s
+        Formula* freshSymbolDefinition = buildEq(bodyContext, freshPredicateApplication, processedBodyFormula,
+                                                              freshFunctionApplication, processedBody, bodySort);
+
+        // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) == s
+        if (arity > 0) {
+          freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, freshSymbolDefinition);
+        }
+
+        // add the introduced definition
+        Inference* letInference = new Inference1(Inference::FOOL_LET_ELIMINATION, _unit);
+        addDefinition(new FormulaUnit(freshSymbolDefinition, letInference, _unit->inputType()));
+
+        TermList contents = *term->nthArgument(0); // deliberately unprocessed here
+
+        // replace occurrences of f(t1, ..., tk) by g(X1, ..., Xn, t1, ..., tk)
+        if (renameSymbol) {
+          if (env.options->showPreprocessing()) {
+            env.beginOutput();
+            env.out() << "[PP] FOOL replace in:  " << contents.toString() << endl;
+            env.endOutput();
+          }
+
+          SymbolOccurrenceReplacement replacement(bodyContext == FORMULA_CONTEXT, symbol, freshSymbol, bodyFreeVars);
+          contents = replacement.process(contents);
+
+          if (env.options->showPreprocessing()) {
+            env.beginOutput();
+            env.out() << "[PP] FOOL replace out: " << contents.toString() << endl;
+            env.endOutput();
+          }
+        }
+
+        process(contents, context, termResult, formulaResult);
+
         break;
       }
 
-      if (connective == FALSE) {
-        termResult = TermList(Term::createConstant(Signature::FOOL_FALSE));
+      case Term::SF_FORMULA: {
+        if (context == FORMULA_CONTEXT) {
+          formulaResult = process(sd->getFormula());
+          break;
+        }
+
+        Connective connective = sd->getFormula()->connective();
+
+        if (connective == TRUE) {
+          termResult = TermList(Term::createConstant(Signature::FOOL_TRUE));
+          break;
+        }
+
+        if (connective == FALSE) {
+          termResult = TermList(Term::createConstant(Signature::FOOL_FALSE));
+          break;
+        }
+
+        /**
+         * Having a formula in a term context and the list X1, ..., Xn of its
+         * free variables we will do the following:
+         *  1) Create a fresh function symbol g of arity n that spans over sorts of X1, ..., Xn
+         *  2) Add the definition: ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true),
+         *     where true is FOOL constant
+         *  3) Replace the term with g(X1, ..., Xn)
+         */
+
+        Formula *formula = process(sd->getFormula());
+
+        // create a fresh symbol g and build g(X1, ..., Xn)
+        unsigned arity = (unsigned)freeVarsSorts.length();
+        unsigned freshSymbol = env.signature->addBooleanFunction(arity, freeVarsSorts.begin());
+        TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
+
+        // build f <=> g(X1, ..., Xn) = true
+        Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
+
+        // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
+        if (arity > 0) {
+          freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars, freshSymbolDefinition);
+        }
+
+        // add the introduced definition
+        Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, _unit);
+        addDefinition(new FormulaUnit(freshSymbolDefinition, inference, _unit->inputType()));
+
+        termResult = freshSymbolApplication;
         break;
       }
-
-      /**
-       * Having a formula in a term context and the list X1, ..., Xn of its
-       * free variables we will do the following:
-       *  1) Create a fresh function symbol g of arity n that spans over sorts of X1, ..., Xn
-       *  2) Add the definition: ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true),
-       *     where true is FOOL constant
-       *  3) Replace the term with g(X1, ..., Xn)
-       */
-
-      Formula *formula = process(sd->getFormula());
-
-      // create a fresh symbol g and build g(X1, ..., Xn)
-      unsigned arity = (unsigned)freeVarsSorts.length();
-      unsigned freshSymbol = env.signature->addBooleanFunction(arity, freeVarsSorts.begin());
-      TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
-
-      // build f <=> g(X1, ..., Xn) = true
-      Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
-
-      // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
-      if (arity > 0) {
-        freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars, freshSymbolDefinition);
-      }
-
-      // add the introduced definition
-      Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, _unit);
-      addDefinition(new FormulaUnit(freshSymbolDefinition, inference, _unit->inputType()));
-
-      termResult = freshSymbolApplication;
-      break;
-    }
 
 #if VDEBUG
-    default:
-      ASSERTION_VIOLATION;
-#endif
+      default:
+        ASSERTION_VIOLATION;
+ #endif
+    }
   }
-
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] FOOL out: " << (context == FORMULA_CONTEXT
                                        ? formulaResult->toString()
-                                       : termResult.toString()) << std::endl;
+                                       : termResult.toString()) << endl;
     env.endOutput();
   }
 
@@ -785,7 +795,7 @@ void FOOLElimination::addDefinition(FormulaUnit* def) {
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
-    env.out() << "[PP] FOOL added definition: " << def->toString() << std::endl;
+    env.out() << "[PP] FOOL added definition: " << def->toString() << endl;
     env.endOutput();
   }
 }
