@@ -46,7 +46,7 @@ private:
   /** Process a given part of the unit */
   FormulaList* process(FormulaList* fs);
   Formula* process(Formula* f);
-  Literal* process(Literal* literal);
+  Formula* process(Literal* literal);
 
   // A context in one of two possible values, so we model it with bool constants
   typedef bool Context;
@@ -56,7 +56,7 @@ private:
   // Processing of TermList and Term* returns a TermList or a Formula*,
   // depending on the context
   void process(TermList ts, Context context, TermList& termResult, Formula*& formulaResult);
-  void process(Term* term, Context context, TermList& termResult, Formula*& formulaResult);
+  void process(Term* term,  Context context, TermList& termResult, Formula*& formulaResult);
 
   // Shortcuts for process(TermList)
   TermList process(TermList terms);
