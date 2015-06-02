@@ -205,31 +205,14 @@ Formula* FOOLElimination::process(Literal* literal) {
     }
   }
 
-  unsigned predicate = literal->functor();
-  unsigned arity = literal->arity();
-  bool polarity = (bool)literal->polarity();
-  bool commutative = literal->commutative();
+  Stack<TermList> arguments;
 
-  Literal* processedLiteral = new (arity) Literal(predicate, arity, polarity, commutative);
-  unsigned i = 0;
-  Term::Iterator ait(literal);
-  while (ait.hasNext()) {
-    *processedLiteral->nthArgument(i++) = process(ait.next());
+  Term::Iterator lit(literal);
+  while (lit.hasNext()) {
+    arguments.push(process(lit.next()));
   }
 
-  if (literal->isTwoVarEquality()) {
-    processedLiteral->markTwoVarEquality();
-  }
-
-  if (!processedLiteral->shared()) {
-    if (processedLiteral->isTwoVarEquality()) {
-      processedLiteral = env.sharing->insertVariableEquality(processedLiteral, processedLiteral->twoVarEqSort());
-    } else {
-      processedLiteral = env.sharing->insert(processedLiteral);
-    }
-  }
-
-  return new AtomicFormula(processedLiteral);
+  return new AtomicFormula(Literal::create(literal, arguments.begin()));
 }
 
 /**
@@ -287,21 +270,6 @@ void FOOLElimination::process(TermList ts, Context context, TermList& termResult
 
   if (context == FORMULA_CONTEXT) {
     return;
-  }
-
-  if (termResult.isTerm() && !termResult.term()->shared()) {
-    Term* processedTerm = termResult.term();
-    if (processedTerm->isLiteral()) {
-      Literal* processedLiteral = static_cast<Literal*>(processedTerm);
-      if (processedLiteral->isTwoVarEquality()) {
-        processedTerm = env.sharing->insertVariableEquality(processedLiteral, processedLiteral->twoVarEqSort());
-      } else {
-        processedTerm = env.sharing->insert(processedLiteral);
-      }
-    } else {
-      processedTerm = env.sharing->insert(processedTerm);
-    }
-    termResult = TermList(processedTerm);
   }
 
   // preprocessing of the term does not affect the sort
@@ -372,7 +340,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
       arguments.push(process(ait.next()));
     }
 
-    TermList processedTerm = TermList(Term::create(term->functor(), term->arity(), arguments.begin()));
+    TermList processedTerm = TermList(Term::create(term, arguments.begin()));
 
     if (context == FORMULA_CONTEXT) {
       formulaResult = toEquality(processedTerm);
@@ -869,15 +837,7 @@ Term* FOOLElimination::SymbolOccurrenceReplacement::process(Term* term) {
     }
   }
 
-  unsigned arity = term->arity();
-  unsigned function = term->functor();
-
-  bool renaming = !_isPredicate && (function == _symbol);
-
-  if (renaming) {
-    function = _freshSymbol;
-    arity += _freeVars->length();
-  }
+  bool renaming = !_isPredicate && (term->functor() == _symbol);
 
   Stack<TermList> arguments;
 
@@ -894,7 +854,12 @@ Term* FOOLElimination::SymbolOccurrenceReplacement::process(Term* term) {
     arguments.push(process(it.next()));
   }
 
-  return Term::create(function, arity, arguments.begin());
+  if (renaming) {
+    unsigned arity = term->arity() + _freeVars->length();
+    return Term::create(_freshSymbol, arity, arguments.begin());
+  } else {
+    return Term::create(term, arguments.begin());
+  }
 }
 
 TermList FOOLElimination::SymbolOccurrenceReplacement::process(TermList ts) {
@@ -911,18 +876,9 @@ Formula* FOOLElimination::SymbolOccurrenceReplacement::process(Formula* formula)
   CALL("FOOLElimination::SymbolOccurrenceReplacement::process(Formula*)");
   switch (formula->connective()) {
     case LITERAL: {
-      Literal *literal = formula->literal();
-      unsigned functor = literal->functor();
-      unsigned arity = literal->arity();
-      bool polarity = (bool)literal->polarity();
-      bool commutative = (bool)literal->commutative();
+      Literal* literal = formula->literal();
 
-      bool renaming = _isPredicate && (functor == _symbol);
-
-      if (renaming) {
-        functor = _freshSymbol;
-        arity += _freeVars->length();
-      }
+      bool renaming = _isPredicate && (literal->functor() == _symbol);
 
       Stack<TermList> arguments;
 
@@ -938,7 +894,17 @@ Formula* FOOLElimination::SymbolOccurrenceReplacement::process(Formula* formula)
         arguments.push(process(lit.next()));
       }
 
-      return new AtomicFormula(Literal::create(functor, arity, polarity, commutative, arguments.begin()));
+      Literal* processedLiteral;
+      if (renaming) {
+        unsigned arity = literal->arity() + _freeVars->length();
+        bool polarity = (bool)literal->polarity();
+        bool commutative = (bool)literal->commutative();
+        processedLiteral = Literal::create(_freshSymbol, arity, polarity, commutative, arguments.begin());
+      } else {
+        processedLiteral = Literal::create(literal, arguments.begin());
+      }
+
+      return new AtomicFormula(processedLiteral);
     }
 
     case AND:
