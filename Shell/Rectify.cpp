@@ -158,16 +158,24 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   case Term::SF_LET:
   {
     ASS_EQ(t->arity(),1);
-    TermList body = sd->getBody();
 
-    Formula::VarList* variables = sd->getVariables();
+    bindVars(sd->getVariables());
+    TermList body = rectify(sd->getBody());
+    /**
+     * We don't need to remove unused variables from the body of a functions,
+     * otherwise the rectified list of variables might not fix the arity of the
+     * let functor. So, temporarily disable _removeUnusedVars;
+     */
+    bool removeUnusedVars = _removeUnusedVars;
+    _removeUnusedVars = false;
+    VarList* variables = rectifyBoundVars(sd->getVariables());
+    _removeUnusedVars = removeUnusedVars; // restore the status quo
+    unbindVars(sd->getVariables());
 
-    bindVars(variables);
-    body = rectify(body);
-    unbindVars(variables);
+    ASS_EQ(variables->length(), sd->getVariables()->length());
 
     TermList contents = rectify(*t->nthArgument(0));
-    if(body == sd->getBody() && contents == *t->nthArgument(0)) {
+    if (sd->getVariables() == variables && body == sd->getBody() && contents == *t->nthArgument(0)) {
       return t;
     }
     return Term::createLet(sd->getFunctor(), variables, body, contents);
