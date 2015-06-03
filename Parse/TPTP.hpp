@@ -483,16 +483,20 @@ private:
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
-  /** function name and arity*/
-  typedef pair<vstring,unsigned> LetFunctionName;
-  /** a predicate/function flag with a symbol number */
-  typedef pair<bool,unsigned> LetFunctionReference;
-  /** function name and arity, mapped to function name in the signature */
-  Map<LetFunctionName,List<LetFunctionReference>*> _letFunctionsRenamings;
-  /** scope of nested $let-functions */
-  Stack<List<LetFunctionName>*> _letFunctionsBinds;
-  /** function symbols, bound inside a $let-term */
-  Stack<unsigned> _letFunctions;
+  /** a function name and arity */
+  typedef pair<vstring, unsigned> LetFunctionName;
+  /** a symbol number with a predicate/function flag */
+  typedef pair<unsigned, bool> LetFunctionReference;
+  /** a definition of a function symbol, defined in $let */
+  typedef pair<LetFunctionName, LetFunctionReference> LetFunction;
+  /** a scope of function definitions */
+  typedef Stack<LetFunction> LetFunctionsScope;
+  /** a stack of scopes */
+  Stack<LetFunctionsScope> _letScopes;
+  /** finds if the symbol has been defined in an enclosing $let */
+  bool findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol);
+  /** the scope of the currently parsed $let-term */
+  LetFunctionsScope _currentLetScope;
 
   /**
    * Get the next characters at the position pos.

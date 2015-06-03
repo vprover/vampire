@@ -1367,29 +1367,6 @@ void TPTP::tff()
 } // tff()
 
 /**
- * Process the end of the $let expression
- * @since 27/07/2011 Manchester
- */
-void TPTP::endLet()
-{
-  CALL("TPTP::endLet");
-
-  TermList let = _termLists.pop();
-  for (int i = _ints.pop(); i > 0; i--) {
-    let = TermList(Term::createLet(_letFunctions.pop(), _varLists.pop(), _termLists.pop(), let));
-  }
-  _termLists.push(let);
-
-  List<LetFunctionName>::Iterator letFunctionsIterator(_letFunctionsBinds.pop());
-  while (letFunctionsIterator.hasNext()) {
-    LetFunctionName name = letFunctionsIterator.next();
-    List<LetFunctionReference> *letFunctions;
-    ALWAYS(_letFunctionsRenamings.find(name, letFunctions));
-    _letFunctionsRenamings.replace(name, letFunctions->tail());
-  }
-} // endLet
-
-/**
  * Process the end of the $ite expression
  * @since 27/07/2011 Manchester
  * @since 16/04/2015 Gothenburg, major changes to support FOOL
@@ -1696,7 +1673,6 @@ void TPTP::funApp()
       addTagState(T_COMMA);
       _states.push(BINDING);
       consumeToken(T_LPAR);
-      _ints.push(1); // the number of bindings in a parallel $let-term
       return;
 
     case T_VAR:
@@ -1721,7 +1697,6 @@ void TPTP::funApp()
 void TPTP::binding()
 {
   CALL("TPTP::binding");
-  _letFunctionsBinds.push(0);
   _strings.push(name());
 
   Token tok = getTok(0);
@@ -1751,13 +1726,6 @@ void TPTP::binding()
 void TPTP::endBinding() {
   CALL("TPTP::endBinding");
 
-  Token tok = getTok(0);
-  if (tok.tag == T_SEMICOLON) {
-    resetToks();
-    _ints.push(_ints.pop() + 1);
-    _states.push(BINDING);
-  }
-
   TermList body = _termLists.top();
   unsigned bodySort = sortOf(body);
   bool isPredicate = bodySort == Sorts::SRT_FOOL_BOOL;
@@ -1768,19 +1736,13 @@ void TPTP::endBinding() {
   vstring name = _strings.pop();
 
   vstring newName = name;
-  unsigned newNumber;
-  bool renamed = false;
-  for (unsigned index = 0;; index++) {
-    if (!env.signature->functionExists(newName, arity) && !env.signature->predicateExists(newName, arity)) {
-      newNumber = isPredicate ? env.signature->addPredicate(newName, arity)
-                              : env.signature->addFunction(newName, arity);
-      if (index > 0) {
-        renamed = true;
-      }
-      break;
-    }
-    newName = name + Int::toString(index);
+  unsigned index = 0;
+  while (env.signature->functionExists(newName, arity) || env.signature->predicateExists(newName, arity)) {
+    newName = name + Int::toString(index++);
   }
+
+  unsigned symbolNumber = isPredicate ? env.signature->addPredicate(newName, arity)
+                                      : env.signature->addFunction (newName, arity);
 
   Stack<unsigned> argSorts(0);
   Formula::VarList::Iterator vit(vars);
@@ -1792,27 +1754,70 @@ void TPTP::endBinding() {
   }
 
   BaseType* type = BaseType::makeType(arity, argSorts.begin(), isPredicate ? Sorts::SRT_BOOL : bodySort);
-  Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(newNumber)
-                                          : env.signature->getFunction(newNumber);
+  Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(symbolNumber)
+                                          : env.signature->getFunction (symbolNumber);
   symbol->setType(type);
 
-  if (renamed) {
-    LetFunctionName function(name, arity);
-    _letFunctionsBinds.push(new List<LetFunctionName>(function, _letFunctionsBinds.pop()));
+  LetFunctionName functionName(name, arity);
+  LetFunctionReference functionReference(symbolNumber, isPredicate);
 
-    LetFunctionReference letFunction(isPredicate, newNumber);
-    List<LetFunctionReference> *letFunctions;
-    if (_letFunctionsRenamings.find(function, letFunctions)) {
-      _letFunctionsRenamings.replace(function, new List<LetFunctionReference>(letFunction, letFunctions));
-    } else {
-      _letFunctionsRenamings.insert(function, new List<LetFunctionReference>(letFunction));
+  LetFunctionsScope::Iterator functions(_currentLetScope);
+  while (functions.hasNext()) {
+    if (functions.next().first == functionName) {
+      USER_ERROR("The symbol " + name + " of arity " + Int::toString(arity) + " is defined twice in a $let-expression.");
     }
   }
 
-  _letFunctions.push(newNumber);
+  _currentLetScope.push(LetFunction(functionName, functionReference));
+
+  Token tok = getTok(0);
+  if (tok.tag == T_SEMICOLON) {
+    resetToks();
+    _states.push(BINDING);
+  } else {
+    _letScopes.push(_currentLetScope);
+    _currentLetScope = LetFunctionsScope();
+  }
 
   _states.push(UNBIND_VARIABLES);
-}
+} // endBinding
+
+bool TPTP::findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol) {
+  CALL("TPTP::findLetSymbol");
+
+  LetFunctionName functionName(name, arity);
+
+  Stack<LetFunctionsScope>::TopFirstIterator scopes(_letScopes);
+  while (scopes.hasNext()) {
+    LetFunctionsScope scope = scopes.next();
+    LetFunctionsScope::Iterator functions(scope);
+    while (functions.hasNext()) {
+      LetFunction function = functions.next();
+      if (function.first == functionName && function.second.second == isPredicate) {
+        symbol = function.second.first;
+        return true;
+      }
+    }
+  }
+  return false;
+} // findLetSymbol
+
+/**
+ * Process the end of the $let expression
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::endLet()
+{
+  CALL("TPTP::endLet");
+
+  TermList let = _termLists.pop();
+  LetFunctionsScope::TopFirstIterator functions(_letScopes.pop());
+  while (functions.hasNext()) {
+    unsigned symbol = functions.next().second.first;
+    let = TermList(Term::createLet(symbol, _varLists.pop(), _termLists.pop(), let));
+  }
+  _termLists.push(let);
+} // endLet
 
 /**
  * Read a non-empty sequence of arguments, including the right parentheses
@@ -2024,11 +2029,8 @@ void TPTP::endTerm()
     return;
   }
 
-  LetFunctionName letFunction(name, arity);
-  List<LetFunctionReference>* letFunctions;
-  if (env.signature->predicateExists(name, arity) ||
-          (_letFunctionsRenamings.find(letFunction, letFunctions) &&
-                  letFunctions->isNonEmpty() && letFunctions->head().first)) {
+  unsigned symbol;
+  if (env.signature->predicateExists(name, arity) || findLetSymbol(true, name, arity, symbol)) {
     // if the function symbol is actually a predicate,
     // we need to construct a formula and wrap it inside a term
     _formulas.push(createPredicateApplication(name, arity));
@@ -2180,12 +2182,9 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
   ASS_GE(_termLists.size(), arity);
 
   int pred;
-
-  List<LetFunctionReference>* letFunctions;
-  LetFunctionName function(name, arity);
-  if (_letFunctionsRenamings.find(function, letFunctions) && letFunctions->isNonEmpty()) {
-    ASS(letFunctions->head().first);
-    pred = letFunctions->head().second;
+  unsigned letPred;
+  if (findLetSymbol(true, name, arity, letPred)) {
+    pred = (int)letPred;
   } else {
     if (arity > 0) {
       bool dummy;
@@ -2250,12 +2249,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
 
   unsigned fun;
 
-  List<LetFunctionReference>* letFunctions;
-  LetFunctionName function(name, arity);
-  if (_letFunctionsRenamings.find(function, letFunctions) && letFunctions->isNonEmpty()) {
-    ASS(!letFunctions->head().first);
-    fun = letFunctions->head().second;
-  } else {
+  if (!findLetSymbol(false, name, arity, fun)) {
     bool dummy;
     if (arity > 0) {
       fun = addFunction(name, arity, dummy, _termLists.top());
@@ -3716,45 +3710,48 @@ void TPTP::printStacks() {
   }
   cout << endl;
 
-  Stack<unsigned>::Iterator lfit(_letFunctions);
-  cout << "Let functions:";
-  if   (!lfit.hasNext()) cout << " <empty>";
-  while (lfit.hasNext()) cout << " " << lfit.next();
-  cout << endl;
-
-  Map<LetFunctionName,List<LetFunctionReference>*>::Iterator lfrit(_letFunctionsRenamings);
-  cout << "Let functions renamings:";
-  if (!lfrit.hasNext()) cout << " <empty>";
-  LetFunctionName key;
-  List<LetFunctionReference>* val;
-  while (lfrit.hasNext()) {
-    lfrit.next(key, val);
-    cout << " {" << key.first << "/" << key.second << " ->";
-    List<LetFunctionReference>::Iterator i(val);
-    if (!i.hasNext()) cout << " <empty>";
-    while (i.hasNext()) {
-      LetFunctionReference f = i.next();
-      cout << " " << (f.first ? env.signature->predicateName(f.second) : env.signature->functionName(f.second));
-    }
-    cout << "}";
-  }
-  cout << endl;
-
-  Stack<List<LetFunctionName>*>::Iterator lfbit(_letFunctionsBinds);
-  cout << "Let functions binds:";
-  if   (!lfbit.hasNext()) cout << " <empty>";
-  while (lfbit.hasNext()) {
-    List<LetFunctionName>::Iterator lfnit(lfbit.next());
-    if (!lfnit.hasNext()) {
+  Stack<LetFunctionsScope>::Iterator lfsit(_letScopes);
+  cout << "Let functions scopes:";
+  if (!lfsit.hasNext()) cout << " <empty>";
+  while (lfsit.hasNext()) {
+    LetFunctionsScope::Iterator sit(lfsit.next());
+    if (!sit.hasNext()) {
       cout << " <empty>";
     } else {
       cout << " [";
-      while (lfnit.hasNext()) {
-        LetFunctionName lfn = lfnit.next();
-        cout << lfn.first << "/" << lfn.second;
-        if (lfnit.hasNext()) cout << " ";
+      while (sit.hasNext()) {
+        LetFunction f    = sit.next();
+        vstring name     = f.first.first;
+        unsigned arity   = f.first.second;
+        unsigned symbol  = f.second.first;
+        bool isPredicate = f.second.second;
+
+        vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
+                                         : env.signature->functionName (symbol);
+
+        cout << name << "/" << arity << " -> " << symbolName << ", ";
       }
       cout << "]";
+    }
+  }
+  cout << endl;
+
+  LetFunctionsScope::Iterator clfsit(_currentLetScope);
+  cout << "Current let functions scope:";
+  if (!clfsit.hasNext()) {
+    cout << " <empty>";
+  } else {
+    while (clfsit.hasNext()) {
+      LetFunction f    = clfsit.next();
+      vstring name     = f.first.first;
+      unsigned arity   = f.first.second;
+      unsigned symbol  = f.second.first;
+      bool isPredicate = f.second.second;
+
+      vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
+                                       : env.signature->functionName (symbol);
+
+      cout << name << "/" << arity << " -> " << symbolName << " ";
     }
   }
   cout << endl;
