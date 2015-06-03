@@ -35,6 +35,7 @@ private:
 
   void addNewInstances(unsigned modelSize);
   void addNewFunctionalDefs(unsigned modelSize);
+  void addNewSymmetryAxioms(unsigned modelSize);
   unsigned addNewTotalityDefs(unsigned modelSize);
   
   unsigned getNextSATVar();
@@ -52,6 +53,7 @@ private:
   ClauseList* _clauses;
   ClauseList* _functionDefinitionClauses;
   Stack<Term*> _totalityFunctions;
+  Stack<Term*> _constants;
 };
 
 }

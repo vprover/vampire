@@ -146,6 +146,11 @@ initLoop:
       args[i].makeVar(i);
     }
     _totalityFunctions.push(Term::create(f,fun->arity(),args));
+
+    //record constants
+    if(fun->arity()==0){
+      _constants.push(Term::createConstant(f));
+    }
   }
 
 }
@@ -251,6 +256,56 @@ funDefLoop:
     }
   }
   
+}
+
+void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size)
+{
+  CALL("FiniteModelBuilder::addNewSymmetryAxioms");
+
+  //Use order of constants in _constants
+  // If all constants have been used nothing to add
+  if(_constants.size() >= size) return;
+
+  // First add restricted totality for constants (TODO remove totality for constants?)
+  // i.e. for constant a1 add { a1=1 } and for a2 add { a2=1, a2=2 } and so on
+
+  // As we are incremental we add the next one, which is for constant at position 'size'
+  Term* c1 = _constants[size-1]; // size 1-based, index 0-based
+  unsigned sort = SortHelper::getResultSort(c1);
+
+  static SATLiteralStack satClauseLits;
+  satClauseLits.reset(); 
+  for(unsigned i=0;i<size;i++){
+    Term* c2 = SubstCombination::getConstant(i+1); 
+    Literal* l = Literal::createEquality(true,TermList(c1),TermList(c2),sort);
+    SATLiteral sl = getSATLiteral(l);
+    satClauseLits.push(sl);
+  }
+  SATClause* satCl = SATClause::fromStack(satClauseLits);
+  addSATClause(satCl);
+
+  // Now new add canonicity clauses of the form
+  // ai = d => a1=d | a2=d | ... ai-1 =d
+  // i.e. if this constant is equal to d then there is a smaller one that is
+  // only do this for i>1
+  if(size > 1){
+    for(unsigned i=1;i<size;i++){
+      satClauseLits.reset();
+
+      Term* ci = SubstCombination::getConstant(i+1); 
+      Literal* l = Literal::createEquality(false,TermList(c1),TermList(ci),sort); 
+      satClauseLits.push(getSATLiteral(l));
+
+      for(unsigned d=1;d<i;d++){
+        Term* cd = SubstCombination::getConstant(d+1);
+        l = Literal::createEquality(true,TermList(c1),TermList(cd),sort);
+        satClauseLits.push(getSATLiteral(l));
+      }
+
+      addSATClause(SATClause::fromStack(satClauseLits));
+    }
+  }
+
 }
 
 unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size)
