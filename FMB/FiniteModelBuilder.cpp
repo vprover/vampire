@@ -264,7 +264,7 @@ void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size)
 
   //Use order of constants in _constants
   // If all constants have been used nothing to add
-  if(_constants.size() >= size) return;
+  if(_constants.size() <= size) return;
 
   // First add restricted totality for constants (TODO remove totality for constants?)
   // i.e. for constant a1 add { a1=1 } and for a2 add { a2=1, a2=2 } and so on
@@ -285,20 +285,23 @@ void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size)
   addSATClause(satCl);
 
   // Now new add canonicity clauses of the form
-  // ai = d => a1=d | a2=d | ... ai-1 =d
+  // ai = d => a1=d | a2=d-1 | ... ai-1 =d-1
+  // for i=size and d>1
   // i.e. if this constant is equal to d then there is a smaller one that is
   // only do this for i>1
   if(size > 1){
-    for(unsigned i=1;i<size;i++){
+    for(unsigned d=1;d<size;d++){
       satClauseLits.reset();
 
-      Term* ci = SubstCombination::getConstant(i+1); 
-      Literal* l = Literal::createEquality(false,TermList(c1),TermList(ci),sort); 
+      Term* cd = SubstCombination::getConstant(d+1); 
+      Term* cdm = SubstCombination::getConstant(d); 
+
+      Literal* l = Literal::createEquality(false,TermList(c1),TermList(cd),sort); 
       satClauseLits.push(getSATLiteral(l));
 
-      for(unsigned d=1;d<i;d++){
-        Term* cd = SubstCombination::getConstant(d+1);
-        l = Literal::createEquality(true,TermList(c1),TermList(cd),sort);
+      for(unsigned i=0;i<size-1;i++){
+        Term* ci = _constants[i]; 
+        l = Literal::createEquality(true,TermList(ci),TermList(cdm),sort);
         satClauseLits.push(getSATLiteral(l));
       }
 
@@ -429,6 +432,8 @@ MainLoopResult FiniteModelBuilder::runImpl()
     addNewInstances(modelSize);
     //cout << "FUNC DEFS" << endl;
     addNewFunctionalDefs(modelSize);
+    //cout << "SYM DEFS" << endl;
+    addNewSymmetryAxioms(modelSize);
     //cout << "TOTAL DEFS" << endl;
     domSizeVar = addNewTotalityDefs(modelSize);
 
