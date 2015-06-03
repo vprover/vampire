@@ -795,6 +795,12 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList body, TermL
     distinctVars.insert(vit.next());
   }
   ASS_EQ(distinctVars.size(), variables->length());
+
+  if (body.isTerm() && body.term()->isFormula()) {
+    ASS_EQ(env.signature->predicateArity(functor), (unsigned)variables->length());
+  } else {
+    ASS_EQ(env.signature->functionArity(functor), (unsigned)variables->length());
+  }
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
