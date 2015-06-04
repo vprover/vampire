@@ -82,7 +82,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
     return cl;
   }
    
-  if(!_avatarAssumptions && cl->splits() && cl->splits()->size()!=0) {
+  if(!_splittingAssumps && cl->splits() && cl->splits()->size()!=0) {
     return cl;
   }
   
@@ -93,7 +93,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
   plits.reset();
   
   // assumptions corresponding to the negation of the new prop clause
-  // (and perhaps additional ones used to "activate" avatar-conditional clauses)
+  // (and perhaps additional ones used to "activate" AVATAR-conditional clauses)
   static SATLiteralStack assumps;
   assumps.reset();
   
@@ -115,7 +115,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
   //
   // also keep filling assumps for gsaa=crom_curent
   if (cl->splits() && cl->splits()->size()!=0) {
-    ASS(_avatarAssumptions);
+    ASS(_splittingAssumps);
     
     SplitSet::Iterator sit(*cl->splits());
     while(sit.hasNext()) {
@@ -131,7 +131,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
   
   // for gsaa=full_model, assume all active split levels instead
   if (_splitter) {
-    ASS(_avatarAssumptions);
+    ASS(_splittingAssumps);
     
     SplitLevel bound = _splitter->splitLevelBound();
     for (SplitLevel lev = 0; lev < bound; lev++) {
@@ -158,22 +158,28 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
   if (res == SATSolver::UNSATISFIABLE) { 
     // it should always be UNSAT with full assumps,
     // but we may not get that far with limited solving power (_uprOnly)    
-    
+
     const SATLiteralStack& failed = solver.failedAssumptions();
 
     if (failed.size() < assumps.size()) {
       // proper subset sufficed for UNSAT - that's the interesting case
-      
       const SATLiteralStack& failedFinal = _explicitMinim ? solver.explicitlyMinimizedFailedAssumptions(_uprOnly,_randomizeMinim) : failed;
 
       static LiteralStack survivors;
       survivors.reset();
 
+      static Set<SATLiteral> splitAssumps;
+      splitAssumps.reset();
+
       for (unsigned i = 0; i < failedFinal.size(); i++) {
+        SATLiteral olit = failedFinal[i].opposite(); // back to the original polarity
+
         Literal* lit;
-        if (lookup.find(failedFinal[i].opposite(),lit)) { // back to the original polarity to lookup the corresponding FO literal
+        if (lookup.find(olit,lit)) { // lookup the corresponding FO literal
           survivors.push(lit);
-        } // otherwise it was a split level assumption
+        } else { // otherwise it was a split level assumption
+          splitAssumps.insert(olit);
+        }
       }
 
       // this is the main check -- whether we have a proper subclause (no matter the split level assumptions)
@@ -201,12 +207,9 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
               SplitLevel lev;
               if (isSplitLevelVar(lit.var(),lev)) {
                 ASS(lit.isNegative());
-                if (_splitter && !_splitter->splitLevelActive(lev)) {
+                if (!splitAssumps.contains(lit)) {
                   return false;
                 }
-                if (!_splitter && !cl->splits()->member(lev)) {
-                  return false;
-                }               
               }
             }
             return true;

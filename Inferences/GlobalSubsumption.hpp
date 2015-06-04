@@ -31,7 +31,7 @@ public:
       _uprOnly(opts.globalSubsumptionSatSolverPower()==Options::GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY),
       _explicitMinim(opts.globalSubsumptionExplicitMinim()!=Options::GlobalSubsumptionExplicitMinim::OFF),
       _randomizeMinim(opts.globalSubsumptionExplicitMinim()==Options::GlobalSubsumptionExplicitMinim::RANDOMIZED),
-      _avatarAssumptions(opts.globalSubsumptionAvatarAssumptions()!= Options::GlobalSubsumptionAvatarAssumptions::OFF),
+      _splittingAssumps(opts.globalSubsumptionAvatarAssumptions()!= Options::GlobalSubsumptionAvatarAssumptions::OFF),
       _splitter(0) {}
 
   /**
@@ -68,7 +68,7 @@ private:
   /**
    * Implement conditional GS when running with AVATAR.
    */
-  bool _avatarAssumptions;
+  bool _splittingAssumps;
 
   /*
    * GS needs a splitter when FULL_MODEL value is specified for the interaction with AVATAR.
@@ -82,22 +82,22 @@ private:
    * 
    * (Should this be rather a part of _index?)
    */
-  DHMap<unsigned, unsigned> _levels2vars;
+  DHMap<unsigned, unsigned> _splits2vars;
   
   /**
    * An inverse of the above map, for convenience.
    */  
-  DHMap<unsigned, unsigned> _vars2levels;
+  DHMap<unsigned, unsigned> _vars2splits;
       
 protected:  
   unsigned splitLevelToVar(SplitLevel lev) {        
     CALL("GlobalSubsumption::splitLevelToVar");
     unsigned* pvar;
               
-    if(_levels2vars.getValuePtr(lev, pvar)) { 
+    if(_splits2vars.getValuePtr(lev, pvar)) {
       SATSolver& solver = _index->getSolver();
       *pvar = solver.newVar();
-      ALWAYS(_vars2levels.insert(*pvar,lev));
+      ALWAYS(_vars2splits.insert(*pvar,lev));
     }
     
     return *pvar;
@@ -106,7 +106,7 @@ protected:
   bool isSplitLevelVar(unsigned var, SplitLevel& lev) {
     CALL("GlobalSubsumption::isSplitLevelVar");
     
-    return _vars2levels.find(var,lev);
+    return _vars2splits.find(var,lev);
   }
 };
 
