@@ -11,6 +11,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/Substitution.hpp"
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/TWLSolver.hpp"
@@ -34,8 +35,12 @@
 namespace FMB 
 {
 
+Array<Term*> FiniteModelBuilder::_modelConstants;
+unsigned FiniteModelBuilder::created=0;
+unsigned FiniteModelBuilder::fchecked=0;
+
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
-: MainLoop(prb, opt), _maxSatVar(1), _clauses(0), _functionDefinitionClauses(0)
+: MainLoop(prb, opt), _maxSatVar(1), _clauses(0), _functionDefinitionClauses(0), _singleArityFunction(0)
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
 
@@ -57,6 +62,36 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   }
 
 }
+
+Term* FiniteModelBuilder::getConstant(unsigned constant)
+{
+  CALL("FiniteModelBuilder::getConstant");
+      while(constant >= created){
+        vstring name;
+        bool found=false;
+
+// This is the code that makes us reuse constants in the problem
+// turned off for now as output is clearer without it
+/*
+        while(!found && fchecked<env.signature->functions()){
+          fchecked++;
+          Signature::Symbol* fun = env.signature->getFunction(fchecked); 
+          if(fun->arity()==0){
+            found=true;
+            name=fun->name(); 
+          }
+        }
+*/
+        if(!found){
+          name = "fmb_" + Lib::Int::toString(created);
+        }
+        _modelConstants[created] = Term::createConstant(name);
+        created++;
+      }
+      return _modelConstants[constant];
+
+}
+
 
 void FiniteModelBuilder::init()
 {
@@ -150,6 +185,10 @@ initLoop:
     //record constants
     if(fun->arity()==0){
       _constants.push(Term::createConstant(f));
+    }
+    //record first single arity function
+    if(!_singleArityFunction && fun->arity()==1){
+      _singleArityFunction = Term::create(f,1,args);
     }
   }
 
@@ -262,9 +301,40 @@ void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size)
 {
   CALL("FiniteModelBuilder::addNewSymmetryAxioms");
 
-  //Use order of constants in _constants
-  // If all constants have been used nothing to add
-  if(_constants.size() <= size) return;
+  // If all constants have been used then start adding function symmetries
+  if(_constants.size() <= size){
+    if(!_singleArityFunction) return; //TODO create one by i.e. f(x) = g(x,x)
+    if(_constants.size()==0) return;  //TODO create a fake constant
+
+    // now add clause
+    // f(c)=1 | f(c)=2 | f(c)=3 | ... | f(c)=size
+    // where we take c to be size-k for k constants
+    // TODO, consider if there is something better we can add
+
+    int ci = (size-_constants.size());
+    ASS(ci >= 0);
+    Term* c = getConstant(ci+1);
+    Substitution s;
+    s.bind(0,c);
+    Term* fc = SubstHelper::apply(_singleArityFunction,s);
+    unsigned sort = SortHelper::getResultSort(fc);
+
+    static SATLiteralStack satClauseLits;
+    satClauseLits.reset();
+
+    for(unsigned i=0;i<size;i++){
+      Term* c2 = getConstant(i+1); 
+      Literal* l = Literal::createEquality(true,TermList(fc),TermList(c2),sort);
+      SATLiteral sl = getSATLiteral(l);
+      satClauseLits.push(sl);
+    }
+    
+    SATClause* satCl = SATClause::fromStack(satClauseLits);
+    addSATClause(satCl);
+
+    // do not add any constant symmetries
+    return;
+  }
 
   // First add restricted totality for constants (TODO remove totality for constants?)
   // i.e. for constant a1 add { a1=1 } and for a2 add { a2=1, a2=2 } and so on
@@ -276,7 +346,7 @@ void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size)
   static SATLiteralStack satClauseLits;
   satClauseLits.reset(); 
   for(unsigned i=0;i<size;i++){
-    Term* c2 = SubstCombination::getConstant(i+1); 
+    Term* c2 = getConstant(i+1); 
     Literal* l = Literal::createEquality(true,TermList(c1),TermList(c2),sort);
     SATLiteral sl = getSATLiteral(l);
     satClauseLits.push(sl);
@@ -293,8 +363,8 @@ void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size)
     for(unsigned d=1;d<size;d++){
       satClauseLits.reset();
 
-      Term* cd = SubstCombination::getConstant(d+1); 
-      Term* cdm = SubstCombination::getConstant(d); 
+      Term* cd = getConstant(d+1); 
+      Term* cdm = getConstant(d); 
 
       Literal* l = Literal::createEquality(false,TermList(c1),TermList(cd),sort); 
       satClauseLits.push(getSATLiteral(l));
@@ -333,7 +403,7 @@ unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size)
       satClauseLits.reset();
       satClauseLits.push(domSizeLit);
       for(unsigned i=0;i<size;i++){
-        Term* c = SubstCombination::getConstant(i+1);
+        Term* c = getConstant(i+1);
         Literal* lit = Literal::createEquality(true,TermList(t),TermList(c),rSort);
         SATLiteral slit = getSATLiteral(lit);
         satClauseLits.push(slit);
@@ -358,7 +428,7 @@ unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size)
       // Ground and translate each literal into a SATLiteral
       for(unsigned i=0;i<size;i++){
         // constants are 1-based
-        Term* c = SubstCombination::getConstant(i+1);
+        Term* c = getConstant(i+1);
         Literal* lit = Literal::createEquality(true,TermList(tsub),TermList(c),rSort);
         SATLiteral slit = getSATLiteral(lit);
         satClauseLits.push(slit);

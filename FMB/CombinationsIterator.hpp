@@ -12,6 +12,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/DArray.hpp"
 
+#include "FiniteModelBuilder.hpp"
 #include "Forwards.hpp"
 
 namespace FMB {
@@ -25,7 +26,7 @@ namespace FMB {
     TermList apply(unsigned var){
       CALL("SubstCombination::apply");
       ASS_L(var,_ar.size());
-      Term* t = getConstant(_ar[var]);
+      Term* t = FiniteModelBuilder::getConstant(_ar[var]);
       ASS(t);
       return TermList(t);
     }
@@ -36,42 +37,10 @@ namespace FMB {
       cout << endl;
     }
 #endif
-
-//TODO - this should all be moved elsewhere!!
-    static Term* getConstant(unsigned constant){
-      CALL("SubstCombination::getConstant");
-      while(constant >= created){
-        vstring name; 
-        bool found=false;
-/*
-        while(!found && fchecked<env.signature->functions()){
-          fchecked++;
-          Signature::Symbol* fun = env.signature->getFunction(fchecked); 
-          if(fun->arity()==0){
-            found=true;
-            name=fun->name(); 
-          }
-        }
-*/
-        if(!found){
-          name = "fmb_" + Lib::Int::toString(created);
-        }
-        constants[created] = Term::createConstant(name);
-        created++;
-      }
-      return constants[constant];
-    }
   private:
     DArray<unsigned> _ar;
-    static Array<Term*> constants;
-    static unsigned created;
-    static unsigned fchecked; 
   };
 
-  Array<Term*> SubstCombination::constants;
-  unsigned SubstCombination::created = 0;
-  unsigned SubstCombination::fchecked = 0;
-  
 
   class CombinationsIterator {
 

@@ -26,12 +26,16 @@ public:
   
   FiniteModelBuilder(Problem& prb, const Options& opt);
 
+  static Term* getConstant(unsigned i);
 
 protected:
   virtual void init();
   virtual MainLoopResult runImpl();
 
 private:
+  static Array<Term*> _modelConstants;
+  static unsigned created;
+  static unsigned fchecked;
 
   void addNewInstances(unsigned modelSize);
   void addNewFunctionalDefs(unsigned modelSize);
@@ -54,6 +58,7 @@ private:
   ClauseList* _functionDefinitionClauses;
   Stack<Term*> _totalityFunctions;
   Stack<Term*> _constants;
+  Term* _singleArityFunction;
 };
 
 }
