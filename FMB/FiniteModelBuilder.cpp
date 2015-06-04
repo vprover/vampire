@@ -488,6 +488,8 @@ MainLoopResult FiniteModelBuilder::runImpl()
 {
   CALL("FiniteModelBuilder::runImpl");
 
+  bool isEPR = env.property->category()==Property::EPR;
+
   unsigned modelSize = 1;
   int domSizeVar = -1;
   while(true){
@@ -535,6 +537,11 @@ MainLoopResult FiniteModelBuilder::runImpl()
       }
 
       return MainLoopResult(Statistics::SATISFIABLE);
+    }
+
+    // If it's EPR and we've used all the constants and not found a model then there is no model
+    if(isEPR && modelSize==_constants.length()){
+      return MainLoopResult(Statistics::REFUTATION); //TODO is REFUTATION the right one?
     }
 
     _solver->retractAllAssumptions();
