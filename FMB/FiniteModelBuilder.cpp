@@ -108,7 +108,11 @@ initLoop:
     //cout << "Flattened " << c->toString() << endl;
     ASS(c);
 
-    //TODO factr out
+    if(isRefutation(c)){
+      throw RefutationFoundException(c);
+    }
+
+    //TODO factor out
     if(c->varCnt()==0){
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
