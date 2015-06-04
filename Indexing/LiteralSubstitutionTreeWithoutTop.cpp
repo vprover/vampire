@@ -18,9 +18,9 @@ namespace Indexing
 {
 
 LiteralSubstitutionTreeWithoutTop::LiteralSubstitutionTreeWithoutTop()
-: SubstitutionTree(0) // We will not be using _nodes, instead we will use _root
+: SubstitutionTree(0), _root(0) // We will not be using _nodes, instead we will use _root
 {
-  _root = createLeaf();
+  _nextVar=1;
 }
 
 void LiteralSubstitutionTreeWithoutTop::insert(Literal* lit, Clause* cls)
@@ -38,11 +38,12 @@ void LiteralSubstitutionTreeWithoutTop::remove(Literal* lit, Clause* cls)
 void LiteralSubstitutionTreeWithoutTop::handleLiteral(Literal* lit, Clause* cls, bool insert)
 {
   CALL("LiteralSubstitutionTreeWithoutTop::handleLiteral");
+  cout << "handle in " << this << endl;
 
   Literal* normLit=Renaming::normalize(lit);
 
   BindingMap svBindings;
-  getBindings(normLit, svBindings);
+  svBindings.insert(0,TermList(normLit));
   if(insert) {
     SubstitutionTree::insert(&_root, svBindings, LeafData(cls, lit));
   } else {
@@ -188,6 +189,10 @@ SLQueryResultIterator LiteralSubstitutionTreeWithoutTop::getVariants(Literal* li
 {
   CALL("LiteralSubstitutionTreeWithoutTop::getVariants");
 
+  if(_root==0) {
+    return SLQueryResultIterator::getEmpty();
+  }
+
   if(_root->isLeaf()) {
     LDIterator ldit=static_cast<Leaf*>(_root)->allChildren();
     if(retrieveSubstitutions) {
@@ -201,8 +206,8 @@ SLQueryResultIterator LiteralSubstitutionTreeWithoutTop::getVariants(Literal* li
   Literal* normLit=Renaming::normalize(lit);
 
   BindingMap svBindings;
-  getBindings(normLit, svBindings);
-  Leaf* leaf=findLeaf(_root,svBindings);
+  svBindings.insert(0,TermList(normLit));
+  Leaf* leaf = findLeaf(_root,svBindings);
   if(leaf==0) {
     return SLQueryResultIterator::getEmpty();
   }
@@ -256,6 +261,10 @@ SLQueryResultIterator LiteralSubstitutionTreeWithoutTop::getResultIterator(Liter
 {
   CALL("LiteralSubstitutionTreeWithoutTop::getResultIterator");
 
+  if(_root==0) {
+    return SLQueryResultIterator::getEmpty();
+  }
+
   if(_root->isLeaf()) {
     LDIterator ldit=static_cast<Leaf*>(_root)->allChildren();
     if(retrieveSubstitutions) {
@@ -268,9 +277,9 @@ SLQueryResultIterator LiteralSubstitutionTreeWithoutTop::getResultIterator(Liter
 
   if(lit->commutative()) {
     VirtualIterator<QueryResult> qrit1=vi(
-  	    new Iterator(this, _root, lit, retrieveSubstitutions) );
+  	    new Iterator(this, _root, lit, retrieveSubstitutions,false, true) );
     VirtualIterator<QueryResult> qrit2=vi(
-  	    new Iterator(this, _root, lit, retrieveSubstitutions, true) );
+  	    new Iterator(this, _root, lit, retrieveSubstitutions, true, true) );
     ASS(lit->isEquality());
     return pvi(
 	getFilteredIterator(
@@ -280,7 +289,7 @@ SLQueryResultIterator LiteralSubstitutionTreeWithoutTop::getResultIterator(Liter
 	);
   } else {
     VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
-  	    new Iterator(this, _root, lit, retrieveSubstitutions) );
+  	    new Iterator(this, _root, lit, retrieveSubstitutions,false,true) );
     return pvi( getMappingIterator(qrit, SLQueryResultFunctor()) );
   }
 }

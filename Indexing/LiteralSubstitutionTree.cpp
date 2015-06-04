@@ -277,9 +277,9 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
 
   if(lit->commutative()) {
     VirtualIterator<QueryResult> qrit1=vi(
-  	    new Iterator(this, root, lit, retrieveSubstitutions) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions, false, false) );
     VirtualIterator<QueryResult> qrit2=vi(
-  	    new Iterator(this, root, lit, retrieveSubstitutions, true) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions, true, false) );
     ASS(lit->isEquality());
     return pvi(
 	getFilteredIterator(
@@ -289,7 +289,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
 	);
   } else {
     VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
-  	    new Iterator(this, root, lit, retrieveSubstitutions) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions,false,false) );
     return pvi( getMappingIterator(qrit, SLQueryResultFunctor()) );
   }
 }

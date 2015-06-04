@@ -339,8 +339,7 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
  * If @b reversed If true, parameters of supplied binary literal are
  * 	reversed. (useful for retrieval commutative terms)
  */
-SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed)
+SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop)
 : _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _root(root), _tree(parent),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
@@ -355,12 +354,18 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Subst
 
   _subst=new GenMatcher(query,parent->_nextVar);
 
-  if(reversed) {
-    createReversedInitialBindings(query);
-  } else {
-    createInitialBindings(query);
+  if(withoutTop){
+    _subst->bindSpecialVar(0,TermList(query));
+  }else{
+   if(reversed) {
+     createReversedInitialBindings(query);
+   } else {
+     createInitialBindings(query);
+   }
   }
 }
+
+
 
 SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
 {
