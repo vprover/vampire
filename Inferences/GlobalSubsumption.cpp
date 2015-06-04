@@ -187,7 +187,14 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
           // Some solvers may return "all the clauses added so far" in the refutation.
           // That must be filtered since a derived clause cannot depend on inactive splits
           [this,cl] (SATClause* prem) {
-            // don't keep any premise which mentions an unassumed split level assumption
+
+            // ignore ASSUMPTION clauses (they don't have FO premises anyway)
+            if (prem->inference()->getType() == SATInference::ASSUMPTION) {
+              ASS_EQ(prem->size(),1);
+              return false;
+            }
+
+            // and don't keep any premise which mentions an unassumed split level assumption
             unsigned prem_sz = prem->size();
             for (unsigned i = 0; i < prem_sz; i++ ) {
               SATLiteral lit = (*prem)[i];
