@@ -164,7 +164,7 @@ public:
 
   bool hasInterpretedOperation(Interpretation i) const { return _interpretationPresence[i]; }
   //bool hasArrayOperation(Interpretation i) const { return true; }
-  /** Problem contains an interpreted symbol different from equality */
+  /** Problem contains an interpreted symbol including equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
@@ -237,7 +237,7 @@ public:
   /** CASC category of the problem, computed by read() */
   Category _category;
 
-  /** Problem contains an interpreted symbol different from equality */
+  /** Problem contains an interpreted symbol including equality */
   bool _hasInterpreted;
   /** Problem contains non-default sorts */
   bool _hasNonDefaultSorts;

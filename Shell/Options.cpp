@@ -705,6 +705,13 @@ void Options::Options::init()
 
 //*********************** Inferences  ***********************
 
+    _instantiation = BoolOptionValue("instantiation","inst",false);
+    _instantiation.description = "Heuristically instantiate variables"
+                                 ", note that this is often at odds with forward subsumption.";
+    _instantiation.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_instantiation);
+    _instantiation.setRandomChoices({"off","off","off","off","off","off","off","off","off","on"}); // Turn this on rarely
+
     _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
                                                             Demodulation::ALL,
                                                             {"all","off","preordered"});
@@ -847,6 +854,7 @@ void Options::Options::init()
     _forwardSubsumption.description="";
     _lookup.insert(&_forwardSubsumption);
     _forwardSubsumption.tag(OptionTag::INFERENCES);
+    _forwardSubsumption.setRandomChoices({"on","on","on","on","on","on","on","on","on","off"}); // turn this off rarely
 
     _forwardSubsumptionResolution = BoolOptionValue("forward_subsumption_resolution","fsr",true);
     _forwardSubsumptionResolution.description="";
@@ -1188,11 +1196,21 @@ void Options::Options::init()
     _satRestartStrategy.tag(OptionTag::SAT);
 
     _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::VAMPIRE,
-                                              {"buf_lingeling","buf_minisat","buf_vampire","lingeling","minisat","vampire"});
+#if VZ3
+            {"buf_lingeling","buf_minisat","buf_vampire","lingeling","minisat","vampire","z3"});
+#else
+            {"buf_lingeling","buf_minisat","buf_vampire","lingeling","minisat","vampire"});
+#endif
     _satSolver.description=
     "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption. The buf options are experimental (they add buffering).";
     _lookup.insert(&_satSolver);
     _satSolver.tag(OptionTag::SAT);
+    _satSolver.setRandomChoices(
+#if VZ3
+            {"buf_lingeling","buf_minisat","buf_vampire","lingeling","minisat","vampire","z3"});
+#else
+            {"buf_lingeling","buf_minisat","buf_vampire","lingeling","minisat","vampire"});
+#endif
 
     _satVarActivityDecay = FloatOptionValue("sat_var_activity_decay","",1.05f);
     _satVarActivityDecay.description="";

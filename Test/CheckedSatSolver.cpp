@@ -29,6 +29,7 @@ void CheckedSatSolver::ensureVarCnt(unsigned newVarCnt)
 void CheckedSatSolver::addClauses(SATClauseIterator cit)
 {
   CALL("CheckedSatSolver::addClauses");
+  ASS(_inner);
 
   static SATClauseStack newClauses;
   newClauses.reset();

@@ -21,6 +21,7 @@
 #include "Indexing/IndexManager.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Inferences/Instantiation.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -186,6 +187,7 @@ protected:
   ConsequenceFinder* _consFinder;
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
+  Instantiation* _instantiation;
 
 
   SubscriptionData _passiveContRemovalSData;

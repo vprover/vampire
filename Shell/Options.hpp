@@ -336,6 +336,9 @@ public:
      LINGELING = 3,
      MINISAT = 4,
      VAMPIRE = 5
+#if VZ3
+     ,Z3 = 6
+#endif
   };
 
   /** Possible values for saturation_algorithm */
@@ -1743,6 +1746,7 @@ public:
   int tabulationLemmaAgeRatio() const { return _tabulationLemmaAgeWeightRatio.actualValue; }
   int tabulationLemmaWeightRatio() const { return _tabulationLemmaAgeWeightRatio.otherValue; }
 
+  bool instantiation() const { return _instantiation.actualValue; }
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenInprocessing() const { return _instGenInprocessing.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -1992,6 +1996,7 @@ private:
   BoolOptionValue _increasedNumeralWeight;
   IntOptionValue _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
+  BoolOptionValue _instantiation;
   FloatOptionValue _instGenBigRestartRatio;
   BoolOptionValue _instGenInprocessing;
   BoolOptionValue _instGenPassiveReactivation;

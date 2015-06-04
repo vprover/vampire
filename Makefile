@@ -13,6 +13,8 @@
 #   IS_LINGVA 	     - this allows the compilation of lingva. 
 #   GNUMPF           - this option allows us to compile with bound propagation or without it ( value 1 or 0 ) 
 #                      Importantly, it includes the GNU Multiple Precision Arithmetic Library (GMP)
+#   VZ3              - compile with Z3
+
 GNUMPF = 0
 DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
@@ -62,27 +64,43 @@ XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging onl
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
+INCLUDES= -I.
+Z3FLAG= -DVZ3=0
+Z3LIB=
+ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
+INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ 
+ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
+Z3LIB= -lz3 -lgomp -lpthread -lrt
+else
+Z3LIB= -lz3
+endif
+Z3FLAG= -DVZ3=1
+endif
+
+ifneq (,$(filter vtest%,$(MAKECMDGOALS)))
+XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
+endif
 ifneq (,$(filter %_dbg,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0
+XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
 endif
 ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0
+XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
 ifneq (,$(filter %_dbg_gcov,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0 $(GCOV_FLAGS)
+XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0 $(GCOV_FLAGS) $(Z3FLAG)
 endif
 ifneq (,$(filter %_rel_gcov,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0 $(GCOV_FLAGS)
+XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0 $(GCOV_FLAGS) $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
 ifneq (,$(filter %_dbg_static,$(MAKECMDGOALS)))
-XFLAGS = -static $(DBG_FLAGS) -DIS_LINGVA=0 
+XFLAGS = -static $(DBG_FLAGS) -DIS_LINGVA=0  $(Z3FLAG)
 endif
 ifneq (,$(filter %_rel_static,$(MAKECMDGOALS)))
-XFLAGS = -static $(REL_FLAGS) -DIS_LINGVA=0
+XFLAGS = -static $(REL_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
@@ -98,7 +116,6 @@ ifneq (,$(filter libvapi_dbg,$(MAKECMDGOALS)))
 XFLAGS = $(DBG_FLAGS) -DVAPI_LIBRARY=1 -DIS_LINGVA=0 -fPIC 
 endif
 
-INCLUDES = -I.
 ifneq (,$(filter lingva_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS) $(LLVM_FLAGS) -DIS_LINGVA=1
 INCLUDES = -I. -ISrcInclude -IBuildInclude
@@ -251,6 +268,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/GlobalSubsumption.o\
          Inferences/HyperSuperposition.o\
          Inferences/InferenceEngine.o\
+	 Inferences/Instantiation.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/RefutationSeekerFSE.o\
          Inferences/SLQueryBackwardSubsumption.o\
@@ -272,6 +290,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/TWLSolver.o\
          SAT/VariableSelector.o\
          SAT/LingelingInterfacing.o\
+	 SAT/Z3Interfacing.o\
          SAT/lglib.o\
 	 SAT/BufferedSolver.o
 #         SAT/SATClauseSharing.o\
@@ -605,8 +624,9 @@ ifneq (,$(filter 1,$(GNUMPF)))
 -lgmpxx: 
 LGMP = -lgmp -lgmpxx
 endif 
+
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(LGMP)
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(LGMP) $(Z3LIB)
 @#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
 @#strip $@
 endef
@@ -660,7 +680,7 @@ EXEC_DEF_PREREQ = Makefile
 lingva lingva_rel lingva_dbg: $(LINGVA_OBJ) $(EXEC_DEF_PREREQ)
 	$(LLVM_COMPILE_CMD)
 
-vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
+vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov vampire_z3_dbg vampire_z3_rel vampire_z3_dbg_static vampire_z3_dbg_gcov vampire_z3_rel_static vampire_z3_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vampire: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
@@ -675,7 +695,7 @@ vltb vltb_rel vltb_dbg: -lmemcached $(VLTB_OBJ) $(EXEC_DEF_PREREQ)
 vclausify vclausify_rel vclausify_dbg: $(VCLAUSIFY_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
-vtest vtest_rel vtest_dbg: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
+vtest vtest_z3: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vutil vutil_rel vutil_dbg: $(VUTIL_OBJ) $(EXEC_DEF_PREREQ)
