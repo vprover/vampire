@@ -966,7 +966,7 @@ void Options::Options::init()
     _instGenWithResolution.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     _instGenWithResolution.setRandomChoices({"on","off"});
 
-    _use_dm = BoolOptionValue("use_dismatching","",false);
+    _use_dm = BoolOptionValue("use_dismatching","dm",false);
     _use_dm.description="";
     _lookup.insert(&_use_dm);
     _use_dm.tag(OptionTag::INST_GEN);
