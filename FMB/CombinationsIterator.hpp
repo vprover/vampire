@@ -42,6 +42,7 @@ namespace FMB {
   };
 
 
+  //TODO mark as an actual iterator?
   class CombinationsIterator {
 
   public:

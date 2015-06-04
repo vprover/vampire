@@ -251,6 +251,8 @@ public:
     FMB_FLATTENING,
     /* Functional definition for FMB */
     FMB_FUNC_DEF,
+    /* Definition Introduction for FMB */
+    FMB_DEF_INTRO, 
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

@@ -403,6 +403,8 @@ vstring Inference::ruleName(Rule rule)
     return "flattening (finite model building)";
   case FMB_FUNC_DEF:
     return "functional definition (finite model building)";
+  case FMB_DEF_INTRO:
+    return "definition introduction (finite model building)";
 
   default:
     ASSERTION_VIOLATION;

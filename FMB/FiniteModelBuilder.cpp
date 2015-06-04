@@ -29,6 +29,7 @@
 
 #include "ClauseFlattening.hpp"
 #include "CombinationsIterator.hpp"
+#include "DefinitionIntroduction.hpp"
 #include "FiniteModelBuilder.hpp"
 
 
@@ -97,8 +98,9 @@ void FiniteModelBuilder::init()
 {
   CALL("FiniteModelBuilder::init");
 
-  // Preprocess all clauses
-  ClauseIterator cit = _prb.clauseIterator();
+  // Perform DefinitionIntroduction as we iterate
+  // over the clauses of the problem
+  DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
 initLoop:
   while(cit.hasNext()){
     Clause* c = cit.next();
