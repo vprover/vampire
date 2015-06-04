@@ -18,7 +18,7 @@ namespace Indexing
 {
 
 LiteralSubstitutionTreeWithoutTop::LiteralSubstitutionTreeWithoutTop()
-: SubstitutionTree(0), _root(0) // We will not be using _nodes, instead we will use _root
+: SubstitutionTree(0), _posRoot(0), _negRoot(0) // We will not be using _nodes, instead we will use _root
 {
   _nextVar=1;
 }
@@ -38,9 +38,11 @@ void LiteralSubstitutionTreeWithoutTop::remove(Literal* lit, Clause* cls)
 void LiteralSubstitutionTreeWithoutTop::handleLiteral(Literal* lit, Clause* cls, bool insert)
 {
   CALL("LiteralSubstitutionTreeWithoutTop::handleLiteral");
-  cout << "handle in " << this << endl;
-
+  //cout << "handle in " << this << endl;
+  
   Literal* normLit=Renaming::normalize(lit);
+
+  Node* _root = lit->polarity() ? _posRoot : _negRoot;
 
   BindingMap svBindings;
   svBindings.insert(0,TermList(normLit));
@@ -189,6 +191,8 @@ SLQueryResultIterator LiteralSubstitutionTreeWithoutTop::getVariants(Literal* li
 {
   CALL("LiteralSubstitutionTreeWithoutTop::getVariants");
 
+  Node* _root = lit->polarity() ? _posRoot : _negRoot; 
+
   if(_root==0) {
     return SLQueryResultIterator::getEmpty();
   }
@@ -260,6 +264,8 @@ SLQueryResultIterator LiteralSubstitutionTreeWithoutTop::getResultIterator(Liter
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTreeWithoutTop::getResultIterator");
+
+  Node* _root = lit->polarity() ? _posRoot : _negRoot;
 
   if(_root==0) {
     return SLQueryResultIterator::getEmpty();

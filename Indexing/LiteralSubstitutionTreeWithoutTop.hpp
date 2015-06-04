@@ -60,7 +60,8 @@ private:
   SLQueryResultIterator getResultIterator(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
 
-  Node* _root;
+  Node* _posRoot;
+  Node* _negRoot;
 };
 
 };
