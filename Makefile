@@ -69,7 +69,11 @@ Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
 INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ 
+ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
 Z3LIB= -lz3 -lgomp -lpthread -lrt
+else
+Z3LIB= -lz3
+endif
 Z3FLAG= -DVZ3=1
 endif
 
