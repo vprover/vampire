@@ -14,6 +14,9 @@
 #include "Shell/Skolem.hpp"
 
 #include "Signature.hpp"
+#include "SortHelper.hpp"
+#include "Sorts.hpp"
+#include "Term.hpp"
 
 #include "Theory.hpp"
 
@@ -1219,6 +1222,10 @@ bool Theory::isInterpretedPredicate(unsigned pred)
 bool Theory::isInterpretedPredicate(Literal* lit)
 {
   CALL("Theory::isInterpretedPredicate");
+
+  if(lit->isEquality()){
+    return SortHelper::getEqualityArgumentSort(lit)!=Sorts::SRT_DEFAULT;
+  }
 
   return isInterpretedPredicate(lit->functor());
 }

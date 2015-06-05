@@ -493,7 +493,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
   unsigned modelSize = 1;
   int domSizeVar = -1;
   while(true){
-    cout << "TRYING " << modelSize << endl;
+    //cout << "TRYING " << modelSize << endl;
     Timer::syncClock();
     if(env.timeLimitReached()){ return MainLoopResult(Statistics::TIME_LIMIT); }
 
@@ -523,15 +523,18 @@ MainLoopResult FiniteModelBuilder::runImpl()
     // if the clauses are satisfiable then we have found a finite model
     if(_solver->solve() == SATSolver::SATISFIABLE){
 
-      cout << "Found model of size " << modelSize << endl;
-      for(unsigned i=1;i<_maxSatVar;i++){
-        Literal* lit;
-        if(_revLookup.find(i,lit)){
-          bool pol = _solver->trueInAssignment(SATLiteral(i,true)); 
-          ASS(pol || !lit->isEquality() || lit->nthArgument(0)!=lit->nthArgument(1));
-          if(!pol) lit = Literal::complementaryLiteral(lit);
-          if(!lit->isEquality() || (pol && !EqHelper::isEqTautology(lit))){ 
-            cout << lit->toString() << endl;
+      if(env.options->mode()!=Options::Mode::SPIDER) {
+
+        cout << "Found model of size " << modelSize << endl;
+        for(unsigned i=1;i<_maxSatVar;i++){
+          Literal* lit;
+          if(_revLookup.find(i,lit)){
+            bool pol = _solver->trueInAssignment(SATLiteral(i,true)); 
+            ASS(pol || !lit->isEquality() || lit->nthArgument(0)!=lit->nthArgument(1));
+            if(!pol) lit = Literal::complementaryLiteral(lit);
+            if(!lit->isEquality() || (pol && !EqHelper::isEqTautology(lit))){ 
+              cout << lit->toString() << endl;
+            }
           }
         }
       }
