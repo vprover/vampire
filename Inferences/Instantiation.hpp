@@ -31,6 +31,7 @@ public:
   void registerClause(Clause* cl);
 
 private:
+  bool getRelevantTerms(Clause* cl,unsigned sort, Set<Term*>* candidates);
   VirtualIterator<Term*> getCandidateTerms(Clause* cl, unsigned var,unsigned sort);
   class AllSubstitutionsIterator;
   struct ResultFn;

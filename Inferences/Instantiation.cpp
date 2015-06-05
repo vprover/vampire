@@ -62,6 +62,44 @@ void Instantiation::registerClause(Clause* cl)
 
 }
 
+/**
+ * The idea is to find terms that will make a literal in the clause true or false
+ *
+ */
+bool Instantiation::getRelevantTerms(Clause* c, unsigned targetSort, Set<Term*>* candidates)
+{
+  CALL("Instantiation::getRelevantTerms");
+
+  bool added = false;
+  for(unsigned i=0;i<c->length();i++){
+    Literal* lit = (*c)[i];
+    if(theory->isInterpretedPredicate(lit)){ 
+      Interpretation interpretation = theory->interpretPredicate(lit);
+      unsigned sort = theory->getOperationSort(interpretation);
+      if(sort!=targetSort) continue;
+      //TODO, very limited consideration, expand
+      TermList* left = 0; TermList* right=0;
+      switch(interpretation){
+        case Theory::EQUAL:
+          left = lit->nthArgument(0); right = lit->nthArgument(1); 
+          if(left->isVar() && !right->isVar() && theory->isInterpretedConstant(right->term())){
+            added=true;
+            candidates->insert(right->term());
+          }
+          if(right->isVar() && !left->isVar() && theory->isInterpretedConstant(left->term())){
+            added=true;
+            candidates->insert(left->term());
+          }
+          break;
+
+        default: //TODO cover other cases
+          break;
+      }
+    }
+  }
+
+  return added;
+}
 
 struct IntToIntTermFn
 {
@@ -96,10 +134,15 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
   CALL("Instantiation::getCandidateTerms");
 
   Set<Term*>* cans;
-  if(!sorted_candidates.find(sort,cans)){
-    return VirtualIterator<Term*>::getEmpty();
+  VirtualIterator<Term*> res = VirtualIterator<Term*>::getEmpty();
+  if(sorted_candidates.find(sort,cans)){
+    res = pvi(Set<Term*>::Iterator(*cans));
   }
-  Set<Term*>::Iterator res(*cans);
+
+  Set<Term*>* relCans;
+  if(getRelevantTerms(cl,sort,relCans)){
+    res = pvi(getConcatenatedIterator(res,Set<Term*>::Iterator(*relCans))); 
+  }
 
   if(sort==Sorts::SRT_INTEGER){
     return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(0u,10u),IntToIntTermFn())));
