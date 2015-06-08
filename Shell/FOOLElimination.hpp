@@ -95,6 +95,10 @@ private:
   static const char* LET_PREFIX;
   static const char* BOOL_PREFIX;
 
+  // Report that a given formula or a term has been rewritten during defooling
+  // The term or formula is passed as its string representation
+  static void reportProcessed(vstring inputRepr, vstring outputRepr);
+
   /**
    * A helper class that performs replacement of all terms/literals of the form
    * f(t1, ..., tk) by g(X1, ..., Xn, t1, ..., tk) for given f, g and X1,...,Xn

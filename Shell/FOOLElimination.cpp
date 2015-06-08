@@ -157,9 +157,18 @@ Formula* FOOLElimination::process(Formula* formula) {
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
         if (lhs.isTerm() && lhs.term()->isFormula() && rhs.isTerm() && rhs.term()->isFormula()) {
-          Formula *lhsFormula = lhs.term()->getSpecialData()->getFormula();
-          Formula *rhsFormula = rhs.term()->getSpecialData()->getFormula();
-          return new BinaryFormula(literal->polarity() ? IFF : XOR, process(lhsFormula), process(rhsFormula));
+          Formula* lhsFormula = lhs.term()->getSpecialData()->getFormula();
+          Formula* rhsFormula = rhs.term()->getSpecialData()->getFormula();
+
+          Connective connective = literal->polarity() ? IFF : XOR;
+
+          Formula* processedFormula = new BinaryFormula(connective, process(lhsFormula), process(rhsFormula));
+
+          if (env.options->showPreprocessing()) {
+            reportProcessed(formula->toString(), processedFormula->toString());
+          }
+
+          return processedFormula;
         }
       }
 
@@ -172,22 +181,7 @@ Formula* FOOLElimination::process(Formula* formula) {
       Formula* processedFormula = new AtomicFormula(Literal::create(literal, arguments.begin()));
 
       if (env.options->showPreprocessing()) {
-        vstring inputRepr  = formula->toString();
-        vstring outputRepr = processedFormula->toString();
-        env.beginOutput();
-        if (inputRepr != outputRepr) {
-          /**
-           * If show_fool is set to off, the string representations of the input
-           * and the output of process() may in some cases coincide, despite the
-           * input and the output being different. Example: $term{$true} and
-           * $true. In order to avoid misleading log messages with the input and
-           * the output seeming the same, we will not log such processings at
-           * all. Setting show_fool to on, however, will display everything.
-           */
-          env.out() << "[PP] FOOL in:  " << inputRepr  << endl;
-          env.out() << "[PP] FOOL out: " << outputRepr << endl;
-        }
-        env.endOutput();
+        reportProcessed(formula->toString(), processedFormula->toString());
       }
 
       return processedFormula;
@@ -209,8 +203,15 @@ Formula* FOOLElimination::process(Formula* formula) {
     case EXISTS:
       return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
 
-    case BOOL_TERM:
-      return processAsFormula(formula->getBooleanTerm());
+    case BOOL_TERM: {
+      Formula* processedFormula = processAsFormula(formula->getBooleanTerm());
+
+      if (env.options->showPreprocessing()) {
+        reportProcessed(formula->toString(), processedFormula->toString());
+      }
+
+      return processedFormula;
+    }
 
     case TRUE:
     case FALSE:
@@ -622,22 +623,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
     }
 
     if (env.options->showPreprocessing()) {
-      vstring inputRepr  = term->toString();
-      vstring outputRepr = context == FORMULA_CONTEXT ? formulaResult->toString() : termResult.toString();
-      if (inputRepr != outputRepr) {
-        /**
-         * If show_fool is set to off, the string representations of the input
-         * and the output of process() may in some cases coincide, despite the
-         * input and the output being different. Example: $term{$true} and
-         * $true. In order to avoid misleading log messages with the input and
-         * the output seeming the same, we will not log such processings at
-         * all. Setting show_fool to on, however, will display everything.
-         */
-        env.beginOutput();
-        env.out() << "[PP] FOOL in:  " << inputRepr  << endl;
-        env.out() << "[PP] FOOL out: " << outputRepr << endl;
-        env.endOutput();
-      }
+      reportProcessed(term->toString(), context == FORMULA_CONTEXT ? formulaResult->toString() : termResult.toString());
     }
   }
 
@@ -851,6 +837,25 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
   }
 
   return symbol;
+}
+
+void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
+  CALL("FOOLElimination::reportProcessed");
+
+  if (inputRepr != outputRepr) {
+    /**
+     * If show_fool is set to off, the string representations of the input
+     * and the output of process() may in some cases coincide, despite the
+     * input and the output being different. Example: $term{$true} and
+     * $true. In order to avoid misleading log messages with the input and
+     * the output seeming the same, we will not log such processings at
+     * all. Setting show_fool to on, however, will display everything.
+     */
+    env.beginOutput();
+    env.out() << "[PP] FOOL in:  " << inputRepr  << endl;
+    env.out() << "[PP] FOOL out: " << outputRepr << endl;
+    env.endOutput();
+  }
 }
 
 Term* FOOLElimination::SymbolOccurrenceReplacement::process(Term* term) {
