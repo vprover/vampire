@@ -84,6 +84,17 @@ private:
   // Converts a boolean term t to a formula 't = true'
   static Formula* toEquality(TermList booleanTerm);
 
+  // Introduces a fresh predicate or function (depending on the context) symbol
+  // with given arguments and result sort
+  static unsigned introduceFreshSymbol(Context context, const char* prefix,
+                                       Stack<unsigned> sorts, unsigned resultSort);
+
+  // In order to add some meaning to a fresh symbol we prefix it with a given string
+  // Three different prefixes for three kinds of fresh symbols
+  static const char* ITE_PREFIX;
+  static const char* LET_PREFIX;
+  static const char* BOOL_PREFIX;
+
   /**
    * A helper class that performs replacement of all terms/literals of the form
    * f(t1, ..., tk) by g(X1, ..., Xn, t1, ..., tk) for given f, g and X1,...,Xn

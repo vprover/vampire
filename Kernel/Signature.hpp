@@ -329,11 +329,6 @@ class Signature
    */
   unsigned addStringConstant(const vstring& name);
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addIteFunction(unsigned arity, unsigned* argSorts, unsigned resSort);
-  unsigned addItePredicate(unsigned arity, unsigned* argSorts);
-  unsigned addLetFunction(unsigned arity, unsigned* argSorts, unsigned resSort);
-  unsigned addLetPredicate(unsigned arity, unsigned* argSorts);
-  unsigned addBooleanFunction(unsigned arity, unsigned* argSorts);
   unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);

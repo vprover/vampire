@@ -29,6 +29,11 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+// Prefixes for fresh function symbols
+const char* FOOLElimination::ITE_PREFIX  = "iG";
+const char* FOOLElimination::LET_PREFIX  = "lG";
+const char* FOOLElimination::BOOL_PREFIX = "bG";
+
 FOOLElimination::FOOLElimination() : _defs(0) {}
 
 bool FOOLElimination::containsFOOL(FormulaUnit* unit) {
@@ -164,7 +169,28 @@ Formula* FOOLElimination::process(Formula* formula) {
         arguments.push(process(lit.next()));
       }
 
-      return new AtomicFormula(Literal::create(literal, arguments.begin()));
+      Formula* processedFormula = new AtomicFormula(Literal::create(literal, arguments.begin()));
+
+      if (env.options->showPreprocessing()) {
+        vstring inputRepr  = formula->toString();
+        vstring outputRepr = processedFormula->toString();
+        env.beginOutput();
+        if (inputRepr != outputRepr) {
+          /**
+           * If show_fool is set to off, the string representations of the input
+           * and the output of process() may in some cases coincide, despite the
+           * input and the output being different. Example: $term{$true} and
+           * $true. In order to avoid misleading log messages with the input and
+           * the output seeming the same, we will not log such processings at
+           * all. Setting show_fool to on, however, will display everything.
+           */
+          env.out() << "[PP] FOOL in:  " << inputRepr  << endl;
+          env.out() << "[PP] FOOL out: " << outputRepr << endl;
+        }
+        env.endOutput();
+      }
+
+      return processedFormula;
     }
 
     case AND:
@@ -183,18 +209,8 @@ Formula* FOOLElimination::process(Formula* formula) {
     case EXISTS:
       return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
 
-    case BOOL_TERM: {
-      Formula* processedFormula = processAsFormula(formula->getBooleanTerm());
-
-      if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "[PP] FOOL in:  " << formula->toString() << endl;
-        env.out() << "[PP] FOOL out: " << processedFormula->toString() << endl;
-        env.endOutput();
-      }
-
-      return processedFormula;
-    }
+    case BOOL_TERM:
+      return processAsFormula(formula->getBooleanTerm());
 
     case TRUE:
     case FALSE:
@@ -397,10 +413,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
 
         // create a fresh symbol g
-        unsigned arity = (unsigned)freeVarsSorts.length();
-        unsigned freshSymbol = context == FORMULA_CONTEXT
-                               ? env.signature->addItePredicate(arity, freeVarsSorts.begin())
-                               : env.signature->addIteFunction (arity, freeVarsSorts.begin(), resultSort);
+        unsigned freshSymbol = introduceFreshSymbol(context, ITE_PREFIX, freeVarsSorts, resultSort);
 
         // build g(X1, ..., Xn)
         TermList freshFunctionApplication;
@@ -415,7 +428,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula* thenImplication = new BinaryFormula(IMP, condition, thenEq);
 
         // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
-        if (arity > 0) {
+        if (freeVars->length() > 0) {
           thenImplication = new QuantifiedFormula(FORALL, freeVars, thenImplication);
         }
 
@@ -427,7 +440,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula* elseImplication = new BinaryFormula(IMP, new NegatedFormula(condition), elseEq);
 
         // build ![X1, ..., Xn]: (~f => g(X1, ..., Xn) == t)
-        if (arity > 0) {
+        if (freeVars->length() > 0) {
           elseImplication = new QuantifiedFormula(FORALL, freeVars, elseImplication);
         }
 
@@ -503,13 +516,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         bool renameSymbol = bodyFreeVars->isNonEmpty();
 
         // create a fresh function or predicate symbol g
-        unsigned arity = (unsigned)vars->length();
-        unsigned freshSymbol = symbol;
-        if (renameSymbol) {
-          freshSymbol = bodyContext == FORMULA_CONTEXT
-                        ? env.signature->addLetPredicate(arity, sorts.begin())
-                        : env.signature->addLetFunction (arity, sorts.begin(), bodySort);
-        }
+        unsigned freshSymbol = renameSymbol ? introduceFreshSymbol(bodyContext, LET_PREFIX, sorts, bodySort) : symbol;
 
         // process the body of the function
         TermList processedBody;
@@ -526,7 +533,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
                                                               freshFunctionApplication, processedBody, bodySort);
 
         // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) == s
-        if (arity > 0) {
+        if (vars->length() > 0) {
           freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, freshSymbolDefinition);
         }
 
@@ -589,15 +596,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula *formula = process(sd->getFormula());
 
         // create a fresh symbol g and build g(X1, ..., Xn)
-        unsigned arity = (unsigned)freeVarsSorts.length();
-        unsigned freshSymbol = env.signature->addBooleanFunction(arity, freeVarsSorts.begin());
+        unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, freeVarsSorts, Sorts::SRT_FOOL_BOOL);
         TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
 
         // build f <=> g(X1, ..., Xn) = true
         Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
 
         // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
-        if (arity > 0) {
+        if (freeVars->length() > 0) {
           freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars, freshSymbolDefinition);
         }
 
@@ -616,7 +622,6 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
     }
 
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
       vstring inputRepr  = term->toString();
       vstring outputRepr = context == FORMULA_CONTEXT ? formulaResult->toString() : termResult.toString();
       if (inputRepr != outputRepr) {
@@ -628,10 +633,11 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          * the output seeming the same, we will not log such processings at
          * all. Setting show_fool to on, however, will display everything.
          */
+        env.beginOutput();
         env.out() << "[PP] FOOL in:  " << inputRepr  << endl;
         env.out() << "[PP] FOOL out: " << outputRepr << endl;
+        env.endOutput();
       }
-      env.endOutput();
     }
   }
 
@@ -805,6 +811,46 @@ Formula* FOOLElimination::toEquality(TermList booleanTerm) {
   TermList truth(Term::createConstant(Signature::FOOL_TRUE));
   Literal* equality = Literal::createEquality(true, booleanTerm, truth, Sorts::SRT_FOOL_BOOL);
   return new AtomicFormula(equality);
+}
+
+unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* prefix,
+                                               Stack<unsigned> sorts, unsigned resultSort) {
+  CALL("FOOLElimination::introduceFreshSymbol");
+
+  unsigned arity = (unsigned)sorts.size();
+  BaseType* type = BaseType::makeType(arity, sorts.begin(), context == FORMULA_CONTEXT ? Sorts::SRT_BOOL : resultSort);
+
+  unsigned symbol;
+  if (context == FORMULA_CONTEXT) {
+    symbol = env.signature->addFreshPredicate(arity, prefix);
+    env.signature->getPredicate(symbol)->setType(type);
+  } else {
+    symbol = env.signature->addFreshFunction(arity, prefix);
+    env.signature->getFunction(symbol)->setType(type);
+  }
+
+  // TODO find a better way to get rid of the sG functions!
+  // this is a quick fix for the elimination of sG from the invariants
+  env.colorUsed = true;
+  if (context == FORMULA_CONTEXT) {
+    env.signature->getPredicate(symbol)->addColor(COLOR_LEFT);
+  } else {
+    env.signature->getFunction(symbol)->addColor(COLOR_LEFT);
+  }
+
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] FOOL: introduced fresh ";
+    if (context == FORMULA_CONTEXT) {
+      env.out() << "predicate symbol " << env.signature->predicateName(symbol);
+    } else {
+      env.out() << "function symbol " << env.signature->functionName(symbol);
+    }
+    env.out() << " of the sort " << type->toString() << endl;
+    env.endOutput();
+  }
+
+  return symbol;
 }
 
 Term* FOOLElimination::SymbolOccurrenceReplacement::process(Term* term) {
