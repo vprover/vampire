@@ -648,6 +648,7 @@ void vampireMode()
 void spiderMode()
 {
   CALL("spiderMode()");
+  env.options->setBadOptionChoice(Options::BadOption::HARD); 
   Exception* exception = 0;
   bool noException = true;
   try {

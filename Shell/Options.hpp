@@ -1573,6 +1573,7 @@ public:
   RandomStrategy randomStrategy() const {return _randomStrategy.actualValue; }
   void setRandomStrategy(RandomStrategy newVal){ _randomStrategy.actualValue=newVal;}
   BadOption getBadOptionChoice() const { return _badOption.actualValue; }
+  void setBadOptionChoice(BadOption newVal) { _badOption.actualValue = newVal; }
   vstring forcedOptions() const { return _forcedOptions.actualValue; }
   vstring forbiddenOptions() const { return _forbiddenOptions.actualValue; }
   vstring testId() const { return _testId.actualValue; }
