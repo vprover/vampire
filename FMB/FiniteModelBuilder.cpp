@@ -165,11 +165,13 @@ initLoop:
     ASS(fun);
     TermList y, z;
     y.makeVar(0); z.makeVar(1); 
-    TermList args[fun->arity()];
+
+    static DArray<TermList> args(8);
+    args.ensure(fun->arity());
     for(unsigned i=0;i<fun->arity();i++){
       args[i].makeVar(i+2);
     }
-    TermList fargs = TermList(Term::create(f,fun->arity(),args));
+    TermList fargs = TermList(Term::create(f,fun->arity(),args.array()));
     unsigned rSort = fun->fnType()->result(); 
 
     Clause* c = new(2) Clause(2,Unit::AXIOM, new Inference(Inference::FMB_FUNC_DEF));  
@@ -186,7 +188,7 @@ initLoop:
     for(unsigned i=0;i<fun->arity();i++){
       args[i].makeVar(i);
     }
-    _totalityFunctions.push(Term::create(f,fun->arity(),args));
+    _totalityFunctions.push(Term::create(f,fun->arity(),args.array()));
 
     //record constants
     if(fun->arity()==0){
@@ -194,7 +196,7 @@ initLoop:
     }
     //record first single arity function
     if(!_singleArityFunction && fun->arity()==1){
-      _singleArityFunction = Term::create(f,1,args);
+      _singleArityFunction = Term::create(f,1,args.array());
     }
   }
 

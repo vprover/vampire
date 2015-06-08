@@ -255,7 +255,7 @@ void Options::Options::init()
 
 //*********************** Preprocessing  ***********************
 
-    _inequalitySplitting = IntOptionValue("inequality_splitting","ins",3);
+    _inequalitySplitting = IntOptionValue("inequality_splitting","ins",0);
     _inequalitySplitting.description=
     "Defines a weight threshold w such that any clause C \\/ s!=t where s (or conversely t) is ground "
     "and has weight less than w is replaced by C \\/ p(s) with the additional clause ~p(t) being added "
