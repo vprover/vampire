@@ -129,11 +129,7 @@ public:
     return _sorts[sort]->hasStructuredSort(structured);
   }
 
-  const vstring& sortName(unsigned idx) const
-  {
-    CALL("Sorts::sortName");
-    return _sorts[idx]->name();
-  }
+  const vstring& sortName(unsigned idx) const;
 
   /**
    * Return the number of sorts

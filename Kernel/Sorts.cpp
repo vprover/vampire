@@ -86,13 +86,8 @@ unsigned Sorts::addSort(const vstring& name, bool& added)
   }
   _hasSort = true;
   result = _sorts.length();
-  if (result == SRT_FOOL_BOOL && !env.options->showFOOL()) {
-    _sorts.push(new SortInfo("$o", result));
-    _sortNames.insert("$o", result);
-  } else {
-    _sorts.push(new SortInfo(name, result));
-    _sortNames.insert(name, result);
-  }
+  _sorts.push(new SortInfo(name, result));
+  _sortNames.insert(name, result);
   added = true;
   return result;
 } // Sorts::addSort
@@ -170,6 +165,16 @@ bool Sorts::findSort(const vstring& name, unsigned& idx)
   CALL("Sorts::findSort");
   return _sortNames.find(name, idx);
 } // Sorts::findSort
+
+const vstring& Sorts::sortName(unsigned idx) const
+{
+  CALL("Sorts::sortName");
+  if (!env.options->showFOOL() && idx == SRT_FOOL_BOOL) {
+    static vstring o("$o");
+    return o;
+  }
+  return _sorts[idx]->name();
+} // Sorts::sortName
 
 /**
  * Create a type having arity @c arity, range sort @c rangeSort and arguments
