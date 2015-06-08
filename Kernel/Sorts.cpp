@@ -372,7 +372,7 @@ vstring BaseType::argsToString() const
 vstring PredicateType::toString() const
 {
   CALL("PredicateType::toString");
-  return argsToString() + " > $bool";
+  return (arity() ? argsToString() + " > " : "") + env.sorts->sortName(Sorts::SRT_BOOL);
 } // PredicateType::toString
 
 /**
@@ -382,7 +382,7 @@ vstring PredicateType::toString() const
 vstring FunctionType::toString() const
 {
   CALL("FunctionType::toString");
-  return argsToString() + " > " + env.sorts->sortName(result());
+  return (arity() ? argsToString() + " > " : "") + env.sorts->sortName(result());
 } // FunctionType::toString
 
 /**
