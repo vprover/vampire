@@ -1154,7 +1154,7 @@ SATSolver::VarAssignment TWLSolver::getAssignment(unsigned var)
 {
   CALL("TWLSolver::getAssignment");
   ASS_G(var,0); ASS_LE(var,_varCnt);
-  ASS_EQ(_status, SATISFIABLE);
+  ASS(_status == SATISFIABLE || _status == UNKNOWN);
           
   if(isTrue(var)) {
     return SATSolver::TRUE;
@@ -1162,9 +1162,7 @@ SATSolver::VarAssignment TWLSolver::getAssignment(unsigned var)
   else if(isUndefined(var)) {
      /* This can happen when there has been a request for new variables
       * after the SATISFIABLE status has been established.
-      * In practice, when interacting with the minimizing solver...
-      * We need to return DONT_CARE.
-    */      
+    */
     return SATSolver::DONT_CARE;
   }
   else {
