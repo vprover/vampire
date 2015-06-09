@@ -59,7 +59,9 @@ Property::Property()
     _hasInterpreted(false),
     _hasNonDefaultSorts(false),
     _hasSpecialTermsOrLets(false),
-    _hasFormulaItes(false)
+    _hasFormulaItes(false),
+    _allClausesGround(true),
+    _allQuantifiersEssentiallyExistential(true)
 {
   _interpretationPresence.init(Theory::MAX_INTERPRETED_ELEMENT+1, false);
   env.property = this;
@@ -101,6 +103,12 @@ void Property::add(UnitList* units)
   UnitList::Iterator us(units);
   while (us.hasNext()) {
     scan(us.next());
+  }
+
+  if (_allClausesGround && _allQuantifiersEssentiallyExistential) {
+    addProp(PR_ESSENTIALLY_GROUND);
+  } else if (hasProp(PR_ESSENTIALLY_GROUND)) {
+    dropProp(PR_ESSENTIALLY_GROUND);
   }
 
   // information about sorts is read from the environment, not from the problem
@@ -293,6 +301,10 @@ void Property::scan(Clause* clause)
   if (! hasProp(PR_HAS_X_EQUALS_Y) && hasXEqualsY(clause)) {
     addProp(PR_HAS_X_EQUALS_Y);
   }
+
+  if (_variablesInThisClause > 0) {
+    _allClausesGround = false;
+  }
 } // Property::scan (const Clause* clause, bool isAxiom)
 
 
@@ -335,7 +347,9 @@ void Property::scan(Formula* formula)
   SubformulaIterator fs(formula);
   while (fs.hasNext()) {
     _subformulas++;
-    Formula* f = fs.next();
+    int polarity;
+    Formula* f = fs.next(polarity);
+
     switch(f->connective()) {
     case ITE:
       _hasFormulaItes = true;
@@ -360,6 +374,16 @@ void Property::scan(Formula* formula)
       scan(lit);
       break;
     }
+    case FORALL:
+      if (polarity != -1) {
+        _allQuantifiersEssentiallyExistential = false;
+      }
+      break;
+    case EXISTS:
+      if (polarity != 1) {
+        _allQuantifiersEssentiallyExistential = false;
+      }
+      break;
     default:
       break;
     }

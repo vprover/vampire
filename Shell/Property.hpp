@@ -166,6 +166,8 @@ public:
   bool hasProp(unsigned long p) const { return _props & p; }
   /** Add property p to the list of properties */
   void addProp(unsigned long p) { _props |= p; }
+  /** Remove a property from the list of properties */
+  void dropProp(unsigned long p) { _props &= ~p; }
   /** Return props as an integer, mainly for debugging */
   unsigned long int props() const { return _props; }
 
@@ -260,6 +262,9 @@ public:
 
   bool _hasSpecialTermsOrLets;
   bool _hasFormulaItes;
+
+  bool _allClausesGround;
+  bool _allQuantifiersEssentiallyExistential;
 }; // class Property
 
 }
