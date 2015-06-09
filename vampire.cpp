@@ -217,6 +217,7 @@ void profileMode()
 
   Property* property = prb->getProperty();
   TheoryFinder tf(prb->units(), property);
+  // this doesn't do anything
   Shell::Preprocess prepro(*env.options);
   tf.search();
 
