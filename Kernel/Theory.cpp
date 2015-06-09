@@ -904,6 +904,62 @@ bool Theory::isConversionOperation(Interpretation i)
     return false;
   }
 }
+bool Theory::isLinearOperation(Interpretation i)
+{
+  CALL("Theory::isComparisonOperation");
+
+  switch(i) {
+  case INT_UNARY_MINUS:
+  case INT_PLUS:
+  case INT_MINUS:
+  case RAT_UNARY_MINUS:
+  case RAT_PLUS:
+  case RAT_MINUS:
+  case REAL_UNARY_MINUS:
+  case REAL_PLUS:
+  case REAL_MINUS:
+    return true;
+  default:
+    return false;
+  }
+}
+bool Theory::isNonLinearOperation(Interpretation i)
+{
+  CALL("Theory::isComparisonOperation");
+
+  switch(i) {
+  case INT_MULTIPLY:
+  case INT_DIVIDE:
+  case INT_MODULO:
+  case INT_QUOTIENT_E:
+  case INT_QUOTIENT_T:
+  case INT_QUOTIENT_F:
+  case INT_REMAINDER_E:
+  case INT_REMAINDER_T:
+  case INT_REMAINDER_F:
+  case RAT_MULTIPLY:
+  case RAT_DIVIDE:
+  case RAT_QUOTIENT:
+  case RAT_QUOTIENT_E:
+  case RAT_QUOTIENT_T:
+  case RAT_QUOTIENT_F:
+  case RAT_REMAINDER_E:
+  case RAT_REMAINDER_T:
+  case RAT_REMAINDER_F:
+  case REAL_MULTIPLY:
+  case REAL_DIVIDE:
+  case REAL_QUOTIENT:
+  case REAL_QUOTIENT_E:
+  case REAL_QUOTIENT_T:
+  case REAL_QUOTIENT_F:
+  case REAL_REMAINDER_E:
+  case REAL_REMAINDER_T:
+  case REAL_REMAINDER_F:
+    return true;
+  default:
+    return false;
+  }
+}
 
 bool Theory::isArraySort(unsigned sort) {
   CALL("Theory::isArraySort");

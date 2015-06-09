@@ -122,6 +122,7 @@ void Property::add(UnitList* units)
     addProp(PR_HAS_REALS);
   }
 
+
   // determine the category after adding
   if (formulas() > 0) { // FOF, either FEQ or FNE
     if (_equalityAtoms == 0) {
@@ -541,6 +542,37 @@ void Property::scanForInterpreted(Term* t)
   }
   _interpretationPresence[itp] = true;
   _hasInterpreted = true;
+  unsigned sort = Theory::getOperationSort(itp);
+  if(Theory::isInequality(itp)){
+    switch(sort){
+      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_COMPARISON);
+        break;
+      case Sorts::SRT_RATIONAL : addProp(PR_RAT_COMPARISON);
+        break;
+      case Sorts::SRT_REAL : addProp(PR_REAL_COMPARISON);
+        break;
+    }
+  }
+  if(Theory::isLinearOperation(itp)){
+    switch(sort){
+      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_LINEAR);
+        break;
+      case Sorts::SRT_RATIONAL : addProp(PR_RAT_LINEAR);
+        break;
+      case Sorts::SRT_REAL : addProp(PR_REAL_LINEAR);
+        break;
+    }
+  }
+  if(Theory::isNonLinearOperation(itp)){
+    switch(sort){
+      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_NONLINEAR);
+        break;
+      case Sorts::SRT_RATIONAL : addProp(PR_RAT_NONLINEAR);
+        break;
+      case Sorts::SRT_REAL : addProp(PR_REAL_NONLINEAR);
+        break;
+    }
+  }
 }
 
 /**

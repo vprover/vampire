@@ -312,6 +312,8 @@ public:
   static bool hasSingleSort(Interpretation i);
   static unsigned getOperationSort(Interpretation i);
   static bool isConversionOperation(Interpretation i);
+  static bool isLinearOperation(Interpretation i);
+  static bool isNonLinearOperation(Interpretation i);
     
   static FunctionType* getArrayOperationType(Interpretation i);
 
