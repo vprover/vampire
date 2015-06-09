@@ -620,6 +620,11 @@ void Options::Options::init()
     _lookup.insert(&_showTheoryAxioms);
     _showTheoryAxioms.tag(OptionTag::OUTPUT);
 
+    _showZ3 = BoolOptionValue("show_z3","",false);
+    _showZ3.description="Print the clauses being added to Z3";
+    _lookup.insert(&_showZ3);
+    _showZ3.tag(OptionTag::OUTPUT);
+
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************

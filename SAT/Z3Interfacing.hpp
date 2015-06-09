@@ -121,6 +121,7 @@ private:
   z3::solver _solver;
   z3::model _model;
   SATClauseList* _addedClauses;
+  bool _showZ3;
 };
 
 }//end SAT namespace
