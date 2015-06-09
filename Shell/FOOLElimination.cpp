@@ -41,10 +41,10 @@ bool FOOLElimination::containsFOOL(FormulaUnit* unit) {
 
   SubformulaIterator sfi(unit->formula());
   while(sfi.hasNext()) {
-    Formula* f = sfi.next();
-    switch(f->connective()) {
+    Formula* formula = sfi.next();
+    switch (formula->connective()) {
       case LITERAL:
-        if(!f->literal()->shared()) {
+        if (!formula->literal()->shared()) {
           return true;
         }
         break;
@@ -70,21 +70,21 @@ void FOOLElimination::apply(UnitList*& units) {
 
   UnitList::DelIterator us(units);
   while(us.hasNext()) {
-    Unit* u = us.next();
-    if(u->isClause()) {
+    Unit* unit = us.next();
+    if(unit->isClause()) {
 #if VDEBUG
-      Clause* cl = static_cast<Clause*>(u);
-      for (unsigned i = 0; i < cl->length(); i++) {
+      Clause* clause = static_cast<Clause*>(unit);
+      for (unsigned i = 0; i < clause->length(); i++) {
         // we do not allow special terms in clauses so we check that all clause literals
         // are shared (special terms can not be shared)
-        ASS_REP((*cl)[i]->shared(), (*cl)[i]->toString());
+        ASS_REP((*clause)[i]->shared(), (*clause)[i]->toString());
       }
 #endif
       continue;
     }
-    Unit* v = apply(static_cast<FormulaUnit*>(u));
-    if (v != u) {
-      us.replace(v);
+    Unit* processedUnit = apply(static_cast<FormulaUnit*>(unit));
+    if (processedUnit != unit) {
+      us.replace(processedUnit);
     }
   }
 
@@ -104,33 +104,33 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 
   FormulaUnit* rectifiedUnit = Rectify::rectify(unit);
 
-  Formula* f = rectifiedUnit->formula();
+  Formula* formula = rectifiedUnit->formula();
 
   _unit = rectifiedUnit;
   _varSorts.reset();
 
-  SortHelper::collectVariableSorts(f, _varSorts);
+  SortHelper::collectVariableSorts(formula, _varSorts);
 
-  Formula* g = process(f);
-  if (f == g) {
+  Formula* processedFormula = process(formula);
+  if (formula == processedFormula) {
     return rectifiedUnit;
   }
 
   Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, rectifiedUnit);
-  FormulaUnit* res = new FormulaUnit(g, inference, rectifiedUnit->inputType());
+  FormulaUnit* processedUnit = new FormulaUnit(processedFormula, inference, rectifiedUnit->inputType());
 
   if (unit->included()) {
-    res->markIncluded();
+    processedUnit->markIncluded();
   }
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] " << unit->toString() << endl;
-    env.out() << "[PP] " << res->toString()  << endl;
+    env.out() << "[PP] " << processedUnit->toString()  << endl;
     env.endOutput();
   }
 
-  return res;
+  return processedUnit;
 }
 
 Formula* FOOLElimination::process(Formula* formula) {
