@@ -71,6 +71,55 @@ bool Instantiation::getRelevantTerms(Clause* c, unsigned targetSort, Set<Term*>*
   CALL("Instantiation::getRelevantTerms");
 
   bool added = false;
+  // Get interpreted constants and add them and variants  
+  for(unsigned i=0;i<c->length();i++){
+    SubtermIterator it((*c)[i]);
+    while(it.hasNext()){
+      TermList t = it.next();
+      if(t.isTerm() && t.term()->arity()==0 && t.term()->hasInterpretedConstants()){
+        added=true;
+        candidates->insert(t.term());
+        // we have an interpreted constant
+        unsigned sort;
+        ALWAYS(SortHelper::tryGetResultSort(t,sort));
+        switch(sort){
+          case Sorts::SRT_INTEGER:
+            {
+              IntegerConstantType constant;
+              ALWAYS(theory->tryInterpretConstant(t.term(),constant));
+              Term* t = theory->representConstant(constant-1);
+              ASS(t->shared());
+              candidates->insert(t);
+              //candidates.insert(theory->representConstant(constant-1));
+              candidates->insert(theory->representConstant(constant+1));
+              break;
+            }
+          case Sorts::SRT_RATIONAL:
+            {
+              RationalConstantType constant;
+              RationalConstantType one(1,1);
+              ALWAYS(theory->tryInterpretConstant(t.term(),constant));
+              candidates->insert(theory->representConstant(constant+one));
+              candidates->insert(theory->representConstant(constant-one));
+              break;
+            }
+          case Sorts::SRT_REAL:
+            {
+              RealConstantType constant;
+              RealConstantType one(RationalConstantType(1,1));
+              ALWAYS(theory->tryInterpretConstant(t.term(),constant));
+              candidates->insert(theory->representConstant(constant+one));
+              candidates->insert(theory->representConstant(constant-one));
+              break;
+            }
+          default:
+            ASSERTION_VIOLATION;
+        }
+      }
+    }
+  }
+
+/*
   for(unsigned i=0;i<c->length();i++){
     Literal* lit = (*c)[i];
     if(theory->isInterpretedPredicate(lit)){ 
@@ -97,7 +146,7 @@ bool Instantiation::getRelevantTerms(Clause* c, unsigned targetSort, Set<Term*>*
       }
     }
   }
-
+*/
   return added;
 }
 
@@ -133,28 +182,31 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
 {
   CALL("Instantiation::getCandidateTerms");
 
-  Set<Term*>* cans;
+  Set<Term*>* cans=0;
   VirtualIterator<Term*> res = VirtualIterator<Term*>::getEmpty();
   if(sorted_candidates.find(sort,cans)){
     res = pvi(Set<Term*>::Iterator(*cans));
   }
 
-  Set<Term*>* relCans;
+  Set<Term*>* relCans = new Set<Term*>();
   if(getRelevantTerms(cl,sort,relCans)){
     res = pvi(getConcatenatedIterator(res,Set<Term*>::Iterator(*relCans))); 
   }
 
+  return pvi(res);
+/*
   if(sort==Sorts::SRT_INTEGER){
-    return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(0u,10u),IntToIntTermFn())));
+    return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(-10u,10u),IntToIntTermFn())));
   }
   if(sort==Sorts::SRT_RATIONAL){
-    return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(0u,10u),IntToRatTermFn())));
+    return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(-10u,10u),IntToRatTermFn())));
   }
   if(sort==Sorts::SRT_REAL){
-    return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(0u,10u),IntToRealTermFn())));
+    return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(-10u,10u),IntToRealTermFn())));
   }
 
   return pvi(res);
+*/
 }
 
 class Instantiation::AllSubstitutionsIterator{
@@ -188,8 +240,11 @@ public:
       unsigned v = vs.next();
       unsigned at = current.get(v);
       DArray<Term*>* cans = candidates.get(v);
+      ASS(cans);
       // check deals with case where there are no candidates and no binding
-      if(cans->size()!=0) sub.bind(v,(* cans)[at]);
+      if(cans->size()!=0){
+        sub.bind(v,(* cans)[at]);
+      }
     }
     //cout << "sub is " << sub.toString() << endl;
 
