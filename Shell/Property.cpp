@@ -559,6 +559,7 @@ void Property::scanForInterpreted(Term* t)
     Literal* lit = static_cast<Literal*>(t);
     if (!theory->isInterpretedPredicate(lit)) { return; }
     itp = theory->interpretPredicate(lit);
+    if(itp==Theory::EQUAL){ return; }
   }
   else {
     if (!theory->isInterpretedFunction(t)) { return; }
@@ -566,6 +567,10 @@ void Property::scanForInterpreted(Term* t)
   }
   _interpretationPresence[itp] = true;
   _hasInterpreted = true;
+  if(Theory::isConversionOperation(itp)){
+    addProp(PR_NUMBER_CONVERSION);
+    return;
+  }
   unsigned sort = Theory::getOperationSort(itp);
   if(Theory::isInequality(itp)){
     switch(sort){
@@ -577,7 +582,7 @@ void Property::scanForInterpreted(Term* t)
         break;
     }
   }
-  if(Theory::isLinearOperation(itp)){
+  else if(Theory::isLinearOperation(itp)){
     switch(sort){
       case Sorts::SRT_INTEGER : addProp(PR_INTEGER_LINEAR);
         break;
@@ -587,7 +592,7 @@ void Property::scanForInterpreted(Term* t)
         break;
     }
   }
-  if(Theory::isNonLinearOperation(itp)){
+  else if(Theory::isNonLinearOperation(itp)){
     switch(sort){
       case Sorts::SRT_INTEGER : addProp(PR_INTEGER_NONLINEAR);
         break;
@@ -596,9 +601,6 @@ void Property::scanForInterpreted(Term* t)
       case Sorts::SRT_REAL : addProp(PR_REAL_NONLINEAR);
         break;
     }
-  }
-  if(Theory::isConversionOperation(itp)){
-    addProp(PR_NUMBER_CONVERSION);
   }
 }
 
