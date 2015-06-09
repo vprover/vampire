@@ -473,7 +473,7 @@ void Options::Options::init()
     _lookup.insert(&_trivialPredicateRemoval);
     _trivialPredicateRemoval.tag(OptionTag::PREPROCESSING);
 
-    _theoryAxioms = BoolOptionValue("theory_axioms","",true);
+    _theoryAxioms = BoolOptionValue("theory_axioms","tha",true);
     _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
     _lookup.insert(&_theoryAxioms);
     _theoryAxioms.tag(OptionTag::PREPROCESSING);
