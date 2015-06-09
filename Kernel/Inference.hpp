@@ -247,6 +247,16 @@ public:
     BFNT_DISTINCT,
     /** BNFT totality axioms R(x,1) \/ ... \/ R(x,n) */
     BFNT_TOTALITY,
+    /* FMB flattening */
+    FMB_FLATTENING,
+    /* Functional definition for FMB */
+    FMB_FUNC_DEF,
+    /* Definition Introduction for FMB */
+    FMB_DEF_INTRO, 
+    /* Instantiation */
+    INSTANTIATION,
+    /* Finite model not found for EPR problem */
+    EPR_MODEL_NOT_FOUND,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

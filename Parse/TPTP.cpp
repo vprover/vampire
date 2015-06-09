@@ -2350,7 +2350,9 @@ void TPTP::midAtom()
           static Stack<unsigned> distincts;
           distincts.reset();
           for(int i=arity-1;i >= 0; i--){
-            distincts.push(_termLists.pop().term()->functor());
+            TermList t = _termLists.pop();
+            if(t.term()->arity()!=0) USER_ERROR("$distinct can only be used with constants");
+            distincts.push(t.term()->functor());
           } 
           Formula* distinct_formula = DistinctGroupExpansion().expand(distincts);
           _formulas.push(distinct_formula);
@@ -2381,7 +2383,10 @@ void TPTP::midAtom()
       if (safe) {
 	lit = env.sharing->insert(lit);
       }
-      _formulas.push(new AtomicFormula(lit));
+      ASS(lit);
+      Formula* f = new AtomicFormula(lit);
+      ASS(f);
+      _formulas.push(f);
       return;
     }
   }
@@ -3412,6 +3417,11 @@ unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool
     USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
   }
   unsigned srt = sortOf(arg);
+  TermList* n = arg.next();
+  for(int i=1;i<arity;i++){
+    if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
+    n = n->next();
+  }
   if (srt == Sorts::SRT_INTEGER) {
     return env.signature->addInterpretedFunction(integer,name);
   }
@@ -3434,6 +3444,12 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
     USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
   }
   unsigned srt = sortOf(arg);
+  TermList* n = arg.next();
+  for(int i=1;i<arity;i++){
+    if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
+    n = n->next(); 
+  }
+  
   if (srt == Sorts::SRT_INTEGER) {
     return env.signature->addInterpretedPredicate(integer,name);
   }
@@ -3459,7 +3475,7 @@ unsigned TPTP::sortOf(TermList& t)
   for (;;) {
     if (t.isVar()) {
       SortList* sorts;
-      if (_variableSorts.find(t.var(),sorts)) {
+      if (_variableSorts.find(t.var(),sorts) && sorts->isNonEmpty()) {
 	return sorts->head();
       }
       // there might be variables whose sort is undeclared,

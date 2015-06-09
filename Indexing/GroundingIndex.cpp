@@ -33,6 +33,10 @@ GroundingIndex::GroundingIndex(const Options& opt)
     case Options::SatSolver::LINGELING:
       _solver = new LingelingInterfacing(opt,true);
     	break;
+#if VZ3
+    case Options::SatSolver::Z3:
+      cout << "Warning, Z3 not curently used for Global Subsumption" << endl; 
+#endif
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(opt,true);
     	break;

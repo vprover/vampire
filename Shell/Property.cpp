@@ -18,6 +18,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 
@@ -58,7 +59,9 @@ Property::Property()
     _hasInterpreted(false),
     _hasNonDefaultSorts(false),
     _hasSpecialTermsOrLets(false),
-    _hasFormulaItes(false)
+    _hasFormulaItes(false),
+    _allClausesGround(true),
+    _allQuantifiersEssentiallyExistential(true)
 {
   _interpretationPresence.init(Theory::MAX_INTERPRETED_ELEMENT+1, false);
   env.property = this;
@@ -102,6 +105,12 @@ void Property::add(UnitList* units)
     scan(us.next());
   }
 
+  if (_allClausesGround && _allQuantifiersEssentiallyExistential) {
+    addProp(PR_ESSENTIALLY_GROUND);
+  } else if (hasProp(PR_ESSENTIALLY_GROUND)) {
+    dropProp(PR_ESSENTIALLY_GROUND);
+  }
+
   // information about sorts is read from the environment, not from the problem
   if (env.sorts->hasSort()) {
     addProp(PR_SORTS);
@@ -120,6 +129,7 @@ void Property::add(UnitList* units)
   if (env.signature->reals()) {
     addProp(PR_HAS_REALS);
   }
+
 
   // determine the category after adding
   if (formulas() > 0) { // FOF, either FEQ or FNE
@@ -291,6 +301,10 @@ void Property::scan(Clause* clause)
   if (! hasProp(PR_HAS_X_EQUALS_Y) && hasXEqualsY(clause)) {
     addProp(PR_HAS_X_EQUALS_Y);
   }
+
+  if (_variablesInThisClause > 0) {
+    _allClausesGround = false;
+  }
 } // Property::scan (const Clause* clause, bool isAxiom)
 
 
@@ -333,7 +347,9 @@ void Property::scan(Formula* formula)
   SubformulaIterator fs(formula);
   while (fs.hasNext()) {
     _subformulas++;
-    Formula* f = fs.next();
+    int polarity;
+    Formula* f = fs.next(polarity);
+
     switch(f->connective()) {
     case ITE:
       _hasFormulaItes = true;
@@ -358,6 +374,16 @@ void Property::scan(Formula* formula)
       scan(lit);
       break;
     }
+    case FORALL:
+      if (polarity != -1) {
+        _allQuantifiersEssentiallyExistential = false;
+      }
+      break;
+    case EXISTS:
+      if (polarity != 1) {
+        _allQuantifiersEssentiallyExistential = false;
+      }
+      break;
     default:
       break;
     }
@@ -377,6 +403,7 @@ void Property::scanSort(unsigned sort)
     return;
   }
   _hasNonDefaultSorts = true;
+  env.statistics->hasTypes=true;
   switch(sort) {
   case Sorts::SRT_INTEGER:
     addProp(PR_HAS_INTEGERS);
@@ -532,14 +559,48 @@ void Property::scanForInterpreted(Term* t)
     Literal* lit = static_cast<Literal*>(t);
     if (!theory->isInterpretedPredicate(lit)) { return; }
     itp = theory->interpretPredicate(lit);
+    if(itp==Theory::EQUAL){ return; }
   }
   else {
     if (!theory->isInterpretedFunction(t)) { return; }
     itp = theory->interpretFunction(t);
   }
   _interpretationPresence[itp] = true;
-  if (itp!=Theory::EQUAL) {
-    _hasInterpreted = true;
+  _hasInterpreted = true;
+  if(Theory::isConversionOperation(itp)){
+    addProp(PR_NUMBER_CONVERSION);
+    return;
+  }
+  unsigned sort = Theory::getOperationSort(itp);
+  if(Theory::isInequality(itp)){
+    switch(sort){
+      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_COMPARISON);
+        break;
+      case Sorts::SRT_RATIONAL : addProp(PR_RAT_COMPARISON);
+        break;
+      case Sorts::SRT_REAL : addProp(PR_REAL_COMPARISON);
+        break;
+    }
+  }
+  else if(Theory::isLinearOperation(itp)){
+    switch(sort){
+      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_LINEAR);
+        break;
+      case Sorts::SRT_RATIONAL : addProp(PR_RAT_LINEAR);
+        break;
+      case Sorts::SRT_REAL : addProp(PR_REAL_LINEAR);
+        break;
+    }
+  }
+  else if(Theory::isNonLinearOperation(itp)){
+    switch(sort){
+      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_NONLINEAR);
+        break;
+      case Sorts::SRT_RATIONAL : addProp(PR_RAT_NONLINEAR);
+        break;
+      case Sorts::SRT_REAL : addProp(PR_REAL_NONLINEAR);
+        break;
+    }
   }
 }
 

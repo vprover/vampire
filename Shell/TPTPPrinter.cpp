@@ -130,7 +130,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u)
     }
   }
   else {
-    NOT_IMPLEMENTED;
+    return static_cast<FormulaUnit*>(u)->formula()->toString();
   }
   return res.str();
 }
@@ -241,8 +241,7 @@ void TPTPPrinter::ensureNecesarySorts()
   Signature::Symbol* sym;
   unsigned sorts = env.sorts->sorts();
   //check the sorts of the function symbols and collect information about used sorts
-  unsigned funs = env.signature->functions();
-  for (i = 0; i < funs; i++) {
+  for (i = 0; i < env.signature->functions(); i++) {
     sym = env.signature->getFunction(i);
     type = static_cast<BaseType*>(sym->fnType());
     unsigned arity = sym->arity();
@@ -254,9 +253,8 @@ void TPTPPrinter::ensureNecesarySorts()
     }
   }
   //check the sorts of the predicates and collect information about used sorts
-  unsigned preds = env.signature->predicates();
-  for (i = 1; i < preds; i++) {
-    sym = env.signature->getFunction(i);
+  for (i = 0; i < env.signature->predicates(); i++) {
+    sym = env.signature->getPredicate(i);
     type = static_cast<BaseType*>(sym->predType());
     unsigned arity = sym->arity();
     if (arity > 0) {

@@ -21,6 +21,7 @@ class GeneralSplitting
 public:
   void apply(Problem& prb);
   bool apply(UnitList*& units);
+  bool apply(ClauseList*& units);
 private:
   bool apply(Clause*& cl, UnitList*& resultStack);
 

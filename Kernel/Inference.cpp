@@ -399,7 +399,16 @@ vstring Inference::ruleName(Rule rule)
     return "BNFT distinct";
   case BFNT_TOTALITY:
     return "BNFT totality";
-
+  case FMB_FLATTENING:
+    return "flattening (finite model building)";
+  case FMB_FUNC_DEF:
+    return "functional definition (finite model building)";
+  case FMB_DEF_INTRO:
+    return "definition introduction (finite model building)";
+  case INSTANTIATION:
+    return "Instantiation";
+  case EPR_MODEL_NOT_FOUND:
+    return "Finite model not found for EPR problem";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

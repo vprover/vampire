@@ -16,6 +16,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/TheoryFinder.hpp"
 
 #include "SpawningCM.hpp"
 
@@ -38,6 +39,8 @@ SpawningCM::SpawningCM(vstring executable)
   //we just need to extract property from the problem
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
   _property = Property::scan(prb->units());
+  TheoryFinder tf(prb->units(),_property);
+  tf.search();
 }
 
 bool SpawningCM::runSlice(Options& opt)

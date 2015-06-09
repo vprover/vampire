@@ -31,6 +31,7 @@
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
 #include "SAT/MinisatInterfacing.hpp"
+#include "SAT/Z3Interfacing.hpp"
 
 #include "DP/ShortConflictMetaDP.hpp"
 
@@ -72,6 +73,13 @@ void SplittingBranchSelector::init()
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
       break;      
+#if VZ3
+    case Options::SatSolver::Z3:
+      { BYPASSING_ALLOCATOR
+      _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(),true);
+      }
+      break;
+#endif
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
   }
@@ -302,7 +310,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     _trueInCCModel.reset();
 
     // cout << "Obtained a model " << endl;
-    int parentMaxAge = AGE_NOT_FILLED;
+    unsigned parentMaxAge = AGE_NOT_FILLED;
     LiteralStack::Iterator it(model);
     while(it.hasNext()) {
       Literal* lit = it.next();
@@ -432,7 +440,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     }
     stat = _solver->solve();
   }
-  if (stat != SATSolver::UNSATISFIABLE) {
+  if (stat == SATSolver::SATISFIABLE) {
     stat = processDPConflicts();
   }
   if(stat == SATSolver::UNSATISFIABLE) {
@@ -1091,7 +1099,7 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
   //update "children" field of relevant SplitRecords
   SplitSet::Iterator bsit(*splits);
   bool should_reintroduce = false;
-  int cl_weight = cl->weight();
+  unsigned cl_weight = cl->weight();
   while(bsit.hasNext()) {
     SplitLevel slev=bsit.next();
     _db[slev]->children.push(cl);    

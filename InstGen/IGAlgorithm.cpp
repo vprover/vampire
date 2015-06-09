@@ -21,6 +21,7 @@
 #include "Kernel/RCClauseStack.hpp"
 #include "Kernel/SortHelper.hpp"
 
+#include "Indexing/LiteralSubstitutionTreeWithoutTop.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Indexing/LiteralIndex.hpp"
 
@@ -81,6 +82,12 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
     case Options::SatSolver::MINISAT:
       _satSolver = new MinisatInterfacing(opt,true);
       break;
+#if VZ3
+    case Options::SatSolver::Z3:
+      cout << "Warning: Z3 not compatible with inst_gen, using Minisat" << endl;
+      _satSolver = new MinisatInterfacing(opt,true);
+      break;
+#endif
     default:
       ASSERTION_VIOLATION_REP(opt.satSolver());
   }
@@ -500,7 +507,7 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
   // it might already have one if it was previously deactiviated
   if(_use_dm && !_dismatchMap.find(cl)){
     RSTAT_CTR_INC("dismatch created");
-    LiteralIndexingStructure * is = new LiteralSubstitutionTree();
+    LiteralIndexingStructure * is = new LiteralSubstitutionTreeWithoutTop();
     DismatchingLiteralIndex* dismatchIndex = new DismatchingLiteralIndex(is);
     _dismatchMap.insert(cl,dismatchIndex);
   }

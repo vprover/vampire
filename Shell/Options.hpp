@@ -333,15 +333,19 @@ public:
      LINGELING = 0,
      MINISAT = 1,
      VAMPIRE = 2
+#if VZ3
+     ,Z3 = 3
+#endif
   };
 
   /** Possible values for saturation_algorithm */
   enum class SaturationAlgorithm : unsigned int {
      DISCOUNT = 0,
-     INST_GEN = 1,
-     LRS = 2,
-     OTTER = 3,
-     TABULATION = 4
+     FINITE_MODEL_BUILDING = 1,
+     INST_GEN = 2,
+     LRS = 3,
+     OTTER = 4,
+     TABULATION = 5
    };
 
   /** Possible values for activity of some inference rules */
@@ -1576,6 +1580,7 @@ public:
   RandomStrategy randomStrategy() const {return _randomStrategy.actualValue; }
   void setRandomStrategy(RandomStrategy newVal){ _randomStrategy.actualValue=newVal;}
   BadOption getBadOptionChoice() const { return _badOption.actualValue; }
+  void setBadOptionChoice(BadOption newVal) { _badOption.actualValue = newVal; }
   vstring forcedOptions() const { return _forcedOptions.actualValue; }
   vstring forbiddenOptions() const { return _forbiddenOptions.actualValue; }
   vstring testId() const { return _testId.actualValue; }
@@ -1753,6 +1758,7 @@ public:
   int tabulationLemmaAgeRatio() const { return _tabulationLemmaAgeWeightRatio.actualValue; }
   int tabulationLemmaWeightRatio() const { return _tabulationLemmaAgeWeightRatio.otherValue; }
 
+  bool instantiation() const { return _instantiation.actualValue; }
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenInprocessing() const { return _instGenInprocessing.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2005,6 +2011,7 @@ private:
   BoolOptionValue _increasedNumeralWeight;
   IntOptionValue _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
+  BoolOptionValue _instantiation;
   FloatOptionValue _instGenBigRestartRatio;
   BoolOptionValue _instGenInprocessing;
   BoolOptionValue _instGenPassiveReactivation;

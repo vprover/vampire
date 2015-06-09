@@ -343,9 +343,7 @@ void DismatchingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("DismatchingLiteralIndex::handleClause");
 
-  // Not sure what these timecounters are for - check and put the
-  // appropriate thing here
-  //TimeCounter tc(??);
+  //TODO add time counter for dismatching
 
   unsigned clen=c->length();
   for(unsigned i=0; i<clen; i++) {

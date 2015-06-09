@@ -158,8 +158,8 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   if (!limits->ageLimited() || !limits->weightLimited()) {
     return;
   }
-  int ageLimit=limits->ageLimit();
-  int weightLimit=limits->weightLimit();
+  unsigned ageLimit=limits->ageLimit();
+  unsigned weightLimit=limits->weightLimit();
 
   static DHSet<Clause*> checked;
   static Stack<Clause*> toRemove(64);

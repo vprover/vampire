@@ -227,7 +227,7 @@ int Superposition::getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* li
 {
   CALL("Superposition::getWeightLimit");
 
-  int newAge=Int::max(rwClause->age(),eqClause->age())+1;
+  unsigned newAge=Int::max(rwClause->age(),eqClause->age())+1;
 
   if(!limits->ageLimited() || newAge <= limits->ageLimit() || !limits->weightLimited()) {
     return -1;

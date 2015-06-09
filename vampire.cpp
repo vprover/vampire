@@ -7,6 +7,10 @@
 #include <fstream>
 #include <csignal>
 
+#if VZ3
+#include "z3++.h"
+#endif
+
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Exception.hpp"
@@ -213,6 +217,7 @@ void profileMode()
 
   Property* property = prb->getProperty();
   TheoryFinder tf(prb->units(), property);
+  // this doesn't do anything
   Shell::Preprocess prepro(*env.options);
   tf.search();
 
@@ -641,6 +646,7 @@ void vampireMode()
 void spiderMode()
 {
   CALL("spiderMode()");
+  env.options->setBadOptionChoice(Options::BadOption::HARD); 
   Exception* exception = 0;
   bool noException = true;
   try {
@@ -936,6 +942,14 @@ int main(int argc, char* argv[])
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
+  }
+#endif
+#if VZ3
+  catch(z3::exception& exception){
+    BYPASSING_ALLOCATOR;
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+    cout << "Z3 exception:\n" << exception.msg() << endl;
+    reportSpiderFail();
   }
 #endif
   catch (UserErrorException& exception) {

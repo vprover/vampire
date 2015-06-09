@@ -29,7 +29,8 @@ void CheckedSatSolver::ensureVarCount(unsigned newVarCnt)
 void CheckedSatSolver::addClause(SATClause* cl)
 {
   CALL("CheckedSatSolver::addClause");
-  
+  ASS(_inner);
+
   _clauses.push(cl);
   _inner->addClause(cl);
   _checked = false;

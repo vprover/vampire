@@ -75,7 +75,7 @@ bool DistinctEqualitySimplifier::mustBeDistinct(TermList t1, TermList t2, unsign
 {
   CALL("DistinctEqualitySimplifier::mustBeDistinct/3");
 
-  if(!t1.isTerm() || t1.term()->arity()!=0 || !t2.isTerm() || t2.term()->arity()!=0) {
+  if(!t1.isTerm() || t1.term()->arity()!=0 || !t2.isTerm() || t2.term()->arity()!=0 || t1.term() == t2.term()) {
     return false;
   }
   unsigned fn1 = t1.term()->functor();

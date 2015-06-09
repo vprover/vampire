@@ -32,6 +32,7 @@
 #include "Saturation/ProvingHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/TheoryFinder.hpp"
 
 #include "ForkingCM.hpp"
 
@@ -59,6 +60,8 @@ ForkingCM::ForkingCM()
   }
 
   _property = _prb->getProperty();
+  TheoryFinder tf(_prb->units(),_property);
+  tf.search();
 }
 
 bool ForkingCM::runSlice(Options& opt)

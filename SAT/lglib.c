@@ -2,7 +2,9 @@
 /* Copyright 2010-2013 Armin Biere Johannes Kepler University Linz Austria */
 /*-------------------------------------------------------------------------*/
 
+#ifdef __clang__
 #pragma clang diagnostic ignored "-Wempty-body" // MS: to silence a clang warning
+#endif
 
 #include "lglib.h"
 

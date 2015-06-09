@@ -85,25 +85,20 @@ bool Substitution::findBinding(int var, TermList& res) const
 
 
 #if VDEBUG
-// vstring Substitution::toString() const
-// {
-//   vstring result("[");
-//   if (_height >= 0) {
-//     bool first = true;
-//     for (const Node* node = _left.nodes[0]; node; node=node->nodes[0]) {
-//       if (first) {
-// 	first = false;
-//       }
-//       else {
-// 	result += ',';
-//       }
-//       result += vstring("X") + Int::toString(node->var) +
-//                 "->" + node->term->toString();
-//     }
-//   }
-//   result += ']';
-//   return result;
-// } // Substitution::toString()
+ vstring Substitution::toString() const
+ {
+   vstring result("[");
+   VirtualIterator<std::pair<unsigned,TermList>> items = _map.items();
+   bool first=true;
+   while(items.hasNext()){
+     std::pair<unsigned,TermList> item = items.next();
+     if(!first){result+=",";}
+     first=false;
+     result += Lib::Int::toString(item.first) + " -> " + item.second.toString(); 
+   }
+   result += ']';
+   return result;
+ } // Substitution::toString()
 #endif
 
 }

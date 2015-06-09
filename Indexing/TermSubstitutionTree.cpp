@@ -108,7 +108,7 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
   if(root->isLeaf()) {
     return true;
   }
-  return FastGeneralizationsIterator(this, root, trm, false).hasNext();
+  return FastGeneralizationsIterator(this, root, trm, false,false,false).hasNext();
 }
 
 /**
@@ -172,7 +172,7 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
     LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
     return ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions);
   }
-  VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions) );
+  VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false) );
   return pvi( getMappingIterator(qrit, TermQueryResultFn()) );
 }
 

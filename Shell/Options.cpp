@@ -255,7 +255,7 @@ void Options::Options::init()
 
 //*********************** Preprocessing  ***********************
 
-    _inequalitySplitting = IntOptionValue("inequality_splitting","ins",3);
+    _inequalitySplitting = IntOptionValue("inequality_splitting","ins",0);
     _inequalitySplitting.description=
     "Defines a weight threshold w such that any clause C \\/ s!=t where s (or conversely t) is ground "
     "and has weight less than w is replaced by C \\/ p(s) with the additional clause ~p(t) being added "
@@ -627,21 +627,23 @@ void Options::Options::init()
 //*********************** Saturation  ***********************
 
     _saturationAlgorithm = ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
-                                                                  {"discount","inst_gen","lrs","otter","tabulation"});
+                                                                  {"discount","fmb","inst_gen","lrs","otter","tabulation"});
     _saturationAlgorithm.description=
     "Select the saturation algorithm:\n"
     " - discount:\n"
     " - otter:\n"
     " - limited resource:\n"
-    " - instance generation: a simple implementation of instantiation calculus\n    (global_subsumption, unit_resulting_resolution and age_weight_ratio)\n"
+    " - instance generation: a simple implementation of instantiation calculus\n"
+    "    (global_subsumption, unit_resulting_resolution and age_weight_ratio)\n"
     " - tabulation: a special goal-oriented mode for large theories.\n"
-    "inst_gen and tabulation aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
+    " - fmb : finite model building for satisfiable problems.\n"
+    "inst_gen, tabulation and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
     // Captures that if the saturation algorithm is InstGen then splitting must be off
     _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::INST_GEN)).then(_splitting.is(notEqual(true))));
     // Note order of adding constraints matters (we assume previous gaurds are false)
-    _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen"});
+    _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen","fmb"});
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
     _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter","tabulation"});
 
@@ -702,6 +704,13 @@ void Options::Options::init()
 
 
 //*********************** Inferences  ***********************
+
+    _instantiation = BoolOptionValue("instantiation","inst",false);
+    _instantiation.description = "Heuristically instantiate variables"
+                                 ", note that this is often at odds with forward subsumption.";
+    _instantiation.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_instantiation);
+    _instantiation.setRandomChoices({"off","off","off","off","off","off","off","off","off","on"}); // Turn this on rarely
 
     _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
                                                             Demodulation::ALL,
@@ -845,6 +854,7 @@ void Options::Options::init()
     _forwardSubsumption.description="";
     _lookup.insert(&_forwardSubsumption);
     _forwardSubsumption.tag(OptionTag::INFERENCES);
+    _forwardSubsumption.setRandomChoices({"on","on","on","on","on","on","on","on","on","off"}); // turn this off rarely
 
     _forwardSubsumptionResolution = BoolOptionValue("forward_subsumption_resolution","fsr",true);
     _forwardSubsumptionResolution.description="";
@@ -981,17 +991,22 @@ void Options::Options::init()
     _instGenWithResolution.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     _instGenWithResolution.setRandomChoices({"on","off"});
 
-    _use_dm = BoolOptionValue("use_dismatching","",false);
+    _use_dm = BoolOptionValue("use_dismatching","dm",false);
     _use_dm.description="";
     _lookup.insert(&_use_dm);
     _use_dm.tag(OptionTag::INST_GEN);
     _use_dm.setExperimental();
+    _use_dm.setRandomChoices({"on","off"});
+    _use_dm.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
 
-    _nicenessOption = ChoiceOptionValue<Niceness>("niceness_option","no",Niceness::NONE,{"average","none","sum","top"});
+    _nicenessOption = ChoiceOptionValue<Niceness>("niceness_option","none",Niceness::NONE,{"average","none","sum","top"});
     _nicenessOption.description="";
     _lookup.insert(&_nicenessOption);
     _nicenessOption.tag(OptionTag::INST_GEN);
     _nicenessOption.setExperimental();
+    _nicenessOption.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
+    _nicenessOption.reliesOn(_satSolver.is(equal(SatSolver::VAMPIRE)));
+    _nicenessOption.setRandomChoices({"none","none","none","none","none","average","sum","top"});
 
 //*********************** AVATAR  ***********************
 
@@ -1214,12 +1229,21 @@ void Options::Options::init()
     _satRestartStrategy.tag(OptionTag::SAT);
 
     _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::VAMPIRE,
-                                              {"lingeling","minisat","vampire"});
+#if VZ3
+            {"lingeling","minisat","vampire","z3"});
+#else
+            {"lingeling","minisat","vampire"});
+#endif
     _satSolver.description=
     "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption.";
     _lookup.insert(&_satSolver);
     _satSolver.tag(OptionTag::SAT);
-    _satSolver.setRandomChoices({"lingeling","minisat","vampire"});
+    _satSolver.setRandomChoices(
+#if VZ3
+            {"lingeling","minisat","vampire","z3"});
+#else
+            {"lingeling","minisat","vampire"});
+#endif
 
     _satVarActivityDecay = FloatOptionValue("sat_var_activity_decay","",1.05f);
     _satVarActivityDecay.description="";
@@ -2374,6 +2398,9 @@ void Options::readFromEncodedOptions (vstring testId)
   else if (ma == "ins") {
     _saturationAlgorithm.actualValue = SaturationAlgorithm::INST_GEN;
   }
+  else if (ma == "fmb") {
+    _saturationAlgorithm.actualValue = SaturationAlgorithm::FINITE_MODEL_BUILDING;
+  }
   else {
   error: USER_ERROR("bad test id " + _testId.actualValue);
   }
@@ -2458,6 +2485,7 @@ vstring Options::generateEncodedOptions() const
     case SaturationAlgorithm::OTTER : sat="ott"; break;
     case SaturationAlgorithm::TABULATION : sat="tab"; break;
     case SaturationAlgorithm::INST_GEN : sat="ins"; break;
+    case SaturationAlgorithm::FINITE_MODEL_BUILDING : sat="fmb"; break;
     default : ASSERTION_VIOLATION;
   }
 
@@ -2512,7 +2540,7 @@ vstring Options::generateEncodedOptions() const
   }
 
   if(!first){ res << "_"; }
-  res << _timeLimitInDeciseconds.getStringOfActual();
+  res << Lib::Int::toString(_timeLimitInDeciseconds.actualValue);
  
   return res.str();
  

@@ -51,6 +51,8 @@ public:
   unsigned inputClauses;
   /** number of input formulas */
   unsigned inputFormulas;
+  /** has types */
+  bool hasTypes;
 
   // Preprocessing
   /** number of formula names introduced during preprocessing */

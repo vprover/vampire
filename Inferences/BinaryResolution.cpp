@@ -117,7 +117,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   unsigned clength = queryCl->length();
   unsigned dlength = qr.clause->length();
-  int newAge=Int::max(queryCl->age(),qr.clause->age())+1;
+  unsigned newAge=Int::max(queryCl->age(),qr.clause->age())+1;
   bool shouldLimitWeight=limits && limits->ageLimited() && newAge > limits->ageLimit()
 	&& limits->weightLimited();
   unsigned weightLimit;
