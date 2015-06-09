@@ -187,14 +187,46 @@ Formula* FOOLElimination::process(Formula* formula) {
       return processedFormula;
     }
 
+    case IFF:
+    case XOR: {
+      /**
+       * Processing of a binary formula simply propagates processing to its
+       * arguments, except for a case when it is an equivalence between two
+       * boolean terms. In that case we build an equality between processed
+       * underlying boolean terms.
+       *
+       * The semantics of FOOL does not distinguish between equality and
+       * equivalence between boolean terms and this special case implements
+       * a more natural way of expressing an equality between formulas in FOL.
+       * It is not, however, strictly needed - without it the equality would be
+       * processed simply as equality between FOOL boolean terms.
+       */
+      Formula* lhs = formula->left();
+      Formula* rhs = formula->right();
+      if (lhs->connective() == BOOL_TERM && rhs->connective() == BOOL_TERM) {
+        TermList lhsTerm = lhs->getBooleanTerm();
+        TermList rhsTerm = rhs->getBooleanTerm();
+
+        bool polarity = formula->connective() == IFF;
+
+        Literal* equality = Literal::createEquality(polarity, process(lhsTerm), process(rhsTerm), Sorts::SRT_FOOL_BOOL);
+        Formula* processedFormula = new AtomicFormula(equality);
+
+        if (env.options->showPreprocessing()) {
+          reportProcessed(formula->toString(), processedFormula->toString());
+        }
+
+        return processedFormula;
+      }
+      // deliberately no break here so that we would jump to the IMP case
+    }
+
+    case IMP:
+      return new BinaryFormula(formula->connective(), process(formula->left()), process(formula->right()));
+
     case AND:
     case OR:
       return new JunctionFormula(formula->connective(), process(formula->args()));
-
-    case IMP:
-    case IFF:
-    case XOR:
-      return new BinaryFormula(formula->connective(), process(formula->left()), process(formula->right()));
 
     case NOT:
       return new NegatedFormula(process(formula->uarg()));
