@@ -573,6 +573,9 @@ void Property::scanForInterpreted(Term* t)
         break;
     }
   }
+  if(Theory::isConversionOperation(itp)){
+    addProp(PR_NUMBER_CONVERSION);
+  }
 }
 
 /**
