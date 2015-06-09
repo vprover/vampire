@@ -407,7 +407,8 @@ vstring Inference::ruleName(Rule rule)
     return "definition introduction (finite model building)";
   case INSTANTIATION:
     return "Instantiation";
-
+  case EPR_MODEL_NOT_FOUND:
+    return "Finite model not found for EPR problem";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

@@ -546,7 +546,10 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
     // If it's EPR and we've used all the constants and not found a model then there is no model
     if(isEPR && modelSize==_constants.length()){
-      return MainLoopResult(Statistics::REFUTATION); //TODO is REFUTATION the right one?
+      // create dummy empty clause as refutation
+      Clause* empty = new(0) Clause(0,Unit::AXIOM,
+         new Inference(Inference::EPR_MODEL_NOT_FOUND));
+      return MainLoopResult(Statistics::REFUTATION,empty); 
     }
 
     _solver->retractAllAssumptions();
