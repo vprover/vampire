@@ -144,7 +144,10 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
   
   SATSolverWithAssumptions& solver = _index->getSolver();
   
-  ASS_NEQ(solver.solve(_uprOnly),SATSolver::UNSATISFIABLE);
+  // Would be nice to have this:
+  // ASS_NEQ(solver.solve(_uprOnly),SATSolver::UNSATISFIABLE);
+  // But even if the last addition made the SAT solver's content unconditionally inconsistent
+  // the last call to solveUnderAssumptions might have missed that
 
   // create SAT clause and add to solver
   SATClause* scl = SATClause::fromStack(plits);
