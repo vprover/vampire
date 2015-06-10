@@ -689,7 +689,7 @@ void Options::Options::init()
     _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
 
-    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",0);
+    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
     _lrsFirstTimeCheck.description=
     "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
     _lookup.insert(&_lrsFirstTimeCheck);
@@ -697,7 +697,7 @@ void Options::Options::init()
     _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
     _lrsFirstTimeCheck.addConstraint(lessThan(100));
 
-    _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","",false);
+    _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","lwlo",false);
     _lrsWeightLimitOnly.description=
     "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
     _lookup.insert(&_lrsWeightLimitOnly);
@@ -1300,7 +1300,7 @@ void Options::Options::init()
     _bfnt.addProblemConstraint(notWithCat(Property::EPR));
     _bfnt.setRandomChoices({},{"on","off","off","off","off","off"});
     
-    _increasedNumeralWeight = BoolOptionValue("increased_numeral_weight","",false);
+    _increasedNumeralWeight = BoolOptionValue("increased_numeral_weight","inw",false);
     _increasedNumeralWeight.description=
              "weight of integer constants depends on the logarithm of their absolute value (instead of being 1)";
     _lookup.insert(&_increasedNumeralWeight);
