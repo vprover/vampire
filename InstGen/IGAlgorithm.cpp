@@ -30,7 +30,6 @@
 #include "SAT/TWLSolver.hpp"
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
-#include "SAT/BufferedSolver.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -74,20 +73,14 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   //TODO - Consider using MinimizingSolver here
   switch(opt.satSolver()){
     case Options::SatSolver::BUFFERED_VAMPIRE:
-      _satSolver = new BufferedSolver(new TWLSolver(opt,true));
-      break;
     case Options::SatSolver::VAMPIRE:
       _satSolver = new TWLSolver(opt,true);
       break;
     case Options::SatSolver::BUFFERED_LINGELING:
-      _satSolver = new BufferedSolver(new LingelingInterfacing(opt,true));
-      break;
     case Options::SatSolver::LINGELING:
       _satSolver = new LingelingInterfacing(opt,true);
       break;
     case Options::SatSolver::BUFFERED_MINISAT:
-      _satSolver = new BufferedSolver(new MinisatInterfacing(opt,true));
-      break;
     case Options::SatSolver::MINISAT:
       _satSolver = new MinisatInterfacing(opt,true);
       break;
