@@ -1,3 +1,4 @@
+#include "Forwards.hpp"
 #include "FMB/CombinationsIterator.hpp"
 
 #include "Test/UnitTesting.hpp"
