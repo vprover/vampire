@@ -197,7 +197,8 @@ public:
   enum class RandomStrategy : unsigned int {
     ON,
     OFF,
-    SAT
+    SAT,
+    NOCHECK
   };
 
   enum class BadOption : unsigned int {

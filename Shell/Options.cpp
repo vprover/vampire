@@ -115,7 +115,7 @@ void Options::Options::init()
     _encode.description="Output an encoding of the strategy to be used with the --decode option";
     _lookup.insert(&_encode);
 
-    _randomStrategy = ChoiceOptionValue<RandomStrategy>("random_strategy","",RandomStrategy::OFF,{"on","off","sat"});
+    _randomStrategy = ChoiceOptionValue<RandomStrategy>("random_strategy","",RandomStrategy::OFF,{"on","off","sat","nocheck"});
     _randomStrategy.description =
       "Create a random strategy. Randomisation will occur after all other options have been "
       "set, whatever order they have been given in. A random number of options will be selected "
@@ -1882,10 +1882,11 @@ bool Options::OptionValue<T>::randomize(Property* prop){
   CALL("Options::OptionValue::randomize()");
 
   DArray<vstring>* choices = 0;
+  if(env.options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
 
   // Only randomize if we have a property and need it or don't have one and don't need it!
-  if( (prop && !hasProblemConstraints()) ||
-      (!prop && hasProblemConstraints())
+  if( env.options->randomStrategy()!=RandomStrategy::NOCHECK && 
+      ((prop && !hasProblemConstraints()) || (!prop && hasProblemConstraints()))
     ){
     return false;
   }
@@ -2244,6 +2245,8 @@ void Options::randomizeStrategy(Property* prop)
   BadOption saved_bad_option = _badOption.actualValue;
   _badOption.actualValue=BadOption::OFF;
 
+  bool skipChecks = _randomStrategy.actualValue == RandomStrategy::NOCHECK;
+
   while(options.hasNext()){
     AbstractOptionValue* option = options.next();
     if(!option->is_set){
@@ -2255,7 +2258,7 @@ void Options::randomizeStrategy(Property* prop)
       // If we cannot randomize then skip (invariant, if this is false value is unchanged)
       if(can_rand){
         // We need to check ALL constraints - rather inefficient
-        bool valid = checkGlobalOptionConstraints(true) && (!prop || checkProblemOptionConstraints(prop,true));
+        bool valid = skipChecks || (checkGlobalOptionConstraints(true) && (!prop || checkProblemOptionConstraints(prop,true)));
         unsigned i=4;
         while(!valid && i-- > 0){
           option->randomize(prop);
