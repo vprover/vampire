@@ -27,7 +27,7 @@ using namespace Lib;
 //using namespace z3;
   
 Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool generateProofs):
-  sat2fo(s2f),_status(SATISFIABLE), _solver(_context), _model(_solver.get_first_model()), _addedClauses(0)
+  _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context), _model(_solver.get_first_model())
 {
   CALL("Z3Interfacing::Z3Interfacing");
   
@@ -65,7 +65,7 @@ void Z3Interfacing::addClause(SATClause* cl)
   ASS(cl);
 
   // store to later generate the refutation
-  SATClauseList::push(cl,_addedClauses);
+  PrimitiveProofRecordingSATSolver::addClause(cl);
 
   z3::expr z3clause = _context.bool_val(false);
 
@@ -111,12 +111,6 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
 #endif
   }
   return _status;
-}
-
-void Z3Interfacing::addAssumption(SATLiteral lit, unsigned conflictCountLimit) 
-{
-  CALL("Z3Interfacing::addAssumption");
-  NOT_IMPLEMENTED;  
 }
 
 SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var) 
@@ -169,34 +163,6 @@ SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
   NOT_IMPLEMENTED;
   
   return 0;
-}
-
-SATClause* Z3Interfacing::getRefutation() 
-{
-  CALL("Z3Interfacing::getRefutation");
-  
-        ASS_EQ(_status,UNSATISFIABLE);
- 
-  // connect the added clauses ... 
-  SATClauseList* prems = _addedClauses;
- 
-  // ... with the current assumptions
-/*
-  for (int i=0; i < _assumptions.size(); i++) {
-    SATClause* unit = new(1) SATClause(1);
-    (*unit)[0] = minisatLit2Vampire(_assumptions[i]);
-    unit->setInference(new AssumptionInference());
-    SATClauseList::push(unit,prems);
-  }
-*/
-
-    SATClause* refutation = new(0) SATClause(0);
-    refutation->setInference(new PropInference(prems));
-
-    //cout << "returing refutation " << refutation << endl;
-
-    return refutation;
-
 }
 
 //TODO: should handle function/predicate types really
