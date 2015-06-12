@@ -42,6 +42,7 @@
 #include "ClauseFlattening.hpp"
 #include "SortInference.hpp"
 #include "DefinitionIntroduction.hpp"
+#include "SortTranslation.hpp"
 #include "FiniteModelBuilder.hpp"
 
 #define VTRACE_FMB 0
@@ -303,6 +304,7 @@ void FiniteModelBuilder::init()
     USER_ERROR("UNSAT");
   }
 */
+  //VirtualIterator<Clause*> clauses = pvi(SortTranslation(_prb.clauseIterator()));
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
