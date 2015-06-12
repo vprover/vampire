@@ -197,7 +197,8 @@ public:
   enum class RandomStrategy : unsigned int {
     ON,
     OFF,
-    SAT
+    SAT,
+    NOCHECK
   };
 
   enum class BadOption : unsigned int {
@@ -1646,6 +1647,9 @@ public:
   bool showSkolemisations() const { return _showSkolemisations.actualValue; }
   bool showSymbolElimination() const { return _showSymbolElimination.actualValue; }
   bool showTheoryAxioms() const { return _showTheoryAxioms.actualValue; }
+#if VZ3
+  bool showZ3() const { return _showZ3.actualValue; }
+#endif
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   bool weightIncrement() const { return _weightIncrement.actualValue; }
@@ -2102,6 +2106,9 @@ private:
   BoolOptionValue _showSkolemisations;
   BoolOptionValue _showSymbolElimination;
   BoolOptionValue _showTheoryAxioms;
+#if VZ3
+  BoolOptionValue _showZ3;
+#endif
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;

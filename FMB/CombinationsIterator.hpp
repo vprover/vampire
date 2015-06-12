@@ -11,6 +11,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/DArray.hpp"
+#include "Lib/Array.hpp"
 
 #include "FiniteModelBuilder.hpp"
 #include "Forwards.hpp"

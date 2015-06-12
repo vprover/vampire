@@ -30,7 +30,6 @@
 #include "SAT/TWLSolver.hpp"
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
-#include "SAT/BufferedSolver.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -315,7 +314,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
     // if dmatch has a generalisation of glit then we do not
     // satisfy the constraint
     // Note: the true,false options indicate checking for complement and not retrieving subs
-    if(_use_dm && dmatch->getGeneralizations(glit,true,false).hasNext()){
+    if(_use_dm && dmatch->getGeneralizations(glit,false,false).hasNext()){
       RSTAT_CTR_INC("dismatch blocked");
       return;
     }

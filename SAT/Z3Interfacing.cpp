@@ -27,7 +27,7 @@ using namespace Lib;
 //using namespace z3;
   
 Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool generateProofs):
-  _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context), _model(_solver.get_first_model())
+  _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context), _model(_solver.get_first_model()), _showZ3(opts.showZ3())
 {
   CALL("Z3Interfacing::Z3Interfacing");
   
@@ -76,7 +76,11 @@ void Z3Interfacing::addClause(SATClause* cl)
     z3clause = z3clause || e;
   }
   
-  //cout << "add " << z3clause << endl;
+  if(_showZ3){
+    env.beginOutput();
+    env.out() << "[Z3] add: " << z3clause << std::endl;
+    env.endOutput();
+  }
   _solver.add(z3clause);
 
 }

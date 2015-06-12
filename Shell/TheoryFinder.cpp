@@ -1396,11 +1396,12 @@ bool TheoryFinder::matchKnownExtensionality(const Clause* c) {
      PLIT,2,
       EQL,OLDVAR,0,OLDVAR,1,END}; // X=Y
 
-  if (matchCode(c, setCode) ||
-      matchCode(c, arrayCode) ||
-      matchCode(c, subsetCode)) {
-    return true;
+  switch (c->length()) {
+  case 2:
+    return matchCode(c, arrayCode);
+  case 3:
+     return (matchCode(c, setCode) || matchCode(c, subsetCode));
+  default:
+    return false;
   }
-  
-  return false;
 }

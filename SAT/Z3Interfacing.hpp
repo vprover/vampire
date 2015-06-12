@@ -123,6 +123,8 @@ private:
   z3::context _context;
   z3::solver _solver;
   z3::model _model;
+
+  bool _showZ3;
 };
 
 }//end SAT namespace

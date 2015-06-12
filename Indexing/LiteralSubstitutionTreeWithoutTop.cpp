@@ -38,19 +38,19 @@ void LiteralSubstitutionTreeWithoutTop::remove(Literal* lit, Clause* cls)
 void LiteralSubstitutionTreeWithoutTop::handleLiteral(Literal* lit, Clause* cls, bool insert)
 {
   CALL("LiteralSubstitutionTreeWithoutTop::handleLiteral");
-  //cout << "handle in " << this << endl;
   
   Literal* normLit=Renaming::normalize(lit);
 
-  Node* _root = lit->polarity() ? _posRoot : _negRoot;
+  Node** _root = lit->polarity() ? &_posRoot : &_negRoot;
 
   BindingMap svBindings;
   svBindings.insert(0,TermList(normLit));
   if(insert) {
-    SubstitutionTree::insert(&_root, svBindings, LeafData(cls, lit));
+    SubstitutionTree::insert(_root, svBindings, LeafData(cls, lit));
   } else {
-    SubstitutionTree::remove(&_root, svBindings, LeafData(cls, lit));
+    SubstitutionTree::remove(_root, svBindings, LeafData(cls, lit));
   }
+
 }
 
 SLQueryResultIterator LiteralSubstitutionTreeWithoutTop::getUnifications(Literal* lit,

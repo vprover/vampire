@@ -115,7 +115,7 @@ void Options::Options::init()
     _encode.description="Output an encoding of the strategy to be used with the --decode option";
     _lookup.insert(&_encode);
 
-    _randomStrategy = ChoiceOptionValue<RandomStrategy>("random_strategy","",RandomStrategy::OFF,{"on","off","sat"});
+    _randomStrategy = ChoiceOptionValue<RandomStrategy>("random_strategy","",RandomStrategy::OFF,{"on","off","sat","nocheck"});
     _randomStrategy.description =
       "Create a random strategy. Randomisation will occur after all other options have been "
       "set, whatever order they have been given in. A random number of options will be selected "
@@ -473,7 +473,7 @@ void Options::Options::init()
     _lookup.insert(&_trivialPredicateRemoval);
     _trivialPredicateRemoval.tag(OptionTag::PREPROCESSING);
 
-    _theoryAxioms = BoolOptionValue("theory_axioms","",true);
+    _theoryAxioms = BoolOptionValue("theory_axioms","tha",true);
     _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
     _lookup.insert(&_theoryAxioms);
     _theoryAxioms.tag(OptionTag::PREPROCESSING);
@@ -620,6 +620,13 @@ void Options::Options::init()
     _lookup.insert(&_showTheoryAxioms);
     _showTheoryAxioms.tag(OptionTag::OUTPUT);
 
+#if VZ3
+    _showZ3 = BoolOptionValue("show_z3","",false);
+    _showZ3.description="Print the clauses being added to Z3";
+    _lookup.insert(&_showZ3);
+    _showZ3.tag(OptionTag::OUTPUT);
+#endif
+
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
@@ -682,7 +689,7 @@ void Options::Options::init()
     _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
 
-    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",0);
+    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
     _lrsFirstTimeCheck.description=
     "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
     _lookup.insert(&_lrsFirstTimeCheck);
@@ -690,7 +697,7 @@ void Options::Options::init()
     _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
     _lrsFirstTimeCheck.addConstraint(lessThan(100));
 
-    _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","",false);
+    _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","lwlo",false);
     _lrsWeightLimitOnly.description=
     "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
     _lookup.insert(&_lrsWeightLimitOnly);
@@ -1326,7 +1333,7 @@ void Options::Options::init()
     _bfnt.addProblemConstraint(notWithCat(Property::EPR));
     _bfnt.setRandomChoices({},{"on","off","off","off","off","off"});
     
-    _increasedNumeralWeight = BoolOptionValue("increased_numeral_weight","",false);
+    _increasedNumeralWeight = BoolOptionValue("increased_numeral_weight","inw",false);
     _increasedNumeralWeight.description=
              "weight of integer constants depends on the logarithm of their absolute value (instead of being 1)";
     _lookup.insert(&_increasedNumeralWeight);
@@ -1908,10 +1915,11 @@ bool Options::OptionValue<T>::randomize(Property* prop){
   CALL("Options::OptionValue::randomize()");
 
   DArray<vstring>* choices = 0;
+  if(env.options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
 
   // Only randomize if we have a property and need it or don't have one and don't need it!
-  if( (prop && !hasProblemConstraints()) ||
-      (!prop && hasProblemConstraints())
+  if( env.options->randomStrategy()!=RandomStrategy::NOCHECK && 
+      ((prop && !hasProblemConstraints()) || (!prop && hasProblemConstraints()))
     ){
     return false;
   }
@@ -2270,6 +2278,8 @@ void Options::randomizeStrategy(Property* prop)
   BadOption saved_bad_option = _badOption.actualValue;
   _badOption.actualValue=BadOption::OFF;
 
+  bool skipChecks = _randomStrategy.actualValue == RandomStrategy::NOCHECK;
+
   while(options.hasNext()){
     AbstractOptionValue* option = options.next();
     if(!option->is_set){
@@ -2281,7 +2291,7 @@ void Options::randomizeStrategy(Property* prop)
       // If we cannot randomize then skip (invariant, if this is false value is unchanged)
       if(can_rand){
         // We need to check ALL constraints - rather inefficient
-        bool valid = checkGlobalOptionConstraints(true) && (!prop || checkProblemOptionConstraints(prop,true));
+        bool valid = skipChecks || (checkGlobalOptionConstraints(true) && (!prop || checkProblemOptionConstraints(prop,true)));
         unsigned i=4;
         while(!valid && i-- > 0){
           option->randomize(prop);
