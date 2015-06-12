@@ -1231,7 +1231,7 @@ void Options::Options::init()
     _lookup.insert(&_satVarSelector);
     _satVarSelector.tag(OptionTag::SAT);
 
-    _satLingelingSimilarModels = BoolOptionValue("sat_lingeling_similar_models","",false);
+    _satLingelingSimilarModels = BoolOptionValue("sat_lingeling_similar_models","",true);
     _satLingelingSimilarModels.description="";
     _lookup.insert(&_satLingelingSimilarModels);
     _satLingelingSimilarModels.tag(OptionTag::SAT);
