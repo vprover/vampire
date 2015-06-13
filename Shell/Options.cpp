@@ -398,7 +398,7 @@ void Options::Options::init()
     _hornRevealing.setExperimental();
     
     _predicateDefinitionInlining = ChoiceOptionValue<InliningMode>("predicate_definition_inlining","",InliningMode::OFF,
-                                                                   {"axioms_only","non_growwing","off","on"});
+                                                                   {"axioms_only","non_growing","off","on"});
     _predicateDefinitionInlining.description=
     "Determines whether predicate definitions should be inlined. Non_growing rules out inlinings that would lead to increase in the size of the problem";
     _lookup.insert(&_predicateDefinitionInlining);
@@ -922,13 +922,13 @@ void Options::Options::init()
     _instGenBigRestartRatio.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     _instGenBigRestartRatio.setRandomChoices({"0.0","0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","1.0"});
 
-    _instGenInprocessing = BoolOptionValue("inst_gen_inprocessing","",false);
+    _instGenInprocessing = BoolOptionValue("inst_gen_inprocessing","igi",false);
     _instGenInprocessing.description="";
     _lookup.insert(&_instGenInprocessing);
     _instGenInprocessing.tag(OptionTag::INST_GEN);
     _instGenInprocessing.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
 
-    _instGenPassiveReactivation = BoolOptionValue("inst_gen_passive_reactivation","",false);
+    _instGenPassiveReactivation = BoolOptionValue("inst_gen_passive_reactivation","igpr",false);
     _instGenPassiveReactivation.description="";
     _lookup.insert(&_instGenPassiveReactivation);
     _instGenPassiveReactivation.tag(OptionTag::INST_GEN);
@@ -973,7 +973,7 @@ void Options::Options::init()
     _instGenWithResolution.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     _instGenWithResolution.setRandomChoices({"on","off"});
 
-    _use_dm = BoolOptionValue("use_dismatching","dm",false);
+    _use_dm = BoolOptionValue("use_dismatching","dm",true);
     _use_dm.description="";
     _lookup.insert(&_use_dm);
     _use_dm.tag(OptionTag::INST_GEN);
@@ -1812,14 +1812,16 @@ void Options::output (ostream& str) const
     str << "=========== End ==========\n";
   }
 
-  if(showOptions()){
+  bool normalshow = showOptions();
+  bool experimental = showExperimentalOptions();  
+  
+  if(normalshow || experimental) {
 
     //We bypass the allocator here because of the use of vstringstream
     BYPASSING_ALLOCATOR;
 
     Mode this_mode = _mode.actualValue;
     str << "=========== Options ==========\n";
-    bool experimental = showExperimentalOptions();
 
     VirtualIterator<AbstractOptionValue*> options = _lookup.values();
 
@@ -1831,7 +1833,9 @@ void Options::output (ostream& str) const
 
     while(options.hasNext()){
       AbstractOptionValue* option = options.next();
-      if(option->inMode(this_mode) && (experimental || !option->experimental)){
+      if(option->inMode(this_mode) && 
+              ((experimental && option->experimental) || 
+               (normalshow && !option->experimental) )){
         unsigned tag = static_cast<unsigned>(option->getTag());
         option->output(*groups[tag]);
       }

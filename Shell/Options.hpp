@@ -660,6 +660,10 @@ private:
             if(!shortName.empty()){ out << " (-"<<shortName<<")"; }
             out << endl;
             
+            if (experimental) {
+              out << "\t[experimental]" << endl;
+            }
+            
             if(!description.empty()){
                 // Break a the description into lines where there have been at least 70 characters
                 // on the line at the next space
