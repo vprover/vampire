@@ -6,8 +6,6 @@
 
 #include "LingelingInterfacing.hpp"
 
-#include "SATInference.hpp"
-
 #include "Debug/Assertion.hpp"
 #include "Shell/Statistics.hpp"
 #include "Lib/Environment.hpp"
@@ -43,9 +41,10 @@ using Lib::ScopedLet;
  */
 LingelingInterfacing::LingelingInterfacing(const Options& opts,
 		bool generateProofs) :
-		_status(SATISFIABLE), _addedClauses(0)
+		_varCnt(0), _status(SATISFIABLE)
 {
 	CALL("LingelingInterfacing::LingelingInterfacing");
+  
 	//here we should take care of all the options passed from the caller
 	//TimeCounter ntc(TC_LINGELING);
 
@@ -91,31 +90,68 @@ LingelingInterfacing::~LingelingInterfacing()
  * NOTE: Calling this function is not strictly necessary with lingeling
  * (adding clauses over "undeclared variables" would work),
  * but it is a way to "agree" with the caller on the used signature
- * (see, e.g., the ranges in randomizeAssignment of collectZeroImplied).
+ * (see, e.g., the ranges in collectZeroImplied).
  */
-void LingelingInterfacing::ensureVarCnt(unsigned newVarCnt) 
+void LingelingInterfacing::ensureVarCount(unsigned newVarCnt)
 {
-  CALL("LingelingInterfacing::ensureVarCnt");
+  CALL("LingelingInterfacing::ensureVarCount");
      
   // lingeling starts variables from 1, so maxvar == varcount    
   while(lglmaxvar(_solver) < (int)newVarCnt) {
     // make it frozen right away
     lglfreeze(_solver, lglincvar(_solver));
+    _varCnt++;
   }
+  
+  ASS_EQ(newVarCnt,_varCnt);
+}
+
+unsigned LingelingInterfacing::newVar() 
+{ 
+  CALL("LingelingInterfacing::newVar");
+  
+  // just to do the same thing as ensureVarCount inside
+  lglfreeze(_solver, lglincvar(_solver));
+  
+  return ++_varCnt; 
 }
 
 void LingelingInterfacing::suggestPolarity(unsigned var, unsigned pol)
 {
    CALL("LingelingInterfacing::suggestPolarity");
+   ASS_G(var,0); ASS_LE(var,(unsigned)lglmaxvar(_solver));
+
    int vvar = vampireVar2Lingeling(var);
-   ASS_LE(vvar,lglmaxvar(_solver));
    lglsetphase(_solver,pol ? vvar : -vvar);
  }
+
+SATSolver::Status LingelingInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool)
+{
+  CALL("LingelingInterfacing::solveUnderAssumptions");
+
+  ASS(!hasAssumptions());
+
+  solveModuloAssumptionsAndSetStatus(assumps,conflictCountLimit);
+
+  if (_status == SATSolver::UNSATISFIABLE) {
+    // fill _failedAssumptionBuffer
+    _failedAssumptionBuffer.reset();
+    for (unsigned i = 0; i < assumps.size(); i++) {
+      SATLiteral assump = assumps[i];
+      int lassump = vampireLit2Lingeling(assump);
+      if (lglfailed(_solver,lassump)) {
+        _failedAssumptionBuffer.push(assump);
+      }
+    }
+  }
+
+  return _status;
+}
 
 /**
  * Solve modulo assumptions and set status. 
  */
-void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(int conflictCountLimit) 
+void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(const SATLiteralStack& assumps, int conflictCountLimit)
 {
   CALL("LingelingInterfacing::solveModuloAssumptionsAndSetStatus");
   
@@ -127,8 +163,8 @@ void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(int conflictCountL
   lglsetopt(_solver,"memlim",remMem);  
   lglsetopt(_solver,"clim",conflictCountLimit);
   
-  for (size_t i=0; i < _assumptions.size(); i++) {
-    lglassume(_solver,vampireLit2Lingeling(_assumptions[i]));
+  for (size_t i=0; i < assumps.size(); i++) {
+    lglassume(_solver,vampireLit2Lingeling(assumps[i]));
   }  
   
   TimeCounter tc(TC_LINGELING);
@@ -151,41 +187,33 @@ void LingelingInterfacing::solveModuloAssumptionsAndSetStatus(int conflictCountL
 	}
 }
 
-void LingelingInterfacing::addClauses(SATClauseIterator cit) 
+void LingelingInterfacing::addClause(SATClause* cl)
 {
 	CALL("LingelingInterfacing::addClauses");
   
   ASS_EQ(_assumptions.size(),0);
-  
-	//TAKE CARE HOW ONE ADDS CLAUSES. a call to lgladd(_solver, 0) terminates the clause
-	
-	//iterate over all the clauses from the problem
-	//if the solver is in UNSATISFIABLE state, adding a new clause keeps it unsatisfiable so simply return
+
 	if (_status == SATSolver::UNSATISFIABLE) {
 		return;
 	}
 
-  while(cit.hasNext()) {
-    SATClause* cl=cit.next();
-    
-    // store to later generate the refutation
-    SATClauseList::push(cl,_addedClauses);    
+  // store to later generate the refutation
+  PrimitiveProofRecordingSATSolver::addClause(cl);
 
-    //add the statistics for Lingeling total number of clauses
-		env.statistics->satLingelingClauses++;
+  //add the statistics for Lingeling total number of clauses
+	env.statistics->satLingelingClauses++;
             
-    unsigned clen=cl->length();
-    for(unsigned i=0;i<clen;i++) {
-      SATLiteral l = (*cl)[i];      
+  unsigned clen=cl->length();
+  for(unsigned i=0;i<clen;i++) {
+    SATLiteral l = (*cl)[i];
+
+    int v = vampireVar2Lingeling(l.var());
+    ASS(lglusable(_solver, v));
       
-      int v = vampireVar2Lingeling(l.var());
-      ASS(lglusable(_solver, v));
-      
-      lgladd(_solver, vampireLit2Lingeling(l));
-			lglfreeze(_solver, v);           
-    }
-    lgladd(_solver, 0); //add the marker for clause termination
+    lgladd(_solver, vampireLit2Lingeling(l));
+	  lglfreeze(_solver, v);
   }
+  lgladd(_solver, 0); //add the marker for clause termination
 
   /* TODO: reconsider implementing env.options->satLingelingIncremental()
    * or removing the option! */
@@ -194,32 +222,8 @@ void LingelingInterfacing::addClauses(SATClauseIterator cit)
 SATSolver::Status LingelingInterfacing::solve(unsigned conflictCountLimit) 
 {
   CALL("LingelingInterfacing::solve");      
-  solveModuloAssumptionsAndSetStatus(conflictCountLimit == UINT_MAX ? -1 : (int)conflictCountLimit);  
+  solveModuloAssumptionsAndSetStatus(_assumptions,conflictCountLimit == UINT_MAX ? -1 : (int)conflictCountLimit);
   return _status;
-}
-
-
-SATClause* LingelingInterfacing::getRefutation()
-{
-	CALL("LingelingInterfacing::getRefutation");
-
-  ASS_EQ(_status,UNSATISFIABLE);
-  
-  // connect the added clauses ... 
-  SATClauseList* prems = _addedClauses;
-  
-  // ... with the current assumptions
-  for (size_t i=0; i < _assumptions.size(); i++) {
-    SATClause* unit = new(1) SATClause(1);
-    (*unit)[0] = _assumptions[i];
-    unit->setInference(new AssumptionInference());
-    SATClauseList::push(unit,prems);
-  }
-  	        
-	SATClause* refutation = new(0) SATClause(0);
-	refutation->setInference(new PropInference(prems));
-
-	return refutation; 
 }
   
 /*
@@ -309,7 +313,7 @@ SATSolver::VarAssignment LingelingInterfacing::getAssignment(unsigned var)
 		ASSERTION_VIOLATION;
 	}
 	//Added just in order to get rid of compiler warning!
-	return SATSolver::DONT_CARE;
+	return SATSolver::NOT_KNOWN;
 }
 
 void LingelingInterfacing::retractAllAssumptions()
@@ -326,28 +330,6 @@ bool LingelingInterfacing::hasAssumptions() const
   return !_assumptions.isEmpty();
 }
 
-/**
- * Works by creating a copy of the SAT solver and getting it to solve the problem
- * in a different way
- *
- * Not currently in use - review before using
- */
-void LingelingInterfacing::randomizeAssignment()
-{
-	CALL("LingelingInterfacing::randomizeAssignment()");
-  TimeCounter tc(TC_LINGELING);
-  
-  ASS_EQ(_status, SATISFIABLE);
-    
-  // set all variables a random phase
-  for (int v = 1; v <= lglmaxvar(_solver); v++) {
-    lglsetphase(_solver,Random::getBit() ? v : -v);
-  }
-  
-  solveModuloAssumptionsAndSetStatus();
-  ASS_EQ(_status, SATISFIABLE);
-}
-
 void LingelingInterfacing::printLingelingStatistics()
 {
 	CALL("LingelingInterfacing::printLingelingStatistics");
@@ -362,6 +344,7 @@ void LingelingInterfacing::printLingelingStatistics()
 bool LingelingInterfacing::isZeroImplied(unsigned var)
 {
   CALL("LingelingInterfacing::isZeroImplied");
+  ASS_G(var,0); ASS_LE(var,(unsigned)lglmaxvar(_solver));
   
   return lglfixed(_solver, vampireVar2Lingeling(var));
 }

@@ -1338,12 +1338,16 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   res->setImmediateSimplificationEngine(createISE(prb, opt));
 
+  if(opt.splitting()){
+    res->_splitter = new Splitter();
+  }
+
   // create forward simplification engine
   if (opt.hyperSuperposition()) {
     res->addForwardSimplifierToFront(new HyperSuperposition());
   }
   if (opt.globalSubsumption()) {
-    res->addForwardSimplifierToFront(new GlobalSubsumption());
+    res->addForwardSimplifierToFront(new GlobalSubsumption(opt));
   }
   if (opt.forwardLiteralRewriting()) {
     res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
@@ -1403,21 +1407,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.showSymbolElimination()) {
     res->_symEl=new SymElOutput();
-  }
-
-  // switch(opt.splitting()) {
-  // case Options::SM_OFF:
-  //  break;
-  // case Options::SM_BACKTRACKING:
-  //   res->_splitter=new BSplitter();
-  //   break;
-  //case Options::SM_INPUT:
-  //  res->_splitter=new SWBSplitterWithoutBDDs();
-  //  break;
-  //case Options::SM_SAT:
-  // Splitting is now either on or off. If on it using SSplitter
-  if(opt.splitting()){
-    res->_splitter = new Splitter();
   }
   if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();

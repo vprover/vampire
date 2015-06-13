@@ -13,7 +13,7 @@ namespace SAT
 {
 
 BufferedSolver::BufferedSolver(SATSolver* inner)
- : _inner(inner), _checkedIdx(0), _lastStatus(SATISFIABLE), _maxVar(0)
+ : _inner(inner), _checkedIdx(0), _lastStatus(SATISFIABLE), _varCnt(0), _varCntInnerOld(0)
 {
   CALL("BufferedSolver::BufferedSolver");
 }
@@ -43,7 +43,7 @@ bool BufferedSolver::checkAndRecordImplied(SATClause* cl)
     if(trueInAssignment(l)) return true;
 
     // record if l is new
-    if(l.var() > _maxVar) newLiterals.push(l); 
+    if(l.var() > _varCntInnerOld) newLiterals.push(l);
   }
   // if we get to here then the clause is not currently implied
   // by the ground model or literalBuffer
@@ -64,15 +64,15 @@ bool BufferedSolver::checkAndRecordImplied(SATClause* cl)
 }
 
 /**
- * Add clauses to sat solver
+ * Add a clause to sat solver
  *
- * @author Giles
+ * @author Giles, Martin
  */
-void BufferedSolver::addClauses(SATClauseIterator cit)
+void BufferedSolver::addClause(SATClause* cl)
 {
-  CALL("BufferedSolver::addClauses");
+  CALL("BufferedSolver::addClause");
 
-  _unadded.loadFromIterator(cit);
+  _unadded.push(cl);
 }
 
 /**
@@ -89,10 +89,10 @@ void BufferedSolver::flushUnadded()
   CALL("BufferedSolver::flushUnadded");
 
   //update maxVar
-  _maxVar=_tmaxVar;
+  _varCntInnerOld=_varCnt;
 
   // flush _unadded to _inner
-  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(_unadded)));
+  _inner->addClausesIter(pvi(SATClauseStack::BottomFirstIterator(_unadded)));
 
   // reset
   _unadded.reset();
@@ -146,6 +146,7 @@ SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
 SATSolver::VarAssignment BufferedSolver::getAssignment(unsigned var)
 {
   CALL("BufferedSolver::getAssignment");
+  ASS_G(var,0); ASS_LE(var,_varCnt);
 
   // check buffer
   if(!_literalBuffer.isEmpty() && _literalBuffer.find(var)) {
@@ -153,11 +154,10 @@ SATSolver::VarAssignment BufferedSolver::getAssignment(unsigned var)
   }
 
   // refer to inner if variable not new
-  if(var < _maxVar){
+  if (var <= _varCntInnerOld) {
     return _inner->getAssignment(var); 
-  }
-  else{
-   return SATSolver::DONT_CARE; // If it is new and not yet assigned in buffer
+  } else {
+    return SATSolver::DONT_CARE; // If it is new and not yet assigned in buffer
   }
 }
 

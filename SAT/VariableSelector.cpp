@@ -16,6 +16,8 @@ bool VariableSelector::isUndefined(unsigned var)
 {
   CALL("VariableSelector::isUndefined");
 
+  ASS_G(var,0); ASS_LE(var,_varCnt);
+
   return _solver.isUndefined(var);
 }
 
@@ -32,14 +34,14 @@ bool ActiveVariableSelector::selectVariable(unsigned& var)
   return true;
 }
 
-void ActiveVariableSelector::ensureVarCnt(unsigned varCnt)
+void ActiveVariableSelector::ensureVarCount(unsigned varCnt)
 {
-  CALL("ActiveVariableSelector::ensureVarCnt");
+  CALL("ActiveVariableSelector::ensureVarCount");
 
-  VariableSelector::ensureVarCnt(varCnt);
-  _activityHeap.ensureVarCnt(varCnt);
+  VariableSelector::ensureVarCount(varCnt);
+  _activityHeap.ensureVarCount(varCnt);
   // expand and initialise new entries with 0
-  _niceness.expand(varCnt, 0);
+  _niceness.expand(varCnt+1, 0);
 }
 
 void ActiveVariableSelector::onInputClauseAdded(SATClause* cl)
@@ -76,6 +78,8 @@ void ActiveVariableSelector::onInputClauseAdded(SATClause* cl)
 unsigned ActiveVariableSelector::getNiceness(unsigned var)
 {
   CALL("ActiveVariableSelector::getNiceness");
+
+  ASS_G(var,0); ASS_LE(var,_varCnt);
 
   // If niceness is switched off use 1
   if(_niceness_option == Options::Niceness::NONE){
@@ -171,7 +175,7 @@ void ArrayActiveVariableSelector::onRestart()
 {
   CALL("ArrayActiveVariableSelector::onRestart");
 
-  for(unsigned i=0; i<_varCnt; i++) {
+  for(unsigned i=1; i<=_varCnt; i++) {
     _activities[i]/=2;
   }
 }
@@ -183,7 +187,7 @@ bool ArrayActiveVariableSelector::selectVariable(unsigned& var)
   unsigned bestWCnt;
   int bestWCntI=-1;
 
-  for(unsigned i=0;i<_varCnt;i++) {
+  for(unsigned i=1;i<=_varCnt;i++) {
     if(!isUndefined(i)) {
       continue;
     }

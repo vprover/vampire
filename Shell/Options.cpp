@@ -905,12 +905,37 @@ void Options::Options::init()
 //*********************** InstGen  ***********************
 
     _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);
-    _globalSubsumption.description="";
+    _globalSubsumption.description="Global subsumption reduction.";
     _lookup.insert(&_globalSubsumption);
     _globalSubsumption.tag(OptionTag::INST_GEN);
     _globalSubsumption.addProblemConstraint(hasNonUnits());
     _globalSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
-    _globalSubsumption.setRandomChoices({"on","off"});
+    _globalSubsumption.setRandomChoices({"off","on"});
+
+    _globalSubsumptionSatSolverPower = ChoiceOptionValue<GlobalSubsumptionSatSolverPower>("global_subsumption_sat_solver_power","gsssp",
+          GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY,{"propagation_only","full"});
+    _globalSubsumptionSatSolverPower.description="";
+    _lookup.insert(&_globalSubsumptionSatSolverPower);
+    _globalSubsumptionSatSolverPower.tag(OptionTag::INST_GEN);
+    _globalSubsumptionSatSolverPower.reliesOn(_globalSubsumption.is(equal(true)));
+    _globalSubsumptionSatSolverPower.setRandomChoices({"propagation_only","full"});
+
+    _globalSubsumptionExplicitMinim = ChoiceOptionValue<GlobalSubsumptionExplicitMinim>("global_subsumption_explicit_minim","gsem",
+        GlobalSubsumptionExplicitMinim::RANDOMIZED,{"off","on","randomized"});
+    _globalSubsumptionSatSolverPower.description="Explicitly minimize the result of global sumsumption reduction.";
+    _lookup.insert(&_globalSubsumptionExplicitMinim);
+    _globalSubsumptionExplicitMinim.tag(OptionTag::INST_GEN);
+    _globalSubsumptionExplicitMinim.reliesOn(_globalSubsumption.is(equal(true)));
+    _globalSubsumptionExplicitMinim.setRandomChoices({"off","on","randomized"});
+
+    _globalSubsumptionAvatarAssumptions = ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions>("global_subsumption_avatar_assumptions","gsaa",
+        GlobalSubsumptionAvatarAssumptions::OFF,{"off","from_current","full_model"});
+    _globalSubsumptionAvatarAssumptions.description="";
+    _lookup.insert(&_globalSubsumptionAvatarAssumptions);
+    _globalSubsumptionAvatarAssumptions.tag(OptionTag::INST_GEN);
+    _globalSubsumptionAvatarAssumptions.reliesOn(_globalSubsumption.is(equal(true)));
+    _globalSubsumptionAvatarAssumptions.reliesOn(_splitting.is(equal(true)));
+    _globalSubsumptionAvatarAssumptions.setRandomChoices({"off","from_current","full_model"});
 
     _instGenBigRestartRatio = FloatOptionValue("inst_gen_big_restart_ratio","igbrr",0.0);
     _instGenBigRestartRatio.description=
@@ -1088,6 +1113,14 @@ void Options::Options::init()
     _splittingFastRestart.reliesOn(_splitting.is(equal(true)));
     _splittingFastRestart.setRandomChoices({"on","off"});
 
+    _splittingBufferedSolver = BoolOptionValue("splitting_buffered_solver","sbs",false);
+    _splittingBufferedSolver.description="Added buffering funcitonality to the SAT solver used in AVATAR.";
+    _lookup.insert(&_splittingBufferedSolver);
+    _splittingBufferedSolver.tag(OptionTag::AVATAR);
+    _splittingBufferedSolver.setExperimental();
+    _splittingBufferedSolver.reliesOn(_splitting.is(equal(true)));
+    _splittingBufferedSolver.setRandomChoices({"on","off"});
+
     _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("splitting_delete_deactivated","sdd",
                                                                         SplittingDeleteDeactivated::ON,{"on","large","off"});
 
@@ -1204,19 +1237,19 @@ void Options::Options::init()
 
     _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::VAMPIRE,
 #if VZ3
-            {"buf_lingeling","buf_minisat","buf_vampire","lingeling","minisat","vampire","z3"});
+            {"lingeling","minisat","vampire","z3"});
 #else
-            {"buf_lingeling","buf_minisat","buf_vampire","lingeling","minisat","vampire"});
+            {"lingeling","minisat","vampire"});
 #endif
     _satSolver.description=
-    "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption. The buf options are experimental (they add buffering).";
+    "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption.";
     _lookup.insert(&_satSolver);
     _satSolver.tag(OptionTag::SAT);
     _satSolver.setRandomChoices(
 #if VZ3
-            {"buf_lingeling","buf_minisat","buf_vampire","lingeling","minisat","vampire","z3"});
+            {"lingeling","minisat","vampire","z3"});
 #else
-            {"buf_lingeling","buf_minisat","buf_vampire","lingeling","minisat","vampire"});
+            {"lingeling","minisat","vampire"});
 #endif
 
     _satVarActivityDecay = FloatOptionValue("sat_var_activity_decay","",1.05f);

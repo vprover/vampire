@@ -33,12 +33,12 @@ public:
   MinimizingSolver(SATSolver* inner);
 
   virtual SATClause* getRefutation() { return _inner->getRefutation(); }
-  virtual void randomizeForNextAssignment(unsigned varLimit) override {
-    _inner->randomizeForNextAssignment(varLimit); _assignmentValid = false;
+  virtual void randomizeForNextAssignment(unsigned maxVar) override {
+    _inner->randomizeForNextAssignment(maxVar); _assignmentValid = false;
   }
 
-  virtual void addClauses(SATClauseIterator cit) override;
-  virtual void addClausesIgnoredInPartialModel(SATClauseIterator cit) override;
+  virtual void addClause(SATClause* cl) override;
+  virtual void addClauseIgnoredInPartialModel(SATClause* cl) override;
   virtual Status solve(unsigned conflictCountLimit) override;
   
   virtual VarAssignment getAssignment(unsigned var);
@@ -46,22 +46,31 @@ public:
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
   virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
 
-  virtual void ensureVarCnt(unsigned newVarCnt);
+  virtual void ensureVarCount(unsigned newVarCnt) override;
+
+  virtual unsigned newVar() override {
+    CALL("MinimizingSolver::newVar");
+    unsigned oldVC = _varCnt;
+    ensureVarCount(_varCnt+1);
+    ASS_EQ(_varCnt,oldVC+1);
+    return _varCnt;
+  }
+
   virtual void suggestPolarity(unsigned var, unsigned pol) override { _inner->suggestPolarity(var,pol); }
   virtual void recordSource(unsigned var, Literal* lit){
     _inner->recordSource(var,lit);
   }
 
 private:
-  static bool isNonEmptyClause(SATClause* cl);
-
   bool admitsDontcare(unsigned var) { 
     CALL("MinimizingSolver::admitsDontcare");
+    ASS_G(var,0); ASS_LE(var,_varCnt);
+
     return _watcher[var].isEmpty() && !_inner->isZeroImplied(var);
     
     /**
-     * TODO: as an optimization, the _watcher stack for isZeroImplied
-     * vars could be reset. It will not be needed anymore.
+     * TODO: as an optimization, the _watcher stack for zero implied variables
+     * could be reset. It will not be needed anymore.
      */
   }
   

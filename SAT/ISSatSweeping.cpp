@@ -12,7 +12,7 @@ namespace SAT
 {
 
 /**
- * @param varCnt maximal SAT variable number increased by one
+ * @param varCnt is the count of SAT variables and thus also the index of the maximal one (variable 0 unused)
  * @param solver SATSolver object whose state should we sweep for literal
  * 	equivalences. This solver should be in a satisfiable state without
  * 	any assumptions. We will add assumptions to probe for equivalences
@@ -29,23 +29,24 @@ ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolverWithAssumptions& solver, 
   _conflictUpperLimit(conflictLimit),
   _collectImplications(collectImplications),
   _varCnt(varCnt),
-  _interestingVarsSet(varCnt),
+  _interestingVarsSet(varCnt+1),
   _probingGroupIndex(0),
   _probingElementIndex(0),
   _conflictCountLimit(0),
   _reachedUpperConflictLimit(false),
-  _candidateVarPolarities(varCnt),
-  _candidateGroupIndexes(varCnt),
-  _equivalentVars(varCnt),
+  _candidateVarPolarities(varCnt+1),
+  _candidateGroupIndexes(varCnt+1),
+  _equivalentVars(varCnt+1),
   _lastSweepingImplicationCnt(0),
   _solver(solver)
 {
   CALL("ISSatSweeping::ISSatSweeping");
+
   // ASS_EQ(solver.getStatus(),SATSolver::SATISFIABLE);
   ASS(!solver.hasAssumptions());
 
   if(interestingVarIterator.isInvalid()) {
-    interestingVarIterator = pvi(getRangeIterator(1,static_cast<int>(varCnt)));
+    interestingVarIterator = pvi(getRangeIterator(1,static_cast<int>(varCnt+1)));
   }
 
   _interestingVars.loadFromIterator(interestingVarIterator);

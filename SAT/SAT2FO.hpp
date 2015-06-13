@@ -37,7 +37,7 @@ public:
 
   unsigned maxSATVar() const { return _posMap.getNumberUpperBound(); }
 private:
-  typedef Numbering<Literal *, 1 > TwoWayMap;
+  typedef Numbering<Literal *, 1 /* variables start from 1 */ > TwoWayMap;
   TwoWayMap _posMap;
 };
 

@@ -21,7 +21,7 @@
 
 namespace SAT{
 
-class Z3Interfacing : public SATSolver
+class Z3Interfacing : public PrimitiveProofRecordingSATSolver
 {
 public: 
   CLASS_NAME(Z3Interfacing);
@@ -72,29 +72,30 @@ public:
    */
   virtual SATClause* getZeroImpliedCertificate(unsigned var);
 
-  // Note required for Z3
-  virtual void ensureVarCnt(unsigned newVarCnt){}
+  // Not required for Z3, but let's keep track of the counter
+  virtual void ensureVarCnt(unsigned newVarCnt) {
+    CALL("Z3Interfacing::ensureVarCnt");
+    _varCnt = max(newVarCnt,_varCnt);
+  }
+
+  virtual unsigned newVar() {
+    CALL("Z3Interfacing::newVar");
+    return ++_varCnt;
+  }
 
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol){} 
   virtual void forcePolarity(unsigned var, unsigned pol) {}
   
-  
-  
-  /**
-   * Add an assumption into the solver. If conflictCountLimit==0,
-   * do only unit propagation, if conflictCountLimit==UINT_MAX, do
-   * full satisfiability check, and for values in between, restrict
-   * the number of conflicts, and in case it is reached, stop with
-   * solving and assign the status to UNKNOWN.
-   */
-  virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
+  virtual void addAssumption(SATLiteral lit) {
+    CALL("Z3Interfacing::addAssumption");
+    NOT_IMPLEMENTED;
+  }
   
   virtual void retractAllAssumptions(){} 
   
   virtual bool hasAssumptions() const{ return false; }
 
-  virtual SATClause* getRefutation();
 
  /**
   * Record the association between a SATLiteral var and a Literal
@@ -105,6 +106,8 @@ public:
   };
   
 private:
+  // just to conform to the interface
+  unsigned _varCnt;
 
   // Memory belongs to Splitter
   SAT2FO& sat2fo;
@@ -120,7 +123,7 @@ private:
   z3::context _context;
   z3::solver _solver;
   z3::model _model;
-  SATClauseList* _addedClauses;
+
   bool _showZ3;
 };
 

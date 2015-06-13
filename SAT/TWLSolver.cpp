@@ -100,95 +100,94 @@ TWLSolver::~TWLSolver()
     SATClause* cl = _learntClauses.pop();
     cl->destroy();
   }
-  while(_addedClauses.isNonEmpty()) {
-    SATClause* cl = _addedClauses.pop();
-    cl->destroy();
-  }
 }
 
 /**
- * Make the SAT solver handle SAT clauses with variables up to
- * @b newVarCnt-1
+ * Make the SAT solver handle SAT clauses with variables
+ * from 1 to @b newVarCnt
  */
-void TWLSolver::ensureVarCnt(unsigned newVarCnt)
+void TWLSolver::ensureVarCount(unsigned newVarCnt)
 {
-  CALL("TWLSolver::ensureVarCnt");
+  CALL("TWLSolver::ensureVarCount");
   
   if(newVarCnt<=_varCnt) {
     return;
   }
 
-  _assignment.expand(newVarCnt, AS_UNDEFINED);
-  _assignmentLevels.expand(newVarCnt);
-  _assignmentPremises.expand(newVarCnt, 0);
-  _lastAssignments.expand(newVarCnt, AS_UNDEFINED);
-  _propagationScheduled.expand(newVarCnt);
+  _assignment.expand(newVarCnt+1, AS_UNDEFINED);
+  _assignmentLevels.expand(newVarCnt+1);
+  _assignmentPremises.expand(newVarCnt+1, 0);
+  _lastAssignments.expand(newVarCnt+1, AS_UNDEFINED);
+  _propagationScheduled.expand(newVarCnt+1);
 
-  _windex.expand(newVarCnt*2);
+  _windex.expand((newVarCnt+1)*2);
 
   _varCnt=newVarCnt;
 
-  _variableSelector->ensureVarCnt(newVarCnt);
+  _variableSelector->ensureVarCount(newVarCnt);
+}
+
+unsigned TWLSolver::newVar()
+{
+  CALL("TWLSolver::newVar");
+  
+  _varCnt++;
+  
+  _assignment.expand(_varCnt+1, AS_UNDEFINED);
+  _assignmentLevels.expand(_varCnt+1);
+  _assignmentPremises.expand(_varCnt+1, 0);
+  _lastAssignments.expand(_varCnt+1, AS_UNDEFINED);
+  _propagationScheduled.expand(_varCnt+1);
+
+  _windex.expand((_varCnt+1)*2);
+
+  _variableSelector->ensureVarCount(_varCnt);
+  
+  return _varCnt;
 }
 
 /**
- * Add clauses into the SAT solver and saturate. New clauses cannot
- * be added when there are any non-retracted assumptions.
+ * Add a clause into the SAT solver noticing obvious conflicts.
  *
- * If @c onlyPropagate is true, only unit propagation is done. If
- * unsatisfiability isn't shown in this case, the status is set to UNKNOWN.
- * 
- * Memory-wise, the clauses are owned by the solver from now on.
- * (TODO: this may not be a good assumption - check on the caller sides)
+ * The solver will keep the clause (potentially modify it)
+ * but it is not responsible for releasing the memory,
+ * which is not ideal.
+ * (Possible solution: implement reference counting of SATClauses)
  */
-void TWLSolver::addClauses(SATClauseIterator cit)
+void TWLSolver::addClause(SATClause* cl)
 {
-  CALL("TWLSolver::addClauses");
+  CALL("TWLSolver::addClause");
   TimeCounter tc(TC_TWLSOLVER_ADD);
-  TimeCounter ttc(TC_SAT_SOLVER);
   ASS_EQ(_assumptionCnt, 0);
   ASS(!_unsatisfiableAssumptions);
 
   LOG2((void*)this," addClauses");
 
-  if(_status==UNSATISFIABLE) { // TODO: a potential memory leak !
+  if(_status==UNSATISFIABLE) {
     return;
   }
-  
-  if (cit.hasNext()) {
-    _status = UNKNOWN;
-  }
+
+  _status = UNKNOWN;
   
   try {
-    while(cit.hasNext()) {
-      env.statistics->satTWLClauseCount++;
+    env.statistics->satTWLClauseCount++;
 
-      SATClause* cl=cit.next();
-      ASS(cl->hasUniqueVariables());
-      cl->setKept(true);
+    ASS(cl->hasUniqueVariables());
+    cl->setKept(true);
 
-      LOG1(cl->toString());
+    LOG1(cl->toString());
 
-      _addedClauses.push(cl);
-
-      if(cl->length()==0) {
-        _status=UNSATISFIABLE;
-        _refutation = cl;
-
-        // make sure the rest of clauses will get released
-        while(cit.hasNext()) {
-          _addedClauses.push(cit.next());
-        }
-        break;
-      } else if(cl->length()==1) {
-        addUnitClause(cl);
-      }
-      else {
-        addClause(cl);
-      }
-      _variableSelector->onInputClauseAdded(cl);
-      _clauseDisposer->onNewInputClause(cl);
+    if(cl->length()==0) {
+      _status=UNSATISFIABLE;
+      _refutation = cl;
+    } else if(cl->length()==1) {
+      addUnitClause(cl);
     }
+    else {
+      addNonunitClause(cl);
+    }
+    _variableSelector->onInputClauseAdded(cl);
+    _clauseDisposer->onNewInputClause(cl);
   } catch (const UnsatException& e) {
     _status=UNSATISFIABLE;
     _refutation = e.refutation;
@@ -196,6 +195,92 @@ void TWLSolver::addClauses(SATClauseIterator cit)
   }
 }
 
+/**
+ * This implementation follows the scheme of the original implementation of global subsumption
+ *  which relied on the old SAT Solver interface and on TWLSolver as the only SAT solver.
+ *
+ * TODO: Can we deal with assumptions as minisat does, to naturally discover a nice(ish) subset
+ * via the conflict clause learning mechanism?
+ */
+SATSolver::Status TWLSolver::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets)
+{
+  CALL("TWLSolver::solveUnderAssumptions");
+
+  ASS(!hasAssumptions());
+
+  Status res;
+  SATLiteral lit;
+  
+  // first check the empty set of assumptions
+  _failedAssumptionBuffer.reset();
+  res = solve(conflictCountLimit);
+  if (res == UNSATISFIABLE) {
+    return res;
+  }
+  
+  unsigned sz = assumps.size();
+
+  for (unsigned i = 0; i < sz; i++) { // which one to leave out for now
+    _failedAssumptionBuffer.reset();
+    retractAllAssumptions(); // no-op for the first pass
+
+    for (unsigned j = 0; j < sz; j++) {
+      if (i == j) {
+        continue;
+      }
+
+      lit = assumps[j];
+      addAssumption(lit);
+      _failedAssumptionBuffer.push(lit);
+      res = solve(conflictCountLimit);
+
+      if (res == UNSATISFIABLE) {
+        retractAllAssumptions();
+        return res;
+      }
+    }
+  }
+
+  if (!onlyProperSubusets) {
+    // we must also check with all of them; the last left out was (sz-1)-th
+    lit = assumps[sz-1];
+    addAssumption(lit);
+    _failedAssumptionBuffer.push(lit);
+    res = solve(conflictCountLimit);
+  } else {
+    res = UNKNOWN;
+  }
+
+  retractAllAssumptions();
+  return res;
+}
+
+const SATLiteralStack& TWLSolver::explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit, bool randomize)
+{
+  CALL("TWLSolver::explicitlyMinimizedFailedAssumptions");
+
+  // minimize _failedAssumptionBuffer using parent's code:
+  SATSolverWithAssumptions::explicitlyMinimizedFailedAssumptions(conflictCountLimit, randomize);
+
+  // the following is only necessary, because during explicit minimization calls to solve may invalidate _refutation
+  // TODO: a better solution?
+
+  unsigned sz = _failedAssumptionBuffer.size();
+  for (unsigned i = 0; i < sz; i++) {
+    addAssumption(_failedAssumptionBuffer[i]);
+  }
+  ALWAYS(solve(conflictCountLimit) == UNSATISFIABLE);
+  retractAllAssumptions();
+
+  return _failedAssumptionBuffer;
+}
+
+
+/**
+ * Perform saturation for @c conflictCountLimit conflicts.
+ *
+ * If concrete status is not established by then, return UNKNOWN.
+ */
 SATSolver::Status TWLSolver::solve(unsigned conflictCountLimit) {
   CALL("TWLSolver::solve(unsigned)");
   
@@ -222,7 +307,6 @@ SATSolver::Status TWLSolver::solve(unsigned conflictCountLimit) {
 void TWLSolver::addAssumption(SATLiteral lit)
 {
   CALL("TWLSolver::addAssumption");
-  TimeCounter ttc(TC_SAT_SOLVER);
   _assumptionsAdded = true;
 
   LOG2("addAssumption ",lit);
@@ -262,7 +346,6 @@ void TWLSolver::addAssumption(SATLiteral lit)
 void TWLSolver::retractAllAssumptions()
 {
   CALL("TWLSolver::retractAllAssumptions");
-  TimeCounter ttc(TC_SAT_SOLVER);
   _assumptionsAdded = false;
 
   LOG1("retractAllAssumptions");
@@ -431,7 +514,7 @@ void TWLSolver::doSubsumptionResolution(SATLiteralStack& lits, SATClauseList*& p
   CALL("TWLSolver::doSubsumptionResolution");
 
   static ArraySet litSet;
-  litSet.ensure(_varCnt*2);
+  litSet.ensure((_varCnt+1)*2);
   litSet.reset();
 
   SATLiteralStack::Iterator litScanIt(lits);
@@ -520,7 +603,7 @@ bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars, SATClauseList*& 
   CALL("TWLSolver::isRedundant");
 
   static ArraySet varsSeenHere;
-  varsSeenHere.ensure(_varCnt);
+  varsSeenHere.ensure(_varCnt+1);
   varsSeenHere.reset();
   static Stack<unsigned> toDo;
   toDo.reset();
@@ -571,7 +654,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   //The learnt clause must contradict assignment
   //to at least one of these variables.
   static ArraySet seenVars;
-  seenVars.ensure(_varCnt);
+  seenVars.ensure(_varCnt+1);
   seenVars.reset();
 
   static SATLiteralStack resLits;
@@ -659,6 +742,8 @@ TWLSolver::ClauseVisitResult TWLSolver::visitWatchedClause(Watch watch, unsigned
 {
   CALL("TWLSolver::visitWatchedClause");
 
+  ASS_G(var,0); ASS_LE(var,_varCnt);
+
   if(isTrue(watch.blocker)) {
     return VR_NONE;
   }
@@ -697,7 +782,7 @@ TWLSolver::ClauseVisitResult TWLSolver::visitWatchedClause(Watch watch, unsigned
 
   //  if(undefIndex!=clen && isUndefined((*cl)[otherWatchIndex])) {
   if(undefIndex!=clen) {
-    //The other wathed literal is undefined and there is also another undefined literal.
+    //The other watched literal is undefined and there is also another undefined literal.
     //So we just replace the current watched by the other undefined.
     litIndex = undefIndex;
     return VR_CHANGE_WATCH;
@@ -723,6 +808,7 @@ TWLSolver::ClauseVisitResult TWLSolver::visitWatchedClause(Watch watch, unsigned
 SATClause* TWLSolver::propagate(unsigned var)
 {
   CALL("TWLSolver::propagate");
+  ASS_G(var,0); ASS_LE(var,_varCnt);
   ASS(!isUndefined(var));
 
   //we go through the watch stack of literal opposite to the assigned value
@@ -763,6 +849,7 @@ SATClause* TWLSolver::propagate(unsigned var)
 void TWLSolver::setAssignment(unsigned var, unsigned polarity)
 {
   CALL("TWLSolver::setAssignment");
+  ASS_G(var,0); ASS_LE(var,_varCnt);
 
   _assignment[var] = static_cast<AsgnVal>(polarity);
   _lastAssignments[var] = static_cast<AsgnVal>(polarity);
@@ -787,6 +874,7 @@ void TWLSolver::makeAssumptionAssignment(SATLiteral lit)
 void TWLSolver::makeChoiceAssignment(unsigned var, unsigned polarity)
 {
   CALL("TWLSolver::makeChoiceAssignment");
+  ASS_G(var,0); ASS_LE(var,_varCnt);
 
   _level++;
 
@@ -815,6 +903,7 @@ void TWLSolver::makeForcedAssignment(SATLiteral lit, SATClause* premise)
 void TWLSolver::undoAssignment(unsigned var)
 {
   CALL("TWLSolver::undoAssignment");
+  ASS_G(var,0); ASS_LE(var,_varCnt);
 
   _assignment[var] = AS_UNDEFINED;
   _assignmentPremises[var] = 0;
@@ -932,9 +1021,9 @@ unsigned TWLSolver::selectTwoNonFalseLiterals(SATClause* cl) const
   return 0;
 }
 
-void TWLSolver::addClause(SATClause* cl)
+void TWLSolver::addNonunitClause(SATClause* cl)
 {
-  CALL("TWLSolver::addClause");
+  CALL("TWLSolver::addNonunitClause");
 
   ASS_G(cl->length(),1);
 
@@ -990,6 +1079,8 @@ void TWLSolver::schedulePropagation(unsigned var)
 {
   CALL("TWLSolver::schedulePropagation");
 
+  ASS_G(var,0); ASS_LE(var,_varCnt);
+
   if(_propagationScheduled.find(var)) {
     return;
   }
@@ -1043,7 +1134,7 @@ void TWLSolver::assertValid()
 {
   CALL("TWLSolver::assertValid");
 
-  for(unsigned i=0;i<_varCnt;i++) {
+  for(unsigned i=1;i<=_varCnt;i++) {
     if(_assignment[i]!=AS_UNDEFINED) {
       ASS_LE(getAssignmentLevel(i),_level);
     }
@@ -1066,6 +1157,7 @@ inline WatchStack& TWLSolver::getWatchStack(SATLiteral lit)
 inline WatchStack& TWLSolver::getWatchStack(unsigned var, unsigned polarity)
 {
   CALL("TWLSolver::getWatchStack/2");
+  ASS_G(var,0); ASS_LE(var,_varCnt);
   ASS_REP(polarity==0 || polarity==1, polarity);
 
   return _windex[2*var + polarity];
@@ -1074,6 +1166,7 @@ inline WatchStack& TWLSolver::getWatchStack(unsigned var, unsigned polarity)
 inline WatchStack& TWLSolver::getTriggeredWatchStack(unsigned var, PackedAsgnVal assignment)
 {
   CALL("TWLSolver::getTriggeredWatchStack");
+  ASS_G(var,0); ASS_LE(var,_varCnt);
   ASS(assignment!=AS_UNDEFINED);
 
   return getWatchStack(var, 1-assignment);
@@ -1124,6 +1217,7 @@ inline unsigned TWLSolver::getAssignmentLevel(SATLiteral lit) const
 inline unsigned TWLSolver::getAssignmentLevel(unsigned var) const
 {
   CALL("TWLSolver::getAssignmentLevel(unsigned)");
+  ASS_G(var,0); ASS_LE(var,_varCnt);
   ASS(!isUndefined(var));
 
   return _assignmentLevels[var];
@@ -1159,8 +1253,8 @@ bool TWLSolver::isTrue(SATClause* cl) const
 SATSolver::VarAssignment TWLSolver::getAssignment(unsigned var)
 {
   CALL("TWLSolver::getAssignment");
-  ASS_EQ(_status, SATISFIABLE);
-  ASS_L(var, _varCnt);
+  ASS_G(var,0); ASS_LE(var,_varCnt);
+  ASS(_status == SATISFIABLE || _status == UNKNOWN);
           
   if(isTrue(var)) {
     return SATSolver::TRUE;
@@ -1168,9 +1262,7 @@ SATSolver::VarAssignment TWLSolver::getAssignment(unsigned var)
   else if(isUndefined(var)) {
      /* This can happen when there has been a request for new variables
       * after the SATISFIABLE status has been established.
-      * In practice, when interacting with the minimizing solver...
-      * We need to return DONT_CARE.
-    */      
+    */
     return SATSolver::DONT_CARE;
   }
   else {
@@ -1181,6 +1273,7 @@ SATSolver::VarAssignment TWLSolver::getAssignment(unsigned var)
 bool TWLSolver::isZeroImplied(unsigned var)
 {
   CALL("TWLSolver::isZeroImplied");
+  ASS_G(var,0); ASS_LE(var,_varCnt);
 
   return !isUndefined(var) && (getAssignmentLevel(var)==1);
 }
@@ -1215,6 +1308,7 @@ void TWLSolver::collectZeroImplied(SATLiteralStack& acc)
 SATClause* TWLSolver::getZeroImpliedCertificate(unsigned var)
 {
   CALL("TWLSolver::getZeroImpliedCertificate");
+  ASS_G(var,0); ASS_LE(var,_varCnt);
   ASS(isZeroImplied(var));
   ASS_EQ(getAssignmentLevel(var),1);
 
@@ -1225,7 +1319,7 @@ SATClause* TWLSolver::getZeroImpliedCertificate(unsigned var)
 
 
   static ArraySet seen;
-  seen.ensure(_varCnt);
+  seen.ensure(_varCnt+1);
   seen.reset();
   static Stack<unsigned> toDo;
   toDo.reset();
@@ -1279,7 +1373,7 @@ void TWLSolver::printAssignment()
 {
   CALL("TWLSolver::printAssignment");
 
-  for(unsigned i=0;i<_varCnt;i++) {
+  for(unsigned i=1;i<=_varCnt;i++) {
     if(_assignment[i]==AS_UNDEFINED) {
       cout<<i<<"\t"<<static_cast<AsgnVal>(_assignment[i])<<endl;
     } else {
@@ -1412,27 +1506,6 @@ TWLSolver::SatLoopResult TWLSolver::runSatLoop(unsigned conflictCountLimit)
   }
   ASS_NEQ(res,SLR_UNKNOWN);
   return res;
-}
-
-void TWLSolver::randomizeAssignment()
-{
-  CALL("TWLSolver::randomizeAssignment");
-  ASS_EQ(_status, SATSolver::SATISFIABLE);
-
-  backtrack(1);
-
-  for(unsigned i=0; i<_varCnt; i++) {
-    _lastAssignments[i] = Random::getBit();
-  }
-
-  try {
-	  env.statistics->satTWLSATCalls++;
-    doSolving(UINT_MAX);
-  }
-  catch (UnsatException&) {
-    ASSERTION_VIOLATION;
-  }
-  ASS_EQ(_status, SATSolver::SATISFIABLE);
 }
 
 }

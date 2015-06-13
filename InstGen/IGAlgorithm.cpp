@@ -72,15 +72,12 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   
   //TODO - Consider using MinimizingSolver here
   switch(opt.satSolver()){
-    case Options::SatSolver::BUFFERED_VAMPIRE:
     case Options::SatSolver::VAMPIRE:
       _satSolver = new TWLSolver(opt,true);
       break;
-    case Options::SatSolver::BUFFERED_LINGELING:
     case Options::SatSolver::LINGELING:
       _satSolver = new LingelingInterfacing(opt,true);
       break;
-    case Options::SatSolver::BUFFERED_MINISAT:
     case Options::SatSolver::MINISAT:
       _satSolver = new MinisatInterfacing(opt,true);
       break;
@@ -94,11 +91,13 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
       ASSERTION_VIOLATION_REP(opt.satSolver());
   }
 
+  // TODO: should instgen use buffering?
+
   _gnd = new  IGGrounder(_satSolver);
 
   if(_opt.globalSubsumption()) {
-    _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder(), opt);
-    _globalSubsumption = new GlobalSubsumption(_groundingIndex.ptr());
+    _groundingIndex = new GroundingIndex(opt);
+    _globalSubsumption = new GlobalSubsumption(_opt,_groundingIndex.ptr());
   }
 
   _variantIdx = new ClauseVariantIndex();
@@ -210,11 +209,18 @@ redundancy_check:
   cl->incRefCnt();
   _variantIdx->insert(cl);
   if(_globalSubsumption) {
-    Clause* newCl = _globalSubsumption->perform(cl);
+    static Stack<UnitSpec> prems_dummy;
+    
+    Clause* newCl = _globalSubsumption->perform(cl,prems_dummy);
     if(newCl!=cl) {
       ASS_L(newCl->length(), cl->length());
-      ASS_G(newCl->length(), 0);
-
+      
+      if (newCl->length() == 0) {
+        // A future integration of instgen with AVATAR should consider the case
+        // of conditional empty clause
+        throw RefutationFoundException(newCl);
+      }
+                  
       cl = newCl;
       goto redundancy_check;
     }
@@ -242,9 +248,6 @@ void IGAlgorithm::processUnprocessed()
 
   TimeCounter tc(TC_INST_GEN_SAT_SOLVING);
 
-  static SATClauseStack satClauses;
-  satClauses.reset();
-
   while(_unprocessed.isNonEmpty()) {
     Clause* cl = _unprocessed.popWithoutDec();
 
@@ -258,15 +261,14 @@ void IGAlgorithm::processUnprocessed()
       env.endOutput();
     }
 
-    SATClauseIterator sc = _gnd->ground(cl,_use_niceness);
-    satClauses.loadFromIterator(sc);
-  }
-  _satSolver->ensureVarCnt(_gnd->satVarCnt());
+    SATClause* sc = _gnd->ground(cl,_use_niceness);
+    sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
 
-  SATClauseIterator scit = pvi( SATClauseStack::Iterator(satClauses) );
-  scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
-  
-  _satSolver->addClauses(scit);
+    // sc could have been a tautology, in which case sc == 0 after the removeDuplicateLiterals call
+    if (sc) {
+      _satSolver->addClause(sc);
+    }
+  }
 
   if(_satSolver->solve()==SATSolver::UNSATISFIABLE) {
     Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
@@ -278,7 +280,7 @@ bool IGAlgorithm::isSelected(Literal* lit)
 {
   CALL("IGAlgorithm::isSelected");
 
-  return _satSolver->trueInAssignment(_gnd->ground(lit,_use_niceness));
+  return _satSolver->trueInAssignment(_gnd->groundLiteral(lit,_use_niceness));
 }
 
 /**
@@ -443,11 +445,13 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
     return;
   }
 
-  SATClauseIterator scit = _gnd->ground(cl,_use_niceness);
-  scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
+  SATClause* sc = _gnd->ground(cl,_use_niceness);
+  sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
 
-  _satSolver->ensureVarCnt(_gnd->satVarCnt());
-  _satSolver->addClauses(scit);
+  // sc could have been a tautology, in which case sc == 0 after the removeDuplicateLiterals call
+  if (sc) {
+    _satSolver->addClause(sc);
+  }
 
   if(_satSolver->solve(true)==SATSolver::UNSATISFIABLE) {
     Clause* foRefutation = getFORefutation(_satSolver->getRefutation());

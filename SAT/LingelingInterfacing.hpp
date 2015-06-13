@@ -19,7 +19,7 @@ struct LGL;
 
 namespace SAT{
   
-class LingelingInterfacing : public SATSolverWithAssumptions
+class LingelingInterfacing : public PrimitiveProofRecordingSATSolver
 {
 public: 
   CLASS_NAME(LingelingInterfacing);
@@ -28,29 +28,19 @@ public:
 	//constructor for the instantiation of Lingeling
 	LingelingInterfacing(const Shell::Options& opts, bool generateProofs=false);
 	~LingelingInterfacing();
-
-	/**
-	* The add clause is the incremental way for the lingeling sat solver. It is used in order to add new clause
-	* to the current problem
-	**/
-	virtual void addClauses(SATClauseIterator clauseIterator);
 	
+	virtual void addClause(SATClause* cl) override;
+
   virtual Status solve(unsigned conflictCountLimit) override;
   
-  virtual void ensureVarCnt(unsigned newVarCnt);
+  virtual void ensureVarCount(unsigned newVarCnt) override;
+  virtual unsigned newVar() override;
   virtual void suggestPolarity(unsigned var, unsigned pol) override;
 
 	/**
 	* In case the status of the problem is SATISFIABLE, then return the assigned value for var
 	*/
 	virtual VarAssignment getAssignment(unsigned var);
-
-	/**
-	* Try to find another assignment which is likely to be different from the current one. 
-	* 
-	* as a precondition, the solver must have SATISFIABLE status
-	*/
-	virtual void randomizeAssignment();
 	
 	/**
 	* In case the solver has status SATISFIABLE and the assignment of @c var was done at level 1, 
@@ -92,22 +82,19 @@ public:
 	*/
 	virtual bool hasAssumptions() const;
 
-	/**
-	* get the refutation
-	*/
-	virtual SATClause* getRefutation();
-
 	void printLingelingStatistics();
 	void printAssignment();
 
 	//Not used in Lingeling
 	virtual void recordSource(unsigned var, Literal* lit) { /* intentionally no-op */ };
 
-protected:
-  void solveModuloAssumptionsAndSetStatus(int conflictCountLimit = -1);
+	Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
   
-  static int vampireVar2Lingeling(unsigned vvar) {
-    ASS_G(vvar,0);
+protected:
+  void solveModuloAssumptionsAndSetStatus(const SATLiteralStack& assumps, int conflictCountLimit = -1);
+  
+  int vampireVar2Lingeling(unsigned vvar) {
+    ASS_G(vvar,0); ASS_LE(vvar,_varCnt);
     return (int)vvar;
   }
   
@@ -115,7 +102,7 @@ protected:
     return (unsigned)lvar;
   }
   
-  static int vampireLit2Lingeling(SATLiteral vlit) {
+  int vampireLit2Lingeling(SATLiteral vlit) {
     int lit = vampireVar2Lingeling(vlit.var());
     if (vlit.isNegative()) {
       return -lit;
@@ -130,10 +117,14 @@ protected:
   }
   
 private:
+  /**
+   * Number of variables the solver is able to handle.
+   */
+  unsigned _varCnt;  
+  
 	Status _status;
-  SATLiteralStack _assumptions;  
-  SATClauseList* _addedClauses; 
-  		
+  SATLiteralStack _assumptions;
+    		
 	LGL * _solver;
 };
 

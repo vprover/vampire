@@ -16,24 +16,60 @@ using namespace Lib;
 using namespace Minisat;
   
 MinisatInterfacing::MinisatInterfacing(const Shell::Options& opts, bool generateProofs):
-  _status(SATISFIABLE), _addedClauses(0)
+  _status(SATISFIABLE)
 {
   CALL("MinisatInterfacing::MinisatInterfacing");
-  
+   
   // TODO: consider tuning minisat's options to be set for _solver
   // (or even forwarding them to vampire's options)  
 }
   
 /**
- * Make the solver handle clauses with variables up to @b newVarCnt-1
+ * Make the solver handle clauses with variables up to @b newVarCnt
+ * (but see vampireVar2Minisat!)
  */
-void MinisatInterfacing::ensureVarCnt(unsigned newVarCnt) 
+void MinisatInterfacing::ensureVarCount(unsigned newVarCnt)
 {
-  CALL("MinisatInterfacing::ensureVarCnt");
+  CALL("MinisatInterfacing::ensureVarCount");
   
   while(_solver.nVars() < (int)newVarCnt) {
     _solver.newVar();
-  }  
+  }
+}
+
+unsigned MinisatInterfacing::newVar() 
+{
+  CALL("MinisatInterfacing::ensureVarCount");
+  
+  return minisatVar2Vampire(_solver.newVar());
+}
+
+SATSolver::Status MinisatInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool)
+{
+  CALL("MinisatInterfacing::solveUnderAssumptions");
+
+  ASS(!hasAssumptions());
+
+  // load assumptions:
+  SATLiteralStack::ConstIterator it(assumps);
+  while (it.hasNext()) {
+    _assumptions.push(vampireLit2Minisat(it.next()));
+  }
+
+  solveModuloAssumptionsAndSetStatus(conflictCountLimit);
+
+  if (_status == SATSolver::UNSATISFIABLE) {
+    // unload minisat's internal conflict clause to _failedAssumptionBuffer
+    _failedAssumptionBuffer.reset();
+    Minisat::LSet& conflict = _solver.conflict;
+    for (int i = 0; i < conflict.size(); i++) {
+      _failedAssumptionBuffer.push(minisatLit2Vampire(conflict[i]).opposite());
+    }
+  }
+
+  _assumptions.clear();
+
+  return _status;
 }
 
 /**
@@ -46,7 +82,7 @@ void MinisatInterfacing::solveModuloAssumptionsAndSetStatus(unsigned conflictCou
   
   // TODO: consider calling simplify(); or only from time to time?
     
-  _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty     
+  _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty
   lbool res = _solver.solveLimited(_assumptions);
   
   if (res == l_True) {
@@ -59,36 +95,30 @@ void MinisatInterfacing::solveModuloAssumptionsAndSetStatus(unsigned conflictCou
 }
 
 /**
- * Add clauses into the solver.
+ * Add clause into the solver.
  *
- * Memory-wise, the clauses are owned by the solver from now on.
  */
-void MinisatInterfacing::addClauses(SATClauseIterator cit)
+void MinisatInterfacing::addClause(SATClause* cl)
 {
-  CALL("MinisatInterfacing::addClauses");
+  CALL("MinisatInterfacing::addClause");
+  
+  // store to later generate the refutation
+  PrimitiveProofRecordingSATSolver::addClause(cl);
   
   // TODO: consider measuring time
   
   ASS_EQ(_assumptions.size(),0);
-  
-  while(cit.hasNext()) {
-    SATClause* cl=cit.next();
+                
+  static vec<Lit> mcl;
+  mcl.clear();
     
-    // store to later generate the refutation
-    SATClauseList::push(cl,_addedClauses);    
-          
-    static vec<Lit> mcl;
-    mcl.clear();
-    
-    unsigned clen=cl->length();
-    for(unsigned i=0;i<clen;i++) {
-      SATLiteral l = (*cl)[i];
-      ASS_L((int)l.var(),_solver.nVars());
-      mcl.push(vampireLit2Minisat(l));
-    }
-    
-    _solver.addClause(mcl);          
+  unsigned clen=cl->length();
+  for(unsigned i=0;i<clen;i++) {
+    SATLiteral l = (*cl)[i];
+    mcl.push(vampireLit2Minisat(l));
   }
+
+  _solver.addClause(mcl);
 }
 
 /**
@@ -113,7 +143,7 @@ SATSolver::VarAssignment MinisatInterfacing::getAssignment(unsigned var)
 {
   CALL("MinisatInterfacing::getAssignment");
 	ASS_EQ(_status, SATISFIABLE);  
-  ASS_L((int)var,_solver.nVars());
+	ASS_G(var,0); ASS_LE(var,(unsigned)_solver.nVars());
   lbool res;
     
   Minisat::Var mvar = vampireVar2Minisat(var);  
@@ -131,20 +161,10 @@ SATSolver::VarAssignment MinisatInterfacing::getAssignment(unsigned var)
   }
 }
 
-void MinisatInterfacing::randomizeAssignment() 
-{
-  CALL("MinisatInterfacing::randomizeAssignment");
-  ASS_EQ(_status, SATISFIABLE);
-  
-  // temporarily use random polarities for branching heuristics 
-  ScopedLet<bool> phaseLet(_solver.rnd_pol,true);
-  
-  ALWAYS(_solver.solve(_assumptions)); // must again return SATISFIABLE
-} 
-
 bool MinisatInterfacing::isZeroImplied(unsigned var)
 {
   CALL("MinisatInterfacing::isZeroImplied");
+  ASS_G(var,0); ASS_LE(var,(unsigned)_solver.nVars());
   
   /* between calls to _solver.solve*
    value is undefined for all accept zero implied variables */
@@ -158,6 +178,7 @@ void MinisatInterfacing::collectZeroImplied(SATLiteralStack& acc)
   // TODO: could be made more efficient by inspecting the trail 
   // [new code would be needed in Minisat::solver, though]
   
+  // Minisat's variables start from 0
   for (Minisat::Var v = 0; v < _solver.nVars(); v++) {
     lbool val = _solver.value(v);
     if (val != l_Undef) { // see isZeroImplied
@@ -178,29 +199,6 @@ SATClause* MinisatInterfacing::getZeroImpliedCertificate(unsigned)
    implementing functions like this one properly */
   
   return 0;
-}
-
-SATClause* MinisatInterfacing::getRefutation() 
-{
-  CALL("MinisatInterfacing::getRefutation");
-  
-	ASS_EQ(_status,UNSATISFIABLE);
-  
-  // connect the added clauses ... 
-  SATClauseList* prems = _addedClauses;
-  
-  // ... with the current assumptions
-  for (int i=0; i < _assumptions.size(); i++) {
-    SATClause* unit = new(1) SATClause(1);
-    (*unit)[0] = minisatLit2Vampire(_assumptions[i]);
-    unit->setInference(new AssumptionInference());
-    SATClauseList::push(unit,prems);
-  }
-  	        
-	SATClause* refutation = new(0) SATClause(0);
-	refutation->setInference(new PropInference(prems));
-
-	return refutation; 
 }
 
 } // namespace SAT

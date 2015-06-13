@@ -31,7 +31,7 @@ using namespace Kernel;
  * of grounding of @c cl.
  * use_n indcates whether we record the source for use in niceness computation
  */
-SATClauseIterator Grounder::ground(Clause* cl,bool use_n)
+SATClause* Grounder::ground(Clause* cl,bool use_n)
 {
   CALL("Grounder::ground(Clause*)");
 
@@ -45,7 +45,7 @@ SATClauseIterator Grounder::ground(Clause* cl,bool use_n)
   SATInference* inf = new FOConversionInference(UnitSpec(cl));
   gndNonProp->setInference(inf);
 
-  return pvi( getSingletonIterator(gndNonProp) );
+  return gndNonProp;
 }
 
 /**
@@ -122,7 +122,7 @@ SATClause* Grounder::groundNonProp(Clause* cl, bool use_n, Literal** normLits)
  * Return SATLiteral corresponding to @c lit.
  * use_n indcates whether we record the source for use in niceness computation
  */
-SATLiteral Grounder::ground(Literal* lit,bool use_n)
+SATLiteral Grounder::groundLiteral(Literal* lit,bool use_n)
 {
   CALL("Grounder::ground(Literal*)");
 
@@ -148,8 +148,8 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
   Literal* posLit = Literal::positiveLiteral(lit);
 
   unsigned* pvar;
-  if(_asgn.getValuePtr(posLit, pvar)) {
-    *pvar = _nextSatVar++;
+  if(_asgn.getValuePtr(posLit, pvar)) {    
+    *pvar = _satSolver->newVar();
   }
   return SATLiteral(*pvar, isPos);
 }

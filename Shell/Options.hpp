@@ -331,14 +331,11 @@ public:
 
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
-     BUFFERED_LINGELING = 0,
-     BUFFERED_MINISAT = 1,
-     BUFFERED_VAMPIRE = 2,
-     LINGELING = 3,
-     MINISAT = 4,
-     VAMPIRE = 5
+     LINGELING = 0,
+     MINISAT = 1,
+     VAMPIRE = 2
 #if VZ3
-     ,Z3 = 6
+     ,Z3 = 3
 #endif
   };
 
@@ -467,14 +464,7 @@ public:
     GROWING = 0,
     MINISAT = 1,
   };
-
-  enum class SplittingComponentSweeping : unsigned int {
-    ALL = 0,
-    ITERATED = 1,
-    NONE = 2,
-    ONLY_NEW = 3
-  };
-
+  
   enum class SplittingLiteralPolarityAdvice : unsigned int {
     FALSE,
     TRUE,
@@ -515,6 +505,23 @@ public:
     FIRST = 0,
     SMALL_ONES = 1,
     ALL = 2
+  };
+
+  enum class GlobalSubsumptionSatSolverPower : unsigned int {
+    PROPAGATION_ONLY,
+    FULL
+  };
+
+  enum class GlobalSubsumptionExplicitMinim : unsigned int {
+    OFF,
+    ON,
+    RANDOMIZED
+  };
+
+  enum class GlobalSubsumptionAvatarAssumptions : unsigned int {
+    OFF,
+    FROM_CURRENT,
+    FULL_MODEL
   };
 
   enum class Sos : unsigned int{
@@ -1716,6 +1723,10 @@ public:
   vstring thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
+  GlobalSubsumptionSatSolverPower globalSubsumptionSatSolverPower() const { return _globalSubsumptionSatSolverPower.actualValue; }
+  GlobalSubsumptionExplicitMinim globalSubsumptionExplicitMinim() const { return _globalSubsumptionExplicitMinim.actualValue; }
+  GlobalSubsumptionAvatarAssumptions globalSubsumptionAvatarAssumptions() const { return _globalSubsumptionAvatarAssumptions.actualValue; }
+
   /** true if calling set() on non-existing options does not result in a user error */
   bool ignoreMissing() const { return _ignoreMissing.actualValue; }
   /** set the "ignore missing options" value to true or false */
@@ -1795,13 +1806,13 @@ public:
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
-  SplittingComponentSweeping splittingComponentSweeping() const { return _splittingComponentSweeping.actualValue; }
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary.actualValue; }
   SplittingMinimizeModel splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
   SplittingLiteralPolarityAdvice splittingLiteralPolarityAdvice() const { return _splittingLiteralPolarityAdvice.actualValue; }
   SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated.actualValue;}
   bool splittingHandleZeroImplied() const { return _splittingHandleZeroImplied.actualValue;}
   bool splittingFastRestart() const { return _splittingFastRestart.actualValue; }
+  bool splittingBufferedSolver() const { return _splittingBufferedSolver.actualValue; }
   int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
   float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
   bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
@@ -1990,6 +2001,9 @@ private:
   
   ChoiceOptionValue<RuleActivity> _generalSplitting;
   BoolOptionValue _globalSubsumption;
+  ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
+  ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;
+  ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
 
   BoolOptionValue _hornRevealing;
   BoolOptionValue _hyperSuperposition;
@@ -2111,7 +2125,6 @@ private:
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
-  ChoiceOptionValue<SplittingComponentSweeping> _splittingComponentSweeping;
   ChoiceOptionValue<SplittingCongruenceClosure> _splittingCongruenceClosure;
   ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
   BoolOptionValue _splittingEagerRemoval;
@@ -2123,6 +2136,7 @@ private:
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
   BoolOptionValue _splittingHandleZeroImplied;
   BoolOptionValue _splittingFastRestart;
+  BoolOptionValue _splittingBufferedSolver;
 
   ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _superpositionFromVariables;

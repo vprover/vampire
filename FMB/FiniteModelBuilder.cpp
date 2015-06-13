@@ -41,20 +41,17 @@ unsigned FiniteModelBuilder::created=0;
 unsigned FiniteModelBuilder::fchecked=0;
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
-: MainLoop(prb, opt), _maxSatVar(1), _clauses(0), _functionDefinitionClauses(0), _singleArityFunction(0)
+: MainLoop(prb, opt), _maxSatVar(0), _clauses(0), _functionDefinitionClauses(0), _singleArityFunction(0)
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
 
   switch(opt.satSolver()){
-    case Options::SatSolver::BUFFERED_VAMPIRE:
     case Options::SatSolver::VAMPIRE:
       _solver = new TWLSolver(opt, true);
       break;
-    case Options::SatSolver::BUFFERED_LINGELING:
     case Options::SatSolver::LINGELING:
       _solver = new LingelingInterfacing(opt, true);
       break;
-    case Options::SatSolver::BUFFERED_MINISAT:
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(opt,true);
       break;
@@ -455,8 +452,8 @@ unsigned FiniteModelBuilder::getNextSATVar()
 {
   CALL("FiniteModelBuilder::getNextSATLiteral");
   // currently just get a positive fresh literal
-  _solver->ensureVarCnt(_maxSatVar+1);
-  return _maxSatVar++;
+  _solver->ensureVarCount(++_maxSatVar);
+  return _maxSatVar;
 }
 
 SATLiteral FiniteModelBuilder::getSATLiteral(Literal* lit)
@@ -518,7 +515,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
     domSizeVar = addNewTotalityDefs(modelSize);
 
     // pass clauses and assumption to SAT Solver
-    _solver->addClauses(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
+    _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
     _clausesToBeAdded.reset();
     _solver->addAssumption(SATLiteral(domSizeVar,true));
 
@@ -528,7 +525,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
       if(env.options->mode()!=Options::Mode::SPIDER) {
 
         cout << "Found model of size " << modelSize << endl;
-        for(unsigned i=1;i<_maxSatVar;i++){
+        for(unsigned i=1;i<=_maxSatVar;i++){
           Literal* lit;
           if(_revLookup.find(i,lit)){
             bool pol = _solver->trueInAssignment(SATLiteral(i,true)); 

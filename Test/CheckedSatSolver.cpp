@@ -18,32 +18,27 @@ CheckedSatSolver::CheckedSatSolver(SATSolver* inner)
   CALL("CheckedSatSolver::CheckedSatSolver");
 }
 
-void CheckedSatSolver::ensureVarCnt(unsigned newVarCnt)
+void CheckedSatSolver::ensureVarCount(unsigned newVarCnt)
 {
   CALL("CheckedSatSolver::ensureVarCnt");
 
   _varCnt = std::max(_varCnt, newVarCnt);
-  _inner->ensureVarCnt(newVarCnt);
+  _inner->ensureVarCount(newVarCnt);
 }
 
-void CheckedSatSolver::addClauses(SATClauseIterator cit)
+void CheckedSatSolver::addClause(SATClause* cl)
 {
-  CALL("CheckedSatSolver::addClauses");
+  CALL("CheckedSatSolver::addClause");
   ASS(_inner);
 
-  static SATClauseStack newClauses;
-  newClauses.reset();
-  newClauses.loadFromIterator(cit);
-  
-  _clauses.loadFromIterator(SATClauseStack::BottomFirstIterator(newClauses));
-
-  _inner->addClauses(pvi(SATClauseStack::BottomFirstIterator(newClauses)));
+  _clauses.push(cl);
+  _inner->addClause(cl);
   _checked = false;
 }
 
-void CheckedSatSolver::addClausesIgnoredInPartialModel(SATClauseIterator cit)
+void CheckedSatSolver::addClauseIgnoredInPartialModel(SATClause* cl)
 {
-  CALL("CheckedSatSolver::addClausesIgnoredInPartialModel");
+  CALL("CheckedSatSolver::addClauseIgnoredInPartialModel");
 
   // It is a bit ugly to ignore these clauses for checking
   // but we need to be less strict for the case when checking a minimizing solver 
@@ -51,7 +46,7 @@ void CheckedSatSolver::addClausesIgnoredInPartialModel(SATClauseIterator cit)
   // TODO: consider checking that the returned partial model
   // can be extended to a full model that satisfies even these clauses
   
-  _inner->addClausesIgnoredInPartialModel(cit);
+  _inner->addClauseIgnoredInPartialModel(cl);
   _checked = false;  
 }
 
@@ -66,7 +61,7 @@ SATSolver::Status CheckedSatSolver::solve(unsigned conflictCountLimit)
 SATSolver::VarAssignment CheckedSatSolver::getAssignment(unsigned var)
 {
   CALL("CheckedSatSolver::getAssignment");
-  //ASS_EQ(_inner->getStatus(), SATISFIABLE);
+  ASS_G(var,0); ASS_LE(var,_varCnt);
 
   ensureChecked();
   return _inner->getAssignment(var);

@@ -550,16 +550,13 @@ void satSolverMode()
   TimeCounter tc(TC_SAT_SOLVER);
   SATSolverSCP solver;
   
-  switch(env.options->satSolver()) { 
-    case Options::SatSolver::BUFFERED_VAMPIRE:
+  switch(env.options->satSolver()) {
     case Options::SatSolver::VAMPIRE:  
       solver = new TWLSolver(*env.options);
-      break;          
-    case Options::SatSolver::BUFFERED_LINGELING: 
+      break;
     case Options::SatSolver::LINGELING:
       solver = new LingelingInterfacing(*env.options);
       break;
-    case Options::SatSolver::BUFFERED_MINISAT: 
     case Options::SatSolver::MINISAT:
       solver = new MinisatInterfacing(*env.options);
       break;      
@@ -575,8 +572,8 @@ void satSolverMode()
   
   clauses = getInputClauses(env.options->inputFile().c_str(), varCnt);
   
-  solver->ensureVarCnt(varCnt+1); // allocates one extra slot for the dummy variable 0      
-  solver->addClauses(preprocessClauses(clauses));
+  solver->ensureVarCount(varCnt);
+  solver->addClausesIter(preprocessClauses(clauses));
 
   res = solver->solve();
 

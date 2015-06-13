@@ -20,48 +20,8 @@ namespace SAT
 void SATInference::collectFOPremises(SATClause* cl, Stack<UnitSpec>& acc)
 {
   CALL("SATInference::collectFOPremises");
-  ASS_ALLOC_TYPE(cl, "SATClause");
-
-  static Stack<SATClause*> toDo;
-  static DHSet<SATClause*> seen;
-  toDo.reset();
-  seen.reset();
-
-  toDo.push(cl);
-  while (toDo.isNonEmpty()) {
-    SATClause* cur = toDo.pop();
-    if (!seen.insert(cur)) {
-      continue;
-    }
-    SATInference* sinf = cur->inference();
-    ASS(sinf);
-    switch(sinf->getType()) {
-    case SATInference::FO_CONVERSION:
-      acc.push(static_cast<FOConversionInference*>(sinf)->getOrigin());
-      break;
-    case SATInference::ASSUMPTION:
-      break;
-    case SATInference::PROP_INF:
-    {
-      PropInference* pinf = static_cast<PropInference*>(sinf);
-      toDo.loadFromIterator(SATClauseList::Iterator(pinf->getPremises()));
-      break;
-    }
-    case SATInference::FO_SPLITTING:
-    {
-      FOSplittingInference* inf = static_cast<FOSplittingInference*>(sinf);
-      acc.push(UnitSpec(inf->getOrigin()));
-      ClauseList::Iterator cit(inf->getNames());
-      while (cit.hasNext()) {
-	acc.push(UnitSpec(cit.next()));
-      }
-      break;
-    }
-    default:
-      ASSERTION_VIOLATION;
-    }
-  }
-  makeUnique(acc);
+  
+  collectFilteredFOPremises(cl,acc, [](SATClause*) {return true; } );
 }
 
 
