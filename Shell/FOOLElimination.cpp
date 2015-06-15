@@ -847,15 +847,6 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
     env.signature->getFunction(symbol)->setType(type);
   }
 
-  // TODO find a better way to get rid of the sG functions!
-  // this is a quick fix for the elimination of sG from the invariants
-  env.colorUsed = true;
-  if (context == FORMULA_CONTEXT) {
-    env.signature->getPredicate(symbol)->addColor(COLOR_LEFT);
-  } else {
-    env.signature->getFunction(symbol)->addColor(COLOR_LEFT);
-  }
-
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] FOOL: introduced fresh ";
