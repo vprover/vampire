@@ -598,21 +598,16 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
 
   }
 
-  if (prop->hasFOOL()) {
-    addBooleanDomainAxiom(units);
-    modified = true;
-  }
-
   return modified;
 } // TheoryAxioms::apply
 
-void TheoryAxioms::addBooleanDomainAxiom(UnitList*& units) {
-  CALL("TheoryAxioms::addBooleanDomainAxiom");
+void TheoryAxioms::applyFOOL(Problem& prb) {
+  CALL("TheoryAxioms::applyFOOL");
 
   static TermList t(Term::createConstant(Signature::FOOL_TRUE));
   static TermList f(Term::createConstant(Signature::FOOL_FALSE));
 
   Literal* inequality = Literal::createEquality(false, t, f, Sorts::SRT_FOOL_BOOL);
 
-  addTheoryUnitClause(inequality, units);
+  addTheoryUnitClause(inequality, prb.units());
 } // TheoryAxioms::addBooleanDomainAxiom

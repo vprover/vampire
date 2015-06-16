@@ -201,6 +201,7 @@ void Preprocess::preprocess (Problem& prb)
     if (env.options->showPreprocessing())
       env.out() << "FOOL elimination" << std::endl;
 
+    TheoryAxioms().applyFOOL(prb);
     FOOLElimination().apply(prb);
   }
 

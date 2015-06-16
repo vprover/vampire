@@ -20,6 +20,15 @@ public:
   void apply(Problem& prb);
   bool apply(UnitList*& units, Property* prop);
 
+  /**
+   * There is a separate method for adding the FOOL domain axiom because unlike
+   * for the other supported theories, reasoning in FOOL is complete, so we
+   * want to be sure to always add the axiom when FOOL subexpressions are met,
+   * which is a different condition that is used to apply axioms than the one,
+   * used for the other theories.
+   */
+  void applyFOOL(Problem& prb);
+
 private:
   void addCommutativity(Interpretation op, UnitList*& units);
   void addAssociativity(Interpretation op, UnitList*& units);
@@ -50,8 +59,6 @@ private:
   void addTheoryUnitClause(Literal* lit, UnitList*& units);
   void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3=0);
   void addAndOutputTheoryUnit(Unit* unit,UnitList*& units);
-
-  void addBooleanDomainAxiom(UnitList*& units);
 };
 
 }
