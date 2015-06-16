@@ -256,6 +256,16 @@ public:
   };
 
   /**
+   *
+   *
+   */
+  enum class Instantiation : unsigned int {
+    INPUT_ONLY = 0,
+    OFF = 1,
+    ON = 2
+  };
+
+  /**
    * Possible values for the input syntax
    * @since 26/08/2009 Redmond
    */
@@ -1766,7 +1776,7 @@ public:
   int tabulationLemmaAgeRatio() const { return _tabulationLemmaAgeWeightRatio.actualValue; }
   int tabulationLemmaWeightRatio() const { return _tabulationLemmaAgeWeightRatio.otherValue; }
 
-  bool instantiation() const { return _instantiation.actualValue; }
+  Instantiation instantiation() const { return _instantiation.actualValue; }
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenInprocessing() const { return _instGenInprocessing.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2019,7 +2029,7 @@ private:
   BoolOptionValue _increasedNumeralWeight;
   IntOptionValue _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
-  BoolOptionValue _instantiation;
+  ChoiceOptionValue<Instantiation> _instantiation;
   FloatOptionValue _instGenBigRestartRatio;
   BoolOptionValue _instGenInprocessing;
   BoolOptionValue _instGenPassiveReactivation;

@@ -712,7 +712,7 @@ void Options::Options::init()
 
 //*********************** Inferences  ***********************
 
-    _instantiation = BoolOptionValue("instantiation","inst",false);
+    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"input_only","off","on"});
     _instantiation.description = "Heuristically instantiate variables"
                                  ", note that this is often at odds with forward subsumption.";
     _instantiation.tag(OptionTag::INFERENCES);

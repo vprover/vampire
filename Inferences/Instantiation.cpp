@@ -77,11 +77,14 @@ bool Instantiation::getRelevantTerms(Clause* c, unsigned targetSort, Set<Term*>*
     while(it.hasNext()){
       TermList t = it.next();
       if(t.isTerm() && t.term()->arity()==0 && t.term()->hasInterpretedConstants()){
-        added=true;
-        candidates->insert(t.term());
         // we have an interpreted constant
         unsigned sort;
         ALWAYS(SortHelper::tryGetResultSort(t,sort));
+
+        if(sort!=targetSort) continue;
+
+        added=true;
+        candidates->insert(t.term());
         switch(sort){
           case Sorts::SRT_INTEGER:
             {

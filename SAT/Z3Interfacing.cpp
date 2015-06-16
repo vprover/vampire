@@ -182,6 +182,9 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
 
   // Do not currently deal with Array Sorts, they will be treated as user sorts
 
+  // Use new interface for uninterpreted sorts, I think this is not less efficient
+  return _context.uninterpreted_sort(Lib::Int::toString(s).c_str());
+/*
   // If sort exists, return it
   if(_sorts.find(s)){
     return z3::sort(_context,_sorts.get(s));
@@ -191,7 +194,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
   Z3_sort sort = Z3_mk_uninterpreted_sort(_context.get(),sname);
   _sorts.insert(s,sort);
   return z3::sort(_context,sort); 
-
+*/
 }
 
 /**
@@ -273,59 +276,161 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
     // Currently just deal with binary interpreted functions
     // - constants dealt with above
     // - unary funs/preds like is_rat interpretation unclear
-    if(symb->interpreted() && trm->arity()==2){
+    if(symb->interpreted()){
       Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
       bool skip=false; 
+      // Currently only deal with binary or unary, must set this if use unary so that
+      // the right number of arguments are poped from args
+      bool unary=false;
 
-      // Currently all intepretation functions are binary?
       switch(interp){
         // Numerical operations
+
+        case Theory::INT_UNARY_MINUS:
+        case Theory::RAT_UNARY_MINUS:
+        case Theory::REAL_UNARY_MINUS:
+          ret = -args[0];
+          unary=true;
+          break;
+
         case Theory::INT_PLUS:
         case Theory::RAT_PLUS:
         case Theory::REAL_PLUS:
-          ret = args[0] + args[1];break;
+          ret = args[0] + args[1];
+          break;
 
         case Theory::INT_MINUS:
         case Theory::RAT_MINUS:
         case Theory::REAL_MINUS:
-          ret = args[0] - args[1];break;
+          ret = args[0] - args[1];
+          break;
 
         case Theory::INT_MULTIPLY:
         case Theory::RAT_MULTIPLY:
         case Theory::REAL_MULTIPLY:
-          ret = args[0] * args[1];break;
+          ret = args[0] * args[1];
+          break;
 
-        case Theory::INT_DIVIDE: //TODO check that they are the same
-        case Theory::RAT_DIVIDE:
-        case Theory::REAL_DIVIDE:
-          ret= args[0] / args[1];break;
+        // Not sure of rounding in these cases
+        //case Theory::INT_DIVIDE: //TODO check that they are the same
+        //case Theory::RAT_DIVIDE:
+        //case Theory::REAL_DIVIDE:
+        //  ret= args[0] / args[1];
+        //  break;
+
+        // No int quotient
+        case Theory::RAT_QUOTIENT:
+        case Theory::REAL_QUOTIENT:
+        case Theory::INT_QUOTIENT_E: // this is how their header translates _e
+        case Theory::RAT_QUOTIENT_E: // I assume the built-in division does this
+        case Theory::REAL_QUOTIENT_E: // euclidian rounding as default
+          ret= args[0] / args[1];
+          break;
+
+        case Theory::RAT_TO_INT:
+        case Theory::REAL_TO_INT:
+        case Theory::INT_FLOOR:
+        case Theory::RAT_FLOOR:
+        case Theory::REAL_FLOOR:
+          ret = to_real(to_int(args[0])); 
+          unary=true;
+          break;
+
+        case Theory::INT_TO_REAL:
+        case Theory::RAT_TO_REAL:
+        case Theory::INT_TO_RAT: //I think this works also
+          ret = to_real(args[0]);
+          unary=true;
+          break;
+
+        case Theory::INT_CEILING:
+        case Theory::RAT_CEILING:
+        case Theory::REAL_CEILING:
+          ret = ceiling(args[0]);
+          unary=true;
+          break;
+
+        case Theory::INT_TRUNCATE:
+        case Theory::RAT_TRUNCATE:
+        case Theory::REAL_TRUNCATE:
+          ret = truncate(args[0]); 
+          unary=true;
+          break;
+
+        case Theory::INT_ROUND:
+        case Theory::RAT_ROUND:
+        case Theory::REAL_ROUND:
+          {
+            z3::expr t = args[0];
+            z3::expr i = to_int(t);
+            z3::expr i2 = i + _context.real_val(1,2);
+            ret = ite(t > i2, i+1, ite(t==i2, ite(is_even(i),i,i+1),i));
+            unary=true;
+            break;
+          }
+
+         case Theory::INT_QUOTIENT_T:
+         case Theory::RAT_QUOTIENT_T:
+         case Theory::REAL_QUOTIENT_T:
+           ret = truncate(args[0] / args[1]);
+           break;
+
+         case Theory::INT_QUOTIENT_F:
+         case Theory::RAT_QUOTIENT_F:
+         case Theory::REAL_QUOTIENT_F:
+           ret = to_real(to_int(args[0] / args[1]));
+           break;
+
+         // remainder_t and remainder_r not handled
+
+         case Theory::INT_REMAINDER_E:
+         case Theory::RAT_REMAINDER_E:
+         case Theory::REAL_REMAINDER_E:
+           ret = z3::expr(_context, Z3_mk_mod(_context, args[0], args[1]));
+           break;
 
        // Numerical comparisons
+       // is_rat and to_rat not supported
+
+       case Theory::INT_IS_INT:
+       case Theory::RAT_IS_INT:
+       case Theory::REAL_IS_INT:
+         ret = z3::expr(_context,Z3_mk_is_int(_context,args[0]));
+         unary=true;
+         break;
+
        case Theory::INT_LESS:
        case Theory::RAT_LESS:
        case Theory::REAL_LESS:
-          ret = args[0] < args[1];break;
+          ret = args[0] < args[1];
+          break;
 
        case Theory::INT_GREATER:
        case Theory::RAT_GREATER:
        case Theory::REAL_GREATER:
-          ret= args[0] > args[1];break;
+          ret= args[0] > args[1];
+          break;
           
        case Theory::INT_LESS_EQUAL:
        case Theory::RAT_LESS_EQUAL:
        case Theory::REAL_LESS_EQUAL:
-          ret= args[0] <= args[1];break;
+          ret= args[0] <= args[1];
+          break;
 
        case Theory::INT_GREATER_EQUAL:
        case Theory::RAT_GREATER_EQUAL:
        case Theory::REAL_GREATER_EQUAL:
-          ret= args[0] >= args[1];break;
+          ret= args[0] >= args[1];
+          break;
 
-        default: skip=true;break; //skip it and treat the function as uninterpretted
+        default: 
+          skip=true;//skip it and treat the function as uninterpretted
+          break;
       }
 
       if(!skip){
-        args.pop_back();args.pop_back();
+        args.pop_back();
+        if(!unary){args.pop_back();}
         return ret;
       } 
 
