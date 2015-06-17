@@ -20,10 +20,9 @@
 #include "Property.hpp"
 #include "TheoryFinder.hpp"
 
-// Set this to 1 to make Vampire output found axioms and theories
-// #define DEBUG_THEORY_FINDER 0
-
+// Set this to 1 to make Vampire output all matching steps
 #define TRACE_FINDER 0
+// Set this to 1 to make Vampire output found matches
 #define SHOW_FOUND 0
 
 using namespace Lib;
@@ -108,7 +107,6 @@ bool TheoryFinder::matchAll(const Clause* clause)
             matchCondensedDetachment1(clause) ||
             matchCondensedDetachment2(clause) ||
             matchExtensionality(clause);
-    return matchExtensionality(clause);
   case 4:
     return matchFLD1(clause);
   default:
@@ -135,7 +133,8 @@ bool TheoryFinder::matchAll(const Formula* formula)
   }
 
   return matchExtensionality(formula) ||
-         matchSubset(formula);
+         matchSubset(formula) ||
+         matchListConstructors(formula);
 } // TheoryFinder::matchAll(const Formula*)
 
 /**
@@ -155,7 +154,7 @@ public:
 
 bool TheoryFinder::matchCode(const void* obj,
 			     const unsigned char* code,
-			     unsigned prop)
+			     unsigned long prop)
 {
   CALL("TheoryFinder::matchCode/3");
   
@@ -189,9 +188,11 @@ bool TheoryFinder::matchCode(const void* obj,
   objects[0] = obj;
 
   // variable numbers
-  unsigned vars[20];
+  unsigned vars[10];
   // function symbol numbers
-  unsigned funs[20];
+  unsigned funs[10];
+  // predicate symbol numbers
+  unsigned preds[10];
   unsigned cp = 0; // code pointer
 
   // the clause, if any
@@ -202,17 +203,20 @@ bool TheoryFinder::matchCode(const void* obj,
   int literals[4];
 
  match:
-#if TRACE_FINDER
-  cout << "M " << (unsigned)code[cp] << "\n";
-#endif
   switch (code[cp]) {
   case END:
+#if TRACE_FINDER
+    cout << "Matched\n";
+#endif
     return true;
 
   case NEWVAR: {
     ASS(objectPos > 0);
     obj = objects[--objectPos];
     const TermList* ts = reinterpret_cast<const TermList*>(obj);
+#if TRACE_FINDER
+    cout << "M: NEWVAR " << (int)code[cp+1] << ": " << ts->toString() << "\n";
+#endif
     if (! ts->isVar()) {
       goto backtrack;
     }
@@ -225,10 +229,15 @@ bool TheoryFinder::matchCode(const void* obj,
   }
 
   case NEWFUN:
-  case NEWFUN1 :{
+  case NEWFUN1: {
     ASS(objectPos > 0);
     obj = objects[--objectPos];
     const TermList* ts = reinterpret_cast<const TermList*>(obj);
+    int funNumber = code[cp+1];
+#if TRACE_FINDER
+    cout << "M: NEWFUN" << (code[cp] == NEWFUN1 ? "1" : "") << ' ' << funNumber
+	 << '/' << (int)code[cp+2] << ": " << ts->toString() << "\n";
+#endif
     if (ts->isVar()) {
       goto backtrack;
     }
@@ -236,7 +245,13 @@ bool TheoryFinder::matchCode(const void* obj,
     if (t->arity() != code[cp+2]) {
       goto backtrack;
     }
-    funs[code[cp+1]] = t->functor();
+    // check that the function is new
+    for (int k = funNumber - 1; k >= 0; k--) {
+      if (funs[k] == t->functor()) {
+	goto backtrack;
+      }
+    }
+    funs[funNumber] = t->functor();
     if (code[cp] == NEWFUN && ! ts->next()->isEmpty()) {
       objects[objectPos++] = ts->next();
     }
@@ -252,10 +267,20 @@ bool TheoryFinder::matchCode(const void* obj,
     ASS(objectPos > 0);
     obj = objects[--objectPos];
     const Literal* lit = reinterpret_cast<const Literal*>(obj);
+    int predNumber = code[cp+1];
+#if TRACE_FINDER
+    cout << "M: NEWPRED " << predNumber << '/' << (int)code[cp+2] << ": " << lit->toString() << "\n";
+#endif
     if (lit->arity() != code[cp+2]) {
       goto backtrack;
     }
-    funs[code[cp+1]] = lit->functor();
+    // check that the predicate is new
+    for (int k = predNumber - 1; k >= 0; k--) {
+      if (preds[k] == lit->functor()) {
+	goto backtrack;
+      }
+    }
+    preds[predNumber] = lit->functor();
     const TermList* ts = lit->args();
     if (! ts->isEmpty()) {
       objects[objectPos++] = ts;
@@ -269,6 +294,10 @@ bool TheoryFinder::matchCode(const void* obj,
     ASS(objectPos > 0);
     obj = objects[--objectPos];
     const TermList* ts = reinterpret_cast<const TermList*>(obj);
+#if TRACE_FINDER
+    cout << "M: OLDFUN" << (code[cp] == OLDFUN1 ? "1" : "") << " " << (int)code[cp+1]
+	 << '/' << (int)code[cp+2] << ": " << ts->toString() << "\n";
+#endif
     if (ts->isVar()) {
       goto backtrack;
     }
@@ -288,11 +317,14 @@ bool TheoryFinder::matchCode(const void* obj,
   }
 
   case OLDPRED: {
+#if TRACE_FINDER
+    cout << "M: OLDPRED " << (int)code[cp+1] << "\n";
+#endif
     ASS(objectPos > 0);
     obj = objects[--objectPos];
     const Literal* lit = reinterpret_cast<const Literal*>(obj);
 
-    if (funs[code[cp+1]] != lit->functor()) {
+    if (preds[code[cp+1]] != lit->functor()) {
       goto backtrack;
     }
     const TermList* ts = lit->args();
@@ -308,6 +340,10 @@ bool TheoryFinder::matchCode(const void* obj,
     ASS(objectPos > 0);
     obj = objects[--objectPos];
     const TermList* ts = reinterpret_cast<const TermList*>(obj);
+#if TRACE_FINDER
+    cout << "M: OLDVAR" << (code[cp] == OLDVAR1 ? "1" : "")
+	 << ' ' << (int)code[cp+1] << ": " << ts->toString() << "\n";
+#endif
     if (! ts->isVar()) {
       goto backtrack;
     }
@@ -325,6 +361,9 @@ bool TheoryFinder::matchCode(const void* obj,
     ASS(objectPos > 0);
     obj = objects[--objectPos];
     const Literal* lit = reinterpret_cast<const Literal*>(obj);
+#if TRACE_FINDER
+    cout << "M: EQL: " << lit->toString() << "\n";
+#endif
     if (! lit->isEquality()) {
       goto backtrack;
     }
@@ -343,6 +382,9 @@ bool TheoryFinder::matchCode(const void* obj,
   }
 
   case CLS: {
+#if TRACE_FINDER
+    cout << "M: CLS\n";
+#endif
     clause = reinterpret_cast<const Clause*>(obj);
     clength = clause->length();
     cp++;
@@ -351,6 +393,9 @@ bool TheoryFinder::matchCode(const void* obj,
 
   case PLIT:
   case NLIT: {
+#if TRACE_FINDER
+    cout << "M: LIT " << (int)code[cp+1] << "\n";
+#endif
     unsigned l = code[cp+1];
     // bit field of choices for this literal
     unsigned choice = (1u << clength) - 1;
@@ -394,6 +439,9 @@ bool TheoryFinder::matchCode(const void* obj,
     ASS(objectPos > 0);
     obj = objects[--objectPos];
     const Formula* f = reinterpret_cast<const Formula*>(obj);
+#if TRACE_FINDER
+    cout << "M: IFF: " << f->toString() << "\n";
+#endif
     if (f->connective() != IFF) {
       goto backtrack;
     }
@@ -410,10 +458,48 @@ bool TheoryFinder::matchCode(const void* obj,
     goto match;
   }
 
+    // FUTURE WORK: COR is not commutative, currently we add code for both permutations
+    // it should be changed
+  case COR: {
+    ASS(objectPos > 0);
+    obj = objects[--objectPos];
+    const Formula* f = reinterpret_cast<const Formula*>(obj);
+#if TRACE_FINDER
+    cout << "M: OR " << (int)code[cp+1] << ": " << f->toString() << "\n";
+#endif
+    if (f->connective() != OR) {
+      goto backtrack;
+    }
+    
+    // TEMPORARY, we can only handle disjunctions of length 2
+    ASS(code[cp+1] == 2);
+
+    const FormulaList* args = f->args();
+    if (args->length() != code[cp+1]) {
+      goto backtrack;
+    }
+
+    // Backtrack& back = backtrack[backtrackPos++];
+    // back.cp = cp;
+    // back.obj = obj;
+    // back.objPos = objectPos;
+
+    FormulaList::Iterator as(args);
+    while (as.hasNext()) {
+      objects[objectPos++] = as.next();
+    }
+
+    cp += 2;
+    goto match;
+  }
+
   case CIMP: {
     ASS(objectPos > 0);
     obj = objects[--objectPos];
     const Formula* f = reinterpret_cast<const Formula*>(obj);
+#if TRACE_FINDER
+    cout << "M: IMP: " << f->toString() << "\n";
+#endif
     if (f->connective() != IMP) {
       goto backtrack;
     }
@@ -429,6 +515,9 @@ bool TheoryFinder::matchCode(const void* obj,
     ASS(objectPos > 0);
     obj = objects[--objectPos];
     const Formula* f = reinterpret_cast<const Formula*>(obj);
+#if TRACE_FINDER
+    cout << "M: FORALL " << (int)code[cp+1] << ": " << f->toString() << "\n";
+#endif
     if (f->connective() != FORALL) {
       goto backtrack;
     }
@@ -447,8 +536,12 @@ bool TheoryFinder::matchCode(const void* obj,
 
   case POS: {
     ASS(objectPos > 0);
+
     obj = objects[--objectPos];
     const Formula* f = reinterpret_cast<const Formula*>(obj);
+#if TRACE_FINDER
+    cout << "M: POS: " << f->toString() << "\n";
+#endif
     if (f->connective() != LITERAL) {
       goto backtrack;
     }
@@ -464,7 +557,6 @@ bool TheoryFinder::matchCode(const void* obj,
 
 #if VDEBUG
   case CAND:
-  case COR:
   case CNOT:
   case CXOR:
   case CEXISTS:
@@ -478,6 +570,9 @@ bool TheoryFinder::matchCode(const void* obj,
 
  backtrack:
   if (backtrackPos == 0) {
+#if TRACE_FINDER
+    cout << "M: fail\n";
+#endif
     return false;
   }
   // retrieving information for backtracking
@@ -486,12 +581,12 @@ bool TheoryFinder::matchCode(const void* obj,
   obj = back.obj;
   objectPos = back.objPos;
 
-#if TRACE_FINDER
-  cout << "B " << (unsigned)code[cp] << "\n";
-#endif
   switch (code[cp]) {
   case EQL: {
     const Literal* lit = reinterpret_cast<const Literal*>(obj);
+#if TRACE_FINDER
+    cout << "B: EQL: " << lit->toString() << "\n";
+#endif
     const TermList* ts = lit->args();
     objects[objectPos++] = ts;
     objects[objectPos++] = ts->next();
@@ -502,6 +597,9 @@ bool TheoryFinder::matchCode(const void* obj,
 
   case CIFF: {
     const Formula* f = reinterpret_cast<const Formula*>(obj);
+#if TRACE_FINDER
+    cout << "B: IFF: " << f->toString() << "\n";
+#endif
     objects[objectPos++] = f->left();
     objects[objectPos++] = f->right();
 
@@ -511,6 +609,9 @@ bool TheoryFinder::matchCode(const void* obj,
 
   case PLIT:
   case NLIT: {
+#if TRACE_FINDER
+    cout << "M: backtrack LIT\n";
+#endif
     unsigned l = code[cp+1];
     // bit field of choices for this literal
     unsigned choice = (1u << clength) - 1;
@@ -624,10 +725,10 @@ bool TheoryFinder::matchExtensionality (const Clause* c)
     {CLS,
      NLIT,0,
       NEWPRED,0,2,                            // ~member(f(X,Y),X),
-      NEWFUN,1,2,NEWVAR,0,NEWVAR,1,OLDVAR,0,
+      NEWFUN,0,2,NEWVAR,0,NEWVAR,1,OLDVAR,0,
      NLIT,1,
       OLDPRED,0,                              // ~member(f(X,Y),Y),
-      OLDFUN,1,OLDVAR,0,OLDVAR,1,OLDVAR,1,
+      OLDFUN,0,OLDVAR,0,OLDVAR,1,OLDVAR,1,
      PLIT,2,
       EQL,OLDVAR,0,OLDVAR,1,END}; // X=Y
 
@@ -657,7 +758,7 @@ bool TheoryFinder::matchCondensedDetachment1(const Clause* c)
    NLIT,1,
     OLDPRED,0,NEWVAR,1,                      // ~theorem(x1)
    NLIT,2,
-    OLDPRED,0,NEWFUN,1,2,OLDVAR,1,OLDVAR,0,END}; // ~theorem(imply(x1,x0))
+    OLDPRED,0,NEWFUN,0,2,OLDVAR,1,OLDVAR,0,END}; // ~theorem(imply(x1,x0))
 
   if (matchCode(c,code,Property::PR_HAS_CONDENSED_DETACHMENT1)) {
 #if SHOW_FOUND
@@ -685,7 +786,7 @@ bool TheoryFinder::matchCondensedDetachment2(const Clause* c)
    NLIT,1,
     OLDPRED,0,NEWVAR,1,                                 // ~theorem(x1)
    NLIT,2,
-    OLDPRED,0,NEWFUN,1,2,NEWFUN,2,1,OLDVAR,1,OLDVAR,0,END}; // ~theorem(or(not(x1),x0))
+    OLDPRED,0,NEWFUN,0,2,NEWFUN,1,1,OLDVAR,1,OLDVAR,0,END}; // ~theorem(or(not(x1),x0))
 
   if (matchCode(c,code,Property::PR_HAS_CONDENSED_DETACHMENT2)) {
 #if SHOW_FOUND
@@ -710,15 +811,15 @@ bool TheoryFinder::matchFLD1(const Clause* c)
   static const unsigned char code[] =
     {CLS,
      PLIT,0,
-      NEWPRED,0,2,NEWFUN,1,2,NEWFUN,2,2,NEWVAR,0,NEWVAR,1,     // equalish(add(multiply(x0,x1),
-       OLDFUN,2,NEWVAR,2,OLDVAR,1,                             //  multiply(x2,x1)),
-       OLDFUN,2,OLDFUN,1,OLDVAR,0,OLDVAR,2,OLDVAR,1,           //  multiply(add(x0,x2),x1))
+      NEWPRED,0,2,NEWFUN,0,2,NEWFUN,1,2,NEWVAR,0,NEWVAR,1,     // equalish(add(multiply(x0,x1),
+       OLDFUN,1,NEWVAR,2,OLDVAR,1,                             //  multiply(x2,x1)),
+       OLDFUN,1,OLDFUN,0,OLDVAR,0,OLDVAR,2,OLDVAR,1,           //  multiply(add(x0,x2),x1))
      NLIT,1,
-      NEWPRED,3,1,OLDVAR,0,                               // ~defined(x0)
+      NEWPRED,1,1,OLDVAR,0,                               // ~defined(x0)
      NLIT,2,
-      OLDPRED,3,OLDVAR,2,                                 // ~defined(x2)
+      OLDPRED,1,OLDVAR,2,                                 // ~defined(x2)
      NLIT,3,
-      OLDPRED,3,OLDVAR,1,END};                             // ~defined(x1)
+      OLDPRED,1,OLDVAR,1,END};                             // ~defined(x1)
 
   if (matchCode(c,code,Property::PR_HAS_FLD1)) {
 #if SHOW_FOUND
@@ -744,11 +845,11 @@ bool TheoryFinder::matchFLD2(const Clause* c)
   static const unsigned char code[] =
   {CLS,
    PLIT,0,
-    NEWPRED,0,3,NEWFUN,1,1,NEWVAR,0,OLDVAR,0,NEWFUN,2,0,     // product(inv(x0),x0,1)
+    NEWPRED,0,3,NEWFUN,0,1,NEWVAR,0,OLDVAR,0,NEWFUN,0,0,     // product(inv(x0),x0,1)
    PLIT,1,
-    NEWPRED,3,3,NEWFUN,4,0,OLDVAR,0,OLDFUN,4,                // sum(0,x0,0)
+    NEWPRED,1,3,NEWFUN,2,0,OLDVAR,0,OLDFUN,2,                // sum(0,x0,0)
    NLIT,2,
-    NEWPRED,5,1,OLDVAR,0,END};                               // ~defined(x0)
+    NEWPRED,2,1,OLDVAR,0,END};                               // ~defined(x0)
 
   if (matchCode(c,code,Property::PR_HAS_FLD2)) {
 #if SHOW_FOUND
@@ -774,7 +875,7 @@ bool TheoryFinder::matchSubset (const Clause* c)
   {CLS,
    PLIT,0,
     NEWPRED,0,2,                 // member(f(X,Y),X),
-     NEWFUN,2,2,NEWVAR,0,NEWVAR,1,OLDVAR,0,
+     NEWFUN,0,2,NEWVAR,0,NEWVAR,1,OLDVAR,0,
    PLIT,1,
     NEWPRED,1,2,OLDVAR,0,OLDVAR,1,END}; // subset(X,Y)
 
@@ -800,10 +901,10 @@ bool TheoryFinder::matchSubset (const Formula* f)
 
   static const unsigned char code[] =
     {CIFF,                          // <=>
-      POS,NEWPRED,1,2,NEWVAR,0,NEWVAR,1, //  subset(x,y)
+      POS,NEWPRED,0,2,NEWVAR,0,NEWVAR,1, //  subset(x,y)
       CFORALL,1,2,CIMP,             //  (Az) =>
-       POS,NEWPRED,0,2,OLDVAR,2,OLDVAR,0,//   member(z,x)
-       POS,OLDPRED,0,OLDVAR,2,OLDVAR,1,END}; //   member(z,y)
+       POS,NEWPRED,1,2,OLDVAR,2,OLDVAR,0,//   member(z,x)
+       POS,OLDPRED,1,OLDVAR,2,OLDVAR,1,END}; //   member(z,y)
 
   if (matchCode(f,code,Property::PR_HAS_SUBSET)) {
 #if SHOW_FOUND
@@ -813,6 +914,54 @@ bool TheoryFinder::matchSubset (const Formula* f)
   }
   return false;
 } // TheoryFinder::matchSubset
+
+// tff(l1,axiom,(! [K: $int,L: list] : head(cons(K,L)) = K )).
+// tff(l2,axiom,(! [K: $int,L: list] : tail(cons(K,L)) = L )).
+// %----Constructors
+// tff(l3,axiom,(
+//     ! [L: list] :
+//       ( L = nil
+//       | L = cons(head(L),tail(L)) ) )).
+// tff(l4,axiom,(
+//     ! [K: $int,L: list] : cons(K,L) != nil )).
+
+/**
+ * Match formula against part the list constructors axiom
+ * L = nil v L = cons(head(L),tail(L))
+ * @since 16/06/2015 Manchester
+ * @author Andrei Voronkov
+ */
+bool TheoryFinder::matchListConstructors (const Formula* f)
+{
+  CALL("TheoryFinder::matchListConstructors");
+#if TRACE_FINDER
+  cout << "M: [match list constructors axiom]\n";
+#endif
+
+  static const unsigned char code1[] =
+     {COR,2,                        // \/
+       POS,EQL,NEWVAR,0,            // =(L,
+               NEWFUN1,0,2,          // cons
+                NEWFUN,1,1,OLDVAR,0, // head(L)
+                NEWFUN,2,1,OLDVAR,0, // tail(L)
+       POS,EQL,OLDVAR1,0,NEWFUN1,3,0,END}; // =(L,nil)
+  static const unsigned char code2[] =
+     {COR,2,                         // \/
+       POS,EQL,NEWVAR,0,NEWFUN1,0,0, // =(L,nil)
+       POS,EQL,OLDVAR1,0,             // =(L,
+               NEWFUN1,1,2,          // cons
+                NEWFUN,2,1,OLDVAR,0, // head(L)
+                NEWFUN,3,1,OLDVAR,0, // tail(L)
+      END};
+  if (matchCode(f,code1,Property::PR_LIST_AXIOMS) ||
+      matchCode(f,code2,Property::PR_LIST_AXIOMS)) {
+#if SHOW_FOUND
+    cout << "List constructors: " << f->toString() << "\n";
+#endif
+    return true;
+  }
+  return false;
+} // TheoryFinder::matchListConstructors
 
 /**
  * Match formula against the extensionality axiom
@@ -831,13 +980,13 @@ bool TheoryFinder::matchExtensionality (const Formula* f)
       CFORALL,1,0,CIFF,              // (Ax0)<=>
        POS,NEWPRED,0,2,OLDVAR,0,NEWVAR,1, //  member(x0,x1)
        POS,OLDPRED,0,OLDVAR,0,NEWVAR,2,   //  member(x0,x2)
-       POS,EQL,OLDVAR,1,OLDVAR,2,END};         // x1=x2
+       POS,EQL,OLDVAR1,1,OLDVAR1,2,END};         // x1=x2
   static const unsigned char code2[] =
     {CIMP,                           // =>
       CFORALL,1,0,CIFF,              // (Ax0)<=>
        POS,NEWPRED,0,2,OLDVAR,0,NEWVAR,1, //  member(x0,x1)
        POS,OLDPRED,0,OLDVAR,0,NEWVAR,2,   //  member(x0,x2)
-       POS,EQL,OLDVAR,1,OLDVAR,2,END};         // x1=x2
+       POS,EQL,OLDVAR1,1,OLDVAR1,2,END};         // x1=x2
 
   if (matchCode(f,code1,Property::PR_HAS_EXTENSIONALITY) ||
       matchCode(f,code2,Property::PR_HAS_EXTENSIONALITY)) {
@@ -1152,8 +1301,8 @@ bool TheoryFinder::matchAbsorption(const Literal* lit)
   static const unsigned char code[] =
    {EQL,                                              // =
     NEWFUN1,0,2,NEWVAR,0,NEWFUN,1,2,OLDVAR,0,NEWVAR,1, // *(x0,+(x0,x1))
-    OLDVAR1,0,END};
-                                 // x0
+    OLDVAR1,0,END};             // x0
+  
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
     cout << "Absorption: " << lit->toString() << "\n";
@@ -1373,20 +1522,20 @@ bool TheoryFinder::matchKnownExtensionality(const Clause* c) {
     {CLS,
      NLIT,0,
       NEWPRED,0,2,                            // ~member(f(X,Y),X),
-      NEWFUN,1,2,NEWVAR,0,NEWVAR,1,OLDVAR,0,
+      NEWFUN,0,2,NEWVAR,0,NEWVAR,1,OLDVAR,0,
      NLIT,1,
       OLDPRED,0,                              // ~member(f(X,Y),Y),
-      OLDFUN,1,OLDVAR,0,OLDVAR,1,OLDVAR,1,
+      OLDFUN,0,OLDVAR,0,OLDVAR,1,OLDVAR,1,
      PLIT,2,
-      EQL,OLDVAR,0,OLDVAR,1,END}; // X=Y
+      EQL,OLDVAR1,0,OLDVAR1,1,END}; // X=Y
   static const unsigned char arrayCode[] =
     {CLS,
      NLIT,0,
       EQL,
-      NEWFUN,0,2,NEWVAR,0,NEWFUN,1,2,OLDVAR,0,NEWVAR,1,  // sel(X,sk(X,Y) != sel(Y,sk(X,Y)),
-      OLDFUN,0  ,OLDVAR,1,OLDFUN,1  ,OLDVAR,0,OLDVAR,1,
+      NEWFUN1,0,2,NEWVAR,0,NEWFUN,1,2,OLDVAR,0,NEWVAR,1,  // sel(X,sk(X,Y) != sel(Y,sk(X,Y)),
+      OLDFUN1,0  ,OLDVAR,1,OLDFUN,1  ,OLDVAR,0,OLDVAR,1,
      PLIT,1,
-      EQL,OLDVAR,0,OLDVAR,1,END}; // X=Y
+      EQL,OLDVAR1,0,OLDVAR1,1,END}; // X=Y
   static const unsigned char subsetCode[] =
     {CLS,
      NLIT,0,
@@ -1394,7 +1543,7 @@ bool TheoryFinder::matchKnownExtensionality(const Clause* c) {
      NLIT,1,
       OLDPRED,0,  OLDVAR,1,OLDVAR,0,           // ~subseteq(Y,X),
      PLIT,2,
-      EQL,OLDVAR,0,OLDVAR,1,END}; // X=Y
+      EQL,OLDVAR1,0,OLDVAR1,1,END}; // X=Y
 
   switch (c->length()) {
   case 2:
@@ -1404,4 +1553,5 @@ bool TheoryFinder::matchKnownExtensionality(const Clause* c) {
   default:
     return false;
   }
-}
+} // matchKnownExtensionality
+

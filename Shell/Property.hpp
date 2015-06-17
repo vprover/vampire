@@ -121,8 +121,10 @@ public:
   static const unsigned long PR_REAL_NONLINEAR = 2147483648ul; // 2^31
   /** Uses number conversion functions $floor, $ceiling, $truncate, $round, $is_int, $is_rat, $to_int, $to_int, $to_rat, $to_real */
   static const unsigned long PR_NUMBER_CONVERSION = 4294967296ul; // 2^32
-  /** when skolemised, will become ground */
+  /** when skolemised, will become ground, probably useless */
   static const unsigned long PR_ESSENTIALLY_GROUND = 8589934592ul; // 2^33
+  /** uses list axioms */
+  static const unsigned long PR_LIST_AXIOMS = 17179869184ul; // 2^34
 
  public:
   CLASS_NAME(Property);
