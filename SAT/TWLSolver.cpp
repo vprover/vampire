@@ -315,11 +315,11 @@ void TWLSolver::addAssumption(SATLiteral lit)
     return;
   }
 
-  ASS(!anythingToPropagate());
-
   try
   {
     backtrack(1);
+    doBaseLevelPropagation(); // this is to make sure we have fully propagated (after previous addClause and addAssumption calls)
+
     if(isFalse(lit)) {
       handleConflictingAssumption(lit);
       ASSERTION_VIOLATION; //exception must be thrown in handleConflictingAssumption()
@@ -329,7 +329,6 @@ void TWLSolver::addAssumption(SATLiteral lit)
       return;
     }
     makeAssumptionAssignment(lit);  //increases _assumptionCnt
-    doSolving(0); // do at least limited solving for each assumption added
   } catch (const UnsatException& e)
   {
     _unsatisfiableAssumptions = true;
