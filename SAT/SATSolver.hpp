@@ -177,17 +177,38 @@ class SATSolverWithAssumptions:
 public:
 
   // The first three functions represent the original TWLSolver-style of interface ...
-  // (consider them deprecated!)
+
+  /**
+   * Add assumption to the solver. Perhaps process partially,
+   * but mainly ensure the assumption is considered during the next calls to solve()
+   */
   virtual void addAssumption(SATLiteral lit) = 0;
+
+  /**
+   * Retract all the assumptions added so far.
+   * The solver becomes assumption-free.
+   *
+   * Note: this may destroy the model computed during a previous call to solve
+   * (as it currently does in TWL).
+   */
   virtual void retractAllAssumptions() = 0;
+
+  /**
+   * Test whether any assumptions are currently registered by the solver.
+   */
   virtual bool hasAssumptions() const = 0;
 
-  // ... a better alternative could be the interface below,
-  // which is currently implemented in terms of the one above
+  // ... a better alternative could be the interface below.
+
+  // It is currently implemented in terms of the one above
   // (but may be overridden in SATSolver implementations).
   // Note the the below interface allows the solver
   // to identify a subset of the given assumptions that were only needed for
   // previous contradiction to be derived.
+
+  // Note also, however, that solveUnderAssumptions cannot guarantee
+  // access to the model after it returns SATISFIABLE, as it uses retractAllAssumptions
+  // to clean in the end.
 
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) {
     CALL("SATSolver::solveUnderAssumptions");
