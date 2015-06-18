@@ -542,7 +542,10 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     _symEl->onInputClause(cl);
   }
 
-  if (_opt.sos() != Options::Sos::OFF && cl->inputType()==Clause::AXIOM) {
+  if (_opt.sos() != Options::Sos::OFF && 
+       ((cl->inputType()==Clause::AXIOM && _opt.sos() !=Options::Sos::THEORY) ||
+        cl->inference()->rule()==Inference::THEORY)
+     ) {
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -648,11 +651,15 @@ void SaturationAlgorithm::init()
      ClauseIterator instances = _instantiation->generateClauses(inputClause);
      while(instances.hasNext()){
        Clause* instance = instances.next();
-       if (_opt.sos() != Options::Sos::OFF && instance->inputType()==Clause::AXIOM) {
-         addInputSOSClause(instance);
-       } else {
-         addNewClause(instance);
-       }
+       // sos based on parent clause 
+       if (_opt.sos() != Options::Sos::OFF && 
+           ((inputClause->inputType()==Clause::AXIOM && _opt.sos() !=Options::Sos::THEORY) ||
+             inputClause->inference()->rule()==Inference::THEORY)
+       ) {
+           addInputSOSClause(instance);
+         } else {
+           addNewClause(instance);
+         }
        //TODO do I need onParenthood here?
      }
    }

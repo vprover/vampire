@@ -10,6 +10,8 @@
 
 #include "Tracer.hpp"
 
+extern const char* VERSION_STRING;
+
 #if VDEBUG
 
 // output nothing
@@ -167,6 +169,7 @@ void Tracer::printStack (ostream& str)
 {
   int depth = 0;
 
+  str << "Version : " << VERSION_STRING << "\n";
   str << "Control points passed: " << _passedControlPoints << "\n"
       << "last control point:\n";
   outputLastControlPoint(str);

@@ -265,7 +265,7 @@ void Options::Options::init()
 
     //TODO randomly switch to different values for testing?
 
-    _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on"});
+    _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on","theory"});
     _sos.description=
     "Set of support strategy. All formulas annotated as theory axioms are put directly among active clauses, without performing any inferences between them. If all, select all literals of set-of-support clauses, ortherwise use the default literal selector.";
     _lookup.insert(&_sos);

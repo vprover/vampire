@@ -90,29 +90,34 @@ bool Instantiation::getRelevantTerms(Clause* c, unsigned targetSort, Set<Term*>*
             {
               IntegerConstantType constant;
               ALWAYS(theory->tryInterpretConstant(t.term(),constant));
-              Term* t = theory->representConstant(constant-1);
-              ASS(t->shared());
-              candidates->insert(t);
-              //candidates.insert(theory->representConstant(constant-1));
+              candidates->insert(theory->representConstant(constant-1));
+              candidates->insert(theory->representConstant(constant-10));
               candidates->insert(theory->representConstant(constant+1));
+              candidates->insert(theory->representConstant(constant+10));
               break;
             }
           case Sorts::SRT_RATIONAL:
             {
               RationalConstantType constant;
               RationalConstantType one(1,1);
+              RationalConstantType ten(10,1);
               ALWAYS(theory->tryInterpretConstant(t.term(),constant));
               candidates->insert(theory->representConstant(constant+one));
+              candidates->insert(theory->representConstant(constant+ten));
               candidates->insert(theory->representConstant(constant-one));
+              candidates->insert(theory->representConstant(constant-ten));
               break;
             }
           case Sorts::SRT_REAL:
             {
               RealConstantType constant;
               RealConstantType one(RationalConstantType(1,1));
+              RealConstantType ten(RationalConstantType(10,1));
               ALWAYS(theory->tryInterpretConstant(t.term(),constant));
               candidates->insert(theory->representConstant(constant+one));
+              candidates->insert(theory->representConstant(constant+ten));
               candidates->insert(theory->representConstant(constant-one));
+              candidates->insert(theory->representConstant(constant-ten));
               break;
             }
           default:
@@ -196,8 +201,6 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
     res = pvi(getConcatenatedIterator(res,Set<Term*>::Iterator(*relCans))); 
   }
 
-  return pvi(res);
-/*
   if(sort==Sorts::SRT_INTEGER){
     return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(-10u,10u),IntToIntTermFn())));
   }
@@ -209,7 +212,6 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
   }
 
   return pvi(res);
-*/
 }
 
 class Instantiation::AllSubstitutionsIterator{
@@ -299,6 +301,8 @@ private:
 ClauseIterator Instantiation::generateClauses(Clause* premise)
 {
   CALL("Instantiation::generateClauses");
+
+  //cout << "Instantiate " << premise->toString() << endl;
 
   return pvi(getMappingIterator(
                AllSubstitutionsIterator(premise,this),

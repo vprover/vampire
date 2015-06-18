@@ -537,7 +537,8 @@ public:
   enum class Sos : unsigned int{
     ALL = 0,
     OFF = 1,
-    ON = 2
+    ON = 2,
+    THEORY = 3
   };
 
   enum class PredicateEquivalenceDiscoveryMode : unsigned int{
