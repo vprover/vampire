@@ -191,7 +191,8 @@ SLQueryResultIterator LiteralSubstitutionTreeWithoutTop::getVariants(Literal* li
 {
   CALL("LiteralSubstitutionTreeWithoutTop::getVariants");
 
-  Node* _root = lit->polarity() ? _posRoot : _negRoot; 
+  bool pol = complementary ? !lit->polarity() : lit->polarity();
+  Node* _root = pol ? _posRoot : _negRoot; 
 
   if(_root==0) {
     return SLQueryResultIterator::getEmpty();
@@ -265,7 +266,8 @@ SLQueryResultIterator LiteralSubstitutionTreeWithoutTop::getResultIterator(Liter
 {
   CALL("LiteralSubstitutionTreeWithoutTop::getResultIterator");
 
-  Node* _root = lit->polarity() ? _posRoot : _negRoot;
+  bool pol = complementary ? !lit->polarity() : lit->polarity();
+  Node* _root = pol ? _posRoot : _negRoot;
 
   if(_root==0) {
     return SLQueryResultIterator::getEmpty();
