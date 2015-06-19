@@ -97,10 +97,12 @@ void FiniteModelBuilder::init()
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
-  DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
+  //DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
+  ClauseIterator cit = _prb.clauseIterator();
 initLoop:
   while(cit.hasNext()){
     Clause* c = cit.next();
+    //cout << "Flatten " << c->toString() << endl;
     c = ClauseFlattening::flatten(c);
     //cout << "Flattened " << c->toString() << endl;
     ASS(c);
@@ -144,11 +146,13 @@ initLoop:
   while(it.hasNext()){
     Renaming n;
     Clause* c = it.next();
+    //cout << "Normalize " << c->toString() <<endl;
     for(unsigned i=0;i<c->length();i++){
       Literal* l = (*c)[i];
       n.normalizeVariables(l);
       (*c)[i] = n.apply(l);
     }
+    //cout << "Normalized " << c->toString() << endl;
   }
 
   // Create function definition clauses
