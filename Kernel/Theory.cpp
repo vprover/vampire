@@ -143,36 +143,27 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
 {
   CALL("IntegerConstantType::comparePrecedence");
   try {
-    bool invert = false;
-    Comparison res;
-    if (n1<0 && n2>=0) {
-      swap(n1, n2);
-      invert = true;
-    }
-
-    if (n1>=0) {
-      if (n2>=0) {
-	return Int::compare(n1.toInt(), n2.toInt());
+    if (n1 == INT_MIN) {
+      if (n2 == INT_MIN) {
+        return EQUAL;
+      } else {
+        return GREATER;
       }
-      else {
-	//we invert numbers to become negative, because this prevents overflows
-	IntegerConstantType negN1 = -n1;
-	if (negN1==n2) {
-	  res = LESS;
-	}
-	else {
-	  res = Int::compare(n2.toInt(), negN1.toInt());
-	}
+    } else {
+      if (n2 == INT_MIN) {
+        return LESS;
+      } else {
+        int an1 = abs(n1.toInt());
+        int an2 = abs(n2.toInt());
+
+        ASS_GE(an1,0);
+        ASS_GE(an2,0);
+
+        return an1 < an2 ? LESS : (an1 == an2 ? // compare the signed ones, making negative greater than positive
+            static_cast<Comparison>(-Int::compare(n1.toInt(), n2.toInt()))
+                              : GREATER);
       }
     }
-    else {
-      ASS(n2<0);
-      invert = !invert;
-      res = Int::compare(n2.toInt(), n1.toInt());
-    }
-
-    if (invert) { res = static_cast<Comparison>(-res); }
-    return res;
   }
   catch(ArithmeticException) {
     ASSERTION_VIOLATION;
