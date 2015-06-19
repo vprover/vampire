@@ -316,7 +316,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
     // Note: the true,false options indicate checking for complement and not retrieving subs
     if(_use_dm && dmatch->getGeneralizations(glit,false,false).hasNext()){
       RSTAT_CTR_INC("dismatch blocked");
-      cout << "blocking for " << orig->number() << " and " << glit->toString() << endl;
+      //cout << "blocking for " << orig->number() << " and " << glit->toString() << endl;
       return;
     }
 
@@ -336,7 +336,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   //Update dismatch constraints
   if(_use_dm){ 
     dmatch->handleClause(res,true);
-    cout << "dismatch " << orig->number() << " add " << res->toString() << endl;
+    //cout << "dismatch " << orig->number() << " add " << res->toString() << endl;
   }
 
   env.statistics->instGenGeneratedClauses++;
@@ -513,7 +513,7 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
     LiteralIndexingStructure * is = new LiteralSubstitutionTreeWithoutTop();
     DismatchingLiteralIndex* dismatchIndex = new DismatchingLiteralIndex(is);
     _dismatchMap.insert(cl,dismatchIndex);
-    cout << "creating for " << cl->toString() << endl;
+    //cout << "creating for " << cl->toString() << endl;
   }
 
   unsigned clen = cl->length();
