@@ -3287,11 +3287,80 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_DIVIDE,
 				 Theory::REAL_DIVIDE);
   }
+  if (name == "$quotient") {
+    if(sortOf(arg)==Sorts::SRT_INTEGER){
+      USER_ERROR("$quotient cannot be used with integer type");
+    }
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_QUOTIENT_E,
+                                 Theory::RAT_QUOTIENT,
+                                 Theory::REAL_QUOTIENT);
+  }
+  if (name == "$quotient_e") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_QUOTIENT_E,
+                                 Theory::RAT_QUOTIENT_E,
+                                 Theory::REAL_QUOTIENT_E);
+  }
+  if (name == "$quotient_t") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_QUOTIENT_T,
+                                 Theory::RAT_QUOTIENT_T,
+                                 Theory::REAL_QUOTIENT_T);
+  }
+  if (name == "$quotient_f") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_QUOTIENT_F,
+                                 Theory::RAT_QUOTIENT_F,
+                                 Theory::REAL_QUOTIENT_F);
+  }
+  if (name == "$remainder_e") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_REMAINDER_E,
+                                 Theory::RAT_REMAINDER_E,
+                                 Theory::REAL_REMAINDER_E);
+  }
+  if (name == "$remainder_t") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_REMAINDER_T,
+                                 Theory::RAT_REMAINDER_T,
+                                 Theory::REAL_REMAINDER_T);
+  }
+  if (name == "$remainder_f") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_REMAINDER_F,
+                                 Theory::RAT_REMAINDER_F,
+                                 Theory::REAL_REMAINDER_F);
+  }
   if (name == "$uminus") {
     return addOverloadedFunction(name,arity,1,added,arg,
 				 Theory::INT_UNARY_MINUS,
 				 Theory::RAT_UNARY_MINUS,
 				 Theory::REAL_UNARY_MINUS);
+  }
+  if (name == "$floor") {
+    return addOverloadedFunction(name,arity,1,added,arg,
+                                 Theory::INT_FLOOR,
+                                 Theory::RAT_FLOOR,
+                                 Theory::REAL_FLOOR);
+  }
+  if (name == "$ceiling") {
+    return addOverloadedFunction(name,arity,1,added,arg,
+                                 Theory::INT_CEILING,
+                                 Theory::RAT_CEILING,
+                                 Theory::REAL_CEILING);
+  }
+  if (name == "$truncate") {
+    return addOverloadedFunction(name,arity,1,added,arg,
+                                 Theory::INT_TRUNCATE,
+                                 Theory::RAT_TRUNCATE,
+                                 Theory::REAL_TRUNCATE);
+  }
+  if (name == "$round") {
+    return addOverloadedFunction(name,arity,1,added,arg,
+                                 Theory::INT_ROUND,
+                                 Theory::RAT_ROUND,
+                                 Theory::REAL_ROUND);
   }
   if (name == "$to_int") {
     return addOverloadedFunction(name,arity,1,added,arg,
