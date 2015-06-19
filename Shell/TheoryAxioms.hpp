@@ -23,6 +23,7 @@ public:
 private:
   void addCommutativity(Interpretation op, UnitList*& units);
   void addAssociativity(Interpretation op, UnitList*& units);
+  void addIdentity(Interpretation op, UnitList*& units);
   void addRightIdentity(Interpretation op, TermList idElement, UnitList*& units);
   void addCommutativeGroupAxioms(Interpretation op,Interpretation inverse,
 				 TermList idElement, UnitList*& units);
@@ -41,6 +42,14 @@ private:
 						  UnitList*& units);
   void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation lessEqual,
 				    UnitList*& units);
+
+  void addFloorAxioms(Interpretation floor, Interpretation lessEqual, Interpretation unaryMinus, 
+                      Interpretation plus, TermList oneElement, UnitList*& units);
+  void addCeilingAxioms(Interpretation ceiling, Interpretation lessEqual, Interpretation plus, 
+                        TermList oneElement, UnitList*& units);
+  void addRoundAxioms(Interpretation round, Interpretation floor, Interpretation ceiling, UnitList*& units); 
+  void addTruncateAxioms(Interpretation truncate, Interpretation lessEqual, Interpretation unaryMinus,
+                      Interpretation plus, TermList zeroElement, TermList oneElement, UnitList*& units);
 
   void addArrayExtensionalityAxioms(Interpretation select,
 				    Interpretation store,

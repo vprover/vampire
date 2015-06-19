@@ -34,7 +34,48 @@ public:
 };
 
 /**
- * Class for transforming terms (t-u) into (t+(-u))
+ * Class for translating functions with rounding suffixes _t and _f
+ */
+class InterpretedNormalizer::RoundingFunctionTranslator : public FunctionTranslator
+{
+public:
+  CLASS_NAME(InterpretedNormalizer::RoundingFunctionTranslator);
+  USE_ALLOCATOR(InterpretedNormalizer::RoundingFunctionTranslator);
+  
+  RoundingFunctionTranslator(Interpretation origf, Interpretation newf, Interpretation roundf)
+  {
+    CALL("InterpretedNormalizer::RoundingFunctionTranslator::RoundingFunctionTranslator");
+
+    _origFun = env.signature->getInterpretingSymbol(origf);
+    _newFun = env.signature->getInterpretingSymbol(newf);
+    _roundingFun = env.signature->getInterpretingSymbol(roundf);
+
+  }
+
+  virtual TermList translate(Term* trm)
+  {
+    CALL("InterpretedNormalizer::RoundingFunctionTranslator::translate");
+    ASS_EQ(trm->functor(), _origFun);
+
+    TermList arg1 = *trm->nthArgument(0);
+    TermList arg2 = *trm->nthArgument(1);
+    TermList newF(Term::create2(_newFun, arg1, arg2));
+    TermList res(Term::create1(_roundingFun,newF));
+    return res;
+  }
+
+  /** Function that is being rewritten by this object */
+  unsigned srcFunc() const { return _origFun; }
+private:
+
+  unsigned _origFun;
+  unsigned _newFun;
+  unsigned _roundingFun;
+};
+
+/**
+ * Class for transforming terms suc(t) into t+1
+ * suc not in TPTP
  */
 class InterpretedNormalizer::SuccessorTranslator : public FunctionTranslator
 {
@@ -44,7 +85,7 @@ public:
   
   SuccessorTranslator()
   {
-    CALL("InterpretedNormalizer::BinaryMinusTranslator::BinaryMinusTranslator");
+    CALL("InterpretedNormalizer::SuccessorTranslator::SuccessorTranslator");
 
     _succFun = env.signature->getInterpretingSymbol(Theory::INT_SUCCESSOR);
     _plusFun = env.signature->getInterpretingSymbol(Theory::INT_PLUS);
@@ -53,7 +94,7 @@ public:
 
   virtual TermList translate(Term* trm)
   {
-    CALL("InterpretedNormalizer::BinaryMinusTranslator::translate");
+    CALL("InterpretedNormalizer::SuccessorTranslator::translate");
     ASS_EQ(trm->functor(), _succFun);
 
     TermList arg = *trm->nthArgument(0);
@@ -183,6 +224,16 @@ public:
     addMinusTransformer(Theory::REAL_MINUS, Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS);
 
     addSuccessorTransformer();
+
+    addRoundingFunctionTransformer(Theory::RAT_QUOTIENT_T, Theory::RAT_QUOTIENT, Theory::RAT_TRUNCATE);
+    addRoundingFunctionTransformer(Theory::RAT_QUOTIENT_F, Theory::RAT_QUOTIENT, Theory::RAT_FLOOR);
+    addRoundingFunctionTransformer(Theory::REAL_QUOTIENT_T, Theory::REAL_QUOTIENT, Theory::REAL_TRUNCATE);
+    addRoundingFunctionTransformer(Theory::REAL_QUOTIENT_F, Theory::REAL_QUOTIENT, Theory::REAL_FLOOR);
+
+    //addRoundingFunctionTransformer(Theory::RAT_REMAINDER_T, Theory::RAT_REMAINDER, Theory::RAT_TRUNCATE);
+    //addRoundingFunctionTransformer(Theory::RAT_QUOTIENT_F, Theory::RAT_QUOTIENT, Theory::RAT_FLOOR);
+    //addRoundingFunctionTransformer(Theory::REAL_QUOTIENT_T, Theory::REAL_QUOTIENT, Theory::REAL_TRUNCATE);
+    //addRoundingFunctionTransformer(Theory::REAL_QUOTIENT_F, Theory::REAL_QUOTIENT, Theory::REAL_FLOOR);
   }
 
   void apply(Literal* lit, bool& constantRes, Literal*& litRes, bool& boolRes)
@@ -264,6 +315,22 @@ private:
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     SuccessorTranslator* transl = new SuccessorTranslator();
+    unsigned func = transl->srcFunc();
+    ASS(!_fnTransfs[func])
+    _fnTransfs[func] = transl;
+  }
+
+  /**
+   * Ensure the rounding function origF will be replaced by newF and roundF 
+   */
+  void addRoundingFunctionTransformer(Interpretation origF, Interpretation newF, Interpretation roundF)
+  {
+    CALL("InterpretedNormalizer::NLiteralTransformer::addRoundingFunctionTransformer");
+
+    if(!env.signature->haveInterpretingSymbol(origF)) {
+      return; //the symbol to be transformed doesn't exist, so we don't need to worry
+    }
+    RoundingFunctionTranslator* transl = new RoundingFunctionTranslator(origF,newF,roundF);
     unsigned func = transl->srcFunc();
     ASS(!_fnTransfs[func])
     _fnTransfs[func] = transl;

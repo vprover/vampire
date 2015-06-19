@@ -122,6 +122,24 @@ void TheoryAxioms::addAssociativity(Interpretation op, UnitList*& units)
 } // addAsssociativity
 
 /**
+ * Add axiom f(X)=X
+ * @author Giles
+ */
+void TheoryAxioms::addIdentity(Interpretation op, UnitList*& units)
+{
+  CALL("TheoryAxioms::addIdentity");
+  ASS(theory->isFunction(op));
+  ASS_EQ(theory->getArity(op),1);
+
+  unsigned f = env.signature->getInterpretingSymbol(op);
+  unsigned srt = theory->getOperationSort(op);
+  TermList x(0,false);
+  TermList fx(Term::create1(f,x));
+  Literal* eq = Literal::createEquality(true,fx,x,srt);
+  addTheoryUnitClause(eq,units);
+} // addIdentity
+
+/**
  * Add axiom f(X,e)=X.
  * @since 11/11/2013, Manchester: modified
  * @author Andrei Voronkov
@@ -388,6 +406,118 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
 }
     
 /**
+ * Add axioms defining floor function
+ * @author Giles
+ */
+void TheoryAxioms::addFloorAxioms(Interpretation floor, Interpretation lessEqual, Interpretation unaryMinus,
+     Interpretation plus, TermList oneElement, UnitList*& units)
+{
+  CALL("TheoryAxioms::addFloorAxioms");
+
+  unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
+  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+  unsigned umFun = env.signature->getInterpretingSymbol(unaryMinus);
+  unsigned floorFun = env.signature->getInterpretingSymbol(floor);
+  TermList x(0,false);
+  TermList floorX(Term::create1(floorFun,x));
+
+  //axiom( floor(X) <= X )
+  Literal* a1 = Literal::create2(lePred, true, floorX, x);
+  addTheoryUnitClause(a1, units);
+
+  //axiom( floor(X) > X-1 ) = axiom( ~ (X-1 <= floor(X)) ) as we eliminate all be le
+  TermList m1(Term::create1(umFun,oneElement));
+  TermList xm1(Term::create2(plusFun, x, m1));
+  Literal* a2 = Literal::create2(lePred,false, xm1, floorX);
+  addTheoryUnitClause(a2,units);
+} //addFloorAxioms
+
+/**
+ * Add axioms defining ceiling function
+ * @author Giles
+ */ 
+void TheoryAxioms::addCeilingAxioms(Interpretation ceiling, Interpretation lessEqual, 
+     Interpretation plus, TermList oneElement, UnitList*& units)
+{
+  CALL("TheoryAxioms::addCeilingAxioms");
+
+  unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
+  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+  unsigned ceilingFun = env.signature->getInterpretingSymbol(ceiling);
+  TermList x(0,false);
+  TermList ceilingX(Term::create1(ceilingFun,x));
+
+  //axiom( ceiling(X) >= X ) =  X <= ceiling(X)
+  Literal* a1 = Literal::create2(lePred, true, x, ceilingX);
+  addTheoryUnitClause(a1, units);
+
+  //axiom( ceiling(X) < X+1 ) = X+1 > ceiling(X) = ~( X+1 <= ceiling(X)) 
+  TermList xp1(Term::create2(plusFun, x, oneElement));
+  Literal* a2 = Literal::create2(lePred,false, xp1, ceilingX);
+  addTheoryUnitClause(a2,units);
+} //addCeilingAxioms
+
+/**
+ * Add axioms defining round function
+ * @author Giles
+ */ 
+void TheoryAxioms::addRoundAxioms(Interpretation round, Interpretation floor, Interpretation ceiling, UnitList*& units)
+{
+  CALL("TheoryAxioms::addRoundAxioms");
+  
+  //TODO... note that interesting as $round not in TPTP or translations
+  // Suggested axioms:
+  // round(x) = floor(x) | round(x) = ceiling(x)
+  // x-0.5 > floor(x) => round(x) = ceiling(x)
+  // x+0.5 < ceiling(x) => round(x) = floor(x)
+  // x-0.5 = floor(x) => ?y : is_int(y) & 2*y = round(x)
+  // x+0.5 = ceiling(x) => ?y : is_int(y) & 2*y = round(x)
+  //NOT_IMPLEMENTED;
+
+} //addRoundAxioms
+
+/**
+ * Add axioms defining truncate function
+ * @author Giles
+ */ 
+void TheoryAxioms::addTruncateAxioms(Interpretation truncate, Interpretation lessEqual, Interpretation unaryMinus,
+                      Interpretation plus, TermList zeroElement, TermList oneElement, UnitList*& units)
+{
+  CALL("TheoryAxioms::addTruncateAxioms");
+
+  unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
+  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+  unsigned umFun = env.signature->getInterpretingSymbol(unaryMinus);
+  unsigned truncateFun = env.signature->getInterpretingSymbol(truncate);
+  TermList x(0,false);
+  TermList truncateX(Term::create1(truncateFun,x));
+
+  TermList m1(Term::create1(umFun,oneElement));
+  TermList xm1(Term::create2(plusFun,x,m1));
+  TermList xp1(Term::create2(plusFun,x,oneElement));
+
+  Literal* nzleX = Literal::create2(lePred,false,zeroElement,x);
+  Literal* zleX = Literal::create2(lePred,true,zeroElement,x);
+
+  //~(0<=x) |  truncate(x) <= x
+  Literal* a1 = Literal::create2(lePred,true,truncateX,x);
+  addTheoryNonUnitClause(units,nzleX,a1);
+
+  //~(0<=x) | ~( truncate(x) <= x-1 )
+  Literal* a2 = Literal::create2(lePred,false,truncateX,xm1);
+  addTheoryNonUnitClause(units,nzleX,a2);
+
+  //0<=x | x <= truncate(x)
+  Literal* a3 = Literal::create2(lePred,true,x,truncateX);
+  addTheoryNonUnitClause(units,zleX,a3);
+
+  //0<=x | ~( x+1 <= truncate(x) )
+  Literal* a4 = Literal::create2(lePred,false,xp1,truncateX);
+  addTheoryNonUnitClause(units,zleX,a4);
+
+} //addTruncateAxioms
+
+/**
  * Adds the extensionality axiom of arrays (of type array1 or array2): 
  * select(X,sk(X,Y)) != select(Y,sk(X,Y)) | X = Y
  *
@@ -514,7 +644,14 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     prop->hasInterpretedOperation(Theory::INT_MULTIPLY);
   bool haveIntMultiply =
     prop->hasInterpretedOperation(Theory::INT_MULTIPLY);
-  if (haveIntPlus) {
+
+  bool haveIntFloor = prop->hasInterpretedOperation(Theory::INT_FLOOR);
+  bool haveIntCeiling = prop->hasInterpretedOperation(Theory::INT_CEILING);
+  bool haveIntRound = prop->hasInterpretedOperation(Theory::INT_ROUND);
+  bool haveIntTruncate = prop->hasInterpretedOperation(Theory::INT_TRUNCATE);
+  bool haveIntUnaryRoundingFunction = haveIntFloor || haveIntCeiling || haveIntRound || haveIntTruncate;
+
+  if (haveIntPlus || haveIntUnaryRoundingFunction) {
     TermList zero(theory->representConstant(IntegerConstantType(0)));
     TermList one(theory->representConstant(IntegerConstantType(1)));
     if(haveIntMultiply) {
@@ -526,6 +663,10 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
 				   Theory::INT_LESS_EQUAL, units);
     }
     addExtraIntegerOrderingAxiom(Theory::INT_PLUS, one, Theory::INT_LESS_EQUAL, units);
+    if(haveIntFloor){    addIdentity(Theory::INT_FLOOR,units); }
+    if(haveIntCeiling){  addIdentity(Theory::INT_CEILING,units); }
+    if(haveIntRound){    addIdentity(Theory::INT_ROUND,units); }
+    if(haveIntTruncate){ addIdentity(Theory::INT_TRUNCATE,units); }
     modified = true;
   }
   bool haveRatPlus =
@@ -535,16 +676,36 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     prop->hasInterpretedOperation(Theory::RAT_MULTIPLY);
   bool haveRatMultiply =
     prop->hasInterpretedOperation(Theory::RAT_MULTIPLY);
-  if (haveRatPlus) {
+
+  bool haveRatFloor = prop->hasInterpretedOperation(Theory::RAT_FLOOR);
+  bool haveRatCeiling = prop->hasInterpretedOperation(Theory::RAT_CEILING);
+  bool haveRatRound = prop->hasInterpretedOperation(Theory::RAT_ROUND);
+  bool haveRatTruncate = prop->hasInterpretedOperation(Theory::RAT_TRUNCATE);
+  bool haveRatUnaryRoundingFunction = haveRatFloor || haveRatCeiling || haveRatRound || haveRatTruncate;
+
+  if (haveRatPlus || haveRatUnaryRoundingFunction) {
     TermList zero(theory->representConstant(RationalConstantType(0, 1)));
     TermList one(theory->representConstant(RationalConstantType(1, 1)));
-    if(haveRatMultiply) {
+    if(haveRatMultiply || haveRatRound) {
       addAdditionOrderingAndMultiplicationAxioms(Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
 						 Theory::RAT_LESS_EQUAL, Theory::RAT_MULTIPLY, units);
     }
     else {
       addAdditionAndOrderingAxioms(Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
 				   Theory::RAT_LESS_EQUAL, units);
+    }
+    if(haveRatFloor || haveRatRound){
+      addFloorAxioms(Theory::RAT_FLOOR,Theory::RAT_LESS_EQUAL,Theory::RAT_UNARY_MINUS,Theory::RAT_PLUS,one,units);
+    }
+    if(haveRatCeiling || haveRatRound){
+      addCeilingAxioms(Theory::RAT_CEILING,Theory::RAT_LESS_EQUAL,Theory::RAT_PLUS,one,units);
+    }
+    if(haveRatRound){
+      //addRoundAxioms(Theory::INT_TRUNCATE,Theory::INT_FLOOR,Theory::INT_CEILING,units);
+    }
+    if(haveRatTruncate){
+      addTruncateAxioms(Theory::RAT_TRUNCATE,Theory::RAT_LESS_EQUAL,Theory::RAT_UNARY_MINUS,
+                        Theory::RAT_PLUS,zero,one,units);
     }
     modified = true;
   }
@@ -555,7 +716,14 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     prop->hasInterpretedOperation(Theory::REAL_MULTIPLY);
   bool haveRealMultiply =
     prop->hasInterpretedOperation(Theory::REAL_MULTIPLY);
-  if (haveRealPlus) {
+
+  bool haveRealFloor = prop->hasInterpretedOperation(Theory::REAL_FLOOR);
+  bool haveRealCeiling = prop->hasInterpretedOperation(Theory::REAL_CEILING);
+  bool haveRealRound = prop->hasInterpretedOperation(Theory::REAL_ROUND);
+  bool haveRealTruncate = prop->hasInterpretedOperation(Theory::REAL_TRUNCATE);
+  bool haveRealUnaryRoundingFunction = haveRealFloor || haveRealCeiling || haveRealRound || haveRealTruncate;
+
+  if (haveRealPlus || haveRealUnaryRoundingFunction) {
     TermList zero(theory->representConstant(RealConstantType(RationalConstantType(0, 1))));
     TermList one(theory->representConstant(RealConstantType(RationalConstantType(1, 1))));
     if(haveRealMultiply) {
@@ -566,6 +734,20 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
       addAdditionAndOrderingAxioms(Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS, zero, one,
 				   Theory::REAL_LESS_EQUAL, units);
     }
+    if(haveRealFloor || haveRealRound){
+      addFloorAxioms(Theory::REAL_FLOOR,Theory::REAL_LESS_EQUAL,Theory::REAL_UNARY_MINUS,Theory::REAL_PLUS,one,units);
+    }
+    if(haveRealCeiling || haveRealRound){
+      addCeilingAxioms(Theory::REAL_CEILING,Theory::REAL_LESS_EQUAL,Theory::REAL_PLUS,one,units);
+    }
+    if(haveRealRound){
+      //addRoundAxioms(Theory::INT_TRUNCATE,Theory::INT_FLOOR,Theory::INT_CEILING,units);
+    }
+    if(haveRealTruncate){
+      addTruncateAxioms(Theory::REAL_TRUNCATE,Theory::REAL_LESS_EQUAL,Theory::REAL_UNARY_MINUS,
+                        Theory::REAL_PLUS,zero,one,units);
+    }
+
     modified = true;
   }
   bool haveSelectArray1= prop->hasInterpretedOperation(Theory::SELECT1_INT);
