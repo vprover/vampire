@@ -883,9 +883,10 @@ void Options::Options::init()
     _lookup.insert(&_unitResultingResolution);
     _unitResultingResolution.tag(OptionTag::INFERENCES);
     _unitResultingResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
-    _unitResultingResolution.reliesOn(
-      _saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->And<URResolution,bool>(
-        _instGenWithResolution.is(notEqual(true))));
+    // Wrong, should instead suggest that urr is always used with inst_gen
+    //_unitResultingResolution.reliesOn(
+    //  _saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->And<URResolution,bool>(
+    //    _instGenWithResolution.is(notEqual(true))));
     _unitResultingResolution.addProblemConstraint(hasPredicates());
     // If br has already been set off then this will be forced on, if br has not yet been set
     // then setting this to off will force br on
