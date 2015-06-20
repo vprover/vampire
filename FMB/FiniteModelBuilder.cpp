@@ -97,8 +97,8 @@ void FiniteModelBuilder::init()
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
-  DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
-  //ClauseIterator cit = _prb.clauseIterator();
+  //DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
+  ClauseIterator cit = _prb.clauseIterator();
 initLoop:
   while(cit.hasNext()){
     Clause* c = cit.next();
