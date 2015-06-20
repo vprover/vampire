@@ -335,7 +335,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
 
   //Update dismatch constraints
   if(_use_dm){ 
-    cout << "dismatch " << orig->number() << " add " << res->toString() << endl;
+    //cout << "dismatch " << orig->number() << " add " << res->toString() << endl;
     dmatch->handleClause(res,true);
   }
 
