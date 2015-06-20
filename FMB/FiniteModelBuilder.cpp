@@ -97,8 +97,8 @@ void FiniteModelBuilder::init()
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
-  //DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
-  ClauseIterator cit = _prb.clauseIterator();
+  DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
+  //ClauseIterator cit = _prb.clauseIterator();
 initLoop:
   while(cit.hasNext()){
     Clause* c = cit.next();
@@ -517,6 +517,20 @@ MainLoopResult FiniteModelBuilder::runImpl()
     addNewSymmetryAxioms(modelSize);
     //cout << "TOTAL DEFS" << endl;
     domSizeVar = addNewTotalityDefs(modelSize);
+
+    // Here declare that new symbol is distinct from old ones
+    Term* this_c = getConstant(modelSize);
+    unsigned rSort = SortHelper::getResultSort(this_c);
+    // for all smaller constants
+    for(unsigned i=1;i<modelSize;i++){
+        Term* c = getConstant(i);
+        Literal* lit = Literal::createEquality(false,TermList(this_c),TermList(c),rSort);
+        SATLiteral slit = getSATLiteral(lit);
+        static SATLiteralStack satClauseLits;
+        satClauseLits.reset();
+        satClauseLits.push(slit);
+        addSATClause(SATClause::fromStack(satClauseLits));
+    }
 
     // pass clauses and assumption to SAT Solver
     _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));

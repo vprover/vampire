@@ -92,6 +92,10 @@ public:
     static Comparison compare(const LeafData& ld1, const LeafData& ld2)
     {
       if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
+        if(ld1.clause->number()==ld2.clause->number()){
+          cout << "XXX " << ld1.clause << " and " << ld2.clause << endl;
+          cout << ld2.clause->toString() << endl;
+        }
 	ASS_NEQ(ld1.clause->number(), ld2.clause->number());
 	return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
       }
