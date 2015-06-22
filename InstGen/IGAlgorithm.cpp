@@ -299,7 +299,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   // with the clause being instantiated
   DismatchingLiteralIndex* dmatch;
   if(_use_dm){
-    dmatch = _dismatchMap.get(isQuery? orig : otherCl);
+    dmatch = _dismatchMap.get(otherCl);
     ASS(dmatch);
   }
 
@@ -316,7 +316,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
     // Note: the true,false options indicate checking for complement and not retrieving subs
     if(_use_dm && dmatch->getGeneralizations(glit,false,false).hasNext()){
       RSTAT_CTR_INC("dismatch blocked");
-      //cout << "[" << dmatch << "] " << "blocking for " << (isQuery? orig : otherCl)->number() << " and " << glit->toString() << endl;
+      //cout << "[" << dmatch << "] " << "blocking for " << otherCl->number() << " and " << glit->toString() << endl;
       //SLQueryResult r = dmatch->getGeneralizations(glit,false,false).next();
       //cout << "witness " << r.clause << " and " << r.literal->toString() << " with " << r.substitution << endl; 
       return;
@@ -337,7 +337,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
 
   //Update dismatch constraints
   if(_use_dm){ 
-    //cout << "[" << dmatch << "] "<< "dismatch " << (isQuery? orig : otherCl)->number() << " add " << res->toString() << endl;
+    //cout << "[" << dmatch << "] "<< "dismatch " << otherCl->number() << " add " << res->toString() << endl;
     dmatch->handleClause(res,true);
   }
 
