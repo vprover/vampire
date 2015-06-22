@@ -338,7 +338,6 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
  *
  * @author Giles
  */
-
 void DismatchingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("DismatchingLiteralIndex::handleClause");
@@ -350,4 +349,11 @@ void DismatchingLiteralIndex::handleClause(Clause* c, bool adding)
     handleLiteral((*c)[i], c, adding);
   }
 }
+void DismatchingLiteralIndex::addLiteral(Literal* l)
+{
+  CALL("DismatchingLiteralIndex::addLiteral");
+  //TODO is it safe to pass 0 here?
+  handleLiteral(l,0,true);
+}
+
 }

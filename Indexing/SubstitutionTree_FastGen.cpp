@@ -186,6 +186,11 @@ public:
   { return SubstHelper::apply(lit, *getApplicator()); }
 
   bool isIdentityOnQueryWhenResultBound() {return true;}
+
+#if VDEBUG
+  virtual vstring toString(){ return _resultNormalizer->toString(); }
+#endif
+
 private:
   Applicator* getApplicator()
   {

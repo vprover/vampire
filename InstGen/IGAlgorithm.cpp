@@ -47,6 +47,8 @@
 #undef LOGGING
 #define LOGGING 0
 
+#define VTRACE_DM 0
+
 namespace InstGen
 {
 
@@ -177,7 +179,7 @@ void IGAlgorithm::init()
 
 }
 
-void IGAlgorithm::addClause(Clause* cl)
+bool IGAlgorithm::addClause(Clause* cl)
 {
   CALL("IGAlgorithm::addClause");
 
@@ -188,7 +190,7 @@ void IGAlgorithm::addClause(Clause* cl)
   if(cl) { cl = _trivialInequalityRemoval.simplify(cl); }
   if(cl) { cl = _distinctEqualitySimplifier.simplify(cl); }
   if(!cl) {
-    return;
+    return false;
   }
 
 redundancy_check:
@@ -197,7 +199,7 @@ redundancy_check:
     if(_variantIdx->retrieveVariants(cl).hasNext()) {
       cl->destroyIfUnnecessary();
       env.statistics->instGenRedundantClauses++;
-      return;
+      return false;
     }
   }
   if (env.options->showNew()) {
@@ -228,6 +230,7 @@ redundancy_check:
 
   _unprocessed.push(cl);
   env.statistics->instGenKeptClauses++;
+  return true;
 }
 
 Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation)
@@ -288,9 +291,13 @@ bool IGAlgorithm::isSelected(Literal* lit)
  * query or result part of the substitution @c subst is used, based on the
  * value of @c isQuery.
  */
-void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl)
+void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit)
 {
   CALL("IGAlgorithm::tryGeneratingClause");
+
+#if VTRACE_DM
+  cout << "tryGenC " << orig->number() << " and " << otherCl->number() << " on " << origLit->toString() << endl;
+#endif
 
   static LiteralStack genLits;
   genLits.reset();
@@ -299,7 +306,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   // with the clause being instantiated
   DismatchingLiteralIndex* dmatch;
   if(_use_dm){
-    dmatch = _dismatchMap.get(otherCl);
+    dmatch = _dismatchMap.get(orig);
     ASS(dmatch);
   }
 
@@ -316,9 +323,9 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
     // Note: the true,false options indicate checking for complement and not retrieving subs
     if(_use_dm && dmatch->getGeneralizations(glit,false,false).hasNext()){
       RSTAT_CTR_INC("dismatch blocked");
-      //cout << "[" << dmatch << "] " << "blocking for " << otherCl->number() << " and " << glit->toString() << endl;
-      //SLQueryResult r = dmatch->getGeneralizations(glit,false,false).next();
-      //cout << "witness " << r.clause << " and " << r.literal->toString() << " with " << r.substitution << endl; 
+#if VTRACE_DM
+      cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << glit->toString() << endl;
+#endif
       return;
     }
 
@@ -335,14 +342,18 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   int newAge = max(orig->age(), otherCl->age())+1;
   res->setAge(newAge);
 
-  //Update dismatch constraints
-  if(_use_dm){ 
-    //cout << "[" << dmatch << "] "<< "dismatch " << otherCl->number() << " add " << res->toString() << endl;
-    dmatch->handleClause(res,true);
-  }
-
   env.statistics->instGenGeneratedClauses++;
-  addClause(res);
+  bool added = addClause(res);
+
+  //Update dismatch constraints
+  if(added && _use_dm){ 
+    Literal* dm_with = isQuery ? subst.applyToQuery(origLit) : subst.applyToResult(origLit);
+#if VTRACE_DM
+    cout << "[" << dmatch << "] "<< "dismatch " << orig->number() << " add " << dm_with->toString() << endl;
+#endif
+    //TODO is it safe passing 0 here
+    dmatch->addLiteral(dm_with);
+  }
 }
 
 /**
@@ -366,12 +377,12 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
     if(unif.clause->length()==1) {
       //we make sure the unit is added first, so that it can be used to shorten the
       //second clause by global subsumption
-      tryGeneratingClause(unif.clause, *unif.substitution, false, cl);
-      tryGeneratingClause(cl, *unif.substitution, true, unif.clause);
+      tryGeneratingClause(unif.clause, *unif.substitution, false, cl,lit);
+      tryGeneratingClause(cl, *unif.substitution, true, unif.clause,lit);
     }
     else {
-      tryGeneratingClause(cl, *unif.substitution, true, unif.clause);
-      tryGeneratingClause(unif.clause, *unif.substitution, false, cl);
+      tryGeneratingClause(cl, *unif.substitution, true, unif.clause,lit);
+      tryGeneratingClause(unif.clause, *unif.substitution, false, cl,lit);
     }
   }
 }
@@ -515,7 +526,9 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
     LiteralIndexingStructure * is = new LiteralSubstitutionTree();//WithoutTop();
     DismatchingLiteralIndex* dismatchIndex = new DismatchingLiteralIndex(is);
     _dismatchMap.insert(cl,dismatchIndex);
-    //cout << "[" << dismatchIndex << "] "<< "creating for " << cl->toString() << endl;
+#if VTRACE_DM
+    cout << "[" << dismatchIndex << "] "<< "creating for " << cl->toString() << endl;
+#endif
   }
 
   unsigned clen = cl->length();

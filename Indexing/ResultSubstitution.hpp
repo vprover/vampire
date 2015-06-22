@@ -124,6 +124,9 @@ public:
 	  int queryBank, int resultBank);
 //  static ResultSubstitutionSP fromSubstitution(EGSubstitution* s,
 //	  int queryBank, int resultBank);
+#if VDEBUG
+  virtual vstring toString(){ NOT_IMPLEMENTED; }
+#endif
 };
 
 
@@ -141,6 +144,9 @@ public:
   TermList applyToResult(TermList t) { return t; }
   Literal* applyToResult(Literal* l) { return l; }
   bool isIdentityOnQueryWhenResultBound() {return true;}
+#if VDEBUG
+  virtual vstring toString(){ return "identity"; }
+#endif
 };
 
 class DisjunctQueryAndResultVariablesSubstitution
@@ -159,6 +165,9 @@ public:
    * we can return true because nothing is bound to the result
    */
   bool isIdentityOnQueryWhenResultBound() {return true;}
+#if VDEBUG
+  virtual vstring toString(){ return "DisjunctQueryAndResultVariablesSubstitution"; }
+#endif
 private:
   struct Applicator;
   Renaming _renaming;

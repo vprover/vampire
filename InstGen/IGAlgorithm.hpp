@@ -67,7 +67,7 @@ protected:
   virtual MainLoopResult runImpl();
 private:
 
-  void addClause(Clause* cl);
+  bool addClause(Clause* cl);
 
   void doInprocessing(RCClauseStack& clauses);
 
@@ -88,7 +88,7 @@ private:
   void removeFromIndex(Clause* cl);
 
   void tryGeneratingInstances(Clause* cl, unsigned litIdx);
-  void tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl);
+  void tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit);
 
   bool isSelected(Literal* lit);
 

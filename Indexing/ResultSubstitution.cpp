@@ -39,6 +39,10 @@ public:
 
   RobSubstitution* tryGetRobSubstitution() { return _subst; }
 
+#if VDEBUG
+  virtual vstring toString(){ return _subst->toString(); }
+#endif
+
 private:
   RobSubstitution* _subst;
   int _queryBank;
