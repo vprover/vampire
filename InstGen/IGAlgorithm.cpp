@@ -526,7 +526,7 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
   // it might already have one if it was previously deactiviated
   if(_use_dm && !_dismatchMap.find(cl)){
     RSTAT_CTR_INC("dismatch created");
-    LiteralIndexingStructure * is = new LiteralSubstitutionTree();//WithoutTop();
+    LiteralIndexingStructure * is = new LiteralSubstitutionTreeWithoutTop();
     DismatchingLiteralIndex* dismatchIndex = new DismatchingLiteralIndex(is);
     _dismatchMap.insert(cl,dismatchIndex);
 #if VTRACE_DM
