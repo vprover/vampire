@@ -42,9 +42,9 @@ TEST_FUN(index)
   
   dismatchIndex->handleClause(cl,true);
 
-  Literal* qlit = Literal::createEquality(true,fxa,a,Sorts::SRT_DEFAULT);
+  Literal* qlit = Literal::createEquality(false,fxa,a,Sorts::SRT_DEFAULT);
 
-  SLQueryResultIterator it= dismatchIndex->getGeneralizations(qlit,false,false);
+  SLQueryResultIterator it= dismatchIndex->getGeneralizations(qlit,true,false);
 
   cout << it.hasNext() << endl;
 }
