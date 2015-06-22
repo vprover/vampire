@@ -32,6 +32,7 @@
 #include "DefinitionIntroduction.hpp"
 #include "FiniteModelBuilder.hpp"
 
+#define VTRACE_FMB 0
 
 namespace FMB 
 {
@@ -50,18 +51,29 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
     return;
   }
 
-  switch(opt.satSolver()){
+  _incremental = opt.fmbIncremental();
+
+  createSolver();
+}
+
+void FiniteModelBuilder::createSolver(){
+
+  _maxSatVar = 0;
+  _lookup.reset();
+  _revLookup.reset();
+
+  switch(_opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
-      _solver = new TWLSolver(opt, true);
+      _solver = new TWLSolver(_opt, true);
       break;
     case Options::SatSolver::LINGELING:
-      _solver = new LingelingInterfacing(opt, true);
+      _solver = new LingelingInterfacing(_opt, true);
       break;
     case Options::SatSolver::MINISAT:
-      _solver = new MinisatInterfacing(opt,true);
+      _solver = new MinisatInterfacing(_opt,true);
       break;
     default:
-      ASSERTION_VIOLATION_REP(opt.satSolver());
+      ASSERTION_VIOLATION_REP(_opt.satSolver());
   }
 
 }
@@ -106,12 +118,15 @@ void FiniteModelBuilder::init()
   // over the clauses of the problem
   //DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
   ClauseIterator cit = _prb.clauseIterator();
-initLoop:
   while(cit.hasNext()){
     Clause* c = cit.next();
+#if VTRACE_FMB
     //cout << "Flatten " << c->toString() << endl;
+#endif
     c = ClauseFlattening::flatten(c);
+#if VTRACE_FMB
     //cout << "Flattened " << c->toString() << endl;
+#endif
     ASS(c);
 
     if(isRefutation(c)){
@@ -120,26 +135,14 @@ initLoop:
 
     //TODO factor out
     if(c->varCnt()==0){
-      static SATLiteralStack satClauseLits;
-      satClauseLits.reset();
-      //cout << "Init: ";
-      for(unsigned i=0;i<c->length();i++){
-        Literal* lit = (*c)[i];
-        // if tautology ignore clause
-        if(EqHelper::isEqTautology(lit)){ goto initLoop; }
-        // if false, skip literal (okay because ground)
-        if(lit->isEquality() && !lit->isPositive() &&
-            (*lit->nthArgument(0))==(*lit->nthArgument(1))){
-          continue;
-        }
-        //cout << lit->toString() < " | ";
-        SATLiteral slit = getSATLiteral(lit);
-        satClauseLits.push(slit);
-      }
-      //cout << endl;
-      SATClause* satCl = SATClause::fromStack(satClauseLits);
-      addSATClause(satCl);
+#if VTRACE_FMB
+      //cout << "Add ground clause " << c->toString() << endl;
+#endif
+      _groundClauses = _groundClauses->cons(c);    
     }else{
+#if VTRACE_FMB
+      //cout << "Add non-ground clause " << c->toString() << endl;
+#endif
       _clauses = _clauses->cons(c);
     }
   }
@@ -210,7 +213,54 @@ initLoop:
 
 }
 
-void FiniteModelBuilder::addNewInstances(unsigned size)
+void FiniteModelBuilder::addGroundClauses()
+{
+  CALL("FiniteModelBuilder::addGroundClauses");
+
+  ClauseList::Iterator cit(_groundClauses);
+
+addGroundLoop:
+  while(cit.hasNext()){
+
+      Clause* c = cit.next();
+
+      static SATLiteralStack satClauseLits;
+      satClauseLits.reset();
+#if VTRACE_FMB
+      cout << "Init: ";
+#endif
+      for(unsigned i=0;i<c->length();i++){
+        Literal* lit = (*c)[i];
+        // if tautology ignore clause
+        if(EqHelper::isEqTautology(lit)){
+#if VTRACE_FMB
+          cout << "Skipping tautology " << c->toString() << endl;
+#endif
+          goto addGroundLoop;
+        }
+        // if false, skip literal (okay because ground)
+        if(lit->isEquality() && !lit->isPositive() &&
+            (*lit->nthArgument(0))==(*lit->nthArgument(1))){
+#if VTRACE_FMB
+       cout << "(" << lit->toString() << ") |";
+#endif
+          continue;
+        }
+#if VTRACE_FMB
+        cout << lit->toString() << " | ";
+#endif
+        SATLiteral slit = getSATLiteral(lit);
+        satClauseLits.push(slit);
+      }
+#if VTRACE_FMB
+      cout << endl;
+#endif
+      SATClause* satCl = SATClause::fromStack(satClauseLits);
+      addSATClause(satCl);
+  }
+}
+
+void FiniteModelBuilder::addNewInstances(unsigned size, bool incremental)
 {
   CALL("FiniteModelBuilder::addNewInstances");
 
@@ -219,11 +269,14 @@ void FiniteModelBuilder::addNewInstances(unsigned size)
   while(cit.hasNext()){
     Clause* c = cit.next();
     ASS(c);
-    //cout << "Instances of " << c->toString() << endl;
+#if VTRACE_FMB
+    cout << "Instances of " << c->toString() << endl;
+#endif
 
     unsigned fvars = c->varCnt();
 
-    CombinationsIterator it(fvars,size);
+    // If it's not incremental then create all
+    CombinationsIterator it(fvars,size,!incremental);
 
 instanceLoop:
     while(it.hasNext()){
@@ -257,7 +310,7 @@ instanceLoop:
 
 }
 
-void FiniteModelBuilder::addNewFunctionalDefs(unsigned size)
+void FiniteModelBuilder::addNewFunctionalDefs(unsigned size, bool incremental)
 {
   CALL("FiniteModelBuilder::addNewFunctionalDefs");
 
@@ -278,7 +331,8 @@ void FiniteModelBuilder::addNewFunctionalDefs(unsigned size)
     unsigned fvars = c->varCnt();
     ASS_G(fvars,0);
 
-    CombinationsIterator it(fvars,size);
+    // If it's not incremental consider all
+    CombinationsIterator it(fvars,size,!incremental);
 
 funDefLoop:
     while(it.hasNext()){
@@ -355,7 +409,7 @@ void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size)
   // First add restricted totality for constants (TODO remove totality for constants?)
   // i.e. for constant a1 add { a1=1 } and for a2 add { a2=1, a2=2 } and so on
 
-  // As we are incremental we add the next one, which is for constant at position 'size'
+  // As we are _incremental we add the next one, which is for constant at position 'size'
   Term* c1 = _constants[size-1]; // size 1-based, index 0-based
   unsigned sort = SortHelper::getResultSort(c1);
 
@@ -397,12 +451,16 @@ void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size)
 
 }
 
-unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size)
+unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size,bool incremental)
 {
   CALL("FiniteModelBuilder::addNewTotalityDefs");
 
-  unsigned domSizeVar = getNextSATVar();
-  SATLiteral domSizeLit = SATLiteral(domSizeVar,false);
+  unsigned domSizeVar = -1;
+  SATLiteral domSizeLit;
+  if(incremental){
+    domSizeVar = getNextSATVar();
+    domSizeLit = SATLiteral(domSizeVar,false);
+  }
 
   Stack<Term*>::Iterator tit(_totalityFunctions);
 
@@ -417,7 +475,9 @@ unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size)
     if(fvars==0){
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
-      satClauseLits.push(domSizeLit);
+      if(incremental){
+        satClauseLits.push(domSizeLit);
+      }
       for(unsigned i=0;i<size;i++){
         Term* c = getConstant(i+1);
         Literal* lit = Literal::createEquality(true,TermList(t),TermList(c),rSort);
@@ -439,7 +499,9 @@ unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size)
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
 
-      satClauseLits.push(domSizeLit);
+      if(incremental){
+        satClauseLits.push(domSizeLit);
+      }
 
       // Ground and translate each literal into a SATLiteral
       for(unsigned i=0;i<size;i++){
@@ -475,7 +537,9 @@ SATLiteral FiniteModelBuilder::getSATLiteral(Literal* lit)
   unsigned var;
   if(!_lookup.find(lit,var)){
     var = getNextSATVar();
-    //cout << "STORING " << var << " -> " << lit->toString() << endl;
+#if VTRACE_FMB
+    cout << "STORING " << var << " -> " << lit->toString() << endl;
+#endif
     _lookup.insert(lit,var);
     _revLookup.insert(var,lit);
   }
@@ -487,8 +551,9 @@ void FiniteModelBuilder::addSATClause(SATClause* cl)
   CALL("FiniteModelBuilder::addSATClause");
   cl = Preprocess::removeDuplicateLiterals(cl);
   if(!cl){ return; }
-
-  //cout << "ADDING " << cl->toString() << endl;
+#if VTRACE_FMB
+  cout << "ADDING " << cl->toString() << endl;
+#endif
 
   _clausesToBeAdded.push(cl);
 
@@ -508,11 +573,14 @@ MainLoopResult FiniteModelBuilder::runImpl()
   unsigned modelSize = 1;
   int domSizeVar = -1;
   while(true){
-    //cout << "TRYING " << modelSize << endl;
+#if VTRACE_FMB
+    cout << "TRYING " << modelSize << endl;
+#endif
     Timer::syncClock();
     if(env.timeLimitReached()){ return MainLoopResult(Statistics::TIME_LIMIT); }
 
     // if there was a previous domain variable, retract it
+    // In non-_incremental mode domSizeVar never changes
     if(domSizeVar > -1){
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
@@ -521,20 +589,44 @@ MainLoopResult FiniteModelBuilder::runImpl()
     }
 
     // add the new clauses to _clausesToBeAdded
-    //cout << "INSTANCES" << endl;
-    addNewInstances(modelSize);
-    //cout << "FUNC DEFS" << endl;
-    addNewFunctionalDefs(modelSize);
-    //cout << "SYM DEFS" << endl;
+#if VTRACE_FMB
+    cout << "GROUND" << endl;
+#endif
+    if(!_incremental || modelSize == 1){
+      addGroundClauses();
+    }
+#if VTRACE_FMB
+    cout << "INSTANCES" << endl;
+#endif
+    addNewInstances(modelSize,_incremental);
+#if VTRACE_FMB
+    cout << "FUNC DEFS" << endl;
+#endif
+    addNewFunctionalDefs(modelSize,_incremental);
+#if VTRACE_FMB
+    cout << "SYM DEFS" << endl;
+#endif
+    if(!_incremental){
+      for(unsigned s=1;s<modelSize;s++){
+        addNewSymmetryAxioms(s);
+      }
+    }
     addNewSymmetryAxioms(modelSize);
-    //cout << "TOTAL DEFS" << endl;
-    domSizeVar = addNewTotalityDefs(modelSize);
+#if VTRACE_FMB
+    cout << "TOTAL DEFS" << endl;
+#endif
+    domSizeVar = addNewTotalityDefs(modelSize,_incremental);
 
-    // Here declare that new symbol is distinct from old ones
-    Term* this_c = getConstant(modelSize);
-    unsigned rSort = SortHelper::getResultSort(this_c);
-    // for all smaller constants
-    for(unsigned i=1;i<modelSize;i++){
+#if VTRACE_FMB
+    cout << "DISTINCT DOMAIN" << endl;
+#endif
+    unsigned start = _incremental ? modelSize : 1;
+    for(unsigned s=start;s<=modelSize;s++){
+      // Here declare that new symbol is distinct from old ones
+      Term* this_c = getConstant(s);
+      unsigned rSort = SortHelper::getResultSort(this_c);
+      // for all smaller constants
+      for(unsigned i=1;i<s;i++){
         Term* c = getConstant(i);
         Literal* lit = Literal::createEquality(false,TermList(this_c),TermList(c),rSort);
         SATLiteral slit = getSATLiteral(lit);
@@ -542,12 +634,20 @@ MainLoopResult FiniteModelBuilder::runImpl()
         satClauseLits.reset();
         satClauseLits.push(slit);
         addSATClause(SATClause::fromStack(satClauseLits));
+      }
     }
-
+#if VTRACE_FMB
+    cout << "SOLVING" << endl;
+#endif
+    //TODO consider adding clauses directly to SAT solver in new interface?
     // pass clauses and assumption to SAT Solver
     _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
     _clausesToBeAdded.reset();
-    _solver->addAssumption(SATLiteral(domSizeVar,true));
+
+    // only do this in _incremental mode
+    if(_incremental){
+      _solver->addAssumption(SATLiteral(domSizeVar,true));
+    }
 
     // if the clauses are satisfiable then we have found a finite model
     if(_solver->solve() == SATSolver::SATISFIABLE){
@@ -572,14 +672,20 @@ MainLoopResult FiniteModelBuilder::runImpl()
     }
 
     // If it's EPR and we've used all the constants and not found a model then there is no model
-    if(isEPR && modelSize==_constants.length()){
+    if(isEPR && modelSize>=_constants.length()){
       // create dummy empty clause as refutation
       Clause* empty = new(0) Clause(0,Unit::AXIOM,
          new Inference(Inference::EPR_MODEL_NOT_FOUND));
       return MainLoopResult(Statistics::REFUTATION,empty); 
     }
 
-    _solver->retractAllAssumptions();
+    if(_incremental){
+      _solver->retractAllAssumptions();
+    }
+    if(!_incremental){
+     // reset SAT Solver
+     createSolver();
+    }
     modelSize++;
   }
 

@@ -654,6 +654,10 @@ void Options::Options::init()
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
     _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter","tabulation"});
 
+    _fmbIncremental = BoolOptionValue("fmb_incremental","fmbi",false);
+    _fmbIncremental.description = "Use incremental SAT in fmb";
+    _lookup.insert(&_fmbIncremental);
+    _fmbIncremental.setExperimental();
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=

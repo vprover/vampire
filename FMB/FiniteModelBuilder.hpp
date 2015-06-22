@@ -37,14 +37,16 @@ private:
   static unsigned created;
   static unsigned fchecked;
 
-  void addNewInstances(unsigned modelSize);
-  void addNewFunctionalDefs(unsigned modelSize);
+  void addGroundClauses();
+  void addNewInstances(unsigned modelSize, bool incremental);
+  void addNewFunctionalDefs(unsigned modelSize, bool incremental);
   void addNewSymmetryAxioms(unsigned modelSize);
-  unsigned addNewTotalityDefs(unsigned modelSize);
+  unsigned addNewTotalityDefs(unsigned modelSize, bool incremental);
   
   unsigned getNextSATVar();
   SATLiteral getSATLiteral(Literal* t);
 
+  void createSolver();
   ScopedPtr<SATSolverWithAssumptions> _solver;
   unsigned _maxSatVar;
   DHMap<Literal*,unsigned> _lookup;
@@ -54,6 +56,7 @@ private:
   SATClauseStack _clausesToBeAdded;
 
   // best data structure?
+  ClauseList* _groundClauses;
   ClauseList* _clauses;
   ClauseList* _functionDefinitionClauses;
   Stack<Term*> _totalityFunctions;
@@ -61,6 +64,7 @@ private:
   Term* _singleArityFunction;
 
   bool _isComplete;
+  bool _incremental;
 };
 
 }
