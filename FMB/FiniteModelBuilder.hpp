@@ -59,6 +59,8 @@ private:
   Stack<Term*> _totalityFunctions;
   Stack<Term*> _constants;
   Term* _singleArityFunction;
+
+  bool _isComplete;
 };
 
 }

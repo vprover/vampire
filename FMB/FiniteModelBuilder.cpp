@@ -41,9 +41,14 @@ unsigned FiniteModelBuilder::created=0;
 unsigned FiniteModelBuilder::fchecked=0;
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
-: MainLoop(prb, opt), _maxSatVar(0), _clauses(0), _functionDefinitionClauses(0), _singleArityFunction(0)
+: MainLoop(prb, opt), _maxSatVar(0), _clauses(0), _functionDefinitionClauses(0), _singleArityFunction(0), _isComplete(true)
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
+
+  if(!opt.complete(prb)){
+    _isComplete = false;
+    return;
+  }
 
   switch(opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
@@ -94,6 +99,8 @@ Term* FiniteModelBuilder::getConstant(unsigned constant)
 void FiniteModelBuilder::init()
 {
   CALL("FiniteModelBuilder::init");
+
+  if(!_isComplete) return;
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
@@ -490,6 +497,11 @@ void FiniteModelBuilder::addSATClause(SATClause* cl)
 MainLoopResult FiniteModelBuilder::runImpl()
 {
   CALL("FiniteModelBuilder::runImpl");
+
+  if(!_isComplete){
+    // give up!
+    return MainLoopResult(Statistics::UNKNOWN);
+  }
 
   bool isEPR = env.property->category()==Property::EPR;
 
