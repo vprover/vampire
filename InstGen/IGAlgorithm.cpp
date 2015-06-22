@@ -347,6 +347,9 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
 
   //Update dismatch constraints
   if(added && _use_dm){ 
+#if VTRACE_DM
+    cout << "creating dm_with using " << subst.toString() << endl;
+#endif
     Literal* dm_with = isQuery ? subst.applyToQuery(origLit) : subst.applyToResult(origLit);
 #if VTRACE_DM
     cout << "[" << dmatch << "] "<< "dismatch " << orig->number() << " add " << dm_with->toString() << endl;
@@ -377,12 +380,12 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
     if(unif.clause->length()==1) {
       //we make sure the unit is added first, so that it can be used to shorten the
       //second clause by global subsumption
-      tryGeneratingClause(unif.clause, *unif.substitution, false, cl,lit);
+      tryGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal);
       tryGeneratingClause(cl, *unif.substitution, true, unif.clause,lit);
     }
     else {
       tryGeneratingClause(cl, *unif.substitution, true, unif.clause,lit);
-      tryGeneratingClause(unif.clause, *unif.substitution, false, cl,lit);
+      tryGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal);
     }
   }
 }
