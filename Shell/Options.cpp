@@ -658,6 +658,7 @@ void Options::Options::init()
     _fmbIncremental.description = "Use incremental SAT in fmb";
     _lookup.insert(&_fmbIncremental);
     _fmbIncremental.setExperimental();
+    _fmbIncremental.setRandomChoices({"on","off"});
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=

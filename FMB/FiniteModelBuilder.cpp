@@ -33,6 +33,7 @@
 #include "FiniteModelBuilder.hpp"
 
 #define VTRACE_FMB 0
+#define FMB_USE_DISTINCT 1
 
 namespace FMB 
 {
@@ -121,11 +122,11 @@ void FiniteModelBuilder::init()
   while(cit.hasNext()){
     Clause* c = cit.next();
 #if VTRACE_FMB
-    //cout << "Flatten " << c->toString() << endl;
+    cout << "Flatten " << c->toString() << endl;
 #endif
     c = ClauseFlattening::flatten(c);
 #if VTRACE_FMB
-    //cout << "Flattened " << c->toString() << endl;
+    cout << "Flattened " << c->toString() << endl;
 #endif
     ASS(c);
 
@@ -138,10 +139,10 @@ void FiniteModelBuilder::init()
 #if VTRACE_FMB
       cout << "Add ground clause " << c->toString() << endl;
 #endif
-      _groundClauses = _groundClauses->cons(c);    
+      //_groundClauses = _groundClauses->cons(c);    
     }else{
 #if VTRACE_FMB
-      cout << "Add non-ground clause " << c->toString() << endl;
+      //cout << "Add non-ground clause " << c->toString() << endl;
 #endif
       _clauses = _clauses->cons(c);
     }
@@ -162,7 +163,7 @@ void FiniteModelBuilder::init()
       n.normalizeVariables(l);
       (*c)[i] = n.apply(l);
     }
-    //cout << "Normalized " << c->toString() << endl;
+    cout << "Normalized " << c->toString() << endl;
   }
 
   // Create function definition clauses
@@ -625,6 +626,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #endif
     domSizeVar = addNewTotalityDefs(modelSize,_incremental);
 
+#if FMB_USE_DISTINCT
 #if VTRACE_FMB
     cout << "DISTINCT DOMAIN" << endl;
 #endif
@@ -644,6 +646,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
         addSATClause(SATClause::fromStack(satClauseLits));
       }
     }
+#endif
 #if VTRACE_FMB
     cout << "SOLVING" << endl;
 #endif
