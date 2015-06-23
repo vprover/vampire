@@ -307,19 +307,20 @@ SATSolver::Status TWLSolver::solve(unsigned conflictCountLimit) {
 void TWLSolver::addAssumption(SATLiteral lit)
 {
   CALL("TWLSolver::addAssumption");
-  _assumptionsAdded = true;
 
   LOG2("addAssumption ",lit);
 
-  if(_status==UNSATISFIABLE) {
+  // top level propagation needs to be done ...
+  // ... before adding an assumption and between any two additions
+  if (solve(0u) == UNSATISFIABLE) {
     return;
   }
 
-  try
-  {
-    backtrack(1);
-    doBaseLevelPropagation(); // this is to make sure we have fully propagated (after previous addClause and addAssumption calls)
+  ASS(!anythingToPropagate());
 
+  _assumptionsAdded = true;
+
+  try {
     if(isFalse(lit)) {
       handleConflictingAssumption(lit);
       ASSERTION_VIOLATION; //exception must be thrown in handleConflictingAssumption()
