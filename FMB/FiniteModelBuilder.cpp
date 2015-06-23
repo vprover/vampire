@@ -42,7 +42,7 @@ unsigned FiniteModelBuilder::created=0;
 unsigned FiniteModelBuilder::fchecked=0;
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
-: MainLoop(prb, opt), _maxSatVar(0), _clauses(0), _functionDefinitionClauses(0), _singleArityFunction(0), _isComplete(true)
+: MainLoop(prb, opt), _maxSatVar(0), _groundClauses(0), _clauses(0), _functionDefinitionClauses(0), _singleArityFunction(0), _isComplete(true)
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
 
@@ -136,12 +136,12 @@ void FiniteModelBuilder::init()
     //TODO factor out
     if(c->varCnt()==0){
 #if VTRACE_FMB
-      //cout << "Add ground clause " << c->toString() << endl;
+      cout << "Add ground clause " << c->toString() << endl;
 #endif
       _groundClauses = _groundClauses->cons(c);    
     }else{
 #if VTRACE_FMB
-      //cout << "Add non-ground clause " << c->toString() << endl;
+      cout << "Add non-ground clause " << c->toString() << endl;
 #endif
       _clauses = _clauses->cons(c);
     }
@@ -217,24 +217,29 @@ void FiniteModelBuilder::addGroundClauses()
 {
   CALL("FiniteModelBuilder::addGroundClauses");
 
+  // If we don't have any ground clauses don't do anything
+  if(!_groundClauses) return;
+
   ClauseList::Iterator cit(_groundClauses);
+
 
 addGroundLoop:
   while(cit.hasNext()){
 
       Clause* c = cit.next();
+      ASS(c);
 
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
 #if VTRACE_FMB
-      cout << "Init: ";
+      //cout << "Init: ";
 #endif
       for(unsigned i=0;i<c->length();i++){
         Literal* lit = (*c)[i];
         // if tautology ignore clause
         if(EqHelper::isEqTautology(lit)){
 #if VTRACE_FMB
-          cout << "Skipping tautology " << c->toString() << endl;
+          //cout << "Skipping tautology " << c->toString() << endl;
 #endif
           goto addGroundLoop;
         }
@@ -242,18 +247,18 @@ addGroundLoop:
         if(lit->isEquality() && !lit->isPositive() &&
             (*lit->nthArgument(0))==(*lit->nthArgument(1))){
 #if VTRACE_FMB
-       cout << "(" << lit->toString() << ") |";
+       //cout << "(" << lit->toString() << ") |";
 #endif
           continue;
         }
 #if VTRACE_FMB
-        cout << lit->toString() << " | ";
+        //cout << lit->toString() << " | ";
 #endif
         SATLiteral slit = getSATLiteral(lit);
         satClauseLits.push(slit);
       }
 #if VTRACE_FMB
-      cout << endl;
+      //cout << endl;
 #endif
       SATClause* satCl = SATClause::fromStack(satClauseLits);
       addSATClause(satCl);
