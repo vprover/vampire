@@ -28,6 +28,16 @@ public:
    */
   virtual void addClause(SATClause* cl) override;
   
+  /**
+   * Opportunity to perform in-processing of the clause database.
+   *
+   * (Minisat deletes unconditionally satisfied clauses.)
+   */
+  virtual void simplify() override {
+    CALL("MinisatInterfacing::simplify");
+    _solver.simplify();
+  }
+
   virtual Status solve(unsigned conflictCountLimit) override;
   
   /**

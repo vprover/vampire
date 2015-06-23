@@ -591,6 +591,9 @@ MainLoopResult FiniteModelBuilder::runImpl()
       satClauseLits.reset();
       satClauseLits.push(SATLiteral(domSizeVar,false));
       addSATClause(SATClause::fromStack(satClauseLits));
+
+      // the solver can delete the previous totality clauses (minisat does)
+      _solver->simplify();
     }
 
     // add the new clauses to _clausesToBeAdded
