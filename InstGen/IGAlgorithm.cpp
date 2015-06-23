@@ -308,6 +308,20 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   if(_use_dm){
     dmatch = _dismatchMap.get(orig);
     ASS(dmatch);
+
+    // check dismatching constraint here
+    // if dmatch has a generalisation of glit then we do not
+    // satisfy the constraint
+    // Note: the true,false options indicate checking for complement and not retrieving subs
+    Literal* glit = isQuery ? subst.applyToQuery(origLit) : subst.applyToResult(origLit);
+    if(_use_dm && dmatch->getGeneralizations(glit,true,false).hasNext()){
+      RSTAT_CTR_INC("dismatch blocked");
+#if VTRACE_DM
+      cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << glit->toString() << endl;
+#endif
+      return;
+    }
+
   }
 
   bool properInstance = false;
@@ -316,18 +330,6 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
     Literal* olit = (*orig)[i];
     Literal* glit = isQuery ? subst.applyToQuery(olit) : subst.applyToResult(olit);
     genLits.push(glit);
-
-    // check dismatching constraint here
-    // if dmatch has a generalisation of glit then we do not
-    // satisfy the constraint
-    // Note: the true,false options indicate checking for complement and not retrieving subs
-    if(_use_dm && dmatch->getGeneralizations(glit,true,false).hasNext()){
-      RSTAT_CTR_INC("dismatch blocked");
-#if VTRACE_DM
-      cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << glit->toString() << endl;
-#endif
-      return;
-    }
 
     if(olit!=glit) {
       properInstance = true;
