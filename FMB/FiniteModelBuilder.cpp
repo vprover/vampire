@@ -647,7 +647,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
     //TODO consider adding clauses directly to SAT solver in new interface?
     // pass clauses and assumption to SAT Solver
     _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
-    _clausesToBeAdded.reset();
 
     // only do this in _incremental mode
     if(_incremental){
@@ -687,10 +686,22 @@ MainLoopResult FiniteModelBuilder::runImpl()
     if(_incremental){
       _solver->retractAllAssumptions();
     }
+
     if(!_incremental){
-     // reset SAT Solver
-     createSolver();
+      // reset SAT Solver
+      createSolver();
+
+      // destroy the clauses
+      SATClauseStack::Iterator it(_clausesToBeAdded);
+      while (it.hasNext()) {
+        it.next()->destroy();
+      }
+    } else {
+      // clauses still live in the solver
     }
+    // but the container needs to be empty for the next round in any case
+    _clausesToBeAdded.reset();
+
     modelSize++;
   }
 

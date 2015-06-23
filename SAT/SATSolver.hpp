@@ -323,12 +323,12 @@ protected:
 };
 
 /**
- * A conveniece class for solvers which do not track actual refutations
+ * A convenience class for solvers which do not track actual refutations
  * and so return the whole set of clauses added so far as refutations.
  * 
  * This need not necessarily inherit from SATSolverWithAssumptions,
  * but why bother with multiple inheritance if we know the only 
- * to descendants of this class will need it...
+ * to descendants of this class will nqeed it...
  */
 class PrimitiveProofRecordingSATSolver : public SATSolverWithAssumptions {
 public:
@@ -340,6 +340,11 @@ public:
       _refutation->setInference(_refutationInference);    
     }
   
+  virtual ~PrimitiveProofRecordingSATSolver() {
+    // we clear the list but not it's content
+    _addedClauses->destroy();
+  }
+
   virtual void addClause(SATClause* cl) override 
   {
     CALL("PrimitiveProofRecordingSATSolver::addClause");
@@ -378,7 +383,6 @@ public:
   
 private:
   // to be used for the premises of a refutation
-  // TODO: currently, the list is never free-ed
   SATClauseList* _addedClauses;
   
   /**
