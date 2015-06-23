@@ -117,8 +117,8 @@ void FiniteModelBuilder::init()
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
-  //DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
-  ClauseIterator cit = _prb.clauseIterator();
+  DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
+  //ClauseIterator cit = _prb.clauseIterator();
   while(cit.hasNext()){
     Clause* c = cit.next();
 #if VTRACE_FMB
@@ -137,9 +137,9 @@ void FiniteModelBuilder::init()
     //TODO factor out
     if(c->varCnt()==0){
 #if VTRACE_FMB
-      cout << "Add ground clause " << c->toString() << endl;
+      //cout << "Add ground clause " << c->toString() << endl;
 #endif
-      //_groundClauses = _groundClauses->cons(c);    
+      _groundClauses = _groundClauses->cons(c);    
     }else{
 #if VTRACE_FMB
       //cout << "Add non-ground clause " << c->toString() << endl;
@@ -163,7 +163,9 @@ void FiniteModelBuilder::init()
       n.normalizeVariables(l);
       (*c)[i] = n.apply(l);
     }
+#if VTRACE_FMB
     cout << "Normalized " << c->toString() << endl;
+#endif
   }
 
   // Create function definition clauses

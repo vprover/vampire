@@ -58,7 +58,7 @@ namespace FMB {
         bool updated = false;
 
         //cout << " process " << l->toString() << endl;
-        
+
         Stack<TermList> args; 
         for(TermList* ts = l->args(); ts->isNonEmpty(); ts = ts->next()){
           // do not add definitions for variables, non-ground terms, or constants
@@ -72,7 +72,9 @@ namespace FMB {
             args.push(TermList(t)); 
           }
         }
-        if(!updated){ lits.push(l); }
+        if(!updated || (l->isEquality() && args[0]==args[1])){
+          lits.push(l); 
+        }
         else{
           Literal* nl = Literal::create(l,args.begin());
           lits.push(nl);
