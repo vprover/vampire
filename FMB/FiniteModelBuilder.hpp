@@ -65,6 +65,7 @@ private:
 
   bool _isComplete;
   bool _incremental;
+  unsigned _maxModelSize;
 };
 
 }

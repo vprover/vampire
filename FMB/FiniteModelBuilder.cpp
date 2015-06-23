@@ -33,7 +33,6 @@
 #include "FiniteModelBuilder.hpp"
 
 #define VTRACE_FMB 0
-#define FMB_USE_DISTINCT 1
 
 namespace FMB 
 {
@@ -43,7 +42,7 @@ unsigned FiniteModelBuilder::created=0;
 unsigned FiniteModelBuilder::fchecked=0;
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
-: MainLoop(prb, opt), _maxSatVar(0), _groundClauses(0), _clauses(0), _functionDefinitionClauses(0), _singleArityFunction(0), _isComplete(true)
+: MainLoop(prb, opt), _maxSatVar(0), _groundClauses(0), _clauses(0), _functionDefinitionClauses(0), _singleArityFunction(0), _isComplete(true), _maxModelSize(UINT_MAX)
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
 
@@ -145,6 +144,16 @@ void FiniteModelBuilder::init()
       //cout << "Add non-ground clause " << c->toString() << endl;
 #endif
       _clauses = _clauses->cons(c);
+
+      unsigned posEqs = 0;
+      for(unsigned i=0;i<c->length();i++){
+        Literal* l = (*c)[i];
+        if(l->isTwoVarEquality() && l->isPositive()){ posEqs++; }
+        else break;
+      }
+      if(posEqs == c->length() && c->varCnt() < _maxModelSize){
+        _maxModelSize = c->varCnt();
+      }      
     }
   }
 
@@ -157,6 +166,7 @@ void FiniteModelBuilder::init()
   while(it.hasNext()){
     Renaming n;
     Clause* c = it.next();
+
     //cout << "Normalize " << c->toString() <<endl;
     for(unsigned i=0;i<c->length();i++){
       Literal* l = (*c)[i];
@@ -166,6 +176,7 @@ void FiniteModelBuilder::init()
 #if VTRACE_FMB
     cout << "Normalized " << c->toString() << endl;
 #endif
+
   }
 
   // Create function definition clauses
@@ -293,23 +304,47 @@ instanceLoop:
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
 
-       //cout << "Instance: ";
+#if VTRACE_FMB
+       cout << "Instance: ";
+#endif
       // Ground and translate each literal into a SATLiteral
       for(unsigned i=0;i<c->length();i++){
+        bool isTwoVar = ((*c)[i])->isTwoVarEquality();
         Literal* lit = SubstHelper::apply((*c)[i],subst);
 
-        // if tautology ignore clause
-        if(EqHelper::isEqTautology(lit)){ goto instanceLoop; }
-        // if false, skip literal (okay because ground)
-        if(lit->isEquality() && !lit->isPositive() &&
-            (*lit->nthArgument(0))==(*lit->nthArgument(1))){
-          continue;
+        // check cases where literal is x=y
+        // this will either skip the clause (tautology) or skip the literal (false)
+        if(isTwoVar){
+          bool equal = (*lit->nthArgument(0))==(*lit->nthArgument(1));
+          if((lit->isPositive() && equal) || (!lit->isPositive() && !equal)){
+#if VTRACE_FMB
+              cout << "Skipped tautology" << endl;
+#endif
+              goto instanceLoop; 
+          } 
+          if((lit->isPositive() && !equal) || (!lit->isPositive() && equal)){
+            //Skip literal
+            continue;
+          }
         }
-        //cout << lit->toString() << " | ";
+#if VTRACE_FMB
+        else{
+          cout << lit->toString() << " | ";
+        }
+#endif
         SATLiteral slit = getSATLiteral(lit);
         satClauseLits.push(slit);
       }
-      //cout << endl;
+#if VTRACE_FMB
+      cout << endl;
+#endif
+
+      // if all literals have been deleted then we have an empty clause
+      // that will be in this model and all larger models, therefore no model exists
+      //TODO not sure this can actually happen, or if throwing this exception will work
+      if(satClauseLits.isEmpty()){
+        throw new RefutationFoundException(0);
+      }
 
       SATClause* satCl = SATClause::fromStack(satClauseLits);
       addSATClause(satCl);
@@ -576,7 +611,12 @@ MainLoopResult FiniteModelBuilder::runImpl()
     return MainLoopResult(Statistics::UNKNOWN);
   }
 
-  bool isEPR = env.property->category()==Property::EPR;
+  //TODO check about equality in EPR
+  if(env.property->category()==Property::EPR){
+    if(_constants.length() < _maxModelSize){
+      _maxModelSize = _constants.length();
+    }
+  }
 
   unsigned modelSize = 1;
   int domSizeVar = -1;
@@ -628,27 +668,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #endif
     domSizeVar = addNewTotalityDefs(modelSize,_incremental);
 
-#if FMB_USE_DISTINCT
-#if VTRACE_FMB
-    cout << "DISTINCT DOMAIN" << endl;
-#endif
-    unsigned start = _incremental ? modelSize : 1;
-    for(unsigned s=start;s<=modelSize;s++){
-      // Here declare that new symbol is distinct from old ones
-      Term* this_c = getConstant(s);
-      unsigned rSort = SortHelper::getResultSort(this_c);
-      // for all smaller constants
-      for(unsigned i=1;i<s;i++){
-        Term* c = getConstant(i);
-        Literal* lit = Literal::createEquality(false,TermList(this_c),TermList(c),rSort);
-        SATLiteral slit = getSATLiteral(lit);
-        static SATLiteralStack satClauseLits;
-        satClauseLits.reset();
-        satClauseLits.push(slit);
-        addSATClause(SATClause::fromStack(satClauseLits));
-      }
-    }
-#endif
 #if VTRACE_FMB
     cout << "SOLVING" << endl;
 #endif
@@ -683,8 +702,12 @@ MainLoopResult FiniteModelBuilder::runImpl()
       return MainLoopResult(Statistics::SATISFIABLE);
     }
 
-    // If it's EPR and we've used all the constants and not found a model then there is no model
-    if(isEPR && modelSize>=_constants.length()){
+    // In the unlikely event!
+    if(modelSize == UINT_MAX){
+      return MainLoopResult(Statistics::UNKNOWN);
+    }
+
+    if(modelSize >= _maxModelSize){
       // create dummy empty clause as refutation
       Clause* empty = new(0) Clause(0,Unit::AXIOM,
          new Inference(Inference::EPR_MODEL_NOT_FOUND));
