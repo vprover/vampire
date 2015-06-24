@@ -688,8 +688,8 @@ void IGAlgorithm::restartFromBeginning()
   {
     TimeCounter tc(TC_DISMATCHING);
     // throw away dismatching constraints
-    DHMap<Clause*,DismatchingLiteralIndex*>::DelIterator dit(_dismatchMap);
-    while(dit.hasNext()){ dit.del(); }
+    DHMap<Clause*,DismatchingLiteralIndex*>::Iterator iit(_dismatchMap);
+    while(iit.hasNext()){ delete iit.next(); }
     _dismatchMap.reset();
   }
 
