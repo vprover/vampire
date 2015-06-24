@@ -305,32 +305,27 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   // We check and update the dismatching constraints associated
   // with the clause being instantiated
   DismatchingLiteralIndex* dmatch = 0;
-  Literal* dm_with = 0;
   if(_use_dm){
     TimeCounter tc(TC_DISMATCHING);
-    if(_dismatchMap.find(orig,dmatch)){
-
-      // check dismatching constraint here
-      // if dmatch has a generalisation of glit then we do not
-      // satisfy the constraint
-      // Note: the true,false options indicate checking for complement and not retrieving subs
-      dm_with = isQuery ? subst.applyToQuery(origLit) : subst.applyToResult(origLit);
-      if(dmatch->getGeneralizations(dm_with,true,false).hasNext()){
-        RSTAT_CTR_INC("dismatch blocked");
-#if VTRACE_DM
-        cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << dm_with->toString() << endl;
-#endif
-        return;
-      }
-    }
+    _dismatchMap.find(orig,dmatch);
   }
-
+    
   bool properInstance = false;
   unsigned clen = orig->length();
   for(unsigned i=0; i<clen; i++) {
     Literal* olit = (*orig)[i];
     Literal* glit = isQuery ? subst.applyToQuery(olit) : subst.applyToResult(olit);
     genLits.push(glit);
+
+      // check dismatching constraint here
+      // if dmatch has a generalisation of glit then we block 
+      if(dmatch->getGeneralizations(glit,false,false).hasNext()){
+        RSTAT_CTR_INC("dismatch blocked");
+#if VTRACE_DM
+        cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << dm_with->toString() << endl;
+#endif
+        return;
+      }
 
     if(olit!=glit) {
       properInstance = true;
@@ -362,9 +357,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
       cout << "[" << dismatchIndex << "] "<< "creating for " << cl->toString() << endl;
 #endif
     }
-    if(!dm_with){
-      dm_with = isQuery ? subst.applyToQuery(origLit) : subst.applyToResult(origLit);
-    }
+    Literal* dm_with = isQuery ? subst.applyToQuery(origLit) : subst.applyToResult(origLit);
 #if VTRACE_DM
       cout << "[" << dmatch << "] "<< "dismatch " << orig->number() << " add " << dm_with->toString() << endl;
 #endif
