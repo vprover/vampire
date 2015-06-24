@@ -319,13 +319,13 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
 
       // check dismatching constraint here
       // if dmatch has a generalisation of glit then we block 
-      if(dmatch && dmatch->getGeneralizations(glit,false,false).hasNext()){
+      if(dmatch && olit==origLit && dmatch->getGeneralizations(glit,false,false).hasNext()){
+        TimeCounter tc(TC_DISMATCHING);
         RSTAT_CTR_INC("dismatch blocked");
 #if VTRACE_DM
         cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << glit->toString() << endl;
         cout << "block with origLit : " << (olit==origLit) << endl;
 #endif
-        if(olit==origLit)
         return;
       }
 
