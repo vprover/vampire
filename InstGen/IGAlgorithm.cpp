@@ -47,7 +47,7 @@
 #undef LOGGING
 #define LOGGING 0
 
-#define VTRACE_DM 1
+#define VTRACE_DM 0
 
 namespace InstGen
 {
@@ -323,7 +323,9 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
         RSTAT_CTR_INC("dismatch blocked");
 #if VTRACE_DM
         cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << glit->toString() << endl;
+        cout << "block with origLit : " << (olit==origLit) << endl;
 #endif
+        if(olit==origLit)
         return;
       }
 
