@@ -255,8 +255,8 @@ public:
     FMB_DEF_INTRO, 
     /* Instantiation */
     INSTANTIATION,
-    /* Finite model not found for EPR problem */
-    EPR_MODEL_NOT_FOUND,
+    /* Finite model not found */
+    MODEL_NOT_FOUND,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

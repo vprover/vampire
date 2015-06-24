@@ -148,10 +148,15 @@ void FiniteModelBuilder::init()
       unsigned posEqs = 0;
       for(unsigned i=0;i<c->length();i++){
         Literal* l = (*c)[i];
-        if(l->isTwoVarEquality() && l->isPositive()){ posEqs++; }
+        if(l->isTwoVarEquality() && l->isPositive() && 
+           (*l->nthArgument(0))!=(*l->nthArgument(1))
+          ){ posEqs++; }
         else break;
       }
       if(posEqs == c->length() && c->varCnt() < _maxModelSize){
+#if VTRACE_FMB
+        cout << "based on " << c->toString() << " setting _maxModelSize to " << _maxModelSize << endl;
+#endif
         _maxModelSize = c->varCnt();
       }      
     }
@@ -708,9 +713,17 @@ MainLoopResult FiniteModelBuilder::runImpl()
     }
 
     if(modelSize >= _maxModelSize){
+
+      if(env.property->category()==Property::EPR){
+        cout << "Checked all constants of an EPR problem" << endl;
+      }
+      else{
+        cout << "All further models will be UNSAT due to variable constraint" << endl;
+      }
+
       // create dummy empty clause as refutation
       Clause* empty = new(0) Clause(0,Unit::AXIOM,
-         new Inference(Inference::EPR_MODEL_NOT_FOUND));
+         new Inference(Inference::MODEL_NOT_FOUND));
       return MainLoopResult(Statistics::REFUTATION,empty); 
     }
 
