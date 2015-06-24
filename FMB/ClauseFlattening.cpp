@@ -124,7 +124,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
   unsigned maxVar = 0;
   VirtualIterator<unsigned> varIt = cl->getVariableIterator();
   while (varIt.hasNext()) {
-    int var = varIt.next();
+    unsigned var = varIt.next();
     if (var > maxVar) {
       maxVar = var;
     }
