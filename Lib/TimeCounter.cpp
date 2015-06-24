@@ -316,6 +316,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_VARIABLE_SELECTION:
     out << "variable selection";
     break;
+  case TC_DISMATCHING:
+    out << "dismatching";
+    break;
   default:
     ASSERTION_VIOLATION;
   }
