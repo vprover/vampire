@@ -308,8 +308,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   Literal* dm_with = 0;
   if(_use_dm){
     TimeCounter tc(TC_DISMATCHING);
-    dmatch = _dismatchMap.get(orig);
-    if(dmatch){
+    if(_dismatchMap.find(orig,dmatch)){
 
       // check dismatching constraint here
       // if dmatch has a generalisation of glit then we do not
@@ -686,10 +685,13 @@ void IGAlgorithm::restartFromBeginning()
 {
   CALL("IGAlgorithm::restartFromBeginning");
 
-  // throw away dismatching constraints
-  DHMap<Clause*,DismatchingLiteralIndex*>::DelIterator dit(_dismatchMap);
-  while(dit.hasNext()){ dit.del(); }
-  _dismatchMap.reset();
+  {
+    TimeCounter tc(TC_DISMATCHING);
+    // throw away dismatching constraints
+    DHMap<Clause*,DismatchingLiteralIndex*>::DelIterator dit(_dismatchMap);
+    while(dit.hasNext()){ dit.del(); }
+    _dismatchMap.reset();
+  }
 
   _active.reset();
   while(!_passive.isEmpty()) {
