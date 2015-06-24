@@ -47,7 +47,7 @@
 #undef LOGGING
 #define LOGGING 0
 
-#define VTRACE_DM 0
+#define VTRACE_DM 1
 
 namespace InstGen
 {
@@ -322,7 +322,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
       if(dmatch && dmatch->getGeneralizations(glit,false,false).hasNext()){
         RSTAT_CTR_INC("dismatch blocked");
 #if VTRACE_DM
-        cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << dm_with->toString() << endl;
+        cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << glit->toString() << endl;
 #endif
         return;
       }
@@ -354,7 +354,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
       dmatch = new DismatchingLiteralIndex(is);
       _dismatchMap.insert(orig,dmatch);
 #if VTRACE_DM
-      cout << "[" << dismatchIndex << "] "<< "creating for " << cl->toString() << endl;
+      cout << "[" << dmatch << "] "<< "creating for " << orig->toString() << endl;
 #endif
     }
     Literal* dm_with = isQuery ? subst.applyToQuery(origLit) : subst.applyToResult(origLit);
