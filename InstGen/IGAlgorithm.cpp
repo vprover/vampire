@@ -319,7 +319,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
 
       // check dismatching constraint here
       // if dmatch has a generalisation of glit then we block 
-      if(dmatch->getGeneralizations(glit,false,false).hasNext()){
+      if(dmatch && dmatch->getGeneralizations(glit,false,false).hasNext()){
         RSTAT_CTR_INC("dismatch blocked");
 #if VTRACE_DM
         cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << dm_with->toString() << endl;
