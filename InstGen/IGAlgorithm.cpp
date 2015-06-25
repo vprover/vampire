@@ -319,12 +319,16 @@ bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst,
     TimeCounter tc(TC_DISMATCHING);
     _dismatchMap.find(orig,dmatch);
   }
-    
-  properInstance = false;
+
   unsigned clen = orig->length();
+  Literal* origLitGnd = 0;
   for(unsigned i=0; i<clen; i++) {
     Literal* olit = (*orig)[i];
     Literal* glit = isQuery ? subst.applyToQuery(olit) : subst.applyToResult(olit);
+
+    if (olit == origLit) {
+      origLitGnd = glit;
+    }
 
     {
       TimeCounter tc(TC_DISMATCHING);
@@ -340,11 +344,13 @@ bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst,
     }
 
     genLits.push(glit);
-
-    if(olit!=glit) {
-      properInstance = true;
-    }
   }
+
+  ASS_NEQ(origLitGnd,0);
+  SATLiteral oLitSat = _gnd->groundLiteral(origLit,_use_niceness);
+  SATLiteral gLitSat = _gnd->groundLiteral(origLitGnd,_use_niceness);
+
+  properInstance = (oLitSat!=gLitSat);
 
   return true;
 }
