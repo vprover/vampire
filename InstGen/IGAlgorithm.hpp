@@ -89,7 +89,9 @@ private:
   void removeFromIndex(Clause* cl);
 
   void tryGeneratingInstances(Clause* cl, unsigned litIdx);
-  void tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit);
+
+  bool startGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits, bool& properInstance);
+  void finishGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits);
 
   bool isSelected(Literal* lit);
 

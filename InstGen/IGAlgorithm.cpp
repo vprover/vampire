@@ -286,19 +286,24 @@ bool IGAlgorithm::isSelected(Literal* lit)
 }
 
 /**
- * Generate an instance clause from @c orig using substitution @c subst. Either
- * query or result part of the substitution @c subst is used, based on the
+ * Instantiate literals of @c orig using substitution @c subst,
+ * and store the instance literals in genLits.
+ * Either query or result part of the substitution @c subst is used, based on the
  * value of @c isQuery.
+ *
+ * Returns false if the generation of the clause was blocked due to dismatching constraints.
+ * Even if true is returned, @c properInstance can still be set to false,
+ * if the subst is not a proper instantiator of orig,
+ * in which case the clause generation should be abandoned.
  */
-void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit)
+bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits, bool& properInstance)
 {
-  CALL("IGAlgorithm::tryGeneratingClause");
+  CALL("IGAlgorithm::startGeneratingClause");
 
 #if VTRACE_DM
   cout << "tryGenC " << orig->number() << " and " << otherCl->number() << " on " << origLit->toString() << endl;
 #endif
 
-  static LiteralStack genLits;
   genLits.reset();
 
   // We check and update the dismatching constraints associated
@@ -309,7 +314,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
     _dismatchMap.find(orig,dmatch);
   }
     
-  bool properInstance = false;
+  properInstance = false;
   unsigned clen = orig->length();
   for(unsigned i=0; i<clen; i++) {
     Literal* olit = (*orig)[i];
@@ -324,7 +329,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
         cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << glit->toString() << endl;
         cout << "block with origLit : " << (olit==origLit) << endl;
 #endif
-        return;
+        return false;
       }
     }
 
@@ -334,9 +339,17 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
       properInstance = true;
     }
   }
-  if(!properInstance) {
-    return;
-  }
+
+  return true;
+}
+
+/**
+ * Finish generating the clause started in startGeneratingClause, also updating dismatching constraints of orig if applicable.
+ */
+void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits)
+{
+  CALL("IGAlgorithm::finishGeneratingClause");
+
   Inference* inf = new Inference1(Inference::INSTANCE_GENERATION, orig);
 
   Clause* res = Clause::fromStack(genLits, orig->inputType(), inf);
@@ -347,15 +360,17 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   bool added = addClause(res);
 
   //Update dismatch constraints
-  if(added && _use_dm){
+  if(added && _use_dm) {
     TimeCounter tc(TC_DISMATCHING);
 
+    DismatchingContraints* dmatch = 0;
+
     // if dmatch does not exist create it 
-    if(!dmatch) {
+    if(!_dismatchMap.find(orig,dmatch)) {
       RSTAT_CTR_INC("dismatch created");
 
       dmatch = new DismatchingContraints();
-      _dismatchMap.insert(orig,dmatch);
+      ALWAYS(_dismatchMap.insert(orig,dmatch));
 #if VTRACE_DM
       cout << "[" << dmatch << "] "<< "creating for " << orig->toString() << endl;
 #endif
@@ -387,15 +402,33 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
       continue;//literal is no longer selected
     }
 
-    if(unif.clause->length()==1) {
-      //we make sure the unit is added first, so that it can be used to shorten the
-      //second clause by global subsumption
-      tryGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal);
-      tryGeneratingClause(cl, *unif.substitution, true, unif.clause,lit);
-    }
-    else {
-      tryGeneratingClause(cl, *unif.substitution, true, unif.clause,lit);
-      tryGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal);
+    static LiteralStack genLits1;
+    static LiteralStack genLits2;
+    bool properInstance1;
+    bool properInstance2;
+
+    if (startGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1,properInstance1) &&
+        startGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2,properInstance2)) {
+
+      // dismatching test passed for both
+
+      if(unif.clause->length()==1) {
+        //we make sure the unit is added first, so that it can be used to shorten the
+        //second clause by global subsumption
+        if (properInstance2) {
+          finishGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2);
+        }
+        if (properInstance1) {
+          finishGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1);
+        }
+      } else {
+        if (properInstance1) {
+          finishGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1);
+        }
+        if (properInstance2) {
+          finishGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2);
+        }
+      }
     }
   }
 }
