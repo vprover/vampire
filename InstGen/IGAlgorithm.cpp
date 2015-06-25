@@ -60,7 +60,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 	opt.instGenResolutionRatioResolution(), 50),
     _passive(opt),
     _tautologyDeletion(false),
-    _equalityProxy(Options::EqualityProxy::R)
+    _equalityProxy(0)
 {
   CALL("IGAlgorithm::IGAlgorithm");
 
@@ -115,6 +115,9 @@ IGAlgorithm::~IGAlgorithm()
   delete _selected;
   delete _variantIdx;
   delete _satSolver;
+  if (_equalityProxy) {
+    delete _equalityProxy;
+  }
 }
 
 ClauseIterator IGAlgorithm::getActive()
@@ -168,8 +171,8 @@ void IGAlgorithm::init()
 
   ASSERT_VALID(_prb);
   if(_prb.hasEquality()) {
-    EqualityAxiomatizer ea(Options::EqualityProxy::RSTC);
-    ea.apply(_prb);
+    _equalityProxy = new EqualityProxy(Options::EqualityProxy::RSTC);
+    _equalityProxy->apply(_prb);
   }
 
   ClauseIterator cit = _prb.clauseIterator();
@@ -177,11 +180,8 @@ void IGAlgorithm::init()
   while(cit.hasNext()) {
     Clause* cl = cit.next();
     ASS(cl->isClause());
-
-    cl = _equalityProxy.apply(cl);
     _inputClauses.push(cl);
   }
-
 }
 
 bool IGAlgorithm::addClause(Clause* cl)
@@ -515,7 +515,9 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
     return;
   }
 
-  cl = _equalityProxy.apply(cl);
+  if (_equalityProxy) { // we had equality in the problem
+    cl = _equalityProxy->apply(cl);
+  }
 
   SATClause* sc = _gnd->ground(cl,_use_niceness);
   sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver

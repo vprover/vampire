@@ -205,10 +205,8 @@ private:
    * assume non-deterministic orientations and
    * most of indexing is done "modulo orientation of equality",
    * which is undesirable for InstGen.
-   *
-   * (Adding the equality axioms is done separately, using EqualityAxiomatizer)
    */
-  EqualityProxy _equalityProxy;
+  EqualityProxy* _equalityProxy;
 };
 
 }
