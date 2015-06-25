@@ -37,6 +37,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/EqualityProxy.hpp"
 
 #include "Kernel/Grounder.hpp"
 
@@ -196,6 +197,18 @@ private:
   typedef DHMap<Clause*,DismatchingContraints*> DismatchMap;
 
   DismatchMap _dismatchMap;
+
+  /**
+   * The internal representation of all the clauses inside IG
+   * must replace the equality symbol with a proxy.
+   * The main reason is that equalities in term sharing
+   * assume non-deterministic orientations and
+   * most of indexing is done "modulo orientation of equality",
+   * which is undesirable for InstGen.
+   *
+   * (Adding the equality axioms is done separately, using EqualityAxiomatizer)
+   */
+  EqualityProxy _equalityProxy;
 };
 
 }

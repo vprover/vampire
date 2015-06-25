@@ -59,7 +59,8 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
     _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
 	opt.instGenResolutionRatioResolution(), 50),
     _passive(opt),
-    _tautologyDeletion(false)
+    _tautologyDeletion(false),
+    _equalityProxy(Options::EqualityProxy::R)
 {
   CALL("IGAlgorithm::IGAlgorithm");
 
@@ -173,6 +174,8 @@ void IGAlgorithm::init()
   while(cit.hasNext()) {
     Clause* cl = cit.next();
     ASS(cl->isClause());
+
+    cl = _equalityProxy.apply(cl);
     _inputClauses.push(cl);
   }
 
@@ -507,6 +510,8 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
   if(!cl->noSplits()) {
     return;
   }
+
+  cl = _equalityProxy.apply(cl);
 
   SATClause* sc = _gnd->ground(cl,_use_niceness);
   sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
