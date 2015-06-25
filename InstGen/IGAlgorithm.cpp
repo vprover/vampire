@@ -21,7 +21,6 @@
 #include "Kernel/RCClauseStack.hpp"
 #include "Kernel/SortHelper.hpp"
 
-#include "Indexing/LiteralSubstitutionTreeWithoutTop.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Indexing/LiteralIndex.hpp"
 
@@ -304,7 +303,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
 
   // We check and update the dismatching constraints associated
   // with the clause being instantiated
-  DismatchingLiteralIndex* dmatch = 0;
+  DismatchingContraints* dmatch = 0;
   if(_use_dm){
     TimeCounter tc(TC_DISMATCHING);
     _dismatchMap.find(orig,dmatch);
@@ -315,12 +314,11 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   for(unsigned i=0; i<clen; i++) {
     Literal* olit = (*orig)[i];
     Literal* glit = isQuery ? subst.applyToQuery(olit) : subst.applyToResult(olit);
-    genLits.push(glit);
 
+    {
+      TimeCounter tc(TC_DISMATCHING);
       // check dismatching constraint here
-      // if dmatch has a generalisation of glit then we block 
-      if(dmatch && olit==origLit && dmatch->getGeneralizations(glit,false,false).hasNext()){
-        TimeCounter tc(TC_DISMATCHING);
+      if (dmatch && dmatch->shouldBlock(olit,glit)) {
         RSTAT_CTR_INC("dismatch blocked");
 #if VTRACE_DM
         cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << glit->toString() << endl;
@@ -328,6 +326,9 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
 #endif
         return;
       }
+    }
+
+    genLits.push(glit);
 
     if(olit!=glit) {
       properInstance = true;
@@ -346,24 +347,25 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   bool added = addClause(res);
 
   //Update dismatch constraints
-  if(added && _use_dm){ 
+  if(added && _use_dm){
     TimeCounter tc(TC_DISMATCHING);
 
     // if dmatch does not exist create it 
-    if(!dmatch){
+    if(!dmatch) {
       RSTAT_CTR_INC("dismatch created");
-      LiteralIndexingStructure * is = new LiteralSubstitutionTreeWithoutTop();
-      dmatch = new DismatchingLiteralIndex(is);
+
+      dmatch = new DismatchingContraints();
       _dismatchMap.insert(orig,dmatch);
 #if VTRACE_DM
       cout << "[" << dmatch << "] "<< "creating for " << orig->toString() << endl;
 #endif
     }
+
     Literal* dm_with = isQuery ? subst.applyToQuery(origLit) : subst.applyToResult(origLit);
 #if VTRACE_DM
       cout << "[" << dmatch << "] "<< "dismatch " << orig->number() << " add " << dm_with->toString() << endl;
 #endif
-      dmatch->addLiteral(dm_with);
+    dmatch->add(origLit,dm_with);
   }
 }
 
@@ -683,7 +685,7 @@ void IGAlgorithm::restartFromBeginning()
   {
     TimeCounter tc(TC_DISMATCHING);
     // throw away dismatching constraints
-    DHMap<Clause*,DismatchingLiteralIndex*>::Iterator iit(_dismatchMap);
+    DismatchMap::Iterator iit(_dismatchMap);
     while(iit.hasNext()){ delete iit.next(); }
     _dismatchMap.reset();
   }

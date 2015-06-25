@@ -23,6 +23,7 @@
 #include "Indexing/ClauseVariantIndex.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/LiteralIndex.hpp"
+#include "Indexing/LiteralSubstitutionTreeWithoutTop.hpp"
 
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InferenceEngine.hpp"
@@ -156,8 +157,43 @@ private:
 
   bool _use_niceness;
   bool _use_dm;
-  DHMap<Clause*,DismatchingLiteralIndex*> _dismatchMap;
 
+  /**
+   * A struct for holding clause's dms, on per literal basis.
+   */
+  struct DismatchingContraints {
+    typedef DHMap<Literal*,DismatchingLiteralIndex*> Lit2Index;
+
+    Lit2Index lit2index;
+
+    void add(Literal* orig, Literal* inst) {
+      DismatchingLiteralIndex* index;
+      if (!lit2index.find(orig,index)) {
+        LiteralIndexingStructure * is = new LiteralSubstitutionTreeWithoutTop();
+        index = new DismatchingLiteralIndex(is); // takes care of deleting is
+        ALWAYS(lit2index.insert(orig,index));
+      }
+      index->addLiteral(inst);
+    }
+
+    bool shouldBlock(Literal* orig, Literal* inst) {
+      DismatchingLiteralIndex* index;
+      // if we store for orig a generalization of its instance inst, we block:
+      return lit2index.find(orig,index) && index->getGeneralizations(inst,false,false).hasNext();
+    }
+
+    ~DismatchingContraints() {
+      Lit2Index::Iterator iit(lit2index);
+      while(iit.hasNext()){
+        DismatchingLiteralIndex* index = iit.next();
+        delete index;
+      }
+    }
+  };
+
+  typedef DHMap<Clause*,DismatchingContraints*> DismatchMap;
+
+  DismatchMap _dismatchMap;
 };
 
 }
