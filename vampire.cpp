@@ -666,10 +666,18 @@ void spiderMode()
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     case Statistics::TIME_LIMIT:
+      reportSpiderStatus('t');
     case Statistics::MEMORY_LIMIT:
+      reportSpiderStatus('m');
     case Statistics::UNKNOWN:
+      reportSpiderStatus('u');
     case Statistics::REFUTATION_NOT_FOUND:
-      reportSpiderStatus('?');
+      if(env.statistics->discardedNonRedundantClauses>0){
+        reportSpiderStatus('n');
+      }
+      else{
+        reportSpiderStatus('i');
+      }
       break;
     case Statistics::SATISFIABLE:
       reportSpiderStatus('-');
