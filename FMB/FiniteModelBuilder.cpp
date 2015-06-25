@@ -714,11 +714,13 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
     if(modelSize >= _maxModelSize){
 
+      if(env.options->mode()!=Options::Mode::SPIDER) { 
       if(env.property->category()==Property::EPR){
         cout << "Checked all constants of an EPR problem" << endl;
       }
       else{
         cout << "All further models will be UNSAT due to variable constraint" << endl;
+      }
       }
 
       // create dummy empty clause as refutation
