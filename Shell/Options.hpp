@@ -1677,6 +1677,7 @@ public:
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.actualValue; }
   void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm.actualValue = newVal; }
   int selection() const { return _selection.actualValue; }
+  void setSelection(int v) { _selection.actualValue=v;}
   vstring latexOutput() const { return _latexOutput.actualValue; }
   bool latexUseDefault() const { return _latexUseDefaultSymbols.actualValue; }
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.actualValue; }
@@ -1715,7 +1716,9 @@ public:
   long maxPassive() const { return _maxPassive.actualValue; }
   int maxWeight() const { return _maxWeight.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
+  void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
+  void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   bool equalityPropagation() const { return _equalityPropagation.actualValue; }
   //void setEqualityPropagation(bool newVal) { _equalityPropagation = newVal; }

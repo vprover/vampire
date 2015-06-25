@@ -147,7 +147,10 @@ void IGAlgorithm::init()
     _saturationProblem = _prb.copy(true);
 
     _saturationOptions = _opt;
-    _saturationOptions.setSaturationAlgorithm(Options::SaturationAlgorithm::OTTER);
+    _saturationOptions.setSaturationAlgorithm(Options::SaturationAlgorithm::DISCOUNT);
+    _saturationOptions.setAgeRatio(7);
+    _saturationOptions.setWeightRatio(1);
+    _saturationOptions.setSelection(11);
     _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
 
 
@@ -487,6 +490,7 @@ void IGAlgorithm::selectAndAddToIndex(Clause* cl)
   _selector->select(cl, selIdx);
 
   unsigned selCnt = cl->numSelected();
+  ASS_GE(selCnt,1);
   for(unsigned i=0; i<selCnt; i++) {
     _selected->insert((*cl)[i], cl);
   }
@@ -534,9 +538,10 @@ void IGAlgorithm::doResolutionStep()
   if(!_saturationAlgorithm) {
     return;
   }
-
   try {
+    env.options = &_saturationOptions;
     _saturationAlgorithm->doOneAlgorithmStep();
+    env.options = const_cast<Shell::Options*>(&_opt);
   }
   catch(MainLoopFinishedException e)
   {
