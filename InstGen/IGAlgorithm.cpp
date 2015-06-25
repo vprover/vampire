@@ -46,7 +46,7 @@
 #undef LOGGING
 #define LOGGING 0
 
-#define VTRACE_DM 0
+#define VTRACE_DM 1
 
 namespace InstGen
 {
