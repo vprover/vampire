@@ -90,7 +90,7 @@ int Timer::s_initGuarantedMiliseconds;
 void timeLimitReached()
 {
   env.beginOutput();
-  reportSpiderStatus('?');
+  reportSpiderStatus('t');
   if (!inSpiderMode()) {
     if (Shell::UIHelper::cascMode) {
       env.out() << "% (" << getpid() << ')';

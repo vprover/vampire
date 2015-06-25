@@ -502,7 +502,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   if(index>=MAX_PAGES) {
 #if SAFE_OUT_OF_MEM_SOLUTION
     env.beginOutput();
-    reportSpiderStatus('?');
+    reportSpiderStatus('m');
     env.out() << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
     if(env.statistics) {
       env.statistics->print(env.out());
@@ -530,7 +530,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
 
 #if SAFE_OUT_OF_MEM_SOLUTION
       env.beginOutput();
-      reportSpiderStatus('?');
+      reportSpiderStatus('m');
       env.out() << "Memory limit exceeded!\n";
 # if VDEBUG
 	Allocator::reportUsageByClasses();
