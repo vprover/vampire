@@ -116,6 +116,8 @@ void CLTBMode::solveBatch(istream& batchFile)
   int terminationTime = readInput(batchFile);
   loadIncludes();
 
+  doTraining();
+
   int solvedProblems = 0;
   int remainingProblems = problemFiles.size();
   StringPairStack::BottomFirstIterator probs(problemFiles);
@@ -234,6 +236,24 @@ void CLTBMode::loadIncludes()
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 } // CLTBMode::loadIncludes
 
+void CLTBMode::doTraining()
+{
+  CALL("CLTBMode::doTraining");
+
+  // Idea is to solve training problems and look in proofs for common clauses derived from axioms
+  // these can then be loaded into later proof attempts with weight zero to ensure they are processed quickly 
+  //
+  // training could insert these axioms directly into the base problem object and mark their input type such that
+  // they get weight zero in Vampire
+  //
+  // do to training let's
+  // prove the training problems in the same way as the real problems - this will write output to a file per problem
+  // this output should contain the proofs
+  // read in these files and parse the proofs, building up the clauses to add to the base problem
+  // add clauses to the base problem
+
+} // CLTBMode::doTraining
+
 /**
  * Read a single batch file from @b in. Return the time in milliseconds since
  * the start, when the process should terminate. If the batch contains no overall
@@ -248,11 +268,19 @@ int CLTBMode::readInput(istream& in)
   CALL("CLTBMode::readInput");
 
   // ignore any lines describing the division or the category
+  // apart from the training directory
   vstring line, word;
-  do {
-    getline(in, line);
+
+  getline(in,line);
+  while (line.find("division.category") != vstring::npos){
+    // Get training directory
+    if(line.find("training_directory") != vstring::npos){
+      StringStack ls;
+      StringUtils::splitStr(line.c_str(),' ',ls);
+      trainingDirectory = ls[1];
+    }
+    getline(in,line);
   }
-  while (line.find("division.category") != vstring::npos);
 
   if (line!="% SZS start BatchConfiguration") {
     USER_ERROR("\"% SZS start BatchConfiguration\" expected, \""+line+"\" found.");

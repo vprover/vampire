@@ -52,6 +52,7 @@ private:
   static ostream& lineOutput();
   static ostream& coutLineOutput();
   void loadIncludes();
+  void doTraining();
 
   typedef List<vstring> StringList;
   typedef Stack<vstring> StringStack;
@@ -59,6 +60,7 @@ private:
   typedef Stack<StringPair> StringPairStack;
 
   vstring category;
+  vstring trainingDirectory;
   /** per-problem time limit, in milliseconds */
   int _problemTimeLimit;
   /** true if question answers should be given */
