@@ -23,7 +23,9 @@
 #include "Lib/Timer.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/System.hpp"
 
+#include "Shell/UIHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/GeneralSplitting.hpp"
 
@@ -704,23 +706,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
     // if the clauses are satisfiable then we have found a finite model
     if(satResult == SATSolver::SATISFIABLE){
-
-      if(env.options->mode()!=Options::Mode::SPIDER) {
-
-        cout << "Found model of size " << modelSize << endl;
-        for(unsigned i=1;i<=_maxSatVar;i++){
-          Literal* lit;
-          if(_revLookup.find(i,lit)){
-            bool pol = _solver->trueInAssignment(SATLiteral(i,true)); 
-            ASS(pol || !lit->isEquality() || lit->nthArgument(0)!=lit->nthArgument(1));
-            if(!pol) lit = Literal::complementaryLiteral(lit);
-            if(!lit->isEquality() || (pol && !EqHelper::isEqTautology(lit))){ 
-              cout << lit->toString() << endl;
-            }
-          }
-        }
-      }
-
+      onModelFound(modelSize);
       return MainLoopResult(Statistics::SATISFIABLE);
     }
 
@@ -773,5 +759,41 @@ MainLoopResult FiniteModelBuilder::runImpl()
   return MainLoopResult(Statistics::UNKNOWN);
 }
 
+// Based on that found in InstGen
+void FiniteModelBuilder::onModelFound(unsigned modelSize)
+{
+ // Don't do any output if proof is off
+ if(_opt.proof()==Options::Proof::OFF){ 
+   return; 
+ }
+
+ //we need to print this early because model generating can take some time
+ if(UIHelper::cascMode) {
+   env.beginOutput();
+   env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+       << " for " << _opt.problemName() << endl << flush;
+   env.endOutput();
+   UIHelper::satisfiableStatusWasAlreadyOutput = true;
+ }
+ if(_opt.mode()==Options::Mode::SPIDER){
+   reportSpiderStatus('-');
+ }
+
+ // Currently output this proof but look in InstGen/ModelPrinter
+ // for how to print model properly
+
+        cout << "Found model of size " << modelSize << endl;
+        for(unsigned i=1;i<=_maxSatVar;i++){
+          Literal* lit;
+          if(_revLookup.find(i,lit)){
+            bool pol = _solver->trueInAssignment(SATLiteral(i,true));
+            ASS(pol || !lit->isEquality() || lit->nthArgument(0)!=lit->nthArgument(1));
+            if(!pol) lit = Literal::complementaryLiteral(lit);
+            if(!lit->isEquality() || (pol && !EqHelper::isEqTautology(lit))){
+              cout << lit->toString() << endl;
+            }
+          }
+        }
+}
 
 }

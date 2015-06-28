@@ -37,6 +37,8 @@ private:
   static unsigned created;
   static unsigned fchecked;
 
+  void onModelFound(unsigned modelSize);
+
   void addGroundClauses();
   void addNewInstances(unsigned modelSize, bool incremental);
   void addNewFunctionalDefs(unsigned modelSize, bool incremental);
