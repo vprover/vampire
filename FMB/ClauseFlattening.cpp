@@ -117,6 +117,7 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
 Clause* ClauseFlattening::flatten(Clause* cl)
 {
   CALL("ClauseFlattening::flatten");
+  TimeCounter tc(TC_FMB_FLATTENING);
 
   cl = resolveNegativeVariableEqualities(cl);
 

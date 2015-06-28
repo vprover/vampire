@@ -319,6 +319,21 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_DISMATCHING:
     out << "dismatching";
     break;
+  case TC_FMB_DEF_INTRO:
+    out << "fmb definition introduction";
+    break;
+  case TC_FMB_FLATTENING:
+    out << "fmb flattening";
+    break;
+  case TC_FMB_SPLITTING:
+    out << "fmb splitting";
+    break;
+  case TC_FMB_SAT_SOLVING:
+    out << "fmb sat solving";
+    break;
+  case TC_FMB_CONSTRAINT_CREATION:
+    out << "fmb constraint creation";
+    break;
   default:
     ASSERTION_VIOLATION;
   }

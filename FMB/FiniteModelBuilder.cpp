@@ -164,7 +164,10 @@ void FiniteModelBuilder::init()
 
   // Apply GeneralSplitting
   GeneralSplitting splitter;
-  splitter.apply(_clauses);
+  {
+    TimeCounter tc(TC_FMB_SPLITTING);
+    splitter.apply(_clauses);
+  }
 
   // Normalise in place
   ClauseList::Iterator it(_clauses);
@@ -641,8 +644,14 @@ MainLoopResult FiniteModelBuilder::runImpl()
       addSATClause(SATClause::fromStack(satClauseLits));
 
       // the solver can delete the previous totality clauses (minisat does)
-      _solver->simplify();
+      {
+        TimeCounter tc(TC_FMB_SAT_SOLVING);
+        _solver->simplify();
+      }
     }
+
+    {
+    TimeCounter tc(TC_FMB_CONSTRAINT_CREATION);
 
     // add the new clauses to _clausesToBeAdded
 #if VTRACE_FMB
@@ -673,6 +682,8 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #endif
     domSizeVar = addNewTotalityDefs(modelSize,_incremental);
 
+    }
+
 #if VTRACE_FMB
     cout << "SOLVING" << endl;
 #endif
@@ -685,8 +696,14 @@ MainLoopResult FiniteModelBuilder::runImpl()
       _solver->addAssumption(SATLiteral(domSizeVar,true));
     }
 
+    SATSolver::Status satResult = SATSolver::UNKNOWN;
+    {
+      TimeCounter tc(TC_FMB_SAT_SOLVING);
+      satResult = _solver->solve();
+    }
+
     // if the clauses are satisfiable then we have found a finite model
-    if(_solver->solve() == SATSolver::SATISFIABLE){
+    if(satResult == SATSolver::SATISFIABLE){
 
       if(env.options->mode()!=Options::Mode::SPIDER) {
 
@@ -730,6 +747,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
     }
 
     if(_incremental){
+      TimeCounter tc(TC_FMB_SAT_SOLVING);
       _solver->retractAllAssumptions();
     }
 
