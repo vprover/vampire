@@ -691,7 +691,10 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #endif
     //TODO consider adding clauses directly to SAT solver in new interface?
     // pass clauses and assumption to SAT Solver
-    _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
+    {
+      TimeCounter tc(TC_FMB_SAT_SOLVING);
+      _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
+    }
 
     // only do this in _incremental mode
     if(_incremental){
