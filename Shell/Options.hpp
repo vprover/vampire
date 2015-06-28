@@ -1607,6 +1607,7 @@ public:
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
   bool fmbIncremental() const { return _fmbIncremental.actualValue; }
+  bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   bool eprPreservingNaming() const { return _eprPreservingNaming.actualValue; }
   //void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
@@ -2004,6 +2005,7 @@ private:
   BoolOptionValue _extensionalityAllowPosEq;
   
   BoolOptionValue _fmbIncremental;
+  BoolOptionValue _fmbNonGroundDefs;
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
   BoolOptionValue _forceIncompleteness;

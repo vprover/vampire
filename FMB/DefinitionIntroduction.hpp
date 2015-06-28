@@ -20,7 +20,9 @@ namespace FMB {
   class DefinitionIntroduction{
 
   public:
-    DefinitionIntroduction(ClauseIterator cit) : _cit(cit) {}
+    DefinitionIntroduction(ClauseIterator cit) : _cit(cit) {
+      _ng = env.options->fmbNonGroundDefs();
+    }
 
 
     bool hasNext(){
@@ -61,13 +63,19 @@ namespace FMB {
 
         Stack<TermList> args; 
         for(TermList* ts = l->args(); ts->isNonEmpty(); ts = ts->next()){
-          // do not add definitions for variables, non-ground terms, or constants
-          if(ts->isVar() || !ts->term()->ground() || ts->term()->arity()==0){
+          // do not add definitions for variables or constants
+          if(ts->isVar() ||  ts->term()->arity()==0){
             args.push(*ts);
           }
           else{
             updated=true;
-            Term* t = addDefinition(ts->term(),c);
+            Term* t;
+            if(ts->term()->ground()){
+              t = addGroundDefinition(ts->term(),c);
+            }
+            else{
+              t = addNonGroundDefinition(ts->term(),c);
+            }
             ASS(t->shared());
             args.push(TermList(t)); 
           }
@@ -86,8 +94,8 @@ namespace FMB {
       _processed.push(cl);
     }
 
-    Term* addDefinition(Term* t, Clause* from){
-      CALL("DefinitionIntroduction::addDefinition");
+    Term* addGroundDefinition(Term* t, Clause* from){
+      CALL("DefinitionIntroduction::addGroundDefinition");
       //cout << "Adding definition for " << t->toString() << endl;
       Term* c;
       if(!_introduced.find(t,c)){
@@ -109,6 +117,18 @@ namespace FMB {
       }
       return c;
     }
+
+    Term* addNonGroundDefinition(Term* t, Clause* from){
+      CALL("DefinitionIntroduction::addNonGroundDefinition");
+
+      // only do something if using option
+      if(!_ng) return t;
+
+      // currently don't do anything!
+      return t;
+    }
+
+    bool _ng;
 
     ClauseIterator _cit;
     Stack<Clause*> _processed;
