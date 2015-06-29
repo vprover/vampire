@@ -547,9 +547,8 @@ void IGAlgorithm::doResolutionStep()
     return;
   }
   try {
-    env.options = &_saturationOptions;
+    ScopedLet<Options*> optLet(env.options,&_saturationOptions);
     _saturationAlgorithm->doOneAlgorithmStep();
-    env.options = const_cast<Shell::Options*>(&_opt);
   }
   catch(MainLoopFinishedException e)
   {
