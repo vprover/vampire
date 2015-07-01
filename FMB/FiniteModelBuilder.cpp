@@ -782,6 +782,9 @@ void FiniteModelBuilder::onModelFound(unsigned modelSize)
    reportSpiderStatus('-');
  }
 
+  // Prevent timing out whilst the model is being printed
+  Timer::setTimeLimitEnforcement(false);
+
  // Currently output this proof but look in InstGen/ModelPrinter
  // for how to print model properly
 

@@ -14,6 +14,7 @@
 #include "Lib/Random.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/TimeCounter.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
@@ -866,6 +867,8 @@ MainLoopResult IGAlgorithm::onModelFound()
         reportSpiderStatus('-');
       }
 
+      // Prevent timing out whilst the model is being printed
+      Timer::setTimeLimitEnforcement(false);
 
       vostringstream modelStm;
       bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
