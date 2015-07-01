@@ -1298,7 +1298,7 @@ unsigned CASCMode::getSliceTime(vstring sliceCode,vstring& chopped)
  */
 void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fallback)
 {
-  Property::Category cat = property.category();
+  // Property::Category cat = property.category(); // currently unused
   unsigned long prop = property.props();
   unsigned atoms = property.atoms();
 
@@ -1347,9 +1347,9 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
  */
 void CASCMode::getSchedulesTheory(Property& property, Schedule& quick, Schedule& fallback)
 {
-  Property::Category cat = property.category();
+  // Property::Category cat = property.category(); // currently unused
   unsigned long prop = property.props();
-  unsigned atoms = property.atoms();
+  // unsigned atoms = property.atoms(); // currently unused
 
   if (prop & 67108864ul) {
       quick.push("lrs+1010_2:1_bd=off:bsr=unit_only:cond=fast:fde=none:gs=on:gsem=off:igrpq=1.0:nm=0:nwc=2.5:stl=30:sac=on:sscc=model:sdd=off:ssfp=100000:ssfq=1.4:smm=off:ssnc=none:sp=reverse_arity:urr=on:updr=off_26");
