@@ -119,6 +119,12 @@ public:
     invalidateProperty();
     _hasFormulaItes = true;
   }
+  void refortFormulasAdded()
+  {
+    invalidateProperty();
+    _mayHaveFormulas = true;
+    _hasFormulas = true;
+  }
   /**
    * Report that equality was added into the problem
    *

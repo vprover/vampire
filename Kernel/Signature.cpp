@@ -205,6 +205,8 @@ Signature::Signature ()
   getPredicate(0)->markSkip();
 
   unsigned aux;
+  // Warning! reordering or removing some of below may brake the code in
+  // DistinctGroupExpansion::apply(UnitList*& units)
   aux = createDistinctGroup();
   ASS_EQ(STRING_DISTINCT_GROUP, aux);
   aux = createDistinctGroup();
