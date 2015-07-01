@@ -311,21 +311,21 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
 {
   CALL("Signature::addIntegerConstant(vstring)");
 
+  IntegerConstantType value(number);
   if (!defaultSort) {
-    IntegerConstantType value(number);
     return addIntegerConstant(value);
   }
 
   // default sort should be used
-  vstring symbolKey = number + "_n";
-  if(number=="-0"){ symbolKey = "0_n"; }
+  vstring name = value.toString();
+  vstring symbolKey = name + "_n";
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
     return result;
   }
 
   result = _funs.length();
-  Symbol* sym = new Symbol(number,0,false,false,true);
+  Symbol* sym = new Symbol(name,0,false,false,true);
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are disctinct from strings
   _funs.push(sym);
@@ -366,12 +366,12 @@ unsigned Signature::addRationalConstant(const vstring& numerator, const vstring&
 {
   CALL("Signature::addRationalConstant(vstring,vstring)");
 
+  RationalConstantType value(numerator, denominator);
   if (!defaultSort) {
-    RationalConstantType value(numerator, denominator);
     return addRationalConstant(value);
   }
 
-  vstring name = numerator + "/" + denominator;
+  vstring name = value.toString();
   vstring key = name + "_q";
   unsigned result;
   if (_funNames.find(key,result)) {
@@ -412,19 +412,17 @@ unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
 {
   CALL("Signature::addRealConstant(vstring)");
 
+  RealConstantType value(number);
   if (!defaultSort) {
-    RealConstantType value(number);
     return addRealConstant(value);
   }
-  vstring key = number + "_r";
+  vstring key = value.toString() + "_r";
   unsigned result;
   if (_funNames.find(key,result)) {
     return result;
   }
   result = _funs.length();
-  Symbol* sym = new Symbol(number,0,false,false,true);
-  // integer distinct group here is intentional, since rationals are distinct
-  // from integers (maybe)
+  Symbol* sym = new Symbol(value.toNiceString(),0,false,false,true);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
   sym->addToDistinctGroup(REAL_DISTINCT_GROUP,result);
   _funs.push(sym);
