@@ -321,7 +321,6 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
     return result;
   }
 
-  _integers++;
   result = _funs.length();
   Symbol* sym = new Symbol(number,0,false,false,true);
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
@@ -373,7 +372,6 @@ unsigned Signature::addRationalConstant(const vstring& numerator, const vstring&
   if (_funNames.find(key,result)) {
     return result;
   }
-  _rationals++;
   result = _funs.length();
   Symbol* sym = new Symbol(name,0,false,false,true);
   // integer distinct group here is intentional, since rationals are distinct
@@ -420,7 +418,6 @@ unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
   if (_funNames.find(key,result)) {
     return result;
   }
-  _reals++;
   result = _funs.length();
   Symbol* sym = new Symbol(number,0,false,false,true);
   // integer distinct group here is intentional, since rationals are distinct

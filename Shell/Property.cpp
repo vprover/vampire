@@ -567,7 +567,7 @@ void Property::scanForInterpreted(Term* t)
     if (!theory->isInterpretedPredicate(lit)) { return; }
     itp = theory->interpretPredicate(lit);
     if(itp==Theory::EQUAL){ 
-      cout << "this is interpreted equality " << t->toString() << endl;
+      //cout << "this is interpreted equality " << t->toString() << endl;
       _hasInterpretedEquality=true;
       return; 
     }
