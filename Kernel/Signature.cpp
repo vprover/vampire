@@ -318,6 +318,7 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
 
   // default sort should be used
   vstring symbolKey = number + "_n";
+  if(number=="-0"){ symbolKey = "0_n"; }
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
     return result;
