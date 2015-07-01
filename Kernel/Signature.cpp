@@ -327,6 +327,7 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
   result = _funs.length();
   Symbol* sym = new Symbol(number,0,false,false,true);
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
+  sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are disctinct from strings
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
@@ -351,6 +352,7 @@ unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
   _funs.push(sym);
   _funNames.insert(key,result);
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
+  sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
   return result;
 } // addIntegerConstant
 
@@ -377,9 +379,7 @@ unsigned Signature::addRationalConstant(const vstring& numerator, const vstring&
   }
   result = _funs.length();
   Symbol* sym = new Symbol(name,0,false,false,true);
-  // integer distinct group here is intentional, since rationals are distinct
-  // from integers (maybe)
-  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
+  sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
   sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(key,result);
@@ -425,8 +425,7 @@ unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
   Symbol* sym = new Symbol(number,0,false,false,true);
   // integer distinct group here is intentional, since rationals are distinct
   // from integers (maybe)
-  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
-  sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP,result);
+  sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
   sym->addToDistinctGroup(REAL_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(key,result);
