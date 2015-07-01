@@ -86,7 +86,7 @@ void Options::Options::init()
 
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection","bpa","casc","casc_epr",
-                                        "casc_ltb","casc_mzr","casc_sat","clausify",
+                                        "casc_ltb","casc_mzr","casc_sat","casc_theory","clausify",
                                         "consequence_elimination","grounding",
                                         "ltb_build","ltb_solve","output","preprocess",
                                         "profile","program_analysis","random_strategy",
@@ -94,7 +94,7 @@ void Options::Options::init()
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
-    "  -casc,casc_epr,casc_ltb,casc_mzr,casc_sat: these are all portfolio modes\n   that use predefined "
+    "  -casc,casc_epr,casc_ltb,casc_mzr,casc_sat,casc_theory: these are all portfolio modes\n   that use predefined "
     " sets of strategies in vampire mode.\n"
     "  -preprocess,axiom_select,clausify,grounding: modes for producing output\n   for other solvers.\n"
     "  -output,profile: output information about the problem\n"
@@ -1838,7 +1838,7 @@ void Options::output (ostream& str) const
 
   }
 
-  if(showHelp()){
+  if (showHelp()){
     str << "=========== Usage ==========\n";
     str << "Call vampire using\n";
     str << "  vampire [options] [problem]\n";
@@ -2480,6 +2480,8 @@ void Options::setForcedOptionValues()
   // Set the options forced by mode
   switch (_mode.actualValue) {
   case Mode::CASC:
+  case Mode::CASC_SAT:
+  case Mode::CASC_THEORY:
   case Mode::CASC_LTB:
     _outputAxiomNames.actualValue = true;
     _proof.actualValue = Proof::TPTP;
