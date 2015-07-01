@@ -31,6 +31,34 @@ namespace Inferences
 using namespace Lib;
 using namespace Kernel;
 
+struct IntToIntTermFn
+{
+  IntToIntTermFn(){}
+  DECL_RETURN_TYPE(Term*);
+  OWN_RETURN_TYPE operator()(unsigned int i)
+  {
+    return theory->representConstant(IntegerConstantType(i));
+  }
+};
+struct IntToRatTermFn
+{
+  IntToRatTermFn(){}
+  DECL_RETURN_TYPE(Term*);
+  OWN_RETURN_TYPE operator()(unsigned int i)
+  {
+    return theory->representConstant(RationalConstantType(i,1));
+  }
+};
+struct IntToRealTermFn
+{
+  IntToRealTermFn(){}
+  DECL_RETURN_TYPE(Term*);
+  OWN_RETURN_TYPE operator()(unsigned int i)
+  {
+    return theory->representConstant(RealConstantType(RationalConstantType(i,1)));
+  }
+};
+
 void Instantiation::expandSort(unsigned sort)
 {
   CALL("Instantiation::expandSort");
@@ -41,12 +69,21 @@ void Instantiation::expandSort(unsigned sort)
 
   Lib::Set<Term*>* cans;
   if(!sorted_candidates.find(sort,cans)) return;
+
+  if(sort==Sorts::SRT_INTEGER){
+    cans->insertFromIterator(pvi(getMappingIterator(getRangeIterator(-10u,10u),IntToIntTermFn())));
+  }
+  if(sort==Sorts::SRT_RATIONAL){
+    cans->insertFromIterator(pvi(getMappingIterator(getRangeIterator(-10u,10u),IntToRatTermFn())));
+  }
+  if(sort==Sorts::SRT_REAL){
+    cans->insertFromIterator(pvi(getMappingIterator(getRangeIterator(-10u,10u),IntToRealTermFn())));
+  }
+
   
   Lib::Set<Term*>* extra = cans;
   for(unsigned i=0;i<2;i++){
     Lib::Set<Term*>::Iterator small(*extra);
-    Lib::Set<Term*>::Iterator copyUsing(*extra);
-    cans->insertFromIterator(copyUsing);
     extra = new Lib::Set<Term*>();
 
     // Just deal with interpreted constants
@@ -58,6 +95,8 @@ void Instantiation::expandSort(unsigned sort)
         while(rest.hasNext()){
           Term* t = rest.next();
           if(t->arity()==0 && t->hasInterpretedConstants()){
+
+          //cout << "consider " << s->toString() << " and " << t->toString() << endl;
 
            // now consider 
            switch(sort){
@@ -128,6 +167,8 @@ void Instantiation::expandSort(unsigned sort)
         }
       }
     }
+    Lib::Set<Term*>::Iterator copyUsing(*extra);
+    cans->insertFromIterator(copyUsing);
   }
   Lib::Set<Term*>::Iterator copyUsing(*extra);
   cans->insertFromIterator(copyUsing);
@@ -265,34 +306,6 @@ bool Instantiation::getRelevantTerms(Clause* c, unsigned targetSort, Set<Term*>*
   return added;
 }
 
-struct IntToIntTermFn
-{
-  IntToIntTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
-  {
-    return theory->representConstant(IntegerConstantType(i));
-  }
-};
-struct IntToRatTermFn
-{
-  IntToRatTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
-  {
-    return theory->representConstant(RationalConstantType(i,1));
-  }
-};
-struct IntToRealTermFn
-{
-  IntToRealTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
-  {
-    return theory->representConstant(RealConstantType(RationalConstantType(i,1)));
-  }
-};
-
 VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var,unsigned sort)
 {
   CALL("Instantiation::getCandidateTerms");
@@ -306,16 +319,6 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
   Set<Term*>* relCans = new Set<Term*>();
   if(getRelevantTerms(cl,sort,relCans)){
     res = pvi(getConcatenatedIterator(res,Set<Term*>::Iterator(*relCans))); 
-  }
-
-  if(sort==Sorts::SRT_INTEGER){
-    return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(-10u,10u),IntToIntTermFn())));
-  }
-  if(sort==Sorts::SRT_RATIONAL){
-    return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(-10u,10u),IntToRatTermFn())));
-  }
-  if(sort==Sorts::SRT_REAL){
-    return pvi(getConcatenatedIterator(res,getMappingIterator(getRangeIterator(-10u,10u),IntToRealTermFn())));
   }
 
   return pvi(res);

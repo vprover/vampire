@@ -723,12 +723,12 @@ void Options::Options::init()
 
 //*********************** Inferences  ***********************
 
-    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"input_only","off","on"});
+    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"expand","input_only","off","on"});
     _instantiation.description = "Heuristically instantiate variables"
                                  ", note that this is often at odds with forward subsumption.";
     _instantiation.tag(OptionTag::INFERENCES);
     _lookup.insert(&_instantiation);
-    _instantiation.setRandomChoices({"off","off","off","off","off","off","off","off","off","on"}); // Turn this on rarely
+    _instantiation.setRandomChoices({"off","off","off","off","on","expand"}); // Turn this on rarely
 
     _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
                                                             Demodulation::ALL,

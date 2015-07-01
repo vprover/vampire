@@ -644,6 +644,9 @@ void SaturationAlgorithm::init()
     Clause* cl=toAdd.next();
     addInputClause(cl);
   }
+  if(_instantiation &&  _opt.instantiation()==Options::Instantiation::EXPAND){
+    _instantiation->expandCandidates();
+  }
   if(_instantiation && _opt.instantiation()==Options::Instantiation::INPUT_ONLY){
    ClauseIterator all = _prb.clauseIterator();
    while(all.hasNext()){
