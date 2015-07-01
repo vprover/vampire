@@ -1343,7 +1343,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_instantiation = new Instantiation();
     // If instantiation is INPUT_ONLY then we just create the object
     // for use in init but don't add it to the generating engine
-    if(opt.instantiation()==Options::Instantiation::ON){
+    if(opt.instantiation()!=Options::Instantiation::INPUT_ONLY){
       gie->addFront(res->_instantiation);
     }
   }
