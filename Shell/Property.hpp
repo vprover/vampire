@@ -12,6 +12,7 @@
 #define __Property__
 
 #include "Lib/DArray.hpp"
+#include "Lib/Array.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 #include "Lib/VString.hpp"
@@ -183,10 +184,14 @@ public:
 
   bool hasInterpretedOperation(Interpretation i) const { return _interpretationPresence[i]; }
   //bool hasArrayOperation(Interpretation i) const { return true; }
-  /** Problem contains an interpreted symbol including equality */
+  /** Problem contains an interpreted symbol excluding equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
+  bool hasInterpretedEquality() const { return _hasInterpretedEquality; }
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
+  bool usesSort(unsigned sort) const { return _usesSort[sort]; }
+  bool usesSingleSort() const { return _sortsUsed==1; }
+  unsigned sortsUsed() const { return _sortsUsed;}
   bool hasSpecialTermsOrLets() const { return _hasSpecialTermsOrLets; }
   bool hasFormulaItes() const { return _hasFormulaItes; }
  private:
@@ -258,9 +263,12 @@ public:
 
   /** Problem contains an interpreted symbol including equality */
   bool _hasInterpreted;
+  bool _hasInterpretedEquality;
   /** Problem contains non-default sorts */
   bool _hasNonDefaultSorts;
+  unsigned _sortsUsed;
   DArray<bool> _interpretationPresence;
+  Array<bool> _usesSort;
 
   bool _hasSpecialTermsOrLets;
   bool _hasFormulaItes;

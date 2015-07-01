@@ -57,7 +57,9 @@ Property::Property()
     _maxVariablesInClause(0),
     _props(0),
     _hasInterpreted(false),
+    _hasInterpretedEquality(false),
     _hasNonDefaultSorts(false),
+    _sortsUsed(0),
     _hasSpecialTermsOrLets(false),
     _hasFormulaItes(false),
     _allClausesGround(true),
@@ -399,6 +401,11 @@ void Property::scanSort(unsigned sort)
 {
   CALL("Property::scanSort");
 
+  if(!_usesSort.get(sort)){
+    _sortsUsed++;
+    _usesSort[sort]=true;
+  }
+
   if (sort==Sorts::SRT_DEFAULT) {
     return;
   }
@@ -559,14 +566,18 @@ void Property::scanForInterpreted(Term* t)
     Literal* lit = static_cast<Literal*>(t);
     if (!theory->isInterpretedPredicate(lit)) { return; }
     itp = theory->interpretPredicate(lit);
-    if(itp==Theory::EQUAL){ return; }
+    if(itp==Theory::EQUAL){ 
+      cout << "this is interpreted equality " << t->toString() << endl;
+      _hasInterpretedEquality=true;
+      return; 
+    }
   }
   else {
     if (!theory->isInterpretedFunction(t)) { return; }
     itp = theory->interpretFunction(t);
   }
-  _interpretationPresence[itp] = true;
   _hasInterpreted = true;
+  _interpretationPresence[itp] = true;
   if(Theory::isConversionOperation(itp)){
     addProp(PR_NUMBER_CONVERSION);
     return;

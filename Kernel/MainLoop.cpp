@@ -108,7 +108,7 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());
   }
-  if(prb.hasInterpretedOperations()) {
+  if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
     res->addFront(new InterpretedEvaluation());
   }
   if(prb.hasEquality()) {
@@ -138,9 +138,9 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     res = new IGAlgorithm(prb, opt);
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
-    if(prb.hasInterpretedOperations() || env.sorts->hasSort()){ 
-      cout << prb.hasInterpretedOperations()  << " and " << env.sorts->hasSort() << endl;
-      USER_ERROR("Finite Model Builder (sa=fmb) cannot be used with Theory problems"); 
+    if(!env.property->usesSingleSort()){
+      cout << env.property->sortsUsed() << endl; 
+      USER_ERROR("Finite Model Builder (sa=fmb) cannot be used with many-sorted problems"); 
     }
     res = new FiniteModelBuilder(prb,opt);
     break;

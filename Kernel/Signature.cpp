@@ -138,6 +138,18 @@ void Signature::Symbol::setType(BaseType* type)
 }
 
 /**
+ * This force the type to change
+ * This can be unsafe so should only be used when you know it is safe to
+ * change the type i.e. nothing yet relies on the type of this symbol
+ */
+void Signature::Symbol::forceType(BaseType* type)
+{
+  CALL("Signature::Symbol::forceType");
+  if(_type){ delete _type; }
+  _type = type;
+}
+
+/**
  * Return the type of a function symbol
  *
  * If the @c setType() function was not called before, the function

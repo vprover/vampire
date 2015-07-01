@@ -31,6 +31,113 @@ namespace Inferences
 using namespace Lib;
 using namespace Kernel;
 
+void Instantiation::expandSort(unsigned sort)
+{
+  CALL("Instantiation::expandSort");
+
+   //Only do this with inbuilt arithmetic sorts currently
+  if(sort != Sorts::SRT_INTEGER && sort != Sorts::SRT_RATIONAL && sort != Sorts::SRT_REAL)
+     return;  
+
+  Lib::Set<Term*>* cans;
+  if(!sorted_candidates.find(sort,cans)) return;
+  
+  Lib::Set<Term*>* extra = cans;
+  for(unsigned i=0;i<2;i++){
+    Lib::Set<Term*>::Iterator small(*extra);
+    Lib::Set<Term*>::Iterator copyUsing(*extra);
+    cans->insertFromIterator(copyUsing);
+    extra = new Lib::Set<Term*>();
+
+    // Just deal with interpreted constants
+    while(small.hasNext()){
+      Term* s = small.next();
+      if(s->arity()==0 && s->hasInterpretedConstants()){
+         
+        Lib::Set<Term*>::Iterator rest(*cans);
+        while(rest.hasNext()){
+          Term* t = rest.next();
+          if(t->arity()==0 && t->hasInterpretedConstants()){
+
+           // now consider 
+           switch(sort){
+            case Sorts::SRT_INTEGER:
+            {
+              IntegerConstantType a; 
+              IntegerConstantType b; 
+              ALWAYS(theory->tryInterpretConstant(s,a));
+              ALWAYS(theory->tryInterpretConstant(t,b));
+              try{
+                extra->insert(theory->representConstant(a-b));
+              }catch(ArithmeticException&){}
+              try{
+                extra->insert(theory->representConstant(a+b));
+              }catch(ArithmeticException&){}
+              try{
+                extra->insert(theory->representConstant(a*b));
+              }catch(ArithmeticException&){}
+              try{
+                extra->insert(theory->representConstant(a/b));
+              }catch(ArithmeticException&){}
+              break;
+            }
+            case Sorts::SRT_RATIONAL:
+            {
+              RationalConstantType a;
+              RationalConstantType b;
+              ALWAYS(theory->tryInterpretConstant(s,a));
+              ALWAYS(theory->tryInterpretConstant(t,b));
+              try{
+                extra->insert(theory->representConstant(a-b));
+              }catch(ArithmeticException&){}
+              try{
+                extra->insert(theory->representConstant(a+b));
+              }catch(ArithmeticException&){}
+              try{
+                extra->insert(theory->representConstant(a*b));
+              }catch(ArithmeticException&){}
+              try{
+                extra->insert(theory->representConstant(a/b));
+              }catch(ArithmeticException&){}
+              break;
+            }
+            case Sorts::SRT_REAL:
+            {
+              RealConstantType a;
+              RealConstantType b;
+              ALWAYS(theory->tryInterpretConstant(s,a));
+              ALWAYS(theory->tryInterpretConstant(t,b));
+              try{
+                extra->insert(theory->representConstant(a-b));
+              }catch(ArithmeticException&){}
+              try{
+                extra->insert(theory->representConstant(a+b));
+              }catch(ArithmeticException&){}
+              try{
+                extra->insert(theory->representConstant(a*b));
+              }catch(ArithmeticException&){}
+              try{
+                extra->insert(theory->representConstant(a/b));
+              }catch(ArithmeticException&){}
+              break;
+            }
+            default:
+              ASSERTION_VIOLATION;
+           }
+          }
+        }
+      }
+    }
+  }
+  Lib::Set<Term*>::Iterator copyUsing(*extra);
+  cans->insertFromIterator(copyUsing);
+
+  //Lib::Set<Term*>::Iterator toPrint(*cans);
+  //cout << "After expansion:"<<endl;
+  //while(toPrint.hasNext()){ cout << toPrint.next()->toString() << endl; }
+}
+
+
 void Instantiation::registerClause(Clause* cl)
 {
   CALL("Instantiation::registerClause");

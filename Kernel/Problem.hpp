@@ -92,6 +92,7 @@ public:
   bool hasEquality() const;
   /** Problem contains an interpreted symbol including equality */
   bool hasInterpretedOperations() const;
+  bool hasInterpretedEquality() const;
   bool hasFormulaItes() const;
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasSpecialTermsOrLets() const;
@@ -185,6 +186,7 @@ private:
   mutable MaybeBool _hasFormulas;
   mutable MaybeBool _hasEquality;
   mutable MaybeBool _hasInterpretedOperations;
+  mutable MaybeBool _hasInterpretedEquality;
   mutable MaybeBool _hasSpecialTermsOrLets;
   mutable MaybeBool _hasFormulaItes;
 

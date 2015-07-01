@@ -148,6 +148,7 @@ class Signature
     void addToDistinctGroup(unsigned group,unsigned this_number);
 
     void setType(BaseType* type);
+    void forceType(BaseType* type);
     FunctionType* fnType() const;
     PredicateType* predType() const;
 
