@@ -671,7 +671,9 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #if VTRACE_FMB
     cout << "TRYING " << modelSize << endl;
 #endif
-    cout << "TRYING " << modelSize << endl;
+    if(env.options->mode()!=Options::Mode::SPIDER){
+      cout << "Trying model size " << modelSize << endl;
+    }
     Timer::syncClock();
     if(env.timeLimitReached()){ return MainLoopResult(Statistics::TIME_LIMIT); }
 

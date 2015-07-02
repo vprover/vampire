@@ -3,6 +3,8 @@
  * Implements class SortInference.
  */
 
+#include "Shell/Options.hpp"
+
 #include "Kernel/Term.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
@@ -169,6 +171,10 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
       
   }
 
+  if(env.options->mode()!=Options::Mode::SPIDER){
+    cout << "Sort Inference information:" << endl;
+  }
+
   for(unsigned s=0;s<sig->sorts;s++){
 
     if(sig->sortedConstants[s].size()==0 && sig->sortedFunctions[s].size()>0){
@@ -178,11 +184,10 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
       cout << "Adding fresh constant for sort "<<s<<endl;
 #endif
     }
-
-#if DEBUG_SORT_INFERENCE
-    cout << "for sort " << s << " we have " << sig->sortedConstants[s].size() << " constants and ";
-    cout << sig->sortedFunctions[s].size() << " functions" <<endl; 
-#endif
+    if((env.options->mode()!=Options::Mode::SPIDER) && sig->sortedConstants[s].size()>0){
+      cout << "Sort " << s << " has " << sig->sortedConstants[s].size() << " constants and ";
+      cout << sig->sortedFunctions[s].size() << " functions" <<endl; 
+    }
   }
 
   return sig;
