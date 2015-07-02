@@ -322,6 +322,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_FMB_DEF_INTRO:
     out << "fmb definition introduction";
     break;
+  case TC_FMB_SORT_INFERENCE:
+    out << "fmb sort inference"; 
+    break;
   case TC_FMB_FLATTENING:
     out << "fmb flattening";
     break;

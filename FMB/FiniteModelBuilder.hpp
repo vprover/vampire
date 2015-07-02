@@ -11,6 +11,7 @@
 #include "Kernel/MainLoop.hpp"
 #include "SAT/SATSolver.hpp"
 #include "Lib/ScopedPtr.hpp"
+#include "SortInference.hpp"
 
 namespace FMB {
 using namespace Lib;
@@ -42,7 +43,24 @@ private:
   void addGroundClauses();
   void addNewInstances(unsigned modelSize, bool incremental);
   void addNewFunctionalDefs(unsigned modelSize, bool incremental);
-  void addNewSymmetryAxioms(unsigned modelSize);
+  void addNewSymmetryAxioms(unsigned modelSize,Stack<Term*>& constants, Stack<Term*>& functions);
+
+  void addNewSymmetryAxioms(unsigned modelSize){
+    if(_sortInference){
+      ASS(_sortedSignature);
+      for(unsigned s=0;s<_sortedSignature->sorts;s++){
+        //cout << "add sorted symmetry axioms for " << s << endl;
+        addNewSymmetryAxioms(modelSize,
+                             _sortedSignature->sortedConstants[s],
+                             _sortedSignature->sortedFunctions[s]);
+      }
+    }
+    else{
+      //cout << "add unsorted symmetry axioms" << endl;
+      addNewSymmetryAxioms(modelSize,_unsortedConstants,_unsortedFunctions);
+    }
+  }
+
   unsigned addNewTotalityDefs(unsigned modelSize, bool incremental);
   
   unsigned getNextSATVar();
@@ -62,11 +80,14 @@ private:
   ClauseList* _clauses;
   ClauseList* _functionDefinitionClauses;
   Stack<Term*> _totalityFunctions;
-  Stack<Term*> _constants;
-  Term* _singleArityFunction;
+  Stack<Term*> _unsortedConstants;
+  Stack<Term*> _unsortedFunctions;
+  SortedSignature* _sortedSignature;
 
+  unsigned _constantsCount;
   bool _isComplete;
   bool _incremental;
+  bool _sortInference;
   unsigned _maxModelSize;
 };
 

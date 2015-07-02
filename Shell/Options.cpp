@@ -660,11 +660,17 @@ void Options::Options::init()
     _fmbIncremental.setExperimental();
     _fmbIncremental.setRandomChoices({"on","off"});
 
-    _fmbNonGroundDefs = BoolOptionValue("fmb_nongrounddefs","fmbngd",false);
-    _fmbNonGroundDefs.description = "Introduce definitions for non ground terms in preprocessing";
+    _fmbNonGroundDefs = BoolOptionValue("fmb_nonground_defs","fmbngd",false);
+    _fmbNonGroundDefs.description = "Introduce definitions for non ground terms in preprocessing for fmb";
     _lookup.insert(&_fmbNonGroundDefs);
     _fmbNonGroundDefs.setExperimental();
     _fmbNonGroundDefs.setRandomChoices({"on","off"});
+
+    _fmbSortInference = BoolOptionValue("fmb_sort_inference","fmbsi",false);
+    _fmbSortInference.description = "Perform sort inference for fmb";
+    _lookup.insert(&_fmbSortInference);
+    _fmbSortInference.setExperimental();
+    _fmbSortInference.setRandomChoices({"on","off"});
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=

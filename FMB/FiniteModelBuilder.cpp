@@ -30,6 +30,7 @@
 #include "Shell/GeneralSplitting.hpp"
 
 #include "ClauseFlattening.hpp"
+#include "SortInference.hpp"
 #include "CombinationsIterator.hpp"
 #include "DefinitionIntroduction.hpp"
 #include "FiniteModelBuilder.hpp"
@@ -44,7 +45,8 @@ unsigned FiniteModelBuilder::created=0;
 unsigned FiniteModelBuilder::fchecked=0;
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
-: MainLoop(prb, opt), _maxSatVar(0), _groundClauses(0), _clauses(0), _functionDefinitionClauses(0), _singleArityFunction(0), _isComplete(true), _maxModelSize(UINT_MAX)
+: MainLoop(prb, opt), _maxSatVar(0), _groundClauses(0), _clauses(0), _functionDefinitionClauses(0),
+                      _constantsCount(0), _isComplete(true), _maxModelSize(UINT_MAX)
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
 
@@ -54,6 +56,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   }
 
   _incremental = opt.fmbIncremental();
+  _sortInference = opt.fmbSortInference();
 
   createSolver();
 }
@@ -123,11 +126,11 @@ void FiniteModelBuilder::init()
   while(cit.hasNext()){
     Clause* c = cit.next();
 #if VTRACE_FMB
-    cout << "Flatten " << c->toString() << endl;
+    //cout << "Flatten " << c->toString() << endl;
 #endif
     c = ClauseFlattening::flatten(c);
 #if VTRACE_FMB
-    cout << "Flattened " << c->toString() << endl;
+    //cout << "Flattened " << c->toString() << endl;
 #endif
     ASS(c);
 
@@ -184,9 +187,17 @@ void FiniteModelBuilder::init()
       (*c)[i] = n.apply(l);
     }
 #if VTRACE_FMB
-    cout << "Normalized " << c->toString() << endl;
+    //cout << "Normalized " << c->toString() << endl;
 #endif
 
+  }
+
+  if(_sortInference){
+    TimeCounter tc(TC_FMB_SORT_INFERENCE);
+    ClauseIterator cit= pvi(getConcatenatedIterator(
+                        ClauseList::Iterator(_clauses),
+                        ClauseList::Iterator(_groundClauses)));    
+    _sortedSignature = SortInference::apply(cit);
   }
 
   // Create function definition clauses
@@ -225,14 +236,25 @@ void FiniteModelBuilder::init()
     }
     _totalityFunctions.push(Term::create(f,fun->arity(),args.array()));
 
-    //record constants
-    if(fun->arity()==0){
-      _constants.push(Term::createConstant(f));
+    if(fun->arity()==0){ _constantsCount++; }
+
+    if(!_sortInference){
+      //record constants
+      if(fun->arity()==0){
+        _unsortedConstants.push(Term::createConstant(f));
+      }
+      else{
+        for(unsigned i=0;i<fun->arity();i++){
+          args[i].makeVar(0);
+        }
+        _unsortedFunctions.push(Term::create(f,fun->arity(),args.array()));
+      }
     }
-    //record first single arity function
-    if(!_singleArityFunction && fun->arity()==1){
-      _singleArityFunction = Term::create(f,1,args.array());
-    }
+  }
+
+  if(_unsortedConstants.size()==0){
+      unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
+      _unsortedConstants.push(Term::createConstant(fresh));
   }
 
 }
@@ -420,26 +442,37 @@ funDefLoop:
   
 }
 
-void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size)
+void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size,
+                       Stack<Term*>& constants, Stack<Term*>& functions) 
 {
   CALL("FiniteModelBuilder::addNewSymmetryAxioms");
 
   // If all constants have been used then start adding function symmetries
-  if(_constants.size() <= size){
-    if(!_singleArityFunction) return; //TODO create one by i.e. f(x) = g(x,x)
-    if(_constants.size()==0) return;  //TODO create a fake constant
+  if(constants.size() < size){
+    if(constants.size()==0) return;
 
-    // now add clause
-    // f(c)=1 | f(c)=2 | f(c)=3 | ... | f(c)=size
-    // where we take c to be size-k for k constants
-    // TODO, consider if there is something better we can add
+#if VTRACE_FMB
+    cout << "Added all constants, adding grounding of function" << endl; 
+#endif
 
-    int ci = (size-_constants.size());
+    // There are N constants so the constants take the first N places in the order
+    // Then the ith function f takes places 1+(i+1)N to (i+2)N where i starts at 0
+    // so given model 'size' the function we want (i.e. the i) is size/N
+    unsigned n = constants.size();
+
+    if(functions.size() <= (size/n)) return;
+
+    Term* function = functions[size/n];
+
+    // For the domain element we use size%n
+    // i.e. for the N instances of the function we use the first N domain elements
+    int ci = (size%n);
+
     ASS(ci >= 0);
     Term* c = getConstant(ci+1);
     Substitution s;
     s.bind(0,c);
-    Term* fc = SubstHelper::apply(_singleArityFunction,s);
+    Term* fc = SubstHelper::apply(function,s);
     unsigned sort = SortHelper::getResultSort(fc);
 
     static SATLiteralStack satClauseLits;
@@ -463,8 +496,12 @@ void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size)
   // i.e. for constant a1 add { a1=1 } and for a2 add { a2=1, a2=2 } and so on
 
   // As we are _incremental we add the next one, which is for constant at position 'size'
-  Term* c1 = _constants[size-1]; // size 1-based, index 0-based
+  Term* c1 = constants[size-1]; // size 1-based, index 0-based
   unsigned sort = SortHelper::getResultSort(c1);
+
+#if VTRACE_FMB
+    cout << "Adding symmetry constraint on constant " << c1->toString() << endl;
+#endif
 
   static SATLiteralStack satClauseLits;
   satClauseLits.reset(); 
@@ -493,7 +530,7 @@ void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size)
       satClauseLits.push(getSATLiteral(l));
 
       for(unsigned i=0;i<size-1;i++){
-        Term* ci = _constants[i]; 
+        Term* ci = constants[i]; 
         l = Literal::createEquality(true,TermList(ci),TermList(cdm),sort);
         satClauseLits.push(getSATLiteral(l));
       }
@@ -623,8 +660,8 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   //TODO check about equality in EPR
   if(env.property->category()==Property::EPR){
-    if(_constants.length() < _maxModelSize){
-      _maxModelSize = _constants.length();
+    if(_constantsCount < _maxModelSize){
+      _maxModelSize = _constantsCount; 
     }
   }
 
@@ -634,6 +671,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #if VTRACE_FMB
     cout << "TRYING " << modelSize << endl;
 #endif
+    cout << "TRYING " << modelSize << endl;
     Timer::syncClock();
     if(env.timeLimitReached()){ return MainLoopResult(Statistics::TIME_LIMIT); }
 

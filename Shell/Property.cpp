@@ -582,6 +582,11 @@ void Property::scanForInterpreted(Term* t)
     addProp(PR_NUMBER_CONVERSION);
     return;
   }
+  if(Theory::isArrayOperation(itp)){
+    //addProp(PR_HAS_ARRAYS);
+    return;
+  }
+
   unsigned sort = Theory::getOperationSort(itp);
   if(Theory::isInequality(itp)){
     switch(sort){
