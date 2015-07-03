@@ -1778,9 +1778,15 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       pid_t childId=Multiprocessing::instance()->fork();
       ASS_NEQ(childId,-1);
       if (!childId) {
-	//we're in a proving child
-	runSlice(sliceCode,sliceTime); //start proving
-	ASSERTION_VIOLATION; //the runSlice function should never return
+        //we're in a proving child
+        try {
+          runSlice(sliceCode,sliceTime); //start proving
+        } catch (Exception& exc) {
+          cerr << "% Exception at run slice level" << endl;
+          exc.cry(cerr);
+          System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
+        }
+        ASSERTION_VIOLATION; //the runSlice function should never return
       }
       Timer::syncClock();
       ASS(childIds.insert(childId));
