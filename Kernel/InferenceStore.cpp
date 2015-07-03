@@ -559,11 +559,7 @@ protected:
     case Inference::BDDZATION:
       printBddize(us);
       return;
-#if VDEBUG
-    default:
-	ASSERTION_VIOLATION_REP(rule);
-#endif
-    ;
+    default: ;
     }
 
 
