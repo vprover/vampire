@@ -550,6 +550,8 @@ protected:
 
     switch(rule) {
     case Inference::SAT_SPLITTING_COMPONENT:
+      printSplittingComponentIntroduction(us);
+      return;
     case Inference::GENERAL_SPLITTING_COMPONENT:
       printGeneralSplittingComponent(us);
       return;
@@ -712,6 +714,32 @@ protected:
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))
 	      << "])";
+
+    out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
+  }
+
+  void printSplittingComponentIntroduction(UnitSpec us)
+  {
+    CALL("InferenceStore::TPTPProofPrinter::printSplittingComponentIntroduction");
+    ASS(us.isClause());
+
+    Clause* cl=us.cl();
+    ASS(cl->splits());
+    ASS_EQ(cl->splits()->size(),1);
+
+    Inference::Rule rule=Inference::SAT_SPLITTING_COMPONENT;
+
+    vstring defId=tptpDefId(us);
+    vstring splitPred = splitsToString(cl->splits());
+    vstring defStr=getQuantifiedStr(cl)+" <=> ~"+splitPred;
+
+    out<<getFofString(tptpUnitId(us), getFormulaString(us),
+  "inference("+tptpRuleName(Inference::CLAUSIFY)+",[],["+defId+"])", Inference::CLAUSIFY)<<endl;
+
+    vstringstream originStm;
+    originStm << "introduced(" << tptpRuleName(rule)
+        << ",[" << getNewSymbols("naming",splitPred)
+        << "])";
 
     out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
   }
