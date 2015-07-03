@@ -156,7 +156,13 @@ void CLTBMode::solveBatch(istream& batchFile)
     if (!child) {
       // child process
       CLTBProblem prob(this, probFile, outFile);
-      prob.searchForProof(problemTerminationTime);
+      try {
+        prob.searchForProof(problemTerminationTime);
+      } catch (Exception& exc) {
+        cerr << "% Exception at proof search level" << endl;
+        exc.cry(cerr);
+        System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
+      }
       // searchForProof() function should never return
       ASSERTION_VIOLATION;
     }
