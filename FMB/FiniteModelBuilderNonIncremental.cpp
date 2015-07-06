@@ -192,6 +192,10 @@ void FiniteModelBuilderNonIncremental::init()
   //Set up fminbound
   _fminbound.ensure(env.signature->functions());
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(f >= _sortedSignature->functionBounds.size()){
+      _fminbound[f]=UINT_MAX;
+      continue;
+    }
     DArray<unsigned> b = _sortedSignature->functionBounds[f];
     unsigned min = b[0];
     for(unsigned i=1;i<b.size();i++){
@@ -903,7 +907,7 @@ fModelLabel:
     if(env.signature->getPredicate(f)->introduced()) continue;
     vstring name = env.signature->predicateName(f);
     modelStm << "fof(predicate_"<<name<<",predicates,";
-    SATLiteral slit = getSATLiteral(f,emptyG,true,true,modelSize);
+    SATLiteral slit = getSATLiteral(f,emptyG,true,false,modelSize);
     if(!_solver->trueInAssignment(slit)){ modelStm << "~"; }
     modelStm << name << ")."<<endl;
   }
