@@ -143,6 +143,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
 
   SortedSignature* sig = new SortedSignature();
   sig->sorts=comps;
+  cout << "ensure " << env.signature->functions() << endl;
   sig->sortedConstants.ensure(comps);
   sig->sortedFunctions.ensure(comps);
   sig->functionBounds.ensure(env.signature->functions());
@@ -215,7 +216,10 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
     for(unsigned i=0;i<arity;i++){
       int argRoot = unionFind.root(offset_f[f]+i+1);
       unsigned argSort;
-      ALWAYS(translate.find(argRoot,argSort));
+      if(!translate.find(argRoot,argSort)){
+        argSort=seen++;
+        translate.insert(argRoot,argSort);
+      }
       //cout << argRoot << " ";
       sig->functionBounds[f][i+1] = bounds[argSort];
     }
