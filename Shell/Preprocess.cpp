@@ -534,8 +534,7 @@ void Preprocess::preprocess (Problem& prb)
      hr.apply(prb);
    }
 
-   if (_options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality() &&
-	   prb.mayHaveXEqualsY() ) {
+   if (_options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
        env.out() << "equality proxy" << std::endl;
