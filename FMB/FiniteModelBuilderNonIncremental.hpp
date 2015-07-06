@@ -55,7 +55,7 @@ private:
   SATLiteral getSATLiteral(unsigned func, DArray<unsigned> elements,bool polarity, 
                            bool isFunction, unsigned modelSize);
 
-  void reset(unsigned modelSize);
+  bool reset(unsigned modelSize);
   ScopedPtr<SATSolver> _solver;
 
   void addSATClause(SATClause* cl);

@@ -54,23 +54,31 @@ FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb,
 
 }
 
-void FiniteModelBuilderNonIncremental::reset(unsigned size){
+bool FiniteModelBuilderNonIncremental::reset(unsigned size){
   CALL("FiniteModelBuilderNonIncremental::reset");
 
   unsigned offsets=1;
   for(unsigned f=0; f<env.signature->functions();f++){
     unsigned arity=env.signature->functionArity(f);
-    cout << f << "("<<arity<<") has " << offsets << endl;
+    //cout << f << "("<<arity<<") has " << offsets << endl;
     f_offsets[f]=offsets;
-    offsets += pow(size,arity+2);
+    unsigned add = pow(size,arity+2);
+    if(UINT_MAX - add < offsets){
+      return false;
+    }
+    offsets += add;
   }
   for(unsigned p=1; p<env.signature->predicates();p++){
     unsigned arity=env.signature->predicateArity(p);
-    cout << p << "("<<arity<<") has " << offsets << endl;
+    //cout << p << "("<<arity<<") has " << offsets << endl;
     p_offsets[p]=offsets;
-    offsets += pow(size,arity+1);
+    unsigned add = pow(size,arity+1);
+    if(UINT_MAX - add < offsets){
+      return false;
+    }
+    offsets += add; 
   }
-  cout << "Maximum offset is " << offsets << endl;
+  //cout << "Maximum offset is " << offsets << endl;
 
   switch(_opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
@@ -86,8 +94,9 @@ void FiniteModelBuilderNonIncremental::reset(unsigned size){
       ASSERTION_VIOLATION_REP(_opt.satSolver());
   }
 
-  _solver->ensureVarCount(offsets);
+  _solver->ensureVarCount(offsets+1);
 
+  return true;
 }
 
 void FiniteModelBuilderNonIncremental::init()
@@ -210,13 +219,17 @@ void FiniteModelBuilderNonIncremental::init()
           DArray<unsigned> fbound = _sortedSignature->functionBounds[t->functor()];
           unsigned var = lit->nthArgument(1)->var();
           if((*bounds)[var]!=0){ ASS((*bounds)[var]==fbound[0]); }
-          else{ (*bounds)[var]=fbound[0]; }
+          else{ 
+            (*bounds)[var]=fbound[0]; 
+          }
           for(unsigned j=0;j<t->arity();j++){
             ASS(t->nthArgument(j)->isVar());
             unsigned abound = fbound[j+1]; 
             unsigned avar = (t->nthArgument(j))->var();
             if((*bounds)[avar]!=0){ ASS((*bounds)[avar]==abound); }
-            else{ (*bounds)[avar]=abound;}
+            else{ 
+              (*bounds)[avar]=abound;
+            }
           }
         }
         else{
@@ -225,7 +238,9 @@ void FiniteModelBuilderNonIncremental::init()
             unsigned abound = _sortedSignature->predicateBounds[lit->functor()][j];
             unsigned avar = (lit->nthArgument(j))->var();
             if((*bounds)[avar]!=0){ ASS((*bounds)[avar]==abound); }
-            else{ (*bounds)[avar]=abound;}
+            else{ 
+              (*bounds)[avar]=abound;
+            }
           }
         }
       }
@@ -379,7 +394,12 @@ void FiniteModelBuilderNonIncremental::addNewFunctionalDefs(unsigned size)
     unsigned arity = env.signature->functionArity(f);
 
     // Check if sort bounds means that this constraint is not needed
-    if(_fminbound[f]>size) continue;
+    if(_fminbound[f]<size){
+#if VTRACE_FMB
+       cout << "Skipping fun defs for " << f << " due to min bound of " << _fminbound[f] << endl;
+#endif
+       continue;
+    }
 
     //TODO make better way to ensure that X0 and X1 are not equal
 
@@ -396,7 +416,7 @@ newFuncLabel:
         }
         else{
           grounding[i]++;
-          if(grounding[0]!=grounding[1]){
+          if(grounding[0]==grounding[1]){
             //Skip this instance
             continue;
           }
@@ -527,7 +547,12 @@ void FiniteModelBuilderNonIncremental::addNewTotalityDefs(unsigned size)
     unsigned arity = env.signature->functionArity(f);
 
     // Check if can be excluded by mins
-    if(_fminbound[f]<size) continue;
+    if(_fminbound[f]<size){ 
+#if VTRACE_FMB
+       cout << "Skipping total defs for " << f << " due to min bound of " << _fminbound[f] << endl;
+#endif
+       continue;
+    }
 
     if(arity==0){
       static SATLiteralStack satClauseLits;
@@ -597,7 +622,7 @@ SATLiteral FiniteModelBuilderNonIncremental::getSATLiteral(unsigned f, DArray<un
   unsigned var = offset;
   unsigned mult=1;
   for(unsigned i=0;i<grounding.size();i++){
-    var += mult*grounding[i];
+    var += mult*(grounding[i]-1);
     mult *= size;
   }
   //cout << "return " << var << endl;
@@ -627,16 +652,19 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
     return MainLoopResult(Statistics::UNKNOWN);
   }
 
-  reset(1);
+  ALWAYS(reset(1));
 
   if(env.property->category()==Property::EPR){
     ASS(_sortedSignature);
     for(unsigned s=0;s<_sortedSignature->sorts;s++){
       unsigned c = (_sortedSignature->sortedConstants[s]).size();
-      if(c < _maxModelSize){
+      if(c>0 && c < _maxModelSize){
         _maxModelSize = c; 
       }
     }
+  }
+  if(_maxModelSize < UINT_MAX  && env.options->mode()!=Options::Mode::SPIDER){
+      cout << "Detected maximum model size of " << _maxModelSize << endl;
   }
 
   unsigned modelSize = 1;
@@ -644,7 +672,9 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
 #if VTRACE_FMB
     cout << "TRYING " << modelSize << endl;
 #endif
-    cout << "TRYING " << modelSize << endl;
+    if(env.options->mode()!=Options::Mode::SPIDER) { 
+      cout << "TRYING " << modelSize << endl;
+    }
     Timer::syncClock();
     if(env.timeLimitReached()){ return MainLoopResult(Statistics::TIME_LIMIT); }
 
@@ -704,7 +734,7 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
       return MainLoopResult(Statistics::UNKNOWN);
     }
 
-    if(modelSize >= _maxModelSize){
+    if(modelSize > _maxModelSize){
 
       if(env.options->mode()!=Options::Mode::SPIDER) { 
         if(env.property->category()==Property::EPR){
@@ -730,20 +760,28 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
     _clausesToBeAdded.reset();
 
     modelSize++;
-    reset(modelSize);
+    if(!reset(modelSize)){
+      if(env.options->mode()!=Options::Mode::SPIDER){
+        cout << "Cannot represent all propositional literals internally" <<endl;
+      }
+      return MainLoopResult(Statistics::UNKNOWN);
+    }
   }
 
 
   return MainLoopResult(Statistics::UNKNOWN);
 }
 
-// Based on that found in InstGen
 void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
 {
  // Don't do any output if proof is off
  if(_opt.proof()==Options::Proof::OFF){ 
    return; 
  }
+ if(_opt.mode()==Options::Mode::SPIDER){
+   reportSpiderStatus('-');
+ }
+ cout << "Found model of size " << modelSize << endl;
 
  //we need to print this early because model generating can take some time
  if(UIHelper::cascMode) {
@@ -753,17 +791,169 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
    env.endOutput();
    UIHelper::satisfiableStatusWasAlreadyOutput = true;
  }
- if(_opt.mode()==Options::Mode::SPIDER){
-   reportSpiderStatus('-');
- }
-
   // Prevent timing out whilst the model is being printed
   Timer::setTimeLimitEnforcement(false);
 
- // Currently output this proof but look in InstGen/ModelPrinter
- // for how to print model properly
+  vostringstream modelStm;
 
- cout << "Found model of size " << modelSize << endl;
+  //Output domain
+  modelStm << "fof(domain,interpretation_domain," << endl;
+  modelStm << "      ! [X] : (" << endl;
+  modelStm << "         ";
+  for(unsigned i=1;i<=modelSize;i++){
+  modelStm << "X = fmb" << i;
+  if(i<modelSize) modelStm << " | ";
+  if(i==modelSize) modelStm << endl;
+  else if(i%5==0) modelStm << endl << "         ";
+  }
+  modelStm << "      ) )." <<endl;
+  //Distinctness of domain
+  modelStm << endl;
+  modelStm << "fof(distinct_domain,interpreted_domain," << endl;
+  modelStm << "         ";
+  unsigned c=0;
+  for(unsigned i=1;i<=modelSize;i++){
+    for(unsigned j=i+1;j<=modelSize;j++){
+      c++;
+      modelStm << "fmb"<<i<<" != fmb"<<j;
+      if(!(i==modelSize-1 && j==modelSize)){
+         modelStm << " & ";
+         if(c%5==0){ modelStm << endl << "         "; }
+      }
+      else{ modelStm << endl; }
+    }
+  }
+  modelStm << ")." << endl << endl;
+
+  //Output interpretation of constants
+  for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->functionArity(f)>0) continue;
+    if(env.signature->getFunction(f)->introduced()) continue;
+    vstring name = env.signature->functionName(f);
+    modelStm << "fof(constant_"<<name<<",functors,"<<name<< " = ";
+    bool found=false;
+    for(unsigned c=1;c<=modelSize;c++){
+      DArray<unsigned> grounding(1);
+      grounding[0]=c;
+      SATLiteral slit = getSATLiteral(f,grounding,true,true,modelSize);
+      if(_solver->trueInAssignment(slit)){
+        modelStm << "fmb" << c;
+        found=true;
+        break;
+      }
+    }
+    ASS(found);
+    modelStm << ")."<<endl;
+  }
+  modelStm << endl;
+
+  //Output interpretation of functions 
+  for(unsigned f=0;f<env.signature->functions();f++){
+    unsigned arity = env.signature->functionArity(f);
+    if(arity==0) continue;
+    if(env.signature->getFunction(f)->introduced()) continue;
+    vstring name = env.signature->functionName(f);
+    modelStm << "fof(function_"<<name<<",functors,"<<endl;
+
+    DArray<unsigned> grounding(arity+1);
+    for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
+    grounding[arity-1]=0;
+    bool first=true;
+fModelLabel:
+      for(unsigned i=arity-1;i+1!=0;i--){
+
+        if(grounding[i]==modelSize){
+          grounding[i]=1;
+        }
+        else{
+          grounding[i]++;
+          if(!first){
+            modelStm << " & " << endl;
+          }
+          first=false;
+          modelStm << "         " << name << "(";
+          for(unsigned j=0;j<arity;j++){
+            if(j!=0) modelStm << ",";
+            modelStm << "fmb" << grounding[j];
+          }
+          modelStm << " = ";
+
+          bool found=false;
+          for(unsigned c=1;c<=modelSize;c++){
+            grounding[arity]=c;
+            SATLiteral slit = getSATLiteral(f,grounding,true,true,modelSize);
+            if(_solver->trueInAssignment(slit)){
+              modelStm << "fmb" << c;
+              found=true;
+              break;
+            }
+          }
+          ASS(found);
+
+          goto fModelLabel;
+        }
+      }
+    modelStm << endl << ")." << endl << endl;
+  }
+
+  //Output interpretation of prop symbols 
+  DArray<unsigned> emptyG(0);
+  for(unsigned f=1;f<env.signature->predicates();f++){
+    if(env.signature->predicateArity(f)>0) continue;
+    if(env.signature->getPredicate(f)->introduced()) continue;
+    vstring name = env.signature->predicateName(f);
+    modelStm << "fof(predicate_"<<name<<",predicates,";
+    SATLiteral slit = getSATLiteral(f,emptyG,true,true,modelSize);
+    if(!_solver->trueInAssignment(slit)){ modelStm << "~"; }
+    modelStm << name << ")."<<endl;
+  }
+  modelStm << endl;
+
+//Output interpretation of predicates 
+  for(unsigned f=1;f<env.signature->predicates();f++){
+    unsigned arity = env.signature->predicateArity(f);
+    if(arity==0) continue;
+    if(env.signature->getPredicate(f)->introduced()) continue;
+    vstring name = env.signature->predicateName(f);
+    modelStm << "fof(predicate_"<<name<<",predicates,"<<endl;
+
+    DArray<unsigned> grounding(arity);
+    for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
+    grounding[arity-1]=0;
+    bool first=true;
+pModelLabel:
+      for(unsigned i=arity-1;i+1!=0;i--){
+    
+        if(grounding[i]==modelSize){
+          grounding[i]=1;
+        }
+        else{
+          grounding[i]++;
+          if(!first){
+            modelStm << " & " << endl;
+          }
+          first=false;
+          modelStm << "         ";
+          SATLiteral slit = getSATLiteral(f,grounding,true,false,modelSize);
+          if(!_solver->trueInAssignment(slit)){
+            modelStm << "~";
+          }
+
+          modelStm << name << "(";
+          for(unsigned j=0;j<arity;j++){
+            if(j!=0) modelStm << ",";
+            modelStm << "fmb" << grounding[j];
+          }
+          modelStm << ") ";
+
+          goto pModelLabel;
+        }
+      }
+    modelStm << endl << ")." << endl << endl;
+  }
+
+
+  env.statistics->model = modelStm.str();
 }
 
 }
