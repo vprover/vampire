@@ -20,7 +20,8 @@
 
 #include "Tabulation/TabulationAlgorithm.hpp"
 
-#include "FMB/FiniteModelBuilder.hpp"
+#include "FMB/FiniteModelBuilderIncremental.hpp"
+#include "FMB/FiniteModelBuilderNonIncremental.hpp"
 
 #include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
@@ -142,7 +143,12 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
       cout << env.property->sortsUsed() << endl; 
       USER_ERROR("Finite Model Builder (sa=fmb) cannot be used with many-sorted problems"); 
     }
-    res = new FiniteModelBuilder(prb,opt);
+    if(opt.fmbIncremental()){
+      res = new FiniteModelBuilderIncremental(prb,opt);
+    }
+    else{
+      res = new FiniteModelBuilderNonIncremental(prb,opt);
+    }
     break;
   default:
     res = SaturationAlgorithm::createFromOptions(prb, opt);

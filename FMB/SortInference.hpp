@@ -20,6 +20,10 @@ struct SortedSignature{
     unsigned sorts;
     DArray<Stack<Term*>> sortedConstants;
     DArray<Stack<Term*>> sortedFunctions;
+
+    DArray<DArray<unsigned>> functionBounds;
+    DArray<DArray<unsigned>> predicateBounds;
+    
 };
 
 class SortInference {
