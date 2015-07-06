@@ -1,10 +1,10 @@
 /**
- * @file FiniteModelBuilder.hpp
- * Defines class FiniteModelBuilder.
+ * @file FiniteModelBuilderIncremental.hpp
+ * Defines class FiniteModelBuilderIncremental.
  */
 
-#ifndef __FiniteModelBuilder__
-#define __FiniteModelBuilder__
+#ifndef __FiniteModelBuilderIncremental__
+#define __FiniteModelBuilderIncremental__
 
 #include "Forwards.hpp"
 
@@ -20,12 +20,12 @@ using namespace Inferences;
 using namespace Shell;
 using namespace SAT;
 
-class FiniteModelBuilder : public MainLoop {
+class FiniteModelBuilderIncremental : public MainLoop {
 public:
   CLASS_NAME(FiniteModedlBuilder);
-  USE_ALLOCATOR(FiniteModelBuilder);    
+  USE_ALLOCATOR(FiniteModelBuilderIncremental);    
   
-  FiniteModelBuilder(Problem& prb, const Options& opt);
+  FiniteModelBuilderIncremental(Problem& prb, const Options& opt);
 
   static Term* getConstant(unsigned i);
 
@@ -41,8 +41,8 @@ private:
   void onModelFound(unsigned modelSize);
 
   void addGroundClauses();
-  void addNewInstances(unsigned modelSize, bool incremental);
-  void addNewFunctionalDefs(unsigned modelSize, bool incremental);
+  void addNewInstances(unsigned modelSize);
+  void addNewFunctionalDefs(unsigned modelSize);
   void addNewSymmetryAxioms(unsigned modelSize,Stack<Term*>& constants, Stack<Term*>& functions);
 
   void addNewSymmetryAxioms(unsigned modelSize){
@@ -61,7 +61,7 @@ private:
     }
   }
 
-  unsigned addNewTotalityDefs(unsigned modelSize, bool incremental);
+  unsigned addNewTotalityDefs(unsigned modelSize);
   
   unsigned getNextSATVar();
   SATLiteral getSATLiteral(Literal* t);
@@ -86,11 +86,10 @@ private:
 
   unsigned _constantsCount;
   bool _isComplete;
-  bool _incremental;
   bool _sortInference;
   unsigned _maxModelSize;
 };
 
 }
 
-#endif // __FiniteModelBuilder__
+#endif // __FiniteModelBuilderIncremental__

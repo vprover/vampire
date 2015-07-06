@@ -13,6 +13,7 @@
 #include "Kernel/SortHelper.hpp"
 
 #include "Lib/Array.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/IntUnionFind.hpp"
@@ -57,6 +58,8 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
   cout << "count is " << count << endl;
 #endif
 
+  DArray<unsigned> posEqualitiesOnFunc(env.signature->functions());
+
   IntUnionFind unionFind(count);
 
   while(cit.hasNext()){
@@ -78,6 +81,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
          ASS(!l->nthArgument(0)->isVar());
          ASS(l->nthArgument(1)->isVar());
          Term* t = l->nthArgument(0)->term();
+
          unsigned f = t->functor();
          unsigned n = offset_f[f];
          varPositions[l->nthArgument(1)->var()].push(n);
@@ -90,6 +94,9 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
 #if DEBUG_SORT_INFERENCE
            cout << "push " << (n+1+i) << " for X" << t->nthArgument(i)->var() << endl;
 #endif
+         }
+         if(l->polarity()){
+           posEqualitiesOnFunc[f]=true;
          }
        }
      }
@@ -133,22 +140,31 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
   cout << comps << " components" << endl;
 #endif
 
+
   SortedSignature* sig = new SortedSignature();
   sig->sorts=comps;
   sig->sortedConstants.ensure(comps);
   sig->sortedFunctions.ensure(comps);
+  sig->functionBounds.ensure(env.signature->functions());
+  sig->predicateBounds.ensure(env.signature->predicates());
 
   DHMap<int,unsigned> translate;
   unsigned seen = 0;
 
+  DArray<bool> posEqualitiesOnSort(comps); 
+
   for(unsigned f=0;f<env.signature->functions();f++){
-    Signature::Symbol* fun = env.signature->getFunction(f);
-    unsigned arity = fun->arity();
+
+    unsigned arity = env.signature->functionArity(f); 
     int root = unionFind.root(offset_f[f]);
     unsigned rangeSort;
     if(!translate.find(root,rangeSort)){
       rangeSort=seen++;
       translate.insert(root,rangeSort);
+    }
+
+    if(posEqualitiesOnFunc[f]){
+      posEqualitiesOnSort[rangeSort]=true;
     }
 
     if(arity==0){
@@ -168,14 +184,61 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
        }
        sig->sortedFunctions[rangeSort].push(Term::create(f,arity,args.begin()));
     }
-      
+
+  }
+
+  DArray<unsigned> bounds(comps);
+
+  // Compute bounds on sorts
+  for(unsigned s=0;s<comps;s++){
+    if(sig->sortedFunctions[s].size()==0 && !posEqualitiesOnSort[s]){
+      bounds[s]=sig->sortedConstants[s].size();
+    }
+    else{
+      bounds[s]=UINT_MAX;
+    }
+  }
+
+
+  // Now set bounds for functions
+  for(unsigned f=0;f<env.signature->functions();f++){
+    unsigned arity = env.signature->functionArity(f);
+    sig->functionBounds[f].ensure(arity+1);
+    int root = unionFind.root(offset_f[f]);
+    unsigned rangeSort = translate.get(root);
+    sig->functionBounds[f][0] = bounds[rangeSort];
+    for(unsigned i=0;i<arity;i++){
+      int argRoot = unionFind.root(offset_f[f+i+1]);
+      unsigned argSort;
+      if(!translate.find(argRoot,argSort)){
+        argSort=seen++;
+        translate.insert(argRoot,argSort);
+      }
+      sig->functionBounds[f][i+1] = bounds[argSort];
+    }
+  }
+  // For predicates we just record bounds
+  // Remember to skip 0 as it is =
+  for(unsigned p=1;p<env.signature->predicates();p++){
+    unsigned arity = env.signature->predicateArity(p);
+    // Now set bounds
+    sig->predicateBounds[p].ensure(arity);
+    for(unsigned i=0;i<arity;i++){
+      int argRoot = unionFind.root(offset_p[p+i]);
+      unsigned argSort;
+      if(!translate.find(argRoot,argSort)){
+        argSort=seen++;
+        translate.insert(argRoot,argSort);
+      }
+      sig->predicateBounds[p][i] = bounds[argSort];
+    }    
   }
 
   if(env.options->mode()!=Options::Mode::SPIDER){
     cout << "Sort Inference information:" << endl;
   }
 
-  for(unsigned s=0;s<sig->sorts;s++){
+  for(unsigned s=0;s<comps;s++){
 
     if(sig->sortedConstants[s].size()==0 && sig->sortedFunctions[s].size()>0){
       unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
