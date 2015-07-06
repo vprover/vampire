@@ -1,6 +1,6 @@
 /**
- * @file FiniteModelBuilder.cpp
- * Implements class FiniteModelBuilder.
+ * @file FiniteModelBuilderIncremental.cpp
+ * Implements class FiniteModelBuilderIncremental.
  */
 
 #include "Kernel/Inference.hpp"
@@ -33,35 +33,35 @@
 #include "SortInference.hpp"
 #include "CombinationsIterator.hpp"
 #include "DefinitionIntroduction.hpp"
-#include "FiniteModelBuilder.hpp"
+#include "FiniteModelBuilderIncremental.hpp"
 
 #define VTRACE_FMB 0
 
 namespace FMB 
 {
 
-Array<Term*> FiniteModelBuilder::_modelConstants;
-unsigned FiniteModelBuilder::created=0;
-unsigned FiniteModelBuilder::fchecked=0;
+Array<Term*> FiniteModelBuilderIncremental::_modelConstants;
+unsigned FiniteModelBuilderIncremental::created=0;
+unsigned FiniteModelBuilderIncremental::fchecked=0;
 
-FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
+FiniteModelBuilderIncremental::FiniteModelBuilderIncremental(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _maxSatVar(0), _groundClauses(0), _clauses(0), _functionDefinitionClauses(0),
                       _constantsCount(0), _isComplete(true), _maxModelSize(UINT_MAX)
 {
-  CALL("FiniteModelBuilder::FiniteModelBuilder");
+  CALL("FiniteModelBuilderIncremental::FiniteModelBuilderIncremental");
 
   if(!opt.complete(prb)){
     _isComplete = false;
     return;
   }
 
-  _incremental = opt.fmbIncremental();
+  ASS(opt.fmbIncremental());
   _sortInference = opt.fmbSortInference();
 
   createSolver();
 }
 
-void FiniteModelBuilder::createSolver(){
+void FiniteModelBuilderIncremental::createSolver(){
 
   _maxSatVar = 0;
   _lookup.reset();
@@ -83,9 +83,9 @@ void FiniteModelBuilder::createSolver(){
 
 }
 
-Term* FiniteModelBuilder::getConstant(unsigned constant)
+Term* FiniteModelBuilderIncremental::getConstant(unsigned constant)
 {
-  CALL("FiniteModelBuilder::getConstant");
+  CALL("FiniteModelBuilderIncremental::getConstant");
       while(constant >= created){
         vstring name;
         bool found=false;
@@ -113,9 +113,9 @@ Term* FiniteModelBuilder::getConstant(unsigned constant)
 }
 
 
-void FiniteModelBuilder::init()
+void FiniteModelBuilderIncremental::init()
 {
-  CALL("FiniteModelBuilder::init");
+  CALL("FiniteModelBuilderIncremental::init");
 
   if(!_isComplete) return;
 
@@ -259,9 +259,9 @@ void FiniteModelBuilder::init()
 
 }
 
-void FiniteModelBuilder::addGroundClauses()
+void FiniteModelBuilderIncremental::addGroundClauses()
 {
-  CALL("FiniteModelBuilder::addGroundClauses");
+  CALL("FiniteModelBuilderIncremental::addGroundClauses");
 
   // If we don't have any ground clauses don't do anything
   if(!_groundClauses) return;
@@ -311,9 +311,9 @@ addGroundLoop:
   }
 }
 
-void FiniteModelBuilder::addNewInstances(unsigned size, bool incremental)
+void FiniteModelBuilderIncremental::addNewInstances(unsigned size)
 {
-  CALL("FiniteModelBuilder::addNewInstances");
+  CALL("FiniteModelBuilderIncremental::addNewInstances");
 
   ClauseList::Iterator cit(_clauses); 
 
@@ -326,8 +326,7 @@ void FiniteModelBuilder::addNewInstances(unsigned size, bool incremental)
 
     unsigned fvars = c->varCnt();
 
-    // If it's not incremental then create all
-    CombinationsIterator it(fvars,size,!incremental);
+    CombinationsIterator it(fvars,size);
 
 instanceLoop:
     while(it.hasNext()){
@@ -385,9 +384,9 @@ instanceLoop:
 
 }
 
-void FiniteModelBuilder::addNewFunctionalDefs(unsigned size, bool incremental)
+void FiniteModelBuilderIncremental::addNewFunctionalDefs(unsigned size)
 {
-  CALL("FiniteModelBuilder::addNewFunctionalDefs");
+  CALL("FiniteModelBuilderIncremental::addNewFunctionalDefs");
 
   // Similar to instances for function definitions
   // For each function f of arity n we have created the clause
@@ -406,8 +405,7 @@ void FiniteModelBuilder::addNewFunctionalDefs(unsigned size, bool incremental)
     unsigned fvars = c->varCnt();
     ASS_G(fvars,0);
 
-    // If it's not incremental consider all
-    CombinationsIterator it(fvars,size,!incremental);
+    CombinationsIterator it(fvars,size);
 
 funDefLoop:
     while(it.hasNext()){
@@ -442,10 +440,10 @@ funDefLoop:
   
 }
 
-void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size,
+void FiniteModelBuilderIncremental::addNewSymmetryAxioms(unsigned size,
                        Stack<Term*>& constants, Stack<Term*>& functions) 
 {
-  CALL("FiniteModelBuilder::addNewSymmetryAxioms");
+  CALL("FiniteModelBuilderIncremental::addNewSymmetryAxioms");
 
   // If all constants have been used then start adding function symmetries
   if(constants.size() < size){
@@ -541,16 +539,12 @@ void FiniteModelBuilder::addNewSymmetryAxioms(unsigned size,
 
 }
 
-unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size,bool incremental)
+unsigned FiniteModelBuilderIncremental::addNewTotalityDefs(unsigned size)
 {
-  CALL("FiniteModelBuilder::addNewTotalityDefs");
+  CALL("FiniteModelBuilderIncremental::addNewTotalityDefs");
 
-  unsigned domSizeVar = -1;
-  SATLiteral domSizeLit;
-  if(incremental){
-    domSizeVar = getNextSATVar();
-    domSizeLit = SATLiteral(domSizeVar,false);
-  }
+  unsigned domSizeVar = getNextSATVar();
+  SATLiteral domSizeLit = SATLiteral(domSizeVar,false);
 
   Stack<Term*>::Iterator tit(_totalityFunctions);
 
@@ -565,9 +559,7 @@ unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size,bool incremental)
     if(fvars==0){
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
-      if(incremental){
-        satClauseLits.push(domSizeLit);
-      }
+      satClauseLits.push(domSizeLit);
       for(unsigned i=0;i<size;i++){
         Term* c = getConstant(i+1);
         Literal* lit = Literal::createEquality(true,TermList(t),TermList(c),rSort);
@@ -589,9 +581,7 @@ unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size,bool incremental)
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
 
-      if(incremental){
-        satClauseLits.push(domSizeLit);
-      }
+      satClauseLits.push(domSizeLit);
 
       // Ground and translate each literal into a SATLiteral
       for(unsigned i=0;i<size;i++){
@@ -611,17 +601,17 @@ unsigned FiniteModelBuilder::addNewTotalityDefs(unsigned size,bool incremental)
 }
 
 
-unsigned FiniteModelBuilder::getNextSATVar()
+unsigned FiniteModelBuilderIncremental::getNextSATVar()
 {
-  CALL("FiniteModelBuilder::getNextSATLiteral");
+  CALL("FiniteModelBuilderIncremental::getNextSATLiteral");
   // currently just get a positive fresh literal
   _solver->ensureVarCount(++_maxSatVar);
   return _maxSatVar;
 }
 
-SATLiteral FiniteModelBuilder::getSATLiteral(Literal* lit)
+SATLiteral FiniteModelBuilderIncremental::getSATLiteral(Literal* lit)
 {
-  CALL("FiniteModelBuilder::getSATLiteral");
+  CALL("FiniteModelBuilderIncremental::getSATLiteral");
   bool polarity = lit->polarity();
   if(!polarity) lit = Literal::complementaryLiteral(lit);
   unsigned var;
@@ -636,9 +626,9 @@ SATLiteral FiniteModelBuilder::getSATLiteral(Literal* lit)
   return SATLiteral(var,polarity);
 }
 
-void FiniteModelBuilder::addSATClause(SATClause* cl)
+void FiniteModelBuilderIncremental::addSATClause(SATClause* cl)
 {
-  CALL("FiniteModelBuilder::addSATClause");
+  CALL("FiniteModelBuilderIncremental::addSATClause");
   cl = Preprocess::removeDuplicateLiterals(cl);
   if(!cl){ return; }
 #if VTRACE_FMB
@@ -649,9 +639,9 @@ void FiniteModelBuilder::addSATClause(SATClause* cl)
 
 }
 
-MainLoopResult FiniteModelBuilder::runImpl()
+MainLoopResult FiniteModelBuilderIncremental::runImpl()
 {
-  CALL("FiniteModelBuilder::runImpl");
+  CALL("FiniteModelBuilderIncremental::runImpl");
 
   if(!_isComplete){
     // give up!
@@ -678,7 +668,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
     if(env.timeLimitReached()){ return MainLoopResult(Statistics::TIME_LIMIT); }
 
     // if there was a previous domain variable, retract it
-    // In non-_incremental mode domSizeVar never changes
     if(domSizeVar > -1){
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
@@ -699,30 +688,25 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #if VTRACE_FMB
     cout << "GROUND" << endl;
 #endif
-    if(!_incremental || modelSize == 1){
+    if(modelSize == 1){
       addGroundClauses();
     }
 #if VTRACE_FMB
     cout << "INSTANCES" << endl;
 #endif
-    addNewInstances(modelSize,_incremental);
+    addNewInstances(modelSize);
 #if VTRACE_FMB
     cout << "FUNC DEFS" << endl;
 #endif
-    addNewFunctionalDefs(modelSize,_incremental);
+    addNewFunctionalDefs(modelSize);
 #if VTRACE_FMB
     cout << "SYM DEFS" << endl;
 #endif
-    if(!_incremental){
-      for(unsigned s=1;s<modelSize;s++){
-        addNewSymmetryAxioms(s);
-      }
-    }
     addNewSymmetryAxioms(modelSize);
 #if VTRACE_FMB
     cout << "TOTAL DEFS" << endl;
 #endif
-    domSizeVar = addNewTotalityDefs(modelSize,_incremental);
+    domSizeVar = addNewTotalityDefs(modelSize);
 
     }
 
@@ -736,10 +720,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
       _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
     }
 
-    // only do this in _incremental mode
-    if(_incremental){
-      _solver->addAssumption(SATLiteral(domSizeVar,true));
-    }
+    _solver->addAssumption(SATLiteral(domSizeVar,true));
 
     SATSolver::Status satResult = SATSolver::UNKNOWN;
     {
@@ -775,23 +756,9 @@ MainLoopResult FiniteModelBuilder::runImpl()
       return MainLoopResult(Statistics::REFUTATION,empty); 
     }
 
-    if(_incremental){
-      TimeCounter tc(TC_FMB_SAT_SOLVING);
-      _solver->retractAllAssumptions();
-    }
+    TimeCounter tc(TC_FMB_SAT_SOLVING);
+    _solver->retractAllAssumptions();
 
-    if(!_incremental){
-      // reset SAT Solver
-      createSolver();
-
-      // destroy the clauses
-      SATClauseStack::Iterator it(_clausesToBeAdded);
-      while (it.hasNext()) {
-        it.next()->destroy();
-      }
-    } else {
-      // clauses still live in the solver
-    }
     // but the container needs to be empty for the next round in any case
     _clausesToBeAdded.reset();
 
@@ -803,7 +770,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 }
 
 // Based on that found in InstGen
-void FiniteModelBuilder::onModelFound(unsigned modelSize)
+void FiniteModelBuilderIncremental::onModelFound(unsigned modelSize)
 {
  // Don't do any output if proof is off
  if(_opt.proof()==Options::Proof::OFF){ 

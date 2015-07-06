@@ -13,7 +13,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Array.hpp"
 
-#include "FiniteModelBuilder.hpp"
+#include "FiniteModelBuilderIncremental.hpp"
 #include "Forwards.hpp"
 
 namespace FMB {
@@ -27,7 +27,7 @@ namespace FMB {
     TermList apply(unsigned var){
       CALL("SubstCombination::apply");
       ASS_L(var,_ar.size());
-      Term* t = FiniteModelBuilder::getConstant(_ar[var]);
+      Term* t = FiniteModelBuilderIncremental::getConstant(_ar[var]);
       ASS(t);
       return TermList(t);
     }
