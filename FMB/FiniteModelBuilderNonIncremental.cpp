@@ -28,6 +28,7 @@
 #include "Lib/System.hpp"
 
 #include "Shell/UIHelper.hpp"
+#include "Shell/TPTPPrinter.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/GeneralSplitting.hpp"
 
@@ -36,7 +37,7 @@
 #include "DefinitionIntroduction.hpp"
 #include "FiniteModelBuilderNonIncremental.hpp"
 
-#define VTRACE_FMB 1
+#define VTRACE_FMB 0
 
 namespace FMB 
 {
@@ -52,6 +53,9 @@ FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb,
     return;
   }
 
+  _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
+  _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
+
 }
 
 bool FiniteModelBuilderNonIncremental::reset(unsigned size){
@@ -59,6 +63,7 @@ bool FiniteModelBuilderNonIncremental::reset(unsigned size){
 
   unsigned offsets=1;
   for(unsigned f=0; f<env.signature->functions();f++){
+    if(del_f[f]) continue; 
     unsigned arity=env.signature->functionArity(f);
     //cout << f << "("<<arity<<") has " << offsets << endl;
     f_offsets[f]=offsets;
@@ -69,6 +74,7 @@ bool FiniteModelBuilderNonIncremental::reset(unsigned size){
     offsets += add;
   }
   for(unsigned p=1; p<env.signature->predicates();p++){
+    if(del_p[p]) continue;
     unsigned arity=env.signature->predicateArity(p);
     //cout << p << "("<<arity<<") has " << offsets << endl;
     p_offsets[p]=offsets;
@@ -178,13 +184,25 @@ void FiniteModelBuilderNonIncremental::init()
 
   }
 
+  del_f.ensure(env.signature->functions());
+  del_p.ensure(env.signature->predicates());
+
+  for(unsigned f=0;f<env.signature->functions();f++){
+    del_f[f] = _deletedFunctions.find(f);
+  }
+  for(unsigned p=0;p<env.signature->predicates();p++){
+    del_p[p] = _deletedPredicates.find(p);
+  }
+
   {
     TimeCounter tc(TC_FMB_SORT_INFERENCE);
     ClauseIterator cit= pvi(getConcatenatedIterator(
                         ClauseList::Iterator(_clauses),
                         ClauseList::Iterator(_groundClauses)));    
-    _sortedSignature = SortInference::apply(cit);
+    _sortedSignature = SortInference::apply(cit,del_f,del_p);
   }
+
+  del_f.expand(env.signature->functions());
 
   f_offsets.ensure(env.signature->functions());
   p_offsets.ensure(env.signature->predicates());
@@ -192,6 +210,7 @@ void FiniteModelBuilderNonIncremental::init()
   //Set up fminbound
   _fminbound.ensure(env.signature->functions());
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(del_f[f]) continue;
 
     if(env.signature->functionArity(f)==0) _constantCount++;
 
@@ -405,6 +424,7 @@ void FiniteModelBuilderNonIncremental::addNewFunctionalDefs(unsigned size)
   // they should be instantiated with groundings where y!=z
 
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(del_f[f]) continue;
     unsigned arity = env.signature->functionArity(f);
 
 #if VTRACE_FMB
@@ -559,6 +579,7 @@ void FiniteModelBuilderNonIncremental::addNewTotalityDefs(unsigned size)
 
 
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(del_f[f]) continue;
     unsigned arity = env.signature->functionArity(f);
 
 #if VTRACE_FMB
@@ -848,6 +869,13 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
   for(unsigned f=0;f<env.signature->functions();f++){
     if(env.signature->functionArity(f)>0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
+    if(del_f[f]){
+      Literal* def = _deletedFunctions.get(f);
+      Clause* defc = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::DEFINITION_UNFOLDING));
+      (*defc)[0]=def;
+      modelStm << TPTPPrinter::toString(defc) << endl;
+      continue;
+    }
     vstring name = env.signature->functionName(f);
     modelStm << "fof(constant_"<<name<<",functors,"<<name<< " = ";
     bool found=false;
@@ -871,13 +899,21 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
+    if(del_f[f]){
+      Literal* def = _deletedFunctions.get(f);
+      Clause* defc = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::DEFINITION_UNFOLDING));
+      (*defc)[0]=def;
+      modelStm << TPTPPrinter::toString(defc) << endl;
+      continue;
+    }
     vstring name = env.signature->functionName(f);
     modelStm << "fof(function_"<<name<<",functors,"<<endl;
 
     DArray<unsigned> grounding(arity+1);
-    for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
+    for(unsigned i=0;i<arity;i++) grounding[i]=1;
     grounding[arity-1]=0;
     bool first=true;
+    //cout << "Searching... " << name << " of " << arity << endl;
 fModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
 
@@ -886,6 +922,22 @@ fModelLabel:
         }
         else{
           grounding[i]++;
+          //cout << "Grounding: ";
+          //for(unsigned j=0;j<grounding.size();j++) cout << grounding[j] << " ";
+          //cout << endl;
+
+          unsigned foundc;
+          bool found=false;
+          for(unsigned c=1;c<=modelSize;c++){
+            grounding[arity]=c;
+            SATLiteral slit = getSATLiteral(f,grounding,true,true,modelSize);
+            if(_solver->trueInAssignment(slit)){
+              foundc=c;
+              found=true;
+            }
+          }
+          if(!found) goto fModelLabel; 
+
           if(!first){
             modelStm << " & " << endl;
           }
@@ -895,20 +947,7 @@ fModelLabel:
             if(j!=0) modelStm << ",";
             modelStm << "fmb" << grounding[j];
           }
-          modelStm << " = ";
-
-          bool found=false;
-          for(unsigned c=1;c<=modelSize;c++){
-            grounding[arity]=c;
-            SATLiteral slit = getSATLiteral(f,grounding,true,true,modelSize);
-            if(_solver->trueInAssignment(slit)){
-              modelStm << "fmb" << c;
-              found=true;
-              break;
-            }
-          }
-          //if(!found) cout << "not found for " << name << endl;
-          ASS(found);
+          modelStm << ") = fmb" <<foundc;
 
           goto fModelLabel;
         }
@@ -921,6 +960,11 @@ fModelLabel:
   for(unsigned f=1;f<env.signature->predicates();f++){
     if(env.signature->predicateArity(f)>0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
+    if(del_p[f]){
+      Unit* def = _deletedPredicates.get(f);
+      modelStm << TPTPPrinter::toString(def) << endl; 
+      continue;
+    }
     vstring name = env.signature->predicateName(f);
     modelStm << "fof(predicate_"<<name<<",predicates,";
     SATLiteral slit = getSATLiteral(f,emptyG,true,false,modelSize);
@@ -934,6 +978,11 @@ fModelLabel:
     unsigned arity = env.signature->predicateArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
+    if(del_p[f]){
+      Unit* def = _deletedPredicates.get(f);
+      modelStm << TPTPPrinter::toString(def) << endl; 
+      continue;
+    }
     vstring name = env.signature->predicateName(f);
     modelStm << "fof(predicate_"<<name<<",predicates,"<<endl;
 

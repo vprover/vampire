@@ -213,9 +213,7 @@ redundancy_check:
     env.out() << "[IG] new: " << cl->toString() << std::endl;
     env.endOutput();
   }
-  
-  cl->incRefCnt();
-  _variantIdx->insert(cl);
+
   if(_globalSubsumption) {
     static Stack<UnitSpec> prems_dummy;
     
@@ -233,6 +231,9 @@ redundancy_check:
       goto redundancy_check;
     }
   }
+
+  cl->incRefCnt();
+  _variantIdx->insert(cl);
 
   _unprocessed.push(cl);
   env.statistics->instGenKeptClauses++;

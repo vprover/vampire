@@ -188,7 +188,9 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
       // TODO: what about GS being proper only on the split level assumption side? (But then it is not a reduction from the FO perspective!)
 
       // this is the main check -- whether we have a proper subclause (no matter the split level assumptions)
-      if (survivors.size() < clen) {                
+      if (survivors.size() < clen) {
+        RSTAT_MCTR_INC("global_subsumption_by_number_of_removed_literals",clen-survivors.size());
+
         SATClause* ref = solver.getRefutation();
 
         prems.reset();
