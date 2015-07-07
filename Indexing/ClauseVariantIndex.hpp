@@ -30,6 +30,8 @@ public:
   {
     CALL("ClauseVariantIndex::retrieveVariants/1");
 
+    // cout << "retrieveVariants for " <<  cl->toString() << endl;
+
     return retrieveVariants(cl->literals(), cl->length());
   }
 protected:
@@ -75,9 +77,33 @@ public:
   ClauseIterator retrieveVariants(Literal* const * lits, unsigned length);
 
 private:
-  typedef DHMap<unsigned, unsigned> VarCounts;
+  struct VariableIgnoringComparator;
 
-  unsigned computeHash(Literal* l, VarCounts& varCnts);
+  typedef DHMap<unsigned, unsigned char> VarCounts; // overflows allowed
+
+  unsigned termFunctorHash(Term* t, unsigned hash_begin) {
+    unsigned func = t->functor();
+    // cout << "will hash funtor " << func << endl;
+    return Hash::hash((const unsigned char*)&func,sizeof(func),hash_begin);
+  }
+
+  unsigned computeHashAndCountVariables(unsigned var, VarCounts& varCnts, unsigned hash_begin) {
+    const unsigned varHash = 1u;
+
+    unsigned char* pcnt;
+    if (varCnts.getValuePtr(var,pcnt)) {
+      *pcnt = 1;
+    } else {
+      (*pcnt)++;
+    }
+
+    // cout << "will hash variable" << endl;
+
+    return Hash::hash((const unsigned char*)&varHash,sizeof(varHash),hash_begin);
+  }
+
+  unsigned computeHashAndCountVariables(TermList* tl, VarCounts& varCnts, unsigned hash_begin);
+  unsigned computeHashAndCountVariables(Literal* l, VarCounts& varCnts, unsigned hash_begin);
 
   unsigned computeHash(Literal* const * lits, unsigned length);
 

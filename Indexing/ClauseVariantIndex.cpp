@@ -224,11 +224,20 @@ void HashingClauseVariantIndex::insert(Clause* cl)
 {
   CALL("HashingClauseVariantIndex::insert");
 
+  static unsigned insertions = 0;
+
+  //cout << "insert " << cl->toString() << endl;
+
   unsigned h = computeHash(cl->literals(),cl->length());
+
+  //cout << "hashed to " << h << endl;
 
   ClauseList** lst;
   _entries.getValuePtr(h,lst);
   ClauseList::push(cl, *lst);
+
+  // cout << "bucket of size " << (*lst)->length() << endl;
+  // cout << _entries.size() << "buckets after " << ++insertions << " insertions" << endl;
 }
 
 ClauseIterator HashingClauseVariantIndex::retrieveVariants(Literal* const * lits, unsigned length)
@@ -237,8 +246,12 @@ ClauseIterator HashingClauseVariantIndex::retrieveVariants(Literal* const * lits
 
   unsigned h = computeHash(lits,length);
 
+  //cout << "hashed to " << h << endl;
+
   ClauseList* lst;
   if (_entries.find(h,lst)) {
+    //cout << "found this long list: " << lst->length() << endl;
+
     return pvi( getFilteredIterator(
         getMappingIterator(
           ClauseList::Iterator(lst),
@@ -249,11 +262,221 @@ ClauseIterator HashingClauseVariantIndex::retrieveVariants(Literal* const * lits
   }
 }
 
+struct HashingClauseVariantIndex::VariableIgnoringComparator {
+  Literal* const * _lits;
+  VariableIgnoringComparator(Literal* const * lits) : _lits(lits) {}
+
+  static Comparison disagreement(Term* t1,Term* t2)
+  {
+    CALL("HashingClauseVariantIndex::VariableIgnoringComparator::disagreement");
+
+    //now get just some total deterministic order while ignoring variables
+    static DisagreementSetIterator dsit;
+    dsit.reset(t1, t2, false);
+    while(dsit.hasNext()) {
+      pair<TermList, TermList> dis=dsit.next();
+      if(dis.first.isTerm()) {
+        if(dis.second.isTerm()) {
+          ASS_NEQ(dis.first.term()->functor(), dis.second.term()->functor());
+          return Int::compare(dis.first.term()->functor(), dis.second.term()->functor());
+        }
+        return GREATER;
+      }
+      if(dis.second.isTerm()) {
+        return LESS;
+      }
+      // ignore disagreement on variables
+    }
+    //they're equal when ignoring variables
+    return EQUAL;
+  }
+
+  static Comparison compare(TermList* tl1, TermList* tl2)
+  {
+    CALL("HashingClauseVariantIndex::VariableIgnoringComparator::compare(Termlist*,Termlist*)");
+
+    if(!tl1->isTerm()) {
+      if(!tl2->isTerm()) {
+        return EQUAL;
+      }
+      return LESS;
+    }
+
+    if(!tl2->isTerm()) {
+      return GREATER;
+    }
+
+    Term* t1 = tl1->term();
+    Term* t2 = tl2->term();
+
+    if(t1->weight()!=t2->weight()) {
+      // number of general symbol occurrences
+      return Int::compare(t1->weight(),t2->weight());
+    }
+
+    if(t1->vars()!=t1->vars()) {
+      // number of variable occurrences
+      return Int::compare(t1->vars(),t2->vars());
+    }
+
+    if(t1->functor()!=t2->functor()) {
+      return Int::compare(t1->functor(),t2->functor());
+    }
+
+    return disagreement(t1,t2);
+  }
+
+  static Comparison compare(Literal* l1, Literal* l2)
+  {
+    CALL("HashingClauseVariantIndex::VariableIgnoringComparator::compare(Literal*,Literal*)");
+
+    if(l1->weight()!=l2->weight()) {
+      // number of general symbol occurrences
+      return Int::compare(l1->weight(),l2->weight());
+    }
+
+    if(l1->vars()!=l1->vars()) {
+      // number of variable occurrences
+      return Int::compare(l1->vars(),l2->vars());
+    }
+
+    if(l1->header()!=l2->header()) {
+      // functor and polarity
+      return Int::compare(l1->header(),l2->header());
+    }
+
+    if(l1->isEquality()) {
+      ASS(l2->isEquality());
+
+      TermList* l1l = l1->nthArgument(0);
+      TermList* l1r = l1->nthArgument(1);
+      if (compare(l1l,l1r) == LESS) {
+        swap(l1l,l1r);
+      }
+
+      TermList* l2l = l2->nthArgument(0);
+      TermList* l2r = l2->nthArgument(1);
+      if (compare(l2l,l2r) == LESS) {
+        swap(l2l,l2r);
+      }
+
+      Comparison res = compare(l1l,l2l);
+      if (res != EQUAL) {
+        return res;
+      }
+      return compare(l1r,l2r);
+    }
+
+    return disagreement(l1,l2);
+  }
+
+  /**
+   * A total ordering stable under variable substitutions.
+   */
+  bool operator()(unsigned a, unsigned b) {
+    CALL("HashingClauseVariantIndex::VariableIgnoringComparator::operator()");
+
+    // cout << "a = " << a << " lits[a]= " << _lits[a] << endl;
+    // cout << "b = " << b << " lits[b]= " << _lits[b] << endl;
+
+    Literal* la = _lits[a];
+    Literal* lb = _lits[b];
+
+    // cout << "a " << la->toString() << endl;
+    // cout << "b " << lb->toString() << endl;
+
+    return (compare(la,lb) == LESS);
+  }
+};
+
+unsigned HashingClauseVariantIndex::computeHashAndCountVariables(TermList* ptl, VarCounts& varCnts, unsigned hash_begin) {
+  CALL("HashingClauseVariantIndex::computeHashAndCountVariables(Term*, ...)");
+
+  if (ptl->isVar()) {
+    return computeHashAndCountVariables(ptl->var(),varCnts,hash_begin);
+  }
+
+  Term* t = ptl->term();
+  unsigned hash = termFunctorHash(t,hash_begin);
+
+  SubtermIterator sti(t);
+  while(sti.hasNext()) {
+    TermList tl = sti.next();
+
+    if (tl.isVar()) {
+      hash = computeHashAndCountVariables(tl.var(),varCnts,hash);
+    } else {
+      hash = termFunctorHash(tl.term(),hash);
+    }
+  }
+
+  return hash;
+}
+
+unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, VarCounts& varCnts, unsigned hash_begin) {
+  CALL("HashingClauseVariantIndex::computeHashAndCountVariables(Literal*, ...)");
+
+  unsigned header = l->header();
+
+  //cout << "Literal " << l->toString() << endl;
+
+  //cout << "will hash header " << header << endl;
+
+  // hashes the predicate symbol and the polarity
+  unsigned hash = Hash::hash((const unsigned char*)&header,sizeof(header),hash_begin);
+
+  if(l->isEquality()) {
+    TermList* ll = l->nthArgument(0);
+    TermList* lr = l->nthArgument(1);
+    if (VariableIgnoringComparator::compare(ll,lr) == LESS) {
+      swap(ll,lr);
+    }
+
+    hash = computeHashAndCountVariables(ll,varCnts,hash);
+    hash = computeHashAndCountVariables(lr,varCnts,hash);
+  } else {
+    for(TermList* arg=l->args(); arg->isNonEmpty(); arg=arg->next()) {
+      hash = computeHashAndCountVariables(arg,varCnts,hash);
+    }
+  }
+
+  return hash;
+}
+
 unsigned HashingClauseVariantIndex::computeHash(Literal* const * lits, unsigned length)
 {
   CALL("HashingClauseVariantIndex::computeHash");
 
-  return 0;
+  // cout << "length " <<  length << endl;
+
+  static Stack<unsigned> litOrder;
+  litOrder.reset();
+  litOrder.loadFromIterator(getRangeIterator(0u,length));
+
+  std::sort(litOrder.begin(), litOrder.end(), VariableIgnoringComparator(lits));
+
+  static VarCounts varCnts;
+  varCnts.reset();
+
+  unsigned hash = 2166136261u;
+  for(unsigned i=0; i<length; i++) {
+    unsigned li = litOrder[i];
+    hash = computeHashAndCountVariables(lits[li],varCnts,hash);
+  }
+
+  if (varCnts.size() > 0) {
+    static Stack<unsigned char> varCntHistogram;
+    varCntHistogram.reset();
+    VarCounts::Iterator it(varCnts);
+    while (it.hasNext()) {
+      varCntHistogram.push(it.next());
+    }
+
+    std::sort(varCntHistogram.begin(),varCntHistogram.end());
+    hash = Hash::hash((const unsigned char*)varCntHistogram.begin(),varCntHistogram.size(),hash);
+  }
+
+  return hash;
 }
 
 
