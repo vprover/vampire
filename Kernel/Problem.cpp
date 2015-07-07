@@ -192,6 +192,8 @@ void Problem::copyInto(Problem& tgt, bool copyClauses)
     tgt._property = new Property(*_property);
     tgt.readDetailsFromProperty();
   }
+
+  //TODO copy the deleted maps
 }
 
 /**
@@ -226,7 +228,7 @@ void Problem::addEliminatedFunction(unsigned func, Literal* definition)
   CALL("Problem::addEliminatedFunction");
   ASS(definition->isEquality());
 
-  //TODO:to be implemented and handled in model retrieval
+  _deletedFunctions.insert(func,definition);
 }
 
 /**
@@ -238,7 +240,7 @@ void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
 {
   CALL("Problem::addEliminatedPredicate");
 
-  //TODO:to be implemented and handled in model retrieval
+  _deletedPredicates.insert(pred,definition);
 }
 
 /**

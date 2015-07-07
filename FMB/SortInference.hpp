@@ -31,7 +31,9 @@ public:
   CLASS_NAME(SortInference);
   USE_ALLOCATOR(SortInference);    
   
-  static SortedSignature*  apply(ClauseIterator cit);
+  static SortedSignature*  apply(ClauseIterator cit,
+                                 DArray<unsigned> del_f,
+                                 DArray<unsigned> del_p);
 
 };
 

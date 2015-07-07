@@ -58,6 +58,11 @@ private:
   bool reset(unsigned modelSize);
   ScopedPtr<SATSolver> _solver;
 
+  DHMap<unsigned,Literal*> _deletedFunctions;
+  DHMap<unsigned,Unit*> _deletedPredicates;
+  DArray<unsigned> del_f;
+  DArray<unsigned> del_p;
+
   void addSATClause(SATClause* cl);
   SATClauseStack _clausesToBeAdded;
 
