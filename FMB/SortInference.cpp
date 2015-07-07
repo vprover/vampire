@@ -217,25 +217,34 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   for(unsigned s=0;s<comps;s++){
     if(sig->sortedFunctions[s].size()==0 && !posEqualitiesOnSort[s]){
       bounds[s]=sig->sortedConstants[s].size();
-      //cout << "Bounding sort " << s << " to " << bounds[s] << endl;
       // If no constants pretend there is one
       if(bounds[s]==0){ bounds[s]=1;}
+#if DEBUG_SORT_INFERENCE
+      cout << "Bounding sort " << s << " to " << bounds[s] << endl;
+#endif
     }
     else{
       bounds[s]=UINT_MAX;
     }
   }
 
+#if DEBUG_SORT_INFERENCE
+  cout << "Setting function bounds" << endl;
+#endif
 
   // Now set bounds for functions
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(del_f[f]) continue;
-    //cout << env.signature->functionName(f) << " : ";
+    if(f < del_f.size() && del_f[f]) continue;
+#if DEBUG_SORT_INFERENCE
+    cout << env.signature->functionName(f) << " : ";
+#endif
     unsigned arity = env.signature->functionArity(f);
     sig->functionBounds[f].ensure(arity+1);
     int root = unionFind.root(offset_f[f]);
     unsigned rangeSort = translate.get(root);
-    //cout << rangeSort << " ";
+#if DEBUG_SORT_INFERENCE
+    cout << rangeSort << " ";
+#endif
     sig->functionBounds[f][0] = bounds[rangeSort];
     for(unsigned i=0;i<arity;i++){
       int argRoot = unionFind.root(offset_f[f]+i+1);
@@ -244,15 +253,24 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
         argSort=seen++;
         translate.insert(argRoot,argSort);
       }
-      //cout << argSort << " ";
+#if DEBUG_SORT_INFERENCE
+      cout << argSort << " ";
+#endif
       sig->functionBounds[f][i+1] = bounds[argSort];
     }
-    //cout << "("<< offset_f[f] << ")"<< endl;
+#if DEBUG_SORT_INFERENCE
+   cout << "("<< offset_f[f] << ")"<< endl;
+#endif
   }
+
+#if DEBUG_SORT_INFERENCE
+  cout << "Setting predicate bounds" << endl;
+#endif
+
   // For predicates we just record bounds
   // Remember to skip 0 as it is =
   for(unsigned p=1;p<env.signature->predicates();p++){
-    if(del_p[p]) continue;
+    if(p < del_p.size() && del_p[p]) continue;
     //cout << env.signature->predicateName(p) <<" : "; 
     unsigned arity = env.signature->predicateArity(p);
     // Now set bounds

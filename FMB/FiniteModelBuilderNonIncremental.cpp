@@ -849,6 +849,7 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
   modelStm << "      ) )." <<endl;
   //Distinctness of domain
   modelStm << endl;
+  if(modelSize>1){
   modelStm << "fof(distinct_domain,interpreted_domain," << endl;
   modelStm << "         ";
   unsigned c=0;
@@ -864,6 +865,7 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
     }
   }
   modelStm << ")." << endl << endl;
+  }
 
   //Output interpretation of constants
   for(unsigned f=0;f<env.signature->functions();f++){
