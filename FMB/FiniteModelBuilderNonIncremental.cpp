@@ -36,7 +36,7 @@
 #include "DefinitionIntroduction.hpp"
 #include "FiniteModelBuilderNonIncremental.hpp"
 
-#define VTRACE_FMB 1
+#define VTRACE_FMB 0
 
 namespace FMB 
 {
