@@ -36,7 +36,7 @@
 #include "DefinitionIntroduction.hpp"
 #include "FiniteModelBuilderNonIncremental.hpp"
 
-#define VTRACE_FMB 0
+#define VTRACE_FMB 1
 
 namespace FMB 
 {
@@ -173,7 +173,7 @@ void FiniteModelBuilderNonIncremental::init()
       (*c)[i] = n.apply(l);
     }
 #if VTRACE_FMB
-    //cout << "Normalized " << c->toString() << endl;
+    cout << "Normalized " << c->toString() << endl;
 #endif
 
   }
@@ -386,7 +386,7 @@ instanceLabel:
   }
 }
 
-void FiniteModelBuilderNonIncremental::addNewFunctionalDefs(unsigned size)
+void FiniteModelBuilderNonIncremental::addNewFunctionalDefs(unsigned modelSize)
 {
   CALL("FiniteModelBuilderNonIncremental::addNewFunctionalDefs");
 
@@ -397,13 +397,9 @@ void FiniteModelBuilderNonIncremental::addNewFunctionalDefs(unsigned size)
   for(unsigned f=0;f<env.signature->functions();f++){
     unsigned arity = env.signature->functionArity(f);
 
-    // Check if sort bounds means that this constraint is not needed
-    if(_fminbound[f]<size){
-#if VTRACE_FMB
-       cout << "Skipping fun defs for " << f << " due to min bound of " << _fminbound[f] << endl;
-#endif
-       continue;
-    }
+    unsigned size = modelSize;
+    if(_fminbound[f] < size) size = _fminbound[f];
+
 
     //TODO make better way to ensure that X0 and X1 are not equal
 
@@ -542,7 +538,7 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryAxioms(unsigned size,
 
 }
 
-void FiniteModelBuilderNonIncremental::addNewTotalityDefs(unsigned size)
+void FiniteModelBuilderNonIncremental::addNewTotalityDefs(unsigned modelSize)
 {
   CALL("FiniteModelBuilderNonIncremental::addNewTotalityDefs");
 
@@ -550,13 +546,9 @@ void FiniteModelBuilderNonIncremental::addNewTotalityDefs(unsigned size)
   for(unsigned f=0;f<env.signature->functions();f++){
     unsigned arity = env.signature->functionArity(f);
 
-    // Check if can be excluded by mins
-    if(_fminbound[f]<size){ 
-#if VTRACE_FMB
-       cout << "Skipping total defs for " << f << " due to min bound of " << _fminbound[f] << endl;
-#endif
-       continue;
-    }
+    unsigned size = modelSize;
+    if(_fminbound[f] < size) size = _fminbound[f];
+
 
     if(arity==0){
       static SATLiteralStack satClauseLits;
@@ -799,6 +791,7 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
   Timer::setTimeLimitEnforcement(false);
 
   vostringstream modelStm;
+  bool printIntroduced = true; 
 
   //Output domain
   modelStm << "fof(domain,interpretation_domain," << endl;
@@ -832,7 +825,7 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
   //Output interpretation of constants
   for(unsigned f=0;f<env.signature->functions();f++){
     if(env.signature->functionArity(f)>0) continue;
-    if(env.signature->getFunction(f)->introduced()) continue;
+    if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
     vstring name = env.signature->functionName(f);
     modelStm << "fof(constant_"<<name<<",functors,"<<name<< " = ";
     bool found=false;
@@ -855,7 +848,7 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
   for(unsigned f=0;f<env.signature->functions();f++){
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
-    if(env.signature->getFunction(f)->introduced()) continue;
+    if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
     vstring name = env.signature->functionName(f);
     modelStm << "fof(function_"<<name<<",functors,"<<endl;
 
@@ -892,6 +885,7 @@ fModelLabel:
               break;
             }
           }
+          if(!found) cout << "not found for " << name << endl;
           ASS(found);
 
           goto fModelLabel;
@@ -904,7 +898,7 @@ fModelLabel:
   DArray<unsigned> emptyG(0);
   for(unsigned f=1;f<env.signature->predicates();f++){
     if(env.signature->predicateArity(f)>0) continue;
-    if(env.signature->getPredicate(f)->introduced()) continue;
+    if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
     vstring name = env.signature->predicateName(f);
     modelStm << "fof(predicate_"<<name<<",predicates,";
     SATLiteral slit = getSATLiteral(f,emptyG,true,false,modelSize);
@@ -917,7 +911,7 @@ fModelLabel:
   for(unsigned f=1;f<env.signature->predicates();f++){
     unsigned arity = env.signature->predicateArity(f);
     if(arity==0) continue;
-    if(env.signature->getPredicate(f)->introduced()) continue;
+    if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
     vstring name = env.signature->predicateName(f);
     modelStm << "fof(predicate_"<<name<<",predicates,"<<endl;
 

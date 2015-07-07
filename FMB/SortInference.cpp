@@ -143,7 +143,6 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
 
   SortedSignature* sig = new SortedSignature();
   sig->sorts=comps;
-  cout << "ensure " << env.signature->functions() << endl;
   sig->sortedConstants.ensure(comps);
   sig->sortedFunctions.ensure(comps);
   sig->functionBounds.ensure(env.signature->functions());
