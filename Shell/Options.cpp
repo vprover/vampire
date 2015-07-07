@@ -2650,9 +2650,7 @@ bool Options::complete(const Problem& prb) const
   // only checking resolution rules remain
   bool pureEquality = (prop.atoms() == prop.equalityAtoms());
   if (pureEquality) return true;
-  if (_binaryResolution.actualValue) return true;
-  if (_unitResultingResolution.actualValue==URResolution::EC_ONLY) return false;
-  return prop.category() == Property::HEQ;
+  return (_binaryResolution.actualValue); // MS: we are in the equality case, so URR cannot help here even for horn problems
 } // Options::complete
 
 /**
