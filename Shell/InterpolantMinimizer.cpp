@@ -427,7 +427,7 @@ public:
   CLASS_NAME(InterpolantMinimizer::ClauseSplitter);
   USE_ALLOCATOR(InterpolantMinimizer::ClauseSplitter);
 
-  ClauseSplitter() : _acc(0) {}
+  ClauseSplitter() : _index(new SubstitutionTreeClauseVariantIndex()), _acc(0) {}
   
   /**
    * Into @c acc push clauses that correspond to components of @c cl.
@@ -480,7 +480,7 @@ private:
     if(len==1) {
       return getAtomComponent(lits[0], 0);
     }
-    ClauseIterator cit = _index.retrieveVariants(lits, len);
+    ClauseIterator cit = _index->retrieveVariants(lits, len);
     if(cit.hasNext()) {
       Clause* res = cit.next();
       ASS(!cit.hasNext());
@@ -490,7 +490,7 @@ private:
     Clause* res = Clause::fromIterator(getArrayishObjectIterator(lits, len),
 	Unit::AXIOM, new Inference(Inference::INPUT));
     res->incRefCnt();
-    _index.insert(res);
+    _index->insert(res);
     return res;
   }
 
@@ -502,13 +502,13 @@ private:
       return getAtomComponent((*cl)[0], cl);
     }
 
-    ClauseIterator cit = _index.retrieveVariants(cl);
+    ClauseIterator cit = _index->retrieveVariants(cl);
     if(cit.hasNext()) {
       Clause* res = cit.next();
       ASS(!cit.hasNext());
       return res;
     }
-    _index.insert(cl);
+    _index->insert(cl);
     return cl;
   }
 
@@ -534,7 +534,7 @@ private:
     return res;
   }
 
-  ClauseVariantIndex _index;
+  ScopedPtr<ClauseVariantIndex> _index;
   DHMap<Literal*,Clause*> _atomIndex;
 
   ClauseStack* _acc;

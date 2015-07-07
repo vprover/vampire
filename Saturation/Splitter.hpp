@@ -246,7 +246,7 @@ private:
 
   //utility objects
   SplittingBranchSelector _branchSelector;
-  ClauseVariantIndex _componentIdx;
+  ScopedPtr<ClauseVariantIndex> _componentIdx;
   /**
    * Registers all the sat variables and keeps track
    * of associated ground literals for those variables

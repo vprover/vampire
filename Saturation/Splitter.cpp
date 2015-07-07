@@ -505,7 +505,7 @@ void SplittingBranchSelector::getNewZeroImpliedSplits(SplitLevelStack& res)
 //////////////
 
 Splitter::Splitter()
-: _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this), 
+: _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this), _componentIdx(new SubstitutionTreeClauseVariantIndex()),
   _clausesAdded(false), _haveBranchRefutation(false)
 {
   CALL("Splitter::Splitter");
@@ -922,7 +922,7 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
   ClauseIterator existingComponents;
   { 
     TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_USAGE);
-    existingComponents = _componentIdx.retrieveVariants(lits, size);
+    existingComponents = _componentIdx->retrieveVariants(lits, size);
   }
 
   if(!existingComponents.hasNext()) {
@@ -973,7 +973,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   
   {
     TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
-    _componentIdx.insert(compCl);
+    _componentIdx->insert(compCl);
   }
   _compNames.insert(compCl, name);
 
@@ -1223,7 +1223,7 @@ void Splitter::onNewClause(Clause* cl)
   //{
   //  //TODO - would it be better to use tryGetExistingComponent here?
   //  TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_USAGE);
-  //  isComponent = _componentIdx.retrieveVariants(cl).hasNext();
+  //  isComponent = _componentIdx->retrieveVariants(cl).hasNext();
   //}
   //if(isComponent){
   //	RSTAT_CTR_INC("New Clause is a Component");
