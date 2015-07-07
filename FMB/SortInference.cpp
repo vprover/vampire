@@ -189,6 +189,28 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
 
   }
 
+  if(env.options->mode()!=Options::Mode::SPIDER){
+    cout << "Sort Inference information:" << endl;
+  }
+
+  for(unsigned s=0;s<comps;s++){
+
+    if(sig->sortedConstants[s].size()==0 && sig->sortedFunctions[s].size()>0){
+      unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
+      sig->sortedConstants[s].push(Term::createConstant(fresh));
+#if DEBUG_SORT_INFERENCE
+      cout << "Adding fresh constant for sort "<<s<<endl;
+#endif
+    }
+    if((env.options->mode()!=Options::Mode::SPIDER) && sig->sortedConstants[s].size()>0){
+      cout << "Sort " << s << " has " << sig->sortedConstants[s].size() << " constants and ";
+      cout << sig->sortedFunctions[s].size() << " functions" <<endl;
+    }
+  }
+
+  sig->functionBounds.ensure(env.signature->functions());
+  sig->predicateBounds.ensure(env.signature->predicates());
+
   DArray<unsigned> bounds(comps);
 
   // Compute bounds on sorts
@@ -196,7 +218,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
     if(sig->sortedFunctions[s].size()==0 && !posEqualitiesOnSort[s]){
       bounds[s]=sig->sortedConstants[s].size();
       // If no constants pretend there is one
-      if(bounds[s]==0) bounds[s]=1;
+      if(bounds[s]==0){ bounds[s]=1;}
     }
     else{
       bounds[s]=UINT_MAX;
@@ -243,25 +265,6 @@ SortedSignature* SortInference::apply(ClauseIterator cit)
       sig->predicateBounds[p][i] = bounds[argSort];
     }    
     //cout << "("<< offset_p[p] << ")"<< endl;
-  }
-
-  if(env.options->mode()!=Options::Mode::SPIDER){
-    cout << "Sort Inference information:" << endl;
-  }
-
-  for(unsigned s=0;s<comps;s++){
-
-    if(sig->sortedConstants[s].size()==0 && sig->sortedFunctions[s].size()>0){
-      unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
-      sig->sortedConstants[s].push(Term::createConstant(fresh));
-#if DEBUG_SORT_INFERENCE
-      cout << "Adding fresh constant for sort "<<s<<endl;
-#endif
-    }
-    if((env.options->mode()!=Options::Mode::SPIDER) && sig->sortedConstants[s].size()>0){
-      cout << "Sort " << s << " has " << sig->sortedConstants[s].size() << " constants and ";
-      cout << sig->sortedFunctions[s].size() << " functions" <<endl; 
-    }
   }
 
   return sig;
