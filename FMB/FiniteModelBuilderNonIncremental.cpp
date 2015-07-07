@@ -36,14 +36,14 @@
 #include "DefinitionIntroduction.hpp"
 #include "FiniteModelBuilderNonIncremental.hpp"
 
-#define VTRACE_FMB 0
+#define VTRACE_FMB 1
 
 namespace FMB 
 {
 
 FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _groundClauses(0), _clauses(0), _sortedSignature(0), 
-                      _isComplete(true), _maxModelSize(UINT_MAX)
+                      _isComplete(true), _maxModelSize(UINT_MAX), _constantCount(0)
 {
   CALL("FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental");
 
@@ -192,6 +192,9 @@ void FiniteModelBuilderNonIncremental::init()
   //Set up fminbound
   _fminbound.ensure(env.signature->functions());
   for(unsigned f=0;f<env.signature->functions();f++){
+
+    if(env.signature->functionArity(f)==0) _constantCount++;
+
     if(f >= _sortedSignature->functionBounds.size()){
       _fminbound[f]=UINT_MAX;
       continue;
@@ -413,8 +416,8 @@ void FiniteModelBuilderNonIncremental::addNewFunctionalDefs(unsigned size)
     for(unsigned i=0;i<arity;i++){
       mins[i] = min(bounds[i+1],size);
     }
-    mins[arity] = bounds[0];
-    mins[arity+1] = bounds[0];
+    mins[arity] = min(bounds[0],size);
+    mins[arity+1] = min(bounds[0],size);
 
       DArray<unsigned> grounding(arity+2);
       for(unsigned i=0;i<arity+2;i++){ grounding[i]=1; }
@@ -667,22 +670,22 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
     return MainLoopResult(Statistics::UNKNOWN);
   }
 
-  ALWAYS(reset(1));
-
   if(env.property->category()==Property::EPR){
-    ASS(_sortedSignature);
-    for(unsigned s=0;s<_sortedSignature->sorts;s++){
-      unsigned c = (_sortedSignature->sortedConstants[s]).size();
-      if(c>0 && c < _maxModelSize){
-        _maxModelSize = c; 
-      }
-    }
+    //ASS(_sortedSignature);
+    //for(unsigned s=0;s<_sortedSignature->sorts;s++){
+    //  unsigned c = (_sortedSignature->sortedConstants[s]).size();
+    //  if(c>0 && c < _maxModelSize){
+    //    _maxModelSize = c; 
+    //  }
+    //}
+    _maxModelSize = _constantCount;
   }
   if(_maxModelSize < UINT_MAX  && env.options->mode()!=Options::Mode::SPIDER){
       cout << "Detected maximum model size of " << _maxModelSize << endl;
   }
 
   unsigned modelSize = 1;
+  ALWAYS(reset(1));
   while(true){
 #if VTRACE_FMB
     cout << "TRYING " << modelSize << endl;
@@ -749,7 +752,7 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
       return MainLoopResult(Statistics::UNKNOWN);
     }
 
-    if(modelSize > _maxModelSize){
+    if(modelSize >= _maxModelSize){
 
       if(env.options->mode()!=Options::Mode::SPIDER) { 
         if(env.property->category()==Property::EPR){
