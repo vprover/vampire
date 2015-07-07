@@ -72,6 +72,7 @@ private:
 
   bool _isComplete;
   unsigned _maxModelSize;
+  unsigned _constantCount;
 };
 
 }
