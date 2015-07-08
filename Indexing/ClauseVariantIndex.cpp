@@ -224,7 +224,7 @@ void HashingClauseVariantIndex::insert(Clause* cl)
 {
   CALL("HashingClauseVariantIndex::insert");
 
-  static unsigned insertions = 0;
+  // static unsigned insertions = 0;
 
   //cout << "insert " << cl->toString() << endl;
 
@@ -272,7 +272,7 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
 
     //now get just some total deterministic order while ignoring variables
     static DisagreementSetIterator dsit;
-    dsit.reset(t1, t2, false);
+    dsit.fixedReset(t1, t2, false);
     while(dsit.hasNext()) {
       pair<TermList, TermList> dis=dsit.next();
       if(dis.first.isTerm()) {
@@ -287,7 +287,7 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       }
       // ignore disagreement on variables
     }
-    //they're equal when ignoring variables
+    //they're equal up to ignoring variables
     return EQUAL;
   }
 
@@ -314,9 +314,16 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       return Int::compare(t1->weight(),t2->weight());
     }
 
-    if(t1->vars()!=t1->vars()) {
+    if(t1->vars()!=t2->vars()) {
       // number of variable occurrences
       return Int::compare(t1->vars(),t2->vars());
+    }
+
+    // WARNING: comparing pointers may lead to non-reproducible behavior.
+    // This test can be skipped, but should lead to a more efficient code
+    if (t1->ground()) {
+      ASS(t2->ground());
+      return Int::compare((void *)t1,(void *)t2);
     }
 
     if(t1->functor()!=t2->functor()) {
@@ -335,9 +342,16 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       return Int::compare(l1->weight(),l2->weight());
     }
 
-    if(l1->vars()!=l1->vars()) {
+    if(l1->vars()!=l2->vars()) {
       // number of variable occurrences
       return Int::compare(l1->vars(),l2->vars());
+    }
+
+    // WARNING: comparing pointers may lead to non-reproducible behavior.
+    // This test can be skipped, but should lead to a more efficient code
+    if (l1->ground()) {
+      ASS(l2->ground());
+      return Int::compare((void *)l1,(void *)l2);
     }
 
     if(l1->header()!=l2->header()) {
@@ -397,6 +411,14 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(TermList* ptl, 
   }
 
   Term* t = ptl->term();
+
+  if (t->ground()) {
+    // no variables to count
+
+    // just hash the pointer
+    return Hash::hash((const unsigned char*)&t,sizeof(t),hash_begin);
+  }
+
   unsigned hash = termFunctorHash(t,hash_begin);
 
   SubtermIterator sti(t);
@@ -416,11 +438,18 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(TermList* ptl, 
 unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, VarCounts& varCnts, unsigned hash_begin) {
   CALL("HashingClauseVariantIndex::computeHashAndCountVariables(Literal*, ...)");
 
-  unsigned header = l->header();
-
   //cout << "Literal " << l->toString() << endl;
 
+  if (l->ground()) {
+    // no variables to count
+
+    // just hash the pointer
+    return Hash::hash((const unsigned char*)&l,sizeof(l),hash_begin);
+  }
+
   //cout << "will hash header " << header << endl;
+
+  unsigned header = l->header();
 
   // hashes the predicate symbol and the polarity
   unsigned hash = Hash::hash((const unsigned char*)&header,sizeof(header),hash_begin);
