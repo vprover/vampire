@@ -13,7 +13,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/ScopedLet.hpp"
-#include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -206,8 +205,12 @@ bool IGAlgorithm::addClause(Clause* cl)
 
 redundancy_check:
   {
-    TimeCounter tc2(TC_INST_GEN_VARIANT_DETECTION);
-    if(_variantIdx->retrieveVariants(cl).hasNext()) {
+    bool redundant;
+    {
+      TimeCounter tc2(TC_INST_GEN_VARIANT_DETECTION);
+      redundant = _variantIdx->retrieveVariants(cl).hasNext();
+    }
+    if (redundant) {
       cl->destroyIfUnnecessary();
       env.statistics->instGenRedundantClauses++;
       return false;

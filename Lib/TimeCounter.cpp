@@ -337,6 +337,15 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_FMB_CONSTRAINT_CREATION:
     out << "fmb constraint creation";
     break;
+  case TC_HCVI_COMPUTE_HASH:
+    out << "hvci compute hash";
+    break;
+  case TC_HCVI_INSERT:
+    out << "hvci insert";
+    break;
+  case TC_HCVI_RETRIEVE:
+      out << "hvci retrieve";
+      break;
   default:
     ASSERTION_VIOLATION;
   }

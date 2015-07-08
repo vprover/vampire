@@ -213,16 +213,43 @@ HashingClauseVariantIndex::~HashingClauseVariantIndex()
 {
   CALL("HashingClauseVariantIndex::~HashingClauseVariantIndex");
 
+  /*
+  unsigned max = 0;
+  ClauseList* maxval = 0;
+  */
+
   DHMap<unsigned, ClauseList*>::Iterator iit(_entries);
   while(iit.hasNext()){
     ClauseList* lst = iit.next();
-    lst->destroy();
+
+//    unsigned len = lst->length();
+//
+//    if (len > max) {
+//      max = len;
+//      maxval->destroy();
+//      maxval = lst;
+//    } else {
+      lst->destroy();
+//    }
   }
+
+  /*
+  cout << "max bucket of size " << max << endl;
+  ClauseList::Iterator it(maxval);
+  while (it.hasNext()) {
+    Clause* cl = it.next();
+    cout << cl->toString() << endl;
+  }
+
+  maxval->destroy();
+  */
 }
 
 void HashingClauseVariantIndex::insert(Clause* cl)
 {
   CALL("HashingClauseVariantIndex::insert");
+
+  TimeCounter tc( TC_HCVI_INSERT);
 
   // static unsigned insertions = 0;
 
@@ -243,6 +270,8 @@ void HashingClauseVariantIndex::insert(Clause* cl)
 ClauseIterator HashingClauseVariantIndex::retrieveVariants(Literal* const * lits, unsigned length)
 {
   CALL("HashingClauseVariantIndex::retrieveVariants/2");
+
+  TimeCounter tc( TC_HCVI_RETRIEVE );
 
   unsigned h = computeHash(lits,length);
 
@@ -477,6 +506,8 @@ unsigned HashingClauseVariantIndex::computeHash(Literal* const * lits, unsigned 
   CALL("HashingClauseVariantIndex::computeHash");
 
   // cout << "length " <<  length << endl;
+
+  TimeCounter tc( TC_HCVI_COMPUTE_HASH );
 
   static Stack<unsigned> litOrder;
   litOrder.reset();
