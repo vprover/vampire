@@ -149,6 +149,7 @@ private:
 
   RCClauseStack _inputClauses;
 
+  bool _use_hashing;
   ClauseVariantIndex* _variantIdx;
 
   LiteralSubstitutionTree* _selected;

@@ -103,7 +103,12 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
     _globalSubsumption = new GlobalSubsumption(_opt,_groundingIndex.ptr());
   }
 
-  _variantIdx = new HashingClauseVariantIndex();
+  _use_hashing = _opt.instGenUseHashingVariantIndex();
+  if (_use_hashing) {
+    _variantIdx = new HashingClauseVariantIndex();
+  } else {
+    _variantIdx = new SubstitutionTreeClauseVariantIndex();
+  }
   _selected = new LiteralSubstitutionTree();
 
   _doingSatisfiabilityCheck = false;
@@ -662,7 +667,11 @@ void IGAlgorithm::wipeIndexes()
 
   delete _selected;
   delete _variantIdx;
-  _variantIdx = new HashingClauseVariantIndex();
+  if (_use_hashing) {
+    _variantIdx = new HashingClauseVariantIndex();
+  } else {
+    _variantIdx = new SubstitutionTreeClauseVariantIndex();
+  }
   _selected = new LiteralSubstitutionTree();
 }
 
