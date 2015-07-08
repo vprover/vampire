@@ -101,13 +101,13 @@ namespace FMB {
       CALL("DefinitionIntroduction::addGroundDefinition");
 
       //cout << "Adding defs for " << term->toString() << endl;
-
-      PolishSubtermIterator it(term);
       ASS(term->ground());
-
       if(term->arity()==0) return term;
 
       Term* retC=0;
+      if(_introduced.find(term,retC)){ return retC; }
+
+      PolishSubtermIterator it(term);
       while(it.hasNext() || retC==0){
         Term* t = it.hasNext() ? it.next().term() : term;
         //cout << "Considering " << t->toString() << endl;
