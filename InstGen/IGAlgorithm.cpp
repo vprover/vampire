@@ -414,6 +414,8 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
 {
   CALL("IGAlgorithm::tryGeneratingInstances");
 
+  TimeCounter tc(TC_INST_GEN_GEN_INST);
+
   Literal* lit = (*cl)[litIdx];
 
   SLQueryResultIterator unifs = _selected->getUnifications(lit, true, true);
