@@ -52,6 +52,7 @@ FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb,
     _isComplete = false;
     return;
   }
+  _startModelSize = opt.fmbStartSize();
 
   _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
   _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
@@ -110,6 +111,9 @@ void FiniteModelBuilderNonIncremental::init()
   CALL("FiniteModelBuilderNonIncremental::init");
 
   if(!_isComplete) return;
+
+
+  env.statistics->phase = Statistics::FMB_PREPROCESSING;
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
@@ -698,6 +702,8 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
     return MainLoopResult(Statistics::UNKNOWN);
   }
 
+  env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
+
   if(env.property->category()==Property::EPR){
     //ASS(_sortedSignature);
     //for(unsigned s=0;s<_sortedSignature->sorts;s++){
@@ -712,8 +718,8 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
       cout << "Detected maximum model size of " << _maxModelSize << endl;
   }
 
-  unsigned modelSize = 1;
-  ALWAYS(reset(1));
+  unsigned modelSize = _startModelSize;
+  ALWAYS(reset(modelSize));
   while(true){
 #if VTRACE_FMB
     cout << "TRYING " << modelSize << endl;
@@ -765,8 +771,10 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
 
     SATSolver::Status satResult = SATSolver::UNKNOWN;
     {
+      env.statistics->phase = Statistics::FMB_SOLVING;
       TimeCounter tc(TC_FMB_SAT_SOLVING);
       satResult = _solver->solve();
+      env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
     }
 
     // if the clauses are satisfiable then we have found a finite model

@@ -1611,6 +1611,7 @@ public:
   bool fmbIncremental() const { return _fmbIncremental.actualValue; }
   bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
   bool fmbSortInference() const { return _fmbSortInference.actualValue; }
+  unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   bool eprPreservingNaming() const { return _eprPreservingNaming.actualValue; }
   //void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
@@ -2010,6 +2011,7 @@ private:
   BoolOptionValue _fmbIncremental;
   BoolOptionValue _fmbNonGroundDefs;
   BoolOptionValue _fmbSortInference;
+  UnsignedOptionValue _fmbStartSize;
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
   BoolOptionValue _forceIncompleteness;

@@ -376,6 +376,9 @@ public:
     PREPROCESSING,
     /** Whatever happens after the saturation algorithm finishes */
     FINALIZATION,
+    FMB_PREPROCESSING,
+    FMB_CONSTRAINT_GEN,
+    FMB_SOLVING,
     UNKNOWN_PHASE
   };
 

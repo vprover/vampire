@@ -75,6 +75,7 @@ private:
   DArray<unsigned> f_offsets;
   DArray<unsigned> p_offsets;
 
+  unsigned _startModelSize; 
   bool _isComplete;
   unsigned _maxModelSize;
   unsigned _constantCount;
