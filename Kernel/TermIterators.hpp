@@ -344,23 +344,6 @@ public:
     CALL("Term::DisagreementSetIterator::reset(Term*...)");
     ASS_EQ(t1->functor(), t2->functor());
 
-    _arg1.makeEmpty();
-
-    if(t1->arity()>0) {
-      _stack.push(t1->args());
-      _stack.push(t2->args());
-    }
-  }
-
-  /**
-   * TODO: the function above should take the code of this one and
-   * this one should be deleted (and calls to it replaced).
-   */
-  void fixedReset(Term* t1, Term* t2, bool disjunctVariables=true)
-  {
-    CALL("Term::DisagreementSetIterator::fixedReset(Term*...)");
-    ASS_EQ(t1->functor(), t2->functor());
-
     _stack.reset();
     _disjunctVariables=disjunctVariables;
 
