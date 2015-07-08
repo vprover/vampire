@@ -179,7 +179,7 @@ void FiniteModelBuilderNonIncremental::init()
       (*c)[i] = n.apply(l);
     }
 #if VTRACE_FMB
-    //cout << "Normalized " << c->toString() << endl;
+    cout << "Normalized " << c->toString() << endl;
 #endif
 
   }
@@ -433,11 +433,14 @@ void FiniteModelBuilderNonIncremental::addNewFunctionalDefs(unsigned size)
 
     DArray<unsigned> bounds = _sortedSignature->functionBounds[f];
     DArray<unsigned> mins(arity+2);
+    //cout << "Mins: ";
     for(unsigned i=0;i<arity;i++){
       mins[i] = min(bounds[i+1],size);
+      //cout << mins[i] << " ";
     }
     mins[arity] = min(bounds[0],size);
     mins[arity+1] = min(bounds[0],size);
+    //cout << mins[arity] << " " << mins[arity+1] << endl;
 
       DArray<unsigned> grounding(arity+2);
       for(unsigned i=0;i<arity+2;i++){ grounding[i]=1; }
@@ -451,9 +454,13 @@ newFuncLabel:
         }
         else{
           grounding[i]++;
-          if(grounding[0]==grounding[1]){
+          //cout << "Grounding: ";
+          //for(unsigned j=0;j<grounding.size();j++) cout << grounding[j] << " ";
+          //cout << endl;
+          if(grounding[0]>=grounding[1]){
+            //cout << "Skipping" << endl;
             //Skip this instance
-            continue;
+            goto newFuncLabel;
           }
           static SATLiteralStack satClauseLits;
           satClauseLits.reset();
@@ -886,9 +893,10 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
       grounding[0]=c;
       SATLiteral slit = getSATLiteral(f,grounding,true,true,modelSize);
       if(_solver->trueInAssignment(slit)){
+        //if(found){ cout << "Error: multiple interpretations of " << name << endl;}
+        ASS(!found);
         modelStm << "fmb" << c;
         found=true;
-        break;
       }
     }
     ASS(found);
@@ -934,6 +942,9 @@ fModelLabel:
             grounding[arity]=c;
             SATLiteral slit = getSATLiteral(f,grounding,true,true,modelSize);
             if(_solver->trueInAssignment(slit)){
+              //cout << "found " << c << endl;
+              //if(found){ cout << "Error: multiple interpretations of " << name << endl; }
+              ASS(!found);
               foundc=c;
               found=true;
             }

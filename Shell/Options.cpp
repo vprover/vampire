@@ -656,19 +656,19 @@ void Options::Options::init()
 
     _fmbIncremental = BoolOptionValue("fmb_incremental","fmbi",false);
     _fmbIncremental.description = "Use incremental SAT in fmb";
-    _lookup.insert(&_fmbIncremental);
+    //_lookup.insert(&_fmbIncremental);
     _fmbIncremental.setExperimental();
     _fmbIncremental.setRandomChoices({"on","off"});
 
     _fmbNonGroundDefs = BoolOptionValue("fmb_nonground_defs","fmbngd",false);
     _fmbNonGroundDefs.description = "Introduce definitions for non ground terms in preprocessing for fmb";
-    _lookup.insert(&_fmbNonGroundDefs);
+    //_lookup.insert(&_fmbNonGroundDefs);
     _fmbNonGroundDefs.setExperimental();
     _fmbNonGroundDefs.setRandomChoices({"on","off"});
 
     _fmbSortInference = BoolOptionValue("fmb_sort_inference","fmbsi",false);
     _fmbSortInference.description = "Perform sort inference for fmb";
-    _lookup.insert(&_fmbSortInference);
+    //_lookup.insert(&_fmbSortInference);
     _fmbSortInference.setExperimental();
     _fmbSortInference.setRandomChoices({"on","off"});
 
