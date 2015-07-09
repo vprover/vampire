@@ -1612,6 +1612,7 @@ public:
   bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
   bool fmbSortInference() const { return _fmbSortInference.actualValue; }
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
+  bool fmbStartWithConstants() const { return _fmbStartWithConstants.actualValue; }
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   bool eprPreservingNaming() const { return _eprPreservingNaming.actualValue; }
   //void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
@@ -1787,6 +1788,8 @@ public:
   int tabulationLemmaWeightRatio() const { return _tabulationLemmaAgeWeightRatio.otherValue; }
 
   Instantiation instantiation() const { return _instantiation.actualValue; }
+  bool theoryFlattening() const { return _theoryFlattening.actualValue; }
+
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenInprocessing() const { return _instGenInprocessing.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2012,6 +2015,7 @@ private:
   BoolOptionValue _fmbNonGroundDefs;
   BoolOptionValue _fmbSortInference;
   UnsignedOptionValue _fmbStartSize;
+  BoolOptionValue _fmbStartWithConstants;
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
   BoolOptionValue _forceIncompleteness;
@@ -2175,6 +2179,7 @@ private:
   StringOptionValue _testId;
   StringOptionValue _thanks;
   BoolOptionValue _theoryAxioms;
+  BoolOptionValue _theoryFlattening;
 
   /** Time limit in deciseconds */
   TimeLimitOptionValue _timeLimitInDeciseconds;

@@ -51,6 +51,7 @@
 #include "Statistics.hpp"
 #include "SpecialTermElimination.hpp"
 #include "TheoryAxioms.hpp"
+#include "TheoryFlattening.hpp"
 #include "TrivialPredicateRemover.hpp"
 
 #include "UIHelper.hpp"
@@ -541,6 +542,14 @@ void Preprocess::preprocess (Problem& prb)
 
      EqualityProxy proxy(_options.equalityProxy());
      proxy.apply(prb);
+   }
+
+   if(_options.theoryFlattening()){
+     if(env.options->showPreprocessing())
+       env.out() << "theory flattening" << std::endl;
+
+       TheoryFlattening tf;
+       tf.apply(prb);
    }
 
    if (env.options->showPreprocessing()) {

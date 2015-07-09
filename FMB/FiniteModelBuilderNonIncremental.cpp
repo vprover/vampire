@@ -53,6 +53,7 @@ FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb,
     return;
   }
   _startModelSize = opt.fmbStartSize();
+  _useConstantsAsStart = opt.fmbStartWithConstants();
 
   _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
   _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
@@ -704,21 +705,27 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
 
   env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
 
-  if(env.property->category()==Property::EPR){
-    //ASS(_sortedSignature);
-    //for(unsigned s=0;s<_sortedSignature->sorts;s++){
-    //  unsigned c = (_sortedSignature->sortedConstants[s]).size();
-    //  if(c>0 && c < _maxModelSize){
-    //    _maxModelSize = c; 
-    //  }
+  if(env.property->category()==Property::EPR){// || _useConstantsAsStart){
+    ASS(_sortedSignature);
+    unsigned max = 1;
+    for(unsigned s=0;s<_sortedSignature->sorts;s++){
+      unsigned c = (_sortedSignature->sortedConstants[s]).size();
+      if(c>max){
+        max = c; 
+      }
+    }
+    //if(env.property->category()==Property::EPR){
+      _maxModelSize = max;
     //}
-    _maxModelSize = _constantCount;
+    //if(_useConstantsAsStart){
+    //  _startModelSize = max;
+    //}
   }
   if(_maxModelSize < UINT_MAX  && env.options->mode()!=Options::Mode::SPIDER){
       cout << "Detected maximum model size of " << _maxModelSize << endl;
   }
 
-  unsigned modelSize = _startModelSize;
+  unsigned modelSize = _useConstantsAsStart ? _constantCount : _startModelSize;
   ALWAYS(reset(modelSize));
   while(true){
 #if VTRACE_FMB
@@ -750,7 +757,7 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
     cout << "SYM DEFS" << endl;
 #endif
     for(unsigned s=1;s<=modelSize;s++){
-      addNewSymmetryAxioms(s);
+     addNewSymmetryAxioms(s);
     }
 #if VTRACE_FMB
     cout << "TOTAL DEFS" << endl;

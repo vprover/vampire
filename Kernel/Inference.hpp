@@ -196,6 +196,8 @@ public:
     EQUALITY_AXIOM,
     /** any added theory axioms */
     THEORY,
+    //** Flatten a clause to separate theory literals */
+    THEORY_FLATTENING,
     /** Introduction of formula to convert formulas used as argument positions.
      *  Such formulas have the form F->f(x)=1 or ~F->f(x)=0 */
     BOOLEAN_TERM_ENCODING,

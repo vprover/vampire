@@ -478,6 +478,11 @@ void Options::Options::init()
     _lookup.insert(&_theoryAxioms);
     _theoryAxioms.tag(OptionTag::PREPROCESSING);
 
+    _theoryFlattening = BoolOptionValue("theory_flattening","thf",false);
+    _theoryFlattening.description = "Flatten clauses to separate theory and non-theory parts";
+    _lookup.insert(&_theoryFlattening);
+    _theoryFlattening.tag(OptionTag::PREPROCESSING);
+
     _sineDepth = UnsignedOptionValue("sine_depth","sd",0);
     _sineDepth.description=
     "Limit number of iterations of the transitive closure algorithm that selects formulas based on SInE's D-relation (see SInE description). 0 means no limit, 1 is a maximal limit (least selected axioms), 2 allows two iterations, etc...";
@@ -653,6 +658,12 @@ void Options::Options::init()
     _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen","fmb"});
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
     _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter","tabulation"});
+
+    _fmbStartWithConstants = BoolOptionValue("fmb_start_with_constants","fmbswc",false);
+    _fmbStartWithConstants.description = "Start fmb with model size equal to the number of constants in the problem";
+    _lookup.insert(&_fmbStartWithConstants);
+    _fmbStartWithConstants.setExperimental();
+    _fmbStartWithConstants.setRandomChoices({"on","off"});
 
     _fmbIncremental = BoolOptionValue("fmb_incremental","fmbi",false);
     _fmbIncremental.description = "Use incremental SAT in fmb";
