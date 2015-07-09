@@ -58,6 +58,12 @@ FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb,
   _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
   _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
 
+  _maxArity = 0;
+  for(unsigned f=0;f<env.signature->functions();f++){
+    unsigned arity = env.signature->functionArity(f);
+    if(arity>_maxArity) _maxArity = arity;
+  }
+
 }
 
 bool FiniteModelBuilderNonIncremental::reset(unsigned size){
@@ -581,6 +587,64 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryCanonicityAxioms(unsigned s
     addSATClause(SATClause::fromStack(satClauseLits));
   }
 
+  for(unsigned ds=1;ds<4;ds++){
+    for(unsigned f=0;f<functions.length();f++){
+      static SATLiteralStack satClauseLits;
+      satClauseLits.reset();
+      unsigned arity = env.signature->functionArity(functions[f]->functor());
+  
+      DArray<unsigned> grounding(arity+1);
+      for(unsigned i=0;i<arity;i++) grounding[i]=ds;
+      grounding[arity]=size;
+      satClauseLits.push(getSATLiteral(functions[f]->functor(),grounding,false,true,size));
+
+      DArray<unsigned> cgrounding(1);
+      cgrounding[0]=size-1;
+      for(unsigned i=0;i<constants.length();i++){
+        satClauseLits.push(getSATLiteral(constants[i]->functor(),cgrounding,true,true,size));
+      }
+      for(unsigned i=0;i<f;i++){
+        unsigned arityF = env.signature->functionArity(functions[i]->functor());
+        DArray<unsigned> groundingf(arityF+1);
+        for(unsigned j=0;j<arityF;j++){ groundingf[j]=ds;}
+        groundingf[arityF]=size-1;
+        satClauseLits.push(getSATLiteral(functions[i]->functor(),groundingf,true,true,size));
+      }    
+      addSATClause(SATClause::fromStack(satClauseLits));
+    }
+  }
+
+}
+
+void FiniteModelBuilderNonIncremental::addUseModelSize(unsigned size)
+{
+  CALL("FiniteModelBuilderNonIncremental::addUseModelSize");
+
+  // Only do thise if we have unary functions at most
+  if(_maxArity>1) return;
+
+  static SATLiteralStack satClauseLits;
+  satClauseLits.reset();
+
+  for(unsigned s=0;s<_sortedSignature->sorts;s++){ 
+    DArray<unsigned> cgrounding(1);
+    cgrounding[0]=size;
+    for(unsigned c=0;c<_sortedSignature->sortedConstants[s].size();c++){
+      satClauseLits.push(
+        getSATLiteral(_sortedSignature->sortedConstants[s][c]->functor(),cgrounding,true,true,size)); 
+    }
+    DArray<unsigned> fgrounding(2);
+    fgrounding[1]=size;
+    for(unsigned i=1;i<=size;i++){
+      fgrounding[0]=i;
+      for(unsigned f=0;f<_sortedSignature->sortedFunctions[f].size();f++){
+        satClauseLits.push(
+          getSATLiteral(_sortedSignature->sortedFunctions[s][f]->functor(),fgrounding,true,true,size)); 
+      } 
+    }
+  }
+
+  addSATClause(SATClause::fromStack(satClauseLits));
 }
 
 void FiniteModelBuilderNonIncremental::addNewTotalityDefs(unsigned size)
@@ -761,6 +825,10 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
     cout << "TOTAL DEFS" << endl;
 #endif
     addNewTotalityDefs(modelSize);
+#if VTRACE_FMB
+    cout << "USE MODEL SIZE" << endl;
+#endif
+    addUseModelSize(modelSize);
 
     }
 

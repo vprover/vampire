@@ -55,6 +55,7 @@ private:
                              _sortedSignature->sortedFunctions[s]);
       }
   }
+  void addUseModelSize(unsigned size);
 
   SATLiteral getSATLiteral(unsigned func, DArray<unsigned> elements,bool polarity, 
                            bool isFunction, unsigned modelSize);
@@ -84,6 +85,7 @@ private:
   unsigned _maxModelSize;
   unsigned _constantCount;
   bool _useConstantsAsStart;
+  unsigned _maxArity;
 };
 
 }
