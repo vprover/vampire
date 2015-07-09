@@ -54,7 +54,7 @@ bool TheoryFlattening::apply(UnitList*& units)
     if(cl!=cln){
       modified = true;
       uit.del();
-      UnitList::push(cl, res);
+      UnitList::push(cln, res);
     }
   }
 
@@ -81,7 +81,7 @@ bool TheoryFlattening::apply(ClauseList*& clauses)
     if(cl!=cln){
       modified = true;
       cit.del();
-      ClauseList::push(cl, res);
+      ClauseList::push(cln, res);
     }
   }
   ASS_EQ(modified, res->isNonEmpty());
@@ -129,6 +129,7 @@ Clause* TheoryFlattening::apply(Clause*& cl)
       result.push(lit);
     }
     else{
+      //cout << lit->toString() << " flattened to " << nlit->toString() << endl; 
       updated=true;
       lits.push(nlit);
       lits.loadFromIterator(Stack<Literal*>::Iterator(newLits));
@@ -136,8 +137,12 @@ Clause* TheoryFlattening::apply(Clause*& cl)
   }
   if(!updated){ return cl;}
 
-  return Clause::fromStack(result,cl->inputType(),
+  Clause* rep = Clause::fromStack(result,cl->inputType(),
                             new Inference1(Inference::THEORY_FLATTENING,cl)); 
+
+  //cout << cl->toString() << " replaced by " << rep->toString() << endl;
+
+  return rep;
 }
 
 /**
@@ -147,26 +152,75 @@ Clause* TheoryFlattening::apply(Clause*& cl)
  Literal* TheoryFlattening::replaceTopTerms(Literal* lit, Stack<Literal*>& newLits,unsigned& maxVar)
 {
   CALL("TheoryFlattening::replaceTopTerms");
+  //cout << "replaceTopTerms " << lit->toString() << endl;
 
   // Tells us if we're looking for interpreted are non-interpreted terms to flatten out
   bool interpreted = theory->isInterpretedPredicate(lit);
 
   Stack<TermList> args;
-  bool updated=false;
 
   for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
     if(ts->isVar()){
       args.push(*ts);
+      continue;
     }
     Term* t = ts->term();
-    if(interpreted){
 
+    // if interpreted status is different factor out
+    if(interpreted != env.signature->getFunction(t->functor())->interpreted()){
+      //cout << "Factoring out " << t->toString() << endl;
+      unsigned newVar = ++maxVar;
+      args.push(TermList(newVar,false));
+      unsigned sort = SortHelper::getResultSort(t);
+      newLits.push(Literal::createEquality(false,TermList(t),TermList(newVar,false),sort));
+    } 
+    else{
+      Term* tt = replaceTopTermsInTerm(t,newLits,maxVar,interpreted);
+      args.push(TermList(tt));
     }
-
   }
 
-  if(!updated) return lit;
+  if(newLits.isEmpty()) return lit;
   else return Literal::create(lit,args.begin());
+}
+
+/**
+ *
+ * @author Giles
+ */
+ Term* TheoryFlattening::replaceTopTermsInTerm(Term* term, Stack<Literal*>& newLits,
+                                               unsigned& maxVar,bool interpreted)
+{
+  CALL("TheoryFlattening::replaceTopTermsInTerm");
+  //cout << "replaceTopTermsInTerm " << term->toString() << endl;
+
+
+  Stack<TermList> args;
+  bool updated=false;
+
+  for(TermList* ts = term->args(); ts->isNonEmpty(); ts = ts->next()){
+    if(ts->isVar()){
+      args.push(*ts);
+      continue;
+    }
+    Term* t = ts->term();
+
+    // if interpreted status is different factor out
+    if(interpreted != env.signature->getFunction(t->functor())->interpreted()){
+      //cout << "Factoring out " << t->toString() << endl;
+      unsigned newVar = ++maxVar;
+      args.push(TermList(newVar,false));
+      unsigned sort = SortHelper::getResultSort(t);
+      newLits.push(Literal::createEquality(false,TermList(t),TermList(newVar,false),sort));
+    }   
+    else{
+      Term* tt = replaceTopTermsInTerm(t,newLits,maxVar,interpreted);
+      args.push(TermList(tt));
+    }
+  }
+
+  if(!updated) return term;
+  else return Term::create(term,args.begin());
 }
 
 

@@ -266,6 +266,8 @@ public:
     CALL("InterpretedLiteralEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
 
+    //cout << "try evaluate " << trm->toString() << endl;
+
     try {
       Interpretation itp = theory->interpretFunction(trm);
       ASS(theory->isFunction(itp));
@@ -292,6 +294,7 @@ public:
     }
     catch(ArithmeticException)
     {
+       //cout << "ArithmeticException" << endl;
       return false;
     }
   }
@@ -758,6 +761,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
     TermList rep; 
     if(!theory->invertInterpretedFunction(t2.term(),non_constant,t1,rep)){
       // if no inverse then return false... cannot balance
+      cout << "Fail due to lack of inverse" << endl;
       return false;
     }
 
@@ -771,17 +775,9 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
   // We have rearranged things so that t2 is a non-constant term and t1 is a number
   // of interprted functions applied to some constants. By evaluating t1 we will
   //  get a constant (unless evaluation is not possible)
-  Evaluator* funcEv = getFuncEvaluator(t1.term()->functor());
-  ASS(funcEv);
-  Term* res;
-  if(!funcEv->tryEvaluateFunc(t1.term(),res)){
-    // if the evaluation returns false then there must be something like division by zero
-    // TODO: should this tell us more than it was not balanced?
-    return false;
-  }
 
-  TermList new_args[] = {TermList(res),t2}; 
-  resLit = Literal::create(lit,new_args);
+  TermList new_args[] = {t1,t2}; 
+  resLit = TermTransformer::transform(Literal::create(lit,new_args));
   return true;
 }
 

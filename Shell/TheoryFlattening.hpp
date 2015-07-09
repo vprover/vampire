@@ -25,6 +25,9 @@ public:
 private:
   Clause* apply(Clause*& cl);
   Literal* replaceTopTerms(Literal* lit, Stack<Literal*>& newLits,unsigned& maxVar);
+  Term* replaceTopTermsInTerm(Term* term, Stack<Literal*>& newLits,
+                              unsigned& maxVar,bool interpreted);
+
 
 };
 
