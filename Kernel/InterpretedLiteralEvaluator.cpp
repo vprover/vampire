@@ -761,7 +761,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
     TermList rep; 
     if(!theory->invertInterpretedFunction(t2.term(),non_constant,t1,rep)){
       // if no inverse then return false... cannot balance
-      cout << "Fail due to lack of inverse" << endl;
+      //cout << "Fail due to lack of inverse" << endl;
       return false;
     }
 
