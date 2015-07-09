@@ -20,6 +20,12 @@ using namespace Inferences;
 using namespace Shell;
 using namespace SAT;
 
+  struct GroundedTerm{
+    unsigned f;
+    //DArray<unsigned> grounding;
+    unsigned grounding;
+  };
+
 class FiniteModelBuilderNonIncremental : public MainLoop {
 public:
   CLASS_NAME(FiniteModedlBuilder);
@@ -41,19 +47,17 @@ private:
   void addNewInstances(unsigned modelSize);
   void addNewFunctionalDefs(unsigned modelSize);
   void addNewTotalityDefs(unsigned modelSize);
-  void addNewSymmetryOrderingAxioms(unsigned modelSize,Stack<Term*>& constants, Stack<Term*>& functions);
-  void addNewSymmetryCanonicityAxioms(unsigned modelSize,Stack<Term*>& constants, Stack<Term*>& functions);
+  void addNewSymmetryOrderingAxioms(unsigned modelSize,Stack<GroundedTerm>& groundedTerms); 
+  void addNewSymmetryCanonicityAxioms(unsigned modelSize,Stack<GroundedTerm>& groundedTerms,unsigned maxModelSize);
 
   void addNewSymmetryAxioms(unsigned modelSize){
       ASS(_sortedSignature);
+    for(unsigned m=1;m<=modelSize;m++){
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
-        addNewSymmetryOrderingAxioms(modelSize,
-                             _sortedSignature->sortedConstants[s],
-                             _sortedSignature->sortedFunctions[s]);
-        addNewSymmetryCanonicityAxioms(modelSize,
-                             _sortedSignature->sortedConstants[s],
-                             _sortedSignature->sortedFunctions[s]);
+        addNewSymmetryOrderingAxioms(m,_sortedGroundedTerms[s]);
+        addNewSymmetryCanonicityAxioms(m,_sortedGroundedTerms[s],modelSize);
       }
+    }
   }
   void addUseModelSize(unsigned size);
 
@@ -77,6 +81,9 @@ private:
   DArray<unsigned> _fminbound;
   DHMap<Clause*,DArray<unsigned>*> _clauseBounds;
 
+
+  DArray<Stack<GroundedTerm>> _sortedGroundedTerms;
+
   DArray<unsigned> f_offsets;
   DArray<unsigned> p_offsets;
 
@@ -86,6 +93,7 @@ private:
   unsigned _constantCount;
   bool _useConstantsAsStart;
   unsigned _maxArity;
+  float _symmetryRatio;
 };
 
 }

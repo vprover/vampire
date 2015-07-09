@@ -54,6 +54,7 @@ FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb,
   }
   _startModelSize = opt.fmbStartSize();
   _useConstantsAsStart = opt.fmbStartWithConstants();
+  _symmetryRatio = opt.fmbSymmetryRatio();
 
   _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
   _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
@@ -109,6 +110,28 @@ bool FiniteModelBuilderNonIncremental::reset(unsigned size){
   }
 
   _solver->ensureVarCount(offsets+1);
+
+  _sortedGroundedTerms.ensure(_sortedSignature->sorts);
+  for(unsigned s=0;s<_sortedSignature->sorts;s++){
+    _sortedGroundedTerms[s].reset();
+    for(unsigned c=0;c<_sortedSignature->sortedConstants[s].length();c++){
+      GroundedTerm g;
+      g.f = _sortedSignature->sortedConstants[s][c];
+      g.grounding = 0;
+      _sortedGroundedTerms[s].push(g);
+      //cout << "Adding " << g.f << "," << g.grounding << " to " << s << endl;
+    }
+    for(unsigned m=1;m<=size;m++){
+      for(unsigned f=0;f<_sortedSignature->sortedFunctions[s].length();f++){
+        GroundedTerm g;
+        g.f =_sortedSignature->sortedFunctions[s][f];
+        g.grounding = m;
+        _sortedGroundedTerms[s].push(g);
+        //cout << "Adding " << g.f << "," << g.grounding << " to " << s << endl;
+      }
+    }
+
+  }
 
   return true;
 }
@@ -492,72 +515,27 @@ newFuncLabel:
 }
 
 void FiniteModelBuilderNonIncremental::addNewSymmetryOrderingAxioms(unsigned size,
-                       Stack<Term*>& constants, Stack<Term*>& functions) 
+                       Stack<GroundedTerm>& groundedTerms)
 {
-  CALL("FiniteModelBuilderNonIncremental::addNewSymmetryAxioms");
+  CALL("FiniteModelBuilderNonIncremental::addNewSymmetryOrderingAxioms");
 
-  // If all constants have been used then start adding function symmetries
-  if(constants.size() < size){
-    if(constants.size()==0) return;
 
-#if VTRACE_FMB
-    cout << "Added all constants, adding grounding of function" << endl; 
-#endif
-
-    //TODO change this so we cycle through functions then groundings
-
-    // There are N constants so the constants take the first N places in the order
-    // Then the ith function f takes places 1+(i+1)N to (i+2)N where i starts at 0
-    // so given model 'size' the function we want (i.e. the i) is size/N
-    unsigned n = constants.size();
-
-    if(functions.size() <= (size/n)) return;
-
-    Term* function = functions[size/n];
-    unsigned arity = function->arity();
-
-    // For the domain element we use size%n
-    // i.e. for the N instances of the function we use the first N domain elements
-    int ci = (size%n);
-
-    ASS(ci >= 0);
-    DArray<unsigned> grounding(arity+1);
-    // Fill in first arity places with constant
-    for(unsigned i=0;i<arity;i++){ grounding[i]=ci;}
-    // Fill in arity place below
-
-    static SATLiteralStack satClauseLits;
-    satClauseLits.reset();
-
-    for(unsigned i=0;i<size;i++){
-      grounding[arity]=i+1;
-      SATLiteral sl = getSATLiteral(function->functor(),grounding,true,true,size);
-      satClauseLits.push(sl);
-    }
-    
-    SATClause* satCl = SATClause::fromStack(satClauseLits);
-    addSATClause(satCl);
-
-    // do not add any constant symmetries
-    return;
-  }
-
-  // Add restricted totality for constants (TODO remove totality for constants?)
+  // Add restricted totality 
   // i.e. for constant a1 add { a1=1 } and for a2 add { a2=1, a2=2 } and so on
+  if(groundedTerms.length() < size) return;
 
-  // we add the next one, which is for constant at position 'size'
-  Term* c1 = constants[size-1]; // size 1-based, index 0-based
+  GroundedTerm gt = groundedTerms[size-1];
+  unsigned arity = env.signature->functionArity(gt.f);
+  DArray<unsigned> grounding(arity+1);
+  for(unsigned i=0;i<arity;i++) grounding[i] = gt.grounding;
 
-#if VTRACE_FMB
-    cout << "Adding symmetry constraint on constant " << c1->toString() << endl;
-#endif
+  //cout << "Add symmetry ordering for " << gt.f << "," << gt.grounding << endl;
 
   static SATLiteralStack satClauseLits;
   satClauseLits.reset(); 
-  for(unsigned i=0;i<size;i++){
-    DArray<unsigned> grounding(1);
-    grounding[0]=i+1;
-    SATLiteral sl = getSATLiteral(c1->functor(),grounding,true,true,size);
+  for(unsigned i=1;i<=size;i++){
+    grounding[arity]=i;
+    SATLiteral sl = getSATLiteral(gt.f,grounding,true,true,size);
     satClauseLits.push(sl);
   }
   SATClause* satCl = SATClause::fromStack(satClauseLits);
@@ -566,52 +544,42 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryOrderingAxioms(unsigned siz
 }
 
 void FiniteModelBuilderNonIncremental::addNewSymmetryCanonicityAxioms(unsigned size,
-                       Stack<Term*>& constants, Stack<Term*>& functions)
+                       Stack<GroundedTerm>& groundedTerms,
+                       unsigned maxSize)
 {
   CALL("FiniteModelBuilderNonIncremental::addNewSymmetryCanonicityAxioms");
 
   if(size<=1) return;
 
-  for(unsigned c=0;c<constants.length();c++){
-    static SATLiteralStack satClauseLits;
-    satClauseLits.reset();
-   
-    DArray<unsigned> grounding(1);
-    grounding[0]=size;
-    satClauseLits.push(getSATLiteral(constants[c]->functor(),grounding,false,true,size));
- 
-    grounding[0]=size-1;
-    for(unsigned i=0;i<c;i++){
-      satClauseLits.push(getSATLiteral(constants[i]->functor(),grounding,true,true,size));
-    }
-    addSATClause(SATClause::fromStack(satClauseLits));
+  unsigned w = _symmetryRatio * maxSize; 
+  if(w > groundedTerms.length()){
+     w = groundedTerms.length();
   }
 
-  for(unsigned ds=1;ds<4;ds++){
-    for(unsigned f=0;f<functions.length();f++){
+  for(unsigned i=1;i<w;i++){
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
-      unsigned arity = env.signature->functionArity(functions[f]->functor());
-  
-      DArray<unsigned> grounding(arity+1);
-      for(unsigned i=0;i<arity;i++) grounding[i]=ds;
-      grounding[arity]=size;
-      satClauseLits.push(getSATLiteral(functions[f]->functor(),grounding,false,true,size));
+   
+      GroundedTerm gti = groundedTerms[i];
+      unsigned arityi = env.signature->functionArity(gti.f);
+      DArray<unsigned> grounding_i(arityi+1);
+      for(unsigned a=0;a<arityi;a++){ grounding_i[a]=gti.grounding;}
+      grounding_i[arityi]=size;
+      satClauseLits.push(getSATLiteral(gti.f,grounding_i,false,true,size));
+ 
+      //cout << "Adding cannon for " << gti.f <<","<<gti.grounding<<endl;
 
-      DArray<unsigned> cgrounding(1);
-      cgrounding[0]=size-1;
-      for(unsigned i=0;i<constants.length();i++){
-        satClauseLits.push(getSATLiteral(constants[i]->functor(),cgrounding,true,true,size));
+      for(unsigned j=0;j<i;j++){
+        GroundedTerm gtj = groundedTerms[j];
+        unsigned arityj = env.signature->functionArity(gtj.f);
+        DArray<unsigned> grounding_j(arityj+1);
+        for(unsigned a=0;a<arityj;a++){ grounding_j[a]=gtj.grounding;}
+        grounding_j[arityj]=size-1;
+        //cout << "with " <<gtj.f<<","<<gtj.grounding<<endl;
+
+        satClauseLits.push(getSATLiteral(gtj.f,grounding_j,true,true,size));
       }
-      for(unsigned i=0;i<f;i++){
-        unsigned arityF = env.signature->functionArity(functions[i]->functor());
-        DArray<unsigned> groundingf(arityF+1);
-        for(unsigned j=0;j<arityF;j++){ groundingf[j]=ds;}
-        groundingf[arityF]=size-1;
-        satClauseLits.push(getSATLiteral(functions[i]->functor(),groundingf,true,true,size));
-      }    
       addSATClause(SATClause::fromStack(satClauseLits));
-    }
   }
 
 }
@@ -631,7 +599,7 @@ void FiniteModelBuilderNonIncremental::addUseModelSize(unsigned size)
     cgrounding[0]=size;
     for(unsigned c=0;c<_sortedSignature->sortedConstants[s].size();c++){
       satClauseLits.push(
-        getSATLiteral(_sortedSignature->sortedConstants[s][c]->functor(),cgrounding,true,true,size)); 
+        getSATLiteral(_sortedSignature->sortedConstants[s][c],cgrounding,true,true,size)); 
     }
     DArray<unsigned> fgrounding(2);
     fgrounding[1]=size;
@@ -639,7 +607,7 @@ void FiniteModelBuilderNonIncremental::addUseModelSize(unsigned size)
       fgrounding[0]=i;
       for(unsigned f=0;f<_sortedSignature->sortedFunctions[f].size();f++){
         satClauseLits.push(
-          getSATLiteral(_sortedSignature->sortedFunctions[s][f]->functor(),fgrounding,true,true,size)); 
+          getSATLiteral(_sortedSignature->sortedFunctions[s][f],fgrounding,true,true,size)); 
       } 
     }
   }
@@ -818,9 +786,8 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
 #if VTRACE_FMB
     cout << "SYM DEFS" << endl;
 #endif
-    for(unsigned s=1;s<=modelSize;s++){
-     addNewSymmetryAxioms(s);
-    }
+    addNewSymmetryAxioms(modelSize);
+    
 #if VTRACE_FMB
     cout << "TOTAL DEFS" << endl;
 #endif
@@ -828,7 +795,7 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
 #if VTRACE_FMB
     cout << "USE MODEL SIZE" << endl;
 #endif
-    addUseModelSize(modelSize);
+    //addUseModelSize(modelSize);
 
     }
 

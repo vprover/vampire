@@ -1814,7 +1814,10 @@ switch(f){
   case RAT_PLUS: inverted_f = RAT_MINUS; break;
   case RAT_MINUS: inverted_f = RAT_PLUS; break;
   case RAT_MULTIPLY: inverted_f = RAT_DIVIDE; break;
-  case RAT_DIVIDE: inverted_f = RAT_MULTIPLY; break;
+  case RAT_DIVIDE: 
+    //IntegerConstantType b;
+    inverted_f = RAT_MULTIPLY; 
+    break;
 
   case REAL_PLUS: inverted_f = REAL_MINUS; break; 
   case REAL_MINUS: inverted_f = REAL_PLUS; break;

@@ -173,18 +173,13 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
     cout << "adding " << f << " as constant for " << rangeSort << endl;
     //cout << "it is " << Term::createConstant(f)->toString() << endl;
 #endif
-       sig->sortedConstants[rangeSort].push(Term::createConstant(f));
+       sig->sortedConstants[rangeSort].push(f);
     }
     else{
 #if DEBUG_SORT_INFERENCE
       cout << "recording " << f << " as function for " << rangeSort << endl;
 #endif
-       static DArray<TermList> args(8);
-       args.ensure(arity);
-       for(unsigned i=0;i<arity;i++){
-         args[i].makeVar(0);
-       }
-       sig->sortedFunctions[rangeSort].push(Term::create(f,arity,args.begin()));
+       sig->sortedFunctions[rangeSort].push(f);
     }
 
   }
@@ -197,7 +192,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
 
     if(sig->sortedConstants[s].size()==0 && sig->sortedFunctions[s].size()>0){
       unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
-      sig->sortedConstants[s].push(Term::createConstant(fresh));
+      sig->sortedConstants[s].push(fresh);
 #if DEBUG_SORT_INFERENCE
       cout << "Adding fresh constant for sort "<<s<<endl;
 #endif

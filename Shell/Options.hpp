@@ -1613,6 +1613,7 @@ public:
   bool fmbSortInference() const { return _fmbSortInference.actualValue; }
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
   bool fmbStartWithConstants() const { return _fmbStartWithConstants.actualValue; }
+  float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   bool eprPreservingNaming() const { return _eprPreservingNaming.actualValue; }
   //void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
@@ -2016,6 +2017,7 @@ private:
   BoolOptionValue _fmbSortInference;
   UnsignedOptionValue _fmbStartSize;
   BoolOptionValue _fmbStartWithConstants;
+  FloatOptionValue _fmbSymmetryRatio;
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
   BoolOptionValue _forceIncompleteness;

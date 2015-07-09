@@ -16,10 +16,11 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Lib;
 
+
 struct SortedSignature{
     unsigned sorts;
-    DArray<Stack<Term*>> sortedConstants;
-    DArray<Stack<Term*>> sortedFunctions;
+    DArray<Stack<unsigned>> sortedConstants;
+    DArray<Stack<unsigned>> sortedFunctions;
 
     DArray<DArray<unsigned>> functionBounds;
     DArray<DArray<unsigned>> predicateBounds;

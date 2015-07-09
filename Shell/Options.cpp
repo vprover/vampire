@@ -687,6 +687,11 @@ void Options::Options::init()
     _fmbStartSize.description = "Set the initial model size for finite model building";
     _lookup.insert(&_fmbStartSize);
 
+    _fmbSymmetryRatio = FloatOptionValue("fmb_symmetry_ratio","fmbsr",1.0);
+    _fmbSymmetryRatio.description = "";
+    _lookup.insert(&_fmbSymmetryRatio);
+    _fmbSymmetryRatio.setExperimental();
+
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
     "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
