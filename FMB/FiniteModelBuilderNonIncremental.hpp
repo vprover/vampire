@@ -41,12 +41,16 @@ private:
   void addNewInstances(unsigned modelSize);
   void addNewFunctionalDefs(unsigned modelSize);
   void addNewTotalityDefs(unsigned modelSize);
-  void addNewSymmetryAxioms(unsigned modelSize,Stack<Term*>& constants, Stack<Term*>& functions);
+  void addNewSymmetryOrderingAxioms(unsigned modelSize,Stack<Term*>& constants, Stack<Term*>& functions);
+  void addNewSymmetryCanonicityAxioms(unsigned modelSize,Stack<Term*>& constants, Stack<Term*>& functions);
 
   void addNewSymmetryAxioms(unsigned modelSize){
       ASS(_sortedSignature);
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
-        addNewSymmetryAxioms(modelSize,
+        addNewSymmetryOrderingAxioms(modelSize,
+                             _sortedSignature->sortedConstants[s],
+                             _sortedSignature->sortedFunctions[s]);
+        addNewSymmetryCanonicityAxioms(modelSize,
                              _sortedSignature->sortedConstants[s],
                              _sortedSignature->sortedFunctions[s]);
       }

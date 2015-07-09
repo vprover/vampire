@@ -485,7 +485,7 @@ newFuncLabel:
   }
 }
 
-void FiniteModelBuilderNonIncremental::addNewSymmetryAxioms(unsigned size,
+void FiniteModelBuilderNonIncremental::addNewSymmetryOrderingAxioms(unsigned size,
                        Stack<Term*>& constants, Stack<Term*>& functions) 
 {
   CALL("FiniteModelBuilderNonIncremental::addNewSymmetryAxioms");
@@ -515,8 +515,6 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryAxioms(unsigned size,
     int ci = (size%n);
 
     ASS(ci >= 0);
-    //TODO what is the convention with equality? equal part on left or right?
-    //     here assuming right
     DArray<unsigned> grounding(arity+1);
     // Fill in first arity places with constant
     for(unsigned i=0;i<arity;i++){ grounding[i]=ci;}
@@ -538,7 +536,7 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryAxioms(unsigned size,
     return;
   }
 
-  // First add restricted totality for constants (TODO remove totality for constants?)
+  // Add restricted totality for constants (TODO remove totality for constants?)
   // i.e. for constant a1 add { a1=1 } and for a2 add { a2=1, a2=2 } and so on
 
   // we add the next one, which is for constant at position 'size'
@@ -547,7 +545,6 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryAxioms(unsigned size,
 #if VTRACE_FMB
     cout << "Adding symmetry constraint on constant " << c1->toString() << endl;
 #endif
-
 
   static SATLiteralStack satClauseLits;
   satClauseLits.reset(); 
@@ -560,27 +557,28 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryAxioms(unsigned size,
   SATClause* satCl = SATClause::fromStack(satClauseLits);
   addSATClause(satCl);
 
-  // Now new add canonicity clauses of the form
-  // ai = d => a1=d | a2=d-1 | ... ai-1 =d-1
-  // for i=size and d>1
-  // i.e. if this constant is equal to d then there is a smaller one that is
-  // only do this for i>1
-  if(size > 1){
-    for(unsigned d=1;d<size;d++){
-      satClauseLits.reset();
+}
 
-      DArray<unsigned> grounding(1);
-      grounding[0]=d+1;
-      satClauseLits.push(getSATLiteral(c1->functor(),grounding,false,true,size));
+void FiniteModelBuilderNonIncremental::addNewSymmetryCanonicityAxioms(unsigned size,
+                       Stack<Term*>& constants, Stack<Term*>& functions)
+{
+  CALL("FiniteModelBuilderNonIncremental::addNewSymmetryCanonicityAxioms");
 
-      grounding[0]=d;
-      for(unsigned i=0;i<size-1;i++){
-        Term* ci = constants[i]; 
-        satClauseLits.push(getSATLiteral(ci->functor(),grounding,true,true,size));
-      }
+  if(size<=1) return;
 
-      addSATClause(SATClause::fromStack(satClauseLits));
+  for(unsigned c=0;c<constants.length();c++){
+    static SATLiteralStack satClauseLits;
+    satClauseLits.reset();
+   
+    DArray<unsigned> grounding(1);
+    grounding[0]=size;
+    satClauseLits.push(getSATLiteral(constants[c]->functor(),grounding,false,true,size));
+ 
+    grounding[0]=size-1;
+    for(unsigned i=0;i<c;i++){
+      satClauseLits.push(getSATLiteral(constants[i]->functor(),grounding,true,true,size));
     }
+    addSATClause(SATClause::fromStack(satClauseLits));
   }
 
 }
