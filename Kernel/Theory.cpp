@@ -1813,15 +1813,32 @@ switch(f){
 
   case RAT_PLUS: inverted_f = RAT_MINUS; break;
   case RAT_MINUS: inverted_f = RAT_PLUS; break;
-  case RAT_MULTIPLY: inverted_f = RAT_DIVIDE; break;
-  case RAT_DIVIDE: 
-    //IntegerConstantType b;
-    inverted_f = RAT_MULTIPLY; 
-    break;
+  case RAT_MULTIPLY: {
+      IntegerConstantType b;
+      if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
+         (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
+      {
+        if(b.toInt()==0) return false;
+        inverted_f = RAT_DIVIDE; 
+        break;
+      }
+      return false;
+    }
+  case RAT_DIVIDE: inverted_f = RAT_MULTIPLY; break;
 
   case REAL_PLUS: inverted_f = REAL_MINUS; break; 
   case REAL_MINUS: inverted_f = REAL_PLUS; break;
-  case REAL_MULTIPLY: inverted_f = REAL_DIVIDE; break;
+  case REAL_MULTIPLY: {
+      IntegerConstantType b;
+      if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
+         (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
+      {
+        if(b.toInt()==0) return false;
+        inverted_f = REAL_DIVIDE;
+        break;
+      }
+      return false;
+    } 
   case REAL_DIVIDE: inverted_f = REAL_MULTIPLY; break;
 
   default: // cannot be inverted
