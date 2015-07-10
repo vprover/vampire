@@ -644,29 +644,6 @@ void SaturationAlgorithm::init()
     Clause* cl=toAdd.next();
     addInputClause(cl);
   }
-  if(_instantiation &&  _opt.instantiation()==Options::Instantiation::EXPAND){
-    _instantiation->expandCandidates();
-  }
-  if(_instantiation && _opt.instantiation()==Options::Instantiation::INPUT_ONLY){
-   ClauseIterator all = _prb.clauseIterator();
-   while(all.hasNext()){
-     Clause* inputClause = all.next();
-     ClauseIterator instances = _instantiation->generateClauses(inputClause);
-     while(instances.hasNext()){
-       Clause* instance = instances.next();
-       // sos based on parent clause 
-       if (_opt.sos() != Options::Sos::OFF && 
-           ((inputClause->inputType()==Clause::AXIOM && _opt.sos() !=Options::Sos::THEORY) ||
-             inputClause->inference()->rule()==Inference::THEORY)
-       ) {
-           addInputSOSClause(instance);
-         } else {
-           addNewClause(instance);
-         }
-       //TODO do I need onParenthood here?
-     }
-   }
-  }
 
   if (_splitter) {
     _splitter->init(this);
@@ -1341,11 +1318,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if(opt.instantiation()!=Options::Instantiation::OFF){
     res->_instantiation = new Instantiation();
-    // If instantiation is INPUT_ONLY then we just create the object
-    // for use in init but don't add it to the generating engine
-    if(opt.instantiation()!=Options::Instantiation::INPUT_ONLY){
-      gie->addFront(res->_instantiation);
-    }
+    gie->addFront(res->_instantiation);
   }
 
   if (prb.hasEquality()) {

@@ -18,6 +18,35 @@ namespace Inferences
 
 using namespace Kernel;
 
+/*
+struct IntToIntTermFn
+{
+  IntToIntTermFn(){}
+  DECL_RETURN_TYPE(Term*);
+  OWN_RETURN_TYPE operator()(unsigned int i)
+  {
+    return theory->representConstant(IntegerConstantType(i));
+  }
+};
+struct IntToRatTermFn
+{
+  IntToRatTermFn(){}
+  DECL_RETURN_TYPE(Term*);
+  OWN_RETURN_TYPE operator()(unsigned int i)
+  {
+    return theory->representConstant(RationalConstantType(i,1));
+  }
+};
+struct IntToRealTermFn
+{
+  IntToRealTermFn(){}
+  DECL_RETURN_TYPE(Term*);
+  OWN_RETURN_TYPE operator()(unsigned int i)
+  {
+    return theory->representConstant(RealConstantType(RationalConstantType(i,1)));
+  }
+};
+*/
 class Instantiation
 : public GeneratingInferenceEngine
 {
@@ -30,18 +59,15 @@ public:
   ClauseIterator generateClauses(Clause* premise);
 
   void registerClause(Clause* cl);
-  void expandSort(unsigned sort);
-  void expandCandidates(){
-    expandSort(Sorts::SRT_INTEGER);
-    expandSort(Sorts::SRT_RATIONAL);
-    expandSort(Sorts::SRT_REAL);
-  }
 
 private:
-  bool getRelevantTerms(Clause* cl,unsigned sort, Set<Term*>* candidates);
-  VirtualIterator<Term*> getCandidateTerms(Clause* cl, unsigned var,unsigned sort);
-  class AllSubstitutionsIterator;
+  //bool getRelevantTerms(Clause* cl,unsigned sort, Set<Term*>* candidates);
+  //VirtualIterator<Term*> getCandidateTerms(Clause* cl, unsigned var,unsigned sort);
+  //class AllSubstitutionsIterator;
   struct ResultFn;
+
+  bool tryMakeLiteralFalse(Literal*, Substitution& sub);
+  Term* tryGetDifferentValue(Term* t); 
 
   DHMap<unsigned,Lib::Set<Term*>*> sorted_candidates;
 

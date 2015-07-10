@@ -31,154 +31,10 @@ namespace Inferences
 using namespace Lib;
 using namespace Kernel;
 
-struct IntToIntTermFn
-{
-  IntToIntTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
-  {
-    return theory->representConstant(IntegerConstantType(i));
-  }
-};
-struct IntToRatTermFn
-{
-  IntToRatTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
-  {
-    return theory->representConstant(RationalConstantType(i,1));
-  }
-};
-struct IntToRealTermFn
-{
-  IntToRealTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
-  {
-    return theory->representConstant(RealConstantType(RationalConstantType(i,1)));
-  }
-};
-
-void Instantiation::expandSort(unsigned sort)
-{
-  CALL("Instantiation::expandSort");
-
-   //Only do this with inbuilt arithmetic sorts currently
-  if(sort != Sorts::SRT_INTEGER && sort != Sorts::SRT_RATIONAL && sort != Sorts::SRT_REAL)
-     return;  
-
-  Lib::Set<Term*>* cans;
-  if(!sorted_candidates.find(sort,cans)) return;
-
-  if(sort==Sorts::SRT_INTEGER){
-    cans->insertFromIterator(pvi(getMappingIterator(getRangeIterator(-10u,10u),IntToIntTermFn())));
-  }
-  if(sort==Sorts::SRT_RATIONAL){
-    cans->insertFromIterator(pvi(getMappingIterator(getRangeIterator(-10u,10u),IntToRatTermFn())));
-  }
-  if(sort==Sorts::SRT_REAL){
-    cans->insertFromIterator(pvi(getMappingIterator(getRangeIterator(-10u,10u),IntToRealTermFn())));
-  }
-
-  
-  Lib::Set<Term*>* extra = cans;
-  for(unsigned i=0;i<2;i++){
-    Lib::Set<Term*>::Iterator small(*extra);
-    extra = new Lib::Set<Term*>();
-
-    // Just deal with interpreted constants
-    while(small.hasNext()){
-      Term* s = small.next();
-      if(s->arity()==0 && s->hasInterpretedConstants()){
-         
-        Lib::Set<Term*>::Iterator rest(*cans);
-        while(rest.hasNext()){
-          Term* t = rest.next();
-          if(t->arity()==0 && t->hasInterpretedConstants()){
-
-          //cout << "consider " << s->toString() << " and " << t->toString() << endl;
-
-           // now consider 
-           switch(sort){
-            case Sorts::SRT_INTEGER:
-            {
-              IntegerConstantType a; 
-              IntegerConstantType b; 
-              ALWAYS(theory->tryInterpretConstant(s,a));
-              ALWAYS(theory->tryInterpretConstant(t,b));
-              try{
-                extra->insert(theory->representConstant(a-b));
-              }catch(ArithmeticException&){}
-              try{
-                extra->insert(theory->representConstant(a+b));
-              }catch(ArithmeticException&){}
-              try{
-                extra->insert(theory->representConstant(a*b));
-              }catch(ArithmeticException&){}
-              try{
-                extra->insert(theory->representConstant(a/b));
-              }catch(ArithmeticException&){}
-              break;
-            }
-            case Sorts::SRT_RATIONAL:
-            {
-              RationalConstantType a;
-              RationalConstantType b;
-              ALWAYS(theory->tryInterpretConstant(s,a));
-              ALWAYS(theory->tryInterpretConstant(t,b));
-              try{
-                extra->insert(theory->representConstant(a-b));
-              }catch(ArithmeticException&){}
-              try{
-                extra->insert(theory->representConstant(a+b));
-              }catch(ArithmeticException&){}
-              try{
-                extra->insert(theory->representConstant(a*b));
-              }catch(ArithmeticException&){}
-              try{
-                extra->insert(theory->representConstant(a/b));
-              }catch(ArithmeticException&){}
-              break;
-            }
-            case Sorts::SRT_REAL:
-            {
-              RealConstantType a;
-              RealConstantType b;
-              ALWAYS(theory->tryInterpretConstant(s,a));
-              ALWAYS(theory->tryInterpretConstant(t,b));
-              try{
-                extra->insert(theory->representConstant(a-b));
-              }catch(ArithmeticException&){}
-              try{
-                extra->insert(theory->representConstant(a+b));
-              }catch(ArithmeticException&){}
-              try{
-                extra->insert(theory->representConstant(a*b));
-              }catch(ArithmeticException&){}
-              try{
-                extra->insert(theory->representConstant(a/b));
-              }catch(ArithmeticException&){}
-              break;
-            }
-            default:
-              ASSERTION_VIOLATION;
-           }
-          }
-        }
-      }
-    }
-    Lib::Set<Term*>::Iterator copyUsing(*extra);
-    cans->insertFromIterator(copyUsing);
-  }
-  Lib::Set<Term*>::Iterator copyUsing(*extra);
-  cans->insertFromIterator(copyUsing);
-
-  //Lib::Set<Term*>::Iterator toPrint(*cans);
-  //cout << "After expansion:"<<endl;
-  //while(toPrint.hasNext()){ cout << toPrint.next()->toString() << endl; }
-}
-
-
+/**
+ * Let's still store the per-sort constants from the problem
+ *
+ */
 void Instantiation::registerClause(Clause* cl)
 {
   CALL("Instantiation::registerClause");
@@ -195,13 +51,12 @@ void Instantiation::registerClause(Clause* cl)
       if(t.isTerm() && t.term()->ground()){
         unsigned sort;
         if(SortHelper::tryGetResultSort(t,sort)){
+          if(sort==Sorts::SRT_DEFAULT) continue;
           Set<Term*>* cans;
-          //cout << "find " << sort << endl;
           if(sorted_candidates.isEmpty() || !sorted_candidates.find(sort,cans)){
             cans = new Set<Term*>();
             sorted_candidates.insert(sort,cans);
           }
-          //cout << "record " << t.toString() << " for " << sort << endl;
           cans->insert(t.term());
         }
       }
@@ -214,98 +69,84 @@ void Instantiation::registerClause(Clause* cl)
  * The idea is to find terms that will make a literal in the clause true or false
  *
  */
-bool Instantiation::getRelevantTerms(Clause* c, unsigned targetSort, Set<Term*>* candidates)
+bool Instantiation::tryMakeLiteralFalse(Literal* lit, Substitution& sub)
 {
-  CALL("Instantiation::getRelevantTerms");
+  CALL("Instantiation::tryMakeLiteralFalse");
 
-  bool added = false;
-  // Get interpreted constants and add them and variants  
-  for(unsigned i=0;i<c->length();i++){
-    SubtermIterator it((*c)[i]);
-    while(it.hasNext()){
-      TermList t = it.next();
-      if(t.isTerm() && t.term()->arity()==0 && t.term()->hasInterpretedConstants()){
-        // we have an interpreted constant
-        unsigned sort;
-        ALWAYS(SortHelper::tryGetResultSort(t,sort));
+    bool madeSub = false;
+    if(theory->isInterpretedPredicate(lit)){ 
+      Interpretation interpretation = theory->interpretPredicate(lit);
+      //unsigned sort = theory->getOperationSort(interpretation);
 
-        if(sort!=targetSort) continue;
+      //TODO, very limited consideration, expand
+      switch(interpretation){
+        case Theory::EQUAL:
+        {
+          TermList* left = lit->nthArgument(0); TermList* right = lit->nthArgument(1); 
+          unsigned var;
+          Term* t = 0;
+          if(left->isVar() && !right->isVar() && theory->isInterpretedConstant(right->term())){
+           t = right->term(); 
+           var = left->var();
+          }
+          if(right->isVar() && !left->isVar() && theory->isInterpretedConstant(left->term())){
+           t = left->term(); 
+           var = right->var();
+          }
+          if(t){
+            madeSub = true;
+            if(lit->polarity()){
+             t = tryGetDifferentValue(t);
+            }
+            if(t){
+              sub.bind(var,t);
+            }
+          }
+          break;
+        }
+        default: //TODO cover other cases
+          break;
+      }
+    }
 
-        added=true;
-        candidates->insert(t.term());
+    return madeSub;
+}
+
+Term* Instantiation::tryGetDifferentValue(Term* t)
+{
+  CALL("Instantiation::tryGetDifferentValue");
+
+  unsigned sort = SortHelper::getResultSort(t);
+
         switch(sort){
           case Sorts::SRT_INTEGER:
             {
               IntegerConstantType constant;
-              ALWAYS(theory->tryInterpretConstant(t.term(),constant));
-              candidates->insert(theory->representConstant(constant-1));
-              candidates->insert(theory->representConstant(constant-10));
-              candidates->insert(theory->representConstant(constant+1));
-              candidates->insert(theory->representConstant(constant+10));
-              break;
+              ALWAYS(theory->tryInterpretConstant(t,constant));
+              return theory->representConstant(constant+1);
             }
           case Sorts::SRT_RATIONAL:
             {
               RationalConstantType constant;
               RationalConstantType one(1,1);
-              RationalConstantType ten(10,1);
-              ALWAYS(theory->tryInterpretConstant(t.term(),constant));
-              candidates->insert(theory->representConstant(constant+one));
-              candidates->insert(theory->representConstant(constant+ten));
-              candidates->insert(theory->representConstant(constant-one));
-              candidates->insert(theory->representConstant(constant-ten));
-              break;
+              ALWAYS(theory->tryInterpretConstant(t,constant));
+              return theory->representConstant(constant+one);
             }
           case Sorts::SRT_REAL:
             {
               RealConstantType constant;
               RealConstantType one(RationalConstantType(1,1));
-              RealConstantType ten(RationalConstantType(10,1));
-              ALWAYS(theory->tryInterpretConstant(t.term(),constant));
-              candidates->insert(theory->representConstant(constant+one));
-              candidates->insert(theory->representConstant(constant+ten));
-              candidates->insert(theory->representConstant(constant-one));
-              candidates->insert(theory->representConstant(constant-ten));
-              break;
+              ALWAYS(theory->tryInterpretConstant(t,constant));
+              return theory->representConstant(constant+one);
             }
           default:
             ASSERTION_VIOLATION;
         }
-      }
-    }
-  }
 
-/*
-  for(unsigned i=0;i<c->length();i++){
-    Literal* lit = (*c)[i];
-    if(theory->isInterpretedPredicate(lit)){ 
-      Interpretation interpretation = theory->interpretPredicate(lit);
-      unsigned sort = theory->getOperationSort(interpretation);
-      if(sort!=targetSort) continue;
-      //TODO, very limited consideration, expand
-      TermList* left = 0; TermList* right=0;
-      switch(interpretation){
-        case Theory::EQUAL:
-          left = lit->nthArgument(0); right = lit->nthArgument(1); 
-          if(left->isVar() && !right->isVar() && theory->isInterpretedConstant(right->term())){
-            added=true;
-            candidates->insert(right->term());
-          }
-          if(right->isVar() && !left->isVar() && theory->isInterpretedConstant(left->term())){
-            added=true;
-            candidates->insert(left->term());
-          }
-          break;
-
-        default: //TODO cover other cases
-          break;
-      }
-    }
-  }
-*/
-  return added;
+  return 0;
 }
 
+/*
 VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var,unsigned sort)
 {
   CALL("Instantiation::getCandidateTerms");
@@ -383,7 +224,7 @@ private:
   unsigned currently;
   bool finished;
 };
-
+*/
 
 struct Instantiation::ResultFn
 {
@@ -412,12 +253,29 @@ ClauseIterator Instantiation::generateClauses(Clause* premise)
 {
   CALL("Instantiation::generateClauses");
 
-  //cout << "Instantiate " << premise->toString() << endl;
+  cout << "Instantiate " << premise->toString() << endl;
 
+  Stack<Substitution> subs;
+  for(unsigned i=0;i<premise->length();i++){
+    Literal* lit = (*premise)[i];
+    Substitution sub;
+    if(tryMakeLiteralFalse(lit,sub)){ 
+      //cout << "pushing " << sub.toString() << endl;
+      subs.push(sub);
+    }
+  }
+
+  return pvi(getMappingIterator(
+                Stack<Substitution>::Iterator(subs),
+                ResultFn(premise)
+         ));
+
+/*
   return pvi(getMappingIterator(
                AllSubstitutionsIterator(premise,this),
                ResultFn(premise)
          ));
+*/
 }
 
 }

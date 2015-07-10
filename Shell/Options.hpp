@@ -260,10 +260,8 @@ public:
    *
    */
   enum class Instantiation : unsigned int {
-    EXPAND = 0,
-    INPUT_ONLY = 1,
-    OFF = 2,
-    ON = 3
+    OFF = 0,
+    ON = 1
   };
 
   /**
