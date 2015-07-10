@@ -121,11 +121,11 @@ bool FiniteModelBuilderNonIncremental::reset(unsigned size){
       _sortedGroundedTerms[s].push(g);
       //cout << "Adding " << g.f << "," << g.grounding << " to " << s << endl;
     }
-    for(unsigned m=1;m<size;m++){
+    for(unsigned m=1;m<=size;m++){
       for(unsigned f=0;f<_sortedSignature->sortedFunctions[s].length();f++){
         GroundedTerm g;
         g.f =_sortedSignature->sortedFunctions[s][f];
-        g.grounding = 1+((m+f)%(size-1));
+        g.grounding = 1+((m+f)%(size));
         _sortedGroundedTerms[s].push(g);
         //cout << "Adding " << g.f << "," << g.grounding << " to " << s << endl;
       }
