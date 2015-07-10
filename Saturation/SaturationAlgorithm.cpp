@@ -1318,6 +1318,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if(opt.instantiation()!=Options::Instantiation::OFF){
     res->_instantiation = new Instantiation();
+    //res->_instantiation->init();
     gie->addFront(res->_instantiation);
   }
 

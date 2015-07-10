@@ -239,13 +239,15 @@ void Preprocess::preprocess (Problem& prb)
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
-  if (prb.hasInterpretedOperations() && _options.theoryAxioms()) {
+  if (prb.hasInterpretedOperations()){
     InterpretedNormalizer().apply(prb);
-    env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
-    if (env.options->showPreprocessing())
-      env.out() << "adding theory axioms" << std::endl;
+    if( _options.theoryAxioms()){
+      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+      if (env.options->showPreprocessing())
+        env.out() << "adding theory axioms" << std::endl;
 
-    TheoryAxioms().apply(prb);
+      TheoryAxioms().apply(prb);
+    }
   }
 
   // stop here if clausification is not required

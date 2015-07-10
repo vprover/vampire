@@ -31,6 +31,60 @@ namespace Inferences
 using namespace Lib;
 using namespace Kernel;
 
+struct IntToIntTermFn
+{
+  IntToIntTermFn(){}
+  DECL_RETURN_TYPE(Term*);
+  OWN_RETURN_TYPE operator()(unsigned int i)
+  {
+    return theory->representConstant(IntegerConstantType(i));
+  }
+};
+struct IntToRatTermFn
+{
+  IntToRatTermFn(){}
+  DECL_RETURN_TYPE(Term*);
+  OWN_RETURN_TYPE operator()(unsigned int i)
+  {
+    return theory->representConstant(RationalConstantType(i,1));
+  }
+};
+struct IntToRealTermFn
+{
+  IntToRealTermFn(){}
+  DECL_RETURN_TYPE(Term*);
+  OWN_RETURN_TYPE operator()(unsigned int i)
+  {
+    return theory->representConstant(RealConstantType(RationalConstantType(i,1)));
+  }
+};
+struct InvertNumber
+{
+  InvertNumber();
+  DECL_RETURN_TYPE(unsigned);
+  OWN_RETURN_TYPE operator()(unsigned int i){ return -i; }
+};
+
+void Instantiation::init(){
+  CALL("Instantiation::init");
+    Set<Term*>* intSet = new Set<Term*>();
+    Set<Term*>* ratSet = new Set<Term*>();
+    Set<Term*>* realSet = new Set<Term*>();
+   
+
+    intSet->insertFromIterator(pvi(getMappingIterator(getRangeIterator(0u,10u),IntToIntTermFn())));
+    intSet->insertFromIterator(pvi(getMappingIterator(getMappingIterator(getRangeIterator(0u,10u),InvertNumber()),IntToIntTermFn())));
+    ratSet->insertFromIterator(pvi(getMappingIterator(getRangeIterator(0u,10u),IntToRatTermFn())));
+    ratSet->insertFromIterator(pvi(getMappingIterator(getMappingIterator(getRangeIterator(0u,10u),InvertNumber()),IntToRatTermFn())));
+    realSet->insertFromIterator(pvi(getMappingIterator(getRangeIterator(0u,10u),IntToRealTermFn())));
+    realSet->insertFromIterator(pvi(getMappingIterator(getMappingIterator(getRangeIterator(0u,10u),InvertNumber()),IntToRealTermFn())));
+
+    sorted_candidates.insert(Sorts::SRT_INTEGER,intSet);
+    sorted_candidates.insert(Sorts::SRT_RATIONAL,ratSet);
+    sorted_candidates.insert(Sorts::SRT_REAL,realSet);
+
+  }
+
 /**
  * Let's still store the per-sort constants from the problem
  *
@@ -57,6 +111,7 @@ void Instantiation::registerClause(Clause* cl)
             cans = new Set<Term*>();
             sorted_candidates.insert(sort,cans);
           }
+          cout << "For sort " << sort << " there are " << cans->size() << " cans" <<endl;
           cans->insert(t.term());
         }
       }
@@ -69,11 +124,10 @@ void Instantiation::registerClause(Clause* cl)
  * The idea is to find terms that will make a literal in the clause true or false
  *
  */
-bool Instantiation::tryMakeLiteralFalse(Literal* lit, Substitution& sub)
+void Instantiation::tryMakeLiteralFalse(Literal* lit, Stack<Substitution>& subs)
 {
   CALL("Instantiation::tryMakeLiteralFalse");
 
-    bool madeSub = false;
     if(theory->isInterpretedPredicate(lit)){ 
       Interpretation interpretation = theory->interpretPredicate(lit);
       //unsigned sort = theory->getOperationSort(interpretation);
@@ -81,25 +135,37 @@ bool Instantiation::tryMakeLiteralFalse(Literal* lit, Substitution& sub)
       //TODO, very limited consideration, expand
       switch(interpretation){
         case Theory::EQUAL:
+        case Theory::INT_LESS_EQUAL: // do these less_equal cases make sense?
+        case Theory::RAT_LESS_EQUAL:
+        case Theory::REAL_LESS_EQUAL:
         {
           TermList* left = lit->nthArgument(0); TermList* right = lit->nthArgument(1); 
           unsigned var;
           Term* t = 0;
-          if(left->isVar() && !right->isVar() && theory->isInterpretedConstant(right->term())){
+          if(left->isVar() && !right->isVar()){
            t = right->term(); 
            var = left->var();
           }
-          if(right->isVar() && !left->isVar() && theory->isInterpretedConstant(left->term())){
+          if(right->isVar() && !left->isVar()){
            t = left->term(); 
            var = right->var();
           }
           if(t){
-            madeSub = true;
+            // do occurs check
+            VariableIterator vit(t);
+            while(vit.hasNext()) if(vit.next().var()==var) return;
+
+            // we are okay
+            Substitution s1;
+            s1.bind(var,t);
+            subs.push(s1);
             if(lit->polarity()){
              t = tryGetDifferentValue(t);
-            }
-            if(t){
-              sub.bind(var,t);
+             if(t){
+               Substitution s2;
+               s2.bind(var,t);
+               subs.push(s2);
+             }
             }
           }
           break;
@@ -109,7 +175,6 @@ bool Instantiation::tryMakeLiteralFalse(Literal* lit, Substitution& sub)
       }
     }
 
-    return madeSub;
 }
 
 Term* Instantiation::tryGetDifferentValue(Term* t)
@@ -146,7 +211,6 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
   return 0;
 }
 
-/*
 VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var,unsigned sort)
 {
   CALL("Instantiation::getCandidateTerms");
@@ -156,13 +220,7 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
   if(sorted_candidates.find(sort,cans)){
     res = pvi(Set<Term*>::Iterator(*cans));
   }
-
-  Set<Term*>* relCans = new Set<Term*>();
-  if(getRelevantTerms(cl,sort,relCans)){
-    res = pvi(getConcatenatedIterator(res,Set<Term*>::Iterator(*relCans))); 
-  }
-
-  return pvi(res);
+  return res; 
 }
 
 class Instantiation::AllSubstitutionsIterator{
@@ -224,7 +282,6 @@ private:
   unsigned currently;
   bool finished;
 };
-*/
 
 struct Instantiation::ResultFn
 {
@@ -253,29 +310,25 @@ ClauseIterator Instantiation::generateClauses(Clause* premise)
 {
   CALL("Instantiation::generateClauses");
 
-  cout << "Instantiate " << premise->toString() << endl;
+  //cout << "Instantiate " << premise->toString() << endl;
 
   Stack<Substitution> subs;
   for(unsigned i=0;i<premise->length();i++){
     Literal* lit = (*premise)[i];
-    Substitution sub;
-    if(tryMakeLiteralFalse(lit,sub)){ 
-      //cout << "pushing " << sub.toString() << endl;
-      subs.push(sub);
-    }
+    tryMakeLiteralFalse(lit,subs);
   }
 
-  return pvi(getMappingIterator(
-                getPersistentIterator(Stack<Substitution>::Iterator(subs)),
-                ResultFn(premise)
+  return pvi(getConcatenatedIterator(
+               getMappingIterator(
+                  getPersistentIterator(Stack<Substitution>::Iterator(subs)),
+                  ResultFn(premise)
+               ),
+               getMappingIterator(
+                 AllSubstitutionsIterator(premise,this),
+                 ResultFn(premise)
+              )
          ));
 
-/*
-  return pvi(getMappingIterator(
-               AllSubstitutionsIterator(premise,this),
-               ResultFn(premise)
-         ));
-*/
 }
 
 }

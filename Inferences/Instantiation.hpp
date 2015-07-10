@@ -11,6 +11,7 @@
 #include "Lib/Set.hpp"
 #include "Kernel/Sorts.hpp"
 
+#include "Kernel/Theory.hpp"
 #include "InferenceEngine.hpp"
 
 namespace Inferences
@@ -18,35 +19,7 @@ namespace Inferences
 
 using namespace Kernel;
 
-/*
-struct IntToIntTermFn
-{
-  IntToIntTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
-  {
-    return theory->representConstant(IntegerConstantType(i));
-  }
-};
-struct IntToRatTermFn
-{
-  IntToRatTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
-  {
-    return theory->representConstant(RationalConstantType(i,1));
-  }
-};
-struct IntToRealTermFn
-{
-  IntToRealTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
-  {
-    return theory->representConstant(RealConstantType(RationalConstantType(i,1)));
-  }
-};
-*/
+
 class Instantiation
 : public GeneratingInferenceEngine
 {
@@ -56,17 +29,18 @@ public:
 
   Instantiation() {}
 
+  void init();
+
   ClauseIterator generateClauses(Clause* premise);
 
   void registerClause(Clause* cl);
 
 private:
-  //bool getRelevantTerms(Clause* cl,unsigned sort, Set<Term*>* candidates);
-  //VirtualIterator<Term*> getCandidateTerms(Clause* cl, unsigned var,unsigned sort);
-  //class AllSubstitutionsIterator;
+  VirtualIterator<Term*> getCandidateTerms(Clause* cl, unsigned var,unsigned sort);
+  class AllSubstitutionsIterator;
   struct ResultFn;
 
-  bool tryMakeLiteralFalse(Literal*, Substitution& sub);
+  void tryMakeLiteralFalse(Literal*, Stack<Substitution>& subs);
   Term* tryGetDifferentValue(Term* t); 
 
   DHMap<unsigned,Lib::Set<Term*>*> sorted_candidates;
