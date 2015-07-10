@@ -266,7 +266,7 @@ ClauseIterator Instantiation::generateClauses(Clause* premise)
   }
 
   return pvi(getMappingIterator(
-                Stack<Substitution>::Iterator(subs),
+                getPersistentIterator(Stack<Substitution>::Iterator(subs)),
                 ResultFn(premise)
          ));
 
