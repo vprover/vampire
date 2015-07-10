@@ -139,8 +139,8 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     res = new IGAlgorithm(prb, opt);
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
-    if(!env.property->usesSingleSort()){
-      cout << env.property->sortsUsed() << endl; 
+    if(env.property->sortsUsed()>1){
+      //cout << env.property->sortsUsed() << endl; 
       USER_ERROR("Finite Model Builder (sa=fmb) cannot be used with many-sorted problems"); 
     }
     if(opt.fmbIncremental()){

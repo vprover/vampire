@@ -142,7 +142,8 @@ MINISAT_OBJ = Minisat/core/Solver.o\
   Minisat/simp/SimpSolver.o\
   Minisat/utils/Options.o\
   Minisat/utils/System.o\
-  SAT/MinisatInterfacing.o
+  SAT/MinisatInterfacing.o\
+  SAT/MinisatInterfacingNewSimp.o
 
 API_OBJ = Api/FormulaBuilder.o\
 	  Api/Helper.o\

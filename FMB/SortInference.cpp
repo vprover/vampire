@@ -60,6 +60,8 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   cout << "count is " << count << endl;
 #endif
 
+  if(count==0) count=1;
+
   DArray<unsigned> posEqualitiesOnFunc(env.signature->functions());
 
   IntUnionFind unionFind(count);

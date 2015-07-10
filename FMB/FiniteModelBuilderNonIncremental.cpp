@@ -18,7 +18,7 @@
 #include "SAT/Preprocess.hpp"
 #include "SAT/TWLSolver.hpp"
 #include "SAT/LingelingInterfacing.hpp"
-#include "SAT/MinisatInterfacing.hpp"
+#include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/BufferedSolver.hpp"
 
 #include "Lib/Environment.hpp"
@@ -44,7 +44,8 @@ namespace FMB
 
 FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _groundClauses(0), _clauses(0), _sortedSignature(0), 
-                      _isComplete(true), _maxModelSize(UINT_MAX), _constantCount(0)
+                      _isComplete(true), _maxModelSize(UINT_MAX), _constantCount(0),
+                      _maxArity(0)
 {
   CALL("FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental");
 
@@ -103,7 +104,7 @@ bool FiniteModelBuilderNonIncremental::reset(unsigned size){
       _solver = new LingelingInterfacing(_opt, true);
       break;
     case Options::SatSolver::MINISAT:
-      _solver = new MinisatInterfacing(_opt,true);
+      _solver = new MinisatInterfacingNewSimp(_opt,true);
       break;
     default:
       ASSERTION_VIOLATION_REP(_opt.satSolver());
@@ -123,9 +124,23 @@ bool FiniteModelBuilderNonIncremental::reset(unsigned size){
     }
     for(unsigned m=1;m<=size;m++){
       for(unsigned f=0;f<_sortedSignature->sortedFunctions[s].length();f++){
+
         GroundedTerm g;
         g.f =_sortedSignature->sortedFunctions[s][f];
+
+        // We skip f if its range is bounded to less than size
+        if(_sortedSignature->functionBounds[g.f][0] < size) continue;
+
         g.grounding = 1+((m+f)%(size));
+
+        // We skip f if its domain is bounded to less than g.grounding
+        bool outOfBounds = false;
+        for(unsigned i=0;i<env.signature->functionArity(g.f);i++){
+          if(_sortedSignature->functionBounds[g.f][i+1] < g.grounding)
+            outOfBounds=true;
+        }
+        if(outOfBounds) continue;
+
         _sortedGroundedTerms[s].push(g);
         //cout << "Adding " << g.f << "," << g.grounding << " to " << s << endl;
       }
@@ -141,7 +156,6 @@ void FiniteModelBuilderNonIncremental::init()
   CALL("FiniteModelBuilderNonIncremental::init");
 
   if(!_isComplete) return;
-
 
   env.statistics->phase = Statistics::FMB_PREPROCESSING;
 
@@ -525,6 +539,7 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryOrderingAxioms(unsigned siz
   if(groundedTerms.length() < size) return;
 
   GroundedTerm gt = groundedTerms[size-1];
+
   unsigned arity = env.signature->functionArity(gt.f);
   DArray<unsigned> grounding(arity+1);
   for(unsigned i=0;i<arity;i++) grounding[i] = gt.grounding;
@@ -595,20 +610,23 @@ void FiniteModelBuilderNonIncremental::addUseModelSize(unsigned size)
   satClauseLits.reset();
 
   for(unsigned s=0;s<_sortedSignature->sorts;s++){ 
-    DArray<unsigned> cgrounding(1);
-    cgrounding[0]=size;
-    for(unsigned c=0;c<_sortedSignature->sortedConstants[s].size();c++){
-      satClauseLits.push(
-        getSATLiteral(_sortedSignature->sortedConstants[s][c],cgrounding,true,true,size)); 
-    }
-    DArray<unsigned> fgrounding(2);
-    fgrounding[1]=size;
-    for(unsigned i=1;i<=size;i++){
-      fgrounding[0]=i;
-      for(unsigned f=0;f<_sortedSignature->sortedFunctions[f].size();f++){
-        satClauseLits.push(
-          getSATLiteral(_sortedSignature->sortedFunctions[s][f],fgrounding,true,true,size)); 
-      } 
+    Stack<GroundedTerm> groundedTerms = _sortedGroundedTerms[s];
+    for(unsigned i=0;i< groundedTerms.length();i++){
+        GroundedTerm gt = groundedTerms[i];
+        unsigned arity = env.signature->functionArity(gt.f);
+        ASS(arity<2);
+        DArray<unsigned> grounding(arity+1);
+        grounding[arity]=size;
+        if(arity==0){
+          satClauseLits.push(getSATLiteral(gt.f,grounding,true,true,size)); 
+        }
+        else{
+          for(unsigned m=1;m<=size;m++){
+            //assume arity=1
+            grounding[0]=m;
+            satClauseLits.push(getSATLiteral(gt.f,grounding,true,true,size)); 
+          }
+        }
     }
   }
 
@@ -717,7 +735,7 @@ void FiniteModelBuilderNonIncremental::addSATClause(SATClause* cl)
   cl = Preprocess::removeDuplicateLiterals(cl);
   if(!cl){ return; }
 #if VTRACE_FMB
-  cout << "ADDING " << cl->toString() << endl;
+  cout << "ADDING " << cl->toString() << " of size " << cl->length() << endl;
 #endif
 
   _clausesToBeAdded.push(cl);
@@ -735,7 +753,7 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
 
   env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
 
-  if(env.property->category()==Property::EPR){// || _useConstantsAsStart){
+  if(env.property->category()==Property::EPR || _maxArity==0){
     ASS(_sortedSignature);
     unsigned max = 1;
     for(unsigned s=0;s<_sortedSignature->sorts;s++){
@@ -744,12 +762,9 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
         max = c; 
       }
     }
-    //if(env.property->category()==Property::EPR){
+    if(max < _maxModelSize){
       _maxModelSize = max;
-    //}
-    //if(_useConstantsAsStart){
-    //  _startModelSize = max;
-    //}
+    }
   }
   if(_maxModelSize < UINT_MAX  && env.options->mode()!=Options::Mode::SPIDER){
       cout << "Detected maximum model size of " << _maxModelSize << endl;
@@ -797,6 +812,33 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
 #endif
     //addUseModelSize(modelSize);
 
+#if 0 
+    // Say that first modelSize grounded terms are distinct experiment
+    for(unsigned s=0;s<_sortedSignature->sorts;s++){
+      Stack<GroundedTerm> gts = _sortedGroundedTerms[s];
+      unsigned total = modelSize;
+      if(total > gts.size()) total = gts.size(); 
+      for(unsigned i=0;i<total;i++){
+        GroundedTerm gt = gts[i];
+        unsigned arity = env.signature->functionArity(gt.f);
+        DArray<unsigned> grounding(arity+1);
+        for(unsigned a=0;a<arity;a++){ grounding[a]=gt.grounding;}
+        if(arity==0){
+          grounding[arity]=i+1;
+          addSATClause(getSATLiteral(gt.f,grounding,true,true,modelSize));
+        }
+        else{
+          static SATLiteralStack satClauseLits;
+          satClauseLits.reset();
+          for(unsigned j=1;j<=i;j++){
+            grounding[arity]=j;
+            satClauseLits.push(getSATLiteral(gt.f,grounding,true,true,modelSize));
+          }
+          addSATClause(SATClause::fromStack(satClauseLits));
+        }
+      }
+    }
+#endif
     }
 
 #if VTRACE_FMB
@@ -831,7 +873,7 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
     if(modelSize >= _maxModelSize){
 
       if(env.options->mode()!=Options::Mode::SPIDER) { 
-        if(env.property->category()==Property::EPR){
+        if(env.property->category()==Property::EPR || _maxArity==0){
           cout << "Checked all constants of an EPR problem" << endl;
         }
         else{

@@ -73,6 +73,12 @@ private:
   DArray<unsigned> del_p;
 
   void addSATClause(SATClause* cl);
+  void addSATClause(SATLiteral lit){
+    static SATLiteralStack satClauseLits;
+    satClauseLits.reset();
+    satClauseLits.push(lit);
+    addSATClause(SATClause::fromStack(satClauseLits));
+  }
   SATClauseStack _clausesToBeAdded;
 
   ClauseList* _groundClauses;
