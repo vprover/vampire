@@ -29,7 +29,7 @@ public:
 
   Instantiation() {}
 
-  void init();
+  //void init();
 
   ClauseIterator generateClauses(Clause* premise);
 

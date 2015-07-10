@@ -30,7 +30,7 @@ namespace Inferences
 
 using namespace Lib;
 using namespace Kernel;
-
+/*
 struct IntToIntTermFn
 {
   IntToIntTermFn(){}
@@ -58,6 +58,7 @@ struct IntToRealTermFn
     return theory->representConstant(RealConstantType(RationalConstantType(i,1)));
   }
 };
+
 struct InvertNumber
 {
   InvertNumber();
@@ -84,6 +85,7 @@ void Instantiation::init(){
     sorted_candidates.insert(Sorts::SRT_REAL,realSet);
 
   }
+*/
 
 /**
  * Let's still store the per-sort constants from the problem
