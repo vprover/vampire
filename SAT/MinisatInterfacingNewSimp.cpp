@@ -22,6 +22,8 @@ MinisatInterfacingNewSimp::MinisatInterfacingNewSimp(const Shell::Options& opts,
    
   // TODO: consider tuning minisat's options to be set for _solver
   // (or even forwarding them to vampire's options)  
+  //_solver.mem_lim(opts.memoryLimit()*2);
+  limitMemory(opts.memoryLimit()*2);
 }
   
 /**
