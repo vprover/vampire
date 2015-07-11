@@ -189,25 +189,32 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
           case Sorts::SRT_INTEGER:
             {
               IntegerConstantType constant;
-              ALWAYS(theory->tryInterpretConstant(t,constant));
-              return theory->representConstant(constant+1);
+              if(theory->tryInterpretConstant(t,constant)){
+                return theory->representConstant(constant+1);
+              }
+              break;
             }
           case Sorts::SRT_RATIONAL:
             {
               RationalConstantType constant;
               RationalConstantType one(1,1);
-              ALWAYS(theory->tryInterpretConstant(t,constant));
-              return theory->representConstant(constant+one);
+              if(theory->tryInterpretConstant(t,constant)){
+                return theory->representConstant(constant+one);
+              }
+              break;
             }
           case Sorts::SRT_REAL:
             {
               RealConstantType constant;
               RealConstantType one(RationalConstantType(1,1));
-              ALWAYS(theory->tryInterpretConstant(t,constant));
-              return theory->representConstant(constant+one);
+              if(theory->tryInterpretConstant(t,constant)){
+                return theory->representConstant(constant+one);
+              }
+              break;
             }
           default:
-            ASSERTION_VIOLATION;
+            break;
+            // not a numeric sort
         }
 
   return 0;
@@ -219,7 +226,7 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
 
   Set<Term*>* cans=0;
   VirtualIterator<Term*> res = VirtualIterator<Term*>::getEmpty();
-  if(sorted_candidates.find(sort,cans)){
+  if(sorted_candidates.find(sort,cans) && cans->size()){
     res = pvi(Set<Term*>::Iterator(*cans));
   }
   return res; 
@@ -250,22 +257,21 @@ public:
 
   Substitution next()
   {
+    CALL("AllSubstitutionsIterator::next")
     Substitution sub;
     VirtualIterator<unsigned> vs = candidates.domain(); 
     while(vs.hasNext()){
       unsigned v = vs.next();
-      unsigned at = current.get(v);
-      DArray<Term*>* cans = candidates.get(v);
-      ASS(cans);
-      // check deals with case where there are no candidates and no binding
-      if(cans->size()!=0){
+      DArray<Term*>* cans;
+      if(candidates.find(v,cans) && cans->size()!=0){
+        unsigned at = current.get(v);
         sub.bind(v,(* cans)[at]);
       }
     }
     //cout << "sub is " << sub.toString() << endl;
 
     // now update points and set finished if we are
-    if(candidates.get(currently)->size()==0 || 
+    if(!candidates.find(currently) || candidates.get(currently)->size()==0 || 
        candidates.get(currently)->size() == current.get(currently)+1){
       if(variables.hasNext()) currently = variables.next();
       else finished=true;
@@ -321,6 +327,7 @@ ClauseIterator Instantiation::generateClauses(Clause* premise)
   }
 
   return pvi(getConcatenatedIterator(
+  //return pvi(
                getMappingIterator(
                   getPersistentIterator(Stack<Substitution>::Iterator(subs)),
                   ResultFn(premise)
