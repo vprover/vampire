@@ -7,6 +7,8 @@
 
 // For limitMemory
 #include <signal.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
