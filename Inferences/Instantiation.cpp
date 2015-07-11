@@ -113,7 +113,7 @@ void Instantiation::registerClause(Clause* cl)
             cans = new Set<Term*>();
             sorted_candidates.insert(sort,cans);
           }
-          cout << "For sort " << sort << " there are " << cans->size() << " cans" <<endl;
+          // cout << "For sort " << sort << " there are " << cans->size() << " cans" <<endl;
           cans->insert(t.term());
         }
       }
