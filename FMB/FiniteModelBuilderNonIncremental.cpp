@@ -104,7 +104,23 @@ bool FiniteModelBuilderNonIncremental::reset(unsigned size){
       _solver = new LingelingInterfacing(_opt, true);
       break;
     case Options::SatSolver::MINISAT:
-      _solver = new MinisatInterfacingNewSimp(_opt,true);
+       try{
+         _solver = new MinisatInterfacingNewSimp(_opt,true);
+        }catch(Minisat::OutOfMemoryException&){
+
+    env.beginOutput();
+    reportSpiderStatus('m');
+    env.out() << "Minisat ran out of memory" << endl;
+    if(env.statistics) {
+      env.statistics->print(env.out());
+    }
+#if VDEBUG
+    Debug::Tracer::printStack(env.out());
+#endif
+    env.endOutput();
+    System::terminateImmediately(1);
+
+        }
       break;
     default:
       ASSERTION_VIOLATION_REP(_opt.satSolver());

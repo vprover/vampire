@@ -3,9 +3,14 @@
  * Implements class MinisatInterfacingNewSimp
  */
 
+#include "Forwards.hpp"
+
 #include "MinisatInterfacingNewSimp.hpp"
 
+#include "Lib/System.hpp"
 #include "Lib/ScopedLet.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 
 namespace SAT
 {
@@ -34,9 +39,25 @@ void MinisatInterfacingNewSimp::ensureVarCount(unsigned newVarCnt)
 {
   CALL("MinisatInterfacingNewSimp::ensureVarCount");
   
+  try{
+
   while(_solver.nVars() < (int)newVarCnt) {
     _solver.newVar();
   }
+  }catch(Minisat::OutOfMemoryException&){
+    env.beginOutput();
+    reportSpiderStatus('m');
+    env.out() << "Minisat ran out of memory" << endl;
+    if(env.statistics) {
+      env.statistics->print(env.out());
+    }
+#if VDEBUG
+    Debug::Tracer::printStack(env.out());
+#endif
+    env.endOutput();
+    System::terminateImmediately(1);
+  }
+
 }
 
 unsigned MinisatInterfacingNewSimp::newVar() 
@@ -84,6 +105,8 @@ void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conf
   
   // TODO: consider calling simplify(); or only from time to time?
    
+  try{
+
   //cout << "Before "<<_solver.nVars() << endl; 
   _solver.eliminate(true);
   //cout << "Elimated "<<_solver.eliminated_vars << endl;
@@ -96,6 +119,20 @@ void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conf
     _status = UNSATISFIABLE;    
   } else {
     _status = UNKNOWN;
+  }
+
+  }catch(Minisat::OutOfMemoryException&){
+    env.beginOutput();
+    reportSpiderStatus('m');
+    env.out() << "Minisat ran out of memory" << endl;
+    if(env.statistics) {
+      env.statistics->print(env.out());
+    }
+#if VDEBUG
+    Debug::Tracer::printStack(env.out());
+#endif
+    env.endOutput();
+    System::terminateImmediately(1);
   }
 }
 
