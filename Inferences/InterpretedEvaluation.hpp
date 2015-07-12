@@ -30,7 +30,7 @@ public:
 
   Clause* simplify(Clause* cl);
 private:
-  bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue);
+  bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue,Stack<Literal*>& sideConditions);
 
   InterpretedLiteralEvaluator* _simpl;
 };

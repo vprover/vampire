@@ -1766,7 +1766,7 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
  * @author Giles
  * @since 12/11/14
  */
- bool Theory::invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result)
+ bool Theory::invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result,Stack<Literal*>& sideConditions)
  {
    CALL("Theory::invertInterpetedFunction");
 
@@ -1814,11 +1814,11 @@ switch(f){
   case RAT_PLUS: inverted_f = RAT_MINUS; break;
   case RAT_MINUS: inverted_f = RAT_PLUS; break;
   case RAT_MULTIPLY: {
-      IntegerConstantType b;
+      RationalConstantType b;
       if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
          (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
       {
-        if(b.toInt()==0) return false;
+        if(b.numerator()==0) return false;
         inverted_f = RAT_DIVIDE; 
         break;
       }
@@ -1829,15 +1829,24 @@ switch(f){
   case REAL_PLUS: inverted_f = REAL_MINUS; break; 
   case REAL_MINUS: inverted_f = REAL_PLUS; break;
   case REAL_MULTIPLY: {
-      IntegerConstantType b;
+      RealConstantType b;
       if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
          (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
       {
-        if(b.toInt()==0) return false;
+        if(b.numerator()==0) return false;
         inverted_f = REAL_DIVIDE;
-        break;
       }
-      return false;
+      else{
+        // In this case the 'b' i.e. the bottom of the divisor is not a contant
+        // therefore we add a side-condition saying it cannot be 
+        TermList* notZero;
+        if(term->nthArgument(0)==arg){ notZero=term->nthArgument(1); } 
+        else if(term->nthArgument(1)==arg){ notZero=term->nthArgument(0); } 
+        Term* zero =theory->representConstant(RealConstantType(RationalConstantType(0,1)));
+        sideConditions.push(Literal::createEquality(true,TermList(zero),*notZero,Sorts::SRT_REAL));
+        inverted_f = REAL_DIVIDE;
+      }
+      break;
     } 
   case REAL_DIVIDE: inverted_f = REAL_MULTIPLY; break;
 

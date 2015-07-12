@@ -344,7 +344,7 @@ public:
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
 
-  bool invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result);
+  bool invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result,Stack<Literal*>& sideConditions);
 
   Interpretation interpretFunction(unsigned func);
   Interpretation interpretFunction(Term* t);

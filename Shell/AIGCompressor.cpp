@@ -840,7 +840,9 @@ AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
     bool isConst;
     bool constVal;
     Literal* litVal;
-    if(_ilEval->evaluate(lit, isConst, litVal, constVal)) {
+    Stack<Literal*> ignore; //Added to fit new interface but not incorporated here
+    if(_ilEval->evaluate(lit, isConst, litVal, constVal,ignore)) {
+      ASS(ignore.isEmpty());
       if(isConst) {
         if (env.options->showPreprocessing()) {
           env.beginOutput();

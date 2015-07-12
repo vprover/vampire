@@ -721,10 +721,12 @@ bool InterpretedLiteralEvaluator::balancable(Literal* lit)
  * @author Giles
  * @since 11/11/14
  */
-bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
+bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Literal*>& sideConditions)
 {
   CALL("InterpretedLiteralEvaluator::balance");
   ASS(balancable(lit));
+
+  //cout << "try balance " << lit->toString() << endl;
 
   ASS(theory->isInterpretedPredicate(lit->functor()));
 
@@ -781,7 +783,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
     // i.e. f(t,c1),t,c2 => f^(c1,c2) ... where f^ is f inverted and the ordering of its 
     //      args are decided in invertInterptedFunction
     TermList rep; 
-    if(!theory->invertInterpretedFunction(t2.term(),non_constant,t1,rep)){
+    if(!theory->invertInterpretedFunction(t2.term(),non_constant,t1,rep,sideConditions)){
       // if no inverse then return false... cannot balance
       //cout << "Fail due to lack of inverse" << endl;
       return false;
@@ -810,7 +812,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
  * isConstant is true if the literal predicate evaluates to a constant value
  * resConst is set iff isConstant and gives the constant value (true/false) of resLit 
  */
-bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst)
+bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions)
 {
   CALL("InterpretedLiteralEvaluator::evaluate");
 
@@ -825,7 +827,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   // A predicate on constants will not be balancable
   if(balancable(resLit)){
       Literal* new_resLit=resLit;
-      bool balance_result = balance(resLit,new_resLit);
+      bool balance_result = balance(resLit,new_resLit,sideConditions);
       ASS(balance_result || resLit==new_resLit);
       resLit=new_resLit;
   }
