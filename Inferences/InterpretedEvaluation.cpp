@@ -98,7 +98,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   newLits.expand(clen+sideConditions.length());
   while(side.hasNext()){ newLits[next++]=side.next();}
   int newLength = next;
-  ASS(newLits.size()==newLength);
   Inference* inf = new Inference1(Inference::EVALUATION, cl);
   Unit::InputType inpType = cl->inputType();
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
