@@ -21,6 +21,7 @@
 #include "Lib/System.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "Lib/Sys/Multiprocessing.hpp"
 #include "Lib/Sys/SyncPipe.hpp"
@@ -245,6 +246,38 @@ void CLTBMode::loadIncludes()
 void CLTBMode::doTraining()
 {
   CALL("CLTBMode::doTraining");
+
+  Stack<vstring> solutions;
+  System::readDir(trainingDirectory+"/Solutions",solutions);
+
+  ScopedPtr<DHMap<Unit*,Parse::TPTP::SourceRecord*> > sources;
+  sources = new DHMap<Unit*,Parse::TPTP::SourceRecord*>();
+
+  Stack<vstring>::Iterator it(solutions);
+  while (it.hasNext()) {
+    TimeCounter tc(TC_PARSING);
+    env.statistics->phase=Statistics::PARSING;
+
+    vstring& solnFileName = it.next();
+
+    cout << "Reading solutions " << solnFileName << endl;
+
+    ifstream soln(solnFileName.c_str());
+    if (soln.fail()) {
+      USER_ERROR("Cannot open problem file: " + solnFileName);
+    }
+    Parse::TPTP parser(soln);
+    parser.setUnitSourceMap(sources.ptr());
+    parser.parse();
+    UnitList* solnUnits = parser.units();
+
+
+    UnitList::Iterator it(solnUnits);
+    while (it.hasNext()) {
+      Unit* unit = it.next();
+      cout << unit->toString() << endl;
+    }
+  }
 
   // Idea is to solve training problems and look in proofs for common clauses derived from axioms
   // these can then be loaded into later proof attempts with weight zero to ensure they are processed quickly 

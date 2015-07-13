@@ -12,6 +12,7 @@
 
 #include "Array.hpp"
 #include "List.hpp"
+#include "Stack.hpp"
 #include "Portability.hpp"
 #include "VString.hpp"
 
@@ -57,6 +58,12 @@ public:
   static void registerForSIGHUPOnParentDeath();
 
   static void readCmdArgs(int argc, char* argv[], StringStack& res);
+
+  /**
+   * Collect filenames of all the files occurring in the given directory.
+   * Recursive traverse subdirs.
+   */
+  static void readDir(vstring dirName, Stack<vstring>& filenames);
 
   /**
    * Register the value of the argv[0] argument of the main function, so that

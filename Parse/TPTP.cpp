@@ -2670,7 +2670,12 @@ void TPTP::endFof()
 {
   CALL("TPTP::endFof");
 
-  TPTP::SourceRecord* source = getSource();
+  TPTP::SourceRecord* source = 0;
+
+  // are we interested in collecting sources?
+  if (_unitSources) {
+    source = getSource();
+  }
 
   skipToRPAR();
   consumeToken(T_DOT);
@@ -2935,10 +2940,10 @@ void TPTP::endTff()
  */
 TPTP::SourceRecord* TPTP::getSource()
 {
-  // if _unitSources is not there then we are not recording sources
-  if(!_unitSources) return 0;
+  if (getTok(0).tag != T_COMMA) { // if comma is not there, source was not provided
+    return 0;
+  }
 
-  // should start with comma
   consumeToken(T_COMMA);
 
  //Either source is a file or an inference, otherwise we don't care about it!
@@ -2986,10 +2991,25 @@ TPTP::SourceRecord* TPTP::getSource()
      resetToks();
      if(tok.tag == T_COMMA) continue;
    
-     ASS(tok.tag==T_NAME);
+     if (tok.tag != T_NAME && tok.tag != T_INT) {
+       cout << "read token " << tok.tag << " with content " << tok.content << endl;
+
+       // TODO: parse errors are nice, but maybe we just want to ignore any info which we cannot understand?
+
+       PARSE_ERROR("Source unit name expected",tok);
+     }
+
      vstring premise = tok.content;
-     r->premises.push(premise);
-     cout << "pushed premise " << premise << endl;
+
+     tok = getTok(0);
+     if (tok.tag != T_COMMA && tok.tag != T_RBRA) {
+       // if the next thing is neither comma not RBRA, it is an ugly info piece we want to skip
+       resetToks();
+       skipToRPAR();
+     } else {
+       r->premises.push(premise);
+       cout << "pushed premise " << premise << endl;
+     }
    }
    resetToks();
 

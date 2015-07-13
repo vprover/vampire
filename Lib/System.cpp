@@ -17,6 +17,8 @@
 #  endif
 #endif
 
+#include <dirent.h>
+
 #include <cerrno>
 #include <csignal>
 #include <cstdio>
@@ -509,6 +511,48 @@ pid_t System::getPID()
   //TODO: Implement pid retrieval for windows
   return 0;
 #endif
+}
+
+void System::readDir(vstring dirName, Stack<vstring>& filenames)
+{
+  CALL("System::readDir");
+
+  DIR *dirp;
+  struct dirent *dp;
+
+  static Stack<vstring> todo;
+  ASS(todo.isEmpty());
+  todo.push(dirName);
+
+  while (todo.isNonEmpty()) {
+    vstring dir = todo.pop();
+
+    dirp = opendir(dir.c_str());
+    while ((dp = readdir(dirp)) != NULL) {
+      if (strncmp(dp->d_name, ".", 1) == 0) {
+        continue;
+      }
+      if (strncmp(dp->d_name, "..", 2) == 0) {
+        continue;
+      }
+
+      switch (dp->d_type) {
+        case DT_REG:
+          filenames.push(dir+"/"+dp->d_name);
+          break;
+        case DT_DIR:
+          // cout << "seen dir " << dp->d_name << endl;
+          todo.push(dir+"/"+dp->d_name);
+          break;
+        default:
+          ;
+          // cout << "weird file type" << endl;
+      }
+    }
+    (void)closedir(dirp);
+  }
+
+  todo.reset();
 }
 
 /**

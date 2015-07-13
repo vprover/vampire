@@ -675,6 +675,7 @@ private:
   unsigned sortOf(TermList& term);
   static bool higherPrecedence(int c1,int c2);
 
+public:
   /**
    * Used to store the contents of the 'source' of an input formula
    * This is based on the 'file' and 'inference' record description in
