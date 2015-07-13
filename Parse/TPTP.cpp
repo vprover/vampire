@@ -2936,8 +2936,7 @@ void TPTP::endTff()
 TPTP::SourceRecord* TPTP::getSource()
 {
   // if _unitSources is not there then we are not recording sources
-  //if(!_unitSources) return 0;
-  if(!_unitSources){ _unitSources = new DHMap<Unit*,SourceRecord*>(); }
+  if(!_unitSources) return 0;
 
   // should start with comma
   consumeToken(T_COMMA);
