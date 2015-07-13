@@ -658,6 +658,7 @@ private:
   void bindVariable(int var,unsigned sortNumber);
   void unbindVariables();
   void skipToRPAR();
+  void skipToRBRA();
   unsigned addFunction(vstring name,int arity,bool& added,TermList& someArgument);
   int addPredicate(vstring name,int arity,bool& added,TermList& someArgument);
   unsigned addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
@@ -679,14 +680,20 @@ private:
    * This is based on the 'file' and 'inference' record description in
    * http://pages.cs.miami.edu/~tptp/TPTP/QuickGuide/Derivations.html
    */
-  struct SourceRecord{};
+  struct SourceRecord{
+    virtual bool isFile() = 0;
+  };
   struct FileSourceRecord : SourceRecord {
-    vstring fileName;
-    vstring nameInFile;
+    const vstring fileName;
+    const vstring nameInFile;
+    bool isFile(){ return true; } 
+    FileSourceRecord(vstring fN, vstring nF) : fileName(fN), nameInFile(nF) {}
   };
   struct InferenceSourceRecord : SourceRecord{
-    vstring name;
+    const vstring name;
     Stack<vstring> premises; 
+    bool isFile(){ return false; } 
+    InferenceSourceRecord(vstring n) : name(n) {}
   };
   
   void setUnitSourceMap(DHMap<Unit*,SourceRecord*>* m){

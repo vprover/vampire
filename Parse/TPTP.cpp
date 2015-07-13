@@ -2936,12 +2936,67 @@ void TPTP::endTff()
 TPTP::SourceRecord* TPTP::getSource()
 {
   // if _unitSources is not there then we are not recording sources
-  if(!_unitSources) return 0;
+  //if(!_unitSources) return 0;
+  if(!_unitSources){ _unitSources = new DHMap<Unit*,SourceRecord*>(); }
 
+  // should start with comma
+  consumeToken(T_COMMA);
 
  //Either source is a file or an inference, otherwise we don't care about it!
  //  therefore failing will return 0
+ 
+ Token source_kind = getTok(0);
+ if(source_kind.tag != T_NAME) return 0;
 
+ resetToks();
+ consumeToken(T_LPAR);
+ 
+ //file
+ if(source_kind.content == "file"){
+   vstring fileName = getTok(0).content;
+   resetToks();
+   consumeToken(T_COMMA);
+   resetToks();
+   vstring nameInFile = getTok(0).content;
+   resetToks();
+
+   cout << "Creating file source record for " << fileName << " and " << nameInFile << endl; 
+
+   consumeToken(T_RPAR);
+   return new FileSourceRecord(fileName,nameInFile); 
+ }
+ // inference
+ else if(source_kind.content == "inference"){
+   vstring name = getTok(0).content;   
+   resetToks();
+
+   cout << "Creating inference source record for " << name <<  endl;
+
+   InferenceSourceRecord* r = new InferenceSourceRecord(name);
+
+   // now skip this middle information that is between [ and ]
+   consumeToken(T_COMMA);
+   consumeToken(T_LBRA);
+   skipToRBRA();
+   consumeToken(T_COMMA);
+   consumeToken(T_LBRA);
+
+   // read comma separated list of names
+   Token tok;
+   while((tok=getTok(0)).tag != T_RBRA){
+     resetToks();
+     if(tok.tag == T_COMMA) continue;
+   
+     ASS(tok.tag==T_NAME);
+     vstring premise = tok.content;
+     r->premises.push(premise);
+     cout << "pushed premise " << premise << endl;
+   }
+   resetToks();
+
+   consumeToken(T_RPAR);
+   return r;
+ }
 
 
  return 0;
@@ -2979,6 +3034,35 @@ void TPTP::skipToRPAR()
     }
   }
 } // skipToRPAR
+
+/**
+ * A copy of skipToRPAR but for BRA
+ */
+void TPTP::skipToRBRA()
+{
+  int balance = 0;
+  for (;;) {
+    Token tok = getTok(0);
+    switch (tok.tag) {
+    case T_EOF:
+      PARSE_ERROR(") not found",tok);
+    case T_LBRA:
+      resetToks();
+      balance++;
+      break;
+    case T_RBRA:
+      resetToks();
+      balance--;
+      if (balance == -1) {
+        return;
+      }
+      break;
+    default:
+      resetToks();
+      break;
+    }
+  }
+} // skipToRBRA
 
 /**
  * Read a simple formula (quantified formula, negation,
