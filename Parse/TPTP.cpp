@@ -58,7 +58,8 @@ TPTP::TPTP(istream& in)
     _allowedNames(0),
     _in(&in),
     _includeDirectory(""),
-    _currentColor(COLOR_TRANSPARENT)
+    _currentColor(COLOR_TRANSPARENT),
+    _unitSources(0)
 {
 } // TPTP::TPTP
 
@@ -2668,6 +2669,9 @@ void TPTP::tag()
 void TPTP::endFof()
 {
   CALL("TPTP::endFof");
+
+  TPTP::SourceRecord* source = getSource();
+
   skipToRPAR();
   consumeToken(T_DOT);
 
@@ -2733,6 +2737,11 @@ void TPTP::endFof()
     }
     unit = Clause::fromStack(lits,(Unit::InputType)_lastInputType,new Inference(Inference::INPUT));
     unit->setInheritedColor(_currentColor);
+  }
+
+  if(source){ 
+    ASS(_unitSources);
+    _unitSources->insert(unit,source);
   }
 
   if (env.options->outputAxiomNames()) {
@@ -2919,6 +2928,25 @@ void TPTP::endTff()
   }
   symbol->setType(BaseType::makeType(arity,sorts.begin(),returnSortNumber));
 } // endTff
+
+/**
+ *
+ * @author Giles
+ */
+TPTP::SourceRecord* TPTP::getSource()
+{
+  // if _unitSources is not there then we are not recording sources
+  if(!_unitSources) return 0;
+
+
+ //Either source is a file or an inference, otherwise we don't care about it!
+ //  therefore failing will return 0
+
+
+
+ return 0;
+}
+
 
 /**
  * Skip any sequence tokens, including matching pairs of left parentheses,

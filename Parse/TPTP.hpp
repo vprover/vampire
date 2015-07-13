@@ -674,10 +674,33 @@ private:
   unsigned sortOf(TermList& term);
   static bool higherPrecedence(int c1,int c2);
 
+  /**
+   * Used to store the contents of the 'source' of an input formula
+   * This is based on the 'file' and 'inference' record description in
+   * http://pages.cs.miami.edu/~tptp/TPTP/QuickGuide/Derivations.html
+   */
+  struct SourceRecord{};
+  struct FileSourceRecord : SourceRecord {
+    vstring fileName;
+    vstring nameInFile;
+  };
+  struct InferenceSourceRecord : SourceRecord{
+    vstring name;
+    Stack<vstring> premises; 
+  };
+  
+  void setUnitSourceMap(DHMap<Unit*,SourceRecord*>* m){
+    _unitSources = m;
+  }
+  SourceRecord* getSource();
+
 private:
+  DHMap<Unit*,SourceRecord*>* _unitSources;
+
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
   static DHMap<unsigned, vstring> _axiomNames;
+
 
 #if VDEBUG
   void printStates(vstring extra);
