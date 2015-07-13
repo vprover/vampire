@@ -1837,9 +1837,9 @@ switch(f){
         inverted_f = REAL_DIVIDE;
       }
       else{
-        // In this case the 'b' i.e. the bottom of the divisor is not a contant
+        // In this case the 'b' i.e. the bottom of the divisor is not a constant
         // therefore we add a side-condition saying it cannot be 
-        TermList* notZero;
+        TermList* notZero = 0;
         if(term->nthArgument(0)==arg){ notZero=term->nthArgument(1); } 
         else if(term->nthArgument(1)==arg){ notZero=term->nthArgument(0); } 
         Term* zero =theory->representConstant(RealConstantType(RationalConstantType(0,1)));

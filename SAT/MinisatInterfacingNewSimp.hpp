@@ -131,23 +131,23 @@ private:
   Status _status;
   Minisat::vec<Minisat::Lit> _assumptions;  
   Minisat::SimpSolver _solver;
-};
 
-//Copied from Minisat/utils/System.cc
-static void limitMemory(uint64_t max_mem_mb)
-{
-    // Set limit on virtual memory:
-    if (max_mem_mb != 0){
-        rlim_t new_mem_lim = (rlim_t)max_mem_mb * 1024*1024;
-        rlimit rl;
-        getrlimit(RLIMIT_AS, &rl);
-        if (rl.rlim_max == RLIM_INFINITY || new_mem_lim < rl.rlim_max){
-            rl.rlim_cur = new_mem_lim;
-            if (setrlimit(RLIMIT_AS, &rl) == -1)
-                printf("WARNING! Could not set resource limit: Virtual memory.\n");
-        }
-    }
-}
+  //Copied from Minisat/utils/System.cc
+  static void limitMemory(uint64_t max_mem_mb)
+  {
+      // Set limit on virtual memory:
+      if (max_mem_mb != 0){
+          rlim_t new_mem_lim = (rlim_t)max_mem_mb * 1024*1024;
+          rlimit rl;
+          getrlimit(RLIMIT_AS, &rl);
+          if (rl.rlim_max == RLIM_INFINITY || new_mem_lim < rl.rlim_max){
+              rl.rlim_cur = new_mem_lim;
+              if (setrlimit(RLIMIT_AS, &rl) == -1)
+                  printf("WARNING! Could not set resource limit: Virtual memory.\n");
+          }
+      }
+  }
+};
 
 }//end SAT namespace
 
