@@ -2946,79 +2946,85 @@ TPTP::SourceRecord* TPTP::getSource()
 
   consumeToken(T_COMMA);
 
- //Either source is a file or an inference, otherwise we don't care about it!
- //  therefore failing will return 0
+  //Either source is a file or an inference, otherwise we don't care about it!
+  //  therefore failing will return 0
  
- Token source_kind = getTok(0);
- if(source_kind.tag != T_NAME) return 0;
+  Token& source_kind = getTok(0);
+  if(source_kind.tag != T_NAME) return 0;
 
- resetToks();
- consumeToken(T_LPAR);
- 
- //file
- if(source_kind.content == "file"){
-   vstring fileName = getTok(0).content;
-   resetToks();
-   consumeToken(T_COMMA);
-   resetToks();
-   vstring nameInFile = getTok(0).content;
-   resetToks();
+  resetToks();
+  if (getTok(0).tag != T_LPAR) {
+    return 0;
+  } else {
+    resetToks();
+  }
+  
+  //file
+  if(source_kind.content == "file"){
+    vstring fileName = getTok(0).content;
+    resetToks();
+    consumeToken(T_COMMA);
+    resetToks();
+    vstring nameInFile = getTok(0).content;
+    resetToks();
 
-   cout << "Creating file source record for " << fileName << " and " << nameInFile << endl; 
+    // cout << "Creating file source record for " << fileName << " and " << nameInFile << endl;
 
-   consumeToken(T_RPAR);
-   return new FileSourceRecord(fileName,nameInFile); 
- }
- // inference
- else if(source_kind.content == "inference"){
-   vstring name = getTok(0).content;   
-   resetToks();
+    consumeToken(T_RPAR);
+    return new FileSourceRecord(fileName,nameInFile);
+  }
+  // inference
+  else if(source_kind.content == "inference"){
+    vstring name = getTok(0).content;
+    resetToks();
 
-   cout << "Creating inference source record for " << name <<  endl;
+    // cout << "Creating inference source record for " << name <<  endl;
 
-   InferenceSourceRecord* r = new InferenceSourceRecord(name);
+    InferenceSourceRecord* r = new InferenceSourceRecord(name);
 
-   // now skip this middle information that is between [ and ]
-   consumeToken(T_COMMA);
-   consumeToken(T_LBRA);
-   skipToRBRA();
-   consumeToken(T_COMMA);
-   consumeToken(T_LBRA);
+    // now skip this middle information that is between [ and ]
+    consumeToken(T_COMMA);
+    consumeToken(T_LBRA);
+    skipToRBRA();
+    consumeToken(T_COMMA);
+    consumeToken(T_LBRA);
 
-   // read comma separated list of names
-   Token tok;
-   while((tok=getTok(0)).tag != T_RBRA){
-     resetToks();
-     if(tok.tag == T_COMMA) continue;
+    // read comma separated list of names
+    Token tok;
+    while((tok=getTok(0)).tag != T_RBRA){
+      resetToks();
+      if(tok.tag == T_COMMA) continue;
    
-     if (tok.tag != T_NAME && tok.tag != T_INT) {
-       cout << "read token " << tok.tag << " with content " << tok.content << endl;
+      if (tok.tag != T_NAME && tok.tag != T_INT) {
+        cout << "read token " << tok.tag << " with content " << tok.content << endl;
 
-       // TODO: parse errors are nice, but maybe we just want to ignore any info which we cannot understand?
+        // TODO: parse errors are nice, but maybe we just want to ignore any info which we cannot understand?
 
-       PARSE_ERROR("Source unit name expected",tok);
-     }
+        PARSE_ERROR("Source unit name expected",tok);
+      }
 
-     vstring premise = tok.content;
+      vstring premise = tok.content;
 
-     tok = getTok(0);
-     if (tok.tag != T_COMMA && tok.tag != T_RBRA) {
-       // if the next thing is neither comma not RBRA, it is an ugly info piece we want to skip
-       resetToks();
-       skipToRPAR();
-     } else {
-       r->premises.push(premise);
-       cout << "pushed premise " << premise << endl;
-     }
-   }
-   resetToks();
+      tok = getTok(0);
+      if (tok.tag != T_COMMA && tok.tag != T_RBRA) {
+        // if the next thing is neither comma not RBRA, it is an ugly info piece we want to skip
+        resetToks();
+        skipToRPAR();
+      } else {
+        r->premises.push(premise);
+        // cout << "pushed premise " << premise << endl;
+      }
+    }
+    resetToks();
 
-   consumeToken(T_RPAR);
-   return r;
- }
+    consumeToken(T_RPAR);
+    return r;
+  } else {
+    
+    skipToRPAR();
+  }
 
-
- return 0;
+  return 0;
 }
 
 
