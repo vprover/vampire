@@ -35,6 +35,7 @@ using namespace Parse;
 
 #define DEBUG_SHOW_TOKENS 0
 #define DEBUG_SHOW_UNITS 0
+#define DEBUG_SOURCE 0
 
 DHMap<unsigned, vstring> TPTP::_axiomNames;
 
@@ -2676,6 +2677,13 @@ void TPTP::endFof()
   if (_unitSources) {
     source = getSource();
   }
+#if DEBUG_SOURCE
+  else{
+    // create fake map
+    _unitSources = new DHMap<Unit*,SourceRecord*>();
+    source = getSource();
+  }
+#endif
 
   skipToRPAR();
   consumeToken(T_DOT);
