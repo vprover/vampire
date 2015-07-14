@@ -268,15 +268,31 @@ void CLTBMode::doTraining()
     }
     Parse::TPTP parser(soln);
     parser.setUnitSourceMap(sources.ptr());
-    parser.parse();
-    UnitList* solnUnits = parser.units();
-
-
+    UnitList* solnUnits = 0;
+    try {
+      parser.parse();
+      solnUnits = parser.units();
+    } catch (Lib::Exception& ex) {
+      cout << "Couldn't parse " << "solnFileName" << endl;
+      ex.cry(cout);
+      
+      //save memory by deleting the already loaded units:
+      UnitList* units = parser.units();
+      UnitList::Iterator it(units);
+      while (it.hasNext()) {
+        Unit* unit = it.next();
+        unit->destroy();
+      }
+      units->destroy();
+    }
+      
+    /*
     UnitList::Iterator it(solnUnits);
     while (it.hasNext()) {
       Unit* unit = it.next();
       cout << unit->toString() << endl;
     }
+    */
   }
 
   // Idea is to solve training problems and look in proofs for common clauses derived from axioms
