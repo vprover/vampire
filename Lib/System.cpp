@@ -528,6 +528,12 @@ void System::readDir(vstring dirName, Stack<vstring>& filenames)
     vstring dir = todo.pop();
 
     dirp = opendir(dir.c_str());
+    
+    if (!dirp) {
+      // cout << "Cannot open dir " << dir << endl;
+      continue;
+    }
+    
     while ((dp = readdir(dirp)) != NULL) {
       if (strncmp(dp->d_name, ".", 1) == 0) {
         continue;
