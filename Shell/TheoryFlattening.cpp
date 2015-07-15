@@ -130,6 +130,7 @@ Clause* TheoryFlattening::apply(Clause*& cl)
     }
     else{
       //cout << lit->toString() << " flattened to " << nlit->toString() << endl; 
+      //for(unsigned i=0;i<newLits.length();i++){ cout << newLits[i]->toString() << endl; }
       updated=true;
       lits.push(nlit);
       lits.loadFromIterator(Stack<Literal*>::Iterator(newLits));
@@ -156,6 +157,15 @@ Clause* TheoryFlattening::apply(Clause*& cl)
 
   // Tells us if we're looking for interpreted are non-interpreted terms to flatten out
   bool interpreted = theory->isInterpretedPredicate(lit);
+  if(lit->isEquality()){
+    interpreted=false;
+    for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
+      if(ts->isTerm() && env.signature->getFunction(ts->term()->functor())->interpreted()){
+        interpreted=true;
+      }
+    }
+  }
+  //cout << "interpreted is " << interpreted << endl;
 
   Stack<TermList> args;
 
@@ -176,6 +186,7 @@ Clause* TheoryFlattening::apply(Clause*& cl)
     } 
     else{
       Term* tt = replaceTopTermsInTerm(t,newLits,maxVar,interpreted);
+      //cout << "ret " << tt->toString() << endl;
       args.push(TermList(tt));
     }
   }
@@ -212,15 +223,19 @@ Clause* TheoryFlattening::apply(Clause*& cl)
       args.push(TermList(newVar,false));
       unsigned sort = SortHelper::getResultSort(t);
       newLits.push(Literal::createEquality(false,TermList(t),TermList(newVar,false),sort));
+      updated=true;
     }   
     else{
       Term* tt = replaceTopTermsInTerm(t,newLits,maxVar,interpreted);
+      if(tt!=t){ updated=true; }
       args.push(TermList(tt));
     }
   }
 
+  //cout << "updated is " << updated << endl;
+
   if(!updated) return term;
-  else return Term::create(term,args.begin());
+  else return Term::create(term->functor(),term->arity(),args.begin());
 }
 
 
