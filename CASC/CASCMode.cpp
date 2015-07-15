@@ -960,42 +960,49 @@ void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fa
 
   switch (cat) {
   case Property::FNE:
-    quick.push("dis+11_7_1");
-    quick.push("ott+4_3_bsr=unit_only:cond=fast:gsp=input_only:gs=on:gsem=off:gsssp=full:lcm=predicate:nm=0:nwc=1:sdd=large:ssfp=4000:ssfq=1.0:smm=off:ssnc=none:sp=occurrence:updr=off_9");
-    quick.push("dis+11_5_cond=fast:fsr=off:fde=none:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:sas=minisat:sdd=large:sfr=on:ssfp=100000:ssfq=2.0:updr=off_12");
-    quick.push("dis+2_64_cond=fast:fsr=off:gsp=input_only:nwc=1:sas=minisat:ssfp=100000:ssfq=1.4:ssnc=none:sp=occurrence_52");
-    quick.push("lrs+1_5_cond=fast:er=known:fde=unused:gs=on:gsem=on:gsssp=full:nwc=3:sas=minisat:stl=90:sser=off:ssfp=1000:ssfq=1.1:ssnc=none:sp=reverse_arity:updr=off_839");
-    quick.push("fmb+10_1_6000");
+      quick.push("dis+11_5_cond=fast:fsr=off:fde=none:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:sas=minisat:sdd=large:sfr=on:ssfp=100000:ssfq=2.0:updr=off_12");
+      quick.push("dis+2_64_cond=fast:fsr=off:gsp=input_only:nwc=1:sas=minisat:ssfp=100000:ssfq=1.4:ssnc=none:sp=occurrence_52");
+      quick.push("fmb+10_1_sas=minisat_2046");
+      quick.push("lrs+1_5_cond=fast:er=known:fde=unused:gs=on:gsem=on:gsssp=full:nwc=3:sas=minisat:stl=90:sser=off:ssfp=1000:ssfq=1.1:ssnc=none:sp=reverse_arity:updr=off_839");
     break;
   case Property::FEQ:
-    quick.push("dis+11_5_cond=fast:fsr=off:fde=none:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:sas=minisat:sdd=large:sfr=on:ssfp=100000:ssfq=2.0:updr=off_8");
-    quick.push("dis-2_4_cond=on:nwc=1:sac=on:sdd=large:ssfp=40000:ssfq=2.0:smm=sco:ssnc=none:sp=occurrence_7");
-    quick.push("dis+11_64_bs=on:bsr=unit_only:nm=0:nwc=1:sas=minisat:ssac=none:sser=off:ssfp=1000:ssfq=2.0:urr=ec_only:updr=off_246");
-    quick.push("ott+4_12_bd=off:ccuc=first:fde=none:gs=on:gsaa=from_current:gsem=on:nwc=1:sscc=model:sdd=off:sser=off:ssfp=40000:ssfq=1.0:updr=off_127");
-    quick.push("ins+11_5:4_bd=off:br=off:fsr=off:fde=unused:igbrr=1.0:igrr=8/1:igrp=400:igrpq=2.0:igs=1:igwr=on:lcm=predicate:nm=0:nwc=1:sos=on:spl=off:sp=reverse_arity:urr=on:updr=off:dm=on_542");
-    quick.push("ins+11_4_cond=fast:gs=on:igrr=1/128:igrpq=1.2:igs=1010:igwr=on:nwc=1:sas=minisat:spl=off_294");
-    quick.push("ins+10_1_igbrr=0.6:igrp=700:igrpq=1.5:igs=1:nwc=1:sos=all:spl=off:sp=reverse_arity:updr=off:dm=on_334");
-    quick.push("ott+11_5:1_bsr=unit_only:cond=fast:fde=none:nwc=1:sas=minisat:spl=off:updr=off_567");
-    quick.push("fmb+10_1_6000");
+    if (atoms > 2000) {
+      quick.push("dis-2_4_cond=on:nwc=1:sac=on:sdd=large:ssfp=40000:ssfq=2.0:smm=sco:ssnc=none:sp=occurrence_7");
+      quick.push("dis+11_5_cond=fast:fsr=off:fde=none:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:sas=minisat:sdd=large:sfr=on:ssfp=100000:ssfq=2.0:updr=off_8");
+      quick.push("dis+11_64_bs=on:bsr=unit_only:nm=0:nwc=1:sas=minisat:ssac=none:sser=off:ssfp=1000:ssfq=2.0:urr=ec_only:updr=off_246");
+      quick.push("ott+4_12_bd=off:ccuc=first:fde=none:gs=on:gsaa=from_current:gsem=on:nwc=1:sscc=model:sdd=off:sser=off:ssfp=40000:ssfq=1.0:updr=off_127");
+      quick.push("ins+11_4_cond=fast:gs=on:igrr=1/128:igrpq=1.2:igs=1010:igwr=on:nwc=1:sas=minisat:spl=off_301");
+      quick.push("fmb+10_1_sas=minisat_6000");
+    }
+    else {
+      quick.push("dis+11_5_cond=fast:er=known:fsr=off:fde=unused:gs=on:gsssp=full:nm=0:nwc=1:sas=minisat:sac=on:sdd=large:sser=off:sfr=on:ssfp=40000:ssfq=1.1:ssnc=none:sp=occurrence_1");
+      quick.push("fmb+10_1_sas=minisat_77");
+      quick.push("dis+11_5_cond=on:fsr=off:fde=none:gsp=input_only:lcm=reverse:nm=0:nwc=4:sfr=on:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:updr=off_1");
+      quick.push("ins+11_5:4_bd=off:br=off:fsr=off:fde=unused:igbrr=1.0:igrr=8/1:igrp=400:igrpq=2.0:igs=1:igwr=on:lcm=predicate:nm=0:nwc=1:sos=on:spl=off:sp=reverse_arity:urr=on:updr=off:dm=on_446");
+      quick.push("ins+10_1_fde=unused:gsp=input_only:igbrr=0.7:igpr=on:igrp=200:igrpq=1.2:igs=1002:nwc=1:spl=off:dm=on_556");
+      quick.push("ott+11_5:1_bsr=unit_only:cond=fast:fde=none:nwc=1:sas=minisat:spl=off:updr=off_567");
+      quick.push("ins+10_1_fde=unused:igbrr=0.6:igrp=1400:igrpq=1.2:igs=1010:nwc=1:sos=all:spl=off:sp=reverse_arity:updr=off:dm=on_707");
+    }
     break;
   case Property::NEQ:
     quick.push("dis+11_7_1");
-    quick.push("fmb+10_1_6000");
+    quick.push("fmb+10_1_sas=minisat_6000");
     break;
   case Property::UEQ:
     quick.push("dis+11_7_1");
-    quick.push("fmb+10_1_6000");
+    quick.push("fmb+10_1_fmbsr=1.3:nm=0:sas=minisat_2313");
+    quick.push("fmb+10_1_sas=minisat_6000");
     break;
   case Property::HNE:
   case Property::HEQ:
   case Property::PEQ:
   case Property::NNE:
-      quick.push("dis+10_3_cond=fast:fsr=off:gs=on:gsaa=full_model:gsssp=full:nwc=1:sac=on:sdd=large:sser=off:sfr=on:ssfp=10000:ssfq=1.2:ssnc=none:sp=occurrence_1");
-      quick.push("ott+11_5_cond=on:er=filter:fsr=off:gs=on:gsaa=from_current:gsem=off:nwc=1:sac=on:sfr=on:ssfp=1000:ssfq=1.0:smm=sco:ssnc=none:updr=off_9");
-      quick.push("dis+11_7_184");
-      quick.push("ins+10_1_cond=on:fde=none:gs=on:gsem=on:igbrr=0.8:igpr=on:igrr=2/1:igs=1004:igwr=on:nwc=1:sas=minisat:sos=on:spl=off:updr=off:dm=on_47");
-      quick.push("fmb+10_1_6000");
-      break;
+    quick.push("dis+10_3_cond=fast:fsr=off:gs=on:gsaa=full_model:gsssp=full:nwc=1:sac=on:sdd=large:sser=off:sfr=on:ssfp=10000:ssfq=1.2:ssnc=none:sp=occurrence_1");
+    quick.push("ott+11_5_cond=on:er=filter:fsr=off:gs=on:gsaa=from_current:gsem=off:nwc=1:sac=on:sfr=on:ssfp=1000:ssfq=1.0:smm=sco:ssnc=none:updr=off_9");
+    quick.push("dis+11_7_184");
+    quick.push("ins+10_1_cond=on:fde=none:gs=on:gsem=on:igbrr=0.8:igpr=on:igrr=2/1:igs=1004:igwr=on:nwc=1:sas=minisat:sos=on:spl=off:updr=off:dm=on_54");
+    quick.push("fmb+10_1_sas=minisat_6000");
+    break;
   case Property::EPR:
     if (prop == 131072) {
       quick.push("ins+1_1024_bd=preordered:br=off:cond=on:igbrr=0.9:igrr=1/16:igrp=2000:igrpq=2.0:igs=1010:igwr=on:nwc=1:spl=off:sp=occurrence:urr=on:dm=on_176");
