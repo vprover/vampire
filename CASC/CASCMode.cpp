@@ -888,7 +888,6 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("dis+1011_1_cond=on:fde=unused:gs=on:gsaa=from_current:gsem=off:igrpq=1.0:nm=0:nwc=1:sas=minisat:sd=3:ss=axioms:sos=on:ssac=none:sfr=on:ssfp=100000:ssfq=1.2:smm=sco:ssnc=none:sp=occurrence_300");
     fallback.push("lrs+1010_8:1_fsr=off:fde=none:gs=on:gsem=on:gsssp=full:igrpq=1.0:nwc=1.1:sas=minisat:sos=all:ssac=none:sfr=on:ssfp=100000:ssfq=1.0:smm=off:ssnc=all:sp=occurrence:updr=off_300");
     fallback.push("dis+11_5_fde=none:gs=on:gsaa=from_current:gsssp=full:igrpq=1.0:lcm=reverse:nwc=1:sas=minisat:ss=axioms:st=1.5:sos=on:ssfp=4000:ssfq=1.2:smm=sco:ssnc=none_300");
-    fallback.push("ott+1003_3:1_br=off:cond=fast:fsr=off:fde=unused:gs=on:gsaa=from_current:gsem=on:inw=on:nwc=1:sas=z3:sos=all:ssfp=4000:ssfq=2.0:smm=off:ssnc=all_dependent:sp=occurrence:tha=off:urr=on_300");
     fallback.push("lrs+1002_4_cond=on:er=filter:fde=unused:gsp=input_only:gs=on:gsssp=full:igrpq=1.0:nwc=10:sas=minisat:spl=off:sp=occurrence_300");
     fallback.push("ott+1011_3_bd=off:fde=unused:nwc=1.5:spl=off:sp=occurrence:updr=off_300");
     fallback.push("ott+1002_5_bsr=on:fsr=off:fde=none:gs=on:gsem=off:lwlo=on:nwc=1:sscc=on:sser=off:ssfp=100000:ssfq=1.1:sp=occurrence_300");
