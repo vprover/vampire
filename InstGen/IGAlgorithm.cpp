@@ -85,7 +85,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
       break;
 #if VZ3
     case Options::SatSolver::Z3:
-      cout << "Warning: Z3 not compatible with inst_gen, using Minisat" << endl;
+      //cout << "Warning: Z3 not compatible with inst_gen, using Minisat" << endl;
       _satSolver = new MinisatInterfacing(opt,true);
       break;
 #endif
