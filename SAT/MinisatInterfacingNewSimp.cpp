@@ -30,7 +30,21 @@ MinisatInterfacingNewSimp::MinisatInterfacingNewSimp(const Shell::Options& opts,
   //_solver.mem_lim(opts.memoryLimit()*2);
   limitMemory(opts.memoryLimit()*1);
 }
-  
+
+void MinisatInterfacingNewSimp::reportMinisatOutOfMemory() {
+  env.beginOutput();
+  reportSpiderStatus('m');
+  env.out() << "Minisat ran out of memory" << endl;
+  if(env.statistics) {
+    env.statistics->print(env.out());
+  }
+#if VDEBUG
+  Debug::Tracer::printStack(env.out());
+#endif
+  env.endOutput();
+  System::terminateImmediately(1);
+}
+
 /**
  * Make the solver handle clauses with variables up to @b newVarCnt
  * (but see vampireVar2Minisat!)
@@ -40,24 +54,12 @@ void MinisatInterfacingNewSimp::ensureVarCount(unsigned newVarCnt)
   CALL("MinisatInterfacingNewSimp::ensureVarCount");
   
   try{
-
-  while(_solver.nVars() < (int)newVarCnt) {
-    _solver.newVar();
-  }
-  }catch(Minisat::OutOfMemoryException&){
-    env.beginOutput();
-    reportSpiderStatus('m');
-    env.out() << "Minisat ran out of memory" << endl;
-    if(env.statistics) {
-      env.statistics->print(env.out());
+    while(_solver.nVars() < (int)newVarCnt) {
+      _solver.newVar();
     }
-#if VDEBUG
-    Debug::Tracer::printStack(env.out());
-#endif
-    env.endOutput();
-    System::terminateImmediately(1);
+  } catch (Minisat::OutOfMemoryException&){
+    reportMinisatOutOfMemory();
   }
-
 }
 
 unsigned MinisatInterfacingNewSimp::newVar() 
@@ -122,17 +124,7 @@ void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conf
   }
 
   }catch(Minisat::OutOfMemoryException&){
-    env.beginOutput();
-    reportSpiderStatus('m');
-    env.out() << "Minisat ran out of memory" << endl;
-    if(env.statistics) {
-      env.statistics->print(env.out());
-    }
-#if VDEBUG
-    Debug::Tracer::printStack(env.out());
-#endif
-    env.endOutput();
-    System::terminateImmediately(1);
+    reportMinisatOutOfMemory();
   }
 }
 
@@ -143,24 +135,24 @@ void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conf
 void MinisatInterfacingNewSimp::addClause(SATClause* cl)
 {
   CALL("MinisatInterfacingNewSimp::addClause");
-  
-  // store to later generate the refutation
-  PrimitiveProofRecordingSATSolver::addClause(cl);
-  
+
   // TODO: consider measuring time
   
   ASS_EQ(_assumptions.size(),0);
-                
-  static vec<Lit> mcl;
-  mcl.clear();
-    
-  unsigned clen=cl->length();
-  for(unsigned i=0;i<clen;i++) {
-    SATLiteral l = (*cl)[i];
-    mcl.push(vampireLit2Minisat(l));
-  }
 
-  _solver.addClause(mcl);
+  try {
+    static vec<Lit> mcl;
+    mcl.clear();
+    
+    unsigned clen=cl->length();
+    for(unsigned i=0;i<clen;i++) {
+      SATLiteral l = (*cl)[i];
+      mcl.push(vampireLit2Minisat(l));
+    }
+    _solver.addClause(mcl);
+  } catch (Minisat::OutOfMemoryException&){
+      reportMinisatOutOfMemory();
+  }
 }
 
 /**
