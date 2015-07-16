@@ -551,9 +551,22 @@ Allocator::Page* Allocator::allocatePages(size_t size)
       BYPASSING_ALLOCATOR;
       
       mem = new char[realSize];
-    } catch(bad_alloc)
-    {
+    } catch(bad_alloc) {
+#if SAFE_OUT_OF_MEM_SOLUTION
+      env.beginOutput();
+      reportSpiderStatus('m');
+      env.out() << "Memory limit exceeded!\n";
+# if VDEBUG
+  Allocator::reportUsageByClasses();
+# endif
+      if(env.statistics) {
+  env.statistics->print(env.out());
+      }
+      env.endOutput();
+      System::terminateImmediately(1);
+#else
       throw Lib::MemoryLimitExceededException(true);
+#endif
     }
     result = reinterpret_cast<Page*>(mem);
   }
