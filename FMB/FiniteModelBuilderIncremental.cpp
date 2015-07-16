@@ -374,7 +374,7 @@ instanceLoop:
       // that will be in this model and all larger models, therefore no model exists
       //TODO not sure this can actually happen, or if throwing this exception will work
       if(satClauseLits.isEmpty()){
-        throw new RefutationFoundException(0);
+        throw RefutationFoundException(0);
       }
 
       SATClause* satCl = SATClause::fromStack(satClauseLits);
