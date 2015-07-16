@@ -631,7 +631,7 @@ endif
 
 define COMPILE_CMD
 $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(LGMP) $(Z3LIB)
-@#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
+@#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef
 
