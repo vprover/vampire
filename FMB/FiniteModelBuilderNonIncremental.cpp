@@ -270,7 +270,7 @@ void FiniteModelBuilderNonIncremental::init()
       _fminbound[f]=UINT_MAX;
       continue;
     }
-    DArray<unsigned> b = _sortedSignature->functionBounds[f];
+    const DArray<unsigned>& b = _sortedSignature->functionBounds[f];
     unsigned min = b[0];
     for(unsigned i=1;i<b.size();i++){
       if(b[i]<min) min = b[i];
@@ -296,7 +296,7 @@ void FiniteModelBuilderNonIncremental::init()
           ASS(lit->nthArgument(0)->isTerm());
           ASS(lit->nthArgument(1)->isVar());
           Term* t = lit->nthArgument(0)->term();
-          DArray<unsigned> fbound = _sortedSignature->functionBounds[t->functor()];
+          const DArray<unsigned>& fbound = _sortedSignature->functionBounds[t->functor()];
           unsigned var = lit->nthArgument(1)->var();
           if((*bounds)[var]!=0){ ASS((*bounds)[var]==fbound[0]); }
           else{ 
@@ -347,7 +347,7 @@ void FiniteModelBuilderNonIncremental::addGroundClauses()
   ClauseList::Iterator cit(_groundClauses);
 
   // Note ground clauses will consist of predicates only
-  DArray<unsigned> emptyGrounding(0);
+  static const DArray<unsigned> emptyGrounding(0);
   while(cit.hasNext()){
 
       Clause* c = cit.next();
@@ -379,8 +379,10 @@ void FiniteModelBuilderNonIncremental::addNewInstances(unsigned size)
 #endif
 
     unsigned fvars = c->varCnt();
-    DArray<unsigned> bounds = *_clauseBounds.get(c) ;
-    DArray<unsigned> mins(fvars);
+    const DArray<unsigned>& bounds = *_clauseBounds.get(c) ;
+    static DArray<unsigned> mins;
+    mins.ensure(fvars);
+
     //cout << "Mins: ";
     for(unsigned i=0;i<fvars;i++){
       mins[i] = min(bounds[i],size);
@@ -388,7 +390,9 @@ void FiniteModelBuilderNonIncremental::addNewInstances(unsigned size)
     }
     //cout << endl;
     
-    DArray<unsigned> grounding(fvars);
+    static DArray<unsigned> grounding;
+    grounding.ensure(fvars);
+
     for(unsigned i=0;i<fvars;i++) grounding[i]=1;
     grounding[fvars-1]=0;
 
@@ -438,7 +442,9 @@ instanceLabel:
             Term* t = lit->nthArgument(0)->term();
             unsigned functor = t->functor();
             unsigned arity = t->arity();
-            DArray<unsigned> use(arity+1);
+            static DArray<unsigned> use;
+            use.ensure(arity+1);
+
             for(unsigned j=0;j<arity;j++){
               ASS(t->nthArgument(j)->isVar());
               use[j] = grounding[t->nthArgument(j)->var()];
@@ -449,7 +455,9 @@ instanceLabel:
           }else{
             unsigned functor = lit->functor();
             unsigned arity = lit->arity();
-            DArray<unsigned> use(arity);
+            static DArray<unsigned> use;
+            use.ensure(arity);
+
             for(unsigned j=0;j<arity;j++){
               ASS(lit->nthArgument(j)->isVar());
               use[j] = grounding[lit->nthArgument(j)->var()];
@@ -483,8 +491,10 @@ void FiniteModelBuilderNonIncremental::addNewFunctionalDefs(unsigned size)
     cout << "Adding func defs for " << env.signature->functionName(f) << endl;
 #endif
 
-    DArray<unsigned> bounds = _sortedSignature->functionBounds[f];
-    DArray<unsigned> mins(arity+2);
+    const DArray<unsigned>& bounds = _sortedSignature->functionBounds[f];
+    static DArray<unsigned> mins;
+    mins.ensure(arity+2);
+
     //cout << "Mins: ";
     for(unsigned i=0;i<arity;i++){
       mins[i] = min(bounds[i+1],size);
@@ -494,7 +504,8 @@ void FiniteModelBuilderNonIncremental::addNewFunctionalDefs(unsigned size)
     mins[arity+1] = min(bounds[0],size);
     //cout << mins[arity] << " " << mins[arity+1] << endl;
 
-      DArray<unsigned> grounding(arity+2);
+      static DArray<unsigned> grounding;
+      grounding.ensure(arity+2);
       for(unsigned i=0;i<arity+2;i++){ grounding[i]=1; }
       grounding[arity+1]=0;
 
@@ -517,7 +528,8 @@ newFuncLabel:
           static SATLiteralStack satClauseLits;
           satClauseLits.reset();
 
-          DArray<unsigned> use(arity+1);
+          static DArray<unsigned> use;
+          use.ensure(arity+1);
           for(unsigned k=0;k<arity;k++) use[k]=grounding[k+2];
           use[arity]=grounding[0];
           satClauseLits.push(getSATLiteral(f,use,false,true,size)); 
@@ -545,7 +557,8 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryOrderingAxioms(unsigned siz
   GroundedTerm gt = groundedTerms[size-1];
 
   unsigned arity = env.signature->functionArity(gt.f);
-  DArray<unsigned> grounding(arity+1);
+  static DArray<unsigned> grounding;
+  grounding.ensure(arity+1);
   for(unsigned i=0;i<arity;i++) grounding[i] = gt.grounding;
 
   //cout << "Add symmetry ordering for " << gt.f << "," << gt.grounding << endl;
@@ -581,7 +594,8 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryCanonicityAxioms(unsigned s
    
       GroundedTerm gti = groundedTerms[i];
       unsigned arityi = env.signature->functionArity(gti.f);
-      DArray<unsigned> grounding_i(arityi+1);
+      static DArray<unsigned> grounding_i;
+      grounding_i.ensure(arityi+1);
       for(unsigned a=0;a<arityi;a++){ grounding_i[a]=gti.grounding;}
       grounding_i[arityi]=size;
       satClauseLits.push(getSATLiteral(gti.f,grounding_i,false,true,size));
@@ -591,7 +605,8 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryCanonicityAxioms(unsigned s
       for(unsigned j=0;j<i;j++){
         GroundedTerm gtj = groundedTerms[j];
         unsigned arityj = env.signature->functionArity(gtj.f);
-        DArray<unsigned> grounding_j(arityj+1);
+        static DArray<unsigned> grounding_j;
+        grounding_j.ensure(arityj+1);
         for(unsigned a=0;a<arityj;a++){ grounding_j[a]=gtj.grounding;}
         grounding_j[arityj]=size-1;
         //cout << "with " <<gtj.f<<","<<gtj.grounding<<endl;
@@ -619,7 +634,8 @@ void FiniteModelBuilderNonIncremental::addUseModelSize(unsigned size)
         GroundedTerm gt = groundedTerms[i];
         unsigned arity = env.signature->functionArity(gt.f);
         ASS(arity<2);
-        DArray<unsigned> grounding(arity+1);
+        static DArray<unsigned> grounding;
+        grounding.ensure(arity+1);
         grounding[arity]=size;
         if(arity==0){
           satClauseLits.push(getSATLiteral(gt.f,grounding,true,true,size)); 
@@ -650,13 +666,13 @@ void FiniteModelBuilderNonIncremental::addNewTotalityDefs(unsigned size)
     cout << "Adding total defs for " << env.signature->functionName(f) << endl;
 #endif
 
-    DArray<unsigned> bounds = _sortedSignature->functionBounds[f];
+    const DArray<unsigned>& bounds = _sortedSignature->functionBounds[f];
 
     if(arity==0){
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
       for(unsigned i=0;i<min(size,bounds[0]);i++){
-        DArray<unsigned> use(1);
+        static DArray<unsigned> use(1);
         use[0]=i+1; 
         SATLiteral slit = getSATLiteral(f,use,true,true,size);
         satClauseLits.push(slit);
@@ -666,12 +682,14 @@ void FiniteModelBuilderNonIncremental::addNewTotalityDefs(unsigned size)
       continue;
     }
 
-    DArray<unsigned> mins(arity);
+    static DArray<unsigned> mins;
+    mins.ensure(arity);
     for(unsigned i=0;i<arity;i++){
       mins[i] = min(bounds[i+1],size);
     }
 
-      DArray<unsigned> grounding(arity);
+      static DArray<unsigned> grounding;
+      grounding.ensure(arity);
       for(unsigned i=0;i<arity;i++){ grounding[i]=1; }
       grounding[arity-1]=0;
 
@@ -691,7 +709,8 @@ newTotalLabel:
           satClauseLits.reset();
 
           for(unsigned j=0;j<min(size,bounds[0]);j++){
-            DArray<unsigned> use(arity+1);
+            static DArray<unsigned> use;
+            use.ensure(arity+1);
             for(unsigned k=0;k<arity;k++) use[k]=grounding[k];
             use[arity]=j+1;
             satClauseLits.push(getSATLiteral(f,use,true,true,size));
@@ -705,7 +724,7 @@ newTotalLabel:
 }
 
 
-SATLiteral FiniteModelBuilderNonIncremental::getSATLiteral(unsigned f, DArray<unsigned> grounding, 
+SATLiteral FiniteModelBuilderNonIncremental::getSATLiteral(unsigned f, const DArray<unsigned>& grounding,
                                                            bool polarity,bool isFunction,unsigned size)
 {
   CALL("FiniteModelBuilderNonIncremental::getSATLiteral");
@@ -825,7 +844,8 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
       for(unsigned i=0;i<total;i++){
         GroundedTerm gt = gts[i];
         unsigned arity = env.signature->functionArity(gt.f);
-        DArray<unsigned> grounding(arity+1);
+        static DArray<unsigned> grounding;
+        grounding.ensure(arity+1);
         for(unsigned a=0;a<arity;a++){ grounding[a]=gt.grounding;}
         if(arity==0){
           grounding[arity]=i+1;
@@ -983,7 +1003,7 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
     modelStm << "fof(constant_"<<name<<",functors,"<<name<< " = ";
     bool found=false;
     for(unsigned c=1;c<=modelSize;c++){
-      DArray<unsigned> grounding(1);
+      static DArray<unsigned> grounding(1);
       grounding[0]=c;
       SATLiteral slit = getSATLiteral(f,grounding,true,true,modelSize);
       if(_solver->trueInAssignment(slit)){
@@ -1013,7 +1033,8 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
     vstring name = env.signature->functionName(f);
     modelStm << "fof(function_"<<name<<",functors,"<<endl;
 
-    DArray<unsigned> grounding(arity+1);
+    static DArray<unsigned> grounding;
+    grounding.ensure(arity+1);
     for(unsigned i=0;i<arity;i++) grounding[i]=1;
     grounding[arity-1]=0;
     bool first=true;
@@ -1063,7 +1084,7 @@ fModelLabel:
   }
 
   //Output interpretation of prop symbols 
-  DArray<unsigned> emptyG(0);
+  static const DArray<unsigned> emptyG(0);
   for(unsigned f=1;f<env.signature->predicates();f++){
     if(env.signature->predicateArity(f)>0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
@@ -1093,7 +1114,8 @@ fModelLabel:
     vstring name = env.signature->predicateName(f);
     modelStm << "fof(predicate_"<<name<<",predicates,"<<endl;
 
-    DArray<unsigned> grounding(arity);
+    static DArray<unsigned> grounding;
+    grounding.ensure(arity);
     for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
     grounding[arity-1]=0;
     bool first=true;
