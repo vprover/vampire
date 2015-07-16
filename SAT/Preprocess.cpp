@@ -456,6 +456,8 @@ SATClauseIterator Preprocess::permutateVariables(unsigned varCnt, SATClauseItera
  */
 SATClause* Preprocess::removeDuplicateLiterals(SATClause* cl)
 {
+  CALL("Preprocess::removeDuplicateLiterals(SATClause*)");
+
   unsigned clen=cl->length();
 
   cl->sort();
@@ -502,7 +504,7 @@ SATClause* Preprocess::removeDuplicateLiterals(SATClause* cl)
  */
 SATClauseIterator Preprocess::removeDuplicateLiterals(SATClauseIterator clauses)
 {
-  CALL("Preprocess::removeDuplicateLiterals");
+  CALL("Preprocess::removeDuplicateLiterals(SATClauseIterator)");
   SATClauseList* res=0;
   while(clauses.hasNext()) {
     SATClause* cl=removeDuplicateLiterals(clauses.next());
