@@ -13,6 +13,7 @@
 #include "SATInference.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/System.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
 
@@ -465,6 +466,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
       if(slit.isNegative()) return !e;
       return e;
     }catch(z3::exception& exception){
+     reportSpiderFail();
      cout << "Z3 exception:\n" << exception.msg() << endl;
      ASSERTION_VIOLATION_REP("Failed to create Z3 rep for " + lit->toString());
     }

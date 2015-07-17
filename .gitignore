@@ -1,6 +1,7 @@
 obj/
 doc/
 
+Problems/
 Axioms/
 tptp/
 
@@ -27,3 +28,5 @@ valgrind.supp
 .project
 .settings/
 
+*.p
+*.tptp

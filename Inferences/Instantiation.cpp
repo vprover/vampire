@@ -108,13 +108,21 @@ void Instantiation::registerClause(Clause* cl)
         unsigned sort;
         if(SortHelper::tryGetResultSort(t,sort)){
           if(sort==Sorts::SRT_DEFAULT) continue;
-          Set<Term*>* cans;
+          Set<Term*>* cans_check=0;
+          Stack<Term*>* cans=0;
           if(sorted_candidates.isEmpty() || !sorted_candidates.find(sort,cans)){
-            cans = new Set<Term*>();
+            cans_check = new Set<Term*>();
+            cans = new Stack<Term*>();
             sorted_candidates.insert(sort,cans);
+            sorted_candidates_check.insert(sort,cans_check);
           }
+          else{ ALWAYS(sorted_candidates_check.find(sort,cans_check)); }
+          ASS(cans_check && cans);
           // cout << "For sort " << sort << " there are " << cans->size() << " cans" <<endl;
-          cans->insert(t.term());
+          if(!cans_check->contains(t.term())){
+            cans_check->insert(t.term());
+            cans->push(t.term());
+          }
         }
       }
     }
@@ -224,10 +232,10 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
 {
   CALL("Instantiation::getCandidateTerms");
 
-  Set<Term*>* cans=0;
+  Stack<Term*>* cans=0;
   VirtualIterator<Term*> res = VirtualIterator<Term*>::getEmpty();
   if(sorted_candidates.find(sort,cans) && cans->size()){
-    res = pvi(Set<Term*>::Iterator(*cans));
+    res = pvi(Stack<Term*>::Iterator(*cans));
   }
   return res; 
 }
