@@ -114,7 +114,7 @@ unsigned Unit::getPriority() const
     return priority;
   }
 
-  cout << "getPriority for " << this->toString() << endl;
+  //cout << "getPriority for " << this->toString() << endl;
 
     unsigned count=0;
     unsigned total=0;
@@ -132,7 +132,7 @@ unsigned Unit::getPriority() const
     // record it
     env.clausePriorities->insert(this,priority);
 
-    cout << "priority is " << priority << endl;
+    //cout << "priority is " << priority << endl;
 
     return priority;
 }

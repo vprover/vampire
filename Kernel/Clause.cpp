@@ -499,10 +499,11 @@ void Clause::computeWeight() const
     _weight+=splitWeight(); // no longer includes propWeight
   }
 
-  unsigned priority = getPriority();
-  _weight *= priority;
-
-  cout << "computedWeight is " << _weight << endl;
+  // If _weight is zero (empty clause) then no need to do this
+  if(_weight){
+    unsigned priority = getPriority();
+    _weight *= priority;
+  }
 
 } // Clause::computeWeight
 

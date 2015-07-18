@@ -353,8 +353,8 @@ void SineSelector::perform(UnitList*& units)
       newlySelected.push_back(u);
 
       if(env.clausePriorities){
-        cout << "set priority for " << u->toString() << " as " << (1) << endl;
         env.clausePriorities->insert(u,1);
+        //cout << "set priority for " << u->toString() << " as " << (1) << endl;
       }
     }
   }
@@ -395,8 +395,8 @@ void SineSelector::perform(UnitList*& units)
 	newlySelected.push_back(du);
 
         if(env.clausePriorities){
-          cout << "set priority for " << du->toString() << " as " << (depth+1) << endl;
           env.clausePriorities->insert(du,depth+1);
+          //cout << "set priority for " << du->toString() << " as " << (depth+1) << endl;
         }
 
       }
