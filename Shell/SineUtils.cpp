@@ -214,6 +214,10 @@ SineSelector::SineSelector(const Options& opt)
 {
   CALL("SineSelector::SineSelector/0");
 
+  if(opt.sineSelection()==Options::SineSelection::PRIORITY){
+    env.clausePriorities = new DHMap<const Unit*,unsigned>();
+  }
+
   init();
 }
 
@@ -347,6 +351,11 @@ void SineSelector::perform(UnitList*& units)
       selected.insert(u);
       selectedStack.push(u);
       newlySelected.push_back(u);
+
+      if(env.clausePriorities){
+        cout << "set priority for " << u->toString() << " as " << (1) << endl;
+        env.clausePriorities->insert(u,1);
+      }
     }
   }
 
@@ -384,6 +393,12 @@ void SineSelector::perform(UnitList*& units)
 	selected.insert(du);
 	selectedStack.push(du);
 	newlySelected.push_back(du);
+
+        if(env.clausePriorities){
+          cout << "set priority for " << du->toString() << " as " << (depth+1) << endl;
+          env.clausePriorities->insert(du,depth+1);
+        }
+
       }
       //all defining units for the symbol sym were selected,
       //so we can remove them from the relation
@@ -402,6 +417,16 @@ void SineSelector::perform(UnitList*& units)
   while (selectedStack.isNonEmpty()) {
     UnitList::push(selectedStack.pop(), units);
   }
+
+
+#if VDEBUG
+if(env.clausePriorities){
+  UnitList::Iterator selIt(units);
+  while (selIt.hasNext()) {
+    ASS(env.clausePriorities->find(selIt.next())); 
+  }
+}
+#endif
 
 #if SINE_PRINT_SELECTED
   UnitList::Iterator selIt(units);
@@ -452,6 +477,11 @@ void SineTheorySelector::updateDefRelation(Unit* u)
   SymIdIterator sit0=_symExtr.extractSymIds(u);
 
   if (!sit0.hasNext()) {
+
+    if(env.clausePriorities){
+      cout << "missed " << u->toString() << endl;
+    }
+
     _unitsWithoutSymbols.push(u);
     return;
   }

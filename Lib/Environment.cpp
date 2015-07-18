@@ -47,6 +47,7 @@ Environment::Environment()
   : signature(0),
     sharing(0),
     property(0),
+    clausePriorities(0),
     ordering(0),
     colorUsed(false),
     _outputDepth(0),
@@ -80,6 +81,7 @@ Environment::~Environment()
   delete signature;
   delete sorts;
   delete statistics;
+  if(clausePriorities) delete clausePriorities; 
   {
     BYPASSING_ALLOCATOR; // use of std::function in options
     delete options;

@@ -499,6 +499,11 @@ void Clause::computeWeight() const
     _weight+=splitWeight(); // no longer includes propWeight
   }
 
+  unsigned priority = getPriority();
+  _weight *= priority;
+
+  cout << "computedWeight is " << _weight << endl;
+
 } // Clause::computeWeight
 
 

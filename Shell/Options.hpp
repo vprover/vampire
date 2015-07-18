@@ -424,7 +424,8 @@ public:
   enum class SineSelection : unsigned int {
     AXIOMS = 0,
     INCLUDED = 1,
-    OFF = 2
+    OFF = 2,
+    PRIORITY = 3
   };
 
   enum class Proof : unsigned int {

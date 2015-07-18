@@ -500,7 +500,7 @@ void Options::Options::init()
     // Captures that if the value is not default then sineSelection must be on
     _sineGeneralityThreshold.reliesOn(_sineSelection.is(notEqual(SineSelection::OFF)));
 
-    _sineSelection = ChoiceOptionValue<SineSelection>("sine_selection","ss",SineSelection::OFF,{"axioms","included","off"});
+    _sineSelection = ChoiceOptionValue<SineSelection>("sine_selection","ss",SineSelection::OFF,{"axioms","included","off","priority"});
     _sineSelection.description=
     "If 'axioms', all formulas that are not annotated as 'axiom' (i.e. conjectures and hypotheses) are initially selected, and the SInE selection is performed on those annotated as 'axiom'. If 'included', all formulas that are directly in the problem file are initially selected, and the SInE selection is performed on formulas from included files. The 'included' value corresponds to the behaviour of the original SInE implementation.";
     _lookup.insert(&_sineSelection);

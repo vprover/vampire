@@ -5,8 +5,11 @@
  * @since 09/05/2007 Manchester
  */
 
+#include "Forwards.hpp"
+
 #include "Debug/Tracer.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 
@@ -96,7 +99,44 @@ Unit::Unit(Kind kind,Inference* inf,InputType it)
     }
     break;
   }
+
 } // Unit::Unit
+
+unsigned Unit::getPriority() const
+{
+  CALL("Unit::getPriority");
+
+  if(!env.clausePriorities) return 1;
+
+  unsigned priority;
+
+  if(env.clausePriorities->find(this,priority)){
+    return priority;
+  }
+
+  cout << "getPriority for " << this->toString() << endl;
+
+    unsigned count=0;
+    unsigned total=0;
+    ASS(_inference);
+    Inference::Iterator iit=_inference->iterator();
+    while(_inference->hasNext(iit)) {
+      Unit* premUnit=_inference->next(iit);
+      unsigned up = premUnit->getPriority();
+      count++;
+      total+=up;
+    }
+    // we take the average using integer division
+    priority = total/count;
+    ASS_G(priority,0);
+    // record it
+    env.clausePriorities->insert(this,priority);
+
+    cout << "priority is " << priority << endl;
+
+    return priority;
+}
+
 
 void Unit::incRefCnt()
 {

@@ -58,6 +58,7 @@ public:
   void destroy();
   vstring toString() const;
   unsigned varCnt();
+  unsigned getPriority() const;
 
   vstring inferenceAsString(BDDNode* propPart=0) const;
 
