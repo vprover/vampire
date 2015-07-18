@@ -113,19 +113,24 @@ unsigned Unit::getPriority() const
   if(env.clausePriorities->find(this,priority)){
     return priority;
   }
+  if(_inference->rule() == Inference::SAT_SPLITTING_COMPONENT){
+    return 1;
+  }
 
-  //cout << "getPriority for " << this->toString() << endl;
+    //cout << "getPriority for " << this->toString() << endl;
 
     unsigned count=0;
     unsigned total=0;
     ASS(_inference);
-    Inference::Iterator iit=_inference->iterator();
-    while(_inference->hasNext(iit)) {
-      Unit* premUnit=_inference->next(iit);
-      unsigned up = premUnit->getPriority();
+    Unit* t = const_cast<Unit*>(this);
+    UnitSpecIterator uit = InferenceStore::instance()->getParents(UnitSpec(t));
+    while(uit.hasNext()) {
+      UnitSpec us = uit.next();
+      unsigned up = us.unit()->getPriority();
       count++;
       total+=up;
     }
+    ASS_G(count,0);
     // we take the average using integer division
     priority = total/count;
     ASS_G(priority,0);
