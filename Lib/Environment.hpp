@@ -47,6 +47,7 @@ public:
   Timer* timer;
 
   DHMap<const Kernel::Unit*,unsigned>* clausePriorities;
+  unsigned maxClausePriority;
 
   bool haveOutput();
   void beginOutput();

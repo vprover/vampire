@@ -400,6 +400,9 @@ void SineSelector::perform(UnitList*& units)
         if(env.clausePriorities){
           env.clausePriorities->insert(du,depth+1);
           //cout << "set priority for " << du->toString() << " as " << (depth+1) << endl;
+          if(depth+1 > env.maxClausePriority){
+            env.maxClausePriority = depth+1;
+          }
         }
 
       }
@@ -426,14 +429,19 @@ void SineSelector::perform(UnitList*& units)
 if(env.clausePriorities){
   UnitList::Iterator selIt(units);
   bool allSelectedProcessed = true;
+  bool maxSeen = false;
   while (selIt.hasNext()) {
     Unit* u = selIt.next();
     if(!env.clausePriorities->find(u)){
       //cout << "Missing " << u->toString() << endl;
       allSelectedProcessed=false;
+      if(env.maxClausePriority == env.clausePriorities->get(u)){
+        maxSeen=true;
+      }
     } 
   }
   ASS(allSelectedProcessed);
+  ASS(maxSeen);
 }
 #endif
 
