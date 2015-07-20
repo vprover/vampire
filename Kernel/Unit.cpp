@@ -113,8 +113,17 @@ unsigned Unit::getPriority() const
   if(env.clausePriorities->find(this,priority)){
     return priority;
   }
-  if(_inference->rule() == Inference::SAT_SPLITTING_COMPONENT){
-    return 1;
+  // Current cases where there is no input clause ancestor
+  // TODO do we want to be more 'clever' in these cases?
+  if(_inference->rule() == Inference::SAT_SPLITTING_COMPONENT ||
+     _inference->rule() == Inference::PREDICATE_DEFINITION ||
+     //_inference->rule() == Inference::GENERAL_SPLITTING_COMPONENT ||
+     //_inference->rule() == Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION ||
+     _inference->rule() == Inference::THEORY ||
+     _inference->rule() == Inference::SKOLEM_PREDICATE_INTRODUCTION
+    ){
+    // This is the same as depth 1 in sine selection
+    return 2;
   }
 
     //cout << "getPriority for " << this->toString() << endl;
@@ -130,6 +139,7 @@ unsigned Unit::getPriority() const
       count++;
       total+=up;
     }
+    //if(count==0){ cout << "count is zero for " << toString() << endl; }
     ASS_G(count,0);
     // we take the average using integer division
     priority = total/count;

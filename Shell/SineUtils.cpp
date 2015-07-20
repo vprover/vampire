@@ -429,7 +429,7 @@ if(env.clausePriorities){
   while (selIt.hasNext()) {
     Unit* u = selIt.next();
     if(!env.clausePriorities->find(u)){
-      cout << "Missing " << u->toString() << endl;
+      //cout << "Missing " << u->toString() << endl;
       allSelectedProcessed=false;
     } 
   }
