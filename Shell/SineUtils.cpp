@@ -250,6 +250,9 @@ void SineSelector::updateDefRelation(Unit* u)
   SymIdIterator sit=_symExtr.extractSymIds(u);
 
   if (!sit.hasNext()) {
+    if(env.clausePriorities){
+      env.clausePriorities->insert(u,1);
+    }
     _unitsWithoutSymbols.push(u);
     return;
   }
@@ -422,9 +425,15 @@ void SineSelector::perform(UnitList*& units)
 #if VDEBUG
 if(env.clausePriorities){
   UnitList::Iterator selIt(units);
+  bool allSelectedProcessed = true;
   while (selIt.hasNext()) {
-    ASS(env.clausePriorities->find(selIt.next())); 
+    Unit* u = selIt.next();
+    if(!env.clausePriorities->find(u)){
+      cout << "Missing " << u->toString() << endl;
+      allSelectedProcessed=false;
+    } 
   }
+  ASS(allSelectedProcessed);
 }
 #endif
 
@@ -479,7 +488,7 @@ void SineTheorySelector::updateDefRelation(Unit* u)
   if (!sit0.hasNext()) {
 
     if(env.clausePriorities){
-      cout << "missed " << u->toString() << endl;
+      env.clausePriorities->insert(u,1);
     }
 
     _unitsWithoutSymbols.push(u);
