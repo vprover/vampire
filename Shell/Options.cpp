@@ -1035,13 +1035,12 @@ void Options::Options::init()
     _instGenWithResolution.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     _instGenWithResolution.setRandomChoices({"on","off"});
 
-    _instGenUseHashingVariantIndex = BoolOptionValue("inst_gen_use_hashing_variant_index","iguhvi",false);
-    _instGenUseHashingVariantIndex.description= "Use clause variant index based on hashing for clause variant detection in inst_gen";
-    _lookup.insert(&_instGenUseHashingVariantIndex);
-    _instGenUseHashingVariantIndex.tag(OptionTag::INST_GEN);
-    _instGenUseHashingVariantIndex.setExperimental();
-    _instGenUseHashingVariantIndex.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
-    _instGenUseHashingVariantIndex.setRandomChoices({"on","off"});
+    _useHashingVariantIndex = BoolOptionValue("use_hashing_clause_variant_index","uhcvi",false);
+    _useHashingVariantIndex.description= "Use clause variant index based on hashing for clause variant detection (affects inst_gen and avatar).";
+    _lookup.insert(&_useHashingVariantIndex);
+    _useHashingVariantIndex.tag(OptionTag::OTHER);
+    _useHashingVariantIndex.setExperimental();
+    _useHashingVariantIndex.setRandomChoices({"on","off"});
 
     _use_dm = BoolOptionValue("use_dismatching","dm",false);
     _use_dm.description="";

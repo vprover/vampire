@@ -18,7 +18,7 @@
 
 namespace SAT{
 
-class MinisatInterfacingNewSimp : public PrimitiveProofRecordingSATSolver
+class MinisatInterfacingNewSimp : public SATSolverWithAssumptions
 {
 public: 
   CLASS_NAME(MinisatInterfacingNewSimp);
@@ -106,7 +106,11 @@ public:
   
   Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
 
-protected:    
+  virtual SATClause* getRefutation() override { ASSERTION_VIOLATION; }
+
+  static void reportMinisatOutOfMemory();
+
+protected:
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);
   
   Minisat::Var vampireVar2Minisat(unsigned vvar) {
