@@ -1798,7 +1798,7 @@ public:
   float instGenRestartPeriodQuotient() const { return _instGenRestartPeriodQuotient.actualValue; }
   int instGenSelection() const { return _instGenSelection.actualValue; }
   bool instGenWithResolution() const { return _instGenWithResolution.actualValue; }
-  bool instGenUseHashingVariantIndex() const { return _instGenUseHashingVariantIndex.actualValue; }
+  bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
   float satClauseActivityDecay() const { return _satClauseActivityDecay.actualValue; }
   SatClauseDisposer satClauseDisposer() const { return _satClauseDisposer.actualValue; }
@@ -2057,7 +2057,7 @@ private:
   IntOptionValue _instGenRestartPeriod;
   FloatOptionValue _instGenRestartPeriodQuotient;
   BoolOptionValue _instGenWithResolution;
-  BoolOptionValue _instGenUseHashingVariantIndex;
+  BoolOptionValue _useHashingVariantIndex;
   BoolOptionValue _interpretedSimplification;
 
   StringOptionValue _latexOutput;

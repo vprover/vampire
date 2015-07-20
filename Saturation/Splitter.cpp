@@ -505,7 +505,7 @@ void SplittingBranchSelector::getNewZeroImpliedSplits(SplitLevelStack& res)
 //////////////
 
 Splitter::Splitter()
-: _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this), _componentIdx(new SubstitutionTreeClauseVariantIndex()),
+: _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
   _clausesAdded(false), _haveBranchRefutation(false)
 {
   CALL("Splitter::Splitter");
@@ -557,7 +557,13 @@ void Splitter::init(SaturationAlgorithm* sa)
 
   _congruenceClosure = opts.splittingCongruenceClosure();  
   _fastRestart = opts.splittingFastRestart();
-  _deleteDeactivated = opts.splittingDeleteDeactivated();    
+  _deleteDeactivated = opts.splittingDeleteDeactivated();
+
+  if (opts.useHashingVariantIndex()) {
+    _componentIdx = new HashingClauseVariantIndex();
+  } else {
+    _componentIdx = new SubstitutionTreeClauseVariantIndex();
+  }
 }
 
 SplitLevel Splitter::getNameFromLiteral(SATLiteral lit) const

@@ -102,7 +102,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
     _globalSubsumption = new GlobalSubsumption(_opt,_groundingIndex.ptr());
   }
 
-  _use_hashing = _opt.instGenUseHashingVariantIndex();
+  _use_hashing = _opt.useHashingVariantIndex();
   if (_use_hashing) {
     _variantIdx = new HashingClauseVariantIndex();
   } else {
