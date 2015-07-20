@@ -15,15 +15,15 @@ extern const char* VERSION_STRING;
 #if VDEBUG
 
 // output nothing
-//#define CP_FIRST_POINT UINT_MAX
-//#define CP_LAST_POINT 0u
+#define CP_FIRST_POINT UINT_MAX
+#define CP_LAST_POINT 0u
 
 // output all
 // #define CP_FIRST_POINT 0u
 // #define CP_LAST_POINT  1481000u
 
- #define CP_FIRST_POINT UINT_MAX //185539 
- #define CP_LAST_POINT UINT_MAX 
+ //#define CP_FIRST_POINT UINT_MAX //185539 
+ //#define CP_LAST_POINT UINT_MAX 
 
 using namespace std;
 using namespace Debug;
