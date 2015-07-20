@@ -551,9 +551,20 @@ Allocator::Page* Allocator::allocatePages(size_t size)
       BYPASSING_ALLOCATOR;
       
       mem = new char[realSize];
-    } catch(bad_alloc)
-    {
-      throw Lib::MemoryLimitExceededException(true);
+    } catch(bad_alloc) {
+      env.beginOutput();
+      reportSpiderStatus('m');
+      env.out() << "Memory limit exceeded!\n";
+      if(env.statistics) {
+        // statistics should be fine when out of memory, but not RuntimeStatistics, which allocate a Stack
+        // (i.e. potential crazy exception recursion may happen in DEBUG mode)
+        env.statistics->print(env.out());
+      }
+      env.endOutput();
+      System::terminateImmediately(1);
+
+      // CANNOT throw vampire exception when out of memory - it contains allocations because of the message string
+      // throw Lib::MemoryLimitExceededException(true);
     }
     result = reinterpret_cast<Page*>(mem);
   }

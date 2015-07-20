@@ -182,6 +182,8 @@ const char* signalToString (int sigNum)
  */
 void handleSignal (int sigNum)
 {
+  CALL("System::handleSignal");
+
   // true if a terminal signal has been handled already.
   // to avoid catching signals over and over again
   static bool handled = false;

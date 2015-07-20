@@ -61,7 +61,7 @@ private:
   }
   void addUseModelSize(unsigned size);
 
-  SATLiteral getSATLiteral(unsigned func, DArray<unsigned> elements,bool polarity, 
+  SATLiteral getSATLiteral(unsigned func, const DArray<unsigned>& elements,bool polarity,
                            bool isFunction, unsigned modelSize);
 
   bool reset(unsigned modelSize);

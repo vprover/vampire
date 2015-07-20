@@ -27,7 +27,7 @@ MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging only
+XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging only
 #XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -DGNUMP=$(GNUMPF)# memory leaks
 #XFLAGS = $(REL_FLAGS)
 
@@ -596,7 +596,7 @@ obj/%X: | obj
 %.o : %.cpp
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -std=c++11 -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.c 
 $(CONF_ID)/%.o : %.c | $(CONF_ID)
@@ -604,7 +604,7 @@ $(CONF_ID)/%.o : %.c | $(CONF_ID)
 
 %.o : %.cc
 $(CONF_ID)/%.o : %.cc | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -std=c++11 -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
   
 ################################################################
 # targets for executables

@@ -78,6 +78,8 @@ public:
   /** Delete array */
   inline ~DArray()
   {
+    CALL("DArray::~DArray");
+
     if(_array) {
       array_delete(_array, _capacity);
       DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
@@ -87,6 +89,8 @@ public:
   /** Return a reference to the n-th element of the array */
   inline C& operator[] (size_t n)
   {
+    CALL("DArray::operator[]");
+
     ASS_L(n,_size);
     return _array[n];
   } // operator[]
@@ -94,6 +98,8 @@ public:
   /** Return a reference to the n-th element of the array */
   inline const C& operator[](size_t n) const
   {
+    CALL("DArray::operator[] const");
+
     ASS_L(n,_size);
     return _array[n];
   }
