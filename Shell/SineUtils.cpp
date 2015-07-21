@@ -397,7 +397,8 @@ void SineSelector::perform(UnitList*& units)
 	selectedStack.push(du);
 	newlySelected.push_back(du);
 
-        if(env.clausePriorities){
+        // If in LTB mode we may already have added du with a priority
+        if(env.clausePriorities && !env.clausePriorities->find(du)){
           env.clausePriorities->insert(du,depth+1);
           //cout << "set priority for " << du->toString() << " as " << (depth+1) << endl;
           if(depth+1 > env.maxClausePriority){

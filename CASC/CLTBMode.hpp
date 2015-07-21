@@ -53,6 +53,7 @@ private:
   static ostream& coutLineOutput();
   void loadIncludes();
   void doTraining();
+  void learnFromSolutionFile(vstring& solnFileName);
 
   typedef List<vstring> StringList;
   typedef Stack<vstring> StringStack;
@@ -77,6 +78,11 @@ private:
   StringPairStack problemFiles;
 
   ScopedPtr<Problem> _baseProblem;
+
+  // This contains formulas 'learned' in the sense that they were input
+  // formulas used in proofs of previous problems
+  // Note: this relies on the assurance that formulas are consistently named
+  DHSet<vstring> _learnedFormulas;
 
   friend class CLTBProblem;
 };

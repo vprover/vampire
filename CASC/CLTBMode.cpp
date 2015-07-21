@@ -187,6 +187,10 @@ void CLTBMode::solveBatch(istream& batchFile)
     if (!resValue) {
       lineOutput() << "SZS status Theorem for " << probFile << endl;
       solvedProblems++;
+
+      // As we solved it we can learn from the proof
+      learnFromSolutionFile(outFile);
+
     }
     else {
       lineOutput() << "SZS status GaveUp for " << probFile << endl;
@@ -243,22 +247,10 @@ void CLTBMode::loadIncludes()
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 } // CLTBMode::loadIncludes
 
-void CLTBMode::doTraining()
+
+void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
 {
-  CALL("CLTBMode::doTraining");
-
-  Stack<vstring> solutions;
-  System::readDir(trainingDirectory+"/Solutions",solutions);
-
-  ScopedPtr<DHMap<Unit*,Parse::TPTP::SourceRecord*> > sources;
-  sources = new DHMap<Unit*,Parse::TPTP::SourceRecord*>();
-
-  Stack<vstring>::Iterator it(solutions);
-  while (it.hasNext()) {
-    TimeCounter tc(TC_PARSING);
-    env.statistics->phase=Statistics::PARSING;
-
-    vstring& solnFileName = it.next();
+  CALL("CLTBMode::learnFromSolutionFile");
 
     cout << "Reading solutions " << solnFileName << endl;
 
@@ -266,6 +258,10 @@ void CLTBMode::doTraining()
     if (soln.fail()) {
       USER_ERROR("Cannot open problem file: " + solnFileName);
     }
+
+    ScopedPtr<DHMap<Unit*,Parse::TPTP::SourceRecord*> > sources;
+    sources = new DHMap<Unit*,Parse::TPTP::SourceRecord*>();
+
     Parse::TPTP parser(soln);
     parser.setUnitSourceMap(sources.ptr());
     UnitList* solnUnits = 0;
@@ -275,7 +271,7 @@ void CLTBMode::doTraining()
     } catch (Lib::Exception& ex) {
       cout << "Couldn't parse " << "solnFileName" << endl;
       ex.cry(cout);
-      
+
       //save memory by deleting the already loaded units:
       UnitList* units = parser.units();
       UnitList::Iterator it(units);
@@ -285,14 +281,36 @@ void CLTBMode::doTraining()
       }
       units->destroy();
     }
-      
-    /*
-    UnitList::Iterator it(solnUnits);
+
+    UnitList::DelIterator it(solnUnits);
     while (it.hasNext()) {
       Unit* unit = it.next();
-      cout << unit->toString() << endl;
+      if(unit->inputType()==Unit::AXIOM && sources->get(unit)->isFile()){
+        vstring name = static_cast<Parse::TPTP::FileSourceRecord*>(sources->get(unit))->nameInFile;
+        _learnedFormulas.insert(name);
+      }
+      it.del();
     }
-    */
+
+}
+
+
+void CLTBMode::doTraining()
+{
+  CALL("CLTBMode::doTraining");
+
+  Stack<vstring> solutions;
+  System::readDir(trainingDirectory+"/Solutions",solutions);
+
+
+  Stack<vstring>::Iterator it(solutions);
+  while (it.hasNext()) {
+    TimeCounter tc(TC_PARSING);
+    env.statistics->phase=Statistics::PARSING;
+
+    vstring& solnFileName = it.next();
+    learnFromSolutionFile(solnFileName);
+
   }
 
   // Idea is to solve training problems and look in proofs for common clauses derived from axioms
@@ -1448,10 +1466,18 @@ void CLTBProblem::searchForProof(int terminationTime)
   TimeCounter::reinitialize();
 
   env.options->setInputFile(problemFile);
+
+  env.clausePriorities = new DHMap<const Unit*,unsigned>();
+
+
   // this local scope will delete a potentially large parser
   {
     TimeCounter tc(TC_PARSING);
     env.statistics->phase=Statistics::PARSING;
+
+    // Ensure the parser is recording axiom names
+    bool outputAxiomValue = env.options->outputAxiomNames();
+    env.options->setOutputAxiomNames(true);
 
     ifstream inp(problemFile.c_str());
     if (inp.fail()) {
@@ -1466,6 +1492,22 @@ void CLTBProblem::searchForProof(int terminationTime)
     UnitList* probUnits = parser.units();
     UIHelper::setConjecturePresence(parser.containsConjecture());
     prb.addUnits(probUnits);
+
+    // Now we iterate over all units in the problem and populate
+    // clausePriorities from learnedFormulas
+    UnitList::Iterator uit(prb.units());
+    while(uit.hasNext()){
+      Unit* u = uit.next();
+      vstring name;
+      if(Parse::TPTP::findAxiomName(u,name)){
+        if(parent->_learnedFormulas.contains(name)){
+          env.clausePriorities->insert(u,1);
+        }
+      }
+      else{ ASSERTION_VIOLATION; }
+    }
+
+    env.options->setOutputAxiomNames(outputAxiomValue);
   }
 
   if (prb.getProperty()->atoms()<=1000000) {
