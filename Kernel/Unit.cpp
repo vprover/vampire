@@ -116,7 +116,8 @@ unsigned Unit::getPriority() const
   // Already done in general splitting and inequality splitting
   if(_inference->rule() == Inference::SAT_SPLITTING_COMPONENT ||
      _inference->rule() == Inference::PREDICATE_DEFINITION ||
-     _inference->rule() == Inference::SKOLEM_PREDICATE_INTRODUCTION
+     _inference->rule() == Inference::SKOLEM_PREDICATE_INTRODUCTION ||
+     _inference->rule() == Inference::EQUALITY_PROXY_AXIOM1
     ){
     // This is the same as depth 1 in sine selection
     return 2;
@@ -127,7 +128,7 @@ unsigned Unit::getPriority() const
     return priority;
   }
 
-    //cout << "getPriority for " << this->toString() << endl;
+  //cout << "getPriority for " << this->toString() << endl;
 
     unsigned count=0;
     unsigned total=0;
@@ -142,9 +143,17 @@ unsigned Unit::getPriority() const
     }
     //if(count==0){ cout << "count is zero for " << toString() << endl; }
     ASS_G(count,0);
+
+    // If count==0 we are only here in release mode
+    if(count==0){ return 2; }
+
     // we take the average using integer division
     priority = total/count;
     ASS_G(priority,0);
+
+    // I don't think this can happen but a release mode check
+    if(priority==0){ priority=1; }
+
     // record it
     env.clausePriorities->insert(this,priority);
 

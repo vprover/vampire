@@ -435,6 +435,8 @@ if(env.clausePriorities){
     if(!env.clausePriorities->find(u)){
       //cout << "Missing " << u->toString() << endl;
       allSelectedProcessed=false;
+    }
+    else{
       if(env.maxClausePriority == env.clausePriorities->get(u)){
         maxSeen=true;
       }
