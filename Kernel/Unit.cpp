@@ -128,6 +128,12 @@ unsigned Unit::getPriority() const
     return priority;
   }
 
+  // This means we're in LTB mode without SineSelection
+  // All learned formauls get 1 so we give non-learned formulas 2
+  // Goal gets 1
+  if(_inference->rule() == Inference::INPUT){ return 2; }
+  if(_inference->rule() == Inference::NEGATED_CONJECTURE){ return 2; }
+
   //cout << "getPriority for " << this->toString() << endl;
 
     unsigned count=0;

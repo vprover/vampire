@@ -117,7 +117,9 @@ void CLTBMode::solveBatch(istream& batchFile)
   int terminationTime = readInput(batchFile);
   loadIncludes();
 
-  doTraining();
+  if(env.options->ltbLearning()){
+    doTraining();
+  }
 
   int solvedProblems = 0;
   int remainingProblems = problemFiles.size();
@@ -188,9 +190,10 @@ void CLTBMode::solveBatch(istream& batchFile)
       lineOutput() << "SZS status Theorem for " << probFile << endl;
       solvedProblems++;
 
-      // As we solved it we can learn from the proof
-      learnFromSolutionFile(outFile);
-
+      if(env.options->ltbLearning()){
+        // As we solved it we can learn from the proof
+        learnFromSolutionFile(outFile);
+      }
     }
     else {
       lineOutput() << "SZS status GaveUp for " << probFile << endl;
@@ -266,7 +269,10 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
     parser.setUnitSourceMap(sources.ptr());
     UnitList* solnUnits = 0;
     try {
+      bool outputAxiomValue = env.options->outputAxiomNames();
+      env.options->setOutputAxiomNames(true);
       parser.parse();
+      env.options->setOutputAxiomNames(outputAxiomValue);
       solnUnits = parser.units();
     } catch (Lib::Exception& ex) {
       cout << "Couldn't parse " << "solnFileName" << endl;
@@ -285,9 +291,22 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
     UnitList::DelIterator it(solnUnits);
     while (it.hasNext()) {
       Unit* unit = it.next();
-      if(unit->inputType()==Unit::AXIOM && sources->get(unit)->isFile()){
-        vstring name = static_cast<Parse::TPTP::FileSourceRecord*>(sources->get(unit))->nameInFile;
-        _learnedFormulas.insert(name);
+      if(unit->inputType()==Unit::AXIOM){
+        if(sources->find(unit)){
+          if(sources->get(unit)->isFile()){
+            vstring name = static_cast<Parse::TPTP::FileSourceRecord*>(sources->get(unit))->nameInFile;
+            _learnedFormulas.insert(name);
+          }
+        }
+        else{
+          // The Der outputs seem to not do the file thing for input axioms
+          // I think it is safe to include the names of these axioms as learned
+          // If not I expect we will be unsound
+          vstring name;
+          if(Parse::TPTP::findAxiomName(unit,name)){
+            _learnedFormulas.insert(name);
+          }
+        }
       }
       it.del();
     }
@@ -1467,7 +1486,9 @@ void CLTBProblem::searchForProof(int terminationTime)
 
   env.options->setInputFile(problemFile);
 
-  env.clausePriorities = new DHMap<const Unit*,unsigned>();
+  if(env.options->ltbLearning()){
+    env.clausePriorities = new DHMap<const Unit*,unsigned>();
+  }
 
 
   // this local scope will delete a potentially large parser
@@ -1495,18 +1516,25 @@ void CLTBProblem::searchForProof(int terminationTime)
 
     // Now we iterate over all units in the problem and populate
     // clausePriorities from learnedFormulas
-    UnitList::Iterator uit(prb.units());
-    while(uit.hasNext()){
-      Unit* u = uit.next();
-      vstring name;
-      if(Parse::TPTP::findAxiomName(u,name)){
-        if(parent->_learnedFormulas.contains(name)){
-          env.clausePriorities->insert(u,1);
+    if(env.options->ltbLearning()){
+      unsigned learnedAdded = 0;
+      UnitList::Iterator uit(prb.units());
+      while(uit.hasNext()){
+        Unit* u = uit.next();
+        if(u->inputType()!=Unit::AXIOM) continue;
+        vstring name;
+        if(Parse::TPTP::findAxiomName(u,name)){
+          if(parent->_learnedFormulas.contains(name)){
+            learnedAdded++;
+            env.clausePriorities->insert(u,1);
+          }
+        }
+        else{ 
+          ASSERTION_VIOLATION; 
         }
       }
-      else{ ASSERTION_VIOLATION; }
+      cout << "Marked " << learnedAdded << " as learned formulas" << endl;
     }
-
     env.options->setOutputAxiomNames(outputAxiomValue);
   }
 
