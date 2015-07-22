@@ -212,6 +212,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 	  NOT_IMPLEMENTED;
 	  break;
   }
+/*
   case Options::InputSyntax::MPS:
   case Options::InputSyntax::NETLIB:
   case Options::InputSyntax::HUMAN:
@@ -219,6 +220,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     cout << "This is not supported yet";
     NOT_IMPLEMENTED;
    }
+*/
    break;
   }
 

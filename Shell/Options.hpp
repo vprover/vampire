@@ -40,6 +40,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/XML.hpp"
+#include "Lib/Comparison.hpp"
 
 #include "Property.hpp"
 
@@ -181,15 +182,18 @@ public:
     enum class OptionTag: unsigned int {
         UNUSED,
         OTHER,
+        DEVELOPMENT,
         OUTPUT,
         TABULATION,
         INST_GEN,
         SAT,
         AVATAR,
         INFERENCES,
+        LRS,
         SATURATION,
         PREPROCESSING,
         INPUT,
+        HELP,
         LAST_TAG // Used for counting the number of tags
     };
     // update _tagNames at the end of Options constructor if you add a tag
@@ -276,9 +280,9 @@ public:
     SMTLIB2 = 2,
     /** syntax of the TPTP prover */
     TPTP = 3, 
-    HUMAN = 4, 
-    MPS = 5, 
-    NETLIB = 6
+    //HUMAN = 4, 
+    //MPS = 5, 
+    //NETLIB = 6
   };
 
 
@@ -290,16 +294,13 @@ public:
     AXIOM_SELECTION,
     BOUND_PROP,
     CASC,
-    CASC_EPR,
     CASC_LTB,
-    CASC_MZR,
     CASC_SAT,
-    CASC_THEORY,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     GROUNDING,
-    LTB_BUILD,
-    LTB_SOLVE,
+    //LTB_BUILD,
+    //LTB_SOLVE,
     /** this mode only outputs the input problem, without any preprocessing */
     OUTPUT,
     PREPROCESS,
@@ -673,7 +674,8 @@ private:
         virtual bool isDefault() const = 0;
         
         // For use in showOptions and explainOption
-        virtual void output(vstringstream& out) const {
+        //virtual void output(vstringstream& out) const {
+        virtual void output(ostream& out) const {
             CALL("Options::AbstractOptionValue::output");
             out << "--" << longName;
             if(!shortName.empty()){ out << " (-"<<shortName<<")"; }
@@ -745,6 +747,14 @@ private:
         bool supress_problemconstraints;
     };
     
+    struct AbstractOptionValueCompatator{
+      Comparison compare(AbstractOptionValue* o1, AbstractOptionValue* o2)
+      {
+        int value = strcmp(o1->longName.c_str(),o2->longName.c_str());
+        return value < 0 ? LESS : (value==0 ? EQUAL : GREATER);
+      }
+    };
+
     /**
      * The templated OptionValue is used to store default and actual values for options
      *
@@ -816,7 +826,7 @@ private:
         }
         virtual bool checkProblemConstraints(Property* prop);
         
-        virtual void output(vstringstream& out) const {
+        virtual void output(ostream& out) const {
             CALL("Options::OptionValue::output");
             AbstractOptionValue::output(out);
             out << "\tdefault: " << getStringOfValue(defaultValue) << endl;
@@ -862,7 +872,7 @@ private:
             return true;
         }
         
-        virtual void output(vstringstream& out) const {
+        virtual void output(ostream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << choices[static_cast<unsigned>(this->defaultValue)];
             out << endl;
@@ -998,7 +1008,7 @@ private:
         int defaultOtherValue;
         int otherValue;
         
-        virtual void output(vstringstream& out) const {
+        virtual void output(ostream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault left: " << defaultValue << endl;
             out << "\tdefault right: " << defaultOtherValue << endl;
@@ -1049,7 +1059,7 @@ private:
         
         bool setValue(const vstring& value);
         
-        virtual void output(vstringstream& out) const {
+        virtual void output(ostream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;;
         }
@@ -1068,7 +1078,7 @@ private:
         
         bool setValue(const vstring& value);
         
-        virtual void output(vstringstream& out) const {
+        virtual void output(ostream& out) const {
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << endl;;
         }
@@ -1108,7 +1118,7 @@ private:
         
         bool setValue(const vstring& value);
         
-        virtual void output(vstringstream& out) const {
+        virtual void output(ostream& out) const {
             CALL("Options::TimeLimitOptionValue::output");
             AbstractOptionValue::output(out);
             out << "\tdefault: " << defaultValue << "d" << endl;

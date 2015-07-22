@@ -889,6 +889,7 @@ int main(int argc, char* argv[])
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
+/*
     case Options::Mode::CASC_EPR:
       CASC::CASCMode::makeEPR();
       if (CASC::CASCMode::perform(argc, argv)) {
@@ -896,12 +897,14 @@ int main(int argc, char* argv[])
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
+*/
     case Options::Mode::CASC_LTB: {
       CASC::CLTBMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
+/*
     case Options::Mode::CASC_MZR: {
       CASC::CMZRMode::perform();
       //we have processed the ltb batch file, so we can return zero
@@ -916,7 +919,7 @@ int main(int argc, char* argv[])
       }
       break;
     }
-
+*/
     case Options::Mode::CLAUSIFY:
       clausifyMode();
       break;
