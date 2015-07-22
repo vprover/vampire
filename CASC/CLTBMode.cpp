@@ -1615,6 +1615,10 @@ void CLTBProblem::exitOnNoSuccess()
   System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
 } // CLTBProblem::exitOnNoSuccess
 
+static unsigned milliToDeci(unsigned timeInMiliseconds) {
+  return timeInMiliseconds/100;
+}
+
 /**
  * Run a schedule. Terminate the process with 0 exit status
  * if a proof was found, otherwise return false. This function available cores:
@@ -1656,7 +1660,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
 	// time limit reached
         return false;
       }
- 
+
       vstring sliceCode = it.next();
       vstring chopped;
 
@@ -1670,6 +1674,15 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       int remainingTime = terminationTime - elapsedTime;
       if (sliceTime > remainingTime) {
 	sliceTime = remainingTime;
+      }
+
+      ASS_GE(sliceTime,0);
+      if (milliToDeci((unsigned)sliceTime) == 0) {
+        // can be still zero, due to rounding
+        // and zero time limit means no time limit -> the child might never return!
+
+        // time limit reached
+        return false;
       }
 
       pid_t childId=Multiprocessing::instance()->fork();
@@ -1813,7 +1826,7 @@ void CLTBProblem::runSlice(vstring sliceCode, unsigned timeLimitInMilliseconds)
 
   Options opt = *env.options;
   opt.readFromEncodedOptions(sliceCode);
-  opt.setTimeLimitInDeciseconds(timeLimitInMilliseconds/100);
+  opt.setTimeLimitInDeciseconds(milliToDeci(timeLimitInMilliseconds));
   int stl = opt.simulatedTimeLimit();
   if (stl) {
     opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
