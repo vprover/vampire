@@ -1787,9 +1787,9 @@ void CLTBProblem::runWriterChild()
   //we're in the child that writes down the output of other children
   childOutputPipe.neverWrite();
 
-  ofstream out(outFile.c_str());
+  // ofstream out(outFile.c_str());
 
-  writerFileStream = &out;
+  // writerFileStream = &out;
   childOutputPipe.acquireRead();
 
   while (!childOutputPipe.in().eof()) {
@@ -1798,9 +1798,9 @@ void CLTBProblem::runWriterChild()
     if (line == problemFinishedString) {
       break;
     }
-    out << line << endl << flush;
+    // out << line << endl << flush;
   }
-  out.close();
+  // out.close();
   writerFileStream = 0;
 
   childOutputPipe.releaseRead();
@@ -1884,7 +1884,11 @@ void CLTBProblem::runSlice(Options& strategyOpt)
   }
 
   env.beginOutput();
-  UIHelper::outputResult(env.out());
+
+  ofstream out(outFile.c_str());
+  UIHelper::outputResult(out);
+  out.close();
+
   if (resultValue == 0) {
     env.out() << endl << problemFinishedString << endl << flush;
   }
