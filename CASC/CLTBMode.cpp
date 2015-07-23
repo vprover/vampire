@@ -117,7 +117,7 @@ void CLTBMode::solveBatch(istream& batchFile)
   int terminationTime = readInput(batchFile);
   loadIncludes();
 
-  if(env.options->ltbLearning()){
+  if(env.options->ltbLearning() != Options::LTBLearning::OFF){
     doTraining();
   }
 
@@ -190,7 +190,7 @@ void CLTBMode::solveBatch(istream& batchFile)
       lineOutput() << "SZS status Theorem for " << probFile << endl;
       solvedProblems++;
 
-      if(env.options->ltbLearning()){
+      if(env.options->ltbLearning() != Options::LTBLearning::OFF){
         // As we solved it we can learn from the proof
         learnFromSolutionFile(outFile);
       }
@@ -1487,7 +1487,7 @@ void CLTBProblem::searchForProof(int terminationTime)
 
   env.options->setInputFile(problemFile);
 
-  if(env.options->ltbLearning()){
+  if(env.options->ltbLearning() != Options::LTBLearning::OFF){
     env.clausePriorities = new DHMap<const Unit*,unsigned>();
   }
 
@@ -1517,7 +1517,7 @@ void CLTBProblem::searchForProof(int terminationTime)
 
     // Now we iterate over all units in the problem and populate
     // clausePriorities from learnedFormulas
-    if(env.options->ltbLearning()){
+    if(env.options->ltbLearning() != Options::LTBLearning::OFF){
       unsigned learnedAdded = 0;
       UnitList::Iterator uit(prb.units());
       while(uit.hasNext()){

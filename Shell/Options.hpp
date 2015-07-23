@@ -212,6 +212,12 @@ public:
     SOFT
   };
 
+  enum class LTBLearning : unsigned int {
+    ON,
+    OFF,
+    BIASED
+  };
+
   //enums for the bound propagation purpose
   enum class BPAlmostHalfBoundingRemoval : unsigned int {
     BOUNDS_ONLY = 0,
@@ -1647,7 +1653,7 @@ public:
   unsigned aigDefinitionIntroductionThreshold() const { return _aigDefinitionIntroductionThreshold.actualValue; }
   bool aigFormulaSharing() const { return _aigFormulaSharing.actualValue; }
   bool aigInliner() const { return _aigInliner.actualValue; }
-  bool ltbLearning() const { return _ltbLearning.actualValue; }
+  LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   //void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
@@ -2080,7 +2086,7 @@ private:
   StringOptionValue _logFile;
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
-  BoolOptionValue _ltbLearning;
+  ChoiceOptionValue<LTBLearning> _ltbLearning;
 
   LongOptionValue _maxActive;
   IntOptionValue _maxAnswers;

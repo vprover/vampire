@@ -955,8 +955,10 @@ void TPTP::readReserved(Token& tok)
       
       // If _filterReserved is on then filter "$" from content
       if(_filterReserved){
-          shiftChars(1);
-          n=n-1;
+          unsigned c=0;
+          for(;;c++){ if(getChar(c)!='$') break;}
+          shiftChars(c);
+          n=n-c;
           tok.content.assign(_chars.content(),n);
       }
       
