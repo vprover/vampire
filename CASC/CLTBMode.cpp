@@ -1930,7 +1930,7 @@ void CLTBProblem::runSlice(Options& strategyOpt)
   env.beginOutput();
 
   ofstream out(outFile.c_str());
-  UIHelper::outputResult(out);
+  UIHelper::outputResult(resultValue ? env.out() : out);
   out.close();
 
   if (resultValue == 0) {
