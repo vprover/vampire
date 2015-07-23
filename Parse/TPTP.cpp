@@ -2996,13 +2996,21 @@ TPTP::SourceRecord* TPTP::getSource()
     return new FileSourceRecord(fileName,nameInFile);
   }
   // inference
-  else if(source_kind.content == "inference"){
+  else if(source_kind.content == "inference" || source_kind.content == "introduced"){
+    bool introduced = (source_kind.content == "introduced");
     vstring name = getTok(0).content;
     resetToks();
 
     // cout << "Creating inference source record for " << name <<  endl;
 
     InferenceSourceRecord* r = new InferenceSourceRecord(name);
+
+    if(introduced){
+      // then we don't expect names and we don't care about middle info 
+      resetToks();
+      skipToRPAR();
+      return r;
+    }
 
     // now skip this middle information that is between [ and ]
     consumeToken(T_COMMA);

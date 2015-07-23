@@ -118,6 +118,7 @@ void CLTBMode::solveBatch(istream& batchFile)
   loadIncludes();
 
   if(env.options->ltbLearning() != Options::LTBLearning::OFF){
+    _learnedFormulasMaxCount = 1;
     doTraining();
   }
 
@@ -296,7 +297,20 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
         if(sources->find(unit)){
           if(sources->get(unit)->isFile()){
             vstring name = static_cast<Parse::TPTP::FileSourceRecord*>(sources->get(unit))->nameInFile;
-            _learnedFormulas.insert(name);
+            if(_learnedFormulas.insert(name)){
+              // new name
+              _learnedFormulasCount.insert(name,1);
+            }else{
+              ASS_REP(_learnedFormulas.contains(name),name);
+              ASS_REP(_learnedFormulasCount.find(name),name);
+              // not new
+              _learnedFormulasCount.get(name)++;
+              if(_learnedFormulasCount.get(name) > _learnedFormulasMaxCount){
+                _learnedFormulasMaxCount = _learnedFormulasCount.get(name);
+              }
+              //cout << name << "," << _learnedFormulasCount.get(name) << endl;
+            }
+
           }
         }
         else{
@@ -305,7 +319,19 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
           // If not I expect we will be unsound
           vstring name;
           if(Parse::TPTP::findAxiomName(unit,name)){
-            _learnedFormulas.insert(name);
+            if(_learnedFormulas.insert(name)){
+              // new name
+              _learnedFormulasCount.insert(name,1); 
+            }else{
+              ASS_REP(_learnedFormulas.contains(name),name);
+              ASS_REP(_learnedFormulasCount.find(name),name);
+              // not new
+              _learnedFormulasCount.get(name)++;
+              if(_learnedFormulasCount.get(name) > _learnedFormulasMaxCount){
+                _learnedFormulasMaxCount = _learnedFormulasCount.get(name);
+              }
+              //cout << name << "," << _learnedFormulasCount.get(name) << endl;
+            }
           }
         }
       }
@@ -1487,8 +1513,18 @@ void CLTBProblem::searchForProof(int terminationTime)
 
   env.options->setInputFile(problemFile);
 
+  Stack<unsigned> cutoffs;
   if(env.options->ltbLearning() != Options::LTBLearning::OFF){
     env.clausePriorities = new DHMap<const Unit*,unsigned>();
+
+    unsigned cutoff = parent->_learnedFormulasMaxCount/2;
+    while(cutoff>0){
+      cutoffs.push(cutoff);
+      //cout << "create cutoff " << cutoff << endl;
+      cutoff /= 2;
+    }
+
+    env.maxClausePriority = cutoffs.length();
   }
 
 
@@ -1526,8 +1562,15 @@ void CLTBProblem::searchForProof(int terminationTime)
         vstring name;
         if(Parse::TPTP::findAxiomName(u,name)){
           if(parent->_learnedFormulas.contains(name)){
+            ASS(parent->_learnedFormulasCount.find(name));
             learnedAdded++;
-            env.clausePriorities->insert(u,1);
+            unsigned count = parent->_learnedFormulasCount.get(name);
+            unsigned priority = 1;
+            for(;;priority++){
+              if(cutoffs[priority-1] <= count) break;
+            }
+            env.clausePriorities->insert(u,priority);
+            //cout << "insert " << name << " with " << priority << endl;
           }
         }
         else{ 

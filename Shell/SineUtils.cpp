@@ -355,7 +355,7 @@ void SineSelector::perform(UnitList*& units)
       selectedStack.push(u);
       newlySelected.push_back(u);
 
-      if(env.clausePriorities){
+      if(env.clausePriorities && !env.clausePriorities->find(u)){
         env.clausePriorities->insert(u,1);
         //cout << "set priority for " << u->toString() << " as " << (1) << endl;
       }
@@ -372,6 +372,7 @@ void SineSelector::perform(UnitList*& units)
     if (!u) {
       //next selected formulas will be one step further from the original formulas
       depth++;
+      env.maxClausePriority++;
       if (_depthLimit && depth==_depthLimit) {
 	break;
       }
@@ -399,11 +400,8 @@ void SineSelector::perform(UnitList*& units)
 
         // If in LTB mode we may already have added du with a priority
         if(env.clausePriorities && !env.clausePriorities->find(du)){
-          env.clausePriorities->insert(du,depth+1);
-          //cout << "set priority for " << du->toString() << " as " << (depth+1) << endl;
-          if(depth+1 > env.maxClausePriority){
-            env.maxClausePriority = depth+1;
-          }
+          env.clausePriorities->insert(du,env.maxClausePriority);
+          //cout << "set priority for " << du->toString() << " as " << env.maxClausePriority << endl;
         }
 
       }

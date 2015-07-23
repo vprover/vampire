@@ -83,6 +83,8 @@ private:
   // formulas used in proofs of previous problems
   // Note: this relies on the assurance that formulas are consistently named
   DHSet<vstring> _learnedFormulas;
+  DHMap<vstring,unsigned> _learnedFormulasCount;
+  unsigned _learnedFormulasMaxCount;
 
   friend class CLTBProblem;
 };

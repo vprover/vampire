@@ -114,7 +114,7 @@ unsigned Unit::getPriority() const
   // Current cases where there is no input clause ancestor
   // TODO do we want to be more 'clever' in these cases?
   // Already done in general splitting and inequality splitting
-  if(_inference->rule() == Inference::SAT_SPLITTING_COMPONENT ||
+  if(
      _inference->rule() == Inference::PREDICATE_DEFINITION ||
      _inference->rule() == Inference::SKOLEM_PREDICATE_INTRODUCTION ||
      _inference->rule() == Inference::EQUALITY_PROXY_AXIOM1
@@ -133,6 +133,9 @@ unsigned Unit::getPriority() const
   // Goal gets 1
   if(_inference->rule() == Inference::INPUT){ return 2; }
   if(_inference->rule() == Inference::NEGATED_CONJECTURE){ return 2; }
+
+  // If we get to here it means that the component did not have an orig
+  if(_inference->rule() == Inference::SAT_SPLITTING_COMPONENT){ return 2;} 
 
   //cout << "getPriority for " << this->toString() << endl;
 

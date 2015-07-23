@@ -983,6 +983,10 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   }
   _compNames.insert(compCl, name);
 
+  if(orig && env.clausePriorities){
+    env.clausePriorities->insert(compCl,orig->getPriority());
+  }
+
   return compCl;
 }
 
