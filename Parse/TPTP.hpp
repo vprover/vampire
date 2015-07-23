@@ -702,12 +702,16 @@ public:
   }
   SourceRecord* getSource();
 
+  void setFilterReserved(){ _filterReserved=true; }
+
 private:
   DHMap<Unit*,SourceRecord*>* _unitSources;
 
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
   static DHMap<unsigned, vstring> _axiomNames;
+
+  bool _filterReserved;
 
 
 #if VDEBUG

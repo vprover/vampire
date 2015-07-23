@@ -267,6 +267,7 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
 
     Parse::TPTP parser(soln);
     parser.setUnitSourceMap(sources.ptr());
+    parser.setFilterReserved();
     UnitList* solnUnits = 0;
     try {
       bool outputAxiomValue = env.options->outputAxiomNames();

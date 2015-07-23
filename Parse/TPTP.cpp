@@ -60,7 +60,8 @@ TPTP::TPTP(istream& in)
     _in(&in),
     _includeDirectory(""),
     _currentColor(COLOR_TRANSPARENT),
-    _unitSources(0)
+    _unitSources(0),
+    _filterReserved(false)
 {
 } // TPTP::TPTP
 
@@ -800,7 +801,8 @@ void TPTP::readReserved(Token& tok)
 {
   CALL("TPTP::readReserved");
 
-  for (int n = 1;;n++) {
+  int n = 1;
+  for (;;n++) {
     switch (getChar(n)) {
     case 'A':
     case 'B':
@@ -869,7 +871,7 @@ void TPTP::readReserved(Token& tok)
       break;
     default:
       tok.content.assign(_chars.content(),n);
-      shiftChars(n);
+      //shiftChars(n);
       goto out;
     }
   }
@@ -946,12 +948,22 @@ void TPTP::readReserved(Token& tok)
   else if (tok.content == "$thf") {
     tok.tag = T_THF;
   }
-  else if (tok.content.substr(0,2) == "$$") {
-    tok.tag = T_DOLLARS;
+  else if (tok.content.substr(0,2) == "$$" && !_filterReserved) {
+      tok.tag = T_DOLLARS;
   }
   else {
-    tok.tag = T_NAME;
+      
+      // If _filterReserved is on then filter "$" from content
+      if(_filterReserved){
+          shiftChars(1);
+          n=n-1;
+          tok.content.assign(_chars.content(),n);
+      }
+      
+      tok.tag = T_NAME;
   }
+  // Moved from above so that _filterReserved works
+  shiftChars(n);
 } // readReserved
 
 /**
