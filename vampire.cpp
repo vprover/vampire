@@ -899,7 +899,13 @@ int main(int argc, char* argv[])
       break;
 */
     case Options::Mode::CASC_LTB: {
-      CASC::CLTBMode::perform();
+      try {
+        CASC::CLTBMode::perform();
+      } catch (Lib::SystemFailException& ex) {
+        cerr << "Process " << getpid() << " received SystemFailException" << endl;
+        ex.cry(cerr);
+        cerr << " and will now die" << endl;
+      }
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
