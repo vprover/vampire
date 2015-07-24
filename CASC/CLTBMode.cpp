@@ -532,8 +532,10 @@ vstring CLTBProblem::problemFinishedString = "##Problem finished##vn;3-d-ca-12=1
 
 CLTBProblem::CLTBProblem(CLTBMode* parent, vstring problemFile, vstring outFile)
   : parent(parent), problemFile(problemFile), outFile(outFile),
-    prb(*parent->_baseProblem)
+    prb(*parent->_baseProblem), _syncSemaphore(1)
 {
+  //add the privileges into the semaphore
+  _syncSemaphore.set(0,1);
 }
 
 /**
@@ -1608,26 +1610,6 @@ void CLTBProblem::searchForProof(int terminationTime)
   // now all the cpu usage will be in children, we'll just be waiting for them
   Timer::setTimeLimitEnforcement(false);
 
-  //fork off the writer child process
-  writerChildPid = Multiprocessing::instance()->fork();
-  if (!writerChildPid) { // child process
-    try {
-      runWriterChild();
-    } catch (Exception& exc) {
-      cerr << "% Exception in writer" << endl;
-      exc.cry(cerr);
-      System::terminateImmediately(1);
-    }
-    ASSERTION_VIOLATION; // the runWriterChild() function should never return
-  }
-  CLTBMode::coutLineOutput() << "writer pid " << writerChildPid << endl << flush;
-
-  //when the pipe will be closed, we want the process to terminate properly
-  signal(SIGPIPE, &terminatingSignalHandler);
-
-  //only the writer child is reading from the pipe (and it is now forked off)
-  childOutputPipe.neverRead();
-  env.setPipeOutput(&childOutputPipe); //direct output into the pipe
   UIHelper::cascMode=true;
 
   performStrategy(terminationTime);
@@ -1658,25 +1640,6 @@ void CLTBProblem::exitOnNoSuccess()
     CLTBMode::lineOutput() << "SZS status Timeout for " << env.options->problemName() << endl;
   }
   env.endOutput();
-
-  env.setPipeOutput(0);
-  //This should make the writer child terminate.
-  childOutputPipe.neverWrite();
-
-  try {
-    int writerResult;
-    Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
-    ASS_EQ(writerResult,0);
-  }
-  catch (SystemFailException& ex) {
-    //it may happen that the writer process has already exitted
-    if (ex.err!=ECHILD) {
-      cerr << "exitOnNoSuccess has seen SystemFailException while waiting for writer" << endl;
-      ex.cry(cerr);
-      cerr << endl;
-      throw;
-    }
-  }
 
   CLTBMode::coutLineOutput() << "problem proof search terminated (fail)" << endl << flush;
   System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
@@ -1804,9 +1767,6 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
 
   int resValue;
   pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
-  if (finishedChild == writerChildPid) {
-    finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
-  }
 #if VDEBUG
   ALWAYS(childIds.remove(finishedChild));
 #endif
@@ -1814,19 +1774,6 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
     // we have found the proof. It has been already written down by the writter child,
     // so we can just terminate
     CLTBMode::coutLineOutput() << "terminated slice pid " << finishedChild << " (success)" << endl << flush;
-    int writerResult;
-    try {
-      Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
-    }
-    catch (SystemFailException& ex) {
-      //it may happen that the writer process has already exitted
-      if (ex.err!=ECHILD) {
-        cerr << "waitForChildAndExitWhenProofFound has seen SystemFailException while waiting for " << finishedChild << endl;
-        ex.cry(cerr);
-        cerr << endl;
-	throw;
-      }
-    }
     System::terminateImmediately(0);
   }
   // proof not found
@@ -1834,48 +1781,6 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
 } // waitForChildAndExitWhenProofFound
 
 ofstream* CLTBProblem::writerFileStream = 0;
-
-/**
- * Read everything from the pipe and write it into the output file.
- * Terminate after all writing ends of the pipe are closed.
- *
- * This function is to be run in a forked-off process
- */
-void CLTBProblem::runWriterChild()
-{
-  CALL("CLTBProblem::runWriterChild");
-
-  System::registerForSIGHUPOnParentDeath();
-  signal(SIGHUP, &terminatingSignalHandler);
-//  Timer::setTimeLimitEnforcement(false);
-
-  // This was the previous code, now removed: we assume that this child has all the time it needs
-  // Timer::setTimeLimitEnforcement(true);
-  // int writerLimit = parent->_problemTimeLimit+env.timer->elapsedSeconds()+2;
-  // env.options->setTimeLimitInSeconds(writerLimit);
-
-  //we're in the child that writes down the output of other children
-  childOutputPipe.neverWrite();
-
-  // ofstream out(outFile.c_str());
-
-  // writerFileStream = &out;
-  childOutputPipe.acquireRead();
-
-  while (!childOutputPipe.in().eof()) {
-    vstring line;
-    getline(childOutputPipe.in(), line);
-    if (line == problemFinishedString) {
-      break;
-    }
-    // out << line << endl << flush;
-  }
-  // out.close();
-  writerFileStream = 0;
-
-  childOutputPipe.releaseRead();
-  System::terminateImmediately(0);
-}
 
 void CLTBProblem::terminatingSignalHandler(int sigNum)
 {
@@ -1959,16 +1864,18 @@ void CLTBProblem::runSlice(Options& strategyOpt)
     resultValue=0;
   }
 
-  env.beginOutput();
-
-  ofstream out(outFile.c_str());
-  UIHelper::outputResult(resultValue ? env.out() : out);
-  out.close();
-
-  if (resultValue == 0) {
-    env.out() << endl << problemFinishedString << endl << flush;
+  if (!resultValue) { // write the proof to a file
+    ScopedSemaphoreLocker locker(_syncSemaphore);
+    locker.lock();
+    ofstream out(outFile.c_str());
+    UIHelper::outputResult(out);
+    out.close();
+  } else { // write other result to output
+    env.beginOutput();
+    UIHelper::outputResult(env.out());
+    env.endOutput();
   }
-  env.endOutput();
+
   exit(resultValue);
 } // CLTBProblem::runSlice
 

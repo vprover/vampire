@@ -109,7 +109,6 @@ private:
 
   static ofstream* writerFileStream;
   static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
-  void runWriterChild() __attribute__((noreturn));
   void runSlice(vstring slice, unsigned milliseconds) __attribute__((noreturn));
   void runSlice(Options& strategyOpt) __attribute__((noreturn));
 
@@ -133,9 +132,30 @@ private:
    */
   Problem& prb;
 
-  pid_t writerChildPid;
-  /** pipe for collecting the output from children */
-  SyncPipe childOutputPipe;
+  Semaphore _syncSemaphore; // semaphore for synchronizing writing if the solution
+
+  /**
+   * Assumes semaphore object with 1 semaphores (at index 0).
+   * Locks on demand (once) and releases the lock on destruction.
+   */
+  struct ScopedSemaphoreLocker { //
+    Semaphore& _sem;
+    bool locked;
+    ScopedSemaphoreLocker(Semaphore& sem) : _sem(sem), locked(false) {}
+
+    void lock() {
+      if (!locked) {
+        _sem.dec(1);
+        locked = true;
+      }
+    }
+
+    ~ScopedSemaphoreLocker() {
+      if (locked) {
+        _sem.inc(1);
+      }
+    }
+  };
 };
 
 #endif //!COMPILER_MSVC
