@@ -1879,8 +1879,14 @@ void CLTBProblem::runWriterChild()
 
 void CLTBProblem::terminatingSignalHandler(int sigNum)
 {
-  if (writerFileStream) {
-    writerFileStream->close();
+  try {
+    if (writerFileStream) {
+      writerFileStream->close();
+    }
+  } catch (Lib::SystemFailException& ex) {
+    cerr << "Process " << getpid() << " received SystemFailException in terminatingSignalHandler" << endl;
+    ex.cry(cerr);
+    cerr << " and will now die" << endl;
   }
   System::terminateImmediately(0);
 }
