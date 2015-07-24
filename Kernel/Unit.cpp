@@ -108,16 +108,17 @@ unsigned Unit::getPriority() const
 
   if(!env.clausePriorities) return 1;
 
-  if(_inference->rule() == Inference::THEORY){
+  // Put these at the end of the priority list
+  if(
+    _inference->rule() == Inference::THEORY ||
+    _inference->rule() == Inference::EQUALITY_PROXY_AXIOM1
+  ){
     return env.maxClausePriority;
   }
   // Current cases where there is no input clause ancestor
-  // TODO do we want to be more 'clever' in these cases?
-  // Already done in general splitting and inequality splitting
+  // This is probably okay as this rule is from a weird experimental option
   if(
-     _inference->rule() == Inference::PREDICATE_DEFINITION ||
-     _inference->rule() == Inference::SKOLEM_PREDICATE_INTRODUCTION ||
-     _inference->rule() == Inference::EQUALITY_PROXY_AXIOM1
+     _inference->rule() == Inference::SKOLEM_PREDICATE_INTRODUCTION 
     ){
     // This is the same as depth 1 in sine selection
     return 2;
