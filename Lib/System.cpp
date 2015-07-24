@@ -250,14 +250,14 @@ void handleSignal (int sigNum)
 	if(outputAllowed()) {
 	  if(env.options && env.statistics) {
 	    env.beginOutput();
-	    env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	    env.out() << getpid() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	    env.statistics->print(env.out());
 #if VDEBUG
 	    Debug::Tracer::printStack(env.out());
 #endif
 	    env.endOutput();
 	  } else {
-	    cout << "Aborted by signal " << signalDescription << "\n";
+	    cout << getpid() << "Aborted by signal " << signalDescription << "\n";
 #if VDEBUG
 	    Debug::Tracer::printStack(cout);
 #endif
