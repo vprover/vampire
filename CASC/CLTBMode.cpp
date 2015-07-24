@@ -1611,7 +1611,13 @@ void CLTBProblem::searchForProof(int terminationTime)
   //fork off the writer child process
   writerChildPid = Multiprocessing::instance()->fork();
   if (!writerChildPid) { // child process
-    runWriterChild();
+    try {
+      runWriterChild();
+    } catch (Exception& exc) {
+      cerr << "% Exception in writer" << endl;
+      exc.cry(cerr);
+      System::terminateImmediately(1);
+    }
     ASSERTION_VIOLATION; // the runWriterChild() function should never return
   }
   CLTBMode::coutLineOutput() << "writer pid " << writerChildPid << endl << flush;
@@ -1665,6 +1671,9 @@ void CLTBProblem::exitOnNoSuccess()
   catch (SystemFailException& ex) {
     //it may happen that the writer process has already exitted
     if (ex.err!=ECHILD) {
+      cerr << "exitOnNoSuccess has seen SystemFailException while waiting for writer" << endl;
+      ex.cry(cerr);
+      cerr << endl;
       throw;
     }
   }
@@ -1812,6 +1821,9 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
     catch (SystemFailException& ex) {
       //it may happen that the writer process has already exitted
       if (ex.err!=ECHILD) {
+        cerr << "waitForChildAndExitWhenProofFound has seen SystemFailException while waiting for " << finishedChild << endl;
+        ex.cry(cerr);
+        cerr << endl;
 	throw;
       }
     }
