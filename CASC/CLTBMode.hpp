@@ -85,6 +85,7 @@ private:
   DHSet<vstring> _learnedFormulas;
   DHMap<vstring,unsigned> _learnedFormulasCount;
   unsigned _learnedFormulasMaxCount;
+  bool _biasedLearning;
 
   friend class CLTBProblem;
 };

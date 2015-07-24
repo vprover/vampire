@@ -117,8 +117,10 @@ void CLTBMode::solveBatch(istream& batchFile)
   int terminationTime = readInput(batchFile);
   loadIncludes();
 
+  _biasedLearning = false;
   if(env.options->ltbLearning() != Options::LTBLearning::OFF){
     _learnedFormulasMaxCount = 1;
+    _biasedLearning = (env.options->ltbLearning() == Options::LTBLearning::BIASED);
     doTraining();
   }
 
@@ -256,12 +258,12 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
 {
   CALL("CLTBMode::learnFromSolutionFile");
 
-    cout << "Reading solutions " << solnFileName << endl;
-
     ifstream soln(solnFileName.c_str());
     if (soln.fail()) {
-      USER_ERROR("Cannot open problem file: " + solnFileName);
+      return; // ignore if we cannot get the solution file
+      //USER_ERROR("Cannot open problem file: " + solnFileName);
     }
+    cout << "Reading solutions " << solnFileName << endl;
 
     ScopedPtr<DHMap<Unit*,Parse::TPTP::SourceRecord*> > sources;
     sources = new DHMap<Unit*,Parse::TPTP::SourceRecord*>();
@@ -299,16 +301,20 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
             vstring name = static_cast<Parse::TPTP::FileSourceRecord*>(sources->get(unit))->nameInFile;
             if(_learnedFormulas.insert(name)){
               // new name
-              _learnedFormulasCount.insert(name,1);
-            }else{
-              ASS_REP(_learnedFormulas.contains(name),name);
-              ASS_REP(_learnedFormulasCount.find(name),name);
-              // not new
-              _learnedFormulasCount.get(name)++;
-              if(_learnedFormulasCount.get(name) > _learnedFormulasMaxCount){
-                _learnedFormulasMaxCount = _learnedFormulasCount.get(name);
+              if(_biasedLearning){
+                _learnedFormulasCount.insert(name,1);
               }
+            }else{
+              if(_biasedLearning){
+                ASS_REP(_learnedFormulas.contains(name),name);
+                ASS_REP(_learnedFormulasCount.find(name),name);
+                // not new
+                _learnedFormulasCount.get(name)++;
+                if(_learnedFormulasCount.get(name) > _learnedFormulasMaxCount){
+                  _learnedFormulasMaxCount = _learnedFormulasCount.get(name);
+                }
               //cout << name << "," << _learnedFormulasCount.get(name) << endl;
+              }
             }
 
           }
@@ -321,16 +327,20 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
           if(Parse::TPTP::findAxiomName(unit,name)){
             if(_learnedFormulas.insert(name)){
               // new name
-              _learnedFormulasCount.insert(name,1); 
-            }else{
-              ASS_REP(_learnedFormulas.contains(name),name);
-              ASS_REP(_learnedFormulasCount.find(name),name);
-              // not new
-              _learnedFormulasCount.get(name)++;
-              if(_learnedFormulasCount.get(name) > _learnedFormulasMaxCount){
-                _learnedFormulasMaxCount = _learnedFormulasCount.get(name);
+              if(_biasedLearning){
+                _learnedFormulasCount.insert(name,1);
               }
+            }else{
+              if(_biasedLearning){
+                ASS_REP(_learnedFormulas.contains(name),name);
+                ASS_REP(_learnedFormulasCount.find(name),name);
+                // not new
+                _learnedFormulasCount.get(name)++;
+                if(_learnedFormulasCount.get(name) > _learnedFormulasMaxCount){
+                  _learnedFormulasMaxCount = _learnedFormulasCount.get(name);
+                }
               //cout << name << "," << _learnedFormulasCount.get(name) << endl;
+              }
             }
           }
         }
@@ -1517,14 +1527,16 @@ void CLTBProblem::searchForProof(int terminationTime)
   if(env.options->ltbLearning() != Options::LTBLearning::OFF){
     env.clausePriorities = new DHMap<const Unit*,unsigned>();
 
-    unsigned cutoff = parent->_learnedFormulasMaxCount/2;
-    while(cutoff>0){
-      cutoffs.push(cutoff);
-      //cout << "create cutoff " << cutoff << endl;
-      cutoff /= 2;
-    }
+    if(parent->_biasedLearning){
+      unsigned cutoff = parent->_learnedFormulasMaxCount/2;
+      while(cutoff>0){
+        cutoffs.push(cutoff);
+        //cout << "create cutoff " << cutoff << endl;
+        cutoff /= 2;
+      }
 
-    env.maxClausePriority = cutoffs.length();
+      env.maxClausePriority = cutoffs.length();
+    }
   }
 
 
@@ -1564,10 +1576,12 @@ void CLTBProblem::searchForProof(int terminationTime)
           if(parent->_learnedFormulas.contains(name)){
             ASS(parent->_learnedFormulasCount.find(name));
             learnedAdded++;
-            unsigned count = parent->_learnedFormulasCount.get(name);
             unsigned priority = 1;
-            for(;;priority++){
-              if(cutoffs[priority-1] <= count) break;
+            if(parent->_biasedLearning){
+              unsigned count = parent->_learnedFormulasCount.get(name);
+              for(;;priority++){
+                if(cutoffs[priority-1] <= count) break;
+              }
             }
             env.clausePriorities->insert(u,priority);
             //cout << "insert " << name << " with " << priority << endl;
