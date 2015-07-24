@@ -145,14 +145,14 @@ private:
 
     void lock() {
       if (!locked) {
-        _sem.dec(1);
+        _sem.dec(0);
         locked = true;
       }
     }
 
     ~ScopedSemaphoreLocker() {
       if (locked) {
-        _sem.inc(1);
+        _sem.inc(0);
       }
     }
   };

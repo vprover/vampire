@@ -1576,10 +1576,10 @@ void CLTBProblem::searchForProof(int terminationTime)
         vstring name;
         if(Parse::TPTP::findAxiomName(u,name)){
           if(parent->_learnedFormulas.contains(name)){
-            ASS(parent->_learnedFormulasCount.find(name));
             learnedAdded++;
             unsigned priority = 1;
             if(parent->_biasedLearning){
+              ASS(parent->_learnedFormulasCount.find(name));
               unsigned count = parent->_learnedFormulasCount.get(name);
               for(;;priority++){
                 if(cutoffs[priority-1] <= count) break;
@@ -1688,7 +1688,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       int elapsedTime = env.timer->elapsedMilliseconds();
       if (elapsedTime >= terminationTime) {
 	// time limit reached
-        return false;
+        goto finish_up;
       }
 
       vstring sliceCode = it.next();
@@ -1712,7 +1712,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
         // and zero time limit means no time limit -> the child might never return!
 
         // time limit reached
-        return false;
+        goto finish_up;
       }
 
       pid_t childId=Multiprocessing::instance()->fork();
@@ -1745,6 +1745,8 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       processesLeft++;
     }
   }
+
+  finish_up:
 
   while (parallelProcesses!=processesLeft) {
     ASS_L(processesLeft, parallelProcesses);

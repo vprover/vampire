@@ -372,11 +372,12 @@ void SineSelector::perform(UnitList*& units)
     if (!u) {
       //next selected formulas will be one step further from the original formulas
       depth++;
-      env.maxClausePriority++;
+      
       if (_depthLimit && depth==_depthLimit) {
 	break;
       }
       ASS(!_depthLimit || depth<_depthLimit);
+      env.maxClausePriority++;
 
       if (newlySelected.isNonEmpty()) {
 	//we must push another mark if we're not done yet
@@ -428,7 +429,7 @@ void SineSelector::perform(UnitList*& units)
 if(env.clausePriorities){
   UnitList::Iterator selIt(units);
   bool allSelectedProcessed = true;
-  bool maxSeen = false;
+  //bool maxSeen = false;
   while (selIt.hasNext()) {
     Unit* u = selIt.next();
     if(!env.clausePriorities->find(u)){
@@ -436,13 +437,13 @@ if(env.clausePriorities){
       allSelectedProcessed=false;
     }
     else{
-      if(env.maxClausePriority == env.clausePriorities->get(u)){
-        maxSeen=true;
-      }
+      //if(env.maxClausePriority == env.clausePriorities->get(u)){
+      //  maxSeen=true;
+      //}
     } 
   }
   ASS(allSelectedProcessed);
-  ASS(maxSeen);
+  //ASS(maxSeen);
 }
 #endif
 
