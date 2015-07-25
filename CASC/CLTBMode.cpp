@@ -415,6 +415,7 @@ int CLTBMode::readInput(istream& in)
   }
   else{ USER_ERROR("training_directory not found"); }
 
+  getline(in,line);
   if (line!="% SZS start BatchConfiguration") {
     USER_ERROR("\"% SZS start BatchConfiguration\" expected, \""+line+"\" found.");
   }
@@ -439,7 +440,9 @@ int CLTBMode::readInput(istream& in)
       }
       category = lineSegments[1];      
     }
-    else if (param == "output.required" || param == "output.desired") {
+    else
+*/
+     if (param == "output.required" || param == "output.desired") {
       if (lineSegments.find("Answer")) {
 	_questionAnswering = true;
       }
@@ -448,7 +451,6 @@ int CLTBMode::readInput(istream& in)
       // we ignore this for now and always execute in order
     }
     else
-*/
      if (param == "limit.time.problem.wc") {
 
       if (lineSegments.size() != 2 ||
