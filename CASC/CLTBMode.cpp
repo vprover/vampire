@@ -396,20 +396,24 @@ int CLTBMode::readInput(istream& in)
 {
   CALL("CLTBMode::readInput");
 
-  // ignore any lines describing the division or the category
-  // apart from the training directory
   vstring line, word;
 
   getline(in,line);
-  while (line.find("division.category") != vstring::npos){
-    // Get training directory
-    if(line.find("training_directory") != vstring::npos){
+  if(line.find("division.category") != vstring::npos){
+      StringStack ls;
+      StringUtils::splitStr(line.c_str(),' ',ls);
+      category = ls[1];
+  }
+  else{ USER_ERROR("division category not found"); } 
+
+  // Get training directory
+  getline(in,line);
+  if(line.find("training_directory") != vstring::npos){
       StringStack ls;
       StringUtils::splitStr(line.c_str(),' ',ls);
       trainingDirectory = ls[1];
-    }
-    getline(in,line);
   }
+  else{ USER_ERROR("training_directory not found"); }
 
   if (line!="% SZS start BatchConfiguration") {
     USER_ERROR("\"% SZS start BatchConfiguration\" expected, \""+line+"\" found.");
@@ -427,6 +431,8 @@ int CLTBMode::readInput(istream& in)
     lineSegments.reset();
     StringUtils::splitStr(line.c_str(), ' ', lineSegments);
     vstring param = lineSegments[0];
+    // not used here now
+/*
     if (param == "division.category") {
       if (lineSegments.size()!=2) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
@@ -441,7 +447,10 @@ int CLTBMode::readInput(istream& in)
     else if (param == "execution.order") {
       // we ignore this for now and always execute in order
     }
-    else if (param == "limit.time.problem.wc") {
+    else
+*/
+     if (param == "limit.time.problem.wc") {
+
       if (lineSegments.size() != 2 ||
 	  !Int::stringToInt(lineSegments[1], _problemTimeLimit)) {
 	USER_ERROR("unexpected \""+param+"\" specification: \""+line+"\"");
