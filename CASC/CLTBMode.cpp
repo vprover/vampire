@@ -864,7 +864,7 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
     parallelProcesses = coreNumber-2;
   }
   else {
-    parallelProcesses = coreNumber-1;
+    parallelProcesses = coreNumber;
   }
 
   int processesLeft = parallelProcesses;
