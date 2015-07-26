@@ -30,6 +30,8 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
+
+
 #if COMPILER_MSVC
 
 class CLTBMode
@@ -39,6 +41,14 @@ public:
 };
 
 #else
+
+enum Category {
+  HH4,
+  ISA,
+  HLL,
+  MZR,
+  UNKNOWN
+};
 
 class CLTBProblem;
 
@@ -60,7 +70,21 @@ private:
   typedef pair<vstring,vstring> StringPair;
   typedef Stack<StringPair> StringPairStack;
 
-  vstring _category;
+  Category getCategory(vstring& categoryStr) {
+    if (categoryStr == "LTB.HH4") {
+      return HH4;
+    } else if (categoryStr == "LTB.ISA") {
+      return ISA;
+    } else if (categoryStr == "LTB.HLL" || categoryStr == "LTB.HOL") {
+      return HLL;
+    } else if (categoryStr == "LTB.MZR") {
+      return MZR;
+    } else {
+      return UNKNOWN;
+    }
+  }
+
+  Category _category;
   vstring _trainingDirectory;
   /** per-problem time limit, in milliseconds */
   int _problemTimeLimit;
@@ -96,14 +120,14 @@ class CLTBProblem
 public:
   CLTBProblem(CLTBMode* parent, vstring problemFile, vstring outFile);
 
-  void searchForProof(int terminationTime,const vstring& category) __attribute__((noreturn));
+  void searchForProof(int terminationTime,const Category category) __attribute__((noreturn));
 private:
   typedef Set<vstring> StrategySet;
   typedef Stack<vstring> Schedule;
   bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
-  void performStrategy(int terminationTime,const vstring& category);
+  void performStrategy(int terminationTime,const Category category);
   void waitForChildAndExitWhenProofFound();
   void exitOnNoSuccess() __attribute__((noreturn));
 

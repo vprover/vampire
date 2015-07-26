@@ -402,7 +402,12 @@ int CLTBMode::readInput(istream& in)
   if (line.find("division.category") != vstring::npos){
       StringStack ls;
       StringUtils::splitStr(line.c_str(),' ',ls);
-      _category = ls[1];
+      _category = getCategory(ls[1]);
+      if (_category == Category::UNKNOWN) {
+        cerr << "read category " << ls[1] << endl;
+
+        USER_ERROR("Unrecognized category");
+      }
   }
   else{ USER_ERROR("division category not found"); } 
 
@@ -425,7 +430,6 @@ int CLTBMode::readInput(istream& in)
   _questionAnswering = false;
   _problemTimeLimit = -1;
   int batchTimeLimit = -1;
-  _category = "";
 
   StringStack lineSegments;
   while (!in.eof() && line!="% SZS end BatchConfiguration") {
@@ -573,7 +577,7 @@ CLTBProblem::CLTBProblem(CLTBMode* parent, vstring problemFile, vstring outFile)
  * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
  * @author Andrei Voronkov
  */
-void CLTBProblem::performStrategy(int terminationTime,const vstring& category)
+void CLTBProblem::performStrategy(int terminationTime,const Category category)
 {
   CALL("CLTBProblem::performStrategy");
 
@@ -586,7 +590,7 @@ void CLTBProblem::performStrategy(int terminationTime,const vstring& category)
   Schedule quick;
   Schedule fallback;
 
-  if (category == "LTB.HH4") {
+  if (category == HH4) {
     quick.push("dis+10_1_cond=fast:ep=RST:fsr=off:lcm=reverse:nm=0:nwc=4:sd=2:ss=axioms:st=1.5:spl=off:sp=reverse_arity:updr=off_26");
     quick.push("lrs+11_6_cond=on:fsr=off:gs=on:gsaa=from_current:gsem=off:gsssp=full:nwc=1:sas=minisat:stl=30:sd=7:ss=axioms:sos=all:sdd=off:ssfp=4000:ssfq=1.4:urr=ec_only_49");
     quick.push("dis+11_3_cond=fast:ep=RST:gs=on:gsaa=full_model:gsem=off:lwlo=on:nwc=1:sd=2:ss=axioms:st=3.0:sos=on:sac=on:sdd=large:sfr=on:ssfp=10000:ssfq=1.2:smm=sco:ssnc=none:sp=reverse_arity:updr=off_55");
@@ -602,7 +606,7 @@ void CLTBProblem::performStrategy(int terminationTime,const vstring& category)
     quick.push("lrs+11_3_bd=off:bsr=on:cond=fast:fde=unused:gs=on:gsem=on:nwc=1:sas=minisat:stl=30:sd=4:ss=axioms:st=1.5:sos=all:spl=off:sp=reverse_arity:uhcvi=on_178");
     quick.push("ott+2_2:1_bd=off:bsr=unit_only:cond=on:gs=on:nwc=1:sd=3:ss=priority:st=1.5:sos=on:spl=off:sp=occurrence:updr=off_280");
   }
-  else if (category == "LTB.ISA") {
+  else if (category == ISA) {
     quick.push("dis+11_5_ep=RST:fsr=off:fde=unused:gs=on:nwc=1:sas=minisat:sd=1:ss=priority:ssfp=1000:ssfq=1.0:smm=off:ssnc=none:sp=occurrence:uhcvi=on_26");
     quick.push("dis+11_5_cond=on:fde=unused:gs=on:gsem=off:gsssp=full:nwc=1:sas=minisat:sd=1:ss=axioms:sos=on:sac=on:sdd=large:ssfp=40000:ssfq=2.0:smm=sco:ssnc=none:sp=occurrence:urr=on:updr=off_94");
     quick.push("dis+11_5_fsr=off:fde=none:gs=on:gsaa=full_model:gsssp=full:nm=64:nwc=1:sas=minisat:sd=1:ss=axioms:st=5.0:sos=on:sac=on:sdd=off:sfr=on:ssfp=1000:ssfq=1.4:smm=off:ssnc=none:uhcvi=on_103");
@@ -616,7 +620,7 @@ void CLTBProblem::performStrategy(int terminationTime,const vstring& category)
     quick.push("lrs+11_5:4_bd=off:cond=fast:gs=on:gsssp=full:nwc=1:sas=minisat:stl=30:sd=1:ss=axioms:sos=all:spl=off:updr=off:uhcvi=on_218");
     quick.push("dis+10_2_bd=off:fde=unused:nwc=1:sd=2:ss=axioms:st=2.0:sos=on:spl=off:uhcvi=on_235");
   }
-  else if (category == "LTB.HLL") {
+  else if (category == HLL) {
     quick.push("dis+11_3_fsr=off:fde=unused:gs=on:gsaa=from_current:gsem=off:nwc=1:sas=minisat:sd=2:ss=axioms:sos=all:sdd=off:ssfp=100000:ssfq=1.2:smm=off:sp=occurrence_42");
     quick.push("lrs+11_4_bd=off:bsr=unit_only:cond=fast:fsr=off:fde=unused:gs=on:gsem=on:gsssp=full:nwc=1:stl=30:sd=2:ss=axioms:sos=all:sac=on:sdd=off:sfr=on:ssfp=1000:ssfq=2.0:smm=off:ssnc=none:sp=occurrence_49");
     quick.push("dis+11_5_74");
@@ -627,7 +631,7 @@ void CLTBProblem::performStrategy(int terminationTime,const vstring& category)
     quick.push("ins+11_3_ep=RST:fde=unused:gsp=input_only:igbrr=0.4:igrr=1/8:igrpq=1.5:igs=1:igwr=on:lcm=predicate:nwc=1:sd=2:ss=axioms:st=3.0:sos=all:spl=off:updr=off:dm=on:uhcvi=on_295");
     quick.push("lrs+11_3_bd=off:cond=fast:fde=none:gsp=input_only:gs=on:gsaa=from_current:gsem=on:gsssp=full:nwc=1:sas=minisat:stl=30:sd=1:ss=axioms:sos=all:sdd=large:sser=off:sfr=on:ssfp=4000:ssfq=2.0:ssnc=none:sp=occurrence:urr=on:updr=off_299");
   }
-  else if (category == "LTB.MZR") {
+  else if (category == MZR) {
     quick.push("dis+1_2:1_cond=on:fsr=off:fde=none:gs=on:gsem=on:lwlo=on:nwc=1.3:sd=2:ss=axioms:spl=off:sp=reverse_arity:urr=on_112");
     quick.push("dis+10_4_cond=fast:gs=on:gsaa=from_current:nwc=1:sas=minisat:sd=2:ss=axioms:st=2.0:sos=on:sdd=off:sfr=on:ssfp=10000:ssfq=1.0:smm=off:ssnc=none:sp=reverse_arity:updr=off:uhcvi=on_149");
     quick.push("dis+11_5_151");
@@ -657,7 +661,7 @@ void CLTBProblem::performStrategy(int terminationTime,const vstring& category)
  * @since 04/06/2013 flight Manchester-Frankfurt
  * @author Andrei Voronkov
  */
-void CLTBProblem::searchForProof(int terminationTime,const vstring& category)
+void CLTBProblem::searchForProof(int terminationTime,const Category category)
 {
   CALL("CLTBProblem::searchForProof");
 
