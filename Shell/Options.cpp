@@ -988,7 +988,7 @@ void Options::Options::init()
 //*********************** InstGen  ***********************
 
     _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);
-    _globalSubsumption.description="Perform global subsumption. Use a set of groundings of generated clauses G to replace C \/ L by C if the grounding of C is implied by G. A SAT solver is used for ground reasoning.";
+    _globalSubsumption.description="Perform global subsumption. Use a set of groundings of generated clauses G to replace C \\/ L by C if the grounding of C is implied by G. A SAT solver is used for ground reasoning.";
     _lookup.insert(&_globalSubsumption);
     _globalSubsumption.tag(OptionTag::INFERENCES);
     _globalSubsumption.addProblemConstraint(hasNonUnits());
