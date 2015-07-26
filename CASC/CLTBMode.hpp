@@ -60,8 +60,8 @@ private:
   typedef pair<vstring,vstring> StringPair;
   typedef Stack<StringPair> StringPairStack;
 
-  vstring category;
-  vstring trainingDirectory;
+  vstring _category;
+  vstring _trainingDirectory;
   /** per-problem time limit, in milliseconds */
   int _problemTimeLimit;
   /** true if question answers should be given */
@@ -75,7 +75,7 @@ private:
   /** The first vstring in the pair is problem file, the second
    * one is output file. The problemFiles[0] is the first
    * problem that should be attempted. */
-  StringPairStack problemFiles;
+  StringPairStack _problemFiles;
 
   ScopedPtr<Problem> _baseProblem;
 
@@ -96,14 +96,14 @@ class CLTBProblem
 public:
   CLTBProblem(CLTBMode* parent, vstring problemFile, vstring outFile);
 
-  void searchForProof(int terminationTime) __attribute__((noreturn));
+  void searchForProof(int terminationTime,const vstring& category) __attribute__((noreturn));
 private:
   typedef Set<vstring> StrategySet;
   typedef Stack<vstring> Schedule;
   bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
-  void performStrategy(int terminationTime);
+  void performStrategy(int terminationTime,const vstring& category);
   void waitForChildAndExitWhenProofFound();
   void exitOnNoSuccess() __attribute__((noreturn));
 
