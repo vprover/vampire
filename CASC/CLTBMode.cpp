@@ -403,9 +403,9 @@ int CLTBMode::readInput(istream& in)
       StringStack ls;
       StringUtils::splitStr(line.c_str(),' ',ls);
       _category = getCategory(ls[1]);
-      if (_category == Category::UNKNOWN) {
-        cerr << "read category " << ls[1] << endl;
+      coutLineOutput() << "read category " << ls[1] << endl;
 
+      if (_category == Category::UNKNOWN) {
         USER_ERROR("Unrecognized category");
       }
   }
