@@ -129,6 +129,85 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
   unsigned long prop = property.props();
   unsigned atoms = property.atoms();
 
+  if (env.options->forceLtbCacs() == Options::ForceLtbCasc::HH4) {
+    cout << "Forcing HH4" << endl;
+
+    quick.push("dis+11_3_cond=fast:ep=RST:gs=on:gsaa=full_model:gsem=off:lwlo=on:nwc=1:sd=2:ss=axioms:st=3.0:sos=on:sac=on:sdd=large:sfr=on:ssfp=10000:ssfq=1.2:smm=sco:ssnc=none:sp=reverse_arity:updr=off_31");
+    quick.push("dis+10_1_cond=fast:ep=RST:fsr=off:lcm=reverse:nm=0:nwc=4:sd=2:ss=axioms:st=1.5:spl=off:sp=reverse_arity:updr=off_31");
+    quick.push("dis+11_3_bd=off:fde=none:gs=on:gsssp=full:nwc=1:sas=minisat:sos=all:spl=off:updr=off_32");
+    quick.push("dis+11_3_ep=RST:fsr=off:gs=on:gsaa=from_current:gsem=off:nwc=1:sd=1:ss=axioms:st=1.5:sos=all:sdd=off:sfr=on:ssfp=4000:ssfq=2.0:ssnc=all_dependent:sp=reverse_arity:urr=on:updr=off:uhcvi=on_50");
+    quick.push("ins+11_3_cond=on:gs=on:gsem=off:igbrr=0.9:igrr=4/1:igrpq=1.1:igwr=on:nwc=1:sd=1:ss=axioms:sos=on:spl=off:sp=occurrence:uhcvi=on_51");
+    quick.push("lrs+11_5_fde=unused:gs=on:gsem=off:nwc=1:sas=minisat:stl=36:sd=1:ss=priority:st=1.2:sos=all:sac=on:sser=off:ssfp=40000:ssfq=1.2:ssnc=all:sp=occurrence_72");
+    quick.push("dis+10_5_bd=off:cond=on:fde=unused:gsp=input_only:gs=on:gsaa=full_model:gsem=on:nwc=1:sas=minisat:sos=on:ssfp=10000:ssfq=1.4:smm=off:ssnc=none:sp=reverse_arity:urr=on:uhcvi=on_86");
+    quick.push("ins+11_5_cond=fast:igbrr=0.1:igrr=1/32:igrp=1400:igs=1004:igwr=on:nwc=1:sd=2:ss=axioms:sos=on:spl=off:urr=on:updr=off_118");
+    quick.push("lrs+11_3_bd=off:bsr=on:cond=fast:fde=unused:gs=on:gsem=on:nwc=1:sas=minisat:stl=36:sd=4:ss=axioms:st=1.5:sos=all:spl=off:sp=reverse_arity:uhcvi=on_128");
+    quick.push("dis+4_3_bd=off:cond=on:fde=unused:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:sas=minisat:sd=3:ss=axioms:st=3.0:sos=on:sdd=off:sfr=on:ssfp=10000:ssfq=1.0:smm=off:ssnc=none:urr=ec_only:updr=off:uhcvi=on_147");
+    quick.push("dis+11_3_br=off:cond=on:ep=RST:fsr=off:fde=none:gsp=input_only:gs=on:nwc=1:sd=2:ss=axioms:sos=all:sac=on:sdd=off:ssfp=40000:ssfq=1.0:smm=sco:ssnc=none:sp=reverse_arity:urr=on:updr=off_148");
+    quick.push("dis-2_1_cond=fast:fsr=off:fde=unused:nwc=10:sd=2:ss=priority:st=2.0:spl=off:sp=occurrence:updr=off_160");
+    quick.push("ins+11_4_cond=on:fde=none:gs=on:gsem=off:gsssp=full:igbrr=0.5:igpr=on:igrr=1/4:igrp=4000:igrpq=1.05:igs=1:igwr=on:nm=0:nwc=1:sas=minisat:sd=1:ss=axioms:st=1.2:sos=all:spl=off:sp=reverse_arity:updr=off:uhcvi=on_188");
+    quick.push("lrs+10_5:4_fde=unused:gs=on:gsem=on:gsssp=full:nm=0:nwc=5:sas=minisat:stl=36:sd=1:ss=axioms:spl=off:updr=off:uhcvi=on_195");
+    quick.push("lrs+11_3_bsr=unit_only:cond=fast:fde=unused:gs=on:gsaa=from_current:gsem=off:nm=0:nwc=1.5:stl=36:sd=3:ss=axioms:sac=on:ssfp=40000:ssfq=2.0:smm=off:ssnc=none:sp=occurrence_201");
+    quick.push("dis+1002_4_cond=fast:ep=RST:fde=unused:gs=on:gsaa=from_current:gsem=off:nm=0:nwc=1:sd=3:ss=axioms:st=1.2:sos=on:sac=on:sdd=large:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:updr=off:uhcvi=on_207");
+    quick.push("dis+1002_4_cond=on:gs=on:gsem=off:nwc=1:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity:urr=ec_only:updr=off:uhcvi=on_243");
+    quick.push("ott+2_2:1_bd=off:bsr=unit_only:cond=on:gs=on:nwc=1:sd=3:ss=priority:st=1.5:sos=on:spl=off:sp=occurrence:updr=off_296");
+
+    return;
+  }
+
+  if (env.options->forceLtbCacs() == Options::ForceLtbCasc::ISA) {
+    cout << "Forcing ISA" << endl;
+
+    quick.push("dis+10_3_fde=none:gs=on:gsaa=full_model:gsem=on:gsssp=full:nwc=1:sd=2:ss=axioms:sos=on:sdd=large:sfr=on:ssfp=4000:ssfq=1.4:smm=sco:ssnc=none_12");
+    quick.push("dis+11_5_fsr=off:fde=none:gs=on:gsaa=full_model:gsssp=full:nm=64:nwc=1:sas=minisat:sd=1:ss=axioms:st=5.0:sos=on:sac=on:sdd=off:sfr=on:ssfp=1000:ssfq=1.4:smm=off:ssnc=none:uhcvi=on_25");
+    quick.push("dis+11_5_ep=RST:fsr=off:fde=unused:gs=on:nwc=1:sas=minisat:sd=1:ss=priority:ssfp=1000:ssfq=1.0:smm=off:ssnc=none:sp=occurrence:uhcvi=on_31");
+    quick.push("dis+11_5_cond=on:fsr=off:fde=none:gs=on:gsaa=from_current:gsem=on:lcm=predicate:lwlo=on:nwc=1:sas=minisat:sd=1:ss=axioms:sac=on:sdd=off:sser=off:sfr=on:ssfp=1000:ssfq=1.2:ssnc=none:sp=occurrence:uhcvi=on_76");
+    quick.push("dis+11_5_98");
+    quick.push("dis+11_3_fsr=off:fde=unused:gs=on:gsem=off:nwc=1:sd=2:ss=axioms:sdd=off:ssfp=1000:ssfq=1.2:smm=sco:ssnc=none:sp=occurrence:uhcvi=on_105");
+    quick.push("dis+11_5_cond=on:fde=unused:gs=on:gsem=off:gsssp=full:nwc=1:sas=minisat:sd=1:ss=axioms:sos=on:sac=on:sdd=large:ssfp=40000:ssfq=2.0:smm=sco:ssnc=none:sp=occurrence:urr=on:updr=off_111");
+    quick.push("dis+11_3_cond=fast:fsr=off:fde=unused:gs=on:gsem=on:nwc=1:sas=minisat:sd=2:ss=axioms:sos=on:spl=off:sp=occurrence:updr=off_128");
+    quick.push("dis+1_3_cond=fast:gs=on:gsem=on:gsssp=full:nwc=1:sas=minisat:sd=1:ss=axioms:st=3.0:sos=on:sac=on:sdd=large:sfr=on:ssfp=10000:ssfq=1.1:smm=sco:ssnc=none:updr=off:uhcvi=on_183");
+    quick.push("dis+10_4_fde=unused:gs=on:gsaa=from_current:gsem=on:gsssp=full:lcm=reverse:nwc=1:sd=1:ss=axioms:st=3.0:sos=on:sac=on:sdd=off:sfr=on:ssfp=4000:ssfq=1.1:smm=sco:ssnc=none:sp=occurrence_183");
+    quick.push("lrs+11_5_fde=none:gs=on:lcm=reverse:nwc=1.2:stl=36:sd=1:ss=axioms:spl=off:updr=off:uhcvi=on_205");
+    quick.push("dis+1003_3_cond=on:ep=RST:fde=none:gs=on:gsem=off:lwlo=on:nwc=1:sas=minisat:sd=2:ss=axioms:st=1.5:sos=on:sac=on:sser=off:sfr=on:ssfp=1000:ssfq=1.0:ssnc=none:updr=off_236");
+    quick.push("lrs+11_5:4_bd=off:cond=fast:gs=on:gsssp=full:nwc=1:sas=minisat:stl=36:sd=1:ss=axioms:sos=all:spl=off:updr=off:uhcvi=on_259");
+    quick.push("dis+10_2_bd=off:fde=unused:nwc=1:sd=2:ss=axioms:st=2.0:sos=on:spl=off:uhcvi=on_282");
+    quick.push("dis+11_4_cond=on:lcm=reverse:nwc=1:sas=minisat:sd=2:ss=axioms:st=3.0:spl=off:updr=off:uhcvi=on_330");
+
+    return;
+  }
+
+  if (env.options->forceLtbCacs() == Options::ForceLtbCasc::HLL) {
+    cout << "Forcing HLL" << endl;
+
+    quick.push("dis+11_3_fsr=off:fde=unused:gs=on:gsaa=from_current:gsem=off:nwc=1:sas=minisat:sd=2:ss=axioms:sos=all:sdd=off:ssfp=100000:ssfq=1.2:smm=off:sp=occurrence_50");
+        quick.push("dis+11_4_br=off:cond=on:ep=RST:fsr=off:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:sas=minisat:sd=3:ss=axioms:st=1.5:sos=all:sac=on:sdd=large:sfr=on:ssfp=10000:ssfq=1.2:ssnc=none:sp=occurrence:urr=on_74");
+        quick.push("dis+11_5_88");
+        quick.push("dis+10_4_bd=off:cond=fast:fde=unused:gsp=input_only:gs=on:gsem=on:gsssp=full:nwc=1:sd=1:ss=axioms:st=5.0:sos=on:sac=on:sdd=off:ssfp=10000:ssfq=1.1:smm=sco:ssnc=none:updr=off:uhcvi=on_210");
+        quick.push("dis+10_3_bd=off:cond=on:gs=on:gsssp=full:nwc=1:sas=minisat:sd=1:ss=axioms:st=3.0:sos=on:sac=on:ssfp=4000:ssfq=1.4:smm=off:ssnc=none:urr=on:updr=off:uhcvi=on_234");
+        quick.push("dis+10_5_bd=off:cond=fast:fde=none:nwc=1:sas=minisat:sd=2:ss=axioms:st=1.2:sos=on:sac=on:sdd=large:ssfp=100000:ssfq=1.2:ssnc=none:urr=on_253");
+        quick.push("lrs+11_4_bd=off:bsr=unit_only:cond=fast:fsr=off:fde=unused:gs=on:gsem=on:gsssp=full:nwc=1:stl=36:sd=2:ss=axioms:sos=all:sac=on:sdd=off:sfr=on:ssfp=1000:ssfq=2.0:smm=off:ssnc=none:sp=occurrence_297");
+        quick.push("ins+11_3_ep=RST:fde=unused:gsp=input_only:igbrr=0.4:igrr=1/8:igrpq=1.5:igs=1:igwr=on:lcm=predicate:nwc=1:sd=2:ss=axioms:st=3.0:sos=all:spl=off:updr=off:dm=on:uhcvi=on_354");
+        quick.push("dis+11_4_cond=on:ep=RST:fsr=off:fde=unused:gs=on:gsaa=from_current:nwc=1:sd=2:ss=axioms:sos=all:sdd=off:sser=off:ssnc=none:sp=occurrence:uhcvi=on_355");
+        quick.push("lrs+11_3_bd=off:cond=fast:fde=none:gsp=input_only:gs=on:gsaa=from_current:gsem=on:gsssp=full:nwc=1:sas=minisat:stl=36:sd=1:ss=axioms:sos=all:sdd=large:sser=off:sfr=on:ssfp=4000:ssfq=2.0:ssnc=none:sp=occurrence:urr=on:updr=off_358");
+
+    return;
+  }
+
+  if (env.options->forceLtbCacs() == Options::ForceLtbCasc::MZR) {
+    cout << "Forcing MZR" << endl;
+
+    quick.push("dis+1_2:1_cond=on:fsr=off:fde=none:gs=on:gsem=on:lwlo=on:nwc=1.3:sd=2:ss=axioms:spl=off:sp=reverse_arity:urr=on_134");
+    quick.push("dis+10_4_cond=fast:gs=on:gsaa=from_current:nwc=1:sas=minisat:sd=2:ss=axioms:st=2.0:sos=on:sdd=off:sfr=on:ssfp=10000:ssfq=1.0:smm=off:ssnc=none:sp=reverse_arity:updr=off:uhcvi=on_178");
+    quick.push("dis+11_5_181");
+    quick.push("lrs+11_3_cond=on:fsr=off:fde=none:gs=on:gsssp=full:lcm=reverse:nwc=1:sas=minisat:stl=36:sd=2:ss=axioms:st=1.2:sos=on:spl=off:urr=on:updr=off_255");
+    quick.push("dis+10_3_cond=fast:fde=unused:gs=on:gsem=off:lwlo=on:nwc=1:sd=3:ss=axioms:sos=on:sdd=large:ssfp=10000:ssfq=2.0:ssnc=none:sp=reverse_arity_271");
+    quick.push("dis+11_4_bd=off:fsr=off:fde=unused:gs=on:gsaa=full_model:gsem=on:nwc=1:sd=1:ss=axioms:sac=on:sdd=large:ssfp=1000:ssfq=2.0:smm=sco:ssnc=none:sp=reverse_arity_321");
+    quick.push("ins+11_3_cond=fast:igbrr=0.7:igpr=on:igrr=1/32:igrp=700:igrpq=1.5:igs=1003:igwr=on:nwc=1:sd=1:ss=axioms:st=3.0:sos=all:spl=off:sp=occurrence:uhcvi=on_334");
+    quick.push("lrs+11_5_fde=unused:gs=on:gsssp=full:nwc=1:sas=minisat:stl=36:sos=all:spl=off:updr=off:uhcvi=on_345");
+
+    return;
+  }
+
 #if VZ3
   quick.push("dis+1011_5_fsr=off:gs=on:gsaa=full_model:gsssp=full:nwc=1:sas=z3:sos=on:ssfp=40000:ssfq=2.0:smm=sco:ssnc=all:tha=off:updr=off_1");
   quick.push("dis+10_3_br=off:cond=fast:fde=none:gs=on:gsem=on:gsssp=full:inw=on:nwc=1:sas=minisat:sos=all:sac=on:sdd=large:ssfp=100000:ssfq=1.1:ssnc=none:sp=reverse_arity:urr=on_1");

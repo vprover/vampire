@@ -218,6 +218,14 @@ public:
     BIASED
   };
 
+  enum class ForceLtbCasc : unsigned int {
+    OFF,
+    HH4,
+    ISA,
+    HLL,
+    MZR
+  };
+
   //enums for the bound propagation purpose
   enum class BPAlmostHalfBoundingRemoval : unsigned int {
     BOUNDS_ONLY = 0,
@@ -1654,6 +1662,7 @@ public:
   bool aigFormulaSharing() const { return _aigFormulaSharing.actualValue; }
   bool aigInliner() const { return _aigInliner.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
+  ForceLtbCasc forceLtbCacs() const { return _forceLtbCasc.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   //void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
@@ -2087,6 +2096,7 @@ private:
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
   ChoiceOptionValue<LTBLearning> _ltbLearning;
+  ChoiceOptionValue<ForceLtbCasc> _forceLtbCasc;
 
   LongOptionValue _maxActive;
   IntOptionValue _maxAnswers;
