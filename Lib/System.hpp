@@ -48,6 +48,10 @@ public:
   static void heedSIGINT() { s_shouldIgnoreSIGINT=false; }
   static bool shouldIgnoreSIGINT() { return s_shouldIgnoreSIGINT; }
 
+  static void ignoreSIGHUP() { s_shouldIgnoreSIGHUP=true; }
+  static void heedSIGHUP() { s_shouldIgnoreSIGHUP=false; }
+  static bool shouldIgnoreSIGHUP() { return s_shouldIgnoreSIGHUP; }
+
   static void addInitializationHandler(VoidFunc proc, unsigned priority=0);
   static void onInitialization();
 
@@ -110,6 +114,7 @@ private:
   static ZIArray<List<VoidFunc>*> s_terminationHandlers;
 
   static bool s_shouldIgnoreSIGINT;
+  static bool s_shouldIgnoreSIGHUP;
 
   static const char* s_argv0;
 };

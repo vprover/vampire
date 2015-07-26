@@ -1008,6 +1008,8 @@ void CLTBProblem::runSlice(Options& strategyOpt)
     resultValue=0;
   }
 
+  System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
+
   if (!resultValue) { // write the proof to a file
     ScopedSemaphoreLocker locker(_syncSemaphore);
     locker.lock();

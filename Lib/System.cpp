@@ -129,6 +129,7 @@ using namespace Shell;
 
 bool System::s_initialized = false;
 bool System::s_shouldIgnoreSIGINT = false;
+bool System::s_shouldIgnoreSIGHUP = false;
 const char* System::s_argv0 = 0;
 
 ///**
@@ -231,6 +232,10 @@ void handleSignal (int sigNum)
 //      exit(0);
 //      return;
 
+    case SIGHUP:
+      if(System::shouldIgnoreSIGHUP()) {
+  return;
+      }
     case SIGILL:
     case SIGFPE:
     case SIGSEGV:
@@ -238,7 +243,6 @@ void handleSignal (int sigNum)
 # ifndef _MSC_VER
     case SIGBUS:
     case SIGTRAP:
-    case SIGHUP:
 # endif
     case SIGABRT:
       {
