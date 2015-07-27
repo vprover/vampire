@@ -115,11 +115,6 @@ void Options::Options::init()
     _lookup.insert(&_ltbLearning);
     _ltbLearning.setExperimental();
 
-    _forceLtbCasc = ChoiceOptionValue<ForceLtbCasc>("force_ltb_casc","flc",ForceLtbCasc::OFF,{"off","hh4","isa","hll","mzr"});
-    _forceLtbCasc.description = "";
-    _lookup.insert(&_forceLtbCasc);
-    _forceLtbCasc.setExperimental();
-
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
     _lookup.insert(&_decode);
