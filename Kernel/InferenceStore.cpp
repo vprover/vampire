@@ -149,7 +149,7 @@ UnitSpecIterator InferenceStore::getParents(UnitSpec us, Inference::Rule& rule)
   Inference::Iterator iit=inf->iterator();
   while(inf->hasNext(iit)) {
     Unit* premUnit=inf->next(iit);
-    List<UnitSpec>::push(UnitSpec(premUnit, true), res);
+    List<UnitSpec>::push(UnitSpec(premUnit), res);
   }
   rule=inf->rule();
   res=res->reverse(); //we want items in the same order

@@ -76,7 +76,7 @@ FOConversionInference::FOConversionInference(UnitSpec origin) : _origin(origin)
 {
   _origin.unit()->incRefCnt();
 }
-FOConversionInference::FOConversionInference(Clause* cl) : _origin(UnitSpec(cl, false))
+FOConversionInference::FOConversionInference(Clause* cl) : _origin(UnitSpec(cl))
 {
   _origin.unit()->incRefCnt();
 }

@@ -31,8 +31,8 @@ class SplittingRecord;
 struct UnitSpec
 {
   UnitSpec() {}
-  explicit UnitSpec(Unit* u, bool ignoreProp=false) : _unit(u){tag=u->number();}
-  bool operator==(const UnitSpec& o) const { return _unit==o._unit;}// && _prop==o._prop; }
+  explicit UnitSpec(Unit* u) : _unit(u) {}
+  bool operator==(const UnitSpec& o) const { return _unit==o._unit;}
   bool operator!=(const UnitSpec& o) const { return !(*this==o); }
 
   static unsigned hash(const UnitSpec& o)
@@ -65,7 +65,6 @@ struct UnitSpec
   }
 private:
   Unit* _unit;
-  int tag;
 };
 
 typedef VirtualIterator<UnitSpec> UnitSpecIterator;

@@ -60,7 +60,7 @@ public:
   unsigned varCnt();
   unsigned getPriority() const;
 
-  vstring inferenceAsString(BDDNode* propPart=0) const;
+  vstring inferenceAsString() const;
 
   /** True if a clause unit */
   bool isClause() const

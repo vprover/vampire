@@ -61,7 +61,7 @@ void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseCla
 
   DHSet<UnitSpec> seen;
   Stack<UnitSpec> toDo;
-  toDo.push(UnitSpec(refutation, false));
+  toDo.push(UnitSpec(refutation));
 
   while(toDo.isNonEmpty()) {
     UnitSpec curr = toDo.pop();

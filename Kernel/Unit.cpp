@@ -297,7 +297,7 @@ void Unit::collectPredicates(Stack<unsigned>& acc)
  * refutations).
  * @since 04/01/2008 Torrevieja
  */
-vstring Unit::inferenceAsString(BDDNode* propPart) const
+vstring Unit::inferenceAsString() const
 {
   CALL("Unit::inferenceAsString");
 
@@ -306,7 +306,7 @@ vstring Unit::inferenceAsString(BDDNode* propPart) const
 
   Inference::Rule rule;
   UnitSpecIterator parents;
-  UnitSpec us = propPart ? UnitSpec(const_cast<Unit*>(this), propPart) : UnitSpec(const_cast<Unit*>(this));
+  UnitSpec us = UnitSpec(const_cast<Unit*>(this));
   parents = infS.getParents(us, rule);
 
   vstring result = (vstring)"[" + Inference::ruleName(rule);
