@@ -110,7 +110,7 @@ void Options::Options::init()
     _lookup.insert(&_mode);
 
 
-    _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::ON,{"on","off","biased"});
+    _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";
     _lookup.insert(&_ltbLearning);
     _ltbLearning.setExperimental();
