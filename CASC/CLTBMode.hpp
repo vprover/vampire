@@ -120,14 +120,14 @@ class CLTBProblem
 public:
   CLTBProblem(CLTBMode* parent, vstring problemFile, vstring outFile);
 
-  void searchForProof(int terminationTime,const Category category) __attribute__((noreturn));
-private:
+  void searchForProof(int terminationTime,int timeLimit,const Category category) __attribute__((noreturn));
   typedef Set<vstring> StrategySet;
   typedef Stack<vstring> Schedule;
+private:
   bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
-  void performStrategy(int terminationTime,const Category category);
+  void performStrategy(int terminationTime,int timeLimit, const Category category);
   void waitForChildAndExitWhenProofFound();
   void exitOnNoSuccess() __attribute__((noreturn));
 
