@@ -179,7 +179,7 @@ private:
 
   DHMap<UnitSpec, SplittingRecord*, UnitSpec> _splittingRecords;
 
-  DHMap<UnitSpec, Literal*> _splittingNameLiterals;
+  DHMap<UnitSpec, Literal*, UnitSpec> _splittingNameLiterals;
 
 
   DHMap<Clause*, IntList*> _bddizeVars;
