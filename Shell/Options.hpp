@@ -184,7 +184,7 @@ public:
         OTHER,
         DEVELOPMENT,
         OUTPUT,
-        TABULATION,
+        //TABULATION,
         INST_GEN,
         SAT,
         AVATAR,
@@ -363,7 +363,7 @@ public:
      INST_GEN = 2,
      LRS = 3,
      OTTER = 4,
-     TABULATION = 5
+     //TABULATION = 5
    };
 
   /** Possible values for activity of some inference rules */

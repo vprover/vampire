@@ -225,7 +225,8 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
   }
 
   Options tabulationOpts;
-  tabulationOpts.setSaturationAlgorithm(Options::SaturationAlgorithm::TABULATION);
+  //tabulationOpts.setSaturationAlgorithm(Options::SaturationAlgorithm::TABULATION);
+  NOT_IMPLEMENTED;
   Problem tabPrb(pvi( ClauseStack::Iterator(premiseClauses) ), true);
   Tabulation::TabulationAlgorithm talg(tabPrb, tabulationOpts);
   talg.run();
