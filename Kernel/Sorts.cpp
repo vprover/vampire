@@ -102,7 +102,7 @@ unsigned Sorts::addArraySort(const unsigned innerSort)
   CALL("Sorts::addArraySort");
 
   // First check if it already exists
-  vstring name = "$array["+env.sorts->sortName(innerSort)+"]";
+  vstring name = "$array("+env.sorts->sortName(innerSort)+")";
   unsigned result;
   if(_sortNames.find(name,result)){
     return result;
