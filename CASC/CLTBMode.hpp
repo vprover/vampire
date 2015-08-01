@@ -127,7 +127,7 @@ private:
   bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
-  void performStrategy(int terminationTime,int timeLimit, const Category category);
+  void performStrategy(int terminationTime,int timeLimit, const Category category,const Shell::Property* property);
   void waitForChildAndExitWhenProofFound();
   void exitOnNoSuccess() __attribute__((noreturn));
 
