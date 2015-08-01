@@ -607,7 +607,20 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
   static TermList t(Term::createConstant(Signature::FOOL_TRUE));
   static TermList f(Term::createConstant(Signature::FOOL_FALSE));
 
-  Literal* inequality = Literal::createEquality(false, t, f, Sorts::SRT_FOOL_BOOL);
+  // Add "$$true != $$false"
+  addTheoryUnitClause(Literal::createEquality(false, t, f, Sorts::SRT_FOOL_BOOL), prb.units());
 
-  addTheoryUnitClause(inequality, prb.units());
+  // Do not add the finite domain axiom if --fool_paradomulation on
+  if (env.options->FOOLParamodulation()) {
+    return;
+  }
+
+  // Add "![X : $bool]: ((X = $$true) | (X = $$false))"
+  Formula* xist = new AtomicFormula(Literal::createEquality(true, TermList(0, false), t, Sorts::SRT_FOOL_BOOL));
+  Formula* xisf = new AtomicFormula(Literal::createEquality(true, TermList(0, false), f, Sorts::SRT_FOOL_BOOL));
+
+  FormulaList* fs = new FormulaList(xist, new FormulaList(xisf, 0));
+  Formula* formula = new QuantifiedFormula(FORALL, new Formula::VarList(0, 0), new JunctionFormula(OR, fs));
+  Unit* unit = new FormulaUnit(formula, new Inference(Inference::THEORY), Unit::AXIOM);
+  addAndOutputTheoryUnit(unit, prb.units());
 } // TheoryAxioms::addBooleanDomainAxiom
