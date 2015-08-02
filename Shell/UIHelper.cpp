@@ -399,6 +399,11 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
 
   unsigned funcs = sig.functions();
   for (unsigned i=0; i<funcs; ++i) {
+    if (!env.options->showFOOL()) {
+      if ((i == Signature::FOOL_TRUE) || (i == Signature::FOOL_FALSE)) {
+        continue;
+      }
+    }
     outputSymbolTypeDeclarationIfNeeded(out, true, i);
   }
   unsigned preds = sig.predicates();
@@ -431,7 +436,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     return;
   }
 
-  out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
+  out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
       << sym->name() << ": ";
 
   unsigned arity = sym->arity();
@@ -457,7 +462,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   else {
     out << "$o";
   }
-  out << " )." << endl;
+  out << ")." << endl;
 }
 
 #if GNUMP

@@ -486,6 +486,11 @@ void preprocessMode()
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
     Unit* u = units.next();
+    if (!env.options->showFOOL()) {
+      if (u->inference()->rule() == Inference::FOOL_AXIOM) {
+        continue;
+      }
+    }
     env.out() << TPTPPrinter::toString(u) << "\n";
   }
   env.endOutput();

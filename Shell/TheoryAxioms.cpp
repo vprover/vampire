@@ -608,7 +608,9 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
   static TermList f(Term::createConstant(Signature::FOOL_FALSE));
 
   // Add "$$true != $$false"
-  addTheoryUnitClause(Literal::createEquality(false, t, f, Sorts::SRT_FOOL_BOOL), prb.units());
+  Formula* inequality = new AtomicFormula(Literal::createEquality(false, t, f, Sorts::SRT_FOOL_BOOL));
+  Unit* disjointConstants = new FormulaUnit(inequality, new Inference(Inference::FOOL_AXIOM), Unit::AXIOM);
+  addAndOutputTheoryUnit(disjointConstants, prb.units());
 
   // Do not add the finite domain axiom if --fool_paradomulation on
   if (env.options->FOOLParamodulation()) {
@@ -620,7 +622,7 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
   Formula* xisf = new AtomicFormula(Literal::createEquality(true, TermList(0, false), f, Sorts::SRT_FOOL_BOOL));
 
   FormulaList* fs = new FormulaList(xist, new FormulaList(xisf, 0));
-  Formula* formula = new QuantifiedFormula(FORALL, new Formula::VarList(0, 0), new JunctionFormula(OR, fs));
-  Unit* unit = new FormulaUnit(formula, new Inference(Inference::THEORY), Unit::AXIOM);
-  addAndOutputTheoryUnit(unit, prb.units());
+  Formula* disjunction = new QuantifiedFormula(FORALL, new Formula::VarList(0, 0), new JunctionFormula(OR, fs));
+  Unit* finiteDomain = new FormulaUnit(disjunction, new Inference(Inference::FOOL_AXIOM), Unit::AXIOM);
+  addAndOutputTheoryUnit(finiteDomain, prb.units());
 } // TheoryAxioms::addBooleanDomainAxiom
