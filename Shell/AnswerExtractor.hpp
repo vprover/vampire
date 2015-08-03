@@ -57,7 +57,7 @@ public:
   void onNewClause(Clause* cl);
 
 private:
-  Literal* getAnswerLiteral(Formula::VarList* vars);
+  Literal* getAnswerLiteral(Formula::VarList* vars,Formula* f);
   Unit* tryAddingAnswerLiteral(Unit* unit);
 
   Clause* getResolverClause(unsigned pred);

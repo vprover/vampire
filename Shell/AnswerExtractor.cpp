@@ -14,6 +14,8 @@
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Kernel/Sorts.hpp"
 
 #include "Tabulation/TabulationAlgorithm.hpp"
 
@@ -289,21 +291,26 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& ans
   return false;
 }
 
-Literal* AnswerLiteralManager::getAnswerLiteral(Formula::VarList* vars)
+Literal* AnswerLiteralManager::getAnswerLiteral(Formula::VarList* vars,Formula* f)
 {
   CALL("AnswerLiteralManager::getAnswerLiteral");
 
   static Stack<TermList> litArgs;
   litArgs.reset();
   Formula::VarList::Iterator vit(vars);
+  Stack<unsigned> sorts;
   while(vit.hasNext()) {
     unsigned var = vit.next();
+    unsigned sort;
+    ALWAYS(SortHelper::tryGetVariableSort(var,f,sort));
+    sorts.push(sort);
     litArgs.push(TermList(var, false));
   }
 
   unsigned vcnt = litArgs.size();
   unsigned pred = env.signature->addFreshPredicate(vcnt,"ans");
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  predSym->setType(BaseType::makeType(sorts.size(),sorts.begin(),Sorts::SRT_BOOL));
   predSym->markAnswerPredicate();
   return Literal::create(pred, vcnt, true, false, litArgs.begin());
 }
@@ -329,7 +336,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 
   FormulaList* conjArgs = 0;
   FormulaList::push(quant->qarg(), conjArgs);
-  Literal* ansLit = getAnswerLiteral(vars);
+  Literal* ansLit = getAnswerLiteral(vars,quant);
   FormulaList::push(new AtomicFormula(ansLit), conjArgs);
 
   Formula* conj = new JunctionFormula(AND, conjArgs);
