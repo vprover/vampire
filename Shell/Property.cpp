@@ -340,13 +340,10 @@ void Property::scan(Formula* formula)
       _atoms++;
       Literal* lit = f->literal();
       if (lit->isEquality()) {
-	_equalityAtoms++;
-	if (lit->isPositive()) {
-	  _positiveEqualityAtoms++;
-	}
-      }
-      if (!lit->shared()) {
-	_hasFOOL = true;
+        _equalityAtoms++;
+        if (lit->isPositive()) {
+          _positiveEqualityAtoms++;
+        }
       }
       scan(lit);
       break;
@@ -387,7 +384,10 @@ void Property::scanSort(unsigned sort)
     break;
   case Sorts::SRT_REAL:
     addProp(PR_HAS_REALS);
-    break;          
+    break;
+  case Sorts::SRT_FOOL_BOOL:
+    _hasFOOL = true;
+    break;
   }
 }
 
@@ -489,6 +489,8 @@ void Property::scan(TermList* ts)
 void Property::scanSpecialTerm(Term* t)
 {
   CALL("Property::scanSpecialTerm");
+
+  _hasFOOL = true;
 
   Term::SpecialTermData* sd = t->getSpecialData();
   switch(t->functor()) {
