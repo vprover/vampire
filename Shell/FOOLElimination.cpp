@@ -29,10 +29,13 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-// Prefixes for fresh function symbols
+// Prefixes for fresh symbols
 const char* FOOLElimination::ITE_PREFIX  = "iG";
 const char* FOOLElimination::LET_PREFIX  = "lG";
 const char* FOOLElimination::BOOL_PREFIX = "bG";
+
+// The default input type of introduced definitions
+const Unit::InputType FOOLElimination::DEFINITION_INPUT_TYPE = Unit::AXIOM;
 
 FOOLElimination::FOOLElimination() : _defs(0) {}
 
@@ -479,8 +482,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // add both definitions
         Inference* iteInference = new Inference1(Inference::FOOL_ITE_ELIMINATION, _unit);
-        addDefinition(new FormulaUnit(thenImplication, iteInference, _unit->inputType()));
-        addDefinition(new FormulaUnit(elseImplication, iteInference, _unit->inputType()));
+        addDefinition(new FormulaUnit(thenImplication, iteInference, DEFINITION_INPUT_TYPE));
+        addDefinition(new FormulaUnit(elseImplication, iteInference, DEFINITION_INPUT_TYPE));
 
         if (context == FORMULA_CONTEXT) {
           formulaResult = freshPredicateApplication;
@@ -572,7 +575,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // add the introduced definition
         Inference* letInference = new Inference1(Inference::FOOL_LET_ELIMINATION, _unit);
-        addDefinition(new FormulaUnit(freshSymbolDefinition, letInference, _unit->inputType()));
+        addDefinition(new FormulaUnit(freshSymbolDefinition, letInference, DEFINITION_INPUT_TYPE));
 
         TermList contents = *term->nthArgument(0); // deliberately unprocessed here
 
@@ -642,7 +645,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // add the introduced definition
         Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, _unit);
-        addDefinition(new FormulaUnit(freshSymbolDefinition, inference, _unit->inputType()));
+        addDefinition(new FormulaUnit(freshSymbolDefinition, inference, DEFINITION_INPUT_TYPE));
 
         termResult = freshSymbolApplication;
         break;
