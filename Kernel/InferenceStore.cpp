@@ -783,13 +783,6 @@ protected:
 
   }
 
-  void handleSplitting(SplittingRecord* sr)
-  {
-    CALL("InferenceStore::TPTPProofPrinter::handleSplitting");
-
-    INVALID_OPERATION("The function InferenceStore::TPTPProofPrinter::handleSplitting should not be called");
-  }
-
   DHSet<int> printedBddizeDefs;
 
   static const char* bddPrefix;

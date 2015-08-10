@@ -26,8 +26,6 @@ namespace Kernel {
 
 using namespace Lib;
 
-class SplittingRecord;
-
 class InferenceStore
 {
 public:
