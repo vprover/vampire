@@ -304,7 +304,7 @@ SATSolverWithAssumptions& EquivalenceDiscoverer::getProofRecordingSolver()
  * If l1==SATLiteral::dummy(), it is not asserted and
  * we assume that just l2.opposite() is unsatisfiable.
  */
-void EquivalenceDiscoverer::getImplicationPremises(SATLiteral l1, SATLiteral l2, Stack<UnitSpec>& acc)
+void EquivalenceDiscoverer::getImplicationPremises(SATLiteral l1, SATLiteral l2, Stack<Unit*>& acc)
 {
   CALL("EquivalenceDiscoverer::getImplicationPremises");
   ASS(l2!=SATLiteral::dummy())
@@ -340,7 +340,7 @@ Inference* EquivalenceDiscoverer::getInference(SATLiteral l1, SATLiteral l2, boo
   ASS_NEQ(l2,SATLiteral::dummy());
   ASS(!equivalence || l1!=SATLiteral::dummy());
 
-  static Stack<UnitSpec> premises;
+  static Stack<Unit*> premises;
   ASS(premises.isEmpty());
 
   getImplicationPremises(l1, l2, premises);
@@ -351,8 +351,8 @@ Inference* EquivalenceDiscoverer::getInference(SATLiteral l1, SATLiteral l2, boo
   UnitList* premLst = 0;
 
   while(premises.isNonEmpty()) {
-    UnitSpec us = premises.pop();
-    UnitList::push(us.unit(), premLst);
+    Unit* us = premises.pop();
+    UnitList::push(us, premLst);
   }
   return new InferenceMany(Inference::EQUIVALENCE_DISCOVERY, premLst);
 }

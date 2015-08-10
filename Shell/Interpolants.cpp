@@ -34,7 +34,7 @@ using namespace Kernel;
 typedef pair<Formula*, Formula*> UIPair; //pair of unit U and the U-interpolant
 typedef List<UIPair> UIPairList;
 
-VirtualIterator<UnitSpec> Interpolants::getParents(UnitSpec u)
+VirtualIterator<Unit*> Interpolants::getParents(Unit* u)
 {
   CALL("Interpolants::getParents");
 
@@ -42,16 +42,16 @@ VirtualIterator<UnitSpec> Interpolants::getParents(UnitSpec u)
     return InferenceStore::instance()->getParents(u);
   }
 
-  static Stack<UnitSpec> toDo;
-  static Stack<UnitSpec> parents;
+  static Stack<Unit*> toDo;
+  static Stack<Unit*> parents;
 
   toDo.reset();
   parents.reset();
 
   for(;;) {
-    VirtualIterator<UnitSpec> pit = InferenceStore::instance()->getParents(u);
+    UnitIterator pit = InferenceStore::instance()->getParents(u);
     while(pit.hasNext()) {
-      UnitSpec par = pit.next();
+      Unit* par = pit.next();
       if(_slicedOff->find(par)) {
 	toDo.push(par);
       }
@@ -65,18 +65,18 @@ VirtualIterator<UnitSpec> Interpolants::getParents(UnitSpec u)
     u = toDo.pop();
   }
 
-  return getPersistentIterator(Stack<UnitSpec>::BottomFirstIterator(parents));
+  return getPersistentIterator(Stack<Unit*>::BottomFirstIterator(parents));
 }
 
 struct ItemState
 {
   ItemState() {}
 
-  ItemState(UnitSpec us) : parCnt(0), inheritedColor(COLOR_TRANSPARENT), interpolant(0),
+  ItemState(Unit* us) : parCnt(0), inheritedColor(COLOR_TRANSPARENT), interpolant(0),
       leftInts(0), rightInts(0), processed(false), _us(us)
   {
     CALL("ItemState::ItemState");
-    _usColor = us.unit()->getColor();
+    _usColor = us->getColor();
   }
 
   void destroy()
@@ -87,12 +87,12 @@ struct ItemState
     rightInts->destroy();
   }
 
-  UnitSpec us() const { return _us; }
+  Unit* us() const { return _us; }
   Color usColor() const { return _usColor; }
   /** Parents that remain to be traversed
    *
    * Parents in the sense of inferencing, but children in the sense of DFS traversal */
-  VirtualIterator<UnitSpec> pars;
+  VirtualIterator<Unit*> pars;
   /** number of parents */
   int parCnt;
   /** Color of premise formulas, or the declared color for input formulas */
@@ -108,7 +108,7 @@ struct ItemState
   bool processed;
 private:
   /** The current formula */
-  UnitSpec _us;
+  Unit* _us;
   Color _usColor;
 };
 
@@ -163,12 +163,12 @@ Formula* Interpolants::getInterpolant(Unit* unit)
 {
   CALL("Interpolants::getInterpolant");
 
-  typedef DHMap<UnitSpec,ItemState> ProcMap;
+  typedef DHMap<Unit*,ItemState> ProcMap;
   ProcMap processed;
 
   Stack<ItemState> sts;
 
-  UnitSpec curr=UnitSpec(unit);
+  Unit* curr= unit;
 
   Formula* resultInterpolant = 0;
 
@@ -188,9 +188,9 @@ Formula* Interpolants::getInterpolant(Unit* unit)
       st.pars = getParents(curr);
     }
 
-    if(curr.unit()->inheritedColor()!=COLOR_INVALID) {
+    if(curr->inheritedColor()!=COLOR_INVALID) {
       //set premise-color information for input clauses
-      st.inheritedColor=ColorHelper::combine(curr.unit()->inheritedColor(), st.usColor());
+      st.inheritedColor=ColorHelper::combine(curr->inheritedColor(), st.usColor());
       ASS_NEQ(st.inheritedColor, COLOR_INVALID);
     }
 #if ALLOW_SURPRISING_COLORS
@@ -223,9 +223,9 @@ Formula* Interpolants::getInterpolant(Unit* unit)
 #if VDEBUG
       else {
         Color clr=st.usColor();
-        ASS_REP2(pst.inheritedColor==clr || clr==COLOR_TRANSPARENT, pst.us().toString(), curr.toString());
+        ASS_REP2(pst.inheritedColor==clr || clr==COLOR_TRANSPARENT, pst.us()->toString(), curr->toString());
       }
-      ASS_EQ(curr.unit()->getColor(),st.usColor());
+      ASS_EQ(curr->getColor(),st.usColor());
 #endif
     }
 
@@ -245,7 +245,7 @@ Formula* Interpolants::getInterpolant(Unit* unit)
 	  //we either have a transparent clause justified by A or B, or the refutation
 //	  ASS_EQ(color,COLOR_TRANSPARENT);
       //cout<<"generate interpolant of transparent clause: "<<st.us().toString()<<"\n";
-	  ASS_REP2(color==COLOR_TRANSPARENT, st.us().toString(), st.inheritedColor);
+	  ASS_REP2(color==COLOR_TRANSPARENT, st.us()->toString(), st.inheritedColor);
 	  generateInterpolant(st);
 	}
 	st.processed = true;
@@ -288,7 +288,7 @@ void generateInterpolant(ItemState& st)
 {
   CALL("generateInterpolant");
 
-  Unit* u=st.us().unit();
+  Unit* u=st.us();
   Color color=st.usColor();
   ASS_EQ(color, COLOR_TRANSPARENT);
 

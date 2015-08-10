@@ -43,10 +43,10 @@ public:
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
   
-  Clause* perform(Clause* cl, Stack<UnitSpec>& prems);  
+  Clause* perform(Clause* cl, Stack<Unit*>& prems);
  
 private:  
-  struct UnitSpec2ClFn;
+  struct Unit2ClFn;
       
   GroundingIndex* _index;
 

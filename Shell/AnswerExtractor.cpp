@@ -61,27 +61,27 @@ void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseCla
 
   InferenceStore& is = *InferenceStore::instance();
 
-  DHSet<UnitSpec> seen;
-  Stack<UnitSpec> toDo;
-  toDo.push(UnitSpec(refutation));
+  DHSet<Unit*> seen;
+  Stack<Unit*> toDo;
+  toDo.push(refutation);
 
   while(toDo.isNonEmpty()) {
-    UnitSpec curr = toDo.pop();
+    Unit* curr = toDo.pop();
     if(!seen.insert(curr)) {
       continue;
     }
     Inference::Rule infRule;
-    UnitSpecIterator parents = is.getParents(curr, infRule);
+    UnitIterator parents = is.getParents(curr, infRule);
     if(infRule==Inference::NEGATED_CONJECTURE) {
-      conjectures.push(curr.unit());
+      conjectures.push(curr);
     }
     if(infRule==Inference::CLAUSIFY ||
-	(curr.isClause() && (infRule==Inference::INPUT || infRule==Inference::NEGATED_CONJECTURE )) ){
-      ASS(curr.isClause());
-      premiseClauses.push(static_cast<Clause*>(curr.unit()));
+	(curr->isClause() && (infRule==Inference::INPUT || infRule==Inference::NEGATED_CONJECTURE )) ){
+      ASS(curr->isClause());
+      premiseClauses.push(curr->asClause());
     }
     while(parents.hasNext()) {
-      UnitSpec premise = parents.next();
+      Unit* premise = parents.next();
       toDo.push(premise);
     }
   }

@@ -42,7 +42,7 @@ SATClause* Grounder::ground(Clause* cl,bool use_n)
   SATClause* gndNonProp = groundNonProp(cl,use_n);
 //  cout<<gndNonProp->toString()<<endl;
 
-  SATInference* inf = new FOConversionInference(UnitSpec(cl));
+  SATInference* inf = new FOConversionInference(cl);
   gndNonProp->setInference(inf);
 
   return gndNonProp;
@@ -166,11 +166,11 @@ void Grounder::recordInference(Clause* origClause, SATClause* refutation, Clause
   CALL("Grounder::recordInference");
   ASS(refutation);
 
-  static Stack<UnitSpec> prems;
+  static Stack<Unit*> prems;
   prems.reset();
 
   if(origClause) {
-    prems.push(UnitSpec(origClause));
+    prems.push(origClause);
   }
   SATInference::collectFOPremises(refutation, prems);
 
@@ -183,7 +183,7 @@ void Grounder::recordInference(Clause* origClause, SATClause* refutation, Clause
     inf->premises[i] = prems[i];
   }
 
-  InferenceStore::instance()->recordInference(UnitSpec(resultClause), inf);
+  InferenceStore::instance()->recordInference(resultClause, inf);
 }
 
 ////////////////////////////////

@@ -104,14 +104,14 @@ vstring LaTeX::refutationToString(Unit* ref)
 
   InferenceStore* is=InferenceStore::instance();
 
-  Stack<UnitSpec> outKernel;
-  Set<UnitSpec> handledKernel;
+  Stack<Unit*> outKernel;
+  Set<Unit*> handledKernel;
   Stack<Unit*> outShell;
   Set<Unit*> handledShell;
 
   if( ref->isClause() ) {
     Clause* refCl=static_cast<Clause*>(ref);
-    UnitSpec cs=UnitSpec(refCl);
+    Unit* cs = refCl;
     outKernel.push(cs);
     handledKernel.insert(cs);
   } else {
@@ -120,7 +120,7 @@ vstring LaTeX::refutationToString(Unit* ref)
   }
 
   while(outKernel.isNonEmpty()) {
-    UnitSpec cs=outKernel.pop();
+    Unit* cs=outKernel.pop();
     InferenceStore::FullInference* finf;
     if(is->findInference(cs, finf)) {
       //InferenceStore::SplittingRecord* srec;
@@ -136,7 +136,7 @@ vstring LaTeX::refutationToString(Unit* ref)
       res+=toStringAsInference(cs, finf);
 
       for(unsigned i=0;i<finf->premCnt;i++) {
-	UnitSpec prem=finf->premises[i];
+	Unit* prem=finf->premises[i];
 	ASS(prem!=cs);
 
 	if(!handledKernel.contains(prem)) {
@@ -146,7 +146,7 @@ vstring LaTeX::refutationToString(Unit* ref)
       }
 
     } else {
-      Clause* cl=cs.cl();
+      Clause* cl= cs->asClause();
       Inference* inf = cl->inference();
 
       res+=toStringAsInference(cl);
@@ -156,7 +156,7 @@ vstring LaTeX::refutationToString(Unit* ref)
 	if(prem->isClause() ) {
 	  //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
           //Giles. Removed bdds from this, but not sure if this is redundant anyway given the previous comment.
-	  UnitSpec premCS=UnitSpec(prem);
+	  Unit* premCS= prem;
 
 	  if(!handledKernel.contains(premCS)) {
 	    handledKernel.insert(premCS);
@@ -566,12 +566,12 @@ vstring LaTeX::toString (TermList* terms,bool single) const
 //   }
 // } // LaTeX::toString (const Unit& u)
 
-vstring LaTeX::getClauseLatexId(UnitSpec cs)
+vstring LaTeX::getClauseLatexId(Unit* cs)
 {
-  return Int::toString(cs.cl()->number())+"_{"+InferenceStore::instance()->getClauseIdSuffix(cs)+"}";
+  return Int::toString(cs->number())+"_{"+InferenceStore::instance()->getClauseIdSuffix(cs)+"}";
 }
 
-vstring LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* inf)
+vstring LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)
 {
   CALL("LaTeX::toStringAsInference(ClauseSpec,FullInference*)");
 
@@ -579,7 +579,7 @@ vstring LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* i
 
   bool hasParents=inf->premCnt;
   for(unsigned i=0;i<inf->premCnt;i++) {
-    UnitSpec prem=inf->premises[i];
+    Unit* prem=inf->premises[i];
     res += getClauseLatexId(prem);
     if(i+1<inf->premCnt) {
 	res += ",";
@@ -595,9 +595,9 @@ vstring LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* i
 
   if(hasParents) {
     for(unsigned i=0;i<inf->premCnt;i++) {
-      UnitSpec prem=inf->premises[i];
+      Unit* prem=inf->premises[i];
       res += "\\begin{VampirePremise}%\n~~";
-      res += toString(prem.cl());
+      res += toString(prem->asClause());
       res += "\n\\end{VampirePremise}\n";
       if(i+1<inf->premCnt) {
 	res += "\\VPremiseSeparator\n";
@@ -608,7 +608,7 @@ vstring LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* i
 
   res += "\\begin{VampireConclusion}\n~~";
 
-  res += toString(cs.cl());
+  res += toString(cs->asClause());
 
   return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
 }

@@ -67,11 +67,11 @@ using namespace std;
 
 bool UIHelper::s_haveConjecture=false;
 
-bool UIHelper::unitSpecNumberComparator(UnitSpec us1, UnitSpec us2)
+bool UIHelper::unitNumberComparator(Unit* us1, Unit* us2)
 {
-  CALL("unitSpecNumberComparator");
+  CALL("UIHelper::unitNumberComparator");
 
-  return us1.unit()->number() < us2.unit()->number();
+  return us1->number() < us2->number();
 }
 
 /**

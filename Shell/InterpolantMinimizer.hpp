@@ -34,7 +34,7 @@ public:
       bool showStats=false, vstring statsPrefix="");
   ~InterpolantMinimizer();
 
-  typedef List<UnitSpec> USList;
+  typedef List<Unit*> UList;
 
   Formula* getInterpolant(Unit* refutation);
     
@@ -78,12 +78,12 @@ private:
     bool leadsToColor;
 
     //TODO: fix memory leak caused by these lists
-    List<UnitSpec>* leftSuccessors;
-    List<UnitSpec>* rightSuccessors;
-    List<UnitSpec>* transparentSuccessors;
+    List<Unit*>* leftSuccessors;
+    List<Unit*>* rightSuccessors;
+    List<Unit*>* transparentSuccessors;
   };
 
-  typedef DHMap<UnitSpec,UnitInfo> InfoMap;
+  typedef DHMap<Unit*,UnitInfo> InfoMap;
 
   InfoMap _infos;
 
@@ -137,17 +137,17 @@ private:
   void addColoredParentPropertiesFormulas(vstring n, ParentSummary& parents);
   void addNodeFormulas(vstring n, ParentSummary& parents);
 
-  void addFringeFormulas(UnitSpec u);
+  void addFringeFormulas(Unit* u);
     
 private:
   //generating the weight-minimizing part of the problem
 
-  void addAtomImplicationFormula(UnitSpec u);
+  void addAtomImplicationFormula(Unit* u);
   void addCostFormula();
 
   void collectAtoms(FormulaUnit* f, Stack<vstring>& atoms);
   vstring getComponentId(Clause* cl);
-  void collectAtoms(UnitSpec u, Stack<vstring>& atoms);
+  void collectAtoms(Unit* u, Stack<vstring>& atoms);
 
   class ClauseSplitter;
 
@@ -157,17 +157,17 @@ private:
   typedef DHMap<vstring, unsigned> WeightMap;
   WeightMap _atomWeights;
 
-  DHMap<vstring,UnitSpec> _unitsById;
+  DHMap<vstring,Unit*> _unitsById;
 
   ClauseSplitter* _splitter;
 private:
   //and here is the glue
 
-  void collectSlicedOffNodes(SMTSolverResult& solverResult, DHSet<UnitSpec>& acc);
+  void collectSlicedOffNodes(SMTSolverResult& solverResult, DHSet<Unit*>& acc);
 
-  vstring getUnitId(UnitSpec u);
+  vstring getUnitId(Unit* u);
 
-  void addNodeFormulas(UnitSpec u);
+  void addNodeFormulas(Unit* u);
 
   void addAllFormulas();
 

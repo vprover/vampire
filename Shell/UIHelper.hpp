@@ -73,7 +73,7 @@ private:
   static void outputConstraintInSMTFormat(const Constraint& constraint, ostream& out);
 #endif //GNUMP
 
-  static bool unitSpecNumberComparator(UnitSpec us1, UnitSpec us2);
+  static bool unitNumberComparator(Unit* us1, Unit* us2);
   static void addCommentIfCASC(ostream&); 
 
   static bool s_haveConjecture;

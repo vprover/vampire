@@ -144,10 +144,10 @@ unsigned Unit::getPriority() const
     unsigned total=0;
     ASS(_inference);
     Unit* t = const_cast<Unit*>(this);
-    UnitSpecIterator uit = InferenceStore::instance()->getParents(UnitSpec(t));
+    UnitIterator uit = InferenceStore::instance()->getParents(t);
     while(uit.hasNext()) {
-      UnitSpec us = uit.next();
-      unsigned up = us.unit()->getPriority();
+      Unit* us = uit.next();
+      unsigned up = us->getPriority();
       count++;
       total+=up;
     }
@@ -187,6 +187,12 @@ void Unit::decRefCnt()
   if(isClause()) {
     static_cast<Clause*>(this)->decRefCnt();
   }
+}
+
+Clause* Unit::asClause() {
+  CALL("Unit::asClause");
+  ASS(isClause());
+  return static_cast<Clause*>(this);
 }
 
 
@@ -305,14 +311,14 @@ vstring Unit::inferenceAsString() const
   InferenceStore& infS = *InferenceStore::instance();
 
   Inference::Rule rule;
-  UnitSpecIterator parents;
-  UnitSpec us = UnitSpec(const_cast<Unit*>(this));
+  UnitIterator parents;
+  Unit* us = const_cast<Unit*>(this);
   parents = infS.getParents(us, rule);
 
   vstring result = (vstring)"[" + Inference::ruleName(rule);
   bool first = true;
   while (parents.hasNext()) {
-    UnitSpec parent = parents.next();
+    Unit* parent = parents.next();
     result += first ? ' ' : ',';
     first = false;
     result += infS.getUnitIdStr(parent);

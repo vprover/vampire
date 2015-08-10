@@ -27,9 +27,9 @@ public:
   virtual InfType getType() const = 0;
   
   template <typename Filter>
-  static void collectFilteredFOPremises(SATClause* cl, Stack<UnitSpec>& acc, Filter f);
+  static void collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f);
   
-  static void collectFOPremises(SATClause* cl, Stack<UnitSpec>& acc);
+  static void collectFOPremises(SATClause* cl, Stack<Unit*>& acc);
   static UnitList* getFOPremises(SATClause* cl);
   static SATInference* copy(const SATInference* inf);
 };
@@ -69,14 +69,14 @@ public:
   CLASS_NAME(FOConversionInference);
   USE_ALLOCATOR(FOConversionInference);
 
-  FOConversionInference(UnitSpec origin);
+  FOConversionInference(Unit* origin);
   FOConversionInference(Clause* cl);
   ~FOConversionInference();
 
   virtual InfType getType() const { return FO_CONVERSION; }
-  UnitSpec getOrigin() const { return _origin; }
+  Unit* getOrigin() const { return _origin; }
 private:
-  UnitSpec _origin;
+  Unit* _origin;
 };
 
 class FOSplittingInference : public SATInference
@@ -110,7 +110,7 @@ public:
  * Only consider those SATClauses and their parents which pass the given Filter f.
  */
 template <typename Filter>
-void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<UnitSpec>& acc, Filter f)
+void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f)
 {
   CALL("SATInference::collectFilteredFOPremises");
   ASS_ALLOC_TYPE(cl, "SATClause");
@@ -146,10 +146,10 @@ void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<UnitSpec>& acc
     case SATInference::FO_SPLITTING:
     {
       FOSplittingInference* inf = static_cast<FOSplittingInference*>(sinf);
-      acc.push(UnitSpec(inf->getOrigin()));
+      acc.push(inf->getOrigin());
       ClauseList::Iterator cit(inf->getNames());
       while (cit.hasNext()) {
-	acc.push(UnitSpec(cit.next()));
+        acc.push(cit.next());
       }
       break;
     }

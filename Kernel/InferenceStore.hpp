@@ -28,48 +28,6 @@ using namespace Lib;
 
 class SplittingRecord;
 
-struct UnitSpec
-{
-  UnitSpec() {}
-  explicit UnitSpec(Unit* u) : _unit(u) {}
-  bool operator==(const UnitSpec& o) const { return _unit==o._unit;}
-  bool operator!=(const UnitSpec& o) const { return !(*this==o); }
-
-  static unsigned hash(const UnitSpec& o)
-  {
-    ASS(!o.isEmpty());
-    return Hash::hash(o._unit);
-  }
-  static bool equals(const UnitSpec& left, const UnitSpec& right){ return left==right; }
-
-  bool isEmpty() const { return _unit==0; }
-  bool isClause() const { ASS(!isEmpty()); return _unit->isClause(); }
-
-  Clause* cl() const
-  {
-    ASS(!isEmpty());
-    ASS(_unit->isClause());
-    return static_cast<Clause*>(_unit);
-  }
-  Unit* unit() const { ASS(!isEmpty()); return _unit; }
-
-  vstring toString() const
-  {
-    if(isClause()) {
-	return cl()->toString();
-    }
-    else {
-	return unit()->toString();
-    }
-    
-  }
-private:
-  Unit* _unit;
-};
-
-typedef VirtualIterator<UnitSpec> UnitSpecIterator;
-
-
 class InferenceStore
 {
 public:
@@ -86,16 +44,16 @@ public:
 
     void* operator new(size_t,unsigned premCnt)
     {
-      size_t size=sizeof(FullInference)+premCnt*sizeof(UnitSpec);
-      size-=sizeof(UnitSpec);
+      size_t size=sizeof(FullInference)+premCnt*sizeof(Unit*);
+      size-=sizeof(Unit*);
 
       return ALLOC_KNOWN(size,"InferenceStore::FullInference");
     }
 
     size_t occupiedBytes()
     {
-      size_t size=sizeof(FullInference)+premCnt*sizeof(UnitSpec);
-      size-=sizeof(UnitSpec);
+      size_t size=sizeof(FullInference)+premCnt*sizeof(Unit*);
+      size-=sizeof(Unit*);
       return size;
     }
 
@@ -104,26 +62,23 @@ public:
     int csId;
     unsigned premCnt;
     Inference::Rule rule;
-    UnitSpec premises[1];
+    Unit* premises[1];
   };
 
-  void recordInference(UnitSpec unit, FullInference* inf);
-
-  //void recordSplitting(SplittingRecord* srec, unsigned premCnt, UnitSpec* prems);
-  void recordSplittingNameLiteral(UnitSpec us, Literal* lit);
-
+  void recordInference(Unit* unit, FullInference* inf);
+  void recordSplittingNameLiteral(Unit* us, Literal* lit);
   void recordIntroducedSymbol(Unit* u, bool func, unsigned number);
 
   void outputProof(ostream& out, Unit* refutation);
   void outputProof(ostream& out, UnitList* units);
 
-  UnitSpecIterator getParents(UnitSpec us, Inference::Rule& rule);
-  UnitSpecIterator getParents(UnitSpec us);
+  UnitIterator getParents(Unit* us, Inference::Rule& rule);
+  UnitIterator getParents(Unit* us);
 
-  vstring getUnitIdStr(UnitSpec cs);
-  vstring getClauseIdSuffix(UnitSpec cs);
+  vstring getUnitIdStr(Unit* cs);
+  vstring getClauseIdSuffix(Unit* cs);
 
-  bool findInference(UnitSpec cs, FullInference*& finf)
+  bool findInference(Unit* cs, FullInference*& finf)
   {
     return _data.find(cs,finf);
   }
@@ -151,10 +106,10 @@ private:
    * being inserted here, as in proofs they're derived by the
    * "tautology introduction" rule that takes no premises.
    */
-  DHMap<UnitSpec, FullInference*, UnitSpec> _data;
+  DHMap<Unit*, FullInference*> _data;
   DHMultiset<Clause*, PtrIdentityHash> _nextClIds;
 
-  DHMap<UnitSpec, Literal*, UnitSpec> _splittingNameLiterals;
+  DHMap<Unit*, Literal*> _splittingNameLiterals;
 
 
   DHMap<Clause*, IntList*> _bddizeVars;

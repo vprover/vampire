@@ -62,11 +62,11 @@ private:
   vstring toString(Formula*) const;
   vstring toString(Formula*, Connective c) const;
 
-  vstring getClauseLatexId(UnitSpec cs);
+  vstring getClauseLatexId(Unit* cs);
 
   //vstring splittingToString(InferenceStore::SplittingRecord*);
   vstring toStringAsInference(Unit*);
-  vstring toStringAsInference(UnitSpec cs, InferenceStore::FullInference* inf);
+  vstring toStringAsInference(Unit* cs, InferenceStore::FullInference* inf);
 
   vstring symbolToString (unsigned num, bool pred) const;
 

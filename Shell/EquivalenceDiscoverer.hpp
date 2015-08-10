@@ -72,7 +72,7 @@ private:
   Literal* getFOLit(SATLiteral slit) const;
 
   SATSolverWithAssumptions& getProofRecordingSolver();
-  void getImplicationPremises(SATLiteral l1, SATLiteral l2, Stack<UnitSpec>& acc);
+  void getImplicationPremises(SATLiteral l1, SATLiteral l2, Stack<Unit*>& acc);
   Inference* getInference(SATLiteral l1, SATLiteral l2, bool equivalence);
 
   void addGrounding(Clause* cl);

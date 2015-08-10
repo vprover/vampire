@@ -223,7 +223,7 @@ redundancy_check:
   }
 
   if(_globalSubsumption) {
-    static Stack<UnitSpec> prems_dummy;
+    static Stack<Unit*> prems_dummy;
     
     Clause* newCl = _globalSubsumption->perform(cl,prems_dummy);
     if(newCl!=cl) {

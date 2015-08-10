@@ -174,8 +174,6 @@ typedef List<Unit*> UnitList;
 typedef Stack<Unit*> UnitStack;
 typedef VirtualIterator<Unit*> UnitIterator;
 
-struct UnitSpec;
-
 class FormulaUnit;
 class Formula;
 typedef List<Formula*> FormulaList;
@@ -230,9 +228,6 @@ class BDDNode;
 
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;
-
-struct UnitSpec;
-
 
 /**
  * Color of a term
