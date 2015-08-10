@@ -107,22 +107,6 @@ public:
     UnitSpec premises[1];
   };
 
-
-  //An ugly hack, done just to get it working a few days before CASC deadline:)
-  class SplittingRecord
-  {
-  public:
-    SplittingRecord(Clause* splitClause) : namedComps(1), premise(UnitSpec(splitClause)) {}
-
-    Stack<pair<int,Clause*> > namedComps;
-    UnitSpec premise;
-    UnitSpec result;
-
-
-    CLASS_NAME(InferenceStore::SplittingRecord);
-    USE_ALLOCATOR(SplittingRecord);
-  };
-
   void recordInference(UnitSpec unit, FullInference* inf);
 
   //void recordSplitting(SplittingRecord* srec, unsigned premCnt, UnitSpec* prems);
@@ -143,12 +127,6 @@ public:
   {
     return _data.find(cs,finf);
   }
-
-  bool findSplitting(UnitSpec cs, SplittingRecord*& srec)
-  {
-    return _splittingRecords.find(cs,srec);
-  }
-
 
 private:
   InferenceStore();
@@ -175,8 +153,6 @@ private:
    */
   DHMap<UnitSpec, FullInference*, UnitSpec> _data;
   DHMultiset<Clause*, PtrIdentityHash> _nextClIds;
-
-  DHMap<UnitSpec, SplittingRecord*, UnitSpec> _splittingRecords;
 
   DHMap<UnitSpec, Literal*, UnitSpec> _splittingNameLiterals;
 
