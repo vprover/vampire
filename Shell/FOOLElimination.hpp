@@ -26,7 +26,8 @@ public:
   void apply(Problem& prb);
   void apply(UnitList*& units);
 
-  static bool containsFOOL(FormulaUnit* unit);
+  /** Check if the unit contains expressions that are not syntactically first-order */
+  static bool needsElimination(FormulaUnit* unit);
 
 private:
   FormulaUnit* apply(FormulaUnit* fu);

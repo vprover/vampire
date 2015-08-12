@@ -39,8 +39,32 @@ const Unit::InputType FOOLElimination::DEFINITION_INPUT_TYPE = Unit::AXIOM;
 
 FOOLElimination::FOOLElimination() : _defs(0) {}
 
-bool FOOLElimination::containsFOOL(FormulaUnit* unit) {
-  CALL("FOOLElimination::containsFOOL");
+bool FOOLElimination::needsElimination(FormulaUnit* unit) {
+  CALL("FOOLElimination::needsElimination");
+
+  /**
+   * Be careful with the difference between FOOLElimination::needsElimination
+   * and Property::_hasFOOL!
+   *
+   * The former checks that the formula has subterms that are not syntactically
+   * first-order. That only includes boolean variables, used as formulas,
+   * formulas, used as terms, $let and $ite. This check is needed to decide
+   * whether any of the transformations from FOOLElimination are yet to be
+   * applied.
+   *
+   * The latter checks if there is an occurrence of any boolean term. This is
+   * needed to identify if boolean theory axioms must be added to the search
+   * space.
+   *
+   * For an example, consider the following falsum:
+   * tff(1, conjecture, ![X : $o, Y : $o]: (X = Y)).
+   *
+   * $o will be parsed as $bool, and the equality will be parsed simply as
+   * equality between $bool. No transformations from FOOLElimination are needed
+   * to be applied here, however, theory axioms are needed to be added. Thus,
+   * FOOLElimination::needsElimination should return false for this input,
+   * whereas Property::_hasFOOL must be set to true.
+   */
 
   SubformulaIterator sfi(unit->formula());
   while(sfi.hasNext()) {
@@ -101,7 +125,7 @@ void FOOLElimination::apply(UnitList*& units) {
 FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   CALL("FOOLElimination::apply(FormulaUnit*)");
 
-  if (!containsFOOL(unit)) {
+  if (!needsElimination(unit)) {
     return unit;
   }
 
@@ -817,7 +841,7 @@ Stack<unsigned> FOOLElimination::collectSorts(Formula::VarList* vars) {
 void FOOLElimination::addDefinition(FormulaUnit* def) {
   CALL("FOOLElimination::addDefinition");
 
-  ASS_REP(!containsFOOL(def), def->toString());
+  ASS_REP(!needsElimination(def), def->toString());
 
   _defs = new UnitList(def, _defs);
 
