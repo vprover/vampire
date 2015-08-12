@@ -1851,7 +1851,6 @@ public:
   SplittingMinimizeModel splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
   SplittingLiteralPolarityAdvice splittingLiteralPolarityAdvice() const { return _splittingLiteralPolarityAdvice.actualValue; }
   SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated.actualValue;}
-  bool splittingHandleZeroImplied() const { return _splittingHandleZeroImplied.actualValue;}
   bool splittingFastRestart() const { return _splittingFastRestart.actualValue; }
   bool splittingBufferedSolver() const { return _splittingBufferedSolver.actualValue; }
   int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
@@ -2183,7 +2182,6 @@ private:
   ChoiceOptionValue<SplittingMinimizeModel> _splittingMinimizeModel;
   ChoiceOptionValue<SplittingLiteralPolarityAdvice> _splittingLiteralPolarityAdvice;
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
-  BoolOptionValue _splittingHandleZeroImplied;
   BoolOptionValue _splittingFastRestart;
   BoolOptionValue _splittingBufferedSolver;
 

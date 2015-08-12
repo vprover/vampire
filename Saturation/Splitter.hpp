@@ -67,7 +67,6 @@ _solver=0;
   void recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize = false);
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
-  void getNewZeroImpliedSplits(SplitLevelStack& res);
 
 private:
   SATSolver::Status processDPConflicts();
@@ -81,7 +80,6 @@ private:
 
   //options
   bool _eagerRemoval;
-  bool _handleZeroImplied;
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
   bool _ccMultipleCores;
   bool _minSCO; // minimize wrt splitting clauses only
@@ -103,12 +101,6 @@ private:
    * Keeps track of positive ground equalities true in the last ccmodel.
    */
   ArraySet _trueInCCModel;
-
-  /**
-   * Remember variables which were zero implied before
-   * to only report on the new ones.
-   */
-  DArray<bool> _zeroImplieds;
 
 #ifdef VDEBUG
   unsigned lastCheckedVar;
@@ -217,7 +209,6 @@ private:
 
   void addComponents(const SplitLevelStack& toAdd);
   void removeComponents(const SplitLevelStack& toRemove);
-  void processNewZeroImplied(const SplitLevelStack& newZeroImplied);
 
   void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const;
 

@@ -60,7 +60,6 @@ void SplittingBranchSelector::init()
   CALL("SplittingBranchSelector::init");
 
   _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
-  _handleZeroImplied = _parent.getOptions().splittingHandleZeroImplied();
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
@@ -131,7 +130,6 @@ void SplittingBranchSelector::updateVarCnt()
   // index by var, but ignore slot 0
   _selected.expand(splitLvlCnt+1);
   _trueInCCModel.expand(satVarCnt+1);
-  _zeroImplieds.expand(satVarCnt+1,false);
 
   // solver may be doing the same, but only internally
   _solver->ensureVarCount(satVarCnt);
@@ -475,37 +473,6 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   */
 }
 
-/**
- * Return split levels whose corresponding variable
- * has become zero implied in the solver since the last call of this function. 
- */
-void SplittingBranchSelector::getNewZeroImpliedSplits(SplitLevelStack& res)
-{
-  CALL("SplittingBranchSelector::getNewZeroImpliedSplits");  
-  ASS(res.isEmpty());  
-  
-  if (!_handleZeroImplied) {
-    return;
-  }    
-  
-  unsigned maxSatVar = _parent.maxSatVar();
-  for(unsigned i=1; i<=maxSatVar; i++) {
-    if (!_zeroImplieds[i] && _solver->isZeroImplied(i)) {
-      _zeroImplieds[i] = true;
-      
-      SplitLevel posLvl = _parent.getNameFromLiteral(SATLiteral(i, true));
-      SplitLevel negLvl = _parent.getNameFromLiteral(SATLiteral(i, false));
-      
-      if (_parent.isUsedName(posLvl)) {
-        res.push(posLvl);
-      }
-      if (_parent.isUsedName(negLvl)) {
-        res.push(negLvl);
-      }
-    }
-  }
-}
-
 //////////////
 // Splitter
 //////////////
@@ -648,10 +615,6 @@ void Splitter::onAllProcessed()
   toRemove.reset();  
 
   _branchSelector.recomputeModel(toAdd, toRemove, flushing);
-
-  static SplitLevelStack newZeroImplied;
-  newZeroImplied.reset();
-  _branchSelector.getNewZeroImpliedSplits(newZeroImplied);
   
   {
     TimeCounter tc(TC_SPLITTING_MODEL_UPDATE); // includes component removals and additions, also processing fast clauses and zero implied splits
@@ -678,10 +641,6 @@ void Splitter::onAllProcessed()
       }
 
       rcl->decRefCnt(); //belongs to _fastClauses.popWithoutDec();
-    }
-    
-    if (newZeroImplied.isNonEmpty()) {
-      processNewZeroImplied(newZeroImplied);
     }
   }
 }
@@ -1454,61 +1413,6 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
 
     ASS(sr->active);
     sr->active = false;
-  }
-}
-
-/**
- * A zero implied split will never change from active to non-active
- * (or the other way round) anymore. We can reduce the bookkeeping 
- * and remove dependencies on the split. 
- * 
- * Currently, we only handle active zero implied splits.
- * 
- */
-void Splitter::processNewZeroImplied(const SplitLevelStack& newZeroImplied)
-{
-  CALL("Splitter::processNewZeroImplied");
-  
-  SplitLevelStack::ConstIterator slit(newZeroImplied);
-  while(slit.hasNext()) {
-    SplitLevel sl = slit.next();
-    SplitRecord* sr = _db[sl];
-    ASS(sr);
-    
-    if (sr->active) {
-      RSTAT_CTR_INC("zero implied active"); // forever active from now on
-      
-      SplitSet* myLevelSet = SplitSet::getSingleton(sl);
-      // we don't need to maintain children anymore ...
-      while(sr->children.isNonEmpty()) {
-        Clause* ccl=sr->children.popWithoutDec();
-        ASS(ccl->splits()->member(sl));
-        ccl->setSplits(ccl->splits()->subtract(myLevelSet),true);
-        if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) { //NumActiveSplits being maintained
-          ccl->decNumActiveSplits();
-        }        
-        ccl->decRefCnt(); //decrease corresponding to sr->children.popWithoutDec()
-      }
-
-      // ... nor the reduction records
-      while(sr->reduced.isNonEmpty()) {
-        ReductionRecord rrec=sr->reduced.pop();
-        Clause* rcl=rrec.clause;
-        rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in Splitter::SplitRecord::addReduced
-      }
-      // TODO: release also sr->component ?                
-    } else {
-      RSTAT_CTR_INC("zero implied !active"); // forever !active from now on
-      
-      ASS(sr->children.isEmpty() || _deleteDeactivated != Options::SplittingDeleteDeactivated::ON);
-      while(sr->children.isNonEmpty()) {
-        Clause* ccl=sr->children.popWithoutDec();
-        ccl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
-        ccl->decRefCnt(); //decrease corresponding to sr->children.popWithoutDec()
-      }
-      
-      ASS(sr->reduced.isEmpty());
-    }
   }
 }
 
