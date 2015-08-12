@@ -301,7 +301,7 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
 
     //now get just some total deterministic order while ignoring variables
     static DisagreementSetIterator dsit;
-    dsit.fixedReset(t1, t2, false);
+    dsit.reset(t1, t2, false);
     while(dsit.hasNext()) {
       pair<TermList, TermList> dis=dsit.next();
       if(dis.first.isTerm()) {
