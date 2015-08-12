@@ -142,7 +142,7 @@ Statistics::Statistics()
  */
 void Statistics::addCommentIfCASC(ostream& out)
 {
-  if (UIHelper::cascMode) {
+  if (UIHelper::szsOutput) {
     out << "% ";
   }
 } // Statistics::addCommentIfCASC

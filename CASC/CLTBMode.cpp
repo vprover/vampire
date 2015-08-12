@@ -62,7 +62,7 @@ void CLTBMode::perform()
   // to prevent from terminating by time limit
   env.options->setTimeLimitInSeconds(100000);
 
-  UIHelper::cascMode = true;
+  UIHelper::szsOutput = true;
   env.options->setProof(Options::Proof::TPTP);
   env.options->setStatistics(Options::Statistics::NONE);
 
@@ -1658,7 +1658,7 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
   // now all the cpu usage will be in children, we'll just be waiting for them
   Timer::setTimeLimitEnforcement(false);
 
-  UIHelper::cascMode=true;
+  UIHelper::szsOutput=true;
 
   performStrategy(terminationTime,timeLimit,category,property);
   exitOnNoSuccess();

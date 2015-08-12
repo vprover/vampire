@@ -614,18 +614,9 @@ void vampireMode()
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  /*
-  vstring inputFile = env.options->inputFile();
-  istream* input;
-  if (inputFile == "") {
-    input = &cin;
-  } else {
-    input = new ifstream(inputFile.c_str());
-    if (input->fail()) {
-      USER_ERROR("Cannot open problem file: "+inputFile);
-    }
+  if (env.options->szsOutput()) {
+    UIHelper::szsOutput = true;
   }
-  */
 
   doProving();
 

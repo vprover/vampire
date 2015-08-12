@@ -1758,6 +1758,7 @@ public:
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   vstring xmlOutput() const { return _xmlOutput.actualValue; }
+  bool szsOutput() const { return _szsOutput.actualValue; }
   vstring thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
@@ -2196,6 +2197,7 @@ private:
   BoolOptionValue _tabulationInstantiateProducingRules;
   RatioOptionValue _tabulationLemmaAgeWeightRatio;
   StringOptionValue _testId;
+  BoolOptionValue _szsOutput;
   StringOptionValue _thanks;
   BoolOptionValue _theoryAxioms;
   BoolOptionValue _theoryFlattening;

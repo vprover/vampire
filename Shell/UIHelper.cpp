@@ -81,7 +81,7 @@ bool UIHelper::unitNumberComparator(Unit* us1, Unit* us2)
  */
 void UIHelper::addCommentIfCASC(ostream& out)
 {
-  if (cascMode) {
+  if (szsOutput) {
     out << "% ";
   }
 } // UIHelper::addCommentIfCASC
@@ -254,7 +254,7 @@ void UIHelper::outputResult(ostream& out)
     addCommentIfCASC(out);
     out << "Refutation found. Thanks to "
 	<< env.options->thanks() << "!\n";
-    if (cascMode) {
+    if (szsOutput) {
       out << "% SZS status " << ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
 	  << " for " << env.options->problemName() << endl;
     }
@@ -263,11 +263,11 @@ void UIHelper::outputResult(ostream& out)
       AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
     }
     if (env.options->proof() != Options::Proof::OFF) {
-      if (cascMode) {
+      if (szsOutput) {
 	out << "% SZS output start Proof for " << env.options->problemName() << endl;
       }
       InferenceStore::instance()->outputProof(out, env.statistics->refutation);
-      if (cascMode) {
+      if (szsOutput) {
 	out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
     }
@@ -322,7 +322,7 @@ void UIHelper::outputResult(ostream& out)
     }
     break;
   case Statistics::TIME_LIMIT:
-    if (cascMode) {
+    if (szsOutput) {
       out << "% (" << getpid() << ')';
     }
     out << "Time limit reached!\n";
@@ -368,16 +368,16 @@ void UIHelper::outputSatisfiableResult(ostream& out)
 
   out << "Satisfiable!\n";
 #if SATISFIABLE_IS_SUCCESS
-  if (cascMode && !satisfiableStatusWasAlreadyOutput) {
+  if (szsOutput && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;
   }
   if (!env.statistics->model.empty()) {
-    if (cascMode) {
+    if (szsOutput) {
 	out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
     }
     out << env.statistics->model;
-    if (cascMode) {
+    if (szsOutput) {
 	out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
     }
   }

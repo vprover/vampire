@@ -70,7 +70,7 @@ void CMZRMode::perform()
 {
   CALL("CMZRMode::perform");
 
-  UIHelper::cascMode = true;
+  UIHelper::szsOutput = true;
 
   if (env.options->inputFile()=="") {
     USER_ERROR("Input file must be specified for CMZR mode");

@@ -131,11 +131,11 @@ void TimeCounter::stopMeasuring()
 
 void TimeCounter::printReport(ostream& out)
 {
-  if (UIHelper::cascMode) {
+  if (UIHelper::szsOutput) {
     out << "% ";
   }
   out << "Time measurement results:" << endl;
-  if (UIHelper::cascMode) {
+  if (UIHelper::szsOutput) {
     out << "% ";
   }
   for (int i=0; i<__TC_ELEMENT_COUNT; i++) {
@@ -150,7 +150,7 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     return;
   }
 
-  if (UIHelper::cascMode) {
+  if (UIHelper::szsOutput) {
     out << "% ";
   }
   switch(tcu) {

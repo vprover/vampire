@@ -219,6 +219,11 @@ void Options::Options::init()
     _lookup.insert(&_testId);
     _testId.setExperimental();
 
+    _szsOutput = BoolOptionValue("szs_output","szs",false);
+    _szsOutput.description="";
+    _lookup.insert(&_szsOutput);
+    _szsOutput.setExperimental();
+
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";
     _lookup.insert(&_thanks);

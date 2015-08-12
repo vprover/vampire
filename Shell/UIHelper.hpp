@@ -45,7 +45,7 @@ public:
    *
    * CASC mode means that we will output messages also in the SZS format.
    */
-  static bool cascMode;
+  static bool szsOutput;
   /**
    * True if we are running in the CASC mode and we are the child process
    */
