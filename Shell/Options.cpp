@@ -826,17 +826,22 @@ void Options::Options::init()
     _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
     _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
 
+    _FOOLOrdering = BoolOptionValue("fool_ordering","",false);
+    _FOOLOrdering.description="Sets term ordering to be $$false < $$true < everything else";
+    _lookup.insert(&_FOOLOrdering);
+    _FOOLOrdering.tag(OptionTag::SATURATION);
+
     _FOOLParamodulation = BoolOptionValue("fool_paramodulation","",false);
     _FOOLParamodulation.description=
       "Turns on the following inference rule:\n"
-      "       C[s]"
-      "--------------------,"
-      "C[true] \\/ s = false"
-      "where s is a boolean term that is not a variable, true or false, C[true] is\n"
-      "the C clause with s substituted by true. This rule is needed for an effecient\n"
+      "        C[s]\n"
+      "--------------------,\n"
+      "C[true] \\/ s = false\n"
+      "where s is a boolean term that is not a variable, true or false, C[true] is "
+      "the C clause with s substituted by true. This rule is needed for effecient "
       "treatment of boolean terms.";
     _lookup.insert(&_FOOLParamodulation);
-    _FOOLParamodulation.tag(OptionTag::OUTPUT);
+    _FOOLParamodulation.tag(OptionTag::INFERENCES);
 
     _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
     _forwardDemodulation.description=
