@@ -229,9 +229,13 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
           UnitList::push(us, premList);
         }
         
-        Inference* inf = new InferenceMany(Inference::GLOBAL_SUBSUMPTION, premList);
+        SATClauseList* satPremises = solver.getRefutationPremiseList();
+
+        Inference* inf = satPremises ? // does our SAT solver support postponed minimization?
+             new InferenceFromSatRefutation(Inference::GLOBAL_SUBSUMPTION, premList, satPremises, failedFinal) :
+             new InferenceMany(Inference::GLOBAL_SUBSUMPTION, premList);
+
         Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),cl->inputType(), inf);
-           
         replacement->setAge(cl->age());
         
         // Splitter will set replacement's splitSet, so we don't have to do it here

@@ -73,7 +73,7 @@ private:
   SATSolver::Status processDPConflicts();
   SATSolver::VarAssignment getSolverAssimentConsideringCCModel(unsigned var);
 
-  void handleSatRefutation(SATClause* ref);
+  void handleSatRefutation();
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 

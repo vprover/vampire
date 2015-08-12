@@ -161,6 +161,7 @@ LiteralIterator Grounder::groundedLits()
   return _asgn.domain();
 }
 
+/*
 void Grounder::recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause)
 {
   CALL("Grounder::recordInference");
@@ -185,6 +186,7 @@ void Grounder::recordInference(Clause* origClause, SATClause* refutation, Clause
 
   InferenceStore::instance()->recordInference(resultClause, inf);
 }
+*/
 
 ////////////////////////////////
 // GlobalSubsumptionGrounder

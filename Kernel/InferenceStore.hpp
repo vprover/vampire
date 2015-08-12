@@ -63,7 +63,7 @@ public:
     Unit* premises[1];
   };
 
-  void recordInference(Unit* unit, FullInference* inf);
+  void recordInference(Unit* unit, FullInference* inf); // used only by proof simplifier now
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
   void recordIntroducedSymbol(Unit* u, bool func, unsigned number);
 

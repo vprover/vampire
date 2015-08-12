@@ -389,6 +389,8 @@ vstring Inference::ruleName(Rule rule)
     return "hyper superposition";
   case GLOBAL_SUBSUMPTION:
     return "global subsumption";
+  case SAT_INSTGEN_REFUTATION:
+    return "sat instgen refutation";
   case DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
   case EXTERNAL:

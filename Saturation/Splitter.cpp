@@ -157,12 +157,19 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
   }
 }
 
-void SplittingBranchSelector::handleSatRefutation(SATClause* ref)
+void SplittingBranchSelector::handleSatRefutation()
 {
   CALL("SplittingBranchSelector::handleSatRefutation");
 
-  UnitList* prems = SATInference::getFOPremises(ref);
-  Inference* foInf = new InferenceMany(Inference::SAT_SPLITTING_REFUTATION, prems);
+  SATClause* satRefutation = _solver->getRefutation();
+  SATClauseList* satPremises = _solver->getRefutationPremiseList();
+
+  UnitList* prems = SATInference::getFOPremises(satRefutation);
+
+  Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
+      new InferenceFromSatRefutation(Inference::SAT_SPLITTING_REFUTATION, prems, satPremises) :
+      new InferenceMany(Inference::SAT_SPLITTING_REFUTATION, prems);
+
   Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
   throw MainLoop::RefutationFoundException(foRef);
 }
@@ -444,8 +451,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     stat = processDPConflicts();
   }
   if(stat == SATSolver::UNSATISFIABLE) {
-    SATClause* satRefutation = _solver->getRefutation();
-    handleSatRefutation(satRefutation); // noreturn!
+    handleSatRefutation(); // noreturn!
   }
   ASS_EQ(stat,SATSolver::SATISFIABLE);
 

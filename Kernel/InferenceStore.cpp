@@ -86,7 +86,6 @@ vstring InferenceStore::getClauseIdSuffix(Unit* cs)
   }
 }
 
-
 /**
  * Increase the reference counter on premise clauses and store @c inf as inference
  * of @c unit.
@@ -98,7 +97,6 @@ void InferenceStore::recordInference(Unit* unit, FullInference* inf)
   inf->increasePremiseRefCounters();
   _data.set(unit, inf);
 }
-
 
 /**
  * Records informations needed for outputting proofs of general splitting
@@ -135,7 +133,6 @@ UnitIterator InferenceStore::getParents(Unit* us, Inference::Rule& rule)
 {
   CALL("InferenceStore::getParents/2");
   ASS_NEQ(us,0);
-
   FullInference* finf;
   //Check if special inference stored in _data
   if (_data.find(us, finf)) {
@@ -145,6 +142,12 @@ UnitIterator InferenceStore::getParents(Unit* us, Inference::Rule& rule)
   //Otherwise the unit itself stores the inference
   List<Unit*>* res=0;
   Inference* inf=us->inference();
+
+  // opportunity to shrink the premise list
+  // (currently applies if this was a SAT-based inference
+  // and the solver didn't provide a proper proof nor a core)
+  inf->minimizePremises();
+
   Inference::Iterator iit=inf->iterator();
   while(inf->hasNext(iit)) {
     Unit* premUnit=inf->next(iit);

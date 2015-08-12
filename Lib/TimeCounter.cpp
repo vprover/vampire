@@ -294,7 +294,10 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_MINIMIZING_SOLVER:
     out << "minimizing solver time";
-    break;        
+    break;
+  case TC_SAT_PROOF_MINIMIZATION:
+    out << "sat proof minimization";
+    break;
   case TC_SUPERPOSITION:
     out<<"superposition";
     break;

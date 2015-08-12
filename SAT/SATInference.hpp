@@ -106,6 +106,43 @@ public:
 };
 
 /**
+ * A first order inference coming from a SAT refutation.
+ * Possibly the SAT refutation was unnecessarily too large
+ * and may be minimized before the final proof outputting.
+ */
+class InferenceFromSatRefutation : public Kernel::InferenceMany
+{
+public:
+  /**
+   * The inherited first order part (@b premises) must be already given,
+   * but it is expected that it is much larger than necessary.
+   *
+   * A list of @b satPremises is just taken
+   * (no memory responsibility overtaken; the list must survive till the minimization call),
+   * a stack of @b usedAssumptions is copied.
+   */
+  InferenceFromSatRefutation(Rule rule, UnitList* premises, SATClauseList* satPremises, const SATLiteralStack& usedAssumptions) :
+    InferenceMany(rule,premises), _minimized(false), _satPremises(satPremises), _usedAssumptions(usedAssumptions) {}
+
+  /**
+   * Constructor versions with no assumptions.
+   */
+  InferenceFromSatRefutation(Rule rule, UnitList* premises, SATClauseList* satPremises) :
+      InferenceMany(rule,premises), _minimized(false), _satPremises(satPremises) {}
+
+  virtual void minimizePremises() override;
+
+  CLASS_NAME(InferenceFromSatRefutation);
+  USE_ALLOCATOR(InferenceFromSatRefutation);
+
+protected:
+  bool _minimized;
+  SATClauseList* _satPremises;
+  SATLiteralStack _usedAssumptions;
+};
+
+
+/**
  * Collect first-order premises of @c cl into @c res. Make sure that elements in @c res are unique.
  * Only consider those SATClauses and their parents which pass the given Filter f.
  */

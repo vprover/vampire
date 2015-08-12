@@ -96,12 +96,10 @@ private:
 
   bool isSelected(Literal* lit);
 
-  Clause* getFORefutation(SATClause* satRefutation);
-
+  Clause* getFORefutation(SATClause* satRefutation, SATClauseList* satPremises);
 
   void onResolutionClauseDerived(Clause* cl);
   void doResolutionStep();
-
 
   MainLoopResult onModelFound();
 

@@ -201,5 +201,105 @@ SATClause* MinisatInterfacing::getZeroImpliedCertificate(unsigned)
   return 0;
 }
 
+SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps)
+{
+  CALL("MinisatInterfacing::minimizePremiseList");
+
+  Minisat::Solver solver;
+
+  static DHMap<int,SATClause*> var2prem;
+  var2prem.reset();
+
+  static vec<Lit> ass; // assumptions for the final call
+  ass.clear();
+
+  int cl_no = 0;
+
+  SATClauseList* it= premises;
+  while(it) {
+    // store the link for fast lookup
+    var2prem.insert(cl_no,it->head());
+
+    // corresponding assumption
+    ass.push(mkLit(cl_no)); // posive as the assumption
+
+    // allocate the var for the clause
+    ALWAYS(solver.newVar() == cl_no);
+
+    cl_no++;
+    it=it->tail();
+  }
+
+  // from now on, offset will mark the translation of premises' original variables to the ones in solver here
+  int offset = cl_no; // first var in the solver that was not allocated yet
+
+  // smallest var not allocated yet
+  int curmax = cl_no;
+
+  // start counting from 0 and traversing from the beginning again
+  cl_no = 0;
+  it= premises;
+  while(it) {
+    SATClause* cl = it->head();
+
+    static vec<Lit> mcl;
+    mcl.clear();
+
+    // translate the clause to minisat's language (shift vars by offset)
+    unsigned clen=cl->length();
+    for(unsigned i=0;i<clen;i++) {
+      SATLiteral l = (*cl)[i];
+      int var = offset + l.var();
+
+      // make sure vars are allocated
+      while (var >= curmax) {
+        solver.newVar();
+        curmax++;
+      }
+
+      mcl.push(mkLit(var,l.isNegative()));
+    }
+
+    // add one extra assumption literal
+    mcl.push(mkLit(cl_no,true)); // negated in the clause
+
+    solver.addClause(mcl);
+
+    cl_no++;
+    it=it->tail();
+  }
+
+  // add assumptions from assumps
+  SATLiteralStack::Iterator ait(assumps);
+  while (ait.hasNext()) {
+    SATLiteral l = ait.next();
+    int var = offset + l.var();
+
+    ASS_L(var,curmax);
+
+    ass.push(mkLit(var,l.isNegative()));
+  }
+
+  // solve
+  ALWAYS(!solver.solve(ass)); // should be unsat
+
+  SATClauseList* result = SATClauseList::empty();
+
+  // extract the used ones
+  Minisat::LSet& conflict = solver.conflict;
+  for (int i = 0; i < conflict.size(); i++) {
+    int v = var(conflict[i]);
+
+    SATClause* cl;
+
+    if (var2prem.find(v,cl)) {
+      SATClauseList::push(cl,result);
+    } // it could also be one of the "assumps"
+  }
+
+  return result;
+}
+
+
 } // namespace SAT
 

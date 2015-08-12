@@ -237,6 +237,8 @@ public:
     HYPER_SUPERPOSITION,
     /** global subsumption */
     GLOBAL_SUBSUMPTION,
+    /** refutation in the SAT solver for InstGen */
+    SAT_INSTGEN_REFUTATION,
     /** distinct equality removal */
     DISTINCT_EQUALITY_REMOVAL,
     /** inference coming from outside of Vampire */
@@ -277,6 +279,18 @@ public:
    * which does not use Inference::destroy() to avoid deep recursion.)
    */
   virtual ~Inference() {}
+
+  /**
+   * To implement lazy minimization of proofs coming from a SAT solver
+   * without explicit proof recording.
+   *
+   * We want to postpone the potentially expensive
+   * minimizing call to after
+   * a complete refutation has been found.
+   *
+   * This is meant to be a no-op for all inferences except those related to SAT.
+   */
+  virtual void minimizePremises() {}
 
   static vstring ruleName(Rule rule);
   vstring name() const { return ruleName(_rule); }

@@ -248,16 +248,19 @@ redundancy_check:
   return true;
 }
 
-Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation)
+Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation, SATClauseList* satPremises)
 {
   CALL("IGAlgorithm::getFORefutation");
   ASS(satRefutation);
 
-  //just a dummy inference, the correct one will be in the inference store
-  Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
-  Clause* res = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, inf);
-  Grounder::recordInference(0, satRefutation, res);
-  return res;
+  UnitList* prems = SATInference::getFOPremises(satRefutation);
+
+  Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
+      new InferenceFromSatRefutation(Inference::SAT_INSTGEN_REFUTATION, prems, satPremises) :
+      new InferenceMany(Inference::SAT_INSTGEN_REFUTATION, prems);
+
+  Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
+  return foRef;
 }
 
 void IGAlgorithm::processUnprocessed()
@@ -289,7 +292,7 @@ void IGAlgorithm::processUnprocessed()
   }
 
   if(_satSolver->solve()==SATSolver::UNSATISFIABLE) {
-    Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
+    Clause* foRefutation = getFORefutation(_satSolver->getRefutation(),_satSolver->getRefutationPremiseList());
     throw RefutationFoundException(foRefutation);
   }
 }
@@ -546,7 +549,7 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
   }
 
   if(_satSolver->solve(true)==SATSolver::UNSATISFIABLE) {
-    Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
+    Clause* foRefutation = getFORefutation(_satSolver->getRefutation(),_satSolver->getRefutationPremiseList());
     throw RefutationFoundException(foRefutation);
   }
 }
