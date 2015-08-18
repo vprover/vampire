@@ -1271,6 +1271,10 @@ void TPTP::fof(bool fo)
   if (tp == "axiom" || tp == "plain") {
     _lastInputType = Unit::AXIOM;
   }
+  else if(tp == "extensionality"){
+    // this will be transformed to just AXIOM after clausification
+    _lastInputType = Unit::EXTENSIONALITY_AXIOM;
+  }
   else if (tp == "definition") {
     _lastInputType = Unit::AXIOM;
   }
@@ -1387,6 +1391,10 @@ void TPTP::tff()
   _isQuestion = false;
   if (tp == "axiom" || tp == "plain") {
     _lastInputType = Unit::AXIOM;
+  }
+  else if (tp == "extensionality"){
+    // this will be transformed to just AXIOM after clausification
+    _lastInputType = Unit::EXTENSIONALITY_AXIOM;
   }
   else if (tp == "definition") {
     _lastInputType = Unit::AXIOM;

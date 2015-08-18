@@ -49,6 +49,7 @@ public:
     _allowPosEq(opt.extensionalityAllowPosEq())
   {
     _onlyKnown = (opt.extensionalityResolution() == Options::ExtensionalityResolution::KNOWN);
+    _onlyTagged = (opt.extensionalityResolution() == Options::ExtensionalityResolution::TAGGED);
     _sortCnt = env.sorts->sorts();
     _clausesBySort.init(_sortCnt, 0);
   }
@@ -67,6 +68,7 @@ private:
   unsigned _size;
   
   bool _onlyKnown;
+  bool _onlyTagged;
   unsigned _maxLen;
   bool _allowPosEq;
 };

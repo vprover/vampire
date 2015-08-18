@@ -24,9 +24,14 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
   CALL("ExtensionalityClauseContainer::addIfExtensionality");
   
   // Clause is already in extensionality container. We only have to search X=Y.
+  // This is also how we detect tagged extensionality
   if (c->isExtensionality()) {
+    //cout << "Using " << c->toString() << endl;
     return getSingleVarEq(c);
   }
+
+  // Tagged clauses would have been detected above
+  if(_onlyTagged) return 0;
 
   // We only consider extensionality clauses of at least length 2, but can also
   // specify a length limit.

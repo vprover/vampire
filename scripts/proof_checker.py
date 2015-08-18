@@ -19,15 +19,15 @@ IPROVER='~/Vampire/prover-bin/iproveropt --clausifier ../vampire_rel_master --cl
 CVC4='cvc4 --lang tptp --tlimit='+time_out+'000' # to convert seconds to ms
 SPASS='~/Vampire/prover-bin/SPASS -Auto=1 -TPTP=1 -TimeLimit='+time_out  
 CHECK_WITH=set()
-CHECK_WITH.add(EPROVER)
+#CHECK_WITH.add(EPROVER)
 CHECK_WITH.add(VAMPIRE)
-CHECK_WITH.add(IPROVER)
-#CHECK_WITH.add(CVC4)
-CHECK_WITH.add(SPASS)
+#CHECK_WITH.add(IPROVER)
+CHECK_WITH.add(CVC4)
+#CHECK_WITH.add(SPASS)
 
-verbose=False
+verbose=True
 
-ignores=set(['%negated conjecture','%sat splitting component','%theory axiom','%cnf transformation','%flattening','%ennf transformation','%general splitting','%general splitting component introduction','%global subsumption'])
+ignores=set(['%negated conjecture','%sat splitting component','%theory axiom','%cnf transformation','%flattening','%ennf transformation','%general splitting','%general splitting component introduction','%global subsumption','%sat splitting refutation'])
 
 ARGS= " -p proofcheck "+(' '.join(sys.argv[2:]))
 print "Running vampire on "+ ARGS 
@@ -70,9 +70,11 @@ for line in OUT.split('\n'):
 
       	proved=False
       	for prover_line in prover_result.split('\n'):
+		if verbose:
+			print "Prover output:"
         	if 'SZS status' in prover_line:
           		if verbose:
-            			print prover_line
+            			print "\t"+prover_line
           		if 'Theorem' in prover_line or 'Unsatisfiable' in prover_line:
 	            		proved=True
 			break
@@ -89,7 +91,8 @@ for line in OUT.split('\n'):
  
       #Reset obligation
       obligation=[]
-
+    else:
+      print "Skipped ",obligation
   elif refutation:
   	obligation.append(line)
 

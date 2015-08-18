@@ -67,6 +67,13 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
+
+  if(it == Unit::EXTENSIONALITY_AXIOM){
+    //cout << "Setting extensionality" << endl;
+    setExtensionality(true);
+    setInputType(Unit::AXIOM);
+  }
+
 //#if VDEBUG
 _freeze_count=0;
 //#endif
@@ -410,6 +417,8 @@ vstring Clause::toNiceString() const
 vstring Clause::toString() const
 {
   CALL("Clause::toString()");
+
+  //if(isExtensionality()){ cout << "EXTENSIONALITY" << endl; }
 
   vstring result = Int::toString(_number) + ". " + nonPropToString();
 

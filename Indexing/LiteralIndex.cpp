@@ -198,10 +198,12 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 
   if(greater) {
     if(adding) {
+      // true here means get complementary, false means do not get subs
       SLQueryResultIterator vit=_partialIndex->getVariants(greater,true,false);
       while(vit.hasNext()) {
         SLQueryResult qr=vit.next();
 
+        // true here means complementary
         if(!MLVariant::isVariant(c ,qr.clause, true)) {
           continue;
         }

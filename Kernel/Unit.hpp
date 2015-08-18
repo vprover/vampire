@@ -50,6 +50,8 @@ public:
     NEGATED_CONJECTURE = 3,
     /** Vampire-only, for the consequence-finding mode */
     CLAIM = 4,
+    /** Used in parsing and preprocessing for extensionality clause tagging */
+    EXTENSIONALITY_AXIOM = 5,
   };
 
   static InputType getInputType(UnitList* units);
@@ -143,7 +145,7 @@ protected:
   /** Kind  */
   unsigned _kind : 1;
   /** input type  */
-  unsigned _inputType : 2;
+  unsigned _inputType : 3;
   /** used in interpolation to denote parents of what color have been used */
   unsigned _inheritedColor : 2;
   /** true if the unit is read from a TPTP included file  */

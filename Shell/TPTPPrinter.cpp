@@ -164,6 +164,10 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
     tgt() << "negated_conjecture"; break;
   case Unit::CLAIM:
     tgt() << "claim"; break;
+  case Unit::EXTENSIONALITY_AXIOM:
+    tgt() << "extensionality"; break;
+  default:
+     ASSERTION_VIOLATION;
   }
   tgt() << ", " << endl << "    " << bodyStr << " )." << endl;
 }
@@ -425,6 +429,10 @@ vstring TPTPPrinter::toString (const Unit* unit)
       negate_formula = true;
       kind = "conjecture";
     }
+    break;
+
+  case Unit::EXTENSIONALITY_AXIOM:
+    kind = "extensionality";
     break;
 
   default:
