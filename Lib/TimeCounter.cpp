@@ -131,11 +131,11 @@ void TimeCounter::stopMeasuring()
 
 void TimeCounter::printReport(ostream& out)
 {
-  if (UIHelper::cascMode) {
+  if (UIHelper::szsOutput) {
     out << "% ";
   }
   out << "Time measurement results:" << endl;
-  if (UIHelper::cascMode) {
+  if (UIHelper::szsOutput) {
     out << "% ";
   }
   for (int i=0; i<__TC_ELEMENT_COUNT; i++) {
@@ -150,7 +150,7 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     return;
   }
 
-  if (UIHelper::cascMode) {
+  if (UIHelper::szsOutput) {
     out << "% ";
   }
   switch(tcu) {
@@ -294,7 +294,10 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_MINIMIZING_SOLVER:
     out << "minimizing solver time";
-    break;        
+    break;
+  case TC_SAT_PROOF_MINIMIZATION:
+    out << "sat proof minimization";
+    break;
   case TC_SUPERPOSITION:
     out<<"superposition";
     break;

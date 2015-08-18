@@ -30,6 +30,10 @@ public:
     // TODO: consider checking the proof
     return _inner->getRefutation(); 
   }
+  virtual SATClauseList* getRefutationPremiseList() override {
+    return _inner->getRefutationPremiseList();
+  }
+
   virtual void randomizeForNextAssignment(unsigned varLimit) override {
     _inner->randomizeForNextAssignment(varLimit); _checked = false;
   }

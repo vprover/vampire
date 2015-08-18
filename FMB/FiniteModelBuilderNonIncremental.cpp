@@ -944,7 +944,7 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
  cout << "Found model of size " << modelSize << endl;
 
  //we need to print this early because model generating can take some time
- if(UIHelper::cascMode) {
+ if(UIHelper::szsOutput) {
    env.beginOutput();
    env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
        << " for " << _opt.problemName() << endl << flush;

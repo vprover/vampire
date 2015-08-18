@@ -25,46 +25,46 @@ using namespace Kernel;
 
 class ProofTransformer {
 public:
-  ProofTransformer(UnitSpec refutation);
+  ProofTransformer(Unit* refutation);
   virtual ~ProofTransformer() {}
 
   void perform();
 
-  UnitSpec getNewRefutation() {
+  Unit* getNewRefutation() {
     CALL("ProofTransformer::getNewRefutation");
     ASS(isRefutation(_newProof.top()));
     return _newProof.top();
   }
 protected:
   virtual void preTransform() {}
-  virtual UnitSpec transformUnit(UnitSpec u) = 0;
+  virtual Unit* transformUnit(Unit* u) = 0;
 
-  static bool isRefutation(UnitSpec u);
-  static void loadProof(UnitSpec refutation, Stack<UnitSpec>& tgt);
+  static bool isRefutation(Unit* u);
+  static void loadProof(Unit* refutation, Stack<Unit*>& tgt);
 
-  Stack<UnitSpec> _origProof;
+  Stack<Unit*> _origProof;
 private:
 
-  void derefInference(UnitSpec src, UnitSpec tgt);
-  void registerTransformation(UnitSpec src, UnitSpec tgt);
+  void derefInference(Unit* src, Unit* tgt);
+  void registerTransformation(Unit* src, Unit* tgt);
 
-  UnitSpec _refutation;
+  Unit* _refutation;
 
-  DHMap<UnitSpec,UnitSpec> _transformationMap;
+  DHMap<Unit*,Unit*> _transformationMap;
 
-  Stack<UnitSpec> _newProof;
+  Stack<Unit*> _newProof;
 };
 
 
 class ProofSimplifier : public ProofTransformer {
 public:
-  ProofSimplifier(const Problem& prb, UnitSpec refutation, UnitList* defs);
+  ProofSimplifier(const Problem& prb, Unit* refutation, UnitList* defs);
 protected:
   virtual void preTransform();
-  virtual UnitSpec transformUnit(UnitSpec u);
+  virtual Unit* transformUnit(Unit* u);
 
 private:
-  AIGRef getAIG(UnitSpec u);
+  AIGRef getAIG(Unit* u);
 
   // const Problem& _prb; // MS: unused
   UnitList* _defs;

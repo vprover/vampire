@@ -55,7 +55,6 @@ public:
   { return hash(str.c_str()); }
 
   static unsigned hash(Kernel::Unit* u);
-  static unsigned hash(Kernel::UnitSpec* u);
 
   template<typename T>
   static unsigned hash(Stack<T> obj)

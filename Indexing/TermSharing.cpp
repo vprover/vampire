@@ -290,6 +290,8 @@ Term* TermSharing::insertRecurrently(Term* t)
  */
 Literal* TermSharing::tryGetOpposite(Literal* l)
 {
+  CALL("TermSharing::tryGetOpposite");
+
   Literal* res;
   if(_literals.find(OpLitWrapper(l), res)) {
     return res;
@@ -306,6 +308,8 @@ Literal* TermSharing::tryGetOpposite(Literal* l)
  */
 bool TermSharing::argNormGt(TermList t1, TermList t2)
 {
+  CALL("TermSharing::argNormGt");
+
   if(t1.tag()!=t2.tag()) {
     return t1.tag()>t2.tag();
   }

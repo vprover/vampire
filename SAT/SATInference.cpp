@@ -4,8 +4,11 @@
  */
 
 #include "Kernel/Clause.hpp"
+#include "Lib/TimeCounter.hpp"
 
 #include "SATInference.hpp"
+
+#include "MinisatInterfacing.hpp"
 
 namespace SAT
 {
@@ -17,7 +20,7 @@ namespace SAT
 /**
  * Collect first-order premises of @c cl into @c res. Make sure that elements in @c res are unique.
  */
-void SATInference::collectFOPremises(SATClause* cl, Stack<UnitSpec>& acc)
+void SATInference::collectFOPremises(SATClause* cl, Stack<Unit*>& acc)
 {
   CALL("SATInference::collectFOPremises");
   
@@ -31,17 +34,15 @@ UnitList* SATInference::getFOPremises(SATClause* cl)
   ASS(cl);
   ASS(cl->inference());
 
-  static Stack<UnitSpec> prems;
+  static Stack<Unit*> prems;
   prems.reset();
 
   collectFOPremises(cl, prems);
 
   UnitList* res = 0;
   while (prems.isNonEmpty()) {
-    UnitSpec us = prems.pop();
-
-    //ASS_REP(us.withoutProp() || BDD::instance()->isTrue(us.prop()), us.toString());
-    UnitList::push(us.unit(), res);
+    Unit* us = prems.pop();
+    UnitList::push(us, res);
   }
 
   return res;
@@ -72,18 +73,18 @@ SATInference* SATInference::copy(const SATInference* inf)
 // FOConversionInference
 //
 
-FOConversionInference::FOConversionInference(UnitSpec origin) : _origin(origin)
+FOConversionInference::FOConversionInference(Unit* origin) : _origin(origin)
 {
-  _origin.unit()->incRefCnt();
+  _origin->incRefCnt();
 }
-FOConversionInference::FOConversionInference(Clause* cl) : _origin(UnitSpec(cl))
+FOConversionInference::FOConversionInference(Clause* cl) : _origin(cl)
 {
-  _origin.unit()->incRefCnt();
+  _origin->incRefCnt();
 }
 FOConversionInference::~FOConversionInference()
 {
   CALL("FOConversionInference::~FOConversionInference");
-  _origin.unit()->decRefCnt();
+  _origin->decRefCnt();
 }
 
 
@@ -112,6 +113,48 @@ FOSplittingInference::~FOSplittingInference()
     Clause* n = ClauseList::pop(_names);
     n->decRefCnt();
   }
+}
+
+void InferenceFromSatRefutation::minimizePremises() {
+  CALL("InferenceFromSatRefutation::minimizePremises");
+
+  if (_minimized) {
+    return;
+  }
+
+  TimeCounter tc(TC_SAT_PROOF_MINIMIZATION);
+
+  SATClauseList* minimized = MinisatInterfacing::minimizePremiseList(_satPremises,_usedAssumptions);
+
+  SATClause* newSatRef = new(0) SATClause(0);
+  newSatRef->setInference(new PropInference(minimized));
+
+  UnitList* newFOPrems = SATInference::getFOPremises(newSatRef);
+
+  // cout << "Minimized from " << _premises->length() << " to " << newFOPrems->length() << endl;
+
+  // "release" the old list
+  {
+    UnitList* it=_premises;
+    while(it) {
+      it->head()->decRefCnt();
+      it=it->tail();
+    }
+  }
+
+  // assign and keep the new one
+  {
+    _premises = newFOPrems;
+    UnitList* it=_premises;
+    while(it) {
+      it->head()->incRefCnt();
+      it=it->tail();
+    }
+  }
+
+  newSatRef->destroy(); // deletes also the inference and with it the list minimized, but not the clauses inside
+
+  _minimized = true;
 }
 
 

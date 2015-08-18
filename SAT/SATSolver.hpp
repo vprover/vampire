@@ -145,6 +145,17 @@ public:
   virtual SATClause* getRefutation() = 0;
 
   /**
+   * Under the same conditions as getRefutation
+   * a solver may return a list of SAT clauses which
+   * where shown unsatisfiable
+   * (possibly under additional assumptions the caller keeps track of themselves).
+   *
+   * A solver may ignore to implement this function
+   * and will return an empty list instead.
+   */
+  virtual SATClauseList* getRefutationPremiseList() { return SATClauseList::empty(); }
+
+  /**
   * Record the association between a SATLiteral var and a Literal
   * In TWLSolver this is used for computing niceness values
   * 
@@ -346,8 +357,10 @@ public:
     }
   
   virtual ~PrimitiveProofRecordingSATSolver() {
-    // we clear the list but not it's content
-    _addedClauses->destroy();
+    CALL("PrimitiveProofRecordingSATSolver::~PrimitiveProofRecordingSATSolver");
+
+    // cannot clear the list - some inferences may be keeping its suffices till proof printing phase ...
+    // _addedClauses->destroy(); // we clear the list but not its content
   }
 
   virtual void addClause(SATClause* cl) override 
@@ -386,6 +399,10 @@ public:
     return _refutation; 
   }
   
+  virtual SATClauseList* getRefutationPremiseList() override {
+    return _addedClauses;
+  }
+
 private:
   // to be used for the premises of a refutation
   SATClauseList* _addedClauses;

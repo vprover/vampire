@@ -17,7 +17,7 @@
 namespace Shell
 {
 
-ProofTransformer::ProofTransformer(UnitSpec refutation)
+ProofTransformer::ProofTransformer(Unit* refutation)
 {
   CALL("ProofTransformer::ProofTransformer");
 
@@ -32,12 +32,12 @@ void ProofTransformer::perform()
 
   preTransform();
 
-  Stack<UnitSpec>::BottomFirstIterator prIt(_origProof);
+  Stack<Unit*>::BottomFirstIterator prIt(_origProof);
   while(prIt.hasNext()) {
-    UnitSpec u = prIt.next();
-    UnitSpec tgt = transformUnit(u);
+    Unit* u = prIt.next();
+    Unit* tgt = transformUnit(u);
     registerTransformation(u, tgt);
-    if(!tgt.isEmpty()) {
+    if(tgt != 0) {
       derefInference(u, tgt);
       _newProof.push(tgt);
       //maybe we've simplified some unit into a refutation earlier...
@@ -48,10 +48,10 @@ void ProofTransformer::perform()
   }
 }
 
-void ProofTransformer::registerTransformation(UnitSpec src, UnitSpec tgt)
+void ProofTransformer::registerTransformation(Unit* src, Unit* tgt)
 {
   CALL("ProofTransformer::registerTransformation");
-  ASS(!src.isEmpty());
+  ASS_NEQ(src,0);
   ALWAYS(_transformationMap.insert(src, tgt));
 }
 
@@ -60,13 +60,13 @@ void ProofTransformer::registerTransformation(UnitSpec src, UnitSpec tgt)
  *
  * Parents of src must have been already processed and their transformation registered.
  */
-void ProofTransformer::derefInference(UnitSpec src, UnitSpec tgt)
+void ProofTransformer::derefInference(Unit* src, Unit* tgt)
 {
   CALL("derefInference");
 
   InferenceStore* inf = InferenceStore::instance();
 
-  static Stack<UnitSpec> tgtPrems;
+  static Stack<Unit*> tgtPrems;
   tgtPrems.reset();
 
 #if DEBUG_INFERENCE_COLORS
@@ -76,16 +76,16 @@ void ProofTransformer::derefInference(UnitSpec src, UnitSpec tgt)
   Color tgtParClr = COLOR_TRANSPARENT;
 #endif
   Inference::Rule rule;
-  UnitSpecIterator pit = inf->getParents(src, rule);
+  UnitIterator pit = inf->getParents(src, rule);
   while(pit.hasNext()) {
-    UnitSpec srcPar = pit.next();
+    Unit* srcPar = pit.next();
 
 #if DEBUG_INFERENCE_COLORS
     srcParClr = ColorHelper::combine(srcParClr, srcPar.unit()->getColor());
 #endif
 
-    UnitSpec tgtPar = _transformationMap.get(srcPar);
-    if(!tgtPar.isEmpty()) {
+    Unit* tgtPar = _transformationMap.get(srcPar);
+    if(tgtPar != 0) {
 #if DEBUG_INFERENCE_COLORS
       tgtParClr = ColorHelper::combine(tgtParClr, tgtPar.unit()->getColor());
 #endif
@@ -115,45 +115,45 @@ void ProofTransformer::derefInference(UnitSpec src, UnitSpec tgt)
   inf->recordInference(tgt, finf);
 }
 
-bool ProofTransformer::isRefutation(UnitSpec u)
+bool ProofTransformer::isRefutation(Unit* u)
 {
   CALL("ProofTransformer::isRefutation");
-  ASS(!u.isEmpty());
+  ASS_NEQ(u,0);
 
-  if(u.isClause()) { return u.cl()->isEmpty(); }
-  FormulaUnit* fu = static_cast<FormulaUnit*>(u.unit());
+  if(u->isClause()) { return u->asClause()->isEmpty(); }
+  FormulaUnit* fu = static_cast<FormulaUnit*>(u);
   return fu->formula()->connective()==FALSE;
 }
 
-void ProofTransformer::loadProof(UnitSpec refutation, Stack<UnitSpec>& tgt)
+void ProofTransformer::loadProof(Unit* refutation, Stack<Unit*>& tgt)
 {
   CALL("ProofTransformer::loadProof");
 
-  static DHSet<UnitSpec> processed;
+  static DHSet<Unit*> processed;
   processed.reset();
 
-  static Stack<UnitSpec> stack;
+  static Stack<Unit*> stack;
   stack.reset();
   stack.push(refutation);
 
   while(stack.isNonEmpty()) {
-    if(stack.top().isEmpty()) {
+    if(stack.top() == 0) {
       stack.pop();
-      ASS(!stack.top().isEmpty());
-      UnitSpec proc = stack.pop();
+      ASS(stack.top() != 0);
+      Unit* proc = stack.pop();
       if(processed.insert(proc)) {
 	tgt.push(proc);
       }
       continue;
     }
-    UnitSpec current = stack.top();
-    ASS(!current.isEmpty());
+    Unit* current = stack.top();
+    ASS(current != 0);
     if(processed.find(current)) {
       stack.pop();
       continue;
     }
-    stack.push(UnitSpec(0));
-    UnitSpecIterator pit = InferenceStore::instance()->getParents(current);
+    stack.push(0);
+    UnitIterator pit = InferenceStore::instance()->getParents(current);
     stack.loadFromIterator(pit);
   }
 }
@@ -162,24 +162,24 @@ void ProofTransformer::loadProof(UnitSpec refutation, Stack<UnitSpec>& tgt)
 // ProofSimplifier
 //
 
-ProofSimplifier::ProofSimplifier(const Problem& prb, UnitSpec refutation, UnitList* defs)
+ProofSimplifier::ProofSimplifier(const Problem& prb, Unit* refutation, UnitList* defs)
  : ProofTransformer(refutation), /*_prb(prb), MS: unused */ _defs(defs), _aig(_inl.aig()), _fsh(_inl.fsh()), _bddAig(_aig)
 {
   _bddAig.loadBDDAssignmentFromProblem(prb);
 }
 
-AIGRef ProofSimplifier::getAIG(UnitSpec u)
+AIGRef ProofSimplifier::getAIG(Unit* u)
 {
   CALL("ProofSimplifier::getAIG");
 
   //AIGRef bddA = _bddAig.b2a(u.prop());
 
   AIGRef formA;
-  if(u.isClause()) {
-    formA = _fsh.getAIG(u.cl());
+  if(u->isClause()) {
+    formA = _fsh.getAIG(u->asClause());
   }
   else {
-    FormulaUnit* fu = static_cast<FormulaUnit*>(u.unit());
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
     formA = _fsh.apply(fu->formula()).second;
   }
 
@@ -191,16 +191,16 @@ void ProofSimplifier::preTransform()
 {
   CALL("ProofSimplifier::preTransform");
 
-  Stack<UnitSpec>::BottomFirstIterator pit(_origProof);
+  Stack<Unit*>::BottomFirstIterator pit(_origProof);
   while(pit.hasNext()) {
-    UnitSpec u = pit.next();
+    Unit* u = pit.next();
     AIGRef a = getAIG(u);
     _inl.addRelevant(a);
   }
   _inl.scan(_defs);
 }
 
-UnitSpec ProofSimplifier::transformUnit(UnitSpec u)
+Unit* ProofSimplifier::transformUnit(Unit* u)
 {
   CALL("ProofSimplifier::transformUnit");
 
@@ -209,12 +209,12 @@ UnitSpec ProofSimplifier::transformUnit(UnitSpec u)
   AIGInliner::PremSet* prems;
   AIGRef simplA = _inl.apply(a, prems);
   if(simplA.isTrue()) {
-    return UnitSpec(0);
+    return 0;
   }
   Formula* form = _fsh.aigToFormula(simplA);
   form = Flattening::flatten(form);
-  FormulaUnit* res = new FormulaUnit(form, new Inference(Inference::TAUTOLOGY_INTRODUCTION), u.unit()->inputType());
-  return UnitSpec(res);
+  FormulaUnit* res = new FormulaUnit(form, new Inference(Inference::TAUTOLOGY_INTRODUCTION), u->inputType());
+  return res;
 }
 
 }

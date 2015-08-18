@@ -101,6 +101,14 @@ public:
   
   Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
 
+  /**
+   * Use minisat and solving under assumptions to minimize the given set of premises (= unsat core extraction).
+   *
+   * Assumes @b premises in conjunction with @b assumps unsat.
+   * Returns a "small" subset of premises which is still unsat under assumps.
+   */
+  static SATClauseList* minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps);
+
 protected:    
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);
   
@@ -117,7 +125,7 @@ protected:
     return Minisat::mkLit(vampireVar2Minisat(vlit.var()),vlit.isNegative()); 
   }
   
-  /* sign=trun in minisat means "negated" in vampire */
+  /* sign=true in minisat means "negated" in vampire */
   const SATLiteral minisatLit2Vampire(Minisat::Lit mlit) {
     return SATLiteral(minisatVar2Vampire(Minisat::var(mlit)),Minisat::sign(mlit) ? 0 : 1);            
   }

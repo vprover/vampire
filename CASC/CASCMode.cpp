@@ -33,7 +33,7 @@ bool CASCMode::perform(int argc, char* argv [])
 {
   CALL("CASCMode::perform/2");
 
-  UIHelper::cascMode=true;
+  UIHelper::szsOutput=true;
 
   env.timer->makeChildrenIncluded();
 

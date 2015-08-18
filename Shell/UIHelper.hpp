@@ -45,7 +45,7 @@ public:
    *
    * CASC mode means that we will output messages also in the SZS format.
    */
-  static bool cascMode;
+  static bool szsOutput;
   /**
    * True if we are running in the CASC mode and we are the child process
    */
@@ -73,7 +73,7 @@ private:
   static void outputConstraintInSMTFormat(const Constraint& constraint, ostream& out);
 #endif //GNUMP
 
-  static bool unitSpecNumberComparator(UnitSpec us1, UnitSpec us2);
+  static bool unitNumberComparator(Unit* us1, Unit* us2);
   static void addCommentIfCASC(ostream&); 
 
   static bool s_haveConjecture;

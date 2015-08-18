@@ -219,6 +219,11 @@ void Options::Options::init()
     _lookup.insert(&_testId);
     _testId.setExperimental();
 
+    _szsOutput = BoolOptionValue("szs_output","szs",false);
+    _szsOutput.description="";
+    _lookup.insert(&_szsOutput);
+    _szsOutput.setExperimental();
+
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";
     _lookup.insert(&_thanks);
@@ -1145,8 +1150,6 @@ void Options::Options::init()
     _splittingCongruenceClosure.setRandomChoices({"model","off","on"});
     _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
                                                   then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));
-    _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
-                                                      then(_splittingHandleZeroImplied.is(notEqual(true))));
     
     _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
                                                      {"first", "small_ones", "all"});
@@ -1189,16 +1192,6 @@ void Options::Options::init()
     // if minimize is sco then we could have a conflict clause added infinitely often
     _splittingEagerRemoval.reliesOn(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
     _splittingEagerRemoval.setRandomChoices({"on","off"});
-
-    _splittingHandleZeroImplied = BoolOptionValue("splitting_handle_zero_implied","shzi",false);
-    _splittingHandleZeroImplied.description="If on ensure that splitting decisions implied by the top level"
-         " of the SAT solver are considered unconditional when performing clause reductions.";
-    _lookup.insert(&_splittingHandleZeroImplied);
-    _splittingHandleZeroImplied.tag(OptionTag::AVATAR);
-    _splittingHandleZeroImplied.setExperimental();
-    _splittingHandleZeroImplied.reliesOn(_splitting.is(equal(true)));
-    _splittingHandleZeroImplied.addHardConstraint(ifOnThen(_nonliteralsInClauseWeight.is(equal(false))));
-    _splittingHandleZeroImplied.setRandomChoices({"on","off"});
 
     _splittingFastRestart = BoolOptionValue("splitting_fast_restart","sfr",false);
     _splittingFastRestart.description="";

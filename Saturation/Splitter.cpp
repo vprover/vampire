@@ -60,7 +60,6 @@ void SplittingBranchSelector::init()
   CALL("SplittingBranchSelector::init");
 
   _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
-  _handleZeroImplied = _parent.getOptions().splittingHandleZeroImplied();
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
@@ -131,7 +130,6 @@ void SplittingBranchSelector::updateVarCnt()
   // index by var, but ignore slot 0
   _selected.expand(splitLvlCnt+1);
   _trueInCCModel.expand(satVarCnt+1);
-  _zeroImplieds.expand(satVarCnt+1,false);
 
   // solver may be doing the same, but only internally
   _solver->ensureVarCount(satVarCnt);
@@ -157,12 +155,19 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
   }
 }
 
-void SplittingBranchSelector::handleSatRefutation(SATClause* ref)
+void SplittingBranchSelector::handleSatRefutation()
 {
   CALL("SplittingBranchSelector::handleSatRefutation");
 
-  UnitList* prems = SATInference::getFOPremises(ref);
-  Inference* foInf = new InferenceMany(Inference::SAT_SPLITTING_REFUTATION, prems);
+  SATClause* satRefutation = _solver->getRefutation();
+  SATClauseList* satPremises = _solver->getRefutationPremiseList();
+
+  UnitList* prems = SATInference::getFOPremises(satRefutation);
+
+  Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
+      new InferenceFromSatRefutation(Inference::SAT_SPLITTING_REFUTATION, prems, satPremises) :
+      new InferenceMany(Inference::SAT_SPLITTING_REFUTATION, prems);
+
   Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
   throw MainLoop::RefutationFoundException(foRef);
 }
@@ -444,8 +449,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     stat = processDPConflicts();
   }
   if(stat == SATSolver::UNSATISFIABLE) {
-    SATClause* satRefutation = _solver->getRefutation();
-    handleSatRefutation(satRefutation); // noreturn!
+    handleSatRefutation(); // noreturn!
   }
   ASS_EQ(stat,SATSolver::SATISFIABLE);
 
@@ -467,37 +471,6 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   RSTAT_CTR_INC_MANY("ssat_usual_activations", addedComps.size());
   RSTAT_CTR_INC_MANY("ssat_usual_deactivations", removedComps.size());
   */
-}
-
-/**
- * Return split levels whose corresponding variable
- * has become zero implied in the solver since the last call of this function. 
- */
-void SplittingBranchSelector::getNewZeroImpliedSplits(SplitLevelStack& res)
-{
-  CALL("SplittingBranchSelector::getNewZeroImpliedSplits");  
-  ASS(res.isEmpty());  
-  
-  if (!_handleZeroImplied) {
-    return;
-  }    
-  
-  unsigned maxSatVar = _parent.maxSatVar();
-  for(unsigned i=1; i<=maxSatVar; i++) {
-    if (!_zeroImplieds[i] && _solver->isZeroImplied(i)) {
-      _zeroImplieds[i] = true;
-      
-      SplitLevel posLvl = _parent.getNameFromLiteral(SATLiteral(i, true));
-      SplitLevel negLvl = _parent.getNameFromLiteral(SATLiteral(i, false));
-      
-      if (_parent.isUsedName(posLvl)) {
-        res.push(posLvl);
-      }
-      if (_parent.isUsedName(negLvl)) {
-        res.push(negLvl);
-      }
-    }
-  }
 }
 
 //////////////
@@ -642,10 +615,6 @@ void Splitter::onAllProcessed()
   toRemove.reset();  
 
   _branchSelector.recomputeModel(toAdd, toRemove, flushing);
-
-  static SplitLevelStack newZeroImplied;
-  newZeroImplied.reset();
-  _branchSelector.getNewZeroImpliedSplits(newZeroImplied);
   
   {
     TimeCounter tc(TC_SPLITTING_MODEL_UPDATE); // includes component removals and additions, also processing fast clauses and zero implied splits
@@ -672,10 +641,6 @@ void Splitter::onAllProcessed()
       }
 
       rcl->decRefCnt(); //belongs to _fastClauses.popWithoutDec();
-    }
-    
-    if (newZeroImplied.isNonEmpty()) {
-      processNewZeroImplied(newZeroImplied);
     }
   }
 }
@@ -1448,61 +1413,6 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
 
     ASS(sr->active);
     sr->active = false;
-  }
-}
-
-/**
- * A zero implied split will never change from active to non-active
- * (or the other way round) anymore. We can reduce the bookkeeping 
- * and remove dependencies on the split. 
- * 
- * Currently, we only handle active zero implied splits.
- * 
- */
-void Splitter::processNewZeroImplied(const SplitLevelStack& newZeroImplied)
-{
-  CALL("Splitter::processNewZeroImplied");
-  
-  SplitLevelStack::ConstIterator slit(newZeroImplied);
-  while(slit.hasNext()) {
-    SplitLevel sl = slit.next();
-    SplitRecord* sr = _db[sl];
-    ASS(sr);
-    
-    if (sr->active) {
-      RSTAT_CTR_INC("zero implied active"); // forever active from now on
-      
-      SplitSet* myLevelSet = SplitSet::getSingleton(sl);
-      // we don't need to maintain children anymore ...
-      while(sr->children.isNonEmpty()) {
-        Clause* ccl=sr->children.popWithoutDec();
-        ASS(ccl->splits()->member(sl));
-        ccl->setSplits(ccl->splits()->subtract(myLevelSet),true);
-        if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) { //NumActiveSplits being maintained
-          ccl->decNumActiveSplits();
-        }        
-        ccl->decRefCnt(); //decrease corresponding to sr->children.popWithoutDec()
-      }
-
-      // ... nor the reduction records
-      while(sr->reduced.isNonEmpty()) {
-        ReductionRecord rrec=sr->reduced.pop();
-        Clause* rcl=rrec.clause;
-        rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in Splitter::SplitRecord::addReduced
-      }
-      // TODO: release also sr->component ?                
-    } else {
-      RSTAT_CTR_INC("zero implied !active"); // forever !active from now on
-      
-      ASS(sr->children.isEmpty() || _deleteDeactivated != Options::SplittingDeleteDeactivated::ON);
-      while(sr->children.isNonEmpty()) {
-        Clause* ccl=sr->children.popWithoutDec();
-        ccl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
-        ccl->decRefCnt(); //decrease corresponding to sr->children.popWithoutDec()
-      }
-      
-      ASS(sr->reduced.isEmpty());
-    }
   }
 }
 

@@ -1758,6 +1758,7 @@ public:
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   vstring xmlOutput() const { return _xmlOutput.actualValue; }
+  bool szsOutput() const { return _szsOutput.actualValue; }
   vstring thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
@@ -1851,7 +1852,6 @@ public:
   SplittingMinimizeModel splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
   SplittingLiteralPolarityAdvice splittingLiteralPolarityAdvice() const { return _splittingLiteralPolarityAdvice.actualValue; }
   SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated.actualValue;}
-  bool splittingHandleZeroImplied() const { return _splittingHandleZeroImplied.actualValue;}
   bool splittingFastRestart() const { return _splittingFastRestart.actualValue; }
   bool splittingBufferedSolver() const { return _splittingBufferedSolver.actualValue; }
   int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
@@ -2183,7 +2183,6 @@ private:
   ChoiceOptionValue<SplittingMinimizeModel> _splittingMinimizeModel;
   ChoiceOptionValue<SplittingLiteralPolarityAdvice> _splittingLiteralPolarityAdvice;
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
-  BoolOptionValue _splittingHandleZeroImplied;
   BoolOptionValue _splittingFastRestart;
   BoolOptionValue _splittingBufferedSolver;
 
@@ -2198,6 +2197,7 @@ private:
   BoolOptionValue _tabulationInstantiateProducingRules;
   RatioOptionValue _tabulationLemmaAgeWeightRatio;
   StringOptionValue _testId;
+  BoolOptionValue _szsOutput;
   StringOptionValue _thanks;
   BoolOptionValue _theoryAxioms;
   BoolOptionValue _theoryFlattening;

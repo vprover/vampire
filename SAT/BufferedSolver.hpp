@@ -32,6 +32,9 @@ public:
   BufferedSolver(SATSolver* inner);
 
   virtual SATClause* getRefutation() { return _inner->getRefutation(); }
+  virtual SATClauseList* getRefutationPremiseList() override {
+    return _inner->getRefutationPremiseList();
+  }
   virtual void randomizeForNextAssignment(unsigned maxVar) override {
     _inner->randomizeForNextAssignment(maxVar);
 

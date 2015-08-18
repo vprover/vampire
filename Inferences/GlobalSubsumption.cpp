@@ -72,7 +72,7 @@ void GlobalSubsumption::detach()
  * 
  * If reduced, initialize prems with reduction premises (including cl). 
  */
-Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
+Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
 {
   CALL("GlobalSubsumption::perform/1");
 
@@ -151,7 +151,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
 
   // create SAT clause and add to solver
   SATClause* scl = SATClause::fromStack(plits);
-  SATInference* inf = new FOConversionInference(UnitSpec(cl));
+  SATInference* inf = new FOConversionInference(cl);
   scl->setInference(inf);
   solver.addClause(scl);
 
@@ -194,7 +194,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
         SATClause* ref = solver.getRefutation();
 
         prems.reset();
-        prems.push(UnitSpec(cl));
+        prems.push(cl);
                 
         SATInference::collectFilteredFOPremises(ref, prems,
           // Some solvers may return "all the clauses added so far" in the refutation.
@@ -223,15 +223,19 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
           } );
         
         UnitList* premList = 0;
-        Stack<UnitSpec>::Iterator it(prems); 
+        Stack<Unit*>::Iterator it(prems);
         while (it.hasNext()) {
-          UnitSpec us = it.next();
-          UnitList::push(us.unit(), premList);
+          Unit* us = it.next();
+          UnitList::push(us, premList);
         }
         
-        Inference* inf = new InferenceMany(Inference::GLOBAL_SUBSUMPTION, premList);
+        SATClauseList* satPremises = solver.getRefutationPremiseList();
+
+        Inference* inf = satPremises ? // does our SAT solver support postponed minimization?
+             new InferenceFromSatRefutation(Inference::GLOBAL_SUBSUMPTION, premList, satPremises, failedFinal) :
+             new InferenceMany(Inference::GLOBAL_SUBSUMPTION, premList);
+
         Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),cl->inputType(), inf);
-           
         replacement->setAge(cl->age());
         
         // Splitter will set replacement's splitSet, so we don't have to do it here
@@ -250,11 +254,11 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<UnitSpec>& prems)
 /**
  * Functor that extracts a clause from UnitSpec.
  */
-struct GlobalSubsumption::UnitSpec2ClFn
+struct GlobalSubsumption::Unit2ClFn
 {
   DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator() (const UnitSpec& us) {
-    return us.cl();
+  OWN_RETURN_TYPE operator() (Unit* us) {
+    return us->asClause();
   }
 };
 
@@ -262,17 +266,17 @@ void GlobalSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simp
 {
   CALL("GlobalSubsumption::perform/2");
 
-  static Stack<UnitSpec> prems;  
+  static Stack<Unit*> prems;
   
   Clause* newCl = perform(cl,prems);
   if(newCl==cl) {
     return;
   }
     
-  Stack<UnitSpec>::BottomFirstIterator it(prems);
+  Stack<Unit*>::BottomFirstIterator it(prems);
               
   ALWAYS(simplPerformer->willPerform(0));
-  simplPerformer->perform(pvi( getMappingIterator(it, UnitSpec2ClFn()) ), newCl);
+  simplPerformer->perform(pvi( getMappingIterator(it, Unit2ClFn()) ), newCl);
   ALWAYS(!simplPerformer->clauseKept());
 }
 

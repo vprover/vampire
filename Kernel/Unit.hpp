@@ -66,6 +66,8 @@ public:
   bool isClause() const
   { return _kind == CLAUSE; }
 
+  Clause* asClause();
+
   /** return the input type of the unit */
   InputType inputType() const
   { return (InputType)_inputType; }
