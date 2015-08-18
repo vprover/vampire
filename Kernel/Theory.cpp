@@ -91,6 +91,9 @@ IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& nu
   if (num._val==0) {
     throw ArithmeticException();
   }
+  if(_val == INT_MIN && num._val == -1){
+    throw ArithmeticException();
+  }
   return IntegerConstantType(_val/num._val);
 }
 
@@ -1801,7 +1804,10 @@ switch(f){
         // we have a problem of the form b.c=a
         // to invert it to c = a/b we need to check that a/b is safe
         if(b.toInt()==0) return false;
-        if(a.toInt() % b.toInt() == 0){
+        int apos = a.toInt() < 0 ? -a.toInt() : a.toInt();
+        int bpos = b.toInt() < 0 ? -b.toInt() : b.toInt(); 
+	//cout << "a:"<<a.toInt() << " b: " << b.toInt() << endl;
+        if(apos % bpos == 0){
           inverted_f = INT_DIVIDE; break;
         }
       }
