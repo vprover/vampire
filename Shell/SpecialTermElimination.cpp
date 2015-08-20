@@ -465,7 +465,7 @@ FormulaList* SpecialTermElimination::process(FormulaList* fs)
 {
   CALL ("Rectify::rectify (FormulaList*)");
 
-  if (fs->isEmpty()) {
+  if (FormulaList::isEmpty(fs)) {
     return fs;
   }
   Formula* f = fs->head();

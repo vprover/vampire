@@ -84,7 +84,7 @@ bool SubformulaIterator::hasNext ()
   while (_reserve) {
     if (_reserve->_isList) {
       FormulaList* first = _reserve->_list;
-      if (first->isEmpty()) {
+      if (FormulaList::isEmpty(first)) {
 	Element* rest = _reserve->_rest;
 	delete _reserve;
 	_reserve = rest;

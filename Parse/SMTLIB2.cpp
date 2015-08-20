@@ -136,11 +136,11 @@ bool SMTLIB2::tryLispReading(LExpr* list)
   else if (ibRdr.tryAcceptAtom("declare-fun")) {
     LExprList* list(0);
     LExpr* first = ibRdr.next();
-    list = list->addLast(first);
+    list = LExprList::addLast(list,first);
     while (ibRdr.hasNext()){
       LExpr* next = ibRdr.next();
       if(!isEmpty(next)){
-	list = list->addLast(next);
+        list = LExprList::addLast(list,next);
       }
     }
     readFunction(list);

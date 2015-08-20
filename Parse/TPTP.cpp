@@ -2805,7 +2805,7 @@ void TPTP::endFof()
     }
     else {
       Formula::VarList* vs = f->freeVariables();
-      if (vs->isEmpty()) {
+      if (Formula::VarList::isEmpty(vs)) {
 	f = new NegatedFormula(f);
       }
       else {
@@ -2829,7 +2829,7 @@ void TPTP::endFof()
       a = env.sharing->insert(a);
       Formula* claim = new AtomicFormula(a);
       Formula::VarList* vs = f->freeVariables();
-      if (!vs->isEmpty()) {
+      if (Formula::VarList::isNonEmpty(vs)) {
 	f = new QuantifiedFormula(FORALL,vs,f);
       }
       f = new BinaryFormula(IFF,claim,f);
@@ -3711,7 +3711,7 @@ unsigned TPTP::sortOf(TermList& t)
   for (;;) {
     if (t.isVar()) {
       SortList* sorts;
-      if (_variableSorts.find(t.var(),sorts) && sorts->isNonEmpty()) {
+      if (_variableSorts.find(t.var(),sorts) && SortList::isNonEmpty(sorts)) {
 	return sorts->head();
       }
       // there might be variables whose sort is undeclared,

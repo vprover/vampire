@@ -60,7 +60,7 @@ bool GeneralSplitting::apply(UnitList*& units)
       UnitList::push(cl, splitRes);
     }
   }
-  ASS_EQ(modified, splitRes->isNonEmpty());
+  ASS_EQ(modified, UnitList::isNonEmpty(splitRes));
   units=UnitList::concat(splitRes, units);
   return modified;
 }
@@ -90,7 +90,7 @@ bool GeneralSplitting::apply(ClauseList*& clauses)
       UnitList::push(cl, splitRes);
     }
   }
-  ASS_EQ(modified, splitRes->isNonEmpty());
+  ASS_EQ(modified, UnitList::isNonEmpty(splitRes));
   ClauseList* splitResC = 0;
   ClauseList::pushFromIterator(getStaticCastIterator<Clause*>(UnitList::Iterator(splitRes)),splitResC);
   clauses=ClauseList::concat(splitResC, clauses);

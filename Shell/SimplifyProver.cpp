@@ -438,7 +438,7 @@ void SimplifyProver::parseFormula()
  retry:
   if (expr->tag == LispParser::LIST) {
     List* lst = expr->list;
-    if (lst->isEmpty()) { // expression like (f)
+    if (List::isEmpty(lst)) { // expression like (f)
       expr = lst->head();
     }
     else {
@@ -763,7 +763,7 @@ void SimplifyProver::parseAtom(const Expression* expr,Context context)
 
   Lib::List<Formula*>* binding = 0;
   _formulaLet.find(symb,binding);
-  if (! binding->isEmpty()) {
+  if (Lib::List<Formula*>::isNonEmpty(binding)) {
     processFormula(binding->head(),context);
     return;
   }
@@ -1188,12 +1188,12 @@ void SimplifyProver::bgPush(const List* list)
   Stack<const Expression*> out;
   while (! in.isEmpty()) {
     list = in.pop();
-    if (list->isEmpty()) continue;
+    if (List::isEmpty(list)) continue;
     in.push(list->tail());
     const Expression* ex = list->head();
     if (ex->tag == LispParser::LIST) {
       list = ex->list;
-      if (list->isEmpty()) {
+      if (List::isEmpty(list)) {
 	formulaError(ex);
       }
       const Expression* hd = list->head();
@@ -1248,7 +1248,7 @@ void SimplifyProver::defPred(const List* list,const Expression* listExpr)
   }
   else {
     List* args = lhs->list;
-    if (args->isEmpty()) {
+    if (List::isEmpty(args)) {
       error("incorrect DEFPRED definition: " + listExpr->toString());
     }
     vars = args->tail();
@@ -1429,7 +1429,7 @@ void SimplifyProver::doLet()
   CALL("SimplifyProver::doLet");
 
   const List* lst = (const List*)_saved.pop();
-  if (lst->isEmpty()) {
+  if (List::isEmpty(lst)) {
     _saved.pop();
     return;
   }
@@ -1476,7 +1476,7 @@ void SimplifyProver::doLet()
 void SimplifyProver::undoLet()
 {
   CALL("SimplifyProver::undoLet");
-  for (const List* lst = (const List*)_saved.pop();! lst->isEmpty(); lst=lst->tail()) {
+  for (const List* lst = (const List*)_saved.pop();List::isNonEmpty(lst); lst=lst->tail()) {
     const List* bind = lst->head()->list;
     vstring symb = bind->tail()->head()->str;
     switch (keyword(bind->head()->str)) {
@@ -1564,7 +1564,7 @@ void SimplifyProver::processFormula(Formula* f,Context context)
   case CN_TOP_LEVEL:
     if (_isaved.pop()) { // goal
       Formula::VarList* vs = f->freeVariables();
-      if (vs->isEmpty()) {
+      if (Formula::VarList::isEmpty(vs)) {
 	f = new NegatedFormula(f);
       }
       else {

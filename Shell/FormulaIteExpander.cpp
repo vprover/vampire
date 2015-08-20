@@ -212,7 +212,7 @@ FormulaList* FormulaIteExpander::apply(FormulaList* fs)
 {
   CALL("FormulaIteExpander::apply(FormulaList*)");
 
-  if (fs->isEmpty()) {
+  if (FormulaList::isEmpty(fs)) {
     return fs;
   }
   Formula* head = apply(fs->head());

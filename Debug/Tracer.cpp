@@ -157,7 +157,7 @@ void Tracer::outputLastControlPoint (ostream& str)
 void Tracer::printOnlyStack (ostream& str)
 {
   int depth = 0;
-  _current->printStack (str, depth);
+  printStackRec (_current, str, depth);
 } // Tracer::printStack (ostream& str)
 
 
@@ -173,7 +173,7 @@ void Tracer::printStack (ostream& str)
   str << "Control points passed: " << _passedControlPoints << "\n"
       << "last control point:\n";
   outputLastControlPoint(str);
-  _current->printStack (str, depth);
+  printStackRec (_current, str, depth);
 } // Tracer::printStack (ostream& str)
 
 
@@ -182,14 +182,14 @@ void Tracer::printStack (ostream& str)
  * for indentation.
  * @since 24/10/2002 Manchester
  */
-void Tracer::printStack (ostream& str, int& depth)
+void Tracer::printStackRec(Tracer* current, ostream& str, int& depth)
 {
-  if (! this) { // beginning of the stack
+  if (!current) { // beginning of the stack
     return;
   }
-  _previous->printStack(str,depth);
+  printStackRec(current->_previous,str,depth);
   spaces(str,depth);
-  str << _fun << "\n";
+  str << current->_fun << "\n";
   depth ++;
 } // Tracer::printStack (ostream& str, int& depth)
 

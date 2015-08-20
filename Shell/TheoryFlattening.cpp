@@ -58,7 +58,7 @@ bool TheoryFlattening::apply(UnitList*& units)
     }
   }
 
-  ASS_EQ(modified, res->isNonEmpty());
+  ASS_EQ(modified, UnitList::isNonEmpty(res));
   units=UnitList::concat(res, units);
   return modified;
 }
@@ -84,7 +84,7 @@ bool TheoryFlattening::apply(ClauseList*& clauses)
       ClauseList::push(cln, res);
     }
   }
-  ASS_EQ(modified, res->isNonEmpty());
+  ASS_EQ(modified, ClauseList::isNonEmpty(res));
   clauses=ClauseList::concat(res, clauses);
   return modified;
 }

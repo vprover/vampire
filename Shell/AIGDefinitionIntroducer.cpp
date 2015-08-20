@@ -363,7 +363,7 @@ FormulaUnit* AIGDefinitionIntroducer::createNameUnit(AIGRef rhs, AIGRef atomName
   if(vars) {
     equiv = new QuantifiedFormula(FORALL, vars, equiv);
   }
-  ASS_REP(equiv->freeVariables()->isEmpty(), *equiv);
+  ASS_REP(Formula::VarList::isEmpty(equiv->freeVariables()), *equiv);
   FormulaUnit* def = new FormulaUnit(equiv, new Inference(Inference::PREDICATE_DEFINITION), Unit::AXIOM);
   InferenceStore::instance()->recordIntroducedSymbol(def,false,nameLit->functor());
   _newDefs.push(def);
@@ -483,7 +483,7 @@ bool AIGDefinitionIntroducer::apply(FormulaUnit* unit, Unit*& res)
     return true;
   }
 
-  ASS_REP2(f->freeVariables()->isEmpty(), *f, *unit);
+  ASS_REP2(Formula::VarList::isEmpty(f->freeVariables()), *f, *unit);
 
   Inference* inf = getInferenceFromPremIndexes(unit, premIndexes);
   res = new FormulaUnit(f, inf, unit->inputType());

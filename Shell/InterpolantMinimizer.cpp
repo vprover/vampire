@@ -117,7 +117,7 @@ void InterpolantMinimizer::prettyPrint(Formula* formula, ostream& out)
         else
             out << "(or ";
                 
-        for(fs = formula->args(); fs->isNonEmpty (); fs = fs->tail()) {
+        for(fs = formula->args(); FormulaList::isNonEmpty(fs); fs = fs->tail()) {
             prettyPrint(fs->head(), out);
             out << " ";
         }

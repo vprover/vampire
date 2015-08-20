@@ -135,7 +135,7 @@ bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
 
   }
 
-  ASS(occurences[0]->isEmpty());
+  ASS(SATClauseList::isEmpty(occurences[0]));
   for(unsigned i=1;i<=varCnt;i++) {
     occurences[i]->destroy();
   }

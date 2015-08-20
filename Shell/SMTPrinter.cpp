@@ -90,7 +90,7 @@ void SMTPrinter::smtPrint(Formula* formula, ostream& out)
       out << "(or ";
     }
                 
-    for (fs = formula->args(); fs->isNonEmpty (); fs = fs->tail()) {
+    for (fs = formula->args(); FormulaList::isNonEmpty(fs); fs = fs->tail()) {
       smtPrint(fs->head(), out);
       out << " ";
     }

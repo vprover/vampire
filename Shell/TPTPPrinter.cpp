@@ -352,7 +352,7 @@ vstring TPTPPrinter::toString(const Formula* f)
       const FormulaList* fs = f->args();
       vstring result = "(" + toString(fs->head());
       fs = fs->tail();
-      while (! fs->isEmpty()) {
+      while (FormulaList::isNonEmpty(fs)) {
 	result += con + toString(fs->head());
 	fs = fs->tail();
       }
@@ -376,7 +376,7 @@ vstring TPTPPrinter::toString(const Formula* f)
       result += 'X';
       result += Int::toString(vars->head());
       vars = vars->tail();
-      while (! vars->isEmpty()) {
+      while (Formula::VarList::isNonEmpty(vars)) {
 	result += ',';
 	result += 'X';
 	result += Int::toString(vars->head());

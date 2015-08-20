@@ -51,7 +51,7 @@ class Tracer {
   const char* _fun;
   Tracer* _previous;
 
-  void printStack (ostream&, int& depth);
+  static void printStackRec (Tracer* current, ostream&, int& depth);
   static void spaces(ostream& str,int number);
 
   /** current trace point */

@@ -171,7 +171,7 @@ void Analyze::preprocessStatement(Statement* statement)
 	  break;
 	}
 	else {
-	  statements = statements->addLast(s);
+	  statements = List<Statement* >::addLast(statements,s);
 	}
       }
 
