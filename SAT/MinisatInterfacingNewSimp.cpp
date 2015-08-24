@@ -108,21 +108,21 @@ void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conf
   // TODO: consider calling simplify(); or only from time to time?
    
   try{
+    int bef = _solver.nVars();
+    cout << "Before: vars " << bef << ", non-unit clauses " << _solver.nClauses() << endl;
 
-  //cout << "Before "<<_solver.nVars() << endl; 
-  _solver.eliminate(true);
-  //cout << "Elimated "<<_solver.eliminated_vars << endl;
-  _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty
-  lbool res = _solver.solveLimited(_assumptions);
+    _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty
+    lbool res = _solver.solveLimited(_assumptions,true,true);
+
+    cout << "After: vars " << bef - _solver.eliminated_vars << ", non-unit clauses " << _solver.nClauses() << endl;
   
-  if (res == l_True) {
-    _status = SATISFIABLE;
-  } else if (res == l_False) {
-    _status = UNSATISFIABLE;    
-  } else {
-    _status = UNKNOWN;
-  }
-
+    if (res == l_True) {
+      _status = SATISFIABLE;
+    } else if (res == l_False) {
+      _status = UNSATISFIABLE;
+    } else {
+      _status = UNKNOWN;
+    }
   }catch(Minisat::OutOfMemoryException&){
     reportMinisatOutOfMemory();
   }
