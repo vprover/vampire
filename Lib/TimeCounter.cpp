@@ -376,6 +376,12 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_HCVI_RETRIEVE:
       out << "hvci retrieve";
       break;
+  case TC_MINISAT_ELIMINATE_VAR:
+    out << "minisat eliminate var";
+    break;
+  case TC_MINISAT_BWD_SUBSUMPTION_CHECK:
+      out << "minisat bwd subsumption check";
+      break;
   default:
     ASSERTION_VIOLATION;
   }
