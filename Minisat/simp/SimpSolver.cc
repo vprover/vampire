@@ -263,12 +263,12 @@ bool SimpSolver::strengthenClause(CRef cr, Lit l)
         // repair occurs to point to the new one
         const Clause& new_c = ca[new_cr];
         for (int i = 0; i < new_c.size(); i++){
-          remove(occurs[var(new_c[i])], cr);
+          occurs.smudge(var(new_c[i])); // lazy delete
           occurs[var(new_c[i])].push(new_cr);
         }
 
         // the deleted literal
-        remove(occurs[var(l)], cr);
+        occurs.smudge(var(l)); // lazy delete
         n_occ[l]--;
         updateElimHeap(var(l));
     }
@@ -443,7 +443,9 @@ bool SimpSolver::backwardSubsumptionCheck(bool verbose)
         vec<CRef>& _cs = occurs.lookup(best);
         CRef*       cs = (CRef*)_cs;
 
-        for (int j = 0; j < _cs.size(); j++)
+        int _cs_size = _cs.size(); // strengthened clauses will be added again, we don't want to see them twice
+
+        for (int j = 0; j < _cs_size; j++)
             if (c.mark())
                 break;
             else if (!ca[cs[j]].mark() &&  cs[j] != cr && (subsumption_lim == -1 || ca[cs[j]].size() < subsumption_lim)){
@@ -457,9 +459,7 @@ bool SimpSolver::backwardSubsumptionCheck(bool verbose)
                     if (!strengthenClause(cs[j], ~l))
                         return false;
 
-                    // Did current candidate get deleted from cs? Then check candidate at index j again:
-                    if (var(l) == best)
-                        j--;
+                    cs = (CRef*)_cs; // there could have been a reallocation in _cs
                 }
             }
     }
