@@ -237,9 +237,37 @@ bool SimpSolver::strengthenClause(CRef cr, Lit l)
         removeClause(cr);
         c.strengthen(l);
     }else{
-        detachClause(cr, true);
+        detachClause(cr); // can detach lazyly -- c will officially die - see below
+
+        // as in Solver::removeClause
+        if (locked(c)) vardata[var(c[0])].reason = CRef_Undef;
+
+        // as usual
         c.strengthen(l);
-        attachClause(cr);
+
+        // now the ugliest surgery ever
+        // shift the clause up by one in memory!
+        // we know there is a free slot after the strengthening
+        c.crawlUp(1);
+
+        // set: size = 0, no extra, mark(1) = dead
+        c.zombify();
+
+        // dies as a clause of size 0 -> frees one memory slot (just the header)
+        ca.free(cr);
+
+        CRef new_cr = cr+1; // here we are again after crawling
+
+        attachClause(new_cr); // re-attach the new clause to watches
+
+        // repair occurs to point to the new one
+        const Clause& new_c = ca[new_cr];
+        for (int i = 0; i < new_c.size(); i++){
+          remove(occurs[var(new_c[i])], cr);
+          occurs[var(new_c[i])].push(new_cr);
+        }
+
+        // the deleted literal
         remove(occurs[var(l)], cr);
         n_occ[l]--;
         updateElimHeap(var(l));
