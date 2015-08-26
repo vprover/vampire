@@ -303,7 +303,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
   ALWAYS(_iSymbols.insert(interpretation, predNum));
   if (predNum!=0) {
     BaseType* predType = Theory::getOperationType(interpretation);
-    ASS(!predType->isFunctionType());
+    ASS_REP(!predType->isFunctionType(), predType->toString());
     sym->setType(predType);
   }
   return predNum;
@@ -479,6 +479,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   if(theory->isStructuredSortInterpretation(interp)){
     switch(theory->convertToStructured(interp)){
       case Theory::StructuredSortInterpretation::ARRAY_SELECT:
+      case Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT:
         name="$select";
         break;
       case Theory::StructuredSortInterpretation::ARRAY_STORE:

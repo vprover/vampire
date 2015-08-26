@@ -1390,6 +1390,7 @@ void TPTP::endIte()
  * @author Laura Kovacs
  * @since 3/09/2012 Vienna
  * @since 16/1/2015 Timisoara, Giles changed to endSelect when introduced StructuredSort
+ * @since 25/08/2015 Gothenburg, Evgeny changed to support $array($o)
  */
 void TPTP::endSelect()
 {
@@ -1405,12 +1406,28 @@ void TPTP::endSelect()
       USER_ERROR("select is being incorrectly used on a type of array that has not be defined");
     }
 
-    Interpretation select = Theory::instance()->getInterpretation(array_sort,
-                              Theory::StructuredSortInterpretation::ARRAY_SELECT);
+    // Things get a bit awkward with $select + FOOL, because $select can be either a predicate and
+    // a function symbol, depending on the inner sort of the array.
+    // The current solution is the following -- we always treat application of $select as a a term
+    // (a formula wrapped inside boolean term, if needed). If later on we discover that we should've
+    // taken it as a formula, we simply pull the formula out of the boolean term. This is done in
+    // endTermAsFormula().
+    if (env.sorts->getArraySort(array_sort)->getInnerSort() == Sorts::SRT_FOOL_BOOL) {
+        Theory::StructuredSortInterpretation ssi = Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT;
+        Interpretation select = Theory::instance()->getInterpretation(array_sort, ssi);
 
-    unsigned func = env.signature->getInterpretingSymbol(select);
-    TermList ts(Term::create2(func, array, index));
-    _termLists.push(ts);
+        unsigned pred = env.signature->getInterpretingSymbol(select);
+        Literal *l = Literal::create2(pred, true, array, index);
+        _formulas.push(new AtomicFormula(l));
+        _states.push(END_FORMULA_INSIDE_TERM);
+    } else {
+        Theory::StructuredSortInterpretation ssi = Theory::StructuredSortInterpretation::ARRAY_SELECT;
+        Interpretation select = Theory::instance()->getInterpretation(array_sort, ssi);
+
+        unsigned func = env.signature->getInterpretingSymbol(select);
+        TermList ts(Term::create2(func, array, index));
+        _termLists.push(ts);
+    }
 } // endSelect
 
 /**
@@ -2070,6 +2087,7 @@ void TPTP::formulaInfix()
   }
 
   if (name == toString(T_SELECT)) {
+    _states.push(END_TERM_AS_FORMULA);
     _states.push(END_SELECT);
     return;
   }
@@ -2466,7 +2484,11 @@ void TPTP::endTermAsFormula()
     vstring sortName = env.sorts->sortName(sortOf(t));
     USER_ERROR("Non-boolean term " + t.toString() + " of sort " + sortName + " is used in a formula context");
   }
-  _formulas.push(new BoolTermFormula(t));
+  if (t.isTerm() && t.term()->isFormula()) {
+    _formulas.push(t.term()->getSpecialData()->getFormula());
+  } else {
+    _formulas.push(new BoolTermFormula(t));
+  }
 } // endTermAsFormula
 
 /**
@@ -2971,6 +2993,9 @@ unsigned TPTP::readSort()
     resetToks();
     consumeToken(T_LPAR);
     unsigned innerSort = readSort();
+    if (innerSort == Sorts::SRT_BOOL) {
+      innerSort = Sorts::SRT_FOOL_BOOL;
+    }
     consumeToken(T_RPAR);
     return env.sorts->addArraySort(innerSort);
   }

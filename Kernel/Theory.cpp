@@ -499,9 +499,13 @@ unsigned Theory::getArity(Interpretation i)
 
   if(theory->isStructuredSortInterpretation(i)){
     switch(theory->convertToStructured(i)){
-      case StructuredSortInterpretation::ARRAY_SELECT: return 2;
-      case StructuredSortInterpretation::ARRAY_STORE: return 3;
-      default: ASSERTION_VIOLATION;
+      case StructuredSortInterpretation::ARRAY_SELECT:
+      case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+        return 2;
+      case StructuredSortInterpretation::ARRAY_STORE:
+        return 3;
+      default:
+        ASSERTION_VIOLATION;
     }
   }
 
@@ -965,7 +969,8 @@ unsigned Theory::getArrayOperationSort(Interpretation i)
     switch(theory->convertToStructured(i))
     {
       case StructuredSortInterpretation::ARRAY_SELECT:
-        return env.sorts->getArraySort(sort)->getInnerSort(); 
+      case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+        return env.sorts->getArraySort(sort)->getInnerSort();
       case StructuredSortInterpretation::ARRAY_STORE:
         return sort; 
       default:
@@ -1006,8 +1011,11 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
     return _arraySkolemFunctions.get(sort);
   }
 
-  Interpretation store = getInterpretation(sort,StructuredSortInterpretation::ARRAY_STORE);
-  Interpretation select = getInterpretation(sort,StructuredSortInterpretation::ARRAY_SELECT);
+  bool isBool = (env.sorts->getArraySort(sort)->getInnerSort() == Sorts::SRT_FOOL_BOOL);
+
+  Interpretation store = getInterpretation(sort, StructuredSortInterpretation::ARRAY_STORE);
+  Interpretation select = getInterpretation(sort, isBool ? StructuredSortInterpretation::ARRAY_BOOL_SELECT
+                                                         : StructuredSortInterpretation::ARRAY_SELECT);
 
   unsigned arraySort = getArrayOperationSort(store);
   unsigned indexSort = theory->getArrayDomainSort(select);
@@ -1071,7 +1079,7 @@ FunctionType* Theory::getConversionOperationType(Interpretation i)
  * @author Laura Kovacs
  * @since 31/08/2012, Vienna
 */
-FunctionType* Theory::getArrayOperationType(Interpretation i)
+BaseType* Theory::getArrayOperationType(Interpretation i)
 {
     CALL("Theory::getArrayOperationType");
     ASS(isArrayOperation(i));
@@ -1092,6 +1100,10 @@ FunctionType* Theory::getArrayOperationType(Interpretation i)
           res = BaseType::makeType2(arrSort, indexSort, valueSort);
           break;
 
+        case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+          res = BaseType::makeType2(arrSort, indexSort, Sorts::SRT_BOOL);
+          break;
+
         case StructuredSortInterpretation::ARRAY_STORE:
           res = BaseType::makeType3(arrSort, indexSort,innerSort, valueSort);
           break;
@@ -1099,9 +1111,8 @@ FunctionType* Theory::getArrayOperationType(Interpretation i)
         default:
             ASSERTION_VIOLATION;
     }
-    ASS(res->isFunctionType());
-    return static_cast<FunctionType*>(res);
-    
+
+    return res;
 }
 
 /**

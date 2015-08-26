@@ -321,6 +321,7 @@ public:
   enum class StructuredSortInterpretation
   {
     ARRAY_SELECT,
+    ARRAY_BOOL_SELECT,
     ARRAY_STORE,
     // currently unused
     LIST_HEAD,
@@ -349,7 +350,7 @@ public:
   static unsigned getOperationSort(Interpretation i);
   static bool isConversionOperation(Interpretation i);
     
-  static FunctionType* getArrayOperationType(Interpretation i);
+  static BaseType* getArrayOperationType(Interpretation i);
 
   static bool isArraySort(unsigned sort);
   static bool isArrayOperation(Interpretation i);

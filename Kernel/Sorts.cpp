@@ -116,10 +116,13 @@ unsigned Sorts::addArraySort(const unsigned innerSort)
   _sortNames.insert(name,result);
 
   // Next create and register the STORE and SELECT functions for this sort with Theory
-  
-  Theory::instance()->addStructuredSortInterpretation(result,Theory::StructuredSortInterpretation::ARRAY_STORE);
-  Theory::instance()->addStructuredSortInterpretation(result,Theory::StructuredSortInterpretation::ARRAY_SELECT);
 
+  Theory::instance()->addStructuredSortInterpretation(result,Theory::StructuredSortInterpretation::ARRAY_STORE);
+  if (innerSort == Sorts::SRT_FOOL_BOOL) {
+    Theory::instance()->addStructuredSortInterpretation(result, Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT);
+  } else {
+    Theory::instance()->addStructuredSortInterpretation(result, Theory::StructuredSortInterpretation::ARRAY_SELECT);
+  }
   // TheoryAxioms will automatically get the array sorts via getArraySorts
 
   // We are done
