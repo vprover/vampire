@@ -167,8 +167,9 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c, unsigned eligible)
       return;
     }
   }
-  //the colored literals are not among the eligible ones
-  ASS_L(eligible, c->length());
+
+  ASS(eligible < c->length() || //the colored literals are not among the eligible ones ...
+      c->splits());             // .. unless the color comes from the propositional part
 }
 
 /**

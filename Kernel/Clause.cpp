@@ -426,6 +426,10 @@ vstring Clause::toString() const
     result += vstring(" {") + splits()->toString() + "}";
   }
 
+  if (env.colorUsed) {
+    result += " C" + Int::toString(color()) + " ";
+  }
+
   result += vstring(" (") + Int::toString(_age) + ':' + Int::toString(weight());
   if (numSelected()>0) {
     result += ':' + Int::toString(numSelected());

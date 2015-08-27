@@ -1211,6 +1211,22 @@ void Splitter::onNewClause(Clause* cl)
     assignClauseSplitSet(cl, splits);
   }
 
+  if (env.colorUsed) {
+    SplitSet* splits = cl->splits();
+
+    Color color = cl->color();
+
+    SplitSet::Iterator it(*splits);
+    while(it.hasNext()) {
+      SplitLevel lv=it.next();
+      SplitRecord* sr=_db[lv];
+
+      color = static_cast<Color>(color | sr->component->color());
+    }
+
+    cl->updateColor(color);
+  }
+
   ASS(allSplitLevelsActive(cl->splits()));  
 }
 

@@ -167,6 +167,9 @@ public:
     return static_cast<Color>(_color);
   }
   void computeColor() const;
+  void updateColor(Color c) {
+    _color = c;
+  }
 
   bool isExtensionality() const { return _extensionality; }
   void setExtensionality(bool e) { _extensionality = e; }

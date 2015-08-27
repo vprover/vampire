@@ -5,6 +5,7 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/SharedSet.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
@@ -68,7 +69,7 @@ VirtualIterator<Unit*> Interpolants::getParents(Unit* u)
   return getPersistentIterator(Stack<Unit*>::BottomFirstIterator(parents));
 }
 
-struct ItemState
+struct Interpolants::ItemState
 {
   ItemState() {}
 
@@ -157,8 +158,6 @@ void mergeCopy(UIPairList*& tgt, UIPairList* src)
   }
 }
 
-void generateInterpolant(ItemState& st);
-
 Formula* Interpolants::getInterpolant(Unit* unit)
 {
   CALL("Interpolants::getInterpolant");
@@ -229,6 +228,17 @@ Formula* Interpolants::getInterpolant(Unit* unit)
 #endif
     }
 
+    // keep initializing splitting components
+    if (curr->isClause()) {
+      Clause* cl = curr->asClause();
+
+      if (cl->isComponent()) {
+        SplitSet* splits = cl->splits();
+        ASS_EQ(splits->size(),1);
+        _splittingComponents.insert(splits->sval(),cl);
+      }
+    }
+
     sts.push(st);
 
     for(;;) {
@@ -284,9 +294,9 @@ fin:
 //  return resultInterpolant;
 }
 
-void generateInterpolant(ItemState& st)
+void Interpolants::generateInterpolant(ItemState& st)
 {
-  CALL("generateInterpolant");
+  CALL("Interpolants::generateInterpolant");
 
   Unit* u=st.us();
   Color color=st.usColor();
@@ -296,6 +306,26 @@ void generateInterpolant(ItemState& st)
   Formula* unitFormula=u->getFormula();//st.us().prop());
 
   //cout	<<"\n unitFormula: "<<unitFormula->toString()<<"\n";
+  // add assertions from splitting
+  if (u->isClause()) {
+    Clause* cl = u->asClause();
+
+    if (cl->splits()) {
+      FormulaList* disjuncts = FormulaList::empty();
+      SplitSet::Iterator it(*cl->splits());
+      while(it.hasNext()) {
+        SplitLevel lv=it.next();
+        Clause* ass = _splittingComponents.get(lv);
+        FormulaList::push(new NegatedFormula(Formula::fromClause(ass)),disjuncts);
+      }
+      if (FormulaList::isNonEmpty(disjuncts)) {
+        FormulaList::push(unitFormula,disjuncts);
+
+        unitFormula = JunctionFormula::generalJunction(OR, disjuncts);
+      }
+    }
+  }
+
 
   if(st.parCnt) {
     //interpolants from refutation proof with at least one inference (there are premises, i.e. parents)

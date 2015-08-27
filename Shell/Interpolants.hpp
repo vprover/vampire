@@ -23,10 +23,15 @@ public:
   Interpolants(DHSet<Unit*>* slicedOff=0) : _slicedOff(slicedOff) {}
   Formula* getInterpolant(Unit* refutation);
 private:
+  struct ItemState;
+
+  void generateInterpolant(ItemState& st);
 
   UnitIterator getParents(Unit* u);
 
   DHSet<Unit*>* _slicedOff;
+
+  DHMap<SplitLevel,Clause*> _splittingComponents;
 };
 
 };

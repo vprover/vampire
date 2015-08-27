@@ -352,6 +352,11 @@ protected:
     out << _is->getUnitIdStr(cs) << ". ";
     if (cs->isClause()) {
       Clause* cl=cs->asClause();
+
+      if (env.colorUsed) {
+        out << " C" << cl->color() << " ";
+      }
+
       out << cl->nonPropToString();
       if (cl->splits() && !cl->splits()->isEmpty()) {
         out << " {" << cl->splits()->toString() << "}";
