@@ -57,11 +57,6 @@ SATInference* SATInference::copy(const SATInference* inf)
     return new PropInference(static_cast<const PropInference*>(inf)->getPremises()->copy());
   case FO_CONVERSION:
     return new FOConversionInference(static_cast<const FOConversionInference*>(inf)->getOrigin());
-  case FO_SPLITTING:
-  {
-    const FOSplittingInference* splInf = static_cast<const FOSplittingInference*>(inf);
-    return new FOSplittingInference(splInf->getOrigin(), splInf->getNames()->copy());
-  }
   case ASSUMPTION:
     return new AssumptionInference();
   default:
@@ -87,33 +82,7 @@ FOConversionInference::~FOConversionInference()
   _origin->decRefCnt();
 }
 
-
 /////////////////////////
-// FOSplittingInference
-//
-
-FOSplittingInference::FOSplittingInference(Clause* origin, ClauseList* names) : _origin(origin), _names(names)
-{
-  CALL("FOSplittingInference::FOSplittingInference");
-
-  _origin->incRefCnt();
-  ClauseList::Iterator nit(_names);
-  while (nit.hasNext()) {
-    Clause* n = nit.next();
-    n->incRefCnt();
-  }
-}
-
-FOSplittingInference::~FOSplittingInference()
-{
-  CALL("FOSplittingInference::~FOSplittingInference");
-
-  _origin->decRefCnt();
-  while (_names) {
-    Clause* n = ClauseList::pop(_names);
-    n->decRefCnt();
-  }
-}
 
 void InferenceFromSatRefutation::minimizePremises() {
   CALL("InferenceFromSatRefutation::minimizePremises");

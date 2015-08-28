@@ -751,8 +751,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     satLits.push(getLiteralFromName(compName));
 
     SATClause* nsClause = SATClause::fromStack(satLits);
-    ClauseList* namePremises = new ClauseList(compCl,0);
-    nsClause->setInference(new FOSplittingInference(cl, namePremises));
+    nsClause->setInference(new FOConversionInference(cl));
 
     addSatClauseToSolver(nsClause, false);
 
@@ -856,8 +855,6 @@ bool Splitter::doSplitting(Clause* cl)
   // Add literals for existing constraints 
   collectDependenceLits(cl->splits(), satClauseLits);
 
-  ClauseList* namePremises = 0;
-
   unsigned compCnt = comps.size();
   for(unsigned i=0; i<compCnt; ++i) {
     const LiteralStack& comp = comps[i];
@@ -865,11 +862,10 @@ bool Splitter::doSplitting(Clause* cl)
     SplitLevel compName = tryGetComponentNameOrAddNew(comp, cl, compCl);
     SATLiteral nameLit = getLiteralFromName(compName);
     satClauseLits.push(nameLit);
-    ClauseList::push(compCl, namePremises);
   }
 
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
-  splitClause->setInference(new FOSplittingInference(cl, namePremises));
+  splitClause->setInference(new FOConversionInference(cl));
 
   addSatClauseToSolver(splitClause, false);
 

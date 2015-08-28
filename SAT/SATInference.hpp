@@ -20,7 +20,6 @@ public:
   enum InfType {
     PROP_INF,
     FO_CONVERSION,
-    FO_SPLITTING,
     ASSUMPTION
   };
   virtual ~SATInference() {}
@@ -77,23 +76,6 @@ public:
   Unit* getOrigin() const { return _origin; }
 private:
   Unit* _origin;
-};
-
-class FOSplittingInference : public SATInference
-{
-public:
-  CLASS_NAME(FOSplittingInference);
-  USE_ALLOCATOR(FOSplittingInference);
-
-  FOSplittingInference(Clause* origin, ClauseList* names);
-  ~FOSplittingInference();
-
-  virtual InfType getType() const { return FO_SPLITTING; }
-  Clause* getOrigin() const { return _origin; }
-  ClauseList* getNames() const { return _names; }
-private:
-  Clause* _origin;
-  ClauseList* _names;
 };
 
 class AssumptionInference : public SATInference
@@ -178,16 +160,6 @@ void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, F
     {
       PropInference* pinf = static_cast<PropInference*>(sinf);
       toDo.loadFromIterator(SATClauseList::Iterator(pinf->getPremises()));
-      break;
-    }
-    case SATInference::FO_SPLITTING:
-    {
-      FOSplittingInference* inf = static_cast<FOSplittingInference*>(sinf);
-      acc.push(inf->getOrigin());
-      ClauseList::Iterator cit(inf->getNames());
-      while (cit.hasNext()) {
-        acc.push(cit.next());
-      }
       break;
     }
     default:
