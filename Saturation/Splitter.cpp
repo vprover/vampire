@@ -164,14 +164,146 @@ void SplittingBranchSelector::handleSatRefutation()
   SATClause* satRefutation = _solver->getRefutation();
   SATClauseList* satPremises = _solver->getRefutationPremiseList();
 
-  UnitList* prems = SATInference::getFOPremises(satRefutation);
+  if (!env.colorUsed) { // color oblivious, simple approach
+    UnitList* prems = SATInference::getFOPremises(satRefutation);
+    Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
+        new InferenceFromSatRefutation(Inference::SAT_SPLITTING_REFUTATION, prems, satPremises) :
+        new InferenceMany(Inference::SAT_SPLITTING_REFUTATION, prems);
 
-  Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
-      new InferenceFromSatRefutation(Inference::SAT_SPLITTING_REFUTATION, prems, satPremises) :
-      new InferenceMany(Inference::SAT_SPLITTING_REFUTATION, prems);
+    Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
+    throw MainLoop::RefutationFoundException(foRef);
+  } else { // we must produce a well colored proof
 
-  Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
-  throw MainLoop::RefutationFoundException(foRef);
+    // collect actually used SAT premises
+    SATClauseStack actualSatPremises;
+
+    if (satPremises) { // does our SAT solver support postponed minimization?
+      SATLiteralStack dummy;
+      SATClauseList* minimizedSatPremises = MinisatInterfacing::minimizePremiseList(satPremises,dummy);
+
+      actualSatPremises.loadFromIterator(SATClauseList::DestructiveIterator(minimizedSatPremises));
+    } else {
+      SATInference::collectPropAxioms(satRefutation,actualSatPremises);
+    }
+
+    // decide which side is "bigger" and should go "first"
+    int colorCnts[3] = {0,0,0};
+    SATClauseStack::Iterator it1(actualSatPremises);
+    while (it1.hasNext()) {
+      SATClause* scl = it1.next();
+      // cout << "SAT: " << scl->toString() << endl;
+
+      SATInference* inf = scl->inference();
+
+      ASS_EQ(inf->getType(),SATInference::FO_CONVERSION);
+      Unit* u =  static_cast<FOConversionInference*>(inf)->getOrigin();
+
+      ASS(u->isClause());
+      Clause* cl = u->asClause();
+      // cout << "FOF: " << cl->toString() << endl;
+
+      ASS_L(cl->color(),COLOR_INVALID);
+      colorCnts[cl->color()]++;
+    }
+
+    //cout << colorCnts[0] << " " << colorCnts[1] <<  " " << colorCnts[2] << endl;
+    Color sndCol = COLOR_RIGHT;
+    if (colorCnts[COLOR_LEFT] < colorCnts[COLOR_RIGHT]) {
+      sndCol = COLOR_LEFT;
+    }
+
+    // split into first and second
+    SATClauseStack first;
+    UnitList* first_prems = UnitList::empty();
+    SATClauseStack second;
+    UnitList* second_prems = UnitList::empty();
+
+    SATClauseStack::Iterator it2(actualSatPremises);
+    while (it2.hasNext()) {
+      SATClause* scl = it2.next();
+      SATInference* inf = scl->inference();
+      ASS_EQ(inf->getType(),SATInference::FO_CONVERSION);
+      Unit* u =  static_cast<FOConversionInference*>(inf)->getOrigin();
+      ASS(u->isClause());
+      Clause* cl = u->asClause();
+      if (cl->color() == sndCol) {
+        second.push(scl);
+        UnitList::push(cl,second_prems);
+      } else {
+        first.push(scl); // contains first col ones and transparent ones together
+        UnitList::push(cl,first_prems);
+      }
+    }
+
+    if (colorCnts[sndCol] == 0) { // this is a degenerate case, in which we don't need to interpolate at all
+      Inference* foInf = new InferenceMany(Inference::SAT_SPLITTING_REFUTATION, first_prems);
+      Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
+      throw MainLoop::RefutationFoundException(foRef);
+    }
+
+    SATClauseStack result;
+    MinisatInterfacing::interpolateViaAssumptions(_parent.maxSatVar(),first,second,result);
+
+    // turn result into Formula wrapping its CNF structure
+    Formula* interpolant;
+    {
+      FormulaList* conjuncts = FormulaList::empty();
+      unsigned conj_cnt = 0;
+
+      SATClauseStack::Iterator it(result);
+      while(it.hasNext()) {
+        SATClause* cl = it.next();
+        FormulaList* disjuncts = FormulaList::empty();
+
+        for (int i = 0; i < cl->size(); i++) {
+          SATLiteral lit = (*cl)[i];
+
+          // get the first order clause
+          bool negated = false;
+          SplitLevel lvl = _parent.getNameFromLiteralUnsafe(lit);
+          if (_parent._db[lvl] == 0) {
+            negated = true;
+            lvl = _parent.getNameFromLiteralUnsafe(lit.opposite());
+            ASS_NEQ(_parent._db[lvl],0);
+          }
+          Formula* litFla = Formula::fromClause(_parent._db[lvl]->component);
+          if (negated) {
+            litFla = new NegatedFormula(litFla);
+          }
+          FormulaList::push(litFla,disjuncts);
+        }
+        Formula* clFla;
+        if (cl->size() == 1) {
+          clFla = disjuncts->head();
+          disjuncts->destroy();
+        } else {
+          clFla = JunctionFormula::generalJunction(OR, disjuncts);
+        }
+        FormulaList::push(clFla,conjuncts);
+        conj_cnt++;
+      }
+
+      if (conj_cnt == 1) {
+        interpolant = conjuncts->head();
+        conjuncts->destroy();
+      } else {
+        interpolant = JunctionFormula::generalJunction(AND, conjuncts);
+      }
+    }
+
+    // finish constructing the derivation
+    {
+      Inference* elInf = new InferenceMany(Inference::SAT_COLOR_ELIMINATION, second_prems);
+      FormulaUnit* interpolated = new FormulaUnit(interpolant,elInf,Unit::CONJECTURE /*do we care about input type at all at this point?*/);
+
+      UnitList::push(interpolated,first_prems);
+
+      Inference* finalInf = new InferenceMany(Inference::SAT_COLOR_ELIMINATION,first_prems);
+      Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, finalInf);
+
+      throw MainLoop::RefutationFoundException(foRef);
+    }
+  }
 }
 
 SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCCModel(unsigned var) {

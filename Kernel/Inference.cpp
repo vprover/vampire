@@ -365,6 +365,8 @@ vstring Inference::ruleName(Rule rule)
     return "sat splitting component";
   case SAT_SPLITTING_REFUTATION:
     return "sat splitting refutation";
+  case SAT_COLOR_ELIMINATION:
+    return "sat color elimination";
   case GENERAL_SPLITTING_COMPONENT:
     return "general splitting component introduction";
   case GENERAL_SPLITTING:

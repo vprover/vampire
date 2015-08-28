@@ -64,6 +64,42 @@ SATInference* SATInference::copy(const SATInference* inf)
   }
 }
 
+void SATInference::collectPropAxioms(SATClause* cl, SATClauseStack& res)
+{
+  CALL("SATInference::collectPropAxioms");
+
+  static Stack<SATClause*> toDo;
+  static DHSet<SATClause*> seen;
+  toDo.reset();
+  seen.reset();
+
+  toDo.push(cl);
+  while (toDo.isNonEmpty()) {
+    SATClause* cur = toDo.pop();
+    if (!seen.insert(cur)) {
+      continue;
+    }
+    SATInference* sinf = cur->inference();
+    ASS(sinf);
+    switch(sinf->getType()) {
+    case SATInference::FO_CONVERSION:
+      res.push(cur);
+      break;
+    case SATInference::ASSUMPTION:
+      break;
+    case SATInference::PROP_INF:
+    {
+      PropInference* pinf = static_cast<PropInference*>(sinf);
+      toDo.loadFromIterator(SATClauseList::Iterator(pinf->getPremises()));
+      break;
+    }
+    default:
+      ASSERTION_VIOLATION;
+    }
+  }
+  makeUnique(res);
+}
+
 ///////////////////////
 // FOConversionInference
 //

@@ -213,6 +213,8 @@ public:
     SAT_SPLITTING_COMPONENT,
     /** refutation of a sat splitting branch */
     SAT_SPLITTING_REFUTATION,
+    /** sat color elimination */
+    SAT_COLOR_ELIMINATION,
     /** result of general splitting */
     GENERAL_SPLITTING,
     /** component introduced by general splitting */

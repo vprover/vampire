@@ -109,6 +109,14 @@ public:
    */
   static SATClauseList* minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps);
 
+  /**
+   * Assuming that @b first together with @b second is inconsistent,
+   * produce (in @b result) a set of clauses over the signature of @b first,
+   * such that @b second |= @b result and
+   * @b first together with @b result is also inconsistent.
+   */
+  static void interpolateViaAssumptions(unsigned maxVar, const SATClauseStack& first, const SATClauseStack& second, SATClauseStack& result);
+
 protected:    
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);
   

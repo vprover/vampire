@@ -29,6 +29,9 @@ public:
   static void collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f);
   
   static void collectFOPremises(SATClause* cl, Stack<Unit*>& acc);
+
+  static void collectPropAxioms(SATClause* cl, SATClauseStack& res);
+
   static UnitList* getFOPremises(SATClause* cl);
   static SATInference* copy(const SATInference* inf);
 };
