@@ -424,20 +424,6 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
   CALL("SaturationAlgorithm::onClauseReduction/4");
   ASS(cl);
 
-  if (env.options->showReductions()) {
-    env.beginOutput();
-    env.out() << "[SA] " << (forward ? "forward" : "") << " reduce: " << cl->toString() << endl;
-    if(replacement){ env.out() << "     replaced by " << replacement->toString() << endl; }
-    static ClauseStack p; p.reset(); p.loadFromIterator(premises);
-    if(!p.isEmpty()){
-      ClauseStack::Iterator it(p);
-      env.out() << "     using ";
-      while(it.hasNext()){ env.out() << it.next()->toString() << "  "; }
-      env.out() << endl;
-    }
-    env.endOutput();
-  }
-
   static ClauseStack premStack;
   premStack.reset();
   premStack.loadFromIterator(premises);
