@@ -631,6 +631,8 @@ void SaturationAlgorithm::init()
     addInputClause(cl);
   }
 
+  cout << "added input" << endl;
+
   if (_splitter) {
     _splitter->init(this);
   }

@@ -882,6 +882,8 @@ bool Splitter::handleNonSplittable(Clause* cl)
     collectDependenceLits(cl->splits(), satLits);
     satLits.push(getLiteralFromName(compName));
 
+    cout << "name " << compName << " for a non-splittable " << cl->toString() << endl;
+
     SATClause* nsClause = SATClause::fromStack(satLits);
     nsClause->setInference(new FOConversionInference(cl));
 
@@ -968,6 +970,8 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
+
+  cout << "do splitting for " << cl->toString() << endl;
 
   if (_fastRestart && _haveBranchRefutation) {
     _fastClauses.push(cl);

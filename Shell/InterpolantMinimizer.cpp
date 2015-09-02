@@ -35,7 +35,7 @@ using namespace Indexing;
 
 /**
  * Return minimized interpolant of @c refutation
- * it traverses the proof and collects gery formulas.
+ * it traverses the proof and collects grey formulas.
  * For each grey formula, it adds digest and fringe properties (with case distinction between leaves and non-leaves).
  * Using these properties, the interpolant is minimized wrt its cost
  */
