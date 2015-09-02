@@ -134,7 +134,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
      for(unsigned i=0;i<stack.size();i++){
        if(varsWithPosEq[v]){
 #if DEBUG_SORT_INFERENCE
-         cout << "recording posEq for " << stack[i] << endl;
+         //cout << "recording posEq for " << stack[i] << endl;
 #endif
          posEqualitiesOnPos[stack[i]]=true;
        }
@@ -161,12 +161,17 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   sig->sortedConstants.ensure(comps);
   sig->sortedFunctions.ensure(comps);
 
+  // We will normalize the resulting sorts as we go
+  // translate maps the components from union find to these new sorts
   DHMap<int,unsigned> translate;
   unsigned seen = 0;
 
+  // True if there is a positive equality on a position with this sort
   ZIArray<bool> posEqualitiesOnSort(comps); 
 
+  // First check all of the predicate positions
   for(unsigned p=0;p<env.signature->predicates();p++){
+    if(p < del_p.size() && del_p[p]) continue;
     unsigned offset = offset_p[p];
     unsigned arity = env.signature->predicateArity(p);
     for(unsigned i=0;i<arity;i++){
@@ -181,14 +186,12 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
         posEqualitiesOnSort[argSort]=true;
       }
     }
-
-
   }
 
+  // Next check function positions for positive equalities
+  // Also recorded the functions/constants for each sort
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(del_f[f]){
-       continue;
-    }
+    if(f < del_f.size() && del_f[f]) continue;
 
     unsigned offset = offset_f[f];
     unsigned arity = env.signature->functionArity(f); 
@@ -211,7 +214,6 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
         translate.insert(argRoot,argSort);
       }
       if(posEqualitiesOnPos[arg_offset]){
-        cout << "rec pos eq on sort for arg " << i << endl;
         posEqualitiesOnSort[argSort]=true;
       }
     }
@@ -231,15 +233,17 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
 
   }
 
+  // Mainly for printing sort information
+  // We also add these dummy constants to sorts without them
   if(env.options->mode()!=Options::Mode::SPIDER){
     cout << "Sort Inference information:" << endl;
   }
-
+  unsigned firstFreshConstant = UINT_MAX;
   for(unsigned s=0;s<comps;s++){
-
     if(sig->sortedConstants[s].size()==0 && sig->sortedFunctions[s].size()>0){
       unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
       sig->sortedConstants[s].push(fresh);
+      if(firstFreshConstant!=UINT_MAX) firstFreshConstant=fresh;
 #if DEBUG_SORT_INFERENCE
       cout << "Adding fresh constant for sort "<<s<<endl;
 #endif
@@ -253,10 +257,12 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   sig->functionBounds.ensure(env.signature->functions());
   sig->predicateBounds.ensure(env.signature->predicates());
 
+  // Indexed by the new sort numbers i.e. the result of translate
   DArray<unsigned> bounds(comps);
 
   // Compute bounds on sorts
   for(unsigned s=0;s<comps;s++){
+    // A sort is bounded if it contains only constants and has no positive equality
     if(sig->sortedFunctions[s].size()==0 && !posEqualitiesOnSort[s]){
       bounds[s]=sig->sortedConstants[s].size();
       // If no constants pretend there is one
@@ -282,6 +288,17 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
 #if DEBUG_SORT_INFERENCE
     cout << env.signature->functionName(f) << " : ";
 #endif
+    // fresh constants are introduced for sorts with no constants
+    // but that have function symbols, therefore these sorts cannot
+    // be bounded 
+    // We need to treat them specially as they are functions that are added
+    // after we do sort inference (so offsets/positions do not apply)
+    if(f >= firstFreshConstant){
+      sig->functionBounds[f].ensure(1);
+      sig->functionBounds[f][0]=UINT_MAX;
+      continue;
+    }
+
     unsigned arity = env.signature->functionArity(f);
     sig->functionBounds[f].ensure(arity+1);
     int root = unionFind.root(offset_f[f]);
@@ -307,7 +324,6 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   cout << "Setting predicate bounds" << endl;
 #endif
 
-  // For predicates we just record bounds
   // Remember to skip 0 as it is =
   for(unsigned p=1;p<env.signature->predicates();p++){
     if(p < del_p.size() && del_p[p]) continue;
@@ -317,11 +333,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
     sig->predicateBounds[p].ensure(arity);
     for(unsigned i=0;i<arity;i++){
       int argRoot = unionFind.root(offset_p[p]+i);
-      unsigned argSort;
-      if(!translate.find(argRoot,argSort)){
-        argSort=seen++;
-        translate.insert(argRoot,argSort);
-      }
+      unsigned argSort = translate.get(argRoot);
       //cout << argRoot << " ";
       sig->predicateBounds[p][i] = bounds[argSort];
     }    
