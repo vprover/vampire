@@ -220,8 +220,9 @@ void SimpSolver::removeClause(CRef cr)
     Solver::removeClause(cr);
 }
 
+static const int LAZYNESS_TRESHOLD = 1000;
 
-bool SimpSolver::strengthenClause(CRef cr, Lit l)
+bool SimpSolver::strengthenClause(CRef cr, Lit l, bool& was_lazy)
 {
   CALL("SimpSolver::strengthenClause");
 
@@ -237,6 +238,22 @@ bool SimpSolver::strengthenClause(CRef cr, Lit l)
         removeClause(cr);
         c.strengthen(l);
     }else{
+      if (watches[~c[0]].size() < LAZYNESS_TRESHOLD &&
+          watches[~c[1]].size() < LAZYNESS_TRESHOLD &&
+          occurs[var(l)].size() < LAZYNESS_TRESHOLD) {
+
+        // everything is reasonably sized - can afford being strict
+        was_lazy = false;
+
+        detachClause(cr, true);
+        c.strengthen(l);
+        attachClause(cr);
+        remove(occurs[var(l)], cr);
+        n_occ[l]--;
+        updateElimHeap(var(l));
+      } else {
+        was_lazy = true;
+
         detachClause(cr); // can detach lazyly -- c will officially die - see below
 
         // as in Solver::removeClause
@@ -271,6 +288,7 @@ bool SimpSolver::strengthenClause(CRef cr, Lit l)
         occurs.smudge(var(l)); // lazy delete
         n_occ[l]--;
         updateElimHeap(var(l));
+      }
     }
 
     return c.size() == 1 ? enqueue(c[0]) && propagate() == CRef_Undef : true;
@@ -456,10 +474,20 @@ bool SimpSolver::backwardSubsumptionCheck(bool verbose)
                 else if (l != lit_Error){
                     deleted_literals++;
 
-                    if (!strengthenClause(cs[j], ~l))
+                    bool was_lazy;
+
+                    if (!strengthenClause(cs[j], ~l,was_lazy))
                         return false;
 
-                    cs = (CRef*)_cs; // there could have been a reallocation in _cs
+                    if (was_lazy) {
+                      cs = (CRef*)_cs; // there could have been a reallocation in _cs
+                    } else {
+                      // Did current candidate get deleted from cs? Then check candidate at index j again:
+                      if (var(l) == best) {
+                        _cs_size--;
+                        j--;
+                      }
+                    }
                 }
             }
     }
@@ -486,9 +514,13 @@ bool SimpSolver::asymm(Var v, CRef cr)
             l = c[i];
 
     if (propagate() != CRef_Undef){
+        bool dummy;
         cancelUntil(0);
         asymm_lits++;
-        if (!strengthenClause(cr, l))
+
+        // TODO: this is probably broken (but currently unused) after the changes in strengthenClause
+
+        if (!strengthenClause(cr, l, dummy))
             return false;
     }else
         cancelUntil(0);

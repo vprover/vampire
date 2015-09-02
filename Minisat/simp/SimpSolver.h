@@ -170,7 +170,7 @@ class SimpSolver : public Solver {
     void          extendModel              ();
 
     void          removeClause             (CRef cr);
-    bool          strengthenClause         (CRef cr, Lit l);
+    bool          strengthenClause         (CRef cr, Lit l, bool& was_lazy);
     bool          implied                  (const vec<Lit>& c);
     void          relocAll                 (ClauseAllocator& to);
 };
