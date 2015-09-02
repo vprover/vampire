@@ -62,16 +62,19 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
 
   if(count==0) count=1;
 
-  DArray<unsigned> posEqualitiesOnFunc(env.signature->functions());
+  ZIArray<unsigned> posEqualitiesOnPos(count);
 
   IntUnionFind unionFind(count);
 
   while(cit.hasNext()){
    Clause* c = cit.next();
   
+#if DEBUG_SORT_INFERENCE
    //cout << "CLAUSE " << c->toString() << endl;
+#endif
 
    Array<Stack<unsigned>> varPositions(c->varCnt());
+   ZIArray<unsigned> varsWithPosEq(c->varCnt());
    IntUnionFind localUF(c->varCnt()+1); // +1 to avoid it being 0.. last pos will not be used
    for(unsigned i=0;i<c->length();i++){
      Literal* l = (*c)[i];
@@ -81,6 +84,8 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
          //cout << "join X" << l->nthArgument(0)->var()<< " and X" << l->nthArgument(1)->var() << endl;
 #endif
          localUF.doUnion(l->nthArgument(0)->var(),l->nthArgument(1)->var());
+         varsWithPosEq[l->nthArgument(0)->var()]=1;
+         varsWithPosEq[l->nthArgument(1)->var()]=1;
        }else{
          ASS(!l->nthArgument(0)->isVar());
          ASS(l->nthArgument(1)->isVar());
@@ -100,7 +105,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
 #endif
          }
          if(l->polarity()){
-           posEqualitiesOnFunc[f]=true;
+           posEqualitiesOnPos[n]=true;
          }
        }
      }
@@ -127,6 +132,12 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
      if(stack.size()<=1) continue;
      // for each pair of stuff in the stack say that they are the same
      for(unsigned i=0;i<stack.size();i++){
+       if(varsWithPosEq[v]){
+#if DEBUG_SORT_INFERENCE
+         cout << "recording posEq for " << stack[i] << endl;
+#endif
+         posEqualitiesOnPos[stack[i]]=true;
+       }
        for(unsigned j=i+1;j<stack.size();j++){
 #if DEBUG_SORT_INFERENCE
          //cout << "doing union " << stack[i] << " and " << stack[j] << endl;
@@ -153,33 +164,67 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   DHMap<int,unsigned> translate;
   unsigned seen = 0;
 
-  DArray<bool> posEqualitiesOnSort(comps); 
+  ZIArray<bool> posEqualitiesOnSort(comps); 
+
+  for(unsigned p=0;p<env.signature->predicates();p++){
+    unsigned offset = offset_p[p];
+    unsigned arity = env.signature->predicateArity(p);
+    for(unsigned i=0;i<arity;i++){
+      unsigned arg_offset = offset+i;
+      int argRoot = unionFind.root(arg_offset);
+      unsigned argSort;
+      if(!translate.find(argRoot,argSort)){
+        argSort=seen++;
+        translate.insert(argRoot,argSort);
+      }
+      if(posEqualitiesOnPos[arg_offset]){
+        posEqualitiesOnSort[argSort]=true;
+      }
+    }
+
+
+  }
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(del_f[f]) continue;
+    if(del_f[f]){
+       continue;
+    }
 
+    unsigned offset = offset_f[f];
     unsigned arity = env.signature->functionArity(f); 
-    int root = unionFind.root(offset_f[f]);
+    int root = unionFind.root(offset);
     unsigned rangeSort;
     if(!translate.find(root,rangeSort)){
       rangeSort=seen++;
       translate.insert(root,rangeSort);
     }
 
-    if(posEqualitiesOnFunc[f]){
+    if(posEqualitiesOnPos[offset]){
       posEqualitiesOnSort[rangeSort]=true;
     }
-
+    for(unsigned i=0;i<arity;i++){
+      unsigned arg_offset = offset+i+1;
+      int argRoot = unionFind.root(arg_offset);
+      unsigned argSort;
+      if(!translate.find(argRoot,argSort)){
+        argSort=seen++;
+        translate.insert(argRoot,argSort);
+      }
+      if(posEqualitiesOnPos[arg_offset]){
+        cout << "rec pos eq on sort for arg " << i << endl;
+        posEqualitiesOnSort[argSort]=true;
+      }
+    }
     if(arity==0){
 #if DEBUG_SORT_INFERENCE
-    cout << "adding " << f << " as constant for " << rangeSort << endl;
+    cout << "adding " << env.signature->functionName(f) << " as constant for " << rangeSort << endl;
     //cout << "it is " << Term::createConstant(f)->toString() << endl;
 #endif
        sig->sortedConstants[rangeSort].push(f);
     }
     else{
 #if DEBUG_SORT_INFERENCE
-      cout << "recording " << f << " as function for " << rangeSort << endl;
+      cout << "recording " << env.signature->functionName(f) << " as function for " << rangeSort << endl;
 #endif
        sig->sortedFunctions[rangeSort].push(f);
     }
@@ -217,7 +262,9 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
       // If no constants pretend there is one
       if(bounds[s]==0){ bounds[s]=1;}
 #if DEBUG_SORT_INFERENCE
-      cout << "Bounding sort " << s << " to " << bounds[s] << endl;
+      cout << "Bounding sort " << s << " to " << bounds[s]; 
+      if(bounds[s]==0){ cout << " (was 0)"; }
+      cout << endl;
 #endif
     }
     else{
@@ -240,16 +287,12 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
     int root = unionFind.root(offset_f[f]);
     unsigned rangeSort = translate.get(root);
 #if DEBUG_SORT_INFERENCE
-    cout << rangeSort << " ";
+    cout << rangeSort << " <= ";
 #endif
     sig->functionBounds[f][0] = bounds[rangeSort];
     for(unsigned i=0;i<arity;i++){
       int argRoot = unionFind.root(offset_f[f]+i+1);
-      unsigned argSort;
-      if(!translate.find(argRoot,argSort)){
-        argSort=seen++;
-        translate.insert(argRoot,argSort);
-      }
+      unsigned argSort = translate.get(argRoot);
 #if DEBUG_SORT_INFERENCE
       cout << argSort << " ";
 #endif

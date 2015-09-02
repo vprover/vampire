@@ -165,8 +165,8 @@ void FiniteModelBuilderNonIncremental::init()
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
-  DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
-  //ClauseIterator cit = _prb.clauseIterator();
+  //DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
+  ClauseIterator cit = _prb.clauseIterator();
   while(cit.hasNext()){
     Clause* c = cit.next();
 #if VTRACE_FMB
@@ -758,7 +758,7 @@ void FiniteModelBuilderNonIncremental::addSATClause(SATClause* cl)
   cl = Preprocess::removeDuplicateLiterals(cl);
   if(!cl){ return; }
 #if VTRACE_FMB
-  cout << "ADDING " << cl->toString() << " of size " << cl->length() << endl;
+  cout << "ADDING " << cl->toString() << endl; // " of size " << cl->length() << endl;
 #endif
 
   _clausesToBeAdded.push(cl);

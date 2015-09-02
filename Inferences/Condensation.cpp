@@ -43,12 +43,16 @@ Clause* Condensation::simplify(Clause* cl)
   }
   unsigned newLen=clen-1;
 
+  // stores newLen new literals
   static DArray<Literal*> newLits(32);
+  //
   static DArray<LiteralList*> alts(32);
-  static OCMatchIterator matcher;
+  //static OCMatchIterator matcher;
 
   LiteralMiniIndex cmi(cl);
 
+  // For each pair of non-equal literals l1 and l2
+  //
   CombinationIterator<unsigned> pairIt(0, clen);
   while(pairIt.hasNext()) {
     pair<unsigned,unsigned> lpair=pairIt.next();
@@ -63,6 +67,9 @@ Clause* Condensation::simplify(Clause* cl)
     newLits.ensure(newLen);
 
     RobSubstitution subst0;
+    // For each unifying subst of l1 and l2
+    // apply the subst to l1 and search for instances of this in the clause
+    // (note that this is symmetric to applying subst to l2)
     SubstIterator sit=subst0.unifiers(l1,0,l2,0,false);
     while(sit.hasNext()) {
       RobSubstitution* subst=sit.next();
@@ -73,16 +80,21 @@ Clause* Condensation::simplify(Clause* cl)
       {
         Literal* lit=subst->apply(l1,0);
         newLits[next] = lit;
+        // Use lit as a query to find instances of it in cmi (i.e. the clause)
         LiteralMiniIndex::InstanceIterator iit(cmi, lit, false);
         if(!iit.hasNext()) {
+          // If there are no instances then finish
           goto match_fin;
         }
+        // Store all instances in alts (alts[next] is a literal list)
         while(iit.hasNext()) {
 	    LiteralList::push(iit.next(), alts[next]);
         }
         next++;
       }
 
+      // For all literals that are not l1 or l2
+      // apply the subst and search for instances of the result as before
       for(unsigned i=0;i<clen;i++) {
         if(i!=l1Index && i!=l2Index) {
           Literal* lit=subst->apply((*cl)[i],0);
@@ -98,7 +110,12 @@ Clause* Condensation::simplify(Clause* cl)
         }
       }
 
+      // I think this is asking if there is a substitution that will match
+      // each lit in newLits with one of its instances in alts
+      // CHECK!
       success=MLMatcher::canBeMatched(newLits.array(), newLen, cl,alts.array(),0,false);
+
+    // We will jump here if we do not find a match, in this case success will be false
     match_fin:
       for(unsigned i=0;i<newLen;i++) {
 	alts[i]->destroy();
