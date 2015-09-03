@@ -274,6 +274,8 @@ vstring Inference::ruleName(Rule rule)
 //  case MINISCOPE:
   case CLAUSIFY:
     return "cnf transformation";
+  case FORMULIFY:
+    return "formulify";
   case REMOVE_DUPLICATE_LITERALS:
     return "duplicate literal removal";
   case SKOLEMIZE:

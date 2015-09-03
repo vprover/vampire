@@ -196,6 +196,8 @@ public:
   unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
 
   SAT2FO& satNaming() { return _sat2fo; }
+
+  UnitList* explicateAssertionsForSaturatedClauseSet(UnitList* clauses);
 private:
   friend class SplittingBranchSelector;
 

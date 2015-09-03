@@ -19,6 +19,8 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/RCClauseStack.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Refutation.hpp"
@@ -1414,6 +1416,65 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     ASS(sr->active);
     sr->active = false;
   }
+}
+
+/**
+ * Given a set of clauses (as obtained by saturation)
+ * turn them into formulas capturing the semantics of splitting assertions.
+ *
+ * Also, make the list duplicate free.
+ */
+UnitList* Splitter::explicateAssertionsForSaturatedClauseSet(UnitList* clauses)
+{
+  CALL("Splitter::explicateAssertionsForSaturatedClauseSet");
+
+  DHMap<Clause*,Formula*> processed;
+
+  UnitList* result = UnitList::empty();
+
+  UnitList::Iterator it(clauses);
+  while (it.hasNext()) {
+    Clause* cl = it.next()->asClause();
+
+    // cout << "cl   in: " << cl->toString() << endl;
+
+    if (processed.find(cl)) { // removing duplicates
+      continue;
+    }
+
+    Formula* f = Formula::fromClause(cl);
+
+    if (cl->splits()) {
+      FormulaList* disjuncts = FormulaList::empty();
+      SplitSet::Iterator it(*cl->splits());
+      while(it.hasNext()) {
+        Clause* ass = getComponentClause(it.next());
+
+        Formula** ass_f_p;
+
+        if (processed.getValuePtr(ass,ass_f_p)) {
+          *ass_f_p = new NegatedFormula(Formula::fromClause(ass));
+        }
+        FormulaList::push(*ass_f_p,disjuncts);
+      }
+      if (FormulaList::isNonEmpty(disjuncts)) {
+        FormulaList::push(f,disjuncts);
+
+        f = JunctionFormula::generalJunction(OR, disjuncts);
+      }
+    }
+
+    // cout << "fla out: " << f->toString() << endl;
+
+    UnitList::push(new FormulaUnit(f,new Inference1(Inference::FORMULIFY,cl),
+        // because units which are conjectures are explicitly negated in TPTPPrinter::toString for some reason:
+        cl->inputType() == Unit::CONJECTURE ? Unit::NEGATED_CONJECTURE : cl->inputType()),
+        result); // would be nice to preserve
+
+    ALWAYS(processed.insert(cl,f));
+  }
+
+  return result;
 }
 
 }

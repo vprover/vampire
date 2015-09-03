@@ -114,6 +114,8 @@ public:
     SKOLEMIZE,
     /** obtain clause from a formula */
     CLAUSIFY,
+    /** obtain a formula from a clause */
+    FORMULIFY,
     /** obtain a clause from a clause by removing duplicate literals */
     REMOVE_DUPLICATE_LITERALS,
 //     /** shell clause transformed to a resolution clause */

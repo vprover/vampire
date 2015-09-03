@@ -435,6 +435,10 @@ vstring TPTPPrinter::toString (const Unit* unit)
     kind = "extensionality";
     break;
 
+  case Unit::NEGATED_CONJECTURE:
+    kind = "negated_conjecture";
+    break;
+
   default:
     kind = "axiom";
     break;

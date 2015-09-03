@@ -1172,6 +1172,10 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     MainLoopResult res(termReason);
     if (termReason == Statistics::SATISFIABLE && getOptions().proof() != Options::Proof::OFF) {
       res.saturatedSet = collectSaturatedSet();
+
+      if (_splitter) {
+        res.saturatedSet = _splitter->explicateAssertionsForSaturatedClauseSet(res.saturatedSet);
+      }
     }
     throw MainLoopFinishedException(res);
   }
