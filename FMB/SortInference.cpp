@@ -84,8 +84,10 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
          //cout << "join X" << l->nthArgument(0)->var()<< " and X" << l->nthArgument(1)->var() << endl;
 #endif
          localUF.doUnion(l->nthArgument(0)->var(),l->nthArgument(1)->var());
-         varsWithPosEq[l->nthArgument(0)->var()]=1;
-         varsWithPosEq[l->nthArgument(1)->var()]=1;
+         if(l->polarity()){
+           varsWithPosEq[l->nthArgument(0)->var()]=1;
+           varsWithPosEq[l->nthArgument(1)->var()]=1;
+         }
        }else{
          ASS(!l->nthArgument(0)->isVar());
          ASS(l->nthArgument(1)->isVar());
