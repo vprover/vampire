@@ -186,7 +186,23 @@ Formula* Interpolants::getInterpolant(Unit* unit)
     }
     else {
       st = ItemState(curr);
+
       st.pars = getParents(curr);
+
+      if (curr->inference()->rule() == Inference::NEGATED_CONJECTURE) {
+        // negating the conjecture is not a sound inference,
+        // we want to consider the proof only from the point where it has been done already
+
+        ASS(st.pars.hasNext()); // negating a conjecture should have exactly one parent
+        Unit* par = st.pars.next();
+
+        // so we steal parent's inherited color
+        curr->setInheritedColor(par->inheritedColor());
+
+        // and pretend there is no parent
+
+        ASS(!st.pars.hasNext()); // negating a conjecture should have exactly one parent
+      }
     }
 
     cout << "curr  " << curr->toString() << endl;
