@@ -346,8 +346,13 @@ vstring TPTPPrinter::toString(const Formula* f)
   Connective c = f->connective();
   vstring con = names[(int)c];
   switch (c) {
-  case LITERAL:
-    return f->literal()->toString();
+  case LITERAL: {
+    vstring result = f->literal()->toString();
+    if (f->literal()->isEquality()) {
+      return "(" + result + ")";
+    }
+    return result;
+  }
   case AND:
   case OR:
     {

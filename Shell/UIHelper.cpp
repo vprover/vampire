@@ -465,6 +465,32 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   out << ")." << endl;
 }
 
+/**
+ * Output to @b out all sort declarations for the current signature.
+ * Built-in sorts and structures sorts will not be output.
+ * @author Evgeny Kotelnikov
+ * @since 04/09/2015 Gothneburg
+ */
+void UIHelper::outputSortDeclarations(ostream& out)
+{
+  CALL("UIHelper::outputSortDeclarations");
+
+  unsigned sorts = (*env.sorts).sorts();
+  for (unsigned sort = Sorts::SRT_FOOL_BOOL; sort < sorts; ++sort) {
+    if ((sort == Sorts::SRT_FOOL_BOOL) && !env.options->showFOOL()) {
+      continue;
+    }
+    if (sort == Sorts::FIRST_USER_SORT) {
+      continue;
+    }
+    if ((*env.sorts).hasStructuredSort(sort, Sorts::StructuredSort::ARRAY) ||
+        (*env.sorts).hasStructuredSort(sort, Sorts::StructuredSort::LIST)) {
+      continue;
+    }
+    out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;
+  }
+} // UIHelper::outputSortDeclarations
+
 #if GNUMP
 /**
  * Add input constraints into the empty @c constraints list.

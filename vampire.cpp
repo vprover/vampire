@@ -443,7 +443,8 @@ void outputProblemToLaTeX(Problem* prb)
   //TODO output more header
   latexOut << "\\[\n\\begin{array}{ll}" << endl;
 
-  //TODO  get symbol declarations into LaTeX
+  //TODO  get symbol and sort declarations into LaTeX
+  //UIHelper::outputSortDeclarations(env.out());
   //UIHelper::outputSymbolDeclarations(env.out());
 
   UnitList::Iterator units(prb->units());
@@ -482,6 +483,7 @@ void preprocessMode()
   prepro.preprocess(*prb);
 
   env.beginOutput();
+  UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
@@ -514,6 +516,7 @@ void outputMode()
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   env.beginOutput();
+  UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
   UnitList::Iterator units(prb->units());
 
@@ -703,6 +706,7 @@ void clausifyMode()
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   env.beginOutput();
+  UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
 
   ClauseIterator cit = prb->clauseIterator();

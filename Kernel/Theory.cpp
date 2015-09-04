@@ -1083,7 +1083,7 @@ BaseType* Theory::getArrayOperationType(Interpretation i)
 {
     CALL("Theory::getArrayOperationType");
     ASS(isArrayOperation(i));
-    
+
     BaseType* res;
 
     // Not sure we need all of these

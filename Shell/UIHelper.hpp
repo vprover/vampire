@@ -40,6 +40,8 @@ public:
   static void outputSymbolDeclarations(ostream& out);
   static void outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, unsigned symNumber);
 
+  static void outputSortDeclarations(ostream& out);
+
   /**
    * True if we are running in the CASC mode
    *

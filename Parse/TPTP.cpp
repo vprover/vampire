@@ -1399,7 +1399,7 @@ void TPTP::endSelect()
     TermList index = _termLists.pop();
     TermList array = _termLists.pop();
     
-    unsigned array_sort = sortOf(array);     
+    unsigned array_sort = sortOf(array);
 
     //Check that array_sort is defined
     if(!env.sorts->hasStructuredSort(array_sort,Sorts::StructuredSort::ARRAY)){
