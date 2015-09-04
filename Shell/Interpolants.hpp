@@ -22,6 +22,8 @@ class Interpolants
 public:
   Interpolants(DHSet<Unit*>* slicedOff=0) : _slicedOff(slicedOff) {}
   Formula* getInterpolant(Unit* refutation);
+
+  static void beatifyRefutation(Unit* refutation);
 private:
   struct ItemState;
 

@@ -158,6 +158,52 @@ void mergeCopy(UIPairList*& tgt, UIPairList* src)
   }
 }
 
+/**
+ * Any pre-processing of the refutation before interpolation is considered.
+ *
+ * Currently, we only
+ * remove the leafs corresponding to the conjecture
+ * and leave the negated_conjecture child of this unit as the leaf instead.
+ * (Inference::NEGATED_CONJECTURE is not sound).
+ */
+void Interpolants::beatifyRefutation(Unit* refutation)
+{
+  CALL("Interpolants::beatifyRefutation");
+
+  Stack<Unit*> todo;
+  DHSet<Unit*> seen;
+
+  todo.push(refutation);
+  while (todo.isNonEmpty()) {
+    Unit* cur = todo.pop();
+    if (!seen.insert(cur)) {
+      continue;
+    }
+
+    if (cur->inference()->rule() == Inference::NEGATED_CONJECTURE) {
+      VirtualIterator<Unit*> pars = InferenceStore::instance()->getParents(cur);
+
+      // negating the conjecture is not a sound inference,
+      // we want to consider the proof only from the point where it has been done already
+
+      ASS(pars.hasNext()); // negating a conjecture should have exactly one parent
+      Unit* par = pars.next();
+
+      // so we steal parent's inherited color
+      cur->setInheritedColor(par->inheritedColor());
+
+      // and pretend there is no parent
+
+      ASS(!pars.hasNext()); // negating a conjecture should have exactly one parent
+
+      cur->inference()->destroy();
+      cur->setInference(new Inference(Inference::NEGATED_CONJECTURE));
+    }
+
+    todo.loadFromIterator(InferenceStore::instance()->getParents(cur));
+  }
+}
+
 Formula* Interpolants::getInterpolant(Unit* unit)
 {
   CALL("Interpolants::getInterpolant");
@@ -188,21 +234,6 @@ Formula* Interpolants::getInterpolant(Unit* unit)
       st = ItemState(curr);
 
       st.pars = getParents(curr);
-
-      if (curr->inference()->rule() == Inference::NEGATED_CONJECTURE) {
-        // negating the conjecture is not a sound inference,
-        // we want to consider the proof only from the point where it has been done already
-
-        ASS(st.pars.hasNext()); // negating a conjecture should have exactly one parent
-        Unit* par = st.pars.next();
-
-        // so we steal parent's inherited color
-        curr->setInheritedColor(par->inheritedColor());
-
-        // and pretend there is no parent
-
-        ASS(!st.pars.hasNext()); // negating a conjecture should have exactly one parent
-      }
     }
 
     cout << "curr  " << curr->toString() << endl;

@@ -84,6 +84,8 @@ public:
   Inference* inference() { return _inference; }
   /** Return the inference of this unit */
   const Inference* inference() const { return _inference; }
+  /** Set a new inference object (the old one not destroyed). */
+  void setInference(Inference* inf) { _inference = inf; }
   /** the input unit number this clause is generated from, -1 if none */
   int adam() const {return _adam;}
 

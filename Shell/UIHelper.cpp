@@ -273,16 +273,14 @@ void UIHelper::outputResult(ostream& out)
     }
     if (env.options->showInterpolant()==Options::InterpolantMode::ON) {
       ASS(env.statistics->refutation->isClause());
+      Interpolants::beatifyRefutation(env.statistics->refutation);
+
       Formula* interpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       out << "Interpolant: " << interpolant->toString() << endl;
     }
     if (env.options->showInterpolant()==Options::InterpolantMode::MINIMIZED) {
       ASS(env.statistics->refutation->isClause());
-//      {
-//	Formula* oldInterpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-//      }
-//      Formula* interpolant=InterpolantMinimizer().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-//      out << "Interpolant: " << interpolant->toString() << endl;
+      Interpolants::beatifyRefutation(env.statistics->refutation);
 
       Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
