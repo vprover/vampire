@@ -200,6 +200,10 @@ void Options::Options::init()
     "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
     _lookup.insert(&_proof);
 
+    _proofOrder = ChoiceOptionValue<ProofOrder>("proof_order","po",ProofOrder::DEPTH_FIRST,{"depth_first","creation_order","reverse_creation_order"});
+    _proofOrder.description = "Order in which inference steps of proof are printed";
+    _lookup.insert(&_proofOrder);
+
     _proofChecking = BoolOptionValue("proof_checking","",false);
     _proofChecking.description="";
     _lookup.insert(&_proofChecking);

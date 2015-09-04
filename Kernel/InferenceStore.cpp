@@ -12,6 +12,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/ScopedPtr.hpp"
+#include "Lib/Sort.hpp"
 
 #include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
@@ -269,6 +270,21 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
   return getQuantifiedStr(vars, res, t_map);
 }
 
+struct UnitNumberComparator
+{
+  static Comparison compare(Unit* u1, Unit* u2)
+  {
+    return Int::compare(u1->number(), u2->number());
+  }
+};
+struct ReverseUnitNumberComparator
+{
+  static Comparison compare(Unit* u1, Unit* u2)
+  {
+    return Int::compare(u2->number(), u1->number());
+  }
+};
+
 struct InferenceStore::ProofPrinter
 {
   CLASS_NAME(InferenceStore::ProofPrinter);
@@ -280,6 +296,7 @@ struct InferenceStore::ProofPrinter
     CALL("InferenceStore::ProofPrinter::ProofPrinter");
 
     outputAxiomNames=env.options->outputAxiomNames();
+    delayPrinting=env.options->proofOrder()!=Options::ProofOrder::DEPTH_FIRST;
   }
 
   void scheduleForPrinting(Unit* us)
@@ -300,6 +317,7 @@ struct InferenceStore::ProofPrinter
       Unit* cs=outKernel.pop();
       handleStep(cs);
     }
+    if(delayPrinting) printDelayed();
   }
 
 protected:
@@ -320,6 +338,7 @@ protected:
   virtual void printStep(Unit* cs)
   {
     CALL("InferenceStore::ProofPrinter::printStep");
+
     Inference::Rule rule;
     UnitIterator parents=_is->getParents(cs, rule);
 
@@ -379,19 +398,45 @@ protected:
     }
 
     if (!hideProofStep(rule)) {
-      printStep(cs);
+      if(delayPrinting) delayed.push(cs);
+      else printStep(cs);
     }
+  }
+
+  void printDelayed()
+  {
+    CALL("InferenceStore::ProofPrinter::printDelayed");
+
+    // Sort
+    switch(env.options->proofOrder()){
+      case Options::ProofOrder::CREATION_ORDER : 
+        sort<UnitNumberComparator>(delayed.begin(),delayed.end());
+        break;
+      case Options::ProofOrder::REVERSE_CREATION_ORDER :
+        sort<ReverseUnitNumberComparator>(delayed.begin(),delayed.end());
+        break;
+      default:
+        ASSERTION_VIOLATION;
+    }
+
+    // Print
+    for(unsigned i=0;i<delayed.size();i++){
+      printStep(delayed[i]);
+    }
+
   }
 
 
 
   Stack<Unit*> outKernel;
   Set<Unit*> handledKernel; // use UnitSpec to provide its own hash and equals
+  Stack<Unit*> delayed;
 
   InferenceStore* _is;
   ostream& out;
 
   bool outputAxiomNames;
+  bool delayPrinting;
 };
 
 struct InferenceStore::TPTPProofPrinter
