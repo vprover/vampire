@@ -379,15 +379,19 @@ vstring TPTPPrinter::toString(const Formula* f)
   case EXISTS:
     {
       vstring result = vstring("(") + con + "[";
+      bool needsComma = false;
       const Formula::VarList* vars = f->vars();
-      result += 'X';
-      result += Int::toString(vars->head());
-      vars = vars->tail();
-      while (! vars->isEmpty()) {
-	result += ',';
-	result += 'X';
-	result += Int::toString(vars->head());
-	vars = vars->tail();
+      for (unsigned var = (unsigned)vars->head(); !vars->isEmpty(); vars = vars->tail()) {
+        if (needsComma) {
+          result += ", ";
+        }
+        result += 'X';
+        result += Int::toString(vars->head());
+        unsigned t;
+        if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f), t) && t != Sorts::SRT_DEFAULT) {
+          result += ": " + env.sorts->sortName(t);
+        }
+        needsComma = true;
       }
       return result + "] : (" + toString(f->qarg()) + ") )";
     }
