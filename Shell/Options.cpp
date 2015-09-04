@@ -2702,6 +2702,10 @@ bool Options::complete(const Problem& prb) const
 {
   CALL("Options::complete");
 
+  if (_showInterpolant.actualValue != InterpolantMode::OFF) {
+    return false;
+  }
+
   //we did some transformation that made us lose completeness
   //(e.g. equality proxy replacing equality for reflexive predicate)
   if (prb.hadIncompleteTransformation()) {
