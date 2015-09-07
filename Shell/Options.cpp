@@ -138,13 +138,13 @@ void Options::Options::init()
     _forbiddenOptions.description=
     "If some of the specified options are set to a forbidden state, vampire will fail to start, or in the CASC mode it will skip such strategies. The expected syntax is <opt1>=<val1>:<opt2>:<val2>:...:<optn>=<valN>";
     _lookup.insert(&_forbiddenOptions);
-    _forbiddenOptions.tag(OptionTag::HELP);
+    _forbiddenOptions.tag(OptionTag::INPUT);
 
     _forcedOptions = StringOptionValue("forced_options","","");
     _forcedOptions.description=
     "Options in the format <opt1>=<val1>:<opt2>=<val2>:...:<optn>=<valN> that override the option values set by other means (also inside CASC mode strategies)";
     _lookup.insert(&_forcedOptions);
-    _forcedOptions.tag(OptionTag::HELP);
+    _forcedOptions.tag(OptionTag::INPUT);
 
     _showHelp = BoolOptionValue("help","h",false);
     _showHelp.description="Display this help";
@@ -214,7 +214,7 @@ void Options::Options::init()
     _lookup.insert(&_protectedPrefix);
     _protectedPrefix.tag(OptionTag::PREPROCESSING);
 
-    _statistics = ChoiceOptionValue<Statistics>("statistics","",Statistics::FULL,{"brief","full","none"});
+    _statistics = ChoiceOptionValue<Statistics>("statistics","stat",Statistics::FULL,{"brief","full","none"});
     _statistics.description="The level of statistics to report at the end of the run.";
     _lookup.insert(&_statistics);
 
