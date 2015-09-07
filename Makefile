@@ -311,14 +311,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/Splitter.o\
          Saturation/SymElOutput.o
 
-VS_OBJ = Shell/AIG.o\
-         Shell/AIGCompressor.o\
-         Shell/AIGConditionalRewriter.o\
-         Shell/AIGDefinitionIntroducer.o\
-         Shell/AIGInferenceEngine.o\
-         Shell/AIGInliner.o\
-         Shell/AIGRewriter.o\
-         Shell/AnswerExtractor.o\
+VS_OBJ = Shell/AnswerExtractor.o\
          Shell/AxiomGenerator.o\
          Shell/BFNT.o\
          Shell/BFNTMainLoop.o\
@@ -327,20 +320,15 @@ VS_OBJ = Shell/AIG.o\
          Shell/CParser.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
-         Shell/EPRInlining.o\
-         Shell/EPRSkolem.o\
          Shell/EqResWithDeletion.o\
          Shell/EqualityAxiomatizer.o\
-         Shell/EqualityPropagator.o\
          Shell/EqualityProxy.o\
-         Shell/EquivalenceDiscoverer.o\
          Shell/Flattening.o\
          Shell/FormulaIteExpander.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
          Shell/GlobalOptions.o\
          Shell/Grounding.o\
-         Shell/HornRevealer.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
@@ -353,13 +341,10 @@ VS_OBJ = Shell/AIG.o\
          Shell/NNF.o\
          Shell/Normalisation.o\
          Shell/Options.o\
-         Shell/PDInliner.o\
-         Shell/PDMerger.o\
          Shell/PDUtils.o\
          Shell/PredicateDefinition.o\
          Shell/PredicateIndexIntroducer.o\
          Shell/Preprocess.o\
-         Shell/ProofSimplifier.o\
          Shell/Property.o\
          Shell/Rectify.o\
          Shell/Refutation.o\

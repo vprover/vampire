@@ -277,11 +277,6 @@ void Options::Options::init()
     _smtlibFletAsDefinition.setExperimental();
     _smtlibFletAsDefinition.tag(OptionTag::INPUT);
 
-    _smtlibIntroduceAIGNames = BoolOptionValue("smtlib_introduce_aig_names","",true);
-    _smtlibIntroduceAIGNames.description="";
-    _lookup.insert(&_smtlibIntroduceAIGNames);
-    _smtlibIntroduceAIGNames.setExperimental();
-    _smtlibIntroduceAIGNames.tag(OptionTag::INPUT);
 
 //*********************** Preprocessing  ***********************
 
@@ -338,91 +333,11 @@ void Options::Options::init()
     _equalityResolutionWithDeletion.setRandomChoices({"input_only","off"});
 
 
-    //TODO add random choices for _aig options so that they can be tested
-
-    _aigBddSweeping = BoolOptionValue("aig_bdd_sweeping","",false);
-    _aigBddSweeping.description="For a description of these aig options see the paper 'Preprocessing Techniques for First-Order Clausification'. ";
-    _lookup.insert(&_aigBddSweeping);
-    _aigBddSweeping.tag(OptionTag::PREPROCESSING);
-    _aigBddSweeping.setExperimental();
-
-    _aigConditionalRewriting = BoolOptionValue("aig_conditional_rewriting","",false);
-    _aigConditionalRewriting.description="";
-    _lookup.insert(&_aigConditionalRewriting);
-    _aigConditionalRewriting.tag(OptionTag::PREPROCESSING);
-    _aigConditionalRewriting.setExperimental();
-
-    _aigDefinitionIntroduction = BoolOptionValue("aig_definition_introduction","",false);
-    _aigDefinitionIntroduction.description="";
-    _lookup.insert(&_aigDefinitionIntroduction);
-    _aigDefinitionIntroduction.tag(OptionTag::PREPROCESSING);
-    _aigDefinitionIntroduction.setExperimental();
-
-    _aigDefinitionIntroductionThreshold = UnsignedOptionValue("aig_definition_introduction_threshold","",4);
-    _aigDefinitionIntroductionThreshold.description=
-               "number of subformula occurrences needed to introduce a name for it (if aig_definition_introduction is enabled)";
-    _lookup.insert(&_aigDefinitionIntroductionThreshold);
-    _aigDefinitionIntroductionThreshold.tag(OptionTag::PREPROCESSING);
-    _aigDefinitionIntroductionThreshold.addConstraint(notEqual(0u));
-    _aigDefinitionIntroductionThreshold.setExperimental();
-
-    _aigFormulaSharing = BoolOptionValue("aig_formula_sharing","",false);
-    _aigFormulaSharing.description="Detection and sharing of common subformulas using AIG representation";
-    _lookup.insert(&_aigFormulaSharing);
-    _aigFormulaSharing.tag(OptionTag::PREPROCESSING);
-    _aigFormulaSharing.setExperimental();
-
-    _aigInliner = BoolOptionValue("aig_inliner","",false);
-    _aigInliner.description="";
-    _lookup.insert(&_aigInliner);
-    _aigInliner.tag(OptionTag::PREPROCESSING);
-    _aigInliner.setExperimental();
-
     _arityCheck = BoolOptionValue("arity_check","",false);
-    _arityCheck.description="Enforce the condition that the same symbol name cannot be used with multiple arities. This also ensures a symbol is not used as a function and predicate.";
+    _arityCheck.description="Enforce the condition that the same symbol name cannot be used with multiple arities."
+       "This also ensures a symbol is not used as a function and predicate.";
     _lookup.insert(&_arityCheck);
     _arityCheck.tag(OptionTag::DEVELOPMENT);
-    
-    _eprPreservingNaming = BoolOptionValue("epr_preserving_naming","",false);
-    _eprPreservingNaming.description=
-    "Naming will not cause introduction of any non-constant functions."
-    "The nonconstant functions can be introduced by naming in a name definition when a universal quantifier turns into an existential one and is skolemized.";
-    _lookup.insert(&_eprPreservingNaming);
-    _eprPreservingNaming.tag(OptionTag::PREPROCESSING);
-    _eprPreservingNaming.setExperimental();
-
-    _eprPreservingSkolemization= BoolOptionValue("epr_preserving_skolemization","",false);
-    _eprPreservingSkolemization.description="";
-    _lookup.insert(&_eprPreservingSkolemization);
-    _eprPreservingSkolemization.tag(OptionTag::PREPROCESSING);
-    _eprPreservingSkolemization.setExperimental();
-
-    _eprRestoringInlining= BoolOptionValue("epr_restoring_inlining","",false);
-    _eprRestoringInlining.description="";
-    _lookup.insert(&_eprRestoringInlining);
-    _eprRestoringInlining.tag(OptionTag::PREPROCESSING);
-    _eprRestoringInlining.setExperimental();
-
-    _equalityPropagation = BoolOptionValue("equality_propagation","",false);
-    _equalityPropagation.description=
-    "propagate equalities in formulas, for example\n"
-    "X=Y => X=f(Y) ---> X=f(X)\n"
-    "Such propagation can simplify formulas early in the preprocessing and so help other "
-    "preprocessing rules (namely dealing with predicate definitions).";
-    _lookup.insert(&_equalityPropagation);
-    _equalityPropagation.tag(OptionTag::PREPROCESSING);
-    _equalityPropagation.addProblemConstraint(notWithCat(Property::FEQ));
-    _equalityPropagation.setRandomChoices({"on","off"});
-    _equalityPropagation.setExperimental();
-    
-    // Get rid of because of AVATAR? Andrei suggests
-    _flattenTopLevelConjunctions = BoolOptionValue("flatten_top_level_conjunctions","",false);
-    _flattenTopLevelConjunctions.description=
-    "split formulas with top-level (up to universal quantification) conjunctions into several formulas";
-    _lookup.insert(&_flattenTopLevelConjunctions);
-    _flattenTopLevelConjunctions.tag(OptionTag::PREPROCESSING);
-    _flattenTopLevelConjunctions.setRandomChoices({"off","off","off","on"}); // Added random choices biased to default
-    _flattenTopLevelConjunctions.setExperimental();
     
     _functionDefinitionElimination = ChoiceOptionValue<FunctionDefinitionElimination>("function_definition_elimination","fde",
                                                                                       FunctionDefinitionElimination::ALL,{"all","none","unused"});
@@ -444,95 +359,12 @@ void Options::Options::init()
     _generalSplitting.addProblemConstraint(hasNonUnits());
     _generalSplitting.setRandomChoices({"off","input_only"});
 
-    _hornRevealing= BoolOptionValue("horn_revealing","",false);
-    _hornRevealing.description=
-    "Preprocessing rule that tries to discover whether polarities of predicates can be changed, so that problem becomes horn. If successful, marks all clauses with a positive literal as axioms, and those with only negatives as conjectures.";
-    _lookup.insert(&_hornRevealing);
-    _hornRevealing.tag(OptionTag::PREPROCESSING);
-    _hornRevealing.setExperimental();
-    
-    _predicateDefinitionInlining = ChoiceOptionValue<InliningMode>("predicate_definition_inlining","",InliningMode::OFF,
-                                                                   {"axioms_only","non_growing","off","on"});
-    _predicateDefinitionInlining.description=
-    "Determines whether predicate definitions should be inlined. Non_growing rules out inlinings that would lead to increase in the size of the problem";
-    _lookup.insert(&_predicateDefinitionInlining);
-    _predicateDefinitionInlining.tag(OptionTag::PREPROCESSING);
-    _predicateDefinitionInlining.setExperimental();
-    
-    _predicateDefinitionMerging = BoolOptionValue("predicate_definition_merging","",false);
-    _predicateDefinitionMerging.description=
-    "Determines whether predicates with equivalent definitions will be merged into one. Look for pairs of definitions such as\n"
-    "p(X) <=> F[X]\n"
-    "q(X) <=> F[X]\n"
-    "replace the latter by\n"
-    "q(X) <=> p(X)\n"
-    "and use it to eliminate the predicate q(X).";
-    _lookup.insert(&_predicateDefinitionMerging);
-    _predicateDefinitionMerging.tag(OptionTag::PREPROCESSING);
-    // Unsound??
-    _predicateDefinitionMerging.setExperimental();
-    
-    _predicateEquivalenceDiscovery = ChoiceOptionValue<PredicateEquivalenceDiscoveryMode>("predicate_equivalence_discovery","",
-                                                                                          PredicateEquivalenceDiscoveryMode::OFF,
-                                                                                          {"all_atoms","all_formulas","definitions","off","on"});
-    _predicateEquivalenceDiscovery.description=
-    "If enabled, SAT solver will be used to discover predicate equivalences during preprocessing. "
-    "if all_atoms, equivalences between all atoms will be searched for. "
-    "if definitions, we'll look only for equivalences in the shape of predicate definitions (this lies somewhere between on and all_atoms). "
-    "if all_formulas, equivalences between all formulas are searched for";
-    _lookup.insert(&_predicateEquivalenceDiscovery);
-    _predicateEquivalenceDiscovery.tag(OptionTag::PREPROCESSING);
-    _predicateEquivalenceDiscovery.setExperimental();
-
-    _predicateEquivalenceDiscoveryAddImplications = BoolOptionValue("predicate_equivalence_discovery_add_implications","",false);
-    _predicateEquivalenceDiscoveryAddImplications.description=
-    "if predicate_equivalence_discovery is enabled, add also discoveder implications, not only equivalences";
-    _lookup.insert(&_predicateEquivalenceDiscoveryAddImplications);
-    _predicateEquivalenceDiscoveryAddImplications.tag(OptionTag::PREPROCESSING);
-    _predicateEquivalenceDiscoveryAddImplications.setExperimental();
-
-    _predicateEquivalenceDiscoveryRandomSimulation = BoolOptionValue("predicate_equivalence_discovery_random_simulation","",true);
-    _predicateEquivalenceDiscoveryRandomSimulation.description=
-    "use random simulation before the simultaneous sat-sweeping to reduce the amount of candidate equivalences";
-    _lookup.insert(&_predicateEquivalenceDiscoveryRandomSimulation);
-    _predicateEquivalenceDiscoveryRandomSimulation.tag(OptionTag::PREPROCESSING);
-    _predicateEquivalenceDiscoveryRandomSimulation.setExperimental();
-
-    _predicateEquivalenceDiscoverySatConflictLimit = IntOptionValue("predicate_equivalence_discovery_sat_conflict_limit","",-1);
-    _predicateEquivalenceDiscoverySatConflictLimit.description=
-    "Limit on the number of SAT conflicts in each equivalence check. Default is -1 which stands for unlimited, 0 will restrict equivalence discovery to unit propagation. The implicative sat sweeping has an internal conflict count limit which always starts with zero and is increased geometrically until it reaches the limit set by this value";
-    _lookup.insert(&_predicateEquivalenceDiscoverySatConflictLimit);
-    _predicateEquivalenceDiscoverySatConflictLimit.tag(OptionTag::PREPROCESSING);
-    _predicateEquivalenceDiscoverySatConflictLimit.setExperimental();
-
-    _predicateIndexIntroduction = BoolOptionValue("predicate_index_introduction","",false);
-    _predicateIndexIntroduction.description=
-    "If all atoms of a certain predicate contain distinct constants as a particular argument, atoms of the predicate"
-    " are replaces by set of fresh predicates, one for each of the distinct constants.\n"
-    "E.g. a problem\n"
-    "p(a,b,X,1)\n"
-    "p(a,c,a,2)\n"
-    "will be transformed into\n"
-    "p_a_1(b,X)\n"
-    "p_a_2(c,a)\n"
-    "(second argument is not removed because constants b and c are not necessarily distinct, and third argment is not replaced because it occurs as a variable)";
-    _lookup.insert(&_predicateIndexIntroduction);
-    _predicateIndexIntroduction.tag(OptionTag::PREPROCESSING);
-    _predicateIndexIntroduction.setExperimental();
-
     _unusedPredicateDefinitionRemoval = BoolOptionValue("unused_predicate_definition_removal","updr",true);
     _unusedPredicateDefinitionRemoval.description="Attempt to remove predicate definitions. A predicate definition is a formula of the form ![X1,..,Xn] : (p(X1,..,XN) <=> F) where p is not equality and does not occur in F and X1,..,XN are the free variables of F. If p has only positive (negative) occurences then <=> in the definition can be replaced by => (<=). If p does not occur in the rest of the problem the definition can be removed.";
     _lookup.insert(&_unusedPredicateDefinitionRemoval);
     _unusedPredicateDefinitionRemoval.tag(OptionTag::PREPROCESSING);
     _unusedPredicateDefinitionRemoval.addProblemConstraint(notWithCat(Property::UEQ));
     _unusedPredicateDefinitionRemoval.setRandomChoices({"on","off"});
-
-    // No longer used
-    _trivialPredicateRemoval = BoolOptionValue("trivial_predicate_removal","",false);
-    _trivialPredicateRemoval.description= "remove predicates never occurring only positively or only negatively in a clause";
-    //_lookup.insert(&_trivialPredicateRemoval);
-    _trivialPredicateRemoval.tag(OptionTag::PREPROCESSING);
-    
 
     _theoryAxioms = BoolOptionValue("theory_axioms","tha",true);
     _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
@@ -1042,12 +874,6 @@ void Options::Options::init()
     // Captures that this is only non-default when saturationAlgorithm is instgen
     _instGenBigRestartRatio.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     _instGenBigRestartRatio.setRandomChoices({"0.0","0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","1.0"});
-
-    _instGenInprocessing = BoolOptionValue("inst_gen_inprocessing","igi",false);
-    _instGenInprocessing.description="Perform inprocessing. This performs certain preprocessing steps on generated clauses.";
-    _lookup.insert(&_instGenInprocessing);
-    _instGenInprocessing.tag(OptionTag::INST_GEN);
-    _instGenInprocessing.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
 
     _instGenPassiveReactivation = BoolOptionValue("inst_gen_passive_reactivation","igpr",false);
     _instGenPassiveReactivation.description="When the model describing the selection function changes some active clauses may become lazily deselected. If passive reaction is selected these clauses are added into the passive set before recomputing the next model, otherwise they are added back to active.";

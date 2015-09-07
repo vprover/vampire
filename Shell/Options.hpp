@@ -379,13 +379,6 @@ public:
     OFF = 2
   };
 
-  enum class InliningMode : unsigned int {
-    AXIOMS_ONLY = 0,
-    NON_GROWING = 1,
-    OFF = 2,
-    ON = 3
-  };
-
   enum class InterpolantMode : unsigned int {
     MINIMIZED = 0,
     OFF = 1,
@@ -555,13 +548,6 @@ public:
     THEORY = 3
   };
 
-  enum class PredicateEquivalenceDiscoveryMode : unsigned int{
-    ALL_ATOMS = 0,
-    ALL_FORMULAS = 1,
-    DEFINITIONS = 2,
-    OFF = 3,
-    ON = 4
-  };
 
     
     //==========================================================
@@ -1637,29 +1623,6 @@ public:
   bool fmbStartWithConstants() const { return _fmbStartWithConstants.actualValue; }
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
-  bool eprPreservingNaming() const { return _eprPreservingNaming.actualValue; }
-  //void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
-  bool eprPreservingSkolemization() const { return _eprPreservingSkolemization.actualValue; }
-  //void setEprPreservingSkolemization(bool newVal) { _eprPreservingSkolemization = newVal; }
-  bool eprRestoringInlining() const { return _eprRestoringInlining.actualValue; }
-  //void setEprRestoringInlining(bool newVal) { _eprRestoringInlining = newVal; }
-  InliningMode predicateDefinitionInlining() const { return _predicateDefinitionInlining.actualValue; }
-  //void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining.actualValue = newVal; }
-  bool predicateDefinitionMerging() const { return _predicateDefinitionMerging.actualValue; }
-  //void setPredicateDefinitionMerging(bool newValue) { _predicateDefinitionMerging = newValue; }
-  PredicateEquivalenceDiscoveryMode predicateEquivalenceDiscovery() const { return _predicateEquivalenceDiscovery.actualValue; }
-  void setPredicateEquivalenceDiscovery(PredicateEquivalenceDiscoveryMode newValue) { _predicateEquivalenceDiscovery.actualValue = newValue; }
-  bool predicateEquivalenceDiscoveryAddImplications() const { return _predicateEquivalenceDiscoveryAddImplications.actualValue; }
-  bool predicateEquivalenceDiscoveryRandomSimulation() const { return _predicateEquivalenceDiscoveryRandomSimulation.actualValue; }
-  int predicateEquivalenceDiscoverySatConflictLimit() const { return _predicateEquivalenceDiscoverySatConflictLimit.actualValue; }
-  bool predicateIndexIntroduction() const { return _predicateIndexIntroduction.actualValue; }
-  //void setPredicateIndexIntroduction(bool newValue) { _predicateIndexIntroduction = newValue; }
-  bool aigBddSweeping() const { return _aigBddSweeping.actualValue; }
-  bool aigConditionalRewriting() const { return _aigConditionalRewriting.actualValue; }
-  bool aigDefinitionIntroduction() const { return _aigDefinitionIntroduction.actualValue; }
-  unsigned aigDefinitionIntroductionThreshold() const { return _aigDefinitionIntroductionThreshold.actualValue; }
-  bool aigFormulaSharing() const { return _aigFormulaSharing.actualValue; }
-  bool aigInliner() const { return _aigInliner.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
@@ -1750,8 +1713,6 @@ public:
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
-  bool equalityPropagation() const { return _equalityPropagation.actualValue; }
-  //void setEqualityPropagation(bool newVal) { _equalityPropagation = newVal; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
@@ -1796,11 +1757,8 @@ public:
   bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal.actualValue; }
   //void setSmtlibConsiderIntsReal( bool newVal ) { _smtlibConsiderIntsReal = newVal; }
   bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition.actualValue; }
-  bool smtlibIntroduceAIGNames() const { return _smtlibIntroduceAIGNames.actualValue; }
 
   bool colorUnblocking() const { return _colorUnblocking.actualValue; }
-  bool hornRevealing() const { return _hornRevealing.actualValue; }
-  bool trivialPredicateRemoval() const { return _trivialPredicateRemoval.actualValue; }
 
   bool tabulationBwRuleSubsumptionResolutionByLemmas() const { return _tabulationBwRuleSubsumptionResolutionByLemmas.actualValue; }
   bool tabulationFwRuleSubsumptionResolutionByLemmas() const { return _tabulationFwRuleSubsumptionResolutionByLemmas.actualValue; }
@@ -1816,7 +1774,6 @@ public:
   bool theoryFlattening() const { return _theoryFlattening.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
-  bool instGenInprocessing() const { return _instGenInprocessing.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
   int instGenResolutionRatioInstGen() const { return _instGenResolutionInstGenRatio.actualValue; }
   int instGenResolutionRatioResolution() const { return _instGenResolutionInstGenRatio.otherValue; }
@@ -1993,12 +1950,6 @@ private:
   BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;
-  BoolOptionValue _aigBddSweeping;
-  BoolOptionValue _aigConditionalRewriting;
-  BoolOptionValue _aigDefinitionIntroduction;
-  UnsignedOptionValue _aigDefinitionIntroductionThreshold;
-  BoolOptionValue _aigFormulaSharing;
-  BoolOptionValue _aigInliner;
   BoolOptionValue _arityCheck;
   
   BoolOptionValue _backjumpTargetIsDecisionPoint;
@@ -2025,10 +1976,6 @@ private:
 
   BoolOptionValue _demodulationRedundancyCheck;
 
-  BoolOptionValue _eprPreservingNaming;
-  BoolOptionValue _eprPreservingSkolemization;
-  BoolOptionValue _eprRestoringInlining;
-  BoolOptionValue _equalityPropagation;
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   ChoiceOptionValue<RuleActivity> _equalityResolutionWithDeletion;
   BoolOptionValue _equivalentVariableRemoval;
@@ -2059,7 +2006,6 @@ private:
   ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
 
-  BoolOptionValue _hornRevealing;
   BoolOptionValue _hyperSuperposition;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
@@ -2075,7 +2021,6 @@ private:
   ChoiceOptionValue<InputSyntax> _inputSyntax;
   ChoiceOptionValue<Instantiation> _instantiation;
   FloatOptionValue _instGenBigRestartRatio;
-  BoolOptionValue _instGenInprocessing;
   BoolOptionValue _instGenPassiveReactivation;
   RatioOptionValue _instGenResolutionInstGenRatio;
   //IntOptionValue _instGenResolutionRatioResolution;
@@ -2112,13 +2057,6 @@ private:
 
   BoolOptionValue _outputAxiomNames;
 
-  ChoiceOptionValue<InliningMode> _predicateDefinitionInlining;
-  BoolOptionValue _predicateDefinitionMerging;
-  ChoiceOptionValue<PredicateEquivalenceDiscoveryMode> _predicateEquivalenceDiscovery;
-  BoolOptionValue _predicateEquivalenceDiscoveryAddImplications;
-  BoolOptionValue _predicateEquivalenceDiscoveryRandomSimulation;
-  IntOptionValue _predicateEquivalenceDiscoverySatConflictLimit;
-  BoolOptionValue _predicateIndexIntroduction;
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
@@ -2177,7 +2115,6 @@ private:
   FloatOptionValue _sineTolerance;
   BoolOptionValue _smtlibConsiderIntsReal;
   BoolOptionValue _smtlibFletAsDefinition;
-  BoolOptionValue _smtlibIntroduceAIGNames;
   ChoiceOptionValue<Sos> _sos;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
@@ -2213,7 +2150,6 @@ private:
   /** Time limit in deciseconds */
   TimeLimitOptionValue _timeLimitInDeciseconds;
   BoolOptionValue _timeStatistics;
-  BoolOptionValue _trivialPredicateRemoval;
 
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;

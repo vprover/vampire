@@ -71,8 +71,6 @@ private:
 
   bool addClause(Clause* cl);
 
-  void doInprocessing(RCClauseStack& clauses);
-
   void restartWithCurrentClauses();
   void restartFromBeginning();
 

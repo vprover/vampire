@@ -42,7 +42,6 @@ public:
 private:
   void preprocess2(Problem& prb);
   void naming(Problem& prb);
-  void secondStageEprPreservingNaming(Problem& prb);
   Unit* preprocess3(Unit* u);
   void preprocess3(Problem& prb);
   void clausify(Problem& prb);

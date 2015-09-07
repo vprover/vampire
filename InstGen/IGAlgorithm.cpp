@@ -32,10 +32,8 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/EquivalenceDiscoverer.hpp"
 #include "Shell/EqualityAxiomatizer.hpp"
 #include "Shell/EqualityProxy.hpp"
-#include "Shell/PDInliner.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -683,39 +681,6 @@ void IGAlgorithm::wipeIndexes()
   _selected = new LiteralSubstitutionTree();
 }
 
-void IGAlgorithm::doInprocessing(RCClauseStack& clauses)
-{
-  CALL("IGAlgorithm::doInprocessing");
-
-  EquivalenceDiscoverer ed(true, UINT_MAX, EquivalenceDiscoverer::CR_DEFINITIONS, false, true, true);
-  UnitList* equivs = ed.getEquivalences(pvi(RCClauseStack::Iterator(clauses)));
-
-  if(!equivs) {
-    return;
-  }
-
-  PDInliner pdi;
-  pdi.scanAndRemoveDefinitions(equivs, false);
-
-  RCClauseStack::DelIterator cit(clauses);
-  while(cit.hasNext()) {
-    Clause* cl = cit.next();
-    Unit* aplResU = pdi.apply(cl);
-    if(!aplResU) {
-      cl->decRefCnt();
-      cit.del();
-    }
-    else {
-      ASS(aplResU->isClause());
-      Clause* aplRes = static_cast<Clause*>(aplResU);
-      if(aplRes!=cl) {
-	cl->decRefCnt();
-	aplRes->incRefCnt();
-	cit.replace(aplRes);
-      }
-    }
-  }
-}
 
 void IGAlgorithm::restartWithCurrentClauses()
 {
@@ -735,10 +700,6 @@ void IGAlgorithm::restartWithCurrentClauses()
   }
 
   wipeIndexes();
-
-  if(!_doingSatisfiabilityCheck && _opt.instGenInprocessing()) {
-    doInprocessing(allClauses);
-  }
 
   while(allClauses.isNonEmpty()) {
     Clause* cl = allClauses.popWithoutDec();
