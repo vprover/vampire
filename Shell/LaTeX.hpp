@@ -39,7 +39,7 @@ using namespace Kernel;
 class LaTeX
 {
 public:
-  LaTeX() : _nextNodeNum(0) {}
+  LaTeX() {}
 
   vstring header();
   vstring footer();
@@ -71,12 +71,6 @@ private:
   vstring symbolToString (unsigned num, bool pred) const;
 
 
-  vstring toString(BDDNode*);
-  vstring getBDDVarName(int var);
-
-  Stack<vstring> definitionStack;
-  int _nextNodeNum;
-  DHMap<BDDNode*,vstring> _nodeNames;
 }; // class LaTeX
 
 

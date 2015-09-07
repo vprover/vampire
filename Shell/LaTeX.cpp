@@ -22,8 +22,8 @@
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
+#include "Lib/Set.hpp"
 
-#include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -184,13 +184,6 @@ vstring LaTeX::refutationToString(Unit* ref)
 	handledShell.insert(prem);
 	outShell.push(prem);
       }
-    }
-  }
-
-  if(definitionStack.isNonEmpty()) {
-    res+="\\section{BDD Definitions}\n";
-    for(unsigned i=0;i<definitionStack.length();i++) {
-      res+=definitionStack[i];
     }
   }
 
@@ -797,71 +790,6 @@ vstring LaTeX::varToString (unsigned num) const
 // {
 //   return funOrPred + toString(args);
 // }
-
-
-vstring LaTeX::getBDDVarName(int var)
-{
-  CALL("LaTeX::getBDDVarName(int var)");
-
-  vstring name;
-  if(BDD::instance()->getNiceName(var, name)) {
-    return vstring("\\mathit{") + name + '}';
-  }
-  return vstring("\\mathit{b_{") + Int::toString(var) + "}}";
-}
-
-vstring LaTeX::toString(BDDNode* node)
-{
-  CALL("LaTeX::toString(BDDNode*)");
-
-  BDD* inst=BDD::instance();
-
-  //predicate and function symbols are mixed here, but it's how I understood it should be done
-  if(inst->isTrue(node)) {
-    return "\\top";
-  }
-  if(inst->isFalse(node)) {
-    return "\\bot";
-  }
-
-  vstring name;
-  if(_nodeNames.find(node, name)) {
-    return name;
-  }
-
-
-  vstring propPred=getBDDVarName(node->_var);
-  if(inst->isTrue(node->_pos) && inst->isFalse(node->_neg)) {
-    return propPred;
-  }
-  else if(inst->isFalse(node->_pos) && inst->isTrue(node->_neg)) {
-    return "\\neg "+propPred;
-  }
-  else if(inst->isTrue(node->_pos)) {
-    return "("+propPred+" \\Vor "+toString(node->_neg)+")";
-  }
-  else if(inst->isFalse(node->_neg)) {
-    return "("+propPred+" \\Vand "+toString(node->_pos)+")";
-  }
-  else if(inst->isFalse(node->_pos)) {
-    return "(\\neg "+propPred+" \\Vand "+toString(node->_neg)+")";
-  }
-  else if(inst->isTrue(node->_neg)) {
-    return "(\\neg "+propPred+" \\Vor "+toString(node->_pos)+")";
-  }
-  else {
-    vstring posDef=toString(node->_pos);
-    vstring negDef=toString(node->_neg);
-
-    vstring name=vstring("\\mathit{n_{") + Int::toString(_nextNodeNum++) + "}}";
-    vstring report="$"+name+" \\Viff ("+propPred+" ? "+posDef+" : "+negDef+")$\\\\\n";
-    definitionStack.push(report);
-    ALWAYS(_nodeNames.insert(node, name));
-
-    return name;
-  }
-
-}
 
 
 }

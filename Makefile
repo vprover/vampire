@@ -179,10 +179,7 @@ VLS_OBJ= Lib/Sys/Multiprocessing.o\
          Lib/Sys/Semaphore.o\
          Lib/Sys/SyncPipe.o
 
-VK_OBJ= Kernel/BDD.o\
-        Kernel/BDDClausifier.o\
-        Kernel/BDDConjunction.o\
-        Kernel/Clause.o\
+VK_OBJ= Kernel/Clause.o\
         Kernel/ClauseQueue.o\
         Kernel/ColorHelper.o\
         Kernel/EqHelper.o\
@@ -448,8 +445,6 @@ VUTIL_OBJ = VUtils/AnnotationColoring.o\
 LIB_DEP = Indexing/TermSharing.o\
 	  Inferences/DistinctEqualitySimplifier.o\
 	  Inferences/InferenceEngine.o\
-	  Kernel/BDD.o\
-	  Kernel/BDDClausifier.o\
 	  Kernel/Clause.o\
 	  Kernel/Formula.o\
 	  Kernel/FormulaUnit.o\
