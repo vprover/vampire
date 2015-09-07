@@ -21,7 +21,7 @@
 
 #include "Interpolants.hpp"
 
-
+#define TRACE(x)
 
 /** surprising colors occur when a clause which is a consequence of transparent clauses, is colored */
 #define ALLOW_SURPRISING_COLORS 1
@@ -211,7 +211,7 @@ Formula* Interpolants::getInterpolant(Unit* unit)
   typedef DHMap<Unit*,ItemState> ProcMap;
   ProcMap processed;
 
-  cout << "===== getInterpolant for " << unit->toString() << endl;
+  TRACE(cout << "===== getInterpolant for " << unit->toString() << endl);
 
   Stack<ItemState> sts;
 
@@ -232,13 +232,12 @@ Formula* Interpolants::getInterpolant(Unit* unit)
     }
     else {
       st = ItemState(curr);
-
       st.pars = getParents(curr);
     }
 
-    cout << "curr  " << curr->toString() << endl;
-    cout << "cu_ic " << curr->inheritedColor() << endl;
-    cout << "st_co " << st.usColor() << endl;
+    TRACE(cout << "curr  " << curr->toString() << endl);
+    TRACE(cout << "cu_ic " << curr->inheritedColor() << endl);
+    TRACE(cout << "st_co " << st.usColor() << endl);
 
     if(curr->inheritedColor()!=COLOR_INVALID) {
       //set premise-color information for input clauses
@@ -265,7 +264,7 @@ Formula* Interpolants::getInterpolant(Unit* unit)
     }
 #endif
 
-    cout << "st_ic " << st.inheritedColor << endl;
+    TRACE(cout << "st_ic " << st.inheritedColor << endl);
 
     if(sts.isNonEmpty()) {
       //update premise color information in the level above
@@ -274,8 +273,8 @@ Formula* Interpolants::getInterpolant(Unit* unit)
       if(pst.inheritedColor==COLOR_TRANSPARENT) {
         pst.inheritedColor=st.usColor();
 
-        cout << "updated parent's inh col to " << pst.inheritedColor << endl;
-        cout << "parent " << pst.us()->toString() << endl;
+        TRACE(cout << "updated parent's inh col to " << pst.inheritedColor << endl);
+        TRACE(cout << "parent " << pst.us()->toString() << endl);
 
       }
 #if VDEBUG
@@ -313,7 +312,7 @@ Formula* Interpolants::getInterpolant(Unit* unit)
 	if(st.inheritedColor!=color || sts.isEmpty()) {
 	  //we either have a transparent clause justified by A or B, or the refutation
 //	  ASS_EQ(color,COLOR_TRANSPARENT);
-      cout<<"generate interpolant of transparent clause: "<<st.us()->toString()<<"\n";
+	    TRACE(cout<<"generate interpolant of transparent clause: "<<st.us()->toString()<<"\n");
 	  ASS_REP2(color==COLOR_TRANSPARENT, st.us()->toString(), st.inheritedColor);
 	  generateInterpolant(st);
 	}
@@ -359,7 +358,7 @@ void Interpolants::generateInterpolant(ItemState& st)
 
   Unit* u=st.us();
 
-  cout << "GenerateInterpolant for " << u->toString() << endl;
+  TRACE(cout << "GenerateInterpolant for " << u->toString() << endl);
 
   Color color=st.usColor();
   ASS_EQ(color, COLOR_TRANSPARENT);
@@ -387,7 +386,7 @@ void Interpolants::generateInterpolant(ItemState& st)
     }
   }
 
-  cout	<<"unitFormula: "<<unitFormula->toString()<<endl;
+  TRACE(cout	<<"unitFormula: "<<unitFormula->toString()<<endl);
 
   if(st.parCnt) {
     //interpolants from refutation proof with at least one inference (there are premises, i.e. parents)
@@ -431,9 +430,9 @@ void Interpolants::generateInterpolant(ItemState& st)
     }
   }
   st.interpolant=interpolant;
-  cout<<"Unit "<<u->toString()
+  TRACE(cout<<"Unit "<<u->toString()
 	<<"\nto Formula "<<unitFormula->toString()
-	<<"\ninterpolant "<<interpolant->toString()<<endl<<endl;
+	<<"\ninterpolant "<<interpolant->toString()<<endl<<endl);
   UIPair uip=make_pair(unitFormula, interpolant);
   if(st.inheritedColor==COLOR_LEFT) {
     st.leftInts->destroy();
