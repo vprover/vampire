@@ -32,6 +32,7 @@
 using namespace Shell;
 using namespace Indexing;
 
+#define TRACE(x)
 
 /**
  * Return minimized interpolant of @c refutation
@@ -255,6 +256,20 @@ void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, 
     ASS_EQ(val,"true");
     acc.insert(unit);
   }
+
+  TRACE(
+  WeightMap::Iterator wit(_atomWeights);
+  while(wit.hasNext()) {
+    vstring atom;
+    unsigned weight;
+    wit.next(atom, weight);
+
+    Unit* unit = _unitsById.get(atom);
+
+    SMTConstant vU = pred(V, atom);
+
+    cout << "because " << solverResult.assignment.get(vU) << " for " << unit->toString() << endl;
+  })
 }
 
 /**
@@ -432,12 +447,14 @@ public:
     ASS(!_acc);
 
     _acc = &acc;
+
     if(cl->length()==0) {
       handleNoSplit(cl);
     }
     else {
       doSplitting(cl);
     }
+
     _acc = 0;
   }
 protected:
@@ -600,8 +617,14 @@ void InterpolantMinimizer::collectAtoms(Unit* u, Stack<vstring>& atoms)
   _splitter->getComponents(cl, components);
   ASS(components.isNonEmpty());
   ClauseStack::Iterator cit(components);
+
+  TRACE(cout << "collecting for " << u->toString() << endl);
+
   while(cit.hasNext()) {
     Clause* comp = cit.next();
+
+    TRACE(cout << "comp " << comp->toString() << endl);
+
     atoms.push(getComponentId(comp));
   }
 }
@@ -641,6 +664,8 @@ void InterpolantMinimizer::addCostFormula()
 {
   CALL("InterpolantMinimizer::getCostFormula");
 
+  TRACE(cout << "adding cost fla" << endl);
+
   SMTFormula costSum = SMTFormula::unsignedValue(0);
 
   WeightMap::Iterator wit(_atomWeights);
@@ -659,6 +684,8 @@ void InterpolantMinimizer::addCostFormula()
     if(_optTarget==OT_QUANTIFIERS){
       weight = varCnt;
     }
+
+    TRACE(cout << "cost " << weight << " for unit " << unit->toString() << endl);
 
     SMTFormula atomExpr = SMTFormula::condNumber(pred(V, atom), weight);
     costSum = SMTFormula::add(costSum, atomExpr);

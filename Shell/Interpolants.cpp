@@ -347,6 +347,8 @@ fin:
     destrIt.next().destroy();
   }
 
+  TRACE(cout << "result interpolant (before false/true - simplification) " << resultInterpolant->toString() << endl);
+
   //simplify the interpolant and exit
   return Flattening::flatten(SimplifyFalseTrue::simplify(resultInterpolant));
 //  return resultInterpolant;
