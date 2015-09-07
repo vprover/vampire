@@ -22,8 +22,6 @@
 
 #include "Shell/Options.hpp"
 
-#include "BDD.hpp"
-#include "BDDClausifier.hpp"
 #include "Inference.hpp"
 #include "Signature.hpp"
 #include "Term.hpp"
@@ -168,46 +166,8 @@ Clause* Clause::fromClause(Clause* c)
   return res;
 }
 
-/**
- * Initialize the propositional part of the clause
- *
- * The difference from setProp is that the clause couldn't have been assigned
- * a propositional part before. This ensures we don't have to worry about
- * affecting things such as the position of the clause in the passive clause
- * queue.
- */
-//void Clause::initProp(BDDNode* prop)
-//{
-//  CALL("Clause::initProp");
-//  ASS(!_prop);
-//
-//  _prop = prop;
-//}
-
-/** Set the propositional part of the clause */
-//void Clause::setProp(BDDNode* prop)
-//{
-//  CALL("Clause::setProp");
-//
-//  if (prop==_prop) {
-//    return;
-//  }
-//
-//  beforePropChange.fire(this);
-//  _prop = prop;
-//  afterPropChange.fire(this);
-//}
-
-//bool Clause::noProp() const
-//{
-//  CALL("Clause::hasProp");
-//
-//  return !prop() || BDD::instance()->isFalse(prop());
-//}
-
 bool Clause::shouldBeDestroyed()
 {
-//  return false;
   return (_store == NONE) && _refCnt == 0 &&
     !isFromPreprocessing();
 }

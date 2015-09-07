@@ -9,7 +9,6 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 
-#include "Kernel/BDD.hpp"
 #include "Kernel/Signature.hpp"
 
 #include "Shell/Options.hpp"
@@ -223,7 +222,7 @@ void ArithmeticIndex::handleClause(Clause* c, bool adding)
   CALL("ArithmeticIndex::handleClause");
 //  ASS(env.options->interpretedEvaluation()); //this index should be used only when we interpret symbols
 
-  if(c->length()!=1 || !BDD::instance()->isFalse(c->prop())) {
+  if(c->length()!=1){
     return;
   }
 

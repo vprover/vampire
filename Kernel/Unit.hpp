@@ -106,7 +106,7 @@ public:
   } // setInheritedColor
 
   Color getColor();
-  Formula* getFormula();//BDDNode* prop);
+  Formula* getFormula();
   void collectAtoms(Stack<Literal*>& acc);
   void collectPredicates(Stack<unsigned>& acc);
 

@@ -911,20 +911,12 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       Clause* redundant=srec.toRemove;
       ASS_NEQ(redundant, cl);
 
-      // checks if y=>x is a true constant formula, it cannot be
-      //BDDNode* oldRedundantProp=redundant->prop();
-      //if ( !bdd->isXOrNonYConstant(oldRedundantProp, cl->prop(), true) ) {
-	//TODO: here the srec.replacement should probably be deleted
-        //continue;
-     // }
-
       Clause* replacement=srec.replacement;
 
       if (replacement) {
 	addNewClause(replacement);
       }
       onClauseReduction(redundant, replacement, cl, 0, false);
-
 
       //we must remove the redundant clause before adding its replacement,
       //as otherwise the redundant one might demodulate the replacement into

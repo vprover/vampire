@@ -13,7 +13,6 @@
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 
-#include "BDD.hpp"
 #include "Inference.hpp"
 #include "InferenceStore.hpp"
 #include "Clause.hpp"
@@ -248,13 +247,12 @@ unsigned Unit::varCnt()
  *
  * @since 16/01/14, removed BDDNode prop, Giles.
  */
-Formula* Unit::getFormula()//BDDNode* prop)
+Formula* Unit::getFormula()
 {
   if(isClause()) {
     return Formula::fromClause(static_cast<Clause*>(this));//, prop);
   }
   else {
-    //ASS(BDD::instance()->isFalse(prop));
     return Formula::quantify(static_cast<FormulaUnit*>(this)->formula());
   }
 }

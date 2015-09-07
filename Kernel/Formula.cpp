@@ -3,16 +3,19 @@
  *  Implements class Formula.
  */
 
+#include "Forwards.hpp"
+
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/MultiCounter.hpp"
 #include "Lib/VString.hpp"
+#include "Lib/Set.hpp"
 
+#include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
-#include "BDD.hpp"
 #include "Clause.hpp"
 #include "Term.hpp"
 #include "Formula.hpp"

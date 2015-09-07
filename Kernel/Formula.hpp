@@ -88,8 +88,6 @@ public:
   Color getColor();
   bool getSkip();
 
-  static Formula* fromClause(Clause* cl, BDDNode* prop);
-
   static Formula* fromClause(Clause* cl);
 
   static Formula* quantify(Formula* f);
