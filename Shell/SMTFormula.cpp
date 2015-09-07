@@ -249,7 +249,7 @@ void YicesSolver::run(SMTBenchmark& problem, SMTSolverResult& res, unsigned time
     USER_ERROR("Executable "+execName+" does not exist");
   }
 
-  vstring cmdLine = execName+" -smt -e";
+  vstring cmdLine = execName+" -smt -e"; // this works for yices1.0.xx
   if(timeout!=0) {
     cmdLine += " --timeout="+Int::toString(timeout);
   }

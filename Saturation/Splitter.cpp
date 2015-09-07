@@ -971,8 +971,6 @@ bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
 
-  cout << "do splitting for " << cl->toString() << endl;
-
   if (_fastRestart && _haveBranchRefutation) {
     _fastClauses.push(cl);
     return true; // the clause is ours now

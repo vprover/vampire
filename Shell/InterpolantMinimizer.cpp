@@ -262,7 +262,7 @@ void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, 
  */
 void InterpolantMinimizer::addAllFormulas()
 {
-  CALL("InterpolantMinimizer::getWholeFormula");
+  CALL("InterpolantMinimizer::addAllFormulas");
 
   InfoMap::Iterator uit(_infos);
   while(uit.hasNext()) {
@@ -284,7 +284,7 @@ void InterpolantMinimizer::addAllFormulas()
  */
 void InterpolantMinimizer::addNodeFormulas(Unit* u)
 {
-  CALL("InterpolantMinimizer::getNodeFormula");
+  CALL("InterpolantMinimizer::addNodeFormulas");
 
   static ParentSummary psum;
   psum.reset();
@@ -413,15 +413,7 @@ void InterpolantMinimizer::addFringeFormulas(Unit* u)
  * Class that splits a clause into components, facilitating also
  * sharing of the components
  */
-class InterpolantMinimizer::ClauseSplitter 
-  : protected Saturation::Splitter 
-  /* Martin: whatever this class is supposed to be doing,
-   * the fact that it inherits from Splitter and then 
-   * only ever uses it to call doSplitting is extremely suspicious.
-   * 
-   * I smell a hack and maybe even an unfinished one :)
-   */
-{
+class InterpolantMinimizer::ClauseSplitter {
 public:
   CLASS_NAME(InterpolantMinimizer::ClauseSplitter);
   USE_ALLOCATOR(InterpolantMinimizer::ClauseSplitter);
@@ -444,15 +436,25 @@ public:
       handleNoSplit(cl);
     }
     else {
-      ALWAYS(doSplitting(cl));
+      doSplitting(cl);
     }
     _acc = 0;
   }
 protected:
 
-  // Martin: unused! (?)
-  void buildAndInsertComponents(Clause* cl, const LiteralStack* comps,
-      unsigned compCnt, bool firstIsMaster)
+  void doSplitting(Clause* cl) {
+
+    static Stack<LiteralStack> comps;
+    comps.reset();
+    // fills comps with components, returning if not splittable
+    if(!Saturation::Splitter::getComponents(cl, comps)) {
+      handleNoSplit(cl);
+    } else {
+      buildAndInsertComponents(comps.begin(),comps.size());
+    }
+  }
+
+  void buildAndInsertComponents(const LiteralStack* comps, unsigned compCnt)
   {
     CALL("InterpolantMinimizer::ClauseSplitter::buildAndInsertComponents");
 
@@ -462,12 +464,11 @@ protected:
     }
   }  
 
-  bool handleNoSplit(Clause* cl)
+  void handleNoSplit(Clause* cl)
   {
     CALL("InterpolantMinimizer::ClauseSplitter::handleNoSplit");
 
     _acc->push(getComponent(cl));
-    return true;
   }
 
 private:
@@ -519,7 +520,6 @@ private:
     Literal* norm = Literal::positiveLiteral(lit);
     norm = Renaming::normalize(norm);
 
-
     Clause* res;
     if(_atomIndex.find(norm, res)) {
       return res;
@@ -549,9 +549,6 @@ void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<vstring>& atoms)
   CALL("InterpolantMinimizer::collectAtoms(FormulaUnit*...)");
   
   vstring key = f->formula()->toString();
-
-  
-  
 
   vstring id;
   if(!_formulaAtomIds.find(key, id)) {

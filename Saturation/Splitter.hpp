@@ -198,10 +198,9 @@ public:
   SAT2FO& satNaming() { return _sat2fo; }
 
   UnitList* explicateAssertionsForSaturatedClauseSet(UnitList* clauses);
+  static bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
 private:
   friend class SplittingBranchSelector;
-
-  bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
   
   SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
 
