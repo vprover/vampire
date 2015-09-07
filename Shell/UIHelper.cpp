@@ -290,24 +290,24 @@ void UIHelper::outputResult(ostream& out)
       
       SMTPrinter printer;
       out << "Old interpolant (without minimization): " << TPTPPrinter::toString(oldInterpolant) << endl;
-      out << "Old interpolant in SMT format (without minimization): "; 
-      printer.smtPrint(oldInterpolant,out);
+      //out << "Old interpolant in SMT format (without minimization): ";
+      //printer.smtPrint(oldInterpolant,out);
       out << endl;
         
       out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
-      out << "Symbol-weight minimized interpolant in SMT format: "; 
-      printer.smtPrint(interpolant,out);
+      //out << "Symbol-weight minimized interpolant in SMT format: ";
+      //printer.smtPrint(interpolant,out);
       out<<endl;
 
       out << "Atom-count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
-      out << "Atom-count minimized interpolant in SMT format: "; 
-      printer.smtPrint(cntInterpolant,out);
+      //out << "Atom-count minimized interpolant in SMT format: ";
+      //printer.smtPrint(cntInterpolant,out);
       out<<endl;
         
         
       out << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
-      out << "Quantifiers minimized interpolant in SMT format: "; 
-      printer.smtPrint(quantInterpolant,out);
+      //out << "Quantifiers minimized interpolant in SMT format: ";
+      //printer.smtPrint(quantInterpolant,out);
       out<<endl;
 
     }
