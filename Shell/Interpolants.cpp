@@ -161,10 +161,15 @@ void mergeCopy(UIPairList*& tgt, UIPairList* src)
 /**
  * Any pre-processing of the refutation before interpolation is considered.
  *
- * Currently, we only
- * remove the leafs corresponding to the conjecture
+ * Currently, we
+ * 1) remove the leafs corresponding to the conjecture
  * and leave the negated_conjecture child of this unit as the leaf instead.
  * (Inference::NEGATED_CONJECTURE is not sound).
+ *
+ * 2) for any input unit marked as properly colored but which is, in fact, transparent,
+ * we add an artificial parent which is forced to pretend it was truly colored that way,
+ * so that InterpolantMinimizer can consider this input unit as a result of a symbol eliminating inference.
+ * (Without this, InterpolantMinimizer does not work properly is such cases.)
  */
 void Interpolants::beatifyRefutation(Unit* refutation)
 {
@@ -179,6 +184,8 @@ void Interpolants::beatifyRefutation(Unit* refutation)
     if (!seen.insert(cur)) {
       continue;
     }
+
+    bool just_removed_conjecture = false;
 
     if (cur->inference()->rule() == Inference::NEGATED_CONJECTURE) {
       VirtualIterator<Unit*> pars = InferenceStore::instance()->getParents(cur);
@@ -197,7 +204,30 @@ void Interpolants::beatifyRefutation(Unit* refutation)
       ASS(!pars.hasNext()); // negating a conjecture should have exactly one parent
 
       cur->inference()->destroy();
-      cur->setInference(new Inference(Inference::NEGATED_CONJECTURE));
+      cur->setInference(new Inference(Inference::NEGATED_CONJECTURE)); // negated conjecture without a parent (non-standard, but nobody will see it)
+
+      just_removed_conjecture = true;
+    }
+
+    {
+      VirtualIterator<Unit*> pars = InferenceStore::instance()->getParents(cur);
+
+      if (!pars.hasNext() && // input-like, because no parents
+          cur->inheritedColor() != COLOR_INVALID && cur->inheritedColor() != COLOR_TRANSPARENT && // proper inherited color
+          cur->getColor() == COLOR_TRANSPARENT) {  // but in fact transparent
+
+          if (!just_removed_conjecture) {
+            ASS_EQ(cur->inference()->rule(),Inference::INPUT);
+          }
+
+          Clause* fakeParent = Clause::fromIterator(LiteralIterator::getEmpty(), cur->inputType(), new Inference(Inference::INPUT));
+          fakeParent->setInheritedColor(cur->inheritedColor());
+          fakeParent->updateColor(cur->inheritedColor());
+
+          cur->inference()->destroy();
+          cur->setInference(new Inference1(Inference::INPUT,fakeParent)); // input inference with a parent (non-standard, but nobody will see it)
+          cur->invalidateInheritedColor();
+      }
     }
 
     todo.loadFromIterator(InferenceStore::instance()->getParents(cur));

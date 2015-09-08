@@ -105,6 +105,8 @@ public:
     _inheritedColor = color;
   } // setInheritedColor
 
+  void invalidateInheritedColor() { _inheritedColor = COLOR_INVALID; }
+
   Color getColor();
   Formula* getFormula();
   void collectAtoms(Stack<Literal*>& acc);
