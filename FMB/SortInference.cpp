@@ -278,6 +278,10 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
     else{
       bounds[s]=UINT_MAX;
     }
+    if(s==3){
+      cout << "Forcing all bounds to max for " << s << endl;
+      bounds[s] = UINT_MAX;
+    }
   }
 
 #if DEBUG_SORT_INFERENCE
@@ -329,6 +333,9 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   // Remember to skip 0 as it is =
   for(unsigned p=1;p<env.signature->predicates();p++){
     if(p < del_p.size() && del_p[p]) continue;
+#if DEBUG_SORT_INFERENCE
+    cout << env.signature->predicateName(p) << " : ";
+#endif
     //cout << env.signature->predicateName(p) <<" : "; 
     unsigned arity = env.signature->predicateArity(p);
     // Now set bounds
@@ -336,10 +343,14 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
     for(unsigned i=0;i<arity;i++){
       int argRoot = unionFind.root(offset_p[p]+i);
       unsigned argSort = translate.get(argRoot);
-      //cout << argRoot << " ";
       sig->predicateBounds[p][i] = bounds[argSort];
+#if DEBUG_SORT_INFERENCE
+      cout << argSort << " ";
+#endif
     }    
-    //cout << "("<< offset_p[p] << ")"<< endl;
+#if DEBUG_SORT_INFERENCE
+   cout << "("<< offset_p[p] << ")"<< endl;
+#endif
   }
 
   return sig;

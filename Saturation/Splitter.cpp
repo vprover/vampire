@@ -882,7 +882,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     collectDependenceLits(cl->splits(), satLits);
     satLits.push(getLiteralFromName(compName));
 
-    cout << "name " << compName << " for a non-splittable " << cl->toString() << endl;
+    //cout << "name " << compName << " for a non-splittable " << cl->toString() << endl;
 
     SATClause* nsClause = SATClause::fromStack(satLits);
     nsClause->setInference(new FOConversionInference(cl));

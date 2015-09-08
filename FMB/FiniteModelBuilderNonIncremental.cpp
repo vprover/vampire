@@ -496,12 +496,12 @@ void FiniteModelBuilderNonIncremental::addNewFunctionalDefs(unsigned size)
     mins.ensure(arity+2);
 
     //cout << "Mins: ";
-    for(unsigned i=0;i<arity;i++){
-      mins[i] = min(bounds[i+1],size);
+    for(unsigned i=2;i<arity+2;i++){
+      mins[i] = min(bounds[i-1],size);
       //cout << mins[i] << " ";
     }
-    mins[arity] = min(bounds[0],size);
-    mins[arity+1] = min(bounds[0],size);
+    mins[0] = min(bounds[0],size);
+    mins[1] = min(bounds[0],size);
     //cout << mins[arity] << " " << mins[arity+1] << endl;
 
       static DArray<unsigned> grounding;
@@ -1058,7 +1058,7 @@ fModelLabel:
             SATLiteral slit = getSATLiteral(f,grounding,true,true,modelSize);
             if(_solver->trueInAssignment(slit)){
               //cout << "found " << c << endl;
-              //if(found){ cout << "Error: multiple interpretations of " << name << endl; }
+              if(found){ cout << "Error: multiple interpretations of " << name << endl; }
               ASS(!found);
               foundc=c;
               found=true;

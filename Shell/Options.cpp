@@ -236,7 +236,7 @@ void Options::Options::init()
     _timeLimitInDeciseconds.description="Time limit in wall clock seconds, you can use d,s,m,h,D suffixes also i.e. 60s, 5m. Setting it to 0 effectively gives no time limit.";
     _lookup.insert(&_timeLimitInDeciseconds);
 
-    _timeStatistics = BoolOptionValue("time_statistics","",false);
+    _timeStatistics = BoolOptionValue("time_statistics","tstat",false);
     _timeStatistics.description="Show how much running time was spent in each part of Vampire";
     _lookup.insert(&_timeStatistics);
 
@@ -1331,7 +1331,7 @@ void Options::Options::init()
     _nonGoalWeightCoefficient.setRandomChoices({"1","1.1","1.2","1.3","1.5","1.7","2","2.5","3","4","5","10"});
 
 
-    _normalize = BoolOptionValue("normalize","",false);
+    _normalize = BoolOptionValue("normalize","norm",false);
     _normalize.description="Normalize the problem so that the ordering of clauses etc does not effect proof search.";
     _lookup.insert(&_normalize);
     _normalize.tag(OptionTag::PREPROCESSING);
