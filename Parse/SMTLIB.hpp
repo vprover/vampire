@@ -113,7 +113,7 @@ private:
 
   Mode _mode;
   bool _treatIntsAsReals;
-  unsigned _defIntroThreshold;
+  // unsigned _defIntroThreshold;
   bool _fletAsDefinition;
   Color _introducedSymbolColor;
 #if VDEBUG
