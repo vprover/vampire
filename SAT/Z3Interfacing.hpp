@@ -105,6 +105,17 @@ public:
     // unsupported by Z3; intentionally no-op
   };
   
+  /**
+   * The set of inserted clauses may not be propositionally UNSAT
+   * due to theory reasoning inside Z3.
+   * We cannot later minimize this set with minisat.
+   *
+   * TODO: think of extracting true refutation from Z3 instead.
+   */
+  SATClauseList* getRefutationPremiseList() override {
+    return 0;
+  }
+
 private:
   // just to conform to the interface
   unsigned _varCnt;
