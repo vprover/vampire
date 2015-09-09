@@ -108,7 +108,7 @@ void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conf
   // TODO: consider calling simplify(); or only from time to time?
    
   try{
-    int bef = _solver.nVars();
+    //int bef = _solver.nVars();
     //cout << "Before: vars " << bef << ", non-unit clauses " << _solver.nClauses() << endl;
 
     _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty
