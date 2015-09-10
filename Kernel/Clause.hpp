@@ -172,6 +172,7 @@ public:
   }
 
   bool isExtensionality() const { return _extensionality; }
+  bool isTaggedExtensionality() const { return _extensionalityTag; }
   void setExtensionality(bool e) { _extensionality = e; }
 
   bool isComponent() const { return _component; }
@@ -317,7 +318,7 @@ public:
 
 protected:
   /** number of literals */
-  unsigned _length : 27;
+  unsigned _length : 26;
   /** clause color, or COLOR_INVALID if not determined yet */
   mutable unsigned _color : 2;
   /** clause is an input clause for the saturation algorithm */
@@ -327,6 +328,7 @@ protected:
     * becomes passive and is removed from the container, also this bit is unset.
     */
   unsigned _extensionality : 1;
+  unsigned _extensionalityTag : 1;
   /** Clause is a splitting component. */
   unsigned _component : 1;
   /** number of selected literals */

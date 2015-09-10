@@ -52,6 +52,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _color(COLOR_INVALID),
     _input(0),
     _extensionality(false),
+    _extensionalityTag(false),
     _component(false),
     _numSelected(0),
     _age(0),
@@ -68,7 +69,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
 
   if(it == Unit::EXTENSIONALITY_AXIOM){
     //cout << "Setting extensionality" << endl;
-    setExtensionality(true);
+    _extensionalityTag = true;
     setInputType(Unit::AXIOM);
   }
 
