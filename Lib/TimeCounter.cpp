@@ -159,9 +159,6 @@ void TimeCounter::printReport(ostream& out)
     out << "% ";
   }
   out << "Time measurement results:" << endl;
-  if (UIHelper::szsOutput) {
-    out << "% ";
-  }
   for (int i=0; i<__TC_ELEMENT_COUNT; i++) {
     outputSingleStat(static_cast<TimeCounterUnit>(i), out);
   }

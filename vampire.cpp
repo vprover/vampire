@@ -616,6 +616,7 @@ void vampireMode()
 
   if (env.options->szsOutput()) {
     UIHelper::szsOutput = true;
+    UIHelper::cascModeChild = true; // so that we print stats on time-out (see Timer.cpp)
   }
 
   doProving();
