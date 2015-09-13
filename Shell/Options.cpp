@@ -199,10 +199,13 @@ void Options::Options::init()
     _proof.description=
     "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
     _lookup.insert(&_proof);
+    _proof.tag(OptionTag::OUTPUT);
 
     _proofOrder = ChoiceOptionValue<ProofOrder>("proof_order","po",ProofOrder::DEPTH_FIRST,{"depth_first","creation_order","reverse_creation_order"});
     _proofOrder.description = "Order in which inference steps of proof are printed";
     _lookup.insert(&_proofOrder);
+    _proofOrder.tag(OptionTag::OUTPUT);
+    _proofOrder.setExperimental();
 
     _proofChecking = BoolOptionValue("proof_checking","",false);
     _proofChecking.description="";
@@ -213,10 +216,12 @@ void Options::Options::init()
     _protectedPrefix.description="Symbols with this prefix are immune against elimination during preprocessing";
     _lookup.insert(&_protectedPrefix);
     _protectedPrefix.tag(OptionTag::PREPROCESSING);
+    _protectedPrefix.setExperimental(); // Does not work for all (any?) preprocessing steps currently
 
     _statistics = ChoiceOptionValue<Statistics>("statistics","stat",Statistics::FULL,{"brief","full","none"});
     _statistics.description="The level of statistics to report at the end of the run.";
     _lookup.insert(&_statistics);
+    _statistics.tag(OptionTag::OUTPUT);
 
     _testId = StringOptionValue("test_id","","unspecified_test");
     _testId.description="";
@@ -239,6 +244,7 @@ void Options::Options::init()
     _timeStatistics = BoolOptionValue("time_statistics","tstat",false);
     _timeStatistics.description="Show how much running time was spent in each part of Vampire";
     _lookup.insert(&_timeStatistics);
+    _timeStatistics.tag(OptionTag::OUTPUT);
 
 //*********************** Input  ***********************
 
@@ -314,7 +320,7 @@ void Options::Options::init()
      "    for predicates p that are not E or equality add\n"
      "     ~E(x1,y1) \\/ ... \\/ ~E(xN,yN) \\/ ~p(x1,...,xN) \\/ p(y1,...,yN)\n"
      "    for non-constant functions f add\n"
-     "     ~E(x1,y1) \\/ ... \\/ ~E(xN,yN) \\/ E(f(x1,...,xN),f(y1,...,yN))"
+     "     ~E(x1,y1) \\/ ... \\/ ~E(xN,yN) \\/ E(f(x1,...,xN),f(y1,...,yN))\n"
      " R stands for reflexivity";
     _lookup.insert(&_equalityProxy);
     _equalityProxy.tag(OptionTag::PREPROCESSING);
@@ -432,7 +438,7 @@ void Options::Options::init()
     //used?
     _xmlOutput = StringOptionValue("xml_output","","off");
     _xmlOutput.description="File to put XML output in.";
-    _lookup.insert(&_xmlOutput);
+    //_lookup.insert(&_xmlOutput);
     _xmlOutput.tag(OptionTag::OUTPUT);
 
     _latexOutput = StringOptionValue("latex_output","","off");
@@ -460,70 +466,70 @@ void Options::Options::init()
     _showActive = BoolOptionValue("show_active","",false);
     _showActive.description="Print activated clauses.";
     _lookup.insert(&_showActive);
-    _showActive.tag(OptionTag::OUTPUT);
+    _showActive.tag(OptionTag::DEVELOPMENT);
 
     _showBlocked = BoolOptionValue("show_blocked","",false);
     _showBlocked.description="Show generating inferences blocked due to coloring of symbols";
     _lookup.insert(&_showBlocked);
-    _showBlocked.tag(OptionTag::OUTPUT);
+    _showBlocked.tag(OptionTag::DEVELOPMENT);
 
     _showDefinitions = BoolOptionValue("show_definitions","",false);
     _showDefinitions.description="Show definition introductions.";
     _lookup.insert(&_showDefinitions);
-    _showDefinitions.tag(OptionTag::OUTPUT);
+    _showDefinitions.tag(OptionTag::DEVELOPMENT);
 
 
     _showNew = BoolOptionValue("show_new","",false);
     _showNew.description="Show new (generated) clauses";
     _lookup.insert(&_showNew);
-    _showNew.tag(OptionTag::OUTPUT);
+    _showNew.tag(OptionTag::DEVELOPMENT);
 
     _showNewPropositional = BoolOptionValue("show_new_propositional","",false);
     _showNewPropositional.description="";
     //_lookup.insert(&_showNewPropositional);
-    _showNewPropositional.tag(OptionTag::OUTPUT);
+    _showNewPropositional.tag(OptionTag::DEVELOPMENT);
 
     _showNonconstantSkolemFunctionTrace = BoolOptionValue("show_nonconstant_skolem_function_trace","",false);
     _showNonconstantSkolemFunctionTrace.description="Show introduction of non-constant skolem functions.";
     _lookup.insert(&_showNonconstantSkolemFunctionTrace);
-    _showNonconstantSkolemFunctionTrace.tag(OptionTag::OUTPUT);
+    _showNonconstantSkolemFunctionTrace.tag(OptionTag::DEVELOPMENT);
 
 
     _showPassive = BoolOptionValue("show_passive","",false);
     _showPassive.description="Show clauses added to the passive set.";
     _lookup.insert(&_showPassive);
-    _showPassive.tag(OptionTag::OUTPUT);
+    _showPassive.tag(OptionTag::DEVELOPMENT);
     
     _showReductions = BoolOptionValue("show_reductions","",false);
     _showReductions.description="Show reductions.";
-    _showReductions.tag(OptionTag::OUTPUT);
+    _showReductions.tag(OptionTag::DEVELOPMENT);
     _lookup.insert(&_showReductions);
 
     _showPreprocessing = BoolOptionValue("show_preprocessing","",false);
     _showPreprocessing.description="Show preprocessing.";
     _lookup.insert(&_showPreprocessing);
-    _showPreprocessing.tag(OptionTag::OUTPUT);
+    _showPreprocessing.tag(OptionTag::DEVELOPMENT);
 
     _showSkolemisations = BoolOptionValue("show_skolemisations","",false);
     _showSkolemisations.description="Show Skolemisations.";
     _lookup.insert(&_showSkolemisations);
-    _showSkolemisations.tag(OptionTag::OUTPUT);
+    _showSkolemisations.tag(OptionTag::DEVELOPMENT);
 
     _showSymbolElimination = BoolOptionValue("show_symbol_elimination","",false);
     _showSymbolElimination.description="Show symbol elimination.";
     _lookup.insert(&_showSymbolElimination);
-    _showSymbolElimination.tag(OptionTag::OUTPUT);
+    _showSymbolElimination.tag(OptionTag::DEVELOPMENT);
 
     _showTheoryAxioms = BoolOptionValue("show_theory_axioms","",false);
     _showTheoryAxioms.description="Show the added theory axioms.";
     _lookup.insert(&_showTheoryAxioms);
-    _showTheoryAxioms.tag(OptionTag::OUTPUT);
+    _showTheoryAxioms.tag(OptionTag::DEVELOPMENT);
 
 #if VZ3
     _showZ3 = BoolOptionValue("show_z3","",false);
     _showZ3.description="Print the clauses being added to Z3";
     _lookup.insert(&_showZ3);
-    _showZ3.tag(OptionTag::OUTPUT);
+    _showZ3.tag(OptionTag::DEVELOPMENT);
 #endif
 
 //************************************************************************
@@ -1389,7 +1395,7 @@ void Options::Options::init()
                                                           {"minimized","off","on"});
     _showInterpolant.description="minimized tries to find a nicer interpolant than the default algorithm does";
     _lookup.insert(&_showInterpolant);
-    _showInterpolant.tag(OptionTag::OUTPUT);
+    _showInterpolant.tag(OptionTag::OTHER);
     _showInterpolant.setExperimental();
     
 //******************************************************************

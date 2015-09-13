@@ -29,7 +29,6 @@
 #include "NNF.hpp"
 #include "Options.hpp"
 #include "PredicateDefinition.hpp"
-#include "PredicateIndexIntroducer.hpp"
 #include "Preprocess.hpp"
 #include "Property.hpp"
 #include "Rectify.hpp"

@@ -340,7 +340,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Options.o\
          Shell/PDUtils.o\
          Shell/PredicateDefinition.o\
-         Shell/PredicateIndexIntroducer.o\
          Shell/Preprocess.o\
          Shell/Property.o\
          Shell/Rectify.o\
