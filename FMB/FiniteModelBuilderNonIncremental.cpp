@@ -26,6 +26,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
+#include "Lib/Sort.hpp"
 
 #include "Shell/UIHelper.hpp"
 #include "Shell/TPTPPrinter.hpp"
@@ -56,6 +57,7 @@ FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb,
   _startModelSize = opt.fmbStartSize();
   _useConstantsAsStart = opt.fmbStartWithConstants();
   _symmetryRatio = opt.fmbSymmetryRatio();
+  _symmetryOrderSymbols = opt.fmbSymmetryOrderSymbols();
 
   _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
   _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
@@ -67,6 +69,17 @@ FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb,
   }
 
 }
+
+
+struct FMBSymmetryFunctionComparator
+{
+  static Comparison compare(unsigned f1, unsigned f2)
+  {
+    unsigned c1 = env.signature->getFunction(f1)->usageCnt();
+    unsigned c2 = env.signature->getFunction(f2)->usageCnt();
+    return Int::compare(c2,c1);
+  }
+};
 
 bool FiniteModelBuilderNonIncremental::reset(unsigned size){
   CALL("FiniteModelBuilderNonIncremental::reset");
@@ -252,6 +265,16 @@ void FiniteModelBuilderNonIncremental::init()
                         ClauseList::Iterator(_clauses),
                         ClauseList::Iterator(_groundClauses)));    
     _sortedSignature = SortInference::apply(cit,del_f,del_p);
+
+    if(_symmetryOrderSymbols){
+      // Let's try sorting constants and functions in the sorted signature
+      for(unsigned s=0;s<_sortedSignature->sorts;s++){
+        Stack<unsigned> sortedConstants =  _sortedSignature->sortedConstants[s];
+        Stack<unsigned> sortedFunctions = _sortedSignature->sortedFunctions[s];
+        sort<FMBSymmetryFunctionComparator>(sortedConstants.begin(),sortedConstants.end());
+        sort<FMBSymmetryFunctionComparator>(sortedFunctions.begin(),sortedFunctions.end());
+      }
+    }
   }
 
   del_f.expand(env.signature->functions());

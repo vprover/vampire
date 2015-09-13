@@ -277,13 +277,6 @@ struct UnitNumberComparator
     return Int::compare(u1->number(), u2->number());
   }
 };
-struct ReverseUnitNumberComparator
-{
-  static Comparison compare(Unit* u1, Unit* u2)
-  {
-    return Int::compare(u2->number(), u1->number());
-  }
-};
 
 struct InferenceStore::ProofPrinter
 {
@@ -296,7 +289,7 @@ struct InferenceStore::ProofPrinter
     CALL("InferenceStore::ProofPrinter::ProofPrinter");
 
     outputAxiomNames=env.options->outputAxiomNames();
-    delayPrinting=env.options->proofOrder()!=Options::ProofOrder::DEPTH_FIRST;
+    delayPrinting=true;
   }
 
   void scheduleForPrinting(Unit* us)
@@ -413,16 +406,7 @@ protected:
     CALL("InferenceStore::ProofPrinter::printDelayed");
 
     // Sort
-    switch(env.options->proofOrder()){
-      case Options::ProofOrder::CREATION_ORDER : 
-        sort<UnitNumberComparator>(delayed.begin(),delayed.end());
-        break;
-      case Options::ProofOrder::REVERSE_CREATION_ORDER :
-        sort<ReverseUnitNumberComparator>(delayed.begin(),delayed.end());
-        break;
-      default:
-        ASSERTION_VIOLATION;
-    }
+    sort<UnitNumberComparator>(delayed.begin(),delayed.end());
 
     // Print
     for(unsigned i=0;i<delayed.size();i++){

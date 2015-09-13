@@ -201,12 +201,6 @@ void Options::Options::init()
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
 
-    _proofOrder = ChoiceOptionValue<ProofOrder>("proof_order","po",ProofOrder::DEPTH_FIRST,{"depth_first","creation_order","reverse_creation_order"});
-    _proofOrder.description = "Order in which inference steps of proof are printed";
-    _lookup.insert(&_proofOrder);
-    _proofOrder.tag(OptionTag::OUTPUT);
-    _proofOrder.setExperimental();
-
     _proofChecking = BoolOptionValue("proof_checking","",false);
     _proofChecking.description="";
     _lookup.insert(&_proofChecking);
@@ -592,6 +586,11 @@ void Options::Options::init()
     _fmbSymmetryRatio.description = "";
     _lookup.insert(&_fmbSymmetryRatio);
     _fmbSymmetryRatio.setExperimental();
+
+    _fmbSymmetryOrderSymbols = BoolOptionValue("fmb_symmetry_order_symbols","fmbsos",false);
+    _fmbSymmetryOrderSymbols.description = "";
+    _lookup.insert(&_fmbSymmetryOrderSymbols);
+    _fmbSymmetryOrderSymbols.setExperimental();
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=

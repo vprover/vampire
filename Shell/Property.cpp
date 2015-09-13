@@ -444,7 +444,9 @@ void Property::scan(Literal* lit)
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
     }
-    PredicateType* type = env.signature->getPredicate(lit->functor())->predType();
+    Signature::Symbol* pred = env.signature->getPredicate(lit->functor());
+    pred->incUsageCnt();
+    PredicateType* type = pred->predType();
     for (int i=0; i<arity; i++) {
       scanSort(type->arg(i));
     }
@@ -501,8 +503,11 @@ void Property::scan(TermList* ts)
       else {
 	scanForInterpreted(t);
 
+    Signature::Symbol* func = env.signature->getFunction(t->functor());
+    func->incUsageCnt();
+          
 	int arity = t->arity();
-	FunctionType* type = env.signature->getFunction(t->functor())->fnType();
+	FunctionType* type = func->fnType();
 	for (int i=0; i<arity; i++) {
 	  scanSort(type->arg(i));
 	}

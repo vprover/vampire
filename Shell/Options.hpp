@@ -434,11 +434,6 @@ public:
     PROOFCHECK = 2,
     TPTP = 3
   };
-  enum class ProofOrder : unsigned int {
-    DEPTH_FIRST = 0,
-    CREATION_ORDER = 1,
-    REVERSE_CREATION_ORDER = 2
-  };
 
   /** Values for --equality_proxy */
   enum class EqualityProxy : unsigned int {
@@ -1613,7 +1608,6 @@ public:
   Statistics statistics() const { return _statistics.actualValue; }
   void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
   Proof proof() const { return _proof.actualValue; }
-  ProofOrder proofOrder() const { return _proofOrder.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
   bool fmbIncremental() const { return _fmbIncremental.actualValue; }
@@ -1622,6 +1616,7 @@ public:
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
   bool fmbStartWithConstants() const { return _fmbStartWithConstants.actualValue; }
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
+  bool fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
@@ -1989,6 +1984,7 @@ private:
   UnsignedOptionValue _fmbStartSize;
   BoolOptionValue _fmbStartWithConstants;
   FloatOptionValue _fmbSymmetryRatio;
+  BoolOptionValue _fmbSymmetryOrderSymbols;
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
   BoolOptionValue _forceIncompleteness;
@@ -2060,7 +2056,6 @@ private:
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
-  ChoiceOptionValue<ProofOrder> _proofOrder;
   BoolOptionValue _proofChecking;
   
   StringOptionValue _protectedPrefix;
