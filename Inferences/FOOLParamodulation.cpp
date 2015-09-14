@@ -29,12 +29,17 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
    * We are going to implement the following inference rule, taken from the paper:
    *
    *        C[s]
-   * --------------------,
+   * --------------------, where
    * C[true] \/ s = false
    *
-   * where s is a boolean term, that is not a variable, true or false,
+   * (a) s is a boolean term other than true or false;
+   * (b) s is not a variable;
+   * (c) C[s] is different from s = false.
+   *
    * C[s] is a clause with an occurrence of s, and C[true] is the C clause
    * with s substituted by true.
+   *
+   * C[s] is deleted after the inference is applied.
    */
 
   static TermList troo(Term::createConstant(Signature::FOOL_TRUE));
@@ -57,7 +62,21 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
 
   ArrayishObjectIterator<Clause> literals = premise->getSelectedLiteralIterator();
   while (literals.hasNext()) {
-    NonVariableIterator nvi(literals.next());
+    Literal* literal = literals.next();
+
+    // we shouldn't touch literals of the form s = false
+    if (literal->isEquality() && literal->polarity()) {
+      TermList* lhs = literal->nthArgument(0);
+      TermList* rhs = literal->nthArgument(1);
+      if ((lhs->isTerm() && (lhs->term()->functor() == Signature::FOOL_FALSE)) ||
+          (rhs->isTerm() && (rhs->term()->functor() == Signature::FOOL_FALSE))) {
+        literalPosition++;
+        continue;
+      }
+    }
+
+    // we shouldn't replace variables, hence NonVariableIterator
+    NonVariableIterator nvi(literal);
     while (nvi.hasNext()) {
       TermList subterm = nvi.next();
       unsigned functor = subterm.term()->functor();
