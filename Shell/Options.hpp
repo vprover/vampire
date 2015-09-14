@@ -198,6 +198,13 @@ public:
     };
     // update _tagNames at the end of Options constructor if you add a tag
     
+
+  enum class FMBWidgetOrders : unsigned int {
+    FUNCTION_FIRST, // f(1) f(2) f(3) ... g(1) g(2) ...
+    ARGUMENT_FIRST, // f(1) g(1) h(1) ... f(2) g(2) ...
+    DIAGONAL,       // f(1) g(2) h(3) f(2) g(3) h(1) f(3) g(1) h(2)
+  };
+
   enum class RandomStrategy : unsigned int {
     ON,
     OFF,
@@ -1616,6 +1623,7 @@ public:
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
   bool fmbStartWithConstants() const { return _fmbStartWithConstants.actualValue; }
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
+  FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
   bool fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
@@ -1984,6 +1992,7 @@ private:
   UnsignedOptionValue _fmbStartSize;
   BoolOptionValue _fmbStartWithConstants;
   FloatOptionValue _fmbSymmetryRatio;
+  ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   BoolOptionValue _fmbSymmetryOrderSymbols;
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;

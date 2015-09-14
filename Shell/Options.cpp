@@ -592,6 +592,13 @@ void Options::Options::init()
     _lookup.insert(&_fmbSymmetryOrderSymbols);
     _fmbSymmetryOrderSymbols.setExperimental();
 
+    _fmbSymmetryWidgetOrders = ChoiceOptionValue<FMBWidgetOrders>("fmb_symmetry_widget_order","fmbswo",
+                                                     FMBWidgetOrders::DIAGONAL,
+                                                     {"function_first","argument_first","diagonal"});
+    _fmbSymmetryWidgetOrders.description = "";
+    _lookup.insert(&_fmbSymmetryWidgetOrders);
+    _fmbSymmetryWidgetOrders.setExperimental();
+
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
     "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"

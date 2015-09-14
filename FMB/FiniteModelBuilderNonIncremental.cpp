@@ -139,28 +139,64 @@ bool FiniteModelBuilderNonIncremental::reset(unsigned size){
       _sortedGroundedTerms[s].push(g);
       //cout << "Adding " << g.f << "," << g.grounding << " to " << s << endl;
     }
-    for(unsigned m=1;m<=size;m++){
+    bool arg_first = false;
+    switch(env.options->fmbSymmetryWidgetOrders()){
+    case Options::FMBWidgetOrders::FUNCTION_FIRST:
+    {
       for(unsigned f=0;f<_sortedSignature->sortedFunctions[s].length();f++){
+        for(unsigned m=1;m<=size;m++){
 
-        GroundedTerm g;
-        g.f =_sortedSignature->sortedFunctions[s][f];
+          GroundedTerm g;
+          g.f =_sortedSignature->sortedFunctions[s][f];
 
-        // We skip f if its range is bounded to less than size
-        if(_sortedSignature->functionBounds[g.f][0] < size) continue;
+          // We skip f if its range is bounded to less than size
+          if(_sortedSignature->functionBounds[g.f][0] < size) continue;
 
-        g.grounding = 1+((m+f)%(size));
+          g.grounding = m; 
 
-        // We skip f if its domain is bounded to less than g.grounding
-        bool outOfBounds = false;
-        for(unsigned i=0;i<env.signature->functionArity(g.f);i++){
-          if(_sortedSignature->functionBounds[g.f][i+1] < g.grounding)
-            outOfBounds=true;
+          // We skip f if its domain is bounded to less than g.grounding
+          bool outOfBounds = false;
+          for(unsigned i=0;i<env.signature->functionArity(g.f);i++){
+            if(_sortedSignature->functionBounds[g.f][i+1] < g.grounding)
+              outOfBounds=true;
+          }
+          if(outOfBounds) continue;
+
+          _sortedGroundedTerms[s].push(g);
+          //cout << "Adding " << g.f << "," << g.grounding << " to " << s << endl;
         }
-        if(outOfBounds) continue;
-
-        _sortedGroundedTerms[s].push(g);
-        //cout << "Adding " << g.f << "," << g.grounding << " to " << s << endl;
       }
+      break;
+    }
+    case Options::FMBWidgetOrders::ARGUMENT_FIRST:
+      arg_first=true;
+      // now use diagional code but don't do the diagonal
+    case Options::FMBWidgetOrders::DIAGONAL:
+    {
+      for(unsigned m=1;m<=size;m++){
+        for(unsigned f=0;f<_sortedSignature->sortedFunctions[s].length();f++){
+
+          GroundedTerm g;
+          g.f =_sortedSignature->sortedFunctions[s][f];
+
+          // We skip f if its range is bounded to less than size
+          if(_sortedSignature->functionBounds[g.f][0] < size) continue;
+
+          g.grounding = arg_first ? m : 1+((m+f)%(size));
+
+          // We skip f if its domain is bounded to less than g.grounding
+          bool outOfBounds = false;
+          for(unsigned i=0;i<env.signature->functionArity(g.f);i++){
+            if(_sortedSignature->functionBounds[g.f][i+1] < g.grounding)
+              outOfBounds=true;
+          }
+          if(outOfBounds) continue;
+  
+          _sortedGroundedTerms[s].push(g);
+          //cout << "Adding " << g.f << "," << g.grounding << " to " << s << endl;
+        }
+      }
+    }
     }
 
   }
