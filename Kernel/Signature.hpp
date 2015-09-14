@@ -128,6 +128,8 @@ class Signature
     inline void incUsageCnt(){ _usageCount++; }
     /** Return the usage count of this symbol **/
     inline unsigned usageCnt() const { return _usageCount; }
+    /** Reset usage count to zero, to start again! **/
+    inline void resetUsageCnt(){ _usageCount=0; }
       
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const

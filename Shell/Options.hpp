@@ -204,6 +204,11 @@ public:
     ARGUMENT_FIRST, // f(1) g(1) h(1) ... f(2) g(2) ...
     DIAGONAL,       // f(1) g(2) h(3) f(2) g(3) h(1) f(3) g(1) h(2)
   };
+  enum class FMBSymbolOrders : unsigned int {
+    OCCURENCE,
+    INPUT_USAGE,
+    PREPROCESSED_USAGE
+  };
 
   enum class RandomStrategy : unsigned int {
     ON,
@@ -1624,7 +1629,7 @@ public:
   bool fmbStartWithConstants() const { return _fmbStartWithConstants.actualValue; }
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
   FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
-  bool fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
+  FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
@@ -1993,7 +1998,7 @@ private:
   BoolOptionValue _fmbStartWithConstants;
   FloatOptionValue _fmbSymmetryRatio;
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
-  BoolOptionValue _fmbSymmetryOrderSymbols;
+  ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
   BoolOptionValue _forceIncompleteness;

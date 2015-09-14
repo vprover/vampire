@@ -100,7 +100,6 @@ private:
   bool _useConstantsAsStart;
   unsigned _maxArity;
   float _symmetryRatio;
-  bool _symmetryOrderSymbols;
 };
 
 }

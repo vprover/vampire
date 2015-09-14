@@ -57,7 +57,6 @@ FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb,
   _startModelSize = opt.fmbStartSize();
   _useConstantsAsStart = opt.fmbStartWithConstants();
   _symmetryRatio = opt.fmbSymmetryRatio();
-  _symmetryOrderSymbols = opt.fmbSymmetryOrderSymbols();
 
   _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
   _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
@@ -302,7 +301,36 @@ void FiniteModelBuilderNonIncremental::init()
                         ClauseList::Iterator(_groundClauses)));    
     _sortedSignature = SortInference::apply(cit,del_f,del_p);
 
-    if(_symmetryOrderSymbols){
+    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::PREPROCESSED_USAGE){
+     // reset usage counts
+     for(unsigned f=0;f<env.signature->functions();f++){
+       env.signature->getFunction(f)->resetUsageCnt();
+     }
+     // do them again!
+     {
+       ClauseIterator cit= pvi(getConcatenatedIterator(
+                        ClauseList::Iterator(_clauses),
+                        ClauseList::Iterator(_groundClauses)));
+       while(cit.hasNext()){
+         Clause* c = cit.next();
+         // Can assume c is flat, so no nesting :)
+         for(unsigned i=0;i<c->length();i++){
+           Literal* l = (*c)[i];
+            // Let's only count usage of functions (not predicates) as that's all we use
+           if(l->isEquality() && !l->isTwoVarEquality()){
+             ASS(!l->nthArgument(0)->isVar());
+             ASS(l->nthArgument(1)->isVar());
+             Term* t = l->nthArgument(0)->term();
+             unsigned f = t->functor();
+             env.signature->getFunction(f)->incUsageCnt();
+           }
+         }
+       }
+     }
+    }
+
+    // Fragile, change if extend FMBSymbolOrders
+    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURENCE){
       // Let's try sorting constants and functions in the sorted signature
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
         Stack<unsigned> sortedConstants =  _sortedSignature->sortedConstants[s];

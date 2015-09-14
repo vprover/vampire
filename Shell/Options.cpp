@@ -587,7 +587,9 @@ void Options::Options::init()
     _lookup.insert(&_fmbSymmetryRatio);
     _fmbSymmetryRatio.setExperimental();
 
-    _fmbSymmetryOrderSymbols = BoolOptionValue("fmb_symmetry_order_symbols","fmbsos",false);
+    _fmbSymmetryOrderSymbols = ChoiceOptionValue<FMBSymbolOrders>("fmb_symmetry_symbol_order","fmbsso",
+                                                     FMBSymbolOrders::OCCURENCE,
+                                                     {"occurence","input_usage","preprocessed_usage"}); 
     _fmbSymmetryOrderSymbols.description = "";
     _lookup.insert(&_fmbSymmetryOrderSymbols);
     _fmbSymmetryOrderSymbols.setExperimental();
