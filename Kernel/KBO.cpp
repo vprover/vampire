@@ -291,7 +291,7 @@ void KBO::State::traverse(Term* t1, Term* t2)
  * second lowest to FOOL_TRUE when --fool_ordering is enabled
  */
 KBO::KBO(Problem& prb, const Options& opt)
- : KBOBase(prb, opt), _variableWeight(3), _defaultSymbolWeight(3)
+ : KBOBase(prb, opt)
 {
   CALL("KBO::KBO");
 
@@ -299,8 +299,8 @@ KBO::KBO(Problem& prb, const Options& opt)
     _variableWeight = 3;
     _defaultSymbolWeight = 3;
   } else {
-    _variableWeight = 0;
-    _defaultSymbolWeight = 0;
+    _variableWeight = 1;
+    _defaultSymbolWeight = 1;
   }
 
   _state=new State(this);
