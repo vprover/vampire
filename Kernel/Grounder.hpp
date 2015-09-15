@@ -33,9 +33,6 @@ public:
   SATClause* groundNonProp(Clause* cl, bool use_n, Literal** normLits=0);
   void groundNonProp(Clause* cl, SATLiteralStack& acc, bool use_n, Literal** normLits=0);
 
-  // unused
-  // static void recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause);
-
   LiteralIterator groundedLits();
 
 protected:

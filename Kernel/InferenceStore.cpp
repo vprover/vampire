@@ -65,38 +65,7 @@ vstring InferenceStore::getUnitIdStr(Unit* cs)
   if (!cs->isClause()) {
     return Int::toString(cs->number());
   }
-  vstring suffix=getClauseIdSuffix(cs);
-  if (suffix=="") {
-    return Int::toString(cs->number());
-  }
-  return Int::toString(cs->number())+"_"+suffix;
-}
-
-vstring InferenceStore::getClauseIdSuffix(Unit* cs)
-{
-  CALL("InferenceStore::getClauseIdSuffix");
-
-  FullInference* finf;
-  if (_data.find(cs,finf)) {
-    if (!finf->csId) {
-      finf->csId=_nextClIds.insert(cs->asClause());
-    }
-    return Int::toString(finf->csId);
-  } else {
-      return "";
-  }
-}
-
-/**
- * Increase the reference counter on premise clauses and store @c inf as inference
- * of @c unit.
- */
-void InferenceStore::recordInference(Unit* unit, FullInference* inf)
-{
-  CALL("InferenceStore::recordInference");
-
-  inf->increasePremiseRefCounters();
-  _data.set(unit, inf);
+  return Int::toString(cs->number());
 }
 
 /**
@@ -134,13 +103,8 @@ UnitIterator InferenceStore::getParents(Unit* us, Inference::Rule& rule)
 {
   CALL("InferenceStore::getParents/2");
   ASS_NEQ(us,0);
-  FullInference* finf;
-  //Check if special inference stored in _data
-  if (_data.find(us, finf)) {
-    rule=finf->rule;
-    return pvi( PointerIterator<Unit*>(finf->premises, finf->premises+finf->premCnt) );
-  }
-  //Otherwise the unit itself stores the inference
+
+  // The unit itself stores the inference
   List<Unit*>* res=0;
   Inference* inf=us->inference();
 
@@ -435,9 +399,13 @@ struct InferenceStore::TPTPProofPrinter
   USE_ALLOCATOR(InferenceStore::TPTPProofPrinter);
   
   TPTPProofPrinter(ostream& out, InferenceStore* is)
-  : ProofPrinter(out, is) {}
+  : ProofPrinter(out, is) {
+    unsigned spl = env.signature->addFreshFunction(0,"spl");
+    splitPrefix = env.signature->functionName(spl);
+  }
 
 protected:
+  vstring splitPrefix;
 
   vstring getRole(Inference::Rule rule, Unit::InputType origin)
   {
@@ -482,12 +450,12 @@ protected:
     ASS_G(splits->size(),0);
 
     if (splits->size()==1) {
-      return splitPrefix+Int::toString(splits->sval());
+      return splitPrefix+"_"+Int::toString(splits->sval());
     }
     SplitSet::Iterator sit(*splits);
     vstring res("(");
     while(sit.hasNext()) {
-      res+=splitPrefix+Int::toString(sit.next());
+      res+=splitPrefix+"_"+Int::toString(sit.next());
       if (sit.hasNext()) {
 	res+=" | ";
       }
@@ -592,9 +560,6 @@ protected:
       return;
     case Inference::GENERAL_SPLITTING:
       printSplitting(us);
-      return;
-    case Inference::BDDZATION:
-      printBddize(us);
       return;
     default: ;
     }
@@ -778,56 +743,7 @@ protected:
     out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
   }
 
-  void printBddize(Unit* us)
-  {
-    CALL("InferenceStore::TPTPProofPrinter::printBddize");
-    ASS(us->isClause());
-
-    Inference::Rule rule;
-    UnitIterator parents=_is->getParents(us, rule);
-    ASS_EQ(rule, Inference::BDDZATION);
-
-    ALWAYS(parents.hasNext());
-    Unit* parent=parents.next();
-    ASS(!parents.hasNext());
-
-    Clause* cl=us->asClause();
-    IntList* bddVars=_is->_bddizeVars.get(cl);
-    ASS(bddVars);
-
-
-    vstring premiseIds=tptpUnitId(parent);
-
-    IntList::Iterator vit(bddVars);
-    while(vit.hasNext()) {
-      int var=vit.next();
-      ASS_G(var,0);
-      vstring defId="fbd"+Int::toString(var);
-      premiseIds+=","+defId;
-      if (!printedBddizeDefs.insert(var)) {
-	continue;
-      }
-
-      vstring predName;
-      vstring defStr= predName+" <=> "+bddPrefix+Int::toString(var);
-
-      out<<getFofString(defId, defStr, "introduced("+tptpRuleName(rule)+",[])", rule)<<endl;
-    }
-
-
-    out<<getFofString(tptpUnitId(us), getFormulaString(us),
-	"inference("+tptpRuleName(Inference::DEFINITION_FOLDING)+",[],["+premiseIds+"])", Inference::DEFINITION_FOLDING)<<endl;
-
-  }
-
-  DHSet<int> printedBddizeDefs;
-
-  static const char* bddPrefix;
-  static const char* splitPrefix;
 };
-
-const char* InferenceStore::TPTPProofPrinter::bddPrefix = "$bdd";
-const char* InferenceStore::TPTPProofPrinter::splitPrefix = "$spl";
 
 struct InferenceStore::ProofCheckPrinter
 : public InferenceStore::ProofPrinter
@@ -877,7 +793,6 @@ protected:
     case Inference::EQUALITY_PROXY_REPLACEMENT:
     case Inference::EQUALITY_PROXY_AXIOM1:
     case Inference::EQUALITY_PROXY_AXIOM2:
-    case Inference::BDDZATION:
       return true;
     default:
       return false;

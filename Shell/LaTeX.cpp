@@ -121,31 +121,6 @@ vstring LaTeX::refutationToString(Unit* ref)
 
   while(outKernel.isNonEmpty()) {
     Unit* cs=outKernel.pop();
-    InferenceStore::FullInference* finf;
-    if(is->findInference(cs, finf)) {
-      //InferenceStore::SplittingRecord* srec;
-      //if(finf->rule==Inference::SPLITTING && is->findSplitting(cs, srec)) {
-//	if(!handledKernel.contains(srec->premise)) {
-//	  handledKernel.insert(srec->premise);
-//	  outKernel.push(srec->premise);
-//	}
-//	res+=splittingToString(srec);
-//	continue;
-  //    }
-
-      res+=toStringAsInference(cs, finf);
-
-      for(unsigned i=0;i<finf->premCnt;i++) {
-	Unit* prem=finf->premises[i];
-	ASS(prem!=cs);
-
-	if(!handledKernel.contains(prem)) {
-	  handledKernel.insert(prem);
-	  outKernel.push(prem);
-	}
-      }
-
-    } else {
       Clause* cl= cs->asClause();
       Inference* inf = cl->inference();
 
@@ -169,7 +144,6 @@ vstring LaTeX::refutationToString(Unit* ref)
 	  }
 	}
       }
-    }
   }
 
   while(outShell.isNonEmpty()) {
@@ -561,7 +535,7 @@ vstring LaTeX::toString (TermList* terms,bool single) const
 
 vstring LaTeX::getClauseLatexId(Unit* cs)
 {
-  return Int::toString(cs->number())+"_{"+InferenceStore::instance()->getClauseIdSuffix(cs)+"}";
+  return Int::toString(cs->number());
 }
 
 vstring LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)

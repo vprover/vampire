@@ -161,32 +161,6 @@ LiteralIterator Grounder::groundedLits()
   return _asgn.domain();
 }
 
-/*
-void Grounder::recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause)
-{
-  CALL("Grounder::recordInference");
-  ASS(refutation);
-
-  static Stack<Unit*> prems;
-  prems.reset();
-
-  if(origClause) {
-    prems.push(origClause);
-  }
-  SATInference::collectFOPremises(refutation, prems);
-
-  unsigned premCnt = prems.size();
-
-  InferenceStore::FullInference* inf = new(premCnt) InferenceStore::FullInference(premCnt);
-  inf->rule = Inference::GLOBAL_SUBSUMPTION;
-
-  for(unsigned i=0; i<premCnt; i++) {
-    inf->premises[i] = prems[i];
-  }
-
-  InferenceStore::instance()->recordInference(resultClause, inf);
-}
-*/
 
 ////////////////////////////////
 // GlobalSubsumptionGrounder

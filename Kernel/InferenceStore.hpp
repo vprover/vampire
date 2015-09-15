@@ -63,7 +63,6 @@ public:
     Unit* premises[1];
   };
 
-  void recordInference(Unit* unit, FullInference* inf); // used only by proof simplifier now
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
   void recordIntroducedSymbol(Unit* u, bool func, unsigned number);
 
@@ -74,12 +73,6 @@ public:
   UnitIterator getParents(Unit* us);
 
   vstring getUnitIdStr(Unit* cs);
-  vstring getClauseIdSuffix(Unit* cs);
-
-  bool findInference(Unit* cs, FullInference*& finf)
-  {
-    return _data.find(cs,finf);
-  }
 
 private:
   InferenceStore();
@@ -90,34 +83,16 @@ private:
 
   ProofPrinter* createProofPrinter(ostream& out);
 
-  /**
-   * A map that for a clause specified by its non-prop. part
-   * in Clause object and by prop. part in BDDNode yields an
-   * inference that was used to derive this clause.
-   *
-   * If all premises of a clause have their propositional parts
-   * equal to false, and it is the inference with which the
-   * Clause object was created, then the inference is not stored
-   * here, and the one in clause->inference() is valid.
-   *
-   * Also clauses with propositional parts equal to true are not
-   * being inserted here, as in proofs they're derived by the
-   * "tautology introduction" rule that takes no premises.
-   */
-  DHMap<Unit*, FullInference*> _data;
   DHMultiset<Clause*, PtrIdentityHash> _nextClIds;
 
   DHMap<Unit*, Literal*> _splittingNameLiterals;
 
-
-  DHMap<Clause*, IntList*> _bddizeVars;
 
   /** first is true for function symbols, second is symbol number */
   typedef pair<bool,unsigned> SymbolId;
   typedef Stack<SymbolId> SymbolStack;
   DHMap<unsigned,SymbolStack> _introducedSymbols;
 
-  //BDD* _bdd;
 };
 
 
