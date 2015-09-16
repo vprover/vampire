@@ -46,7 +46,7 @@ InterpretedEvaluation::~InterpretedEvaluation()
 
 
 bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
-	bool& constant, Literal*& res, bool& constantTrue)
+	bool& constant, Literal*& res, bool& constantTrue,Stack<Literal*>& sideConditions)
 {
   CALL("InterpretedEvaluation::evaluateLiteral");
 
@@ -55,7 +55,7 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
     return false;
   }
 
-  return _simpl->evaluate(lit, constant, res, constantTrue);
+  return _simpl->evaluate(lit, constant, res, constantTrue,sideConditions);
 }
 
 Clause* InterpretedEvaluation::simplify(Clause* cl)
@@ -69,11 +69,12 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   bool modified=false;
   newLits.ensure(clen);
   unsigned next=0;
+  Stack<Literal*> sideConditions;
   for(unsigned li=0;li<clen; li++) {
     Literal* lit=(*cl)[li];
     Literal* res;
     bool constant, constTrue;
-    bool litMod=simplifyLiteral(lit, constant, res, constTrue);
+    bool litMod=simplifyLiteral(lit, constant, res, constTrue,sideConditions);
     if(!litMod) {
       newLits[next++]=lit;
       continue;
@@ -93,6 +94,9 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
     return cl;
   }
 
+  Stack<Literal*>::Iterator side(sideConditions);
+  newLits.expand(clen+sideConditions.length());
+  while(side.hasNext()){ newLits[next++]=side.next();}
   int newLength = next;
   Inference* inf = new Inference1(Inference::EVALUATION, cl);
   Unit::InputType inpType = cl->inputType();

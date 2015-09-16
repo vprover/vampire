@@ -17,8 +17,6 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
-#include "Shell/AIGDefinitionIntroducer.hpp"
-#include "Shell/AIGCompressor.hpp"
 #include "Shell/LispLexer.hpp"
 #include "Shell/Options.hpp"
 
@@ -34,9 +32,7 @@ SMTLIB::SMTLIB(const Options& opts, Mode mode)
   _formulas(0),
   _mode(mode),
   _treatIntsAsReals(opts.smtlibConsiderIntsReal()),
-  _defIntroThreshold(opts.aigDefinitionIntroductionThreshold()),
   _fletAsDefinition(opts.smtlibFletAsDefinition()),
-  _introduceAigNames(opts.smtlibIntroduceAIGNames()),
   _introducedSymbolColor(COLOR_TRANSPARENT),
 
   _array1Sort(0),
@@ -1338,10 +1334,6 @@ void SMTLIB::buildFormula()
   }
 
  
-  if(_introduceAigNames) {
-    introduceAigNames(_formulas);
-  }
- 
   _formulas = UnitList::concat(_formulas, _definitions->copy());
 }
 
@@ -1404,40 +1396,6 @@ Formula* SMTLIB::readFormula(LExpr* e)
   return topForm;
 }
 
-void SMTLIB::introduceAigNames(UnitList*& forms)
-{
-  CALL("SMTLIB::introduceAigNames");
-
-    
-  AIGCompressingTransformer act;
-  AIGDefinitionIntroducer adi(_defIntroThreshold);
-
-
-
-  act.apply(forms);
-    
-
-  adi.scan(forms);
-
-  UnitList::DelIterator uit(forms);
-  while(uit.hasNext()) {
-    Unit* u0 = uit.next();
-    ASS(!u0->isClause());
-    Unit* u;
-    if(adi.apply(u0, u)) {
-      if(u) {
-	uit.replace(u);
-      }
-      else {
-	uit.del();
-      }
-    }
-
-  }
-
-  UnitList* newDefs = adi.getIntroducedFormulas();
-  _definitions = UnitList::concat(newDefs, _definitions);
-}
 
 Formula* SMTLIB::nameFormula(Formula* f, vstring fletVarName)
 {

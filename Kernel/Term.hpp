@@ -245,7 +245,6 @@ public:
 
   Term() throw();
   explicit Term(const Term& t) throw();
-  void orderArguments();
   static Term* create(unsigned function, unsigned arity, TermList* args);
   static Term* create(Term* t,TermList* args);
   static Term* createNonShared(Term* t,TermList* args);

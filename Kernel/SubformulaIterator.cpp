@@ -107,7 +107,7 @@ bool SubformulaIterator::hasNext ()
     switch (_reserve->_tag) {
       case Element::Tag::FORMULA_LIST: {
         FormulaList *first = _reserve->_formulaList;
-        if (first->isEmpty()) {
+        if (FormulaList::isEmpty(first)) {
           Element *rest = _reserve->_rest;
           delete _reserve;
           _reserve = rest;

@@ -39,7 +39,7 @@ using namespace Kernel;
 class LaTeX
 {
 public:
-  LaTeX() : _nextNodeNum(0) {}
+  LaTeX() {}
 
   vstring header();
   vstring footer();
@@ -62,21 +62,15 @@ private:
   vstring toString(Formula*) const;
   vstring toString(Formula*, Connective c) const;
 
-  vstring getClauseLatexId(UnitSpec cs);
+  vstring getClauseLatexId(Unit* cs);
 
   //vstring splittingToString(InferenceStore::SplittingRecord*);
   vstring toStringAsInference(Unit*);
-  vstring toStringAsInference(UnitSpec cs, InferenceStore::FullInference* inf);
+  vstring toStringAsInference(Unit* cs, InferenceStore::FullInference* inf);
 
   vstring symbolToString (unsigned num, bool pred) const;
 
 
-  vstring toString(BDDNode*);
-  vstring getBDDVarName(int var);
-
-  Stack<vstring> definitionStack;
-  int _nextNodeNum;
-  DHMap<BDDNode*,vstring> _nodeNames;
 }; // class LaTeX
 
 

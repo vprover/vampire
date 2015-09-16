@@ -47,13 +47,13 @@ public:
 
   void apply(Problem& prb);
   void apply(UnitList*& units);
+  Clause* apply(Clause* cl);
 private:
   void addLocalAxioms(UnitList*& units, unsigned sort);
   void addAxioms(UnitList*& units);
   void addCongruenceAxioms(UnitList*& units);
   bool getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
       Stack<TermList>& vars2, BaseType* symbolType, bool skipSortsWithoutEquality);
-  Clause* apply(Clause* cl);
   Literal* apply(Literal* lit);
   Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, unsigned sort);
 

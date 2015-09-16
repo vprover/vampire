@@ -21,6 +21,7 @@
 #include "Indexing/IndexManager.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Inferences/Instantiation.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -109,6 +110,8 @@ public:
   static SaturationAlgorithm* tryGetInstance() { return s_instance; }
   static void tryUpdateFinalClauseCount();
 
+  Splitter* getSplitter() { return _splitter; }
+
 protected:
   virtual void init();
   virtual MainLoopResult runImpl();
@@ -186,6 +189,7 @@ protected:
   ConsequenceFinder* _consFinder;
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
+  Instantiation* _instantiation;
 
 
   SubscriptionData _passiveContRemovalSData;

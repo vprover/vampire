@@ -1,6 +1,9 @@
 obj/
 doc/
 
+Problems/
+Axioms/
+tptp/
 
 Makefile_depend*
 
@@ -9,6 +12,7 @@ version.cpp
 vampire
 vampire_*
 vtest
+vtest_*
 
 vampire.exe
 vampire_dbg.exe
@@ -24,3 +28,5 @@ valgrind.supp
 .project
 .settings/
 
+*.p
+*.tptp

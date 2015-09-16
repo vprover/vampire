@@ -163,7 +163,7 @@ public:
 
   unsigned arg(unsigned idx) const
   {
-    CALL("PredicateType::arg");
+    CALL("BaseType::arg");
     return (*_args)[idx];
   }
 

@@ -22,26 +22,19 @@ using namespace Lib;
 bool TimeCounter::s_measuring = true;
 bool TimeCounter::s_initialized = false;
 int TimeCounter::s_measuredTimes[__TC_ELEMENT_COUNT];
+int TimeCounter::s_measuredTimesChildren[__TC_ELEMENT_COUNT];
 int TimeCounter::s_measureInitTimes[__TC_ELEMENT_COUNT];
-int TimeCounter::s_measuredCnt = 0;
-
+TimeCounter* TimeCounter::s_currTop = 0;
 
 /**
  * Reinitializes the time counting
  *
  * This is useful when we fork a new the process and want
- * to start counting from begining.
+ * to start counting from the beginning.
  */
 void TimeCounter::reinitialize()
 {
   CALL("TimeCounter::reinitialize");
-
-  Stack<int> measured;
-  for(int i=0; i<__TC_ELEMENT_COUNT; i++) {
-    if(isBeingMeasured(static_cast<TimeCounterUnit>(i))) {
-      measured.push(i);
-    }
-  }
 
   s_initialized=0;
 
@@ -49,10 +42,13 @@ void TimeCounter::reinitialize()
 
   int currTime=env.timer->elapsedMilliseconds();
 
-  while(measured.isNonEmpty()) {
-    int i=measured.pop();
-    s_measureInitTimes[i]=currTime;
+  TimeCounter* counter = s_currTop;
+  while(counter) {
+    s_measureInitTimes[counter->_tcu]=currTime;
+    counter = counter->previousTop;
   }
+  // at least OTHER is running, started now
+  s_measureInitTimes[TC_OTHER] = currTime;
 }
 
 void TimeCounter::initialize()
@@ -69,9 +65,11 @@ void TimeCounter::initialize()
 
   for(int i=0; i<__TC_ELEMENT_COUNT; i++) {
     s_measuredTimes[i]=0;
+    s_measuredTimesChildren[i]=0;
     s_measureInitTimes[i]=-1;
   }
 
+  // OTHER is running, from time 0
   s_measureInitTimes[TC_OTHER]=0;
 }
 
@@ -87,24 +85,16 @@ void TimeCounter::startMeasuring(TimeCounterUnit tcu)
     }
   }
 
-  if(s_measureInitTimes[tcu]!=-1) {
-    //the tcu unit is already being measured
-    _tcu=__TC_NONE;
-    return;
-  }
+  // don't run a timer inside itself
+  ASS_REP(s_measureInitTimes[tcu] == -1,tcu);
+
+  previousTop = s_currTop;
+  s_currTop = this;
 
   int currTime=env.timer->elapsedMilliseconds();
 
   _tcu=tcu;
   s_measureInitTimes[_tcu]=currTime;
-
-  if(!s_measuredCnt) {
-    ASS_NEQ(s_measureInitTimes[TC_OTHER],-1);
-    s_measuredTimes[TC_OTHER]+=currTime-s_measureInitTimes[TC_OTHER];
-    s_measureInitTimes[TC_OTHER]=-1;
-  }
-
-  s_measuredCnt++;
 }
 
 void TimeCounter::stopMeasuring()
@@ -115,29 +105,60 @@ void TimeCounter::stopMeasuring()
     //we did not start measuring
     return;
   }
-  ASS_EQ(s_measureInitTimes[TC_OTHER],-1);
   ASS_GE(s_measureInitTimes[_tcu], 0);
 
   int currTime=env.timer->elapsedMilliseconds();
-  s_measuredTimes[_tcu] += currTime-s_measureInitTimes[_tcu];
-
+  int measuredTime = currTime-s_measureInitTimes[_tcu];
+  s_measuredTimes[_tcu] += measuredTime;
   s_measureInitTimes[_tcu]=-1;
 
-  s_measuredCnt--;
-  if(!s_measuredCnt) {
-    s_measureInitTimes[TC_OTHER]=currTime;
+  if (previousTop) {
+    s_measuredTimesChildren[previousTop->_tcu] += measuredTime;
+  } else {
+    s_measuredTimesChildren[TC_OTHER] += measuredTime;
   }
+
+  ASS_EQ(s_currTop,this);
+  s_currTop = previousTop;
+}
+
+void TimeCounter::snapShot()
+{
+  CALL("TimeCounter::snapShot");
+
+  int currTime=env.timer->elapsedMilliseconds();
+
+  TimeCounter* counter = s_currTop;
+  while(counter) {
+    ASS_GE(s_measureInitTimes[counter->_tcu], 0);
+    int measuredTime = currTime-s_measureInitTimes[counter->_tcu];
+    s_measuredTimes[counter->_tcu] += measuredTime;
+    s_measureInitTimes[counter->_tcu]=currTime;
+
+    if (counter->previousTop) {
+      s_measuredTimesChildren[counter->previousTop->_tcu] += measuredTime;
+    } else {
+      s_measuredTimesChildren[TC_OTHER] += measuredTime;
+    }
+
+    counter = counter->previousTop;
+  }
+
+  int measuredTime = currTime-s_measureInitTimes[TC_OTHER];
+  s_measuredTimes[TC_OTHER] += measuredTime;
+  s_measureInitTimes[TC_OTHER]=currTime;
 }
 
 void TimeCounter::printReport(ostream& out)
 {
-  if (UIHelper::cascMode) {
+  CALL("TimeCounter::printReport");
+
+  snapShot();
+
+  if (UIHelper::szsOutput) {
     out << "% ";
   }
   out << "Time measurement results:" << endl;
-  if (UIHelper::cascMode) {
-    out << "% ";
-  }
   for (int i=0; i<__TC_ELEMENT_COUNT; i++) {
     outputSingleStat(static_cast<TimeCounterUnit>(i), out);
   }
@@ -150,7 +171,7 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     return;
   }
 
-  if (UIHelper::cascMode) {
+  if (UIHelper::szsOutput) {
     out << "% ";
   }
   switch(tcu) {
@@ -253,6 +274,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_INST_GEN_VARIANT_DETECTION:
     out<<"inst gen variant detection";
     break;
+  case TC_INST_GEN_GEN_INST:
+    out<<"inst gen generating instances";
+    break;
   case TC_LRS_LIMIT_MAINTENANCE:
     out<<"LRS limit maintenance";
     break;
@@ -291,7 +315,10 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_MINIMIZING_SOLVER:
     out << "minimizing solver time";
-    break;        
+    break;
+  case TC_SAT_PROOF_MINIMIZATION:
+    out << "sat proof minimization";
+    break;
   case TC_SUPERPOSITION:
     out<<"superposition";
     break;
@@ -316,17 +343,55 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_VARIABLE_SELECTION:
     out << "variable selection";
     break;
+  case TC_DISMATCHING:
+    out << "dismatching";
+    break;
+  case TC_FMB_DEF_INTRO:
+    out << "fmb definition introduction";
+    break;
+  case TC_FMB_SORT_INFERENCE:
+    out << "fmb sort inference"; 
+    break;
+  case TC_FMB_FLATTENING:
+    out << "fmb flattening";
+    break;
+  case TC_FMB_SPLITTING:
+    out << "fmb splitting";
+    break;
+  case TC_FMB_SAT_SOLVING:
+    out << "fmb sat solving";
+    break;
+  case TC_FMB_CONSTRAINT_CREATION:
+    out << "fmb constraint creation";
+    break;
+  case TC_HCVI_COMPUTE_HASH:
+    out << "hvci compute hash";
+    break;
+  case TC_HCVI_INSERT:
+    out << "hvci insert";
+    break;
+  case TC_HCVI_RETRIEVE:
+      out << "hvci retrieve";
+      break;
+  case TC_MINISAT_ELIMINATE_VAR:
+    out << "minisat eliminate var";
+    break;
+  case TC_MINISAT_BWD_SUBSUMPTION_CHECK:
+      out << "minisat bwd subsumption check";
+      break;
   default:
     ASSERTION_VIOLATION;
   }
   out<<": ";
 
-  int time=s_measuredTimes[tcu];
-  if(s_measureInitTimes[tcu]!=-1) {
-    time += env.timer->elapsedMilliseconds()-s_measureInitTimes[tcu];
+  Timer::printMSString(out, s_measuredTimes[tcu]);
+
+  if (s_measuredTimesChildren[tcu] > 0) {
+    out << " ( own ";
+    Timer::printMSString(out, s_measuredTimes[tcu]-s_measuredTimesChildren[tcu]);
+    out << " ) ";
   }
   
-  Timer::printMSString(out, time);
   out<<endl;
 }
 

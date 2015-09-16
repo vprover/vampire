@@ -65,9 +65,12 @@ bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
   static DArray<int> positiveOccurences(128);
   static DArray<int> negativeOccurences(128);
   static DArray<SATClauseList*> occurences(128);
-  positiveOccurences.init(varCnt, 0);
-  negativeOccurences.init(varCnt, 0);
-  occurences.init(varCnt, 0);
+
+  // variables start from 1, but we want to use them as indexes to zero based arrays
+  // current solution: add one extra (unused) slot
+  positiveOccurences.init(varCnt+1, 0);
+  negativeOccurences.init(varCnt+1, 0);
+  occurences.init(varCnt+1, 0);
 
   SATClauseList::Iterator cit(res);
   while(cit.hasNext()) {
@@ -78,6 +81,7 @@ bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
     for(unsigned i=0;i<clen;i++) {
       SATLiteral lit=(*cl)[i];
       unsigned var=lit.var();
+      ASS_G(var,0);
       SATClauseList::push(cl,occurences[var]);
       if(lit.isPositive()) {
 	positiveOccurences[var]++;
@@ -87,7 +91,7 @@ bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
     }
   }
 
-  for(unsigned i=0;i<varCnt;i++) {
+  for(unsigned i=1;i<=varCnt;i++) {
     if( ((positiveOccurences[i]!=0)^(negativeOccurences[i]!=0)) && occurences[i] ) {
       pureVars.push(i);
       env.statistics->satPureVarsEliminated++;
@@ -112,6 +116,7 @@ bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
       for(unsigned i=0;i<clen;i++) {
 	SATLiteral lit=(*cl)[i];
 	unsigned lvar=lit.var();
+	ASS_G(lvar,0);
 	if(lit.isPositive()) {
 	  positiveOccurences[lvar]--;
 	  if( positiveOccurences[lvar]==0 && negativeOccurences[lvar]!=0 && occurences[lvar] ) {
@@ -130,7 +135,8 @@ bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
 
   }
 
-  for(unsigned i=0;i<varCnt;i++) {
+  ASS(SATClauseList::isEmpty(occurences[0]));
+  for(unsigned i=1;i<=varCnt;i++) {
     occurences[i]->destroy();
   }
 
@@ -260,6 +266,7 @@ propagation_start:
   return;
 }
 
+/*
 void Preprocess::createVarProfile(unsigned var, DArray<unsigned>& profile, DArray<SATClauseList*>& clsByVar,
     Set<unsigned>& fixed)
 {
@@ -346,8 +353,6 @@ SATClauseIterator Preprocess::reorderVariablesByResolvability(unsigned varCnt, S
   return permutateVariables(varCnt, pvi( SATClauseList::DestructiveIterator(res) ), permutation.array());
 }
 
-
-
 SATClauseIterator Preprocess::randomizeVariables(unsigned varCnt, SATClauseIterator clauses)
 {
   CALL("Preprocess::randomizeVariables");
@@ -404,6 +409,7 @@ SATClauseIterator Preprocess::reorderVariablesByConflicts(unsigned varCnt, SATCl
 
   return permutateVariables(varCnt, clauses, permutation.array());
 }
+*/
 
 SATClauseIterator Preprocess::permutateVariables(unsigned varCnt, SATClauseIterator clauses,
 	  unsigned* permutation)
@@ -412,11 +418,13 @@ SATClauseIterator Preprocess::permutateVariables(unsigned varCnt, SATClauseItera
 #if VDEBUG
   //we check that we've been indeed given a permutation
   Set<unsigned> tgts;
-  for(unsigned i=0;i<varCnt;i++) {
+  for(unsigned i=0;i<=varCnt;i++) {
     unsigned tgt=permutation[i];
     ASS(!tgts.contains(tgt));
     tgts.insert(tgt);
   }
+  // which must be the identity for the unused 0 slot
+  ASS_EQ(permutation[0],0);
 #endif
   //We don't care about collecting the proof yet, so we can do
   //the variable renaming in-place.
@@ -435,7 +443,6 @@ SATClauseIterator Preprocess::permutateVariables(unsigned varCnt, SATClauseItera
   return pvi( SATClauseList::DestructiveIterator(res) );
 }
 
-
 /**
  * If clause is a tautology, destroy it and return 0.
  * If clause contains duplicate literals, remove them and return
@@ -449,6 +456,8 @@ SATClauseIterator Preprocess::permutateVariables(unsigned varCnt, SATClauseItera
  */
 SATClause* Preprocess::removeDuplicateLiterals(SATClause* cl)
 {
+  CALL("Preprocess::removeDuplicateLiterals(SATClause*)");
+
   unsigned clen=cl->length();
 
   cl->sort();
@@ -495,7 +504,7 @@ SATClause* Preprocess::removeDuplicateLiterals(SATClause* cl)
  */
 SATClauseIterator Preprocess::removeDuplicateLiterals(SATClauseIterator clauses)
 {
-  CALL("Preprocess::removeDuplicateLiterals");
+  CALL("Preprocess::removeDuplicateLiterals(SATClauseIterator)");
   SATClauseList* res=0;
   while(clauses.hasNext()) {
     SATClause* cl=removeDuplicateLiterals(clauses.next());
@@ -513,14 +522,13 @@ SATClauseIterator Preprocess::generate(unsigned literalsPerClause,
 
   unsigned clen=literalsPerClause;
   SATClauseList* res=0;
-  unsigned litContMax=varCnt*2;
 
   unsigned remains=static_cast<unsigned>(varCnt*clausesPerVariable);
   while(remains-->0) {
     SATClause* cl=new(clen) SATClause(clen, true);
 
     for(unsigned i=0;i<clen;i++) {
-      (*cl)[i].setContent(Random::getInteger(litContMax));
+      (*cl)[i].set(Random::getInteger(varCnt)+1,Random::Random::getBit());
     }
 
     cl->sort();

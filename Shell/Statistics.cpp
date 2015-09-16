@@ -39,6 +39,7 @@ using namespace Shell;
 Statistics::Statistics()
   : inputClauses(0),
     inputFormulas(0),
+    hasTypes(false),
     formulaNames(0),
     initialClauses(0),
     splitInequalities(0),
@@ -141,7 +142,7 @@ Statistics::Statistics()
  */
 void Statistics::addCommentIfCASC(ostream& out)
 {
-  if (UIHelper::cascMode) {
+  if (UIHelper::szsOutput) {
     out << "% ";
   }
 } // Statistics::addCommentIfCASC
@@ -386,6 +387,12 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Solving";
   case SAT_SOLVING:
 	  return "SAT Solving";
+  case FMB_PREPROCESSING:
+          return "Finite model building preprocessing";
+  case FMB_CONSTRAINT_GEN:
+          return "Finite model building constraint generation";
+  case FMB_SOLVING:
+          return "Finite model building SAT solving";
   default:
     ASSERTION_VIOLATION;
     return "Invalid ExecutionPhase value";

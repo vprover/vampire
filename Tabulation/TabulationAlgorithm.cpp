@@ -223,7 +223,7 @@ Clause* TabulationAlgorithm::processSubsumedGoalLiterals(Clause* goal)
   return res;
 }
 
-Clause* TabulationAlgorithm::generateGoal(Clause* cl, Literal* resolved, int parentGoalAge, ResultSubstitution* subst, bool result)
+Clause* TabulationAlgorithm::generateGoal(Clause* cl, Literal* resolved, unsigned parentGoalAge, ResultSubstitution* subst, bool result)
 {
   CALL("TabulationAlgorithm::generateGoal");
 
@@ -250,7 +250,7 @@ Clause* TabulationAlgorithm::generateGoal(Clause* cl, Literal* resolved, int par
   Clause* res = Clause::fromStack(lits, Unit::CONJECTURE,
       new Inference(Inference::NEGATED_CONJECTURE));
 
-  int newAge = max(cl->age(), parentGoalAge)+1;
+  unsigned newAge = max(cl->age(), parentGoalAge)+1;
   res->setAge(newAge);
 
   res = removeDuplicateLiterals(res);

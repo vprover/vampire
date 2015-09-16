@@ -67,11 +67,11 @@ using namespace std;
 
 bool UIHelper::s_haveConjecture=false;
 
-bool UIHelper::unitSpecNumberComparator(UnitSpec us1, UnitSpec us2)
+bool UIHelper::unitNumberComparator(Unit* us1, Unit* us2)
 {
-  CALL("unitSpecNumberComparator");
+  CALL("UIHelper::unitNumberComparator");
 
-  return us1.unit()->number() < us2.unit()->number();
+  return us1->number() < us2->number();
 }
 
 /**
@@ -81,7 +81,7 @@ bool UIHelper::unitSpecNumberComparator(UnitSpec us1, UnitSpec us2)
  */
 void UIHelper::addCommentIfCASC(ostream& out)
 {
-  if (cascMode) {
+  if (szsOutput) {
     out << "% ";
   }
 } // UIHelper::addCommentIfCASC
@@ -212,6 +212,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 	  NOT_IMPLEMENTED;
 	  break;
   }
+/*
   case Options::InputSyntax::MPS:
   case Options::InputSyntax::NETLIB:
   case Options::InputSyntax::HUMAN:
@@ -219,6 +220,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     cout << "This is not supported yet";
     NOT_IMPLEMENTED;
    }
+*/
    break;
   }
 
@@ -252,7 +254,7 @@ void UIHelper::outputResult(ostream& out)
     addCommentIfCASC(out);
     out << "Refutation found. Thanks to "
 	<< env.options->thanks() << "!\n";
-    if (cascMode) {
+    if (szsOutput) {
       out << "% SZS status " << ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
 	  << " for " << env.options->problemName() << endl;
     }
@@ -261,26 +263,24 @@ void UIHelper::outputResult(ostream& out)
       AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
     }
     if (env.options->proof() != Options::Proof::OFF) {
-      if (cascMode) {
+      if (szsOutput) {
 	out << "% SZS output start Proof for " << env.options->problemName() << endl;
       }
       InferenceStore::instance()->outputProof(out, env.statistics->refutation);
-      if (cascMode) {
+      if (szsOutput) {
 	out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
     }
     if (env.options->showInterpolant()==Options::InterpolantMode::ON) {
       ASS(env.statistics->refutation->isClause());
+      Interpolants::beatifyRefutation(env.statistics->refutation);
+
       Formula* interpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       out << "Interpolant: " << interpolant->toString() << endl;
     }
     if (env.options->showInterpolant()==Options::InterpolantMode::MINIMIZED) {
       ASS(env.statistics->refutation->isClause());
-//      {
-//	Formula* oldInterpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-//      }
-//      Formula* interpolant=InterpolantMinimizer().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-//      out << "Interpolant: " << interpolant->toString() << endl;
+      Interpolants::beatifyRefutation(env.statistics->refutation);
 
       Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
@@ -290,24 +290,24 @@ void UIHelper::outputResult(ostream& out)
       
       SMTPrinter printer;
       out << "Old interpolant (without minimization): " << TPTPPrinter::toString(oldInterpolant) << endl;
-      out << "Old interpolant in SMT format (without minimization): "; 
-      printer.smtPrint(oldInterpolant,out);
+      //out << "Old interpolant in SMT format (without minimization): ";
+      //printer.smtPrint(oldInterpolant,out);
       out << endl;
         
       out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
-      out << "Symbol-weight minimized interpolant in SMT format: "; 
-      printer.smtPrint(interpolant,out);
+      //out << "Symbol-weight minimized interpolant in SMT format: ";
+      //printer.smtPrint(interpolant,out);
       out<<endl;
 
       out << "Atom-count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
-      out << "Atom-count minimized interpolant in SMT format: "; 
-      printer.smtPrint(cntInterpolant,out);
+      //out << "Atom-count minimized interpolant in SMT format: ";
+      //printer.smtPrint(cntInterpolant,out);
       out<<endl;
         
         
       out << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
-      out << "Quantifiers minimized interpolant in SMT format: "; 
-      printer.smtPrint(quantInterpolant,out);
+      //out << "Quantifiers minimized interpolant in SMT format: ";
+      //printer.smtPrint(quantInterpolant,out);
       out<<endl;
 
     }
@@ -320,7 +320,7 @@ void UIHelper::outputResult(ostream& out)
     }
     break;
   case Statistics::TIME_LIMIT:
-    if (cascMode) {
+    if (szsOutput) {
       out << "% (" << getpid() << ')';
     }
     out << "Time limit reached!\n";
@@ -366,16 +366,16 @@ void UIHelper::outputSatisfiableResult(ostream& out)
 
   out << "Satisfiable!\n";
 #if SATISFIABLE_IS_SUCCESS
-  if (cascMode && !satisfiableStatusWasAlreadyOutput) {
+  if (szsOutput && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;
   }
   if (!env.statistics->model.empty()) {
-    if (cascMode) {
+    if (szsOutput) {
 	out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
     }
     out << env.statistics->model;
-    if (cascMode) {
+    if (szsOutput) {
 	out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
     }
   }

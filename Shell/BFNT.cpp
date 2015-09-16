@@ -20,7 +20,7 @@
 #include "Property.hpp"
 #include "BFNT.hpp"
 
-#define BNFT_SHOW_TRANSFORMED 0
+#define BNFT_SHOW_TRANSFORMED 1
 // uncomment this to show the generated problem in TPTP
 #define BNFT_TPTP_TRANSFORMED 0
 
@@ -53,21 +53,14 @@ void BFNT::apply(UnitList* units)
 {
   CALL("BFNT::apply(UnitList*&)");
 
-#if BNFT_TPTP_TRANSFORMED
-    cout << "%\n% Flattened clauses \n%\n";
-#endif
-
   // create equality proxy symbol
   UnitList::Iterator uit(units);
   while (uit.hasNext()) {
     Clause* cl=static_cast<Clause*>(uit.next());
     ASS(cl->isClause());
-#if BNFT_SHOW_TRANSFORMED
-    cout << "C: " << cl->toString() << "\n";
-#endif
     _flat.push(apply(cl));
 #if BNFT_SHOW_TRANSFORMED
-    cout << "F: " << _flat.top()->toString() << "\n";
+    cout << "Flat: " << _flat.top()->toString() << "\n";
 #endif
 #if BNFT_TPTP_TRANSFORMED
     cout << "%\n% " << cl->toString() << "\n%\n";
@@ -281,7 +274,7 @@ Clause* BFNT::resolveNegativeVariableEqualities(Clause* cl)
     }
   }
 #if BNFT_SHOW_TRANSFORMED
-  cout << "ER: " << cl->toString() << "\n";
+  cout << "EqRes: " << cl->toString() << "\n";
 #endif
   return cl;
 } // BFNT::resolveNegativeVariableEqualities
@@ -305,19 +298,11 @@ UnitList* BFNT::create(unsigned modelSize)
   CALL("BFNT::create");
   ASS(modelSize > 0);
 
-#if BNFT_TPTP_TRANSFORMED
-  cout << "%\n% Axioms for models of size " << modelSize << "\n%\n";
-#endif
-
   unsigned len = _constants.length();
   while (len < modelSize) {
     _constants.push(Term::createConstant(Int::toString(++len)));
   }
   UnitList* result = 0;
-
-#if BNFT_TPTP_TRANSFORMED
-  cout << "%\n% Definitions of inequalities \n%\n";
-#endif
 
   // create inequalities between constants
   Term** cs = _constants.begin();
@@ -330,7 +315,7 @@ UnitList* BFNT::create(unsigned modelSize)
       Clause* cls = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::BFNT_DISTINCT));
       (*cls)[0] = Literal::create2(_proxy,false,c1,c2);
 #if BNFT_SHOW_TRANSFORMED
-      cout << "EP: " << cls->toString() << "\n";
+      cout << "EqProxy: " << cls->toString() << "\n";
 #endif
 #if BNFT_TPTP_TRANSFORMED
       cout << TPTP::toString(cls) << "\n";
@@ -338,10 +323,6 @@ UnitList* BFNT::create(unsigned modelSize)
       result = new UnitList(cls,result);
     }
   }
-
-#if BNFT_TPTP_TRANSFORMED
-  cout << "%\n% Totality axioms\n%\n";
-#endif
 
   // create totality axioms
   Map<unsigned,unsigned>::Iterator preds(_preds);
@@ -376,6 +357,9 @@ UnitList* BFNT::create(unsigned modelSize)
 			  result);
 #if BNFT_TPTP_TRANSFORMED
     cout << TPTP::toString(result->head()) << "\n";
+#endif
+#if BNFT_SHOW_TRANSFORMED
+    cout << "Tot: " << result->head()->toString() << "\n";
 #endif
   }
   Stack<Clause*>::Iterator sit(_flat);

@@ -202,6 +202,10 @@ SineSelector::SineSelector(const Options& opt)
 {
   CALL("SineSelector::SineSelector/0");
 
+  if(opt.sineSelection()==Options::SineSelection::PRIORITY){
+    env.clausePriorities = new DHMap<const Unit*,unsigned>();
+  }
+
   init();
 }
 
@@ -234,6 +238,9 @@ void SineSelector::updateDefRelation(Unit* u)
   SymIdIterator sit=_symExtr.extractSymIds(u);
 
   if (!sit.hasNext()) {
+    if(env.clausePriorities){
+      env.clausePriorities->insert(u,1);
+    }
     _unitsWithoutSymbols.push(u);
     return;
   }
@@ -335,6 +342,11 @@ void SineSelector::perform(UnitList*& units)
       selected.insert(u);
       selectedStack.push(u);
       newlySelected.push_back(u);
+
+      if(env.clausePriorities && !env.clausePriorities->find(u)){
+        env.clausePriorities->insert(u,1);
+        //cout << "set priority for " << u->toString() << " as " << (1) << endl;
+      }
     }
   }
 
@@ -348,10 +360,12 @@ void SineSelector::perform(UnitList*& units)
     if (!u) {
       //next selected formulas will be one step further from the original formulas
       depth++;
+      
       if (_depthLimit && depth==_depthLimit) {
 	break;
       }
       ASS(!_depthLimit || depth<_depthLimit);
+      env.maxClausePriority++;
 
       if (newlySelected.isNonEmpty()) {
 	//we must push another mark if we're not done yet
@@ -372,6 +386,13 @@ void SineSelector::perform(UnitList*& units)
 	selected.insert(du);
 	selectedStack.push(du);
 	newlySelected.push_back(du);
+
+        // If in LTB mode we may already have added du with a priority
+        if(env.clausePriorities && !env.clausePriorities->find(du)){
+          env.clausePriorities->insert(du,env.maxClausePriority);
+          //cout << "set priority for " << du->toString() << " as " << env.maxClausePriority << endl;
+        }
+
       }
       //all defining units for the symbol sym were selected,
       //so we can remove them from the relation
@@ -390,6 +411,29 @@ void SineSelector::perform(UnitList*& units)
   while (selectedStack.isNonEmpty()) {
     UnitList::push(selectedStack.pop(), units);
   }
+
+
+#if VDEBUG
+if(env.clausePriorities){
+  UnitList::Iterator selIt(units);
+  bool allSelectedProcessed = true;
+  //bool maxSeen = false;
+  while (selIt.hasNext()) {
+    Unit* u = selIt.next();
+    if(!env.clausePriorities->find(u)){
+      //cout << "Missing " << u->toString() << endl;
+      allSelectedProcessed=false;
+    }
+    else{
+      //if(env.maxClausePriority == env.clausePriorities->get(u)){
+      //  maxSeen=true;
+      //}
+    } 
+  }
+  ASS(allSelectedProcessed);
+  //ASS(maxSeen);
+}
+#endif
 
 #if SINE_PRINT_SELECTED
   UnitList::Iterator selIt(units);
@@ -440,6 +484,11 @@ void SineTheorySelector::updateDefRelation(Unit* u)
   SymIdIterator sit0=_symExtr.extractSymIds(u);
 
   if (!sit0.hasNext()) {
+
+    if(env.clausePriorities){
+      env.clausePriorities->insert(u,1);
+    }
+
     _unitsWithoutSymbols.push(u);
     return;
   }

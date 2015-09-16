@@ -48,7 +48,7 @@ public:
   }
 
   virtual bool canEvaluate(Interpretation interp) = 0;
-  virtual bool tryEvaluateFunc(Term* trm, Term*& res) { return false; }
+  virtual bool tryEvaluateFunc(Term* trm, TermList& res) { return false; }
   virtual bool tryEvaluatePred(Literal* trm, bool& res)  { return false; }
 };
 
@@ -72,7 +72,7 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
     return interp==Interpretation::EQUAL; 
   }
 
-  virtual bool tryEvaluateFunc(Term* trm, Term*& res)
+  virtual bool tryEvaluateFunc(Term* trm, TermList& res)
   {
     ASSERTION_VIOLATION; // EQUAL is a predicate, not a function!
   }
@@ -143,7 +143,7 @@ public:
     return theory->isConversionOperation(interp);
   }
 
-  virtual bool tryEvaluateFunc(Term* trm, Term*& res)
+  virtual bool tryEvaluateFunc(Term* trm, TermList& res)
   {
     CALL("InterpretedLiteralEvaluator::ConversionEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
@@ -163,7 +163,7 @@ public:
 	    return false;
 	  }
 	  RationalConstantType resNum(arg,1);
-	  res = theory->representConstant(resNum);
+	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
       case Theory::INT_TO_REAL:
@@ -173,7 +173,7 @@ public:
 	    return false;
 	  }
 	  RealConstantType resNum(RationalConstantType(arg,1));
-	  res = theory->representConstant(resNum);
+	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
       case Theory::RAT_TO_INT:
@@ -183,7 +183,7 @@ public:
 	    return false;
 	  }
 	  IntegerConstantType resNum = IntegerConstantType::floor(arg);
-	  res = theory->representConstant(resNum);
+	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
       case Theory::RAT_TO_REAL:
@@ -193,7 +193,7 @@ public:
 	    return false;
 	  }
 	  RealConstantType resNum(arg);
-	  res = theory->representConstant(resNum);
+	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
       case Theory::REAL_TO_INT:
@@ -203,7 +203,7 @@ public:
 	    return false;
 	  }
 	  IntegerConstantType resNum = IntegerConstantType::floor(RationalConstantType(arg));
-	  res = theory->representConstant(resNum);
+	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
       case Theory::REAL_TO_RAT:
@@ -214,7 +214,7 @@ public:
 	    return false;
 	  }
 	  RationalConstantType resNum(arg);
-	  res = theory->representConstant(resNum);
+	  res = TermList(theory->representConstant(resNum));
 	return true;
       }
 
@@ -243,6 +243,9 @@ public:
 
   TypedEvaluator() {}
 
+  virtual bool isOne(T arg) = 0;
+  virtual bool isDivision(Interpretation interp) = 0;
+
   virtual bool canEvaluate(Interpretation interp)
   {
     CALL("InterpretedLiteralEvaluator::TypedEvaluator::canEvaluate");
@@ -261,10 +264,12 @@ public:
     return opSort==T::getSort();
   }
 
-  virtual bool tryEvaluateFunc(Term* trm, Term*& res)
+  virtual bool tryEvaluateFunc(Term* trm, TermList& res)
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
+
+    //cout << "try evaluate " << trm->toString() << endl;
 
     try {
       Interpretation itp = theory->interpretFunction(trm);
@@ -277,7 +282,16 @@ public:
       T resNum;
       TermList arg1Trm = *trm->nthArgument(0);
       T arg1;
-      if (!theory->tryInterpretConstant(arg1Trm, arg1)) { return false; }
+      if (!theory->tryInterpretConstant(arg1Trm, arg1)) { 
+        //Special case where itp is division and arg2 is '1'
+        T arg2;
+        if(arity==2 && theory->tryInterpretConstant(*trm->nthArgument(1),arg2) 
+                    && isOne(arg2) && isDivision(itp)){
+          res = arg1Trm;
+          return true;
+        }
+        return false; 
+      }
       if (arity==1) {
 	if (!tryEvaluateUnaryFunc(itp, arg1, resNum)) { return false;}
       }
@@ -287,11 +301,12 @@ public:
 	if (!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
 	if (!tryEvaluateBinaryFunc(itp, arg1, arg2, resNum)) { return false;}
       }
-      res = theory->representConstant(resNum);
+      res = TermList(theory->representConstant(resNum));
       return true;
     }
     catch(ArithmeticException)
     {
+       //cout << "ArithmeticException" << endl;
       return false;
     }
   }
@@ -350,6 +365,10 @@ protected:
 class InterpretedLiteralEvaluator::IntEvaluator : public TypedEvaluator<IntegerConstantType>
 {
 protected:
+
+  virtual bool isOne(IntegerConstantType arg){ return arg.toInt()==1;}
+  virtual bool isDivision(Interpretation interp){ return interp==Theory::INT_DIVIDE; }
+
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
     CALL("InterpretedLiteralEvaluator::IntEvaluator::tryEvaluateUnaryFunc");
@@ -451,6 +470,9 @@ protected:
 class InterpretedLiteralEvaluator::RatEvaluator : public TypedEvaluator<RationalConstantType>
 {
 protected:
+  virtual bool isOne(RationalConstantType arg) { return arg.numerator()==arg.denominator();}
+  virtual bool isDivision(Interpretation interp){ return interp==Theory::RAT_DIVIDE;}
+
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
     CALL("InterpretedLiteralEvaluator::RatEvaluator::tryEvaluateUnaryFunc");
@@ -533,6 +555,9 @@ protected:
 class InterpretedLiteralEvaluator::RealEvaluator : public TypedEvaluator<RealConstantType>
 {
 protected:
+  virtual bool isOne(RealConstantType arg) { return arg.numerator()==arg.denominator();}
+  virtual bool isDivision(Interpretation interp){ return interp==Theory::REAL_DIVIDE;}
+
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
     CALL("InterpretedLiteralEvaluator::RealEvaluator::tryEvaluateUnaryFunc");
@@ -646,7 +671,7 @@ InterpretedLiteralEvaluator::~InterpretedLiteralEvaluator()
 }
 
 /**
- * This checks if a literal is 'balancable' i.e. can be put into the form term=constant
+ * This checks if a literal is 'balancable' i.e. can be put into the form term=constant or term=var
  * 
  * This is still an experimental process and will be expanded/reworked later
  *
@@ -696,10 +721,12 @@ bool InterpretedLiteralEvaluator::balancable(Literal* lit)
  * @author Giles
  * @since 11/11/14
  */
-bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
+bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Literal*>& sideConditions)
 {
   CALL("InterpretedLiteralEvaluator::balance");
   ASS(balancable(lit));
+
+  //cout << "try balance " << lit->toString() << endl;
 
   ASS(theory->isInterpretedPredicate(lit->functor()));
 
@@ -756,8 +783,9 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
     // i.e. f(t,c1),t,c2 => f^(c1,c2) ... where f^ is f inverted and the ordering of its 
     //      args are decided in invertInterptedFunction
     TermList rep; 
-    if(!theory->invertInterpretedFunction(t2.term(),non_constant,t1,rep)){
+    if(!theory->invertInterpretedFunction(t2.term(),non_constant,t1,rep,sideConditions)){
       // if no inverse then return false... cannot balance
+      //cout << "Fail due to lack of inverse" << endl;
       return false;
     }
 
@@ -771,17 +799,9 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
   // We have rearranged things so that t2 is a non-constant term and t1 is a number
   // of interprted functions applied to some constants. By evaluating t1 we will
   //  get a constant (unless evaluation is not possible)
-  Evaluator* funcEv = getFuncEvaluator(t1.term()->functor());
-  ASS(funcEv);
-  Term* res;
-  if(!funcEv->tryEvaluateFunc(t1.term(),res)){
-    // if the evaluation returns false then there must be something like division by zero
-    // TODO: should this tell us more than it was not balanced?
-    return false;
-  }
 
-  TermList new_args[] = {TermList(res),t2}; 
-  resLit = Literal::create(lit,new_args);
+  TermList new_args[] = {t1,t2}; 
+  resLit = TermTransformer::transform(Literal::create(lit,new_args));
   return true;
 }
 
@@ -792,7 +812,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
  * isConstant is true if the literal predicate evaluates to a constant value
  * resConst is set iff isConstant and gives the constant value (true/false) of resLit 
  */
-bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst)
+bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions)
 {
   CALL("InterpretedLiteralEvaluator::evaluate");
 
@@ -801,11 +821,13 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
   resLit = TermTransformer::transform(lit);
 
+  //cout << "transformed " << resLit->toString() << endl;
+
   // If it can be balanced we balance it
   // A predicate on constants will not be balancable
   if(balancable(resLit)){
       Literal* new_resLit=resLit;
-      bool balance_result = balance(resLit,new_resLit);
+      bool balance_result = balance(resLit,new_resLit,sideConditions);
       ASS(balance_result || resLit==new_resLit);
       resLit=new_resLit;
   }
@@ -851,9 +873,9 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 
   Evaluator* funcEv = getFuncEvaluator(func);
   if (funcEv) {
-    Term* res;
+    TermList res;
     if (funcEv->tryEvaluateFunc(t, res)) {
-	return TermList(res);
+	return res;
     }
   }
   return trm;

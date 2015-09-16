@@ -70,17 +70,6 @@ public:
   inline void makeKept() { _kept=true; }
   inline void setKept(bool kept) { _kept=kept; }
 
-//  inline unsigned conflicts() const { return _conflicts; }
-//  inline void incConflicts() { _conflicts++; }
-
-//  void resetSATAlgorithmData() {
-//    _genCounter=0;
-//    _conflicts=0;
-//  }
-
-//  unsigned getGenCounter() { ASS_NEQ(_genCounter, 0xFFFFFFFF); return _genCounter; }
-//  void incGenCounter() { ASS_NEQ(_genCounter, 0xFFFFFFFF); _genCounter++; }
-
   /** Return a pointer to the array of literals. */
   inline SATLiteral* literals() { return _literals; }
 
@@ -89,9 +78,7 @@ public:
 
   ActivityType& activity() { return _activity; }
 
-
   void sort();
-
 
   void destroy();
 

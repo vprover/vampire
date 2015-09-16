@@ -198,10 +198,12 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 
   if(greater) {
     if(adding) {
+      // true here means get complementary, false means do not get subs
       SLQueryResultIterator vit=_partialIndex->getVariants(greater,true,false);
       while(vit.hasNext()) {
         SLQueryResult qr=vit.next();
 
+        // true here means complementary
         if(!MLVariant::isVariant(c ,qr.clause, true)) {
           continue;
         }
@@ -338,18 +340,22 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
  *
  * @author Giles
  */
-
 void DismatchingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("DismatchingLiteralIndex::handleClause");
 
-  // Not sure what these timecounters are for - check and put the
-  // appropriate thing here
-  //TimeCounter tc(??);
+  //TODO add time counter for dismatching
 
   unsigned clen=c->length();
   for(unsigned i=0; i<clen; i++) {
     handleLiteral((*c)[i], c, adding);
   }
 }
+void DismatchingLiteralIndex::addLiteral(Literal* l)
+{
+  CALL("DismatchingLiteralIndex::addLiteral");
+  //TODO is it safe to pass 0 here?
+  handleLiteral(l,0,true);
+}
+
 }

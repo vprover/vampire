@@ -50,6 +50,8 @@ public:
     NEGATED_CONJECTURE = 3,
     /** Vampire-only, for the consequence-finding mode */
     CLAIM = 4,
+    /** Used in parsing and preprocessing for extensionality clause tagging */
+    EXTENSIONALITY_AXIOM = 5,
   };
 
   static InputType getInputType(UnitList* units);
@@ -58,12 +60,15 @@ public:
   void destroy();
   vstring toString() const;
   unsigned varCnt();
+  unsigned getPriority() const;
 
-  vstring inferenceAsString(BDDNode* propPart=0) const;
+  vstring inferenceAsString() const;
 
   /** True if a clause unit */
   bool isClause() const
   { return _kind == CLAUSE; }
+
+  Clause* asClause();
 
   /** return the input type of the unit */
   InputType inputType() const
@@ -79,6 +84,8 @@ public:
   Inference* inference() { return _inference; }
   /** Return the inference of this unit */
   const Inference* inference() const { return _inference; }
+  /** Set a new inference object (the old one not destroyed). */
+  void setInference(Inference* inf) { _inference = inf; }
   /** the input unit number this clause is generated from, -1 if none */
   int adam() const {return _adam;}
 
@@ -98,8 +105,10 @@ public:
     _inheritedColor = color;
   } // setInheritedColor
 
+  void invalidateInheritedColor() { _inheritedColor = COLOR_INVALID; }
+
   Color getColor();
-  Formula* getFormula();//BDDNode* prop);
+  Formula* getFormula();
   void collectAtoms(Stack<Literal*>& acc);
   void collectPredicates(Stack<unsigned>& acc);
 
@@ -140,7 +149,7 @@ protected:
   /** Kind  */
   unsigned _kind : 1;
   /** input type  */
-  unsigned _inputType : 2;
+  unsigned _inputType : 3;
   /** used in interpolation to denote parents of what color have been used */
   unsigned _inheritedColor : 2;
   /** true if the unit is read from a TPTP included file  */

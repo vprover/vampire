@@ -13,34 +13,21 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Problem.hpp"
 
-#include "AIG.hpp"
-#include "AIGCompressor.hpp"
-#include "AIGConditionalRewriter.hpp"
-#include "AIGDefinitionIntroducer.hpp"
-#include "AIGInliner.hpp"
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
 #include "DistinctGroupExpansion.hpp"
-#include "EPRInlining.hpp"
-#include "EPRSkolem.hpp"
 #include "EqResWithDeletion.hpp"
-#include "EqualityPropagator.hpp"
 #include "EqualityProxy.hpp"
-#include "EquivalenceDiscoverer.hpp"
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
-#include "HornRevealer.hpp"
 #include "InequalitySplitting.hpp"
 #include "InterpretedNormalizer.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
 #include "NNF.hpp"
 #include "Options.hpp"
-#include "PDInliner.hpp"
-#include "PDMerger.hpp"
 #include "PredicateDefinition.hpp"
-#include "PredicateIndexIntroducer.hpp"
 #include "Preprocess.hpp"
 #include "Property.hpp"
 #include "Rectify.hpp"
@@ -50,6 +37,7 @@
 #include "Statistics.hpp"
 #include "FOOLElimination.hpp"
 #include "TheoryAxioms.hpp"
+#include "TheoryFlattening.hpp"
 #include "TrivialPredicateRemover.hpp"
 
 #include "UIHelper.hpp"
@@ -82,14 +70,14 @@ using namespace Shell;
 #if GNUMP
 /**
  * Bound propagation preprocessing steps. Takes as argumet @c constraints the list of constraints
- * 
+ *
  */
 void Preprocess::preprocess(ConstraintRCList*& constraints)
 {
   CALL("Preprocess::preprocess(ConstraintRCList *& )");
 
   unfoldEqualities(constraints);
-  
+
   ConstantRemover constantRemover;
   EquivalentVariableRemover evRemover;
   HalfBoundingRemover hbRemover;
@@ -110,7 +98,7 @@ void Preprocess::preprocess(ConstraintRCList*& constraints)
     }
     while(anyChange);
     anyChange |= subsRemover.apply(constraints);
-  } 
+  }
   while(anyChange);
 } // Preprocess::preprocess ()
 
@@ -127,12 +115,12 @@ void Preprocess::unfoldEqualities(ConstraintRCList*& constraints)
     if (c.type()!=CT_EQ) {
       continue;
     }
-   
+
     ConstraintRCPtr gc(Constraint::clone(c));
     gc->setType(CT_GREQ);
     ConstraintRCPtr lc(Constraint::clone(*gc));
     lc->multiplyCoeffs(CoeffNumber::minusOne());
-    
+
     cit.replace(gc);
     cit.insert(lc);
   }
@@ -153,41 +141,16 @@ void Preprocess::preprocess (Problem& prb)
 {
   CALL("Preprocess::preprocess");
 
-  // before any preprocessing, row variables must be expanded
-//   if (RowVariable::occurredInInput &&
-//       _options.rowVariableMaxLength() >= 0) {
-//     RowVariable rv(_options.rowVariableMaxLength());
-//     UnitChain::DelIterator iterator (_problem.giveUnits());
-//     while (iterator.hasNext()) {
-//       Unit u (iterator.next());
-//       if (u.unitType() == FORMULA) {
-// 	UnitList us;
-// 	if (rv.expandRowVariables(u,us)) {
-// 	  ASS(us.isNonEmpty());
-// 	  if (us.head() != u) { // there was a row variable expansion
-// 	    VL::Iterator<Unit> newUnits(us);
-// 	    while (newUnits.hasNext()) {
-//   	      iterator.insert(newUnits.next());
-// 	    }
-// 	    iterator.del();
-// 	  }
-// 	}
-// 	else { // non-expandable row variable found
-// 	  iterator.del();
-// 	}
-//       }
-//     }
-//   }
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "preprocessing started" << std::endl;
     UnitList::Iterator uit(prb.units());
     while(uit.hasNext()) {
       Unit* u = uit.next();
-      env.out() << "[PP] input: " << u->toString() << std::endl;     
+      env.out() << "[PP] input: " << u->toString() << std::endl;
     }
   }
-  
+
   //we ensure that in the beginning we have a valid property object, to
   //know that the queries to uncertain problem properties will be precise
   //enough
@@ -218,7 +181,7 @@ void Preprocess::preprocess (Problem& prb)
     env.statistics->phase=Statistics::NORMALIZATION;
     if (env.options->showPreprocessing())
       env.out() << "normalization" << std::endl;
-    
+
     Normalisation().normalise(prb);
   }
 
@@ -238,13 +201,18 @@ void Preprocess::preprocess (Problem& prb)
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
-  if (prb.hasInterpretedOperations() && _options.theoryAxioms()) {
+  // If there are interpreted operations
+  if (prb.hasInterpretedOperations()){
+    // Normalize them e.g. replace $greater with not $lesseq
     InterpretedNormalizer().apply(prb);
-    env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
-    if (env.options->showPreprocessing())
-      env.out() << "adding theory axioms" << std::endl;
+    // Add theory axioms if needed
+    if( _options.theoryAxioms()){
+      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+      if (env.options->showPreprocessing())
+        env.out() << "adding theory axioms" << std::endl;
 
-    TheoryAxioms().apply(prb);
+      TheoryAxioms().apply(prb);
+    }
   }
 
   // stop here if clausification is not required
@@ -259,137 +227,16 @@ void Preprocess::preprocess (Problem& prb)
     preprocess1(prb);
   }
 
-  // discover known theories
-//   TheoryFinder theoryFinder(_problem,0);
-//   theoryFinder.search();
-
-  if ( _options.equalityPropagation() && prb.mayHaveEquality()) {
-    //Another equality propagation is between preprocess2 and preprocess3.
-    //the ENNF form there allows us to propagate more equalities.
-    //Here we're trying to propagate equalities as well because that might
-    //reveal some more formulas to be definitions.
-    env.statistics->phase=Statistics::EQUALITY_PROPAGATION;
-    if (env.options->showPreprocessing())
-      env.out() << "equality propagation" << std::endl;
-    
-    EqualityPropagator().apply(prb);
-  }
-
-  if (_options.predicateIndexIntroduction()) {
-    if (env.options->showPreprocessing())
-      env.out() << "predicate index introduction" << std::endl;
-
-    PredicateIndexIntroducer().apply(prb);
-  }
-
-  if (_options.predicateDefinitionInlining()!=Options::InliningMode::OFF) {
-    env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
-    if (env.options->showPreprocessing())
-      env.out() << "inlining" << std::endl;
-
-    PDInliner pdInliner(_options.predicateDefinitionInlining()==Options::InliningMode::AXIOMS_ONLY,
-	_options.predicateDefinitionInlining()==Options::InliningMode::NON_GROWING);
-    pdInliner.apply(prb);
-
-    if (_options.flattenTopLevelConjunctions()) {
-      if (env.options->showPreprocessing())
-        env.out() << "flattening top-level conjunctions" << std::endl;
-
-        if (TopLevelFlatten().apply(prb)) {
-          if (env.options->showPreprocessing())
-            env.out() << "inlining" << std::endl;
-
-          PDInliner pdInliner2(_options.predicateDefinitionInlining()==Options::InliningMode::AXIOMS_ONLY,
-              _options.predicateDefinitionInlining()==Options::InliningMode::NON_GROWING);
-          pdInliner2.apply(prb);
-        }
-    }
-  }
-  else if (_options.flattenTopLevelConjunctions()) {
-    if (env.options->showPreprocessing())
-      env.out() << "flattening top-level conjunctions" << std::endl;
-
-    TopLevelFlatten().apply(prb);
-  }
-
-
-  if (_options.predicateEquivalenceDiscovery()!=Options::PredicateEquivalenceDiscoveryMode::OFF) {
-    if (env.options->showPreprocessing())
-      env.out() << "equivalence discovery" << std::endl;
-
-    EquivalenceDiscoveringTransformer(_options).apply(prb);
-  }
-
-  if (_options.aigFormulaSharing()) {
-    if (env.options->showPreprocessing())
-      env.out() << "aig formula sharing" << std::endl;
-
-    AIGFormulaSharer().apply(prb);
-  }
-
-  if (_options.predicateDefinitionMerging()) {
-    env.statistics->phase=Statistics::PREDIACTE_DEFINITION_MERGING;
-    if (env.options->showPreprocessing())
-      env.out() << "predicate definition merging" << std::endl;
-
-    PDMerger().apply(prb);
-  }
-
-  if (_options.eprPreservingSkolemization()) {
-    env.statistics->phase=Statistics::EPR_PRESERVING_SKOLEMIZATION;
-    if (env.options->showPreprocessing())
-      env.out() << "epr skolemization" << std::endl;
-
-    EPRSkolem().apply(prb);
-  }
-
-  if (_options.eprRestoringInlining()) {
-    env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
-    if (env.options->showPreprocessing())
-      env.out() << "epr restoring inlining" << std::endl;
-
-    EPRInlining().apply(prb);
-  }
-
-  if (_options.aigBddSweeping()) {
-    if (env.options->showPreprocessing())
-      env.out() << "bdd sweeping" << std::endl;
-
-    AIGCompressingTransformer().apply(prb);
-  }
-
-  if (_options.flattenTopLevelConjunctions()) {
-    if (env.options->showPreprocessing())
-      env.out() << "flatten top-level conjunctions" << std::endl;    
-
-    TopLevelFlatten().apply(prb);
-  }
-
-  if (_options.aigInliner()) {
-    if (env.options->showPreprocessing())
-      env.out() << "aig inlining" << std::endl;      
-
-    AIGInliner().apply(prb);
-  }
-
-  if (_options.aigConditionalRewriting()) {
-    if (env.options->showPreprocessing())
-      env.out() << "aig conditional rewriting" << std::endl; 
-
-    AIGConditionalRewriter().apply(prb);
-  }
-
-  if (_options.aigDefinitionIntroduction()) {
-    if (env.options->showPreprocessing())
-      env.out() << "aig definition introduction" << std::endl; 
-
-    AIGDefinitionIntroducer(_options.aigDefinitionIntroductionThreshold()).apply(prb);
-  }
-
+  // Remove unused predicates
+  // TODO consider if TrivialPredicateRemoval should occur if this is off
+  // Two kinds of unused
+  // - pure predicates
+  // - unused definitions
+  // I think TrivialPredicateRemoval just removes pures
   if (_options.unusedPredicateDefinitionRemoval()) {
     env.statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
     if (env.options->showPreprocessing())
-      env.out() << "unused predicate definition removal" << std::endl; 
+      env.out() << "unused predicate definition removal" << std::endl;
 
     PredicateDefinition pdRemover;
     pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
@@ -397,50 +244,24 @@ void Preprocess::preprocess (Problem& prb)
 
   if (prb.mayHaveFormulas()) {
     if (env.options->showPreprocessing())
-      env.out() << "preprocess 2 (ennf,flatten)" << std::endl; 
-    
+      env.out() << "preprocess 2 (ennf,flatten)" << std::endl;
+
     preprocess2(prb);
-  }
-
-  if (_options.equalityPropagation() && prb.mayHaveEquality()) {
-    env.statistics->phase=Statistics::EQUALITY_PROPAGATION;
-    if (env.options->showPreprocessing())
-      env.out() << "equality propagation" << std::endl; 
-
-    EqualityPropagator().apply(prb);
   }
 
   if (prb.mayHaveFormulas() && _options.naming()) {
     if (env.options->showPreprocessing())
-      env.out() << "naming" << std::endl; 
+      env.out() << "naming" << std::endl;
 
     naming(prb);
   }
 
   if (prb.mayHaveFormulas()) {
     if (env.options->showPreprocessing())
-      env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl; 
+      env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
 
     preprocess3(prb);
   }
-
-  //we redo the naming if the last naming was restricted by preserving EPR
-  if (prb.mayHaveFormulas() && _options.naming() && _options.eprPreservingNaming()) {
-    if (env.options->showPreprocessing())
-      env.out() << "stage 2 of epr preserving naming" << std::endl; 
-
-    secondStageEprPreservingNaming(prb);
-  }
-
-//   // find ordering on literals
-//   Ordering* ordering = environment.ordering(0);
-//   if (ordering) {
-//     ordering->fill(Signature::sig);
-//   }
-//   else {
-//     LiteralOrderingFinder lof(_problem,_options,Signature::sig);
-//     lof.findOrdering();
-//   }
 
   if (prb.mayHaveFormulas()) {
     if (env.options->showPreprocessing())
@@ -501,6 +322,8 @@ void Preprocess::preprocess (Problem& prb)
      resolver.apply(prb);
    }
 
+/*
+   //TODO consider using this in conjunction with unused predicate removal i.e. when it is off
    if (_options.trivialPredicateRemoval()) {
      env.statistics->phase=Statistics::UNKNOWN_PHASE;
      if (env.options->showPreprocessing())
@@ -508,7 +331,7 @@ void Preprocess::preprocess (Problem& prb)
 
      TrivialPredicateRemover().apply(prb);
    }
-
+*/
    if (_options.generalSplitting()!=Options::RuleActivity::OFF) {
      env.statistics->phase=Statistics::GENERAL_SPLITTING;
      if (env.options->showPreprocessing())
@@ -518,17 +341,7 @@ void Preprocess::preprocess (Problem& prb)
      gs.apply(prb);
    }
 
-   if (_options.hornRevealing()) {
-     env.statistics->phase=Statistics::HORN_REVEALING;
-     if (env.options->showPreprocessing())
-       env.out() << "horn revealing" << std::endl;
-
-     HornRevealer hr(_options);
-     hr.apply(prb);
-   }
-
-   if (_options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality() &&
-	   prb.mayHaveXEqualsY() ) {
+   if (_options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
        env.out() << "equality proxy" << std::endl;
@@ -537,13 +350,21 @@ void Preprocess::preprocess (Problem& prb)
      proxy.apply(prb);
    }
 
+   if(_options.theoryFlattening()){
+     if(env.options->showPreprocessing())
+       env.out() << "theory flattening" << std::endl;
+
+       TheoryFlattening tf;
+       tf.apply(prb);
+   }
+
    if (env.options->showPreprocessing()) {
      UnitList::Iterator uit(prb.units());
      while(uit.hasNext()) {
       Unit* u = uit.next();
-      env.out() << "[PP] final: " << u->toString() << std::endl;             
+      env.out() << "[PP] final: " << u->toString() << std::endl;
      }
-   } 
+   }
 
    if (_options.printClausifierPremises()) {
      UIHelper::outputAllPremises(cerr, prb.units());
@@ -552,7 +373,7 @@ void Preprocess::preprocess (Problem& prb)
    if (env.options->showPreprocessing()) {
      env.out() << "preprocessing finished" << std::endl;
      env.endOutput();
-   }   
+   }
 } // Preprocess::preprocess ()
 
 
@@ -633,7 +454,7 @@ void Preprocess::preprocess2(Problem& prb)
       env.beginOutput();
       env.out() << "[PP] ennf: " << u->toString() << std::endl;
       env.endOutput();
-    }    
+    }
     if (u->isClause()) {
 	continue;
     }
@@ -660,7 +481,7 @@ void Preprocess::naming(Problem& prb)
 
   env.statistics->phase=Statistics::NAMING;
   UnitList::DelIterator us(prb.units());
-  Naming naming(_options.naming(), _options.eprPreservingNaming());
+  Naming naming(_options.naming(),false); // For now just force eprPreservingNaming to be false, should update Naming
   while (us.hasNext()) {
     Unit* u = us.next();
     if (u->isClause()) {
@@ -676,46 +497,6 @@ void Preprocess::naming(Problem& prb)
     }
   }
   prb.invalidateProperty();
-}
-
-/**
- * Perform second stage of epr preserving naming that is done
- * after skolemization and before clausification
- */
-void Preprocess::secondStageEprPreservingNaming(Problem& prb)
-{
-  CALL("Preprocess::secondStageEprPreservingNaming");
-  ASS(_options.naming());
-  ASS(_options.eprPreservingNaming());
-
-  env.statistics->phase=Statistics::NAMING;
-
-  bool modified = false;
-
-  UnitList::DelIterator us(prb.units());
-  Naming naming(min(_options.naming()*2+1,32767), true);
-  while (us.hasNext()) {
-    Unit* u = us.next();
-    if (u->isClause()) {
-      continue;
-    }
-    UnitList* defs;
-    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-    FormulaUnit* v = naming.apply(fu,defs);
-    if (v != fu) {
-      ASS(defs);
-      while(defs) {
-	Unit* d=preprocess3(UnitList::pop(defs));
-	us.insert(new UnitList(d,0));
-      }
-      us.replace(v);
-      modified = true;
-    }
-  }
-
-  if (modified) {
-    prb.invalidateProperty();
-  }
 }
 
 /**
@@ -835,4 +616,3 @@ fin:
   }
   prb.reportFormulasEliminated();
 }
-

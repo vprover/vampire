@@ -5,6 +5,7 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/SharedSet.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
@@ -20,7 +21,7 @@
 
 #include "Interpolants.hpp"
 
-
+#define TRACE(x)
 
 /** surprising colors occur when a clause which is a consequence of transparent clauses, is colored */
 #define ALLOW_SURPRISING_COLORS 1
@@ -34,7 +35,7 @@ using namespace Kernel;
 typedef pair<Formula*, Formula*> UIPair; //pair of unit U and the U-interpolant
 typedef List<UIPair> UIPairList;
 
-VirtualIterator<UnitSpec> Interpolants::getParents(UnitSpec u)
+VirtualIterator<Unit*> Interpolants::getParents(Unit* u)
 {
   CALL("Interpolants::getParents");
 
@@ -42,16 +43,16 @@ VirtualIterator<UnitSpec> Interpolants::getParents(UnitSpec u)
     return InferenceStore::instance()->getParents(u);
   }
 
-  static Stack<UnitSpec> toDo;
-  static Stack<UnitSpec> parents;
+  static Stack<Unit*> toDo;
+  static Stack<Unit*> parents;
 
   toDo.reset();
   parents.reset();
 
   for(;;) {
-    VirtualIterator<UnitSpec> pit = InferenceStore::instance()->getParents(u);
+    UnitIterator pit = InferenceStore::instance()->getParents(u);
     while(pit.hasNext()) {
-      UnitSpec par = pit.next();
+      Unit* par = pit.next();
       if(_slicedOff->find(par)) {
 	toDo.push(par);
       }
@@ -65,18 +66,18 @@ VirtualIterator<UnitSpec> Interpolants::getParents(UnitSpec u)
     u = toDo.pop();
   }
 
-  return getPersistentIterator(Stack<UnitSpec>::BottomFirstIterator(parents));
+  return getPersistentIterator(Stack<Unit*>::BottomFirstIterator(parents));
 }
 
-struct ItemState
+struct Interpolants::ItemState
 {
   ItemState() {}
 
-  ItemState(UnitSpec us) : parCnt(0), inheritedColor(COLOR_TRANSPARENT), interpolant(0),
+  ItemState(Unit* us) : parCnt(0), inheritedColor(COLOR_TRANSPARENT), interpolant(0),
       leftInts(0), rightInts(0), processed(false), _us(us)
   {
     CALL("ItemState::ItemState");
-    _usColor = us.unit()->getColor();
+    _usColor = us->getColor();
   }
 
   void destroy()
@@ -87,12 +88,12 @@ struct ItemState
     rightInts->destroy();
   }
 
-  UnitSpec us() const { return _us; }
+  Unit* us() const { return _us; }
   Color usColor() const { return _usColor; }
   /** Parents that remain to be traversed
    *
    * Parents in the sense of inferencing, but children in the sense of DFS traversal */
-  VirtualIterator<UnitSpec> pars;
+  VirtualIterator<Unit*> pars;
   /** number of parents */
   int parCnt;
   /** Color of premise formulas, or the declared color for input formulas */
@@ -108,7 +109,7 @@ struct ItemState
   bool processed;
 private:
   /** The current formula */
-  UnitSpec _us;
+  Unit* _us;
   Color _usColor;
 };
 
@@ -157,18 +158,94 @@ void mergeCopy(UIPairList*& tgt, UIPairList* src)
   }
 }
 
-void generateInterpolant(ItemState& st);
+/**
+ * Any pre-processing of the refutation before interpolation is considered.
+ *
+ * Currently, we
+ * 1) remove the leafs corresponding to the conjecture
+ * and leave the negated_conjecture child of this unit as the leaf instead.
+ * (Inference::NEGATED_CONJECTURE is not sound).
+ *
+ * 2) for any input unit marked as properly colored but which is, in fact, transparent,
+ * we add an artificial parent which is forced to pretend it was truly colored that way,
+ * so that InterpolantMinimizer can consider this input unit as a result of a symbol eliminating inference.
+ * (Without this, InterpolantMinimizer does not work properly is such cases.)
+ */
+void Interpolants::beatifyRefutation(Unit* refutation)
+{
+  CALL("Interpolants::beatifyRefutation");
+
+  Stack<Unit*> todo;
+  DHSet<Unit*> seen;
+
+  todo.push(refutation);
+  while (todo.isNonEmpty()) {
+    Unit* cur = todo.pop();
+    if (!seen.insert(cur)) {
+      continue;
+    }
+
+    bool just_removed_conjecture = false;
+
+    if (cur->inference()->rule() == Inference::NEGATED_CONJECTURE) {
+      VirtualIterator<Unit*> pars = InferenceStore::instance()->getParents(cur);
+
+      // negating the conjecture is not a sound inference,
+      // we want to consider the proof only from the point where it has been done already
+
+      ASS(pars.hasNext()); // negating a conjecture should have exactly one parent
+      Unit* par = pars.next();
+
+      // so we steal parent's inherited color
+      cur->setInheritedColor(par->inheritedColor());
+
+      // and pretend there is no parent
+
+      ASS(!pars.hasNext()); // negating a conjecture should have exactly one parent
+
+      cur->inference()->destroy();
+      cur->setInference(new Inference(Inference::NEGATED_CONJECTURE)); // negated conjecture without a parent (non-standard, but nobody will see it)
+
+      just_removed_conjecture = true;
+    }
+
+    {
+      VirtualIterator<Unit*> pars = InferenceStore::instance()->getParents(cur);
+
+      if (!pars.hasNext() && // input-like, because no parents
+          cur->inheritedColor() != COLOR_INVALID && cur->inheritedColor() != COLOR_TRANSPARENT && // proper inherited color
+          cur->getColor() == COLOR_TRANSPARENT) {  // but in fact transparent
+
+          if (!just_removed_conjecture) {
+            ASS_EQ(cur->inference()->rule(),Inference::INPUT);
+          }
+
+          Clause* fakeParent = Clause::fromIterator(LiteralIterator::getEmpty(), cur->inputType(), new Inference(Inference::INPUT));
+          fakeParent->setInheritedColor(cur->inheritedColor());
+          fakeParent->updateColor(cur->inheritedColor());
+
+          cur->inference()->destroy();
+          cur->setInference(new Inference1(Inference::INPUT,fakeParent)); // input inference with a parent (non-standard, but nobody will see it)
+          cur->invalidateInheritedColor();
+      }
+    }
+
+    todo.loadFromIterator(InferenceStore::instance()->getParents(cur));
+  }
+}
 
 Formula* Interpolants::getInterpolant(Unit* unit)
 {
   CALL("Interpolants::getInterpolant");
 
-  typedef DHMap<UnitSpec,ItemState> ProcMap;
+  typedef DHMap<Unit*,ItemState> ProcMap;
   ProcMap processed;
+
+  TRACE(cout << "===== getInterpolant for " << unit->toString() << endl);
 
   Stack<ItemState> sts;
 
-  UnitSpec curr=UnitSpec(unit);
+  Unit* curr= unit;
 
   Formula* resultInterpolant = 0;
 
@@ -188,9 +265,13 @@ Formula* Interpolants::getInterpolant(Unit* unit)
       st.pars = getParents(curr);
     }
 
-    if(curr.unit()->inheritedColor()!=COLOR_INVALID) {
+    TRACE(cout << "curr  " << curr->toString() << endl);
+    TRACE(cout << "cu_ic " << curr->inheritedColor() << endl);
+    TRACE(cout << "st_co " << st.usColor() << endl);
+
+    if(curr->inheritedColor()!=COLOR_INVALID) {
       //set premise-color information for input clauses
-      st.inheritedColor=ColorHelper::combine(curr.unit()->inheritedColor(), st.usColor());
+      st.inheritedColor=ColorHelper::combine(curr->inheritedColor(), st.usColor());
       ASS_NEQ(st.inheritedColor, COLOR_INVALID);
     }
 #if ALLOW_SURPRISING_COLORS
@@ -213,20 +294,37 @@ Formula* Interpolants::getInterpolant(Unit* unit)
     }
 #endif
 
+    TRACE(cout << "st_ic " << st.inheritedColor << endl);
+
     if(sts.isNonEmpty()) {
       //update premise color information in the level above
       ItemState& pst=sts.top(); //parent state
       pst.parCnt++;
       if(pst.inheritedColor==COLOR_TRANSPARENT) {
         pst.inheritedColor=st.usColor();
+
+        TRACE(cout << "updated parent's inh col to " << pst.inheritedColor << endl);
+        TRACE(cout << "parent " << pst.us()->toString() << endl);
+
       }
 #if VDEBUG
       else {
         Color clr=st.usColor();
-        ASS_REP2(pst.inheritedColor==clr || clr==COLOR_TRANSPARENT, pst.us().toString(), curr.toString());
+        ASS_REP2(pst.inheritedColor==clr || clr==COLOR_TRANSPARENT, pst.us()->toString(), curr->toString());
       }
-      ASS_EQ(curr.unit()->getColor(),st.usColor());
+      ASS_EQ(curr->getColor(),st.usColor());
 #endif
+    }
+
+    // keep initializing splitting components
+    if (curr->isClause()) {
+      Clause* cl = curr->asClause();
+
+      if (cl->isComponent()) {
+        SplitSet* splits = cl->splits();
+        ASS_EQ(splits->size(),1);
+        _splittingComponents.insert(splits->sval(),cl);
+      }
     }
 
     sts.push(st);
@@ -244,8 +342,8 @@ Formula* Interpolants::getInterpolant(Unit* unit)
 	if(st.inheritedColor!=color || sts.isEmpty()) {
 	  //we either have a transparent clause justified by A or B, or the refutation
 //	  ASS_EQ(color,COLOR_TRANSPARENT);
-      //cout<<"generate interpolant of transparent clause: "<<st.us().toString()<<"\n";
-	  ASS_REP2(color==COLOR_TRANSPARENT, st.us().toString(), st.inheritedColor);
+	    TRACE(cout<<"generate interpolant of transparent clause: "<<st.us()->toString()<<"\n");
+	  ASS_REP2(color==COLOR_TRANSPARENT, st.us()->toString(), st.inheritedColor);
 	  generateInterpolant(st);
 	}
 	st.processed = true;
@@ -279,23 +377,48 @@ fin:
     destrIt.next().destroy();
   }
 
+  TRACE(cout << "result interpolant (before false/true - simplification) " << resultInterpolant->toString() << endl);
+
   //simplify the interpolant and exit
   return Flattening::flatten(SimplifyFalseTrue::simplify(resultInterpolant));
 //  return resultInterpolant;
 }
 
-void generateInterpolant(ItemState& st)
+void Interpolants::generateInterpolant(ItemState& st)
 {
-  CALL("generateInterpolant");
+  CALL("Interpolants::generateInterpolant");
 
-  Unit* u=st.us().unit();
+  Unit* u=st.us();
+
+  TRACE(cout << "GenerateInterpolant for " << u->toString() << endl);
+
   Color color=st.usColor();
   ASS_EQ(color, COLOR_TRANSPARENT);
 
   Formula* interpolant;
   Formula* unitFormula=u->getFormula();//st.us().prop());
 
-  //cout	<<"\n unitFormula: "<<unitFormula->toString()<<"\n";
+  // add assertions from splitting
+  if (u->isClause()) {
+    Clause* cl = u->asClause();
+
+    if (cl->splits()) {
+      FormulaList* disjuncts = FormulaList::empty();
+      SplitSet::Iterator it(*cl->splits());
+      while(it.hasNext()) {
+        SplitLevel lv=it.next();
+        Clause* ass = _splittingComponents.get(lv);
+        FormulaList::push(new NegatedFormula(Formula::fromClause(ass)),disjuncts);
+      }
+      if (FormulaList::isNonEmpty(disjuncts)) {
+        FormulaList::push(unitFormula,disjuncts);
+
+        unitFormula = JunctionFormula::generalJunction(OR, disjuncts);
+      }
+    }
+  }
+
+  TRACE(cout	<<"unitFormula: "<<unitFormula->toString()<<endl);
 
   if(st.parCnt) {
     //interpolants from refutation proof with at least one inference (there are premises, i.e. parents)
@@ -339,9 +462,9 @@ void generateInterpolant(ItemState& st)
     }
   }
   st.interpolant=interpolant;
-//  cout<<"Unit "<<u->toString()
-//	<<"\nto Formula "<<unitFormula->toString()
-//	<<"\ninterpolant "<<interpolant->toString()<<endl;
+  TRACE(cout<<"Unit "<<u->toString()
+	<<"\nto Formula "<<unitFormula->toString()
+	<<"\ninterpolant "<<interpolant->toString()<<endl<<endl);
   UIPair uip=make_pair(unitFormula, interpolant);
   if(st.inheritedColor==COLOR_LEFT) {
     st.leftInts->destroy();

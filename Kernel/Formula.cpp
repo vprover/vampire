@@ -3,16 +3,22 @@
  *  Implements class Formula.
  */
 
+#include "Forwards.hpp"
+
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
+#include "Lib/Environment.hpp"
 #include "Lib/MultiCounter.hpp"
 #include "Lib/VString.hpp"
+#include "Lib/Set.hpp"
+
+#include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Shell/Options.hpp"
 
-#include "BDD.hpp"
 #include "Clause.hpp"
 #include "Term.hpp"
 #include "Formula.hpp"
@@ -288,10 +294,15 @@ vstring Formula::toString () const
       VarList::Iterator vs(vars());
       bool first=true;
       while (vs.hasNext()) {
+        int var = vs.next();
 	if(!first) {
 	  result+= ",";
 	}
-	result += Term::variableToString(vs.next());
+	result += Term::variableToString(var);
+        unsigned t;
+        if(SortHelper::tryGetVariableSort(var, const_cast<Formula*>(this), t) && t != Sorts::SRT_DEFAULT) {
+	  result += " : " + env.sorts->sortName(t);
+	}
 	first=false;
       }
       result += "] : ";

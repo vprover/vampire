@@ -33,7 +33,7 @@ bool Rectify::Renaming::tryGetBoundAndMarkUsed (int var,int& boundTo) const
     return false;
   }
   VarUsageTrackingList* vs = _array[var];
-  if (vs->isEmpty()) {
+  if (VarUsageTrackingList::isEmpty(vs)) {
     return false;
   }
   boundTo = vs->head().first;
@@ -48,7 +48,7 @@ Rectify::VarWithUsageInfo Rectify::Renaming::getBoundAndUsage(int var) const
   ASS_L((unsigned)var,_capacity);
 
   VarUsageTrackingList* vs = _array[var];
-  ASS(!vs->isEmpty());
+  ASS(VarUsageTrackingList::isNonEmpty(vs));
   return vs->head();
 }
 
@@ -83,7 +83,7 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
     }
   }
 
-  if (vars->isNonEmpty()) {
+  if (VarList::isNonEmpty(vars)) {
     unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,g),
 			   new Inference1(Inference::CLOSURE,unit),
 			   unit->inputType());
@@ -400,7 +400,7 @@ Formula* Rectify::rectify (Formula* f)
     if (vs == f->vars() && arg == f->qarg()) {
       return f;
     }
-    if(vs->isEmpty()) {
+    if(VarList::isEmpty(vs)) {
       return arg;
     }
     return new QuantifiedFormula(f->connective(),vs,arg);
@@ -502,7 +502,7 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs)
 {
   CALL ("Rectify::rectifyBoundVars(VarList*)");
 
-  if (vs->isEmpty()) {
+  if (VarList::isEmpty(vs)) {
     return vs;
   }
   VarList* vtail = vs->tail();

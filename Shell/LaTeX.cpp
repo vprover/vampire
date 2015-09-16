@@ -22,8 +22,8 @@
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
+#include "Lib/Set.hpp"
 
-#include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -104,14 +104,14 @@ vstring LaTeX::refutationToString(Unit* ref)
 
   InferenceStore* is=InferenceStore::instance();
 
-  Stack<UnitSpec> outKernel;
-  Set<UnitSpec> handledKernel;
+  Stack<Unit*> outKernel;
+  Set<Unit*> handledKernel;
   Stack<Unit*> outShell;
   Set<Unit*> handledShell;
 
   if( ref->isClause() ) {
     Clause* refCl=static_cast<Clause*>(ref);
-    UnitSpec cs=UnitSpec(refCl);
+    Unit* cs = refCl;
     outKernel.push(cs);
     handledKernel.insert(cs);
   } else {
@@ -120,33 +120,8 @@ vstring LaTeX::refutationToString(Unit* ref)
   }
 
   while(outKernel.isNonEmpty()) {
-    UnitSpec cs=outKernel.pop();
-    InferenceStore::FullInference* finf;
-    if(is->findInference(cs, finf)) {
-      //InferenceStore::SplittingRecord* srec;
-      //if(finf->rule==Inference::SPLITTING && is->findSplitting(cs, srec)) {
-//	if(!handledKernel.contains(srec->premise)) {
-//	  handledKernel.insert(srec->premise);
-//	  outKernel.push(srec->premise);
-//	}
-//	res+=splittingToString(srec);
-//	continue;
-  //    }
-
-      res+=toStringAsInference(cs, finf);
-
-      for(unsigned i=0;i<finf->premCnt;i++) {
-	UnitSpec prem=finf->premises[i];
-	ASS(prem!=cs);
-
-	if(!handledKernel.contains(prem)) {
-	  handledKernel.insert(prem);
-	  outKernel.push(prem);
-	}
-      }
-
-    } else {
-      Clause* cl=cs.cl();
+    Unit* cs=outKernel.pop();
+      Clause* cl= cs->asClause();
       Inference* inf = cl->inference();
 
       res+=toStringAsInference(cl);
@@ -156,7 +131,7 @@ vstring LaTeX::refutationToString(Unit* ref)
 	if(prem->isClause() ) {
 	  //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
           //Giles. Removed bdds from this, but not sure if this is redundant anyway given the previous comment.
-	  UnitSpec premCS=UnitSpec(prem);
+	  Unit* premCS= prem;
 
 	  if(!handledKernel.contains(premCS)) {
 	    handledKernel.insert(premCS);
@@ -169,7 +144,6 @@ vstring LaTeX::refutationToString(Unit* ref)
 	  }
 	}
       }
-    }
   }
 
   while(outShell.isNonEmpty()) {
@@ -184,13 +158,6 @@ vstring LaTeX::refutationToString(Unit* ref)
 	handledShell.insert(prem);
 	outShell.push(prem);
       }
-    }
-  }
-
-  if(definitionStack.isNonEmpty()) {
-    res+="\\section{BDD Definitions}\n";
-    for(unsigned i=0;i<definitionStack.length();i++) {
-      res+=definitionStack[i];
     }
   }
 
@@ -569,12 +536,12 @@ vstring LaTeX::toString (TermList* terms,bool single) const
 //   }
 // } // LaTeX::toString (const Unit& u)
 
-vstring LaTeX::getClauseLatexId(UnitSpec cs)
+vstring LaTeX::getClauseLatexId(Unit* cs)
 {
-  return Int::toString(cs.cl()->number())+"_{"+InferenceStore::instance()->getClauseIdSuffix(cs)+"}";
+  return Int::toString(cs->number());
 }
 
-vstring LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* inf)
+vstring LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)
 {
   CALL("LaTeX::toStringAsInference(ClauseSpec,FullInference*)");
 
@@ -582,7 +549,7 @@ vstring LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* i
 
   bool hasParents=inf->premCnt;
   for(unsigned i=0;i<inf->premCnt;i++) {
-    UnitSpec prem=inf->premises[i];
+    Unit* prem=inf->premises[i];
     res += getClauseLatexId(prem);
     if(i+1<inf->premCnt) {
 	res += ",";
@@ -598,9 +565,9 @@ vstring LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* i
 
   if(hasParents) {
     for(unsigned i=0;i<inf->premCnt;i++) {
-      UnitSpec prem=inf->premises[i];
+      Unit* prem=inf->premises[i];
       res += "\\begin{VampirePremise}%\n~~";
-      res += toString(prem.cl());
+      res += toString(prem->asClause());
       res += "\n\\end{VampirePremise}\n";
       if(i+1<inf->premCnt) {
 	res += "\\VPremiseSeparator\n";
@@ -611,7 +578,7 @@ vstring LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* i
 
   res += "\\begin{VampireConclusion}\n~~";
 
-  res += toString(cs.cl());
+  res += toString(cs->asClause());
 
   return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
 }
@@ -800,71 +767,6 @@ vstring LaTeX::varToString (unsigned num) const
 // {
 //   return funOrPred + toString(args);
 // }
-
-
-vstring LaTeX::getBDDVarName(int var)
-{
-  CALL("LaTeX::getBDDVarName(int var)");
-
-  vstring name;
-  if(BDD::instance()->getNiceName(var, name)) {
-    return vstring("\\mathit{") + name + '}';
-  }
-  return vstring("\\mathit{b_{") + Int::toString(var) + "}}";
-}
-
-vstring LaTeX::toString(BDDNode* node)
-{
-  CALL("LaTeX::toString(BDDNode*)");
-
-  BDD* inst=BDD::instance();
-
-  //predicate and function symbols are mixed here, but it's how I understood it should be done
-  if(inst->isTrue(node)) {
-    return "\\top";
-  }
-  if(inst->isFalse(node)) {
-    return "\\bot";
-  }
-
-  vstring name;
-  if(_nodeNames.find(node, name)) {
-    return name;
-  }
-
-
-  vstring propPred=getBDDVarName(node->_var);
-  if(inst->isTrue(node->_pos) && inst->isFalse(node->_neg)) {
-    return propPred;
-  }
-  else if(inst->isFalse(node->_pos) && inst->isTrue(node->_neg)) {
-    return "\\neg "+propPred;
-  }
-  else if(inst->isTrue(node->_pos)) {
-    return "("+propPred+" \\Vor "+toString(node->_neg)+")";
-  }
-  else if(inst->isFalse(node->_neg)) {
-    return "("+propPred+" \\Vand "+toString(node->_pos)+")";
-  }
-  else if(inst->isFalse(node->_pos)) {
-    return "(\\neg "+propPred+" \\Vand "+toString(node->_neg)+")";
-  }
-  else if(inst->isTrue(node->_neg)) {
-    return "(\\neg "+propPred+" \\Vor "+toString(node->_pos)+")";
-  }
-  else {
-    vstring posDef=toString(node->_pos);
-    vstring negDef=toString(node->_neg);
-
-    vstring name=vstring("\\mathit{n_{") + Int::toString(_nextNodeNum++) + "}}";
-    vstring report="$"+name+" \\Viff ("+propPred+" ? "+posDef+" : "+negDef+")$\\\\\n";
-    definitionStack.push(report);
-    ALWAYS(_nodeNames.insert(node, name));
-
-    return name;
-  }
-
-}
 
 
 }

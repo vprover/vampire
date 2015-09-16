@@ -17,6 +17,8 @@
 #  endif
 #endif
 
+#include <dirent.h>
+
 #include <cerrno>
 #include <csignal>
 #include <cstdio>
@@ -127,6 +129,7 @@ using namespace Shell;
 
 bool System::s_initialized = false;
 bool System::s_shouldIgnoreSIGINT = false;
+bool System::s_shouldIgnoreSIGHUP = false;
 const char* System::s_argv0 = 0;
 
 ///**
@@ -180,6 +183,8 @@ const char* signalToString (int sigNum)
  */
 void handleSignal (int sigNum)
 {
+  CALL("System::handleSignal");
+
   // true if a terminal signal has been handled already.
   // to avoid catching signals over and over again
   static bool handled = false;
@@ -227,6 +232,10 @@ void handleSignal (int sigNum)
 //      exit(0);
 //      return;
 
+    case SIGHUP:
+      if(System::shouldIgnoreSIGHUP()) {
+  return;
+      }
     case SIGILL:
     case SIGFPE:
     case SIGSEGV:
@@ -234,7 +243,6 @@ void handleSignal (int sigNum)
 # ifndef _MSC_VER
     case SIGBUS:
     case SIGTRAP:
-    case SIGHUP:
 # endif
     case SIGABRT:
       {
@@ -246,14 +254,14 @@ void handleSignal (int sigNum)
 	if(outputAllowed()) {
 	  if(env.options && env.statistics) {
 	    env.beginOutput();
-	    env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	    env.out() << getpid() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	    env.statistics->print(env.out());
 #if VDEBUG
 	    Debug::Tracer::printStack(env.out());
 #endif
 	    env.endOutput();
 	  } else {
-	    cout << "Aborted by signal " << signalDescription << "\n";
+	    cout << getpid() << "Aborted by signal " << signalDescription << "\n";
 #if VDEBUG
 	    Debug::Tracer::printStack(cout);
 #endif
@@ -509,6 +517,54 @@ pid_t System::getPID()
   //TODO: Implement pid retrieval for windows
   return 0;
 #endif
+}
+
+void System::readDir(vstring dirName, Stack<vstring>& filenames)
+{
+  CALL("System::readDir");
+
+  DIR *dirp;
+  struct dirent *dp;
+
+  static Stack<vstring> todo;
+  ASS(todo.isEmpty());
+  todo.push(dirName);
+
+  while (todo.isNonEmpty()) {
+    vstring dir = todo.pop();
+
+    dirp = opendir(dir.c_str());
+    
+    if (!dirp) {
+      // cout << "Cannot open dir " << dir << endl;
+      continue;
+    }
+    
+    while ((dp = readdir(dirp)) != NULL) {
+      if (strncmp(dp->d_name, ".", 1) == 0) {
+        continue;
+      }
+      if (strncmp(dp->d_name, "..", 2) == 0) {
+        continue;
+      }
+
+      switch (dp->d_type) {
+        case DT_REG:
+          filenames.push(dir+"/"+dp->d_name);
+          break;
+        case DT_DIR:
+          // cout << "seen dir " << dp->d_name << endl;
+          todo.push(dir+"/"+dp->d_name);
+          break;
+        default:
+          ;
+          // cout << "weird file type" << endl;
+      }
+    }
+    (void)closedir(dirp);
+  }
+
+  todo.reset();
 }
 
 /**

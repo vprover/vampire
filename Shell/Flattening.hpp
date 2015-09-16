@@ -30,14 +30,6 @@ private:
   static FormulaList* flatten (FormulaList*,Connective con);
 }; // class Flattening
 
-class TopLevelFlatten
-{
-public:
-  bool apply(Problem& prb);
-  bool apply(UnitList*& units);
-  bool apply(FormulaUnit* fu, Stack<FormulaUnit*>& acc);
-};
-
 }
 
 #endif

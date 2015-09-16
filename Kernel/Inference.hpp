@@ -110,6 +110,8 @@ public:
     SKOLEMIZE,
     /** obtain clause from a formula */
     CLAUSIFY,
+    /** obtain a formula from a clause */
+    FORMULIFY,
     /** obtain a clause from a clause by removing duplicate literals */
     REMOVE_DUPLICATE_LITERALS,
 //     /** shell clause transformed to a resolution clause */
@@ -194,6 +196,8 @@ public:
     THEORY,
     /** one of two axioms of FOOL (distinct constants or finite domain) */
     FOOL_AXIOM,
+    //** Flatten a clause to separate theory literals */
+    THEORY_FLATTENING,
     /** Introduction of formula to convert formulas used as argument positions.
      *  Such formulas have the form F->f(x)=1 or ~F->f(x)=0 */
     BOOLEAN_TERM_ENCODING,
@@ -209,6 +213,8 @@ public:
     SAT_SPLITTING_COMPONENT,
     /** refutation of a sat splitting branch */
     SAT_SPLITTING_REFUTATION,
+    /** sat color elimination */
+    SAT_COLOR_ELIMINATION,
     /** result of general splitting */
     GENERAL_SPLITTING,
     /** component introduced by general splitting */
@@ -235,6 +241,8 @@ public:
     HYPER_SUPERPOSITION,
     /** global subsumption */
     GLOBAL_SUBSUMPTION,
+    /** refutation in the SAT solver for InstGen */
+    SAT_INSTGEN_REFUTATION,
     /** distinct equality removal */
     DISTINCT_EQUALITY_REMOVAL,
     /** inference coming from outside of Vampire */
@@ -247,6 +255,16 @@ public:
     BFNT_DISTINCT,
     /** BNFT totality axioms R(x,1) \/ ... \/ R(x,n) */
     BFNT_TOTALITY,
+    /* FMB flattening */
+    FMB_FLATTENING,
+    /* Functional definition for FMB */
+    FMB_FUNC_DEF,
+    /* Definition Introduction for FMB */
+    FMB_DEF_INTRO, 
+    /* Instantiation */
+    INSTANTIATION,
+    /* Finite model not found */
+    MODEL_NOT_FOUND,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);
@@ -265,6 +283,18 @@ public:
    * which does not use Inference::destroy() to avoid deep recursion.)
    */
   virtual ~Inference() {}
+
+  /**
+   * To implement lazy minimization of proofs coming from a SAT solver
+   * without explicit proof recording.
+   *
+   * We want to postpone the potentially expensive
+   * minimizing call to after
+   * a complete refutation has been found.
+   *
+   * This is meant to be a no-op for all inferences except those related to SAT.
+   */
+  virtual void minimizePremises() {}
 
   static vstring ruleName(Rule rule);
   vstring name() const { return ruleName(_rule); }

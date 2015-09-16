@@ -14,6 +14,9 @@
 #include "Shell/Skolem.hpp"
 
 #include "Signature.hpp"
+#include "SortHelper.hpp"
+#include "Sorts.hpp"
+#include "Term.hpp"
 
 #include "Theory.hpp"
 
@@ -88,6 +91,9 @@ IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& nu
   if (num._val==0) {
     throw ArithmeticException();
   }
+  if(_val == INT_MIN && num._val == -1){
+    throw ArithmeticException();
+  }
   return IntegerConstantType(_val/num._val);
 }
 
@@ -140,36 +146,27 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
 {
   CALL("IntegerConstantType::comparePrecedence");
   try {
-    bool invert = false;
-    Comparison res;
-    if (n1<0 && n2>=0) {
-      swap(n1, n2);
-      invert = true;
-    }
-
-    if (n1>=0) {
-      if (n2>=0) {
-	return Int::compare(n1.toInt(), n2.toInt());
+    if (n1 == INT_MIN) {
+      if (n2 == INT_MIN) {
+        return EQUAL;
+      } else {
+        return GREATER;
       }
-      else {
-	//we invert numbers to become negative, because this prevents overflows
-	IntegerConstantType negN1 = -n1;
-	if (negN1==n2) {
-	  res = LESS;
-	}
-	else {
-	  res = Int::compare(n2.toInt(), negN1.toInt());
-	}
+    } else {
+      if (n2 == INT_MIN) {
+        return LESS;
+      } else {
+        int an1 = abs(n1.toInt());
+        int an2 = abs(n2.toInt());
+
+        ASS_GE(an1,0);
+        ASS_GE(an2,0);
+
+        return an1 < an2 ? LESS : (an1 == an2 ? // compare the signed ones, making negative greater than positive
+            static_cast<Comparison>(-Int::compare(n1.toInt(), n2.toInt()))
+                              : GREATER);
       }
     }
-    else {
-      ASS(n2<0);
-      invert = !invert;
-      res = Int::compare(n2.toInt(), n1.toInt());
-    }
-
-    if (invert) { res = static_cast<Comparison>(-res); }
-    return res;
   }
   catch(ArithmeticException) {
     ASSERTION_VIOLATION;
@@ -905,6 +902,62 @@ bool Theory::isConversionOperation(Interpretation i)
     return false;
   }
 }
+bool Theory::isLinearOperation(Interpretation i)
+{
+  CALL("Theory::isComparisonOperation");
+
+  switch(i) {
+  case INT_UNARY_MINUS:
+  case INT_PLUS:
+  case INT_MINUS:
+  case RAT_UNARY_MINUS:
+  case RAT_PLUS:
+  case RAT_MINUS:
+  case REAL_UNARY_MINUS:
+  case REAL_PLUS:
+  case REAL_MINUS:
+    return true;
+  default:
+    return false;
+  }
+}
+bool Theory::isNonLinearOperation(Interpretation i)
+{
+  CALL("Theory::isComparisonOperation");
+
+  switch(i) {
+  case INT_MULTIPLY:
+  case INT_DIVIDE:
+  case INT_MODULO:
+  case INT_QUOTIENT_E:
+  case INT_QUOTIENT_T:
+  case INT_QUOTIENT_F:
+  case INT_REMAINDER_E:
+  case INT_REMAINDER_T:
+  case INT_REMAINDER_F:
+  case RAT_MULTIPLY:
+  case RAT_DIVIDE:
+  case RAT_QUOTIENT:
+  case RAT_QUOTIENT_E:
+  case RAT_QUOTIENT_T:
+  case RAT_QUOTIENT_F:
+  case RAT_REMAINDER_E:
+  case RAT_REMAINDER_T:
+  case RAT_REMAINDER_F:
+  case REAL_MULTIPLY:
+  case REAL_DIVIDE:
+  case REAL_QUOTIENT:
+  case REAL_QUOTIENT_E:
+  case REAL_QUOTIENT_T:
+  case REAL_QUOTIENT_F:
+  case REAL_REMAINDER_E:
+  case REAL_REMAINDER_T:
+  case REAL_REMAINDER_F:
+    return true;
+  default:
+    return false;
+  }
+}
 
 void Theory::addStructuredSortInterpretation(unsigned sort, StructuredSortInterpretation i){
     ALWAYS(_structuredSortInterpretations.insert(
@@ -1195,6 +1248,10 @@ bool Theory::isInterpretedPredicate(unsigned pred)
 bool Theory::isInterpretedPredicate(Literal* lit)
 {
   CALL("Theory::isInterpretedPredicate");
+
+  if(lit->isEquality()){
+    return SortHelper::getEqualityArgumentSort(lit)!=Sorts::SRT_DEFAULT;
+  }
 
   return isInterpretedPredicate(lit->functor());
 }
@@ -1688,7 +1745,7 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
  * @author Giles
  * @since 12/11/14
  */
- bool Theory::invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result)
+ bool Theory::invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result,Stack<Literal*>& sideConditions)
  {
    CALL("Theory::invertInterpetedFunction");
 
@@ -1723,7 +1780,10 @@ switch(f){
         // we have a problem of the form b.c=a
         // to invert it to c = a/b we need to check that a/b is safe
         if(b.toInt()==0) return false;
-        if(a.toInt() % b.toInt() == 0){
+        int apos = a.toInt() < 0 ? -a.toInt() : a.toInt();
+        int bpos = b.toInt() < 0 ? -b.toInt() : b.toInt(); 
+	//cout << "a:"<<a.toInt() << " b: " << b.toInt() << endl;
+        if(apos % bpos == 0){
           inverted_f = INT_DIVIDE; break;
         }
       }
@@ -1735,12 +1795,41 @@ switch(f){
 
   case RAT_PLUS: inverted_f = RAT_MINUS; break;
   case RAT_MINUS: inverted_f = RAT_PLUS; break;
-  case RAT_MULTIPLY: inverted_f = RAT_DIVIDE; break;
+  case RAT_MULTIPLY: {
+      RationalConstantType b;
+      if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
+         (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
+      {
+        if(b.numerator()==0) return false;
+        inverted_f = RAT_DIVIDE; 
+        break;
+      }
+      return false;
+    }
   case RAT_DIVIDE: inverted_f = RAT_MULTIPLY; break;
 
   case REAL_PLUS: inverted_f = REAL_MINUS; break; 
   case REAL_MINUS: inverted_f = REAL_PLUS; break;
-  case REAL_MULTIPLY: inverted_f = REAL_DIVIDE; break;
+  case REAL_MULTIPLY: {
+      RealConstantType b;
+      if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
+         (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
+      {
+        if(b.numerator()==0) return false;
+        inverted_f = REAL_DIVIDE;
+      }
+      else{
+        // In this case the 'b' i.e. the bottom of the divisor is not a constant
+        // therefore we add a side-condition saying it cannot be 
+        TermList* notZero = 0;
+        if(term->nthArgument(0)==arg){ notZero=term->nthArgument(1); } 
+        else if(term->nthArgument(1)==arg){ notZero=term->nthArgument(0); } 
+        Term* zero =theory->representConstant(RealConstantType(RationalConstantType(0,1)));
+        sideConditions.push(Literal::createEquality(true,TermList(zero),*notZero,Sorts::SRT_REAL));
+        inverted_f = REAL_DIVIDE;
+      }
+      break;
+    } 
   case REAL_DIVIDE: inverted_f = REAL_MULTIPLY; break;
 
   default: // cannot be inverted

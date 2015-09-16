@@ -12,6 +12,7 @@
 
 #include "Forwards.hpp"
 #include "Exception.hpp"
+#include "DHMap.hpp"
 
 namespace Lib {
 
@@ -44,6 +45,9 @@ public:
   Shell::Property* property;
   /** Currently used timer, this is used by all timers as a global clock */
   Timer* timer;
+
+  DHMap<const Kernel::Unit*,unsigned>* clausePriorities;
+  unsigned maxClausePriority;
 
   bool haveOutput();
   void beginOutput();

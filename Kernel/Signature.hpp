@@ -70,6 +70,8 @@ class Signature
     mutable BaseType* _type;
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
     List<unsigned>* _distinctGroups;
+    /** number of times it is used in the problem */
+    unsigned _usageCount;
 
     ~Symbol();
   public:
@@ -122,6 +124,13 @@ class Signature
     /** Return true iff symbol is an equality proxy */
     inline bool equalityProxy() const { return _equalityProxy; }
 
+    /** Increase the usage count of this symbol **/
+    inline void incUsageCnt(){ _usageCount++; }
+    /** Return the usage count of this symbol **/
+    inline unsigned usageCnt() const { return _usageCount; }
+    /** Reset usage count to zero, to start again! **/
+    inline void resetUsageCnt(){ _usageCount=0; }
+      
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_INTEGER; }
@@ -148,6 +157,7 @@ class Signature
     void addToDistinctGroup(unsigned group,unsigned this_number);
 
     void setType(BaseType* type);
+    void forceType(BaseType* type);
     FunctionType* fnType() const;
     PredicateType* predType() const;
 

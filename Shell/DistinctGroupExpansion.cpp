@@ -33,6 +33,7 @@ void DistinctGroupExpansion::apply(Problem& prb)
 
   if(apply(prb.units())){
     prb.invalidateProperty();
+    prb.refortFormulasAdded();
     prb.reportEqualityAdded(false); // Do we need to do this if adding disequality?
   }
 
@@ -56,7 +57,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
   for(unsigned i=0;i<group_members.size();i++){
     Stack<unsigned>* members = group_members[i];
-    if(members->size() > 1){
+    if(members->size() > 0){
  
       // If the non-empty distinct group represents numbers then we need to keep
       // the distinct processing later as new numbers can be generated from the
@@ -65,7 +66,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
       // This 5 is a magic number, if it is changed then the corresponding
       // 6 should be changed in Kernel::Signature::Symol::addToDistinctGroup
-      if( (members->size() < 5 || env.options->bfnt())){
+      if( members->size()>1 && ((members->size() < 5 || env.options->bfnt()))){
         added=true;
         Formula* expansion = expand(*members);
         if(env.options->showPreprocessing()){
@@ -103,12 +104,12 @@ Formula* DistinctGroupExpansion::expand(Stack<unsigned> constants)
   // Otherwise create a formula list of disequalities
   FormulaList* diseqs = 0; 
 
-  for(int i=0;i<constants.size();i++){
+  for(unsigned i=0;i<constants.size();i++){
     TermList a = TermList(Term::createConstant(constants[i]));
     ASS(a.isSafe());
     unsigned sort = SortHelper::getResultSort(a.term());
 
-    for(int j=0;j<i;j++){
+    for(unsigned j=0;j<i;j++){
       TermList b = TermList(Term::createConstant(constants[j]));
       ASS(b.isSafe());
       

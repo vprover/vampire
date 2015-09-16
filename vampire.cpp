@@ -7,6 +7,10 @@
 #include <fstream>
 #include <csignal>
 
+#if VZ3
+#include "z3++.h"
+#endif
+
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Exception.hpp"
@@ -213,6 +217,7 @@ void profileMode()
 
   Property* property = prb->getProperty();
   TheoryFinder tf(prb->units(), property);
+  // this doesn't do anything
   Shell::Preprocess prepro(*env.options);
   tf.search();
 
@@ -553,16 +558,13 @@ void satSolverMode()
   TimeCounter tc(TC_SAT_SOLVER);
   SATSolverSCP solver;
   
-  switch(env.options->satSolver()) { 
-    case Options::SatSolver::BUFFERED_VAMPIRE:
+  switch(env.options->satSolver()) {
     case Options::SatSolver::VAMPIRE:  
       solver = new TWLSolver(*env.options);
-      break;          
-    case Options::SatSolver::BUFFERED_LINGELING: 
+      break;
     case Options::SatSolver::LINGELING:
       solver = new LingelingInterfacing(*env.options);
       break;
-    case Options::SatSolver::BUFFERED_MINISAT: 
     case Options::SatSolver::MINISAT:
       solver = new MinisatInterfacing(*env.options);
       break;      
@@ -578,8 +580,8 @@ void satSolverMode()
   
   clauses = getInputClauses(env.options->inputFile().c_str(), varCnt);
   
-  solver->ensureVarCnt(varCnt+1); // allocates one extra slot for the dummy variable 0      
-  solver->addClauses(preprocessClauses(clauses));
+  solver->ensureVarCount(varCnt);
+  solver->addClausesIter(preprocessClauses(clauses));
 
   res = solver->solve();
 
@@ -620,18 +622,10 @@ void vampireMode()
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  /*
-  vstring inputFile = env.options->inputFile();
-  istream* input;
-  if (inputFile == "") {
-    input = &cin;
-  } else {
-    input = new ifstream(inputFile.c_str());
-    if (input->fail()) {
-      USER_ERROR("Cannot open problem file: "+inputFile);
-    }
+  if (env.options->szsOutput()) {
+    UIHelper::szsOutput = true;
+    UIHelper::cascModeChild = true; // so that we print stats on time-out (see Timer.cpp)
   }
-  */
 
   doProving();
 
@@ -652,6 +646,7 @@ void vampireMode()
 void spiderMode()
 {
   CALL("spiderMode()");
+  env.options->setBadOptionChoice(Options::BadOption::HARD); 
   Exception* exception = 0;
   bool noException = true;
   try {
@@ -671,10 +666,18 @@ void spiderMode()
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     case Statistics::TIME_LIMIT:
+      reportSpiderStatus('t');
     case Statistics::MEMORY_LIMIT:
+      reportSpiderStatus('m');
     case Statistics::UNKNOWN:
+      reportSpiderStatus('u');
     case Statistics::REFUTATION_NOT_FOUND:
-      reportSpiderStatus('?');
+      if(env.statistics->discardedNonRedundantClauses>0){
+        reportSpiderStatus('n');
+      }
+      else{
+        reportSpiderStatus('i');
+      }
       break;
     case Statistics::SATISFIABLE:
       reportSpiderStatus('-');
@@ -836,7 +839,10 @@ int main(int argc, char* argv[])
     cl.interpret(*env.options);
 
     // If any of these options are set then we just need to output and exit
-    if (env.options->showHelp() || env.options->showOptions() || !env.options->explainOption().empty()) {
+    if (env.options->showHelp() ||
+        env.options->showOptions() ||
+        env.options->showExperimentalOptions() ||
+        !env.options->explainOption().empty()) {
       env.beginOutput();
       env.options->output(env.out());
       env.endOutput();
@@ -884,6 +890,7 @@ int main(int argc, char* argv[])
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
+/*
     case Options::Mode::CASC_EPR:
       CASC::CASCMode::makeEPR();
       if (CASC::CASCMode::perform(argc, argv)) {
@@ -891,19 +898,35 @@ int main(int argc, char* argv[])
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
+*/
     case Options::Mode::CASC_LTB: {
-      CASC::CLTBMode::perform();
+      try {
+        CASC::CLTBMode::perform();
+      } catch (Lib::SystemFailException& ex) {
+        cerr << "Process " << getpid() << " received SystemFailException" << endl;
+        ex.cry(cerr);
+        cerr << " and will now die" << endl;
+      }
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
+/*
     case Options::Mode::CASC_MZR: {
       CASC::CMZRMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-
+    case Options::Mode::CASC_THEORY: {
+      CASC::CASCMode::makeTheory();
+      if (CASC::CASCMode::perform(argc, argv)) {
+	//casc mode succeeded in solving the problem, so we return zero
+	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
+      break;
+    }
+*/
     case Options::Mode::CLAUSIFY:
       clausifyMode();
       break;
@@ -948,6 +971,14 @@ int main(int argc, char* argv[])
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
+  }
+#endif
+#if VZ3
+  catch(z3::exception& exception){
+    BYPASSING_ALLOCATOR;
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+    cout << "Z3 exception:\n" << exception.msg() << endl;
+    reportSpiderFail();
   }
 #endif
   catch (UserErrorException& exception) {

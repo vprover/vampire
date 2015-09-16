@@ -31,7 +31,7 @@ using namespace Kernel;
  * of grounding of @c cl.
  * use_n indcates whether we record the source for use in niceness computation
  */
-SATClauseIterator Grounder::ground(Clause* cl,bool use_n)
+SATClause* Grounder::ground(Clause* cl,bool use_n)
 {
   CALL("Grounder::ground(Clause*)");
 
@@ -42,10 +42,10 @@ SATClauseIterator Grounder::ground(Clause* cl,bool use_n)
   SATClause* gndNonProp = groundNonProp(cl,use_n);
 //  cout<<gndNonProp->toString()<<endl;
 
-  SATInference* inf = new FOConversionInference(UnitSpec(cl));
+  SATInference* inf = new FOConversionInference(cl);
   gndNonProp->setInference(inf);
 
-  return pvi( getSingletonIterator(gndNonProp) );
+  return gndNonProp;
 }
 
 /**
@@ -122,7 +122,7 @@ SATClause* Grounder::groundNonProp(Clause* cl, bool use_n, Literal** normLits)
  * Return SATLiteral corresponding to @c lit.
  * use_n indcates whether we record the source for use in niceness computation
  */
-SATLiteral Grounder::ground(Literal* lit,bool use_n)
+SATLiteral Grounder::groundLiteral(Literal* lit,bool use_n)
 {
   CALL("Grounder::ground(Literal*)");
 
@@ -148,8 +148,8 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
   Literal* posLit = Literal::positiveLiteral(lit);
 
   unsigned* pvar;
-  if(_asgn.getValuePtr(posLit, pvar)) {
-    *pvar = _nextSatVar++;
+  if(_asgn.getValuePtr(posLit, pvar)) {    
+    *pvar = _satSolver->newVar();
   }
   return SATLiteral(*pvar, isPos);
 }
@@ -161,30 +161,6 @@ LiteralIterator Grounder::groundedLits()
   return _asgn.domain();
 }
 
-void Grounder::recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause)
-{
-  CALL("Grounder::recordInference");
-  ASS(refutation);
-
-  static Stack<UnitSpec> prems;
-  prems.reset();
-
-  if(origClause) {
-    prems.push(UnitSpec(origClause));
-  }
-  SATInference::collectFOPremises(refutation, prems);
-
-  unsigned premCnt = prems.size();
-
-  InferenceStore::FullInference* inf = new(premCnt) InferenceStore::FullInference(premCnt);
-  inf->rule = Inference::GLOBAL_SUBSUMPTION;
-
-  for(unsigned i=0; i<premCnt; i++) {
-    inf->premises[i] = prems[i];
-  }
-
-  InferenceStore::instance()->recordInference(UnitSpec(resultClause), inf);
-}
 
 ////////////////////////////////
 // GlobalSubsumptionGrounder

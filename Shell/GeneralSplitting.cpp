@@ -60,8 +60,40 @@ bool GeneralSplitting::apply(UnitList*& units)
       UnitList::push(cl, splitRes);
     }
   }
-  ASS_EQ(modified, splitRes->isNonEmpty());
+  ASS_EQ(modified, UnitList::isNonEmpty(splitRes));
   units=UnitList::concat(splitRes, units);
+  return modified;
+}
+
+/**
+ * Perform general splitting on clauses in @c clauses and return true if successful
+ * TODO fix sharing with apply(UnitList)
+ */
+bool GeneralSplitting::apply(ClauseList*& clauses)
+{
+  CALL("GeneralSplitting::apply(UnitList*&)");
+
+  bool modified = false;
+
+  UnitList* splitRes=0;
+
+  ClauseList::DelIterator cit(clauses);
+  while(cit.hasNext()) {
+    Clause* cl=cit.next();
+    bool performed=false;
+    while(apply(cl, splitRes)) {
+      performed=true;
+    }
+    if(performed) {
+      modified = true;
+      cit.del();
+      UnitList::push(cl, splitRes);
+    }
+  }
+  ASS_EQ(modified, UnitList::isNonEmpty(splitRes));
+  ClauseList* splitResC = 0;
+  ClauseList::pushFromIterator(getStaticCastIterator<Clause*>(UnitList::Iterator(splitRes)),splitResC);
+  clauses=ClauseList::concat(splitResC, clauses);
   return modified;
 }
 
@@ -75,7 +107,6 @@ bool GeneralSplitting::apply(UnitList*& units)
 bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 {
   CALL("GeneralSplitting::apply");
-
 
   unsigned clen=cl->length();
   if(clen<=1) {
@@ -216,7 +247,10 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   mdvCl->setAge(cl->age());
   UnitList::push(mdvCl, resultStack);
 
-  InferenceStore::instance()->recordSplittingNameLiteral(UnitSpec(mdvCl), pnLit);
+  InferenceStore::instance()->recordSplittingNameLiteral(mdvCl, pnLit);
+  if(env.clausePriorities){
+    env.clausePriorities->insert(mdvCl,cl->getPriority());
+  }
 
   Clause* otherCl=Clause::fromStack(otherLits, cl->inputType(), new Inference2(Inference::GENERAL_SPLITTING, cl, mdvCl));
   otherCl->setAge(cl->age());

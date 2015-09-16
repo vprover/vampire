@@ -12,6 +12,7 @@
 
 #include "Array.hpp"
 #include "List.hpp"
+#include "Stack.hpp"
 #include "Portability.hpp"
 #include "VString.hpp"
 
@@ -47,6 +48,10 @@ public:
   static void heedSIGINT() { s_shouldIgnoreSIGINT=false; }
   static bool shouldIgnoreSIGINT() { return s_shouldIgnoreSIGINT; }
 
+  static void ignoreSIGHUP() { s_shouldIgnoreSIGHUP=true; }
+  static void heedSIGHUP() { s_shouldIgnoreSIGHUP=false; }
+  static bool shouldIgnoreSIGHUP() { return s_shouldIgnoreSIGHUP; }
+
   static void addInitializationHandler(VoidFunc proc, unsigned priority=0);
   static void onInitialization();
 
@@ -57,6 +62,12 @@ public:
   static void registerForSIGHUPOnParentDeath();
 
   static void readCmdArgs(int argc, char* argv[], StringStack& res);
+
+  /**
+   * Collect filenames of all the files occurring in the given directory.
+   * Recursive traverse subdirs.
+   */
+  static void readDir(vstring dirName, Stack<vstring>& filenames);
 
   /**
    * Register the value of the argv[0] argument of the main function, so that
@@ -103,6 +114,7 @@ private:
   static ZIArray<List<VoidFunc>*> s_terminationHandlers;
 
   static bool s_shouldIgnoreSIGINT;
+  static bool s_shouldIgnoreSIGHUP;
 
   static const char* s_argv0;
 };

@@ -174,8 +174,6 @@ typedef List<Unit*> UnitList;
 typedef Stack<Unit*> UnitStack;
 typedef VirtualIterator<Unit*> UnitIterator;
 
-struct UnitSpec;
-
 class FormulaUnit;
 class Formula;
 typedef List<Formula*> FormulaList;
@@ -230,9 +228,6 @@ class BDDNode;
 
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;
-
-struct UnitSpec;
-
 
 /**
  * Color of a term
@@ -415,6 +410,7 @@ class ScopedDecisionProcedure;
  */
 template<class T> inline void checked_delete(T * x)
 {
+    CALL("Forwards/checked_delete");
     // intentionally complex - simplification causes regressions
     typedef char type_must_be_complete[ sizeof(T)? 1: -1 ];
     (void) sizeof(type_must_be_complete);

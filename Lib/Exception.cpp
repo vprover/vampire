@@ -25,7 +25,7 @@ Exception::Exception (const char* msg, int line)
  */
 void Exception::cry (ostream& str)
 {
-  str << _message << "\n";
+  str << _message << endl;
 } // Exception::cry
 
 
@@ -34,7 +34,7 @@ void Exception::cry (ostream& str)
  */
 void UserErrorException::cry (ostream& str)
 {
-  str << "User error: " << _message << "\n";
+  str << "User error: " << _message << endl;
 } // UserErrorException::cry
 
 /**
@@ -42,7 +42,7 @@ void UserErrorException::cry (ostream& str)
  */
 void InvalidOperationException::cry (ostream& str)
 {
-  str << "Invalid operation: " << _message << "\n";
+  str << "Invalid operation: " << _message << endl;
 } // InvalidOperationException::cry
 
 
@@ -58,7 +58,7 @@ SystemFailException::SystemFailException(const vstring msg, int err)
  */
 void SystemFailException::cry (ostream& str)
 {
-  str << "System fail: " << _message << "\n";
+  str << "System fail: " << _message << endl;
 } // SystemFailException::cry
 
 
@@ -67,7 +67,7 @@ void SystemFailException::cry (ostream& str)
  */
 void NotImplementedException::cry (ostream& str)
 {
-  str << "Not implemented at " << file << ":" << line << "\n";
+  str << "Not implemented at " << file << ":" << line << endl;
 } // NotImplementedException::cry
 
 

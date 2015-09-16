@@ -25,6 +25,7 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
   
   // Clause is already in extensionality container. We only have to search X=Y.
   if (c->isExtensionality()) {
+    //cout << "Using " << c->toString() << endl;
     return getSingleVarEq(c);
   }
 
@@ -46,7 +47,7 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
     // We know that the patterns only have a single X=Y.
     varEq = getSingleVarEq(c);
     sort = varEq->twoVarEqSort();
-  } else {
+  } else if (!_onlyTagged || c->isTaggedExtensionality()) {
     // Generic filter for extensionality clauses.
     //   * Exactly one X=Y
     //   * No inequality of same sort as X=Y

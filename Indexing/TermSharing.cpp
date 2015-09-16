@@ -119,8 +119,10 @@ Term* TermSharing::insert(Term* t)
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalTerms++;
      
-    if (!SortHelper::areImmediateSortsValid(t)){USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");}
     ASS_REP(SortHelper::areImmediateSortsValid(t), t->toString());
+    if (!SortHelper::areImmediateSortsValid(t)){
+      USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
+    }
   }
   else {
     t->destroy();
@@ -159,7 +161,6 @@ Literal* TermSharing::insert(Literal* t)
 
   _literalInsertions++;
   Literal* s = _literals.insert(t);
-  vstring n = "";
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
@@ -232,7 +233,6 @@ Literal* TermSharing::insertVariableEquality(Literal* t,unsigned sort)
 
   _literalInsertions++;
   Literal* s = _literals.insert(t);
-  vstring n = "";
   if (s == t) {
     t->markShared();
     t->setWeight(3);
@@ -290,6 +290,8 @@ Term* TermSharing::insertRecurrently(Term* t)
  */
 Literal* TermSharing::tryGetOpposite(Literal* l)
 {
+  CALL("TermSharing::tryGetOpposite");
+
   Literal* res;
   if(_literals.find(OpLitWrapper(l), res)) {
     return res;
@@ -306,6 +308,8 @@ Literal* TermSharing::tryGetOpposite(Literal* l)
  */
 bool TermSharing::argNormGt(TermList t1, TermList t2)
 {
+  CALL("TermSharing::argNormGt");
+
   if(t1.tag()!=t2.tag()) {
     return t1.tag()>t2.tag();
   }

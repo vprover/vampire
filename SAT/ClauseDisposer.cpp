@@ -71,7 +71,7 @@ void ClauseDisposer::markAllRemovableUnkept()
   }
 
   unsigned vc = varCnt();
-  for(unsigned i=0; i<vc; i++) {
+  for(unsigned i=1; i<=vc; i++) {
     SATClause* cl = getAssignmentPremise(i);
     if(cl) {
       cl->setKept(true);
@@ -87,10 +87,10 @@ void ClauseDisposer::removeUnkept()
 {
   CALL("ClauseDisposer::removeUnkept");
 
-  unsigned watchCnt = varCnt()*2;
+  unsigned watchCnt = (varCnt()+1)*2;
   DArray<WatchStack>& watches = getWatchedStackArray();
 
-  for(unsigned i=0; i<watchCnt; i++) {
+  for(unsigned i=2; i<watchCnt; i++) {
     WatchStack::Iterator wit(watches[i]);
     while(wit.hasNext()) {
       SATClause* cl = wit.next().cl;

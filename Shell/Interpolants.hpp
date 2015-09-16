@@ -20,13 +20,20 @@ using namespace Kernel;
 class Interpolants
 {
 public:
-  Interpolants(DHSet<UnitSpec>* slicedOff=0) : _slicedOff(slicedOff) {}
+  Interpolants(DHSet<Unit*>* slicedOff=0) : _slicedOff(slicedOff) {}
   Formula* getInterpolant(Unit* refutation);
+
+  static void beatifyRefutation(Unit* refutation);
 private:
+  struct ItemState;
 
-  UnitSpecIterator getParents(UnitSpec u);
+  void generateInterpolant(ItemState& st);
 
-  DHSet<UnitSpec>* _slicedOff;
+  UnitIterator getParents(Unit* u);
+
+  DHSet<Unit*>* _slicedOff;
+
+  DHMap<SplitLevel,Clause*> _splittingComponents;
 };
 
 };

@@ -55,9 +55,7 @@ SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
 {
   CALL("getInputClauses");
 
-  unsigned maxVar;
-  SATClauseIterator cit=Preprocess::removeDuplicateLiterals( DIMACS::parse(fname, maxVar) );
-  varCnt=maxVar+1;
+  SATClauseIterator cit=Preprocess::removeDuplicateLiterals( DIMACS::parse(fname, varCnt) );
 
   SATClauseList* clauses = 0;
   SATClauseList::pushFromIterator(cit, clauses);
@@ -66,7 +64,7 @@ SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
 
 void preprocessClauses(unsigned varCnt, SATClauseList*& clauses)
 {
-  CALL("getInputClauses");
+  CALL("preprocessClauses");
 
   Preprocess::filterPureLiterals(varCnt, clauses);
 //  SATClauseIterator cl = pvi( SATClauseList::DestructiveIterator(clauses));
@@ -215,7 +213,7 @@ void satSolverMode(SatOptions& opts)
   */
   env.statistics->phase = Statistics::SAT_SOLVING;
 
-  cout<<"start varcnt :"<<varCnt-1<<"\n";
+  cout<<"start varcnt :"<<varCnt<<"\n";
 
   //SATSolverSCP solver(new TWLSolver(*env.options, true));
   SATSolverSCP solver(new LingelingInterfacing(*env.options, false));

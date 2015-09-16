@@ -31,6 +31,8 @@ private:
   class SuccessorTranslator;
   class BinaryMinusTranslator;
 
+  class RoundingFunctionTranslator;
+
   class IneqTranslator;
   class NLiteralTransformer;
   class NFormulaTransformer;

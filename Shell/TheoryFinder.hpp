@@ -40,7 +40,7 @@ private:
   bool matchAll(const Clause* clause);
   bool matchAll(const Formula* formula);
   bool matchAll(const Literal* literal);
-  bool matchCode(const void* obj,const unsigned char* code,unsigned prop);
+  bool matchCode(const void* obj,const unsigned char* code,unsigned long prop);
 
 //   bool match(const unsigned char* code,const Formula* formula); 
 //   bool match(const unsigned char* code,const Clause* clause); 
@@ -76,6 +76,8 @@ private:
   bool matchFLD2(const Clause*);
   bool matchSubset(const Formula*);
   bool matchSubset(const Clause*);
+  bool matchListConstructors(const Formula*);
+  bool matchTest(const Formula*);
 
 // //    void assert(const char* name,
 // //  	      int arity,
@@ -89,61 +91,62 @@ private:
    */
   enum Code {
     /** new variable, followed by its number in the array of variables */
-    NEWVAR = 1,
+    NEWVAR,
     /** old variable, followed by its number in the array of variables */
-    OLDVAR = 2,
+    OLDVAR,
     /** new function symbol, followed by its arity and number in the array of symbols */
-    NEWFUN = 3,
+    NEWFUN,
     /** old function symbol, followed by its number in the array of symbols */
-    OLDFUN = 4,
+    OLDFUN,
     /** conjunction, followed by its length */
-    CAND = 5,
+    CAND,
     /** disjunction, followed by its length */
-    COR = 6,
+    COR,
     /** implication */
-    CIMP = 7,
+    CIMP,
     /** negation */
-    CNOT = 8,
+    CNOT,
     /** equivalence */
-    CIFF = 9,
+    CIFF,
     /** xor */
-    CXOR = 10,
+    CXOR,
     /** universal quantifier, followed by its length and variable numbers */
-    CFORALL = 11,
+    CFORALL,
     /** existential quantifier, followed by its length and variable numbers */
-    CEXISTS = 12,
+    CEXISTS,
     /** equality symbol */
-    EQL = 13,
+    EQL,
     /** positive literal in a formula */
-    POS = 14,
+    POS,
     /** negative literal in a formula */
-    NEG = 15,
+    NEG,
     /** term in a list, followed by its number */
-    TERM = 16,
+    TERM,
     /** formula in a list, followed by its number */
-    FORM = 17,
-    /** new function symbol, followed by its arity and number
-     * in the array of symbols, the next argument in the list is not saved */
-    NEWFUN1 = 18,
+    FORM,
+    /** A new function symbol, followed by its arity and number
+     * in the array of symbols, the next argument in the list is not saved. It should be
+     * used instead of NEWFUN when the symbol is the argument to equality */
+    NEWFUN1,
     /** old function symbol, followed by its number in the array of symbols,
-     *  the next argument in the list is not saved */
-    OLDFUN1 = 19,
+     *  the next argument in the list is not saved. It should be
+     * used instead of OLDFUN when the symbol is the argument to equality */
+    OLDFUN1,
     /** old variable, followed by its number in the array of variables,
      * the next argument in the list is not saved */
-    OLDVAR1 = 20,
+    OLDVAR1,
     /** positive literal in a list, followed by its number */
-    PLIT = 21,
+    PLIT,
     /** negative literal in a list, followed by its number */
-    NLIT = 22,
+    NLIT,
     /** clause */
-    CLS = 23,
+    CLS,
     /** new predicate symbol, followed by its arity and number in the array of symbols */
-    NEWPRED = 24,
+    NEWPRED,
     /** old predicate symbol, followed by its number in the array of symbols */
-    OLDPRED = 25,
-    /** conjunction, followed by its length */
+    OLDPRED,
     /** end of code */
-    END = 0
+    END
   };
 
   class Backtrack;

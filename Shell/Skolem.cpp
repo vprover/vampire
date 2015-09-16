@@ -276,7 +276,7 @@ FormulaList* Skolem::skolemise (FormulaList* fs)
 {
   CALL("skolemise (FormulaList*)");
 
-  if (fs->isEmpty()) {
+  if (FormulaList::isEmpty(fs)) {
     return fs;
   }
 

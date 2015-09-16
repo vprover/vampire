@@ -8,13 +8,12 @@
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
-#include "SATInference.hpp"
 
 #include "Minisat/core/Solver.h"
 
 namespace SAT{
 
-class MinisatInterfacing : public SATSolverWithAssumptions
+class MinisatInterfacing : public PrimitiveProofRecordingSATSolver
 {
 public: 
   CLASS_NAME(MinisatInterfacing);
@@ -25,23 +24,26 @@ public:
   /**
    * Can be called only when all assumptions are retracted
    *
-   * A requirement is that in each clause, each variable occurs at most once.
+   * A requirement is that in a clause, each variable occurs at most once.
    */
-  virtual void addClauses(SATClauseIterator cit);
+  virtual void addClause(SATClause* cl) override;
   
+  /**
+   * Opportunity to perform in-processing of the clause database.
+   *
+   * (Minisat deletes unconditionally satisfied clauses.)
+   */
+  virtual void simplify() override {
+    CALL("MinisatInterfacing::simplify");
+    _solver.simplify();
+  }
+
   virtual Status solve(unsigned conflictCountLimit) override;
   
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
   virtual VarAssignment getAssignment(unsigned var);
-
-  /**
-   * Try to find another assignment which is likely to be different from the current one
-   *
-   * @pre Solver must be in SATISFIABLE status
-   */
-  virtual void randomizeAssignment();
 
   /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
@@ -65,7 +67,10 @@ public:
    */
   virtual SATClause* getZeroImpliedCertificate(unsigned var);
 
-  virtual void ensureVarCnt(unsigned newVarCnt);
+  virtual void ensureVarCount(unsigned newVarCnt) override;
+  
+  virtual unsigned newVar() override;
+  
   virtual void suggestPolarity(unsigned var, unsigned pol) override {
     // 0 -> true which means negated, e.g. false in the model
     bool mpol = pol ? false : true; 
@@ -86,8 +91,6 @@ public:
     return (_assumptions.size() > 0);
   };
 
-  virtual SATClause* getRefutation();
-
  /**
   * Record the association between a SATLiteral var and a Literal
   * In TWLSolver this is used for computing niceness values
@@ -96,25 +99,42 @@ public:
     // unsupported by minisat; intentionally no-op
   };
   
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
+
+  /**
+   * Use minisat and solving under assumptions to minimize the given set of premises (= unsat core extraction).
+   *
+   * Assumes @b premises in conjunction with @b assumps unsat.
+   * Returns a "small" subset of premises which is still unsat under assumps.
+   */
+  static SATClauseList* minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps);
+
+  /**
+   * Assuming that @b first together with @b second is inconsistent,
+   * produce (in @b result) a set of clauses over the signature of @b first,
+   * such that @b second |= @b result and
+   * @b first together with @b result is also inconsistent.
+   */
+  static void interpolateViaAssumptions(unsigned maxVar, const SATClauseStack& first, const SATClauseStack& second, SATClauseStack& result);
+
 protected:    
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);
   
-  static Minisat::Var vampireVar2Minisat(unsigned vvar) {
-    // "identity" for now, but does variable 0 really exist in vampire?
-    return vvar;
+  Minisat::Var vampireVar2Minisat(unsigned vvar) {
+    ASS_G(vvar,0); ASS_LE(vvar,(unsigned)_solver.nVars());
+    return (vvar-1);
   }
   
-  static unsigned minisatVar2Vampire(Minisat::Var mvar) {
-    // "identity" for now, but does variable 0 really exist in vampire?
-    return (unsigned)mvar;
+  unsigned minisatVar2Vampire(Minisat::Var mvar) {
+    return (unsigned)(mvar+1);
   }
   
-  static const Minisat::Lit vampireLit2Minisat(SATLiteral vlit) {
+  const Minisat::Lit vampireLit2Minisat(SATLiteral vlit) {
     return Minisat::mkLit(vampireVar2Minisat(vlit.var()),vlit.isNegative()); 
   }
   
-  /* sign=trun in minisat means "negated" in vampire */
-  static const SATLiteral minisatLit2Vampire(Minisat::Lit mlit) {
+  /* sign=true in minisat means "negated" in vampire */
+  const SATLiteral minisatLit2Vampire(Minisat::Lit mlit) {
     return SATLiteral(minisatVar2Vampire(Minisat::var(mlit)),Minisat::sign(mlit) ? 0 : 1);            
   }
   
@@ -122,12 +142,6 @@ private:
   Status _status;
   Minisat::vec<Minisat::Lit> _assumptions;  
   Minisat::Solver _solver;
-  
-  // to be used for the premises of a refutation
-  // TODO: who should now free the list? 
-  // (and when it's passed as part of the refutation?, perhaps more than once?) 
-  // -- consider moving responsibility to the caller
-  SATClauseList* _addedClauses;
 };
 
 }//end SAT namespace

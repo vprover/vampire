@@ -146,6 +146,7 @@ public:
   DismatchingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
   void handleClause(Clause* c, bool adding);
+  void addLiteral(Literal* c);
 };
 
 };

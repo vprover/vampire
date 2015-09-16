@@ -27,6 +27,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Minisat/simp/SimpSolver.h"
 #include "Minisat/utils/System.h"
 
+#include "Debug/Tracer.hpp"
+#include "Lib/TimeCounter.hpp"
+
 using namespace Minisat;
 
 //=================================================================================================
@@ -67,6 +70,8 @@ SimpSolver::SimpSolver() :
   , bwdsub_assigns     (0)
   , n_touched          (0)
 {
+  CALL("SimpSolver::SimpSolver");
+
     vec<Lit> dummy(1,lit_Undef);
     ca.extra_clause_field = true; // NOTE: must happen before allocating the dummy clause below.
     bwdsub_tmpunit        = ca.alloc(dummy);
@@ -76,10 +81,13 @@ SimpSolver::SimpSolver() :
 
 SimpSolver::~SimpSolver()
 {
+  CALL("SimpSolver::~SimpSolver");
 }
 
 
 Var SimpSolver::newVar(lbool upol, bool dvar) {
+  CALL("SimpSolver::newVar");
+
     Var v = Solver::newVar(upol, dvar);
 
     frozen    .insert(v, (char)false);
@@ -97,6 +105,8 @@ Var SimpSolver::newVar(lbool upol, bool dvar) {
 
 void SimpSolver::releaseVar(Lit l)
 {
+  CALL("SimpSolver::releaseVar");
+
     assert(!isEliminated(var(l)));
     if (!use_simplification && var(l) >= max_simp_var)
         // Note: Guarantees that no references to this variable is
@@ -110,6 +120,8 @@ void SimpSolver::releaseVar(Lit l)
 
 lbool SimpSolver::solve_(bool do_simp, bool turn_off_simp)
 {
+   CALL("SimpSolver::solve_");
+
     vec<Var> extra_frozen;
     lbool    result = l_True;
 
@@ -152,6 +164,8 @@ lbool SimpSolver::solve_(bool do_simp, bool turn_off_simp)
 
 bool SimpSolver::addClause_(vec<Lit>& ps)
 {
+  CALL("SimpSolver::addClause_");
+
 #ifndef NDEBUG
     for (int i = 0; i < ps.size(); i++)
         assert(!isEliminated(var(ps[i])));
@@ -192,6 +206,8 @@ bool SimpSolver::addClause_(vec<Lit>& ps)
 
 void SimpSolver::removeClause(CRef cr)
 {
+  CALL("SimpSolver::removeClause");
+
     const Clause& c = ca[cr];
 
     if (use_simplification)
@@ -204,9 +220,12 @@ void SimpSolver::removeClause(CRef cr)
     Solver::removeClause(cr);
 }
 
+static const int LAZYNESS_TRESHOLD = 1000;
 
-bool SimpSolver::strengthenClause(CRef cr, Lit l)
+bool SimpSolver::strengthenClause(CRef cr, Lit l, bool& was_lazy)
 {
+  CALL("SimpSolver::strengthenClause");
+
     Clause& c = ca[cr];
     assert(decisionLevel() == 0);
     assert(use_simplification);
@@ -219,12 +238,57 @@ bool SimpSolver::strengthenClause(CRef cr, Lit l)
         removeClause(cr);
         c.strengthen(l);
     }else{
+      if (watches[~c[0]].size() < LAZYNESS_TRESHOLD &&
+          watches[~c[1]].size() < LAZYNESS_TRESHOLD &&
+          occurs[var(l)].size() < LAZYNESS_TRESHOLD) {
+
+        // everything is reasonably sized - can afford being strict
+        was_lazy = false;
+
         detachClause(cr, true);
         c.strengthen(l);
         attachClause(cr);
         remove(occurs[var(l)], cr);
         n_occ[l]--;
         updateElimHeap(var(l));
+      } else {
+        was_lazy = true;
+
+        detachClause(cr); // can detach lazyly -- c will officially die - see below
+
+        // as in Solver::removeClause
+        if (locked(c)) vardata[var(c[0])].reason = CRef_Undef;
+
+        // as usual
+        c.strengthen(l);
+
+        // now the ugliest surgery ever
+        // shift the clause up by one in memory!
+        // we know there is a free slot after the strengthening
+        c.crawlUp(1);
+
+        // set: size = 0, no extra, mark(1) = dead
+        c.zombify();
+
+        // dies as a clause of size 0 -> frees one memory slot (just the header)
+        ca.free(cr);
+
+        CRef new_cr = cr+1; // here we are again after crawling
+
+        attachClause(new_cr); // re-attach the new clause to watches
+
+        // repair occurs to point to the new one
+        const Clause& new_c = ca[new_cr];
+        for (int i = 0; i < new_c.size(); i++){
+          occurs.smudge(var(new_c[i])); // lazy delete
+          occurs[var(new_c[i])].push(new_cr);
+        }
+
+        // the deleted literal
+        occurs.smudge(var(l)); // lazy delete
+        n_occ[l]--;
+        updateElimHeap(var(l));
+      }
     }
 
     return c.size() == 1 ? enqueue(c[0]) && propagate() == CRef_Undef : true;
@@ -234,6 +298,8 @@ bool SimpSolver::strengthenClause(CRef cr, Lit l)
 // Returns FALSE if clause is always satisfied ('out_clause' should not be used).
 bool SimpSolver::merge(const Clause& _ps, const Clause& _qs, Var v, vec<Lit>& out_clause)
 {
+  CALL("SimpSolver::merge(... out_clause)");
+
     merges++;
     out_clause.clear();
 
@@ -266,6 +332,8 @@ bool SimpSolver::merge(const Clause& _ps, const Clause& _qs, Var v, vec<Lit>& ou
 // Returns FALSE if clause is always satisfied.
 bool SimpSolver::merge(const Clause& _ps, const Clause& _qs, Var v, int& size)
 {
+  CALL("SimpSolver::merge(... size)");
+
     merges++;
 
     bool  ps_smallest = _ps.size() < _qs.size();
@@ -296,6 +364,8 @@ bool SimpSolver::merge(const Clause& _ps, const Clause& _qs, Var v, int& size)
 
 void SimpSolver::gatherTouchedClauses()
 {
+  CALL("SimpSolver::gatherTouchedClauses");
+
     if (n_touched == 0) return;
 
     int i,j;
@@ -324,6 +394,8 @@ void SimpSolver::gatherTouchedClauses()
 
 bool SimpSolver::implied(const vec<Lit>& c)
 {
+  CALL("SimpSolver::implied");
+
     assert(decisionLevel() == 0);
 
     trail_lim.push(trail.size());
@@ -345,6 +417,10 @@ bool SimpSolver::implied(const vec<Lit>& c)
 // Backward subsumption + backward subsumption resolution
 bool SimpSolver::backwardSubsumptionCheck(bool verbose)
 {
+  CALL("SimpSolver::backwardSubsumptionCheck");
+
+  Lib::TimeCounter tc(Lib::TC_MINISAT_BWD_SUBSUMPTION_CHECK);
+
     int cnt = 0;
     int subsumed = 0;
     int deleted_literals = 0;
@@ -385,7 +461,9 @@ bool SimpSolver::backwardSubsumptionCheck(bool verbose)
         vec<CRef>& _cs = occurs.lookup(best);
         CRef*       cs = (CRef*)_cs;
 
-        for (int j = 0; j < _cs.size(); j++)
+        int _cs_size = _cs.size(); // strengthened clauses will be added again, we don't want to see them twice
+
+        for (int j = 0; j < _cs_size; j++)
             if (c.mark())
                 break;
             else if (!ca[cs[j]].mark() &&  cs[j] != cr && (subsumption_lim == -1 || ca[cs[j]].size() < subsumption_lim)){
@@ -396,12 +474,20 @@ bool SimpSolver::backwardSubsumptionCheck(bool verbose)
                 else if (l != lit_Error){
                     deleted_literals++;
 
-                    if (!strengthenClause(cs[j], ~l))
+                    bool was_lazy;
+
+                    if (!strengthenClause(cs[j], ~l,was_lazy))
                         return false;
 
-                    // Did current candidate get deleted from cs? Then check candidate at index j again:
-                    if (var(l) == best)
+                    if (was_lazy) {
+                      cs = (CRef*)_cs; // there could have been a reallocation in _cs
+                    } else {
+                      // Did current candidate get deleted from cs? Then check candidate at index j again:
+                      if (var(l) == best) {
+                        _cs_size--;
                         j--;
+                      }
+                    }
                 }
             }
     }
@@ -412,6 +498,8 @@ bool SimpSolver::backwardSubsumptionCheck(bool verbose)
 
 bool SimpSolver::asymm(Var v, CRef cr)
 {
+  CALL("SimpSolver::asymm");
+
     Clause& c = ca[cr];
     assert(decisionLevel() == 0);
 
@@ -426,9 +514,13 @@ bool SimpSolver::asymm(Var v, CRef cr)
             l = c[i];
 
     if (propagate() != CRef_Undef){
+        bool dummy;
         cancelUntil(0);
         asymm_lits++;
-        if (!strengthenClause(cr, l))
+
+        // TODO: this is probably broken (but currently unused) after the changes in strengthenClause
+
+        if (!strengthenClause(cr, l, dummy))
             return false;
     }else
         cancelUntil(0);
@@ -439,6 +531,8 @@ bool SimpSolver::asymm(Var v, CRef cr)
 
 bool SimpSolver::asymmVar(Var v)
 {
+  CALL("SimpSolver::asymmVar");
+
     assert(use_simplification);
 
     const vec<CRef>& cls = occurs.lookup(v);
@@ -489,6 +583,11 @@ static void mkElimClause(vec<uint32_t>& elimclauses, Var v, Clause& c)
 
 bool SimpSolver::eliminateVar(Var v)
 {
+  CALL("SimpSolver::eliminateVar");
+
+  {
+    Lib::TimeCounter tc(Lib::TC_MINISAT_ELIMINATE_VAR);
+
     assert(!frozen[v]);
     assert(!isEliminated(v));
     assert(value(v) == l_Undef);
@@ -544,12 +643,15 @@ bool SimpSolver::eliminateVar(Var v)
     if (watches[ mkLit(v)].size() == 0) watches[ mkLit(v)].clear(true);
     if (watches[~mkLit(v)].size() == 0) watches[~mkLit(v)].clear(true);
 
+  }
     return backwardSubsumptionCheck();
 }
 
 
 bool SimpSolver::substitute(Var v, Lit x)
 {
+  CALL("SimpSolver::substitute");
+
     assert(!frozen[v]);
     assert(!isEliminated(v));
     assert(value(v) == l_Undef);
@@ -582,6 +684,8 @@ bool SimpSolver::substitute(Var v, Lit x)
 
 void SimpSolver::extendModel()
 {
+  CALL("SimpSolver::extendModel");
+
     int i, j;
     Lit x;
 
@@ -599,6 +703,8 @@ void SimpSolver::extendModel()
 
 bool SimpSolver::eliminate(bool turn_off_elim)
 {
+  CALL("SimpSolver::eliminate");
+
     if (!simplify())
         return false;
     else if (!use_simplification)
@@ -688,6 +794,8 @@ bool SimpSolver::eliminate(bool turn_off_elim)
 
 void SimpSolver::relocAll(ClauseAllocator& to)
 {
+  CALL("SimpSolver::relocAll");
+
     if (!use_simplification) return;
 
     // All occurs lists:
@@ -716,6 +824,8 @@ void SimpSolver::relocAll(ClauseAllocator& to)
 
 void SimpSolver::garbageCollect()
 {
+  CALL("SimpSolver::garbageCollect");
+
     // Initialize the next region to a size corresponding to the estimated utilization degree. This
     // is not precise but should avoid some unnecessary reallocations for the new region:
     ClauseAllocator to(ca.size() - ca.wasted()); 

@@ -97,8 +97,6 @@ private:
   void doSortDeclarations();
   void doFunctionDeclarations();
 
-  void introduceAigNames(UnitList*& forms);
-
   vstring _benchName;
   vstring _statusStr;
 
@@ -115,9 +113,8 @@ private:
 
   Mode _mode;
   bool _treatIntsAsReals;
-  unsigned _defIntroThreshold;
+  // unsigned _defIntroThreshold;
   bool _fletAsDefinition;
-  bool _introduceAigNames;
   Color _introducedSymbolColor;
 #if VDEBUG
   bool _haveParsed;

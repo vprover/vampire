@@ -13,7 +13,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/ScopedLet.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
@@ -29,14 +29,11 @@
 #include "SAT/TWLSolver.hpp"
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
-#include "SAT/BufferedSolver.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/EquivalenceDiscoverer.hpp"
 #include "Shell/EqualityAxiomatizer.hpp"
 #include "Shell/EqualityProxy.hpp"
-#include "Shell/PDInliner.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -46,6 +43,8 @@
 
 #undef LOGGING
 #define LOGGING 0
+
+#define VTRACE_DM 0
 
 namespace InstGen
 {
@@ -58,7 +57,8 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
     _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
 	opt.instGenResolutionRatioResolution(), 50),
     _passive(opt),
-    _tautologyDeletion(false)
+    _tautologyDeletion(false),
+    _equalityProxy(0)
 {
   CALL("IGAlgorithm::IGAlgorithm");
 
@@ -72,36 +72,40 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   
   //TODO - Consider using MinimizingSolver here
   switch(opt.satSolver()){
-    case Options::SatSolver::BUFFERED_VAMPIRE:
-      _satSolver = new BufferedSolver(new TWLSolver(opt,true));
-      break;
     case Options::SatSolver::VAMPIRE:
       _satSolver = new TWLSolver(opt,true);
-      break;
-    case Options::SatSolver::BUFFERED_LINGELING:
-      _satSolver = new BufferedSolver(new LingelingInterfacing(opt,true));
       break;
     case Options::SatSolver::LINGELING:
       _satSolver = new LingelingInterfacing(opt,true);
       break;
-    case Options::SatSolver::BUFFERED_MINISAT:
-      _satSolver = new BufferedSolver(new MinisatInterfacing(opt,true));
-      break;
     case Options::SatSolver::MINISAT:
       _satSolver = new MinisatInterfacing(opt,true);
       break;
+#if VZ3
+    case Options::SatSolver::Z3:
+      //cout << "Warning: Z3 not compatible with inst_gen, using Minisat" << endl;
+      _satSolver = new MinisatInterfacing(opt,true);
+      break;
+#endif
     default:
       ASSERTION_VIOLATION_REP(opt.satSolver());
   }
 
+  // TODO: should instgen use buffering?
+
   _gnd = new  IGGrounder(_satSolver);
 
   if(_opt.globalSubsumption()) {
-    _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder(), opt);
-    _globalSubsumption = new GlobalSubsumption(_groundingIndex.ptr());
+    _groundingIndex = new GroundingIndex(opt);
+    _globalSubsumption = new GlobalSubsumption(_opt,_groundingIndex.ptr());
   }
 
-  _variantIdx = new ClauseVariantIndex();
+  _use_hashing = _opt.useHashingVariantIndex();
+  if (_use_hashing) {
+    _variantIdx = new HashingClauseVariantIndex();
+  } else {
+    _variantIdx = new SubstitutionTreeClauseVariantIndex();
+  }
   _selected = new LiteralSubstitutionTree();
 
   _doingSatisfiabilityCheck = false;
@@ -114,6 +118,9 @@ IGAlgorithm::~IGAlgorithm()
   delete _selected;
   delete _variantIdx;
   delete _satSolver;
+  if (_equalityProxy) {
+    delete _equalityProxy;
+  }
 }
 
 ClauseIterator IGAlgorithm::getActive()
@@ -146,7 +153,10 @@ void IGAlgorithm::init()
     _saturationProblem = _prb.copy(true);
 
     _saturationOptions = _opt;
-    _saturationOptions.setSaturationAlgorithm(Options::SaturationAlgorithm::OTTER);
+    _saturationOptions.setSaturationAlgorithm(Options::SaturationAlgorithm::DISCOUNT);
+    _saturationOptions.setAgeRatio(7);
+    _saturationOptions.setWeightRatio(1);
+    _saturationOptions.setSelection(11);
     _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
 
 
@@ -164,8 +174,8 @@ void IGAlgorithm::init()
 
   ASSERT_VALID(_prb);
   if(_prb.hasEquality()) {
-    EqualityAxiomatizer ea(Options::EqualityProxy::RSTC);
-    ea.apply(_prb);
+    _equalityProxy = new EqualityProxy(Options::EqualityProxy::RSTC);
+    _equalityProxy->apply(_prb);
   }
 
   ClauseIterator cit = _prb.clauseIterator();
@@ -175,10 +185,9 @@ void IGAlgorithm::init()
     ASS(cl->isClause());
     _inputClauses.push(cl);
   }
-
 }
 
-void IGAlgorithm::addClause(Clause* cl)
+bool IGAlgorithm::addClause(Clause* cl)
 {
   CALL("IGAlgorithm::addClause");
 
@@ -189,16 +198,20 @@ void IGAlgorithm::addClause(Clause* cl)
   if(cl) { cl = _trivialInequalityRemoval.simplify(cl); }
   if(cl) { cl = _distinctEqualitySimplifier.simplify(cl); }
   if(!cl) {
-    return;
+    return false;
   }
 
 redundancy_check:
   {
-    TimeCounter tc2(TC_INST_GEN_VARIANT_DETECTION);
-    if(_variantIdx->retrieveVariants(cl).hasNext()) {
+    bool redundant;
+    {
+      TimeCounter tc2(TC_INST_GEN_VARIANT_DETECTION);
+      redundant = _variantIdx->retrieveVariants(cl).hasNext();
+    }
+    if (redundant) {
       cl->destroyIfUnnecessary();
       env.statistics->instGenRedundantClauses++;
-      return;
+      return false;
     }
   }
   if (env.options->showNew()) {
@@ -206,34 +219,46 @@ redundancy_check:
     env.out() << "[IG] new: " << cl->toString() << std::endl;
     env.endOutput();
   }
-  
-  cl->incRefCnt();
-  _variantIdx->insert(cl);
+
   if(_globalSubsumption) {
-    Clause* newCl = _globalSubsumption->perform(cl);
+    static Stack<Unit*> prems_dummy;
+    
+    Clause* newCl = _globalSubsumption->perform(cl,prems_dummy);
     if(newCl!=cl) {
       ASS_L(newCl->length(), cl->length());
-      ASS_G(newCl->length(), 0);
-
+      
+      if (newCl->length() == 0) {
+        // A future integration of instgen with AVATAR should consider the case
+        // of conditional empty clause
+        throw RefutationFoundException(newCl);
+      }
+                  
       cl = newCl;
       goto redundancy_check;
     }
   }
 
+  cl->incRefCnt();
+  _variantIdx->insert(cl);
+
   _unprocessed.push(cl);
   env.statistics->instGenKeptClauses++;
+  return true;
 }
 
-Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation)
+Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation, SATClauseList* satPremises)
 {
   CALL("IGAlgorithm::getFORefutation");
   ASS(satRefutation);
 
-  //just a dummy inference, the correct one will be in the inference store
-  Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
-  Clause* res = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, inf);
-  Grounder::recordInference(0, satRefutation, res);
-  return res;
+  UnitList* prems = SATInference::getFOPremises(satRefutation);
+
+  Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
+      new InferenceFromSatRefutation(Inference::SAT_INSTGEN_REFUTATION, prems, satPremises) :
+      new InferenceMany(Inference::SAT_INSTGEN_REFUTATION, prems);
+
+  Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
+  return foRef;
 }
 
 void IGAlgorithm::processUnprocessed()
@@ -241,9 +266,6 @@ void IGAlgorithm::processUnprocessed()
   CALL("IGAlgorithm::processUnprocessed");
 
   TimeCounter tc(TC_INST_GEN_SAT_SOLVING);
-
-  static SATClauseStack satClauses;
-  satClauses.reset();
 
   while(_unprocessed.isNonEmpty()) {
     Clause* cl = _unprocessed.popWithoutDec();
@@ -258,18 +280,17 @@ void IGAlgorithm::processUnprocessed()
       env.endOutput();
     }
 
-    SATClauseIterator sc = _gnd->ground(cl,_use_niceness);
-    satClauses.loadFromIterator(sc);
-  }
-  _satSolver->ensureVarCnt(_gnd->satVarCnt());
+    SATClause* sc = _gnd->ground(cl,_use_niceness);
+    sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
 
-  SATClauseIterator scit = pvi( SATClauseStack::Iterator(satClauses) );
-  scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
-  
-  _satSolver->addClauses(scit);
+    // sc could have been a tautology, in which case sc == 0 after the removeDuplicateLiterals call
+    if (sc) {
+      _satSolver->addClause(sc);
+    }
+  }
 
   if(_satSolver->solve()==SATSolver::UNSATISFIABLE) {
-    Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
+    Clause* foRefutation = getFORefutation(_satSolver->getRefutation(),_satSolver->getRefutationPremiseList());
     throw RefutationFoundException(foRefutation);
   }
 }
@@ -278,63 +299,112 @@ bool IGAlgorithm::isSelected(Literal* lit)
 {
   CALL("IGAlgorithm::isSelected");
 
-  return _satSolver->trueInAssignment(_gnd->ground(lit,_use_niceness));
+  return _satSolver->trueInAssignment(_gnd->groundLiteral(lit,_use_niceness));
 }
 
 /**
- * Generate an instance clause from @c orig using substitution @c subst. Either
- * query or result part of the substitution @c subst is used, based on the
+ * Instantiate literals of @c orig using substitution @c subst,
+ * and store the instance literals in genLits.
+ * Either query or result part of the substitution @c subst is used, based on the
  * value of @c isQuery.
+ *
+ * Returns false if the generation of the clause was blocked due to dismatching constraints.
+ * Even if true is returned, @c properInstance can still be set to false,
+ * if the subst is not a proper instantiator of orig,
+ * in which case the clause generation should be abandoned.
  */
-void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl)
+bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits, bool& properInstance)
 {
-  CALL("IGAlgorithm::tryGeneratingClause");
+  CALL("IGAlgorithm::startGeneratingClause");
 
-  static LiteralStack genLits;
+#if VTRACE_DM
+  cout << "tryGenC " << orig->number() << " and " << otherCl->number() << " on " << origLit->toString() << endl;
+#endif
+
   genLits.reset();
 
   // We check and update the dismatching constraints associated
   // with the clause being instantiated
-  DismatchingLiteralIndex* dmatch;
+  DismatchingContraints* dmatch = 0;
   if(_use_dm){
-    dmatch = _dismatchMap.get(isQuery? orig : otherCl);
-    ASS(dmatch);
+    TimeCounter tc(TC_DISMATCHING);
+    _dismatchMap.find(orig,dmatch);
   }
 
-  bool properInstance = false;
   unsigned clen = orig->length();
+  Literal* origLitGnd = 0;
   for(unsigned i=0; i<clen; i++) {
     Literal* olit = (*orig)[i];
     Literal* glit = isQuery ? subst.applyToQuery(olit) : subst.applyToResult(olit);
+
+    if (olit == origLit) {
+      origLitGnd = glit;
+    }
+
+    {
+      TimeCounter tc(TC_DISMATCHING);
+      // check dismatching constraint here
+      if (dmatch && dmatch->shouldBlock(olit,glit)) {
+        RSTAT_CTR_INC("dismatch blocked");
+#if VTRACE_DM
+        cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << glit->toString() << endl;
+        cout << "block with origLit : " << (olit==origLit) << endl;
+#endif
+        return false;
+      }
+    }
+
     genLits.push(glit);
-
-    // check dismatching constraint here
-    // if dmatch has a generalisation of glit then we do not
-    // satisfy the constraint
-    // Note: the true,false options indicate checking for complement and not retrieving subs
-    if(_use_dm && dmatch->getGeneralizations(glit,true,false).hasNext()){
-      RSTAT_CTR_INC("dismatch blocked");
-      return;
-    }
-
-    if(olit!=glit) {
-      properInstance = true;
-    }
   }
-  if(!properInstance) {
-    return;
-  }
+
+  ASS_NEQ(origLitGnd,0);
+  SATLiteral oLitSat = _gnd->groundLiteral(origLit,_use_niceness);
+  SATLiteral gLitSat = _gnd->groundLiteral(origLitGnd,_use_niceness);
+
+  properInstance = (oLitSat!=gLitSat);
+
+  return true;
+}
+
+/**
+ * Finish generating the clause started in startGeneratingClause, also updating dismatching constraints of orig if applicable.
+ */
+void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits)
+{
+  CALL("IGAlgorithm::finishGeneratingClause");
+
   Inference* inf = new Inference1(Inference::INSTANCE_GENERATION, orig);
 
   Clause* res = Clause::fromStack(genLits, orig->inputType(), inf);
   int newAge = max(orig->age(), otherCl->age())+1;
   res->setAge(newAge);
 
-  //Update dismatch constraints
-  if(_use_dm){ dmatch->handleClause(res,true);}
-
   env.statistics->instGenGeneratedClauses++;
-  addClause(res);
+  bool added = addClause(res);
+
+  //Update dismatch constraints
+  if(added && _use_dm) {
+    TimeCounter tc(TC_DISMATCHING);
+
+    DismatchingContraints* dmatch = 0;
+
+    // if dmatch does not exist create it 
+    if(!_dismatchMap.find(orig,dmatch)) {
+      RSTAT_CTR_INC("dismatch created");
+
+      dmatch = new DismatchingContraints();
+      ALWAYS(_dismatchMap.insert(orig,dmatch));
+#if VTRACE_DM
+      cout << "[" << dmatch << "] "<< "creating for " << orig->toString() << endl;
+#endif
+    }
+
+    Literal* dm_with = isQuery ? subst.applyToQuery(origLit) : subst.applyToResult(origLit);
+#if VTRACE_DM
+      cout << "[" << dmatch << "] "<< "dismatch " << orig->number() << " add " << dm_with->toString() << endl;
+#endif
+    dmatch->add(origLit,dm_with);
+  }
 }
 
 /**
@@ -344,6 +414,8 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
 void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
 {
   CALL("IGAlgorithm::tryGeneratingInstances");
+
+  TimeCounter tc(TC_INST_GEN_GEN_INST);
 
   Literal* lit = (*cl)[litIdx];
 
@@ -355,15 +427,33 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
       continue;//literal is no longer selected
     }
 
-    if(unif.clause->length()==1) {
-      //we make sure the unit is added first, so that it can be used to shorten the
-      //second clause by global subsumption
-      tryGeneratingClause(unif.clause, *unif.substitution, false, cl);
-      tryGeneratingClause(cl, *unif.substitution, true, unif.clause);
-    }
-    else {
-      tryGeneratingClause(cl, *unif.substitution, true, unif.clause);
-      tryGeneratingClause(unif.clause, *unif.substitution, false, cl);
+    static LiteralStack genLits1;
+    static LiteralStack genLits2;
+    bool properInstance1;
+    bool properInstance2;
+
+    if (startGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1,properInstance1) &&
+        startGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2,properInstance2)) {
+
+      // dismatching test passed for both
+
+      if(unif.clause->length()==1) {
+        //we make sure the unit is added first, so that it can be used to shorten the
+        //second clause by global subsumption
+        if (properInstance2) {
+          finishGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2);
+        }
+        if (properInstance1) {
+          finishGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1);
+        }
+      } else {
+        if (properInstance1) {
+          finishGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1);
+        }
+        if (properInstance2) {
+          finishGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2);
+        }
+      }
     }
   }
 }
@@ -419,6 +509,7 @@ void IGAlgorithm::selectAndAddToIndex(Clause* cl)
   _selector->select(cl, selIdx);
 
   unsigned selCnt = cl->numSelected();
+  ASS_GE(selCnt,1);
   for(unsigned i=0; i<selCnt; i++) {
     _selected->insert((*cl)[i], cl);
   }
@@ -443,14 +534,20 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
     return;
   }
 
-  SATClauseIterator scit = _gnd->ground(cl,_use_niceness);
-  scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
+  if (_equalityProxy) { // we had equality in the problem
+    cl = _equalityProxy->apply(cl);
+  }
 
-  _satSolver->ensureVarCnt(_gnd->satVarCnt());
-  _satSolver->addClauses(scit);
+  SATClause* sc = _gnd->ground(cl,_use_niceness);
+  sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
+
+  // sc could have been a tautology, in which case sc == 0 after the removeDuplicateLiterals call
+  if (sc) {
+    _satSolver->addClause(sc);
+  }
 
   if(_satSolver->solve(true)==SATSolver::UNSATISFIABLE) {
-    Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
+    Clause* foRefutation = getFORefutation(_satSolver->getRefutation(),_satSolver->getRefutationPremiseList());
     throw RefutationFoundException(foRefutation);
   }
 }
@@ -462,8 +559,8 @@ void IGAlgorithm::doResolutionStep()
   if(!_saturationAlgorithm) {
     return;
   }
-
   try {
+    ScopedLet<Options*> optLet(env.options,&_saturationOptions);
     _saturationAlgorithm->doOneAlgorithmStep();
   }
   catch(MainLoopFinishedException e)
@@ -498,15 +595,6 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
     env.endOutput();
   }
   
-  // if cl does not have a dismatching index create one
-  // it might already have one if it was previously deactiviated
-  if(_use_dm && !_dismatchMap.find(cl)){
-    RSTAT_CTR_INC("dismatch created");
-    LiteralIndexingStructure * is = new LiteralSubstitutionTree();
-    DismatchingLiteralIndex* dismatchIndex = new DismatchingLiteralIndex(is);
-    _dismatchMap.insert(cl,dismatchIndex);
-  }
-
   unsigned clen = cl->length();
   for(unsigned i=0; i<clen; i++) {
     if(!isSelected((*cl)[i])) {
@@ -585,43 +673,14 @@ void IGAlgorithm::wipeIndexes()
 
   delete _selected;
   delete _variantIdx;
-  _variantIdx = new ClauseVariantIndex();
+  if (_use_hashing) {
+    _variantIdx = new HashingClauseVariantIndex();
+  } else {
+    _variantIdx = new SubstitutionTreeClauseVariantIndex();
+  }
   _selected = new LiteralSubstitutionTree();
 }
 
-void IGAlgorithm::doInprocessing(RCClauseStack& clauses)
-{
-  CALL("IGAlgorithm::doInprocessing");
-
-  EquivalenceDiscoverer ed(true, UINT_MAX, EquivalenceDiscoverer::CR_DEFINITIONS, false, true, true);
-  UnitList* equivs = ed.getEquivalences(pvi(RCClauseStack::Iterator(clauses)));
-
-  if(!equivs) {
-    return;
-  }
-
-  PDInliner pdi;
-  pdi.scanAndRemoveDefinitions(equivs, false);
-
-  RCClauseStack::DelIterator cit(clauses);
-  while(cit.hasNext()) {
-    Clause* cl = cit.next();
-    Unit* aplResU = pdi.apply(cl);
-    if(!aplResU) {
-      cl->decRefCnt();
-      cit.del();
-    }
-    else {
-      ASS(aplResU->isClause());
-      Clause* aplRes = static_cast<Clause*>(aplResU);
-      if(aplRes!=cl) {
-	cl->decRefCnt();
-	aplRes->incRefCnt();
-	cit.replace(aplRes);
-      }
-    }
-  }
-}
 
 void IGAlgorithm::restartWithCurrentClauses()
 {
@@ -642,10 +701,6 @@ void IGAlgorithm::restartWithCurrentClauses()
 
   wipeIndexes();
 
-  if(!_doingSatisfiabilityCheck && _opt.instGenInprocessing()) {
-    doInprocessing(allClauses);
-  }
-
   while(allClauses.isNonEmpty()) {
     Clause* cl = allClauses.popWithoutDec();
     addClause(cl);
@@ -656,6 +711,14 @@ void IGAlgorithm::restartWithCurrentClauses()
 void IGAlgorithm::restartFromBeginning()
 {
   CALL("IGAlgorithm::restartFromBeginning");
+
+  {
+    TimeCounter tc(TC_DISMATCHING);
+    // throw away dismatching constraints
+    DismatchMap::Iterator iit(_dismatchMap);
+    while(iit.hasNext()){ delete iit.next(); }
+    _dismatchMap.reset();
+  }
 
   _active.reset();
   while(!_passive.isEmpty()) {
@@ -772,7 +835,7 @@ MainLoopResult IGAlgorithm::onModelFound()
     MainLoopResult res(Statistics::SATISFIABLE);
     if(_opt.proof()!=Options::Proof::OFF) {
       //we need to print this early because model generating can take some time
-      if(UIHelper::cascMode) {
+      if(UIHelper::szsOutput) {
 	env.beginOutput();
 	env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	    << " for " << _opt.problemName() << endl << flush;
@@ -783,6 +846,8 @@ MainLoopResult IGAlgorithm::onModelFound()
         reportSpiderStatus('-');
       }
 
+      // Prevent timing out whilst the model is being printed
+      Timer::setTimeLimitEnforcement(false);
 
       vostringstream modelStm;
       bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);

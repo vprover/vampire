@@ -193,7 +193,7 @@ FormulaList* NNF::ennf (FormulaList* fs, bool polarity)
 {
   CALL("NNF::ennf(FormulaList*...)");
 
-  if (fs->isEmpty()) {
+  if (FormulaList::isEmpty(fs)) {
     return fs;
   }
 
@@ -342,7 +342,7 @@ FormulaList* NNF::nnf (FormulaList* fs, bool polarity)
 {
   CALL("NNF::nnf(FormulaList*...)");
 
-  if (fs->isEmpty()) {
+  if (FormulaList::isEmpty(fs)) {
     return fs;
   }
 

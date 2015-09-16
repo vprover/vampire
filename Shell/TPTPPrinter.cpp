@@ -130,7 +130,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u)
     }
   }
   else {
-    NOT_IMPLEMENTED;
+    return static_cast<FormulaUnit*>(u)->formula()->toString();
   }
   return res.str();
 }
@@ -164,6 +164,10 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
     tgt() << "negated_conjecture"; break;
   case Unit::CLAIM:
     tgt() << "claim"; break;
+  case Unit::EXTENSIONALITY_AXIOM:
+    tgt() << "extensionality"; break;
+  default:
+     ASSERTION_VIOLATION;
   }
   tgt() << ", " << endl << "    " << bodyStr << " )." << endl;
 }
@@ -179,7 +183,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
 
   Signature::Symbol* sym = function ?
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
-  BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : sym->predType();
+  BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : static_cast<BaseType*>(sym->predType());
 
   if(type->isAllDefault()) {
     return;
@@ -241,8 +245,7 @@ void TPTPPrinter::ensureNecesarySorts()
   Signature::Symbol* sym;
   unsigned sorts = env.sorts->sorts();
   //check the sorts of the function symbols and collect information about used sorts
-  unsigned funs = env.signature->functions();
-  for (i = 0; i < funs; i++) {
+  for (i = 0; i < env.signature->functions(); i++) {
     sym = env.signature->getFunction(i);
     type = static_cast<BaseType*>(sym->fnType());
     unsigned arity = sym->arity();
@@ -254,9 +257,8 @@ void TPTPPrinter::ensureNecesarySorts()
     }
   }
   //check the sorts of the predicates and collect information about used sorts
-  unsigned preds = env.signature->predicates();
-  for (i = 1; i < preds; i++) {
-    sym = env.signature->getFunction(i);
+  for (i = 0; i < env.signature->predicates(); i++) {
+    sym = env.signature->getPredicate(i);
     type = static_cast<BaseType*>(sym->predType());
     unsigned arity = sym->arity();
     if (arity > 0) {
@@ -359,7 +361,7 @@ vstring TPTPPrinter::toString(const Formula* f)
       const FormulaList* fs = f->args();
       vstring result = "(" + toString(fs->head());
       fs = fs->tail();
-      while (! fs->isEmpty()) {
+      while (FormulaList::isNonEmpty(fs)) {
 	result += con + toString(fs->head());
 	fs = fs->tail();
       }
@@ -381,7 +383,7 @@ vstring TPTPPrinter::toString(const Formula* f)
       vstring result = vstring("(") + con + "[";
       bool needsComma = false;
       const Formula::VarList* vars = f->vars();
-      for (unsigned var = (unsigned)vars->head(); !vars->isEmpty(); vars = vars->tail()) {
+      for (unsigned var = (unsigned)vars->head(); !Formula::VarList::isEmpty(vars); vars = vars->tail()) {
         if (needsComma) {
           result += ", ";
         }
@@ -440,6 +442,14 @@ vstring TPTPPrinter::toString (const Unit* unit)
       negate_formula = true;
       kind = "conjecture";
     }
+    break;
+
+  case Unit::EXTENSIONALITY_AXIOM:
+    kind = "extensionality";
+    break;
+
+  case Unit::NEGATED_CONJECTURE:
+    kind = "negated_conjecture";
     break;
 
   default:

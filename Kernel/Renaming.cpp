@@ -148,14 +148,14 @@ void Renaming::assertValid() const
 
 vstring Renaming::toString() const
 {
-  vstring res;
+  vstring res = "[";
   VariableMap::Iterator mit(_data);
   while(mit.hasNext()) {
     unsigned from, to;
     mit.next(from, to);
-    res+=Int::toString(from)+" -> "+Int::toString(to)+"\n";
+    res+=Int::toString(from)+" -> "+Int::toString(to)+"\t";
   }
-  return res;
+  return res+"]";
 }
 
 #endif

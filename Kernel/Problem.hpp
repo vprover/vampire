@@ -80,6 +80,9 @@ public:
 
   void addEliminatedFunction(unsigned func, Literal* definition);
   void addEliminatedPredicate(unsigned pred, Unit* definition);
+ 
+  DHMap<unsigned,Literal*> getEliminatedFunctions(){ return _deletedFunctions; }
+  DHMap<unsigned,Unit*> getEliminatedPredicates(){ return _deletedPredicates; }
 
   bool isPropertyUpToDate() const { return _propertyValid; }
   Property* getProperty() const;
@@ -90,8 +93,9 @@ public:
 
   bool hasFormulas() const;
   bool hasEquality() const;
-  /** Problem contains an interpreted symbol different from equality */
+  /** Problem contains an interpreted symbol including equality */
   bool hasInterpretedOperations() const;
+  bool hasInterpretedEquality() const;
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasFOOL() const;
 
@@ -106,6 +110,12 @@ public:
   {
     invalidateProperty();
     _hasFOOL = false;
+  }
+  void refortFormulasAdded()
+  {
+    invalidateProperty();
+    _mayHaveFormulas = true;
+    _hasFormulas = true;
   }
   /**
    * Report that equality was added into the problem
@@ -159,6 +169,8 @@ private:
   void readDetailsFromProperty() const;
 
   UnitList* _units;
+  DHMap<unsigned,Literal*> _deletedFunctions;
+  DHMap<unsigned,Unit*> _deletedPredicates;
 
   bool _hadIncompleteTransformation;
 
@@ -175,6 +187,7 @@ private:
   mutable MaybeBool _hasEquality;
   mutable MaybeBool _hasInterpretedOperations;
   mutable MaybeBool _hasFOOL;
+  mutable MaybeBool _hasInterpretedEquality;
 
   mutable bool _propertyValid;
   mutable Property* _property;

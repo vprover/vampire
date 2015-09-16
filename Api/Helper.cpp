@@ -205,7 +205,7 @@ vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
     const Kernel::FormulaList* fs = f->args();
     vstring result = "(" + toString(fs->head());
     fs = fs->tail();
-    while (! fs->isEmpty()) {
+    while (Kernel::FormulaList::isNonEmpty(fs)) {
       result += con + toString(fs->head());
       fs = fs->tail();
     }

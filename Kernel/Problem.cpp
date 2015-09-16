@@ -192,6 +192,8 @@ void Problem::copyInto(Problem& tgt, bool copyClauses)
     tgt._property = new Property(*_property);
     tgt.readDetailsFromProperty();
   }
+
+  //TODO copy the deleted maps
 }
 
 /**
@@ -226,7 +228,7 @@ void Problem::addEliminatedFunction(unsigned func, Literal* definition)
   CALL("Problem::addEliminatedFunction");
   ASS(definition->isEquality());
 
-  //TODO:to be implemented and handled in model retrieval
+  _deletedFunctions.insert(func,definition);
 }
 
 /**
@@ -238,7 +240,7 @@ void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
 {
   CALL("Problem::addEliminatedPredicate");
 
-  //TODO:to be implemented and handled in model retrieval
+  _deletedPredicates.insert(pred,definition);
 }
 
 /**
@@ -271,6 +273,7 @@ void Problem::readDetailsFromProperty() const
   _hasEquality = _property->equalityAtoms()!=0;
   _hasInterpretedOperations = _property->hasInterpretedOperations();
   _hasFOOL = _property->hasFOOL();
+  _hasInterpretedEquality = _property->hasInterpretedEquality();
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
@@ -291,6 +294,7 @@ void Problem::invalidateEverything()
   _hasEquality = MaybeBool::UNKNOWN;
   _hasInterpretedOperations = MaybeBool::UNKNOWN;
   _hasFOOL = MaybeBool::UNKNOWN;
+  _hasInterpretedEquality = MaybeBool::UNKNOWN;
 
   _mayHaveFormulas = true;
   _mayHaveEquality = true;
@@ -312,6 +316,7 @@ void Problem::invalidateByRemoval()
   _hasEquality.mightBecameFalse();
   _hasInterpretedOperations.mightBecameFalse();
   _hasFOOL.mightBecameFalse();
+  _hasInterpretedEquality.mightBecameFalse();
 }
 
 /**
@@ -355,6 +360,14 @@ bool Problem::hasInterpretedOperations() const
 
   if(!_hasInterpretedOperations.known()) { refreshProperty(); }
   return _hasInterpretedOperations.value();
+}
+
+bool Problem::hasInterpretedEquality() const
+{
+  CALL("Problem::hasInterpretedEquality");
+
+  if(!_hasInterpretedEquality.known()) { refreshProperty(); }
+  return _hasInterpretedEquality.value();
 }
 
 bool Problem::hasFOOL() const

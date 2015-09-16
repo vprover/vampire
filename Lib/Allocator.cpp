@@ -502,7 +502,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   if(index>=MAX_PAGES) {
 #if SAFE_OUT_OF_MEM_SOLUTION
     env.beginOutput();
-    reportSpiderStatus('?');
+    reportSpiderStatus('m');
     env.out() << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
     if(env.statistics) {
       env.statistics->print(env.out());
@@ -530,7 +530,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
 
 #if SAFE_OUT_OF_MEM_SOLUTION
       env.beginOutput();
-      reportSpiderStatus('?');
+      reportSpiderStatus('m');
       env.out() << "Memory limit exceeded!\n";
 # if VDEBUG
 	Allocator::reportUsageByClasses();
@@ -551,9 +551,20 @@ Allocator::Page* Allocator::allocatePages(size_t size)
       BYPASSING_ALLOCATOR;
       
       mem = new char[realSize];
-    } catch(bad_alloc)
-    {
-      throw Lib::MemoryLimitExceededException(true);
+    } catch(bad_alloc) {
+      env.beginOutput();
+      reportSpiderStatus('m');
+      env.out() << "Memory limit exceeded!\n";
+      if(env.statistics) {
+        // statistics should be fine when out of memory, but not RuntimeStatistics, which allocate a Stack
+        // (i.e. potential crazy exception recursion may happen in DEBUG mode)
+        env.statistics->print(env.out());
+      }
+      env.endOutput();
+      System::terminateImmediately(1);
+
+      // CANNOT throw vampire exception when out of memory - it contains allocations because of the message string
+      // throw Lib::MemoryLimitExceededException(true);
     }
     result = reinterpret_cast<Page*>(mem);
   }
@@ -968,7 +979,7 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 
 #endif
 
-#if VDEBUG
+#if 0 
 /**
  * In debug mode we replace the global new and delete (also the array versions)
  * and terminate in cases when they are used "unwillingly".
@@ -982,7 +993,8 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  **/ 
   
 void* operator new(size_t sz) {    
-  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
+  //ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
+  if(Allocator::_tolerantZone == 0){ cout << "Warning, bypassing Allocator" << endl; }
   
   if (sz == 0)
     sz = 1;
@@ -996,7 +1008,8 @@ void* operator new(size_t sz) {
 }
 
 void* operator new[](size_t sz) {  
-  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
+  //ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
+  if(Allocator::_tolerantZone == 0){ cout << "Warning, bypassing Allocator" << endl; }
   
   if (sz == 0)
     sz = 1;
@@ -1010,12 +1023,14 @@ void* operator new[](size_t sz) {
 }
 
 void operator delete(void* obj) throw() {  
-  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");    
+  //ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");    
+  if(Allocator::_tolerantZone==0){ cout << "Warning, custom new matched by global delete" << endl; }
   free(obj);
 }
 
 void operator delete[](void* obj) throw() {  
-  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");  
+  //ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");  
+  if(Allocator::_tolerantZone==0){ cout << "Warning, custom new matched by global delete[]" << endl; }
   free(obj);
 }
 #endif // VDEBUG

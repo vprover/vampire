@@ -92,6 +92,10 @@ public:
     static Comparison compare(const LeafData& ld1, const LeafData& ld2)
     {
       if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
+        //if(ld1.clause->number()==ld2.clause->number()){
+          //cout << "XXX " << ld1.clause << " and " << ld2.clause << endl;
+          //cout << ld2.clause->toString() << endl;
+        //}
 	ASS_NEQ(ld1.clause->number(), ld2.clause->number());
 	return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
       }
@@ -500,7 +504,7 @@ public:
   {
   public:
     FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
-	    bool retrieveSubstitution, bool reversed=false);
+            bool retrieveSubstitution, bool reversed,bool withoutTop);
 
     ~FastGeneralizationsIterator();
 
@@ -546,7 +550,7 @@ public:
   {
   public:
     FastInstancesIterator(SubstitutionTree* parent, Node* root, Term* query,
-	    bool retrieveSubstitution, bool reversed=false);
+	    bool retrieveSubstitution, bool reversed, bool withoutTop);
     ~FastInstancesIterator();
 
     bool hasNext();
@@ -579,7 +583,7 @@ public:
   : public IteratorCore<QueryResult>
   {
   public:
-    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed=false);
+    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop);
     ~UnificationsIterator();
 
     bool hasNext();
@@ -624,8 +628,9 @@ public:
   : public UnificationsIterator
   {
   public:
-    GeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed=false)
-    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed) {};
+    GeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop)
+    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop) {};
+
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
@@ -635,8 +640,8 @@ public:
   : public UnificationsIterator
   {
   public:
-    InstancesIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed=false)
-    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed) {};
+    InstancesIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop)
+    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop) {};
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);

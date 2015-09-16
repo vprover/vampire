@@ -35,6 +35,7 @@ using namespace Parse;
 
 #define DEBUG_SHOW_TOKENS 0
 #define DEBUG_SHOW_UNITS 0
+#define DEBUG_SOURCE 0
 
 DHMap<unsigned, vstring> TPTP::_axiomNames;
 
@@ -58,7 +59,9 @@ TPTP::TPTP(istream& in)
     _allowedNames(0),
     _in(&in),
     _includeDirectory(""),
-    _currentColor(COLOR_TRANSPARENT)
+    _currentColor(COLOR_TRANSPARENT),
+    _unitSources(0),
+    _filterReserved(false)
 {
 } // TPTP::TPTP
 
@@ -774,7 +777,8 @@ void TPTP::readReserved(Token& tok)
 {
   CALL("TPTP::readReserved");
 
-  for (int n = 1;;n++) {
+  int n = 1;
+  for (;;n++) {
     switch (getChar(n)) {
     case 'A':
     case 'B':
@@ -843,7 +847,7 @@ void TPTP::readReserved(Token& tok)
       break;
     default:
       tok.content.assign(_chars.content(),n);
-      shiftChars(n);
+      //shiftChars(n);
       goto out;
     }
   }
@@ -903,12 +907,24 @@ void TPTP::readReserved(Token& tok)
   else if (tok.content == "$thf") {
     tok.tag = T_THF;
   }
-  else if (tok.content.substr(0,2) == "$$") {
-    tok.tag = T_DOLLARS;
+  else if (tok.content.substr(0,2) == "$$" && !_filterReserved) {
+      tok.tag = T_DOLLARS;
   }
   else {
-    tok.tag = T_NAME;
+      
+      // If _filterReserved is on then filter "$" from content
+      if(_filterReserved){
+          unsigned c=0;
+          for(;;c++){ if(getChar(c)!='$') break;}
+          shiftChars(c);
+          n=n-c;
+          tok.content.assign(_chars.content(),n);
+      }
+      
+      tok.tag = T_NAME;
   }
+  // Moved from above so that _filterReserved works
+  shiftChars(n);
 } // readReserved
 
 /**
@@ -1214,6 +1230,10 @@ void TPTP::fof(bool fo)
   if (tp == "axiom" || tp == "plain") {
     _lastInputType = Unit::AXIOM;
   }
+  else if(tp == "extensionality"){
+    // this will be transformed to just AXIOM after clausification
+    _lastInputType = Unit::EXTENSIONALITY_AXIOM;
+  }
   else if (tp == "definition") {
     _lastInputType = Unit::AXIOM;
   }
@@ -1330,6 +1350,10 @@ void TPTP::tff()
   _isQuestion = false;
   if (tp == "axiom" || tp == "plain") {
     _lastInputType = Unit::AXIOM;
+  }
+  else if (tp == "extensionality"){
+    // this will be transformed to just AXIOM after clausification
+    _lastInputType = Unit::EXTENSIONALITY_AXIOM;
   }
   else if (tp == "definition") {
     _lastInputType = Unit::AXIOM;
@@ -1766,8 +1790,9 @@ void TPTP::endBinding() {
   while (vit.hasNext()) {
     unsigned var = (unsigned)vit.next();
     ASS_REP(_variableSorts.find(var), var);
-    ASS_REP(_variableSorts.get(var)->isNonEmpty(), var);
-    argSorts.push(_variableSorts.get(var)->head());
+    const SortList* sorts = _variableSorts.get(var);
+    ASS_REP(SortList::isNonEmpty(sorts), var);
+    argSorts.push(sorts->head());
   }
 
   BaseType* type = BaseType::makeType(arity, argSorts.begin(), isPredicate ? Sorts::SRT_BOOL : bodySort);
@@ -2223,7 +2248,9 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
       static Stack<unsigned> distincts;
       distincts.reset();
       for(int i=arity-1;i >= 0; i--){
-        distincts.push(_termLists.pop().term()->functor());
+        TermList t = _termLists.pop();
+        if(t.term()->arity()!=0) USER_ERROR("$distinct can only be used with constants");
+        distincts.push(t.term()->functor());
       }
       Formula* distinct_formula = DistinctGroupExpansion().expand(distincts);
       return distinct_formula;
@@ -2551,6 +2578,21 @@ void TPTP::tag()
 void TPTP::endFof()
 {
   CALL("TPTP::endFof");
+
+  TPTP::SourceRecord* source = 0;
+
+  // are we interested in collecting sources?
+  if (_unitSources) {
+    source = getSource();
+  }
+#if DEBUG_SOURCE
+  else{
+    // create fake map
+    _unitSources = new DHMap<Unit*,SourceRecord*>();
+    source = getSource();
+  }
+#endif
+
   skipToRPAR();
   consumeToken(T_DOT);
 
@@ -2618,6 +2660,11 @@ void TPTP::endFof()
     unit->setInheritedColor(_currentColor);
   }
 
+  if(source){ 
+    ASS(_unitSources);
+    _unitSources->insert(unit,source);
+  }
+
   if (env.options->outputAxiomNames()) {
     assignAxiomName(unit,nm);
   }
@@ -2652,7 +2699,7 @@ void TPTP::endFof()
     }
     else {
       Formula::VarList* vs = f->freeVariables();
-      if (vs->isEmpty()) {
+      if (Formula::VarList::isEmpty(vs)) {
 	f = new NegatedFormula(f);
       }
       else {
@@ -2676,7 +2723,7 @@ void TPTP::endFof()
       a = env.sharing->insert(a);
       Formula* claim = new AtomicFormula(a);
       Formula::VarList* vs = f->freeVariables();
-      if (!vs->isEmpty()) {
+      if (Formula::VarList::isNonEmpty(vs)) {
 	f = new QuantifiedFormula(FORALL,vs,f);
       }
       f = new BinaryFormula(IFF,claim,f);
@@ -2812,6 +2859,108 @@ void TPTP::endTff()
 } // endTff
 
 /**
+ *
+ * @author Giles
+ */
+TPTP::SourceRecord* TPTP::getSource()
+{
+  if (getTok(0).tag != T_COMMA) { // if comma is not there, source was not provided
+    return 0;
+  }
+
+  consumeToken(T_COMMA);
+
+  //Either source is a file or an inference, otherwise we don't care about it!
+  //  therefore failing will return 0
+ 
+  Token& source_kind = getTok(0);
+  if(source_kind.tag != T_NAME) return 0;
+
+  resetToks();
+  if (getTok(0).tag != T_LPAR) {
+    return 0;
+  } else {
+    resetToks();
+  }
+  
+  //file
+  if(source_kind.content == "file"){
+    vstring fileName = getTok(0).content;
+    resetToks();
+    consumeToken(T_COMMA);
+    resetToks();
+    vstring nameInFile = getTok(0).content;
+    resetToks();
+
+    // cout << "Creating file source record for " << fileName << " and " << nameInFile << endl;
+
+    consumeToken(T_RPAR);
+    return new FileSourceRecord(fileName,nameInFile);
+  }
+  // inference
+  else if(source_kind.content == "inference" || source_kind.content == "introduced"){
+    bool introduced = (source_kind.content == "introduced");
+    vstring name = getTok(0).content;
+    resetToks();
+
+    // cout << "Creating inference source record for " << name <<  endl;
+
+    InferenceSourceRecord* r = new InferenceSourceRecord(name);
+
+    if(introduced){
+      // then we don't expect names and we don't care about middle info 
+      resetToks();
+      skipToRPAR();
+      return r;
+    }
+
+    // now skip this middle information that is between [ and ]
+    consumeToken(T_COMMA);
+    consumeToken(T_LBRA);
+    skipToRBRA();
+    consumeToken(T_COMMA);
+    consumeToken(T_LBRA);
+
+    // read comma separated list of names
+    Token tok;
+    while((tok=getTok(0)).tag != T_RBRA){
+      resetToks();
+      if(tok.tag == T_COMMA) continue;
+   
+      if (tok.tag != T_NAME && tok.tag != T_INT) {
+        cout << "read token " << tok.tag << " with content " << tok.content << endl;
+
+        // TODO: parse errors are nice, but maybe we just want to ignore any info which we cannot understand?
+
+        PARSE_ERROR("Source unit name expected",tok);
+      }
+
+      vstring premise = tok.content;
+
+      tok = getTok(0);
+      if (tok.tag != T_COMMA && tok.tag != T_RBRA) {
+        // if the next thing is neither comma not RBRA, it is an ugly info piece we want to skip
+        resetToks();
+        skipToRPAR();
+      } else {
+        r->premises.push(premise);
+        // cout << "pushed premise " << premise << endl;
+      }
+    }
+    resetToks();
+
+    consumeToken(T_RPAR);
+    return r;
+  } else {
+    
+    skipToRPAR();
+  }
+
+  return 0;
+}
+
+
+/**
  * Skip any sequence tokens, including matching pairs of left parentheses,
  * until an unmatched right parenthesis is found. Consume this right parenthesis
  * and terminate.
@@ -2842,6 +2991,35 @@ void TPTP::skipToRPAR()
     }
   }
 } // skipToRPAR
+
+/**
+ * A copy of skipToRPAR but for BRA
+ */
+void TPTP::skipToRBRA()
+{
+  int balance = 0;
+  for (;;) {
+    Token tok = getTok(0);
+    switch (tok.tag) {
+    case T_EOF:
+      PARSE_ERROR(") not found",tok);
+    case T_LBRA:
+      resetToks();
+      balance++;
+      break;
+    case T_RBRA:
+      resetToks();
+      balance--;
+      if (balance == -1) {
+        return;
+      }
+      break;
+    default:
+      resetToks();
+      break;
+    }
+  }
+} // skipToRBRA
 
 /**
  * Read a simple formula (quantified formula, negation,
@@ -3094,11 +3272,80 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_DIVIDE,
 				 Theory::REAL_DIVIDE);
   }
+  if (name == "$quotient") {
+    if(sortOf(arg)==Sorts::SRT_INTEGER){
+      USER_ERROR("$quotient cannot be used with integer type");
+    }
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_QUOTIENT_E,
+                                 Theory::RAT_QUOTIENT,
+                                 Theory::REAL_QUOTIENT);
+  }
+  if (name == "$quotient_e") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_QUOTIENT_E,
+                                 Theory::RAT_QUOTIENT_E,
+                                 Theory::REAL_QUOTIENT_E);
+  }
+  if (name == "$quotient_t") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_QUOTIENT_T,
+                                 Theory::RAT_QUOTIENT_T,
+                                 Theory::REAL_QUOTIENT_T);
+  }
+  if (name == "$quotient_f") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_QUOTIENT_F,
+                                 Theory::RAT_QUOTIENT_F,
+                                 Theory::REAL_QUOTIENT_F);
+  }
+  if (name == "$remainder_e") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_REMAINDER_E,
+                                 Theory::RAT_REMAINDER_E,
+                                 Theory::REAL_REMAINDER_E);
+  }
+  if (name == "$remainder_t") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_REMAINDER_T,
+                                 Theory::RAT_REMAINDER_T,
+                                 Theory::REAL_REMAINDER_T);
+  }
+  if (name == "$remainder_f") {
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_REMAINDER_F,
+                                 Theory::RAT_REMAINDER_F,
+                                 Theory::REAL_REMAINDER_F);
+  }
   if (name == "$uminus") {
     return addOverloadedFunction(name,arity,1,added,arg,
 				 Theory::INT_UNARY_MINUS,
 				 Theory::RAT_UNARY_MINUS,
 				 Theory::REAL_UNARY_MINUS);
+  }
+  if (name == "$floor") {
+    return addOverloadedFunction(name,arity,1,added,arg,
+                                 Theory::INT_FLOOR,
+                                 Theory::RAT_FLOOR,
+                                 Theory::REAL_FLOOR);
+  }
+  if (name == "$ceiling") {
+    return addOverloadedFunction(name,arity,1,added,arg,
+                                 Theory::INT_CEILING,
+                                 Theory::RAT_CEILING,
+                                 Theory::REAL_CEILING);
+  }
+  if (name == "$truncate") {
+    return addOverloadedFunction(name,arity,1,added,arg,
+                                 Theory::INT_TRUNCATE,
+                                 Theory::RAT_TRUNCATE,
+                                 Theory::REAL_TRUNCATE);
+  }
+  if (name == "$round") {
+    return addOverloadedFunction(name,arity,1,added,arg,
+                                 Theory::INT_ROUND,
+                                 Theory::RAT_ROUND,
+                                 Theory::REAL_ROUND);
   }
   if (name == "$to_int") {
     return addOverloadedFunction(name,arity,1,added,arg,
@@ -3224,6 +3471,11 @@ unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool
     USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
   }
   unsigned srt = sortOf(arg);
+  TermList* n = arg.next();
+  for(int i=1;i<arity;i++){
+    if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
+    n = n->next();
+  }
   if (srt == Sorts::SRT_INTEGER) {
     return env.signature->addInterpretedFunction(integer,name);
   }
@@ -3246,6 +3498,12 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
     USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
   }
   unsigned srt = sortOf(arg);
+  TermList* n = arg.next();
+  for(int i=1;i<arity;i++){
+    if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
+    n = n->next(); 
+  }
+  
   if (srt == Sorts::SRT_INTEGER) {
     return env.signature->addInterpretedPredicate(integer,name);
   }
@@ -3271,8 +3529,7 @@ unsigned TPTP::sortOf(TermList t)
   for (;;) {
     if (t.isVar()) {
       SortList* sorts;
-      if (_variableSorts.find(t.var(),sorts)) {
-        ASS_REP(sorts,t);
+      if (_variableSorts.find(t.var(),sorts) && SortList::isNonEmpty(sorts)) {
 	return sorts->head();
       }
       // there might be variables whose sort is undeclared,

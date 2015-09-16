@@ -5,12 +5,14 @@
  * @since 09/05/2007 Manchester
  */
 
+#include "Forwards.hpp"
+
 #include "Debug/Tracer.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 
-#include "BDD.hpp"
 #include "Inference.hpp"
 #include "InferenceStore.hpp"
 #include "Clause.hpp"
@@ -96,7 +98,79 @@ Unit::Unit(Kind kind,Inference* inf,InputType it)
     }
     break;
   }
+
 } // Unit::Unit
+
+unsigned Unit::getPriority() const
+{
+  CALL("Unit::getPriority");
+
+  if(!env.clausePriorities) return 1;
+
+  // Put these at the end of the priority list
+  if(
+    _inference->rule() == Inference::THEORY ||
+    _inference->rule() == Inference::EQUALITY_PROXY_AXIOM1
+  ){
+    return env.maxClausePriority;
+  }
+  // Current cases where there is no input clause ancestor
+  // This is probably okay as this rule is from a weird experimental option
+  if(
+     _inference->rule() == Inference::SKOLEM_PREDICATE_INTRODUCTION 
+    ){
+    // This is the same as depth 1 in sine selection
+    return 2;
+  }
+
+  unsigned priority;
+  if(env.clausePriorities->find(this,priority)){
+    return priority;
+  }
+
+  // This means we're in LTB mode without SineSelection
+  // All learned formauls get 1 so we give non-learned formulas 2
+  // Goal gets 1
+  if(_inference->rule() == Inference::INPUT){ return 2; }
+  if(_inference->rule() == Inference::NEGATED_CONJECTURE){ return 2; }
+
+  // If we get to here it means that the component did not have an orig
+  if(_inference->rule() == Inference::SAT_SPLITTING_COMPONENT){ return 2;} 
+
+  //cout << "getPriority for " << this->toString() << endl;
+
+    unsigned count=0;
+    unsigned total=0;
+    ASS(_inference);
+    Unit* t = const_cast<Unit*>(this);
+    UnitIterator uit = InferenceStore::instance()->getParents(t);
+    while(uit.hasNext()) {
+      Unit* us = uit.next();
+      unsigned up = us->getPriority();
+      count++;
+      total+=up;
+    }
+    //if(count==0){ cout << "count is zero for " << toString() << endl; }
+    ASS_G(count,0);
+
+    // If count==0 we are only here in release mode
+    if(count==0){ return 2; }
+
+    // we take the average using integer division
+    priority = total/count;
+    ASS_G(priority,0);
+
+    // I don't think this can happen but a release mode check
+    if(priority==0){ priority=1; }
+
+    // record it
+    env.clausePriorities->insert(this,priority);
+
+    //cout << "priority is " << priority << endl;
+
+    return priority;
+}
+
 
 void Unit::incRefCnt()
 {
@@ -112,6 +186,12 @@ void Unit::decRefCnt()
   if(isClause()) {
     static_cast<Clause*>(this)->decRefCnt();
   }
+}
+
+Clause* Unit::asClause() {
+  CALL("Unit::asClause");
+  ASS(isClause());
+  return static_cast<Clause*>(this);
 }
 
 
@@ -167,13 +247,12 @@ unsigned Unit::varCnt()
  *
  * @since 16/01/14, removed BDDNode prop, Giles.
  */
-Formula* Unit::getFormula()//BDDNode* prop)
+Formula* Unit::getFormula()
 {
   if(isClause()) {
     return Formula::fromClause(static_cast<Clause*>(this));//, prop);
   }
   else {
-    //ASS(BDD::instance()->isFalse(prop));
     return Formula::quantify(static_cast<FormulaUnit*>(this)->formula());
   }
 }
@@ -222,7 +301,7 @@ void Unit::collectPredicates(Stack<unsigned>& acc)
  * refutations).
  * @since 04/01/2008 Torrevieja
  */
-vstring Unit::inferenceAsString(BDDNode* propPart) const
+vstring Unit::inferenceAsString() const
 {
   CALL("Unit::inferenceAsString");
 
@@ -230,14 +309,14 @@ vstring Unit::inferenceAsString(BDDNode* propPart) const
   InferenceStore& infS = *InferenceStore::instance();
 
   Inference::Rule rule;
-  UnitSpecIterator parents;
-  UnitSpec us = propPart ? UnitSpec(const_cast<Unit*>(this), propPart) : UnitSpec(const_cast<Unit*>(this));
+  UnitIterator parents;
+  Unit* us = const_cast<Unit*>(this);
   parents = infS.getParents(us, rule);
 
   vstring result = (vstring)"[" + Inference::ruleName(rule);
   bool first = true;
   while (parents.hasNext()) {
-    UnitSpec parent = parents.next();
+    Unit* parent = parents.next();
     result += first ? ' ' : ',';
     first = false;
     result += infS.getUnitIdStr(parent);

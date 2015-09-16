@@ -221,6 +221,20 @@ public:
 
     Lit          subsumes    (const Clause& other) const;
     void         strengthen  (Lit p);
+
+    void         crawlUp     (int shift) {
+      for (int i = header.has_extra ? header.size : (header.size-1);
+          i>=-1; // copy even the header
+          i--) {
+        data[i+1] = data[i];
+      }
+    }
+
+    void        zombify () {
+      header.has_extra = 0;
+      header.size = 0;
+      header.mark = 1;
+    }
 };
 
 

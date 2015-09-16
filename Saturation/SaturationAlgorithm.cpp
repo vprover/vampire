@@ -48,6 +48,7 @@
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/URResolution.hpp"
+#include "Inferences/Instantiation.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -93,6 +94,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _symEl(0), _answerLiteralManager(0),
+    _instantiation(0),
     _generatedClauseCount(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
@@ -345,39 +347,6 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     _splitter->onNewClause(cl);
   }
 
-// Giles.
-// Clauses no longer  have prop parts
-// This code used to add the disjunction of all prop parts of premises
-// 
-//
-//  if (!cl->prop()) {
-//    BDD* bdd=BDD::instance();
-//    BDDNode* prop=bdd->getFalse();
-//
-//    Inference* inf=cl->inference();
-//    Inference::Iterator it=inf->iterator();
-//    while (inf->hasNext(it)) {
-//      Unit* premu=inf->next(it);
-//      if (!premu->isClause()) {
-//	//the premise comes from preprocessing
-//	continue;
-//      }
-//      Clause* prem=static_cast<Clause*>(premu);
-//      if (!prem->prop()) {
-//	//the premise comes from preprocessing
-//	continue;
-//      }
-//
-//      prop=bdd->disjunction(prop, prem->prop());
-//    }
-//
-//    cl->initProp(prop);
-//    if (!bdd->isTrue(prop)) {
-//      InferenceStore::instance()->recordNonPropInference(cl);
-//    }
-//  }
-
-   
   if (env.options->showNew()) {
     env.beginOutput();
     env.out() << "[SA] new: " << cl->toString() << std::endl;
@@ -416,6 +385,8 @@ void SaturationAlgorithm::onClauseRetained(Clause* cl)
 {
   CALL("SaturationAlgorithm::onClauseRetained");
 
+  //cout << "[SA] retained " << cl->toString() << endl;
+
 }
 
 /**
@@ -431,15 +402,6 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
 {
   CALL("SaturationAlgorithm::onClauseReduction/5");
   ASS(cl);
-
-  if (env.options->showReductions()) {
-    env.beginOutput();
-    env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl; 
-    if(replacement){ env.out() << "     replaced by " << replacement->toString() << endl; }
-    if(premise){ env.out() << "     using " << premise->toString() << endl; }
-    if(reductionPremise){ env.out() << "     and " << reductionPremise->toString() << endl; }
-    env.endOutput();
-  }
 
   ClauseIterator premises;
   
@@ -463,10 +425,21 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
   CALL("SaturationAlgorithm::onClauseReduction/4");
   ASS(cl);
 
-
   static ClauseStack premStack;
   premStack.reset();
   premStack.loadFromIterator(premises);
+
+  if (env.options->showReductions()) {
+    env.beginOutput();
+    env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
+    if(replacement){ env.out() << "     replaced by " << replacement->toString() << endl; }
+    ClauseStack::Iterator pit(premStack);
+    while(pit.hasNext()){ 
+      Clause* premise = pit.next();
+      if(premise){ env.out() << "     using " << premise->toString() << endl; }
+    }
+    env.endOutput();
+  }
 
   if (_splitter) {
     _splitter->onClauseReduction(cl, pvi( ClauseStack::Iterator(premStack) ), replacement);
@@ -556,10 +529,17 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     _symEl->onInputClause(cl);
   }
 
-  if (_opt.sos() != Options::Sos::OFF && cl->inputType()==Clause::AXIOM) {
+  if (_opt.sos() != Options::Sos::OFF && 
+       ((cl->inputType()==Clause::AXIOM && _opt.sos() !=Options::Sos::THEORY) ||
+        cl->inference()->rule()==Inference::THEORY)
+     ) {
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
+  }
+
+  if(_instantiation){
+    _instantiation->registerClause(cl);
   }
 
   env.statistics->initialClauses++;
@@ -668,10 +648,7 @@ void SaturationAlgorithm::init()
 /**
  * Class of @b ForwardSimplificationPerformer objects that
  * perform the forward simplification only if it leads to
- * deletion of the clause being simplified. (Other
- * possibility would be to also perform simplifications that
- * only alter the propositional part of simplified clause,
- * not delete it.)
+ * deletion of the clause being simplified. 
  */
 class SaturationAlgorithm::TotalSimplificationPerformer
 : public ForwardSimplificationPerformer
@@ -684,18 +661,12 @@ public:
     CALL("TotalSimplificationPerformer::perform");
     ASS(_cl);
 
-    //BDDNode* oldClProp=_cl->prop();
     if (replacement) {
-    // No prop parts.
-    //  replacement->initProp(oldClProp);
-    //  InferenceStore::instance()->recordNonPropInference(replacement);
       _sa->addNewClause(replacement);
     }
     _sa->onClauseReduction(_cl, replacement, premises);
 
     // Remove clause - so no longer kept
-    //_cl->setProp(bdd->getTrue());
-    //InferenceStore::instance()->recordPropReduce(_cl, oldClProp, bdd->getTrue());
     _cl=0;
   }
 
@@ -707,18 +678,10 @@ public:
     if (!premise) {
       return true;
     }
-
     if ( !ColorHelper::compatible(_cl->color(), premise->color()) ) {
       return false;
     }
 
-    // I don't think this needs an equivalent check on literals
-    // Checks that premise->cl is not a true constant formula
-    // It cannot be as it is false. 
-    //BDD* bdd=BDD::instance();
-    //if (!bdd->isXOrNonYConstant(_cl->prop(), premise->prop(), true)) {
-    //  return false;
-    //}
     return true;
   }
 
@@ -802,7 +765,8 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     case Clause::ACTIVE:
       cout << "FAIL: " << cl->toString() << endl;
       //such clauses should not appear as new ones
-      ASSERTION_VIOLATION;
+      cout << cl->toString() << endl;
+      ASSERTION_VIOLATION_REP(cl->store());
 #endif
     }
     cl->decRefCnt(); //belongs to _newClauses.popWithoutDec()
@@ -949,20 +913,12 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       Clause* redundant=srec.toRemove;
       ASS_NEQ(redundant, cl);
 
-      // checks if y=>x is a true constant formula, it cannot be
-      //BDDNode* oldRedundantProp=redundant->prop();
-      //if ( !bdd->isXOrNonYConstant(oldRedundantProp, cl->prop(), true) ) {
-	//TODO: here the srec.replacement should probably be deleted
-        //continue;
-     // }
-
       Clause* replacement=srec.replacement;
 
       if (replacement) {
 	addNewClause(replacement);
       }
       onClauseReduction(redundant, replacement, cl, 0, false);
-
 
       //we must remove the redundant clause before adding its replacement,
       //as otherwise the redundant one might demodulate the replacement into
@@ -1198,6 +1154,10 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     MainLoopResult res(termReason);
     if (termReason == Statistics::SATISFIABLE && getOptions().proof() != Options::Proof::OFF) {
       res.saturatedSet = collectSaturatedSet();
+
+      if (_splitter) {
+        res.saturatedSet = _splitter->explicateAssertionsForSaturatedClauseSet(res.saturatedSet);
+      }
     }
     throw MainLoopFinishedException(res);
   }
@@ -1341,6 +1301,13 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
+
+  if(opt.instantiation()!=Options::Instantiation::OFF){
+    res->_instantiation = new Instantiation();
+    //res->_instantiation->init();
+    gie->addFront(res->_instantiation);
+  }
+
   if (prb.hasEquality()) {
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());
@@ -1364,12 +1331,16 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   res->setImmediateSimplificationEngine(createISE(prb, opt));
 
+  if(opt.splitting()){
+    res->_splitter = new Splitter();
+  }
+
   // create forward simplification engine
   if (opt.hyperSuperposition()) {
     res->addForwardSimplifierToFront(new HyperSuperposition());
   }
   if (opt.globalSubsumption()) {
-    res->addForwardSimplifierToFront(new GlobalSubsumption());
+    res->addForwardSimplifierToFront(new GlobalSubsumption(opt));
   }
   if (opt.forwardLiteralRewriting()) {
     res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
@@ -1429,21 +1400,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.showSymbolElimination()) {
     res->_symEl=new SymElOutput();
-  }
-
-  // switch(opt.splitting()) {
-  // case Options::SM_OFF:
-  //  break;
-  // case Options::SM_BACKTRACKING:
-  //   res->_splitter=new BSplitter();
-  //   break;
-  //case Options::SM_INPUT:
-  //  res->_splitter=new SWBSplitterWithoutBDDs();
-  //  break;
-  //case Options::SM_SAT:
-  // Splitting is now either on or off. If on it using SSplitter
-  if(opt.splitting()){
-    res->_splitter = new Splitter();
   }
   if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();

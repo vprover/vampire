@@ -636,6 +636,7 @@ private:
   void bindVariable(int var,unsigned sortNumber);
   void unbindVariables();
   void skipToRPAR();
+  void skipToRBRA();
   unsigned addFunction(vstring name,int arity,bool& added,TermList& someArgument);
   int addPredicate(vstring name,int arity,bool& added,TermList& someArgument);
   unsigned addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
@@ -652,10 +653,44 @@ private:
   unsigned sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
 
+public:
+  /**
+   * Used to store the contents of the 'source' of an input formula
+   * This is based on the 'file' and 'inference' record description in
+   * http://pages.cs.miami.edu/~tptp/TPTP/QuickGuide/Derivations.html
+   */
+  struct SourceRecord{
+    virtual bool isFile() = 0;
+  };
+  struct FileSourceRecord : SourceRecord {
+    const vstring fileName;
+    const vstring nameInFile;
+    bool isFile(){ return true; } 
+    FileSourceRecord(vstring fN, vstring nF) : fileName(fN), nameInFile(nF) {}
+  };
+  struct InferenceSourceRecord : SourceRecord{
+    const vstring name;
+    Stack<vstring> premises; 
+    bool isFile(){ return false; } 
+    InferenceSourceRecord(vstring n) : name(n) {}
+  };
+  
+  void setUnitSourceMap(DHMap<Unit*,SourceRecord*>* m){
+    _unitSources = m;
+  }
+  SourceRecord* getSource();
+
+  void setFilterReserved(){ _filterReserved=true; }
+
 private:
+  DHMap<Unit*,SourceRecord*>* _unitSources;
+
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
   static DHMap<unsigned, vstring> _axiomNames;
+
+  bool _filterReserved;
+
 
 #if VDEBUG
   void printStates(vstring extra);

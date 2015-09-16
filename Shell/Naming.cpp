@@ -85,11 +85,18 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   Formula* g = apply_iter(f);
 
   if (f == g) { // not changed
-    ASS(_defs->isEmpty());
+    ASS(UnitList::isEmpty(_defs));
     defs = UnitList::empty();
     return unit;
   }
-  ASS(!_defs->isEmpty());
+  ASS(UnitList::isNonEmpty(_defs));
+  UnitList::Iterator defit(_defs);
+  if(env.clausePriorities){
+    while(defit.hasNext()){
+      Unit* def = defit.next();
+      env.clausePriorities->insert(def,unit->getPriority());
+    }
+  }
   defs = _defs;
   UnitList* premises = _defs->copy();
   UnitList::push(unit, premises);
@@ -660,7 +667,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
     case APPLY_LIST_TOP: {
       TaskApplyList& tal = t.taskApplyList;
 
-      if (tal.fs->isEmpty()) {
+      if (FormulaList::isEmpty(tal.fs)) {
         Result r;
         r.resList.res = tal.fs;
         result_stack.push(r);
@@ -1173,7 +1180,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     FormulaList::push(nameFormula, fs);
     def = new JunctionFormula(OR, fs);
   }
-  if (vs->isNonEmpty()) {
+  if (Formula::VarList::isNonEmpty(vs)) {
     def = new QuantifiedFormula(FORALL, vs, def);
   }
   Inference* inf = new Inference(Inference::PREDICATE_DEFINITION);
@@ -1210,7 +1217,7 @@ FormulaList* Naming::apply_list(FormulaList* fs, Where where, int* results,
     int* negResults) {
   CALL("Naming::apply_list(FormulaList*...)");
 
-  if (fs->isEmpty()) {
+  if (FormulaList::isEmpty(fs)) {
     return fs;
   }
 

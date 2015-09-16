@@ -4,8 +4,11 @@
  */
 
 #include "Kernel/Clause.hpp"
+#include "Lib/TimeCounter.hpp"
 
 #include "SATInference.hpp"
+
+#include "MinisatInterfacing.hpp"
 
 namespace SAT
 {
@@ -17,10 +20,53 @@ namespace SAT
 /**
  * Collect first-order premises of @c cl into @c res. Make sure that elements in @c res are unique.
  */
-void SATInference::collectFOPremises(SATClause* cl, Stack<UnitSpec>& acc)
+void SATInference::collectFOPremises(SATClause* cl, Stack<Unit*>& acc)
 {
   CALL("SATInference::collectFOPremises");
-  ASS_ALLOC_TYPE(cl, "SATClause");
+  
+  collectFilteredFOPremises(cl,acc, [](SATClause*) {return true; } );
+}
+
+
+UnitList* SATInference::getFOPremises(SATClause* cl)
+{
+  CALL("SATInference::getFOPremises");
+  ASS(cl);
+  ASS(cl->inference());
+
+  static Stack<Unit*> prems;
+  prems.reset();
+
+  collectFOPremises(cl, prems);
+
+  UnitList* res = 0;
+  while (prems.isNonEmpty()) {
+    Unit* us = prems.pop();
+    UnitList::push(us, res);
+  }
+
+  return res;
+}
+
+SATInference* SATInference::copy(const SATInference* inf)
+{
+  CALL("SATInference::copy");
+
+  switch(inf->getType()) {
+  case PROP_INF:
+    return new PropInference(static_cast<const PropInference*>(inf)->getPremises()->copy());
+  case FO_CONVERSION:
+    return new FOConversionInference(static_cast<const FOConversionInference*>(inf)->getOrigin());
+  case ASSUMPTION:
+    return new AssumptionInference();
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
+void SATInference::collectPropAxioms(SATClause* cl, SATClauseStack& res)
+{
+  CALL("SATInference::collectPropAxioms");
 
   static Stack<SATClause*> toDo;
   static DHSet<SATClause*> seen;
@@ -37,7 +83,7 @@ void SATInference::collectFOPremises(SATClause* cl, Stack<UnitSpec>& acc)
     ASS(sinf);
     switch(sinf->getType()) {
     case SATInference::FO_CONVERSION:
-      acc.push(static_cast<FOConversionInference*>(sinf)->getOrigin());
+      res.push(cur);
       break;
     case SATInference::ASSUMPTION:
       break;
@@ -47,111 +93,73 @@ void SATInference::collectFOPremises(SATClause* cl, Stack<UnitSpec>& acc)
       toDo.loadFromIterator(SATClauseList::Iterator(pinf->getPremises()));
       break;
     }
-    case SATInference::FO_SPLITTING:
-    {
-      FOSplittingInference* inf = static_cast<FOSplittingInference*>(sinf);
-      acc.push(UnitSpec(inf->getOrigin()));
-      ClauseList::Iterator cit(inf->getNames());
-      while (cit.hasNext()) {
-	acc.push(UnitSpec(cit.next()));
-      }
-      break;
-    }
     default:
       ASSERTION_VIOLATION;
     }
   }
-  makeUnique(acc);
-}
-
-
-UnitList* SATInference::getFOPremises(SATClause* cl)
-{
-  CALL("SATInference::getFOPremises");
-  ASS(cl);
-  ASS(cl->inference());
-
-  static Stack<UnitSpec> prems;
-  prems.reset();
-
-  collectFOPremises(cl, prems);
-
-  UnitList* res = 0;
-  while (prems.isNonEmpty()) {
-    UnitSpec us = prems.pop();
-
-    //ASS_REP(us.withoutProp() || BDD::instance()->isTrue(us.prop()), us.toString());
-    UnitList::push(us.unit(), res);
-  }
-
-  return res;
-}
-
-SATInference* SATInference::copy(const SATInference* inf)
-{
-  CALL("SATInference::copy");
-
-  switch(inf->getType()) {
-  case PROP_INF:
-    return new PropInference(static_cast<const PropInference*>(inf)->getPremises()->copy());
-  case FO_CONVERSION:
-    return new FOConversionInference(static_cast<const FOConversionInference*>(inf)->getOrigin());
-  case FO_SPLITTING:
-  {
-    const FOSplittingInference* splInf = static_cast<const FOSplittingInference*>(inf);
-    return new FOSplittingInference(splInf->getOrigin(), splInf->getNames()->copy());
-  }
-  case ASSUMPTION:
-    return new AssumptionInference();
-  default:
-    ASSERTION_VIOLATION;
-  }
+  makeUnique(res);
 }
 
 ///////////////////////
 // FOConversionInference
 //
 
-FOConversionInference::FOConversionInference(UnitSpec origin) : _origin(origin)
+FOConversionInference::FOConversionInference(Unit* origin) : _origin(origin)
 {
-  _origin.unit()->incRefCnt();
+  _origin->incRefCnt();
 }
-FOConversionInference::FOConversionInference(Clause* cl) : _origin(UnitSpec(cl, false))
+FOConversionInference::FOConversionInference(Clause* cl) : _origin(cl)
 {
-  _origin.unit()->incRefCnt();
+  _origin->incRefCnt();
 }
 FOConversionInference::~FOConversionInference()
 {
   CALL("FOConversionInference::~FOConversionInference");
-  _origin.unit()->decRefCnt();
+  _origin->decRefCnt();
 }
-
 
 /////////////////////////
-// FOSplittingInference
-//
 
-FOSplittingInference::FOSplittingInference(Clause* origin, ClauseList* names) : _origin(origin), _names(names)
-{
-  CALL("FOSplittingInference::FOSplittingInference");
+void InferenceFromSatRefutation::minimizePremises() {
+  CALL("InferenceFromSatRefutation::minimizePremises");
 
-  _origin->incRefCnt();
-  ClauseList::Iterator nit(_names);
-  while (nit.hasNext()) {
-    Clause* n = nit.next();
-    n->incRefCnt();
+  if (_minimized) {
+    return;
   }
-}
 
-FOSplittingInference::~FOSplittingInference()
-{
-  CALL("FOSplittingInference::~FOSplittingInference");
+  TimeCounter tc(TC_SAT_PROOF_MINIMIZATION);
 
-  _origin->decRefCnt();
-  while (_names) {
-    Clause* n = ClauseList::pop(_names);
-    n->decRefCnt();
+  SATClauseList* minimized = MinisatInterfacing::minimizePremiseList(_satPremises,_usedAssumptions);
+
+  SATClause* newSatRef = new(0) SATClause(0);
+  newSatRef->setInference(new PropInference(minimized));
+
+  UnitList* newFOPrems = SATInference::getFOPremises(newSatRef);
+
+  // cout << "Minimized from " << _premises->length() << " to " << newFOPrems->length() << endl;
+
+  // "release" the old list
+  {
+    UnitList* it=_premises;
+    while(it) {
+      it->head()->decRefCnt();
+      it=it->tail();
+    }
   }
+
+  // assign and keep the new one
+  {
+    _premises = newFOPrems;
+    UnitList* it=_premises;
+    while(it) {
+      it->head()->incRefCnt();
+      it=it->tail();
+    }
+  }
+
+  newSatRef->destroy(); // deletes also the inference and with it the list minimized, but not the clauses inside
+
+  _minimized = true;
 }
 
 

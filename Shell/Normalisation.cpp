@@ -47,7 +47,7 @@ UnitList* Normalisation::normalise (UnitList* units)
 {
   CALL("Normalisation::normalise (UnitList*");
 
-  if (units->isEmpty()) {
+  if (UnitList::isEmpty(units)) {
     return units;
   }
   _counter.count(units,1);

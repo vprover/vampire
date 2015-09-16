@@ -285,7 +285,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
 FormulaList* FOOLElimination::process(FormulaList* formulas) {
   CALL ("FOOLElimination::process(FormulaList*)");
-  return formulas->isEmpty() ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
+  return FormulaList::isEmpty(formulas) ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
 }
 
 /**
@@ -573,7 +573,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          * So, in this case, instead of creating a new symbol, we will just
          * reuse f and leave the t term as it is.
          */
-        bool renameSymbol = bodyFreeVars->isNonEmpty();
+        bool renameSymbol = Formula::VarList::isNonEmpty(bodyFreeVars);
 
         // create a fresh function or predicate symbol g
         unsigned freshSymbol = renameSymbol ? introduceFreshSymbol(bodyContext, LET_PREFIX, sorts, bodySort) : symbol;
@@ -1037,5 +1037,5 @@ Formula* FOOLElimination::SymbolOccurrenceReplacement::process(Formula* formula)
 
 FormulaList* FOOLElimination::SymbolOccurrenceReplacement::process(FormulaList* formulas) {
   CALL("FOOLElimination::SymbolOccurrenceReplacement::process(FormulaList*)");
-  return formulas->isEmpty() ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
+  return FormulaList::isEmpty(formulas) ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
 }

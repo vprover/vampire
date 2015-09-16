@@ -18,6 +18,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 
@@ -56,8 +57,12 @@ Property::Property()
     _maxVariablesInClause(0),
     _props(0),
     _hasInterpreted(false),
+    _hasInterpretedEquality(false),
     _hasNonDefaultSorts(false),
-    _hasFOOL(false)
+    _hasFOOL(false),
+    _sortsUsed(0),
+    _allClausesGround(true),
+    _allQuantifiersEssentiallyExistential(true)
 {
   //TODO now MaxInterpretedElement is stateful this might be in the wrong place
   _interpretationPresence.init(Theory::instance()->MaxInterpretedElement()+1, false);
@@ -102,6 +107,12 @@ void Property::add(UnitList* units)
     scan(us.next());
   }
 
+  if (_allClausesGround && _allQuantifiersEssentiallyExistential) {
+    addProp(PR_ESSENTIALLY_GROUND);
+  } else if (hasProp(PR_ESSENTIALLY_GROUND)) {
+    dropProp(PR_ESSENTIALLY_GROUND);
+  }
+
   // information about sorts is read from the environment, not from the problem
   if (env.sorts->hasSort()) {
     addProp(PR_SORTS);
@@ -120,6 +131,7 @@ void Property::add(UnitList* units)
   if (env.signature->reals()) {
     addProp(PR_HAS_REALS);
   }
+
 
   // determine the category after adding
   if (formulas() > 0) { // FOF, either FEQ or FNE
@@ -291,6 +303,10 @@ void Property::scan(Clause* clause)
   if (! hasProp(PR_HAS_X_EQUALS_Y) && hasXEqualsY(clause)) {
     addProp(PR_HAS_X_EQUALS_Y);
   }
+
+  if (_variablesInThisClause > 0) {
+    _allClausesGround = false;
+  }
 } // Property::scan (const Clause* clause, bool isAxiom)
 
 
@@ -333,7 +349,9 @@ void Property::scan(Formula* formula)
   SubformulaIterator fs(formula);
   while (fs.hasNext()) {
     _subformulas++;
-    Formula* f = fs.next();
+    int polarity;
+    Formula* f = fs.next(polarity);
+
     switch(f->connective()) {
     case LITERAL:
     {
@@ -356,6 +374,16 @@ void Property::scan(Formula* formula)
       scan(aux+1);
       break;
     }
+    case FORALL:
+      if (polarity != -1) {
+        _allQuantifiersEssentiallyExistential = false;
+      }
+      break;
+    case EXISTS:
+      if (polarity != 1) {
+        _allQuantifiersEssentiallyExistential = false;
+      }
+      break;
     default:
       break;
     }
@@ -371,10 +399,16 @@ void Property::scanSort(unsigned sort)
 {
   CALL("Property::scanSort");
 
+  if(!_usesSort.get(sort)){
+    _sortsUsed++;
+    _usesSort[sort]=true;
+  }
+
   if (sort==Sorts::SRT_DEFAULT) {
     return;
   }
   _hasNonDefaultSorts = true;
+  env.statistics->hasTypes=true;
   switch(sort) {
   case Sorts::SRT_INTEGER:
     addProp(PR_HAS_INTEGERS);
@@ -411,7 +445,9 @@ void Property::scan(Literal* lit)
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
     }
-    PredicateType* type = env.signature->getPredicate(lit->functor())->predType();
+    Signature::Symbol* pred = env.signature->getPredicate(lit->functor());
+    pred->incUsageCnt();
+    PredicateType* type = pred->predType();
     for (int i=0; i<arity; i++) {
       scanSort(type->arg(i));
     }
@@ -468,8 +504,11 @@ void Property::scan(TermList* ts)
       else {
 	scanForInterpreted(t);
 
+    Signature::Symbol* func = env.signature->getFunction(t->functor());
+    func->incUsageCnt();
+          
 	int arity = t->arity();
-	FunctionType* type = env.signature->getFunction(t->functor())->fnType();
+	FunctionType* type = func->fnType();
 	for (int i=0; i<arity; i++) {
 	  scanSort(type->arg(i));
 	}
@@ -532,14 +571,57 @@ void Property::scanForInterpreted(Term* t)
     Literal* lit = static_cast<Literal*>(t);
     if (!theory->isInterpretedPredicate(lit)) { return; }
     itp = theory->interpretPredicate(lit);
+    if(itp==Theory::EQUAL){ 
+      //cout << "this is interpreted equality " << t->toString() << endl;
+      _hasInterpretedEquality=true;
+      return; 
+    }
   }
   else {
     if (!theory->isInterpretedFunction(t)) { return; }
     itp = theory->interpretFunction(t);
   }
+  _hasInterpreted = true;
   _interpretationPresence[itp] = true;
-  if (itp!=Theory::EQUAL) {
-    _hasInterpreted = true;
+  if(Theory::isConversionOperation(itp)){
+    addProp(PR_NUMBER_CONVERSION);
+    return;
+  }
+  if(Theory::isArrayOperation(itp)){
+    //addProp(PR_HAS_ARRAYS);
+    return;
+  }
+
+  unsigned sort = Theory::getOperationSort(itp);
+  if(Theory::isInequality(itp)){
+    switch(sort){
+      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_COMPARISON);
+        break;
+      case Sorts::SRT_RATIONAL : addProp(PR_RAT_COMPARISON);
+        break;
+      case Sorts::SRT_REAL : addProp(PR_REAL_COMPARISON);
+        break;
+    }
+  }
+  else if(Theory::isLinearOperation(itp)){
+    switch(sort){
+      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_LINEAR);
+        break;
+      case Sorts::SRT_RATIONAL : addProp(PR_RAT_LINEAR);
+        break;
+      case Sorts::SRT_REAL : addProp(PR_REAL_LINEAR);
+        break;
+    }
+  }
+  else if(Theory::isNonLinearOperation(itp)){
+    switch(sort){
+      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_NONLINEAR);
+        break;
+      case Sorts::SRT_RATIONAL : addProp(PR_RAT_NONLINEAR);
+        break;
+      case Sorts::SRT_REAL : addProp(PR_REAL_NONLINEAR);
+        break;
+    }
   }
 }
 

@@ -349,6 +349,8 @@ public:
   static bool hasSingleSort(Interpretation i);
   static unsigned getOperationSort(Interpretation i);
   static bool isConversionOperation(Interpretation i);
+  static bool isLinearOperation(Interpretation i);
+  static bool isNonLinearOperation(Interpretation i);
     
   static BaseType* getArrayOperationType(Interpretation i);
 
@@ -379,7 +381,7 @@ public:
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
 
-  bool invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result);
+  bool invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result,Stack<Literal*>& sideConditions);
 
   Interpretation interpretFunction(unsigned func);
   Interpretation interpretFunction(Term* t);

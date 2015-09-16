@@ -22,8 +22,6 @@
 
 #include "Shell/Options.hpp"
 
-#include "BDD.hpp"
-#include "BDDClausifier.hpp"
 #include "Inference.hpp"
 #include "Signature.hpp"
 #include "Term.hpp"
@@ -54,6 +52,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _color(COLOR_INVALID),
     _input(0),
     _extensionality(false),
+    _extensionalityTag(false),
     _component(false),
     _numSelected(0),
     _age(0),
@@ -67,6 +66,13 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
+
+  if(it == Unit::EXTENSIONALITY_AXIOM){
+    //cout << "Setting extensionality" << endl;
+    _extensionalityTag = true;
+    setInputType(Unit::AXIOM);
+  }
+
 //#if VDEBUG
 _freeze_count=0;
 //#endif
@@ -161,46 +167,8 @@ Clause* Clause::fromClause(Clause* c)
   return res;
 }
 
-/**
- * Initialize the propositional part of the clause
- *
- * The difference from setProp is that the clause couldn't have been assigned
- * a propositional part before. This ensures we don't have to worry about
- * affecting things such as the position of the clause in the passive clause
- * queue.
- */
-//void Clause::initProp(BDDNode* prop)
-//{
-//  CALL("Clause::initProp");
-//  ASS(!_prop);
-//
-//  _prop = prop;
-//}
-
-/** Set the propositional part of the clause */
-//void Clause::setProp(BDDNode* prop)
-//{
-//  CALL("Clause::setProp");
-//
-//  if (prop==_prop) {
-//    return;
-//  }
-//
-//  beforePropChange.fire(this);
-//  _prop = prop;
-//  afterPropChange.fire(this);
-//}
-
-//bool Clause::noProp() const
-//{
-//  CALL("Clause::hasProp");
-//
-//  return !prop() || BDD::instance()->isFalse(prop());
-//}
-
 bool Clause::shouldBeDestroyed()
 {
-//  return false;
   return (_store == NONE) && _refCnt == 0 &&
     !isFromPreprocessing();
 }
@@ -411,10 +379,16 @@ vstring Clause::toString() const
 {
   CALL("Clause::toString()");
 
+  //if(isExtensionality()){ cout << "EXTENSIONALITY" << endl; }
+
   vstring result = Int::toString(_number) + ". " + nonPropToString();
 
   if (splits() && !splits()->isEmpty()) {
     result += vstring(" {") + splits()->toString() + "}";
+  }
+
+  if (env.colorUsed) {
+    result += " C" + Int::toString(color()) + " ";
   }
 
   result += vstring(" (") + Int::toString(_age) + ':' + Int::toString(weight());
@@ -497,6 +471,12 @@ void Clause::computeWeight() const
   // The split set was changed
   if (env.options->nonliteralsInClauseWeight()) {
     _weight+=splitWeight(); // no longer includes propWeight
+  }
+
+  // If _weight is zero (empty clause) then no need to do this
+  if(_weight){
+    unsigned priority = getPriority();
+    _weight *= priority;
   }
 
 } // Clause::computeWeight

@@ -276,6 +276,8 @@ vstring Inference::ruleName(Rule rule)
 //  case MINISCOPE:
   case CLAUSIFY:
     return "cnf transformation";
+  case FORMULIFY:
+    return "formulify";
   case REMOVE_DUPLICATE_LITERALS:
     return "duplicate literal removal";
   case SKOLEMIZE:
@@ -357,6 +359,8 @@ vstring Inference::ruleName(Rule rule)
     return "theory axiom";
   case FOOL_AXIOM:
     return "fool axiom";
+  case THEORY_FLATTENING:
+    return "theory flattening";
   case BOOLEAN_TERM_ENCODING:
     return "boolean term encoding";
  // case SPLITTING_COMPONENT:
@@ -365,6 +369,8 @@ vstring Inference::ruleName(Rule rule)
     return "sat splitting component";
   case SAT_SPLITTING_REFUTATION:
     return "sat splitting refutation";
+  case SAT_COLOR_ELIMINATION:
+    return "sat color elimination";
   case GENERAL_SPLITTING_COMPONENT:
     return "general splitting component introduction";
   case GENERAL_SPLITTING:
@@ -391,6 +397,8 @@ vstring Inference::ruleName(Rule rule)
     return "hyper superposition";
   case GLOBAL_SUBSUMPTION:
     return "global subsumption";
+  case SAT_INSTGEN_REFUTATION:
+    return "sat instgen refutation";
   case DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
   case EXTERNAL:
@@ -403,7 +411,16 @@ vstring Inference::ruleName(Rule rule)
     return "BNFT distinct";
   case BFNT_TOTALITY:
     return "BNFT totality";
-
+  case FMB_FLATTENING:
+    return "flattening (finite model building)";
+  case FMB_FUNC_DEF:
+    return "functional definition (finite model building)";
+  case FMB_DEF_INTRO:
+    return "definition introduction (finite model building)";
+  case INSTANTIATION:
+    return "Instantiation";
+  case MODEL_NOT_FOUND:
+    return "Finite model not found"; 
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

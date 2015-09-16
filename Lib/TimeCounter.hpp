@@ -30,6 +30,7 @@ enum TimeCounterUnit
    */
   TC_LINGELING,
   TC_MINIMIZING_SOLVER,
+  TC_SAT_PROOF_MINIMIZATION,
   TC_TERM_SHARING,
   TC_SPLITTING_MODEL_UPDATE,
   TC_CONGRUENCE_CLOSURE,
@@ -66,12 +67,25 @@ enum TimeCounterUnit
   TC_INST_GEN_SIMPLIFICATIONS,
   TC_INST_GEN_VARIANT_DETECTION,
   TC_INST_GEN_SAT_SOLVING,
+  TC_INST_GEN_GEN_INST,
   TC_CONSEQUENCE_FINDING,
   TC_TRIVIAL_PREDICATE_REMOVAL,
   TC_SOLVING,
   TC_BOUND_PROPAGATION,
   TC_HANDLING_CONFLICTS,
   TC_VARIABLE_SELECTION,
+  TC_DISMATCHING,
+  TC_FMB_DEF_INTRO,
+  TC_FMB_SORT_INFERENCE,
+  TC_FMB_FLATTENING,
+  TC_FMB_SPLITTING,
+  TC_FMB_SAT_SOLVING,
+  TC_FMB_CONSTRAINT_CREATION,
+  TC_HCVI_COMPUTE_HASH,
+  TC_HCVI_INSERT,
+  TC_HCVI_RETRIEVE,
+  TC_MINISAT_ELIMINATE_VAR,
+  TC_MINISAT_BWD_SUBSUMPTION_CHECK,
   TC_OTHER,
   __TC_ELEMENT_COUNT,
   __TC_NONE
@@ -119,9 +133,25 @@ private:
   static void initialize();
   static void outputSingleStat(TimeCounterUnit tcu, ostream& out);
 
+  /**
+   * Record measurements of all timers currently running,
+   * so that this data is reflected in a subsequent report.
+   */
+  static void snapShot();
 
   TimeCounterUnit _tcu;
 
+  /**
+   * Current top level counter.
+   *
+   * The currently passing time contribute's to this counter's "own" time.
+   */
+  static TimeCounter* s_currTop;
+
+  /**
+   * To store s_currTop when (*this) becomes the new top.
+   */
+  TimeCounter* previousTop;
 
   /**
    * Determines whether the time measurement will be performed.
@@ -132,22 +162,26 @@ private:
    */
   static bool s_measuring;
   /**
-   * Contaings true if the @b s_measuredTimes and @b s_measureInitTimes arrays
+   * Contains true if the @b s_measuredTimes and @b s_measureInitTimes arrays
    * have been initialized.
    */
   static bool s_initialized;
   /**
-   * Contains number of miliseconds passed in each TimeCounterUnit.
+   * Contains number of milliseconds passed in each TimeCounterUnit.
    */
   static int s_measuredTimes[];
+  /**
+   * Contains number of milliseconds passed in each TimeCounterUnit's children.
+   *
+   * "ownTime" = "measuredTime" - "measuredTimesChildren"
+   */
+  static int s_measuredTimesChildren[];
   /**
    * For each TimeCounterUnit contains either -1 if the unit is not being
    * measured, or a non-negative number representing initial time of the current
    * block in the unit.
    */
   static int s_measureInitTimes[];
-
-  static int s_measuredCnt;
 };
 
 };

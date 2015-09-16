@@ -128,9 +128,9 @@ public:
   void setStore(Store s);
 
   /** Return the age */
-  int age() const { return _age; }
+  unsigned age() const { return _age; }
   /** Set the age to @b a */
-  void setAge(int a) { _age = a; } 
+  void setAge(unsigned a) { _age = a; }
 
   /** Return the number of selected literals */
   unsigned numSelected() const { return _numSelected; }
@@ -149,7 +149,7 @@ public:
   void toggle_in_active() {_in_active=!_in_active;}
 
   /** Return the weight */
-  int weight() const
+  unsigned weight() const
   {
     if(!_weight) {
       computeWeight();
@@ -167,8 +167,12 @@ public:
     return static_cast<Color>(_color);
   }
   void computeColor() const;
+  void updateColor(Color c) {
+    _color = c;
+  }
 
   bool isExtensionality() const { return _extensionality; }
+  bool isTaggedExtensionality() const { return _extensionalityTag; }
   void setExtensionality(bool e) { _extensionality = e; }
 
   bool isComponent() const { return _component; }
@@ -314,7 +318,7 @@ public:
 
 protected:
   /** number of literals */
-  unsigned _length : 27;
+  unsigned _length : 26;
   /** clause color, or COLOR_INVALID if not determined yet */
   mutable unsigned _color : 2;
   /** clause is an input clause for the saturation algorithm */
@@ -324,6 +328,7 @@ protected:
     * becomes passive and is removed from the container, also this bit is unset.
     */
   unsigned _extensionality : 1;
+  unsigned _extensionalityTag : 1;
   /** Clause is a splitting component. */
   unsigned _component : 1;
   /** number of selected literals */

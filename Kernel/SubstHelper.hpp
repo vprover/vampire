@@ -527,7 +527,7 @@ FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, boo
 {
   CALL("SubstHelper::applyImpl(FormulaList*...)");
 
-  if (fs->isEmpty()) {
+  if (FormulaList::isEmpty(fs)) {
     return fs;
   }
   Formula* f = fs->head();

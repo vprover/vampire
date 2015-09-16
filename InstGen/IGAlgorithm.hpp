@@ -23,6 +23,7 @@
 #include "Indexing/ClauseVariantIndex.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/LiteralIndex.hpp"
+#include "Indexing/LiteralSubstitutionTreeWithoutTop.hpp"
 
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InferenceEngine.hpp"
@@ -36,6 +37,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/EqualityProxy.hpp"
 
 #include "Kernel/Grounder.hpp"
 
@@ -67,9 +69,7 @@ protected:
   virtual MainLoopResult runImpl();
 private:
 
-  void addClause(Clause* cl);
-
-  void doInprocessing(RCClauseStack& clauses);
+  bool addClause(Clause* cl);
 
   void restartWithCurrentClauses();
   void restartFromBeginning();
@@ -88,16 +88,16 @@ private:
   void removeFromIndex(Clause* cl);
 
   void tryGeneratingInstances(Clause* cl, unsigned litIdx);
-  void tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl);
+
+  bool startGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits, bool& properInstance);
+  void finishGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits);
 
   bool isSelected(Literal* lit);
 
-  Clause* getFORefutation(SATClause* satRefutation);
-
+  Clause* getFORefutation(SATClause* satRefutation, SATClauseList* satPremises);
 
   void onResolutionClauseDerived(Clause* cl);
   void doResolutionStep();
-
 
   MainLoopResult onModelFound();
 
@@ -145,6 +145,7 @@ private:
 
   RCClauseStack _inputClauses;
 
+  bool _use_hashing;
   ClauseVariantIndex* _variantIdx;
 
   LiteralSubstitutionTree* _selected;
@@ -156,8 +157,53 @@ private:
 
   bool _use_niceness;
   bool _use_dm;
-  DHMap<Clause*,DismatchingLiteralIndex*> _dismatchMap;
 
+  /**
+   * A struct for holding clause's dms, on per literal basis.
+   */
+  struct DismatchingContraints {
+    typedef DHMap<Literal*,DismatchingLiteralIndex*> Lit2Index;
+
+    Lit2Index lit2index;
+
+    void add(Literal* orig, Literal* inst) {
+      DismatchingLiteralIndex* index;
+      if (!lit2index.find(orig,index)) {
+        LiteralIndexingStructure * is = new LiteralSubstitutionTreeWithoutTop();
+        index = new DismatchingLiteralIndex(is); // takes care of deleting is
+        ALWAYS(lit2index.insert(orig,index));
+      }
+      index->addLiteral(inst);
+    }
+
+    bool shouldBlock(Literal* orig, Literal* inst) {
+      DismatchingLiteralIndex* index;
+      // if we store for orig a generalization of its instance inst, we block:
+      return lit2index.find(orig,index) && index->getGeneralizations(inst,false,false).hasNext();
+    }
+
+    ~DismatchingContraints() {
+      Lit2Index::Iterator iit(lit2index);
+      while(iit.hasNext()){
+        DismatchingLiteralIndex* index = iit.next();
+        delete index;
+      }
+    }
+  };
+
+  typedef DHMap<Clause*,DismatchingContraints*> DismatchMap;
+
+  DismatchMap _dismatchMap;
+
+  /**
+   * The internal representation of all the clauses inside IG
+   * must replace the equality symbol with a proxy.
+   * The main reason is that equalities in term sharing
+   * assume non-deterministic orientations and
+   * most of indexing is done "modulo orientation of equality",
+   * which is undesirable for InstGen.
+   */
+  EqualityProxy* _equalityProxy;
 };
 
 }

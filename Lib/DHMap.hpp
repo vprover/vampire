@@ -518,6 +518,7 @@ private:
   void ensureExpanded()
   {
     if(_size+_deleted>=_nextExpansionOccupancy) {
+      //cout << this << ", " << _size << ", " << _deleted << ", " << _nextExpansionOccupancy << endl;
       expand();
     }
   }
@@ -534,6 +535,8 @@ private:
     int newCapacity=DHMapTableCapacities[_capacityIndex+1];
     void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"DHMap::Entry");
 //    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),typeid(Entry).name());
+
+    //std::cout << (_size+_deleted) << std::endl;
 
     Entry* oldEntries=_entries;
     Entry* oldAfterLast=_afterLast;
@@ -552,11 +555,13 @@ private:
 
     Entry* ep=oldEntries;
     while(ep!=oldAfterLast) {
+      ASS(ep);
       if(ep->_info.timestamp==oldTimestamp && !ep->_info.deleted) {
 	insert(ep->_key, ep->_val);
       }
       (ep++)->~Entry();
     }
+    //std::cout << "copied" << std::endl;
     if(oldCapacity) {
       DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
 //      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),typeid(Entry).name());

@@ -39,6 +39,10 @@ public:
 
   RobSubstitution* tryGetRobSubstitution() { return _subst; }
 
+#if VDEBUG
+  virtual vstring toString(){ return _subst->toString(); }
+#endif
+
 private:
   RobSubstitution* _subst;
   int _queryBank;
@@ -70,28 +74,40 @@ ResultSubstitutionSP IdentitySubstitution::instance()
 
 struct DisjunctQueryAndResultVariablesSubstitution::Applicator
 {
-  Applicator(bool isQuery) : _isQuery(isQuery) {}
+  Applicator(bool isQuery, Renaming& renaming) : _isQuery(isQuery), _renaming(renaming) {}
 
   TermList apply(int var)
   {
     unsigned resVarNum;
+
+    // rename Result and Query apart
     if(_isQuery) {
       resVarNum = var*2;
     }
     else {
       resVarNum = var*2+1;
     }
-    return TermList(resVarNum,false);
+
+    // normalize using renaming (to keep the variables small)
+    resVarNum = _renaming.getOrBind(resVarNum);
+
+    TermList res = TermList(resVarNum,false);
+
+    // check there was no (obvious) overflow
+    ASS_EQ(resVarNum,res.var());
+
+    return res;
   }
 private:
   bool _isQuery;
+  Renaming& _renaming;
 };
 
 TermList DisjunctQueryAndResultVariablesSubstitution::applyToQuery(TermList t)
 {
   CALL("DisjunctQueryAndResultVariablesSubstitution::applyToQuery");
 
-  Applicator apl(true);
+  Applicator apl(true,_renaming);
   return SubstHelper::apply(t, apl);
 }
 
@@ -99,7 +115,7 @@ Literal* DisjunctQueryAndResultVariablesSubstitution::applyToQuery(Literal* l)
 {
   CALL("DisjunctQueryAndResultVariablesSubstitution::applyToQuery(Literal*)");
 
-  Applicator apl(true);
+  Applicator apl(true,_renaming);
   return SubstHelper::apply(l, apl);
 }
 
@@ -107,7 +123,7 @@ TermList DisjunctQueryAndResultVariablesSubstitution::applyToResult(TermList t)
 {
   CALL("DisjunctQueryAndResultVariablesSubstitution::applyToResult");
 
-  Applicator apl(false);
+  Applicator apl(false,_renaming);
   return SubstHelper::apply(t, apl);
 }
 
@@ -115,7 +131,7 @@ Literal* DisjunctQueryAndResultVariablesSubstitution::applyToResult(Literal* l)
 {
   CALL("DisjunctQueryAndResultVariablesSubstitution::applyToResult");
 
-  Applicator apl(false);
+  Applicator apl(false,_renaming);
   return SubstHelper::apply(l, apl);
 }
 

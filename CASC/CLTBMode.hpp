@@ -30,6 +30,8 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
+
+
 #if COMPILER_MSVC
 
 class CLTBMode
@@ -39,6 +41,14 @@ public:
 };
 
 #else
+
+enum Category {
+  HH4,
+  ISA,
+  HLL,
+  MZR,
+  UNKNOWN
+};
 
 class CLTBProblem;
 
@@ -52,13 +62,30 @@ private:
   static ostream& lineOutput();
   static ostream& coutLineOutput();
   void loadIncludes();
+  void doTraining();
+  void learnFromSolutionFile(vstring& solnFileName);
 
   typedef List<vstring> StringList;
   typedef Stack<vstring> StringStack;
   typedef pair<vstring,vstring> StringPair;
   typedef Stack<StringPair> StringPairStack;
 
-  vstring category;
+  Category getCategory(vstring& categoryStr) {
+    if (categoryStr == "LTB.HH4" || categoryStr == "LTB.HL4") {
+      return HH4;
+    } else if (categoryStr == "LTB.ISA") {
+      return ISA;
+    } else if (categoryStr == "LTB.HLL" || categoryStr == "LTB.HOL") {
+      return HLL;
+    } else if (categoryStr == "LTB.MZR") {
+      return MZR;
+    } else {
+      return UNKNOWN;
+    }
+  }
+
+  Category _category;
+  vstring _trainingDirectory;
   /** per-problem time limit, in milliseconds */
   int _problemTimeLimit;
   /** true if question answers should be given */
@@ -72,9 +99,17 @@ private:
   /** The first vstring in the pair is problem file, the second
    * one is output file. The problemFiles[0] is the first
    * problem that should be attempted. */
-  StringPairStack problemFiles;
+  StringPairStack _problemFiles;
 
   ScopedPtr<Problem> _baseProblem;
+
+  // This contains formulas 'learned' in the sense that they were input
+  // formulas used in proofs of previous problems
+  // Note: this relies on the assurance that formulas are consistently named
+  DHSet<vstring> _learnedFormulas;
+  DHMap<vstring,unsigned> _learnedFormulasCount;
+  unsigned _learnedFormulasMaxCount;
+  bool _biasedLearning;
 
   friend class CLTBProblem;
 };
@@ -85,20 +120,19 @@ class CLTBProblem
 public:
   CLTBProblem(CLTBMode* parent, vstring problemFile, vstring outFile);
 
-  void searchForProof(int terminationTime) __attribute__((noreturn));
-private:
+  void searchForProof(int terminationTime,int timeLimit,const Category category) __attribute__((noreturn));
   typedef Set<vstring> StrategySet;
   typedef Stack<vstring> Schedule;
+private:
   bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
-  void performStrategy(int terminationTime);
+  void performStrategy(int terminationTime,int timeLimit, const Category category,const Shell::Property* property);
   void waitForChildAndExitWhenProofFound();
   void exitOnNoSuccess() __attribute__((noreturn));
 
   static ofstream* writerFileStream;
   static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
-  void runWriterChild() __attribute__((noreturn));
   void runSlice(vstring slice, unsigned milliseconds) __attribute__((noreturn));
   void runSlice(Options& strategyOpt) __attribute__((noreturn));
 
@@ -122,9 +156,30 @@ private:
    */
   Problem& prb;
 
-  pid_t writerChildPid;
-  /** pipe for collecting the output from children */
-  SyncPipe childOutputPipe;
+  Semaphore _syncSemaphore; // semaphore for synchronizing writing if the solution
+
+  /**
+   * Assumes semaphore object with 1 semaphores (at index 0).
+   * Locks on demand (once) and releases the lock on destruction.
+   */
+  struct ScopedSemaphoreLocker { //
+    Semaphore& _sem;
+    bool locked;
+    ScopedSemaphoreLocker(Semaphore& sem) : _sem(sem), locked(false) {}
+
+    void lock() {
+      if (!locked) {
+        _sem.dec(0);
+        locked = true;
+      }
+    }
+
+    ~ScopedSemaphoreLocker() {
+      if (locked) {
+        _sem.inc(0);
+      }
+    }
+  };
 };
 
 #endif //!COMPILER_MSVC

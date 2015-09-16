@@ -22,6 +22,8 @@ using namespace Test;
 
 void assertEarlyPreprocActive(Problem::PreprocessingOptions popts, bool shouldPerform, vstring prbStr)
 {
+  CALL("assertEarlyPreprocActive");
+
   //default opts, we assume the preprocessing is disabled there
   Problem::PreprocessingOptions popts0;
   popts0.mode = Problem::PM_EARLY_PREPROCESSING;

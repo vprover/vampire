@@ -32,10 +32,11 @@
 using namespace Shell;
 using namespace Indexing;
 
+#define TRACE(x)
 
 /**
  * Return minimized interpolant of @c refutation
- * it traverses the proof and collects gery formulas.
+ * it traverses the proof and collects grey formulas.
  * For each grey formula, it adds digest and fringe properties (with case distinction between leaves and non-leaves).
  * Using these properties, the interpolant is minimized wrt its cost
  */
@@ -51,7 +52,7 @@ Formula* InterpolantMinimizer::getInterpolant(Unit* refutation)
   YicesSolver::MinimizationResult mres = solver.minimize(_resBenchmark, costFunction(), res);
 
     
-  DHSet<UnitSpec> slicedOff;
+  DHSet<Unit*> slicedOff;
 
   if(mres==SMTSolver::FAIL) {
     cerr << "Minimization timed failed to find a satisfiable assignment, generating basic interpolant" << endl;
@@ -117,7 +118,7 @@ void InterpolantMinimizer::prettyPrint(Formula* formula, ostream& out)
         else
             out << "(or ";
                 
-        for(fs = formula->args(); fs->isNonEmpty (); fs = fs->tail()) {
+        for(fs = formula->args(); FormulaList::isNonEmpty(fs); fs = fs->tail()) {
             prettyPrint(fs->head(), out);
             out << " ";
         }
@@ -233,14 +234,14 @@ void InterpolantMinimizer::prettyPrint(Symbol* symb, ostream& out)
  * Into @c acc add all units that are sliced off in the model given
  * by SMT solver in @c solverResult.
  */
-void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, DHSet<UnitSpec>& acc)
+void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, DHSet<Unit*>& acc)
 {
   CALL("InterpolantMinimizer::collectSlicedOffNodes");
 
     
   InfoMap::Iterator uit(_infos);
   while(uit.hasNext()) {
-    UnitSpec unit;
+    Unit* unit;
     UnitInfo info;
     uit.next(unit, info);
 
@@ -258,6 +259,20 @@ void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, 
     ASS_EQ(val,"true");
     acc.insert(unit);
   }
+
+  TRACE(
+  WeightMap::Iterator wit(_atomWeights);
+  while(wit.hasNext()) {
+    vstring atom;
+    unsigned weight;
+    wit.next(atom, weight);
+
+    Unit* unit = _unitsById.get(atom);
+
+    SMTConstant vU = pred(V, atom);
+
+    cout << "because " << solverResult.assignment.get(vU) << " for " << unit->toString() << endl;
+  })
 }
 
 /**
@@ -265,11 +280,11 @@ void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, 
  */
 void InterpolantMinimizer::addAllFormulas()
 {
-  CALL("InterpolantMinimizer::getWholeFormula");
+  CALL("InterpolantMinimizer::addAllFormulas");
 
   InfoMap::Iterator uit(_infos);
   while(uit.hasNext()) {
-    UnitSpec unit;
+    Unit* unit;
     UnitInfo info;
     uit.next(unit, info);
 
@@ -285,16 +300,16 @@ void InterpolantMinimizer::addAllFormulas()
  * Add into @c _resBenchmark formulas related to @c u and to it's relation to
  * its parents.
  */
-void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
+void InterpolantMinimizer::addNodeFormulas(Unit* u)
 {
-  CALL("InterpolantMinimizer::getNodeFormula");
+  CALL("InterpolantMinimizer::addNodeFormulas");
 
   static ParentSummary psum;
   psum.reset();
 
-  VirtualIterator<UnitSpec> pit = InferenceStore::instance()->getParents(u);
+  UnitIterator pit = InferenceStore::instance()->getParents(u);
   while(pit.hasNext()) {
-    UnitSpec par = pit.next();
+    Unit* par = pit.next();
     UnitInfo& info = _infos.get(par);
     if(!info.leadsToColor) {
       continue;
@@ -353,12 +368,11 @@ void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
  *
  * These formulas aren't generated for leaves
  */
-void InterpolantMinimizer::addFringeFormulas(UnitSpec u)
+void InterpolantMinimizer::addFringeFormulas(Unit* u)
 {
   CALL("InterpolantMinimizer::addFringeFormulas");
 
   vstring n = getUnitId(u);
-
 
   SMTFormula rcN = pred(RC, n);
   SMTFormula bcN = pred(BC, n);
@@ -378,9 +392,9 @@ void InterpolantMinimizer::addFringeFormulas(UnitSpec u)
 
   SMTFormula rfRhs = SMTFormula::getTrue();
   SMTFormula bfRhs = SMTFormula::getTrue();
-  USList::Iterator gsit(uinfo.transparentSuccessors);
+  UList::Iterator gsit(uinfo.transparentSuccessors);
   while(gsit.hasNext()) {
-    UnitSpec succ = gsit.next();
+    Unit* succ = gsit.next();
     vstring succId = getUnitId(succ);
 
     SMTFormula rcS = pred(RC, succId);
@@ -417,20 +431,12 @@ void InterpolantMinimizer::addFringeFormulas(UnitSpec u)
  * Class that splits a clause into components, facilitating also
  * sharing of the components
  */
-class InterpolantMinimizer::ClauseSplitter 
-  : protected Saturation::Splitter 
-  /* Martin: whatever this class is supposed to be doing,
-   * the fact that it inherits from Splitter and then 
-   * only ever uses it to call doSplitting is extremely suspicious.
-   * 
-   * I smell a hack and maybe even an unfinished one :)
-   */
-{
+class InterpolantMinimizer::ClauseSplitter {
 public:
   CLASS_NAME(InterpolantMinimizer::ClauseSplitter);
   USE_ALLOCATOR(InterpolantMinimizer::ClauseSplitter);
 
-  ClauseSplitter() : _acc(0) {}
+  ClauseSplitter() : _index(new SubstitutionTreeClauseVariantIndex()), _acc(0) {}
   
   /**
    * Into @c acc push clauses that correspond to components of @c cl.
@@ -444,19 +450,31 @@ public:
     ASS(!_acc);
 
     _acc = &acc;
+
     if(cl->length()==0) {
       handleNoSplit(cl);
     }
     else {
-      ALWAYS(doSplitting(cl));
+      doSplitting(cl);
     }
+
     _acc = 0;
   }
 protected:
 
-  // Martin: unused! (?)
-  void buildAndInsertComponents(Clause* cl, const LiteralStack* comps,
-      unsigned compCnt, bool firstIsMaster)
+  void doSplitting(Clause* cl) {
+
+    static Stack<LiteralStack> comps;
+    comps.reset();
+    // fills comps with components, returning if not splittable
+    if(!Saturation::Splitter::getComponents(cl, comps)) {
+      handleNoSplit(cl);
+    } else {
+      buildAndInsertComponents(comps.begin(),comps.size());
+    }
+  }
+
+  void buildAndInsertComponents(const LiteralStack* comps, unsigned compCnt)
   {
     CALL("InterpolantMinimizer::ClauseSplitter::buildAndInsertComponents");
 
@@ -466,12 +484,11 @@ protected:
     }
   }  
 
-  bool handleNoSplit(Clause* cl)
+  void handleNoSplit(Clause* cl)
   {
     CALL("InterpolantMinimizer::ClauseSplitter::handleNoSplit");
 
     _acc->push(getComponent(cl));
-    return true;
   }
 
 private:
@@ -483,7 +500,7 @@ private:
     if(len==1) {
       return getAtomComponent(lits[0], 0);
     }
-    ClauseIterator cit = _index.retrieveVariants(lits, len);
+    ClauseIterator cit = _index->retrieveVariants(lits, len);
     if(cit.hasNext()) {
       Clause* res = cit.next();
       ASS(!cit.hasNext());
@@ -493,7 +510,7 @@ private:
     Clause* res = Clause::fromIterator(getArrayishObjectIterator(lits, len),
 	Unit::AXIOM, new Inference(Inference::INPUT));
     res->incRefCnt();
-    _index.insert(res);
+    _index->insert(res);
     return res;
   }
 
@@ -505,13 +522,13 @@ private:
       return getAtomComponent((*cl)[0], cl);
     }
 
-    ClauseIterator cit = _index.retrieveVariants(cl);
+    ClauseIterator cit = _index->retrieveVariants(cl);
     if(cit.hasNext()) {
       Clause* res = cit.next();
       ASS(!cit.hasNext());
       return res;
     }
-    _index.insert(cl);
+    _index->insert(cl);
     return cl;
   }
 
@@ -522,7 +539,6 @@ private:
 
     Literal* norm = Literal::positiveLiteral(lit);
     norm = Renaming::normalize(norm);
-
 
     Clause* res;
     if(_atomIndex.find(norm, res)) {
@@ -537,7 +553,7 @@ private:
     return res;
   }
 
-  ClauseVariantIndex _index;
+  ScopedPtr<ClauseVariantIndex> _index;
   DHMap<Literal*,Clause*> _atomIndex;
 
   ClauseStack* _acc;
@@ -554,16 +570,13 @@ void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<vstring>& atoms)
   
   vstring key = f->formula()->toString();
 
-  
-  
-
   vstring id;
   if(!_formulaAtomIds.find(key, id)) {
     id = "f" + Int::toString(_formulaAtomIds.size());
     _formulaAtomIds.insert(key, id);
     unsigned weight = f->formula()->weight();
     _atomWeights.insert(id, weight);
-    _unitsById.insert(id, UnitSpec(f));
+    _unitsById.insert(id, f);
   }
   
   atoms.push(id);
@@ -581,7 +594,7 @@ vstring InterpolantMinimizer::getComponentId(Clause* cl)
     _atomIds.insert(cl, id);
     unsigned weight = cl->weight();
     _atomWeights.insert(id, weight);
-    _unitsById.insert(id, UnitSpec(cl));
+    _unitsById.insert(id, cl);
   }
   return id;
 }
@@ -591,25 +604,30 @@ vstring InterpolantMinimizer::getComponentId(Clause* cl)
  * If the formula is not a clause (i.e. conjunction of formulas), then the sub-formulas need to be traversed
  * (though currently, conjunctions of clauses is treated one formula in interpolation)
  */
-void InterpolantMinimizer::collectAtoms(UnitSpec u, Stack<vstring>& atoms)
+void InterpolantMinimizer::collectAtoms(Unit* u, Stack<vstring>& atoms)
 {
-  CALL("InterpolantMinimizer::collectAtoms(UnitSpec...)");
+  CALL("InterpolantMinimizer::collectAtoms(Unit*...)");
 
-  if(!u.isClause()) {
-    collectAtoms(static_cast<FormulaUnit*>(u.unit()), atoms);
+  if(!u->isClause()) {
+    collectAtoms(static_cast<FormulaUnit*>(u), atoms);
     return;
   }
-
   
-  Clause* cl = u.cl();
+  Clause* cl = u->asClause();
     
   static ClauseStack components;
   components.reset();
   _splitter->getComponents(cl, components);
   ASS(components.isNonEmpty());
   ClauseStack::Iterator cit(components);
+
+  TRACE(cout << "collecting for " << u->toString() << endl);
+
   while(cit.hasNext()) {
     Clause* comp = cit.next();
+
+    TRACE(cout << "comp " << comp->toString() << endl);
+
     atoms.push(getComponentId(comp));
   }
 }
@@ -618,7 +636,7 @@ void InterpolantMinimizer::collectAtoms(UnitSpec u, Stack<vstring>& atoms)
  * Add formula implying the presence of components of @c u if
  * it appears in the digest into @c _resBenchmark
  */
-void InterpolantMinimizer::addAtomImplicationFormula(UnitSpec u)
+void InterpolantMinimizer::addAtomImplicationFormula(Unit* u)
 {
   CALL("InterpolantMinimizer::getAtomImplicationFormula");
   
@@ -638,7 +656,7 @@ void InterpolantMinimizer::addAtomImplicationFormula(UnitSpec u)
     cConj = cConj & pred(V, atom);
   }
 
-  vstring comment = "atom implications for " + u.toString();
+  vstring comment = "atom implications for " + u->toString();
   _resBenchmark.addFormula(pred(D, uId) --> cConj, comment);
 }
 
@@ -649,6 +667,8 @@ void InterpolantMinimizer::addCostFormula()
 {
   CALL("InterpolantMinimizer::getCostFormula");
 
+  TRACE(cout << "adding cost fla" << endl);
+
   SMTFormula costSum = SMTFormula::unsignedValue(0);
 
   WeightMap::Iterator wit(_atomWeights);
@@ -657,7 +677,7 @@ void InterpolantMinimizer::addCostFormula()
     unsigned weight;
     wit.next(atom, weight);
 
-    Unit* unit = _unitsById.get(atom).unit();
+    Unit* unit = _unitsById.get(atom);
     unsigned varCnt = unit->varCnt();
 
     if(_optTarget==OT_COUNT && weight>0) {
@@ -667,6 +687,8 @@ void InterpolantMinimizer::addCostFormula()
     if(_optTarget==OT_QUANTIFIERS){
       weight = varCnt;
     }
+
+    TRACE(cout << "cost " << weight << " for unit " << unit->toString() << endl);
 
     SMTFormula atomExpr = SMTFormula::condNumber(pred(V, atom), weight);
     costSum = SMTFormula::add(costSum, atomExpr);
@@ -711,7 +733,7 @@ SMTConstant InterpolantMinimizer::costFunction()
   return res;
 }
 
-vstring InterpolantMinimizer::getUnitId(UnitSpec u)
+vstring InterpolantMinimizer::getUnitId(Unit* u)
 {
   CALL("InterpolantMinimizer::getUnitId");
 
@@ -870,7 +892,7 @@ void InterpolantMinimizer::addNodeFormulas(vstring n, ParentSummary& parents)
 
 struct InterpolantMinimizer::TraverseStackEntry
 {
-  TraverseStackEntry(InterpolantMinimizer& im, UnitSpec u) : unit(u), _im(im)
+  TraverseStackEntry(InterpolantMinimizer& im, Unit* u) : unit(u), _im(im)
   {
     CALL("InterpolantMinimizer::TraverseStackEntry::TraverseStackEntry");
 
@@ -881,8 +903,8 @@ struct InterpolantMinimizer::TraverseStackEntry
     ALWAYS(im._infos.insert(unit, UnitInfo()));
     UnitInfo& info = getInfo();
 
-    info.color = u.unit()->getColor();
-    info.inputInheritedColor = u.unit()->inheritedColor();
+    info.color = u->getColor();
+    info.inputInheritedColor = u->inheritedColor();
     if(info.inputInheritedColor==COLOR_INVALID) {
       if(!parentIterator.hasNext()) {
 	//this covers introduced name definitions
@@ -900,7 +922,7 @@ struct InterpolantMinimizer::TraverseStackEntry
    * Extract the needed information on the relation between the current unit
    * and its premise @c parent
    */
-  void processParent(UnitSpec parent)
+  void processParent(Unit* parent)
   {
     CALL("InterpolantMinimizer::TraverseStackEntry::processParent");
 
@@ -914,7 +936,7 @@ struct InterpolantMinimizer::TraverseStackEntry
       info.state = HAS_LEFT_PARENT;
     }
     if(pcol==COLOR_RIGHT) {
-      ASS_REP2(info.state!=HAS_LEFT_PARENT, unit.toString(), parent.toString());
+      ASS_REP2(info.state!=HAS_LEFT_PARENT, unit->toString(), parent->toString());
       info.state = HAS_RIGHT_PARENT;
     }
 
@@ -922,15 +944,15 @@ struct InterpolantMinimizer::TraverseStackEntry
 
     if(info.color==COLOR_LEFT) {
       parInfo.isParentOfLeft = true;
-      USList::push(unit, parInfo.leftSuccessors);
+      UList::push(unit, parInfo.leftSuccessors);
     }
     else if(info.color==COLOR_RIGHT) {
       parInfo.isParentOfRight = true;
-      USList::push(unit, parInfo.rightSuccessors);
+      UList::push(unit, parInfo.rightSuccessors);
     }
     else {
       ASS_EQ(info.color, COLOR_TRANSPARENT);
-      USList::push(unit, parInfo.transparentSuccessors);
+      UList::push(unit, parInfo.transparentSuccessors);
     }
   }
 
@@ -943,9 +965,9 @@ struct InterpolantMinimizer::TraverseStackEntry
     return _im._infos.get(unit);
   }
 
-  UnitSpec unit;
+  Unit* unit;
   /** Premises that are yet to be traversed */
-  VirtualIterator<UnitSpec> parentIterator;
+  UnitIterator parentIterator;
 
   InterpolantMinimizer& _im;
 };
@@ -959,7 +981,7 @@ void InterpolantMinimizer::traverse(Unit* refutationUnit)
 {
   CALL("InterpolantMinimizer::traverse");
 
-  UnitSpec refutation=UnitSpec(refutationUnit);
+  Unit* refutation = refutationUnit;
 
   static Stack<TraverseStackEntry> stack;
   stack.reset();
@@ -969,7 +991,7 @@ void InterpolantMinimizer::traverse(Unit* refutationUnit)
   while(stack.isNonEmpty()) {
     TraverseStackEntry& top = stack.top();
     if(top.parentIterator.hasNext()) {
-      UnitSpec parent = top.parentIterator.next();
+      Unit* parent = top.parentIterator.next();
 
       if(!_infos.find(parent)) {
 	stack.push(TraverseStackEntry(*this, parent));

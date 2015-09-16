@@ -651,7 +651,7 @@ bool SubstitutionTree::LeafIterator::hasNext()
 }
 
 SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
-	Node* root, Term* query, bool retrieveSubstitution, bool reversed)
+	Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop)
 : svStack(32), literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
@@ -670,10 +670,14 @@ clientBDRecording(false), tree(parent)
   queryNormalizer.normalizeVariables(query);
   Term* queryNorm=queryNormalizer.apply(query);
 
-  if(reversed) {
-    createReversedInitialBindings(queryNorm);
-  } else {
-    createInitialBindings(queryNorm);
+  if(withoutTop){
+    subst.bindSpecialVar(0,TermList(queryNorm),NORM_QUERY_BANK);
+  }else{
+    if(reversed) {
+      createReversedInitialBindings(queryNorm);
+    } else {
+      createInitialBindings(queryNorm);
+    }
   }
 
   BacktrackData bd;

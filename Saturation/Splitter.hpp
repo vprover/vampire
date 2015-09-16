@@ -48,23 +48,31 @@ class Splitter;
 class SplittingBranchSelector {
 public:
   SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent)  {}
+  ~SplittingBranchSelector(){
+#if VZ3
+{
+BYPASSING_ALLOCATOR;
+_solver=0;
+}
+#endif
+  }
 
   /** To be called from Splitter::init() */
   void init();
 
   void updateVarCnt();
   void considerPolarityAdvice(SATLiteral lit);
-  void addSatClauses(const SATClauseStack& regularClauses, const SATClauseStack& conflictClauses,
-                     SplitLevelStack& addedComps, SplitLevelStack& removedComps);
+
+  void addSatClauseToSolver(SATClause* cl, bool refutation);
+  void recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize = false);
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
-  void getNewZeroImpliedSplits(SplitLevelStack& res);
 
 private:
   SATSolver::Status processDPConflicts();
   SATSolver::VarAssignment getSolverAssimentConsideringCCModel(unsigned var);
 
-  void handleSatRefutation(SATClause* ref);
+  void handleSatRefutation();
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
@@ -72,7 +80,6 @@ private:
 
   //options
   bool _eagerRemoval;
-  bool _handleZeroImplied;
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
   bool _ccMultipleCores;
   bool _minSCO; // minimize wrt splitting clauses only
@@ -95,11 +102,9 @@ private:
    */
   ArraySet _trueInCCModel;
 
-  /**
-   * Remember variables which were zero implied before
-   * to only report on the new ones.
-   */
-  DArray<bool> _zeroImplieds;
+#ifdef VDEBUG
+  unsigned lastCheckedVar;
+#endif
 };
 
 
@@ -191,10 +196,11 @@ public:
   unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
 
   SAT2FO& satNaming() { return _sat2fo; }
+
+  UnitList* explicateAssertionsForSaturatedClauseSet(UnitList* clauses);
+  static bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
 private:
   friend class SplittingBranchSelector;
-
-  bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
   
   SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
 
@@ -204,7 +210,6 @@ private:
 
   void addComponents(const SplitLevelStack& toAdd);
   void removeComponents(const SplitLevelStack& toRemove);
-  void processNewZeroImplied(const SplitLevelStack& newZeroImplied);
 
   void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const;
 
@@ -216,7 +221,7 @@ private:
   SplitLevel tryGetComponentNameOrAddNew(const LiteralStack& comp, Clause* orig, Clause*& compCl);
   SplitLevel tryGetComponentNameOrAddNew(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
 
-  void recordSATClauseForAddition(SATClause* cl, bool refutation);
+  void addSatClauseToSolver(SATClause* cl, bool refutation);
 
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
@@ -233,7 +238,7 @@ private:
 
   //utility objects
   SplittingBranchSelector _branchSelector;
-  ClauseVariantIndex _componentIdx;
+  ScopedPtr<ClauseVariantIndex> _componentIdx;
   /**
    * Registers all the sat variables and keeps track
    * of associated ground literals for those variables
@@ -254,19 +259,10 @@ private:
   //state variable used for flushing:  
   /** When this number of generated clauses is reached, it will cause flush */
   unsigned _flushThreshold;
-  /** true if there is a refutation to be added to the SAT solver */
+  /** true if there was a clause added to the SAT solver since last call to onAllProcessed */
+  bool _clausesAdded;
+  /** true if there was a refutation added to the SAT solver */
   bool _haveBranchRefutation;
-
-  /**
-   * New SAT clauses to be added to the SAT solver
-   *
-   * We postpone adding clauses to the SAT solver to the next call of the
-   * onAllProvessed() function, as at that point we may add and remove clauses
-   * in the saturation algorithm (and so we'll be able to maintain the
-   * correspondence between the SAT model and the clauses in the saturation).
-   */
-  SATClauseStack _regularClausesToBeAdded;
-  SATClauseStack _conflictClausesToBeAdded;
     
   bool _fastRestart; // option's value copy
   /**
@@ -277,9 +273,15 @@ private:
   RCClauseStack _fastClauses;
   
   SaturationAlgorithm* _sa;
+
+public:
+  // for observing the current model
   
-  //statistics
-  unsigned _clausesSinceEmpty;
+  SplitLevel splitLevelBound() { return _db.size(); }
+  bool splitLevelActive(SplitLevel lev) {
+    ASS_REP(lev<_db.size(), lev);
+    return (_db[lev]!=0 && _db[lev]->active);
+  }
 };
 
 }

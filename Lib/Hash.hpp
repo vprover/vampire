@@ -55,12 +55,14 @@ public:
   { return hash(str.c_str()); }
 
   static unsigned hash(Kernel::Unit* u);
-  static unsigned hash(Kernel::UnitSpec* u);
 
   template<typename T>
   static unsigned hash(Stack<T> obj)
   { return StackHash<Hash>::hash(obj); }
 
+  // Careful: using this default on structs may cause big trouble!
+  // Even when all fields are properly initialized, there can remain "holes"
+  // within the "sizeof" bytes containing garbage, due to alignment politics!
   template<typename T>
   static unsigned hash(T obj)
   { return hash(reinterpret_cast<const unsigned char*>(&obj),sizeof(obj)); }

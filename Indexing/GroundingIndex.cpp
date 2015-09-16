@@ -22,28 +22,29 @@
 namespace Indexing
 {
 
-GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
- : _grounder(gnd)
+GroundingIndex::GroundingIndex(const Options& opt)
 {
   CALL("GroundingIndex::GroundingIndex");
 
   switch(opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
-    case Options::SatSolver::BUFFERED_VAMPIRE: // Buffering ignored for global subsumption
     	_solver = new TWLSolver(opt,true);
     	break;
     case Options::SatSolver::LINGELING:
-    case Options::SatSolver::BUFFERED_LINGELING: // Buffering ignored for global subsumption
       _solver = new LingelingInterfacing(opt,true);
     	break;
+#if VZ3
+    case Options::SatSolver::Z3:
+      //cout << "Warning, Z3 not curently used for Global Subsumption" << endl; 
+#endif
     case Options::SatSolver::MINISAT:
-    case Options::SatSolver::BUFFERED_MINISAT: // Buffering ignored for global subsumption
       _solver = new MinisatInterfacing(opt,true);
     	break;
     default:
       ASSERTION_VIOLATION_REP(opt.satSolver());
   }
-
+  
+  _grounder = new GlobalSubsumptionGrounder(_solver.ptr());
 }
 
 void GroundingIndex::handleClause(Clause* c, bool adding)

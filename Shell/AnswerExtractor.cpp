@@ -14,6 +14,8 @@
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Kernel/Sorts.hpp"
 
 #include "Tabulation/TabulationAlgorithm.hpp"
 
@@ -59,27 +61,27 @@ void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseCla
 
   InferenceStore& is = *InferenceStore::instance();
 
-  DHSet<UnitSpec> seen;
-  Stack<UnitSpec> toDo;
-  toDo.push(UnitSpec(refutation, false));
+  DHSet<Unit*> seen;
+  Stack<Unit*> toDo;
+  toDo.push(refutation);
 
   while(toDo.isNonEmpty()) {
-    UnitSpec curr = toDo.pop();
+    Unit* curr = toDo.pop();
     if(!seen.insert(curr)) {
       continue;
     }
     Inference::Rule infRule;
-    UnitSpecIterator parents = is.getParents(curr, infRule);
+    UnitIterator parents = is.getParents(curr, infRule);
     if(infRule==Inference::NEGATED_CONJECTURE) {
-      conjectures.push(curr.unit());
+      conjectures.push(curr);
     }
     if(infRule==Inference::CLAUSIFY ||
-	(curr.isClause() && (infRule==Inference::INPUT || infRule==Inference::NEGATED_CONJECTURE )) ){
-      ASS(curr.isClause());
-      premiseClauses.push(static_cast<Clause*>(curr.unit()));
+	(curr->isClause() && (infRule==Inference::INPUT || infRule==Inference::NEGATED_CONJECTURE )) ){
+      ASS(curr->isClause());
+      premiseClauses.push(curr->asClause());
     }
     while(parents.hasNext()) {
-      UnitSpec premise = parents.next();
+      Unit* premise = parents.next();
       toDo.push(premise);
     }
   }
@@ -225,7 +227,8 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
   }
 
   Options tabulationOpts;
-  tabulationOpts.setSaturationAlgorithm(Options::SaturationAlgorithm::TABULATION);
+  //tabulationOpts.setSaturationAlgorithm(Options::SaturationAlgorithm::TABULATION);
+  NOT_IMPLEMENTED;
   Problem tabPrb(pvi( ClauseStack::Iterator(premiseClauses) ), true);
   Tabulation::TabulationAlgorithm talg(tabPrb, tabulationOpts);
   talg.run();
@@ -288,21 +291,26 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& ans
   return false;
 }
 
-Literal* AnswerLiteralManager::getAnswerLiteral(Formula::VarList* vars)
+Literal* AnswerLiteralManager::getAnswerLiteral(Formula::VarList* vars,Formula* f)
 {
   CALL("AnswerLiteralManager::getAnswerLiteral");
 
   static Stack<TermList> litArgs;
   litArgs.reset();
   Formula::VarList::Iterator vit(vars);
+  Stack<unsigned> sorts;
   while(vit.hasNext()) {
     unsigned var = vit.next();
+    unsigned sort;
+    ALWAYS(SortHelper::tryGetVariableSort(var,f,sort));
+    sorts.push(sort);
     litArgs.push(TermList(var, false));
   }
 
   unsigned vcnt = litArgs.size();
   unsigned pred = env.signature->addFreshPredicate(vcnt,"ans");
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  predSym->setType(BaseType::makeType(sorts.size(),sorts.begin(),Sorts::SRT_BOOL));
   predSym->markAnswerPredicate();
   return Literal::create(pred, vcnt, true, false, litArgs.begin());
 }
@@ -328,7 +336,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 
   FormulaList* conjArgs = 0;
   FormulaList::push(quant->qarg(), conjArgs);
-  Literal* ansLit = getAnswerLiteral(vars);
+  Literal* ansLit = getAnswerLiteral(vars,quant);
   FormulaList::push(new AtomicFormula(ansLit), conjArgs);
 
   Formula* conj = new JunctionFormula(AND, conjArgs);

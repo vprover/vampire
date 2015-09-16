@@ -78,15 +78,15 @@ public:
   { return 0; }
 
   /** true if the list is empty */
-  inline bool isEmpty () const
+  inline static bool isEmpty (const List* l)
   {
-    return this == 0;
+    return l == 0;
   } // List::isEmpty
 
   /** true if the list is non-empty */
-  inline bool isNonEmpty () const
+  inline static bool isNonEmpty (const List* l)
   {
-    return this != 0;
+    return l != 0;
   } // List::isNonEmpty
 
   /** return the tail of the list */
@@ -163,13 +163,13 @@ public:
   {
     CALL("List::destroy");
 
-    if (isEmpty()) return;
+    if (isEmpty(this)) return;
     List* current = this;
 
     for (;;) {
       List* next = current->tail();
       delete current;
-      if (next->isEmpty()) return;
+      if (isEmpty(next)) return;
       current = next;
     }
   } // List::destroy
@@ -183,14 +183,14 @@ public:
   {
     CALL("List::destroyWithDeletion");
 
-    if (isEmpty()) return;
+    if (isEmpty(this)) return;
     List* current = this;
 
     for (;;) {
       List* next = current->tail();
       delete current->head();
       delete current;
-      if (next->isEmpty()) return;
+      if (isEmpty(next)) return;
       current = next;
     }
   } // List::destroyWithDeletion
@@ -198,14 +198,14 @@ public:
   /** create a shallow copy of the list */
   List* copy () const
   {
-    if (isEmpty()) return empty();
+    if (isEmpty(this)) return empty();
 
     List* result = new List;
     result->_head = _head;
     List* previous = result;
     List* rest = _tail;
 
-    while (! rest->isEmpty()) {
+    while (! isEmpty(rest)) {
       List* tmp = new List;
       tmp->_head = rest->_head;
       previous->_tail = tmp;
@@ -220,14 +220,14 @@ public:
   /** appends snd to a copy of this list */
   List* append (List* snd)
   {
-    if (isEmpty()) return snd;
+    if (isEmpty(this)) return snd;
 
     List* result = new List;
     result->setHead(head());
     List* previous = result;
     List* rest = tail();
 
-    while(rest->isNonEmpty()) {
+    while(isNonEmpty(rest)) {
       List* tmp = new List;
       tmp->setHead(rest->head());
       previous->setTail(tmp);
@@ -317,12 +317,12 @@ public:
   /** Destructive list reversal */
   List* reverse()
   {
-    if (isEmpty()) return this;
+    if (isEmpty(this)) return this;
 
     List* result = empty();
     List* lst = this;
 
-    while (lst->isNonEmpty()) {
+    while (isNonEmpty(lst)) {
       List* tl = lst->tail();
       lst->setTail(result);
       result = lst;
@@ -337,7 +337,7 @@ public:
   {
     int len = 0;
 
-    for (const List* lst = this; lst->isNonEmpty(); lst = lst->tail()) {
+    for (const List* lst = this; isNonEmpty(lst); lst = lst->tail()) {
       len ++;
     }
 
@@ -347,7 +347,7 @@ public:
   /** True if elem is a member of the list, the comparison is made using == */
   bool member (C elem) const
   {
-    for (const List* lst = this; lst->isNonEmpty(); lst = lst->tail()) {
+    for (const List* lst = this; isNonEmpty(lst); lst = lst->tail()) {
       if (lst->head() == elem) return true;
     }
 
@@ -360,14 +360,14 @@ public:
    */
   List* remove (C elem)
   {
-    if (isEmpty()) return this;
+    if (isEmpty(this)) return this;
 
     if (head() == elem) {
       List* result = tail();
       delete this;
       return result;
     }
-    if (tail()->isEmpty()) return this;
+    if (isEmpty(tail())) return this;
 
     List* current = this;
     List* next = tail();
@@ -380,7 +380,7 @@ public:
       }
       current = next;
       next = next->tail();
-      if (next->isEmpty()) return this;
+      if (isEmpty(next)) return this;
     }
   } // List::remove
 
@@ -410,7 +410,7 @@ public:
 
     C result;
     List* l = lst;
-    ASS (lst->isNonEmpty());
+    ASS (isNonEmpty(lst));
 
     if (n == 0) {
       result = l->head();
@@ -425,7 +425,7 @@ public:
     while (--n != 0) {
       l = next;
       next = next->tail();
-      ASS (next->isNonEmpty());
+      ASS (isNonEmpty(next));
     }
     //  now next must be deleted
     result = next->head();
@@ -436,18 +436,18 @@ public:
   } // deleteNth
 
   /** Add  elem as the last element and return the resulting list */
-  List* addLast (C elem)
+  static List* addLast (List* l, C elem)
   {
-    if (! this) return new List (elem);
+    if (! l) return new List (elem);
 
     // nonempty, trying to find the end
     List* current;
-    for (current = this; current->_tail; current = current->_tail) {
+    for (current = l; current->_tail; current = current->_tail) {
     }
 
     current->setTail(new List(elem));
 
-    return this;
+    return l;
   } // List::addLast
 
   /** Split the list into two sublists, first of the length n. Return
@@ -530,7 +530,7 @@ public:
     /** True if there is a next element. */
     inline bool hasNext() const
     {
-      return _lst->isNonEmpty();
+      return isNonEmpty(_lst);
     }
 
     inline void reset(List* l) { _lst = l; }
@@ -569,7 +569,7 @@ public:
 
     /** True if there is a next element. */
     inline bool hasNext() const
-    { return _lst->isNonEmpty(); }
+    { return isNonEmpty(_lst); }
 
     inline void reset(List* l) { _lst = l; }
 
@@ -642,7 +642,7 @@ public:
       if (_cur) { // there was an element previously returned by next()
 	return _cur->tail() != 0;
       }
-      return _lst->isNonEmpty();
+      return isNonEmpty(_lst);
     }
 
     /** Delete the current element */
@@ -761,7 +761,7 @@ public:
     /** True if there is a next element. */
     inline bool hasNext() const
     {
-      return _lst->isNonEmpty();
+      return isNonEmpty(_lst);
     }
    private:
     /** the rest of the list */

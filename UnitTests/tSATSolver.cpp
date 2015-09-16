@@ -64,7 +64,7 @@ SATClause* getClause(const char* spec)
 }
 void ensurePrepared(SATSolver& s)
 {
-  s.ensureVarCnt(27);
+  s.ensureVarCount(27);
 }
 
 void testZICert1(SATSolverWithAssumptions& s)
@@ -72,8 +72,8 @@ void testZICert1(SATSolverWithAssumptions& s)
   CALL("testZICert1");
 
   ensurePrepared(s);
-  s.addClauses(pvi(getSingletonIterator(getClause("ab"))));
-  s.addClauses(pvi(getSingletonIterator(getClause("c"))));
+  s.addClause(getClause("ab"));
+  s.addClause(getClause("c"));
 
   unsigned cVar = getLit('c').var();
   ASS(s.isZeroImplied(cVar));
@@ -104,9 +104,9 @@ void testProofWithAssumptions(SATSolver& s)
 {
   CALL("testProofWithAssumptions");
 
-  s.ensureVarCnt(2);
-  s.addClauses(pvi(getSingletonIterator(getClause("a"))));
-  s.addClauses(pvi(getSingletonIterator(getClause("A"))));
+  s.ensureVarCount(2);
+  s.addClause(getClause("a"));
+  s.addClause(getClause("A"));
 
   ASS_EQ(s.solve(),SATSolver::UNSATISFIABLE);
 
@@ -158,13 +158,13 @@ void testInterface(SATSolverWithAssumptions &s) {
   ASS(!s.trueInAssignment(getLit('a')));
   */
   
-  s.addClauses(pvi(getSingletonIterator(getClause("ab"))));
+  s.addClause(getClause("ab"));
   ASS_EQ(s.solve(true),SATSolver::UNKNOWN);
-  s.addClauses(pvi(getSingletonIterator(getClause("aB"))));
+  s.addClause(getClause("aB"));
   ASS_EQ(s.solve(true),SATSolver::UNKNOWN);
-  s.addClauses(pvi(getSingletonIterator(getClause("Ab"))));
+  s.addClause(getClause("Ab"));
   ASS_EQ(s.solve(true),SATSolver::UNKNOWN);
-  s.addClauses(pvi(getSingletonIterator(getClause("C"))));
+  s.addClause(getClause("C"));
   ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
   
   ASS(s.trueInAssignment(getLit('a')));
@@ -180,7 +180,8 @@ void testInterface(SATSolverWithAssumptions &s) {
 
   cout << " Random: ";
   for (int i = 0; i < 10; i++) {    
-    s.randomizeAssignment();
+    s.randomizeForNextAssignment(27);
+    s.solve();
     cout << s.trueInAssignment(getLit('d'));
   }
   cout << "  Fixed: ";      
@@ -189,6 +190,7 @@ void testInterface(SATSolverWithAssumptions &s) {
   }
   cout << endl;  
   
+  s.addAssumption(getLit('d'));
   s.addAssumption(getLit('a'));
   ASS(s.hasAssumptions());
   ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
@@ -229,3 +231,50 @@ TEST_FUN(testSATSolverInterface)
   testInterface(sTWL);  
 }
 
+void testAssumptions(SATSolverWithAssumptions &s) {
+  CALL("testAssumptions");
+
+  ensurePrepared(s);
+
+  s.addClause(getClause("ab"));
+  s.addClause(getClause("cde"));
+
+  static SATLiteralStack assumps;
+  assumps.reset();
+
+  assumps.push(getLit('X'));
+  assumps.push(getLit('A'));
+  assumps.push(getLit('B'));
+  assumps.push(getLit('C'));
+  assumps.push(getLit('D'));
+  assumps.push(getLit('E'));
+  assumps.push(getLit('Y'));
+
+  ASS_EQ(s.solveUnderAssumptions(assumps),SATSolver::UNSATISFIABLE);
+
+  const SATLiteralStack& failed = s.failedAssumptions();
+  for (int i = 0; i < failed.size(); i++) {
+    SATLiteral lit = failed[i];
+    if (lit.polarity()) {
+      cout << (char)('A' + lit.var()-1);
+    } else {
+      cout << (char)('a' + lit.var()-1);
+    }
+  }
+  cout << endl;
+}
+
+TEST_FUN(testSolvingUnderAssumptions)
+{
+  cout << endl << "Minisat" << endl;
+  MinisatInterfacing sMini(*env.options,true);
+  testAssumptions(sMini);
+
+  cout << endl << "Lingeling" << endl;
+  LingelingInterfacing sLing(*env.options,true);
+  testAssumptions(sLing);
+
+  cout << endl << "TWL" << endl;
+  TWLSolver sTWL(*env.options,true);
+  testAssumptions(sTWL);
+}

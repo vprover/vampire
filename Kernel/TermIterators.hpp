@@ -344,8 +344,10 @@ public:
     CALL("Term::DisagreementSetIterator::reset(Term*...)");
     ASS_EQ(t1->functor(), t2->functor());
 
-    _arg1.makeEmpty();
+    _stack.reset();
+    _disjunctVariables=disjunctVariables;
 
+    _arg1.makeEmpty();
     if(t1->arity()>0) {
       _stack.push(t1->args());
       _stack.push(t2->args());

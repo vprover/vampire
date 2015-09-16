@@ -51,6 +51,8 @@ public:
   unsigned inputClauses;
   /** number of input formulas */
   unsigned inputFormulas;
+  /** has types */
+  bool hasTypes;
 
   // Preprocessing
   /** number of formula names introduced during preprocessing */
@@ -374,6 +376,9 @@ public:
     PREPROCESSING,
     /** Whatever happens after the saturation algorithm finishes */
     FINALIZATION,
+    FMB_PREPROCESSING,
+    FMB_CONSTRAINT_GEN,
+    FMB_SOLVING,
     UNKNOWN_PHASE
   };
 

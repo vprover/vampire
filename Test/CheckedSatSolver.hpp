@@ -30,18 +30,30 @@ public:
     // TODO: consider checking the proof
     return _inner->getRefutation(); 
   }
+  virtual SATClauseList* getRefutationPremiseList() override {
+    return _inner->getRefutationPremiseList();
+  }
+
   virtual void randomizeForNextAssignment(unsigned varLimit) override {
     _inner->randomizeForNextAssignment(varLimit); _checked = false;
   }
 
-  virtual void addClauses(SATClauseIterator cit) override;
-  virtual void addClausesIgnoredInPartialModel(SATClauseIterator cit) override;
+  virtual void addClause(SATClause* cl) override;
+  virtual void addClauseIgnoredInPartialModel(SATClause* cl) override;
   virtual Status solve(unsigned conflictCountLimit) override;
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var) { return _inner->isZeroImplied(var); }
   virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
   virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
-  virtual void ensureVarCnt(unsigned newVarCnt);
+  virtual void ensureVarCount(unsigned newVarCnt) override;
+
+  virtual unsigned newVar() override {
+    CALL("CheckedSatSolver::newVar");
+
+    ALWAYS(_inner->newVar() == ++_varCnt);
+    return _varCnt;
+  }
+
   virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
 
   // the interface of SATSolverWithAssumptions not needed now
