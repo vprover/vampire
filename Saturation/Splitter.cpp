@@ -1573,6 +1573,7 @@ UnitList* Splitter::explicateAssertionsForSaturatedClauseSet(UnitList* clauses)
   CALL("Splitter::explicateAssertionsForSaturatedClauseSet");
 
   DHMap<Clause*,Formula*> processed;
+  DHMap<Clause*,Formula*> components;
 
   UnitList* result = UnitList::empty();
 
@@ -1580,7 +1581,7 @@ UnitList* Splitter::explicateAssertionsForSaturatedClauseSet(UnitList* clauses)
   while (it.hasNext()) {
     Clause* cl = it.next()->asClause();
 
-    // cout << "cl   in: " << cl->toString() << endl;
+    // cout << "cl in: " << cl->toString() << endl;
 
     if (processed.find(cl)) { // removing duplicates
       continue;
@@ -1596,7 +1597,7 @@ UnitList* Splitter::explicateAssertionsForSaturatedClauseSet(UnitList* clauses)
 
         Formula** ass_f_p;
 
-        if (processed.getValuePtr(ass,ass_f_p)) {
+        if (components.getValuePtr(ass,ass_f_p)) {
           *ass_f_p = new NegatedFormula(Formula::fromClause(ass));
         }
         FormulaList::push(*ass_f_p,disjuncts);
