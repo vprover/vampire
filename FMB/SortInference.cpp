@@ -269,8 +269,8 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
       bounds[s]=sig->sortedConstants[s].size();
       // If no constants pretend there is one
       if(bounds[s]==0){ bounds[s]=1;}
+      cout << "Found bound of " << bounds[s] << " for sort " << s << endl;
 #if DEBUG_SORT_INFERENCE
-      cout << "Bounding sort " << s << " to " << bounds[s]; 
       if(bounds[s]==0){ cout << " (was 0)"; }
       cout << endl;
 #endif
@@ -278,10 +278,10 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
     else{
       bounds[s]=UINT_MAX;
     }
-    if(s==3){
-      cout << "Forcing all bounds to max for " << s << endl;
-      bounds[s] = UINT_MAX;
-    }
+    //if(s==3){
+    //  cout << "Forcing all bounds to max for " << s << endl;
+    //  bounds[s] = UINT_MAX;
+    //}
   }
 
 #if DEBUG_SORT_INFERENCE
