@@ -102,8 +102,6 @@ vstring LaTeX::refutationToString(Unit* ref)
 
   vstring res = header() + "\\begin{VampireProof}\n"; 
 
-  InferenceStore* is=InferenceStore::instance();
-
   Stack<Unit*> outKernel;
   Set<Unit*> handledKernel;
   Stack<Unit*> outShell;
