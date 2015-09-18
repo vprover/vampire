@@ -997,7 +997,7 @@ private:
         RatioOptionValue(vstring l, vstring s, int def, int other, char sp=':') :
         OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
         
-        virtual OptionValueConstraint<int>* getNotDefault(){ return isNotDefaultRatio(); }
+        virtual OptionValueConstraint<int>* getNotDefault() override { return isNotDefaultRatio(); }
 
         template<typename S>
         void addConstraintIfNotDefault(WrappedConstraint<S>* c){
@@ -1005,7 +1005,7 @@ private:
         }
         
         bool readRatio(const char* val,char seperator);
-        bool setValue(const vstring& value){
+        bool setValue(const vstring& value) override {
             return readRatio(value.c_str(),sep);
         }
         
@@ -1013,13 +1013,13 @@ private:
         int defaultOtherValue;
         int otherValue;
         
-        virtual void output(ostream& out) const {
+        virtual void output(ostream& out) const override {
             AbstractOptionValue::output(out);
             out << "\tdefault left: " << defaultValue << endl;
             out << "\tdefault right: " << defaultOtherValue << endl;
         }
         
-        virtual vstring getStringOfValue(int value) const{ ASSERTION_VIOLATION;}
+        virtual vstring getStringOfValue(int value) const override { ASSERTION_VIOLATION;}
         virtual vstring getStringOfActual() const override {
             return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue);
         }

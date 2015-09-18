@@ -34,18 +34,18 @@ public:
   ShortConflictMetaDP(DecisionProcedure* inner, SAT2FO& sat2fo, SATSolver& solver)
   : _inner(inner), _sat2fo(sat2fo), _solver(solver) {}
 
-  virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) {
+  virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override {
     CALL("ShortConflictMetaDP::addLiterals");
     _inner->addLiterals(lits, onlyEqualites);
   }
 
-  virtual void reset() {
+  virtual void reset() override {
     CALL("ShortConflictMetaDP::reset");
     _inner->reset();
     _unsatCores.reset();
   }
 
-  virtual Status getStatus(bool getMultipleCores);
+  virtual Status getStatus(bool getMultipleCores) override;
 
   void getModel(LiteralStack& model) override {
     _inner->getModel(model);
@@ -58,8 +58,8 @@ public:
    *
    * Can be called only after getStatus before any next call to addLiterals.
    */
-  virtual unsigned getUnsatCoreCount() { return _unsatCores.size(); }
-  virtual void getUnsatCore(LiteralStack& res, unsigned coreIndex);
+  virtual unsigned getUnsatCoreCount() override { return _unsatCores.size(); }
+  virtual void getUnsatCore(LiteralStack& res, unsigned coreIndex) override;
 
 
 private:

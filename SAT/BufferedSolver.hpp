@@ -31,7 +31,7 @@ public:
 
   BufferedSolver(SATSolver* inner);
 
-  virtual SATClause* getRefutation() { return _inner->getRefutation(); }
+  virtual SATClause* getRefutation() override { return _inner->getRefutation(); }
   virtual SATClauseList* getRefutationPremiseList() override {
     return _inner->getRefutationPremiseList();
   }
@@ -48,14 +48,14 @@ public:
   virtual Status solve(unsigned conflictCountLimit) override;
   virtual VarAssignment getAssignment(unsigned var) override;
 
-  virtual bool isZeroImplied(unsigned var) {
+  virtual bool isZeroImplied(unsigned var) override {
     CALL("BufferedSolver::isZeroImplied");
     ASS_G(var,0); ASS_LE(var,_varCnt);
     // alternatively, we could directly refer to _inner, it must handle variables up to _varCnt as well
     return (var > _varCntInnerOld) ? false : _inner->isZeroImplied(var);
   }
-  virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
+  virtual void collectZeroImplied(SATLiteralStack& acc) override { _inner->collectZeroImplied(acc); }
+  virtual SATClause* getZeroImpliedCertificate(unsigned var) override { return _inner->getZeroImpliedCertificate(var); }
 
   virtual void ensureVarCount(unsigned newVarCnt) override { _inner->ensureVarCount(newVarCnt); _varCnt=max(_varCnt,newVarCnt); }
   virtual unsigned newVar() override { 
@@ -66,7 +66,7 @@ public:
   }
   
   virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
-  virtual void recordSource(unsigned var, Literal* lit){
+  virtual void recordSource(unsigned var, Literal* lit) override {
     _inner->recordSource(var,lit);
   }
 

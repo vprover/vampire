@@ -50,7 +50,7 @@ public:
 
   virtual void insert(Clause* cl) override;
 
-  ClauseIterator retrieveVariants(Literal* const * lits, unsigned length);
+  ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) override;
 
 private:
   class SLQueryResultToClauseFn;
@@ -74,7 +74,7 @@ public:
 
   virtual void insert(Clause* cl) override;
 
-  ClauseIterator retrieveVariants(Literal* const * lits, unsigned length);
+  ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) override;
 
 private:
   struct VariableIgnoringComparator;

@@ -26,7 +26,7 @@ public:
   
   CheckedSatSolver(SATSolver* inner);
 
-  virtual SATClause* getRefutation() { 
+  virtual SATClause* getRefutation() override {
     // TODO: consider checking the proof
     return _inner->getRefutation(); 
   }
@@ -41,10 +41,10 @@ public:
   virtual void addClause(SATClause* cl) override;
   virtual void addClauseIgnoredInPartialModel(SATClause* cl) override;
   virtual Status solve(unsigned conflictCountLimit) override;
-  virtual VarAssignment getAssignment(unsigned var);
-  virtual bool isZeroImplied(unsigned var) { return _inner->isZeroImplied(var); }
-  virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
+  virtual VarAssignment getAssignment(unsigned var) override;
+  virtual bool isZeroImplied(unsigned var) override { return _inner->isZeroImplied(var); }
+  virtual void collectZeroImplied(SATLiteralStack& acc) override { _inner->collectZeroImplied(acc); }
+  virtual SATClause* getZeroImpliedCertificate(unsigned var) override { return _inner->getZeroImpliedCertificate(var); }
   virtual void ensureVarCount(unsigned newVarCnt) override;
 
   virtual unsigned newVar() override {
@@ -61,7 +61,7 @@ public:
   // virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
   // virtual void retractAllAssumptions();
 
-  virtual void recordSource(unsigned var, Literal* lit){
+  virtual void recordSource(unsigned var, Literal* lit) override {
     _inner->recordSource(var,lit);
   }
 
