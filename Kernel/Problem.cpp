@@ -244,6 +244,18 @@ void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
 }
 
 /**
+ * Register a predicate that has been replaced as it is pure
+ *
+ * This information may be used during model output
+ */
+void Problem::addPurePredicateDefinition(unsigned pred, Unit* definition)
+{
+  CALL("Problem::addPurePredicateDefinition");
+
+  _purePredicateDefinitions.insert(pred,definition);
+}
+
+/**
  * Recalculate the property from the current set of formulas
  */
 void Problem::refreshProperty() const

@@ -80,9 +80,12 @@ public:
 
   void addEliminatedFunction(unsigned func, Literal* definition);
   void addEliminatedPredicate(unsigned pred, Unit* definition);
+  void addPurePredicateDefinition(unsigned pred, Unit* definition); 
  
   DHMap<unsigned,Literal*> getEliminatedFunctions(){ return _deletedFunctions; }
   DHMap<unsigned,Unit*> getEliminatedPredicates(){ return _deletedPredicates; }
+  DHMap<unsigned,Unit*> getPurePredicateDefinitions(){ return _purePredicateDefinitions;}
+  
 
   bool isPropertyUpToDate() const { return _propertyValid; }
   Property* getProperty() const;
@@ -182,6 +185,7 @@ private:
   UnitList* _units;
   DHMap<unsigned,Literal*> _deletedFunctions;
   DHMap<unsigned,Unit*> _deletedPredicates;
+  DHMap<unsigned,Unit*> _purePredicateDefinitions;
 
   bool _hadIncompleteTransformation;
 

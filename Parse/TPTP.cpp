@@ -2428,8 +2428,12 @@ void TPTP::endEquality()
   TermList lhs = _termLists.pop();
 
   if (sortOf(rhs) != sortOf(lhs)) {
-    
-    USER_ERROR("Cannot create equality between terms of different types.");
+    unsigned rsort = sortOf(rhs); 
+    unsigned lsort = sortOf(lhs);
+    USER_ERROR("Cannot create equality between terms of different types.\n"+
+      rhs.toString()+" is "+Int::toString(rsort)+"\n"+
+      lhs.toString()+" is "+Int::toString(lsort)
+    );
   }
 
   Literal* l = createEquality(_bools.pop(),lhs,rhs);

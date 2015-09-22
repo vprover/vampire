@@ -60,6 +60,7 @@ FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb,
 
   _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
   _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
+  _purePredicateDefinitions.loadFromMap(prb.getPurePredicateDefinitions());
 
   _maxArity = 0;
   for(unsigned f=0;f<env.signature->functions();f++){
@@ -1045,7 +1046,7 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
   bool printIntroduced = false; 
 
   //Output domain
-  modelStm << "fof(domain,interpretation_domain," << endl;
+  modelStm << "fof(domain,axiom," << endl;
   modelStm << "      ! [X] : (" << endl;
   modelStm << "         ";
   for(unsigned i=1;i<=modelSize;i++){
@@ -1058,7 +1059,7 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
   //Distinctness of domain
   modelStm << endl;
   if(modelSize>1){
-  modelStm << "fof(distinct_domain,interpreted_domain," << endl;
+  modelStm << "fof(distinct_domain,axiom," << endl;
   modelStm << "         ";
   unsigned c=0;
   for(unsigned i=1;i<=modelSize;i++){
@@ -1087,7 +1088,7 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
       continue;
     }
     vstring name = env.signature->functionName(f);
-    modelStm << "fof(constant_"<<name<<",functors,"<<name<< " = ";
+    modelStm << "fof(constant_"<<name<<",axiom,"<<name<< " = ";
     bool found=false;
     for(unsigned c=1;c<=modelSize;c++){
       static DArray<unsigned> grounding(1);
@@ -1151,7 +1152,13 @@ fModelLabel:
               found=true;
             }
           }
-          if(!found) goto fModelLabel; 
+          if(!found){
+             // This means that there is no result for this input
+             // This is a result of the finite sort bounding and the argument
+             // says that we can equate this domain element to a smaller one below the bound
+             //TODO fix this 
+             goto fModelLabel; 
+          }
 
           if(!first){
             modelStm << " & " << endl;
@@ -1175,13 +1182,20 @@ fModelLabel:
   for(unsigned f=1;f<env.signature->predicates();f++){
     if(env.signature->predicateArity(f)>0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
+
+    //TODO should evaluate definitions in model to print out p
     if(del_p[f]){
       Unit* def = _deletedPredicates.get(f);
       modelStm << TPTPPrinter::toString(def) << endl; 
       continue;
     }
+    if(_purePredicateDefinitions.find(f)){
+      Unit* def  = _purePredicateDefinitions.get(f);
+      modelStm << TPTPPrinter::toString(def) << endl;
+      continue;
+    }
     vstring name = env.signature->predicateName(f);
-    modelStm << "fof(predicate_"<<name<<",predicates,";
+    modelStm << "fof(predicate_"<<name<<",axiom,";
     SATLiteral slit = getSATLiteral(f,emptyG,true,false,modelSize);
     if(!_solver->trueInAssignment(slit)){ modelStm << "~"; }
     modelStm << name << ")."<<endl;
@@ -1193,9 +1207,16 @@ fModelLabel:
     unsigned arity = env.signature->predicateArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
+
+    //TODO should evaluate definitions in model to print out p
     if(del_p[f]){
       Unit* def = _deletedPredicates.get(f);
       modelStm << TPTPPrinter::toString(def) << endl; 
+      continue;
+    }
+    if(_purePredicateDefinitions.find(f)){
+      Unit* def  = _purePredicateDefinitions.get(f);
+      modelStm << TPTPPrinter::toString(def) << endl;
       continue;
     }
     vstring name = env.signature->predicateName(f);
