@@ -476,15 +476,57 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
   else return e;
 }
 
-SATClauseList* Z3Interfacing::getRefutationPremiseList() {
+SATClause* Z3Interfacing::getRefutation() {
 
-    z3::context c;
-    z3::solver s(c);
-    //z3::params p(c);
-    //p.set("unsat_core",true);
-    //solver.set(p);
+    if(!_unsatCore) 
+      return PrimitiveProofRecordingSATSolver::getRefutation(); 
 
-    return 0;
+
+    z3::solver solver(_context);
+    z3::params p(_context);
+    p.set(":unsat-core", true);
+    solver.set(p);
+
+    SATClauseList* added = PrimitiveProofRecordingSATSolver::getRefutationPremiseList();
+    SATClauseList::Iterator cit(added);
+    unsigned n=0;
+    vstring ps="$_$_$";
+
+    DHMap<vstring,SATClause*> lookup;
+
+    while(cit.hasNext()){
+      SATClause* cl = cit.next();
+      z3::expr z3clause = _context.bool_val(false);
+      unsigned clen=cl->length();
+      for(unsigned i=0;i<clen;i++){
+        SATLiteral l = (*cl)[i];
+        z3::expr e = getRepresentation(l);
+        z3clause = z3clause || e;
+      }
+      vstring p = ps+Int::toString(n++);
+      //cout << p << ": " << cl->toString() << endl;
+      solver.add(z3clause,p.c_str());
+      lookup.insert(p,cl);
+    }
+    //TODO add assertion
+    //cout << solver.check() << endl;
+    solver.check();
+
+    SATClauseList* prems = 0;
+
+    z3::expr_vector  core = solver.unsat_core();
+    for (unsigned i = 0; i < core.size(); i++) {
+        z3::expr ci = core[i];
+        vstring cip = Z3_ast_to_string(_context,ci);
+        SATClause* cl = lookup.get(cip);
+        SATClauseList::push(cl,prems);
+        //std::cout << cl->toString() << "\n";
+    }
+
+    SATClause* refutation = new(0) SATClause(0);
+    refutation->setInference(new PropInference(prems));
+
+    return refutation; 
 }
 
 

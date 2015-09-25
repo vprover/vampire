@@ -112,7 +112,9 @@ public:
    *
    * TODO: think of extracting true refutation from Z3 instead.
    */
-  SATClauseList* getRefutationPremiseList() override; 
+  SATClauseList* getRefutationPremiseList() override{ return 0; } 
+
+  SATClause* getRefutation() override;  
 
 private:
   // just to conform to the interface
