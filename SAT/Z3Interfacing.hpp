@@ -112,9 +112,7 @@ public:
    *
    * TODO: think of extracting true refutation from Z3 instead.
    */
-  SATClauseList* getRefutationPremiseList() override {
-    return 0;
-  }
+  SATClauseList* getRefutationPremiseList() override; 
 
 private:
   // just to conform to the interface
@@ -157,6 +155,7 @@ private:
   z3::model _model;
 
   bool _showZ3;
+  bool _unsatCore;
 };
 
 }//end SAT namespace

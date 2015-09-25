@@ -1666,6 +1666,7 @@ public:
   bool showTheoryAxioms() const { return _showTheoryAxioms.actualValue; }
 #if VZ3
   bool showZ3() const { return _showZ3.actualValue; }
+  bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
 #endif
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -2116,6 +2117,7 @@ private:
   BoolOptionValue _showTheoryAxioms;
 #if VZ3
   BoolOptionValue _showZ3;
+  BoolOptionValue _z3UnsatCores;
 #endif
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;

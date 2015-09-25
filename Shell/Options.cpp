@@ -1199,6 +1199,14 @@ void Options::Options::init()
             {"lingeling","minisat","vampire"});
 #endif
 
+#if VZ3
+    _z3UnsatCores = BoolOptionValue("z3_unsat_core","z3uc",false);
+    _z3UnsatCores.description=""; 
+    _lookup.insert(&_z3UnsatCores);
+    _z3UnsatCores.setExperimental();
+    _z3UnsatCores.tag(OptionTag::SAT);
+#endif
+
     _satVarActivityDecay = FloatOptionValue("sat_var_activity_decay","",1.05f);
     _satVarActivityDecay.description="";
     _lookup.insert(&_satVarActivityDecay);

@@ -28,15 +28,13 @@ using namespace Lib;
 //using namespace z3;
   
 Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool generateProofs):
-  _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context), _model(_solver.get_first_model()), _showZ3(opts.showZ3())
+  _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context), _model(_solver.get_first_model()), 
+  _showZ3(opts.showZ3()),_unsatCore(opts.z3UnsatCores())
 {
   CALL("Z3Interfacing::Z3Interfacing");
   
 
   // Here is where we would set context parameters i.e.
-  //params p(c);
-  //p.set("unsat_core",true);
-  //_solver.set(p);
 }
   
 /**
@@ -477,6 +475,18 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
   if(slit.isNegative()) return !e;
   else return e;
 }
+
+SATClauseList* Z3Interfacing::getRefutationPremiseList() {
+
+    z3::context c;
+    z3::solver s(c);
+    //z3::params p(c);
+    //p.set("unsat_core",true);
+    //solver.set(p);
+
+    return 0;
+}
+
 
 } // namespace SAT
 
