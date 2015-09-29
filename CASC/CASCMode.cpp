@@ -125,9 +125,11 @@ bool CASCMode::perform()
  */
 void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallback)
 {
+#if !VZ3 // To suppress the "unused" warning
   Property::Category cat = property.category();
   unsigned long prop = property.props();
   unsigned atoms = property.atoms();
+#endif
 
 #if VZ3
   quick.push("dis+1011_5_fsr=off:gs=on:gsaa=full_model:gsssp=full:nwc=1:sas=z3:sos=on:ssfp=40000:ssfq=2.0:smm=sco:ssnc=all:tha=off:updr=off_1");

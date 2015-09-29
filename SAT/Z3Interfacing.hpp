@@ -29,32 +29,19 @@ public:
   
   Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool generateProofs=false);
 
-  /**
-   * Can be called only when all assumptions are retracted
-   *
-   * A requirement is that in each clause, each variable occurs at most once.
-   */
-  virtual void addClauses(SATClauseIterator cit);
-  void addClause(SATClause* cl);
+  void addClause(SATClause* cl) override;
 
   virtual Status solve(unsigned conflictCountLimit) override;
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  virtual VarAssignment getAssignment(unsigned var);
-
-  /**
-   * Try to find another assignment which is likely to be different from the current one
-   *
-   * @pre Solver must be in SATISFIABLE status
-   */
-  virtual void randomizeAssignment();
+  virtual VarAssignment getAssignment(unsigned var) override;
 
   /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
-  virtual bool isZeroImplied(unsigned var);
+  virtual bool isZeroImplied(unsigned var) override;
   /**
    * Collect zero-implied literals.
    *
@@ -62,7 +49,7 @@ public:
    *
    * @see isZeroImplied()
    */
-  virtual void collectZeroImplied(SATLiteralStack& acc);
+  virtual void collectZeroImplied(SATLiteralStack& acc) override;
   /**
    * Return a valid clause that contains the zero-implied literal
    * and possibly the assumptions that implied it. Return 0 if @c var
@@ -70,38 +57,35 @@ public:
    * If called on a proof producing solver, the clause will have
    * a proper proof history.
    */
-  virtual SATClause* getZeroImpliedCertificate(unsigned var);
+  virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
   // Not required for Z3, but let's keep track of the counter
-  virtual void ensureVarCnt(unsigned newVarCnt) {
+  virtual void ensureVarCount(unsigned newVarCnt) override {
     CALL("Z3Interfacing::ensureVarCnt");
     _varCnt = max(newVarCnt,_varCnt);
   }
 
-  virtual unsigned newVar() {
+  virtual unsigned newVar() override {
     CALL("Z3Interfacing::newVar");
     return ++_varCnt;
   }
 
   // Currently not implemented for Z3
-  virtual void suggestPolarity(unsigned var, unsigned pol){} 
-  virtual void forcePolarity(unsigned var, unsigned pol) {}
+  virtual void suggestPolarity(unsigned var, unsigned pol) override {}
   
-  virtual void addAssumption(SATLiteral lit) {
+  virtual void addAssumption(SATLiteral lit) override {
     CALL("Z3Interfacing::addAssumption");
     NOT_IMPLEMENTED;
   }
   
-  virtual void retractAllAssumptions(){} 
-  
-  virtual bool hasAssumptions() const{ return false; }
-
+  virtual void retractAllAssumptions() override {}
+  virtual bool hasAssumptions() const override { return false; }
 
  /**
   * Record the association between a SATLiteral var and a Literal
   * In TWLSolver this is used for computing niceness values
   */
-  virtual void recordSource(unsigned satlitvar, Literal* lit) {
+  virtual void recordSource(unsigned satlitvar, Literal* lit) override {
     // unsupported by Z3; intentionally no-op
   };
   

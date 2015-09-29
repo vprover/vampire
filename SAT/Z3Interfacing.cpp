@@ -37,26 +37,6 @@ Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool genera
   // Here is where we would set context parameters i.e.
 }
   
-/**
- * Add clauses into the solver and saturate.
- *
- * If @c onlyPropagate is true, only unit propagation is done. If
- * unsatisfiability isn't shown in this case, the status is set to UNKNOWN.
- * 
- * Memory-wise, the clauses are owned by the solver from now on.
- * 
- * @useInPartialModel is ignored as this solver generates a total model
- */
-void Z3Interfacing::addClauses(SATClauseIterator cit) 
-{
-  CALL("Z3Interfacing::addClauses");
-  
-  while(cit.hasNext()){
-    addClause(cit.next());
-  }
-
-}
-
 void Z3Interfacing::addClause(SATClause* cl)
 {
   CALL("Z3Interfacing::addClause");
@@ -141,16 +121,11 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   return DONT_CARE;
 }
 
-void Z3Interfacing::randomizeAssignment() 
-{
-  CALL("Z3Interfacing::randomizeAssignment");
-} 
-
 bool Z3Interfacing::isZeroImplied(unsigned var)
 {
   CALL("Z3Interfacing::isZeroImplied");
   
-  // Safe. TODO consider getting zoer-implied
+  // Safe. TODO consider getting zero-implied
   return false; 
 }
 
@@ -200,7 +175,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
  * Translate a Vampire term into a Z3 term
  * - Assumes term is ground
  * - Translates the ground structure
- * - Some interpretted functions/predicates are handled
+ * - Some interpreted functions/predicates are handled
  */
 z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
 {
