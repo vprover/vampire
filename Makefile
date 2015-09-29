@@ -147,9 +147,9 @@ MINISAT_OBJ = Minisat/core/Solver.o\
 
 API_OBJ = Api/FormulaBuilder.o\
 	  Api/Helper.o\
-	  Api/Problem.o\
 	  Api/ResourceLimits.o\
 	  Api/Tracing.o
+#	  Api/Problem.o\	  
 
 VD_OBJ = Debug/Assertion.o\
          Debug/RuntimeStatistics.o\
@@ -422,8 +422,8 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/CompitOutput.o\
          Test/Compit2Output.o\
          Test/Output.o\
-         Test/TestUtils.o\
          Test/UnitTesting.o
+#         Test/TestUtils.o\         
 
 VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))
 
