@@ -277,7 +277,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/DIMACS.o\
-         SAT/ISSatSweeping.o\
          SAT/MinimizingSolver.o\
          SAT/Preprocess.o\
          SAT/RestartStrategy.o\
@@ -291,6 +290,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
 	 SAT/Z3Interfacing.o\
          SAT/lglib.o\
 	 SAT/BufferedSolver.o
+#         SAT/ISSatSweeping.o\	 
 #         SAT/SATClauseSharing.o\
 #         SAT/TransparentSolver.o\
 #         SAT/SingleWatchSAT.o

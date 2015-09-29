@@ -428,7 +428,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
   CALL("Z3Interfacing::getRepresentation");
   BYPASSING_ALLOCATOR;
 
-  //First, does this represents a ground literal 
+  //First, does this represent a ground literal
   Literal* lit = sat2fo.toFO(slit);
   if(lit && lit->ground()){
     //cout << "getRepresentation of " << lit->toString() << endl;
