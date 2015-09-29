@@ -28,12 +28,12 @@ using namespace Lib;
 //using namespace z3;
   
 Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool generateProofs):
-  _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context), _model(_solver.get_first_model()), 
+  _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context),
+  _model(_solver.get_first_model()), _assumptions(_context),
   _showZ3(opts.showZ3()),_unsatCore(opts.z3UnsatCores())
 {
   CALL("Z3Interfacing::Z3Interfacing");
   
-
   // Here is where we would set context parameters i.e.
 }
   
@@ -64,12 +64,19 @@ void Z3Interfacing::addClause(SATClause* cl)
 
 }
 
+void Z3Interfacing::addAssumption(SATLiteral lit)
+{
+  CALL("Z3Interfacing::addAssumption");
+
+  _assumptions.push_back(getRepresentation(lit));
+}
+
 SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
 {
   CALL("Z3Interfacing::addClause");
   BYPASSING_ALLOCATOR;
 
-  z3::check_result result = _solver.check();
+  z3::check_result result = _solver.check(_assumptions);
 
   //cout << "solve result: " << result << endl;
 

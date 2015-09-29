@@ -10,6 +10,7 @@
 #include "SAT/TWLSolver.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/LingelingInterfacing.hpp"
+#include "SAT/Z3Interfacing.hpp"
 
 #include "Test/UnitTesting.hpp"
 
@@ -176,7 +177,7 @@ void testInterface(SATSolverWithAssumptions &s) {
   ASS(s.isZeroImplied(a) == s.isZeroImplied(b));   
   
   ASS(s.isZeroImplied(c));
-  ASS(!s.isZeroImplied(d));    
+  ASS(!s.isZeroImplied(d));
 
   cout << " Random: ";
   for (int i = 0; i < 10; i++) {    
@@ -229,6 +230,15 @@ TEST_FUN(testSATSolverInterface)
   cout << endl << "TWL" << endl;
   TWLSolver sTWL(*env.options,true);
   testInterface(sTWL);  
+
+  /* Not fully conforming - does not support zeroImplied and resource-limited solving
+  cout << endl << "Z3" << endl;
+  {
+    SAT2FO sat2fo;
+    Z3Interfacing sZ3(*env.options,sat2fo);
+    testInterface(sZ3);
+  }
+  */
 }
 
 void testAssumptions(SATSolverWithAssumptions &s) {
@@ -262,6 +272,17 @@ void testAssumptions(SATSolverWithAssumptions &s) {
     }
   }
   cout << endl;
+
+  const SATLiteralStack& minimized = s.explicitlyMinimizedFailedAssumptions();
+  for (int i = 0; i < minimized.size(); i++) {
+    SATLiteral lit = minimized[i];
+    if (lit.polarity()) {
+      cout << (char)('A' + lit.var()-1);
+    } else {
+      cout << (char)('a' + lit.var()-1);
+    }
+  }
+  cout << endl;
 }
 
 TEST_FUN(testSolvingUnderAssumptions)
@@ -277,4 +298,11 @@ TEST_FUN(testSolvingUnderAssumptions)
   cout << endl << "TWL" << endl;
   TWLSolver sTWL(*env.options,true);
   testAssumptions(sTWL);
+
+  cout << endl << "Z3" << endl;
+  {
+    SAT2FO sat2fo;
+    Z3Interfacing sZ3(*env.options,sat2fo);
+    testAssumptions(sZ3);
+  }
 }

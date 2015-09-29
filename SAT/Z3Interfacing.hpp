@@ -27,6 +27,10 @@ public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
   
+  /**
+   * Param @b generateProofs is currently ignored.
+   * Proof generated on demand only when getRefutation is called.
+   */
   Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool generateProofs=false);
 
   void addClause(SATClause* cl) override;
@@ -73,13 +77,9 @@ public:
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
   
-  virtual void addAssumption(SATLiteral lit) override {
-    CALL("Z3Interfacing::addAssumption");
-    NOT_IMPLEMENTED;
-  }
-  
-  virtual void retractAllAssumptions() override {}
-  virtual bool hasAssumptions() const override { return false; }
+  virtual void addAssumption(SATLiteral lit) override;
+  virtual void retractAllAssumptions() override { _assumptions.resize(0); }
+  virtual bool hasAssumptions() const override { return !_assumptions.empty(); }
 
  /**
   * Record the association between a SATLiteral var and a Literal
@@ -139,6 +139,8 @@ private:
   z3::context _context;
   z3::solver _solver;
   z3::model _model;
+
+  z3::expr_vector _assumptions;
 
   bool _showZ3;
   bool _unsatCore;
