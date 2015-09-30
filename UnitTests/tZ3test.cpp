@@ -127,12 +127,38 @@ TEST_FUN(seg_issue){
   Literal* sk0_12_eq_6 = Literal::createEquality(true,TermList(sk0_12),TermList(six),Sorts::SRT_INTEGER);
 
   SAT::SAT2FO s2f;
-  SAT::Z3Interfacing* sat = new SAT::Z3Interfacing(*env.options,s2f,false);
+  SAT::Z3Interfacing* sat = new SAT::Z3Interfacing(*env.options,s2f);
 
   expr pow2_12_rep = sat->getz3expr(pow2_12,true);
   expr pow2_1_rep = sat->getz3expr(pow2_1,true);
   expr sk0_12_eq_6_rep = sat->getz3expr(sk0_12_eq_6,true);
 
 }
+
+TEST_FUN(example_model){
+  std::cout << "find_model_example1\n"; // see https://github.com/dtrebbien/Z3/blob/master/examples/c++/example.cpp
+  context c;
+  expr x = c.int_const("x");
+  expr y = c.int_const("y");
+  solver s(c);
+
+  s.add(x >= 1);
+  s.add(y < x + 3);
+  std::cout << s.check() << "\n";
+
+  model m = s.get_model();
+  std::cout << m << "\n";
+  // traversing the model
+  for (unsigned i = 0; i < m.size(); i++) {
+      func_decl v = m[i];
+      // this problem contains only constants
+      assert(v.arity() == 0);
+      std::cout << v.name() << " = " << m.get_const_interp(v) << "\n";
+  }
+  // we can evaluate expressions in the model.
+  std::cout << "x + y + 1 = " << m.eval(x + y + 1) << "\n";
+}
+
+
 #endif
 

@@ -27,7 +27,7 @@ using namespace Lib;
 
 //using namespace z3;
   
-Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool generateProofs):
+Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f):
   _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context),
   _model(_solver.get_first_model()), _assumptions(_context),
   _showZ3(opts.showZ3()),_unsatCore(opts.z3UnsatCores())

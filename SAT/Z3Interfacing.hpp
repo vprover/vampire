@@ -27,11 +27,7 @@ public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
   
-  /**
-   * Param @b generateProofs is currently ignored.
-   * Proof generated on demand only when getRefutation is called.
-   */
-  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool generateProofs=false);
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f);
 
   void addClause(SATClause* cl) override;
 
