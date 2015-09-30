@@ -27,7 +27,13 @@ public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
   
-  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f);
+  /**
+   * If @c unsatCoresForAssumptions is set, the solver is configured to use
+   * the "unsat-core" option (may negatively affect performance) and uses
+   * this feature to extract a subset of used assumptions when
+   * called via solveUnderAssumptions.
+   */
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions = false);
 
   void addClause(SATClause* cl) override;
 
@@ -76,6 +82,8 @@ public:
   virtual void addAssumption(SATLiteral lit) override;
   virtual void retractAllAssumptions() override { _assumptions.resize(0); }
   virtual bool hasAssumptions() const override { return !_assumptions.empty(); }
+
+  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned, bool) override;
 
  /**
   * Record the association between a SATLiteral var and a Literal
@@ -137,9 +145,10 @@ private:
   z3::model _model;
 
   z3::expr_vector _assumptions;
+  bool _unsatCoreForAssumptions;
 
   bool _showZ3;
-  bool _unsatCore;
+  bool _unsatCoreForRefutations;
 };
 
 }//end SAT namespace

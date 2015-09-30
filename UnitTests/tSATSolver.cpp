@@ -302,7 +302,7 @@ TEST_FUN(testSolvingUnderAssumptions)
   cout << endl << "Z3" << endl;
   {
     SAT2FO sat2fo;
-    Z3Interfacing sZ3(*env.options,sat2fo);
+    Z3Interfacing sZ3(*env.options,sat2fo,true);
     testAssumptions(sZ3);
   }
 }
