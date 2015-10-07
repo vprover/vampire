@@ -1037,13 +1037,16 @@ unsigned Theory::getArrayOperationSort(Interpretation i)
 * This function returns the domain of array indexes (SRT_INT)
 * @author Laura Kovacs
 * @since 31/08/2012, Vienna
+* @since 7/10/2015 update to support polymorphism in the index sort
 */
 unsigned Theory::getArrayDomainSort(Interpretation i)
 {
     CALL("Theory::getArrayDomainSort");
     ASS(isArrayOperation(i));
         
-    return Sorts::SRT_INTEGER;
+    unsigned sort = theory->getSort(i);
+
+    return  env.sorts->getArraySort(sort)->getIndexSort();
 }
 
 /**

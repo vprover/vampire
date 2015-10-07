@@ -96,17 +96,24 @@ public:
     CLASS_NAME(ArraySort);
     USE_ALLOCATOR(ArraySort);
 
-    ArraySort(vstring name, unsigned innerSort,unsigned id) : 
-      StructuredSortInfo(name,StructuredSort::ARRAY, id), _innerSort(innerSort)
-    { cout << "Creating ArraySort " << name << " with id " << id << endl; }
+    ArraySort(vstring name, unsigned indexSort, unsigned innerSort,unsigned id) : 
+      StructuredSortInfo(name,StructuredSort::ARRAY, id), 
+      _indexSort(indexSort), _innerSort(innerSort)
+    { 
+#if VDEBUG
+      cout << "Creating ArraySort " << name << " with id " << id << endl; 
+#endif
+    }
 
     bool hasStructuredSort(StructuredSort sort) override { 
       return sort==StructuredSort::ARRAY; 
     }
+    unsigned getIndexSort(){ return _indexSort; }
     unsigned getInnerSort(){ return _innerSort; }
 
   private:
     // the SortInfo can be found using Sorts
+    unsigned _indexSort;
     unsigned _innerSort;
 
   };
@@ -114,7 +121,7 @@ public:
   unsigned addSort(const vstring& name, bool& added);
   unsigned addSort(const vstring& name);
 
-  unsigned addArraySort(unsigned innerSort);
+  unsigned addArraySort(unsigned indexSort, unsigned innerSort);
   VirtualIterator<unsigned> getArraySorts();
   ArraySort* getArraySort(unsigned sort){
     ASS(hasStructuredSort(sort,StructuredSort::ARRAY));
@@ -143,13 +150,6 @@ private:
   Stack<SortInfo*> _sorts;
   /** true if there is a sort different from built-ins */
   bool _hasSort;
-
-  static vstring getStructuredSortName(StructuredSort sort){
-    switch(sort){
-      case StructuredSort::ARRAY : return "$array"; 
-      default : ASSERTION_VIOLATION;
-    }
-  }
 
 };
 

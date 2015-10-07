@@ -97,21 +97,25 @@ unsigned Sorts::addSort(const vstring& name, bool& added)
  *
  * @author Giles
  */
-unsigned Sorts::addArraySort(const unsigned innerSort)
+unsigned Sorts::addArraySort(const unsigned indexSort, const unsigned innerSort)
 {
   CALL("Sorts::addArraySort");
 
   // First check if it already exists
-  vstring name = "$array("+env.sorts->sortName(innerSort)+")";
+  vstring name = "$array(";
+  name+=env.sorts->sortName(indexSort);
+  name+=",";
+  name+=env.sorts->sortName(innerSort);
+  name+=")";
   unsigned result;
   if(_sortNames.find(name,result)){
     return result;
   }
 
-  // Do we need to set _hasSort?
+  _hasSort = true;
   result = _sorts.length(); 
   // Next create ArraySort and register it
-  ArraySort* sort = new ArraySort(name,innerSort,result);
+  ArraySort* sort = new ArraySort(name,indexSort,innerSort,result);
   _sorts.push(sort);
   _sortNames.insert(name,result);
 

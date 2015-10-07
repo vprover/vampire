@@ -1415,6 +1415,7 @@ void TPTP::endIte()
  * @since 3/09/2012 Vienna
  * @since 16/1/2015 Timisoara, Giles changed to endSelect when introduced StructuredSort
  * @since 25/08/2015 Gothenburg, Evgeny changed to support $array($o)
+ * @since 7/10/2015 Manchester, Giles changed to support polymorphism in index
  */
 void TPTP::endSelect()
 {
@@ -1428,6 +1429,11 @@ void TPTP::endSelect()
     //Check that array_sort is defined
     if(!env.sorts->hasStructuredSort(array_sort,Sorts::StructuredSort::ARRAY)){
       USER_ERROR("select is being incorrectly used on a type of array that has not be defined");
+    }
+
+    unsigned indexSort = env.sorts->getArraySort(array_sort)->getIndexSort();
+    if(sortOf(index) != indexSort){
+      USER_ERROR((vstring)"sort of index is not the same as the index sort of the array");
     }
 
     // Things get a bit awkward with $select + FOOL, because $select can be either a predicate and
@@ -1459,6 +1465,7 @@ void TPTP::endSelect()
  * @author Laura Kovacs
  * @since 3/09/2012 Vienna
  * @since 16/1/2015 Timisoara, Giles changed to endStore when introduced StructuredSort
+ * @since 7/10/2015 Manchester, Giles changed to support polymorphism in index
  */
 void TPTP::endStore()
 {
@@ -1468,10 +1475,6 @@ void TPTP::endStore()
     TermList index = _termLists.pop();
     TermList array = _termLists.pop();
     
-    if (sortOf(index) != Sorts::SRT_INTEGER) {
-      USER_ERROR((vstring)"sort of the array index is not INT");
-    }
-
     unsigned array_sort = sortOf(array);
 
     //Check that array_sort is defined
@@ -1479,9 +1482,14 @@ void TPTP::endStore()
       USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
     }
 
+    unsigned indexSort = env.sorts->getArraySort(array_sort)->getIndexSort();
+    if(sortOf(index) != indexSort){
+      USER_ERROR((vstring)"sort of index is not the same as the index sort of the array");
+    }
+
     unsigned innerSort = env.sorts->getArraySort(array_sort)->getInnerSort();
     if(sortOf(value) != innerSort){
-      USER_ERROR((vstring)"sort of value is not the same as the sort of the array");
+      USER_ERROR((vstring)"sort of value is not the same as the value sort of the array");
     }
 
     Interpretation store = Theory::instance()->getInterpretation(array_sort,
@@ -3170,12 +3178,14 @@ unsigned TPTP::readSort()
   {
     resetToks();
     consumeToken(T_LPAR);
+    unsigned indexSort = readSort();
+    consumeToken(T_COMMA);
     unsigned innerSort = readSort();
     if (innerSort == Sorts::SRT_BOOL) {
       innerSort = Sorts::SRT_FOOL_BOOL;
     }
     consumeToken(T_RPAR);
-    return env.sorts->addArraySort(innerSort);
+    return env.sorts->addArraySort(indexSort,innerSort);
   }
   default:
     PARSE_ERROR("sort expected",tok);
@@ -3436,30 +3446,6 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
   USER_ERROR((vstring)"Invalid predicate name: " + name);
 } // addPredicate
 
-
-//unsigned TPTP::addOverloadedArrayFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
-//                                     Theory::Interpretation array_select)
-//{
-//    CALL("TPTP::addOverloadedArrayFunction");
-//
-//
-//    if (arity != symbolArity) {
-//        USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
-//    }
-//    unsigned srt = sortOf(arg);
-//    cout<<"with argument sort: "<<srt<<endl;
-//    if (srt == Sorts::SRT_ARRAY1) {
-//        return env.signature->addInterpretedFunction(array_select,name);
-//    }
-//    if (srt == Sorts::SRT_ARRAY2) {
-//        return env.signature->addInterpretedFunction(array_select,name);
-//    }
-//The first argument of select is an INT
-//    if (srt == Sorts::SRT_INTEGER) {
-//        return env.signature->addInterpretedFunction(array_select,name);
-//    }
-//    USER_ERROR((vstring)"The array operation symbol " + name + " is used with a non-array type");
-//} // addOverloadedArrayFunction
 
 unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
 				     Theory::Interpretation integer,Theory::Interpretation rational,

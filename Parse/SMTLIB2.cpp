@@ -288,13 +288,13 @@ unsigned SMTLIB2::getSort(BuiltInSorts srt)
   switch(srt) {
   case BS_ARRAY1:
     if(!_array1Sort) {
-        _array1Sort = env.sorts->addArraySort(Sorts::SRT_INTEGER);
+        _array1Sort = env.sorts->addArraySort(Sorts::SRT_INTEGER,Sorts::SRT_INTEGER);
         ASS(_array1Sort);
     }
     return _array1Sort;
   case BS_ARRAY2:
     if(!_array2Sort) {
-      _array2Sort = env.sorts->addArraySort(getSort(BS_ARRAY1));
+      _array2Sort = env.sorts->addArraySort(Sorts::SRT_INTEGER,getSort(BS_ARRAY1));
       ASS(_array2Sort);
     }
     return _array2Sort;
