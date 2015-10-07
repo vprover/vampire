@@ -317,6 +317,7 @@ public:
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     GROUNDING,
+    MODEL_CHECK,
     //LTB_BUILD,
     //LTB_SOLVE,
     /** this mode only outputs the input problem, without any preprocessing */

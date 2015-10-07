@@ -33,6 +33,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/GeneralSplitting.hpp"
 
+#include "FiniteModel.hpp"
 #include "ClauseFlattening.hpp"
 #include "SortInference.hpp"
 #include "DefinitionIntroduction.hpp"
@@ -1042,53 +1043,15 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
   // Prevent timing out whilst the model is being printed
   Timer::setTimeLimitEnforcement(false);
 
-  vostringstream modelStm;
-  bool printIntroduced = false; 
+  bool recordIntroduced = false;
+  FiniteModel model(modelSize);
 
-  //Output domain
-  modelStm << "fof(domain,axiom," << endl;
-  modelStm << "      ! [X] : (" << endl;
-  modelStm << "         ";
-  for(unsigned i=1;i<=modelSize;i++){
-  modelStm << "X = fmb" << i;
-  if(i<modelSize) modelStm << " | ";
-  if(i==modelSize) modelStm << endl;
-  else if(i%5==0) modelStm << endl << "         ";
-  }
-  modelStm << "      ) )." <<endl;
-  //Distinctness of domain
-  modelStm << endl;
-  if(modelSize>1){
-  modelStm << "fof(distinct_domain,axiom," << endl;
-  modelStm << "         ";
-  unsigned c=0;
-  for(unsigned i=1;i<=modelSize;i++){
-    for(unsigned j=i+1;j<=modelSize;j++){
-      c++;
-      modelStm << "fmb"<<i<<" != fmb"<<j;
-      if(!(i==modelSize-1 && j==modelSize)){
-         modelStm << " & ";
-         if(c%5==0){ modelStm << endl << "         "; }
-      }
-      else{ modelStm << endl; }
-    }
-  }
-  modelStm << ")." << endl << endl;
-  }
-
-  //Output interpretation of constants
+  //Record interpretation of constants
   for(unsigned f=0;f<env.signature->functions();f++){
     if(env.signature->functionArity(f)>0) continue;
-    if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    if(del_f[f]){
-      Literal* def = _deletedFunctions.get(f);
-      Clause* defc = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::DEFINITION_UNFOLDING));
-      (*defc)[0]=def;
-      modelStm << TPTPPrinter::toString(defc) << endl;
-      continue;
-    }
-    vstring name = env.signature->functionName(f);
-    modelStm << "fof(constant_"<<name<<",axiom,"<<name<< " = ";
+    if(!recordIntroduced && env.signature->getFunction(f)->introduced()) continue;
+    if(del_f[f]) continue;
+
     bool found=false;
     for(unsigned c=1;c<=modelSize;c++){
       static DArray<unsigned> grounding(1);
@@ -1097,59 +1060,49 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
       if(_solver->trueInAssignment(slit)){
         //if(found){ cout << "Error: multiple interpretations of " << name << endl;}
         ASS(!found);
-        modelStm << "fmb" << c;
         found=true;
+        model.addConstantDefinition(f,c);
       }
     }
     ASS(found);
-    modelStm << ")."<<endl;
   }
-  modelStm << endl;
 
-  //Output interpretation of functions 
+  //Record interpretation of functions 
   for(unsigned f=0;f<env.signature->functions();f++){
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
-    if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    if(del_f[f]){
-      Literal* def = _deletedFunctions.get(f);
-      Clause* defc = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::DEFINITION_UNFOLDING));
-      (*defc)[0]=def;
-      modelStm << TPTPPrinter::toString(defc) << endl;
-      continue;
-    }
-    vstring name = env.signature->functionName(f);
-    modelStm << "fof(function_"<<name<<",functors,"<<endl;
+    if(!recordIntroduced && env.signature->getFunction(f)->introduced()) continue;
+    if(del_f[f]) continue;
 
     static DArray<unsigned> grounding;
+    static DArray<unsigned> args;
     grounding.ensure(arity+1);
-    for(unsigned i=0;i<arity;i++) grounding[i]=1;
+    args.ensure(arity);
+    for(unsigned i=0;i<arity;i++){
+       grounding[i]=1;
+       args[i]=1;
+    }
     grounding[arity-1]=0;
-    bool first=true;
-    //cout << "Searching... " << name << " of " << arity << endl;
 fModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
 
         if(grounding[i]==modelSize){
           grounding[i]=1;
+          args[i]=1;
         }
         else{
           grounding[i]++;
-          //cout << "Grounding: ";
-          //for(unsigned j=0;j<grounding.size();j++) cout << grounding[j] << " ";
-          //cout << endl;
+          args[i]++;
 
-          unsigned foundc;
           bool found=false;
           for(unsigned c=1;c<=modelSize;c++){
             grounding[arity]=c;
             SATLiteral slit = getSATLiteral(f,grounding,true,true,modelSize);
             if(_solver->trueInAssignment(slit)){
-              //cout << "found " << c << endl;
-              if(found){ cout << "Error: multiple interpretations of " << name << endl; }
+              //if(found){ cout << "Error: multiple interpretations of " << name << endl; }
               ASS(!found);
-              foundc=c;
               found=true;
+              model.addFunctionDefinition(f,args,c);
             }
           }
           if(!found){
@@ -1157,76 +1110,38 @@ fModelLabel:
              // This is a result of the finite sort bounding and the argument
              // says that we can equate this domain element to a smaller one below the bound
              //TODO fix this 
-             goto fModelLabel; 
           }
-
-          if(!first){
-            modelStm << " & " << endl;
-          }
-          first=false;
-          modelStm << "         " << name << "(";
-          for(unsigned j=0;j<arity;j++){
-            if(j!=0) modelStm << ",";
-            modelStm << "fmb" << grounding[j];
-          }
-          modelStm << ") = fmb" <<foundc;
 
           goto fModelLabel;
         }
       }
-    modelStm << endl << ")." << endl << endl;
   }
 
-  //Output interpretation of prop symbols 
+  //Record interpretation of prop symbols 
   static const DArray<unsigned> emptyG(0);
   for(unsigned f=1;f<env.signature->predicates();f++){
     if(env.signature->predicateArity(f)>0) continue;
-    if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
+    if(!recordIntroduced && env.signature->getPredicate(f)->introduced()) continue;
+    if(del_p[f]) continue;
+    if(_purePredicateDefinitions.find(f)) continue;
 
-    //TODO should evaluate definitions in model to print out p
-    if(del_p[f]){
-      Unit* def = _deletedPredicates.get(f);
-      modelStm << TPTPPrinter::toString(def) << endl; 
-      continue;
-    }
-    if(_purePredicateDefinitions.find(f)){
-      Unit* def  = _purePredicateDefinitions.get(f);
-      modelStm << TPTPPrinter::toString(def) << endl;
-      continue;
-    }
-    vstring name = env.signature->predicateName(f);
-    modelStm << "fof(predicate_"<<name<<",axiom,";
     SATLiteral slit = getSATLiteral(f,emptyG,true,false,modelSize);
-    if(!_solver->trueInAssignment(slit)){ modelStm << "~"; }
-    modelStm << name << ")."<<endl;
+    bool res = _solver->trueInAssignment(slit);
+    model.addPropositionalDefinition(f,res);
   }
-  modelStm << endl;
 
-//Output interpretation of predicates 
+  //Record interpretation of predicates 
   for(unsigned f=1;f<env.signature->predicates();f++){
     unsigned arity = env.signature->predicateArity(f);
     if(arity==0) continue;
-    if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-
-    //TODO should evaluate definitions in model to print out p
-    if(del_p[f]){
-      Unit* def = _deletedPredicates.get(f);
-      modelStm << TPTPPrinter::toString(def) << endl; 
-      continue;
-    }
-    if(_purePredicateDefinitions.find(f)){
-      Unit* def  = _purePredicateDefinitions.get(f);
-      modelStm << TPTPPrinter::toString(def) << endl;
-      continue;
-    }
-    vstring name = env.signature->predicateName(f);
-    modelStm << "fof(predicate_"<<name<<",predicates,"<<endl;
+    if(!recordIntroduced && env.signature->getPredicate(f)->introduced()) continue;
+    if(del_p[f]) continue;
+    if(_purePredicateDefinitions.find(f)) continue;
 
     static DArray<unsigned> grounding;
     grounding.ensure(arity);
     for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
     grounding[arity-1]=0;
-    bool first=true;
 pModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
     
@@ -1235,31 +1150,18 @@ pModelLabel:
         }
         else{
           grounding[i]++;
-          if(!first){
-            modelStm << " & " << endl;
-          }
-          first=false;
-          modelStm << "         ";
           SATLiteral slit = getSATLiteral(f,grounding,true,false,modelSize);
-          if(!_solver->trueInAssignment(slit)){
-            modelStm << "~";
-          }
+          bool res = _solver->trueInAssignment(slit);
 
-          modelStm << name << "(";
-          for(unsigned j=0;j<arity;j++){
-            if(j!=0) modelStm << ",";
-            modelStm << "fmb" << grounding[j];
-          }
-          modelStm << ") ";
+          model.addPredicateDefinition(f,grounding,res);
 
           goto pModelLabel;
         }
       }
-    modelStm << endl << ")." << endl << endl;
   }
 
 
-  env.statistics->model = modelStm.str();
+  env.statistics->model = model.toString();
 }
 
 }

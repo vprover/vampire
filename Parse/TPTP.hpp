@@ -508,6 +508,8 @@ private:
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
+  /** model definition formula */
+  bool _modelDefinition;
 
   /**
    * Get the next characters at the position pos.

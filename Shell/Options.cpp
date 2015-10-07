@@ -88,6 +88,7 @@ void Options::Options::init()
                                     {"axiom_selection","bpa","casc",
                                         "casc_ltb","casc_sat","clausify",
                                         "consequence_elimination","grounding",
+                                        "model_check",
                                         //"ltb_build","ltb_solve",
                                         "output","preprocess",
                                         "profile","program_analysis","random_strategy",

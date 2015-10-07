@@ -33,8 +33,6 @@ public:
   
   FiniteModelBuilderNonIncremental(Problem& prb, const Options& opt);
 
-  static Term* getConstant(unsigned i);
-
 protected:
   virtual void init();
   virtual MainLoopResult runImpl();
