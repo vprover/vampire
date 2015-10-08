@@ -26,6 +26,8 @@
 
 #include "FiniteModel.hpp"
 
+#define DEBUG_MODEL 0
+
 namespace FMB{
 
 using namespace Lib;
@@ -118,7 +120,7 @@ void FiniteModel::addPredicateDefinition(unsigned p, const DArray<unsigned>& arg
   }
 
   ASS_L(var, p_interpretation.size());
-  p_interpretation[var] = res;
+  p_interpretation[var] = (res ? 2 : 1);
 
   unsigned previous = 0;
   _predicateCoverage.find(p,previous);
@@ -251,12 +253,15 @@ fModelLabel:
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
     vstring name = env.signature->predicateName(f);
-    bool res = p_interpretation[p_offsets[f]];
-    if(res){
+    unsigned res = p_interpretation[p_offsets[f]];
+    if(res==2){
       modelStm << "fof("<<name<<"_definition,axiom,"<<name<< ")."<<endl;
     }
-    else{
+    else if(res==1){
       modelStm << "fof("<<name<<"_definition,axiom,~"<<name<< res << ")."<<endl;
+    }
+    else{
+      modelStm << "% " << name << " undefined" << endl;
     }
   }
 
@@ -292,19 +297,26 @@ pModelLabel:
             var += mult*(args[i]-1);
             mult *= _size;
           }
-          bool res = p_interpretation[var];
-
-          if(!first){ modelStm << "         & " ; }
-          else{ modelStm << "           " ; }
-          if(!res) modelStm << "~";
-          first=false;
+          unsigned res = p_interpretation[var];
+          if(res>0){
+            if(!first){ modelStm << "         & " ; }
+            else{ modelStm << "           " ; }
+            first=false;
+          }
+          else{
+            modelStm << "%         ";
+          }
+          if(res==1) modelStm << "~";
           modelStm << name << "(";
           for(unsigned j=0;j<arity;j++){
             if(j!=0) modelStm << ",";
             modelStm << "fmb" << args[j];
           }
-          modelStm << ")" << endl;
-
+          modelStm << ")";
+          if(res==0){
+            modelStm << " undefined in model";
+          }
+          modelStm << endl;
           goto pModelLabel;
         }
       }
@@ -321,6 +333,10 @@ unsigned FiniteModel::evaluateGroundTerm(Term* term)
   CALL("FiniteModel::evaluate(Term*)");
   ASS(term->ground());
 
+#if DEBUG_MODEL
+  cout << "evaluating ground term " << term->toString() << endl;
+  cout << "domain constant status " << isDomainConstant(term) << endl;
+#endif  
   if(isDomainConstant(term)) return getDomainConstant(term);
 
   unsigned arity = env.signature->functionArity(term->functor());
@@ -346,6 +362,10 @@ bool FiniteModel::evaluateGroundLiteral(Literal* lit)
   CALL("FiniteModel::evaluate(Literal*)");
   ASS(lit->ground());
 
+#if DEBUG_MODEL
+  cout << "Evaluating ground literal " << lit->toString() << endl;
+#endif
+
   // evaluate all arguments
   unsigned arity = env.signature->predicateArity(lit->functor());
   DArray<unsigned> args(arity);
@@ -358,6 +378,10 @@ bool FiniteModel::evaluateGroundLiteral(Literal* lit)
 
   if(lit->isEquality()){
     bool res = args[0]==args[1];
+#if DEBUG_MODEL
+    cout << "Evaluate equality, args " << args[0] << " and " << args[1] << endl;
+    cout << "res is " << (lit->polarity() ? res : !res) << endl;
+#endif
     if(lit->polarity()) return res;
     else return !res;
   }
@@ -369,7 +393,16 @@ bool FiniteModel::evaluateGroundLiteral(Literal* lit)
     mult *=_size;
   }  
 
-  return p_interpretation[var];
+  unsigned res = p_interpretation[var];
+#if DEBUG_MODEL
+    cout << "res is " << res << " and polarity is " << lit->polarity() << endl; 
+#endif
+
+  if(res==0) 
+    USER_ERROR("Could not evaluate "+lit->toString()+", probably a partial model");
+
+  if(lit->polarity()) return (res==2);
+  else return (res==1); 
 }
 
 bool FiniteModel::evaluate(Unit* unit)
@@ -394,13 +427,15 @@ bool FiniteModel::evaluate(Unit* unit)
  *
  * TODO: This is recursive, which could be problematic in the long run
  * 
- * Importantly, subst is passed by value (i.e. copied) and not reference
  */
-bool FiniteModel::evaluate(Formula* formula)
+bool FiniteModel::evaluate(Formula* formula,unsigned depth)
 {
   CALL("FiniteModel::evaluate(Formula*)");
 
-  cout << "Evaluating..." << formula->toString() << " with " << subst.toString() << endl;
+#if DEBUG_MODEL
+  for(unsigned i=0;i<depth;i++){ cout << "."; }
+  cout << "Evaluating..." << formula->toString() << endl; 
+#endif
 
   bool isAnd = false;
   bool isImp = false;
@@ -422,7 +457,7 @@ bool FiniteModel::evaluate(Formula* formula)
     case TRUE:
       return true;
     case NOT:
-      return !evaluate(formula->uarg(),subst);
+      return !evaluate(formula->uarg(),depth+1);
     case AND:
       isAnd=true;
     case OR:
@@ -431,7 +466,7 @@ bool FiniteModel::evaluate(Formula* formula)
         FormulaList::Iterator fit(args);
         while(fit.hasNext()){
           Formula* arg = fit.next();
-          bool res = evaluate(arg,subst);
+          bool res = evaluate(arg,depth+1);
           if(isAnd && !res) return false;
           if(!isAnd && res) return true;
         }
@@ -446,10 +481,14 @@ bool FiniteModel::evaluate(Formula* formula)
     {
       Formula* left = formula->left();
       Formula* right = formula->right();
-      bool left_res = evaluate(left,subst);
+      bool left_res = evaluate(left,depth+1);
       if(isImp && !left_res) return true;
-      bool right_res = evaluate(right,subst);
+      bool right_res = evaluate(right,depth+1);
       
+#if DEBUG_MODEL
+      cout << "left_res is " << left_res << ", right_res is " << right_res << endl;
+#endif
+
       if(isImp) return !left_res || right_res;
       if(isXor) return left_res != right_res;
       return left_res == right_res; // IFF
@@ -460,17 +499,23 @@ bool FiniteModel::evaluate(Formula* formula)
      isForall = true;
     case EXISTS:
     {
-     VarList* vs = formula->vars();
+     Formula::VarList* vs = formula->vars();
      int var = vs->head();
 
-     Formula* next = new QuantifiedFormula(Connective::FORALL,vs->tail(),formula->qarg());
+     Formula* next = 0;
+     if(vs->tail()) next = new QuantifiedFormula(Connective::FORALL,vs->tail(),formula->qarg());
+     else next = formula->qarg();
 
-     for(unsigned c=0;c<_size;c++){
-       Substitition s;
+     for(unsigned c=1;c<=_size;c++){
+       Substitution s;
        s.bind(var,getDomainConstant(c));
        Formula* next_sub = SubstHelper::apply(next,s);
-       next_sub = SimplifyFalseTrue::simplify(fu);
-       next_sub = Flattening::flatten(fu); 
+       next_sub = SimplifyFalseTrue::simplify(next_sub);
+       next_sub = Flattening::flatten(next_sub); 
+       
+       bool res = evaluate(next_sub,depth+1);
+       if(isForall && !res) return false;
+       if(!isForall && res) return true;
      }
 
      return isForall;

@@ -53,7 +53,7 @@ private:
 
  unsigned evaluateGroundTerm(Term* term);
  bool evaluateGroundLiteral(Literal* literal);
- bool evaluate(Formula* formula,Substitution subst);
+ bool evaluate(Formula* formula,unsigned depth=0);
 
  // The model is partial if there is a operation with arity n that does not have
  // coverage size^n in its related coverage map
@@ -64,15 +64,16 @@ private:
  DArray<unsigned> f_offsets;
  DArray<unsigned> p_offsets;
  DArray<unsigned> f_interpretation;
- DArray<bool> p_interpretation;
+ DArray<unsigned> p_interpretation; // 0 is undef, 1 false, 2 true
 
  DHMap<unsigned,Term*> _domainConstants;
  DHMap<Term*,unsigned> _domainConstantsRev;
+public:
  Term* getDomainConstant(unsigned c)
  {
    Term* t;
    if(_domainConstants.find(c,t)) return t;
-   vstring name = "domainConstant"+Lib::Int::toString(c);
+   vstring name = "domainConstant";//+Lib::Int::toString(c);
    unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
    t = Term::createConstant(f);
    _domainConstants.insert(c,t);

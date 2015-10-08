@@ -14,6 +14,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Substitution.hpp"
+#include "Kernel/FormulaUnit.hpp"
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/TWLSolver.hpp"
@@ -1075,7 +1076,7 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
     if(del_f[f]) continue;
 
     static DArray<unsigned> grounding;
-    static DArray<unsigned> args;
+    DArray<unsigned> args;
     grounding.ensure(arity+1);
     args.ensure(arity);
     for(unsigned i=0;i<arity;i++){
@@ -1138,7 +1139,7 @@ fModelLabel:
     if(del_p[f]) continue;
     if(_purePredicateDefinitions.find(f)) continue;
 
-    static DArray<unsigned> grounding;
+    DArray<unsigned> grounding;
     grounding.ensure(arity);
     for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
     grounding[arity-1]=0;
@@ -1160,6 +1161,99 @@ pModelLabel:
       }
   }
 
+  //Evaluate removed propositions and predicates
+  for(unsigned f=env.signature->predicates()-1;f>1;f--){
+    unsigned arity = env.signature->predicateArity(f);
+    if(!recordIntroduced && env.signature->getPredicate(f)->introduced()) continue;
+    if(!del_p[f] && !_purePredicateDefinitions.find(f)) continue;
+
+    Unit* udef = del_p[f] ? _deletedPredicates.get(f) : _purePredicateDefinitions.get(f);
+
+    //cout << "For " << env.signature->getPredicate(f)->name() << endl;
+    //cout << udef->toString() << endl;
+    Formula* def = udef->getFormula();   
+    Literal* predApp = 0;
+    Formula* predDef = 0;
+    bool polarity = true;
+
+    switch(def->connective()){
+      case FORALL:
+      {
+        Formula* inner = def->qarg();
+        ASS(inner->connective()==Connective::IFF);
+        Formula* left = inner->left();
+        Formula* right = inner->right(); 
+
+        if(left->connective()==Connective::NOT){
+          polarity=!polarity;
+          left = left->uarg();
+        }
+        if(right->connective()==Connective::NOT){
+          polarity=!polarity;
+          right = right->uarg();
+        }
+
+        if(left->connective()==Connective::LITERAL){
+          if(left->literal()->functor()==f){
+            predDef = right;
+            predApp = left->literal();
+          }
+        }
+        if(!predDef){
+          ASS(right->connective()==Connective::LITERAL);
+          ASS(right->literal()->functor()==f);
+          predDef = left;
+          predApp = right->literal();
+        }
+        break;
+      }
+      default: ASSERTION_VIOLATION;
+    }
+
+    ASS(predDef && predApp);
+    if(!predDef || !predApp) continue; // we failed, ignore this
+
+    if(!predApp->polarity()) polarity=!polarity;
+    DArray<int> vars(arity);
+    for(unsigned i=0;i<arity;i++){
+      ASS(predApp->nthArgument(i)->isVar());
+      vars[i] = predApp->nthArgument(i)->var();
+    }
+
+    DArray<unsigned> grounding;
+    grounding.ensure(arity);
+    for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
+    grounding[arity-1]=0;
+ppModelLabel:
+      for(unsigned i=arity-1;i+1!=0;i--){
+
+        if(grounding[i]==modelSize){
+          grounding[i]=1;
+        }
+        else{
+          grounding[i]++;
+
+          Substitution subst;
+          for(unsigned j=0;j<arity;j++){ 
+            //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j])->toString() << endl;
+            subst.bind(vars[j],model.getDomainConstant(grounding[j]));
+          }
+          Formula* predDefGround = SubstHelper::apply(predDef,subst);
+          //cout << predDefGround << endl;
+          try{
+            bool res = model.evaluate(
+              new FormulaUnit(predDefGround,new Inference(Inference::INPUT),Unit::InputType::AXIOM));
+            if(!polarity) res=!res;
+            model.addPredicateDefinition(f,grounding,res);
+          }
+          catch(UserErrorException& exception){ 
+            // TODO order symbols for partial evaluation
+          }
+
+          goto ppModelLabel;
+        }
+      }
+  }
 
   env.statistics->model = model.toString();
 }
