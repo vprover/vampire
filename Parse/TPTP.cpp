@@ -3179,6 +3179,9 @@ unsigned TPTP::readSort()
     resetToks();
     consumeToken(T_LPAR);
     unsigned indexSort = readSort();
+    if (indexSort == Sorts::SRT_BOOL) {
+      indexSort = Sorts::SRT_FOOL_BOOL;
+    }
     consumeToken(T_COMMA);
     unsigned innerSort = readSort();
     if (innerSort == Sorts::SRT_BOOL) {
