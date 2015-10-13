@@ -255,6 +255,12 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
         RationalConstantType value = symb->rationalValue();
         return _context.real_val(value.numerator().toInt(),value.denominator().toInt());
       }
+      if(trm->functor() == Signature::FOOL_TRUE){
+        return _context.bool_val(true);
+      }
+      if(trm->functor() == Signature::FOOL_FALSE){
+        return _context.bool_val(false);
+      }
 
       // If not value then create constant symbol
       return _context.constant(symb->name().c_str(),getz3sort(range_sort));

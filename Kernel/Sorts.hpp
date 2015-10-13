@@ -101,7 +101,7 @@ public:
       _indexSort(indexSort), _innerSort(innerSort)
     { 
 #if VDEBUG
-      cout << "Creating ArraySort " << name << " with id " << id << endl; 
+      //cout << "Creating ArraySort " << name << " with id " << id << endl; 
 #endif
     }
 
