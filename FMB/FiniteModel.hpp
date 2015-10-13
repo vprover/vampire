@@ -45,14 +45,14 @@ public:
  bool isPartial();
 
  bool evaluate(Unit* unit);
+ unsigned evaluateGroundTerm(Term* term);
+ bool evaluateGroundLiteral(Literal* literal);
 
  vstring toString();
 
 private:
 
-
- unsigned evaluateGroundTerm(Term* term);
- bool evaluateGroundLiteral(Literal* literal);
+ // currently private as requires formula to be rectified
  bool evaluate(Formula* formula,unsigned depth=0);
 
  // The model is partial if there is a operation with arity n that does not have

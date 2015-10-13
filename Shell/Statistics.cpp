@@ -206,6 +206,8 @@ void Statistics::print(ostream& out)
   }
   out << endl;
 
+  if (env.options->statistics()==Options::Statistics::BRIEF) {
+
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
   COND_OUT("Extensionality clauses", extensionalityClauses);
@@ -306,6 +308,8 @@ void Statistics::print(ostream& out)
   COND_OUT("TWLsolver variables", satTWLVariablesCount);
   COND_OUT("TWLsolver calls for satisfiability", satTWLSATCalls);
   SEPARATOR;
+
+  }
 
   COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
 

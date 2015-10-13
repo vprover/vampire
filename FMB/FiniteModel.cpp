@@ -258,7 +258,7 @@ fModelLabel:
       modelStm << "fof("<<name<<"_definition,axiom,"<<name<< ")."<<endl;
     }
     else if(res==1){
-      modelStm << "fof("<<name<<"_definition,axiom,~"<<name<< res << ")."<<endl;
+      modelStm << "fof("<<name<<"_definition,axiom,~"<<name<< ")."<<endl;
     }
     else{
       modelStm << "% " << name << " undefined" << endl;

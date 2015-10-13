@@ -286,6 +286,7 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
       continue;
     }
     Unit* v=replacePurePredicates(u);
+    _processedPrb->addPurePredicateDefinition(pred,v);
 
     ASS_NEQ(u,v);
     if (env.options->showPreprocessing()) {

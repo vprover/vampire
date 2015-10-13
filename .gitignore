@@ -1,9 +1,11 @@
 obj/
 doc/
 
+MyProblems/
 Problems/
 Axioms/
 tptp/
+Scratch/
 
 Makefile_depend*
 

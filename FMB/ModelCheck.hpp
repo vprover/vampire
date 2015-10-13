@@ -108,7 +108,14 @@ static void doCheck(Problem*& prb)
       if(u->isClause()) USER_ERROR("Expecting model to use formulas i.e. fof");
       Formula* formula = u->getFormula();
 
-      if(formula->connective()==Connective::LITERAL){
+      if(formula->connective()==Connective::NOT){
+        Formula* inner = formula->uarg();
+        if(inner->connective()==Connective::LITERAL){
+          addDefinition(model,inner->literal(),true,domainConstants,domainConstantNumber);
+        }
+        else USER_ERROR("Unexpected negation in "+formula->toString());
+      }
+      else if(formula->connective()==Connective::LITERAL){
         addDefinition(model,formula->literal(),false,domainConstants,domainConstantNumber);
       }
       else{

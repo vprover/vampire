@@ -281,8 +281,8 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
       bounds[s]=UINT_MAX;
     }
     //if(s==3){
-    //  cout << "Forcing all bounds to max for " << s << endl;
-    //  bounds[s] = UINT_MAX;
+      //cout << "Forcing all bounds to max for " << s << endl;
+      //bounds[s] = UINT_MAX;
     //}
   }
 
