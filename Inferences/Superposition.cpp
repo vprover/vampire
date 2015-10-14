@@ -466,6 +466,24 @@ Clause* Superposition::performSuperposition(
   Unit::InputType inpType = (Unit::InputType)
   	Int::max(rwClause->inputType(), eqClause->inputType());
 
+  // If proof extra is on let's compute the positions we have performed
+  // superposition on 
+/*
+  if(env.options->proofExtra()){
+
+    cout << "rwClause " << rwClause->toString() << endl;
+    cout << "eqClause " << eqClause->toString() << endl;
+    cout << "rwLit " << rwLit->toString() << endl;
+    cout << "eqLit " << eqLit->toString() << endl;
+    cout << "rwTerm " << rwTerm.toString() << endl;
+    cout << "eqLHS " << eqLHS.toString() << endl;
+     
+
+    ASSERTION_VIOLATION;
+  }
+*/
+
+
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
 
   (*res)[0] = tgtLitS;
