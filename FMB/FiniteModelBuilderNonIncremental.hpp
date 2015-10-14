@@ -67,7 +67,8 @@ private:
 
   DHMap<unsigned,Literal*> _deletedFunctions;
   DHMap<unsigned,Unit*> _deletedPredicates;
-  DHMap<unsigned,Unit*> _purePredicateDefinitions;
+  DHMap<unsigned,Unit*> _partiallyDeletedPredicates; 
+  DHMap<unsigned,bool> _trivialPredicates;
   DArray<unsigned> del_f;
   DArray<unsigned> del_p;
 

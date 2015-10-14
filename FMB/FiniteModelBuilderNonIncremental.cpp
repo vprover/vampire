@@ -62,7 +62,8 @@ FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb,
 
   _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
   _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
-  _purePredicateDefinitions.loadFromMap(prb.getPurePredicateDefinitions());
+  _partiallyDeletedPredicates.loadFromMap(prb.getPartiallyEliminatedPredicates());
+  _trivialPredicates.loadFromMap(prb.trivialPredicates());
 
   _maxArity = 0;
   for(unsigned f=0;f<env.signature->functions();f++){
@@ -1129,10 +1130,13 @@ fModelLabel:
     if(env.signature->predicateArity(f)>0) continue;
     if(!recordIntroduced && env.signature->getPredicate(f)->introduced()) continue;
     if(del_p[f]) continue;
-    if(_purePredicateDefinitions.find(f)) continue;
+    if(_partiallyDeletedPredicates.find(f)) continue;
 
-    SATLiteral slit = getSATLiteral(f,emptyG,true,false,modelSize);
-    bool res = _solver->trueInAssignment(slit);
+    bool res;
+    if(!_trivialPredicates.find(f,res)){ 
+      SATLiteral slit = getSATLiteral(f,emptyG,true,false,modelSize);
+      res=_solver->trueInAssignment(slit); 
+    }
     model.addPropositionalDefinition(f,res);
   }
 
@@ -1142,7 +1146,7 @@ fModelLabel:
     if(arity==0) continue;
     if(!recordIntroduced && env.signature->getPredicate(f)->introduced()) continue;
     if(del_p[f]) continue;
-    if(_purePredicateDefinitions.find(f)) continue;
+    if(_partiallyDeletedPredicates.find(f)) continue;
 
     //cout << "Record for " << env.signature->getPredicate(f)->name() << endl;
 
@@ -1158,8 +1162,11 @@ pModelLabel:
        }
         else{
           grounding[i]++;
-          SATLiteral slit = getSATLiteral(f,grounding,true,false,modelSize);
-          bool res = _solver->trueInAssignment(slit);
+          bool res;
+          if(!_trivialPredicates.find(f,res)){ 
+            SATLiteral slit = getSATLiteral(f,grounding,true,false,modelSize);
+            res=_solver->trueInAssignment(slit); 
+          }
           //for(unsigned j=0;j<arity;j++){ cout << grounding[j] << ", ";}; cout << " = " << res << endl;
 
           model.addPredicateDefinition(f,grounding,res);
@@ -1240,11 +1247,11 @@ ffModelLabel:
   for(unsigned f=env.signature->predicates()-1;f>1;f--){
     unsigned arity = env.signature->predicateArity(f);
     if(!recordIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    if(!del_p[f] && !_purePredicateDefinitions.find(f)) continue;
+    if(!del_p[f] && !_partiallyDeletedPredicates.find(f)) continue;
 
-    Unit* udef = del_p[f] ? _deletedPredicates.get(f) : _purePredicateDefinitions.get(f);
+    Unit* udef = del_p[f] ? _deletedPredicates.get(f) : _partiallyDeletedPredicates.get(f);
 
-    //if(_purePredicateDefinitions.find(f)){
+    //if(_partiallyDeletedPredicates.find(f)){
       //cout << "For " << env.signature->getPredicate(f)->name() << endl;
       //cout << udef->toString() << endl;
     //}

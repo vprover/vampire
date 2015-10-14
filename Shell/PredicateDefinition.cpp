@@ -141,7 +141,7 @@ struct PredicateDefinition::PredData
   USE_ALLOCATOR_ARRAY;
 };
 
-PredicateDefinition::PredicateDefinition(bool trace)
+PredicateDefinition::PredicateDefinition()
 : _processedPrb(0), _predCnt(env.signature->predicates())
 {
   int predCnt=env.signature->predicates();
@@ -249,7 +249,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
       
       return;
     }
-    _processedPrb->addPurePredicateDefinition(pred,def);
+    _processedPrb->addPartiallyEliminatedPredicate(pred,def);
 
     if (env.options->showPreprocessing()) {
       env.beginOutput();
@@ -286,7 +286,6 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
       continue;
     }
     Unit* v=replacePurePredicates(u);
-    _processedPrb->addPurePredicateDefinition(pred,v);
 
     ASS_NEQ(u,v);
     if (env.options->showPreprocessing()) {

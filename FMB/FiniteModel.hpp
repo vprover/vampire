@@ -52,6 +52,7 @@ public:
 
 private:
 
+ Formula* partialEvaluate(Formula* formula);
  // currently private as requires formula to be rectified
  bool evaluate(Formula* formula,unsigned depth=0);
 

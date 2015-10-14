@@ -244,15 +244,15 @@ void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
 }
 
 /**
- * Register a predicate that has been replaced as it is pure
+ * Register a predicate that has been partially eliminated i.e. <=> replaced by => 
  *
  * This information may be used during model output
  */
-void Problem::addPurePredicateDefinition(unsigned pred, Unit* definition)
+void Problem::addPartiallyEliminatedPredicate(unsigned pred, Unit* definition)
 {
   CALL("Problem::addPurePredicateDefinition");
 
-  _purePredicateDefinitions.insert(pred,definition);
+  _partiallyDeletedPredicates.insert(pred,definition);
 }
 
 /**

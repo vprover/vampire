@@ -34,7 +34,7 @@ class PredicateDefinition
 public:
   typedef DHMap<Unit*, Unit*> ReplMap;
 
-  PredicateDefinition(bool trace=false);
+  PredicateDefinition();
   ~PredicateDefinition();
 
   void collectReplacements(UnitList* units, ReplMap& unitReplacements);

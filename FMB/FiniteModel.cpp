@@ -352,6 +352,9 @@ unsigned FiniteModel::evaluateGroundTerm(Term* term)
     var += mult*(args[i]-1);
     mult *=_size;
   }
+#if VDEBUG
+  if((term->functor()+1)<f_offsets.size()) ASS_L(var,f_offsets[term->functor()+1]);
+#endif
   ASS_L(var,f_interpretation.size());
 
   return f_interpretation[var];
@@ -393,6 +396,11 @@ bool FiniteModel::evaluateGroundLiteral(Literal* lit)
     mult *=_size;
   }  
 
+#if VDEBUG
+  if((lit->functor()+1)<p_offsets.size()) ASS_L(var,p_offsets[lit->functor()+1]);
+#endif
+  ASS_L(var,p_interpretation.size());
+
   unsigned res = p_interpretation[var];
 #if DEBUG_MODEL
     cout << "res is " << res << " and polarity is " << lit->polarity() << endl; 
@@ -409,18 +417,22 @@ bool FiniteModel::evaluate(Unit* unit)
 {
   CALL("FiniteModel::evaluate(Unit*)");
 
+  Formula* formula = 0;
   if(unit->isClause()){
     Clause* clause = unit->asClause();
-    return evaluate(Formula::fromClause(clause));
+    formula = Formula::fromClause(clause);
   }
   else{
     FormulaUnit* fu = static_cast<FormulaUnit*>(unit);
     fu = Rectify::rectify(fu);
     fu = SimplifyFalseTrue::simplify(fu);
     fu = Flattening::flatten(fu);
-    return evaluate(fu->getFormula());
+    formula = fu->getFormula();
   }
 
+  //formula = partialEvaluate(formula);
+  //formula = SimplifyFalseTrue::simplify(formula);
+  return evaluate(formula);
 }
 
 /**
@@ -446,8 +458,9 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
     case LITERAL:
     {
       Literal* lit = formula->literal();
-      if(!lit->ground()) 
+      if(!lit->ground()){ 
         USER_ERROR("Was not expecting free variables in "+formula->toString());
+      }
       return evaluateGroundLiteral(lit);
     }
 
@@ -502,8 +515,10 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
      Formula::VarList* vs = formula->vars();
      int var = vs->head();
 
+     //cout << "Quant " << isForall << " with " << var << endl;
+
      Formula* next = 0;
-     if(vs->tail()) next = new QuantifiedFormula(Connective::FORALL,vs->tail(),formula->qarg());
+     if(vs->tail()) next = new QuantifiedFormula(formula->connective(),vs->tail(),formula->qarg());
      else next = formula->qarg();
 
      for(unsigned c=1;c<=_size;c++){
@@ -514,6 +529,9 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
        next_sub = Flattening::flatten(next_sub); 
        
        bool res = evaluate(next_sub,depth+1);
+
+       if(next_sub!=next) delete next_sub;
+
        if(isForall && !res) return false;
        if(!isForall && res) return true;
      }
@@ -528,6 +546,82 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
   NOT_IMPLEMENTED;
   return false;
 }
+
+    /**
+     *
+     * TODO: This is recursive, which could be problematic in the long run
+     *
+     */
+    Formula* FiniteModel::partialEvaluate(Formula* formula)
+    {
+        CALL("FiniteModel::evaluate(Formula*)");
+        
+#if DEBUG_MODEL
+        for(unsigned i=0;i<depth;i++){ cout << "."; }
+        cout << "Evaluating..." << formula->toString() << endl;
+#endif
+        
+        switch(formula->connective()){
+                case LITERAL:
+            {
+                Literal* lit = formula->literal();
+                if(!lit->ground()){
+                    return formula;
+                }
+                bool evaluated = evaluateGroundLiteral(lit);
+                return new Formula(evaluated);
+            }
+                
+                case FALSE:
+                case TRUE:
+                    return formula;
+                case NOT:
+                {
+                  Formula* inner = partialEvaluate(formula->uarg());
+                  return new NegatedFormula(inner);
+                }
+                case AND:
+                case OR:
+            {
+                FormulaList* args = formula->args();
+                FormulaList* newArgs = 0;
+                FormulaList::Iterator fit(args);
+                while(fit.hasNext()){
+                    Formula* arg = fit.next();
+                    Formula* newArg = partialEvaluate(arg);
+                    FormulaList::push(arg,newArgs);
+                }
+                return new JunctionFormula(formula->connective(),newArgs); 
+            }
+                
+                case IMP:
+                case XOR:
+                case IFF:
+            {
+                Formula* left = formula->left();
+                Formula* right = formula->right();
+                Formula* newLeft = partialEvaluate(left);
+                Formula* newRight = partialEvaluate(right);
+                
+                return new BinaryFormula(formula->connective(),newLeft,newRight); 
+            }
+                
+                case FORALL:
+                case EXISTS:
+            {
+                Formula::VarList* vs = formula->vars();
+                Formula* inner  = formula->qarg();
+                Formula* newInner = partialEvaluate(inner);
+                return new QuantifiedFormula(formula->connective(),vs,newInner);
+            }
+            default:
+                USER_ERROR("Cannot evaluate " + formula->toString() + ", not supported");
+        }
+        
+        
+        NOT_IMPLEMENTED;
+        return false;
+    }
 
 
 }
