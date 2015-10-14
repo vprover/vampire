@@ -202,6 +202,13 @@ void Options::Options::init()
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
 
+    _proofExtra = BoolOptionValue("proof_extra","",false);
+    _proofExtra.description="Add as much detail to proofs as possible."
+      "This option is allowed to perform expensive operations to acheive this so may"
+      " significantly impact on performance. The option is experimental and the format "
+      "of extra information may change between minor releases";
+    _lookup.insert(&_proofExtra);
+
     _proofChecking = BoolOptionValue("proof_checking","",false);
     _proofChecking.description="";
     _lookup.insert(&_proofChecking);

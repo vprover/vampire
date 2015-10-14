@@ -321,9 +321,16 @@ public:
   /** Return the inference rule */
   Rule rule() const { return _rule; }
 
+  /** Set extra string */
+  void setExtra(vstring e){ _extra=e; }
+  /** Return the extra string */
+  vstring extra() { return _extra; }
+
 protected:
   /** The rule used */
   Rule _rule;
+  /** Extra information */
+  vstring _extra;
 }; // class Inference
 
 /**

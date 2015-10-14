@@ -2830,6 +2830,7 @@ void TPTP::endFof()
       unit = new FormulaUnit(f,
 			     new Inference1(Inference::NEGATED_CONJECTURE,unit),
 			     Unit::CONJECTURE);
+      unit->inference()->setExtra("BLAH");
     }
     break;
 

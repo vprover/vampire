@@ -343,8 +343,12 @@ protected:
       first=false;
     }
 
+    // print Extra
+    vstring extra = cs->inference()->extra(); 
+    if(extra != ""){
+      out << ", " << extra;
+    }
     out << "]" << endl;
-
   }
 
   void handleStep(Unit* cs)

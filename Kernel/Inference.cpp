@@ -12,7 +12,7 @@
 using namespace Kernel;
 
 Inference::Inference(Rule r)
-  : _rule(r)
+  : _rule(r), _extra("")
 {
 //  switch(r) {
 //  //TODO: move env.statistics object updates here.

@@ -1621,6 +1621,7 @@ public:
   Statistics statistics() const { return _statistics.actualValue; }
   void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
   Proof proof() const { return _proof.actualValue; }
+  bool proofExtra() const { return _proofExtra.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
   bool fmbIncremental() const { return _fmbIncremental.actualValue; }
@@ -2072,6 +2073,7 @@ private:
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
+  BoolOptionValue _proofExtra;
   BoolOptionValue _proofChecking;
   
   StringOptionValue _protectedPrefix;
