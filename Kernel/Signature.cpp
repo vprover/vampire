@@ -174,7 +174,7 @@ FunctionType* Signature::Symbol::fnType() const
   CALL("Signature::Symbol::fnType");
 
   if (!_type) {
-    _type = new FunctionType(arity());
+    _type = new FunctionType(arity(), (unsigned*)0, Sorts::SRT_DEFAULT);
   }
   return static_cast<FunctionType*>(_type);
 }
@@ -190,7 +190,7 @@ PredicateType* Signature::Symbol::predType() const
   CALL("Signature::Symbol::predType");
 
   if (!_type) {
-    _type = new PredicateType(arity());
+    _type = new PredicateType(arity(), (unsigned*)0);
   }
   return static_cast<PredicateType*>(_type);
 }
@@ -233,11 +233,11 @@ Signature::Signature ()
 
   aux = addFunction("$$false", 0);
   ASS_EQ(aux, FOOL_FALSE);
-  getFunction(FOOL_FALSE)->setType(new FunctionType(0, 0, Sorts::SRT_FOOL_BOOL));
+  getFunction(FOOL_FALSE)->setType(new FunctionType(Sorts::SRT_FOOL_BOOL));
 
   aux = addFunction("$$true", 0);
   ASS_EQ(aux, FOOL_TRUE);
-  getFunction(FOOL_TRUE)->setType(new FunctionType(0, 0, Sorts::SRT_FOOL_BOOL));
+  getFunction(FOOL_TRUE)->setType(new FunctionType(Sorts::SRT_FOOL_BOOL));
 } // Signature::Signature
 
 /**

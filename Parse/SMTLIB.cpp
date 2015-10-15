@@ -305,8 +305,7 @@ BaseType* SMTLIB::getSymbolType(const FunctionInfo& fnInfo)
     argSorts.push(getSort(argSortName));
   }
 
-  BaseType* type = BaseType::makeType(arity, argSorts.begin(), rangeSort);
-  return type;
+  return new FunctionType(arity, argSorts.begin(), rangeSort);
 }
 
 void SMTLIB::doFunctionDeclarations()
@@ -764,11 +763,9 @@ unsigned SMTLIB::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermSta
     USER_ERROR("invalid third argument sort: "+env.sorts->sortName(getSort(args[2]))+" in "+e->toString());
   }
 
-//  BaseType* type;
   unsigned res;
 
   if(tsym==TS_STORE) {
-//    type = BaseType::makeType3(arrSort, arrDomainSort, arrRangeSort, arrSort);
      if (arrSort == _array1Sort) {
        res=Theory::instance()->getSymbolForStructuredSort(_array1Sort,
                              Theory::StructuredSortInterpretation::ARRAY_STORE);
@@ -780,7 +777,6 @@ unsigned SMTLIB::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermSta
      }
   }
   else {   
-    //  type = BaseType::makeType2(arrSort, arrDomainSort, arrRangeSort);
      if (arrSort == _array1Sort) {
        res=Theory::instance()->getSymbolForStructuredSort(_array1Sort,
                              Theory::StructuredSortInterpretation::ARRAY_SELECT);
@@ -791,25 +787,7 @@ unsigned SMTLIB::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermSta
                              Theory::StructuredSortInterpretation::ARRAY_SELECT);
      }
   }
-  
-  //vstring name = baseName + "_" + StringUtils::sanitizeSuffix(env.sorts->sortName(arrSort)
-    
-  //bool added;
-  //unsigned res = env.signature->addFunction(baseName, arity, added);
-      
-  //if(added) {
-  //      env.signature->getFunction(res)->setType(type); 
-  // }
-  // else {
-  //      ASS(*type==*env.signature->getFunction(res)->fnType());
- 
-
-  //    delete type;
-   // }
     return res;
-    
-
-    
 }
     
     
@@ -1195,7 +1173,7 @@ bool SMTLIB::tryReadDistinct(LExpr* e, Formula*& res)
   }
 
   bool added;
-  BaseType* type = BaseType::makeTypeUniformRange(arity, sort, Sorts::SRT_BOOL);
+  BaseType* type = PredicateType::makeTypeUniformRange(arity, sort);
 
   //this is a bit of a quick hack, we need to come up with
   //a proper way to have a polymorphic $distinct predicate
@@ -1423,7 +1401,7 @@ Formula* SMTLIB::nameFormula(Formula* f, vstring fletVarName)
 
   fletVarName = StringUtils::sanitizeSuffix(fletVarName);
   unsigned predNum = env.signature->addFreshPredicate(varCnt, "sP", fletVarName.c_str());
-  BaseType* type = BaseType::makeType(varCnt, argSorts.begin(), Sorts::SRT_BOOL);
+  BaseType* type = new PredicateType(varCnt, argSorts.begin());
 
   Signature::Symbol* predSym = env.signature->getPredicate(predNum);
   predSym->setType(type);

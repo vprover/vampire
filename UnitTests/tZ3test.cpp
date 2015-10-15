@@ -115,10 +115,10 @@ TEST_FUN(seg_issue){
   unsigned sk0 = env.signature->addSkolemFunction(1);
 
   Signature::Symbol* symbol = env.signature->getFunction(sk0);
-  symbol->setType(BaseType::makeType1(Sorts::SRT_INTEGER,Sorts::SRT_INTEGER));
+  symbol->setType(new FunctionType(Sorts::SRT_INTEGER,Sorts::SRT_INTEGER));
 
   symbol = env.signature->getPredicate(pow2);
-  symbol->setType(BaseType::makeType1(Sorts::SRT_INTEGER,Sorts::SRT_BOOL));
+  symbol->setType(new PredicateType(Sorts::SRT_INTEGER));
 
   Term* sk0_12 = Term::create1(sk0,TermList(twelve));
 

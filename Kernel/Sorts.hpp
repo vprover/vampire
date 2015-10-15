@@ -177,13 +177,6 @@ public:
   bool operator!=(const BaseType& o) const { return !(*this==o); }
 
   virtual vstring toString() const = 0;
-
-  static BaseType* makeType(unsigned arity, const unsigned* domainSorts, unsigned rangeSort);
-  static BaseType* makeType0(unsigned rangeSort);
-  static BaseType* makeType1(unsigned arg1Sort, unsigned rangeSort);
-  static BaseType* makeType2(unsigned arg1Sort, unsigned arg2Sort, unsigned rangeSort);
-  static BaseType* makeType3(unsigned arg1Sort, unsigned arg2Sort, unsigned arg3Sort, unsigned rangeSort);
-  static BaseType* makeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned rangeSort);
 protected:
   BaseType(unsigned arity, const unsigned* sorts=0);
 
@@ -199,10 +192,18 @@ public:
   CLASS_NAME(PredicateType);
   USE_ALLOCATOR(PredicateType);
 
-  PredicateType(unsigned arity, const unsigned* argumentSorts = 0)
+  PredicateType(unsigned arity, const unsigned* argumentSorts)
    : BaseType(arity, argumentSorts) {}
+  PredicateType(unsigned argSort)
+   : BaseType(1, new unsigned[1] { argSort }) {}
+  PredicateType(unsigned argSort1, unsigned argSort2)
+   : BaseType(2, new unsigned[2] { argSort1, argSort2 }) {}
+  PredicateType(unsigned argSort1, unsigned argSort2, unsigned argSort3)
+   : BaseType(3, new unsigned[3] { argSort1, argSort2, argSort3 }) {}
 
   virtual vstring toString() const;
+
+  static PredicateType* makeTypeUniformRange(unsigned arity, unsigned argsSort);
 };
 
 class FunctionType : public BaseType
@@ -212,12 +213,15 @@ public:
   USE_ALLOCATOR(FunctionType);
 
   FunctionType(unsigned arity, const unsigned* argumentSorts, unsigned resultSort)
-   : BaseType(arity, argumentSorts), _result(resultSort) {
-    // $o cannot be the return sort of a function symbol
-    // rather, it should be a predicate symbol
-    ASS_NEQ(resultSort, Sorts::SRT_BOOL);
-  }
-  FunctionType(unsigned arity);
+   : BaseType(arity, argumentSorts), _result(resultSort) {}
+  FunctionType(unsigned resultSort)
+   : BaseType(0, 0), _result(resultSort) {}
+  FunctionType(unsigned argSort, unsigned resultSort)
+   : BaseType(1, new unsigned[1] { argSort }), _result(resultSort) {}
+  FunctionType(unsigned argSort1, unsigned argSort2, unsigned resultSort)
+   : BaseType(2, new unsigned[2] { argSort1, argSort2 }), _result(resultSort) {}
+  FunctionType(unsigned argSort1, unsigned argSort2, unsigned argSort3, unsigned resultSort)
+   : BaseType(3, new unsigned[3] { argSort1, argSort2, argSort3 }), _result(resultSort) {}
 
   unsigned result() const { return _result; }
 
@@ -225,6 +229,8 @@ public:
   virtual bool isFunctionType() const { return true; }
 
   virtual vstring toString() const;
+
+  static FunctionType* makeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned rangeSort);
 private:
   unsigned _result;
 };

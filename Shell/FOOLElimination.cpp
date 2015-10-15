@@ -863,7 +863,12 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
   CALL("FOOLElimination::introduceFreshSymbol");
 
   unsigned arity = (unsigned)sorts.size();
-  BaseType* type = BaseType::makeType(arity, sorts.begin(), context == FORMULA_CONTEXT ? Sorts::SRT_BOOL : resultSort);
+  BaseType* type;
+  if (context == FORMULA_CONTEXT) {
+    type = new PredicateType(arity, sorts.begin());
+  } else {
+    type = new FunctionType(arity, sorts.begin(), resultSort);
+  }
 
   unsigned symbol;
   if (context == FORMULA_CONTEXT) {

@@ -224,7 +224,7 @@ class Signature
     {
       CALL("IntegerSymbol");
 
-      setType(new FunctionType(0, 0, Sorts::SRT_INTEGER));
+      setType(new FunctionType(Sorts::SRT_INTEGER));
     }
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
@@ -244,7 +244,7 @@ class Signature
     {
       CALL("RationalSymbol");
 
-      setType(new FunctionType(0, 0, Sorts::SRT_RATIONAL));
+      setType(new FunctionType(Sorts::SRT_RATIONAL));
     }
     CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
@@ -264,7 +264,7 @@ class Signature
     {
       CALL("RealSymbol");
 
-      setType(new FunctionType(0, 0, Sorts::SRT_REAL));
+      setType(new FunctionType(Sorts::SRT_REAL));
     }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);

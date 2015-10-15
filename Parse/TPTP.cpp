@@ -1803,10 +1803,13 @@ void TPTP::endBinding() {
     argSorts.push(sorts->head());
   }
 
-  BaseType* type = BaseType::makeType(arity, argSorts.begin(), isPredicate ? Sorts::SRT_BOOL : bodySort);
-  Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(symbolNumber)
-                                          : env.signature->getFunction (symbolNumber);
-  symbol->setType(type);
+  if (isPredicate) {
+    PredicateType* type = new PredicateType(arity, argSorts.begin());
+    env.signature->getPredicate(symbolNumber)->setType(type);
+  } else {
+    FunctionType* type = new FunctionType(arity, argSorts.begin(), bodySort);
+    env.signature->getFunction(symbolNumber)->setType(type);
+  }
 
   LetFunctionName functionName(name, arity);
   LetFunctionReference functionReference(symbolNumber, isPredicate);
@@ -2800,7 +2803,7 @@ void TPTP::endTff()
     if (!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
-    env.signature->getFunction(fun)->setType(BaseType::makeType(0,0,sortNumber));
+    env.signature->getFunction(fun)->setType(new FunctionType(sortNumber));
     return;
   }
 
@@ -2853,6 +2856,7 @@ void TPTP::endTff()
       USER_ERROR("Predicate symbol type is declared after its use: " + name);
     }
     symbol = env.signature->getPredicate(pred);
+    symbol->setType(new PredicateType(arity, sorts.begin()));
   }
   else {
     unsigned fun = arity == 0
@@ -2862,8 +2866,8 @@ void TPTP::endTff()
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
     symbol = env.signature->getFunction(fun);
+    symbol->setType(new FunctionType(arity, sorts.begin(), returnSortNumber));
   }
-  symbol->setType(BaseType::makeType(arity,sorts.begin(),returnSortNumber));
 } // endTff
 
 /**
@@ -3559,8 +3563,7 @@ unsigned TPTP::addIntegerConstant(const vstring& name)
     if (added) {
       _overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(BaseType::makeType(0,0,
-					 _isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_INTEGER));
+      symbol->setType(new FunctionType(_isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_INTEGER));
     }
     else if (!_overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
@@ -3596,7 +3599,7 @@ unsigned TPTP::addRationalConstant(const vstring& name)
     if (added) {
       _overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(BaseType::makeType(0,0,_isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_RATIONAL));
+      symbol->setType(new FunctionType(_isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_RATIONAL));
     }
     else if (!_overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an rational number");
@@ -3628,7 +3631,7 @@ unsigned TPTP::addRealConstant(const vstring& name)
     if (added) {
       _overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(BaseType::makeType(0,0,_isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_REAL));
+      symbol->setType(new FunctionType(_isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_REAL));
     }
     else if (!_overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an real number");

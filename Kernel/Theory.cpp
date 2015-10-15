@@ -1122,9 +1122,7 @@ FunctionType* Theory::getConversionOperationType(Interpretation i)
   default:
     ASSERTION_VIOLATION;
   }
-  BaseType* res = BaseType::makeType(1, &from, to);
-  ASS(res->isFunctionType());
-  return static_cast<FunctionType*>(res);
+  return new FunctionType(from, to);
 }
     
     
@@ -1153,15 +1151,15 @@ BaseType* Theory::getArrayOperationType(Interpretation i)
     switch(theory->convertToStructured(i)) {
 
         case StructuredSortInterpretation::ARRAY_SELECT:
-          res = BaseType::makeType2(arrSort, indexSort, valueSort);
+          res = new FunctionType(arrSort, indexSort, valueSort);
           break;
 
         case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-          res = BaseType::makeType2(arrSort, indexSort, Sorts::SRT_BOOL);
+          res = new PredicateType(arrSort, indexSort);
           break;
 
         case StructuredSortInterpretation::ARRAY_STORE:
-          res = BaseType::makeType3(arrSort, indexSort,innerSort, valueSort);
+          res = new FunctionType(arrSort, indexSort, innerSort, valueSort);
           break;
 
         default:
@@ -1195,11 +1193,13 @@ BaseType* Theory::getOperationType(Interpretation i)
     
   static DArray<unsigned> domainSorts;
   domainSorts.init(arity, sort);
-    
-  unsigned resSort = isFunction(i) ? sort : Sorts::SRT_BOOL;
-    
-  return BaseType::makeType(arity, domainSorts.array(), resSort);
 
+
+  if (isFunction(i)) {
+    return new FunctionType(arity, domainSorts.array(), sort);
+  } else {
+    return new PredicateType(arity, domainSorts.array());
+  }
 }
 
 bool Theory::isInterpretedConstant(unsigned func)
@@ -1487,7 +1487,7 @@ Term* Theory::representIntegerConstant(vstring str)
 //    bool added;
 //    unsigned fnNum = env.signature->addFunction(str, 0, added);
 //    if (added) {
-//      env.signature->getFunction(fnNum)->setType(BaseType::makeType0(Sorts::SRT_INTEGER));
+//      env.signature->getFunction(fnNum)->setType(new FunctionType(Sorts::SRT_INTEGER));
 //      env.signature->addToDistinctGroup(fnNum, Signature::INTEGER_DISTINCT_GROUP);
 //    }
 //    else {

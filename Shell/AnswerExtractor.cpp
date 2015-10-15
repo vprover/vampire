@@ -310,7 +310,7 @@ Literal* AnswerLiteralManager::getAnswerLiteral(Formula::VarList* vars,Formula* 
   unsigned vcnt = litArgs.size();
   unsigned pred = env.signature->addFreshPredicate(vcnt,"ans");
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
-  predSym->setType(BaseType::makeType(sorts.size(),sorts.begin(),Sorts::SRT_BOOL));
+  predSym->setType(new PredicateType(sorts.size(), sorts.begin()));
   predSym->markAnswerPredicate();
   return Literal::create(pred, vcnt, true, false, litArgs.begin());
 }

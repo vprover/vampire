@@ -1932,7 +1932,7 @@ unsigned LoopAnalyzer::getIntFunction(vstring name, unsigned arity, bool setColo
 
     static DArray<unsigned> domSorts;
     domSorts.init(arity, Sorts::SRT_INTEGER);
-    symb->setType(BaseType::makeType(arity, domSorts.array(), Sorts::SRT_INTEGER));
+    symb->setType(new Kernel::FunctionType(arity, domSorts.array(), Sorts::SRT_INTEGER));
   }
 #if VDEBUG
   else {
@@ -1959,7 +1959,7 @@ unsigned LoopAnalyzer::getIntPredicate(vstring name, unsigned arity, bool setCol
 
     static DArray<unsigned> domSorts;
     domSorts.init(arity, Sorts::SRT_INTEGER);
-    symb->setType(BaseType::makeType(arity, domSorts.array(), Sorts::SRT_BOOL));
+    symb->setType(new Kernel::PredicateType(arity, domSorts.array()));
   }
 #if VDEBUG
   else {

@@ -184,84 +184,6 @@ const vstring& Sorts::sortName(unsigned idx) const
 } // Sorts::sortName
 
 /**
- * Create a type having arity @c arity, range sort @c rangeSort and arguments
- * from the array @c domainSorts (which can be NULL)
- * @author Andrei Voronkov
- */
-BaseType* BaseType::makeType(unsigned arity, const unsigned* domainSorts, unsigned rangeSort)
-{
-  CALL("BaseType::makeType");
-
-  if (rangeSort==Sorts::SRT_BOOL) {
-    return new PredicateType(arity, domainSorts);
-  }
-  else {
-    return new FunctionType(arity, domainSorts, rangeSort);
-  }
-} // BaseType::makeType
-
-/**
- * Create atomic type rangeSort
- * @author Andrei Voronkov
- */
-BaseType* BaseType::makeType0(unsigned rangeSort)
-{
-  CALL("BaseType::makeType0");
-  return makeType(0, 0, rangeSort);
-} // BaseType::makeType0
-
-/**
- * Create type arg1Sort -> rangeSort
- * @author Andrei Voronkov
- */
-BaseType* BaseType::makeType1(unsigned arg1Sort, unsigned rangeSort)
-{
-  CALL("BaseType::makeType1");
-
-  unsigned args[] = { arg1Sort };
-  return makeType(1, args, rangeSort);
-} // BaseType::makeType1
-
-/**
- * Create type (arg1Sort * arg2Sort) -> rangeSort
- * @author Andrei Voronkov
- */
-BaseType* BaseType::makeType2(unsigned arg1Sort, unsigned arg2Sort, unsigned rangeSort)
-{
-  CALL("BaseType::makeType2");
-  unsigned args[] = { arg1Sort, arg2Sort };
-  return makeType(2, args, rangeSort);
-} // BaseType::makeType2
-
-/**
- * Create type (arg1Sort * arg2Sort * arg3Sort) -> rangeSort
- * @author Andrei Voronkov
- */
-BaseType* BaseType::makeType3(unsigned arg1Sort, unsigned arg2Sort, unsigned arg3Sort, unsigned rangeSort)
-{
-  CALL("BaseType::makeType3");
-
-  unsigned args[] = { arg1Sort, arg2Sort, arg3Sort };
-  return makeType(3, args, rangeSort);
-} // BaseType::makeType3
-
-/**
- * Create a type of the form (argSort * ... * argSort) -> rangeSort
- * @author Andrei Voronkov
- */
-BaseType* BaseType::makeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned rangeSort)
-{
-  CALL("BaseType::makeTypeUniformRange");
-
-  static Stack<unsigned> argSorts;
-  argSorts.reset();
-  for (unsigned i=0; i<arity; i++) {
-    argSorts.push(argsSort);
-  }
-  return makeType(arity, argSorts.begin(), rangeSort);
-} // BaseType::makeTypeUniformRange
-
-/**
  * Initialise a base type. If @c sorts is is NULL, all arguments will be
  * initalised by the default sort, otherwise, by sorts from the array @c sorts
  * @author Andrei Voronkov
@@ -388,6 +310,23 @@ vstring PredicateType::toString() const
 } // PredicateType::toString
 
 /**
+ * Create a type of the form (argSort * ... * argSort) -> rangeSort
+ * @author Evgeny Kotelnikov
+ */
+PredicateType* PredicateType::makeTypeUniformRange(unsigned arity, unsigned argsSort)
+{
+  CALL("PredicateType::makeTypeUniformRange");
+
+  static Stack<unsigned> argSorts;
+  argSorts.reset();
+  for (unsigned i=0; i<arity; i++) {
+    argSorts.push(argsSort);
+  }
+  return new PredicateType(arity, argSorts.begin());
+} // PredicateType::makeTypeUniformRange
+
+
+/**
  * Return the TPTP string representation of the function type.
  * @author Andrei Voronkov
  */
@@ -396,18 +335,6 @@ vstring FunctionType::toString() const
   CALL("FunctionType::toString");
   return (arity() ? argsToString() + " > " : "") + env.sorts->sortName(result());
 } // FunctionType::toString
-
-/**
- * Create a function type of arity @c arity. The arguments and the result
- * type set to the default type.
- * @author Andrei Voronkov
- */
-FunctionType::FunctionType(unsigned arity)
- : BaseType(arity)
-{
-  CALL("FunctionType::FunctionType");
-  _result = Sorts::SRT_DEFAULT;
-} // FunctionType::FunctionType
 
 /**
  * True if this function type has the form (srt * ... * srt) -> srt
@@ -422,3 +349,20 @@ bool FunctionType::isSingleSortType(unsigned srt) const
   }
   return BaseType::isSingleSortType(srt);
 } // FunctionType::isSingleSortType
+
+/**
+ * Create a type of the form (argSort * ... * argSort) -> rangeSort
+ * @author Andrei Voronkov
+ * @author Evgeny Kotelnikov, move to FunctionType
+ */
+FunctionType* FunctionType::makeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned rangeSort)
+{
+  CALL("FunctionType::makeTypeUniformRange");
+
+  static Stack<unsigned> argSorts;
+  argSorts.reset();
+  for (unsigned i=0; i<arity; i++) {
+    argSorts.push(argsSort);
+  }
+  return new FunctionType(arity, argSorts.begin(), rangeSort);
+} // FunctionType::makeTypeUniformRange
