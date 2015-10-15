@@ -236,7 +236,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
         bool polarity = formula->connective() == IFF;
 
-        Literal* equality = Literal::createEquality(polarity, process(lhsTerm), process(rhsTerm), Sorts::SRT_FOOL_BOOL);
+        Literal* equality = Literal::createEquality(polarity, process(lhsTerm), process(rhsTerm), Sorts::SRT_BOOL);
         Formula* processedFormula = new AtomicFormula(equality);
 
         if (env.options->showPreprocessing()) {
@@ -313,7 +313,7 @@ FormulaList* FOOLElimination::process(FormulaList* formulas) {
  * An alternative and slightly simpler implementation would have been to always
  * go for the TERM_CONTEXT case. That way, instead of introducing a fresh
  * predicate symbol when inside $formula, we would introduce a fresh function
- * symbol of the sort FOOL_BOOL. That would result, however, in more
+ * symbol of the sort SRT_BOOL. That would result, however, in more
  * definitions with more boilerplate. In particular, instead of predicate
  * applications we would have equalities of function symbol applications to
  * FOOL_TRUE all over the place.
@@ -326,7 +326,7 @@ void FOOLElimination::process(TermList ts, Context context, TermList& termResult
   // The opposite does not hold - a boolean term can stand in a term context
   unsigned sort = SortHelper::getResultSort(ts, _varSorts);
   if (context == FORMULA_CONTEXT) {
-    ASS_REP(sort == Sorts::SRT_FOOL_BOOL, ts.toString());
+    ASS_REP(sort == Sorts::SRT_BOOL, ts.toString());
   }
 #endif
 
@@ -656,7 +656,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula *formula = process(sd->getFormula());
 
         // create a fresh symbol g and build g(X1, ..., Xn)
-        unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, freeVarsSorts, Sorts::SRT_FOOL_BOOL);
+        unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, freeVarsSorts, Sorts::SRT_BOOL);
         TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
 
         // build f <=> g(X1, ..., Xn) = true
@@ -854,7 +854,7 @@ void FOOLElimination::addDefinition(FormulaUnit* def) {
 
 Formula* FOOLElimination::toEquality(TermList booleanTerm) {
   TermList truth(Term::createConstant(Signature::FOOL_TRUE));
-  Literal* equality = Literal::createEquality(true, booleanTerm, truth, Sorts::SRT_FOOL_BOOL);
+  Literal* equality = Literal::createEquality(true, booleanTerm, truth, Sorts::SRT_BOOL);
   return new AtomicFormula(equality);
 }
 

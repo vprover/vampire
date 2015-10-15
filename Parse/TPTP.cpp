@@ -1442,7 +1442,7 @@ void TPTP::endSelect()
     // (a formula wrapped inside boolean term, if needed). If later on we discover that we should've
     // taken it as a formula, we simply pull the formula out of the boolean term. This is done in
     // endTermAsFormula().
-    if (env.sorts->getArraySort(array_sort)->getInnerSort() == Sorts::SRT_FOOL_BOOL) {
+    if (env.sorts->getArraySort(array_sort)->getInnerSort() == Sorts::SRT_BOOL) {
         Theory::StructuredSortInterpretation ssi = Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT;
         Interpretation select = Theory::instance()->getInterpretation(array_sort, ssi);
 
@@ -1777,7 +1777,7 @@ void TPTP::endBinding() {
 
   TermList body = _termLists.top();
   unsigned bodySort = sortOf(body);
-  bool isPredicate = bodySort == Sorts::SRT_FOOL_BOOL;
+  bool isPredicate = bodySort == Sorts::SRT_BOOL;
 
   Formula::VarList* vars = _varLists.top(); // will be poped in endLet()
   unsigned arity = (unsigned)vars->length();
@@ -1930,7 +1930,6 @@ void TPTP::bindVariable(int var,unsigned sortNumber)
  * sequence of TermList and their number
  * @since 07/07/2011 Manchester
  * @since 16/04/2015 Gothenburg, do not parse the closing ']'
- * @since 11/05/2015 Gothenburg, parse SRT_BOOL as SRT_FOOL_BOOL
  */
 void TPTP::varList()
 {
@@ -1955,13 +1954,7 @@ void TPTP::varList()
 	PARSE_ERROR("two declarations of variable sort",tok);
       }
       resetToks();
-      {
-        unsigned sort = readSort();
-        if (sort == Sorts::SRT_BOOL) {
-          sort = Sorts::SRT_FOOL_BOOL;
-        }
-        bindVariable(var,sort);
-      }
+      bindVariable(var,readSort());
       sortDeclared = true;
       goto afterVar;
 
@@ -2518,7 +2511,7 @@ void TPTP::endTermAsFormula()
 {
   CALL("TPTP::endTermAsFormula");
   TermList t = _termLists.pop();
-  if (sortOf(t) != Sorts::SRT_FOOL_BOOL) {
+  if (sortOf(t) != Sorts::SRT_BOOL) {
     vstring sortName = env.sorts->sortName(sortOf(t));
     USER_ERROR("Non-boolean term " + t.toString() + " of sort " + sortName + " is used in a formula context");
   }
@@ -2825,13 +2818,7 @@ void TPTP::endTff()
       USER_ERROR("higher-order types are not supported");
     case TT_ATOMIC: {
       unsigned sortNumber = static_cast<AtomicType *>(tp)->sortNumber();
-      if (sortNumber == Sorts::SRT_BOOL) {
-        // $o cannot be the sort of an argument,
-        // the implementation of FOOL replaces it with it's own built sort
-        sorts.push(Sorts::SRT_FOOL_BOOL);
-      } else {
-        sorts.push(sortNumber);
-      }
+      sorts.push(sortNumber);
       break;
     }
     case TT_PRODUCT:
@@ -3183,14 +3170,8 @@ unsigned TPTP::readSort()
     resetToks();
     consumeToken(T_LPAR);
     unsigned indexSort = readSort();
-    if (indexSort == Sorts::SRT_BOOL) {
-      indexSort = Sorts::SRT_FOOL_BOOL;
-    }
     consumeToken(T_COMMA);
     unsigned innerSort = readSort();
-    if (innerSort == Sorts::SRT_BOOL) {
-      innerSort = Sorts::SRT_FOOL_BOOL;
-    }
     consumeToken(T_RPAR);
     return env.sorts->addArraySort(indexSort,innerSort);
   }

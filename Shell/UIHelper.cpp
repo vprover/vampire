@@ -476,8 +476,8 @@ void UIHelper::outputSortDeclarations(ostream& out)
   CALL("UIHelper::outputSortDeclarations");
 
   unsigned sorts = (*env.sorts).sorts();
-  for (unsigned sort = Sorts::SRT_FOOL_BOOL; sort < sorts; ++sort) {
-    if ((sort == Sorts::SRT_FOOL_BOOL) && !env.options->showFOOL()) {
+  for (unsigned sort = Sorts::SRT_BOOL; sort < sorts; ++sort) {
+    if ((sort == Sorts::SRT_BOOL) && !env.options->showFOOL()) {
       continue;
     }
     if (sort == Sorts::FIRST_USER_SORT) {

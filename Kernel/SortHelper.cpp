@@ -136,7 +136,7 @@ bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, Te
       break;
     }
     case Term::SF_FORMULA:
-      resultSort = Sorts::SRT_FOOL_BOOL;
+      resultSort = Sorts::SRT_BOOL;
       return true;
     default:
       ASS(!t->isSpecial());
@@ -383,12 +383,12 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
       case BOOL_TERM: {
         TermList ts = sf->getBooleanTerm();
         if (ts.isVar()) {
-          if (!map.insert(ts.var(), Sorts::SRT_FOOL_BOOL)) {
-            ASS_EQ(Sorts::SRT_FOOL_BOOL, map.get(ts.var()));
+          if (!map.insert(ts.var(), Sorts::SRT_BOOL)) {
+            ASS_EQ(Sorts::SRT_BOOL, map.get(ts.var()));
           }
         } else {
           ASS(ts.isTerm() && ts.term()->isSpecial());
-          collectVariableSortsSpecialTerm(ts.term(), Sorts::SRT_FOOL_BOOL, map);
+          collectVariableSortsSpecialTerm(ts.term(), Sorts::SRT_BOOL, map);
         }
         break;
       }

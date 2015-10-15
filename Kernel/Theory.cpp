@@ -1067,7 +1067,7 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
     return _arraySkolemFunctions.get(sort);
   }
 
-  bool isBool = (env.sorts->getArraySort(sort)->getInnerSort() == Sorts::SRT_FOOL_BOOL);
+  bool isBool = (env.sorts->getArraySort(sort)->getInnerSort() == Sorts::SRT_BOOL);
 
   Interpretation store = getInterpretation(sort, StructuredSortInterpretation::ARRAY_STORE);
   Interpretation select = getInterpretation(sort, isBool ? StructuredSortInterpretation::ARRAY_BOOL_SELECT

@@ -37,9 +37,6 @@ Sorts::Sorts()
   aux = addSort("$real");
   ASS_EQ(aux, SRT_REAL);
 
-  aux = addSort("$bool");
-  ASS_EQ(aux, SRT_FOOL_BOOL);
-
   aux = addSort("$fus");
   ASS_EQ(aux,FIRST_USER_SORT);
     
@@ -122,7 +119,7 @@ unsigned Sorts::addArraySort(const unsigned indexSort, const unsigned innerSort)
   // Next create and register the STORE and SELECT functions for this sort with Theory
 
   Theory::instance()->addStructuredSortInterpretation(result,Theory::StructuredSortInterpretation::ARRAY_STORE);
-  if (innerSort == Sorts::SRT_FOOL_BOOL) {
+  if (innerSort == Sorts::SRT_BOOL) {
     Theory::instance()->addStructuredSortInterpretation(result, Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT);
   } else {
     Theory::instance()->addStructuredSortInterpretation(result, Theory::StructuredSortInterpretation::ARRAY_SELECT);
@@ -176,9 +173,9 @@ bool Sorts::findSort(const vstring& name, unsigned& idx)
 const vstring& Sorts::sortName(unsigned idx) const
 {
   CALL("Sorts::sortName");
-  if (!env.options->showFOOL() && idx == SRT_FOOL_BOOL) {
-    static vstring o("$o");
-    return o;
+  if (env.options->showFOOL() && idx == SRT_BOOL) {
+    static vstring name("$bool");
+    return name;
   }
   return _sorts[idx]->name();
 } // Sorts::sortName
@@ -207,11 +204,6 @@ BaseType::BaseType(unsigned arity, const unsigned* sorts)
   }
   // initialise all the argument types to thos taken from sorts
   for (unsigned i = 0; i < arity; i++) {
-    /**
-     * A function argument cannot have sort SRT_BOOL.
-     * It can be SRT_FOOL_BOOL, though.
-     */
-    ASS_NEQ(sorts[i], Sorts::SRT_BOOL);
     (*_args)[i] = sorts[i];
   }
 } // BaseType::BaseType
@@ -306,7 +298,7 @@ vstring BaseType::argsToString() const
 vstring PredicateType::toString() const
 {
   CALL("PredicateType::toString");
-  return (arity() ? argsToString() + " > " : "") + env.sorts->sortName(Sorts::SRT_BOOL);
+  return arity() ? argsToString() + " > $o" : "$o";
 } // PredicateType::toString
 
 /**

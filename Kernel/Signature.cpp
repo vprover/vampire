@@ -19,11 +19,8 @@ const unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 3;
 
 /**
  * In order to support reasoning in FOOL, we define a theory of booleans, that consists of the sort
- * SRT_FOOL_BOOL (defined in Sorts.hpp) and two constants FOOL_TRUE and FOOL_FALSE, that represent
+ * SRT_BOOL (defined in Sorts.hpp) and two constants FOOL_TRUE and FOOL_FALSE, that represent
  * logical true and false.
- *
- * Note that we still maintain the invariant that SRT_BOOL cannot be the sort of an argument to
- * a function or predicate symbol and it is a return sort of a symbol iff it is a predicate.
  *
  * @since 04/05/2015 Gothenburg
  */
@@ -233,11 +230,11 @@ Signature::Signature ()
 
   aux = addFunction("$$false", 0);
   ASS_EQ(aux, FOOL_FALSE);
-  getFunction(FOOL_FALSE)->setType(new FunctionType(Sorts::SRT_FOOL_BOOL));
+  getFunction(FOOL_FALSE)->setType(new FunctionType(Sorts::SRT_BOOL));
 
   aux = addFunction("$$true", 0);
   ASS_EQ(aux, FOOL_TRUE);
-  getFunction(FOOL_TRUE)->setType(new FunctionType(Sorts::SRT_FOOL_BOOL));
+  getFunction(FOOL_TRUE)->setType(new FunctionType(Sorts::SRT_BOOL));
 } // Signature::Signature
 
 /**

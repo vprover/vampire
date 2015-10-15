@@ -176,7 +176,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
   CALL("Z3Interfacing::getz3sort");
   BYPASSING_ALLOCATOR;
   // Deal with known sorts differently
-  if(s==Sorts::SRT_BOOL || s==Sorts::SRT_FOOL_BOOL) return _context.bool_sort(); 
+  if(s==Sorts::SRT_BOOL) return _context.bool_sort();
   if(s==Sorts::SRT_INTEGER) return _context.int_sort();
   if(s==Sorts::SRT_REAL) return _context.real_sort(); 
   if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 

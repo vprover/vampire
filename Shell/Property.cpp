@@ -419,7 +419,7 @@ void Property::scanSort(unsigned sort)
   case Sorts::SRT_REAL:
     addProp(PR_HAS_REALS);
     break;
-  case Sorts::SRT_FOOL_BOOL:
+  case Sorts::SRT_BOOL:
     _hasFOOL = true;
     break;
   }

@@ -841,7 +841,7 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
 
     //cout << "Consider arraySort " << arraySort << endl;
 
-    bool isBool = (env.sorts->getArraySort(arraySort)->getInnerSort() == Sorts::SRT_FOOL_BOOL);
+    bool isBool = (env.sorts->getArraySort(arraySort)->getInnerSort() == Sorts::SRT_BOOL);
 
     // Get Interpretation objects for functions 
     Interpretation arraySelect = theory->getInterpretation(arraySort, isBool ? Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT
@@ -880,7 +880,7 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
   static TermList f(Term::createConstant(Signature::FOOL_FALSE));
 
   // Add "$$true != $$false"
-  Formula* inequality = new AtomicFormula(Literal::createEquality(false, t, f, Sorts::SRT_FOOL_BOOL));
+  Formula* inequality = new AtomicFormula(Literal::createEquality(false, t, f, Sorts::SRT_BOOL));
   Unit* disjointConstants = new FormulaUnit(inequality, new Inference(Inference::FOOL_AXIOM), Unit::AXIOM);
   addAndOutputTheoryUnit(disjointConstants, prb.units());
 
@@ -890,8 +890,8 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
   }
 
   // Add "![X : $bool]: ((X = $$true) | (X = $$false))"
-  Formula* xist = new AtomicFormula(Literal::createEquality(true, TermList(0, false), t, Sorts::SRT_FOOL_BOOL));
-  Formula* xisf = new AtomicFormula(Literal::createEquality(true, TermList(0, false), f, Sorts::SRT_FOOL_BOOL));
+  Formula* xist = new AtomicFormula(Literal::createEquality(true, TermList(0, false), t, Sorts::SRT_BOOL));
+  Formula* xisf = new AtomicFormula(Literal::createEquality(true, TermList(0, false), f, Sorts::SRT_BOOL));
 
   FormulaList* fs = new FormulaList(xist, new FormulaList(xisf, 0));
   Formula* disjunction = new QuantifiedFormula(FORALL, new Formula::VarList(0, 0), new JunctionFormula(OR, fs));

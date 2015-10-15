@@ -1,8 +1,8 @@
 /**
  * @file FOOLParamodulation.cpp
  * Implements the inference rule, that is needed for efficient treatment of
- * term of the sort SRT_FOOL_BOOL. The details of why it is needed are in the
- * paper "A First Class Boolean Sort in First-Order Theorem Proving and TPTP"
+ * boolean terms. The details of why it is needed are in the paper
+ * "A First Class Boolean Sort in First-Order Theorem Proving and TPTP"
  * by Kotelnikov, Kovacs and Voronkov [1].
  *
  * [1] http://arxiv.org/abs/1505.01682
@@ -87,7 +87,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
       }
 
       unsigned resultType = env.signature->getFunction(functor)->fnType()->result();
-      if (resultType == Sorts::SRT_FOOL_BOOL) {
+      if (resultType == Sorts::SRT_BOOL) {
         booleanTerm = subterm;
         goto substitution;
       }
@@ -114,7 +114,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   }
 
   // Add s = false to the clause
-  (*conclusion)[conclusion->length() - 1] = Literal::createEquality(true, booleanTerm, fols, Sorts::SRT_FOOL_BOOL);
+  (*conclusion)[conclusion->length() - 1] = Literal::createEquality(true, booleanTerm, fols, Sorts::SRT_BOOL);
 
   return pvi(getSingletonIterator(conclusion));
 }

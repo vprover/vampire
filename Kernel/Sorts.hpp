@@ -34,10 +34,8 @@ public:
     SRT_RATIONAL = 3,
     /** sort of reals */
     SRT_REAL = 4,
-    /** FOOL boolean sort */
-    SRT_FOOL_BOOL = 5,
     /** this is not a sort, it is just used to denote the first index of a user-define sort */
-    FIRST_USER_SORT = 6
+    FIRST_USER_SORT = 5
   };
 
   /** Various structured sorts */
