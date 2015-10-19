@@ -314,7 +314,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 
   //we assume that there will be at least one rewrite in the rwLit
 
-  if(remainingLimit < static_cast<int>(eqRHS.weigth())) {
+  if(remainingLimit < static_cast<int>(eqRHS.weight())) {
     env.statistics->discardedNonRedundantClauses++;
     RSTAT_CTR_INC("superpositions weight skipped early");
     return false;
@@ -468,20 +468,41 @@ Clause* Superposition::performSuperposition(
 
   // If proof extra is on let's compute the positions we have performed
   // superposition on 
-/*
   if(env.options->proofExtra()){
-
     cout << "rwClause " << rwClause->toString() << endl;
     cout << "eqClause " << eqClause->toString() << endl;
     cout << "rwLit " << rwLit->toString() << endl;
     cout << "eqLit " << eqLit->toString() << endl;
     cout << "rwTerm " << rwTerm.toString() << endl;
     cout << "eqLHS " << eqLHS.toString() << endl;
-     
 
-    ASSERTION_VIOLATION;
+    //cout << subst->toString() << endl;
+     
+    // First find which literal it is in the clause, as selection has occured already
+    // this should remain the same...?
+    vstring rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
+    vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
+
+    // Next find the position of rwTerm in rwLit
+    vstring rwPos = "";
+
+    //TODO
+
+    vstring eqPos = "("+eqPlace+").2";
+    rwPos = "("+rwPlace+")."+rwPos;
+
+    vstring eqClauseNum = Lib::Int::toString(eqClause->number());
+    vstring rwClauseNum = Lib::Int::toString(rwClause->number());
+
+    vstring extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
+      eqPos+" in "+eqClauseNum+" and "+
+      rwPos+" in "+rwClauseNum;
+
+    cout << extra << endl;
+    NOT_IMPLEMENTED;
+
+    inf->setExtra(extra);
   }
-*/
 
 
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
