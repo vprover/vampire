@@ -469,13 +469,14 @@ Clause* Superposition::performSuperposition(
   // If proof extra is on let's compute the positions we have performed
   // superposition on 
   if(env.options->proofExtra()){
+/*
     cout << "rwClause " << rwClause->toString() << endl;
     cout << "eqClause " << eqClause->toString() << endl;
     cout << "rwLit " << rwLit->toString() << endl;
     cout << "eqLit " << eqLit->toString() << endl;
     cout << "rwTerm " << rwTerm.toString() << endl;
     cout << "eqLHS " << eqLHS.toString() << endl;
-
+*/
     //cout << subst->toString() << endl;
      
     // First find which literal it is in the clause, as selection has occured already
@@ -483,11 +484,8 @@ Clause* Superposition::performSuperposition(
     vstring rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
     vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
 
-    // Next find the position of rwTerm in rwLit
-    vstring rwPos = "";
-
-    //TODO
-
+    vstring rwPos="_";
+    ALWAYS(Inference::positionIn(rwTerm,rwLit,rwPos));
     vstring eqPos = "("+eqPlace+").2";
     rwPos = "("+rwPlace+")."+rwPos;
 
@@ -498,8 +496,8 @@ Clause* Superposition::performSuperposition(
       eqPos+" in "+eqClauseNum+" and "+
       rwPos+" in "+rwClauseNum;
 
-    cout << extra << endl;
-    NOT_IMPLEMENTED;
+    //cout << extra << endl;
+    //NOT_IMPLEMENTED;
 
     inf->setExtra(extra);
   }
