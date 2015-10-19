@@ -43,14 +43,8 @@ Statistics::Statistics()
     formulaNames(0),
     initialClauses(0),
     splitInequalities(0),
-    propagatedEqualities(0),
-    removedSingletonVariables(0),
     purePredicates(0),
     trivialPredicates(0),
-    hornReversedPredicates(0),
-    eprPreservingSkolemizations(0),
-    inlinedPredicateDefinitions(0),
-    mergedPredicateDefinitions(0),
     unusedPredicateDefinitions(0),
     functionDefinitions(0),
     selectedBySine(0),
@@ -82,7 +76,6 @@ Statistics::Statistics()
     equationalTautologies(0),
     forwardSubsumed(0),
     backwardSubsumed(0),
-    subsumedByMarking(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -92,22 +85,15 @@ Statistics::Statistics()
     finalPassiveClauses(0),
     finalActiveClauses(0),
     finalExtensionalityClauses(0),
-    reactivatedClauses(0),
     splitClauses(0),
     splitComponents(0),
     uniqueComponents(0),
-    splittingNamesIntroduced(0),
-    bddPropClauses(0),
     satClauses(0),
     unitSatClauses(0),
     binarySatClauses(0),
     learntSatClauses(0),
     learntSatLiterals(0),
-    bddMemoryUsage(0),
 
-    backtrackingSplits(0),
-    backtrackingSplitsRefuted(0),
-    backtrackingSplitsRefutedZeroLevel(0),
     satSplits(0),
     satSplitRefutations(0),
 
@@ -156,6 +142,7 @@ void Statistics::print(ostream& out)
   SaturationAlgorithm::tryUpdateFinalClauseCount();
 
   bool separable=false;
+#define HEADING(text,num) if (num) { addCommentIfCASC(out); out << ">>> " << (text) << endl;}
 #define COND_OUT(text, num) if (num) { addCommentIfCASC(out); out << (text) << ": " << (num) << endl; separable = true; }
 #define SEPARATOR if (separable) {   addCommentIfCASC(out); out << endl; separable = false; }
 
@@ -206,38 +193,45 @@ void Statistics::print(ostream& out)
   }
   out << endl;
 
-  if (env.options->statistics()==Options::Statistics::BRIEF) {
+  if (env.options->statistics()==Options::Statistics::FULL) {
 
-  COND_OUT("Active clauses", activeClauses);
-  COND_OUT("Passive clauses", passiveClauses);
-  COND_OUT("Extensionality clauses", extensionalityClauses);
-  COND_OUT("Generated clauses", generatedClauses);
-  COND_OUT("Final active clauses", finalActiveClauses);
-  COND_OUT("Final passive clauses", finalPassiveClauses);
-  COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
+  HEADING("Input",inputClauses+inputFormulas);
   COND_OUT("Input clauses", inputClauses);
   COND_OUT("Input formulas", inputFormulas);
-  COND_OUT("Initial clauses", initialClauses);
-  COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
-  COND_OUT("Inferences skipped due to colors", inferencesSkippedDueToColors);
-  COND_OUT("Reactivated clauses", reactivatedClauses);
-  SEPARATOR;
 
+  HEADING("Preprocessing",formulaNames+purePredicates+trivialPredicates+
+    unusedPredicateDefinitions+functionDefinitions+selectedBySine+
+    sineIterations+splitInequalities);
+  COND_OUT("Introduced names",formulaNames);
   COND_OUT("Pure predicates", purePredicates);
-  COND_OUT("Removed due to trivial predicates", trivialPredicates);
-  COND_OUT("Predicates reversed for Horn", hornReversedPredicates);
-  COND_OUT("EPR preserving skolemizations", eprPreservingSkolemizations);
-  COND_OUT("Inlined predicate definitions", inlinedPredicateDefinitions);
-  COND_OUT("Merged predicate definitions", mergedPredicateDefinitions);
+  COND_OUT("Trivial predicates", trivialPredicates);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
   COND_OUT("Function definitions", functionDefinitions);
   COND_OUT("Selected by SInE selection", selectedBySine);
   COND_OUT("SInE iterations", sineIterations);
   COND_OUT("Split inequalities", splitInequalities);
-  COND_OUT("Propagated equalities", propagatedEqualities);
-  COND_OUT("Removed singleton variables", removedSingletonVariables);
   SEPARATOR;
 
+  HEADING("Saturation",activeClauses+passiveClauses+extensionalityClauses+
+      generatedClauses+finalActiveClauses+finalPassiveClauses+finalExtensionalityClauses+
+      discardedNonRedundantClauses+inferencesSkippedDueToColors);
+  COND_OUT("Initial clauses", initialClauses);
+  COND_OUT("Generated clauses", generatedClauses);
+  COND_OUT("Active clauses", activeClauses);
+  COND_OUT("Passive clauses", passiveClauses);
+  COND_OUT("Extensionality clauses", extensionalityClauses);
+  COND_OUT("Final active clauses", finalActiveClauses);
+  COND_OUT("Final passive clauses", finalPassiveClauses);
+  COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
+  COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
+  COND_OUT("Inferences skipped due to colors", inferencesSkippedDueToColors);
+  SEPARATOR;
+
+
+  HEADING("Simplifying Inferences",duplicateLiterals+trivialInequalities+
+      forwardSubsumptionResolution+backwardSubsumptionResolution+
+      forwardDemodulations+backwardDemodulations+forwardLiteralRewrites+
+      condensations+globalSubsumption+evaluations);
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
@@ -248,18 +242,24 @@ void Statistics::print(ostream& out)
   COND_OUT("Condensations", condensations);
   COND_OUT("Global subsumptions", globalSubsumption);
   COND_OUT("Evaluations", evaluations);
-  COND_OUT("Interpreted simplifications", interpretedSimplifications);
+  //COND_OUT("Interpreted simplifications", interpretedSimplifications);
   SEPARATOR;
 
+  HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
+      forwardSubsumed+backwardSubsumed+forwardDemodulationsToEqTaut+
+      backwardDemodulationsToEqTaut);
   COND_OUT("Simple tautologies", simpleTautologies);
   COND_OUT("Equational tautologies", equationalTautologies);
   COND_OUT("Forward subsumptions", forwardSubsumed);
   COND_OUT("Backward subsumptions", backwardSubsumed);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
-  COND_OUT("Subsumed by BDD marking", subsumedByMarking);
   SEPARATOR;
 
+  HEADING("Generating Inferences",resolution+urResolution+factoring+
+      forwardSuperposition+backwardSuperposition+selfSuperposition+
+      equalityFactoring+equalityResolution+forwardExtensionalityResolution+
+      backwardExtensionalityResolution);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
   COND_OUT("Factoring", factoring);
@@ -272,34 +272,40 @@ void Statistics::print(ostream& out)
   COND_OUT("Bw extensionality resolution", backwardExtensionalityResolution);
   SEPARATOR;
 
+  HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+
+        satSplitRefutations);
   COND_OUT("Split clauses", splitClauses);
   COND_OUT("Split components", splitComponents);
   COND_OUT("Unique components", uniqueComponents);
-  COND_OUT("Introduced splitting names", splittingNamesIntroduced);
-  COND_OUT("BDD propositional clauses", bddPropClauses);
-  COND_OUT("SAT solver clauses", satClauses);
-  COND_OUT("SAT solver unit clauses", unitSatClauses);
-  COND_OUT("SAT solver binary clauses", binarySatClauses);
-  COND_OUT("SAT solver learnt clauses", learntSatClauses);
-  COND_OUT("SAT solver learnt literals", learntSatLiterals);
-  COND_OUT("Memory used by BDDs [KB]", bddMemoryUsage/1024);
-  SEPARATOR;
-
-  COND_OUT("Backtracking splits", backtrackingSplits);
-  COND_OUT("Backtracking splits refuted", backtrackingSplitsRefuted);
-  COND_OUT("Backtracking splits refuted at zero level", backtrackingSplitsRefutedZeroLevel);
   COND_OUT("Sat splits", satSplits);
   COND_OUT("Sat splitting refutations", satSplitRefutations);
   SEPARATOR;
 
-  COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
+  HEADING("Instance Generation",instGenGeneratedClauses+instGenRedundantClauses+
+       instGenKeptClauses+instGenIterations);
   COND_OUT("InstGen generated clauses", instGenGeneratedClauses);
   COND_OUT("InstGen redundant clauses", instGenRedundantClauses);
   COND_OUT("InstGen kept clauses", instGenKeptClauses);
   COND_OUT("InstGen iterations", instGenIterations);
+  SEPARATOR;
+
+  //TODO record statistics for FMB
+  HEADING("Model Building",maxBFNTModelSize);
   COND_OUT("Max BFNT model size", maxBFNTModelSize);
   SEPARATOR;
 
+
+  //TODO record statistics for MiniSAT
+  HEADING("SAT Solver Statistics",satLingelingAssumptions+satLingelingVariables+
+        satLingelingClauses+satLingelingClauses+satLingelingClauses+
+        satLingelingSATCalls+satTWLClauseCount+satTWLVariablesCount+
+        satTWLSATCalls+satClauses+unitSatClauses+binarySatClauses+
+        learntSatClauses+learntSatLiterals+satPureVarsEliminated);
+  COND_OUT("SAT solver clauses", satClauses);
+  COND_OUT("SAT solver unit clauses", unitSatClauses);
+  COND_OUT("SAT solver binary clauses", binarySatClauses);
+  COND_OUT("TWL SAT solver learnt clauses", learntSatClauses);
+  COND_OUT("TWL SAT solver learnt literals", learntSatLiterals);
   COND_OUT("Lingeling assumptions", satLingelingAssumptions);
   COND_OUT("Lingeling vampire count variables", satLingelingVariables);
   COND_OUT("Lingeling vampire count clauses", satLingelingClauses);
@@ -307,6 +313,7 @@ void Statistics::print(ostream& out)
   COND_OUT("TWLsolver clauses", satTWLClauseCount);
   COND_OUT("TWLsolver variables", satTWLVariablesCount);
   COND_OUT("TWLsolver calls for satisfiability", satTWLSATCalls);
+  COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
   SEPARATOR;
 
   }
@@ -353,8 +360,6 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Equality propagation";
   case PREDIACTE_DEFINITION_MERGING:
     return "Predicate definition merging";
-  case EPR_PRESERVING_SKOLEMIZATION:
-    return "EPR preserving skolemization";
   case PREDICATE_DEFINITION_INLINING:
     return "Predicate definition inlining";
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
@@ -377,8 +382,6 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Equality proxy";
   case GENERAL_SPLITTING:
     return "General splitting";
-  case HORN_REVEALING:
-    return "Horn revealing";
   case SATURATION:
     return "Saturation";
   case FINALIZATION:
@@ -388,7 +391,7 @@ const char* Statistics::phaseToString(ExecutionPhase p)
   case PREPROCESSING: 
     return "BP Preprocessing ";
   case SOLVING:
-    return "Solving";
+    return "Solving with Conflict Resolution";
   case SAT_SOLVING:
 	  return "SAT Solving";
   case FMB_PREPROCESSING:

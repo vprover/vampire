@@ -61,22 +61,10 @@ public:
   unsigned initialClauses;
   /** number of inequality splittings performed */
   unsigned splitInequalities;
-  /** number of formulas with propagated variable equalities */
-  unsigned propagatedEqualities;
-  /** number of formulas with removed variables which occurred only once and that was in equality */
-  unsigned removedSingletonVariables;
   /** number of pure predicates */
   unsigned purePredicates;
   /** number of trivial predicates */
   unsigned trivialPredicates;
-  /** predicates reversed in order to make problem Horn */
-  unsigned hornReversedPredicates;
-  /** number of definitions transformed by EPR preserving skolemization*/
-  unsigned eprPreservingSkolemizations;
-  /** number of inlined predicate definitions */
-  unsigned inlinedPredicateDefinitions;
-  /** number of merged predicate definitions */
-  unsigned mergedPredicateDefinitions;
   /** number of unused predicate definitions */
   unsigned unusedPredicateDefinitions;
   /** number of eliminated function definitions */
@@ -145,8 +133,6 @@ public:
   unsigned forwardSubsumed;
   /** number of backward subsumed clauses */
   unsigned backwardSubsumed;
-  /** number of empty clause subsumptions by BDD marking*/
-  unsigned subsumedByMarking;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */
@@ -169,16 +155,10 @@ public:
   /** extensionality clauses at the end of the saturation algorithm run */
   unsigned finalExtensionalityClauses;
 
-  /** number of clause reactivations */
-  unsigned reactivatedClauses;
-
   unsigned splitClauses;
   unsigned splitComponents;
+  //TODO currently not set, set it?
   unsigned uniqueComponents;
-  /** Number of introduced name predicates for splitting without backtracking */
-  unsigned splittingNamesIntroduced;
-  /** Derived clauses with empty non-propositional and non-empty propositional part */
-  unsigned bddPropClauses;
   /** Number of clauses generated for the SAT solver */
   unsigned satClauses;
   /** Number of unit clauses generated for the SAT solver */
@@ -189,12 +169,6 @@ public:
   unsigned learntSatClauses;
   /** Number of literals in clauses learned by the SAT solver */
   unsigned learntSatLiterals;
-  /** Memory used by BDDs */
-  size_t bddMemoryUsage;
-
-  unsigned backtrackingSplits;
-  unsigned backtrackingSplitsRefuted;
-  unsigned backtrackingSplitsRefutedZeroLevel;
 
   unsigned satSplits;
   unsigned satSplitRefutations;
@@ -209,8 +183,7 @@ public:
   /** Number of SAT calls for Lingeling */
   unsigned satLingelingSATCalls;
 
-  /** TODO remove this statistics from here.
-  * the next three variables keep statistics for Vampire default sat solver*/
+  /* the next three variables keep statistics for Vampire default sat solver*/
   unsigned satTWLClauseCount;
   unsigned satTWLVariablesCount;
   unsigned satTWLSATCalls;
@@ -354,7 +327,6 @@ public:
     PREPROCESS_1,
     EQUALITY_PROPAGATION,
     PREDIACTE_DEFINITION_MERGING,
-    EPR_PRESERVING_SKOLEMIZATION,
     PREDICATE_DEFINITION_INLINING,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     PREPROCESS_2,
@@ -366,8 +338,6 @@ public:
     EQUALITY_RESOLUTION_WITH_DELETION,
     EQUALITY_PROXY,
     GENERAL_SPLITTING,
-    HORN_REVEALING,
-    /** The actual run of the saturation algorithm */
     SATURATION,
     /** The actual run of the conflict resolution algorithm */
     SOLVING,
