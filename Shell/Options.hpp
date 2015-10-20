@@ -199,6 +199,11 @@ public:
     // update _tagNames at the end of Options constructor if you add a tag
     
 
+  enum class ProofExtra : unsigned int {
+    OFF,
+    FREE,
+    FULL
+  };
   enum class FMBWidgetOrders : unsigned int {
     FUNCTION_FIRST, // f(1) f(2) f(3) ... g(1) g(2) ...
     ARGUMENT_FIRST, // f(1) g(1) h(1) ... f(2) g(2) ...
@@ -1621,7 +1626,7 @@ public:
   Statistics statistics() const { return _statistics.actualValue; }
   void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
   Proof proof() const { return _proof.actualValue; }
-  bool proofExtra() const { return _proofExtra.actualValue; }
+  ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
   bool fmbIncremental() const { return _fmbIncremental.actualValue; }
@@ -2073,7 +2078,7 @@ private:
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
-  BoolOptionValue _proofExtra;
+  ChoiceOptionValue<ProofExtra> _proofExtra;
   BoolOptionValue _proofChecking;
   
   StringOptionValue _protectedPrefix;

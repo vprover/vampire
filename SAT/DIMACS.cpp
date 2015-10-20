@@ -64,7 +64,7 @@ void DIMACS::outputGroundedProblem(MapToLIFO<Clause*, SATClause*>& insts,
 	int vnum=vnums.popWithAllEqual();
 	out<<"% "<<vnum<<": "<<(vasgn.get(vnum)->toString())<<endl;
       }
-      out<<"% Grounding "<<cl->nonPropToString()<<endl;
+      out<<"% Grounding "<<cl->literalsOnlyToString()<<endl;
     }
 
     SATClauseList::Iterator git2(gcls);

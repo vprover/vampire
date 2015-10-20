@@ -468,7 +468,7 @@ Clause* Superposition::performSuperposition(
 
   // If proof extra is on let's compute the positions we have performed
   // superposition on 
-  if(env.options->proofExtra()){
+  if(env.options->proofExtra()==Options::ProofExtra::FULL){
 /*
     cout << "rwClause " << rwClause->toString() << endl;
     cout << "eqClause " << eqClause->toString() << endl;

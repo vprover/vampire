@@ -202,9 +202,10 @@ void Options::Options::init()
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
 
-    _proofExtra = BoolOptionValue("proof_extra","",false);
-    _proofExtra.description="Add as much detail to proofs as possible."
-      "This option is allowed to perform expensive operations to acheive this so may"
+    _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
+    _proofExtra.description="Add extra detail to proofs. "
+      "When 'free' this uses known information only. " 
+      "When 'full' this is allowed to perform expensive operations to acheive this so may"
       " significantly impact on performance. The option is experimental and the format "
       "of extra information may change between minor releases";
     _lookup.insert(&_proofExtra);
