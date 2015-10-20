@@ -531,7 +531,8 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
        bool res = evaluate(next_sub,depth+1);
 
        //TODO try and limit memory issues!
-       //if(next_sub!=next) delete next_sub;
+       //     ideally delete the bits introduced by the application of SubstHelper::apply
+       //if(next_sub!=next) next_sub->destroy();
 
        if(isForall && !res) return false;
        if(!isForall && res) return true;
