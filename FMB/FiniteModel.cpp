@@ -430,8 +430,8 @@ bool FiniteModel::evaluate(Unit* unit)
     formula = fu->getFormula();
   }
 
-  //formula = partialEvaluate(formula);
-  //formula = SimplifyFalseTrue::simplify(formula);
+  formula = partialEvaluate(formula);
+  formula = SimplifyFalseTrue::simplify(formula);
   return evaluate(formula);
 }
 
@@ -530,7 +530,8 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
        
        bool res = evaluate(next_sub,depth+1);
 
-       if(next_sub!=next) delete next_sub;
+       //TODO try and limit memory issues!
+       //if(next_sub!=next) delete next_sub;
 
        if(isForall && !res) return false;
        if(!isForall && res) return true;
@@ -554,7 +555,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
      */
     Formula* FiniteModel::partialEvaluate(Formula* formula)
     {
-        CALL("FiniteModel::evaluate(Formula*)");
+        CALL("FiniteModel::partialEvaluate(Formula*)");
         
 #if DEBUG_MODEL
         for(unsigned i=0;i<depth;i++){ cout << "."; }
@@ -569,7 +570,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
                     return formula;
                 }
                 bool evaluated = evaluateGroundLiteral(lit);
-                return new Formula(evaluated);
+                return evaluated ? Formula::trueFormula() : Formula::falseFormula(); 
             }
                 
                 case FALSE:
@@ -587,9 +588,8 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
                 FormulaList* newArgs = 0;
                 FormulaList::Iterator fit(args);
                 while(fit.hasNext()){
-                    Formula* arg = fit.next();
-                    Formula* newArg = partialEvaluate(arg);
-                    FormulaList::push(arg,newArgs);
+                    Formula* newArg = partialEvaluate(fit.next());
+                    FormulaList::push(newArg,newArgs);
                 }
                 return new JunctionFormula(formula->connective(),newArgs); 
             }
@@ -620,7 +620,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
         
         
         NOT_IMPLEMENTED;
-        return false;
+        return 0;
     }
 
 
