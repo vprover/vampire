@@ -620,8 +620,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
             default:
                 USER_ERROR("Cannot evaluate " + formula->toString() + ", not supported");
         }
-        
-        
+
         NOT_IMPLEMENTED;
         return 0;
     }
