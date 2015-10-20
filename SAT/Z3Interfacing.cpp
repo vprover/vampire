@@ -27,38 +27,20 @@ using namespace Lib;
 
 //using namespace z3;
   
-Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool generateProofs):
-  _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context), _model(_solver.get_first_model()), _showZ3(opts.showZ3())
+Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatCoresForAssumptions):
+  _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context),
+  _model(_solver.get_first_model()), _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
+  _showZ3(opts.showZ3()),_unsatCoreForRefutations(opts.z3UnsatCores())
 {
   CALL("Z3Interfacing::Z3Interfacing");
-  
 
-  // Here is where we would set context parameters i.e.
-  //params p(c);
-  //p.set("unsat_core",true);
-  //_solver.set(p);
-}
-  
-/**
- * Add clauses into the solver and saturate.
- *
- * If @c onlyPropagate is true, only unit propagation is done. If
- * unsatisfiability isn't shown in this case, the status is set to UNKNOWN.
- * 
- * Memory-wise, the clauses are owned by the solver from now on.
- * 
- * @useInPartialModel is ignored as this solver generates a total model
- */
-void Z3Interfacing::addClauses(SATClauseIterator cit) 
-{
-  CALL("Z3Interfacing::addClauses");
-  
-  while(cit.hasNext()){
-    addClause(cit.next());
+  if (_unsatCoreForAssumptions) {
+    z3::params p(_context);
+    p.set(":unsat-core", true);
+    _solver.set(p);
   }
-
 }
-
+  
 void Z3Interfacing::addClause(SATClause* cl)
 {
   CALL("Z3Interfacing::addClause");
@@ -86,12 +68,19 @@ void Z3Interfacing::addClause(SATClause* cl)
 
 }
 
+void Z3Interfacing::addAssumption(SATLiteral lit)
+{
+  CALL("Z3Interfacing::addAssumption");
+
+  _assumptions.push_back(getRepresentation(lit));
+}
+
 SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
 {
   CALL("Z3Interfacing::addClause");
   BYPASSING_ALLOCATOR;
 
-  z3::check_result result = _solver.check();
+  z3::check_result result = _assumptions.empty() ? _solver.check() : _solver.check(_assumptions);
 
   //cout << "solve result: " << result << endl;
 
@@ -116,6 +105,60 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
 #endif
   }
   return _status;
+}
+
+SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets)
+{
+  CALL("Z3Interfacing::solveUnderAssumptions");
+
+  if (!_unsatCoreForAssumptions) {
+    return SATSolverWithAssumptions::solveUnderAssumptions(assumps,conflictCountLimit,onlyProperSubusets);
+  }
+
+  ASS(!hasAssumptions());
+
+  _solver.push();
+
+  // load assumptions:
+  SATLiteralStack::ConstIterator it(assumps);
+
+  static DHMap<vstring,SATLiteral> lookup;
+  lookup.reset();
+  unsigned n=0;
+  vstring ps="$_$_$";
+
+  while (it.hasNext()) {
+    SATLiteral v_assump = it.next();
+    z3::expr z_assump = getRepresentation(v_assump);
+
+    vstring p = ps+Int::toString(n++);
+    _solver.add(z_assump,p.c_str());
+    lookup.insert(p,v_assump);
+  }
+
+  z3::check_result result = _solver.check();
+
+  _solver.pop();
+
+  if (result == z3::check_result::unsat) {
+
+    _failedAssumptionBuffer.reset();
+
+    z3::expr_vector  core = _solver.unsat_core();
+    for (unsigned i = 0; i < core.size(); i++) {
+      z3::expr ci = core[i];
+      vstring cip = Z3_ast_to_string(_context,ci);
+      SATLiteral v_assump = lookup.get(cip);
+      _failedAssumptionBuffer.push(v_assump);
+    }
+
+    return UNSATISFIABLE;
+  } else if (result == z3::check_result::sat) {
+    _model = _solver.get_model();
+    return SATISFIABLE;
+  } else {
+    return UNKNOWN;
+  }
 }
 
 SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var) 
@@ -143,16 +186,11 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   return DONT_CARE;
 }
 
-void Z3Interfacing::randomizeAssignment() 
-{
-  CALL("Z3Interfacing::randomizeAssignment");
-} 
-
 bool Z3Interfacing::isZeroImplied(unsigned var)
 {
   CALL("Z3Interfacing::isZeroImplied");
   
-  // Safe. TODO consider getting zoer-implied
+  // Safe. TODO consider getting zero-implied
   return false; 
 }
 
@@ -209,7 +247,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
  * Translate a Vampire term into a Z3 term
  * - Assumes term is ground
  * - Translates the ground structure
- * - Some interpretted functions/predicates are handled
+ * - Some interpreted functions/predicates are handled
  */
 z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
 {
@@ -480,7 +518,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
   CALL("Z3Interfacing::getRepresentation");
   BYPASSING_ALLOCATOR;
 
-  //First, does this represents a ground literal 
+  //First, does this represent a ground literal
   Literal* lit = sat2fo.toFO(slit);
   if(lit && lit->ground()){
     //cout << "getRepresentation of " << lit->toString() << endl;
@@ -502,6 +540,60 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
   if(slit.isNegative()) return !e;
   else return e;
 }
+
+SATClause* Z3Interfacing::getRefutation() {
+
+    if(!_unsatCoreForRefutations)
+      return PrimitiveProofRecordingSATSolver::getRefutation(); 
+
+
+    z3::solver solver(_context);
+    z3::params p(_context);
+    p.set(":unsat-core", true);
+    solver.set(p);
+
+    SATClauseList* added = PrimitiveProofRecordingSATSolver::getRefutationPremiseList();
+    SATClauseList::Iterator cit(added);
+    unsigned n=0;
+    vstring ps="$_$_$";
+
+    DHMap<vstring,SATClause*> lookup;
+
+    while(cit.hasNext()){
+      SATClause* cl = cit.next();
+      z3::expr z3clause = _context.bool_val(false);
+      unsigned clen=cl->length();
+      for(unsigned i=0;i<clen;i++){
+        SATLiteral l = (*cl)[i];
+        z3::expr e = getRepresentation(l);
+        z3clause = z3clause || e;
+      }
+      vstring p = ps+Int::toString(n++);
+      //cout << p << ": " << cl->toString() << endl;
+      solver.add(z3clause,p.c_str());
+      lookup.insert(p,cl);
+    }
+    //TODO add assertion
+    //cout << solver.check() << endl;
+    solver.check();
+
+    SATClauseList* prems = 0;
+
+    z3::expr_vector  core = solver.unsat_core();
+    for (unsigned i = 0; i < core.size(); i++) {
+        z3::expr ci = core[i];
+        vstring cip = Z3_ast_to_string(_context,ci);
+        SATClause* cl = lookup.get(cip);
+        SATClauseList::push(cl,prems);
+        //std::cout << cl->toString() << "\n";
+    }
+
+    SATClause* refutation = new(0) SATClause(0);
+    refutation->setInference(new PropInference(prems));
+
+    return refutation; 
+}
+
 
 } // namespace SAT
 

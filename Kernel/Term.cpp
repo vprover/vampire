@@ -231,7 +231,7 @@ bool TermList::allShared(TermList* args)
   return true;
 }
 
-unsigned TermList::weigth() const
+unsigned TermList::weight() const
 {
   return isVar() ? 1 : term()->weight();
 }

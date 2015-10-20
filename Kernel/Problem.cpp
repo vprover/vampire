@@ -244,6 +244,18 @@ void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
 }
 
 /**
+ * Register a predicate that has been partially eliminated i.e. <=> replaced by => 
+ *
+ * This information may be used during model output
+ */
+void Problem::addPartiallyEliminatedPredicate(unsigned pred, Unit* definition)
+{
+  CALL("Problem::addPurePredicateDefinition");
+
+  _partiallyDeletedPredicates.insert(pred,definition);
+}
+
+/**
  * Recalculate the property from the current set of formulas
  */
 void Problem::refreshProperty() const

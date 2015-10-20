@@ -25,6 +25,12 @@ void Substitution::bind(int v,Term* t)
   ts.setTerm(t);
   bind(v,ts);
 }
+void Substitution::rebind(int v,Term* t)
+{
+  TermList ts;
+  ts.setTerm(t);
+  rebind(v,ts);
+}
 
 /**
  * Bind @b v to @b t.
@@ -36,6 +42,11 @@ void Substitution::bind(int v,TermList t)
 
   ALWAYS(_map.insert(v, t));
 } // Substitution::bind
+
+void Substitution::rebind(int v,TermList t)
+{
+  _map.set(v,t);
+}
 
 /**
  * Remove the binding for @b v from the substitution.

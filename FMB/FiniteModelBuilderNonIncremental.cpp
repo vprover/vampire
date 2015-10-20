@@ -14,6 +14,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Substitution.hpp"
+#include "Kernel/FormulaUnit.hpp"
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/TWLSolver.hpp"
@@ -33,6 +34,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/GeneralSplitting.hpp"
 
+#include "FiniteModel.hpp"
 #include "ClauseFlattening.hpp"
 #include "SortInference.hpp"
 #include "DefinitionIntroduction.hpp"
@@ -60,6 +62,8 @@ FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb,
 
   _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
   _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
+  _partiallyDeletedPredicates.loadFromMap(prb.getPartiallyEliminatedPredicates());
+  _trivialPredicates.loadFromMap(prb.trivialPredicates());
 
   _maxArity = 0;
   for(unsigned f=0;f<env.signature->functions();f++){
@@ -213,8 +217,8 @@ void FiniteModelBuilderNonIncremental::init()
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
-  //DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
-  ClauseIterator cit = _prb.clauseIterator();
+  DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
+  //ClauseIterator cit = _prb.clauseIterator();
   while(cit.hasNext()){
     Clause* c = cit.next();
 #if VTRACE_FMB
@@ -1041,53 +1045,15 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
   // Prevent timing out whilst the model is being printed
   Timer::setTimeLimitEnforcement(false);
 
-  vostringstream modelStm;
-  bool printIntroduced = false; 
+  bool recordIntroduced = false;
+  FiniteModel model(modelSize);
 
-  //Output domain
-  modelStm << "fof(domain,interpretation_domain," << endl;
-  modelStm << "      ! [X] : (" << endl;
-  modelStm << "         ";
-  for(unsigned i=1;i<=modelSize;i++){
-  modelStm << "X = fmb" << i;
-  if(i<modelSize) modelStm << " | ";
-  if(i==modelSize) modelStm << endl;
-  else if(i%5==0) modelStm << endl << "         ";
-  }
-  modelStm << "      ) )." <<endl;
-  //Distinctness of domain
-  modelStm << endl;
-  if(modelSize>1){
-  modelStm << "fof(distinct_domain,interpreted_domain," << endl;
-  modelStm << "         ";
-  unsigned c=0;
-  for(unsigned i=1;i<=modelSize;i++){
-    for(unsigned j=i+1;j<=modelSize;j++){
-      c++;
-      modelStm << "fmb"<<i<<" != fmb"<<j;
-      if(!(i==modelSize-1 && j==modelSize)){
-         modelStm << " & ";
-         if(c%5==0){ modelStm << endl << "         "; }
-      }
-      else{ modelStm << endl; }
-    }
-  }
-  modelStm << ")." << endl << endl;
-  }
-
-  //Output interpretation of constants
+  //Record interpretation of constants
   for(unsigned f=0;f<env.signature->functions();f++){
     if(env.signature->functionArity(f)>0) continue;
-    if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    if(del_f[f]){
-      Literal* def = _deletedFunctions.get(f);
-      Clause* defc = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::DEFINITION_UNFOLDING));
-      (*defc)[0]=def;
-      modelStm << TPTPPrinter::toString(defc) << endl;
-      continue;
-    }
-    vstring name = env.signature->functionName(f);
-    modelStm << "fof(constant_"<<name<<",functors,"<<name<< " = ";
+    if(!recordIntroduced && env.signature->getFunction(f)->introduced()) continue;
+    if(del_f[f]) continue;
+
     bool found=false;
     for(unsigned c=1;c<=modelSize;c++){
       static DArray<unsigned> grounding(1);
@@ -1096,149 +1062,300 @@ void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
       if(_solver->trueInAssignment(slit)){
         //if(found){ cout << "Error: multiple interpretations of " << name << endl;}
         ASS(!found);
-        modelStm << "fmb" << c;
         found=true;
+        model.addConstantDefinition(f,c);
       }
     }
     ASS(found);
-    modelStm << ")."<<endl;
   }
-  modelStm << endl;
 
-  //Output interpretation of functions 
+  //Record interpretation of functions 
   for(unsigned f=0;f<env.signature->functions();f++){
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
-    if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    if(del_f[f]){
-      Literal* def = _deletedFunctions.get(f);
-      Clause* defc = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::DEFINITION_UNFOLDING));
-      (*defc)[0]=def;
-      modelStm << TPTPPrinter::toString(defc) << endl;
-      continue;
-    }
-    vstring name = env.signature->functionName(f);
-    modelStm << "fof(function_"<<name<<",functors,"<<endl;
+    if(!recordIntroduced && env.signature->getFunction(f)->introduced()) continue;
+    if(del_f[f]) continue;
+
+    //cout << "For " << env.signature->getFunction(f)->name() << endl;
 
     static DArray<unsigned> grounding;
+    DArray<unsigned> args;
     grounding.ensure(arity+1);
-    for(unsigned i=0;i<arity;i++) grounding[i]=1;
+    args.ensure(arity);
+    for(unsigned i=0;i<arity;i++){
+       grounding[i]=1;
+       args[i]=1;
+    }
     grounding[arity-1]=0;
-    bool first=true;
-    //cout << "Searching... " << name << " of " << arity << endl;
+    args[arity-1]=0;
 fModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
 
         if(grounding[i]==modelSize){
           grounding[i]=1;
+          args[i]=1;
         }
         else{
           grounding[i]++;
-          //cout << "Grounding: ";
-          //for(unsigned j=0;j<grounding.size();j++) cout << grounding[j] << " ";
-          //cout << endl;
+          args[i]++;
 
-          unsigned foundc;
+          //for(unsigned j=0;j<arity;j++){ cout << args[j] << ", ";}; cout  << endl;
+
           bool found=false;
           for(unsigned c=1;c<=modelSize;c++){
             grounding[arity]=c;
             SATLiteral slit = getSATLiteral(f,grounding,true,true,modelSize);
             if(_solver->trueInAssignment(slit)){
-              //cout << "found " << c << endl;
-              if(found){ cout << "Error: multiple interpretations of " << name << endl; }
+              //if(found){ cout << "Error: multiple interpretations of " << name << endl; }
               ASS(!found);
-              foundc=c;
               found=true;
+              model.addFunctionDefinition(f,args,c);
             }
           }
-          if(!found) goto fModelLabel; 
-
-          if(!first){
-            modelStm << " & " << endl;
+          if(!found){
+             // This means that there is no result for this input
+             // This is a result of the finite sort bounding and the argument
+             // says that we can equate this domain element to a smaller one below the bound
+             //TODO fix this 
           }
-          first=false;
-          modelStm << "         " << name << "(";
-          for(unsigned j=0;j<arity;j++){
-            if(j!=0) modelStm << ",";
-            modelStm << "fmb" << grounding[j];
-          }
-          modelStm << ") = fmb" <<foundc;
 
           goto fModelLabel;
         }
       }
-    modelStm << endl << ")." << endl << endl;
   }
 
-  //Output interpretation of prop symbols 
+  //Record interpretation of prop symbols 
   static const DArray<unsigned> emptyG(0);
   for(unsigned f=1;f<env.signature->predicates();f++){
     if(env.signature->predicateArity(f)>0) continue;
-    if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    if(del_p[f]){
-      Unit* def = _deletedPredicates.get(f);
-      modelStm << TPTPPrinter::toString(def) << endl; 
-      continue;
-    }
-    vstring name = env.signature->predicateName(f);
-    modelStm << "fof(predicate_"<<name<<",predicates,";
-    SATLiteral slit = getSATLiteral(f,emptyG,true,false,modelSize);
-    if(!_solver->trueInAssignment(slit)){ modelStm << "~"; }
-    modelStm << name << ")."<<endl;
-  }
-  modelStm << endl;
+    if(!recordIntroduced && env.signature->getPredicate(f)->introduced()) continue;
+    if(del_p[f]) continue;
+    if(_partiallyDeletedPredicates.find(f)) continue;
 
-//Output interpretation of predicates 
+    bool res;
+    if(!_trivialPredicates.find(f,res)){ 
+      SATLiteral slit = getSATLiteral(f,emptyG,true,false,modelSize);
+      res=_solver->trueInAssignment(slit); 
+    }
+    model.addPropositionalDefinition(f,res);
+  }
+
+  //Record interpretation of predicates 
   for(unsigned f=1;f<env.signature->predicates();f++){
     unsigned arity = env.signature->predicateArity(f);
     if(arity==0) continue;
-    if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    if(del_p[f]){
-      Unit* def = _deletedPredicates.get(f);
-      modelStm << TPTPPrinter::toString(def) << endl; 
-      continue;
-    }
-    vstring name = env.signature->predicateName(f);
-    modelStm << "fof(predicate_"<<name<<",predicates,"<<endl;
+    if(!recordIntroduced && env.signature->getPredicate(f)->introduced()) continue;
+    if(del_p[f]) continue;
+    if(_partiallyDeletedPredicates.find(f)) continue;
 
-    static DArray<unsigned> grounding;
+    //cout << "Record for " << env.signature->getPredicate(f)->name() << endl;
+
+    DArray<unsigned> grounding;
     grounding.ensure(arity);
     for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
     grounding[arity-1]=0;
-    bool first=true;
 pModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
     
         if(grounding[i]==modelSize){
           grounding[i]=1;
-        }
+       }
         else{
           grounding[i]++;
-          if(!first){
-            modelStm << " & " << endl;
+          bool res;
+          if(!_trivialPredicates.find(f,res)){ 
+            SATLiteral slit = getSATLiteral(f,grounding,true,false,modelSize);
+            res=_solver->trueInAssignment(slit); 
           }
-          first=false;
-          modelStm << "         ";
-          SATLiteral slit = getSATLiteral(f,grounding,true,false,modelSize);
-          if(!_solver->trueInAssignment(slit)){
-            modelStm << "~";
-          }
+          //for(unsigned j=0;j<arity;j++){ cout << grounding[j] << ", ";}; cout << " = " << res << endl;
 
-          modelStm << name << "(";
-          for(unsigned j=0;j<arity;j++){
-            if(j!=0) modelStm << ",";
-            modelStm << "fmb" << grounding[j];
-          }
-          modelStm << ") ";
+          model.addPredicateDefinition(f,grounding,res);
 
           goto pModelLabel;
         }
       }
-    modelStm << endl << ")." << endl << endl;
   }
 
+  //Evaluate removed functions and constants
+  for(unsigned f=env.signature->functions()-1;f>1;f--){
+    unsigned arity = env.signature->functionArity(f);
+    if(!recordIntroduced && env.signature->getFunction(f)->introduced()) continue;
+    if(!del_f[f]) continue; 
 
-  env.statistics->model = modelStm.str();
+    Literal* def = _deletedFunctions.get(f);
+
+    //cout << "For " << env.signature->getFunction(f)->name() << endl;
+    //cout << def->toString() << endl;
+
+    ASS(def->isEquality());
+    Term* funApp = 0; 
+    Term* funDef = 0;
+
+    if(def->nthArgument(0)->term()->functor()==f){
+      funApp = def->nthArgument(0)->term();
+      funDef = def->nthArgument(1)->term();
+    }
+    else{
+      ASS(def->nthArgument(1)->term()->functor()==f);
+      funApp = def->nthArgument(1)->term();
+      funDef = def->nthArgument(0)->term();
+    }
+
+    ASS(def->polarity());
+    DArray<int> vars(arity);
+    for(unsigned i=0;i<arity;i++){
+      ASS(funApp->nthArgument(i)->isVar());
+      vars[i] = funApp->nthArgument(i)->var();
+    }
+
+    DArray<unsigned> grounding;
+    grounding.ensure(arity);
+    for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
+    grounding[arity-1]=0;
+ffModelLabel:
+      for(unsigned i=arity-1;i+1!=0;i--){
+
+        if(grounding[i]==modelSize){
+          grounding[i]=1;
+        }
+        else{
+          grounding[i]++;
+
+          Substitution subst;
+          for(unsigned j=0;j<arity;j++){
+            //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j])->toString() << endl;
+            subst.bind(vars[j],model.getDomainConstant(grounding[j]));
+          }
+          Term* defGround = SubstHelper::apply(funDef,subst);
+          //cout << predDefGround << endl;
+          try{
+            unsigned res = model.evaluateGroundTerm(defGround);
+            model.addFunctionDefinition(f,grounding,res);
+          }
+          catch(UserErrorException& exception){
+            // TODO order symbols for partial evaluation
+          }
+
+          goto ffModelLabel;
+        }
+      }
+
+
+  }
+
+  //Evaluate removed propositions and predicates
+  for(unsigned f=env.signature->predicates()-1;f>1;f--){
+    unsigned arity = env.signature->predicateArity(f);
+    if(!recordIntroduced && env.signature->getPredicate(f)->introduced()) continue;
+    if(!del_p[f] && !_partiallyDeletedPredicates.find(f)) continue;
+
+    Unit* udef = del_p[f] ? _deletedPredicates.get(f) : _partiallyDeletedPredicates.get(f);
+
+    //if(_partiallyDeletedPredicates.find(f)){
+      //cout << "For " << env.signature->getPredicate(f)->name() << endl;
+      //cout << udef->toString() << endl;
+    //}
+    Formula* def = udef->getFormula();   
+    Literal* predApp = 0;
+    Formula* predDef = 0;
+    bool polarity = true;
+    bool pure = false;
+
+    switch(def->connective()){
+      case FORALL:
+      {
+        Formula* inner = def->qarg();
+        ASS(inner->connective()==Connective::IFF);
+        Formula* left = inner->left();
+        Formula* right = inner->right(); 
+
+        if(left->connective()==Connective::NOT){
+          polarity=!polarity;
+          left = left->uarg();
+        }
+        if(right->connective()==Connective::NOT){
+          polarity=!polarity;
+          right = right->uarg();
+        }
+
+        if(left->connective()==Connective::LITERAL){
+          if(left->literal()->functor()==f){
+            predDef = right;
+            predApp = left->literal();
+          }
+        }
+        if(!predDef){
+          ASS(right->connective()==Connective::LITERAL);
+          ASS(right->literal()->functor()==f);
+          predDef = left;
+          predApp = right->literal();
+        }
+        break;
+      }
+      case TRUE:
+        pure=true;
+        polarity=true;
+        break;
+      case FALSE:
+        pure=true;
+        polarity=false;
+        break;
+      default: ASSERTION_VIOLATION;
+    }
+
+    ASS(pure || (predDef && predApp));
+    if(!pure && (!predDef || !predApp)) continue; // we failed, ignore this
+
+    DArray<int> vars(arity);
+    if(!pure){
+      if(!predApp->polarity()) polarity=!polarity;
+      for(unsigned i=0;i<arity;i++){
+        ASS(predApp->nthArgument(i)->isVar());
+        vars[i] = predApp->nthArgument(i)->var();
+      }
+    }
+
+    DArray<unsigned> grounding;
+    grounding.ensure(arity);
+    for(unsigned i=0;i<arity;i++) grounding[i]=1;
+    grounding[arity-1]=0;
+ppModelLabel:
+      for(unsigned i=arity-1;i+1!=0;i--){
+
+        if(grounding[i]==modelSize){
+          grounding[i]=1;
+        }
+        else{
+          grounding[i]++;
+
+          if(pure){
+            model.addPredicateDefinition(f,grounding,polarity);
+          }
+          else{
+            Substitution subst;
+            for(unsigned j=0;j<arity;j++){ 
+              //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j])->toString() << endl;
+              subst.bind(vars[j],model.getDomainConstant(grounding[j]));
+            }
+            Formula* predDefGround = SubstHelper::apply(predDef,subst);
+            //cout << predDefGround << endl;
+            try{
+              bool res = model.evaluate(
+                new FormulaUnit(predDefGround,new Inference(Inference::INPUT),Unit::InputType::AXIOM));
+              if(!polarity) res=!res;
+              model.addPredicateDefinition(f,grounding,res);
+            }
+            catch(UserErrorException& exception){ 
+              // TODO order symbols for partial evaluation
+            }
+          }
+
+          goto ppModelLabel;
+        }
+      }
+  }
+
+  env.statistics->model = model.toString();
 }
 
 }

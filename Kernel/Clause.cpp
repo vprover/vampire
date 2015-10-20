@@ -324,9 +324,9 @@ bool Clause::noSplits() const
 /**
  * Convert non-propositional part of the clause to vstring.
  */
-vstring Clause::nonPropToString() const
+vstring Clause::literalsOnlyToString() const
 {
-  CALL("Clause::nonPropToString");
+  CALL("Clause::literalsOnlyToString");
 
   if (_length == 0) {
     return "$false";
@@ -350,7 +350,7 @@ vstring Clause::toTPTPString() const
 {
   CALL("Clause::toTPTPString()");
 
-  vstring result = nonPropToString();
+  vstring result = literalsOnlyToString();
 
   return result;
 }
@@ -362,7 +362,7 @@ vstring Clause::toNiceString() const
 {
   CALL("Clause::toNiceString()");
 
-  vstring result = nonPropToString();
+  vstring result = literalsOnlyToString();
 
   if (splits() && !splits()->isEmpty()) {
     result += vstring(" {") + splits()->toString() + "}";
@@ -379,9 +379,7 @@ vstring Clause::toString() const
 {
   CALL("Clause::toString()");
 
-  //if(isExtensionality()){ cout << "EXTENSIONALITY" << endl; }
-
-  vstring result = Int::toString(_number) + ". " + nonPropToString();
+  vstring result = Int::toString(_number) + ". " + literalsOnlyToString();
 
   if (splits() && !splits()->isEmpty()) {
     result += vstring(" {") + splits()->toString() + "}";
@@ -407,7 +405,7 @@ vstring Clause::toString() const
 VirtualIterator<vstring> Clause::toSimpleClauseStrings()
 {
   CALL("toSimpleClauseStrings");
-    return pvi(getSingletonIterator(nonPropToString()));
+    return pvi(getSingletonIterator(literalsOnlyToString()));
 
 }
 

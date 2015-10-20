@@ -88,6 +88,7 @@ void Options::Options::init()
                                     {"axiom_selection","bpa","casc",
                                         "casc_ltb","casc_sat","clausify",
                                         "consequence_elimination","grounding",
+                                        "model_check",
                                         //"ltb_build","ltb_solve",
                                         "output","preprocess",
                                         "profile","program_analysis","random_strategy",
@@ -200,6 +201,14 @@ void Options::Options::init()
     "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
+
+    _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
+    _proofExtra.description="Add extra detail to proofs. "
+      "When 'free' this uses known information only. " 
+      "When 'full' this is allowed to perform expensive operations to acheive this so may"
+      " significantly impact on performance. The option is experimental and the format "
+      "of extra information may change between minor releases";
+    _lookup.insert(&_proofExtra);
 
     _proofChecking = BoolOptionValue("proof_checking","",false);
     _proofChecking.description="";
@@ -1219,6 +1228,14 @@ void Options::Options::init()
             {"lingeling","minisat","vampire","z3"});
 #else
             {"lingeling","minisat","vampire"});
+#endif
+
+#if VZ3
+    _z3UnsatCores = BoolOptionValue("z3_unsat_core","z3uc",false);
+    _z3UnsatCores.description=""; 
+    _lookup.insert(&_z3UnsatCores);
+    _z3UnsatCores.setExperimental();
+    _z3UnsatCores.tag(OptionTag::SAT);
 #endif
 
     _satVarActivityDecay = FloatOptionValue("sat_var_activity_decay","",1.05f);

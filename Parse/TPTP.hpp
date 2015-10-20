@@ -497,6 +497,8 @@ private:
   bool findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol);
   /** the scope of the currently parsed $let-term */
   LetFunctionsScope _currentLetScope;
+  /** model definition formula */
+  bool _modelDefinition;
 
   /**
    * Get the next characters at the position pos.

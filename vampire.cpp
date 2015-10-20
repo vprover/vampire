@@ -75,6 +75,8 @@
 #include "SAT/TWLSolver.hpp"
 #include "SAT/Preprocess.hpp"
 
+#include "FMB/ModelCheck.hpp"
+
 #if IS_LINGVA
 #include "Program/Lingva.hpp"
 #endif
@@ -509,6 +511,23 @@ void preprocessMode()
 } // preprocessMode
 
 /**
+ *
+ * @author Giles
+ * @since 6/10/2015
+ */
+void modelCheckMode()
+{
+  CALL("modelCheckMode");
+
+  env.options->setOutputAxiomNames(true);
+  Problem* prb = UIHelper::getInputProblem(*env.options);
+
+  FMB::ModelCheck::doCheck(prb);
+
+} // modelCheckMode
+
+
+/**
  * This mode only outputs the input problem. It is useful for converting
  * one syntax to another.
  * @author Laura Kovacs and Andrei Voronkov
@@ -551,6 +570,7 @@ static SATClauseIterator preprocessClauses(SATClauseList* clauses) {
   
   return SAT::Preprocess::removeDuplicateLiterals(pvi(SATClauseList::DestructiveIterator(clauses)));
 }
+
 
 void satSolverMode()
 {
@@ -927,6 +947,9 @@ int main(int argc, char* argv[])
       break;
     }
 */
+    case Options::Mode::MODEL_CHECK:
+      modelCheckMode();
+      break;
     case Options::Mode::CLAUSIFY:
       clausifyMode();
       break;

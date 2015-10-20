@@ -48,13 +48,13 @@ public:
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  virtual VarAssignment getAssignment(unsigned var);
+  virtual VarAssignment getAssignment(unsigned var) override;
 
   /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
-  virtual bool isZeroImplied(unsigned var);
+  virtual bool isZeroImplied(unsigned var) override;
   /**
    * Collect zero-implied literals.
    *
@@ -62,7 +62,7 @@ public:
    *
    * @see isZeroImplied()
    */
-  virtual void collectZeroImplied(SATLiteralStack& acc);
+  virtual void collectZeroImplied(SATLiteralStack& acc) override;
   /**
    * Return a valid clause that contains the zero-implied literal
    * and possibly the assumptions that implied it. Return 0 if @c var
@@ -70,7 +70,7 @@ public:
    * If called on a proof producing solver, the clause will have
    * a proper proof history.
    */
-  virtual SATClause* getZeroImpliedCertificate(unsigned var);
+  virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
   virtual void ensureVarCount(unsigned newVarCnt) override;
   
@@ -85,14 +85,14 @@ public:
   /**
    * Add an assumption into the solver.
    */
-  virtual void addAssumption(SATLiteral lit);
+  virtual void addAssumption(SATLiteral lit) override;
   
-  virtual void retractAllAssumptions() {
+  virtual void retractAllAssumptions() override {
     _assumptions.clear();
     _status = UNKNOWN;
   };
   
-  virtual bool hasAssumptions() const {
+  virtual bool hasAssumptions() const override {
     return (_assumptions.size() > 0);
   };
 
@@ -100,7 +100,7 @@ public:
   * Record the association between a SATLiteral var and a Literal
   * In TWLSolver this is used for computing niceness values
   */
-  virtual void recordSource(unsigned satlitvar, Literal* lit) {
+  virtual void recordSource(unsigned satlitvar, Literal* lit) override {
     // unsupported by minisat; intentionally no-op
   };
   

@@ -199,6 +199,11 @@ public:
     // update _tagNames at the end of Options constructor if you add a tag
     
 
+  enum class ProofExtra : unsigned int {
+    OFF,
+    FREE,
+    FULL
+  };
   enum class FMBWidgetOrders : unsigned int {
     FUNCTION_FIRST, // f(1) f(2) f(3) ... g(1) g(2) ...
     ARGUMENT_FIRST, // f(1) g(1) h(1) ... f(2) g(2) ...
@@ -317,6 +322,7 @@ public:
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     GROUNDING,
+    MODEL_CHECK,
     //LTB_BUILD,
     //LTB_SOLVE,
     /** this mode only outputs the input problem, without any preprocessing */
@@ -997,7 +1003,7 @@ private:
         RatioOptionValue(vstring l, vstring s, int def, int other, char sp=':') :
         OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
         
-        virtual OptionValueConstraint<int>* getNotDefault(){ return isNotDefaultRatio(); }
+        virtual OptionValueConstraint<int>* getNotDefault() override { return isNotDefaultRatio(); }
 
         template<typename S>
         void addConstraintIfNotDefault(WrappedConstraint<S>* c){
@@ -1005,7 +1011,7 @@ private:
         }
         
         bool readRatio(const char* val,char seperator);
-        bool setValue(const vstring& value){
+        bool setValue(const vstring& value) override {
             return readRatio(value.c_str(),sep);
         }
         
@@ -1013,13 +1019,13 @@ private:
         int defaultOtherValue;
         int otherValue;
         
-        virtual void output(ostream& out) const {
+        virtual void output(ostream& out) const override {
             AbstractOptionValue::output(out);
             out << "\tdefault left: " << defaultValue << endl;
             out << "\tdefault right: " << defaultOtherValue << endl;
         }
         
-        virtual vstring getStringOfValue(int value) const{ ASSERTION_VIOLATION;}
+        virtual vstring getStringOfValue(int value) const override { ASSERTION_VIOLATION;}
         virtual vstring getStringOfActual() const override {
             return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue);
         }
@@ -1620,6 +1626,7 @@ public:
   Statistics statistics() const { return _statistics.actualValue; }
   void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
   Proof proof() const { return _proof.actualValue; }
+  ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
   bool fmbIncremental() const { return _fmbIncremental.actualValue; }
@@ -1667,6 +1674,7 @@ public:
   bool showFOOL() const { return _showFOOL.actualValue; }
 #if VZ3
   bool showZ3() const { return _showZ3.actualValue; }
+  bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
 #endif
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -2077,6 +2085,7 @@ private:
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
+  ChoiceOptionValue<ProofExtra> _proofExtra;
   BoolOptionValue _proofChecking;
   
   StringOptionValue _protectedPrefix;
@@ -2124,6 +2133,7 @@ private:
   BoolOptionValue _showFOOL;
 #if VZ3
   BoolOptionValue _showZ3;
+  BoolOptionValue _z3UnsatCores;
 #endif
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;

@@ -141,7 +141,7 @@ struct PredicateDefinition::PredData
   USE_ALLOCATOR_ARRAY;
 };
 
-PredicateDefinition::PredicateDefinition(bool trace)
+PredicateDefinition::PredicateDefinition()
 : _processedPrb(0), _predCnt(env.signature->predicates())
 {
   int predCnt=env.signature->predicates();
@@ -224,6 +224,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
       env.out() << "[PP] definition " << (*def) << " removed" << std::endl;
       env.endOutput();
     }
+    _processedPrb->addEliminatedPredicate(pred,def);
   }
   else {
     //otherwise it occurs either only positively or only negatively,
@@ -248,6 +249,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
       
       return;
     }
+    _processedPrb->addPartiallyEliminatedPredicate(pred,def);
 
     if (env.options->showPreprocessing()) {
       env.beginOutput();

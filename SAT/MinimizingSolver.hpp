@@ -32,7 +32,7 @@ public:
 
   MinimizingSolver(SATSolver* inner);
 
-  virtual SATClause* getRefutation() { return _inner->getRefutation(); }
+  virtual SATClause* getRefutation() override { return _inner->getRefutation(); }
   virtual SATClauseList* getRefutationPremiseList() override {
     return _inner->getRefutationPremiseList();
   }
@@ -44,10 +44,10 @@ public:
   virtual void addClauseIgnoredInPartialModel(SATClause* cl) override;
   virtual Status solve(unsigned conflictCountLimit) override;
   
-  virtual VarAssignment getAssignment(unsigned var);
-  virtual bool isZeroImplied(unsigned var);
-  virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) { return _inner->getZeroImpliedCertificate(var); }
+  virtual VarAssignment getAssignment(unsigned var) override;
+  virtual bool isZeroImplied(unsigned var) override;
+  virtual void collectZeroImplied(SATLiteralStack& acc) override { _inner->collectZeroImplied(acc); }
+  virtual SATClause* getZeroImpliedCertificate(unsigned var) override { return _inner->getZeroImpliedCertificate(var); }
 
   virtual void ensureVarCount(unsigned newVarCnt) override;
 
@@ -60,7 +60,7 @@ public:
   }
 
   virtual void suggestPolarity(unsigned var, unsigned pol) override { _inner->suggestPolarity(var,pol); }
-  virtual void recordSource(unsigned var, Literal* lit){
+  virtual void recordSource(unsigned var, Literal* lit) override {
     _inner->recordSource(var,lit);
   }
 

@@ -147,9 +147,9 @@ MINISAT_OBJ = Minisat/core/Solver.o\
 
 API_OBJ = Api/FormulaBuilder.o\
 	  Api/Helper.o\
-	  Api/Problem.o\
 	  Api/ResourceLimits.o\
 	  Api/Tracing.o
+#	  Api/Problem.o\	  
 
 VD_OBJ = Debug/Assertion.o\
          Debug/RuntimeStatistics.o\
@@ -278,7 +278,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/DIMACS.o\
-         SAT/ISSatSweeping.o\
          SAT/MinimizingSolver.o\
          SAT/Preprocess.o\
          SAT/RestartStrategy.o\
@@ -292,6 +291,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
 	 SAT/Z3Interfacing.o\
          SAT/lglib.o\
 	 SAT/BufferedSolver.o
+#         SAT/ISSatSweeping.o\	 
 #         SAT/SATClauseSharing.o\
 #         SAT/TransparentSolver.o\
 #         SAT/SingleWatchSAT.o
@@ -408,6 +408,7 @@ VTAB_OBJ = Tabulation/Producer.o\
 
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
+	   FMB/FiniteModel.o\
            FMB/FiniteModelBuilderNonIncremental.o
            #FMB/FiniteModelBuilderIncremental.o
 
@@ -422,8 +423,8 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/CompitOutput.o\
          Test/Compit2Output.o\
          Test/Output.o\
-         Test/TestUtils.o\
          Test/UnitTesting.o
+#         Test/TestUtils.o\         
 
 VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))
 

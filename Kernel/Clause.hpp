@@ -117,7 +117,7 @@ public:
 
   void destroy();
   void destroyExceptInferenceObject();
-  vstring nonPropToString() const;
+  vstring literalsOnlyToString() const;
   vstring toString() const;
   vstring toTPTPString() const;
   vstring toNiceString() const;

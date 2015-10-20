@@ -33,8 +33,6 @@ public:
   
   FiniteModelBuilderNonIncremental(Problem& prb, const Options& opt);
 
-  static Term* getConstant(unsigned i);
-
 protected:
   virtual void init();
   virtual MainLoopResult runImpl();
@@ -69,6 +67,8 @@ private:
 
   DHMap<unsigned,Literal*> _deletedFunctions;
   DHMap<unsigned,Unit*> _deletedPredicates;
+  DHMap<unsigned,Unit*> _partiallyDeletedPredicates; 
+  DHMap<unsigned,bool> _trivialPredicates;
   DArray<unsigned> del_f;
   DArray<unsigned> del_p;
 

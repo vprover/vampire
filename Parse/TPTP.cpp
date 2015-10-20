@@ -60,6 +60,7 @@ TPTP::TPTP(istream& in)
     _in(&in),
     _includeDirectory(""),
     _currentColor(COLOR_TRANSPARENT),
+    _modelDefinition(false),
     _unitSources(0),
     _filterReserved(false)
 {
@@ -1227,7 +1228,10 @@ void TPTP::fof(bool fo)
   vstring tp = name();
 
   _isQuestion = false;
-  if (tp == "axiom" || tp == "plain") {
+  if(_modelDefinition){
+    _lastInputType = Unit::MODEL_DEFINITION;
+  }
+  else if (tp == "axiom" || tp == "plain") {
     _lastInputType = Unit::AXIOM;
   }
   else if(tp == "extensionality"){
@@ -2156,12 +2160,13 @@ void TPTP::endEquality()
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
 
-  unsigned lhsSort = sortOf(lhs);
-  unsigned rhsSort = sortOf(rhs);
-
-  if (lhsSort != rhsSort) {
-    USER_ERROR("Cannot create equality between " + lhs.toString() + " of sort " + env.sorts->sortName(lhsSort) + " and " +
-                                                   rhs.toString() + " of sort " + env.sorts->sortName(rhsSort) + ".");
+  if (sortOf(rhs) != sortOf(lhs)) {
+    unsigned rsort = sortOf(rhs); 
+    unsigned lsort = sortOf(lhs);
+    USER_ERROR("Cannot create equality between terms of different types.\n"+
+      rhs.toString()+" is "+Int::toString(rsort)+"\n"+
+      lhs.toString()+" is "+Int::toString(lsort)
+    );
   }
 
   Literal* l = createEquality(_bools.pop(),lhs,rhs);
@@ -3792,6 +3797,23 @@ void TPTP::vampire()
   }
   else if (nm == "end_formula") { // e.g. vampire(left_formula)
     _currentColor = COLOR_TRANSPARENT;
+  }
+  else if (nm == "model_check"){
+    consumeToken(T_COMMA);
+    vstring command = name();
+    if(command == "formulas_start"){
+      _modelDefinition = false;
+    }
+    else if(command == "formulas_end"){
+      // do nothing
+    }
+    else if(command == "model_start"){
+      _modelDefinition = true;
+    }
+    else if(command == "model_end"){
+      _modelDefinition = false;
+    }
+    else USER_ERROR("Unknown model_check command");
   }
   else {
     USER_ERROR((vstring)"Unknown vampire directive: "+nm);

@@ -206,7 +206,7 @@ public:
   void scan(FormulaUnit*);
   void scan(Formula*);
   void scan(TermList* ts);
-  void scan(Literal* lit);
+  void scan(Literal* lit,int polarity = 1);
   void scanSpecialTerm(Term* t);
   void scanSort(unsigned sort);
 

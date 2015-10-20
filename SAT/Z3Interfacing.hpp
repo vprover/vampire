@@ -27,34 +27,27 @@ public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
   
-  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool generateProofs=false);
-
   /**
-   * Can be called only when all assumptions are retracted
-   *
-   * A requirement is that in each clause, each variable occurs at most once.
+   * If @c unsatCoresForAssumptions is set, the solver is configured to use
+   * the "unsat-core" option (may negatively affect performance) and uses
+   * this feature to extract a subset of used assumptions when
+   * called via solveUnderAssumptions.
    */
-  virtual void addClauses(SATClauseIterator cit);
-  void addClause(SATClause* cl);
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions = false);
+
+  void addClause(SATClause* cl) override;
 
   virtual Status solve(unsigned conflictCountLimit) override;
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  virtual VarAssignment getAssignment(unsigned var);
-
-  /**
-   * Try to find another assignment which is likely to be different from the current one
-   *
-   * @pre Solver must be in SATISFIABLE status
-   */
-  virtual void randomizeAssignment();
+  virtual VarAssignment getAssignment(unsigned var) override;
 
   /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
-  virtual bool isZeroImplied(unsigned var);
+  virtual bool isZeroImplied(unsigned var) override;
   /**
    * Collect zero-implied literals.
    *
@@ -62,7 +55,7 @@ public:
    *
    * @see isZeroImplied()
    */
-  virtual void collectZeroImplied(SATLiteralStack& acc);
+  virtual void collectZeroImplied(SATLiteralStack& acc) override;
   /**
    * Return a valid clause that contains the zero-implied literal
    * and possibly the assumptions that implied it. Return 0 if @c var
@@ -70,38 +63,33 @@ public:
    * If called on a proof producing solver, the clause will have
    * a proper proof history.
    */
-  virtual SATClause* getZeroImpliedCertificate(unsigned var);
+  virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
   // Not required for Z3, but let's keep track of the counter
-  virtual void ensureVarCnt(unsigned newVarCnt) {
+  virtual void ensureVarCount(unsigned newVarCnt) override {
     CALL("Z3Interfacing::ensureVarCnt");
     _varCnt = max(newVarCnt,_varCnt);
   }
 
-  virtual unsigned newVar() {
+  virtual unsigned newVar() override {
     CALL("Z3Interfacing::newVar");
     return ++_varCnt;
   }
 
   // Currently not implemented for Z3
-  virtual void suggestPolarity(unsigned var, unsigned pol){} 
-  virtual void forcePolarity(unsigned var, unsigned pol) {}
+  virtual void suggestPolarity(unsigned var, unsigned pol) override {}
   
-  virtual void addAssumption(SATLiteral lit) {
-    CALL("Z3Interfacing::addAssumption");
-    NOT_IMPLEMENTED;
-  }
-  
-  virtual void retractAllAssumptions(){} 
-  
-  virtual bool hasAssumptions() const{ return false; }
+  virtual void addAssumption(SATLiteral lit) override;
+  virtual void retractAllAssumptions() override { _assumptions.resize(0); }
+  virtual bool hasAssumptions() const override { return !_assumptions.empty(); }
 
+  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned, bool) override;
 
  /**
   * Record the association between a SATLiteral var and a Literal
   * In TWLSolver this is used for computing niceness values
   */
-  virtual void recordSource(unsigned satlitvar, Literal* lit) {
+  virtual void recordSource(unsigned satlitvar, Literal* lit) override {
     // unsupported by Z3; intentionally no-op
   };
   
@@ -112,9 +100,9 @@ public:
    *
    * TODO: think of extracting true refutation from Z3 instead.
    */
-  SATClauseList* getRefutationPremiseList() override {
-    return 0;
-  }
+  SATClauseList* getRefutationPremiseList() override{ return 0; } 
+
+  SATClause* getRefutation() override;  
 
 private:
   // just to conform to the interface
@@ -156,7 +144,11 @@ private:
   z3::solver _solver;
   z3::model _model;
 
+  z3::expr_vector _assumptions;
+  bool _unsatCoreForAssumptions;
+
   bool _showZ3;
+  bool _unsatCoreForRefutations;
 };
 
 }//end SAT namespace

@@ -44,15 +44,15 @@ public:
 
   SimpleCongruenceClosure(Ordering& ord);
 
-  virtual void addLiterals(LiteralIterator lits, bool onlyEqualites);
+  virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override;
 
-  virtual Status getStatus(bool retrieveMultipleCores);
-  virtual unsigned getUnsatCoreCount() { return _unsatEqs.size(); }
-  virtual void getUnsatCore(LiteralStack& res, unsigned coreIndex);
+  virtual Status getStatus(bool retrieveMultipleCores) override;
+  virtual unsigned getUnsatCoreCount() override { return _unsatEqs.size(); }
+  virtual void getUnsatCore(LiteralStack& res, unsigned coreIndex) override;
 
   void getModel(LiteralStack& model) override;
   
-  virtual void reset();
+  virtual void reset() override;
 
 private:
   Ordering& _ord;

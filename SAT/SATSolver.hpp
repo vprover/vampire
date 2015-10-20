@@ -226,7 +226,7 @@ public:
   // access to the model after it returns SATISFIABLE, as it uses retractAllAssumptions
   // to clean in the end.
 
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) {
+  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) {
     CALL("SATSolver::solveUnderAssumptions");
 
     ASS(!hasAssumptions());

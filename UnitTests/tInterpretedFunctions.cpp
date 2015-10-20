@@ -24,6 +24,7 @@ using namespace Shell;
 
 void interpret(Literal* lit)
 {
+  /* TODO: currently does not compile
 
   cout << endl;
   cout << "Start with: " << lit->toString() << endl;
@@ -35,14 +36,14 @@ void interpret(Literal* lit)
   bool constantTrue;
 
   eval->evaluate(lit,constant,res,constantTrue);
-  
+
   cout << "constant="<<constant<<",constantTrue="<<constantTrue<<endl;
   if(res){
      cout << "res= " << res->toString() << endl;
   }else{
      cout << "res not defined" << endl;
   }
-
+   */
 }
 
 // Interpret x*2=5

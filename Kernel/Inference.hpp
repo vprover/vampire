@@ -299,6 +299,11 @@ public:
   static vstring ruleName(Rule rule);
   vstring name() const { return ruleName(_rule); }
 
+  // TODO used in some proofExtra output
+  //      find a better place for this
+  static bool positionIn(TermList& subterm,TermList* term, vstring& position);
+  static bool positionIn(TermList& subterm,Term* term, vstring& position);
+
   CLASS_NAME(Inference);
   USE_ALLOCATOR(Inference);
 
@@ -321,9 +326,16 @@ public:
   /** Return the inference rule */
   Rule rule() const { return _rule; }
 
+  /** Set extra string */
+  void setExtra(vstring e){ _extra=e; }
+  /** Return the extra string */
+  vstring extra() { return _extra; }
+
 protected:
   /** The rule used */
   Rule _rule;
+  /** Extra information */
+  vstring _extra;
 }; // class Inference
 
 /**

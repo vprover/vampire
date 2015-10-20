@@ -217,7 +217,7 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 	vars.insert(var);
       }
     }
-    res=cl->nonPropToString();
+    res=cl->literalsOnlyToString();
   } else {
     Formula* formula=static_cast<FormulaUnit*>(u)->formula();
     FormulaVarIterator fvit( formula );
@@ -254,6 +254,7 @@ struct InferenceStore::ProofPrinter
 
     outputAxiomNames=env.options->outputAxiomNames();
     delayPrinting=true;
+    proofExtra=env.options->proofExtra()!=Options::ProofExtra::OFF;
   }
 
   void scheduleForPrinting(Unit* us)
@@ -299,13 +300,6 @@ protected:
     Inference::Rule rule;
     UnitIterator parents=_is->getParents(cs, rule);
 
-    //cout << rule << " with parents ";
-    //while(parents.hasNext()){
-    //  cout << _is->getUnitIdStr(parents.next())<< " ";
-    //}
-    //cout<<"\n";
-    //parents = _is->getParents(cs,rule);
-
     out << _is->getUnitIdStr(cs) << ". ";
     if (cs->isClause()) {
       Clause* cl=cs->asClause();
@@ -314,11 +308,17 @@ protected:
         out << " C" << cl->color() << " ";
       }
 
-      out << cl->nonPropToString();
+      out << cl->literalsOnlyToString() << " ";
       if (cl->splits() && !cl->splits()->isEmpty()) {
-        out << " {" << cl->splits()->toString() << "}";
+        out << " {" << cl->splits()->toString() << "} ";
       }
-      out << " ("<<cl->age()<<':'<<cl->weight()<<") ";
+      if(proofExtra){
+        out << "("<<cl->age()<<':'<<cl->weight();
+        if (cl->numSelected()>0) {
+          out<< ':'<< cl->numSelected();
+        }
+        out<<") ";
+      }
     }
     else {
       FormulaUnit* fu=static_cast<FormulaUnit*>(cs);
@@ -343,8 +343,12 @@ protected:
       first=false;
     }
 
+    // print Extra
+    vstring extra = cs->inference()->extra(); 
+    if(extra != ""){
+      out << ", " << extra;
+    }
     out << "]" << endl;
-
   }
 
   void handleStep(Unit* cs)
@@ -390,6 +394,7 @@ protected:
 
   bool outputAxiomNames;
   bool delayPrinting;
+  bool proofExtra;
 };
 
 struct InferenceStore::TPTPProofPrinter

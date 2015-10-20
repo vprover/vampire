@@ -40,20 +40,20 @@ public:
 	/**
 	* In case the status of the problem is SATISFIABLE, then return the assigned value for var
 	*/
-	virtual VarAssignment getAssignment(unsigned var);
+	virtual VarAssignment getAssignment(unsigned var) override;
 	
 	/**
 	* In case the solver has status SATISFIABLE and the assignment of @c var was done at level 1, 
 	* return 1.  
 	* 
 	*/
-	virtual bool isZeroImplied(unsigned var);
+	virtual bool isZeroImplied(unsigned var) override;
   
 	/**
 	* collect all the zero-implied variables 
 	* should be used only for SATISFIABLE or UNKNOWN
 	*/
-	virtual void collectZeroImplied(SATLiteralStack& acc);
+	virtual void collectZeroImplied(SATLiteralStack& acc) override;
 
 	/**
    	* Return a valid clause that contains the zero-implied literal
@@ -62,12 +62,12 @@ public:
    	* If called on a proof producing solver, the clause will have
    	* a proper proof history.
    	*/
-	virtual SATClause* getZeroImpliedCertificate(unsigned var){ return 0; }
+	virtual SATClause* getZeroImpliedCertificate(unsigned var) override { return 0; }
 	
 	/**
 	* Adds an assumption to the solver. 
 	*/
-	virtual void addAssumption(SATLiteral literal);
+	virtual void addAssumption(SATLiteral literal) override;
   
   //since lingeling allows assumption of clauses, let's have a function which does that
 	void addCAssumption(SATClause* clause, unsigned conflictingCountLimit);
@@ -75,18 +75,18 @@ public:
 	/**
 	* Retracts all the assumption made until now.
 	*/
-	virtual void retractAllAssumptions();
+	virtual void retractAllAssumptions() override;
 
 	/**
 	* check if there is at least one assumption made until now
 	*/
-	virtual bool hasAssumptions() const;
+	virtual bool hasAssumptions() const override;
 
 	void printLingelingStatistics();
 	void printAssignment();
 
 	//Not used in Lingeling
-	virtual void recordSource(unsigned var, Literal* lit) { /* intentionally no-op */ };
+	virtual void recordSource(unsigned var, Literal* lit) override { /* intentionally no-op */ };
 
 	Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
   

@@ -52,6 +52,8 @@ public:
     CLAIM = 4,
     /** Used in parsing and preprocessing for extensionality clause tagging */
     EXTENSIONALITY_AXIOM = 5,
+    /** Used to seperate model definitions in model_check mode */
+    MODEL_DEFINITION = 6
   };
 
   static InputType getInputType(UnitList* units);

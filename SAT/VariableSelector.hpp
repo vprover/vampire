@@ -68,7 +68,7 @@ public:
     return _sels[_ctr%4==0]->selectVariable(var);
   }
 
-  virtual void ensureVarCount(unsigned varCnt) override {
+  virtual void ensureVarCount(unsigned varCnt) {
     CALL("AlternatingVariableSelector::ensureVarCount");
 
     VariableSelector::ensureVarCount(varCnt);
@@ -121,7 +121,7 @@ public:
         _activityHeap(decayFactor,(niceness_option!=Options::Niceness::NONE),*this) {}
 
   virtual bool selectVariable(unsigned& var);
-  virtual void ensureVarCount(unsigned varCnt) override;
+  virtual void ensureVarCount(unsigned varCnt);
   virtual void onInputClauseAdded(SATClause* cl);
 
   virtual void onVariableInConflict(unsigned var)
@@ -275,7 +275,7 @@ public:
 
   virtual bool selectVariable(unsigned& var);
 
-  virtual void ensureVarCount(unsigned varCnt) override
+  virtual void ensureVarCount(unsigned varCnt)
   {
     VariableSelector::ensureVarCount(varCnt);
     _activities.expand(varCnt+1, 0);
@@ -337,7 +337,7 @@ public:
 
   virtual void onInputClauseAdded(SATClause* cl);
 
-  virtual void ensureVarCount(unsigned varCnt) override
+  virtual void ensureVarCount(unsigned varCnt)
   {
     ArrayActiveVariableSelector::ensureVarCount(varCnt);
     _niceness.expand(varCnt+1, 0);

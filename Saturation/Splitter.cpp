@@ -77,7 +77,7 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       { BYPASSING_ALLOCATOR
-      _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(),true);
+      _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming());
       }
       break;
 #endif

@@ -29,7 +29,7 @@ TEST_FUN(dis1)
   cout << endl;
 
   static DisagreementSetIterator dsit;
-  dsit.reset(px, px, true);
+  dsit.reset(px, py, true);
 
   while (dsit.hasNext()) {
     pair<TermList, TermList> diff=dsit.next();

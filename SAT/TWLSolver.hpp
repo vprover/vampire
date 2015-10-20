@@ -83,19 +83,19 @@ public:
 
 
 
-  virtual VarAssignment getAssignment(unsigned var);
-  virtual bool isZeroImplied(unsigned var);
-  virtual void collectZeroImplied(SATLiteralStack& acc);
-  virtual SATClause* getZeroImpliedCertificate(unsigned var);
+  virtual VarAssignment getAssignment(unsigned var) override;
+  virtual bool isZeroImplied(unsigned var) override;
+  virtual void collectZeroImplied(SATLiteralStack& acc) override;
+  virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
-  virtual void addAssumption(SATLiteral lit);
-  virtual void retractAllAssumptions();
-  virtual bool hasAssumptions() const { return _assumptionsAdded; }
+  virtual void addAssumption(SATLiteral lit) override;
+  virtual void retractAllAssumptions() override;
+  virtual bool hasAssumptions() const override { return _assumptionsAdded; }
 
   /**
    * Is only valid until the next call to solve()!
    */
-  virtual SATClause* getRefutation() {
+  virtual SATClause* getRefutation() override {
     CALL("TWLSolver::getRefutation");
     return _refutation;
   }
@@ -103,7 +103,7 @@ public:
   void assertValid();
   void printAssignment();
 
-  virtual void recordSource(unsigned satlit, Literal* lit);
+  virtual void recordSource(unsigned satlit, Literal* lit) override;
 
   Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
   const SATLiteralStack& explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit, bool randomize) override;

@@ -358,12 +358,14 @@ void Property::scan(Formula* formula)
       _atoms++;
       Literal* lit = f->literal();
       if (lit->isEquality()) {
-        _equalityAtoms++;
-        if (lit->isPositive()) {
-          _positiveEqualityAtoms++;
-        }
+	_equalityAtoms++;
+	if ((lit->isPositive() && polarity == 1) ||
+	    (!lit->isPositive() && polarity == -1) ||
+	    polarity == 0) {
+	  _positiveEqualityAtoms++;
+	}
       }
-      scan(lit);
+      scan(lit,polarity);
       break;
     }
     case BOOL_TERM: {
@@ -433,7 +435,7 @@ void Property::scanSort(unsigned sort)
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
  */
-void Property::scan(Literal* lit)
+void Property::scan(Literal* lit, int polarity)
 {
   CALL("Property::scan(const Literal*...)");
 
@@ -457,7 +459,8 @@ void Property::scan(Literal* lit)
   scan(lit->args());
 
   if (!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality() && lit->shared()
-     && lit->isNegative() && !lit->ground() &&
+     && ((lit->isNegative() && polarity == 1) || (!lit->isNegative() && polarity == -1) || polarity == 0)
+     && !lit->ground() &&
      ( ( lit->nthArgument(0)->isVar() &&
 	 !lit->nthArgument(1)->containsSubterm(*lit->nthArgument(0)) ) ||
        ( lit->nthArgument(1)->isVar() &&
