@@ -62,7 +62,8 @@ TPTP::TPTP(istream& in)
     _currentColor(COLOR_TRANSPARENT),
     _modelDefinition(false),
     _unitSources(0),
-    _filterReserved(false)
+    _filterReserved(false),
+    _insideEqualityArgument(0)
 {
 } // TPTP::TPTP
 
@@ -1623,8 +1624,8 @@ void TPTP::formula()
 
   _connectives.push(-1);
   _states.push(END_FORMULA);
-   _states.push(SIMPLE_FORMULA);
-  } // formula
+  _states.push(SIMPLE_FORMULA);
+} // formula
 
 /**
  *
@@ -1654,6 +1655,10 @@ void TPTP::termInfix()
     case T_IFF:
     case T_IMPLY:
     case T_REVERSE_IMP:
+      if (_insideEqualityArgument > 0) {
+        _states.push(END_TERM);
+        return;
+      }
       _connectives.push(-1);
       _states.push(END_FORMULA_INSIDE_TERM);
       _states.push(END_FORMULA);
@@ -2103,10 +2108,9 @@ void TPTP::formulaInfix()
   Token tok = getTok(0);
 
   if (tok.tag == T_EQUAL || tok.tag == T_NEQ) {
-    resetToks();
-    _bools.push(tok.tag == T_EQUAL);
     _states.push(END_EQ);
     _states.push(TERM);
+    _states.push(MID_EQ);
     _states.push(END_TERM);
     return;
   }
@@ -2157,6 +2161,8 @@ void TPTP::endEquality()
 {
   CALL("TPTP::endEquality");
 
+  _insideEqualityArgument--;
+
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
 
@@ -2180,6 +2186,8 @@ void TPTP::endEquality()
 void TPTP::midEquality()
 {
   CALL("TPTP::midEquality");
+
+  _insideEqualityArgument++;
 
   Token tok = getTok(0);
   switch (tok.tag) {

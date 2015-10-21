@@ -500,6 +500,10 @@ private:
   /** model definition formula */
   bool _modelDefinition;
 
+  // A hack to hard-code the precedence of = and != higher than connectives
+  // This is needed for implementation of FOOL
+  unsigned _insideEqualityArgument;
+
   /**
    * Get the next characters at the position pos.
    */
