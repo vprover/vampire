@@ -61,9 +61,9 @@ TPTP::TPTP(istream& in)
     _includeDirectory(""),
     _currentColor(COLOR_TRANSPARENT),
     _modelDefinition(false),
+    _insideEqualityArgument(0),
     _unitSources(0),
-    _filterReserved(false),
-    _insideEqualityArgument(0)
+    _filterReserved(false)
 {
 } // TPTP::TPTP
 
