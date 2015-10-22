@@ -54,6 +54,17 @@ public:
   
   virtual void reset() override;
 
+  /**
+   * After a call to getStatus (and before reset)
+   * this function returns a class id representing a given term.
+   *
+   * The term must have been a sub-term (not necessarily proper)
+   * of some of the terms in the input.
+   */
+  unsigned getClassID(TermList t) {
+    return deref(_termNames.get(t));
+  }
+
 private:
   Ordering& _ord;
   
