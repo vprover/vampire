@@ -22,12 +22,94 @@ using namespace Shell;
 
 class SMTLIB2 {
 public:
+  // TODO: kill this later
   enum Mode {
     READ_BENCHMARK = 0,
     DECLARE_SORTS = 1,
     DECLARE_SYMBOLS = 2,
     BUILD_FORMULA = 3
   };
+
+  SMTLIB2(const Options& opts, Mode mode = BUILD_FORMULA);
+
+  void parse(istream& str);
+  void parse(LExpr* bench);
+
+
+
+
+private:
+
+  enum SmtlibLogic {
+    LO_ALIA,
+    LO_AUFLIA,
+    LO_AUFLIRA,
+    LO_AUFNIRA,
+    LO_BV,
+    LO_LIA,
+    LO_LRA,
+    LO_NIA,
+    LO_NRA,
+    LO_QF_ABV,
+    LO_QF_ALIA,
+    LO_QF_ANIA,
+    LO_QF_AUFBV,
+    LO_QF_AUFLIA,
+    LO_QF_AUFNIA,
+    LO_QF_AX,
+    LO_QF_BV,
+    LO_QF_IDL,
+    LO_QF_LIA,
+    LO_QF_LIRA,
+    LO_QF_LRA,
+    LO_QF_NIA,
+    LO_QF_NIRA,
+    LO_QF_NRA,
+    LO_QF_RDL,
+    LO_QF_UF,
+    LO_QF_UFBV,
+    LO_QF_UFIDL,
+    LO_QF_UFLIA,
+    LO_QF_UFLRA,
+    LO_QF_UFNIA,
+    LO_QF_UFNRA,
+    LO_UF,
+    LO_UFBV,
+    LO_UFIDL,
+    LO_UFLIA,
+    LO_UFLRA,
+    LO_UFNIA,
+
+    LO_INVALID
+  };
+  static const char * s_smtlibLogicNameStrings[];
+
+  static SmtlibLogic getLogic(const vstring& str);
+
+  bool _logicSet;
+  vstring _logicName;
+  SmtlibLogic _logic;
+
+  bool _decimalsAreReal;
+
+  void readLogic(const vstring& logicStr);
+
+  vstring _statusStr;
+  vstring _sourceInfo;
+
+
+
+
+
+  void readBenchmark(LExprList* bench);
+
+
+
+
+
+
+public:
+
 
   /**
    * Information from a function or predicate declaration
@@ -41,14 +123,8 @@ public:
     vstring rangeSort;
   };
 
-  SMTLIB2(const Options& opts, Mode mode = BUILD_FORMULA);
-  void setIntroducedSymbolColor(Color clr) { _introducedSymbolColor = clr; }
 
-  /**
-   * @param bench lisp list having atom "benchmark" as the first element
-   */
-  void parse(LExpr* bench);
-  void parse(istream& str);
+  void setIntroducedSymbolColor(Color clr) { _introducedSymbolColor = clr; }
 
 
   /**
@@ -73,7 +149,7 @@ public:
    * This function can be called after calling some of the parse() functions and
    * when the mode in is set to BUILD_FORMULA.
    */
-  UnitList* getFormulas() const { ASS(_formulas); return _formulas; }
+  UnitList* getFormulas() const { /* ASS(_formulas); */ return _formulas; }
   UnitList* getDefinitions() const { ASS(_formulas); return _definitions; }
 
   Stack<FunctionInfo> getFunctions() const { return _funcs; }
@@ -95,7 +171,7 @@ private:
 
   static BuiltInSorts getBuiltInSort(vstring str);
 
-  void readBenchmark(LExprList* bench);
+
   bool isEmpty(LExpr* expr);
   void readSort(vstring name);
   void readFunction(LExprList* decl);
@@ -105,11 +181,6 @@ private:
   unsigned getSort(BuiltInSorts srt);
   void doSortDeclarations();
   void doFunctionDeclarations();
-
-  vstring _logicName;
-  bool _logicSet;
-  vstring _statusStr;
-  vstring _sourceInfo;
 
   Stack<vstring> _userSorts;
   Stack<FunctionInfo> _funcs;

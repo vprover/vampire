@@ -9,7 +9,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/NameArray.hpp"
 #include "Lib/StringUtils.hpp"
-
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -22,10 +21,14 @@
 
 #include "SMTLIB2.hpp"
 
-using namespace Parse;
+namespace Parse {
 
 SMTLIB2::SMTLIB2(const Options& opts, Mode mode)
 : _logicSet(false),
+  _logic(LO_INVALID),
+  _decimalsAreReal(false),
+
+  // under review:
   _lispAssumptions(0),
   _lispFormula(0),
   _definitions(0),
@@ -37,7 +40,7 @@ SMTLIB2::SMTLIB2(const Options& opts, Mode mode)
   _array1Sort(0),
   _array2Sort(0)
 {
-  CALL("SMTLIB::SMTLIB");
+  CALL("SMTLIB2::SMTLIB2");
 
 #if VDEBUG
   _haveParsed = false;
@@ -46,14 +49,219 @@ SMTLIB2::SMTLIB2(const Options& opts, Mode mode)
 
 void SMTLIB2::parse(istream& str)
 {
-  CALL("SMTLIB::parse(istream&)");
+  CALL("SMTLIB2::parse(istream&)");
 
   LispLexer lex(str);
   LispParser lpar(lex);
   LExpr* expr = lpar.parse();
   parse(expr);
+}
+
+void SMTLIB2::parse(LExpr* bench)
+{
+  CALL("SMTLIB2::parse(LExpr*)");
+
+  ASS(!_haveParsed);
+  ASS(bench->isList());
+#if VDEBUG
+  _haveParsed = true;
+#endif
+
+  readBenchmark(bench->list);
+
+  /*
+  cout<< "after read benchmark "<<endl;
+  if (_mode == READ_BENCHMARK) {return;}
+
+  doSortDeclarations();
+  if (_mode == DECLARE_SORTS) {return;}
+
+  doFunctionDeclarations();
+  if (_mode == DECLARE_SYMBOLS) {return;}
+  ASS(_mode == BUILD_FORMULA);
+  cout<<"before build formula"<<endl;
+  buildFormula();
+  */
+}
+
+void SMTLIB2::readBenchmark(LExprList* bench)
+{
+  CALL("SMTLIB2::readBenchmark");
+  LExprList::Iterator ite(bench);
+
+  // iteration over benchmark top level entries
+  while(ite.hasNext()){
+    LExpr* lexp = ite.next();
+
+    cout << lexp->toString(true) << endl;
+
+    LispListReader ibRdr(lexp);
+
+    if (ibRdr.tryAcceptAtom("set-logic")) {
+      if (_logicSet) {
+        USER_ERROR("set-logic can appear only once in a problem");
+      }
+      readLogic(ibRdr.readAtom());
+      _logicSet = true;
+      ibRdr.acceptEOL();
+      continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("set-info")) {
+
+      if (ibRdr.tryAcceptAtom(":status")) {
+        _statusStr = ibRdr.readAtom();
+        ibRdr.acceptEOL();
+        continue;
+      }
+
+      if (ibRdr.tryAcceptAtom(":source")) {
+        _sourceInfo = ibRdr.readAtom();
+        ibRdr.acceptEOL();
+        continue;
+      }
+
+      // ignore unknown info
+      ibRdr.readAtom();
+      ibRdr.readAtom();
+      ibRdr.acceptEOL();
+      continue;
+    }
+
+
+
+    USER_ERROR("unrecognized entry "+ibRdr.readAtom());
+  }
+}
+
+
+
+
+
+
+const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
+    "ALIA",
+    "AUFLIA",
+    "AUFLIRA",
+    "AUFNIRA",
+    "BV",
+    "LIA",
+    "LRA",
+    "NIA",
+    "NRA",
+    "QF_ABV",
+    "QF_ALIA",
+    "QF_ANIA",
+    "QF_AUFBV",
+    "QF_AUFLIA",
+    "QF_AUFNIA",
+    "QF_AX",
+    "QF_BV",
+    "QF_IDL",
+    "QF_LIA",
+    "QF_LIRA",
+    "QF_LRA",
+    "QF_NIA",
+    "QF_NIRA",
+    "QF_NRA",
+    "QF_RDL",
+    "QF_UF",
+    "QF_UFBV",
+    "QF_UFIDL",
+    "QF_UFLIA",
+    "QF_UFLRA",
+    "QF_UFNIA",
+    "QF_UFNRA",
+    "UF",
+    "UFBV",
+    "UFIDL",
+    "UFLIA",
+    "UFLRA",
+    "UFNIA"
+};
+
+SMTLIB2::SmtlibLogic SMTLIB2::getLogic(const vstring& str)
+{
+  CALL("SMTLIB2::getLogic");
+
+  static NameArray smtlibLogicNames(s_smtlibLogicNameStrings, sizeof(s_smtlibLogicNameStrings)/sizeof(char*));
+  ASS_EQ(smtlibLogicNames.length, LO_INVALID);
+
+  int res = smtlibLogicNames.tryToFind(str.c_str());
+  if(res==-1) {
+    return LO_INVALID;
+  }
+  return static_cast<SmtlibLogic>(res);
+}
+
+void SMTLIB2::readLogic(const vstring& logicStr)
+{
+  CALL("SMTLIB2::checkLogic");
+
+  _logicName = logicStr;
+  _logic = getLogic(_logicName);
+
+  switch (_logic) {
+  case LO_ALIA:
+  case LO_AUFLIA:
+  case LO_AUFLIRA:
+  case LO_AUFNIRA:
+  case LO_LIA:
+  case LO_NIA:
+  case LO_QF_ALIA:
+  case LO_QF_ANIA:
+  case LO_QF_AUFLIA:
+  case LO_QF_AUFNIA:
+  case LO_QF_AX:
+  case LO_QF_IDL:
+  case LO_QF_LIA:
+  case LO_QF_LIRA:
+  case LO_QF_NIA:
+  case LO_QF_NIRA:
+  case LO_QF_UF:
+  case LO_QF_UFIDL:
+  case LO_QF_UFLIA:
+  case LO_QF_UFNIA:
+  case LO_UF:
+  case LO_UFIDL:
+  case LO_UFLIA:
+  case LO_UFNIA:
+    break;
+
+  // pure real arithmetic theories treat decimals as Real constants
+  case LO_LRA:
+  case LO_NRA:
+  case LO_QF_LRA:
+  case LO_QF_NRA:
+  case LO_QF_RDL:
+  case LO_QF_UFLRA:
+  case LO_QF_UFNRA:
+  case LO_UFLRA:
+    _decimalsAreReal = true;
+    break;
+
+  // we don't support bit vectors
+  case LO_BV:
+  case LO_QF_ABV:
+  case LO_QF_AUFBV:
+  case LO_QF_BV:
+  case LO_QF_UFBV:
+  case LO_UFBV:
+    USER_ERROR("unsupported logic "+_logicName);
+  default:
+    USER_ERROR("unrecognized logic "+_logicName);
+  }
 
 }
+
+
+
+
+
+
+
+
+
 
 bool SMTLIB2::isEmpty(LExpr* list){
   CALL("SMTLIB2::isEmpty");
@@ -164,45 +372,6 @@ bool SMTLIB2::tryLispReading(LExpr* list)
   return true;
 } 
 
-
-/**
- * @param bench lisp list having atom "benchmark" as the first element
- */
-void SMTLIB2::parse(LExpr* bench)
-{
-  CALL("SMTLIB::parse(LExpr*)");
-
-  ASS(!_haveParsed);
-  ASS(bench->isList());
-#if VDEBUG
-  _haveParsed = true;
-#endif
-  readBenchmark(bench->list);
-  cout<< "after read benchmark "<<endl;
-  if (_mode == READ_BENCHMARK) {return;}
-
-  doSortDeclarations();
-  if (_mode == DECLARE_SORTS) {return;}
-
-  doFunctionDeclarations();
-  if (_mode == DECLARE_SYMBOLS) {return;}
-  ASS(_mode == BUILD_FORMULA);
-  cout<<"before build formula"<<endl;
-  buildFormula();
-
-  }
-
-void SMTLIB2::readBenchmark(LExprList* bench)
-{
-  CALL("SMTLIB2::readBenchmark");
-  LExprList::Iterator ite(bench);
-
-   while(ite.hasNext()){
-      LExpr* lexp = ite.next();
-      tryLispReading(lexp);
-
-   }
-}
 
 void SMTLIB2::readSort(vstring name)
 {
@@ -1481,4 +1650,6 @@ Formula* SMTLIB2::nameFormula(Formula* f, vstring fletVarName)
   FormulaUnit* def = new FormulaUnit(df, new Inference(Inference::INPUT), Unit::AXIOM);
   UnitList::push(def, _definitions);
   return lhsF;
+}
+
 }

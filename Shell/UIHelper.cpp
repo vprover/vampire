@@ -204,12 +204,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 	  Parse::SMTLIB2 parser(opts);
 	  parser.parse(*input);
 	  units = parser.getFormulas();
-	  UnitList::Iterator uite(units);
-	  while(uite.hasNext()){
-		  cout<<uite.next()->toString()<<endl;
-	  }
 	  s_haveConjecture=true;
-	  NOT_IMPLEMENTED;
 	  break;
   }
 /*
