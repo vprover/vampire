@@ -21,7 +21,7 @@
 #include "Tabulation/TabulationAlgorithm.hpp"
 
 //#include "FMB/FiniteModelBuilderIncremental.hpp"
-#include "FMB/FiniteModelBuilderNonIncremental.hpp"
+#include "FMB/FiniteModelBuilder.hpp"
 
 #include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
@@ -148,7 +148,7 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
       USER_ERROR("Incremental fmb no longer supported");
     }
     else{
-      res = new FiniteModelBuilderNonIncremental(prb,opt);
+      res = new FiniteModelBuilder(prb,opt);
     }
     break;
   default:

@@ -409,8 +409,7 @@ VTAB_OBJ = Tabulation/Producer.o\
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
 	   FMB/FiniteModel.o\
-           FMB/FiniteModelBuilderNonIncremental.o
-           #FMB/FiniteModelBuilderIncremental.o
+           FMB/FiniteModelBuilder.o
 
 TRANSLATOR_OBJ = \
 	Translator/CollectionOfObjects.o\

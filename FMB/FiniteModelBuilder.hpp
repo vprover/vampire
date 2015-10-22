@@ -1,10 +1,10 @@
 /**
- * @file FiniteModelBuilderNonIncremental.hpp
- * Defines class FiniteModelBuilderNonIncremental.
+ * @file FiniteModelBuilder.hpp
+ * Defines class FiniteModelBuilder.
  */
 
-#ifndef __FiniteModelBuilderNonIncremental__
-#define __FiniteModelBuilderNonIncremental__
+#ifndef __FiniteModelBuilder__
+#define __FiniteModelBuilder__
 
 #include "Forwards.hpp"
 
@@ -26,12 +26,12 @@ using namespace SAT;
     unsigned grounding;
   };
 
-class FiniteModelBuilderNonIncremental : public MainLoop {
+class FiniteModelBuilder : public MainLoop {
 public:
   CLASS_NAME(FiniteModedlBuilder);
-  USE_ALLOCATOR(FiniteModelBuilderNonIncremental);    
+  USE_ALLOCATOR(FiniteModelBuilder);    
   
-  FiniteModelBuilderNonIncremental(Problem& prb, const Options& opt);
+  FiniteModelBuilder(Problem& prb, const Options& opt);
 
 protected:
   virtual void init();
@@ -104,4 +104,4 @@ private:
 
 }
 
-#endif // __FiniteModelBuilderNonIncremental__
+#endif // __FiniteModelBuilder__

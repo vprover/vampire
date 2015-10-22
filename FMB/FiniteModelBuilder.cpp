@@ -1,10 +1,11 @@
 /**
- * @file FiniteModelBuilderNonIncremental.cpp
- * Implements class FiniteModelBuilderNonIncremental.
+ * @file FiniteModelBuilder.cpp
+ * Implements class FiniteModelBuilder.
  */
 
 #include <math.h>
 
+#include "Kernel/Ordering.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Problem.hpp"
@@ -34,23 +35,26 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/GeneralSplitting.hpp"
 
+#include "DP/DecisionProcedure.hpp"
+#include "DP/SimpleCongruenceClosure.hpp"
+
 #include "FiniteModel.hpp"
 #include "ClauseFlattening.hpp"
 #include "SortInference.hpp"
 #include "DefinitionIntroduction.hpp"
-#include "FiniteModelBuilderNonIncremental.hpp"
+#include "FiniteModelBuilder.hpp"
 
 #define VTRACE_FMB 0
 
 namespace FMB 
 {
 
-FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental(Problem& prb, const Options& opt)
+FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _groundClauses(0), _clauses(0), _sortedSignature(0), 
                       _isComplete(true), _maxModelSize(UINT_MAX), _constantCount(0),
                       _maxArity(0)
 {
-  CALL("FiniteModelBuilderNonIncremental::FiniteModelBuilderNonIncremental");
+  CALL("FiniteModelBuilder::FiniteModelBuilder");
 
   if(!opt.complete(prb)){
     _isComplete = false;
@@ -84,8 +88,8 @@ struct FMBSymmetryFunctionComparator
   }
 };
 
-bool FiniteModelBuilderNonIncremental::reset(unsigned size){
-  CALL("FiniteModelBuilderNonIncremental::reset");
+bool FiniteModelBuilder::reset(unsigned size){
+  CALL("FiniteModelBuilder::reset");
 
   unsigned offsets=1;
   for(unsigned f=0; f<env.signature->functions();f++){
@@ -207,13 +211,33 @@ bool FiniteModelBuilderNonIncremental::reset(unsigned size){
   return true;
 }
 
-void FiniteModelBuilderNonIncremental::init()
+void FiniteModelBuilder::init()
 {
-  CALL("FiniteModelBuilderNonIncremental::init");
+  CALL("FiniteModelBuilder::init");
 
   if(!_isComplete) return;
 
   env.statistics->phase = Statistics::FMB_PREPROCESSING;
+
+  {
+    //TODO consider ordering
+    OrderingSP ordering = OrderingSP(Ordering::create(_prb, _opt));
+    DP::DecisionProcedure* congruence = new DP::SimpleCongruenceClosure(*ordering);
+    LiteralStack lstack;
+    ClauseIterator cit = _prb.clauseIterator();
+    while(cit.hasNext()){
+      Clause* c = cit.next();
+      if(c->size()==1){
+        Literal* lit = (*c)[0];
+        if(lit->ground()) lstack.push(lit);
+      } 
+    }
+    congruence->addLiterals(pvi(LiteralStack::Iterator(lstack)));
+    DP::DecisionProcedure::Status status = congruence->getStatus();
+    if(status == DP::DecisionProcedure::SATISFIABLE) USER_ERROR("SAT");
+    if(status == DP::DecisionProcedure::UNKNOWN) USER_ERROR("UNKNOWN");
+    USER_ERROR("UNSAT");
+  }
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
@@ -428,9 +452,9 @@ void FiniteModelBuilderNonIncremental::init()
   }
 }
 
-void FiniteModelBuilderNonIncremental::addGroundClauses()
+void FiniteModelBuilder::addGroundClauses()
 {
-  CALL("FiniteModelBuilderNonIncremental::addGroundClauses");
+  CALL("FiniteModelBuilder::addGroundClauses");
 
   // If we don't have any ground clauses don't do anything
   if(!_groundClauses) return;
@@ -456,9 +480,9 @@ void FiniteModelBuilderNonIncremental::addGroundClauses()
   }
 }
 
-void FiniteModelBuilderNonIncremental::addNewInstances(unsigned size)
+void FiniteModelBuilder::addNewInstances(unsigned size)
 {
-  CALL("FiniteModelBuilderNonIncremental::addNewInstances");
+  CALL("FiniteModelBuilder::addNewInstances");
 
   ClauseList::Iterator cit(_clauses); 
 
@@ -566,9 +590,9 @@ instanceLabel:
   }
 }
 
-void FiniteModelBuilderNonIncremental::addNewFunctionalDefs(unsigned size)
+void FiniteModelBuilder::addNewFunctionalDefs(unsigned size)
 {
-  CALL("FiniteModelBuilderNonIncremental::addNewFunctionalDefs");
+  CALL("FiniteModelBuilder::addNewFunctionalDefs");
 
   // For each function f of arity n we add the constraint 
   // f(x1,...,xn) != y | f(x1,...,xn) != z 
@@ -635,10 +659,10 @@ newFuncLabel:
   }
 }
 
-void FiniteModelBuilderNonIncremental::addNewSymmetryOrderingAxioms(unsigned size,
+void FiniteModelBuilder::addNewSymmetryOrderingAxioms(unsigned size,
                        Stack<GroundedTerm>& groundedTerms)
 {
-  CALL("FiniteModelBuilderNonIncremental::addNewSymmetryOrderingAxioms");
+  CALL("FiniteModelBuilder::addNewSymmetryOrderingAxioms");
 
 
   // Add restricted totality 
@@ -666,11 +690,11 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryOrderingAxioms(unsigned siz
 
 }
 
-void FiniteModelBuilderNonIncremental::addNewSymmetryCanonicityAxioms(unsigned size,
+void FiniteModelBuilder::addNewSymmetryCanonicityAxioms(unsigned size,
                        Stack<GroundedTerm>& groundedTerms,
                        unsigned maxSize)
 {
-  CALL("FiniteModelBuilderNonIncremental::addNewSymmetryCanonicityAxioms");
+  CALL("FiniteModelBuilder::addNewSymmetryCanonicityAxioms");
 
   if(size<=1) return;
 
@@ -709,9 +733,9 @@ void FiniteModelBuilderNonIncremental::addNewSymmetryCanonicityAxioms(unsigned s
 
 }
 
-void FiniteModelBuilderNonIncremental::addUseModelSize(unsigned size)
+void FiniteModelBuilder::addUseModelSize(unsigned size)
 {
-  CALL("FiniteModelBuilderNonIncremental::addUseModelSize");
+  CALL("FiniteModelBuilder::addUseModelSize");
 
   // Only do thise if we have unary functions at most
   if(_maxArity>1) return;
@@ -744,9 +768,9 @@ void FiniteModelBuilderNonIncremental::addUseModelSize(unsigned size)
   addSATClause(SATClause::fromStack(satClauseLits));
 }
 
-void FiniteModelBuilderNonIncremental::addNewTotalityDefs(unsigned size)
+void FiniteModelBuilder::addNewTotalityDefs(unsigned size)
 {
-  CALL("FiniteModelBuilderNonIncremental::addNewTotalityDefs");
+  CALL("FiniteModelBuilder::addNewTotalityDefs");
 
 
   for(unsigned f=0;f<env.signature->functions();f++){
@@ -815,10 +839,10 @@ newTotalLabel:
 }
 
 
-SATLiteral FiniteModelBuilderNonIncremental::getSATLiteral(unsigned f, const DArray<unsigned>& grounding,
+SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>& grounding,
                                                            bool polarity,bool isFunction,unsigned size)
 {
-  CALL("FiniteModelBuilderNonIncremental::getSATLiteral");
+  CALL("FiniteModelBuilder::getSATLiteral");
 
   // cannot have predicate 0 here
   ASS(f>0 || isFunction);
@@ -843,9 +867,9 @@ SATLiteral FiniteModelBuilderNonIncremental::getSATLiteral(unsigned f, const DAr
   return SATLiteral(var,polarity);
 }
 
-void FiniteModelBuilderNonIncremental::addSATClause(SATClause* cl)
+void FiniteModelBuilder::addSATClause(SATClause* cl)
 {
-  CALL("FiniteModelBuilderNonIncremental::addSATClause");
+  CALL("FiniteModelBuilder::addSATClause");
   cl = Preprocess::removeDuplicateLiterals(cl);
   if(!cl){ return; }
 #if VTRACE_FMB
@@ -856,9 +880,9 @@ void FiniteModelBuilderNonIncremental::addSATClause(SATClause* cl)
 
 }
 
-MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
+MainLoopResult FiniteModelBuilder::runImpl()
 {
-  CALL("FiniteModelBuilderNonIncremental::runImpl");
+  CALL("FiniteModelBuilder::runImpl");
 
   if(!_isComplete){
     // give up!
@@ -1023,7 +1047,7 @@ MainLoopResult FiniteModelBuilderNonIncremental::runImpl()
   return MainLoopResult(Statistics::UNKNOWN);
 }
 
-void FiniteModelBuilderNonIncremental::onModelFound(unsigned modelSize)
+void FiniteModelBuilder::onModelFound(unsigned modelSize)
 {
  // Don't do any output if proof is off
  if(_opt.proof()==Options::Proof::OFF){ 
