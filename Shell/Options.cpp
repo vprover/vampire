@@ -2618,7 +2618,6 @@ bool Options::complete(const Problem& prb) const
   default: break;
   }
   if (!_demodulationRedundancyCheck.actualValue) return false;
-  if (_equalityResolutionWithDeletion.actualValue != RuleActivity::INPUT_ONLY) return false;
   if (!_superpositionFromVariables.actualValue) return false;
 
   // only checking resolution rules remain
