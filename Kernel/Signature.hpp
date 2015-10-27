@@ -79,6 +79,9 @@ class Signature
     void addColor(Color color);
     /** mark symbol that doesn't come from input problem, but was introduced by Vampire */
     void markIntroduced() { _introduced=1; }
+    /** remove the marking that the symbol was introduced, it has now been found in the input
+        we should be careful that the previously introduced symbols are renamed elsewhere */
+    void unmarkIntroduced(){ _introduced=0; }
     /** mark the symbol as protected so it is not being eliminated by preprocessing */
     void markProtected() { _protected=1; }
     /** mark the symbol as skip for the purpose of symbol elimination */

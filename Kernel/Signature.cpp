@@ -40,7 +40,6 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _protected(0),
     _skip(0),
     _cfName(0),
-    _swbName(0),
     _equalityProxy(0),
     _color(COLOR_TRANSPARENT),
     _stringConstant(stringConstant ? 1: 0),
@@ -670,6 +669,7 @@ unsigned Signature::addFunction (const vstring& name,
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
     added = false;
+    getFunction(result)->unmarkIntroduced();
     return result;
   }
   if (env.options->arityCheck()) {
@@ -740,6 +740,7 @@ unsigned Signature::addPredicate (const vstring& name,
   unsigned result;
   if (_predNames.find(symbolKey,result)) {
     added = false;
+    getPredicate(result)->unmarkIntroduced();
     return result;
   }
   if (env.options->arityCheck()) {

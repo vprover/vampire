@@ -122,7 +122,7 @@ private:
         ASS_NEQ(symbol, freshSymbol);
         // The implementation of this class doesn't requite freeVars to be
         // non-empty, however, its use case expects this constraint
-        ASS(freeVars);
+        ASS(freeVars || !env.signature->getFunction(symbol)->introduced());
         // Arities of symbols should coincide
         if (isPredicate) {
           ASS_EQ(env.signature->getPredicate(symbol)->arity() + freeVars->length(),
