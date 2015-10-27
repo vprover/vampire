@@ -52,10 +52,6 @@ class Signature
     /** marks propositional predicate symbols that are to
         be used as names during consequence finding */
     unsigned _cfName : 1;
-    /** marks propositional predicate symbols that are to
-        be used as names for splitting without backtracking
-        when BDDs are not used */
-    unsigned _swbName : 1;
     /** marks predicates that are equality proxy */
     unsigned _equalityProxy : 1;
     /** used in coloured proofs and interpolation */
@@ -91,8 +87,6 @@ class Signature
     void markCFName() { ASS_EQ(arity(), 0); _cfName=1; markProtected(); }
     /** mark symbol to be an answer predicate */
     void markAnswerPredicate() { _answerPredicate=1; markProtected(); }
-    /** mark the symbol as name for splitting without backtracking */
-    void markSWBName() { ASS_EQ(arity(), 0); _swbName=1; }
     /** mark predicate to be an equality proxy */
     void markEqualityProxy() { _equalityProxy=1; }
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
@@ -100,9 +94,6 @@ class Signature
     /** return true iff the symbol is marked as name predicate
         for consequence finding */
     bool cfName() const { return _cfName; }
-    /** return true iff the symbol is marked as name predicate
-        for splitting without backtracking */
-    bool swbName() const { return _swbName; }
     /** return the colour of the symbol */
     Color color() const { return static_cast<Color>(_color); }
     /** Return the arity of the symbol */
