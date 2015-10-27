@@ -390,7 +390,7 @@ vstring TPTPPrinter::toString(const Formula* f)
         result += 'X';
         result += Int::toString(vars->head());
         unsigned t;
-        if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f), t) && t != Sorts::SRT_DEFAULT) {
+        if (SortHelper::tryGetVariableSort(vars->head(), const_cast<Formula*>(f), t) && t != Sorts::SRT_DEFAULT) {
           result += ": " + env.sorts->sortName(t);
         }
         needsComma = true;

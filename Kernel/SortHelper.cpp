@@ -463,6 +463,28 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
       if(tryGetVariableSort(var.var(),t->getSpecialData()->getFormula(),result)){
         return true;
       }
+      continue;
+    }
+    if(t->isITE()){
+      if(tryGetVariableSort(var.var(),t->getSpecialData()->getCondition(),result)){
+        return true;
+      }      
+      // no continue as the left and right are args
+    }
+    if(t->isLet()){
+      TermList body = t->getSpecialData()->getBody();
+      if(body.isVar()){
+        // get result sort of the functor
+        unsigned f = t->getSpecialData()->getFunctor();
+        Signature::Symbol* sym = env.signature->getFunction(f);
+        return sym->fnType()->result();
+      }
+      else{
+        if(tryGetVariableSort(var,body.term(),result)){
+          return true;
+        }
+      }
+      // no continue as in t is arg
     }
     if (t->shared() && t->ground()) {
       sit.right();

@@ -477,10 +477,7 @@ void UIHelper::outputSortDeclarations(ostream& out)
 
   unsigned sorts = (*env.sorts).sorts();
   for (unsigned sort = Sorts::SRT_BOOL; sort < sorts; ++sort) {
-    if ((sort == Sorts::SRT_BOOL) && !env.options->showFOOL()) {
-      continue;
-    }
-    if (sort == Sorts::FIRST_USER_SORT) {
+    if (sort <= Sorts::FIRST_USER_SORT && ((sort != Sorts::SRT_BOOL) || !env.options->showFOOL())) {
       continue;
     }
     if ((*env.sorts).hasStructuredSort(sort, Sorts::StructuredSort::ARRAY) ||
