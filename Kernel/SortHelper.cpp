@@ -246,16 +246,39 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, unsigned& res)
   SubformulaIterator sfit(f);
   while (sfit.hasNext()) {
     Formula* sf = sfit.next();
-    if (sf->connective() != LITERAL) {
-      continue;
-    }
-    Literal* lit = sf->literal();
 
-    if (!lit->containsSubterm(varTerm)) {
-      continue;
+    if (sf->connective() == LITERAL){
+
+      Literal* lit = sf->literal();
+
+      // first handle the special equality case
+      if(lit->isEquality()){
+         TermList* left = lit->nthArgument(0);
+         TermList* right = lit->nthArgument(1);
+         if((left->isVar() && left->var()==var) ||
+            (right->isVar() && right->var()==var)){
+
+           res = getEqualityArgumentSort(lit); 
+           return true;
+         }
+      }
+      if(tryGetVariableSort(varTerm, lit, res)){
+        return true;
+      }
     }
-    res = getVariableSort(varTerm, lit);
-    return true;
+    if(sf->connective() == BOOL_TERM){
+      TermList stt = sf->getBooleanTerm();
+      if(stt.isVar() && stt.var()==var){
+        res = Sorts::SRT_BOOL;
+        return true;
+      }
+      if(stt.isTerm()){
+        Term* st = stt.term();
+        if(tryGetVariableSort(varTerm,st,res)){
+          return true;
+        } 
+      }
+    } 
   }
   return false;
 }
@@ -431,11 +454,17 @@ void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,unsigned>& map)
 bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
 {
   CALL("SortHelper::tryGetVariableSort");
+  ASS(var.isVar());
 
   NonVariableIterator sit(t0,true);
   while (sit.hasNext()) {
     Term* t = sit.next().term();
-    if (t->ground()) {
+    if(t->isFormula()){
+      if(tryGetVariableSort(var.var(),t->getSpecialData()->getFormula(),result)){
+        return true;
+      }
+    }
+    if (t->shared() && t->ground()) {
       sit.right();
       continue;
     }
