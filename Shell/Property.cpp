@@ -59,8 +59,8 @@ Property::Property()
     _hasInterpreted(false),
     _hasInterpretedEquality(false),
     _hasNonDefaultSorts(false),
-    _hasFOOL(false),
     _sortsUsed(0),
+    _hasFOOL(false),
     _allClausesGround(true),
     _allQuantifiersEssentiallyExistential(true)
 {

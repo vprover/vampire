@@ -78,7 +78,7 @@ public:
     USE_ALLOCATOR(StructuredSortInfo);
 
     StructuredSortInfo(vstring name, StructuredSort sort,unsigned id): 
-      SortInfo(name,id), _sort(sort){}
+      SortInfo(name,id), _sort(sort) { (void)_sort; /*to suppress warning about unused*/ }
 
   private:
     StructuredSort _sort;

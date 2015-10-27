@@ -38,6 +38,8 @@ FiniteModel::FiniteModel(unsigned size) : _size(size), _isPartial(false)
 {
   CALL("FiniteModel::FiniteModel");
 
+  (void)_isPartial; // to suppress unused warning
+
   f_offsets.ensure(env.signature->functions());
   p_offsets.ensure(env.signature->predicates());
 

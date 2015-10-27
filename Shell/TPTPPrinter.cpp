@@ -382,8 +382,7 @@ vstring TPTPPrinter::toString(const Formula* f)
     {
       vstring result = vstring("(") + con + "[";
       bool needsComma = false;
-      const Formula::VarList* vars = f->vars();
-      for (unsigned var = (unsigned)vars->head(); !Formula::VarList::isEmpty(vars); vars = vars->tail()) {
+      for (const Formula::VarList* vars = f->vars(); !Formula::VarList::isEmpty(vars); vars = vars->tail()) {
         if (needsComma) {
           result += ", ";
         }

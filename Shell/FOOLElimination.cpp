@@ -466,7 +466,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         process(*term->nthArgument(1), context, elseBranch, elseBranchFormula);
 
         // the sort of the term is the sort of the then branch
-        unsigned resultSort;
+        unsigned resultSort = 0;
         if (context == TERM_CONTEXT) {
           resultSort = SortHelper::getResultSort(thenBranch, _varSorts);
           ASS_EQ(resultSort, SortHelper::getResultSort(elseBranch, _varSorts));
