@@ -579,7 +579,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          * If the symbol is not marked as introduced then this means it was used
          * in the input after introduction, therefore it should be renamed here
          */
-        if(!env.signature->getFunction(symbol)->introduced()) renameSymbol = true;
+        if(bodyContext == TERM_CONTEXT && !env.signature->getFunction(symbol)->introduced()) renameSymbol = true;
+        if(bodyContext == FORMULA_CONTEXT && !env.signature->getPredicate(symbol)->introduced()) renameSymbol = true;
 
         // create a fresh function or predicate symbol g
         unsigned freshSymbol = renameSymbol ? introduceFreshSymbol(bodyContext, LET_PREFIX, sorts, bodySort) : symbol;

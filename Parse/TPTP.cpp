@@ -1799,8 +1799,8 @@ void TPTP::endBinding() {
     newName = name + Int::toString(index++);
   }
 
-  unsigned symbolNumber = isPredicate ? env.signature->addPredicate(newName, arity)
-                                      : env.signature->addFunction (newName, arity);
+  unsigned symbolNumber = isPredicate ? env.signature->addFreshPredicate(arity,newName.c_str())
+                                      : env.signature->addFreshFunction (arity,newName.c_str());
 
   Stack<unsigned> argSorts(0);
   Formula::VarList::Iterator vit(vars);
