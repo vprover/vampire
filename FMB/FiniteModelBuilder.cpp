@@ -219,10 +219,11 @@ void FiniteModelBuilder::init()
 
   env.statistics->phase = Statistics::FMB_PREPROCESSING;
 
+/* For an ongoing experiment
   {
     //TODO consider ordering
     OrderingSP ordering = OrderingSP(Ordering::create(_prb, _opt));
-    DP::DecisionProcedure* congruence = new DP::SimpleCongruenceClosure(*ordering);
+    DP::SimpleCongruenceClosure* congruence = new DP::SimpleCongruenceClosure(*ordering);
     LiteralStack lstack;
     ClauseIterator cit = _prb.clauseIterator();
     while(cit.hasNext()){
@@ -232,12 +233,22 @@ void FiniteModelBuilder::init()
         if(lit->ground()) lstack.push(lit);
       } 
     }
-    congruence->addLiterals(pvi(LiteralStack::Iterator(lstack)));
+    congruence->addLiterals(pvi(LiteralStack::Iterator(lstack)),false);
     DP::DecisionProcedure::Status status = congruence->getStatus();
-    if(status == DP::DecisionProcedure::SATISFIABLE) USER_ERROR("SAT");
+    if(status == DP::DecisionProcedure::SATISFIABLE){
+	// check constants
+	for(unsigned f=0;f<env.signature->functions();f++){
+	  unsigned arity = env.signature->functionArity(f);
+	  if(arity>0) continue;
+	  Term* c = Term::createConstant(f);
+	  unsigned cls = congruence->getClassID(TermList(c));
+	  cout << f << ": " << cls << endl;
+	}
+    } 
     if(status == DP::DecisionProcedure::UNKNOWN) USER_ERROR("UNKNOWN");
     USER_ERROR("UNSAT");
   }
+*/
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
