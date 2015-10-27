@@ -1793,14 +1793,8 @@ void TPTP::endBinding() {
 
   vstring name = _strings.pop();
 
-  vstring newName = name;
-  unsigned index = 0;
-  while (env.signature->functionExists(newName, arity) || env.signature->predicateExists(newName, arity)) {
-    newName = name + Int::toString(index++);
-  }
-
-  unsigned symbolNumber = isPredicate ? env.signature->addFreshPredicate(arity,newName.c_str())
-                                      : env.signature->addFreshFunction (arity,newName.c_str());
+  unsigned symbolNumber = isPredicate ? env.signature->addFreshPredicate(arity,name.c_str())
+                                      : env.signature->addFreshFunction (arity,name.c_str());
 
   Stack<unsigned> argSorts(0);
   Formula::VarList::Iterator vit(vars);
