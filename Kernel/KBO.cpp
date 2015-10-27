@@ -287,11 +287,21 @@ void KBO::State::traverse(Term* t1, Term* t2)
 
 /**
  * Create a KBO object.
+ * @since 01/06/2015 Gothenburg, assign the lowest weight to FOOL_FALSE,
+ * second lowest to FOOL_TRUE when --fool_ordering is enabled
  */
 KBO::KBO(Problem& prb, const Options& opt)
- : KBOBase(prb, opt), _variableWeight(1), _defaultSymbolWeight(1)
+ : KBOBase(prb, opt)
 {
   CALL("KBO::KBO");
+
+  if (env.options->FOOLOrdering() || env.options->FOOLParamodulation()) {
+    _variableWeight = 3;
+    _defaultSymbolWeight = 3;
+  } else {
+    _variableWeight = 1;
+    _defaultSymbolWeight = 1;
+  }
 
   _state=new State(this);
 }
@@ -439,13 +449,27 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
+/**
+ * @since 01/06/2015 Gothenburg, assign the lowest weight to FOOL_FALSE,
+ * second lowest to FOOL_TRUE when --fool_ordering is enabled
+ */
 int KBO::functionSymbolWeight(unsigned fun) const
 {
-  if(env.signature->functionColored(fun)) {
-    return COLORED_WEIGHT_BOOST*_defaultSymbolWeight;
-  } else {
-    return _defaultSymbolWeight;
+  int weight = _defaultSymbolWeight;
+
+  if (env.options->FOOLOrdering() || env.options->FOOLParamodulation()) {
+    if (fun == Signature::FOOL_FALSE) {
+      weight = 1;
+    } else if (fun == Signature::FOOL_TRUE) {
+      weight = 2;
+    }
   }
+
+  if(env.signature->functionColored(fun)) {
+    weight *= COLORED_WEIGHT_BOOST;
+  }
+
+  return weight;
 }
 
 //////////////////////////////////////////////////

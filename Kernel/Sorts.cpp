@@ -4,19 +4,12 @@
  */
 
 #include "Lib/Environment.hpp"
+#include "Kernel/Theory.hpp"
+#include "Shell/Options.hpp"
 
 #include "Sorts.hpp"
 
 using namespace Kernel;
-
-//const unsigned Sorts::SRT_DEFAULT = 0;
-//const unsigned Sorts::SRT_BOOL = 1;
-//const unsigned Sorts::SRT_INTEGER = 2;
-//const unsigned Sorts::SRT_RATIONAL = 3;
-//const unsigned Sorts::SRT_REAL = 4;
-//const unsigned Sorts::FIRST_USER_SORT = 5;
-//const unsigned Sorts::SRT_ARRAY1 = 6;
-//const unsigned Sorts::SRT_ARRAY2 = 7;
 
 /**
  * Initialise sorts by adding the default sort
@@ -43,13 +36,7 @@ Sorts::Sorts()
 
   aux = addSort("$real");
   ASS_EQ(aux, SRT_REAL);
-  
-  aux = addSort("$array1");
-  ASS_EQ(aux, SRT_ARRAY1);
-    
-  aux = addSort("$array2");
-  ASS_EQ(aux, SRT_ARRAY2);
-  
+
   aux = addSort("$fus");
   ASS_EQ(aux,FIRST_USER_SORT);
     
@@ -96,11 +83,71 @@ unsigned Sorts::addSort(const vstring& name, bool& added)
   }
   _hasSort = true;
   result = _sorts.length();
-  _sorts.push(new SortInfo(name));
-  _sortNames.insert(name,result);
+  _sorts.push(new SortInfo(name, result));
+  _sortNames.insert(name, result);
   added = true;
   return result;
 } // Sorts::addSort
+
+
+/**
+ *
+ * @author Giles
+ */
+unsigned Sorts::addArraySort(const unsigned indexSort, const unsigned innerSort)
+{
+  CALL("Sorts::addArraySort");
+
+  // First check if it already exists
+  vstring name = "$array(";
+  name+=env.sorts->sortName(indexSort);
+  name+=",";
+  name+=env.sorts->sortName(innerSort);
+  name+=")";
+  unsigned result;
+  if(_sortNames.find(name,result)){
+    return result;
+  }
+
+  _hasSort = true;
+  result = _sorts.length(); 
+  // Next create ArraySort and register it
+  ArraySort* sort = new ArraySort(name,indexSort,innerSort,result);
+  _sorts.push(sort);
+  _sortNames.insert(name,result);
+
+  // Next create and register the STORE and SELECT functions for this sort with Theory
+
+  Theory::instance()->addStructuredSortInterpretation(result,Theory::StructuredSortInterpretation::ARRAY_STORE);
+  if (innerSort == Sorts::SRT_BOOL) {
+    Theory::instance()->addStructuredSortInterpretation(result, Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT);
+  } else {
+    Theory::instance()->addStructuredSortInterpretation(result, Theory::StructuredSortInterpretation::ARRAY_SELECT);
+  }
+  // TheoryAxioms will automatically get the array sorts via getArraySorts
+
+  // We are done
+  return result;
+}
+
+struct SortInfoToInt{
+  DECL_RETURN_TYPE(unsigned);
+  unsigned operator()(Sorts::SortInfo* s){ return s->id(); }
+};
+
+/**
+ *
+ * @author Giles
+ */ 
+VirtualIterator<unsigned> Sorts::getArraySorts()
+{
+  CALL("Sorts::getArraySorts");
+  Stack<SortInfo*>::Iterator all(_sorts);
+  VirtualIterator<SortInfo*> arraySorts = pvi(getFilteredIterator(all,
+               [](SortInfo* s){ return s->hasStructuredSort(StructuredSort::ARRAY);}));
+  //auto map = ([](SortInfo* s)->unsigned{ return s->id(); });
+  return pvi(getMappingIterator(arraySorts,SortInfoToInt()));
+}
 
 /**
  * True if this collection contains the sort @c name.
@@ -123,83 +170,15 @@ bool Sorts::findSort(const vstring& name, unsigned& idx)
   return _sortNames.find(name, idx);
 } // Sorts::findSort
 
-/**
- * Create a type having arity @c arity, range sort @c rangeSort and arguments
- * from the array @c domainSorts (which can be NULL)
- * @author Andrei Voronkov
- */
-BaseType* BaseType::makeType(unsigned arity, const unsigned* domainSorts, unsigned rangeSort)
+const vstring& Sorts::sortName(unsigned idx) const
 {
-  CALL("BaseType::makeType");
-
-  if (rangeSort==Sorts::SRT_BOOL) {
-    return new PredicateType(arity, domainSorts);
+  CALL("Sorts::sortName");
+  if (env.options->showFOOL() && idx == SRT_BOOL) {
+    static vstring name("$bool");
+    return name;
   }
-  else {
-    return new FunctionType(arity, domainSorts, rangeSort);
-  }
-} // BaseType::makeType
-
-/**
- * Create atomic type rangeSort
- * @author Andrei Voronkov
- */
-BaseType* BaseType::makeType0(unsigned rangeSort)
-{
-  CALL("BaseType::makeType0");
-  return makeType(0, 0, rangeSort);
-} // BaseType::makeType0
-
-/**
- * Create type arg1Sort -> rangeSort
- * @author Andrei Voronkov
- */
-BaseType* BaseType::makeType1(unsigned arg1Sort, unsigned rangeSort)
-{
-  CALL("BaseType::makeType1");
-
-  unsigned args[] = { arg1Sort };
-  return makeType(1, args, rangeSort);
-} // BaseType::makeType1
-
-/**
- * Create type (arg1Sort * arg2Sort) -> rangeSort
- * @author Andrei Voronkov
- */
-BaseType* BaseType::makeType2(unsigned arg1Sort, unsigned arg2Sort, unsigned rangeSort)
-{
-  CALL("BaseType::makeType2");
-  unsigned args[] = { arg1Sort, arg2Sort };
-  return makeType(2, args, rangeSort);
-} // BaseType::makeType2
-
-/**
- * Create type (arg1Sort * arg2Sort * arg3Sort) -> rangeSort
- * @author Andrei Voronkov
- */
-BaseType* BaseType::makeType3(unsigned arg1Sort, unsigned arg2Sort, unsigned arg3Sort, unsigned rangeSort)
-{
-  CALL("BaseType::makeType3");
-
-  unsigned args[] = { arg1Sort, arg2Sort, arg3Sort };
-  return makeType(3, args, rangeSort);
-} // BaseType::makeType3
-
-/**
- * Create a type of the form (argSort * ... * argSort) -> rangeSort
- * @author Andrei Voronkov
- */
-BaseType* BaseType::makeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned rangeSort)
-{
-  CALL("BaseType::makeTypeUniformRange");
-
-  static Stack<unsigned> argSorts;
-  argSorts.reset();
-  for (unsigned i=0; i<arity; i++) {
-    argSorts.push(argsSort);
-  }
-  return makeType(arity, argSorts.begin(), rangeSort);
-} // BaseType::makeTypeUniformRange
+  return _sorts[idx]->name();
+} // Sorts::sortName
 
 /**
  * Initialise a base type. If @c sorts is is NULL, all arguments will be
@@ -319,8 +298,25 @@ vstring BaseType::argsToString() const
 vstring PredicateType::toString() const
 {
   CALL("PredicateType::toString");
-  return argsToString() + " > $bool";
+  return arity() ? argsToString() + " > $o" : "$o";
 } // PredicateType::toString
+
+/**
+ * Create a type of the form (argSort * ... * argSort) -> rangeSort
+ * @author Evgeny Kotelnikov
+ */
+PredicateType* PredicateType::makeTypeUniformRange(unsigned arity, unsigned argsSort)
+{
+  CALL("PredicateType::makeTypeUniformRange");
+
+  static Stack<unsigned> argSorts;
+  argSorts.reset();
+  for (unsigned i=0; i<arity; i++) {
+    argSorts.push(argsSort);
+  }
+  return new PredicateType(arity, argSorts.begin());
+} // PredicateType::makeTypeUniformRange
+
 
 /**
  * Return the TPTP string representation of the function type.
@@ -329,20 +325,8 @@ vstring PredicateType::toString() const
 vstring FunctionType::toString() const
 {
   CALL("FunctionType::toString");
-  return argsToString() + " > " + env.sorts->sortName(result());
+  return (arity() ? argsToString() + " > " : "") + env.sorts->sortName(result());
 } // FunctionType::toString
-
-/**
- * Create a function type of arity @c arity. The arguments and the result
- * type set to the default type.
- * @author Andrei Voronkov
- */
-FunctionType::FunctionType(unsigned arity)
- : BaseType(arity)
-{
-  CALL("FunctionType::FunctionType");
-  _result = Sorts::SRT_DEFAULT;
-} // FunctionType::FunctionType
 
 /**
  * True if this function type has the form (srt * ... * srt) -> srt
@@ -357,3 +341,20 @@ bool FunctionType::isSingleSortType(unsigned srt) const
   }
   return BaseType::isSingleSortType(srt);
 } // FunctionType::isSingleSortType
+
+/**
+ * Create a type of the form (argSort * ... * argSort) -> rangeSort
+ * @author Andrei Voronkov
+ * @author Evgeny Kotelnikov, move to FunctionType
+ */
+FunctionType* FunctionType::makeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned rangeSort)
+{
+  CALL("FunctionType::makeTypeUniformRange");
+
+  static Stack<unsigned> argSorts;
+  argSorts.reset();
+  for (unsigned i=0; i<arity; i++) {
+    argSorts.push(argsSort);
+  }
+  return new FunctionType(arity, argSorts.begin(), rangeSort);
+} // FunctionType::makeTypeUniformRange

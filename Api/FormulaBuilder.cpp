@@ -30,7 +30,7 @@
 #include "Parse/TPTP.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/SpecialTermElimination.hpp"
+#include "Shell/FOOLElimination.hpp"
 #include "Shell/TPTPPrinter.hpp"
 
 
@@ -594,19 +594,6 @@ Formula FormulaBuilder::formula(Connective q,const Var& v,const Formula& f)
   return res;
 }
 
-Formula FormulaBuilder::formula(Connective c,const Formula& cond,const Formula& thenBranch,const Formula& elseBranch)
-{
-  CALL("FormulaBuilder::formula(Connective,const Formula&,const Formula&,const Formula&)");
-
-  if(c!=ITE) {
-    throw FormulaBuilderException("Invalid if-then-else connective");
-  }
-
-  Formula res(new IteFormula(cond.form, thenBranch.form, elseBranch.form));
-  res._aux=_aux;
-  return res;
-}
-
 AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a, vstring name)
 {
   CALL("FormulaBuilder::annotatedFormula");
@@ -736,11 +723,11 @@ Formula FormulaBuilder::replaceConstant(Formula f, Term replaced, Term target)
     }
   }
 
-  Kernel::Formula* letForm = new TermLetFormula(replaced, target, f.form);
-  Shell::SpecialTermElimination ste;
+  Kernel::Formula* letForm = Formula::createLet(replaced.functor(), 0, target, f.form);
+  Shell::FOOLElimination fe;
   FormulaUnit* auxUnit = new FormulaUnit(letForm, new Inference(Inference::INPUT), Unit::AXIOM);
   UnitList* defs = 0;
-  FormulaUnit* auxReplaced = ste.apply(auxUnit, defs);
+  FormulaUnit* auxReplaced = fe.apply(auxUnit, defs);
   ASS_EQ(defs, 0);
   return Formula(auxReplaced->formula(), _aux);
 }
@@ -965,14 +952,10 @@ FormulaBuilder::Connective Formula::connective() const
     return FormulaBuilder::FORALL;
   case Kernel::EXISTS:
     return FormulaBuilder::EXISTS;
-  case Kernel::ITE:
-    return FormulaBuilder::ITE;
   case Kernel::TRUE:
     return FormulaBuilder::TRUE;
   case Kernel::FALSE:
     return FormulaBuilder::FALSE;
-  case Kernel::TERM_LET:
-  case Kernel::FORMULA_LET:
   default:
     ASSERTION_VIOLATION;
   }
@@ -1018,13 +1001,9 @@ unsigned Formula::argCnt() const
   case Kernel::FORALL:
   case Kernel::EXISTS:
     return 1;
-  case Kernel::ITE:
-    return 3;
   case Kernel::TRUE:
   case Kernel::FALSE:
     return 0;
-  case Kernel::TERM_LET:
-  case Kernel::FORMULA_LET:
   default:
     ASSERTION_VIOLATION;
   }
@@ -1062,25 +1041,9 @@ Formula Formula::formulaArg(unsigned i)
       res = form->qarg();
     }
     break;
-  case Kernel::ITE:
-    switch(i) {
-    case 0:
-      res = form->condArg();
-      break;
-    case 1:
-      res = form->thenArg();
-      break;
-    case 2:
-      res = form->elseArg();
-      break;
-    default:;
-    }
-    break;
   case Kernel::TRUE:
   case Kernel::FALSE:
     break;
-  case Kernel::TERM_LET:
-  case Kernel::FORMULA_LET:
   default:
     ASSERTION_VIOLATION;
   }

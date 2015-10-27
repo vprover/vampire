@@ -1,11 +1,12 @@
 /**
  * @file FormulaVarIterator.hpp
  * Defines a class FormulaVarIterator that iterates
- * over free variables in a formula.
+ * over free variables in a formula or a term.
  *
  * @since 06/01/2004, Manchester
  * @since 02/09/2009 Redmond, reimplemented to work with non-rectified
  * formulas and return each variable only once
+ * @since 15/05/2015 Gothenburg, FOOL support added
  */
 
 #ifndef __FormulaVarIterator__
@@ -23,39 +24,39 @@ namespace Kernel {
 
 /**
  * Implements an iterator over free variables of a
- * formula formula list, or atom.
+ * formula, a term or a list of terms.
  *
- * Formula may contain any let and ite expressions.
+ * Any argument may contain $let and $ite expressions.
  *
  * @since 06/01/2004, Manchester
  * @since 02/09/2009 Redmond, reimplemented to work with non-rectified
  * formulas and return each variable only once
+ * @since 15/05/2015 Gothenburg, FOOL support added
  */
 class FormulaVarIterator
 {
 public:
   explicit FormulaVarIterator(const Formula*);
   explicit FormulaVarIterator(const Term*);
+  explicit FormulaVarIterator(const TermList*);
+
   bool hasNext();
   int next();
 
 private:
-  void countFormulaLetLhsVars(const Formula* f, bool inc);
-  void countTermLetLhsVars(const Term* t, bool inc);
-  bool suggestNextVar(unsigned var);
-  bool processSpecialTerm(const TermList* t);
-
   /** instruction of what to process next */
   enum Instruction {
     /** process formula */
     FVI_FORMULA,
     /** process term */
     FVI_TERM,
-    /** unbind variables bound by quantifier or formula let*/
+    /** process term list */
+    FVI_TERM_LIST,
+    /** bind variables bound by quantifier or $let */
+    FVI_BIND,
+    /** unbind variables bound by quantifier or $let */
     FVI_UNBIND,
-    /** unbind variables bound by term let */
-    FVI_UNBIND_TERM_LET
-  }; //
+  };
 
   /** If true then _nextVar contains the next variable   */
   bool _found;
@@ -64,14 +65,18 @@ private:
 
   /** Counter used to store bound variables, together with the number of times they are bound */
   MultiCounter _bound;
-  /** To store previosly found free variables */
+  /** To store previously found free variables */
   MultiCounter _free;
-  /** List of formulas to be processed */
+  /** Stack of formulas to be processed */
   Stack<const Formula*> _formulas;
-  /** List of term lists to process */
-  Stack<const TermList*> _terms;
-  /** list of instructions telling what to do next */
+  /** Stack of terms to process */
+  Stack<const Term*> _terms;
+  /** Stack of term lists to process */
+  Stack<TermList> _termLists;
+  /** Stack of instructions telling what to do next */
   Stack<Instruction> _instructions;
+  /** Stack of lists of variables to process */
+  Stack<const Formula::VarList*> _vars;
 }; // class FormulaVarIterator
 
 }

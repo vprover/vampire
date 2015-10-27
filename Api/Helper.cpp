@@ -102,37 +102,7 @@ vstring DefaultHelperCore::toString(const Kernel::Term* t0) const
 
   vstring res;
   if(t0->isSpecial()) {
-    const Kernel::Term::SpecialTermData* sd = t0->getSpecialData();
-    switch(t0->functor()) {
-    case Kernel::Term::SF_LET_FORMULA_IN_TERM:
-    {
-      ASS_EQ(t0->arity(),1);
-      vstring s = "(let " + toString(sd->getLhsLiteral());
-      s += " := " + toString(sd->getRhsFormula());
-      s += " in " + toString(*t0->nthArgument(0));
-      s += " )";
-      return s;
-    }
-    case Kernel::Term::SF_LET_TERM_IN_TERM:
-    {
-      ASS_EQ(t0->arity(),1);
-      vstring s = "( let " + toString(sd->getLhsTerm());
-      s += " := " + toString(sd->getRhsTerm());
-      s += " in " + toString(*t0->nthArgument(0));
-      s += " )";
-      return s;
-    }
-    case Kernel::Term::SF_TERM_ITE:
-    {
-      ASS_EQ(t0->arity(),2);
-      vstring s = "( " + toString(sd->getCondition());
-      s += " ? " + toString(*t0->nthArgument(0));
-      s += " : " + toString(*t0->nthArgument(1));
-      s += " )";
-      return s;
-    }
-    }
-    ASSERTION_VIOLATION;
+    return t0->specialTermToString();
   }
 
 
@@ -222,7 +192,7 @@ vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
 
   static vstring names [] =
   { "", " & ", " | ", " => ", " <=> ", " <~> ",
-      "~", "!", "?", "", "", "", "$false", "$true"};
+      "~", "!", "?", "$term", "$false", "$true"};
   ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
   Connective c = f->connective();
   vstring con = names[(int)c];
@@ -286,17 +256,8 @@ vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
     return result + "] : (" + toString(f->qarg()) + ") )";
   }
 
-  case ITE:
-    return vstring("(") + toString(f->condArg()) + " ? " +
-	toString(f->thenArg()) + " : " + toString(f->elseArg()) + ")";
-
-  case FORMULA_LET:
-    return "let "+toString(f->formulaLetLhs()) + " := " + toString(f->formulaLetRhs()) +
-	" in " + toString(f->letBody());
-
-  case TERM_LET:
-    return "let "+toString(f->termLetLhs()) + " := " + toString(f->termLetRhs()) +
-	" in " + toString(f->letBody());
+  case BOOL_TERM:
+    return f->getBooleanTerm().toString();
 
   case FALSE:
   case TRUE:

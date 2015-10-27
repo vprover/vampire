@@ -63,7 +63,7 @@
 #include "Shell/TheoryFinder.hpp"
 #include "Shell/TPTPPrinter.hpp"
 #include "Parse/TPTP.hpp"
-#include "Shell/SpecialTermElimination.hpp"
+#include "Shell/FOOLElimination.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/LaTeX.hpp"
@@ -450,7 +450,8 @@ void outputProblemToLaTeX(Problem* prb)
   //TODO output more header
   latexOut << "\\[\n\\begin{array}{ll}" << endl;
 
-  //TODO  get symbol declarations into LaTeX
+  //TODO  get symbol and sort declarations into LaTeX
+  //UIHelper::outputSortDeclarations(env.out());
   //UIHelper::outputSymbolDeclarations(env.out());
 
   UnitList::Iterator units(prb->units());
@@ -489,10 +490,16 @@ void preprocessMode()
   prepro.preprocess(*prb);
 
   env.beginOutput();
+  UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
     Unit* u = units.next();
+    if (!env.options->showFOOL()) {
+      if (u->inference()->rule() == Inference::FOOL_AXIOM) {
+        continue;
+      }
+    }
     env.out() << TPTPPrinter::toString(u) << "\n";
   }
   env.endOutput();
@@ -533,6 +540,7 @@ void outputMode()
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   env.beginOutput();
+  UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
   UnitList::Iterator units(prb->units());
 
@@ -721,6 +729,7 @@ void clausifyMode()
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   env.beginOutput();
+  UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
 
   ClauseIterator cit = prb->clauseIterator();
@@ -748,8 +757,8 @@ void axiomSelectionMode()
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
-  if (prb->hasSpecialTermsOrLets()) {
-    SpecialTermElimination().apply(*prb);
+  if (prb->hasFOOL()) {
+    FOOLElimination().apply(*prb);
   }
 
   // reorder units

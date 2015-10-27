@@ -214,12 +214,19 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
   CALL("Z3Interfacing::getz3sort");
   BYPASSING_ALLOCATOR;
   // Deal with known sorts differently
-  if(s==Sorts::SRT_BOOL) return _context.bool_sort(); 
+  if(s==Sorts::SRT_BOOL) return _context.bool_sort();
   if(s==Sorts::SRT_INTEGER) return _context.int_sort();
   if(s==Sorts::SRT_REAL) return _context.real_sort(); 
   if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
 
-  // Do not currently deal with Array Sorts, they will be treated as user sorts
+  // Deal with arrays
+  if(env.sorts->hasStructuredSort(s,Sorts::StructuredSort::ARRAY)){
+    
+    z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
+    z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
+ 
+    return _context.array_sort(index_sort,value_sort);
+  } 
 
   // Use new interface for uninterpreted sorts, I think this is not less efficient
   return _context.uninterpreted_sort(Lib::Int::toString(s).c_str());
@@ -286,6 +293,12 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
         RationalConstantType value = symb->rationalValue();
         return _context.real_val(value.numerator().toInt(),value.denominator().toInt());
       }
+      if(trm->functor() == Signature::FOOL_TRUE){
+        return _context.bool_val(true);
+      }
+      if(trm->functor() == Signature::FOOL_FALSE){
+        return _context.bool_val(false);
+      }
 
       // If not value then create constant symbol
       return _context.constant(symb->name().c_str(),getz3sort(range_sort));
@@ -312,15 +325,34 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
       return ret;
     }
 
-    // Currently just deal with binary interpreted functions
+    // Currently do not deal with all intepreted operations, should extend 
     // - constants dealt with above
     // - unary funs/preds like is_rat interpretation unclear
     if(symb->interpreted()){
       Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
       bool skip=false; 
-      // Currently only deal with binary or unary, must set this if use unary so that
-      // the right number of arguments are poped from args
-      bool unary=false;
+      unsigned argsToPop=theory->getArity(interp);
+
+      if(theory->isStructuredSortInterpretation(interp)){
+
+        switch(theory->convertToStructured(interp)){
+          case Theory::StructuredSortInterpretation::ARRAY_SELECT:
+          case Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+            // select(array,index)
+            ret = select(args[0],args[1]);
+            break;
+
+          case Theory::StructuredSortInterpretation::ARRAY_STORE:
+            // store(array,index,value)
+            ret = store(args[0],args[1],args[2]);
+            break;
+
+          default:
+            skip=true;//skip it and treat the function as uninterpretted
+            break;
+        }
+
+      }else{
 
       switch(interp){
         // Numerical operations
@@ -329,7 +361,6 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
         case Theory::RAT_UNARY_MINUS:
         case Theory::REAL_UNARY_MINUS:
           ret = -args[0];
-          unary=true;
           break;
 
         case Theory::INT_PLUS:
@@ -372,28 +403,24 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
         case Theory::RAT_FLOOR:
         case Theory::REAL_FLOOR:
           ret = to_real(to_int(args[0])); 
-          unary=true;
           break;
 
         case Theory::INT_TO_REAL:
         case Theory::RAT_TO_REAL:
         case Theory::INT_TO_RAT: //I think this works also
           ret = to_real(args[0]);
-          unary=true;
           break;
 
         case Theory::INT_CEILING:
         case Theory::RAT_CEILING:
         case Theory::REAL_CEILING:
           ret = ceiling(args[0]);
-          unary=true;
           break;
 
         case Theory::INT_TRUNCATE:
         case Theory::RAT_TRUNCATE:
         case Theory::REAL_TRUNCATE:
           ret = truncate(args[0]); 
-          unary=true;
           break;
 
         case Theory::INT_ROUND:
@@ -404,7 +431,6 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
             z3::expr i = to_int(t);
             z3::expr i2 = i + _context.real_val(1,2);
             ret = ite(t > i2, i+1, ite(t==i2, ite(is_even(i),i,i+1),i));
-            unary=true;
             break;
           }
 
@@ -435,7 +461,6 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
        case Theory::RAT_IS_INT:
        case Theory::REAL_IS_INT:
          ret = z3::expr(_context,Z3_mk_is_int(_context,args[0]));
-         unary=true;
          break;
 
        case Theory::INT_LESS:
@@ -466,10 +491,10 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
           skip=true;//skip it and treat the function as uninterpretted
           break;
       }
+      }
 
       if(!skip){
-        args.pop_back();
-        if(!unary){args.pop_back();}
+        while(argsToPop--){ args.pop_back(); }
         return ret;
       } 
 

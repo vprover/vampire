@@ -23,6 +23,8 @@ Factoring.cpp
 Factoring.hpp
 FastCondensation.cpp
 FastCondensation.hpp
+FOOLParamodulation.cpp
+FOOLParamodulation.hpp
 ForwardDemodulation.cpp
 ForwardDemodulation.hpp
 ForwardLiteralRewriting.cpp

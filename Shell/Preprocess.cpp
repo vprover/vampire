@@ -19,7 +19,6 @@
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
 #include "Flattening.hpp"
-#include "FormulaIteExpander.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
 #include "InequalitySplitting.hpp"
@@ -36,7 +35,7 @@
 #include "SimplifyFalseTrue.hpp"
 #include "SineUtils.hpp"
 #include "Statistics.hpp"
-#include "SpecialTermElimination.hpp"
+#include "FOOLElimination.hpp"
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
 #include "TrivialPredicateRemover.hpp"
@@ -71,14 +70,14 @@ using namespace Shell;
 #if GNUMP
 /**
  * Bound propagation preprocessing steps. Takes as argumet @c constraints the list of constraints
- * 
+ *
  */
 void Preprocess::preprocess(ConstraintRCList*& constraints)
 {
   CALL("Preprocess::preprocess(ConstraintRCList *& )");
 
   unfoldEqualities(constraints);
-  
+
   ConstantRemover constantRemover;
   EquivalentVariableRemover evRemover;
   HalfBoundingRemover hbRemover;
@@ -99,7 +98,7 @@ void Preprocess::preprocess(ConstraintRCList*& constraints)
     }
     while(anyChange);
     anyChange |= subsRemover.apply(constraints);
-  } 
+  }
   while(anyChange);
 } // Preprocess::preprocess ()
 
@@ -116,12 +115,12 @@ void Preprocess::unfoldEqualities(ConstraintRCList*& constraints)
     if (c.type()!=CT_EQ) {
       continue;
     }
-   
+
     ConstraintRCPtr gc(Constraint::clone(c));
     gc->setType(CT_GREQ);
     ConstraintRCPtr lc(Constraint::clone(*gc));
     lc->multiplyCoeffs(CoeffNumber::minusOne());
-    
+
     cit.replace(gc);
     cit.insert(lc);
   }
@@ -148,10 +147,10 @@ void Preprocess::preprocess (Problem& prb)
     UnitList::Iterator uit(prb.units());
     while(uit.hasNext()) {
       Unit* u = uit.next();
-      env.out() << "[PP] input: " << u->toString() << std::endl;     
+      env.out() << "[PP] input: " << u->toString() << std::endl;
     }
   }
-  
+
   //we ensure that in the beginning we have a valid property object, to
   //know that the queries to uncertain problem properties will be precise
   //enough
@@ -161,14 +160,14 @@ void Preprocess::preprocess (Problem& prb)
     env.interpretedOperationsUsed = true;
   }
 
-  // Let terms expanded here, ITE expanded later
-  if (prb.hasSpecialTermsOrLets()) {
+  if (prb.hasFOOL()) {
     if (env.options->showPreprocessing())
-      env.out() << "special term elimination" << std::endl;
+      env.out() << "FOOL elimination" << std::endl;
 
-    SpecialTermElimination().apply(prb);
+    TheoryAxioms().applyFOOL(prb);
+    FOOLElimination().apply(prb);
   }
-  
+
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it
   if(env.signature->hasDistinctGroups()){
@@ -182,7 +181,7 @@ void Preprocess::preprocess (Problem& prb)
     env.statistics->phase=Statistics::NORMALIZATION;
     if (env.options->showPreprocessing())
       env.out() << "normalization" << std::endl;
-    
+
     Normalisation().normalise(prb);
   }
 
@@ -228,24 +227,16 @@ void Preprocess::preprocess (Problem& prb)
     preprocess1(prb);
   }
 
-  // This is where ITEs are currently expanded
-  if (prb.hasFormulaItes()){
-    if (env.options->showPreprocessing())
-      env.out() << "expand ite formulas" << std::endl;
-    
-    FormulaIteExpander().apply(prb);
-  }
-
   // Remove unused predicates
   // TODO consider if TrivialPredicateRemoval should occur if this is off
   // Two kinds of unused
   // - pure predicates
   // - unused definitions
-  // I think TrivialPredicateRemoval just removes pures 
+  // I think TrivialPredicateRemoval just removes pures
   if (_options.unusedPredicateDefinitionRemoval()) {
     env.statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
     if (env.options->showPreprocessing())
-      env.out() << "unused predicate definition removal" << std::endl; 
+      env.out() << "unused predicate definition removal" << std::endl;
 
     PredicateDefinition pdRemover;
     pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
@@ -253,21 +244,21 @@ void Preprocess::preprocess (Problem& prb)
 
   if (prb.mayHaveFormulas()) {
     if (env.options->showPreprocessing())
-      env.out() << "preprocess 2 (ennf,flatten)" << std::endl; 
-    
+      env.out() << "preprocess 2 (ennf,flatten)" << std::endl;
+
     preprocess2(prb);
   }
 
   if (prb.mayHaveFormulas() && _options.naming()) {
     if (env.options->showPreprocessing())
-      env.out() << "naming" << std::endl; 
+      env.out() << "naming" << std::endl;
 
     naming(prb);
   }
 
   if (prb.mayHaveFormulas()) {
     if (env.options->showPreprocessing())
-      env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl; 
+      env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
 
     preprocess3(prb);
   }
@@ -371,9 +362,9 @@ void Preprocess::preprocess (Problem& prb)
      UnitList::Iterator uit(prb.units());
      while(uit.hasNext()) {
       Unit* u = uit.next();
-      env.out() << "[PP] final: " << u->toString() << std::endl;             
+      env.out() << "[PP] final: " << u->toString() << std::endl;
      }
-   } 
+   }
 
    if (_options.printClausifierPremises()) {
      UIHelper::outputAllPremises(cerr, prb.units());
@@ -382,7 +373,7 @@ void Preprocess::preprocess (Problem& prb)
    if (env.options->showPreprocessing()) {
      env.out() << "preprocessing finished" << std::endl;
      env.endOutput();
-   }   
+   }
 } // Preprocess::preprocess ()
 
 
@@ -463,7 +454,7 @@ void Preprocess::preprocess2(Problem& prb)
       env.beginOutput();
       env.out() << "[PP] ennf: " << u->toString() << std::endl;
       env.endOutput();
-    }    
+    }
     if (u->isClause()) {
 	continue;
     }
@@ -625,4 +616,3 @@ fin:
   }
   prb.reportFormulasEliminated();
 }
-

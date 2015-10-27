@@ -183,7 +183,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
 
   Signature::Symbol* sym = function ?
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
-  BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : sym->predType();
+  BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : static_cast<BaseType*>(sym->predType());
 
   if(type->isAllDefault()) {
     return;
@@ -343,13 +343,18 @@ vstring TPTPPrinter::toString(const Formula* f)
   CALL("TPTPPrinter::toString(const Formula*)");
   static vstring names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
-      "~", "!", "?", "", "", "", "$false", "$true"};
+      "~", "!", "?", "$term", "$false", "$true"};
   ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
   Connective c = f->connective();
   vstring con = names[(int)c];
   switch (c) {
-  case LITERAL:
-    return f->literal()->toString();
+  case LITERAL: {
+    vstring result = f->literal()->toString();
+    if (f->literal()->isEquality()) {
+      return "(" + result + ")";
+    }
+    return result;
+  }
   case AND:
   case OR:
     {
@@ -376,18 +381,26 @@ vstring TPTPPrinter::toString(const Formula* f)
   case EXISTS:
     {
       vstring result = vstring("(") + con + "[";
+      bool needsComma = false;
       const Formula::VarList* vars = f->vars();
-      result += 'X';
-      result += Int::toString(vars->head());
-      vars = vars->tail();
-      while (Formula::VarList::isNonEmpty(vars)) {
-	result += ',';
-	result += 'X';
-	result += Int::toString(vars->head());
-	vars = vars->tail();
+      for (unsigned var = (unsigned)vars->head(); !Formula::VarList::isEmpty(vars); vars = vars->tail()) {
+        if (needsComma) {
+          result += ", ";
+        }
+        result += 'X';
+        result += Int::toString(vars->head());
+        unsigned t;
+        if (SortHelper::tryGetVariableSort(vars->head(), const_cast<Formula*>(f), t) && t != Sorts::SRT_DEFAULT) {
+          result += ": " + env.sorts->sortName(t);
+        }
+        needsComma = true;
       }
       return result + "] : (" + toString(f->qarg()) + ") )";
     }
+
+  case BOOL_TERM:
+    return f->getBooleanTerm().toString();
+
   case FALSE:
   case TRUE:
     return con;

@@ -224,7 +224,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
 
   unsigned namingPred=env.signature->addNamePredicate(minDeg);
-  BaseType* npredType = BaseType::makeType(minDeg, argSorts.begin(), Sorts::SRT_BOOL);
+  BaseType* npredType = new PredicateType(minDeg, argSorts.begin());
   env.signature->getPredicate(namingPred)->setType(npredType);
 
   if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {

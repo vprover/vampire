@@ -268,26 +268,23 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
   if(trm->isSpecial()) {
     Term::SpecialTermData* sd = trm->getSpecialData();
     switch(trm->functor()) {
-    case Term::SF_TERM_ITE:
-      return Term::createTermITE(
+    case Term::SF_ITE:
+      return Term::createITE(
 	  applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing)
 	  );
-    case Term::SF_LET_FORMULA_IN_TERM:
-      ASS_EQ(sd->getLhsLiteral(), applyImpl<ProcessSpecVars>(sd->getLhsLiteral(), applicator, noSharing));
-      return Term::createFormulaLet(
-	  sd->getLhsLiteral(),
-	  applyImpl<ProcessSpecVars>(sd->getRhsFormula(), applicator, noSharing),
+    case Term::SF_LET:
+      return Term::createLet(
+	  sd->getFunctor(),
+	  sd->getVariables(),
+	  applyImpl<ProcessSpecVars>(sd->getBody(), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing)
 	  );
-    case Term::SF_LET_TERM_IN_TERM:
-      ASS_EQ(sd->getLhsTerm(), applyImpl<ProcessSpecVars>(sd->getLhsTerm(), applicator, noSharing));
-      return Term::createTermLet(
-	  sd->getLhsTerm(),
-	  applyImpl<ProcessSpecVars>(sd->getRhsTerm(), applicator, noSharing),
-	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing)
-	  );
+    case Term::SF_FORMULA:
+      return Term::createFormula(
+      applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
+      );
     }
     ASSERTION_VIOLATION;
   }
@@ -500,42 +497,8 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
     return new QuantifiedFormula(f->connective(),newVars,arg);
   }
 
-  case ITE:
-  {
-    Formula* c = applyImpl<ProcessSpecVars>(f->condArg(), applicator, noSharing);
-    Formula* t = applyImpl<ProcessSpecVars>(f->thenArg(), applicator, noSharing);
-    Formula* e = applyImpl<ProcessSpecVars>(f->elseArg(), applicator, noSharing);
-    if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
-      return f;
-    }
-    return new IteFormula(c,t,e);
-  }
-
-  case TERM_LET:
-  {
-    //the lhs term binds variables in it, and on all bound
-    //variables the substitution must be identity
-    ASS(f->termLetLhs() == applyImpl<ProcessSpecVars>(f->termLetLhs(), applicator, noSharing));
-    TermList t = applyImpl<ProcessSpecVars>(f->termLetRhs(), applicator, noSharing);
-    Formula* b = applyImpl<ProcessSpecVars>(f->letBody(), applicator, noSharing);
-    if(t==f->termLetRhs() && b==f->letBody()) {
-      return f;
-    }
-    return new TermLetFormula(f->termLetLhs(), t, b);
-  }
-
-  case FORMULA_LET:
-  {
-    //the lhs term binds variables in it, and on all bound
-    //variables the substitution must be identity
-    ASS(f->formulaLetLhs() == applyImpl<ProcessSpecVars>(f->formulaLetLhs(), applicator, noSharing));
-    Formula* t = applyImpl<ProcessSpecVars>(f->formulaLetRhs(), applicator, noSharing);
-    Formula* b = applyImpl<ProcessSpecVars>(f->letBody(), applicator, noSharing);
-    if(t==f->formulaLetRhs() && b==f->letBody()) {
-      return f;
-    }
-    return new FormulaLetFormula(f->formulaLetLhs(), t, b);
-  }
+  case BOOL_TERM:
+    return new BoolTermFormula(applyImpl<ProcessSpecVars>(f->getBooleanTerm(), applicator, noSharing));
 
   case TRUE:
   case FALSE:

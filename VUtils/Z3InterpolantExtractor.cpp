@@ -138,7 +138,7 @@ unsigned ZIE::getFunctionNumber(vstring fnName, unsigned arity)
   bool added;
   unsigned res = env.signature->addFunction(fnName, arity, added);
   if(added) {
-    BaseType* type = BaseType::makeTypeUniformRange(arity, Sorts::SRT_INTEGER, Sorts::SRT_INTEGER);
+    BaseType* type = FunctionType::makeTypeUniformRange(arity, Sorts::SRT_INTEGER, Sorts::SRT_INTEGER);
     env.signature->getFunction(res)->setType(type);
   }
   return res;
@@ -242,8 +242,7 @@ Formula* ZIE::termToFormula(TermList trm)
   bool added;
   unsigned pred = env.signature->addPredicate("e", 1, added);
   if(added) {
-    env.signature->getPredicate(pred)->setType(
-	BaseType::makeType1(Sorts::SRT_INTEGER, Sorts::SRT_BOOL));
+    env.signature->getPredicate(pred)->setType(new PredicateType(Sorts::SRT_INTEGER));
   }
 
   Literal* resLit = Literal::create(pred, 1, true, false, &trm);

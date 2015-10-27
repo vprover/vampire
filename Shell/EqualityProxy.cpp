@@ -341,8 +341,7 @@ unsigned EqualityProxy::getProxyPredicate(unsigned sort)
   }
   unsigned newPred = env.signature->addFreshPredicate(2,"sQ","eqProxy");
   Signature::Symbol* predSym = env.signature->getPredicate(newPred);
-  unsigned predDomain[] = { sort, sort };
-  BaseType* predType = PredicateType::makeType(2, predDomain, Sorts::SRT_BOOL);
+  BaseType* predType = new PredicateType(sort, sort);
   predSym->setType(predType);
   predSym->markEqualityProxy();
 

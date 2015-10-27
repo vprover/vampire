@@ -236,6 +236,9 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
       }
       break;
 
+    case BOOL_TERM:
+      ASSERTION_VIOLATION;
+
     case FORALL:
     case EXISTS:
       // first compare the length of the variable prefix,

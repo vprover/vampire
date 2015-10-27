@@ -71,10 +71,6 @@ public:
     CLOSURE,
     /** obtained by flattening (quantifiers, junctions) */
     FLATTEN,
-    /** obtained by expansion of the formula if-then-else connective */
-    FORMULA_ITE_EXPANSION,
-    /** a definition introduced for the term if-then-else operator */
-    TERM_ITE_DEFINITION,
     /** obtained by reordering literals */
     REORDER_LITERALS,
     /** obtained by transformation into ENNF */
@@ -198,17 +194,21 @@ public:
     EQUALITY_AXIOM,
     /** any added theory axioms */
     THEORY,
+    /** one of two axioms of FOOL (distinct constants or finite domain) */
+    FOOL_AXIOM,
     //** Flatten a clause to separate theory literals */
     THEORY_FLATTENING,
     /** Introduction of formula to convert formulas used as argument positions.
      *  Such formulas have the form F->f(x)=1 or ~F->f(x)=0 */
     BOOLEAN_TERM_ENCODING,
-    /** Introduction of definitions to handle the term <i>if F then s else t</i>
-     *  Such formulas have the form F->f(x)=s or ~F->f(x)=t */
-    TERM_IF_THEN_ELSE_DEFINITION,
-    /** Elimination of if-then-else and let...in special terms and let...in
-     * formula connectives */
-    SPECIAL_TERM_ELIMINATION,
+    /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
+    FOOL_ELIMINATION,
+    /** Elimination of $ite expressions */
+    FOOL_ITE_ELIMINATION,
+    /** Elimination of $let expressions */
+    FOOL_LET_ELIMINATION,
+    /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */
+    FOOL_PARAMODULATION,
     /** component introduced by sat splitting */
     SAT_SPLITTING_COMPONENT,
     /** refutation of a sat splitting branch */

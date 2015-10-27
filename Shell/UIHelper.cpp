@@ -399,6 +399,11 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
 
   unsigned funcs = sig.functions();
   for (unsigned i=0; i<funcs; ++i) {
+    if (!env.options->showFOOL()) {
+      if ((i == Signature::FOOL_TRUE) || (i == Signature::FOOL_FALSE)) {
+        continue;
+      }
+    }
     outputSymbolTypeDeclarationIfNeeded(out, true, i);
   }
   unsigned preds = sig.predicates();
@@ -431,7 +436,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     return;
   }
 
-  out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
+  out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
       << sym->name() << ": ";
 
   unsigned arity = sym->arity();
@@ -457,8 +462,31 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   else {
     out << "$o";
   }
-  out << " )." << endl;
+  out << ")." << endl;
 }
+
+/**
+ * Output to @b out all sort declarations for the current signature.
+ * Built-in sorts and structures sorts will not be output.
+ * @author Evgeny Kotelnikov
+ * @since 04/09/2015 Gothneburg
+ */
+void UIHelper::outputSortDeclarations(ostream& out)
+{
+  CALL("UIHelper::outputSortDeclarations");
+
+  unsigned sorts = (*env.sorts).sorts();
+  for (unsigned sort = Sorts::SRT_BOOL; sort < sorts; ++sort) {
+    if (sort <= Sorts::FIRST_USER_SORT && ((sort != Sorts::SRT_BOOL) || !env.options->showFOOL())) {
+      continue;
+    }
+    if ((*env.sorts).hasStructuredSort(sort, Sorts::StructuredSort::ARRAY) ||
+        (*env.sorts).hasStructuredSort(sort, Sorts::StructuredSort::LIST)) {
+      continue;
+    }
+    out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;
+  }
+} // UIHelper::outputSortDeclarations
 
 #if GNUMP
 /**

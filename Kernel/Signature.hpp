@@ -224,7 +224,7 @@ class Signature
     {
       CALL("IntegerSymbol");
 
-      setType(new FunctionType(0, 0, Sorts::SRT_INTEGER));
+      setType(new FunctionType(Sorts::SRT_INTEGER));
     }
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
@@ -244,7 +244,7 @@ class Signature
     {
       CALL("RationalSymbol");
 
-      setType(new FunctionType(0, 0, Sorts::SRT_RATIONAL));
+      setType(new FunctionType(Sorts::SRT_RATIONAL));
     }
     CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
@@ -264,7 +264,7 @@ class Signature
     {
       CALL("RealSymbol");
 
-      setType(new FunctionType(0, 0, Sorts::SRT_REAL));
+      setType(new FunctionType(Sorts::SRT_REAL));
     }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
@@ -339,7 +339,6 @@ class Signature
    */
   unsigned addStringConstant(const vstring& name);
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addIteFunction(unsigned arity, unsigned* argSorts, unsigned resSort);
   unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
@@ -378,10 +377,7 @@ class Signature
   }
 
   /** return the name of a function with a given number */
-  const vstring& functionName(int number)
-  {
-    return _funs[number]->name();
-  }
+  const vstring& functionName(int number);
   /** return the name of a predicate with a given number */
   const vstring& predicateName(int number)
   {
@@ -468,6 +464,9 @@ class Signature
   static const unsigned RATIONAL_DISTINCT_GROUP;
   static const unsigned REAL_DISTINCT_GROUP;
   static const unsigned LAST_BUILT_IN_DISTINCT_GROUP;
+
+  static const unsigned FOOL_FALSE;
+  static const unsigned FOOL_TRUE;
 
 private:
   static bool isProtectedName(vstring name);

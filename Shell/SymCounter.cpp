@@ -144,11 +144,8 @@ void SymCounter::count (const Formula* f,int polarity,int add)
       count (f->qarg(), polarity, add);
       return;
 
-    case ITE:
-      count (f->condArg(), 0, add);
-      count (f->thenArg(), polarity, add);
-      count (f->elseArg(), polarity, add);
-      return;
+    case BOOL_TERM:
+      ASSERTION_VIOLATION;
 
   case TRUE:
   case FALSE:

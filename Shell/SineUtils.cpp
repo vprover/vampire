@@ -115,6 +115,8 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,Stack<SymId>& itms)
     case LITERAL:
       addSymIds(f->literal(),itms);
       break;
+    case BOOL_TERM:
+      ASSERTION_VIOLATION;
     case AND:
     case OR:
       {
@@ -136,20 +138,6 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,Stack<SymId>& itms)
     case FORALL:
     case EXISTS:
       fs.push(f->qarg());
-      break;
-    case ITE:
-      fs.push(f->condArg());
-      fs.push(f->thenArg());
-      fs.push(f->elseArg());
-      break;
-    case TERM_LET:
-      //TODO: add handling of terms in TERM_LET
-      fs.push(f->letBody());
-      break;
-    case FORMULA_LET:
-      fs.push(f->letBody());
-      addSymIds(f->formulaLetLhs(),itms);
-      fs.push(f->formulaLetRhs());
       break;
     case TRUE:
     case FALSE:

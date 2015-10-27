@@ -436,6 +436,10 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
     }
     return new Formula(value^f->literal()->isNegative());
   }
+
+  case BOOL_TERM:
+    ASSERTION_VIOLATION;
+
   case TRUE:
   case FALSE:
     return f;
@@ -637,10 +641,6 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
 	      : new QuantifiedFormula(con,f->vars(),arg);
     }
   }
-  case ITE:
-  case FORMULA_LET:
-  case TERM_LET:
-    ASSERTION_VIOLATION;
   }
   ASSERTION_VIOLATION;
 }
@@ -811,6 +811,9 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
     case EXISTS:
       count (f->qarg(), polarity, add, unit);
       return;
+
+    case BOOL_TERM:
+      ASSERTION_VIOLATION;
 
     case TRUE:
     case FALSE:

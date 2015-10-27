@@ -144,7 +144,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
 
   Term::SpecialTermData* sd = t->getSpecialData();
   switch(t->functor()) {
-  case Term::SF_TERM_ITE:
+  case Term::SF_ITE:
   {
     ASS_EQ(t->arity(),2);
     Formula* c = rectify(sd->getCondition());
@@ -153,31 +153,41 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     if(c==sd->getCondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1)) {
 	return t;
     }
-    return Term::createTermITE(c, th, el);
+    return Term::createITE(c, th, el);
   }
-  case Term::SF_LET_FORMULA_IN_TERM:
+  case Term::SF_LET:
   {
     ASS_EQ(t->arity(),1);
-    Literal* orig = sd->getLhsLiteral();
-    Formula* tgt = sd->getRhsFormula();
-    rectifyFormulaLet(orig, tgt);
-    TermList body = rectify(*t->nthArgument(0));
-    if(orig==sd->getLhsLiteral() && tgt==sd->getRhsFormula() && body==*t->nthArgument(0)) {
+
+    bindVars(sd->getVariables());
+    TermList body = rectify(sd->getBody());
+    /**
+     * We don't need to remove unused variables from the body of a functions,
+     * otherwise the rectified list of variables might not fix the arity of the
+     * let functor. So, temporarily disable _removeUnusedVars;
+     */
+    bool removeUnusedVars = _removeUnusedVars;
+    _removeUnusedVars = false;
+    VarList* variables = rectifyBoundVars(sd->getVariables());
+    _removeUnusedVars = removeUnusedVars; // restore the status quo
+    unbindVars(sd->getVariables());
+
+    ASS_EQ(variables->length(), sd->getVariables()->length());
+
+    TermList contents = rectify(*t->nthArgument(0));
+    if (sd->getVariables() == variables && body == sd->getBody() && contents == *t->nthArgument(0)) {
       return t;
     }
-    return Term::createFormulaLet(orig, tgt, body);
+    return Term::createLet(sd->getFunctor(), variables, body, contents);
   }
-  case Term::SF_LET_TERM_IN_TERM:
+  case Term::SF_FORMULA:
   {
-    ASS_EQ(t->arity(),1);
-    TermList orig = sd->getLhsTerm();
-    TermList tgt = sd->getRhsTerm();
-    rectifyTermLet(orig, tgt);
-    TermList body = rectify(*t->nthArgument(0));
-    if(orig==sd->getLhsTerm() && tgt==sd->getRhsTerm() && body==*t->nthArgument(0)) {
+    ASS_EQ(t->arity(),0);
+    Formula* orig = rectify(sd->getFormula());
+    if(orig==sd->getFormula()) {
       return t;
     }
-    return Term::createTermLet(orig, tgt, body);
+    return Term::createFormula(orig);
   }
   default:
     ASSERTION_VIOLATION;
@@ -326,43 +336,6 @@ TermList Rectify::rectify(TermList t)
   return TermList(rectifyVar(t.var()), false);
 }
 
-void Rectify::rectifyTermLet(TermList& lhs, TermList& rhs)
-{
-  CALL("Rectify::rectifyTermLet");
-
-  //the variables of the lhs will be bound in the rhs, so we
-  //need to rectify them
-  VarList* vs = 0;
-  VariableIterator vit(lhs);
-  VarList::pushFromIterator(getMappingIterator(
-	getUniquePersistentIteratorFromPtr(&vit), OrdVarNumberExtractorFn()), vs);
-  //we don't need the resultof variable rectification, we just needed to do the binding
-  bindVars(vs);
-  lhs = rectify(lhs);
-  rhs = rectify(rhs);
-  unbindVars(vs);
-  vs->destroy();
-}
-
-void Rectify::rectifyFormulaLet(Literal*& lhs, Formula*& rhs)
-{
-  CALL("Rectify::rectifyFormulaLet");
-
-  //the variables of the lhs will be bound in the rhs, so we
-  //need to rectify them
-  VarList* vs = 0;
-  VariableIterator vit(lhs);
-  VarList::pushFromIterator(getMappingIterator(
-	getUniquePersistentIteratorFromPtr(&vit), OrdVarNumberExtractorFn()), vs);
-  //we don't need the resultof variable rectification, we just needed to do the binding
-  bindVars(vs);
-  lhs = rectify(lhs);
-  rhs = rectify(rhs);
-  unbindVars(vs);
-  vs->destroy();
-}
-
-
 /**
  * Rectify a formula.
  *
@@ -433,44 +406,12 @@ Formula* Rectify::rectify (Formula* f)
     return new QuantifiedFormula(f->connective(),vs,arg);
   }
 
-  case ITE:
-  {
-    Formula* c = rectify(f->condArg());
-    Formula* t = rectify(f->thenArg());
-    Formula* e = rectify(f->elseArg());
-    if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
-      return f;
-    }
-    return new IteFormula(c,t,e);
-  }
-
-  case TERM_LET:
-  {
-    TermList o = f->termLetLhs();
-    TermList t = f->termLetRhs();
-    rectifyTermLet(o, t);
-    Formula* b = rectify(f->letBody());
-    if(o==f->termLetLhs() && t==f->termLetRhs() && b==f->letBody()) {
-      return f;
-    }
-    return new TermLetFormula(o,t,b);
-  }
-
-  case FORMULA_LET:
-  {
-    Literal* o = f->formulaLetLhs();
-    Formula* t = f->formulaLetRhs();
-    rectifyFormulaLet(o, t);
-    Formula* b = rectify(f->letBody());
-    if(o==f->formulaLetLhs() && t==f->formulaLetRhs() && b==f->letBody()) {
-      return f;
-    }
-    return new FormulaLetFormula(o, t, b);
-  }
-
   case TRUE:
   case FALSE:
     return f;
+
+  case BOOL_TERM:
+     return new BoolTermFormula(rectify(f->getBooleanTerm()));
 
 #if VDEBUG
   default:

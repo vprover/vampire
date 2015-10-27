@@ -189,11 +189,10 @@ public:
   bool hasInterpretedEquality() const { return _hasInterpretedEquality; }
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
+  bool hasFOOL() const { return _hasFOOL; }
   bool usesSort(unsigned sort) const { return _usesSort[sort]; }
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed;}
-  bool hasSpecialTermsOrLets() const { return _hasSpecialTermsOrLets; }
-  bool hasFormulaItes() const { return _hasFormulaItes; }
  private:
   // constructor, operators new and delete
   explicit Property();
@@ -270,8 +269,7 @@ public:
   DArray<bool> _interpretationPresence;
   Array<bool> _usesSort;
 
-  bool _hasSpecialTermsOrLets;
-  bool _hasFormulaItes;
+  bool _hasFOOL;
 
   bool _allClausesGround;
   bool _allQuantifiersEssentiallyExistential;

@@ -151,6 +151,9 @@ Formula* NNF::ennf (Formula* f, bool polarity)
 				   f->vars(),gg);
     }
 
+  case BOOL_TERM:
+    ASSERTION_VIOLATION;
+
   case TRUE:
   case FALSE:
     if(polarity) {
@@ -309,6 +312,9 @@ Formula* NNF::nnf (Formula* f, bool polarity)
       return new QuantifiedFormula(c == EXISTS ? FORALL : EXISTS,
 				   f->vars(),gg);
     }
+
+  case BOOL_TERM:
+    ASSERTION_VIOLATION;
 
   case TRUE:
   case FALSE:

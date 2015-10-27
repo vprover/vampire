@@ -1735,10 +1735,10 @@ void SimplifyProver::buildIfThenElseTerm()
   Formula* f1 = new BinaryFormula(IMP,f,fxs);
   Formula* f2 = new BinaryFormula(IMP,new NegatedFormula(f),fxt);
   addUnit(new FormulaUnit(f1,
-			  new Inference(Inference::TERM_IF_THEN_ELSE_DEFINITION),
+			  new Inference(Inference::FOOL_ITE_ELIMINATION),
 			  Unit::AXIOM));
   addUnit(new FormulaUnit(f2,
-			  new Inference(Inference::TERM_IF_THEN_ELSE_DEFINITION),
+			  new Inference(Inference::FOOL_ITE_ELIMINATION),
 			  Unit::AXIOM));
   // and save the term fx as the result
   _tsaved.push(fx);

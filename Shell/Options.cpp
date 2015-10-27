@@ -535,6 +535,11 @@ void Options::Options::init()
     _showZ3.tag(OptionTag::DEVELOPMENT);
 #endif
 
+    _showFOOL = BoolOptionValue("show_fool","",false);
+    _showFOOL.description="Reveal the internal representation of FOOL terms";
+    _lookup.insert(&_showFOOL);
+    _showFOOL.tag(OptionTag::OUTPUT);
+
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
@@ -783,7 +788,24 @@ void Options::Options::init()
     // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
     _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
     _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
-    
+
+    _FOOLOrdering = BoolOptionValue("fool_ordering","",false);
+    _FOOLOrdering.description="Sets term ordering to be $$false < $$true < everything else";
+    _lookup.insert(&_FOOLOrdering);
+    _FOOLOrdering.tag(OptionTag::SATURATION);
+
+    _FOOLParamodulation = BoolOptionValue("fool_paramodulation","",false);
+    _FOOLParamodulation.description=
+      "Turns on the following inference rule:\n"
+      "        C[s]\n"
+      "--------------------,\n"
+      "C[true] \\/ s = false\n"
+      "where s is a boolean term that is not a variable, true or false, C[true] is "
+      "the C clause with s substituted by true. This rule is needed for effecient "
+      "treatment of boolean terms.";
+    _lookup.insert(&_FOOLParamodulation);
+    _FOOLParamodulation.tag(OptionTag::INFERENCES);
+
     _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
     _forwardDemodulation.description=
     "Oriented rewriting of newly derived clauses by kept unit equalities\n"

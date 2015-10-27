@@ -260,6 +260,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ExtensionalityResolution.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
+         Inferences/FOOLParamodulation.o\
          Inferences/ForwardDemodulation.o\
          Inferences/ForwardLiteralRewriting.o\
          Inferences/ForwardSubsumptionAndResolution.o\
@@ -321,7 +322,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/EqualityAxiomatizer.o\
          Shell/EqualityProxy.o\
          Shell/Flattening.o\
-         Shell/FormulaIteExpander.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
          Shell/GlobalOptions.o\
@@ -350,7 +350,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
          Shell/SMTPrinter.o\
-         Shell/SpecialTermElimination.o\
+         Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Shell/SymCounter.o\
          Shell/TheoryAxioms.o\

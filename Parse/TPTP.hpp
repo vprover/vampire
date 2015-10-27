@@ -59,6 +59,8 @@ public:
     T_COMMA,
     /** ':' */
     T_COLON,
+    /** ';' */
+    T_SEMICOLON,
     /** '~' */
     T_NOT,
     /** '&' */
@@ -140,18 +142,12 @@ public:
     /** $real */
     T_REAL_TYPE,
     /** $fot, probably useless */
-    T_ARRAY1_TYPE,
-    /** $array1 type*/
-    T_ARRAY2_TYPE,
-    /** $array2 type*/
-    T_SELECT1,
-    /** array select1 on terms (int, array1)*/
-    T_SELECT2,
-    /** array select2 on terms (int, array2)*/
-    T_STORE1,
-    /** array store1  on terms (array1, int, int)*/
-    T_STORE2,
-    /** array store2 on terms (array2, int, int)*/
+    T_ARRAY_TYPE,
+    /** $array type*/
+    T_SELECT,
+    /** array select*/
+    T_STORE,
+    /** array store*/
     T_FOT,
     /** $fof, probably useless */
     T_FOF,
@@ -161,18 +157,10 @@ public:
     T_THF,
     /** anything that begins with $$ */
     T_DOLLARS,
-    /** $ite_f: if-then-else on formulas */
-    T_ITEF,
-    /** $ite_t: if-then-else on terms */
-    T_ITET,
-    /** $let_tt: a form of $let */
-    T_LETTT,
-    /** $let_tf: a form of $let */
-    T_LETTF,
-    /** $let_ft: a form of $let */
-    T_LETFT,
-    /** $let_ff: a form of $let */
-    T_LETFF,
+    /** $ite: FOOL level-polymorphic if-then-else */
+    T_ITE,
+    /** $let: FOOL level-polymorphic let-in */
+    T_LET,
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -193,12 +181,20 @@ public:
     SIMPLE_FORMULA,
     /** build formula from a connective and one or more formulas */
     END_FORMULA,
+    /** read a formula that whould be put inside a term */
+    FORMULA_INSIDE_TERM,
+    /** */
+    TERM_INFIX,
+    /** wrap built formula inside a term */
+    END_FORMULA_INSIDE_TERM,
+    /** make built boolean term a formula */
+    END_TERM_AS_FORMULA,
     /** read a variable list (for a quantifier) */
     VAR_LIST,
-    /** read an atom */
-    ATOM,
-    /** process mid-atom: either end of atom or = or != */
-    MID_ATOM,
+    /** read a function application */
+    FUN_APP,
+    /** process application of = or != to an atom */
+    FORMULA_INFIX,
     /** read arguments */
     ARGS,
     /** read term */
@@ -223,45 +219,22 @@ public:
     SIMPLE_TYPE,
     /** unbinding previously quantified variables */
     UNBIND_VARIABLES,
-    /** if-then-else on formulas */
-    ITEF,
-    /** end of if-then-else on formulas */
-    END_ITEF,
-    /** end of if-then-else on terms */
-    END_ITET,
+    /** end of an if-then-else expression */
+    END_ITE,
     /** check the end of arguments */
     END_ARGS,
     /** middle of equality */
     MID_EQ,
-    /** $lettf formula */
-    LETTF,
-    /** $letff formula */
-    LETFF,
-    /** end of $lettt term */
-    END_LETTT,
-    /** end of $lettf formula */
-    END_LETTF,
-    /** end of $letft term */
-    END_LETFT,
-    /** end of $letff formula */
-    END_LETFF,
-    /** select1 on array1 term*/
-    SELECT1, 
-    /** end of select1 array terms */
-    END_SELECT1,
-    /** select1 on array2 term*/
-    SELECT2, 
-    /** end of select2 array terms */
-    END_SELECT2,
-    /** store1 on array1 term*/
-    STORE1, 
-    /** end of store1 array terms */
-    END_STORE1,
-    /** store2 on array2 term*/
-    STORE2, 
-    /** end of store2 on array terms */
-    END_STORE2,
-
+    /** end of $let expression */
+    END_LET,
+    /** start of function or predicate binding inside $let */
+    BINDING,
+    /** end of function or predicate binding inside $let */
+    END_BINDING,
+    /** end of select array terms */
+    END_SELECT,
+    /** end of store array terms */
+    END_STORE
   };
 
   /** token */
@@ -330,6 +303,8 @@ private:
    */
   class Type {
   public:
+    CLASS_NAME(Type);
+    USE_ALLOCATOR(Type);
     explicit Type(TypeTag tag) : _tag(tag) {}
     /** return the kind of this sort */
     TypeTag tag() const {return _tag;}
@@ -508,8 +483,26 @@ private:
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
+  /** a function name and arity */
+  typedef pair<vstring, unsigned> LetFunctionName;
+  /** a symbol number with a predicate/function flag */
+  typedef pair<unsigned, bool> LetFunctionReference;
+  /** a definition of a function symbol, defined in $let */
+  typedef pair<LetFunctionName, LetFunctionReference> LetFunction;
+  /** a scope of function definitions */
+  typedef Stack<LetFunction> LetFunctionsScope;
+  /** a stack of scopes */
+  Stack<LetFunctionsScope> _letScopes;
+  /** finds if the symbol has been defined in an enclosing $let */
+  bool findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol);
+  /** the scope of the currently parsed $let-term */
+  LetFunctionsScope _currentLetScope;
   /** model definition formula */
   bool _modelDefinition;
+
+  // A hack to hard-code the precedence of = and != higher than connectives
+  // This is needed for implementation of FOOL
+  unsigned _insideEqualityArgument;
 
   /**
    * Get the next characters at the position pos.
@@ -612,49 +605,38 @@ private:
   void consumeToken(Tag);
   vstring name();
   void formula();
-  void atom();
+  void funApp();
   void simpleFormula();
   void simpleType();
   void args();
   void varList();
   void term();
+  void termInfix();
   void endTerm();
   void endArgs();
   Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
-  void makeTerm(TermList& ts,Token& tok);
-  void midAtom();
+  Formula* createPredicateApplication(vstring name,unsigned arity);
+  TermList createFunctionApplication(vstring name,unsigned arity);
   void endEquality();
   void midEquality();
+  void formulaInfix();
   void endFormula();
+  void formulaInsideTerm();
+  void endFormulaInsideTerm();
+  void endTermAsFormula();
   void endType();
   void tag();
   void endFof();
   void endTff();
   void include();
   void type();
-  void itef();
-  void itet();
-  void select1();
-  void select2();
-  void store1();
-  void store2();
-  void endItef();
-  void endItet();
-  void letff();
-  void lettf();
-  void endLetff();
-  void endLetft();
-  void endLettf();
-  void endLettt();
-  void endSelect1();
-  void endSelect2();
-  void endStore1();
-  void endStore2();
+  void endIte();
+  void binding();
+  void endBinding();
+  void endLet();
+  void endSelect();
+  void endStore();
   void addTagState(Tag);
-  static void checkFlat(const TermList& t);
-  static void checkFlat(const Term* t);
-  static void checkFlat(const Literal* t);
-  static void reportNonFlat(vstring);
 
   unsigned readSort();
   void bindVariable(int var,unsigned sortNumber);
@@ -674,7 +656,7 @@ private:
   unsigned addRationalConstant(const vstring&);
   unsigned addRealConstant(const vstring&);
   unsigned addUninterpretedConstant(const vstring& name,bool& added);
-  unsigned sortOf(TermList& term);
+  unsigned sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
 
 public:
@@ -720,6 +702,9 @@ private:
   void printStates(vstring extra);
   void printInts(vstring extra);
   const char* toString(State s);
+#endif
+#ifdef DEBUG_SHOW_STATE
+  void printStacks();
 #endif
 }; // class TPTP
 

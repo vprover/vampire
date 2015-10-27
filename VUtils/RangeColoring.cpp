@@ -71,7 +71,7 @@ TermList TermColoring::applyToTerm(TermList trm)
   if(clr!=COLOR_TRANSPARENT) {
     funSym->addColor(clr);
   }
-  BaseType* type = BaseType::makeType0(SortHelper::getResultSort(trm.term()));
+  BaseType* type = new FunctionType(SortHelper::getResultSort(trm.term()));
   funSym->setType(type);
 
   Term* resTerm = Term::create(func, 0, 0);

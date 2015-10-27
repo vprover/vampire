@@ -135,6 +135,9 @@ Formula* Naming::apply_iter(Formula* top_f) {
         todo_stack.pop(); // finished with the current Task
       } break;
 
+      case BOOL_TERM:
+        ASSERTION_VIOLATION;
+
       case AND: {
         FormulaList* fs = tas.f->args();
         int length = fs->length();
@@ -747,6 +750,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
 
   switch (f->connective()) {
   case LITERAL:
+  case BOOL_TERM:
     pos = 1;
     neg = 1;
     return f;

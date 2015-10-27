@@ -59,13 +59,13 @@ Property::Property()
     _hasInterpreted(false),
     _hasInterpretedEquality(false),
     _hasNonDefaultSorts(false),
+    _hasFOOL(false),
     _sortsUsed(0),
-    _hasSpecialTermsOrLets(false),
-    _hasFormulaItes(false),
     _allClausesGround(true),
     _allQuantifiersEssentiallyExistential(true)
 {
-  _interpretationPresence.init(Theory::MAX_INTERPRETED_ELEMENT+1, false);
+  //TODO now MaxInterpretedElement is stateful this might be in the wrong place
+  _interpretationPresence.init(Theory::instance()->MaxInterpretedElement()+1, false);
   env.property = this;
 } // Property::Property
 
@@ -353,13 +353,6 @@ void Property::scan(Formula* formula)
     Formula* f = fs.next(polarity);
 
     switch(f->connective()) {
-    case ITE:
-      _hasFormulaItes = true;
-      break;
-    case FORMULA_LET:
-    case TERM_LET:
-      _hasSpecialTermsOrLets = true;
-      break;
     case LITERAL:
     {
       _atoms++;
@@ -372,10 +365,15 @@ void Property::scan(Formula* formula)
 	  _positiveEqualityAtoms++;
 	}
       }
-      if (!lit->shared()) {
-	_hasSpecialTermsOrLets = true;
-      }
       scan(lit,polarity);
+      break;
+    }
+    case BOOL_TERM: {
+      _hasFOOL = true;
+      TermList aux[2];
+      aux[0].makeEmpty();
+      aux[1] = f->getBooleanTerm();
+      scan(aux+1);
       break;
     }
     case FORALL:
@@ -422,7 +420,10 @@ void Property::scanSort(unsigned sort)
     break;
   case Sorts::SRT_REAL:
     addProp(PR_HAS_REALS);
-    break;          
+    break;
+  case Sorts::SRT_BOOL:
+    _hasFOOL = true;
+    break;
   }
 }
 
@@ -531,33 +532,32 @@ void Property::scanSpecialTerm(Term* t)
 {
   CALL("Property::scanSpecialTerm");
 
+  _hasFOOL = true;
+
   Term::SpecialTermData* sd = t->getSpecialData();
   switch(t->functor()) {
-  case Term::SF_TERM_ITE:
+  case Term::SF_ITE:
   {
     ASS_EQ(t->arity(),2);
     scan(sd->getCondition());
     scan(t->args());
     break;
   }
-  case Term::SF_LET_FORMULA_IN_TERM:
-  {
-    ASS_EQ(t->arity(),1);
-    scan(sd->getLhsLiteral());
-    scan(sd->getRhsFormula());
-    scan(t->args());
-    break;
-  }
-  case Term::SF_LET_TERM_IN_TERM:
+  case Term::SF_LET:
   {
     ASS_EQ(t->arity(),1);
     //this is a trick creating an artificial term list with terms we want to traverse
-    TermList aux[3];
+    TermList aux[2];
     aux[0].makeEmpty();
-    aux[1] = sd->getRhsTerm();
-    aux[2] = sd->getLhsTerm();
-    scan(aux+2);
+    aux[1] = sd->getBody();
+    scan(aux+1);
     scan(t->args());
+    break;
+  }
+  case Term::SF_FORMULA:
+  {
+    ASS_EQ(t->arity(),0);
+    scan(sd->getFormula());
     break;
   }
   default:
@@ -867,23 +867,12 @@ bool Property::hasXEqualsY(const Formula* f)
       pols.push(pol);
       break;
 
-    case ITE:
-      forms.push(f->condArg());
-      pols.push(0);
-      forms.push(f->thenArg());
-      pols.push(pol);
-      forms.push(f->elseArg());
-      pols.push(pol);
-      break;
-
-    case TERM_LET:
-    case FORMULA_LET:
-      //these two may introduce the X=Y literal but it would be too complicated to check for it
-      break;
-      
     case TRUE:
     case FALSE:
       break;
+
+    case BOOL_TERM:
+      return true;
 
 #if VDEBUG
     default:

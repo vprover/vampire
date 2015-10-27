@@ -1671,6 +1671,7 @@ public:
   bool showSkolemisations() const { return _showSkolemisations.actualValue; }
   bool showSymbolElimination() const { return _showSymbolElimination.actualValue; }
   bool showTheoryAxioms() const { return _showTheoryAxioms.actualValue; }
+  bool showFOOL() const { return _showFOOL.actualValue; }
 #if VZ3
   bool showZ3() const { return _showZ3.actualValue; }
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
@@ -1732,6 +1733,8 @@ public:
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
+  bool FOOLOrdering() const { return _FOOLOrdering.actualValue; }
+  bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
@@ -1998,7 +2001,10 @@ private:
   ChoiceOptionValue<ExtensionalityResolution> _extensionalityResolution;
   UnsignedOptionValue _extensionalityMaxLength;
   BoolOptionValue _extensionalityAllowPosEq;
-  
+
+  BoolOptionValue _FOOLOrdering;
+  BoolOptionValue _FOOLParamodulation;
+
   BoolOptionValue _fmbIncremental;
   BoolOptionValue _fmbNonGroundDefs;
   BoolOptionValue _fmbSortInference;
@@ -2007,6 +2013,7 @@ private:
   FloatOptionValue _fmbSymmetryRatio;
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
+
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
   BoolOptionValue _forceIncompleteness;
@@ -2123,6 +2130,7 @@ private:
   BoolOptionValue _showSkolemisations;
   BoolOptionValue _showSymbolElimination;
   BoolOptionValue _showTheoryAxioms;
+  BoolOptionValue _showFOOL;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
@@ -2189,7 +2197,7 @@ private:
 
   InputFileOptionValue _inputFile;
 
-    
+
 }; // class Options
 
 // Allow printing of enums

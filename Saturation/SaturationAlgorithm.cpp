@@ -36,6 +36,7 @@
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
 #include "Inferences/ExtensionalityResolution.hpp"
+#include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
@@ -728,6 +729,8 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addNewClause");
 
+  //cout << "new clause: " << cl->toString() << endl;
+
   //we increase the reference counter here so that the clause wouldn't
   //get destroyed during handling in the onNewClause handler
   //(there the control flow goes out of the SaturationAlgorithm class,
@@ -761,6 +764,7 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 #if VDEBUG
     case Clause::SELECTED:
     case Clause::ACTIVE:
+      cout << "FAIL: " << cl->toString() << endl;
       //such clauses should not appear as new ones
       cout << cl->toString() << endl;
       ASSERTION_VIOLATION_REP(cl->store());
@@ -1325,7 +1329,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution());
   }
-  
+  if (opt.FOOLParamodulation()) {
+    gie->addFront(new FOOLParamodulation());
+  }
+
   res->setGeneratingInferenceEngine(gie);
 
   res->setImmediateSimplificationEngine(createISE(prb, opt));

@@ -557,6 +557,44 @@ void TheoryAxioms::addArrayExtensionalityAxioms(
 } // addArrayExtensionalityAxiom    
 
 /**
+ * Adds the extensionality axiom of boolean arrays:
+ * select(X, sk(X, Y)) <~> select(Y, sk(X, Y)) | X = Y
+ *
+ * @since 25/08/2015 Gothenburg
+ * @author Evgeny Kotelnikov
+ */
+void TheoryAxioms::addBooleanArrayExtensionalityAxioms(
+        Interpretation select,
+        Interpretation store,
+        unsigned skolemFn,
+        UnitList*& units)
+{
+  CALL("TheoryAxioms::addBooleanArrayExtenstionalityAxioms");
+
+  ASS(!theory->isFunction(select));
+  ASS(theory->isArrayOperation(select));
+  ASS_EQ(theory->getArity(select),2);
+
+  unsigned sel = env.signature->getInterpretingSymbol(select);
+  unsigned arraySort = theory->getArrayOperationSort(store);
+
+  TermList x(0,false);
+  TermList y(1,false);
+
+  TermList sk(Term::create2(skolemFn, x, y)); //sk(x,y)
+  Formula* x_neq_y = new AtomicFormula(Literal::createEquality(false,x,y,arraySort)); //x != y
+
+  Formula* sel_x_sk = new AtomicFormula(Literal::create2(sel, true, x, sk)); //select(x,sk(x,y))
+  Formula* sel_y_sk = new AtomicFormula(Literal::create2(sel, true, y, sk)); //select(y,sk(x,y))
+  Formula* sx_neq_sy = new BinaryFormula(XOR, sel_x_sk, sel_y_sk); //select(x,sk(x,y)) <~> select(y,sk(x,y))
+
+  Formula* axiom = new QuantifiedFormula(FORALL, new Formula::VarList(0, new Formula::VarList(1, 0)),
+                                         new BinaryFormula(IMP, x_neq_y, sx_neq_sy));
+
+  addAndOutputTheoryUnit(new FormulaUnit(axiom, new Inference(Inference::THEORY), Unit::AXIOM), units);
+} // addBooleanArrayExtensionalityAxiom
+
+/**
 * Adds the write/select axiom of arrays (of type array1 or array2), 
  * @author Laura Kovacs
  * @since 31/08/2012, Vienna
@@ -596,6 +634,51 @@ void TheoryAxioms::addArrayWriteAxioms(Interpretation select, Interpretation sto
   Literal* indexEq = Literal::createEquality(true, i, j, domainSort);//!(!(I=J)) === I=J
   Literal* writeEq = Literal::createEquality(true, sWJ, sAJ, rangeSort);//(select(store(A,I,V), J) = select(A,J)
   addTheoryNonUnitClause(units, indexEq, writeEq);                      
+} //
+
+/**
+* Adds the write/select axiom of arrays (of type array1 or array2),
+ * @author Laura Kovacs
+ * @since 31/08/2012, Vienna
+*/
+void TheoryAxioms::addBooleanArrayWriteAxioms(Interpretation select, Interpretation store, UnitList*& units)
+{
+  CALL("TheoryAxioms::addArrayWriteAxioms");
+
+  ASS(!theory->isFunction(select));
+  ASS(theory->isArrayOperation(select));
+  ASS_EQ(theory->getArity(select),2);
+
+
+  unsigned pred_select = env.signature->getInterpretingSymbol(select);
+  unsigned func_store = env.signature->getInterpretingSymbol(store);
+
+  unsigned rangeSort = theory->getArrayOperationSort(select);
+  unsigned domainSort = theory->getArrayDomainSort(select);
+  //unsigned arraySort = theory->getOperationSort(store);
+
+  TermList i(0,false);
+  TermList j(1,false);
+  TermList v(2,false);
+  TermList a(3,false);
+  TermList args[] = {a, i, v};
+
+  //axiom (!A: arraySort, !I:domainSort, !V:rangeSort: (select(store(A,I,V), I) <=> (V = $$true)
+  TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,V)
+  Formula* sWI = new AtomicFormula(Literal::create2(pred_select, true, wAIV,i)); //select(wAIV,I)
+  TermList true_(Term::createConstant(Signature::FOOL_TRUE));
+  Formula* xeqt = new AtomicFormula(Literal::createEquality(true, true_, v, rangeSort));
+  Formula* ax = new BinaryFormula(IFF, xeqt, sWI);
+  addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM), units);
+
+  //axiom (!A: arraySort, !I,J:domainSort, !V:rangeSort: (I!=J)->(select(store(A,I,V), J) <=> select(A,J)
+  Formula* sWJ = new AtomicFormula(Literal::create2(pred_select, true, wAIV,j)); //select(wAIV,J)
+  Formula* sAJ = new AtomicFormula(Literal::create2(pred_select, true, a, j)); //select(A,J)
+
+  Formula* indexEq = new AtomicFormula(Literal::createEquality(false, i, j, domainSort));//I!=J
+  Formula* writeEq = new BinaryFormula(IFF, sWJ, sAJ);//(select(store(A,I,V), J) <=> select(A,J)
+  Formula* ax2 = new BinaryFormula(IMP, indexEq, writeEq);
+  addAndOutputTheoryUnit(new FormulaUnit(ax2, new Inference(Inference::THEORY), Unit::AXIOM), units);
 } //
     
 //Axioms for integer division that hven't been implemented yet
@@ -750,32 +833,68 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
 
     modified = true;
   }
-  bool haveSelectArray1= prop->hasInterpretedOperation(Theory::SELECT1_INT);
-  bool haveSelectArray2= prop->hasInterpretedOperation(Theory::SELECT2_INT);
-  bool haveStoreArray1= prop->hasInterpretedOperation(Theory::STORE1_INT);
-  bool haveStoreArray2= prop->hasInterpretedOperation(Theory::STORE2_INT);
-  
-  if (haveStoreArray1) { //addArraySelectAxioms(Theory::SELECT1_INT,units);
-    unsigned sk = theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY1);
-    addArrayExtensionalityAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, sk, units);
-    addArrayWriteAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, units);
-    modified = true;
+
+
+  VirtualIterator<unsigned> arraySorts = env.sorts->getArraySorts();
+  while(arraySorts.hasNext()){
+    unsigned arraySort = arraySorts.next();
+
+    //cout << "Consider arraySort " << arraySort << endl;
+
+    bool isBool = (env.sorts->getArraySort(arraySort)->getInnerSort() == Sorts::SRT_BOOL);
+
+    // Get Interpretation objects for functions 
+    Interpretation arraySelect = theory->getInterpretation(arraySort, isBool ? Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT
+                                                                             : Theory::StructuredSortInterpretation::ARRAY_SELECT);
+    Interpretation arrayStore  = theory->getInterpretation(arraySort,Theory::StructuredSortInterpretation::ARRAY_STORE);
+
+    // Check if they are used
+    bool haveSelect = prop->hasInterpretedOperation(arraySelect);
+    bool haveStore = prop->hasInterpretedOperation(arrayStore);
+
+    if (haveSelect || haveStore) {
+      unsigned sk = theory->getArrayExtSkolemFunction(arraySort);
+      if (isBool) {
+        addBooleanArrayExtensionalityAxioms(arraySelect, arrayStore, sk, units);
+      } else {
+        addArrayExtensionalityAxioms(arraySelect, arrayStore, sk, units);
+      }
+      if (haveStore) {
+        if (isBool) {
+          addBooleanArrayWriteAxioms(arraySelect, arrayStore, units);
+        } else {
+          addArrayWriteAxioms(arraySelect, arrayStore, units);
+        }
+      }
+      modified = true;
+    }
   }
-  else if (haveSelectArray1) {
-    unsigned sk = theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY1);
-    addArrayExtensionalityAxioms(Theory::SELECT1_INT, Theory::STORE1_INT, sk, units);
-    modified = true;
-  }
-  if (haveStoreArray2) {//addArraySelectAxioms(Theory::SELECT1_INT,units);
-    unsigned sk = theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY2);
-    addArrayExtensionalityAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, sk, units);
-    addArrayWriteAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, units);
-    modified = true;
-  }
-  else if (haveSelectArray2) {
-    unsigned sk = theory->getArrayExtSkolemFunction(Sorts::SRT_ARRAY2);
-    addArrayExtensionalityAxioms(Theory::SELECT2_INT, Theory::STORE2_INT, sk, units);
-    modified = true;
-  }
+
   return modified;
 } // TheoryAxioms::apply
+
+void TheoryAxioms::applyFOOL(Problem& prb) {
+  CALL("TheoryAxioms::applyFOOL");
+
+  static TermList t(Term::createConstant(Signature::FOOL_TRUE));
+  static TermList f(Term::createConstant(Signature::FOOL_FALSE));
+
+  // Add "$$true != $$false"
+  Formula* inequality = new AtomicFormula(Literal::createEquality(false, t, f, Sorts::SRT_BOOL));
+  Unit* disjointConstants = new FormulaUnit(inequality, new Inference(Inference::FOOL_AXIOM), Unit::AXIOM);
+  addAndOutputTheoryUnit(disjointConstants, prb.units());
+
+  // Do not add the finite domain axiom if --fool_paradomulation on
+  if (env.options->FOOLParamodulation()) {
+    return;
+  }
+
+  // Add "![X : $bool]: ((X = $$true) | (X = $$false))"
+  Formula* xist = new AtomicFormula(Literal::createEquality(true, TermList(0, false), t, Sorts::SRT_BOOL));
+  Formula* xisf = new AtomicFormula(Literal::createEquality(true, TermList(0, false), f, Sorts::SRT_BOOL));
+
+  FormulaList* fs = new FormulaList(xist, new FormulaList(xisf, 0));
+  Formula* disjunction = new QuantifiedFormula(FORALL, new Formula::VarList(0, 0), new JunctionFormula(OR, fs));
+  Unit* finiteDomain = new FormulaUnit(disjunction, new Inference(Inference::FOOL_AXIOM), Unit::AXIOM);
+  addAndOutputTheoryUnit(finiteDomain, prb.units());
+} // TheoryAxioms::addBooleanDomainAxiom

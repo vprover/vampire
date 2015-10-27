@@ -41,14 +41,6 @@ public:
   /** Return the connective */
   Connective connective () const { return _connective; }
 
-  TermList termLetLhs() const;
-  TermList termLetRhs() const;
-  Literal* formulaLetLhs() const;
-  Formula* formulaLetRhs() const;
-  Formula* letBody() const;
-  Formula* condArg() const;
-  Formula* thenArg() const;
-  Formula* elseArg() const;
   const FormulaList* args() const;
   FormulaList* args();
   FormulaList** argsPtr();
@@ -64,6 +56,8 @@ public:
   Formula* uarg();
   const Literal* literal() const;
   Literal* literal();
+  const TermList getBooleanTerm() const;
+  TermList getBooleanTerm();
   VarList* freeVariables () const;
   VarList* boundVariables () const;
 
@@ -94,6 +88,10 @@ public:
 
   static Formula* trueFormula();
   static Formula* falseFormula();
+
+  static Formula* createITE(Formula* condition, Formula* thenArg, Formula* elseArg);
+  static Formula* createLet(unsigned functor, Formula::VarList* variables, TermList body, Formula* contents);
+  static Formula* createLet(unsigned predicate, Formula::VarList* variables, Formula* body, Formula* contents);
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(Formula);
@@ -275,108 +273,34 @@ class JunctionFormula
   FormulaList* _args;
 }; // class JunctionFormula
 
+
 /**
- * If-then-else formula.
+ * A formula that is just a boolean term.
+ * @since 02/06/2007 Manchester
  */
-class IteFormula
+class BoolTermFormula
   : public Formula
 {
  public:
-  IteFormula(Formula* condarg, Formula* thenarg, Formula* elsearg)
-    : Formula(ITE),
-      _condarg(condarg),
-      _thenarg(thenarg),
-      _elsearg(elsearg)
+  BoolTermFormula (TermList ts)
+    : Formula(BOOL_TERM),
+      _ts(ts)
   {
+    // only boolean terms in formula context are expected here
+    ASS(ts.isVar() || ts.term()->isITE() || ts.term()->isLet());
   }
 
-  /** Return the subformula serving as the condition */
-  Formula* condArg() const { return _condarg; }
-  /** Return the subformula serving as the then branch */
-  Formula* thenArg() const { return _thenarg; }
-  /** Return the subformula serving as the else branch */
-  Formula* elseArg() const { return _elsearg; }
+  /** Return the variable */
+  const TermList getTerm() const { return _ts; }
+  TermList getTerm() { return _ts; }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME(IteFormula);
-  USE_ALLOCATOR(IteFormula);
+  CLASS_NAME(BoolTermFormula);
+  USE_ALLOCATOR(BoolTermFormula);
  protected:
-  Formula* _condarg;
-  Formula* _thenarg;
-  Formula* _elsearg;
-}; // class IteFormula
-
-/**
- * Formula let...in formula.
- */
-class FormulaLetFormula
-  : public Formula
-{
- public:
-  /**
-   * Create a formula (let lhs := rhs in body)
-   */
-  FormulaLetFormula (Literal* lhs, Formula* rhs, Formula* body)
-    : Formula(FORMULA_LET),
-      _lhs(lhs),
-      _rhs(rhs),
-      _body(body)
-  {
-    ASS(lhs->hasOnlyDistinctVariableArgs());
-    ASS(lhs->shared());
-  }
-
-  /** Return the literal that should be replaced */
-  Literal* lhs() const { return _lhs; }
-  /** Return the formula that should replace the @b lhs() literal */
-  Formula* rhs() const { return _rhs; }
-  /** Return body on which the replacement is performed */
-  Formula* body() const { return _body; }
-
-  // use allocator to (de)allocate objects of this class
-  CLASS_NAME(FormulaLetFormula);
-  USE_ALLOCATOR(FormulaLetFormula);
- protected:
-  Literal* _lhs;
-  Formula* _rhs;
-  Formula* _body;
-}; // class FormulaLetFormula
-
-/**
- * Term let...in formula.
- */
-class TermLetFormula
-  : public Formula
-{
- public:
-  /**
-   * Create a formula (let lhs := rhs in body)
-   */
-  TermLetFormula (TermList lhs, TermList rhs, Formula* body)
-    : Formula(TERM_LET),
-      _lhs(lhs),
-      _rhs(rhs),
-      _body(body)
-  {
-    ASS(lhs.isSafe());
-    ASS(lhs.isVar() || lhs.term()->hasOnlyDistinctVariableArgs());
-  }
-
-  /** Return the term that should be replaced */
-  TermList lhs() const { return _lhs; }
-  /** Return the term that should replace the @b lhs() term */
-  TermList rhs() const { return _rhs; }
-  /** Return body on which the replacement is performed */
-  Formula* body() const { return _body; }
-
-  // use allocator to (de)allocate objects of this class
-  CLASS_NAME(TermLetFormula);
-  USE_ALLOCATOR(TermLetFormula);
- protected:
-  TermList _lhs;
-  TermList _rhs;
-  Formula* _body;
-}; // class TermLetFormula
+  /** boolean term */
+  TermList _ts;
+}; // class BoolTermFormula
 
 // definitions, had to be put out of class
 
@@ -495,53 +419,18 @@ Formula* Formula::right()
   ASS(_connective == IFF || _connective == XOR || _connective == IMP);
   return static_cast<BinaryFormula*>(this)->rhs();
 }
-/** Return the condition subformula of an if-then-else formula */
+
 inline
-Formula* Formula::condArg() const {
-  ASS(_connective == ITE);
-  return static_cast<const IteFormula*>(this)->condArg();
-}
-/** Return the then-branch subformula of an if-then-else formula */
-inline
-Formula* Formula::thenArg() const {
-  ASS(_connective == ITE);
-  return static_cast<const IteFormula*>(this)->thenArg();
-}
-/** Return the else-branch subformula of an if-then-else formula */
-inline
-Formula* Formula::elseArg() const {
-  ASS(_connective == ITE);
-  return static_cast<const IteFormula*>(this)->elseArg();
+const TermList Formula::getBooleanTerm() const
+{
+  ASS(_connective == BOOL_TERM);
+  return static_cast<const BoolTermFormula*>(this)->getTerm();
 }
 inline
-Formula* Formula::letBody() const {
-  if(_connective == TERM_LET) {
-    return static_cast<const TermLetFormula*>(this)->body();
-  }
-  else {
-    ASS(_connective == FORMULA_LET)
-    return static_cast<const FormulaLetFormula*>(this)->body();
-  }
-}
-inline
-Literal* Formula::formulaLetLhs() const {
-  ASS(_connective == FORMULA_LET)
-  return static_cast<const FormulaLetFormula*>(this)->lhs();
-}
-inline
-Formula* Formula::formulaLetRhs() const {
-  ASS(_connective == FORMULA_LET)
-  return static_cast<const FormulaLetFormula*>(this)->rhs();
-}
-inline
-TermList Formula::termLetLhs() const {
-  ASS(_connective == TERM_LET);
-  return static_cast<const TermLetFormula*>(this)->lhs();
-}
-inline
-TermList Formula::termLetRhs() const {
-  ASS(_connective == TERM_LET);
-  return static_cast<const TermLetFormula*>(this)->rhs();
+TermList Formula::getBooleanTerm()
+{
+  ASS(_connective == BOOL_TERM);
+  return static_cast<BoolTermFormula*>(this)->getTerm();
 }
 
 // operators

@@ -237,12 +237,14 @@ vstring Inference::ruleName(Rule rule)
     return "closure";
   case FLATTEN:
     return "flattening";
-  case FORMULA_ITE_EXPANSION:
-    return "formula ite expansion";
-  case TERM_IF_THEN_ELSE_DEFINITION:
-    return "term if then else definition";
-  case SPECIAL_TERM_ELIMINATION:
-    return "special term elimination";
+  case FOOL_ELIMINATION:
+    return "FOOL elimination";
+  case FOOL_ITE_ELIMINATION:
+    return "FOOL $ite elimination";
+  case FOOL_LET_ELIMINATION:
+    return "FOOL $let elimination";
+  case FOOL_PARAMODULATION:
+    return "FOOL paramodulation";
 //  case CHOICE_AXIOM:
 //  case MONOTONE_REPLACEMENT:
 //  case FORALL_ELIMINATION:
@@ -356,6 +358,8 @@ vstring Inference::ruleName(Rule rule)
     return "equality axiom";
   case THEORY:
     return "theory axiom";
+  case FOOL_AXIOM:
+    return "fool axiom";
   case THEORY_FLATTENING:
     return "theory flattening";
   case BOOLEAN_TERM_ENCODING:

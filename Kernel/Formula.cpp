@@ -7,6 +7,7 @@
 
 #include "Debug/Tracer.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/MultiCounter.hpp"
@@ -15,6 +16,8 @@
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+
+#include "Shell/Options.hpp"
 
 #include "Clause.hpp"
 #include "Term.hpp"
@@ -104,9 +107,8 @@ void Formula::destroy ()
     delete static_cast<QuantifiedFormula*>(this);
     return;
 
-  case ITE:
-    delete static_cast<IteFormula*>(this);
-    return;
+  case BOOL_TERM:
+    delete static_cast<BoolTermFormula*>(this);
 
   case TRUE:
   case FALSE:
@@ -226,8 +228,7 @@ void Formula::destroy ()
 vstring Formula::toString (Connective c)
 {
   static vstring names [] =
-//    { "", "&", "\\/", "=>", "<=>", "<~>", "~", "!", "?", "false", "true"};
-    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "<ite>", "<formula_let>", "<term_let>", "$false", "$true"};
+    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true"};
   ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
 
   return names[(int)c];
@@ -308,17 +309,10 @@ vstring Formula::toString () const
       return result + qarg()->toStringInScopeOf(c);
     }
 
-  case ITE:
-    return "$ite_f(" + condArg()->toStringInScopeOf(c) + "," + thenArg()->toStringInScopeOf(c) + "," +
-           elseArg()->toStringInScopeOf(c) + ")";
-
-  case FORMULA_LET:
-    return "let "+formulaLetLhs()->toString() + " := " + formulaLetRhs()->toStringInScopeOf(c) +
-	" in " + letBody()->toStringInScopeOf(c);
-
-  case TERM_LET:
-    return "let "+termLetLhs().toString() + " := " + termLetRhs().toString() +
-	" in " + letBody()->toStringInScopeOf(c);
+  case BOOL_TERM: {
+    vstring term = getBooleanTerm().toString();
+    return env.options->showFOOL() ? "$formula{" + term + "}" : term;
+  }
 
   case TRUE:
   case FALSE:
@@ -348,6 +342,7 @@ bool Formula::parenthesesRequired (Connective outer) const
     case NOT:
     case FORALL:
     case EXISTS:
+    case BOOL_TERM:
     case TRUE:
     case FALSE:
       return false;
@@ -357,9 +352,6 @@ bool Formula::parenthesesRequired (Connective outer) const
     case IMP:
     case IFF:
     case XOR:
-    case ITE:
-    case FORMULA_LET:
-    case TERM_LET:
       return true;
 
 #if VDEBUG
@@ -585,6 +577,9 @@ void Formula::collectPredicatesWithPolarity(Stack<pair<unsigned,int> >& acc, int
       qarg()->collectPredicatesWithPolarity(acc,polarity);
       return;
 
+    case BOOL_TERM:
+      ASSERTION_VIOLATION;
+
     case TRUE:
     case FALSE:
       return;
@@ -703,6 +698,46 @@ Formula* Formula::falseFormula()
   return res;
 }
 
+/**
+ * Creates a formula of the form $ite(c, a, b), where a, b, c are formulas
+ * @since 16/04/2015 Gothenburg
+ */
+Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseArg)
+{
+  CALL("Formula::createITE");
+  TermList thenTerm(Term::createFormula(thenArg));
+  TermList elseTerm(Term::createFormula(elseArg));
+  TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm));
+  return new BoolTermFormula(iteTerm);
+}
+
+/**
+ * Creates a formula of the form $let(lhs := rhs, body), where body is a formula
+ * and lhs and rhs form a binding for a function
+ * @since 16/04/2015 Gothenburg
+ */
+Formula* Formula::createLet(unsigned functor, Formula::VarList* variables, TermList body, Formula* contents)
+{
+  CALL("Formula::createLet(TermList)");
+  TermList contentsTerm(Term::createFormula(contents));
+  TermList letTerm(Term::createLet(functor, variables, body, contentsTerm));
+  return new BoolTermFormula(letTerm);
+}
+
+/**
+ * Creates a formula of the form $let(lhs := rhs, body), where body is a formula
+ * and lhs and rhs form a binding for a predicate
+ * @since 16/04/2015 Gothenburg
+ */
+Formula* Formula::createLet(unsigned predicate, Formula::VarList* variables, Formula* body, Formula* contents)
+{
+  CALL("Formula::createLet(Formula*)");
+  TermList bodyTerm(Term::createFormula(body));
+  TermList contentsTerm(Term::createFormula(contents));
+  TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm));
+  return new BoolTermFormula(letTerm);
+}
+
 Formula* Formula::quantify(Formula* f)
 {
   Set<unsigned> vars;
@@ -772,9 +807,6 @@ Formula* Formula::fromClause(Clause* cl)
   case NOT:
   case FORALL:
   case EXISTS:
-  case ITE:
-  case TERM_LET:
-  case FORMULA_LET:
   case TRUE:
   case FALSE:
 #if VDEBUG

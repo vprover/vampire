@@ -95,7 +95,7 @@ TEST_FUN(interpFunc4)
   TermList five(theory->representConstant(RealConstantType("5")));
 
   unsigned y = env.signature->addFunction("y",1);
-  env.signature->getFunction(y)->setType(BaseType::makeType1(Sorts::SRT_REAL,Sorts::SRT_REAL));
+  env.signature->getFunction(y)->setType(new FunctionType(Sorts::SRT_REAL,Sorts::SRT_REAL));
   TermList y5 = TermList(Term::create1(y,five));
 
   TermList mult(Term::create2(m, two, y5));

@@ -93,7 +93,7 @@ Term* TermSharing::insert(Term* t)
       }
       else 
       {
-          ASS(tt->term()->shared());
+          ASS_REP(tt->term()->shared(), tt->term()->toString());
           
           Term* r = tt->term();
     

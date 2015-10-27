@@ -23,6 +23,8 @@ using namespace Kernel;
  */
 BaseType& SortHelper::getType(Term* t)
 {
+  CALL("SortHelper::getType(Term*)");
+
   if (t->isLiteral()) {
     return *(env.signature->getPredicate(t->functor())->predType());
   }
@@ -104,7 +106,7 @@ bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, Te
 
   for (;;) {
     switch(t->functor()) {
-    case Term::SF_TERM_ITE:
+    case Term::SF_ITE:
     {
       TermList arg1 = *t->nthArgument(0);
       TermList arg2 = *t->nthArgument(1);
@@ -122,8 +124,7 @@ bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, Te
       }
       break;
     }
-    case Term::SF_LET_TERM_IN_TERM:
-    case Term::SF_LET_FORMULA_IN_TERM:
+    case Term::SF_LET:
     {
       TermList arg1 = *t->nthArgument(0);
       if (arg1.isTerm()) {
@@ -134,6 +135,9 @@ bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, Te
       }
       break;
     }
+    case Term::SF_FORMULA:
+      resultSort = Sorts::SRT_BOOL;
+      return true;
     default:
       ASS(!t->isSpecial());
       resultSort = getResultSort(t);
@@ -242,16 +246,39 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, unsigned& res)
   SubformulaIterator sfit(f);
   while (sfit.hasNext()) {
     Formula* sf = sfit.next();
-    if (sf->connective() != LITERAL) {
-      continue;
-    }
-    Literal* lit = sf->literal();
 
-    if (!lit->containsSubterm(varTerm)) {
-      continue;
+    if (sf->connective() == LITERAL){
+
+      Literal* lit = sf->literal();
+
+      // first handle the special equality case
+      if(lit->isEquality()){
+         TermList* left = lit->nthArgument(0);
+         TermList* right = lit->nthArgument(1);
+         if((left->isVar() && left->var()==var) ||
+            (right->isVar() && right->var()==var)){
+
+           res = getEqualityArgumentSort(lit); 
+           return true;
+         }
+      }
+      if(tryGetVariableSort(varTerm, lit, res)){
+        return true;
+      }
     }
-    res = getVariableSort(varTerm, lit);
-    return true;
+    if(sf->connective() == BOOL_TERM){
+      TermList stt = sf->getBooleanTerm();
+      if(stt.isVar() && stt.var()==var){
+        res = Sorts::SRT_BOOL;
+        return true;
+      }
+      if(stt.isTerm()){
+        Term* st = stt.term();
+        if(tryGetVariableSort(varTerm,st,res)){
+          return true;
+        } 
+      }
+    } 
   }
   return false;
 }
@@ -261,33 +288,103 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, unsigned& res)
  * variable is in map already (or appears multiple times), assert that the sorts
  * are equal. @c t0 can be either term or literal.
  * @since 04/05/2013 Manchester, new NonVariableIterator is used
- * @author Andrei Voronkov
+ * @since 15/05/2015 Gothenburg, FOOL support added
+ * @author Andrei Voronkov, Evgeny Kotelnikov
  */
-void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
+void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,unsigned>& map)
 {
   CALL("SortHelper::collectVariableSorts(Term*,...)");
 
-  NonVariableIterator sit(t0,true);
-  while (sit.hasNext()) {
-    int idx = 0;
-    Term* t = sit.next().term();
-    if (t->shared() && t->ground()) {
-      sit.right();
+  unsigned position = 0;
+  for (TermList* ts = term->args(); ts->isNonEmpty(); ts = ts->next()) {
+    collectVariableSorts(*ts, getArgSort(term, position++), map);
+  }
+} // SortHelper::collectVariableSorts
+
+/**
+ * Context sort is needed for FOOL support. For some of the special terms,
+ * the sort of the occurrence of a variable cannot be derived from the functor.
+ * Example: $let(f := c, X). Here the sort of X is the sort of the occurence of
+ * the $let-term, therefore we need to pass the context around explicitly.
+ */
+void SortHelper::collectVariableSorts(TermList ts, unsigned contextSort, DHMap<unsigned,unsigned>& map)
+{
+  CALL("SortHelper::collectVariableSorts(TermList,...)");
+
+  if (ts.isTerm()) {
+    Term* term = ts.term();
+    if (term->isSpecial()) {
+      collectVariableSortsSpecialTerm(term, contextSort, map);
+    } else {
+      collectVariableSorts(term, map);
     }
-    TermList* args = t->args();
-    while (!args->isEmpty()) {
-      if (args->isOrdinaryVar()) {
-	unsigned varNum = args->var();
-	unsigned varSort = getArgSort(t, idx);
-	if (!map.insert(varNum, varSort)) {
-	  ASS_EQ(varSort, map.get(varNum));
-	}
-      }
-      idx++;
-      args=args->next();
+  } else if (ts.isOrdinaryVar()) {
+    unsigned var = ts.var();
+    if (!map.insert(var, contextSort)) {
+      ASS_EQ(contextSort, map.get(var));
     }
   }
 } // SortHelper::collectVariableSorts
+
+void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSort, DHMap<unsigned,unsigned>& map) {
+  CALL("SortHelper::collectVariableSortsSpecialTerm(Term*,...)");
+
+  ASS(term->isSpecial());
+
+  Stack<TermList*> ts(0);
+
+  Term::SpecialTermData* sd = term->getSpecialData();
+
+  switch (term->functor()) {
+    case Term::SF_ITE: {
+      collectVariableSorts(sd->getCondition(), map);
+
+      ts.push(term->nthArgument(0));
+      ts.push(term->nthArgument(1));
+      break;
+    }
+
+    case Term::SF_LET: {
+      TermList body = sd->getBody();
+      bool isPredicate = body.isTerm() && body.term()->isFormula();
+      Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
+                                              : env.signature->getFunction(sd->getFunctor());
+      unsigned position = 0;
+      Formula::VarList::Iterator vit(sd->getVariables());
+      while (vit.hasNext()) {
+        unsigned var = (unsigned)vit.next();
+        unsigned sort = isPredicate ? symbol->predType()->arg(position) : symbol->fnType()->arg(position);
+        if (!map.insert(var, sort)) {
+          ASS_EQ(sort, map.get(var));
+        }
+        position++;
+      }
+
+      if (isPredicate) {
+        collectVariableSorts(body.term()->getSpecialData()->getFormula(), map);
+      } else {
+        collectVariableSorts(body, symbol->fnType()->result(), map);
+      }
+
+      ts.push(term->nthArgument(0));
+      break;
+    }
+
+    case Term::SF_FORMULA:
+      collectVariableSorts(sd->getFormula(), map);
+      break;
+
+#if VDEBUG
+    default:
+      ASSERTION_VIOLATION;
+#endif
+  }
+
+  Stack<TermList*>::Iterator tit(ts);
+  while (tit.hasNext()) {
+    collectVariableSorts(*tit.next(), contextSort, map);
+  }
+} // SortHelper::collectVariableSortsSpecialTerm
 
 /**
  * Insert variable sorts from @c f into @c map. If a variable
@@ -301,12 +398,27 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
   SubformulaIterator sfit(f);
   while (sfit.hasNext()) {
     Formula* sf = sfit.next();
-    if (sf->connective() != LITERAL) {
-      continue;
-    }
-    Literal* lit = sf->literal();
+    switch (sf->connective()) {
+      case LITERAL:
+        collectVariableSorts(sf->literal(), map);
+        break;
 
-    collectVariableSorts(lit, map);
+      case BOOL_TERM: {
+        TermList ts = sf->getBooleanTerm();
+        if (ts.isVar()) {
+          if (!map.insert(ts.var(), Sorts::SRT_BOOL)) {
+            ASS_EQ(Sorts::SRT_BOOL, map.get(ts.var()));
+          }
+        } else {
+          ASS(ts.isTerm() && ts.term()->isSpecial());
+          collectVariableSortsSpecialTerm(ts.term(), Sorts::SRT_BOOL, map);
+        }
+        break;
+      }
+
+      default:
+        continue;
+    }
   }
 }
 
@@ -342,11 +454,39 @@ void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,unsigned>& map)
 bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
 {
   CALL("SortHelper::tryGetVariableSort");
+  ASS(var.isVar());
 
   NonVariableIterator sit(t0,true);
   while (sit.hasNext()) {
     Term* t = sit.next().term();
-    if (t->ground()) {
+    if(t->isFormula()){
+      if(tryGetVariableSort(var.var(),t->getSpecialData()->getFormula(),result)){
+        return true;
+      }
+      continue;
+    }
+    if(t->isITE()){
+      if(tryGetVariableSort(var.var(),t->getSpecialData()->getCondition(),result)){
+        return true;
+      }      
+      // no continue as the left and right are args
+    }
+    if(t->isLet()){
+      TermList body = t->getSpecialData()->getBody();
+      if(body.isVar()){
+        // get result sort of the functor
+        unsigned f = t->getSpecialData()->getFunctor();
+        Signature::Symbol* sym = env.signature->getFunction(f);
+        return sym->fnType()->result();
+      }
+      else{
+        if(tryGetVariableSort(var,body.term(),result)){
+          return true;
+        }
+      }
+      // no continue as in t is arg
+    }
+    if (t->shared() && t->ground()) {
       sit.right();
       continue;
     }
@@ -397,6 +537,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     Term* ta = arg.term();
     unsigned argSort = getResultSort(ta);
     if (type.arg(i) != argSort) {
+      cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << endl;
       return false;
     }
   }

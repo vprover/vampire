@@ -18,6 +18,16 @@ const unsigned Signature::REAL_DISTINCT_GROUP = 3;
 const unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 3;
 
 /**
+ * In order to support reasoning in FOOL, we define a theory of booleans, that consists of the sort
+ * SRT_BOOL (defined in Sorts.hpp) and two constants FOOL_TRUE and FOOL_FALSE, that represent
+ * logical true and false.
+ *
+ * @since 04/05/2015 Gothenburg
+ */
+const unsigned Signature::FOOL_FALSE = 0;
+const unsigned Signature::FOOL_TRUE  = 1;
+
+/**
  * Standard constructor.
  * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
@@ -161,7 +171,7 @@ FunctionType* Signature::Symbol::fnType() const
   CALL("Signature::Symbol::fnType");
 
   if (!_type) {
-    _type = new FunctionType(arity());
+    _type = new FunctionType(arity(), (unsigned*)0, Sorts::SRT_DEFAULT);
   }
   return static_cast<FunctionType*>(_type);
 }
@@ -177,7 +187,7 @@ PredicateType* Signature::Symbol::predType() const
   CALL("Signature::Symbol::predType");
 
   if (!_type) {
-    _type = new PredicateType(arity());
+    _type = new PredicateType(arity(), (unsigned*)0);
   }
   return static_cast<PredicateType*>(_type);
 }
@@ -186,6 +196,7 @@ PredicateType* Signature::Symbol::predType() const
 /**
  * Create a Signature.
  * @since 07/05/2007 Manchester
+ * @since 04/05/2015 Gothenburg -- add true and false
  */
 Signature::Signature ()
   : _funs(32),
@@ -216,6 +227,14 @@ Signature::Signature ()
   ASS_EQ(RATIONAL_DISTINCT_GROUP, aux);
   aux = createDistinctGroup();
   ASS_EQ(REAL_DISTINCT_GROUP, aux);
+
+  aux = addFunction("$$false", 0);
+  ASS_EQ(aux, FOOL_FALSE);
+  getFunction(FOOL_FALSE)->setType(new FunctionType(Sorts::SRT_BOOL));
+
+  aux = addFunction("$$true", 0);
+  ASS_EQ(aux, FOOL_TRUE);
+  getFunction(FOOL_TRUE)->setType(new FunctionType(Sorts::SRT_BOOL));
 } // Signature::Signature
 
 /**
@@ -296,7 +315,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
   ALWAYS(_iSymbols.insert(interpretation, predNum));
   if (predNum!=0) {
     BaseType* predType = Theory::getOperationType(interpretation);
-    ASS(!predType->isFunctionType());
+    ASS_REP(!predType->isFunctionType(), predType->toString());
     sym->setType(predType);
   }
   return predNum;
@@ -456,12 +475,28 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
 {
   CALL("Signature::getInterpretingSymbol");
   
+  ASS(Theory::instance()->isValidInterpretation(interp));
     
   unsigned res;
   if (_iSymbols.find(interp, res)) {
     return res;
   }
   vstring name;
+
+  if(theory->isStructuredSortInterpretation(interp)){
+    switch(theory->convertToStructured(interp)){
+      case Theory::StructuredSortInterpretation::ARRAY_SELECT:
+      case Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+        name="$select";
+        break;
+      case Theory::StructuredSortInterpretation::ARRAY_STORE:
+        name="$store";
+        break;
+      default: ASSERTION_VIOLATION;
+    } 
+  }
+  else{
+
   switch(interp) {
   case Theory::INT_SUCCESSOR:
     //this one is not according the TPTP arithmetic (it doesn't have successor)
@@ -543,20 +578,10 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::REAL_TO_REAL:
     name="$to_real";
     break;
-  case Theory::SELECT1_INT:
-    name = "$select1";
-    break;
-  case Theory::SELECT2_INT:
-    name="$select2";
-    break;
-  case Theory::STORE1_INT:
-    name="$store1";
-    break;
-  case Theory::STORE2_INT:
-    name="$store2";
-    break;
   default:
     ASSERTION_VIOLATION;
+  }
+
   }
 
   unsigned arity = Theory::getArity(interp);
@@ -584,6 +609,25 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
 
   //we have now registered a new function, so it should be present in the map
   return _iSymbols.get(interp);
+}
+
+const vstring& Signature::functionName(int number)
+{
+  CALL("Signature::functionName");
+
+  // it is safe to reuse "$true" and "$false" for constants
+  // because the user cannot define constants with these names herself
+  // and the formula, obtained by toString() with "$true" or "$false"
+  // in term position would be syntactically valid in FOOL
+  if (!env.options->showFOOL() && number == Signature::FOOL_FALSE) {
+    static vstring fols("$false");
+    return fols;
+  }
+  if (!env.options->showFOOL() && number == Signature::FOOL_TRUE) {
+    static vstring troo("$true");
+    return troo;
+  }
+  return _funs[number]->name();
 }
 
 /**
@@ -642,8 +686,8 @@ unsigned Signature::addFunction (const vstring& name,
   }
 
   result = _funs.length();
-  _funs.push(new Symbol(name,arity));
-  _funNames.insert(symbolKey,result);
+  _funs.push(new Symbol(name, arity));
+  _funNames.insert(symbolKey, result);
   added = true;
   return result;
 } // Signature::addFunction
@@ -809,28 +853,6 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
 } // addSkolemFunction
 
 /**
- * Return number of a new function to be used in if-then-else elimination
- *
- * @c argSorts and @c resSort specifies the sort of the arguments and of the result
- * of the function.
- */
-unsigned Signature::addIteFunction(unsigned arity, unsigned* argSorts, unsigned resSort)
-{
-  CALL("Signature::addIteFunction");
-
-  unsigned res = addFreshFunction(arity, "sG");
-
-  BaseType* type = BaseType::makeType(arity, argSorts, resSort);
-  getFunction(res)->setType(type);
-  //TODO find a better way to get rid of the sG functions!
-  //this is a quick fix for the elimination of sG from the invariants
-  env.colorUsed = true;
-  getFunction(res)->addColor(COLOR_LEFT);
-
-  return res;
-} // addIteFunction
-
-/**
  * Return the key "name_arity" used for hashing. This key is obtained by
  * concatenating the name, underscore character and the arity. The key is
  * created in such a way that it does not collide with special keys, such as
@@ -931,11 +953,14 @@ bool Signature::isProtectedName(vstring name)
  *
  * $distinct predicate is not quoted
  *
+ * $true and $false -- the names of FOOL term-level boolean constants are not quoted
+ *
  * For interpreted symbols its legal to start with $
  *
  * It's legal for symbols to start with $$.
  *
  * @since 03/05/2013 train Manchester-London
+ * @since 04/05/2015 Gothenburg -- do not quote FOOL true and false
  */
 bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity)
 {

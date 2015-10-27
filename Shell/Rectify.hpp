@@ -73,8 +73,6 @@ private:
   void reset();
 
   unsigned rectifyVar(unsigned v);
-  void rectifyTermLet(TermList& origin, TermList& target);
-  void rectifyFormulaLet(Literal*& origin, Formula*& target);
 
   Formula* rectify(Formula*);
   FormulaList* rectify(FormulaList*);

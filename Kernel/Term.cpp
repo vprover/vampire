@@ -19,6 +19,8 @@
 
 #include "Indexing/TermSharing.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "Formula.hpp"
 #include "Signature.hpp"
 #include "SortHelper.hpp"
@@ -27,6 +29,7 @@
 #include "TermIterators.hpp"
 
 #include "Term.hpp"
+#include "FormulaVarIterator.hpp"
 
 /** If non-zero, term ite functors will be always expanded to
  * the ( p ? x : y ) notation on output */
@@ -38,9 +41,9 @@ using namespace Lib;
 using namespace Kernel;
 
 #if !COMPILER_MSVC 
-const unsigned Term::SF_TERM_ITE;
-const unsigned Term::SF_LET_TERM_IN_TERM;
-const unsigned Term::SF_LET_FORMULA_IN_TERM;
+const unsigned Term::SF_ITE;
+const unsigned Term::SF_LET;
+const unsigned Term::SF_FORMULA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 #endif
 
@@ -123,6 +126,27 @@ bool TermList::isSafe() const
 
   return isVar() || term()->shared();
 }
+
+/**
+ * Return the list of all free variables of the term.
+ * The result is only non-empty when there are quantified
+ * formulas or $let-terms inside the term.
+ * Each variable in the term is returned just once.
+ *
+ * @since 15/05/2015 Gothenburg
+ */
+IntList* TermList::freeVariables() const
+{
+  CALL("TermList::freeVariables");
+
+  FormulaVarIterator fvi(this);
+  Formula::VarList* result = Formula::VarList::empty();
+  Formula::VarList::FIFO stack(result);
+  while (fvi.hasNext()) {
+    stack.push(fvi.next());
+  }
+  return result;
+} // TermList::freeVariables
 
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
@@ -355,41 +379,57 @@ vstring Term::variableToString(TermList var)
 } // variableToString
 
 /**
- * Convert a term if-then-else or a let...in expression to vstring
+ * Convert an if-then-else, let...in or formula term to vstring
  */
 vstring Term::specialTermToString() const
 {
   CALL("Term::specialTermToString");
   ASS(isSpecial());
 
+  const SpecialTermData* sd = getSpecialData();
+
   switch(functor()) {
-  case SF_LET_FORMULA_IN_TERM:
-  {
-    ASS_EQ(arity(),1);
-    vstring s = "(let " + getSpecialData()->getLhsLiteral()->toString();
-    s += " := " + getSpecialData()->getRhsFormula()->toString();
-    s += " in " + nthArgument(0)->toString();
-    s += " )";
-    return s;
+  case SF_FORMULA: {
+    ASS_EQ(arity(), 0);
+    vstring formula = sd->getFormula()->toString();
+    return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
   }
-  case SF_LET_TERM_IN_TERM:
-  {
-    ASS_EQ(arity(),1);
-    vstring s = "( let " + getSpecialData()->getLhsTerm().toString();
-    s += " := " + getSpecialData()->getRhsTerm().toString();
-    s += " in " + nthArgument(0)->toString();
-    s += " )";
-    return s;
+
+  case SF_LET: {
+    ASS_EQ(arity(), 1);
+    TermList body = sd->getBody();
+    bool isPredicate = body.isTerm() && body.term()->isFormula();
+    vstring functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
+                                  : env.signature->functionName(sd->getFunctor());
+    BaseType* type = isPredicate ? (BaseType*)env.signature->getPredicate(sd->getFunctor())->predType()
+                                 : (BaseType*)env.signature->getFunction(sd->getFunctor())->fnType();
+
+    const IntList* variables = sd->getVariables();
+    vstring variablesList = "";
+    for (int i = 0; i < variables->length(); i++) {
+      unsigned var = (unsigned)variables->nth(i);
+      variablesList += variableToString(var);
+      unsigned sort = type->arg((unsigned)i);
+      if (sort != Sorts::SRT_DEFAULT) {
+        variablesList += " : " + env.sorts->sortName(sort);
+      }
+      if (i < variables->length() - 1) {
+        variablesList += ", ";
+      }
+    }
+    if (variables->length()) {
+      variablesList = "(" + variablesList + ")";
+    }
+    return "$let(" + functor + variablesList + " := " +
+                     body.toString() + ", " +
+                     nthArgument(0)->toString() + ")";
   }
-  case SF_TERM_ITE:
-  {
+
+  case SF_ITE:
     ASS_EQ(arity(),2);
-    vstring s = "$ite_t(" + getSpecialData()->getCondition()->toString();
-    s += "," + nthArgument(0)->toString();
-    s += "," + nthArgument(1)->toString();
-    s += ")";
-    return s;
-  }
+    return "$ite(" + sd->getCondition()->toString() + "," +
+                     nthArgument(0)->toString() + "," +
+                     nthArgument(1)->toString() + ")";
   }
   ASSERTION_VIOLATION;
 }
@@ -726,17 +766,17 @@ Term* Term::createNonShared(Term* t,TermList* args)
  * Create a (condition ? thenBranch : elseBranch) expression
  * and return the resulting term
  */
-Term* Term::createTermITE(Formula * condition, TermList thenBranch, TermList elseBranch)
+Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBranch)
 {
-  CALL("Term::createTermITE");
+  CALL("Term::createITE");
   Term* s = new(2,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_TERM_ITE, 2);
+  s->makeSymbol(SF_ITE, 2);
   TermList* ss = s->args();
   *ss = thenBranch;
   ss = ss->next();
   *ss = elseBranch;
   ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_termITEData.condition = condition;
+  s->getSpecialData()->_iteData.condition = condition;
   return s;
 }
 
@@ -744,39 +784,47 @@ Term* Term::createTermITE(Formula * condition, TermList thenBranch, TermList els
  * Create (let lhs <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createTermLet(TermList lhs, TermList rhs, TermList t)
+Term* Term::createLet(unsigned functor, IntList* variables, TermList body, TermList t)
 {
-  CALL("Term::createTermLet");
-  ASS(lhs.isSafe());
-  ASS(lhs.isVar() || lhs.term()->hasOnlyDistinctVariableArgs());
+  CALL("Term::createLet");
+
+#if VDEBUG
+  Set<int> distinctVars;
+  IntList::Iterator vit(variables);
+  while (vit.hasNext()) {
+    distinctVars.insert(vit.next());
+  }
+  ASS_EQ(distinctVars.size(), variables->length());
+
+  if (body.isTerm() && body.term()->isFormula()) {
+    ASS_EQ(env.signature->predicateArity(functor), (unsigned)variables->length());
+  } else {
+    ASS_EQ(env.signature->functionArity(functor), (unsigned)variables->length());
+  }
+#endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_LET_TERM_IN_TERM, 1);
+  s->makeSymbol(SF_LET, 1);
   TermList* ss = s->args();
   *ss = t;
   ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_termLetData.lhs = lhs.content();
-  s->getSpecialData()->_termLetData.rhs = rhs.content();
+  s->getSpecialData()->_letData.functor = functor;
+  s->getSpecialData()->_letData.variables = variables;
+  s->getSpecialData()->_letData.body = body.content();
   return s;
 }
 
 /**
- * Create (let lhs <- rhs in f) expression and return
+ * Create a formula expression and return
  * the resulting term
  */
-Term* Term::createFormulaLet(Literal* lhs, Formula* rhs, TermList t)
+Term* Term::createFormula(Formula* formula)
 {
-  CALL("Term::createFormulaLet");
-  ASS(lhs->shared());
-  ASS(lhs->hasOnlyDistinctVariableArgs());
+  CALL("Term::createFormula");
 
-  Term* s = new(1,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_LET_FORMULA_IN_TERM, 1);
-  TermList* ss = s->args();
-  *ss = t;
-  ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_formulaLetData.lhs = lhs;
-  s->getSpecialData()->_formulaLetData.rhs = rhs;
+  Term* s = new(0,sizeof(SpecialTermData)) Term;
+  s->makeSymbol(SF_FORMULA, 0);
+  s->getSpecialData()->_formulaData.formula = formula;
   return s;
 }
 
@@ -826,6 +874,26 @@ Term* Term::create2(unsigned fn, TermList arg1, TermList arg2)
   return Term::create(fn, 2, args);
 }
 
+/**
+ * Return the list of all free variables of the term.
+ * The result is only non-empty when there are quantified
+ * formulas or $let-terms inside the term.
+ * Each variable in the term is returned just once.
+ *
+ * @since 07/05/2015 Gothenburg
+ */
+IntList* Term::freeVariables() const
+{
+  CALL("Term::freeVariables");
+
+  FormulaVarIterator fvi(this);
+  Formula::VarList* result = Formula::VarList::empty();
+  Formula::VarList::FIFO stack(result);
+  while (fvi.hasNext()) {
+    stack.push(fvi.next());
+  }
+  return result;
+} // Term::freeVariables
 
 unsigned Term::computeDistinctVars() const
 {
@@ -835,22 +903,6 @@ unsigned Term::computeDistinctVars() const
     vars.insert(vit.next().var());
   }
   return vars.size();
-}
-
-/**
- * Return true if term/literal has only variable subterms and they all are distinct
- */
-bool Term::hasOnlyDistinctVariableArgs() const
-{
-  CALL("Term::hasOnlyDistinctVariableArgs");
-
-  if (getDistinctVars()!=arity()) {
-    return false;
-  }
-  if (weight()!=arity()+1) {
-    return false;
-  }
-  return true;
 }
 
 /**

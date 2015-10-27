@@ -26,9 +26,13 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Kernel/Formula.hpp"
+#include "Kernel/Signature.hpp"
+#include "Shell/FOOLElimination.hpp"
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Preprocess.hpp"
+#include "Shell/TheoryAxioms.hpp"
 #include "Saturation/ProvingHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -52,6 +56,12 @@ ForkingCM::ForkingCM()
 
   {
     TimeCounter tc(TC_PREPROCESSING);
+
+    // TODO: should we do defooling here?
+    if (_prb->hasFOOL()) {
+      TheoryAxioms().applyFOOL(*_prb);
+      FOOLElimination().apply(*_prb);
+    }
 
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);

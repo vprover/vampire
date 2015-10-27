@@ -101,6 +101,7 @@ Formula* Flattening::flatten (Formula* f)
   case LITERAL:
   case TRUE:
   case FALSE:
+  case BOOL_TERM:
     return f;
 
   case AND:
@@ -157,17 +158,6 @@ Formula* Flattening::flatten (Formula* f)
       return new QuantifiedFormula(con,
 				   f->vars()->append(arg->vars()),
 				   arg->qarg());
-    }
-
-  case ITE:
-    {
-      Formula* c = flatten(f->condArg());
-      Formula* t = flatten(f->thenArg());
-      Formula* e = flatten(f->elseArg());
-      if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
-	return f;
-      }
-      return new IteFormula(c,t,e);
     }
 
 #if VDEBUG

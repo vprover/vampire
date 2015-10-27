@@ -135,6 +135,8 @@ public:
 
   bool isSafe() const;
 
+  IntList* freeVariables() const;
+
 #if VDEBUG
   void assertValid() const;
 #endif
@@ -201,9 +203,9 @@ class Term
 {
 public:
   //special functor values
-  static const unsigned SF_TERM_ITE = 0xFFFFFFFF;
-  static const unsigned SF_LET_TERM_IN_TERM = 0xFFFFFFFE;
-  static const unsigned SF_LET_FORMULA_IN_TERM = 0xFFFFFFFD;
+  static const unsigned SF_ITE = 0xFFFFFFFF;
+  static const unsigned SF_LET = 0xFFFFFFFE;
+  static const unsigned SF_FORMULA = 0xFFFFFFFD;
   static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFD;
 
   class SpecialTermData
@@ -213,17 +215,17 @@ public:
     union {
       struct {
         Formula * condition;
-      } _termITEData;
+      } _iteData;
       struct {
+        unsigned functor;
+        IntList* variables;
 	//The size_t stands for TermList expression which cannot be here
 	//since C++ doesnot allow objects with constructor inside a union
-        size_t lhs;
-        size_t rhs;
-      } _termLetData;
+        size_t body;
+      } _letData;
       struct {
-        Literal * lhs;
-        Formula * rhs;
-      } _formulaLetData;
+        Formula * formula;
+      } _formulaData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
@@ -233,11 +235,11 @@ public:
       ASS_GE(res,SPECIAL_FUNCTOR_LOWER_BOUND);
       return res;
     }
-    Formula* getCondition() const { ASS_EQ(getType(), SF_TERM_ITE); return _termITEData.condition; }
-    TermList getLhsTerm() const { ASS_EQ(getType(), SF_LET_TERM_IN_TERM); return TermList(_termLetData.lhs); }
-    TermList getRhsTerm() const { ASS_EQ(getType(), SF_LET_TERM_IN_TERM); return TermList(_termLetData.rhs); }
-    Literal* getLhsLiteral() const { ASS_EQ(getType(), SF_LET_FORMULA_IN_TERM); return _formulaLetData.lhs; }
-    Formula* getRhsFormula() const { ASS_EQ(getType(), SF_LET_FORMULA_IN_TERM); return _formulaLetData.rhs; }
+    Formula* getCondition() const { ASS_EQ(getType(), SF_ITE); return _iteData.condition; }
+    unsigned getFunctor() const { ASS_EQ(getType(), SF_LET); return _letData.functor; }
+    IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
+    TermList getBody() const { ASS_EQ(getType(), SF_LET); return TermList(_letData.body); }
+    Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
   };
 
 
@@ -252,12 +254,13 @@ public:
   static Term* createConstant(const vstring& name);
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
-  static Term* createTermITE(Formula * condition, TermList thenBranch, TermList elseBranch);
-  static Term* createTermLet(TermList lhs, TermList rhs, TermList t);
-  static Term* createFormulaLet(Literal* lhs, Formula* rhs, TermList t);
+  static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch);
+  static Term* createLet(unsigned functor, IntList* variables, TermList body, TermList t);
+  static Term* createFormula(Formula* formula);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
+  IntList* freeVariables() const;
 
   /** Return number of bytes before the start of the term that belong to it */
   size_t getPreDataSize() { return isSpecial() ? sizeof(SpecialTermData) : 0; }
@@ -451,8 +454,6 @@ public:
 #endif
   }
 
-  bool hasOnlyDistinctVariableArgs() const;
-
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(Term* t);
   /** Return true if term has no non-constant functions as subterms */
@@ -476,6 +477,9 @@ public:
 
   /** Return true if term is either an if-then-else or a let...in expression */
   bool isSpecial() const { return functor()>=SPECIAL_FUNCTOR_LOWER_BOUND; }
+  bool isITE() const { return functor() == SF_ITE; }
+  bool isLet() const { return functor() == SF_LET; }
+  bool isFormula() const { return functor() == SF_FORMULA; }
   /** Return pointer to structure containing extra data for special terms such as
    * if-then-else or let...in */
   const SpecialTermData* getSpecialData() const { return const_cast<Term*>(this)->getSpecialData(); }

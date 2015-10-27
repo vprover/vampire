@@ -238,13 +238,13 @@ unsigned SMTLIB::getSort(BuiltInSorts srt)
   switch(srt) {
   case BS_ARRAY1:
     if(!_array1Sort) {
-        _array1Sort = Sorts::SRT_ARRAY1;//env.sorts->addSort("$array1");
+        _array1Sort = env.sorts->addArraySort(Sorts::SRT_INTEGER,Sorts::SRT_INTEGER); 
         ASS(_array1Sort);
     }
     return _array1Sort;
   case BS_ARRAY2:
     if(!_array2Sort) {
-        _array2Sort = Sorts::SRT_ARRAY2;//env.sorts->addSort("$array2");
+      _array2Sort = env.sorts->addArraySort(Sorts::SRT_INTEGER,getSort(BS_ARRAY1)); 
       ASS(_array2Sort);
     }
     return _array2Sort;
@@ -305,8 +305,7 @@ BaseType* SMTLIB::getSymbolType(const FunctionInfo& fnInfo)
     argSorts.push(getSort(argSortName));
   }
 
-  BaseType* type = BaseType::makeType(arity, argSorts.begin(), rangeSort);
-  return type;
+  return new FunctionType(arity, argSorts.begin(), rangeSort);
 }
 
 void SMTLIB::doFunctionDeclarations()
@@ -564,7 +563,7 @@ bool SMTLIB::tryReadTermIte(LExpr* e, TermList& res)
   if(!gotAll) {
     return false;
   }
-  res = TermList(Term::createTermITE(cond, thenBranch, elseBranch));
+  res = TermList(Term::createITE(cond, thenBranch, elseBranch));
   return true;
 }
 
@@ -604,16 +603,13 @@ Interpretation SMTLIB::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned
 {
   CALL("SMTLIB::getFormulaSymbolInterpretation");
 
-  Interpretation res = Theory::INVALID_INTERPRETATION;
   switch(fs) {
   case FS_LESS:
     switch(firstArgSort) {
     case Sorts::SRT_INTEGER:
-	res = Theory::INT_LESS;
-      break;
+	return Theory::INT_LESS;
     case Sorts::SRT_REAL:
-	res = Theory::REAL_LESS;
-      break;
+	return Theory::REAL_LESS;
     default:
       break;
     }
@@ -621,11 +617,9 @@ Interpretation SMTLIB::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned
   case FS_LESS_EQ:
     switch(firstArgSort) {
     case Sorts::SRT_INTEGER:
-	res = Theory::INT_LESS_EQUAL;
-      break;
+	return Theory::INT_LESS_EQUAL;
     case Sorts::SRT_REAL:
-      res = Theory::REAL_LESS_EQUAL;
-      break;
+      return Theory::REAL_LESS_EQUAL;
     default:
       break;
     }
@@ -633,11 +627,9 @@ Interpretation SMTLIB::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned
   case FS_GREATER:
     switch(firstArgSort) {
     case Sorts::SRT_INTEGER:
-      res = Theory::INT_GREATER;
-      break;
+      return Theory::INT_GREATER;
     case Sorts::SRT_REAL:
-      res = Theory::REAL_GREATER;
-      break;
+      return Theory::REAL_GREATER;
     default:
       break;
     }
@@ -645,11 +637,9 @@ Interpretation SMTLIB::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned
   case FS_GREATER_EQ:
     switch(firstArgSort) {
     case Sorts::SRT_INTEGER:
-      res = Theory::INT_GREATER_EQUAL;
-      break;
+      return Theory::INT_GREATER_EQUAL;
     case Sorts::SRT_REAL:
-      res = Theory::REAL_GREATER_EQUAL;
-      break;
+      return Theory::REAL_GREATER_EQUAL;
     default:
       break;
     }
@@ -658,26 +648,20 @@ Interpretation SMTLIB::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned
   default:
     ASSERTION_VIOLATION;
   }
-  if(res==Theory::INVALID_INTERPRETATION) {
     USER_ERROR("invalid sort "+env.sorts->sortName(firstArgSort)+" for interpretation "+vstring(s_formulaSymbolNameStrings[fs]));
-  }
-  return res;
 }
 
 Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort)
 {
   CALL("SMTLIB::getTermSymbolInterpretation");
 
-  Interpretation res = Theory::INVALID_INTERPRETATION;
   switch(ts) {
   case TS_MINUS:
     switch(firstArgSort) {
     case Sorts::SRT_INTEGER:
-	res = Theory::INT_MINUS;
-      break;
+	return Theory::INT_MINUS;
     case Sorts::SRT_REAL:
-	res = Theory::REAL_MINUS;
-      break;
+	return Theory::REAL_MINUS;
     default:
       break;
     }
@@ -685,11 +669,9 @@ Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned first
   case TS_PLUS:
     switch(firstArgSort) {
     case Sorts::SRT_INTEGER:
-	res = Theory::INT_PLUS;
-      break;
+	return Theory::INT_PLUS;
     case Sorts::SRT_REAL:
-      res = Theory::REAL_PLUS;
-      break;
+      return Theory::REAL_PLUS;
     default:
       break;
     }
@@ -697,11 +679,9 @@ Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned first
   case TS_MULTIPLY:
     switch(firstArgSort) {
     case Sorts::SRT_INTEGER:
-      res = Theory::INT_MULTIPLY;
-      break;
+      return Theory::INT_MULTIPLY;
     case Sorts::SRT_REAL:
-      res = Theory::REAL_MULTIPLY;
-      break;
+      return Theory::REAL_MULTIPLY;
     default:
       break;
     }
@@ -709,11 +689,9 @@ Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned first
   case TS_UMINUS:
     switch(firstArgSort) {
     case Sorts::SRT_INTEGER:
-      res = Theory::INT_UNARY_MINUS;
-      break;
+      return Theory::INT_UNARY_MINUS;
     case Sorts::SRT_REAL:
-      res = Theory::REAL_UNARY_MINUS;
-      break;
+      return Theory::REAL_UNARY_MINUS;
     default:
       break;
     }
@@ -721,11 +699,9 @@ Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned first
   case TS_DIVIDE:
     switch(firstArgSort) {
     case Sorts::SRT_INTEGER:
-      res = Theory::INT_DIVIDE;
-      break;
+      return Theory::INT_DIVIDE;
     case Sorts::SRT_REAL:
-      res = Theory::REAL_DIVIDE;
-      break;
+      return Theory::REAL_DIVIDE;
     default:
       break;
     }
@@ -734,10 +710,7 @@ Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned first
   default:
     ASSERTION_VIOLATION_REP(ts);
   }
-  if(res==Theory::INVALID_INTERPRETATION) {
     USER_ERROR("invalid sort "+env.sorts->sortName(firstArgSort)+" for interpretation "+vstring(s_termSymbolNameStrings[ts]));
-  }
-  return res;
 }
 
     
@@ -790,41 +763,31 @@ unsigned SMTLIB::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermSta
     USER_ERROR("invalid third argument sort: "+env.sorts->sortName(getSort(args[2]))+" in "+e->toString());
   }
 
-//  BaseType* type;
   unsigned res;
 
   if(tsym==TS_STORE) {
-//    type = BaseType::makeType3(arrSort, arrDomainSort, arrRangeSort, arrSort);
-     if (arrSort == Sorts::SRT_ARRAY1) {res=Theory::instance()->getFnNum(Theory::STORE1_INT);}
+     if (arrSort == _array1Sort) {
+       res=Theory::instance()->getSymbolForStructuredSort(_array1Sort,
+                             Theory::StructuredSortInterpretation::ARRAY_STORE);
+     }
      else //this is an array2
-     {res=Theory::instance()->getFnNum(Theory::STORE2_INT);}  
+     {
+       res=Theory::instance()->getSymbolForStructuredSort(_array2Sort,
+                             Theory::StructuredSortInterpretation::ARRAY_STORE);
+     }
   }
   else {   
-    //  type = BaseType::makeType2(arrSort, arrDomainSort, arrRangeSort);
-    if (arrSort == Sorts::SRT_ARRAY1) {
-        res= Theory::instance()->getFnNum(Theory::SELECT1_INT);}
-      else //this is an array2
-      {res=  Theory::instance()->getFnNum(Theory::SELECT2_INT);}  
+     if (arrSort == _array1Sort) {
+       res=Theory::instance()->getSymbolForStructuredSort(_array1Sort,
+                             Theory::StructuredSortInterpretation::ARRAY_SELECT);
+     }
+     else //this is an array2
+     {
+       res=Theory::instance()->getSymbolForStructuredSort(_array2Sort,
+                             Theory::StructuredSortInterpretation::ARRAY_SELECT);
+     }
   }
-  
-  //vstring name = baseName + "_" + StringUtils::sanitizeSuffix(env.sorts->sortName(arrSort)
-    
-  //bool added;
-  //unsigned res = env.signature->addFunction(baseName, arity, added);
-      
-  //if(added) {
-  //      env.signature->getFunction(res)->setType(type); 
-  // }
-  // else {
-  //      ASS(*type==*env.signature->getFunction(res)->fnType());
- 
-
-  //    delete type;
-   // }
     return res;
-    
-
-    
 }
     
     
@@ -1024,7 +987,7 @@ bool SMTLIB::tryReadConnective(FormulaSymbol fsym, LExpr* e, Formula*& res)
     break;
   }
   case FS_IF_THEN_ELSE:
-    res = new IteFormula(argForms[0], argForms[1], argForms[2]);
+    res = Formula::createITE(argForms[0], argForms[1], argForms[2]);
     break;
   default:
     ASSERTION_VIOLATION;
@@ -1210,7 +1173,7 @@ bool SMTLIB::tryReadDistinct(LExpr* e, Formula*& res)
   }
 
   bool added;
-  BaseType* type = BaseType::makeTypeUniformRange(arity, sort, Sorts::SRT_BOOL);
+  BaseType* type = PredicateType::makeTypeUniformRange(arity, sort);
 
   //this is a bit of a quick hack, we need to come up with
   //a proper way to have a polymorphic $distinct predicate
@@ -1438,7 +1401,7 @@ Formula* SMTLIB::nameFormula(Formula* f, vstring fletVarName)
 
   fletVarName = StringUtils::sanitizeSuffix(fletVarName);
   unsigned predNum = env.signature->addFreshPredicate(varCnt, "sP", fletVarName.c_str());
-  BaseType* type = BaseType::makeType(varCnt, argSorts.begin(), Sorts::SRT_BOOL);
+  BaseType* type = new PredicateType(varCnt, argSorts.begin());
 
   Signature::Symbol* predSym = env.signature->getPredicate(predNum);
   predSym->setType(type);
