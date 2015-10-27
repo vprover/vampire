@@ -99,14 +99,14 @@ void FOOLElimination::apply(UnitList*& units) {
   while(us.hasNext()) {
     Unit* unit = us.next();
     if(unit->isClause()) {
-#if VDEBUG
       Clause* clause = static_cast<Clause*>(unit);
       for (unsigned i = 0; i < clause->length(); i++) {
         // we do not allow special terms in clauses so we check that all clause literals
         // are shared (special terms can not be shared)
-        ASS_REP((*clause)[i]->shared(), (*clause)[i]->toString());
+        if(!(*clause)[i]->shared()){ 
+          USER_ERROR("Input clauses (cnf) cannot use $ite, $let or $o terms. Error in "+clause->literalsOnlyToString());
+        }
       }
-#endif
       continue;
     }
     Unit* processedUnit = apply(static_cast<FormulaUnit*>(unit));
