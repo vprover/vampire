@@ -165,10 +165,18 @@ Formula* FOOLElimination::process(Formula* formula) {
 
   switch (formula->connective()) {
     case LITERAL: {
+      Literal* literal = formula->literal();
+
       /**
        * Processing of a literal simply propagates processing to its arguments,
-       * except for a case when it is an equality between two formula-as-terms.
-       * In that case we build an equivalence between processed underlying formulas.
+       * except for a case when it is an equality and one of the arguments is a
+       * formula-as-term. In that case we build an equivalence between both
+       * arguments, processed as formulas.
+       *
+       * For example, assume a and b are formulas and X is a boolean variable.
+       * Then, a = b will be translated to a' <=> b', where a' and b' are
+       * processed a and b, respectively. a = X will be translated as
+       * a' <=> (X = true).
        *
        * The semantics of FOOL does not distinguish between equality and equivalence
        * between boolean terms and this special case implements a more natural way of
@@ -177,19 +185,33 @@ Formula* FOOLElimination::process(Formula* formula) {
        * between FOOL boolean terms.
        */
 
-      Literal* literal = formula->literal();
-
       if (literal->isEquality()) {
         ASS_EQ(literal->arity(), 2); // can there be equality between several terms?
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
-        if (lhs.isTerm() && lhs.term()->isFormula() && rhs.isTerm() && rhs.term()->isFormula()) {
-          Formula* lhsFormula = lhs.term()->getSpecialData()->getFormula();
-          Formula* rhsFormula = rhs.term()->getSpecialData()->getFormula();
+
+        bool lhsIsFormula = lhs.isTerm() && lhs.term()->isFormula();
+        bool rhsIsFormula = rhs.isTerm() && rhs.term()->isFormula();
+
+        if (rhsIsFormula || lhsIsFormula) {
+          Formula* lhsFormula;
+          if (lhsIsFormula) {
+            lhsFormula = process(lhs.term()->getSpecialData()->getFormula());
+          } else {
+            ASS_REP(lhs.isVar(), lhs.toString());
+            lhsFormula = processAsFormula(lhs);
+          }
+
+          Formula* rhsFormula;
+          if (rhsIsFormula) {
+            rhsFormula = process(rhs.term()->getSpecialData()->getFormula());
+          } else {
+            ASS_REP(rhs.isVar(), rhs.toString());
+            rhsFormula = processAsFormula(rhs);
+          }
 
           Connective connective = literal->polarity() ? IFF : XOR;
-
-          Formula* processedFormula = new BinaryFormula(connective, process(lhsFormula), process(rhsFormula));
+          Formula* processedFormula = new BinaryFormula(connective, lhsFormula, rhsFormula);
 
           if (env.options->showPreprocessing()) {
             reportProcessed(formula->toString(), processedFormula->toString());
