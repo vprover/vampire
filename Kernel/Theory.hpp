@@ -242,6 +242,7 @@ public:
     INT_CEILING,
     INT_TRUNCATE,
     INT_ROUND,
+    INT_ABS,
 
     RAT_UNARY_MINUS,
     RAT_PLUS, // sum in TPTP

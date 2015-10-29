@@ -536,6 +536,7 @@ unsigned Theory::getArity(Interpretation i)
   case INT_CEILING:
   case INT_TRUNCATE:
   case INT_ROUND:
+  case INT_ABS:
 
   case RAT_FLOOR:
   case RAT_CEILING:
@@ -655,6 +656,7 @@ bool Theory::isFunction(Interpretation i)
   case INT_CEILING:
   case INT_TRUNCATE:
   case INT_ROUND:
+  case INT_ABS:
 
   case RAT_PLUS:
   case RAT_MINUS:
@@ -814,6 +816,7 @@ unsigned Theory::getOperationSort(Interpretation i)
   case INT_CEILING:
   case INT_TRUNCATE:
   case INT_ROUND:
+  case INT_ABS:
 
   case INT_TO_INT:
   case INT_IS_INT:
