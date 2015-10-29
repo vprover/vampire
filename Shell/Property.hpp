@@ -126,6 +126,12 @@ public:
   static const unsigned long PR_ESSENTIALLY_GROUND = 8589934592ul; // 2^33
   /** uses list axioms */
   static const unsigned long PR_LIST_AXIOMS = 17179869184ul; // 2^34
+  /** uses FOOL */
+  static const unsigned long PR_HAS_FOOL =  34359738368ul; // 2^35
+  /** uses Arrays, should these be split? */
+  static const unsigned long PR_HAS_ARRAYS = 68719476736ul; // 2^36
+  /** has finite domain (consider infinite domain also ala Infinox */
+  static const unsigned long PR_HAS_FINITE_DOMAIN = 137438953472; // 2^37
 
  public:
   CLASS_NAME(Property);
