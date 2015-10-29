@@ -154,6 +154,7 @@ private:
     TS_ABS,
     TS_DIV,
     TS_ITE,
+    TS_LET,
     TS_MOD,
     TS_SELECT,
     TS_STORE,
@@ -205,9 +206,13 @@ private:
       Formula* frm;
       TermList trm;
     };
+
+    bool asFormula(Formula*& resFrm);
+    unsigned asTerm(TermList& resTrm);
   };
 
-  bool asFormula(ParseResult pr, Formula*& frm);
+  Interpretation getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned firstArgSort);
+  Interpretation getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort);
 
   ParseResult parseTermOrFormula(LExpr* body);
 
