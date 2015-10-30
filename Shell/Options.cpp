@@ -221,7 +221,7 @@ void Options::Options::init()
     _protectedPrefix.tag(OptionTag::PREPROCESSING);
     _protectedPrefix.setExperimental(); // Does not work for all (any?) preprocessing steps currently
 
-    _statistics = ChoiceOptionValue<Statistics>("statistics","stat",Statistics::FULL,{"brief","full","none"});
+    _statistics = ChoiceOptionValue<Statistics>("statistics","stat",Statistics::BRIEF,{"brief","full","none"});
     _statistics.description="The level of statistics to report at the end of the run.";
     _lookup.insert(&_statistics);
     _statistics.tag(OptionTag::OUTPUT);

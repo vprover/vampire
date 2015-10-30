@@ -2164,8 +2164,8 @@ void TPTP::endEquality()
     unsigned rsort = sortOf(rhs); 
     unsigned lsort = sortOf(lhs);
     USER_ERROR("Cannot create equality between terms of different types.\n"+
-      rhs.toString()+" is "+Int::toString(rsort)+"\n"+
-      lhs.toString()+" is "+Int::toString(lsort)
+      rhs.toString()+" is "+env.sorts->sortName(rsort)+"\n"+
+      lhs.toString()+" is "+env.sorts->sortName(lsort)
     );
   }
 
