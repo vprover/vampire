@@ -204,10 +204,9 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 	  Parse::SMTLIB2 parser(opts);
 	  parser.parse(*input);
 
-	  units = 0;
-	  // units = parser.getFormulas();
+	  units = parser.getFormulas();
+	  s_haveConjecture=false;
 
-	  s_haveConjecture=true;
 	  break;
   }
 /*

@@ -21,12 +21,26 @@
 
 #include "SMTLIB2.hpp"
 
+#undef LOGGING
+#define LOGGING 1
+
+#if LOGGING
+#define LOG1(arg) cout << arg << endl;
+#define LOG2(a1,a2) cout << a1 << a2 << endl;
+#define LOG3(a1,a2,a3) cout << a1 << a2 << a3 << endl;
+#else
+#define LOG1(arg)
+#define LOG2(a1,a2)
+#define LOG3(a1,a2,a3)
+#endif
+
 namespace Parse {
 
 SMTLIB2::SMTLIB2(const Options& opts)
 : _logicSet(false),
   _logic(LO_INVALID),
-  _decimalsAreReal(false)
+  _numeralsAreReal(false),
+  _formulas(nullptr)
 {
   CALL("SMTLIB2::SMTLIB2");
 }
@@ -47,19 +61,18 @@ void SMTLIB2::parse(LExpr* bench)
 
   ASS(bench->isList());
   readBenchmark(bench->list);
-
 }
 
 void SMTLIB2::readBenchmark(LExprList* bench)
 {
   CALL("SMTLIB2::readBenchmark");
-  LExprList::Iterator ite(bench);
+  LispListReader bRdr(bench);
 
   // iteration over benchmark top level entries
-  while(ite.hasNext()){
-    LExpr* lexp = ite.next();
+  while(bRdr.hasNext()){
+    LExpr* lexp = bRdr.next();
 
-    cout << lexp->toString(true) << endl;
+    LOG2("readBenchmark ",lexp->toString(true));
 
     LispListReader ibRdr(lexp);
 
@@ -148,6 +161,15 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       ibRdr.acceptEOL();
 
       continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("check-sat")) {
+      if (bRdr.hasNext()) {
+        LispListReader exitRdr(bRdr.readList());
+        exitRdr.acceptAtom("exit");
+        exitRdr.acceptEOL();
+      }
+      break;
     }
 
     USER_ERROR("unrecognized entry "+ibRdr.readAtom());
@@ -254,7 +276,7 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   case LO_QF_UFLRA:
   case LO_QF_UFNRA:
   case LO_UFLRA:
-    _decimalsAreReal = true;
+    _numeralsAreReal = true;
     break;
 
   // we don't support bit vectors
@@ -366,7 +388,7 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
   static Stack<pair<SortParseOperation,LExpr*> > todo;
   ASS(todo.isEmpty());
 
-  ASS_EQ(Sorts::SRT_DEFAULT,0); // there is no default sort in smtlib, so we can use 0 as a separtor results
+  ASS_EQ(Sorts::SRT_DEFAULT,0); // there is no default sort in smtlib, so we can use 0 as a results separator
   static const int SEPARATOR = 0;
   static Stack<unsigned> results;
   ASS(results.isEmpty());
@@ -452,6 +474,7 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
       unsigned arity;
       if (_declaredSorts.find(id,arity)) {
         // building an arbitrary but unique sort string
+        // TODO: this may not be good enough for a tptp-compliant output!
         vstring sortName = id + "(";
         while (arity--) {
           if (results.isEmpty() || results.top() == SEPARATOR) {
@@ -596,10 +619,6 @@ bool SMTLIB2::isFunctionSymbol(const vstring& name)
     return true;
   }
 
-  if (_functionDefinitions.find(name)) {
-    return true;
-  }
-
   return false;
 }
 
@@ -625,7 +644,7 @@ void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSor
   declareFunctionOrPredicate(name,rangeSort,argSorts);
 }
 
-void SMTLIB2::declareFunctionOrPredicate(const vstring& name, signed rangeSort, const Stack<unsigned>& argSorts)
+SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& name, signed rangeSort, const Stack<unsigned>& argSorts)
 {
   CALL("SMTLIB2::declareFunctionOrPredicate");
 
@@ -651,7 +670,11 @@ void SMTLIB2::declareFunctionOrPredicate(const vstring& name, signed rangeSort, 
   ASS(added);
   sym->setType(type);
 
-  ALWAYS(_declaredFunctions.insert(name,std::make_pair(symNum,type->isFunctionType())));
+  DeclaredFunction res = make_pair(symNum,type->isFunctionType());
+
+  ALWAYS(_declaredFunctions.insert(name,res));
+
+  return res;
 }
 
 //  ----------------------------------------------------------------------
@@ -673,6 +696,9 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   static Stack<unsigned> argSorts;
   argSorts.reset();
 
+  static Stack<TermList> args;
+  args.reset();
+
   LispListReader iaRdr(iArgs);
   while (iaRdr.hasNext()) {
     LExprList* pair = iaRdr.readList();
@@ -683,21 +709,45 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
     pRdr.acceptEOL();
 
-    if (!lookup->insert(vName,make_pair(TermList(_nextVar++,false),vSort))) {
+    TermList arg = TermList(_nextVar++,false);
+    args.push(arg);
+
+    if (!lookup->insert(vName,make_pair(arg,vSort))) {
       USER_ERROR("Multiple occurrence of variable "+vName+" in the definition of function "+name);
     }
 
     argSorts.push(vSort);
   }
 
-  declareFunctionOrPredicate(name,rangeSort,argSorts);
+  _scopes.push(lookup);
 
-  // parseTermOrFormula(body);
+  ParseResult res = parseTermOrFormula(body);
 
-  // TODO: take the results and finish constructing the whole definition
+  delete _scopes.pop();
 
-  // check it's output sort (we are either defining a function or a predicate)
+  TermList rhs;
+  if (res.asTerm(rhs) != rangeSort) {
+    USER_ERROR("Defined function body "+body->toString()+" has different sort than declared "+oSort->toString());
+  }
 
+  DeclaredFunction fun = declareFunctionOrPredicate(name,rangeSort,argSorts);
+
+  unsigned symbIdx = fun.first;
+  bool isTrueFun = fun.second;
+
+  TermList lhs;
+  if (isTrueFun) {
+    lhs = TermList(Term::create(symbIdx,args.size(),args.begin()));
+  } else {
+    Formula* frm = new AtomicFormula(Literal::create(symbIdx,args.size(),true,false,args.begin()));
+    lhs = TermList(Term::createFormula(frm));
+  }
+
+  Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,rangeSort));
+
+  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::AXIOM);
+
+  UnitList::push(fu, _formulas);
 }
 
 bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
@@ -705,6 +755,8 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
   CALL("SMTLIB2::ParseResult::asFormula");
 
   if (formula) {
+    LOG2("asFormula formula ",resFrm->toString());
+
     ASS_EQ(sort, BS_BOOL);
     resFrm = frm;
     return true;
@@ -713,13 +765,19 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
   if (sort == BS_BOOL) {
     // can we unwrap instead of wrapping back and forth?
     if (trm.isTerm()) {
-      Term* t = trm._term;
+      Term* t = trm.term();
       if (t->isFormula()) {
         resFrm = t->getSpecialData()->getFormula();
-        t->destroy();
+
+        // t->destroy(); -- we cannot -- it can be accessed more than once
+
+        LOG2("asFormula unwrap ",trm.toString());
+
         return true;
       }
     }
+
+    LOG2("asFormula wrap ",trm.toString());
 
     resFrm = new BoolTermFormula(trm);
     return true;
@@ -734,10 +792,16 @@ unsigned SMTLIB2::ParseResult::asTerm(TermList& resTrm)
 
   if (formula) {
     ASS_EQ(sort, BS_BOOL);
+
+    LOG2("asTerm wrap ",frm->toString());
+
     resTrm = TermList(Term::createFormula(frm));
     return BS_BOOL;
   } else {
     resTrm = trm;
+
+    LOG2("asTerm native ",trm.toString());
+
     return sort;
   }
 }
@@ -852,9 +916,10 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
   CALL("SMTLIB2::parseTermOrFormula");
 
   enum ParseOperation {
-    PO_PARSE,
-    PO_CHECK_ARITY,
-    PO_PREPARE_LET_LOOKUP
+    PO_PARSE,              // takes LExpr*
+    PO_CHECK_ARITY,        // takes 0
+    PO_LET_PREPARE_LOOKUP, // takes LExpr* (the whole let expression again, why not)
+    PO_LET_END             // takes LExpr* (the whole let expression again, why not)
   };
   static Stack<pair<ParseOperation,LExpr*> > todo;
   ASS(todo.isEmpty());
@@ -869,6 +934,8 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
     ParseOperation op = cur.first;
 
     if (op == PO_CHECK_ARITY) {
+      LOG1("PO_CHECK_ARITY");
+
       if (results.size() < 2) {
         goto malformed;
       }
@@ -885,32 +952,110 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
     LExpr* exp = cur.second;
 
-    if (op == PO_PREPARE_LET_LOOKUP) { // this is the second moment of processing let
+    if (op == PO_LET_PREPARE_LOOKUP) { // this is the second moment of processing let
+      LOG2("PO_LET_PREPARE_LOOKUP",exp->toString());
+
       // so we know it is let
       ASS(exp->isList());
       LispListReader lRdr(exp->list);
       ASS_EQ(getBuiltInTermSymbol(lRdr.readAtom()),TS_LET);
 
-      TermLookup* lookup = new TermLookup();
-
       // with a list of bindings
       LispListReader bindRdr(lRdr.readList());
+
+      // corresponding results have already been parsed
+      ParseResult* boundExprs = results.end();
+
+      TermLookup* lookup = new TermLookup();
 
       while (bindRdr.hasNext()) {
         LExprList* pair = bindRdr.readList();
         LispListReader pRdr(pair);
 
-        vstring& cName = pRdr.readAtom();
+        const vstring& cName = pRdr.readAtom();
+        unsigned sort = (--boundExprs)->sort; // the should be big enough (
 
-        // the corresponding result is on the stack, but don't want it yet
+        TermList trm;
+        if (sort == Sorts::SRT_BOOL) {
+          unsigned symb = env.signature->addFreshPredicate(0,"sLP");
+          PredicateType* type = new PredicateType(0, nullptr);
+          env.signature->getPredicate(symb)->setType(type);
 
+          Formula* atom = new AtomicFormula(Literal::create(symb,0,true,false,nullptr));
+          trm = TermList(Term::createFormula(atom));
+        } else {
+          unsigned symb = env.signature->addFreshFunction (0,"sLF");
+          FunctionType* type = new FunctionType(0, nullptr, sort);
+          env.signature->getFunction(symb)->setType(type);
+
+          trm = TermList(Term::createConstant(symb));
+        }
+
+        if (!lookup->insert(cName,make_pair(trm,sort))) {
+          USER_ERROR("Multiple bindings of symbol "+cName+" in let expression "+exp->toString());
+        }
       }
 
+      _scopes.push(lookup);
+
+      continue;
+    }
+
+    if (op == PO_LET_END) {
+      LOG2("PO_LET_END ",exp->toString());
+
+      // so we know it is let
+      ASS(exp->isList());
+      LispListReader lRdr(exp->list);
+      ASS_EQ(getBuiltInTermSymbol(lRdr.readAtom()),TS_LET);
+
+      // with a list of bindings
+      LispListReader bindRdr(lRdr.readList());
+
+      TermLookup* lookup = _scopes.pop();
+
+      // there has to be the body result:
+      TermList let;
+      unsigned letSort = results.pop().asTerm(let);
+
+      LOG2("LET body  ",let.toString());
+
+      while (bindRdr.hasNext()) {
+        LExprList* pair = bindRdr.readList();
+        LispListReader pRdr(pair);
+
+        const vstring& cName = pRdr.readAtom();
+        TermList boundExpr;
+        results.pop().asTerm(boundExpr);
+
+        LOG2("BOUND name  ",cName);
+        LOG2("BOUND term  ",boundExpr.toString());
+
+        SortedTerm term;
+        ALWAYS(lookup->find(cName,term));
+        TermList exprTerm = term.first;
+        unsigned exprSort = term.second;
+
+        unsigned symbol = 0;
+        if (exprSort == Sorts::SRT_BOOL) { // it has to be formula term, with atomic formula
+          symbol = exprTerm.term()->getSpecialData()->getFormula()->literal()->functor();
+        } else {
+          symbol = exprTerm.term()->functor();
+        }
+
+        let = TermList(Term::createLet(symbol, nullptr, boundExpr, let));
+      }
+
+      results.push(ParseResult(letSort,let));
+
+      delete lookup;
 
       continue;
     }
 
     ASS_EQ(op,PO_PARSE);
+
+    LOG2("PO_PARSE",exp->toString());
 
     if (exp->isList()) {
       LispListReader lRdr(exp->list);
@@ -954,7 +1099,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
         } else if (ts == TS_LET) {
           // now, there should be a list of bindings
-          LispListReader bindRdr(lRdr.readList());
+          LExprList* bindings = lRdr.readList();
 
           // and the actual body term
           LExpr* body = lRdr.readListExpr();
@@ -962,20 +1107,19 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           // and that's it
           lRdr.acceptEOL();
 
-          // now read this bottom up:
-
-          // TODO: will need the whole let term as the last thing, because only then
-
+          // now read the following bottom up:
 
           // this will later create the actual let term and kill the lookup
-          todo.push(make_pair(PO_PARSE,fst));
+          todo.push(make_pair(PO_LET_END,exp));
 
           // this will parse the let's body (in the context of the lookup)
           todo.push(make_pair(PO_PARSE,body));
 
-          // this will create the lookup when all bindings' expressions are parsed
-          todo.push(make_pair(PO_PREPARE_LET_LOOKUP,exp));
+          // this will create the lookup when all bindings' expressions are parsed (and their sorts known)
+          todo.push(make_pair(PO_LET_PREPARE_LOOKUP,exp));
 
+          // but we start by parsing the bound expressions (first mainly to learn theirs sorts)
+          LispListReader bindRdr(bindings);
           while (bindRdr.hasNext()) {
             LExprList* pair = bindRdr.readList();
             LispListReader pRdr(pair);
@@ -987,10 +1131,6 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
             pRdr.acceptEOL();
           }
 
-
-
-
-
           continue;
         }
       } else {
@@ -998,9 +1138,11 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
         goto malformed;
       }
 
+      // this handles the default function-to-arguments application:
+
       // the first still need to be later processed
       todo.push(make_pair(PO_PARSE,fst));
-      // and all the remaining arguments too
+      // and all the other arguments too
       while (lRdr.hasNext()) {
         todo.push(make_pair(PO_PARSE,lRdr.next()));
       }
@@ -1033,7 +1175,9 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
         case FS_AND:
         case FS_OR:
         {
-          FormulaList* argLst = 0;
+          FormulaList* argLst = nullptr;
+
+          LOG1("FS_AND and FS_OR");
 
           unsigned argcnt = 0;
           while (results.isNonEmpty() && (!results.top().isSeparator())) {
@@ -1178,18 +1322,18 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
           Formula* res;
           if(args.size()==2) { // if there are 2 just create a disequality
-            Formula* res = new AtomicFormula(Literal::createEquality(false,args[0],args[1],sort));
+            res = new AtomicFormula(Literal::createEquality(false,args[0],args[1],sort));
           } else { // Otherwise create a formula list of disequalities
             FormulaList* diseqs = nullptr;
 
             for(unsigned i=0;i<args.size();i++){
               for(unsigned j=0;j<i;j++){
                 Formula* new_dis = new AtomicFormula(Literal::createEquality(false,args[i],args[j],sort));
-                diseqs = FormulaList::push(new_dis,diseqs);
+                FormulaList::push(new_dis,diseqs);
               }
             }
 
-            Formula* res = new JunctionFormula(AND, diseqs);
+            res = new JunctionFormula(AND, diseqs);
           }
 
           results.push(res);
@@ -1222,7 +1366,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
           Formula::VarList* qvars = nullptr;
 
-          TermLookup::Iterator varIt(_scopes.top());
+          TermLookup::Iterator varIt(*_scopes.top());
           while(varIt.hasNext()) {
             SortedTerm vTerm = varIt.next();
             unsigned varIdx = vTerm.first.var();
@@ -1434,28 +1578,109 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
           continue;
         }
-        case TS_LET:
-        {
-          // tady uz se bude jenom mazat kontext a result se preda dal ...
-        }
-
-
         default:
           ASS_EQ(ts,TS_USER_FUNCTION);
-          // try other options ...
+          // try other options ... (TS_LET was handled above)
       }
 
-      /*
-
-      TS_LET
-      */
-
       // variables from _scopes
+      {
+        bool found = false;
+        Scopes::Iterator sIt(_scopes);
+        while (sIt.hasNext()) {
+          TermLookup* lookup = sIt.next();
 
-      // used defined symbols (how do we sort-check them?)
+          SortedTerm st;
+          if (lookup->find(id,st)) {
+            results.push(ParseResult(st.second,st.first));
+            found = true;
+            break;
+          }
+        }
 
-      // numerals!
+        if (found) {
+          continue;
+        }
+      }
 
+      // used defined symbols:
+      {
+        DeclaredFunction fun;
+        if (_declaredFunctions.find(id,fun)) {
+          unsigned symbIdx = fun.first;
+          bool isTrueFun = fun.second;
+
+          Signature::Symbol* symbol = isTrueFun ? env.signature->getFunction(symbIdx) : env.signature->getPredicate(symbIdx);
+          BaseType* type = isTrueFun ? static_cast<BaseType*>(symbol->fnType()) : static_cast<BaseType*>(symbol->predType());
+
+          unsigned arity = symbol->arity();
+
+          static Stack<TermList> args;
+          args.reset();
+
+          for (unsigned i = 0; i < arity; i++) {
+            unsigned sort = type->arg(i);
+
+            TermList arg;
+            if (results.isEmpty() || results.top().isSeparator() ||
+                results.pop().asTerm(arg) != sort) {
+              goto malformed;
+            }
+
+            args.push(arg);
+          }
+
+          if (isTrueFun) {
+            unsigned sort = symbol->fnType()->result();
+            TermList res = TermList(Term::create(symbIdx,arity,args.begin()));
+            results.push(ParseResult(sort,res));
+          } else {
+            Formula* res = new AtomicFormula(Literal::create(symbIdx,arity,true,false,args.begin()));
+            results.push(ParseResult(res));
+          }
+
+          continue;
+        }
+      }
+
+      // numerals:
+
+      if (StringUtils::isPositiveInteger(id)) {
+        if (_numeralsAreReal) {
+          goto real_constant; // just below
+        }
+
+        unsigned symb;
+        try {
+          symb = env.signature->addIntegerConstant(id,false);
+        } catch (Kernel::ArithmeticException&) {
+          USER_ERROR("Cannot represent integer "+id);
+        }
+
+        TermList res = TermList(Term::createConstant(symb));
+        results.push(ParseResult(Sorts::SRT_INTEGER,res));
+
+        continue;
+      }
+
+      if(StringUtils::isPositiveDecimal(id)) {
+        real_constant:
+
+        unsigned symb;
+        try {
+          symb = env.signature->addRealConstant(id,false);
+        } catch (Kernel::ArithmeticException&) {
+          USER_ERROR("Cannot represent real "+id);
+        }
+
+        TermList res = TermList(Term::createConstant(symb));
+
+        results.push(ParseResult(Sorts::SRT_REAL,res));
+
+        continue;
+      }
+
+      USER_ERROR("Unrecognized term identifier "+id);
     }
   }
 
@@ -1474,11 +1699,16 @@ void SMTLIB2::readAssert(LExpr* body)
   _nextVar = 0;
   ASS(_scopes.isEmpty());
 
-  parseTermOrFormula(body);
+  ParseResult res = parseTermOrFormula(body);
 
-  // needs to be of sort bool
+  Formula* fla;
+  if (!res.asFormula(fla)) {
+    USER_ERROR("Asserted expression of non-boolean sort "+body->toString());
+  }
 
-  // make sure it is a vampire formula (and not bool term) and store it
+  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::AXIOM);
+
+  UnitList::push(fu, _formulas);
 }
 
 }

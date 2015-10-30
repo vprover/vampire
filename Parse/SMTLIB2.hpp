@@ -27,6 +27,8 @@ public:
   void parse(istream& str);
   void parse(LExpr* bench);
 
+  UnitList* getFormulas() const { return _formulas; }
+
 private:
 
   enum SmtlibLogic {
@@ -79,7 +81,7 @@ private:
   vstring _logicName;
   SmtlibLogic _logic;
 
-  bool _decimalsAreReal;
+  bool _numeralsAreReal;
 
   void readLogic(const vstring& logicStr);
 
@@ -170,17 +172,14 @@ private:
   // in the smt-lib sense, so either a function or predicate symbol
   bool isFunctionSymbol(const vstring& name);
 
-  // smtlib name -> <vampire signature id, is_function flag >
-  DHMap<vstring,std::pair<unsigned,bool> > _declaredFunctions;
+  // <vampire signature id, is_function flag >
+  typedef std::pair<unsigned,bool> DeclaredFunction;
+  // functions are implicitly declared even when they are defined (see below)
+  DHMap<vstring, DeclaredFunction> _declaredFunctions;
 
-  void declareFunctionOrPredicate(const vstring& name, signed rangeSort, const Stack<unsigned>& argSorts);
+  DeclaredFunction declareFunctionOrPredicate(const vstring& name, signed rangeSort, const Stack<unsigned>& argSorts);
 
   void readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort);
-
-  // smtlib name -> definition formula
-  DHMap<vstring, FormulaUnit*> _functionDefinitions;
-  // the function can be a predicate, but we use the fool mechanism,
-  // so the definition is always an equality
 
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body);
 
@@ -190,7 +189,8 @@ private:
 
   typedef pair<TermList,unsigned> SortedTerm;
   typedef DHMap<vstring,SortedTerm> TermLookup;
-  Stack<TermLookup*> _scopes;
+  typedef Stack<TermLookup*> Scopes;
+  Scopes _scopes;
 
   struct ParseResult {
     ParseResult() : sort(0), formula(true), frm(nullptr) {} // special separator value
@@ -217,6 +217,8 @@ private:
   ParseResult parseTermOrFormula(LExpr* body);
 
   void readAssert(LExpr* body);
+
+  UnitList* _formulas;
 
   void readBenchmark(LExprList* bench);
 };
