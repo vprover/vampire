@@ -213,6 +213,7 @@ private:
   };
 
   Interpretation getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned firstArgSort);
+  Interpretation getUnaryMinusInterpretation(unsigned argSort);
   Interpretation getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort);
 
   ParseResult parseTermOrFormula(LExpr* body);

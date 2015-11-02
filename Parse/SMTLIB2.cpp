@@ -879,6 +879,20 @@ Interpretation SMTLIB2::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigne
   USER_ERROR("invalid sort "+env.sorts->sortName(firstArgSort)+" for interpretation "+vstring(s_formulaSymbolNameStrings[fs]));
 }
 
+Interpretation SMTLIB2::getUnaryMinusInterpretation(unsigned argSort)
+{
+  CALL("SMTLIB2::getUnaryMinusInterpretation");
+
+  switch(argSort) {
+    case Sorts::SRT_INTEGER:
+      return Theory::INT_UNARY_MINUS;
+    case Sorts::SRT_REAL:
+      return Theory::REAL_UNARY_MINUS;
+    default:
+      USER_ERROR("invalid sort "+env.sorts->sortName(argSort)+" for interpretation -");
+  }
+}
+
 Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort)
 {
   CALL("SMTLIB2::getTermSymbolInterpretation");
@@ -1581,7 +1595,9 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
           if (results.isEmpty() || results.top().isSeparator()) {
             if (ts == TS_MINUS) { // unary minus
-              unsigned fun = Theory::instance()->getFnNum(Theory::INT_UNARY_MINUS);
+              Interpretation intp = getUnaryMinusInterpretation(sort);
+              unsigned fun = Theory::instance()->getFnNum(intp);
+
               TermList res = TermList(Term::create1(fun,first));
 
               results.push(ParseResult(sort,res));
