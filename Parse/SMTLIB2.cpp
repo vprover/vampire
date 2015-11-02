@@ -22,7 +22,7 @@
 #include "SMTLIB2.hpp"
 
 #undef LOGGING
-#define LOGGING 1
+#define LOGGING 0
 
 #if LOGGING
 #define LOG1(arg) cout << arg << endl;
@@ -755,10 +755,10 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
   CALL("SMTLIB2::ParseResult::asFormula");
 
   if (formula) {
-    LOG2("asFormula formula ",resFrm->toString());
-
     ASS_EQ(sort, BS_BOOL);
     resFrm = frm;
+
+    LOG2("asFormula formula ",resFrm->toString());
     return true;
   }
 
@@ -1055,7 +1055,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
     ASS_EQ(op,PO_PARSE);
 
-    LOG2("PO_PARSE",exp->toString());
+    LOG2("PO_PARSE ",exp->toString());
 
     if (exp->isList()) {
       LispListReader lRdr(exp->list);

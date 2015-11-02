@@ -466,25 +466,32 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
       continue;
     }
     if(t->isITE()){
-      if(tryGetVariableSort(var.var(),t->getSpecialData()->getCondition(),result)){
+      if(tryGetVariableSort(var.var(),t->getSpecialData()->getCondition(),result) ||
+          // NonVariableIterator does not go to special terms, so we recurse here
+          (t->nthArgument(0)->isTerm() && tryGetVariableSort(var,t->nthArgument(0)->term(),result)) ||
+          (t->nthArgument(1)->isTerm() && tryGetVariableSort(var,t->nthArgument(1)->term(),result)))
+      {
         return true;
-      }      
-      // no continue as the left and right are args
+      }
+      continue;
     }
     if(t->isLet()){
       TermList body = t->getSpecialData()->getBody();
-      if(body.isVar()){
-        // get result sort of the functor
-        unsigned f = t->getSpecialData()->getFunctor();
-        Signature::Symbol* sym = env.signature->getFunction(f);
-        return sym->fnType()->result();
-      }
-      else{
-        if(tryGetVariableSort(var,body.term(),result)){
-          return true;
+      if(body.isVar()) {
+        if ( body == var) {
+          // get result sort of the functor
+          unsigned f = t->getSpecialData()->getFunctor();
+          Signature::Symbol* sym = env.signature->getFunction(f);
+          return sym->fnType()->result();
         }
+      } else if(tryGetVariableSort(var,body.term(),result)){
+        return true;
       }
-      // no continue as in t is arg
+      if (t->nthArgument(0)->isTerm() && tryGetVariableSort(var,t->nthArgument(0)->term(),result)) {
+        return true;
+      }
+
+      continue;
     }
     if (t->shared() && t->ground()) {
       sit.right();
