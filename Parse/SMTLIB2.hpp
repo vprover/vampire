@@ -209,6 +209,7 @@ private:
 
     bool asFormula(Formula*& resFrm);
     unsigned asTerm(TermList& resTrm);
+    vstring toString();
   };
 
   Interpretation getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned firstArgSort);

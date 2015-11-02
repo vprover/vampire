@@ -659,18 +659,25 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
     sym = env.signature->getPredicate(symNum);
 
     type = new PredicateType(argSorts.size(),argSorts.begin());
+
+    LOG1("declareFunctionOrPredicate-Predicate");
   } else { // proper function
     symNum = env.signature->addFunction(name, argSorts.size(), added);
 
     sym = env.signature->getFunction(symNum);
 
     type = new FunctionType(argSorts.size(), argSorts.begin(), rangeSort);
+
+    LOG1("declareFunctionOrPredicate-Function");
   }
 
   ASS(added);
   sym->setType(type);
 
   DeclaredFunction res = make_pair(symNum,type->isFunctionType());
+
+  LOG2("declareFunctionOrPredicate -name ",name);
+  LOG2("declareFunctionOrPredicate -symNum ",symNum);
 
   ALWAYS(_declaredFunctions.insert(name,res));
 
@@ -802,8 +809,22 @@ unsigned SMTLIB2::ParseResult::asTerm(TermList& resTrm)
 
     LOG2("asTerm native ",trm.toString());
 
+    LOG2("asTerm sort ",sort);
+
     return sort;
   }
+}
+
+vstring SMTLIB2::ParseResult::toString()
+{
+  CALL("SMTLIB2::ParseResult::toString");
+  if (isSeparator()) {
+    return "separator";
+  }
+  if (formula) {
+    return "formula of sort "+Int::toString(sort)+": "+frm->toString();
+  }
+  return "term of sort "+Int::toString(sort)+": "+trm.toString();
 }
 
 Interpretation SMTLIB2::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned firstArgSort)
@@ -930,6 +951,14 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
   todo.push(make_pair(PO_PARSE,body));
 
   while (todo.isNonEmpty()) {
+    /*
+    cout << "Results:" << endl;
+    for (unsigned i = 0; i < results.size(); i++) {
+      cout << results[i].toString() << endl;
+    }
+    cout << "---" << endl;
+    */
+
     pair<ParseOperation,LExpr*> cur = todo.pop();
     ParseOperation op = cur.first;
 
@@ -1095,9 +1124,11 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           todo.push(make_pair(PO_PARSE,fst)); // will create the quantified formula and clear the lookup...
           todo.push(make_pair(PO_PARSE,lRdr.readNext())); // ... from the only remaining argument
           lRdr.acceptEOL();
-          continue;
 
-        } else if (ts == TS_LET) {
+          continue;
+        }
+
+        if (ts == TS_LET) {
           // now, there should be a list of bindings
           LExprList* bindings = lRdr.readList();
 
@@ -1548,11 +1579,9 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           }
           unsigned sort = results.pop().asTerm(first);
 
-          Interpretation intp = getTermSymbolInterpretation(ts,sort);
-          unsigned fun = Theory::instance()->getFnNum(intp);
-
           if (results.isEmpty() || results.top().isSeparator()) {
             if (ts == TS_MINUS) { // unary minus
+              unsigned fun = Theory::instance()->getFnNum(Theory::INT_UNARY_MINUS);
               TermList res = TermList(Term::create1(fun,first));
 
               results.push(ParseResult(sort,res));
@@ -1560,13 +1589,17 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
               goto malformed; // we need at least two arguments otherwise
             }
           }
+
+          Interpretation intp = getTermSymbolInterpretation(ts,sort);
+          unsigned fun = Theory::instance()->getFnNum(intp);
+
           TermList second;
           if (results.pop().asTerm(second) != sort) {
             goto malformed;
           }
 
           TermList res = TermList(Term::create2(fun,first,second));
-          while (results.isNonEmpty() || !results.top().isSeparator()) {
+          while (results.isNonEmpty() && !results.top().isSeparator()) {
             TermList another;
             if (results.pop().asTerm(another) != sort) {
               goto malformed;
@@ -1617,6 +1650,8 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
           static Stack<TermList> args;
           args.reset();
+
+          LOG2("DeclaredFunction of arity ",arity);
 
           for (unsigned i = 0; i < arity; i++) {
             unsigned sort = type->arg(i);
