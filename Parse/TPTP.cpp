@@ -3277,12 +3277,21 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_DIVIDE,
 				 Theory::REAL_DIVIDE);
   }
+  if (name == "$modulo"){
+    if(sortOf(arg)!=Sorts::SRT_INTEGER){
+      USER_ERROR("$modulo can only be used with integer type");
+    }
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_MODULO,
+                                 Theory::INT_MODULO,  // will not be used
+                                 Theory::INT_MODULO); // will not be used
+  }
   if (name == "$quotient") {
     if(sortOf(arg)==Sorts::SRT_INTEGER){
       USER_ERROR("$quotient cannot be used with integer type");
     }
     return addOverloadedFunction(name,arity,2,added,arg,
-                                 Theory::INT_QUOTIENT_E,
+                                 Theory::INT_QUOTIENT_E,// this is a dummy
                                  Theory::RAT_QUOTIENT,
                                  Theory::REAL_QUOTIENT);
   }
@@ -3328,6 +3337,15 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_UNARY_MINUS,
 				 Theory::REAL_UNARY_MINUS);
   }
+  if (name == "$succ"){
+    if(sortOf(arg)!=Sorts::SRT_INTEGER){
+      USER_ERROR("$succ can only be used with integer type");
+    }
+    return addOverloadedFunction(name,arity,1,added,arg,
+                                 Theory::INT_SUCCESSOR,
+                                 Theory::INT_SUCCESSOR,  // will not be used
+                                 Theory::INT_SUCCESSOR); // will not be used
+  }
   if (name == "$floor") {
     return addOverloadedFunction(name,arity,1,added,arg,
                                  Theory::INT_FLOOR,
@@ -3370,11 +3388,6 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_TO_REAL,
 				 Theory::REAL_TO_REAL);
   }
-  //if (name == "$select") {
-  //      return addOverloadedArrayFunction(name,arity,2,added,arg,
-   //                                  Theory::SELECT1_INT
-   //                                 );
-   // }
 
   USER_ERROR((vstring)"Invalid function name: " + name);
 } // addFunction
@@ -3427,6 +3440,15 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
 				  Theory::INT_IS_INT,
 				  Theory::RAT_IS_INT,
 				  Theory::REAL_IS_INT);
+  }
+  if (name == "$divides"){
+    if(sortOf(arg)!=Sorts::SRT_INTEGER){
+      USER_ERROR("$divides can only be used with integer type");
+    }
+    return addOverloadedPredicate(name,arity,2,added,arg,
+                                  Theory::INT_DIVIDES,
+                                  Theory::INT_DIVIDES,  // will not be used
+                                  Theory::INT_DIVIDES); // will not be used
   }
   if (name == "$is_rat") {
     return addOverloadedPredicate(name,arity,1,added,arg,
