@@ -382,15 +382,28 @@ vstring TPTPPrinter::toString(const Formula* f)
     {
       vstring result = vstring("(") + con + "[";
       bool needsComma = false;
-      for (const Formula::VarList* vars = f->vars(); !Formula::VarList::isEmpty(vars); vars = vars->tail()) {
+      Formula::VarList::Iterator vs(f->vars());
+      Formula::SortList::Iterator ss(f->sorts());
+      bool hasSorts = f->sorts();
+
+      while (vs.hasNext()) {
+        int var = vs.next();
+
         if (needsComma) {
           result += ", ";
         }
         result += 'X';
-        result += Int::toString(vars->head());
+        result += Int::toString(var);
         unsigned t;
-        if (SortHelper::tryGetVariableSort(vars->head(), const_cast<Formula*>(f), t) && t != Sorts::SRT_DEFAULT) {
-          result += ": " + env.sorts->sortName(t);
+        if (hasSorts) {
+          ASS(ss.hasNext());
+          t = ss.next();
+          if (t != Sorts::SRT_DEFAULT) {
+            result += " : " + env.sorts->sortName(t);
+          }
+        } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),
+            t) && t != Sorts::SRT_DEFAULT) {
+          result += " : " + env.sorts->sortName(t);
         }
         needsComma = true;
       }

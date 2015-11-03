@@ -297,22 +297,22 @@ vstring Formula::toString () const
       bool first=true;
       while (vs.hasNext()) {
         int var = vs.next();
-	if(!first) {
-	  result+= ",";
-	}
-	result += Term::variableToString(var);
+        if (!first) {
+          result += ",";
+        }
+        result += Term::variableToString(var);
         unsigned t;
-        if(hasSorts){
+        if (hasSorts) {
           ASS(ss.hasNext());
           t = ss.next();
-          if(t!= Sorts::SRT_DEFAULT){
+          if (t != Sorts::SRT_DEFAULT) {
             result += " : " + env.sorts->sortName(t);
           }
+        } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(this),
+            t) && t != Sorts::SRT_DEFAULT) {
+          result += " : " + env.sorts->sortName(t);
         }
-        else if(SortHelper::tryGetVariableSort(var, const_cast<Formula*>(this), t) && t != Sorts::SRT_DEFAULT) {
-	  result += " : " + env.sorts->sortName(t);
-	}
-	first=false;
+        first = false;
       }
       result += "] : ";
       return result + qarg()->toStringInScopeOf(c);
