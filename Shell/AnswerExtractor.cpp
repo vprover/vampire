@@ -16,6 +16,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Kernel/InterpretedLiteralEvaluator.hpp"
 
 #include "Tabulation/TabulationAlgorithm.hpp"
 
@@ -45,6 +46,23 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
   Stack<TermList>::BottomFirstIterator ait(answer);
   while(ait.hasNext()) {
     TermList aLit = ait.next();
+    // try evaluating aLit
+    if(aLit.isTerm()){
+      InterpretedLiteralEvaluator eval;
+      unsigned p = env.signature->addFreshPredicate(1,"p"); 
+      unsigned sort = SortHelper::getResultSort(aLit.term());
+      PredicateType* type = new PredicateType(sort);
+      env.signature->getPredicate(p)->setType(type);
+      Literal* l = Literal::create1(p,true,aLit); 
+      Literal* res =0;
+      bool constant, constTrue;
+      Stack<Literal*> sideConditions;
+      bool litMod = eval.evaluate(l,constant,res,constTrue,sideConditions);
+      if(litMod && res && sideConditions.isEmpty()){
+        aLit.setTerm(res->nthArgument(0)->term());
+      }
+    }
+
     env.out() << aLit.toString();
     if(ait.hasNext()) {
       env.out() << ',';
@@ -228,7 +246,7 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
 
   Options tabulationOpts;
   //tabulationOpts.setSaturationAlgorithm(Options::SaturationAlgorithm::TABULATION);
-  NOT_IMPLEMENTED;
+  //NOT_IMPLEMENTED;
   Problem tabPrb(pvi( ClauseStack::Iterator(premiseClauses) ), true);
   Tabulation::TabulationAlgorithm talg(tabPrb, tabulationOpts);
   talg.run();
@@ -243,6 +261,7 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
   }
 
   if(!SubstBuilder(goalLits, lemmas, subst).run()) {
+    cout << "Answer not found in proof" << endl;
     return false;
   }
 
