@@ -143,19 +143,46 @@ bool SubformulaIterator::hasNext ()
       }
 
       case Element::Tag::TERM: {
-        if (!_reserve->_term->isFormula()) {
-          Element *rest = _reserve->_rest;
+        Term* term = _reserve->_term;
+        Element* rest = _reserve->_rest;
+        int polarity = _reserve->_polarity;
+        if (!term->isSpecial()) {
           delete _reserve;
           _reserve = rest;
           break;
-        } else {
-          _current = _reserve->_term->getSpecialData()->getFormula();
-          _currentPolarity = _reserve->_polarity;
-          Element *rest = _reserve->_rest;
-          delete _reserve;
-          _reserve = rest;
-          return true;
         }
+
+        switch (term->functor()) {
+          case Term::SF_ITE: {
+            _current = term->getSpecialData()->getCondition();
+            _currentPolarity = polarity;
+            delete _reserve;
+            _reserve = rest;
+            return true;
+          }
+          case Term::SF_LET: {
+            delete _reserve;
+            TermList body = term->getSpecialData()->getBody();
+            if (!body.isTerm()) {
+              _reserve = rest;
+            } else {
+              _reserve = new Element(body.term(), polarity, rest);
+            }
+            break;
+          }
+          case Term::SF_FORMULA: {
+            _current = term->getSpecialData()->getFormula();
+            _currentPolarity = polarity;
+            delete _reserve;
+            _reserve = rest;
+            return true;
+          }
+#if VDEBUG
+          default:
+            ASSERTION_VIOLATION;
+#endif
+        }
+        break;
       }
 
 #if VDEBUG

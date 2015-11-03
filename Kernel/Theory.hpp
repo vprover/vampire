@@ -211,7 +211,6 @@ public:
     RAT_GREATER_EQUAL,
     RAT_LESS,
     RAT_LESS_EQUAL,
-    RAT_DIVIDES,
 
     REAL_IS_INT,
     REAL_IS_RAT,
@@ -220,8 +219,6 @@ public:
     REAL_GREATER_EQUAL,
     REAL_LESS,
     REAL_LESS_EQUAL,
-    REAL_DIVIDES,
-
 
     //numeric functions
 

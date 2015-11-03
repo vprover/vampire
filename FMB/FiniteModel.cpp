@@ -520,7 +520,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
      //cout << "Quant " << isForall << " with " << var << endl;
 
      Formula* next = 0;
-     if(vs->tail()) next = new QuantifiedFormula(formula->connective(),vs->tail(),formula->qarg());
+     if(vs->tail()) next = new QuantifiedFormula(formula->connective(),vs->tail(),0,formula->qarg());
      else next = formula->qarg();
 
      for(unsigned c=1;c<=_size;c++){
@@ -615,7 +615,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
                 Formula::VarList* vs = formula->vars();
                 Formula* inner  = formula->qarg();
                 Formula* newInner = partialEvaluate(inner);
-                return new QuantifiedFormula(formula->connective(),vs,newInner);
+                return new QuantifiedFormula(formula->connective(),vs,0,newInner);
             }
             default:
                 USER_ERROR("Cannot evaluate " + formula->toString() + ", not supported");

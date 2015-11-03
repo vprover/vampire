@@ -258,7 +258,7 @@ FormBlock AxiomGenerator::ex(TermBlock var, FormBlock f)
   ASS(var.term.isVar());
   Formula::VarList* vars=0;
   Formula::VarList::push(var.term.var(), vars);
-  return FormBlock(new QuantifiedFormula(EXISTS, vars, f.form));
+  return FormBlock(new QuantifiedFormula(EXISTS, vars,0, f.form));
 }
 
 

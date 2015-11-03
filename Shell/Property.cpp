@@ -369,6 +369,7 @@ void Property::scan(Formula* formula)
       break;
     }
     case BOOL_TERM: {
+      addProp(PR_HAS_FOOL);
       _hasFOOL = true;
       TermList aux[2];
       aux[0].makeEmpty();
@@ -411,6 +412,14 @@ void Property::scanSort(unsigned sort)
   }
   _hasNonDefaultSorts = true;
   env.statistics->hasTypes=true;
+
+  if(sort >= Sorts::FIRST_USER_SORT){
+    if(env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
+      addProp(PR_HAS_ARRAYS);
+    }
+    return;
+  }
+
   switch(sort) {
   case Sorts::SRT_INTEGER:
     addProp(PR_HAS_INTEGERS);
@@ -422,6 +431,7 @@ void Property::scanSort(unsigned sort)
     addProp(PR_HAS_REALS);
     break;
   case Sorts::SRT_BOOL:
+    addProp(PR_HAS_FOOL);
     _hasFOOL = true;
     break;
   }
@@ -532,6 +542,7 @@ void Property::scanSpecialTerm(Term* t)
 {
   CALL("Property::scanSpecialTerm");
 
+  addProp(PR_HAS_FOOL);
   _hasFOOL = true;
 
   Term::SpecialTermData* sd = t->getSpecialData();

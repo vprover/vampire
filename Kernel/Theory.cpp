@@ -562,13 +562,11 @@ unsigned Theory::getArity(Interpretation i)
   case RAT_GREATER_EQUAL:
   case RAT_LESS:
   case RAT_LESS_EQUAL:
-  case RAT_DIVIDES:
 
   case REAL_GREATER:
   case REAL_GREATER_EQUAL:
   case REAL_LESS:
   case REAL_LESS_EQUAL:
-  case REAL_DIVIDES:
 
   case INT_PLUS:
   case INT_MINUS:
@@ -704,13 +702,11 @@ bool Theory::isFunction(Interpretation i)
   case RAT_GREATER_EQUAL:
   case RAT_LESS:
   case RAT_LESS_EQUAL:
-  case RAT_DIVIDES:
 
   case REAL_GREATER:
   case REAL_GREATER_EQUAL:
   case REAL_LESS:
   case REAL_LESS_EQUAL:
-  case REAL_DIVIDES:
 
   case INT_IS_INT:
   case INT_IS_RAT:
@@ -844,7 +840,6 @@ unsigned Theory::getOperationSort(Interpretation i)
   case RAT_GREATER_EQUAL:
   case RAT_LESS:
   case RAT_LESS_EQUAL:
-  case RAT_DIVIDES:
 
   case RAT_TO_RAT:
   case RAT_IS_INT:
@@ -872,7 +867,6 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_GREATER_EQUAL:
   case REAL_LESS:
   case REAL_LESS_EQUAL:
-  case REAL_DIVIDES:
 
   case REAL_TO_REAL:
   case REAL_IS_INT:
@@ -1701,13 +1695,11 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   case RAT_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
   case RAT_LESS: return "a0 "+pol+"< a1";
   case RAT_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
-  case RAT_DIVIDES: return "";
 
   case REAL_GREATER: return "a0 "+pol+"> a1"; 
   case REAL_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
   case REAL_LESS: return "a0 "+pol+"< a1";
   case REAL_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
-  case REAL_DIVIDES: return "";
 
   case INT_PLUS: return "a0 + a1";
   case INT_MINUS: return "a0 - a1";

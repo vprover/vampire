@@ -494,7 +494,8 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
       newVars->destroy();
       return f;
     }
-    return new QuantifiedFormula(f->connective(),newVars,arg);
+    //TODO compute an updated sorts list
+    return new QuantifiedFormula(f->connective(),newVars,0,arg);
   }
 
   case BOOL_TERM:

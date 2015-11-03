@@ -109,6 +109,7 @@ void Options::Options::init()
     "  -random_strategy: attempts to randomize the option values\n";
     //"consequence_elimination mode forces values of unused_predicate_definition_removal to be off";
     _lookup.insert(&_mode);
+    _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(notEqual(true))));
 
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
@@ -221,7 +222,7 @@ void Options::Options::init()
     _protectedPrefix.tag(OptionTag::PREPROCESSING);
     _protectedPrefix.setExperimental(); // Does not work for all (any?) preprocessing steps currently
 
-    _statistics = ChoiceOptionValue<Statistics>("statistics","stat",Statistics::FULL,{"brief","full","none"});
+    _statistics = ChoiceOptionValue<Statistics>("statistics","stat",Statistics::BRIEF,{"brief","full","none"});
     _statistics.description="The level of statistics to report at the end of the run.";
     _lookup.insert(&_statistics);
     _statistics.tag(OptionTag::OUTPUT);
@@ -1389,9 +1390,10 @@ void Options::Options::init()
     _lookup.insert(&_normalize);
     _normalize.tag(OptionTag::PREPROCESSING);
 
-    _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","",QuestionAnsweringMode::OFF,
+    _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
                                                                   {"answer_literal","from_proof","off"});
     _questionAnswering.description="Determines whether (and how) we attempt to answer questions";
+    _questionAnswering.addHardConstraint(If(notEqual(QuestionAnsweringMode::OFF)).then(_splitting.is(notEqual(true))));
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 

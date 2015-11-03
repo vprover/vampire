@@ -1419,7 +1419,9 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           }
           delete _scopes.pop();
 
-          Formula* res = new QuantifiedFormula((fs==FS_EXISTS) ? EXISTS : FORALL, qvars, argFla);
+          //TODO: add sorts list
+
+          Formula* res = new QuantifiedFormula((fs==FS_EXISTS) ? EXISTS : FORALL, qvars, nullptr, argFla);
 
           results.push(ParseResult(res));
           continue;

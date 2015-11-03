@@ -151,12 +151,18 @@ Formula* Flattening::flatten (Formula* f)
 	if (arg == f->qarg()) {
 	  return f;
 	}
-	return new QuantifiedFormula(con,f->vars(),arg);
+	return new QuantifiedFormula(con,f->vars(),f->sorts(),arg);
       }
 
       // arg is a quantified formula with the same quantifier
+      // the sort list is either empty (if one of the parts have empty sorts) or the concatentation
+      Formula::SortList* sl = 0;
+      if(f->sorts() && arg->sorts()){
+        sl = f->sorts()->append(arg->sorts());
+      }
       return new QuantifiedFormula(con,
 				   f->vars()->append(arg->vars()),
+                                   sl, 
 				   arg->qarg());
     }
 

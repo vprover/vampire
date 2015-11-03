@@ -292,6 +292,8 @@ vstring Formula::toString () const
 //      result += ")";
       vstring result = con + " [";
       VarList::Iterator vs(vars());
+      SortList::Iterator ss(sorts());
+      bool hasSorts = sorts();
       bool first=true;
       while (vs.hasNext()) {
         int var = vs.next();
@@ -300,7 +302,14 @@ vstring Formula::toString () const
 	}
 	result += Term::variableToString(var);
         unsigned t;
-        if(SortHelper::tryGetVariableSort(var, const_cast<Formula*>(this), t) && t != Sorts::SRT_DEFAULT) {
+        if(hasSorts){
+          ASS(ss.hasNext());
+          t = ss.next();
+          if(t!= Sorts::SRT_DEFAULT){
+            result += " : " + env.sorts->sortName(t);
+          }
+        }
+        else if(SortHelper::tryGetVariableSort(var, const_cast<Formula*>(this), t) && t != Sorts::SRT_DEFAULT) {
 	  result += " : " + env.sorts->sortName(t);
 	}
 	first=false;
@@ -753,7 +762,8 @@ Formula* Formula::quantify(Formula* f)
     VarList::push(vit.next(), varLst);
   }
   if(varLst) {
-    f=new QuantifiedFormula(FORALL, varLst, f);
+    //TODO could compute the sorts list, but don't want to!
+    f=new QuantifiedFormula(FORALL, varLst, 0, f);
   }
   return f;
 }
@@ -789,7 +799,8 @@ Formula* Formula::fromClause(Clause* cl)
     VarList::push(vit.next(), varLst);
   }
   if(varLst) {
-    res=new QuantifiedFormula(FORALL, varLst, res);
+    //TODO could compute the sorts list, but don't want to!
+    res=new QuantifiedFormula(FORALL, varLst, 0, res);
   }
 
   return res;

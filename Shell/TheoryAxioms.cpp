@@ -589,6 +589,7 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(
   Formula* sx_neq_sy = new BinaryFormula(XOR, sel_x_sk, sel_y_sk); //select(x,sk(x,y)) <~> select(y,sk(x,y))
 
   Formula* axiom = new QuantifiedFormula(FORALL, new Formula::VarList(0, new Formula::VarList(1, 0)),
+                                         new Formula::SortList(arraySort, new Formula::SortList(arraySort,0)),
                                          new BinaryFormula(IMP, x_neq_y, sx_neq_sy));
 
   addAndOutputTheoryUnit(new FormulaUnit(axiom, new Inference(Inference::THEORY), Unit::AXIOM), units);
@@ -894,7 +895,9 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
   Formula* xisf = new AtomicFormula(Literal::createEquality(true, TermList(0, false), f, Sorts::SRT_BOOL));
 
   FormulaList* fs = new FormulaList(xist, new FormulaList(xisf, 0));
-  Formula* disjunction = new QuantifiedFormula(FORALL, new Formula::VarList(0, 0), new JunctionFormula(OR, fs));
+  Formula* disjunction = new QuantifiedFormula(FORALL, new Formula::VarList(0, 0), 
+                                                       new Formula::SortList(Sorts::SRT_BOOL,0),
+                                                       new JunctionFormula(OR, fs));
   Unit* finiteDomain = new FormulaUnit(disjunction, new Inference(Inference::FOOL_AXIOM), Unit::AXIOM);
   addAndOutputTheoryUnit(finiteDomain, prb.units());
 } // TheoryAxioms::addBooleanDomainAxiom

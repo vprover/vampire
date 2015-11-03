@@ -1289,7 +1289,7 @@ Formula* LoopAnalyzer::stabilityProperty(Literal* updPred, vstring array, TermLi
   Literal* iterPred = Literal::create1(iter,true,iteration);
   Formula* stabilityCondition = new BinaryFormula(IMP,new AtomicFormula(iterPred), new NegatedFormula(new AtomicFormula(updPred)));
   //create stability property
-  QuantifiedFormula* qf = new QuantifiedFormula(FORALL, new Formula::VarList(0), stabilityCondition);
+  QuantifiedFormula* qf = new QuantifiedFormula(FORALL, new Formula::VarList(0), 0,stabilityCondition);
   
   Formula* stabilityProp = new BinaryFormula(IMP,qf,new AtomicFormula(stabilityImplication));
   return stabilityProp;
@@ -1883,7 +1883,7 @@ void LoopAnalyzer::generateCounterAxiom(const vstring& name, int min, int max,
     
     Formula* condition_with_iteration = relativePathCondition(branch);    
     FormulaList* right = (new FormulaList(cKequalV))->cons(nfK)->cons(condition_with_iteration);
-    Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
+    Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),0,
 					 new JunctionFormula(AND, right));
     _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs),
 					  new Inference(Inference::PROGRAM_ANALYSIS),
@@ -1910,7 +1910,7 @@ void LoopAnalyzer::generateCounterAxiom(const vstring& name, int min, int max,
     Formula* condition_with_iteration = relativePathCondition(branch);
     FormulaList* right =(new FormulaList(cKequalV))->cons(nfK)->cons(condition_with_iteration);
         
-    Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),
+    Formula* rhs = new QuantifiedFormula(EXISTS, new Formula::VarList(K.var()),0,
 					 new JunctionFormula(AND, right));
     _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP, lhs, rhs), new Inference(Inference::PROGRAM_ANALYSIS), Unit::ASSUMPTION));
   }

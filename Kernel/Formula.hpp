@@ -28,6 +28,7 @@ class Formula
 {
 public:
   typedef List<int> VarList;
+  typedef List<unsigned> SortList;
   /**
    * Constructor of constant formulas (true/false)
    * @since 02/07/2007 Manchester
@@ -52,6 +53,8 @@ public:
   Formula* qarg();
   const VarList* vars() const;
   VarList* vars();
+  const SortList* sorts() const;
+  SortList* sorts();
   const Formula* uarg() const;
   Formula* uarg();
   const Literal* literal() const;
@@ -144,13 +147,15 @@ class QuantifiedFormula
 {
  public:
   /** Build a quantified formula */
-  QuantifiedFormula(Connective con, VarList* vs, Formula* arg)
+  QuantifiedFormula(Connective con, VarList* vs, SortList* ss, Formula* arg)
     : Formula(con),
       _vars(vs),
+      _sorts(ss),
       _arg(arg)
   {
     ASS(con == FORALL || con == EXISTS);
     ASS(vs);
+    ASS(!ss || vs->length()==ss->length());
   }
 
   /** Return the immediate subformula */
@@ -161,6 +166,10 @@ class QuantifiedFormula
   const VarList* varList() const { return _vars; }
   /** Return the list of variables */
   VarList* varList() { return _vars; }
+  /** Return the list of sorts */
+  const SortList* sortList() const { return _sorts; }
+  /** Return the list of sorts */
+  SortList* sortList() { return _sorts; }
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(QuantifiedFormula);
@@ -168,6 +177,8 @@ class QuantifiedFormula
  protected:
   /** list of variables */
   VarList* _vars;
+  /** list of sorts */
+  SortList* _sorts;
   /** argument */
   Formula* _arg;
 }; // class Formula::QuantifiedData
@@ -317,6 +328,21 @@ Formula::VarList* Formula::vars()
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<QuantifiedFormula*>(this)->varList();
+}
+
+/** Return the list of sorts of a quantified formula */
+inline
+const Formula::SortList* Formula::sorts() const
+{
+  ASS(_connective == FORALL || _connective == EXISTS);
+  return static_cast<const QuantifiedFormula*>(this)->sortList();
+}
+/** Return the list of sorts of a quantified formula */
+inline
+Formula::SortList* Formula::sorts()
+{
+  ASS(_connective == FORALL || _connective == EXISTS);
+  return static_cast<QuantifiedFormula*>(this)->sortList();
 }
 
 /** Return the immediate subformula of a quantified formula */

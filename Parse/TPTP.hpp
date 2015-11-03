@@ -460,6 +460,8 @@ private:
   Stack<int> _ints;
   /** variable lists for building formulas */
   Stack<Formula::VarList*> _varLists;
+  /** sort lists for building formulas */
+  Stack<Formula::SortList*> _sortLists;
   /** variable lists for binding variables */
   Stack<Formula::VarList*> _bindLists;
   /** various tokens to consume */

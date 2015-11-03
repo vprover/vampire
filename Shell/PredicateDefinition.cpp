@@ -629,7 +629,18 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
       while(vit.hasNext()) {
 	Formula::VarList::push(vit.next(), vl);
       }
-      return new QuantifiedFormula(con,vl,arg->qarg());
+      // sl should either be empty or the equivalent concatenation as vl
+      // if the sorts of either arg or f are empty then sl should be empty
+      Formula::SortList* sl=Formula::SortList::empty();
+      if(arg->sorts() && f->sorts()){
+        sl=arg->sorts();
+        Formula::SortList::Iterator sit(f->sorts());
+        while(sit.hasNext()){
+          Formula::SortList::push(sit.next(),sl);
+        }
+      }
+
+      return new QuantifiedFormula(con,vl,sl,arg->qarg());
     }
     switch (arg->connective()) {
     case FALSE:
@@ -638,7 +649,7 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
     default:
       return arg == f->qarg()
 	      ? f
-	      : new QuantifiedFormula(con,f->vars(),arg);
+	      : new QuantifiedFormula(con,f->vars(),f->sorts(),arg);
     }
   }
   }
@@ -687,7 +698,7 @@ FormulaUnit* PredicateDefinition::makeImplFromDef(FormulaUnit* def, unsigned pre
 
   Formula* resf0;
   if(isQuantified) {
-    resf0=new QuantifiedFormula(FORALL, f0->vars(), resf);
+    resf0=new QuantifiedFormula(FORALL, f0->vars(), f0->sorts(), resf);
   } else {
     resf0=resf;
   }

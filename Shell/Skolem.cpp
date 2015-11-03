@@ -204,7 +204,7 @@ Formula* Skolem::skolemise (Formula* f)
       if (g == f->qarg()) {
 	return f;
       }
-      return new QuantifiedFormula(f->connective(),f->vars(),g);
+      return new QuantifiedFormula(f->connective(),f->vars(),f->sorts(),g);
     }
 
   case EXISTS: 
