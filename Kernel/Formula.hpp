@@ -155,6 +155,7 @@ class QuantifiedFormula
   {
     ASS(con == FORALL || con == EXISTS);
     ASS(vs);
+    ASS(!ss | vs->length()==ss->length());
   }
 
   /** Return the immediate subformula */
