@@ -246,7 +246,6 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, unsigned& res)
   SubformulaIterator sfit(f);
   while (sfit.hasNext()) {
     Formula* sf = sfit.next();
-
     if (sf->connective() == LITERAL){
 
       Literal* lit = sf->literal();
@@ -459,22 +458,6 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
   NonVariableIterator sit(t0,true);
   while (sit.hasNext()) {
     Term* t = sit.next().term();
-    if(t->isFormula()){
-      if(tryGetVariableSort(var.var(),t->getSpecialData()->getFormula(),result)){
-        return true;
-      }
-      continue;
-    }
-    if(t->isITE()){
-      if(tryGetVariableSort(var.var(),t->getSpecialData()->getCondition(),result) ||
-          // NonVariableIterator does not go to special terms, so we recurse here
-          (t->nthArgument(0)->isTerm() && tryGetVariableSort(var,t->nthArgument(0)->term(),result)) ||
-          (t->nthArgument(1)->isTerm() && tryGetVariableSort(var,t->nthArgument(1)->term(),result)))
-      {
-        return true;
-      }
-      continue;
-    }
     if(t->isLet()){
       TermList body = t->getSpecialData()->getBody();
       if(body.isVar()) {
@@ -487,10 +470,6 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
       } else if(tryGetVariableSort(var,body.term(),result)){
         return true;
       }
-      if (t->nthArgument(0)->isTerm() && tryGetVariableSort(var,t->nthArgument(0)->term(),result)) {
-        return true;
-      }
-
       continue;
     }
     if (t->shared() && t->ground()) {
