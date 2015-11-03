@@ -568,7 +568,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          * check that it is a predicate binding and the body of the function stands in
          * the formula context
          */
-        Context bodyContext = body.isTerm() && body.term()->isFormula() ? FORMULA_CONTEXT : TERM_CONTEXT;
+        Context bodyContext = body.isTerm() && body.term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
 
         // collect variables Y1, ..., Yk
         Formula::VarList* argumentVars = sd->getVariables();
@@ -964,7 +964,7 @@ Term* FOOLElimination::SymbolOccurrenceReplacement::process(Term* term) {
         return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)));
 
       case Term::SF_LET:
-        if (_isPredicate == (sd->getBody().isTerm() && sd->getBody().term()->isFormula())) {
+        if (_isPredicate == (sd->getBody().isTerm() && sd->getBody().term()->isBoolean())) {
           // function symbols, defined inside $let are expected to be
           // disjoint and fresh symbols are expected to be fresh
           ASS_NEQ(sd->getFunctor(), _symbol);

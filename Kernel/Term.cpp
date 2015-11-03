@@ -398,7 +398,7 @@ vstring Term::specialTermToString() const
   case SF_LET: {
     ASS_EQ(arity(), 1);
     TermList body = sd->getBody();
-    bool isPredicate = body.isTerm() && body.term()->isFormula();
+    bool isPredicate = body.isTerm() && body.term()->isBoolean();
     vstring functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
                                   : env.signature->functionName(sd->getFunctor());
     BaseType* type = isPredicate ? (BaseType*)env.signature->getPredicate(sd->getFunctor())->predType()
@@ -796,11 +796,10 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList body, TermL
   }
   ASS_EQ(distinctVars.size(), variables->length());
 
-  if (body.isTerm() && body.term()->isFormula()) {
-    ASS_EQ(env.signature->predicateArity(functor), (unsigned)variables->length());
-  } else {
-    ASS_EQ(env.signature->functionArity(functor), (unsigned)variables->length());
-  }
+  bool isPredicate = body.isTerm() && body.term()->isBoolean();
+  const unsigned int arity = isPredicate ? env.signature->predicateArity(functor)
+                                         : env.signature->functionArity(functor);
+  ASS_EQ(arity, (unsigned)variables->length());
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;

@@ -144,8 +144,8 @@ bool SubformulaIterator::hasNext ()
 
       case Element::Tag::TERM: {
         Term* term = _reserve->_term;
-        Element* rest = _reserve->_rest;
         int polarity = _reserve->_polarity;
+        Element* rest = new Element(term->args(), polarity, _reserve->_rest);
         if (!term->isSpecial()) {
           delete _reserve;
           _reserve = rest;
