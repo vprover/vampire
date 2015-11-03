@@ -84,7 +84,8 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
   }
 
   if (VarList::isNonEmpty(vars)) {
-    unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,g),
+    //TODO do we know the sorts of vars?
+    unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),
 			   new Inference1(Inference::CLOSURE,unit),
 			   unit->inputType());
     if(unit0->included()) {
@@ -403,7 +404,10 @@ Formula* Rectify::rectify (Formula* f)
     if(VarList::isEmpty(vs)) {
       return arg;
     }
-    return new QuantifiedFormula(f->connective(),vs,arg);
+    //TODO should update the sorts from f->sorts() wrt to updated vs
+    //     or is the rectification just renaming, if so f->sorts can 
+    //     just be reused
+    return new QuantifiedFormula(f->connective(),vs,0,arg);
   }
 
   case TRUE:

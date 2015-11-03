@@ -359,7 +359,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   FormulaList::push(new AtomicFormula(ansLit), conjArgs);
 
   Formula* conj = new JunctionFormula(AND, conjArgs);
-  Formula* newQuant = new QuantifiedFormula(EXISTS, vars, conj);
+  Formula* newQuant = new QuantifiedFormula(EXISTS, vars, 0,conj);
   Formula* newForm = new NegatedFormula(newQuant);
 
   newForm = Flattening::flatten(newForm);

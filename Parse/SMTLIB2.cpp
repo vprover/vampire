@@ -1107,7 +1107,8 @@ bool SMTLIB2::tryReadQuantifier(bool univ, LExpr* e, Formula*& res)
     ALWAYS(_termVars.remove(varName));
   }
 
-  res = new QuantifiedFormula(univ ? FORALL : EXISTS, qvars, subForm);
+  //TODO add sorts list
+  res = new QuantifiedFormula(univ ? FORALL : EXISTS, qvars,0, subForm);
   return true;
 }
 
@@ -1476,7 +1477,8 @@ Formula* SMTLIB2::nameFormula(Formula* f, vstring fletVarName)
   Formula* lhsF = new AtomicFormula(lhs);
   Formula* df = new BinaryFormula(IFF, lhsF, f);
   if(freeVars) {
-    df = new QuantifiedFormula(FORALL, freeVars, df);
+    //TODO add sorts list
+    df = new QuantifiedFormula(FORALL, freeVars,0, df);
   }
   FormulaUnit* def = new FormulaUnit(df, new Inference(Inference::INPUT), Unit::AXIOM);
   UnitList::push(def, _definitions);

@@ -1402,7 +1402,7 @@ void SimplifyProver::buildQuantifiedFormula()
     // the type of the variable id declared
     vars = vars->tail()->tail();
   }
-  processFormula(new QuantifiedFormula(con,(IntList*)_built.pop(),f),context);
+  processFormula(new QuantifiedFormula(con,(IntList*)_built.pop(),0,f),context);
 } // buildQuantifiedFormula
 
 /**
@@ -1568,7 +1568,7 @@ void SimplifyProver::processFormula(Formula* f,Context context)
 	f = new NegatedFormula(f);
       }
       else {
-	f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,f));
+	f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       addUnit(new FormulaUnit(f,
 			      new Inference(Inference::NEGATED_CONJECTURE),

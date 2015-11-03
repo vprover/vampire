@@ -1772,6 +1772,7 @@ void TPTP::binding()
       } else {
         // empty list of vars
         _varLists.push(0);
+        _sortLists.push(0);
         _bindLists.push(0);
       }
       break;
@@ -1870,6 +1871,7 @@ void TPTP::endLet()
   LetFunctionsScope::TopFirstIterator functions(_letScopes.pop());
   while (functions.hasNext()) {
     unsigned symbol = functions.next().second.first;
+    _sortLists.pop(); //TODO add sort information to Let term
     let = TermList(Term::createLet(symbol, _varLists.pop(), _termLists.pop(), let));
   }
   _termLists.push(let);
@@ -1974,10 +1976,14 @@ void TPTP::varList()
 	  bindVariable(var,Sorts::SRT_DEFAULT);
 	}
 	Formula::VarList* vs = Formula::VarList::empty();
+        Formula::SortList* ss = Formula::SortList::empty();
 	while (!vars.isEmpty()) {
-	  vs = new Formula::VarList(vars.pop(),vs);
+          int v = vars.pop();
+	  vs = new Formula::VarList(v,vs);
+          ss = new Formula::SortList(sortOf(TermList(v,false)),ss);
 	}
 	_varLists.push(vs);
+        _sortLists.push(ss);
 	_bindLists.push(vs);
 	return;
       }
@@ -2357,7 +2363,7 @@ void TPTP::endFormula()
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),f));
+    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
     _states.push(END_FORMULA);
     return;
   case LITERAL:
@@ -2703,6 +2709,7 @@ void TPTP::endFof()
       a = env.sharing->insert(a);
       f = new QuantifiedFormula(FORALL,
 				g->vars(),
+                                g->sorts(),
 				new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
       unit = new FormulaUnit(f,
 			     new Inference1(Inference::ANSWER_LITERAL,unit),
@@ -2714,7 +2721,8 @@ void TPTP::endFof()
 	f = new NegatedFormula(f);
       }
       else {
-	f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,f));
+        // TODO can we use sortOf to get the sorts of vs? 
+	f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       unit = new FormulaUnit(f,
 			     new Inference1(Inference::NEGATED_CONJECTURE,unit),
@@ -2735,7 +2743,8 @@ void TPTP::endFof()
       Formula* claim = new AtomicFormula(a);
       Formula::VarList* vs = f->freeVariables();
       if (Formula::VarList::isNonEmpty(vs)) {
-	f = new QuantifiedFormula(FORALL,vs,f);
+        //TODO can we use sortOf to get sorts of vs?
+	f = new QuantifiedFormula(FORALL,vs,0,f);
       }
       f = new BinaryFormula(IFF,claim,f);
       unit = new FormulaUnit(f,

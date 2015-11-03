@@ -725,7 +725,7 @@ private:
       form = new JunctionFormula(AND, formList);
     }
 
-    Formula* res = new QuantifiedFormula(EXISTS, _qttransf.getIntroducedVars(), form);
+    Formula* res = new QuantifiedFormula(EXISTS, _qttransf.getIntroducedVars(), 0,form);
     return res;
   }
 

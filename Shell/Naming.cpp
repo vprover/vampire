@@ -647,7 +647,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
       }
       ASS(pos <= _threshold || _preserveEpr);
       if (g != f->qarg()) {
-        f = new QuantifiedFormula(f->connective(), f->vars(), g);
+        f = new QuantifiedFormula(f->connective(), f->vars(),f->sorts(), g);
       }
       if (tfe.varFlagSet) {
         _varsInScope = false;
@@ -1057,7 +1057,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
     Formula* g = apply_sub(f->qarg(), where, pos, neg);
     ASS(pos <= _threshold || _preserveEpr);
     if (g != f->qarg()) {
-      f = new QuantifiedFormula(f->connective(), f->vars(), g);
+      f = new QuantifiedFormula(f->connective(), f->vars(),f->sorts(), g);
     }
     if (varFlagSet) {
       _varsInScope = false;
@@ -1181,7 +1181,8 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     def = new JunctionFormula(OR, fs);
   }
   if (Formula::VarList::isNonEmpty(vs)) {
-    def = new QuantifiedFormula(FORALL, vs, def);
+    //TODO do we know the sorts of the free variabls vs?
+    def = new QuantifiedFormula(FORALL, vs, 0, def);
   }
   Inference* inf = new Inference(Inference::PREDICATE_DEFINITION);
   Unit* definition = new FormulaUnit(def, inf, Unit::AXIOM);

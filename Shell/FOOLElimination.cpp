@@ -282,7 +282,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
     case FORALL:
     case EXISTS:
-      return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
+      return new QuantifiedFormula(formula->connective(), formula->vars(),formula->sorts(), process(formula->qarg()));
 
     case BOOL_TERM: {
       Formula* processedFormula = processAsFormula(formula->getBooleanTerm());
@@ -511,7 +511,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
         if (freeVars->length() > 0) {
-          thenImplication = new QuantifiedFormula(FORALL, freeVars, thenImplication);
+          //TODO do we know the sorts of freeVars?
+          thenImplication = new QuantifiedFormula(FORALL, freeVars,0, thenImplication);
         }
 
         // build g(X1, ..., Xn) == t
@@ -523,7 +524,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn]: (~f => g(X1, ..., Xn) == t)
         if (freeVars->length() > 0) {
-          elseImplication = new QuantifiedFormula(FORALL, freeVars, elseImplication);
+          //TODO do we know the sorts of freeVars?
+          elseImplication = new QuantifiedFormula(FORALL, freeVars, 0, elseImplication);
         }
 
         // add both definitions
@@ -623,7 +625,13 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) == s
         if (vars->length() > 0) {
-          freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, freshSymbolDefinition);
+          Formula::SortList* sortList = Formula::SortList::empty();
+          Formula::VarList* vp = vars;
+          while(vp!=Formula::VarList::empty()){
+            sortList = new Formula::SortList(sorts[vp->head()],sortList);
+            vp = vars->tail();
+          } 
+          freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, sortList, freshSymbolDefinition);
         }
 
         // add the introduced definition
@@ -693,7 +701,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
         if (freeVars->length() > 0) {
-          freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars, freshSymbolDefinition);
+          // TODO do we know the sorts of freeVars?
+          freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars,0, freshSymbolDefinition);
         }
 
         // add the introduced definition
@@ -1053,7 +1062,7 @@ Formula* FOOLElimination::SymbolOccurrenceReplacement::process(Formula* formula)
 
     case FORALL:
     case EXISTS:
-      return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
+      return new QuantifiedFormula(formula->connective(), formula->vars(), formula->sorts(), process(formula->qarg()));
 
     case BOOL_TERM:
       return new BoolTermFormula(process(formula->getBooleanTerm()));
