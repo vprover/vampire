@@ -625,13 +625,17 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) == s
         if (vars->length() > 0) {
+        /*
           Formula::SortList* sortList = Formula::SortList::empty();
           Formula::VarList* vp = vars;
-          while(vp!=Formula::VarList::empty()){
+          while(vp){
+            cout << vp->head() << endl;
             sortList = new Formula::SortList(sorts[vp->head()],sortList);
-            vp = vars->tail();
-          } 
-          freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, sortList, freshSymbolDefinition);
+            vp = vp->tail();
+            cout << vp << endl;
+          }
+        */ 
+          freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, 0, freshSymbolDefinition);
         }
 
         // add the introduced definition
