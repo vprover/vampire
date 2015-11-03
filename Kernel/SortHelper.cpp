@@ -346,7 +346,7 @@ void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSor
 
     case Term::SF_LET: {
       TermList body = sd->getBody();
-      bool isPredicate = body.isTerm() && body.term()->isFormula();
+      bool isPredicate = body.isTerm() && body.term()->isBoolean();
       Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
                                               : env.signature->getFunction(sd->getFunctor());
       unsigned position = 0;
@@ -361,7 +361,7 @@ void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSor
       }
 
       if (isPredicate) {
-        collectVariableSorts(body.term()->getSpecialData()->getFormula(), map);
+        ts.push(&body);
       } else {
         collectVariableSorts(body, symbol->fnType()->result(), map);
       }
