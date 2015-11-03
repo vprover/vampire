@@ -1410,18 +1410,19 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           }
 
           Formula::VarList* qvars = nullptr;
+          Formula::SortList* qsorts = nullptr;
 
           TermLookup::Iterator varIt(*_scopes.top());
           while(varIt.hasNext()) {
             SortedTerm vTerm = varIt.next();
             unsigned varIdx = vTerm.first.var();
+            unsigned sort = vTerm.second;
             Formula::VarList::push(varIdx, qvars);
+            Formula::SortList::push(sort,qsorts);
           }
           delete _scopes.pop();
 
-          //TODO: add sorts list
-
-          Formula* res = new QuantifiedFormula((fs==FS_EXISTS) ? EXISTS : FORALL, qvars, nullptr, argFla);
+          Formula* res = new QuantifiedFormula((fs==FS_EXISTS) ? EXISTS : FORALL, qvars, qsorts, argFla);
 
           results.push(ParseResult(res));
           continue;
