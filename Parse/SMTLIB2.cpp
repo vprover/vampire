@@ -166,9 +166,19 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     if (ibRdr.tryAcceptAtom("check-sat")) {
       if (bRdr.hasNext()) {
         LispListReader exitRdr(bRdr.readList());
-        exitRdr.acceptAtom("exit");
-        exitRdr.acceptEOL();
+        if (!exitRdr.tryAcceptAtom("exit")) {
+          if(env.options->mode()!=Options::Mode::SPIDER) {
+            env.beginOutput();
+            env.out() << "Warning: check-sat is not the last entry. Skipping the rest!" << endl;
+            env.endOutput();
+          }
+        }
       }
+      break;
+    }
+
+    if (ibRdr.tryAcceptAtom("exit")) {
+      bRdr.acceptEOL();
       break;
     }
 
