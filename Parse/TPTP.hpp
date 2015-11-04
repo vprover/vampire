@@ -698,6 +698,7 @@ private:
   static DHMap<unsigned, vstring> _axiomNames;
 
   bool _filterReserved;
+  bool _seenConjecture;
 
 
 #if VDEBUG

@@ -595,11 +595,18 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_MINUS:
   case REAL_MULTIPLY:
   case REAL_DIVIDE:
+  case REAL_QUOTIENT:
+  case REAL_QUOTIENT_E:
+  case REAL_QUOTIENT_T:
+  case REAL_QUOTIENT_F:
+  case REAL_REMAINDER_E:
+  case REAL_REMAINDER_T:
+  case REAL_REMAINDER_F:
     return 2;
           
           
   default:
-    ASSERTION_VIOLATION;
+    ASSERTION_VIOLATION_REP(i);
   }
 }
 

@@ -63,6 +63,7 @@ TPTP::TPTP(istream& in)
     _modelDefinition(false),
     _unitSources(0),
     _filterReserved(false),
+    _seenConjecture(false),
     _insideEqualityArgument(0)
 {
 } // TPTP::TPTP
@@ -2694,6 +2695,9 @@ void TPTP::endFof()
 
   switch (_lastInputType) {
   case Unit::CONJECTURE:
+    if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
+    if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecuture in a problem");
+    _seenConjecture=true;
     if (_isQuestion && env.options->mode() == Options::Mode::CLAUSIFY && f->connective() == EXISTS) {
       // create an answer predicate
       QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
