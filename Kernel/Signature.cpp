@@ -577,6 +577,9 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::REAL_TO_REAL:
     name="$to_real";
     break;
+  case Theory::INT_MODULO:
+    name = "$modulo";
+    break;
   default:
     ASSERTION_VIOLATION;
   }
