@@ -1244,11 +1244,17 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
             FormulaList::push(argFla,argLst);
           }
 
-          if (argcnt < 2) {
+          if (argcnt < 1) { // TODO: officially, we might want to disallow singleton AND and OR, but they are harmless and appear in smtlib
             goto malformed;
           }
 
-          Formula* res = new JunctionFormula( (fs==FS_AND) ? AND : OR, argLst);
+          Formula* res;
+          if (argcnt > 1) {
+            res = new JunctionFormula( (fs==FS_AND) ? AND : OR, argLst);
+          } else {
+            res = argLst->head();
+            argLst->destroy();
+          }
           results.push(ParseResult(res));
 
           continue;
