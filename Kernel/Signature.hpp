@@ -459,10 +459,22 @@ class Signature
   static const unsigned REAL_DISTINCT_GROUP;
   static const unsigned LAST_BUILT_IN_DISTINCT_GROUP;
 
-  static const unsigned FOOL_FALSE;
-  static const unsigned FOOL_TRUE;
+  unsigned getFoolConstantSymbol(bool isTrue){ 
+    if(!_foolConstantsDefined){
+      _foolFalse = addFunction("$$false",0); 
+      getFunction(_foolFalse)->setType(new FunctionType(Sorts::SRT_BOOL));
+      _foolTrue = addFunction("$$true",0);
+      getFunction(_foolTrue)->setType(new FunctionType(Sorts::SRT_BOOL));
+      _foolConstantsDefined=true;
+    }
+    return isTrue ? _foolTrue : _foolFalse;
+  }
 
 private:
+  bool _foolConstantsDefined;
+  unsigned _foolTrue;
+  unsigned _foolFalse;
+
   static bool isProtectedName(vstring name);
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
   static bool charNeedsQuoting(char c, bool first);

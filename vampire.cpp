@@ -880,6 +880,7 @@ int main(int argc, char* argv[])
     case Options::Mode::GROUNDING:
       groundingMode();
       break;
+/*
     case Options::Mode::BOUND_PROP:
 #if GNUMP
      boundPropagationMode();
@@ -887,6 +888,7 @@ int main(int argc, char* argv[])
      NOT_IMPLEMENTED;
 #endif
       break;
+*/
     case Options::Mode::SPIDER:
       spiderMode();
       break;
@@ -919,6 +921,7 @@ int main(int argc, char* argv[])
       }
       break;
 */
+/*
     case Options::Mode::CASC_LTB: {
       try {
         CASC::CLTBMode::perform();
@@ -931,6 +934,7 @@ int main(int argc, char* argv[])
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
+*/
 /*
     case Options::Mode::CASC_MZR: {
       CASC::CMZRMode::perform();
@@ -961,12 +965,12 @@ int main(int argc, char* argv[])
     case Options::Mode::PROFILE:
       profileMode();
       break;
-
+/*
     case Options::Mode::PROGRAM_ANALYSIS:
       std::cout<<"Program analysis mode "<<std::endl;
       programAnalysisMode();
       break;
-   
+*/   
     case Options::Mode::PREPROCESS:
       preprocessMode();
       break;

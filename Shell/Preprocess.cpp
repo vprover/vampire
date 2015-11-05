@@ -161,6 +161,9 @@ void Preprocess::preprocess (Problem& prb)
   }
 
   if (prb.hasFOOL()) {
+    // This is the point to extend the signature with $$true and $$false
+    // If we don't have fool then these constants get in the way (a lot)
+
     if (env.options->showPreprocessing())
       env.out() << "FOOL elimination" << std::endl;
 

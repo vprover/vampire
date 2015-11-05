@@ -42,8 +42,8 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
    * C[s] is deleted after the inference is applied.
    */
 
-  static TermList troo(Term::createConstant(Signature::FOOL_TRUE));
-  static TermList fols(Term::createConstant(Signature::FOOL_FALSE));
+  static TermList troo(Term::foolTrue());
+  static TermList fols(Term::foolFalse());
 
   /**
    * We will be looking for a literal, standing in a `literalPosition` in
@@ -68,8 +68,8 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
     if (literal->isEquality() && literal->polarity()) {
       TermList* lhs = literal->nthArgument(0);
       TermList* rhs = literal->nthArgument(1);
-      if ((lhs->isTerm() && (lhs->term()->functor() == Signature::FOOL_FALSE)) ||
-          (rhs->isTerm() && (rhs->term()->functor() == Signature::FOOL_FALSE))) {
+      if ((lhs->isTerm() && (lhs->term()->functor() == env.signature->getFoolConstantSymbol(false))) ||
+          (rhs->isTerm() && (rhs->term()->functor() == env.signature->getFoolConstantSymbol(false)))) {
         literalPosition++;
         continue;
       }
@@ -82,7 +82,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
       unsigned functor = subterm.term()->functor();
 
       // we shouldn't replace boolean constants
-      if (functor == Signature::FOOL_FALSE || functor == Signature::FOOL_TRUE) {
+      if (functor == env.signature->getFoolConstantSymbol(false) || functor == env.signature->getFoolConstantSymbol(true)) {
         continue;
       }
 

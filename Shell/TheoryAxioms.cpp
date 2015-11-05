@@ -667,7 +667,7 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(Interpretation select, Interpretat
   //axiom (!A: arraySort, !I:domainSort, !V:rangeSort: (select(store(A,I,V), I) <=> (V = $$true)
   TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,V)
   Formula* sWI = new AtomicFormula(Literal::create2(pred_select, true, wAIV,i)); //select(wAIV,I)
-  TermList true_(Term::createConstant(Signature::FOOL_TRUE));
+  TermList true_(Term::foolTrue());
   Formula* xeqt = new AtomicFormula(Literal::createEquality(true, true_, v, rangeSort));
   Formula* ax = new BinaryFormula(IFF, xeqt, sWI);
   addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM), units);
@@ -877,8 +877,8 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
 void TheoryAxioms::applyFOOL(Problem& prb) {
   CALL("TheoryAxioms::applyFOOL");
 
-  static TermList t(Term::createConstant(Signature::FOOL_TRUE));
-  static TermList f(Term::createConstant(Signature::FOOL_FALSE));
+  TermList t(Term::foolTrue());
+  TermList f(Term::foolFalse());
 
   // Add "$$true != $$false"
   Formula* inequality = new AtomicFormula(Literal::createEquality(false, t, f, Sorts::SRT_BOOL));

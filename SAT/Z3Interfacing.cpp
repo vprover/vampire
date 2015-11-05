@@ -293,10 +293,10 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
         RationalConstantType value = symb->rationalValue();
         return _context.real_val(value.numerator().toInt(),value.denominator().toInt());
       }
-      if(trm->functor() == Signature::FOOL_TRUE){
+      if(trm->functor() == env.signature->getFoolConstantSymbol(true)){
         return _context.bool_val(true);
       }
-      if(trm->functor() == Signature::FOOL_FALSE){
+      if(trm->functor() == env.signature->getFoolConstantSymbol(false)){
         return _context.bool_val(false);
       }
 

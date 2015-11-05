@@ -295,6 +295,7 @@ KBO::KBO(Problem& prb, const Options& opt)
 {
   CALL("KBO::KBO");
 
+  // make space for FOOL false and true to be in positions 1 and 2
   if (env.options->FOOLOrdering() || env.options->FOOLParamodulation()) {
     _variableWeight = 3;
     _defaultSymbolWeight = 3;
@@ -458,9 +459,9 @@ int KBO::functionSymbolWeight(unsigned fun) const
   int weight = _defaultSymbolWeight;
 
   if (env.options->FOOLOrdering() || env.options->FOOLParamodulation()) {
-    if (fun == Signature::FOOL_FALSE) {
+    if (fun == env.signature->getFoolConstantSymbol(false)) {
       weight = 1;
-    } else if (fun == Signature::FOOL_TRUE) {
+    } else if (fun == env.signature->getFoolConstantSymbol(true)) {
       weight = 2;
     }
   }

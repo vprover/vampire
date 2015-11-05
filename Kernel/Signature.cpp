@@ -18,16 +18,6 @@ const unsigned Signature::REAL_DISTINCT_GROUP = 3;
 const unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 3;
 
 /**
- * In order to support reasoning in FOOL, we define a theory of booleans, that consists of the sort
- * SRT_BOOL (defined in Sorts.hpp) and two constants FOOL_TRUE and FOOL_FALSE, that represent
- * logical true and false.
- *
- * @since 04/05/2015 Gothenburg
- */
-const unsigned Signature::FOOL_FALSE = 0;
-const unsigned Signature::FOOL_TRUE  = 1;
-
-/**
  * Standard constructor.
  * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
@@ -197,8 +187,9 @@ PredicateType* Signature::Symbol::predType() const
  * @since 07/05/2007 Manchester
  * @since 04/05/2015 Gothenburg -- add true and false
  */
-Signature::Signature ()
-  : _funs(32),
+Signature::Signature ():
+    _foolConstantsDefined(false), _foolTrue(0), _foolFalse(0),
+    _funs(32),
     _preds(32),
     _nextFreshSymbolNumber(0),
     _skolemFunctionCount(0),
@@ -227,13 +218,6 @@ Signature::Signature ()
   aux = createDistinctGroup();
   ASS_EQ(REAL_DISTINCT_GROUP, aux);
 
-  aux = addFunction("$$false", 0);
-  ASS_EQ(aux, FOOL_FALSE);
-  getFunction(FOOL_FALSE)->setType(new FunctionType(Sorts::SRT_BOOL));
-
-  aux = addFunction("$$true", 0);
-  ASS_EQ(aux, FOOL_TRUE);
-  getFunction(FOOL_TRUE)->setType(new FunctionType(Sorts::SRT_BOOL));
 } // Signature::Signature
 
 /**
@@ -618,11 +602,11 @@ const vstring& Signature::functionName(int number)
   // because the user cannot define constants with these names herself
   // and the formula, obtained by toString() with "$true" or "$false"
   // in term position would be syntactically valid in FOOL
-  if (!env.options->showFOOL() && number == Signature::FOOL_FALSE) {
+  if (!env.options->showFOOL() && number == getFoolConstantSymbol(false)) {
     static vstring fols("$false");
     return fols;
   }
-  if (!env.options->showFOOL() && number == Signature::FOOL_TRUE) {
+  if (!env.options->showFOOL() && number == getFoolConstantSymbol(true)) {
     static vstring troo("$true");
     return troo;
   }

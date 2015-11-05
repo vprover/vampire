@@ -315,9 +315,9 @@ public:
    */
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
-    BOUND_PROP,
+    //BOUND_PROP,
     CASC,
-    CASC_LTB,
+    //CASC_LTB,
     CASC_SAT,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
@@ -329,7 +329,7 @@ public:
     OUTPUT,
     PREPROCESS,
     PROFILE,
-    PROGRAM_ANALYSIS,   
+    //PROGRAM_ANALYSIS,   
     RANDOM_STRATEGY,
     SAT, 
     SPIDER,

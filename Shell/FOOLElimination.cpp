@@ -663,12 +663,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Connective connective = sd->getFormula()->connective();
 
         if (connective == TRUE) {
-          termResult = TermList(Term::createConstant(Signature::FOOL_TRUE));
+          termResult = TermList(Term::foolTrue());
           break;
         }
 
         if (connective == FALSE) {
-          termResult = TermList(Term::createConstant(Signature::FOOL_FALSE));
+          termResult = TermList(Term::foolFalse());
           break;
         }
 
@@ -882,7 +882,7 @@ void FOOLElimination::addDefinition(FormulaUnit* def) {
 }
 
 Formula* FOOLElimination::toEquality(TermList booleanTerm) {
-  TermList truth(Term::createConstant(Signature::FOOL_TRUE));
+  TermList truth(Term::foolTrue());
   Literal* equality = Literal::createEquality(true, booleanTerm, truth, Sorts::SRT_BOOL);
   return new AtomicFormula(equality);
 }

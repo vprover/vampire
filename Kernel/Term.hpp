@@ -260,6 +260,10 @@ public:
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
+  //** fool constants
+  static Term* foolTrue(); 
+  static Term* foolFalse(); 
+
   IntList* freeVariables() const;
 
   /** Return number of bytes before the start of the term that belong to it */

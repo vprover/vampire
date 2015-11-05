@@ -874,6 +874,20 @@ Term* Term::create2(unsigned fn, TermList arg1, TermList arg2)
 }
 
 /**
+ * Create singleton FOOL constants
+ */ 
+Term* Term::foolTrue(){
+    static Term* _foolTrue = 0;
+    if(!_foolTrue){ _foolTrue = createConstant(env.signature->getFoolConstantSymbol(true));}
+    return _foolTrue;
+  }
+Term* Term::foolFalse(){
+    static Term* _foolFalse = 0;
+    if(!_foolFalse){ _foolFalse = createConstant(env.signature->getFoolConstantSymbol(false));}
+    return _foolFalse;
+  }
+
+/**
  * Return the list of all free variables of the term.
  * The result is only non-empty when there are quantified
  * formulas or $let-terms inside the term.

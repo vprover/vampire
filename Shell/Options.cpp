@@ -85,13 +85,16 @@ void Options::Options::init()
 #endif
 
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
-                                    {"axiom_selection","bpa","casc",
-                                        "casc_ltb","casc_sat","clausify",
+                                    {"axiom_selection",//"bpa",
+                                        "casc",//"casc_ltb",
+                                        "casc_sat","clausify",
                                         "consequence_elimination","grounding",
                                         "model_check",
                                         //"ltb_build","ltb_solve",
                                         "output","preprocess",
-                                        "profile","program_analysis","random_strategy",
+                                        "profile",
+                                        //"program_analysis",
+                                        "random_strategy",
                                         "sat_solver","spider","vampire"});
     _mode.description=
     "Select the mode of operation. Choices are:\n"
@@ -1451,16 +1454,19 @@ void Options::Options::init()
 //*********************** Program Analysis  ************************
 //******************************************************************
     
+/*
     _lingvaAdditionalInvariants = StringOptionValue("lingva_additional_invariants","","");
     _lingvaAdditionalInvariants.description="";
     _lookup.insert(&_lingvaAdditionalInvariants);
     _lingvaAdditionalInvariants.tag(Mode::PROGRAM_ANALYSIS);
     _lingvaAdditionalInvariants.setExperimental();
-    
+  */  
+
 //******************************************************************
 //*********************** Bound Propagation  ***********************
 //******************************************************************
     
+/*
     _whileNumber = IntOptionValue("while_number","",1);
     _whileNumber.description="";
     _lookup.insert(&_whileNumber);
@@ -1559,6 +1565,7 @@ void Options::Options::init()
     _lookup.insert(&_bpVariableSelector);
     _bpVariableSelector.tag(Mode::BOUND_PROP);
     _bpVariableSelector.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
+*/
 
     
  // Declare tag names
@@ -2482,7 +2489,7 @@ void Options::setForcedOptionValues()
   case Mode::CASC:
   case Mode::CASC_SAT:
   //case Mode::CASC_THEORY:
-  case Mode::CASC_LTB:
+  //case Mode::CASC_LTB:
     _outputAxiomNames.actualValue = true;
     _proof.actualValue = Proof::TPTP;
     break;
