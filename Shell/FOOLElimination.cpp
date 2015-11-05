@@ -190,25 +190,12 @@ Formula* FOOLElimination::process(Formula* formula) {
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
 
-        bool lhsIsFormula = lhs.isTerm() && lhs.term()->isFormula();
-        bool rhsIsFormula = rhs.isTerm() && rhs.term()->isFormula();
+        bool lhsIsFormula = lhs.isTerm() && lhs.term()->isBoolean();
+        bool rhsIsFormula = rhs.isTerm() && rhs.term()->isBoolean();
 
         if (rhsIsFormula || lhsIsFormula) {
-          Formula* lhsFormula;
-          if (lhsIsFormula) {
-            lhsFormula = process(lhs.term()->getSpecialData()->getFormula());
-          } else {
-            ASS_REP(lhs.isVar(), lhs.toString());
-            lhsFormula = processAsFormula(lhs);
-          }
-
-          Formula* rhsFormula;
-          if (rhsIsFormula) {
-            rhsFormula = process(rhs.term()->getSpecialData()->getFormula());
-          } else {
-            ASS_REP(rhs.isVar(), rhs.toString());
-            rhsFormula = processAsFormula(rhs);
-          }
+          Formula* lhsFormula = processAsFormula(lhs);
+          Formula* rhsFormula = processAsFormula(rhs);
 
           Connective connective = literal->polarity() ? IFF : XOR;
           Formula* processedFormula = new BinaryFormula(connective, lhsFormula, rhsFormula);
