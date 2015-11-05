@@ -1357,7 +1357,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
         case FS_DISTINCT:
         {
           static Stack<TermList> args;
-          ASS(args.isEmpty());
+          args.reset();
 
           // read the first argument and its sort
           TermList first;
