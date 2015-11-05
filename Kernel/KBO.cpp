@@ -459,9 +459,9 @@ int KBO::functionSymbolWeight(unsigned fun) const
   int weight = _defaultSymbolWeight;
 
   if (env.options->FOOLOrdering() || env.options->FOOLParamodulation()) {
-    if (fun == env.signature->getFoolConstantSymbol(false)) {
+    if (env.signature->isFoolConstantSymbol(false,fun)) {
       weight = 1;
-    } else if (fun == env.signature->getFoolConstantSymbol(true)) {
+    } else if (env.signature->isFoolConstantSymbol(true,fun)) {
       weight = 2;
     }
   }

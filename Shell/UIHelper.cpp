@@ -400,7 +400,7 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
   unsigned funcs = sig.functions();
   for (unsigned i=0; i<funcs; ++i) {
     if (!env.options->showFOOL()) {
-      if ((i == env.signature->getFoolConstantSymbol(true)) || (i == env.signature->getFoolConstantSymbol(false))) {
+      if (env.signature->isFoolConstantSymbol(true,i) || env.signature->isFoolConstantSymbol(false,i)) {
         continue;
       }
     }

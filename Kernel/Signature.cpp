@@ -602,11 +602,11 @@ const vstring& Signature::functionName(int number)
   // because the user cannot define constants with these names herself
   // and the formula, obtained by toString() with "$true" or "$false"
   // in term position would be syntactically valid in FOOL
-  if (!env.options->showFOOL() && number == getFoolConstantSymbol(false)) {
+  if (!env.options->showFOOL() && isFoolConstantSymbol(false,number)) {
     static vstring fols("$false");
     return fols;
   }
-  if (!env.options->showFOOL() && number == getFoolConstantSymbol(true)) {
+  if (!env.options->showFOOL() && isFoolConstantSymbol(true,number)) { 
     static vstring troo("$true");
     return troo;
   }

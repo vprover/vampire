@@ -469,6 +469,10 @@ class Signature
     }
     return isTrue ? _foolTrue : _foolFalse;
   }
+  bool isFoolConstantSymbol(bool isTrue, unsigned number){
+    if(!_foolConstantsDefined) return false;
+    return isTrue ? number==_foolTrue : number==_foolFalse;
+  }
 
 private:
   bool _foolConstantsDefined;

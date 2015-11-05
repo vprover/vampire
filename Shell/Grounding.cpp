@@ -25,6 +25,9 @@ Grounding::GroundingApplicator::GroundingApplicator()
   int funcs=env.signature->functions();
   for(int i=0;i<funcs;i++) {
     if(env.signature->functionArity(i)==0) {
+      if(env.signature->getFunction(i)->fnType()->result()!=Sorts::SRT_DEFAULT){
+        USER_ERROR("grounding mode can (currently) only be used on unsorted problems, problem with "+env.signature->functionName(i));
+      }
       _constants.push(TermList(Term::create(i,0,0)));
     }
   }
@@ -141,10 +144,13 @@ ClauseList* Grounding::getEqualityAxioms(bool otherThanReflexivity)
 
   ClauseList* res=0;
 
+/*
   unsigned sortCnt = env.sorts->sorts();
   for(unsigned i=0; i<sortCnt; ++i) {
     getLocalEqualityAxioms(i, otherThanReflexivity, res);
   }
+*/
+  getLocalEqualityAxioms(Sorts::SRT_DEFAULT, otherThanReflexivity, res);
 
   if(otherThanReflexivity) {
 
