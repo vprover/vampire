@@ -123,7 +123,6 @@ public:
   /** make the term into a reference */
   inline void setTerm(Term* t)
   { _term = t; }
-  static void argsToString(Stack<const TermList*>&,vstring& str);
   static bool sameTop(TermList ss, TermList tt);
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
@@ -151,6 +150,8 @@ public:
   { return _content>t._content; }
 
 private:
+  vstring asArgsToString() const;
+
   union {
     /** reference to another term */
     Term* _term;
@@ -506,6 +507,8 @@ public:
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
 protected:
+  vstring headToString() const;
+
   unsigned computeDistinctVars() const;
 
   /**
@@ -600,8 +603,6 @@ protected:
   friend class MatchTag;
   friend class Indexing::TermSharing;
   friend class Ordering;
-public:
-  vstring specialTermToString() const;
 
 public:
   /**
