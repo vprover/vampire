@@ -1157,7 +1157,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           LExprList* bindings = lRdr.readList();
 
           // and the actual body term
-          LExpr* body = lRdr.readListExpr();
+          LExpr* body = lRdr.readNext();
 
           // and that's it
           lRdr.acceptEOL();
