@@ -1011,7 +1011,8 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
       // so we know it is let
       ASS(exp->isList());
       LispListReader lRdr(exp->list);
-      ASS_EQ(getBuiltInTermSymbol(lRdr.readAtom()),TS_LET);
+      const vstring& theLetAtom = lRdr.readAtom();
+      ASS_EQ(getBuiltInTermSymbol(theLetAtom),TS_LET);
 
       // with a list of bindings
       LispListReader bindRdr(lRdr.readList());
@@ -1060,7 +1061,8 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
       // so we know it is let
       ASS(exp->isList());
       LispListReader lRdr(exp->list);
-      ASS_EQ(getBuiltInTermSymbol(lRdr.readAtom()),TS_LET);
+      const vstring& theLetAtom = lRdr.readAtom();
+      ASS_EQ(getBuiltInTermSymbol(theLetAtom),TS_LET);
 
       // with a list of bindings
       LispListReader bindRdr(lRdr.readList());
