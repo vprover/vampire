@@ -100,6 +100,8 @@ public:
   CLASS_NAME(Formula);
   USE_ALLOCATOR(Formula);
 protected:
+  static vstring toString(const Formula* f);
+
   /** Create a dummy formula will null content */
   explicit Formula(Connective con)
     : _connective(con)

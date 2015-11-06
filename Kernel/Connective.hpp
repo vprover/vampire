@@ -43,6 +43,8 @@ enum Connective
   FALSE = 10u,
   /** constant true */
   TRUE = 11u,
+  /** fake connective terminator */
+  NOCONN = 12u
 }; // enum Connective
 
 }
