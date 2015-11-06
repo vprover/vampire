@@ -1188,6 +1188,17 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
           continue;
         }
+
+        if (id == "!") {
+          LExpr* toParse = lRdr.readListExpr();
+          lRdr.acceptAtom(":pattern");
+          // ignore the rest
+
+          todo.push(make_pair(PO_PARSE,toParse));
+
+          continue;
+        }
+
       } else {
         // TODO: indexed identifiers (i.e. divisible)
         goto malformed;
