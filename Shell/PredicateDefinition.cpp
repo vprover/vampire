@@ -652,8 +652,9 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
 	      : new QuantifiedFormula(con,f->vars(),f->sorts(),arg);
     }
   }
+  default:
+    ASSERTION_VIOLATION;
   }
-  ASSERTION_VIOLATION;
 }
 
 /**

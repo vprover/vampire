@@ -127,6 +127,8 @@ bool FormulaVarIterator::hasNext()
           case TRUE:
           case FALSE:
             break;
+          default:
+            ASSERTION_VIOLATION;
         }
         break;
       }

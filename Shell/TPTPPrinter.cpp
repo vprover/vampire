@@ -338,75 +338,144 @@ void TPTPPrinter::endOutput()
 /**
  * Return the vstring representing the formula f.
  */
-vstring TPTPPrinter::toString(const Formula* f)
+vstring TPTPPrinter::toString(const Formula* formula)
 {
   CALL("TPTPPrinter::toString(const Formula*)");
   static vstring names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
-      "~", "!", "?", "$term", "$false", "$true"};
-  ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
-  Connective c = f->connective();
-  vstring con = names[(int)c];
-  switch (c) {
-  case LITERAL: {
-    vstring result = f->literal()->toString();
-    if (f->literal()->isEquality()) {
-      return "(" + result + ")";
+      "~", "!", "?", "$term", "$false", "$true", ""};
+  ASS_EQ(sizeof(names)/sizeof(vstring), NOCONN+1);
+
+  vstring res;
+
+  // render a connective if specified, and then a Formula (or ")" of formula is nullptr)
+  typedef pair<Connective,const Formula*> Todo;
+  Stack<Todo> stack;
+
+  stack.push(make_pair(NOCONN,formula));
+
+  while (stack.isNonEmpty()) {
+    Todo todo = stack.pop();
+
+    // in any case start by rendering the connective passed from "above"
+    res += names[todo.first];
+
+    const Formula* f = todo.second;
+
+    if (!f) {
+      res += ")";
+      continue;
     }
-    return result;
-  }
-  case AND:
-  case OR:
-    {
-      const FormulaList* fs = f->args();
-      vstring result = "(" + toString(fs->head());
-      fs = fs->tail();
-      while (FormulaList::isNonEmpty(fs)) {
-	result += con + toString(fs->head());
-	fs = fs->tail();
+
+    Connective c = f->connective();
+
+    switch (c) {
+    case LITERAL: {
+      vstring result = f->literal()->toString();
+      if (f->literal()->isEquality()) {
+        res += "(" + result + ")";
+      } else {
+        res += result;
       }
-      return result + ")";
+      continue;
     }
+    case AND:
+    case OR:
+      {
+        // we will reverse the order
+        // but that should not matter
 
-  case IMP:
-  case IFF:
-  case XOR:
-    return vstring("(") + toString(f->left()) +
-           con + toString(f->right()) + ")";
-
-  case NOT:
-    return vstring("(") + con + toString(f->uarg()) + ")";
-
-  case FORALL:
-  case EXISTS:
-    {
-      vstring result = vstring("(") + con + "[";
-      bool needsComma = false;
-      for (const Formula::VarList* vars = f->vars(); !Formula::VarList::isEmpty(vars); vars = vars->tail()) {
-        if (needsComma) {
-          result += ", ";
+        const FormulaList* fs = f->args();
+        res += "(";
+        stack.push(make_pair(NOCONN,nullptr)); // render the final closing bracket
+        while (FormulaList::isNonEmpty(fs)) {
+          const Formula* arg = fs->head();
+          fs = fs->tail();
+          // the last argument, which will be printed first, is the only one not preceded by a rendering of con
+          stack.push(make_pair(FormulaList::isNonEmpty(fs) ? c : NOCONN,arg));
         }
-        result += 'X';
-        result += Int::toString(vars->head());
-        unsigned t;
-        if (SortHelper::tryGetVariableSort(vars->head(), const_cast<Formula*>(f), t) && t != Sorts::SRT_DEFAULT) {
-          result += ": " + env.sorts->sortName(t);
-        }
-        needsComma = true;
+
+        continue;
       }
-      return result + "] : (" + toString(f->qarg()) + ") )";
+    case IMP:
+    case IFF:
+    case XOR:
+      // here we can afford to keep the order right
+
+      res += "(";
+
+      stack.push(make_pair(NOCONN,nullptr)); // render the final closing bracket
+
+      stack.push(make_pair(c,f->right())); // second argument with con
+
+      stack.push(make_pair(NOCONN,f->left())); // first argument without con
+
+      continue;
+
+    case NOT:
+      res += "(";
+
+      stack.push(make_pair(NOCONN,nullptr)); // render the final closing bracket
+
+      stack.push(make_pair(c,f->uarg()));
+
+      continue;
+
+    case FORALL:
+    case EXISTS:
+      {
+        vstring result = vstring("(") + names[c] + "[";
+        bool needsComma = false;
+        Formula::VarList::Iterator vs(f->vars());
+        Formula::SortList::Iterator ss(f->sorts());
+        bool hasSorts = f->sorts();
+
+        while (vs.hasNext()) {
+          int var = vs.next();
+
+          if (needsComma) {
+            result += ", ";
+          }
+          result += 'X';
+          result += Int::toString(var);
+          unsigned t;
+          if (hasSorts) {
+            ASS(ss.hasNext());
+            t = ss.next();
+            if (t != Sorts::SRT_DEFAULT) {
+              result += " : " + env.sorts->sortName(t);
+            }
+          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),
+              t) && t != Sorts::SRT_DEFAULT) {
+            result += " : " + env.sorts->sortName(t);
+          }
+          needsComma = true;
+        }
+        res += result + "] : (";
+
+        stack.push(make_pair(NOCONN,nullptr));
+        stack.push(make_pair(NOCONN,nullptr)); // here we close two brackets
+
+        stack.push(make_pair(NOCONN,f->qarg()));
+
+        continue;
+      }
+
+    case BOOL_TERM:
+      res += f->getBooleanTerm().toString();
+
+      continue;
+
+    case FALSE:
+    case TRUE:
+      res += names[c];
+
+      continue;
+    default:
+      ASSERTION_VIOLATION;
     }
-
-  case BOOL_TERM:
-    return f->getBooleanTerm().toString();
-
-  case FALSE:
-  case TRUE:
-    return con;
-  default:
-    ASSERTION_VIOLATION;
   }
-  return "formula";
+  return res;
 }
 
 /**

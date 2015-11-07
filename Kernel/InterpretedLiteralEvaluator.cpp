@@ -377,6 +377,13 @@ protected:
     case Theory::INT_UNARY_MINUS:
       res = -arg;
       return true;
+    case Theory::INT_ABS:
+      if (arg < 0) {
+        res = -arg;
+      } else {
+        res = arg;
+      }
+      return true;
     case Theory::INT_SUCCESSOR:
       res = arg+1;
       return true;

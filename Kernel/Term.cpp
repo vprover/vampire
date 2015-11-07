@@ -379,101 +379,88 @@ vstring Term::variableToString(TermList var)
 } // variableToString
 
 /**
- * Convert an if-then-else, let...in or formula term to vstring
+ * Return the vstring representation of the terms "head"
+ * i.e., the function / predicate symbol name or the special term head.
+ * Special term prints also '(' and the following arguments which are not args() and a comma
+ * Normal term prints "(" if there are any args to follow
  */
-vstring Term::specialTermToString() const
+vstring Term::headToString() const
 {
-  CALL("Term::specialTermToString");
-  ASS(isSpecial());
+  CALL("Term::headToString");
 
-  const SpecialTermData* sd = getSpecialData();
+  if (isSpecial()) {
+    const Term::SpecialTermData* sd = getSpecialData();
 
-  switch(functor()) {
-  case SF_FORMULA: {
-    ASS_EQ(arity(), 0);
-    vstring formula = sd->getFormula()->toString();
-    return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
-  }
-
-  case SF_LET: {
-    ASS_EQ(arity(), 1);
-    TermList body = sd->getBody();
-    bool isPredicate = body.isTerm() && body.term()->isBoolean();
-    vstring functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
-                                  : env.signature->functionName(sd->getFunctor());
-    BaseType* type = isPredicate ? (BaseType*)env.signature->getPredicate(sd->getFunctor())->predType()
-                                 : (BaseType*)env.signature->getFunction(sd->getFunctor())->fnType();
-
-    const IntList* variables = sd->getVariables();
-    vstring variablesList = "";
-    for (int i = 0; i < variables->length(); i++) {
-      unsigned var = (unsigned)variables->nth(i);
-      variablesList += variableToString(var);
-      unsigned sort = type->arg((unsigned)i);
-      if (sort != Sorts::SRT_DEFAULT) {
-        variablesList += " : " + env.sorts->sortName(sort);
+    switch(functor()) {
+      case Term::SF_FORMULA: {
+        ASS_EQ(arity(), 0);
+        vstring formula = sd->getFormula()->toString();
+        return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
       }
-      if (i < variables->length() - 1) {
-        variablesList += ", ";
-      }
-    }
-    if (variables->length()) {
-      variablesList = "(" + variablesList + ")";
-    }
-    return "$let(" + functor + variablesList + " := " +
-                     body.toString() + ", " +
-                     nthArgument(0)->toString() + ")";
-  }
+      case Term::SF_LET: {
+        ASS_EQ(arity(), 1);
+        TermList body = sd->getBody();
+        bool isPredicate = body.isTerm() && body.term()->isBoolean();
+        vstring functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
+                                      : env.signature->functionName(sd->getFunctor());
+        BaseType* type = isPredicate ? (BaseType*)env.signature->getPredicate(sd->getFunctor())->predType()
+                                     : (BaseType*)env.signature->getFunction(sd->getFunctor())->fnType();
 
-  case SF_ITE:
-    ASS_EQ(arity(),2);
-    return "$ite(" + sd->getCondition()->toString() + "," +
-                     nthArgument(0)->toString() + "," +
-                     nthArgument(1)->toString() + ")";
+        const IntList* variables = sd->getVariables();
+        vstring variablesList = "";
+        for (int i = 0; i < variables->length(); i++) {
+          unsigned var = (unsigned)variables->nth(i);
+          variablesList += Term::variableToString(var);
+          unsigned sort = type->arg((unsigned)i);
+          if (sort != Sorts::SRT_DEFAULT) {
+            variablesList += " : " + env.sorts->sortName(sort);
+          }
+          if (i < variables->length() - 1) {
+            variablesList += ", ";
+          }
+        }
+        if (variables->length()) {
+          variablesList = "(" + variablesList + ")";
+        }
+        return "$let(" + functor + variablesList + " := " + body.toString() + ",";
+      }
+      case Term::SF_ITE: {
+        ASS_EQ(arity(),2);
+        return "$ite(" + sd->getCondition()->toString() + ",";
+      }
+      default:
+        ASSERTION_VIOLATION;
+    }
+  } else {
+    return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName()) + (arity() ? "(" : "");
   }
-  ASSERTION_VIOLATION;
 }
 
 /**
- * Return the result of conversion of a term into a vstring.
- * @since 16/05/2007 Manchester
+ * In combination with Term::headToString prepares
+ * vstring representation of a term.
+ * (this) has to come from arguments of a term of non-zero arity,
+ * possibly a special one.
+ * Will close the term printed with ')'
  */
-vstring Term::toString() const
+vstring TermList::asArgsToString() const
 {
-  CALL("Term::toString");
+  CALL("TermList::asArgsToString");
 
-  if (isSpecial()) {
-    return specialTermToString();
-  }
+  vstring res;
 
   Stack<const TermList*> stack(64);
 
-  vstring s = isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName();
-  if (_arity) {
-    s += '(';
-    stack.push(args());
-    TermList::argsToString(stack,s);
-  }
-  return s;
-} // Term::toString
-
-/**
- * Write to a vstring term arguments (used in printing literals
- * and terms.
- * @since 16/05/2007 Manchester
- */
-void TermList::argsToString(Stack<const TermList*>& stack,vstring& s)
-{
-  CALL("TermList::argsToString");
+  stack.push(this);
 
   while (stack.isNonEmpty()) {
     const TermList* ts = stack.pop();
     if (! ts) { // comma
-      s += ',';
+      res += ',';
       continue;
     }
     if (ts->isEmpty()) {
-      s += ')';
+      res += ')';
       continue;
     }
     const TermList* tail = ts->next();
@@ -482,23 +469,20 @@ void TermList::argsToString(Stack<const TermList*>& stack,vstring& s)
       stack.push(0);
     }
     if (ts->isVar()) {
-      s += Term::variableToString(*ts);
+      res += Term::variableToString(*ts);
       continue;
     }
     const Term* t = ts->term();
-    if (t->isSpecial()) {
-      //cerr << t->specialTermToString()<<endl;
-      s+=t->specialTermToString();
-      continue;
-    }
-    s += t->functionName();
+
+    res += t->headToString();
+
     if (t->arity()) {
-      //cerr << "function: "<< t->functionName()<<endl;
-      s += '(';
       stack.push(t->args());
     }
   }
-} // Term::argsToString
+
+  return res;
+}
 
 /**
  * Write as a vstring the head of the term list.
@@ -517,6 +501,22 @@ vstring TermList::toString() const
   return term()->toString();
 } // TermList::toString
 
+
+/**
+ * Return the result of conversion of a term into a vstring.
+ * @since 16/05/2007 Manchester
+ */
+vstring Term::toString() const
+{
+  CALL("Term::toString");
+
+  vstring s = headToString();
+
+  if (_arity) {
+    s += args()->asArgsToString(); // will also print the ')'
+  }
+  return s;
+} // Term::toString
 
 /**
  * Return the result of conversion of a literal into a vstring.
@@ -541,11 +541,10 @@ vstring Literal::toString() const
   Stack<const TermList*> stack(64);
   vstring s = polarity() ? "" : "~";
   s += predicateName();
+
   //cerr << "predicate: "<< predicateName()<<endl;
   if (_arity) {
-    s += '(';
-    stack.push(args());
-    TermList::argsToString(stack,s);
+    s += '(' + args()->asArgsToString(); // will also print the ')'
   }
   return s;
 } // Literal::toString

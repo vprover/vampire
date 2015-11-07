@@ -33,7 +33,7 @@ IntegerConstantType::IntegerConstantType(const vstring& str)
 {
   CALL("IntegerConstantType::IntegerConstantType(vstring)");
 
-  if (!Int::stringToInt(str, _val)) {
+  if (!Int::stringToLong(str, _val)) {
     //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
     throw ArithmeticException();
   }
@@ -91,7 +91,7 @@ IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& nu
   if (num._val==0) {
     throw ArithmeticException();
   }
-  if(_val == INT_MIN && num._val == -1){
+  if(_val == numeric_limits<InnerType>::min() && num._val == -1){
     throw ArithmeticException();
   }
   return IntegerConstantType(_val/num._val);
@@ -146,14 +146,14 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
 {
   CALL("IntegerConstantType::comparePrecedence");
   try {
-    if (n1 == INT_MIN) {
-      if (n2 == INT_MIN) {
+    if (n1 == numeric_limits<InnerType>::min()) {
+      if (n2 == numeric_limits<InnerType>::min()) {
         return EQUAL;
       } else {
         return GREATER;
       }
     } else {
-      if (n2 == INT_MIN) {
+      if (n2 == numeric_limits<InnerType>::min()) {
         return LESS;
       } else {
         int an1 = abs(n1.toInt());
@@ -536,6 +536,7 @@ unsigned Theory::getArity(Interpretation i)
   case INT_CEILING:
   case INT_TRUNCATE:
   case INT_ROUND:
+  case INT_ABS:
 
   case RAT_FLOOR:
   case RAT_CEILING:
@@ -660,6 +661,7 @@ bool Theory::isFunction(Interpretation i)
   case INT_CEILING:
   case INT_TRUNCATE:
   case INT_ROUND:
+  case INT_ABS:
 
   case RAT_PLUS:
   case RAT_MINUS:
@@ -817,6 +819,7 @@ unsigned Theory::getOperationSort(Interpretation i)
   case INT_CEILING:
   case INT_TRUNCATE:
   case INT_ROUND:
+  case INT_ABS:
 
   case INT_TO_INT:
   case INT_IS_INT:

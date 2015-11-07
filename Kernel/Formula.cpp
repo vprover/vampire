@@ -228,13 +228,155 @@ void Formula::destroy ()
 vstring Formula::toString (Connective c)
 {
   static vstring names [] =
-    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true"};
-  ASS_EQ(sizeof(names)/sizeof(vstring), TRUE+1);
+    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true", ""};
+  ASS_EQ(sizeof(names)/sizeof(vstring), NOCONN+1);
 
   return names[(int)c];
 } // Formula::toString (Connective c)
 
+/**
+ *
+ */
+vstring Formula::toString(const Formula* formula)
+{
+  CALL("Formula::toString(const Formula*)");
 
+  vstring res;
+
+  // render a connective if specified, and then a Formula (or ")" of formula is nullptr)
+  typedef struct {
+    bool wrapInParenthesis;
+    Connective renderConnective; // NOCONN means ""
+    const Formula* theFormula;   // nullptr means render ")" instead
+  } Todo;
+
+  Stack<Todo> stack;
+  stack.push({false,NOCONN,formula});
+
+  while (stack.isNonEmpty()) {
+    Todo todo = stack.pop();
+
+    // in any case start by rendering the connective passed from "above"
+    {
+      vstring con = toString(todo.renderConnective);
+      if (con != "") {
+        res += " "+con+" ";
+      }
+    }
+
+    const Formula* f = todo.theFormula;
+
+    if (!f) {
+      res += ")";
+      continue;
+    }
+
+    if (todo.wrapInParenthesis) {
+      res += "(";
+      stack.push({false,NOCONN,nullptr}); // render the final closing bracket
+    }
+
+    Connective c = f->connective();
+
+    switch (c) {
+    case LITERAL:
+      res += f->literal()->toString();
+      continue;
+
+    case AND:
+    case OR:
+      {
+        // we will reverse the order
+        // but that should not matter
+
+        const FormulaList* fs = f->args();
+        ASS (fs->length() >= 2);
+
+        while (FormulaList::isNonEmpty(fs)) {
+          const Formula* arg = fs->head();
+          fs = fs->tail();
+          // the last argument, which will be printed first, is the only one not preceded by a rendering of con
+          stack.push({arg->parenthesesRequired(c),FormulaList::isNonEmpty(fs) ? c : NOCONN,arg});
+        }
+
+        continue;
+      }
+
+    case IMP:
+    case IFF:
+    case XOR:
+      // here we can afford to keep the order right
+
+      stack.push({f->right()->parenthesesRequired(c),c,f->right()});      // second argument with con
+      stack.push({f->left()->parenthesesRequired(c),NOCONN,f->left()}); // first argument without con
+
+      continue;
+
+    case NOT:
+      {
+        res += toString(c);
+
+        const Formula* arg = f->uarg();
+        stack.push({arg->parenthesesRequired(c),NOCONN,arg});
+
+        continue;
+      }
+    case FORALL:
+    case EXISTS:
+      {
+        res += toString(c) + " [";
+        VarList::Iterator vs(f->vars());
+        SortList::Iterator ss(f->sorts());
+        bool hasSorts = f->sorts();
+        bool first=true;
+        while (vs.hasNext()) {
+          int var = vs.next();
+          if (!first) {
+            res += ",";
+          }
+          res += Term::variableToString(var);
+          unsigned t;
+          if (hasSorts) {
+            ASS(ss.hasNext());
+            t = ss.next();
+            if (t != Sorts::SRT_DEFAULT) {
+              res += " : " + env.sorts->sortName(t);
+            }
+          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),
+              t) && t != Sorts::SRT_DEFAULT) {
+            res += " : " + env.sorts->sortName(t);
+          }
+          first = false;
+        }
+        res += "] : ";
+
+        const Formula* arg = f->qarg();
+        stack.push({arg->parenthesesRequired(c),NOCONN,arg});
+
+        continue;
+      }
+
+    case BOOL_TERM: {
+      vstring term = f->getBooleanTerm().toString();
+      res += env.options->showFOOL() ? "$formula{" + term + "}" : term;
+
+      continue;
+    }
+
+    case TRUE:
+    case FALSE:
+      res += toString(c);
+
+      continue;
+  #if VDEBUG
+    default:
+      ASSERTION_VIOLATION;
+  #endif
+  }
+  }
+
+  return res;
+}
 
 /**
  * Convert the formula to a vstring using the native syntax
@@ -247,91 +389,7 @@ vstring Formula::toString () const
 {
   CALL("Formula::toString");
 
-  Connective c = connective();
-  vstring con = toString(c);
-
-  switch (c) {
-  case LITERAL:
-    return literal()->toString();
-
-  case AND:
-  case OR:
-    {
-      ASS (args()->length() >= 2);
-      vstring result = args()->head()->toStringInScopeOf(c);
-      FormulaList::Iterator arg(args()->tail());
-      while (arg.hasNext()) {
-	result += ' ' + con + ' ' + arg.next()->toStringInScopeOf(c);
-      }
-      return result;
-    }
-
-  case IMP:
-  case IFF:
-  case XOR:
-    return left()->toStringInScopeOf(c) + ' ' + con + ' ' +
-           right()->toStringInScopeOf(c);
-
-  case NOT:
-    {
-      const Formula* arg = uarg();
-      if (arg->connective() == LITERAL) {
-	return con + arg->literal()->toString();
-      }
-      return con + arg->toStringInScopeOf(c);
-    }
-
-  case FORALL:
-  case EXISTS:
-    {
-//      vstring result = "(" + con;
-//      VarList::Iterator vs(vars());
-//      while (vs.hasNext()) {
-//	result += vstring(" ") + Term::variableToString(vs.next());
-//      }
-//      result += ")";
-      vstring result = con + " [";
-      VarList::Iterator vs(vars());
-      SortList::Iterator ss(sorts());
-      bool hasSorts = sorts();
-      bool first=true;
-      while (vs.hasNext()) {
-        int var = vs.next();
-	if(!first) {
-	  result+= ",";
-	}
-	result += Term::variableToString(var);
-        unsigned t;
-        if(hasSorts){
-          ASS(ss.hasNext());
-          t = ss.next();
-          if(t!= Sorts::SRT_DEFAULT){
-            result += " : " + env.sorts->sortName(t);
-          }
-        }
-        else if(SortHelper::tryGetVariableSort(var, const_cast<Formula*>(this), t) && t != Sorts::SRT_DEFAULT) {
-	  result += " : " + env.sorts->sortName(t);
-	}
-	first=false;
-      }
-      result += "] : ";
-      return result + qarg()->toStringInScopeOf(c);
-    }
-
-  case BOOL_TERM: {
-    vstring term = getBooleanTerm().toString();
-    return env.options->showFOOL() ? "$formula{" + term + "}" : term;
-  }
-
-  case TRUE:
-  case FALSE:
-    return con;
-
-#if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
-#endif
-  }
+  return toString(this);
 } // Formula::toString
 
 /**

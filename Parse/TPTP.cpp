@@ -61,10 +61,10 @@ TPTP::TPTP(istream& in)
     _includeDirectory(""),
     _currentColor(COLOR_TRANSPARENT),
     _modelDefinition(false),
+    _insideEqualityArgument(0),
     _unitSources(0),
     _filterReserved(false),
-    _seenConjecture(false),
-    _insideEqualityArgument(0)
+    _seenConjecture(false)
 {
 } // TPTP::TPTP
 
@@ -3350,7 +3350,7 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_UNARY_MINUS,
 				 Theory::REAL_UNARY_MINUS);
   }
-  if (name == "$succ"){
+  if (name == "$successor"){
     if(sortOf(arg)!=Sorts::SRT_INTEGER){
       USER_ERROR("$succ can only be used with integer type");
     }

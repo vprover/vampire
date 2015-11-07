@@ -504,8 +504,9 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
   case TRUE:
   case FALSE:
     return f;
+  default:
+    ASSERTION_VIOLATION;
   }
-  ASSERTION_VIOLATION;
 }
 
 /**

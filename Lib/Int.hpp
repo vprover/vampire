@@ -67,7 +67,9 @@ class Int
   { return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER; }
   static bool stringToLong(const char*,long& result);
   static bool stringToUnsignedLong(const char*,unsigned long& result);
-  static bool stringToLong(const vstring& str,long& result);
+  static bool stringToLong(const vstring& str,long& result) {
+    return stringToLong(str.c_str(),result);
+  }
   static bool stringToInt(const vstring& str,int& result);
   static bool stringToInt(const char* str,int& result);
   static bool stringToUnsignedInt(const char* str,unsigned& result);
@@ -83,11 +85,77 @@ class Int
   static int max(int i,int j);
   static int min(int i,int j);
   static int gcd(int i,int j);
-  
-  static bool safeUnaryMinus(int num, int& res);
-  static bool safePlus(int arg1, int arg2, int& res);
-  static bool safeMinus(int num, int sub, int& res);
-  static bool safeMultiply(int arg1, int arg2, int& res);
+
+  /**
+   * If -num does not overflow, return true and save -num to res.
+   * Otherwise, return false.
+   */
+  template<typename INT>
+  static bool safeUnaryMinus(INT num, INT& res)
+  {
+    CALL("Int::safeUnaryMinus");
+
+    if(num == numeric_limits<INT>::max()) {
+      return false;
+    }
+    res=-num;
+    return true;
+  }
+
+  /**
+   * If arg1+arg2 does not overflow, return true and save the sum to res.
+   * Otherwise, return false.
+   */
+  template<typename INT>
+  static bool safePlus(INT arg1, INT arg2, INT& res)
+  {
+    CALL("Int::safePlus");
+
+    if(arg2<0) {
+      if(numeric_limits<INT>::min() - arg2 > arg1) { return false; }
+    }
+    else {
+      if(numeric_limits<INT>::max() - arg2 < arg1) { return false; }
+    }
+    res=arg1+arg2;
+    return true;
+  }
+
+  /**
+   * If arg1-arg2 does not overflow, return true and save the result to res.
+   * Otherwise, return false.
+   */
+  template<typename INT>
+  static bool safeMinus(INT num, INT sub, INT& res)
+  {
+    CALL("Int::safeMinus");
+
+    if(sub<0) {
+      if(numeric_limits<INT>::max() + sub < num) { return false; }
+    }
+    else {
+      if(numeric_limits<INT>::min() + sub > num) { return false; }
+    }
+    res=num-sub;
+    return true;
+  }
+
+  /**
+   * If arg1*arg2 does not overflow, return true and save the result to res.
+   * Otherwise, return false.
+   */
+  template<typename INT>
+  static bool safeMultiply(INT arg1, INT arg2, INT& res)
+  {
+    CALL("Int::safeMultiply");
+
+    INT mres = arg1*arg2;
+    if (arg1 != 0 && mres / arg1 != arg2) {
+      return false;
+    }
+    res=mres;
+    return true;
+  }
 };
 
 

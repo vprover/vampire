@@ -29,8 +29,7 @@ class IntegerConstantType
 public:
   static unsigned getSort() { return Sorts::SRT_INTEGER; }
 
-
-  typedef int InnerType;
+  typedef long InnerType;
 
   IntegerConstantType() {}
   IntegerConstantType(InnerType v) : _val(v) {}
@@ -239,6 +238,7 @@ public:
     INT_CEILING,
     INT_TRUNCATE,
     INT_ROUND,
+    INT_ABS,
 
     RAT_UNARY_MINUS,
     RAT_PLUS, // sum in TPTP
