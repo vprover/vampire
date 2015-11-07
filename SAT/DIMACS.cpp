@@ -106,7 +106,6 @@ void DIMACS::outputProblem(SATClauseList* clauses, ostream& out)
     SATClause* cl=cit.next();
     out<<cl->toDIMACSString()<<endl;
   }
-  out<<"0"<<endl;
 }
 
 template <class T>
