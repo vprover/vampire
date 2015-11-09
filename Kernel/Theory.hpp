@@ -29,7 +29,7 @@ class IntegerConstantType
 public:
   static unsigned getSort() { return Sorts::SRT_INTEGER; }
 
-  typedef long InnerType;
+  typedef int InnerType;
 
   IntegerConstantType() {}
   IntegerConstantType(InnerType v) : _val(v) {}

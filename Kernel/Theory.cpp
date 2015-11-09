@@ -33,7 +33,7 @@ IntegerConstantType::IntegerConstantType(const vstring& str)
 {
   CALL("IntegerConstantType::IntegerConstantType(vstring)");
 
-  if (!Int::stringToLong(str, _val)) {
+  if (!Int::stringToInt(str, _val)) {
     //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
     throw ArithmeticException();
   }
