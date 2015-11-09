@@ -62,6 +62,8 @@ class Signature
     unsigned _numericConstant : 1;
     /** predicate introduced for query answering */
     unsigned _answerPredicate : 1;
+    /** marks numbers too large to represent natively */
+    unsigned _overflownConstant : 1;
     /** Either a FunctionType of a PredicateType object */
     mutable BaseType* _type;
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
@@ -72,7 +74,7 @@ class Signature
     ~Symbol();
   public:
     /** standard constructor */
-    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false);
+    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false);
     void destroyFnSymbol();
     void destroyPredSymbol();
 
@@ -92,6 +94,9 @@ class Signature
     void markAnswerPredicate() { _answerPredicate=1; markProtected(); }
     /** mark predicate to be an equality proxy */
     void markEqualityProxy() { _equalityProxy=1; }
+    /** mark constant as overflown */
+    void markOverflownConstant() { _overflownConstant=1; }
+
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate
@@ -117,6 +122,8 @@ class Signature
     inline bool answerPredicate() const { return _answerPredicate; }
     /** Return true iff symbol is an equality proxy */
     inline bool equalityProxy() const { return _equalityProxy; }
+    /** Return true iff symbol is an overflown constant */
+    inline bool overflownConstant() const { return _overflownConstant; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
@@ -299,7 +306,7 @@ class Signature
   //
 
   unsigned addPredicate(const vstring& name,unsigned arity,bool& added);
-  unsigned addFunction(const vstring& name,unsigned arity,bool& added);
+  unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false);
 
   /**
    * If a predicate with this name and arity exists, return its number.

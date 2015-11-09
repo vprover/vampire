@@ -299,6 +299,20 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
       if(env.signature->isFoolConstantSymbol(false,trm->functor())){
         return _context.bool_val(false);
       }
+      if (symb->overflownConstant()) {
+        // too large for native representation, but z3 should cope
+
+        switch (symb->fnType()->result()) {
+        case Sorts::SRT_INTEGER:
+          return _context.int_val(symb->name().c_str());
+        case Sorts::SRT_RATIONAL:
+          return _context.real_val(symb->name().c_str());
+        case Sorts::SRT_REAL:
+          return _context.real_val(symb->name().c_str());
+        default:
+          ASSERTION_VIOLATION;
+        }
+      }
 
       // If not value then create constant symbol
       return _context.constant(symb->name().c_str(),getz3sort(range_sort));

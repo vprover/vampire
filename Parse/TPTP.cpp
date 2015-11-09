@@ -3582,7 +3582,7 @@ unsigned TPTP::addIntegerConstant(const vstring& name)
   }
   catch (Kernel::ArithmeticException&) {
     bool added;
-    unsigned fun = env.signature->addFunction(name,0,added);
+    unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
     if (added) {
       _overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
@@ -3618,7 +3618,7 @@ unsigned TPTP::addRationalConstant(const vstring& name)
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
-    unsigned fun = env.signature->addFunction(name,0,added);
+    unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
     if (added) {
       _overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
@@ -3650,7 +3650,7 @@ unsigned TPTP::addRealConstant(const vstring& name)
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
-    unsigned fun = env.signature->addFunction(name,0,added);
+    unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
     if (added) {
       _overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);

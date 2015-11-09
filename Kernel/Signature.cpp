@@ -22,7 +22,7 @@ const unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 3;
  * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bool stringConstant,bool numericConstant)
+Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bool stringConstant,bool numericConstant, bool overflownConstant)
   : _name(nm),
     _arity(arity),
     _interpreted(interpreted ? 1 : 0),
@@ -35,6 +35,7 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _stringConstant(stringConstant ? 1: 0),
     _numericConstant(numericConstant ? 1: 0),
     _answerPredicate(0),
+    _overflownConstant(overflownConstant ? 1 : 0),
     _type(0),
     _distinctGroups(0),
     _usageCount(0)
@@ -42,7 +43,7 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
 
-  if (!stringConstant && !numericConstant && symbolNeedsQuoting(_name, interpreted,arity)) {
+  if (!stringConstant && !numericConstant && !overflownConstant && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }
   if (_interpreted || isProtectedName(nm)) {
@@ -648,7 +649,8 @@ bool Signature::predicateExists(const vstring& name,unsigned arity) const
  */
 unsigned Signature::addFunction (const vstring& name,
 				 unsigned arity,
-				 bool& added)
+				 bool& added,
+				 bool overflowConstant)
 {
   CALL("Signature::addFunction");
 
@@ -673,7 +675,7 @@ unsigned Signature::addFunction (const vstring& name,
   }
 
   result = _funs.length();
-  _funs.push(new Symbol(name, arity));
+  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
