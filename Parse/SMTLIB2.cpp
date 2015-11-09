@@ -21,6 +21,8 @@
 
 #include "SMTLIB2.hpp"
 
+#include "TPTP.hpp"
+
 #undef LOGGING
 #define LOGGING 0
 
@@ -672,7 +674,11 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
 
     LOG1("declareFunctionOrPredicate-Predicate");
   } else { // proper function
-    symNum = env.signature->addFunction(name, argSorts.size(), added);
+    if (argSorts.size() > 0) {
+      symNum = env.signature->addFunction(name, argSorts.size(), added);
+    } else {
+      symNum = TPTP::addUninterpretedConstant(name,_overflow,added);
+    }
 
     sym = env.signature->getFunction(symNum);
 
@@ -1733,13 +1739,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           goto real_constant; // just below
         }
 
-        unsigned symb;
-        try {
-          symb = env.signature->addIntegerConstant(id,false);
-        } catch (Kernel::ArithmeticException&) {
-          USER_ERROR("Cannot represent integer "+id);
-        }
-
+        unsigned symb = TPTP::addIntegerConstant(id,_overflow,false);
         TermList res = TermList(Term::createConstant(symb));
         results.push(ParseResult(Sorts::SRT_INTEGER,res));
 
@@ -1749,15 +1749,8 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
       if(StringUtils::isPositiveDecimal(id)) {
         real_constant:
 
-        unsigned symb;
-        try {
-          symb = env.signature->addRealConstant(id,false);
-        } catch (Kernel::ArithmeticException&) {
-          USER_ERROR("Cannot represent real "+id);
-        }
-
+        unsigned symb = TPTP::addRealConstant(id,_overflow,false);
         TermList res = TermList(Term::createConstant(symb));
-
         results.push(ParseResult(Sorts::SRT_REAL,res));
 
         continue;

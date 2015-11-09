@@ -8,6 +8,8 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Set.hpp"
+
 #include "Kernel/Sorts.hpp"
 #include "Kernel/Term.hpp"
 
@@ -221,6 +223,8 @@ private:
   void readAssert(LExpr* body);
 
   UnitList* _formulas;
+
+  Set<vstring> _overflow;
 
   void readBenchmark(LExprList* bench);
 };
