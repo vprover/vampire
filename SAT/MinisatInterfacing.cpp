@@ -390,7 +390,7 @@ void MinisatInterfacing::interpolateViaAssumptions(unsigned maxVar, const SATCla
   // generate the interpolant clauses
   while (solver_first.solve()) {
     // turn model into assumptions for solver_second
-    for (int i = 1; i <= maxVar; i++) {
+    for (int i = 1; i <= (int)maxVar; i++) {
       if (varOfFirst[i]) {
         tmp.push(mkLit(i,solver_first.model[i]==l_False));
       }

@@ -255,7 +255,7 @@ void SplittingBranchSelector::handleSatRefutation()
         SATClause* cl = it.next();
         FormulaList* disjuncts = FormulaList::empty();
 
-        for (int i = 0; i < cl->size(); i++) {
+        for (unsigned i = 0; i < cl->size(); i++) {
           SATLiteral lit = (*cl)[i];
 
           // get the first order clause

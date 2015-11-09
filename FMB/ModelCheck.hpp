@@ -77,7 +77,7 @@ static void doCheck(Problem*& prb)
       }
     }
   }
-  ASS_EQ(modelSize,domainConstants.size());
+  ASS_EQ(modelSize,(unsigned)domainConstants.size());
   cout << "Detected model of size " << modelSize << endl;
   cout << "Distinct domain assumed, domain elements are:" << endl;
 
@@ -170,7 +170,7 @@ static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*>& domain
 
             // store and check the single variable used
             if(single_var<0) single_var=left->var();
-            if(left->var()!=single_var) USER_ERROR("finite_domain is not a domain axiom");
+            if(left->var()!=(unsigned)single_var) USER_ERROR("finite_domain is not a domain axiom");
 
             // store and check the ground constant used
             Term* constant = right->term();
