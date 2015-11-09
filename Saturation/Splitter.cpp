@@ -661,8 +661,11 @@ void Splitter::init(SaturationAlgorithm* sa)
   _flushPeriod = opts.splittingFlushPeriod();
   _flushQuotient = opts.splittingFlushQuotient();
   _flushThreshold = sa->getGeneratedClauseCount() + _flushPeriod;
+  _congruenceClosure = opts.splittingCongruenceClosure();
+#if VZ3
+  hasSMTSolver = (opts.satSolver() == Options::SatSolver::Z3);
+#endif
 
-  _congruenceClosure = opts.splittingCongruenceClosure();  
   _fastRestart = opts.splittingFastRestart();
   _deleteDeactivated = opts.splittingDeleteDeactivated();
 
@@ -789,7 +792,11 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
     return false;
   }
 
-  if(_congruenceClosure != Options::SplittingCongruenceClosure::OFF
+  if((_congruenceClosure != Options::SplittingCongruenceClosure::OFF
+#if VZ3
+      || hasSMTSolver
+#endif
+      )
       && cl->length()==1 && (*cl)[0]->ground() ) {
     //we add ground unit clauses if we use congruence closure...
     // (immediately zero implied!)
