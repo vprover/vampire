@@ -35,7 +35,7 @@ BaseType& SortHelper::getType(Term* t)
  * Return the sort of a non-variable term t. This function cannot be applied
  * to a special term, such as if-then-else.
  */
-unsigned SortHelper::getResultSort(Term* t)
+unsigned SortHelper::getResultSort(const Term* t)
 {
   CALL("SortHelper::getResultSort(Term*)");
   ASS(!t->isSpecial());
@@ -50,7 +50,7 @@ unsigned SortHelper::getResultSort(Term* t)
  *
  * This function can be applied also to special terms such as if-then-else.
  */
-bool SortHelper::tryGetResultSort(Term* t, unsigned& result)
+bool SortHelper::tryGetResultSort(const Term* t, unsigned& result)
 {
   CALL("tryGetResultSort(Term*,unsigned&)");
   ASS(!t->isLiteral());
@@ -59,7 +59,7 @@ bool SortHelper::tryGetResultSort(Term* t, unsigned& result)
   return getResultSortOrMasterVariable(t, result, masterVar);
 }
 
-bool SortHelper::tryGetResultSort(TermList t, unsigned& result)
+bool SortHelper::tryGetResultSort(const TermList t, unsigned& result)
 {
   CALL("tryGetResultSort(TermList,unsigned&)");
   if (t.isVar()) {
@@ -89,7 +89,7 @@ unsigned SortHelper::getResultSort(TermList t, DHMap<unsigned,unsigned>& varSort
  * @c resultVar and return false. Otherwise assign the sort of the term
  * into @c resultSort and return true.
  */
-bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, TermList& resultVar)
+bool SortHelper::getResultSortOrMasterVariable(const Term* t, unsigned& resultSort, TermList& resultVar)
 {
   CALL("SortHelper::getResultSortOrMasterVariable");
 
@@ -157,7 +157,7 @@ bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, Te
  * @c resultVar and return false. Otherwise assign the sort of the term
  * into @c resultSort and return true.
  */
-bool SortHelper::getResultSortOrMasterVariable(TermList t, unsigned& resultSort, TermList& resultVar)
+bool SortHelper::getResultSortOrMasterVariable(const TermList t, unsigned& resultSort, TermList& resultVar)
 {
   CALL("SortHelper::getResultSortOrMasterVariable");
 
@@ -472,6 +472,15 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
       }
       continue;
     }
+    if (t->isITE()) {
+      // if its in the condition, it is in a subformula to be iterated over by tryGetVariableSort(unsigned var, Formula* f, ...
+      ASS_EQ(t->arity(),2);
+      if ((*t->nthArgument(0) == var && tryGetResultSort(*t->nthArgument(1),result)) ||
+          (*t->nthArgument(1) == var && tryGetResultSort(*t->nthArgument(0),result))) {
+        return true;
+      }
+      continue;
+    }
     if (t->shared() && t->ground()) {
       sit.right();
       continue;
@@ -480,7 +489,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
     TermList* args = t->args();
     while (!args->isEmpty()) {
       if (*args==var) {
-	result = getArgSort(t, idx);
+        result = getArgSort(t, idx);
         return true;
       }
       idx++;

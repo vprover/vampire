@@ -16,14 +16,14 @@ namespace Kernel {
 
 class SortHelper {
 public:
-  static unsigned getResultSort(Term* t);
+  static unsigned getResultSort(const Term* t);
   static unsigned getResultSort(TermList t, DHMap<unsigned,unsigned>& varSorts);
   static unsigned getArgSort(Term* t, unsigned argIndex);
 
-  static bool tryGetResultSort(Term* t, unsigned& result);
-  static bool tryGetResultSort(TermList t, unsigned& result);
-  static bool getResultSortOrMasterVariable(Term* t, unsigned& resultSort, TermList& resultVar);
-  static bool getResultSortOrMasterVariable(TermList t, unsigned& resultSort, TermList& resultVar);
+  static bool tryGetResultSort(const Term* t, unsigned& result);
+  static bool tryGetResultSort(const TermList t, unsigned& result);
+  static bool getResultSortOrMasterVariable(const Term* t, unsigned& resultSort, TermList& resultVar);
+  static bool getResultSortOrMasterVariable(const TermList t, unsigned& resultSort, TermList& resultVar);
 
   static unsigned getEqualityArgumentSort(const Literal* lit);
 

@@ -277,7 +277,6 @@ vstring Formula::toString(const Formula* formula)
     }
 
     Connective c = f->connective();
-
     switch (c) {
     case LITERAL:
       res += f->literal()->toString();
@@ -342,8 +341,7 @@ vstring Formula::toString(const Formula* formula)
             if (t != Sorts::SRT_DEFAULT) {
               res += " : " + env.sorts->sortName(t);
             }
-          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),
-              t) && t != Sorts::SRT_DEFAULT) {
+          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) && t != Sorts::SRT_DEFAULT) {
             res += " : " + env.sorts->sortName(t);
           }
           first = false;
