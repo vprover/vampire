@@ -435,9 +435,11 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
           }
 
         case Theory::INT_ABS:
-          z3::expr t = args[0];
-          ret = ite(t > 0, t, -t);
-          break;
+          {
+            z3::expr t = args[0];
+            ret = ite(t > 0, t, -t);
+            break;
+          }
 
          case Theory::INT_QUOTIENT_T:
          case Theory::RAT_QUOTIENT_T:
