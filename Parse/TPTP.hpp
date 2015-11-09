@@ -654,14 +654,16 @@ private:
 				  Theory::Interpretation integer,Theory::Interpretation rational,
 				  Theory::Interpretation real);
  // unsigned addOverloadedArrayFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,Theory::Interpretation array_select);
-  unsigned addIntegerConstant(const vstring&);
-  unsigned addRationalConstant(const vstring&);
-  unsigned addRealConstant(const vstring&);
-  unsigned addUninterpretedConstant(const vstring& name,bool& added);
   unsigned sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
 
 public:
+  // make the tptp routines for dealing with overflown constants available to other parsers
+  static unsigned addIntegerConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
+  static unsigned addRationalConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
+  static unsigned addRealConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
+  static unsigned addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added);
+
   /**
    * Used to store the contents of the 'source' of an input formula
    * This is based on the 'file' and 'inference' record description in

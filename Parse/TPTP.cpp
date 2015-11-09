@@ -2023,13 +2023,13 @@ void TPTP::term()
           number = env.signature->addStringConstant(tok.content);
           break;
         case T_INT:
-          number = addIntegerConstant(tok.content);
+          number = addIntegerConstant(tok.content,_overflow,_isFof);
           break;
         case T_REAL:
-          number = addRealConstant(tok.content);
+          number = addRealConstant(tok.content,_overflow,_isFof);
           break;
         default: // T_RAT
-          number = addRationalConstant(tok.content);
+          number = addRationalConstant(tok.content,_overflow,_isFof);
           break;
       }
       Term *t = new(0) Term;
@@ -2317,7 +2317,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     if (arity > 0) {
       fun = addFunction(name, arity, dummy, _termLists.top());
     } else {
-      fun = addUninterpretedConstant(name, dummy);
+      fun = addUninterpretedConstant(name, _overflow, dummy);
     }
   }
   Term* t = new(arity) Term;
@@ -2812,7 +2812,7 @@ void TPTP::endTff()
       return;
     }
     // a constant
-    unsigned fun = addUninterpretedConstant(name,added);
+    unsigned fun = addUninterpretedConstant(name,_overflow,added);
     if (!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
@@ -2867,7 +2867,7 @@ void TPTP::endTff()
   }
   else {
     unsigned fun = arity == 0
-                   ? addUninterpretedConstant(name,added)
+                   ? addUninterpretedConstant(name,_overflow,added)
                    : env.signature->addFunction(name,arity,added);
     if (!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
@@ -3264,7 +3264,7 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
     if (arity > 0) {
       return env.signature->addFunction(name,arity,added);
     }
-    return addUninterpretedConstant(name,added);
+    return addUninterpretedConstant(name,_overflow,added);
   }
   if (name == "$sum") {
     return addOverloadedFunction(name,arity,2,added,arg,
@@ -3573,22 +3573,22 @@ unsigned TPTP::sortOf(TermList t)
  *   as terms of the default sort when fof() or cnf() is used
  * @author Andrei Voronkov
  */
-unsigned TPTP::addIntegerConstant(const vstring& name)
+unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, bool defaultSort)
 {
   CALL("TPTP::addIntegerConstant");
 
   try {
-    return env.signature->addIntegerConstant(name,_isFof);
+    return env.signature->addIntegerConstant(name,defaultSort);
   }
   catch (Kernel::ArithmeticException&) {
     bool added;
     unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
     if (added) {
-      _overflow.insert(name);
+      overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(new FunctionType(_isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_INTEGER));
+      symbol->setType(new FunctionType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_INTEGER));
     }
-    else if (!_overflow.contains(name)) {
+    else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
     }
     return fun;
@@ -3605,7 +3605,7 @@ unsigned TPTP::addIntegerConstant(const vstring& name)
  *    between treating rationals using fof() and tff()
  * @author Andrei Voronkov
  */
-unsigned TPTP::addRationalConstant(const vstring& name)
+unsigned TPTP::addRationalConstant(const vstring& name, Set<vstring>& overflow, bool defaultSort)
 {
   CALL("TPTP::addRationalConstant");
 
@@ -3614,17 +3614,17 @@ unsigned TPTP::addRationalConstant(const vstring& name)
   try {
     return env.signature->addRationalConstant(name.substr(0,i),
 					      name.substr(i+1),
-					      _isFof);
+					      defaultSort);
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
     unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
     if (added) {
-      _overflow.insert(name);
+      overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(new FunctionType(_isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_RATIONAL));
+      symbol->setType(new FunctionType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_RATIONAL));
     }
-    else if (!_overflow.contains(name)) {
+    else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an rational number");
     }
     return fun;
@@ -3641,22 +3641,22 @@ unsigned TPTP::addRationalConstant(const vstring& name)
  *    between treating rationals using fof() and tff()
  * @author Andrei Voronkov
  */
-unsigned TPTP::addRealConstant(const vstring& name)
+unsigned TPTP::addRealConstant(const vstring& name, Set<vstring>& overflow, bool defaultSort)
 {
   CALL("TPTP::addRealConstant");
 
   try {
-    return env.signature->addRealConstant(name,_isFof);
+    return env.signature->addRealConstant(name,defaultSort);
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
     unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
     if (added) {
-      _overflow.insert(name);
+      overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(new FunctionType(_isFof ? Sorts::SRT_DEFAULT : Sorts::SRT_REAL));
+      symbol->setType(new FunctionType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_REAL));
     }
-    else if (!_overflow.contains(name)) {
+    else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an real number");
     }
     return fun;
@@ -3670,11 +3670,11 @@ unsigned TPTP::addRealConstant(const vstring& name)
  * created by the parser from overflown input numbers.
  * @since 22/07/2011 Manchester
  */
-unsigned TPTP::addUninterpretedConstant(const vstring& name,bool& added)
+unsigned TPTP::addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added)
 {
   CALL("TPTP::addUninterpretedConstant");
 
-  if (_overflow.contains(name)) {
+  if (overflow.contains(name)) {
     USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
   }
   return env.signature->addFunction(name,0,added);
