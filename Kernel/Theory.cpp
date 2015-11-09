@@ -156,14 +156,14 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
       if (n2 == numeric_limits<InnerType>::min()) {
         return LESS;
       } else {
-        int an1 = abs(n1.toInt());
-        int an2 = abs(n2.toInt());
+        InnerType an1 = abs(n1.toInner());
+        InnerType an2 = abs(n2.toInner());
 
         ASS_GE(an1,0);
         ASS_GE(an2,0);
 
         return an1 < an2 ? LESS : (an1 == an2 ? // compare the signed ones, making negative greater than positive
-            static_cast<Comparison>(-Int::compare(n1.toInt(), n2.toInt()))
+            static_cast<Comparison>(-Int::compare(n1.toInner(), n2.toInner()))
                               : GREATER);
       }
     }
@@ -208,7 +208,7 @@ void RationalConstantType::init(InnerType num, InnerType den)
   cannonize();
 
   // Dividing by zero is bad!
-  if(_den.toInt()==0) throw ArithmeticException();
+  if(_den.toInner()==0) throw ArithmeticException();
 }
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
@@ -290,10 +290,10 @@ void RationalConstantType::cannonize()
 {
   CALL("RationalConstantType::cannonize");
 
-  int gcd = Int::gcd(_num.toInt(), _den.toInt());
+  InnerType gcd = Int::gcd(_num.toInner(), _den.toInner());
   if (gcd!=1) {
-    _num = _num/InnerType(gcd);
-    _den = _den/InnerType(gcd);
+    _num = _num/gcd;
+    _den = _den/gcd;
   }
   if (_den<0) {
     _num = -_num;
@@ -451,10 +451,10 @@ vstring RealConstantType::toNiceString() const
 {
   CALL("RealConstantType::toNiceString");
 
-  if (denominator().toInt()==1) {
+  if (denominator().toInner()==1) {
     return numerator().toString()+".0";
   }
-  float frep = (float) numerator().toInt() /(float) denominator().toInt();
+  float frep = (float) numerator().toInner() /(float) denominator().toInner();
   return Int::toString(frep);
   //return toString();
 }
@@ -1784,9 +1784,9 @@ switch(f){
       {
         // we have a problem of the form b.c=a
         // to invert it to c = a/b we need to check that a/b is safe
-        if(b.toInt()==0) return false;
-        int apos = a.toInt() < 0 ? -a.toInt() : a.toInt();
-        int bpos = b.toInt() < 0 ? -b.toInt() : b.toInt(); 
+        if(b.toInner()==0) return false;
+        IntegerConstantType::InnerType apos = a.toInner() < 0 ? -a.toInner() : a.toInner();
+        IntegerConstantType::InnerType bpos = b.toInner() < 0 ? -b.toInner() : b.toInner();
 	//cout << "a:"<<a.toInt() << " b: " << b.toInt() << endl;
         if(apos % bpos == 0){
           inverted_f = INT_DIVIDE; break;

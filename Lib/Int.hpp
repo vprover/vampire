@@ -84,7 +84,30 @@ class Int
   static int sign(double);
   static int max(int i,int j);
   static int min(int i,int j);
-  static int gcd(int i,int j);
+
+  /** Return the greatest common divisor of @b i and @b j */
+  template<typename INT>
+  static int gcd(INT i,INT j)
+  {
+    CALL("Int::gcd");
+
+    i=abs(i);
+    j=abs(j);
+    if(!i || !j) {
+      return 1;
+    }
+
+    for(;;) {
+      i = i % j;
+      if(i==0) {
+        return j;
+      }
+      j = j % i;
+      if(j==0) {
+        return i;
+      }
+    }
+  }
 
   /**
    * If -num does not overflow, return true and save -num to res.

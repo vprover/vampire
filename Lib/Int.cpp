@@ -15,29 +15,6 @@
 
 using namespace Lib;
 
-/** Return the greatest common divisor of @b i and @b j */
-int Int::gcd(int i,int j)
-{
-  CALL("Int::gcd");
-  
-  i=abs(i);
-  j=abs(j);
-  if(!i || !j) {
-    return 1;
-  }
-  
-  for(;;) {
-    i = i % j;
-    if(i==0) {
-      return j;
-    }
-    j = j % i;
-    if(j==0) {
-      return i;
-    }
-  }
-}
-
 /**
  * Return the string representation of an integer.
  *

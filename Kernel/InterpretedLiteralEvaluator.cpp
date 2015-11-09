@@ -366,7 +366,7 @@ class InterpretedLiteralEvaluator::IntEvaluator : public TypedEvaluator<IntegerC
 {
 protected:
 
-  virtual bool isOne(IntegerConstantType arg){ return arg.toInt()==1;}
+  virtual bool isOne(IntegerConstantType arg){ return arg.toInner()==1;}
   virtual bool isDivision(Interpretation interp){ return interp==Theory::INT_DIVIDE; }
 
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)

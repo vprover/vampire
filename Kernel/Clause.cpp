@@ -518,7 +518,7 @@ unsigned Clause::getNumeralWeight()
       }
       IntegerConstantType intVal;
       if (theory->tryInterpretConstant(t,intVal)) {
-	int w = BitUtils::log2(abs(intVal.toInt()))-1;
+	int w = BitUtils::log2(abs(intVal.toInner()))-1;
 	if (w > 0) {
 	  res += w;
 	}
@@ -537,8 +537,8 @@ unsigned Clause::getNumeralWeight()
       if (!haveRat) {
 	continue;
       }
-      int wN = BitUtils::log2(abs(ratVal.numerator().toInt()))-1;
-      int wD = BitUtils::log2(abs(ratVal.denominator().toInt()))-1;
+      int wN = BitUtils::log2(abs(ratVal.numerator().toInner()))-1;
+      int wD = BitUtils::log2(abs(ratVal.denominator().toInner()))-1;
       int v = wN + wD;
       if (v > 0) {
 	res += v;

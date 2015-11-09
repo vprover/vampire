@@ -283,15 +283,15 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
     if(trm->arity()==0){
       if(symb->integerConstant()){
         IntegerConstantType value = symb->integerValue();
-        return _context.int_val(value.toInt());
+        return _context.int_val(value.toInner());
       }
       if(symb->realConstant()){
         RealConstantType value = symb->realValue();
-        return _context.real_val(value.numerator().toInt(),value.denominator().toInt());
+        return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
       }
       if(symb->rationalConstant()){
         RationalConstantType value = symb->rationalValue();
-        return _context.real_val(value.numerator().toInt(),value.denominator().toInt());
+        return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
       }
       if(env.signature->isFoolConstantSymbol(true,trm->functor())){
         return _context.bool_val(true);

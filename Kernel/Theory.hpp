@@ -65,7 +65,7 @@ public:
   bool operator>=(const IntegerConstantType& o) const { return !(o>(*this)); }
   bool operator<=(const IntegerConstantType& o) const { return !((*this)>o); }
 
-  int toInt() const { return _val; }
+  InnerType toInner() const { return _val; }
 
   static IntegerConstantType floor(RationalConstantType rat);
 
@@ -78,7 +78,7 @@ private:
 
 inline
 std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
-  return out << val.toInt();
+  return out << val.toInner();
 }
 
 
