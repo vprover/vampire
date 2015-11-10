@@ -83,7 +83,6 @@ void SMTLIB2::readBenchmark(LExprList* bench)
         USER_ERROR("set-logic can appear only once in a problem");
       }
       readLogic(ibRdr.readAtom());
-      _logicSet = true;
       ibRdr.acceptEOL();
       continue;
     }
@@ -231,9 +230,9 @@ const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "UFNIA"
 };
 
-SMTLIB2::SmtlibLogic SMTLIB2::getLogic(const vstring& str)
+SMTLIB2::SmtlibLogic SMTLIB2::getLogicFromString(const vstring& str)
 {
-  CALL("SMTLIB2::getLogic");
+  CALL("SMTLIB2::getLogicFromString");
 
   static NameArray smtlibLogicNames(s_smtlibLogicNameStrings, sizeof(s_smtlibLogicNameStrings)/sizeof(char*));
   ASS_EQ(smtlibLogicNames.length, LO_INVALID);
@@ -249,8 +248,8 @@ void SMTLIB2::readLogic(const vstring& logicStr)
 {
   CALL("SMTLIB2::checkLogic");
 
-  _logicName = logicStr;
-  _logic = getLogic(_logicName);
+  _logic = getLogicFromString(logicStr);
+  _logicSet = true;
 
   switch (_logic) {
   case LO_ALIA:
@@ -298,9 +297,9 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   case LO_QF_BV:
   case LO_QF_UFBV:
   case LO_UFBV:
-    USER_ERROR("unsupported logic "+_logicName);
+    USER_ERROR("unsupported logic "+logicStr);
   default:
-    USER_ERROR("unrecognized logic "+_logicName);
+    USER_ERROR("unrecognized logic "+logicStr);
   }
 
 }
@@ -314,9 +313,9 @@ const char * SMTLIB2::s_builtInSortNameStrings[] = {
     "Real"
 };
 
-SMTLIB2::BuiltInSorts SMTLIB2::getBuiltInSort(const vstring& str)
+SMTLIB2::BuiltInSorts SMTLIB2::getBuiltInSortFromString(const vstring& str)
 {
-  CALL("SMTLIB::getBuiltInSort");
+  CALL("SMTLIB::getBuiltInSortFromString");
 
   static NameArray builtInSortNames(s_builtInSortNameStrings, sizeof(s_builtInSortNameStrings)/sizeof(char*));
   ASS_EQ(builtInSortNames.length, BS_INVALID);
@@ -328,11 +327,11 @@ SMTLIB2::BuiltInSorts SMTLIB2::getBuiltInSort(const vstring& str)
   return static_cast<BuiltInSorts>(res);
 }
 
-bool SMTLIB2::isSortSymbol(const vstring& name)
+bool SMTLIB2::isAlreadyKnownSortSymbol(const vstring& name)
 {
-  CALL("SMTLIB::isSortSymbol");
+  CALL("SMTLIB::isAlreadyKnownSortSymbol");
 
-  if (getBuiltInSort(name) != BS_INVALID) {
+  if (getBuiltInSortFromString(name) != BS_INVALID) {
     return true;
   }
 
@@ -351,7 +350,7 @@ void SMTLIB2::readDeclareSort(const vstring& name, const vstring& arity)
 {
   CALL("SMTLIB2::readDeclareSort");
 
-  if (isSortSymbol(name)) {
+  if (isAlreadyKnownSortSymbol(name)) {
     USER_ERROR("Redeclaring built-in, declared or defined sort symbol: "+name);
   }
 
@@ -371,7 +370,7 @@ void SMTLIB2::readDefineSort(const vstring& name, LExprList* args, LExpr* body)
 {
   CALL("SMTLIB2::readDefineSort");
 
-  if (isSortSymbol(name)) {
+  if (isAlreadyKnownSortSymbol(name)) {
     USER_ERROR("Redeclaring built-in, declared or defined sort symbol: "+name);
   }
 
@@ -453,7 +452,7 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
       vstring& id = exp->str;
 
       // try built-ins
-      BuiltInSorts bs = getBuiltInSort(id);
+      BuiltInSorts bs = getBuiltInSortFromString(id);
       switch (bs) {
         case BS_BOOL:
           results.push(Sorts::SRT_BOOL);
@@ -525,7 +524,7 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
 
         lookups.push(lookup);
 
-        todo.push(make_pair(SPO_POP_LOOKUP,nullptr)); // mark the lookup insertion (see above)
+        todo.push(make_pair(SPO_POP_LOOKUP,nullptr)); //schedule lookup deletion (see above)
         todo.push(make_pair(SPO_PARSE,def.body));
 
         continue;
@@ -615,9 +614,9 @@ SMTLIB2::TermSymbol SMTLIB2::getBuiltInTermSymbol(const vstring& str)
   return static_cast<TermSymbol>(resInt);
 }
 
-bool SMTLIB2::isFunctionSymbol(const vstring& name)
+bool SMTLIB2::isAlreadyKnownFunctionSymbol(const vstring& name)
 {
-  CALL("SMTLIB2::isFunctionSymbol");
+  CALL("SMTLIB2::isAlreadyKnownFunctionSymbol");
 
   if (getBuiltInFormulaSymbol(name) != FS_USER_PRED_SYMBOL) {
     return true;
@@ -638,7 +637,7 @@ void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSor
 {
   CALL("SMTLIB2::readDeclareFun");
 
-  if (isFunctionSymbol(name)) {
+  if (isAlreadyKnownFunctionSymbol(name)) {
     USER_ERROR("Redeclaring function symbol: "+name);
   }
 
@@ -706,7 +705,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 {
   CALL("SMTLIB2::readDefineFun");
 
-  if (isFunctionSymbol(name)) {
+  if (isAlreadyKnownFunctionSymbol(name)) {
     USER_ERROR("Redeclaring function symbol: "+name);
   }
 

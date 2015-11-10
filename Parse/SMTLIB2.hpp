@@ -26,13 +26,32 @@ class SMTLIB2 {
 public:
   SMTLIB2(const Options& opts);
 
+  /** Parse from an open stream */
   void parse(istream& str);
+  /** Parse a ready lisp expression */
   void parse(LExpr* bench);
 
+  /** Formulas obtained during parsing:
+   *  1) equations collected from "define-fun"
+   *  2) general formulas collected from "assert"
+   *
+   *  Global signature in env is updated on the fly.
+   *
+   *  We don't know what the conjecture is.
+   **/
   UnitList* getFormulas() const { return _formulas; }
 
-private:
-
+  /**
+   * List of currently used logics:
+   * QF (quantifier free) should be ground
+   * A - arrays
+   * (L/N)(I/R/both)A - linear/non-linear integer/real/both arithmetic
+   * BV - bit vector - we don't support
+   * (I/R)DL - difference logic - we don't treat specially (fragment of L(I/R)A)
+   * UF - uninterpreted function = first order we know and love
+   *
+   * In general, the parser does not check that the parse content belongs to the advertised logic.
+   */
   enum SmtlibLogic {
     LO_ALIA,
     LO_AUFLIA,
@@ -75,19 +94,49 @@ private:
 
     LO_INVALID
   };
+
+  /**
+   * Return the parsed logic (or LO_INVALID if not set).
+   */
+  SmtlibLogic getLogic() const {
+    return _logic;
+  }
+
+private:
+
   static const char * s_smtlibLogicNameStrings[];
 
-  static SmtlibLogic getLogic(const vstring& str);
+  /**
+   * Maps a string to a SmtlibLogic value.
+   */
+  static SmtlibLogic getLogicFromString(const vstring& str);
 
+  /**
+   * Have we seen "set-logic" entry yet?
+   */
   bool _logicSet;
-  vstring _logicName;
+
+  /**
+   * The advertised logic.
+   */
   SmtlibLogic _logic;
 
+  /**
+   * Logics which contains only reals allow numerals (like '123') to be understood as reals.
+   * When both Ints and Reals are mixed numerals are Ints and decimals (like '123.0') are reals.
+   *
+   * This is determined based on the advertised logic (and not the actual content of the file).
+   */
   bool _numeralsAreReal;
 
+  /**
+   * Handle "set-logic" entry.
+   */
   void readLogic(const vstring& logicStr);
 
+  /** Content of the ":status: info entry. */
   vstring _statusStr;
+  /** Content of the ":source: info entry. */
   vstring _sourceInfo;
 
   enum BuiltInSorts
@@ -100,15 +149,40 @@ private:
     BS_INVALID
   };
   static const char * s_builtInSortNameStrings[];
-  static BuiltInSorts getBuiltInSort(const vstring& str);
 
-  bool isSortSymbol(const vstring& name);
+  /**
+   * Maps smtlib built-in sort name to BuiltInSorts value.
+   */
+  static BuiltInSorts getBuiltInSortFromString(const vstring& str);
 
-  // smtlib name -> arity
+  /**
+   * Test string for being either a built-in sort
+   * or a sort already declared or defined within this parser object.
+   */
+  bool isAlreadyKnownSortSymbol(const vstring& name);
+
+  /** Maps smtlib name of a declared sort to its arity.
+   *
+   * Declared sorts are just names with arity-many "argument slots".
+   * However, this is just a way to make new sorts from old ones.
+   * There is no implied semantic relation to the argument sorts.
+   */
   DHMap<vstring,unsigned> _declaredSorts;
 
+  /**
+   * Handle "declare-sort" entry.
+   */
   void readDeclareSort(const vstring& name, const vstring& arity);
 
+  /**
+   * Sort definition is a macro (with arguments) for a complex sort expression.
+   *
+   * We don't parse the definition until it is used.
+   *
+   * Then a lookup context is created mapping
+   * symbolic arguments from the definition to actual arguments from the invocation
+   * and the invocation is parsed as the defined body in this context.
+   */
   struct SortDefinition {
     SortDefinition() : args(0), body(0) {}
     SortDefinition(LExprList* args, LExpr* body)
@@ -118,12 +192,28 @@ private:
     LExpr* body;
   };
 
+  /**
+   * Maps smtlib name of a defined sort to its SortDefinition struct.
+   */
   DHMap<vstring,SortDefinition> _sortDefinitions;
 
+  /**
+   * Handle "define-sort" entry.
+   */
   void readDefineSort(const vstring& name, LExprList* args, LExpr* body);
 
+  /**
+   * Take an smtlib sort expression, evaluate it in the context of previous
+   * sort declarations and definitions,
+   * register any missing sort in vampire and return vampire's sort id
+   * corresponding to the give expression.
+   */
   unsigned declareSort(LExpr* sExpr);
 
+  /**
+   * Some built-in symbols represent functions with result of sort Bool.
+   * They are listed here.
+   */
   enum FormulaSymbol
   {
     FS_LESS,
@@ -147,8 +237,15 @@ private:
   };
   static const char * s_formulaSymbolNameStrings[];
 
+  /**
+   * Lookup to see if vstring is a built-in FormulaSymbol.
+   */
   static FormulaSymbol getBuiltInFormulaSymbol(const vstring& str);
 
+  /**
+   * Some built-in symbols represent functions with not-Bool result of sort
+   * and are listed here.
+   */
   enum TermSymbol
   {
     TS_MULTIPLY,
@@ -169,20 +266,41 @@ private:
   };
   static const char * s_termSymbolNameStrings[];
 
+  /**
+   * Lookup to see if vstring is a built-in TermSymbol.
+   */
   static TermSymbol getBuiltInTermSymbol(const vstring& str);
 
-  // in the smt-lib sense, so either a function or predicate symbol
-  bool isFunctionSymbol(const vstring& name);
+  /**
+   * Is the given vstring a built-in FormulaSymbol, built-in TermSymbol or a declared function?
+   */
+  bool isAlreadyKnownFunctionSymbol(const vstring& name);
 
-  // <vampire signature id, is_function flag >
+  /** <vampire signature id, is_function flag (otherwise it is a predicate) > */
   typedef std::pair<unsigned,bool> DeclaredFunction;
-  // functions are implicitly declared even when they are defined (see below)
+  /** functions are implicitly declared also when they are defined (see below) */
   DHMap<vstring, DeclaredFunction> _declaredFunctions;
 
+  /**
+   * Given a symbol name, range sort (which can be Bool) and argSorts,
+   * register a new function (or predicate) symbol in vampire,
+   * store the ensuing DeclaredFunction in _declaredFunctions
+   * and return it.
+   */
   DeclaredFunction declareFunctionOrPredicate(const vstring& name, signed rangeSort, const Stack<unsigned>& argSorts);
 
+  /**
+   * Handle "declare-fun" entry.
+   *
+   * Declaring a function just extends the signature.
+   */
   void readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort);
 
+  /**
+   * Handle "define-fun" entry.
+   *
+   * Defining a function extends the signature and adds the new function's definition into _formulas.
+   */
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body);
 
   // global parsing data structures
