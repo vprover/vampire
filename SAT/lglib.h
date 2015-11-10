@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------*/
-/* Copyright 2010-2013 Armin Biere Johannes Kepler University Linz Austria */
+/* Copyright 2010-2014 Armin Biere Johannes Kepler University Linz Austria */
 /*-------------------------------------------------------------------------*/
 
 #ifndef lglib_h_INCLUDED
@@ -31,9 +31,43 @@ typedef void * (*lglrealloc) (void*mem, void *ptr, size_t old, size_t);
 
 LGL * lglminit (void *mem, lglalloc, lglrealloc, lgldealloc);
 
-LGL * lglclone (LGL *);				// identical copy
+// 'Cloning' produces identicaly behaving solvers.
+
+LGL * lglclone (LGL *);
 LGL * lglmclone (LGL *, void *mem, lglalloc, lglrealloc, lgldealloc);
-int lglunclone (LGL * dst, LGL * src);
+
+int lglunclone (LGL * dst, LGL * src);		// does not release 'src'
+
+// 'Forking' copies only irredundant clauses and also uses internal variable
+// indices of the parent as external variable indices.  Thus 'parent' and
+// the forked off 'child' do neither exactly work the same way, nor do they
+// use from the API point of view the same set of variables.  They are
+// satisfiability equivalent.  If the child becomes unsatisfiable the parent
+// can be assumed to be unsatisfiable too and thus 'lgljoin' would just add
+// the empty clause to the parent.  If the child produces a satisfying
+// assignment, this assignment is turned into an assignment of the parent by
+// 'lgljoin'.  Parents can be forked multiple times.  A child has exactly
+// one parent.  Parents and children can be released independently.  Between
+// 'lglfork' and 'lgljoin' no other operations but further 'lglfork' are
+// allowed.  The effect ot multiple 'lgljoin' with the same parent is
+// unclear at this point.  The same memory manager is use for the child and
+// the parent. Options, prefix, output file and the callbacks for 'getime'
+// and 'onabort' are copied too (if set).
+
+LGL * lglfork (LGL * parent);
+int lgljoin (LGL * parent, LGL * child);	// does not release 'child'
+
+// Both 'Cloning' and 'Forking' can be used to implement 'Push & Pop', but
+// the asymmetric forking is more similar to the classical way of
+// implementing it, needs less resources since for instance eliminated
+// variables do not occupy any memory in the children, but requires lifting
+// back satisfying assignments explicitly (through the whole parent chain).
+// If these full satisfying assignments are really needed actually cloning
+// could be more space efficient too.  Assume you want to split the solver
+// into two instances, one with a literal set to false, the other one to
+// true. Then cloning allows you to produce two independent branches, while
+// for forking you need three, since the root / top solver still has to be
+// kept for lifting back a potential assignment.
 
 //--------------------------------------------------------------------------
 
@@ -61,6 +95,7 @@ const char * lglgetprefix (LGL *);
 void lglsetopt (LGL *, const char *, int);	// set option value
 int lglreadopts (LGL *, FILE *);		// read and set options
 int lglgetopt (LGL *, const char *);		// get option value
+int lgldefopt (LGL *, const char *);		// get default value
 int lglhasopt (LGL *, const char *);		// exists option?
 
 int lglgetoptminmax (LGL *, const char *, int * minptr, int * maxptr);
@@ -133,9 +168,9 @@ int lglsat (LGL *);
 int lglsimp (LGL *, int iterations);
 
 int lglderef (LGL *, int lit);			// neg=false, pos=true
-int lglfixed (LGL *, int lit);			// dito but toplevel
+int lglfixed (LGL *, int lit);			// ditto but toplevel
 
-int lglfailed (LGL *, int lit);			// dito for assumptions
+int lglfailed (LGL *, int lit);			// ditto for assumptions
 int lglinconsistent (LGL *);			// contains empty clause?
 int lglchanged (LGL *);				// model changed
 
@@ -155,22 +190,6 @@ int lglrepr (LGL *, int lit);
  * until the next 'lglsat/lglsimp' call.
  */
 void lglreconstk (LGL * lgl, int ** startptr, int ** toptr);
-
-//--------------------------------------------------------------------------
-// Multiple-Objective SAT tries to solve multiple objectives at the same
-// time.  If a target can be satisfied or falsified the user is notified via
-// a callback function of type 'lglnotify'. The argument is an abstract
-// state (of the user), the target literal and as last argument the value
-// (-1 = unsatisfiable, 1 = satisfiable).  If the notification callback
-// returns 1 the 'lglmosat' procedure continues, otherwise it stops.  It
-// returns a non zero value iff only all targets have been either proved to
-// be satisfiable or unsatisfiable.  Even if 'val' given to the notification
-// function is '1', it can not assume that the current assignment is
-// complete, e.g. satisfies the formula.
-//
-typedef int (*lglnotify)(void *state, int target, int val);
-
-int lglmosat (LGL *, void * state, lglnotify, int * targets);
 
 //--------------------------------------------------------------------------
 // Incremental interface provides reference counting for indices, i.e.
@@ -230,7 +249,9 @@ int main () {
   // lglassume (lgl, 14);                               // ILLEGAL
   lgladd (lgl, 1);                                      // still frozen
   lglmelt (lgl, 1);
+  lgladd (lgl, 0);
   res = lglsat (lgl);
+  assert (res == 10);					// TODO right?
   // none frozen
   assert (!lglusable (lgl, 1));
   // lgladd(lgl, 1);                                    // ILLEGAL
