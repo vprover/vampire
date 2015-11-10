@@ -451,34 +451,14 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
       ASS(exp->isAtom());
       vstring& id = exp->str;
 
-      // try built-ins
-      BuiltInSorts bs = getBuiltInSortFromString(id);
-      switch (bs) {
-        case BS_BOOL:
-          results.push(Sorts::SRT_BOOL);
+      // try (top) context lookup
+      if (lookups.isNonEmpty()) {
+        SortLookup* lookup = lookups.top();
+        unsigned res;
+        if (lookup->find(id,res)) {
+          results.push(res);
           continue;
-        case BS_INT:
-          results.push(Sorts::SRT_INTEGER);
-          continue;
-        case BS_REAL:
-          results.push(Sorts::SRT_REAL);
-          continue;
-        case BS_ARRAY:
-          if (results.size() < 2) {
-            goto malformed;
-          } else {
-            unsigned indexSort = results.pop();
-            unsigned innerSort = results.pop();
-            if (indexSort == SEPARATOR || innerSort == SEPARATOR) {
-              goto malformed;
-            }
-            results.push(env.sorts->addArraySort(indexSort,innerSort));
-            continue;
-          }
-
-        default:
-          ASS_EQ(bs,BS_INVALID);
-          // try other options ...
+        }
       }
 
       // try declared sorts
@@ -530,16 +510,36 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
         continue;
       }
 
-      // must be evaluating defined sort body
-      if (lookups.isEmpty()) {
-        goto malformed;
+      // try built-ins
+      BuiltInSorts bs = getBuiltInSortFromString(id);
+      switch (bs) {
+        case BS_BOOL:
+          results.push(Sorts::SRT_BOOL);
+          continue;
+        case BS_INT:
+          results.push(Sorts::SRT_INTEGER);
+          continue;
+        case BS_REAL:
+          results.push(Sorts::SRT_REAL);
+          continue;
+        case BS_ARRAY:
+          if (results.size() < 2) {
+            goto malformed;
+          } else {
+            unsigned indexSort = results.pop();
+            unsigned innerSort = results.pop();
+            if (indexSort == SEPARATOR || innerSort == SEPARATOR) {
+              goto malformed;
+            }
+            results.push(env.sorts->addArraySort(indexSort,innerSort));
+            continue;
+          }
+
+        default:
+          ASS_EQ(bs,BS_INVALID);
       }
-      SortLookup* lookup = lookups.top();
-      unsigned res;
-      if (!lookup->find(id,res)) {
-        USER_ERROR("Unrecognized sort identifier "+id);
-      }
-      results.push(res);
+
+      USER_ERROR("Unrecognized sort identifier "+id);
     }
   }
 
