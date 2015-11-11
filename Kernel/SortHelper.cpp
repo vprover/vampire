@@ -93,48 +93,11 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, unsigned& resultSo
 {
   CALL("SortHelper::getResultSortOrMasterVariable");
 
-  if (!t->isSpecial()) {
-    resultSort = getResultSort(t);
-    return true;
-  }
-  //we may have many nested special terms. to be safe, we traverse them using our own stack.
-  static Stack<Term*> candidates;
-  candidates.reset();
-
-  TermList masterVar;
-  masterVar.makeEmpty();
-
-  for (;;) {
-    switch(t->functor()) {
-    case Term::SF_ITE:
-    {
-      TermList arg1 = *t->nthArgument(0);
-      TermList arg2 = *t->nthArgument(1);
-      if (arg1.isTerm()) {
-	candidates.push(arg1.term());
-      }
-      else {
-	masterVar = arg1;
-      }
-      if (arg2.isTerm()) {
-	candidates.push(arg2.term());
-      }
-      else {
-	masterVar = arg2;
-      }
-      break;
-    }
+  switch(t->functor()) {
     case Term::SF_LET:
-    {
-      TermList arg1 = *t->nthArgument(0);
-      if (arg1.isTerm()) {
-	candidates.push(arg1.term());
-      }
-      else {
-	masterVar = arg1;
-      }
-      break;
-    }
+    case Term::SF_ITE:
+      resultSort = t->getSpecialData()->getSort();
+      return true;
     case Term::SF_FORMULA:
       resultSort = Sorts::SRT_BOOL;
       return true;
@@ -142,13 +105,6 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, unsigned& resultSo
       ASS(!t->isSpecial());
       resultSort = getResultSort(t);
       return true;
-    }
-    if (candidates.isEmpty()) {
-      ASS(masterVar.isVar());
-      resultVar = masterVar;
-      return false;
-    }
-    t = candidates.pop();
   }
 } // SortHelper::getResultSortOrMasterVariable
 
