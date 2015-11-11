@@ -216,6 +216,7 @@ public:
     union {
       struct {
         Formula * condition;
+        unsigned sort;
       } _iteData;
       struct {
         unsigned functor;
@@ -223,6 +224,7 @@ public:
 	//The size_t stands for TermList expression which cannot be here
 	//since C++ doesnot allow objects with constructor inside a union
         size_t binding;
+        unsigned sort;
       } _letData;
       struct {
         Formula * formula;
@@ -240,6 +242,7 @@ public:
     unsigned getFunctor() const { ASS_EQ(getType(), SF_LET); return _letData.functor; }
     IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
     TermList getBinding() const { ASS_EQ(getType(), SF_LET); return TermList(_letData.binding); }
+    unsigned getSort() const { ASS_REP(getType() == SF_ITE || getType() == SF_LET, getType()); return _letData.sort; }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
   };
 
@@ -256,7 +259,7 @@ public:
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch);
-  static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body);
+  static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort);
   static Term* createFormula(Formula* formula);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);

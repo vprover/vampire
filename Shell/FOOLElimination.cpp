@@ -957,7 +957,7 @@ Term* FOOLElimination::SymbolOccurrenceReplacement::process(Term* term) {
           ASS_NEQ(sd->getFunctor(), _symbol);
           ASS_NEQ(sd->getFunctor(), _freshSymbol);
         }
-        return Term::createLet(sd->getFunctor(), sd->getVariables(), process(sd->getBinding()), process(*term->nthArgument(0)));
+        return Term::createLet(sd->getFunctor(), sd->getVariables(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
       case Term::SF_FORMULA:
         return Term::createFormula(process(sd->getFormula()));

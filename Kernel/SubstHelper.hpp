@@ -279,7 +279,8 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 	  sd->getFunctor(),
 	  sd->getVariables(),
 	  applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
-	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing)
+	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
+	  sd->getSort()
 	  );
     case Term::SF_FORMULA:
       return Term::createFormula(

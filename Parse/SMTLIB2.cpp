@@ -1104,7 +1104,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           symbol = exprTerm.term()->functor();
         }
 
-        let = TermList(Term::createLet(symbol, nullptr, boundExpr, let));
+        let = TermList(Term::createLet(symbol, nullptr, boundExpr, let, exprSort));
       }
 
       results.push(ParseResult(letSort,let));

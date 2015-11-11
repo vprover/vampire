@@ -179,7 +179,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     if (sd->getVariables() == variables && binding == sd->getBinding() && contents == *t->nthArgument(0)) {
       return t;
     }
-    return Term::createLet(sd->getFunctor(), variables, binding, contents);
+    return Term::createLet(sd->getFunctor(), variables, binding, contents, sd->getSort());
   }
   case Term::SF_FORMULA:
   {

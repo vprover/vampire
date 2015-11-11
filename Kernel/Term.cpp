@@ -783,7 +783,7 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
  * Create (let lhs <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, TermList body)
+Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort)
 {
   CALL("Term::createLet");
 
@@ -808,6 +808,7 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, Te
   ASS(ss->next()->isEmpty());
   s->getSpecialData()->_letData.functor = functor;
   s->getSpecialData()->_letData.variables = variables;
+  s->getSpecialData()->_letData.sort = bodySort;
   s->getSpecialData()->_letData.binding = binding.content();
   return s;
 }
