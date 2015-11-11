@@ -242,7 +242,10 @@ public:
     unsigned getFunctor() const { ASS_EQ(getType(), SF_LET); return _letData.functor; }
     IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
     TermList getBinding() const { ASS_EQ(getType(), SF_LET); return TermList(_letData.binding); }
-    unsigned getSort() const { ASS_REP(getType() == SF_ITE || getType() == SF_LET, getType()); return _letData.sort; }
+    unsigned getSort() const {
+      ASS_REP(getType() == SF_ITE || getType() == SF_LET, getType());
+      return getType() == SF_ITE ? _iteData.sort : _letData.sort;
+    }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
   };
 
@@ -821,7 +824,6 @@ public:
 
 private:
   static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned variableSort);
-  static Literal* createSpecialTermVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned sort);
 
 }; // class Literal
 

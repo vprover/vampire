@@ -1072,10 +1072,9 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
 
    if (!SortHelper::tryGetResultSort(arg1, srt1)) {
      if (!SortHelper::tryGetResultSort(arg2, srt2)) {
-       if (arg1.isVar() && arg2.isVar()) {
-	 return createVariableEquality(polarity, arg1, arg2, sort);
-       }
-       return createSpecialTermVariableEquality(polarity, arg1, arg2, sort);
+       ASS_REP(arg1.isVar(), arg1.toString());
+       ASS_REP(arg2.isVar(), arg2.toString());
+       return createVariableEquality(polarity, arg1, arg2, sort);
      }
      ASS_EQ(srt2, sort);
    }
@@ -1111,29 +1110,6 @@ Literal* Literal::createVariableEquality (bool polarity, TermList arg1, TermList
   lit = env.sharing->insertVariableEquality(lit, variableSort);
   return lit;
 }
-
-/**
- * Create a literal that is equality conteining variables and special
- * terms for which their sort cannot be determined.
- */
-Literal* Literal::createSpecialTermVariableEquality (bool polarity, TermList arg1, TermList arg2, unsigned sort)
-{
-  CALL("Literal::createVariableEquality");
-  ASS(arg1.isTerm() || arg2.isTerm());
-#if VDEBUG
-  unsigned aux;
-  ASS(!SortHelper::tryGetResultSort(arg1, aux));
-  ASS(!SortHelper::tryGetResultSort(arg2, aux));
-#endif
-
-  Literal* lit=new(2) Literal(0,2,polarity,true);
-  *lit->nthArgument(0)=arg1;
-  *lit->nthArgument(1)=arg2;
-  lit->markTwoVarEquality();
-  lit->setTwoVarEqSort(sort);
-  return lit;
-}
-
 
 Literal* Literal::create1(unsigned predicate, bool polarity, TermList arg)
 {
