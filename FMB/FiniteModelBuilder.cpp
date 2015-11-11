@@ -392,6 +392,7 @@ void FiniteModelBuilder::init()
 
     if(env.signature->functionArity(f)==0) _constantCount++;
 
+    // f might have been added to the signature since we created the sortedSignature
     if(f >= _sortedSignature->functionBounds.size()){
       _fminbound[f]=UINT_MAX;
       continue;
