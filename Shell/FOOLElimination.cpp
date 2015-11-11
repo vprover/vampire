@@ -948,7 +948,7 @@ Term* FOOLElimination::SymbolOccurrenceReplacement::process(Term* term) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (term->functor()) {
       case Term::SF_ITE:
-        return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)));
+        return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)), sd->getSort());
 
       case Term::SF_LET:
         if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {

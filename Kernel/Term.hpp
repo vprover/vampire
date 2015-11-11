@@ -258,7 +258,7 @@ public:
   static Term* createConstant(const vstring& name);
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
-  static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch);
+  static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort);
   static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort);
   static Term* createFormula(Formula* formula);
   static Term* create1(unsigned fn, TermList arg);

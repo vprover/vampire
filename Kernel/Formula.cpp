@@ -772,7 +772,7 @@ Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseA
   CALL("Formula::createITE");
   TermList thenTerm(Term::createFormula(thenArg));
   TermList elseTerm(Term::createFormula(elseArg));
-  TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm));
+  TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm, Sorts::SRT_BOOL));
   return new BoolTermFormula(iteTerm);
 }
 

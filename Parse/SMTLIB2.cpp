@@ -1489,7 +1489,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
             goto malformed;
           }
 
-          TermList res = TermList(Term::createITE(cond, thenBranch, elseBranch));
+          TermList res = TermList(Term::createITE(cond, thenBranch, elseBranch, sort));
 
           results.push(ParseResult(sort,res));
           continue;

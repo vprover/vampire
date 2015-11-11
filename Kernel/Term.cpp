@@ -765,7 +765,7 @@ Term* Term::createNonShared(Term* t,TermList* args)
  * Create a (condition ? thenBranch : elseBranch) expression
  * and return the resulting term
  */
-Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBranch)
+Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort)
 {
   CALL("Term::createITE");
   Term* s = new(2,sizeof(SpecialTermData)) Term;
@@ -776,6 +776,7 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
   *ss = elseBranch;
   ASS(ss->next()->isEmpty());
   s->getSpecialData()->_iteData.condition = condition;
+  s->getSpecialData()->_iteData.sort = branchSort;
   return s;
 }
 
