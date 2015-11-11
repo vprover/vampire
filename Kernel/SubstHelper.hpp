@@ -278,7 +278,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       return Term::createLet(
 	  sd->getFunctor(),
 	  sd->getVariables(),
-	  applyImpl<ProcessSpecVars>(sd->getBody(), applicator, noSharing),
+	  applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing)
 	  );
     case Term::SF_FORMULA:

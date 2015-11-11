@@ -399,8 +399,8 @@ vstring Term::headToString() const
       }
       case Term::SF_LET: {
         ASS_EQ(arity(), 1);
-        TermList body = sd->getBody();
-        bool isPredicate = body.isTerm() && body.term()->isBoolean();
+        TermList binding = sd->getBinding();
+        bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
         vstring functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
                                       : env.signature->functionName(sd->getFunctor());
         BaseType* type = isPredicate ? (BaseType*)env.signature->getPredicate(sd->getFunctor())->predType()
@@ -422,7 +422,7 @@ vstring Term::headToString() const
         if (variables->length()) {
           variablesList = "(" + variablesList + ")";
         }
-        return "$let(" + functor + variablesList + " := " + body.toString() + ",";
+        return "$let(" + functor + variablesList + " := " + binding.toString() + ",";
       }
       case Term::SF_ITE: {
         ASS_EQ(arity(),2);
@@ -783,7 +783,7 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
  * Create (let lhs <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createLet(unsigned functor, IntList* variables, TermList body, TermList t)
+Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, TermList body)
 {
   CALL("Term::createLet");
 
@@ -795,7 +795,7 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList body, TermL
   }
   ASS_EQ(distinctVars.size(), variables->length());
 
-  bool isPredicate = body.isTerm() && body.term()->isBoolean();
+  bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
   const unsigned int arity = isPredicate ? env.signature->predicateArity(functor)
                                          : env.signature->functionArity(functor);
   ASS_EQ(arity, (unsigned)variables->length());
@@ -804,11 +804,11 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList body, TermL
   Term* s = new(1,sizeof(SpecialTermData)) Term;
   s->makeSymbol(SF_LET, 1);
   TermList* ss = s->args();
-  *ss = t;
+  *ss = body;
   ASS(ss->next()->isEmpty());
   s->getSpecialData()->_letData.functor = functor;
   s->getSpecialData()->_letData.variables = variables;
-  s->getSpecialData()->_letData.body = body.content();
+  s->getSpecialData()->_letData.binding = binding.content();
   return s;
 }
 

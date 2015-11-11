@@ -161,7 +161,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     ASS_EQ(t->arity(),1);
 
     bindVars(sd->getVariables());
-    TermList body = rectify(sd->getBody());
+    TermList binding = rectify(sd->getBinding());
     /**
      * We don't need to remove unused variables from the body of a functions,
      * otherwise the rectified list of variables might not fix the arity of the
@@ -176,10 +176,10 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     ASS_EQ(variables->length(), sd->getVariables()->length());
 
     TermList contents = rectify(*t->nthArgument(0));
-    if (sd->getVariables() == variables && body == sd->getBody() && contents == *t->nthArgument(0)) {
+    if (sd->getVariables() == variables && binding == sd->getBinding() && contents == *t->nthArgument(0)) {
       return t;
     }
-    return Term::createLet(sd->getFunctor(), variables, body, contents);
+    return Term::createLet(sd->getFunctor(), variables, binding, contents);
   }
   case Term::SF_FORMULA:
   {

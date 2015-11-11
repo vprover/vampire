@@ -344,8 +344,8 @@ void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSor
     }
 
     case Term::SF_LET: {
-      TermList body = sd->getBody();
-      bool isPredicate = body.isTerm() && body.term()->isBoolean();
+      TermList binding = sd->getBinding();
+      bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
       Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
                                               : env.signature->getFunction(sd->getFunctor());
       unsigned position = 0;
@@ -360,9 +360,9 @@ void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSor
       }
 
       if (isPredicate) {
-        ts.push(&body);
+        ts.push(&binding);
       } else {
-        collectVariableSorts(body, symbol->fnType()->result(), map);
+        collectVariableSorts(binding, symbol->fnType()->result(), map);
       }
 
       ts.push(term->nthArgument(0));
@@ -459,15 +459,15 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
   while (sit.hasNext()) {
     Term* t = sit.next().term();
     if(t->isLet()){
-      TermList body = t->getSpecialData()->getBody();
-      if(body.isVar()) {
-        if ( body == var) {
+      TermList binding = t->getSpecialData()->getBinding();
+      if(binding.isVar()) {
+        if ( binding == var) {
           // get result sort of the functor
           unsigned f = t->getSpecialData()->getFunctor();
           Signature::Symbol* sym = env.signature->getFunction(f);
           return sym->fnType()->result();
         }
-      } else if(tryGetVariableSort(var,body.term(),result)){
+      } else if(tryGetVariableSort(var,binding.term(),result)){
         return true;
       }
       continue;

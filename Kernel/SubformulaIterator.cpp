@@ -162,11 +162,11 @@ bool SubformulaIterator::hasNext ()
           }
           case Term::SF_LET: {
             delete _reserve;
-            TermList body = term->getSpecialData()->getBody();
-            if (!body.isTerm()) {
+            TermList binding = term->getSpecialData()->getBinding();
+            if (!binding.isTerm()) {
               _reserve = rest;
             } else {
-              _reserve = new Element(body.term(), polarity, rest);
+              _reserve = new Element(binding.term(), polarity, rest);
             }
             break;
           }
