@@ -1735,6 +1735,43 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
 
 static const char* UNDERSCORE = "_";
 
+void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
+{
+  CALL("SMTLIB2::parseRankedFunctionApplication");
+
+  ASS(exp->isList());
+  LispListReader lRdr(exp->list);
+  LExpr* head = lRdr.readNext();
+  ASS(head->isList());
+  LispListReader headRdr(head);
+
+  headRdr.acceptAtom(UNDERSCORE);
+
+  // currently we only support divisible, so this is easy
+  headRdr.acceptAtom("divisible");
+
+  const vstring& numeral = headRdr.readAtom();
+
+  if (!StringUtils::isPositiveInteger(numeral)) {
+    USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+  }
+
+  unsigned divisorSymb = TPTP::addIntegerConstant(numeral,_overflow,false);
+  TermList divisorTerm = TermList(Term::createConstant(divisorSymb));
+
+  TermList arg;
+  if (_results.isEmpty() || _results.top().isSeparator() ||
+      _results.pop().asTerm(arg) != Sorts::SRT_INTEGER) {
+    complainAboutArgShortageOrWrongSorts("ranked function symbol",exp);
+  }
+
+  unsigned pred = Theory::instance()->getPredNum(Theory::INT_DIVIDES);
+
+  Formula* res = new AtomicFormula(Literal::create2(pred,true,divisorTerm,arg));
+
+  _results.push(ParseResult(res));
+}
+
 SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 {
   CALL("SMTLIB2::parseTermOrFormula");
@@ -1816,9 +1853,14 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           ASS(exp->isList());
           LispListReader lRdr(exp->list);
 
-          id = lRdr.readAtom();
+          LExpr* head = lRdr.readNext();
 
-          // TODO: we are ignoring the underscore case here!!!
+          if (head->isList()) {
+            parseRankedFunctionApplication(exp);
+            continue;
+          }
+          ASS(head->isAtom());
+          id = head->str;
         }
 
         if (parseAsScopeLookup(id)) {

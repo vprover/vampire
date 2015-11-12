@@ -415,6 +415,9 @@ private:
    * - excludes parts for dealing with let */
   bool parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp);
 
+  /** Parsing things like "((_ divisible 5) x)" */
+  void parseRankedFunctionApplication(LExpr* exp);
+
   /**
    * Main term parsing routine.
    * Assumes "global parsing data structures" initialized.
