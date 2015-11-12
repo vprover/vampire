@@ -426,11 +426,15 @@ private:
    * Currently unsupported features (see http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.5-r2015-06-28.pdf):
    * - qualified identifiers "(as f s)"
    * - hexadecimal, binary and string spec_constants
+   * - :named expressions "(! (> x y) :named p1)" cause a user error.
+   *    They could also be ignored, but smtlib dictates that
+   *    1) the named term has to be closed (needs an extra check),
+   *    2) the new name can be used elsewhere (also already in the term being parsed in the in-order traversal)
+   *   So the proper behavior would be more difficult to support.
    *
    * Ignored feature:
    * - quantifier patterns: " (forall (( x0 A) (x1 A) (x2 A)) (! (=> (and (r x0 x1) (r x1 x2 )) (r x0 x2 )) : pattern ((r x0 x1) (r x1 x2 )) : pattern ((p x0 a)) ))
    *  the patter information is lost and the pattern data is not checked semantically.
-   * - :named expressions "(! (> x y) :named p1)", everything except the actual term is ignored
    *
    * Violates standard:
    * - requires variables under a single quantifier to be distinct

@@ -1174,8 +1174,9 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
   const vstring& attributeKind = lRdr.readAtom();
 
-  if (attributeKind != ":pattern" && attributeKind != ":named") {
+  if (attributeKind != ":pattern") {
     USER_ERROR("Unrecognized term attribute "+attributeKind);
+    // in particular, we currently don't support ":named"
   }
 
   // we ignore the rest in lRdr (no matter the number of remaining arguments and their structure)
