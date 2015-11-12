@@ -56,19 +56,24 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
 
+  // If we are incomplete then stop now
+  // Can be incomplete if we used incomplete version of equality proxy
   if(!opt.complete(prb)){
     _isComplete = false;
     return;
   }
+  // Record option values
   _startModelSize = opt.fmbStartSize();
   _useConstantsAsStart = opt.fmbStartWithConstants();
   _symmetryRatio = opt.fmbSymmetryRatio();
 
+  // Load any symbols removed during preprocessing (and their definitions)
   _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
   _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
   _partiallyDeletedPredicates.loadFromMap(prb.getPartiallyEliminatedPredicates());
   _trivialPredicates.loadFromMap(prb.trivialPredicates());
 
+  // Record the maximum arity of a function
   _maxArity = 0;
   for(unsigned f=0;f<env.signature->functions();f++){
     unsigned arity = env.signature->functionArity(f);
@@ -78,19 +83,18 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 }
 
 
-struct FMBSymmetryFunctionComparator
-{
-  static Comparison compare(unsigned f1, unsigned f2)
-  {
-    unsigned c1 = env.signature->getFunction(f1)->usageCnt();
-    unsigned c2 = env.signature->getFunction(f2)->usageCnt();
-    return Int::compare(c2,c1);
-  }
-};
-
+// Do all setting up required for finite model search for model of size size
+// Returns false we if we failed to reset, this can happen if offsets overflow 2^32, possible for
+// large signatures and large models. If this a frequent problem then we can go to longs.
 bool FiniteModelBuilder::reset(unsigned size){
   CALL("FiniteModelBuilder::reset");
 
+  // Construct the offsets for symbols
+  // Each symbol requires size^(n+1) variables where n is the number of spaces for grounding
+  // For function symbols we have n=arity+1 as we have the return value
+  // For predicate symbols n=arity 
+
+  // Start from 1 as SAT solver variables are 1-based
   unsigned offsets=1;
   for(unsigned f=0; f<env.signature->functions();f++){
     if(del_f[f]) continue; 
@@ -98,17 +102,20 @@ bool FiniteModelBuilder::reset(unsigned size){
     //cout << f << "("<<arity<<") has " << offsets << endl;
     f_offsets[f]=offsets;
     unsigned add = pow(size,arity+2);
+    // Check that we do not overflow
     if(UINT_MAX - add < offsets){
       return false;
     }
     offsets += add;
   }
+  // Start from p=1 as we ignore equality
   for(unsigned p=1; p<env.signature->predicates();p++){
     if(del_p[p]) continue;
     unsigned arity=env.signature->predicateArity(p);
     //cout << p << "("<<arity<<") has " << offsets << endl;
     p_offsets[p]=offsets;
     unsigned add = pow(size,arity+1);
+    // Check for overflow
     if(UINT_MAX - add < offsets){
       return false;
     }
@@ -116,6 +123,7 @@ bool FiniteModelBuilder::reset(unsigned size){
   }
   //cout << "Maximum offset is " << offsets << endl;
 
+  // Create a new SAT solver
   switch(_opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
       _solver = new TWLSolver(_opt, true);
@@ -123,6 +131,8 @@ bool FiniteModelBuilder::reset(unsigned size){
     case Options::SatSolver::LINGELING:
       _solver = new LingelingInterfacing(_opt, true);
       break;
+    case Options::SatSolver::Z3:
+        ASSERTION_VIOLATION_REP("Do not use fmb with Z3");
     case Options::SatSolver::MINISAT:
         try{
           _solver = new MinisatInterfacingNewSimp(_opt,true);
@@ -134,20 +144,56 @@ bool FiniteModelBuilder::reset(unsigned size){
       ASSERTION_VIOLATION_REP(_opt.satSolver());
   }
 
+  // set the number of SAT variables, this could cause an exception
   _solver->ensureVarCount(offsets+1);
 
+  // needs to be redone for each size as we use this to pick the number of
+  // things to order and the constants to ground with 
+  createSymmetryOrdering(size);
+
+  return true;
+}
+
+// Compare function symbols by their usage in the problem
+struct FMBSymmetryFunctionComparator
+{
+  static Comparison compare(unsigned f1, unsigned f2)
+  {
+    unsigned c1 = env.signature->getFunction(f1)->usageCnt();
+    unsigned c2 = env.signature->getFunction(f2)->usageCnt();
+    return Int::compare(c2,c1);
+  }
+};
+
+void FiniteModelBuilder::createSymmetryOrdering(unsigned size)
+{
+  CALL("FiniteModelBuilder::createSymmeteryOrdreing");
+  
+  // only really required the first time
   _sortedGroundedTerms.ensure(_sortedSignature->sorts);
+
+  // Build up an ordering of GroundedTerms per sort
   for(unsigned s=0;s<_sortedSignature->sorts;s++){
+
+    // Remove any previously computed ordering
     _sortedGroundedTerms[s].reset();
+
+    // Add all the constants of that sort
     for(unsigned c=0;c<_sortedSignature->sortedConstants[s].length();c++){
       GroundedTerm g;
       g.f = _sortedSignature->sortedConstants[s][c];
-      g.grounding = 0;
+      g.grounding = 0; // no grounding needed, use 0 as a place-holder
       _sortedGroundedTerms[s].push(g);
       //cout << "Adding " << g.f << "," << g.grounding << " to " << s << endl;
     }
+
+    // Next add some groundings of function symbols
+    // Currently these will be uniform groundings i.e. if we have arity 2 then we consider f(1,1),f(2,2)
+    // TODO also allow f(1,2) and f(2,1)
     bool arg_first = false;
     switch(env.options->fmbSymmetryWidgetOrders()){
+    // If function first then we do each function in turn i.e.
+    // f(1)f(2)f(3)g(1)g(2)g(3)
     case Options::FMBWidgetOrders::FUNCTION_FIRST:
     {
       for(unsigned f=0;f<_sortedSignature->sortedFunctions[s].length();f++){
@@ -175,9 +221,13 @@ bool FiniteModelBuilder::reset(unsigned size){
       }
       break;
     }
+    // If argument first then we do each size and then each function i.e.
+    // f(1)g(1)f(2)g(2)f(3)g(3)
     case Options::FMBWidgetOrders::ARGUMENT_FIRST:
       arg_first=true;
       // now use diagional code but don't do the diagonal
+
+    // If diagonal then we do f(1)g(2)h(3)f(2)g(3)h(1)f(3)g(1)h(2)
     case Options::FMBWidgetOrders::DIAGONAL:
     {
       for(unsigned m=1;m<=size;m++){
@@ -189,6 +239,8 @@ bool FiniteModelBuilder::reset(unsigned size){
           // We skip f if its range is bounded to less than size
           if(_sortedSignature->functionBounds[g.f][0] < size) continue;
 
+          // If doing arg_first then we ignore the diagonal thing
+          // otherwise the grounding is this weird function of m, f and size
           g.grounding = arg_first ? m : 1+((m+f)%(size));
 
           // We skip f if its domain is bounded to less than g.grounding
@@ -207,14 +259,14 @@ bool FiniteModelBuilder::reset(unsigned size){
     }
 
   }
-
-  return true;
 }
 
+// Initialise things for the first time
 void FiniteModelBuilder::init()
 {
   CALL("FiniteModelBuilder::init");
 
+  // If we're not complete don't both doing anything
   if(!_isComplete) return;
 
   env.statistics->phase = Statistics::FMB_PREPROCESSING;
@@ -254,6 +306,8 @@ void FiniteModelBuilder::init()
   // over the clauses of the problem
   DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
   //ClauseIterator cit = _prb.clauseIterator();
+
+  // Apply flattening and split clauses into ground and non-ground
   while(cit.hasNext()){
     Clause* c = cit.next();
 #if VTRACE_FMB
@@ -269,7 +323,6 @@ void FiniteModelBuilder::init()
       throw RefutationFoundException(c);
     }
 
-    //TODO factor out
     if(c->varCnt()==0){
 #if VTRACE_FMB
       //cout << "Add ground clause " << c->toString() << endl;
@@ -281,6 +334,10 @@ void FiniteModelBuilder::init()
 #endif
       _clauses = _clauses->cons(c);
 
+      // This code attempts to detect a maximum model size from c either as e.g.
+      // i) X=Y | X=Z | Y=Z  here we overestimate the model size
+      // ii) X=a | X=b | X=f(a) again we might have a=b so we overestimate
+      // do i) first
       unsigned posEqs = 0;
       for(unsigned i=0;i<c->length();i++){
         Literal* l = (*c)[i];
@@ -290,11 +347,28 @@ void FiniteModelBuilder::init()
         else break;
       }
       if(posEqs == c->length() && c->varCnt() < _maxModelSize){
-#if VTRACE_FMB
-        cout << "based on " << c->toString() << " setting _maxModelSize to " << _maxModelSize << endl;
-#endif
         _maxModelSize = c->varCnt();
       }      
+      else{
+        bool okay=true;
+        for(unsigned i=0;i<c->length();i++){
+          Literal* l = (*c)[i];
+          if(l->isEquality() && l->isPositive() && !l->isTwoVarEquality()){
+            if(l->nthArgument(0)->isVar()){
+              // arg 1 is term
+            }
+            else if(l->nthArgument(1)->isVar()){
+              // arg 0 is term
+            }   
+            // both are terms, stop
+            else{okay=false;break;}
+          }
+          else{okay=false;break;}
+        }
+        if(okay && c->length() < _maxModelSize){
+          _maxModelSize = _maxModelSize;
+        }
+      }
     }
   }
 

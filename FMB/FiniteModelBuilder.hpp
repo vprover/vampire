@@ -89,6 +89,11 @@ private:
   // resets all structures and SAT solver using the given modelSize
   bool reset(unsigned modelSize);
 
+  // make the symmetry orderings
+  void createSymmetryOrdering(unsigned modelSize);
+  // The per-sort ordering of grounded terms used for symmetry breaking
+  DArray<Stack<GroundedTerm>> _sortedGroundedTerms;
+
   // SAT solver used to solve constraints (a new one is used for each model size)
   ScopedPtr<SATSolver> _solver;
 
@@ -115,13 +120,12 @@ private:
   // SAT clauses to be added. We record them so we can delete them after calling the SAT solver
   SATClauseStack _clausesToBeAdded;
 
+  // The inferred signature of sorts (see SortInference.hpp)
+  SortedSignature* _sortedSignature;
   // clauses of the problem after preprocessing
   ClauseList* _groundClauses;
   ClauseList* _clauses;
 
-  // The inferred signature of sorts (see SortInference.hpp)
-  SortedSignature* _sortedSignature;
-  
   // Record for function symbol the minimum bound of the return sort or any parameter sorts 
   DArray<unsigned> _fminbound;
   // Record for each clause the minimum bounds for argument sorts of each literal
