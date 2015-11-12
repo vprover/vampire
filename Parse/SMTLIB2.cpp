@@ -409,6 +409,11 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
   static Stack<SortLookup*> lookups;
   ASS(lookups.isEmpty());
 
+  // to store defined sort's identifier when expanding its definition
+  // (for preventing circular non-sense)
+  static Stack<vstring> forbidden;
+  ASS(forbidden.isEmpty());
+
   todo.push(make_pair(SPO_PARSE,sExpr));
 
   while (todo.isNonEmpty()) {
@@ -417,6 +422,7 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
 
     if (op == SPO_POP_LOOKUP) {
       delete lookups.pop();
+      forbidden.pop();
       continue;
     }
 
@@ -458,6 +464,14 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
         if (lookup->find(id,res)) {
           results.push(res);
           continue;
+        }
+      }
+
+      {
+        for (unsigned i = 0; i < forbidden.size(); i++) {
+          if (id == forbidden[i]) {
+            USER_ERROR("Expanding circular sort definition "+ id);
+          }
         }
       }
 
@@ -503,6 +517,7 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
         }
 
         lookups.push(lookup);
+        forbidden.push(id);
 
         todo.push(make_pair(SPO_POP_LOOKUP,nullptr)); //schedule lookup deletion (see above)
         todo.push(make_pair(SPO_PARSE,def.body));
