@@ -1112,7 +1112,7 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
       symbol = exprTerm.term()->functor();
     }
 
-    let = TermList(Term::createLet(symbol, nullptr, boundExpr, let));
+    let = TermList(Term::createLet(symbol, nullptr, boundExpr, let, letSort));
   }
 
   _results.push(ParseResult(letSort,let));
@@ -1551,7 +1551,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      TermList res = TermList(Term::createITE(cond, thenBranch, elseBranch));
+      TermList res = TermList(Term::createITE(cond, thenBranch, elseBranch, sort));
 
       _results.push(ParseResult(sort,res));
       return true;

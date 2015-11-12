@@ -272,14 +272,16 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       return Term::createITE(
 	  applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
-	  applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing)
+	  applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
+          sd->getSort()
 	  );
     case Term::SF_LET:
       return Term::createLet(
 	  sd->getFunctor(),
 	  sd->getVariables(),
-	  applyImpl<ProcessSpecVars>(sd->getBody(), applicator, noSharing),
-	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing)
+	  applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
+	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
+	  sd->getSort()
 	  );
     case Term::SF_FORMULA:
       return Term::createFormula(

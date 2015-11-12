@@ -772,7 +772,7 @@ Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseA
   CALL("Formula::createITE");
   TermList thenTerm(Term::createFormula(thenArg));
   TermList elseTerm(Term::createFormula(elseArg));
-  TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm));
+  TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm, Sorts::SRT_BOOL));
   return new BoolTermFormula(iteTerm);
 }
 
@@ -785,7 +785,7 @@ Formula* Formula::createLet(unsigned functor, Formula::VarList* variables, TermL
 {
   CALL("Formula::createLet(TermList)");
   TermList contentsTerm(Term::createFormula(contents));
-  TermList letTerm(Term::createLet(functor, variables, body, contentsTerm));
+  TermList letTerm(Term::createLet(functor, variables, body, contentsTerm, Sorts::SRT_BOOL));
   return new BoolTermFormula(letTerm);
 }
 
@@ -799,7 +799,7 @@ Formula* Formula::createLet(unsigned predicate, Formula::VarList* variables, For
   CALL("Formula::createLet(Formula*)");
   TermList bodyTerm(Term::createFormula(body));
   TermList contentsTerm(Term::createFormula(contents));
-  TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm));
+  TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm, Sorts::SRT_BOOL));
   return new BoolTermFormula(letTerm);
 }
 

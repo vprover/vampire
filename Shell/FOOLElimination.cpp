@@ -546,7 +546,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *  4) Replace the term with t'
          */
 
-        TermList body = sd->getBody(); // deliberately unprocessed here
+        TermList binding = sd->getBinding(); // deliberately unprocessed here
 
         /**
          * $let-expressions are used for binding both function and predicate symbols.
@@ -555,14 +555,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          * check that it is a predicate binding and the body of the function stands in
          * the formula context
          */
-        Context bodyContext = body.isTerm() && body.term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
+        Context bindingContext = binding.isTerm() && binding.term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
 
         // collect variables Y1, ..., Yk
         Formula::VarList* argumentVars = sd->getVariables();
 
         // collect variables X1, ..., Xn
         Formula::VarList* bodyFreeVars(0);
-        Formula::VarList::Iterator bfvi(body.freeVariables());
+        Formula::VarList::Iterator bfvi(binding.freeVariables());
         while (bfvi.hasNext()) {
           int var = bfvi.next();
           if (!argumentVars->member(var)) {
@@ -575,8 +575,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Stack<unsigned> sorts = collectSorts(vars);
 
         // take the defined function symbol and its result sort
-        unsigned symbol   = sd->getFunctor();
-        unsigned bodySort = SortHelper::getResultSort(body, _varSorts);
+        unsigned symbol = sd->getFunctor();
+        unsigned bindingSort = SortHelper::getResultSort(binding, _varSorts);
 
         /**
          * Here we can take a simple shortcut. If the there are no free variables,
@@ -590,25 +590,25 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          * If the symbol is not marked as introduced then this means it was used
          * in the input after introduction, therefore it should be renamed here
          */
-        if(bodyContext == TERM_CONTEXT && !env.signature->getFunction(symbol)->introduced()) renameSymbol = true;
-        if(bodyContext == FORMULA_CONTEXT && !env.signature->getPredicate(symbol)->introduced()) renameSymbol = true;
+        if(bindingContext == TERM_CONTEXT && !env.signature->getFunction(symbol)->introduced()) renameSymbol = true;
+        if(bindingContext == FORMULA_CONTEXT && !env.signature->getPredicate(symbol)->introduced()) renameSymbol = true;
 
         // create a fresh function or predicate symbol g
-        unsigned freshSymbol = renameSymbol ? introduceFreshSymbol(bodyContext, LET_PREFIX, sorts, bodySort) : symbol;
+        unsigned freshSymbol = renameSymbol ? introduceFreshSymbol(bindingContext, LET_PREFIX, sorts, bindingSort) : symbol;
 
         // process the body of the function
         TermList processedBody;
         Formula* processedBodyFormula;
-        process(body, bodyContext, processedBody, processedBodyFormula);
+        process(binding, bindingContext, processedBody, processedBodyFormula);
 
         // build g(X1, ..., Xn, Y1, ..., Yk)
         TermList freshFunctionApplication;
         Formula* freshPredicateApplication;
-        buildApplication(freshSymbol, vars, bodyContext, freshFunctionApplication, freshPredicateApplication);
+        buildApplication(freshSymbol, vars, bindingContext, freshFunctionApplication, freshPredicateApplication);
 
         // build g(X1, ..., Xn, Y1, ..., Yk) == s
-        Formula* freshSymbolDefinition = buildEq(bodyContext, freshPredicateApplication, processedBodyFormula,
-                                                              freshFunctionApplication, processedBody, bodySort);
+        Formula* freshSymbolDefinition = buildEq(bindingContext, freshPredicateApplication, processedBodyFormula,
+                                                                 freshFunctionApplication, processedBody, bindingSort);
 
         // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) == s
         if (vars->length() > 0) {
@@ -639,7 +639,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             env.endOutput();
           }
 
-          SymbolOccurrenceReplacement replacement(bodyContext == FORMULA_CONTEXT, symbol, freshSymbol, bodyFreeVars);
+          SymbolOccurrenceReplacement replacement(bindingContext == FORMULA_CONTEXT, symbol, freshSymbol, bodyFreeVars);
           contents = replacement.process(contents);
 
           if (env.options->showPreprocessing()) {
@@ -948,16 +948,16 @@ Term* FOOLElimination::SymbolOccurrenceReplacement::process(Term* term) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (term->functor()) {
       case Term::SF_ITE:
-        return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)));
+        return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)), sd->getSort());
 
       case Term::SF_LET:
-        if (_isPredicate == (sd->getBody().isTerm() && sd->getBody().term()->isBoolean())) {
+        if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
           // function symbols, defined inside $let are expected to be
           // disjoint and fresh symbols are expected to be fresh
           ASS_NEQ(sd->getFunctor(), _symbol);
           ASS_NEQ(sd->getFunctor(), _freshSymbol);
         }
-        return Term::createLet(sd->getFunctor(), sd->getVariables(), process(sd->getBody()), process(*term->nthArgument(0)));
+        return Term::createLet(sd->getFunctor(), sd->getVariables(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
       case Term::SF_FORMULA:
         return Term::createFormula(process(sd->getFormula()));
