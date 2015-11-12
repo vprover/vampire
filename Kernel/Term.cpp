@@ -399,8 +399,8 @@ vstring Term::headToString() const
       }
       case Term::SF_LET: {
         ASS_EQ(arity(), 1);
-        TermList body = sd->getBody();
-        bool isPredicate = body.isTerm() && body.term()->isBoolean();
+        TermList binding = sd->getBinding();
+        bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
         vstring functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
                                       : env.signature->functionName(sd->getFunctor());
         BaseType* type = isPredicate ? (BaseType*)env.signature->getPredicate(sd->getFunctor())->predType()
@@ -422,7 +422,7 @@ vstring Term::headToString() const
         if (variables->length()) {
           variablesList = "(" + variablesList + ")";
         }
-        return "$let(" + functor + variablesList + " := " + body.toString() + ",";
+        return "$let(" + functor + variablesList + " := " + binding.toString() + ",";
       }
       case Term::SF_ITE: {
         ASS_EQ(arity(),2);
@@ -765,7 +765,7 @@ Term* Term::createNonShared(Term* t,TermList* args)
  * Create a (condition ? thenBranch : elseBranch) expression
  * and return the resulting term
  */
-Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBranch)
+Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort)
 {
   CALL("Term::createITE");
   Term* s = new(2,sizeof(SpecialTermData)) Term;
@@ -776,6 +776,7 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
   *ss = elseBranch;
   ASS(ss->next()->isEmpty());
   s->getSpecialData()->_iteData.condition = condition;
+  s->getSpecialData()->_iteData.sort = branchSort;
   return s;
 }
 
@@ -783,7 +784,7 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
  * Create (let lhs <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createLet(unsigned functor, IntList* variables, TermList body, TermList t)
+Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort)
 {
   CALL("Term::createLet");
 
@@ -795,7 +796,7 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList body, TermL
   }
   ASS_EQ(distinctVars.size(), variables->length());
 
-  bool isPredicate = body.isTerm() && body.term()->isBoolean();
+  bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
   const unsigned int arity = isPredicate ? env.signature->predicateArity(functor)
                                          : env.signature->functionArity(functor);
   ASS_EQ(arity, (unsigned)variables->length());
@@ -804,11 +805,12 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList body, TermL
   Term* s = new(1,sizeof(SpecialTermData)) Term;
   s->makeSymbol(SF_LET, 1);
   TermList* ss = s->args();
-  *ss = t;
+  *ss = body;
   ASS(ss->next()->isEmpty());
   s->getSpecialData()->_letData.functor = functor;
   s->getSpecialData()->_letData.variables = variables;
-  s->getSpecialData()->_letData.body = body.content();
+  s->getSpecialData()->_letData.sort = bodySort;
+  s->getSpecialData()->_letData.binding = binding.content();
   return s;
 }
 
@@ -1070,10 +1072,9 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
 
    if (!SortHelper::tryGetResultSort(arg1, srt1)) {
      if (!SortHelper::tryGetResultSort(arg2, srt2)) {
-       if (arg1.isVar() && arg2.isVar()) {
-	 return createVariableEquality(polarity, arg1, arg2, sort);
-       }
-       return createSpecialTermVariableEquality(polarity, arg1, arg2, sort);
+       ASS_REP(arg1.isVar(), arg1.toString());
+       ASS_REP(arg2.isVar(), arg2.toString());
+       return createVariableEquality(polarity, arg1, arg2, sort);
      }
      ASS_EQ(srt2, sort);
    }
@@ -1109,29 +1110,6 @@ Literal* Literal::createVariableEquality (bool polarity, TermList arg1, TermList
   lit = env.sharing->insertVariableEquality(lit, variableSort);
   return lit;
 }
-
-/**
- * Create a literal that is equality conteining variables and special
- * terms for which their sort cannot be determined.
- */
-Literal* Literal::createSpecialTermVariableEquality (bool polarity, TermList arg1, TermList arg2, unsigned sort)
-{
-  CALL("Literal::createVariableEquality");
-  ASS(arg1.isTerm() || arg2.isTerm());
-#if VDEBUG
-  unsigned aux;
-  ASS(!SortHelper::tryGetResultSort(arg1, aux));
-  ASS(!SortHelper::tryGetResultSort(arg2, aux));
-#endif
-
-  Literal* lit=new(2) Literal(0,2,polarity,true);
-  *lit->nthArgument(0)=arg1;
-  *lit->nthArgument(1)=arg2;
-  lit->markTwoVarEquality();
-  lit->setTwoVarEqSort(sort);
-  return lit;
-}
-
 
 Literal* Literal::create1(unsigned predicate, bool polarity, TermList arg)
 {

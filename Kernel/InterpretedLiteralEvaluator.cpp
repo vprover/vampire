@@ -463,7 +463,7 @@ protected:
       res = arg1<=arg2;
       return true;
     case Theory::INT_DIVIDES:
-      res = (arg1%arg2)==0;
+      res = (arg2%arg1)==0;
       return true;
     default:
       return false;

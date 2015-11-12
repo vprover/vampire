@@ -216,13 +216,15 @@ public:
     union {
       struct {
         Formula * condition;
+        unsigned sort;
       } _iteData;
       struct {
         unsigned functor;
         IntList* variables;
 	//The size_t stands for TermList expression which cannot be here
 	//since C++ doesnot allow objects with constructor inside a union
-        size_t body;
+        size_t binding;
+        unsigned sort;
       } _letData;
       struct {
         Formula * formula;
@@ -239,7 +241,11 @@ public:
     Formula* getCondition() const { ASS_EQ(getType(), SF_ITE); return _iteData.condition; }
     unsigned getFunctor() const { ASS_EQ(getType(), SF_LET); return _letData.functor; }
     IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
-    TermList getBody() const { ASS_EQ(getType(), SF_LET); return TermList(_letData.body); }
+    TermList getBinding() const { ASS_EQ(getType(), SF_LET); return TermList(_letData.binding); }
+    unsigned getSort() const {
+      ASS_REP(getType() == SF_ITE || getType() == SF_LET, getType());
+      return getType() == SF_ITE ? _iteData.sort : _letData.sort;
+    }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
   };
 
@@ -255,8 +261,8 @@ public:
   static Term* createConstant(const vstring& name);
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
-  static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch);
-  static Term* createLet(unsigned functor, IntList* variables, TermList body, TermList t);
+  static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort);
+  static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort);
   static Term* createFormula(Formula* formula);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
@@ -818,7 +824,6 @@ public:
 
 private:
   static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned variableSort);
-  static Literal* createSpecialTermVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned sort);
 
 }; // class Literal
 

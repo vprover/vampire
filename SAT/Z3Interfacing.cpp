@@ -370,6 +370,9 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
 
       switch(interp){
         // Numerical operations
+        case Theory::INT_DIVIDES:
+          ret = z3::expr(_context, Z3_mk_mod(_context, args[1], args[0])) == _context.int_val(0);
+          break;
 
         case Theory::INT_UNARY_MINUS:
         case Theory::RAT_UNARY_MINUS:

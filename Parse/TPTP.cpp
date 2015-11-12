@@ -1408,8 +1408,9 @@ void TPTP::endIte()
   TermList t2 = _termLists.pop();
   TermList t1 = _termLists.pop();
   Formula* c = _formulas.pop();
-  TermList ts(Term::createITE(c,t1,t2));
-  if (sortOf(t1) != sortOf(t2)) {
+  unsigned sort = sortOf(t1);
+  TermList ts(Term::createITE(c,t1,t2,sort));
+  if (sort != sortOf(t2)) {
     USER_ERROR((vstring)"sorts of terms in the if-then-else expression "+ts.toString()+" are not the same");
   }
   _termLists.push(ts);
@@ -1869,11 +1870,12 @@ void TPTP::endLet()
   CALL("TPTP::endLet");
 
   TermList let = _termLists.pop();
+  unsigned sort = sortOf(let);
   LetFunctionsScope::TopFirstIterator functions(_letScopes.pop());
   while (functions.hasNext()) {
     unsigned symbol = functions.next().second.first;
     _sortLists.pop(); //TODO add sort information to Let term
-    let = TermList(Term::createLet(symbol, _varLists.pop(), _termLists.pop(), let));
+    let = TermList(Term::createLet(symbol, _varLists.pop(), _termLists.pop(), let, sort));
   }
   _termLists.push(let);
 } // endLet

@@ -486,6 +486,9 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
     //this one is not according the TPTP arithmetic (it doesn't have successor)
     name="$successor";
     break;
+  case Theory::INT_DIVIDES:
+    name = "$divides";
+    break;
   case Theory::INT_DIVIDE:
   case Theory::RAT_DIVIDE:
   case Theory::REAL_DIVIDE:
