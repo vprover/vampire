@@ -426,13 +426,20 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
       } else if(tryGetVariableSort(var,binding.term(),result)){
         return true;
       }
+
+      ASS_EQ(t->arity(),1);
+      if (*t->nthArgument(0) == var) {
+        result = t->getSpecialData()->getSort();
+        return true;
+      }
+
       continue;
     }
     if (t->isITE()) {
       // if its in the condition, it is in a subformula to be iterated over by tryGetVariableSort(unsigned var, Formula* f, ...
       ASS_EQ(t->arity(),2);
-      if ((*t->nthArgument(0) == var && tryGetResultSort(*t->nthArgument(1),result)) ||
-          (*t->nthArgument(1) == var && tryGetResultSort(*t->nthArgument(0),result))) {
+      if (*t->nthArgument(0) == var || *t->nthArgument(1) == var) {
+        result = t->getSpecialData()->getSort();
         return true;
       }
       continue;
