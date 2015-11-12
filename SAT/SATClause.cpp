@@ -185,6 +185,16 @@ SATClause* SATClause::fromStack(SATLiteralStack& stack)
   return rcl;
 }
 
+SATClause* SATClause::makeUnit(SATLiteral lit)
+{
+  CALL("SATClause::fromStack");
+
+  SATClause* rcl=new(1) SATClause(1);
+  (*rcl)[0] = lit;
+  return rcl;
+}
+
+
 SATClause* SATClause::copy(SATClause* cl)
 {
   CALL("SATClause::copy");

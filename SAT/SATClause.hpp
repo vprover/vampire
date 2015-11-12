@@ -126,6 +126,7 @@ public:
   static SATClause* fromFOClause(NamingContext& context, Clause* clause);
 
   static SATClause* fromStack(SATLiteralStack& stack);
+  static SATClause* makeUnit(SATLiteral lit);
 
   static SATClause* copy(SATClause* cl);
 

@@ -27,6 +27,8 @@
 
 #include <math.h>
 
+#include <stdlib.h>
+
 #include <fstream>      // std::ofstream
 
 #include "Kernel/Ordering.hpp"
@@ -1629,20 +1631,13 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #endif
     //TODO consider adding clauses directly to SAT solver in new interface?
     // pass clauses and assumption to SAT Solver
+
+    SATClauseList* clauses_to_output = nullptr;
+
     {
       TimeCounter tc(TC_FMB_SAT_SOLVING);
 
-      {
-        BYPASSING_ALLOCATOR;
-        static int naming = 1;
-        vstring filename = "fmb"+Int::toString(naming++);
-        ofstream out(filename.c_str());
-        SATClauseList* clauses = nullptr;
-        SATClauseList::pushFromIterator(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)),clauses);
-        DIMACS::outputProblem(clauses,out);
-        out.close();
-      }
-
+      SATClauseList::pushFromIterator(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)),clauses_to_output);
       _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
     }
 
@@ -1655,16 +1650,37 @@ MainLoopResult FiniteModelBuilder::runImpl()
       assumptions.reset();
       if (_xmass) {
         for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
-          assumptions.push(SATLiteral(marker_offsets[i]+_distinctSortSizes[i]-1,0));
+          SATLiteral lit = SATLiteral(marker_offsets[i]+_distinctSortSizes[i]-1,0);
+
+          SATClauseList::push(SATClause::makeUnit(lit),clauses_to_output);
+
+          assumptions.push(lit);
           // cout << "assuming sort " << i << " value " << _distinctSortSizes[i]-1 << " negative" << endl;
         }
       } else {
         for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
-          assumptions.push(SATLiteral(totalityMarker_offset+i,1));
+          SATLiteral lit = SATLiteral(totalityMarker_offset+i,1);
+
+          SATClauseList::push(SATClause::makeUnit(lit),clauses_to_output);
+
+          assumptions.push(lit);
         }
         for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
-          assumptions.push(SATLiteral(instancesMarker_offset+i,1));
+          SATLiteral lit = SATLiteral(instancesMarker_offset+i,1);
+
+          SATClauseList::push(SATClause::makeUnit(lit),clauses_to_output);
+
+          assumptions.push(lit);
         }
+      }
+
+      {
+        BYPASSING_ALLOCATOR;
+        static int naming = 1;
+        vstring filename = "fmb"+Int::toString(naming++);
+        ofstream out(filename.c_str());
+        DIMACS::outputProblem(clauses_to_output,out);
+        out.close();
       }
 
       satResult = _solver->solveUnderAssumptions(assumptions);
