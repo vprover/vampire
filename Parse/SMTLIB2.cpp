@@ -143,6 +143,17 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("declare-const")) {
+      vstring name = ibRdr.readAtom();
+      LExpr* oSort = ibRdr.readNext();
+
+      readDeclareFun(name,nullptr,oSort);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("define-fun")) {
       vstring name = ibRdr.readAtom();
       LExprList* iArgs = ibRdr.readList();
@@ -772,6 +783,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
     USER_ERROR("Defined function body "+body->toString()+" has different sort than declared "+oSort->toString());
   }
 
+  // Only after parsing, so that the definition cannot be recursive
   DeclaredFunction fun = declareFunctionOrPredicate(name,rangeSort,argSorts);
 
   unsigned symbIdx = fun.first;

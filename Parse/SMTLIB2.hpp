@@ -431,6 +431,8 @@ private:
    *    1) the named term has to be closed (needs an extra check),
    *    2) the new name can be used elsewhere (also already in the term being parsed in the in-order traversal)
    *   So the proper behavior would be more difficult to support.
+   * - "define-funs-rec" and "define-fun-rec"; syntactically these would be fine,
+   *  but any reasonable use will rely on some well-founded semantics which can only be supported with care
    *
    * Ignored feature:
    * - quantifier patterns: " (forall (( x0 A) (x1 A) (x2 A)) (! (=> (and (r x0 x1) (r x1 x2 )) (r x0 x2 )) : pattern ((r x0 x1) (r x1 x2 )) : pattern ((p x0 a)) ))
