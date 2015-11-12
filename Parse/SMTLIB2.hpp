@@ -303,21 +303,18 @@ private:
    */
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body);
 
-  // global parsing data structures
-
-  unsigned _nextVar;
-
-  typedef pair<TermList,unsigned> SortedTerm;
-  typedef DHMap<vstring,SortedTerm> TermLookup;
-  typedef Stack<TermLookup*> Scopes;
-  Scopes _scopes;
-
+  /**
+   * Parse result of parsing an smtlib term (which can be of sort Bool and therefore represented in vampire by a formula)
+   */
   struct ParseResult {
-    ParseResult() : sort(0), formula(true), frm(nullptr) {} // special separator value
+    /** Construct special separator value */
+    ParseResult() : sort(0), formula(true), frm(nullptr) {}
 
-    bool isSeparator() {return sort == 0 && formula && !frm; }
+    bool isSeparator() { return sort == 0 && formula && !frm; }
 
+    /** Construct ParseResult from a formula */
     ParseResult(Formula* frm) : sort(BS_BOOL), formula(true), frm(frm) {}
+    /** Construct ParseResult from a term of a given sort */
     ParseResult(unsigned sort, TermList trm) : sort(sort), formula(false), trm(trm) {}
 
     unsigned sort;
@@ -327,23 +324,138 @@ private:
       TermList trm;
     };
 
+    /**
+     * Try interpreting ParseResult as a formula
+     * (which may involve unwrapping a formula special term
+     * or wrapping a Bool sorted term as BoolTermFormula)
+     * and indicate success by returning true.
+     */
     bool asFormula(Formula*& resFrm);
+    /**
+     * Interpret ParseResult as term
+     * and return its vampire sort (which may be BS_BOOL).
+     */
     unsigned asTerm(TermList& resTrm);
+
     vstring toString();
   };
 
+  /** Return Theory::Interpretation for overloaded arithmetic comparison operators based on their argSort (either Int or Real) */
   Interpretation getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned firstArgSort);
+  /** Return Theory::Interpretation for overloaded unary minus operator based on its argSort (either Int or Real) */
   Interpretation getUnaryMinusInterpretation(unsigned argSort);
+  /** Return Theory::Interpretation for overloaded arithmetic operators based on its argSort (either Int or Real) */
   Interpretation getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort);
 
+  // global parsing data structures -- BEGIN
+
+  /** For generating fresh vampire variables */
+  unsigned _nextVar;
+
+  /** < termlist, vampire sort id > */
+  typedef pair<TermList,unsigned> SortedTerm;
+  /** mast an identifier to SortedTerm */
+  typedef DHMap<vstring,SortedTerm> TermLookup;
+  typedef Stack<TermLookup*> Scopes;
+  /** Stack of parsing contexts:
+   * for variables from quantifiers and
+   * for symbols bound by let (which are variables from smtlib perspective,
+   * but require a true function/predicate symbol by vampire )
+   */
+  Scopes _scopes;
+
+  /**
+   * Stack of partial results used by parseTermOrFormula below.
+   */
+  Stack<ParseResult> _results;
+
+  /**
+   * Possible operations during parsing a term.
+   */
+  enum ParseOperation {
+    // general top level parsing request
+    PO_PARSE,              // takes LExpr*
+    // when parsing "(something args...)" the following operation will be scheduled for "something"
+    PO_PARSE_APPLICATION,  // takes LExpr* (the whole term again, for better error reporting)
+    // after "(something args...)" is parsed the following makes sure that there is exactly one proper result on the result stack above a previously inserted separator
+    PO_CHECK_ARITY,        // takes LExpr* (again the whole, just for error reporting)
+    // these two are intermediate cases for handling let
+    PO_LET_PREPARE_LOOKUP, // takes LExpr* (the whole let expression again, why not)
+    PO_LET_END             // takes LExpr* (the whole let expression again, why not)
+  };
+  /**
+   * Main smtlib term parsing stack.
+   */
+  Stack<pair<ParseOperation,LExpr*> > _todo;
+
+  // global parsing data structures -- END
+
+  // a few helper functions enabling the body of parseTermOrFormula be of reasonable size
+
+  void complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, LExpr* exp) NO_RETURN;
+
+  void parseLetBegin(LExpr* exp);
+  void parseLetPrepareLookup(LExpr* exp);
+  void parseLetEnd(LExpr* exp);
+
+  void parseQuantBegin(LExpr* exp);
+
+  void parseAnnotatedTerm(LExpr* exp);
+
+  /** Scope's are filled by forall, exists, and let */
+  bool parseAsScopeLookup(const vstring& id);
+  /** Currently either numeral or decimal */
+  bool parseAsSpecConstant(const vstring& id);
+  /** Declared or defined functions (and predicates) - which includes 0-arity ones */
+  bool parseAsUserDefinedSymbol(const vstring& id, LExpr* exp);
+  /** Whatever is built-in and looks like a formula from vampire perspective (see FormulaSymbol)
+   * - includes the second half of parsing quantifiers */
+  bool parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp);
+  /** Whatever is built-in and looks like a term from vampire perspective (see TermSymbol)
+   * - excludes parts for dealing with let */
+  bool parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp);
+
+  /**
+   * Main term parsing routine.
+   * Assumes "global parsing data structures" initialized.
+   * Returns the body's value as a ParseResult.
+   *
+   * Currently unsupported features (see http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.5-r2015-06-28.pdf):
+   * - qualified identifiers "(as f s)"
+   * - hexadecimal, binary and string spec_constants
+   *
+   * Ignored feature:
+   * - quantifier patterns: " (forall (( x0 A) (x1 A) (x2 A)) (! (=> (and (r x0 x1) (r x1 x2 )) (r x0 x2 )) : pattern ((r x0 x1) (r x1 x2 )) : pattern ((p x0 a)) ))
+   *  the patter information is lost and the pattern data is not checked semantically.
+   * - :named expressions "(! (> x y) :named p1)", everything except the actual term is ignored
+   *
+   * Violates standard:
+   * - requires variables under a single quantifier to be distinct
+   * - the rule that "variables cannot have the same name as a theory function symbol in the same scope" is currently ignored
+   */
   ParseResult parseTermOrFormula(LExpr* body);
 
+  /**
+   * Handle "assert" entry.
+   *
+   * On success results in a single formula added to _formulas.
+   */
   void readAssert(LExpr* body);
 
+  /**
+   * Units collected during parsing.
+   */
   UnitList* _formulas;
 
+  /**
+   * To support a mechanism for dealing with large arithmetic constants.
+   * Adapted from the tptp parser.
+   */
   Set<vstring> _overflow;
 
+  /**
+   * Toplevel parsing dispatch for a benchmark.
+   */
   void readBenchmark(LExprList* bench);
 };
 
