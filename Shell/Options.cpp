@@ -431,7 +431,8 @@ void Options::Options::init()
     _naming.description="Introduce names for subformulas. Given a subformula F(x1,..,xk) of formula G a new predicate symbol is introduced as a name for F(x1,..,xk) by adding the axiom n(x1,..,xk) <=> F(x1,..,xk) and replacing F(x1,..,xk) with n(x1,..,xk) in G. The value indicates how many times a subformula must be used before it is named.";
     _lookup.insert(&_naming);
     _naming.tag(OptionTag::PREPROCESSING);
-    _naming.addConstraint(lessThan(32768));
+    _naming.addHardConstraint(lessThan(32768));
+    _naming.addHardConstraint(moreThan(1));
 
 
 //*********************** Output  ***********************
