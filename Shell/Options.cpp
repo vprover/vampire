@@ -956,7 +956,9 @@ void Options::Options::init()
 
     _instGenSelection = SelectionOptionValue("inst_gen_selection","igs",0);
     _instGenSelection.description=
-    "Selection function for InstGen. This is applied *after* model-based selection is applied. We don't have the functions 11 and 1011 yet (as it would need special treatment for the look-ahead)";
+    "Selection function for InstGen. This is applied *after* model-based selection is applied. "
+    "For consistency the value 1011 is used to denote look-ahead selection.";
+    _instGenSelection.addHardConstraint(notEqual(11)); // Use 1011 for look-ahead in InstGen instead.
     _lookup.insert(&_instGenSelection);
     _instGenSelection.tag(OptionTag::INST_GEN);
     _instGenSelection.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));

@@ -52,6 +52,8 @@ namespace InstGen
 using namespace Indexing;
 using namespace Saturation;
 
+static const int LOOKAHEAD_SELECTION = 1011;
+
 IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 : MainLoop(prb, opt),
     _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
@@ -64,7 +66,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
 
-  if (opt.instGenSelection() == 11) {
+  if (opt.instGenSelection() == LOOKAHEAD_SELECTION) {
     _doLookahead = true;
   } else {
     _doLookahead = false;
