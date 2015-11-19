@@ -252,6 +252,8 @@ void Preprocess::preprocess (Problem& prb)
     preprocess2(prb);
   }
 
+  // from HERE
+
   if (prb.mayHaveFormulas() && _options.naming()) {
     if (env.options->showPreprocessing())
       env.out() << "naming" << std::endl;
@@ -272,6 +274,8 @@ void Preprocess::preprocess (Problem& prb)
 
     clausify(prb);
   }
+
+  // to HERE
 
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
@@ -591,8 +595,8 @@ void Preprocess::clausify(Problem& prb)
     }
     if (u->isClause()) {
       if (static_cast<Clause*>(u)->isEmpty()) {
-	emptyClause = u;
-	break;
+        emptyClause = u;
+        break;
       }
       continue;
     }
@@ -601,14 +605,14 @@ void Preprocess::clausify(Problem& prb)
     while (! clauses.isEmpty()) {
       Unit* u = clauses.pop();
       if (static_cast<Clause*>(u)->isEmpty()) {
-	emptyClause = u;
-	goto fin;
+        emptyClause = u;
+        goto fin;
       }
       us.insert(u);
     }
     us.del();
   }
-fin:
+  fin:
   if (emptyClause) {
     prb.units()->destroy();
     prb.units() = 0;

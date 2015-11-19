@@ -316,6 +316,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/BFNTMainLoop.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
+         Shell/NewCNF.o\
          Shell/CParser.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
