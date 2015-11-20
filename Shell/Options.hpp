@@ -1861,6 +1861,7 @@ public:
   bool bpStartWithPrecise() const { return _bpStartWithPrecise.actualValue; }
   bool bpStartWithRational() const { return _bpStartWithRational.actualValue;}
     
+  bool newCNF() const { return _newCNF.actualValue; }
 private:
     
     /**
@@ -2194,8 +2195,9 @@ private:
   SelectionOptionValue _selection;
   SelectionOptionValue _instGenSelection;
     
-
   InputFileOptionValue _inputFile;
+
+  BoolOptionValue _newCNF;
 
 
 }; // class Options

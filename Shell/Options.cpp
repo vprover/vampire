@@ -433,6 +433,10 @@ void Options::Options::init()
     _naming.tag(OptionTag::PREPROCESSING);
     _naming.addConstraint(lessThan(32768));
 
+    _newCNF = BoolOptionValue("newcnf","",false);
+    _newCNF.description="Use NewCNF algorithm to do naming, preprecess3 and clausificiation.";
+    _lookup.insert(&_newCNF);
+    _newCNF.tag(OptionTag::PREPROCESSING);
 
 //*********************** Output  ***********************
 

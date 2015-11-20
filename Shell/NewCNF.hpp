@@ -26,7 +26,7 @@ namespace Shell {
 class NewCNF
 {
 public:
-  void clausify (Kernel::Unit*,Lib::Stack<Kernel::Clause*>& stack);
+  void clausify (Kernel::FormulaUnit* unit,Lib::Stack<Kernel::Clause*>& stack);
 private:
 
 }; // class NewCNF

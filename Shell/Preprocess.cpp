@@ -15,6 +15,7 @@
 
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
+#include "NewCNF.hpp"
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
@@ -252,30 +253,33 @@ void Preprocess::preprocess (Problem& prb)
     preprocess2(prb);
   }
 
-  // from HERE
-
-  if (prb.mayHaveFormulas() && _options.naming()) {
+  if (prb.mayHaveFormulas() && _options.newCNF()) {
     if (env.options->showPreprocessing())
-      env.out() << "naming" << std::endl;
+      env.out() << "newCnf" << std::endl;
 
-    naming(prb);
+    newCnf(prb);
+  } else {
+    if (prb.mayHaveFormulas() && _options.naming()) {
+      if (env.options->showPreprocessing())
+        env.out() << "naming" << std::endl;
+
+      naming(prb);
+    }
+
+    if (prb.mayHaveFormulas()) {
+      if (env.options->showPreprocessing())
+        env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
+
+      preprocess3(prb);
+    }
+
+    if (prb.mayHaveFormulas()) {
+      if (env.options->showPreprocessing())
+        env.out() << "clausify" << std::endl;
+
+      clausify(prb);
+    }
   }
-
-  if (prb.mayHaveFormulas()) {
-    if (env.options->showPreprocessing())
-      env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
-
-    preprocess3(prb);
-  }
-
-  if (prb.mayHaveFormulas()) {
-    if (env.options->showPreprocessing())
-      env.out() << "clausify" << std::endl;
-
-    clausify(prb);
-  }
-
-  // to HERE
 
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
@@ -507,6 +511,64 @@ void Preprocess::naming(Problem& prb)
 }
 
 /**
+ * Perform the NewCNF algorithm on problem @c prb which is in ENNF
+ */
+void Preprocess::newCnf(Problem& prb)
+{
+  CALL("Preprocess::newCnf");
+
+  env.statistics->phase=Statistics::NEW_CNF;
+
+  // TODO: this is an ugly copy-paste of "Preprocess::clausify"
+
+  //we check if we haven't discovered an empty clause during preprocessing
+  Unit* emptyClause = 0;
+
+  bool modified = false;
+
+  UnitList::DelIterator us(prb.units());
+  NewCNF cnf;
+  Stack<Clause*> clauses(32);
+  while (us.hasNext()) {
+    Unit* u = us.next();
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] clausify: " << u->toString() << std::endl;
+      env.endOutput();
+    }
+    if (u->isClause()) {
+      if (static_cast<Clause*>(u)->isEmpty()) {
+        emptyClause = u;
+        break;
+      }
+      continue;
+    }
+    modified = true;
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    cnf.clausify(fu,clauses);
+    while (! clauses.isEmpty()) {
+      Clause* cl = clauses.pop();
+      if (cl->isEmpty()) {
+        emptyClause = cl;
+        goto fin;
+      }
+      us.insert(cl);
+    }
+    us.del();
+  }
+  fin:
+  if (emptyClause) {
+    prb.units()->destroy();
+    prb.units() = 0;
+    UnitList::push(emptyClause, prb.units());
+  }
+  if (modified) {
+    prb.invalidateProperty();
+  }
+  prb.reportFormulasEliminated();
+}
+
+/**
  * Preprocess the unit using options from opt. Preprocessing may
  * involve inferences and replacement of this unit by a newly inferred one.
  * Preprocessing formula units consists of the following steps:
@@ -578,7 +640,7 @@ void Preprocess::clausify(Problem& prb)
 
   env.statistics->phase=Statistics::CLAUSIFICATION;
 
-  //we check if we haven't discover an empty clause during preprocessing
+  //we check if we haven't discovered an empty clause during preprocessing
   Unit* emptyClause = 0;
 
   bool modified = false;

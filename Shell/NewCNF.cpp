@@ -10,17 +10,21 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "CNF.hpp"
+#include "NewCNF.hpp"
 
+using namespace Lib;
 using namespace Kernel;
 
 namespace Shell {
 
+void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& stack)
+{
+  CALL("NewCNF::clausify");
 
 
 
 
-
+}
 
 
 

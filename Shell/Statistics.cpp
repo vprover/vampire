@@ -366,6 +366,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Unused predicate definition removal";
   case PREPROCESS_2:
     return "Preprocessing 2";
+  case NEW_CNF:
+    return "NewCNF";
   case NAMING:
     return "Naming";
   case PREPROCESS_3:
