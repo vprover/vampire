@@ -29,7 +29,7 @@ FormulaUnit* NNF::ennf(FormulaUnit* unit)
   CALL("NNF::ennf(Unit* u)");
   ASS(! unit->isClause());
 
-  Formula* f = static_cast<FormulaUnit*>(unit)->formula();
+  Formula* f = unit->formula();
   Formula* g = ennf(f,true);
   if (f == g) { // not changed
     return unit;
@@ -52,7 +52,7 @@ FormulaUnit* NNF::nnf(FormulaUnit* unit)
   CALL("NNF::nnf(Unit*)");
   ASS(! unit->isClause());
 
-  Formula* f = static_cast<FormulaUnit*>(unit)->formula();
+  Formula* f = unit->formula();
   Formula* g = nnf(f,true);
   if (f == g) { // not changed
     return unit;
