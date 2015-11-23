@@ -38,6 +38,7 @@ public:
   TermList apply(unsigned var);
   void unbind(int var);
   void reset();
+  bool isEmpty() const { return _map.isEmpty(); }
 #if VDEBUG
   vstring toString() const;
 #endif

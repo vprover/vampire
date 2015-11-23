@@ -150,12 +150,15 @@ public:
   } // List::setHead
 
 
-  /** Set the tail of the list to tl */
-  inline void setTail(List* tl)
+  /** Set the tail of the list to tl
+   *  and return the original tail. */
+  inline List* setTail(List* tl)
   {
     ASS_NEQ(this,0);
 
+    List* res = _tail;
     _tail = tl;
+    return res;
   } // list::setTail
 
   /** Destroy the list */
