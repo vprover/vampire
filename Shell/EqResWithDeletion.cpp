@@ -51,8 +51,10 @@ bool EqResWithDeletion::apply(UnitList*& units)
 }
 
 /**
- *
  * @warning The application of this rule can currently be quadratic.
+ *
+ * The reason this is so is that "t1.containsSubterm(t0)" and "t0.containsSubterm(t1)" below
+ * don't suffice when considering simultaneous substitution. E.g. X != f(Y) | Y = g(X) | rest ...
  */
 Clause* EqResWithDeletion::apply(Clause* cl)
 {
