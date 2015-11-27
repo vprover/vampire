@@ -525,14 +525,12 @@ unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
   }
 
   // UPDATE THE SELECTION
-  bool modified = false;
   unsigned selIdx = 0;
 
   // for now, take all the tied ones
   for (unsigned i=0; i < candidates.size(); i++) {
     unsigned idx = candidates[i];
     if(selIdx!=idx) {
-      modified = true;
       swap((*cl)[idx], (*cl)[selIdx]);
     }
     selIdx++;
