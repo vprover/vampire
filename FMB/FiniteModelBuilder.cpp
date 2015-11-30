@@ -334,6 +334,8 @@ void FiniteModelBuilder::init()
 #endif
       _clauses = _clauses->cons(c);
 
+      // Only try and do this if the clause could decrease the maxModelSize
+      if(c->length() < _maxModelSize){
       // This code attempts to detect a maximum model size from c either as e.g.
       // i) X=Y | X=Z | Y=Z  here we overestimate the model size
       // ii) X=a | X=b | X=f(a) again we might have a=b so we overestimate
@@ -346,28 +348,39 @@ void FiniteModelBuilder::init()
           ){ posEqs++; }
         else break;
       }
+      // check if all literals are pos equalities
       if(posEqs == c->length() && c->varCnt() < _maxModelSize){
         _maxModelSize = c->varCnt();
       }      
-      else{
+      // then do ii) only if there are no posEqs (variable equalities)
+      else if(posEqs==0){
+        // okay is true if all literals are equalities of the form X=a or a=X for
+        // the same X (svar)
         bool okay=true;
+        int svar = -1;
         for(unsigned i=0;i<c->length();i++){
           Literal* l = (*c)[i];
           if(l->isEquality() && l->isPositive() && !l->isTwoVarEquality()){
             if(l->nthArgument(0)->isVar()){
               // arg 1 is term
+              if(svar < 0){ svar = l->nthArgument(0)->var(); }
+              else if(l->nthArgument(0)->var()!=svar){okay=false;break;}
             }
             else if(l->nthArgument(1)->isVar()){
               // arg 0 is term
+              if(svar < 0){ svar = l->nthArgument(1)->var(); }
+              else if(l->nthArgument(1)->var()!=svar){okay=false;break;}
             }   
             // both are terms, stop
             else{okay=false;break;}
           }
+          // literal is not positive non-var equality, stop
           else{okay=false;break;}
         }
         if(okay && c->length() < _maxModelSize){
           _maxModelSize = _maxModelSize;
         }
+      }
       }
     }
   }
@@ -397,6 +410,9 @@ void FiniteModelBuilder::init()
 
   }
 
+  // record the deleted functions and predicates
+  // we do this here so that there are slots for symbols introduce in previous
+  // preprocessing steps (definition introduction, splitting)
   del_f.ensure(env.signature->functions());
   del_p.ensure(env.signature->predicates());
 
@@ -407,6 +423,8 @@ void FiniteModelBuilder::init()
     del_p[p] = _deletedPredicates.find(p);
   }
 
+  // perform SortInference on ground and non-ground clauses
+  // preprocessing should preserve sorts and doing this here means that introduced symbols get sorts
   {
     TimeCounter tc(TC_FMB_SORT_INFERENCE);
     ClauseIterator cit= pvi(getConcatenatedIterator(
@@ -414,6 +432,8 @@ void FiniteModelBuilder::init()
                         ClauseList::Iterator(_groundClauses)));    
     _sortedSignature = SortInference::apply(cit,del_f,del_p);
 
+    // If symmetry ordering uses the usage after preprocessing then recompute symbol usage
+    // Otherwise this was done at clausification
     if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::PREPROCESSED_USAGE){
      // reset usage counts
      for(unsigned f=0;f<env.signature->functions();f++){
@@ -442,7 +462,8 @@ void FiniteModelBuilder::init()
      }
     }
 
-    // Fragile, change if extend FMBSymbolOrders
+    // Fragile, change if extend FMBSymbolOrders as it assumes that the values that
+    //          are not occurence depend on usage (as per FMBSymmetryFunctionComparator)
     if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURENCE){
       // Let's try sorting constants and functions in the sorted signature
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
@@ -454,12 +475,16 @@ void FiniteModelBuilder::init()
     }
   }
 
+  //TODO why is this here? Can intermediate steps introduce new functions?
   del_f.expand(env.signature->functions());
 
+  // these offsets are for SAT variables and need to be set to the right size
   f_offsets.ensure(env.signature->functions());
   p_offsets.ensure(env.signature->predicates());
 
-  //Set up fminbound
+  // Set up fminbound, which records the minimum sort size for a function symbol
+  // i.e. the smallest return or parameter sort
+  // this loop also counts the number of constants in the problem
   _fminbound.ensure(env.signature->functions());
   for(unsigned f=0;f<env.signature->functions();f++){
     if(del_f[f]) continue;
@@ -467,6 +492,7 @@ void FiniteModelBuilder::init()
     if(env.signature->functionArity(f)==0) _constantCount++;
 
     // f might have been added to the signature since we created the sortedSignature
+    // TODO how?
     if(f >= _sortedSignature->functionBounds.size()){
       _fminbound[f]=UINT_MAX;
       continue;
@@ -484,6 +510,8 @@ void FiniteModelBuilder::init()
     ClauseList::Iterator cit(_clauses);
     while(cit.hasNext()){
       Clause* c = cit.next();
+      // will record the sort bounds of each variable used in the clause 
+      // note that clauses have been normalized so variables go from 0 to varCnt
       DArray<unsigned>* bounds = new DArray<unsigned>(c->varCnt()); 
       for(unsigned i=0;i<bounds->size();i++){
         (*bounds)[i]=0; 
@@ -536,7 +564,7 @@ void FiniteModelBuilder::init()
       _clauseBounds.insert(c,bounds);
     } 
   }
-}
+} // init()
 
 void FiniteModelBuilder::addGroundClauses()
 {
@@ -547,7 +575,7 @@ void FiniteModelBuilder::addGroundClauses()
 
   ClauseList::Iterator cit(_groundClauses);
 
-  // Note ground clauses will consist of predicates only
+  // Note ground clauses will consist of propositional symbols only due to flattening
   static const DArray<unsigned> emptyGrounding(0);
   while(cit.hasNext()){
 
@@ -612,12 +640,6 @@ instanceLabel:
       else{
         grounding[i]++;
         // Grounding represents a new instance
-#if VTRACE_FMB
-        //cout << "Grounding: ";
-        //for(unsigned j=0;j<grounding.size();j++) cout << grounding[j] << " ";
-        //cout << endl;
-#endif
-
         static SATLiteralStack satClauseLits;
         satClauseLits.reset();
 
@@ -930,7 +952,7 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
 {
   CALL("FiniteModelBuilder::getSATLiteral");
 
-  // cannot have predicate 0 here
+  // cannot have predicate 0 here (it's equality)
   ASS(f>0 || isFunction);
 
   unsigned arity = isFunction ? env.signature->functionArity(f) : env.signature->predicateArity(f);
