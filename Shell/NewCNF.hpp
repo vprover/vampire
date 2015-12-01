@@ -14,6 +14,7 @@
 #include "Lib/STLAllocator.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/SharedSet.hpp"
 #include "Kernel/Substitution.hpp"
 
 namespace Kernel {
@@ -37,6 +38,9 @@ class NewCNF
 public:
   void clausify (Kernel::FormulaUnit* unit,Lib::Stack<Kernel::Clause*>& output);
 private:
+
+  Kernel::FormulaUnit* _beingClausified;
+
   /**
    * Queue of formulas to process.
    *
@@ -48,6 +52,16 @@ private:
    */
   Lib::Deque<Kernel::Formula*> _queue;
 
+  typedef std::pair<unsigned, Kernel::Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
+
+  typedef Lib::List<Binding> BindingList;
+
+  struct BindingGetFirstFunctor
+  {
+    DECL_RETURN_TYPE(unsigned);
+    OWN_RETURN_TYPE operator()(const Binding& b) { return b.first; }
+  };
+
   // generalized literal
   typedef std::pair<Kernel::Formula*, bool> GenLit; // positive occurrences have second component true
 
@@ -58,18 +72,39 @@ private:
 
     bool valid; // used for lazy deletion from OccInfo(s); see below
 
+    BindingList* bindings; // the list is not owned by the GenClause (they will shallow-copied and shared)
+    // we could/should carry bindings on the GenLits-level; but GenClause seems sufficient as long as we are rectified
+
     Lib::DArray<GenLit> lits; // TODO: remove the extra indirection and allocate inside GenClause
 
-    // constructor for a singleton GenClause
-    GenClause(Kernel::Formula* f) : valid(true), lits(1) {
-      lits[0] = make_pair(f,true);
+    Lib::vstring toString() {
+      Lib::vstring res = "GC("+Int::toString(lits.size())+")";
+      for (unsigned i = 0; i < lits.size(); i++) {
+        res += (lits[i].second ? " {T} " : " {F} ") + lits[i].first->toString();
+      }
+      BindingList::Iterator bIt(bindings);
+      while(bIt.hasNext()) {
+        Binding b = bIt.next();
+        res += " X"+Int::toString(b.first)+" --> "+b.second->toString();
+      }
+
+      return res;
     }
 
-    // constructor for a GenClause of a given size -- lits need to be filled manually
-    GenClause(unsigned size) : valid(true), lits(size) {}
+    // constructor for a singleton GenClause
+    GenClause(Kernel::Formula* f) : valid(true), bindings(nullptr), lits(1) {
+      lits[0] = make_pair(f,true);
+
+      // cout << "+GenClause GC(1)" << endl;
+    }
+
+    // constructor for a GenClause of a given size and given bindings -- lits need to be filled manually
+    GenClause(unsigned size, BindingList* bindings) : valid(true), bindings(bindings), lits(size) {
+      // cout << "+GenClause GC("<<size<<")"<< endl;
+    }
 
     ~GenClause() {
-      // TODO: print something to see it was destroyed
+      // cout << "-GenClause " << toString() << endl;
     }
   };
 
@@ -110,6 +145,27 @@ private:
   };
 
   Lib::DHMap<Kernel::Formula*, OccInfo> _occurences;
+
+  /** map var --> sort */
+  Lib::DHMap<unsigned,unsigned> _varSorts;
+
+  void ensureHavingVarSorts();
+
+  typedef const SharedSet<unsigned> VarSet;
+
+  Kernel::Term* createSkolemTerm(unsigned var, VarSet* free);
+
+  // caching of free variables for subformulas
+  Lib::DHMap<Kernel::Formula*,VarSet*> _freeVars;
+  VarSet* collectFreeVars(Kernel::Formula* g);
+  VarSet* freeVars(Kernel::Formula* g);
+
+  // two level caching scheme for quantifier bindings
+  // reset after skolemizing a particular subformula
+  Lib::DHMap<BindingList*,BindingList*> _skolemsByBindings;
+  Lib::DHMap<VarSet*,BindingList*>      _skolemsByFreeVars;
+
+  void skolemise(Kernel::Formula* g, BindingList*& bindings);
 
   void processAll();
   void processLiteral(Kernel::Formula* g, OccInfo& occInfo);
