@@ -16,6 +16,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "NewCNF.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/Signature.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -370,58 +371,54 @@ void NewCNF::processIffXor(Formula* g, OccInfo& occInfo)
   }
 }
 
-NewCNF::VarSet* NewCNF::collectFreeVars(Formula* g)
-{
-  CALL("NewCNF::collectFreeVars");
-
-  switch (g->connective()) {
-    case LITERAL: {
-      Literal* l = g->literal();
-      VariableIterator vit(l);
-      static Stack<unsigned> is;
-      is.reset();
-      while (vit.hasNext()) {
-        is.push(vit.next().var());
-      }
-      return VarSet::getFromArray(is.begin(),is.size());
-    }
-    case AND:
-    case OR: {
-      FormulaList::Iterator aIt(g->args());
-      ASS(aIt.hasNext());
-      VarSet* res = freeVars(aIt.next());
-      while (aIt.hasNext()) {
-        res = res->getUnion(freeVars(aIt.next()));
-      }
-      return res;
-    }
-    case IFF:
-    case XOR: {
-      VarSet* leftVars = freeVars(g->left());
-      return leftVars->getUnion(freeVars(g->right()));
-    }
-    case FORALL:
-    case EXISTS: {
-      VarSet* res = freeVars(g->qarg());
-      Formula::VarList::Iterator vit(g->vars());
-      res = res->subtract(VarSet::getFromIterator(vit));
-
-      _freeVars.insert(g,res); // caching for quantified subformulas only
-      return res;
-    }
-    default:
-      ASSERTION_VIOLATION;
-  }
-}
-
 NewCNF::VarSet* NewCNF::freeVars(Formula* g)
 {
   CALL("NewCNF::freeVars");
 
+  // LOG2("freeVars for ",g->toString());
+
   VarSet* res;
 
   if (!_freeVars.find(g,res)) {
-    res = collectFreeVars(g);
+    switch (g->connective()) {
+      case LITERAL: {
+        Literal* l = g->literal();
+        VariableIterator vit(l);
+        static Stack<unsigned> is;
+        is.reset();
+        while (vit.hasNext()) {
+          is.push(vit.next().var());
+        }
+        res = VarSet::getFromArray(is.begin(),is.size());
+        break;
+      }
+      case AND:
+      case OR: {
+        FormulaList::Iterator aIt(g->args());
+        ASS(aIt.hasNext());
+        res = freeVars(aIt.next());
+        while (aIt.hasNext()) {
+          res = res->getUnion(freeVars(aIt.next()));
+        }
+        break;
+      }
+      case IFF:
+      case XOR: {
+        res = freeVars(g->left());
+        res = res->getUnion(freeVars(g->right()));
+        break;
+      }
+      case FORALL:
+      case EXISTS: {
+        res = freeVars(g->qarg());
+        Formula::VarList::Iterator vit(g->vars());
+        res = res->subtract(VarSet::getFromIterator(vit));
+        break;
+      }
+      default:
+        ASSERTION_VIOLATION;
+    }
+    _freeVars.insert(g,res);
   }
 
   return res;
@@ -590,6 +587,99 @@ void NewCNF::processForallExists(Formula* g, OccInfo& occInfo)
   }
 }
 
+/**
+ * Stolen from Naming::getDefinitionLiteral
+ */
+Literal* NewCNF::createNamingLiteral(Formula* f, VarSet* free)
+{
+  CALL("NewCNF::createNamingLiteral");
+
+  int length = free->size();
+  unsigned pred = env.signature->addNamePredicate(length);
+  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+
+  if (env.colorUsed) {
+    Color fc = f->getColor();
+    if (fc != COLOR_TRANSPARENT) {
+      predSym->addColor(fc);
+    }
+    if (f->getSkip()) {
+      predSym->markSkip();
+    }
+  }
+
+  static Stack<unsigned> domainSorts;
+  static Stack<TermList> predArgs;
+  domainSorts.reset();
+  predArgs.reset();
+
+  ensureHavingVarSorts();
+
+  VarSet::Iterator vit(*free);
+  while (vit.hasNext()) {
+    unsigned uvar = vit.next();
+    domainSorts.push(_varSorts.get(uvar, Sorts::SRT_DEFAULT));
+    predArgs.push(TermList(uvar, false));
+  }
+
+  predSym->setType(new PredicateType(length, domainSorts.begin()));
+
+  return Literal::create(pred, length, true, false, predArgs.begin());
+}
+
+/**
+ * Formula g with occInfo is being named.
+ * Introduce a new symbol skP, replace the occurrences by skP(U,V,..)
+ * where U,V,.. are free variables of g and
+ * and return skP(U,V,..).
+ *
+ * Occurrence lists in occInfo get destroyed.
+ */
+Formula* NewCNF::performNaming(Kernel::Formula* g, OccInfo& occInfo)
+{
+  CALL("NewCNF::performNaming");
+
+  ASS_NEQ(g->connective(), LITERAL);
+  ASS_NEQ(g->connective(), NOT);
+
+  VarSet* free = freeVars(g);
+  Literal* atom = createNamingLiteral(g, free);
+  Formula* name = new AtomicFormula(atom);
+
+  // Correct all the GenClauses to mention name instead of g
+  // (drop references to invalid ones)
+  for (bool positive : { false, true }) {
+    SPGenClauseLookupList* occsOld = occInfo.occs(positive);
+    SPGenClauseLookupList* occsNew = nullptr;
+
+    while (SPGenClauseLookupList::isNonEmpty(occsOld)) {
+      SPGenClauseLookup gcl = occsOld->head();
+
+      SPGenClause gcOrig = gcl.gc;
+      if (!gcOrig->valid) {
+        // occsOld progresses and deletes its top
+        SPGenClauseLookupList::pop(occsOld);
+      } else {
+        SPGenClauseLookupList* redirectTo = occsNew;
+        occsNew = occsOld;
+        // occsOld's tail goes to old occsNew and occsOld progresses
+        occsOld = occsOld->setTail(redirectTo);
+
+        DArray<GenLit>& litsOrig = gcOrig->lits;
+        GenLit& gl = litsOrig[gcl.idx];
+        ASS_EQ(gl.first,g);
+        ASS_EQ(gl.second,positive);
+        gl.first = name;
+      }
+    }
+    occInfo.occs(positive) = occsNew;
+
+    // occCnts remain the same
+  }
+
+  return name;
+}
+
 void NewCNF::processAll()
 {
   CALL("NewCNF::processAll");
@@ -605,8 +695,37 @@ void NewCNF::processAll()
       LOG1(gc->toString());
     }
 
-    // TODO: naming magic, based on occurrence counts
-    // (Don't name literals. It is silly.)
+    // the case of naming
+    if (g->connective() != LITERAL && occInfo.posCnt+occInfo.negCnt > _namingThreshold) {
+      Formula* name = performNaming(g,occInfo);
+
+      for (bool positive : { false, true }) {
+        if (occInfo.cnt(positive)) {
+          // One could also consider the case where (part of) the bindings goes to the definition
+          // which perhaps allows us to the have a skolem predicate with fewer arguments
+          SPGenClause gcNew = SPGenClause(new GenClause(2,BindingList::empty()));
+
+          _genClauses.push_front(gcNew);
+          gcNew->lits[0] = make_pair(name,!positive);
+          gcNew->lits[1] = make_pair(g,positive);
+
+          occInfo.cnt(positive) = 1;
+          occInfo.occs(positive) = new SPGenClauseLookupList(SPGenClauseLookup(gcNew,_genClauses.begin(),1),0);
+        } else {
+          occInfo.occs(positive) = SPGenClauseLookupList::empty();
+        }
+      }
+
+      LOG2("performedNaming for ",g->toString());
+      for (SPGenClause gc : _genClauses ) {
+        LOG1(gc->toString());
+      }
+
+      // keep on processing g, just in the definition, why not?
+
+      // (name is just a literal an need not be touched)
+      ASS_EQ(name->connective(),LITERAL);
+    }
 
     // TODO: currently we don't check for tautologies, as there should be none appearing (we use polarity based expansion of IFF and XOR)
 

@@ -527,7 +527,7 @@ void Preprocess::newCnf(Problem& prb)
   bool modified = false;
 
   UnitList::DelIterator us(prb.units());
-  NewCNF cnf;
+  NewCNF cnf(env.options->naming());
   Stack<Clause*> clauses(32);
   while (us.hasNext()) {
     Unit* u = us.next();

@@ -36,8 +36,11 @@ namespace Shell {
 class NewCNF
 {
 public:
+  NewCNF(int namingThreshold) : _namingThreshold(namingThreshold) {}
+
   void clausify (Kernel::FormulaUnit* unit,Lib::Stack<Kernel::Clause*>& output);
 private:
+  unsigned _namingThreshold;
 
   Kernel::FormulaUnit* _beingClausified;
 
@@ -92,7 +95,7 @@ private:
     }
 
     // constructor for a singleton GenClause
-    GenClause(Kernel::Formula* f) : valid(true), bindings(nullptr), lits(1) {
+    GenClause(Kernel::Formula* f) : valid(true), bindings(BindingList::empty()), lits(1) {
       lits[0] = make_pair(f,true);
 
       // cout << "+GenClause GC(1)" << endl;
@@ -157,7 +160,6 @@ private:
 
   // caching of free variables for subformulas
   Lib::DHMap<Kernel::Formula*,VarSet*> _freeVars;
-  VarSet* collectFreeVars(Kernel::Formula* g);
   VarSet* freeVars(Kernel::Formula* g);
 
   // two level caching scheme for quantifier bindings
@@ -166,6 +168,9 @@ private:
   Lib::DHMap<VarSet*,BindingList*>      _skolemsByFreeVars;
 
   void skolemise(Kernel::Formula* g, BindingList*& bindings);
+
+  Kernel::Literal* createNamingLiteral(Kernel::Formula* g, VarSet* free);
+  Kernel::Formula* performNaming(Kernel::Formula* g, OccInfo& occInfo);
 
   void processAll();
   void processLiteral(Kernel::Formula* g, OccInfo& occInfo);
