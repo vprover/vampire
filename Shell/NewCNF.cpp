@@ -75,8 +75,8 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   SPGenClauseLookupList::push(topLevelSingletonLookup,occInfo.posOccs);
   occInfo.posCnt++;
 
-  ASS(_occurences.isEmpty());
-  ALWAYS(_occurences.insert(f,occInfo));
+  ASS(_occurrences.isEmpty());
+  ALWAYS(_occurrences.insert(f,occInfo));
 
   processAll();
 
@@ -110,6 +110,9 @@ void NewCNF::processAndOr(Formula* g, OccInfo& occInfo)
 
   LOG2("processAndOr ",g->toString());
 
+  LOG2("occInfo.posCnt ",occInfo.posCnt);
+  LOG2("occInfo.negCnt ",occInfo.negCnt);
+
   ASS(g->connective() == OR || g->connective() == AND);
 
   FormulaList* args = g->args();
@@ -121,7 +124,7 @@ void NewCNF::processAndOr(Formula* g, OccInfo& occInfo)
     while (it.hasNext()) {
       Formula* arg = it.next();
       _queue.push_back(arg);
-      ALWAYS(_occurences.insert(arg,OccInfo()));
+      ALWAYS(_occurrences.insert(arg,OccInfo()));
     }
   }
 
@@ -178,7 +181,7 @@ void NewCNF::processAndOr(Formula* g, OccInfo& occInfo)
 
           litsNew[idx] = make_pair(arg,linearizePositively);
 
-          OccInfo& occInfo = _occurences.get(arg);
+          OccInfo& occInfo = _occurrences.get(arg);
 
           SPGenClauseLookupList::push(SPGenClauseLookup(gcNew,_genClauses.begin(),idx),occInfo.occs(linearizePositively));
           occInfo.cnt(linearizePositively) += 1;
@@ -189,7 +192,7 @@ void NewCNF::processAndOr(Formula* g, OccInfo& occInfo)
       } else {
         litsNew[idx] = gl;
 
-        OccInfo* litsInfo = _occurences.findPtr(gl.first);
+        OccInfo* litsInfo = _occurrences.findPtr(gl.first);
         if (litsInfo) {
           SPGenClauseLookupList::push(SPGenClauseLookup(gcNew,_genClauses.begin(),idx),litsInfo->occs(gl.second));
 
@@ -223,7 +226,7 @@ void NewCNF::processAndOr(Formula* g, OccInfo& occInfo)
       GenLit gl = litsOrig[i];
 
       OccInfo* litsInfo;
-      if (gl.first != g && (litsInfo = _occurences.findPtr(gl.first))) {
+      if (gl.first != g && (litsInfo = _occurrences.findPtr(gl.first))) {
         litsInfo->cnt(gl.second) -= 1;
       }
     }
@@ -245,13 +248,13 @@ void NewCNF::processAndOr(Formula* g, OccInfo& occInfo)
 
           litsNew[i] = make_pair(arg,!linearizePositively);
 
-          OccInfo& occInfo = _occurences.get(arg);
+          OccInfo& occInfo = _occurrences.get(arg);
           SPGenClauseLookupList::push(SPGenClauseLookup(gcNew,_genClauses.begin(),i),occInfo.occs(!linearizePositively));
           occInfo.cnt(!linearizePositively) += 1;
         } else {
           litsNew[i] = gl;
 
-          OccInfo* litsInfo = _occurences.findPtr(gl.first);
+          OccInfo* litsInfo = _occurrences.findPtr(gl.first);
           if (litsInfo) {
             SPGenClauseLookupList::push(SPGenClauseLookup(gcNew,_genClauses.begin(),i),litsInfo->occs(gl.second));
             litsInfo->cnt(gl.second) += 1;
@@ -274,13 +277,17 @@ void NewCNF::processIffXor(Formula* g, OccInfo& occInfo)
 
   Formula* left = g->left();
   _queue.push_back(left);
-  ALWAYS(_occurences.insert(left,OccInfo()));
-  OccInfo& leftOccInfo = _occurences.get(left);
+  ALWAYS(_occurrences.insert(left,OccInfo()));
 
   Formula* right = g->right();
   _queue.push_back(right);
-  ALWAYS(_occurences.insert(right,OccInfo()));
-  OccInfo& rightOccInfo = _occurences.get(right);
+  ALWAYS(_occurrences.insert(right,OccInfo()));
+
+  // WARNING: what we do here is a bit fragile
+  // the two calls to get need to be after the two calls to insert
+  // as insert invalidates the references in general!
+  OccInfo& leftOccInfo = _occurrences.get(left);
+  OccInfo& rightOccInfo = _occurrences.get(right);
 
   // start expanding for g
 
@@ -356,7 +363,7 @@ void NewCNF::processIffXor(Formula* g, OccInfo& occInfo)
           litsNew1[idx] = gl;
           litsNew2[idx] = gl;
 
-          OccInfo* litsInfo = _occurences.findPtr(gl.first);
+          OccInfo* litsInfo = _occurrences.findPtr(gl.first);
           if (litsInfo) {
             SPGenClauseLookupList::push(SPGenClauseLookup(gcNew1,gciNew1,idx),litsInfo->occs(gl.second));
             SPGenClauseLookupList::push(SPGenClauseLookup(gcNew2,gciNew2,idx),litsInfo->occs(gl.second));
@@ -573,7 +580,7 @@ void NewCNF::processForallExists(Formula* g, OccInfo& occInfo)
     // occCnts remain the same
   }
 
-  ALWAYS(_occurences.insert(qarg,occInfo)); // qarg is reusing g's occInfo (!)
+  ALWAYS(_occurrences.insert(qarg,occInfo)); // qarg is reusing g's occInfo (!)
 
   // empty the skolem caches
   _skolemsByBindings.reset();
@@ -688,7 +695,7 @@ void NewCNF::processAll()
   while(_queue.isNonEmpty()) {
     Formula* g = _queue.pop_front();
     OccInfo occInfo;
-    ALWAYS(_occurences.pop(g,occInfo));
+    ALWAYS(_occurrences.pop(g,occInfo));
 
     LOG1("processAll iteration; _genClauses:");
     for (SPGenClause gc : _genClauses ) {

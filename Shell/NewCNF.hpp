@@ -147,7 +147,7 @@ private:
     OccInfo() : posOccs(nullptr), negOccs(nullptr), posCnt(0), negCnt(0) {}
   };
 
-  Lib::DHMap<Kernel::Formula*, OccInfo> _occurences;
+  Lib::DHMap<Kernel::Formula*, OccInfo> _occurrences;
 
   /** map var --> sort */
   Lib::DHMap<unsigned,unsigned> _varSorts;
