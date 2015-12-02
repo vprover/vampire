@@ -133,9 +133,6 @@ private:
   // This assumes that clauses are not reordered (only happens when we do selection, which we do not)
   DHMap<Clause*,DArray<unsigned>*> _clauseBounds;
 
-  // The per-sort ordering of grounded terms used for symmetry breaking
-  DArray<Stack<GroundedTerm>> _sortedGroundedTerms;
-
   // There is a implicit mapping from ground terms to SAT variables
   // These offsets give the SAT variable for the *first* grounding of each function or predicate symbol
   // Then the SAT variables for other groundings can be computed from this

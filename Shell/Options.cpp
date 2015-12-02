@@ -432,7 +432,7 @@ void Options::Options::init()
     _lookup.insert(&_naming);
     _naming.tag(OptionTag::PREPROCESSING);
     _naming.addHardConstraint(lessThan(32768));
-    _naming.addHardConstraint(moreThan(1));
+    _naming.addHardConstraint(greaterThan(1));
 
 
 //*********************** Output  ***********************

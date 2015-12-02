@@ -50,7 +50,7 @@ namespace FMB
 {
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
-: MainLoop(prb, opt), _groundClauses(0), _clauses(0), _sortedSignature(0), 
+: MainLoop(prb, opt), _groundClauses(0),  _sortedSignature(0), _clauses(0), 
                       _isComplete(true), _maxModelSize(UINT_MAX), _constantCount(0),
                       _maxArity(0)
 {
@@ -131,8 +131,10 @@ bool FiniteModelBuilder::reset(unsigned size){
     case Options::SatSolver::LINGELING:
       _solver = new LingelingInterfacing(_opt, true);
       break;
+#if VZ3
     case Options::SatSolver::Z3:
         ASSERTION_VIOLATION_REP("Do not use fmb with Z3");
+#endif
     case Options::SatSolver::MINISAT:
         try{
           _solver = new MinisatInterfacingNewSimp(_opt,true);

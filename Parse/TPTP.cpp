@@ -1852,7 +1852,11 @@ bool TPTP::findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigne
     LetFunctionsScope::Iterator functions(scope);
     while (functions.hasNext()) {
       LetFunction function = functions.next();
-      if (function.first == functionName && function.second.second == isPredicate) {
+      if (function.first == functionName){
+        if(function.second.second != isPredicate){
+          USER_ERROR("Symbol "+name+" is bound by a let as a "+(isPredicate?"function":"predicate")+
+                     " but used as a "+(isPredicate?"predicate":"function"));
+        }
         symbol = function.second.first;
         return true;
       }
