@@ -703,7 +703,7 @@ void NewCNF::processAll()
     }
 
     // the case of naming
-    if (g->connective() != LITERAL && occInfo.posCnt+occInfo.negCnt > _namingThreshold) {
+    if ((_namingThreshold > 1) && g->connective() != LITERAL && occInfo.posCnt+occInfo.negCnt > _namingThreshold) {
       Formula* name = performNaming(g,occInfo);
 
       for (bool positive : { false, true }) {
