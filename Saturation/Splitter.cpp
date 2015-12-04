@@ -620,7 +620,7 @@ Splitter::Splitter()
   CALL("Splitter::Splitter");
   if(env.options->proof()==Options::Proof::TPTP){
     unsigned spl = env.signature->addFreshFunction(0,"spl");
-    splPrefix = env.signature->functionName(spl);
+    splPrefix = env.signature->functionName(spl)+"_";
   }
 }
 
@@ -915,7 +915,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
       SplitLevel lv = getNameFromLiteral(sl);
       if(lv%2 != 0) lv--;
       UnitList::push(getDefinitionFromName(lv),ps);
-      vstring lnm = splPrefix+"_"+Lib::Int::toString(lv); 
+      vstring lnm = splPrefix+Lib::Int::toString(lv); 
       if(sl.isNegative()){ lnm = "~"+lnm; }
       FormulaList::push(new NamedFormula(lnm),resLst);
     }
@@ -1047,7 +1047,7 @@ bool Splitter::doSplitting(Clause* cl)
     SplitLevel lv = getNameFromLiteral(sl);
     if(lv%2 != 0) lv--;
     UnitList::push(getDefinitionFromName(lv),ps);
-    vstring lnm = splPrefix+"_"+Lib::Int::toString(lv);
+    vstring lnm = splPrefix+Lib::Int::toString(lv);
     if(sl.isNegative()){ lnm = "~"+lnm; }
     FormulaList::push(new NamedFormula(lnm),resLst);
   }
@@ -1117,11 +1117,11 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
   Clause* temp = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType,new Inference(Inference::AVATAR_DEFINITION));
   Formula* def_f = new BinaryFormula(IFF,
-               new NamedFormula(splPrefix+"_"+Lib::Int::toString(name)),
+               new NamedFormula(splPrefix+Lib::Int::toString(name)),
                Formula::fromClause(temp));
 
   FormulaUnit* def_u = new FormulaUnit(def_f,new Inference(Inference::AVATAR_DEFINITION),inpType);
-  InferenceStore::instance()->recordIntroducedSplitName(def_u,splPrefix+"_"+Lib::Int::toString(name));
+  InferenceStore::instance()->recordIntroducedSplitName(def_u,splPrefix+Lib::Int::toString(name));
   //cout << def_u->toString() << endl;
   ALWAYS(_defs.insert(name,def_u));
 
@@ -1516,7 +1516,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
     SplitLevel lv = getNameFromLiteral(sl);
     if(lv%2 != 0) lv--;
     UnitList::push(getDefinitionFromName(lv),ps);
-    vstring lnm = splPrefix+"_"+Lib::Int::toString(lv);
+    vstring lnm = splPrefix+Lib::Int::toString(lv);
     if(sl.isNegative()){ lnm = "~"+lnm; }
     FormulaList::push(new NamedFormula(lnm),resLst);
   }

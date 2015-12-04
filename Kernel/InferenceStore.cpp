@@ -464,12 +464,12 @@ protected:
     ASS_G(splits->size(),0);
 
     if (splits->size()==1) {
-      return "~"+splitPrefix+"_"+Int::toString(splits->sval());
+      return "~"+splitPrefix+Int::toString(splits->sval());
     }
     SplitSet::Iterator sit(*splits);
     vstring res("(");
     while(sit.hasNext()) {
-      res+= "~"+splitPrefix+"_"+Int::toString(sit.next());
+      res+= "~"+splitPrefix+Int::toString(sit.next());
       if (sit.hasNext()) {
 	res+=" | ";
       }
