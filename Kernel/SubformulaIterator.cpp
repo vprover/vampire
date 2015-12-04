@@ -230,6 +230,7 @@ Formula* SubformulaIterator::next (int& resultPolarity)
 
   case TRUE:
   case FALSE:
+  case NAME:
     _current = 0;
     break;
 

@@ -364,12 +364,16 @@ vstring Inference::ruleName(Rule rule)
     return "theory flattening";
   case BOOLEAN_TERM_ENCODING:
     return "boolean term encoding";
- // case SPLITTING_COMPONENT:
- //   return "splitting component introduction";
-  case SAT_SPLITTING_COMPONENT:
-    return "sat splitting component";
-  case SAT_SPLITTING_REFUTATION:
-    return "sat splitting refutation";
+  case AVATAR_DEFINITION:
+    return "AVATAR definition";
+  case AVATAR_COMPONENT:
+    return "AVATAR component clause";
+  case AVATAR_REFUTATION:
+    return "AVATAR sat refutation";
+  case AVATAR_SPLIT_CLAUSE:
+    return "AVATAR split clause";
+  case AVATAR_CONTRADICTION_CLAUSE:
+    return "AVATAR contradiction clause";
   case SAT_COLOR_ELIMINATION:
     return "sat color elimination";
   case GENERAL_SPLITTING_COMPONENT:

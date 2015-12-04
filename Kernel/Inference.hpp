@@ -209,10 +209,16 @@ public:
     FOOL_LET_ELIMINATION,
     /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */
     FOOL_PARAMODULATION,
-    /** component introduced by sat splitting */
-    SAT_SPLITTING_COMPONENT,
-    /** refutation of a sat splitting branch */
-    SAT_SPLITTING_REFUTATION,
+    /** definition introduced by AVATAR */
+    AVATAR_DEFINITION,
+    /** component introduced by AVATAR */
+    AVATAR_COMPONENT,
+    /** refutation of a AVATAR splitting branch */
+    AVATAR_REFUTATION,
+    /** sat clause representing FO clause for AVATAR */
+    AVATAR_SPLIT_CLAUSE,
+    /** sat clause representing FO clause for AVATAR */
+    AVATAR_CONTRADICTION_CLAUSE,
     /** sat color elimination */
     SAT_COLOR_ELIMINATION,
     /** result of general splitting */

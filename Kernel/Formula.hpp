@@ -114,6 +114,27 @@ protected:
 }; // class Formula
 
 /**
+ * Named formulas
+ * @since 04/12/2015
+ */
+class NamedFormula
+  : public Formula
+{
+public:
+  explicit NamedFormula(vstring name) : Formula(NAME), _name(name) {}
+
+  CLASS_NAME(NamedFormula);
+  USE_ALLOCATOR(NamedFormula);
+
+  vstring name(){ return _name; }
+  const vstring name() const { return _name;}
+
+protected:
+  vstring _name;
+
+}; // class NamedFormula
+
+/**
  * Atomic formulas.
  * @since 02/06/2007 Manchester
  */

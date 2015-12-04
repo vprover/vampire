@@ -135,7 +135,7 @@ unsigned Unit::getPriority() const
   if(_inference->rule() == Inference::NEGATED_CONJECTURE){ return 2; }
 
   // If we get to here it means that the component did not have an orig
-  if(_inference->rule() == Inference::SAT_SPLITTING_COMPONENT){ return 2;} 
+  if(_inference->rule() == Inference::AVATAR_COMPONENT){ return 2;} 
 
   //cout << "getPriority for " << this->toString() << endl;
 
