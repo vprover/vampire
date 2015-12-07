@@ -26,21 +26,7 @@ using namespace Kernel;
 using namespace Shell;
 
 Skolem::Skolem ()
-    : _vars(16), _beingSkolemised(0)
-  {
-    // The choice formula is ![X]: (?[Y]: x=y) => choose(x)=x
-    Formula::VarList* vs1 = 0;  
-    Formula::VarList* vs2 = 0;
-    unsigned x=0; unsigned y=1;
-    unsigned chf = env.signature->addFunction("choose",1);
-    TermList xt(x,false);
-    TermList yt(y,false);
-    TermList chx(Term::create1(chf,xt));
-    Formula::VarList::push(x,vs1);
-    Formula::VarList::push(y,vs2);
-    Formula* f = new NamedFormula("Axiom of choice (?)"); 
-    _choice = new FormulaUnit(f,new Inference(Inference::CHOICE_AXIOM),Unit::InputType::AXIOM);
-  }
+    : _vars(16), _beingSkolemised(0) {}
 
 /**
  * Skolemise the unit.
@@ -78,6 +64,10 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   ASS(_introducedSkolemFuns.isEmpty());
   _beingSkolemised=unit;
 
+  _skolimizingDefinitions = UnitList::empty();
+
+  ASS(UnitList::isEmpty(_skolimizingDefinitions));
+
   Formula* f = unit->formula();
   Formula* g = skolemise(f);
 
@@ -86,7 +76,10 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   if (f == g) { // not changed
     return unit;
   }
-  Inference* inf = new Inference2(Inference::SKOLEMIZE,unit,_choice);
+
+  UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions);
+
+  Inference* inf = new InferenceMany(Inference::SKOLEMIZE,premiseList);
   FormulaUnit* res = new FormulaUnit(g, inf, unit->inputType());
 
   ASS(_introducedSkolemFuns.isNonEmpty());
@@ -231,29 +224,44 @@ Formula* Skolem::skolemise (Formula* f)
 
       Formula::VarList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-	int v = vs.next();
-	Term* skolemTerm = createSkolemTerm(v);
-	_subst.bind(v,skolemTerm);
+        int v = vs.next();
+        Term* skolemTerm = createSkolemTerm(v);
+        _subst.bind(v,skolemTerm);
 
-  if (env.options->showSkolemisations()) {
-    env.beginOutput();
-    env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
-	    <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString();
-    env.endOutput();
-  }
-  
-  if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
-    env.beginOutput();
-    ostream& out = env.out();
-      out <<"Nonconstant skolem function introduced: "
-      <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
-      <<" in formula "<<_beingSkolemised->toString()<<endl;
-      
-	  Refutation ref(_beingSkolemised, true);
-	  ref.output(out);
-    env.endOutput();
-  }
+        if (env.options->showSkolemisations()) {
+          env.beginOutput();
+          env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
+              <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString();
+          env.endOutput();
+        }
+
+        if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
+          env.beginOutput();
+          ostream& out = env.out();
+          out <<"Nonconstant skolem function introduced: "
+              <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
+              <<" in formula "<<_beingSkolemised->toString()<<endl;
+
+          Refutation ref(_beingSkolemised, true);
+          ref.output(out);
+          env.endOutput();
+        }
       }
+
+      {
+        Formula* def = new BinaryFormula(IFF, f, SubstHelper::apply(f->qarg(), _subst));
+
+        if (arity > 0) {
+          Formula::VarList* args = Formula::VarList::empty();
+          VarStack::Iterator vit(_vars);
+          Formula::VarList::pushFromIterator(vit,args);
+          def = new QuantifiedFormula(FORALL,args,nullptr,def);
+        }
+
+        Unit* defUnit = new FormulaUnit(def, new Inference(Inference::CHOICE_AXIOM), Unit::AXIOM);
+        UnitList::push(defUnit,_skolimizingDefinitions);
+      }
+      
       Formula* g = skolemise(f->qarg());
       vs.reset(f->vars());
       while (vs.hasNext()) {

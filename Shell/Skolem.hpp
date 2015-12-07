@@ -64,7 +64,7 @@ private:
 
   FormulaUnit* _beingSkolemised;
 
-  FormulaUnit* _choice;
+  UnitList* _skolimizingDefinitions;
 
 }; // class Skolem
 
