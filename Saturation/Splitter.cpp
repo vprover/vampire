@@ -157,6 +157,19 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
   }
 }
 
+static Color colorFromAssumedFOConversion(SATInference* inf,Unit*& u)
+{
+  ASS_EQ(inf->getType(),SATInference::FO_CONVERSION);
+  u = static_cast<FOConversionInference*>(inf)->getOrigin();
+  Inference* i = u->inference();
+  Inference::Iterator it = i->iterator();
+  ASS(i->hasNext(it));
+  Unit* u1 = i->next(it);
+  ASS(u1->isClause());
+  Clause* cl = u1->asClause();
+  return cl->color();
+}
+
 void SplittingBranchSelector::handleSatRefutation()
 {
   CALL("SplittingBranchSelector::handleSatRefutation");
@@ -193,17 +206,11 @@ void SplittingBranchSelector::handleSatRefutation()
       SATClause* scl = it1.next();
       // cout << "SAT: " << scl->toString() << endl;
 
-      SATInference* inf = scl->inference();
+      Unit* dummy;
+      Color c = colorFromAssumedFOConversion(scl->inference(),dummy);
 
-      ASS_EQ(inf->getType(),SATInference::FO_CONVERSION);
-      Unit* u =  static_cast<FOConversionInference*>(inf)->getOrigin();
-
-      ASS(u->isClause());
-      Clause* cl = u->asClause();
-      // cout << "FOF: " << cl->toString() << endl;
-
-      ASS_L(cl->color(),COLOR_INVALID);
-      colorCnts[cl->color()]++;
+      ASS_L(c,COLOR_INVALID);
+      colorCnts[c]++;
     }
 
     //cout << colorCnts[0] << " " << colorCnts[1] <<  " " << colorCnts[2] << endl;
@@ -221,17 +228,15 @@ void SplittingBranchSelector::handleSatRefutation()
     SATClauseStack::Iterator it2(actualSatPremises);
     while (it2.hasNext()) {
       SATClause* scl = it2.next();
-      SATInference* inf = scl->inference();
-      ASS_EQ(inf->getType(),SATInference::FO_CONVERSION);
-      Unit* u =  static_cast<FOConversionInference*>(inf)->getOrigin();
-      ASS(u->isClause());
-      Clause* cl = u->asClause();
-      if (cl->color() == sndCol) {
+      Unit* u;
+      Color c = colorFromAssumedFOConversion(scl->inference(),u);
+
+      if (c == sndCol) {
         second.push(scl);
-        UnitList::push(cl,second_prems);
+        UnitList::push(u,second_prems);
       } else {
         first.push(scl); // contains first col ones and transparent ones together
-        UnitList::push(cl,first_prems);
+        UnitList::push(u,first_prems);
       }
     }
 
@@ -907,7 +912,6 @@ bool Splitter::handleNonSplittable(Clause* cl)
     SATClause* nsClause = SATClause::fromStack(satLits);
 
     UnitList* ps = 0;
-    UnitList::push(cl,ps);
 
     FormulaList* resLst=0;
     for(unsigned i=0;i<nsClause->length();i++){
@@ -919,6 +923,8 @@ bool Splitter::handleNonSplittable(Clause* cl)
       if(sl.isNegative()){ lnm = "~"+lnm; }
       FormulaList::push(new NamedFormula(lnm),resLst);
     }
+
+    UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
 
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
     FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::AVATAR_SPLIT_CLAUSE,ps),cl->inputType());
@@ -1039,7 +1045,6 @@ bool Splitter::doSplitting(Clause* cl)
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
 
   UnitList* ps = 0;
-  UnitList::push(cl,ps);
 
   FormulaList* resLst=0;
   for(unsigned i=0;i<splitClause->length();i++){
@@ -1051,6 +1056,8 @@ bool Splitter::doSplitting(Clause* cl)
     if(sl.isNegative()){ lnm = "~"+lnm; }
     FormulaList::push(new NamedFormula(lnm),resLst);
   }
+
+  UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::AVATAR_SPLIT_CLAUSE,ps),cl->inputType());
@@ -1509,7 +1516,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
   SATClause* confl = SATClause::fromStack(conflictLits);
 
   UnitList* ps = 0;
-  UnitList::push(cl,ps);
+
   FormulaList* resLst=0;
   for(unsigned i=0;i<confl->length();i++){
     SATLiteral sl = (*confl)[i];
@@ -1520,6 +1527,8 @@ bool Splitter::handleEmptyClause(Clause* cl)
     if(sl.isNegative()){ lnm = "~"+lnm; }
     FormulaList::push(new NamedFormula(lnm),resLst);
   }
+
+  UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::AVATAR_CONTRADICTION_CLAUSE,ps),cl->inputType());
