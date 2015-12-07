@@ -40,9 +40,7 @@ public:
       unsigned rangeSort, const char* suffix=0);
 private:
   /** Initialise a Skolem object */
-  Skolem ()
-    : _vars(16), _beingSkolemised(0)
-  {}
+  Skolem ();
   FormulaUnit* skolemiseImpl(FormulaUnit*);
   Formula* skolemise(Formula*);
   FormulaList* skolemise(FormulaList*);
@@ -65,6 +63,9 @@ private:
   Stack<unsigned> _introducedSkolemFuns;
 
   FormulaUnit* _beingSkolemised;
+
+  FormulaUnit* _choice;
+
 }; // class Skolem
 
 }

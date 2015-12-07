@@ -356,6 +356,8 @@ vstring Inference::ruleName(Rule rule)
     return "grounding";
   case EQUALITY_AXIOM:
     return "equality axiom";
+  case CHOICE_AXIOM:
+    return "choice axiom";
   case THEORY:
     return "theory axiom";
   case FOOL_AXIOM:

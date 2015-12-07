@@ -192,6 +192,8 @@ public:
     GROUNDING,
     /** equality axiom */
     EQUALITY_AXIOM,
+    /** choice axiom */
+    CHOICE_AXIOM,
     /** any added theory axioms */
     THEORY,
     /** one of two axioms of FOOL (distinct constants or finite domain) */

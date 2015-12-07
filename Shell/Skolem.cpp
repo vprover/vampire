@@ -9,6 +9,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
@@ -23,6 +24,23 @@
 
 using namespace Kernel;
 using namespace Shell;
+
+Skolem::Skolem ()
+    : _vars(16), _beingSkolemised(0)
+  {
+    // The choice formula is ![X]: (?[Y]: x=y) => choose(x)=x
+    Formula::VarList* vs1 = 0;  
+    Formula::VarList* vs2 = 0;
+    unsigned x=0; unsigned y=1;
+    unsigned chf = env.signature->addFunction("choose",1);
+    TermList xt(x,false);
+    TermList yt(y,false);
+    TermList chx(Term::create1(chf,xt));
+    Formula::VarList::push(x,vs1);
+    Formula::VarList::push(y,vs2);
+    Formula* f = new NamedFormula("Axiom of choice (?)"); 
+    _choice = new FormulaUnit(f,new Inference(Inference::CHOICE_AXIOM),Unit::InputType::AXIOM);
+  }
 
 /**
  * Skolemise the unit.
@@ -68,7 +86,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   if (f == g) { // not changed
     return unit;
   }
-  Inference* inf = new Inference1(Inference::SKOLEMIZE,unit);
+  Inference* inf = new Inference2(Inference::SKOLEMIZE,unit,_choice);
   FormulaUnit* res = new FormulaUnit(g, inf, unit->inputType());
 
   ASS(_introducedSkolemFuns.isNonEmpty());

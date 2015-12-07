@@ -2364,7 +2364,15 @@ void TPTP::endFormula()
     break;
   case NOT:
     f = _formulas.pop();
-    _formulas.push(new NegatedFormula(f));
+    // This gets rid of the annoying step in proof output where ~(L) is flattend to (~L)
+    if(f->connective()==LITERAL){
+      Literal* oldLit = static_cast<AtomicFormula*>(f)->literal();
+      Literal* newLit = Literal::create(oldLit,!oldLit->polarity());
+      _formulas.push(new AtomicFormula(newLit));
+    }
+    else{
+      _formulas.push(new NegatedFormula(f));
+    }
     _states.push(END_FORMULA);
     return;
   case FORALL:
