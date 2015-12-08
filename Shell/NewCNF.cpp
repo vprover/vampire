@@ -62,9 +62,6 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
     break;
   }
 
-  ASS(_queue.isEmpty());
-  _queue.push_back(f);
-
   SPGenClause topLevelSingleton = SPGenClause(new GenClause(f));
 
   ASS(_genClauses.empty());
@@ -74,8 +71,9 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   Occurrences occurrences;
   occurrences.add(POSITIVE, topLevelSingletonLookup);
 
+  ASS(_queue.isEmpty());
   ASS(_occurrences.isEmpty());
-  ALWAYS(_occurrences.insert(f,occurrences));
+  enqueue(f, occurrences);
 
   processAll();
 
@@ -115,9 +113,7 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
   {
     FormulaList::Iterator it(args);
     while (it.hasNext()) {
-      Formula* arg = it.next();
-      _queue.push_back(arg);
-      ALWAYS(_occurrences.insert(arg, Occurrences()));
+      enqueue(it.next());
     }
   }
 
@@ -254,12 +250,10 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
   // update the queue and create Occurrences for sub-formulas here
 
   Formula* left = g->left();
-  _queue.push_back(left);
-  ALWAYS(_occurrences.insert(left, Occurrences()));
+  enqueue(left);
 
   Formula* right = g->right();
-  _queue.push_back(right);
-  ALWAYS(_occurrences.insert(right, Occurrences()));
+  enqueue(right);
 
   // WARNING: what we do here is a bit fragile
   // the two calls to get need to be after the two calls to insert
@@ -502,7 +496,7 @@ void NewCNF::processForallExists(QuantifiedFormula* g, Occurrences &occurrences)
   // update the queue and reuse (!) Occurrences for sub-formula
 
   Formula* qarg = g->qarg();
-  _queue.push_back(qarg);
+  enqueue(qarg, occurrences); // qarg is reusing g's occurrences (!)
 
   // the skolem caches are empty
   ASS(_skolemsByBindings.isEmpty());
@@ -546,8 +540,6 @@ void NewCNF::processForallExists(QuantifiedFormula* g, Occurrences &occurrences)
 
     // occCnts remain the same
   }
-
-  ALWAYS(_occurrences.insert(qarg,occurrences)); // qarg is reusing g's occurrences (!)
 
   // empty the skolem caches
   _skolemsByBindings.reset();
@@ -660,9 +652,9 @@ void NewCNF::processAll()
 
   // process the generalized clauses until they contain only literals
   while(_queue.isNonEmpty()) {
-    Formula* g = _queue.pop_front();
+    Formula* g;
     Occurrences occurrences;
-    ALWAYS(_occurrences.pop(g,occurrences));
+    dequeue(g, occurrences);
 
     LOG1("processAll iteration; _genClauses:");
     for (SPGenClause gc : _genClauses ) {

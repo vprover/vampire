@@ -215,6 +215,16 @@ private:
   Kernel::Literal* createNamingLiteral(Kernel::Formula* g, VarSet* free);
   Kernel::Formula* performNaming(Kernel::Formula* g, Occurrences & occInfo);
 
+  void enqueue(Formula *formula, Occurrences occurrences = Occurrences()) {
+    _queue.push_back(formula);
+    ALWAYS(_occurrences.insert(formula,occurrences));
+  }
+
+  void dequeue(Formula* &formula, Occurrences &occurrences) {
+    formula = _queue.pop_front();
+    ALWAYS(_occurrences.pop(formula,occurrences));
+  }
+
   void processAll();
   void processLiteral(Kernel::Literal* l, Occurrences & occInfo);
   void processAndOr(Kernel::JunctionFormula* g, Occurrences & occInfo);
