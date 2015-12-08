@@ -79,7 +79,7 @@ private:
     CLASS_NAME(NewCNF::GenClause);
     USE_ALLOCATOR(NewCNF::GenClause);
 
-    bool valid; // used for lazy deletion from OccInfo(s); see below
+    bool valid; // used for lazy deletion from Occurrences(s); see below
 
     BindingList* bindings; // the list is not owned by the GenClause (they will shallow-copied and shared)
     // we could/should carry bindings on the GenLits-level; but GenClause seems sufficient as long as we are rectified
@@ -136,24 +136,26 @@ private:
 
   typedef Lib::List<SPGenClauseLookup> SPGenClauseLookupList;
 
-  struct OccInfo {
+  struct Occurrences {
     // may contain pointers to invalidated GenClauses
-    SPGenClauseLookupList* posOccs;
-    SPGenClauseLookupList* negOccs;
+    SPGenClauseLookupList* positiveOccurrences;
+    SPGenClauseLookupList* negativeOccurrences;
 
-    SPGenClauseLookupList*& occs(SIGN sign) { return sign == POSITIVE ? posOccs : negOccs; }
+    SPGenClauseLookupList* &of(SIGN sign) {
+      return sign == POSITIVE ? positiveOccurrences : negativeOccurrences;
+    }
 
     // exact counts
-    unsigned posCnt;
-    unsigned negCnt;
+    unsigned positiveCount;
+    unsigned negativeCount;
 
-    unsigned& cnt(SIGN sign) { return sign == POSITIVE ? posCnt : negCnt; }
+    unsigned& count(SIGN sign) { return sign == POSITIVE ? positiveCount : negativeCount; }
 
-    // constructor for an empty OccInto
-    OccInfo() : posOccs(nullptr), negOccs(nullptr), posCnt(0), negCnt(0) {}
+    // constructor for an empty Occurrences
+    Occurrences() : positiveOccurrences(nullptr), negativeOccurrences(nullptr), positiveCount(0), negativeCount(0) {}
   };
 
-  Lib::DHMap<Kernel::Formula*, OccInfo> _occurrences;
+  Lib::DHMap<Kernel::Formula*, Occurrences> _occurrences;
 
   /** map var --> sort */
   Lib::DHMap<unsigned,unsigned> _varSorts;
@@ -176,13 +178,13 @@ private:
   void skolemise(Kernel::Formula* g, BindingList*& bindings);
 
   Kernel::Literal* createNamingLiteral(Kernel::Formula* g, VarSet* free);
-  Kernel::Formula* performNaming(Kernel::Formula* g, OccInfo& occInfo);
+  Kernel::Formula* performNaming(Kernel::Formula* g, Occurrences & occInfo);
 
   void processAll();
-  void processLiteral(Kernel::Formula* g, OccInfo& occInfo);
-  void processAndOr(Kernel::Formula* g, OccInfo& occInfo);
-  void processIffXor(Kernel::Formula* g, OccInfo& occInfo);
-  void processForallExists(Kernel::Formula* g, OccInfo& occInfo);
+  void processLiteral(Kernel::Formula* g, Occurrences & occInfo);
+  void processAndOr(Kernel::Formula* g, Occurrences & occInfo);
+  void processIffXor(Kernel::Formula* g, Occurrences & occInfo);
+  void processForallExists(Kernel::Formula* g, Occurrences & occInfo);
 
   void createClauses(Lib::Stack<Kernel::Clause*>& output);
 
