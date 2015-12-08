@@ -132,17 +132,10 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
 
   SPGenClauseLookupList* toLinearize;   // the positive OR and negative AND
   SPGenClauseLookupList* toDistribute; // the negative AND and positive OR
-  bool linearizePositively; // == !distributeNegatively
 
-  if (g->connective() == OR) {
-    toLinearize = occurrences.positiveOccurrences;
-    toDistribute = occurrences.negativeOccurrences;
-    linearizePositively = true;
-  } else {
-    toLinearize = occurrences.negativeOccurrences;
-    toDistribute = occurrences.positiveOccurrences;
-    linearizePositively = false;
-  }
+  SIGN linearizationSign = g->connective() == OR ? POSITIVE : NEGATIVE; // == !distributeNegatively
+  toLinearize  = occurrences.of(linearizationSign);
+  toDistribute = occurrences.of(OPPOSITE(linearizationSign));
 
   // process toLinarize
 
@@ -172,20 +165,20 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
 
       if (gl.first == g) {
         ASS_EQ(i,gcl.idx);
-        ASS_EQ(gl.second, linearizePositively);
+        ASS_EQ(gl.second, linearizationSign);
 
         // insert arguments instead of g here (and update occurrences)
         FormulaList::Iterator it(args);
         while (it.hasNext()) {
           Formula* arg = it.next();
 
-          litsNew[idx] = make_pair(arg,linearizePositively);
+          litsNew[idx] = make_pair(arg,linearizationSign);
 
           Occurrences &occurrences = _occurrences.get(arg);
 
           SPGenClauseLookupList::push(SPGenClauseLookup(gcNew,_genClauses.begin(),idx),
-                                      occurrences.of(linearizePositively));
-          occurrences.count(linearizePositively) += 1;
+                                      occurrences.of(linearizationSign));
+          occurrences.count(linearizationSign) += 1;
 
           idx++;
         }
@@ -245,14 +238,14 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
 
         if (gl.first == g) {
           ASS_EQ(i,gcl.idx);
-          ASS_EQ(gl.second, !linearizePositively);
+          ASS_EQ(gl.second, OPPOSITE(linearizationSign));
 
-          litsNew[i] = make_pair(arg,!linearizePositively);
+          litsNew[i] = make_pair(arg,OPPOSITE(linearizationSign));
 
           Occurrences &occurrences = _occurrences.get(arg);
           SPGenClauseLookupList::push(SPGenClauseLookup(gcNew,_genClauses.begin(),i),
-                                      occurrences.of(!linearizePositively));
-          occurrences.count(!linearizePositively) += 1;
+                                      occurrences.of(OPPOSITE(linearizationSign)));
+          occurrences.count(OPPOSITE(linearizationSign)) += 1;
         } else {
           litsNew[i] = gl;
 
@@ -295,13 +288,9 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
 
   SPGenClauseLookupList* toProcess[2];  // the first is the IFF-like, the second the XOR-like
 
-  if (g->connective() == IFF) {
-    toProcess[0] = occurrences.positiveOccurrences;
-    toProcess[1] = occurrences.negativeOccurrences;
-  } else {
-    toProcess[0] = occurrences.negativeOccurrences;
-    toProcess[1] = occurrences.positiveOccurrences;
-  }
+  SIGN sign = g->connective() == IFF ? POSITIVE : NEGATIVE;
+  toProcess[0] = occurrences.of(sign);
+  toProcess[1] = occurrences.of(OPPOSITE(sign));
 
   for (unsigned flip = 0; flip < 2; flip++) {
     SPGenClauseLookupList* current = toProcess[flip];
