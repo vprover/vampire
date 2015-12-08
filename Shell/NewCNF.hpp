@@ -216,10 +216,10 @@ private:
   Kernel::Formula* performNaming(Kernel::Formula* g, Occurrences & occInfo);
 
   void processAll();
-  void processLiteral(Kernel::Formula* g, Occurrences & occInfo);
-  void processAndOr(Kernel::Formula* g, Occurrences & occInfo);
+  void processLiteral(Kernel::Literal* l, Occurrences & occInfo);
+  void processAndOr(Kernel::JunctionFormula* g, Occurrences & occInfo);
   void processIffXor(Kernel::Formula* g, Occurrences & occInfo);
-  void processForallExists(Kernel::Formula* g, Occurrences & occInfo);
+  void processForallExists(Kernel::QuantifiedFormula* g, Occurrences & occInfo);
 
   void createClauses(Lib::Stack<Kernel::Clause*>& output);
 

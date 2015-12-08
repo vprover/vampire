@@ -85,25 +85,21 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   _freeVars.reset();
 }
 
-void NewCNF::processLiteral(Formula* g, Occurrences &occurrences)
+void NewCNF::processLiteral(Literal* l, Occurrences &occurrences)
 {
   CALL("NewCNF::processLiteral");
 
-  LOG2("processLiteral ",g->toString());
-
-  ASS(g->connective() == LITERAL);
+  LOG2("processLiteral ",l->toString());
 
   // just delete occurrences to release the SPGenClauses
 
   for (SIGN sign : { NEGATIVE, POSITIVE }) {
-    SPGenClauseLookupList* signOccurrences = occurrences.of(sign);
-    signOccurrences->destroy();
-
+    occurrences.of(sign)->destroy();
     // TODO: could check in debug mode that the occurrences are valid
   }
 }
 
-void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
+void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
 {
   CALL("NewCNF::processAndOr");
 
@@ -112,10 +108,8 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
   LOG2("occurrences.positiveCount ",occurrences.positiveCount);
   LOG2("occurrences.negativeCount ",occurrences.negativeCount);
 
-  ASS(g->connective() == OR || g->connective() == AND);
-
   FormulaList* args = g->args();
-  unsigned argLen = args->length();
+  unsigned argLen = (unsigned)args->length();
 
   // update the queue and create Occurrences for sub-formulas here
   {
@@ -128,15 +122,11 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
   }
 
   // start expanding for g
-
-  SPGenClauseLookupList* toLinearize;   // the positive OR and negative AND
-  SPGenClauseLookupList* toDistribute; // the negative AND and positive OR
-
   SIGN linearizationSign = g->connective() == OR ? POSITIVE : NEGATIVE; // == !distributeNegatively
-  toLinearize  = occurrences.of(linearizationSign);
-  toDistribute = occurrences.of(OPPOSITE(linearizationSign));
 
   // process toLinarize
+  // the positive OR and negative AND
+  SPGenClauseLookupList* toLinearize = occurrences.of(linearizationSign);
 
   while (SPGenClauseLookupList::isNonEmpty(toLinearize)) {
     SPGenClauseLookup gcl = SPGenClauseLookupList::pop(toLinearize);
@@ -151,7 +141,7 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
     _genClauses.erase(gci);
 
     DArray<GenLit>& litsOrig = gcOrig->lits;
-    unsigned lenOrig = litsOrig.size();
+    unsigned lenOrig = (unsigned)litsOrig.size();
 
     SPGenClause gcNew = SPGenClause(new GenClause(lenOrig+argLen-1,gcOrig->bindings));
     _genClauses.push_front(gcNew);
@@ -173,8 +163,8 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
 
           litsNew[idx] = make_pair(arg,linearizationSign);
 
-          Occurrences &occurrences = _occurrences.get(arg);
-          occurrences.add(linearizationSign, SPGenClauseLookup(gcNew,_genClauses.begin(),idx));
+          Occurrences &argOccurrences = _occurrences.get(arg);
+          argOccurrences.add(linearizationSign, SPGenClauseLookup(gcNew,_genClauses.begin(),idx));
 
           idx++;
         }
@@ -193,6 +183,8 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
   }
 
   // process toDistribute
+  // the negative AND and positive OR
+  SPGenClauseLookupList* toDistribute = occurrences.of(OPPOSITE(linearizationSign));
 
   while (SPGenClauseLookupList::isNonEmpty(toDistribute)) {
     SPGenClauseLookup gcl = SPGenClauseLookupList::pop(toDistribute);
@@ -207,7 +199,7 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
     _genClauses.erase(gci);
 
     DArray<GenLit>& litsOrig = gcOrig->lits;
-    unsigned lenOrig = litsOrig.size();
+    unsigned lenOrig = (unsigned)litsOrig.size();
 
     // decrease number of occurrences by one for all literals in gcOrig
     for (unsigned i = 0; i < lenOrig; i++) {
@@ -236,8 +228,8 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
 
           litsNew[i] = make_pair(arg,OPPOSITE(linearizationSign));
 
-          Occurrences &occurrences = _occurrences.get(arg);
-          occurrences.add(OPPOSITE(linearizationSign), SPGenClauseLookup(gcNew,_genClauses.begin(),i));
+          Occurrences &argOccurrences = _occurrences.get(arg);
+          argOccurrences.add(OPPOSITE(linearizationSign), SPGenClauseLookup(gcNew,_genClauses.begin(),i));
         } else {
           litsNew[i] = gl;
 
@@ -299,7 +291,7 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
       _genClauses.erase(gci);
 
       DArray<GenLit>& litsOrig = gcOrig->lits;
-      unsigned lenOrig = litsOrig.size();
+      unsigned lenOrig = (unsigned)litsOrig.size();
 
       SPGenClause gcNew1 = SPGenClause(new GenClause(lenOrig+1,gcOrig->bindings));
       _genClauses.push_front(gcNew1);
@@ -422,7 +414,7 @@ Kernel::Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
 {
   CALL("NewCNF::createSkolemTerm");
 
-  int arity = free->size();
+  unsigned arity = free->size();
 
   ensureHavingVarSorts();
   unsigned rangeSort=_varSorts.get(var, Sorts::SRT_DEFAULT);
@@ -482,7 +474,7 @@ void NewCNF::skolemise(Formula* g, BindingList*& bindings)
 
       Formula::VarList::Iterator vs(g->vars());
       while (vs.hasNext()) {
-        unsigned var = vs.next();
+        unsigned var = (unsigned)vs.next();
         Term* skolemTerm = createSkolemTerm(var,actualFreeVars);
         BindingList::push(make_pair(var,skolemTerm),newBindings);
       }
@@ -501,13 +493,11 @@ void NewCNF::skolemise(Formula* g, BindingList*& bindings)
   }
 }
 
-void NewCNF::processForallExists(Formula* g, Occurrences &occurrences)
+void NewCNF::processForallExists(QuantifiedFormula* g, Occurrences &occurrences)
 {
   CALL("NewCNF::processForallExists");
 
   LOG2("processForallExists ",g->toString());
-
-  ASS(g->connective() == FORALL || g->connective() == EXISTS);
 
   // update the queue and reuse (!) Occurrences for sub-formula
 
@@ -578,7 +568,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VarSet* free)
 {
   CALL("NewCNF::createNamingLiteral");
 
-  int length = free->size();
+  unsigned length = free->size();
   unsigned pred = env.signature->addNamePredicate(length);
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
 
@@ -715,12 +705,12 @@ void NewCNF::processAll()
 
     switch (g->connective()) {
       case LITERAL:
-        processLiteral(g,occurrences);
+        processLiteral(g->literal(),occurrences);
         break;
 
       case AND:
       case OR:
-        processAndOr(g,occurrences);
+        processAndOr(static_cast<JunctionFormula*>(g),occurrences);
         break;
 
       case IFF:
@@ -730,7 +720,7 @@ void NewCNF::processAll()
 
       case FORALL:
       case EXISTS:
-        processForallExists(g,occurrences);
+        processForallExists(static_cast<QuantifiedFormula*>(g),occurrences);
         break;
 
       default:
@@ -764,7 +754,7 @@ void NewCNF::createClauses(Stack<Clause*>& output)
     ASS(literals.isEmpty());
 
     DArray<GenLit>& lits = gc->lits;
-    unsigned len = lits.size();
+    unsigned len = (unsigned)lits.size();
     for (unsigned i = 0; i < len; i++) {
       GenLit gl = lits[i];
 
