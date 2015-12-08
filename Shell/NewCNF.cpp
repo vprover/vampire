@@ -72,8 +72,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   SPGenClauseLookup topLevelSingletonLookup(topLevelSingleton,_genClauses.begin(),0);
 
   Occurrences occurrences;
-  SPGenClauseLookupList::push(topLevelSingletonLookup,occurrences.positiveOccurrences);
-  occurrences.positiveCount++;
+  occurrences.add(POSITIVE, topLevelSingletonLookup);
 
   ASS(_occurrences.isEmpty());
   ALWAYS(_occurrences.insert(f,occurrences));
@@ -175,10 +174,7 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
           litsNew[idx] = make_pair(arg,linearizationSign);
 
           Occurrences &occurrences = _occurrences.get(arg);
-
-          SPGenClauseLookupList::push(SPGenClauseLookup(gcNew,_genClauses.begin(),idx),
-                                      occurrences.of(linearizationSign));
-          occurrences.count(linearizationSign) += 1;
+          occurrences.add(linearizationSign, SPGenClauseLookup(gcNew,_genClauses.begin(),idx));
 
           idx++;
         }
@@ -188,9 +184,7 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
 
         Occurrences * litsInfo = _occurrences.findPtr(gl.first);
         if (litsInfo) {
-          SPGenClauseLookupList::push(SPGenClauseLookup(gcNew,_genClauses.begin(),idx), litsInfo->of(gl.second));
-
-          // the number of occurrences stays intact
+          litsInfo->add(gl.second, SPGenClauseLookup(gcNew,_genClauses.begin(),idx), false);
         }
 
         idx++;
@@ -221,7 +215,7 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
 
       Occurrences * litsInfo;
       if (gl.first != g && (litsInfo = _occurrences.findPtr(gl.first))) {
-        litsInfo->count(gl.second) -= 1;
+        litsInfo->decrement(gl.second);
       }
     }
 
@@ -243,16 +237,13 @@ void NewCNF::processAndOr(Formula* g, Occurrences &occurrences)
           litsNew[i] = make_pair(arg,OPPOSITE(linearizationSign));
 
           Occurrences &occurrences = _occurrences.get(arg);
-          SPGenClauseLookupList::push(SPGenClauseLookup(gcNew,_genClauses.begin(),i),
-                                      occurrences.of(OPPOSITE(linearizationSign)));
-          occurrences.count(OPPOSITE(linearizationSign)) += 1;
+          occurrences.add(OPPOSITE(linearizationSign), SPGenClauseLookup(gcNew,_genClauses.begin(),i));
         } else {
           litsNew[i] = gl;
 
           Occurrences * litsInfo = _occurrences.findPtr(gl.first);
           if (litsInfo) {
-            SPGenClauseLookupList::push(SPGenClauseLookup(gcNew,_genClauses.begin(),i), litsInfo->of(gl.second));
-            litsInfo->count(gl.second) += 1;
+            litsInfo->add(gl.second, SPGenClauseLookup(gcNew,_genClauses.begin(),i));
           }
         }
       }
@@ -330,24 +321,20 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
           ASS_EQ(gl.second, (g->connective() == IFF) ^ (flip)); // positive occurrences in the first pass for IFF and the second pass for XOR
 
           litsNew1[idx] = make_pair(left,NEGATIVE);
-          SPGenClauseLookupList::push(SPGenClauseLookup(gcNew1,gciNew1,idx),leftOccInfo.of(NEGATIVE));
-          leftOccInfo.count(NEGATIVE) += 1;
+          leftOccInfo.add(NEGATIVE, SPGenClauseLookup(gcNew1,gciNew1,idx));
 
           litsNew2[idx] = make_pair(left,POSITIVE);
-          SPGenClauseLookupList::push(SPGenClauseLookup(gcNew2,gciNew2,idx),leftOccInfo.of(POSITIVE));
-          leftOccInfo.count(POSITIVE) += 1;
+          leftOccInfo.add(POSITIVE, SPGenClauseLookup(gcNew2,gciNew2,idx));
 
           idx++;
 
           bool secondIn1st = !flip;
           litsNew1[idx] = make_pair(right,secondIn1st);
-          SPGenClauseLookupList::push(SPGenClauseLookup(gcNew1,gciNew1,idx), rightOccInfo.of(secondIn1st));
-          rightOccInfo.count(secondIn1st) += 1;
+          rightOccInfo.add(secondIn1st, SPGenClauseLookup(gcNew1,gciNew1,idx));
 
           bool secondIn2nd = flip;
           litsNew2[idx] = make_pair(right,secondIn2nd);
-          SPGenClauseLookupList::push(SPGenClauseLookup(gcNew2,gciNew2,idx), rightOccInfo.of(secondIn2nd));
-          rightOccInfo.count(secondIn2nd) += 1;
+          rightOccInfo.add(secondIn2nd, SPGenClauseLookup(gcNew2,gciNew2,idx));
 
           idx++;
         } else {
@@ -356,10 +343,9 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
 
           Occurrences * litsInfo = _occurrences.findPtr(gl.first);
           if (litsInfo) {
-            SPGenClauseLookupList::push(SPGenClauseLookup(gcNew1,gciNew1,idx), litsInfo->of(gl.second));
-            SPGenClauseLookupList::push(SPGenClauseLookup(gcNew2,gciNew2,idx), litsInfo->of(gl.second));
-
-            litsInfo->count(gl.first) += 1; // just +1, for it was there already once
+            litsInfo->add(gl.second, SPGenClauseLookup(gcNew1,gciNew1,idx));
+            // do not increment the counter, for it was there already once
+            litsInfo->add(gl.second, SPGenClauseLookup(gcNew2,gciNew2,idx), false);
           }
 
           idx++;
@@ -694,24 +680,24 @@ void NewCNF::processAll()
     }
 
     // the case of naming
-    if ((_namingThreshold > 1) && g->connective() != LITERAL && occurrences.positiveCount + occurrences.negativeCount > _namingThreshold) {
+    if ((_namingThreshold > 1) && g->connective() != LITERAL && occurrences.count() > _namingThreshold) {
       Formula* name = performNaming(g,occurrences);
 
       for (SIGN sign : { NEGATIVE, POSITIVE }) {
-        if (occurrences.count(sign)) {
-          // One could also consider the case where (part of) the bindings goes to the definition
-          // which perhaps allows us to the have a skolem predicate with fewer arguments
-          SPGenClause gcNew = SPGenClause(new GenClause(2,BindingList::empty()));
-
-          _genClauses.push_front(gcNew);
-          gcNew->lits[0] = make_pair(name, OPPOSITE(sign));
-          gcNew->lits[1] = make_pair(g, sign);
-
-          occurrences.count(sign) = 1;
-          occurrences.of(sign) = new SPGenClauseLookupList(SPGenClauseLookup(gcNew, _genClauses.begin(), 1), 0);
-        } else {
+        if (!occurrences.anyOf(sign)) {
           occurrences.of(sign) = SPGenClauseLookupList::empty();
+          continue;
         }
+
+        // One could also consider the case where (part of) the bindings goes to the definition
+        // which perhaps allows us to the have a skolem predicate with fewer arguments
+        SPGenClause gcNew = SPGenClause(new GenClause(2,BindingList::empty()));
+
+        _genClauses.push_front(gcNew);
+        gcNew->lits[0] = make_pair(name, OPPOSITE(sign));
+        gcNew->lits[1] = make_pair(g, sign);
+
+        occurrences.add(sign, SPGenClauseLookup(gcNew, _genClauses.begin(), 1));
       }
 
       LOG2("performedNaming for ",g->toString());

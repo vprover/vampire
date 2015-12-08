@@ -136,23 +136,58 @@ private:
 
   typedef Lib::List<SPGenClauseLookup> SPGenClauseLookupList;
 
-  struct Occurrences {
-    // may contain pointers to invalidated GenClauses
-    SPGenClauseLookupList* positiveOccurrences;
-    SPGenClauseLookupList* negativeOccurrences;
+  class Occurrences {
+    public:
+      // constructor for an empty Occurrences
+      Occurrences() : positiveOccurrences(nullptr), negativeOccurrences(nullptr),
+                      positiveCount(0), negativeCount(0) {}
 
-    SPGenClauseLookupList* &of(SIGN sign) {
-      return sign == POSITIVE ? positiveOccurrences : negativeOccurrences;
-    }
+      unsigned count() { return positiveCount + negativeCount; }
 
-    // exact counts
-    unsigned positiveCount;
-    unsigned negativeCount;
+      inline bool anyOf(SIGN sign) {
+        return sign == POSITIVE ? positiveCount > 0 : negativeOccurrences > 0;
+      }
 
-    unsigned& count(SIGN sign) { return sign == POSITIVE ? positiveCount : negativeCount; }
+      SPGenClauseLookupList* &of(SIGN sign) {
+        return sign == POSITIVE ? positiveOccurrences : negativeOccurrences;
+      }
 
-    // constructor for an empty Occurrences
-    Occurrences() : positiveOccurrences(nullptr), negativeOccurrences(nullptr), positiveCount(0), negativeCount(0) {}
+      inline void add(SIGN sign, SPGenClauseLookup gc, bool account=true) {
+        if (sign == POSITIVE) {
+          positiveOccurrences = new SPGenClauseLookupList(gc, positiveOccurrences);
+        } else {
+          negativeOccurrences = new SPGenClauseLookupList(gc, negativeOccurrences);
+        }
+        if (account) {
+          increment(sign);
+        }
+      }
+
+      inline void increment(SIGN sign) {
+        if (sign == POSITIVE) {
+          positiveCount++;
+        } else {
+          negativeCount++;
+        }
+      }
+
+      inline void decrement(SIGN sign) {
+        if (sign == POSITIVE) {
+          positiveCount--;
+        } else {
+          negativeCount--;
+        }
+      }
+
+    private:
+      // may contain pointers to invalidated GenClauses
+      SPGenClauseLookupList* positiveOccurrences;
+      SPGenClauseLookupList* negativeOccurrences;
+
+      // the number of valid clauses in positiveOccurrences and negativeOccurrences
+      // this is in general not equal to the size of positiveOccurrences and negativeOccurrences
+      unsigned positiveCount;
+      unsigned negativeCount;
   };
 
   Lib::DHMap<Kernel::Formula*, Occurrences> _occurrences;
