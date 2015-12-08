@@ -96,8 +96,8 @@ void NewCNF::processLiteral(Formula* g, OccInfo& occInfo)
 
   // just delete occInfo to release the SPGenClauses
 
-  for (bool positive : { false, true }) {
-    SPGenClauseLookupList* occs = occInfo.occs(positive);
+  for (SIGN sign : { NEGATIVE, POSITIVE }) {
+    SPGenClauseLookupList* occs = occInfo.occs(sign);
     occs->destroy();
 
     // TODO: could check in debug mode that the occurrences are valid
@@ -338,13 +338,13 @@ void NewCNF::processIffXor(Formula* g, OccInfo& occInfo)
           ASS_EQ(i,gcl.idx);
           ASS_EQ(gl.second, (g->connective() == IFF) ^ (flip)); // positive occurrences in the first pass for IFF and the second pass for XOR
 
-          litsNew1[idx] = make_pair(left,false);
-          SPGenClauseLookupList::push(SPGenClauseLookup(gcNew1,gciNew1,idx),leftOccInfo.occs(false));
-          leftOccInfo.cnt(false) += 1;
+          litsNew1[idx] = make_pair(left,NEGATIVE);
+          SPGenClauseLookupList::push(SPGenClauseLookup(gcNew1,gciNew1,idx),leftOccInfo.occs(NEGATIVE));
+          leftOccInfo.cnt(NEGATIVE) += 1;
 
-          litsNew2[idx] = make_pair(left,true);
-          SPGenClauseLookupList::push(SPGenClauseLookup(gcNew2,gciNew2,idx),leftOccInfo.occs(true));
-          leftOccInfo.cnt(true) += 1;
+          litsNew2[idx] = make_pair(left,POSITIVE);
+          SPGenClauseLookupList::push(SPGenClauseLookup(gcNew2,gciNew2,idx),leftOccInfo.occs(POSITIVE));
+          leftOccInfo.cnt(POSITIVE) += 1;
 
           idx++;
 
@@ -547,8 +547,8 @@ void NewCNF::processForallExists(Formula* g, OccInfo& occInfo)
   // In the skolemising polarity introduce new skolems as you go
   // each occurrence may need a new set depending on bindings,
   // but let's try to share as much as possible
-  for (bool positive : { false, true }) {
-    SPGenClauseLookupList* occsOld = occInfo.occs(positive);
+  for (SIGN sign : { NEGATIVE, POSITIVE }) {
+    SPGenClauseLookupList* occsOld = occInfo.occs(sign);
     SPGenClauseLookupList* occsNew = nullptr;
 
     while (SPGenClauseLookupList::isNonEmpty(occsOld)) {
@@ -567,15 +567,15 @@ void NewCNF::processForallExists(Formula* g, OccInfo& occInfo)
         DArray<GenLit>& litsOrig = gcOrig->lits;
         GenLit& gl = litsOrig[gcl.idx];
         ASS_EQ(gl.first,g);
-        ASS_EQ(gl.second,positive);
+        ASS_EQ(gl.second, sign);
         gl.first = qarg;
 
-        if (positive == (g->connective() == EXISTS)) { // skolemising
+        if (sign == (g->connective() == EXISTS)) { // skolemising
           skolemise(g,gcOrig->bindings);
         }
       }
     }
-    occInfo.occs(positive) = occsNew;
+    occInfo.occs(sign) = occsNew;
 
     // occCnts remain the same
   }
@@ -655,8 +655,8 @@ Formula* NewCNF::performNaming(Kernel::Formula* g, OccInfo& occInfo)
 
   // Correct all the GenClauses to mention name instead of g
   // (drop references to invalid ones)
-  for (bool positive : { false, true }) {
-    SPGenClauseLookupList* occsOld = occInfo.occs(positive);
+  for (SIGN sign : { NEGATIVE, POSITIVE }) {
+    SPGenClauseLookupList* occsOld = occInfo.occs(sign);
     SPGenClauseLookupList* occsNew = nullptr;
 
     while (SPGenClauseLookupList::isNonEmpty(occsOld)) {
@@ -675,11 +675,11 @@ Formula* NewCNF::performNaming(Kernel::Formula* g, OccInfo& occInfo)
         DArray<GenLit>& litsOrig = gcOrig->lits;
         GenLit& gl = litsOrig[gcl.idx];
         ASS_EQ(gl.first,g);
-        ASS_EQ(gl.second,positive);
+        ASS_EQ(gl.second, sign);
         gl.first = name;
       }
     }
-    occInfo.occs(positive) = occsNew;
+    occInfo.occs(sign) = occsNew;
 
     // occCnts remain the same
   }
@@ -706,20 +706,20 @@ void NewCNF::processAll()
     if ((_namingThreshold > 1) && g->connective() != LITERAL && occInfo.posCnt+occInfo.negCnt > _namingThreshold) {
       Formula* name = performNaming(g,occInfo);
 
-      for (bool positive : { false, true }) {
-        if (occInfo.cnt(positive)) {
+      for (SIGN sign : { NEGATIVE, POSITIVE }) {
+        if (occInfo.cnt(sign)) {
           // One could also consider the case where (part of) the bindings goes to the definition
           // which perhaps allows us to the have a skolem predicate with fewer arguments
           SPGenClause gcNew = SPGenClause(new GenClause(2,BindingList::empty()));
 
           _genClauses.push_front(gcNew);
-          gcNew->lits[0] = make_pair(name,!positive);
-          gcNew->lits[1] = make_pair(g,positive);
+          gcNew->lits[0] = make_pair(name, OPPOSITE(sign));
+          gcNew->lits[1] = make_pair(g, sign);
 
-          occInfo.cnt(positive) = 1;
-          occInfo.occs(positive) = new SPGenClauseLookupList(SPGenClauseLookup(gcNew,_genClauses.begin(),1),0);
+          occInfo.cnt(sign) = 1;
+          occInfo.occs(sign) = new SPGenClauseLookupList(SPGenClauseLookup(gcNew, _genClauses.begin(), 1), 0);
         } else {
-          occInfo.occs(positive) = SPGenClauseLookupList::empty();
+          occInfo.occs(sign) = SPGenClauseLookupList::empty();
         }
       }
 

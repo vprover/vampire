@@ -65,8 +65,14 @@ private:
     OWN_RETURN_TYPE operator()(const Binding& b) { return b.first; }
   };
 
+
+  #define SIGN bool
+  #define POSITIVE true
+  #define NEGATIVE false
+  #define OPPOSITE(sign) (!(sign))
+
   // generalized literal
-  typedef std::pair<Kernel::Formula*, bool> GenLit; // positive occurrences have second component true
+  typedef std::pair<Kernel::Formula*, SIGN> GenLit; // positive occurrences have second component true
 
   // generalized clause
   struct GenClause {
@@ -135,13 +141,13 @@ private:
     SPGenClauseLookupList* posOccs;
     SPGenClauseLookupList* negOccs;
 
-    SPGenClauseLookupList*& occs(bool positive) { return positive ? posOccs : negOccs; }
+    SPGenClauseLookupList*& occs(SIGN sign) { return sign == POSITIVE ? posOccs : negOccs; }
 
     // exact counts
     unsigned posCnt;
     unsigned negCnt;
 
-    unsigned& cnt(bool positive) { return positive ? posCnt : negCnt; }
+    unsigned& cnt(SIGN sign) { return sign == POSITIVE ? posCnt : negCnt; }
 
     // constructor for an empty OccInto
     OccInfo() : posOccs(nullptr), negOccs(nullptr), posCnt(0), negCnt(0) {}
