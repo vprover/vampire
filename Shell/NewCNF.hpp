@@ -124,6 +124,14 @@ private:
 
   typedef std::list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
 
+  inline void setLiteral(SPGenClause gc, unsigned position, Formula* f, SIGN sign) {
+    gc->literals[position] = make_pair(f, sign);
+    Occurrences* occurrences = _occurrences.findPtr(f);
+    if (occurrences) {
+      occurrences->add(sign, SPGenClauseLookup(gc, _genClauses.begin(), position));
+    }
+  }
+
   /**
    * Collection of the current set of generalized clauses.
    * (It is a doubly-linked list for constant time deletion.)
