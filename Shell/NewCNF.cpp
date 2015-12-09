@@ -159,12 +159,10 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
 
           litsNew[idx] = make_pair(arg,linearizationSign);
 
-          Occurrences &argOccurrences = _occurrences.get(arg);
-          argOccurrences.add(linearizationSign, SPGenClauseLookup(gcNew,_genClauses.begin(),idx));
+          _occurrences.get(arg).add(linearizationSign, SPGenClauseLookup(gcNew,_genClauses.begin(),idx));
 
           idx++;
         }
-
       } else {
         litsNew[idx] = gl;
 
@@ -224,8 +222,7 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
 
           litsNew[i] = make_pair(arg,OPPOSITE(linearizationSign));
 
-          Occurrences &argOccurrences = _occurrences.get(arg);
-          argOccurrences.add(OPPOSITE(linearizationSign), SPGenClauseLookup(gcNew,_genClauses.begin(),i));
+          _occurrences.get(arg).add(OPPOSITE(linearizationSign), SPGenClauseLookup(gcNew,_genClauses.begin(),i));
         } else {
           litsNew[i] = gl;
 
@@ -249,28 +246,28 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
 
   // update the queue and create Occurrences for sub-formulas here
 
-  Formula* left = g->left();
-  enqueue(left);
+  Formula* lhs = g->left();
+  enqueue(lhs);
 
-  Formula* right = g->right();
-  enqueue(right);
+  Formula* rhs = g->right();
+  enqueue(rhs);
 
   // WARNING: what we do here is a bit fragile
   // the two calls to get need to be after the two calls to insert
   // as insert invalidates the references in general!
-  Occurrences & leftOccInfo = _occurrences.get(left);
-  Occurrences & rightOccInfo = _occurrences.get(right);
+  Occurrences & lhsOccurrences = _occurrences.get(lhs);
+  Occurrences & rhsOccurrences = _occurrences.get(rhs);
 
   // start expanding for g
 
   SPGenClauseLookupList* toProcess[2];  // the first is the IFF-like, the second the XOR-like
 
-  SIGN sign = g->connective() == IFF ? POSITIVE : NEGATIVE;
-  toProcess[0] = occurrences.of(sign);
-  toProcess[1] = occurrences.of(OPPOSITE(sign));
+  SIGN formulaSign = g->connective() == IFF ? POSITIVE : NEGATIVE;
+  toProcess[LEFT] = occurrences.of(formulaSign);
+  toProcess[RIGHT] = occurrences.of(OPPOSITE(formulaSign));
 
-  for (unsigned flip = 0; flip < 2; flip++) {
-    SPGenClauseLookupList* current = toProcess[flip];
+  for (SIDE side : { LEFT, RIGHT }) {
+    SPGenClauseLookupList* current = toProcess[side];
 
     while (SPGenClauseLookupList::isNonEmpty(current)) {
       SPGenClauseLookup gcl = SPGenClauseLookupList::pop(current);
@@ -304,23 +301,24 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
 
         if (gl.first == g) {
           ASS_EQ(i,gcl.idx);
-          ASS_EQ(gl.second, (g->connective() == IFF) ^ (flip)); // positive occurrences in the first pass for IFF and the second pass for XOR
+          ASS_EQ(gl.second, ((formulaSign == POSITIVE) && (side == LEFT)) ||
+                            ((formulaSign == NEGATIVE) && (side == RIGHT)) ? POSITIVE : NEGATIVE);
 
-          litsNew1[idx] = make_pair(left,NEGATIVE);
-          leftOccInfo.add(NEGATIVE, SPGenClauseLookup(gcNew1,gciNew1,idx));
+          litsNew1[idx] = make_pair(lhs,NEGATIVE);
+          lhsOccurrences.add(NEGATIVE, SPGenClauseLookup(gcNew1,gciNew1,idx));
 
-          litsNew2[idx] = make_pair(left,POSITIVE);
-          leftOccInfo.add(POSITIVE, SPGenClauseLookup(gcNew2,gciNew2,idx));
+          litsNew2[idx] = make_pair(lhs,POSITIVE);
+          lhsOccurrences.add(POSITIVE, SPGenClauseLookup(gcNew2,gciNew2,idx));
 
           idx++;
 
-          bool secondIn1st = !flip;
-          litsNew1[idx] = make_pair(right,secondIn1st);
-          rightOccInfo.add(secondIn1st, SPGenClauseLookup(gcNew1,gciNew1,idx));
+          SIGN secondIn1st = side == LEFT ? POSITIVE : NEGATIVE;
+          litsNew1[idx] = make_pair(rhs,secondIn1st);
+          rhsOccurrences.add(secondIn1st, SPGenClauseLookup(gcNew1,gciNew1,idx));
 
-          bool secondIn2nd = flip;
-          litsNew2[idx] = make_pair(right,secondIn2nd);
-          rightOccInfo.add(secondIn2nd, SPGenClauseLookup(gcNew2,gciNew2,idx));
+          SIGN secondIn2nd = OPPOSITE(secondIn1st);
+          litsNew2[idx] = make_pair(rhs,secondIn2nd);
+          rhsOccurrences.add(secondIn2nd, SPGenClauseLookup(gcNew2,gciNew2,idx));
 
           idx++;
         } else {
@@ -657,7 +655,7 @@ void NewCNF::processAll()
     dequeue(g, occurrences);
 
     LOG1("processAll iteration; _genClauses:");
-    for (SPGenClause gc : _genClauses ) {
+    for (SPGenClause gc : _genClauses) {
       LOG1(gc->toString());
     }
 
@@ -674,16 +672,16 @@ void NewCNF::processAll()
         // One could also consider the case where (part of) the bindings goes to the definition
         // which perhaps allows us to the have a skolem predicate with fewer arguments
         SPGenClause gcNew = SPGenClause(new GenClause(2,BindingList::empty()));
-
-        _genClauses.push_front(gcNew);
         gcNew->lits[0] = make_pair(name, OPPOSITE(sign));
         gcNew->lits[1] = make_pair(g, sign);
+
+        _genClauses.push_front(gcNew);
 
         occurrences.add(sign, SPGenClauseLookup(gcNew, _genClauses.begin(), 1));
       }
 
       LOG2("performedNaming for ",g->toString());
-      for (SPGenClause gc : _genClauses ) {
+      for (SPGenClause gc : _genClauses) {
         LOG1(gc->toString());
       }
 
@@ -727,7 +725,7 @@ void NewCNF::createClauses(Stack<Clause*>& output)
 
   static Substitution subst;
   ASS(subst.isEmpty());
-  for (SPGenClause gc : _genClauses ) {
+  for (SPGenClause gc : _genClauses) {
     LOG2("createClause for ",gc->toString());
 
     // prepare subst

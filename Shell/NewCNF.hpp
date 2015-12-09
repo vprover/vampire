@@ -65,6 +65,9 @@ private:
     OWN_RETURN_TYPE operator()(const Binding& b) { return b.first; }
   };
 
+  #define SIDE unsigned int
+  #define LEFT 0u
+  #define RIGHT 1u
 
   #define SIGN bool
   #define POSITIVE true
