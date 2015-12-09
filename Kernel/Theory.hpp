@@ -68,6 +68,8 @@ public:
   InnerType toInner() const { return _val; }
 
   static IntegerConstantType floor(RationalConstantType rat);
+  static IntegerConstantType ceiling(RationalConstantType rat);
+  static IntegerConstantType truncate(RationalConstantType rat);
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
 
@@ -99,12 +101,17 @@ struct RationalConstantType {
 
   RationalConstantType(InnerType num, InnerType den);
   RationalConstantType(const vstring& num, const vstring& den);
+  RationalConstantType(InnerType num); //assuming den=1
 
   RationalConstantType operator+(const RationalConstantType& num) const;
   RationalConstantType operator-(const RationalConstantType& num) const;
   RationalConstantType operator-() const;
   RationalConstantType operator*(const RationalConstantType& num) const;
   RationalConstantType operator/(const RationalConstantType& num) const;
+
+  RationalConstantType floor() const { return RationalConstantType(IntegerConstantType::floor(*this));}
+  RationalConstantType ceiling() const { return RationalConstantType(IntegerConstantType::ceiling(*this));}
+  RationalConstantType truncate() const { return RationalConstantType(IntegerConstantType::truncate(*this));}
 
   bool isInt() const;
 
@@ -115,6 +122,21 @@ struct RationalConstantType {
   bool operator<(const RationalConstantType& o) const { return o>(*this); }
   bool operator>=(const RationalConstantType& o) const { return !(o>(*this)); }
   bool operator<=(const RationalConstantType& o) const { return !((*this)>o); }
+
+  
+
+  RationalConstantType quotientE(const RationalConstantType& num) const {
+    if(_num.toInner()>0 && _den.toInner()>0){
+       return ((*this)/num).floor(); 
+    }
+    else return ((*this)/num).ceiling();
+  }
+  RationalConstantType quotientT(const RationalConstantType& num) const {
+    return ((*this)/num).truncate();
+  }
+  RationalConstantType quotientF(const RationalConstantType& num) const {
+    return ((*this)/num).floor(); 
+  }
 
 
   vstring toString() const;
@@ -159,6 +181,17 @@ public:
   { return RealConstantType(RationalConstantType::operator*(num)); }
   RealConstantType operator/(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator/(num)); }
+
+  RealConstantType floor() const { return RealConstantType(RationalConstantType::floor()); }
+  RealConstantType truncate() const { return RealConstantType(RationalConstantType::truncate()); }
+  RealConstantType ceiling() const { return RealConstantType(RationalConstantType::ceiling()); }
+
+  RealConstantType quotientE(const RealConstantType& num) const 
+    { return RealConstantType(RationalConstantType::quotientE(num)); }
+  RealConstantType quotientT(const RealConstantType& num) const 
+    { return RealConstantType(RationalConstantType::quotientT(num)); } 
+  RealConstantType quotientF(const RealConstantType& num) const 
+    { return RealConstantType(RationalConstantType::quotientF(num)); }
 
   vstring toNiceString() const;
 
@@ -226,7 +259,6 @@ public:
     INT_PLUS,  // sum in TPTP
     INT_MINUS, // difference in TPTP
     INT_MULTIPLY,
-    INT_DIVIDE,
     INT_MODULO,
     INT_QUOTIENT_E,
     INT_QUOTIENT_T,
@@ -244,7 +276,6 @@ public:
     RAT_PLUS, // sum in TPTP
     RAT_MINUS,// difference in TPTP
     RAT_MULTIPLY,
-    RAT_DIVIDE,
     RAT_QUOTIENT,
     RAT_QUOTIENT_E,
     RAT_QUOTIENT_T,
@@ -261,7 +292,6 @@ public:
     REAL_PLUS,  // plus in TPTP
     REAL_MINUS, // difference in TPTP
     REAL_MULTIPLY,
-    REAL_DIVIDE,
     REAL_QUOTIENT,
     REAL_QUOTIENT_E,
     REAL_QUOTIENT_T,
@@ -287,7 +317,7 @@ public:
 
     // IMPORTANT - if you add something to end of this, update it in LastNonStructuredInterepretation 
     
-    //INVALID_INTERPRETATION
+    //INVALID_INTERPRETATION // replaced by LastNonStructuredInterepretation
   };
 
   unsigned LastNonStructuredInterepretation(){ return REAL_TO_REAL; }

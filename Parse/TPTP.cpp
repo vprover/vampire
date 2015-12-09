@@ -3298,11 +3298,12 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_MULTIPLY,
 				 Theory::REAL_MULTIPLY);
   }
+  // An odd leftover, maps to the 'most natural' kind of division
   if (name == "$divide") {
     return addOverloadedFunction(name,arity,2,added,arg,
-				 Theory::INT_DIVIDE,
-				 Theory::RAT_DIVIDE,
-				 Theory::REAL_DIVIDE);
+				 Theory::INT_QUOTIENT_E,
+				 Theory::RAT_QUOTIENT,
+				 Theory::REAL_QUOTIENT);
   }
   if (name == "$modulo"){
     if(sortOf(arg)!=Sorts::SRT_INTEGER){
@@ -3312,6 +3313,15 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
                                  Theory::INT_MODULO,
                                  Theory::INT_MODULO,  // will not be used
                                  Theory::INT_MODULO); // will not be used
+  }
+  if (name == "$abs"){
+    if(sortOf(arg)!=Sorts::SRT_INTEGER){
+      USER_ERROR("$abs can only be used with integer type");
+    }
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_ABS,
+                                 Theory::INT_ABS,  // will not be used
+                                 Theory::INT_ABS); // will not be used
   }
   if (name == "$quotient") {
     if(sortOf(arg)==Sorts::SRT_INTEGER){

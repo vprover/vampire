@@ -489,12 +489,6 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::INT_DIVIDES:
     name = "$divides";
     break;
-  case Theory::INT_DIVIDE:
-  case Theory::RAT_DIVIDE:
-  case Theory::REAL_DIVIDE:
-    //this one is not according the TPTP arithmetic (it doesn't have division)
-    name="$divide";
-    break;
   case Theory::INT_UNARY_MINUS:
   case Theory::RAT_UNARY_MINUS:
   case Theory::REAL_UNARY_MINUS:

@@ -367,7 +367,10 @@ class InterpretedLiteralEvaluator::IntEvaluator : public TypedEvaluator<IntegerC
 protected:
 
   virtual bool isOne(IntegerConstantType arg){ return arg.toInner()==1;}
-  virtual bool isDivision(Interpretation interp){ return interp==Theory::INT_DIVIDE; }
+  virtual bool isDivision(Interpretation interp){ 
+    return interp==Theory::INT_QUOTIENT_E || interp==Theory::INT_QUOTIENT_T || 
+           interp==Theory::INT_QUOTIENT_F; 
+  }
 
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
@@ -414,14 +417,11 @@ protected:
     case Theory::INT_MULTIPLY:
       res = arg1*arg2;
       return true;
-    case Theory::INT_DIVIDE:
-      res = arg1/arg2;
-      return true;
     case Theory::INT_MODULO:
       res = arg1%arg2;
       return true;
     case Theory::INT_QUOTIENT_E:
-      res = arg1.quotientE(arg2);
+      res = arg1.quotientE(arg2); // should be equivalent to arg1/arg2
       return true;
     case Theory::INT_QUOTIENT_T:
       res = arg1.quotientT(arg2);
@@ -478,7 +478,10 @@ class InterpretedLiteralEvaluator::RatEvaluator : public TypedEvaluator<Rational
 {
 protected:
   virtual bool isOne(RationalConstantType arg) { return arg.numerator()==arg.denominator();}
-  virtual bool isDivision(Interpretation interp){ return interp==Theory::RAT_DIVIDE;}
+  virtual bool isDivision(Interpretation interp){ 
+    return interp==Theory::RAT_QUOTIENT || interp==Theory::RAT_QUOTIENT_E || 
+           interp==Theory::RAT_QUOTIENT_T || interp==Theory::RAT_QUOTIENT_F;
+  }
 
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
@@ -487,6 +490,15 @@ protected:
     switch(op) {
     case Theory::RAT_UNARY_MINUS:
       res = -arg;
+      return true;
+    case Theory::RAT_FLOOR:
+      res = arg.floor();
+      return true;
+    case Theory::RAT_CEILING:
+      res = arg.ceiling();
+      return true;
+    case Theory::RAT_TRUNCATE:
+      res = arg.truncate();
       return true;
     default:
       return false;
@@ -508,8 +520,27 @@ protected:
     case Theory::RAT_MULTIPLY:
       res = arg1*arg2;
       return true;
-    case Theory::RAT_DIVIDE:
+    case Theory::RAT_QUOTIENT:
       res = arg1/arg2;
+      return true;
+    case Theory::RAT_QUOTIENT_E:
+      res = arg1.quotientE(arg2);
+      return true;
+    case Theory::RAT_QUOTIENT_T:
+      res = arg1.quotientT(arg2);
+      return true;
+    case Theory::RAT_QUOTIENT_F:
+      res = arg1.quotientF(arg2);
+      return true;
+    // The remainder is left - (quotient * right)
+    case Theory::RAT_REMAINDER_E:
+      res = arg1 - (arg1.quotientE(arg2)*arg2);
+      return true;
+    case Theory::RAT_REMAINDER_T:
+      res = arg1 - (arg1.quotientT(arg2)*arg2);
+      return true;
+    case Theory::RAT_REMAINDER_F:
+      res = arg1 - (arg1.quotientF(arg2)*arg2);
       return true;
     default:
       return false;
@@ -563,7 +594,10 @@ class InterpretedLiteralEvaluator::RealEvaluator : public TypedEvaluator<RealCon
 {
 protected:
   virtual bool isOne(RealConstantType arg) { return arg.numerator()==arg.denominator();}
-  virtual bool isDivision(Interpretation interp){ return interp==Theory::REAL_DIVIDE;}
+  virtual bool isDivision(Interpretation interp){ 
+    return interp==Theory::REAL_QUOTIENT || interp==Theory::REAL_QUOTIENT_E ||
+           interp==Theory::REAL_QUOTIENT_T || interp==Theory::REAL_QUOTIENT_F;
+  }
 
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
@@ -572,6 +606,15 @@ protected:
     switch(op) {
     case Theory::REAL_UNARY_MINUS:
       res = -arg;
+      return true;
+    case Theory::REAL_FLOOR:
+      res = arg.floor();
+      return true;
+    case Theory::REAL_CEILING:
+      res = arg.ceiling();
+      return true;
+    case Theory::REAL_TRUNCATE:
+      res = arg.truncate();
       return true;
     default:
       return false;
@@ -593,8 +636,27 @@ protected:
     case Theory::REAL_MULTIPLY:
       res = arg1*arg2;
       return true;
-    case Theory::REAL_DIVIDE:
+    case Theory::REAL_QUOTIENT:
       res = arg1/arg2;
+      return true;
+    case Theory::REAL_QUOTIENT_E:
+      res = arg1.quotientE(arg2);
+      return true;
+    case Theory::REAL_QUOTIENT_T:
+      res = arg1.quotientT(arg2);
+      return true;
+    case Theory::REAL_QUOTIENT_F:
+      res = arg1.quotientF(arg2);
+      return true;
+    // The remainder is left - (quotient * right)
+    case Theory::REAL_REMAINDER_E:
+      res = arg1 - (arg1.quotientE(arg2)*arg2);
+      return true;
+    case Theory::REAL_REMAINDER_T:
+      res = arg1 - (arg1.quotientT(arg2)*arg2);
+      return true;
+    case Theory::REAL_REMAINDER_F:
+      res = arg1 - (arg1.quotientF(arg2)*arg2);
       return true;
     default:
       return false;

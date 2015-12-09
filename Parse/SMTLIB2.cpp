@@ -978,12 +978,12 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, unsigned firs
 
   case TS_DIVIDE:
     if (firstArgSort == Sorts::SRT_REAL)
-      return Theory::REAL_DIVIDE;
+      return Theory::REAL_QUOTIENT;
     break;
 
   case TS_DIV:
     if (firstArgSort == Sorts::SRT_INTEGER)
-      return Theory::INT_DIVIDE;
+      return Theory::INT_QUOTIENT_E;
     break;
 
   default:

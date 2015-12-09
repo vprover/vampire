@@ -194,9 +194,9 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
     switch(interp) {
     case Theory::INT_SUCCESSOR:
-    case Theory::INT_DIVIDE:
-    case Theory::RAT_DIVIDE:
-    case Theory::REAL_DIVIDE:
+    case Theory::INT_ABS:
+    case Theory::INT_MODULO:
+    case Theory::INT_DIVIDES:
       //for interpreted symbols that do not belong to TPTP standard we still have to output sort
       break;
     default:

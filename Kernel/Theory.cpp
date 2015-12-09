@@ -130,16 +130,49 @@ IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
   IntegerConstantType denom = rat.denominator();
   ASS_REP(denom>0, denom.toString());
 
+  // euclidiean for positive
   if (numer>0) {
     return numer/denom;
   }
-
-  IntegerConstantType numerAbs = (numer>=0) ? numer : -numer;
-  IntegerConstantType absRes = numerAbs/denom;
+  ASS(numer<=0);
+  IntegerConstantType res = numer/denom;
   if (numer%denom!=0) {
-    absRes = absRes+1;
+    res = res+1;
   }
-  return -absRes;
+  return -res;
+}
+IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
+{
+  CALL("IntegerConstantType::ceiling");
+
+  IntegerConstantType numer = rat.numerator();
+  IntegerConstantType denom = rat.denominator();
+  ASS_REP(denom>0, denom.toString());
+
+  // euclidian for negative
+  if (numer<0) {
+    return numer/denom;
+  }
+  ASS(numer>=0)
+
+  IntegerConstantType res = numer/denom;
+  if (numer%denom!=0) {
+    res = res+1;
+  }
+  return res;
+}
+IntegerConstantType IntegerConstantType::truncate(RationalConstantType rat)
+{
+  CALL("IntegerConstantType::truncate");
+
+  IntegerConstantType numer = rat.numerator();
+  IntegerConstantType denom = rat.denominator();
+  ASS_REP(denom>0, denom.toString());
+      
+  // truncation is the opposite of euclidian
+  // i.e. 'away from zero'
+  // for neg euclidan goes towards so for pos we negate, compute and then bring back to pos 
+  return -(-numer/denom);
 }
 
 Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
@@ -197,6 +230,13 @@ RationalConstantType::RationalConstantType(const vstring& num, const vstring& de
   CALL("RationalConstantType::RationalConstantType");
 
   init(InnerType(num), InnerType(den));
+}
+
+RationalConstantType::RationalConstantType(InnerType num)
+{
+  CALL("RationalConstantType::RationalConstantType");
+
+  init(num, IntegerConstantType(1));
 }
 
 void RationalConstantType::init(InnerType num, InnerType den)
@@ -434,7 +474,7 @@ RealConstantType::RealConstantType(const vstring& number)
     throw ArithmeticException();
   }
   InnerType denominator = 1;
-  while(floor(numDbl)!=numDbl) {
+  while(::floor(numDbl)!=numDbl) {
     denominator = denominator*10;
     numDbl *= 10;
   }
@@ -571,7 +611,6 @@ unsigned Theory::getArity(Interpretation i)
   case INT_PLUS:
   case INT_MINUS:
   case INT_MULTIPLY:
-  case INT_DIVIDE:
   case INT_MODULO:
   case INT_QUOTIENT_E:
   case INT_QUOTIENT_T:
@@ -583,7 +622,6 @@ unsigned Theory::getArity(Interpretation i)
   case RAT_PLUS:
   case RAT_MINUS:
   case RAT_MULTIPLY:
-  case RAT_DIVIDE:
   case RAT_QUOTIENT:
   case RAT_QUOTIENT_E:
   case RAT_QUOTIENT_T:
@@ -595,7 +633,6 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_PLUS:
   case REAL_MINUS:
   case REAL_MULTIPLY:
-  case REAL_DIVIDE:
   case REAL_QUOTIENT:
   case REAL_QUOTIENT_E:
   case REAL_QUOTIENT_T:
@@ -649,7 +686,6 @@ bool Theory::isFunction(Interpretation i)
   case INT_PLUS:
   case INT_MINUS:
   case INT_MULTIPLY:
-  case INT_DIVIDE:
   case INT_MODULO:
   case INT_QUOTIENT_E:
   case INT_QUOTIENT_T:
@@ -666,7 +702,6 @@ bool Theory::isFunction(Interpretation i)
   case RAT_PLUS:
   case RAT_MINUS:
   case RAT_MULTIPLY:
-  case RAT_DIVIDE:
   case RAT_QUOTIENT:
   case RAT_QUOTIENT_E:
   case RAT_QUOTIENT_T:
@@ -682,7 +717,6 @@ bool Theory::isFunction(Interpretation i)
   case REAL_PLUS:
   case REAL_MINUS:
   case REAL_MULTIPLY:
-  case REAL_DIVIDE:
   case REAL_QUOTIENT:
   case REAL_QUOTIENT_E:
   case REAL_QUOTIENT_T:
@@ -807,7 +841,6 @@ unsigned Theory::getOperationSort(Interpretation i)
   case INT_PLUS:
   case INT_MINUS:
   case INT_MULTIPLY:
-  case INT_DIVIDE:
   case INT_MODULO:
   case INT_QUOTIENT_E:
   case INT_QUOTIENT_T:
@@ -831,7 +864,6 @@ unsigned Theory::getOperationSort(Interpretation i)
   case RAT_PLUS:
   case RAT_MINUS:
   case RAT_MULTIPLY:
-  case RAT_DIVIDE:
   case RAT_QUOTIENT:
   case RAT_QUOTIENT_E:
   case RAT_QUOTIENT_T:
@@ -858,7 +890,6 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_PLUS:
   case REAL_MINUS:
   case REAL_MULTIPLY:
-  case REAL_DIVIDE:
   case REAL_QUOTIENT:
   case REAL_QUOTIENT_E:
   case REAL_QUOTIENT_T:
@@ -931,7 +962,6 @@ bool Theory::isNonLinearOperation(Interpretation i)
 
   switch(i) {
   case INT_MULTIPLY:
-  case INT_DIVIDE:
   case INT_MODULO:
   case INT_QUOTIENT_E:
   case INT_QUOTIENT_T:
@@ -940,7 +970,6 @@ bool Theory::isNonLinearOperation(Interpretation i)
   case INT_REMAINDER_T:
   case INT_REMAINDER_F:
   case RAT_MULTIPLY:
-  case RAT_DIVIDE:
   case RAT_QUOTIENT:
   case RAT_QUOTIENT_E:
   case RAT_QUOTIENT_T:
@@ -949,7 +978,6 @@ bool Theory::isNonLinearOperation(Interpretation i)
   case RAT_REMAINDER_T:
   case RAT_REMAINDER_F:
   case REAL_MULTIPLY:
-  case REAL_DIVIDE:
   case REAL_QUOTIENT:
   case REAL_QUOTIENT_E:
   case REAL_QUOTIENT_T:
@@ -1711,18 +1739,17 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   case INT_PLUS: return "a0 + a1";
   case INT_MINUS: return "a0 - a1";
   case INT_MULTIPLY: return "a0 \\cdot a1";
-  case INT_DIVIDE: return "a0 / a1";
   //case INT_MODULO: return "a0 \\% a1";
 
   case RAT_PLUS: return "a0 + a1";
   case RAT_MINUS: return "a0 - a1";
   case RAT_MULTIPLY: return "a0 \\cdot a1";
-  case RAT_DIVIDE: return "a0 / a1";
+  case RAT_QUOTIENT: return "a0 / a1";
 
   case REAL_PLUS: return "a0 + a1";
   case REAL_MINUS: return "a0 - a1";
   case REAL_MULTIPLY: return "a0 \\cdot a1";
-  case REAL_DIVIDE: return "a0 / a1";
+  case REAL_QUOTIENT: return "a0 / a1";
 
   default: return "";
   } 
@@ -1789,13 +1816,12 @@ switch(f){
         IntegerConstantType::InnerType bpos = b.toInner() < 0 ? -b.toInner() : b.toInner();
 	//cout << "a:"<<a.toInt() << " b: " << b.toInt() << endl;
         if(apos % bpos == 0){
-          inverted_f = INT_DIVIDE; break;
+          inverted_f = INT_QUOTIENT_E; break;
         }
       }
     }
     return false;
 
-  //case INT_DIVIDE: 
   //case INT_MODULO: 
 
   case RAT_PLUS: inverted_f = RAT_MINUS; break;
@@ -1806,12 +1832,13 @@ switch(f){
          (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
       {
         if(b.numerator()==0) return false;
-        inverted_f = RAT_DIVIDE; 
+        inverted_f = RAT_QUOTIENT; 
         break;
       }
       return false;
     }
-  case RAT_DIVIDE: inverted_f = RAT_MULTIPLY; break;
+
+  case RAT_QUOTIENT: inverted_f = RAT_MULTIPLY; break;
 
   case REAL_PLUS: inverted_f = REAL_MINUS; break; 
   case REAL_MINUS: inverted_f = REAL_PLUS; break;
@@ -1821,7 +1848,7 @@ switch(f){
          (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
       {
         if(b.numerator()==0) return false;
-        inverted_f = REAL_DIVIDE;
+        inverted_f = REAL_QUOTIENT;
       }
       else{
         // In this case the 'b' i.e. the bottom of the divisor is not a constant
@@ -1831,11 +1858,11 @@ switch(f){
         else if(term->nthArgument(1)==arg){ notZero=term->nthArgument(0); } 
         Term* zero =theory->representConstant(RealConstantType(RationalConstantType(0,1)));
         sideConditions.push(Literal::createEquality(true,TermList(zero),*notZero,Sorts::SRT_REAL));
-        inverted_f = REAL_DIVIDE;
+        inverted_f = REAL_QUOTIENT;
       }
       break;
     } 
-  case REAL_DIVIDE: inverted_f = REAL_MULTIPLY; break;
+  case REAL_QUOTIENT: inverted_f = REAL_MULTIPLY; break;
 
   default: // cannot be inverted
     return false;
