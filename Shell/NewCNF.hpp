@@ -87,12 +87,12 @@ private:
     BindingList* bindings; // the list is not owned by the GenClause (they will shallow-copied and shared)
     // we could/should carry bindings on the GenLits-level; but GenClause seems sufficient as long as we are rectified
 
-    Lib::DArray<GenLit> lits; // TODO: remove the extra indirection and allocate inside GenClause
+    Lib::DArray<GenLit> literals; // TODO: remove the extra indirection and allocate inside GenClause
 
     Lib::vstring toString() {
-      Lib::vstring res = "GC("+Int::toString(lits.size())+")";
-      for (unsigned i = 0; i < lits.size(); i++) {
-        res += (lits[i].second ? " {T} " : " {F} ") + lits[i].first->toString();
+      Lib::vstring res = "GC("+Int::toString(literals.size())+")";
+      for (unsigned i = 0; i < literals.size(); i++) {
+        res += (literals[i].second ? " {T} " : " {F} ") + literals[i].first->toString();
       }
       BindingList::Iterator bIt(bindings);
       while(bIt.hasNext()) {
@@ -104,14 +104,14 @@ private:
     }
 
     // constructor for a singleton GenClause
-    GenClause(Kernel::Formula* f) : valid(true), bindings(BindingList::empty()), lits(1) {
-      lits[0] = make_pair(f,true);
+    GenClause(Kernel::Formula* f) : valid(true), bindings(BindingList::empty()), literals(1) {
+        literals[0] = make_pair(f,true);
 
       // cout << "+GenClause GC(1)" << endl;
     }
 
     // constructor for a GenClause of a given size and given bindings -- lits need to be filled manually
-    GenClause(unsigned size, BindingList* bindings) : valid(true), bindings(bindings), lits(size) {
+    GenClause(unsigned size, BindingList* bindings) : valid(true), bindings(bindings), literals(size) {
       // cout << "+GenClause GC("<<size<<")"<< endl;
     }
 

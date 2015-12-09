@@ -107,7 +107,6 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
   LOG2("occurrences.negativeCount ",occurrences.negativeCount);
 
   FormulaList* args = g->args();
-  unsigned argLen = (unsigned)args->length();
 
   // update the queue and create Occurrences for sub-formulas here
   {
@@ -127,53 +126,49 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
   while (SPGenClauseLookupList::isNonEmpty(toLinearize)) {
     SPGenClauseLookup gcl = SPGenClauseLookupList::pop(toLinearize);
 
-    SPGenClause gcOrig = gcl.gc;
-    if (!gcOrig->valid) {
+    SPGenClause gc = gcl.gc;
+    if (!gc->valid) {
       continue;
     }
 
-    gcOrig->valid = false;
-    GenClauses::iterator gci = gcl.gci;
-    _genClauses.erase(gci);
+    gc->valid = false;
+    _genClauses.erase(gcl.gci);
 
-    DArray<GenLit>& litsOrig = gcOrig->lits;
-    unsigned lenOrig = (unsigned)litsOrig.size();
+    unsigned gcNewSize = (unsigned)gc->literals.size() + args->length() - 1;
+    SPGenClause processedGc = SPGenClause(new GenClause(gcNewSize, gc->bindings));
 
-    SPGenClause gcNew = SPGenClause(new GenClause(lenOrig+argLen-1,gcOrig->bindings));
-    _genClauses.push_front(gcNew);
-
-    DArray<GenLit>& litsNew = gcNew->lits;
     unsigned idx = 0;
+    for (unsigned i = 0; i < gc->literals.size(); i++) {
+      Formula* f = gc->literals[i].first;
+      SIGN sign  = gc->literals[i].second;
 
-    for (unsigned i = 0; i < lenOrig; i++) {
-      GenLit gl = litsOrig[i];
-
-      if (gl.first == g) {
+      if (f == g) {
         ASS_EQ(i,gcl.idx);
-        ASS_EQ(gl.second, linearizationSign);
+        ASS_EQ(sign, linearizationSign);
 
         // insert arguments instead of g here (and update occurrences)
         FormulaList::Iterator it(args);
         while (it.hasNext()) {
           Formula* arg = it.next();
 
-          litsNew[idx] = make_pair(arg,linearizationSign);
-
-          _occurrences.get(arg).add(linearizationSign, SPGenClauseLookup(gcNew,_genClauses.begin(),idx));
+          processedGc->literals[idx] = make_pair(arg, linearizationSign);
+          _occurrences.get(arg).add(linearizationSign, SPGenClauseLookup(processedGc, _genClauses.begin(), idx));
 
           idx++;
         }
       } else {
-        litsNew[idx] = gl;
+        processedGc->literals[idx] = gc->literals[i];
 
-        Occurrences * litsInfo = _occurrences.findPtr(gl.first);
-        if (litsInfo) {
-          litsInfo->add(gl.second, SPGenClauseLookup(gcNew,_genClauses.begin(),idx), false);
+        Occurrences* gcOccurrences = _occurrences.findPtr(f);
+        if (gcOccurrences) {
+          gcOccurrences->add(sign, SPGenClauseLookup(processedGc, _genClauses.begin(), idx), false);
         }
 
         idx++;
       }
     }
+
+    _genClauses.push_front(processedGc);
   }
 
   // process toDistribute
@@ -183,25 +178,26 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
   while (SPGenClauseLookupList::isNonEmpty(toDistribute)) {
     SPGenClauseLookup gcl = SPGenClauseLookupList::pop(toDistribute);
 
-    SPGenClause gcOrig = gcl.gc;
-    if (!gcOrig->valid) {
+    SPGenClause gc = gcl.gc;
+    if (!gc->valid) {
       continue;
     }
 
-    gcOrig->valid = false;
-    GenClauses::iterator gci = gcl.gci;
-    _genClauses.erase(gci);
+    gc->valid = false;
+    _genClauses.erase(gcl.gci);
 
-    DArray<GenLit>& litsOrig = gcOrig->lits;
-    unsigned lenOrig = (unsigned)litsOrig.size();
+    unsigned lenOrig = (unsigned) gc->literals.size();
 
-    // decrease number of occurrences by one for all literals in gcOrig
+    // decrease number of occurrences by one for all literals in gc
     for (unsigned i = 0; i < lenOrig; i++) {
-      GenLit gl = litsOrig[i];
+      Formula* f = gc->literals[i].first;
+      SIGN sign  = gc->literals[i].second;
 
-      Occurrences * litsInfo;
-      if (gl.first != g && (litsInfo = _occurrences.findPtr(gl.first))) {
-        litsInfo->decrement(gl.second);
+      if (f != g) {
+        Occurrences* gcOccurrences = _occurrences.findPtr(f);
+        if (gcOccurrences) {
+          gcOccurrences->decrement(sign);
+        }
       }
     }
 
@@ -209,29 +205,29 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
     while (it.hasNext()) {
       Formula* arg = it.next();
 
-      SPGenClause gcNew = SPGenClause(new GenClause(lenOrig,gcOrig->bindings));
-      _genClauses.push_front(gcNew);
+      SPGenClause processedGc = SPGenClause(new GenClause(lenOrig, gc->bindings));
 
-      DArray<GenLit>& litsNew = gcNew->lits;
       for (unsigned i = 0; i < lenOrig; i++) {
-        GenLit gl = litsOrig[i];
+        Formula* f = gc->literals[i].first;
+        SIGN sign  = gc->literals[i].second;
 
-        if (gl.first == g) {
+        if (f == g) {
           ASS_EQ(i,gcl.idx);
-          ASS_EQ(gl.second, OPPOSITE(linearizationSign));
+          ASS_EQ(sign, OPPOSITE(linearizationSign));
 
-          litsNew[i] = make_pair(arg,OPPOSITE(linearizationSign));
-
-          _occurrences.get(arg).add(OPPOSITE(linearizationSign), SPGenClauseLookup(gcNew,_genClauses.begin(),i));
+          processedGc->literals[i] = make_pair(arg, OPPOSITE(linearizationSign));
+          _occurrences.get(arg).add(OPPOSITE(linearizationSign), SPGenClauseLookup(processedGc, _genClauses.begin(), i));
         } else {
-          litsNew[i] = gl;
+          processedGc->literals[i] = gc->literals[i];
 
-          Occurrences * litsInfo = _occurrences.findPtr(gl.first);
-          if (litsInfo) {
-            litsInfo->add(gl.second, SPGenClauseLookup(gcNew,_genClauses.begin(),i));
+          Occurrences* gcOccurrences = _occurrences.findPtr(f);
+          if (gcOccurrences) {
+            gcOccurrences->add(sign, SPGenClauseLookup(processedGc, _genClauses.begin(), i));
           }
         }
       }
+
+      _genClauses.push_front(processedGc);
     }
   }
 }
@@ -260,9 +256,9 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
 
   // start expanding for g
 
-  SPGenClauseLookupList* toProcess[2];  // the first is the IFF-like, the second the XOR-like
-
   SIGN formulaSign = g->connective() == IFF ? POSITIVE : NEGATIVE;
+
+  SPGenClauseLookupList* toProcess[2];  // the first is the IFF-like, the second the XOR-like
   toProcess[LEFT] = occurrences.of(formulaSign);
   toProcess[RIGHT] = occurrences.of(OPPOSITE(formulaSign));
 
@@ -272,68 +268,47 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
     while (SPGenClauseLookupList::isNonEmpty(current)) {
       SPGenClauseLookup gcl = SPGenClauseLookupList::pop(current);
 
-      SPGenClause gcOrig = gcl.gc;
-      if (!gcOrig->valid) {
+      SPGenClause gc = gcl.gc;
+      if (!gc->valid) {
         continue;
       }
 
-      gcOrig->valid = false;
-      GenClauses::iterator gci = gcl.gci;
-      _genClauses.erase(gci);
+      gc->valid = false;
+      _genClauses.erase(gcl.gci);
 
-      DArray<GenLit>& litsOrig = gcOrig->lits;
-      unsigned lenOrig = (unsigned)litsOrig.size();
+      SPGenClause processedGc[2];
+      for (int s : {0, 1}) {
+        processedGc[s] = SPGenClause(new GenClause((unsigned) gc->literals.size() + 1, gc->bindings));
 
-      SPGenClause gcNew1 = SPGenClause(new GenClause(lenOrig+1,gcOrig->bindings));
-      _genClauses.push_front(gcNew1);
-      GenClauses::iterator gciNew1 = _genClauses.begin();
+        for (unsigned i = 0, idx = 0; i < gc->literals.size(); i++, idx++) {
+          Formula* f = gc->literals[i].first;
+          SIGN sign  = gc->literals[i].second;
 
-      SPGenClause gcNew2 = SPGenClause(new GenClause(lenOrig+1,gcOrig->bindings));
-      _genClauses.push_front(gcNew2);
-      GenClauses::iterator gciNew2 = _genClauses.begin();
+          if (f == g) {
+            ASS_EQ(i, gcl.idx);
+            ASS_EQ(sign, ((formulaSign == POSITIVE) && (side == LEFT)) ||
+                         ((formulaSign == NEGATIVE) && (side == RIGHT)) ? POSITIVE : NEGATIVE);
 
-      DArray<GenLit>& litsNew1 = gcNew1->lits;
-      DArray<GenLit>& litsNew2 = gcNew2->lits;
-      unsigned idx = 0;
+            SIGN lhsSign = s == 0 ? NEGATIVE : POSITIVE;
+            processedGc[s]->literals[idx] = make_pair(lhs, lhsSign);
+            lhsOccurrences.add(lhsSign, SPGenClauseLookup(processedGc[s], _genClauses.begin(), idx));
 
-      for (unsigned i = 0; i < lenOrig; i++) {
-        GenLit gl = litsOrig[i];
+            idx++;
 
-        if (gl.first == g) {
-          ASS_EQ(i,gcl.idx);
-          ASS_EQ(gl.second, ((formulaSign == POSITIVE) && (side == LEFT)) ||
-                            ((formulaSign == NEGATIVE) && (side == RIGHT)) ? POSITIVE : NEGATIVE);
-
-          litsNew1[idx] = make_pair(lhs,NEGATIVE);
-          lhsOccurrences.add(NEGATIVE, SPGenClauseLookup(gcNew1,gciNew1,idx));
-
-          litsNew2[idx] = make_pair(lhs,POSITIVE);
-          lhsOccurrences.add(POSITIVE, SPGenClauseLookup(gcNew2,gciNew2,idx));
-
-          idx++;
-
-          SIGN secondIn1st = side == LEFT ? POSITIVE : NEGATIVE;
-          litsNew1[idx] = make_pair(rhs,secondIn1st);
-          rhsOccurrences.add(secondIn1st, SPGenClauseLookup(gcNew1,gciNew1,idx));
-
-          SIGN secondIn2nd = OPPOSITE(secondIn1st);
-          litsNew2[idx] = make_pair(rhs,secondIn2nd);
-          rhsOccurrences.add(secondIn2nd, SPGenClauseLookup(gcNew2,gciNew2,idx));
-
-          idx++;
-        } else {
-          litsNew1[idx] = gl;
-          litsNew2[idx] = gl;
-
-          Occurrences * litsInfo = _occurrences.findPtr(gl.first);
-          if (litsInfo) {
-            litsInfo->add(gl.second, SPGenClauseLookup(gcNew1,gciNew1,idx));
-            // do not increment the counter, for it was there already once
-            litsInfo->add(gl.second, SPGenClauseLookup(gcNew2,gciNew2,idx), false);
+            SIGN rhsSign = side == LEFT ? POSITIVE : NEGATIVE;
+            rhsSign = s == 0 ? rhsSign : OPPOSITE(rhsSign);
+            processedGc[s]->literals[idx] = make_pair(rhs, rhsSign);
+            rhsOccurrences.add(rhsSign, SPGenClauseLookup(processedGc[s], _genClauses.begin(), idx));
+          } else {
+            processedGc[s]->literals[idx] = gc->literals[i];
+            Occurrences* gcOccurrences = _occurrences.findPtr(f);
+            if (gcOccurrences) {
+              // do not increment the counter, for it was there already once
+              gcOccurrences->add(sign, SPGenClauseLookup(processedGc[s], _genClauses.begin(), idx), s == 0);
+            }
           }
-
-          idx++;
         }
+        _genClauses.push_front(processedGc[s]);
       }
     }
   }
@@ -523,8 +498,7 @@ void NewCNF::processForallExists(QuantifiedFormula* g, Occurrences &occurrences)
         // occsOld's tail goes to old occsNew and occsOld progresses
         occsOld = occsOld->setTail(redirectTo);
 
-        DArray<GenLit>& litsOrig = gcOrig->lits;
-        GenLit& gl = litsOrig[gcl.idx];
+        GenLit& gl = gcOrig->literals[gcl.idx];
         ASS_EQ(gl.first,g);
         ASS_EQ(gl.second, sign);
         gl.first = qarg;
@@ -629,8 +603,7 @@ Formula* NewCNF::performNaming(Kernel::Formula* g, Occurrences &occurrences)
         // occsOld's tail goes to old occsNew and occsOld progresses
         occsOld = occsOld->setTail(redirectTo);
 
-        DArray<GenLit>& litsOrig = gcOrig->lits;
-        GenLit& gl = litsOrig[gcl.idx];
+        GenLit& gl = gcOrig->literals[gcl.idx];
         ASS_EQ(gl.first,g);
         ASS_EQ(gl.second, sign);
         gl.first = name;
@@ -672,8 +645,8 @@ void NewCNF::processAll()
         // One could also consider the case where (part of) the bindings goes to the definition
         // which perhaps allows us to the have a skolem predicate with fewer arguments
         SPGenClause gcNew = SPGenClause(new GenClause(2,BindingList::empty()));
-        gcNew->lits[0] = make_pair(name, OPPOSITE(sign));
-        gcNew->lits[1] = make_pair(g, sign);
+        gcNew->literals[0] = make_pair(name, OPPOSITE(sign));
+        gcNew->literals[1] = make_pair(g, sign);
 
         _genClauses.push_front(gcNew);
 
@@ -743,17 +716,16 @@ void NewCNF::createClauses(Stack<Clause*>& output)
     static Stack<Literal*> literals;
     ASS(literals.isEmpty());
 
-    DArray<GenLit>& lits = gc->lits;
-    unsigned len = (unsigned)lits.size();
+    unsigned len = (unsigned) gc->literals.size();
     for (unsigned i = 0; i < len; i++) {
-      GenLit gl = lits[i];
+      Formula* g = gc->literals[i].first;
+      SIGN  sign = gc->literals[i].second;
 
-      Formula* g = gl.first;
       ASS_EQ(g->connective(), LITERAL);
 
       Literal* l = g->literal();
       l = l->apply(subst);
-      if (!gl.second) { // negative occurrence
+      if (sign == NEGATIVE) {
         l = Literal::complementaryLiteral(l);
       }
 
