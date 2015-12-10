@@ -132,7 +132,7 @@ private:
 
     Occurrences* occurrences = _occurrences.findPtr(f);
     if (occurrences) {
-      occurrences->add(sign, Occurrences::Occurrence(gc, position), incOccCounter);
+      occurrences->add(sign, Occurrence(gc, position), incOccCounter);
     }
   }
 
@@ -259,10 +259,10 @@ private:
     ALWAYS(_occurrences.pop(formula,occurrences));
   }
 
-  void processAll();
-  void processAndOr(Kernel::JunctionFormula* g, Occurrences & occInfo);
-  void processIffXor(Kernel::Formula* g, Occurrences & occInfo);
-  void processForallExists(Kernel::QuantifiedFormula* g, Occurrences & occInfo);
+  void process();
+  void process(Kernel::JunctionFormula* g, Occurrences &occInfo);
+  void process(Kernel::BinaryFormula* g, Occurrences &occInfo);
+  void process(Kernel::QuantifiedFormula* g, Occurrences &occInfo);
 
   void createClauses(Lib::Stack<Kernel::Clause*>& output);
 

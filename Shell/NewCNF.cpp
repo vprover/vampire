@@ -69,7 +69,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   SPGenClause gc = introduceGenClause(1, BindingList::empty());
   setLiteral(gc, 0, makeGenLit(f, POSITIVE));
 
-  processAll();
+  process();
 
   createClauses(output);
 
@@ -77,11 +77,11 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   _freeVars.reset();
 }
 
-void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
+void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
 {
-  CALL("NewCNF::processAndOr");
+  CALL("NewCNF::process(JunctionFormula*)");
 
-  LOG2("processAndOr ",g->toString());
+  LOG2("processJunction ",g->toString());
 
   LOG2("occurrences.positiveCount ",occurrences.positiveCount);
   LOG2("occurrences.negativeCount ",occurrences.negativeCount);
@@ -115,14 +115,13 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
 
     unsigned position = 0;
     for (unsigned i = 0; i < occ.gc->literals.size(); i++) {
-      Formula* f = occ.gc->literals[i].first;
-      SIGN sign  = occ.gc->literals[i].second;
+      if (i == occ.position) {
+        Formula* f = occ.gc->literals[i].first;
+        SIGN sign  = occ.gc->literals[i].second;
 
-      if (f == g) {
-        ASS_EQ(i, occ.position);
+        ASS_EQ(f, g);
         ASS_EQ(sign, flatteningSign);
 
-        // insert arguments instead of g here (and update occurrences)
         FormulaList::Iterator it(g->args());
         while (it.hasNext()) {
           setLiteral(processedGc, position++, makeGenLit(it.next(), flatteningSign));
@@ -146,10 +145,8 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
 
     invalidate(occ);
 
-    unsigned nrLiterals = (unsigned) occ.gc->literals.size();
-
     // decrease number of occurrences by one for all literals in gc
-    for (unsigned i = 0; i < nrLiterals; i++) {
+    for (unsigned i = 0; i < occ.gc->literals.size(); i++) {
       Formula* f = occ.gc->literals[i].first;
       SIGN sign  = occ.gc->literals[i].second;
 
@@ -165,15 +162,17 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
     while (it.hasNext()) {
       Formula* arg = it.next();
 
-      SPGenClause processedGc = introduceGenClause(nrLiterals, occ.gc->bindings);
+      unsigned processedGcSize = (unsigned) occ.gc->literals.size();
+      SPGenClause processedGc = introduceGenClause(processedGcSize, occ.gc->bindings);
 
-      for (unsigned i = 0; i < nrLiterals; i++) {
-        Formula* f = occ.gc->literals[i].first;
-        SIGN sign  = occ.gc->literals[i].second;
+      for (unsigned i = 0; i < occ.gc->literals.size(); i++) {
+        if (i == occ.position) {
+          Formula* f = occ.gc->literals[i].first;
+          SIGN sign  = occ.gc->literals[i].second;
 
-        if (f == g) {
-          ASS_EQ(i, occ.position);
+          ASS_EQ(f, g);
           ASS_EQ(sign, OPPOSITE(flatteningSign));
+
           setLiteral(processedGc, i, makeGenLit(arg, OPPOSITE(flatteningSign)));
         } else {
           setLiteral(processedGc, i, occ.gc->literals[i]);
@@ -183,26 +182,21 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
   }
 }
 
-void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
+void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
 {
-  CALL("NewCNF::processIffXor");
+  CALL("NewCNF::process(BinaryFormula*)");
 
-  LOG2("processIffXor ",g->toString());
+  LOG2("processEquivalence ",g->toString());
 
-  ASS(g->connective() == IFF || g->connective() == XOR);
-
-  // update the queue and create Occurrences for sub-formulas here
+  ASS(g->connective() != IMP);
 
   enqueue(g->left());
   enqueue(g->right());
-
-  // start expanding for g
 
   SIGN formulaSign = g->connective() == IFF ? POSITIVE : NEGATIVE;
 
   for (SIGN occurrenceSign : { POSITIVE, NEGATIVE }) {
     OccurrenceList* signOccurrences = occurrences.of(occurrenceSign);
-
     while (OccurrenceList::isNonEmpty(signOccurrences)) {
       Occurrence occ = OccurrenceList::pop(signOccurrences);
 
@@ -213,13 +207,14 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
       invalidate(occ);
 
       for (SIDE side : { LEFT, RIGHT }) {
-        SPGenClause processedGc = introduceGenClause((unsigned) occ.gc->literals.size() + 1, occ.gc->bindings);
+        unsigned processedGcSize = (unsigned) occ.gc->literals.size() + 1;
+        SPGenClause processedGc = introduceGenClause(processedGcSize, occ.gc->bindings);
         for (unsigned i = 0, position = 0; i < occ.gc->literals.size(); i++, position++) {
-          Formula* f = occ.gc->literals[i].first;
-          SIGN sign  = occ.gc->literals[i].second;
+          if (i == occ.position) {
+            Formula* f = occ.gc->literals[i].first;
+            SIGN sign  = occ.gc->literals[i].second;
 
-          if (f == g) {
-            ASS_EQ(i, occ.position);
+            ASS_EQ(f, g);
             ASS_EQ(sign, formulaSign != occurrenceSign ? POSITIVE : NEGATIVE);
 
             SIGN lhsSign = side == LEFT ? NEGATIVE : POSITIVE;
@@ -247,8 +242,7 @@ NewCNF::VarSet* NewCNF::freeVars(Formula* g)
   if (!_freeVars.find(g,res)) {
     switch (g->connective()) {
       case LITERAL: {
-        Literal* l = g->literal();
-        VariableIterator vit(l);
+        VariableIterator vit(g->literal());
         static Stack<unsigned> is;
         is.reset();
         while (vit.hasNext()) {
@@ -341,54 +335,49 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings)
 {
   CALL("NewCNF::skolemise");
 
-  BindingList* newBindings;
+  BindingList* processedBindings;
 
-  if (!_skolemsByBindings.find(bindings,newBindings)) {
+  if (!_skolemsByBindings.find(bindings, processedBindings)) {
     // first level cache miss, construct free variable set
 
-    VarSet* gVars = freeVars(g);
-
     BindingList::Iterator bIt(bindings);
-    VarSet* bVars = (VarSet*) VarSet::getFromIterator(getMappingIterator(bIt, BindingGetFirstFunctor()));
+    VarSet* boundVars = (VarSet*) VarSet::getFromIterator(getMappingIterator(bIt, BindingGetFirstFunctor()));
+    VarSet* unboundFreeVars = (VarSet*) freeVars(g)->subtract(boundVars);
 
-    VarSet* actualFreeVars = (VarSet*) gVars->subtract(bVars);
-
-    if (!_skolemsByFreeVars.find(actualFreeVars,newBindings)) {
+    if (!_skolemsByFreeVars.find(unboundFreeVars, processedBindings)) {
       // second level cache miss, let's do the actual skolemisation
 
-      newBindings = nullptr;
+      processedBindings = nullptr;
 
       Formula::VarList::Iterator vs(g->vars());
       while (vs.hasNext()) {
         unsigned var = (unsigned)vs.next();
-        Term* skolemTerm = createSkolemTerm(var,actualFreeVars);
-        BindingList::push(make_pair(var,skolemTerm),newBindings);
+        Term* skolemTerm = createSkolemTerm(var, unboundFreeVars);
+        BindingList::push(make_pair(var,skolemTerm), processedBindings);
       }
 
       // store the results in the caches
-      _skolemsByFreeVars.insert(actualFreeVars,newBindings);
+      _skolemsByFreeVars.insert(unboundFreeVars, processedBindings);
     }
 
-    _skolemsByBindings.insert(bindings,newBindings);
+    _skolemsByBindings.insert(bindings, processedBindings);
   }
 
   // extend the given binding
-  BindingList::Iterator it(newBindings);
+  BindingList::Iterator it(processedBindings);
   while (it.hasNext()) {
     BindingList::push(it.next(),bindings);
   }
 }
 
-void NewCNF::processForallExists(QuantifiedFormula* g, Occurrences &occurrences)
+void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 {
-  CALL("NewCNF::processForallExists");
+  CALL("NewCNF::process(QuantifiedFormula*)");
 
   LOG2("processForallExists ",g->toString());
 
-  // update the queue and reuse (!) Occurrences for sub-formula
-
-  Formula* qarg = g->qarg();
-  enqueue(qarg, occurrences); // qarg is reusing g's occurrences (!)
+  // Note that the formula under quantifier reuses the quantified formula's occurrences
+  enqueue(g->qarg(), occurrences);
 
   // the skolem caches are empty
   ASS(_skolemsByBindings.isEmpty());
@@ -408,12 +397,11 @@ void NewCNF::processForallExists(QuantifiedFormula* g, Occurrences &occurrences)
       Occurrence occ = signOccurrences->head();
 
       if (!occ.valid()) {
-        // signOccurrences progresses and deletes its top
         OccurrenceList::pop(signOccurrences);
         continue;
       }
 
-      OccurrenceList * redirectTo = processedOccurrences;
+      OccurrenceList* redirectTo = processedOccurrences;
       processedOccurrences = signOccurrences;
       // signOccurrences's tail goes to old processedOccurrences and signOccurrences progresses
       signOccurrences = signOccurrences->setTail(redirectTo);
@@ -421,7 +409,7 @@ void NewCNF::processForallExists(QuantifiedFormula* g, Occurrences &occurrences)
       GenLit& gl = occ.gc->literals[occ.position];
       ASS_EQ(gl.first,g);
       ASS_EQ(gl.second, sign);
-      gl.first = qarg;
+      gl.first = g->qarg();
 
       if ((sign == POSITIVE) == (g->connective() == EXISTS)) {
         skolemise(g, occ.gc->bindings);
@@ -429,8 +417,6 @@ void NewCNF::processForallExists(QuantifiedFormula* g, Occurrences &occurrences)
     }
 
     occurrences.of(sign) = processedOccurrences;
-
-    // occCnts remain the same
   }
 
   // empty the skolem caches
@@ -535,9 +521,9 @@ Formula* NewCNF::performNaming(Kernel::Formula* g, Occurrences &occurrences)
   return name;
 }
 
-void NewCNF::processAll()
+void NewCNF::process()
 {
-  CALL("NewCNF::processAll");
+  CALL("NewCNF::process()");
 
   // process the generalized clauses until they contain only literals
   while(_queue.isNonEmpty()) {
@@ -583,17 +569,17 @@ void NewCNF::processAll()
     switch (g->connective()) {
       case AND:
       case OR:
-        processAndOr(static_cast<JunctionFormula*>(g),occurrences);
+        process(static_cast<JunctionFormula*>(g), occurrences);
         break;
 
       case IFF:
       case XOR:
-        processIffXor(g,occurrences);
+        process(static_cast<BinaryFormula*>(g), occurrences);
         break;
 
       case FORALL:
       case EXISTS:
-        processForallExists(static_cast<QuantifiedFormula*>(g),occurrences);
+        process(static_cast<QuantifiedFormula*>(g),occurrences);
         break;
 
       default:
