@@ -103,13 +103,6 @@ private:
       return res;
     }
 
-    // constructor for a singleton GenClause
-    GenClause(Kernel::Formula* f) : valid(true), bindings(BindingList::empty()), literals(1) {
-        literals[0] = make_pair(f,true);
-
-      // cout << "+GenClause GC(1)" << endl;
-    }
-
     // constructor for a GenClause of a given size and given bindings -- lits need to be filled manually
     GenClause(unsigned size, BindingList* bindings) : valid(true), bindings(bindings), literals(size) {
       // cout << "+GenClause GC("<<size<<")"<< endl;
@@ -124,11 +117,11 @@ private:
 
   typedef std::list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
 
-  inline void setLiteral(SPGenClause gc, unsigned position, Formula* f, SIGN sign) {
+  inline void setLiteral(SPGenClause gc, unsigned position, Formula* f, SIGN sign, bool incOccCounter=true) {
     gc->literals[position] = make_pair(f, sign);
     Occurrences* occurrences = _occurrences.findPtr(f);
     if (occurrences) {
-      occurrences->add(sign, SPGenClauseLookup(gc, _genClauses.begin(), position));
+      occurrences->add(sign, Occurrences::Occurrence(gc, _genClauses.begin(), position), incOccCounter);
     }
   }
 
@@ -138,26 +131,19 @@ private:
    */
   GenClauses _genClauses;
 
-  struct SPGenClauseLookup {
-    SPGenClause gc;
-    GenClauses::iterator gci; // the iterator is only valid if the smart pointer points to a valid GenClause
-    unsigned idx;             // index into lits of GenClause where the formula occurs
-    SPGenClauseLookup(SPGenClause gc, GenClauses::iterator gci, unsigned idx) : gc(gc), gci(gci), idx(idx) {}
-
-    inline bool valid() {
-      return gc->valid;
-    }
-  };
-
-  inline void invalidate(SPGenClauseLookup gcl) {
-    gcl.gc->valid = false;
-    _genClauses.erase(gcl.gci);
-  }
-
-  typedef Lib::List<SPGenClauseLookup> SPGenClauseLookupList;
-
   class Occurrences {
     public:
+      struct Occurrence {
+        SPGenClause gc;
+        GenClauses::iterator gci; // the iterator is only valid if the smart pointer points to a valid GenClause
+        unsigned idx;             // index into lits of GenClause where the formula occurs
+        Occurrence(SPGenClause gc, GenClauses::iterator gci, unsigned idx) : gc(gc), gci(gci), idx(idx) {}
+
+        inline bool valid() {
+          return gc->valid;
+        }
+      };
+
       // constructor for an empty Occurrences
       Occurrences() : positiveOccurrences(nullptr), negativeOccurrences(nullptr),
                       positiveCount(0), negativeCount(0) {}
@@ -168,15 +154,15 @@ private:
         return sign == POSITIVE ? positiveCount > 0 : negativeOccurrences > 0;
       }
 
-      SPGenClauseLookupList* &of(SIGN sign) {
+      Lib::List<Occurrence>* &of(SIGN sign) {
         return sign == POSITIVE ? positiveOccurrences : negativeOccurrences;
       }
 
-      inline void add(SIGN sign, SPGenClauseLookup gc, bool account=true) {
+      inline void add(SIGN sign, Occurrences::Occurrence gc, bool account=true) {
         if (sign == POSITIVE) {
-          positiveOccurrences = new SPGenClauseLookupList(gc, positiveOccurrences);
+          positiveOccurrences = new OccurrenceList(gc, positiveOccurrences);
         } else {
-          negativeOccurrences = new SPGenClauseLookupList(gc, negativeOccurrences);
+          negativeOccurrences = new OccurrenceList(gc, negativeOccurrences);
         }
         if (account) {
           increment(sign);
@@ -201,14 +187,22 @@ private:
 
     private:
       // may contain pointers to invalidated GenClauses
-      SPGenClauseLookupList* positiveOccurrences;
-      SPGenClauseLookupList* negativeOccurrences;
+      Lib::List<Occurrence>* positiveOccurrences;
+      Lib::List<Occurrence>* negativeOccurrences;
 
       // the number of valid clauses in positiveOccurrences and negativeOccurrences
       // this is in general not equal to the size of positiveOccurrences and negativeOccurrences
       unsigned positiveCount;
       unsigned negativeCount;
   };
+
+  typedef Occurrences::Occurrence Occurrence;
+  typedef Lib::List<Occurrence> OccurrenceList;
+
+  inline void invalidate(Occurrences::Occurrence gcl) {
+    gcl.gc->valid = false;
+    _genClauses.erase(gcl.gci);
+  }
 
   Lib::DHMap<Kernel::Formula*, Occurrences> _occurrences;
 
