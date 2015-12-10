@@ -67,7 +67,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   enqueue(f);
 
   SPGenClause gc = makeGenClause(1, BindingList::empty());
-  setLiteral(gc, 0, f, POSITIVE);
+  setLiteral(gc, 0, makeGenLit(f, POSITIVE));
 
   processAll();
 
@@ -139,10 +139,10 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
         // insert arguments instead of g here (and update occurrences)
         FormulaList::Iterator it(g->args());
         while (it.hasNext()) {
-          setLiteral(processedGc, position++, it.next(), flatteningSign);
+          setLiteral(processedGc, position++, makeGenLit(it.next(), flatteningSign));
         }
       } else {
-        setLiteral(processedGc, position++, f, sign, false);
+        setLiteral(processedGc, position++, occ.gc->literals[i], false);
       }
     }
   }
@@ -188,9 +188,9 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
         if (f == g) {
           ASS_EQ(i, occ.position);
           ASS_EQ(sign, OPPOSITE(flatteningSign));
-          setLiteral(processedGc, i, arg, OPPOSITE(flatteningSign));
+          setLiteral(processedGc, i, makeGenLit(arg, OPPOSITE(flatteningSign)));
         } else {
-          setLiteral(processedGc, i, f, sign);
+          setLiteral(processedGc, i, occ.gc->literals[i]);
         }
       }
     }
@@ -226,12 +226,8 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
 
       invalidate(occ);
 
-      SPGenClause processedGc[2];
       for (SIDE side : { LEFT, RIGHT }) {
-        processedGc[side] = makeGenClause((unsigned) occ.gc->literals.size() + 1, occ.gc->bindings);
-      }
-
-      for (SIDE side : { LEFT, RIGHT }) {
+        SPGenClause processedGc = makeGenClause((unsigned) occ.gc->literals.size() + 1, occ.gc->bindings);
         for (unsigned i = 0, position = 0; i < occ.gc->literals.size(); i++, position++) {
           Formula* f = occ.gc->literals[i].first;
           SIGN sign  = occ.gc->literals[i].second;
@@ -241,12 +237,12 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
             ASS_EQ(sign, formulaSign != occurrenceSign ? POSITIVE : NEGATIVE);
 
             SIGN lhsSign = side == LEFT ? NEGATIVE : POSITIVE;
-            setLiteral(processedGc[side], position++, g->left(), lhsSign);
+            setLiteral(processedGc, position++, makeGenLit(g->left(), lhsSign));
 
             SIGN rhsSign = side == LEFT ? OPPOSITE(occurrenceSign) : occurrenceSign;
-            setLiteral(processedGc[side], position,   g->right(), rhsSign);
+            setLiteral(processedGc, position, makeGenLit(g->right(), rhsSign));
           } else {
-            setLiteral(processedGc[side], position, f, sign, side == LEFT);
+            setLiteral(processedGc, position, occ.gc->literals[i], side == LEFT);
           }
         }
       }
@@ -587,8 +583,8 @@ void NewCNF::processAll()
         // which perhaps allows us to the have a skolem predicate with fewer arguments
         SPGenClause gc = makeGenClause(2, BindingList::empty());
 
-        gc->literals[0] = make_pair(name, OPPOSITE(sign));
-        setLiteral(gc, 1, g, sign);
+        gc->literals[0] = makeGenLit(name, OPPOSITE(sign));
+        setLiteral(gc, 1, makeGenLit(g, sign));
       }
 
       LOG2("performedNaming for ",g->toString());

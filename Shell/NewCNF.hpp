@@ -75,7 +75,10 @@ private:
   #define OPPOSITE(sign) (!(sign))
 
   // generalized literal
-  typedef std::pair<Kernel::Formula*, SIGN> GenLit; // positive occurrences have second component true
+  typedef std::pair<Kernel::Formula*, SIGN> GenLit;
+  inline GenLit makeGenLit(Formula* f, SIGN sign) {
+    return make_pair(f, sign);
+  }
 
   // generalized clause
   struct GenClause {
@@ -120,8 +123,10 @@ private:
 
   typedef std::list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
 
-  inline void setLiteral(SPGenClause gc, unsigned position, Formula* f, SIGN sign, bool incOccCounter=true) {
-    gc->literals[position] = make_pair(f, sign);
+  inline void setLiteral(SPGenClause gc, unsigned position, GenLit gl, bool incOccCounter=true) {
+    Formula* f = gl.first;
+    SIGN sign  = gl.second;
+    gc->literals[position] = gl;
     Occurrences* occurrences = _occurrences.findPtr(f);
     if (occurrences) {
       occurrences->add(sign, Occurrences::Occurrence(gc, position), incOccCounter);
