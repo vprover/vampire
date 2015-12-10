@@ -77,20 +77,6 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   _freeVars.reset();
 }
 
-void NewCNF::processLiteral(Literal* l, Occurrences &occurrences)
-{
-  CALL("NewCNF::processLiteral");
-
-  LOG2("processLiteral ",l->toString());
-
-  // just delete occurrences to release the SPGenClauses
-
-  for (SIGN sign : { NEGATIVE, POSITIVE }) {
-    occurrences.of(sign)->destroy();
-    // TODO: could check in debug mode that the occurrences are valid
-  }
-}
-
 void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
 {
   CALL("NewCNF::processAndOr");
@@ -546,8 +532,6 @@ Formula* NewCNF::performNaming(Kernel::Formula* g, Occurrences &occurrences)
       gl.first = name;
     }
     occurrences.of(sign) = processedOccurrences;
-
-    // occCnts remain the same
   }
 
   return name;
@@ -563,13 +547,15 @@ void NewCNF::processAll()
     Occurrences occurrences;
     dequeue(g, occurrences);
 
+    ASS_REP(g->connective() != LITERAL, g->toString());
+
     LOG1("processAll iteration; _genClauses:");
     for (SPGenClause gc : _genClauses) {
       LOG1(gc->toString());
     }
 
     // the case of naming
-    if ((_namingThreshold > 1) && g->connective() != LITERAL && occurrences.count() > _namingThreshold) {
+    if ((_namingThreshold > 1) && occurrences.count() > _namingThreshold) {
       Formula* name = performNaming(g,occurrences);
       ASS_EQ(name->connective(),LITERAL);
 
@@ -582,8 +568,7 @@ void NewCNF::processAll()
         // One could also consider the case where (part of) the bindings goes to the definition
         // which perhaps allows us to the have a skolem predicate with fewer arguments
         SPGenClause gc = introduceGenClause(2, BindingList::empty());
-
-        gc->literals[0] = makeGenLit(name, OPPOSITE(sign));
+        setLiteral(gc, 0, makeGenLit(name, OPPOSITE(sign)));
         setLiteral(gc, 1, makeGenLit(g, sign));
       }
 
@@ -598,10 +583,6 @@ void NewCNF::processAll()
     // TODO: currently we don't check for tautologies, as there should be none appearing (we use polarity based expansion of IFF and XOR)
 
     switch (g->connective()) {
-      case LITERAL:
-        processLiteral(g->literal(),occurrences);
-        break;
-
       case AND:
       case OR:
         processAndOr(static_cast<JunctionFormula*>(g),occurrences);

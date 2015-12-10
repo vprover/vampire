@@ -127,6 +127,9 @@ private:
     Formula* f = gl.first;
     SIGN sign  = gl.second;
     gc->literals[position] = gl;
+
+    if (f->connective() != LITERAL) return;
+
     Occurrences* occurrences = _occurrences.findPtr(f);
     if (occurrences) {
       occurrences->add(sign, Occurrences::Occurrence(gc, position), incOccCounter);
@@ -245,8 +248,10 @@ private:
   Kernel::Formula* performNaming(Kernel::Formula* g, Occurrences & occInfo);
 
   void enqueue(Formula *formula, Occurrences occurrences = Occurrences()) {
-    _queue.push_back(formula);
-    ALWAYS(_occurrences.insert(formula,occurrences));
+    if (formula->connective() != LITERAL) {
+      _queue.push_back(formula);
+      ALWAYS(_occurrences.insert(formula, occurrences));
+    }
   }
 
   void dequeue(Formula* &formula, Occurrences &occurrences) {
@@ -255,7 +260,6 @@ private:
   }
 
   void processAll();
-  void processLiteral(Kernel::Literal* l, Occurrences & occInfo);
   void processAndOr(Kernel::JunctionFormula* g, Occurrences & occInfo);
   void processIffXor(Kernel::Formula* g, Occurrences & occInfo);
   void processForallExists(Kernel::QuantifiedFormula* g, Occurrences & occInfo);
