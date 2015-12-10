@@ -254,7 +254,7 @@ NewCNF::VarSet* NewCNF::freeVars(Formula* g)
         while (vit.hasNext()) {
           is.push(vit.next().var());
         }
-        res = VarSet::getFromArray(is.begin(),is.size());
+        res = (VarSet*) VarSet::getFromArray(is.begin(),is.size());
         break;
       }
       case AND:
@@ -263,21 +263,21 @@ NewCNF::VarSet* NewCNF::freeVars(Formula* g)
         ASS(aIt.hasNext());
         res = freeVars(aIt.next());
         while (aIt.hasNext()) {
-          res = res->getUnion(freeVars(aIt.next()));
+          res = (VarSet*) res->getUnion(freeVars(aIt.next()));
         }
         break;
       }
       case IFF:
       case XOR: {
         res = freeVars(g->left());
-        res = res->getUnion(freeVars(g->right()));
+        res = (VarSet*) res->getUnion(freeVars(g->right()));
         break;
       }
       case FORALL:
       case EXISTS: {
         res = freeVars(g->qarg());
         Formula::VarList::Iterator vit(g->vars());
-        res = res->subtract(VarSet::getFromIterator(vit));
+        res = (VarSet*) res->subtract(VarSet::getFromIterator(vit));
         break;
       }
       default:
@@ -337,11 +337,9 @@ Kernel::Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
  * so we cache results from skolemising previous
  * occurrences of g.
  */
-void NewCNF::skolemise(Formula* g, BindingList*& bindings)
+void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings)
 {
   CALL("NewCNF::skolemise");
-
-  ASS(g->connective() == FORALL || g->connective() == EXISTS);
 
   BindingList* newBindings;
 
@@ -351,9 +349,9 @@ void NewCNF::skolemise(Formula* g, BindingList*& bindings)
     VarSet* gVars = freeVars(g);
 
     BindingList::Iterator bIt(bindings);
-    VarSet* bVars = VarSet::getFromIterator(getMappingIterator(bIt,BindingGetFirstFunctor()));
+    VarSet* bVars = (VarSet*) VarSet::getFromIterator(getMappingIterator(bIt, BindingGetFirstFunctor()));
 
-    VarSet* actualFreeVars = gVars->subtract(bVars);
+    VarSet* actualFreeVars = (VarSet*) gVars->subtract(bVars);
 
     if (!_skolemsByFreeVars.find(actualFreeVars,newBindings)) {
       // second level cache miss, let's do the actual skolemisation

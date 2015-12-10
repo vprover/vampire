@@ -242,7 +242,7 @@ private:
   Lib::DHMap<BindingList*,BindingList*> _skolemsByBindings;
   Lib::DHMap<VarSet*,BindingList*>      _skolemsByFreeVars;
 
-  void skolemise(Kernel::Formula* g, BindingList*& bindings);
+  void skolemise(Kernel::QuantifiedFormula* g, BindingList*& bindings);
 
   Kernel::Literal* createNamingLiteral(Kernel::Formula* g, VarSet* free);
   Kernel::Formula* performNaming(Kernel::Formula* g, Occurrences & occInfo);
