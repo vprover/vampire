@@ -126,22 +126,20 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
   while (SPGenClauseLookupList::isNonEmpty(toLinearize)) {
     SPGenClauseLookup gcl = SPGenClauseLookupList::pop(toLinearize);
 
-    SPGenClause gc = gcl.gc;
-    if (!gc->valid) {
+    if (!gcl.valid()) {
       continue;
     }
 
-    gc->valid = false;
-    _genClauses.erase(gcl.gci);
+    invalidate(gcl);
 
-    unsigned processedGcSize = (unsigned)gc->literals.size() + args->length() - 1;
-    SPGenClause processedGc = SPGenClause(new GenClause(processedGcSize, gc->bindings));
+    unsigned processedGcSize = (unsigned)gcl.gc->literals.size() + args->length() - 1;
+    SPGenClause processedGc = SPGenClause(new GenClause(processedGcSize, gcl.gc->bindings));
     _genClauses.push_front(processedGc);
 
-    unsigned idx = 0;
-    for (unsigned i = 0; i < gc->literals.size(); i++) {
-      Formula* f = gc->literals[i].first;
-      SIGN sign  = gc->literals[i].second;
+    unsigned position = 0;
+    for (unsigned i = 0; i < gcl.gc->literals.size(); i++) {
+      Formula* f = gcl.gc->literals[i].first;
+      SIGN sign  = gcl.gc->literals[i].second;
 
       if (f == g) {
         ASS_EQ(i,gcl.idx);
@@ -150,17 +148,17 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
         // insert arguments instead of g here (and update occurrences)
         FormulaList::Iterator it(args);
         while (it.hasNext()) {
-          setLiteral(processedGc, idx++, it.next(), linearizationSign);
+          setLiteral(processedGc, position++, it.next(), linearizationSign);
         }
       } else {
-        processedGc->literals[idx] = gc->literals[i];
+        processedGc->literals[position] = gcl.gc->literals[i];
 
         Occurrences* gcOccurrences = _occurrences.findPtr(f);
         if (gcOccurrences) {
-          gcOccurrences->add(sign, SPGenClauseLookup(processedGc, _genClauses.begin(), idx), false);
+          gcOccurrences->add(sign, SPGenClauseLookup(processedGc, _genClauses.begin(), position), false);
         }
 
-        idx++;
+        position++;
       }
     }
   }
@@ -172,20 +170,18 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
   while (SPGenClauseLookupList::isNonEmpty(toDistribute)) {
     SPGenClauseLookup gcl = SPGenClauseLookupList::pop(toDistribute);
 
-    SPGenClause gc = gcl.gc;
-    if (!gc->valid) {
+    if (!gcl.valid()) {
       continue;
     }
 
-    gc->valid = false;
-    _genClauses.erase(gcl.gci);
+    invalidate(gcl);
 
-    unsigned lenOrig = (unsigned) gc->literals.size();
+    unsigned nrLiterals = (unsigned) gcl.gc->literals.size();
 
     // decrease number of occurrences by one for all literals in gc
-    for (unsigned i = 0; i < lenOrig; i++) {
-      Formula* f = gc->literals[i].first;
-      SIGN sign  = gc->literals[i].second;
+    for (unsigned i = 0; i < nrLiterals; i++) {
+      Formula* f = gcl.gc->literals[i].first;
+      SIGN sign  = gcl.gc->literals[i].second;
 
       if (f != g) {
         Occurrences* gcOccurrences = _occurrences.findPtr(f);
@@ -199,12 +195,12 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
     while (it.hasNext()) {
       Formula* arg = it.next();
 
-      SPGenClause processedGc = SPGenClause(new GenClause(lenOrig, gc->bindings));
+      SPGenClause processedGc = SPGenClause(new GenClause(nrLiterals, gcl.gc->bindings));
       _genClauses.push_front(processedGc);
 
-      for (unsigned i = 0; i < lenOrig; i++) {
-        Formula* f = gc->literals[i].first;
-        SIGN sign  = gc->literals[i].second;
+      for (unsigned i = 0; i < nrLiterals; i++) {
+        Formula* f = gcl.gc->literals[i].first;
+        SIGN sign  = gcl.gc->literals[i].second;
 
         if (f == g) {
           ASS_EQ(i,gcl.idx);
@@ -244,24 +240,22 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
     while (SPGenClauseLookupList::isNonEmpty(gcls)) {
       SPGenClauseLookup gcl = SPGenClauseLookupList::pop(gcls);
 
-      SPGenClause gc = gcl.gc;
-      if (!gc->valid) {
+      if (!gcl.valid()) {
         continue;
       }
 
-      gc->valid = false;
-      _genClauses.erase(gcl.gci);
+      invalidate(gcl);
 
       SPGenClause processedGc[2];
       for (SIDE side : { LEFT, RIGHT }) {
-        processedGc[side] = SPGenClause(new GenClause((unsigned) gc->literals.size() + 1, gc->bindings));
+        processedGc[side] = SPGenClause(new GenClause((unsigned) gcl.gc->literals.size() + 1, gcl.gc->bindings));
         _genClauses.push_front(processedGc[side]);
       }
 
       for (SIDE side : { LEFT, RIGHT }) {
-        for (unsigned i = 0, position = 0; i < gc->literals.size(); i++, position++) {
-          Formula* f = gc->literals[i].first;
-          SIGN sign  = gc->literals[i].second;
+        for (unsigned i = 0, position = 0; i < gcl.gc->literals.size(); i++, position++) {
+          Formula* f = gcl.gc->literals[i].first;
+          SIGN sign  = gcl.gc->literals[i].second;
 
           if (f == g) {
             ASS_EQ(i, gcl.idx);
@@ -273,7 +267,7 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
             setLiteral(processedGc[side], position++, lhs, lhsSign);
             setLiteral(processedGc[side], position,   rhs, rhsSign);
           } else {
-            processedGc[side]->literals[position] = gc->literals[i];
+            processedGc[side]->literals[position] = gcl.gc->literals[i];
             Occurrences* gcOccurrences = _occurrences.findPtr(f);
             if (gcOccurrences) {
               // do not increment the counter, for it was there already once
@@ -344,8 +338,7 @@ void NewCNF::ensureHavingVarSorts()
   CALL("NewCNF::ensureHavingVarSorts");
 
   if (_varSorts.size() == 0) {
-    Formula* f = _beingClausified->formula();
-    SortHelper::collectVariableSorts(f, _varSorts);
+    SortHelper::collectVariableSorts(_beingClausified->formula(), _varSorts);
   }
 }
 
@@ -618,10 +611,10 @@ void NewCNF::processAll()
         // One could also consider the case where (part of) the bindings goes to the definition
         // which perhaps allows us to the have a skolem predicate with fewer arguments
         SPGenClause gcNew = SPGenClause(new GenClause(2,BindingList::empty()));
+        _genClauses.push_front(gcNew);
+
         gcNew->literals[0] = make_pair(name, OPPOSITE(sign));
         gcNew->literals[1] = make_pair(g, sign);
-
-        _genClauses.push_front(gcNew);
 
         occurrences.add(sign, SPGenClauseLookup(gcNew, _genClauses.begin(), 1));
       }

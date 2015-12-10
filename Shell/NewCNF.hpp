@@ -143,7 +143,16 @@ private:
     GenClauses::iterator gci; // the iterator is only valid if the smart pointer points to a valid GenClause
     unsigned idx;             // index into lits of GenClause where the formula occurs
     SPGenClauseLookup(SPGenClause gc, GenClauses::iterator gci, unsigned idx) : gc(gc), gci(gci), idx(idx) {}
+
+    inline bool valid() {
+      return gc->valid;
+    }
   };
+
+  inline void invalidate(SPGenClauseLookup gcl) {
+    gcl.gc->valid = false;
+    _genClauses.erase(gcl.gci);
+  }
 
   typedef Lib::List<SPGenClauseLookup> SPGenClauseLookupList;
 
