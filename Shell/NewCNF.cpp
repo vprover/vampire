@@ -66,13 +66,16 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
   enqueue(f);
 
-  SPGenClause gc = introduceGenClause(1, BindingList::empty());
-  setLiteral(gc, 0, makeGenLit(f, POSITIVE));
+  SPGenClause topLevel = introduceGenClause(1, BindingList::empty());
+  setLiteral(topLevel, 0, makeGenLit(f, POSITIVE));
 
   process();
 
-  createClauses(output);
+  for (SPGenClause gc : _genClauses) {
+    output.push(toClause(gc));
+  }
 
+  _genClauses.clear();
   _varSorts.reset();
   _freeVars.reset();
 }
@@ -588,58 +591,49 @@ void NewCNF::process()
   }
 }
 
-void NewCNF::createClauses(Stack<Clause*>& output)
+Clause* NewCNF::toClause(SPGenClause gc)
 {
-  CALL("NewCNF::createClauses");
+  CALL("NewCNF::toClause");
 
   static Substitution subst;
   ASS(subst.isEmpty());
-  for (SPGenClause gc : _genClauses) {
-    LOG2("createClause for ",gc->toString());
 
-    // prepare subst
-
-    BindingList::Iterator bIt(gc->bindings);
-    while (bIt.hasNext()) {
-      Binding b = bIt.next();
-      subst.bind(b.first,b.second);
-    }
-
-    // TODO: since the bindings are share, there is no easy way to delete them
-
-    // transform to actual clause
-
-    static Stack<Literal*> literals;
-    ASS(literals.isEmpty());
-
-    unsigned len = (unsigned) gc->literals.size();
-    for (unsigned i = 0; i < len; i++) {
-      Formula* g = gc->literals[i].first;
-      SIGN  sign = gc->literals[i].second;
-
-      ASS_EQ(g->connective(), LITERAL);
-
-      Literal* l = g->literal();
-      l = l->apply(subst);
-      if (sign == NEGATIVE) {
-        l = Literal::complementaryLiteral(l);
-      }
-
-      literals.push(l);
-    }
-
-    Clause* clause = new(len) Clause(len,_beingClausified->inputType(),
-                                    new Inference1(Inference::CLAUSIFY,_beingClausified));
-    for (int i = len-1;i >= 0;i--) {
-      (*clause)[i] = literals[i];
-    }
-
-    output.push(clause);
-
-    literals.reset();
-    subst.reset();
+  BindingList::Iterator bIt(gc->bindings);
+  while (bIt.hasNext()) {
+    Binding b = bIt.next();
+    subst.bind(b.first,b.second);
   }
-  _genClauses.clear();
+
+  // TODO: since the bindings are share, there is no easy way to delete them
+
+  static Stack<Literal*> properLiterals;
+  ASS(properLiterals.isEmpty());
+
+  unsigned len = (unsigned) gc->literals.size();
+  for (unsigned i = 0; i < len; i++) {
+    Formula* g = gc->literals[i].first;
+    SIGN  sign = gc->literals[i].second;
+
+    ASS_EQ(g->connective(), LITERAL);
+
+    Literal* l = g->literal()->apply(subst);
+    if (sign == NEGATIVE) {
+      l = Literal::complementaryLiteral(l);
+    }
+
+    properLiterals.push(l);
+  }
+
+  Inference* inference = new Inference1(Inference::CLAUSIFY, _beingClausified);
+  Clause* clause = new(len) Clause(len, _beingClausified->inputType(), inference);
+  for (int i = len-1;i >= 0;i--) {
+    (*clause)[i] = properLiterals[i];
+  }
+
+  properLiterals.reset();
+  subst.reset();
+
+  return clause;
 }
 
 }

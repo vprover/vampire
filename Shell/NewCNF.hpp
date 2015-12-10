@@ -121,6 +121,8 @@ private:
 
   typedef SmartPtr<GenClause> SPGenClause;
 
+  Clause* toClause(SPGenClause gc);
+
   typedef std::list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
 
   inline void setLiteral(SPGenClause gc, unsigned position, GenLit gl, bool incOccCounter=true) {
@@ -263,8 +265,6 @@ private:
   void process(Kernel::JunctionFormula* g, Occurrences &occInfo);
   void process(Kernel::BinaryFormula* g, Occurrences &occInfo);
   void process(Kernel::QuantifiedFormula* g, Occurrences &occInfo);
-
-  void createClauses(Lib::Stack<Kernel::Clause*>& output);
 
 }; // class NewCNF
 
