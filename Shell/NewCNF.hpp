@@ -89,6 +89,9 @@ private:
 
     Lib::DArray<GenLit> literals; // TODO: remove the extra indirection and allocate inside GenClause
 
+    // Position of a gen literal in _genClauses
+    std::list<SmartPtr<GenClause>,STLAllocator<SmartPtr<GenClause>>>::iterator iter;
+
     Lib::vstring toString() {
       Lib::vstring res = "GC("+Int::toString(literals.size())+")";
       for (unsigned i = 0; i < literals.size(); i++) {
@@ -121,7 +124,7 @@ private:
     gc->literals[position] = make_pair(f, sign);
     Occurrences* occurrences = _occurrences.findPtr(f);
     if (occurrences) {
-      occurrences->add(sign, Occurrences::Occurrence(gc, _genClauses.begin(), position), incOccCounter);
+      occurrences->add(sign, Occurrences::Occurrence(gc, position), incOccCounter);
     }
   }
 
@@ -135,9 +138,9 @@ private:
     public:
       struct Occurrence {
         SPGenClause gc;
-        GenClauses::iterator gci; // the iterator is only valid if the smart pointer points to a valid GenClause
-        unsigned idx;             // index into lits of GenClause where the formula occurs
-        Occurrence(SPGenClause gc, GenClauses::iterator gci, unsigned idx) : gc(gc), gci(gci), idx(idx) {}
+        unsigned position;
+
+        Occurrence(SPGenClause gc, unsigned position) : gc(gc), position(position) {}
 
         inline bool valid() {
           return gc->valid;
@@ -201,7 +204,14 @@ private:
 
   inline void invalidate(Occurrences::Occurrence gcl) {
     gcl.gc->valid = false;
-    _genClauses.erase(gcl.gci);
+    _genClauses.erase(gcl.gc->iter);
+  }
+
+  SPGenClause makeGenClause(unsigned size, BindingList* bindings) {
+    SPGenClause gc = SPGenClause(new GenClause(1, BindingList::empty()));
+    _genClauses.push_front(gc);
+    gc->iter = _genClauses.begin();
+    return gc;
   }
 
   Lib::DHMap<Kernel::Formula*, Occurrences> _occurrences;

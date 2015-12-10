@@ -66,9 +66,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
   enqueue(f);
 
-  SPGenClause gc = SPGenClause(new GenClause(1, BindingList::empty()));
-  _genClauses.push_front(gc);
-
+  SPGenClause gc = makeGenClause(1, BindingList::empty());
   setLiteral(gc, 0, f, POSITIVE);
 
   processAll();
@@ -127,8 +125,7 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
     invalidate(occ);
 
     unsigned processedGcSize = (unsigned) occ.gc->literals.size() + g->args()->length() - 1;
-    SPGenClause processedGc = SPGenClause(new GenClause(processedGcSize, occ.gc->bindings));
-    _genClauses.push_front(processedGc);
+    SPGenClause processedGc = makeGenClause(processedGcSize, occ.gc->bindings);
 
     unsigned position = 0;
     for (unsigned i = 0; i < occ.gc->literals.size(); i++) {
@@ -136,7 +133,7 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
       SIGN sign  = occ.gc->literals[i].second;
 
       if (f == g) {
-        ASS_EQ(i, occ.idx);
+        ASS_EQ(i, occ.position);
         ASS_EQ(sign, flatteningSign);
 
         // insert arguments instead of g here (and update occurrences)
@@ -182,15 +179,14 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
     while (it.hasNext()) {
       Formula* arg = it.next();
 
-      SPGenClause processedGc = SPGenClause(new GenClause(nrLiterals, occ.gc->bindings));
-      _genClauses.push_front(processedGc);
+      SPGenClause processedGc = makeGenClause(nrLiterals, occ.gc->bindings);
 
       for (unsigned i = 0; i < nrLiterals; i++) {
         Formula* f = occ.gc->literals[i].first;
         SIGN sign  = occ.gc->literals[i].second;
 
         if (f == g) {
-          ASS_EQ(i, occ.idx);
+          ASS_EQ(i, occ.position);
           ASS_EQ(sign, OPPOSITE(flatteningSign));
           setLiteral(processedGc, i, arg, OPPOSITE(flatteningSign));
         } else {
@@ -211,11 +207,8 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
 
   // update the queue and create Occurrences for sub-formulas here
 
-  Formula* lhs = g->left();
-  enqueue(lhs);
-
-  Formula* rhs = g->right();
-  enqueue(rhs);
+  enqueue(g->left());
+  enqueue(g->right());
 
   // start expanding for g
 
@@ -235,8 +228,7 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
 
       SPGenClause processedGc[2];
       for (SIDE side : { LEFT, RIGHT }) {
-        processedGc[side] = SPGenClause(new GenClause((unsigned) occ.gc->literals.size() + 1, occ.gc->bindings));
-        _genClauses.push_front(processedGc[side]);
+        processedGc[side] = makeGenClause((unsigned) occ.gc->literals.size() + 1, occ.gc->bindings);
       }
 
       for (SIDE side : { LEFT, RIGHT }) {
@@ -245,14 +237,14 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
           SIGN sign  = occ.gc->literals[i].second;
 
           if (f == g) {
-            ASS_EQ(i, occ.idx);
+            ASS_EQ(i, occ.position);
             ASS_EQ(sign, formulaSign != occurrenceSign ? POSITIVE : NEGATIVE);
 
             SIGN lhsSign = side == LEFT ? NEGATIVE : POSITIVE;
-            setLiteral(processedGc[side], position++, lhs, lhsSign);
+            setLiteral(processedGc[side], position++, g->left(), lhsSign);
 
             SIGN rhsSign = side == LEFT ? OPPOSITE(occurrenceSign) : occurrenceSign;
-            setLiteral(processedGc[side], position,   rhs, rhsSign);
+            setLiteral(processedGc[side], position,   g->right(), rhsSign);
           } else {
             setLiteral(processedGc[side], position, f, sign, side == LEFT);
           }
@@ -446,7 +438,7 @@ void NewCNF::processForallExists(QuantifiedFormula* g, Occurrences &occurrences)
       // signOccurrences's tail goes to old processedOccurrences and signOccurrences progresses
       signOccurrences = signOccurrences->setTail(redirectTo);
 
-      GenLit& gl = occ.gc->literals[occ.idx];
+      GenLit& gl = occ.gc->literals[occ.position];
       ASS_EQ(gl.first,g);
       ASS_EQ(gl.second, sign);
       gl.first = qarg;
@@ -552,7 +544,7 @@ Formula* NewCNF::performNaming(Kernel::Formula* g, Occurrences &occurrences)
       // signOccurrences's tail goes to old processedOccurrences and signOccurrences progresses
       signOccurrences = signOccurrences->setTail(redirectTo);
 
-      GenLit& gl = occ.gc->literals[occ.idx];
+      GenLit& gl = occ.gc->literals[occ.position];
       ASS_EQ(gl.first,g);
       ASS_EQ(gl.second, sign);
       gl.first = name;
@@ -593,8 +585,7 @@ void NewCNF::processAll()
 
         // One could also consider the case where (part of) the bindings goes to the definition
         // which perhaps allows us to the have a skolem predicate with fewer arguments
-        SPGenClause gc = SPGenClause(new GenClause(2, BindingList::empty()));
-        _genClauses.push_front(gc);
+        SPGenClause gc = makeGenClause(2, BindingList::empty());
 
         gc->literals[0] = make_pair(name, OPPOSITE(sign));
         setLiteral(gc, 1, g, sign);
