@@ -66,7 +66,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
   enqueue(f);
 
-  SPGenClause gc = makeGenClause(1, BindingList::empty());
+  SPGenClause gc = introduceGenClause(1, BindingList::empty());
   setLiteral(gc, 0, makeGenLit(f, POSITIVE));
 
   processAll();
@@ -125,7 +125,7 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
     invalidate(occ);
 
     unsigned processedGcSize = (unsigned) occ.gc->literals.size() + g->args()->length() - 1;
-    SPGenClause processedGc = makeGenClause(processedGcSize, occ.gc->bindings);
+    SPGenClause processedGc = introduceGenClause(processedGcSize, occ.gc->bindings);
 
     unsigned position = 0;
     for (unsigned i = 0; i < occ.gc->literals.size(); i++) {
@@ -179,7 +179,7 @@ void NewCNF::processAndOr(JunctionFormula* g, Occurrences &occurrences)
     while (it.hasNext()) {
       Formula* arg = it.next();
 
-      SPGenClause processedGc = makeGenClause(nrLiterals, occ.gc->bindings);
+      SPGenClause processedGc = introduceGenClause(nrLiterals, occ.gc->bindings);
 
       for (unsigned i = 0; i < nrLiterals; i++) {
         Formula* f = occ.gc->literals[i].first;
@@ -227,7 +227,7 @@ void NewCNF::processIffXor(Formula* g, Occurrences &occurrences)
       invalidate(occ);
 
       for (SIDE side : { LEFT, RIGHT }) {
-        SPGenClause processedGc = makeGenClause((unsigned) occ.gc->literals.size() + 1, occ.gc->bindings);
+        SPGenClause processedGc = introduceGenClause((unsigned) occ.gc->literals.size() + 1, occ.gc->bindings);
         for (unsigned i = 0, position = 0; i < occ.gc->literals.size(); i++, position++) {
           Formula* f = occ.gc->literals[i].first;
           SIGN sign  = occ.gc->literals[i].second;
@@ -581,7 +581,7 @@ void NewCNF::processAll()
 
         // One could also consider the case where (part of) the bindings goes to the definition
         // which perhaps allows us to the have a skolem predicate with fewer arguments
-        SPGenClause gc = makeGenClause(2, BindingList::empty());
+        SPGenClause gc = introduceGenClause(2, BindingList::empty());
 
         gc->literals[0] = makeGenLit(name, OPPOSITE(sign));
         setLiteral(gc, 1, makeGenLit(g, sign));

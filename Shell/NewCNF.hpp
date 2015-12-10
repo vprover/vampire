@@ -212,7 +212,7 @@ private:
     _genClauses.erase(gcl.gc->iter);
   }
 
-  SPGenClause makeGenClause(unsigned size, BindingList* bindings) {
+  SPGenClause introduceGenClause(unsigned size, BindingList *bindings) {
     SPGenClause gc = SPGenClause(new GenClause(1, BindingList::empty()));
     _genClauses.push_front(gc);
     gc->iter = _genClauses.begin();
