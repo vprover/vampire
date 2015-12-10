@@ -13,7 +13,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Shell/Skolem.hpp"
-#include "Lib/Metaiterators.hpp"
 #include "NewCNF.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
