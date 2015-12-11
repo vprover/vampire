@@ -65,20 +65,22 @@ private:
     OWN_RETURN_TYPE operator()(const Binding& b) { return b.first; }
   };
 
-  #define SIDE unsigned int
-  #define LEFT 0u
-  #define RIGHT 1u
-
   #define SIGN bool
   #define POSITIVE true
   #define NEGATIVE false
   #define OPPOSITE(sign) (!(sign))
 
   // generalized literal
-  typedef std::pair<Kernel::Formula*, SIGN> GenLit;
-  inline GenLit makeGenLit(Formula* f, SIGN sign) {
-    return make_pair(f, sign);
+  typedef std::pair<Formula*, SIGN> GenLit;
+  inline Formula* &formula(GenLit gl) {
+    return gl.first;
   }
+  inline SIGN &sign(GenLit gl) {
+    return gl.second;
+  }
+//  inline GenLit makeGenLit(Formula* f, SIGN sign) {
+//    return make_pair(f, sign);
+//  }
 
   // generalized clause
   struct GenClause {
@@ -91,6 +93,10 @@ private:
     // we could/should carry bindings on the GenLits-level; but GenClause seems sufficient as long as we are rectified
 
     Lib::DArray<GenLit> literals; // TODO: remove the extra indirection and allocate inside GenClause
+
+    unsigned size() {
+      return (unsigned) literals.size();
+    }
 
     // Position of a gen literal in _genClauses
     std::list<SmartPtr<GenClause>,STLAllocator<SmartPtr<GenClause>>>::iterator iter;
@@ -125,16 +131,15 @@ private:
 
   typedef std::list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
 
-  inline void setLiteral(SPGenClause gc, unsigned position, GenLit gl, bool incOccCounter=true) {
-    Formula* f = gl.first;
-    SIGN sign  = gl.second;
+  inline void setLiteral(SPGenClause gc, unsigned position, GenLit gl) {
+    Formula* f = formula(gl);
     gc->literals[position] = gl;
 
     if (f->connective() != LITERAL) return;
 
     Occurrences* occurrences = _occurrences.findPtr(f);
     if (occurrences) {
-      occurrences->add(sign, Occurrence(gc, position), incOccCounter);
+      occurrences->add(Occurrence(gc, position));
     }
   }
 
@@ -144,81 +149,84 @@ private:
    */
   GenClauses _genClauses;
 
-  class Occurrences {
-    public:
-      struct Occurrence {
-        SPGenClause gc;
-        unsigned position;
+  struct Occurrence {
+    SPGenClause gc;
+    unsigned position;
 
-        Occurrence(SPGenClause gc, unsigned position) : gc(gc), position(position) {}
+    Occurrence(SPGenClause gc, unsigned position) : gc(gc), position(position) {}
 
-        inline bool valid() {
-          return gc->valid;
-        }
-      };
-
-      // constructor for an empty Occurrences
-      Occurrences() : positiveOccurrences(nullptr), negativeOccurrences(nullptr),
-                      positiveCount(0), negativeCount(0) {}
-
-      unsigned count() { return positiveCount + negativeCount; }
-
-      inline bool anyOf(SIGN sign) {
-        return sign == POSITIVE ? positiveCount > 0 : negativeOccurrences > 0;
-      }
-
-      Lib::List<Occurrence>* &of(SIGN sign) {
-        return sign == POSITIVE ? positiveOccurrences : negativeOccurrences;
-      }
-
-      inline void add(SIGN sign, Occurrences::Occurrence gc, bool account=true) {
-        if (sign == POSITIVE) {
-          positiveOccurrences = new OccurrenceList(gc, positiveOccurrences);
-        } else {
-          negativeOccurrences = new OccurrenceList(gc, negativeOccurrences);
-        }
-        if (account) {
-          increment(sign);
-        }
-      }
-
-      inline void increment(SIGN sign) {
-        if (sign == POSITIVE) {
-          positiveCount++;
-        } else {
-          negativeCount++;
-        }
-      }
-
-      inline void decrement(SIGN sign) {
-        if (sign == POSITIVE) {
-          positiveCount--;
-        } else {
-          negativeCount--;
-        }
-      }
-
-    private:
-      // may contain pointers to invalidated GenClauses
-      Lib::List<Occurrence>* positiveOccurrences;
-      Lib::List<Occurrence>* negativeOccurrences;
-
-      // the number of valid clauses in positiveOccurrences and negativeOccurrences
-      // this is in general not equal to the size of positiveOccurrences and negativeOccurrences
-      unsigned positiveCount;
-      unsigned negativeCount;
+    inline SIGN sign() {
+      return gc->literals[position].second;
+    }
   };
 
-  typedef Occurrences::Occurrence Occurrence;
   typedef Lib::List<Occurrence> OccurrenceList;
 
-  inline void invalidate(Occurrences::Occurrence gcl) {
-    gcl.gc->valid = false;
-    _genClauses.erase(gcl.gc->iter);
-  }
+  class Occurrences {
+  public:
+    Occurrences(GenClauses* genClauses) : _genClauses(genClauses), _occurrences(nullptr), _count(0) {}
 
-  SPGenClause introduceGenClause(unsigned size, BindingList *bindings) {
-    SPGenClause gc = SPGenClause(new GenClause(1, BindingList::empty()));
+    unsigned count() { return _count; }
+
+    Lib::List<Occurrence>* &occurrences() {
+      return _occurrences;
+    }
+
+    inline void add(Occurrence occ) {
+      _occurrences = new OccurrenceList(occ, _occurrences);
+      _count++;
+    }
+
+    bool isNonEmpty() {
+      while (true) {
+        if (OccurrenceList::isEmpty(_occurrences)) {
+          return false;
+        }
+        if (!_occurrences->head().gc->valid) {
+          OccurrenceList::pop(_occurrences);
+        } else {
+          return true;
+        }
+      }
+    }
+
+    void setTail(OccurrenceList* occurrences) {
+      _occurrences = _occurrences->setTail(occurrences);
+    }
+
+    void set(OccurrenceList* occurrences) {
+      _occurrences = occurrences;
+    }
+
+    Occurrence head() {
+      return _occurrences->head();
+    }
+
+    Occurrence pop() {
+      Occurrence occ = OccurrenceList::pop(_occurrences);
+
+      occ.gc->valid = false;
+      _count -= occ.gc->literals.size();
+      ASS_GE(_count, 0);
+
+      _genClauses->erase(occ.gc->iter);
+
+      return occ;
+    }
+
+  private:
+    static GenClauses* _genClauses;
+
+    // may contain pointers to invalidated GenClauses
+    OccurrenceList* _occurrences;
+
+    // the number of valid clauses in positiveOccurrences and negativeOccurrences
+    // this is in general not equal to the size of positiveOccurrences and negativeOccurrences
+    unsigned _count;
+  };
+
+  SPGenClause introduceGenClause(unsigned size, BindingList* bindings=BindingList::empty()) {
+    SPGenClause gc = SPGenClause(new GenClause(size, bindings));
     _genClauses.push_front(gc);
     gc->iter = _genClauses.begin();
     return gc;
@@ -244,12 +252,12 @@ private:
   Lib::DHMap<BindingList*,BindingList*> _skolemsByBindings;
   Lib::DHMap<VarSet*,BindingList*>      _skolemsByFreeVars;
 
-  void skolemise(Kernel::QuantifiedFormula* g, BindingList*& bindings);
+  void skolemise(QuantifiedFormula* g, BindingList* &bindings);
 
-  Kernel::Literal* createNamingLiteral(Kernel::Formula* g, VarSet* free);
-  Kernel::Formula* performNaming(Kernel::Formula* g, Occurrences & occInfo);
+  Kernel::Literal* createNamingLiteral(Formula* g, VarSet* free);
+  Kernel::Formula* nameSubformula(Formula* g, Occurrences &occInfo);
 
-  void enqueue(Formula *formula, Occurrences occurrences = Occurrences()) {
+  void enqueue(Formula* formula, Occurrences occurrences = Occurrences(&_genClauses)) {
     if (formula->connective() != LITERAL) {
       _queue.push_back(formula);
       ALWAYS(_occurrences.insert(formula, occurrences));
@@ -262,9 +270,9 @@ private:
   }
 
   void process();
-  void process(Kernel::JunctionFormula* g, Occurrences &occInfo);
-  void process(Kernel::BinaryFormula* g, Occurrences &occInfo);
-  void process(Kernel::QuantifiedFormula* g, Occurrences &occInfo);
+  void process(JunctionFormula* g, Occurrences &occurrences);
+  void process(BinaryFormula* g, Occurrences &occurrences);
+  void process(QuantifiedFormula* g, Occurrences &occurrences);
 
 }; // class NewCNF
 
