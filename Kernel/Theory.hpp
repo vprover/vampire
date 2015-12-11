@@ -67,9 +67,11 @@ public:
 
   InnerType toInner() const { return _val; }
 
+  bool isZero(){ return _val==0; }
+  bool isNegative(){ return _val<0; }
+
   static IntegerConstantType floor(RationalConstantType rat);
   static IntegerConstantType ceiling(RationalConstantType rat);
-  static IntegerConstantType truncate(RationalConstantType rat);
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
 
@@ -109,9 +111,15 @@ struct RationalConstantType {
   RationalConstantType operator*(const RationalConstantType& num) const;
   RationalConstantType operator/(const RationalConstantType& num) const;
 
-  RationalConstantType floor() const { return RationalConstantType(IntegerConstantType::floor(*this));}
-  RationalConstantType ceiling() const { return RationalConstantType(IntegerConstantType::ceiling(*this));}
-  RationalConstantType truncate() const { return RationalConstantType(IntegerConstantType::truncate(*this));}
+  RationalConstantType floor() const { 
+    return RationalConstantType(IntegerConstantType::floor(*this));
+  }
+  RationalConstantType ceiling() const { 
+    return RationalConstantType(IntegerConstantType::ceiling(*this));
+  }
+  RationalConstantType truncate() const { 
+    return RationalConstantType(_num.quotientT(_den));
+  }
 
   bool isInt() const;
 
@@ -123,7 +131,9 @@ struct RationalConstantType {
   bool operator>=(const RationalConstantType& o) const { return !(o>(*this)); }
   bool operator<=(const RationalConstantType& o) const { return !((*this)>o); }
 
-  
+  bool isZero(){ return _num.toInner()==0; } 
+  // relies on the fact that cannonize ensures that _den>=0
+  bool isNegative(){ ASS(_den>=0); return _num.toInner() < 0; }
 
   RationalConstantType quotientE(const RationalConstantType& num) const {
     if(_num.toInner()>0 && _den.toInner()>0){
@@ -407,8 +417,6 @@ public:
   bool isInterpretedFunction(TermList t);
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
-
-  bool invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result,Stack<Literal*>& sideConditions);
 
   Interpretation interpretFunction(unsigned func);
   Interpretation interpretFunction(Term* t);

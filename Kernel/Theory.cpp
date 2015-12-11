@@ -161,19 +161,6 @@ IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
   }
   return res;
 }
-IntegerConstantType IntegerConstantType::truncate(RationalConstantType rat)
-{
-  CALL("IntegerConstantType::truncate");
-
-  IntegerConstantType numer = rat.numerator();
-  IntegerConstantType denom = rat.denominator();
-  ASS_REP(denom>0, denom.toString());
-      
-  // truncation is the opposite of euclidian
-  // i.e. 'away from zero'
-  // for neg euclidan goes towards so for pos we negate, compute and then bring back to pos 
-  return -(-numer/denom);
-}
 
 Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
 {
@@ -1758,138 +1745,10 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
 
 }
 
-/**
- * This attempts to invert an interpreted function and returns false if the function
- * does not have an inverse. In some cases functions have an inverse in special cases,
- * i.e. integer division, here we attempt to check these cases.
- *
- * term is the term whose function we wish to invert 
- * arg is the argument of that term that should be moved
- * rep is the other term the funcion should be applied to
- * result is where the resultant term should be placed
- *
- * So at the end we should have result = f^(arg,rep)
- * If term=f(arg,t) and f^ is the inverse of f
- * This is modulo the ordering of arguments in f, which this function should work out
- *
- * See Kernel/InterpretedLiteralEvaluator.cpp for usage
- *
- * @author Giles
- * @since 12/11/14
- */
- bool Theory::invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result,Stack<Literal*>& sideConditions)
- {
-   CALL("Theory::invertInterpetedFunction");
-
-   ASS(isInterpretedFunction(term->functor()));
-   Interpretation f = interpretFunction(term->functor());
-   Interpretation inverted_f;
-
-// Commented functions are those without an inverse
-// Currently all invertable functions are of the same form so we record their inverse
-// and perform the inversion at the end. If this changes we will need to organise this
-// differently.
-switch(f){
-  //case INT_SUCCESSOR: 
-  //case INT_UNARY_MINUS:
-  //case RAT_UNARY_MINUS:
-  //case REAL_UNARY_MINUS: 
-
-  case INT_PLUS: inverted_f = INT_MINUS; break; 
-  case INT_MINUS: inverted_f = INT_PLUS; break;
-  // This has no universal inverse but we are conservative
-  case INT_MULTIPLY: 
-    // conservative checks that this is safe
-    // TODO extend
-    if(isInterpretedConstant(rep)){
-      // otherside is constant
-      IntegerConstantType a;
-      if(!tryInterpretConstant(rep,a)) return false;
-      IntegerConstantType b;
-      if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
-         (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
-      {
-        // we have a problem of the form b.c=a
-        // to invert it to c = a/b we need to check that a/b is safe
-        if(b.toInner()==0) return false;
-        IntegerConstantType::InnerType apos = a.toInner() < 0 ? -a.toInner() : a.toInner();
-        IntegerConstantType::InnerType bpos = b.toInner() < 0 ? -b.toInner() : b.toInner();
-	//cout << "a:"<<a.toInt() << " b: " << b.toInt() << endl;
-        if(apos % bpos == 0){
-          inverted_f = INT_QUOTIENT_E; break;
-        }
-      }
-    }
-    return false;
-
-  //case INT_MODULO: 
-
-  case RAT_PLUS: inverted_f = RAT_MINUS; break;
-  case RAT_MINUS: inverted_f = RAT_PLUS; break;
-  case RAT_MULTIPLY: {
-      RationalConstantType b;
-      if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
-         (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
-      {
-        if(b.numerator()==0) return false;
-        inverted_f = RAT_QUOTIENT; 
-        break;
-      }
-      return false;
-    }
-
-  case RAT_QUOTIENT: inverted_f = RAT_MULTIPLY; break;
-
-  case REAL_PLUS: inverted_f = REAL_MINUS; break; 
-  case REAL_MINUS: inverted_f = REAL_PLUS; break;
-  case REAL_MULTIPLY: {
-      RealConstantType b;
-      if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
-         (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
-      {
-        if(b.numerator()==0) return false;
-        inverted_f = REAL_QUOTIENT;
-      }
-      else{
-        // In this case the 'b' i.e. the bottom of the divisor is not a constant
-        // therefore we add a side-condition saying it cannot be 
-        TermList* notZero = 0;
-        if(term->nthArgument(0)==arg){ notZero=term->nthArgument(1); } 
-        else if(term->nthArgument(1)==arg){ notZero=term->nthArgument(0); } 
-        Term* zero =theory->representConstant(RealConstantType(RationalConstantType(0,1)));
-        sideConditions.push(Literal::createEquality(true,TermList(zero),*notZero,Sorts::SRT_REAL));
-        inverted_f = REAL_QUOTIENT;
-      }
-      break;
-    } 
-  case REAL_QUOTIENT: inverted_f = REAL_MULTIPLY; break;
-
-  default: // cannot be inverted
-    return false;
- }
-
- // In all cases here the replacement should be the first of the two
- // arguments to a binary function.
- // NOTE: If the interpreted functions supported changes this might change
-
- // i.e. if we have term=multiply(6,product(x,5)), arg=product(x,6) and rep=4
- //      the result should be divide(4,6)
- //      if the arguments to multiply are the other way around this is still true
-
- // Work out if arg is first or second argument to term and get the other one
- ASS(term->arity()==2);
- TermList other;
- if(term->nthArgument(0)==arg) other=*term->nthArgument(1);
- else if(term->nthArgument(1)==arg) other=*term->nthArgument(0);
- else { ASSERTION_VIOLATION;} //arg must be one of the args!
-
- TermList args[] = {rep,other};
- result = TermList(Term::create(getFnNum(inverted_f),2,args));
- return true;
-
- }
-
 }
+
+
+
 
 
 
