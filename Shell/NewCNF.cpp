@@ -89,96 +89,78 @@ void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
   LOG2("occurrences.positiveCount ",occurrences.positiveCount);
   LOG2("occurrences.negativeCount ",occurrences.negativeCount);
 
-  // update the queue and create Occurrences for sub-formulas here
-  {
-    FormulaList::Iterator it(g->args());
-    while (it.hasNext()) {
-      enqueue(it.next());
-    }
+  FormulaList::Iterator ait(g->args());
+  while (ait.hasNext()) {
+    enqueue(ait.next());
   }
 
-  // start expanding for g
-  SIGN flatteningSign = g->connective() == OR ? POSITIVE : NEGATIVE; // == !distributeNegatively
+  SIGN formulaSign = g->connective() == OR ? POSITIVE : NEGATIVE;
 
-  // process toLinarize
-  // the positive OR and negative AND
-  OccurrenceList* flattenOccurrences = occurrences.of(flatteningSign);
+  for (SIGN occurrenceSign : { NEGATIVE, POSITIVE }) {
+    OccurrenceList* signOccurrences = occurrences.of(occurrenceSign);
+    while (OccurrenceList::isNonEmpty(signOccurrences)) {
+      Occurrence occ = OccurrenceList::pop(signOccurrences);
 
-  while (OccurrenceList::isNonEmpty(flattenOccurrences)) {
-    Occurrence occ = OccurrenceList::pop(flattenOccurrences);
+      if (!occ.valid()) {
+        continue;
+      }
 
-    if (!occ.valid()) {
-      continue;
-    }
+      invalidate(occ);
 
-    invalidate(occ);
+      if (occurrenceSign == formulaSign) {
+        unsigned processedGcSize = (unsigned) occ.gc->literals.size() + g->args()->length() - 1;
+        SPGenClause processedGc = introduceGenClause(processedGcSize, occ.gc->bindings);
 
-    unsigned processedGcSize = (unsigned) occ.gc->literals.size() + g->args()->length() - 1;
-    SPGenClause processedGc = introduceGenClause(processedGcSize, occ.gc->bindings);
+        for (unsigned i = 0, position = 0; i < occ.gc->literals.size(); i++) {
+          if (i == occ.position) {
+            Formula* f = occ.gc->literals[i].first;
+            SIGN sign  = occ.gc->literals[i].second;
 
-    unsigned position = 0;
-    for (unsigned i = 0; i < occ.gc->literals.size(); i++) {
-      if (i == occ.position) {
-        Formula* f = occ.gc->literals[i].first;
-        SIGN sign  = occ.gc->literals[i].second;
+            ASS_EQ(f, g);
+            ASS_EQ(sign, occurrenceSign);
 
-        ASS_EQ(f, g);
-        ASS_EQ(sign, flatteningSign);
-
-        FormulaList::Iterator it(g->args());
-        while (it.hasNext()) {
-          setLiteral(processedGc, position++, makeGenLit(it.next(), flatteningSign));
+            FormulaList::Iterator it(g->args());
+            while (it.hasNext()) {
+              setLiteral(processedGc, position++, makeGenLit(it.next(), occurrenceSign));
+            }
+          } else {
+            setLiteral(processedGc, position++, occ.gc->literals[i], false);
+          }
         }
       } else {
-        setLiteral(processedGc, position++, occ.gc->literals[i], false);
-      }
-    }
-  }
-
-  // process distributeOccurrences
-  // the negative AND and positive OR
-  OccurrenceList* distributeOccurrences = occurrences.of(OPPOSITE(flatteningSign));
-
-  while (OccurrenceList::isNonEmpty(distributeOccurrences)) {
-    Occurrence occ = OccurrenceList::pop(distributeOccurrences);
-
-    if (!occ.valid()) {
-      continue;
-    }
-
-    invalidate(occ);
-
-    // decrease number of occurrences by one for all literals in gc
-    for (unsigned i = 0; i < occ.gc->literals.size(); i++) {
-      Formula* f = occ.gc->literals[i].first;
-      SIGN sign  = occ.gc->literals[i].second;
-
-      if (f != g) {
-        Occurrences* gcOccurrences = _occurrences.findPtr(f);
-        if (gcOccurrences) {
-          gcOccurrences->decrement(sign);
-        }
-      }
-    }
-
-    FormulaList::Iterator it(g->args());
-    while (it.hasNext()) {
-      Formula* arg = it.next();
-
-      unsigned processedGcSize = (unsigned) occ.gc->literals.size();
-      SPGenClause processedGc = introduceGenClause(processedGcSize, occ.gc->bindings);
-
-      for (unsigned i = 0; i < occ.gc->literals.size(); i++) {
-        if (i == occ.position) {
+        // decrease number of occurrences by one for all literals in gc
+        for (unsigned i = 0; i < occ.gc->literals.size(); i++) {
           Formula* f = occ.gc->literals[i].first;
           SIGN sign  = occ.gc->literals[i].second;
 
-          ASS_EQ(f, g);
-          ASS_EQ(sign, OPPOSITE(flatteningSign));
+          if (f != g) {
+            Occurrences* gcOccurrences = _occurrences.findPtr(f);
+            if (gcOccurrences) {
+              gcOccurrences->decrement(sign);
+            }
+          }
+        }
 
-          setLiteral(processedGc, i, makeGenLit(arg, OPPOSITE(flatteningSign)));
-        } else {
-          setLiteral(processedGc, i, occ.gc->literals[i]);
+        FormulaList::Iterator it(g->args());
+        while (it.hasNext()) {
+          Formula* arg = it.next();
+
+          unsigned processedGcSize = (unsigned) occ.gc->literals.size();
+          SPGenClause processedGc = introduceGenClause(processedGcSize, occ.gc->bindings);
+
+          for (unsigned i = 0; i < occ.gc->literals.size(); i++) {
+            if (i == occ.position) {
+              Formula* f = occ.gc->literals[i].first;
+              SIGN sign  = occ.gc->literals[i].second;
+
+              ASS_EQ(f, g);
+              ASS_EQ(sign, occurrenceSign);
+
+              setLiteral(processedGc, i, makeGenLit(arg, occurrenceSign));
+            } else {
+              setLiteral(processedGc, i, occ.gc->literals[i]);
+            }
+          }
         }
       }
     }
@@ -209,24 +191,22 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
 
       invalidate(occ);
 
-      for (SIDE side : { LEFT, RIGHT }) {
+      for (SIGN lhsSign : { NEGATIVE, POSITIVE }) {
         unsigned processedGcSize = (unsigned) occ.gc->literals.size() + 1;
         SPGenClause processedGc = introduceGenClause(processedGcSize, occ.gc->bindings);
-        for (unsigned i = 0, position = 0; i < occ.gc->literals.size(); i++, position++) {
+        for (unsigned i = 0, position = 0; i < occ.gc->literals.size(); i++) {
           if (i == occ.position) {
             Formula* f = occ.gc->literals[i].first;
             SIGN sign  = occ.gc->literals[i].second;
 
             ASS_EQ(f, g);
-            ASS_EQ(sign, formulaSign != occurrenceSign ? POSITIVE : NEGATIVE);
+            ASS_EQ(sign, occurrenceSign);
 
-            SIGN lhsSign = side == LEFT ? NEGATIVE : POSITIVE;
-            setLiteral(processedGc, position++, makeGenLit(g->left(), lhsSign));
-
-            SIGN rhsSign = side == LEFT ? OPPOSITE(occurrenceSign) : occurrenceSign;
-            setLiteral(processedGc, position, makeGenLit(g->right(), rhsSign));
+            SIGN rhsSign = formulaSign == occurrenceSign ? OPPOSITE(lhsSign) : lhsSign;
+            setLiteral(processedGc, position++, makeGenLit(g->left(),  lhsSign));
+            setLiteral(processedGc, position++, makeGenLit(g->right(), rhsSign));
           } else {
-            setLiteral(processedGc, position, occ.gc->literals[i], side == LEFT);
+            setLiteral(processedGc, position++, occ.gc->literals[i], lhsSign == NEGATIVE);
           }
         }
       }
