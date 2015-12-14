@@ -50,7 +50,7 @@ namespace FMB
 {
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
-: MainLoop(prb, opt), _groundClauses(0),  _sortedSignature(0), _clauses(0), 
+: MainLoop(prb, opt), _sortedSignature(0), _groundClauses(0), _clauses(0),
                       _isComplete(true), _maxModelSize(UINT_MAX), _constantCount(0),
                       _maxArity(0)
 {
@@ -366,12 +366,12 @@ void FiniteModelBuilder::init()
             if(l->nthArgument(0)->isVar()){
               // arg 1 is term
               if(svar < 0){ svar = l->nthArgument(0)->var(); }
-              else if(l->nthArgument(0)->var()!=svar){okay=false;break;}
+              else if(l->nthArgument(0)->var()!=(unsigned)svar){okay=false;break;}
             }
             else if(l->nthArgument(1)->isVar()){
               // arg 0 is term
               if(svar < 0){ svar = l->nthArgument(1)->var(); }
-              else if(l->nthArgument(1)->var()!=svar){okay=false;break;}
+              else if(l->nthArgument(1)->var()!=(unsigned)svar){okay=false;break;}
             }   
             // both are terms, stop
             else{okay=false;break;}
