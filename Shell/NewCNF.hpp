@@ -36,7 +36,7 @@ namespace Shell {
 class NewCNF
 {
 public:
-  NewCNF(int namingThreshold) : _namingThreshold(namingThreshold) {}
+  NewCNF(unsigned namingThreshold) : _namingThreshold(namingThreshold) {}
 
   void clausify (Kernel::FormulaUnit* unit,Lib::Stack<Kernel::Clause*>& output);
 private:
@@ -72,15 +72,12 @@ private:
 
   // generalized literal
   typedef std::pair<Formula*, SIGN> GenLit;
-  inline Formula* &formula(GenLit gl) {
+  inline Formula* &formula(GenLit &gl) {
     return gl.first;
   }
-  inline SIGN &sign(GenLit gl) {
+  inline SIGN &sign(GenLit &gl) {
     return gl.second;
   }
-//  inline GenLit makeGenLit(Formula* f, SIGN sign) {
-//    return make_pair(f, sign);
-//  }
 
   // generalized clause
   struct GenClause {
@@ -160,69 +157,73 @@ private:
     }
   };
 
-  typedef Lib::List<Occurrence> OccurrenceList;
-
   class Occurrences {
   public:
-    Occurrences(GenClauses* genClauses) : _genClauses(genClauses), _occurrences(nullptr), _count(0) {}
+    Occurrences() : _occurrences(nullptr), _size(0) {}
 
-    unsigned count() { return _count; }
-
-    Lib::List<Occurrence>* &occurrences() {
-      return _occurrences;
-    }
+    unsigned size() { return _size; }
 
     inline void add(Occurrence occ) {
-      _occurrences = new OccurrenceList(occ, _occurrences);
-      _count++;
+      _occurrences = new List<Occurrence>(occ, _occurrences);
+      _size++;
     }
 
     bool isNonEmpty() {
       while (true) {
-        if (OccurrenceList::isEmpty(_occurrences)) {
+        if (List<Occurrence>::isEmpty(_occurrences)) {
           return false;
         }
         if (!_occurrences->head().gc->valid) {
-          OccurrenceList::pop(_occurrences);
+          List<Occurrence>::pop(_occurrences);
         } else {
           return true;
         }
       }
     }
 
-    void setTail(OccurrenceList* occurrences) {
-      _occurrences = _occurrences->setTail(occurrences);
-    }
-
-    void set(OccurrenceList* occurrences) {
-      _occurrences = occurrences;
-    }
-
-    Occurrence head() {
-      return _occurrences->head();
-    }
-
     Occurrence pop() {
-      Occurrence occ = OccurrenceList::pop(_occurrences);
+      Occurrence occ = List<Occurrence>::pop(_occurrences);
 
       occ.gc->valid = false;
-      _count -= occ.gc->literals.size();
-      ASS_GE(_count, 0);
-
-      _genClauses->erase(occ.gc->iter);
+      _size -= occ.gc->literals.size();
+      ASS_GE(_size, 0);
 
       return occ;
     }
 
+    class Iterator {
+    public:
+      Iterator(Occurrences &occurrences) {
+        _iterator = new List<Occurrence>::DelIterator(occurrences._occurrences);
+      }
+      inline bool hasNext() {
+        while (true) {
+          if (_iterator->hasNext()) {
+            if (!_iterator->next().gc->valid) {
+              _iterator->del();
+            } else {
+              return true;
+            }
+          } else {
+            return false;
+          }
+        }
+      }
+      Occurrence next() {
+        return _iterator->next();
+      }
+    private:
+      List<Occurrence>::DelIterator* _iterator;
+    };
+
+    Iterator* iterator() {
+      return new Iterator(*this);
+    }
+
   private:
-    static GenClauses* _genClauses;
-
     // may contain pointers to invalidated GenClauses
-    OccurrenceList* _occurrences;
-
-    // the number of valid clauses in positiveOccurrences and negativeOccurrences
-    // this is in general not equal to the size of positiveOccurrences and negativeOccurrences
-    unsigned _count;
+    List<Occurrence>* _occurrences;
+    unsigned _size;
   };
 
   SPGenClause introduceGenClause(unsigned size, BindingList* bindings=BindingList::empty()) {
@@ -230,6 +231,12 @@ private:
     _genClauses.push_front(gc);
     gc->iter = _genClauses.begin();
     return gc;
+  }
+
+  Occurrence pop(Occurrences occurrences) {
+    Occurrence occ = occurrences.pop();
+    _genClauses.erase(occ.gc->iter);
+    return occ;
   }
 
   Lib::DHMap<Kernel::Formula*, Occurrences> _occurrences;
@@ -257,7 +264,7 @@ private:
   Kernel::Literal* createNamingLiteral(Formula* g, VarSet* free);
   Kernel::Formula* nameSubformula(Formula* g, Occurrences &occInfo);
 
-  void enqueue(Formula* formula, Occurrences occurrences = Occurrences(&_genClauses)) {
+  void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {
     if (formula->connective() != LITERAL) {
       _queue.push_back(formula);
       ALWAYS(_occurrences.insert(formula, occurrences));

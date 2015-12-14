@@ -85,7 +85,7 @@ void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
   CALL("NewCNF::process(JunctionFormula*)");
 
   LOG2("processJunction ",g->toString());
-  LOG2("occInfo.count ", occInfo.count());
+  LOG2("occurrences.size ", occurrences.size());
 
   FormulaList::Iterator ait(g->args());
   while (ait.hasNext()) {
@@ -94,8 +94,8 @@ void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
 
   SIGN formulaSign = g->connective() == OR ? POSITIVE : NEGATIVE;
 
-  while (occurrences.isNonEmpty) {
-    Occurrence occ = occurrences.pop();
+  while (occurrences.isNonEmpty()) {
+    Occurrence occ = pop(occurrences);
 
     if (occ.sign() == formulaSign) {
       SPGenClause processedGc = introduceGenClause(occ.gc->size() + g->args()->length() - 1, occ.gc->bindings);
@@ -142,7 +142,7 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
   SIGN formulaSign = g->connective() == IFF ? POSITIVE : NEGATIVE;
 
   while (occurrences.isNonEmpty()) {
-    Occurrence occ = occurrences.pop();
+    Occurrence occ = pop(occurrences);
 
     for (SIGN lhsSign : { NEGATIVE, POSITIVE }) {
       SPGenClause processedGc = introduceGenClause(occ.gc->size() + 1, occ.gc->bindings);
@@ -317,14 +317,9 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
   // In the skolemising polarity introduce new skolems as you go
   // each occurrence may need a new set depending on bindings,
   // but let's try to share as much as possible
-  OccurrenceList* processedOccurrences = nullptr;
-
-  while (occurrences.isNonEmpty()) {
-    Occurrence occ = occurrences.head();
-
-    OccurrenceList* redirectTo = processedOccurrences;
-    processedOccurrences = occurrences;
-    occurrences = occurrences.setTail(redirectTo);
+  Occurrences::Iterator* occit = occurrences.iterator();
+  while (occit->hasNext()) {
+    Occurrence occ = occit->next();
 
     GenLit& gl = occ.gc->literals[occ.position];
     ASS_EQ(formula(gl),g);
@@ -334,8 +329,6 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
       skolemise(g, occ.gc->bindings);
     }
   }
-
-  occurrences.set(processedOccurrences);
 
   // empty the skolem caches
   _skolemsByBindings.reset();
@@ -419,22 +412,13 @@ Formula* NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
     setLiteral(gc, 1, GenLit(g, sign));
   }
 
-  // Correct all the GenClauses to mention name instead of g
-  OccurrenceList* processedOccurrences = nullptr;
-
-  while (occurrences.isNonEmpty()) {
-    Occurrence occ = occurrences.head();
-
-    OccurrenceList* redirectTo = processedOccurrences;
-    processedOccurrences = occurrences;
-    occurrences = occurrences.setTail(redirectTo);
-
+  Occurrences::Iterator* occit = occurrences.iterator();
+  while (occit->hasNext()) {
+    Occurrence occ = occit->next();
     GenLit& gl = occ.gc->literals[occ.position];
     ASS_EQ(formula(gl),g);
     formula(gl) = name;
   }
-
-  occurrences.set(processedOccurrences);
 
   return name;
 }
@@ -456,7 +440,7 @@ void NewCNF::process()
       LOG1(gc->toString());
     }
 
-    if ((_namingThreshold > 1) && occurrences.count() > _namingThreshold) {
+    if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
       nameSubformula(g, occurrences);
     }
 
