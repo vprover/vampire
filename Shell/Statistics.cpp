@@ -81,6 +81,7 @@ Statistics::Statistics()
     activeClauses(0),
     extensionalityClauses(0),
     discardedNonRedundantClauses(0),
+    smtReturnedUnknown(false),
     inferencesSkippedDueToColors(0),
     finalPassiveClauses(0),
     finalActiveClauses(0),
@@ -166,6 +167,9 @@ void Statistics::print(ostream& out)
   case Statistics::REFUTATION_NOT_FOUND:
     if (env.statistics->discardedNonRedundantClauses) {
       out << "Refutation not found, non-redundant clauses discarded";
+    }
+    else if(env.statistics->smtReturnedUnknown){
+      out << "Refutation not found, SMT solver inside AVATAR returned Unknown";
     }
     else {
       out << "Refutation not found, incomplete strategy";

@@ -21,6 +21,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/MainLoop.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Refutation.hpp"
@@ -32,6 +33,7 @@
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
+#include "SAT/FallbackSolverWrapper.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
@@ -77,7 +79,12 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       { BYPASSING_ALLOCATOR
-      _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming());
+        _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming());
+        if(_parent.getOptions().satFallbackForSMT()){
+          // TODO make fallback minimizing?
+          SATSolver* fallback = new MinisatInterfacing(_parent.getOptions(),true);
+          _solver = new FallbackSolverWrapper(_solver.release(),fallback);
+        } 
       }
       break;
 #endif
@@ -589,6 +596,10 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   }
   if(stat == SATSolver::UNSATISFIABLE) {
     handleSatRefutation(); // noreturn!
+  }
+  if(stat == SATSolver::UNKNOWN){
+    env.statistics->smtReturnedUnknown=true;
+    throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
   }
   ASS_EQ(stat,SATSolver::SATISFIABLE);
 

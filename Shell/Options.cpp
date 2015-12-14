@@ -1239,6 +1239,13 @@ void Options::Options::init()
 #endif
 
 #if VZ3
+    _satFallbackForSMT = BoolOptionValue("sat_fallback_for_smt","sffsmt",false);
+    _satFallbackForSMT.description="If using z3 run a sat solver alongside to use if the smt"
+       " solver returns unknown at any point";
+    _lookup.insert(&_satFallbackForSMT);
+    _satFallbackForSMT.tag(OptionTag::SAT);
+    _satFallbackForSMT.reliesOn(_satSolver.is(equal(SatSolver::Z3)));
+
     _z3UnsatCores = BoolOptionValue("z3_unsat_core","z3uc",false);
     _z3UnsatCores.description=""; 
     _lookup.insert(&_z3UnsatCores);

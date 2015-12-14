@@ -146,6 +146,8 @@ public:
 
   unsigned discardedNonRedundantClauses;
 
+  bool smtReturnedUnknown;
+
   unsigned inferencesSkippedDueToColors;
 
   /** passive clauses at the end of the saturation algorithm run */
