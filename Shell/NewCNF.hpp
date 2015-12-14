@@ -181,14 +181,13 @@ private:
       }
     }
 
-    Occurrence pop() {
-      Occurrence occ = List<Occurrence>::pop(_occurrences);
-
-      occ.gc->valid = false;
-      _size -= occ.gc->literals.size();
+    void decrement() {
+      _size--;
       ASS_GE(_size, 0);
+    }
 
-      return occ;
+    Occurrence pop() {
+      return List<Occurrence>::pop(_occurrences);
     }
 
     class Iterator {
@@ -235,7 +234,19 @@ private:
 
   Occurrence pop(Occurrences occurrences) {
     Occurrence occ = occurrences.pop();
+    occ.gc->valid = false;
     _genClauses.erase(occ.gc->iter);
+    for (unsigned i = 0; i < occ.gc->literals.size(); i++) {
+      GenLit gl = occ.gc->literals[i];
+      Formula* f = formula(gl);
+
+      if (f->connective() == LITERAL) continue;
+
+      Occurrences* fOccurrences = _occurrences.findPtr(f);
+      if (fOccurrences) {
+        fOccurrences->decrement();
+      }
+    }
     return occ;
   }
 
