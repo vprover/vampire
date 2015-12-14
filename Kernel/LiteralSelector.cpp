@@ -17,6 +17,7 @@
 #include "MaximalLiteralSelector.hpp"
 #include "BestLiteralSelector.hpp"
 #include "LookaheadLiteralSelector.hpp"
+#include "SpassLiteralSelector.hpp"
 
 #include "LiteralComparators.hpp"
 
@@ -122,6 +123,12 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
   case 10: res = new CompleteBestLiteralSelector<Comparator10>(ordering, options); break;
 
   case 11: res = new LookaheadLiteralSelector(true, ordering, options); break;
+
+  case 20:
+  case 21:
+  case 22:
+    res = new SpassLiteralSelector(ordering, options,static_cast<SpassLiteralSelector::Values>(absNum-20));
+    break;
 
   case 1002: res = new BestLiteralSelector<Comparator2>(ordering, options); break;
   case 1003: res = new BestLiteralSelector<Comparator3>(ordering, options); break;
