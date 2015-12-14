@@ -78,6 +78,9 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   _genClauses.clear();
   _varSorts.reset();
   _freeVars.reset();
+
+  ASS(_queue.isEmpty());
+  ASS(_occurrences.isEmpty());
 }
 
 void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
@@ -303,7 +306,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 {
   CALL("NewCNF::process(QuantifiedFormula*)");
 
-  LOG2("processForallExists ",g->toString());
+  LOG2("NewCNF::process(QuantifiedFormula*) ", g->toString());
 
   // Note that the formula under quantifier reuses the quantified formula's occurrences
   enqueue(g->qarg(), occurrences);
@@ -317,9 +320,9 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
   // In the skolemising polarity introduce new skolems as you go
   // each occurrence may need a new set depending on bindings,
   // but let's try to share as much as possible
-  Occurrences::Iterator* occit = occurrences.iterator();
-  while (occit->hasNext()) {
-    Occurrence occ = occit->next();
+  Occurrences::Iterator occit(occurrences);
+  while (occit.hasNext()) {
+    Occurrence occ = occit.next();
 
     GenLit& gl = occ.gc->literals[occ.position];
     ASS_EQ(formula(gl),g);
@@ -412,9 +415,9 @@ Formula* NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
     setLiteral(gc, 1, GenLit(g, sign));
   }
 
-  Occurrences::Iterator* occit = occurrences.iterator();
-  while (occit->hasNext()) {
-    Occurrence occ = occit->next();
+  Occurrences::Iterator occit(occurrences);
+  while (occit.hasNext()) {
+    Occurrence occ = occit.next();
     GenLit& gl = occ.gc->literals[occ.position];
     ASS_EQ(formula(gl),g);
     formula(gl) = name;
@@ -490,7 +493,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
   for (unsigned i = 0; i < len; i++) {
     Formula* g = formula(gc->literals[i]);
 
-    ASS_EQ(g->connective(), LITERAL);
+    ASS_REP(g->connective() == LITERAL, g->toString());
 
     Literal* l = g->literal()->apply(subst);
     if (sign(gc->literals[i]) == NEGATIVE) {

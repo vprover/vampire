@@ -132,7 +132,7 @@ private:
     Formula* f = formula(gl);
     gc->literals[position] = gl;
 
-    if (f->connective() != LITERAL) return;
+    if (f->connective() == LITERAL) return;
 
     Occurrences* occurrences = _occurrences.findPtr(f);
     if (occurrences) {
@@ -147,6 +147,9 @@ private:
   GenClauses _genClauses;
 
   struct Occurrence {
+    CLASS_NAME(NewCNF::Occurrences);
+    USE_ALLOCATOR(NewCNF::Occurrences);
+
     SPGenClause gc;
     unsigned position;
 
@@ -159,6 +162,9 @@ private:
 
   class Occurrences {
   public:
+    CLASS_NAME(NewCNF::Occurrences);
+    USE_ALLOCATOR(NewCNF::Occurrences);
+
     Occurrences() : _occurrences(nullptr), _size(0) {}
 
     unsigned size() { return _size; }
@@ -192,32 +198,28 @@ private:
 
     class Iterator {
     public:
-      Iterator(Occurrences &occurrences) {
-        _iterator = new List<Occurrence>::DelIterator(occurrences._occurrences);
-      }
+      Iterator(Occurrences &occurrences): _iterator(List<Occurrence>::DelIterator(occurrences._occurrences)) {}
+
       inline bool hasNext() {
-        while (true) {
-          if (_iterator->hasNext()) {
-            if (!_iterator->next().gc->valid) {
-              _iterator->del();
-            } else {
-              return true;
-            }
-          } else {
-            return false;
-          }
-        }
+        return _iterator.hasNext();
+//        while (true) {
+//          if (_iterator.hasNext()) {
+//            if (!_iterator.next().gc->valid) {
+//              _iterator.del();
+//            } else {
+//              return true;
+//            }
+//          } else {
+//            return false;
+//          }
+//        }
       }
       Occurrence next() {
-        return _iterator->next();
+        return _iterator.next();
       }
     private:
-      List<Occurrence>::DelIterator* _iterator;
+      List<Occurrence>::DelIterator _iterator;
     };
-
-    Iterator* iterator() {
-      return new Iterator(*this);
-    }
 
   private:
     // may contain pointers to invalidated GenClauses
