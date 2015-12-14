@@ -949,7 +949,7 @@ endOfUnwrapping:
 
   // don't swap equality
   if(lit->functor()==0){
-   resLit = TermTransformer::transform(Literal::createEquality(true,t2,t1,srt));
+   resLit = TermTransformer::transform(Literal::createEquality(lit->polarity(),t2,t1,srt));
   }
   else{
     // important, need to preserve the ordering of t1 and t2 in the original!
