@@ -170,7 +170,7 @@ private:
     unsigned size() { return _size; }
 
     inline void add(Occurrence occ) {
-      _occurrences = new List<Occurrence>(occ, _occurrences);
+      List<Occurrence>::push(occ, _occurrences);
       _size++;
     }
 
@@ -234,13 +234,12 @@ private:
     return gc;
   }
 
-  Occurrence pop(Occurrences occurrences) {
+  Occurrence pop(Occurrences &occurrences) {
     Occurrence occ = occurrences.pop();
     occ.gc->valid = false;
     _genClauses.erase(occ.gc->iter);
     for (unsigned i = 0; i < occ.gc->literals.size(); i++) {
-      GenLit gl = occ.gc->literals[i];
-      Formula* f = formula(gl);
+      Formula* f = formula(occ.gc->literals[i]);
 
       if (f->connective() == LITERAL) continue;
 
