@@ -925,13 +925,20 @@ bool Splitter::handleNonSplittable(Clause* cl)
     UnitList* ps = 0;
 
     FormulaList* resLst=0;
-    for(unsigned i=0;i<nsClause->length();i++){
-      SATLiteral sl = (*nsClause)[i];
-      SplitLevel lv = getNameFromLiteral(sl);
-      if(lv%2 != 0) lv--;
-      UnitList::push(getDefinitionFromName(lv),ps);
-      vstring lnm = splPrefix+Lib::Int::toString(lv); 
-      if(sl.isNegative()){ lnm = "~"+lnm; }
+    // do compName first
+    UnitList::push(getDefinitionFromName(compName),ps);
+    vstring compNameNm = splPrefix+Lib::Int::toString(compName);
+    if((compName&1)!=0){ compNameNm="~"+compNameNm; }
+    FormulaList::push(new NamedFormula(compNameNm),resLst);
+ 
+    // now do splits
+    SplitSet::Iterator sit(*cl->splits());
+    while(sit.hasNext()) {
+      SplitLevel nm = sit.next();
+      UnitList::push(getDefinitionFromName(nm),ps);
+      vstring lnm = splPrefix+Lib::Int::toString(nm);
+      // In the splits we reverse polarity
+      if((nm&1)==0){ lnm="~"+lnm; }
       FormulaList::push(new NamedFormula(lnm),resLst);
     }
 
@@ -1044,6 +1051,9 @@ bool Splitter::doSplitting(Clause* cl)
   // Add literals for existing constraints 
   collectDependenceLits(cl->splits(), satClauseLits);
 
+  UnitList* ps = 0;
+  FormulaList* resLst=0;
+
   unsigned compCnt = comps.size();
   for(unsigned i=0; i<compCnt; ++i) {
     const LiteralStack& comp = comps[i];
@@ -1051,20 +1061,23 @@ bool Splitter::doSplitting(Clause* cl)
     SplitLevel compName = tryGetComponentNameOrAddNew(comp, cl, compCl);
     SATLiteral nameLit = getLiteralFromName(compName);
     satClauseLits.push(nameLit);
+
+    UnitList::push(getDefinitionFromName(compName),ps);
+    vstring compNameNm = splPrefix+Lib::Int::toString(compName);
+    if((compName&1)!=0){ compNameNm="~"+compNameNm; }
+    FormulaList::push(new NamedFormula(compNameNm),resLst);
   }
 
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
 
-  UnitList* ps = 0;
-
-  FormulaList* resLst=0;
-  for(unsigned i=0;i<splitClause->length();i++){
-    SATLiteral sl = (*splitClause)[i];
-    SplitLevel lv = getNameFromLiteral(sl);
-    if(lv%2 != 0) lv--;
-    UnitList::push(getDefinitionFromName(lv),ps);
-    vstring lnm = splPrefix+Lib::Int::toString(lv);
-    if(sl.isNegative()){ lnm = "~"+lnm; }
+  // now do splits
+  SplitSet::Iterator sit(*cl->splits());
+  while(sit.hasNext()) {
+    SplitLevel nm = sit.next();
+    UnitList::push(getDefinitionFromName(nm),ps);
+    vstring lnm = splPrefix+Lib::Int::toString(nm);
+    // in the splits we reverse polarity
+    if((nm&1)==0){ lnm="~"+lnm; }
     FormulaList::push(new NamedFormula(lnm),resLst);
   }
 
@@ -1140,7 +1153,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
   FormulaUnit* def_u = new FormulaUnit(def_f,new Inference(Inference::AVATAR_DEFINITION),inpType);
   InferenceStore::instance()->recordIntroducedSplitName(def_u,splPrefix+Lib::Int::toString(name));
-  //cout << def_u->toString() << endl;
+  //cout << "Add def for " << def_u->toString() << endl;
   ALWAYS(_defs.insert(name,def_u));
 
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, 
@@ -1527,15 +1540,15 @@ bool Splitter::handleEmptyClause(Clause* cl)
   SATClause* confl = SATClause::fromStack(conflictLits);
 
   UnitList* ps = 0;
-
   FormulaList* resLst=0;
-  for(unsigned i=0;i<confl->length();i++){
-    SATLiteral sl = (*confl)[i];
-    SplitLevel lv = getNameFromLiteral(sl);
-    if(lv%2 != 0) lv--;
-    UnitList::push(getDefinitionFromName(lv),ps);
-    vstring lnm = splPrefix+Lib::Int::toString(lv);
-    if(sl.isNegative()){ lnm = "~"+lnm; }
+
+  SplitSet::Iterator sit(*cl->splits());
+  while(sit.hasNext()) {
+    SplitLevel nm = sit.next();
+    UnitList::push(getDefinitionFromName(nm),ps);
+    vstring lnm = splPrefix+Lib::Int::toString(nm);
+    // in the splits we reverse polarity
+    if((nm&1)==0){ lnm="~"+lnm; }
     FormulaList::push(new NamedFormula(lnm),resLst);
   }
 
