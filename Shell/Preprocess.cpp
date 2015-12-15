@@ -169,7 +169,10 @@ void Preprocess::preprocess (Problem& prb)
       env.out() << "FOOL elimination" << std::endl;
 
     TheoryAxioms().applyFOOL(prb);
-    FOOLElimination().apply(prb);
+
+    if (!_options.newCNF()) {
+      FOOLElimination().apply(prb);
+    }
   }
 
   // Expansion of distinct groups happens before other preprocessing

@@ -132,7 +132,7 @@ private:
     Formula* f = formula(gl);
     gc->literals[position] = gl;
 
-    if (f->connective() == LITERAL) return;
+    if (f->connective() == LITERAL && f->literal()->shared()) return;
 
     Occurrences* occurrences = _occurrences.findPtr(f);
     if (occurrences) {
@@ -277,7 +277,7 @@ private:
   Kernel::Formula* nameSubformula(Formula* g, Occurrences &occInfo);
 
   void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {
-    if (formula->connective() != LITERAL) {
+    if (formula->connective() != LITERAL || !formula->literal()->shared()) {
       _queue.push_back(formula);
       ALWAYS(_occurrences.insert(formula, occurrences));
     }
@@ -292,6 +292,7 @@ private:
   void process(JunctionFormula* g, Occurrences &occurrences);
   void process(BinaryFormula* g, Occurrences &occurrences);
   void process(QuantifiedFormula* g, Occurrences &occurrences);
+  void process(Literal* l, Occurrences &occurrences);
 
 }; // class NewCNF
 

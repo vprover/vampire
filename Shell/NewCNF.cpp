@@ -83,6 +83,18 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   ASS(_occurrences.isEmpty());
 }
 
+void NewCNF::process(Literal *l, Occurrences &occurrences)
+{
+  CALL("NewCNF::process(Literal*)");
+
+  LOG2("process(Literal*) ",l->toString());
+  LOG2("occurrences.size ", occurrences.size());
+
+  ASS_REP(l->shared(), l->toString());
+
+  NOT_IMPLEMENTED;
+}
+
 void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
 {
   CALL("NewCNF::process(JunctionFormula*)");
@@ -436,15 +448,15 @@ void NewCNF::process()
     Occurrences occurrences;
     dequeue(g, occurrences);
 
-    ASS_REP(g->connective() != LITERAL, g->toString());
-
     LOG1("process() iteration; _genClauses:");
     for (SPGenClause gc : _genClauses) {
       LOG1(gc->toString());
     }
 
-    if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
-      nameSubformula(g, occurrences);
+    if (g->connective() != LITERAL) {
+      if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
+        nameSubformula(g, occurrences);
+      }
     }
 
     // TODO: currently we don't check for tautologies, as there should be none appearing (we use polarity based expansion of IFF and XOR)
@@ -463,6 +475,13 @@ void NewCNF::process()
       case FORALL:
       case EXISTS:
         process(static_cast<QuantifiedFormula*>(g),occurrences);
+        break;
+
+      case BOOL_TERM:
+        NOT_IMPLEMENTED;
+
+      case LITERAL:
+        process(g->literal(),occurrences);
         break;
 
       default:
