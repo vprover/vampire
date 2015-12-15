@@ -22,9 +22,21 @@ struct SortedSignature{
     DArray<Stack<unsigned>> sortedConstants;
     DArray<Stack<unsigned>> sortedFunctions;
 
-    DArray<DArray<unsigned>> functionBounds;
-    DArray<DArray<unsigned>> predicateBounds;
+    // for f(x,y) = z this will store sort(z),sort(x),sort(y)
+    DArray<DArray<unsigned>> functionSignatures;
+    // for p(x,y) this will store sort(x),sort(y)
+    DArray<DArray<unsigned>> predicateSignatures;
+
+    // gives the maximum size of a sort
+    DArray<unsigned> sortBounds;
     
+    // the number of distinct sorts that might have different sizes
+    unsigned distinctSorts;
+
+    // the distinct parents of sorts
+    // has length sorts with contents from distinctSorts
+    // invariant: all monotonic sorts will have parent 0, the first non-monotonic sort
+    DArray<unsigned> parents;
 };
 
 class SortInference {

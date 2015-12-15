@@ -1630,11 +1630,8 @@ public:
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
-  bool fmbIncremental() const { return _fmbIncremental.actualValue; }
   bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
-  bool fmbSortInference() const { return _fmbSortInference.actualValue; }
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
-  bool fmbStartWithConstants() const { return _fmbStartWithConstants.actualValue; }
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
   FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
   FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
@@ -2007,11 +2004,8 @@ private:
   BoolOptionValue _FOOLOrdering;
   BoolOptionValue _FOOLParamodulation;
 
-  BoolOptionValue _fmbIncremental;
   BoolOptionValue _fmbNonGroundDefs;
-  BoolOptionValue _fmbSortInference;
   UnsignedOptionValue _fmbStartSize;
-  BoolOptionValue _fmbStartWithConstants;
   FloatOptionValue _fmbSymmetryRatio;
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;

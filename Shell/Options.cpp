@@ -574,29 +574,11 @@ void Options::Options::init()
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
     _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter","tabulation"});
 
-    _fmbStartWithConstants = BoolOptionValue("fmb_start_with_constants","fmbswc",false);
-    _fmbStartWithConstants.description = "Start fmb with model size equal to the number of constants in the problem";
-    _lookup.insert(&_fmbStartWithConstants);
-    _fmbStartWithConstants.setExperimental();
-    _fmbStartWithConstants.setRandomChoices({"on","off"});
-
-    _fmbIncremental = BoolOptionValue("fmb_incremental","fmbi",false);
-    _fmbIncremental.description = "Use incremental SAT in fmb";
-    //_lookup.insert(&_fmbIncremental);
-    _fmbIncremental.setExperimental();
-    _fmbIncremental.setRandomChoices({"on","off"});
-
     _fmbNonGroundDefs = BoolOptionValue("fmb_nonground_defs","fmbngd",false);
     _fmbNonGroundDefs.description = "Introduce definitions for non ground terms in preprocessing for fmb";
     //_lookup.insert(&_fmbNonGroundDefs);
     _fmbNonGroundDefs.setExperimental();
     _fmbNonGroundDefs.setRandomChoices({"on","off"});
-
-    _fmbSortInference = BoolOptionValue("fmb_sort_inference","fmbsi",false);
-    _fmbSortInference.description = "Perform sort inference for fmb";
-    //_lookup.insert(&_fmbSortInference);
-    _fmbSortInference.setExperimental();
-    _fmbSortInference.setRandomChoices({"on","off"});
 
     _fmbStartSize = UnsignedOptionValue("fmb_start_size","fmbss",1);
     _fmbStartSize.description = "Set the initial model size for finite model building";
