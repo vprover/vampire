@@ -937,7 +937,8 @@ bool Splitter::handleNonSplittable(Clause* cl)
       SplitLevel nm = sit.next();
       UnitList::push(getDefinitionFromName(nm),ps);
       vstring lnm = splPrefix+Lib::Int::toString(nm);
-      if((nm&1)!=0){ lnm="~"+lnm; }
+      // In the splits we reverse polarity
+      if((nm&1)==0){ lnm="~"+lnm; }
       FormulaList::push(new NamedFormula(lnm),resLst);
     }
 
@@ -1075,7 +1076,8 @@ bool Splitter::doSplitting(Clause* cl)
     SplitLevel nm = sit.next();
     UnitList::push(getDefinitionFromName(nm),ps);
     vstring lnm = splPrefix+Lib::Int::toString(nm);
-    if((nm&1)!=0){ lnm="~"+lnm; }
+    // in the splits we reverse polarity
+    if((nm&1)==0){ lnm="~"+lnm; }
     FormulaList::push(new NamedFormula(lnm),resLst);
   }
 
@@ -1545,7 +1547,8 @@ bool Splitter::handleEmptyClause(Clause* cl)
     SplitLevel nm = sit.next();
     UnitList::push(getDefinitionFromName(nm),ps);
     vstring lnm = splPrefix+Lib::Int::toString(nm);
-    if((nm&1)!=0){ lnm="~"+lnm; }
+    // in the splits we reverse polarity
+    if((nm&1)==0){ lnm="~"+lnm; }
     FormulaList::push(new NamedFormula(lnm),resLst);
   }
 
