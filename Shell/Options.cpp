@@ -2313,6 +2313,14 @@ bool Options::SelectionOptionValue::setValue(const vstring& value)
   case 20:
   case 21:
   case 22:
+
+  case 30:
+  case 31:
+  case 32:
+  case 33:
+  case 34:
+  case 35:
+
   case 1002:
   case 1003:
   case 1004:
@@ -2324,9 +2332,16 @@ bool Options::SelectionOptionValue::setValue(const vstring& value)
   case -4:
   case -10:
   case -11:
-  case -20:
+  // -20 behaves the same as 20
   case -21:
   case -22:
+  case -30:
+  // -31 would be the same as 31
+  case -32:
+  case -33:
+  case -34:
+  case -35:
+
   case -1002:
   case -1003:
   case -1004:
