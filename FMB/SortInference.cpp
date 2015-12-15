@@ -88,6 +88,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
            varsWithPosEq[l->nthArgument(0)->var()]=1;
            varsWithPosEq[l->nthArgument(1)->var()]=1;
          }
+         
        }else{
          ASS(!l->nthArgument(0)->isVar());
          ASS(l->nthArgument(1)->isVar());
@@ -241,10 +242,12 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
     cout << "Sort Inference information:" << endl;
   }
   unsigned firstFreshConstant = UINT_MAX;
+  DHMap<unsigned,unsigned> freshMap;
   for(unsigned s=0;s<comps;s++){
     if(sig->sortedConstants[s].size()==0 && sig->sortedFunctions[s].size()>0){
       unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
       sig->sortedConstants[s].push(fresh);
+      freshMap.insert(fresh,s);
       if(firstFreshConstant!=UINT_MAX) firstFreshConstant=fresh;
 #if DEBUG_SORT_INFERENCE
       cout << "Adding fresh constant for sort "<<s<<endl;
@@ -256,29 +259,26 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
     }
   }
 
-  sig->functionBounds.ensure(env.signature->functions());
-  sig->predicateBounds.ensure(env.signature->predicates());
 
-  // Indexed by the new sort numbers i.e. the result of translate
-  DArray<unsigned> bounds(comps);
+  sig->sortBounds.ensure(comps);
 
   // Compute bounds on sorts
   for(unsigned s=0;s<comps;s++){
     // A sort is bounded if it contains only constants and has no positive equality
     if(sig->sortedFunctions[s].size()==0 && !posEqualitiesOnSort[s]){
-      bounds[s]=sig->sortedConstants[s].size();
+      sig->sortBounds[s]=sig->sortedConstants[s].size();
       // If no constants pretend there is one
-      if(bounds[s]==0){ bounds[s]=1;}
+      if(sig->sortBounds[s]==0){ sig->sortBounds[s]=1;}
       if(env.options->mode()!=Options::Mode::SPIDER){
-        cout << "Found bound of " << bounds[s] << " for sort " << s << endl;
+        cout << "Found bound of " << sig->sortBounds[s] << " for sort " << s << endl;
 #if DEBUG_SORT_INFERENCE
-        if(bounds[s]==0){ cout << " (was 0)"; }
+        if(sig->sortBounds[s]==0){ cout << " (was 0)"; }
         cout << endl;
 #endif
       }
     }
     else{
-      bounds[s]=UINT_MAX;
+      sig->sortBounds[s]=UINT_MAX;
     }
     //if(s==3){
       //cout << "Forcing all bounds to max for " << s << endl;
@@ -286,11 +286,21 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
     //}
   }
 
+  DArray<bool> parentSet(comps);
+  for(unsigned i=0;i<comps;i++) parentSet[i]=false;
+
+  // Before extracting monotonicity the distinct sorts are the input sorts
+  sig->distinctSorts = env.property->sortsUsed();
+
+  sig->parents.ensure(comps);
+  sig->functionSignatures.ensure(env.signature->functions());
+  sig->predicateSignatures.ensure(env.signature->predicates());
+
 #if DEBUG_SORT_INFERENCE
-  cout << "Setting function bounds" << endl;
+  cout << "Setting function signatures" << endl;
 #endif
 
-  // Now set bounds for functions
+  // Now record the signatures for functions
   for(unsigned f=0;f<env.signature->functions();f++){
     if(f < del_f.size() && del_f[f]) continue;
 #if DEBUG_SORT_INFERENCE
@@ -302,26 +312,37 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
     // We need to treat them specially as they are functions that are added
     // after we do sort inference (so offsets/positions do not apply)
     if(f >= firstFreshConstant){
-      sig->functionBounds[f].ensure(1);
-      sig->functionBounds[f][0]=UINT_MAX;
+      unsigned srt = freshMap.get(f);
+      sig->functionSignatures[f].ensure(1);
+      sig->functionSignatures[f][0]=srt;
       continue;
     }
 
     unsigned arity = env.signature->functionArity(f);
-    sig->functionBounds[f].ensure(arity+1);
+    sig->functionSignatures[f].ensure(arity+1);
     int root = unionFind.root(offset_f[f]);
     unsigned rangeSort = translate.get(root);
 #if DEBUG_SORT_INFERENCE
     cout << rangeSort << " <= ";
 #endif
-    sig->functionBounds[f][0] = bounds[rangeSort];
+    sig->functionSignatures[f][0] = rangeSort;
+
+    Signature::Symbol* fnSym = env.signature->getFunction(f);
+    FunctionType* fnType = fnSym->fnType();
+    ASS(!parentSet[fnType->result()] || fnType->result()==sig->parents[rangeSort]);
+    parentSet[rangeSort]=true;
+    parentSet[rangeSort]=fnType->result();
+
     for(unsigned i=0;i<arity;i++){
       int argRoot = unionFind.root(offset_f[f]+i+1);
       unsigned argSort = translate.get(argRoot);
 #if DEBUG_SORT_INFERENCE
       cout << argSort << " ";
 #endif
-      sig->functionBounds[f][i+1] = bounds[argSort];
+      sig->functionSignatures[f][i+1] = argSort;
+      ASS(!parentSet[fnType->arg(i)] || fnType->arg(i)==sig->parents[argSort]);
+      parentSet[argSort]=true;
+      sig->parents[argSort]=fnType->arg(i);
     }
 #if DEBUG_SORT_INFERENCE
    cout << "("<< offset_f[f] << ")"<< endl;
@@ -329,7 +350,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   }
 
 #if DEBUG_SORT_INFERENCE
-  cout << "Setting predicate bounds" << endl;
+  cout << "Setting predicate signatures" << endl;
 #endif
 
   // Remember to skip 0 as it is =
@@ -340,12 +361,19 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
 #endif
     //cout << env.signature->predicateName(p) <<" : "; 
     unsigned arity = env.signature->predicateArity(p);
-    // Now set bounds
-    sig->predicateBounds[p].ensure(arity);
+    // Now set signatures 
+    sig->predicateSignatures[p].ensure(arity);
+
+    Signature::Symbol* prSym = env.signature->getPredicate(p);
+    PredicateType* prType = prSym->predType();
+
     for(unsigned i=0;i<arity;i++){
       int argRoot = unionFind.root(offset_p[p]+i);
       unsigned argSort = translate.get(argRoot);
-      sig->predicateBounds[p][i] = bounds[argSort];
+      sig->predicateSignatures[p][i] = argSort;
+      ASS(!parentSet[prType->arg(i)] || prType->arg(i)==sig->parents[argSort]);
+      parentSet[argSort]=true;
+      sig->parents[argSort]=prType->arg(i);
 #if DEBUG_SORT_INFERENCE
       cout << argSort << " ";
 #endif

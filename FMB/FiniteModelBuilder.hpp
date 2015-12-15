@@ -48,14 +48,14 @@ protected:
 private:
 
   // Creates the model output
-  void onModelFound(unsigned modelSize);
+  void onModelFound();
 
   // Adds constraints from grounding the non-ground clauses
-  void addNewInstances(unsigned modelSize);
+  void addNewInstances();
   // Add constraints from functionality of function symbols in signature (except those removed in preprocessing)
-  void addNewFunctionalDefs(unsigned modelSize);
+  void addNewFunctionalDefs();
   // Add constraints from totality of function symbols in signature (except those removed in preprocessing)
-  void addNewTotalityDefs(unsigned modelSize);
+  void addNewTotalityDefs();
 
   // Add constraints for symmetry ordering i.e. the first modelSize groundedTerms are ordered
   void addNewSymmetryOrderingAxioms(unsigned modelSize,Stack<GroundedTerm>& groundedTerms); 
@@ -64,10 +64,12 @@ private:
 
   // Add all symmetry constraints
   // For each model size up to the maximum add both ordering and canonicity constraints for each (inferred) sort
-  void addNewSymmetryAxioms(unsigned modelSize){
+  void addNewSymmetryAxioms(){
       ASS(_sortedSignature);
-    for(unsigned m=1;m<=modelSize;m++){
-      for(unsigned s=0;s<_sortedSignature->sorts;s++){
+    
+    for(unsigned s=0;s<_sortedSignature->sorts;s++){
+      unsigned modelSize = _sortModelSizes[s];
+      for(unsigned m=1;m<=modelSize;m++){
         addNewSymmetryOrderingAxioms(m,_sortedGroundedTerms[s]);
         addNewSymmetryCanonicityAxioms(m,_sortedGroundedTerms[s],modelSize);
       }
@@ -81,13 +83,13 @@ private:
   // The elements are the domain constants to use as parameters
   // polarity is used if isFunction is false
   SATLiteral getSATLiteral(unsigned func, const DArray<unsigned>& elements,bool polarity,
-                           bool isFunction, unsigned modelSize);
+                           bool isFunction);
 
-  // resets all structures and SAT solver using the given modelSize
-  bool reset(unsigned modelSize);
+  // resets all structures and SAT solver using _sortModelSizes 
+  bool reset();
 
   // make the symmetry orderings
-  void createSymmetryOrdering(unsigned modelSize);
+  void createSymmetryOrdering();
   // The per-sort ordering of grounded terms used for symmetry breaking
   DArray<Stack<GroundedTerm>> _sortedGroundedTerms;
 
@@ -124,10 +126,9 @@ private:
 
   // Record for function symbol the minimum bound of the return sort or any parameter sorts 
   DArray<unsigned> _fminbound;
-  // Record for each clause the minimum bounds for argument sorts of each literal
-  //  if the literal is equality then this takes the min of each argument
-  // This assumes that clauses are not reordered (only happens when we do selection, which we do not)
-  DHMap<Clause*,DArray<unsigned>*> _clauseBounds;
+  // Record for each clause the sorts of the variables 
+  // As clauses are normalized variables will be numbered 0,1,...
+  DHMap<Clause*,DArray<unsigned>*> _clauseVariableSorts;
 
   // There is a implicit mapping from ground terms to SAT variables
   // These offsets give the SAT variable for the *first* grounding of each function or predicate symbol
@@ -145,13 +146,15 @@ private:
   unsigned _maxModelSize;
   // Record the number of constants in the problem
   unsigned _constantCount;
-  // An experimental option that uses the number of constants in the problem as the initial model size
-  // This is incomplete and I can't remember why I tried it
-  bool _useConstantsAsStart;
   // The maximum arity, used to detect if we have at most 0,1 or >1 arity functions
   unsigned _maxArity;
   // Option used in symmetry breaking
   float _symmetryRatio;
+
+
+  // sizes to use for each sort
+  DArray<unsigned> _sortModelSizes;
+  void increaseModelSizes(){ NOT_IMPLEMENTED; }
 };
 
 }
