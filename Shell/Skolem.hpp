@@ -40,22 +40,28 @@ public:
       unsigned rangeSort, const char* suffix=0);
 private:
   /** Initialise a Skolem object */
-  Skolem ();
+  Skolem () :  _beingSkolemised(0) {}
   FormulaUnit* skolemiseImpl(FormulaUnit*);
+
+  // create substitution, based on occurrences
+  void preskolemise(Formula*);
+  // drop existential quantifiers and apply substitution
   Formula* skolemise(Formula*);
   FormulaList* skolemise(FormulaList*);
 
-  void reset();
-  Term* createSkolemTerm(unsigned var);
-
   void ensureHavingVarSorts();
-
-  typedef Stack<int> VarStack;
 
   /** collected substitution */
   Substitution _subst;
-  /** Universally quantified variables collected */
-  VarStack _vars;
+
+  /** Universally quantified variables and
+   * whether they appear in a subformula
+   * (VarInfo list is used to reset computation when
+   * descending below an existential quantifier;
+   * thus the list works like a stack) */
+  typedef List<bool> VarInfo;
+  typedef DHMap<unsigned,VarInfo*> Vars;
+  Vars _vars;
 
   /** map var --> sort */
   DHMap<unsigned,unsigned> _varSorts;
