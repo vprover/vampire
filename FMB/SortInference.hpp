@@ -1,6 +1,11 @@
 /**
  * @file SortInference.hpp
  * Defines class SortInference.
+ *
+ *
+ * NOTE: An important convention to remember is that when we have a DArray representing
+ *       the signature or grounding of a function the lastt argument is the return
+ *       so array[arity] is return and array[i] is the ith argument of the function
  */
 
 #ifndef __SortInference__

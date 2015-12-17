@@ -1,6 +1,10 @@
 /**
  * @file FiniteModelBuilder.cpp
  * Implements class FiniteModelBuilder.
+ *
+ * NOTE: An important convention to remember is that when we have a DArray representing
+ *       the signature or grounding of a function the lastt argument is the return
+ *       so array[arity] is return and array[i] is the ith argument of the function
  */
 
 #include <math.h>
@@ -52,7 +56,7 @@ namespace FMB
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _sortedSignature(0), _clauses(0),
-                      _isComplete(true), _maxModelSize(UINT_MAX), _constantCount(0),
+                      _isComplete(true), _constantCount(0),
                       _maxArity(0) 
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
@@ -352,6 +356,13 @@ void FiniteModelBuilder::init()
 
     // Only try and do this if the clause could decrease the maxModelSize
     if(c->length() < _maxModelSize){
+
+    // Let's just print this warning once
+    if(!_clauses) cout << "Warning, not longer detecting maximum model size" << endl;
+
+/* TODO put this back for multiple sorts
+    // Only try and do this if the clause could decrease the maxModelSize
+    if(c->length() < _maxModelSize){
       // This code attempts to detect a maximum model size from c either as e.g.
       // i) X=Y | X=Z | Y=Z  here we overestimate the model size
       // ii) X=a | X=b | X=f(a) again we might have a=b so we overestimate
@@ -397,6 +408,7 @@ void FiniteModelBuilder::init()
           _maxModelSize = _maxModelSize;
         }
       }
+    */
     }
   }
 
@@ -444,6 +456,30 @@ void FiniteModelBuilder::init()
     TimeCounter tc(TC_FMB_SORT_INFERENCE);
     ClauseIterator cit = pvi(ClauseList::Iterator(_clauses));
     _sortedSignature = SortInference::apply(cit,del_f,del_p);
+    ASS(_sortedSignature);
+
+    // set this here, so we could update it in this function
+    _maxDistinctSortSizes.ensure(_sortedSignature->distinctSorts);
+    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){ 
+      _maxDistinctSortSizes[s]=UINT_MAX; 
+    }
+    for(unsigned s=0;s<_sortedSignature->sorts;s++){
+      unsigned bound = _sortedSignature->sortBounds[s];
+      unsigned parent = _sortedSignature->parents[s];
+      if(_maxDistinctSortSizes[parent]==UINT_MAX || bound > _maxDistinctSortSizes[parent]){
+        _maxDistinctSortSizes[parent]=bound;
+      }
+    }
+    if(env.property->category()==Property::EPR || _maxArity==0){
+      for(unsigned s=0;s<_sortedSignature->sorts;s++){
+        unsigned c = (_sortedSignature->sortedConstants[s]).size();
+        if(c==0) continue;
+        unsigned parent = _sortedSignature->parents[s];
+        if(_maxDistinctSortSizes[parent]==UINT_MAX || c > _maxDistinctSortSizes[parent]){
+          _maxDistinctSortSizes[parent]=c;
+        }
+      }
+    }
 
     // If symmetry ordering uses the usage after preprocessing then recompute symbol usage
     // Otherwise this was done at clausification
@@ -487,6 +523,7 @@ void FiniteModelBuilder::init()
   }
 
   //TODO why is this here? Can intermediate steps introduce new functions?
+  //  - SortInference can introduce new constants
   del_f.expand(env.signature->functions());
 
   // these offsets are for SAT variables and need to be set to the right size
@@ -525,15 +562,20 @@ void FiniteModelBuilder::init()
       // will record the sorts for each variable in the clause 
       // note that clauses have been normalized so variables go from 0 to varCnt
       DArray<unsigned>* csig = new DArray<unsigned>(c->varCnt()); 
-      DArray<bool> csig_set;
+      DArray<bool> csig_set(c->varCnt());
       for(unsigned i=0;i<c->varCnt();i++) csig_set[i]=false;
       bool allTwoVar = true;
       bool somePos = false;
+      static Stack<Literal*> twoVarEqualities;
+      twoVarEqualities.reset();
       for(unsigned i=0;i<c->length();i++){
         Literal* lit = (*c)[i];
         if(lit->polarity()){ somePos=true; }
         if(lit->isEquality()){
-          if(lit->isTwoVarEquality()) continue;
+          if(lit->isTwoVarEquality()){
+             twoVarEqualities.push(lit);
+             continue;
+          }
           allTwoVar=false;
           ASS(lit->nthArgument(0)->isTerm());
           ASS(lit->nthArgument(1)->isVar());
@@ -570,11 +612,35 @@ void FiniteModelBuilder::init()
           }
         }
       }
+      Stack<Literal*>::Iterator tvit(twoVarEqualities);
+      while(tvit.hasNext()){
+        Literal* lit = tvit.next();
+        ASS(lit->isTwoVarEquality());
+        unsigned var1 = lit->nthArgument(0)->var();
+        unsigned var2 = lit->nthArgument(1)->var();
+        //cout << var1 << " and " << var2 << endl;
+        if(csig_set[var1]){
+          if(csig_set[var2]){
+            ASS_EQ((*csig)[var1],(*csig)[var2]);
+          }
+          else{ 
+            (*csig)[var2] = (*csig)[var1]; 
+            csig_set[var2]=true;
+          }
+        }
+        else if(csig_set[var2]){
+          (*csig)[var1] = (*csig)[var2];
+          csig_set[var1]=true;
+        }
+        //else cout << "Bleh" << endl;
+      }
+
 #if VDEBUG
       if(!allTwoVar){
         for(unsigned i=0;i<csig->size();i++){
-          ASS(csig_set[i]);
+          ASS_REP(csig_set[i],c->toString());
         }
+        //cout << c->toString() << " okay" << endl;
       }
 #endif
       // if allTwoVar and !somePos we have a clause that cannot be satisfied
@@ -968,15 +1034,14 @@ newTotalLabel:
 
 
 /*
- * We expect grounding to have [x,y] for predicate p(x,y) and [z,x,y] for function z=f(x,y)
+ * We expect grounding to have [x,y] for predicate p(x,y) and [x,y,z] for function z=f(x,y)
+ * i.e. as noted above grounding[arity] should be the return for a function
  *
  */
 SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>& grounding,
                                                            bool polarity,bool isFunction)
 {
   CALL("FiniteModelBuilder::getSATLiteral");
-
-  ASSERTION_VIOLATION; // do not remove this until you've checked that grounding follows the above rule!!!
 
   // cannot have predicate 0 here (it's equality)
   ASS(f>0 || isFunction);
@@ -1030,25 +1095,28 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
 
-  if(env.property->category()==Property::EPR || _maxArity==0){
-    ASS(_sortedSignature);
-    unsigned max = 1;
-    for(unsigned s=0;s<_sortedSignature->sorts;s++){
-      unsigned c = (_sortedSignature->sortedConstants[s]).size();
-      if(c>max){
-        max = c; 
+
+  if(env.options->mode()!=Options::Mode::SPIDER){
+      bool doPrinting = false;
+      vstring res = "[";
+      for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
+        if(_maxDistinctSortSizes[s]==UINT_MAX){
+          res+="max";
+        }else{
+          res+=Lib::Int::toString(_maxDistinctSortSizes[s]);
+          doPrinting=true;
+        }
+        if(s+1 < _sortedSignature->distinctSorts) res+=",";
       }
-    }
-    if(max < _maxModelSize){
-      _maxModelSize = max;
-    }
-  }
-  if(_maxModelSize < UINT_MAX  && env.options->mode()!=Options::Mode::SPIDER){
-      cout << "Detected maximum model size of " << _maxModelSize << endl;
+      if(doPrinting){
+        cout << "Detected maximum model sizes of " << res << "]" << endl;
+      }
   }
 
   _sortModelSizes.ensure(_sortedSignature->sorts);
+  _distinctSortSizes.ensure(_sortedSignature->distinctSorts);
   for(unsigned i=0;i<_sortModelSizes.size();i++) _sortModelSizes[i]=_startModelSize;
+  for(unsigned i=0;i<_distinctSortSizes.size();i++) _distinctSortSizes[i]=_startModelSize;
 
   ALWAYS(reset());
   while(true){
@@ -1103,6 +1171,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
         for(unsigned a=0;a<arity;a++){ grounding[a]=gt.grounding;}
         if(arity==0){
           grounding[arity]=i+1;
+          Signature of getSATLitearl has changed!!
           addSATClause(getSATLiteral(gt.f,grounding,true,true,modelSize));
         }
         else{
@@ -1110,6 +1179,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
           satClauseLits.reset();
           for(unsigned j=1;j<=i;j++){
             grounding[arity]=j;
+            Signature of getSATLiteral has changed!
             satClauseLits.push(getSATLiteral(gt.f,grounding,true,true,modelSize));
           }
           addSATClause(SATClause::fromStack(satClauseLits));
@@ -1577,6 +1647,18 @@ ppModelLabel:
   }
 
   env.statistics->model = model.toString();
+}
+
+void FiniteModelBuilder::increaseModelSizes(){ 
+  // This works with distinct sorts and then maps this to _maxModelSizes
+
+
+  NOT_IMPLEMENTED; 
+
+  for(unsigned s=0;s<_sortedSignature->sorts;s++){
+    _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
+  }
+
 }
 
 }

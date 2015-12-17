@@ -1,6 +1,10 @@
 /**
  * @file SortInference.cpp
  * Implements class SortInference.
+ *
+ * NOTE: An important convention to remember is that when we have a DArray representing
+ *       the signature or grounding of a function the lastt argument is the return
+ *       so array[arity] is return and array[i] is the ith argument of the function
  */
 
 #include "Shell/Options.hpp"
@@ -240,6 +244,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   // We also add these dummy constants to sorts without them
   if(env.options->mode()!=Options::Mode::SPIDER){
     cout << "Sort Inference information:" << endl;
+    cout << comps << " inferred sorts" << endl;
   }
   unsigned firstFreshConstant = UINT_MAX;
   DHMap<unsigned,unsigned> freshMap;
@@ -253,7 +258,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
       cout << "Adding fresh constant for sort "<<s<<endl;
 #endif
     }
-    if((env.options->mode()!=Options::Mode::SPIDER) && sig->sortedConstants[s].size()>0){
+    if((env.options->mode()!=Options::Mode::SPIDER)){
       cout << "Sort " << s << " has " << sig->sortedConstants[s].size() << " constants and ";
       cout << sig->sortedFunctions[s].size() << " functions" <<endl;
     }
@@ -289,12 +294,12 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   DArray<bool> parentSet(comps);
   for(unsigned i=0;i<comps;i++) parentSet[i]=false;
 
-  // Before extracting monotonicity the distinct sorts are the input sorts
-  sig->distinctSorts = env.property->sortsUsed();
-
   sig->parents.ensure(comps);
   sig->functionSignatures.ensure(env.signature->functions());
   sig->predicateSignatures.ensure(env.signature->predicates());
+
+  unsigned distinctSorts = 0;
+  DHMap<unsigned,unsigned> ourDistinctSorts; 
 
 #if DEBUG_SORT_INFERENCE
   cout << "Setting function signatures" << endl;
@@ -325,13 +330,30 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
 #if DEBUG_SORT_INFERENCE
     cout << rangeSort << " <= ";
 #endif
-    sig->functionSignatures[f][0] = rangeSort;
+    sig->functionSignatures[f][arity] = rangeSort;
 
     Signature::Symbol* fnSym = env.signature->getFunction(f);
     FunctionType* fnType = fnSym->fnType();
-    ASS(!parentSet[fnType->result()] || fnType->result()==sig->parents[rangeSort]);
-    parentSet[rangeSort]=true;
-    parentSet[rangeSort]=fnType->result();
+    if(parentSet[rangeSort]){
+#if VDEBUG
+      unsigned vampireSort = fnType->result();
+      unsigned ourSort;
+      ASS(ourDistinctSorts.find(vampireSort,ourSort));
+      ASS_EQ(ourSort,sig->parents[rangeSort]);
+#endif
+    }
+    else{
+      parentSet[rangeSort]=true;
+      unsigned vampireSort = fnType->result();
+      unsigned ourSort; 
+      if(!ourDistinctSorts.find(vampireSort,ourSort)){
+        ourSort = distinctSorts++;
+        ourDistinctSorts.insert(vampireSort,ourSort);
+      }
+      sig->parents[rangeSort] = ourSort;
+      //cout << "set parent of " << rangeSort << " to " << ourSort << endl;
+    }
+
 
     for(unsigned i=0;i<arity;i++){
       int argRoot = unionFind.root(offset_f[f]+i+1);
@@ -339,10 +361,26 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
 #if DEBUG_SORT_INFERENCE
       cout << argSort << " ";
 #endif
-      sig->functionSignatures[f][i+1] = argSort;
-      ASS(!parentSet[fnType->arg(i)] || fnType->arg(i)==sig->parents[argSort]);
-      parentSet[argSort]=true;
-      sig->parents[argSort]=fnType->arg(i);
+      sig->functionSignatures[f][i] = argSort;
+      if(parentSet[argSort]){
+#if VDEBUG
+      unsigned vampireSort = fnType->arg(i);
+      unsigned ourSort;
+      ASS(ourDistinctSorts.find(vampireSort,ourSort));
+      ASS_EQ(ourSort,sig->parents[argSort]);
+#endif
+      }
+      else{
+        parentSet[argSort]=true;
+        unsigned vampireSort = fnType->arg(i);
+        unsigned ourSort;
+        if(!ourDistinctSorts.find(vampireSort,ourSort)){
+          ourSort = distinctSorts++;
+          ourDistinctSorts.insert(vampireSort,ourSort);
+        }
+        sig->parents[argSort] = ourSort;
+        //cout << "set parent of " << argSort << " to " << ourSort << endl;
+      }
     }
 #if DEBUG_SORT_INFERENCE
    cout << "("<< offset_f[f] << ")"<< endl;
@@ -371,9 +409,25 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
       int argRoot = unionFind.root(offset_p[p]+i);
       unsigned argSort = translate.get(argRoot);
       sig->predicateSignatures[p][i] = argSort;
-      ASS(!parentSet[prType->arg(i)] || prType->arg(i)==sig->parents[argSort]);
-      parentSet[argSort]=true;
-      sig->parents[argSort]=prType->arg(i);
+      if(parentSet[argSort]){
+#if VDEBUG
+      unsigned vampireSort = prType->arg(i);
+      unsigned ourSort;
+      ASS(ourDistinctSorts.find(vampireSort,ourSort));
+      ASS_EQ(ourSort,sig->parents[argSort]);
+#endif
+      }
+      else{
+        parentSet[argSort]=true;
+        unsigned vampireSort = prType->arg(i);
+        unsigned ourSort;
+        if(!ourDistinctSorts.find(vampireSort,ourSort)){
+          ourSort = distinctSorts++;
+          ourDistinctSorts.insert(vampireSort,ourSort);
+        }
+        sig->parents[argSort] = ourSort;
+        //cout << "set parent of " << argSort << " to " << ourSort << endl;
+      }
 #if DEBUG_SORT_INFERENCE
       cout << argSort << " ";
 #endif
@@ -382,6 +436,25 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
    cout << "("<< offset_p[p] << ")"<< endl;
 #endif
   }
+
+  sig->distinctSorts = distinctSorts;
+
+  if(env.options->mode()!=Options::Mode::SPIDER){
+    cout << sig->distinctSorts << " distinct sorts" << endl;
+    for(unsigned s=0;s<sig->distinctSorts;s++){
+      unsigned children =0;
+      vstring res="";
+      for(unsigned i=0;i<sig->sorts;i++){ 
+        if(sig->parents[i]==s){
+          if(children>0) res+=",";
+          res+=Lib::Int::toString(i);
+          children++; 
+        }
+      }
+      cout << s << " has " << children << " inferred sorts as members [" << res << "]" << endl;
+    }
+  }
+
 
   return sig;
 
