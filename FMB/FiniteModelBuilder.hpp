@@ -142,8 +142,8 @@ private:
   unsigned _startModelSize; 
   // If we detect incompleteness at init then we terminate immediately at runImpl
   bool _isComplete;
-  // Record the maximum model size if there is one
-  unsigned _maxModelSize;
+  // Record the maximum model sizes per sort if there is one
+  DArray<unsigned> _maxDistinctSortSizes;
   // Record the number of constants in the problem
   unsigned _constantCount;
   // The maximum arity, used to detect if we have at most 0,1 or >1 arity functions
@@ -154,7 +154,8 @@ private:
 
   // sizes to use for each sort
   DArray<unsigned> _sortModelSizes;
-  void increaseModelSizes(){ NOT_IMPLEMENTED; }
+  void increaseModelSizes();
+  DArray<unsigned> _distinctSortSizes;
 };
 
 }
