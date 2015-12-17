@@ -175,6 +175,8 @@ public:
   unsigned satSplits;
   unsigned satSplitRefutations;
 
+  unsigned smtFallbacks;
+
   /** Lingeling statistics*/
   /** Count the number of assumptions that are added to Lingeling */
   unsigned satLingelingAssumptions;

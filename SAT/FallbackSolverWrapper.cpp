@@ -3,6 +3,9 @@
  * Implements class FallbackSolverWrapper.
  */
 
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
+
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "SAT/SATClause.hpp"
@@ -47,6 +50,7 @@ SATSolver::Status FallbackSolverWrapper::solve(unsigned conflictCountLimit)
     status = _fallback->solve(conflictCountLimit);
     _usingFallback = true;
     ASS(status != Status::UNKNOWN);
+    env.statistics->smtFallbacks++;
   } 
   else{
     _usingFallback = false;

@@ -98,6 +98,8 @@ Statistics::Statistics()
     satSplits(0),
     satSplitRefutations(0),
 
+    smtFallbacks(0),
+
     satLingelingAssumptions(0),
     satLingelingClauses(0),
     satLingelingVariables(0),
@@ -281,8 +283,9 @@ void Statistics::print(ostream& out)
   COND_OUT("Split clauses", splitClauses);
   COND_OUT("Split components", splitComponents);
   COND_OUT("Unique components", uniqueComponents);
-  COND_OUT("Sat splits", satSplits);
+  //COND_OUT("Sat splits", satSplits); // same as split clauses
   COND_OUT("Sat splitting refutations", satSplitRefutations);
+  COND_OUT("SMT fallbacks",smtFallbacks);
   SEPARATOR;
 
   HEADING("Instance Generation",instGenGeneratedClauses+instGenRedundantClauses+
