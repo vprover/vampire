@@ -91,6 +91,7 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
  * @since 23/01/2004 Manchester, changed to include info about positions
  * @since 11/12/2004 Manchester, true and false added
  * @since 08/06/2007 Manchester changed to new data structures
+ * @since 18/12/2015 Gothenburg, changes to support FOOL
  */
 Formula* Flattening::flatten (Formula* f)
 {
@@ -98,11 +99,31 @@ Formula* Flattening::flatten (Formula* f)
 
   Connective con = f->connective();
   switch (con) {
-  case LITERAL:
   case TRUE:
   case FALSE:
-  case BOOL_TERM:
     return f;
+
+  case LITERAL:
+    {
+      Literal* lit = f->literal();
+      Literal* flattenedLit = flatten(lit);
+      if (lit == flattenedLit) {
+        return f;
+      } else {
+        return new AtomicFormula(flattenedLit);
+      }
+    }
+
+  case BOOL_TERM:
+    {
+      TermList ts = f->getBooleanTerm();
+      TermList flattenedTs = flatten(ts);
+      if (ts == flattenedTs) {
+        return f;
+      } else {
+        return new BoolTermFormula(flattenedTs);
+      }
+    }
 
   case AND:
   case OR: 
@@ -174,6 +195,100 @@ Formula* Flattening::flatten (Formula* f)
 
 } // Flattening::flatten ()
 
+Literal* Flattening::flatten(Literal* l)
+{
+  CALL("Flattening::flatten(Literal*)");
+
+  if (l->shared()) {
+    return l;
+  }
+
+  Stack<TermList> args;
+  Term::Iterator terms(l);
+  while (terms.hasNext()) {
+    args.push(flatten(terms.next()));
+  }
+
+  return Literal::create(l, args.begin());
+} // NNF::ennf(Literal*);
+
+TermList Flattening::flatten (TermList ts)
+{
+  CALL("Flattening::flatten(TermList)");
+
+  if (ts.isVar() || ts.term()->shared()) {
+    return ts;
+  } else {
+    return TermList(flatten(ts.term()));
+  }
+} // Flattening::flatten (TermList)
+
+Term* Flattening::flatten (Term* term)
+{
+  CALL("Flattening::flatten(Term*)");
+
+  if (term->shared()) {
+    return term;
+  }
+
+  if (term->isSpecial()) {
+    Term::SpecialTermData* sd = term->getSpecialData();
+    switch (sd->getType()) {
+      case Term::SF_FORMULA: {
+        Formula* f = sd->getFormula();
+        Formula* flattenedF = flatten(f);
+        if (f == flattenedF) {
+          return term;
+        } else {
+          return Term::createFormula(flattenedF);
+        }
+      }
+
+      case Term::SF_ITE: {
+        TermList thenBranch = *term->nthArgument(0);
+        TermList elseBranch = *term->nthArgument(1);
+        Formula* condition  = sd->getCondition();
+
+        TermList flattenedThenBranch = flatten(thenBranch);
+        TermList flattenedElseBranch = flatten(elseBranch);
+        Formula* flattenedCondition  = flatten(condition);
+
+        if ((thenBranch == flattenedThenBranch) &&
+            (elseBranch == flattenedElseBranch) &&
+            (condition == flattenedCondition)) {
+          return term;
+        } else {
+          return Term::createITE(flattenedCondition, flattenedThenBranch, flattenedThenBranch, sd->getSort());
+        }
+      }
+
+      case Term::SF_LET: {
+        TermList binding = sd->getBinding();
+        TermList body = *term->nthArgument(0);
+
+        TermList flattenedBinding = flatten(binding);
+        TermList flattenedBody = flatten(body);
+
+        if ((binding == flattenedBinding) && (body == flattenedBody)) {
+          return term;
+        } else {
+          return Term::createLet(sd->getFunctor(), sd->getVariables(), flattenedBinding, flattenedBody, sd->getSort());
+        }
+      }
+
+      default:
+        ASSERTION_VIOLATION
+    }
+  }
+
+  Stack<TermList> args;
+  Term::Iterator terms(term);
+  while (terms.hasNext()) {
+    args.push(flatten(terms.next()));
+  }
+
+  return Term::create(term, args.begin());
+} // Flattening::flatten (Term*)
 
 /** 
  * Flatten the list of formulas (connected by c).

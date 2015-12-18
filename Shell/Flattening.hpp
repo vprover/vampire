@@ -28,6 +28,9 @@ public:
   static Formula* getFlattennedNegation(Formula* f);
 private:
   static FormulaList* flatten (FormulaList*,Connective con);
+  static Literal* flatten (Literal*);
+  static TermList flatten (TermList);
+  static Term* flatten (Term*);
 }; // class Flattening
 
 }
