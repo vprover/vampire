@@ -70,6 +70,10 @@ private:
   #define NEGATIVE false
   #define OPPOSITE(sign) (!(sign))
 
+  #define SIDE unsigned
+  #define LEFT 0u
+  #define RIGHT 1u
+
   // generalized literal
   typedef std::pair<Formula*, SIGN> GenLit;
   inline Formula* &formula(GenLit &gl) {
@@ -279,7 +283,9 @@ private:
   void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {
     if (formula->connective() != LITERAL || !formula->literal()->shared()) {
       _queue.push_back(formula);
-      ALWAYS(_occurrences.insert(formula, occurrences));
+      if (!_occurrences.insert(formula, occurrences)) {
+        ASSERTION_VIOLATION_REP(formula->toString());
+      }
     }
   }
 
@@ -294,6 +300,9 @@ private:
   void process(QuantifiedFormula* g, Occurrences &occurrences);
   void process(Literal* l, Occurrences &occurrences);
 
+  TermList findSpecialTermData(TermList ts, Stack<Term::SpecialTermData*> &sds, Stack<TermList> &names);
+
+  TermList createNamingTerm(unsigned functor, IntList* vars);
 }; // class NewCNF
 
 }
