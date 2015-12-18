@@ -86,12 +86,15 @@ Formula* NNF::ennf (Formula* f, bool polarity)
   Connective c = f->connective();
   switch (c) {
   case LITERAL:
-    if (! polarity) {
+    {
       Literal* lit = f->literal();
-      Literal* newLit = Literal::complementaryLiteral(lit);
-      return new AtomicFormula(newLit);
+      Literal* newLit = ennf(lit, polarity);
+      if (newLit == lit) {
+        return f;
+      } else {
+        return new AtomicFormula(newLit);
+      }
     }
-    return f;
 
   case AND: 
   case OR: 
@@ -151,8 +154,15 @@ Formula* NNF::ennf (Formula* f, bool polarity)
 				   f->vars(),f->sorts(),gg);
     }
 
-  case BOOL_TERM:
-    ASSERTION_VIOLATION;
+  case BOOL_TERM: {
+    TermList ts = f->getBooleanTerm();
+    TermList ennfTf = ennf(ts, polarity);
+    if (ts == ennfTf) {
+      return f;
+    } else {
+      return new BoolTermFormula(ennfTf);
+    }
+  }
 
   case TRUE:
   case FALSE:
@@ -174,6 +184,115 @@ Formula* NNF::ennf (Formula* f, bool polarity)
   }
 } // NNF::ennf(Formula&);
 
+Literal* NNF::ennf(Literal* l, bool polarity)
+{
+  CALL("NNF::ennf(Literal*...)");
+
+  if (l->shared()) {
+    if (polarity) {
+      return l;
+    } else {
+      return Literal::complementaryLiteral(l);
+    }
+  }
+
+  Stack<TermList> args;
+  Term::Iterator terms(l);
+  while (terms.hasNext()) {
+    args.push(ennf(terms.next(), true));
+  }
+
+  return Literal::create(l, args.begin());
+} // NNF::ennf(Literal*);
+
+TermList NNF::ennf(TermList ts, bool polarity)
+{
+  CALL("NNF::ennf(TermList...)");
+
+  if (ts.isVar() || ts.term()->shared()) {
+    return ts;
+  } else {
+    return TermList(ennf(ts.term(), polarity));
+  }
+} // NNF::ennf(TermList);
+
+Term* NNF::ennf (Term* term, bool polarity)
+{
+  CALL("NNF::ennf(Term*...)");
+
+  if (term->shared()) {
+    return term;
+  }
+
+  if (term->isSpecial()) {
+    Term::SpecialTermData* sd = term->getSpecialData();
+    switch (sd->getType()) {
+      case Term::SF_FORMULA: {
+        Formula* f = sd->getFormula();
+        Formula* ennfF = ennf(f, polarity);
+        switch (ennfF->connective()) {
+          case TRUE:
+            return Term::foolTrue();
+          case FALSE:
+            return Term::foolFalse();
+          default: {
+            if (f == ennfF) {
+              return term;
+            } else {
+              return Term::createFormula(ennfF);
+            }
+          }
+        }
+        break;
+      }
+
+      case Term::SF_ITE: {
+        TermList thenBranch = *term->nthArgument(0);
+        TermList elseBranch = *term->nthArgument(1);
+        Formula* condition  = sd->getCondition();
+
+        TermList ennfThenBranch = ennf(thenBranch, polarity);
+        TermList ennfElseBranch = ennf(elseBranch, polarity);
+        Formula* ennfCondition  = ennf(condition, true);
+
+        if ((thenBranch == ennfThenBranch) &&
+            (elseBranch == ennfElseBranch) &&
+            (condition == ennfCondition)) {
+          return term;
+        } else {
+          return Term::createITE(ennfCondition, ennfThenBranch, ennfThenBranch, sd->getSort());
+        }
+        break;
+      }
+
+      case Term::SF_LET: {
+        TermList binding = sd->getBinding();
+        TermList body = *term->nthArgument(0);
+
+        TermList ennfBinding = ennf(binding, true);
+        TermList ennfBody = ennf(body, polarity);
+
+        if ((binding == ennfBinding) && (body == ennfBody)) {
+          return term;
+        } else {
+          return Term::createLet(sd->getFunctor(), sd->getVariables(), ennfBinding, ennfBody, sd->getSort());
+        }
+        break;
+      }
+
+      default:
+        ASSERTION_VIOLATION
+    }
+  }
+
+  Stack<TermList> args;
+  Term::Iterator terms(term);
+  while (terms.hasNext()) {
+    args.push(ennf(terms.next(), true));
+  }
+
+  return Term::create(term, args.begin());
+} // NNF::ennf(Term*);
 
 /**
  * Transform a junction F = F0 * ... * Fk or its negation into ennf.
