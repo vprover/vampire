@@ -101,7 +101,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
     }
 
     if (isFormula[LEFT] || isFormula[RIGHT]) {
-      Formula*processedformula[2];
+      Formula* processedformula[2];
       for (SIDE side : { LEFT, RIGHT }) {
         if (isFormula[side]) {
           if (argument[side].term()->isFormula()) {
@@ -284,6 +284,48 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
           SIGN rhsSign = formulaSign == occ.sign() ? OPPOSITE(lhsSign) : lhsSign;
           setLiteral(processedGc, position++, GenLit(g->left(),  lhsSign));
           setLiteral(processedGc, position++, GenLit(g->right(), rhsSign));
+        } else {
+          setLiteral(processedGc, position++, occ.gc->literals[i]);
+        }
+      }
+    }
+  }
+}
+
+void NewCNF::processBoolVar(TermList var, Occurrences &occurrences)
+{
+  CALL("NewCNF::processBoolVar");
+
+  Literal* processedLiteral = Literal::createEquality(POSITIVE, var, TermList(Term::foolTrue()), Sorts::SRT_BOOL);
+  Formula* processedFormula = new AtomicFormula(processedLiteral);
+
+  Occurrences::Iterator occit(occurrences);
+  while (occit.hasNext()) {
+    Occurrence occ = occit.next();
+    GenLit& gl = occ.gc->literals[occ.position];
+    formula(gl) = processedFormula;
+  }
+}
+
+
+void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences)
+{
+  CALL("NewCNF::processITE");
+
+  enqueue(condition);
+  enqueue(thenBranch);
+  enqueue(elseBranch);
+
+  while (occurrences.isNonEmpty()) {
+    Occurrence occ = pop(occurrences);
+
+    for (SIGN conditionSign : { NEGATIVE, POSITIVE }) {
+      SPGenClause processedGc = introduceGenClause(occ.gc->size() + 1, occ.gc->bindings);
+      for (unsigned i = 0, position = 0; i < occ.gc->size(); i++) {
+        if (i == occ.position) {
+          Formula* branch = conditionSign == NEGATIVE ? thenBranch : elseBranch;
+          setLiteral(processedGc, position++, GenLit(condition, conditionSign));
+          setLiteral(processedGc, position++, GenLit(branch, occ.sign()));
         } else {
           setLiteral(processedGc, position++, occ.gc->literals[i]);
         }
@@ -609,8 +651,42 @@ void NewCNF::process()
         process(static_cast<QuantifiedFormula*>(g),occurrences);
         break;
 
-      case BOOL_TERM:
-        NOT_IMPLEMENTED;
+      case BOOL_TERM: {
+        TermList ts = g->getBooleanTerm();
+        if (ts.isVar()) {
+          processBoolVar(ts, occurrences);
+          break;
+        }
+
+        Term* term = ts.term();
+        ASS_REP(term->isSpecial(), term->toString());
+
+        Term::SpecialTermData* sd = term->getSpecialData();
+        switch (sd->getType()) {
+          case Term::SF_ITE: {
+            Formula* condition = sd->getCondition();
+
+            Formula* branch[2];
+            for (SIDE side : { LEFT, RIGHT }) {
+              TermList branchTerm = *term->nthArgument(side);
+              ASS_REP(branchTerm.isVar() || (branchTerm.term()->isSpecial() && branchTerm.term()->isFormula()),
+                      branchTerm.toString());
+              branch[side] = branchTerm.isVar() ? (Formula*) new BoolTermFormula(branchTerm)
+                                                : branchTerm.term()->getSpecialData()->getFormula();
+            }
+
+            processITE(condition, branch[LEFT], branch[RIGHT], occurrences);
+            break;
+          }
+
+          case Term::SF_LET:
+            NOT_IMPLEMENTED;
+
+          default:
+            ASSERTION_VIOLATION_REP(term->toString());
+        }
+        break;
+      }
 
       case LITERAL:
         process(g->literal(),occurrences);

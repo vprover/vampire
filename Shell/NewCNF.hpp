@@ -298,7 +298,10 @@ private:
   void process(JunctionFormula* g, Occurrences &occurrences);
   void process(BinaryFormula* g, Occurrences &occurrences);
   void process(QuantifiedFormula* g, Occurrences &occurrences);
+
   void process(Literal* l, Occurrences &occurrences);
+  void processBoolVar(TermList var, Occurrences &occurrences);
+  void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
 
   TermList findSpecialTermData(TermList ts, Stack<Term::SpecialTermData*> &sds, Stack<TermList> &names);
 
