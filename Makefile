@@ -354,6 +354,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SMTPrinter.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
+         Shell/SymbolOccurrenceReplacement.o\
          Shell/SymCounter.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
