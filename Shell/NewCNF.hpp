@@ -302,6 +302,7 @@ private:
   void process(Literal* l, Occurrences &occurrences);
   void processBoolVar(TermList var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
+  void processLet(unsigned functor, Formula::VarList*bindingVariables, TermList binding, Formula* contents, Occurrences &occurrences);
 
   TermList findSpecialTermData(TermList ts, Stack<Term*> &specialTerms, Stack<TermList> &names);
 

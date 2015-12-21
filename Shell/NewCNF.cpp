@@ -16,6 +16,7 @@
 #include "NewCNF.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
+#include "SymbolOccurrenceReplacement.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -150,7 +151,6 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
     ASS_REP(term->isSpecial(), term->toString());
 
     TermList name = names.pop();
-    unsigned nameSort = SortHelper::getResultSort(name, _varSorts);
 
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (sd->getType()) {
@@ -163,8 +163,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
           SPGenClause gc = introduceGenClause(2);
           setLiteral(gc, 0, GenLit(f, sign));
           static TermList true_(Term::foolTrue());
-          ASS_EQ(nameSort, Sorts::SRT_BOOL);
-          Literal* namingLiteral = Literal::createEquality(OPPOSITE(sign), true_, name, nameSort);
+          Literal* namingLiteral = Literal::createEquality(OPPOSITE(sign), true_, name, Sorts::SRT_BOOL);
           Formula* naming = new AtomicFormula(namingLiteral);
           setLiteral(gc, 1, GenLit(naming, POSITIVE));
         }
@@ -182,7 +181,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
           SPGenClause gc = introduceGenClause(2);
           setLiteral(gc, 0, GenLit(condition, sign));
           TermList branch = sign == NEGATIVE ? thenBranch : elseBranch;
-          Literal* namingLiteral = Literal::createEquality(POSITIVE, name, branch, nameSort);
+          Literal* namingLiteral = Literal::createEquality(POSITIVE, name, branch, sd->getSort());
           Formula* naming = new AtomicFormula(namingLiteral);
           setLiteral(gc, 1, GenLit(naming, POSITIVE));
         }
@@ -364,6 +363,99 @@ void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBr
         }
       }
     }
+  }
+}
+
+void NewCNF::processLet(unsigned symbol, Formula::VarList*bindingVariables, TermList binding, Formula* contents, Occurrences &occurrences)
+{
+  CALL("NewCNF::processLet");
+
+  bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
+
+  Formula::VarList* bindingFreeVars(0);
+  Formula::VarList::Iterator bfvi(binding.freeVariables());
+  while (bfvi.hasNext()) {
+    int var = bfvi.next();
+    if (!bindingVariables->member(var)) {
+      bindingFreeVars = new Formula::VarList(var, bindingFreeVars);
+    }
+  }
+
+  unsigned nameArity = (unsigned) bindingVariables->length() + bindingFreeVars->length();
+  unsigned nameSort;
+  if (!isPredicate) {
+    nameSort = env.signature->getFunction(symbol)->fnType()->result();
+  }
+
+  Formula* processedContents;
+  unsigned freshSymbol;
+
+  bool renameSymbol = Formula::VarList::isNonEmpty(bindingFreeVars);
+  if (renameSymbol) {
+    static Stack<unsigned> sorts;
+    sorts.reset();
+
+    ensureHavingVarSorts();
+
+    IntList::Iterator vit(bindingFreeVars);
+    while (vit.hasNext()) {
+      unsigned var = (unsigned) vit.next();
+      sorts.push(_varSorts.get(var, Sorts::SRT_DEFAULT));
+    }
+
+    if (isPredicate) {
+      PredicateType* type = new PredicateType(nameArity, sorts.begin());
+      freshSymbol = env.signature->addFreshFunction(nameArity, "lG");
+      env.signature->getPredicate(freshSymbol)->setType(type);
+    } else {
+      FunctionType* type = new FunctionType(nameArity, sorts.begin(), nameSort);
+      freshSymbol = env.signature->addFreshFunction(nameArity, "lG");
+      env.signature->getFunction(freshSymbol)->setType(type);
+    }
+
+    SymbolOccurrenceReplacement replacement(isPredicate, symbol, freshSymbol, bindingFreeVars);
+    processedContents = replacement.process(contents);
+  } else {
+    freshSymbol = symbol;
+    processedContents = contents;
+  }
+
+  enqueue(processedContents);
+
+  Occurrences::Iterator occit(occurrences);
+  while (occit.hasNext()) {
+    Occurrence occ = occit.next();
+    GenLit& gl = occ.gc->literals[occ.position];
+    formula(gl) = processedContents;
+  }
+
+  Formula::VarList* variables = bindingFreeVars->append(bindingVariables);
+
+  Stack<TermList> arguments;
+  Formula::VarList::Iterator vit(variables);
+  while (vit.hasNext()) {
+    unsigned var = (unsigned)vit.next();
+    arguments.push(TermList(var, false));
+  }
+
+  if (isPredicate) {
+    Formula* formulaBinding = new BoolTermFormula(binding);
+
+    enqueue(formulaBinding);
+
+    Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, false, arguments.begin());
+    Formula* nameFormula = new AtomicFormula(name);
+
+    for (SIGN sign : { POSITIVE, NEGATIVE }) {
+      SPGenClause gc = introduceGenClause(2);
+      setLiteral(gc, 0, GenLit(nameFormula, sign));
+      setLiteral(gc, 1, GenLit(formulaBinding, POSITIVE));
+    }
+  } else {
+    TermList name = TermList(Term::create(freshSymbol, nameArity, arguments.begin()));
+    Formula* nameFormula = new AtomicFormula(Literal::createEquality(POSITIVE, name, binding, nameSort));
+    SPGenClause gc = introduceGenClause(1);
+    setLiteral(gc, 0, GenLit(nameFormula, POSITIVE));
   }
 }
 
@@ -712,8 +804,15 @@ void NewCNF::process()
             break;
           }
 
-          case Term::SF_LET:
-            NOT_IMPLEMENTED;
+          case Term::SF_LET: {
+            unsigned functor = sd->getFunctor();
+            Formula::VarList* variables = sd->getVariables();
+            TermList binding = sd->getBinding();
+            Formula* contents = new BoolTermFormula(*term->nthArgument(0));
+
+            processLet(functor, variables, binding, contents, occurrences);
+            break;
+          }
 
           default:
             ASSERTION_VIOLATION_REP(term->toString());
