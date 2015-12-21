@@ -303,7 +303,7 @@ private:
   void processBoolVar(TermList var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
 
-  TermList findSpecialTermData(TermList ts, Stack<Term::SpecialTermData*> &sds, Stack<TermList> &names);
+  TermList findSpecialTermData(TermList ts, Stack<Term*> &specialTerms, Stack<TermList> &names);
 
   TermList createNamingTerm(unsigned functor, IntList* vars);
 }; // class NewCNF

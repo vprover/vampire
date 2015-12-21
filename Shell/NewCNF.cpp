@@ -128,13 +128,13 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
     }
   }
 
-  Stack<Term::SpecialTermData*> sds;
+  Stack<Term*> specialTerms;
   Stack<TermList> names;
 
   Stack<TermList> arguments;
   Term::Iterator lit(literal);
   while (lit.hasNext()) {
-    arguments.push(findSpecialTermData(lit.next(), sds, names));
+    arguments.push(findSpecialTermData(lit.next(), specialTerms, names));
   }
 
   Formula* processedLiteral = new AtomicFormula(Literal::create(literal, arguments.begin()));
@@ -145,27 +145,60 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
     formula(occ.gc->literals[occ.position]) = processedLiteral;
   }
 
-  while (sds.isNonEmpty()) {
-    Term::SpecialTermData* sd = sds.pop();
-    ASS_EQ(sd->getType(), Term::SF_FORMULA);
-    Formula* f = sd->getFormula();
+  while (specialTerms.isNonEmpty()) {
+    Term* term = specialTerms.pop();
+    ASS_REP(term->isSpecial(), term->toString());
+
     TermList name = names.pop();
+    unsigned nameSort = SortHelper::getResultSort(name, _varSorts);
 
-    enqueue(f);
+    Term::SpecialTermData* sd = term->getSpecialData();
+    switch (sd->getType()) {
+      case Term::SF_FORMULA: {
+        Formula* f = sd->getFormula();
 
-    static TermList true_(Term::foolTrue());
+        enqueue(f);
 
-    for (SIGN sign : { POSITIVE, NEGATIVE }) {
-      SPGenClause positiveGenClause = introduceGenClause(2);
-      setLiteral(positiveGenClause, 0, GenLit(f, sign));
-      Literal* namingLiteral = Literal::createEquality(OPPOSITE(sign), true_, name, Sorts::SRT_BOOL);
-      Formula* naming = new AtomicFormula(namingLiteral);
-      setLiteral(positiveGenClause, 1, GenLit(naming, POSITIVE));
+        for (SIGN sign : { POSITIVE, NEGATIVE }) {
+          SPGenClause gc = introduceGenClause(2);
+          setLiteral(gc, 0, GenLit(f, sign));
+          static TermList true_(Term::foolTrue());
+          ASS_EQ(nameSort, Sorts::SRT_BOOL);
+          Literal* namingLiteral = Literal::createEquality(OPPOSITE(sign), true_, name, nameSort);
+          Formula* naming = new AtomicFormula(namingLiteral);
+          setLiteral(gc, 1, GenLit(naming, POSITIVE));
+        }
+        break;
+      }
+
+      case Term::SF_ITE: {
+        Formula* condition  = sd->getCondition();
+        TermList thenBranch = *term->nthArgument(0);
+        TermList elseBranch = *term->nthArgument(1);
+
+        enqueue(condition);
+
+        for (SIGN sign : { POSITIVE, NEGATIVE }) {
+          SPGenClause gc = introduceGenClause(2);
+          setLiteral(gc, 0, GenLit(condition, sign));
+          TermList branch = sign == NEGATIVE ? thenBranch : elseBranch;
+          Literal* namingLiteral = Literal::createEquality(POSITIVE, name, branch, nameSort);
+          Formula* naming = new AtomicFormula(namingLiteral);
+          setLiteral(gc, 1, GenLit(naming, POSITIVE));
+        }
+        break;
+      }
+
+      case Term::SF_LET:
+        NOT_IMPLEMENTED;
+
+      default:
+        ASSERTION_VIOLATION;
     }
   }
 }
 
-TermList NewCNF::findSpecialTermData(TermList ts, Stack<Term::SpecialTermData*> &sds, Stack<TermList> &names)
+TermList NewCNF::findSpecialTermData(TermList ts, Stack<Term*> &specialTerms, Stack<TermList> &names)
 {
   CALL("NewCNF::findSpecialTermData");
 
@@ -174,7 +207,7 @@ TermList NewCNF::findSpecialTermData(TermList ts, Stack<Term::SpecialTermData*> 
   } else {
     Term* term = ts.term();
     if (term->isSpecial()) {
-      sds.push(term->getSpecialData());
+      specialTerms.push(term);
 
       IntList* freeVars = term->freeVariables();
 
@@ -204,7 +237,7 @@ TermList NewCNF::findSpecialTermData(TermList ts, Stack<Term::SpecialTermData*> 
 
       Term::Iterator it(term);
       while (it.hasNext()) {
-        arguments.push(findSpecialTermData(it.next(), sds, names));
+        arguments.push(findSpecialTermData(it.next(), specialTerms, names));
       }
 
       return TermList(Term::create(term, arguments.begin()));
