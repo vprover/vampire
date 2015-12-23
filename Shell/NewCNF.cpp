@@ -337,9 +337,27 @@ void NewCNF::processBoolVar(TermList var, Occurrences &occurrences)
 {
   CALL("NewCNF::processBoolVar");
 
-  Literal* processedLiteral = Literal::createEquality(POSITIVE, var, TermList(Term::foolTrue()), Sorts::SRT_BOOL);
-  Formula* processedFormula = new AtomicFormula(processedLiteral);
-  occurrences.replaceBy(processedFormula);
+  /**
+   * Boolean variables, occurring as literals in clauses can be safely removed.
+   * For a boolean X: X | F = (true | F) & (false | F) = true & F = F.
+   */
+
+  while (occurrences.isNonEmpty()) {
+    Occurrence occ = pop(occurrences);
+    SPGenClause processedGc = introduceGenClause(occ.gc->size() - 1, occ.gc->bindings);
+    for (unsigned i = 0, position = 0; i < occ.gc->size(); i++) {
+      if (i != occ.position) {
+        setLiteral(processedGc, position++, occ.gc->literals[i]);
+      }
+    }
+  }
+
+  /**
+   * Alternatively, every occurrence of X can be replaced by X = true
+   */
+  //Literal* processedLiteral = Literal::createEquality(POSITIVE, var, TermList(Term::foolTrue()), Sorts::SRT_BOOL);
+  //Formula* processedFormula = new AtomicFormula(processedLiteral);
+  //occurrences.replaceBy(processedFormula);
 }
 
 
