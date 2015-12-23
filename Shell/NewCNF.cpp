@@ -121,11 +121,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
 
       enqueue(equivalence);
 
-      Occurrences::Iterator occit(occurrences);
-      while (occit.hasNext()) {
-        Occurrence occ = occit.next();
-        formula(occ.gc->literals[occ.position]) = equivalence;
-      }
+      occurrences.replaceBy(equivalence);
     }
   }
 
@@ -140,11 +136,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
 
   Formula* processedLiteral = new AtomicFormula(Literal::create(literal, arguments.begin()));
 
-  Occurrences::Iterator occit(occurrences);
-  while (occit.hasNext()) {
-    Occurrence occ = occit.next();
-    formula(occ.gc->literals[occ.position]) = processedLiteral;
-  }
+  occurrences.replaceBy(processedLiteral);
 
   while (specialTerms.isNonEmpty()) {
     Term* term = specialTerms.pop();
@@ -300,10 +292,27 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
 
   ASS(g->connective() != IMP);
 
-  enqueue(g->left());
-  enqueue(g->right());
-
   SIGN formulaSign = g->connective() == IFF ? POSITIVE : NEGATIVE;
+
+  Formula* lhs = g->left();
+  Formula* rhs = g->right();
+
+  if (lhs->connective() == BOOL_TERM && rhs->connective() == BOOL_TERM) {
+    TermList lhsTerm = lhs->getBooleanTerm();
+    TermList rhsTerm = rhs->getBooleanTerm();
+
+    Literal *equalityLiteral = Literal::createEquality(formulaSign, lhsTerm, rhsTerm, Sorts::SRT_BOOL);
+    Formula *equality = new AtomicFormula(equalityLiteral);
+
+    enqueue(equality);
+
+    occurrences.replaceBy(equality);
+
+    return;
+  }
+
+  enqueue(lhs);
+  enqueue(rhs);
 
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
@@ -314,8 +323,8 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
         if (i == occ.position) {
           ASS_EQ(formula(occ.gc->literals[i]), g);
           SIGN rhsSign = formulaSign == occ.sign() ? OPPOSITE(lhsSign) : lhsSign;
-          setLiteral(processedGc, position++, GenLit(g->left(),  lhsSign));
-          setLiteral(processedGc, position++, GenLit(g->right(), rhsSign));
+          setLiteral(processedGc, position++, GenLit(lhs, lhsSign));
+          setLiteral(processedGc, position++, GenLit(rhs, rhsSign));
         } else {
           setLiteral(processedGc, position++, occ.gc->literals[i]);
         }
@@ -330,13 +339,7 @@ void NewCNF::processBoolVar(TermList var, Occurrences &occurrences)
 
   Literal* processedLiteral = Literal::createEquality(POSITIVE, var, TermList(Term::foolTrue()), Sorts::SRT_BOOL);
   Formula* processedFormula = new AtomicFormula(processedLiteral);
-
-  Occurrences::Iterator occit(occurrences);
-  while (occit.hasNext()) {
-    Occurrence occ = occit.next();
-    GenLit& gl = occ.gc->literals[occ.position];
-    formula(gl) = processedFormula;
-  }
+  occurrences.replaceBy(processedFormula);
 }
 
 
@@ -422,12 +425,7 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList*bindingVariables, Term
 
   enqueue(processedContents);
 
-  Occurrences::Iterator occit(occurrences);
-  while (occit.hasNext()) {
-    Occurrence occ = occit.next();
-    GenLit& gl = occ.gc->literals[occ.position];
-    formula(gl) = processedContents;
-  }
+  occurrences.replaceBy(processedContents);
 
   Formula::VarList* variables = bindingFreeVars->append(bindingVariables);
 
@@ -607,23 +605,19 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
   // Note that the formula under quantifier reuses the quantified formula's occurrences
   enqueue(g->qarg(), occurrences);
 
+  // Correct all the GenClauses to mention qarg instead of g
+  occurrences.replaceBy(g->qarg());
+
   // the skolem caches are empty
   ASS(_skolemsByBindings.isEmpty());
   ASS(_skolemsByFreeVars.isEmpty());
 
-  // Correct all the GenClauses to mention qarg instead of g
-  //
   // In the skolemising polarity introduce new skolems as you go
   // each occurrence may need a new set depending on bindings,
   // but let's try to share as much as possible
   Occurrences::Iterator occit(occurrences);
   while (occit.hasNext()) {
     Occurrence occ = occit.next();
-
-    GenLit& gl = occ.gc->literals[occ.position];
-    ASS_EQ(formula(gl),g);
-    formula(gl) = g->qarg();
-
     if ((occ.sign() == POSITIVE) == (g->connective() == EXISTS)) {
       skolemise(g, occ.gc->bindings);
     }
@@ -726,13 +720,7 @@ Formula* NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
     setLiteral(gc, 1, GenLit(g, sign));
   }
 
-  Occurrences::Iterator occit(occurrences);
-  while (occit.hasNext()) {
-    Occurrence occ = occit.next();
-    GenLit& gl = occ.gc->literals[occ.position];
-    ASS_EQ(formula(gl),g);
-    formula(gl) = name;
-  }
+  occurrences.replaceBy(name);
 
   return name;
 }

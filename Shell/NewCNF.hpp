@@ -76,10 +76,10 @@ private:
 
   // generalized literal
   typedef std::pair<Formula*, SIGN> GenLit;
-  inline Formula* &formula(GenLit &gl) {
+  inline static Formula* &formula(GenLit &gl) {
     return gl.first;
   }
-  inline SIGN &sign(GenLit &gl) {
+  inline static SIGN &sign(GenLit &gl) {
     return gl.second;
   }
 
@@ -198,6 +198,15 @@ private:
 
     Occurrence pop() {
       return List<Occurrence>::pop(_occurrences);
+    }
+
+    void replaceBy(Formula* f) {
+      Occurrences::Iterator occit(*this);
+      while (occit.hasNext()) {
+        Occurrence occ = occit.next();
+        GenLit& gl = occ.gc->literals[occ.position];
+        formula(gl) = f;
+      }
     }
 
     class Iterator {
