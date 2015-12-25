@@ -9,9 +9,8 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/Unit.hpp"
 
-#include "Indexing/TermSharing.hpp"
+#include "Shell/Options.hpp"
 
 #include "NNF.hpp"
 
@@ -35,9 +34,18 @@ FormulaUnit* NNF::ennf(FormulaUnit* unit)
     return unit;
   }
 
-  return new FormulaUnit(g,
+  FormulaUnit* res = new FormulaUnit(g,
 			 new Inference1(Inference::ENNF,unit),
 			 unit->inputType());
+
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] ennf in: " << unit->toString() << std::endl;
+    env.out() << "[PP] ennf out: " << res->toString() << std::endl;
+    env.endOutput();
+  }
+
+  return res;
 } // NNF::ennf
 
 
@@ -196,10 +204,20 @@ Literal* NNF::ennf(Literal* l, bool polarity)
     }
   }
 
+  bool changed = false;
   Stack<TermList> args;
   Term::Iterator terms(l);
   while (terms.hasNext()) {
-    args.push(ennf(terms.next(), true));
+    TermList argument = terms.next();
+    TermList ennfArgument = ennf(argument, true);
+    if (argument != ennfArgument) {
+      changed = true;
+    }
+    args.push(ennfArgument);
+  }
+
+  if (!changed) {
+    return l;
   }
 
   return Literal::create(l, args.begin());
@@ -209,19 +227,14 @@ TermList NNF::ennf(TermList ts, bool polarity)
 {
   CALL("NNF::ennf(TermList...)");
 
-  if (ts.isVar() || ts.term()->shared()) {
+  if (ts.isVar()) {
     return ts;
-  } else {
-    return TermList(ennf(ts.term(), polarity));
   }
-} // NNF::ennf(TermList);
 
-Term* NNF::ennf (Term* term, bool polarity)
-{
-  CALL("NNF::ennf(Term*...)");
+  Term* term = ts.term();
 
   if (term->shared()) {
-    return term;
+    return ts;
   }
 
   if (term->isSpecial()) {
@@ -232,14 +245,14 @@ Term* NNF::ennf (Term* term, bool polarity)
         Formula* ennfF = ennf(f, polarity);
         switch (ennfF->connective()) {
           case TRUE:
-            return Term::foolTrue();
+            return TermList(Term::foolTrue());
           case FALSE:
-            return Term::foolFalse();
+            return TermList(Term::foolFalse());
           default: {
             if (f == ennfF) {
-              return term;
+              return ts;
             } else {
-              return Term::createFormula(ennfF);
+              return TermList(Term::createFormula(ennfF));
             }
           }
         }
@@ -258,9 +271,9 @@ Term* NNF::ennf (Term* term, bool polarity)
         if ((thenBranch == ennfThenBranch) &&
             (elseBranch == ennfElseBranch) &&
             (condition == ennfCondition)) {
-          return term;
+          return ts;
         } else {
-          return Term::createITE(ennfCondition, ennfThenBranch, ennfThenBranch, sd->getSort());
+          return TermList(Term::createITE(ennfCondition, ennfThenBranch, ennfThenBranch, sd->getSort()));
         }
         break;
       }
@@ -273,25 +286,35 @@ Term* NNF::ennf (Term* term, bool polarity)
         TermList ennfBody = ennf(body, polarity);
 
         if ((binding == ennfBinding) && (body == ennfBody)) {
-          return term;
+          return ts;
         } else {
-          return Term::createLet(sd->getFunctor(), sd->getVariables(), ennfBinding, ennfBody, sd->getSort());
+          return TermList(Term::createLet(sd->getFunctor(), sd->getVariables(), ennfBinding, ennfBody, sd->getSort()));
         }
         break;
       }
 
       default:
-        ASSERTION_VIOLATION
+        ASSERTION_VIOLATION;
     }
   }
 
+  bool changed = false;
   Stack<TermList> args;
   Term::Iterator terms(term);
   while (terms.hasNext()) {
-    args.push(ennf(terms.next(), true));
+    TermList argument = terms.next();
+    TermList ennfArgument = ennf(argument, true);
+    if (argument != ennfArgument) {
+      changed = true;
+    }
+    args.push(ennfArgument);
   }
 
-  return Term::create(term, args.begin());
+  if (!changed) {
+    return ts;
+  }
+
+  return TermList(Term::create(term, args.begin()));
 } // NNF::ennf(Term*);
 
 /**

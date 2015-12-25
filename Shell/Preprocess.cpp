@@ -165,12 +165,11 @@ void Preprocess::preprocess (Problem& prb)
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (env.options->showPreprocessing())
-      env.out() << "FOOL elimination" << std::endl;
-
     TheoryAxioms().applyFOOL(prb);
 
     if (!_options.newCNF()) {
+      if (env.options->showPreprocessing())
+        env.out() << "FOOL elimination" << std::endl;
       FOOLElimination().apply(prb);
     }
   }
@@ -464,11 +463,7 @@ void Preprocess::preprocess2(Problem& prb)
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] ennf: " << u->toString() << std::endl;
-      env.endOutput();
-    }
+
     if (u->isClause()) {
 	continue;
     }

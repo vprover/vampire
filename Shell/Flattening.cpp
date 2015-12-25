@@ -54,19 +54,9 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   CALL("Flattening::flatten (Unit*)");
   ASS(! unit->isClause());
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] flatten in: " << unit->toString() << std::endl;
-    env.endOutput();
-  }
   Formula* f = unit->formula();
   Formula* g = flatten(f);
   if (f == g) { // not changed
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] flatten out: " << unit->toString() << std::endl;
-      env.endOutput();
-    }
     return unit;
   }
 
@@ -78,6 +68,7 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   }
   if (env.options->showPreprocessing()) {
     env.beginOutput();
+    env.out() << "[PP] flatten in: " << unit->toString() << std::endl;
     env.out() << "[PP] flatten out: " << res->toString() << std::endl;
     env.endOutput();
   }
@@ -203,10 +194,20 @@ Literal* Flattening::flatten(Literal* l)
     return l;
   }
 
+  bool flattened = false;
   Stack<TermList> args;
   Term::Iterator terms(l);
   while (terms.hasNext()) {
-    args.push(flatten(terms.next()));
+    TermList argument = terms.next();
+    TermList flattenedArgument = flatten(argument);
+    if (argument != flattenedArgument) {
+      flattened = true;
+    }
+    args.push(flattenedArgument);
+  }
+
+  if (!flattened) {
+    return l;
   }
 
   return Literal::create(l, args.begin());
@@ -216,19 +217,14 @@ TermList Flattening::flatten (TermList ts)
 {
   CALL("Flattening::flatten(TermList)");
 
-  if (ts.isVar() || ts.term()->shared()) {
+  if (ts.isVar()) {
     return ts;
-  } else {
-    return TermList(flatten(ts.term()));
   }
-} // Flattening::flatten (TermList)
 
-Term* Flattening::flatten (Term* term)
-{
-  CALL("Flattening::flatten(Term*)");
+  Term* term = ts.term();
 
   if (term->shared()) {
-    return term;
+    return ts;
   }
 
   if (term->isSpecial()) {
@@ -238,9 +234,9 @@ Term* Flattening::flatten (Term* term)
         Formula* f = sd->getFormula();
         Formula* flattenedF = flatten(f);
         if (f == flattenedF) {
-          return term;
+          return ts;
         } else {
-          return Term::createFormula(flattenedF);
+          return TermList(Term::createFormula(flattenedF));
         }
       }
 
@@ -256,9 +252,9 @@ Term* Flattening::flatten (Term* term)
         if ((thenBranch == flattenedThenBranch) &&
             (elseBranch == flattenedElseBranch) &&
             (condition == flattenedCondition)) {
-          return term;
+          return ts;
         } else {
-          return Term::createITE(flattenedCondition, flattenedThenBranch, flattenedThenBranch, sd->getSort());
+          return TermList(Term::createITE(flattenedCondition, flattenedThenBranch, flattenedThenBranch, sd->getSort()));
         }
       }
 
@@ -270,24 +266,34 @@ Term* Flattening::flatten (Term* term)
         TermList flattenedBody = flatten(body);
 
         if ((binding == flattenedBinding) && (body == flattenedBody)) {
-          return term;
+          return ts;
         } else {
-          return Term::createLet(sd->getFunctor(), sd->getVariables(), flattenedBinding, flattenedBody, sd->getSort());
+          return TermList(Term::createLet(sd->getFunctor(), sd->getVariables(), flattenedBinding, flattenedBody, sd->getSort()));
         }
       }
 
       default:
-        ASSERTION_VIOLATION
+        ASSERTION_VIOLATION;
     }
   }
 
+  bool flattened = false;
   Stack<TermList> args;
   Term::Iterator terms(term);
   while (terms.hasNext()) {
-    args.push(flatten(terms.next()));
+    TermList argument = terms.next();
+    TermList flattenedArgument = flatten(argument);
+    if (argument != flattenedArgument) {
+      flattened = true;
+    }
+    args.push(flattenedArgument);
   }
 
-  return Term::create(term, args.begin());
+  if (!flattened) {
+    return ts;
+  }
+
+  return TermList(Term::create(term, args.begin()));
 } // Flattening::flatten (Term*)
 
 /** 

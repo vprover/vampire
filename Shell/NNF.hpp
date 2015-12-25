@@ -30,7 +30,6 @@ private:
   static Formula* ennf(Formula*, bool polarity);
   static Literal* ennf(Literal*, bool polarity);
   static TermList ennf(TermList, bool polarity);
-  static Term* ennf(Term*, bool polarity);
   static FormulaList* ennf(FormulaList*, bool polarity);
   static Formula* nnf(Formula*, bool polarity);
   static FormulaList* nnf(FormulaList*, bool polarity);

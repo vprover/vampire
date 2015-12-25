@@ -12,6 +12,8 @@
 
 #include "Lib/Environment.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "SimplifyFalseTrue.hpp"
 
 using namespace Kernel;
@@ -43,6 +45,12 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
 			 unit->inputType());
   if(unit->included()) {
     res->markIncluded();
+  }
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] simplify in: " << unit->toString() << std::endl;
+    env.out() << "[PP] simplify out: " << res->toString() << std::endl;
+    env.endOutput();
   }
   return res;
 } // SimplifyFalseTrue::simplify
@@ -76,6 +84,9 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
             return new Formula(constant);
           }
         }
+      }
+      if (ts == f->getBooleanTerm()) {
+        return f;
       }
       return new BoolTermFormula(ts);
     }
@@ -115,13 +126,21 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
       }
 
       if (!literal->shared()) {
+        bool simplified = false;
         Stack<TermList> arguments;
         Term::Iterator lit(literal);
         while (lit.hasNext()) {
-          arguments.push(simplify(lit.next()));
+          TermList argument = lit.next();
+          TermList simplifiedArgument = simplify(argument);
+          if (argument != simplifiedArgument) {
+            simplified = true;
+          }
+          arguments.push(simplifiedArgument);
         }
-        Literal* processedLiteral = Literal::create(literal, arguments.begin());
-        return new AtomicFormula(processedLiteral);
+        if (!simplified) {
+          return f;
+        }
+        return new AtomicFormula(Literal::create(literal, arguments.begin()));
       }
 
       return f;
@@ -322,11 +341,11 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
     return ts;
   }
 
-  if (ts.term()->shared()) {
+  Term* term = ts.term();
+
+  if (term->shared()) {
     return ts;
   }
-
-  Term* term = ts.term();
 
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
@@ -334,18 +353,29 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
       case Term::SF_FORMULA: {
         Formula* simplifiedFormula = simplify(sd->getFormula());
         switch (simplifiedFormula->connective()) {
-          case TRUE:
+          case TRUE: {
             return TermList(Term::foolTrue());
-          case FALSE:
+          }
+          case FALSE: {
             return TermList(Term::foolFalse());
-          default:
+          }
+          default: {
+            if (simplifiedFormula == sd->getFormula()) {
+              return ts;
+            }
             return TermList(Term::createFormula(simplifiedFormula));
+          }
         }
       }
       case Term::SF_ITE: {
         Formula* condition  = simplify(sd->getCondition());
         TermList thenBranch = simplify(*term->nthArgument(0));
         TermList elseBranch = simplify(*term->nthArgument(1));
+        if ((condition  == sd->getCondition()) &&
+            (thenBranch == *term->nthArgument(0)) &&
+            (elseBranch == *term->nthArgument(1))) {
+          return ts;
+        }
         unsigned sort = sd->getSort();
         return TermList(Term::createITE(condition, thenBranch, elseBranch, sort));
       }
@@ -354,6 +384,9 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         IntList* variables = sd->getVariables();
         TermList binding = simplify(sd->getBinding());
         TermList body = simplify(*term->nthArgument(0));
+        if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
+          return ts;
+        }
         unsigned sort = sd->getSort();
         return TermList(Term::createLet(functor, variables, binding, body, sort));
       }
@@ -362,10 +395,20 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
     }
   }
 
+  bool simplified = false;
   Stack<TermList> arguments;
   Term::Iterator it(term);
   while (it.hasNext()) {
-    arguments.push(simplify(it.next()));
+    TermList argument = it.next();
+    TermList simplifiedArgument = simplify(argument);
+    if (argument != simplifiedArgument) {
+      simplified = true;
+    }
+    arguments.push(simplifiedArgument);
+  }
+
+  if (!simplified) {
+    return ts;
   }
 
   return TermList(Term::create(term, arguments.begin()));
