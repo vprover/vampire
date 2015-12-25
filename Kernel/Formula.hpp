@@ -300,7 +300,7 @@ class BoolTermFormula
       _ts(ts)
   {
     // only boolean terms in formula context are expected here
-    ASS(ts.isVar() || ts.term()->isITE() || ts.term()->isLet());
+    ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet(), ts.toString());
   }
 
   /** Return the variable */

@@ -24,12 +24,14 @@ namespace Shell {
  * false.
  *
  * @since 11/12/2004 Manchester
+ * @since 25/12/2015 Saint-Petersburg, add FOOL support
  */
 class SimplifyFalseTrue
 {
 public:
   static FormulaUnit* simplify(FormulaUnit*);
   static Formula* simplify(Formula*);
+  static TermList simplify(TermList);
 }; // class SimplifyFalseTrue
 
 }
