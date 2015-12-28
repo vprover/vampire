@@ -82,8 +82,8 @@ struct EqualityFactoring::ResultFn
   {
     CALL("EqualityFactoring::ResultFn::operator()");
 
-    Literal* sLit=arg.first.first; //selected literal
-    Literal* fLit=arg.second.first; //factored-out literal
+    Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
+    Literal* fLit=arg.second.first; // fairly boring side literal
     ASS(sLit->isEquality());
     ASS(fLit->isEquality());
 
@@ -122,8 +122,8 @@ struct EqualityFactoring::ResultFn
     unsigned next = 1;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
-      if(curr!=fLit) {
-	(*res)[next++] = subst.apply(curr, 0);
+      if(curr!=sLit) {
+        (*res)[next++] = subst.apply(curr, 0);
       }
     }
     ASS_EQ(next,_cLen);
