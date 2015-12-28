@@ -70,6 +70,10 @@ public:
 
   int getSelectionPriority(Literal* l) const;
 
+  /**
+   * Does the selection maintain completeness in the Bachmair-Ganzinger sense?
+   */
+  virtual bool isBGComplete() const = 0;
 
 protected:
   /**
@@ -110,6 +114,11 @@ public:
 
   TotalLiteralSelector(const Ordering& ordering, const Options& options)
   : LiteralSelector(ordering, options) {}
+
+  bool isBGComplete() const override {
+    // this is on purpose; we don't want any extra checks with total selection
+    return false;
+  }
 protected:
   void doSelection(Clause* c, unsigned eligible);
 };
