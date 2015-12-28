@@ -110,7 +110,7 @@ struct EqualityFactoring::ResultFn
       return 0;
     }
     TermList fRHSS=subst.apply(fRHS,0);
-    if(_ordering.compare(fRHSS,sRHSS)==Ordering::GREATER) {
+    if(_ordering.compare(fRHSS,sLHSS)==Ordering::GREATER) {
       return 0;
     }
 
