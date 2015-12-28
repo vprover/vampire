@@ -59,12 +59,15 @@ struct EqualityFactoring::FactorablePairsFn
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*,TermList>,pair<Literal*,TermList> > >);
   OWN_RETURN_TYPE operator() (pair<Literal*,TermList> arg)
   {
-    return pvi( pushPairIntoRightIterator(arg,
-	    getMapAndFlattenIterator(
-		    getFilteredIterator(
-			    getContentIterator(*_cl),
-			    IsDifferentPositiveEqualityFn(arg.first)),
-		    EqHelper::EqualityArgumentIteratorFn())) );
+    auto it1 = getContentIterator(*_cl);
+
+    auto it2 = getFilteredIterator(it1,IsDifferentPositiveEqualityFn(arg.first));
+
+    auto it3 = getMapAndFlattenIterator(it2,EqHelper::EqualityArgumentIteratorFn());
+
+    auto it4 = pushPairIntoRightIterator(arg,it3);
+
+    return pvi( it4 );
   }
 private:
   Clause* _cl;
@@ -145,18 +148,19 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
   }
   ASS(premise->numSelected()>0);
 
-  return pvi( getFilteredIterator(
-	  getMappingIterator(
-		  getMapAndFlattenIterator(
-			  getMapAndFlattenIterator(
-				  getFilteredIterator(
-					  premise->getSelectedLiteralIterator(),
-					  IsPositiveEqualityFn()),
-				  EqHelper::LHSIteratorFn(_salg->getOrdering())),
-			  FactorablePairsFn(premise)),
-		  ResultFn(premise, *this)),
-	  NonzeroFn()) );
+  auto it1 = premise->getSelectedLiteralIterator();
 
+  auto it2 = getFilteredIterator(it1,IsPositiveEqualityFn());
+
+  auto it3 = getMapAndFlattenIterator(it2,EqHelper::LHSIteratorFn(_salg->getOrdering()));
+
+  auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
+
+  auto it5 = getMappingIterator(it4,ResultFn(premise, *this));
+
+  auto it6 = getFilteredIterator(it5,NonzeroFn());
+
+  return pvi( it6 );
 }
 
 }
