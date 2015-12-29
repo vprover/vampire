@@ -1700,6 +1700,7 @@ public:
   void setBfnt(bool newVal) { _bfnt.actualValue = newVal; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
+  bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
@@ -2033,6 +2034,8 @@ private:
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
 
   BoolOptionValue _hyperSuperposition;
+
+  BoolOptionValue _innerRewriting;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   BoolOptionValue _ignoreMissing;
