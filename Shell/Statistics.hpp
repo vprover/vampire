@@ -123,6 +123,10 @@ public:
   unsigned evaluations;
   /** number of interpreted simplifications */
   unsigned interpretedSimplifications;
+  /** number of (proper) inner rewrites */
+  unsigned innerRewrites;
+  /** number of inner rewrites into equational tautologies */
+  unsigned innerRewritesToEqTaut;
 
   // Deletion inferences
   /** number of tautologies A \/ ~A */
