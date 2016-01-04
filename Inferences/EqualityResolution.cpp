@@ -18,6 +18,8 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/LiteralSelector.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "EqualityResolution.hpp"
 
@@ -43,7 +45,8 @@ struct EqualityResolution::IsNegativeEqualityFn
 
 struct EqualityResolution::ResultFn
 {
-  ResultFn(Clause* cl) : _cl(cl), _cLen(cl->length()) {}
+  ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
+      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()) {}
   DECL_RETURN_TYPE(Clause*);
   Clause* operator() (Literal* lit)
   {
@@ -62,11 +65,30 @@ struct EqualityResolution::ResultFn
     Inference* inf = new Inference1(Inference::EQUALITY_RESOLUTION, _cl);
     Clause* res = new(newLen) Clause(newLen, _cl->inputType(), inf);
 
+    Literal* litAfter = 0;
+
+    if (_afterCheck && _cl->numSelected() > 1) {
+      TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+      litAfter = subst.apply(lit, 0);
+    }
+
     unsigned next = 0;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=lit) {
-	(*res)[next++] = subst.apply(curr, 0);
+        Literal* currAfter = subst.apply(curr, 0);
+
+        if (litAfter) {
+          TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+
+          if (i < _cl->numSelected() && _ord->compare(currAfter,litAfter) == Ordering::GREATER) {
+            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            res->destroy();
+            return 0;
+          }
+        }
+
+        (*res)[next++] = currAfter;
       }
     }
     ASS_EQ(next,newLen);
@@ -77,6 +99,8 @@ struct EqualityResolution::ResultFn
     return res;
   }
 private:
+  bool _afterCheck;
+  Ordering* _ord;
   Clause* _cl;
   unsigned _cLen;
 };
@@ -90,14 +114,15 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
   }
   ASS(premise->numSelected()>0);
 
-  return pvi( getFilteredIterator(
-	  getMappingIterator(
-		  getFilteredIterator(
-			  premise->getSelectedLiteralIterator(),
-			  IsNegativeEqualityFn()),
-		  ResultFn(premise)),
-	  NonzeroFn()) );
+  auto it1 = premise->getSelectedLiteralIterator();
 
+  auto it2 = getFilteredIterator(it1,IsNegativeEqualityFn());
+
+  auto it3 = getMappingIterator(it2,ResultFn(premise,_salg->getLiteralSelector().isBGComplete(),&_salg->getOrdering()));
+
+  auto it4 = getFilteredIterator(it3,NonzeroFn());
+
+  return pvi( it4 );
 }
 
 /**
