@@ -146,6 +146,8 @@ public:
 
   unsigned discardedNonRedundantClauses;
 
+  unsigned inferencesBlockedForOrderingAftercheck;
+
   bool smtReturnedUnknown;
 
   unsigned inferencesSkippedDueToColors;
