@@ -17,6 +17,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -68,6 +69,7 @@ public:
     if(!unifs.hasNext()) {
       return OWN_RETURN_TYPE::getEmpty();
     }
+
     return pvi( pushPairIntoRightIterator(l2, unifs) );
   }
 private:
@@ -85,8 +87,8 @@ class Factoring::ResultsFn
 {
 public:
   DECL_RETURN_TYPE(Clause*);
-  ResultsFn(Clause* cl)
-  : _cl(cl), _cLen(cl->length()) {}
+  ResultsFn(Clause* cl, bool afterCheck, Ordering& ord)
+  : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ord(ord) {}
   OWN_RETURN_TYPE operator() (pair<Literal*,RobSubstitution*> arg)
   {
     CALL("Factoring::ResultsFn::operator()");
@@ -97,10 +99,30 @@ public:
 
     unsigned next = 0;
     Literal* skipped=arg.first;
+
+    Literal* skippedAfter = 0;
+    if (_afterCheck && _cl->numSelected() > 1) {
+      TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+
+      skippedAfter = arg.second->apply(skipped, 0);
+    }
+
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=skipped) {
-	(*res)[next++] = arg.second->apply(curr, 0);
+        Literal* currAfter = arg.second->apply(curr, 0);
+
+        if (skippedAfter) {
+          TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+
+          if (i < _cl->numSelected() && _ord.compare(currAfter,skippedAfter) == Ordering::GREATER) {
+            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            res->destroy();
+            return 0;
+          }
+        }
+
+        (*res)[next++] = currAfter;
       }
     }
     ASS_EQ(next,newLength);
@@ -114,6 +136,8 @@ private:
   Clause* _cl;
   ///length of the premise clause
   unsigned _cLen;
+  bool _afterCheck;
+  Ordering& _ord;
 };
 
 /**
@@ -124,7 +148,7 @@ private:
  * negative literal. Otherwise one of literals used in factoring
  * has to be selected, the other one does not. This deviation from
  * usual factoring rules, where both factored literals have to be
- * selected, is for the sake of incmoplete literal selection
+ * selected, is for the sake of incomplete literal selection
  * functions, that select always just one literal. (This would lead
  * to no factoring at all.)
  *
@@ -142,11 +166,16 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
   if(premise->numSelected()==1 && _salg->getLiteralSelector().isNegativeForSelection((*premise)[0])) {
     return ClauseIterator::getEmpty();
   }
-  return pvi( getMappingIterator(
-	  getMapAndFlattenIterator(
-		  getCombinationIterator(0u,premise->numSelected(),premise->length()),
-		  UnificationsFn(premise)),
-	  ResultsFn(premise)) );
+
+  auto it1 = getCombinationIterator(0u,premise->numSelected(),premise->length());
+
+  auto it2 = getMapAndFlattenIterator(it1,UnificationsFn(premise));
+
+  auto it3 = getMappingIterator(it2,ResultsFn(premise,_salg->getLiteralSelector().isBGComplete(),_salg->getOrdering()));
+
+  auto it4 = getFilteredIterator(it3, NonzeroFn());
+
+  return pvi( it4 );
 }
 
 }
