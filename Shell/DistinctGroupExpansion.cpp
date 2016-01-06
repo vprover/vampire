@@ -53,6 +53,10 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
   Stack<Stack<unsigned>*> group_members = env.signature->getDistinctGroupMembers();
 
+  bool expandEverything = 
+    env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING ||
+    env.options->bfnt();
+
   bool someLeft = false;
 
   for(unsigned i=0;i<group_members.size();i++){
@@ -62,11 +66,11 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
       // If the non-empty distinct group represents numbers then we need to keep
       // the distinct processing later as new numbers can be generated from the
       // existing ones
-      if(i>0 && i<=3) someLeft=true;
+      if(i==Sorts::SRT_INTEGER || i==Sorts::SRT_RATIONAL || i==Sorts::SRT_REAL) someLeft=true;
 
       // This 5 is a magic number, if it is changed then the corresponding
       // 6 should be changed in Kernel::Signature::Symol::addToDistinctGroup
-      if( members->size()>1 && ((members->size() < 5 || env.options->bfnt()))){
+      if( members->size()>1 && (members->size() < 5 || expandEverything)){
         added=true;
         Formula* expansion = expand(*members);
         if(env.options->showPreprocessing()){
