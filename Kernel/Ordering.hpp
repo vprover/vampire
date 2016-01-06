@@ -56,6 +56,8 @@ public:
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
+  static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
+
   virtual Comparison compareFunctors(unsigned fun1, unsigned fun2) const = 0;
 
   void removeNonMaximal(LiteralList*& lits) const;
