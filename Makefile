@@ -410,6 +410,7 @@ VTAB_OBJ = Tabulation/Producer.o\
 
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
+	   FMB/Monotonicity.o\
 	   FMB/FiniteModel.o\
            FMB/FiniteModelBuilder.o
 
