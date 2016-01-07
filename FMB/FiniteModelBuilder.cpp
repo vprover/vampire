@@ -1116,6 +1116,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
 void FiniteModelBuilder::onModelFound(unsigned modelSize)
 {
+ CALL("FiniteModelBuilder::onModelFound");
  // Don't do any output if proof is off
  if(_opt.proof()==Options::Proof::OFF){ 
    return; 
@@ -1136,13 +1137,11 @@ void FiniteModelBuilder::onModelFound(unsigned modelSize)
   // Prevent timing out whilst the model is being printed
   Timer::setTimeLimitEnforcement(false);
 
-  bool recordIntroduced = false;
   FiniteModel model(modelSize);
 
   //Record interpretation of constants
   for(unsigned f=0;f<env.signature->functions();f++){
     if(env.signature->functionArity(f)>0) continue;
-    if(!recordIntroduced && env.signature->getFunction(f)->introduced()) continue;
     if(del_f[f]) continue;
 
     bool found=false;
@@ -1164,7 +1163,6 @@ void FiniteModelBuilder::onModelFound(unsigned modelSize)
   for(unsigned f=0;f<env.signature->functions();f++){
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
-    if(!recordIntroduced && env.signature->getFunction(f)->introduced()) continue;
     if(del_f[f]) continue;
 
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
@@ -1179,18 +1177,34 @@ void FiniteModelBuilder::onModelFound(unsigned modelSize)
     }
     grounding[arity-1]=0;
     args[arity-1]=0;
+
+    const DArray<unsigned>& bounds = _sortedSignature->functionBounds[f];
+    static DArray<unsigned> mins;
+    mins.ensure(arity+1);
+    for(unsigned j=0;j<arity;j++){ mins[j]=bounds[j+1];}
+    mins[arity]=bounds[0];
+
+    //cout <<"mins   ";
+    //for(unsigned j=0;j<arity;j++){ cout << mins[j] << ", ";};
+    //cout << endl;
+
 fModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
 
-        if(grounding[i]==modelSize){
+        if(args[i]==modelSize){
           grounding[i]=1;
           args[i]=1;
         }
         else{
-          grounding[i]++;
+          if(args[i]<mins[i]){
+            grounding[i]++;
+          }
           args[i]++;
 
-          //for(unsigned j=0;j<arity;j++){ cout << args[j] << ", ";}; cout  << endl;
+          //for(unsigned j=0;j<arity;j++){ cout << args[j] << ", ";}; 
+          //cout << "          ";
+          //for(unsigned j=0;j<arity;j++){ cout << grounding[j] << ", ";}; 
+          //cout  << endl;
 
           bool found=false;
           for(unsigned c=1;c<=modelSize;c++){
@@ -1208,6 +1222,7 @@ fModelLabel:
              // This is a result of the finite sort bounding and the argument
              // says that we can equate this domain element to a smaller one below the bound
              //TODO fix this 
+             //cout << "NOT FOUND" << endl; 
           }
 
           goto fModelLabel;
@@ -1219,7 +1234,6 @@ fModelLabel:
   static const DArray<unsigned> emptyG(0);
   for(unsigned f=1;f<env.signature->predicates();f++){
     if(env.signature->predicateArity(f)>0) continue;
-    if(!recordIntroduced && env.signature->getPredicate(f)->introduced()) continue;
     if(del_p[f]) continue;
     if(_partiallyDeletedPredicates.find(f)) continue;
 
@@ -1235,24 +1249,33 @@ fModelLabel:
   for(unsigned f=1;f<env.signature->predicates();f++){
     unsigned arity = env.signature->predicateArity(f);
     if(arity==0) continue;
-    if(!recordIntroduced && env.signature->getPredicate(f)->introduced()) continue;
     if(del_p[f]) continue;
     if(_partiallyDeletedPredicates.find(f)) continue;
 
     //cout << "Record for " << env.signature->getPredicate(f)->name() << endl;
 
-    DArray<unsigned> grounding;
+    static DArray<unsigned> grounding;
+    static DArray<unsigned> args;
     grounding.ensure(arity);
-    for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
+    args.ensure(arity);
+    for(unsigned i=0;i<arity-1;i++){grounding[i]=1;args[1]=1;}
     grounding[arity-1]=0;
+    args[arity-1]=0;
+
+    const DArray<unsigned>& bounds = _sortedSignature->predicateBounds[f];
+
 pModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
     
-        if(grounding[i]==modelSize){
+        if(args[i]==modelSize){
           grounding[i]=1;
+          args[i]=1;
        }
         else{
-          grounding[i]++;
+          if(args[i]<bounds[i]){
+            grounding[i]++;
+          }
+          args[i]++;
           bool res;
           if(!_trivialPredicates.find(f,res)){ 
             SATLiteral slit = getSATLiteral(f,grounding,true,false,modelSize);
@@ -1268,10 +1291,17 @@ pModelLabel:
   }
 
   //Evaluate removed functions and constants
-  for(unsigned f=env.signature->functions()-1;f>1;f--){
+  unsigned maxf = env.signature->functions(); // model evaluation can add new constants
+  //bool unfinished=true;
+  //while(unfinished){
+  //unfinished=false;
+  unsigned f=maxf;
+  while(f > 0){ 
+    f--;
+    //cout << "Consider " << f << endl;
     unsigned arity = env.signature->functionArity(f);
-    if(!recordIntroduced && env.signature->getFunction(f)->introduced()) continue;
     if(!del_f[f]) continue; 
+    //del_f[f]=false;
 
     Literal* def = _deletedFunctions.get(f);
 
@@ -1299,10 +1329,11 @@ pModelLabel:
       vars[i] = funApp->nthArgument(i)->var();
     }
 
-    DArray<unsigned> grounding;
-    grounding.ensure(arity);
-    for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
-    grounding[arity-1]=0;
+    if(arity>0){
+      DArray<unsigned> grounding;
+      grounding.ensure(arity);
+      for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
+      grounding[arity-1]=0;
 ffModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
 
@@ -1324,20 +1355,34 @@ ffModelLabel:
             model.addFunctionDefinition(f,grounding,res);
           }
           catch(UserErrorException& exception){
-            // TODO order symbols for partial evaluation
+            //cout << "Setting unfinished" << endl;
+            //unfinished=true;
+            //del_f[f]=true;
           }
 
           goto ffModelLabel;
         }
       }
-
-
+    }
+    else{
+      //constant
+      try{
+        model.addConstantDefinition(f,model.evaluateGroundTerm(funDef));
+      }
+      catch(UserErrorException& exception){
+        //cout << "Setting unfinished" << endl;
+        //unfinished=true;  
+        //del_f[f]=true;
+      }
+    }
   }
+  //}
 
   //Evaluate removed propositions and predicates
-  for(unsigned f=env.signature->predicates()-1;f>1;f--){
+  f=env.signature->predicates()-1;
+  while(f>0){
+    f--;
     unsigned arity = env.signature->predicateArity(f);
-    if(!recordIntroduced && env.signature->getPredicate(f)->introduced()) continue;
     if(!del_p[f] && !_partiallyDeletedPredicates.find(f)) continue;
 
     Unit* udef = del_p[f] ? _deletedPredicates.get(f) : _partiallyDeletedPredicates.get(f);
