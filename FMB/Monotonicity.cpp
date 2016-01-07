@@ -9,6 +9,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/List.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
@@ -17,15 +18,18 @@
 #include "SAT/SATSolver.hpp"
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATClause.hpp"
+#include "SAT/MinisatInterfacing.hpp"
 
 #include "Monotonicity.hpp"
 
 namespace FMB
 {
 
-Monotonicity::Monotonicity(ClauseIterator cit, unsigned srt) : _srt(srt)
+Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
 {
  CALL("Monotonicity::Monotonicity");
+
+  _solver = new MinisatInterfacing(*env.options,true);
 
  // create pt and pf per predicate and add the constraint -pf | -pt
  for(unsigned p=1;p<env.signature->predicates();p++){
@@ -38,8 +42,7 @@ Monotonicity::Monotonicity(ClauseIterator cit, unsigned srt) : _srt(srt)
    _solver->addClause(SATClause::fromStack(slits));
  }
 
- //TODO do we need to copy the iterator?
-
+ ClauseIterator cit = pvi(ClauseList::Iterator(clauses));
  while(cit.hasNext()){
    Clause* c = cit.next();
    Clause::Iterator lit(*c);

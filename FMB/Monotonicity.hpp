@@ -37,7 +37,7 @@ class Monotonicity{
 
 public:
   // Assumes clauses are flattened
-  Monotonicity(ClauseList clauses, unsigned srt);
+  Monotonicity(ClauseList* clauses, unsigned srt);
 
   bool check(){ return _result;}
 

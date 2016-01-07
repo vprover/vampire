@@ -155,9 +155,46 @@ private:
   // sizes to use for each sort
   DArray<unsigned> _sortModelSizes;
   void increaseModelSizes();
-  DArray<unsigned> _distinctSortSizes;
-};
+  DArray<unsigned> _distinctSortSizes; 
 
+  struct SortSizesTree{
+    DHMap<unsigned,SortSizesTree*> children;
+  };
+  SortSizesTree* _sortSizesRoot;
+
+  bool usedDistinctSortSizesBefore(){
+    CALL("FiniteModelBuilder::usedDistinctSortSizesBefore");
+
+    bool result = true;
+    unsigned s=0;
+    SortSizesTree* tree = _sortSizesRoot;
+    if(_sortSizesRoot){ 
+      for(;s<_sortedSignature->distinctSorts;s++){
+        if(!tree->children.find(_distinctSortSizes[s],tree)){
+          result = false;
+          break;
+        }
+      }
+    }
+    else{ 
+      result=false;
+      tree = new SortSizesTree();
+      _sortSizesRoot=tree;
+    }
+    if(!result){
+      // record this one
+      for(;s<_sortedSignature->distinctSorts;s++){
+        SortSizesTree* nextTree = new SortSizesTree();
+        tree->children.insert(_distinctSortSizes[s],nextTree);
+        tree=nextTree;
+      }
+      
+    }
+    return result;
+
+  }
+
+};
 }
 
 #endif // __FiniteModelBuilder__

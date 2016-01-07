@@ -33,6 +33,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Sort.hpp"
+#include "Lib/Random.hpp"
 
 #include "Shell/UIHelper.hpp"
 #include "Shell/TPTPPrinter.hpp"
@@ -57,7 +58,8 @@ namespace FMB
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _sortedSignature(0), _clauses(0),
                       _isComplete(true), _constantCount(0),
-                      _maxArity(0) 
+                      _maxArity(0),
+                      _sortSizesRoot(0) 
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
 
@@ -354,9 +356,6 @@ void FiniteModelBuilder::init()
 #endif
     _clauses = _clauses->cons(c);
 
-    // Only try and do this if the clause could decrease the maxModelSize
-    if(c->length() < _maxModelSize){
-
     // Let's just print this warning once
     if(!_clauses) cout << "Warning, not longer detecting maximum model size" << endl;
 
@@ -409,7 +408,6 @@ void FiniteModelBuilder::init()
         }
       }
     */
-    }
   }
 
   // Apply GeneralSplitting
@@ -454,8 +452,7 @@ void FiniteModelBuilder::init()
   // preprocessing should preserve sorts and doing this here means that introduced symbols get sorts
   {
     TimeCounter tc(TC_FMB_SORT_INFERENCE);
-    ClauseIterator cit = pvi(ClauseList::Iterator(_clauses));
-    _sortedSignature = SortInference::apply(cit,del_f,del_p);
+    _sortedSignature = SortInference::apply(_clauses,del_f,del_p);
     ASS(_sortedSignature);
 
     // set this here, so we could update it in this function
@@ -582,14 +579,15 @@ void FiniteModelBuilder::init()
           Term* t = lit->nthArgument(0)->term();
           const DArray<unsigned>& fsg = _sortedSignature->functionSignatures[t->functor()];
           unsigned var = lit->nthArgument(1)->var();
-          if(csig_set[var]){ ASS((*csig)[var]==fsg[0]);}
+          unsigned ret = fsg[env.signature->functionArity(t->functor())];
+          if(csig_set[var]){ ASS_EQ((*csig)[var],ret); }
           else{ 
-            (*csig)[var]=fsg[0];
+            (*csig)[var]=ret;
             csig_set[var]=true;
           }
           for(unsigned j=0;j<t->arity();j++){
             ASS(t->nthArgument(j)->isVar());
-            unsigned asrt = fsg[j+1]; 
+            unsigned asrt = fsg[j]; 
             unsigned avar = (t->nthArgument(j))->var();
             if(!csig_set[var]){ ASS((*csig)[avar]==asrt); }
             else{ 
@@ -1119,12 +1117,13 @@ MainLoopResult FiniteModelBuilder::runImpl()
   for(unsigned i=0;i<_distinctSortSizes.size();i++) _distinctSortSizes[i]=_startModelSize;
 
   ALWAYS(reset());
+  ALWAYS(!usedDistinctSortSizesBefore());
   while(true){
     if(env.options->mode()!=Options::Mode::SPIDER) { 
       cout << "TRYING " << "["; 
-      for(unsigned i=0;i<_sortModelSizes.size();i++){
-        cout << _sortModelSizes[i];
-        if(i+1 < _sortModelSizes.size()) cout << ",";
+      for(unsigned i=0;i<_distinctSortSizes.size();i++){
+        cout << _distinctSortSizes[i];
+        if(i+1 < _distinctSortSizes.size()) cout << ",";
       }
       cout << "]" << endl;
     }
@@ -1270,16 +1269,13 @@ void FiniteModelBuilder::onModelFound()
  if(_opt.mode()==Options::Mode::SPIDER){
    reportSpiderStatus('-');
  }
- unsigned modelSize = _sortModelSizes[0];
- for(unsigned i=1;i<_sortModelSizes.size();i++){
-   unsigned size = _sortModelSizes[i];
-   if(size!=modelSize){
-     cout << "Error: cannot currently output models of sorted problems where sorts have different sizes" << endl;
-     return;
-   }
- }
+ // TODO should these be mapped back to user sorts? 
+ for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
+   //TODO TODO TODO
 
- cout << "Found model of size " << modelSize << endl;
+ }
+ unsigned modelSize=0;
+
 
  //we need to print this early because model generating can take some time
  if(UIHelper::szsOutput) {
@@ -1650,10 +1646,21 @@ ppModelLabel:
 }
 
 void FiniteModelBuilder::increaseModelSizes(){ 
+  CALL("FiniteModelBuilder::increaseModelSizes");
   // This works with distinct sorts and then maps this to _maxModelSizes
 
+  //Random::getInteger(modulos) gives between 0 and modulos-1
+  //Random::getBit() gives 0 or 1
+  do{
+    unsigned index = Random::getInteger(_sortedSignature->distinctSorts);
+    unsigned direction = Random::getBit();
+    if(direction || _distinctSortSizes[index]==1) _distinctSortSizes[index]++;
+    else _distinctSortSizes[index]--;
+  }
+  while(usedDistinctSortSizesBefore());
 
-  NOT_IMPLEMENTED; 
+  //_distinctSortSizes[0]=2;
+  //_distinctSortSizes[1]=6;
 
   for(unsigned s=0;s<_sortedSignature->sorts;s++){
     _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
