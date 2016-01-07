@@ -3,7 +3,7 @@
  * Implements class SortInference.
  *
  * NOTE: An important convention to remember is that when we have a DArray representing
- *       the signature or grounding of a function the lastt argument is the return
+ *       the signature or grounding of a function the last argument is the return
  *       so array[arity] is return and array[i] is the ith argument of the function
  */
 
@@ -21,7 +21,9 @@
 #include "Lib/Environment.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/IntUnionFind.hpp"
+#include "Lib/List.hpp"
 
+#include "Monotonicity.hpp"
 #include "SortInference.hpp"
 
 #define DEBUG_SORT_INFERENCE 0
@@ -35,7 +37,8 @@ namespace FMB
  * We assume this occurs *after* flattening so all literals are shallow
  *
  */
-SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,DArray<unsigned> del_p)
+SortedSignature* SortInference::apply(ClauseList* clauses,
+                                      DArray<unsigned> del_f,DArray<unsigned> del_p)
 {
   CALL("SortInference::run");
 
@@ -69,6 +72,8 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   ZIArray<unsigned> posEqualitiesOnPos(count);
 
   IntUnionFind unionFind(count);
+
+  ClauseIterator cit = pvi(ClauseList::Iterator(clauses));
 
   while(cit.hasNext()){
    Clause* c = cit.next();
@@ -253,7 +258,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
       unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
       sig->sortedConstants[s].push(fresh);
       freshMap.insert(fresh,s);
-      if(firstFreshConstant!=UINT_MAX) firstFreshConstant=fresh;
+      if(firstFreshConstant==UINT_MAX) firstFreshConstant=fresh;
 #if DEBUG_SORT_INFERENCE
       cout << "Adding fresh constant for sort "<<s<<endl;
 #endif
@@ -320,6 +325,9 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
       unsigned srt = freshMap.get(f);
       sig->functionSignatures[f].ensure(1);
       sig->functionSignatures[f][0]=srt;
+#if DEBUG_SORT_INFERENCE
+      cout << " fresh constant, so skipping" << endl;
+#endif
       continue;
     }
 
@@ -438,6 +446,18 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   }
 
   sig->distinctSorts = distinctSorts;
+
+  for(unsigned s=0;s<env.sorts->sorts();s++){
+    if(ourDistinctSorts.find(s)){
+      Monotonicity m(clauses,s);
+      if(m.check()){
+        cout << "vampire sort " << s << " is monotonic" << endl;
+      }
+      else{
+        cout << "vampire sort " << s << " is not monotonic" << endl;
+      }
+    }
+  }
 
   if(env.options->mode()!=Options::Mode::SPIDER){
     cout << sig->distinctSorts << " distinct sorts" << endl;
