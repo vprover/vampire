@@ -21,14 +21,23 @@ using namespace Shell;
 using namespace SAT;
 
   /**
-   * A GroundedTerm represents function f grounded with domain constant 'grounding' 
-   * Currently a single constant is used i.e. we get f(1,1,1) for f of arity 3
+   * A GroundedTerm represents function f grounded with an array of ground constants 
+   * Previously a single ground constant was used; but this did not work in the multi-sorted case
    * These are used to order grounded terms for symmetry breaking
    */
   struct GroundedTerm{
     unsigned f;
-    //DArray<unsigned> grounding;
-    unsigned grounding;
+    DArray<unsigned> grounding;
+
+    vstring toString(){
+      vstring ret = Lib::Int::toString(f)+"[";
+      for(unsigned i=0;i<grounding.size();i++){
+        if(i>0) ret +=",";
+        ret+=Lib::Int::toString(grounding[i]);
+      }
+      return ret+"]";
+    }
+
   };
 
 class FiniteModelBuilder : public MainLoop {
@@ -68,8 +77,10 @@ private:
       ASS(_sortedSignature);
     
     for(unsigned s=0;s<_sortedSignature->sorts;s++){
+      //cout << "SORT " << s << endl;
       unsigned modelSize = _sortModelSizes[s];
       for(unsigned m=1;m<=modelSize;m++){
+        //cout << "MSIZE " << m << endl;
         addNewSymmetryOrderingAxioms(m,_sortedGroundedTerms[s]);
         addNewSymmetryCanonicityAxioms(m,_sortedGroundedTerms[s],modelSize);
       }
@@ -139,15 +150,10 @@ private:
   /** Parameters to the FBM saturation **/
 
   // Currently an experimental option allows you to start at larger model sizes
+  // TODO in the future we could use this for a cheap way to 'pause' and 'restart' fmb
   unsigned _startModelSize; 
   // If we detect incompleteness at init then we terminate immediately at runImpl
   bool _isComplete;
-  // Record the maximum model sizes per sort if there is one
-  DArray<unsigned> _maxDistinctSortSizes;
-  // Record the number of constants in the problem
-  unsigned _constantCount;
-  // The maximum arity, used to detect if we have at most 0,1 or >1 arity functions
-  unsigned _maxArity;
   // Option used in symmetry breaking
   float _symmetryRatio;
 
@@ -157,42 +163,23 @@ private:
   void increaseModelSizes();
   DArray<unsigned> _distinctSortSizes; 
 
+  // Record the number of constants in the problem per distinct sort
+  DArray<unsigned> _distinctSortConstantCount;
+  // min and max sizes for distinct sorts
+  DArray<unsigned> _distinctSortMins;
+  DArray<unsigned> _distinctSortMaxs;
+  unsigned _maxModelSizeAllSorts;
+
   struct SortSizesTree{
     DHMap<unsigned,SortSizesTree*> children;
   };
   SortSizesTree* _sortSizesRoot;
 
-  bool usedDistinctSortSizesBefore(){
-    CALL("FiniteModelBuilder::usedDistinctSortSizesBefore");
+  unsigned _sortLimit;
+  unsigned _nextSortLimitCheck;
+  unsigned _sortCombinationsTried;
 
-    bool result = true;
-    unsigned s=0;
-    SortSizesTree* tree = _sortSizesRoot;
-    if(_sortSizesRoot){ 
-      for(;s<_sortedSignature->distinctSorts;s++){
-        if(!tree->children.find(_distinctSortSizes[s],tree)){
-          result = false;
-          break;
-        }
-      }
-    }
-    else{ 
-      result=false;
-      tree = new SortSizesTree();
-      _sortSizesRoot=tree;
-    }
-    if(!result){
-      // record this one
-      for(;s<_sortedSignature->distinctSorts;s++){
-        SortSizesTree* nextTree = new SortSizesTree();
-        tree->children.insert(_distinctSortSizes[s],nextTree);
-        tree=nextTree;
-      }
-      
-    }
-    return result;
-
-  }
+  bool blockDistinctSizes();
 
 };
 }

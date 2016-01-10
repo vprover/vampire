@@ -26,7 +26,7 @@
 #include "Monotonicity.hpp"
 #include "SortInference.hpp"
 
-#define DEBUG_SORT_INFERENCE 0
+#define DEBUG_SORT_INFERENCE 1
 
 
 namespace FMB 
@@ -357,6 +357,9 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
       if(!ourDistinctSorts.find(vampireSort,ourSort)){
         ourSort = distinctSorts++;
         ourDistinctSorts.insert(vampireSort,ourSort);
+        if(!sig->distinctToVampire.find(ourSort)){ sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());}
+        sig->distinctToVampire.get(ourSort)->push(vampireSort);
+        sig->vampireToDistinct.insert(vampireSort,ourSort);
       }
       sig->parents[rangeSort] = ourSort;
       //cout << "set parent of " << rangeSort << " to " << ourSort << endl;
@@ -385,6 +388,9 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
         if(!ourDistinctSorts.find(vampireSort,ourSort)){
           ourSort = distinctSorts++;
           ourDistinctSorts.insert(vampireSort,ourSort);
+          if(!sig->distinctToVampire.find(ourSort)){ sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());}
+          sig->distinctToVampire.get(ourSort)->push(vampireSort);
+          sig->vampireToDistinct.insert(vampireSort,ourSort);
         }
         sig->parents[argSort] = ourSort;
         //cout << "set parent of " << argSort << " to " << ourSort << endl;
@@ -432,6 +438,9 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
         if(!ourDistinctSorts.find(vampireSort,ourSort)){
           ourSort = distinctSorts++;
           ourDistinctSorts.insert(vampireSort,ourSort);
+          if(!sig->distinctToVampire.find(ourSort)){ sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());}
+          sig->distinctToVampire.get(ourSort)->push(vampireSort);
+          sig->vampireToDistinct.insert(vampireSort,ourSort);
         }
         sig->parents[argSort] = ourSort;
         //cout << "set parent of " << argSort << " to " << ourSort << endl;
