@@ -26,7 +26,7 @@
 #include "Monotonicity.hpp"
 #include "SortInference.hpp"
 
-#define DEBUG_SORT_INFERENCE 1
+#define DEBUG_SORT_INFERENCE 0
 
 
 namespace FMB 
@@ -399,6 +399,15 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
 #if DEBUG_SORT_INFERENCE
    cout << "("<< offset_f[f] << ")"<< endl;
 #endif
+  }
+
+  // Setting types for fresh constants
+  for(unsigned f=firstFreshConstant;f<env.signature->functions();f++){
+    unsigned srt = freshMap.get(f);
+    unsigned dsrt = sig->parents[srt];
+    unsigned vsrt = (*sig->distinctToVampire.get(dsrt))[0];
+    env.signature->getFunction(f)->setType(new FunctionType(vsrt));
+    env.signature->getFunction(f)->markIntroduced();
   }
 
 #if DEBUG_SORT_INFERENCE

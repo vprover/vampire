@@ -168,7 +168,7 @@ private:
   // min and max sizes for distinct sorts
   DArray<unsigned> _distinctSortMins;
   DArray<unsigned> _distinctSortMaxs;
-  unsigned _maxModelSizeAllSorts;
+  //unsigned _maxModelSizeAllSorts;
 
   struct SortSizesTree{
     DHMap<unsigned,SortSizesTree*> children;
