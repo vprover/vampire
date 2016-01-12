@@ -119,7 +119,9 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   env.signature->_distinctGroupsAddedTo=true;
 
   Stack<unsigned>* members = env.signature->_distinctGroupMembers[group];
-  if(members->size()<6 || env.options->bfnt()) members->push(this_number);
+  if(members->size()<6 || env.options->bfnt() || 
+     env.options->saturationAlgorithm()==Shell::Options::SaturationAlgorithm::FINITE_MODEL_BUILDING) 
+       members->push(this_number);
 
 } // addToDistinctGroup
 
