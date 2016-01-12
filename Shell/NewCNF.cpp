@@ -102,22 +102,22 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
     }
 
     if (isFormula[LEFT] || isFormula[RIGHT]) {
-      Formula* processedformula[2];
+      Formula* processedFormula[2];
       for (SIDE side : { LEFT, RIGHT }) {
         if (isFormula[side]) {
           if (argument[side].term()->isFormula()) {
-            processedformula[side] = argument[side].term()->getSpecialData()->getFormula();
+            processedFormula[side] = argument[side].term()->getSpecialData()->getFormula();
           } else {
-            processedformula[side] = new BoolTermFormula(argument[side]);
+            processedFormula[side] = new BoolTermFormula(argument[side]);
           }
         } else {
-          ASS(argument[side].isVar());
+          ASS_REP(argument[side].isVar(), argument[side].toString());
           Literal* eqLiteral = Literal::createEquality(POSITIVE, argument[side], TermList(Term::foolTrue()), Sorts::SRT_BOOL);
-          processedformula[side] = new AtomicFormula(eqLiteral);
+          processedFormula[side] = new AtomicFormula(eqLiteral);
         }
       }
 
-      Formula* equivalence = new BinaryFormula(IFF, processedformula[LEFT], processedformula[RIGHT]);
+      Formula* equivalence = new BinaryFormula(IFF, processedFormula[LEFT], processedFormula[RIGHT]);
 
       enqueue(equivalence);
 
@@ -195,45 +195,45 @@ TermList NewCNF::findSpecialTermData(TermList ts, Stack<Term*> &specialTerms, St
 
   if (ts.isVar() || ts.term()->shared()) {
     return ts;
-  } else {
-    Term* term = ts.term();
-    if (term->isSpecial()) {
-      specialTerms.push(term);
-
-      IntList* freeVars = term->freeVariables();
-
-      static Stack<unsigned> sorts;
-      sorts.reset();
-
-      ensureHavingVarSorts();
-
-      IntList::Iterator vit(freeVars);
-      while (vit.hasNext()) {
-        unsigned var = (unsigned) vit.next();
-        sorts.push(_varSorts.get(var, Sorts::SRT_DEFAULT));
-      }
-
-      unsigned arity = (unsigned) freeVars->length();
-      FunctionType* type = new FunctionType(arity, sorts.begin(), Sorts::SRT_BOOL);
-
-      unsigned freshFunctor = env.signature->addFreshFunction(arity, "bG");
-      env.signature->getFunction(freshFunctor)->setType(type);
-
-      const TermList name = createNamingTerm(freshFunctor, freeVars);
-      names.push(name);
-
-      return name;
-    } else {
-      Stack<TermList> arguments;
-
-      Term::Iterator it(term);
-      while (it.hasNext()) {
-        arguments.push(findSpecialTermData(it.next(), specialTerms, names));
-      }
-
-      return TermList(Term::create(term, arguments.begin()));
-    }
   }
+
+  Term* term = ts.term();
+  if (!term->isSpecial()) {
+    Stack<TermList> arguments;
+
+    Term::Iterator it(term);
+    while (it.hasNext()) {
+      arguments.push(findSpecialTermData(it.next(), specialTerms, names));
+    }
+
+    return TermList(Term::create(term, arguments.begin()));
+  }
+
+  specialTerms.push(term);
+
+  IntList* freeVars = term->freeVariables();
+
+  static Stack<unsigned> sorts;
+  sorts.reset();
+
+  ensureHavingVarSorts();
+
+  IntList::Iterator vit(freeVars);
+  while (vit.hasNext()) {
+    unsigned var = (unsigned) vit.next();
+    sorts.push(_varSorts.get(var, Sorts::SRT_DEFAULT));
+  }
+
+  unsigned arity = (unsigned) freeVars->length();
+  FunctionType* type = new FunctionType(arity, sorts.begin(), Sorts::SRT_BOOL);
+
+  unsigned freshFunctor = env.signature->addFreshFunction(arity, "bG");
+  env.signature->getFunction(freshFunctor)->setType(type);
+
+  const TermList name = createNamingTerm(freshFunctor, freeVars);
+  names.push(name);
+
+  return name;
 }
 
 void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
@@ -859,6 +859,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     Formula* g = formula(gc->literals[i]);
 
     ASS_REP(g->connective() == LITERAL, g->toString());
+    ASS_REP(g->literal()->shared(), g->toString());
 
     Literal* l = g->literal()->apply(subst);
     if (sign(gc->literals[i]) == NEGATIVE) {
