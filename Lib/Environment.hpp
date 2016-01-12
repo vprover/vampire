@@ -76,8 +76,6 @@ public:
   }
   /** Time remaining until the end of the time-limit in miliseconds */
   int remainingTime() const;
-  /** Currently used ordering */
-  Kernel::Ordering* ordering;
   /** set to true when coloring is used for symbol elimination or interpolation */
   bool colorUsed;
   /** set to true when there are some interpreted operations */
