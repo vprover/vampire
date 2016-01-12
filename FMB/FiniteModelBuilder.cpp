@@ -58,7 +58,7 @@ namespace FMB
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _sortedSignature(0), _clauses(0),
                       _isComplete(true), 
-                      _maxModelSizeAllSorts(1),
+                      //_maxModelSizeAllSorts(1),
                       _sortSizesRoot(new SortSizesTree()), 
                       _sortLimit(1), _nextSortLimitCheck(1), _sortCombinationsTried(0)
 {
@@ -337,6 +337,11 @@ void FiniteModelBuilder::init()
 */
   //VirtualIterator<Clause*> clauses = pvi(SortTranslation(_prb.clauseIterator()));
 
+    // Whilst iteratring through clauses try and detect maximum sizes of native vampire sorts
+    DArray<unsigned> vampireSortMaxs;
+    vampireSortMaxs.ensure(env.sorts->sorts());
+    for(unsigned s=0;s<env.sorts->sorts();s++) vampireSortMaxs[s]=UINT_MAX;
+
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
   DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
@@ -364,7 +369,8 @@ void FiniteModelBuilder::init()
     _clauses = _clauses->cons(c);
 
     // Only try and do this if the clause could decrease the maxModelSize
-    if(c->length() < _maxModelSizeAllSorts){
+    //if(c->length() < _maxModelSizeAllSorts){
+    {
       // This code attempts to detect a maximum model size from c either as e.g.
       // i) X=Y | X=Z | Y=Z  here we overestimate the model size
       // ii) X=a | X=b | X=f(a) again we might have a=b or f(a)=a so we overestimate
@@ -374,19 +380,23 @@ void FiniteModelBuilder::init()
       int srtOf = -1;
       for(unsigned i=0;i<c->length();i++){
         Literal* l = (*c)[i];
+
         if(l->isTwoVarEquality() && l->isPositive() && 
-           if(srtOf>=0){
-             if(l->twoVarEqSort()!=sortOf) break;
-           }
-           else srtOf = l->twoVarEqSort();
            (*l->nthArgument(0))!=(*l->nthArgument(1))
-          ){ posEqs++; }
+          ){
+           if(srtOf>=0){
+             if(l->twoVarEqSort()!=(unsigned)srtOf) break;
+           }
+           else{ srtOf = l->twoVarEqSort();}
+           posEqs++; 
+        }
         else break;
       }
       ASS(posEqs < c->length() || srtOf>=0);
       // check if all literals are pos equalities
-      if(posEqs == c->length() && c->varCnt() < _distinctSortMaxs[(unsigned)srtOf]){
-        _distinctSortMaxs[(unsigned)srtOf] = c->varCnt();
+      if(posEqs == c->length() && c->varCnt() < vampireSortMaxs[(unsigned)srtOf]){
+        vampireSortMaxs[(unsigned)srtOf] = c->varCnt();
+        //cout << "vSM for " << srtOf << " set to " << c->varCnt() << " due to " << c->toString() << endl;
       }      
       // then do ii) only if there are no posEqs (variable equalities)
       else if(posEqs==0){
@@ -419,11 +429,12 @@ void FiniteModelBuilder::init()
           // literal is not positive non-var equality, stop
           else{okay=false;break;}
         }
-        if(okay && c->length() < _distinctSortMaxs[(unsigned)srtOf]){
-          _distinctSortMaxs[(unsigned)srtOf] = c->length(); 
+        if(okay && c->length() < vampireSortMaxs[(unsigned)srtOf]){
+          vampireSortMaxs[(unsigned)srtOf] = c->length(); 
+          //cout << "vSM for " << srtOf << " set to " << c->varCnt() << " due to " << c->toString() << endl;
         }
       }
-    */
+    }
   }
 
   // Apply GeneralSplitting
@@ -478,33 +489,57 @@ void FiniteModelBuilder::init()
       _distinctSortMaxs[s]=UINT_MAX; 
       _distinctSortMins[s]=1;
     }
-    for(unsigned s=0;s<_sortedSignature->sorts;s++){
-      unsigned bound = _sortedSignature->sortBounds[s];
-      unsigned parent = _sortedSignature->parents[s];
-      if(_distinctSortMaxs[parent]==UINT_MAX || bound > _distinctSortMaxs[parent]){
-        _distinctSortMaxs[parent]=bound;
+    // copy vampireSortMaxs
+    for(unsigned vsort=0;vsort<env.sorts->sorts();vsort++){
+      if(vampireSortMaxs[vsort]==UINT_MAX) continue;
+      unsigned dsort; 
+      if(_sortedSignature->vampireToDistinct.find(vsort,dsort)){
+        unsigned updated = _distinctSortMaxs[dsort]==UINT_MAX 
+                           ? vampireSortMaxs[vsort]
+                           : max(vampireSortMaxs[vsort],_distinctSortMaxs[dsort]);
+        _distinctSortMaxs[dsort] = updated; 
       }
+    } 
+
+    DArray<unsigned> bfromSI(_sortedSignature->distinctSorts);
+    DArray<unsigned> dConstants(_sortedSignature->distinctSorts);
+    DArray<unsigned> dFunctions(_sortedSignature->distinctSorts);
+    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){ 
+      bfromSI[s]=0;
+      dConstants[s]=0;
+      dFunctions[s]=0;
     }
 
     for(unsigned s=0;s<_sortedSignature->sorts;s++){
+      unsigned bound = _sortedSignature->sortBounds[s];
+      unsigned parent = _sortedSignature->parents[s];
+      if(bound > bfromSI[parent]) bfromSI[parent]=bound;
+      dConstants[parent] += (_sortedSignature->sortedConstants[s]).size();
+      dFunctions[parent] += (_sortedSignature->sortedFunctions[s]).size();
+    }
+    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){ 
+      _distinctSortMaxs[s] = min(_distinctSortMaxs[s],bfromSI[s]); 
+    }
+
+
+    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
       bool epr = env.property->category()==Property::EPR
                  // if we have no functions we are epr in this sort
-                 || _sortedSignature->sortedFunctions[s].size()==0; 
+                 || dFunctions[s]==0; 
       if(epr){
-        unsigned c = (_sortedSignature->sortedConstants[s]).size();
+        unsigned c = dConstants[s]; 
         if(c==0) continue; //size of 0 does not make sense... maybe we should set it to 1 here? TODO
-        unsigned parent = _sortedSignature->parents[s];
         // TODO not sure about this second condition, if c < current max what would happen?
         // why are we looking for the 'biggest' max?
-        if(_distinctSortMaxs[parent]==UINT_MAX || c > _distinctSortMaxs[parent]){
-          _distinctSortMaxs[parent]=c;
+        if(_distinctSortMaxs[s]==UINT_MAX || c > _distinctSortMaxs[s]){
+          _distinctSortMaxs[s]=c;
         }
       }
     }
-    _maxModelSizeAllSorts = _distinctSortMaxs[1];
-    for(unsigned s=1;s<_sortedSignature->distinctSorts;s++){
-      _maxModelSizeAllSorts = max(_distinctSortMaxs[s],_maxModelSizeAllSorts);
-    }
+    //_maxModelSizeAllSorts = _distinctSortMaxs[1];
+    //for(unsigned s=1;s<_sortedSignature->distinctSorts;s++){
+    //  _maxModelSizeAllSorts = max(_distinctSortMaxs[s],_maxModelSizeAllSorts);
+    //}
 
     // If symmetry ordering uses the usage after preprocessing then recompute symbol usage
     // Otherwise this was done at clausification
@@ -558,6 +593,7 @@ void FiniteModelBuilder::init()
   // Set up fminbound, which records the minimum sort size for a function symbol
   // i.e. the smallest return or parameter sort
   // this loop also counts the number of constants in the problem
+  _distinctSortConstantCount.ensure(_sortedSignature->distinctSorts);
   _fminbound.ensure(env.signature->functions());
   for(unsigned f=0;f<env.signature->functions();f++){
     if(del_f[f]) continue;
@@ -1435,7 +1471,6 @@ pModelLabel:
         }
       }
   }
-  cout << "HERE" << endl;
 
   //Evaluate removed functions and constants
   unsigned maxf = env.signature->functions(); // model evaluation can add new constants
@@ -1654,6 +1689,11 @@ bool FiniteModelBuilder::blockDistinctSizes()
 {
   CALL("FiniteModelBuilder::blockDistinctSizes");
 
+  if(_nextSortLimitCheck == _sortCombinationsTried){
+    _sortLimit++;
+    _nextSortLimitCheck = pow(_sortLimit,_sortedSignature->distinctSorts);
+  }
+
   // start assuming we have seen this before
   bool result = true;
   unsigned s=0;
@@ -1681,9 +1721,20 @@ bool FiniteModelBuilder::blockDistinctSizes()
 
   // Check if it should be blocked due to min and max bounds on sorts
   for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
-    if(_distinctSortSizes[s] < _distinctSortMins[s]) return true;
-    if(_distinctSortSizes[s] > _distinctSortMaxs[s]) return true;
+    if(_distinctSortSizes[s] < _distinctSortMins[s] || 
+       _distinctSortSizes[s] > _distinctSortMaxs[s]) result = true; 
   }
+
+#if VTRACE_FMB 
+  if(result){
+      cout << "BLOCKING " << "[";
+      for(unsigned i=0;i<_distinctSortSizes.size();i++){
+        cout << _distinctSortSizes[i];
+        if(i+1 < _distinctSortSizes.size()) cout << ",";
+      }
+      cout << "]" << endl;
+  }
+#endif
 
   return result;
 }
@@ -1691,13 +1742,20 @@ bool FiniteModelBuilder::blockDistinctSizes()
 void FiniteModelBuilder::increaseModelSizes(){ 
   CALL("FiniteModelBuilder::increaseModelSizes");
   // This works with distinct sorts and then maps this to _maxModelSizes
-  //Random::getInteger(modulos) gives between 0 and modulos-1
-  //Random::getBit() gives 0 or 1
+
+  //cout << "TRIED " << _sortCombinationsTried << " limit is " << _sortLimit << " check is " << _nextSortLimitCheck << endl;
+
   do{
     unsigned index = Random::getInteger(_sortedSignature->distinctSorts);
-    unsigned direction = Random::getBit();
-    if(direction || _distinctSortSizes[index]==1) _distinctSortSizes[index]++;
-    else _distinctSortSizes[index]--;
+    unsigned prev = _distinctSortSizes[index];
+    if(prev == _sortLimit && prev==1) continue; // can't do anything with this sort! 
+    else if(prev == _sortLimit) _distinctSortSizes[index]--;
+    else if(prev < _sortLimit && prev==1) _distinctSortSizes[index]++; 
+    else{
+      unsigned direction = Random::getBit();
+      if(direction) _distinctSortSizes[index]++;
+      else _distinctSortSizes[index]--;
+    }
   }
   while(blockDistinctSizes());
 
