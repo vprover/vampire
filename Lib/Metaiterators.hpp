@@ -282,7 +282,7 @@ struct Lambda
   Lambda(typename identity<std::function<Out(In)>>::type f) : _lambda(f) {}
   DECL_RETURN_TYPE(Out);
   Out operator()(In obj){ return _lambda(obj); }
-  function<Out(In)> _lambda;
+  std::function<Out(In)> _lambda;
 };
 
 template<typename T,typename S>

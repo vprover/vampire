@@ -170,6 +170,9 @@ void Statistics::print(ostream& out)
     if (env.statistics->discardedNonRedundantClauses) {
       out << "Refutation not found, non-redundant clauses discarded";
     }
+    else if (env.statistics->inferencesSkippedDueToColors) {
+      out << "Refutation not found, inferences skipped due to colors\n";
+    }
     else if(env.statistics->smtReturnedUnknown){
       out << "Refutation not found, SMT solver inside AVATAR returned Unknown";
     }

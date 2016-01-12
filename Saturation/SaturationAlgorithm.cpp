@@ -206,7 +206,7 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
  */
 bool SaturationAlgorithm::isComplete()
 {
-  return _completeOptionSettings;
+  return _completeOptionSettings && !env.statistics->inferencesSkippedDueToColors;
 }
 
 ClauseIterator SaturationAlgorithm::activeClauses()
