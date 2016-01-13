@@ -94,36 +94,6 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
   case LITERAL:
     {
       Literal* literal = f->literal();
-      if (literal->isEquality()) {
-        TermList arguments[2];
-        for (unsigned argument : { 0u, 1u }) {
-          arguments[argument] = simplify(*literal->nthArgument(argument));
-        }
-
-        for (unsigned argument : { 0u, 1u }) {
-          if (!arguments[argument].isTerm()) continue;
-          for (bool constant : { true, false }) {
-            if (env.signature->isFoolConstantSymbol(constant, arguments[argument].term()->functor())) {
-              TermList counterpart = arguments[argument == 0 ? 1 : 0];
-              if (counterpart.isTerm()) {
-                for (bool counterpartConstant : { true, false }) {
-                  if (env.signature->isFoolConstantSymbol(counterpartConstant, counterpart.term()->functor())) {
-                    // Lets say we have a boolean equality A = B with a sign C
-                    // Its value is A xor B xor C
-                    return new Formula(constant ^ counterpartConstant ^ (bool)literal->polarity());
-                  }
-                }
-              }
-
-              Formula* g = new BoolTermFormula(counterpart);
-              if (literal->polarity() != constant) {
-                g = new NegatedFormula(g);
-              }
-              return simplify(g);
-            }
-          }
-        }
-      }
 
       if (!literal->shared()) {
         bool simplified = false;
