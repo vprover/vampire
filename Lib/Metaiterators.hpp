@@ -286,7 +286,7 @@ struct Lambda
 };
 
 template<typename T,typename S>
-Lambda<T,S> lambda(function<T(S)> f){ return Lambda<T,S>(f); }
+Lambda<T,S> lambda(std::function<T(S)> f){ return Lambda<T,S>(f); }
 
 /**
  * A functor class that returns true if the argument is non-zero
