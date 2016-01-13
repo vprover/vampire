@@ -67,8 +67,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
   enqueue(f);
 
-  SPGenClause topLevel = introduceGenClause(1, BindingList::empty());
-  setLiteral(topLevel, 0, GenLit(f, POSITIVE));
+  introduceGenClause(GenLit(f, POSITIVE));
 
   process();
 
@@ -152,12 +151,9 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
         enqueue(f);
 
         for (SIGN sign : { POSITIVE, NEGATIVE }) {
-          SPGenClause gc = introduceGenClause(2);
-          setLiteral(gc, 0, GenLit(f, sign));
-          static TermList true_(Term::foolTrue());
-          Literal* namingLiteral = Literal::createEquality(OPPOSITE(sign), true_, name, Sorts::SRT_BOOL);
+          Literal* namingLiteral = Literal::createEquality(OPPOSITE(sign), TermList(Term::foolTrue()), name, Sorts::SRT_BOOL);
           Formula* naming = new AtomicFormula(namingLiteral);
-          setLiteral(gc, 1, GenLit(naming, POSITIVE));
+          introduceGenClause(GenLit(f, sign), GenLit(naming, POSITIVE));
         }
         break;
       }
@@ -170,12 +166,10 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
         enqueue(condition);
 
         for (SIGN sign : { POSITIVE, NEGATIVE }) {
-          SPGenClause gc = introduceGenClause(2);
-          setLiteral(gc, 0, GenLit(condition, sign));
           TermList branch = sign == NEGATIVE ? thenBranch : elseBranch;
           Literal* namingLiteral = Literal::createEquality(POSITIVE, name, branch, sd->getSort());
           Formula* naming = new AtomicFormula(namingLiteral);
-          setLiteral(gc, 1, GenLit(naming, POSITIVE));
+          introduceGenClause(GenLit(condition, sign), GenLit(naming, POSITIVE));
         }
         break;
       }
@@ -243,9 +237,9 @@ void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
   LOG2("processJunction ",g->toString());
   LOG2("occurrences.size ", occurrences.size());
 
-  FormulaList::Iterator ait(g->args());
-  while (ait.hasNext()) {
-    enqueue(ait.next());
+  FormulaList::Iterator fit(g->args());
+  while (fit.hasNext()) {
+    enqueue(fit.next());
   }
 
   SIGN formulaSign = g->connective() == OR ? POSITIVE : NEGATIVE;
@@ -253,32 +247,18 @@ void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
 
+    List<GenLit>* gls = List::empty();
+    FormulaList::Iterator git(g->args());
+    while (git.hasNext()) {
+      gls->push(GenLit(git.next(), occ.sign()), gls);
+    }
+
     if (occ.sign() == formulaSign) {
-      SPGenClause processedGc = introduceGenClause(occ.gc->size() + g->args()->length() - 1, occ.gc->bindings);
-      for (unsigned i = 0, position = 0; i < occ.gc->size(); i++) {
-        if (i == occ.position) {
-          ASS_EQ(formula(occ.gc->literals[i]), g);
-          FormulaList::Iterator it(g->args());
-          while (it.hasNext()) {
-            setLiteral(processedGc, position++, GenLit(it.next(), occ.sign()));
-          }
-        } else {
-          setLiteral(processedGc, position++, occ.gc->literals[i]);
-        }
-      }
+      introduceExtendedGenClause(occ.gc, occ.position, gls);
     } else {
-      FormulaList::Iterator it(g->args());
-      while (it.hasNext()) {
-        Formula* arg = it.next();
-        SPGenClause processedGc = introduceGenClause(occ.gc->size(), occ.gc->bindings);
-        for (unsigned i = 0; i < occ.gc->size(); i++) {
-          if (i == occ.position) {
-            ASS_EQ(formula(occ.gc->literals[i]), g);
-            setLiteral(processedGc, i, GenLit(arg, occ.sign()));
-          } else {
-            setLiteral(processedGc, i, occ.gc->literals[i]);
-          }
-        }
+      List<GenLit>::Iterator glit(gls);
+      while (glit.hasNext()) {
+        introduceExtendedGenClause(occ.gc, occ.position, glit.next());
       }
     }
   }
@@ -318,17 +298,8 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
     Occurrence occ = pop(occurrences);
 
     for (SIGN lhsSign : { NEGATIVE, POSITIVE }) {
-      SPGenClause processedGc = introduceGenClause(occ.gc->size() + 1, occ.gc->bindings);
-      for (unsigned i = 0, position = 0; i < occ.gc->size(); i++) {
-        if (i == occ.position) {
-          ASS_EQ(formula(occ.gc->literals[i]), g);
-          SIGN rhsSign = formulaSign == occ.sign() ? OPPOSITE(lhsSign) : lhsSign;
-          setLiteral(processedGc, position++, GenLit(lhs, lhsSign));
-          setLiteral(processedGc, position++, GenLit(rhs, rhsSign));
-        } else {
-          setLiteral(processedGc, position++, occ.gc->literals[i]);
-        }
-      }
+      SIGN rhsSign = formulaSign == occ.sign() ? OPPOSITE(lhsSign) : lhsSign;
+      introduceExtendedGenClause(occ.gc, occ.position, GenLit(lhs, lhsSign), GenLit(rhs, rhsSign));
     }
   }
 }
@@ -344,12 +315,7 @@ void NewCNF::processBoolVar(TermList var, Occurrences &occurrences)
 
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
-    SPGenClause processedGc = introduceGenClause(occ.gc->size() - 1, occ.gc->bindings);
-    for (unsigned i = 0, position = 0; i < occ.gc->size(); i++) {
-      if (i != occ.position) {
-        setLiteral(processedGc, position++, occ.gc->literals[i]);
-      }
-    }
+    removeGenLit(occ.gc, occ.position);
   }
 
   /**
@@ -373,16 +339,8 @@ void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBr
     Occurrence occ = pop(occurrences);
 
     for (SIGN conditionSign : { NEGATIVE, POSITIVE }) {
-      SPGenClause processedGc = introduceGenClause(occ.gc->size() + 1, occ.gc->bindings);
-      for (unsigned i = 0, position = 0; i < occ.gc->size(); i++) {
-        if (i == occ.position) {
-          Formula* branch = conditionSign == NEGATIVE ? thenBranch : elseBranch;
-          setLiteral(processedGc, position++, GenLit(condition, conditionSign));
-          setLiteral(processedGc, position++, GenLit(branch, occ.sign()));
-        } else {
-          setLiteral(processedGc, position++, occ.gc->literals[i]);
-        }
-      }
+      Formula* branch = conditionSign == NEGATIVE ? thenBranch : elseBranch;
+      introduceExtendedGenClause(occ.gc, occ.position, GenLit(condition, conditionSign), GenLit(branch, occ.sign()));
     }
   }
 }
@@ -463,15 +421,12 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList*bindingVariables, Term
     Formula* nameFormula = new AtomicFormula(name);
 
     for (SIGN sign : { POSITIVE, NEGATIVE }) {
-      SPGenClause gc = introduceGenClause(2);
-      setLiteral(gc, 0, GenLit(nameFormula, sign));
-      setLiteral(gc, 1, GenLit(formulaBinding, POSITIVE));
+      introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, POSITIVE));
     }
   } else {
     TermList name = TermList(Term::create(freshSymbol, nameArity, arguments.begin()));
     Formula* nameFormula = new AtomicFormula(Literal::createEquality(POSITIVE, name, binding, nameSort));
-    SPGenClause gc = introduceGenClause(1);
-    setLiteral(gc, 0, GenLit(nameFormula, POSITIVE));
+    introduceGenClause(GenLit(nameFormula, POSITIVE));
   }
 }
 
@@ -733,9 +688,7 @@ Formula* NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
   for (SIGN sign : { NEGATIVE, POSITIVE }) {
     // One could also consider the case where (part of) the bindings goes to the definition
     // which perhaps allows us to the have a skolem predicate with fewer arguments
-    SPGenClause gc = introduceGenClause(2, BindingList::empty());
-    setLiteral(gc, 0, GenLit(name, OPPOSITE(sign)));
-    setLiteral(gc, 1, GenLit(g, sign));
+    introduceGenClause(GenLit(name, OPPOSITE(sign)), GenLit(g, sign));
   }
 
   occurrences.replaceBy(name);

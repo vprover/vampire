@@ -240,11 +240,48 @@ private:
     unsigned _size;
   };
 
-  SPGenClause introduceGenClause(unsigned size, BindingList* bindings=BindingList::empty()) {
+  SPGenClause introduceGenClause(unsigned size, BindingList* bindings) {
     SPGenClause gc = SPGenClause(new GenClause(size, bindings));
     _genClauses.push_front(gc);
     gc->iter = _genClauses.begin();
     return gc;
+  }
+
+  void introduceGenClause(GenLit gl) {
+    SPGenClause gc = introduceGenClause(1, BindingList::empty());
+    setLiteral(gc, 0, gl);
+  }
+
+  void introduceGenClause(GenLit gl0, GenLit gl1) {
+    SPGenClause gc = introduceGenClause(2, BindingList::empty());
+    setLiteral(gc, 0, gl0);
+    setLiteral(gc, 1, gl1);
+  }
+
+  void introduceExtendedGenClause(SPGenClause gc, unsigned position, List<GenLit>*gls) {
+    SPGenClause processedGc = introduceGenClause(gc->size() + gls->length() - 1, gc->bindings);
+    for (unsigned i = 0, j = 0; i < gc->size(); i++) {
+      if (i == position) {
+        List<GenLit>::Iterator glit(gls);
+        while (glit.hasNext()) {
+          setLiteral(processedGc, j++, glit.next());
+        }
+      } else {
+        setLiteral(processedGc, j++, gc->literals[i]);
+      }
+    }
+  }
+
+  void removeGenLit(SPGenClause gc, unsigned position) {
+    introduceExtendedGenClause(gc, position, 0);
+  }
+
+  void introduceExtendedGenClause(SPGenClause gc, unsigned position, GenLit replacement) {
+    introduceExtendedGenClause(gc, position, new List<GenLit>(replacement, 0));
+  }
+
+  void introduceExtendedGenClause(SPGenClause gc, unsigned position, GenLit replacement, GenLit extension) {
+    introduceExtendedGenClause(gc, position, new List<GenLit>(replacement, new List<GenLit>(extension, 0)));
   }
 
   Occurrence pop(Occurrences &occurrences) {
