@@ -47,18 +47,19 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   LOG2("clausify ",f->toString());
 
   switch (f->connective()) {
-  case TRUE:
-    return;
-  case FALSE:
-    {
+    case TRUE:
+      return;
+
+    case FALSE: {
       // create an empty clause and push it in the stack
       Inference* inf = new Inference1(Inference::CLAUSIFY,unit);
       Clause* clause = new(0) Clause(0, unit->inputType(),inf);
       output.push(clause);
+      return;
     }
-    return;
-  default:
-    break;
+
+    default:
+      break;
   }
 
   ASS(_genClauses.empty());
@@ -69,7 +70,25 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
   introduceGenClause(GenLit(f, POSITIVE));
 
-  process();
+  // process the generalized clauses until they contain only literals
+  while(_queue.isNonEmpty()) {
+    Formula* g;
+    Occurrences occurrences;
+    dequeue(g, occurrences);
+
+    for (SPGenClause gc : _genClauses) {
+      LOG1(gc->toString());
+    }
+
+    if (g->connective() != LITERAL) {
+      if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
+        nameSubformula(g, occurrences);
+      }
+    }
+
+    // TODO: currently we don't check for tautologies, as there should be none appearing (we use polarity based expansion of IFF and XOR)
+    process(g, occurrences);
+  }
 
   for (SPGenClause gc : _genClauses) {
     output.push(toClause(gc));
@@ -174,8 +193,15 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
         break;
       }
 
-      case Term::SF_LET:
+      case Term::SF_LET: {
+        unsigned symbol = sd->getFunctor();
+        Formula::VarList* variables = sd->getVariables();
+        TermList binding = sd->getBinding();
+        TermList contents = *term->nthArgument(0);
+
         NOT_IMPLEMENTED;
+        break;
+      }
 
       default:
         ASSERTION_VIOLATION;
@@ -247,7 +273,7 @@ void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
 
-    List<GenLit>* gls = List::empty();
+    List<GenLit>* gls = List<GenLit>::empty();
     FormulaList::Iterator git(g->args());
     while (git.hasNext()) {
       gls->push(GenLit(git.next(), occ.sign()), gls);
@@ -355,9 +381,15 @@ void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBr
   }
 }
 
-void NewCNF::processLet(unsigned symbol, Formula::VarList*bindingVariables, TermList binding, Formula* contents, Occurrences &occurrences)
+void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents, Occurrences &occurrences)
 {
   CALL("NewCNF::processLet");
+  process(nameLetBinding(symbol, bindingVariables, binding, contents), occurrences);
+}
+
+TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents)
+{
+  CALL("NewCNF::nameLetBinding");
 
   bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
 
@@ -376,8 +408,7 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList*bindingVariables, Term
     nameSort = env.signature->getFunction(symbol)->fnType()->result();
   }
 
-  Formula* processedContents;
-  unsigned freshSymbol;
+  unsigned freshSymbol = symbol;
 
   bool renameSymbol = Formula::VarList::isNonEmpty(bindingFreeVars);
   if (renameSymbol) {
@@ -401,17 +432,7 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList*bindingVariables, Term
       freshSymbol = env.signature->addFreshFunction(nameArity, "lG");
       env.signature->getFunction(freshSymbol)->setType(type);
     }
-
-    SymbolOccurrenceReplacement replacement(isPredicate, symbol, freshSymbol, bindingFreeVars);
-    processedContents = replacement.process(contents);
-  } else {
-    freshSymbol = symbol;
-    processedContents = contents;
   }
-
-  enqueue(processedContents);
-
-  occurrences.replaceBy(processedContents);
 
   Formula::VarList* variables = bindingFreeVars->append(bindingVariables);
 
@@ -438,6 +459,13 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList*bindingVariables, Term
     Formula* nameFormula = new AtomicFormula(Literal::createEquality(POSITIVE, name, binding, nameSort));
     introduceGenClause(GenLit(nameFormula, POSITIVE));
   }
+
+  if (renameSymbol) {
+    SymbolOccurrenceReplacement replacement(isPredicate, symbol, freshSymbol, bindingFreeVars);
+    return replacement.process(contents);
+  }
+
+  return contents;
 }
 
 NewCNF::VarSet* NewCNF::freeVars(Formula* g)
@@ -618,6 +646,56 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
   }
 }
 
+void NewCNF::process(TermList ts, Occurrences &occurrences)
+{
+  CALL("NewCNF::process(TermList)");
+
+  if (ts.isVar()) {
+    processBoolVar(ts.var(), occurrences);
+    return;
+  }
+
+  Term* term = ts.term();
+  ASS_REP(term->isSpecial(), term->toString());
+
+  Term::SpecialTermData* sd = term->getSpecialData();
+  switch (sd->getType()) {
+    case Term::SF_FORMULA: {
+      process(sd->getFormula(), occurrences);
+      break;
+    }
+
+    case Term::SF_ITE: {
+      Formula* condition = sd->getCondition();
+
+      Formula* branch[2];
+      for (SIDE side : { LEFT, RIGHT }) {
+        TermList branchTerm = *term->nthArgument(side);
+        ASS_REP(branchTerm.isVar() || (branchTerm.term()->isSpecial() && branchTerm.term()->isFormula()),
+                branchTerm.toString());
+        branch[side] = branchTerm.isVar() ? (Formula*) new BoolTermFormula(branchTerm)
+                                          : branchTerm.term()->getSpecialData()->getFormula();
+      }
+
+      processITE(condition, branch[LEFT], branch[RIGHT], occurrences);
+      break;
+    }
+
+    case Term::SF_LET: {
+      unsigned symbol = sd->getFunctor();
+      Formula::VarList* variables = sd->getVariables();
+      TermList binding = sd->getBinding();
+      TermList contents = *term->nthArgument(0);
+
+      processLet(symbol, variables, binding, contents, occurrences);
+      break;
+    }
+
+    default:
+      ASSERTION_VIOLATION_REP(term->toString());
+  }
+}
+
 /**
  * Stolen from Naming::getDefinitionLiteral
  */
@@ -706,96 +784,36 @@ Formula* NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
   return name;
 }
 
-void NewCNF::process()
+void NewCNF::process(Formula* g, Occurrences &occurrences)
 {
-  CALL("NewCNF::process()");
+  CALL("NewCNF::process");
 
-  // process the generalized clauses until they contain only literals
-  while(_queue.isNonEmpty()) {
-    Formula* g;
-    Occurrences occurrences;
-    dequeue(g, occurrences);
+  switch (g->connective()) {
+    case AND:
+    case OR:
+      process(static_cast<JunctionFormula*>(g), occurrences);
+      break;
 
-    LOG1("process() iteration; _genClauses:");
-    for (SPGenClause gc : _genClauses) {
-      LOG1(gc->toString());
-    }
+    case IFF:
+    case XOR:
+      process(static_cast<BinaryFormula*>(g), occurrences);
+      break;
 
-    if (g->connective() != LITERAL) {
-      if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
-        nameSubformula(g, occurrences);
-      }
-    }
+    case FORALL:
+    case EXISTS:
+      process(static_cast<QuantifiedFormula*>(g),occurrences);
+      break;
 
-    // TODO: currently we don't check for tautologies, as there should be none appearing (we use polarity based expansion of IFF and XOR)
+    case BOOL_TERM:
+      process(g->getBooleanTerm(), occurrences);
+      break;
 
-    switch (g->connective()) {
-      case AND:
-      case OR:
-        process(static_cast<JunctionFormula*>(g), occurrences);
-        break;
+    case LITERAL:
+      process(g->literal(),occurrences);
+      break;
 
-      case IFF:
-      case XOR:
-        process(static_cast<BinaryFormula*>(g), occurrences);
-        break;
-
-      case FORALL:
-      case EXISTS:
-        process(static_cast<QuantifiedFormula*>(g),occurrences);
-        break;
-
-      case BOOL_TERM: {
-        TermList ts = g->getBooleanTerm();
-        if (ts.isVar()) {
-          processBoolVar(ts.var(), occurrences);
-          break;
-        }
-
-        Term* term = ts.term();
-        ASS_REP(term->isSpecial(), term->toString());
-
-        Term::SpecialTermData* sd = term->getSpecialData();
-        switch (sd->getType()) {
-          case Term::SF_ITE: {
-            Formula* condition = sd->getCondition();
-
-            Formula* branch[2];
-            for (SIDE side : { LEFT, RIGHT }) {
-              TermList branchTerm = *term->nthArgument(side);
-              ASS_REP(branchTerm.isVar() || (branchTerm.term()->isSpecial() && branchTerm.term()->isFormula()),
-                      branchTerm.toString());
-              branch[side] = branchTerm.isVar() ? (Formula*) new BoolTermFormula(branchTerm)
-                                                : branchTerm.term()->getSpecialData()->getFormula();
-            }
-
-            processITE(condition, branch[LEFT], branch[RIGHT], occurrences);
-            break;
-          }
-
-          case Term::SF_LET: {
-            unsigned functor = sd->getFunctor();
-            Formula::VarList* variables = sd->getVariables();
-            TermList binding = sd->getBinding();
-            Formula* contents = new BoolTermFormula(*term->nthArgument(0));
-
-            processLet(functor, variables, binding, contents, occurrences);
-            break;
-          }
-
-          default:
-            ASSERTION_VIOLATION_REP(term->toString());
-        }
-        break;
-      }
-
-      case LITERAL:
-        process(g->literal(),occurrences);
-        break;
-
-      default:
-        ASSERTION_VIOLATION_REP(g->toString());
-    }
+    default:
+      ASSERTION_VIOLATION_REP(g->toString());
   }
 }
 
