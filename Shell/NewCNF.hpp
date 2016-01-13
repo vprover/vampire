@@ -59,7 +59,7 @@ private:
 
   typedef Lib::List<Binding> BindingList;
 
-  struct BindingGetFirstFunctor
+  struct BindingGetVarFunctor
   {
     DECL_RETURN_TYPE(unsigned);
     OWN_RETURN_TYPE operator()(const Binding& b) { return b.first; }
@@ -346,7 +346,7 @@ private:
   void process(QuantifiedFormula* g, Occurrences &occurrences);
 
   void process(Literal* l, Occurrences &occurrences);
-  void processBoolVar(TermList var, Occurrences &occurrences);
+  void processBoolVar(unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
   void processLet(unsigned functor, Formula::VarList*bindingVariables, TermList binding, Formula* contents, Occurrences &occurrences);
 

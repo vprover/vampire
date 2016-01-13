@@ -304,26 +304,36 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
   }
 }
 
-void NewCNF::processBoolVar(TermList var, Occurrences &occurrences)
+void NewCNF::processBoolVar(unsigned var, Occurrences &occurrences)
 {
   CALL("NewCNF::processBoolVar");
 
   /**
-   * Boolean variables, occurring as literals in clauses can be safely removed.
-   * For a boolean X: X | F = (true | F) & (false | F) = true & F = F.
+   * Note the following two facts:
+   * 1) ![X:$o]:(X | f) <=> (1 | f) & (0 | f) <=> 1 & f <=> f
+   * 2) ?[X:$o]:(X | f) <=> (1 | f) | (0 | f) <=> 1 | f <=> 1
+   *
+   * It means the following. If the processed generalised literal is a boolean
+   * variable, we can process each occurrence of it it two ways -- either by
+   * discarding the occurrence's generalised clause all together, or removing
+   * the generalised literal - variable from the occurrence. That depends on
+   * whether the variable was skolemised in the clause. If it was (i.e. it was
+   * under existential quantifier at some point), we remove the clause, otherwise
+   * we remove the literal.
    */
 
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
+
+    BindingList::Iterator bit(occ.gc->bindings);
+    VarSet* boundVars = (VarSet*) VarSet::getFromIterator(getMappingIterator(bit, BindingGetVarFunctor()));
+
+    if (boundVars->member(var)) {
+      continue;
+    }
+
     removeGenLit(occ.gc, occ.position);
   }
-
-  /**
-   * Alternatively, every occurrence of X can be replaced by X = true
-   */
-  //Literal* processedLiteral = Literal::createEquality(POSITIVE, var, TermList(Term::foolTrue()), Sorts::SRT_BOOL);
-  //Formula* processedFormula = new AtomicFormula(processedLiteral);
-  //occurrences.replaceBy(processedFormula);
 }
 
 
@@ -540,7 +550,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings)
     // first level cache miss, construct free variable set
 
     BindingList::Iterator bIt(bindings);
-    VarSet* boundVars = (VarSet*) VarSet::getFromIterator(getMappingIterator(bIt, BindingGetFirstFunctor()));
+    VarSet* boundVars = (VarSet*) VarSet::getFromIterator(getMappingIterator(bIt, BindingGetVarFunctor()));
     VarSet* unboundFreeVars = (VarSet*) freeVars(g)->subtract(boundVars);
 
     if (!_skolemsByFreeVars.find(unboundFreeVars, processedBindings)) {
@@ -738,7 +748,7 @@ void NewCNF::process()
       case BOOL_TERM: {
         TermList ts = g->getBooleanTerm();
         if (ts.isVar()) {
-          processBoolVar(ts, occurrences);
+          processBoolVar(ts.var(), occurrences);
           break;
         }
 
