@@ -425,7 +425,7 @@ Clause* Superposition::performSuperposition(
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
 
   //check that we're not rewriting smaller subterm with larger
-  if(ordering.compare(tgtTermS,eqLHSS)==Ordering::GREATER) {
+  if(Ordering::isGorGEorE(ordering.compare(tgtTermS,eqLHSS))) {
     return 0;
   }
 
@@ -439,11 +439,11 @@ Clause* Superposition::performSuperposition(
     TermList arg1=*rwLitS->nthArgument(1);
 
     if(!arg0.containsSubterm(rwTermS)) {
-      if(ordering.getEqualityArgumentOrder(rwLitS)==Ordering::GREATER) {
+      if(Ordering::isGorGEorE(ordering.getEqualityArgumentOrder(rwLitS))) {
         return 0;
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
-      if(ordering.getEqualityArgumentOrder(rwLitS)==Ordering::LESS) {
+      if(Ordering::isGorGEorE(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
         return 0;
       }
     }

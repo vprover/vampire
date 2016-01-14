@@ -106,11 +106,11 @@ struct EqualityFactoring::ResultFn
 
     TermList sLHSS=subst.apply(sLHS,0);
     TermList sRHSS=subst.apply(sRHS,0);
-    if(_ordering.compare(sRHSS,sLHSS)==Ordering::GREATER) {
+    if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
       return 0;
     }
     TermList fRHSS=subst.apply(fRHS,0);
-    if(_ordering.compare(fRHSS,sLHSS)==Ordering::GREATER) {
+    if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
 
