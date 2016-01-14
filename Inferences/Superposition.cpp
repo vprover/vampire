@@ -20,6 +20,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/LiteralSelector.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -391,7 +392,9 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
-  if(SortHelper::getTermSort(rwTerm, rwLit)!=SortHelper::getEqualityArgumentSort(eqLit)) {
+  unsigned sort = SortHelper::getEqualityArgumentSort(eqLit);
+
+  if(SortHelper::getTermSort(rwTerm, rwLit)!=sort) {
     //cannot perform superposition because sorts don't match
     return 0;
   }
@@ -498,6 +501,7 @@ Clause* Superposition::performSuperposition(
     inf->setExtra(extra);
   }
 
+  bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
 
@@ -507,37 +511,70 @@ Clause* Superposition::performSuperposition(
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
-      (*res)[next] = subst->apply(curr, !eqIsResult);
-      if(EqHelper::isEqTautology((*res)[next])) {
+      Literal* currAfter = subst->apply(curr, !eqIsResult);
+
+      if(EqHelper::isEqTautology(currAfter)) {
         goto construction_fail;
       }
+
       if(weightLimit!=-1) {
-        weight+=(*res)[next]->weight();
+        weight+=currAfter->weight();
         if(weight>weightLimit) {
           RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
           env.statistics->discardedNonRedundantClauses++;
           goto construction_fail;
         }
       }
-      next++;
+
+      if (afterCheck) {
+        TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+        if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
+          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          goto construction_fail;
+        }
+      }
+
+      (*res)[next++] = currAfter;
     }
   }
-  for(unsigned i=0;i<eqLength;i++) {
-    Literal* curr=(*eqClause)[i];
-    if(curr!=eqLit) {
-      (*res)[next] = subst->apply(curr, eqIsResult);
-      if(EqHelper::isEqTautology((*res)[next])) {
-        goto construction_fail;
-      }
-      if(weightLimit!=-1) {
-        weight+=(*res)[next]->weight();
-        if(weight>weightLimit) {
-          RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
-          env.statistics->discardedNonRedundantClauses++;
+
+  {
+    Literal* eqLitS = 0;
+    if (afterCheck && eqClause->numSelected() > 1) {
+      TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+      eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,sort);
+    }
+
+    for(unsigned i=0;i<eqLength;i++) {
+      Literal* curr=(*eqClause)[i];
+      if(curr!=eqLit) {
+        Literal* currAfter = subst->apply(curr, eqIsResult);
+
+        if(EqHelper::isEqTautology(currAfter)) {
           goto construction_fail;
         }
+        if(weightLimit!=-1) {
+          weight+=currAfter->weight();
+          if(weight>weightLimit) {
+            RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
+            env.statistics->discardedNonRedundantClauses++;
+            goto construction_fail;
+          }
+        }
+
+        if (eqLitS && i < eqClause->numSelected()) {
+          TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+
+          Ordering::Result o = ordering.compare(currAfter,eqLitS);
+
+          if (o == Ordering::GREATER || o == Ordering::GREATER_EQ || o == Ordering::EQUAL) { // where is GREATER_EQ ever coming from?
+            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            goto construction_fail;
+          }
+        }
+
+        (*res)[next++] = currAfter;
       }
-      next++;
     }
   }
 

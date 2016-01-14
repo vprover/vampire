@@ -53,6 +53,8 @@ public:
 
     _comp.attachSelector(this);
   }
+
+  bool isBGComplete() const override { return false; }
 protected:
   void doSelection(Clause* c, unsigned eligible)
   {
@@ -117,6 +119,8 @@ public:
 
     _comp.attachSelector(this);
   }
+
+  bool isBGComplete() const override { return true; }
 protected:
   void doSelection(Clause* c, unsigned eligible)
   {

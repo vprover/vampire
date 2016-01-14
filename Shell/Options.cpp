@@ -655,6 +655,11 @@ void Options::Options::init()
     _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
 
+    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
+    _lookup.insert(&_literalMaximalityAftercheck);
+    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
+    _literalMaximalityAftercheck.setExperimental();
+
     _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
     _lrsFirstTimeCheck.description=
     "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";

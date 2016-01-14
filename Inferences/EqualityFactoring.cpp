@@ -17,6 +17,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/LiteralSelector.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -75,8 +76,8 @@ private:
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(Clause* cl, EqualityFactoring& parent)
-      : _cl(cl), _cLen(cl->length()), _ordering(parent._salg->getOrdering()) {}
+  ResultFn(Clause* cl, bool afterCheck, Ordering& ordering)
+      : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
   DECL_RETURN_TYPE(Clause*);
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
@@ -119,11 +120,28 @@ struct EqualityFactoring::ResultFn
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srt);
 
+    Literal* sLitAfter = 0;
+    if (_afterCheck && _cl->numSelected() > 1) {
+      TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+      sLitAfter = subst.apply(sLit, 0);
+    }
+
     unsigned next = 1;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=sLit) {
-        (*res)[next++] = subst.apply(curr, 0);
+        Literal* currAfter = subst.apply(curr, 0);
+
+        if (sLitAfter) {
+          TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+          if (i < _cl->numSelected() && _ordering.compare(currAfter,sLitAfter) == Ordering::GREATER) {
+            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            res->destroy();
+            return 0;
+          }
+        }
+
+        (*res)[next++] = currAfter;
       }
     }
     ASS_EQ(next,_cLen);
@@ -136,6 +154,7 @@ struct EqualityFactoring::ResultFn
 private:
   Clause* _cl;
   unsigned _cLen;
+  bool _afterCheck;
   Ordering& _ordering;
 };
 
@@ -156,7 +175,8 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 
-  auto it5 = getMappingIterator(it4,ResultFn(premise, *this));
+  auto it5 = getMappingIterator(it4,ResultFn(premise,
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering()));
 
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 
