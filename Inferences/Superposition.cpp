@@ -501,7 +501,7 @@ Clause* Superposition::performSuperposition(
     inf->setExtra(extra);
   }
 
-  bool afterCheck = _salg->getLiteralSelector().isBGComplete();
+  bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
 

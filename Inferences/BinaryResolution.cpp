@@ -257,7 +257,8 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   // actually, we got one iterator per selected literal; we flatten the obtained iterator of iterators:
   auto it2 = getFlattenedIterator(it1);
   // perform binary resolution on these pairs
-  auto it3 = getMappingIterator(it2,ResultFn(premise, limits, _salg->getLiteralSelector().isBGComplete(), &_salg->getOrdering(),*this));
+  auto it3 = getMappingIterator(it2,ResultFn(premise, limits,
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), &_salg->getOrdering(),*this));
   // filter out only non-zero results
   auto it4 = getFilteredIterator(it3, NonzeroFn());
   // measure time (on the TC_RESOLUTION budget) of the overall processing

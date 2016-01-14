@@ -171,7 +171,8 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
 
   auto it2 = getMapAndFlattenIterator(it1,UnificationsFn(premise));
 
-  auto it3 = getMappingIterator(it2,ResultsFn(premise,_salg->getLiteralSelector().isBGComplete(),_salg->getOrdering()));
+  auto it3 = getMappingIterator(it2,ResultsFn(premise,
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),_salg->getOrdering()));
 
   auto it4 = getFilteredIterator(it3, NonzeroFn());
 
