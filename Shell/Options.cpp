@@ -852,6 +852,12 @@ void Options::Options::init()
     _lookup.insert(&_hyperSuperposition);
     _hyperSuperposition.tag(OptionTag::INFERENCES);
 
+    _innerRewriting = BoolOptionValue("inner_rewriting","irw",false);
+    _innerRewriting.description="C[t_1] | t1 != t2 ==> C[t_2] | t1 != t2 when t1>t2";
+    _lookup.insert(&_innerRewriting);
+    _innerRewriting.tag(OptionTag::INFERENCES);
+    _innerRewriting.setExperimental();
+
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
     _unitResultingResolution.description=
     "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";

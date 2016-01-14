@@ -338,6 +338,8 @@ vstring Inference::ruleName(Rule rule)
     return "backward demodulation";
   case FORWARD_LITERAL_REWRITING:
     return "forward literal rewriting";
+  case INNER_REWRITING:
+    return "inner rewriting";
   case CONDENSATION:
     return "condensation";
   case EVALUATION:

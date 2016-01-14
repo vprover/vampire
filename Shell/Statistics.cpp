@@ -72,6 +72,8 @@ Statistics::Statistics()
     globalSubsumption(0),
     evaluations(0),
     interpretedSimplifications(0),
+    innerRewrites(0),
+    innerRewritesToEqTaut(0),
     simpleTautologies(0),
     equationalTautologies(0),
     forwardSubsumed(0),
@@ -240,7 +242,7 @@ void Statistics::print(ostream& out)
   HEADING("Simplifying Inferences",duplicateLiterals+trivialInequalities+
       forwardSubsumptionResolution+backwardSubsumptionResolution+
       forwardDemodulations+backwardDemodulations+forwardLiteralRewrites+
-      condensations+globalSubsumption+evaluations);
+      condensations+globalSubsumption+evaluations+innerRewrites);
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
@@ -248,6 +250,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Fw demodulations", forwardDemodulations);
   COND_OUT("Bw demodulations", backwardDemodulations);
   COND_OUT("Fw literal rewrites", forwardLiteralRewrites);
+  COND_OUT("Inner rewrites", innerRewrites);
   COND_OUT("Condensations", condensations);
   COND_OUT("Global subsumptions", globalSubsumption);
   COND_OUT("Evaluations", evaluations);
@@ -256,13 +259,14 @@ void Statistics::print(ostream& out)
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
       forwardSubsumed+backwardSubsumed+forwardDemodulationsToEqTaut+
-      backwardDemodulationsToEqTaut);
+      backwardDemodulationsToEqTaut+innerRewritesToEqTaut);
   COND_OUT("Simple tautologies", simpleTautologies);
   COND_OUT("Equational tautologies", equationalTautologies);
   COND_OUT("Forward subsumptions", forwardSubsumed);
   COND_OUT("Backward subsumptions", backwardSubsumed);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
+  COND_OUT("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
   SEPARATOR;
 
   HEADING("Generating Inferences",resolution+urResolution+factoring+

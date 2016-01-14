@@ -32,6 +32,33 @@ TermList EqHelper::getOtherEqualitySide(Literal* eq, TermList lhs)
   return *eq->nthArgument(0);
 } // getOtherEqualitySide
 
+bool EqHelper::hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList& lhs, TermList& rhs)
+{
+  CALL("EqHelper::hasGreaterEqualitySide");
+  ASS(eq->isEquality());
+
+  switch(ord.getEqualityArgumentOrder(eq)) {
+    case Ordering::INCOMPARABLE:
+      return false;
+    case Ordering::GREATER:
+    case Ordering::GREATER_EQ:
+      lhs = *eq->nthArgument(0);
+      rhs = *eq->nthArgument(1);
+      return true;
+    case Ordering::LESS:
+    case Ordering::LESS_EQ:
+      lhs = *eq->nthArgument(1);
+      rhs = *eq->nthArgument(0);
+      return true;
+#if VDEBUG
+    case Ordering::EQUAL:
+      //there should be no equality literals of equal terms
+    default:
+      ASSERTION_VIOLATION;
+#endif
+  }
+}
+
 Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)
 {
   CALL("EqHelper::replace(Literal*,...)");
@@ -42,8 +69,6 @@ Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)
 /**
  * Replace all occurences of the subterm  @b tSrc by @b tDest in the term/literal
  * @b lit, and return the result
- *
- * The term to be replaced must be present at least once in the term/literal.
  */
 Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
 {
@@ -111,9 +136,9 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   ASS_EQ(args.length(),trm0->arity());
 
   if (!modified.pop()) {
-    //we call replace in superposition only if we already know,
-    //there is something to be replaced.
-    ASSERTION_VIOLATION;
+    // we call replace in superposition only if we already know,
+    // there is something to be replaced.
+    // ASSERTION_VIOLATION; // MS: but there is now a new use in InnerRewriting which does not like this extra check
     return trm0;
   }
 

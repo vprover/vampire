@@ -174,6 +174,8 @@ public:
     BACKWARD_DEMODULATION,
     /** forward literal rewriting inference */
     FORWARD_LITERAL_REWRITING,
+    /** inner rewriting */
+    INNER_REWRITING,
     /** condensation inference */
     CONDENSATION,
     /** evaluation inference */
