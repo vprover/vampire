@@ -41,6 +41,8 @@ public:
 
   ELiteralSelector(const Ordering& ordering, const Options& options, Values value) :
     LiteralSelector(ordering, options), _value(value) {}
+
+  bool isBGComplete() const override { return true; }
 protected:
   void doSelection(Clause* c, unsigned eligible);
 
