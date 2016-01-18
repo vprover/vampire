@@ -44,6 +44,10 @@ unsigned ELiteralSelector::lit_standard_diff(Literal* lit)
   }
 }
 
+/**
+ * There is a similar macro in the code of E
+ * called by the selections below.
+ */
 unsigned ELiteralSelector::lit_sel_diff_weight(Literal* lit)
 {
   CALL("ELiteralSelector::lit_sel_diff_weight");
@@ -94,7 +98,7 @@ void ELiteralSelector::doSelection(Clause* c, unsigned eligible)
       for(int li=((int)eligible)-1; li>=0; li--) {
         Literal* lit=(*c)[li];
         if(isNegativeForSelection(lit)) {
-          unsigned val = lit_standard_diff(lit);
+          unsigned val = lit_sel_diff_weight(lit);
           if (!singleSel || val > bestVal) {
             singleSel = lit;
             bestVal = val;
@@ -108,7 +112,7 @@ void ELiteralSelector::doSelection(Clause* c, unsigned eligible)
       for(int li=((int)eligible)-1; li>=0; li--) {
         Literal* lit=(*c)[li];
         if(isNegativeForSelection(lit) && lit->ground()) {
-          unsigned val = lit_standard_diff(lit);
+          unsigned val = lit_sel_diff_weight(lit);
           if (!singleSel || val > bestVal) {
             singleSel = lit;
             bestVal = val;
@@ -123,7 +127,7 @@ void ELiteralSelector::doSelection(Clause* c, unsigned eligible)
       for(int li=((int)eligible)-1; li>=0; li--) {
         Literal* lit=(*c)[li];
         if(isNegativeForSelection(lit) && (!bestGround || lit->ground())) {
-          unsigned val = lit_standard_diff(lit);
+          unsigned val = lit_sel_diff_weight(lit);
           if (!singleSel || (!bestGround && lit->ground()) || val > bestVal) {
             singleSel = lit;
             bestVal = val;
