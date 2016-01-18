@@ -40,12 +40,12 @@ using namespace Saturation;
  * positions corresponding to these integers and one
  * of these literals. (Literal stays the same and unifiers vary.)
  */
-class Factoring::UnificationsFn
+class Factoring::UnificationsOnPositiveFn
 {
 public:
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*,RobSubstitution*> >);
-  UnificationsFn(Clause* cl)
-  : _cl(cl)
+  UnificationsOnPositiveFn(Clause* cl, LiteralSelector& sel)
+  : _cl(cl), _sel(sel)
   {
     _subst=RobSubstitutionSP(new RobSubstitution());
   }
@@ -65,6 +65,13 @@ public:
       return OWN_RETURN_TYPE::getEmpty();
     }
 
+    if(_sel.isNegativeForSelection(l1)) {
+      //We don't perform factoring on negative literals
+      // (this check only becomes relevant, when there is more than one literal selected
+      // and yet the selected ones are not all positive -- see the check in generateClauses)
+      return OWN_RETURN_TYPE::getEmpty();
+    }
+
     SubstIterator unifs=_subst->unifiers(l1,0,l2,0, false);
     if(!unifs.hasNext()) {
       return OWN_RETURN_TYPE::getEmpty();
@@ -74,6 +81,7 @@ public:
   }
 private:
   Clause* _cl;
+  LiteralSelector& _sel;
   RobSubstitutionSP _subst;
 };
 
@@ -169,7 +177,7 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
 
   auto it1 = getCombinationIterator(0u,premise->numSelected(),premise->length());
 
-  auto it2 = getMapAndFlattenIterator(it1,UnificationsFn(premise));
+  auto it2 = getMapAndFlattenIterator(it1,UnificationsOnPositiveFn(premise,_salg->getLiteralSelector()));
 
   auto it3 = getMappingIterator(it2,ResultsFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),_salg->getOrdering()));
