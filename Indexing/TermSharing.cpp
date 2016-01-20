@@ -197,7 +197,9 @@ Literal* TermSharing::insert(Literal* t)
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalLiterals++;
 
-    ASS_REP(SortHelper::areImmediateSortsValid(t), t->toString());
+    if (!SortHelper::areImmediateSortsValid(t)){
+      USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
+    }
   }
   else {
     t->destroy();
