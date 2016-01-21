@@ -303,6 +303,22 @@ class BoolTermFormula
     ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet(), ts.toString());
   }
 
+  static Formula* create(TermList ts) {
+    if (ts.isVar()) {
+      return new BoolTermFormula(ts);
+    }
+
+    Term* term = ts.term();
+    ASS_REP(term->isSpecial(), term->toString());
+    Term::SpecialTermData* sd = term->getSpecialData();
+    switch (sd->getType()) {
+      case Term::SF_FORMULA:
+        return sd->getFormula();
+      default:
+        return new BoolTermFormula(ts);
+    }
+  }
+
   /** Return the variable */
   const TermList getTerm() const { return _ts; }
   TermList getTerm() { return _ts; }

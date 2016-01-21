@@ -128,11 +128,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
       Formula* processedFormula[2];
       for (SIDE side : { LEFT, RIGHT }) {
         if (isFormula[side]) {
-          if (argument[side].term()->isFormula()) {
-            processedFormula[side] = argument[side].term()->getSpecialData()->getFormula();
-          } else {
-            processedFormula[side] = new BoolTermFormula(argument[side]);
-          }
+          processedFormula[side] = BoolTermFormula::create(argument[side]);
         } else {
           ASS_REP(argument[side].isVar(), argument[side].toString());
           Literal* eqLiteral = Literal::createEquality(POSITIVE, argument[side], TermList(Term::foolTrue()), Sorts::SRT_BOOL);
@@ -408,26 +404,18 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
     processedContents = nameLetBinding(symbol, bindingVariables, binding, contents);
     if (env.options->showPreprocessing()) {
       env.beginOutput();
+      env.out() << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
       env.out() << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
       env.out() << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
       env.endOutput();
     }
   }
 
-  if (processedContents.isVar()) {
-    occurrences.replaceBy(new BoolTermFormula(processedContents));
-  } else {
-    ASS_REP(processedContents.term()->isSpecial(), processedContents.toString());
-    Term::SpecialTermData* sd = processedContents.term()->getSpecialData();
+  Formula* processedContentsFormula = BoolTermFormula::create(processedContents);
 
-    Formula* processedContentsFormula = (sd->getType() == Term::SF_FORMULA)
-                                        ? sd->getFormula()
-                                        : (Formula*) new BoolTermFormula(processedContents);
+  occurrences.replaceBy(processedContentsFormula);
 
-    occurrences.replaceBy(processedContentsFormula);
-  }
-
-  process(processedContents, occurrences);
+  process(processedContentsFormula, occurrences);
 }
 
 TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents)
@@ -487,16 +475,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList *bindingVariab
   }
 
   if (isPredicate) {
-    Formula* formulaBinding;
-    if (binding.isVar()) {
-      formulaBinding = new BoolTermFormula(binding);
-    } else {
-      ASS_REP(binding.term()->isSpecial(), binding.toString());
-      Term::SpecialTermData* sd = binding.term()->getSpecialData();
-      formulaBinding = (sd->getType() == Term::SF_FORMULA)
-                       ? sd->getFormula()
-                       : (Formula*) new BoolTermFormula(binding);
-    }
+    Formula* formulaBinding = BoolTermFormula::create(binding);
 
     enqueue(formulaBinding);
 
@@ -597,7 +576,7 @@ Formula* NewCNF::inlineLetBinding(unsigned symbol, Formula::VarList *bindingVari
           subst.bind(var, arg);
         }
 
-        return new BoolTermFormula(SubstHelper::apply(binding, subst));
+        return BoolTermFormula::create(SubstHelper::apply(binding, subst));
       } else {
         Stack<TermList> arguments;
         while (it.hasNext()) {
@@ -809,11 +788,7 @@ void NewCNF::process(TermList ts, Occurrences &occurrences)
 
       Formula* branch[2];
       for (SIDE side : { LEFT, RIGHT }) {
-        TermList branchTerm = *term->nthArgument(side);
-        ASS_REP(branchTerm.isVar() || (branchTerm.term()->isSpecial() && branchTerm.term()->isFormula()),
-                branchTerm.toString());
-        branch[side] = branchTerm.isVar() ? (Formula*) new BoolTermFormula(branchTerm)
-                                          : branchTerm.term()->getSpecialData()->getFormula();
+        branch[side] = BoolTermFormula::create(*term->nthArgument(side));
       }
 
       processITE(condition, branch[LEFT], branch[RIGHT], occurrences);
