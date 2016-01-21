@@ -391,11 +391,30 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
 {
   CALL("NewCNF::processLet");
 
+  bool inlineLet = false;
+
+  if (binding.isVar()) {
+    inlineLet = true;
+  } else {
+    Term* term = binding.term();
+    if (!term->isSpecial()) {
+      inlineLet = true;
+    } else {
+      Term::SpecialTermData* sd = term->getSpecialData();
+      if (sd->getType() == Term::SF_FORMULA) {
+        if (sd->getFormula()->connective() == LITERAL) {
+          inlineLet = true;
+        }
+      }
+    }
+  }
+
   TermList processedContents;
-  if (binding.isVar() || !binding.term()->isSpecial()) {
+  if (inlineLet) {
     processedContents = inlineLetBinding(symbol, bindingVariables, binding, contents);
     if (env.options->showPreprocessing()) {
       env.beginOutput();
+      env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
       env.out() << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
       env.out() << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
       env.endOutput();
