@@ -353,6 +353,9 @@ private:
 
   TermList nameLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
 
+  TermList inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
+  Formula* inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, Formula* contents);
+
   TermList findSpecialTermData(TermList ts, Stack<Term*> &specialTerms, Stack<TermList> &names);
 
   TermList createNamingTerm(unsigned functor, IntList* vars);
