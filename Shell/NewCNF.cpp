@@ -4,7 +4,6 @@
  * @since 19/11/2015 Manchester
  */
 
-#include <Kernel/SubstHelper.hpp>
 #include "Debug/Tracer.hpp"
 
 #include "Kernel/Sorts.hpp"
@@ -12,13 +11,15 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/SymbolOccurrenceReplacement.hpp"
+#include "Shell/SymbolDefinitionInlining.hpp"
+
 #include "NewCNF.hpp"
-#include "Kernel/TermIterators.hpp"
-#include "Kernel/Signature.hpp"
-#include "SymbolOccurrenceReplacement.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -437,7 +438,7 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
   process(processedContentsFormula, occurrences);
 }
 
-TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents)
+TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents)
 {
   CALL("NewCNF::nameLetBinding");
 
@@ -518,124 +519,11 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList *bindingVariab
   return contents;
 }
 
-TermList NewCNF::inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents) {
+TermList NewCNF::inlineLetBinding(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents) {
   CALL("NewCNF::inlineLetBinding(TermList)");
 
-  bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-
-  if (contents.isVar()) {
-    return contents;
-  }
-
-  Term* term = contents.term();
-
-  if (term->isSpecial()) {
-    Term::SpecialTermData *sd = term->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_FORMULA:
-        return TermList(Term::createFormula(inlineLetBinding(symbol, bindingVariables, binding, sd->getFormula())));
-
-      case Term::SF_ITE:
-        return TermList(Term::createITE(sd->getCondition(),
-                                        inlineLetBinding(symbol, bindingVariables, binding, *term->nthArgument(0)),
-                                        inlineLetBinding(symbol, bindingVariables, binding, *term->nthArgument(1)),
-                                        sd->getSort()));
-
-      case Term::SF_LET:
-        return TermList(Term::createLet(sd->getFunctor(), sd->getVariables(),
-                                        inlineLetBinding(symbol, bindingVariables, binding, sd->getBinding()),
-                                        inlineLetBinding(symbol, bindingVariables, binding, *term->nthArgument(0)),
-                                        sd->getSort()));
-
-      default:
-        NOT_IMPLEMENTED;
-    }
-  }
-
-  Term::Iterator it(term);
-
-  if (!isPredicate && (term->functor() == symbol)) {
-    Substitution subst;
-
-    Formula::VarList::Iterator vit(bindingVariables);
-    while (it.hasNext() && vit.hasNext()) {
-      unsigned var = (unsigned) vit.next();
-      TermList arg = it.next();
-      subst.bind(var, arg);
-    }
-
-    return SubstHelper::apply(binding, subst);
-  } else {
-    Stack<TermList> arguments;
-    while (it.hasNext()) {
-      arguments.push(inlineLetBinding(symbol, bindingVariables, binding, it.next()));
-    }
-
-    return TermList(Term::create(term, arguments.begin()));
-  }
-}
-
-Formula* NewCNF::inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, Formula* contents) {
-  CALL("NewCNF::inlineLetBinding(Formula*)");
-
-  bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-
-  switch (contents->connective()) {
-    case LITERAL: {
-      Literal* literal = contents->literal();
-      Term::Iterator it(literal);
-
-      if (isPredicate && (literal->functor() == symbol)) {
-        Substitution subst;
-
-        Formula::VarList::Iterator vit(bindingVariables);
-        while (it.hasNext() && vit.hasNext()) {
-          unsigned var = (unsigned) vit.next();
-          TermList arg = it.next();
-          subst.bind(var, arg);
-        }
-
-        return BoolTermFormula::create(SubstHelper::apply(binding, subst));
-      } else {
-        Stack<TermList> arguments;
-        while (it.hasNext()) {
-          arguments.push(inlineLetBinding(symbol, bindingVariables, binding, it.next()));
-        }
-
-        return new AtomicFormula(Literal::create(literal, arguments.begin()));
-      }
-    }
-
-    case AND:
-    case OR: {
-      FormulaList* args(0);
-
-      FormulaList::Iterator ait(contents->args());
-      while (ait.hasNext()) {
-        args = new FormulaList(inlineLetBinding(symbol, bindingVariables, binding, ait.next()), args);
-      }
-
-      // TODO: do this faster
-      return new JunctionFormula(contents->connective(), args->reverse());
-    }
-
-    case IFF:
-    case XOR:
-      return new BinaryFormula(contents->connective(),
-                               inlineLetBinding(symbol, bindingVariables, binding, contents->left()),
-                               inlineLetBinding(symbol, bindingVariables, binding, contents->right()));
-
-    case FORALL:
-    case EXISTS:
-      return new QuantifiedFormula(contents->connective(), contents->vars(), contents->sorts(),
-                                   inlineLetBinding(symbol, bindingVariables, binding, contents->qarg()));
-
-    case BOOL_TERM:
-      return new BoolTermFormula(inlineLetBinding(symbol, bindingVariables, binding, contents->getBooleanTerm()));
-
-    default:
-      ASSERTION_VIOLATION_REP(contents->toString());
-  }
+  SymbolDefinitionInlining inlining(symbol, bindingVariables, binding);
+  return inlining.process(contents);
 }
 
 NewCNF::VarSet* NewCNF::freeVars(Formula* g)

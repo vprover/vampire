@@ -344,17 +344,15 @@ private:
   void process(JunctionFormula* g, Occurrences &occurrences);
   void process(BinaryFormula* g, Occurrences &occurrences);
   void process(QuantifiedFormula* g, Occurrences &occurrences);
-  void process(TermList ts, Occurrences &occurrences);
 
+  void process(TermList ts, Occurrences &occurrences);
   void process(Literal* l, Occurrences &occurrences);
   void processBoolVar(unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
   void processLet(unsigned symbol, Formula::VarList*bindingVariables, TermList binding, TermList contents, Occurrences &occurrences);
 
   TermList nameLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
-
   TermList inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
-  Formula* inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, Formula* contents);
 
   TermList findSpecialTermData(TermList ts, Stack<Term*> &specialTerms, Stack<TermList> &names);
 
