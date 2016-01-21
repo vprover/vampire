@@ -107,6 +107,33 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
           }
           arguments.push(simplifiedArgument);
         }
+
+        if (literal->isEquality() && !literal->isTwoVarEquality()) {
+          for (unsigned argument : { 0u, 1u }) {
+            if (arguments[argument].isTerm()) {
+              bool isTrue  = env.signature->isFoolConstantSymbol(true,  arguments[argument].term()->functor());
+              bool isFalse = env.signature->isFoolConstantSymbol(false, arguments[argument].term()->functor());
+              if (isTrue || isFalse) {
+                Formula* simplifiedFormula;
+                unsigned counterpart = argument == 0 ? 1 : 0;
+                if (arguments[counterpart].isVar()) {
+                  simplifiedFormula = new BoolTermFormula(arguments[counterpart]);
+                } else {
+                  Term* term = arguments[counterpart].term();
+                  ASS_REP(term->isSpecial(), term->toString());
+                  if (term->getSpecialData()->getType() == Term::SF_FORMULA) {
+                    simplifiedFormula = term->getSpecialData()->getFormula();
+                  } else {
+                    simplifiedFormula = new BoolTermFormula(arguments[counterpart]);
+                  }
+                }
+                return (isTrue == literal->polarity()) ? simplifiedFormula
+                                                       : (Formula*) new NegatedFormula(simplifiedFormula);
+              }
+            }
+          }
+        }
+
         if (!simplified) {
           return f;
         }
