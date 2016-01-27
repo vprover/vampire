@@ -76,8 +76,8 @@ private:
 
 struct BinaryResolution::ResultFn
 {
-  ResultFn(Clause* cl, Limits* limits, bool afterCheck, Ordering* ord, BinaryResolution& parent)
-  : _cl(cl), _limits(limits), _afterCheck(afterCheck), _ord(ord), _parent(parent) {}
+  ResultFn(Clause* cl, Limits* limits, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
+  : _cl(cl), _limits(limits), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<Literal*, SLQueryResult> arg)
   {
@@ -86,20 +86,22 @@ struct BinaryResolution::ResultFn
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _limits, _afterCheck ? _ord : 0);
+    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _limits, _afterCheck ? _ord : 0, &_selector);
   }
 private:
   Clause* _cl;
   Limits* _limits;
   bool _afterCheck;
   Ordering* _ord;
+  LiteralSelector& _selector;
   BinaryResolution& _parent;
 };
 
 /**
- * Ordering aftercheck is performed iff ord is not 0.
+ * Ordering aftercheck is performed iff ord is not 0,
+ * in which case also ls is assumed to be not 0.
  */
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, Limits* limits, Ordering* ord)
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, Limits* limits, Ordering* ord, LiteralSelector* ls)
 {
   CALL("BinaryResolution::generateClause");
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
@@ -191,7 +193,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
         Ordering::Result o = ord->compare(newLit,queryLitAfter);
 
-        if (o == Ordering::GREATER || o == Ordering::GREATER_EQ || o == Ordering::EQUAL) { // where is GREATER_EQ ever coming from?
+        if (o == Ordering::GREATER ||
+            (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
+                && (o == Ordering::GREATER_EQ || o == Ordering::EQUAL))) { // where is GREATER_EQ ever coming from?
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           res->destroy();
           return 0;
@@ -226,9 +230,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
         Ordering::Result o = ord->compare(newLit,qrLitAfter);
 
-        if (o == Ordering::GREATER || o == Ordering::GREATER_EQ || o == Ordering::EQUAL) { // where is GREATER_EQ ever coming from?
-          // we seem to be doing this "stricly-maximal" check for both polarities, but only one of the two will always apply
-          // (since no reasonable selection would select more than one positive and more than one negative)
+        if (o == Ordering::GREATER ||
+            (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
+                && (o == Ordering::GREATER_EQ || o == Ordering::EQUAL))) { // where is GREATER_EQ ever coming from?
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           res->destroy();
           return 0;
@@ -258,7 +262,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   auto it2 = getFlattenedIterator(it1);
   // perform binary resolution on these pairs
   auto it3 = getMappingIterator(it2,ResultFn(premise, limits,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), &_salg->getOrdering(),*this));
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), &_salg->getOrdering(),_salg->getLiteralSelector(),*this));
   // filter out only non-zero results
   auto it4 = getFilteredIterator(it3, NonzeroFn());
   // measure time (on the TC_RESOLUTION budget) of the overall processing
