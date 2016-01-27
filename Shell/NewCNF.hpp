@@ -110,7 +110,7 @@ private:
       BindingList::Iterator bIt(bindings);
       while(bIt.hasNext()) {
         Binding b = bIt.next();
-        res += " X"+Int::toString(b.first)+" --> "+b.second->toString();
+        res += " | X"+Int::toString(b.first)+" --> "+b.second->toString();
       }
 
       return res;
@@ -347,7 +347,7 @@ private:
 
   void process(TermList ts, Occurrences &occurrences);
   void process(Literal* l, Occurrences &occurrences);
-  void processBoolVar(unsigned var, Occurrences &occurrences);
+  void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
   void processLet(unsigned symbol, Formula::VarList*bindingVariables, TermList binding, TermList contents, Occurrences &occurrences);
 

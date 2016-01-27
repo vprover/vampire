@@ -337,14 +337,19 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
   }
 }
 
-void NewCNF::processBoolVar(unsigned var, Occurrences &occurrences)
+void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 {
   CALL("NewCNF::processBoolVar");
 
+  LOG2("processBoolVar ", (sign == POSITIVE ? "X" : "~X") + Int::toString(var));
+  LOG2("occurrences.size ", occurrences.size());
+
   /**
-   * Note the following two facts:
-   * 1) ![X:$o]:(X | f) <=> (1 | f) & (0 | f) <=> 1 & f <=> f
-   * 2) ?[X:$o]:(X | f) <=> (1 | f) | (0 | f) <=> 1 | f <=> 1
+   * Note the following:
+   * 1) ![X:$o]:( X | f(X)) <=> (1 | f(1)) & (0 | f(0)) <=> 1 & f(0) <=> f(0)
+   * 2) ![X:$o]:(~X | f(X)) <=> (0 | f(1)) & (1 | f(0)) <=> f(1) & 1 <=> f(1)
+   * 3) ?[X:$o]:( X | f(X)) <=> (1 | f(1)) | (0 | f(0)) <=> 1 | f(0) <=> 1
+   * 3) ?[X:$o]:(~X | f(X)) <=> (0 | f(1)) | (1 | f(0)) <=> f(1) | 1 <=> 1
    *
    * It means the following. If the processed generalised literal is a boolean
    * variable, we can process each occurrence of it it two ways -- either by
@@ -358,14 +363,36 @@ void NewCNF::processBoolVar(unsigned var, Occurrences &occurrences)
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
 
-    BindingList::Iterator bit(occ.gc->bindings);
-    VarSet* boundVars = (VarSet*) VarSet::getFromIterator(getMappingIterator(bit, BindingGetVarFunctor()));
+    bool bound = false;
+    Term* skolem;
 
-    if (boundVars->member(var)) {
+    BindingList::Iterator bit(occ.gc->bindings);
+    while (bit.hasNext()) {
+      Binding binding = bit.next();
+
+      if (binding.first == var) {
+        bound = true;
+        skolem = binding.second;
+        break;
+      }
+    }
+
+    if (!bound) {
+      Term* constant = sign == NEGATIVE ? Term::foolTrue() : Term::foolFalse();
+      BindingList::push(Binding(var, constant), occ.gc->bindings);
+      removeGenLit(occ.gc, occ.position);
       continue;
     }
 
-    removeGenLit(occ.gc, occ.position);
+    bool isTrue  = env.signature->isFoolConstantSymbol(true,  skolem->functor());
+    bool isFalse = env.signature->isFoolConstantSymbol(false, skolem->functor());
+
+    if (isTrue || isFalse) {
+      SIGN bindingSign = isTrue ? POSITIVE : NEGATIVE;
+      if (sign != bindingSign) {
+        removeGenLit(occ.gc, occ.position);
+      }
+    }
   }
 }
 
@@ -615,7 +642,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings)
       while (vs.hasNext()) {
         unsigned var = (unsigned)vs.next();
         Term* skolemTerm = createSkolemTerm(var, unboundFreeVars);
-        BindingList::push(make_pair(var,skolemTerm), processedBindings);
+        BindingList::push(Binding(var,skolemTerm), processedBindings);
       }
 
       // store the results in the caches
@@ -676,7 +703,7 @@ void NewCNF::process(TermList ts, Occurrences &occurrences)
   CALL("NewCNF::process(TermList)");
 
   if (ts.isVar()) {
-    processBoolVar(ts.var(), occurrences);
+    processBoolVar(POSITIVE, ts.var(), occurrences);
     return;
   }
 
@@ -784,7 +811,7 @@ Formula* NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
 {
   CALL("NewCNF::nameSubformula");
 
-  LOG2("performedNaming for ",g->toString());
+  LOG2("nameSubformula ", g->toString());
   for (SPGenClause gc : _genClauses) {
     LOG1(gc->toString());
   }
@@ -792,7 +819,10 @@ Formula* NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
   ASS_NEQ(g->connective(), LITERAL);
   ASS_NEQ(g->connective(), NOT);
 
-  Formula* name = new AtomicFormula(createNamingLiteral(g, freeVars(g)));
+  enqueue(g);
+
+  Literal* naming = createNamingLiteral(g, freeVars(g));
+  Formula* name = new AtomicFormula(naming);
 
   for (SIGN sign : { NEGATIVE, POSITIVE }) {
     // One could also consider the case where (part of) the bindings goes to the definition
@@ -833,6 +863,12 @@ void NewCNF::process(Formula* g, Occurrences &occurrences)
       process(g->literal(),occurrences);
       break;
 
+    case NOT:
+      ASS_REP(g->uarg()->connective() == BOOL_TERM, g->uarg()->toString());
+      ASS_REP(g->uarg()->getBooleanTerm().isVar(),  g->uarg()->toString());
+      processBoolVar(NEGATIVE, g->uarg()->getBooleanTerm().var(), occurrences);
+      break;
+
     default:
       ASSERTION_VIOLATION_REP(g->toString());
   }
@@ -860,7 +896,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
   for (unsigned i = 0; i < len; i++) {
     Formula* g = formula(gc->literals[i]);
 
-    ASS_REP(g->connective() == LITERAL, g->toString());
+    ASS_REP(g->connective() == LITERAL, gc->toString());
     ASS_REP(g->literal()->shared(), g->toString());
 
     Literal* l = g->literal()->apply(subst);
