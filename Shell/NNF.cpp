@@ -110,7 +110,6 @@ Formula* NNF::ennf (Formula* f, bool polarity)
       FormulaList* fs = f->args();
       FormulaList* gs = ennf(fs,polarity);
       if (fs == gs) {
-	ASS(polarity);
 	return f;
       }
       if (polarity) {
@@ -152,7 +151,6 @@ Formula* NNF::ennf (Formula* f, bool polarity)
       Formula* g = f->qarg();
       Formula* gg = ennf(g,polarity);
       if (g == gg) {
-	ASS(polarity);
 	return f;
       }
       if (polarity) {
