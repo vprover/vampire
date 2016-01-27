@@ -166,7 +166,11 @@ Formula* NNF::ennf (Formula* f, bool polarity)
     TermList ts = f->getBooleanTerm();
     TermList ennfTf = ennf(ts, polarity);
     if (ts == ennfTf) {
-      return f;
+      if (polarity) {
+        return f;
+      } else {
+        return new NegatedFormula(f);
+      }
     } else {
       return new BoolTermFormula(ennfTf);
     }
