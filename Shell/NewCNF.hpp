@@ -151,8 +151,8 @@ private:
   GenClauses _genClauses;
 
   struct Occurrence {
-    CLASS_NAME(NewCNF::Occurrences);
-    USE_ALLOCATOR(NewCNF::Occurrences);
+    CLASS_NAME(NewCNF::Occurrence);
+    USE_ALLOCATOR(NewCNF::Occurrence);
 
     SPGenClause gc;
     unsigned position;
@@ -214,24 +214,23 @@ private:
       Iterator(Occurrences &occurrences): _iterator(List<Occurrence>::DelIterator(occurrences._occurrences)) {}
 
       inline bool hasNext() {
-        return _iterator.hasNext();
-//        while (true) {
-//          if (_iterator.hasNext()) {
-//            if (!_iterator.next().gc->valid) {
-//              _iterator.del();
-//            } else {
-//              return true;
-//            }
-//          } else {
-//            return false;
-//          }
-//        }
+        while (_iterator.hasNext()) {
+          Occurrence occ = _iterator.next();
+          if (!occ.gc->valid) {
+            _iterator.del();
+            continue;
+          }
+          _current = SmartPtr<Occurrence>(new Occurrence(occ.gc, occ.position));
+          return true;
+        }
+        return false;
       }
       Occurrence next() {
-        return _iterator.next();
+        return *_current;
       }
     private:
       List<Occurrence>::DelIterator _iterator;
+      SmartPtr<Occurrence> _current;
     };
 
   private:
