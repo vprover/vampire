@@ -50,6 +50,7 @@ private:
   void scan(Unit* u);
   void scan(Clause* u);
   void scan(FormulaUnit* u);
+  void count (TermList ts,int polarity,int add, Unit* unit);
   void count (Formula* f,int polarity,int add, Unit* unit);
   void count (FormulaUnit* f,int add) { count(f->formula(), 1, add, f); }
   void count (Clause* cl,int add);

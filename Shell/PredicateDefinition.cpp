@@ -825,7 +825,8 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
       return;
 
     case BOOL_TERM:
-      ASSERTION_VIOLATION;
+      count (f->getBooleanTerm(), polarity, add, unit);
+      return;
 
     case TRUE:
     case FALSE:
@@ -838,6 +839,45 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
 #endif
   }
 } // PredicateDefinition::count (Formula* f,...)
+
+void PredicateDefinition::count (TermList ts,int polarity,int add, Unit* unit) {
+  CALL("PredicateDefinition::count(TermList,...)");
+
+  if (ts.isVar()) {
+    return;
+  }
+
+  Term* term = ts.term();
+
+  if (term->shared()) {
+    return;
+  }
+
+  if (term->isSpecial()) {
+    Term::SpecialTermData* sd = term->getSpecialData();
+    switch (sd->getType()) {
+      case Term::SF_FORMULA:
+        count(sd->getFormula(), polarity, add, unit);
+        break;
+
+      case Term::SF_ITE:
+        count(sd->getCondition(), polarity, add, unit);
+        break;
+
+      case Term::SF_LET:
+        count(sd->getBinding(), polarity, add, unit);
+        break;
+
+      default:
+        ASSERTION_VIOLATION;
+    }
+  }
+
+  Term::Iterator terms(term);
+  while (terms.hasNext()) {
+    count(terms.next(), polarity, add, unit);
+  }
+} // PredicateDefinition::count (TermList ts,...)
 
 bool PredicateDefinition::tryGetDef(Literal* lhs, Formula* rhs, FormulaUnit* unit)
 {
