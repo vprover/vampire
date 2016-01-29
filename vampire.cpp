@@ -717,7 +717,7 @@ void spiderMode()
   env.endOutput();
 } // spiderMode
 
-void clausifyMode()
+void clausifyMode(bool stat)
 {
   CALL("clausifyMode()");
 
@@ -729,8 +729,13 @@ void clausifyMode()
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   env.beginOutput();
-  UIHelper::outputSortDeclarations(env.out());
-  UIHelper::outputSymbolDeclarations(env.out());
+  if (!stat) {
+    UIHelper::outputSortDeclarations(env.out());
+    UIHelper::outputSymbolDeclarations(env.out());
+  }
+
+  unsigned clauses = 0;
+  unsigned literals = 0;
 
   ClauseIterator cit = prb->clauseIterator();
   while (cit.hasNext()) {
@@ -739,11 +744,21 @@ void clausifyMode()
     if (!cl) {
       continue;
     }
-    env.out() << TPTPPrinter::toString(cl) << "\n";
+    if (stat) {
+      clauses++;
+      literals += cl->size();
+    } else {
+      env.out() << TPTPPrinter::toString(cl) << "\n";
+    }
+  }
+  if (stat) {
+    env.out() << clauses << "\t" << literals << endl;
   }
   env.endOutput();
 
-if(env.options->latexOutput()!="off"){ outputClausesToLaTeX(prb.ptr()); }
+  if (!stat) {
+    if (env.options->latexOutput() != "off") { outputClausesToLaTeX(prb.ptr()); }
+  }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -954,8 +969,13 @@ int main(int argc, char* argv[])
     case Options::Mode::MODEL_CHECK:
       modelCheckMode();
       break;
+
     case Options::Mode::CLAUSIFY:
-      clausifyMode();
+      clausifyMode(false);
+      break;
+
+    case Options::Mode::CLAUSIFY_STAT:
+      clausifyMode(true);
       break;
 
     case Options::Mode::OUTPUT:
