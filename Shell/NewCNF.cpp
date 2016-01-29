@@ -378,7 +378,7 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
     }
 
     if (!bound) {
-      Term* constant = sign == NEGATIVE ? Term::foolTrue() : Term::foolFalse();
+      Term* constant = sign == occ.sign() ? Term::foolFalse() : Term::foolTrue();
       BindingList::push(Binding(var, constant), occ.gc->bindings);
       removeGenLit(occ.gc, occ.position);
       continue;
