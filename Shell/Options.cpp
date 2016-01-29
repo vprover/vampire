@@ -89,6 +89,7 @@ void Options::Options::init()
                                         "casc",//"casc_ltb",
                                         "casc_sat","clausify",
                                         "consequence_elimination","grounding",
+					"infinox",
                                         "model_check",
                                         //"ltb_build","ltb_solve",
                                         "output","preprocess",

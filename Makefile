@@ -329,6 +329,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/GlobalOptions.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\
+         Shell/InfiniteModelChecker.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
          Shell/InterpretedNormalizer.o\

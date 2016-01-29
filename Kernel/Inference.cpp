@@ -428,6 +428,8 @@ vstring Inference::ruleName(Rule rule)
     return "Instantiation";
   case MODEL_NOT_FOUND:
     return "Finite model not found"; 
+  case INFINOX_CLAIM:
+    return "injective and non-surjective claim";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

@@ -67,6 +67,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/LaTeX.hpp"
+#include "Shell/InfiniteModelChecker.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -509,6 +510,24 @@ void preprocessMode()
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // preprocessMode
+
+
+/**
+ * A mode designed to check if the input problem has an infinite model
+ * Based on the Infinox prover
+ * See https://gupea.ub.gu.se/bitstream/2077/22058/1/gupea_2077_22058_1.pdf
+ *
+ * @author Giles
+ * @since 28/01/2016
+ */
+void infinoxMode()
+{
+  CALL("InfinoxMode");
+  
+  Shell::InfiniteModelChecker::doCheck(getPreprocessedProblem());
+
+}
+
 
 /**
  *
@@ -954,6 +973,11 @@ int main(int argc, char* argv[])
     case Options::Mode::MODEL_CHECK:
       modelCheckMode();
       break;
+    
+    case Options::Mode::INFINOX:
+      infinoxMode();
+      break;
+
     case Options::Mode::CLAUSIFY:
       clausifyMode();
       break;

@@ -273,6 +273,8 @@ public:
     INSTANTIATION,
     /* Finite model not found */
     MODEL_NOT_FOUND,
+    /* Claim for Infinox */
+    INFINOX_CLAIM,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);
