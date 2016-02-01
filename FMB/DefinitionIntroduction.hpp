@@ -114,6 +114,8 @@ namespace FMB {
         if(t->arity()==0) continue;
         if(!_introduced.find(t)){
           unsigned newConstant = env.signature->addFreshFunction(0,"fmbdef");
+          unsigned srt = SortHelper::getResultSort(t);
+          env.signature->getFunction(newConstant)->setType(new FunctionType(srt));
           Term* c = Term::createConstant(newConstant); 
           _introduced.insert(t,c);
           if(term==t) retC=c;
