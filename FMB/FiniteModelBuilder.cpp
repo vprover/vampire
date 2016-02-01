@@ -47,6 +47,7 @@
 #include "ClauseFlattening.hpp"
 #include "SortInference.hpp"
 #include "DefinitionIntroduction.hpp"
+#include "FunctionRelationshipInference.hpp"
 //#include "SortTranslation.hpp"
 #include "FiniteModelBuilder.hpp"
 
@@ -306,6 +307,7 @@ void FiniteModelBuilder::init()
   env.statistics->phase = Statistics::FMB_PREPROCESSING;
 
   // EXPERIMENT
+/*
 
   // let's count the functions that have differing sorts in arguments and return
   unsigned fcount=0;
@@ -322,9 +324,15 @@ void FiniteModelBuilder::init()
     }
   }
   cout << "fcount " << fcount << " out of " << env.signature->functions() << endl;
+
+  FunctionRelationshipInference inf;
+  DHMap<unsigned,Stack<unsigned>> inj;
+  DHMap<unsigned,Stack<unsigned>> sur;
+  inf.findFunctionRelationships(_prb.clauseIterator(),inj,sur);
+
   USER_ERROR("Stop");
 
-
+*/
   // EXPERIMENT
 
   // Whilst iteratring through clauses try and detect maximum sizes of native vampire sorts
