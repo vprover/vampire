@@ -82,7 +82,7 @@ public:
    if(_domainConstants.find(pair,t)) return t;
    vstring name = "domCon_"+env.sorts->sortName(srt)+"_"+Lib::Int::toString(c);
    unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
-   env.signature->getFunction(newConstant)->setType(new FunctionType(srt));
+   env.signature->getFunction(f)->setType(new FunctionType(srt));
    t = Term::createConstant(f);
    _domainConstants.insert(pair,t);
    _domainConstantsRev.insert(t,pair);
