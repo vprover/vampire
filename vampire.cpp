@@ -524,7 +524,7 @@ void infinoxMode()
 {
   CALL("InfinoxMode");
   
-  Shell::InfiniteModelChecker::doCheck(getPreprocessedProblem());
+  Shell::InfiniteModelChecker::doCheck(*getPreprocessedProblem());
 
 }
 
@@ -975,7 +975,13 @@ int main(int argc, char* argv[])
       break;
     
     case Options::Mode::INFINOX:
-      infinoxMode();
+    if(CASC::CASCMode::perform(argc, argv)){
+       cout << "Infinite Model Detected" << endl;
+       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+     }
+
+
+      //infinoxMode();
       break;
 
     case Options::Mode::CLAUSIFY:
