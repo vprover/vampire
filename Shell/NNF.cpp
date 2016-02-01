@@ -98,7 +98,11 @@ Formula* NNF::ennf (Formula* f, bool polarity)
       Literal* lit = f->literal();
       Literal* newLit = ennf(lit, polarity);
       if (newLit == lit) {
-        return f;
+        if (polarity) {
+          return f;
+        } else {
+          return new AtomicFormula(Literal::complementaryLiteral(lit));
+        }
       } else {
         return new AtomicFormula(newLit);
       }
@@ -199,11 +203,7 @@ Literal* NNF::ennf(Literal* l, bool polarity)
   CALL("NNF::ennf(Literal*...)");
 
   if (l->shared()) {
-    if (polarity) {
-      return l;
-    } else {
-      return Literal::complementaryLiteral(l);
-    }
+    return l;
   }
 
   bool changed = false;
