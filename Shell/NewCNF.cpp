@@ -392,6 +392,12 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
       if (sign != bindingSign) {
         removeGenLit(occ.gc, occ.position);
       }
+    } else {
+      Literal* equality = Literal::createEquality(sign == occ.sign(),
+                                                  TermList(var, false),
+                                                  TermList(Term::foolTrue()),
+                                                  Sorts::SRT_BOOL);
+      introduceExtendedGenClause(occ.gc, occ.position, GenLit(new AtomicFormula(equality), POSITIVE));
     }
   }
 }
