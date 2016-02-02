@@ -146,6 +146,19 @@ bool FiniteModelBuilder::reset(){
   cout << "Maximum offset is " << offsets << endl;
 #endif
 
+  {
+    domMustGrowMarker_offset = offsets;
+
+    unsigned add = _distinctSortSizes.size();
+
+    // Check for overflow
+    if(UINT_MAX - add < offsets){
+      return false;
+    }
+
+    offsets += add;
+  }
+
   // Create a new SAT solver
   switch(_opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
@@ -170,7 +183,7 @@ bool FiniteModelBuilder::reset(){
   }
 
   // set the number of SAT variables, this could cause an exception
-  _solver->ensureVarCount(offsets+1);
+  _solver->ensureVarCount(offsets-1);
 
   // needs to be redone for each size as we use this to pick the number of
   // things to order and the constants to ground with 
@@ -1054,6 +1067,8 @@ void FiniteModelBuilder::addNewTotalityDefs()
         SATLiteral slit = getSATLiteral(f,use,true,true);
         satClauseLits.push(slit);
       }
+      satClauseLits.push(SATLiteral(domMustGrowMarker_offset+_sortedSignature->parents[srt],0));
+
       SATClause* satCl = SATClause::fromStack(satClauseLits);
       addSATClause(satCl); 
       continue;
@@ -1095,6 +1110,8 @@ newTotalLabel:
             use[arity]=constant;
             satClauseLits.push(getSATLiteral(f,use,true,true));
           }
+          satClauseLits.push(SATLiteral(domMustGrowMarker_offset+_sortedSignature->parents[retSrt],0));
+
           SATClause* satCl = SATClause::fromStack(satClauseLits);
           addSATClause(satCl);
           goto newTotalLabel;
@@ -1244,7 +1261,14 @@ MainLoopResult FiniteModelBuilder::runImpl()
     {
       env.statistics->phase = Statistics::FMB_SOLVING;
       TimeCounter tc(TC_FMB_SAT_SOLVING);
-      satResult = _solver->solve();
+
+      static SATLiteralStack assumptions(_distinctSortSizes.size());
+      assumptions.reset();
+      for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+        assumptions.push(SATLiteral(domMustGrowMarker_offset+i,1));
+      }
+
+      satResult = _solver->solveUnderAssumptions(assumptions);
       env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
     }
 
@@ -1262,7 +1286,24 @@ MainLoopResult FiniteModelBuilder::runImpl()
     // but the container needs to be empty for the next round in any case
     _clausesToBeAdded.reset();
 
-    increaseModelSizes();
+    {
+      // _solver->explicitlyMinimizedFailedAssumptions(); // TODO: try adding this in
+      const SATLiteralStack& failed = _solver->failedAssumptions();
+
+      cout << "should increase ";
+      for (unsigned i = 0; i < failed.size(); i++) {
+        cout << failed[i].var()- domMustGrowMarker_offset << " or ";
+      }
+      cout << endl;
+
+      ASS_EQ(failed.size(),1);
+
+      _distinctSortSizes[failed[0].var()-domMustGrowMarker_offset]++;
+
+      for(unsigned s=0;s<_sortedSignature->sorts;s++){
+        _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
+      }
+    }
 
     if(!reset()){
       if(env.options->mode()!=Options::Mode::SPIDER){
