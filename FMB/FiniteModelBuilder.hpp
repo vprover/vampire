@@ -105,7 +105,7 @@ private:
   DArray<Stack<GroundedTerm>> _sortedGroundedTerms;
 
   // SAT solver used to solve constraints (a new one is used for each model size)
-  ScopedPtr<SATSolver> _solver;
+  ScopedPtr<SATSolverWithAssumptions> _solver;
 
   // Structures to record symbols removed during preprocessing i.e. via definition elimination
   // These are ignored throughout finite model building and then the definitions (recorded here)
@@ -146,6 +146,11 @@ private:
   // Then the SAT variables for other groundings can be computed from this
   DArray<unsigned> f_offsets;
   DArray<unsigned> p_offsets;
+
+  /* for each distinctSort i there is a variable (domMustGrowMarker_offset+i)
+   * which we use in the encoding to learn which domain should grow in order to possibly resolve a conflict.
+   */
+  unsigned domMustGrowMarker_offset;
 
   /** Parameters to the FBM saturation **/
 
