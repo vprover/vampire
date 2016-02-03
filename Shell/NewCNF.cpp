@@ -14,6 +14,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Shell/Flattening.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
@@ -556,7 +557,7 @@ TermList NewCNF::inlineLetBinding(unsigned symbol, Formula::VarList* bindingVari
   CALL("NewCNF::inlineLetBinding(TermList)");
 
   SymbolDefinitionInlining inlining(symbol, bindingVariables, binding);
-  return inlining.process(contents);
+  return Flattening::flatten(inlining.process(contents));
 }
 
 NewCNF::VarSet* NewCNF::freeVars(Formula* g)
