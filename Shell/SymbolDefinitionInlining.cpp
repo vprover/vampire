@@ -78,7 +78,11 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
       Term::Iterator it(literal);
 
       if (_isPredicate && (literal->functor() == _symbol)) {
-        return BoolTermFormula::create(substitute(it));
+        if (literal->polarity()) {
+          return BoolTermFormula::create(substitute(it));
+        } else {
+          return new NegatedFormula(BoolTermFormula::create(substitute(it)));
+        }
       }
 
       Stack<TermList> arguments;
