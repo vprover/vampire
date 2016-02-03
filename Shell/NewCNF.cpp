@@ -48,7 +48,11 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
   Formula* f = unit->formula();
 
-  LOG2("clausify ",f->toString());
+#if LOGGING
+  cout << endl << "----------------- INPUT ------------------" << endl;
+  cout << f->toString() << endl;
+  cout << "----------------- INPUT ------------------" << endl;
+#endif
 
   switch (f->connective()) {
     case TRUE:
@@ -80,9 +84,13 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
     Occurrences occurrences;
     dequeue(g, occurrences);
 
+#if LOGGING
+    cout << endl << "---------------------------------------------" << endl;
     for (SPGenClause gc : _genClauses) {
       LOG1(gc->toString());
     }
+    cout << "---------------------------------------------" << endl << endl;
+#endif
 
     if (g->connective() != LITERAL) {
       if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
@@ -94,9 +102,27 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
     process(g, occurrences);
   }
 
+#if LOGGING
+  cout << endl << "----------------- OUTPUT -----------------" << endl;
   for (SPGenClause gc : _genClauses) {
-    output.push(toClause(gc));
+    LOG1(gc->toString());
   }
+  cout << "----------------- OUTPUT -----------------" << endl;
+#endif
+
+#if LOGGING
+  cout << endl << "----------------- CNF ------------------" << endl;
+#endif
+  for (SPGenClause gc : _genClauses) {
+    Clause* cl = toClause(gc);
+#if LOGGING
+    cout << cl->toString() << endl;
+#endif
+    output.push(cl);
+  }
+#if LOGGING
+  cout << "----------------- CNF ------------------" << endl << endl;
+#endif
 
   _genClauses.clear();
   _varSorts.reset();
@@ -819,9 +845,6 @@ Formula* NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
   CALL("NewCNF::nameSubformula");
 
   LOG2("nameSubformula ", g->toString());
-  for (SPGenClause gc : _genClauses) {
-    LOG1(gc->toString());
-  }
 
   ASS_NEQ(g->connective(), LITERAL);
   ASS_NEQ(g->connective(), NOT);
