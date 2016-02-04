@@ -70,7 +70,6 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
   if(count==0) count=1;
 
   ZIArray<unsigned> posEqualitiesOnPos(count);
-  DHSet<unsigned> vampireSortsWithTwoVarEqs;
 
   IntUnionFind unionFind(count);
 
@@ -85,8 +84,6 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
 
    Array<Stack<unsigned>> varPositions(c->varCnt());
    ZIArray<unsigned> varsWithPosEq(c->varCnt());
-   ZIArray<unsigned> varsNotOnlyInVarEq(c->varCnt());
-   DHMap<unsigned,unsigned> varInVarEqToVampireSort;
    IntUnionFind localUF(c->varCnt()+1); // +1 to avoid it being 0.. last pos will not be used
    for(unsigned i=0;i<c->length();i++){
      Literal* l = (*c)[i];
@@ -100,8 +97,6 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
            varsWithPosEq[l->nthArgument(0)->var()]=1;
            varsWithPosEq[l->nthArgument(1)->var()]=1;
          }
-         varInVarEqToVampireSort.insert(l->nthArgument(0)->var(),l->twoVarEqSort());
-         varInVarEqToVampireSort.insert(l->nthArgument(1)->var(),l->twoVarEqSort());
          
        }else{
          ASS(!l->nthArgument(0)->isVar());
@@ -111,14 +106,12 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
          unsigned f = t->functor();
          unsigned n = offset_f[f];
          varPositions[l->nthArgument(1)->var()].push(n);
-         varsNotOnlyInVarEq[l->nthArgument(1)->var()] = 1;
 #if DEBUG_SORT_INFERENCE
          //cout << "push " << n << " for X" << l->nthArgument(1)->var() << endl;
 #endif
          for(unsigned i=0;i<t->arity();i++){
            ASS(t->nthArgument(i)->isVar());
            varPositions[t->nthArgument(i)->var()].push(n+1+i);
-           varsNotOnlyInVarEq[t->nthArgument(i)->var()] = 1;
 #if DEBUG_SORT_INFERENCE
            //cout << "push " << (n+1+i) << " for X" << t->nthArgument(i)->var() << endl;
 #endif
@@ -133,7 +126,6 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
        for(unsigned i=0;i<l->arity();i++){
            ASS(l->nthArgument(i)->isVar());
            varPositions[l->nthArgument(i)->var()].push(n+i);
-           varsNotOnlyInVarEq[l->nthArgument(i)->var()] = 1;
 #if DEBUG_SORT_INFERENCE
            //cout << "push " << (n+i) << " for X" << l->nthArgument(i)->var() << endl;
 #endif
@@ -164,11 +156,6 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
 #endif
          unionFind.doUnion(stack[i],stack[j]);
        }
-     }
-   }
-   for(unsigned v=0;v<c->varCnt() ; v++){
-     if(!varsNotOnlyInVarEq[v]){
-       vampireSortsWithTwoVarEqs.insert(varInVarEqToVampireSort.get(v));
      }
    }
 
@@ -476,8 +463,24 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
 #endif
   }
 
+  // sorting out variable equalities
+  // allocate an extra sort per disinct sort for variable equalities
+  sig->varEqSorts.ensure(distinctSorts);
+  sig->sortBounds.expand(sig->sorts+distinctSorts);
+  sig->parents.expand(sig->sorts+distinctSorts);
+  for(unsigned s=0;s<distinctSorts;s++){
+    sig->varEqSorts[s] = sig->sorts;
+    sig->sortBounds[sig->sorts]=UINT_MAX;
+    sig->parents[sig->sorts]=s;
+    sig->sorts++;
+  }
+  sig->sortedConstants.expand(sig->sorts);
+  sig->sortedFunctions.expand(sig->sorts);
+
   sig->distinctSorts = distinctSorts;
 
+  // Monotoniticy Detection
+/*
   for(unsigned s=0;s<env.sorts->sorts();s++){
     if(ourDistinctSorts.find(s)){
       Monotonicity m(clauses,s);
@@ -489,6 +492,7 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
       }
     }
   }
+*/
 
   if(env.options->mode()!=Options::Mode::SPIDER){
     cout << sig->distinctSorts << " distinct sorts" << endl;

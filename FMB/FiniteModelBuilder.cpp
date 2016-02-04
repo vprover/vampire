@@ -60,8 +60,7 @@ namespace FMB
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _sortedSignature(0), _groundClauses(0), _clauses(0),
-                      _isComplete(true), 
-                      //_maxModelSizeAllSorts(1),
+                      _isComplete(true)
 
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
@@ -349,10 +348,6 @@ void FiniteModelBuilder::init()
   */
   // EXPERIMENT
 
-  // Whilst iteratring through clauses try and detect maximum sizes of native vampire sorts
-  DArray<unsigned> vampireSortMaxs;
-  vampireSortMaxs.ensure(env.sorts->sorts());
-  for(unsigned s=0;s<env.sorts->sorts();s++) vampireSortMaxs[s]=UINT_MAX;
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
@@ -386,73 +381,6 @@ void FiniteModelBuilder::init()
 #endif
     _clauses = _clauses->cons(c);
 
-    // Only try and do this if the clause could decrease the maxModelSize
-    //if(c->length() < _maxModelSizeAllSorts){
-    {
-      // This code attempts to detect a maximum model size from c either as e.g.
-      // i) X=Y | X=Z | Y=Z  here we overestimate the model size
-      // ii) X=a | X=b | X=f(a) again we might have a=b or f(a)=a so we overestimate
-      // note that in either case all literals all equalities must be of the same sort
-      // do i) first
-      unsigned posEqs = 0;
-      int srtOf = -1;
-      for(unsigned i=0;i<c->length();i++){
-        Literal* l = (*c)[i];
-
-        if(l->isTwoVarEquality() && l->isPositive() && 
-           (*l->nthArgument(0))!=(*l->nthArgument(1))
-          ){
-           if(srtOf>=0){
-             if(l->twoVarEqSort()!=(unsigned)srtOf) break;
-           }
-           else{ srtOf = l->twoVarEqSort();}
-           posEqs++; 
-        }
-        else break;
-      }
-      ASS(posEqs < c->length() || srtOf>=0);
-      // check if all literals are pos equalities
-      if(posEqs == c->length() && c->varCnt() < vampireSortMaxs[(unsigned)srtOf]){
-        vampireSortMaxs[(unsigned)srtOf] = c->varCnt();
-        //cout << "vSM for " << srtOf << " set to " << c->varCnt() << " due to " << c->toString() << endl;
-      }      
-      // then do ii) only if there are no posEqs (variable equalities)
-      else if(posEqs==0){
-        // okay is true if all literals are equalities of the form X=a or a=X for
-        // the same X (svar)
-        bool okay=true;
-        int svar = -1;
-        // reuse srtOf from above, should be unused
-        ASS(srtOf == -1);
-        for(unsigned i=0;i<c->length();i++){
-          Literal* l = (*c)[i];
-          if(l->isEquality() && l->isPositive() && !l->isTwoVarEquality()){
-            if(l->nthArgument(0)->isVar()){
-              // arg 1 is term
-              if(svar < 0){ svar = l->nthArgument(0)->var(); }
-              else if(l->nthArgument(0)->var()!=(unsigned)svar){okay=false;break;}
-              if(srtOf < 0){ srtOf = SortHelper::getResultSort(l->nthArgument(1)->term());}
-              else if(SortHelper::getResultSort(l->nthArgument(1)->term())!=(unsigned)srtOf){okay=false;break;}
-            }
-            else if(l->nthArgument(1)->isVar()){
-              // arg 0 is term
-              if(svar < 0){ svar = l->nthArgument(1)->var(); }
-              else if(l->nthArgument(1)->var()!=(unsigned)svar){okay=false;break;}
-              if(srtOf < 0){ srtOf = SortHelper::getResultSort(l->nthArgument(0)->term());}
-              else if(SortHelper::getResultSort(l->nthArgument(0)->term())!=(unsigned)srtOf){okay=false;break;}
-            }   
-            // both are terms, stop
-            else{okay=false;break;}
-          }
-          // literal is not positive non-var equality, stop
-          else{okay=false;break;}
-        }
-        if(okay && c->length() < vampireSortMaxs[(unsigned)srtOf]){
-          vampireSortMaxs[(unsigned)srtOf] = c->length(); 
-          //cout << "vSM for " << srtOf << " set to " << c->varCnt() << " due to " << c->toString() << endl;
-        }
-      }
-    }
     }
   }
 
@@ -508,17 +436,6 @@ void FiniteModelBuilder::init()
       _distinctSortMaxs[s]=UINT_MAX; 
       _distinctSortMins[s]=1;
     }
-    // copy vampireSortMaxs
-    for(unsigned vsort=0;vsort<env.sorts->sorts();vsort++){
-      if(vampireSortMaxs[vsort]==UINT_MAX) continue;
-      unsigned dsort; 
-      if(_sortedSignature->vampireToDistinct.find(vsort,dsort)){
-        unsigned updated = _distinctSortMaxs[dsort]==UINT_MAX 
-                           ? vampireSortMaxs[vsort]
-                           : max(vampireSortMaxs[vsort],_distinctSortMaxs[dsort]);
-        _distinctSortMaxs[dsort] = updated; 
-      }
-    } 
 
     DArray<unsigned> bfromSI(_sortedSignature->distinctSorts);
     DArray<unsigned> dConstants(_sortedSignature->distinctSorts);
@@ -718,10 +635,13 @@ void FiniteModelBuilder::init()
         else{ 
           // At this point I have a two-variable equality where those variables do not
           // tell me what sorts they should have by appearance in a function or predicate symbol
-
-          // There is an issue here, it might be that there is no existing sort that I can give the variables!!!
-          USER_ERROR("Fix This!");
-
+          // So I use the special sort for this
+          unsigned dsort = _sortedSignature->vampireToDistinct.get(lit->twoVarEqSort());
+          unsigned sort = _sortedSignature->varEqSorts[dsort];
+          (*csig)[var1] = sort;
+          (*csig)[var2] = sort;
+          csig_set[var1]=true;
+          csig_set[var2]=true;
         }
       }
 
