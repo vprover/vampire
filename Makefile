@@ -303,6 +303,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
          Saturation/ExtensionalityClauseContainer.o\
+	 Saturation/LabelFinder.o\
          Saturation/Limits.o\
          Saturation/LRS.o\
          Saturation/Otter.o\

@@ -34,6 +34,7 @@
 #include "Lib/System.hpp"
 #include "Lib/Sort.hpp"
 #include "Lib/Random.hpp"
+#include "Lib/DHSet.hpp"
 
 #include "Shell/UIHelper.hpp"
 #include "Shell/TPTPPrinter.hpp"
@@ -321,7 +322,7 @@ void FiniteModelBuilder::init()
   env.statistics->phase = Statistics::FMB_PREPROCESSING;
 
   // EXPERIMENT
-/*
+  /*
 
   // let's count the functions that have differing sorts in arguments and return
   unsigned fcount=0;
@@ -340,13 +341,13 @@ void FiniteModelBuilder::init()
   cout << "fcount " << fcount << " out of " << env.signature->functions() << endl;
 
   FunctionRelationshipInference inf;
-  DHMap<unsigned,Stack<unsigned>> inj;
-  DHMap<unsigned,Stack<unsigned>> sur;
-  inf.findFunctionRelationships(_prb.clauseIterator(),inj,sur);
+  Stack<DHSet<unsigned>*> eqv;
+  DHSet<std::pair<unsigned,unsigned>> con;
+  inf.findFunctionRelationships(_prb.clauseIterator(),eqv,con);
 
   USER_ERROR("Stop");
 
-*/
+  */
   // EXPERIMENT
 
   // Whilst iteratring through clauses try and detect maximum sizes of native vampire sorts

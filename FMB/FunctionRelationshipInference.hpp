@@ -26,8 +26,7 @@ class FunctionRelationshipInference {
 
 public:
 
-void findFunctionRelationships(ClauseIterator clauses, DHMap<unsigned,Stack<unsigned>>& injective,
-                                                           DHMap<unsigned,Stack<unsigned>>& surjective);
+void findFunctionRelationships(ClauseIterator clauses, Stack<DHSet<unsigned>*>& eq_classes, DHSet<std::pair<unsigned,unsigned>>& cons); 
 
 private:
 
@@ -39,10 +38,9 @@ void addClaimForFunction(TermList x, TermList y, TermList fx, TermList fy,
                          ClauseList*& newClauses);
 
 void addClaim(Formula* conjecture, ClauseList*& newClauses);
-Formula* getName(unsigned functionName, bool injective);
+Formula* getName(unsigned fromSort, unsigned toSort);
 
-DHMap<unsigned,unsigned> injectiveMap;
-DHMap<unsigned,unsigned> surjectiveMap;
+DHMap<unsigned,std::pair<unsigned,unsigned>> _labelMap;
 
 };
 

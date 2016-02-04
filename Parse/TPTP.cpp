@@ -2755,7 +2755,7 @@ void TPTP::endFof()
       if (!added) {
 	USER_ERROR("Names of claims must be unique: "+nm);
       }
-      env.signature->getPredicate(pred)->markCFName();
+      env.signature->getPredicate(pred)->markLabel();
       Literal* a = new(0) Literal(pred,0,true,false);
       a = env.sharing->insert(a);
       Formula* claim = new AtomicFormula(a);
