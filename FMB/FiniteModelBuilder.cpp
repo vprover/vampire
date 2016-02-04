@@ -644,19 +644,15 @@ void FiniteModelBuilder::init()
       DArray<unsigned>* csig = new DArray<unsigned>(c->varCnt()); 
       DArray<bool> csig_set(c->varCnt());
       for(unsigned i=0;i<c->varCnt();i++) csig_set[i]=false;
-      bool allTwoVar = true;
-      bool somePos = false;
       static Stack<Literal*> twoVarEqualities;
       twoVarEqualities.reset();
       for(unsigned i=0;i<c->length();i++){
         Literal* lit = (*c)[i];
-        if(lit->polarity()){ somePos=true; }
         if(lit->isEquality()){
           if(lit->isTwoVarEquality()){
              twoVarEqualities.push(lit);
              continue;
           }
-          allTwoVar=false;
           ASS(lit->nthArgument(0)->isTerm());
           ASS(lit->nthArgument(1)->isVar());
           Term* t = lit->nthArgument(0)->term();
@@ -680,7 +676,6 @@ void FiniteModelBuilder::init()
           }
         }
         else{
-          allTwoVar=false;
           for(unsigned j=0;j<lit->arity();j++){
             ASS(lit->nthArgument(j)->isVar());
             unsigned asrt = _sortedSignature->predicateSignatures[lit->functor()][j];
@@ -713,33 +708,22 @@ void FiniteModelBuilder::init()
           (*csig)[var1] = (*csig)[var2];
           csig_set[var1]=true;
         }
-        //else cout << "Bleh" << endl;
+        else{ 
+          // At this point I have a two-variable equality where those variables do not
+          // tell me what sorts they should have by appearance in a function or predicate symbol
+
+          // There is an issue here, it might be that there is no existing sort that I can give the variables!!!
+          USER_ERROR("Fix This!");
+
+        }
       }
 
 #if VDEBUG
-      if(!allTwoVar){
-        for(unsigned i=0;i<csig->size();i++){
-          ASS_REP(csig_set[i],c->toString());
-        }
-        //cout << c->toString() << " okay" << endl;
+      for(unsigned i=0;i<csig->size();i++){
+        ASS_REP(csig_set[i],c->toString());
       }
 #endif
-      // if allTwoVar and !somePos we have a clause that cannot be satisfied
-      // in reality these will be picked up earlier, but we report the refutation anyway
-      if(allTwoVar && !somePos){
-        throw RefutationFoundException(c);
-      }
-
-      // the signatures of allTwoVar clauses will not be set
-      // but we won't need these
-      if(allTwoVar){
-        _clauseVariableSorts.insert(c,0);
-      }else{
-        _clauseVariableSorts.insert(c,csig);
-        //cout << "csig ";
-        //for(unsigned k=0;k<c->varCnt();k++) cout << (*csig)[k] << ", ";
-        //cout << endl;
-      }
+      _clauseVariableSorts.insert(c,csig);
     } 
   }
 } // init()
