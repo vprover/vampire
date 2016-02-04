@@ -49,7 +49,6 @@
 #include "SortInference.hpp"
 #include "DefinitionIntroduction.hpp"
 #include "FunctionRelationshipInference.hpp"
-//#include "SortTranslation.hpp"
 #include "FiniteModelBuilder.hpp"
 
 #define VTRACE_FMB 0
@@ -60,8 +59,8 @@ namespace FMB
 {
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
-: MainLoop(prb, opt), _sortedSignature(0), _clauses(0),
-                      _isComplete(true)
+: MainLoop(prb, opt), _sortedSignature(0), _groundClauses(0), _clauses(0),
+                      _isComplete(true), 
                       //_maxModelSizeAllSorts(1),
 
 {
@@ -376,6 +375,12 @@ void FiniteModelBuilder::init()
       throw RefutationFoundException(c);
     }
 
+    if(c->varCnt()==0){
+#if VTRACE_FMB
+      //cout << "Add ground clause " << c->toString() << endl;
+#endif
+      _groundClauses = _groundClauses->cons(c);
+    }else{
 #if VTRACE_FMB
     //cout << "Add non-ground clause " << c->toString() << endl;
 #endif
@@ -447,6 +452,7 @@ void FiniteModelBuilder::init()
           //cout << "vSM for " << srtOf << " set to " << c->varCnt() << " due to " << c->toString() << endl;
         }
       }
+    }
     }
   }
 
@@ -633,6 +639,7 @@ void FiniteModelBuilder::init()
   }
 
   //Set up clause signature
+  cout << "Setting up clause sigs" << endl;
   {
     ClauseList::Iterator cit(_clauses);
     while(cit.hasNext()){
@@ -727,6 +734,34 @@ void FiniteModelBuilder::init()
     } 
   }
 } // init()
+
+void FiniteModelBuilder::addGroundClauses()
+{
+  CALL("FiniteModelBuilder::addGroundClauses");
+
+  // If we don't have any ground clauses don't do anything
+  if(!_groundClauses) return;
+
+  ClauseList::Iterator cit(_groundClauses);
+
+  // Note ground clauses will consist of propositional symbols only due to flattening
+  static const DArray<unsigned> emptyGrounding(0);
+  while(cit.hasNext()){
+
+      Clause* c = cit.next();
+      ASS(c);
+
+      static SATLiteralStack satClauseLits;
+      satClauseLits.reset();
+      for(unsigned i=0;i<c->length();i++){
+        unsigned f = (*c)[i]->functor();
+        SATLiteral slit = getSATLiteral(f,emptyGrounding,(*c)[i]->polarity(),false);
+        satClauseLits.push(slit);
+      }
+      SATClause* satCl = SATClause::fromStack(satClauseLits);
+      addSATClause(satCl);
+  }
+}
 
 void FiniteModelBuilder::addNewInstances()
 {
@@ -1212,6 +1247,10 @@ MainLoopResult FiniteModelBuilder::runImpl()
     TimeCounter tc(TC_FMB_CONSTRAINT_CREATION);
 
     // add the new clauses to _clausesToBeAdded
+#if VTRACE_FMB
+    cout << "GROUND" << endl;
+#endif
+    addGroundClauses();
 #if VTRACE_FMB
     cout << "INSTANCES" << endl;
 #endif
