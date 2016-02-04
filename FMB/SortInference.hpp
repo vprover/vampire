@@ -38,6 +38,10 @@ struct SortedSignature{
     // the number of distinct sorts that might have different sizes
     unsigned distinctSorts;
 
+    // for each distinct sort gives a sort that can be used for variable equalities that are otherwise unsorted
+    // some of these will not be used, we could detect these cases... but it is not interesting
+    DArray<unsigned> varEqSorts;
+
     // the distinct parents of sorts
     // has length sorts with contents from distinctSorts
     // invariant: all monotonic sorts will have parent 0, the first non-monotonic sort
