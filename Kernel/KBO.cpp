@@ -718,7 +718,7 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   for(unsigned i=1;i<_predicates;i++) {
     Signature::Symbol* predSym = env.signature->getPredicate(i);
     //consequence-finding name predicates have the lowest level
-    if(predSym->cfName()) {
+    if(predSym->label()) {
       _predicateLevels[i]=-1;
     }
     else if(predSym->equalityProxy()) {

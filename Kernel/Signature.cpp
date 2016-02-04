@@ -30,7 +30,7 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _introduced(0),
     _protected(0),
     _skip(0),
-    _cfName(0),
+    _label(0),
     _equalityProxy(0),
     _color(COLOR_TRANSPARENT),
     _stringConstant(stringConstant ? 1: 0),

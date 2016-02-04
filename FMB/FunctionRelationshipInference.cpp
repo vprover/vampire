@@ -5,10 +5,13 @@
  */
 
 #include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/VString.hpp"
+#include "Lib/Timer.hpp"
+#include "Lib/IntUnionFind.hpp"
     
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
@@ -19,9 +22,12 @@
 #include "Kernel/Connective.hpp" 
 #include "Kernel/Inference.hpp"
 #include "Kernel/MainLoop.hpp"                      
+#include "Kernel/Sorts.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/LabelFinder.hpp"
     
+#include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Skolem.hpp"
@@ -37,8 +43,8 @@ namespace FMB
 using namespace Shell;
 
 void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator clauses, 
-                                                              DHMap<unsigned,Stack<unsigned>>& injective,
-                                                              DHMap<unsigned,Stack<unsigned>>& surjective){
+                 Stack<DHSet<unsigned>*>& eq_classes, DHSet<std::pair<unsigned,unsigned>>& cons)
+{
   CALL("FunctionRelationshipInference::findFunctionRelationships");
 
   ClauseList* checkingClauses = getCheckingClauses();
@@ -46,10 +52,111 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   ClauseIterator cit = pvi(getConcatenatedIterator(clauses,pvi(ClauseList::Iterator(checkingClauses))));
 
   Problem prb(cit,false);
-  Options opt;
+  Options opt; // default saturation algorithm options
 
-  SaturationAlgorithm* salg = SaturationAlgorithm::createFromOptions(prb,opt);
-  MainLoopResult sres(salg->run());
+  // because of bad things the time limit is actually taken from env!
+  int oldTimeLimit = env.options->timeLimitInDeciseconds();
+  env.options->setTimeLimitInSeconds(1);
+  //opt.setTimeLimitInSeconds(5);
+  opt.setSplitting(false);
+  Timer::setTimeLimitEnforcement(false);
+
+  LabelFinder* labelFinder = new LabelFinder();
+
+  //cout << "START" << endl;
+  try{
+    SaturationAlgorithm* salg = SaturationAlgorithm::createFromOptions(prb,opt);
+    salg->setLabelFinder(labelFinder);
+    MainLoopResult sres(salg->run());
+  }catch (TimeLimitExceededException){
+    // This is expected behaviour
+  }
+  //cout << "DONE" << endl;
+  //TODO do we even care about sres?
+
+  Timer::setTimeLimitEnforcement(false);
+  env.options->setTimeLimitInDeciseconds(oldTimeLimit);
+
+  Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
+  DHSet<std::pair<unsigned,unsigned>> constraints;
+  Stack<unsigned>::Iterator it(foundLabels);
+  while(it.hasNext()){
+    unsigned l = it.next();
+    std::pair<unsigned,unsigned> constraint = _labelMap.get(l);
+    constraints.insert(constraint);
+  }
+
+  // Compute transitive closure badly
+/*
+  bool closed = false;
+  while(!closed){
+    DHSet<std::pair<unsigned,unsigned>> newConstraints;
+    closed=true;
+    DHSet<std::pair<unsigned,unsigned>>::Iterator it1(constraints);
+    while(it1.hasNext()){
+      std::pair<unsigned,unsigned> con1 = it1.next();
+      DHSet<std::pair<unsigned,unsigned>>::Iterator it2(constraints);
+      while(it2.hasNext()){
+        std::pair<unsigned,unsigned> con2 = it2.next();
+        if(con1.second == con2.first){
+          std::pair<unsigned,unsigned> con3 = make_pair(con1.first,con2.second);
+          if(!constraints.contains(con3) && !newConstraints.contains(con3)){
+            newConstraints.insert(con3);
+            closed=false;
+          }
+        }
+      }
+    }
+    constraints.loadFromIterator(DHSet<std::pair<unsigned,unsigned>>::Iterator(newConstraints));
+  }
+*/
+  // Find equalities
+  IntUnionFind uf(env.sorts->sorts());
+  {
+    DHSet<std::pair<unsigned,unsigned>>::Iterator it1(constraints);
+    while(it1.hasNext()){
+      std::pair<unsigned,unsigned> con1 = it1.next();
+      if(con1.first==con1.second) continue;
+      DHSet<std::pair<unsigned,unsigned>>::Iterator it2(constraints);
+      while(it2.hasNext()){
+        std::pair<unsigned,unsigned> con2 = it2.next();
+        if(con1.second == con2.first && con1.first == con2.second){
+          uf.doUnion(con1.first,con1.second);
+        }
+      }
+    }
+  }
+  uf.evalComponents();
+
+  //cout << "Equalities:" << endl;
+  {
+    for(unsigned s=0;s<env.sorts->sorts();s++){
+      DHSet<unsigned>* cls = new DHSet<unsigned>();
+      for(unsigned t=0;t<env.sorts->sorts();t++){
+        if(uf.root(t)==s) cls->insert(t);
+      }
+      if(cls->size()>1){
+       //cout << "= ";
+       //DHSet<unsigned>::Iterator it(cls);
+       //while(it.hasNext()) cout << it.next() << " ";
+       //cout << endl;
+       eq_classes.push(cls);   
+      }
+    }
+  }
+  //cout << endl; cout << "All constraints:" << endl;
+  {
+    DHSet<std::pair<unsigned,unsigned>>::Iterator it1(constraints);
+    while(it1.hasNext()){ 
+      std::pair<unsigned,unsigned> con = it1.next();
+      unsigned frst = uf.root(con.first);
+      unsigned snd = uf.root(con.second);
+      if(frst==snd) continue;
+      //cout << env.sorts->sortName(frst) << " >= " << env.sorts->sortName(snd) << endl;
+      cons.insert(make_pair(frst,snd));
+    }
+  }
+
 
 }
 
@@ -100,6 +207,10 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
       }
 
       for(unsigned i=0;i<arity;i++){
+        unsigned arg_srt = ftype->arg(i);
+
+        if(arg_srt == ret_srt) continue; // not interested
+
         TermList xargs[arity];
         TermList yargs[arity];
 
@@ -118,7 +229,6 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
         TermList fx(Term::create(f,arity,xargs));
         TermList fy(Term::create(f,arity,yargs));
 
-        unsigned arg_srt = ftype->arg(i);
         addClaimForFunction(x,y,fx,fy,f,arg_srt,ret_srt,existential,newClauses);
       }
     }
@@ -144,8 +254,8 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
       new QuantifiedFormula(FORALL,xy,0,new BinaryFormula(IMP,eq_fxfy,eq_xy));
 
     Formula* surjective =
-      new QuantifiedFormula(FORALL, new Formula::VarList(0),0,
-      new QuantifiedFormula(EXISTS, new Formula::VarList(1),0,
+      new QuantifiedFormula(FORALL, new Formula::VarList(1),0,
+      new QuantifiedFormula(EXISTS, new Formula::VarList(0),0,
       new AtomicFormula(Literal::createEquality(true,fx,y,ret_srt))));
 
 
@@ -154,8 +264,8 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
       surjective = new QuantifiedFormula(EXISTS, existential, 0, surjective);
     }
     // Add names (true/false relates to being injective or not i.e. surjective)
-    injective = new BinaryFormula(IFF,injective,getName(fname,true));
-    surjective = new BinaryFormula(IFF,surjective,getName(fname,false));
+    injective = new BinaryFormula(IMP,injective,getName(ret_srt,arg_srt));
+    surjective = new BinaryFormula(IMP,surjective,getName(arg_srt,ret_srt));
 
     addClaim(injective,newClauses);
     addClaim(surjective,newClauses);
@@ -165,13 +275,8 @@ void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& n
 {
     CALL("FunctionRelationshipInference::addClaim");
     
-    Formula* negated_conjecture = new NegatedFormula(conjecture);
-
-    FormulaUnit* conjecture_fu = new FormulaUnit(conjecture,
-                                 new Inference(Inference::INPUT),Unit::CONJECTURE); //TODO create new Inference kind?
-    FormulaUnit* fu = new FormulaUnit(negated_conjecture,
-                      new Inference1(Inference::NEGATED_CONJECTURE,conjecture_fu),
-                      Unit::CONJECTURE);
+    FormulaUnit* fu = new FormulaUnit(conjecture,
+                      new Inference(Inference::INPUT),Unit::CONJECTURE); //TODO create new Inference kind?
 
     fu = Rectify::rectify(fu);
     fu = NNF::ennf(fu);
@@ -186,20 +291,15 @@ void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& n
     ClauseList::pushFromIterator(Stack<Clause*>::Iterator(cls),newClauses);
 }
 
-Formula* FunctionRelationshipInference::getName(unsigned functionName, bool injective)
+// get a name for a formula that captures the relationship that |fromSrt| >= |toSrt|
+Formula* FunctionRelationshipInference::getName(unsigned fromSrt, unsigned toSrt)
 {
     CALL("FunctionRelationshipInference::getName");
 
-    vstring name = (injective ? "injective" : "surjective");
-    name += "Label";
-    unsigned label= env.signature->addFreshPredicate(0,name.c_str());
+    unsigned label= env.signature->addFreshPredicate(0,"label");
+    env.signature->getPredicate(label)->markLabel();
 
-    if(injective){
-      injectiveMap.insert(label,functionName);
-    }
-    else{
-      surjectiveMap.insert(label,functionName);
-    }
+    _labelMap.insert(label,make_pair(fromSrt,toSrt));
 
     return new AtomicFormula(Literal::create(label,0,true,false,0)); 
 }

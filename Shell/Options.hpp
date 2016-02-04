@@ -1765,6 +1765,7 @@ public:
   vstring namePrefix() const { return _namePrefix.actualValue; }
   bool timeStatistics() const { return _timeStatistics.actualValue; }
   bool splitting() const { return _splitting.actualValue; }
+  void setSplitting(bool value){ _splitting.actualValue=value; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
   unsigned sineDepth() const { return _sineDepth.actualValue; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
@@ -1820,7 +1821,6 @@ public:
   
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
-  // int getTimeLimit(){return _timeLimitInDeciseconds.actualValue;} // MS: unused and the name does not stipulate the units (deciseconds)
   int getWhileNumber(){return _whileNumber.actualValue;}
   int getFunctionNumber(){return _functionNumber.actualValue;}
 
