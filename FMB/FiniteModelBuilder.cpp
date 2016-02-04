@@ -53,15 +53,16 @@
 
 #define VTRACE_FMB 0
 
+#define VTRACE_DOMAINS 1
+
 namespace FMB 
 {
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _sortedSignature(0), _clauses(0),
-                      _isComplete(true), 
+                      _isComplete(true)
                       //_maxModelSizeAllSorts(1),
-                      _sortSizesRoot(new SortSizesTree()), 
-                      _sortLimit(1), _nextSortLimitCheck(1), _sortCombinationsTried(0)
+
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
 
@@ -1210,7 +1211,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
   }
 
   ALWAYS(reset());
-  ALWAYS(!blockDistinctSizes());
   while(true){
     if(env.options->mode()!=Options::Mode::SPIDER) { 
       cout << "TRYING " << "["; 
@@ -1290,19 +1290,33 @@ MainLoopResult FiniteModelBuilder::runImpl()
       // _solver->explicitlyMinimizedFailedAssumptions(); // TODO: try adding this in
       const SATLiteralStack& failed = _solver->failedAssumptions();
 
-      cout << "should increase ";
+      Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size());
+      Constraint_Generator& constraint = *constraint_p;
+
+      for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+        // TODO: when instances are marked, we start with STAR
+        constraint[i] = make_pair(GEQ,_distinctSortSizes[i]);
+      }
+
+      // TODO: when instances are marked, we check for instance marker, and its presence demotes STAR to GEQ
+
       for (unsigned i = 0; i < failed.size(); i++) {
-        cout << failed[i].var()- domMustGrowMarker_offset << " or ";
+        constraint[failed[i].var()-domMustGrowMarker_offset].first = EQ;
       }
+
+#if VTRACE_DOMAINS
+      cout << "Adding generator/constraint: ";
+      output_cg(constraint);
       cout << endl;
+#endif
 
-      ASS_EQ(failed.size(),1);
+      _constraints_generators.push_back(constraint_p);
+    }
 
-      _distinctSortSizes[failed[0].var()-domMustGrowMarker_offset]++;
-
-      for(unsigned s=0;s<_sortedSignature->sorts;s++){
-        _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
-      }
+    if (!increaseModelSizes()) {
+      Clause* empty = new(0) Clause(0,Unit::AXIOM,
+         new Inference(Inference::MODEL_NOT_FOUND));
+      return MainLoopResult(Statistics::REFUTATION,empty);
     }
 
     if(!reset()){
@@ -1723,113 +1737,74 @@ ppModelLabel:
   env.statistics->model = model.toString();
 }
 
+bool FiniteModelBuilder::increaseModelSizes(){
+  CALL("FiniteModelBuilder::increaseModelSizes");
 
-bool FiniteModelBuilder::blockDistinctSizes()
-{
-  CALL("FiniteModelBuilder::blockDistinctSizes");
+  while (_constraints_generators.isNonEmpty()) {
+    Constraint_Generator& generator = *_constraints_generators.front();
 
-  if(_nextSortLimitCheck == _sortCombinationsTried){
-    _sortLimit++;
-    _nextSortLimitCheck = pow(_sortLimit,_sortedSignature->distinctSorts);
-  }
-
-  // start assuming we have seen this before
-  bool result = true;
-  unsigned s=0;
-  SortSizesTree* tree = _sortSizesRoot;
-  ASS(tree);
-  for(;s<_sortedSignature->distinctSorts;s++){
-    if(!tree->children.find(_distinctSortSizes[s],tree)){
-      // we haven't seen this before 
-      result = false;
-      break;
-    }
-  }
-  // if we haven't seen this before then record it
-  if(!result){
-    _sortCombinationsTried++;
-    for(;s<_sortedSignature->distinctSorts;s++){
-      SortSizesTree* nextTree = new SortSizesTree();
-      tree->children.insert(_distinctSortSizes[s],nextTree);
-      tree=nextTree;
-    }
-  }
-  else return result;
-
-  ASS(!result); // not blocking so far
-
-  // Check if it should be blocked due to min and max bounds on sorts
-  for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
-    if(_distinctSortSizes[s] < _distinctSortMins[s] || 
-       _distinctSortSizes[s] > _distinctSortMaxs[s]) result = true; 
-  }
-
-#if VTRACE_FMB 
-  if(result){
-      cout << "BLOCKING " << "[";
-      for(unsigned i=0;i<_distinctSortSizes.size();i++){
-        cout << _distinctSortSizes[i];
-        if(i+1 < _distinctSortSizes.size()) cout << ",";
-      }
-      cout << "]" << endl;
-  }
+#if VTRACE_DOMAINS
+    cout << "Picking generator: ";
+    output_cg(generator);
+    cout << endl;
 #endif
 
-  return result;
-}
-
-void FiniteModelBuilder::increaseModelSizes(){ 
-  CALL("FiniteModelBuilder::increaseModelSizes");
-  // This works with distinct sorts and then maps this to _maxModelSizes
-
-  //cout << "TRIED " << _sortCombinationsTried << " limit is " << _sortLimit << " check is " << _nextSortLimitCheck << endl;
-
-  do{
-    unsigned index = Random::getInteger(_sortedSignature->distinctSorts);
-    unsigned prev = _distinctSortSizes[index];
-    if(prev == _sortLimit && prev==1) continue; // can't do anything with this sort! 
-    else if(prev == _sortLimit) _distinctSortSizes[index]--;
-    else if(prev < _sortLimit && prev==1) _distinctSortSizes[index]++; 
-    else{
-      unsigned direction = Random::getBit();
-      if(direction) _distinctSortSizes[index]++;
-      else _distinctSortSizes[index]--;
-    }
-  }
-  while(blockDistinctSizes());
-
- // _distinctSortSizes[0] = 4;
- // _distinctSortSizes[1] = 1;
-    //_distinctSortSizes[0]=5;
-    //_distinctSortSizes[1]=10;
-
-  for(unsigned s=0;s<_sortedSignature->sorts;s++){
-    _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
-  }
-
-/*
-    if(modelSize == UINT_MAX){
-      return MainLoopResult(Statistics::UNKNOWN);
+    // copy generator to _distinctSortSizes
+    for (unsigned i = 0; i< _distinctSortSizes.size(); i++) {
+      _distinctSortSizes[i] = generator[i].second;
     }
 
-    if(modelSize >= _maxModelSize){
+    // all possible increments [+1,+0,+0,..],[+0,+1,+0,..],[+0,+0,+1,..], ...
+    for (unsigned i = 0; i< _distinctSortSizes.size(); i++) {
+      // generate
+      _distinctSortSizes[i] += 1;
 
-      if(env.options->mode()!=Options::Mode::SPIDER) { 
-        if(env.property->category()==Property::EPR || _maxArity==0){
-          cout << "Checked all constants of an EPR problem" << endl;
+#if VTRACE_DOMAINS
+      cout << "  Testing increment on " << i << endl;
+#endif
+
+      // test
+      Lib::Deque<Constraint_Generator*>::FrontToBackIterator it(_constraints_generators);
+      while (it.hasNext()) {
+        Constraint_Generator& constraint = *it.next();
+
+        for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
+          pair<ConstraintSign,unsigned>& cc = constraint[j];
+          if (cc.first == EQ && cc.second != _distinctSortSizes[j]) {
+            goto next_constraint;
+          }
+          if (cc.first == GEQ && cc.second > _distinctSortSizes[j]) {
+            goto next_constraint;
+          }
         }
-        else{
-          cout << "All further models will be UNSAT due to variable constraint" << endl;
-        }
+
+#if VTRACE_DOMAINS
+        cout << "  Ruled out by "; output_cg(constraint); cout << endl;
+#endif
+
+        goto next_candidate;
+
+        next_constraint: ;
       }
 
-      // create dummy empty clause as refutation
-      Clause* empty = new(0) Clause(0,Unit::AXIOM,
-         new Inference(Inference::MODEL_NOT_FOUND));
-      return MainLoopResult(Statistics::REFUTATION,empty); 
-    }
-*/
+      // all passed
+      for(unsigned s=0;s<_sortedSignature->sorts;s++) {
+        _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
+      }
+      return true;
 
+      //undo
+      next_candidate:
+      _distinctSortSizes[i] -= 1;
+    }
+
+    delete _constraints_generators.pop_front();
+#if VTRACE_DOMAINS
+    cout << "Deleted" << endl;
+#endif
+  }
+
+  return false;
 }
 
 }
