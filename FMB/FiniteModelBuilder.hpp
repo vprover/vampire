@@ -12,6 +12,7 @@
 #include "SAT/SATSolver.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "SortInference.hpp"
+#include "Lib/Deque.hpp"
 
 namespace FMB {
 using namespace Lib;
@@ -162,11 +163,49 @@ private:
   // Option used in symmetry breaking
   float _symmetryRatio;
 
-
   // sizes to use for each sort
   DArray<unsigned> _sortModelSizes;
-  void increaseModelSizes();
-  DArray<unsigned> _distinctSortSizes; 
+  DArray<unsigned> _distinctSortSizes;
+
+  enum ConstraintSign {
+    EQ,     // the value has to matched
+    GEQ,    // the value needs to be greater or equal
+    STAR    // we don't care about this value
+  };
+
+  typedef DArray<pair<ConstraintSign,unsigned>> Constraint_Generator;
+
+  void output_cg(Constraint_Generator& cg) {
+    cout << "[";
+    for (unsigned i = 0; i < cg.size(); i++) {
+      cout << cg[i].second;
+      switch(cg[i].first) {
+      case EQ:
+        cout << "=";
+        break;
+      case GEQ:
+        cout << "<";
+        break;
+      case STAR:
+        cout << "*";
+        break;
+      default:
+        ASSERTION_VIOLATION;
+      }
+      if (i < cg.size()-1) {
+        cout << ", ";
+      }
+    }
+    cout << "]";
+  }
+
+  /**
+   * Constraints are at the same time used as generators.
+   */
+  Lib::Deque<Constraint_Generator*> _constraints_generators;
+
+  // returns false one failure
+  bool increaseModelSizes();
 
   // Record the number of constants in the problem per distinct sort
   DArray<unsigned> _distinctSortConstantCount;
@@ -174,18 +213,6 @@ private:
   DArray<unsigned> _distinctSortMins;
   DArray<unsigned> _distinctSortMaxs;
   //unsigned _maxModelSizeAllSorts;
-
-  struct SortSizesTree{
-    DHMap<unsigned,SortSizesTree*> children;
-  };
-  SortSizesTree* _sortSizesRoot;
-
-  unsigned _sortLimit;
-  unsigned _nextSortLimitCheck;
-  unsigned _sortCombinationsTried;
-
-  bool blockDistinctSizes();
-
 };
 }
 
