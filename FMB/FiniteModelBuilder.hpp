@@ -152,10 +152,14 @@ private:
   DArray<unsigned> f_offsets;
   DArray<unsigned> p_offsets;
 
-  /* for each distinctSort i there is a variable (domMustGrowMarker_offset+i)
+  /* for each distinctSort i there is a variable (totalityMarker_offset+i)
    * which we use in the encoding to learn which domain should grow in order to possibly resolve a conflict.
    */
-  unsigned domMustGrowMarker_offset;
+  unsigned totalityMarker_offset;
+  /* for each distinctSort i there is a variable (instancesMarker_offset+i)
+   * which we use in the encoding to learn whether it makes sense to change the domain sizes at all.
+   */
+  unsigned instancesMarker_offset;
 
   /** Parameters to the FBM saturation **/
 

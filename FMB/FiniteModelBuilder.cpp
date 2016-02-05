@@ -35,6 +35,7 @@
 #include "Lib/Sort.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/DHSet.hpp"
+#include "Lib/ArrayMap.hpp"
 
 #include "Shell/UIHelper.hpp"
 #include "Shell/TPTPPrinter.hpp"
@@ -147,9 +148,18 @@ bool FiniteModelBuilder::reset(){
 #endif
 
   {
-    domMustGrowMarker_offset = offsets;
-
     unsigned add = _distinctSortSizes.size();
+
+    totalityMarker_offset = offsets;
+
+    // Check for overflow
+    if(UINT_MAX - add < offsets){
+      return false;
+    }
+
+    offsets += add;
+
+    instancesMarker_offset = offsets;
 
     // Check for overflow
     if(UINT_MAX - add < offsets){
@@ -711,12 +721,16 @@ void FiniteModelBuilder::addNewInstances()
     }
     ASS(varSorts);
 
+    static ArraySet varDistinctSortsSet(_distinctSortSizes.size());
+    varDistinctSortsSet.reset();
+
     //cout << "maxVarSizes "<<endl;;
     for(unsigned var=0;var<vars;var++){
       unsigned srt = (*varSorts)[var];
       //cout << "srt="<<srt;
       maxVarSize[var] = min(_sortModelSizes[srt],_sortedSignature->sortBounds[srt]);
       //cout << ",max="<<maxVarSize[var] << endl;
+      varDistinctSortsSet.set(_sortedSignature->parents[srt]);
     }
     
     static DArray<unsigned> grounding;
@@ -737,6 +751,13 @@ instanceLabel:
         // Grounding represents a new instance
         static SATLiteralStack satClauseLits;
         satClauseLits.reset();
+
+        // start by adding the sort markers
+        for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+          if (varDistinctSortsSet.find(i)) {
+            satClauseLits.push(SATLiteral(instancesMarker_offset+i,0));
+          }
+        }
 
         // Ground and translate each literal into a SATLiteral
         for(unsigned lindex=0;lindex<c->length();lindex++){
@@ -1008,7 +1029,7 @@ void FiniteModelBuilder::addNewTotalityDefs()
         SATLiteral slit = getSATLiteral(f,use,true,true);
         satClauseLits.push(slit);
       }
-      satClauseLits.push(SATLiteral(domMustGrowMarker_offset+_sortedSignature->parents[srt],0));
+      satClauseLits.push(SATLiteral(totalityMarker_offset+_sortedSignature->parents[srt],0));
 
       SATClause* satCl = SATClause::fromStack(satClauseLits);
       addSATClause(satCl); 
@@ -1051,7 +1072,7 @@ newTotalLabel:
             use[arity]=constant;
             satClauseLits.push(getSATLiteral(f,use,true,true));
           }
-          satClauseLits.push(SATLiteral(domMustGrowMarker_offset+_sortedSignature->parents[retSrt],0));
+          satClauseLits.push(SATLiteral(totalityMarker_offset+_sortedSignature->parents[retSrt],0));
 
           SATClause* satCl = SATClause::fromStack(satClauseLits);
           addSATClause(satCl);
@@ -1209,7 +1230,10 @@ MainLoopResult FiniteModelBuilder::runImpl()
       static SATLiteralStack assumptions(_distinctSortSizes.size());
       assumptions.reset();
       for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
-        assumptions.push(SATLiteral(domMustGrowMarker_offset+i,1));
+        assumptions.push(SATLiteral(totalityMarker_offset+i,1));
+      }
+      for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+        assumptions.push(SATLiteral(instancesMarker_offset+i,1));
       }
 
       satResult = _solver->solveUnderAssumptions(assumptions);
@@ -1238,14 +1262,18 @@ MainLoopResult FiniteModelBuilder::runImpl()
       Constraint_Generator& constraint = *constraint_p;
 
       for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
-        // TODO: when instances are marked, we start with STAR
-        constraint[i] = make_pair(GEQ,_distinctSortSizes[i]);
+        constraint[i] = make_pair(STAR,_distinctSortSizes[i]);
       }
 
-      // TODO: when instances are marked, we check for instance marker, and its presence demotes STAR to GEQ
-
       for (unsigned i = 0; i < failed.size(); i++) {
-        constraint[failed[i].var()-domMustGrowMarker_offset].first = EQ;
+        unsigned var = failed[i].var();
+        ASS_GE(var,totalityMarker_offset);
+
+        if (var < instancesMarker_offset) { // totality used (-> instances used as well)
+          constraint[var-totalityMarker_offset].first = EQ;
+        } else if (constraint[var-instancesMarker_offset].first == STAR) { // instances used (and we don't know yet about totality)
+          constraint[var-instancesMarker_offset].first = GEQ;
+        }
       }
 
 #if VTRACE_DOMAINS
