@@ -54,7 +54,7 @@
 
 #define VTRACE_FMB 0
 
-#define VTRACE_DOMAINS 1
+#define VTRACE_DOMAINS 0
 
 namespace FMB 
 {
@@ -1255,7 +1255,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
     _clausesToBeAdded.reset();
 
     {
-      // _solver->explicitlyMinimizedFailedAssumptions(); // TODO: try adding this in
+      // _solver->explicitlyMinimizedFailedAssumptions(false,true); // TODO: try adding this in
       const SATLiteralStack& failed = _solver->failedAssumptions();
 
       Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size());
@@ -1276,11 +1276,11 @@ MainLoopResult FiniteModelBuilder::runImpl()
         }
       }
 
-#if VTRACE_DOMAINS
+// #if VTRACE_DOMAINS
       cout << "Adding generator/constraint: ";
       output_cg(constraint);
       cout << endl;
-#endif
+// #endif
 
       _constraints_generators.push_back(constraint_p);
     }
