@@ -143,37 +143,6 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
     return;
   }
 
-  if (literal->isEquality()) {
-    TermList argument[2];
-    bool isFormula[2];
-
-    for (SIDE side : { LEFT, RIGHT }) {
-      argument[side]  = *literal->nthArgument(side);
-      isFormula[side] = argument[side].isTerm() && argument[side].term()->isBoolean();
-    }
-
-    if (isFormula[LEFT] || isFormula[RIGHT]) {
-      Formula* processedFormula[2];
-      for (SIDE side : { LEFT, RIGHT }) {
-        if (isFormula[side]) {
-          processedFormula[side] = BoolTermFormula::create(argument[side]);
-        } else {
-          ASS_REP(argument[side].isVar(), argument[side].toString());
-          Literal* eqLiteral = Literal::createEquality(POSITIVE, argument[side], TermList(Term::foolTrue()), Sorts::SRT_BOOL);
-          processedFormula[side] = new AtomicFormula(eqLiteral);
-        }
-      }
-
-      Formula* equivalence = new BinaryFormula(IFF, processedFormula[LEFT], processedFormula[RIGHT]);
-
-      occurrences.replaceBy(equivalence);
-
-      enqueue(equivalence, occurrences);
-
-      return;
-    }
-  }
-
   Stack<Term*> specialTerms;
   Stack<TermList> names;
 

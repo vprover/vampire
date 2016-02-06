@@ -97,6 +97,19 @@ Formula* Flattening::flatten (Formula* f)
   case LITERAL:
     {
       Literal* lit = f->literal();
+
+      // Convert "$formula{A} = $formula{B}" into "A <=> B"
+      if (lit->isEquality()) {
+        TermList lhs = *lit->nthArgument(0);
+        TermList rhs = *lit->nthArgument(1);
+
+        if (lhs.isTerm() && lhs.term()->isFormula() && rhs.isTerm() && rhs.term()->isFormula()) {
+          Formula* lhsFormula = lhs.term()->getSpecialData()->getFormula();
+          Formula* rhsFormula = rhs.term()->getSpecialData()->getFormula();
+          return flatten(new BinaryFormula(lit->polarity() ? IFF : XOR, lhsFormula, rhsFormula));
+        }
+      }
+
       Literal* flattenedLit = flatten(lit);
       if (lit == flattenedLit) {
         return f;

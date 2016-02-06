@@ -431,34 +431,6 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
   case LITERAL:
   {
     Literal* l = f->literal();
-    if(l->isEquality()) {
-      if (l->isTwoVarEquality() || l->shared()) {
-        return f;
-      }
-
-      TermList lhs = *l->nthArgument(0);
-      TermList rhs = *l->nthArgument(1);
-
-      if (!lhs.isTerm() || !rhs.isTerm()) {
-        return f;
-      }
-
-      if (!lhs.term()->isFormula() || !rhs.term()->isFormula()) {
-        return f;
-      }
-
-      Formula* lhsFormula = lhs.term()->getSpecialData()->getFormula();
-      Formula* rhsFormula = rhs.term()->getSpecialData()->getFormula();
-
-      Formula* equivalence = new BinaryFormula(l->isPositive() ? IFF : XOR, lhsFormula, rhsFormula);
-      Formula* replacedEquivalence = replacePurePredicates(equivalence);
-
-      if (equivalence != replacedEquivalence) {
-        return replacedEquivalence;
-      }
-
-      return f;
-    }
     bool value;
     if(!_purePreds.find(l->functor(), value)) {
       return f;
@@ -715,29 +687,6 @@ FormulaUnit* PredicateDefinition::makeImplFromDef(FormulaUnit* def, unsigned pre
       break;
     }
 
-    case LITERAL: {
-      Literal* l = f->literal();
-      ASS_REP(l->isEquality() && !l->isTwoVarEquality() && !l->shared(), def->toString());
-
-      TermList left  = *l->nthArgument(0);
-      TermList right = *l->nthArgument(1);
-
-      ASS_REP(left.isTerm()  && left.term()->isFormula(),  def->toString());
-      ASS_REP(right.isTerm() && right.term()->isFormula(), def->toString());
-
-      Formula* leftFormula  = left.term()->getSpecialData()->getFormula();
-      Formula* rightFormula = right.term()->getSpecialData()->getFormula();
-
-      if (leftFormula->connective()==LITERAL && leftFormula->literal()->functor()==pred) {
-        lhs = leftFormula;
-        rhs = rightFormula;
-      } else {
-        lhs = rightFormula;
-        rhs = leftFormula;
-      }
-      break;
-    }
-
     default:
       return 0;
   }
@@ -805,41 +754,6 @@ void PredicateDefinition::scan(FormulaUnit* unit)
       }
       break;
 
-    case LITERAL: {
-      Literal* l = f->literal();
-      if (!l->isEquality() || l->isTwoVarEquality()) {
-        return;
-      }
-
-      if (l->shared()) {
-        return;
-      }
-
-      TermList lhs = *l->nthArgument(0);
-      TermList rhs = *l->nthArgument(1);
-
-      if (!lhs.isTerm() || !rhs.isTerm()) {
-        return;
-      }
-
-      if (!lhs.term()->isFormula() || !rhs.term()->isFormula()) {
-        return;
-      }
-
-      Formula* lhsFormula = lhs.term()->getSpecialData()->getFormula();
-      Formula* rhsFormula = rhs.term()->getSpecialData()->getFormula();
-
-      if(lhsFormula->connective()==LITERAL) {
-        if(tryGetDef(lhsFormula->literal(), rhsFormula, unit)) {
-          return;
-        }
-      }
-      if(rhsFormula->connective()==LITERAL) {
-        tryGetDef(rhsFormula->literal(), lhsFormula, unit);
-      }
-      break;
-    }
-
     case FORALL:
       ASSERTION_VIOLATION_REP(unit->toString()); //formula is flattened
 
@@ -884,30 +798,6 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
     case LITERAL:
     {
       Literal* l=f->literal();
-      if(l->isEquality()) {
-        if (l->isTwoVarEquality() || l->shared()) {
-          return;
-        }
-
-        TermList lhs = *l->nthArgument(0);
-        TermList rhs = *l->nthArgument(1);
-
-        if (!lhs.isTerm() || !rhs.isTerm()) {
-          return;
-        }
-
-        if (!lhs.term()->isFormula() || !rhs.term()->isFormula()) {
-          return;
-        }
-
-        Formula* lhsFormula = lhs.term()->getSpecialData()->getFormula();
-        Formula* rhsFormula = rhs.term()->getSpecialData()->getFormula();
-
-        count (lhsFormula, 0, add, unit);
-        count (rhsFormula, 0, add, unit);
-
-        return;
-      }
       int pred = l->functor();
       _preds[pred].add(l->isPositive() ? polarity : -polarity, add, this);
       if(add==1) {
