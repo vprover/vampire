@@ -322,7 +322,7 @@ private:
 
   void skolemise(QuantifiedFormula* g, BindingList* &bindings);
 
-  Kernel::Literal* createNamingLiteral(Formula* g, VarSet* free);
+  Kernel::Literal* createNamingLiteral(Formula* g, List<unsigned>* free);
   Kernel::Formula* nameSubformula(Formula* g, Occurrences &occInfo);
 
   void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {
@@ -353,9 +353,10 @@ private:
   TermList nameLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
   TermList inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
 
-  TermList findSpecialTermData(TermList ts, Stack<Term*> &specialTerms, Stack<TermList> &names);
+  TermList findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula*> &conditions,
+                                 Stack<TermList> &thenBranches, Stack<TermList> &elseBranches);
 
-  TermList createNamingTerm(unsigned functor, IntList* vars);
+  unsigned createFreshVariable(unsigned sort);
 }; // class NewCNF
 
 }
