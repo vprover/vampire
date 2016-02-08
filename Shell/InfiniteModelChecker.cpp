@@ -83,6 +83,8 @@ void InfiniteModelChecker::addCheckingClauses(Problem& prb)
     // For unary functions it's straight forward 
     if(arity == 1){
       unsigned arg_srt = ftype->arg(0);
+      // srts must be the same!!
+      if(ret_srt != arg_srt) continue;
       TermList fx(Term::create1(f,x));
       TermList fy(Term::create1(f,y));
       addClaimForFunction(x,y,fx,fy,arg_srt,ret_srt,0,newClauses);
@@ -98,6 +100,11 @@ void InfiniteModelChecker::addCheckingClauses(Problem& prb)
       }
 
       for(unsigned i=0;i<arity;i++){
+
+        unsigned arg_srt = ftype->arg(i);
+        // srts must be the same!!
+        if(ret_srt != arg_srt) continue;
+
         TermList xargs[arity];
         TermList yargs[arity];
 
@@ -117,7 +124,6 @@ void InfiniteModelChecker::addCheckingClauses(Problem& prb)
         TermList fx(Term::create(f,arity,xargs));
         TermList fy(Term::create(f,arity,yargs));
 
-        unsigned arg_srt = ftype->arg(i);
         addClaimForFunction(x,y,fx,fy,arg_srt,ret_srt,existential,newClauses);
       }
     }
