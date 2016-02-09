@@ -329,34 +329,16 @@ void FiniteModelBuilder::init()
 
   env.statistics->phase = Statistics::FMB_PREPROCESSING;
 
-  // EXPERIMENT
-  /*
-
-  // let's count the functions that have differing sorts in arguments and return
-  unsigned fcount=0;
-  for(unsigned f=0;f<env.signature->functions();f++){
-
-    FunctionType* type = env.signature->getFunction(f)->fnType();
-    unsigned ret = type->result();
-    for(unsigned i=0;i<env.signature->functionArity(f);i++){
-      unsigned arg = type->arg(i);
-      if(ret!=arg){
-        fcount++;
-        break;
-      }
-    }
+  
+  Stack<DHSet<unsigned>*> equivalent_vampire_sorts; 
+  DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints;
+  if(env.options->fmbDetectSortBounds()){
+    FunctionRelationshipInference inf;
+    inf.findFunctionRelationships(
+      _prb.clauseIterator(),
+      equivalent_vampire_sorts,
+      vampire_sort_constraints); 
   }
-  cout << "fcount " << fcount << " out of " << env.signature->functions() << endl;
-
-  FunctionRelationshipInference inf;
-  Stack<DHSet<unsigned>*> eqv;
-  DHSet<std::pair<unsigned,unsigned>> con;
-  inf.findFunctionRelationships(_prb.clauseIterator(),eqv,con);
-
-  USER_ERROR("Stop");
-
-  */
-  // EXPERIMENT
 
 
   // Perform DefinitionIntroduction as we iterate
@@ -436,8 +418,21 @@ void FiniteModelBuilder::init()
   // preprocessing should preserve sorts and doing this here means that introduced symbols get sorts
   {
     TimeCounter tc(TC_FMB_SORT_INFERENCE);
-    _sortedSignature = SortInference::apply(_clauses,del_f,del_p);
+    _sortedSignature = SortInference::apply(_clauses,del_f,del_p,equivalent_vampire_sorts);
     ASS(_sortedSignature);
+
+    // now we have a mapping between vampire sorts and distinct sorts we can translate
+    // the sort constraints, if any
+    {
+      DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints); 
+      while(it.hasNext()){
+        std::pair<unsigned,unsigned> vconstraint = it.next();
+        unsigned s1 = _sortedSignature->vampireToDistinct.get(vconstraint.first);
+        unsigned s2 = _sortedSignature->vampireToDistinct.get(vconstraint.second);
+        _distinct_sort_constraints.push(make_pair(s1,s2));
+      }
+    }
+
 
     // Record the maximum sort sizes detected during sort inference 
     _distinctSortMaxs.ensure(_sortedSignature->distinctSorts);
@@ -566,7 +561,7 @@ void FiniteModelBuilder::init()
   }
 
   //Set up clause signature
-  cout << "Setting up clause sigs" << endl;
+  //cout << "Setting up clause sigs" << endl;
   {
     ClauseList::Iterator cit(_clauses);
     while(cit.hasNext()){
@@ -1313,6 +1308,7 @@ void FiniteModelBuilder::onModelFound()
  if(_opt.mode()==Options::Mode::SPIDER){
    reportSpiderStatus('-');
  }
+ cout << "Finite Model Found!" << endl;
 
  //we need to print this early because model generating can take some time
  if(UIHelper::szsOutput) {

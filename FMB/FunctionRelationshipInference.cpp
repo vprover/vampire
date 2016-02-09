@@ -46,6 +46,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
                  Stack<DHSet<unsigned>*>& eq_classes, DHSet<std::pair<unsigned,unsigned>>& cons)
 {
   CALL("FunctionRelationshipInference::findFunctionRelationships");
+  bool print = true;//env.options->showFMBsortInfo();
 
   ClauseList* checkingClauses = getCheckingClauses();
 
@@ -56,6 +57,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   // because of bad things the time limit is actually taken from env!
   int oldTimeLimit = env.options->timeLimitInDeciseconds();
+  Property* oldProperty = env.property;
   env.options->setTimeLimitInSeconds(1);
   //opt.setTimeLimitInSeconds(5);
   opt.setSplitting(false);
@@ -74,8 +76,9 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   //cout << "DONE" << endl;
   //TODO do we even care about sres?
 
-  Timer::setTimeLimitEnforcement(false);
+  Timer::setTimeLimitEnforcement(true);
   env.options->setTimeLimitInDeciseconds(oldTimeLimit);
+  env.property = oldProperty;
 
   Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
   DHSet<std::pair<unsigned,unsigned>> constraints;
@@ -128,7 +131,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   }
   uf.evalComponents();
 
-  //cout << "Equalities:" << endl;
+  bool header_printed = false;
   {
     for(unsigned s=0;s<env.sorts->sorts();s++){
       DHSet<unsigned>* cls = new DHSet<unsigned>();
@@ -136,18 +139,26 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
         if(uf.root(t)==s) cls->insert(t);
       }
       if(cls->size()>1){
-       //cout << "= ";
-       //DHSet<unsigned>::Iterator it(cls);
-       //while(it.hasNext()) cout << it.next() << " ";
-       //cout << endl;
-       eq_classes.push(cls);   
+        if(print){
+           if(!header_printed){
+             cout << "Equalities:" << endl;
+             header_printed=true;
+           }
+           cout << "= ";
+           DHSet<unsigned>::Iterator it(*cls);
+           while(it.hasNext()) cout << it.next() << " ";
+           cout << endl;
+         }
+         eq_classes.push(cls);   
       }
     }
   }
   //cout << endl; cout << "All constraints:" << endl;
+  unsigned constraint_count = 0;
   {
     DHSet<std::pair<unsigned,unsigned>>::Iterator it1(constraints);
     while(it1.hasNext()){ 
+      constraint_count++;
       std::pair<unsigned,unsigned> con = it1.next();
       unsigned frst = uf.root(con.first);
       unsigned snd = uf.root(con.second);
@@ -155,6 +166,9 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
       //cout << env.sorts->sortName(frst) << " >= " << env.sorts->sortName(snd) << endl;
       cons.insert(make_pair(frst,snd));
     }
+  }
+  if(print){
+    cout << "There were " << constraint_count << " constraints between sorts" << endl;
   }
 
 

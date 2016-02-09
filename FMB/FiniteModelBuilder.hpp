@@ -212,6 +212,10 @@ private:
    */
   Lib::Deque<Constraint_Generator*> _constraints_generators;
 
+  // the sort constraints from injectivity/surjectivity
+  // pairs of distinct sorts where pair.first >= pair.second
+  Stack<std::pair<unsigned,unsigned>> _distinct_sort_constraints;
+
   // returns false one failure
   bool increaseModelSizes();
 

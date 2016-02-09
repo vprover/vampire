@@ -1636,6 +1636,7 @@ public:
   FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
   FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
   bool fmbCollapseMonotonicSorts() const {return _fmbCollapseMonotonicSorts.actualValue; }
+  bool fmbDetectSortBounds() const { return _fmbDetectSortBounds.actualValue; }
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
@@ -1671,6 +1672,7 @@ public:
   bool showSymbolElimination() const { return _showSymbolElimination.actualValue; }
   bool showTheoryAxioms() const { return _showTheoryAxioms.actualValue; }
   bool showFOOL() const { return _showFOOL.actualValue; }
+  bool showFMBsortInfo() const { return _showFMBsortInfo.actualValue; }
 #if VZ3
   bool showZ3() const { return _showZ3.actualValue; }
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
@@ -2011,6 +2013,7 @@ private:
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
   BoolOptionValue _fmbCollapseMonotonicSorts;
+  BoolOptionValue _fmbDetectSortBounds;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
@@ -2129,6 +2132,7 @@ private:
   BoolOptionValue _showSymbolElimination;
   BoolOptionValue _showTheoryAxioms;
   BoolOptionValue _showFOOL;
+  BoolOptionValue _showFMBsortInfo;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
