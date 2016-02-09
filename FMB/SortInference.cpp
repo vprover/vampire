@@ -22,6 +22,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/List.hpp"
+#include "Lib/DHSet.hpp"
 
 #include "Monotonicity.hpp"
 #include "SortInference.hpp"
@@ -41,6 +42,32 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
                                       DArray<unsigned> del_f,DArray<unsigned> del_p)
 {
   CALL("SortInference::run");
+
+  // Monotoniticy Detection
+  bool usingMonotonicity = env.options->fmbCollapseMonotonicSorts();
+  DHSet<unsigned> monotonicVampireSorts;
+  if(usingMonotonicity){
+    if(env.options->mode()!=Options::Mode::SPIDER){
+      cout << "Monotonicity information:" << endl;
+    }
+    for(unsigned s=0;s<env.sorts->sorts();s++){
+      if(env.property->usesSort(s)){
+        Monotonicity m(clauses,s);
+        bool monotonic = m.check();
+        if(monotonic){
+          monotonicVampireSorts.insert(s);
+        }
+        if(env.options->mode()!=Options::Mode::SPIDER){
+          if(monotonic){
+            cout << "Input sort " << env.sorts->sortName(s) << " is monotonic" << endl;
+          }
+          else{
+            cout << "Input sort " << env.sorts->sortName(s) << " is not necessarily monotonic" << endl;
+          }
+        }
+      }
+    }
+  }
 
   Array<unsigned> offset_f(env.signature->functions());
   Array<unsigned> offset_p(env.signature->predicates());
@@ -304,7 +331,11 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
   sig->predicateSignatures.ensure(env.signature->predicates());
 
   unsigned distinctSorts = 0;
-  DHMap<unsigned,unsigned> ourDistinctSorts; 
+  DHMap<unsigned,unsigned> ourDistinctSorts;
+
+  bool firstMonotonicSortSeen = false;
+  unsigned firstMonotonicSort = 0;
+  unsigned collapsed = 0;
 
 #if DEBUG_SORT_INFERENCE
   cout << "Setting function signatures" << endl;
@@ -353,11 +384,24 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
     else{
       parentSet[rangeSort]=true;
       unsigned vampireSort = fnType->result();
-      unsigned ourSort; 
+      unsigned ourSort;
       if(!ourDistinctSorts.find(vampireSort,ourSort)){
-        ourSort = distinctSorts++;
+        if(monotonicVampireSorts.contains(vampireSort)){
+          collapsed++;
+          if(firstMonotonicSortSeen){
+            ourSort = ourDistinctSorts.get(firstMonotonicSort);
+          }
+          else{
+            firstMonotonicSortSeen=true;
+            firstMonotonicSort = vampireSort;
+            ourSort = distinctSorts++;
+          }
+        }
+        else ourSort = distinctSorts++;
         ourDistinctSorts.insert(vampireSort,ourSort);
-        if(!sig->distinctToVampire.find(ourSort)){ sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());}
+        if(!sig->distinctToVampire.find(ourSort)){ 
+          sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());
+        }
         sig->distinctToVampire.get(ourSort)->push(vampireSort);
         sig->vampireToDistinct.insert(vampireSort,ourSort);
       }
@@ -386,7 +430,19 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
         unsigned vampireSort = fnType->arg(i);
         unsigned ourSort;
         if(!ourDistinctSorts.find(vampireSort,ourSort)){
-          ourSort = distinctSorts++;
+          if(monotonicVampireSorts.contains(vampireSort)){
+            collapsed++;
+            if(firstMonotonicSortSeen){
+              ourSort = ourDistinctSorts.get(firstMonotonicSort);
+            }
+            else{
+              firstMonotonicSortSeen=true;
+              firstMonotonicSort = vampireSort;
+              ourSort = distinctSorts++;
+            }
+          }
+          else ourSort = distinctSorts++;
+
           ourDistinctSorts.insert(vampireSort,ourSort);
           if(!sig->distinctToVampire.find(ourSort)){ sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());}
           sig->distinctToVampire.get(ourSort)->push(vampireSort);
@@ -445,7 +501,18 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
         unsigned vampireSort = prType->arg(i);
         unsigned ourSort;
         if(!ourDistinctSorts.find(vampireSort,ourSort)){
-          ourSort = distinctSorts++;
+          if(monotonicVampireSorts.contains(vampireSort)){
+            collapsed++;
+            if(firstMonotonicSortSeen){
+              ourSort = ourDistinctSorts.get(firstMonotonicSort);
+            }
+            else{
+              firstMonotonicSortSeen=true;
+              firstMonotonicSort = vampireSort;
+              ourSort = distinctSorts++;
+            }
+          }
+          else ourSort = distinctSorts++;
           ourDistinctSorts.insert(vampireSort,ourSort);
           if(!sig->distinctToVampire.find(ourSort)){ sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());}
           sig->distinctToVampire.get(ourSort)->push(vampireSort);
@@ -479,22 +546,8 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
 
   sig->distinctSorts = distinctSorts;
 
-  // Monotoniticy Detection
-/*
-  for(unsigned s=0;s<env.sorts->sorts();s++){
-    if(ourDistinctSorts.find(s)){
-      Monotonicity m(clauses,s);
-      if(m.check()){
-        cout << "vampire sort " << s << " is monotonic" << endl;
-      }
-      else{
-        cout << "vampire sort " << s << " is not monotonic" << endl;
-      }
-    }
-  }
-*/
-
   if(env.options->mode()!=Options::Mode::SPIDER){
+    if(collapsed>0){ cout << "Collapsed " << collapsed << " sorts into 1 as they are all monotonic" << endl;}
     cout << sig->distinctSorts << " distinct sorts" << endl;
     for(unsigned s=0;s<sig->distinctSorts;s++){
       unsigned children =0;
