@@ -272,7 +272,7 @@ unsigned NewCNF::createFreshVariable(unsigned sort)
 
   unsigned maxVar = 0;
 
-  VirtualIterator<unsigned> vars = _varSorts.range();
+  VirtualIterator<unsigned> vars = _varSorts.domain();
   while (vars.hasNext()) {
     unsigned var = vars.next();
     if (var > maxVar) {
