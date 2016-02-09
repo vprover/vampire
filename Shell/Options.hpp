@@ -1635,6 +1635,7 @@ public:
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
   FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
   FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
+  bool fmbCollapseMonotonicSorts() const {return _fmbCollapseMonotonicSorts.actualValue; }
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
@@ -2009,6 +2010,7 @@ private:
   FloatOptionValue _fmbSymmetryRatio;
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
+  BoolOptionValue _fmbCollapseMonotonicSorts;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
