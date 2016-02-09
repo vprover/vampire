@@ -312,6 +312,8 @@ private:
 
     bool isSeparator() { return sort == 0 && formula && !frm; }
 
+    bool isSharedTerm() { return !formula && (!trm.isTerm() || trm.term()->shared()); }
+
     /** Construct ParseResult from a formula */
     ParseResult(Formula* frm) : sort(BS_BOOL), formula(true), frm(frm) {}
     /** Construct ParseResult from a term of a given sort */
