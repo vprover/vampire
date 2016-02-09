@@ -811,14 +811,14 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
   CALL("SMTLIB2::ParseResult::asFormula");
 
   if (formula) {
-    ASS_EQ(sort, BS_BOOL);
+    ASS_EQ(sort, Sorts::SRT_BOOL);
     resFrm = frm;
 
     LOG2("asFormula formula ",resFrm->toString());
     return true;
   }
 
-  if (sort == BS_BOOL) {
+  if (sort == Sorts::SRT_BOOL) {
     // can we unwrap instead of wrapping back and forth?
     if (trm.isTerm()) {
       Term* t = trm.term();
@@ -847,14 +847,14 @@ unsigned SMTLIB2::ParseResult::asTerm(TermList& resTrm)
   CALL("SMTLIB2::ParseResult::asTerm");
 
   if (formula) {
-    ASS_EQ(sort, BS_BOOL);
+    ASS_EQ(sort, Sorts::SRT_BOOL);
 
     LOG2("asTerm wrap ",frm->toString());
 
     resTrm = TermList(Term::createFormula(frm));
 
     LOG2("asTerm sort ",sort);
-    return BS_BOOL;
+    return Sorts::SRT_BOOL;
   } else {
     resTrm = trm;
 

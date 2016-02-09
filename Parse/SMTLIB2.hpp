@@ -315,7 +315,7 @@ private:
     bool isSharedTerm() { return !formula && (!trm.isTerm() || trm.term()->shared()); }
 
     /** Construct ParseResult from a formula */
-    ParseResult(Formula* frm) : sort(BS_BOOL), formula(true), frm(frm) {}
+    ParseResult(Formula* frm) : sort(Sorts::SRT_BOOL), formula(true), frm(frm) {}
     /** Construct ParseResult from a term of a given sort */
     ParseResult(unsigned sort, TermList trm) : sort(sort), formula(false), trm(trm) {}
 
@@ -335,7 +335,7 @@ private:
     bool asFormula(Formula*& resFrm);
     /**
      * Interpret ParseResult as term
-     * and return its vampire sort (which may be BS_BOOL).
+     * and return its vampire sort (which may be Sorts::SRT_BOOL).
      */
     unsigned asTerm(TermList& resTrm);
 
