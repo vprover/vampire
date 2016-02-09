@@ -546,6 +546,11 @@ void Options::Options::init()
     _lookup.insert(&_showFOOL);
     _showFOOL.tag(OptionTag::OUTPUT);
 
+    _showFMBsortInfo = BoolOptionValue("show_fmb_sort_info","",false);
+    _showFMBsortInfo.description = "Print information about sorts in FMB";
+    _lookup.insert(&_showFMBsortInfo);
+    _showFMBsortInfo.tag(OptionTag::OUTPUT);
+
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
@@ -607,6 +612,11 @@ void Options::Options::init()
     _fmbCollapseMonotonicSorts.description = "";
     _fmbCollapseMonotonicSorts.setExperimental();
     _lookup.insert(&_fmbCollapseMonotonicSorts);
+
+    _fmbDetectSortBounds = BoolOptionValue("fmb_detect_sort_bounds","fmbdsb",false);
+    _fmbDetectSortBounds.description = "";
+    _fmbDetectSortBounds.setExperimental();
+    _lookup.insert(&_fmbDetectSortBounds);
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=

@@ -61,7 +61,8 @@ public:
   
   static SortedSignature*  apply(ClauseList* clauses,
                                  DArray<unsigned> del_f,
-                                 DArray<unsigned> del_p);
+                                 DArray<unsigned> del_p,
+                                 Stack<DHSet<unsigned>*> equiv_v_sorts);
 
 };
 
