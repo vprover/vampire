@@ -357,6 +357,8 @@ private:
                                  Stack<TermList> &thenBranches, Stack<TermList> &elseBranches);
 
   unsigned createFreshVariable(unsigned sort);
+
+  bool shouldInlineITE(unsigned variableCounter);
 }; // class NewCNF
 
 }

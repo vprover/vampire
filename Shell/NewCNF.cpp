@@ -154,53 +154,101 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   while (ait.hasNext()) {
     arguments.push(findITEs(ait.next(), variables, conditions, thenBranches, elseBranches));
   }
-
   Literal* processedLiteral = Literal::create(literal, arguments.begin());
 
-  List<Literal*> literals(processedLiteral);
+  List<pair<Literal*, List<GenLit>*> >* literals(0);
+  literals = literals->cons(make_pair(processedLiteral, List<GenLit>::empty()));
+
+  unsigned variableCounter = 0;
+  while (variables.isNonEmpty()) {
+    unsigned variable   = variables.pop();
+    Formula* condition  = conditions.pop();
+    TermList thenBranch = thenBranches.pop();
+    TermList elseBranch = elseBranches.pop();
+
+    enqueue(condition);
+
+    GenLit positiveCondition = GenLit(condition, POSITIVE);
+    GenLit negativeCondition = GenLit(condition, NEGATIVE);
+
+    Substitution thenSubst;
+    thenSubst.bind(variable, thenBranch);
+
+    Substitution elseSubst;
+    elseSubst.bind(variable, elseBranch);
+
+    List<pair<Literal*, List<GenLit>*> >* processedLiterals(0);
+
+    if (shouldInlineITE(variableCounter)) {
+      while (List<pair<Literal*, List<GenLit>*> >::isNonEmpty(literals)) {
+        pair<Literal*, List<GenLit>*> p = List<pair<Literal*, List<GenLit>*> >::pop(literals);
+        Literal* literal = p.first;
+        List<GenLit>* gls = p.second;
+
+        Literal* thenLiteral = SubstHelper::apply(literal, thenSubst);
+        Literal* elseLiteral = SubstHelper::apply(literal, elseSubst);
+
+        pair<Literal*, List<GenLit>*> thenPair = make_pair(thenLiteral, gls->cons(negativeCondition));
+        pair<Literal*, List<GenLit>*> elsePair = make_pair(elseLiteral, gls->cons(positiveCondition));
+
+        processedLiterals = processedLiterals->cons(thenPair);
+        processedLiterals = processedLiterals->cons(elsePair);
+      }
+    } else {
+      IntList::Iterator branchesFreeVars(thenBranch.freeVariables()->append(elseBranch.freeVariables()));
+      VarSet* fv = (VarSet*) freeVars(condition)->getUnion(VarSet::getFromIterator(branchesFreeVars));
+
+      List<unsigned>* vars = new List<unsigned>(variable);
+      List<unsigned>::pushFromIterator(VarSet::Iterator(*fv), vars);
+
+      /* TODO: createNamingLiteral needs a formula to mark the colors correctly.
+       * I'm not sure if it is the condition that should go here, but let's have that for now.
+       */
+      Formula* naming = new AtomicFormula(createNamingLiteral(condition, vars));
+
+      Formula* thenDefinition = SubstHelper::apply(naming, thenSubst);
+      Formula* elseDefinition = SubstHelper::apply(naming, elseSubst);
+
+      enqueue(thenDefinition);
+      enqueue(elseDefinition);
+
+      introduceGenClause(negativeCondition, GenLit(thenDefinition, POSITIVE));
+      introduceGenClause(positiveCondition, GenLit(elseDefinition, POSITIVE));
+
+      while (List<pair<Literal*, List<GenLit>*> >::isNonEmpty(literals)) {
+        pair<Literal*, List<GenLit>*> p = List<pair<Literal*, List<GenLit>*> >::pop(literals);
+        Literal* literal = p.first;
+        List<GenLit>* gls = p.second;
+
+        pair<Literal*, List<GenLit>*> namePair = make_pair(literal, gls->cons(GenLit(naming, NEGATIVE)));
+
+        processedLiterals = processedLiterals->cons(namePair);
+      }
+    }
+
+    literals = processedLiterals;
+    variableCounter++;
+  }
+
+  ASS(variables.isEmpty());
+  ASS(conditions.isEmpty());
+  ASS(thenBranches.isEmpty());
+  ASS(elseBranches.isEmpty());
 
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
 
-    List<Literal*>::Iterator lit(&literals);
+    List<pair<Literal*, List<GenLit>*> >::Iterator lit(literals);
     while (lit.hasNext()) {
-      Formula* f = new AtomicFormula(lit.next());
-      List<GenLit>* gls = new List<GenLit>(GenLit(f, occ.sign()));
+      pair<Literal*, List<GenLit>*> p = lit.next();
+      Literal* literal = p.first;
+      List<GenLit>* gls = p.second;
 
-      Stack<unsigned>::Iterator vit(variables);
-      Stack<Formula*>::Iterator cit(conditions);
-      Stack<TermList>::Iterator tit(thenBranches);
-      Stack<TermList>::Iterator eit(elseBranches);
-      while (vit.hasNext() && cit.hasNext() && tit.hasNext() && eit.hasNext()) {
-        unsigned variable = vit.next();
-        Formula* condition  = cit.next();
-        TermList thenBranch = tit.next();
-        TermList elseBranch = eit.next();
+      Formula* f = new AtomicFormula(literal);
 
-        IntList::Iterator branchesFreeVars(thenBranch.freeVariables()->append(elseBranch.freeVariables()));
-        VarSet* fv = (VarSet*) freeVars(condition)->getUnion(VarSet::getFromIterator(branchesFreeVars));
+      enqueue(f);
 
-        List<unsigned>* vars = new List<unsigned>(variable);
-        List<unsigned>::pushFromIterator(VarSet::Iterator(*fv), vars);
-
-        /* TODO: createNamingLiteral needs a formula to mark the colors correctly.
-         * I'm not sure if it is the condition that should go here, but let's have that for now.
-         */
-        Literal* naming = createNamingLiteral(condition, vars);
-        List<GenLit>::push(GenLit(new AtomicFormula(naming), NEGATIVE), gls);
-
-        Substitution thenBranchSubst;
-        thenBranchSubst.bind(variable, thenBranch);
-        Literal* thenBody = SubstHelper::apply(naming, thenBranchSubst);
-        introduceGenClause(GenLit(condition, NEGATIVE), GenLit(new AtomicFormula(thenBody), POSITIVE));
-
-        Substitution elseBranchSubst;
-        elseBranchSubst.bind(variable, elseBranch);
-        Literal* elseBody = SubstHelper::apply(naming, elseBranchSubst);
-        introduceGenClause(GenLit(condition, POSITIVE), GenLit(new AtomicFormula(elseBody), POSITIVE));
-      }
-
-      introduceExtendedGenClause(occ.gc, occ.position, gls);
+      introduceExtendedGenClause(occ.gc, occ.position, gls->cons(GenLit(f, occ.sign())));
     }
   }
 }
@@ -227,22 +275,18 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
   }
 
   Term::SpecialTermData* sd = term->getSpecialData();
-
-  Formula* condition;
-  TermList thenBranch, elseBranch;
-
   switch (sd->getType()) {
     case Term::SF_FORMULA: {
-      condition  = sd->getFormula();
-      thenBranch = TermList(Term::foolTrue());
-      elseBranch = TermList(Term::foolFalse());
+      conditions.push(sd->getFormula());
+      thenBranches.push(TermList(Term::foolTrue()));
+      elseBranches.push(TermList(Term::foolFalse()));
       break;
     }
 
     case Term::SF_ITE: {
-      condition  = sd->getCondition();
-      thenBranch = *term->nthArgument(0);
-      elseBranch = *term->nthArgument(1);
+      conditions.push(sd->getCondition());
+      thenBranches.push(*term->nthArgument(0));
+      elseBranches.push(*term->nthArgument(1));
       break;
     }
 
@@ -257,11 +301,12 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
   unsigned var = createFreshVariable(sort);
 
   variables.push(var);
-  conditions.push(condition);
-  thenBranches.push(thenBranch);
-  elseBranches.push(elseBranch);
 
   return TermList(var, false);
+}
+
+bool NewCNF::shouldInlineITE(unsigned variableCounter) {
+  return variableCounter < 2;
 }
 
 unsigned NewCNF::createFreshVariable(unsigned sort)
