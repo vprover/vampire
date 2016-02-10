@@ -1727,32 +1727,39 @@ bool FiniteModelBuilder::increaseModelSizes(){
       // generate
       _distinctSortSizes[i] += 1;
 
+      // test 1 -- max sizes
+      if (_distinctSortSizes[i] > _distinctSortMaxs[i]) {
+        goto next_candidate;
+      }
+
 #if VTRACE_DOMAINS
       cout << "  Testing increment on " << i << endl;
 #endif
 
-      // test
-      Lib::Deque<Constraint_Generator*>::FrontToBackIterator it(_constraints_generators);
-      while (it.hasNext()) {
-        Constraint_Generator& constraint = *it.next();
+      // test 2 -- generator constraints
+      {
+        Lib::Deque<Constraint_Generator*>::FrontToBackIterator it(_constraints_generators);
+        while (it.hasNext()) {
+          Constraint_Generator& constraint = *it.next();
 
-        for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
-          pair<ConstraintSign,unsigned>& cc = constraint[j];
-          if (cc.first == EQ && cc.second != _distinctSortSizes[j]) {
-            goto next_constraint;
+          for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
+            pair<ConstraintSign,unsigned>& cc = constraint[j];
+            if (cc.first == EQ && cc.second != _distinctSortSizes[j]) {
+              goto next_constraint;
+            }
+            if (cc.first == GEQ && cc.second > _distinctSortSizes[j]) {
+              goto next_constraint;
+            }
           }
-          if (cc.first == GEQ && cc.second > _distinctSortSizes[j]) {
-            goto next_constraint;
-          }
+
+  #if VTRACE_DOMAINS
+          cout << "  Ruled out by "; output_cg(constraint); cout << endl;
+  #endif
+
+          goto next_candidate;
+
+          next_constraint: ;
         }
-
-#if VTRACE_DOMAINS
-        cout << "  Ruled out by "; output_cg(constraint); cout << endl;
-#endif
-
-        goto next_candidate;
-
-        next_constraint: ;
       }
 
       // all passed
