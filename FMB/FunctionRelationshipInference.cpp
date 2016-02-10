@@ -149,6 +149,10 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
       nonstrict_cons.insert(make_pair(frst,snd));
     }
   }
+  if(print){
+    cout << "There were " << constraint_count << " non-strict constraints between sorts" << endl;
+  }
+  constraint_count = 0;
   {
     DHSet<std::pair<unsigned,unsigned>>::Iterator it1(strict_constraints);
     while(it1.hasNext()){
@@ -161,9 +165,8 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     }
   }
   if(print){
-    cout << "There were " << constraint_count << " constraints between sorts" << endl;
+    cout << "There were " << constraint_count << " strict constraints between sorts" << endl;
   }
-
 
 }
 
@@ -284,6 +287,8 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
 
     addClaim(injective,newClauses);
     addClaim(surjective,newClauses);
+    addClaim(ing_and_nons,newClauses);
+    addClaim(sur_and_noni,newClauses);
 }
 
 void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& newClauses)

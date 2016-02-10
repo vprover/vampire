@@ -331,13 +331,15 @@ void FiniteModelBuilder::init()
 
   
   Stack<DHSet<unsigned>*> equivalent_vampire_sorts; 
-  DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints;
+  DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_nonstrict;
+  DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_strict;
   if(env.options->fmbDetectSortBounds()){
     FunctionRelationshipInference inf;
     inf.findFunctionRelationships(
       _prb.clauseIterator(),
       equivalent_vampire_sorts,
-      vampire_sort_constraints); 
+      vampire_sort_constraints_nonstrict,
+      vampire_sort_constraints_strict); 
   }
 
 
@@ -424,12 +426,21 @@ void FiniteModelBuilder::init()
     // now we have a mapping between vampire sorts and distinct sorts we can translate
     // the sort constraints, if any
     {
-      DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints); 
+      DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_nonstrict); 
       while(it.hasNext()){
         std::pair<unsigned,unsigned> vconstraint = it.next();
         unsigned s1 = _sortedSignature->vampireToDistinct.get(vconstraint.first);
         unsigned s2 = _sortedSignature->vampireToDistinct.get(vconstraint.second);
         _distinct_sort_constraints.push(make_pair(s1,s2));
+      }
+    }
+    {
+      DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_strict);
+      while(it.hasNext()){
+        std::pair<unsigned,unsigned> vconstraint = it.next();
+        unsigned s1 = _sortedSignature->vampireToDistinct.get(vconstraint.first);
+        unsigned s2 = _sortedSignature->vampireToDistinct.get(vconstraint.second);
+        _strict_distinct_sort_constraints.push(make_pair(s1,s2));
       }
     }
 
