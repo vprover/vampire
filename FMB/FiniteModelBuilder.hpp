@@ -215,6 +215,8 @@ private:
   // the sort constraints from injectivity/surjectivity
   // pairs of distinct sorts where pair.first >= pair.second
   Stack<std::pair<unsigned,unsigned>> _distinct_sort_constraints;
+  // pairs of distinct sorts where pair.first > pair.second
+  Stack<std::pair<unsigned,unsigned>> _strict_distinct_sort_constraints;
 
   // returns false one failure
   bool increaseModelSizes();

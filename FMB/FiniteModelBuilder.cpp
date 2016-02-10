@@ -1762,6 +1762,25 @@ bool FiniteModelBuilder::increaseModelSizes(){
         }
       }
 
+      // test 3 -- (strict)_distinct_sort_constraints
+      {
+        Stack<std::pair<unsigned,unsigned>>::Iterator it1(_distinct_sort_constraints);
+        while (it1.hasNext()) {
+          std::pair<unsigned,unsigned> constr = it1.next();
+          if (_distinctSortSizes[constr.first] < _distinctSortSizes[constr.second]) {
+            goto next_candidate;
+          }
+        }
+
+        Stack<std::pair<unsigned,unsigned>>::Iterator it2(_strict_distinct_sort_constraints);
+        while (it2.hasNext()) {
+          std::pair<unsigned,unsigned> constr = it2.next();
+          if (_distinctSortSizes[constr.first] <= _distinctSortSizes[constr.second]) {
+            goto next_candidate;
+          }
+        }
+      }
+
       // all passed
       for(unsigned s=0;s<_sortedSignature->sorts;s++) {
         _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
