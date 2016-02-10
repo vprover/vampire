@@ -356,6 +356,16 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         Formula* condition  = simplify(sd->getCondition());
         TermList thenBranch = simplify(*term->nthArgument(0));
         TermList elseBranch = simplify(*term->nthArgument(1));
+
+        switch (condition->connective()) {
+          case TRUE:
+            return thenBranch;
+          case FALSE:
+            return elseBranch;
+          default:
+            break;
+        }
+
         if ((condition  == sd->getCondition()) &&
             (thenBranch == *term->nthArgument(0)) &&
             (elseBranch == *term->nthArgument(1))) {
