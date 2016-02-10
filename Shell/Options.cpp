@@ -618,6 +618,11 @@ void Options::Options::init()
     _fmbDetectSortBounds.setExperimental();
     _lookup.insert(&_fmbDetectSortBounds);
 
+    _fmbDetectSortBoundsTimeLimit = UnsignedOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",1);
+    _fmbDetectSortBoundsTimeLimit.description = "";
+    _fmbDetectSortBoundsTimeLimit.setExperimental();
+    _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
+
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
     "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
