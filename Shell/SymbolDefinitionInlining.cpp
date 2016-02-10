@@ -40,7 +40,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
         return TermList(Term::createFormula(process(sd->getFormula())));
 
       case Term::SF_ITE:
-        return TermList(Term::createITE(sd->getCondition(),
+        return TermList(Term::createITE(process(sd->getCondition()),
                                         process(*term->nthArgument(0)),
                                         process(*term->nthArgument(1)),
                                         sd->getSort()));
