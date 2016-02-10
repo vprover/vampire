@@ -67,7 +67,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/LaTeX.hpp"
-#include "Shell/InfiniteModelChecker.hpp"
+#include "Shell/Infinox.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -524,7 +524,7 @@ void infinoxMode()
 {
   CALL("InfinoxMode");
   
-  Shell::InfiniteModelChecker::doCheck(*getPreprocessedProblem());
+  Shell::Infinox::doCheck(*getPreprocessedProblem());
 
 }
 
@@ -976,7 +976,7 @@ int main(int argc, char* argv[])
     
     case Options::Mode::INFINOX:
     if(CASC::CASCMode::perform(argc, argv)){
-       cout << "Infinite Model Detected" << endl;
+       cout << ">> Lack of Finite Model Detected" << endl;
        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
      }
 

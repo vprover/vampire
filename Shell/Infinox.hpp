@@ -1,5 +1,5 @@
 /**
- * @file InfiniteModelChecker.hpp
+ * @file Infinox.hpp
  *
  * Designed to check if the input problem has an infinite model
  * Based on the Infinox prover
@@ -10,8 +10,8 @@
  * @author Giles
  */
 
-#ifndef __InfiniteModelChecker__
-#define __InfiniteModelChecker__
+#ifndef __Infinox__
+#define __Infinox__
 
 
 #include "Forwards.hpp"
@@ -19,14 +19,18 @@
 namespace Shell {
 
 
-class InfiniteModelChecker{
+class Infinox{
 
 public:
 static void doCheck(Problem& prb);
 static void addCheckingClauses(Problem& prb);
 private:
-static void addClaimForFunction(TermList x, TermList y, TermList fx, TermList fy, 
+static void addClaimForSingleSortFunction(TermList x, TermList y, TermList fx, TermList fy, 
                                 unsigned arg_srt, unsigned ret_srt, 
+                                Formula::VarList* existential,UnitList*& newClauses);
+
+static void addClaimForMultiSortFunction(TermList x, TermList y, TermList fx, TermList fy,
+                                unsigned arg_srt, unsigned ret_srt,
                                 Formula::VarList* existential,UnitList*& newClauses);
 
 

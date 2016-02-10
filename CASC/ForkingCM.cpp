@@ -37,7 +37,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/TheoryFinder.hpp"
-#include "Shell/InfiniteModelChecker.hpp"
+#include "Shell/Infinox.hpp"
 
 #include "ForkingCM.hpp"
 
@@ -56,7 +56,7 @@ ForkingCM::ForkingCM()
   _prb = UIHelper::getInputProblem(*env.options);
 
   if(env.options->mode()==Options::Mode::INFINOX){
-    InfiniteModelChecker::addCheckingClauses(*_prb);
+    Infinox::addCheckingClauses(*_prb);
   }
 
   {

@@ -1,5 +1,5 @@
 /**
- * @file InfiniteModelChecker.cpp
+ * @file Infinox.cpp
  *
  * @since 28/01/2016 Manchester
  * @author Giles
@@ -30,7 +30,7 @@
 #include "CNF.hpp"
 #include "NNF.hpp"
 
-#include "InfiniteModelChecker.hpp"
+#include "Infinox.hpp"
 
 namespace Shell{
 
@@ -38,9 +38,9 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 
-void InfiniteModelChecker::doCheck(Problem& prb)
+void Infinox::doCheck(Problem& prb)
 {
-  CALL("InfiniteModelChecker::doCheck");
+  CALL("Infinox::doCheck");
 
   // Add the checking clauses
   addCheckingClauses(prb);
@@ -48,7 +48,7 @@ void InfiniteModelChecker::doCheck(Problem& prb)
   ProvingHelper::runVampireSaturation(prb, *env.options);
 
   if(env.statistics->terminationReason == Statistics::REFUTATION){
-    cout << "Infinite Model Detected" << endl;
+    cout << ">> Lack of Finite Model Detected" << endl;
   }
   env.beginOutput();
   UIHelper::outputResult(env.out());
@@ -57,9 +57,9 @@ void InfiniteModelChecker::doCheck(Problem& prb)
 }
 
 
-void InfiniteModelChecker::addCheckingClauses(Problem& prb)
+void Infinox::addCheckingClauses(Problem& prb)
 {
-  CALL("InfiniteModelChecker::addCheckingClauses");
+  CALL("Infinox::addCheckingClauses");
 
   UnitList* newClauses = 0;
 
@@ -83,11 +83,12 @@ void InfiniteModelChecker::addCheckingClauses(Problem& prb)
     // For unary functions it's straight forward 
     if(arity == 1){
       unsigned arg_srt = ftype->arg(0);
-      // srts must be the same!!
-      if(ret_srt != arg_srt) continue;
       TermList fx(Term::create1(f,x));
       TermList fy(Term::create1(f,y));
-      addClaimForFunction(x,y,fx,fy,arg_srt,ret_srt,0,newClauses);
+      if(ret_srt == arg_srt) 
+        addClaimForSingleSortFunction(x,y,fx,fy,arg_srt,ret_srt,0,newClauses);
+      else
+        addClaimForMultiSortFunction(x,y,fx,fy,arg_srt,ret_srt,0,newClauses);
     }
     else{
     // Otherwise we need to existentially quantify over some of the variables
@@ -102,8 +103,6 @@ void InfiniteModelChecker::addCheckingClauses(Problem& prb)
       for(unsigned i=0;i<arity;i++){
 
         unsigned arg_srt = ftype->arg(i);
-        // srts must be the same!!
-        if(ret_srt != arg_srt) continue;
 
         TermList xargs[arity];
         TermList yargs[arity];
@@ -124,7 +123,10 @@ void InfiniteModelChecker::addCheckingClauses(Problem& prb)
         TermList fx(Term::create(f,arity,xargs));
         TermList fy(Term::create(f,arity,yargs));
 
-        addClaimForFunction(x,y,fx,fy,arg_srt,ret_srt,existential,newClauses);
+        if(ret_srt == arg_srt) 
+          addClaimForSingleSortFunction(x,y,fx,fy,arg_srt,ret_srt,0,newClauses);
+        else
+          addClaimForMultiSortFunction(x,y,fx,fy,arg_srt,ret_srt,0,newClauses);
       }
     }
 
@@ -134,11 +136,11 @@ void InfiniteModelChecker::addCheckingClauses(Problem& prb)
     
 
 
-void InfiniteModelChecker::addClaimForFunction(TermList x, TermList y, TermList fx, TermList fy, 
+void Infinox::addClaimForSingleSortFunction(TermList x, TermList y, TermList fx, TermList fy, 
                                                unsigned arg_srt, unsigned ret_srt, Formula::VarList* existential, 
                                                UnitList*& newClauses)
 {
-    CALL("InfiniteModelChecker::addClaimForFunction");
+    CALL("Infinox::addClaimForSingleSortFunction");
 
     Formula::VarList* xy = new Formula::VarList(0,new Formula::VarList(1));
 
@@ -182,6 +184,15 @@ void InfiniteModelChecker::addClaimForFunction(TermList x, TermList y, TermList 
     
     UnitList::pushFromIterator(Stack<Clause*>::Iterator(cls),newClauses);
 } 
+
+void Infinox::addClaimForMultiSortFunction(TermList x, TermList y, TermList fx, TermList fy,
+                                               unsigned arg_srt, unsigned ret_srt, Formula::VarList* existential,
+                                               UnitList*& newClauses)
+{
+    CALL("Infinox::addClaimForMultiSortFunction");
+
+
+}
 
 
 }
