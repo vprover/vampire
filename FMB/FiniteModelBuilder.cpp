@@ -1768,6 +1768,19 @@ bool FiniteModelBuilder::increaseModelSizes(){
         while (it1.hasNext()) {
           std::pair<unsigned,unsigned> constr = it1.next();
           if (_distinctSortSizes[constr.first] < _distinctSortSizes[constr.second]) {
+            // cout << "  Ruled out by _distinct_sort_constraints " << constr.first << " >= " << constr.second << endl;
+
+            // We will skip testing it, but we need it as a generator to proceed through the space:
+            Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size());
+            Constraint_Generator& constraint = *constraint_p;
+            for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
+              constraint[j] = make_pair(STAR,_distinctSortSizes[j]);
+            }
+            constraint[constr.first].first = EQ;
+            constraint[constr.second].first = GEQ;
+
+            _constraints_generators.push_back(constraint_p);
+
             goto next_candidate;
           }
         }
@@ -1776,6 +1789,19 @@ bool FiniteModelBuilder::increaseModelSizes(){
         while (it2.hasNext()) {
           std::pair<unsigned,unsigned> constr = it2.next();
           if (_distinctSortSizes[constr.first] <= _distinctSortSizes[constr.second]) {
+            // cout << "  Ruled out by _strict_distinct_sort_constraints " << constr.first << " > " << constr.second << endl;
+
+            // We will skip testing it, but we need it as a generator to proceed through the space:
+            Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size());
+            Constraint_Generator& constraint = *constraint_p;
+            for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
+              constraint[j] = make_pair(STAR,_distinctSortSizes[j]);
+            }
+            constraint[constr.first].first = EQ;
+            constraint[constr.second].first = GEQ;
+
+            _constraints_generators.push_back(constraint_p);
+
             goto next_candidate;
           }
         }
