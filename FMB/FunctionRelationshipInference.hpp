@@ -26,7 +26,10 @@ class FunctionRelationshipInference {
 
 public:
 
-void findFunctionRelationships(ClauseIterator clauses, Stack<DHSet<unsigned>*>& eq_classes, DHSet<std::pair<unsigned,unsigned>>& cons); 
+void findFunctionRelationships(ClauseIterator clauses, 
+                               Stack<DHSet<unsigned>*>& eq_classes, 
+                               DHSet<std::pair<unsigned,unsigned>>& nonstrict_cons,
+                               DHSet<std::pair<unsigned,unsigned>>& strict_cons); 
 
 private:
 
@@ -38,9 +41,10 @@ void addClaimForFunction(TermList x, TermList y, TermList fx, TermList fy,
                          ClauseList*& newClauses);
 
 void addClaim(Formula* conjecture, ClauseList*& newClauses);
-Formula* getName(unsigned fromSort, unsigned toSort);
+Formula* getName(unsigned fromSort, unsigned toSort, bool strict);
 
-DHMap<unsigned,std::pair<unsigned,unsigned>> _labelMap;
+DHMap<unsigned,std::pair<unsigned,unsigned>> _labelMap_nonstrict;
+DHMap<unsigned,std::pair<unsigned,unsigned>> _labelMap_strict;
 
 };
 
