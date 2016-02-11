@@ -750,13 +750,21 @@ instanceLabel:
 
         varDistinctSortsMaxes.reset();
         for(unsigned var=0;var<vars;var++) {
+          // cout << " var" << var;
           unsigned srt = (*varSorts)[var];
+          // cout << " srt" << srt;
           unsigned dsr = _sortedSignature->parents[srt];
+          // cout << " dsr" << dsr;
 
           unsigned prev = varDistinctSortsMaxes.get(dsr,0);
+          // cout << " prev" << prev;
+
           unsigned cur = grounding[var];
+          // cout << " cur" << cur;
 
           varDistinctSortsMaxes.set(dsr,max(cur,prev));
+
+          // cout << endl;
         }
 
         // start by adding the sort markers
@@ -764,9 +772,11 @@ instanceLabel:
           unsigned val = varDistinctSortsMaxes.get(i,0);
 
           if (val > 1) {
-            satClauseLits.push(SATLiteral(marker_offsets[i]+val-1,0));
+            // cout << "Marking sort " << i << " with " << val-2 << " negative" << endl;
+            satClauseLits.push(SATLiteral(marker_offsets[i]+val-2,0));
           }
         }
+        // cout << "Clause finised" << endl;
 
         // Ground and translate each literal into a SATLiteral
         for(unsigned lindex=0;lindex<c->length();lindex++){
@@ -1029,7 +1039,10 @@ void FiniteModelBuilder::addNewTotalityDefs()
 
     if(arity==0){
       unsigned srt = f_signature[0];
+      unsigned dsrt = _sortedSignature->parents[srt];
       unsigned maxSize = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
+
+      // cout << "Totality for const " << f << " of sort " << srt << " and max size " << maxSize << endl;
 
       for (unsigned i = 1; i <= maxSize; i++) {
         static SATLiteralStack satClauseLits;
@@ -1041,11 +1054,13 @@ void FiniteModelBuilder::addNewTotalityDefs()
           SATLiteral slit = getSATLiteral(f,use,true,true);
           satClauseLits.push(slit);
         }
-        satClauseLits.push(SATLiteral(marker_offsets[_sortedSignature->parents[srt]]+i-1,1));
+        satClauseLits.push(SATLiteral(marker_offsets[dsrt]+i-1,1));
+        // cout << "  version for size " << i << " marked with " << i-1 << " positive" << endl;
 
         SATClause* satCl = SATClause::fromStack(satClauseLits);
         addSATClause(satCl);
       }
+
       continue;
     }
 
@@ -1245,6 +1260,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
       assumptions.reset();
       for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
         assumptions.push(SATLiteral(marker_offsets[i]+_distinctSortSizes[i]-1,0));
+        // cout << "assuming sort " << i << " value " << _distinctSortSizes[i]-1 << " negative" << endl;
       }
 
       satResult = _solver->solveUnderAssumptions(assumptions);
@@ -1275,33 +1291,15 @@ MainLoopResult FiniteModelBuilder::runImpl()
       for (unsigned i = 0; i < failed.size(); i++) {
         unsigned var = failed[i].var();
 
-        ASS_GE(var,marker_offsets[0]);
-        unsigned j;
-        for (j = 0; j < _distinctSortSizes.size()-1; j++) {
-          if (var < marker_offsets[j+1]) {
+        unsigned srt = which_sort(var);
 
 #if VTRACE_DOMAINS
-            cout << "dom "<<j<<" could grow." << endl;
+        cout << "dom "<<srt<<" could grow." << endl;
 #endif
-            if (_distinctSortSizes[j] < domsSize) {
-              domToGrow = j;
-              domsSize = _distinctSortSizes[j];
-            }
-            goto dom_found;
-          }
+        if (_distinctSortSizes[srt] < domsSize) {
+          domToGrow = srt;
+          domsSize = _distinctSortSizes[srt];
         }
-        ASS_EQ(j,_distinctSortSizes.size()-1);
-        ASS_GE(var,_distinctSortSizes[j]);
-
-#if VTRACE_DOMAINS
-            cout << "dom "<<j<<" could grow." << endl;
-#endif
-        if (_distinctSortSizes[j] < domsSize) {
-          domToGrow = j;
-          domsSize = _distinctSortSizes[j];
-        }
-
-        dom_found: ;
       }
 
       if (domsSize < UINT_MAX) {

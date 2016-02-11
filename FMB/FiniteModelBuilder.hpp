@@ -157,6 +157,22 @@ private:
    */
   DArray<unsigned> marker_offsets;
 
+  /**
+   * use marker_offsets to figure out to which sort does a variable belong
+   */
+  unsigned which_sort(unsigned var) {
+    ASS_GE(var,marker_offsets[0]);
+    unsigned j;
+    for (j = 0; j < _distinctSortSizes.size()-1; j++) {
+      if (var < marker_offsets[j+1]) {
+        return j;
+      }
+    }
+    ASS_EQ(j,_distinctSortSizes.size()-1);
+    ASS_GE(var,_distinctSortSizes[j]);
+    return j;
+  }
+
   /** Parameters to the FBM saturation **/
 
   // Currently an experimental option allows you to start at larger model sizes
