@@ -159,7 +159,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   List<pair<Literal*, List<GenLit>*> >* literals(0);
   literals = literals->cons(make_pair(processedLiteral, List<GenLit>::empty()));
 
-  unsigned variableCounter = 0;
+  unsigned iteCounter = 0;
   while (variables.isNonEmpty()) {
     unsigned variable   = variables.pop();
     Formula* condition  = conditions.pop();
@@ -179,7 +179,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
 
     List<pair<Literal*, List<GenLit>*> >* processedLiterals(0);
 
-    if (shouldInlineITE(variableCounter)) {
+    if (shouldInlineITE(iteCounter)) {
       while (List<pair<Literal*, List<GenLit>*> >::isNonEmpty(literals)) {
         pair<Literal*, List<GenLit>*> p = List<pair<Literal*, List<GenLit>*> >::pop(literals);
         Literal* literal = p.first;
@@ -227,7 +227,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
     }
 
     literals = processedLiterals;
-    variableCounter++;
+    iteCounter++;
   }
 
   ASS(variables.isEmpty());
@@ -305,8 +305,8 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
   return TermList(var, false);
 }
 
-bool NewCNF::shouldInlineITE(unsigned variableCounter) {
-  return variableCounter < 2;
+bool NewCNF::shouldInlineITE(unsigned iteCounter) {
+  return iteCounter < 2;
 }
 
 unsigned NewCNF::createFreshVariable(unsigned sort)

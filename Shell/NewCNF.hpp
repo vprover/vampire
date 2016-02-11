@@ -358,7 +358,7 @@ private:
 
   unsigned createFreshVariable(unsigned sort);
 
-  bool shouldInlineITE(unsigned variableCounter);
+  bool shouldInlineITE(unsigned iteCounter);
 }; // class NewCNF
 
 }
