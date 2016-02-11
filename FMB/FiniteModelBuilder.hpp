@@ -152,14 +152,10 @@ private:
   DArray<unsigned> f_offsets;
   DArray<unsigned> p_offsets;
 
-  /* for each distinctSort i there is a variable (totalityMarker_offset+i)
-   * which we use in the encoding to learn which domain should grow in order to possibly resolve a conflict.
+  /* Each distinctSort has as many markers as is its current size.
+   * Their offsets are stored on per sort basis.
    */
-  unsigned totalityMarker_offset;
-  /* for each distinctSort i there is a variable (instancesMarker_offset+i)
-   * which we use in the encoding to learn whether it makes sense to change the domain sizes at all.
-   */
-  unsigned instancesMarker_offset;
+  DArray<unsigned> marker_offsets;
 
   /** Parameters to the FBM saturation **/
 
@@ -174,47 +170,6 @@ private:
   // sizes to use for each sort
   DArray<unsigned> _sortModelSizes;
   DArray<unsigned> _distinctSortSizes;
-
-  enum ConstraintSign {
-    EQ,     // the value has to matched
-    LEQ,    // the value needs to be less or equal
-    GEQ,    // the value needs to be greater or equal
-    STAR    // we don't care about this value
-  };
-
-  typedef DArray<pair<ConstraintSign,unsigned>> Constraint_Generator;
-
-  void output_cg(Constraint_Generator& cg) {
-    cout << "[";
-    for (unsigned i = 0; i < cg.size(); i++) {
-      cout << cg[i].second;
-      switch(cg[i].first) {
-      case EQ:
-        cout << "=";
-        break;
-      case LEQ:
-        cout << ">";
-        break;
-      case GEQ:
-        cout << "<";
-        break;
-      case STAR:
-        cout << "*";
-        break;
-      default:
-        ASSERTION_VIOLATION;
-      }
-      if (i < cg.size()-1) {
-        cout << ", ";
-      }
-    }
-    cout << "]";
-  }
-
-  /**
-   * Constraints are at the same time used as generators.
-   */
-  Lib::Deque<Constraint_Generator*> _constraints_generators;
 
   // the sort constraints from injectivity/surjectivity
   // pairs of distinct sorts where pair.first >= pair.second
