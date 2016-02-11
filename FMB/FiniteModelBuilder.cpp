@@ -54,7 +54,7 @@
 
 #define VTRACE_FMB 0
 
-#define VTRACE_DOMAINS 1
+#define VTRACE_DOMAINS 0
 
 namespace FMB 
 {
@@ -1292,6 +1292,11 @@ MainLoopResult FiniteModelBuilder::runImpl()
         unsigned var = failed[i].var();
 
         unsigned srt = which_sort(var);
+
+        // skip if already maxed
+        if (_distinctSortSizes[srt] == _distinctSortMaxs[srt]) {
+          continue;
+        }
 
 #if VTRACE_DOMAINS
         cout << "dom "<<srt<<" could grow." << endl;
