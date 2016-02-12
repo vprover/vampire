@@ -52,6 +52,10 @@ struct SortedSignature{
     DHMap<unsigned,Stack<unsigned>*> distinctToVampire;
     // A vampire sort can only be mapped to at most one distinct sort
     DHMap<unsigned,unsigned> vampireToDistinct;
+
+    // has size distinctSorts
+    // is 1 if that distinct sort is monotonic
+    ZIArray<bool> monotonicSorts;
 };
 
 class SortInference {
