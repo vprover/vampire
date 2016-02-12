@@ -57,10 +57,17 @@ ForkingCM::ForkingCM()
   {
     TimeCounter tc(TC_PREPROCESSING);
 
-    // TODO: should we do defooling here?
     if (_prb->hasFOOL()) {
+      // This is the point to extend the signature with $$true and $$false
+      // If we don't have fool then these constants get in the way (a lot)
+
       TheoryAxioms().applyFOOL(*_prb);
-      FOOLElimination().apply(*_prb);
+
+      if (!env.options->newCNF()) {
+        if (env.options->showPreprocessing())
+          env.out() << "FOOL elimination" << std::endl;
+        FOOLElimination().apply(*_prb);
+      }
     }
 
     //we normalize now so that we don't have to do it in every child Vampire
