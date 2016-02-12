@@ -60,7 +60,9 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
   }
 
   // Monotoniticy Detection
-  bool usingMonotonicity = env.options->fmbCollapseMonotonicSorts();
+  // TODO a more fine-grained notion of when we detect monotonicity
+  bool usingMonotonicity = true;//env.options->fmbCollapseMonotonicSorts();
+  bool collapsingMonotonicSorts = env.options->fmbCollapseMonotonicSorts(); 
   DHSet<unsigned> monotonicVampireSorts;
   if(usingMonotonicity){
     if(print && print){
@@ -403,14 +405,17 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
       unsigned ourSort;
       if(!ourDistinctSorts.find(vampireSort,ourSort)){
         if(monotonicVampireSorts.contains(vampireSort)){
-          collapsed++;
-          if(firstMonotonicSortSeen){
-            ourSort = ourDistinctSorts.get(firstMonotonicSort);
-          }
-          else{
-            firstMonotonicSortSeen=true;
-            firstMonotonicSort = vampireSort;
-            ourSort = distinctSorts++;
+          sig->monotonicSorts[ourSort]=true;
+          if(collapsingMonotonicSorts){
+            collapsed++;
+            if(firstMonotonicSortSeen){
+              ourSort = ourDistinctSorts.get(firstMonotonicSort);
+            }
+            else{
+              firstMonotonicSortSeen=true;
+              firstMonotonicSort = vampireSort;
+              ourSort = distinctSorts++;
+            }
           }
         }
         else if(equiv_vs.root(vampireSort)!=vampireSort){
@@ -459,14 +464,17 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
         unsigned ourSort;
         if(!ourDistinctSorts.find(vampireSort,ourSort)){
           if(monotonicVampireSorts.contains(vampireSort)){
-            collapsed++;
-            if(firstMonotonicSortSeen){
-              ourSort = ourDistinctSorts.get(firstMonotonicSort);
-            }
-            else{
-              firstMonotonicSortSeen=true;
-              firstMonotonicSort = vampireSort;
-              ourSort = distinctSorts++;
+            sig->monotonicSorts[ourSort]=true;
+            if(collapsingMonotonicSorts){
+              collapsed++;
+              if(firstMonotonicSortSeen){
+                ourSort = ourDistinctSorts.get(firstMonotonicSort);
+              }
+              else{
+                firstMonotonicSortSeen=true;
+                firstMonotonicSort = vampireSort;
+                ourSort = distinctSorts++;
+              }
             }
           }
           else if(equiv_vs.root(vampireSort)!=vampireSort){
@@ -542,14 +550,17 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
         unsigned ourSort;
         if(!ourDistinctSorts.find(vampireSort,ourSort)){
           if(monotonicVampireSorts.contains(vampireSort)){
-            collapsed++;
-            if(firstMonotonicSortSeen){
-              ourSort = ourDistinctSorts.get(firstMonotonicSort);
-            }
-            else{
-              firstMonotonicSortSeen=true;
-              firstMonotonicSort = vampireSort;
-              ourSort = distinctSorts++;
+            sig->monotonicSorts[ourSort]=true;
+            if(collapsingMonotonicSorts){
+              collapsed++;
+              if(firstMonotonicSortSeen){
+                ourSort = ourDistinctSorts.get(firstMonotonicSort);
+              }
+              else{
+                firstMonotonicSortSeen=true;
+                firstMonotonicSort = vampireSort;
+                ourSort = distinctSorts++;
+              }
             }
           }
           else if(equiv_vs.root(vampireSort)!=vampireSort){
