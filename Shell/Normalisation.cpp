@@ -236,8 +236,14 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
       }
       break;
 
-    case BOOL_TERM:
-      ASSERTION_VIOLATION;
+    case BOOL_TERM: {
+      TermList ts1 = f1->getBooleanTerm();
+      TermList ts2 = f2->getBooleanTerm();
+      comp = compare(&ts1, &ts2);
+      if (comp != EQUAL) {
+        return comp;
+      }
+    }
 
     case FORALL:
     case EXISTS:
@@ -407,9 +413,56 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
     return EQUAL;
   }
 
-  Comparison comp = compare((int)t1->weight(),(int)t2->weight());
-  if (comp != EQUAL) {
-    return comp;
+  Comparison comp;
+
+  if (!t1->shared() && t2->shared()) {
+    return GREATER;
+  }
+
+  if (t1->shared() && !t2->shared()) {
+    return LESS;
+  }
+
+  if (!t1->shared() && !t2->shared()) {
+    comp = compare ((int)t1->getSpecialData()->getType(), (int)t2->getSpecialData()->getType());
+    if (comp != EQUAL) {
+      return comp;
+    }
+
+    // same kind of special terms
+    switch (t1->getSpecialData()->getType()) {
+      case Term::SF_FORMULA:
+        return compare(t1->getSpecialData()->getFormula(), t2->getSpecialData()->getFormula());
+
+      case Term::SF_ITE:
+        comp = compare(t1->getSpecialData()->getCondition(), t2->getSpecialData()->getCondition());
+        if (comp != EQUAL) {
+          return comp;
+        }
+        break;
+
+      case Term::SF_LET: {
+        comp = compare(t1->getSpecialData()->getVariables()->length(),
+                       t2->getSpecialData()->getVariables()->length());
+        if (comp != EQUAL) {
+          return comp;
+        }
+        TermList b1 = t1->getSpecialData()->getBinding();
+        TermList b2 = t2->getSpecialData()->getBinding();
+        comp = compare(&b1, &b2);
+        if (comp != EQUAL) {
+          return comp;
+        }
+      }
+
+      default:
+        ASSERTION_VIOLATION;
+    }
+  } else {
+    comp = compare((int)t1->weight(),(int)t2->weight());
+    if (comp != EQUAL) {
+      return comp;
+    }
   }
 
   int f1 = t1->functor();
