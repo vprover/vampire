@@ -79,9 +79,6 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
           if(monotonic){
             cout << "Input sort " << env.sorts->sortName(s) << " is monotonic" << endl;
           }
-          else{
-            cout << "Input sort " << env.sorts->sortName(s) << " is not necessarily monotonic" << endl;
-          }
         }
       }
     }
@@ -623,6 +620,17 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
         }
       }
       cout << s << " has " << children << " inferred sorts as members [" << res << "]" << endl;
+    }
+    cout << "Vampire to distinct sort mapping:" << endl;
+    cout << "["; 
+    for(unsigned i=0;i<sig->distinctSorts;i++){
+
+      Stack<unsigned>* vs = sig->distinctToVampire.get(i);
+      if(vs->size()==1) cout << env.sorts->sortName((*vs)[0]);
+      else cout << env.sorts->sortName((*vs)[0]) << "(+)";
+
+      if(i==sig->distinctSorts-1) cout << "]" << endl;
+      else cout << ",";
     }
   }
 
