@@ -736,7 +736,11 @@ void FiniteModelBuilder::addNewInstances()
       //cout << "srt="<<srt;
       maxVarSize[var] = min(_sortModelSizes[srt],_sortedSignature->sortBounds[srt]);
       //cout << ",max="<<maxVarSize[var] << endl;
-      varDistinctSortsSet.set(_sortedSignature->parents[srt]);
+
+      unsigned dsort = _sortedSignature->parents[srt];
+      if (!_sortedSignature->monotonicSorts[dsort]) { // don't mark instances of monotonic sorts!
+        varDistinctSortsSet.set(_sortedSignature->parents[srt]);
+      }
     }
     
     static DArray<unsigned> grounding;
@@ -1275,9 +1279,15 @@ MainLoopResult FiniteModelBuilder::runImpl()
         unsigned var = failed[i].var();
         ASS_GE(var,totalityMarker_offset);
 
-        if (var < instancesMarker_offset) { // totality used (-> instances used as well)
-          constraint[var-totalityMarker_offset].first = EQ;
+        if (var < instancesMarker_offset) { // totality used (-> instances used as well / unless the sort is monotonic)
+          unsigned dsort = var-totalityMarker_offset;
+          if (_sortedSignature->monotonicSorts[dsort]) {
+            constraint[dsort].first = LEQ;
+          } else {
+            constraint[dsort].first = EQ;
+          }
         } else if (constraint[var-instancesMarker_offset].first == STAR) { // instances used (and we don't know yet about totality)
+          ASS(!_sortedSignature->monotonicSorts[var-instancesMarker_offset]);
           constraint[var-instancesMarker_offset].first = GEQ;
         }
       }
@@ -1759,6 +1769,9 @@ bool FiniteModelBuilder::increaseModelSizes(){
               goto next_constraint;
             }
             if (cc.first == GEQ && cc.second > _distinctSortSizes[j]) {
+              goto next_constraint;
+            }
+            if (cc.first == LEQ && cc.second < _distinctSortSizes[j]) {
               goto next_constraint;
             }
           }

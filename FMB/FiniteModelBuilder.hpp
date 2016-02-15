@@ -177,6 +177,7 @@ private:
 
   enum ConstraintSign {
     EQ,     // the value has to matched
+    LEQ,    // the value needs to be less or equal
     GEQ,    // the value needs to be greater or equal
     STAR    // we don't care about this value
   };
@@ -190,6 +191,9 @@ private:
       switch(cg[i].first) {
       case EQ:
         cout << "=";
+        break;
+      case LEQ:
+        cout << ">";
         break;
       case GEQ:
         cout << "<";
