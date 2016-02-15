@@ -413,6 +413,9 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
               ourSort = distinctSorts++;
             }
           }
+          else{
+            ourSort = distinctSorts++;
+          }
           sig->monotonicSorts[ourSort]=true;
         }
         else if(equiv_vs.root(vampireSort)!=vampireSort){
@@ -471,6 +474,9 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
                 firstMonotonicSort = vampireSort;
                 ourSort = distinctSorts++;
               }
+            }
+            else{
+              ourSort = distinctSorts++;
             }
             sig->monotonicSorts[ourSort]=true;
           }
@@ -557,6 +563,9 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
                 firstMonotonicSort = vampireSort;
                 ourSort = distinctSorts++;
               }
+            }
+            else{
+              ourSort = distinctSorts++;
             }
             sig->monotonicSorts[ourSort]=true;
           }
