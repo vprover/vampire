@@ -756,6 +756,12 @@ instanceLabel:
           unsigned dsr = _sortedSignature->parents[srt];
           // cout << " dsr" << dsr;
 
+          /*
+          if (_sortedSignature->monotonicSorts[dsr]) {
+            continue;
+          }
+          */
+
           unsigned prev = varDistinctSortsMaxes.get(dsr,0);
           // cout << " prev" << prev;
 
@@ -1026,6 +1032,22 @@ void FiniteModelBuilder::addNewTotalityDefs()
 {
   CALL("FiniteModelBuilder::addNewTotalityDefs");
 
+  // make sure to solve the problem of some sorts not growing all the way to _sortModelSizes[srt], because of _sortedSignature->sortBounds[srt]
+  /*
+  for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+    // for every sort
+    for (unsigned j = 0; j < _distinctSortSizes[i]-1; j++) {
+      // for every domain size j have clause: not marker(j+1) | marker(j)
+      // which says: "d > j+2" -> "d > j+1"
+      static SATLiteralStack satClauseLits;
+      satClauseLits.reset();
+      satClauseLits.push(SATLiteral(marker_offsets[i]+j,1));
+      satClauseLits.push(SATLiteral(marker_offsets[i]+j+1,0));
+      SATClause* satCl = SATClause::fromStack(satClauseLits);
+      addSATClause(satCl);
+    }
+  }
+  */
 
   for(unsigned f=0;f<env.signature->functions();f++){
     if(del_f[f]) continue;
@@ -1044,7 +1066,7 @@ void FiniteModelBuilder::addNewTotalityDefs()
 
       // cout << "Totality for const " << f << " of sort " << srt << " and max size " << maxSize << endl;
 
-      for (unsigned i = 1; i <= maxSize; i++) {
+      for (unsigned i = /*_sortedSignature->monotonicSorts[dsrt] ? maxSize : */ 1; i <= maxSize; i++) { // just the weakest one, if monotonic
         static SATLiteralStack satClauseLits;
         satClauseLits.reset();
 
@@ -1054,7 +1076,9 @@ void FiniteModelBuilder::addNewTotalityDefs()
           SATLiteral slit = getSATLiteral(f,use,true,true);
           satClauseLits.push(slit);
         }
-        satClauseLits.push(SATLiteral(marker_offsets[dsrt]+i-1,1));
+        // unsigned marker_idx = (i == maxSize) ? _distinctSortSizes[dsrt]-1 : i-1; // use the largest marker for the largest version even if it is smaller than _distinctSortSizes[dsrt]
+        satClauseLits.push(SATLiteral(marker_offsets[dsrt] + i-1,1));
+        ///cout << "out sort " << dsrt;
         // cout << "  version for size " << i << " marked with " << i-1 << " positive" << endl;
 
         SATClause* satCl = SATClause::fromStack(satClauseLits);
@@ -1071,6 +1095,7 @@ void FiniteModelBuilder::addNewTotalityDefs()
       maxVarSize[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
     }
     unsigned retSrt = f_signature[arity];
+    unsigned dRetSrt = _sortedSignature->parents[retSrt];
     unsigned maxRtSrtSize = min(_sortedSignature->sortBounds[retSrt],_sortModelSizes[retSrt]);
 
     static DArray<unsigned> grounding;
@@ -1090,7 +1115,7 @@ newTotalLabel:
           //for(unsigned j=0;j<grounding.size();j++) cout << grounding[j] << " ";
           //cout << endl;
 
-          for (unsigned i = 1; i <= maxRtSrtSize; i++) {
+          for (unsigned i = /*_sortedSignature->monotonicSorts[dRetSrt] ? maxRtSrtSize : */ 1; i <= maxRtSrtSize; i++) {
             static SATLiteralStack satClauseLits;
             satClauseLits.reset();
 
@@ -1101,7 +1126,8 @@ newTotalLabel:
               use[arity]=constant;
               satClauseLits.push(getSATLiteral(f,use,true,true));
             }
-            satClauseLits.push(SATLiteral(SATLiteral(marker_offsets[_sortedSignature->parents[retSrt]]+i-1,1)));
+            // unsigned marker_idx = (i == maxRtSrtSize) ? _distinctSortSizes[dRetSrt]-1 : i-1; // use the largest marker for the largest version even if it is smaller than _distinctSortSizes[dsrt]
+            satClauseLits.push(SATLiteral(SATLiteral(marker_offsets[dRetSrt]+i-1,1)));
             SATClause* satCl = SATClause::fromStack(satClauseLits);
             addSATClause(satCl);
           }
@@ -1292,6 +1318,8 @@ MainLoopResult FiniteModelBuilder::runImpl()
         unsigned var = failed[i].var();
 
         unsigned srt = which_sort(var);
+
+        // cout << "which_sort(var) = " << srt << endl;
 
         // skip if already maxed
         if (_distinctSortSizes[srt] == _distinctSortMaxs[srt]) {
