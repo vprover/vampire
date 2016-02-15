@@ -306,7 +306,14 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
 }
 
 bool NewCNF::shouldInlineITE(unsigned iteCounter) {
-  return iteCounter < 2;
+  int threshold = env.options->getIteInliningThreshold();
+  if (threshold < 0) {
+    return true;
+  }
+  if (threshold == 0) {
+    return false;
+  }
+  return iteCounter < threshold;
 }
 
 unsigned NewCNF::createFreshVariable(unsigned sort)

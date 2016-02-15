@@ -1863,6 +1863,7 @@ public:
   bool bpStartWithRational() const { return _bpStartWithRational.actualValue;}
     
   bool newCNF() const { return _newCNF.actualValue; }
+  int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
 private:
     
     /**
@@ -2199,6 +2200,7 @@ private:
   InputFileOptionValue _inputFile;
 
   BoolOptionValue _newCNF;
+  IntOptionValue _iteInliningThreshold;
 
 
 }; // class Options

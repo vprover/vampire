@@ -438,6 +438,13 @@ void Options::Options::init()
     _lookup.insert(&_newCNF);
     _newCNF.tag(OptionTag::PREPROCESSING);
 
+    _iteInliningThreshold = IntOptionValue("ite_inlining_threshold","", 2);
+    _iteInliningThreshold.description="Threashold of inlining of if-then-else expressions. "
+                                      "0 means that all expressions are named. "
+                                      "<0 means that all expressions are inlined.";
+    _lookup.insert(&_iteInliningThreshold);
+    _iteInliningThreshold.tag(OptionTag::PREPROCESSING);
+
 //*********************** Output  ***********************
 
     // how is this used?
