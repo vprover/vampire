@@ -402,7 +402,6 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
       unsigned ourSort;
       if(!ourDistinctSorts.find(vampireSort,ourSort)){
         if(monotonicVampireSorts.contains(vampireSort)){
-          sig->monotonicSorts[ourSort]=true;
           if(collapsingMonotonicSorts){
             collapsed++;
             if(firstMonotonicSortSeen){
@@ -414,6 +413,7 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
               ourSort = distinctSorts++;
             }
           }
+          sig->monotonicSorts[ourSort]=true;
         }
         else if(equiv_vs.root(vampireSort)!=vampireSort){
           unsigned rootSort = equiv_vs.root(vampireSort);
@@ -461,7 +461,6 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
         unsigned ourSort;
         if(!ourDistinctSorts.find(vampireSort,ourSort)){
           if(monotonicVampireSorts.contains(vampireSort)){
-            sig->monotonicSorts[ourSort]=true;
             if(collapsingMonotonicSorts){
               collapsed++;
               if(firstMonotonicSortSeen){
@@ -473,6 +472,7 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
                 ourSort = distinctSorts++;
               }
             }
+            sig->monotonicSorts[ourSort]=true;
           }
           else if(equiv_vs.root(vampireSort)!=vampireSort){
             unsigned rootSort = equiv_vs.root(vampireSort);
@@ -547,7 +547,6 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
         unsigned ourSort;
         if(!ourDistinctSorts.find(vampireSort,ourSort)){
           if(monotonicVampireSorts.contains(vampireSort)){
-            sig->monotonicSorts[ourSort]=true;
             if(collapsingMonotonicSorts){
               collapsed++;
               if(firstMonotonicSortSeen){
@@ -559,6 +558,7 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
                 ourSort = distinctSorts++;
               }
             }
+            sig->monotonicSorts[ourSort]=true;
           }
           else if(equiv_vs.root(vampireSort)!=vampireSort){
             unsigned rootSort = equiv_vs.root(vampireSort);
