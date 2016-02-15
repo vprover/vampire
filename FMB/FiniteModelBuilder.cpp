@@ -1033,7 +1033,6 @@ void FiniteModelBuilder::addNewTotalityDefs()
   CALL("FiniteModelBuilder::addNewTotalityDefs");
 
   // make sure to solve the problem of some sorts not growing all the way to _sortModelSizes[srt], because of _sortedSignature->sortBounds[srt]
-  /*
   for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
     // for every sort
     for (unsigned j = 0; j < _distinctSortSizes[i]-1; j++) {
@@ -1047,7 +1046,6 @@ void FiniteModelBuilder::addNewTotalityDefs()
       addSATClause(satCl);
     }
   }
-  */
 
   for(unsigned f=0;f<env.signature->functions();f++){
     if(del_f[f]) continue;
@@ -1076,8 +1074,8 @@ void FiniteModelBuilder::addNewTotalityDefs()
           SATLiteral slit = getSATLiteral(f,use,true,true);
           satClauseLits.push(slit);
         }
-        // unsigned marker_idx = (i == maxSize) ? _distinctSortSizes[dsrt]-1 : i-1; // use the largest marker for the largest version even if it is smaller than _distinctSortSizes[dsrt]
-        satClauseLits.push(SATLiteral(marker_offsets[dsrt] + i-1,1));
+        unsigned marker_idx = (i == maxSize) ? _distinctSortSizes[dsrt]-1 : i-1; // use the largest marker for the largest version even if it is smaller than _distinctSortSizes[dsrt]
+        satClauseLits.push(SATLiteral(marker_offsets[dsrt] + marker_idx,1));
         ///cout << "out sort " << dsrt;
         // cout << "  version for size " << i << " marked with " << i-1 << " positive" << endl;
 
@@ -1126,8 +1124,8 @@ newTotalLabel:
               use[arity]=constant;
               satClauseLits.push(getSATLiteral(f,use,true,true));
             }
-            // unsigned marker_idx = (i == maxRtSrtSize) ? _distinctSortSizes[dRetSrt]-1 : i-1; // use the largest marker for the largest version even if it is smaller than _distinctSortSizes[dsrt]
-            satClauseLits.push(SATLiteral(SATLiteral(marker_offsets[dRetSrt]+i-1,1)));
+            unsigned marker_idx = (i == maxRtSrtSize) ? _distinctSortSizes[dRetSrt]-1 : i-1; // use the largest marker for the largest version even if it is smaller than _distinctSortSizes[dsrt]
+            satClauseLits.push(SATLiteral(SATLiteral(marker_offsets[dRetSrt]+marker_idx,1)));
             SATClause* satCl = SATClause::fromStack(satClauseLits);
             addSATClause(satCl);
           }
