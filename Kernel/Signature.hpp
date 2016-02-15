@@ -342,6 +342,7 @@ class Signature
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
+  unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
 
   // Interpreted symbol declarations
