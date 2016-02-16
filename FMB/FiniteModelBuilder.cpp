@@ -54,7 +54,7 @@
 
 #define VTRACE_FMB 0
 
-#define VTRACE_DOMAINS 0
+#define VTRACE_DOMAINS 1
 
 namespace FMB 
 {
@@ -691,6 +691,33 @@ void FiniteModelBuilder::addGroundClauses()
   }
 }
 
+// uses _distinctSortSizes to estimate how many instances would we generate
+unsigned FiniteModelBuilder::estimateInstanceCount()
+{
+  CALL("FiniteModelBuilder::estimateInstanceCount");
+  unsigned res = 0;
+  ClauseList::Iterator cit(_clauses);
+
+  while(cit.hasNext()){
+    unsigned instances = 1;
+
+    Clause* c = cit.next();
+    unsigned vars = c->varCnt();
+    const DArray<unsigned>* varSorts = _clauseVariableSorts.get(c) ;
+    if(!varSorts){
+      continue;
+    }
+
+    for(unsigned var=0;var<vars;var++){
+      unsigned srt = (*varSorts)[var];
+      instances *= min(_distinctSortSizes[_sortedSignature->parents[srt]],_sortedSignature->sortBounds[srt]);
+    }
+
+    res += instances;
+  }
+  return res;
+}
+
 void FiniteModelBuilder::addNewInstances()
 {
   CALL("FiniteModelBuilder::addNewInstances");
@@ -835,6 +862,36 @@ instanceLabel:
       }
     }
   }
+}
+
+// uses _distinctSortSizes to estimate how many instances would we generate
+unsigned FiniteModelBuilder::estimateFunctionalDefCount()
+{
+  CALL("FiniteModelBuilder::estimateFunctionalDefCount");
+  unsigned res = 0;
+
+  for(unsigned f=0;f<env.signature->functions();f++){
+    unsigned instances = 1;
+
+    if(del_f[f]) continue;
+    unsigned arity = env.signature->functionArity(f);
+
+    const DArray<unsigned>& f_signature = _sortedSignature->functionSignatures[f];
+
+    // find max size of y and z
+    unsigned returnSrt = f_signature[arity];
+    instances *= min(_sortedSignature->sortBounds[returnSrt],_distinctSortSizes[_sortedSignature->parents[returnSrt]]);
+    instances *= min(_sortedSignature->sortBounds[returnSrt],_distinctSortSizes[_sortedSignature->parents[returnSrt]]);
+
+    // we skip 0 and 1 as these are y and z
+    for(unsigned var=2;var<arity+2;var++){
+      unsigned srt = f_signature[var-2]; // f_signature[arity] is return sort
+      instances *= min(_sortedSignature->sortBounds[srt],_distinctSortSizes[_sortedSignature->parents[srt]]);
+    }
+
+    res += instances / 2;
+  }
+  return res;
 }
 
 void FiniteModelBuilder::addNewFunctionalDefs()
@@ -1308,7 +1365,10 @@ MainLoopResult FiniteModelBuilder::runImpl()
       const SATLiteralStack& failed = _solver->failedAssumptions();
 
       unsigned domToGrow = UINT_MAX;
-      unsigned domsSize = UINT_MAX;
+      unsigned domsWeight = UINT_MAX;
+
+      static unsigned alternator = 0;
+      alternator++;
 
       for (unsigned i = 0; i < failed.size(); i++) {
         unsigned var = failed[i].var();
@@ -1322,19 +1382,29 @@ MainLoopResult FiniteModelBuilder::runImpl()
           continue;
         }
 
+        unsigned weight = 0;
+
+        if (alternator % 2 != 0) {
+          _distinctSortSizes[srt]++;
+          weight = estimateInstanceCount();
+          _distinctSortSizes[srt]--;
+        } else {
+          weight = _distinctSortSizes[srt];
+        }
+
 #if VTRACE_DOMAINS
-        cout << "dom "<<srt<<" could grow." << endl;
+        cout << "dom "<<srt<<" of weight "<< weight << " could grow." << endl;
 #endif
-        if (_distinctSortSizes[srt] < domsSize) {
+        if (weight < domsWeight) {
           domToGrow = srt;
-          domsSize = _distinctSortSizes[srt];
+          domsWeight = weight;
         }
       }
 
-      if (domsSize < UINT_MAX) {
+      if (domsWeight < UINT_MAX) {
         ASS_L(domToGrow,UINT_MAX);
 #if VTRACE_DOMAINS
-        cout << "chosen "<<domToGrow<< endl;
+        cout << "chosen "<<domToGrow<< " of weight " << domsWeight << endl;
 #endif
         _distinctSortSizes[domToGrow]++;
 

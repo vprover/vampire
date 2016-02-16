@@ -65,8 +65,15 @@ private:
   void addGroundClauses();
   // Adds constraints from grounding the non-ground clauses
   void addNewInstances();
+
+  // uses _distinctSortSizes to estimate how many instances would we generate
+  unsigned estimateInstanceCount();
+
   // Add constraints from functionality of function symbols in signature (except those removed in preprocessing)
   void addNewFunctionalDefs();
+
+  unsigned estimateFunctionalDefCount();
+
   // Add constraints from totality of function symbols in signature (except those removed in preprocessing)
   void addNewTotalityDefs();
 
