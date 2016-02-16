@@ -41,6 +41,8 @@ public:
 
   bool check(){ return _result;}
 
+  static void addSortPredicates(ClauseList*& clauses);
+
 private:
   
   void monotone(Clause* c, Literal* l); 

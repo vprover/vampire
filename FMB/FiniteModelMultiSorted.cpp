@@ -169,7 +169,7 @@ vstring FiniteModelMultiSorted::toString()
 
   vostringstream modelStm;
 
-  bool printIntroduced = false;
+  bool printIntroduced = true;
 
   static DArray<DArray<vstring>> cnames;
   cnames.ensure(env.sorts->sorts());

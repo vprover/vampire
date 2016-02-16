@@ -214,6 +214,12 @@ public:
     INPUT_USAGE,
     PREPROCESSED_USAGE
   };
+  enum class FMBMonotonicCollapse : unsigned int {
+    OFF,
+    GROUP,
+    PREDICATE,
+    FUNCTION
+  };
 
   enum class RandomStrategy : unsigned int {
     ON,
@@ -1634,7 +1640,7 @@ public:
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
   FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
   FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
-  bool fmbCollapseMonotonicSorts() const {return _fmbCollapseMonotonicSorts.actualValue; }
+  FMBMonotonicCollapse fmbCollapseMonotonicSorts() const {return _fmbCollapseMonotonicSorts.actualValue; }
   bool fmbDetectSortBounds() const { return _fmbDetectSortBounds.actualValue; }
   unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
   bool fmbIgnoreMarkers() const { return _fmbIgnoreMarkers.actualValue; }
@@ -2014,7 +2020,7 @@ private:
   FloatOptionValue _fmbSymmetryRatio;
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
-  BoolOptionValue _fmbCollapseMonotonicSorts;
+  ChoiceOptionValue<FMBMonotonicCollapse> _fmbCollapseMonotonicSorts;
   BoolOptionValue _fmbDetectSortBounds;
   UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
   BoolOptionValue _fmbIgnoreMarkers;

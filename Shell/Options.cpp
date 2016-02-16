@@ -608,7 +608,9 @@ void Options::Options::init()
     _lookup.insert(&_fmbSymmetryWidgetOrders);
     _fmbSymmetryWidgetOrders.setExperimental();
 
-    _fmbCollapseMonotonicSorts = BoolOptionValue("fmb_collapse_monotonic_sorts","fmbcms",false);
+    _fmbCollapseMonotonicSorts = ChoiceOptionValue<FMBMonotonicCollapse>("fmb_collapse_monotonic_sorts","fmbcms",
+                                                           FMBMonotonicCollapse::OFF, 
+                                                           {"off","group","predicate","function"});
     _fmbCollapseMonotonicSorts.description = "";
     _fmbCollapseMonotonicSorts.setExperimental();
     _lookup.insert(&_fmbCollapseMonotonicSorts);

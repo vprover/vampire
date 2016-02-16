@@ -61,22 +61,27 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
 
   // Monotoniticy Detection
   // TODO a more fine-grained notion of when we detect monotonicity
-  bool usingMonotonicity = true;//env.options->fmbCollapseMonotonicSorts();
-  bool collapsingMonotonicSorts = env.options->fmbCollapseMonotonicSorts(); 
+  bool usingMonotonicity = true;
+  bool collapsingMonotonicSorts = env.options->fmbCollapseMonotonicSorts() != Options::FMBMonotonicCollapse::OFF; 
+  bool assumeMonotonic = collapsingMonotonicSorts && env.options->fmbCollapseMonotonicSorts() != Options::FMBMonotonicCollapse::GROUP;
   DHSet<unsigned> monotonicVampireSorts;
   if(usingMonotonicity){
-    if(print && print){
+    if(print){
       cout << "Monotonicity information:" << endl;
     }
+    //TODO if fmbCollapseMonotonicSorts == PREDICATE or FUNCTION then we shouldn't do this!
     for(unsigned s=0;s<env.sorts->sorts();s++){
       if(env.property->usesSort(s)){
-        Monotonicity m(clauses,s);
-        bool monotonic = m.check();
+        bool monotonic = assumeMonotonic;
+        if(!monotonic){
+          Monotonicity m(clauses,s);
+          monotonic = m.check();
+        }
         if(monotonic){
           monotonicVampireSorts.insert(s);
         }
         if(print){
-          if(monotonic){
+          if(monotonic && !assumeMonotonic){
             cout << "Input sort " << env.sorts->sortName(s) << " is monotonic" << endl;
           }
         }
@@ -616,7 +621,7 @@ SortedSignature* SortInference::apply(ClauseList* clauses,
   sig->distinctSorts = distinctSorts;
 
   if(print){
-    if(collapsed>0){ cout << "Collapsed " << collapsed << " sorts into 1 as they are all monotonic" << endl;}
+    if(collapsed>0){ cout << "Collapsed " << collapsed << " sorts into 1 as they are monotonic" << endl;}
     cout << sig->distinctSorts << " distinct sorts" << endl;
     for(unsigned s=0;s<sig->distinctSorts;s++){
       unsigned children =0;
