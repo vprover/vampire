@@ -162,7 +162,7 @@ void Monotonicity::addSortPredicates(ClauseList*& clauses)
       Monotonicity m(clauses,s);
       bool monotonic = m.check();
       isMonotonic[s] = monotonic;
-      if(!monotonic){ cout << env.sorts->sortName(s) << " NOT M" << endl; }
+      //if(!monotonic){ cout << env.sorts->sortName(s) << " NOT M" << endl; }
     }
     else{ isMonotonic[s] = true; } // We are monotonic in a sort we do not use!!
   }
@@ -259,7 +259,7 @@ void Monotonicity::addSortPredicates(ClauseList*& clauses)
        Clause* replacement = Clause::fromStack(literals,cl->inputType(),
                                    new Inference1(Inference::ADD_SORT_PREDICATES, cl)); 
        ClauseList::push(replacement,newAxioms);
-       cout << replacement->toString() << endl;
+       //cout << replacement->toString() << endl;
        it.del(); 
      }
    }
