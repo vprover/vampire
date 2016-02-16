@@ -50,6 +50,7 @@
 #include "SortInference.hpp"
 #include "DefinitionIntroduction.hpp"
 #include "FunctionRelationshipInference.hpp"
+#include "Monotonicity.hpp"
 #include "FiniteModelBuilder.hpp"
 
 #define VTRACE_FMB 0
@@ -342,11 +343,18 @@ void FiniteModelBuilder::init()
       vampire_sort_constraints_strict); 
   }
 
+  ClauseList* clist = 0;
+  if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::PREDICATE){
+    ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
+    Monotonicity::addSortPredicates(clist);
+  }
+
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
-  DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
-  //ClauseIterator cit = _prb.clauseIterator();
+  DefinitionIntroduction cit = DefinitionIntroduction(
+    (clist ? pvi(ClauseList::Iterator(clist)) : _prb.clauseIterator())
+  );
 
   // Apply flattening and split clauses into ground and non-ground
   while(cit.hasNext()){
@@ -1374,55 +1382,44 @@ void FiniteModelBuilder::onModelFound()
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
 
     static DArray<unsigned> grounding;
-    DArray<unsigned> args;
-    grounding.ensure(arity+1);
-    args.ensure(arity);
+    grounding.ensure(arity);
     for(unsigned i=0;i<arity;i++){
        grounding[i]=1;
-       args[i]=1;
     }
     grounding[arity-1]=0;
-    args[arity-1]=0;
 
     const DArray<unsigned>& f_signature = _sortedSignature->functionSignatures[f];
     static DArray<unsigned> maxVarSize;
-    maxVarSize.ensure(arity+1);
-    for(unsigned j=0;j<arity+1;j++){ 
-      unsigned srt = f_signature[j];
-      maxVarSize[j] = _sortedSignature->sortBounds[srt];
+    maxVarSize.ensure(arity);
+    for(unsigned var=0;var<arity;var++){ 
+      unsigned srt = f_signature[var];
+      maxVarSize[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
     }
-
-    //cout <<"mins   ";
-    //for(unsigned j=0;j<arity;j++){ cout << maxVarSize[j] << ", ";};
-    //cout << endl;
+    unsigned retSrt = f_signature[arity];
+    unsigned maxRtSrtSize = min(_sortedSignature->sortBounds[retSrt],_sortModelSizes[retSrt]);
 
 fModelLabel:
-      for(unsigned i=arity-1;i+1!=0;i--){
+      for(unsigned var=arity-1;var+1!=0;var--){
 
-        if(args[i]==_sortModelSizes[f_signature[i]]){
-          grounding[i]=1;
-          args[i]=1;
+        if(grounding[var] == maxVarSize[var]){
+          grounding[var]=1;
         }
         else{
-          if(args[i]<maxVarSize[i]){
-            grounding[i]++;
-          }
-          args[i]++;
+          grounding[var]++;
 
-          //for(unsigned j=0;j<arity;j++){ cout << args[j] << ", ";}; 
-          //cout << "          ";
-          //for(unsigned j=0;j<arity;j++){ cout << grounding[j] << ", ";}; 
-          //cout  << endl;
+          static DArray<unsigned> use;
+          use.ensure(arity+1);
+          for(unsigned k=0;k<arity;k++) use[k]=grounding[k];
 
           bool found=false;
-          for(unsigned c=1;c<=_sortModelSizes[f_signature[arity]];c++){
-            grounding[arity]=c;
-            SATLiteral slit = getSATLiteral(f,grounding,true,true);
+          for(unsigned c=1;c<=maxRtSrtSize;c++){
+            use[arity]=c;
+            SATLiteral slit = getSATLiteral(f,use,true,true);
             if(_solver->trueInAssignment(slit)){
               //if(found){ cout << "Error: multiple interpretations of " << name << endl; }
               ASS(!found);
               found=true;
-              model.addFunctionDefinition(f,args,c);
+              model.addFunctionDefinition(f,grounding,c);
             }
           }
           if(!found){
@@ -1430,7 +1427,7 @@ fModelLabel:
              // This is a result of the finite sort bounding and the argument
              // says that we can equate this domain element to a smaller one below the bound
              //TODO fix this 
-             //cout << "NOT FOUND" << endl; 
+             //cout << "NOT FOUND for " << env.signature->functionName(f) << endl; 
           }
 
           goto fModelLabel;
