@@ -1256,6 +1256,8 @@ MainLoopResult FiniteModelBuilder::runImpl()
       return MainLoopResult(Statistics::SATISFIABLE);
     }
 
+    unsigned clauseSetSize = _clausesToBeAdded.size();
+
     // destroy the clauses
     SATClauseStack::Iterator it(_clausesToBeAdded);
     while (it.hasNext()) {
@@ -1268,8 +1270,8 @@ MainLoopResult FiniteModelBuilder::runImpl()
       // _solver->explicitlyMinimizedFailedAssumptions(false,true); // TODO: try adding this in
       const SATLiteralStack& failed = _solver->failedAssumptions();
 
-      Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size());
-      Constraint_Generator& constraint = *constraint_p;
+      Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size(),clauseSetSize);
+      Constraint_Generator_Vals& constraint = constraint_p->_vals;
 
       for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
         constraint[i] = make_pair(STAR,_distinctSortSizes[i]);
@@ -1295,10 +1297,10 @@ MainLoopResult FiniteModelBuilder::runImpl()
 // #if VTRACE_DOMAINS
       cout << "Adding generator/constraint: ";
       output_cg(constraint);
-      cout << endl;
+      cout << " of weight " << clauseSetSize << endl;
 // #endif
 
-      _constraints_generators.push_back(constraint_p);
+      _constraints_generators.insert(constraint_p);
     }
 
     if (!increaseModelSizes()) {
@@ -1729,8 +1731,11 @@ ppModelLabel:
 bool FiniteModelBuilder::increaseModelSizes(){
   CALL("FiniteModelBuilder::increaseModelSizes");
 
-  while (_constraints_generators.isNonEmpty()) {
-    Constraint_Generator& generator = *_constraints_generators.front();
+  cout << "_constraints_generators.size() " << _constraints_generators.size() << endl;
+
+  while (!_constraints_generators.isEmpty()) {
+    Constraint_Generator* generator_p = _constraints_generators.top();
+    Constraint_Generator_Vals& generator = generator_p->_vals;
 
 #if VTRACE_DOMAINS
     cout << "Picking generator: ";
@@ -1759,9 +1764,9 @@ bool FiniteModelBuilder::increaseModelSizes(){
 
       // test 2 -- generator constraints
       {
-        Lib::Deque<Constraint_Generator*>::FrontToBackIterator it(_constraints_generators);
+        Constraint_Generator_Heap::Iterator it(_constraints_generators);
         while (it.hasNext()) {
-          Constraint_Generator& constraint = *it.next();
+          Constraint_Generator_Vals& constraint = it.next()->_vals;
 
           for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
             pair<ConstraintSign,unsigned>& cc = constraint[j];
@@ -1795,15 +1800,15 @@ bool FiniteModelBuilder::increaseModelSizes(){
             // cout << "  Ruled out by _distinct_sort_constraints " << constr.first << " >= " << constr.second << endl;
 
             // We will skip testing it, but we need it as a generator to proceed through the space:
-            Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size());
-            Constraint_Generator& constraint = *constraint_p;
+            Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+            Constraint_Generator_Vals& constraint = constraint_p->_vals;
             for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
               constraint[j] = make_pair(STAR,_distinctSortSizes[j]);
             }
             constraint[constr.first].first = EQ;
             constraint[constr.second].first = GEQ;
 
-            _constraints_generators.push_back(constraint_p);
+            _constraints_generators.insert(constraint_p);
 
             goto next_candidate;
           }
@@ -1816,15 +1821,15 @@ bool FiniteModelBuilder::increaseModelSizes(){
             // cout << "  Ruled out by _strict_distinct_sort_constraints " << constr.first << " > " << constr.second << endl;
 
             // We will skip testing it, but we need it as a generator to proceed through the space:
-            Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size());
-            Constraint_Generator& constraint = *constraint_p;
+            Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+            Constraint_Generator_Vals& constraint = constraint_p->_vals;
             for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
               constraint[j] = make_pair(STAR,_distinctSortSizes[j]);
             }
             constraint[constr.first].first = EQ;
             constraint[constr.second].first = GEQ;
 
-            _constraints_generators.push_back(constraint_p);
+            _constraints_generators.insert(constraint_p);
 
             goto next_candidate;
           }
@@ -1842,7 +1847,7 @@ bool FiniteModelBuilder::increaseModelSizes(){
       _distinctSortSizes[i] -= 1;
     }
 
-    delete _constraints_generators.pop_front();
+    delete _constraints_generators.pop();
 #if VTRACE_DOMAINS
     cout << "Deleted" << endl;
 #endif

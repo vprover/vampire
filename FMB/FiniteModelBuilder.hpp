@@ -12,7 +12,7 @@
 #include "SAT/SATSolver.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "SortInference.hpp"
-#include "Lib/Deque.hpp"
+#include "Lib/BinaryHeap.hpp"
 
 namespace FMB {
 using namespace Lib;
@@ -182,13 +182,21 @@ private:
     STAR    // we don't care about this value
   };
 
-  typedef DArray<pair<ConstraintSign,unsigned>> Constraint_Generator;
+  typedef DArray<pair<ConstraintSign,unsigned>> Constraint_Generator_Vals;
 
-  void output_cg(Constraint_Generator& cg) {
+  struct Constraint_Generator {
+    Constraint_Generator_Vals _vals;
+    unsigned _weight;
+
+    Constraint_Generator(unsigned size, unsigned weight)
+      : _vals(size), _weight(weight) {}
+  };
+
+  void output_cg(Constraint_Generator_Vals& cgv) {
     cout << "[";
-    for (unsigned i = 0; i < cg.size(); i++) {
-      cout << cg[i].second;
-      switch(cg[i].first) {
+    for (unsigned i = 0; i < cgv.size(); i++) {
+      cout << cgv[i].second;
+      switch(cgv[i].first) {
       case EQ:
         cout << "=";
         break;
@@ -204,17 +212,24 @@ private:
       default:
         ASSERTION_VIOLATION;
       }
-      if (i < cg.size()-1) {
+      if (i < cgv.size()-1) {
         cout << ", ";
       }
     }
     cout << "]";
   }
 
+  struct Constraint_Generator_Compare {
+    static Comparison compare (Constraint_Generator* c1, Constraint_Generator* c2)
+    { return c1->_weight < c2->_weight ? LESS : c1->_weight == c2->_weight ? EQUAL : GREATER; }
+  };
+
+  typedef Lib::BinaryHeap<Constraint_Generator*,Constraint_Generator_Compare> Constraint_Generator_Heap;
+
   /**
    * Constraints are at the same time used as generators.
    */
-  Lib::Deque<Constraint_Generator*> _constraints_generators;
+  Constraint_Generator_Heap _constraints_generators;
 
   // the sort constraints from injectivity/surjectivity
   // pairs of distinct sorts where pair.first >= pair.second
