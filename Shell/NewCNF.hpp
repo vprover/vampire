@@ -338,7 +338,7 @@ private:
   void skolemise(QuantifiedFormula* g, BindingList* &bindings);
 
   Kernel::Literal* createNamingLiteral(Formula* g, List<unsigned>* free);
-  Kernel::Formula* nameSubformula(Formula* g, Occurrences &occInfo);
+  void nameSubformula(Formula* g, Occurrences &occurrences);
 
   void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {
     if (formula->connective() != LITERAL || !formula->literal()->shared()) {

@@ -11,7 +11,6 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -93,14 +92,12 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
     cout << "---------------------------------------------" << endl << endl;
 #endif
 
-    if (g->connective() != LITERAL) {
-      if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
-        nameSubformula(g, occurrences);
-      }
+    if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
+      nameSubformula(g, occurrences);
+    } else {
+      // TODO: currently we don't check for tautologies, as there should be none appearing (we use polarity based expansion of IFF and XOR)
+      process(g, occurrences);
     }
-
-    // TODO: currently we don't check for tautologies, as there should be none appearing (we use polarity based expansion of IFF and XOR)
-    process(g, occurrences);
   }
 
 #if LOGGING
@@ -875,16 +872,12 @@ Literal* NewCNF::createNamingLiteral(Formula* f, List<unsigned>* free)
  *
  * Occurrence lists in occurrences get destroyed.
  */
-Formula* NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
+void NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
 {
   CALL("NewCNF::nameSubformula");
 
   LOG2("nameSubformula ", g->toString());
-
-  ASS_NEQ(g->connective(), LITERAL);
-  ASS_NEQ(g->connective(), NOT);
-
-  enqueue(g);
+  LOG2("occurrences ", occurrences.size());
 
   List<unsigned>* fv = List<unsigned>::empty();
   List<unsigned>::pushFromIterator(VarSet::Iterator(*freeVars(g)), fv);
@@ -892,15 +885,15 @@ Formula* NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
   Literal* naming = createNamingLiteral(g, fv);
   Formula* name = new AtomicFormula(naming);
 
+  occurrences.replaceBy(name);
+
+  enqueue(g);
+
   for (SIGN sign : { NEGATIVE, POSITIVE }) {
     // One could also consider the case where (part of) the bindings goes to the definition
     // which perhaps allows us to the have a skolem predicate with fewer arguments
     introduceGenClause(GenLit(name, OPPOSITE(sign)), GenLit(g, sign));
   }
-
-  occurrences.replaceBy(name);
-
-  return name;
 }
 
 void NewCNF::process(Formula* g, Occurrences &occurrences)
