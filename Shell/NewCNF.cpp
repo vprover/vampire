@@ -29,7 +29,7 @@ using namespace Kernel;
 namespace Shell {
 
 #undef LOGGING
-#define LOGGING 1
+#define LOGGING 0
 
 #if LOGGING
 #define LOG1(arg) cout << arg << endl;
@@ -270,9 +270,12 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
     return TermList(Term::create(term, arguments.begin()));
   }
 
+  unsigned sort;
+
   Term::SpecialTermData* sd = term->getSpecialData();
   switch (sd->getType()) {
     case Term::SF_FORMULA: {
+      sort = Sorts::SRT_BOOL;
       conditions.push(sd->getFormula());
       thenBranches.push(TermList(Term::foolTrue()));
       elseBranches.push(TermList(Term::foolFalse()));
@@ -280,6 +283,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
     }
 
     case Term::SF_ITE: {
+      sort = sd->getSort();
       conditions.push(sd->getCondition());
       thenBranches.push(*term->nthArgument(0));
       elseBranches.push(*term->nthArgument(1));
@@ -293,7 +297,6 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       ASSERTION_VIOLATION;
   }
 
-  unsigned sort = term->getSpecialData()->getSort();
   unsigned var = createFreshVariable(sort);
 
   variables.push(var);
@@ -678,7 +681,6 @@ Kernel::Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   Term* res;
   bool isPredicate = rangeSort == Sorts::SRT_BOOL;
   if (isPredicate) {
-    cout << "Skolemising with a predicate symbol" << endl;
     unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
   } else {
