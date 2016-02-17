@@ -16,6 +16,8 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/Formula.hpp"
+
 namespace Shell {
 
 
@@ -24,6 +26,9 @@ class Infinox{
 public:
 static void doCheck(Problem& prb);
 static void addCheckingClauses(Problem& prb);
+
+static void checkLabels(Saturation::LabelFinder* labelFinder);
+
 private:
 static void addClaimForSingleSortFunction(TermList x, TermList y, TermList fx, TermList fy, 
                                 unsigned arg_srt, unsigned ret_srt, 
@@ -36,7 +41,8 @@ static void addClaimForMultiSortFunction(TermList x, TermList y, TermList fx, Te
 static void addClaim(Formula* conjecture, UnitList*& newClauses);
 static Formula* getName(unsigned fromSrt, unsigned toSrt, bool strict);
 
-
+static DHMap<unsigned,std::pair<unsigned,unsigned>> _labelMap_nonstrict;
+static DHMap<unsigned,std::pair<unsigned,unsigned>> _labelMap_strict;
 
 };
 

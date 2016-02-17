@@ -13,7 +13,9 @@
 #include "Shell/Preprocess.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/Infinox.hpp"
 
+#include "LabelFinder.hpp"
 #include "SaturationAlgorithm.hpp"
 
 #include "ProvingHelper.hpp"
@@ -117,10 +119,27 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   env.statistics->phase=Statistics::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
-  MainLoopResult sres(salg->run());
-  env.statistics->phase=Statistics::FINALIZATION;
-  Timer::setTimeLimitEnforcement(false);
-  sres.updateStatistics();
+  LabelFinder* labelFinder = 0;
+  if(env.options->mode()==Options::Mode::INFINOX){
+    labelFinder = new LabelFinder();
+    salg->setLabelFinder(labelFinder);
+  }
+  
+  try{
+    MainLoopResult sres(salg->run());
+    env.statistics->phase=Statistics::FINALIZATION;
+    Timer::setTimeLimitEnforcement(false);
+    sres.updateStatistics();
+  }catch(TimeLimitExceededException& e){
+    if(labelFinder){
+      Infinox::checkLabels(labelFinder);
+    }
+    throw e;
+  }
+  if(labelFinder){
+    Infinox::checkLabels(labelFinder);
+  } 
+
 }
 
 

@@ -21,6 +21,7 @@
 #include "Kernel/Inference.hpp"
 
 #include "Saturation/ProvingHelper.hpp"
+#include "Saturation/LabelFinder.hpp"
 
 #include "UIHelper.hpp"
 #include "Statistics.hpp"
@@ -37,6 +38,9 @@ namespace Shell{
 using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
+
+DHMap<unsigned,std::pair<unsigned,unsigned>> Infinox::_labelMap_nonstrict;
+DHMap<unsigned,std::pair<unsigned,unsigned>> Infinox::_labelMap_strict;
 
 void Infinox::doCheck(Problem& prb)
 {
@@ -262,6 +266,44 @@ Formula* Infinox::getName(unsigned fromSrt, unsigned toSrt, bool strict)
       _labelMap_nonstrict.insert(label,make_pair(fromSrt,toSrt));
 
     return new AtomicFormula(Literal::create(label,0,true,false,0));
+}
+
+void Infinox::checkLabels(LabelFinder* labelFinder)
+{
+  CALL("Infinox::checkLabels");
+
+  Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
+  DHSet<std::pair<unsigned,unsigned>> nonstrict_constraints;
+  DHSet<std::pair<unsigned,unsigned>> strict_constraints;
+  Stack<unsigned>::Iterator it(foundLabels);
+  while(it.hasNext()){
+    unsigned l = it.next();
+    std::pair<unsigned,unsigned> constraint;
+    if(_labelMap_nonstrict.find(l,constraint)){
+      nonstrict_constraints.insert(constraint);
+    }
+    else{
+      ASS(_labelMap_strict.find(l));
+      strict_constraints.insert(_labelMap_strict.get(l));
+    }
+  }
+  cout << "There are " << nonstrict_constraints.size() << " nonstrict constraints" << endl;
+
+  // if there are no strict constraints then there can be no infinite domain
+  if(strict_constraints.isEmpty()){
+    cout << "no strict constraints" << endl;
+    return;
+  }
+
+  cout << "There are " << strict_constraints.size() << " strict constraints" << endl;
+
+  // now transitively close the union of constraints
+  // this is an inefficient way of finding cycles, but I expect the graphs to be very small
+
+
+  // if we can reach the start of a strict constraint from the end we have a
+  // cycle containing a strict constraint
+
 }
 
 }

@@ -976,7 +976,9 @@ int main(int argc, char* argv[])
     
     case Options::Mode::INFINOX:
     if(CASC::CASCMode::perform(argc, argv)){
-       cout << ">> Lack of Finite Model Detected" << endl;
+       if(env.statistics->terminationReason == Statistics::REFUTATION){
+         cout << ">> Lack of Finite Model Detected" << endl;
+       }
        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
      }
 

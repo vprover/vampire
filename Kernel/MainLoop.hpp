@@ -122,6 +122,11 @@ protected:
    * Options that represent the strategy used by the current main loop
    */
   const Options& _opt;
+
+
+public:
+  // Bad design requires this to be here... fix it
+  virtual void setLabelFinder(Saturation::LabelFinder* finder) {} 
 };
 
 }
