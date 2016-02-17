@@ -191,8 +191,77 @@ void Infinox::addClaimForMultiSortFunction(TermList x, TermList y, TermList fx, 
 {
     CALL("Infinox::addClaimForMultiSortFunction");
 
+    Formula::VarList* xy = new Formula::VarList(0,new Formula::VarList(1));
+
+    Formula* eq_fxfy = new AtomicFormula(Literal::createEquality(true,fx,fy,ret_srt));
+    Formula* eq_xy = new AtomicFormula(Literal::createEquality(true,x,y,arg_srt));
+
+    Formula* injective =
+      new QuantifiedFormula(FORALL,xy,0,new BinaryFormula(IMP,eq_fxfy,eq_xy));
+
+    Formula* surjective =
+      new QuantifiedFormula(FORALL, new Formula::VarList(1),0,
+      new QuantifiedFormula(EXISTS, new Formula::VarList(0),0,
+      new AtomicFormula(Literal::createEquality(true,fx,y,ret_srt))));
+
+    Formula* ing_and_nons = new JunctionFormula(AND,
+                            new FormulaList(injective, new FormulaList(new NegatedFormula(surjective))));
+    Formula* sur_and_noni = new JunctionFormula(AND,
+                            new FormulaList(surjective, new FormulaList(new NegatedFormula(injective))));
+
+    if(existential){
+      injective  = new QuantifiedFormula(EXISTS, existential, 0, injective);
+      surjective = new QuantifiedFormula(EXISTS, existential, 0, surjective);
+      ing_and_nons = new QuantifiedFormula(EXISTS, existential, 0, ing_and_nons);
+      sur_and_noni = new QuantifiedFormula(EXISTS, existential, 0, sur_and_noni);
+    }
+    // Add names (true/false relates to being injective or not i.e. surjective)
+    injective    = new BinaryFormula(IMP,injective,getName(ret_srt,arg_srt,false));
+    surjective   = new BinaryFormula(IMP,surjective,getName(arg_srt,ret_srt,false));
+    ing_and_nons = new BinaryFormula(IMP,ing_and_nons,getName(ret_srt,arg_srt,true));
+    sur_and_noni = new BinaryFormula(IMP,sur_and_noni,getName(arg_srt,ret_srt,true));
+
+    addClaim(injective,newClauses);
+    addClaim(surjective,newClauses);
+    addClaim(ing_and_nons,newClauses);
+    addClaim(sur_and_noni,newClauses);
 
 }
 
+void Infinox::addClaim(Formula* conjecture, UnitList*& newClauses)
+{
+    CALL("Infinox::addClaim");
+
+    FormulaUnit* fu = new FormulaUnit(conjecture,
+                      new Inference(Inference::INPUT),Unit::CONJECTURE); //TODO create new Inference kind?
+
+    fu = Rectify::rectify(fu);
+    fu = NNF::ennf(fu);
+    fu = Flattening::flatten(fu);
+    fu = Skolem::skolemise(fu);
+    fu = Flattening::flatten(fu);
+
+    Stack<Clause*> cls;
+    CNF cnf;
+    cnf.clausify(fu,cls);
+
+    UnitList::pushFromIterator(Stack<Clause*>::Iterator(cls),newClauses);
+}
+
+// get a name for a formula that captures the relationship that |fromSrt| >= |toSrt|
+Formula* Infinox::getName(unsigned fromSrt, unsigned toSrt, bool strict)
+{
+    CALL("Infinox::getName");
+
+    unsigned label= env.signature->addFreshPredicate(0,"label");
+    env.signature->getPredicate(label)->markLabel();
+
+    if(strict)
+      _labelMap_strict.insert(label,make_pair(fromSrt,toSrt));
+    else
+      _labelMap_nonstrict.insert(label,make_pair(fromSrt,toSrt));
+
+    return new AtomicFormula(Literal::create(label,0,true,false,0));
+}
 
 }

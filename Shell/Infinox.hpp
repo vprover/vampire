@@ -1,7 +1,7 @@
 /**
  * @file Infinox.hpp
  *
- * Designed to check if the input problem has an infinite model
+ * Designed to check if the input problem does not have a finite model
  * Based on the Infinox prover
  * See https://gupea.ub.gu.se/bitstream/2077/22058/1/gupea_2077_22058_1.pdf
  *
@@ -32,6 +32,10 @@ static void addClaimForSingleSortFunction(TermList x, TermList y, TermList fx, T
 static void addClaimForMultiSortFunction(TermList x, TermList y, TermList fx, TermList fy,
                                 unsigned arg_srt, unsigned ret_srt,
                                 Formula::VarList* existential,UnitList*& newClauses);
+
+static void addClaim(Formula* conjecture, UnitList*& newClauses);
+static Formula* getName(unsigned fromSrt, unsigned toSrt, bool strict);
+
 
 
 };
