@@ -348,6 +348,10 @@ void FiniteModelBuilder::init()
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
     Monotonicity::addSortPredicates(clist);
   }
+  if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION){
+    ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
+    Monotonicity::addSortFunctions(clist);
+  }
 
 
   // Perform DefinitionIntroduction as we iterate

@@ -426,6 +426,8 @@ vstring Inference::ruleName(Rule rule)
     return "definition introduction (finite model building)";
   case ADD_SORT_PREDICATES:
     return "add sort predicates";
+  case ADD_SORT_FUNCTIONS:
+    return "add sort functions";
   case INSTANTIATION:
     return "Instantiation";
   case MODEL_NOT_FOUND:
