@@ -95,6 +95,11 @@ private:
 
     Lib::DArray<GenLit> literals; // TODO: remove the extra indirection and allocate inside GenClause
 
+    typedef Lib::DArray<GenLit>::Iterator Iterator;
+    Iterator genLiterals() {
+      return Iterator(literals);
+    }
+
     unsigned size() {
       return (unsigned) literals.size();
     }
@@ -128,6 +133,8 @@ private:
 
   typedef SmartPtr<GenClause> SPGenClause;
 
+  void toClauses(SPGenClause gc, Stack<Clause*>& output);
+  List<GenLit>* mapSubstitution(List<GenLit>* gc, Substitution subst, bool &substituted);
   Clause* toClause(SPGenClause gc);
 
   typedef std::list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
@@ -246,18 +253,25 @@ private:
     return gc;
   }
 
-  void introduceGenClause(GenLit gl) {
-    SPGenClause gc = introduceGenClause(1, BindingList::empty());
-    setLiteral(gc, 0, gl);
+  SPGenClause introduceGenClause(List<GenLit>* gls, BindingList* bindings) {
+    SPGenClause gc = introduceGenClause((unsigned)gls->length(), bindings);
+    unsigned j = 0;
+    List<GenLit>::Iterator glit(gls);
+    while (glit.hasNext()) {
+      setLiteral(gc, j++, glit.next());
+    }
+    return gc;
   }
 
-  void introduceGenClause(GenLit gl0, GenLit gl1) {
-    SPGenClause gc = introduceGenClause(2, BindingList::empty());
-    setLiteral(gc, 0, gl0);
-    setLiteral(gc, 1, gl1);
+  SPGenClause introduceGenClause(GenLit gl, BindingList* bindings=BindingList::empty()) {
+    return introduceGenClause(new List<GenLit>(gl, 0), bindings);
   }
 
-  void introduceExtendedGenClause(SPGenClause gc, unsigned position, List<GenLit>*gls) {
+  SPGenClause introduceGenClause(GenLit gl0, GenLit gl1, BindingList* bindings=BindingList::empty()) {
+    return introduceGenClause(new List<GenLit>(gl0, new List<GenLit>(gl1, 0)), bindings);
+  }
+
+  SPGenClause introduceExtendedGenClause(SPGenClause gc, unsigned position, List<GenLit>* gls) {
     SPGenClause processedGc = introduceGenClause(gc->size() + gls->length() - 1, gc->bindings);
     for (unsigned i = 0, j = 0; i < gc->size(); i++) {
       if (i == position) {
@@ -269,10 +283,11 @@ private:
         setLiteral(processedGc, j++, gc->literals[i]);
       }
     }
+    return processedGc;
   }
 
   void removeGenLit(SPGenClause gc, unsigned position) {
-    introduceExtendedGenClause(gc, position, 0);
+    introduceExtendedGenClause(gc, position, List<GenLit>::empty());
   }
 
   void introduceExtendedGenClause(SPGenClause gc, unsigned position, GenLit replacement) {

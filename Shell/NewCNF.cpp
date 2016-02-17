@@ -29,7 +29,7 @@ using namespace Kernel;
 namespace Shell {
 
 #undef LOGGING
-#define LOGGING 0
+#define LOGGING 1
 
 #if LOGGING
 #define LOG1(arg) cout << arg << endl;
@@ -115,11 +115,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   cout << endl << "----------------- CNF ------------------" << endl;
 #endif
   for (SPGenClause gc : _genClauses) {
-    Clause* cl = toClause(gc);
-#if LOGGING
-    cout << cl->toString() << endl;
-#endif
-    output.push(cl);
+    toClauses(gc, output);
   }
 #if LOGGING
   cout << "----------------- CNF ------------------" << endl << endl;
@@ -467,13 +463,10 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
       if (sign != bindingSign) {
         removeGenLit(occ.gc, occ.position);
       }
-    } else {
-      Literal* equality = Literal::createEquality(sign == occ.sign(),
-                                                  TermList(var, false),
-                                                  TermList(Term::foolTrue()),
-                                                  Sorts::SRT_BOOL);
-      introduceExtendedGenClause(occ.gc, occ.position, GenLit(new AtomicFormula(equality), POSITIVE));
+      continue;
     }
+
+    introduceExtendedGenClause(occ.gc, occ.position, GenLit(new BoolTermFormula(TermList(var, false)), sign));
   }
 }
 
@@ -682,9 +675,16 @@ Kernel::Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
     fnArgs.push(TermList(uvar, false));
   }
 
-  unsigned fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
-
-  Term* res = Term::create(fun, arity, fnArgs.begin());
+  Term* res;
+  bool isPredicate = rangeSort == Sorts::SRT_BOOL;
+  if (isPredicate) {
+    cout << "Skolemising with a predicate symbol" << endl;
+    unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
+    res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
+  } else {
+    unsigned fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
+    res = Term::create(fun, arity, fnArgs.begin());
+  }
 
   domainSorts.reset();
   fnArgs.reset();
@@ -940,6 +940,116 @@ void NewCNF::process(Formula* g, Occurrences &occurrences)
   }
 }
 
+void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
+{
+  CALL("NewCNF::toClauses");
+
+  Stack<unsigned> variables;
+  Stack<Formula*> skolems;
+
+  BindingList::Iterator bit(gc->bindings);
+  while (bit.hasNext()) {
+    Binding b = bit.next();
+    unsigned var = b.first;
+    Term* skolem = b.second;
+    if (skolem->isSpecial()) {
+      variables.push(var);
+      ASS(skolem->isFormula());
+      Formula* f = skolem->getSpecialData()->getFormula();
+      ASS(f->connective() == LITERAL);
+      skolems.push(f);
+    }
+  }
+
+  List<GenLit>* initLiterals(0);
+  List<GenLit>::pushFromIterator(gc->genLiterals(), initLiterals);
+
+  List<List<GenLit>*>* genClauses = new List<List<GenLit>*>(initLiterals);
+
+  unsigned iteCounter = 0;
+  while (variables.isNonEmpty()) {
+    unsigned variable = variables.pop();
+    Formula* skolem   = skolems.pop();
+
+    Substitution thenSubst;
+    thenSubst.bind(variable, Term::foolTrue());
+
+    Substitution elseSubst;
+    elseSubst.bind(variable, Term::foolFalse());
+
+    List<List<GenLit>*>* processedGenClauses(0);
+
+    while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
+      List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
+
+      bool thenSubstituted;
+      List<GenLit>* thenGls = mapSubstitution(gls, thenSubst, thenSubstituted);
+      if (List<GenLit>::isNonEmpty(thenGls) && thenSubstituted) {
+        processedGenClauses = processedGenClauses->cons(thenGls->cons(GenLit(skolem, NEGATIVE)));
+      }
+
+      bool elseSubstituted;
+      List<GenLit>* elseGls = mapSubstitution(gls, elseSubst, elseSubstituted);
+      if (List<GenLit>::isNonEmpty(elseGls) && elseSubstituted) {
+        processedGenClauses = processedGenClauses->cons(elseGls->cons(GenLit(skolem, POSITIVE)));
+      }
+    }
+
+    genClauses = processedGenClauses;
+    iteCounter++;
+  }
+
+  while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
+    List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
+    SPGenClause genClause = introduceGenClause(gls, gc->bindings);
+    output.push(toClause(genClause));
+  }
+}
+
+// TODO: using GenLit here causes "error: use of undeclared identifier", g++ 7.0.2
+List<std::pair<Formula*, SIGN>>* NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool &substituted)
+{
+  CALL("NewCNF::mapSubstitution");
+
+  substituted = false;
+
+  List<GenLit>* processedClause(0);
+
+  List<GenLit>::Iterator it(clause);
+  while (it.hasNext()) {
+    GenLit gl = it.next();
+    Formula* f = SubstHelper::apply(formula(gl), subst);
+
+    switch (f->connective()) {
+      case TRUE:
+        if (sign(gl) == POSITIVE) {
+          return 0;
+        } else {
+          continue;
+        }
+
+      case FALSE:
+        if (sign(gl) == POSITIVE) {
+          continue;
+        } else {
+          return 0;
+        }
+
+      case BOOL_TERM:
+      case LITERAL: {
+        substituted |= (f != formula(gl));
+        processedClause = processedClause->cons(GenLit(f, sign(gl)));
+        break;
+      }
+
+      default:
+        ASSERTION_VIOLATION_REP(f->toString());
+    }
+  }
+
+  return processedClause;
+}
+
 Clause* NewCNF::toClause(SPGenClause gc)
 {
   CALL("NewCNF::toClause");
@@ -958,15 +1068,16 @@ Clause* NewCNF::toClause(SPGenClause gc)
   static Stack<Literal*> properLiterals;
   ASS(properLiterals.isEmpty());
 
-  unsigned len = gc->size();
-  for (unsigned i = 0; i < len; i++) {
-    Formula* g = formula(gc->literals[i]);
+  GenClause::Iterator lit = gc->genLiterals();
+  while (lit.hasNext()) {
+    GenLit gl = lit.next();
+    Formula* g = formula(gl);
 
     ASS_REP(g->connective() == LITERAL, gc->toString());
     ASS_REP(g->literal()->shared(), g->toString());
 
     Literal* l = g->literal()->apply(subst);
-    if (sign(gc->literals[i]) == NEGATIVE) {
+    if (sign(gl) == NEGATIVE) {
       l = Literal::complementaryLiteral(l);
     }
 
@@ -974,8 +1085,8 @@ Clause* NewCNF::toClause(SPGenClause gc)
   }
 
   Inference* inference = new Inference1(Inference::CLAUSIFY, _beingClausified);
-  Clause* clause = new(len) Clause(len, _beingClausified->inputType(), inference);
-  for (int i = len-1;i >= 0;i--) {
+  Clause* clause = new(gc->size()) Clause(gc->size(), _beingClausified->inputType(), inference);
+  for (int i = gc->size() - 1; i >= 0; i--) {
     (*clause)[i] = properLiterals[i];
   }
 
