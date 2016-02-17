@@ -15,6 +15,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/TermTransformer.hpp"
 
 #include "SAT/SATSolver.hpp"
 #include "SAT/SATLiteral.hpp"
@@ -265,6 +266,92 @@ void Monotonicity::addSortPredicates(ClauseList*& clauses)
    }
 
    clauses = ClauseList::concat(clauses,newAxioms);
+}
+
+class SortFunctionTransformer : public TermTransformer
+{
+public:
+SortFunctionTransformer(Literal* lit, 
+                        DArray<bool> isM,
+                        DArray<unsigned> sf) : _lit(lit), _isM(isM), _sf(sf) {}
+
+TermList transformSubterm(TermList trm){
+  CALL("SortFunctionTransformer::transformSubterm");
+
+  unsigned srt = SortHelper::getTermSort(trm, _lit);
+  if(_isM[srt]) return trm;
+
+  unsigned f =  _sf[srt];
+
+  return TermList(Term::create1(f,trm));
+}
+
+Literal* _lit;
+DArray<bool> _isM;
+DArray<unsigned> _sf;
+
+};
+
+
+void Monotonicity::addSortFunctions(ClauseList*& clauses)
+{
+  CALL("Monotonicity::addSortFunctions");
+
+  // First compute the monotonic sorts
+  DArray<bool> isMonotonic(env.sorts->sorts());
+  for(unsigned s=0;s<env.sorts->sorts();s++){
+    if(env.property->usesSort(s)){
+      Monotonicity m(clauses,s);
+      bool monotonic = m.check();
+      isMonotonic[s] = monotonic;
+      //if(!monotonic){ cout << env.sorts->sortName(s) << " NOT M" << endl; }
+    }
+    else{ isMonotonic[s] = true; } // We are monotonic in a sort we do not use!!
+  }
+
+  // Now create a sort function per non-monotonic sort
+  DArray<unsigned> sortFunctions(env.sorts->sorts());
+  for(unsigned s=0;s<env.sorts->sorts();s++){
+    if(!isMonotonic[s]){
+      vstring name = "sortFunction_"+env.sorts->sortName(s);
+      unsigned f = env.signature->addFreshFunction(1,name.c_str());
+      env.signature->getFunction(f)->setType(new FunctionType(s,s));
+      sortFunctions[s] = f;
+    }
+    else{ sortFunctions[s]=0; }
+  }
+
+  // The newAxioms clause list
+  ClauseList* newAxioms = 0;
+
+
+   ClauseList::DelIterator it(clauses);
+   while(it.hasNext()){
+     Clause* cl = it.next();
+
+     Stack<Literal*> literals;
+
+     Clause::Iterator lit(*cl);
+     bool changed = false;
+     while(lit.hasNext()){
+       Literal* l = lit.next();
+       SortFunctionTransformer transformer(l,isMonotonic,sortFunctions);
+       Literal* lnew = transformer.transform(l);
+       if(l!=lnew) changed=true;
+       literals.push(lnew);
+     }
+
+     if(changed){
+       Clause* replacement = Clause::fromStack(literals,cl->inputType(),
+                                   new Inference1(Inference::ADD_SORT_FUNCTIONS, cl));
+       //cout << "R " << replacement->toString() << endl;
+       ClauseList::push(replacement,newAxioms);
+       it.del();
+     }
+   }
+
+   clauses = ClauseList::concat(clauses,newAxioms);
+
 }
 
 }
