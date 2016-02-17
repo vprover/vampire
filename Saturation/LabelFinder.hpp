@@ -32,9 +32,16 @@ public:
 
   Stack<unsigned> getFoundLabels(){ return _foundLabels;}
 
+  Clause* getLabelClause(unsigned label){
+    Clause* c;
+    if(_clauses.find(label,c)) return c;
+    return 0;
+  }
+
 private:
 
   Stack<unsigned> _foundLabels;
+  DHMap<unsigned,Clause*> _clauses;
 
 };
 

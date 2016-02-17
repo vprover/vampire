@@ -47,6 +47,7 @@ void LabelFinder::onNewPropositionalClause(Clause* cl)
   }
 
   _foundLabels.push(predicate);
+  _clauses.insert(predicate,cl);
 }
 
 }

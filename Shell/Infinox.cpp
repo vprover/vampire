@@ -19,6 +19,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Connective.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/MainLoop.hpp"
 
 #include "Saturation/ProvingHelper.hpp"
 #include "Saturation/LabelFinder.hpp"
@@ -237,7 +238,7 @@ void Infinox::addClaim(Formula* conjecture, UnitList*& newClauses)
     CALL("Infinox::addClaim");
 
     FormulaUnit* fu = new FormulaUnit(conjecture,
-                      new Inference(Inference::INPUT),Unit::CONJECTURE); //TODO create new Inference kind?
+                      new Inference(Inference::INFINOX_CLAIM),Unit::CONJECTURE); 
 
     fu = Rectify::rectify(fu);
     fu = NNF::ennf(fu);
@@ -257,7 +258,9 @@ Formula* Infinox::getName(unsigned fromSrt, unsigned toSrt, bool strict)
 {
     CALL("Infinox::getName");
 
-    unsigned label= env.signature->addFreshPredicate(0,"label");
+    vstring name = "label_"+Lib::Int::toString(fromSrt)+"_"+Lib::Int::toString(toSrt)+"_";
+    if(strict) name += "s";
+    unsigned label= env.signature->addFreshPredicate(0,name.c_str());
     env.signature->getPredicate(label)->markLabel();
 
     if(strict)
@@ -273,36 +276,115 @@ void Infinox::checkLabels(LabelFinder* labelFinder)
   CALL("Infinox::checkLabels");
 
   Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
-  DHSet<std::pair<unsigned,unsigned>> nonstrict_constraints;
+  DHSet<std::pair<unsigned,unsigned>> single_constraints;
   DHSet<std::pair<unsigned,unsigned>> strict_constraints;
+
+  // need to seperate the constraints for producing a refutation
+  DHMap<std::pair<unsigned,unsigned>,Clause*> nonstrict_clauses;
+  DHMap<std::pair<unsigned,unsigned>,Clause*> strict_clauses;
+
   Stack<unsigned>::Iterator it(foundLabels);
   while(it.hasNext()){
     unsigned l = it.next();
     std::pair<unsigned,unsigned> constraint;
-    if(_labelMap_nonstrict.find(l,constraint)){
-      nonstrict_constraints.insert(constraint);
+    if(_labelMap_strict.find(l,constraint)){
+      single_constraints.insert(constraint);
+      strict_constraints.insert(constraint);
+      strict_clauses.insert(constraint,labelFinder->getLabelClause(l));
     }
-    else{
-      ASS(_labelMap_strict.find(l));
-      strict_constraints.insert(_labelMap_strict.get(l));
+    if(_labelMap_nonstrict.find(l,constraint)){
+      single_constraints.insert(constraint);
+      nonstrict_clauses.insert(constraint,labelFinder->getLabelClause(l));
     }
   }
-  cout << "There are " << nonstrict_constraints.size() << " nonstrict constraints" << endl;
 
   // if there are no strict constraints then there can be no infinite domain
   if(strict_constraints.isEmpty()){
-    cout << "no strict constraints" << endl;
+    //cout << "no strict constraints" << endl;
     return;
   }
 
-  cout << "There are " << strict_constraints.size() << " strict constraints" << endl;
+  //cout << "There are " << strict_constraints.size() << " strict constraints" << endl;
 
   // now transitively close the union of constraints
   // this is an inefficient way of finding cycles, but I expect the graphs to be very small
 
+  DHSet<std::pair<unsigned,unsigned>> constraints;
+  constraints.loadFromIterator(DHSet<std::pair<unsigned,unsigned>>::Iterator(single_constraints));
+
+  // This is even a bad way of computing transitive closure!
+  bool closed = false;
+  while(!closed){
+    DHSet<std::pair<unsigned,unsigned>> newConstraints;
+    closed=true;
+    DHSet<std::pair<unsigned,unsigned>>::Iterator it1(constraints);
+    while(it1.hasNext()){
+      std::pair<unsigned,unsigned> con1 = it1.next();
+      DHSet<std::pair<unsigned,unsigned>>::Iterator it2(constraints);
+      while(it2.hasNext()){
+        std::pair<unsigned,unsigned> con2 = it2.next();
+        if(con1.second == con2.first){
+          std::pair<unsigned,unsigned> con3 = make_pair(con1.first,con2.second);
+          if(!constraints.contains(con3) && !newConstraints.contains(con3)){
+            newConstraints.insert(con3);
+            closed=false;
+          }
+        }
+      }
+    }
+    constraints.loadFromIterator(DHSet<std::pair<unsigned,unsigned>>::Iterator(newConstraints));
+  }
+
 
   // if we can reach the start of a strict constraint from the end we have a
   // cycle containing a strict constraint
+  DHSet<std::pair<unsigned,unsigned>>::Iterator strict_it(strict_constraints);
+  while(strict_it.hasNext()){
+    std::pair<unsigned,unsigned> strictc = strict_it.next();
+    std::pair<unsigned,unsigned> rev = make_pair(strictc.second,strictc.first);
+    if(constraints.contains(rev)){
+      //cout << "FOUND CYCLE" << endl;
+
+      // construct a clause that captures this cycle
+      UnitList* prems = 0;
+      UnitList::push(strict_clauses.get(strictc),prems);
+
+      unsigned end = strictc.first;
+      unsigned start = strictc.second;
+      // which means we need to find the cycle!
+      // we step out from the end of the strict constraint
+      // again.... I haven't thought about efficiency!
+      while(end!=start){
+        // search for a constraint from start to x such that there is a path from x to end 
+        DHSet<std::pair<unsigned,unsigned>>::Iterator singles(single_constraints); 
+        unsigned mid;
+        while(singles.hasNext()){
+          std::pair<unsigned,unsigned> single = singles.next();
+          if(single.first == start){
+            std::pair<unsigned,unsigned> jump = make_pair(single.second,end);
+            if(constraints.contains(jump)){
+              mid = single.second; 
+              break;
+            }
+          }
+        } 
+        std::pair<unsigned,unsigned> next = make_pair(start,mid);
+        Clause* cl;
+        if(!nonstrict_clauses.find(next,cl)){
+          ALWAYS(strict_clauses.find(next,cl));
+        }
+        UnitList::push(cl,prems);
+        start=mid;
+      }
+     
+      Inference* inf = new InferenceMany(Inference::INFINOX_SORT_CYCLE,prems); 
+      Clause* ref = Clause::fromIterator(LiteralIterator::getEmpty(),Unit::CONJECTURE,inf);
+
+      MainLoopResult result(Statistics::REFUTATION, ref);
+      result.updateStatistics();
+      return;
+    }
+  }
 
 }
 

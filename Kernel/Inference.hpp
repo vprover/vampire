@@ -275,6 +275,8 @@ public:
     MODEL_NOT_FOUND,
     /* Claim for Infinox */
     INFINOX_CLAIM,
+    /* Sort cycle for Infinox */
+    INFINOX_SORT_CYCLE
   }; // class Inference::Rule
 
   explicit Inference(Rule r);
