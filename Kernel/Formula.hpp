@@ -13,8 +13,11 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 #include "Lib/XML.hpp"
+
+#include "Kernel/Signature.hpp"
 
 #include "Connective.hpp"
 #include "Term.hpp"
@@ -309,13 +312,22 @@ class BoolTermFormula
     }
 
     Term* term = ts.term();
-    ASS_REP(term->isSpecial(), term->toString());
-    Term::SpecialTermData* sd = term->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_FORMULA:
-        return sd->getFormula();
-      default:
-        return new BoolTermFormula(ts);
+    if (term->isSpecial()) {
+      Term::SpecialTermData *sd = term->getSpecialData();
+      switch (sd->getType()) {
+        case Term::SF_FORMULA:
+          return sd->getFormula();
+        default:
+          return new BoolTermFormula(ts);
+      }
+    } else {
+      unsigned functor = term->functor();
+      if (env.signature->isFoolConstantSymbol(true, functor)) {
+        return new Formula(true);
+      } else {
+        ASS(env.signature->isFoolConstantSymbol(false, functor));
+        return new Formula(false);
+      }
     }
   }
 
