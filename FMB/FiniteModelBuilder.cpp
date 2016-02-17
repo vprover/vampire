@@ -1384,7 +1384,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
         unsigned weight = 0;
 
-        if (alternator % 2 != 0) {
+        if (alternator % 3 != 0) {
           _distinctSortSizes[srt]++;
           weight = estimateInstanceCount();
           _distinctSortSizes[srt]--;
