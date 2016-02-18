@@ -186,7 +186,7 @@ private:
       Literal* l = formula(gl)->literal();
       if (l->shared() && ((SIGN)l->polarity() != POSITIVE)) {
         Literal* cl = Literal::complementaryLiteral(l);
-        gl = GenLit(new AtomicFormula(cl), OPPOSITE(sign));
+        gl = GenLit(new AtomicFormula(cl), OPPOSITE(sign(gl)));
       }
     }
 
