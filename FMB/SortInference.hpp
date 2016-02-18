@@ -14,6 +14,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
+#include "Lib/IntUnionFind.hpp"
 #include "Kernel/Signature.hpp"
 
 namespace FMB {
@@ -50,7 +51,8 @@ struct SortedSignature{
     // Map the distinct sorts back to their vampire parents
     // A distinct sort may merge multipe vampire sorts (due to monotonicity)
     DHMap<unsigned,Stack<unsigned>*> distinctToVampire;
-    // A vampire sort can only be mapped to at most one distinct sort
+    // A vampire sort can only be mapped to more than one distinct sort under certain conditions i.e. when
+    // 
     DHMap<unsigned,unsigned> vampireToDistinct;
 
     // has size distinctSorts
@@ -63,10 +65,53 @@ public:
   CLASS_NAME(SortInference);
   USE_ALLOCATOR(SortInference);    
   
-  static SortedSignature*  apply(ClauseList* clauses,
-                                 DArray<unsigned> del_f,
-                                 DArray<unsigned> del_p,
-                                 Stack<DHSet<unsigned>*> equiv_v_sorts);
+  SortInference(ClauseList* clauses,
+                DArray<unsigned> del_f,
+                DArray<unsigned> del_p,
+                Stack<DHSet<unsigned>*> equiv_v_sorts) :
+                _clauses(clauses), _del_f(del_f), _del_p(del_p),_equiv_v_sorts(equiv_v_sorts), _equiv_vs(env.sorts->sorts()){
+
+                  _sig = new SortedSignature();
+                  _print = env.options->showFMBsortInfo();
+
+                  _ignoreInference = env.options->fmbSortInference() == Options::FMBSortInference::IGNORE;
+                  _expandSubsorts = env.options->fmbSortInference() == Options::FMBSortInference::EXPAND;
+
+                  _usingMonotonicity = true;
+                  _collapsingMonotonicSorts = env.options->fmbCollapseMonotonicSorts() != Options::FMBMonotonicCollapse::OFF;
+                  _assumeMonotonic = _collapsingMonotonicSorts && 
+                                     env.options->fmbCollapseMonotonicSorts() != Options::FMBMonotonicCollapse::GROUP;
+
+                  _distinctSorts=0;
+                  _collapsed=0;
+                }
+
+   void doInference();                
+
+   SortedSignature* getSignature(){ return _sig; } 
+
+private:
+
+   unsigned getDistinctSort(unsigned subsort, unsigned vampireSort);
+
+  bool _print;
+  bool _ignoreInference;
+  bool _expandSubsorts;
+  bool _usingMonotonicity;
+  bool _collapsingMonotonicSorts;
+  bool _assumeMonotonic;
+
+  unsigned _distinctSorts;
+  unsigned _collapsed;
+  DHSet<unsigned> monotonicVampireSorts;
+  ZIArray<unsigned> posEqualitiesOnPos;
+
+  SortedSignature* _sig;
+  ClauseList* _clauses;
+  DArray<unsigned> _del_f;
+  DArray<unsigned> _del_p;
+  Stack<DHSet<unsigned>*> _equiv_v_sorts;
+  IntUnionFind _equiv_vs;
 
 };
 

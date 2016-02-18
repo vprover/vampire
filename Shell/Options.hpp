@@ -214,6 +214,17 @@ public:
     INPUT_USAGE,
     PREPROCESSED_USAGE
   };
+  enum class FMBMonotonicCollapse : unsigned int {
+    OFF,
+    GROUP,
+    PREDICATE,
+    FUNCTION
+  };
+  enum class FMBSortInference : unsigned int {
+    IGNORE,
+    INFER,
+    EXPAND
+  };
 
   enum class RandomStrategy : unsigned int {
     ON,
@@ -1629,15 +1640,22 @@ public:
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
+
   bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
   FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
   FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
-  bool fmbCollapseMonotonicSorts() const {return _fmbCollapseMonotonicSorts.actualValue; }
+  FMBMonotonicCollapse fmbCollapseMonotonicSorts() const {return _fmbCollapseMonotonicSorts.actualValue; }
   bool fmbDetectSortBounds() const { return _fmbDetectSortBounds.actualValue; }
   unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
   unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
+  bool fmbIgnoreMarkers() const { return _fmbIgnoreMarkers.actualValue; }
+  bool fmbNoPriority() const { return _fmbNoPriority.actualValue; }
+  FMBSortInference fmbSortInference() const { return _fmbSortInference.actualValue; }
+  bool fmbSpecialMonotEncoding() const { return _fmbSpecialMonotEncoding.actualValue; }
+  bool fmbXmass() const { return _fmbXmass.actualValue; }
+
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
@@ -2013,10 +2031,15 @@ private:
   FloatOptionValue _fmbSymmetryRatio;
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
-  BoolOptionValue _fmbCollapseMonotonicSorts;
+  ChoiceOptionValue<FMBMonotonicCollapse> _fmbCollapseMonotonicSorts;
   BoolOptionValue _fmbDetectSortBounds;
   UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
   UnsignedOptionValue _fmbSizeWeightRatio;
+  BoolOptionValue _fmbIgnoreMarkers;
+  BoolOptionValue _fmbNoPriority;
+  ChoiceOptionValue<FMBSortInference> _fmbSortInference;
+  BoolOptionValue _fmbSpecialMonotEncoding;
+  BoolOptionValue _fmbXmass;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;

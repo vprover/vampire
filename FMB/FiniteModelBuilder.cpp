@@ -50,6 +50,7 @@
 #include "SortInference.hpp"
 #include "DefinitionIntroduction.hpp"
 #include "FunctionRelationshipInference.hpp"
+#include "Monotonicity.hpp"
 #include "FiniteModelBuilder.hpp"
 
 #define VTRACE_FMB 0
@@ -82,7 +83,12 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   _partiallyDeletedPredicates.loadFromMap(prb.getPartiallyEliminatedPredicates());
   _trivialPredicates.loadFromMap(prb.trivialPredicates());
 
+  _xmass = opt.fmbXmass();
   _sizeWeightRatio = opt.fmbSizeWeightRatio();
+
+  _ignoreMarkers = opt.fmbIgnoreMarkers();
+  _noPriority = opt.fmbNoPriority();
+  _specialMonotEncoding = opt.fmbSpecialMonotEncoding();
 }
 
 
@@ -148,11 +154,33 @@ bool FiniteModelBuilder::reset(){
   cout << "Maximum offset is " << offsets << endl;
 #endif
 
-  marker_offsets.ensure(_distinctSortSizes.size());
-  for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
-    unsigned add = _distinctSortSizes[i];
+  if (_xmass) {
+    marker_offsets.ensure(_distinctSortSizes.size());
+    for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+      unsigned add = _distinctSortSizes[i];
 
-    marker_offsets[i] = offsets;
+      marker_offsets[i] = offsets;
+
+      // Check for overflow
+      if(UINT_MAX - add < offsets){
+        return false;
+      }
+
+      offsets += add;
+    }
+  } else {
+    unsigned add = _distinctSortSizes.size();
+
+    totalityMarker_offset = offsets;
+
+    // Check for overflow
+    if(UINT_MAX - add < offsets){
+      return false;
+    }
+
+    offsets += add;
+
+    instancesMarker_offset = offsets;
 
     // Check for overflow
     if(UINT_MAX - add < offsets){
@@ -335,11 +363,22 @@ void FiniteModelBuilder::init()
       vampire_sort_constraints_strict); 
   }
 
+  ClauseList* clist = 0;
+  if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::PREDICATE){
+    ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
+    Monotonicity::addSortPredicates(clist);
+  }
+  if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION){
+    ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
+    Monotonicity::addSortFunctions(clist);
+  }
+
 
   // Perform DefinitionIntroduction as we iterate
   // over the clauses of the problem
-  DefinitionIntroduction cit = DefinitionIntroduction(_prb.clauseIterator());
-  //ClauseIterator cit = _prb.clauseIterator();
+  DefinitionIntroduction cit = DefinitionIntroduction(
+    (clist ? pvi(ClauseList::Iterator(clist)) : _prb.clauseIterator())
+  );
 
   // Apply flattening and split clauses into ground and non-ground
   while(cit.hasNext()){
@@ -413,8 +452,11 @@ void FiniteModelBuilder::init()
   // preprocessing should preserve sorts and doing this here means that introduced symbols get sorts
   {
     TimeCounter tc(TC_FMB_SORT_INFERENCE);
-    _sortedSignature = SortInference::apply(_clauses,del_f,del_p,equivalent_vampire_sorts);
+    SortInference inference(_clauses,del_f,del_p,equivalent_vampire_sorts);
+    inference.doInference();
+    _sortedSignature = inference.getSignature(); 
     ASS(_sortedSignature);
+    cout << "Done sort inference" << endl;
 
     // now we have a mapping between vampire sorts and distinct sorts we can translate
     // the sort constraints, if any
@@ -545,6 +587,7 @@ void FiniteModelBuilder::init()
 
     if(env.signature->functionArity(f)==0){ 
       unsigned vsrt = env.signature->getFunction(f)->fnType()->result();
+      ASS(_sortedSignature->vampireToDistinct.find(vsrt));
       unsigned dsrt = _sortedSignature->vampireToDistinct.get(vsrt);
       _distinctSortConstantCount[dsrt]++;
     }
@@ -750,11 +793,18 @@ void FiniteModelBuilder::addNewInstances()
     static ArrayMap<unsigned> varDistinctSortsMaxes(_distinctSortSizes.size());
 
     //cout << "maxVarSizes "<<endl;;
-    for(unsigned var=0;var<vars;var++){
+    for(unsigned var=0;var<vars;var++) {
       unsigned srt = (*varSorts)[var];
       //cout << "srt="<<srt;
       maxVarSize[var] = min(_sortModelSizes[srt],_sortedSignature->sortBounds[srt]);
       //cout << ",max="<<maxVarSize[var] << endl;
+
+      if (!_xmass) {
+        unsigned dsort = _sortedSignature->parents[srt];
+        if (!_specialMonotEncoding || !_sortedSignature->monotonicSorts[dsort]) { // don't mark instances of monotonic sorts!
+          varDistinctSortsMaxes.set(_sortedSignature->parents[srt],1);
+        }
+      }
     }
     
     static DArray<unsigned> grounding;
@@ -776,39 +826,47 @@ instanceLabel:
         static SATLiteralStack satClauseLits;
         satClauseLits.reset();
 
-        varDistinctSortsMaxes.reset();
-        for(unsigned var=0;var<vars;var++) {
-          // cout << " var" << var;
-          unsigned srt = (*varSorts)[var];
-          // cout << " srt" << srt;
-          unsigned dsr = _sortedSignature->parents[srt];
-          // cout << " dsr" << dsr;
+        if (_xmass) {
+          varDistinctSortsMaxes.reset();
+          for(unsigned var=0;var<vars;var++) {
+            // cout << " var" << var;
+            unsigned srt = (*varSorts)[var];
+            // cout << " srt" << srt;
+            unsigned dsr = _sortedSignature->parents[srt];
+            // cout << " dsr" << dsr;
 
-          if (_sortedSignature->monotonicSorts[dsr]) {
-            continue;
+            if (_sortedSignature->monotonicSorts[dsr]) {
+              continue;
+            }
+
+            unsigned prev = varDistinctSortsMaxes.get(dsr,0);
+            // cout << " prev" << prev;
+
+            unsigned cur = grounding[var];
+            // cout << " cur" << cur;
+
+            varDistinctSortsMaxes.set(dsr,max(cur,prev));
+
+            // cout << endl;
           }
 
-          unsigned prev = varDistinctSortsMaxes.get(dsr,0);
-          // cout << " prev" << prev;
+          // start by adding the sort markers
+          for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+            unsigned val = varDistinctSortsMaxes.get(i,0);
 
-          unsigned cur = grounding[var];
-          // cout << " cur" << cur;
-
-          varDistinctSortsMaxes.set(dsr,max(cur,prev));
-
-          // cout << endl;
-        }
-
-        // start by adding the sort markers
-        for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
-          unsigned val = varDistinctSortsMaxes.get(i,0);
-
-          if (val > 1) {
-            // cout << "Marking sort " << i << " with " << val-2 << " negative" << endl;
-            satClauseLits.push(SATLiteral(marker_offsets[i]+val-2,0));
+            if (val > 1) {
+              // cout << "Marking sort " << i << " with " << val-2 << " negative" << endl;
+              satClauseLits.push(SATLiteral(marker_offsets[i]+val-2,0));
+            }
+          }
+          // cout << "Clause finised" << endl;
+        } else {
+          for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+            if (varDistinctSortsMaxes.get(i,0)) {
+              satClauseLits.push(SATLiteral(instancesMarker_offset+i,0));
+            }
           }
         }
-        // cout << "Clause finised" << endl;
 
         // Ground and translate each literal into a SATLiteral
         for(unsigned lindex=0;lindex<c->length();lindex++){
@@ -1088,18 +1146,20 @@ void FiniteModelBuilder::addNewTotalityDefs()
 {
   CALL("FiniteModelBuilder::addNewTotalityDefs");
 
-  // make sure to solve the problem of some sorts not growing all the way to _sortModelSizes[srt], because of _sortedSignature->sortBounds[srt]
-  for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
-    // for every sort
-    for (unsigned j = 0; j < _distinctSortSizes[i]-1; j++) {
-      // for every domain size j have clause: not marker(j+1) | marker(j)
-      // which says: "d > j+2" -> "d > j+1"
-      static SATLiteralStack satClauseLits;
-      satClauseLits.reset();
-      satClauseLits.push(SATLiteral(marker_offsets[i]+j,1));
-      satClauseLits.push(SATLiteral(marker_offsets[i]+j+1,0));
-      SATClause* satCl = SATClause::fromStack(satClauseLits);
-      addSATClause(satCl);
+  if (_xmass) {
+    // make sure to solve the problem of some sorts not growing all the way to _sortModelSizes[srt], because of _sortedSignature->sortBounds[srt]
+    for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+      // for every sort
+      for (unsigned j = 0; j < _distinctSortSizes[i]-1; j++) {
+        // for every domain size j have clause: not marker(j+1) | marker(j)
+        // which says: "d > j+2" -> "d > j+1"
+        static SATLiteralStack satClauseLits;
+        satClauseLits.reset();
+        satClauseLits.push(SATLiteral(marker_offsets[i]+j,1));
+        satClauseLits.push(SATLiteral(marker_offsets[i]+j+1,0));
+        SATClause* satCl = SATClause::fromStack(satClauseLits);
+        addSATClause(satCl);
+      }
     }
   }
 
@@ -1120,7 +1180,7 @@ void FiniteModelBuilder::addNewTotalityDefs()
 
       // cout << "Totality for const " << f << " of sort " << srt << " and max size " << maxSize << endl;
 
-      for (unsigned i = _sortedSignature->monotonicSorts[dsrt] ? maxSize : 1; i <= maxSize; i++) { // just the weakest one, if monotonic
+      for (unsigned i = (_sortedSignature->monotonicSorts[dsrt] || !_xmass) ? maxSize : 1; i <= maxSize; i++) { // just the weakest one, if monotonic
         static SATLiteralStack satClauseLits;
         satClauseLits.reset();
 
@@ -1130,10 +1190,14 @@ void FiniteModelBuilder::addNewTotalityDefs()
           SATLiteral slit = getSATLiteral(f,use,true,true);
           satClauseLits.push(slit);
         }
-        unsigned marker_idx = (i == maxSize) ? _distinctSortSizes[dsrt]-1 : i-1; // use the largest marker for the largest version even if it is smaller than _distinctSortSizes[dsrt]
-        satClauseLits.push(SATLiteral(marker_offsets[dsrt] + marker_idx,1));
-        ///cout << "out sort " << dsrt;
-        // cout << "  version for size " << i << " marked with " << i-1 << " positive" << endl;
+        if (_xmass) {
+          unsigned marker_idx = (i == maxSize) ? _distinctSortSizes[dsrt]-1 : i-1; // use the largest marker for the largest version even if it is smaller than _distinctSortSizes[dsrt]
+          satClauseLits.push(SATLiteral(marker_offsets[dsrt] + marker_idx,1));
+          ///cout << "out sort " << dsrt;
+          // cout << "  version for size " << i << " marked with " << i-1 << " positive" << endl;
+        } else {
+          satClauseLits.push(SATLiteral(totalityMarker_offset+dsrt,0));
+        }
 
         SATClause* satCl = SATClause::fromStack(satClauseLits);
         addSATClause(satCl);
@@ -1169,7 +1233,7 @@ newTotalLabel:
           //for(unsigned j=0;j<grounding.size();j++) cout << grounding[j] << " ";
           //cout << endl;
 
-          for (unsigned i = _sortedSignature->monotonicSorts[dRetSrt] ? maxRtSrtSize : 1; i <= maxRtSrtSize; i++) {
+          for (unsigned i = ( _sortedSignature->monotonicSorts[dRetSrt] || !_xmass) ? maxRtSrtSize : 1; i <= maxRtSrtSize; i++) {
             static SATLiteralStack satClauseLits;
             satClauseLits.reset();
 
@@ -1180,8 +1244,12 @@ newTotalLabel:
               use[arity]=constant;
               satClauseLits.push(getSATLiteral(f,use,true,true));
             }
-            unsigned marker_idx = (i == maxRtSrtSize) ? _distinctSortSizes[dRetSrt]-1 : i-1; // use the largest marker for the largest version even if it is smaller than _distinctSortSizes[dsrt]
-            satClauseLits.push(SATLiteral(SATLiteral(marker_offsets[dRetSrt]+marker_idx,1)));
+            if (_xmass) {
+              unsigned marker_idx = (i == maxRtSrtSize) ? _distinctSortSizes[dRetSrt]-1 : i-1; // use the largest marker for the largest version even if it is smaller than _distinctSortSizes[dsrt]
+              satClauseLits.push(SATLiteral(SATLiteral(marker_offsets[dRetSrt]+marker_idx,1)));
+            } else {
+              satClauseLits.push(SATLiteral(totalityMarker_offset+dRetSrt,0));
+            }
             SATClause* satCl = SATClause::fromStack(satClauseLits);
             addSATClause(satCl);
           }
@@ -1338,9 +1406,18 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
       static SATLiteralStack assumptions(_distinctSortSizes.size());
       assumptions.reset();
-      for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
-        assumptions.push(SATLiteral(marker_offsets[i]+_distinctSortSizes[i]-1,0));
-        // cout << "assuming sort " << i << " value " << _distinctSortSizes[i]-1 << " negative" << endl;
+      if (_xmass) {
+        for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+          assumptions.push(SATLiteral(marker_offsets[i]+_distinctSortSizes[i]-1,0));
+          // cout << "assuming sort " << i << " value " << _distinctSortSizes[i]-1 << " negative" << endl;
+        }
+      } else {
+        for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+          assumptions.push(SATLiteral(totalityMarker_offset+i,1));
+        }
+        for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+          assumptions.push(SATLiteral(instancesMarker_offset+i,1));
+        }
       }
 
       satResult = _solver->solveUnderAssumptions(assumptions);
@@ -1352,6 +1429,11 @@ MainLoopResult FiniteModelBuilder::runImpl()
       onModelFound();
       return MainLoopResult(Statistics::SATISFIABLE);
     }
+
+    static unsigned numberOfSatCalls = 0;
+    numberOfSatCalls++;
+    unsigned clauseSetSize = _clausesToBeAdded.size();
+    unsigned weight = _noPriority ? numberOfSatCalls : clauseSetSize;
 
     // destroy the clauses
     SATClauseStack::Iterator it(_clausesToBeAdded);
@@ -1365,58 +1447,99 @@ MainLoopResult FiniteModelBuilder::runImpl()
       // _solver->explicitlyMinimizedFailedAssumptions(false,true); // TODO: try adding this in
       const SATLiteralStack& failed = _solver->failedAssumptions();
 
-      unsigned domToGrow = UINT_MAX;
-      unsigned domsWeight = UINT_MAX;
+      if (_xmass) {
+        unsigned domToGrow = UINT_MAX;
+        unsigned domsWeight = UINT_MAX;
 
-      static unsigned alternator = 0;
-      alternator++;
+        static unsigned alternator = 0;
+        alternator++;
 
-      for (unsigned i = 0; i < failed.size(); i++) {
-        unsigned var = failed[i].var();
+        for (unsigned i = 0; i < failed.size(); i++) {
+          unsigned var = failed[i].var();
 
-        unsigned srt = which_sort(var);
+          unsigned srt = which_sort(var);
 
-        // cout << "which_sort(var) = " << srt << endl;
+          // cout << "which_sort(var) = " << srt << endl;
 
-        // skip if already maxed
-        if (_distinctSortSizes[srt] == _distinctSortMaxs[srt]) {
-          continue;
+          // skip if already maxed
+          if (_distinctSortSizes[srt] == _distinctSortMaxs[srt]) {
+            continue;
+          }
+
+          unsigned weight = 0;
+
+          if (alternator % (_sizeWeightRatio+1) != 0) {
+            _distinctSortSizes[srt]++;
+            weight = estimateInstanceCount();
+            _distinctSortSizes[srt]--;
+          } else {
+            weight = _distinctSortSizes[srt];
+          }
+
+  #if VTRACE_DOMAINS
+          cout << "dom "<<srt<<" of weight "<< weight << " could grow." << endl;
+  #endif
+          if (weight < domsWeight) {
+            domToGrow = srt;
+            domsWeight = weight;
+          }
         }
 
-        unsigned weight = 0;
+        if (domsWeight < UINT_MAX) {
+          ASS_L(domToGrow,UINT_MAX);
+  #if VTRACE_DOMAINS
+          cout << "chosen "<<domToGrow<< " of weight " << domsWeight << endl;
+  #endif
+          _distinctSortSizes[domToGrow]++;
 
-        if (alternator % (_sizeWeightRatio+1) != 0) {
-          _distinctSortSizes[srt]++;
-          weight = estimateInstanceCount();
-          _distinctSortSizes[srt]--;
+          for(unsigned s=0;s<_sortedSignature->sorts;s++) {
+            _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
+          }
         } else {
-          weight = _distinctSortSizes[srt];
+          Clause* empty = new(0) Clause(0,Unit::AXIOM,
+             new Inference(Inference::MODEL_NOT_FOUND));
+          return MainLoopResult(Statistics::REFUTATION,empty);
+        }
+      } else { // if (_xmass) {
+        Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size(),weight);
+        Constraint_Generator_Vals& constraint = constraint_p->_vals;
+
+        for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+          constraint[i] = make_pair(_ignoreMarkers ? EQ : STAR,_distinctSortSizes[i]);
         }
 
-#if VTRACE_DOMAINS
-        cout << "dom "<<srt<<" of weight "<< weight << " could grow." << endl;
-#endif
-        if (weight < domsWeight) {
-          domToGrow = srt;
-          domsWeight = weight;
+        if (!_ignoreMarkers) {
+          for (unsigned i = 0; i < failed.size(); i++) {
+            unsigned var = failed[i].var();
+            ASS_GE(var,totalityMarker_offset);
+
+            if (var < instancesMarker_offset) { // totality used (-> instances used as well / unless the sort is monotonic)
+              unsigned dsort = var-totalityMarker_offset;
+              if (_specialMonotEncoding && _sortedSignature->monotonicSorts[dsort]) {
+                constraint[dsort].first = LEQ;
+              } else {
+                constraint[dsort].first = EQ;
+              }
+            } else if (constraint[var-instancesMarker_offset].first == STAR) { // instances used (and we don't know yet about totality)
+              ASS(!_specialMonotEncoding || !_sortedSignature->monotonicSorts[var-instancesMarker_offset]);
+              constraint[var-instancesMarker_offset].first = GEQ;
+            }
+          }
         }
-      }
 
-      if (domsWeight < UINT_MAX) {
-        ASS_L(domToGrow,UINT_MAX);
-#if VTRACE_DOMAINS
-        cout << "chosen "<<domToGrow<< " of weight " << domsWeight << endl;
-#endif
-        _distinctSortSizes[domToGrow]++;
+  // #if VTRACE_DOMAINS
+        cout << "Adding generator/constraint: ";
+        output_cg(constraint);
+        cout << " of weight " << weight << endl;
+  // #endif
 
-        for(unsigned s=0;s<_sortedSignature->sorts;s++) {
-          _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
+        _constraints_generators.insert(constraint_p);
+
+        if (!increaseModelSizes()) {
+          Clause* empty = new(0) Clause(0,Unit::AXIOM,
+             new Inference(Inference::MODEL_NOT_FOUND));
+          return MainLoopResult(Statistics::REFUTATION,empty);
         }
-
-      } else {
-        Clause* empty = new(0) Clause(0,Unit::AXIOM,
-           new Inference(Inference::MODEL_NOT_FOUND));
-        return MainLoopResult(Statistics::REFUTATION,empty);
       }
     }
 
@@ -1497,55 +1620,44 @@ void FiniteModelBuilder::onModelFound()
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
 
     static DArray<unsigned> grounding;
-    DArray<unsigned> args;
-    grounding.ensure(arity+1);
-    args.ensure(arity);
+    grounding.ensure(arity);
     for(unsigned i=0;i<arity;i++){
        grounding[i]=1;
-       args[i]=1;
     }
     grounding[arity-1]=0;
-    args[arity-1]=0;
 
     const DArray<unsigned>& f_signature = _sortedSignature->functionSignatures[f];
     static DArray<unsigned> maxVarSize;
-    maxVarSize.ensure(arity+1);
-    for(unsigned j=0;j<arity+1;j++){ 
-      unsigned srt = f_signature[j];
-      maxVarSize[j] = _sortedSignature->sortBounds[srt];
+    maxVarSize.ensure(arity);
+    for(unsigned var=0;var<arity;var++){ 
+      unsigned srt = f_signature[var];
+      maxVarSize[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
     }
-
-    //cout <<"mins   ";
-    //for(unsigned j=0;j<arity;j++){ cout << maxVarSize[j] << ", ";};
-    //cout << endl;
+    unsigned retSrt = f_signature[arity];
+    unsigned maxRtSrtSize = min(_sortedSignature->sortBounds[retSrt],_sortModelSizes[retSrt]);
 
 fModelLabel:
-      for(unsigned i=arity-1;i+1!=0;i--){
+      for(unsigned var=arity-1;var+1!=0;var--){
 
-        if(args[i]==_sortModelSizes[f_signature[i]]){
-          grounding[i]=1;
-          args[i]=1;
+        if(grounding[var] == maxVarSize[var]){
+          grounding[var]=1;
         }
         else{
-          if(args[i]<maxVarSize[i]){
-            grounding[i]++;
-          }
-          args[i]++;
+          grounding[var]++;
 
-          //for(unsigned j=0;j<arity;j++){ cout << args[j] << ", ";}; 
-          //cout << "          ";
-          //for(unsigned j=0;j<arity;j++){ cout << grounding[j] << ", ";}; 
-          //cout  << endl;
+          static DArray<unsigned> use;
+          use.ensure(arity+1);
+          for(unsigned k=0;k<arity;k++) use[k]=grounding[k];
 
           bool found=false;
-          for(unsigned c=1;c<=_sortModelSizes[f_signature[arity]];c++){
-            grounding[arity]=c;
-            SATLiteral slit = getSATLiteral(f,grounding,true,true);
+          for(unsigned c=1;c<=maxRtSrtSize;c++){
+            use[arity]=c;
+            SATLiteral slit = getSATLiteral(f,use,true,true);
             if(_solver->trueInAssignment(slit)){
               //if(found){ cout << "Error: multiple interpretations of " << name << endl; }
               ASS(!found);
               found=true;
-              model.addFunctionDefinition(f,args,c);
+              model.addFunctionDefinition(f,grounding,c);
             }
           }
           if(!found){
@@ -1553,7 +1665,7 @@ fModelLabel:
              // This is a result of the finite sort bounding and the argument
              // says that we can equate this domain element to a smaller one below the bound
              //TODO fix this 
-             //cout << "NOT FOUND" << endl; 
+             //cout << "NOT FOUND for " << env.signature->functionName(f) << endl; 
           }
 
           goto fModelLabel;
@@ -1842,9 +1954,11 @@ ppModelLabel:
 bool FiniteModelBuilder::increaseModelSizes(){
   CALL("FiniteModelBuilder::increaseModelSizes");
 
-  /*
-  while (_constraints_generators.isNonEmpty()) {
-    Constraint_Generator& generator = *_constraints_generators.front();
+  cout << "_constraints_generators.size() " << _constraints_generators.size() << endl;
+
+  while (!_constraints_generators.isEmpty()) {
+    Constraint_Generator* generator_p = _constraints_generators.top();
+    Constraint_Generator_Vals& generator = generator_p->_vals;
 
 #if VTRACE_DOMAINS
     cout << "Picking generator: ";
@@ -1873,9 +1987,11 @@ bool FiniteModelBuilder::increaseModelSizes(){
 
       // test 2 -- generator constraints
       {
-        Lib::Deque<Constraint_Generator*>::FrontToBackIterator it(_constraints_generators);
+        Constraint_Generator_Heap::Iterator it(_constraints_generators);
         while (it.hasNext()) {
-          Constraint_Generator& constraint = *it.next();
+          Constraint_Generator_Vals& constraint = it.next()->_vals;
+
+          bool risky = false;
 
           for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
             pair<ConstraintSign,unsigned>& cc = constraint[j];
@@ -1885,9 +2001,24 @@ bool FiniteModelBuilder::increaseModelSizes(){
             if (cc.first == GEQ && cc.second > _distinctSortSizes[j]) {
               goto next_constraint;
             }
-            if (cc.first == LEQ && cc.second < _distinctSortSizes[j]) {
-              goto next_constraint;
+            if (cc.first == LEQ) {
+              if (cc.second < _distinctSortSizes[j]) {
+                goto next_constraint;
+              }
+              if (cc.second > _distinctSortSizes[j]) { // leq applied in a proper sense
+                risky = true;
+              }
             }
+          }
+
+          if (risky) { // ruled out by the monotonicity trick - spawn the child anyway not to lose completeness
+            Constraint_Generator* gen_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+            Constraint_Generator_Vals& gen = gen_p->_vals;
+            for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
+              // copying signs from constraint, to be as powerful as possible
+              gen[j] = make_pair(constraint[j].first,_distinctSortSizes[j]);
+            }
+            _constraints_generators.insert(gen_p);
           }
 
   #if VTRACE_DOMAINS
@@ -1909,15 +2040,15 @@ bool FiniteModelBuilder::increaseModelSizes(){
             // cout << "  Ruled out by _distinct_sort_constraints " << constr.first << " >= " << constr.second << endl;
 
             // We will skip testing it, but we need it as a generator to proceed through the space:
-            Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size());
-            Constraint_Generator& constraint = *constraint_p;
+            Constraint_Generator* gen_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+            Constraint_Generator_Vals& gen = gen_p->_vals;
             for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
-              constraint[j] = make_pair(STAR,_distinctSortSizes[j]);
+              gen[j] = make_pair(STAR,_distinctSortSizes[j]);
             }
-            constraint[constr.first].first = EQ;
-            constraint[constr.second].first = GEQ;
+            gen[constr.first].first = EQ;
+            gen[constr.second].first = GEQ;
 
-            _constraints_generators.push_back(constraint_p);
+            _constraints_generators.insert(gen_p);
 
             goto next_candidate;
           }
@@ -1930,15 +2061,15 @@ bool FiniteModelBuilder::increaseModelSizes(){
             // cout << "  Ruled out by _strict_distinct_sort_constraints " << constr.first << " > " << constr.second << endl;
 
             // We will skip testing it, but we need it as a generator to proceed through the space:
-            Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size());
-            Constraint_Generator& constraint = *constraint_p;
+            Constraint_Generator* gen_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+            Constraint_Generator_Vals& gen = gen_p->_vals;
             for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
-              constraint[j] = make_pair(STAR,_distinctSortSizes[j]);
+              gen[j] = make_pair(STAR,_distinctSortSizes[j]);
             }
-            constraint[constr.first].first = EQ;
-            constraint[constr.second].first = GEQ;
+            gen[constr.first].first = EQ;
+            gen[constr.second].first = GEQ;
 
-            _constraints_generators.push_back(constraint_p);
+            _constraints_generators.insert(gen_p);
 
             goto next_candidate;
           }
@@ -1956,12 +2087,11 @@ bool FiniteModelBuilder::increaseModelSizes(){
       _distinctSortSizes[i] -= 1;
     }
 
-    delete _constraints_generators.pop_front();
+    delete _constraints_generators.pop();
 #if VTRACE_DOMAINS
     cout << "Deleted" << endl;
 #endif
   }
-  */
 
   return false;
 }

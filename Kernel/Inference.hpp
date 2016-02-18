@@ -269,6 +269,10 @@ public:
     FMB_FUNC_DEF,
     /* Definition Introduction for FMB */
     FMB_DEF_INTRO, 
+    /* Adding sort predicate */
+    ADD_SORT_PREDICATES,
+    /* Adding sort functions */
+    ADD_SORT_FUNCTIONS,
     /* Instantiation */
     INSTANTIATION,
     /* Finite model not found */

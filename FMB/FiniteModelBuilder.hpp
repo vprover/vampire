@@ -12,7 +12,7 @@
 #include "SAT/SATSolver.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "SortInference.hpp"
-#include "Lib/Deque.hpp"
+#include "Lib/BinaryHeap.hpp"
 
 namespace FMB {
 using namespace Lib;
@@ -159,10 +159,28 @@ private:
   DArray<unsigned> f_offsets;
   DArray<unsigned> p_offsets;
 
+  // do contour encoding instead of point-wise
+  bool _xmass;
+
+  // if (_xmass) {
+
   /* Each distinctSort has as many markers as is its current size.
    * Their offsets are stored on per sort basis.
    */
   DArray<unsigned> marker_offsets;
+
+  // } else {
+
+  /* for each distinctSort i there is a variable (totalityMarker_offset+i)
+   * which we use in the encoding to learn which domain should grow in order to possibly resolve a conflict.
+   */
+  unsigned totalityMarker_offset;
+  /* for each distinctSort i there is a variable (instancesMarker_offset+i)
+   * which we use in the encoding to learn whether it makes sense to change the domain sizes at all.
+   */
+  unsigned instancesMarker_offset;
+
+  // }
 
   /**
    * use marker_offsets to figure out to which sort does a variable belong
@@ -196,6 +214,74 @@ private:
   // sizes to use for each sort
   DArray<unsigned> _sortModelSizes;
   DArray<unsigned> _distinctSortSizes;
+
+  // if this is set, we ignore what the SAT solver tells us - it is stupid; just for an experimental comparison
+  bool _ignoreMarkers;
+
+  // if this is set, we don't use the parent's encoding estimate
+  // this means _constraints_generators will behave like a queue (not a priority queue)
+  // most likely sub-optimal -- used only for an experiment
+  bool _noPriority;
+
+  // monotonic sorts don't need to have their instances marked (that's the only way to get LEQ as a constraint)
+  // when the option is off we ignore this feature
+  bool _specialMonotEncoding;
+
+  enum ConstraintSign {
+    EQ,     // the value has to matched
+    LEQ,    // the value needs to be less or equal
+    GEQ,    // the value needs to be greater or equal
+    STAR    // we don't care about this value
+  };
+
+  typedef DArray<pair<ConstraintSign,unsigned>> Constraint_Generator_Vals;
+
+  struct Constraint_Generator {
+    Constraint_Generator_Vals _vals;
+    unsigned _weight;
+
+    Constraint_Generator(unsigned size, unsigned weight)
+      : _vals(size), _weight(weight) {}
+  };
+
+  void output_cg(Constraint_Generator_Vals& cgv) {
+    cout << "[";
+    for (unsigned i = 0; i < cgv.size(); i++) {
+      cout << cgv[i].second;
+      switch(cgv[i].first) {
+      case EQ:
+        cout << "=";
+        break;
+      case LEQ:
+        cout << ">";
+        break;
+      case GEQ:
+        cout << "<";
+        break;
+      case STAR:
+        cout << "*";
+        break;
+      default:
+        ASSERTION_VIOLATION;
+      }
+      if (i < cgv.size()-1) {
+        cout << ", ";
+      }
+    }
+    cout << "]";
+  }
+
+  struct Constraint_Generator_Compare {
+    static Comparison compare (Constraint_Generator* c1, Constraint_Generator* c2)
+    { return c1->_weight < c2->_weight ? LESS : c1->_weight == c2->_weight ? EQUAL : GREATER; }
+  };
+
+  typedef Lib::BinaryHeap<Constraint_Generator*,Constraint_Generator_Compare> Constraint_Generator_Heap;
+
+  /**
+   * Constraints are at the same time used as generators.
+   */
+  Constraint_Generator_Heap _constraints_generators;
 
   // the sort constraints from injectivity/surjectivity
   // pairs of distinct sorts where pair.first >= pair.second

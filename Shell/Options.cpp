@@ -608,7 +608,9 @@ void Options::Options::init()
     _lookup.insert(&_fmbSymmetryWidgetOrders);
     _fmbSymmetryWidgetOrders.setExperimental();
 
-    _fmbCollapseMonotonicSorts = BoolOptionValue("fmb_collapse_monotonic_sorts","fmbcms",false);
+    _fmbCollapseMonotonicSorts = ChoiceOptionValue<FMBMonotonicCollapse>("fmb_collapse_monotonic_sorts","fmbcms",
+                                                           FMBMonotonicCollapse::OFF, 
+                                                           {"off","group","predicate","function"});
     _fmbCollapseMonotonicSorts.description = "";
     _fmbCollapseMonotonicSorts.setExperimental();
     _lookup.insert(&_fmbCollapseMonotonicSorts);
@@ -623,10 +625,31 @@ void Options::Options::init()
     _fmbDetectSortBoundsTimeLimit.setExperimental();
     _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
 
+    _fmbXmass = BoolOptionValue("fmb_contour_encoding","fmbxmass",false);
+    _fmbXmass.setExperimental();
+    _lookup.insert(&_fmbXmass);
+
     _fmbSizeWeightRatio = UnsignedOptionValue("fmb_size_weight_ratio","fmbswr",1);
     _fmbSizeWeightRatio.description = "0 is size only, 1 means 1:1, 2 means 1:2, etc.";
     _fmbSizeWeightRatio.setExperimental();
     _lookup.insert(&_fmbSizeWeightRatio);
+
+    _fmbIgnoreMarkers = BoolOptionValue("fmb_ignore_markers","fmbigm",false);
+    _fmbIgnoreMarkers.setExperimental();
+    _lookup.insert(&_fmbIgnoreMarkers);
+
+    _fmbNoPriority = BoolOptionValue("fmb_no_priority","fmbnpr",false);
+    _fmbNoPriority.setExperimental();
+    _lookup.insert(&_fmbNoPriority);
+
+    _fmbSpecialMonotEncoding = BoolOptionValue("fmb_special_monot_encoding","fmbsme",true);
+    _fmbSpecialMonotEncoding.setExperimental();
+    _lookup.insert(&_fmbSpecialMonotEncoding);
+
+    _fmbSortInference = ChoiceOptionValue<FMBSortInference>("fmb_sort_inference","fmbsi",FMBSortInference::INFER,{"ignore","infer","expand"});
+    _fmbSortInference.description = "";
+    _fmbSortInference.setExperimental();
+    _lookup.insert(&_fmbSortInference);
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
