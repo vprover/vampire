@@ -633,6 +633,11 @@ void Options::Options::init()
     _fmbNoPriority.setExperimental();
     _lookup.insert(&_fmbNoPriority);
 
+    _fmbSortInference = ChoiceOptionValue<FMBSoftInference>("fmb_sort_inference","fmbsi",FMBSortInference::INFER,{"ignore","infer","expand"});
+    _fmbSortInference.description = "";
+    _fmbSortInference.setExperimental();
+    _lookup.insert(&_fmbSortInference);
+
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
     "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"

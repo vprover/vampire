@@ -89,6 +89,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     std::pair<unsigned,unsigned> constraint;
     if(_labelMap_nonstrict.find(l,constraint)){
       nonstrict_constraints.insert(constraint);
+      cout << constraint.first << " >= " << constraint.second << endl;
     }
     else{
       ASS(_labelMap_strict.find(l));

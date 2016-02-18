@@ -38,11 +38,9 @@ namespace FMB
  * We assume this occurs *after* flattening so all literals are shallow
  *
  */
-SortedSignature* SortInference::apply(ClauseList* clauses,
-                                      DArray<unsigned> del_f,DArray<unsigned> del_p,
-                                      Stack<DHSet<unsigned>*> equiv_v_sorts)
+SortedSignature* SortInference::doInference()
 {
-  CALL("SortInference::run");
+  CALL("SortInference::doInference");
   bool print = env.options->showFMBsortInfo();
 
   // Add equiv_v_sorts to a useful structure

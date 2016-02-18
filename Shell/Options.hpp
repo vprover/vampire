@@ -220,6 +220,11 @@ public:
     PREDICATE,
     FUNCTION
   };
+  enum class FMBSortInference : unsigned int {
+    IGNORE,
+    INFER,
+    EXPAND
+  };
 
   enum class RandomStrategy : unsigned int {
     ON,
@@ -1635,6 +1640,7 @@ public:
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
+
   bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
@@ -1645,6 +1651,8 @@ public:
   unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
   bool fmbIgnoreMarkers() const { return _fmbIgnoreMarkers.actualValue; }
   bool fmbNoPriority() const { return _fmbNoPriority.actualValue; }
+  FMBSortInference fmbSortInference() const { return _fmbSortInference.actualValue; }
+
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
@@ -2025,6 +2033,7 @@ private:
   UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
   BoolOptionValue _fmbIgnoreMarkers;
   BoolOptionValue _fmbNoPriority;
+  ChoiceOptionValue<FMBSortInference> _fmbSortInference;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;

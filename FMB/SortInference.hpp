@@ -63,10 +63,28 @@ public:
   CLASS_NAME(SortInference);
   USE_ALLOCATOR(SortInference);    
   
-  static SortedSignature*  apply(ClauseList* clauses,
-                                 DArray<unsigned> del_f,
-                                 DArray<unsigned> del_p,
-                                 Stack<DHSet<unsigned>*> equiv_v_sorts);
+  SortInference(ClauseList* clauses,
+                DArray<unsigned> del_f,
+                DArray<unsigned> del_p,
+                Stack<DHSet<unsigned>*> equiv_v_sorts)
+                _clauses(clauses), _del_f(del_f), _del_p(del_p),_equiv_v_sorts(equiv_v_sorts){
+
+                  _sig = new SortedSignature();
+                  _print = env.options->showFMBsortInfo();
+                }
+
+   void doInference();                
+
+   SortedSignature* getSignature(){ return _sig; } 
+
+  bool _print;
+  bool _usingMonotonicity
+
+  SortedSignature* _sig;
+  ClauseList* _clauses;
+  DArray<unsigned> _del_f;
+  DArray<unsigned> _del_p;
+  Stack<DHSet<unsigned>*> _equiv_v_sorts;
 
 };
 
