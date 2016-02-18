@@ -83,6 +83,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   _trivialPredicates.loadFromMap(prb.trivialPredicates());
 
   _ignoreMarkers = opt.fmbIgnoreMarkers();
+  _noPriority = opt.fmbNoPriority();
 }
 
 
@@ -1257,7 +1258,10 @@ MainLoopResult FiniteModelBuilder::runImpl()
       return MainLoopResult(Statistics::SATISFIABLE);
     }
 
+    static unsigned numberOfSatCalls = 0;
+    numberOfSatCalls++;
     unsigned clauseSetSize = _clausesToBeAdded.size();
+    unsigned weight = _noPriority ? numberOfSatCalls : clauseSetSize;
 
     // destroy the clauses
     SATClauseStack::Iterator it(_clausesToBeAdded);
@@ -1271,7 +1275,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
       // _solver->explicitlyMinimizedFailedAssumptions(false,true); // TODO: try adding this in
       const SATLiteralStack& failed = _solver->failedAssumptions();
 
-      Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size(),clauseSetSize);
+      Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size(),weight);
       Constraint_Generator_Vals& constraint = constraint_p->_vals;
 
       for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
@@ -1300,7 +1304,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 // #if VTRACE_DOMAINS
       cout << "Adding generator/constraint: ";
       output_cg(constraint);
-      cout << " of weight " << clauseSetSize << endl;
+      cout << " of weight " << weight << endl;
 // #endif
 
       _constraints_generators.insert(constraint_p);

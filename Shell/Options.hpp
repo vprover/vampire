@@ -1638,6 +1638,7 @@ public:
   bool fmbDetectSortBounds() const { return _fmbDetectSortBounds.actualValue; }
   unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
   bool fmbIgnoreMarkers() const { return _fmbIgnoreMarkers.actualValue; }
+  bool fmbNoPriority() const { return _fmbNoPriority.actualValue; }
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
@@ -2017,6 +2018,7 @@ private:
   BoolOptionValue _fmbDetectSortBounds;
   UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
   BoolOptionValue _fmbIgnoreMarkers;
+  BoolOptionValue _fmbNoPriority;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;

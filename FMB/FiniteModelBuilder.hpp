@@ -178,6 +178,11 @@ private:
   // if this is set, we ignore what the SAT solver tells us - it is stupid; just for an experimental comparison
   bool _ignoreMarkers;
 
+  // if this is set, we don't use the parent's encoding estimate
+  // this means _constraints_generators will behave like a queue (not a priority queue)
+  // most likely sub-optimal -- used only for an experiment
+  bool _noPriority;
+
   enum ConstraintSign {
     EQ,     // the value has to matched
     LEQ,    // the value needs to be less or equal

@@ -627,6 +627,10 @@ void Options::Options::init()
     _fmbIgnoreMarkers.setExperimental();
     _lookup.insert(&_fmbIgnoreMarkers);
 
+    _fmbNoPriority = BoolOptionValue("fmb_no_priority","fmbnpr",false);
+    _fmbNoPriority.setExperimental();
+    _lookup.insert(&_fmbNoPriority);
+
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
     "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
