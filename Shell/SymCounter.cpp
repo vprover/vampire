@@ -144,8 +144,12 @@ void SymCounter::count (const Formula* f,int polarity,int add)
       count (f->qarg(), polarity, add);
       return;
 
-    case BOOL_TERM:
-      ASSERTION_VIOLATION;
+    case BOOL_TERM: {
+      const TermList ts = f->getBooleanTerm();
+      if (ts.isVar()) return;
+      count (&ts, polarity, add);
+      return;
+    }
 
   case TRUE:
   case FALSE:
@@ -172,25 +176,44 @@ void SymCounter::count(const Literal* l,int polarity,int add)
   ASS(_noOfPreds > pred);
 
   _preds[pred].add(l->isPositive() ? polarity : -polarity,add);
-  count(l->args(),add);
+  count(l->args(),1,add);
 } // SymCounter::count (Literal* l ...)
 
 /**
  * Count symbols in a term.
  * @since 01/05/2002, Manchester
  */
-void SymCounter::count(const TermList* ts,int add)
+void SymCounter::count(const TermList* ts, int polarity, int add)
 {
   CALL("SymCounter::count");
 
   while (ts->isNonEmpty()) {
-    if (! ts->isVar()) {
+    if (ts->isTerm()) {
       const Term* t = ts->term();
-      int fun = t->functor();
-      ASS(_noOfFuns > fun);
 
-      _funs[fun].add(add);
-      count(t->args(),add);
+      if (t->isSpecial()) {
+        const Term::SpecialTermData* sd = t->getSpecialData();
+        switch (sd->getType()) {
+          case Term::SF_FORMULA:
+            count(sd->getFormula(), polarity, add);
+            break;
+          case Term::SF_ITE:
+            count(sd->getCondition(), 0, add);
+            break;
+          case Term::SF_LET: {
+            TermList binding = sd->getBinding();
+            count(&binding, 1, add);
+            break;
+          }
+          default:
+            ASSERTION_VIOLATION;
+        }
+      } else {
+        int fun = t->functor();
+        ASS_REP(_noOfFuns > fun, t->toString());
+        _funs[fun].add(add);
+      }
+      count(t->args(),1,add);
     }
     ts = ts->next();
   }

@@ -65,7 +65,7 @@ class SymCounter
   void count(const Clause*, int);
   void count(const Formula*, int polarity, int add);
   void count(const Literal*, int polarity, int add);
-  void count(const TermList* t, int add);
+  void count(const TermList* t, int polarity, int add);
 
   /** Return information about n-th predicate symbol */
   Pred& getPred (int n)
