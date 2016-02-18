@@ -450,7 +450,8 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
       continue;
     }
 
-    introduceExtendedGenClause(occ.gc, occ.position, GenLit(new BoolTermFormula(TermList(var, false)), sign));
+    SIGN retainedSign = (sign == occ.sign()) ? POSITIVE : NEGATIVE;
+    introduceExtendedGenClause(occ.gc, occ.position, GenLit(new BoolTermFormula(TermList(var, false)), retainedSign));
   }
 }
 
@@ -962,15 +963,31 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
     while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
       List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
-      bool thenSubstituted;
-      List<GenLit>* thenGls = mapSubstitution(gls, thenSubst, thenSubstituted);
-      if (List<GenLit>::isNonEmpty(thenGls) && thenSubstituted) {
+      bool occurs = false;
+      // We might have a predicate skolem binding for a variable that does not
+      // occur in the generalised clause.
+      // TODO: optimize?
+      List<GenLit>::Iterator glsit(gls);
+      while (glsit.hasNext()) {
+        GenLit gl = glsit.next();
+        if (formula(gl)->freeVariables()->member(variable)) {
+          occurs = true;
+          break;
+        }
+      }
+
+      if (!occurs) {
+        processedGenClauses = processedGenClauses->cons(gls);
+        continue;
+      }
+
+      List<GenLit>* thenGls(0);
+      if (mapSubstitution(gls, thenSubst, thenGls)) {
         processedGenClauses = processedGenClauses->cons(thenGls->cons(GenLit(skolem, NEGATIVE)));
       }
 
-      bool elseSubstituted;
-      List<GenLit>* elseGls = mapSubstitution(gls, elseSubst, elseSubstituted);
-      if (List<GenLit>::isNonEmpty(elseGls) && elseSubstituted) {
+      List<GenLit>* elseGls(0);
+      if (mapSubstitution(gls, elseSubst, elseGls)) {
         processedGenClauses = processedGenClauses->cons(elseGls->cons(GenLit(skolem, POSITIVE)));
       }
     }
@@ -989,6 +1006,8 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
       Clause* clause = toClause(genClause);
       LOG1(clause->toString());
       output.push(clause);
+    } else {
+      LOG2(genClause->toString(), "was removed as it contains a tautology");
     }
   }
 #if LOGGING
@@ -996,39 +1015,30 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 #endif
 }
 
-// TODO: using GenLit here causes "error: use of undeclared identifier", g++ 7.0.2
-List<std::pair<Formula*, SIGN> >* NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool &substituted)
+bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, List<GenLit>* output)
 {
   CALL("NewCNF::mapSubstitution");
-
-  substituted = false;
-
-  List<GenLit>* processedClause(0);
 
   List<GenLit>::Iterator it(clause);
   while (it.hasNext()) {
     GenLit gl = it.next();
     Formula* f = SubstHelper::apply(formula(gl), subst);
+    ASS_NEQ(f, formula(gl));
 
     switch (f->connective()) {
       case TRUE:
-        if (sign(gl) == POSITIVE) {
-          return 0;
+      case FALSE: {
+        SIGN fSign = f->connective() == TRUE ? POSITIVE : NEGATIVE;
+        if (sign(gl) == fSign) {
+          return false;
         } else {
           continue;
         }
-
-      case FALSE:
-        if (sign(gl) == POSITIVE) {
-          continue;
-        } else {
-          return 0;
-        }
+      }
 
       case BOOL_TERM:
       case LITERAL: {
-        substituted |= (f != formula(gl));
-        processedClause = processedClause->cons(GenLit(f, sign(gl)));
+        output = output->cons(GenLit(f, sign(gl)));
         break;
       }
 
@@ -1037,7 +1047,7 @@ List<std::pair<Formula*, SIGN> >* NewCNF::mapSubstitution(List<GenLit>* clause, 
     }
   }
 
-  return processedClause;
+  return true;
 }
 
 Clause* NewCNF::toClause(SPGenClause gc)
