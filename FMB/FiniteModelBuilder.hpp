@@ -175,6 +175,9 @@ private:
   DArray<unsigned> _sortModelSizes;
   DArray<unsigned> _distinctSortSizes;
 
+  // if this is set, we ignore what the SAT solver tells us - it is stupid; just for an experimental comparison
+  bool _ignoreMarkers;
+
   enum ConstraintSign {
     EQ,     // the value has to matched
     LEQ,    // the value needs to be less or equal

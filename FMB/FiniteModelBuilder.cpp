@@ -82,6 +82,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   _partiallyDeletedPredicates.loadFromMap(prb.getPartiallyEliminatedPredicates());
   _trivialPredicates.loadFromMap(prb.trivialPredicates());
 
+  _ignoreMarkers = opt.fmbIgnoreMarkers();
 }
 
 
@@ -1274,23 +1275,25 @@ MainLoopResult FiniteModelBuilder::runImpl()
       Constraint_Generator_Vals& constraint = constraint_p->_vals;
 
       for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
-        constraint[i] = make_pair(STAR,_distinctSortSizes[i]);
+        constraint[i] = make_pair(_ignoreMarkers ? EQ : STAR,_distinctSortSizes[i]);
       }
 
-      for (unsigned i = 0; i < failed.size(); i++) {
-        unsigned var = failed[i].var();
-        ASS_GE(var,totalityMarker_offset);
+      if (!_ignoreMarkers) {
+        for (unsigned i = 0; i < failed.size(); i++) {
+          unsigned var = failed[i].var();
+          ASS_GE(var,totalityMarker_offset);
 
-        if (var < instancesMarker_offset) { // totality used (-> instances used as well / unless the sort is monotonic)
-          unsigned dsort = var-totalityMarker_offset;
-          if (_sortedSignature->monotonicSorts[dsort]) {
-            constraint[dsort].first = LEQ;
-          } else {
-            constraint[dsort].first = EQ;
+          if (var < instancesMarker_offset) { // totality used (-> instances used as well / unless the sort is monotonic)
+            unsigned dsort = var-totalityMarker_offset;
+            if (_sortedSignature->monotonicSorts[dsort]) {
+              constraint[dsort].first = LEQ;
+            } else {
+              constraint[dsort].first = EQ;
+            }
+          } else if (constraint[var-instancesMarker_offset].first == STAR) { // instances used (and we don't know yet about totality)
+            ASS(!_sortedSignature->monotonicSorts[var-instancesMarker_offset]);
+            constraint[var-instancesMarker_offset].first = GEQ;
           }
-        } else if (constraint[var-instancesMarker_offset].first == STAR) { // instances used (and we don't know yet about totality)
-          ASS(!_sortedSignature->monotonicSorts[var-instancesMarker_offset]);
-          constraint[var-instancesMarker_offset].first = GEQ;
         }
       }
 
