@@ -727,13 +727,8 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 {
   CALL("NewCNF::process(QuantifiedFormula*)");
 
-  LOG2("NewCNF::process(QuantifiedFormula*)", g->toString());
-
-  // Note that the formula under quantifier reuses the quantified formula's occurrences
-  enqueue(g->qarg(), occurrences);
-
-  // Correct all the GenClauses to mention qarg instead of g
-  occurrences.replaceBy(g->qarg());
+  LOG2("processQuantified", g->toString());
+  LOG2("occurreces", occurrences.size());
 
   // the skolem caches are empty
   ASS(_skolemsByBindings.isEmpty());
@@ -760,6 +755,12 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
     bindings->destroy();
     dIt.del();
   }
+
+  // Note that the formula under quantifier reuses the quantified formula's occurrences
+  enqueue(g->qarg(), occurrences);
+
+  // Correct all the GenClauses to mention qarg instead of g
+  occurrences.replaceBy(g->qarg());
 }
 
 void NewCNF::process(TermList ts, Occurrences &occurrences)
