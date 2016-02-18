@@ -835,7 +835,7 @@ instanceLabel:
             unsigned dsr = _sortedSignature->parents[srt];
             // cout << " dsr" << dsr;
 
-            if (_sortedSignature->monotonicSorts[dsr]) {
+            if (!_specialMonotEncoding || _sortedSignature->monotonicSorts[dsr]) {
               continue;
             }
 
@@ -1180,7 +1180,7 @@ void FiniteModelBuilder::addNewTotalityDefs()
 
       // cout << "Totality for const " << f << " of sort " << srt << " and max size " << maxSize << endl;
 
-      for (unsigned i = (_sortedSignature->monotonicSorts[dsrt] || !_xmass) ? maxSize : 1; i <= maxSize; i++) { // just the weakest one, if monotonic
+      for (unsigned i = (!_xmass || !_specialMonotEncoding || _sortedSignature->monotonicSorts[dsrt]) ? maxSize : 1; i <= maxSize; i++) { // just the weakest one, if monotonic
         static SATLiteralStack satClauseLits;
         satClauseLits.reset();
 
@@ -1233,7 +1233,7 @@ newTotalLabel:
           //for(unsigned j=0;j<grounding.size();j++) cout << grounding[j] << " ";
           //cout << endl;
 
-          for (unsigned i = ( _sortedSignature->monotonicSorts[dRetSrt] || !_xmass) ? maxRtSrtSize : 1; i <= maxRtSrtSize; i++) {
+          for (unsigned i = (!_xmass || !_specialMonotEncoding || _sortedSignature->monotonicSorts[dRetSrt]) ? maxRtSrtSize : 1; i <= maxRtSrtSize; i++) {
             static SATLiteralStack satClauseLits;
             satClauseLits.reset();
 
