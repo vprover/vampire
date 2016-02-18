@@ -281,10 +281,22 @@ Comparison Normalisation::compare (Literal* l1, Literal* l2)
     return EQUAL;
   }
 
-  Comparison comp = compare((int)l1->weight(),(int)l2->weight());
-  if (comp != EQUAL) {
-//    return Comparison(-comp);
-    return comp;
+  if (!l1->shared() && l2->shared()) {
+    return GREATER;
+  }
+
+  if (l1->shared() && !l2->shared()) {
+    return LESS;
+  }
+
+  Comparison comp;
+
+  if (l1->shared() && l2->shared()) {
+    comp = compare((int)l1->weight(),(int)l2->weight());
+    if (comp != EQUAL) {
+  //    return Comparison(-comp);
+      return comp;
+    }
   }
 
   // negative literals are less than positive
