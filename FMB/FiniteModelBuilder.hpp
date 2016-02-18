@@ -190,6 +190,9 @@ private:
   // Option used in symmetry breaking
   float _symmetryRatio;
 
+  // how often do we pick the next domain to grow by size and how often by weight (= encoding size estimate)
+  unsigned _sizeWeightRatio;
+
   // sizes to use for each sort
   DArray<unsigned> _sortModelSizes;
   DArray<unsigned> _distinctSortSizes;

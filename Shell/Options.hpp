@@ -1636,7 +1636,8 @@ public:
   FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
   bool fmbCollapseMonotonicSorts() const {return _fmbCollapseMonotonicSorts.actualValue; }
   bool fmbDetectSortBounds() const { return _fmbDetectSortBounds.actualValue; }
-  unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; } 
+  unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
+  unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
@@ -2015,6 +2016,7 @@ private:
   BoolOptionValue _fmbCollapseMonotonicSorts;
   BoolOptionValue _fmbDetectSortBounds;
   UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
+  UnsignedOptionValue _fmbSizeWeightRatio;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;

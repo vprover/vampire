@@ -54,7 +54,7 @@
 
 #define VTRACE_FMB 0
 
-#define VTRACE_DOMAINS 1
+#define VTRACE_DOMAINS 0
 
 namespace FMB 
 {
@@ -82,6 +82,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   _partiallyDeletedPredicates.loadFromMap(prb.getPartiallyEliminatedPredicates());
   _trivialPredicates.loadFromMap(prb.trivialPredicates());
 
+  _sizeWeightRatio = opt.fmbSizeWeightRatio();
 }
 
 
@@ -1384,7 +1385,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
         unsigned weight = 0;
 
-        if (alternator % 3 != 0) {
+        if (alternator % (_sizeWeightRatio+1) != 0) {
           _distinctSortSizes[srt]++;
           weight = estimateInstanceCount();
           _distinctSortSizes[srt]--;

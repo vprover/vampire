@@ -623,6 +623,11 @@ void Options::Options::init()
     _fmbDetectSortBoundsTimeLimit.setExperimental();
     _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
 
+    _fmbSizeWeightRatio = UnsignedOptionValue("fmb_size_weight_ratio","fmbswr",1);
+    _fmbSizeWeightRatio.description = "0 is size only, 1 means 1:1, 2 means 1:2, etc.";
+    _fmbSizeWeightRatio.setExperimental();
+    _lookup.insert(&_fmbSizeWeightRatio);
+
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
     "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
