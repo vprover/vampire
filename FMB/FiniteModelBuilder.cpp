@@ -85,6 +85,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 
   _ignoreMarkers = opt.fmbIgnoreMarkers();
   _noPriority = opt.fmbNoPriority();
+  _specialMonotEncoding = opt.fmbSpecialMonotEncoding();
 }
 
 
@@ -756,7 +757,7 @@ void FiniteModelBuilder::addNewInstances()
       //cout << ",max="<<maxVarSize[var] << endl;
 
       unsigned dsort = _sortedSignature->parents[srt];
-      if (!_sortedSignature->monotonicSorts[dsort]) { // don't mark instances of monotonic sorts!
+      if (!_specialMonotEncoding || !_sortedSignature->monotonicSorts[dsort]) { // don't mark instances of monotonic sorts!
         varDistinctSortsSet.set(_sortedSignature->parents[srt]);
       }
     }
@@ -1305,13 +1306,13 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
           if (var < instancesMarker_offset) { // totality used (-> instances used as well / unless the sort is monotonic)
             unsigned dsort = var-totalityMarker_offset;
-            if (_sortedSignature->monotonicSorts[dsort]) {
+            if (_specialMonotEncoding && _sortedSignature->monotonicSorts[dsort]) {
               constraint[dsort].first = LEQ;
             } else {
               constraint[dsort].first = EQ;
             }
           } else if (constraint[var-instancesMarker_offset].first == STAR) { // instances used (and we don't know yet about totality)
-            ASS(!_sortedSignature->monotonicSorts[var-instancesMarker_offset]);
+            ASS(!_specialMonotEncoding || !_sortedSignature->monotonicSorts[var-instancesMarker_offset]);
             constraint[var-instancesMarker_offset].first = GEQ;
           }
         }
@@ -1780,6 +1781,8 @@ bool FiniteModelBuilder::increaseModelSizes(){
         while (it.hasNext()) {
           Constraint_Generator_Vals& constraint = it.next()->_vals;
 
+          bool risky = false;
+
           for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
             pair<ConstraintSign,unsigned>& cc = constraint[j];
             if (cc.first == EQ && cc.second != _distinctSortSizes[j]) {
@@ -1788,9 +1791,24 @@ bool FiniteModelBuilder::increaseModelSizes(){
             if (cc.first == GEQ && cc.second > _distinctSortSizes[j]) {
               goto next_constraint;
             }
-            if (cc.first == LEQ && cc.second < _distinctSortSizes[j]) {
-              goto next_constraint;
+            if (cc.first == LEQ) {
+              if (cc.second < _distinctSortSizes[j]) {
+                goto next_constraint;
+              }
+              if (cc.second > _distinctSortSizes[j]) { // leq applied in a proper sense
+                risky = true;
+              }
             }
+          }
+
+          if (risky) { // ruled out by the monotonicity trick - spawn the child anyway not to lose completeness
+            Constraint_Generator* gen_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+            Constraint_Generator_Vals& gen = gen_p->_vals;
+            for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
+              // copying signs from constraint, to be as powerful as possible
+              gen[j] = make_pair(constraint[j].first,_distinctSortSizes[j]);
+            }
+            _constraints_generators.insert(gen_p);
           }
 
   #if VTRACE_DOMAINS
@@ -1812,15 +1830,15 @@ bool FiniteModelBuilder::increaseModelSizes(){
             // cout << "  Ruled out by _distinct_sort_constraints " << constr.first << " >= " << constr.second << endl;
 
             // We will skip testing it, but we need it as a generator to proceed through the space:
-            Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
-            Constraint_Generator_Vals& constraint = constraint_p->_vals;
+            Constraint_Generator* gen_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+            Constraint_Generator_Vals& gen = gen_p->_vals;
             for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
-              constraint[j] = make_pair(STAR,_distinctSortSizes[j]);
+              gen[j] = make_pair(STAR,_distinctSortSizes[j]);
             }
-            constraint[constr.first].first = EQ;
-            constraint[constr.second].first = GEQ;
+            gen[constr.first].first = EQ;
+            gen[constr.second].first = GEQ;
 
-            _constraints_generators.insert(constraint_p);
+            _constraints_generators.insert(gen_p);
 
             goto next_candidate;
           }
@@ -1833,15 +1851,15 @@ bool FiniteModelBuilder::increaseModelSizes(){
             // cout << "  Ruled out by _strict_distinct_sort_constraints " << constr.first << " > " << constr.second << endl;
 
             // We will skip testing it, but we need it as a generator to proceed through the space:
-            Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
-            Constraint_Generator_Vals& constraint = constraint_p->_vals;
+            Constraint_Generator* gen_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+            Constraint_Generator_Vals& gen = gen_p->_vals;
             for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
-              constraint[j] = make_pair(STAR,_distinctSortSizes[j]);
+              gen[j] = make_pair(STAR,_distinctSortSizes[j]);
             }
-            constraint[constr.first].first = EQ;
-            constraint[constr.second].first = GEQ;
+            gen[constr.first].first = EQ;
+            gen[constr.second].first = GEQ;
 
-            _constraints_generators.insert(constraint_p);
+            _constraints_generators.insert(gen_p);
 
             goto next_candidate;
           }

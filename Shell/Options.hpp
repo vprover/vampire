@@ -1652,6 +1652,7 @@ public:
   bool fmbIgnoreMarkers() const { return _fmbIgnoreMarkers.actualValue; }
   bool fmbNoPriority() const { return _fmbNoPriority.actualValue; }
   FMBSortInference fmbSortInference() const { return _fmbSortInference.actualValue; }
+  bool fmbSpecialMonotEncoding() const { return _fmbSpecialMonotEncoding.actualValue; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
@@ -2034,6 +2035,7 @@ private:
   BoolOptionValue _fmbIgnoreMarkers;
   BoolOptionValue _fmbNoPriority;
   ChoiceOptionValue<FMBSortInference> _fmbSortInference;
+  BoolOptionValue _fmbSpecialMonotEncoding;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
