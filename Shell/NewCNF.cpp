@@ -27,19 +27,6 @@ using namespace Kernel;
 
 namespace Shell {
 
-#undef LOGGING
-#define LOGGING 0
-
-#if LOGGING
-#define LOG1(arg) cout << arg << endl;
-#define LOG2(a1,a2) cout << a1 << a2 << endl;
-#define LOG3(a1,a2,a3) cout << a1 << a2 << a3 << endl;
-#else
-#define LOG1(arg)
-#define LOG2(a1,a2)
-#define LOG3(a1,a2,a3)
-#endif
-
 void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 {
   CALL("NewCNF::clausify");
@@ -108,15 +95,9 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   cout << "----------------- OUTPUT -----------------" << endl;
 #endif
 
-#if LOGGING
-  cout << endl << "----------------- CNF ------------------" << endl;
-#endif
   for (SPGenClause gc : _genClauses) {
     toClauses(gc, output);
   }
-#if LOGGING
-  cout << "----------------- CNF ------------------" << endl << endl;
-#endif
 
   _genClauses.clear();
   _varSorts.reset();
@@ -129,8 +110,8 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   CALL("NewCNF::process(Literal*)");
 
-  LOG2("process(Literal*) ", literal->toString());
-  LOG2("occurrences.size ", occurrences.size());
+  LOG2("process(Literal*)", literal->toString());
+  LOG2("occurrences.size", occurrences.size());
 
 //  ASS_REP(!literal->shared(), literal->toString());
   if (literal->shared()) {
@@ -151,6 +132,9 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
 
   List<pair<Literal*, List<GenLit>*> >* literals(0);
   literals = literals->cons(make_pair(processedLiteral, List<GenLit>::empty()));
+
+  LOG4("Found", variables.size(), "variable(s) inside", literal->toString());
+  LOG3("Replacing it by", processedLiteral->toString(), "with variable substitutions");
 
   unsigned iteCounter = 0;
   while (variables.isNonEmpty()) {
@@ -337,8 +321,8 @@ void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
 {
   CALL("NewCNF::process(JunctionFormula*)");
 
-  LOG2("processJunction ",g->toString());
-  LOG2("occurrences.size ", occurrences.size());
+  LOG2("processJunction", g->toString());
+  LOG2("occurrences.size", occurrences.size());
 
   FormulaList::Iterator fit(g->args());
   while (fit.hasNext()) {
@@ -371,8 +355,8 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
 {
   CALL("NewCNF::process(BinaryFormula*)");
 
-  LOG2("processBinary ", g->toString());
-  LOG2("occurrences.size ", occurrences.size());
+  LOG2("processBinary", g->toString());
+  LOG2("occurrences.size", occurrences.size());
 
   ASS(g->connective() != IMP);
 
@@ -412,8 +396,8 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 {
   CALL("NewCNF::processBoolVar");
 
-  LOG2("processBoolVar ", (sign == POSITIVE ? "X" : "~X") + Int::toString(var));
-  LOG2("occurrences.size ", occurrences.size());
+  LOG2("processBoolVar", (sign == POSITIVE ? "X" : "~X") + Int::toString(var));
+  LOG2("occurrences.size", occurrences.size());
 
   /**
    * Note the following:
@@ -631,7 +615,7 @@ NewCNF::VarSet* NewCNF::freeVars(Formula* g)
 {
   CALL("NewCNF::freeVars");
 
-  LOG2("freeVars for ", g->toString());
+  LOG2("freeVars for", g->toString());
 
   VarSet* res;
 
@@ -743,7 +727,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 {
   CALL("NewCNF::process(QuantifiedFormula*)");
 
-  LOG2("NewCNF::process(QuantifiedFormula*) ", g->toString());
+  LOG2("NewCNF::process(QuantifiedFormula*)", g->toString());
 
   // Note that the formula under quantifier reuses the quantified formula's occurrences
   enqueue(g->qarg(), occurrences);
@@ -876,8 +860,8 @@ void NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
 {
   CALL("NewCNF::nameSubformula");
 
-  LOG2("nameSubformula ", g->toString());
-  LOG2("occurrences ", occurrences.size());
+  LOG2("nameSubformula", g->toString());
+  LOG2("occurrences", occurrences.size());
 
   List<unsigned>* fv = List<unsigned>::empty();
   List<unsigned>::pushFromIterator(VarSet::Iterator(*freeVars(g)), fv);
@@ -994,15 +978,25 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
     iteCounter++;
   }
 
+#if LOGGING
+  cout << endl << "----------------- CNF ------------------" << endl;
+#endif
   while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
     List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
-    SPGenClause genClause = introduceGenClause(gls, gc->bindings);
-    output.push(toClause(genClause));
+    SPGenClause genClause = makeGenClause(gls, gc->bindings);
+    if (genClause->valid) {
+      Clause* clause = toClause(genClause);
+      LOG1(clause->toString());
+      output.push(clause);
+    }
   }
+#if LOGGING
+  cout << "----------------- CNF ------------------" << endl << endl;
+#endif
 }
 
 // TODO: using GenLit here causes "error: use of undeclared identifier", g++ 7.0.2
-List<std::pair<Formula*, SIGN>>* NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool &substituted)
+List<std::pair<Formula*, SIGN> >* NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool &substituted)
 {
   CALL("NewCNF::mapSubstitution");
 
@@ -1070,6 +1064,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
 
     ASS_REP(g->connective() == LITERAL, gc->toString());
     ASS_REP(g->literal()->shared(), g->toString());
+    ASS_REP((SIGN)g->literal()->polarity() == POSITIVE, g->toString());
 
     Literal* l = g->literal()->apply(subst);
     if (sign(gl) == NEGATIVE) {
