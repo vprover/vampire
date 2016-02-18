@@ -434,8 +434,11 @@ void FiniteModelBuilder::init()
   // preprocessing should preserve sorts and doing this here means that introduced symbols get sorts
   {
     TimeCounter tc(TC_FMB_SORT_INFERENCE);
-    _sortedSignature = SortInference::apply(_clauses,del_f,del_p,equivalent_vampire_sorts);
+    SortInference inference(_clauses,del_f,del_p,equivalent_vampire_sorts);
+    inference.doInference();
+    _sortedSignature = inference.getSignature(); 
     ASS(_sortedSignature);
+    cout << "Done sort inference" << endl;
 
     // now we have a mapping between vampire sorts and distinct sorts we can translate
     // the sort constraints, if any
@@ -566,6 +569,7 @@ void FiniteModelBuilder::init()
 
     if(env.signature->functionArity(f)==0){ 
       unsigned vsrt = env.signature->getFunction(f)->fnType()->result();
+      ASS(_sortedSignature->vampireToDistinct.find(vsrt));
       unsigned dsrt = _sortedSignature->vampireToDistinct.get(vsrt);
       _distinctSortConstantCount[dsrt]++;
     }

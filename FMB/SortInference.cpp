@@ -3,7 +3,7 @@
  * Implements class SortInference.
  *
  * NOTE: An important convention to remember is that when we have a DArray representing
- *       the signature or grounding of a function the last argument is the return
+ *       the _signature or grounding of a function the last argument is the return
  *       so array[arity] is return and array[i] is the ith argument of the function
  */
 
@@ -38,48 +38,97 @@ namespace FMB
  * We assume this occurs *after* flattening so all literals are shallow
  *
  */
-SortedSignature* SortInference::doInference()
+void SortInference::doInference()
 {
   CALL("SortInference::doInference");
-  bool print = env.options->showFMBsortInfo();
+  bool _print = env.options->showFMBsortInfo();
 
-  // Add equiv_v_sorts to a useful structure
-  IntUnionFind equiv_vs(env.sorts->sorts());
+  if(_ignoreInference){
+    // setup the minimal signature
+
+    unsigned dsorts =0;
+    for(unsigned s=0;s<env.sorts->sorts();s++){
+      if(env.property->usesSort(s)){
+        unsigned dsort = dsorts++;
+        _sig->vampireToDistinct.insert(s,dsort);
+        Stack<unsigned>* stack = new Stack<unsigned>();
+        stack->push(dsort);
+        _sig->distinctToVampire.insert(dsort,stack);
+      }
+    }
+
+    _sig->sorts = dsorts;
+    _sig->distinctSorts = dsorts;
+
+    _sig->sortedConstants.ensure(dsorts);
+    _sig->sortedFunctions.ensure(dsorts);
+    _sig->functionSignatures.ensure(env.signature->functions());
+    _sig->predicateSignatures.ensure(env.signature->predicates());
+    _sig->sortBounds.ensure(dsorts);
+    _sig->varEqSorts.ensure(dsorts);
+    _sig->parents.ensure(dsorts);
+    for(unsigned i=0;i<dsorts;i++){
+      _sig->sortBounds[i]=UINT_MAX; // it might actually be better than this!
+      _sig->parents[i]=i;
+      _sig->varEqSorts[i]=i;
+    }
+
+    for(unsigned f=0;f<env.signature->functions();f++){
+      unsigned arity = env.signature->functionArity(f);
+      FunctionType* ftype = env.signature->getFunction(f)->fnType();
+      if(arity==0){
+        _sig->sortedConstants[_sig->vampireToDistinct.get(ftype->result())].push(f);
+      }else{
+        _sig->sortedFunctions[_sig->vampireToDistinct.get(ftype->result())].push(f);
+      }
+      _sig->functionSignatures[f].ensure(arity+1);
+      for(unsigned i=0;i<arity;i++){ 
+        _sig->functionSignatures[f][i]=_sig->vampireToDistinct.get(ftype->arg(i)); 
+      }
+      _sig->functionSignatures[f][arity]=_sig->vampireToDistinct.get(ftype->result());
+    }
+    for(unsigned p=1;p<env.signature->predicates();p++){
+      unsigned arity = env.signature->predicateArity(p);
+      PredicateType* ptype = env.signature->getPredicate(p)->predType();
+      _sig->predicateSignatures[p].ensure(arity);
+      for(unsigned i=0;i<arity;i++){ 
+        _sig->predicateSignatures[p][i]=_sig->vampireToDistinct.get(ptype->arg(i)); 
+      }
+    }
+    return;
+  }
+
+
+  // Add _equiv_v_sorts to a useful structure
   {
-    Stack<DHSet<unsigned>*>::Iterator it(equiv_v_sorts);
+    Stack<DHSet<unsigned>*>::Iterator it(_equiv_v_sorts);
     while(it.hasNext()){
       DHSet<unsigned>* cls = it.next();
       unsigned el = cls->getOneKey();
       DHSet<unsigned>::Iterator els(*cls);
       while(els.hasNext()){
-        equiv_vs.doUnion(el,els.next());
+        _equiv_vs.doUnion(el,els.next());
       } 
     }
   }
 
   // Monotoniticy Detection
-  // TODO a more fine-grained notion of when we detect monotonicity
-  bool usingMonotonicity = true;
-  bool collapsingMonotonicSorts = env.options->fmbCollapseMonotonicSorts() != Options::FMBMonotonicCollapse::OFF; 
-  bool assumeMonotonic = collapsingMonotonicSorts && env.options->fmbCollapseMonotonicSorts() != Options::FMBMonotonicCollapse::GROUP;
-  DHSet<unsigned> monotonicVampireSorts;
-  if(usingMonotonicity){
-    if(print){
+  if(_usingMonotonicity){
+    if(_print){
       cout << "Monotonicity information:" << endl;
     }
-    //TODO if fmbCollapseMonotonicSorts == PREDICATE or FUNCTION then we shouldn't do this!
     for(unsigned s=0;s<env.sorts->sorts();s++){
       if(env.property->usesSort(s)){
-        bool monotonic = assumeMonotonic;
+        bool monotonic = _assumeMonotonic;
         if(!monotonic){
-          Monotonicity m(clauses,s);
+          Monotonicity m(_clauses,s);
           monotonic = m.check();
         }
         if(monotonic){
           monotonicVampireSorts.insert(s);
         }
-        if(print){
-          if(monotonic && !assumeMonotonic){
+        if(_print){
+          if(monotonic && !_assumeMonotonic){
             cout << "Input sort " << env.sorts->sortName(s) << " is monotonic" << endl;
           }
         }
@@ -92,7 +141,7 @@ SortedSignature* SortInference::doInference()
 
   unsigned count = 0;
   for(unsigned f=0; f < env.signature->functions();f++){
-    if(del_f[f]) continue;
+    if(_del_f[f]) continue;
     offset_f[f] = count;
     count += (1+env.signature->getFunction(f)->arity());
   }
@@ -103,7 +152,7 @@ SortedSignature* SortInference::doInference()
 
   // skip 0 because it is always equality
   for(unsigned p=1; p < env.signature->predicates();p++){
-    if(del_p[p]) continue;
+    if(_del_p[p]) continue;
     offset_p[p] = count;
     count += (env.signature->getPredicate(p)->arity());
   }
@@ -114,11 +163,11 @@ SortedSignature* SortInference::doInference()
 
   if(count==0) count=1;
 
-  ZIArray<unsigned> posEqualitiesOnPos(count);
+  posEqualitiesOnPos.fillInterval(0,count);
 
   IntUnionFind unionFind(count);
 
-  ClauseIterator cit = pvi(ClauseList::Iterator(clauses));
+  ClauseIterator cit = pvi(ClauseList::Iterator(_clauses));
 
   while(cit.hasNext()){
    Clause* c = cit.next();
@@ -213,10 +262,9 @@ SortedSignature* SortInference::doInference()
 #endif
 
 
-  SortedSignature* sig = new SortedSignature();
-  sig->sorts=comps;
-  sig->sortedConstants.ensure(comps);
-  sig->sortedFunctions.ensure(comps);
+  _sig->sorts=comps;
+  _sig->sortedConstants.ensure(comps);
+  _sig->sortedFunctions.ensure(comps);
 
   // We will normalize the resulting sorts as we go
   // translate maps the components from union find to these new sorts
@@ -224,11 +272,12 @@ SortedSignature* SortInference::doInference()
   unsigned seen = 0;
 
   // True if there is a positive equality on a position with this sort
+  // Later we will use this to promote sorts if _expandSubsorts is true
   ZIArray<bool> posEqualitiesOnSort(comps); 
 
   // First check all of the predicate positions
   for(unsigned p=0;p<env.signature->predicates();p++){
-    if(p < del_p.size() && del_p[p]) continue;
+    if(p < _del_p.size() && _del_p[p]) continue;
     unsigned offset = offset_p[p];
     unsigned arity = env.signature->predicateArity(p);
     for(unsigned i=0;i<arity;i++){
@@ -248,7 +297,7 @@ SortedSignature* SortInference::doInference()
   // Next check function positions for positive equalities
   // Also recorded the functions/constants for each sort
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(f < del_f.size() && del_f[f]) continue;
+    if(f < _del_f.size() && _del_f[f]) continue;
 
     unsigned offset = offset_f[f];
     unsigned arity = env.signature->functionArity(f); 
@@ -279,61 +328,61 @@ SortedSignature* SortInference::doInference()
     cout << "adding " << env.signature->functionName(f) << " as constant for " << rangeSort << endl;
     //cout << "it is " << Term::createConstant(f)->toString() << endl;
 #endif
-       sig->sortedConstants[rangeSort].push(f);
+       _sig->sortedConstants[rangeSort].push(f);
     }
     else{
 #if DEBUG_SORT_INFERENCE
       cout << "recording " << env.signature->functionName(f) << " as function for " << rangeSort << endl;
 #endif
-       sig->sortedFunctions[rangeSort].push(f);
+       _sig->sortedFunctions[rangeSort].push(f);
     }
 
   }
 
-  // Mainly for printing sort information
+  // Mainly for _printing sort information
   // We also add these dummy constants to sorts without them
-  if(print){
+  if(_print){
     cout << "Sort Inference information:" << endl;
     cout << comps << " inferred sorts" << endl;
   }
   unsigned firstFreshConstant = UINT_MAX;
   DHMap<unsigned,unsigned> freshMap;
   for(unsigned s=0;s<comps;s++){
-    if(sig->sortedConstants[s].size()==0 && sig->sortedFunctions[s].size()>0){
+    if(_sig->sortedConstants[s].size()==0 && _sig->sortedFunctions[s].size()>0){
       unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
-      sig->sortedConstants[s].push(fresh);
+      _sig->sortedConstants[s].push(fresh);
       freshMap.insert(fresh,s);
       if(firstFreshConstant==UINT_MAX) firstFreshConstant=fresh;
 #if DEBUG_SORT_INFERENCE
       cout << "Adding fresh constant for sort "<<s<<endl;
 #endif
     }
-    if((print)){
-      cout << "Sort " << s << " has " << sig->sortedConstants[s].size() << " constants and ";
-      cout << sig->sortedFunctions[s].size() << " functions" <<endl;
+    if((_print)){
+      cout << "Sort " << s << " has " << _sig->sortedConstants[s].size() << " constants and ";
+      cout << _sig->sortedFunctions[s].size() << " functions" <<endl;
     }
   }
 
 
-  sig->sortBounds.ensure(comps);
+  _sig->sortBounds.ensure(comps);
 
   // Compute bounds on sorts
   for(unsigned s=0;s<comps;s++){
     // A sort is bounded if it contains only constants and has no positive equality
-    if(sig->sortedFunctions[s].size()==0 && !posEqualitiesOnSort[s]){
-      sig->sortBounds[s]=sig->sortedConstants[s].size();
+    if(_sig->sortedFunctions[s].size()==0 && !posEqualitiesOnSort[s]){
+      _sig->sortBounds[s]=_sig->sortedConstants[s].size();
       // If no constants pretend there is one
-      if(sig->sortBounds[s]==0){ sig->sortBounds[s]=1;}
-      if(print){
-        cout << "Found bound of " << sig->sortBounds[s] << " for sort " << s << endl;
+      if(_sig->sortBounds[s]==0){ _sig->sortBounds[s]=1;}
+      if(_print){
+        cout << "Found bound of " << _sig->sortBounds[s] << " for sort " << s << endl;
 #if DEBUG_SORT_INFERENCE
-        if(sig->sortBounds[s]==0){ cout << " (was 0)"; }
+        if(_sig->sortBounds[s]==0){ cout << " (was 0)"; }
         cout << endl;
 #endif
       }
     }
     else{
-      sig->sortBounds[s]=UINT_MAX;
+      _sig->sortBounds[s]=UINT_MAX;
     }
     //if(s==3){
       //cout << "Forcing all bounds to max for " << s << endl;
@@ -344,24 +393,18 @@ SortedSignature* SortInference::doInference()
   DArray<bool> parentSet(comps);
   for(unsigned i=0;i<comps;i++) parentSet[i]=false;
 
-  sig->parents.ensure(comps);
-  sig->functionSignatures.ensure(env.signature->functions());
-  sig->predicateSignatures.ensure(env.signature->predicates());
+  _sig->parents.ensure(comps);
+  _sig->functionSignatures.ensure(env.signature->functions());
+  _sig->predicateSignatures.ensure(env.signature->predicates());
 
-  unsigned distinctSorts = 0;
-  DHMap<unsigned,unsigned> ourDistinctSorts;
-
-  bool firstMonotonicSortSeen = false;
-  unsigned firstMonotonicSort = 0;
-  unsigned collapsed = 0;
 
 #if DEBUG_SORT_INFERENCE
-  cout << "Setting function signatures" << endl;
+  cout << "Setting function _signatures" << endl;
 #endif
 
-  // Now record the signatures for functions
+  // Now record the _signatures for functions
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(f < del_f.size() && del_f[f]) continue;
+    if(f < _del_f.size() && _del_f[f]) continue;
 #if DEBUG_SORT_INFERENCE
     cout << env.signature->functionName(f) << " : ";
 #endif
@@ -372,8 +415,8 @@ SortedSignature* SortInference::doInference()
     // after we do sort inference (so offsets/positions do not apply)
     if(f >= firstFreshConstant){
       unsigned srt = freshMap.get(f);
-      sig->functionSignatures[f].ensure(1);
-      sig->functionSignatures[f][0]=srt;
+      _sig->functionSignatures[f].ensure(1);
+      _sig->functionSignatures[f][0]=srt;
 #if DEBUG_SORT_INFERENCE
       cout << " fresh constant, so skipping" << endl;
 #endif
@@ -381,68 +424,28 @@ SortedSignature* SortInference::doInference()
     }
 
     unsigned arity = env.signature->functionArity(f);
-    sig->functionSignatures[f].ensure(arity+1);
+    _sig->functionSignatures[f].ensure(arity+1);
     int root = unionFind.root(offset_f[f]);
     unsigned rangeSort = translate.get(root);
 #if DEBUG_SORT_INFERENCE
     cout << rangeSort << " <= ";
 #endif
-    sig->functionSignatures[f][arity] = rangeSort;
+    _sig->functionSignatures[f][arity] = rangeSort;
 
     Signature::Symbol* fnSym = env.signature->getFunction(f);
     FunctionType* fnType = fnSym->fnType();
     if(parentSet[rangeSort]){
 #if VDEBUG
-      unsigned vampireSort = fnType->result();
-      unsigned ourSort;
-      ASS(ourDistinctSorts.find(vampireSort,ourSort));
-      ASS_EQ(ourSort,sig->parents[rangeSort]);
+      //unsigned vampireSort = fnType->result();
+      //unsigned ourSort;
+      //ASS_REP(ourDistinctSorts.find(vampireSort,ourSort),vampireSort);
+      //ASS_EQ(ourSort,_sig->parents[rangeSort]);
 #endif
     }
     else{
       parentSet[rangeSort]=true;
       unsigned vampireSort = fnType->result();
-      unsigned ourSort;
-      if(!ourDistinctSorts.find(vampireSort,ourSort)){
-        if(monotonicVampireSorts.contains(vampireSort)){
-          if(collapsingMonotonicSorts){
-            collapsed++;
-            if(firstMonotonicSortSeen){
-              ourSort = ourDistinctSorts.get(firstMonotonicSort);
-            }
-            else{
-              firstMonotonicSortSeen=true;
-              firstMonotonicSort = vampireSort;
-              ourSort = distinctSorts++;
-            }
-          }
-          else{
-            ourSort = distinctSorts++;
-          }
-          sig->monotonicSorts[ourSort]=true;
-        }
-        else if(equiv_vs.root(vampireSort)!=vampireSort){
-          unsigned rootSort = equiv_vs.root(vampireSort);
-          if(!ourDistinctSorts.find(rootSort,ourSort)){
-            ourSort = distinctSorts++;
-            ourDistinctSorts.insert(rootSort,ourSort);
-            if(!sig->distinctToVampire.find(ourSort)){
-              sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());
-            }
-            sig->distinctToVampire.get(ourSort)->push(rootSort);
-            sig->vampireToDistinct.insert(rootSort,ourSort);
-          }
-        }
-        else ourSort = distinctSorts++;
-        ourDistinctSorts.insert(vampireSort,ourSort);
-        if(!sig->distinctToVampire.find(ourSort)){ 
-          sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());
-        }
-        sig->distinctToVampire.get(ourSort)->push(vampireSort);
-        sig->vampireToDistinct.insert(vampireSort,ourSort);
-      }
-      sig->parents[rangeSort] = ourSort;
-      //cout << "set parent of " << rangeSort << " to " << ourSort << endl;
+      _sig->parents[rangeSort] = getDistinctSort(rangeSort,vampireSort);
     }
 
 
@@ -452,88 +455,51 @@ SortedSignature* SortInference::doInference()
 #if DEBUG_SORT_INFERENCE
       cout << argSort << " ";
 #endif
-      sig->functionSignatures[f][i] = argSort;
+      _sig->functionSignatures[f][i] = argSort;
       if(parentSet[argSort]){
 #if VDEBUG
-      unsigned vampireSort = fnType->arg(i);
-      unsigned ourSort;
-      ASS(ourDistinctSorts.find(vampireSort,ourSort));
-      ASS_EQ(ourSort,sig->parents[argSort]);
+      //unsigned vampireSort = fnType->arg(i);
+      //unsigned ourSort;
+      //ASS(ourDistinctSorts.find(vampireSort,ourSort));
+      //ASS_EQ(ourSort,_sig->parents[argSort]);
 #endif
       }
       else{
         parentSet[argSort]=true;
         unsigned vampireSort = fnType->arg(i);
-        unsigned ourSort;
-        if(!ourDistinctSorts.find(vampireSort,ourSort)){
-          if(monotonicVampireSorts.contains(vampireSort)){
-            if(collapsingMonotonicSorts){
-              collapsed++;
-              if(firstMonotonicSortSeen){
-                ourSort = ourDistinctSorts.get(firstMonotonicSort);
-              }
-              else{
-                firstMonotonicSortSeen=true;
-                firstMonotonicSort = vampireSort;
-                ourSort = distinctSorts++;
-              }
-            }
-            else{
-              ourSort = distinctSorts++;
-            }
-            sig->monotonicSorts[ourSort]=true;
-          }
-          else if(equiv_vs.root(vampireSort)!=vampireSort){
-            unsigned rootSort = equiv_vs.root(vampireSort);
-            if(!ourDistinctSorts.find(rootSort,ourSort)){
-              ourSort = distinctSorts++;
-              ourDistinctSorts.insert(rootSort,ourSort);
-              if(!sig->distinctToVampire.find(ourSort)){
-                sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());
-              }
-              sig->distinctToVampire.get(ourSort)->push(rootSort);
-              sig->vampireToDistinct.insert(rootSort,ourSort);
-            }
-          }
-          else ourSort = distinctSorts++;
-
-          ourDistinctSorts.insert(vampireSort,ourSort);
-          if(!sig->distinctToVampire.find(ourSort)){ sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());}
-          sig->distinctToVampire.get(ourSort)->push(vampireSort);
-          sig->vampireToDistinct.insert(vampireSort,ourSort);
-        }
-        sig->parents[argSort] = ourSort;
-        //cout << "set parent of " << argSort << " to " << ourSort << endl;
+        _sig->parents[argSort] = getDistinctSort(argSort,vampireSort);
       }
     }
 #if DEBUG_SORT_INFERENCE
    cout << "("<< offset_f[f] << ")"<< endl;
 #endif
   }
-
+#if DEBUG_SORT_INFERENCE
+  cout << "Setting up fresh constant info" << endl;
+#endif
   // Setting types for fresh constants
   for(unsigned f=firstFreshConstant;f<env.signature->functions();f++){
     unsigned srt = freshMap.get(f);
-    unsigned dsrt = sig->parents[srt];
-    unsigned vsrt = (*sig->distinctToVampire.get(dsrt))[0];
+    unsigned dsrt = _sig->parents[srt];
+    unsigned vsrt = (*_sig->distinctToVampire.get(dsrt))[0];
     env.signature->getFunction(f)->setType(new FunctionType(vsrt));
     env.signature->getFunction(f)->markIntroduced();
   }
 
 #if DEBUG_SORT_INFERENCE
-  cout << "Setting predicate signatures" << endl;
+  cout << "Setting predicate _signatures" << endl;
 #endif
 
   // Remember to skip 0 as it is =
   for(unsigned p=1;p<env.signature->predicates();p++){
-    if(p < del_p.size() && del_p[p]) continue;
+    if(p < _del_p.size() && _del_p[p]) continue;
 #if DEBUG_SORT_INFERENCE
     cout << env.signature->predicateName(p) << " : ";
 #endif
     //cout << env.signature->predicateName(p) <<" : "; 
     unsigned arity = env.signature->predicateArity(p);
-    // Now set signatures 
-    sig->predicateSignatures[p].ensure(arity);
+    // Now set _signatures 
+    _sig->predicateSignatures[p].ensure(arity);
 
     Signature::Symbol* prSym = env.signature->getPredicate(p);
     PredicateType* prType = prSym->predType();
@@ -541,57 +507,19 @@ SortedSignature* SortInference::doInference()
     for(unsigned i=0;i<arity;i++){
       int argRoot = unionFind.root(offset_p[p]+i);
       unsigned argSort = translate.get(argRoot);
-      sig->predicateSignatures[p][i] = argSort;
+      _sig->predicateSignatures[p][i] = argSort;
       if(parentSet[argSort]){
 #if VDEBUG
-      unsigned vampireSort = prType->arg(i);
-      unsigned ourSort;
-      ASS(ourDistinctSorts.find(vampireSort,ourSort));
-      ASS_EQ(ourSort,sig->parents[argSort]);
+      //unsigned vampireSort = prType->arg(i);
+      //unsigned ourSort;
+      //ASS(ourDistinctSorts.find(vampireSort,ourSort));
+      //ASS_EQ(ourSort,_sig->parents[argSort]);
 #endif
       }
       else{
         parentSet[argSort]=true;
         unsigned vampireSort = prType->arg(i);
-        unsigned ourSort;
-        if(!ourDistinctSorts.find(vampireSort,ourSort)){
-          if(monotonicVampireSorts.contains(vampireSort)){
-            if(collapsingMonotonicSorts){
-              collapsed++;
-              if(firstMonotonicSortSeen){
-                ourSort = ourDistinctSorts.get(firstMonotonicSort);
-              }
-              else{
-                firstMonotonicSortSeen=true;
-                firstMonotonicSort = vampireSort;
-                ourSort = distinctSorts++;
-              }
-            }
-            else{
-              ourSort = distinctSorts++;
-            }
-            sig->monotonicSorts[ourSort]=true;
-          }
-          else if(equiv_vs.root(vampireSort)!=vampireSort){
-            unsigned rootSort = equiv_vs.root(vampireSort);
-            if(!ourDistinctSorts.find(rootSort,ourSort)){
-              ourSort = distinctSorts++;
-              ourDistinctSorts.insert(rootSort,ourSort);
-             if(!sig->distinctToVampire.find(ourSort)){
-                sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());
-              }
-              sig->distinctToVampire.get(ourSort)->push(rootSort);
-              sig->vampireToDistinct.insert(rootSort,ourSort);
-            }
-          }
-          else ourSort = distinctSorts++;
-          ourDistinctSorts.insert(vampireSort,ourSort);
-          if(!sig->distinctToVampire.find(ourSort)){ sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());}
-          sig->distinctToVampire.get(ourSort)->push(vampireSort);
-          sig->vampireToDistinct.insert(vampireSort,ourSort);
-        }
-        sig->parents[argSort] = ourSort;
-        //cout << "set parent of " << argSort << " to " << ourSort << endl;
+        _sig->parents[argSort] = getDistinctSort(argSort,vampireSort);
       }
 #if DEBUG_SORT_INFERENCE
       cout << argSort << " ";
@@ -604,28 +532,28 @@ SortedSignature* SortInference::doInference()
 
   // sorting out variable equalities
   // allocate an extra sort per disinct sort for variable equalities
-  sig->varEqSorts.ensure(distinctSorts);
-  sig->sortBounds.expand(sig->sorts+distinctSorts);
-  sig->parents.expand(sig->sorts+distinctSorts);
-  for(unsigned s=0;s<distinctSorts;s++){
-    sig->varEqSorts[s] = sig->sorts;
-    sig->sortBounds[sig->sorts]=UINT_MAX;
-    sig->parents[sig->sorts]=s;
-    sig->sorts++;
+  _sig->varEqSorts.ensure(_distinctSorts);
+  _sig->sortBounds.expand(_sig->sorts+_distinctSorts);
+  _sig->parents.expand(_sig->sorts+_distinctSorts);
+  for(unsigned s=0;s<_distinctSorts;s++){
+    _sig->varEqSorts[s] = _sig->sorts;
+    _sig->sortBounds[_sig->sorts]=UINT_MAX;
+    _sig->parents[_sig->sorts]=s;
+    _sig->sorts++;
   }
-  sig->sortedConstants.expand(sig->sorts);
-  sig->sortedFunctions.expand(sig->sorts);
+  _sig->sortedConstants.expand(_sig->sorts);
+  _sig->sortedFunctions.expand(_sig->sorts);
 
-  sig->distinctSorts = distinctSorts;
+  _sig->distinctSorts = _distinctSorts;
 
-  if(print){
-    if(collapsed>0){ cout << "Collapsed " << collapsed << " sorts into 1 as they are monotonic" << endl;}
-    cout << sig->distinctSorts << " distinct sorts" << endl;
-    for(unsigned s=0;s<sig->distinctSorts;s++){
+  if(_print){
+    if(_collapsed>0){ cout << "Collapsed " << _collapsed << " sorts into 1 as they are monotonic" << endl;}
+    cout << _sig->distinctSorts << " distinct sorts" << endl;
+    for(unsigned s=0;s<_sig->distinctSorts;s++){
       unsigned children =0;
       vstring res="";
-      for(unsigned i=0;i<sig->sorts;i++){ 
-        if(sig->parents[i]==s){
+      for(unsigned i=0;i<_sig->sorts;i++){ 
+        if(_sig->parents[i]==s){
           if(children>0) res+=",";
           res+=Lib::Int::toString(i);
           children++; 
@@ -635,20 +563,79 @@ SortedSignature* SortInference::doInference()
     }
     cout << "Vampire to distinct sort mapping:" << endl;
     cout << "["; 
-    for(unsigned i=0;i<sig->distinctSorts;i++){
+    for(unsigned i=0;i<_sig->distinctSorts;i++){
 
-      Stack<unsigned>* vs = sig->distinctToVampire.get(i);
+      Stack<unsigned>* vs = _sig->distinctToVampire.get(i);
       if(vs->size()==1) cout << env.sorts->sortName((*vs)[0]);
       else cout << env.sorts->sortName((*vs)[0]) << "(+)";
 
-      if(i==sig->distinctSorts-1) cout << "]" << endl;
+      if(i==_sig->distinctSorts-1) cout << "]" << endl;
       else cout << ",";
     }
   }
 
 
-  return sig;
+}
 
+unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSort)
+{
+  CALL("SortInference::getDistinctSort");
+
+  static bool firstMonotonicSortSeen = false;
+  static unsigned firstMonotonicSort = 0;
+  static DHMap<unsigned,unsigned> ourDistinctSorts;
+
+  unsigned vampireSort = realVampireSort;
+  if(_expandSubsorts){
+    if(!posEqualitiesOnPos[subsort]){
+      vampireSort = subsort;
+    }
+  }
+
+    unsigned ourSort;
+    if(ourDistinctSorts.find(vampireSort,ourSort)){
+      return ourSort;
+    }
+
+    if(monotonicVampireSorts.contains(vampireSort)){
+      if(_collapsingMonotonicSorts){
+        _collapsed++;
+        if(firstMonotonicSortSeen){
+          ourSort = ourDistinctSorts.get(firstMonotonicSort);
+        }
+        else{
+          firstMonotonicSortSeen=true;
+          firstMonotonicSort = vampireSort;
+          ourSort = _distinctSorts++;
+        }
+      }
+      else{
+        ourSort = _distinctSorts++;
+      }
+      _sig->monotonicSorts[ourSort]=true;
+    }
+    else if(!_expandSubsorts && _equiv_vs.root(vampireSort)!=vampireSort){
+      unsigned rootSort = _equiv_vs.root(vampireSort);
+      if(!ourDistinctSorts.find(rootSort,ourSort)){
+          ourSort = _distinctSorts++;
+      }
+     _sig->distinctToVampire.get(ourSort)->push(rootSort);
+    }
+   else ourSort = _distinctSorts++;
+
+   ourDistinctSorts.insert(vampireSort,ourSort);
+
+   if(!_sig->distinctToVampire.find(ourSort)){
+     _sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());
+   }
+   _sig->distinctToVampire.get(ourSort)->push(realVampireSort);
+   ASS(_sig->distinctToVampire.find(ourSort));
+
+   _sig->vampireToDistinct.insert(vampireSort,ourSort);
+
+   //cout << "RET " << vampireSort << " to " << ourSort << endl;
+
+   return ourSort;
 }
 
 }
