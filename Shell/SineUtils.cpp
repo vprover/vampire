@@ -116,7 +116,8 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,Stack<SymId>& itms)
       addSymIds(f->literal(),itms);
       break;
     case BOOL_TERM:
-      ASSERTION_VIOLATION;
+      //TODO: add handling of special terms
+      break;
     case AND:
     case OR:
       {
