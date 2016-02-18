@@ -52,8 +52,10 @@ struct SortedSignature{
     // A distinct sort may merge multipe vampire sorts (due to monotonicity)
     DHMap<unsigned,Stack<unsigned>*> distinctToVampire;
     // A vampire sort can only be mapped to more than one distinct sort under certain conditions i.e. when
-    // 
-    DHMap<unsigned,unsigned> vampireToDistinct;
+    // (i) the option for fmbSortInference = expand
+    // (ii) at most one sort has non-monotonic subsorts and that is called parent
+    // (iii) additional constraints have been added making expanded <= parent
+    DHMap<unsigned,Stack<unsigned>*> vampireToDistinct;
 
     // has size distinctSorts
     // is 1 if that distinct sort is monotonic

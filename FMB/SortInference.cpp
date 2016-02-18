@@ -50,10 +50,10 @@ void SortInference::doInference()
     for(unsigned s=0;s<env.sorts->sorts();s++){
       if(env.property->usesSort(s)){
         unsigned dsort = dsorts++;
-        _sig->vampireToDistinct.insert(s,dsort);
         Stack<unsigned>* stack = new Stack<unsigned>();
         stack->push(dsort);
         _sig->distinctToVampire.insert(dsort,stack);
+        _sig->vampireToDistinct.insert(dsort,stack);
       }
     }
 
@@ -77,22 +77,22 @@ void SortInference::doInference()
       unsigned arity = env.signature->functionArity(f);
       FunctionType* ftype = env.signature->getFunction(f)->fnType();
       if(arity==0){
-        _sig->sortedConstants[_sig->vampireToDistinct.get(ftype->result())].push(f);
+        _sig->sortedConstants[(*_sig->vampireToDistinct.get(ftype->result()))[0]].push(f);
       }else{
-        _sig->sortedFunctions[_sig->vampireToDistinct.get(ftype->result())].push(f);
+        _sig->sortedFunctions[(*_sig->vampireToDistinct.get(ftype->result()))[0]].push(f);
       }
       _sig->functionSignatures[f].ensure(arity+1);
       for(unsigned i=0;i<arity;i++){ 
-        _sig->functionSignatures[f][i]=_sig->vampireToDistinct.get(ftype->arg(i)); 
+        _sig->functionSignatures[f][i]=(*_sig->vampireToDistinct.get(ftype->arg(i)))[0]; 
       }
-      _sig->functionSignatures[f][arity]=_sig->vampireToDistinct.get(ftype->result());
+      _sig->functionSignatures[f][arity]=(*_sig->vampireToDistinct.get(ftype->result()))[0];
     }
     for(unsigned p=1;p<env.signature->predicates();p++){
       unsigned arity = env.signature->predicateArity(p);
       PredicateType* ptype = env.signature->getPredicate(p)->predType();
       _sig->predicateSignatures[p].ensure(arity);
       for(unsigned i=0;i<arity;i++){ 
-        _sig->predicateSignatures[p][i]=_sig->vampireToDistinct.get(ptype->arg(i)); 
+        _sig->predicateSignatures[p][i]=(*_sig->vampireToDistinct.get(ptype->arg(i)))[0]; 
       }
     }
     return;
@@ -574,6 +574,8 @@ void SortInference::doInference()
     }
   }
 
+  for(unsigned s=0;s<
+  vampireToDistinctParent
 
 }
 
@@ -629,9 +631,14 @@ unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSo
      _sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());
    }
    _sig->distinctToVampire.get(ourSort)->push(realVampireSort);
-   ASS(_sig->distinctToVampire.find(ourSort));
 
-   _sig->vampireToDistinct.insert(vampireSort,ourSort);
+   if(!_sig->vampireToDistinct.find(ourSort)){
+     _sig->vampireToDistinct.insert(ourSort,new Stack<unsigned>());
+   }
+   _sig->vampireToDistinct.get(realVampireSort)->push(ourSort);
+   if(vampireSort == realVampireSort){
+     _sig->vampireToDistinctParent.insert(vampireSort,ourSort);
+   }
 
    //cout << "RET " << vampireSort << " to " << ourSort << endl;
 
