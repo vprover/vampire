@@ -647,8 +647,8 @@ unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSo
    }
    _sig->distinctToVampire.get(ourSort)->push(realVampireSort);
 
-   if(!_sig->vampireToDistinct.find(ourSort)){
-     _sig->vampireToDistinct.insert(ourSort,new Stack<unsigned>());
+   if(!_sig->vampireToDistinct.find(realVampireSort)){
+     _sig->vampireToDistinct.insert(realVampireSort,new Stack<unsigned>());
    }
    _sig->vampireToDistinct.get(realVampireSort)->push(ourSort);
    if(vampireSort == realVampireSort){
