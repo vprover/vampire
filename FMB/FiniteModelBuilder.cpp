@@ -792,6 +792,10 @@ void FiniteModelBuilder::addNewInstances()
 
     static ArrayMap<unsigned> varDistinctSortsMaxes(_distinctSortSizes.size());
 
+    if (!_xmass) {
+      varDistinctSortsMaxes.reset();
+    }
+
     //cout << "maxVarSizes "<<endl;;
     for(unsigned var=0;var<vars;var++) {
       unsigned srt = (*varSorts)[var];
@@ -802,7 +806,7 @@ void FiniteModelBuilder::addNewInstances()
       if (!_xmass) {
         unsigned dsort = _sortedSignature->parents[srt];
         if (!_specialMonotEncoding || !_sortedSignature->monotonicSorts[dsort]) { // don't mark instances of monotonic sorts!
-          varDistinctSortsMaxes.set(_sortedSignature->parents[srt],1);
+          varDistinctSortsMaxes.set(dsort,1);
         }
       }
     }
