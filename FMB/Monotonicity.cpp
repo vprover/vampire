@@ -268,7 +268,7 @@ void Monotonicity::addSortPredicates(ClauseList*& clauses)
    clauses = ClauseList::concat(clauses,newAxioms);
 }
 
-class SortFunctionTransformer : public TermTransformer
+class SortFunctionTransformer : public TermTransformerTransformTransformed
 {
 public:
 SortFunctionTransformer(Literal* lit, 
@@ -277,6 +277,8 @@ SortFunctionTransformer(Literal* lit,
 
 TermList transformSubterm(TermList trm){
   CALL("SortFunctionTransformer::transformSubterm");
+
+  // cout << "transformSubterm " << trm.toString() << endl;
 
   unsigned srt = SortHelper::getTermSort(trm, _lit);
   if(_isM[srt]) return trm;
@@ -337,7 +339,12 @@ void Monotonicity::addSortFunctions(ClauseList*& clauses)
        Literal* l = lit.next();
        SortFunctionTransformer transformer(l,isMonotonic,sortFunctions);
        Literal* lnew = transformer.transform(l);
-       if(l!=lnew) changed=true;
+       if(l!=lnew) {
+         changed=true;
+
+         // cout << "before " << l->toString() << endl;
+         // cout << "after " << lnew->toString() << endl;
+       }
        literals.push(lnew);
      }
 
