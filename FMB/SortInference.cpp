@@ -574,8 +574,23 @@ void SortInference::doInference()
     }
   }
 
-  for(unsigned s=0;s<
-  vampireToDistinctParent
+  for(unsigned s=0;s<env.sorts->sorts();s++){
+    if(env.property->usesSort(s)){
+      if(!_sig->vampireToDistinctParent.find(s)){
+        ASS(_sig->vampireToDistinct.find(s));
+        ASS(!_sig->vampireToDistinct.get(s)->isEmpty());
+        _sig->vampireToDistinctParent.insert(s,(*_sig->vampireToDistinct.get(s))[0]);
+      }
+      // add those constraints between children and parent
+      unsigned parent = _sig->vampireToDistinctParent.get(s);
+      Stack<unsigned>::Iterator children(*_sig->vampireToDistinct.get(s));
+      while(children.hasNext()){
+        unsigned child = children.next();
+        if(child==parent) continue;
+        _sort_constraints.push(make_pair(parent,child));
+      }
+    }
+  }
 
 }
 

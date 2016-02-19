@@ -452,7 +452,7 @@ void FiniteModelBuilder::init()
   // preprocessing should preserve sorts and doing this here means that introduced symbols get sorts
   {
     TimeCounter tc(TC_FMB_SORT_INFERENCE);
-    SortInference inference(_clauses,del_f,del_p,equivalent_vampire_sorts);
+    SortInference inference(_clauses,del_f,del_p,equivalent_vampire_sorts,_distinct_sort_constraints);
     inference.doInference();
     _sortedSignature = inference.getSignature(); 
     ASS(_sortedSignature);
@@ -464,8 +464,8 @@ void FiniteModelBuilder::init()
       DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_nonstrict); 
       while(it.hasNext()){
         std::pair<unsigned,unsigned> vconstraint = it.next();
-        unsigned s1 = _sortedSignature->vampireToDistinct.get(vconstraint.first);
-        unsigned s2 = _sortedSignature->vampireToDistinct.get(vconstraint.second);
+        unsigned s1 = _sortedSignature->vampireToDistinctParent.get(vconstraint.first);
+        unsigned s2 = _sortedSignature->vampireToDistinctParent.get(vconstraint.second);
         _distinct_sort_constraints.push(make_pair(s1,s2));
       }
     }
@@ -473,8 +473,8 @@ void FiniteModelBuilder::init()
       DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_strict);
       while(it.hasNext()){
         std::pair<unsigned,unsigned> vconstraint = it.next();
-        unsigned s1 = _sortedSignature->vampireToDistinct.get(vconstraint.first);
-        unsigned s2 = _sortedSignature->vampireToDistinct.get(vconstraint.second);
+        unsigned s1 = _sortedSignature->vampireToDistinctParent.get(vconstraint.first);
+        unsigned s2 = _sortedSignature->vampireToDistinctParent.get(vconstraint.second);
         _strict_distinct_sort_constraints.push(make_pair(s1,s2));
       }
     }
@@ -588,7 +588,7 @@ void FiniteModelBuilder::init()
     if(env.signature->functionArity(f)==0){ 
       unsigned vsrt = env.signature->getFunction(f)->fnType()->result();
       ASS(_sortedSignature->vampireToDistinct.find(vsrt));
-      unsigned dsrt = _sortedSignature->vampireToDistinct.get(vsrt);
+      unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vsrt);
       _distinctSortConstantCount[dsrt]++;
     }
 
@@ -688,7 +688,7 @@ void FiniteModelBuilder::init()
           // At this point I have a two-variable equality where those variables do not
           // tell me what sorts they should have by appearance in a function or predicate symbol
           // So I use the special sort for this
-          unsigned dsort = _sortedSignature->vampireToDistinct.get(lit->twoVarEqSort());
+          unsigned dsort = _sortedSignature->vampireToDistinctParent.get(lit->twoVarEqSort());
           unsigned sort = _sortedSignature->varEqSorts[dsort];
           (*csig)[var1] = sort;
           (*csig)[var2] = sort;
@@ -1583,7 +1583,7 @@ void FiniteModelBuilder::onModelFound()
  for(unsigned vSort=0;vSort<env.sorts->sorts();vSort++){
    unsigned size = 0;
    unsigned dsort;
-   if(_sortedSignature->vampireToDistinct.find(vSort,dsort)){
+   if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
      size = _distinctSortSizes[dsort];
    }
    vampireSortSizes.insert(vSort,size);

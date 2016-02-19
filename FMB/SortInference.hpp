@@ -56,6 +56,9 @@ struct SortedSignature{
     // (ii) at most one sort has non-monotonic subsorts and that is called parent
     // (iii) additional constraints have been added making expanded <= parent
     DHMap<unsigned,Stack<unsigned>*> vampireToDistinct;
+    // This maps to the distinct parent
+    // invariant: domain of the two maps are the same and the second maps to something in the stack of the first
+    DHMap<unsigned,unsigned> vampireToDistinctParent;
 
     // has size distinctSorts
     // is 1 if that distinct sort is monotonic
@@ -70,8 +73,11 @@ public:
   SortInference(ClauseList* clauses,
                 DArray<unsigned> del_f,
                 DArray<unsigned> del_p,
-                Stack<DHSet<unsigned>*> equiv_v_sorts) :
-                _clauses(clauses), _del_f(del_f), _del_p(del_p),_equiv_v_sorts(equiv_v_sorts), _equiv_vs(env.sorts->sorts()){
+                Stack<DHSet<unsigned>*> equiv_v_sorts,
+                Stack<std::pair<unsigned,unsigned>>& cons) :
+                _clauses(clauses), _del_f(del_f), _del_p(del_p),
+                _equiv_v_sorts(equiv_v_sorts), _equiv_vs(env.sorts->sorts()),
+                _sort_constraints(cons) {
 
                   _sig = new SortedSignature();
                   _print = env.options->showFMBsortInfo();
@@ -114,6 +120,8 @@ private:
   DArray<unsigned> _del_p;
   Stack<DHSet<unsigned>*> _equiv_v_sorts;
   IntUnionFind _equiv_vs;
+
+  Stack<std::pair<unsigned,unsigned>>& _sort_constraints;
 
 };
 
