@@ -163,8 +163,6 @@ void SortInference::doInference()
 
   if(count==0) count=1;
 
-  posEqualitiesOnPos.fillInterval(0,count);
-
   IntUnionFind unionFind(count);
 
   ClauseIterator cit = pvi(ClauseList::Iterator(_clauses));
