@@ -456,7 +456,7 @@ void FiniteModelBuilder::init()
     inference.doInference();
     _sortedSignature = inference.getSignature(); 
     ASS(_sortedSignature);
-    cout << "Done sort inference" << endl;
+    //cout << "Done sort inference" << endl;
 
     // now we have a mapping between vampire sorts and distinct sorts we can translate
     // the sort constraints, if any
@@ -523,10 +523,25 @@ void FiniteModelBuilder::init()
         }
       }
     }
-    //_maxModelSizeAllSorts = _distinctSortMaxs[1];
-    //for(unsigned s=1;s<_sortedSignature->distinctSorts;s++){
-    //  _maxModelSizeAllSorts = max(_distinctSortMaxs[s],_maxModelSizeAllSorts);
-    //}
+
+    // if we've done the sort expansion thing then the max for the parent should be
+    // the max of all children
+    for(unsigned s=0;s<env.sorts->sorts();s++){
+      if(env.property->usesSort(s)){
+        Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
+        ASS(dmembers);
+        if(dmembers->size() > 1){
+          unsigned parent = _sortedSignature->vampireToDistinctParent.get(s);
+          Stack<unsigned>::Iterator children(*dmembers);
+          while(children.hasNext()){
+            unsigned child = children.next();
+            if(child==parent) continue;
+            //cout << "max of " << parent << " inherets child " << child << endl;
+            _distinctSortMaxs[parent] = max(_distinctSortMaxs[parent],_distinctSortMaxs[child]);
+          }
+        }
+      }
+    }
 
     // If symmetry ordering uses the usage after preprocessing then recompute symbol usage
     // Otherwise this was done at clausification
@@ -1982,6 +1997,7 @@ bool FiniteModelBuilder::increaseModelSizes(){
 
       // test 1 -- max sizes
       if (_distinctSortSizes[i] > _distinctSortMaxs[i]) {
+        //cout << "Skipping increasing distinct sort " << i << " as has max of " << _distinctSortMaxs[i] << endl;
         goto next_candidate;
       }
 
@@ -2041,7 +2057,7 @@ bool FiniteModelBuilder::increaseModelSizes(){
         while (it1.hasNext()) {
           std::pair<unsigned,unsigned> constr = it1.next();
           if (_distinctSortSizes[constr.first] < _distinctSortSizes[constr.second]) {
-            // cout << "  Ruled out by _distinct_sort_constraints " << constr.first << " >= " << constr.second << endl;
+             cout << "  Ruled out by _distinct_sort_constraints " << constr.first << " >= " << constr.second << endl;
 
             // We will skip testing it, but we need it as a generator to proceed through the space:
             Constraint_Generator* gen_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);

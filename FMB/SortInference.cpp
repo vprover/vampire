@@ -341,7 +341,7 @@ void SortInference::doInference()
   // We also add these dummy constants to sorts without them
   if(_print){
     cout << "Sort Inference information:" << endl;
-    cout << comps << " inferred sorts" << endl;
+    cout << comps << " inferred subsorts" << endl;
   }
   unsigned firstFreshConstant = UINT_MAX;
   DHMap<unsigned,unsigned> freshMap;
@@ -352,11 +352,11 @@ void SortInference::doInference()
       freshMap.insert(fresh,s);
       if(firstFreshConstant==UINT_MAX) firstFreshConstant=fresh;
 #if DEBUG_SORT_INFERENCE
-      cout << "Adding fresh constant for sort "<<s<<endl;
+      cout << "Adding fresh constant for subsort "<<s<<endl;
 #endif
     }
     if((_print)){
-      cout << "Sort " << s << " has " << _sig->sortedConstants[s].size() << " constants and ";
+      cout << "Subsort " << s << " has " << _sig->sortedConstants[s].size() << " constants and ";
       cout << _sig->sortedFunctions[s].size() << " functions" <<endl;
     }
   }
@@ -372,7 +372,7 @@ void SortInference::doInference()
       // If no constants pretend there is one
       if(_sig->sortBounds[s]==0){ _sig->sortBounds[s]=1;}
       if(_print){
-        cout << "Found bound of " << _sig->sortBounds[s] << " for sort " << s << endl;
+        cout << "Found bound of " << _sig->sortBounds[s] << " for subsort " << s << endl;
 #if DEBUG_SORT_INFERENCE
         if(_sig->sortBounds[s]==0){ cout << " (was 0)"; }
         cout << endl;
@@ -545,7 +545,7 @@ void SortInference::doInference()
   _sig->distinctSorts = _distinctSorts;
 
   if(_print){
-    if(_collapsed>0){ cout << "Collapsed " << _collapsed << " sorts into 1 as they are monotonic" << endl;}
+    if(_collapsed>0){ cout << "Collapsed " << _collapsed << " distinct sorts into 1 as they are monotonic" << endl;}
     cout << _sig->distinctSorts << " distinct sorts" << endl;
     for(unsigned s=0;s<_sig->distinctSorts;s++){
       unsigned children =0;
@@ -557,7 +557,7 @@ void SortInference::doInference()
           children++; 
         }
       }
-      cout << s << " has " << children << " inferred sorts as members [" << res << "]" << endl;
+      cout << s << " has " << children << " inferred subsorts as members [" << res << "]" << endl;
     }
     cout << "Vampire to distinct sort mapping:" << endl;
     cout << "["; 
@@ -581,10 +581,12 @@ void SortInference::doInference()
       }
       // add those constraints between children and parent
       unsigned parent = _sig->vampireToDistinctParent.get(s);
+      //cout << "Parent " << parent << " for " << env.sorts->sortName(s) << endl;
       Stack<unsigned>::Iterator children(*_sig->vampireToDistinct.get(s));
       while(children.hasNext()){
         unsigned child = children.next();
         if(child==parent) continue;
+        //cout << "Child " << child << " for " << env.sorts->sortName(s) << endl;
         _sort_constraints.push(make_pair(parent,child));
       }
     }
