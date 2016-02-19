@@ -48,12 +48,52 @@ SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
   return max(env.signature->predicates()*2-1, env.signature->functions()*2);
 }
 
+void SineSymbolExtractor::addSymIds(Term* term, Stack<SymId>& ids)
+{
+  CALL("SineSymbolExtractor::addSymIds");
+
+  if (!term->shared()) {
+    Term::SpecialTermData *sd = term->getSpecialData();
+    switch (sd->getType()) {
+      case Term::SF_FORMULA:
+        extractFormulaSymbols(sd->getFormula(), ids);
+        break;
+      case Term::SF_ITE:
+        extractFormulaSymbols(sd->getCondition(), ids);
+        break;
+      case Term::SF_LET: {
+        TermList binding = sd->getBinding();
+        if (binding.isTerm()) {
+          addSymIds(binding.term(), ids);
+        }
+        break;
+      }
+      default:
+        ASSERTION_VIOLATION;
+    }
+    NonVariableIterator nvi(term);
+    while (nvi.hasNext()) {
+      addSymIds(nvi.next().term(), ids);
+    }
+  } else {
+    SymId funId=term->functor()*2+1;
+    ids.push(funId);
+
+    NonVariableIterator nvi(term);
+    while (nvi.hasNext()) {
+      Term* t=nvi.next().term();
+      SymId funId=t->functor()*2+1;
+      ids.push(funId);
+    }
+  }
+}
+
 /**
  * Add all occurrences of symbol ids of symbols occurring in the the literal to @c ids.
  * @since 04/05/2013 Manchester, argument polarity removed
  * @author Andrei Voronkov
  */
-void SineSymbolExtractor::addSymIds(Literal* lit,Stack<SymId>& ids) const
+void SineSymbolExtractor::addSymIds(Literal* lit,Stack<SymId>& ids)
 {
   CALL("SineSymbolExtractor::addSymIds");
 
@@ -61,15 +101,17 @@ void SineSymbolExtractor::addSymIds(Literal* lit,Stack<SymId>& ids) const
   ids.push(predId);
 
   if (!lit->shared()) {
-    //TODO: add handling of special terms
-    return;
-  }
-
-  NonVariableIterator nvi(lit);
-  while (nvi.hasNext()) {
-    Term* t=nvi.next().term();
-    SymId funId=t->functor()*2+1;
-    ids.push(funId);
+    NonVariableIterator nvi(lit);
+    while (nvi.hasNext()) {
+      addSymIds(nvi.next().term(), ids);
+    }
+  } else {
+    NonVariableIterator nvi(lit);
+    while (nvi.hasNext()) {
+      Term *t = nvi.next().term();
+      SymId funId = t->functor() * 2 + 1;
+      ids.push(funId);
+    }
   }
 } // addSymIds
 
@@ -115,9 +157,13 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,Stack<SymId>& itms)
     case LITERAL:
       addSymIds(f->literal(),itms);
       break;
-    case BOOL_TERM:
-      //TODO: add handling of special terms
+    case BOOL_TERM: {
+      TermList ts = f->getBooleanTerm();
+      if (ts.isTerm()) {
+        addSymIds(ts.term(), itms);
+      }
       break;
+    }
     case AND:
     case OR:
       {
