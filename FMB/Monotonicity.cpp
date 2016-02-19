@@ -341,7 +341,6 @@ void Monotonicity::addSortFunctions(ClauseList*& clauses)
        Literal* lnew = transformer.transform(l);
        if(l!=lnew) {
          changed=true;
-
          // cout << "before " << l->toString() << endl;
          // cout << "after " << lnew->toString() << endl;
        }
@@ -351,7 +350,8 @@ void Monotonicity::addSortFunctions(ClauseList*& clauses)
      if(changed){
        Clause* replacement = Clause::fromStack(literals,cl->inputType(),
                                    new Inference1(Inference::ADD_SORT_FUNCTIONS, cl));
-       //cout << "R " << replacement->toString() << endl;
+       cout << "C " << cl->toString() << endl;
+       cout << "R " << replacement->toString() << endl;
        ClauseList::push(replacement,newAxioms);
        it.del();
      }
