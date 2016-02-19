@@ -53,11 +53,11 @@ class NewCNF
 public:
   NewCNF(unsigned namingThreshold) : _namingThreshold(namingThreshold) {}
 
-  void clausify (Kernel::FormulaUnit* unit,Lib::Stack<Kernel::Clause*>& output);
+  void clausify(FormulaUnit* unit, Stack<Clause*>& output);
 private:
   unsigned _namingThreshold;
 
-  Kernel::FormulaUnit* _beingClausified;
+  FormulaUnit* _beingClausified;
 
   /**
    * Queue of formulas to process.
@@ -68,11 +68,11 @@ private:
    * However, not merging distinct occurrences of a single subformula
    * from the input does not compromise correctness.
    */
-  Lib::Deque<Kernel::Formula*> _queue;
+  Deque<Formula*> _queue;
 
-  typedef std::pair<unsigned, Kernel::Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
+  typedef pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
 
-  typedef Lib::List<Binding> BindingList;
+  typedef List<Binding> BindingList;
 
   struct BindingGetVarFunctor
   {
@@ -90,7 +90,7 @@ private:
   #define RIGHT 1u
 
   // generalized literal
-  typedef std::pair<Formula*, SIGN> GenLit;
+  typedef pair<Formula*, SIGN> GenLit;
 
   inline static Formula* &formula(GenLit &gl) {
     return gl.first;
@@ -109,11 +109,11 @@ private:
     BindingList* bindings; // the list is not owned by the GenClause (they will shallow-copied and shared)
     // we could/should carry bindings on the GenLits-level; but GenClause seems sufficient as long as we are rectified
 
-    Lib::DArray<GenLit> _literals; // TODO: remove the extra indirection and allocate inside GenClause
+    DArray<GenLit> _literals; // TODO: remove the extra indirection and allocate inside GenClause
     unsigned _size;
 
     struct Iterator {
-      Iterator(Lib::DArray<GenLit>::Iterator iter, unsigned left) : _iter(iter), _left(left) {}
+      Iterator(DArray<GenLit>::Iterator iter, unsigned left) : _iter(iter), _left(left) {}
 
       bool hasNext() {
         if (_left == 0) return false;
@@ -126,12 +126,12 @@ private:
       }
 
       private:
-        Lib::DArray<GenLit>::Iterator _iter;
+        DArray<GenLit>::Iterator _iter;
         unsigned _left;
     };
 
     Iterator genLiterals() {
-      return Iterator(Lib::DArray<GenLit>::Iterator(_literals), _size);
+      return Iterator(DArray<GenLit>::Iterator(_literals), _size);
     }
 
     unsigned size() {
@@ -139,10 +139,10 @@ private:
     }
 
     // Position of a gen literal in _genClauses
-    std::list<SmartPtr<GenClause>,STLAllocator<SmartPtr<GenClause>>>::iterator iter;
+    list<SmartPtr<GenClause>,STLAllocator<SmartPtr<GenClause>>>::iterator iter;
 
-    Lib::vstring toString() {
-      Lib::vstring res = "GC("+Int::toString(size())+")";
+    vstring toString() {
+      vstring res = "GC("+Int::toString(size())+")";
       if (!valid) {
         res += " [INVALID]";
       }
@@ -176,9 +176,9 @@ private:
   bool mapSubstitution(List<GenLit>* gc, Substitution subst, List<GenLit>* output);
   Clause* toClause(SPGenClause gc);
 
-  typedef std::list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
+  typedef list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
 
-  Lib::DHMap<Literal*, SIGN> _literalsCache;
+  DHMap<Literal*, SIGN> _literalsCache;
   inline void pushLiteral(SPGenClause gc, GenLit gl) {
     CALL("NewCNF::pushLiteral");
 
@@ -432,29 +432,29 @@ private:
     return occ;
   }
 
-  Lib::DHMap<Kernel::Formula*, Occurrences> _occurrences;
+  DHMap<Formula*, Occurrences> _occurrences;
 
   /** map var --> sort */
-  Lib::DHMap<unsigned,unsigned> _varSorts;
+  DHMap<unsigned,unsigned> _varSorts;
 
   void ensureHavingVarSorts();
 
   typedef const SharedSet<unsigned> VarSet;
 
-  Kernel::Term* createSkolemTerm(unsigned var, VarSet* free);
+  Term* createSkolemTerm(unsigned var, VarSet* free);
 
   // caching of free variables for subformulas
-  Lib::DHMap<Kernel::Formula*,VarSet*> _freeVars;
-  VarSet* freeVars(Kernel::Formula* g);
+  DHMap<Formula*,VarSet*> _freeVars;
+  VarSet* freeVars(Formula* g);
 
   // two level caching scheme for quantifier bindings
   // reset after skolemizing a particular subformula
-  Lib::DHMap<BindingList*,BindingList*> _skolemsByBindings;
-  Lib::DHMap<VarSet*,BindingList*>      _skolemsByFreeVars;
+  DHMap<BindingList*,BindingList*> _skolemsByBindings;
+  DHMap<VarSet*,BindingList*>      _skolemsByFreeVars;
 
   void skolemise(QuantifiedFormula* g, BindingList* &bindings);
 
-  Kernel::Literal* createNamingLiteral(Formula* g, List<unsigned>* free);
+  Literal* createNamingLiteral(Formula* g, List<unsigned>* free);
   void nameSubformula(Formula* g, Occurrences &occurrences);
 
   void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {

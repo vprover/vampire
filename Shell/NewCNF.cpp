@@ -501,18 +501,18 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
     processedContents = inlineLetBinding(symbol, bindingVariables, binding, contents);
     if (env.options->showPreprocessing()) {
       env.beginOutput();
-      env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
-      env.out() << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
-      env.out() << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
+      env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << endl;
+      env.out() << "[PP] clausify (inline let) in:  " << contents.toString() << endl;
+      env.out() << "[PP] clausify (inline let) out: " << processedContents.toString() << endl;
       env.endOutput();
     }
   } else {
     processedContents = nameLetBinding(symbol, bindingVariables, binding, contents);
     if (env.options->showPreprocessing()) {
       env.beginOutput();
-      env.out() << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
-      env.out() << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
-      env.out() << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
+      env.out() << "[PP] clausify (name let) binding: " << binding.toString() << endl;
+      env.out() << "[PP] clausify (name let) in:  " << contents.toString() << endl;
+      env.out() << "[PP] clausify (name let) out: " << processedContents.toString() << endl;
       env.endOutput();
     }
   }
@@ -640,7 +640,7 @@ void NewCNF::ensureHavingVarSorts()
   }
 }
 
-Kernel::Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
+Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
 {
   CALL("NewCNF::createSkolemTerm");
 
@@ -748,7 +748,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 
   // empty the skolem caches
   _skolemsByBindings.reset();
-  Lib::DHMap<VarSet*,BindingList*>::DelIterator dIt(_skolemsByFreeVars);
+  DHMap<VarSet*,BindingList*>::DelIterator dIt(_skolemsByFreeVars);
   while (dIt.hasNext()) {
     VarSet* vars;
     BindingList* bindings;
@@ -858,7 +858,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, List<unsigned>* free)
  *
  * Occurrence lists in occurrences get destroyed.
  */
-void NewCNF::nameSubformula(Kernel::Formula* g, Occurrences &occurrences)
+void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
 {
   CALL("NewCNF::nameSubformula");
 
