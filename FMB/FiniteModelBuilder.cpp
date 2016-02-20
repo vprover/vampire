@@ -2011,7 +2011,7 @@ bool FiniteModelBuilder::increaseModelSizes(){
         while (it.hasNext()) {
           Constraint_Generator_Vals& constraint = it.next()->_vals;
 
-          bool risky = false;
+          // bool risky = false;
 
           for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
             pair<ConstraintSign,unsigned>& cc = constraint[j];
@@ -2025,21 +2025,21 @@ bool FiniteModelBuilder::increaseModelSizes(){
               if (cc.second < _distinctSortSizes[j]) {
                 goto next_constraint;
               }
-              if (cc.second > _distinctSortSizes[j]) { // leq applied in a proper sense
-                risky = true;
-              }
+              // if (cc.second > _distinctSortSizes[j]) { // leq applied in a proper sense
+              //   risky = true;
+              // }
             }
           }
 
-          if (risky) { // ruled out by the monotonicity trick - spawn the child anyway not to lose completeness
-            Constraint_Generator* gen_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
-            Constraint_Generator_Vals& gen = gen_p->_vals;
-            for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
-              // copying signs from constraint, to be as powerful as possible
-              gen[j] = make_pair(constraint[j].first,_distinctSortSizes[j]);
-            }
-            _constraints_generators.insert(gen_p);
-          }
+          //if (risky) { // ruled out by the monotonicity trick - spawn the child anyway not to lose completeness
+          //  Constraint_Generator* gen_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+          //  Constraint_Generator_Vals& gen = gen_p->_vals;
+          //  for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
+          //    // copying signs from constraint, to be as powerful as possible
+          //    gen[j] = make_pair(constraint[j].first,_distinctSortSizes[j]);
+          //  }
+          //  _constraints_generators.insert(gen_p);
+          // }
 
   #if VTRACE_DOMAINS
           cout << "  Ruled out by "; output_cg(constraint); cout << endl;
