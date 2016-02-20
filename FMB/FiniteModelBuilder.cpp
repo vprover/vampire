@@ -1511,6 +1511,31 @@ MainLoopResult FiniteModelBuilder::runImpl()
   #endif
           _distinctSortSizes[domToGrow]++;
 
+          { // check distinct sort constraints (until fixpoint)
+            bool updated;
+            do {
+              updated = false;
+              Stack<std::pair<unsigned,unsigned>>::Iterator it1(_distinct_sort_constraints);
+              while (it1.hasNext()) {
+                std::pair<unsigned,unsigned> constr = it1.next();
+                if (_distinctSortSizes[constr.first] < _distinctSortSizes[constr.second]) {
+                  _distinctSortSizes[constr.first] = _distinctSortSizes[constr.second];
+                  updated = true;
+                }
+              }
+
+              Stack<std::pair<unsigned,unsigned>>::Iterator it2(_strict_distinct_sort_constraints);
+              while (it1.hasNext()) {
+                std::pair<unsigned,unsigned> constr = it1.next();
+                if (_distinctSortSizes[constr.first] <= _distinctSortSizes[constr.second]) {
+                  _distinctSortSizes[constr.first] = _distinctSortSizes[constr.second]+1;
+                  updated = true;
+                }
+              }
+
+            } while (updated);
+          }
+
           for(unsigned s=0;s<_sortedSignature->sorts;s++) {
             _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
           }
@@ -1519,7 +1544,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
              new Inference(Inference::MODEL_NOT_FOUND));
           return MainLoopResult(Statistics::REFUTATION,empty);
         }
-      } else { // if (_xmass) {
+      } else { // i.e. (!_xmass)
         Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size(),weight);
         Constraint_Generator_Vals& constraint = constraint_p->_vals;
 
