@@ -631,7 +631,7 @@ unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSo
       }
       _sig->monotonicSorts[ourSort]=true;
     }
-    else if(!_expandSubsorts && _equiv_vs.root(vampireSort)!=vampireSort){
+    else if(!_expandSubsorts && (unsigned)_equiv_vs.root(vampireSort)!=vampireSort){
       unsigned rootSort = _equiv_vs.root(vampireSort);
       if(!ourDistinctSorts.find(rootSort,ourSort)){
           ourSort = _distinctSorts++;
