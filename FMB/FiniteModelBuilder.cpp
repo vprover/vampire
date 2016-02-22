@@ -731,7 +731,7 @@ newFuncLabel:
 }
 
 void FiniteModelBuilder::addNewSymmetryOrderingAxioms(unsigned size,
-                       Stack<GroundedTerm>& groundedTerms)
+                       Stack<GroundedTerm>& groundedTerms, unsigned maxSize)
 {
   CALL("FiniteModelBuilder::addNewSymmetryOrderingAxioms");
 
@@ -753,7 +753,7 @@ void FiniteModelBuilder::addNewSymmetryOrderingAxioms(unsigned size,
   satClauseLits.reset(); 
   for(unsigned i=1;i<=size;i++){
     grounding[arity]=i;
-    SATLiteral sl = getSATLiteral(gt.f,grounding,true,true,size);
+    SATLiteral sl = getSATLiteral(gt.f,grounding,true,true,maxSize);
     satClauseLits.push(sl);
   }
   SATClause* satCl = SATClause::fromStack(satClauseLits);
@@ -780,11 +780,15 @@ void FiniteModelBuilder::addNewSymmetryCanonicityAxioms(unsigned size,
    
       GroundedTerm gti = groundedTerms[i];
       unsigned arityi = env.signature->functionArity(gti.f);
+
+      // do not add canonicity for functions
+      if(arityi>0) return;
+
       static DArray<unsigned> grounding_i;
       grounding_i.ensure(arityi+1);
       for(unsigned a=0;a<arityi;a++){ grounding_i[a]=gti.grounding;}
       grounding_i[arityi]=size;
-      satClauseLits.push(getSATLiteral(gti.f,grounding_i,false,true,size));
+      satClauseLits.push(getSATLiteral(gti.f,grounding_i,false,true,maxSize));
  
       //cout << "Adding cannon for " << gti.f <<","<<gti.grounding<<endl;
 
@@ -797,7 +801,7 @@ void FiniteModelBuilder::addNewSymmetryCanonicityAxioms(unsigned size,
         grounding_j[arityj]=size-1;
         //cout << "with " <<gtj.f<<","<<gtj.grounding<<endl;
 
-        satClauseLits.push(getSATLiteral(gtj.f,grounding_j,true,true,size));
+        satClauseLits.push(getSATLiteral(gtj.f,grounding_j,true,true,maxSize));
       }
       addSATClause(SATClause::fromStack(satClauseLits));
   }
@@ -919,13 +923,17 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
   ASS(f>0 || isFunction);
 
   unsigned arity = isFunction ? env.signature->functionArity(f) : env.signature->predicateArity(f);
-  //cout << "getSATLiteral " << f<< "," << grounding.size() << "," << isFunction << "," << size << "," << arity << endl; 
   ASS((isFunction && arity==grounding.size()-1) || (!isFunction && arity==grounding.size()));
   unsigned offset = isFunction ? f_offsets[f] : p_offsets[f];
 
-  //cout << "getSATLiteral " << f<< ","  << size << "," << offset << ", grounding = ";
-  //for(unsigned i=0;i<grounding.size();i++) cout <<  grounding[i] << " "; 
-  //cout << endl;
+/*
+  vstring name = isFunction ? env.signature->functionName(f) : env.signature->predicateName(f);
+  cout << "getSATLiteral [ " << name << "(";
+  for(unsigned i=0;i<arity;i++) cout <<  grounding[i] << " "; 
+  cout << ")";
+  if(isFunction) cout << " = " << grounding[arity];
+  cout << " ] = ";
+*/
 
   unsigned var = offset;
   unsigned mult=1;
@@ -933,7 +941,7 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
     var += mult*(grounding[i]-1);
     mult *= size;
   }
-  //cout << "return " << var << endl;
+//  cout << var << endl;
 
   return SATLiteral(var,polarity);
 }

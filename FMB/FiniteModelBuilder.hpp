@@ -58,7 +58,7 @@ private:
   void addNewTotalityDefs(unsigned modelSize);
 
   // Add constraints for symmetry ordering i.e. the first modelSize groundedTerms are ordered
-  void addNewSymmetryOrderingAxioms(unsigned modelSize,Stack<GroundedTerm>& groundedTerms); 
+  void addNewSymmetryOrderingAxioms(unsigned modelSize,Stack<GroundedTerm>& groundedTerms,unsigned maxModelSize); 
   // Add constraints for canonicity of symmetry order i.e. if a groundedTerm uses a constant smaller terms use smaller constants
   void addNewSymmetryCanonicityAxioms(unsigned modelSize,Stack<GroundedTerm>& groundedTerms,unsigned maxModelSize);
 
@@ -68,7 +68,7 @@ private:
       ASS(_sortedSignature);
     for(unsigned m=1;m<=modelSize;m++){
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
-        addNewSymmetryOrderingAxioms(m,_sortedGroundedTerms[s]);
+        addNewSymmetryOrderingAxioms(m,_sortedGroundedTerms[s],modelSize);
         addNewSymmetryCanonicityAxioms(m,_sortedGroundedTerms[s],modelSize);
       }
     }
