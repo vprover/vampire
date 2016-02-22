@@ -191,6 +191,15 @@ bool FiniteModelBuilder::reset(){
   }
 
   // Create a new SAT solver
+  try{
+    _solver = new MinisatInterfacingNewSimp(_opt,true);
+  }catch(Minisat::OutOfMemoryException&){
+    MinisatInterfacingNewSimp::reportMinisatOutOfMemory();
+  }
+  if(_opt.satSolver() != Options::SatSolver::MINISAT){
+    cout << "Warning: overriding sat solver for FMB, using minisat" << endl;
+  }
+/*
   switch(_opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
       _solver = new TWLSolver(_opt, true);
@@ -212,6 +221,7 @@ bool FiniteModelBuilder::reset(){
     default:
       ASSERTION_VIOLATION_REP(_opt.satSolver());
   }
+*/
 
   // set the number of SAT variables, this could cause an exception
   _solver->ensureVarCount(offsets-1);
