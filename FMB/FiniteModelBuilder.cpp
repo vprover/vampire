@@ -602,7 +602,7 @@ void FiniteModelBuilder::init()
 
     if(env.signature->functionArity(f)==0){ 
       unsigned vsrt = env.signature->getFunction(f)->fnType()->result();
-      ASS(_sortedSignature->vampireToDistinct.find(vsrt));
+      ASS(_sortedSignature->vampireToDistinctParent.find(vsrt));
       unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vsrt);
       _distinctSortConstantCount[dsrt]++;
     }
