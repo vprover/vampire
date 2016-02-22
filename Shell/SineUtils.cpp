@@ -53,37 +53,39 @@ void SineSymbolExtractor::addSymIds(Term* term, Stack<SymId>& ids)
   CALL("SineSymbolExtractor::addSymIds");
 
   if (!term->shared()) {
-    Term::SpecialTermData *sd = term->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_FORMULA:
-        extractFormulaSymbols(sd->getFormula(), ids);
-        break;
-      case Term::SF_ITE:
-        extractFormulaSymbols(sd->getCondition(), ids);
-        break;
-      case Term::SF_LET: {
-        TermList binding = sd->getBinding();
-        if (binding.isTerm()) {
-          addSymIds(binding.term(), ids);
+    if (term->isSpecial()) {
+      Term::SpecialTermData *sd = term->getSpecialData();
+      switch (sd->getType()) {
+        case Term::SF_FORMULA:
+          extractFormulaSymbols(sd->getFormula(), ids);
+              break;
+        case Term::SF_ITE:
+          extractFormulaSymbols(sd->getCondition(), ids);
+              break;
+        case Term::SF_LET: {
+          TermList binding = sd->getBinding();
+          if (binding.isTerm()) {
+            addSymIds(binding.term(), ids);
+          }
+          break;
         }
-        break;
+        default:
+          ASSERTION_VIOLATION;
       }
-      default:
-        ASSERTION_VIOLATION;
+    } else {
+      ids.push(term->functor() * 2 + 1);
     }
     NonVariableIterator nvi(term);
     while (nvi.hasNext()) {
       addSymIds(nvi.next().term(), ids);
     }
   } else {
-    SymId funId=term->functor()*2+1;
-    ids.push(funId);
+    ids.push(term->functor() * 2 + 1);
 
     NonVariableIterator nvi(term);
     while (nvi.hasNext()) {
-      Term* t=nvi.next().term();
-      SymId funId=t->functor()*2+1;
-      ids.push(funId);
+      Term* t = nvi.next().term();
+      ids.push(t->functor() * 2 + 1);
     }
   }
 }

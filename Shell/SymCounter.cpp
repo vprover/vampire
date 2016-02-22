@@ -203,23 +203,29 @@ void SymCounter::count(Term* term, int polarity, int add)
   CALL("SymCounter::count(Term*)");
 
   if (!term->shared()) {
-    Term::SpecialTermData* sd = term->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_FORMULA:
-        count(sd->getFormula(), polarity, add);
-        break;
-      case Term::SF_ITE:
-        count(sd->getCondition(), 0, add);
-        break;
-      case Term::SF_LET: {
-        TermList binding = sd->getBinding();
-        if (binding.isTerm()) {
-          count(binding.term(), 1, add);
+    if (term->isSpecial()) {
+      Term::SpecialTermData *sd = term->getSpecialData();
+      switch (sd->getType()) {
+        case Term::SF_FORMULA:
+          count(sd->getFormula(), polarity, add);
+              break;
+        case Term::SF_ITE:
+          count(sd->getCondition(), 0, add);
+              break;
+        case Term::SF_LET: {
+          TermList binding = sd->getBinding();
+          if (binding.isTerm()) {
+            count(binding.term(), 1, add);
+          }
+          break;
         }
-        break;
+        default:
+          ASSERTION_VIOLATION;
       }
-      default:
-        ASSERTION_VIOLATION;
+    } else {
+      int fun = term->functor();
+      ASS_REP(_noOfFuns > fun, term->toString());
+      _funs[fun].add(add);
     }
     NonVariableIterator nvi(term);
     while (nvi.hasNext()) {
