@@ -1098,6 +1098,9 @@ void FiniteModelBuilder::addNewSymmetryCanonicityAxioms(unsigned size,
    
       GroundedTerm gti = groundedTerms[i];
       unsigned arityi = env.signature->functionArity(gti.f);
+
+      if(arityi>0) return;
+
       static DArray<unsigned> grounding_i;
       grounding_i.ensure(arityi+1);
       for(unsigned a=0;a<arityi;a++){ grounding_i[a]=gti.grounding[a];}
