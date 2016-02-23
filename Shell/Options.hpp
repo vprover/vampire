@@ -1653,6 +1653,7 @@ public:
   bool fmbIgnoreMarkers() const { return _fmbIgnoreMarkers.actualValue; }
   bool fmbNoPriority() const { return _fmbNoPriority.actualValue; }
   FMBSortInference fmbSortInference() const { return _fmbSortInference.actualValue; }
+  void setFMBSortInference(FMBSortInference v){ _fmbSortInference.actualValue=v; }
   bool fmbSpecialMonotEncoding() const { return _fmbSpecialMonotEncoding.actualValue; }
   bool fmbXmass() const { return _fmbXmass.actualValue; }
 

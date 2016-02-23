@@ -419,6 +419,11 @@ void FiniteModelBuilder::init()
 
     }
   }
+  if(!_clauses){
+    cout << "The problem is propositional so there are no sorts!" << endl;
+    // ignore sort inference
+    env.options->setFMBSortInference(Options::FMBSortInference::IGNORE);
+  }
 
   // Apply GeneralSplitting
   GeneralSplitting splitter;
