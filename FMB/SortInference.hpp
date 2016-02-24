@@ -100,7 +100,7 @@ public:
 
 private:
 
-   unsigned getDistinctSort(unsigned subsort, unsigned vampireSort);
+   unsigned getDistinctSort(unsigned subsort, unsigned vampireSort, bool createNew=true);
 
   bool _print;
   bool _ignoreInference;

@@ -259,7 +259,11 @@ void Monotonicity::addSortPredicates(ClauseList*& clauses)
 
        Clause* replacement = Clause::fromStack(literals,cl->inputType(),
                                    new Inference1(Inference::ADD_SORT_PREDICATES, cl)); 
+
+       ASS(SortHelper::areSortsValid(replacement));
        ClauseList::push(replacement,newAxioms);
+       //cout << "REPLACING" << endl;
+       //cout << cl->toString() << endl;
        //cout << replacement->toString() << endl;
        it.del(); 
      }
@@ -350,8 +354,9 @@ void Monotonicity::addSortFunctions(ClauseList*& clauses)
      if(changed){
        Clause* replacement = Clause::fromStack(literals,cl->inputType(),
                                    new Inference1(Inference::ADD_SORT_FUNCTIONS, cl));
-       cout << "C " << cl->toString() << endl;
-       cout << "R " << replacement->toString() << endl;
+       //cout << "C " << cl->toString() << endl;
+       //cout << "R " << replacement->toString() << endl;
+       ASS(SortHelper::areSortsValid(replacement));
        ClauseList::push(replacement,newAxioms);
        it.del();
      }

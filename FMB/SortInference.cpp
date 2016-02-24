@@ -459,10 +459,16 @@ void SortInference::doInference()
     FunctionType* fnType = fnSym->fnType();
     if(parentSet[rangeSort]){
 #if VDEBUG
-      //unsigned vampireSort = fnType->result();
-      //unsigned ourSort;
-      //ASS_REP(ourDistinctSorts.find(vampireSort,ourSort),vampireSort);
-      //ASS_EQ(ourSort,_sig->parents[rangeSort]);
+      //cout << "FUNCTION " << env.signature->functionName(f) << endl;
+      unsigned vampireSort = fnType->result();
+      unsigned ourSort = getDistinctSort(rangeSort,vampireSort,false);
+      ASS_EQ(ourSort,_sig->parents[rangeSort]);
+      ASS(_sig->distinctToVampire.find(ourSort));
+      Stack<unsigned>::Iterator it(* _sig->distinctToVampire.get(ourSort));
+      bool found=false;
+      //cout << "<<<<" << rangeSort << endl;
+      while(it.hasNext()){ unsigned vs = it.next(); if(vs==vampireSort) found=true;  }
+      ASS_REP(found,Lib::Int::toString(rangeSort)+","+env.sorts->sortName(vampireSort));
 #endif
     }
     else{
@@ -481,10 +487,14 @@ void SortInference::doInference()
       _sig->functionSignatures[f][i] = argSort;
       if(parentSet[argSort]){
 #if VDEBUG
-      //unsigned vampireSort = fnType->arg(i);
-      //unsigned ourSort;
-      //ASS(ourDistinctSorts.find(vampireSort,ourSort));
-      //ASS_EQ(ourSort,_sig->parents[argSort]);
+      unsigned vampireSort = fnType->arg(i);
+      unsigned ourSort = getDistinctSort(argSort,vampireSort,false);
+      ASS_EQ(ourSort,_sig->parents[argSort]);
+      ASS(_sig->distinctToVampire.find(ourSort));
+      Stack<unsigned>::Iterator it(* _sig->distinctToVampire.get(ourSort));
+      bool found=false;
+      while(it.hasNext()){ unsigned vs = it.next(); if(vs==vampireSort) found=true; }
+      ASS_REP(found,Lib::Int::toString(argSort)+","+env.sorts->sortName(vampireSort));
 #endif
       }
       else{
@@ -533,10 +543,14 @@ void SortInference::doInference()
       _sig->predicateSignatures[p][i] = argSort;
       if(parentSet[argSort]){
 #if VDEBUG
-      //unsigned vampireSort = prType->arg(i);
-      //unsigned ourSort;
-      //ASS(ourDistinctSorts.find(vampireSort,ourSort));
-      //ASS_EQ(ourSort,_sig->parents[argSort]);
+      unsigned vampireSort = prType->arg(i);
+      unsigned ourSort = getDistinctSort(argSort,vampireSort,false);
+      ASS_EQ(ourSort,_sig->parents[argSort]);
+      ASS(_sig->distinctToVampire.find(ourSort));
+      Stack<unsigned>::Iterator it(* _sig->distinctToVampire.get(ourSort));
+      bool found=false;
+      while(it.hasNext()){ unsigned vs = it.next(); if(vs==vampireSort) found=true; }
+      ASS_REP(found,Lib::Int::toString(argSort)+","+env.sorts->sortName(vampireSort));
 #endif
       }
       else{
@@ -600,7 +614,8 @@ void SortInference::doInference()
   for(unsigned s=0;s<env.sorts->sorts();s++){
     if(env.property->usesSort(s)){
       if(!_sig->vampireToDistinctParent.find(s)){
-        ASS(_sig->vampireToDistinct.find(s));
+        //if(!_sig->vampireToDistinct.find(s)) continue; // don't actually use this sort :s
+        ASS_REP(_sig->vampireToDistinct.find(s),env.sorts->sortName(s));
         ASS(!_sig->vampireToDistinct.get(s)->isEmpty());
         _sig->vampireToDistinctParent.insert(s,(*_sig->vampireToDistinct.get(s))[0]);
       }
@@ -623,7 +638,7 @@ void SortInference::doInference()
 
 }
 
-unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSort)
+unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSort, bool createNew)
 {
   CALL("SortInference::getDistinctSort");
 
@@ -634,7 +649,7 @@ unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSo
   unsigned vampireSort = realVampireSort;
   if(_expandSubsorts){
     if(!posEqualitiesOnSort[subsort]){
-      vampireSort = subsort;
+      vampireSort = env.sorts->sorts()+subsort+1;
     }
   }
 
@@ -642,6 +657,8 @@ unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSo
     if(ourDistinctSorts.find(vampireSort,ourSort)){
       return ourSort;
     }
+    //cout << "CREATE " << subsort << "," << env.sorts->sortName(realVampireSort) << endl;
+    ASS(createNew);
 
     if(monotonicVampireSorts.contains(vampireSort)){
       if(_collapsingMonotonicSorts){
