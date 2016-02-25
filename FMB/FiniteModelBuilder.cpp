@@ -362,6 +362,8 @@ void FiniteModelBuilder::init()
   // If we're not complete don't both doing anything
   if(!_isComplete) return;
 
+  if(!_prb.units()) return;
+
   env.statistics->phase = Statistics::FMB_PREPROCESSING;
 
   
@@ -1360,6 +1362,9 @@ MainLoopResult FiniteModelBuilder::runImpl()
   if(!_isComplete){
     // give up!
     return MainLoopResult(Statistics::UNKNOWN);
+  }
+  if(!_prb.units()){
+    return MainLoopResult(Statistics::SATISFIABLE);
   }
 
   env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;

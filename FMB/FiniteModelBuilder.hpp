@@ -61,7 +61,6 @@ private:
   void onModelFound();
 
   // Adds constraints from ground clauses (same constraints for each model size)
-  // A clause will only be ground if it contains (dis)equalities between constants, so very few of these!
   void addGroundClauses();
   // Adds constraints from grounding the non-ground clauses
   void addNewInstances();

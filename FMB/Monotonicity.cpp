@@ -193,7 +193,7 @@ void Monotonicity::addSortPredicates(ClauseList*& clauses)
     unsigned p = sortPredicates[s];
     ASS(p>0);
 
-    // First the function axioms
+    // First the function axioms (i.e. before adding the skolem)
     for(unsigned f=0; f < env.signature->functions(); f++){
 
       if(env.signature->getFunction(f)->fnType()->result() != s) continue;
@@ -208,6 +208,7 @@ void Monotonicity::addSortPredicates(ClauseList*& clauses)
       Clause* fINs = new(1) Clause(1,Unit::InputType::AXIOM, new Inference(Inference::INPUT));
       (*fINs)[0] = pfX;
       ClauseList::push(fINs,newAxioms);
+      ASS(SortHelper::areSortsValid(fINs));
     } 
 
     // Next the non-empty constraint
@@ -217,6 +218,7 @@ void Monotonicity::addSortPredicates(ClauseList*& clauses)
     Clause* nonEmpty = new(1) Clause(1,Unit::InputType::AXIOM, new Inference(Inference::INPUT));
     (*nonEmpty)[0] = psk;
     ClauseList::push(nonEmpty,newAxioms);
+    ASS(SortHelper::areSortsValid(nonEmpty));
 
   }
 
@@ -238,6 +240,7 @@ void Monotonicity::addSortPredicates(ClauseList*& clauses)
        if(varSorts.find(v,vsrt)){
          if(!isMonotonic[vsrt]) sortedVariables.push(make_pair(v,vsrt));
        }
+       // else the var isn't used in the clause...they're not normalised
      }
      
      if(!sortedVariables.isEmpty()){
