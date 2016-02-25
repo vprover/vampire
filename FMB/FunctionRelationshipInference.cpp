@@ -48,7 +48,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
                  DHSet<std::pair<unsigned,unsigned>>& strict_cons)
 {
   CALL("FunctionRelationshipInference::findFunctionRelationships");
-  bool print = true;//env.options->showFMBsortInfo();
+  bool print = env.options->showFMBsortInfo();
 
   ClauseList* checkingClauses = getCheckingClauses();
 
@@ -89,7 +89,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     std::pair<unsigned,unsigned> constraint;
     if(_labelMap_nonstrict.find(l,constraint)){
       nonstrict_constraints.insert(constraint);
-      cout << constraint.first << " >= " << constraint.second << endl;
+      if(print) cout << constraint.first << " >= " << constraint.second << endl;
     }
     else{
       ASS(_labelMap_strict.find(l));
