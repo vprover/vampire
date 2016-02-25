@@ -50,7 +50,7 @@ namespace FMB
 {
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
-: MainLoop(prb, opt), _sortedSignature(0), _clauses(0),
+: MainLoop(prb, opt), _sortedSignature(0), _groundClauses(0),_clauses(0),
                       _isComplete(true), _maxModelSize(UINT_MAX), _constantCount(0),
                       _maxArity(0)
 {
@@ -326,6 +326,12 @@ void FiniteModelBuilder::init()
       throw RefutationFoundException(c);
     }
 
+    if(c->varCnt()==0){
+#if VTRACE_FMB
+      //cout << "Add ground clause " << c->toString() << endl;
+#endif
+      _groundClauses = _groundClauses->cons(c);
+    }else{
 #if VTRACE_FMB
     //cout << "Add non-ground clause " << c->toString() << endl;
 #endif
@@ -379,6 +385,7 @@ void FiniteModelBuilder::init()
         }
       }
     }
+    }
   }
 
   // Apply GeneralSplitting
@@ -422,9 +429,11 @@ void FiniteModelBuilder::init()
   // perform SortInference on ground and non-ground clauses
   // preprocessing should preserve sorts and doing this here means that introduced symbols get sorts
   {
+    ASS(_clauses);
     TimeCounter tc(TC_FMB_SORT_INFERENCE);
-    ClauseIterator cit = pvi(ClauseList::Iterator(_clauses));
+    ClauseIterator cit = pvi(getConcatenatedIterator(ClauseList::Iterator(_clauses),ClauseList::Iterator(_groundClauses)));
     _sortedSignature = SortInference::apply(cit,del_f,del_p);
+  }
 
     // If symmetry ordering uses the usage after preprocessing then recompute symbol usage
     // Otherwise this was done at clausification
@@ -465,7 +474,6 @@ void FiniteModelBuilder::init()
         sort<FMBSymmetryFunctionComparator>(sortedFunctions.begin(),sortedFunctions.end());
       }
     }
-  }
 
   //TODO why is this here? Can intermediate steps introduce new functions?
   del_f.expand(env.signature->functions());
@@ -557,6 +565,34 @@ void FiniteModelBuilder::init()
     } 
   }
 } // init()
+
+void FiniteModelBuilder::addGroundClauses(unsigned size)
+{
+  CALL("FiniteModelBuilder::addGroundClauses");
+
+  // If we don't have any ground clauses don't do anything
+  if(!_groundClauses) return;
+
+  ClauseList::Iterator cit(_groundClauses);
+
+  // Note ground clauses will consist of propositional symbols only due to flattening
+  static const DArray<unsigned> emptyGrounding(0);
+  while(cit.hasNext()){
+
+      Clause* c = cit.next();
+      ASS(c);
+
+      static SATLiteralStack satClauseLits;
+      satClauseLits.reset();
+      for(unsigned i=0;i<c->length();i++){
+        unsigned f = (*c)[i]->functor();
+        SATLiteral slit = getSATLiteral(f,emptyGrounding,(*c)[i]->polarity(),false,size);
+        satClauseLits.push(slit);
+      }
+      SATClause* satCl = SATClause::fromStack(satClauseLits);
+      addSATClause(satCl);
+  }
+}
 
 void FiniteModelBuilder::addNewInstances(unsigned size)
 {
@@ -1005,6 +1041,10 @@ MainLoopResult FiniteModelBuilder::runImpl()
     TimeCounter tc(TC_FMB_CONSTRAINT_CREATION);
 
     // add the new clauses to _clausesToBeAdded
+#if VTRACE_FMB
+    cout << "GROUND" << endl;
+#endif
+    addGroundClauses(modelSize);
 #if VTRACE_FMB
     cout << "INSTANCES" << endl;
 #endif

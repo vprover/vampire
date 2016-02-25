@@ -50,6 +50,8 @@ private:
   // Creates the model output
   void onModelFound(unsigned modelSize);
 
+  // Adds constraints from ground clauses (same constraints for each model size)
+  void addGroundClauses(unsigned size);
   // Adds constraints from grounding the non-ground clauses
   void addNewInstances(unsigned modelSize);
   // Add constraints from functionality of function symbols in signature (except those removed in preprocessing)
@@ -120,6 +122,7 @@ private:
   // The inferred signature of sorts (see SortInference.hpp)
   SortedSignature* _sortedSignature;
   // clauses of the problem after preprocessing
+  ClauseList* _groundClauses;
   ClauseList* _clauses;
 
   // Record for function symbol the minimum bound of the return sort or any parameter sorts 

@@ -34,6 +34,8 @@ namespace FMB
 SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,DArray<unsigned> del_p)
 {
   CALL("SortInference::run");
+ 
+  bool print=false;
 
   Array<unsigned> offset_f(env.signature->functions());
   Array<unsigned> offset_p(env.signature->predicates());
@@ -239,6 +241,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
   // We also add these dummy constants to sorts without them
   if(env.options->mode()!=Options::Mode::SPIDER){
     cout << "Sort Inference information:" << endl;
+    cout << comps << " inferred sorts" << endl;
   }
   unsigned firstFreshConstant = UINT_MAX;
   for(unsigned s=0;s<comps;s++){
@@ -251,8 +254,8 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
 #endif
     }
     if((env.options->mode()!=Options::Mode::SPIDER) && sig->sortedConstants[s].size()>0){
-      cout << "Sort " << s << " has " << sig->sortedConstants[s].size() << " constants and ";
-      cout << sig->sortedFunctions[s].size() << " functions" <<endl;
+      if(print) cout << "Sort " << s << " has " << sig->sortedConstants[s].size() << " constants and ";
+      if(print) cout << sig->sortedFunctions[s].size() << " functions" <<endl;
     }
   }
 
@@ -270,7 +273,7 @@ SortedSignature* SortInference::apply(ClauseIterator cit,DArray<unsigned> del_f,
       // If no constants pretend there is one
       if(bounds[s]==0){ bounds[s]=1;}
       if(env.options->mode()!=Options::Mode::SPIDER){
-        cout << "Found bound of " << bounds[s] << " for sort " << s << endl;
+        if(print) cout << "Found bound of " << bounds[s] << " for sort " << s << endl;
 #if DEBUG_SORT_INFERENCE
         if(bounds[s]==0){ cout << " (was 0)"; }
         cout << endl;
