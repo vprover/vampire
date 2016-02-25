@@ -94,6 +94,8 @@ bool FiniteModelBuilder::reset(unsigned size){
   // For function symbols we have n=arity+1 as we have the return value
   // For predicate symbols n=arity 
 
+  static const unsigned VAR_MAX = MinisatInterfacingNewSimp::VAR_MAX;
+
   // Start from 1 as SAT solver variables are 1-based
   unsigned offsets=1;
   for(unsigned f=0; f<env.signature->functions();f++){
@@ -103,7 +105,7 @@ bool FiniteModelBuilder::reset(unsigned size){
     f_offsets[f]=offsets;
     unsigned add = pow(size,arity+2);
     // Check that we do not overflow
-    if(UINT_MAX - add < offsets){
+    if(VAR_MAX - add < offsets){
       return false;
     }
     offsets += add;
@@ -116,12 +118,11 @@ bool FiniteModelBuilder::reset(unsigned size){
     p_offsets[p]=offsets;
     unsigned add = pow(size,arity+1);
     // Check for overflow
-    if(UINT_MAX - add < offsets){
+    if(VAR_MAX - add < offsets){
       return false;
     }
     offsets += add; 
   }
-  //cout << "Maximum offset is " << offsets << endl;
 
   // Create a new SAT solver
   switch(_opt.satSolver()){
@@ -988,7 +989,8 @@ MainLoopResult FiniteModelBuilder::runImpl()
   }
 
   unsigned modelSize = _useConstantsAsStart ? _constantCount : _startModelSize;
-  ALWAYS(reset(modelSize));
+
+  if (reset(modelSize)) {
   while(true){
 #if VTRACE_FMB
     cout << "TRYING " << modelSize << endl;
@@ -1110,14 +1112,23 @@ MainLoopResult FiniteModelBuilder::runImpl()
     _clausesToBeAdded.reset();
 
     modelSize++;
-    if(!reset(modelSize)){
-      if(env.options->mode()!=Options::Mode::SPIDER){
-        cout << "Cannot represent all propositional literals internally" <<endl;
-      }
-      return MainLoopResult(Statistics::UNKNOWN);
+    if(!reset(modelSize)) {
+      break;
     }
   }
+  }
 
+  // reset returned false, we can't represent all the variables; giving up!
+
+  if(env.options->mode()!=Options::Mode::SPIDER){
+    cout << "Cannot represent all propositional literals internally" <<endl;
+  }
+
+  if(UIHelper::szsOutput) {
+    env.beginOutput();
+    env.out() << "% SZS status GaveUp for " << _opt.problemName() << endl;
+    env.endOutput();
+  }
 
   return MainLoopResult(Statistics::UNKNOWN);
 }

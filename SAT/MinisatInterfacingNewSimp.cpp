@@ -12,6 +12,9 @@
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 
+#include "Minisat/core/SolverTypes.h"
+#include <limits>
+
 namespace SAT
 {
 
@@ -19,6 +22,8 @@ using namespace Shell;
 using namespace Lib;  
   
 using namespace Minisat;
+
+const unsigned MinisatInterfacingNewSimp::VAR_MAX = std::numeric_limits<Minisat::Var>::max() / 2;
   
 MinisatInterfacingNewSimp::MinisatInterfacingNewSimp(const Shell::Options& opts, bool generateProofs):
   _status(SATISFIABLE)
