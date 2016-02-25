@@ -152,7 +152,7 @@ bool Monotonicity::guards(Literal* l, unsigned var, Stack<SATLiteral>& slits)
 }
 
 
-void Monotonicity::addSortPredicates(ClauseList*& clauses)
+void Monotonicity::addSortPredicates(ClauseList*& clauses, DArray<unsigned>& del_f)
 {
   CALL("Monotonicity::addSortPredicates");
 
@@ -187,14 +187,15 @@ void Monotonicity::addSortPredicates(ClauseList*& clauses)
   // 1) ?[X] : p(X) (need skolem constant) = p(sk)
   // 2) for each function f with return sort s 
   //    !args : p(f(args))
+  unsigned function_count = env.signature->functions();
   for(unsigned s=0;s<env.sorts->sorts();s++){
     if(isMonotonic[s]) continue;
 
     unsigned p = sortPredicates[s];
     ASS(p>0);
 
-    // First the function axioms (i.e. before adding the skolem)
-    for(unsigned f=0; f < env.signature->functions(); f++){
+    for(unsigned f=0; f < function_count; f++){
+      if(del_f[f]) continue;
 
       if(env.signature->getFunction(f)->fnType()->result() != s) continue;
 

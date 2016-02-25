@@ -41,7 +41,7 @@ public:
 
   bool check(){ return _result;}
 
-  static void addSortPredicates(ClauseList*& clauses);
+  static void addSortPredicates(ClauseList*& clauses, DArray<unsigned>& del_f);
   static void addSortFunctions(ClauseList*& clauses);
 
 private:

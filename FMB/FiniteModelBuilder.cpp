@@ -381,8 +381,12 @@ void FiniteModelBuilder::init()
 
   ClauseList* clist = 0;
   if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::PREDICATE){
+    DArray<unsigned> deleted_functions(env.signature->functions());
+    for(unsigned f=0;f<env.signature->functions();f++){
+      deleted_functions[f] = _deletedFunctions.find(f);
+     }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    Monotonicity::addSortPredicates(clist);
+    Monotonicity::addSortPredicates(clist,deleted_functions);
   }
   if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION){
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
@@ -644,7 +648,7 @@ void FiniteModelBuilder::init()
   }
 
   //Set up clause signature
-  //cout << "Setting up clause sigs" << endl;
+  cout << "Setting up clause sigs" << endl;
   {
     ClauseList::Iterator cit(_clauses);
     while(cit.hasNext()){
@@ -739,6 +743,7 @@ void FiniteModelBuilder::init()
       }
 #endif
       _clauseVariableSorts.insert(c,csig);
+      //cout << "done" << endl;
     } 
   }
 } // init()
