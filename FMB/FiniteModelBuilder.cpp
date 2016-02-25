@@ -103,8 +103,11 @@ bool FiniteModelBuilder::reset(){
   // For function symbols we have n=arity+1 as we have the return value
   // For predicate symbols n=arity 
 
+
   // This has been refined after adding multiple sorts i.e. no general 'size'
   // We now need the current size of the sort of each position to compute the offsets
+
+  static const unsigned VAR_MAX = MinisatInterfacingNewSimp::VAR_MAX;
 
   // Start from 1 as SAT solver variables are 1-based
   unsigned offsets=1;
@@ -124,7 +127,7 @@ bool FiniteModelBuilder::reset(){
     }
 
     // Check that we do not overflow
-    if(UINT_MAX - add < offsets){
+    if(VAR_MAX - add < offsets){
       return false;
     }
     offsets += add;
@@ -145,11 +148,12 @@ bool FiniteModelBuilder::reset(){
     }
 
     // Check for overflow
-    if(UINT_MAX - add < offsets){
+    if(VAR_MAX - add < offsets){
       return false;
     }
     offsets += add; 
   }
+
 #if VTRACE_FMB
   cout << "Maximum offset is " << offsets << endl;
 #endif
@@ -162,7 +166,7 @@ bool FiniteModelBuilder::reset(){
       marker_offsets[i] = offsets;
 
       // Check for overflow
-      if(UINT_MAX - add < offsets){
+      if(VAR_MAX - add < offsets){
         return false;
       }
 
@@ -174,7 +178,7 @@ bool FiniteModelBuilder::reset(){
     totalityMarker_offset = offsets;
 
     // Check for overflow
-    if(UINT_MAX - add < offsets){
+    if(VAR_MAX - add < offsets){
       return false;
     }
 
@@ -183,7 +187,7 @@ bool FiniteModelBuilder::reset(){
     instancesMarker_offset = offsets;
 
     // Check for overflow
-    if(UINT_MAX - add < offsets){
+    if(VAR_MAX - add < offsets){
       return false;
     }
 
@@ -1385,7 +1389,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
     _sortModelSizes[i]=_startModelSize;
   }
 
-  ALWAYS(reset());
+  if (reset()) {
   while(true){
     if(env.options->mode()!=Options::Mode::SPIDER) { 
       cout << "TRYING " << "["; 
@@ -1606,13 +1610,22 @@ MainLoopResult FiniteModelBuilder::runImpl()
     }
 
     if(!reset()){
-      if(env.options->mode()!=Options::Mode::SPIDER){
-        cout << "Cannot represent all propositional literals internally" <<endl;
-      }
-      return MainLoopResult(Statistics::UNKNOWN);
+      break;
     }
   }
+  }
 
+  // reset returned false, we can't represent all the variables; giving up!
+
+  if(env.options->mode()!=Options::Mode::SPIDER){
+    cout << "Cannot represent all propositional literals internally" <<endl;
+  }
+
+  if(UIHelper::szsOutput) {
+    env.beginOutput();
+    env.out() << "% SZS status GaveUp for " << _opt.problemName() << endl;
+    env.endOutput();
+  }
 
   return MainLoopResult(Statistics::UNKNOWN);
 }
