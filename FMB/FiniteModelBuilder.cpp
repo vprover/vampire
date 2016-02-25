@@ -516,12 +516,10 @@ void FiniteModelBuilder::init()
       for(unsigned i=0;i<bounds->size();i++){
         (*bounds)[i]=0; 
       }
-      bool allTwoVar = true;
       for(unsigned i=0;i<c->length();i++){
         Literal* lit = (*c)[i];
         if(lit->isEquality()){
           if(lit->isTwoVarEquality()) continue;
-          allTwoVar=false;
           ASS(lit->nthArgument(0)->isTerm());
           ASS(lit->nthArgument(1)->isVar());
           Term* t = lit->nthArgument(0)->term();
@@ -542,7 +540,6 @@ void FiniteModelBuilder::init()
           }
         }
         else{
-          allTwoVar=false;
           for(unsigned j=0;j<lit->arity();j++){
             ASS(lit->nthArgument(j)->isVar());
             unsigned abound = _sortedSignature->predicateBounds[lit->functor()][j];
@@ -554,13 +551,12 @@ void FiniteModelBuilder::init()
           }
         }
       }
-#if VDEBUG
-      if(!allTwoVar){
-        for(unsigned i=0;i<bounds->size();i++){
-          ASS((*bounds)[i]>0);
-        }
+      // if anything doesn't have a bound then set it to max
+      for(unsigned i=0;i<bounds->size();i++){
+          if((*bounds)[i]==0){
+            (*bounds)[i] = UINT_MAX;
+          }
       }
-#endif
       _clauseBounds.insert(c,bounds);
     } 
   }
