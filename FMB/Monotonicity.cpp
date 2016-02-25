@@ -159,7 +159,7 @@ void Monotonicity::addSortPredicates(ClauseList*& clauses, DArray<unsigned>& del
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.sorts->sorts());
   for(unsigned s=0;s<env.sorts->sorts();s++){
-    if(env.property->usesSort(s)){
+    if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){
       Monotonicity m(clauses,s);
       bool monotonic = m.check();
       isMonotonic[s] = monotonic;
@@ -310,7 +310,7 @@ void Monotonicity::addSortFunctions(ClauseList*& clauses)
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.sorts->sorts());
   for(unsigned s=0;s<env.sorts->sorts();s++){
-    if(env.property->usesSort(s)){
+    if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){
       Monotonicity m(clauses,s);
       bool monotonic = m.check();
       isMonotonic[s] = monotonic;

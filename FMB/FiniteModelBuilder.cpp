@@ -552,10 +552,10 @@ void FiniteModelBuilder::init()
     // if we've done the sort expansion thing then the max for the parent should be
     // the max of all children
     for(unsigned s=0;s<env.sorts->sorts();s++){
-      if(env.property->usesSort(s)){
+      if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
-        if(dmembers->size() > 1){
+        if(dmembers->size() > 1 && _sortedSignature->vampireToDistinctParent.find(s)){
           unsigned parent = _sortedSignature->vampireToDistinctParent.get(s);
           Stack<unsigned>::Iterator children(*dmembers);
           while(children.hasNext()){

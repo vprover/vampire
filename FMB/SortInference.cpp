@@ -27,7 +27,7 @@
 #include "Monotonicity.hpp"
 #include "SortInference.hpp"
 
-#define DEBUG_SORT_INFERENCE 0
+#define DEBUG_SORT_INFERENCE 1
 
 
 namespace FMB 
@@ -44,12 +44,16 @@ void SortInference::doInference()
   bool _print = env.options->showFMBsortInfo();
 
   if(_ignoreInference){
+#if DEBUG_SORT_INFERENCE
+   cout << "Ignoring sort inference..." << endl;
+#endif
     // setup the minimal signature
 
     unsigned dsorts =0;
     for(unsigned s=0;s<env.sorts->sorts();s++){
-      if(env.property->usesSort(s)){
+      if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){
         unsigned dsort = dsorts++;
+        //cout << "sort " << env.sorts->sortName(s) << " is " << dsort << endl;
         Stack<unsigned>* stack = new Stack<unsigned>();
         stack->push(s);
         _sig->distinctToVampire.insert(dsort,stack);
@@ -58,10 +62,12 @@ void SortInference::doInference()
         _sig->vampireToDistinct.insert(s,stack);
         _sig->vampireToDistinctParent.insert(s,dsort);
       }
+      //else cout << "do not use " << env.sorts->sortName(s) << endl;
     }
 
     _sig->sorts = dsorts;
     _sig->distinctSorts = dsorts;
+    //cout << "dsorts = "<<dsorts << endl;
 
     _sig->sortedConstants.ensure(dsorts);
     _sig->sortedFunctions.ensure(dsorts);
@@ -75,9 +81,12 @@ void SortInference::doInference()
     }
 
     for(unsigned f=0;f<env.signature->functions();f++){
+      if(_del_f[f]) continue;
       unsigned arity = env.signature->functionArity(f);
       FunctionType* ftype = env.signature->getFunction(f)->fnType();
+      //cout << env.signature->functionName(f) << " : " << env.sorts->sortName(ftype->result()) << endl;;
       unsigned dsort = (*_sig->vampireToDistinct.get(ftype->result()))[0];
+      //cout << env.signature->functionName(f) << " : " << dsort << endl;
       if(arity==0){
         _sig->sortedConstants[dsort].push(f);
       }else{
@@ -87,7 +96,7 @@ void SortInference::doInference()
 
     // we need at least one constant for symmetry breaking
     for(unsigned s=0;s<env.sorts->sorts();s++){
-      if(env.property->usesSort(s)){ 
+      if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){ 
         unsigned dsort = (*_sig->vampireToDistinct.get(s))[0];
         if(_sig->sortedConstants[dsort].isEmpty()){
           unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
@@ -100,6 +109,7 @@ void SortInference::doInference()
     _sig->predicateSignatures.ensure(env.signature->predicates());
 
     for(unsigned f=0;f<env.signature->functions();f++){
+      if(_del_f[f]) continue;
       unsigned arity = env.signature->functionArity(f);
       FunctionType* ftype = env.signature->getFunction(f)->fnType();
       _sig->functionSignatures[f].ensure(arity+1);
@@ -110,6 +120,7 @@ void SortInference::doInference()
     }
 
     for(unsigned p=1;p<env.signature->predicates();p++){
+      if(_del_p[p]) continue;
       unsigned arity = env.signature->predicateArity(p);
       PredicateType* ptype = env.signature->getPredicate(p)->predType();
       _sig->predicateSignatures[p].ensure(arity);
@@ -140,7 +151,7 @@ void SortInference::doInference()
       cout << "Monotonicity information:" << endl;
     }
     for(unsigned s=0;s<env.sorts->sorts();s++){
-      if(env.property->usesSort(s)){
+      if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){
         bool monotonic = _assumeMonotonic;
         if(!monotonic){
           Monotonicity m(_clauses,s);
@@ -612,9 +623,9 @@ void SortInference::doInference()
   }
 
   for(unsigned s=0;s<env.sorts->sorts();s++){
-    if(env.property->usesSort(s)){
+    if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){
       if(!_sig->vampireToDistinctParent.find(s)){
-        //if(!_sig->vampireToDistinct.find(s)) continue; // don't actually use this sort :s
+        if(!_sig->vampireToDistinct.find(s)) continue; // don't actually use this sort :s
         ASS_REP(_sig->vampireToDistinct.find(s),env.sorts->sortName(s));
         ASS(!_sig->vampireToDistinct.get(s)->isEmpty());
         _sig->vampireToDistinctParent.insert(s,(*_sig->vampireToDistinct.get(s))[0]);
