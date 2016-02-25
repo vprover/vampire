@@ -109,7 +109,7 @@ void SortInference::doInference()
     _sig->predicateSignatures.ensure(env.signature->predicates());
 
     for(unsigned f=0;f<env.signature->functions();f++){
-      if(_del_f[f]) continue;
+      if(f < _del_f.size() && _del_f[f]) continue;
       unsigned arity = env.signature->functionArity(f);
       FunctionType* ftype = env.signature->getFunction(f)->fnType();
       _sig->functionSignatures[f].ensure(arity+1);
