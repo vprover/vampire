@@ -27,7 +27,7 @@
 #include "Monotonicity.hpp"
 #include "SortInference.hpp"
 
-#define DEBUG_SORT_INFERENCE 1
+#define DEBUG_SORT_INFERENCE 0
 
 
 namespace FMB 

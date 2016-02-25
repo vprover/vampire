@@ -648,7 +648,7 @@ void FiniteModelBuilder::init()
   }
 
   //Set up clause signature
-  cout << "Setting up clause sigs" << endl;
+  //cout << "Setting up clause sigs" << endl;
   {
     ClauseList::Iterator cit(_clauses);
     while(cit.hasNext()){
