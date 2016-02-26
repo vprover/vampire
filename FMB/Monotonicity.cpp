@@ -152,7 +152,7 @@ bool Monotonicity::guards(Literal* l, unsigned var, Stack<SATLiteral>& slits)
 }
 
 
-void Monotonicity::addSortPredicates(ClauseList*& clauses, DArray<unsigned>& del_f)
+void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<unsigned>& del_f)
 {
   CALL("Monotonicity::addSortPredicates");
 
@@ -160,10 +160,14 @@ void Monotonicity::addSortPredicates(ClauseList*& clauses, DArray<unsigned>& del
   DArray<bool> isMonotonic(env.sorts->sorts());
   for(unsigned s=0;s<env.sorts->sorts();s++){
     if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){
-      Monotonicity m(clauses,s);
-      bool monotonic = m.check();
-      isMonotonic[s] = monotonic;
-      //if(!monotonic){ cout << env.sorts->sortName(s) << " NOT M" << endl; }
+       if(withMon){
+         Monotonicity m(clauses,s);
+         bool monotonic = m.check();
+         isMonotonic[s] = monotonic;
+       }
+       else{
+        isMonotonic[s] = false;
+       }
     }
     else{ isMonotonic[s] = true; } // We are monotonic in a sort we do not use!!
   }
@@ -303,7 +307,7 @@ DArray<unsigned> _sf;
 };
 
 
-void Monotonicity::addSortFunctions(ClauseList*& clauses)
+void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
 {
   CALL("Monotonicity::addSortFunctions");
 
@@ -311,10 +315,14 @@ void Monotonicity::addSortFunctions(ClauseList*& clauses)
   DArray<bool> isMonotonic(env.sorts->sorts());
   for(unsigned s=0;s<env.sorts->sorts();s++){
     if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){
-      Monotonicity m(clauses,s);
-      bool monotonic = m.check();
-      isMonotonic[s] = monotonic;
-      //if(!monotonic){ cout << env.sorts->sortName(s) << " NOT M" << endl; }
+       if(withMon){
+         Monotonicity m(clauses,s);
+         bool monotonic = m.check();
+         isMonotonic[s] = monotonic;
+       }
+       else{
+        isMonotonic[s] = false;
+       }
     }
     else{ isMonotonic[s] = true; } // We are monotonic in a sort we do not use!!
   }

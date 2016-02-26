@@ -218,7 +218,9 @@ public:
     OFF,
     GROUP,
     PREDICATE,
-    FUNCTION
+    FUNCTION,
+    PREDICATE_WOM,
+    FUNCTION_WOM
   };
   enum class FMBSortInference : unsigned int {
     IGNORE,

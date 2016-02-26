@@ -49,21 +49,37 @@ void SortInference::doInference()
 #endif
     // setup the minimal signature
 
+    // currently just collapse all sorts if _assumeMonotonic is on
+    // so we're not compatable with GROUP
+
     unsigned dsorts =0;
+    if(_assumeMonotonic){
+      Stack<unsigned>* stack = new Stack<unsigned>();
+      _sig->distinctToVampire.insert(dsorts,stack);
+    }
+
     for(unsigned s=0;s<env.sorts->sorts();s++){
       if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){
-        unsigned dsort = dsorts++;
-        //cout << "sort " << env.sorts->sortName(s) << " is " << dsort << endl;
-        Stack<unsigned>* stack = new Stack<unsigned>();
-        stack->push(s);
-        _sig->distinctToVampire.insert(dsort,stack);
-        stack = new Stack<unsigned>();
-        stack->push(dsort);
-        _sig->vampireToDistinct.insert(s,stack);
-        _sig->vampireToDistinctParent.insert(s,dsort);
+        if(_assumeMonotonic){
+          _sig->distinctToVampire.get(dsorts)->push(s);
+          Stack<unsigned>* stack = new Stack<unsigned>();
+          stack->push(dsorts);
+          _sig->vampireToDistinct.insert(s,stack);
+          _sig->vampireToDistinctParent.insert(s,dsorts);
+        }
+        else{
+          unsigned dsort = dsorts++; 
+          Stack<unsigned>* stack = new Stack<unsigned>();
+          stack->push(s);
+          _sig->distinctToVampire.insert(dsort,stack);
+          stack = new Stack<unsigned>();
+          stack->push(dsort);
+          _sig->vampireToDistinct.insert(s,stack);
+          _sig->vampireToDistinctParent.insert(s,dsort);
+        }
       }
-      //else cout << "do not use " << env.sorts->sortName(s) << endl;
     }
+    if(_assumeMonotonic){ dsorts++; }
 
     _sig->sorts = dsorts;
     _sig->distinctSorts = dsorts;
@@ -149,6 +165,7 @@ void SortInference::doInference()
   if(_usingMonotonicity){
     if(_print){
       cout << "Monotonicity information:" << endl;
+      if(_assumeMonotonic){ cout << "Assuming all sorts monotonic due to translation" << endl; }
     }
     for(unsigned s=0;s<env.sorts->sorts();s++){
       if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){

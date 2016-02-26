@@ -610,7 +610,7 @@ void Options::Options::init()
 
     _fmbCollapseMonotonicSorts = ChoiceOptionValue<FMBMonotonicCollapse>("fmb_collapse_monotonic_sorts","fmbcms",
                                                            FMBMonotonicCollapse::OFF, 
-                                                           {"off","group","predicate","function"});
+                                                           {"off","group","predicate","function","predicate_wom","function_wom"});
     _fmbCollapseMonotonicSorts.description = "";
     _fmbCollapseMonotonicSorts.setExperimental();
     _lookup.insert(&_fmbCollapseMonotonicSorts);

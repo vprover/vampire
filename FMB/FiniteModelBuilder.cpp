@@ -380,17 +380,21 @@ void FiniteModelBuilder::init()
   }
 
   ClauseList* clist = 0;
-  if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::PREDICATE){
+  if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::PREDICATE ||
+     env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::PREDICATE_WOM){
     DArray<unsigned> deleted_functions(env.signature->functions());
     for(unsigned f=0;f<env.signature->functions();f++){
       deleted_functions[f] = _deletedFunctions.find(f);
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    Monotonicity::addSortPredicates(clist,deleted_functions);
+    bool useMon = (env.options->fmbCollapseMonotonicSorts() != Options::FMBMonotonicCollapse::PREDICATE_WOM);
+    Monotonicity::addSortPredicates(useMon, clist,deleted_functions);
   }
-  if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION){
+  if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION ||
+     env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION_WOM){
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    Monotonicity::addSortFunctions(clist);
+    bool useMon = (env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION);
+    Monotonicity::addSortFunctions(useMon,clist);
   }
 
 
@@ -477,7 +481,8 @@ void FiniteModelBuilder::init()
   // preprocessing should preserve sorts and doing this here means that introduced symbols get sorts
   {
     TimeCounter tc(TC_FMB_SORT_INFERENCE);
-    SortInference inference(_clauses,del_f,del_p,equivalent_vampire_sorts,_distinct_sort_constraints);
+    ClauseList* both = ClauseList::concat(_clauses,_groundClauses);
+    SortInference inference(both,del_f,del_p,equivalent_vampire_sorts,_distinct_sort_constraints);
     inference.doInference();
     _sortedSignature = inference.getSignature(); 
     ASS(_sortedSignature);
