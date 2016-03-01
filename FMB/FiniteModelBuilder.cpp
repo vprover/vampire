@@ -4,6 +4,8 @@
  */
 
 #include <math.h>
+#include <errno.h>
+#include <fenv.h>
 
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Inference.hpp"
@@ -103,7 +105,12 @@ bool FiniteModelBuilder::reset(unsigned size){
     unsigned arity=env.signature->functionArity(f);
     //cout << f << "("<<arity<<") has " << offsets << endl;
     f_offsets[f]=offsets;
+    feclearexcept(FE_ALL_EXCEPT);
     unsigned add = pow(size,arity+2);
+    if(fetestexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW |
+             FE_UNDERFLOW)){
+      return false;
+    }
     // Check that we do not overflow
     if(VAR_MAX - add < offsets){
       return false;
@@ -114,9 +121,14 @@ bool FiniteModelBuilder::reset(unsigned size){
   for(unsigned p=1; p<env.signature->predicates();p++){
     if(del_p[p]) continue;
     unsigned arity=env.signature->predicateArity(p);
-    //cout << p << "("<<arity<<") has " << offsets << endl;
+    //cout << env.signature->predicateName(p) << "("<<arity<<") has " << offsets << endl;
     p_offsets[p]=offsets;
+    feclearexcept(FE_ALL_EXCEPT);
     unsigned add = pow(size,arity+1);
+    if(fetestexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW |
+             FE_UNDERFLOW)){
+      return false;
+    }
     // Check for overflow
     if(VAR_MAX - add < offsets){
       return false;
@@ -423,7 +435,8 @@ void FiniteModelBuilder::init()
     del_f[f] = _deletedFunctions.find(f);
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
-    del_p[p] = _deletedPredicates.find(p);
+    del_p[p] = _deletedPredicates.find(p) || _trivialPredicates.find(p);
+    if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
   }
 
   // perform SortInference on ground and non-ground clauses
