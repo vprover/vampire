@@ -53,7 +53,7 @@
 #include "Monotonicity.hpp"
 #include "FiniteModelBuilder.hpp"
 
-#define VTRACE_FMB 1
+#define VTRACE_FMB 0
 
 #define VTRACE_DOMAINS 0
 
@@ -475,8 +475,8 @@ void FiniteModelBuilder::init()
     del_f[f] = _deletedFunctions.find(f);
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
-    del_p[p] = _deletedPredicates.find(p);
-    if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
+    del_p[p] = _deletedPredicates.find(p) || _trivialPredicates.find(p);
+    //if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
   }
 
   // perform SortInference on ground and non-ground clauses
