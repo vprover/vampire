@@ -436,7 +436,7 @@ void FiniteModelBuilder::init()
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
     del_p[p] = _deletedPredicates.find(p) || _trivialPredicates.find(p);
-    if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
+    //if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
   }
 
   // perform SortInference on ground and non-ground clauses
