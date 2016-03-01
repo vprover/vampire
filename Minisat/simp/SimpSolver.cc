@@ -235,8 +235,10 @@ bool SimpSolver::strengthenClause(CRef cr, Lit l, bool& was_lazy)
     subsumption_queue.insert(cr);
 
     if (c.size() == 2){
-        removeClause(cr);
-        c.strengthen(l);
+      was_lazy = true;
+
+      removeClause(cr);
+      c.strengthen(l);
     }else{
       if (watches[~c[0]].size() < LAZYNESS_TRESHOLD &&
           watches[~c[1]].size() < LAZYNESS_TRESHOLD &&
