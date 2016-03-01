@@ -53,7 +53,7 @@
 #include "Monotonicity.hpp"
 #include "FiniteModelBuilder.hpp"
 
-#define VTRACE_FMB 0
+#define VTRACE_FMB 1
 
 #define VTRACE_DOMAINS 0
 
@@ -115,7 +115,7 @@ bool FiniteModelBuilder::reset(){
     if(del_f[f]) continue; 
     f_offsets[f]=offsets;
 #if VTRACE_FMB
-    cout << "offset for " << f << " is " << offsets << endl;
+    cout << "offset for " << f << " is " << offsets << " (arity is " << env.signature->functionArity(f) << ") " << endl;
 #endif
 
     DArray<unsigned> f_signature = _sortedSignature->functionSignatures[f];
@@ -137,7 +137,8 @@ bool FiniteModelBuilder::reset(){
     if(del_p[p]) continue;
     p_offsets[p]=offsets;
 #if VTRACE_FMB
-    cout << "offset for " << p << " is " << offsets << endl;
+    cout << "offset for " << p << " is " << offsets << " for " << env.signature->predicateName(p) << endl; 
+ 
 #endif
 
     DArray<unsigned> p_signature = _sortedSignature->predicateSignatures[p];
@@ -475,6 +476,7 @@ void FiniteModelBuilder::init()
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
     del_p[p] = _deletedPredicates.find(p);
+    if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
   }
 
   // perform SortInference on ground and non-ground clauses
