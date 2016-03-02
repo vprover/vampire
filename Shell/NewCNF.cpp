@@ -594,6 +594,9 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
   } else {
     TermList name = TermList(Term::create(freshSymbol, nameArity, arguments.begin()));
     Formula* nameFormula = new AtomicFormula(Literal::createEquality(POSITIVE, name, binding, nameSort));
+
+    enqueue(nameFormula);
+
     introduceGenClause(GenLit(nameFormula, POSITIVE));
   }
 
