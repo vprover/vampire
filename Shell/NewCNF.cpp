@@ -589,7 +589,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
     Formula* nameFormula = new AtomicFormula(name);
 
     for (SIGN sign : { POSITIVE, NEGATIVE }) {
-      introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, POSITIVE));
+      introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, OPPOSITE(sign)));
     }
   } else {
     TermList name = TermList(Term::create(freshSymbol, nameArity, arguments.begin()));
