@@ -483,8 +483,8 @@ void FiniteModelBuilder::init()
   // preprocessing should preserve sorts and doing this here means that introduced symbols get sorts
   {
     TimeCounter tc(TC_FMB_SORT_INFERENCE);
-    ClauseList* both = ClauseList::concat(_clauses,_groundClauses);
-    SortInference inference(both,del_f,del_p,equivalent_vampire_sorts,_distinct_sort_constraints);
+    //ClauseList* both = ClauseList::concat(_clauses,_groundClauses);
+    SortInference inference(_clauses,del_f,del_p,equivalent_vampire_sorts,_distinct_sort_constraints);
     inference.doInference();
     _sortedSignature = inference.getSignature(); 
     ASS(_sortedSignature);
