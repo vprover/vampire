@@ -72,6 +72,7 @@
 
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
+#include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/TWLSolver.hpp"
 #include "SAT/Preprocess.hpp"
 
@@ -586,7 +587,7 @@ void satSolverMode()
       solver = new LingelingInterfacing(*env.options);
       break;
     case Options::SatSolver::MINISAT:
-      solver = new MinisatInterfacing(*env.options);
+      solver = new MinisatInterfacingNewSimp(*env.options);
       break;      
     default:
       ASSERTION_VIOLATION(env.options->satSolver());
