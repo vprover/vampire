@@ -484,12 +484,16 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
     inlineLet = true;
   } else {
     Term* term = binding.term();
-    if (!term->isSpecial()) {
-      inlineLet = true;
-    } else {
+    if (term->shared()) {
+      // TODO: magic
+      if (term->weight() < 6) {
+        inlineLet = true;
+      }
+    } else if (term->isSpecial()) {
       Term::SpecialTermData* sd = term->getSpecialData();
       if (sd->getType() == Term::SF_FORMULA) {
-        if (sd->getFormula()->connective() == LITERAL) {
+        Formula* f = sd->getFormula();
+        if ((f->connective() == LITERAL) && f->literal()->shared()) {
           inlineLet = true;
         }
       }
