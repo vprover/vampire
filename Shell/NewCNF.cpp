@@ -486,9 +486,9 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
     Term* term = binding.term();
     if (term->shared()) {
       // TODO: magic
-      if (term->weight() < 6) {
+//      if (term->weight() < 6) {
         inlineLet = true;
-      }
+//      }
     } else if (term->isSpecial()) {
       Term::SpecialTermData* sd = term->getSpecialData();
       if (sd->getType() == Term::SF_FORMULA) {
