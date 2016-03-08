@@ -354,25 +354,65 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
       }
       case Term::SF_ITE: {
         Formula* condition  = simplify(sd->getCondition());
-        TermList thenBranch = simplify(*term->nthArgument(0));
-        TermList elseBranch = simplify(*term->nthArgument(1));
+
+        #define BRANCH unsigned
+        #define THEN 0u
+        #define ELSE 1u
+
+        TermList branches[2];
+        bool isTrue[2];
+        bool isFalse[2];
+        for (BRANCH branch : {THEN, ELSE }) {
+          branches[branch] = simplify(*term->nthArgument(branch));
+        }
 
         switch (condition->connective()) {
           case TRUE:
-            return thenBranch;
+            return branches[THEN];
           case FALSE:
-            return elseBranch;
+            return branches[ELSE];
           default:
             break;
         }
 
+        /*
+          if C then 1 else B  to  C | B
+          if C then 0 else B  to ~C & B
+          if C then A else 1  to ~C | A
+          if C then A else 0  to  C & A
+         */
+        for (BRANCH branch : { THEN, ELSE }) {
+          bool isTerm = branches[branch].isTerm();
+          isTrue[branch]  = isTerm && env.signature->isFoolConstantSymbol(true,  branches[branch].term()->functor());
+          isFalse[branch] = isTerm && env.signature->isFoolConstantSymbol(false, branches[branch].term()->functor());
+        }
+
+        for (BRANCH branch : {THEN, ELSE }) {
+          if (isTrue[branch] || isFalse[branch]) {
+            Formula* f = (isFalse[THEN] || isTrue[ELSE]) ? (Formula*) new NegatedFormula(condition) : condition;
+            BRANCH counterpart = branch == THEN ? ELSE : THEN;
+            if (isTrue[counterpart] || isFalse[counterpart]) {
+              if (isTrue[branch] == isTrue[counterpart]) {
+                return TermList(isTrue[branch] ? Term::foolTrue() : Term::foolFalse());
+              } else {
+                return TermList(Term::createFormula(f));
+              }
+            } else {
+              Formula* counterpartFormula = BoolTermFormula::create(branches[counterpart]);
+              FormulaList* args = new FormulaList(f, new FormulaList(counterpartFormula));
+              Formula* junction = new JunctionFormula(isTrue[branch] ? OR : AND, args);
+              return TermList(Term::createFormula(junction));
+            }
+          }
+        }
+
         if ((condition  == sd->getCondition()) &&
-            (thenBranch == *term->nthArgument(0)) &&
-            (elseBranch == *term->nthArgument(1))) {
+            (branches[THEN] == *term->nthArgument(THEN)) &&
+            (branches[ELSE] == *term->nthArgument(ELSE))) {
           return ts;
         }
         unsigned sort = sd->getSort();
-        return TermList(Term::createITE(condition, thenBranch, elseBranch, sort));
+        return TermList(Term::createITE(condition, branches[THEN], branches[ELSE], sort));
       }
       case Term::SF_LET: {
         unsigned functor = sd->getFunctor();
