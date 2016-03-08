@@ -275,7 +275,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
             (condition == ennfCondition)) {
           return ts;
         } else {
-          return TermList(Term::createITE(ennfCondition, ennfThenBranch, ennfThenBranch, sd->getSort()));
+          return TermList(Term::createITE(ennfCondition, ennfThenBranch, ennfElseBranch, sd->getSort()));
         }
         break;
       }

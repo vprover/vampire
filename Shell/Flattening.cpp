@@ -267,7 +267,7 @@ TermList Flattening::flatten (TermList ts)
             (condition == flattenedCondition)) {
           return ts;
         } else {
-          return TermList(Term::createITE(flattenedCondition, flattenedThenBranch, flattenedThenBranch, sd->getSort()));
+          return TermList(Term::createITE(flattenedCondition, flattenedThenBranch, flattenedElseBranch, sd->getSort()));
         }
       }
 
