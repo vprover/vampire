@@ -98,14 +98,17 @@ Formula* Flattening::flatten (Formula* f)
     {
       Literal* lit = f->literal();
 
-      // Convert "$formula{A} = $formula{B}" into "A <=> B"
+      // Convert equality between boolean FOOL terms to equivalence
       if (lit->isEquality()) {
         TermList lhs = *lit->nthArgument(0);
         TermList rhs = *lit->nthArgument(1);
 
-        if (lhs.isTerm() && lhs.term()->isFormula() && rhs.isTerm() && rhs.term()->isFormula()) {
-          Formula* lhsFormula = lhs.term()->getSpecialData()->getFormula();
-          Formula* rhsFormula = rhs.term()->getSpecialData()->getFormula();
+        if (lhs.isTerm() && lhs.term()->isBoolean() && rhs.isTerm() && rhs.term()->isBoolean()) {
+          Formula* lhsFormula = lhs.term()->isFormula()
+                                ? lhs.term()->getSpecialData()->getFormula()
+                                : BoolTermFormula::create(lhs);
+          Formula* rhsFormula = rhs.term()->isFormula() ? rhs.term()->getSpecialData()->getFormula()
+                                : BoolTermFormula::create(rhs);
           return flatten(new BinaryFormula(lit->polarity() ? IFF : XOR, lhsFormula, rhsFormula));
         }
       }
