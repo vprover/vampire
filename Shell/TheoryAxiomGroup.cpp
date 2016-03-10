@@ -68,7 +68,7 @@ void TheoryAxiomGroup::addTheoryNonUnitClause(UnitList*& units, Literal* lit1, L
 
 
 // $sum(X0,0) = X0
-void TheoryAxiomGroup::addOne(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addOne(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addOne");
 
@@ -82,7 +82,7 @@ void TheoryAxiomGroup::addOne(Interpretation plus, Interpretation uminus, Interp
 }
 
 // $sum(0,X) = X
-void TheoryAxiomGroup::addTwo(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addTwo(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addTwo");
 
@@ -96,7 +96,7 @@ void TheoryAxiomGroup::addTwo(Interpretation plus, Interpretation uminus, Interp
 }
 
 // $sum(X0,X1) = $sum(X1,X0)
-void TheoryAxiomGroup::addThree(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addThree(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addThree");
 
@@ -112,7 +112,7 @@ void TheoryAxiomGroup::addThree(Interpretation plus, Interpretation uminus, Inte
 }
 
 // $sum(X0,$sum(X1,X2)) = $sum($sum(X0,X1),X2)
-void TheoryAxiomGroup::addFour(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addFour(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addFour");
 
@@ -131,7 +131,7 @@ void TheoryAxiomGroup::addFour(Interpretation plus, Interpretation uminus, Inter
 }
 
 // 0 = $sum(X0,$uminus(X0))
-void TheoryAxiomGroup::addFive(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addFive(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addFive");
 
@@ -147,7 +147,7 @@ void TheoryAxiomGroup::addFive(Interpretation plus, Interpretation uminus, Inter
 }
 
 // $sum($uminus(X1),$uminus(X0)) = $uminus($sum(X0,X1))
-void TheoryAxiomGroup::addSix(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addSix(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addSix");
 
@@ -168,7 +168,7 @@ void TheoryAxiomGroup::addSix(Interpretation plus, Interpretation uminus, Interp
 }
 
 // $sum($sum(X,$uminus(Y)),Y) = X
-void TheoryAxiomGroup::addSeven(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addSeven(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addSeven");
 
@@ -186,7 +186,7 @@ void TheoryAxiomGroup::addSeven(Interpretation plus, Interpretation uminus, Inte
 }
 
 // $lesseq(X0,X0)
-void TheoryAxiomGroup::addEight(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addEight(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addEight");
 
@@ -198,7 +198,7 @@ void TheoryAxiomGroup::addEight(Interpretation plus, Interpretation uminus, Inte
 }
 
 // $lesseq(X0,X1) | $lesseq(X1,X0)
-void TheoryAxiomGroup::addNine(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addNine(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addNine");
 
@@ -214,7 +214,7 @@ void TheoryAxiomGroup::addNine(Interpretation plus, Interpretation uminus, Inter
 }
 
 // ~$lesseq(X1,X0) | ~$lesseq(X0,X1) | X0 = X1
-void TheoryAxiomGroup::addTen(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addTen(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addTen");
 
@@ -230,7 +230,7 @@ void TheoryAxiomGroup::addTen(Interpretation plus, Interpretation uminus, Interp
 }
 
 // ~$lesseq(X0,X1) | ~$lesseq(X1,X2) | $lesseq(X0,X2)
-void TheoryAxiomGroup::addEleven(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addEleven(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addEleven");
 
@@ -248,7 +248,7 @@ void TheoryAxiomGroup::addEleven(Interpretation plus, Interpretation uminus, Int
 }
 
 // $lesseq(X1,X0) | $lesseq($sum(X0,1),X1)
-void TheoryAxiomGroup::addTwelve(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addTwelve(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addTwelve");
 
@@ -267,7 +267,7 @@ void TheoryAxiomGroup::addTwelve(Interpretation plus, Interpretation uminus, Int
 }
 
 // ~$lesseq(X1,X0) | ~$lesseq($sum(X0,1),X1)
-void TheoryAxiomGroup::addThirteen(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addThirteen(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addThirteen");
 
@@ -283,7 +283,7 @@ void TheoryAxiomGroup::addThirteen(Interpretation plus, Interpretation uminus, I
 }
 
 // ~$lesseq($sum(X,1),X)
-void TheoryAxiomGroup::addFourteen(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addFourteen(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addFourteen");
 
@@ -297,7 +297,7 @@ void TheoryAxiomGroup::addFourteen(Interpretation plus, Interpretation uminus, I
 }
 
 // ~$lesseq(X0,X1) | $lesseq($sum(X0,X2),$sum(X1,X2))
-void TheoryAxiomGroup::addFifteen(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList* units)
+void TheoryAxiomGroup::addFifteen(Interpretation plus, Interpretation uminus, Interpretation lessEq, TermList zero, TermList one, UnitList*& units)
 {
   CALL("TheoryAxiomGroup::addFifteen");
 
