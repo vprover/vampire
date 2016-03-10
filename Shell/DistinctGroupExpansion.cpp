@@ -62,8 +62,8 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
   for(unsigned i=0;i<group_members.size();i++){
     Stack<unsigned>* members = group_members[i];
+    if(i==0 && !env.signature->strings()) continue; // If there are no strings do not expand group
     if(members->size() > 0){
- 
       // If the non-empty distinct group represents numbers then we need to keep
       // the distinct processing later as new numbers can be generated from the
       // existing ones
