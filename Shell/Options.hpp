@@ -1762,6 +1762,7 @@ public:
   //void setIgnoreMissing(bool newVal) { _ignoreMissing = newVal; }
   bool increasedNumeralWeight() const { return _increasedNumeralWeight.actualValue; }
   bool theoryAxioms() const { return _theoryAxioms.actualValue; }
+  unsigned theoryAxiomGroup() const { return _theoryAxiomGroup.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
   bool interpretedSimplification() const { return _interpretedSimplification.actualValue; }
   //void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
@@ -2180,6 +2181,7 @@ private:
   StringOptionValue _thanks;
   BoolOptionValue _theoryAxioms;
   BoolOptionValue _theoryFlattening;
+  UnsignedOptionValue _theoryAxiomGroup;
 
   /** Time limit in deciseconds */
   TimeLimitOptionValue _timeLimitInDeciseconds;

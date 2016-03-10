@@ -37,6 +37,7 @@
 #include "Statistics.hpp"
 #include "FOOLElimination.hpp"
 #include "TheoryAxioms.hpp"
+#include "TheoryAxiomGroup.hpp"
 #include "TheoryFlattening.hpp"
 #include "TrivialPredicateRemover.hpp"
 
@@ -215,6 +216,10 @@ void Preprocess::preprocess (Problem& prb)
         env.out() << "adding theory axioms" << std::endl;
 
       TheoryAxioms().apply(prb);
+    }
+    // EXPERIMENT, add theory axiom groups
+    if(_options.theoryAxiomGroup() != 0){
+      TheoryAxiomGroup().apply(prb,_options.theoryAxiomGroup());
     }
   }
 

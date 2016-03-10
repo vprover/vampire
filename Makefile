@@ -357,6 +357,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Statistics.o\
          Shell/SymCounter.o\
          Shell/TheoryAxioms.o\
+         Shell/TheoryAxiomGroup.o\
          Shell/TheoryFinder.o\
          Shell/TheoryFlattening.o\
          Shell/Token.o\

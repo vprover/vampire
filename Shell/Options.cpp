@@ -384,6 +384,13 @@ void Options::Options::init()
     _lookup.insert(&_theoryAxioms);
     _theoryAxioms.tag(OptionTag::PREPROCESSING);
 
+    _theoryAxiomGroup = UnsignedOptionValue("theory_axiom_group","thag",0);
+    _theoryAxiomGroup.description = "Experimental hack, should never reach master in this form";
+    _theoryAxiomGroup.setExperimental();
+    _theoryAxiomGroup.tag(OptionTag::PREPROCESSING);
+    _theoryAxiomGroup.addHardConstraint(If(notEqual(0u)).then(_theoryAxioms.is(equal(false))));
+    _lookup.insert(&_theoryAxiomGroup);
+
     _theoryFlattening = BoolOptionValue("theory_flattening","thf",false);
     _theoryFlattening.description = "Flatten clauses to separate theory and non-theory parts";
     _lookup.insert(&_theoryFlattening);
