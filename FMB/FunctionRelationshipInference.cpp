@@ -81,6 +81,9 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   env.property = oldProperty;
 
   Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
+
+  if(foundLabels.size()>0 && print){ cout << "Found constraints:" << endl; }
+
   DHSet<std::pair<unsigned,unsigned>> nonstrict_constraints;
   DHSet<std::pair<unsigned,unsigned>> strict_constraints;
   Stack<unsigned>::Iterator it(foundLabels);
@@ -92,12 +95,16 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
       if(print) cout << constraint.first << " >= " << constraint.second << endl;
     }
     else{
-      ASS(_labelMap_strict.find(l));
-      strict_constraints.insert(_labelMap_strict.get(l));
+      ASS(_labelMap_strict.find(l,constraint));
+      strict_constraints.insert(constraint);
+      if(print) cout << constraint.first << " > " << constraint.second << endl;
     }
   }
 
   // Find equalities
+/*
+  Stop this for now... broken (need to check no strict) and very uncommon 
+
   IntUnionFind uf(env.sorts->sorts());
   {
     DHSet<std::pair<unsigned,unsigned>>::Iterator it1(nonstrict_constraints);
@@ -137,6 +144,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
       }
     }
   }
+*/
   // Normalise constraints
   unsigned constraint_count = 0;
   {
@@ -144,10 +152,13 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     while(it1.hasNext()){ 
       constraint_count++;
       std::pair<unsigned,unsigned> con = it1.next();
+/*
       unsigned frst = uf.root(con.first);
       unsigned snd = uf.root(con.second);
       if(frst==snd) continue;
       nonstrict_cons.insert(make_pair(frst,snd));
+*/
+      nonstrict_cons.insert(con);
     }
   }
   if(print){
@@ -159,10 +170,13 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     while(it1.hasNext()){
       constraint_count++;
       std::pair<unsigned,unsigned> con = it1.next();
+/*
       unsigned frst = uf.root(con.first);
       unsigned snd = uf.root(con.second);
       if(frst==snd) continue;
       strict_cons.insert(make_pair(frst,snd));
+*/
+      strict_cons.insert(con);
     }
   }
   if(print){
