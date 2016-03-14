@@ -208,6 +208,25 @@ void doProving()
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
 
+void featureMode()
+{
+  CALL("featureMode");
+
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+
+  Property* property = prb->getProperty();
+  TheoryFinder tf(prb->units(), property);
+  // this doesn't do anything
+  Shell::Preprocess prepro(*env.options);
+  tf.search();
+
+  env.beginOutput();
+  env.out() << property->featureString(env.options->featuresLevel()) << endl;
+  env.endOutput();
+
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+}
+
 /**
  * Read a problem and output profiling information about it.
  * @since 03/08/2008 Torrevieja
@@ -961,6 +980,10 @@ int main(int argc, char* argv[])
 
     case Options::Mode::OUTPUT:
       outputMode();
+      break;
+
+    case Options::Mode::FEATURES:
+      featureMode();
       break;
 
     case Options::Mode::PROFILE:

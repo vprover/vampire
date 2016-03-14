@@ -321,6 +321,7 @@ public:
     CASC_SAT,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
+    FEATURES,
     GROUNDING,
     MODEL_CHECK,
     //LTB_BUILD,
@@ -1619,6 +1620,7 @@ public:
   void setRandomStrategy(RandomStrategy newVal){ _randomStrategy.actualValue=newVal;}
   BadOption getBadOptionChoice() const { return _badOption.actualValue; }
   void setBadOptionChoice(BadOption newVal) { _badOption.actualValue = newVal; }
+  int featuresLevel() { return _featuresLevel.actualValue; }
   vstring forcedOptions() const { return _forcedOptions.actualValue; }
   vstring forbiddenOptions() const { return _forbiddenOptions.actualValue; }
   vstring testId() const { return _testId.actualValue; }
@@ -2019,6 +2021,7 @@ private:
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
 
+  IntOptionValue _featuresLevel;
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
   BoolOptionValue _forceIncompleteness;

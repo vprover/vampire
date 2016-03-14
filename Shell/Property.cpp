@@ -912,3 +912,46 @@ vstring Property::toSpider(const vstring& problemName) const
     + "';";
 } // Property::toSpider
 
+/**
+ *
+ * @since 14/03/16 Manchester
+ * @author Giles
+ */
+vstring Property::featureString(int input_lvl) const
+{
+  CALL("Property::featureString");
+
+  unsigned level = (input_lvl > 0) ? input_lvl : -input_lvl;
+  bool labels = (input_lvl > 0);
+
+  vstring str = "";
+
+  // use space for seperating
+  vstring sep = " ";
+
+  //TODO group features and put them under levels.. currently ignored
+
+  // basic syntax
+  str += ((labels?"clauses:":"")+Lib::Int::toString(clauses()))+sep;
+  str += ((labels?"formulas:":"")+Lib::Int::toString(formulas()))+sep;
+  str += ((labels?"unitClauses:":"")+Lib::Int::toString(unitClauses()))+sep;
+  str += ((labels?"hornClauses:":"")+Lib::Int::toString(hornClauses()))+sep;
+  str += ((labels?"atoms:":"")+Lib::Int::toString(atoms()))+sep;
+  str += ((labels?"equalityAtoms:":"")+Lib::Int::toString(equalityAtoms()))+sep;
+  str += ((labels?"maxFunArity:":"")+Lib::Int::toString(maxFunArity()))+sep;
+  str += ((labels?"totalNumberOfVariables:":"")+Lib::Int::toString(totalNumberOfVariables()))+sep;
+  //TODO
+  // - 
+  // - 
+
+  // some ones related to interpreted operations
+  str += ((labels?"hasIntegers:":"")+Lib::Int::toString(hasProp(PR_HAS_INTEGERS)))+sep;
+  str += ((labels?"hasRats:":"")+Lib::Int::toString(hasProp(PR_HAS_RATS)))+sep;
+  str += ((labels?"hasReals:":"")+Lib::Int::toString(hasProp(PR_HAS_REALS)))+sep;
+  str += ((labels?"hasIntComp:":"")+Lib::Int::toString(hasProp(PR_INTEGER_COMPARISON)))+sep;
+  str += ((labels?"hasRatComp:":"")+Lib::Int::toString(hasProp(PR_RAT_COMPARISON)))+sep;
+  str += ((labels?"hasRealComp:":"")+Lib::Int::toString(hasProp(PR_REAL_COMPARISON)))+sep;
+
+  return str;
+}
+

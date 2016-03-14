@@ -88,7 +88,9 @@ void Options::Options::init()
                                     {"axiom_selection",//"bpa",
                                         "casc",//"casc_ltb",
                                         "casc_sat","clausify",
-                                        "consequence_elimination","grounding",
+                                        "consequence_elimination",
+					"features",
+					"grounding",
                                         "model_check",
                                         //"ltb_build","ltb_solve",
                                         "output","preprocess",
@@ -1478,6 +1480,12 @@ void Options::Options::init()
     _lookup.insert(&_showInterpolant);
     _showInterpolant.tag(OptionTag::OTHER);
     _showInterpolant.setExperimental();
+
+
+    _featuresLevel = IntOptionValue("features_level","fel",1);
+    _featuresLevel.description = "Select the level of features you want to extract";
+    _lookup.insert(&_featuresLevel);
+    _featuresLevel.setExperimental();
     
 //******************************************************************
 //*********************** Program Analysis  ************************

@@ -149,6 +149,8 @@ public:
   vstring toString() const;
   vstring toSpider(const vstring& problemName) const;
 
+  vstring featureString(int level) const;
+
   /** Total number of clauses in the problem. */
   int clauses() const { return _goalClauses + _axiomClauses; }
   /** Total number of formulas in the problem */
