@@ -876,7 +876,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes)
   DHMap<unsigned, List<Literal*>*>::Iterator it2(dcaLiterals);
   while (it2.hasNext()) {
     List<Literal*>::Iterator it3(it2.next());
-    Clause *c = Clause::fromIterator(it3, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_THEORY));
+    Clause *c = Clause::fromIterator(it3, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS));
     UnitList::push(c, _formulas);
   }
     

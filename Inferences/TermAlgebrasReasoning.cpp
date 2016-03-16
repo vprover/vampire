@@ -19,7 +19,7 @@ using namespace Kernel;
 namespace Inferences {
 
   // copy clause c, replacing literal a by b
-  Clause* replaceLit(Clause *c, Literal *a, Literal *b)
+  Clause* replaceLit(Clause *c, Literal *a, Literal *b, Inference *inf)
   {
     CALL("replaceLit");
 
@@ -27,7 +27,7 @@ namespace Inferences {
 
     Clause* res = new(length) Clause(length,
                                      c->inputType(),
-                                     new Inference1(Inference::TERM_ALGEBRA_THEORY, c));
+                                     inf);
 
     for (int i = length - 1; i >= 0; i--) {
       if ((*c)[i] == a)
@@ -40,7 +40,7 @@ namespace Inferences {
   }
 
   // copy clause c, with the exception of the ith literal
-  Clause* removeLit(Clause *c, int i)
+  Clause* removeLit(Clause *c, int i, Inference *inf)
   {
     CALL("removeLit");
 
@@ -50,7 +50,7 @@ namespace Inferences {
 
     Clause* res = new(length - 1) Clause(length - 1,
                                          c->inputType(),
-                                         new Inference1(Inference::TERM_ALGEBRA_THEORY, c));
+                                         inf);
 
     int j = 0;
     while (j < i) { (*res)[j] = (*c)[j]; j++; }
@@ -85,7 +85,7 @@ namespace Inferences {
       if (distinctConstructorsEquality(lit)) {
         if (lit->isPositive()) {
           // equality of the form f(x) = g(y), delete literal from clause
-          Clause* res = removeLit(c, i);
+          Clause* res = removeLit(c, i, new Inference1(Inference::TERM_ALGEBRA_DISTINCTNESS, c));
           res->setAge(c->age());
           return res;
         } else {
@@ -147,7 +147,10 @@ namespace Inferences {
                                            _type->arg(_index));
       _index++;
       
-      Clause *res = replaceLit(_clause, _lit, l);
+      Clause *res = replaceLit(_clause,
+                               _lit,
+                               l,
+                               new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause));
       res->setAge(_clause->age()+1);
       return res;
     }
@@ -238,7 +241,10 @@ namespace Inferences {
       _subterms = _subterms->tail();
       delete old;
 
-      Clause *res = replaceLit(_clause, _lit, l);
+      Clause *res = replaceLit(_clause,
+                               _lit,
+                               l,
+                               new Inference1(Inference::TERM_ALGEBRA_ACYCLICITY, _clause));
       res->setAge(_clause->age()+1);
       return res;
     }

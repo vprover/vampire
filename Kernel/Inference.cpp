@@ -410,8 +410,14 @@ vstring Inference::ruleName(Rule rule)
     return "sat instgen refutation";
   case DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
-  case TERM_ALGEBRA_THEORY:
-    return "term algebra theory";
+  case TERM_ALGEBRA_EXHAUSTIVENESS:
+    return "term algebras exhaustiveness";
+  case TERM_ALGEBRA_DISTINCTNESS:
+    return "term algebras distinctness";
+  case TERM_ALGEBRA_INJECTIVITY:
+    return "term algebras injectivity";
+  case TERM_ALGEBRA_ACYCLICITY:
+    return "term algebras acyclicity";
   case EXTERNAL:
     return "external";
   case CLAIM_DEFINITION:

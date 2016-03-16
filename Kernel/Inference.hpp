@@ -198,8 +198,14 @@ public:
     CHOICE_AXIOM,
     /** any added theory axioms */
     THEORY,
-    /** evaluation of equalities between term algebra members */
-    TERM_ALGEBRA_THEORY,
+    /** axiom of exhaustiveness (or domain closure axiom) for term algebras */
+    TERM_ALGEBRA_EXHAUSTIVENESS,
+    /** inference rule for term algebras (no equality between terms of different constructors)*/
+    TERM_ALGEBRA_DISTINCTNESS,
+    /** inference rule for term algebras (injectivity of constructors)*/
+    TERM_ALGEBRA_INJECTIVITY,
+    /** inference rule for term algebras (no cyclic terms)*/
+    TERM_ALGEBRA_ACYCLICITY,
     /** one of two axioms of FOOL (distinct constants or finite domain) */
     FOOL_AXIOM,
     //** Flatten a clause to separate theory literals */
