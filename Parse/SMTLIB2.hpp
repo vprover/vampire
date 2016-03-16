@@ -185,6 +185,12 @@ private:
 
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body);
 
+  void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes);
+
+  DeclaredFunction declareDatatypeConstructor(unsigned int vsort, LExpr* decl);
+  DeclaredFunction declareDatatypeDestructor(const vstring& name, unsigned vsort, unsigned argSort);
+  Literal *dcaEqualityLiteral(TermList var, LExpr* decl, unsigned sort);
+
   // global parsing data structures
 
   unsigned _nextVar;
@@ -217,6 +223,7 @@ private:
   Interpretation getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned firstArgSort);
   Interpretation getUnaryMinusInterpretation(unsigned argSort);
   Interpretation getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort);
+  
 
   ParseResult parseTermOrFormula(LExpr* body);
 

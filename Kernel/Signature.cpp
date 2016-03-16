@@ -637,6 +637,21 @@ bool Signature::predicateExists(const vstring& name,unsigned arity) const
   return _predNames.find(key(name, arity));
 }
 
+unsigned Signature::getFunctionNumber(const vstring& name, unsigned arity) const
+{
+  CALL("Signature::getFunctionNumber");
+
+  ASS(_funNames.find(key(name, arity)));
+  return _funNames.get(key(name, arity));
+}
+
+unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) const
+{
+  CALL("Signature::getPredicateNumber");
+
+  ASS(_predNames.find(key(name, arity)));
+  return _predNames.get(key(name, arity));
+}
 
 /**
  * If a function with this name and arity exists, return its number.
@@ -892,6 +907,19 @@ Unit* Signature::getDistinctGroupPremise(unsigned group)
   CALL("Signature::getDistinctGroupPremise");
 
   return _distinctGroupPremises[group];
+}
+
+bool Signature::hasTermAlgebras()
+{
+  CALL("Signature::hasTermAlgebras");
+
+  Stack<Symbol*>::Iterator it(_funs);
+  while (it.hasNext()) {
+    if (it.next()->termAlgebraCons()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**

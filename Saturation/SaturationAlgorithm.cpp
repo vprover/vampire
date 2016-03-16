@@ -44,6 +44,7 @@
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/RefutationSeekerFSE.hpp"
+#include "Inferences/TermAlgebrasReasoning.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
@@ -1331,6 +1332,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.FOOLParamodulation()) {
     gie->addFront(new FOOLParamodulation());
+  }
+  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
+    gie->addFront(new InjectivityGIE());
+    gie->addFront(new AcyclicityGIE());
   }
 
   res->setGeneratingInferenceEngine(gie);

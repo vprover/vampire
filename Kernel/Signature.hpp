@@ -64,6 +64,8 @@ class Signature
     unsigned _answerPredicate : 1;
     /** marks numbers too large to represent natively */
     unsigned _overflownConstant : 1;
+    /** marks term algebra constructors */
+    unsigned _termAlgebraCons : 1;
     /** Either a FunctionType of a PredicateType object */
     mutable BaseType* _type;
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
@@ -96,6 +98,8 @@ class Signature
     void markEqualityProxy() { _equalityProxy=1; }
     /** mark constant as overflown */
     void markOverflownConstant() { _overflownConstant=1; }
+    /** mark symbol as a term algebra constructor */
+    void markTermAlgebraCons() { _termAlgebraCons=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -124,6 +128,8 @@ class Signature
     inline bool equalityProxy() const { return _equalityProxy; }
     /** Return true iff symbol is an overflown constant */
     inline bool overflownConstant() const { return _overflownConstant; }
+    /** Return true iff symbol is a term algebra constructor */
+    inline bool termAlgebraCons() const { return _termAlgebraCons; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
@@ -442,6 +448,9 @@ class Signature
   bool functionExists(const vstring& name,unsigned arity) const;
   bool predicateExists(const vstring& name,unsigned arity) const;
 
+  unsigned getFunctionNumber(const vstring& name, unsigned arity) const;
+  unsigned getPredicateNumber(const vstring& name, unsigned arity) const;
+  
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
@@ -449,6 +458,8 @@ class Signature
   void noDistinctGroupsLeft(){ _distinctGroupsAddedTo=false; }
   Stack<Stack<unsigned>*> getDistinctGroupMembers(){ return _distinctGroupMembers; }
 
+  bool hasTermAlgebras();
+      
   static vstring key(const vstring& name,int arity);
 
   /** the number of string constants */

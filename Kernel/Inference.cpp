@@ -402,6 +402,8 @@ vstring Inference::ruleName(Rule rule)
     return "sat instgen refutation";
   case DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
+  case TERM_ALGEBRA_THEORY:
+    return "term algebra theory";
   case EXTERNAL:
     return "external";
   case CLAIM_DEFINITION:
@@ -421,7 +423,7 @@ vstring Inference::ruleName(Rule rule)
   case INSTANTIATION:
     return "Instantiation";
   case MODEL_NOT_FOUND:
-    return "Finite model not found"; 
+    return "Finite model not found";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

@@ -9,6 +9,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/NameArray.hpp"
 #include "Lib/StringUtils.hpp"
+#include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -139,6 +140,17 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 
       readDeclareFun(name,iSorts,oSort);
 
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("declare-datatypes")) {
+      LExprList* sorts = ibRdr.readList();
+      LExprList* datatypes = ibRdr.readList();
+
+      readDeclareDatatypes(sorts, datatypes);
+      
       ibRdr.acceptEOL();
 
       continue;
@@ -771,6 +783,184 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::AXIOM);
 
   UnitList::push(fu, _formulas);
+}
+
+void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes)
+{
+  CALL("SMTLIB2::readDeclareDatatypes");
+  
+  if (sorts->length() > 0) {
+    USER_ERROR("unsupported parametric datatypes declaration");
+  }
+  
+  LispListReader aRdr(datatypes);
+
+  // first declare all the sorts, and then only the constructors, in
+  // order to allow mutually recursive datatypes definitions
+  List<pair<unsigned, LExpr*>> *todo = nullptr;
+
+  // map used to collect the equality literals used to construct the
+  // domain closure axiom  
+  DHMap<unsigned, List<Literal*>*> dcaLiterals;
+  ASS(dcaLiterals.isEmpty());
+
+  TermList x(0, false);
+  
+  while (aRdr.hasNext()) {
+    LExprList *decl = aRdr.readList();
+    LispListReader bRdr(decl);
+
+    const vstring& dName = bRdr.readAtom();
+    if (isSortSymbol(dName)) {
+      USER_ERROR("Redeclaring built-in, declared or defined sort symbol as datatype: "+dName);
+    }
+
+    ALWAYS(_declaredSorts.insert(dName, 0));
+    vstring sortName = dName + "()";
+    bool added;
+    unsigned rangeSort = env.sorts->addSort(sortName, added);
+    ASS(added);
+
+    dcaLiterals.insert(rangeSort, nullptr);
+
+    while (bRdr.hasNext()) {
+      todo = List<pair<unsigned, LExpr*>>::addLast(todo, make_pair(rangeSort, bRdr.next()));
+    }
+  }
+
+  // declare constructors
+  List<pair<unsigned, LExpr*>>::Iterator it1(todo);
+  while (it1.hasNext()) {
+    pair<unsigned, LExpr*> p = it1.next();
+    declareDatatypeConstructor(p.first, p.second);
+
+    // build equality literal for the DCA and add it to the map
+    ASS(dcaLiterals.find(p.first));
+    dcaLiterals.set(p.first, dcaLiterals.get(p.first)->cons(dcaEqualityLiteral(x, p.second, p.first)));    
+  }
+
+  // for each datatype, build DCA clause and add it to formulas 
+  DHMap<unsigned, List<Literal*>*>::Iterator it2(dcaLiterals);
+  while (it2.hasNext()) {
+    List<Literal*>::Iterator it3(it2.next());
+    Clause *c = Clause::fromIterator(it3, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_THEORY));
+    UnitList::push(c, _formulas);
+  }
+    
+  todo->destroy();
+}
+
+SMTLIB2::DeclaredFunction SMTLIB2::declareDatatypeConstructor(unsigned vsort, LExpr *decl)
+{
+  CALL("SMTLIB2::declareDatatypeConstructor");
+
+  bool added;
+  unsigned symNum;
+  Signature::Symbol* sym;
+  BaseType* type;
+  vstring name;
+
+  if (decl->isAtom()) {
+    // atom, construtor of arity 0
+    name = decl->str;
+    symNum = TPTP::addUninterpretedConstant(name, _overflow, added);
+    sym = env.signature->getFunction(symNum);
+    type = new FunctionType(vsort);
+  } else {
+    // should be a list made up of the constructor name followed by
+    // pairs of destructor name/argument type
+    ASS(decl->isList());
+    LispListReader aRdr(decl);
+    name = aRdr.readAtom();
+    static Stack<unsigned> argSorts;
+    argSorts.reset();
+    
+    while (aRdr.hasNext()) {
+      LExpr* arg = aRdr.next();
+      LispListReader bRdr(arg);
+      const vstring& destructorName = bRdr.readAtom();
+      LExpr* argSortExpr = bRdr.next();
+      unsigned argSort = declareSort(argSortExpr);
+      argSorts.push(argSort);
+      
+      if (bRdr.hasNext()) {
+        USER_ERROR("Bad constructor argument:" + arg->toString());
+      }
+      
+      declareDatatypeDestructor(destructorName, vsort, argSort);
+    }
+    
+    symNum = env.signature->addFunction(name, argSorts.size(), added);
+    sym = env.signature->getFunction(symNum);
+    type = new FunctionType(argSorts.size(), argSorts.begin(), vsort);
+  }
+
+  ASS(added);
+  sym->setType(type);
+  sym->markTermAlgebraCons();
+
+  DeclaredFunction res = make_pair(symNum, true);
+
+  LOG2("declareDatatypeConstructor -name ",name);
+  LOG2("declareDatatypeConstructor -symNum ",symNum);
+
+  ALWAYS(_declaredFunctions.insert(name,res));
+
+  return res;
+}
+
+SMTLIB2::DeclaredFunction SMTLIB2::declareDatatypeDestructor(const vstring& name, unsigned vsort, unsigned argSort)
+{
+  CALL("SMTLIB2::declareDatatypeDesstructor");
+  
+  bool added;
+  unsigned symNum = env.signature->addFunction(name, 1, added);
+  ASS(added);
+
+  Signature::Symbol *sym = env.signature->getFunction(symNum);
+  sym->setType(new FunctionType(vsort, argSort));
+  
+  DeclaredFunction res = make_pair(symNum, true);
+
+  LOG2("declareDatatypeDestructor -name ", name);
+  LOG2("declareDatatypeDestructor -symNum ", symNum);
+
+  ALWAYS(_declaredFunctions.insert(name,res));
+
+  return res;
+}
+
+Literal * SMTLIB2::dcaEqualityLiteral(TermList var, LExpr *decl, unsigned sort)
+{
+  CALL("SMTLIB2::dcaEqualityLiteral");
+
+  static Stack<TermList> argTerms;
+  argTerms.reset();
+  vstring name;
+
+  if (decl->isAtom()) {
+    // atom, construtor of arity 0
+    name = decl->str;
+  } else {
+    ASS(decl->isList());
+    LispListReader aRdr(decl);
+    name = aRdr.readAtom();    
+    while (aRdr.hasNext()) {
+      LExpr* arg = aRdr.next();
+      LispListReader bRdr(arg);
+      const vstring& destructorName = bRdr.readAtom();
+      unsigned dn = env.signature->getFunctionNumber(destructorName, 1);
+      TermList t(Term::create1(dn, var));
+      argTerms.push(t);
+
+      ASS(bRdr.next());
+      ASS(!bRdr.hasNext());
+    }
+  }
+
+  unsigned function = env.signature->getFunctionNumber(name, argTerms.size());
+  TermList rhs(Term::create(function, argTerms.size(), argTerms.begin()));
+  return Literal::createEquality(true, var, rhs, sort);
 }
 
 bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)

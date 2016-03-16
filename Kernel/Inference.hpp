@@ -194,6 +194,8 @@ public:
     EQUALITY_AXIOM,
     /** any added theory axioms */
     THEORY,
+    /** evaluation of equalities between term algebra members */
+    TERM_ALGEBRA_THEORY,
     /** one of two axioms of FOOL (distinct constants or finite domain) */
     FOOL_AXIOM,
     //** Flatten a clause to separate theory literals */
