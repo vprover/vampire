@@ -125,11 +125,9 @@ bool CASCMode::perform()
  */
 void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallback)
 {
-#if !VZ3 // To suppress the "unused" warning
   Property::Category cat = property.category();
   unsigned long prop = property.props();
   unsigned atoms = property.atoms();
-#endif
 
 #if VZ3
   quick.push("dis+1011_5_fsr=off:gs=on:gsaa=full_model:gsssp=full:nwc=1:sas=z3:sos=on:ssfp=40000:ssfq=2.0:smm=sco:ssnc=all:tha=off:updr=off_1");
@@ -162,7 +160,11 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
   quick.push("ins+10_1_igbrr=0.6:igrpq=1.5:igs=1002:nwc=1:spl=off:sp=reverse_arity:tha=off:dm=on_562");
   quick.push("dis+11_7_16");
   quick.push("ins+11_5_cond=on:gs=on:gsem=off:igbrr=0.3:igpr=on:igrr=1/32:igrp=200:igrpq=2.0:igs=1004:igwr=on:nwc=1:sos=all:spl=off:sp=occurrence:dm=on_18");
-#else
+
+// By keeping the following code we will add the vampire strategies to vampireZ3
+// When solving smt-lib problems (with 30 minute time limits) this could help!
+#endif
+
   switch (cat) {
   case Property::NEQ:
     if (prop == 131079) {
@@ -1081,7 +1083,10 @@ void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallb
     fallback.push("dis+11_7_gs=on:gsaa=full_model:lcm=predicate:nwc=1.1:sas=minisat:ssac=none:ssfp=1000:ssfq=1.0:smm=sco:sp=reverse_arity:urr=ec_only_1200");
     break;
   }
-#endif
+
+  // add very long final fallback strategy
+  fallback.push("dis+11_1_3600");
+
 } // getSchedule
 
 unsigned CASCMode::getSliceTime(vstring sliceCode,vstring& chopped)

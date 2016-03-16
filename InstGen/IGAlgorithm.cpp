@@ -52,6 +52,8 @@ namespace InstGen
 using namespace Indexing;
 using namespace Saturation;
 
+static const int LOOKAHEAD_SELECTION = 1011;
+
 IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 : MainLoop(prb, opt),
     _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
@@ -63,7 +65,13 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   CALL("IGAlgorithm::IGAlgorithm");
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
-  _selector = LiteralSelector::getSelector(*_ordering, opt, opt.instGenSelection());
+
+  if (opt.instGenSelection() == LOOKAHEAD_SELECTION) {
+    _doLookahead = true;
+  } else {
+    _doLookahead = false;
+    _selector = LiteralSelector::getSelector(*_ordering, opt, opt.instGenSelection());
+  }
 
   _use_dm = opt.useDM();
   _use_niceness = (opt.satVarSelector() == Options::SatVarSelector::NICENESS);
@@ -478,6 +486,57 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
 //  }
 //}
 
+/**
+ * Select literals in cl by trying to estimate
+ * how many inferences the particular selection
+ * would lead in the next step.
+ */
+unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
+{
+  CALL("IGAlgorithm::lookaheadSelection");
+
+  static DArray<VirtualIterator<SLQueryResult>> iters; //IG unification iterators
+  iters.ensure(selCnt);
+
+  for(unsigned i=0; i<selCnt; i++) {
+    iters[i] = pvi(getFilteredIterator(_selected->getUnifications((*cl)[i], true, false),
+        // only count partner literals which are also semantically selected
+        [this](SLQueryResult& unif) { return isSelected(unif.literal); }));
+  }
+
+  static Stack<unsigned> candidates; // just to make sure we break the ties in a fair way
+  candidates.reset();
+  do {
+    for(unsigned i=0;i<selCnt;i++) {
+      if(iters[i].hasNext()) {
+        iters[i].next();
+      }
+      else {
+        candidates.push(i);
+      }
+    }
+  } while(candidates.isEmpty());
+
+  // candidates are in ascending order
+
+  //release the iterators
+  for(unsigned i=0;i<selCnt;i++) {
+    iters[i].drop();
+  }
+
+  // UPDATE THE SELECTION
+  unsigned selIdx = 0;
+
+  // for now, take all the tied ones
+  for (unsigned i=0; i < candidates.size(); i++) {
+    unsigned idx = candidates[i];
+    if(selIdx!=idx) {
+      swap((*cl)[idx], (*cl)[selIdx]);
+    }
+    selIdx++;
+  }
+  return selIdx;
+}
 
 /**
  * Insert selected literals of @c cl into the @c _selected index.
@@ -506,14 +565,18 @@ void IGAlgorithm::selectAndAddToIndex(Clause* cl)
     cl->notifyLiteralReorder();
   }
 
-  _selector->select(cl, selIdx);
+  if (_doLookahead) {
+    unsigned selCnt = selIdx>1 ? lookaheadSelection(cl,selIdx) : 1;
+    cl->setSelected(selCnt);
+  } else {
+    _selector->select(cl, selIdx);
+  }
 
   unsigned selCnt = cl->numSelected();
   ASS_GE(selCnt,1);
   for(unsigned i=0; i<selCnt; i++) {
     _selected->insert((*cl)[i], cl);
   }
-
 }
 
 void IGAlgorithm::removeFromIndex(Clause* cl)
@@ -598,7 +661,7 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
   unsigned clen = cl->length();
   for(unsigned i=0; i<clen; i++) {
     if(!isSelected((*cl)[i])) {
-	continue;
+      continue;
     }
     tryGeneratingInstances(cl, i);
   }

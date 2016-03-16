@@ -323,7 +323,7 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
         //X+(-X) ---> 0
         res=theory->zero();
       }
-      if(theory->isInterpretedFunction(args[argIndex], Theory::INT_DIVIDE) && 
+      if(theory->isInterpretedFunction(args[argIndex], Theory::INT_QUOTIENT_E) && 
          theory->isInterpretedConstant(*args[argIndex].term()->nthArgument(1))) {
         //X+idiv(Y,N) --> idiv(X*N+Y,N) if X can be merged into Y (Y is a polynomial that contains a summand with term X)
         TermList divisorTerm=*args[argIndex].term()->nthArgument(1);
@@ -341,7 +341,7 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
           if(pol.mergeSummands()) {
             newArgs[0]=pol.toTerm();
             newArgs[1]=divisorTerm;
-            res=TermList(Term::create(theory->getFnNum(Theory::INT_DIVIDE),2,newArgs));
+            res=TermList(Term::create(theory->getFnNum(Theory::INT_QUOTIENT_E),2,newArgs));
             return true;
           }
         }

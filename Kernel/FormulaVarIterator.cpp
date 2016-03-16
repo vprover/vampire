@@ -126,6 +126,7 @@ bool FormulaVarIterator::hasNext()
 
           case TRUE:
           case FALSE:
+          case NAME:
             break;
           default:
             ASSERTION_VIOLATION;
@@ -160,7 +161,7 @@ bool FormulaVarIterator::hasNext()
               _instructions.push(FVI_UNBIND);
 
               _instructions.push(FVI_TERM_LIST);
-              _termLists.push(sd->getBody());
+              _termLists.push(sd->getBinding());
 
               _instructions.push(FVI_BIND);
               _vars.push(sd->getVariables());

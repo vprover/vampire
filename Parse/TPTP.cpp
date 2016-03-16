@@ -1408,8 +1408,9 @@ void TPTP::endIte()
   TermList t2 = _termLists.pop();
   TermList t1 = _termLists.pop();
   Formula* c = _formulas.pop();
-  TermList ts(Term::createITE(c,t1,t2));
-  if (sortOf(t1) != sortOf(t2)) {
+  unsigned sort = sortOf(t1);
+  TermList ts(Term::createITE(c,t1,t2,sort));
+  if (sort != sortOf(t2)) {
     USER_ERROR((vstring)"sorts of terms in the if-then-else expression "+ts.toString()+" are not the same");
   }
   _termLists.push(ts);
@@ -1851,7 +1852,11 @@ bool TPTP::findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigne
     LetFunctionsScope::Iterator functions(scope);
     while (functions.hasNext()) {
       LetFunction function = functions.next();
-      if (function.first == functionName && function.second.second == isPredicate) {
+      if (function.first == functionName){
+        if(function.second.second != isPredicate){
+          USER_ERROR("Symbol "+name+" is bound by a let as a "+(isPredicate?"function":"predicate")+
+                     " but used as a "+(isPredicate?"predicate":"function"));
+        }
         symbol = function.second.first;
         return true;
       }
@@ -1869,11 +1874,12 @@ void TPTP::endLet()
   CALL("TPTP::endLet");
 
   TermList let = _termLists.pop();
+  unsigned sort = sortOf(let);
   LetFunctionsScope::TopFirstIterator functions(_letScopes.pop());
   while (functions.hasNext()) {
     unsigned symbol = functions.next().second.first;
     _sortLists.pop(); //TODO add sort information to Let term
-    let = TermList(Term::createLet(symbol, _varLists.pop(), _termLists.pop(), let));
+    let = TermList(Term::createLet(symbol, _varLists.pop(), _termLists.pop(), let, sort));
   }
   _termLists.push(let);
 } // endLet
@@ -2358,7 +2364,15 @@ void TPTP::endFormula()
     break;
   case NOT:
     f = _formulas.pop();
-    _formulas.push(new NegatedFormula(f));
+    // This gets rid of the annoying step in proof output where ~(L) is flattend to (~L)
+    if(f->connective()==LITERAL){
+      Literal* oldLit = static_cast<AtomicFormula*>(f)->literal();
+      Literal* newLit = Literal::create(oldLit,!oldLit->polarity());
+      _formulas.push(new AtomicFormula(newLit));
+    }
+    else{
+      _formulas.push(new NegatedFormula(f));
+    }
     _states.push(END_FORMULA);
     return;
   case FORALL:
@@ -3284,11 +3298,12 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_MULTIPLY,
 				 Theory::REAL_MULTIPLY);
   }
+  // An odd leftover, maps to the 'most natural' kind of division
   if (name == "$divide") {
     return addOverloadedFunction(name,arity,2,added,arg,
-				 Theory::INT_DIVIDE,
-				 Theory::RAT_DIVIDE,
-				 Theory::REAL_DIVIDE);
+				 Theory::INT_QUOTIENT_E,
+				 Theory::RAT_QUOTIENT,
+				 Theory::REAL_QUOTIENT);
   }
   if (name == "$modulo"){
     if(sortOf(arg)!=Sorts::SRT_INTEGER){
@@ -3298,6 +3313,15 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
                                  Theory::INT_MODULO,
                                  Theory::INT_MODULO,  // will not be used
                                  Theory::INT_MODULO); // will not be used
+  }
+  if (name == "$abs"){
+    if(sortOf(arg)!=Sorts::SRT_INTEGER){
+      USER_ERROR("$abs can only be used with integer type");
+    }
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_ABS,
+                                 Theory::INT_ABS,  // will not be used
+                                 Theory::INT_ABS); // will not be used
   }
   if (name == "$quotient") {
     if(sortOf(arg)==Sorts::SRT_INTEGER){

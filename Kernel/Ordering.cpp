@@ -92,7 +92,8 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
 {
   CALL("Ordering::create");
 
-  if(prb.getProperty()->maxFunArity()==0) {
+  // KBOForEPR does not support colors; TODO fix this!
+  if(prb.getProperty()->maxFunArity()==0 && !env.colorUsed) {
     return new KBOForEPR(prb, opt);
   }
   else {

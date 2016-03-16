@@ -115,6 +115,10 @@ void Formula::destroy ()
     delete this;
     return;
 
+  case NAME:
+    delete static_cast<NamedFormula*>(this);
+    return;
+
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;
@@ -228,7 +232,7 @@ void Formula::destroy ()
 vstring Formula::toString (Connective c)
 {
   static vstring names [] =
-    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true", ""};
+    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true", "",""};
   ASS_EQ(sizeof(names)/sizeof(vstring), NOCONN+1);
 
   return names[(int)c];
@@ -278,6 +282,9 @@ vstring Formula::toString(const Formula* formula)
 
     Connective c = f->connective();
     switch (c) {
+    case NAME:
+      res += static_cast<const NamedFormula*>(f)->name();
+      continue;
     case LITERAL:
       res += f->literal()->toString();
       continue;
@@ -410,6 +417,7 @@ bool Formula::parenthesesRequired (Connective outer) const
     case BOOL_TERM:
     case TRUE:
     case FALSE:
+    case NAME:
       return false;
 
     case OR:
@@ -772,7 +780,7 @@ Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseA
   CALL("Formula::createITE");
   TermList thenTerm(Term::createFormula(thenArg));
   TermList elseTerm(Term::createFormula(elseArg));
-  TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm));
+  TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm, Sorts::SRT_BOOL));
   return new BoolTermFormula(iteTerm);
 }
 
@@ -785,7 +793,7 @@ Formula* Formula::createLet(unsigned functor, Formula::VarList* variables, TermL
 {
   CALL("Formula::createLet(TermList)");
   TermList contentsTerm(Term::createFormula(contents));
-  TermList letTerm(Term::createLet(functor, variables, body, contentsTerm));
+  TermList letTerm(Term::createLet(functor, variables, body, contentsTerm, Sorts::SRT_BOOL));
   return new BoolTermFormula(letTerm);
 }
 
@@ -799,7 +807,7 @@ Formula* Formula::createLet(unsigned predicate, Formula::VarList* variables, For
   CALL("Formula::createLet(Formula*)");
   TermList bodyTerm(Term::createFormula(body));
   TermList contentsTerm(Term::createFormula(contents));
-  TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm));
+  TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm, Sorts::SRT_BOOL));
   return new BoolTermFormula(letTerm);
 }
 

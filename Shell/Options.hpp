@@ -1675,6 +1675,7 @@ public:
 #if VZ3
   bool showZ3() const { return _showZ3.actualValue; }
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
+  bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
 #endif
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -1699,6 +1700,7 @@ public:
   void setBfnt(bool newVal) { _bfnt.actualValue = newVal; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
+  bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
@@ -1729,6 +1731,7 @@ public:
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
+  bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
@@ -1969,6 +1972,7 @@ private:
   BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;
+  BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
   BoolOptionValue _backjumpTargetIsDecisionPoint;
@@ -2032,6 +2036,8 @@ private:
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
 
   BoolOptionValue _hyperSuperposition;
+
+  BoolOptionValue _innerRewriting;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   BoolOptionValue _ignoreMissing;
@@ -2134,6 +2140,7 @@ private:
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
+  BoolOptionValue _satFallbackForSMT;
 #endif
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;

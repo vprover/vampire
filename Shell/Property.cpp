@@ -560,7 +560,7 @@ void Property::scanSpecialTerm(Term* t)
     //this is a trick creating an artificial term list with terms we want to traverse
     TermList aux[2];
     aux[0].makeEmpty();
-    aux[1] = sd->getBody();
+    aux[1] = sd->getBinding();
     scan(aux+1);
     scan(t->args());
     break;

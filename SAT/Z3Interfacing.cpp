@@ -370,6 +370,9 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
 
       switch(interp){
         // Numerical operations
+        case Theory::INT_DIVIDES:
+          ret = z3::expr(_context, Z3_mk_mod(_context, args[1], args[0])) == _context.int_val(0);
+          break;
 
         case Theory::INT_UNARY_MINUS:
         case Theory::RAT_UNARY_MINUS:
@@ -383,6 +386,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
           ret = args[0] + args[1];
           break;
 
+        // Don't really need as it's preprocessed away
         case Theory::INT_MINUS:
         case Theory::RAT_MINUS:
         case Theory::REAL_MINUS:
@@ -395,21 +399,17 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
           ret = args[0] * args[1];
           break;
 
-        // Not sure of rounding in these cases
-        //case Theory::INT_DIVIDE: //TODO check that they are the same
-        //case Theory::RAT_DIVIDE:
-        //case Theory::REAL_DIVIDE:
-        //  ret= args[0] / args[1];
-        //  break;
-
         // No int quotient
         case Theory::RAT_QUOTIENT:
         case Theory::REAL_QUOTIENT:
-        case Theory::INT_QUOTIENT_E: // this is how their header translates _e
-        case Theory::RAT_QUOTIENT_E: // I assume the built-in division does this
-        case Theory::REAL_QUOTIENT_E: // euclidian rounding as default
+        case Theory::INT_QUOTIENT_E: 
           ret= args[0] / args[1];
           break;
+
+        // The z3 header must be wrong
+        //case Theory::RAT_QUOTIENT_E: 
+        //case Theory::REAL_QUOTIENT_E: 
+           //TODO
 
         case Theory::RAT_TO_INT:
         case Theory::REAL_TO_INT:

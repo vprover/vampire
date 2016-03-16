@@ -15,6 +15,7 @@
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/LiteralSelector.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -75,8 +76,8 @@ private:
 
 struct BinaryResolution::ResultFn
 {
-  ResultFn(Clause* cl, Limits* limits, BinaryResolution& parent)
-  : _cl(cl), _limits(limits), _parent(parent) {}
+  ResultFn(Clause* cl, Limits* limits, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
+  : _cl(cl), _limits(limits), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<Literal*, SLQueryResult> arg)
   {
@@ -85,15 +86,22 @@ struct BinaryResolution::ResultFn
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _limits);
+    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _limits, _afterCheck ? _ord : 0, &_selector);
   }
 private:
   Clause* _cl;
   Limits* _limits;
+  bool _afterCheck;
+  Ordering* _ord;
+  LiteralSelector& _selector;
   BinaryResolution& _parent;
 };
 
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, Limits* limits)
+/**
+ * Ordering aftercheck is performed iff ord is not 0,
+ * in which case also ls is assumed to be not 0.
+ */
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, Limits* limits, Ordering* ord, LiteralSelector* ls)
 {
   CALL("BinaryResolution::generateClause");
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
@@ -160,37 +168,77 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
 
+  Literal* queryLitAfter = 0;
+  if (ord && queryCl->numSelected() > 1) {
+    TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+    queryLitAfter = qr.substitution->applyToQuery(queryLit);
+  }
+
   unsigned next = 0;
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
     if(curr!=queryLit) {
       Literal* newLit=qr.substitution->applyToQuery(curr);
       if(shouldLimitWeight) {
-	wlb+=newLit->weight() - curr->weight();
-	if(wlb > weightLimit) {
-	  RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
-	  env.statistics->discardedNonRedundantClauses++;
-	  res->destroy();
-	  return 0;
-	}
+        wlb+=newLit->weight() - curr->weight();
+        if(wlb > weightLimit) {
+          RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
+          env.statistics->discardedNonRedundantClauses++;
+          res->destroy();
+          return 0;
+        }
+      }
+      if (queryLitAfter && i < queryCl->numSelected()) {
+        TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+
+        Ordering::Result o = ord->compare(newLit,queryLitAfter);
+
+        if (o == Ordering::GREATER ||
+            (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
+                && (o == Ordering::GREATER_EQ || o == Ordering::EQUAL))) { // where is GREATER_EQ ever coming from?
+          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          res->destroy();
+          return 0;
+        }
       }
       (*res)[next] = newLit;
       next++;
     }
   }
+
+  Literal* qrLitAfter = 0;
+  if (ord && qr.clause->numSelected() > 1) {
+    TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+    qrLitAfter = qr.substitution->applyToResult(qr.literal);
+  }
+
   for(unsigned i=0;i<dlength;i++) {
     Literal* curr=(*qr.clause)[i];
     if(curr!=qr.literal) {
       Literal* newLit = qr.substitution->applyToResult(curr);
       if(shouldLimitWeight) {
-	wlb+=newLit->weight() - curr->weight();
-	if(wlb > weightLimit) {
-	  RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
-	  env.statistics->discardedNonRedundantClauses++;
-	  res->destroy();
-	  return 0;
-	}
+        wlb+=newLit->weight() - curr->weight();
+        if(wlb > weightLimit) {
+          RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
+          env.statistics->discardedNonRedundantClauses++;
+          res->destroy();
+          return 0;
+        }
       }
+      if (qrLitAfter && i < qr.clause->numSelected()) {
+        TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+
+        Ordering::Result o = ord->compare(newLit,qrLitAfter);
+
+        if (o == Ordering::GREATER ||
+            (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
+                && (o == Ordering::GREATER_EQ || o == Ordering::EQUAL))) { // where is GREATER_EQ ever coming from?
+          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          res->destroy();
+          return 0;
+        }
+      }
+
       (*res)[next] = newLit;
       next++;
     }
@@ -213,7 +261,8 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   // actually, we got one iterator per selected literal; we flatten the obtained iterator of iterators:
   auto it2 = getFlattenedIterator(it1);
   // perform binary resolution on these pairs
-  auto it3 = getMappingIterator(it2,ResultFn(premise, limits, *this));
+  auto it3 = getMappingIterator(it2,ResultFn(premise, limits,
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), &_salg->getOrdering(),_salg->getLiteralSelector(),*this));
   // filter out only non-zero results
   auto it4 = getFilteredIterator(it3, NonzeroFn());
   // measure time (on the TC_RESOLUTION budget) of the overall processing

@@ -338,6 +338,8 @@ vstring Inference::ruleName(Rule rule)
     return "backward demodulation";
   case FORWARD_LITERAL_REWRITING:
     return "forward literal rewriting";
+  case INNER_REWRITING:
+    return "inner rewriting";
   case CONDENSATION:
     return "condensation";
   case EVALUATION:
@@ -356,6 +358,8 @@ vstring Inference::ruleName(Rule rule)
     return "grounding";
   case EQUALITY_AXIOM:
     return "equality axiom";
+  case CHOICE_AXIOM:
+    return "choice axiom";
   case THEORY:
     return "theory axiom";
   case FOOL_AXIOM:
@@ -364,12 +368,16 @@ vstring Inference::ruleName(Rule rule)
     return "theory flattening";
   case BOOLEAN_TERM_ENCODING:
     return "boolean term encoding";
- // case SPLITTING_COMPONENT:
- //   return "splitting component introduction";
-  case SAT_SPLITTING_COMPONENT:
-    return "sat splitting component";
-  case SAT_SPLITTING_REFUTATION:
-    return "sat splitting refutation";
+  case AVATAR_DEFINITION:
+    return "AVATAR definition";
+  case AVATAR_COMPONENT:
+    return "AVATAR component clause";
+  case AVATAR_REFUTATION:
+    return "AVATAR sat refutation";
+  case AVATAR_SPLIT_CLAUSE:
+    return "AVATAR split clause";
+  case AVATAR_CONTRADICTION_CLAUSE:
+    return "AVATAR contradiction clause";
   case SAT_COLOR_ELIMINATION:
     return "sat color elimination";
   case GENERAL_SPLITTING_COMPONENT:

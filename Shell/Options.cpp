@@ -431,7 +431,9 @@ void Options::Options::init()
     _naming.description="Introduce names for subformulas. Given a subformula F(x1,..,xk) of formula G a new predicate symbol is introduced as a name for F(x1,..,xk) by adding the axiom n(x1,..,xk) <=> F(x1,..,xk) and replacing F(x1,..,xk) with n(x1,..,xk) in G. The value indicates how many times a subformula must be used before it is named.";
     _lookup.insert(&_naming);
     _naming.tag(OptionTag::PREPROCESSING);
-    _naming.addConstraint(lessThan(32768));
+    _naming.addHardConstraint(lessThan(32768));
+    _naming.addHardConstraint(greaterThan(-1));
+    _naming.addHardConstraint(notEqual(1));
 
 
 //*********************** Output  ***********************
@@ -613,7 +615,7 @@ void Options::Options::init()
     _fmbSymmetryOrderSymbols.setExperimental();
 
     _fmbSymmetryWidgetOrders = ChoiceOptionValue<FMBWidgetOrders>("fmb_symmetry_widget_order","fmbswo",
-                                                     FMBWidgetOrders::DIAGONAL,
+                                                     FMBWidgetOrders::FUNCTION_FIRST,
                                                      {"function_first","argument_first","diagonal"});
     _fmbSymmetryWidgetOrders.description = "";
     _lookup.insert(&_fmbSymmetryWidgetOrders);
@@ -641,7 +643,7 @@ void Options::Options::init()
     //_selection.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _selection.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _selection.setRandomChoices(And(isRandSat(),saNotInstGen()),{"0","1","2","3","4","10","11","-1","-2","-3","-4","-10","-11"});
-    _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010","-1011"});
+    _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010"});
     
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
@@ -652,6 +654,11 @@ void Options::Options::init()
     //_ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
+
+    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
+    _lookup.insert(&_literalMaximalityAftercheck);
+    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
+    _literalMaximalityAftercheck.setExperimental();
 
     _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
     _lrsFirstTimeCheck.description=
@@ -850,6 +857,12 @@ void Options::Options::init()
     _lookup.insert(&_hyperSuperposition);
     _hyperSuperposition.tag(OptionTag::INFERENCES);
 
+    _innerRewriting = BoolOptionValue("inner_rewriting","irw",false);
+    _innerRewriting.description="C[t_1] | t1 != t2 ==> C[t_2] | t1 != t2 when t1>t2";
+    _lookup.insert(&_innerRewriting);
+    _innerRewriting.tag(OptionTag::INFERENCES);
+    _innerRewriting.setExperimental();
+
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
     _unitResultingResolution.description=
     "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";
@@ -956,7 +969,9 @@ void Options::Options::init()
 
     _instGenSelection = SelectionOptionValue("inst_gen_selection","igs",0);
     _instGenSelection.description=
-    "Selection function for InstGen. This is applied *after* model-based selection is applied. We don't have the functions 11 and 1011 yet (as it would need special treatment for the look-ahead)";
+    "Selection function for InstGen. This is applied *after* model-based selection is applied. "
+    "For consistency the value 1011 is used to denote look-ahead selection.";
+    _instGenSelection.addHardConstraint(notEqual(11)); // Use 1011 for look-ahead in InstGen instead.
     _lookup.insert(&_instGenSelection);
     _instGenSelection.tag(OptionTag::INST_GEN);
     _instGenSelection.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
@@ -1235,6 +1250,13 @@ void Options::Options::init()
 #endif
 
 #if VZ3
+    _satFallbackForSMT = BoolOptionValue("sat_fallback_for_smt","sffsmt",false);
+    _satFallbackForSMT.description="If using z3 run a sat solver alongside to use if the smt"
+       " solver returns unknown at any point";
+    _lookup.insert(&_satFallbackForSMT);
+    _satFallbackForSMT.tag(OptionTag::SAT);
+    _satFallbackForSMT.reliesOn(_satSolver.is(equal(SatSolver::Z3)));
+
     _z3UnsatCores = BoolOptionValue("z3_unsat_core","z3uc",false);
     _z3UnsatCores.description=""; 
     _lookup.insert(&_z3UnsatCores);

@@ -9,9 +9,11 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -49,7 +51,6 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit)
   }
 
   static Skolem skol;
-  skol.reset();
   return skol.skolemiseImpl(unit);
 } // Skolem::skolemise
 
@@ -58,9 +59,19 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   CALL("Skolem::skolemiseImpl(FormulaUnit*)");
 
   ASS(_introducedSkolemFuns.isEmpty());
+
   _beingSkolemised=unit;
 
+  _skolimizingDefinitions = UnitList::empty();
+
+  _vars.reset();
+  _varSorts.reset();
+  _subst.reset();
+
   Formula* f = unit->formula();
+  preskolemise(f);
+  ASS_EQ(_vars.size(),0);
+
   Formula* g = skolemise(f);
 
   _beingSkolemised = 0;
@@ -68,7 +79,10 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   if (f == g) { // not changed
     return unit;
   }
-  Inference* inf = new Inference1(Inference::SKOLEMIZE,unit);
+
+  UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions);
+
+  Inference* inf = new InferenceMany(Inference::SKOLEMIZE,premiseList);
   FormulaUnit* res = new FormulaUnit(g, inf, unit->inputType());
 
   ASS(_introducedSkolemFuns.isNonEmpty());
@@ -78,16 +92,6 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   }
 
   return res;
-}
-
-
-void Skolem::reset()
-{
-  CALL("Skolem::reset");
-
-  _vars.reset();
-  _varSorts.reset();
-  _subst.reset();
 }
 
 unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
@@ -120,38 +124,170 @@ void Skolem::ensureHavingVarSorts()
 {
   CALL("Skolem::ensureHavingVarSorts");
 
-  Formula* f = _beingSkolemised->formula();
-  SortHelper::collectVariableSorts(f, _varSorts);
-}
-
-Term* Skolem::createSkolemTerm(unsigned var)
-{
-  CALL("Skolem::createSkolemFunction");
-
-  int arity = _vars.length();
-
-  ensureHavingVarSorts();
-  unsigned rangeSort=_varSorts.get(var, Sorts::SRT_DEFAULT);
-  static Stack<unsigned> domainSorts;
-  static Stack<TermList> fnArgs;
-  domainSorts.reset();
-  fnArgs.reset();
-
-  VarStack::TopFirstIterator vit(_vars);
-  while(vit.hasNext()) {
-    unsigned uvar = vit.next();
-    domainSorts.push(_varSorts.get(uvar, Sorts::SRT_DEFAULT));
-    fnArgs.push(TermList(uvar, false));
+  if (_varSorts.size() == 0) {
+    Formula* f = _beingSkolemised->formula();
+    SortHelper::collectVariableSorts(f, _varSorts);
   }
-
-  unsigned fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
-  _introducedSkolemFuns.push(fun);
-
-  return Term::create(fun, arity, fnArgs.begin());
 }
 
 /**
- * Skolemise a subformula.
+ * Traverse the given formula and prepare skolemising
+ * substitution based actual on occurrences
+ * of universal variables in the sub-formulas below
+ * existential quantifiers.
+ */
+void Skolem::preskolemise (Formula* f)
+{
+  CALL("Skolem::preskolemise (Formula*)");
+
+  switch (f->connective()) {
+  case LITERAL:
+    {
+      const Literal* l = f->literal();
+
+      VariableIterator it(l);
+      while (it.hasNext()) {
+        TermList v = it.next();
+        ASS(v.isVar());
+        VarInfo* varInfo;
+        if (_vars.find(v.var(),varInfo) && // a universal variable ...
+            VarInfo::isNonEmpty(varInfo)) { // ... below an existential quantifier ...
+          *varInfo->headPtr() = true; // ... occurs in this literal
+        }
+      }
+      return;
+    }
+
+  case AND:
+  case OR:
+    {
+      FormulaList::Iterator it(f->args());
+      while (it.hasNext()) {
+        preskolemise(it.next());
+      }
+      return;
+    }
+
+  case FORALL:
+    {
+      Formula::VarList::Iterator vs(f->vars());
+      while (vs.hasNext()) {
+        ALWAYS(_vars.insert(vs.next(),nullptr)); // ALWAYS, because we are rectified
+      }
+      preskolemise(f->qarg());
+      vs.reset(f->vars());
+      while (vs.hasNext()) {
+        _vars.remove(vs.next());
+      }
+      return;
+    }
+
+  case EXISTS:
+    {
+      { // reset the "occurs" flag for all the universals we are in scope of
+        Vars::Iterator vit(_vars);
+        while (vit.hasNext()) {
+          unsigned dummy;
+          VarInfo*& varInfo = vit.nextRef(dummy);
+          VarInfo::push(false,varInfo);
+        }
+      }
+      preskolemise(f->qarg());
+
+      // now create the skolems for the existentials here
+      // and bind them in _subst
+      unsigned arity = 0;
+      ensureHavingVarSorts();
+      static Stack<unsigned> domainSorts;
+      static Stack<TermList> fnArgs;
+      domainSorts.reset();
+      fnArgs.reset();
+
+      // for proof recording purposes, see below
+      Formula::VarList* var_args = Formula::VarList::empty();
+      static Substitution localSubst;
+      localSubst.reset();
+
+      Vars::Iterator vit(_vars);
+      while(vit.hasNext()) { // TODO: this iterator may present the variables in a "weird" order, consider sorting, for users' sake
+        unsigned uvar;
+        VarInfo*& varInfo = vit.nextRef(uvar);
+        ASS(VarInfo::isNonEmpty(varInfo));
+        if (!VarInfo::pop(varInfo)) { // the var didn't really occur in the subformula
+          continue;
+        }
+        if (VarInfo::isNonEmpty(varInfo)) { // pass the fact that it did occur above
+          *varInfo->headPtr() = true;
+        }
+        arity++;
+        domainSorts.push(_varSorts.get(uvar, Sorts::SRT_DEFAULT));
+        fnArgs.push(TermList(uvar, false));
+        Formula::VarList::push(uvar,var_args);
+      }
+
+      Formula::VarList::Iterator vs(f->vars());
+      while (vs.hasNext()) {
+        int v = vs.next();
+        unsigned rangeSort=_varSorts.get(v, Sorts::SRT_DEFAULT);
+
+        unsigned fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v);
+        _introducedSkolemFuns.push(fun);
+
+        Term* skolemTerm = Term::create(fun, arity, fnArgs.begin());
+        _subst.bind(v,skolemTerm);
+        localSubst.bind(v,skolemTerm);
+
+        if (env.options->showSkolemisations()) {
+          env.beginOutput();
+          env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
+            <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << endl;
+          env.endOutput();
+        }
+
+        if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
+          env.beginOutput();
+          ostream& out = env.out();
+            out <<"Nonconstant skolem function introduced: "
+            <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
+            <<" in formula "<<_beingSkolemised->toString()<<endl;
+
+          Refutation ref(_beingSkolemised, true);
+          ref.output(out);
+          env.endOutput();
+        }
+      }
+
+      {
+        Formula* def = new BinaryFormula(IFF, f, SubstHelper::apply(f->qarg(), localSubst));
+
+        if (arity > 0) {
+          def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
+        }
+
+        Unit* defUnit = new FormulaUnit(def, new Inference(Inference::CHOICE_AXIOM), Unit::AXIOM);
+        UnitList::push(defUnit,_skolimizingDefinitions);
+      }
+
+      return;
+    }
+
+  case BOOL_TERM:
+    ASSERTION_VIOLATION;
+
+  case TRUE:
+  case FALSE:
+    return;
+
+#if VDEBUG
+  default:
+    ASSERTION_VIOLATION;
+#endif
+  }
+}
+
+/**
+ * Skolemise a subformula = drop existential quantifiers,
+ * and apply already prepared substitution in literals.
  *
  * @param f the subformula
  *
@@ -166,6 +302,8 @@ Term* Skolem::createSkolemTerm(unsigned var)
  * @since 12/12/2004 Manchester, optimised by quantifying only over
  *    variables actually occurring in the formula.
  * @since 28/12/2007 Manchester, changed to new datastructures
+ * @since 14/11/2015 Manchester, changed to really optimise by quantifying only over
+ *    variables actually occurring in the formula (done in cooperation with preskolimise)
  */
 Formula* Skolem::skolemise (Formula* f)
 {
@@ -177,7 +315,7 @@ Formula* Skolem::skolemise (Formula* f)
       Literal* l = f->literal();
       Literal* ll = l->apply(_subst);
       if (l == ll) {
-	return f;
+        return f;
       }
       return new AtomicFormula(ll);
     }
@@ -187,63 +325,24 @@ Formula* Skolem::skolemise (Formula* f)
     {
       FormulaList* fs = skolemise(f->args());
       if (fs == f->args()) {
-	return f;
+        return f;
       }
       return new JunctionFormula(f->connective(),fs);
     }
 
   case FORALL: 
     {
-      int ln = _vars.length();
-      Formula::VarList::Iterator vs(f->vars());
-      while (vs.hasNext()) {
-	_vars.push(vs.next());
-      }
       Formula* g = skolemise(f->qarg());
-      _vars.truncate(ln);
       if (g == f->qarg()) {
-	return f;
+        return f;
       }
       return new QuantifiedFormula(f->connective(),f->vars(),f->sorts(),g);
     }
 
   case EXISTS: 
     {
-      int arity = _vars.length();
-
-      Formula::VarList::Iterator vs(f->vars());
-      while (vs.hasNext()) {
-	int v = vs.next();
-	Term* skolemTerm = createSkolemTerm(v);
-	_subst.bind(v,skolemTerm);
-
-  if (env.options->showSkolemisations()) {
-    env.beginOutput();
-    env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
-	    <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString();
-    env.endOutput();
-  }
-  
-  if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
-    env.beginOutput();
-    ostream& out = env.out();
-      out <<"Nonconstant skolem function introduced: "
-      <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
-      <<" in formula "<<_beingSkolemised->toString()<<endl;
-      
-	  Refutation ref(_beingSkolemised, true);
-	  ref.output(out);
-    env.endOutput();
-  }
-      }
-      Formula* g = skolemise(f->qarg());
-      vs.reset(f->vars());
-      while (vs.hasNext()) {
-	_subst.unbind(vs.next());
-      }
-      _vars.truncate(arity);
-
-      return g;
+      // drop the existential one:
+      return skolemise(f->qarg());
     }
 
   case BOOL_TERM:
@@ -272,7 +371,7 @@ Formula* Skolem::skolemise (Formula* f)
  * @since 12/12/2004 Manchester, optimised by quantifying only over
  *    variables actually occurring in the formula.
  */
-FormulaList* Skolem::skolemise (FormulaList* fs) 
+FormulaList* Skolem::skolemise (FormulaList* fs)
 {
   CALL("skolemise (FormulaList*)");
 

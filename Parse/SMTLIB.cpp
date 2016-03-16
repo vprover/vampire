@@ -563,7 +563,7 @@ bool SMTLIB::tryReadTermIte(LExpr* e, TermList& res)
   if(!gotAll) {
     return false;
   }
-  res = TermList(Term::createITE(cond, thenBranch, elseBranch));
+  res = TermList(Term::createITE(cond, thenBranch, elseBranch, 0)); // TODO: construct a proper sort
   return true;
 }
 
@@ -699,9 +699,9 @@ Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned first
   case TS_DIVIDE:
     switch(firstArgSort) {
     case Sorts::SRT_INTEGER:
-      return Theory::INT_DIVIDE;
+      return Theory::INT_QUOTIENT_E;
     case Sorts::SRT_REAL:
-      return Theory::REAL_DIVIDE;
+      return Theory::REAL_QUOTIENT;
     default:
       break;
     }

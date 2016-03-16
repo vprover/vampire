@@ -51,6 +51,15 @@ private:
 						  UnitList*& units);
   void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation lessEqual,
 				    UnitList*& units);
+  void addQuotientAxioms(Interpretation quotient, Interpretation multiply, TermList zeroElement, TermList oneElement,
+                         Interpretation lessEqual,UnitList*& units);
+  void addIntegerDivisionWithModuloAxioms(Interpretation plus, Interpretation unaryMinus, Interpretation lessEqual,
+                                Interpretation multiply, Interpretation divide, Interpretation divides,
+                                Interpretation modulo, Interpretation abs, TermList zeroElement,
+                                TermList oneElement, UnitList*& units);
+  void addIntegerAbsAxioms(Interpretation abs, Interpretation lessEqual,
+                           Interpretation unaryMinus, TermList zeroElement, UnitList*& units);
+  void addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, UnitList*& units);
 
   void addBooleanArrayExtensionalityAxioms(Interpretation select, Interpretation store, unsigned skolem, UnitList*& units);
   void addArrayExtensionalityAxioms(Interpretation select, Interpretation store, unsigned skolem, UnitList*& units);

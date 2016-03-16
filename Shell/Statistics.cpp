@@ -72,6 +72,8 @@ Statistics::Statistics()
     globalSubsumption(0),
     evaluations(0),
     interpretedSimplifications(0),
+    innerRewrites(0),
+    innerRewritesToEqTaut(0),
     simpleTautologies(0),
     equationalTautologies(0),
     forwardSubsumed(0),
@@ -81,6 +83,8 @@ Statistics::Statistics()
     activeClauses(0),
     extensionalityClauses(0),
     discardedNonRedundantClauses(0),
+    inferencesBlockedForOrderingAftercheck(0),
+    smtReturnedUnknown(false),
     inferencesSkippedDueToColors(0),
     finalPassiveClauses(0),
     finalActiveClauses(0),
@@ -96,6 +100,8 @@ Statistics::Statistics()
 
     satSplits(0),
     satSplitRefutations(0),
+
+    smtFallbacks(0),
 
     satLingelingAssumptions(0),
     satLingelingClauses(0),
@@ -167,6 +173,12 @@ void Statistics::print(ostream& out)
     if (env.statistics->discardedNonRedundantClauses) {
       out << "Refutation not found, non-redundant clauses discarded";
     }
+    else if (env.statistics->inferencesSkippedDueToColors) {
+      out << "Refutation not found, inferences skipped due to colors\n";
+    }
+    else if(env.statistics->smtReturnedUnknown){
+      out << "Refutation not found, SMT solver inside AVATAR returned Unknown";
+    }
     else {
       out << "Refutation not found, incomplete strategy";
     }
@@ -214,7 +226,7 @@ void Statistics::print(ostream& out)
 
   HEADING("Saturation",activeClauses+passiveClauses+extensionalityClauses+
       generatedClauses+finalActiveClauses+finalPassiveClauses+finalExtensionalityClauses+
-      discardedNonRedundantClauses+inferencesSkippedDueToColors);
+      discardedNonRedundantClauses+inferencesSkippedDueToColors+inferencesBlockedForOrderingAftercheck);
   COND_OUT("Initial clauses", initialClauses);
   COND_OUT("Generated clauses", generatedClauses);
   COND_OUT("Active clauses", activeClauses);
@@ -225,13 +237,14 @@ void Statistics::print(ostream& out)
   COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
   COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
   COND_OUT("Inferences skipped due to colors", inferencesSkippedDueToColors);
+  COND_OUT("Inferences blocked due to ordering aftercheck", inferencesBlockedForOrderingAftercheck);
   SEPARATOR;
 
 
   HEADING("Simplifying Inferences",duplicateLiterals+trivialInequalities+
       forwardSubsumptionResolution+backwardSubsumptionResolution+
       forwardDemodulations+backwardDemodulations+forwardLiteralRewrites+
-      condensations+globalSubsumption+evaluations);
+      condensations+globalSubsumption+evaluations+innerRewrites);
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
@@ -239,6 +252,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Fw demodulations", forwardDemodulations);
   COND_OUT("Bw demodulations", backwardDemodulations);
   COND_OUT("Fw literal rewrites", forwardLiteralRewrites);
+  COND_OUT("Inner rewrites", innerRewrites);
   COND_OUT("Condensations", condensations);
   COND_OUT("Global subsumptions", globalSubsumption);
   COND_OUT("Evaluations", evaluations);
@@ -247,13 +261,14 @@ void Statistics::print(ostream& out)
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
       forwardSubsumed+backwardSubsumed+forwardDemodulationsToEqTaut+
-      backwardDemodulationsToEqTaut);
+      backwardDemodulationsToEqTaut+innerRewritesToEqTaut);
   COND_OUT("Simple tautologies", simpleTautologies);
   COND_OUT("Equational tautologies", equationalTautologies);
   COND_OUT("Forward subsumptions", forwardSubsumed);
   COND_OUT("Backward subsumptions", backwardSubsumed);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
+  COND_OUT("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
   SEPARATOR;
 
   HEADING("Generating Inferences",resolution+urResolution+factoring+
@@ -277,8 +292,9 @@ void Statistics::print(ostream& out)
   COND_OUT("Split clauses", splitClauses);
   COND_OUT("Split components", splitComponents);
   COND_OUT("Unique components", uniqueComponents);
-  COND_OUT("Sat splits", satSplits);
+  //COND_OUT("Sat splits", satSplits); // same as split clauses
   COND_OUT("Sat splitting refutations", satSplitRefutations);
+  COND_OUT("SMT fallbacks",smtFallbacks);
   SEPARATOR;
 
   HEADING("Instance Generation",instGenGeneratedClauses+instGenRedundantClauses+

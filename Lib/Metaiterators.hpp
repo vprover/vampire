@@ -282,11 +282,11 @@ struct Lambda
   Lambda(typename identity<std::function<Out(In)>>::type f) : _lambda(f) {}
   DECL_RETURN_TYPE(Out);
   Out operator()(In obj){ return _lambda(obj); }
-  function<Out(In)> _lambda;
+  std::function<Out(In)> _lambda;
 };
 
 template<typename T,typename S>
-Lambda<T,S> lambda(function<T(S)> f){ return Lambda<T,S>(f); }
+Lambda<T,S> lambda(std::function<T(S)> f){ return Lambda<T,S>(f); }
 
 /**
  * A functor class that returns true if the argument is non-zero

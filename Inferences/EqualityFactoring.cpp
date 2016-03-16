@@ -17,6 +17,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/LiteralSelector.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -59,12 +60,15 @@ struct EqualityFactoring::FactorablePairsFn
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*,TermList>,pair<Literal*,TermList> > >);
   OWN_RETURN_TYPE operator() (pair<Literal*,TermList> arg)
   {
-    return pvi( pushPairIntoRightIterator(arg,
-	    getMapAndFlattenIterator(
-		    getFilteredIterator(
-			    getContentIterator(*_cl),
-			    IsDifferentPositiveEqualityFn(arg.first)),
-		    EqHelper::EqualityArgumentIteratorFn())) );
+    auto it1 = getContentIterator(*_cl);
+
+    auto it2 = getFilteredIterator(it1,IsDifferentPositiveEqualityFn(arg.first));
+
+    auto it3 = getMapAndFlattenIterator(it2,EqHelper::EqualityArgumentIteratorFn());
+
+    auto it4 = pushPairIntoRightIterator(arg,it3);
+
+    return pvi( it4 );
   }
 private:
   Clause* _cl;
@@ -72,15 +76,15 @@ private:
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(Clause* cl, EqualityFactoring& parent)
-      : _cl(cl), _cLen(cl->length()), _ordering(parent._salg->getOrdering()) {}
+  ResultFn(Clause* cl, bool afterCheck, Ordering& ordering)
+      : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
   DECL_RETURN_TYPE(Clause*);
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     CALL("EqualityFactoring::ResultFn::operator()");
 
-    Literal* sLit=arg.first.first; //selected literal
-    Literal* fLit=arg.second.first; //factored-out literal
+    Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
+    Literal* fLit=arg.second.first; // fairly boring side literal
     ASS(sLit->isEquality());
     ASS(fLit->isEquality());
 
@@ -103,11 +107,11 @@ struct EqualityFactoring::ResultFn
 
     TermList sLHSS=subst.apply(sLHS,0);
     TermList sRHSS=subst.apply(sRHS,0);
-    if(_ordering.compare(sRHSS,sLHSS)==Ordering::GREATER) {
+    if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
       return 0;
     }
     TermList fRHSS=subst.apply(fRHS,0);
-    if(_ordering.compare(fRHSS,sRHSS)==Ordering::GREATER) {
+    if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
 
@@ -116,11 +120,28 @@ struct EqualityFactoring::ResultFn
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srt);
 
+    Literal* sLitAfter = 0;
+    if (_afterCheck && _cl->numSelected() > 1) {
+      TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+      sLitAfter = subst.apply(sLit, 0);
+    }
+
     unsigned next = 1;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
-      if(curr!=fLit) {
-	(*res)[next++] = subst.apply(curr, 0);
+      if(curr!=sLit) {
+        Literal* currAfter = subst.apply(curr, 0);
+
+        if (sLitAfter) {
+          TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+          if (i < _cl->numSelected() && _ordering.compare(currAfter,sLitAfter) == Ordering::GREATER) {
+            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            res->destroy();
+            return 0;
+          }
+        }
+
+        (*res)[next++] = currAfter;
       }
     }
     ASS_EQ(next,_cLen);
@@ -133,6 +154,7 @@ struct EqualityFactoring::ResultFn
 private:
   Clause* _cl;
   unsigned _cLen;
+  bool _afterCheck;
   Ordering& _ordering;
 };
 
@@ -145,18 +167,20 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
   }
   ASS(premise->numSelected()>0);
 
-  return pvi( getFilteredIterator(
-	  getMappingIterator(
-		  getMapAndFlattenIterator(
-			  getMapAndFlattenIterator(
-				  getFilteredIterator(
-					  premise->getSelectedLiteralIterator(),
-					  IsPositiveEqualityFn()),
-				  EqHelper::LHSIteratorFn(_salg->getOrdering())),
-			  FactorablePairsFn(premise)),
-		  ResultFn(premise, *this)),
-	  NonzeroFn()) );
+  auto it1 = premise->getSelectedLiteralIterator();
 
+  auto it2 = getFilteredIterator(it1,IsPositiveEqualityFn());
+
+  auto it3 = getMapAndFlattenIterator(it2,EqHelper::LHSIteratorFn(_salg->getOrdering()));
+
+  auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
+
+  auto it5 = getMappingIterator(it4,ResultFn(premise,
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering()));
+
+  auto it6 = getFilteredIterator(it5,NonzeroFn());
+
+  return pvi( it6 );
 }
 
 }

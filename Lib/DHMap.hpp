@@ -810,6 +810,18 @@ public:
     }
 
     /**
+     * Return next value via reference and pass corresponding key via argument.
+     * @warning hasNext() must have been called before
+     */
+    inline
+    Val& nextRef(Key& key)
+    {
+      Entry* e= _base.next();
+      key= e->_key;
+      return e->_val;
+    }
+
+    /**
      * Return the next value
      * @warning hasNext() must have been called before
      */

@@ -84,6 +84,8 @@ private:
   void doImmediateReactivation();
   void doPassiveReactivation();
 
+  unsigned lookaheadSelection(Clause* cl, unsigned selCnt);
+
   void selectAndAddToIndex(Clause* cl);
   void removeFromIndex(Clause* cl);
 
@@ -124,6 +126,8 @@ private:
   ScopedPtr<SaturationAlgorithm> _saturationAlgorithm;
 
   OrderingSP _ordering;
+
+  bool _doLookahead;
   ScopedPtr<LiteralSelector> _selector;
 
 

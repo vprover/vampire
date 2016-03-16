@@ -29,6 +29,8 @@ public:
   USE_ALLOCATOR(MaximalLiteralSelector);
 
   MaximalLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options) {}
+
+  bool isBGComplete() const override { return true; }
 protected:
   void doSelection(Clause* c, unsigned eligible);
 };

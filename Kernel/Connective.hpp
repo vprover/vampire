@@ -43,8 +43,10 @@ enum Connective
   FALSE = 10u,
   /** constant true */
   TRUE = 11u,
+  /** name for named formula */
+  NAME = 12u,
   /** fake connective terminator */
-  NOCONN = 12u
+  NOCONN = 13u
 }; // enum Connective
 
 }

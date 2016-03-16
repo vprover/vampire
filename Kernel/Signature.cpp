@@ -119,7 +119,9 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   env.signature->_distinctGroupsAddedTo=true;
 
   Stack<unsigned>* members = env.signature->_distinctGroupMembers[group];
-  if(members->size()<6 || env.options->bfnt()) members->push(this_number);
+  if(members->size()<6 || env.options->bfnt() || 
+     env.options->saturationAlgorithm()==Shell::Options::SaturationAlgorithm::FINITE_MODEL_BUILDING) 
+       members->push(this_number);
 
 } // addToDistinctGroup
 
@@ -486,11 +488,8 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
     //this one is not according the TPTP arithmetic (it doesn't have successor)
     name="$successor";
     break;
-  case Theory::INT_DIVIDE:
-  case Theory::RAT_DIVIDE:
-  case Theory::REAL_DIVIDE:
-    //this one is not according the TPTP arithmetic (it doesn't have division)
-    name="$divide";
+  case Theory::INT_DIVIDES:
+    name = "$divides";
     break;
   case Theory::INT_UNARY_MINUS:
   case Theory::RAT_UNARY_MINUS:
@@ -565,8 +564,20 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::INT_MODULO:
     name = "$modulo";
     break;
+  case Theory::INT_ABS:
+    name = "$abs";
+    break;
+  case Theory::INT_QUOTIENT_E:
+  case Theory::RAT_QUOTIENT_E:
+  case Theory::REAL_QUOTIENT_E:
+    name = "$quotient_e";
+    break;
+  case Theory::RAT_QUOTIENT:
+  case Theory::REAL_QUOTIENT:
+    name = "quotient";
+    break;
   default:
-    ASSERTION_VIOLATION;
+    ASSERTION_VIOLATION_REP(interp);
   }
 
   }

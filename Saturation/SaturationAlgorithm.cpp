@@ -43,6 +43,7 @@
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HyperSuperposition.hpp"
+#include "Inferences/InnerRewriting.hpp"
 #include "Inferences/RefutationSeekerFSE.hpp"
 #include "Inferences/TermAlgebrasReasoning.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
@@ -207,7 +208,7 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
  */
 bool SaturationAlgorithm::isComplete()
 {
-  return _completeOptionSettings;
+  return _completeOptionSettings && !env.statistics->inferencesSkippedDueToColors;
 }
 
 ClauseIterator SaturationAlgorithm::activeClauses()
@@ -1347,6 +1348,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   // create forward simplification engine
+  if (prb.hasEquality() && opt.innerRewriting()) {
+    res->addForwardSimplifierToFront(new InnerRewriting());
+  }
   if (opt.hyperSuperposition()) {
     res->addForwardSimplifierToFront(new HyperSuperposition());
   }
