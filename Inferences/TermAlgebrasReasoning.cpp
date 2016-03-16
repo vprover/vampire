@@ -18,23 +18,24 @@ using namespace Kernel;
 
 namespace Inferences {
 
-  // copy clause c, replacing literal a by b, a must be present
+  // copy clause c, replacing literal a by b
   Clause* replaceLit(Clause *c, Literal *a, Literal *b)
   {
     CALL("replaceLit");
 
     int length = c->length();
-    int i = length - 1;
-    while (i >= 0 && (*c)[i] != a) {
-      i--;
-    }
-
-    ASS_EQ((*c)[i], a);
 
     Clause* res = new(length) Clause(length,
                                      c->inputType(),
                                      new Inference1(Inference::TERM_ALGEBRA_THEORY, c));
-    (*res)[i] = b;
+
+    for (int i = length - 1; i >= 0; i--) {
+      if ((*c)[i] == a)
+        (*res)[i] = b;
+      else
+        (*res)[i] = (*c)[i];
+    }
+
     return res;
   }
 
@@ -145,7 +146,10 @@ namespace Inferences {
                                            *_lit->nthArgument(1)->term()->nthArgument(_index),
                                            _type->arg(_index));
       _index++;
-      return replaceLit(_clause, _lit, l);
+      
+      Clause *res = replaceLit(_clause, _lit, l);
+      res->setAge(_clause->age()+1);
+      return res;
     }
   private:
     unsigned int _length;
@@ -233,8 +237,10 @@ namespace Inferences {
       List<TermList>* old = _subterms;
       _subterms = _subterms->tail();
       delete old;
-      
-      return replaceLit(_clause, _lit, l);
+
+      Clause *res = replaceLit(_clause, _lit, l);
+      res->setAge(_clause->age()+1);
+      return res;
     }
   private:
     Literal* _lit;
