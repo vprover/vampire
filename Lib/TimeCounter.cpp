@@ -385,6 +385,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_Z3_IN_FMB:
     out << "smt search for next domain size assignment";
     break;
+  case TC_NAMING:
+    out << "naming";
+    break;
   default:
     ASSERTION_VIOLATION;
   }
