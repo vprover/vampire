@@ -417,6 +417,7 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
+    SIGN occurrenceSign = (sign == occ.sign()) ? POSITIVE : NEGATIVE;
 
     bool bound = false;
     Term* skolem;
@@ -433,7 +434,7 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
     }
 
     if (!bound) {
-      Term* constant = sign == occ.sign() ? Term::foolFalse() : Term::foolTrue();
+      Term* constant = (occurrenceSign == POSITIVE) ? Term::foolFalse() : Term::foolTrue();
       BindingList::push(Binding(var, constant), occ.gc->bindings);
       removeGenLit(occ.gc, occ.position);
       continue;
@@ -444,14 +445,13 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 
     if (isTrue || isFalse) {
       SIGN bindingSign = isTrue ? POSITIVE : NEGATIVE;
-      if (sign != bindingSign) {
+      if (occurrenceSign != bindingSign) {
         removeGenLit(occ.gc, occ.position);
       }
       continue;
     }
 
-    SIGN retainedSign = (sign == occ.sign()) ? POSITIVE : NEGATIVE;
-    introduceExtendedGenClause(occ.gc, occ.position, GenLit(new BoolTermFormula(TermList(var, false)), retainedSign));
+    introduceExtendedGenClause(occ.gc, occ.position, GenLit(new BoolTermFormula(TermList(var, false)), occurrenceSign));
   }
 }
 
