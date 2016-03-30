@@ -483,21 +483,22 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
   if (binding.isVar()) {
     inlineLet = true;
   } else {
-    Term* term = binding.term();
-    if (term->shared()) {
-      // TODO: magic
-//      if (term->weight() < 6) {
-        inlineLet = true;
+    inlineLet = env.options->getIteInlineLet();
+//    Term* term = binding.term();
+//    if (term->shared()) {
+//      // TODO: magic
+////      if (term->weight() < 6) {
+//        inlineLet = true;
+////      }
+//    } else if (term->isSpecial()) {
+//      Term::SpecialTermData* sd = term->getSpecialData();
+//      if (sd->getType() == Term::SF_FORMULA) {
+//        Formula* f = sd->getFormula();
+//        if ((f->connective() == LITERAL) && f->literal()->shared()) {
+//          inlineLet = true;
+//        }
 //      }
-    } else if (term->isSpecial()) {
-      Term::SpecialTermData* sd = term->getSpecialData();
-      if (sd->getType() == Term::SF_FORMULA) {
-        Formula* f = sd->getFormula();
-        if ((f->connective() == LITERAL) && f->literal()->shared()) {
-          inlineLet = true;
-        }
-      }
-    }
+//    }
   }
 
   TermList processedContents;
