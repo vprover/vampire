@@ -478,13 +478,18 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
 {
   CALL("NewCNF::processLet");
 
-  bool inlineLet = false;
+  bool inlineLet = env.options->getIteInlineLet();
 
   if (binding.isVar()) {
     inlineLet = true;
   } else {
-    inlineLet = env.options->getIteInlineLet();
-//    Term* term = binding.term();
+    Term* term = binding.term();
+    if (term->isSpecial()) {
+      Term::SpecialTermData* sd = term->getSpecialData();
+      if (sd->getType() == Term::SF_FORMULA) {
+        inlineLet = true;
+      }
+    }
 //    if (term->shared()) {
 //      // TODO: magic
 ////      if (term->weight() < 6) {
