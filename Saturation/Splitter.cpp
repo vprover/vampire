@@ -677,6 +677,9 @@ void Splitter::init(SaturationAlgorithm* sa)
 
   const Options& opts = getOptions();
   _branchSelector.init();
+
+  _showSplitting = opts.showSplitting();
+
   _complBehavior = opts.splittingAddComplementary();
   _nonsplComps = opts.splittingNonsplittableComponents();
 
@@ -784,6 +787,20 @@ void Splitter::onAllProcessed()
 
   _branchSelector.recomputeModel(toAdd, toRemove, flushing);
   
+  if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
+    env.beginOutput();
+    env.out() << "[AVATAR] recomputeModel: +";
+    for (int i = 0; i < toAdd.size(); i++) {
+      env.out() << toAdd[i] << ",";
+    }
+    env.out() << " -";
+    for (int i = 0; i < toRemove.size(); i++) {
+      env.out() << toRemove[i] << ",";
+    }
+    env.out() << std::endl;
+    env.endOutput();
+  }
+
   {
     TimeCounter tc(TC_SPLITTING_MODEL_UPDATE); // includes component removals and additions, also processing fast clauses and zero implied splits
 
@@ -951,6 +968,12 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     addSatClauseToSolver(nsClause, false);
 
+    if (_showSplitting) {
+      env.beginOutput();
+      env.out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
+      env.endOutput();
+    }
+
     RSTAT_CTR_INC("ssat_non_splittable_sat_clauses");
   }
 
@@ -1069,6 +1092,12 @@ bool Splitter::doSplitting(Clause* cl)
   }
 
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
+
+  if (_showSplitting) {
+    env.beginOutput();
+    env.out() << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
+    env.endOutput();
+  }
 
   // now do splits
   SplitSet::Iterator sit(*cl->splits());

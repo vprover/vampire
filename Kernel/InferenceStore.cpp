@@ -145,7 +145,7 @@ UnitIterator InferenceStore::getParents(Unit* us)
 }
 
 /**
- * Return @b inner quentified over variables in @b vars
+ * Return @b inner quantified over variables in @b vars
  *
  * It is caller's responsibility to ensure that variables in @b vars are unique.
  */
@@ -164,14 +164,7 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     vstring ty="";
     unsigned t;
     if(t_map.find(var,t)){
-      switch(t){
-        //create types for variable
-        case Sorts::SRT_DEFAULT : ty=""; break; // alternatively could do $i
-        case Sorts::SRT_INTEGER : ty=":$int";break;
-        case Sorts::SRT_RATIONAL : ty=":$rat";break;
-        case Sorts::SRT_REAL    : ty=":$real";break;
-        default: ASSERTION_VIOLATION_REP(t); // user-defined sorts require sort definitions
-      }
+      ty=" : " + env.sorts->sortName(t);
     }
     varStr+=vstring("X")+Int::toString(var)+ty;
     first=false;

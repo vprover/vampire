@@ -1264,37 +1264,22 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     LispListReader pRdr(pair);
 
     const vstring& cName = pRdr.readAtom();
+    unsigned sort = (--boundExprs)->sort; // the should be big enough (
 
     TermList trm;
-    unsigned sort;
+    if (sort == Sorts::SRT_BOOL) {
+      unsigned symb = env.signature->addFreshPredicate(0,"sLP");
+      PredicateType* type = new PredicateType(0, nullptr);
+      env.signature->getPredicate(symb)->setType(type);
 
-    boundExprs--;
-    if (boundExprs->isSharedTerm()) {  // for "nice" (shared) terms, bind directly (don't introduce any "skolems")
-      sort = boundExprs->asTerm(trm);
-
-      LOG4("To be bound as shared ",cName," ",sort);
-      LOG2("Trm ",trm.toString());
+      Formula* atom = new AtomicFormula(Literal::create(symb,0,true,false,nullptr));
+      trm = TermList(Term::createFormula(atom));
     } else {
-      sort = boundExprs->sort;
+      unsigned symb = env.signature->addFreshFunction (0,"sLF");
+      FunctionType* type = new FunctionType(0, nullptr, sort);
+      env.signature->getFunction(symb)->setType(type);
 
-      LOG4("To be bound as by name ",cName," ",sort);
-
-      if (sort == Sorts::SRT_BOOL) {
-        unsigned symb = env.signature->addFreshPredicate(0,"sLP");
-        PredicateType* type = new PredicateType(0, nullptr);
-        env.signature->getPredicate(symb)->setType(type);
-
-        Formula* atom = new AtomicFormula(Literal::create(symb,0,true,false,nullptr));
-        trm = TermList(Term::createFormula(atom));
-      } else {
-        unsigned symb = env.signature->addFreshFunction (0,"sLF");
-        FunctionType* type = new FunctionType(0, nullptr, sort);
-        env.signature->getFunction(symb)->setType(type);
-
-        trm = TermList(Term::createConstant(symb));
-      }
-
-      LOG2("Trm ",trm.toString());
+      trm = TermList(Term::createConstant(symb));
     }
 
     if (!lookup->insert(cName,make_pair(trm,sort))) {
@@ -1332,15 +1317,8 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     LispListReader pRdr(pair);
 
     const vstring& cName = pRdr.readAtom();
-
-    ParseResult boundExprRes = _results.pop();
-    if (boundExprRes.isSharedTerm()) { // let was directly inlined
-      LOG2("BOUND name was INLINED  ",cName);
-      continue;
-    }
-
     TermList boundExpr;
-    boundExprRes.asTerm(boundExpr);
+    _results.pop().asTerm(boundExpr);
 
     LOG2("BOUND name  ",cName);
     LOG2("BOUND term  ",boundExpr.toString());
