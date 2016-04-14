@@ -1336,7 +1336,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
     gie->addFront(new InjectivityGIE());
-    gie->addFront(new AcyclicityGIE());
+    //gie->addFront(new AcyclicityGIE());
   }
 
   res->setGeneratingInferenceEngine(gie);

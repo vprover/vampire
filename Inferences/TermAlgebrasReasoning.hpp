@@ -29,6 +29,20 @@ private:
   static bool distinctConstructorsEquality(Literal *lit);
 };
 
+class AcyclicityISE
+  : public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(AcyclicityISE);
+  USE_ALLOCATOR(AcyclicityISE);
+  
+  Kernel::Clause* simplify(Kernel::Clause* c);
+  
+private:
+  static bool cyclicEquality(Literal *lit);
+  static bool isProperSubterm(TermList s, TermList t);
+};
+
 class InjectivityGIE
   : public GeneratingInferenceEngine {
 public:
@@ -43,7 +57,8 @@ private:
   struct SubtermEqualityFn;
 };
 
-class AcyclicityGIE
+
+  /*class AcyclicityGIE
   : public GeneratingInferenceEngine
 {
 public:
@@ -57,7 +72,7 @@ private:
   static bool oneConstructorPositiveEquality(Literal *lit, TermList &fs, TermList &t);
   struct DeepSubtermIterator;
   struct SubtermInequalityFn;
-};
+  };*/
 
   
 };

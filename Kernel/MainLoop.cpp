@@ -112,6 +112,7 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   }
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
     res->addFront(new DistinctnessISE());
+    //res->addFront(new AcyclicityISE());
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
     res->addFront(new InterpretedEvaluation());

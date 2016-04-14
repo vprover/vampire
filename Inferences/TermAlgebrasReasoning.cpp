@@ -115,6 +115,89 @@ namespace Inferences {
     return (s && t && s != t);
   }
 
+  Clause* AcyclicityISE::simplify(Clause *c)
+  {
+    CALL("AcyclicityISE::simplify");
+
+    int length = c->length();
+    for (int i = length - 1; i >= 0; i--) {
+      Literal *lit = (*c)[i];
+      if (cyclicEquality(lit)) {
+        if (lit->isPositive()) {
+          // cyclic inequality, delete literal from clause
+          Clause* res = removeLit(c, i, new Inference1(Inference::TERM_ALGEBRA_ACYCLICITY, c));
+          res->setAge(c->age());
+          return res;
+        } else {
+          // cyclic disequality, theory tautologies
+          return 0;
+        }
+      }
+    }
+
+    // no cyclic equalities were found
+    return c;
+  }
+
+  bool AcyclicityISE::cyclicEquality(Literal *lit)
+  {
+    CALL("AcyclicityISE::cyclicEquality");
+
+    if (!lit->isEquality())
+      return false;
+
+    TermList l = *lit->nthArgument(0);
+    TermList r = *lit->nthArgument(1);
+
+    bool lcons = l.isTerm() && Lib::env.signature->getFunction(l.term()->functor())->termAlgebraCons();
+    bool rcons = r.isTerm() && Lib::env.signature->getFunction(r.term()->functor())->termAlgebraCons();
+
+    if (lcons == rcons) //XOR
+      return false;
+
+    if (lcons) {
+      return isProperSubterm(r, l);
+    } else {
+      return isProperSubterm(l, r);
+    }
+  }
+
+  /*
+   * True iff s is a proper subterm of t. t must be a 
+   */
+  bool AcyclicityISE::isProperSubterm(TermList s, TermList t)
+  {
+    CALL("AcyclicityISE::isProperSubterm");
+
+    ASS(t.isTerm());
+
+    Stack<TermList> todo(t.term()->arity()); // TermList * sort
+    todo.push(t);
+
+    bool notFirst = false;
+
+    while (todo.isNonEmpty()) {
+      TermList current = todo.pop();
+
+      //TODO extend the rule to work whenever current unifies with s
+      if (notFirst && TermList::equals(current, s))
+        return true;
+
+      notFirst = true;
+
+      Signature::Symbol *cons = termAlgebraConstructor(&current);
+      // explore only under constructors, not other symbols
+      if (cons) {
+        Term::Iterator it(current.term());
+        while (it.hasNext()) {
+          todo.push(it.next());
+        }
+      }
+    }
+  
+    return false;
+  }
+
   /*
    * Given a clause f(x1, ..., xn) = f(y1, ... yn) \/ A, this iterator
    * returns the clauses x1 = y1 \/ A up to xn = yn \/ A. For any
@@ -213,6 +296,7 @@ namespace Inferences {
    * shouldn't compromise soundness (to be verified). For any other
    * literal the iterator is empty
    */
+  /*
   struct AcyclicityGIE::DeepSubtermIterator
   {
     DeepSubtermIterator(Clause *clause, Literal *lit)
@@ -321,8 +405,6 @@ namespace Inferences {
     return res;
   }
 
-  // true iff the literal has the form f(x1 ... xn) = f(y1 ... yn)
-  // where f is a term algebra constructor
   bool AcyclicityGIE::oneConstructorPositiveEquality(Literal *lit, TermList &fs, TermList &t)
   {
     CALL("AcyclicityGIE::oneConstructorPositiveEquality");
@@ -348,5 +430,6 @@ namespace Inferences {
     }
     return true;
   }
+  */
   
 }
