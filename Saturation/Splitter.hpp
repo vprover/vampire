@@ -230,6 +230,8 @@ private:
   bool allSplitLevelsActive(SplitSet* s);
 
   //settings
+  bool _showSplitting;
+
   Options::SplittingAddComplementary _complBehavior;
   Options::SplittingNonsplittableComponents _nonsplComps;
   unsigned _flushPeriod;

@@ -487,11 +487,15 @@ void Options::Options::init()
     _lookup.insert(&_showDefinitions);
     _showDefinitions.tag(OptionTag::DEVELOPMENT);
 
-
     _showNew = BoolOptionValue("show_new","",false);
     _showNew.description="Show new (generated) clauses";
     _lookup.insert(&_showNew);
     _showNew.tag(OptionTag::DEVELOPMENT);
+
+    _showSplitting = BoolOptionValue("show_splitting","",false);
+    _showSplitting.description="Show updates within AVATAR";
+    _lookup.insert(&_showSplitting);
+    _showSplitting.tag(OptionTag::DEVELOPMENT);
 
     _showNewPropositional = BoolOptionValue("show_new_propositional","",false);
     _showNewPropositional.description="";

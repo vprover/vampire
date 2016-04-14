@@ -1658,6 +1658,7 @@ public:
   bool showDefinitions() const { return _showDefinitions.actualValue; }
   InterpolantMode showInterpolant() const { return _showInterpolant.actualValue; }
   bool showNew() const { return _showNew.actualValue; }
+  bool showSplitting() const { return _showSplitting.actualValue; }
   bool showNewPropositional() const { return _showNewPropositional.actualValue; }
   bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace.actualValue; }
   void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace.actualValue = newVal; }
@@ -2124,6 +2125,7 @@ private:
   BoolOptionValue _showDefinitions;
   ChoiceOptionValue<InterpolantMode> _showInterpolant;
   BoolOptionValue _showNew;
+  BoolOptionValue _showSplitting;
   BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;
   BoolOptionValue _showOptions;
