@@ -258,7 +258,7 @@ void Skolem::preskolemise (Formula* f)
       }
 
       {
-        Formula* def = new BinaryFormula(IFF, f, SubstHelper::apply(f->qarg(), localSubst));
+        Formula* def = new BinaryFormula(IMP, f, SubstHelper::apply(f->qarg(), localSubst));
 
         if (arity > 0) {
           def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
