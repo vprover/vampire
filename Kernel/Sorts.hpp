@@ -62,6 +62,7 @@ public:
     const unsigned id() const { return _id; }
 
     virtual bool hasStructuredSort(StructuredSort sort) { return false; }
+    virtual bool isTupleSort() { return false; }
   protected:
     vstring _name;
     unsigned _id;
@@ -116,6 +117,16 @@ public:
 
   };
 
+  class TupleSort : public SortInfo
+  {
+  public:
+    CLASS_NAME(TupleSort);
+    USE_ALLOCATOR(TupleSort);
+
+    TupleSort(vstring name, unsigned sort) : SortInfo(name, sort) {}
+    bool isTupleSort() override { return true; }
+  };
+
   unsigned addSort(const vstring& name, bool& added);
   unsigned addSort(const vstring& name);
 
@@ -126,12 +137,19 @@ public:
     return static_cast<ArraySort*>(_sorts[sort]);
   }
 
+  unsigned getTupleSort(unsigned arity, unsigned sorts[]);
+
   bool haveSort(const vstring& name);
   bool findSort(const vstring& name, unsigned& idx);
 
   bool hasStructuredSort(unsigned sort, StructuredSort structured){
     if(sort > _sorts.size()) return false;
     return _sorts[sort]->hasStructuredSort(structured);
+  }
+
+  bool isTupleSort(unsigned sort) {
+    if(sort > _sorts.size()) return false;
+    return _sorts[sort]->isTupleSort();
   }
 
   const vstring& sortName(unsigned idx) const;

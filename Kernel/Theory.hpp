@@ -477,6 +477,12 @@ private:
   }
 
   DHMap<pair<unsigned,StructuredSortInterpretation>,unsigned> _structuredSortInterpretations;
+
+public:
+  unsigned getTupleFunctor(unsigned arity, unsigned sorts[]);
+
+private:
+  DHMap<unsigned,unsigned> _tupleFunctors;
 };
 
 typedef Theory::Interpretation Interpretation;

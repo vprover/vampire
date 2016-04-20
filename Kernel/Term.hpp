@@ -26,6 +26,8 @@
 #include "Lib/VString.hpp"
 
 #include "MatchTag.hpp"
+#include "Sorts.hpp"
+#include "SortHelper.hpp"
 
 
 #define TERM_DIST_VAR_UNKNOWN 0x7FFFFF
@@ -207,7 +209,8 @@ public:
   static const unsigned SF_ITE = 0xFFFFFFFF;
   static const unsigned SF_LET = 0xFFFFFFFE;
   static const unsigned SF_FORMULA = 0xFFFFFFFD;
-  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFD;
+  static const unsigned SF_TUPLE = 0xFFFFFFFC;
+  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFC;
 
   class SpecialTermData
   {
@@ -229,6 +232,11 @@ public:
       struct {
         Formula * formula;
       } _formulaData;
+      struct {
+        unsigned functor;
+//        unsigned arity;
+        TermList* elements;
+      } _tupleData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
@@ -247,6 +255,8 @@ public:
       return getType() == SF_ITE ? _iteData.sort : _letData.sort;
     }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
+    unsigned getTupleFunctor() const { return _tupleData.functor; }
+    TermList* getTupleElements() const { return _tupleData.elements; }
   };
 
 
@@ -264,6 +274,7 @@ public:
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort);
   static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort);
   static Term* createFormula(Formula* formula);
+  static Term* createTuple(unsigned arity, unsigned* sorts, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 

@@ -207,6 +207,9 @@ void TPTP::parse()
     case END_STORE:
       endStore();
       break;
+    case END_TUPLE:
+      endTuple();
+      break;
     default:
 #if VDEBUG
       throw ParseErrorException(((vstring)"Don't know how to process state ")+toString(s));
@@ -341,6 +344,8 @@ vstring TPTP::toString(Tag tag)
     return "$ite";
   case T_LET:
     return "$let";
+  case T_TUPLE:
+    return "$tuple";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -1646,6 +1651,7 @@ void TPTP::termInfix()
     case T_COMMA:
     case T_SEMICOLON:
     case T_RPAR:
+    case T_RBRA:
     case T_ASS:
       _states.push(END_TERM);
       return;
@@ -1695,7 +1701,11 @@ void TPTP::funApp()
   Token tok = getTok(0);
   resetToks();
 
-  _strings.push(tok.content);
+  if (tok.tag == T_LBRA) {
+    _strings.push(toString(T_TUPLE));
+  } else {
+    _strings.push(tok.content);
+  }
 
   switch (tok.tag) {
     // predefined functions
@@ -1733,6 +1743,11 @@ void TPTP::funApp()
       addTagState(T_COMMA);
       _states.push(BINDING);
       consumeToken(T_LPAR);
+      return;
+
+    case T_LBRA:
+      _states.push(ARGS);
+      _ints.push(1); // the arity of the function symbol is at least 1
       return;
 
     case T_VAR:
@@ -1881,6 +1896,28 @@ void TPTP::endLet()
 } // endLet
 
 /**
+ * Process the end of the tuple expression
+ * @since 19/04/2016 Gothenburg
+ */
+void TPTP::endTuple()
+{
+  CALL("TPTP::endTuple");
+
+  unsigned arity = (unsigned)_ints.pop();
+  ASS_GE(_termLists.size(), arity);
+
+  TermList* elements = new TermList[arity];
+  unsigned* sorts = new unsigned[arity];
+  for (int i = arity - 1; i >= 0; i--) {
+    elements[i] = _termLists.pop();
+    sorts[i] = sortOf(elements[i]);
+  }
+
+  Term* t = Term::createTuple(arity, sorts, elements);
+  _termLists.push(TermList(t));
+} // endTuple
+
+/**
  * Read a non-empty sequence of arguments, including the right parentheses
  * and save the resulting sequence of TermList and their number
  * @since 10/04/2011 Manchester
@@ -1911,8 +1948,11 @@ void TPTP::endArgs()
   case T_RPAR:
     resetToks();
     return;
+  case T_RBRA:
+    resetToks();
+    return;
   default:
-    PARSE_ERROR(", or ) expected after an end of a term",tok);
+    PARSE_ERROR(", ) or ] expected after an end of a term",tok);
   }
 } // endArgs
 
@@ -2010,6 +2050,7 @@ void TPTP::term()
     case T_SELECT:
     case T_STORE:
     case T_LET:
+    case T_LBRA:
       _states.push(TERM_INFIX);
       _states.push(FUN_APP);
       return;
@@ -2075,6 +2116,11 @@ void TPTP::endTerm()
 
   if (name == toString(T_LET)) {
     _states.push(END_LET);
+    return;
+  }
+
+  if (name == toString(T_TUPLE)) {
+    _states.push(END_TUPLE);
     return;
   }
 
@@ -3101,6 +3147,7 @@ void TPTP::simpleFormula()
   case T_SELECT:
   case T_STORE:
   case T_LET:
+  case T_LBRA:
     _states.push(FORMULA_INFIX);
     _states.push(FUN_APP);
     return;
@@ -3935,6 +3982,8 @@ const char* TPTP::toString(State s)
     return "UNBIND_VARIABLES";
   case END_ITE:
     return "END_ITE";
+  case END_TUPLE:
+    return "END_TUPLE";
   default:
     cout << (int)s << "\n";
     ASS(false);

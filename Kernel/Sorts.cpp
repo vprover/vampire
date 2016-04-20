@@ -149,6 +149,33 @@ VirtualIterator<unsigned> Sorts::getArraySorts()
   return pvi(getMappingIterator(arraySorts,SortInfoToInt()));
 }
 
+unsigned Sorts::getTupleSort(unsigned arity, unsigned sorts[])
+{
+  CALL("Sorts::getTupleSort");
+
+  // First check if it already exists
+  vstring name = "$tuple(";
+  for (unsigned i = 0; i < arity; i++) {
+    name += env.sorts->sortName(sorts[i]);
+    if (i != arity - 1) {
+      name += ",";
+    }
+  }
+  name += ")";
+  unsigned result;
+  if(_sortNames.find(name, result)) {
+    return result;
+  }
+
+  _hasSort = true;
+  result = _sorts.length();
+
+  _sorts.push(new TupleSort(name,result));
+  _sortNames.insert(name, result);
+
+  return result;
+}
+
 /**
  * True if this collection contains the sort @c name.
  * @author Andrei Voronkov

@@ -428,6 +428,20 @@ vstring Term::headToString() const
         ASS_EQ(arity(),2);
         return "$ite(" + sd->getCondition()->toString() + ",";
       }
+      case Term::SF_TUPLE: {
+        ASS_EQ(arity(), 0);
+        vstring termList = "";
+        unsigned functor = sd->getTupleFunctor();
+        unsigned arity = env.signature->getFunction(functor)->arity();
+        TermList* elements = sd->getTupleElements();
+        for (unsigned i = 0; i < arity; i++) {
+          termList += elements[i].toString();
+          if (i != arity - 1) {
+            termList += ", ";
+          }
+        }
+        return "[" + termList + "]";
+      }
       default:
         ASSERTION_VIOLATION;
     }
@@ -825,6 +839,22 @@ Term* Term::createFormula(Formula* formula)
   Term* s = new(0,sizeof(SpecialTermData)) Term;
   s->makeSymbol(SF_FORMULA, 0);
   s->getSpecialData()->_formulaData.formula = formula;
+  return s;
+}
+
+/** Create a new complex term, and insert it into the sharing
+ *  structure if all arguments are shared.
+ */
+Term* Term::createTuple(unsigned arity, unsigned* sorts, TermList* elements) {
+  CALL("Term::createTuple");
+  unsigned tupleFunctor = Theory::instance()->getTupleFunctor(arity, sorts);
+  Term* s = new(0, sizeof(SpecialTermData)) Term;
+  s->makeSymbol(SF_TUPLE, 0);
+  s->getSpecialData()->_tupleData.functor  = tupleFunctor;
+  s->getSpecialData()->_tupleData.elements = elements;
+//  TermList* ss = s->args();
+//  *ss = TermList(Term::create(tupleFunctor, arity, elements));
+//  ASS(ss->next()->isEmpty());
   return s;
 }
 

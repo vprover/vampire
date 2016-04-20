@@ -101,6 +101,11 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, unsigned& resultSo
     case Term::SF_FORMULA:
       resultSort = Sorts::SRT_BOOL;
       return true;
+    case Term::SF_TUPLE: {
+      unsigned functor = t->getSpecialData()->getTupleFunctor();
+      resultSort = env.signature->getFunction(functor)->fnType()->result();
+      return true;
+    }
     default:
       ASS(!t->isSpecial());
       resultSort = getResultSort(t);

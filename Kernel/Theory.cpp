@@ -1087,7 +1087,19 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
   return skolemFunction; 
 }
 
-    
+unsigned Theory::getTupleFunctor(unsigned arity, unsigned sorts[]) {
+  CALL("Theory::getTupleFunctor");
+  unsigned tupleSort = env.sorts->getTupleSort(arity, sorts);
+  unsigned tupleFunctor;
+  if (!_tupleFunctors.find(tupleSort, tupleFunctor)) {
+    tupleFunctor = env.signature->addFunction("$tuple", arity);
+    _tupleFunctors.set(tupleSort, tupleFunctor);
+    FunctionType* tupleType = new FunctionType(arity, sorts, tupleSort);
+    env.signature->getFunction(tupleFunctor)->setType(tupleType);
+  }
+  return tupleFunctor;
+}
+
 /**
  * This function creates a type for converion function @c i.
  *

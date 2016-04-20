@@ -161,6 +161,8 @@ public:
     T_ITE,
     /** $let: FOOL level-polymorphic let-in */
     T_LET,
+    /** $tuple */
+    T_TUPLE
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -221,6 +223,8 @@ public:
     UNBIND_VARIABLES,
     /** end of an if-then-else expression */
     END_ITE,
+    /** read tuple */
+    END_TUPLE,
     /** check the end of arguments */
     END_ARGS,
     /** middle of equality */
@@ -638,6 +642,7 @@ private:
   void endLet();
   void endSelect();
   void endStore();
+  void endTuple();
   void addTagState(Tag);
 
   unsigned readSort();
