@@ -26,6 +26,18 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
         case Term::SF_FORMULA:
           return Term::createFormula(process(sd->getFormula()));
 
+      case Term::SF_LET_TUPLE:
+        if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
+          // function symbols, defined inside $let are expected to be
+          // disjoint and fresh symbols are expected to be fresh
+          ASS_NEQ(sd->getFunctor(), _symbol);
+          ASS_NEQ(sd->getFunctor(), _freshSymbol);
+        }
+        return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
+
+      case Term::SF_TUPLE:
+        return Term::createTuple(process(TermList(sd->getTupleTerm())).term());
+
 #if VDEBUG
         default:
           ASSERTION_VIOLATION;

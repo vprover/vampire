@@ -51,6 +51,15 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
                                         process(*term->nthArgument(0)),
                                         sd->getSort()));
 
+      case Term::SF_LET_TUPLE:
+        return TermList(Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(),
+                                             process(sd->getBinding()),
+                                             process(*term->nthArgument(0)),
+                                             sd->getSort()));
+
+      case Term::SF_TUPLE:
+        return TermList(Term::createTuple(process(TermList(sd->getTupleTerm())).term()));
+
       default:
         ASSERTION_VIOLATION_REP(term->toString());;
     }
