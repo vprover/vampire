@@ -62,11 +62,16 @@ void SineSymbolExtractor::addSymIds(Term* term, Stack<SymId>& ids)
         case Term::SF_ITE:
           extractFormulaSymbols(sd->getCondition(), ids);
               break;
-        case Term::SF_LET: {
+        case Term::SF_LET:
+        case Term::SF_LET_TUPLE: {
           TermList binding = sd->getBinding();
           if (binding.isTerm()) {
             addSymIds(binding.term(), ids);
           }
+          break;
+        }
+        case Term::SF_TUPLE: {
+          addSymIds(sd->getTupleTerm(), ids);
           break;
         }
         default:
