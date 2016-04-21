@@ -212,11 +212,16 @@ void SymCounter::count(Term* term, int polarity, int add)
         case Term::SF_ITE:
           count(sd->getCondition(), 0, add);
               break;
-        case Term::SF_LET: {
+        case Term::SF_LET:
+        case Term::SF_LET_TUPLE: {
           TermList binding = sd->getBinding();
           if (binding.isTerm()) {
             count(binding.term(), 1, add);
           }
+          break;
+        }
+        case Term::SF_TUPLE: {
+          count(sd->getTupleTerm(), 0, add);
           break;
         }
         default:
