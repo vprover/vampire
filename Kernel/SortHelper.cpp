@@ -330,8 +330,20 @@ void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSor
       break;
     }
 
+    case Term::SF_LET_TUPLE: {
+      TermList binding = sd->getBinding();
+      Signature::Symbol* symbol = env.signature->getFunction(sd->getFunctor());
+      collectVariableSorts(binding, symbol->fnType()->result(), map);
+      ts.push(term->nthArgument(0));
+      break;
+    }
+
     case Term::SF_FORMULA:
       collectVariableSorts(sd->getFormula(), map);
+      break;
+
+    case Term::SF_TUPLE:
+      collectVariableSorts(sd->getTupleTerm(), map);
       break;
 
 #if VDEBUG
