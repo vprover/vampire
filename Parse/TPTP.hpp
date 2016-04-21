@@ -233,8 +233,12 @@ public:
     END_LET,
     /** start of function or predicate binding inside $let */
     BINDING,
+    /** start of tuple binding inside $let */
+    TUPLE_BINDING,
     /** end of function or predicate binding inside $let */
     END_BINDING,
+    /** end of tuple binding inside $let */
+    END_TUPLE_BINDING,
     /** end of select array terms */
     END_SELECT,
     /** end of store array terms */
@@ -503,6 +507,12 @@ private:
   bool findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol);
   /** the scope of the currently parsed $let-term */
   LetFunctionsScope _currentLetScope;
+
+  typedef pair<unsigned, bool> LetBinding;
+  typedef Stack<LetBinding> LetBindingScope;
+  Stack<LetBindingScope> _letBindings;
+  LetBindingScope _currentBindingScope;
+
   /** model definition formula */
   bool _modelDefinition;
 
@@ -616,6 +626,7 @@ private:
   void simpleType();
   void args();
   void varList();
+  void tupleBinding();
   void term();
   void termInfix();
   void endTerm();
@@ -639,6 +650,7 @@ private:
   void endIte();
   void binding();
   void endBinding();
+  void endTupleBinding();
   void endLet();
   void endSelect();
   void endStore();
@@ -661,6 +673,8 @@ private:
  // unsigned addOverloadedArrayFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,Theory::Interpretation array_select);
   unsigned sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
+
+  bool findInterpretedPredicate(vstring name, unsigned arity);
 
 public:
   // make the tptp routines for dealing with overflown constants available to other parsers

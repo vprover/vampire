@@ -95,6 +95,7 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, unsigned& resultSo
 
   switch(t->functor()) {
     case Term::SF_LET:
+    case Term::SF_LET_TUPLE:
     case Term::SF_ITE:
       resultSort = t->getSpecialData()->getSort();
       return true;
@@ -102,8 +103,7 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, unsigned& resultSo
       resultSort = Sorts::SRT_BOOL;
       return true;
     case Term::SF_TUPLE: {
-      unsigned functor = t->getSpecialData()->getTupleFunctor();
-      resultSort = env.signature->getFunction(functor)->fnType()->result();
+      resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
       return true;
     }
     default:
@@ -500,7 +500,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     Term* ta = arg.term();
     unsigned argSort = getResultSort(ta);
     if (type.arg(i) != argSort) {
-      cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << endl;
+      cout << "error with expected " << env.sorts->sortName(type.arg(i)) << " and actual " << env.sorts->sortName(argSort) << " when functor is " << t->functor() << " and arg is " << arg << endl;
       return false;
     }
   }

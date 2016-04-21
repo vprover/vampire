@@ -94,9 +94,6 @@ void TPTP::parse()
 #ifdef DEBUG_SHOW_STATE
     cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
     cout << toString(s) << endl;
-    cout << "----------------------------------------" << endl;
-    printStacks();
-    cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl << endl;
 #endif
     switch (s) {
     case UNIT_LIST:
@@ -198,6 +195,12 @@ void TPTP::parse()
     case END_BINDING:
       endBinding();
       break;
+    case TUPLE_BINDING:
+      tupleBinding();
+      break;
+    case END_TUPLE_BINDING:
+      endTupleBinding();
+      break;
     case END_LET:
       endLet();
       break;
@@ -217,6 +220,11 @@ void TPTP::parse()
       throw ParseErrorException("Don't know how to process state ");
 #endif
     }
+#ifdef DEBUG_SHOW_STATE
+    cout << "----------------------------------------" << endl;
+    printStacks();
+    cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl << endl;
+#endif
   }
 } // TPTP::parse()
 
@@ -1772,48 +1780,55 @@ void TPTP::funApp()
 void TPTP::binding()
 {
   CALL("TPTP::binding");
-  _strings.push(name());
 
-  Token tok = getTok(0);
-
-  switch (tok.tag) {
-    case T_ASS:
-    case T_LPAR:
+  switch (getTok(0).tag) {
+    case T_NAME: {
+      _strings.push(getTok(0).content);
       resetToks();
-      _states.push(END_BINDING);
-      _states.push(TERM);
-      if (tok.tag == T_LPAR) {
-        addTagState(T_ASS);
-        addTagState(T_RPAR);
-        _states.push(VAR_LIST);
-      } else {
-        // empty list of vars
-        _varLists.push(0);
-        _sortLists.push(0);
-        _bindLists.push(0);
-      }
-      break;
 
+      Token tok = getTok(0);
+
+      switch (tok.tag) {
+        case T_ASS:
+        case T_LPAR:
+          resetToks();
+          _states.push(END_BINDING);
+          _states.push(TERM);
+          if (tok.tag == T_LPAR) {
+            addTagState(T_ASS);
+            addTagState(T_RPAR);
+            _states.push(VAR_LIST);
+          } else {
+            // empty list of vars
+            _varLists.push(0);
+            _sortLists.push(0);
+            _bindLists.push(0);
+          }
+          return;
+
+        default:
+          PARSE_ERROR(toString(T_LPAR) + " or " + toString(T_ASS) + " expected", tok);
+      }
+    }
+    case T_LBRA: {
+      resetToks();
+      _states.push(END_TUPLE_BINDING);
+      _states.push(TERM);
+      addTagState(T_ASS);
+      addTagState(T_RBRA);
+      _states.push(TUPLE_BINDING);
+      break;
+    }
     default:
-      PARSE_ERROR(toString(T_LPAR) + " or " + toString(T_ASS) + "expected", tok);
+      PARSE_ERROR("name or tuple expected",getTok(0));
   }
 }
 
 void TPTP::endBinding() {
   CALL("TPTP::endBinding");
 
-  TermList body = _termLists.top();
-  unsigned bodySort = sortOf(body);
-  bool isPredicate = bodySort == Sorts::SRT_BOOL;
-
   Formula::VarList* vars = _varLists.top(); // will be poped in endLet()
-  unsigned arity = (unsigned)vars->length();
-
-  vstring name = _strings.pop();
-
-  unsigned symbolNumber = isPredicate ? env.signature->addFreshPredicate(arity,name.c_str())
-                                      : env.signature->addFreshFunction (arity,name.c_str());
-
+  _sortLists.pop();
   Stack<unsigned> argSorts(0);
   Formula::VarList::Iterator vit(vars);
   while (vit.hasNext()) {
@@ -1824,11 +1839,22 @@ void TPTP::endBinding() {
     argSorts.push(sorts->head());
   }
 
+  unsigned arity = (unsigned)vars->length();
+
+  TermList binding = _termLists.top();
+  unsigned bindingSort = sortOf(binding);
+  bool isPredicate = bindingSort == Sorts::SRT_BOOL;
+
+  vstring name = _strings.pop();
+
+  unsigned symbolNumber = isPredicate ? env.signature->addFreshPredicate(arity,name.c_str())
+                                      : env.signature->addFreshFunction (arity,name.c_str());
+
   if (isPredicate) {
     PredicateType* type = new PredicateType(arity, argSorts.begin());
     env.signature->getPredicate(symbolNumber)->setType(type);
   } else {
-    FunctionType* type = new FunctionType(arity, argSorts.begin(), bodySort);
+    FunctionType* type = new FunctionType(arity, argSorts.begin(), bindingSort);
     env.signature->getFunction(symbolNumber)->setType(type);
   }
 
@@ -1843,6 +1869,7 @@ void TPTP::endBinding() {
   }
 
   _currentLetScope.push(LetFunction(functionName, functionReference));
+  _currentBindingScope.push(LetBinding(symbolNumber, false));
 
   Token tok = getTok(0);
   if (tok.tag == T_SEMICOLON) {
@@ -1851,10 +1878,71 @@ void TPTP::endBinding() {
   } else {
     _letScopes.push(_currentLetScope);
     _currentLetScope = LetFunctionsScope();
+
+    _letBindings.push(_currentBindingScope);
+    _currentBindingScope = LetBindingScope();
   }
 
   _states.push(UNBIND_VARIABLES);
 } // endBinding
+
+void TPTP::endTupleBinding() {
+  CALL("TPTP::endTupleBinding");
+
+  IntList* symbols = _varLists.top();
+  SortList* sorts = _sortLists.pop();
+
+  ASS_EQ(symbols->length(), sorts->length());
+
+  unsigned arity = (unsigned)symbols->length();
+
+  Set<vstring> uniqueSymbolNames;
+  unsigned *ss = new unsigned[arity];
+  for (unsigned i = 0; i < arity; i++) {
+    vstring name = _strings.pop();
+    if (uniqueSymbolNames.contains(name)) {
+      USER_ERROR("The symbol " + name + " is defined twice in a tuple $let-expression.");
+    } else {
+      uniqueSymbolNames.insert(name);
+    }
+
+    unsigned sort = sorts->nth(arity - i - 1);
+    ss[arity - i - 1] = sort;
+
+    unsigned symbol = (unsigned)symbols->nth(arity - i - 1);
+    bool isPredicate = sort == Sorts::SRT_BOOL;
+    LetFunctionName functionName(name, 0);
+    LetFunctionReference functionReference(symbol, isPredicate);
+    _currentLetScope.push(LetFunction(functionName, functionReference));
+  }
+
+  unsigned tupleFunctor = Theory::instance()->getTupleFunctor(arity, ss);
+  unsigned sort = env.signature->getFunction(tupleFunctor)->fnType()->result();
+
+  TermList binding = _termLists.top();
+  unsigned bindingSort = sortOf(binding);
+
+  ASS_REP(env.sorts->isTupleSort(bindingSort), env.sorts->sortName(bindingSort));
+
+  if (sort != bindingSort) {
+    USER_ERROR("The sort of the tuple pattern " + env.sorts->sortName(sort) + " "
+               "does not match the sort of binding " + env.sorts->sortName(bindingSort));
+  }
+
+  _currentBindingScope.push(LetBinding(tupleFunctor, true));
+
+  Token tok = getTok(0);
+  if (tok.tag == T_SEMICOLON) {
+    resetToks();
+    _states.push(BINDING);
+  } else {
+    _letScopes.push(_currentLetScope);
+    _currentLetScope = LetFunctionsScope();
+
+    _letBindings.push(_currentBindingScope);
+    _currentBindingScope = LetBindingScope();
+  }
+} // endTupleBinding
 
 bool TPTP::findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol) {
   CALL("TPTP::findLetSymbol");
@@ -1886,11 +1974,19 @@ void TPTP::endLet()
 
   TermList let = _termLists.pop();
   unsigned sort = sortOf(let);
-  LetFunctionsScope::TopFirstIterator functions(_letScopes.pop());
-  while (functions.hasNext()) {
-    unsigned symbol = functions.next().second.first;
-    _sortLists.pop(); //TODO add sort information to Let term
-    let = TermList(Term::createLet(symbol, _varLists.pop(), _termLists.pop(), let, sort));
+
+  _letScopes.pop();
+  LetBindingScope scope = _letBindings.pop(); // TODO: inlining this crashes the program, WTF?
+  LetBindingScope::TopFirstIterator bindings(scope);
+  while (bindings.hasNext()) {
+    LetBinding binding = bindings.next();
+    unsigned symbol = binding.first;
+    bool isTuple = binding.second;
+    if (isTuple) {
+      let = TermList(Term::createTupleLet(symbol, _varLists.pop(), _termLists.pop(), let, sort));
+    } else {
+      let = TermList(Term::createLet(symbol, _varLists.pop(), _termLists.pop(), let, sort));
+    }
   }
   _termLists.push(let);
 } // endLet
@@ -2035,6 +2131,57 @@ void TPTP::varList()
 } // varList
 
 /**
+ * Read a non-empty sequence of constants and save the resulting
+ * sequence of TermList and their number
+ * @since 20/04/2016 Gothenburg
+ */
+void TPTP::tupleBinding()
+{
+  CALL("TPTP::tupleBinding");
+
+  Stack<unsigned> reverseConstants;
+  Stack<unsigned> reverseSorts;
+
+  for (;;) {
+    vstring nm = name();
+    _strings.push(nm);
+
+    unsigned sort = Sorts::SRT_DEFAULT;
+    if (getTok(0).tag == T_COLON) {
+      resetToks();
+      sort = readSort();
+    }
+
+    unsigned symbol;
+    if (sort == Sorts::SRT_BOOL) {
+      symbol = env.signature->addFreshPredicate(0, nm.c_str());
+    } else {
+      symbol = env.signature->addFreshFunction(0, nm.c_str());
+      env.signature->getFunction(symbol)->setType(new FunctionType(sort));
+    }
+
+    reverseConstants.push(symbol);
+    reverseSorts.push(sort);
+
+    if (getTok(0).tag != T_COMMA) {
+      break;
+    }
+
+    resetToks();
+  }
+
+  IntList*  constants = IntList::empty();
+  SortList* sorts = SortList::empty();
+  while (reverseConstants.isNonEmpty() && reverseSorts.isNonEmpty()) {
+    constants = constants->cons(reverseConstants.pop());
+    sorts = sorts->cons(reverseSorts.pop());
+  }
+
+  _varLists.push(constants);
+  _sortLists.push(sorts);
+} // constantList
+
+/**
  * Read a term and save the resulting TermList
  * @since 10/04/2011 Manchester
  * @since 13/04/2015 Gothenburg, major changes to support FOOL
@@ -2134,7 +2281,9 @@ void TPTP::endTerm()
   }
 
   unsigned symbol;
-  if (env.signature->predicateExists(name, arity) || findLetSymbol(true, name, arity, symbol)) {
+  if (env.signature->predicateExists(name, arity) ||
+      findLetSymbol(true, name, arity, symbol) ||
+      findInterpretedPredicate(name, arity)) {
     // if the function symbol is actually a predicate,
     // we need to construct a formula and wrap it inside a term
     _formulas.push(createPredicateApplication(name, arity));
@@ -3268,6 +3417,24 @@ bool TPTP::higherPrecedence(int c1,int c2)
   ASSERTION_VIOLATION;
 } // higherPriority
 
+bool TPTP::findInterpretedPredicate(vstring name, unsigned arity) {
+  CALL("TPTP::findInterpretedPredicate");
+
+  if (name == "$evaleq" || name == "$equal" || name == "$distinct") {
+    return true;
+  }
+
+  if (name == "$is_int" || name == "$is_rat") {
+    return arity == 1;
+  }
+
+  if (name == "$less" || name == "$lesseq" || name == "$greater" || name == "$greatereq" || name == "$divides") {
+    return arity == 2;
+  }
+
+  return false;
+}
+
 /**
  * Create an and- or or-formula flattening its lhs and rhs if necessary.
  * @since 07/07/2011 Manchester
@@ -3450,7 +3617,7 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_TO_REAL,
 				 Theory::REAL_TO_REAL);
   }
-
+ASSERTION_VIOLATION;
   USER_ERROR((vstring)"Invalid function name: " + name);
 } // addFunction
 
@@ -3974,8 +4141,12 @@ const char* TPTP::toString(State s)
     return "MID_EQ";
   case BINDING:
     return "BINDING";
+  case TUPLE_BINDING:
+    return "TUPLE_BINDING";
   case END_BINDING:
     return "END_BINDING";
+  case END_TUPLE_BINDING:
+    return "END_TUPLE_BINDING";
   case END_LET:
     return "END_LET";
   case UNBIND_VARIABLES:
@@ -4050,12 +4221,10 @@ void TPTP::printStacks() {
     if (!vit.hasNext()) {
       cout << " <empty>";
     } else {
-      cout << " [";
       while (vit.hasNext()) {
         cout << vit.next();
         if (vit.hasNext()) cout << " ";
-      }
-      cout << "]";
+      };
     }
   }
   cout << endl;
@@ -4075,15 +4244,28 @@ void TPTP::printStacks() {
   }
   cout << endl;
 
+  Stack<SortList*>::Iterator slsit(_sortLists);
+  cout << "Sort lists: ";
+  if   (!slsit.hasNext()) cout << "<empty>";
+  while (slsit.hasNext()) {
+    SortList* sl = slsit.next();
+    SortList::Iterator slit(sl);
+    if   (!slit.hasNext()) cout << "<empty>";
+    while (slit.hasNext()) cout << env.sorts->sortName(slit.next()) << " ";
+    cout << ";";
+  }
+  cout << endl;
+
   Stack<LetFunctionsScope>::Iterator lfsit(_letScopes);
-  cout << "Let functions scopes:";
-  if (!lfsit.hasNext()) cout << " <empty>";
+  cout << "Let functions scopes: ";
+  if (!lfsit.hasNext()) cout << "<empty>";
   while (lfsit.hasNext()) {
-    LetFunctionsScope::Iterator sit(lfsit.next());
+    LetFunctionsScope lfs = lfsit.next();
+    LetFunctionsScope::Iterator sit(lfs);
     if (!sit.hasNext()) {
-      cout << " <empty>";
+      cout << "<empty>";
     } else {
-      cout << " [";
+      unsigned i = lfs.length();
       while (sit.hasNext()) {
         LetFunction f    = sit.next();
         vstring name     = f.first.first;
@@ -4094,9 +4276,11 @@ void TPTP::printStacks() {
         vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
                                          : env.signature->functionName (symbol);
 
-        cout << name << "/" << arity << " -> " << symbolName << ", ";
-      }
-      cout << "]";
+        cout << name << "/" << arity << " -> " << symbolName;
+        if (--i > 0) {
+          cout << ", ";
+        }
+      };
     }
   }
   cout << endl;
@@ -4117,6 +4301,45 @@ void TPTP::printStacks() {
                                        : env.signature->functionName (symbol);
 
       cout << name << "/" << arity << " -> " << symbolName << " ";
+    }
+  }
+  cout << endl;
+
+  Stack<LetBindingScope>::Iterator lbsit(_letBindings);
+  cout << "Let bindings: ";
+  if (!lbsit.hasNext()) cout << "<empty>";
+  while (lbsit.hasNext()) {
+    LetBindingScope lbs = lbsit.next();
+    LetBindingScope::Iterator lbit(lbs);
+    unsigned i = (unsigned)lbs.length();
+    if (lbit.hasNext()) {
+      while (lbit.hasNext()) {
+        LetBinding b = lbit.next();
+        unsigned symbol = b.first;
+        bool isTuple = b.second;
+        if (isTuple) {
+          cout << env.sorts->sortName(env.signature->getFunction(symbol)->fnType()->result());
+        } else {
+          cout << env.signature->functionName(symbol);
+        }
+      }
+      if (--i > 0) {
+        cout << ", ";
+      }
+    }
+  }
+  cout << endl;
+
+  LetBindingScope::Iterator clbsit(_currentBindingScope);
+  cout << "Current let bindings scope:";
+  if (!clbsit.hasNext()) {
+    cout << " <empty>";
+  } else {
+    while (clbsit.hasNext()) {
+      LetBinding b    = clbsit.next();
+      unsigned symbol = b.first;
+      bool isTuple = b.second;
+      cout << symbol << "," << isTuple << " ";
     }
   }
   cout << endl;
