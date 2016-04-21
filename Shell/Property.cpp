@@ -555,6 +555,7 @@ void Property::scanSpecialTerm(Term* t)
     break;
   }
   case Term::SF_LET:
+  case Term::SF_LET_TUPLE:
   {
     ASS_EQ(t->arity(),1);
     //this is a trick creating an artificial term list with terms we want to traverse
@@ -569,6 +570,17 @@ void Property::scanSpecialTerm(Term* t)
   {
     ASS_EQ(t->arity(),0);
     scan(sd->getFormula());
+    break;
+  }
+  case Term::SF_TUPLE:
+  {
+    ASS_EQ(t->arity(),0);
+    //this is a trick creating an artificial term list with terms we want to traverse
+    TermList aux[2];
+    aux[0].makeEmpty();
+    aux[1] = TermList(sd->getTupleTerm());
+    scan(aux+1);
+    scan(t->args());
     break;
   }
   default:
