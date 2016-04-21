@@ -903,15 +903,18 @@ Term* Term::createFormula(Formula* formula)
   return s;
 }
 
-/** Create a new complex term, and insert it into the sharing
- *  structure if all arguments are shared.
- */
 Term* Term::createTuple(unsigned arity, unsigned* sorts, TermList* elements) {
   CALL("Term::createTuple");
   unsigned tupleFunctor = Theory::instance()->getTupleFunctor(arity, sorts);
+  Term* tupleTerm = Term::create(tupleFunctor, arity, elements);
+  return createTuple(tupleTerm);
+}
+
+Term* Term::createTuple(Term* tupleTerm) {
+  CALL("Term::createTuple");
   Term* s = new(0, sizeof(SpecialTermData)) Term;
   s->makeSymbol(SF_TUPLE, 0);
-  s->getSpecialData()->_tupleData.term = Term::create(tupleFunctor, arity, elements);
+  s->getSpecialData()->_tupleData.term = tupleTerm;
   return s;
 }
 
