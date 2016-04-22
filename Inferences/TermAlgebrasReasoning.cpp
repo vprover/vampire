@@ -232,6 +232,9 @@ namespace Inferences {
       Inference *inf = new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause);
       
       if (_lit->polarity()) {
+        // from the clause f(x1 ... xn) = f(y1 .. yn) \/ C, we create
+        // a new clause xi = yi \/ C. In this case, next() can be
+        // called n times to create the n relevant conclusions.
         Literal *l = Literal::createEquality(true,
                                              *_lit->nthArgument(0)->term()->nthArgument(_index),
                                              *_lit->nthArgument(1)->term()->nthArgument(_index),
@@ -239,7 +242,11 @@ namespace Inferences {
       
         res = replaceLit(_clause, _lit, l, inf);
       } else {
-        // TODO factor the code in this branch
+        // in the created clause, we replace the literal _lit (which
+        // has the shape f(x1 ... xn) != f(y1 .. yn)) by n new
+        // disequalities xi != yi. The rest of the original clause
+        // remains identical. In this case, next() can be called only
+        // one time since there is only one conclusion.
         unsigned nlits = _lit->nthArgument(0)->term()->arity();
         int clength = _clause->length() - 1 + nlits;
         res = new(clength) Clause(clength, _clause->inputType(), inf);
@@ -260,11 +267,15 @@ namespace Inferences {
       return res;
     }
   private:
-    unsigned int _length;
-    unsigned int _index;
+    unsigned int _length; // this is the arity n of the constructor f
+                          // if _lits is a positive equality between
+                          // two identical constructors, 1 if _lits is
+                          // a negative equality between two
+                          // constructors, 0 in any other case
+    unsigned int _index; // between 0 and _length
     Literal* _lit;
     Clause* _clause;
-    FunctionType* _type;
+    FunctionType* _type; // type of f
   };
 
   struct InjectivityGIE::SubtermEqualityFn
