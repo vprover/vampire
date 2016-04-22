@@ -14,6 +14,8 @@
 
 #include "TermAlgebrasReasoning.hpp"
 
+#include <cstring>
+
 using namespace Kernel;
 
 namespace Inferences {
@@ -29,18 +31,16 @@ namespace Inferences {
                                      c->inputType(),
                                      inf);
 
-    for (unsigned i = 0; i < length ; i++) {
-      if ((*c)[i] == a)
-        (*res)[i] = b;
-      else
-        (*res)[i] = (*c)[i];
-    }
+    unsigned i = 0;
+    for (i; (*c)[i] != a; i++) {}
+    std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
+    (*res)[i] = b;
 
     return res;
   }
 
   // copy clause c, with the exception of the ith literal
-  Clause* removeLit(Clause *c, int i, Inference *inf)
+  Clause* removeLit(Clause *c, unsigned i, Inference *inf)
   {
     CALL("removeLit");
 
@@ -52,9 +52,8 @@ namespace Inferences {
                                          c->inputType(),
                                          inf);
 
-    int j = 0;
-    while (j < i) { (*res)[j] = (*c)[j]; j++; }
-    while (j < length - 1) { (*res)[j] = (*c)[j + 1]; j++; }
+    std::memcpy(res->literals(), c->literals(), i * sizeof(Literal*));
+    std::memcpy(res->literals() + i, c->literals() + i + 1, (length - i - 1) * sizeof(Literal*));
 
     return res;
   }
@@ -241,27 +240,20 @@ namespace Inferences {
         res = replaceLit(_clause, _lit, l, inf);
       } else {
         // TODO factor the code in this branch
-        int nlits = _lit->nthArgument(0)->term()->arity();
+        unsigned nlits = _lit->nthArgument(0)->term()->arity();
         int clength = _clause->length() - 1 + nlits;
         res = new(clength) Clause(clength, _clause->inputType(), inf);
 
         unsigned i = 0;
-
-        while ((*_clause)[i] != _lit) {
-          (*res)[i] = (*_clause)[i];
-          i++;
-        }
+        for (i; (*_clause)[i] != _lit; i++) {}
+        std::memcpy(res->literals(), _clause->literals(), i * sizeof(Literal*));
         for (unsigned j = 0; j < nlits; j++) {
           (*res)[i + j] = Literal::createEquality(false,
                                                   *_lit->nthArgument(0)->term()->nthArgument(j),
                                                   *_lit->nthArgument(1)->term()->nthArgument(j),
                                                   _type->arg(j));
         }
-        i += nlits;
-        while (i < clength) {
-          (*res)[i] = (*_clause)[i - nlits + 1];
-          i++;
-        }
+        std::memcpy(res->literals() + i + nlits, _clause->literals() + i + 1, (clength - i - nlits) * sizeof(Literal*));
       }
       _index++;
       res->setAge(_clause->age()+1);
