@@ -36,6 +36,7 @@ protected:
   virtual ~FormulaTransformer() {}
 
   Formula* apply(Formula* f);
+  TermList apply(TermList ts);
 
   /** Return true if f should be traversed */
   virtual bool preApply(Formula*& f) { return true; }

@@ -1044,7 +1044,7 @@ bool Term::isBoolean() const {
         env.signature->isFoolConstantSymbol(true, term->functor())) return true;
     if (!term->isSpecial()) return false;
     if (term->isFormula()) return true;
-    if (term->isLet() || term->isITE()) {
+    if (term->isLet() || term->isTupleLet() || term->isITE()) {
       const TermList* ts = term->nthArgument(0);
       if (!ts->isTerm()) {
         return false;

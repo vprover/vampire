@@ -272,6 +272,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
     }
 
     case Term::SF_LET:
+    case Term::SF_LET_TUPLE:
       NOT_IMPLEMENTED;
 
     default:
@@ -544,8 +545,9 @@ void NewCNF::processTupleLet(unsigned tupleFunctor, IntList* symbols, TermList b
   TermList let = contents;
   for (unsigned index = 0; index < tupleType->arity(); index++) {
     unsigned symbol = (unsigned)symbols->nth(tupleType->arity() - index - 1);
-    unsigned sort = tupleType->arg(index);
-    let = TermList(Term::createLet(symbol, 0, slice(binding, tupleType->arity() - index - 1), let, sort));
+    unsigned sort = tupleType->arg(tupleType->arity() - index - 1);
+    TermList slicedBinding = slice(binding, tupleType->arity() - index - 1, sort);
+    let = TermList(Term::createLet(symbol, IntList::empty(), slicedBinding, let, sort));
   }
 
   if (env.options->showPreprocessing()) {
@@ -559,7 +561,7 @@ void NewCNF::processTupleLet(unsigned tupleFunctor, IntList* symbols, TermList b
   process(let, occurrences);
 }
 
-TermList NewCNF::slice(TermList binding, unsigned index) {
+TermList NewCNF::slice(TermList binding, unsigned index, unsigned sort) {
   CALL("NewCNF::slice");
 
   ASS_REP(binding.isTerm() && binding.term()->isSpecial(), binding.toString());
@@ -568,29 +570,29 @@ TermList NewCNF::slice(TermList binding, unsigned index) {
   Term::SpecialTermData *sd = term->getSpecialData();
 
   switch (sd->getType()) {
-    case Term::SF_TUPLE: {
+    case Term::SF_TUPLE:
       return *sd->getTupleTerm()->nthArgument(index);
-    }
-    case Term::SF_ITE: {
+
+    case Term::SF_ITE:
       return TermList(Term::createITE(sd->getCondition(),
-                                      slice(*term->nthArgument(0), index),
-                                      slice(*term->nthArgument(1), index),
-                                      sd->getSort()));
-    }
-    case Term::SF_LET: {
+                                      slice(*term->nthArgument(0), index, sort),
+                                      slice(*term->nthArgument(1), index, sort),
+                                      sort));
+
+    case Term::SF_LET:
       return TermList(Term::createLet(sd->getFunctor(),
                                       sd->getVariables(),
                                       sd->getBinding(),
-                                      slice(*term->nthArgument(0), index),
-                                      sd->getSort()));
-    }
-    case Term::SF_LET_TUPLE: {
+                                      slice(*term->nthArgument(0), index, sort),
+                                      sort));
+
+    case Term::SF_LET_TUPLE:
       return TermList(Term::createTupleLet(sd->getFunctor(),
                                            sd->getTupleSymbols(),
                                            sd->getBinding(),
-                                           slice(*term->nthArgument(0), index),
-                                           sd->getSort()));
-    }
+                                           slice(*term->nthArgument(0), index, sort),
+                                           sort));
+
     default:
       ASSERTION_VIOLATION_REP(binding.toString());
   }
