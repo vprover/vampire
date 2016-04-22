@@ -29,7 +29,7 @@ namespace Inferences {
                                      c->inputType(),
                                      inf);
 
-    for (int i = length - 1; i >= 0; i--) {
+    for (unsigned i = 0; i < length ; i++) {
       if ((*c)[i] == a)
         (*res)[i] = b;
       else
@@ -210,9 +210,13 @@ namespace Inferences {
         _lit(lit),
         _clause(clause)
     {
-      if (sameConstructorsPositiveEquality(lit)) {
-        _length = lit->nthArgument(0)->term()->arity();
+      if (sameConstructorsEquality(lit)) {
         _type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+        if (lit->polarity()) {
+          _length = lit->nthArgument(0)->term()->arity();
+        } else {
+          _length = 1;
+        }
       } else {
         _length = 0;
       }
@@ -224,16 +228,42 @@ namespace Inferences {
     OWN_ELEMENT_TYPE next()
     {
       CALL("InjectivityGIE::SubtermIterator::next()");
-      Literal *l = Literal::createEquality(true,
-                                           *_lit->nthArgument(0)->term()->nthArgument(_index),
-                                           *_lit->nthArgument(1)->term()->nthArgument(_index),
-                                           _type->arg(_index));
-      _index++;
+
+      Clause *res;
+      Inference *inf = new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause);
       
-      Clause *res = replaceLit(_clause,
-                               _lit,
-                               l,
-                               new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause));
+      if (_lit->polarity()) {
+        Literal *l = Literal::createEquality(true,
+                                             *_lit->nthArgument(0)->term()->nthArgument(_index),
+                                             *_lit->nthArgument(1)->term()->nthArgument(_index),
+                                             _type->arg(_index));
+      
+        res = replaceLit(_clause, _lit, l, inf);
+      } else {
+        // TODO factor the code in this branch
+        int nlits = _lit->nthArgument(0)->term()->arity();
+        int clength = _clause->length() - 1 + nlits;
+        res = new(clength) Clause(clength, _clause->inputType(), inf);
+
+        unsigned i = 0;
+
+        while ((*_clause)[i] != _lit) {
+          (*res)[i] = (*_clause)[i];
+          i++;
+        }
+        for (unsigned j = 0; j < nlits; j++) {
+          (*res)[i + j] = Literal::createEquality(false,
+                                                  *_lit->nthArgument(0)->term()->nthArgument(j),
+                                                  *_lit->nthArgument(1)->term()->nthArgument(j),
+                                                  _type->arg(j));
+        }
+        i += nlits;
+        while (i < clength) {
+          (*res)[i] = (*_clause)[i - nlits + 1];
+          i++;
+        }
+      }
+      _index++;
       res->setAge(_clause->age()+1);
       return res;
     }
@@ -273,11 +303,11 @@ namespace Inferences {
 
   // true iff the literal has the form f(x1 ... xn) = f(y1 ... yn)
   // where f is a term algebra constructor
-  bool InjectivityGIE::sameConstructorsPositiveEquality(Literal *lit)
+  bool InjectivityGIE::sameConstructorsEquality(Literal *lit)
   {
-    CALL("InjectivityGIE::sameConstructorsPositiveEquality");
+    CALL("InjectivityGIE::sameConstructorsEquality");
 
-    if (!lit->isEquality() || !lit->polarity())
+    if (!lit->isEquality())
       return false;
 
     Signature::Symbol *s = termAlgebraConstructor(lit->nthArgument(0));

@@ -52,7 +52,7 @@ public:
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
 
 private:
-  static bool sameConstructorsPositiveEquality(Literal *lit);
+  static bool sameConstructorsEquality(Literal *lit);
   struct SubtermIterator;
   struct SubtermEqualityFn;
 };
