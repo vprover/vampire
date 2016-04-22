@@ -534,6 +534,68 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
   process(processedContentsFormula, occurrences);
 }
 
+void NewCNF::processTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding, TermList contents, Occurrences &occurrences) {
+  CALL("NewCNF::processTupleLet");
+
+  FunctionType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
+
+  ASS_EQ(tupleType->arity(), symbols->length());
+
+  TermList let = contents;
+  for (unsigned index = 0; index < tupleType->arity(); index++) {
+    unsigned symbol = (unsigned)symbols->nth(tupleType->arity() - index - 1);
+    unsigned sort = tupleType->arg(index);
+    let = TermList(Term::createLet(symbol, 0, slice(binding, tupleType->arity() - index - 1), let, sort));
+  }
+
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
+    env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
+    env.out() << "[PP] clausify (detuplify let) out: " << let.toString() << endl;
+    env.endOutput();
+  }
+
+  process(let, occurrences);
+}
+
+TermList NewCNF::slice(TermList binding, unsigned index) {
+  CALL("NewCNF::slice");
+
+  ASS_REP(binding.isTerm() && binding.term()->isSpecial(), binding.toString());
+
+  Term* term = binding.term();
+  Term::SpecialTermData *sd = term->getSpecialData();
+
+  switch (sd->getType()) {
+    case Term::SF_TUPLE: {
+      return *sd->getTupleTerm()->nthArgument(index);
+    }
+    case Term::SF_ITE: {
+      return TermList(Term::createITE(sd->getCondition(),
+                                      slice(*term->nthArgument(0), index),
+                                      slice(*term->nthArgument(1), index),
+                                      sd->getSort()));
+    }
+    case Term::SF_LET: {
+      return TermList(Term::createLet(sd->getFunctor(),
+                                      sd->getVariables(),
+                                      sd->getBinding(),
+                                      slice(*term->nthArgument(0), index),
+                                      sd->getSort()));
+    }
+    case Term::SF_LET_TUPLE: {
+      return TermList(Term::createTupleLet(sd->getFunctor(),
+                                           sd->getTupleSymbols(),
+                                           sd->getBinding(),
+                                           slice(*term->nthArgument(0), index),
+                                           sd->getSort()));
+    }
+    default:
+      ASSERTION_VIOLATION_REP(binding.toString());
+  }
+}
+
 TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents)
 {
   CALL("NewCNF::nameLetBinding");
@@ -815,6 +877,16 @@ void NewCNF::process(TermList ts, Occurrences &occurrences)
       TermList contents = *term->nthArgument(0);
 
       processLet(symbol, variables, binding, contents, occurrences);
+      break;
+    }
+
+    case Term::SF_LET_TUPLE: {
+      unsigned tupleFunctor = sd->getFunctor();
+      IntList* symbols = sd->getTupleSymbols();
+      TermList binding = sd->getBinding();
+      TermList contents = *term->nthArgument(0);
+
+      processTupleLet(tupleFunctor, symbols, binding, contents, occurrences);
       break;
     }
 

@@ -480,6 +480,8 @@ private:
   void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
   void processLet(unsigned symbol, Formula::VarList*bindingVariables, TermList binding, TermList contents, Occurrences &occurrences);
+  void processTupleLet(unsigned symbol, IntList* tupleSymbols, TermList binding, TermList contents, Occurrences &occurrences);
+  TermList slice(TermList binding, unsigned index);
 
   TermList nameLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
   TermList inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
