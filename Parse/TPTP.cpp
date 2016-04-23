@@ -340,6 +340,10 @@ vstring TPTP::toString(Tag tag)
     return "$select";
   case T_STORE:
     return "$store";
+  case T_TUPLE:
+    return "$tuple";
+  case T_PROJ:
+    return "$proj";
   case T_FOT:
     return "$fot";
   case T_FOF:
@@ -352,8 +356,6 @@ vstring TPTP::toString(Tag tag)
     return "$ite";
   case T_LET:
     return "$let";
-  case T_TUPLE:
-    return "$tuple";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -910,6 +912,12 @@ void TPTP::readReserved(Token& tok)
   }
   else if (tok.content == "$store"){
       tok.tag = T_STORE;
+  }
+  else if (tok.content == "$tuple") {
+      tok.tag = T_TUPLE;
+  }
+  else if (tok.content == "$proj") {
+    tok.tag = T_PROJ;
   }
   else if (tok.content == "$fot") {
     tok.tag = T_FOT;
@@ -3392,6 +3400,29 @@ unsigned TPTP::readSort()
     unsigned innerSort = readSort();
     consumeToken(T_RPAR);
     return env.sorts->addArraySort(indexSort,innerSort);
+  }
+  case T_TUPLE:
+  {
+    resetToks();
+    consumeToken(T_LPAR);
+
+    Stack<unsigned> sorts;
+    for (;;) {
+      unsigned sort = readSort();
+      sorts.push(sort);
+      if (getTok(0).tag == T_COMMA) {
+        resetToks();
+      } else {
+        consumeToken(T_RPAR);
+        break;
+      }
+    }
+
+    if (sorts.length() < 2) {
+      USER_ERROR("Tuple sort with less than two arguments");
+    }
+
+    return env.sorts->getTupleSort(sorts.length(), sorts.begin());
   }
   default:
     PARSE_ERROR("sort expected",tok);

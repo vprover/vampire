@@ -141,13 +141,17 @@ public:
     T_RATIONAL_TYPE,
     /** $real */
     T_REAL_TYPE,
-    /** $fot, probably useless */
-    T_ARRAY_TYPE,
     /** $array type*/
-    T_SELECT,
+    T_ARRAY_TYPE,
     /** array select*/
-    T_STORE,
+    T_SELECT,
     /** array store*/
+    T_STORE,
+    /** $tuple type */
+    T_TUPLE,
+    /** tuple projection */
+    T_PROJ,
+    /** $fot, probably useless */
     T_FOT,
     /** $fof, probably useless */
     T_FOF,
@@ -160,9 +164,7 @@ public:
     /** $ite: FOOL level-polymorphic if-then-else */
     T_ITE,
     /** $let: FOOL level-polymorphic let-in */
-    T_LET,
-    /** $tuple */
-    T_TUPLE
+    T_LET
   };
 
   /** parser state, numbers are just temporarily for debugging */
