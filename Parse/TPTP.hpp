@@ -28,6 +28,8 @@ namespace Kernel {
   class Clause;
 };
 
+#define DEBUG_SHOW_STATE
+
 namespace Parse {
 
 class TPTP;
@@ -227,6 +229,8 @@ public:
     END_ITE,
     /** read tuple */
     END_TUPLE,
+    /** read tuple projection */
+    END_PROJ,
     /** check the end of arguments */
     END_ARGS,
     /** middle of equality */
@@ -657,6 +661,7 @@ private:
   void endSelect();
   void endStore();
   void endTuple();
+  void endProj();
   void addTagState(Tag);
 
   unsigned readSort();

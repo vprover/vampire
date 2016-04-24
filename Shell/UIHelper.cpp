@@ -427,6 +427,11 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     return;
   }
 
+  unsigned dummy;
+  if (Theory::instance()->findTupleProjection(symNumber, dummy)) {
+    return;
+  }
+
   if (function && env.sorts->isTupleSort(env.signature->getFunction(symNumber)->fnType()->result())) {
     return;
   }

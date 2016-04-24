@@ -1087,9 +1087,11 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
   return skolemFunction; 
 }
 
-unsigned Theory::getTupleFunctor(unsigned arity, unsigned sorts[]) {
+unsigned Theory::getTupleFunctor(unsigned arity, unsigned* sorts) {
   CALL("Theory::getTupleFunctor");
-  unsigned tupleSort = env.sorts->getTupleSort(arity, sorts);
+
+  unsigned tupleSort = env.sorts->addTupleSort(arity, sorts);
+
   unsigned tupleFunctor;
   if (!_tupleFunctors.find(tupleSort, tupleFunctor)) {
     tupleFunctor = env.signature->addFunction("$tuple", arity);
@@ -1098,6 +1100,42 @@ unsigned Theory::getTupleFunctor(unsigned arity, unsigned sorts[]) {
     env.signature->getFunction(tupleFunctor)->setType(tupleType);
   }
   return tupleFunctor;
+}
+
+unsigned Theory::getTupleProjectionFunctor(unsigned proj, unsigned tupleSort) {
+  CALL("Theory::getTupleProjectionFunctor");
+
+  ASS_REP(env.sorts->isTupleSort(tupleSort), env.sorts->sortName(tupleSort));
+
+  pair<unsigned, unsigned> p = make_pair(proj, tupleSort);
+
+  unsigned projFunctor;
+  if (!_tupleProjections.find(p, projFunctor)) {
+    Sorts::TupleSort* sortInfo = env.sorts->getTupleSort(tupleSort);
+
+    cout << "SORTS: ";
+    for (unsigned i = 0; i < sortInfo->arity(); i++) {
+      cout << sortInfo->argument(i) << " ";
+    }
+    cout << endl;
+
+    ASS_G(sortInfo->arity(), proj);
+    unsigned projSort = sortInfo->argument(proj);
+    if (projSort == Sorts::SRT_BOOL) {
+      projFunctor = env.signature->addFreshPredicate(1, "proj");
+      env.signature->getPredicate(projFunctor)->setType(new PredicateType(tupleSort));
+    } else {
+      projFunctor = env.signature->addFreshFunction(1, "proj");
+      env.signature->getFunction(projFunctor)->setType(new FunctionType(tupleSort, projSort));
+    }
+    _tupleProjections.set(p, projFunctor);
+    _tupleProjectionFunctors.set(projFunctor, proj);
+  }
+  return projFunctor;
+}
+
+bool Theory::findTupleProjection(unsigned projFunctor, unsigned &proj) {
+  return _tupleProjectionFunctors.find(projFunctor, proj);
 }
 
 /**

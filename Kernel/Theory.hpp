@@ -480,9 +480,13 @@ private:
 
 public:
   unsigned getTupleFunctor(unsigned arity, unsigned sorts[]);
+  unsigned getTupleProjectionFunctor(unsigned proj, unsigned tupleSort);
+  bool findTupleProjection(unsigned projFunctor, unsigned &proj);
 
 private:
   DHMap<unsigned,unsigned> _tupleFunctors;
+  DHMap<pair<unsigned,unsigned>,unsigned> _tupleProjections;
+  DHMap<unsigned,unsigned> _tupleProjectionFunctors;
 };
 
 typedef Theory::Interpretation Interpretation;

@@ -123,8 +123,19 @@ public:
     CLASS_NAME(TupleSort);
     USE_ALLOCATOR(TupleSort);
 
-    TupleSort(vstring name, unsigned sort) : SortInfo(name, sort) {}
+    TupleSort(vstring name, unsigned sort, unsigned arity, unsigned sorts[])
+            : SortInfo(name, sort), _arity(arity) {
+      _sorts = new unsigned[arity];
+      for (unsigned i = 0; i < arity; i++) {
+        _sorts[i] = sorts[i];
+      }
+    }
     bool isTupleSort() override { return true; }
+    unsigned arity() const { return _arity; }
+    unsigned argument(unsigned index) const { ASS_G(_arity, index); return _sorts[index]; }
+  private:
+    unsigned _arity;
+    unsigned* _sorts;
   };
 
   unsigned addSort(const vstring& name, bool& added);
@@ -137,7 +148,7 @@ public:
     return static_cast<ArraySort*>(_sorts[sort]);
   }
 
-  unsigned getTupleSort(unsigned arity, unsigned sorts[]);
+  unsigned addTupleSort(unsigned arity, unsigned sorts[]);
 
   bool haveSort(const vstring& name);
   bool findSort(const vstring& name, unsigned& idx);
@@ -150,6 +161,11 @@ public:
   bool isTupleSort(unsigned sort) {
     if(sort > _sorts.size()) return false;
     return _sorts[sort]->isTupleSort();
+  }
+
+  TupleSort* getTupleSort(unsigned sort) {
+    ASS_REP(isTupleSort(sort), sortName(sort));
+    return static_cast<TupleSort*>(_sorts[sort]);
   }
 
   const vstring& sortName(unsigned idx) const;

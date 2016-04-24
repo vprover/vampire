@@ -213,6 +213,9 @@ void TPTP::parse()
     case END_TUPLE:
       endTuple();
       break;
+    case END_PROJ:
+      endProj();
+      break;
     default:
 #if VDEBUG
       throw ParseErrorException(((vstring)"Don't know how to process state ")+toString(s));
@@ -1103,6 +1106,7 @@ int TPTP::decimal(int pos)
   case '9':
     break;
   default:
+    ASSERTION_VIOLATION_REP(getChar(pos));
     PARSE_ERROR("wrong number format",_gpos);
   }
 
@@ -1743,6 +1747,25 @@ void TPTP::funApp()
       _states.push(TERM);
       return;
 
+    case T_PROJ: {
+      consumeToken(T_LPAR);
+      Token numTok;
+      Tag tag = readNumber(numTok);
+      if (tag != T_INT) {
+        USER_ERROR("Non-negative integer expected");
+      }
+      int num;
+      Int::stringToInt(numTok.content, num);
+      if (num < 0) {
+        USER_ERROR("Non-neative integer expected");
+      }
+      _ints.push(num);
+      consumeToken(T_COMMA);
+      addTagState(T_RPAR);
+      _states.push(TERM);
+      return;
+    }
+
     case T_ITE:
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
@@ -2022,6 +2045,33 @@ void TPTP::endTuple()
 } // endTuple
 
 /**
+ * Process the end of a tuple projection
+ * @since 23/04/2016 Gothenburg
+ */
+void TPTP::endProj()
+{
+  CALL("TPTP::endProj");
+
+  unsigned proj = (unsigned)_ints.pop();
+  ASS_GE(proj, 0);
+
+  TermList tuple = _termLists.pop();
+  unsigned tupleSort = sortOf(tuple);
+
+  unsigned projFunctor = Theory::instance()->getTupleProjectionFunctor(proj, tupleSort);
+  unsigned projSort = env.sorts->getTupleSort(tupleSort)->argument(proj);
+
+  if (projSort == Sorts::SRT_BOOL) {
+    Literal* l = Literal::create1(projFunctor, true, tuple);
+    _formulas.push(new AtomicFormula(l));
+    _states.push(END_FORMULA_INSIDE_TERM);
+  } else {
+    Term* t = Term::create1(projFunctor, tuple);
+    _termLists.push(TermList(t));
+  }
+} // endProj
+
+/**
  * Read a non-empty sequence of arguments, including the right parentheses
  * and save the resulting sequence of TermList and their number
  * @since 10/04/2011 Manchester
@@ -2204,6 +2254,7 @@ void TPTP::term()
     case T_ITE:
     case T_SELECT:
     case T_STORE:
+    case T_PROJ:
     case T_LET:
     case T_LBRA:
       _states.push(TERM_INFIX);
@@ -2279,6 +2330,11 @@ void TPTP::endTerm()
     return;
   }
 
+  if (name == toString(T_PROJ)) {
+    _states.push(END_PROJ);
+    return;
+  }
+
   int arity = _ints.pop();
 
   if (arity == -1) {
@@ -2338,6 +2394,12 @@ void TPTP::formulaInfix()
   if (name == toString(T_STORE)) {
     // the sort of $store(...) is never $o
     USER_ERROR("$store expression cannot be used as formula");
+  }
+
+  if (name == toString(T_PROJ)) {
+    _states.push(END_TERM_AS_FORMULA);
+    _states.push(END_PROJ);
+    return;
   }
 
   if (name == toString(T_LET)) {
@@ -3303,6 +3365,7 @@ void TPTP::simpleFormula()
   case T_ITE:
   case T_SELECT:
   case T_STORE:
+  case T_PROJ:
   case T_LET:
   case T_LBRA:
     _states.push(FORMULA_INFIX);
@@ -3422,7 +3485,7 @@ unsigned TPTP::readSort()
       USER_ERROR("Tuple sort with less than two arguments");
     }
 
-    return env.sorts->getTupleSort(sorts.length(), sorts.begin());
+    return env.sorts->addTupleSort((unsigned) sorts.length(), sorts.begin());
   }
   default:
     PARSE_ERROR("sort expected",tok);
@@ -4186,6 +4249,8 @@ const char* TPTP::toString(State s)
     return "END_ITE";
   case END_TUPLE:
     return "END_TUPLE";
+  case END_PROJ:
+    return "END_PROJ";
   default:
     cout << (int)s << "\n";
     ASS(false);

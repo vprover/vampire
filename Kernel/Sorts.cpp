@@ -149,9 +149,9 @@ VirtualIterator<unsigned> Sorts::getArraySorts()
   return pvi(getMappingIterator(arraySorts,SortInfoToInt()));
 }
 
-unsigned Sorts::getTupleSort(unsigned arity, unsigned sorts[])
+unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
 {
-  CALL("Sorts::getTupleSort");
+  CALL("Sorts::addTupleSort");
 
   // First check if it already exists
   vstring name = "$tuple(";
@@ -170,7 +170,7 @@ unsigned Sorts::getTupleSort(unsigned arity, unsigned sorts[])
   _hasSort = true;
   result = _sorts.length();
 
-  _sorts.push(new TupleSort(name,result));
+  _sorts.push(new TupleSort(name,result,arity,sorts));
   _sortNames.insert(name, result);
 
   return result;

@@ -451,7 +451,7 @@ vstring Term::headToString() const
         FunctionType* fnType = env.signature->getFunction(tupleFunctor)->fnType();
 
         vstring symbolsList = "";
-        for (unsigned i = 0; i < symbols->length(); i++) {
+        for (unsigned i = 0; i < (unsigned)symbols->length(); i++) {
           Signature::Symbol* symbol = (fnType->arg(i) == Sorts::SRT_BOOL)
                                       ? env.signature->getPredicate((unsigned)symbols->nth(i))
                                       : env.signature->getFunction((unsigned)symbols->nth(i));
@@ -470,6 +470,10 @@ vstring Term::headToString() const
         ASSERTION_VIOLATION;
     }
   } else {
+    unsigned proj;
+    if (Theory::instance()->findTupleProjection(functor(), proj)) {
+      return "$proj(" + Int::toString(proj) + ", ";
+    }
     return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName()) + (arity() ? "(" : "");
   }
 }
@@ -578,6 +582,10 @@ vstring Literal::toString() const
 
   Stack<const TermList*> stack(64);
   vstring s = polarity() ? "" : "~";
+  unsigned proj;
+  if (Theory::instance()->findTupleProjection(functor(), proj)) {
+    return "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
+  }
   s += predicateName();
 
   //cerr << "predicate: "<< predicateName()<<endl;
@@ -873,7 +881,7 @@ Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList bin
   }
 
   Signature::Symbol* symbol = env.signature->getFunction(tupleFunctor);
-  ASS_EQ(symbol->arity(), symbols->length());
+  ASS_EQ(symbol->arity(), (unsigned)symbols->length());
   ASS_REP(env.sorts->isTupleSort(symbol->fnType()->result()), tupleFunctor);
 #endif
 
