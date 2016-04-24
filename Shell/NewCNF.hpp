@@ -338,7 +338,7 @@ private:
   void introduceGenClause(List<GenLit>* gls, BindingList* bindings) {
     SPGenClause gc = makeGenClause(gls, bindings);
 
-    if (gc->size() != gls->length()) {
+    if (gc->size() != (unsigned)gls->length()) {
       LOG4("Eliminated", gls->length() - gc->size(), "duplicate literal(s) from", gc->toString());
     }
 
@@ -480,8 +480,7 @@ private:
   void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
   void processLet(unsigned symbol, Formula::VarList*bindingVariables, TermList binding, TermList contents, Occurrences &occurrences);
-  void processTupleLet(unsigned symbol, IntList* tupleSymbols, TermList binding, TermList contents, Occurrences &occurrences);
-  TermList slice(TermList binding, unsigned index, unsigned sort);
+  void processTupleLet(unsigned symbol, IntList* tupleSymbols, TermList binding, TermList contents, unsigned bodySort, Occurrences &occurrences);
 
   TermList nameLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
   TermList inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);

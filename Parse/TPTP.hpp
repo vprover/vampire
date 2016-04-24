@@ -28,8 +28,6 @@ namespace Kernel {
   class Clause;
 };
 
-#define DEBUG_SHOW_STATE
-
 namespace Parse {
 
 class TPTP;

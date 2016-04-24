@@ -1112,13 +1112,6 @@ unsigned Theory::getTupleProjectionFunctor(unsigned proj, unsigned tupleSort) {
   unsigned projFunctor;
   if (!_tupleProjections.find(p, projFunctor)) {
     Sorts::TupleSort* sortInfo = env.sorts->getTupleSort(tupleSort);
-
-    cout << "SORTS: ";
-    for (unsigned i = 0; i < sortInfo->arity(); i++) {
-      cout << sortInfo->argument(i) << " ";
-    }
-    cout << endl;
-
     ASS_G(sortInfo->arity(), proj);
     unsigned projSort = sortInfo->argument(proj);
     if (projSort == Sorts::SRT_BOOL) {
