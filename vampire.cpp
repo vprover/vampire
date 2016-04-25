@@ -914,15 +914,6 @@ int main(int argc, char* argv[])
       }
       break;
 /*
-    case Options::Mode::CASC_EPR:
-      CASC::CASCMode::makeEPR();
-      if (CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
-*/
-/*
     case Options::Mode::CASC_LTB: {
       try {
         CASC::CLTBMode::perform();
@@ -941,14 +932,6 @@ int main(int argc, char* argv[])
       CASC::CMZRMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      break;
-    }
-    case Options::Mode::CASC_THEORY: {
-      CASC::CASCMode::makeTheory();
-      if (CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
       break;
     }
 */
