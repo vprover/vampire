@@ -338,7 +338,7 @@ private:
   void introduceGenClause(List<GenLit>* gls, BindingList* bindings) {
     SPGenClause gc = makeGenClause(gls, bindings);
 
-    if (gc->size() != gls->length()) {
+    if (gc->size() != (unsigned)gls->length()) {
       LOG4("Eliminated", gls->length() - gc->size(), "duplicate literal(s) from", gc->toString());
     }
 

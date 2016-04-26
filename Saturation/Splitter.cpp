@@ -790,11 +790,11 @@ void Splitter::onAllProcessed()
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
     env.beginOutput();
     env.out() << "[AVATAR] recomputeModel: +";
-    for (int i = 0; i < toAdd.size(); i++) {
+    for (unsigned i = 0; i < toAdd.size(); i++) {
       env.out() << toAdd[i] << ",";
     }
     env.out() << " -";
-    for (int i = 0; i < toRemove.size(); i++) {
+    for (unsigned i = 0; i < toRemove.size(); i++) {
       env.out() << toRemove[i] << ",";
     }
     env.out() << std::endl;

@@ -293,7 +293,7 @@ bool NewCNF::shouldInlineITE(unsigned iteCounter) {
   if (threshold == 0) {
     return false;
   }
-  return iteCounter < threshold;
+  return iteCounter < (unsigned)threshold;
 }
 
 unsigned NewCNF::createFreshVariable(unsigned sort)
