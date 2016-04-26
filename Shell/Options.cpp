@@ -87,7 +87,7 @@ void Options::Options::init()
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",//"bpa",
                                         "casc",//"casc_ltb",
-                                        "casc_sat","clausify",
+                                        "casc_sat","clausify","clausify_stat",
                                         "consequence_elimination","grounding",
                                         "model_check",
                                         //"ltb_build","ltb_solve",
@@ -434,6 +434,23 @@ void Options::Options::init()
     _naming.addHardConstraint(lessThan(32768));
     _naming.addHardConstraint(greaterThan(-1));
     _naming.addHardConstraint(notEqual(1));
+
+    _newCNF = BoolOptionValue("newcnf","",false);
+    _newCNF.description="Use NewCNF algorithm to do naming, preprecess3 and clausificiation.";
+    _lookup.insert(&_newCNF);
+    _newCNF.tag(OptionTag::PREPROCESSING);
+
+    _iteInliningThreshold = IntOptionValue("ite_inlining_threshold","", 2);
+    _iteInliningThreshold.description="Threashold of inlining of if-then-else expressions. "
+                                      "0 means that all expressions are named. "
+                                      "<0 means that all expressions are inlined.";
+    _lookup.insert(&_iteInliningThreshold);
+    _iteInliningThreshold.tag(OptionTag::PREPROCESSING);
+
+    _inlineLet = BoolOptionValue("inline_let","",false);
+    _inlineLet.description="Always inline let-expressions.";
+    _lookup.insert(&_inlineLet);
+    _inlineLet.tag(OptionTag::PREPROCESSING);
 
 
 //*********************** Output  ***********************

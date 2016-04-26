@@ -15,6 +15,7 @@
 
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
+#include "NewCNF.hpp"
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
@@ -164,11 +165,13 @@ void Preprocess::preprocess (Problem& prb)
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (env.options->showPreprocessing())
-      env.out() << "FOOL elimination" << std::endl;
-
     TheoryAxioms().applyFOOL(prb);
-    FOOLElimination().apply(prb);
+
+    if (!_options.newCNF()) {
+      if (env.options->showPreprocessing())
+        env.out() << "FOOL elimination" << std::endl;
+      FOOLElimination().apply(prb);
+    }
   }
 
   // Expansion of distinct groups happens before other preprocessing
@@ -252,25 +255,32 @@ void Preprocess::preprocess (Problem& prb)
     preprocess2(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.naming()) {
+  if (prb.mayHaveFormulas() && _options.newCNF()) {
     if (env.options->showPreprocessing())
-      env.out() << "naming" << std::endl;
+      env.out() << "newCnf" << std::endl;
 
-    naming(prb);
-  }
+    newCnf(prb);
+  } else {
+    if (prb.mayHaveFormulas() && _options.naming()) {
+      if (env.options->showPreprocessing())
+        env.out() << "naming" << std::endl;
 
-  if (prb.mayHaveFormulas()) {
-    if (env.options->showPreprocessing())
-      env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
+      naming(prb);
+    }
 
-    preprocess3(prb);
-  }
+    if (prb.mayHaveFormulas()) {
+      if (env.options->showPreprocessing())
+        env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
 
-  if (prb.mayHaveFormulas()) {
-    if (env.options->showPreprocessing())
-      env.out() << "clausify" << std::endl;
+      preprocess3(prb);
+    }
 
-    clausify(prb);
+    if (prb.mayHaveFormulas()) {
+      if (env.options->showPreprocessing())
+        env.out() << "clausify" << std::endl;
+
+      clausify(prb);
+    }
   }
 
   if (prb.mayHaveFunctionDefinitions()) {
@@ -453,11 +463,7 @@ void Preprocess::preprocess2(Problem& prb)
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] ennf: " << u->toString() << std::endl;
-      env.endOutput();
-    }
+
     if (u->isClause()) {
 	continue;
     }
@@ -500,6 +506,64 @@ void Preprocess::naming(Problem& prb)
     }
   }
   prb.invalidateProperty();
+}
+
+/**
+ * Perform the NewCNF algorithm on problem @c prb which is in ENNF
+ */
+void Preprocess::newCnf(Problem& prb)
+{
+  CALL("Preprocess::newCnf");
+
+  env.statistics->phase=Statistics::NEW_CNF;
+
+  // TODO: this is an ugly copy-paste of "Preprocess::clausify"
+
+  //we check if we haven't discovered an empty clause during preprocessing
+  Unit* emptyClause = 0;
+
+  bool modified = false;
+
+  UnitList::DelIterator us(prb.units());
+  NewCNF cnf(env.options->naming());
+  Stack<Clause*> clauses(32);
+  while (us.hasNext()) {
+    Unit* u = us.next();
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] clausify: " << u->toString() << std::endl;
+      env.endOutput();
+    }
+    if (u->isClause()) {
+      if (static_cast<Clause*>(u)->isEmpty()) {
+        emptyClause = u;
+        break;
+      }
+      continue;
+    }
+    modified = true;
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    cnf.clausify(fu,clauses);
+    while (! clauses.isEmpty()) {
+      Clause* cl = clauses.pop();
+      if (cl->isEmpty()) {
+        emptyClause = cl;
+        goto fin;
+      }
+      us.insert(cl);
+    }
+    us.del();
+  }
+  fin:
+  if (emptyClause) {
+    prb.units()->destroy();
+    prb.units() = 0;
+    UnitList::push(emptyClause, prb.units());
+  }
+  if (modified) {
+    prb.invalidateProperty();
+  }
+  prb.reportFormulasEliminated();
 }
 
 /**
@@ -574,7 +638,7 @@ void Preprocess::clausify(Problem& prb)
 
   env.statistics->phase=Statistics::CLAUSIFICATION;
 
-  //we check if we haven't discover an empty clause during preprocessing
+  //we check if we haven't discovered an empty clause during preprocessing
   Unit* emptyClause = 0;
 
   bool modified = false;
@@ -591,8 +655,8 @@ void Preprocess::clausify(Problem& prb)
     }
     if (u->isClause()) {
       if (static_cast<Clause*>(u)->isEmpty()) {
-	emptyClause = u;
-	break;
+        emptyClause = u;
+        break;
       }
       continue;
     }
@@ -601,14 +665,14 @@ void Preprocess::clausify(Problem& prb)
     while (! clauses.isEmpty()) {
       Unit* u = clauses.pop();
       if (static_cast<Clause*>(u)->isEmpty()) {
-	emptyClause = u;
-	goto fin;
+        emptyClause = u;
+        goto fin;
       }
       us.insert(u);
     }
     us.del();
   }
-fin:
+  fin:
   if (emptyClause) {
     prb.units()->destroy();
     prb.units() = 0;

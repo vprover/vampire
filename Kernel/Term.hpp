@@ -491,21 +491,7 @@ public:
   bool isITE() const { return functor() == SF_ITE; }
   bool isLet() const { return functor() == SF_LET; }
   bool isFormula() const { return functor() == SF_FORMULA; }
-  bool isBoolean() const {
-    const Term* term = this;
-    while (true) {
-      if (!term->isSpecial()) return false;
-      if (term->isFormula()) return true;
-      if (term->isLet() || term->isITE()) {
-        const TermList* ts = term->nthArgument(0);
-        if (!ts->isTerm()) {
-          return false;
-        } else {
-          term = ts->term();
-        }
-      }
-    }
-  };
+  bool isBoolean() const;
   /** Return pointer to structure containing extra data for special terms such as
    * if-then-else or let...in */
   const SpecialTermData* getSpecialData() const { return const_cast<Term*>(this)->getSpecialData(); }

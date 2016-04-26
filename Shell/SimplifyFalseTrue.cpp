@@ -6,13 +6,13 @@
  * @since 11/12/2004 Manchester
  */
 
-#include "Debug/Tracer.hpp"
-
-#include "Lib/DArray.hpp"
-
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/Unit.hpp"
+#include "Kernel/Signature.hpp"
+
+#include "Lib/Environment.hpp"
+
+#include "Shell/Options.hpp"
 
 #include "SimplifyFalseTrue.hpp"
 
@@ -46,6 +46,12 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
   if(unit->included()) {
     res->markIncluded();
   }
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] simplify in: " << unit->toString() << std::endl;
+    env.out() << "[PP] simplify out: " << res->toString() << std::endl;
+    env.endOutput();
+  }
   return res;
 } // SimplifyFalseTrue::simplify
 
@@ -65,11 +71,65 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
 
   Connective con = f->connective();
   switch (con) {
-  case LITERAL:
   case TRUE:
   case FALSE:
-  case BOOL_TERM:
     return f;
+
+  case BOOL_TERM:
+    {
+      TermList ts = simplify(f->getBooleanTerm());
+      if (ts.isTerm()) {
+        for (bool constant : { true, false }) {
+          if (env.signature->isFoolConstantSymbol(constant, ts.term()->functor())) {
+            return new Formula(constant);
+          }
+        }
+      }
+      if (ts == f->getBooleanTerm()) {
+        return f;
+      }
+      return new BoolTermFormula(ts);
+    }
+
+  case LITERAL:
+    {
+      Literal* literal = f->literal();
+
+      if (!literal->shared()) {
+        bool simplified = false;
+        Stack<TermList> arguments;
+        Term::Iterator lit(literal);
+        while (lit.hasNext()) {
+          TermList argument = lit.next();
+          TermList simplifiedArgument = simplify(argument);
+          if (argument != simplifiedArgument) {
+            simplified = true;
+          }
+          arguments.push(simplifiedArgument);
+        }
+
+        if (literal->isEquality() && !literal->isTwoVarEquality()) {
+          for (unsigned argument : { 0u, 1u }) {
+            if (arguments[argument].isTerm()) {
+              bool isTrue  = env.signature->isFoolConstantSymbol(true,  arguments[argument].term()->functor());
+              bool isFalse = env.signature->isFoolConstantSymbol(false, arguments[argument].term()->functor());
+              if (isTrue || isFalse) {
+                Formula* simplifiedFormula = BoolTermFormula::create(arguments[argument == 0 ? 1 : 0]);
+                return (isTrue == literal->polarity()) ? simplifiedFormula
+                                                       : (Formula*) new NegatedFormula(simplifiedFormula);
+              }
+            }
+          }
+        }
+
+        if (!simplified) {
+          return f;
+        }
+        return new AtomicFormula(Literal::create(literal, arguments.begin()));
+      }
+
+      return f;
+    }
 
   case AND:
   case OR: 
@@ -258,3 +318,133 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
 } // SimplifyFalseTrue::simplify ()
 
 
+TermList SimplifyFalseTrue::simplify(TermList ts)
+{
+  CALL("SimplifyFalseTrue::simplify(TermList)");
+
+  if (ts.isVar()) {
+    return ts;
+  }
+
+  Term* term = ts.term();
+
+  if (term->shared()) {
+    return ts;
+  }
+
+  if (term->isSpecial()) {
+    Term::SpecialTermData* sd = term->getSpecialData();
+    switch (sd->getType()) {
+      case Term::SF_FORMULA: {
+        Formula* simplifiedFormula = simplify(sd->getFormula());
+        switch (simplifiedFormula->connective()) {
+          case TRUE: {
+            return TermList(Term::foolTrue());
+          }
+          case FALSE: {
+            return TermList(Term::foolFalse());
+          }
+          default: {
+            if (simplifiedFormula == sd->getFormula()) {
+              return ts;
+            }
+            return TermList(Term::createFormula(simplifiedFormula));
+          }
+        }
+      }
+      case Term::SF_ITE: {
+        Formula* condition  = simplify(sd->getCondition());
+
+        #define BRANCH unsigned
+        #define THEN 0u
+        #define ELSE 1u
+
+        TermList branches[2];
+        bool isTrue[2];
+        bool isFalse[2];
+        for (BRANCH branch : {THEN, ELSE }) {
+          branches[branch] = simplify(*term->nthArgument(branch));
+        }
+
+        switch (condition->connective()) {
+          case TRUE:
+            return branches[THEN];
+          case FALSE:
+            return branches[ELSE];
+          default:
+            break;
+        }
+
+        /*
+          if C then 1 else B  to  C | B
+          if C then 0 else B  to ~C & B
+          if C then A else 1  to ~C | A
+          if C then A else 0  to  C & A
+         */
+        for (BRANCH branch : { THEN, ELSE }) {
+          bool isTerm = branches[branch].isTerm();
+          isTrue[branch]  = isTerm && env.signature->isFoolConstantSymbol(true,  branches[branch].term()->functor());
+          isFalse[branch] = isTerm && env.signature->isFoolConstantSymbol(false, branches[branch].term()->functor());
+        }
+
+        for (BRANCH branch : {THEN, ELSE }) {
+          if (isTrue[branch] || isFalse[branch]) {
+            Formula* f = (isFalse[THEN] || isTrue[ELSE]) ? (Formula*) new NegatedFormula(condition) : condition;
+            BRANCH counterpart = branch == THEN ? ELSE : THEN;
+            if (isTrue[counterpart] || isFalse[counterpart]) {
+              if (isTrue[branch] == isTrue[counterpart]) {
+                return TermList(isTrue[branch] ? Term::foolTrue() : Term::foolFalse());
+              } else {
+                return TermList(Term::createFormula(f));
+              }
+            } else {
+              Formula* counterpartFormula = BoolTermFormula::create(branches[counterpart]);
+              FormulaList* args = new FormulaList(f, new FormulaList(counterpartFormula));
+              Formula* junction = new JunctionFormula(isTrue[branch] ? OR : AND, args);
+              return TermList(Term::createFormula(junction));
+            }
+          }
+        }
+
+        if ((condition  == sd->getCondition()) &&
+            (branches[THEN] == *term->nthArgument(THEN)) &&
+            (branches[ELSE] == *term->nthArgument(ELSE))) {
+          return ts;
+        }
+        unsigned sort = sd->getSort();
+        return TermList(Term::createITE(condition, branches[THEN], branches[ELSE], sort));
+      }
+      case Term::SF_LET: {
+        unsigned functor = sd->getFunctor();
+        IntList* variables = sd->getVariables();
+        TermList binding = simplify(sd->getBinding());
+        TermList body = simplify(*term->nthArgument(0));
+        if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
+          return ts;
+        }
+        unsigned sort = sd->getSort();
+        return TermList(Term::createLet(functor, variables, binding, body, sort));
+      }
+      default:
+        ASSERTION_VIOLATION_REP(term->toString());
+    }
+  }
+
+  bool simplified = false;
+  Stack<TermList> arguments;
+  Term::Iterator it(term);
+  while (it.hasNext()) {
+    TermList argument = it.next();
+    TermList simplifiedArgument = simplify(argument);
+    if (argument != simplifiedArgument) {
+      simplified = true;
+    }
+    arguments.push(simplifiedArgument);
+  }
+
+  if (!simplified) {
+    return ts;
+  }
+
+  return TermList(Term::create(term, arguments.begin()));
+} // SimplifyFalseTrue::simplify(TermList)

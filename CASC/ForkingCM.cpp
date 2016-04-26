@@ -57,12 +57,6 @@ ForkingCM::ForkingCM()
   {
     TimeCounter tc(TC_PREPROCESSING);
 
-    // TODO: should we do defooling here?
-    if (_prb->hasFOOL()) {
-      TheoryAxioms().applyFOOL(*_prb);
-      FOOLElimination().apply(*_prb);
-    }
-
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
     Normalisation norm;

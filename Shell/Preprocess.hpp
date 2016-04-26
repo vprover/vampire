@@ -46,6 +46,8 @@ private:
   void preprocess3(Problem& prb);
   void clausify(Problem& prb);
 
+  void newCnf(Problem& prb);
+
   /** Options used in the normalisation */
   const Options& _options;
   /** If true, clausification is included in preprocessing */

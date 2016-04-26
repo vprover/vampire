@@ -320,6 +320,7 @@ public:
     //CASC_LTB,
     CASC_SAT,
     CLAUSIFY,
+    CLAUSIFY_STAT,
     CONSEQUENCE_ELIMINATION,
     GROUNDING,
     MODEL_CHECK,
@@ -1865,6 +1866,9 @@ public:
   bool bpStartWithPrecise() const { return _bpStartWithPrecise.actualValue; }
   bool bpStartWithRational() const { return _bpStartWithRational.actualValue;}
     
+  bool newCNF() const { return _newCNF.actualValue; }
+  int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
+  bool getIteInlineLet() const { return _inlineLet.actualValue; }
 private:
     
     /**
@@ -2203,8 +2207,11 @@ private:
   SelectionOptionValue _selection;
   SelectionOptionValue _instGenSelection;
     
-
   InputFileOptionValue _inputFile;
+
+  BoolOptionValue _newCNF;
+  IntOptionValue _iteInliningThreshold;
+  BoolOptionValue _inlineLet;
 
 
 }; // class Options

@@ -325,6 +325,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/BFNTMainLoop.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
+         Shell/NewCNF.o\
          Shell/CParser.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
@@ -362,6 +363,8 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SMTPrinter.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
+         Shell/SymbolDefinitionInlining.o\
+         Shell/SymbolOccurrenceReplacement.o\
          Shell/SymCounter.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\

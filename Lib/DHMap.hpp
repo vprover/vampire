@@ -179,6 +179,21 @@ public:
   }
 
   /**
+   * Return a pointer to Val inside the map
+   * if entry corresponding to Key exists.
+   * Otherwise return nullptr.
+   */
+  Val* findPtr(Key key)
+  {
+    CALL("DHMap::findPtr");
+    Entry* e=findEntry(key);
+    if(!e) {
+      return nullptr;
+    }
+    return &e->_val;
+  }
+
+  /**
    *  Return true iff a pair with @b key as a key is in the map.
    */
   inline

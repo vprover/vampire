@@ -854,6 +854,24 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
 } // addSkolemFunction
 
 /**
+ * Return a new Skolem predicate. If @b suffix is nonzero, include it
+ * into the name of the Skolem function.
+ * @since 15/02/2016 Gothenburg
+ */
+unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
+{
+  CALL("Signature::addSkolemPredicate");
+
+  unsigned f = addFreshPredicate(arity, "sK", suffix);
+
+  // Register it as a LaTeX function
+  theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
+  _skolemFunctionCount++;
+
+  return f;
+} // addSkolemPredicate
+
+/**
  * Return the key "name_arity" used for hashing. This key is obtained by
  * concatenating the name, underscore character and the arity. The key is
  * created in such a way that it does not collide with special keys, such as

@@ -54,19 +54,9 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   CALL("Flattening::flatten (Unit*)");
   ASS(! unit->isClause());
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] flatten in: " << unit->toString() << std::endl;
-    env.endOutput();
-  }
   Formula* f = unit->formula();
   Formula* g = flatten(f);
   if (f == g) { // not changed
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] flatten out: " << unit->toString() << std::endl;
-      env.endOutput();
-    }
     return unit;
   }
 
@@ -78,6 +68,7 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   }
   if (env.options->showPreprocessing()) {
     env.beginOutput();
+    env.out() << "[PP] flatten in: " << unit->toString() << std::endl;
     env.out() << "[PP] flatten out: " << res->toString() << std::endl;
     env.endOutput();
   }
@@ -91,6 +82,7 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
  * @since 23/01/2004 Manchester, changed to include info about positions
  * @since 11/12/2004 Manchester, true and false added
  * @since 08/06/2007 Manchester changed to new data structures
+ * @since 18/12/2015 Gothenburg, changes to support FOOL
  */
 Formula* Flattening::flatten (Formula* f)
 {
@@ -98,11 +90,47 @@ Formula* Flattening::flatten (Formula* f)
 
   Connective con = f->connective();
   switch (con) {
-  case LITERAL:
   case TRUE:
   case FALSE:
-  case BOOL_TERM:
     return f;
+
+  case LITERAL:
+    {
+      Literal* lit = f->literal();
+
+      // Convert equality between boolean FOOL terms to equivalence
+      if (lit->isEquality()) {
+        TermList lhs = *lit->nthArgument(0);
+        TermList rhs = *lit->nthArgument(1);
+
+        if (lhs.isTerm() && lhs.term()->isBoolean() && rhs.isTerm() && rhs.term()->isBoolean()) {
+          Formula* lhsFormula = lhs.term()->isFormula()
+                                ? lhs.term()->getSpecialData()->getFormula()
+                                : BoolTermFormula::create(lhs);
+          Formula* rhsFormula = rhs.term()->isFormula() ? rhs.term()->getSpecialData()->getFormula()
+                                : BoolTermFormula::create(rhs);
+          return flatten(new BinaryFormula(lit->polarity() ? IFF : XOR, lhsFormula, rhsFormula));
+        }
+      }
+
+      Literal* flattenedLit = flatten(lit);
+      if (lit == flattenedLit) {
+        return f;
+      } else {
+        return new AtomicFormula(flattenedLit);
+      }
+    }
+
+  case BOOL_TERM:
+    {
+      TermList ts = f->getBooleanTerm();
+      TermList flattenedTs = flatten(ts);
+      if (ts == flattenedTs) {
+        return f;
+      } else {
+        return new BoolTermFormula(flattenedTs);
+      }
+    }
 
   case AND:
   case OR: 
@@ -174,6 +202,115 @@ Formula* Flattening::flatten (Formula* f)
 
 } // Flattening::flatten ()
 
+Literal* Flattening::flatten(Literal* l)
+{
+  CALL("Flattening::flatten(Literal*)");
+
+  if (l->shared()) {
+    return l;
+  }
+
+  bool flattened = false;
+  Stack<TermList> args;
+  Term::Iterator terms(l);
+  while (terms.hasNext()) {
+    TermList argument = terms.next();
+    TermList flattenedArgument = flatten(argument);
+    if (argument != flattenedArgument) {
+      flattened = true;
+    }
+    args.push(flattenedArgument);
+  }
+
+  if (!flattened) {
+    return l;
+  }
+
+  return Literal::create(l, args.begin());
+} // NNF::ennf(Literal*);
+
+TermList Flattening::flatten (TermList ts)
+{
+  CALL("Flattening::flatten(TermList)");
+
+  if (ts.isVar()) {
+    return ts;
+  }
+
+  Term* term = ts.term();
+
+  if (term->shared()) {
+    return ts;
+  }
+
+  if (term->isSpecial()) {
+    Term::SpecialTermData* sd = term->getSpecialData();
+    switch (sd->getType()) {
+      case Term::SF_FORMULA: {
+        Formula* f = sd->getFormula();
+        Formula* flattenedF = flatten(f);
+        if (f == flattenedF) {
+          return ts;
+        } else {
+          return TermList(Term::createFormula(flattenedF));
+        }
+      }
+
+      case Term::SF_ITE: {
+        TermList thenBranch = *term->nthArgument(0);
+        TermList elseBranch = *term->nthArgument(1);
+        Formula* condition  = sd->getCondition();
+
+        TermList flattenedThenBranch = flatten(thenBranch);
+        TermList flattenedElseBranch = flatten(elseBranch);
+        Formula* flattenedCondition  = flatten(condition);
+
+        if ((thenBranch == flattenedThenBranch) &&
+            (elseBranch == flattenedElseBranch) &&
+            (condition == flattenedCondition)) {
+          return ts;
+        } else {
+          return TermList(Term::createITE(flattenedCondition, flattenedThenBranch, flattenedElseBranch, sd->getSort()));
+        }
+      }
+
+      case Term::SF_LET: {
+        TermList binding = sd->getBinding();
+        TermList body = *term->nthArgument(0);
+
+        TermList flattenedBinding = flatten(binding);
+        TermList flattenedBody = flatten(body);
+
+        if ((binding == flattenedBinding) && (body == flattenedBody)) {
+          return ts;
+        } else {
+          return TermList(Term::createLet(sd->getFunctor(), sd->getVariables(), flattenedBinding, flattenedBody, sd->getSort()));
+        }
+      }
+
+      default:
+        ASSERTION_VIOLATION;
+    }
+  }
+
+  bool flattened = false;
+  Stack<TermList> args;
+  Term::Iterator terms(term);
+  while (terms.hasNext()) {
+    TermList argument = terms.next();
+    TermList flattenedArgument = flatten(argument);
+    if (argument != flattenedArgument) {
+      flattened = true;
+    }
+    args.push(flattenedArgument);
+  }
+
+  if (!flattened) {
+    return ts;
+  }
+
+  return TermList(Term::create(term, args.begin()));
+} // Flattening::flatten (Term*)
 
 /** 
  * Flatten the list of formulas (connected by c).
