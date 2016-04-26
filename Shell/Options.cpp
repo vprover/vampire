@@ -379,7 +379,7 @@ void Options::Options::init()
     _unusedPredicateDefinitionRemoval.addProblemConstraint(notWithCat(Property::UEQ));
     _unusedPredicateDefinitionRemoval.setRandomChoices({"on","off"});
 
-    _theoryAxioms = BoolOptionValue("theory_axioms","tha",true);
+    _theoryAxioms = ChoiceOptionValue<TheoryAxiomLevel>("theory_axioms","tha",TheoryAxiomLevel::ON,{"on","off","some"});
     _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
     _lookup.insert(&_theoryAxioms);
     _theoryAxioms.tag(OptionTag::PREPROCESSING);

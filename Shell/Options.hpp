@@ -199,6 +199,12 @@ public:
     // update _tagNames at the end of Options constructor if you add a tag
     
 
+  enum class TheoryAxiomLevel : unsigned int {
+    ON,  // all of them
+    OFF, // none of them
+    SET_ONE
+  };
+
   enum class ProofExtra : unsigned int {
     OFF,
     FREE,
@@ -1763,7 +1769,7 @@ public:
   /** set the "ignore missing options" value to true or false */
   //void setIgnoreMissing(bool newVal) { _ignoreMissing = newVal; }
   bool increasedNumeralWeight() const { return _increasedNumeralWeight.actualValue; }
-  bool theoryAxioms() const { return _theoryAxioms.actualValue; }
+  TheoryAxiomLevel theoryAxioms() const { return _theoryAxioms.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
   bool interpretedSimplification() const { return _interpretedSimplification.actualValue; }
   //void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
@@ -2184,7 +2190,7 @@ private:
   StringOptionValue _testId;
   BoolOptionValue _szsOutput;
   StringOptionValue _thanks;
-  BoolOptionValue _theoryAxioms;
+  ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
   BoolOptionValue _theoryFlattening;
 
   /** Time limit in deciseconds */

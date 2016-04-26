@@ -346,6 +346,10 @@ public:
     return i <= MaxInterpretedElement();
   }
 
+  bool isPlus(Interpretation i){
+    return i == INT_PLUS || i == RAT_PLUS || i == REAL_PLUS;
+  }
+
  /*
   * StructuredSortInterpretations begin from the last interpretation in Interpretation
   *

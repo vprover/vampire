@@ -159,6 +159,23 @@ void TheoryAxioms::addRightIdentity(Interpretation op, TermList e, UnitList*& un
 } // addRightIdentity
 
 /**
+ * Add axiom f(e,X)=X.
+ */
+void TheoryAxioms::addLeftIdentity(Interpretation op, TermList e, UnitList*& units)
+{
+  CALL("TheoryAxioms::addLeftIdentity");
+  ASS(theory->isFunction(op));
+  ASS_EQ(theory->getArity(op),2);
+
+  unsigned f = env.signature->getInterpretingSymbol(op);
+  unsigned srt = theory->getOperationSort(op);
+  TermList x(0,false);
+  TermList fex(Term::create2(f,e,x));
+  Literal* eq = Literal::createEquality(true,fex,x,srt);
+  addTheoryUnitClause(eq, units);
+} // addLeftIdentity
+
+/**
  * Add axioms for commutative group with addition @c op, inverse @c inverse and unit @c e:
  * <ol>
  * <li>f(X,Y)=f(Y,X) (commutativity)</li>
@@ -180,8 +197,18 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
   ASS_EQ(theory->getArity(inverse),1);
 
   addCommutativity(op,units);
-  addAssociativity(op,units);
-  addRightIdentity(op,e,units);
+  // set_one removes associativity of sum
+  if(!(_level == Options::TheoryAxiomLevel::SET_ONE && theory->isPlus(op))){
+    addAssociativity(op,units);
+    addRightIdentity(op,e,units);
+  }
+  else{
+    // and replaces right identity with left identity
+    addLeftIdentity(op,e,units);
+    // and replaces the bottom two inverse axioms with a single one
+    addRightInverse(op,inverse,units);  
+    return;
+  }
 
   // i(f(x,y)) = f(i(y),i(x))
   unsigned f = env.signature->getInterpretingSymbol(op);
@@ -204,6 +231,26 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
   Literal* eq2 = Literal::createEquality(true,fx_ix,e,srt);
   addTheoryUnitClause(eq2, units);
 } // TheoryAxioms::addCommutativeGroupAxioms
+
+/**
+ * Add axiom op(op(x,i(y)),y) = x
+ * e.g. (x+(-y))+y = x
+ */
+void TheoryAxioms::addRightInverse(Interpretation op, Interpretation inverse, UnitList*& units)
+{
+  TermList x(0,false);
+  TermList y(0,false);
+  unsigned f = env.signature->getInterpretingSymbol(op);
+  unsigned i = env.signature->getInterpretingSymbol(inverse);
+  unsigned srt = theory->getOperationSort(op);
+  ASS_EQ(srt, theory->getOperationSort(inverse));
+
+  TermList iy(Term::create1(i,y));
+  TermList xiy(Term::create2(f,x,iy));
+  TermList xiyy(Term::create2(f,xiy,y));
+  Literal* eq = Literal::createEquality(true,xiyy,x,srt);
+  addTheoryUnitClause(eq,units);
+}
 
 /**
  * Add axiom op(X,X)
@@ -270,7 +317,9 @@ void TheoryAxioms::addTotalOrderAxioms(Interpretation lessEqual, UnitList*& unit
 
   addReflexivity(lessEqual, units);
   addTransitivity(lessEqual, units);
-  addOrderingTotality(lessEqual, units);
+  if(_level != Options::TheoryAxiomLevel::SET_ONE){
+    addOrderingTotality(lessEqual, units);
+  }
 }
 
 /**
@@ -298,6 +347,29 @@ void TheoryAxioms::addMonotonicity(Interpretation lessEqual, Interpretation addi
 }
 
 /**
+ * Add the axiom ~$lesseq($sum(X,1),X)
+ *
+ * Taken from SPASS+T work
+ */
+void TheoryAxioms::addPlusOneGreater(Interpretation plus, TermList oneElement,
+                                     Interpretation lessEqual, UnitList*& units)
+{
+  CALL("TheoryAxioms::addPlusOneGreater");
+  ASS(!theory->isFunction(lessEqual));
+  ASS_EQ(theory->getArity(lessEqual),2);
+  ASS(theory->isFunction(plus));
+  ASS_EQ(theory->getArity(plus),2);
+
+  unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
+  unsigned addFun = env.signature->getInterpretingSymbol(plus);
+  TermList x(0,false);
+
+  TermList xPo(Term::create2(addFun,x,oneElement));
+  Literal* xPo_g_x = Literal::create2(lePred,false,xPo,x);
+  addTheoryUnitClause(xPo_g_x,units);
+}
+
+/**
  * Add axioms for addition, unary minus and ordering
  */
 void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretation unaryMinus,
@@ -308,6 +380,11 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
   addCommutativeGroupAxioms(plus, unaryMinus, zeroElement, units);
   addTotalOrderAxioms(lessEqual, units);
   addMonotonicity(lessEqual, plus, units);
+
+  // add a new ordering axiom x+1 > x
+  if(_level == Options::TheoryAxiomLevel::SET_ONE){
+    addPlusOneGreater(plus,oneElement,lessEqual,units);
+  }
 
   //axiom( ile(zero,one) );
   unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
@@ -934,7 +1011,9 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
       addAdditionAndOrderingAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
 				   Theory::INT_LESS_EQUAL, units);
     }
-    addExtraIntegerOrderingAxiom(Theory::INT_PLUS, one, Theory::INT_LESS_EQUAL, units);
+    if(_level != Options::TheoryAxiomLevel::SET_ONE){
+      addExtraIntegerOrderingAxiom(Theory::INT_PLUS, one, Theory::INT_LESS_EQUAL, units);
+    }
     if(haveIntFloor){    addIdentity(Theory::INT_FLOOR,units); }
     if(haveIntCeiling){  addIdentity(Theory::INT_CEILING,units); }
     if(haveIntRound){    addIdentity(Theory::INT_ROUND,units); }

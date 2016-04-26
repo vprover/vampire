@@ -165,7 +165,7 @@ void Preprocess::preprocess (Problem& prb)
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    TheoryAxioms().applyFOOL(prb);
+    TheoryAxioms(_options.theoryAxioms()).applyFOOL(prb);
 
     if (!_options.newCNF()) {
       if (env.options->showPreprocessing())
@@ -212,12 +212,12 @@ void Preprocess::preprocess (Problem& prb)
     // Normalize them e.g. replace $greater with not $lesseq
     InterpretedNormalizer().apply(prb);
     // Add theory axioms if needed
-    if( _options.theoryAxioms()){
+    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
       env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
       if (env.options->showPreprocessing())
         env.out() << "adding theory axioms" << std::endl;
 
-      TheoryAxioms().apply(prb);
+      TheoryAxioms(_options.theoryAxioms()).apply(prb);
     }
   }
 
