@@ -96,11 +96,18 @@ XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0 $(GCOV_FLAGS) $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
+OS = $(shell uname)
+ifeq ($(OS),Darwin)
+STATIC = -static-libgcc -static-libstdc++ 
+else
+STATIC = -static
+endif
+
 ifneq (,$(filter %_dbg_static,$(MAKECMDGOALS)))
-XFLAGS = -static $(DBG_FLAGS) -DIS_LINGVA=0  $(Z3FLAG)
+XFLAGS = $(STATIC) $(DBG_FLAGS) -DIS_LINGVA=0  $(Z3FLAG)
 endif
 ifneq (,$(filter %_rel_static,$(MAKECMDGOALS)))
-XFLAGS = -static $(REL_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
+XFLAGS = $(STATIC) $(REL_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
