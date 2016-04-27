@@ -1659,11 +1659,8 @@ public:
   bool fmbDetectSortBounds() const { return _fmbDetectSortBounds.actualValue; }
   unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
   unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
-  bool fmbIgnoreMarkers() const { return _fmbIgnoreMarkers.actualValue; }
-  bool fmbNoPriority() const { return _fmbNoPriority.actualValue; }
   FMBSortInference fmbSortInference() const { return _fmbSortInference.actualValue; }
   void setFMBSortInference(FMBSortInference v){ _fmbSortInference.actualValue=v; }
-  bool fmbSpecialMonotEncoding() const { return _fmbSpecialMonotEncoding.actualValue; }
   bool fmbXmass() const { return _fmbXmass.actualValue; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
@@ -2052,10 +2049,7 @@ private:
   BoolOptionValue _fmbDetectSortBounds;
   UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
   UnsignedOptionValue _fmbSizeWeightRatio;
-  BoolOptionValue _fmbIgnoreMarkers;
-  BoolOptionValue _fmbNoPriority;
   ChoiceOptionValue<FMBSortInference> _fmbSortInference;
-  BoolOptionValue _fmbSpecialMonotEncoding;
   BoolOptionValue _fmbXmass;
 
   BoolOptionValue _flattenTopLevelConjunctions;

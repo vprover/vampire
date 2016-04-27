@@ -214,18 +214,6 @@ private:
   DArray<unsigned> _sortModelSizes;
   DArray<unsigned> _distinctSortSizes;
 
-  // if this is set, we ignore what the SAT solver tells us - it is stupid; just for an experimental comparison
-  bool _ignoreMarkers;
-
-  // if this is set, we don't use the parent's encoding estimate
-  // this means _constraints_generators will behave like a queue (not a priority queue)
-  // most likely sub-optimal -- used only for an experiment
-  bool _noPriority;
-
-  // monotonic sorts don't need to have their instances marked (that's the only way to get LEQ as a constraint)
-  // when the option is off we ignore this feature
-  bool _specialMonotEncoding;
-
   enum ConstraintSign {
     EQ,     // the value has to matched
     LEQ,    // the value needs to be less or equal

@@ -86,9 +86,6 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   _xmass = opt.fmbXmass();
   _sizeWeightRatio = opt.fmbSizeWeightRatio();
 
-  _ignoreMarkers = opt.fmbIgnoreMarkers();
-  _noPriority = opt.fmbNoPriority();
-  _specialMonotEncoding = opt.fmbSpecialMonotEncoding();
 }
 
 
@@ -853,7 +850,7 @@ void FiniteModelBuilder::addNewInstances()
 
       if (!_xmass) {
         unsigned dsort = _sortedSignature->parents[srt];
-        if (!_specialMonotEncoding || !_sortedSignature->monotonicSorts[dsort]) { // don't mark instances of monotonic sorts!
+        if (!_sortedSignature->monotonicSorts[dsort]) { // don't mark instances of monotonic sorts!
           varDistinctSortsMaxes.set(dsort,1);
         }
       }
@@ -887,7 +884,7 @@ instanceLabel:
             unsigned dsr = _sortedSignature->parents[srt];
             // cout << " dsr" << dsr;
 
-            if (_specialMonotEncoding && _sortedSignature->monotonicSorts[dsr]) {
+            if (_sortedSignature->monotonicSorts[dsr]) {
               continue;
             }
 
@@ -1235,7 +1232,7 @@ void FiniteModelBuilder::addNewTotalityDefs()
 
       // cout << "Totality for const " << f << " of sort " << srt << " and max size " << maxSize << endl;
 
-      for (unsigned i = (!_xmass || (_specialMonotEncoding && _sortedSignature->monotonicSorts[dsrt])) ? maxSize : 1; i <= maxSize; i++) { // just the weakest one, if monotonic
+      for (unsigned i = (!_xmass || (_sortedSignature->monotonicSorts[dsrt])) ? maxSize : 1; i <= maxSize; i++) { // just the weakest one, if monotonic
         static SATLiteralStack satClauseLits;
         satClauseLits.reset();
 
@@ -1288,7 +1285,7 @@ newTotalLabel:
           //for(unsigned j=0;j<grounding.size();j++) cout << grounding[j] << " ";
           //cout << endl;
 
-          for (unsigned i = (!_xmass || (_specialMonotEncoding && _sortedSignature->monotonicSorts[dRetSrt])) ? maxRtSrtSize : 1; i <= maxRtSrtSize; i++) {
+          for (unsigned i = (!_xmass || (_sortedSignature->monotonicSorts[dRetSrt])) ? maxRtSrtSize : 1; i <= maxRtSrtSize; i++) {
             static SATLiteralStack satClauseLits;
             satClauseLits.reset();
 
@@ -1491,7 +1488,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
     static unsigned numberOfSatCalls = 0;
     numberOfSatCalls++;
     unsigned clauseSetSize = _clausesToBeAdded.size();
-    unsigned weight = _noPriority ? numberOfSatCalls : clauseSetSize;
+    unsigned weight = clauseSetSize;
 
     // destroy the clauses
     SATClauseStack::Iterator it(_clausesToBeAdded);
@@ -1588,27 +1585,25 @@ MainLoopResult FiniteModelBuilder::runImpl()
         Constraint_Generator_Vals& constraint = constraint_p->_vals;
 
         for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
-          constraint[i] = make_pair(_ignoreMarkers ? EQ : STAR,_distinctSortSizes[i]);
+          constraint[i] = make_pair(STAR,_distinctSortSizes[i]);
         }
 
-        if (!_ignoreMarkers) {
           for (unsigned i = 0; i < failed.size(); i++) {
             unsigned var = failed[i].var();
             ASS_GE(var,totalityMarker_offset);
 
             if (var < instancesMarker_offset) { // totality used (-> instances used as well / unless the sort is monotonic)
               unsigned dsort = var-totalityMarker_offset;
-              if (_specialMonotEncoding && _sortedSignature->monotonicSorts[dsort]) {
+              if (_sortedSignature->monotonicSorts[dsort]) {
                 constraint[dsort].first = LEQ;
               } else {
                 constraint[dsort].first = EQ;
               }
             } else if (constraint[var-instancesMarker_offset].first == STAR) { // instances used (and we don't know yet about totality)
-              ASS(!_specialMonotEncoding || !_sortedSignature->monotonicSorts[var-instancesMarker_offset]);
+              ASS(!_sortedSignature->monotonicSorts[var-instancesMarker_offset]);
               constraint[var-instancesMarker_offset].first = GEQ;
             }
           }
-        }
 
   // #if VTRACE_DOMAINS
         cout << "Adding generator/constraint: ";
