@@ -20,7 +20,6 @@
 
 #include "Tabulation/TabulationAlgorithm.hpp"
 
-//#include "FMB/FiniteModelBuilderIncremental.hpp"
 #include "FMB/FiniteModelBuilder.hpp"
 
 #include "Shell/BFNTMainLoop.hpp"
@@ -139,17 +138,10 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     res = new IGAlgorithm(prb, opt);
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
-    if(env.property->sortsUsed()>1){
-      //cout << env.property->sortsUsed() << endl; 
-      USER_ERROR("Finite Model Builder (sa=fmb) cannot be used with many-sorted problems"); 
+    if(env.property->hasInterpretedOperations()){
+      USER_ERROR("Finite Model Builder (sa=fmb) cannot be used with interpreted operations"); 
     }
-    if(opt.fmbIncremental()){
-      //res = new FiniteModelBuilderIncremental(prb,opt);
-      USER_ERROR("Incremental fmb no longer supported");
-    }
-    else{
-      res = new FiniteModelBuilder(prb,opt);
-    }
+    res = new FiniteModelBuilder(prb,opt);
     break;
   default:
     res = SaturationAlgorithm::createFromOptions(prb, opt);

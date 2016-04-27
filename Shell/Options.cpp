@@ -567,6 +567,11 @@ void Options::Options::init()
     _lookup.insert(&_showFOOL);
     _showFOOL.tag(OptionTag::OUTPUT);
 
+    _showFMBsortInfo = BoolOptionValue("show_fmb_sort_info","",false);
+    _showFMBsortInfo.description = "Print information about sorts in FMB";
+    _lookup.insert(&_showFMBsortInfo);
+    _showFMBsortInfo.tag(OptionTag::OUTPUT);
+
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
@@ -594,29 +599,11 @@ void Options::Options::init()
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
     _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter","tabulation"});
 
-    _fmbStartWithConstants = BoolOptionValue("fmb_start_with_constants","fmbswc",false);
-    _fmbStartWithConstants.description = "Start fmb with model size equal to the number of constants in the problem";
-    _lookup.insert(&_fmbStartWithConstants);
-    _fmbStartWithConstants.setExperimental();
-    _fmbStartWithConstants.setRandomChoices({"on","off"});
-
-    _fmbIncremental = BoolOptionValue("fmb_incremental","fmbi",false);
-    _fmbIncremental.description = "Use incremental SAT in fmb";
-    //_lookup.insert(&_fmbIncremental);
-    _fmbIncremental.setExperimental();
-    _fmbIncremental.setRandomChoices({"on","off"});
-
     _fmbNonGroundDefs = BoolOptionValue("fmb_nonground_defs","fmbngd",false);
     _fmbNonGroundDefs.description = "Introduce definitions for non ground terms in preprocessing for fmb";
     //_lookup.insert(&_fmbNonGroundDefs);
     _fmbNonGroundDefs.setExperimental();
     _fmbNonGroundDefs.setRandomChoices({"on","off"});
-
-    _fmbSortInference = BoolOptionValue("fmb_sort_inference","fmbsi",false);
-    _fmbSortInference.description = "Perform sort inference for fmb";
-    //_lookup.insert(&_fmbSortInference);
-    _fmbSortInference.setExperimental();
-    _fmbSortInference.setRandomChoices({"on","off"});
 
     _fmbStartSize = UnsignedOptionValue("fmb_start_size","fmbss",1);
     _fmbStartSize.description = "Set the initial model size for finite model building";
@@ -641,6 +628,49 @@ void Options::Options::init()
     _fmbSymmetryWidgetOrders.description = "";
     _lookup.insert(&_fmbSymmetryWidgetOrders);
     _fmbSymmetryWidgetOrders.setExperimental();
+
+    _fmbCollapseMonotonicSorts = ChoiceOptionValue<FMBMonotonicCollapse>("fmb_collapse_monotonic_sorts","fmbcms",
+                                                           FMBMonotonicCollapse::OFF, 
+                                                           {"off","group","predicate","function","predicate_wom","function_wom"});
+    _fmbCollapseMonotonicSorts.description = "";
+    _fmbCollapseMonotonicSorts.setExperimental();
+    _lookup.insert(&_fmbCollapseMonotonicSorts);
+
+    _fmbDetectSortBounds = BoolOptionValue("fmb_detect_sort_bounds","fmbdsb",false);
+    _fmbDetectSortBounds.description = "";
+    _fmbDetectSortBounds.setExperimental();
+    _lookup.insert(&_fmbDetectSortBounds);
+
+    _fmbDetectSortBoundsTimeLimit = UnsignedOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",1);
+    _fmbDetectSortBoundsTimeLimit.description = "";
+    _fmbDetectSortBoundsTimeLimit.setExperimental();
+    _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
+
+    _fmbXmass = BoolOptionValue("fmb_contour_encoding","fmbxmass",false);
+    _fmbXmass.setExperimental();
+    _lookup.insert(&_fmbXmass);
+
+    _fmbSizeWeightRatio = UnsignedOptionValue("fmb_size_weight_ratio","fmbswr",1);
+    _fmbSizeWeightRatio.description = "0 is size only, 1 means 1:1, 2 means 1:2, etc.";
+    _fmbSizeWeightRatio.setExperimental();
+    _lookup.insert(&_fmbSizeWeightRatio);
+
+    _fmbIgnoreMarkers = BoolOptionValue("fmb_ignore_markers","fmbigm",false);
+    _fmbIgnoreMarkers.setExperimental();
+    _lookup.insert(&_fmbIgnoreMarkers);
+
+    _fmbNoPriority = BoolOptionValue("fmb_no_priority","fmbnpr",false);
+    _fmbNoPriority.setExperimental();
+    _lookup.insert(&_fmbNoPriority);
+
+    _fmbSpecialMonotEncoding = BoolOptionValue("fmb_special_monot_encoding","fmbsme",true);
+    _fmbSpecialMonotEncoding.setExperimental();
+    _lookup.insert(&_fmbSpecialMonotEncoding);
+
+    _fmbSortInference = ChoiceOptionValue<FMBSortInference>("fmb_sort_inference","fmbsi",FMBSortInference::INFER,{"ignore","infer","expand"});
+    _fmbSortInference.description = "";
+    _fmbSortInference.setExperimental();
+    _lookup.insert(&_fmbSortInference);
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=

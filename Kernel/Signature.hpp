@@ -49,9 +49,9 @@ class Signature
     unsigned _protected : 1;
     /** clauses with only skipped symbols will not be output as symbol eliminating */
     unsigned _skip : 1;
-    /** marks propositional predicate symbols that are to
-        be used as names during consequence finding */
-    unsigned _cfName : 1;
+    /** marks propositional predicate symbols that are labels to 
+        be used as names during consequence finding or function relationship finding */
+    unsigned _label : 1;
     /** marks predicates that are equality proxy */
     unsigned _equalityProxy : 1;
     /** used in coloured proofs and interpolation */
@@ -89,7 +89,7 @@ class Signature
     /** mark the symbol as skip for the purpose of symbol elimination */
     void markSkip() { _skip=1; }
     /** mark the symbol as name for consequence finding */
-    void markCFName() { ASS_EQ(arity(), 0); _cfName=1; markProtected(); }
+    void markLabel() { ASS_EQ(arity(), 0); _label=1; markProtected(); }
     /** mark symbol to be an answer predicate */
     void markAnswerPredicate() { _answerPredicate=1; markProtected(); }
     /** mark predicate to be an equality proxy */
@@ -101,7 +101,7 @@ class Signature
     bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate
         for consequence finding */
-    bool cfName() const { return _cfName; }
+    bool label() const { return _label; }
     /** return the colour of the symbol */
     Color color() const { return static_cast<Color>(_color); }
     /** Return the arity of the symbol */

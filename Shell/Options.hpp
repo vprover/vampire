@@ -220,6 +220,19 @@ public:
     INPUT_USAGE,
     PREPROCESSED_USAGE
   };
+  enum class FMBMonotonicCollapse : unsigned int {
+    OFF,
+    GROUP,
+    PREDICATE,
+    FUNCTION,
+    PREDICATE_WOM,
+    FUNCTION_WOM
+  };
+  enum class FMBSortInference : unsigned int {
+    IGNORE,
+    INFER,
+    EXPAND
+  };
 
   enum class RandomStrategy : unsigned int {
     ON,
@@ -1636,14 +1649,23 @@ public:
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
-  bool fmbIncremental() const { return _fmbIncremental.actualValue; }
+
   bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
-  bool fmbSortInference() const { return _fmbSortInference.actualValue; }
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
-  bool fmbStartWithConstants() const { return _fmbStartWithConstants.actualValue; }
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
   FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
   FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
+  FMBMonotonicCollapse fmbCollapseMonotonicSorts() const {return _fmbCollapseMonotonicSorts.actualValue; }
+  bool fmbDetectSortBounds() const { return _fmbDetectSortBounds.actualValue; }
+  unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
+  unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
+  bool fmbIgnoreMarkers() const { return _fmbIgnoreMarkers.actualValue; }
+  bool fmbNoPriority() const { return _fmbNoPriority.actualValue; }
+  FMBSortInference fmbSortInference() const { return _fmbSortInference.actualValue; }
+  void setFMBSortInference(FMBSortInference v){ _fmbSortInference.actualValue=v; }
+  bool fmbSpecialMonotEncoding() const { return _fmbSpecialMonotEncoding.actualValue; }
+  bool fmbXmass() const { return _fmbXmass.actualValue; }
+
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
@@ -1680,6 +1702,7 @@ public:
   bool showSymbolElimination() const { return _showSymbolElimination.actualValue; }
   bool showTheoryAxioms() const { return _showTheoryAxioms.actualValue; }
   bool showFOOL() const { return _showFOOL.actualValue; }
+  bool showFMBsortInfo() const { return _showFMBsortInfo.actualValue; }
 #if VZ3
   bool showZ3() const { return _showZ3.actualValue; }
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
@@ -1778,6 +1801,7 @@ public:
   vstring namePrefix() const { return _namePrefix.actualValue; }
   bool timeStatistics() const { return _timeStatistics.actualValue; }
   bool splitting() const { return _splitting.actualValue; }
+  void setSplitting(bool value){ _splitting.actualValue=value; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
   unsigned sineDepth() const { return _sineDepth.actualValue; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
@@ -1833,7 +1857,6 @@ public:
   
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
-  // int getTimeLimit(){return _timeLimitInDeciseconds.actualValue;} // MS: unused and the name does not stipulate the units (deciseconds)
   int getWhileNumber(){return _whileNumber.actualValue;}
   int getFunctionNumber(){return _functionNumber.actualValue;}
 
@@ -2020,14 +2043,20 @@ private:
   BoolOptionValue _FOOLOrdering;
   BoolOptionValue _FOOLParamodulation;
 
-  BoolOptionValue _fmbIncremental;
   BoolOptionValue _fmbNonGroundDefs;
-  BoolOptionValue _fmbSortInference;
   UnsignedOptionValue _fmbStartSize;
-  BoolOptionValue _fmbStartWithConstants;
   FloatOptionValue _fmbSymmetryRatio;
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
+  ChoiceOptionValue<FMBMonotonicCollapse> _fmbCollapseMonotonicSorts;
+  BoolOptionValue _fmbDetectSortBounds;
+  UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
+  UnsignedOptionValue _fmbSizeWeightRatio;
+  BoolOptionValue _fmbIgnoreMarkers;
+  BoolOptionValue _fmbNoPriority;
+  ChoiceOptionValue<FMBSortInference> _fmbSortInference;
+  BoolOptionValue _fmbSpecialMonotEncoding;
+  BoolOptionValue _fmbXmass;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
@@ -2149,6 +2178,7 @@ private:
   BoolOptionValue _showSymbolElimination;
   BoolOptionValue _showTheoryAxioms;
   BoolOptionValue _showFOOL;
+  BoolOptionValue _showFMBsortInfo;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;

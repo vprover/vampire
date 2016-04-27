@@ -61,6 +61,7 @@
 #include "Splitter.hpp"
 
 #include "ConsequenceFinder.hpp"
+#include "LabelFinder.hpp"
 #include "Splitter.hpp"
 #include "SymElOutput.hpp"
 #include "SaturationAlgorithm.hpp"
@@ -95,7 +96,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _limits(opt),
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
-    _consFinder(0), _symEl(0), _answerLiteralManager(0),
+    _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0),
     _generatedClauseCount(0)
 {
@@ -377,6 +378,9 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
 
   if (_consFinder) {
     _consFinder->onNewPropositionalClause(c);
+  }
+  if (_labelFinder){
+    _labelFinder->onNewPropositionalClause(c);
   }
 }
 

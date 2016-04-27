@@ -304,7 +304,7 @@ void Skolem::preskolemise (Formula* f)
 
 #if VDEBUG
   default:
-    ASSERTION_VIOLATION;
+    ASSERTION_VIOLATION_REP(f->connective());
 #endif
   }
 }

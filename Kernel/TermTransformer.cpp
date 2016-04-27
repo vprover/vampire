@@ -90,4 +90,77 @@ Literal* TermTransformer::transform(Literal* lit)
   return Literal::create(lit,argLst);
 }
 
+Literal* TermTransformerTransformTransformed::transform(Literal* lit)
+{
+  CALL("TermTransformerTransformTransformed::transform(Literal* lit)");
+  ASS(lit->shared());
+
+  static Stack<TermList*> toDo(8);
+  static Stack<Term*> terms(8);
+  static Stack<TermList> args(8);
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  args.reset();
+
+  toDo.push(lit->args());
+
+  // cout << "transform " << lit->toString() << endl;
+
+  for(;;) {
+    TermList* tt=toDo.pop();
+    if(tt->isEmpty()) {
+      // cout << "empty "  << endl;
+
+      if(terms.isEmpty()) {
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(toDo.isEmpty());
+        break;
+      }
+      Term* orig=terms.pop();
+
+      // cout << "term popped " << orig->toString() << endl;
+
+      TermList* argLst = 0;
+      if (orig->arity()) {
+        //here we assume, that stack is an array with
+        //second topmost element as &top()-1, third at
+        //&top()-2, etc...
+        argLst=&args.top() - (orig->arity()-1);
+        args.truncate(args.length() - orig->arity());
+      }
+
+      // cout << "args.length() - orig->arity() = " << args.length() - orig->arity() << endl;
+
+      args.push(transformSubterm(TermList(Term::create(orig,argLst))));
+      continue;
+    } else {
+      toDo.push(tt->next());
+    }
+
+    // cout << "Non-empty: " <<  tt->toString() << endl;
+
+    TermList tl=*tt;
+    if(tl.isVar()) {
+      TermList dest=transformSubterm(tl);
+      args.push(dest);
+      continue;
+    }
+    ASS(tl.isTerm());
+    Term* t=tl.term();
+    terms.push(t);
+    toDo.push(t->args());
+  }
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  ASS_EQ(args.length(),lit->arity());
+
+  ASS_EQ(args.size(), lit->arity());
+  //here we assume, that stack is an array with
+  //second topmost element as &top()-1, third at
+  //&top()-2, etc...
+  TermList* argLst=&args.top() - (lit->arity()-1);
+  return Literal::create(lit,argLst);
+}
+
 }

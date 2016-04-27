@@ -12,6 +12,7 @@
 #include "SAT/SATSolver.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "SortInference.hpp"
+#include "Lib/BinaryHeap.hpp"
 
 namespace FMB {
 using namespace Lib;
@@ -21,14 +22,23 @@ using namespace Shell;
 using namespace SAT;
 
   /**
-   * A GroundedTerm represents function f grounded with domain constant 'grounding' 
-   * Currently a single constant is used i.e. we get f(1,1,1) for f of arity 3
+   * A GroundedTerm represents function f grounded with an array of ground constants 
+   * Previously a single ground constant was used; but this did not work in the multi-sorted case
    * These are used to order grounded terms for symmetry breaking
    */
   struct GroundedTerm{
     unsigned f;
-    //DArray<unsigned> grounding;
-    unsigned grounding;
+    DArray<unsigned> grounding;
+
+    vstring toString(){
+      vstring ret = Lib::Int::toString(f)+"[";
+      for(unsigned i=0;i<grounding.size();i++){
+        if(i>0) ret +=",";
+        ret+=Lib::Int::toString(grounding[i]);
+      }
+      return ret+"]";
+    }
+
   };
 
 class FiniteModelBuilder : public MainLoop {
@@ -48,29 +58,40 @@ protected:
 private:
 
   // Creates the model output
-  void onModelFound(unsigned modelSize);
+  void onModelFound();
 
   // Adds constraints from ground clauses (same constraints for each model size)
-  void addGroundClauses(unsigned size);
+  void addGroundClauses();
   // Adds constraints from grounding the non-ground clauses
-  void addNewInstances(unsigned modelSize);
+  void addNewInstances();
+
+  // uses _distinctSortSizes to estimate how many instances would we generate
+  unsigned estimateInstanceCount();
+
   // Add constraints from functionality of function symbols in signature (except those removed in preprocessing)
-  void addNewFunctionalDefs(unsigned modelSize);
+  void addNewFunctionalDefs();
+
+  unsigned estimateFunctionalDefCount();
+
   // Add constraints from totality of function symbols in signature (except those removed in preprocessing)
-  void addNewTotalityDefs(unsigned modelSize);
+  void addNewTotalityDefs();
 
   // Add constraints for symmetry ordering i.e. the first modelSize groundedTerms are ordered
-  void addNewSymmetryOrderingAxioms(unsigned modelSize,Stack<GroundedTerm>& groundedTerms,unsigned maxModelSize); 
+  void addNewSymmetryOrderingAxioms(unsigned modelSize,Stack<GroundedTerm>& groundedTerms); 
   // Add constraints for canonicity of symmetry order i.e. if a groundedTerm uses a constant smaller terms use smaller constants
   void addNewSymmetryCanonicityAxioms(unsigned modelSize,Stack<GroundedTerm>& groundedTerms,unsigned maxModelSize);
 
   // Add all symmetry constraints
   // For each model size up to the maximum add both ordering and canonicity constraints for each (inferred) sort
-  void addNewSymmetryAxioms(unsigned modelSize){
+  void addNewSymmetryAxioms(){
       ASS(_sortedSignature);
-    for(unsigned m=1;m<=modelSize;m++){
-      for(unsigned s=0;s<_sortedSignature->sorts;s++){
-        addNewSymmetryOrderingAxioms(m,_sortedGroundedTerms[s],modelSize);
+    
+    for(unsigned s=0;s<_sortedSignature->sorts;s++){
+      //cout << "SORT " << s << endl;
+      unsigned modelSize = _sortModelSizes[s];
+      for(unsigned m=1;m<=modelSize;m++){
+        //cout << "MSIZE " << m << endl;
+        addNewSymmetryOrderingAxioms(m,_sortedGroundedTerms[s]);
         addNewSymmetryCanonicityAxioms(m,_sortedGroundedTerms[s],modelSize);
       }
     }
@@ -83,18 +104,18 @@ private:
   // The elements are the domain constants to use as parameters
   // polarity is used if isFunction is false
   SATLiteral getSATLiteral(unsigned func, const DArray<unsigned>& elements,bool polarity,
-                           bool isFunction, unsigned modelSize);
+                           bool isFunction);
 
-  // resets all structures and SAT solver using the given modelSize
-  bool reset(unsigned modelSize);
+  // resets all structures and SAT solver using _sortModelSizes 
+  bool reset();
 
   // make the symmetry orderings
-  void createSymmetryOrdering(unsigned modelSize);
+  void createSymmetryOrdering();
   // The per-sort ordering of grounded terms used for symmetry breaking
   DArray<Stack<GroundedTerm>> _sortedGroundedTerms;
 
   // SAT solver used to solve constraints (a new one is used for each model size)
-  ScopedPtr<SATSolver> _solver;
+  ScopedPtr<SATSolverWithAssumptions> _solver;
 
   // Structures to record symbols removed during preprocessing i.e. via definition elimination
   // These are ignored throughout finite model building and then the definitions (recorded here)
@@ -127,10 +148,9 @@ private:
 
   // Record for function symbol the minimum bound of the return sort or any parameter sorts 
   DArray<unsigned> _fminbound;
-  // Record for each clause the minimum bounds for argument sorts of each literal
-  //  if the literal is equality then this takes the min of each argument
-  // This assumes that clauses are not reordered (only happens when we do selection, which we do not)
-  DHMap<Clause*,DArray<unsigned>*> _clauseBounds;
+  // Record for each clause the sorts of the variables 
+  // As clauses are normalized variables will be numbered 0,1,...
+  DHMap<Clause*,DArray<unsigned>*> _clauseVariableSorts;
 
   // There is a implicit mapping from ground terms to SAT variables
   // These offsets give the SAT variable for the *first* grounding of each function or predicate symbol
@@ -138,25 +158,146 @@ private:
   DArray<unsigned> f_offsets;
   DArray<unsigned> p_offsets;
 
+  // do contour encoding instead of point-wise
+  bool _xmass;
+
+  // if (_xmass) {
+
+  /* Each distinctSort has as many markers as is its current size.
+   * Their offsets are stored on per sort basis.
+   */
+  DArray<unsigned> marker_offsets;
+
+  // } else {
+
+  /* for each distinctSort i there is a variable (totalityMarker_offset+i)
+   * which we use in the encoding to learn which domain should grow in order to possibly resolve a conflict.
+   */
+  unsigned totalityMarker_offset;
+  /* for each distinctSort i there is a variable (instancesMarker_offset+i)
+   * which we use in the encoding to learn whether it makes sense to change the domain sizes at all.
+   */
+  unsigned instancesMarker_offset;
+
+  // }
+
+  /**
+   * use marker_offsets to figure out to which sort does a variable belong
+   */
+  unsigned which_sort(unsigned var) {
+    ASS_GE(var,marker_offsets[0]);
+    unsigned j;
+    for (j = 0; j < _distinctSortSizes.size()-1; j++) {
+      if (var < marker_offsets[j+1]) {
+        return j;
+      }
+    }
+    ASS_EQ(j,_distinctSortSizes.size()-1);
+    ASS_GE(var,_distinctSortSizes[j]);
+    return j;
+  }
+
   /** Parameters to the FBM saturation **/
 
   // Currently an experimental option allows you to start at larger model sizes
+  // TODO in the future we could use this for a cheap way to 'pause' and 'restart' fmb
   unsigned _startModelSize; 
   // If we detect incompleteness at init then we terminate immediately at runImpl
   bool _isComplete;
-  // Record the maximum model size if there is one
-  unsigned _maxModelSize;
-  // Record the number of constants in the problem
-  unsigned _constantCount;
-  // An experimental option that uses the number of constants in the problem as the initial model size
-  // This is incomplete and I can't remember why I tried it
-  bool _useConstantsAsStart;
-  // The maximum arity, used to detect if we have at most 0,1 or >1 arity functions
-  unsigned _maxArity;
   // Option used in symmetry breaking
   float _symmetryRatio;
-};
 
+  // how often do we pick the next domain to grow by size and how often by weight (= encoding size estimate)
+  unsigned _sizeWeightRatio;
+
+  // sizes to use for each sort
+  DArray<unsigned> _sortModelSizes;
+  DArray<unsigned> _distinctSortSizes;
+
+  // if this is set, we ignore what the SAT solver tells us - it is stupid; just for an experimental comparison
+  bool _ignoreMarkers;
+
+  // if this is set, we don't use the parent's encoding estimate
+  // this means _constraints_generators will behave like a queue (not a priority queue)
+  // most likely sub-optimal -- used only for an experiment
+  bool _noPriority;
+
+  // monotonic sorts don't need to have their instances marked (that's the only way to get LEQ as a constraint)
+  // when the option is off we ignore this feature
+  bool _specialMonotEncoding;
+
+  enum ConstraintSign {
+    EQ,     // the value has to matched
+    LEQ,    // the value needs to be less or equal
+    GEQ,    // the value needs to be greater or equal
+    STAR    // we don't care about this value
+  };
+
+  typedef DArray<pair<ConstraintSign,unsigned>> Constraint_Generator_Vals;
+
+  struct Constraint_Generator {
+    Constraint_Generator_Vals _vals;
+    unsigned _weight;
+
+    Constraint_Generator(unsigned size, unsigned weight)
+      : _vals(size), _weight(weight) {}
+  };
+
+  void output_cg(Constraint_Generator_Vals& cgv) {
+    cout << "[";
+    for (unsigned i = 0; i < cgv.size(); i++) {
+      cout << cgv[i].second;
+      switch(cgv[i].first) {
+      case EQ:
+        cout << "=";
+        break;
+      case LEQ:
+        cout << ">";
+        break;
+      case GEQ:
+        cout << "<";
+        break;
+      case STAR:
+        cout << "*";
+        break;
+      default:
+        ASSERTION_VIOLATION;
+      }
+      if (i < cgv.size()-1) {
+        cout << ", ";
+      }
+    }
+    cout << "]";
+  }
+
+  struct Constraint_Generator_Compare {
+    static Comparison compare (Constraint_Generator* c1, Constraint_Generator* c2)
+    { return c1->_weight < c2->_weight ? LESS : c1->_weight == c2->_weight ? EQUAL : GREATER; }
+  };
+
+  typedef Lib::BinaryHeap<Constraint_Generator*,Constraint_Generator_Compare> Constraint_Generator_Heap;
+
+  /**
+   * Constraints are at the same time used as generators.
+   */
+  Constraint_Generator_Heap _constraints_generators;
+
+  // the sort constraints from injectivity/surjectivity
+  // pairs of distinct sorts where pair.first >= pair.second
+  Stack<std::pair<unsigned,unsigned>> _distinct_sort_constraints;
+  // pairs of distinct sorts where pair.first > pair.second
+  Stack<std::pair<unsigned,unsigned>> _strict_distinct_sort_constraints;
+
+  // returns false one failure
+  bool increaseModelSizes();
+
+  // Record the number of constants in the problem per distinct sort
+  DArray<unsigned> _distinctSortConstantCount;
+  // min and max sizes for distinct sorts
+  DArray<unsigned> _distinctSortMins;
+  DArray<unsigned> _distinctSortMaxs;
+  //unsigned _maxModelSizeAllSorts;
+};
 }
 
 #endif // __FiniteModelBuilder__

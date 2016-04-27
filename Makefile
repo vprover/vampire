@@ -311,6 +311,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
          Saturation/ExtensionalityClauseContainer.o\
+	 Saturation/LabelFinder.o\
          Saturation/Limits.o\
          Saturation/LRS.o\
          Saturation/Otter.o\
@@ -421,7 +422,10 @@ VTAB_OBJ = Tabulation/Producer.o\
 
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
+	   FMB/Monotonicity.o\
+	   FMB/FunctionRelationshipInference.o\
 	   FMB/FiniteModel.o\
+	   FMB/FiniteModelMultiSorted.o\
            FMB/FiniteModelBuilder.o
 
 TRANSLATOR_OBJ = \
