@@ -86,8 +86,20 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   _xmass = opt.fmbXmass();
   _sizeWeightRatio = opt.fmbSizeWeightRatio();
 
+#if VZ3
+  if (opt.fmbSmtEnumeration()) {
+    _dsaEnumerator = new SmtBasedDSAE();
+  } else
+#endif
+  {
+    _dsaEnumerator = new HackyDSAE();
+  }
 }
 
+FiniteModelBuilder::~FiniteModelBuilder()
+{
+  delete _dsaEnumerator;
+}
 
 // Do all setting up required for finite model search 
 // Returns false we if we failed to reset, this can happen if offsets overflow 2^32, possible for
@@ -198,9 +210,12 @@ bool FiniteModelBuilder::reset(){
   }catch(Minisat::OutOfMemoryException&){
     MinisatInterfacingNewSimp::reportMinisatOutOfMemory();
   }
+
+  /*
   if(_opt.satSolver() != Options::SatSolver::MINISAT){
     cout << "Warning: overriding sat solver for FMB, using minisat" << endl;
   }
+  */
 /*
   switch(_opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
@@ -1403,6 +1418,12 @@ MainLoopResult FiniteModelBuilder::runImpl()
     _sortModelSizes[i]=_startModelSize;
   }
 
+  if (!_xmass) {
+    if (!_dsaEnumerator->init(_startModelSize,_distinctSortSizes,_distinct_sort_constraints,_strict_distinct_sort_constraints)) {
+      goto gave_up;
+    }
+  }
+
   if (reset()) {
   while(true){
     if(env.options->mode()!=Options::Mode::SPIDER) { 
@@ -1581,42 +1602,54 @@ MainLoopResult FiniteModelBuilder::runImpl()
           return MainLoopResult(Statistics::REFUTATION,empty);
         }
       } else { // i.e. (!_xmass)
-        Constraint_Generator* constraint_p = new Constraint_Generator(_distinctSortSizes.size(),weight);
-        Constraint_Generator_Vals& constraint = constraint_p->_vals;
+        static Constraint_Generator_Vals nogood;
+
+        nogood.ensure(_distinctSortSizes.size());
 
         for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
-          constraint[i] = make_pair(STAR,_distinctSortSizes[i]);
+          nogood[i] = make_pair(STAR,_distinctSortSizes[i]);
         }
 
-          for (unsigned i = 0; i < failed.size(); i++) {
-            unsigned var = failed[i].var();
-            ASS_GE(var,totalityMarker_offset);
+        for (unsigned i = 0; i < failed.size(); i++) {
+          unsigned var = failed[i].var();
+          ASS_GE(var,totalityMarker_offset);
 
-            if (var < instancesMarker_offset) { // totality used (-> instances used as well / unless the sort is monotonic)
-              unsigned dsort = var-totalityMarker_offset;
-              if (_sortedSignature->monotonicSorts[dsort]) {
-                constraint[dsort].first = LEQ;
-              } else {
-                constraint[dsort].first = EQ;
-              }
-            } else if (constraint[var-instancesMarker_offset].first == STAR) { // instances used (and we don't know yet about totality)
-              ASS(!_sortedSignature->monotonicSorts[var-instancesMarker_offset]);
-              constraint[var-instancesMarker_offset].first = GEQ;
+          if (var < instancesMarker_offset) { // totality used (-> instances used as well / unless the sort is monotonic)
+            unsigned dsort = var-totalityMarker_offset;
+            if (_sortedSignature->monotonicSorts[dsort]) {
+              nogood[dsort].first = LEQ;
+            } else {
+              nogood[dsort].first = EQ;
             }
+          } else if (nogood[var-instancesMarker_offset].first == STAR) { // instances used (and we don't know yet about totality)
+            ASS(!_sortedSignature->monotonicSorts[var-instancesMarker_offset]);
+            nogood[var-instancesMarker_offset].first = GEQ;
           }
+        }
 
-  // #if VTRACE_DOMAINS
-        cout << "Adding generator/constraint: ";
-        output_cg(constraint);
+#if VTRACE_DOMAINS
+        cout << "Learned a nogood: ";
+        output_cg(nogood);
         cout << " of weight " << weight << endl;
-  // #endif
+#endif
 
-        _constraints_generators.insert(constraint_p);
+        _dsaEnumerator->learnNogood(nogood,weight);
 
-        if (!increaseModelSizes()) {
-          Clause* empty = new(0) Clause(0,Unit::AXIOM,
-             new Inference(Inference::MODEL_NOT_FOUND));
-          return MainLoopResult(Statistics::REFUTATION,empty);
+        if (!_dsaEnumerator->increaseModelSizes(_distinctSortSizes,_distinctSortMaxs)) {
+          if (_dsaEnumerator->isFmbComplete()) {
+            Clause* empty = new(0) Clause(0,Unit::AXIOM,
+                new Inference(Inference::MODEL_NOT_FOUND));
+            return MainLoopResult(Statistics::REFUTATION,empty);
+          } else {
+            if(env.options->mode()!=Options::Mode::SPIDER) {
+              cout << "Cannot enumerate next child to try in an incomplete setup" <<endl;
+            }
+            goto gave_up;
+          }
+        }
+
+        for(unsigned s=0;s<_sortedSignature->sorts;s++) {
+          _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
         }
       }
     }
@@ -1633,13 +1666,15 @@ MainLoopResult FiniteModelBuilder::runImpl()
     cout << "Cannot represent all propositional literals internally" <<endl;
   }
 
+  gave_up: // for jumping because of other reasons to give up (message printed elsewhere)
+
   if(UIHelper::szsOutput) {
     env.beginOutput();
     env.out() << "% SZS status GaveUp for " << _opt.problemName() << endl;
     env.endOutput();
   }
 
-  return MainLoopResult(Statistics::UNKNOWN);
+  return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
 }
 
 void FiniteModelBuilder::onModelFound()
@@ -2038,10 +2073,20 @@ ppModelLabel:
   env.statistics->model = model.toString();
 }
 
-bool FiniteModelBuilder::increaseModelSizes(){
-  CALL("FiniteModelBuilder::increaseModelSizes");
+void FiniteModelBuilder::HackyDSAE::learnNogood(Constraint_Generator_Vals& nogood, unsigned weight)
+{
+  CALL("FiniteModelBuilder::HackyDSAE::learnNogood");
 
-  cout << "_constraints_generators.size() " << _constraints_generators.size() << endl;
+  Constraint_Generator* constraint_p = new Constraint_Generator(nogood,weight);
+
+  _constraints_generators.insert(constraint_p);
+}
+
+bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes)
+{
+  CALL("FiniteModelBuilder::HackyDSAE::increaseModelSizes");
+
+  // cout << "_constraints_generators.size() " << _constraints_generators.size() << endl;
 
   while (!_constraints_generators.isEmpty()) {
     Constraint_Generator* generator_p = _constraints_generators.top();
@@ -2049,22 +2094,22 @@ bool FiniteModelBuilder::increaseModelSizes(){
 
 #if VTRACE_DOMAINS
     cout << "Picking generator: ";
-    output_cg(generator);
+    FiniteModelBuilder::output_cg(generator);
     cout << endl;
 #endif
 
     // copy generator to _distinctSortSizes
-    for (unsigned i = 0; i< _distinctSortSizes.size(); i++) {
-      _distinctSortSizes[i] = generator[i].second;
+    for (unsigned i = 0; i< newSortSizes.size(); i++) {
+      newSortSizes[i] = generator[i].second;
     }
 
     // all possible increments [+1,+0,+0,..],[+0,+1,+0,..],[+0,+0,+1,..], ...
-    for (unsigned i = 0; i< _distinctSortSizes.size(); i++) {
+    for (unsigned i = 0; i< newSortSizes.size(); i++) {
       // generate
-      _distinctSortSizes[i] += 1;
+      newSortSizes[i] += 1;
 
       // test 1 -- max sizes
-      if (_distinctSortSizes[i] > _distinctSortMaxs[i]) {
+      if (newSortSizes[i] > sortMaxes[i]) {
         //cout << "Skipping increasing distinct sort " << i << " as has max of " << _distinctSortMaxs[i] << endl;
         goto next_candidate;
       }
@@ -2081,19 +2126,19 @@ bool FiniteModelBuilder::increaseModelSizes(){
 
           // bool risky = false;
 
-          for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
+          for (unsigned j = 0; j < newSortSizes.size(); j++) {
             pair<ConstraintSign,unsigned>& cc = constraint[j];
-            if (cc.first == EQ && cc.second != _distinctSortSizes[j]) {
+            if (cc.first == EQ && cc.second != newSortSizes[j]) {
               goto next_constraint;
             }
-            if (cc.first == GEQ && cc.second > _distinctSortSizes[j]) {
+            if (cc.first == GEQ && cc.second > newSortSizes[j]) {
               goto next_constraint;
             }
             if (cc.first == LEQ) {
-              if (cc.second < _distinctSortSizes[j]) {
+              if (cc.second < newSortSizes[j]) {
                 goto next_constraint;
               }
-              // if (cc.second > _distinctSortSizes[j]) { // leq applied in a proper sense
+              // if (cc.second > newSortSizes[j]) { // leq applied in a proper sense
               //   risky = true;
               // }
             }
@@ -2121,17 +2166,17 @@ bool FiniteModelBuilder::increaseModelSizes(){
 
       // test 3 -- (strict)_distinct_sort_constraints
       {
-        Stack<std::pair<unsigned,unsigned>>::Iterator it1(_distinct_sort_constraints);
+        Stack<std::pair<unsigned,unsigned>>::Iterator it1(*_distinct_sort_constraints);
         while (it1.hasNext()) {
           std::pair<unsigned,unsigned> constr = it1.next();
-          if (_distinctSortSizes[constr.first] < _distinctSortSizes[constr.second]) {
+          if (newSortSizes[constr.first] < newSortSizes[constr.second]) {
              cout << "  Ruled out by _distinct_sort_constraints " << constr.first << " >= " << constr.second << endl;
 
             // We will skip testing it, but we need it as a generator to proceed through the space:
-            Constraint_Generator* gen_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+            Constraint_Generator* gen_p = new Constraint_Generator(newSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
             Constraint_Generator_Vals& gen = gen_p->_vals;
-            for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
-              gen[j] = make_pair(STAR,_distinctSortSizes[j]);
+            for (unsigned j = 0; j < newSortSizes.size(); j++) {
+              gen[j] = make_pair(STAR,newSortSizes[j]);
             }
             gen[constr.first].first = EQ;
             gen[constr.second].first = GEQ;
@@ -2142,17 +2187,17 @@ bool FiniteModelBuilder::increaseModelSizes(){
           }
         }
 
-        Stack<std::pair<unsigned,unsigned>>::Iterator it2(_strict_distinct_sort_constraints);
+        Stack<std::pair<unsigned,unsigned>>::Iterator it2(*_strict_distinct_sort_constraints);
         while (it2.hasNext()) {
           std::pair<unsigned,unsigned> constr = it2.next();
-          if (_distinctSortSizes[constr.first] <= _distinctSortSizes[constr.second]) {
+          if (newSortSizes[constr.first] <= newSortSizes[constr.second]) {
             // cout << "  Ruled out by _strict_distinct_sort_constraints " << constr.first << " > " << constr.second << endl;
 
             // We will skip testing it, but we need it as a generator to proceed through the space:
-            Constraint_Generator* gen_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+            Constraint_Generator* gen_p = new Constraint_Generator(newSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
             Constraint_Generator_Vals& gen = gen_p->_vals;
-            for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
-              gen[j] = make_pair(STAR,_distinctSortSizes[j]);
+            for (unsigned j = 0; j < newSortSizes.size(); j++) {
+              gen[j] = make_pair(STAR,newSortSizes[j]);
             }
             gen[constr.first].first = EQ;
             gen[constr.second].first = GEQ;
@@ -2165,14 +2210,11 @@ bool FiniteModelBuilder::increaseModelSizes(){
       }
 
       // all passed
-      for(unsigned s=0;s<_sortedSignature->sorts;s++) {
-        _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
-      }
       return true;
 
       //undo
       next_candidate:
-      _distinctSortSizes[i] -= 1;
+      newSortSizes[i] -= 1;
     }
 
     delete _constraints_generators.pop();
@@ -2183,5 +2225,160 @@ bool FiniteModelBuilder::increaseModelSizes(){
 
   return false;
 }
+
+
+#if VZ3
+bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<unsigned>& _distinctSortSizes,
+      Stack<std::pair<unsigned,unsigned>>& _distinct_sort_constraints, Stack<std::pair<unsigned,unsigned>>& _strict_distinct_sort_constraints)
+{
+  CALL("FiniteModelBuilder::SmtBasedDSAE::init");
+
+  BYPASSING_ALLOCATOR;
+
+  // initialize the smt solver
+  z3::expr zero = _context.int_val(_startModelSize-1);
+
+  _sizeConstants.ensure(_distinctSortSizes.size());
+  // _distinctSortSizes.size() - many int variables
+  for(unsigned i=0;i<_sizeConstants.size();i++) {
+    _sizeConstants[i] = new z3::expr(_context);
+    *_sizeConstants[i] = _context.int_const((vstring("s")+Int::toString(i)).c_str());
+
+    // asserted to be greater than zero
+    _smtSolver.add(*_sizeConstants[i] > zero);
+  }
+
+  _lastWeight = _distinctSortSizes.size()*_startModelSize;
+
+  // also add (_strict)_distinct_sort_constraints
+  Stack<std::pair<unsigned,unsigned>>::Iterator it1(_distinct_sort_constraints);
+  while (it1.hasNext()) {
+    std::pair<unsigned,unsigned> constr = it1.next();
+    _smtSolver.add(*_sizeConstants[constr.first] >= *_sizeConstants[constr.second]);
+  }
+
+  Stack<std::pair<unsigned,unsigned>>::Iterator it2(_strict_distinct_sort_constraints);
+  while (it2.hasNext()) {
+    std::pair<unsigned,unsigned> constr = it2.next();
+    _smtSolver.add(*_sizeConstants[constr.first] > *_sizeConstants[constr.second]);
+  }
+
+  // if UNSAT now, we know this is "infinox-gaveup"
+  if (_strict_distinct_sort_constraints.size() > 0) {
+    if (_smtSolver.check() == z3::check_result::unsat) {
+     if(env.options->mode()!=Options::Mode::SPIDER){
+        cout << "Problem does not have a finite model." <<endl;
+      }
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void FiniteModelBuilder::SmtBasedDSAE::learnNogood(Constraint_Generator_Vals& nogood, unsigned weight)
+{
+  CALL("FiniteModelBuilder::SmtBasedDSAE::learnNogood");
+
+  BYPASSING_ALLOCATOR;
+
+  z3::expr z3clause = _context.bool_val(false);
+  // turning a no-good into a clause
+  for (unsigned i = 0; i < nogood.size(); i++) {
+    switch(nogood[i].first) {
+      case EQ:
+        z3clause = z3clause || (*_sizeConstants[i] != _context.int_val(nogood[i].second));
+        break;
+      case LEQ:
+        z3clause = z3clause || (*_sizeConstants[i] > _context.int_val(nogood[i].second));
+        break;
+      case GEQ:
+        z3clause = z3clause || (*_sizeConstants[i] < _context.int_val(nogood[i].second));
+        break;
+      default:
+        // pass
+        ;
+    }
+  }
+  _smtSolver.add(z3clause);
+}
+
+/** Assuming _smtSolver just returned SAT,
+ *  load the values to szs
+ *  and return the weight of the vector */
+unsigned FiniteModelBuilder::SmtBasedDSAE::loadSizesFromSmt(DArray<unsigned>& szs)
+{
+  CALL("FiniteModelBuilder::SmtBasedDSAE::loadSizesFromSmt");
+  unsigned weight = 0;
+
+  z3::model model = _smtSolver.get_model();
+
+  for (unsigned i = 0; i < szs.size(); i++) {
+    int val;
+    Z3_get_numeral_int(_context,model.eval(*_sizeConstants[i]),&val);
+    szs[i] = (unsigned)val;
+    weight += val;
+  }
+
+  return weight;
+}
+
+bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes)
+{
+  CALL("FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes");
+
+
+  BYPASSING_ALLOCATOR;
+
+  TimeCounter tc(TC_Z3_IN_FMB);
+
+  z3::check_result result = _smtSolver.check();
+
+  if (result == z3::check_result::unsat) {
+    return false;
+  }
+
+  ASS_EQ(result,z3::check_result::sat); // could we get unknown from this simple fragment?
+
+  unsigned weight = loadSizesFromSmt(newSortSizes);
+
+  // TODO: for completeness, we don't need to minimize every time round (which might be a bit expensive)
+
+  if (weight == _lastWeight) {
+    // cout << "Found "; output_sizes(_distinctSortSizes); cout << " of optimal weight " << weight;
+    return true;
+  }
+
+  // TODO: try a more clever "fitness" than the sum; then minimizing by "halving" could be an interesting thing to try
+
+  //cout << "Minimizing for weight ";
+
+  // minimizing:
+  while (true) {
+    // cout << _lastWeight << ", ";
+
+    _smtSolver.push();
+
+    z3::expr sum = _context.int_val(0);
+    for (unsigned i = 0; i < newSortSizes.size(); i++) {
+      sum = sum + *_sizeConstants[i];
+    }
+    _smtSolver.add(sum == _context.int_val(_lastWeight));
+
+    result = _smtSolver.check();
+
+    if (_smtSolver.check() == z3::check_result::sat) {
+      loadSizesFromSmt(newSortSizes);
+      // cout << "\nFound "; output_sizes(_distinctSortSizes); cout << endl;
+      _smtSolver.pop(1);
+      return true;
+    } else {
+      _smtSolver.pop(1);
+      _lastWeight++;
+    }
+  }
+}
+
+#endif
 
 }

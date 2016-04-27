@@ -662,6 +662,13 @@ void Options::Options::init()
     _fmbSortInference.setExperimental();
     _lookup.insert(&_fmbSortInference);
 
+#if VZ3
+    _fmbSmtEnumeration = BoolOptionValue("fmb_smt_enumeration","fmbsmte",true);
+    _fmbSmtEnumeration.description = "";
+    _fmbSmtEnumeration.setExperimental();
+    _lookup.insert(&_fmbSmtEnumeration);
+#endif
+
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
     "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"

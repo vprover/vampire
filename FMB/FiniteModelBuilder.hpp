@@ -8,6 +8,11 @@
 
 #include "Forwards.hpp"
 
+#if VZ3
+#include "z3++.h"
+#include "z3_api.h"
+#endif
+
 #include "Kernel/MainLoop.hpp"
 #include "SAT/SATSolver.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -47,6 +52,7 @@ public:
   USE_ALLOCATOR(FiniteModelBuilder);    
   
   FiniteModelBuilder(Problem& prb, const Options& opt);
+  ~FiniteModelBuilder();
 
 protected:
   // Sets up everything
@@ -223,52 +229,71 @@ private:
 
   typedef DArray<pair<ConstraintSign,unsigned>> Constraint_Generator_Vals;
 
-  struct Constraint_Generator {
-    Constraint_Generator_Vals _vals;
-    unsigned _weight;
-
-    Constraint_Generator(unsigned size, unsigned weight)
-      : _vals(size), _weight(weight) {}
+  class DSAEnumerator { // Domain Size Assignment Enumerator - for the point-wise encoding case
+  public:
+    virtual bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) { return true; }
+    virtual void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) = 0;
+    virtual bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) = 0;
+    virtual bool isFmbComplete() { return false; }
+    virtual ~DSAEnumerator() {}
   };
 
-  void output_cg(Constraint_Generator_Vals& cgv) {
-    cout << "[";
-    for (unsigned i = 0; i < cgv.size(); i++) {
-      cout << cgv[i].second;
-      switch(cgv[i].first) {
-      case EQ:
-        cout << "=";
-        break;
-      case LEQ:
-        cout << ">";
-        break;
-      case GEQ:
-        cout << "<";
-        break;
-      case STAR:
-        cout << "*";
-        break;
-      default:
-        ASSERTION_VIOLATION;
-      }
-      if (i < cgv.size()-1) {
-        cout << ", ";
-      }
+  DSAEnumerator* _dsaEnumerator;
+
+  class HackyDSAE : public DSAEnumerator {
+    struct Constraint_Generator {
+      Constraint_Generator_Vals _vals;
+      unsigned _weight;
+
+      Constraint_Generator(unsigned size, unsigned weight)
+        : _vals(size), _weight(weight) {}
+      Constraint_Generator(Constraint_Generator_Vals& vals, unsigned weight)
+        : _vals(vals), _weight(weight) {}
+    };
+
+    struct Constraint_Generator_Compare {
+      static Comparison compare (Constraint_Generator* c1, Constraint_Generator* c2)
+      { return c1->_weight < c2->_weight ? LESS : c1->_weight == c2->_weight ? EQUAL : GREATER; }
+    };
+
+    typedef Lib::BinaryHeap<Constraint_Generator*,Constraint_Generator_Compare> Constraint_Generator_Heap;
+
+    Stack<std::pair<unsigned,unsigned>>* _distinct_sort_constraints;
+    Stack<std::pair<unsigned,unsigned>>* _strict_distinct_sort_constraints;
+
+    /**
+     * Constraints are at the same time used as generators.
+     */
+    Constraint_Generator_Heap _constraints_generators;
+
+  public:
+    bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) {
+      _distinct_sort_constraints = &dsc;
+      _strict_distinct_sort_constraints = &sdsc;
+      return true;
     }
-    cout << "]";
-  }
 
-  struct Constraint_Generator_Compare {
-    static Comparison compare (Constraint_Generator* c1, Constraint_Generator* c2)
-    { return c1->_weight < c2->_weight ? LESS : c1->_weight == c2->_weight ? EQUAL : GREATER; }
+    void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight);
+    bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes);
   };
 
-  typedef Lib::BinaryHeap<Constraint_Generator*,Constraint_Generator_Compare> Constraint_Generator_Heap;
+#if VZ3
+  class SmtBasedDSAE : public DSAEnumerator {
+    z3::context _context;
+    z3::solver  _smtSolver;
+    unsigned _lastWeight;
+    DArray<z3::expr*> _sizeConstants;
+  protected:
+    unsigned loadSizesFromSmt(DArray<unsigned>& szs);
+  public:
+    SmtBasedDSAE() : _smtSolver(_context) {}
 
-  /**
-   * Constraints are at the same time used as generators.
-   */
-  Constraint_Generator_Heap _constraints_generators;
+    bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&);
+    void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight);
+    bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes);
+    bool isFmbComplete() { return true; }
+  };
+#endif
 
   // the sort constraints from injectivity/surjectivity
   // pairs of distinct sorts where pair.first >= pair.second
@@ -276,7 +301,7 @@ private:
   // pairs of distinct sorts where pair.first > pair.second
   Stack<std::pair<unsigned,unsigned>> _strict_distinct_sort_constraints;
 
-  // returns false one failure
+  // returns false on failure
   bool increaseModelSizes();
 
   // Record the number of constants in the problem per distinct sort
@@ -285,6 +310,35 @@ private:
   DArray<unsigned> _distinctSortMins;
   DArray<unsigned> _distinctSortMaxs;
   //unsigned _maxModelSizeAllSorts;
+
+public: // debugging
+    static void output_cg(Constraint_Generator_Vals& cgv) {
+      cout << "[";
+      for (unsigned i = 0; i < cgv.size(); i++) {
+        cout << cgv[i].second;
+        switch(cgv[i].first) {
+        case EQ:
+          cout << "=";
+          break;
+        case LEQ:
+          cout << ">";
+          break;
+        case GEQ:
+          cout << "<";
+          break;
+        case STAR:
+          cout << "*";
+          break;
+        default:
+          ASSERTION_VIOLATION;
+        }
+        if (i < cgv.size()-1) {
+          cout << ", ";
+        }
+      }
+      cout << "]";
+    }
+
 };
 }
 

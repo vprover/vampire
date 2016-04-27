@@ -1704,6 +1704,7 @@ public:
   bool showZ3() const { return _showZ3.actualValue; }
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
+  bool fmbSmtEnumeration() const { return _fmbSmtEnumeration.actualValue; }
 #endif
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -2177,6 +2178,7 @@ private:
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
   BoolOptionValue _satFallbackForSMT;
+  BoolOptionValue _fmbSmtEnumeration;
 #endif
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
