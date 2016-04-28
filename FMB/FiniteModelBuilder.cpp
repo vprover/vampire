@@ -2080,6 +2080,34 @@ void FiniteModelBuilder::HackyDSAE::learnNogood(Constraint_Generator_Vals& nogoo
   Constraint_Generator* constraint_p = new Constraint_Generator(nogood,weight);
 
   _constraints_generators.insert(constraint_p);
+
+  if (weight > _maxWeightSoFar) {
+    _maxWeightSoFar = weight;
+  }
+}
+
+bool FiniteModelBuilder::HackyDSAE::checkConstriant(DArray<unsigned>& newSortSizes, Constraint_Generator_Vals& constraint)
+{
+  CALL("FiniteModelBuilder::HackyDSAE::checkConstriant");
+
+  for (unsigned j = 0; j < newSortSizes.size(); j++) {
+    pair<ConstraintSign,unsigned>& cc = constraint[j];
+    if (cc.first == EQ && cc.second != newSortSizes[j]) {
+      return false;
+    }
+    if (cc.first == GEQ && cc.second > newSortSizes[j]) {
+      return false;
+    }
+    if (cc.first == LEQ && cc.second < newSortSizes[j]) {
+      return false;
+    }
+  }
+
+#if VTRACE_DOMAINS
+  cout << "  Ruled out by "; output_cg(constraint); cout << endl;
+#endif
+
+  return true;
 }
 
 bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes)
@@ -2118,49 +2146,33 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
       cout << "  Testing increment on " << i << endl;
 #endif
 
-      // test 2 -- generator constraints
+      // test 2a -- generator constraints
       {
         Constraint_Generator_Heap::Iterator it(_constraints_generators);
         while (it.hasNext()) {
-          Constraint_Generator_Vals& constraint = it.next()->_vals;
-
-          // bool risky = false;
-
-          for (unsigned j = 0; j < newSortSizes.size(); j++) {
-            pair<ConstraintSign,unsigned>& cc = constraint[j];
-            if (cc.first == EQ && cc.second != newSortSizes[j]) {
-              goto next_constraint;
-            }
-            if (cc.first == GEQ && cc.second > newSortSizes[j]) {
-              goto next_constraint;
-            }
-            if (cc.first == LEQ) {
-              if (cc.second < newSortSizes[j]) {
-                goto next_constraint;
-              }
-              // if (cc.second > newSortSizes[j]) { // leq applied in a proper sense
-              //   risky = true;
-              // }
-            }
+          if (checkConstriant(newSortSizes,it.next()->_vals)) {
+            goto next_candidate;
           }
+        }
+      }
 
-          //if (risky) { // ruled out by the monotonicity trick - spawn the child anyway not to lose completeness
-          //  Constraint_Generator* gen_p = new Constraint_Generator(_distinctSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
-          //  Constraint_Generator_Vals& gen = gen_p->_vals;
-          //  for (unsigned j = 0; j < _distinctSortSizes.size(); j++) {
-          //    // copying signs from constraint, to be as powerful as possible
-          //    gen[j] = make_pair(constraint[j].first,_distinctSortSizes[j]);
-          //  }
-          //  _constraints_generators.insert(gen_p);
-          // }
+      // test 2b -- old generators
+      {
+        for (unsigned n = 0; n < _old_generators.size(); n++) {
+          if (checkConstriant(newSortSizes,_old_generators[n]->_vals)) {
 
-  #if VTRACE_DOMAINS
-          cout << "  Ruled out by "; output_cg(constraint); cout << endl;
-  #endif
+            // to stay "more complete", we generate the child anyway
 
-          goto next_candidate;
+            Constraint_Generator* gen_p = new Constraint_Generator(newSortSizes.size(), ++_maxWeightSoFar /*effectively a fallback to FIFO for artificial children*/);
+            Constraint_Generator_Vals& gen = gen_p->_vals;
+            for (unsigned j = 0; j < newSortSizes.size(); j++) {
+              gen[j] = make_pair(EQ,newSortSizes[j]);
+            }
 
-          next_constraint: ;
+            _constraints_generators.insert(gen_p);
+
+            goto next_candidate;
+          }
         }
       }
 
@@ -2170,10 +2182,12 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
         while (it1.hasNext()) {
           std::pair<unsigned,unsigned> constr = it1.next();
           if (newSortSizes[constr.first] < newSortSizes[constr.second]) {
+  #if VTRACE_DOMAINS
              cout << "  Ruled out by _distinct_sort_constraints " << constr.first << " >= " << constr.second << endl;
+  #endif
 
             // We will skip testing it, but we need it as a generator to proceed through the space:
-            Constraint_Generator* gen_p = new Constraint_Generator(newSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+            Constraint_Generator* gen_p = new Constraint_Generator(newSortSizes.size(), ++_maxWeightSoFar /*effectively a fallback to FIFO for artificial children*/);
             Constraint_Generator_Vals& gen = gen_p->_vals;
             for (unsigned j = 0; j < newSortSizes.size(); j++) {
               gen[j] = make_pair(STAR,newSortSizes[j]);
@@ -2194,7 +2208,7 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
             // cout << "  Ruled out by _strict_distinct_sort_constraints " << constr.first << " > " << constr.second << endl;
 
             // We will skip testing it, but we need it as a generator to proceed through the space:
-            Constraint_Generator* gen_p = new Constraint_Generator(newSortSizes.size(), generator_p->_weight+1 /* TODO a better estimate! */);
+            Constraint_Generator* gen_p = new Constraint_Generator(newSortSizes.size(), ++_maxWeightSoFar /*effectively a fallback to FIFO for artificial children*/);
             Constraint_Generator_Vals& gen = gen_p->_vals;
             for (unsigned j = 0; j < newSortSizes.size(); j++) {
               gen[j] = make_pair(STAR,newSortSizes[j]);
@@ -2217,7 +2231,7 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
       newSortSizes[i] -= 1;
     }
 
-    delete _constraints_generators.pop();
+    _old_generators.push(_constraints_generators.pop());
 #if VTRACE_DOMAINS
     cout << "Deleted" << endl;
 #endif

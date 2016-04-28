@@ -266,7 +266,16 @@ private:
      */
     Constraint_Generator_Heap _constraints_generators;
 
+    unsigned _maxWeightSoFar;
+
+    Stack<Constraint_Generator*> _old_generators;
+
+  protected:
+    bool checkConstriant(DArray<unsigned>& newSortSizes, Constraint_Generator_Vals& constraint);
+
   public:
+    HackyDSAE() : _maxWeightSoFar(0) {}
+
     bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) {
       _distinct_sort_constraints = &dsc;
       _strict_distinct_sort_constraints = &sdsc;
