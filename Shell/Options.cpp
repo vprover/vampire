@@ -1280,7 +1280,7 @@ void Options::Options::init()
     _satRestartStrategy.tag(OptionTag::SAT);
     _satRestartStrategy.setExperimental();
 
-    _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::VAMPIRE,
+    _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::MINISAT,
 #if VZ3
             {"lingeling","minisat","vampire","z3"});
 #else
