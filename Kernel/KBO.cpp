@@ -511,8 +511,12 @@ int KBOBase::predicateLevel (unsigned pred) const
 int KBOBase::predicatePrecedence (unsigned pred) const
 {
   int res=pred >= _predicates ? (int)pred : _predicatePrecedences[pred];
-  if(NONINTERPRETED_PRECEDENCE_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
-    return res+NONINTERPRETED_PRECEDENCE_BOOST;
+  if(NONINTERPRETED_PRECEDENCE_BOOST) {
+    ASS_EQ(NONINTERPRETED_PRECEDENCE_BOOST & 1, 0); // an even number
+
+    bool intp = env.signature->getPredicate(pred)->interpreted();
+    res *= 2;
+    return intp ? res+1 : res+NONINTERPRETED_PRECEDENCE_BOOST;
   }
   return res;
 } // KBO::predicatePrecedences
