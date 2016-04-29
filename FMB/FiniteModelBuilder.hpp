@@ -268,7 +268,7 @@ private:
 
     unsigned _maxWeightSoFar;
 
-    Stack<Constraint_Generator*> _old_generators;
+    // Stack<Constraint_Generator*> _old_generators; // keeping old generators degraded performance on average ...
 
   protected:
     bool checkConstriant(DArray<unsigned>& newSortSizes, Constraint_Generator_Vals& constraint);
@@ -309,9 +309,6 @@ private:
   Stack<std::pair<unsigned,unsigned>> _distinct_sort_constraints;
   // pairs of distinct sorts where pair.first > pair.second
   Stack<std::pair<unsigned,unsigned>> _strict_distinct_sort_constraints;
-
-  // returns false on failure
-  bool increaseModelSizes();
 
   // Record the number of constants in the problem per distinct sort
   DArray<unsigned> _distinctSortConstantCount;

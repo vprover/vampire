@@ -447,7 +447,9 @@ void FiniteModelBuilder::init()
     }
   }
   if(!_clauses){
-    cout << "The problem is propositional so there are no sorts!" << endl;
+    if(env.options->mode()!=Options::Mode::SPIDER){
+      cout << "The problem is propositional so there are no sorts!" << endl;
+    }
     // ignore sort inference
     env.options->setFMBSortInference(Options::FMBSortInference::IGNORE);
   }
@@ -2156,14 +2158,15 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
         }
       }
 
-      // test 2b -- old generators
+      // test 2b -- old generators // keeping old generators degraded performance on average ...
+      /*
       {
         for (unsigned n = 0; n < _old_generators.size(); n++) {
           if (checkConstriant(newSortSizes,_old_generators[n]->_vals)) {
 
             // to stay "more complete", we generate the child anyway
 
-            Constraint_Generator* gen_p = new Constraint_Generator(newSortSizes.size(), ++_maxWeightSoFar /*effectively a fallback to FIFO for artificial children*/);
+            Constraint_Generator* gen_p = new Constraint_Generator(newSortSizes.size(), ++_maxWeightSoFar);
             Constraint_Generator_Vals& gen = gen_p->_vals;
             for (unsigned j = 0; j < newSortSizes.size(); j++) {
               gen[j] = make_pair(EQ,newSortSizes[j]);
@@ -2175,6 +2178,7 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
           }
         }
       }
+      */
 
       // test 3 -- (strict)_distinct_sort_constraints
       {
@@ -2231,7 +2235,8 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
       newSortSizes[i] -= 1;
     }
 
-    _old_generators.push(_constraints_generators.pop());
+    delete _constraints_generators.pop();
+    // _old_generators.push(_constraints_generators.pop()); // keeping old generators degraded performance on average ...
 #if VTRACE_DOMAINS
     cout << "Deleted" << endl;
 #endif
