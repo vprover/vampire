@@ -310,7 +310,8 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
         case Sorts::SRT_REAL:
           return _context.real_val(symb->name().c_str());
         default:
-          ASSERTION_VIOLATION;
+          ;
+          // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
         }
       }
 
