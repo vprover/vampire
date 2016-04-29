@@ -62,7 +62,8 @@ Property::Property()
     _sortsUsed(0),
     _hasFOOL(false),
     _allClausesGround(true),
-    _allQuantifiersEssentiallyExistential(true)
+    _allQuantifiersEssentiallyExistential(true),
+    _smtlibLogic(SMT_UNDEFINED)
 {
   //TODO now MaxInterpretedElement is stateful this might be in the wrong place
   _interpretationPresence.init(Theory::instance()->MaxInterpretedElement()+1, false);
@@ -369,7 +370,7 @@ void Property::scan(Formula* formula)
       break;
     }
     case BOOL_TERM: {
-      addProp(PR_HAS_FOOL);
+      addProp(PR_HAS_BOOLEAN_VARIABLES);
       _hasFOOL = true;
       TermList aux[2];
       aux[0].makeEmpty();
@@ -431,7 +432,7 @@ void Property::scanSort(unsigned sort)
     addProp(PR_HAS_REALS);
     break;
   case Sorts::SRT_BOOL:
-    addProp(PR_HAS_FOOL);
+    addProp(PR_HAS_BOOLEAN_VARIABLES);
     _hasFOOL = true;
     break;
   }
@@ -542,7 +543,7 @@ void Property::scanSpecialTerm(Term* t)
 {
   CALL("Property::scanSpecialTerm");
 
-  addProp(PR_HAS_FOOL);
+  addProp(PR_HAS_BOOLEAN_VARIABLES);
   _hasFOOL = true;
 
   Term::SpecialTermData* sd = t->getSpecialData();

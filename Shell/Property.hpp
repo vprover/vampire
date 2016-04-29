@@ -53,6 +53,51 @@ public:
     UEQ
   };
 
+  /**
+   * SMT-LIB logics
+   */
+  enum SMT_LOGIC {
+    SMT_UNDEFINED,
+    SMT_ALIA,
+    SMT_AUFLIA,
+    SMT_AUFLIRA,
+    SMT_AUFNIRA,
+    SMT_BV,
+    SMT_LIA,
+    SMT_LRA,
+    SMT_NIA,
+    SMT_NRA,
+    SMT_QF_ABV,
+    SMT_QF_ALIA,
+    SMT_QF_ANIA,
+    SMT_QF_AUFBV,
+    SMT_QF_AUFLIA,
+    SMT_QF_AUFNIA,
+    SMT_QF_AX,    
+    SMT_QF_BV,
+    SMT_QF_IDL,
+    SMT_QF_LIA,
+    SMT_QF_LIRA,
+    SMT_QF_LRA,
+    SMT_QF_NIA,
+    SMT_QF_NIRA,
+    SMT_QF_NRA,
+    SMT_QF_RDL,
+    SMT_QF_UF,
+    SMT_QF_UFBV,
+    SMT_QF_UFIDL,
+    SMT_QF_UFLIA,
+    SMT_QF_UFLRA,
+    SMT_QF_UFNIA,
+    SMT_QF_UFNRA,    
+    SMT_UF,
+    SMT_UFBV,
+    SMT_UFIDL,
+    SMT_UFLIA,
+    SMT_UFLRA,
+    SMT_UFNIA
+  };
+
   // Various boolean properties.
   /** CNF of the problem has a positive literal x=y */
   static const unsigned long PR_HAS_X_EQUALS_Y = 1ul; // 2^0
@@ -126,12 +171,16 @@ public:
   static const unsigned long PR_ESSENTIALLY_GROUND = 8589934592ul; // 2^33
   /** uses list axioms */
   static const unsigned long PR_LIST_AXIOMS = 17179869184ul; // 2^34
-  /** uses FOOL */
-  static const unsigned long PR_HAS_FOOL =  34359738368ul; // 2^35
+  /** uses boolean variables */
+  static const unsigned long PR_HAS_BOOLEAN_VARIABLES =  34359738368ul; // 2^35
   /** uses Arrays, should these be split? */
   static const unsigned long PR_HAS_ARRAYS = 68719476736ul; // 2^36
-  /** has finite domain (consider infinite domain also ala Infinox */
-  static const unsigned long PR_HAS_FINITE_DOMAIN = 137438953472; // 2^37
+  /** has a finite domain axiom */
+  static const unsigned long PR_HAS_FINITE_DOMAIN = 137438953472ul; // 2^37
+  /** has if-then-else */
+  static const unsigned long PR_HAS_ITE = 274877906944ul; // 2^38
+  /** has let-in */
+  static const unsigned long PR_HAS_LET_IN = 549755813888ul; // 2^39
 
  public:
   CLASS_NAME(Property);
@@ -198,7 +247,7 @@ public:
   bool hasFOOL() const { return _hasFOOL; }
   bool usesSort(unsigned sort) const { return _usesSort[sort]; }
   bool usesSingleSort() const { return _sortsUsed==1; }
-  unsigned sortsUsed() const { return _sortsUsed;}
+  unsigned sortsUsed() const { return _sortsUsed; }
  private:
   // constructor, operators new and delete
   explicit Property();
@@ -279,6 +328,7 @@ public:
 
   bool _allClausesGround;
   bool _allQuantifiersEssentiallyExistential;
+  SMT_LOGIC _smtlibLogic;
 }; // class Property
 
 }
