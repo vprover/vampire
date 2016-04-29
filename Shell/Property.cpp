@@ -370,12 +370,16 @@ void Property::scan(Formula* formula)
       break;
     }
     case BOOL_TERM: {
-      addProp(PR_HAS_BOOLEAN_VARIABLES);
       _hasFOOL = true;
-      TermList aux[2];
-      aux[0].makeEmpty();
-      aux[1] = f->getBooleanTerm();
-      scan(aux+1);
+      TermList ts = f->getBooleanTerm();
+      if (ts.isVar()) {
+        addProp(PR_HAS_BOOLEAN_VARIABLES);
+      } else {
+        TermList aux[2];
+        aux[0].makeEmpty();
+        aux[1] = ts;
+        scan(aux + 1);
+      }
       break;
     }
     case FORALL:
@@ -509,30 +513,29 @@ void Property::scan(TermList* ts)
     _terms ++;
     if (ts->isVar()) {
       _variablesInThisClause++;
-    }
-    else { // ts is a reference to a complex term
+    } else { // ts is a reference to a complex term
       Term* t = ts->term();
       if (t->isSpecial()) {
-	scanSpecialTerm(t);
-      }
-      else {
-	scanForInterpreted(t);
+        scanSpecialTerm(t);
+      } else {
+        scanForInterpreted(t);
 
-    Signature::Symbol* func = env.signature->getFunction(t->functor());
-    func->incUsageCnt();
-          
-	int arity = t->arity();
-	FunctionType* type = func->fnType();
-	for (int i=0; i<arity; i++) {
-	  scanSort(type->arg(i));
-	}
+        Signature::Symbol* func = env.signature->getFunction(t->functor());
+        func->incUsageCnt();
 
-	if (arity > _maxFunArity) {
-	  _maxFunArity = arity;
-	}
-	if (arity) {
-	  stack.push(t->args());
-	}
+        int arity = t->arity();
+        FunctionType* type = func->fnType();
+        for (int i=0; i<arity; i++) {
+          scanSort(type->arg(i));
+        }
+
+        if (arity > _maxFunArity) {
+          _maxFunArity = arity;
+        }
+
+        if (arity) {
+          stack.push(t->args());
+        }
       }
     }
     ts = ts->next();
@@ -543,13 +546,13 @@ void Property::scanSpecialTerm(Term* t)
 {
   CALL("Property::scanSpecialTerm");
 
-  addProp(PR_HAS_BOOLEAN_VARIABLES);
   _hasFOOL = true;
 
   Term::SpecialTermData* sd = t->getSpecialData();
   switch(t->functor()) {
   case Term::SF_ITE:
   {
+    addProp(PR_HAS_ITE);
     ASS_EQ(t->arity(),2);
     scan(sd->getCondition());
     scan(t->args());
@@ -557,6 +560,7 @@ void Property::scanSpecialTerm(Term* t)
   }
   case Term::SF_LET:
   {
+    addProp(PR_HAS_LET_IN);
     ASS_EQ(t->arity(),1);
     //this is a trick creating an artificial term list with terms we want to traverse
     TermList aux[2];
