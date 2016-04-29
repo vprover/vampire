@@ -2720,7 +2720,7 @@ void TPTP::endFof()
   switch (_lastInputType) {
   case Unit::CONJECTURE:
     if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
-    if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecuture in a problem");
+    if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
     _seenConjecture=true;
     if (_isQuestion && ((env.options->mode() == Options::Mode::CLAUSIFY) || (env.options->mode() == Options::Mode::CLAUSIFY_STAT)) && f->connective() == EXISTS) {
       // create an answer predicate
