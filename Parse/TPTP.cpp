@@ -2289,9 +2289,16 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
   }
   // not equality or distinct
   Literal* lit = new(arity) Literal(pred,arity,true,false);
+  PredicateType* type = env.signature->getPredicate(pred)->predType();
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
+    unsigned sort = type->arg(i);
     TermList ts = _termLists.pop();
+    unsigned tsSort = sortOf(ts);
+    if (sort != tsSort) {
+      USER_ERROR("The sort " + env.sorts->sortName(tsSort) + " of predicate argument " + ts.toString() + " "
+                 "does not match the expected sort " + env.sorts->sortName(sort));
+    }
     safe = safe && ts.isSafe();
     *(lit->nthArgument(i)) = ts;
   }
@@ -2324,9 +2331,16 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   }
   Term* t = new(arity) Term;
   t->makeSymbol(fun,arity);
+  FunctionType* type = env.signature->getFunction(fun)->fnType();
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
+    unsigned sort = type->arg(i);
     TermList ss = _termLists.pop();
+    unsigned ssSort = sortOf(ss);
+    if (sort != ssSort) {
+      USER_ERROR("The sort " + env.sorts->sortName(ssSort) + " of function argument " + ss.toString() + " "
+                 "does not match the expected sort " + env.sorts->sortName(sort));
+    }
     *(t->nthArgument(i)) = ss;
     safe = safe && ss.isSafe();
   }
