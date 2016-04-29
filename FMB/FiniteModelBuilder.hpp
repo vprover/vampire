@@ -294,6 +294,7 @@ private:
     DArray<z3::expr*> _sizeConstants;
   protected:
     unsigned loadSizesFromSmt(DArray<unsigned>& szs);
+    void reportZ3OutOfMemory();
   public:
     SmtBasedDSAE() : _smtSolver(_context) {}
 

@@ -2254,42 +2254,46 @@ bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<uns
 
   BYPASSING_ALLOCATOR;
 
-  // initialize the smt solver
-  z3::expr zero = _context.int_val(_startModelSize-1);
+  try {
+    // initialize the smt solver
+    z3::expr zero = _context.int_val(_startModelSize-1);
 
-  _sizeConstants.ensure(_distinctSortSizes.size());
-  // _distinctSortSizes.size() - many int variables
-  for(unsigned i=0;i<_sizeConstants.size();i++) {
-    _sizeConstants[i] = new z3::expr(_context);
-    *_sizeConstants[i] = _context.int_const((vstring("s")+Int::toString(i)).c_str());
+    _sizeConstants.ensure(_distinctSortSizes.size());
+    // _distinctSortSizes.size() - many int variables
+    for(unsigned i=0;i<_sizeConstants.size();i++) {
+      _sizeConstants[i] = new z3::expr(_context);
+      *_sizeConstants[i] = _context.int_const((vstring("s")+Int::toString(i)).c_str());
 
-    // asserted to be greater than zero
-    _smtSolver.add(*_sizeConstants[i] > zero);
-  }
-
-  _lastWeight = _distinctSortSizes.size()*_startModelSize;
-
-  // also add (_strict)_distinct_sort_constraints
-  Stack<std::pair<unsigned,unsigned>>::Iterator it1(_distinct_sort_constraints);
-  while (it1.hasNext()) {
-    std::pair<unsigned,unsigned> constr = it1.next();
-    _smtSolver.add(*_sizeConstants[constr.first] >= *_sizeConstants[constr.second]);
-  }
-
-  Stack<std::pair<unsigned,unsigned>>::Iterator it2(_strict_distinct_sort_constraints);
-  while (it2.hasNext()) {
-    std::pair<unsigned,unsigned> constr = it2.next();
-    _smtSolver.add(*_sizeConstants[constr.first] > *_sizeConstants[constr.second]);
-  }
-
-  // if UNSAT now, we know this is "infinox-gaveup"
-  if (_strict_distinct_sort_constraints.size() > 0) {
-    if (_smtSolver.check() == z3::check_result::unsat) {
-     if(env.options->mode()!=Options::Mode::SPIDER){
-        cout << "Problem does not have a finite model." <<endl;
-      }
-      return false;
+      // asserted to be greater than zero
+      _smtSolver.add(*_sizeConstants[i] > zero);
     }
+
+    _lastWeight = _distinctSortSizes.size()*_startModelSize;
+
+    // also add (_strict)_distinct_sort_constraints
+    Stack<std::pair<unsigned,unsigned>>::Iterator it1(_distinct_sort_constraints);
+    while (it1.hasNext()) {
+      std::pair<unsigned,unsigned> constr = it1.next();
+      _smtSolver.add(*_sizeConstants[constr.first] >= *_sizeConstants[constr.second]);
+    }
+
+    Stack<std::pair<unsigned,unsigned>>::Iterator it2(_strict_distinct_sort_constraints);
+    while (it2.hasNext()) {
+      std::pair<unsigned,unsigned> constr = it2.next();
+      _smtSolver.add(*_sizeConstants[constr.first] > *_sizeConstants[constr.second]);
+    }
+
+    // if UNSAT now, we know this is "infinox-gaveup"
+    if (_strict_distinct_sort_constraints.size() > 0) {
+      if (_smtSolver.check() == z3::check_result::unsat) {
+       if(env.options->mode()!=Options::Mode::SPIDER){
+          cout << "Problem does not have a finite model." <<endl;
+        }
+        return false;
+      }
+    }
+  } catch (std::bad_alloc& _) {
+    reportZ3OutOfMemory();
   }
 
   return true;
@@ -2301,25 +2305,30 @@ void FiniteModelBuilder::SmtBasedDSAE::learnNogood(Constraint_Generator_Vals& no
 
   BYPASSING_ALLOCATOR;
 
-  z3::expr z3clause = _context.bool_val(false);
-  // turning a no-good into a clause
-  for (unsigned i = 0; i < nogood.size(); i++) {
-    switch(nogood[i].first) {
-      case EQ:
-        z3clause = z3clause || (*_sizeConstants[i] != _context.int_val(nogood[i].second));
-        break;
-      case LEQ:
-        z3clause = z3clause || (*_sizeConstants[i] > _context.int_val(nogood[i].second));
-        break;
-      case GEQ:
-        z3clause = z3clause || (*_sizeConstants[i] < _context.int_val(nogood[i].second));
-        break;
-      default:
-        // pass
-        ;
+  try {
+    z3::expr z3clause = _context.bool_val(false);
+    // turning a no-good into a clause
+    for (unsigned i = 0; i < nogood.size(); i++) {
+      switch(nogood[i].first) {
+        case EQ:
+          z3clause = z3clause || (*_sizeConstants[i] != _context.int_val(nogood[i].second));
+          break;
+        case LEQ:
+          z3clause = z3clause || (*_sizeConstants[i] > _context.int_val(nogood[i].second));
+          break;
+        case GEQ:
+          z3clause = z3clause || (*_sizeConstants[i] < _context.int_val(nogood[i].second));
+          break;
+        default:
+          // pass
+          ;
+      }
     }
+    _smtSolver.add(z3clause);
+
+  } catch (std::bad_alloc& _) {
+    reportZ3OutOfMemory();
   }
-  _smtSolver.add(z3clause);
 }
 
 /** Assuming _smtSolver just returned SAT,
@@ -2342,60 +2351,82 @@ unsigned FiniteModelBuilder::SmtBasedDSAE::loadSizesFromSmt(DArray<unsigned>& sz
   return weight;
 }
 
+void FiniteModelBuilder::SmtBasedDSAE::reportZ3OutOfMemory()
+{
+  CALL("FiniteModelBuilder::SmtBasedDSAE::reportZ3OutOfMemory");
+
+  env.beginOutput();
+  reportSpiderStatus('m');
+  env.out() << "Z3 ran out of memory" << endl;
+  if(env.statistics) {
+    env.statistics->print(env.out());
+  }
+#if VDEBUG
+  Debug::Tracer::printStack(env.out());
+#endif
+  env.endOutput();
+  System::terminateImmediately(1);
+}
+
 bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes)
 {
   CALL("FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes");
 
-
   BYPASSING_ALLOCATOR;
 
-  TimeCounter tc(TC_Z3_IN_FMB);
+  try {
+    TimeCounter tc(TC_Z3_IN_FMB);
 
-  z3::check_result result = _smtSolver.check();
+    z3::check_result result = _smtSolver.check();
 
-  if (result == z3::check_result::unsat) {
-    return false;
-  }
-
-  ASS_EQ(result,z3::check_result::sat); // could we get unknown from this simple fragment?
-
-  unsigned weight = loadSizesFromSmt(newSortSizes);
-
-  // TODO: for completeness, we don't need to minimize every time round (which might be a bit expensive)
-
-  if (weight == _lastWeight) {
-    // cout << "Found "; output_sizes(_distinctSortSizes); cout << " of optimal weight " << weight;
-    return true;
-  }
-
-  // TODO: try a more clever "fitness" than the sum; then minimizing by "halving" could be an interesting thing to try
-
-  //cout << "Minimizing for weight ";
-
-  // minimizing:
-  while (true) {
-    // cout << _lastWeight << ", ";
-
-    _smtSolver.push();
-
-    z3::expr sum = _context.int_val(0);
-    for (unsigned i = 0; i < newSortSizes.size(); i++) {
-      sum = sum + *_sizeConstants[i];
+    if (result == z3::check_result::unsat) {
+      return false;
     }
-    _smtSolver.add(sum == _context.int_val(_lastWeight));
 
-    result = _smtSolver.check();
+    ASS_EQ(result,z3::check_result::sat); // could we get unknown from this simple fragment?
 
-    if (_smtSolver.check() == z3::check_result::sat) {
-      loadSizesFromSmt(newSortSizes);
-      // cout << "\nFound "; output_sizes(_distinctSortSizes); cout << endl;
-      _smtSolver.pop(1);
+    unsigned weight = loadSizesFromSmt(newSortSizes);
+
+    // TODO: for completeness, we don't need to minimize every time round (which might be a bit expensive)
+
+    if (weight == _lastWeight) {
+      // cout << "Found "; output_sizes(_distinctSortSizes); cout << " of optimal weight " << weight;
       return true;
-    } else {
-      _smtSolver.pop(1);
-      _lastWeight++;
     }
+
+    // TODO: try a more clever "fitness" than the sum; then minimizing by "halving" could be an interesting thing to try
+
+    //cout << "Minimizing for weight ";
+
+    // minimizing:
+    while (true) {
+      // cout << _lastWeight << ", ";
+
+      _smtSolver.push();
+
+      z3::expr sum = _context.int_val(0);
+      for (unsigned i = 0; i < newSortSizes.size(); i++) {
+        sum = sum + *_sizeConstants[i];
+      }
+      _smtSolver.add(sum == _context.int_val(_lastWeight));
+
+      result = _smtSolver.check();
+
+      if (_smtSolver.check() == z3::check_result::sat) {
+        loadSizesFromSmt(newSortSizes);
+        // cout << "\nFound "; output_sizes(_distinctSortSizes); cout << endl;
+        _smtSolver.pop(1);
+        return true;
+      } else {
+        _smtSolver.pop(1);
+        _lastWeight++;
+      }
+    }
+
+  } catch (std::bad_alloc& _) {
+    reportZ3OutOfMemory();
   }
+  return true; // just to silence the compiler
 }
 
 #endif
