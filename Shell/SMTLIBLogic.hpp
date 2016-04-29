@@ -1,0 +1,59 @@
+#ifndef __SMTLIBLogic__
+#define __SMTLIBLogic__
+
+namespace Shell {
+
+/**
+  * SMT-LIB logics
+  * QF (quantifier free) should be ground
+  * A - arrays
+  * (L/N)(I/R/both)A - linear/non-linear integer/real/both arithmetic
+  * BV - bit vector - we don't support
+  * (I/R)DL - difference logic - we don't treat specially (fragment of L(I/R)A)
+  * UF - uninterpreted function = first order we know and love
+  */
+enum SMTLIBLogic {
+  SMT_UNDEFINED,
+  SMT_ALIA,
+  SMT_AUFLIA,
+  SMT_AUFLIRA,
+  SMT_AUFNIRA,
+  SMT_BV,
+  SMT_LIA,
+  SMT_LRA,
+  SMT_NIA,
+  SMT_NRA,
+  SMT_QF_ABV,
+  SMT_QF_ALIA,
+  SMT_QF_ANIA,
+  SMT_QF_AUFBV,
+  SMT_QF_AUFLIA,
+  SMT_QF_AUFNIA,
+  SMT_QF_AX,
+  SMT_QF_BV,
+  SMT_QF_IDL,
+  SMT_QF_LIA,
+  SMT_QF_LIRA,
+  SMT_QF_LRA,
+  SMT_QF_NIA,
+  SMT_QF_NIRA,
+  SMT_QF_NRA,
+  SMT_QF_RDL,
+  SMT_QF_UF,
+  SMT_QF_UFBV,
+  SMT_QF_UFIDL,
+  SMT_QF_UFLIA,
+  SMT_QF_UFLRA,
+  SMT_QF_UFNIA,
+  SMT_QF_UFNRA,
+  SMT_UF,
+  SMT_UFBV,
+  SMT_UFIDL,
+  SMT_UFLIA,
+  SMT_UFLRA,
+  SMT_UFNIA
+};
+
+}
+
+#endif // __SMTLIBLogic__

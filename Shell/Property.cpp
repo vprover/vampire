@@ -63,7 +63,7 @@ Property::Property()
     _hasFOOL(false),
     _allClausesGround(true),
     _allQuantifiersEssentiallyExistential(true),
-    _smtlibLogic(SMT_UNDEFINED)
+    _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
   //TODO now MaxInterpretedElement is stateful this might be in the wrong place
   _interpretationPresence.init(Theory::instance()->MaxInterpretedElement()+1, false);

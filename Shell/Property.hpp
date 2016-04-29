@@ -16,6 +16,7 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 #include "Lib/VString.hpp"
+#include "SMTLIBLogic.hpp"
 
 namespace Kernel {
   class Clause;
@@ -51,51 +52,6 @@ public:
     FNE,
     EPR,
     UEQ
-  };
-
-  /**
-   * SMT-LIB logics
-   */
-  enum SMT_LOGIC {
-    SMT_UNDEFINED,
-    SMT_ALIA,
-    SMT_AUFLIA,
-    SMT_AUFLIRA,
-    SMT_AUFNIRA,
-    SMT_BV,
-    SMT_LIA,
-    SMT_LRA,
-    SMT_NIA,
-    SMT_NRA,
-    SMT_QF_ABV,
-    SMT_QF_ALIA,
-    SMT_QF_ANIA,
-    SMT_QF_AUFBV,
-    SMT_QF_AUFLIA,
-    SMT_QF_AUFNIA,
-    SMT_QF_AX,    
-    SMT_QF_BV,
-    SMT_QF_IDL,
-    SMT_QF_LIA,
-    SMT_QF_LIRA,
-    SMT_QF_LRA,
-    SMT_QF_NIA,
-    SMT_QF_NIRA,
-    SMT_QF_NRA,
-    SMT_QF_RDL,
-    SMT_QF_UF,
-    SMT_QF_UFBV,
-    SMT_QF_UFIDL,
-    SMT_QF_UFLIA,
-    SMT_QF_UFLRA,
-    SMT_QF_UFNIA,
-    SMT_QF_UFNRA,    
-    SMT_UF,
-    SMT_UFBV,
-    SMT_UFIDL,
-    SMT_UFLIA,
-    SMT_UFLRA,
-    SMT_UFNIA
   };
 
   // Various boolean properties.
@@ -248,6 +204,10 @@ public:
   bool usesSort(unsigned sort) const { return _usesSort[sort]; }
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
+
+  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { _smtlibLogic = smtLibLogic; }
+  SMTLIBLogic getSMTLIBLogic() const { return _smtlibLogic; }
+
  private:
   // constructor, operators new and delete
   explicit Property();
@@ -328,7 +288,7 @@ public:
 
   bool _allClausesGround;
   bool _allQuantifiersEssentiallyExistential;
-  SMT_LOGIC _smtlibLogic;
+  SMTLIBLogic _smtlibLogic;
 }; // class Property
 
 }

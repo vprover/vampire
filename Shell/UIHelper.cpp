@@ -157,6 +157,8 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   TimeCounter tc1(TC_PARSING);
   env.statistics->phase = Statistics::PARSING;
 
+  SMTLIBLogic smtLibLogic = SMT_UNDEFINED;
+
   vstring inputFile = opts.inputFile();
 
   istream* input;
@@ -205,6 +207,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 	  parser.parse(*input);
 
 	  units = parser.getFormulas();
+    smtLibLogic = parser.getLogic();
 	  s_haveConjecture=false;
 
 	  break;
@@ -229,6 +232,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   }
 
   Problem* res = new Problem(units);
+  res->setSMTLIBLogic(smtLibLogic);
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
   return res;

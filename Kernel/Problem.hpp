@@ -11,6 +11,8 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/MaybeBool.hpp"
 
+#include "Shell/SMTLIBLogic.hpp"
+
 namespace Kernel {
 
 using namespace Lib;
@@ -108,6 +110,8 @@ public:
   bool mayHaveInequalityResolvableWithDeletion() const { return _mayHaveInequalityResolvableWithDeletion; }
   bool mayHaveXEqualsY() const { return _mayHaveXEqualsY; }
 
+  SMTLIBLogic setSMTLIBLogic(SMTLIBLogic smtLibLogic) { return smtLibLogic; }
+  SMTLIBLogic getSMTLIBLogic() const { return _smtLibLogic; }
 
   void reportFOOLEliminated()
   {
@@ -195,6 +199,8 @@ private:
 
   mutable bool _propertyValid;
   mutable Property* _property;
+
+  SMTLIBLogic _smtLibLogic;
 };
 
 }

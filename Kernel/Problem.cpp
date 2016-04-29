@@ -164,6 +164,8 @@ void Problem::copyInto(Problem& tgt, bool copyClauses)
 {
   CALL("Problem::copy/2");
 
+  tgt.setSMTLIBLogic(getSMTLIBLogic());
+
   if(copyClauses) {
     UnitList* newUnits = 0;
     UnitList::Iterator uit(units());
@@ -270,6 +272,7 @@ void Problem::refreshProperty() const
   }
   _propertyValid = true;
   _property = Property::scan(_units);
+  _property->setSMTLIBLogic(getSMTLIBLogic());
 
   readDetailsFromProperty();
 }
