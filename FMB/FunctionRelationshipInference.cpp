@@ -236,23 +236,23 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
 
         if(arg_srt == ret_srt) continue; // not interested
 
-        TermList xargs[arity];
-        TermList yargs[arity];
+        Stack<TermList> xargs(arity);
+        Stack<TermList> yargs(arity);
 
         unsigned v=2;
         for(unsigned j=0;j<arity;j++){
           if(i==j){
-            xargs[j]=x;
-            yargs[j]=y;
+            xargs.push(x);
+            yargs.push(y);
           }
           else{
-            xargs[j]=TermList(v,false);
-            yargs[j]=TermList(v,false);
+            xargs.push(TermList(v,false));
+            yargs.push(TermList(v,false));
             v++;
           }
         }
-        TermList fx(Term::create(f,arity,xargs));
-        TermList fy(Term::create(f,arity,yargs));
+        TermList fx(Term::create(f,arity,xargs.begin()));
+        TermList fy(Term::create(f,arity,yargs.begin()));
 
         addClaimForFunction(x,y,fx,fy,f,arg_srt,ret_srt,existential,newClauses);
       }
