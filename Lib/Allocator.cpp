@@ -994,43 +994,61 @@ unsigned Allocator::Descriptor::hash (const void* addr)
   
 void* operator new(size_t sz) {    
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
-  if(Allocator::_tolerantZone == 0){ cout << "Warning, bypassing Allocator" << endl; }
-  
-  if (sz == 0)
+#if VDEBUG
+  if (Allocator::_tolerantZone == 0) {
+    cout << "Warning, bypassing Allocator" << endl;
+  }
+#endif
+  if (sz == 0) {
     sz = 1;
+  }
       
   void* res = malloc(sz);  
   
-  if (!res)
+  if (!res) {
     throw bad_alloc();
+  }
   
   return res;
 }
 
 void* operator new[](size_t sz) {  
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
-  if(Allocator::_tolerantZone == 0){ cout << "Warning, bypassing Allocator" << endl; }
-  
-  if (sz == 0)
+#if VDEBUG
+  if (Allocator::_tolerantZone == 0) {
+    cout << "Warning, bypassing Allocator" << endl;
+  }
+#endif
+
+  if (sz == 0) {
     sz = 1;
+  }
       
-  void* res = malloc(sz);  
-  
-  if (!res)
+  void* res = malloc(sz);
+  if (!res) {
     throw bad_alloc();
+  }
   
   return res;
 }
 
 void operator delete(void* obj) throw() {  
   ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
-  if(Allocator::_tolerantZone==0){ cout << "Warning, custom new matched by global delete" << endl; }
+#if VDEBUG
+  if (Allocator::_tolerantZone == 0) {
+    cout << "Warning, custom new matched by global delete" << endl;
+  }
+#endif
   free(obj);
 }
 
 void operator delete[](void* obj) throw() {  
   ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
-  if(Allocator::_tolerantZone==0){ cout << "Warning, custom new matched by global delete[]" << endl; }
+#if VDEBUG
+  if (Allocator::_tolerantZone == 0) {
+    cout << "Warning, custom new matched by global delete" << endl;
+  }
+#endif
   free(obj);
 }
 #endif // VDEBUG
