@@ -890,7 +890,18 @@ Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
 #endif
 
     Descriptor* oldMap = map;
-    map = new Descriptor [capacity];
+    try {
+      map = new Descriptor [capacity];
+    } catch(bad_alloc) {
+      env.beginOutput();
+      reportSpiderStatus('m');
+      env.out() << "Memory limit exceeded!\n";
+      env.endOutput();
+      System::terminateImmediately(1);
+
+      // CANNOT throw vampire exception when out of memory - it contains allocations because of the message string
+      // throw Lib::MemoryLimitExceededException(true);
+    }
     Descriptor* oldAfterLast = afterLast;
     afterLast = map + capacity;
     maxEntries = (int)(capacity * 0.7);
@@ -993,8 +1004,12 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  **/ 
   
 void* operator new(size_t sz) {    
-  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
-  if(Allocator::_tolerantZone == 0){ cout << "Warning, bypassing Allocator" << endl; }
+  // ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
+  if(Allocator::_tolerantZone == 0){
+    Debug::Tracer::printStack(cout);
+  
+    cout << "Warning, bypassing Allocator" << endl;
+  }
   
   if (sz == 0)
     sz = 1;
@@ -1008,8 +1023,12 @@ void* operator new(size_t sz) {
 }
 
 void* operator new[](size_t sz) {  
-  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
-  if(Allocator::_tolerantZone == 0){ cout << "Warning, bypassing Allocator" << endl; }
+  // ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
+  if(Allocator::_tolerantZone == 0){
+    Debug::Tracer::printStack(cout);
+    
+    cout << "Warning, bypassing Allocator" << endl;
+  }
   
   if (sz == 0)
     sz = 1;
@@ -1023,14 +1042,22 @@ void* operator new[](size_t sz) {
 }
 
 void operator delete(void* obj) throw() {  
-  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
-  if(Allocator::_tolerantZone==0){ cout << "Warning, custom new matched by global delete" << endl; }
+  // ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
+  if(Allocator::_tolerantZone==0){
+    Debug::Tracer::printStack(cout);
+    
+    cout << "Warning, custom new matched by global delete" << endl;
+  }
   free(obj);
 }
 
 void operator delete[](void* obj) throw() {  
-  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
-  if(Allocator::_tolerantZone==0){ cout << "Warning, custom new matched by global delete[]" << endl; }
+  // ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
+  if(Allocator::_tolerantZone==0){
+        Debug::Tracer::printStack(cout);
+  
+    cout << "Warning, custom new matched by global delete[]" << endl;
+  }
   free(obj);
 }
 #endif // VDEBUG
