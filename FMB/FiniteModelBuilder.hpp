@@ -244,7 +244,7 @@ private:
     struct Constraint_Generator {
       CLASS_NAME(FiniteModedlBuilder::HackyDSAE::Constraint_Generator);
       USE_ALLOCATOR(FiniteModelBuilder::HackyDSAE::Constraint_Generator);
-    
+
       Constraint_Generator_Vals _vals;
       unsigned _weight;
 

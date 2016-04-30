@@ -1351,7 +1351,7 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
   //for(unsigned i=0;i<grounding.size();i++) cout <<  grounding[i] << " "; 
   //cout << endl;
 
-  DArray<unsigned> signature = isFunction ? 
+  DArray<unsigned>& signature = isFunction ?
              _sortedSignature->functionSignatures[f] : 
              _sortedSignature->predicateSignatures[f];
 
