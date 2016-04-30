@@ -979,7 +979,7 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 
 #endif
 
-#if 0 
+#if VDEBUG
 /**
  * In debug mode we replace the global new and delete (also the array versions)
  * and terminate in cases when they are used "unwillingly".
@@ -993,7 +993,7 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  **/ 
   
 void* operator new(size_t sz) {    
-  //ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
+  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   if(Allocator::_tolerantZone == 0){ cout << "Warning, bypassing Allocator" << endl; }
   
   if (sz == 0)
@@ -1008,7 +1008,7 @@ void* operator new(size_t sz) {
 }
 
 void* operator new[](size_t sz) {  
-  //ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
+  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
   if(Allocator::_tolerantZone == 0){ cout << "Warning, bypassing Allocator" << endl; }
   
   if (sz == 0)
@@ -1023,13 +1023,13 @@ void* operator new[](size_t sz) {
 }
 
 void operator delete(void* obj) throw() {  
-  //ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");    
+  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
   if(Allocator::_tolerantZone==0){ cout << "Warning, custom new matched by global delete" << endl; }
   free(obj);
 }
 
 void operator delete[](void* obj) throw() {  
-  //ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");  
+  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
   if(Allocator::_tolerantZone==0){ cout << "Warning, custom new matched by global delete[]" << endl; }
   free(obj);
 }

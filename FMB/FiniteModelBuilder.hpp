@@ -274,6 +274,9 @@ private:
     bool checkConstriant(DArray<unsigned>& newSortSizes, Constraint_Generator_Vals& constraint);
 
   public:
+    CLASS_NAME(FiniteModedlBuilder::HackyDSAE);
+    USE_ALLOCATOR(FiniteModelBuilder::HackyDSAE);
+
     HackyDSAE() : _maxWeightSoFar(0) {}
 
     bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) {
@@ -296,6 +299,9 @@ private:
     unsigned loadSizesFromSmt(DArray<unsigned>& szs);
     void reportZ3OutOfMemory();
   public:
+    CLASS_NAME(FiniteModedlBuilder::SmtBasedDSAE);
+    USE_ALLOCATOR(FiniteModelBuilder::SmtBasedDSAE);
+
     SmtBasedDSAE() : _smtSolver(_context) {}
 
     bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&);
