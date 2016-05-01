@@ -88,6 +88,8 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 
 #if VZ3
   if (opt.fmbSmtEnumeration()) {
+    BYPASSING_ALLOCATOR;
+
     _dsaEnumerator = new SmtBasedDSAE();
   } else
 #endif

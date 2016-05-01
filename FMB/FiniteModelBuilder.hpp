@@ -302,6 +302,7 @@ private:
     unsigned loadSizesFromSmt(DArray<unsigned>& szs);
     void reportZ3OutOfMemory();
   public:
+    // the following is not sufficient, since z3::solver and z3::context allocate internally
     CLASS_NAME(FiniteModedlBuilder::SmtBasedDSAE);
     USE_ALLOCATOR(FiniteModelBuilder::SmtBasedDSAE);
 
