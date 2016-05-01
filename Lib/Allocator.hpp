@@ -165,6 +165,8 @@ private:
 
 #if VDEBUG
 public:
+  static void startCheckingForBypassing() { _tolerantZone = 0; }
+
   /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */  
   struct AllowBypassing {
     AllowBypassing() { _tolerantZone++; }

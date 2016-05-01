@@ -869,6 +869,10 @@ int main(int argc, char* argv[])
   // create random seed for the random number generation
   Lib::Random::setSeed(123456);
 
+#if VDEBUG
+  Lib::Allocator::startCheckingForBypassing();
+#endif
+
   try {
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);

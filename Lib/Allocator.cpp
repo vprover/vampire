@@ -91,7 +91,7 @@ size_t Allocator::Descriptor::maxEntries;
 size_t Allocator::Descriptor::capacity;
 Allocator::Descriptor* Allocator::Descriptor::map;
 Allocator::Descriptor* Allocator::Descriptor::afterLast;
-unsigned Allocator::_tolerantZone;
+unsigned Allocator::_tolerantZone = 1;
 #endif
 
 #if VDEBUG && USE_PRECISE_CLASS_NAMES && defined(__GNUC__)
@@ -990,7 +990,7 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 
 #endif
 
-#if 0
+#if VDEBUG
 /**
  * In debug mode we replace the global new and delete (also the array versions)
  * and terminate in cases when they are used "unwillingly".
@@ -1004,7 +1004,7 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  **/ 
   
 void* operator new(size_t sz) {    
-  // ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
+  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   if(Allocator::_tolerantZone == 0){
     Debug::Tracer::printStack(cout);
   
@@ -1023,7 +1023,7 @@ void* operator new(size_t sz) {
 }
 
 void* operator new[](size_t sz) {  
-  // ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
+  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
   if(Allocator::_tolerantZone == 0){
     Debug::Tracer::printStack(cout);
     
@@ -1042,7 +1042,7 @@ void* operator new[](size_t sz) {
 }
 
 void operator delete(void* obj) throw() {  
-  // ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
+  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
   if(Allocator::_tolerantZone==0){
     Debug::Tracer::printStack(cout);
     
@@ -1052,7 +1052,7 @@ void operator delete(void* obj) throw() {
 }
 
 void operator delete[](void* obj) throw() {  
-  // ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
+  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
   if(Allocator::_tolerantZone==0){
         Debug::Tracer::printStack(cout);
   
