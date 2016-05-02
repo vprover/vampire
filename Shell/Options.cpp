@@ -2706,7 +2706,7 @@ bool Options::complete(const Problem& prb) const
 
   if (!hasEquality) {
     if (_binaryResolution.actualValue) return true;
-    if (_unitResultingResolution.actualValue==URResolution::EC_ONLY) return false;
+    if (_unitResultingResolution.actualValue!=URResolution::ON) return false;
     // binary resolution is off
     return prop.category() == Property::HNE; // URR is complete for Horn problems
   }
