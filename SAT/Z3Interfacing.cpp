@@ -169,7 +169,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   ASS_EQ(_status,SATISFIABLE);
 
   z3::expr rep = getRepresentation(SATLiteral(var,1));
-  z3::expr assignment = _model.eval(rep);
+  z3::expr assignment = _model.eval(rep,true /*model_completion*/);
   //cout << "ass is " << assignment << endl;
 
 
@@ -181,6 +181,10 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   //cout << "returning false for " << var << endl;
     return FALSE;
   }
+
+  // with model_completion true (see above), there should be no don't cares!
+
+  ASSERTION_VIOLATION;
 
   //cout << "returning don't care for " << var << endl;
   return DONT_CARE;
