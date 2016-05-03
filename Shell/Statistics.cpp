@@ -195,6 +195,9 @@ void Statistics::print(ostream& out)
   case Statistics::UNKNOWN:
     out << "Unknown";
     break;
+  case Statistics::INAPPROPRIATE:
+    out << "Inappropriate";
+    break;
   default:
     ASSERTION_VIOLATION;
   }

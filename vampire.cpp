@@ -298,6 +298,9 @@ void outputResult(ostream& out) {
   case Statistics::UNKNOWN:
     cout<<"unknown"<<endl;
     break;
+  case Statistics::INAPPROPRIATE:
+    cout<<"inappropriate"<<endl;
+    break;
   case Statistics::SATISFIABLE:
     cout<<"sat"<<endl;
 #if GNUMP

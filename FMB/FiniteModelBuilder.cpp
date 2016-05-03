@@ -53,7 +53,7 @@
 #include "Monotonicity.hpp"
 #include "FiniteModelBuilder.hpp"
 
-#define VTRACE_FMB 0
+#define VTRACE_FMB 1
 
 #define VTRACE_DOMAINS 0
 
@@ -71,6 +71,8 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   // Can be incomplete if we used incomplete version of equality proxy
   if(!opt.complete(prb)){
     _isComplete = false;
+    // to ensure it is initialised
+    _dsaEnumerator = 0;
     return;
   }
   // Record option values
@@ -100,7 +102,9 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 
 FiniteModelBuilder::~FiniteModelBuilder()
 {
-  delete _dsaEnumerator;
+  if(_dsaEnumerator){
+    delete _dsaEnumerator;
+  }
 }
 
 // Do all setting up required for finite model search 
@@ -1389,7 +1393,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   if(!_isComplete){
     // give up!
-    return MainLoopResult(Statistics::UNKNOWN);
+    return MainLoopResult(Statistics::INAPPROPRIATE);
   }
   if(!_prb.units()){
     return MainLoopResult(Statistics::SATISFIABLE);

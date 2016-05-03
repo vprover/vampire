@@ -308,6 +308,8 @@ public:
     SAT_UNSATISFIABLE,
     /** saturation terminated but an incomplete strategy was used */
     REFUTATION_NOT_FOUND,
+    /** inappropriate strategy **/
+    INAPPROPRIATE, 
     /** unknown termination reason */
     UNKNOWN,
     /** time limit reached */

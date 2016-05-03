@@ -636,6 +636,7 @@ void IGAlgorithm::doResolutionStep()
       throw;
     case Statistics::REFUTATION_NOT_FOUND:
     case Statistics::UNKNOWN:
+    case Statistics::INAPPROPRIATE:
     case Statistics::TIME_LIMIT:
     case Statistics::MEMORY_LIMIT:
       //refutation algorithm finished, we just get rid of it

@@ -357,6 +357,10 @@ void UIHelper::outputResult(ostream& out)
   case Statistics::SAT_UNSATISFIABLE:
     out<<"good job\n";
     break;
+  case Statistics::INAPPROPRIATE:
+    addCommentIfCASC(out);
+    out << "Terminated due to inappropriate strategy.\n";
+    break;
   case Statistics::UNKNOWN:
   addCommentIfCASC(out);
     out << "Unknown reason of termination!\n";
