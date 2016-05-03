@@ -91,7 +91,7 @@ size_t Allocator::Descriptor::maxEntries;
 size_t Allocator::Descriptor::capacity;
 Allocator::Descriptor* Allocator::Descriptor::map;
 Allocator::Descriptor* Allocator::Descriptor::afterLast;
-unsigned Allocator::_tolerantZone = 1;
+unsigned Allocator::_tolerantZone = 1; // starts > 0; we are not checking by default, until we say so with START_CHECKING_FOR_BYPASSES
 #endif
 
 #if VDEBUG && USE_PRECISE_CLASS_NAMES && defined(__GNUC__)
