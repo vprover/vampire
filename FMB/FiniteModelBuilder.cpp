@@ -53,7 +53,7 @@
 #include "Monotonicity.hpp"
 #include "FiniteModelBuilder.hpp"
 
-#define VTRACE_FMB 1
+#define VTRACE_FMB 0
 
 #define VTRACE_DOMAINS 0
 

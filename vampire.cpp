@@ -694,6 +694,7 @@ void spiderMode()
     case Statistics::MEMORY_LIMIT:
       reportSpiderStatus('m');
     case Statistics::UNKNOWN:
+    case Statistics::INAPPROPRIATE:
       reportSpiderStatus('u');
     case Statistics::REFUTATION_NOT_FOUND:
       if(env.statistics->discardedNonRedundantClauses>0){
