@@ -46,7 +46,13 @@ DHMap<unsigned, vstring> TPTP::_axiomNames;
 UnitList* TPTP::parse(istream& input)
 {
   Parse::TPTP parser(input);
-  parser.parse();
+  try{
+    parser.parse();
+  }
+  catch (UserErrorException& exception) {
+    vstring msg = exception.msg();
+    throw ParseErrorException(msg,parser.lineNumber());
+  }
   return parser.units();
 }
 
@@ -88,6 +94,7 @@ void TPTP::parse()
   _gpos = 0;
   _cend = 0;
   _tend = 0;
+  _lineNumber = 1;
   _states.push(UNIT_LIST);
   while (!_states.isEmpty()) {
     State s = _states.pop();
@@ -209,7 +216,7 @@ void TPTP::parse()
       break;
     default:
 #if VDEBUG
-      throw ParseErrorException(((vstring)"Don't know how to process state ")+toString(s));
+      throw ParseErrorException(((vstring)"Don't know how to process state ")+toString(s),_lineNumber);
 #else
       throw ParseErrorException("Don't know how to process state ");
 #endif
@@ -635,11 +642,12 @@ void TPTP::skipWhiteSpacesAndComments()
     case 0: // end-of-file
       return;
 
+    case '\n':
+    case '\r':
+      _lineNumber++;
     case ' ':
     case '\t':
-    case '\r':
     case '\f':
-    case '\n':
       resetChars();
       break;
 
@@ -652,6 +660,7 @@ void TPTP::skipWhiteSpacesAndComments()
       }
       resetChars();
       if (c == '\n') {
+        _lineNumber++;
 	break;
       }
     }
@@ -665,6 +674,7 @@ void TPTP::skipWhiteSpacesAndComments()
       // search for the end of this comment
       for (;;) {
 	int c = getChar(0);
+        if( c == '\n' || c == '\r'){ _lineNumber++; }
 	if (!c) {
 	  return;
 	}
@@ -985,14 +995,14 @@ void TPTP::readAtom(Token& tok)
   }
 } // readAtom
 
-TPTP::ParseErrorException::ParseErrorException(vstring message,int pos)
+TPTP::ParseErrorException::ParseErrorException(vstring message,int pos, unsigned ln) : _ln(ln)
 {
   _message = message + " at position " + Int::toString(pos);
 } // TPTP::ParseErrorException::ParseErrorException
 
-TPTP::ParseErrorException::ParseErrorException(vstring message,Token& tok)
+TPTP::ParseErrorException::ParseErrorException(vstring message,Token& tok, unsigned ln) : _ln(ln)
 {
-  _message = message + " at position " + Int::toString(tok.start) + " (text: " + tok.toString() + ')';
+  _message = message + " at position " + Int::toString(tok.start) + " (text: " + tok.toString() + ')'; 
 } // TPTP::ParseErrorException::ParseErrorException
 
 /**
@@ -1001,8 +1011,8 @@ TPTP::ParseErrorException::ParseErrorException(vstring message,Token& tok)
  */
 void TPTP::ParseErrorException::cry(ostream& str)
 {
+  str << "Parsing Error on line " << _ln << "\n";
   str << _message << "\n";
-  str << "Hint: use cat <problem> | head -c <position> to see where parsing fails" << "\n";
 }
 
 /**

@@ -188,7 +188,13 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   case Options::InputSyntax::TPTP:
     {
       Parse::TPTP parser(*input);
-      parser.parse();
+      try{
+        parser.parse();
+      }
+      catch (UserErrorException& exception) {
+        vstring msg = exception.msg();
+        throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
+      }
       units = parser.units();
       s_haveConjecture=parser.containsConjecture();
     }
