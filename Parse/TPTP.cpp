@@ -218,7 +218,7 @@ void TPTP::parse()
 #if VDEBUG
       throw ParseErrorException(((vstring)"Don't know how to process state ")+toString(s),_lineNumber);
 #else
-      throw ParseErrorException("Don't know how to process state ");
+      throw ParseErrorException("Don't know how to process state ",_lineNumber);
 #endif
     }
   }
@@ -2306,8 +2306,10 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     TermList ts = _termLists.pop();
     unsigned tsSort = sortOf(ts);
     if (sort != tsSort) {
-      USER_ERROR("The sort " + env.sorts->sortName(tsSort) + " of predicate argument " + ts.toString() + " "
-                 "does not match the expected sort " + env.sorts->sortName(sort));
+      USER_ERROR("Argument " + Lib::Int::toString(i) +
+                 " of predicate " + env.signature->predicateName(pred) +
+                 " expected something of sort "+env.sorts->sortName(sort)+
+                 " but got something of sort "+env.sorts->sortName(tsSort));
     }
     safe = safe && ts.isSafe();
     *(lit->nthArgument(i)) = ts;
