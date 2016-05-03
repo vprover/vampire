@@ -178,7 +178,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
     if(!isMonotonic[s]){
       vstring name = "sortPredicate_"+env.sorts->sortName(s);
       unsigned p = env.signature->addFreshPredicate(1,name.c_str());
-      env.signature->getPredicate(p)->setType(new PredicateType(s));
+      env.signature->getPredicate(p)->setType(new PredicateType({s}));
       sortPredicates[s] = p;
     }
     else{ sortPredicates[s]=0; }
@@ -333,7 +333,7 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
     if(!isMonotonic[s]){
       vstring name = "sortFunction_"+env.sorts->sortName(s);
       unsigned f = env.signature->addFreshFunction(1,name.c_str());
-      env.signature->getFunction(f)->setType(new FunctionType(s,s));
+      env.signature->getFunction(f)->setType(new FunctionType({s},s));
       sortFunctions[s] = f;
     }
     else{ sortFunctions[s]=0; }

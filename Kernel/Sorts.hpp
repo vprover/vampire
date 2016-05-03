@@ -177,6 +177,7 @@ public:
   virtual vstring toString() const = 0;
 protected:
   BaseType(unsigned arity, const unsigned* sorts=0);
+  BaseType(std::initializer_list<unsigned> sorts);
 
   vstring argsToString() const;
 private:
@@ -192,12 +193,7 @@ public:
 
   PredicateType(unsigned arity, const unsigned* argumentSorts)
    : BaseType(arity, argumentSorts) {}
-  PredicateType(unsigned argSort)
-   : BaseType(1, new unsigned[1] { argSort }) {}
-  PredicateType(unsigned argSort1, unsigned argSort2)
-   : BaseType(2, new unsigned[2] { argSort1, argSort2 }) {}
-  PredicateType(unsigned argSort1, unsigned argSort2, unsigned argSort3)
-   : BaseType(3, new unsigned[3] { argSort1, argSort2, argSort3 }) {}
+  PredicateType(std::initializer_list<unsigned> sorts) : BaseType(sorts) {}
 
   virtual vstring toString() const;
 
@@ -214,12 +210,8 @@ public:
    : BaseType(arity, argumentSorts), _result(resultSort) {}
   FunctionType(unsigned resultSort)
    : BaseType(0, 0), _result(resultSort) {}
-  FunctionType(unsigned argSort, unsigned resultSort)
-   : BaseType(1, new unsigned[1] { argSort }), _result(resultSort) {}
-  FunctionType(unsigned argSort1, unsigned argSort2, unsigned resultSort)
-   : BaseType(2, new unsigned[2] { argSort1, argSort2 }), _result(resultSort) {}
-  FunctionType(unsigned argSort1, unsigned argSort2, unsigned argSort3, unsigned resultSort)
-   : BaseType(3, new unsigned[3] { argSort1, argSort2, argSort3 }), _result(resultSort) {}
+  FunctionType(std::initializer_list<unsigned> argSorts, unsigned resultSort)
+   : BaseType(argSorts), _result(resultSort) {}
 
   unsigned result() const { return _result; }
 

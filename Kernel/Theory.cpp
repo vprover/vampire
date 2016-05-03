@@ -1141,7 +1141,7 @@ FunctionType* Theory::getConversionOperationType(Interpretation i)
   default:
     ASSERTION_VIOLATION;
   }
-  return new FunctionType(from, to);
+  return new FunctionType({from}, to);
 }
     
     
@@ -1170,15 +1170,15 @@ BaseType* Theory::getArrayOperationType(Interpretation i)
     switch(theory->convertToStructured(i)) {
 
         case StructuredSortInterpretation::ARRAY_SELECT:
-          res = new FunctionType(arrSort, indexSort, valueSort);
+          res = new FunctionType({arrSort, indexSort}, valueSort);
           break;
 
         case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-          res = new PredicateType(arrSort, indexSort);
+          res = new PredicateType({arrSort, indexSort});
           break;
 
         case StructuredSortInterpretation::ARRAY_STORE:
-          res = new FunctionType(arrSort, indexSort, innerSort, valueSort);
+          res = new FunctionType({arrSort, indexSort, innerSort}, valueSort);
           break;
 
         default:
