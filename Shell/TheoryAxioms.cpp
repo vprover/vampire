@@ -576,18 +576,21 @@ void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation lessEq
   TermList x(1,false);
   TermList absX(Term::create1(absFun,x));
   TermList mx(Term::create1(umFun,x));
+  TermList absmX(Term::create1(absFun,mx));
 
-  // x >= 0 => abs(x)=x
+  // x >= 0 => abs(x) = x
+  // x < 0 | abs(x)=x
   // not(0 <= x) | abs(x)=x
   Literal* n0ltx = Literal::create2(lePred,false,zeroElement,x);
   Literal* absxeqx = Literal::createEquality(true,absX,x,srt);
   addTheoryNonUnitClause(units,n0ltx,absxeqx);
   
-  // x<0 => abs(x)=-x
-  // 0<=x | abs(x)=-x
+  // x<0 => abs(-x) = x
+  // x>=0 | abs(-x) = x
+  // 0<=x | abs(-x) = x
   Literal* p0ltx = Literal::create2(lePred,true,zeroElement,x);
-  Literal* absxeqmx = Literal::createEquality(false,absX,mx,srt);
-  addTheoryNonUnitClause(units,p0ltx,absxeqmx);
+  Literal* absmxeqx = Literal::createEquality(true,absmX,x,srt);
+  addTheoryNonUnitClause(units,p0ltx,absmxeqx);
 
 }
 
