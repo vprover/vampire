@@ -110,9 +110,11 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());
   }
-  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
+  if(prb.hasEquality() && env.signature->hasTermAlgebras() && opt.termAlgebraInferences()) {
     res->addFront(new DistinctnessISE());
-    //res->addFront(new AcyclicityISE());
+    if (opt.termAlgebraCyclicityCheck()) {
+      //res->addFront(new AcyclicityISE());
+    }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
     res->addFront(new InterpretedEvaluation());

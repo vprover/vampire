@@ -22,6 +22,52 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+class TermAlgebraConstructor {
+public:
+  TermAlgebraConstructor(vstring name) :
+    _cname(name),
+    _args(nullptr)
+  {}
+
+  ~TermAlgebraConstructor() {}
+
+  vstring name() { return _cname; }
+  List<pair<vstring, unsigned>>* args() { return _args; }
+
+  bool recursive(unsigned algebraSort);
+
+  void addArg(vstring name, unsigned sort);
+
+private:
+  vstring _cname;
+  List<pair<vstring, unsigned>>* _args;
+};
+
+struct TermAlgebra {
+public:
+  TermAlgebra(vstring name,unsigned sort) :
+    _tname(name),
+    _constrs(nullptr),
+    _sort(sort)
+  {}
+
+  ~TermAlgebra() {}
+
+  List<TermAlgebraConstructor*>* constructors() { return _constrs; }
+  vstring name() { return _tname; }
+  unsigned sort() { return _sort; }
+
+  bool wellFoundedAlgebra();
+  void addConstr(vstring name);
+  void addConstrArg(vstring name, unsigned sort);
+  
+private:
+  vstring _tname;
+  List<TermAlgebraConstructor*>* _constrs;
+  unsigned _sort;
+};
+
+
 class SMTLIB2 {
 public:
   SMTLIB2(const Options& opts);
@@ -303,11 +349,14 @@ private:
    */
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body);
 
-  void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes);
+  void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
+  void declareTermAlgebra(TermAlgebra *ta, bool coalgebra);
+  void declareTermAlgebraConstructor(TermAlgebraConstructor *c, unsigned rangeSort);
 
-  DeclaredFunction declareDatatypeConstructor(unsigned int vsort, LExpr* decl);
-  DeclaredFunction declareDatatypeDestructor(const vstring& name, unsigned vsort, unsigned argSort);
-  Literal *dcaEqualityLiteral(TermList var, LExpr* decl, unsigned sort);
+  Formula *exhaustivenessAxiom(TermAlgebra *ta);
+  Formula *distinctnessAxiom(TermAlgebra *ta);
+  Formula *injectivityAxiom(TermAlgebra *ta);
+  Formula *acyclicityAxiom(TermAlgebra *ta);
 
   /**
    * Parse result of parsing an smtlib term (which can be of sort Bool and therefore represented in vampire by a formula)

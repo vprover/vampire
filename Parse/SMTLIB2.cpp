@@ -150,7 +150,18 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       LExprList* sorts = ibRdr.readList();
       LExprList* datatypes = ibRdr.readList();
 
-      readDeclareDatatypes(sorts, datatypes);
+      readDeclareDatatypes(sorts, datatypes, false);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("declare-codatatypes")) {
+      LExprList* sorts = ibRdr.readList();
+      LExprList* datatypes = ibRdr.readList();
+
+      readDeclareDatatypes(sorts, datatypes, true);
 
       ibRdr.acceptEOL();
 
@@ -818,182 +829,322 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   UnitList::push(fu, _formulas);
 }
 
-void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes)
+void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype)
 {
   CALL("SMTLIB2::readDeclareDatatypes");
   
   if (sorts->length() > 0) {
     USER_ERROR("unsupported parametric datatypes declaration");
   }
-  
-  LispListReader aRdr(datatypes);
 
   // first declare all the sorts, and then only the constructors, in
   // order to allow mutually recursive datatypes definitions
-  List<pair<unsigned, LExpr*>> *todo = nullptr;
+  LispListReader dtypesRdr(datatypes);
+  while (dtypesRdr.hasNext()) {
+    LispListReader dtypeRdr(dtypesRdr.readList());
 
-  // map used to collect the equality literals used to construct the
-  // domain closure axiom  
-  DHMap<unsigned, List<Literal*>*> dcaLiterals;
-  ASS(dcaLiterals.isEmpty());
+    const vstring& dtypeName = dtypeRdr.readAtom();
+    if (isAlreadyKnownSortSymbol(dtypeName)) {
+      USER_ERROR("Redeclaring built-in, declared or defined sort symbol as datatype: "+dtypeName);
+    }
+
+    ALWAYS(_declaredSorts.insert(dtypeName, 0));
+    bool added;
+    env.sorts->addSort(dtypeName + "()", added);
+    ASS(added);
+  }
+
+  List<TermAlgebra*>* algebras = nullptr;
+
+  LispListReader dtypesRdr2(datatypes);
+  while(dtypesRdr2.hasNext()) {
+    LispListReader dtypeRdr(dtypesRdr2.readList());
+    const vstring& sortName = dtypeRdr.readAtom() + "()";
+    bool added;
+    TermAlgebra* ta = new TermAlgebra(sortName, env.sorts->addSort(sortName, added));
+    ASS(!added);
+
+    while (dtypeRdr.hasNext()) {
+      // read each constructor declaration
+      LExpr *constr = dtypeRdr.next();
+      if (constr->isAtom()) {
+        // atom, construtor of arity 0
+        ta->addConstr(constr->str);
+      } else {
+        ASS(constr->isList());
+        LispListReader constrRdr(constr);
+        ta->addConstr(constrRdr.readAtom());
+
+        while (constrRdr.hasNext()) {
+          LExpr *arg = constrRdr.next();
+          LispListReader argRdr(arg);
+          const vstring& destructorName = argRdr.readAtom();
+          unsigned argSort = declareSort(argRdr.next());
+          if (argRdr.hasNext()) {
+            USER_ERROR("Bad constructor argument:" + arg->toString());
+          }
+          ta->addConstrArg(destructorName, argSort);
+        }
+      }
+    }
+    algebras = algebras->cons(ta);
+  }
+
+  List<TermAlgebra*>::Iterator it(algebras);
+  while (it.hasNext()) {
+    declareTermAlgebra(it.next(), codatatype);
+  }
+    
+  algebras->destroy();
+}
+
+  void SMTLIB2::declareTermAlgebra(TermAlgebra *ta, bool coalgebra)
+{
+  CALL("SMTLIB2::declareTermAlgebra");
+
+  if (!coalgebra && !ta->wellFoundedAlgebra()) {
+    USER_ERROR("Datatype " + ta->name() + " is not well-founded");
+  }
+
+  List<TermAlgebraConstructor*>::Iterator constrsIt(ta->constructors());
+  while (constrsIt.hasNext()) {
+    declareTermAlgebraConstructor(constrsIt.next(), ta->sort());
+  }
+
+  UnitList::push(new FormulaUnit(exhaustivenessAxiom(ta),
+                                 new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS),
+                                 Unit::AXIOM),
+                 _formulas);
+  if (!env.options->termAlgebraInferences()) {
+    UnitList::push(new FormulaUnit(distinctnessAxiom(ta),
+                                   new Inference(Inference::TERM_ALGEBRA_DISTINCTNESS),
+                                   Unit::AXIOM),
+                   _formulas);
+    UnitList::push(new FormulaUnit(injectivityAxiom(ta),
+                                   new Inference(Inference::TERM_ALGEBRA_INJECTIVITY),
+                                   Unit::AXIOM),
+                   _formulas);
+    if (env.options->termAlgebraCyclicityCheck()) {
+      UnitList::push(new FormulaUnit(acyclicityAxiom(ta),
+                                     new Inference(Inference::TERM_ALGEBRA_ACYCLICITY),
+                                     Unit::AXIOM),
+                     _formulas);
+    }
+  }
+}
+
+void SMTLIB2::declareTermAlgebraConstructor(TermAlgebraConstructor *c, unsigned rangeSort)
+{
+  CALL("SMTLIB2::declareTermAlgebraConstructor");
+
+  Stack<unsigned> destrArgSort;
+  destrArgSort.push(rangeSort);
+  Stack<unsigned> argSorts;
+  List<pair<vstring,unsigned>>::Iterator argsIt(c->args());
+  
+  while (argsIt.hasNext()) {
+    pair<vstring,unsigned> arg = argsIt.next();
+    argSorts.push(arg.second);
+    // declare destructor
+    if (isAlreadyKnownFunctionSymbol(arg.first)) {
+      USER_ERROR("Redeclaring function symbol: " + arg.first);
+    }
+    declareFunctionOrPredicate(arg.first, arg.second, destrArgSort);
+  }
+  // declare constructor
+  if (isAlreadyKnownFunctionSymbol(c->name())) {
+    USER_ERROR("Redeclaring function symbol: " + c->name());
+  }
+  DeclaredFunction df = declareFunctionOrPredicate(c->name(), rangeSort, argSorts);
+  env.signature->getFunction(df.first)->markTermAlgebraCons();
+}
+
+Formula *SMTLIB2::exhaustivenessAxiom(TermAlgebra *ta)
+{
+  CALL("SMTLIB2::exhaustivenessAxiom");
 
   TermList x(0, false);
-  
-  while (aRdr.hasNext()) {
-    LExprList *decl = aRdr.readList();
-    LispListReader bRdr(decl);
+  Stack<TermList> argTerms;
 
-    const vstring& dName = bRdr.readAtom();
-    if (isAlreadyKnownSortSymbol(dName)) {
-      USER_ERROR("Redeclaring built-in, declared or defined sort symbol as datatype: "+dName);
-    }
+  List<TermAlgebraConstructor*>::Iterator it1(ta->constructors());
 
-    ALWAYS(_declaredSorts.insert(dName, 0));
-    vstring sortName = dName + "()";
-    bool added;
-    unsigned rangeSort = env.sorts->addSort(sortName, added);
-    ASS(added);
+  FormulaList *l = FormulaList::empty();
 
-    dcaLiterals.insert(rangeSort, nullptr);
-
-    while (bRdr.hasNext()) {
-      todo = List<pair<unsigned, LExpr*>>::addLast(todo, make_pair(rangeSort, bRdr.next()));
-    }
-  }
-
-  // declare constructors
-  List<pair<unsigned, LExpr*>>::Iterator it1(todo);
   while (it1.hasNext()) {
-    pair<unsigned, LExpr*> p = it1.next();
-    declareDatatypeConstructor(p.first, p.second);
-
-    // build equality literal for the DCA and add it to the map
-    ASS(dcaLiterals.find(p.first));
-    dcaLiterals.set(p.first, dcaLiterals.get(p.first)->cons(dcaEqualityLiteral(x, p.second, p.first)));    
-  }
-
-  // for each datatype, build DCA clause and add it to formulas 
-  DHMap<unsigned, List<Literal*>*>::Iterator it2(dcaLiterals);
-  while (it2.hasNext()) {
-    List<Literal*>::Iterator it3(it2.next());
-    Clause *c = Clause::fromIterator(it3, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS));
-    UnitList::push(c, _formulas);
-  }
+    TermAlgebraConstructor *c = it1.next();
+    List<pair<vstring, unsigned>>::Iterator it2(c->args());
+    argTerms.reset();
     
-  todo->destroy();
+    while (it2.hasNext()) {
+      pair<vstring, unsigned> a = it2.next();
+      unsigned dn = env.signature->getFunctionNumber(a.first, 1);
+      TermList t(Term::create1(dn, x));
+      argTerms.push(t);
+    }
+    
+    TermList rhs(Term::create(env.signature->getFunctionNumber(c->name(), argTerms.size()),
+                              argTerms.size(),
+                              argTerms.begin()));
+    l = l->cons(new AtomicFormula(Literal::createEquality(true, x, rhs, ta->sort())));
+  }
+
+  Formula::VarList* vars = Formula::VarList::empty()->cons(x.var());
+  Formula::SortList* sorts = Formula::SortList::empty()->cons(ta->sort());
+  
+  return new QuantifiedFormula(Connective::FORALL,
+                               vars,
+                               sorts,
+                               new JunctionFormula(Connective::OR, l));
 }
 
-SMTLIB2::DeclaredFunction SMTLIB2::declareDatatypeConstructor(unsigned vsort, LExpr *decl)
+Formula *SMTLIB2::distinctnessAxiom(TermAlgebra *ta)
 {
-  CALL("SMTLIB2::declareDatatypeConstructor");
+  CALL("SMTLIB2::distinctnessAxiom");
 
-  bool added;
-  unsigned symNum;
-  Signature::Symbol* sym;
-  BaseType* type;
-  vstring name;
+  unsigned varnum = 0;
+  FormulaList *l = FormulaList::empty();
+  Formula::VarList* vars = Formula::VarList::empty();
+  Formula::SortList* sorts = Formula::SortList::empty();
 
-  if (decl->isAtom()) {
-    // atom, construtor of arity 0
-    name = decl->str;
-    symNum = TPTP::addUninterpretedConstant(name, _overflow, added);
-    sym = env.signature->getFunction(symNum);
-    type = new FunctionType(vsort);
-  } else {
-    // should be a list made up of the constructor name followed by
-    // pairs of destructor name/argument type
-    ASS(decl->isList());
-    LispListReader aRdr(decl);
-    name = aRdr.readAtom();
-    static Stack<unsigned> argSorts;
-    argSorts.reset();
+  List<TermAlgebraConstructor*>* constrs = ta->constructors();
+  List<pair<vstring, unsigned>>::Iterator argit;
+  Stack<TermList> argTerms;
+
+  while (List<TermAlgebraConstructor*>::isNonEmpty(constrs)) {
+    pair<vstring,unsigned> a;
+    TermAlgebraConstructor* c = constrs->head();
+    List<TermAlgebraConstructor*>::Iterator cit(constrs->tail());
+
+    // build LHS
+    argTerms.reset();
+    argit.reset(c->args());
+    while (argit.hasNext()) {
+      a = argit.next();
+      TermList var(varnum++, false);
+      argTerms.push(var);
+      vars = vars->cons(var.var());
+      sorts = sorts->cons(a.second);
+    }
+    TermList lhs(Term::create(env.signature->getFunctionNumber(c->name(), argTerms.size()),
+                              argTerms.size(),
+                              argTerms.begin()));
     
-    while (aRdr.hasNext()) {
-      LExpr* arg = aRdr.next();
-      LispListReader bRdr(arg);
-      const vstring& destructorName = bRdr.readAtom();
-      LExpr* argSortExpr = bRdr.next();
-      unsigned argSort = declareSort(argSortExpr);
-      argSorts.push(argSort);
+    while (cit.hasNext()) {
+      c = cit.next();
+
+      // build RHS
+      argTerms.reset();
+      argit.reset(c->args());
+      while (argit.hasNext()) {
+        a = argit.next();
+        TermList var(varnum++, false);
+        argTerms.push(var);
+        vars = vars->cons(var.var());
+        sorts = sorts->cons(a.second);
+      }
+      TermList rhs(Term::create(env.signature->getFunctionNumber(c->name(), argTerms.size()),
+                                argTerms.size(),
+                                argTerms.begin()));
+
+      l = l->cons(new AtomicFormula(Literal::createEquality(false, lhs, rhs, ta->sort())));
+    }
+
+    constrs = constrs->tail();
+  }
+
+  switch (l->length()) {
+  case 0:
+    return Formula::trueFormula();
+    break;
+  case 1:
+    return new QuantifiedFormula(Connective::FORALL, vars, sorts, l->head());
+    break;
+  default:
+    return new QuantifiedFormula(Connective::FORALL,
+                                 vars,
+                                 sorts,
+                                 new JunctionFormula(Connective::AND, l));
+  }
+}
+
+Formula *SMTLIB2::injectivityAxiom(TermAlgebra *ta)
+{
+  CALL("SMTLIB2::injectivityAxiom");
+
+  FormulaList *l = FormulaList::empty();
+  List<TermAlgebraConstructor*>::Iterator it(ta->constructors());
+  Stack<TermList> argTermsX;
+  Stack<TermList> argTermsY;
+  unsigned varnum = 0;
+  
+  while (it.hasNext()) {
+    TermAlgebraConstructor* c = it.next();
+    
+    if (c->args()->length() != 0) {
+      FormulaList *implied = FormulaList::empty();
+      Formula::VarList* vars = Formula::VarList::empty();
+      Formula::SortList* sorts = Formula::SortList::empty();
+
+      argTermsX.reset();
+      argTermsY.reset();
       
-      if (bRdr.hasNext()) {
-        USER_ERROR("Bad constructor argument:" + arg->toString());
+      List<pair<vstring, unsigned>>::Iterator argit(c->args());
+
+      while (argit.hasNext()) {
+        pair<vstring, unsigned> arg = argit.next();
+        TermList x(varnum++, false);
+        TermList y(varnum++, false);
+        sorts = sorts->cons(arg.second)->cons(arg.second);
+        vars = vars->cons(x.var())->cons(y.var());
+        argTermsX.push(x);
+        argTermsY.push(y);
+        implied = implied->cons(new AtomicFormula(Literal::createEquality(true, x, y, arg.second)));
+      }
+
+      TermList lhs(Term::create(env.signature->getFunctionNumber(c->name(), argTermsX.size()),
+                                argTermsX.size(),
+                                argTermsX.begin()));
+      TermList rhs(Term::create(env.signature->getFunctionNumber(c->name(), argTermsY.size()),
+                                argTermsY.size(),
+                                argTermsY.begin()));
+      Formula *eq = new AtomicFormula(Literal::createEquality(true, lhs, rhs, ta->sort()));
+      Formula *impliedf;
+      switch (implied->length()) {
+      case 0:
+        ASSERTION_VIOLATION;
+        break;
+      case 1:
+        impliedf = implied->head();
+        break;
+      default:
+        impliedf = new JunctionFormula(Connective::AND, implied);
+        break;
       }
       
-      declareDatatypeDestructor(destructorName, vsort, argSort);
-    }
-    
-    symNum = env.signature->addFunction(name, argSorts.size(), added);
-    sym = env.signature->getFunction(symNum);
-    type = new FunctionType(argSorts.size(), argSorts.begin(), vsort);
-  }
+      l = l->cons(new QuantifiedFormula(Connective::FORALL,
+                                        vars,
+                                        sorts,
+                                        new BinaryFormula (Connective::IMP, eq, impliedf)));
 
-  ASS(added);
-  sym->setType(type);
-  sym->markTermAlgebraCons();
-
-  DeclaredFunction res = make_pair(symNum, true);
-
-  LOG2("declareDatatypeConstructor -name ",name);
-  LOG2("declareDatatypeConstructor -symNum ",symNum);
-
-  ALWAYS(_declaredFunctions.insert(name,res));
-
-  return res;
-}
-
-SMTLIB2::DeclaredFunction SMTLIB2::declareDatatypeDestructor(const vstring& name, unsigned vsort, unsigned argSort)
-{
-  CALL("SMTLIB2::declareDatatypeDesstructor");
-  
-  bool added;
-  unsigned symNum = env.signature->addFunction(name, 1, added);
-  ASS(added);
-
-  Signature::Symbol *sym = env.signature->getFunction(symNum);
-  sym->setType(new FunctionType(vsort, argSort));
-  
-  DeclaredFunction res = make_pair(symNum, true);
-
-  LOG2("declareDatatypeDestructor -name ", name);
-  LOG2("declareDatatypeDestructor -symNum ", symNum);
-
-  ALWAYS(_declaredFunctions.insert(name,res));
-
-  return res;
-}
-
-Literal * SMTLIB2::dcaEqualityLiteral(TermList var, LExpr *decl, unsigned sort)
-{
-  CALL("SMTLIB2::dcaEqualityLiteral");
-
-  static Stack<TermList> argTerms;
-  argTerms.reset();
-  vstring name;
-
-  if (decl->isAtom()) {
-    // atom, construtor of arity 0
-    name = decl->str;
-  } else {
-    ASS(decl->isList());
-    LispListReader aRdr(decl);
-    name = aRdr.readAtom();    
-    while (aRdr.hasNext()) {
-      LExpr* arg = aRdr.next();
-      LispListReader bRdr(arg);
-      const vstring& destructorName = bRdr.readAtom();
-      unsigned dn = env.signature->getFunctionNumber(destructorName, 1);
-      TermList t(Term::create1(dn, var));
-      argTerms.push(t);
-
-      ASS(bRdr.next());
-      ASS(!bRdr.hasNext());
     }
   }
 
-  unsigned function = env.signature->getFunctionNumber(name, argTerms.size());
-  TermList rhs(Term::create(function, argTerms.size(), argTerms.begin()));
-  return Literal::createEquality(true, var, rhs, sort);
+  switch (l->length()) {
+  case 0:
+    return Formula::trueFormula();
+  case 1:
+    return l->head();
+  default:
+    return new JunctionFormula(Connective::AND, l);
+  }
+}
+  
+Formula *SMTLIB2::acyclicityAxiom(TermAlgebra *ta)
+{
+  CALL("SMTLIB2::acyclicityAxiom");
+
+  //TODO
+  return Formula::trueFormula();
 }
 
 bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
@@ -1395,11 +1546,13 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
   LExpr* toParse = lRdr.readListExpr();
 
-  const vstring& attributeKind = lRdr.readAtom();
+  static bool annotation_warning = false; // print warning only once
 
-  if (attributeKind != ":pattern") {
-    USER_ERROR("Unrecognized term attribute "+attributeKind);
-    // in particular, we currently don't support ":named"
+  if (!annotation_warning) {
+    env.beginOutput();
+    env.out() << "% Warning: term annotations ignored!" << endl;
+    env.endOutput();
+    annotation_warning = true;
   }
 
   // we ignore the rest in lRdr (no matter the number of remaining arguments and their structure)
@@ -2157,6 +2310,54 @@ void SMTLIB2::readAssert(LExpr* body)
   FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::AXIOM);
 
   UnitList::push(fu, _formulas);
+}
+
+void TermAlgebraConstructor::addArg(vstring name, unsigned sort)
+{
+  CALL("TermAlgebraConstructor::addArg");
+
+   _args = List<pair<vstring, unsigned>>::addLast(_args, make_pair(name, sort));
+}
+
+bool TermAlgebraConstructor::recursive(unsigned algebraSort)
+{
+  CALL("TermAlgebraConstructor::recursive");
+  
+  List<pair<vstring, unsigned>>::Iterator it(_args);
+  while (it.hasNext()) {
+    if (it.next().second == algebraSort) {
+      // this constructor has a recursive argument
+      return true;
+    }
+  }
+  return false;
+}
+
+bool TermAlgebra::wellFoundedAlgebra()
+{
+  CALL("TermAlgebra::wellFoundedAlgebra");
+
+  List<TermAlgebraConstructor*>::Iterator it(_constrs);
+  while (it.hasNext()) {
+    if (!(it.next()->recursive(_sort))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void TermAlgebra::addConstr(vstring name)
+{
+  CALL("TermAlgebra::addConstr");
+
+  _constrs = _constrs->cons(new TermAlgebraConstructor(name));
+}
+
+void TermAlgebra::addConstrArg(vstring name, unsigned sort)
+{
+  CALL("TermAlgebra::addConstrArg");
+
+  _constrs->head()->addArg(name, sort);
 }
 
 }

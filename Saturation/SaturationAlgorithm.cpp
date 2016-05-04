@@ -1334,7 +1334,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.FOOLParamodulation()) {
     gie->addFront(new FOOLParamodulation());
   }
-  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
+  if(prb.hasEquality() && env.signature->hasTermAlgebras() && opt.termAlgebraInferences()) {
     gie->addFront(new InjectivityGIE());
     //gie->addFront(new AcyclicityGIE());
   }

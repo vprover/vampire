@@ -1739,6 +1739,8 @@ public:
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool FOOLOrdering() const { return _FOOLOrdering.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
+  bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
+  bool termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
@@ -2009,6 +2011,9 @@ private:
 
   BoolOptionValue _FOOLOrdering;
   BoolOptionValue _FOOLParamodulation;
+
+  BoolOptionValue _termAlgebraInferences;
+  BoolOptionValue _termAlgebraCyclicityCheck;
 
   BoolOptionValue _fmbIncremental;
   BoolOptionValue _fmbNonGroundDefs;
