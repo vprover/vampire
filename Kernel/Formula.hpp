@@ -13,8 +13,11 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 #include "Lib/XML.hpp"
+
+#include "Kernel/Signature.hpp"
 
 #include "Connective.hpp"
 #include "Term.hpp"
@@ -321,7 +324,32 @@ class BoolTermFormula
       _ts(ts)
   {
     // only boolean terms in formula context are expected here
-    ASS(ts.isVar() || ts.term()->isITE() || ts.term()->isLet());
+    ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet(), ts.toString());
+  }
+
+  static Formula* create(TermList ts) {
+    if (ts.isVar()) {
+      return new BoolTermFormula(ts);
+    }
+
+    Term* term = ts.term();
+    if (term->isSpecial()) {
+      Term::SpecialTermData *sd = term->getSpecialData();
+      switch (sd->getType()) {
+        case Term::SF_FORMULA:
+          return sd->getFormula();
+        default:
+          return new BoolTermFormula(ts);
+      }
+    } else {
+      unsigned functor = term->functor();
+      if (env.signature->isFoolConstantSymbol(true, functor)) {
+        return new Formula(true);
+      } else {
+        ASS(env.signature->isFoolConstantSymbol(false, functor));
+        return new Formula(false);
+      }
+    }
   }
 
   /** Return the variable */

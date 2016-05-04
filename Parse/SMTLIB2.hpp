@@ -88,63 +88,9 @@ public:
   UnitList* getFormulas() const { return _formulas; }
 
   /**
-   * List of currently used logics:
-   * QF (quantifier free) should be ground
-   * A - arrays
-   * (L/N)(I/R/both)A - linear/non-linear integer/real/both arithmetic
-   * BV - bit vector - we don't support
-   * (I/R)DL - difference logic - we don't treat specially (fragment of L(I/R)A)
-   * UF - uninterpreted function = first order we know and love
-   *
-   * In general, the parser does not check that the parse content belongs to the advertised logic.
-   */
-  enum SmtlibLogic {
-    LO_ALIA,
-    LO_AUFLIA,
-    LO_AUFLIRA,
-    LO_AUFNIRA,
-    LO_BV,
-    LO_LIA,
-    LO_LRA,
-    LO_NIA,
-    LO_NRA,
-    LO_QF_ABV,
-    LO_QF_ALIA,
-    LO_QF_ANIA,
-    LO_QF_AUFBV,
-    LO_QF_AUFLIA,
-    LO_QF_AUFNIA,
-    LO_QF_AX,
-    LO_QF_BV,
-    LO_QF_IDL,
-    LO_QF_LIA,
-    LO_QF_LIRA,
-    LO_QF_LRA,
-    LO_QF_NIA,
-    LO_QF_NIRA,
-    LO_QF_NRA,
-    LO_QF_RDL,
-    LO_QF_UF,
-    LO_QF_UFBV,
-    LO_QF_UFIDL,
-    LO_QF_UFLIA,
-    LO_QF_UFLRA,
-    LO_QF_UFNIA,
-    LO_QF_UFNRA,
-    LO_UF,
-    LO_UFBV,
-    LO_UFIDL,
-    LO_UFLIA,
-    LO_UFLRA,
-    LO_UFNIA,
-
-    LO_INVALID
-  };
-
-  /**
    * Return the parsed logic (or LO_INVALID if not set).
    */
-  SmtlibLogic getLogic() const {
+  SMTLIBLogic getLogic() const {
     return _logic;
   }
 
@@ -155,7 +101,7 @@ private:
   /**
    * Maps a string to a SmtlibLogic value.
    */
-  static SmtlibLogic getLogicFromString(const vstring& str);
+  static SMTLIBLogic getLogicFromString(const vstring& str);
 
   /**
    * Have we seen "set-logic" entry yet?
@@ -165,7 +111,7 @@ private:
   /**
    * The advertised logic.
    */
-  SmtlibLogic _logic;
+  SMTLIBLogic _logic;
 
   /**
    * Logics which contains only reals allow numerals (like '123') to be understood as reals.

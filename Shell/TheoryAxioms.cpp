@@ -159,6 +159,23 @@ void TheoryAxioms::addRightIdentity(Interpretation op, TermList e, UnitList*& un
 } // addRightIdentity
 
 /**
+ * Add axiom f(e,X)=X.
+ */
+void TheoryAxioms::addLeftIdentity(Interpretation op, TermList e, UnitList*& units)
+{
+  CALL("TheoryAxioms::addLeftIdentity");
+  ASS(theory->isFunction(op));
+  ASS_EQ(theory->getArity(op),2);
+
+  unsigned f = env.signature->getInterpretingSymbol(op);
+  unsigned srt = theory->getOperationSort(op);
+  TermList x(0,false);
+  TermList fex(Term::create2(f,e,x));
+  Literal* eq = Literal::createEquality(true,fex,x,srt);
+  addTheoryUnitClause(eq, units);
+} // addLeftIdentity
+
+/**
  * Add axioms for commutative group with addition @c op, inverse @c inverse and unit @c e:
  * <ol>
  * <li>f(X,Y)=f(Y,X) (commutativity)</li>
@@ -180,8 +197,18 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
   ASS_EQ(theory->getArity(inverse),1);
 
   addCommutativity(op,units);
-  addAssociativity(op,units);
-  addRightIdentity(op,e,units);
+  // set_one removes associativity of sum
+  if(!(_level == Options::TheoryAxiomLevel::SET_ONE && theory->isPlus(op))){
+    addAssociativity(op,units);
+    addRightIdentity(op,e,units);
+  }
+  else{
+    // and replaces right identity with left identity
+    addLeftIdentity(op,e,units);
+    // and replaces the bottom two inverse axioms with a single one
+    addRightInverse(op,inverse,units);  
+    return;
+  }
 
   // i(f(x,y)) = f(i(y),i(x))
   unsigned f = env.signature->getInterpretingSymbol(op);
@@ -204,6 +231,26 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
   Literal* eq2 = Literal::createEquality(true,fx_ix,e,srt);
   addTheoryUnitClause(eq2, units);
 } // TheoryAxioms::addCommutativeGroupAxioms
+
+/**
+ * Add axiom op(op(x,i(y)),y) = x
+ * e.g. (x+(-y))+y = x
+ */
+void TheoryAxioms::addRightInverse(Interpretation op, Interpretation inverse, UnitList*& units)
+{
+  TermList x(0,false);
+  TermList y(0,false);
+  unsigned f = env.signature->getInterpretingSymbol(op);
+  unsigned i = env.signature->getInterpretingSymbol(inverse);
+  unsigned srt = theory->getOperationSort(op);
+  ASS_EQ(srt, theory->getOperationSort(inverse));
+
+  TermList iy(Term::create1(i,y));
+  TermList xiy(Term::create2(f,x,iy));
+  TermList xiyy(Term::create2(f,xiy,y));
+  Literal* eq = Literal::createEquality(true,xiyy,x,srt);
+  addTheoryUnitClause(eq,units);
+}
 
 /**
  * Add axiom op(X,X)
@@ -270,7 +317,9 @@ void TheoryAxioms::addTotalOrderAxioms(Interpretation lessEqual, UnitList*& unit
 
   addReflexivity(lessEqual, units);
   addTransitivity(lessEqual, units);
-  addOrderingTotality(lessEqual, units);
+  if(_level != Options::TheoryAxiomLevel::SET_ONE){
+    addOrderingTotality(lessEqual, units);
+  }
 }
 
 /**
@@ -298,6 +347,29 @@ void TheoryAxioms::addMonotonicity(Interpretation lessEqual, Interpretation addi
 }
 
 /**
+ * Add the axiom ~$lesseq($sum(X,1),X)
+ *
+ * Taken from SPASS+T work
+ */
+void TheoryAxioms::addPlusOneGreater(Interpretation plus, TermList oneElement,
+                                     Interpretation lessEqual, UnitList*& units)
+{
+  CALL("TheoryAxioms::addPlusOneGreater");
+  ASS(!theory->isFunction(lessEqual));
+  ASS_EQ(theory->getArity(lessEqual),2);
+  ASS(theory->isFunction(plus));
+  ASS_EQ(theory->getArity(plus),2);
+
+  unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
+  unsigned addFun = env.signature->getInterpretingSymbol(plus);
+  TermList x(0,false);
+
+  TermList xPo(Term::create2(addFun,x,oneElement));
+  Literal* xPo_g_x = Literal::create2(lePred,false,xPo,x);
+  addTheoryUnitClause(xPo_g_x,units);
+}
+
+/**
  * Add axioms for addition, unary minus and ordering
  */
 void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretation unaryMinus,
@@ -308,6 +380,11 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
   addCommutativeGroupAxioms(plus, unaryMinus, zeroElement, units);
   addTotalOrderAxioms(lessEqual, units);
   addMonotonicity(lessEqual, plus, units);
+
+  // add a new ordering axiom x+1 > x
+  if(_level == Options::TheoryAxiomLevel::SET_ONE){
+    addPlusOneGreater(plus,oneElement,lessEqual,units);
+  }
 
   //axiom( ile(zero,one) );
   unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
@@ -475,7 +552,7 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
   // create a skolem function with signature srt*srt>srt
   unsigned skolem = env.signature->addSkolemFunction(2);
   Signature::Symbol* sym = env.signature->getFunction(skolem);
-  sym->setType(new FunctionType(srt,srt,srt));
+  sym->setType(new FunctionType({srt,srt},srt));
   TermList skXY(Term::create2(skolem,x,y));
   TermList msxX(Term::create2(mulFun,skXY,x));
   Literal* msxXeqY = Literal::createEquality(true,msxX,y,srt);
@@ -499,18 +576,21 @@ void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation lessEq
   TermList x(1,false);
   TermList absX(Term::create1(absFun,x));
   TermList mx(Term::create1(umFun,x));
+  TermList absmX(Term::create1(absFun,mx));
 
-  // x >= 0 => abs(x)=x
+  // x >= 0 => abs(x) = x
+  // x < 0 | abs(x)=x
   // not(0 <= x) | abs(x)=x
   Literal* n0ltx = Literal::create2(lePred,false,zeroElement,x);
   Literal* absxeqx = Literal::createEquality(true,absX,x,srt);
   addTheoryNonUnitClause(units,n0ltx,absxeqx);
   
-  // x<0 => abs(x)=-x
-  // 0<=x | abs(x)=-x
+  // x<0 => abs(-x) = x
+  // x>=0 | abs(-x) = x
+  // 0<=x | abs(-x) = x
   Literal* p0ltx = Literal::create2(lePred,true,zeroElement,x);
-  Literal* absxeqmx = Literal::createEquality(false,absX,mx,srt);
-  addTheoryNonUnitClause(units,p0ltx,absxeqmx);
+  Literal* absmxeqx = Literal::createEquality(true,absmX,x,srt);
+  addTheoryNonUnitClause(units,p0ltx,absmxeqx);
 
 }
 
@@ -934,7 +1014,9 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
       addAdditionAndOrderingAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
 				   Theory::INT_LESS_EQUAL, units);
     }
-    addExtraIntegerOrderingAxiom(Theory::INT_PLUS, one, Theory::INT_LESS_EQUAL, units);
+    if(_level != Options::TheoryAxiomLevel::SET_ONE){
+      addExtraIntegerOrderingAxiom(Theory::INT_PLUS, one, Theory::INT_LESS_EQUAL, units);
+    }
     if(haveIntFloor){    addIdentity(Theory::INT_FLOOR,units); }
     if(haveIntCeiling){  addIdentity(Theory::INT_CEILING,units); }
     if(haveIntRound){    addIdentity(Theory::INT_ROUND,units); }
@@ -1082,10 +1164,12 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
   TermList t(Term::foolTrue());
   TermList f(Term::foolFalse());
 
+  Inference* foolAxiom = new Inference(Inference::FOOL_AXIOM);
+
   // Add "$$true != $$false"
-  Formula* inequality = new AtomicFormula(Literal::createEquality(false, t, f, Sorts::SRT_BOOL));
-  Unit* disjointConstants = new FormulaUnit(inequality, new Inference(Inference::FOOL_AXIOM), Unit::AXIOM);
-  addAndOutputTheoryUnit(disjointConstants, prb.units());
+  Clause* tneqfClause = new(1) Clause(1, Unit::AXIOM, foolAxiom);
+  (*tneqfClause)[0] = Literal::createEquality(false, t, f, Sorts::SRT_BOOL);
+  addAndOutputTheoryUnit(tneqfClause, prb.units());
 
   // Do not add the finite domain axiom if --fool_paradomulation on
   if (env.options->FOOLParamodulation()) {
@@ -1093,13 +1177,8 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
   }
 
   // Add "![X : $bool]: ((X = $$true) | (X = $$false))"
-  Formula* xist = new AtomicFormula(Literal::createEquality(true, TermList(0, false), t, Sorts::SRT_BOOL));
-  Formula* xisf = new AtomicFormula(Literal::createEquality(true, TermList(0, false), f, Sorts::SRT_BOOL));
-
-  FormulaList* fs = new FormulaList(xist, new FormulaList(xisf, 0));
-  Formula* disjunction = new QuantifiedFormula(FORALL, new Formula::VarList(0, 0), 
-                                                       new Formula::SortList(Sorts::SRT_BOOL,0),
-                                                       new JunctionFormula(OR, fs));
-  Unit* finiteDomain = new FormulaUnit(disjunction, new Inference(Inference::FOOL_AXIOM), Unit::AXIOM);
-  addAndOutputTheoryUnit(finiteDomain, prb.units());
+  Clause* boolVarClause = new(2) Clause(2, Unit::AXIOM, foolAxiom);
+  (*boolVarClause)[0] = Literal::createEquality(true, TermList(0, false), t, Sorts::SRT_BOOL);
+  (*boolVarClause)[1] = Literal::createEquality(true, TermList(0, false), f, Sorts::SRT_BOOL);
+  addAndOutputTheoryUnit(boolVarClause, prb.units());
 } // TheoryAxioms::addBooleanDomainAxiom

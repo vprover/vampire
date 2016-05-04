@@ -60,6 +60,7 @@ public:
   void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
 
+  void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
   void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
@@ -187,6 +188,7 @@ protected:
   Splitter* _splitter;
 
   ConsequenceFinder* _consFinder;
+  LabelFinder* _labelFinder;
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;

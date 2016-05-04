@@ -69,7 +69,7 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
     Literal* l=it.next();
-    if(!env.signature->getPredicate(l->functor())->cfName()) {
+    if(!env.signature->getPredicate(l->functor())->label()) {
       return;
     }
     if(l->isPositive()) {
@@ -145,7 +145,7 @@ bool ConsequenceFinder::isRedundant(Clause* cl)
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
     unsigned fn=it.next()->functor();
-    if(!env.signature->getPredicate(fn)->cfName()) {
+    if(!env.signature->getPredicate(fn)->label()) {
       continue;
     }
     if(_redundant[fn]) {
@@ -166,7 +166,7 @@ void ConsequenceFinder::onClauseInserted(Clause* cl)
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
     unsigned fn=it.next()->functor();
-    if(!env.signature->getPredicate(fn)->cfName()) {
+    if(!env.signature->getPredicate(fn)->label()) {
       continue;
     }
     if(_redundant[fn]) {
@@ -196,7 +196,7 @@ void ConsequenceFinder::onClauseRemoved(Clause* cl)
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
     unsigned fn=it.next()->functor();
-    if(!env.signature->getPredicate(fn)->cfName()) {
+    if(!env.signature->getPredicate(fn)->label()) {
       continue;
     }
     if(!_redundant[fn]) {

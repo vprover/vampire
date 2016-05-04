@@ -308,6 +308,8 @@ public:
     SAT_UNSATISFIABLE,
     /** saturation terminated but an incomplete strategy was used */
     REFUTATION_NOT_FOUND,
+    /** inappropriate strategy **/
+    INAPPROPRIATE, 
     /** unknown termination reason */
     UNKNOWN,
     /** time limit reached */
@@ -340,6 +342,7 @@ public:
     PREDICATE_DEFINITION_INLINING,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     PREPROCESS_2,
+    NEW_CNF,
     NAMING,
     PREPROCESS_3,
     CLAUSIFICATION,

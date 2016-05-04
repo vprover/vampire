@@ -164,7 +164,7 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     vstring ty="";
     unsigned t;
     if(t_map.find(var,t)){
-      ty=" : " + env.sorts->sortName(t);
+      ty=":" + env.sorts->sortName(t);
     }
     varStr+=vstring("X")+Int::toString(var)+ty;
     first=false;

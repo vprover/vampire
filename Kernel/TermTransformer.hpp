@@ -30,6 +30,15 @@ protected:
   virtual TermList transformSubterm(TermList trm) = 0;
 };
 
+class TermTransformerTransformTransformed {
+public:
+  virtual ~TermTransformerTransformTransformed() {}
+  Literal* transform(Literal* lit);
+protected:
+  virtual TermList transformSubterm(TermList trm) = 0;
+};
+
+
 }
 
 #endif // __TermTransformer__

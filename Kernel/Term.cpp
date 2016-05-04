@@ -947,6 +947,24 @@ bool Term::skip() const
   return true;
 } // skip
 
+bool Term::isBoolean() const {
+  const Term* term = this;
+  while (true) {
+    if (env.signature->isFoolConstantSymbol(true, term->functor()) ||
+        env.signature->isFoolConstantSymbol(true, term->functor())) return true;
+    if (!term->isSpecial()) return false;
+    if (term->isFormula()) return true;
+    if (term->isLet() || term->isITE()) {
+      const TermList* ts = term->nthArgument(0);
+      if (!ts->isTerm()) {
+        return false;
+      } else {
+        term = ts->term();
+      }
+    }
+  }
+} // isBoolean
+
 /**
  * Return true iff headers of literals match each other. We check also whether
  * sorts of equality literals are equal.

@@ -96,11 +96,18 @@ XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0 $(GCOV_FLAGS) $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
+OS = $(shell uname)
+ifeq ($(OS),Darwin)
+STATIC = -static-libgcc -static-libstdc++ 
+else
+STATIC = -static
+endif
+
 ifneq (,$(filter %_dbg_static,$(MAKECMDGOALS)))
-XFLAGS = -static $(DBG_FLAGS) -DIS_LINGVA=0  $(Z3FLAG)
+XFLAGS = $(STATIC) $(DBG_FLAGS) -DIS_LINGVA=0  $(Z3FLAG)
 endif
 ifneq (,$(filter %_rel_static,$(MAKECMDGOALS)))
-XFLAGS = -static $(REL_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
+XFLAGS = $(STATIC) $(REL_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
@@ -305,6 +312,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
          Saturation/ExtensionalityClauseContainer.o\
+	 Saturation/LabelFinder.o\
          Saturation/Limits.o\
          Saturation/LRS.o\
          Saturation/Otter.o\
@@ -319,6 +327,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/BFNTMainLoop.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
+         Shell/NewCNF.o\
          Shell/CParser.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
@@ -356,6 +365,8 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SMTPrinter.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
+         Shell/SymbolDefinitionInlining.o\
+         Shell/SymbolOccurrenceReplacement.o\
          Shell/SymCounter.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
@@ -412,7 +423,10 @@ VTAB_OBJ = Tabulation/Producer.o\
 
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
+	   FMB/Monotonicity.o\
+	   FMB/FunctionRelationshipInference.o\
 	   FMB/FiniteModel.o\
+	   FMB/FiniteModelMultiSorted.o\
            FMB/FiniteModelBuilder.o
 
 TRANSLATOR_OBJ = \

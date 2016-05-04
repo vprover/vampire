@@ -298,6 +298,9 @@ void outputResult(ostream& out) {
   case Statistics::UNKNOWN:
     cout<<"unknown"<<endl;
     break;
+  case Statistics::INAPPROPRIATE:
+    cout<<"inappropriate"<<endl;
+    break;
   case Statistics::SATISFIABLE:
     cout<<"sat"<<endl;
 #if GNUMP
@@ -691,6 +694,7 @@ void spiderMode()
     case Statistics::MEMORY_LIMIT:
       reportSpiderStatus('m');
     case Statistics::UNKNOWN:
+    case Statistics::INAPPROPRIATE:
       reportSpiderStatus('u');
     case Statistics::REFUTATION_NOT_FOUND:
       if(env.statistics->discardedNonRedundantClauses>0){
@@ -718,7 +722,7 @@ void spiderMode()
   env.endOutput();
 } // spiderMode
 
-void clausifyMode()
+void clausifyMode(bool stat)
 {
   CALL("clausifyMode()");
 
@@ -730,8 +734,13 @@ void clausifyMode()
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   env.beginOutput();
-  UIHelper::outputSortDeclarations(env.out());
-  UIHelper::outputSymbolDeclarations(env.out());
+  if (!stat) {
+    UIHelper::outputSortDeclarations(env.out());
+    UIHelper::outputSymbolDeclarations(env.out());
+  }
+
+  unsigned clauses = 0;
+  unsigned literals = 0;
 
   ClauseIterator cit = prb->clauseIterator();
   while (cit.hasNext()) {
@@ -740,11 +749,21 @@ void clausifyMode()
     if (!cl) {
       continue;
     }
-    env.out() << TPTPPrinter::toString(cl) << "\n";
+    if (stat) {
+      clauses++;
+      literals += cl->size();
+    } else {
+      env.out() << TPTPPrinter::toString(cl) << "\n";
+    }
+  }
+  if (stat) {
+    env.out() << clauses << "\t" << literals << endl;
   }
   env.endOutput();
 
-if(env.options->latexOutput()!="off"){ outputClausesToLaTeX(prb.ptr()); }
+  if (!stat) {
+    if (env.options->latexOutput() != "off") { outputClausesToLaTeX(prb.ptr()); }
+  }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -854,6 +873,8 @@ int main(int argc, char* argv[])
   // create random seed for the random number generation
   Lib::Random::setSeed(123456);
 
+  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
+
   try {
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
@@ -914,15 +935,6 @@ int main(int argc, char* argv[])
       }
       break;
 /*
-    case Options::Mode::CASC_EPR:
-      CASC::CASCMode::makeEPR();
-      if (CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
-*/
-/*
     case Options::Mode::CASC_LTB: {
       try {
         CASC::CLTBMode::perform();
@@ -943,20 +955,17 @@ int main(int argc, char* argv[])
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-    case Options::Mode::CASC_THEORY: {
-      CASC::CASCMode::makeTheory();
-      if (CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
-    }
 */
     case Options::Mode::MODEL_CHECK:
       modelCheckMode();
       break;
+
     case Options::Mode::CLAUSIFY:
-      clausifyMode();
+      clausifyMode(false);
+      break;
+
+    case Options::Mode::CLAUSIFY_STAT:
+      clausifyMode(true);
       break;
 
     case Options::Mode::OUTPUT:

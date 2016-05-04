@@ -430,16 +430,15 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
   switch (con) {
   case LITERAL:
   {
+    Literal* l = f->literal();
     bool value;
-    if(!_purePreds.find(f->literal()->functor(), value)) {
+    if(!_purePreds.find(l->functor(), value)) {
       return f;
     }
-    return new Formula(value^f->literal()->isNegative());
+    return new Formula(value^l->isNegative());
   }
 
   case BOOL_TERM:
-    ASSERTION_VIOLATION;
-
   case TRUE:
   case FALSE:
     return f;
@@ -672,18 +671,26 @@ FormulaUnit* PredicateDefinition::makeImplFromDef(FormulaUnit* def, unsigned pre
   } else {
     f=f0;
   }
+
   Formula* lhs;
   Formula* rhs;
-  if(f->connective()!=IFF) {
-    return 0;
+
+  switch (f->connective()) {
+    case IFF: {
+      if(f->left()->connective()==LITERAL && f->left()->literal()->functor()==pred) {
+        lhs=f->left();
+        rhs=f->right();
+      } else {
+        lhs = f->right();
+        rhs = f->left();
+      }
+      break;
+    }
+
+    default:
+      return 0;
   }
-  if(f->left()->connective()==LITERAL && f->left()->literal()->functor()==pred) {
-    lhs=f->left();
-    rhs=f->right();
-  } else {
-    lhs=f->right();
-    rhs=f->left();
-  }
+
   if(lhs->connective()!=LITERAL || lhs->literal()->functor()!=pred) {
     return 0;
   }
@@ -734,17 +741,24 @@ void PredicateDefinition::scan(FormulaUnit* unit)
   if(f->connective() == FORALL) {
     f = f->qarg();
   }
-  ASS_REP(f->connective()!=FORALL, *unit); //formula is flattened
 
-  if(f->connective() == IFF) {
-    if(f->left()->connective()==LITERAL) {
-      if(tryGetDef(f->left()->literal(), f->right(), unit)) {
-	return;
+  switch (f->connective()) {
+    case IFF:
+      if(f->left()->connective()==LITERAL) {
+        if(tryGetDef(f->left()->literal(), f->right(), unit)) {
+          return;
+        }
       }
-    }
-    if(f->right()->connective()==LITERAL) {
-      tryGetDef(f->right()->literal(), f->left(), unit);
-    }
+      if(f->right()->connective()==LITERAL) {
+        tryGetDef(f->right()->literal(), f->left(), unit);
+      }
+      break;
+
+    case FORALL:
+      ASSERTION_VIOLATION_REP(unit->toString()); //formula is flattened
+
+    default:
+      break;
   }
 }
 
@@ -784,13 +798,14 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
     case LITERAL:
     {
       Literal* l=f->literal();
-      if(l->isEquality()) {
-	return;
-      }
       int pred = l->functor();
       _preds[pred].add(l->isPositive() ? polarity : -polarity, add, this);
       if(add==1) {
-	_preds[pred].containingUnits.insert(unit);
+        _preds[pred].containingUnits.insert(unit);
+      }
+      Term::Iterator args(l);
+      while (args.hasNext()) {
+        count(args.next(), add, unit);
       }
       return;
     }
@@ -824,11 +839,12 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
       count (f->qarg(), polarity, add, unit);
       return;
 
-    case BOOL_TERM:
-      ASSERTION_VIOLATION;
-
     case TRUE:
     case FALSE:
+      return;
+
+    case BOOL_TERM:
+      count (f->getBooleanTerm(), add, unit);
       return;
 
 #if VDEBUG
@@ -838,6 +854,46 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
 #endif
   }
 } // PredicateDefinition::count (Formula* f,...)
+
+void PredicateDefinition::count (TermList ts,int add, Unit* unit)
+{
+  CALL("PredicateDefinition::count(TermList,...)");
+
+  if (ts.isVar()) {
+    return;
+  }
+
+  Term* term = ts.term();
+
+  if (term->shared()) {
+    return;
+  }
+
+  if (term->isSpecial()) {
+    Term::SpecialTermData* sd = term->getSpecialData();
+    switch (sd->getType()) {
+      case Term::SF_FORMULA:
+        count(sd->getFormula(), 0, add, unit);
+        break;
+
+      case Term::SF_ITE:
+        count(sd->getCondition(), 0, add, unit);
+        break;
+
+      case Term::SF_LET:
+        count(sd->getBinding(), add, unit);
+        break;
+
+      default:
+        ASSERTION_VIOLATION;
+    }
+  }
+
+  Term::Iterator args(term);
+  while (args.hasNext()) {
+    count(args.next(), add, unit);
+  }
+} // PredicateDefinition::count (TermList ts,...)
 
 bool PredicateDefinition::tryGetDef(Literal* lhs, Formula* rhs, FormulaUnit* unit)
 {

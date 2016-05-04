@@ -118,7 +118,7 @@ class Int
   {
     CALL("Int::safeUnaryMinus");
 
-    if(num == numeric_limits<INT>::max()) {
+    if(num == numeric_limits<INT>::min()) {
       return false;
     }
     res=-num;

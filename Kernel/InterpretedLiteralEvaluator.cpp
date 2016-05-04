@@ -898,12 +898,14 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
         okay=balancePlus(Theory::REAL_PLUS,Theory::REAL_UNARY_MINUS,t2term,to_unwrap,t1,result);
         break;
 
+/*
       case Theory::INT_MULTIPLY: 
       {
         IntegerConstantType zero(0);
         okay=balanceMultiply(Theory::INT_QUOTIENT_E,zero,t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
         break;
       }
+*/
       case Theory::RAT_MULTIPLY:
       {
         RationalConstantType zero(0,1);

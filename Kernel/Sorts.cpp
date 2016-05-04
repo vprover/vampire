@@ -209,6 +209,26 @@ BaseType::BaseType(unsigned arity, const unsigned* sorts)
 } // BaseType::BaseType
 
 /**
+ * Initialise a base type from an initializer list of sorts.
+ */
+BaseType::BaseType(std::initializer_list<unsigned> sorts)
+{
+  CALL("BaseType::BaseType");
+
+  if (sorts.size() == 0) {
+    _args = 0;
+    return;
+  }
+
+  _args = SortVector::allocate(sorts.size());
+  // initialise all the argument types to thos taken from sorts
+  unsigned i = 0;
+  for (auto sort : sorts) {
+    (*_args)[i++] = sort;
+  }
+} // BaseType::BaseType
+
+/**
  * Destrory the type and deallocate its arguments, if any
  * @author Andrei Voronkov 
  */ 

@@ -157,6 +157,8 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   TimeCounter tc1(TC_PARSING);
   env.statistics->phase = Statistics::PARSING;
 
+  SMTLIBLogic smtLibLogic = SMT_UNDEFINED;
+
   vstring inputFile = opts.inputFile();
 
   istream* input;
@@ -186,7 +188,13 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   case Options::InputSyntax::TPTP:
     {
       Parse::TPTP parser(*input);
-      parser.parse();
+      try{
+        parser.parse();
+      }
+      catch (UserErrorException& exception) {
+        vstring msg = exception.msg();
+        throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
+      }
       units = parser.units();
       s_haveConjecture=parser.containsConjecture();
     }
@@ -205,6 +213,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 	  parser.parse(*input);
 
 	  units = parser.getFormulas();
+    smtLibLogic = parser.getLogic();
 	  s_haveConjecture=false;
 
 	  break;
@@ -229,6 +238,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   }
 
   Problem* res = new Problem(units);
+  res->setSMTLIBLogic(smtLibLogic);
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
   return res;
@@ -352,6 +362,10 @@ void UIHelper::outputResult(ostream& out)
     break;
   case Statistics::SAT_UNSATISFIABLE:
     out<<"good job\n";
+    break;
+  case Statistics::INAPPROPRIATE:
+    addCommentIfCASC(out);
+    out << "Terminated due to inappropriate strategy.\n";
     break;
   case Statistics::UNKNOWN:
   addCommentIfCASC(out);

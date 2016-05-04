@@ -313,6 +313,7 @@ class ActiveClauseContainer;
 class Limits;
 class Splitter;
 class ConsequenceFinder;
+class LabelFinder;
 class SymElOutput;
 }
 

@@ -60,12 +60,12 @@ class SymCounter
   ~SymCounter ();
 
   // counting functions
-  void count(const UnitList*, int);
-  void count(const Formula*, int);
-  void count(const Clause*, int);
-  void count(const Formula*, int polarity, int add);
-  void count(const Literal*, int polarity, int add);
-  void count(const TermList* t, int add);
+  void count(UnitList*, int);
+  void count(Formula*, int);
+  void count(Clause*, int);
+  void count(Formula*, int polarity, int add);
+  void count(Literal*, int polarity, int add);
+  void count(Term* term, int polarity, int add);
 
   /** Return information about n-th predicate symbol */
   Pred& getPred (int n)

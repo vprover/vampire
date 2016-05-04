@@ -94,8 +94,8 @@ public:
    */
   const Options& getOptions() const { return _opt; }
 
-protected:
   static bool isRefutation(Clause* cl);
+protected:
   static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt);
 
   /**

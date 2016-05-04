@@ -32,12 +32,8 @@ public:
   typedef Stack<vstring> Schedule;
   static void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
   static void getSchedulesSat(Property& prop, Schedule& quick, Schedule& fallback);
-  static void getSchedulesEPR(Property& prop, Schedule& quick, Schedule& fallback);
-  static void getSchedulesTheory(Property& prop, Schedule& quick, Schedule& fallback);
   static unsigned getSliceTime(vstring sliceCode,vstring& chopped);
   static void makeSat() {_sat=true;}
-  static void makeEPR() {_epr=true;}
-  static void makeTheory() {_theory=true;}
 protected:
   /**
    * Run a slice correponding to the options.
@@ -51,10 +47,6 @@ protected:
   Property* _property;
   /** True if satisfiability checking */
   static bool _sat;
-  /** True if EPR formulas */
-  static bool _epr;
-  /** True if theory formulas */
-  static bool _theory;
 
 private:
   typedef Set<vstring> StrategySet;

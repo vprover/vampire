@@ -255,18 +255,19 @@ public:
     : public ::Exception
   {
   public:
-    ParseErrorException(vstring message) : _message(message) {}
-    ParseErrorException(vstring message,Token& tok);
-    ParseErrorException(vstring message,int position);
+    ParseErrorException(vstring message,unsigned ln) : _message(message), _ln(ln) {}
+    ParseErrorException(vstring message,Token& tok,unsigned ln);
+    ParseErrorException(vstring message,int position,unsigned ln);
     void cry(ostream&);
     ~ParseErrorException() {}
   protected:
     vstring _message;
+    unsigned _ln;
   }; // TPTP::ParseErrorException
   friend class Exception;
 
 #define PARSE_ERROR(msg,tok) \
-  throw ParseErrorException(msg,tok)
+  throw ParseErrorException(msg,tok,_lineNumber)
 
   TPTP(istream& in);
   ~TPTP();
@@ -286,6 +287,7 @@ public:
   static bool findAxiomName(const Unit* unit, vstring& result);
   //this function is used also by the API
   static void assignAxiomName(const Unit* unit, vstring& name);
+  unsigned lineNumber(){ return _lineNumber; }
 private:
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
@@ -439,6 +441,8 @@ private:
   Array<Token> _tokens;
   /** the position beyond the last processed token */
   int _tend;
+  /** line number */
+  unsigned _lineNumber;
   /** The stack of units read */
   UnitStack _units;
   /** stack of unprocessed states */

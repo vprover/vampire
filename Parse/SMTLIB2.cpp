@@ -19,6 +19,7 @@
 
 #include "Shell/LispLexer.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/SMTLIBLogic.hpp"
 
 #include "SMTLIB2.hpp"
 
@@ -43,7 +44,7 @@ namespace Parse {
 
 SMTLIB2::SMTLIB2(const Options& opts)
 : _logicSet(false),
-  _logic(LO_INVALID),
+  _logic(SMT_UNDEFINED),
   _numeralsAreReal(false),
   _formulas(nullptr)
 {
@@ -266,18 +267,18 @@ const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "UFNIA"
 };
 
-SMTLIB2::SmtlibLogic SMTLIB2::getLogicFromString(const vstring& str)
+SMTLIBLogic SMTLIB2::getLogicFromString(const vstring& str)
 {
   CALL("SMTLIB2::getLogicFromString");
 
   static NameArray smtlibLogicNames(s_smtlibLogicNameStrings, sizeof(s_smtlibLogicNameStrings)/sizeof(char*));
-  ASS_EQ(smtlibLogicNames.length, LO_INVALID);
+  ASS_EQ(smtlibLogicNames.length, SMT_UNDEFINED);
 
   int res = smtlibLogicNames.tryToFind(str.c_str());
   if(res==-1) {
-    return LO_INVALID;
+    return SMT_UNDEFINED;
   }
-  return static_cast<SmtlibLogic>(res);
+  return static_cast<SMTLIBLogic>(res);
 }
 
 void SMTLIB2::readLogic(const vstring& logicStr)
@@ -288,51 +289,51 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   _logicSet = true;
 
   switch (_logic) {
-  case LO_ALIA:
-  case LO_AUFLIA:
-  case LO_AUFLIRA:
-  case LO_AUFNIRA:
-  case LO_LIA:
-  case LO_NIA:
-  case LO_QF_ALIA:
-  case LO_QF_ANIA:
-  case LO_QF_AUFLIA:
-  case LO_QF_AUFNIA:
-  case LO_QF_AX:
-  case LO_QF_IDL:
-  case LO_QF_LIA:
-  case LO_QF_LIRA:
-  case LO_QF_NIA:
-  case LO_QF_NIRA:
-  case LO_QF_UF:
-  case LO_QF_UFIDL:
-  case LO_QF_UFLIA:
-  case LO_QF_UFNIA:
-  case LO_UF:
-  case LO_UFIDL:
-  case LO_UFLIA:
-  case LO_UFNIA:
+  case SMT_ALIA:
+  case SMT_AUFLIA:
+  case SMT_AUFLIRA:
+  case SMT_AUFNIRA:
+  case SMT_LIA:
+  case SMT_NIA:
+  case SMT_QF_ALIA:
+  case SMT_QF_ANIA:
+  case SMT_QF_AUFLIA:
+  case SMT_QF_AUFNIA:
+  case SMT_QF_AX:
+  case SMT_QF_IDL:
+  case SMT_QF_LIA:
+  case SMT_QF_LIRA:
+  case SMT_QF_NIA:
+  case SMT_QF_NIRA:
+  case SMT_QF_UF:
+  case SMT_QF_UFIDL:
+  case SMT_QF_UFLIA:
+  case SMT_QF_UFNIA:
+  case SMT_UF:
+  case SMT_UFIDL:
+  case SMT_UFLIA:
+  case SMT_UFNIA:
     break;
 
   // pure real arithmetic theories treat decimals as Real constants
-  case LO_LRA:
-  case LO_NRA:
-  case LO_QF_LRA:
-  case LO_QF_NRA:
-  case LO_QF_RDL:
-  case LO_QF_UFLRA:
-  case LO_QF_UFNRA:
-  case LO_UFLRA:
+  case SMT_LRA:
+  case SMT_NRA:
+  case SMT_QF_LRA:
+  case SMT_QF_NRA:
+  case SMT_QF_RDL:
+  case SMT_QF_UFLRA:
+  case SMT_QF_UFNRA:
+  case SMT_UFLRA:
     _numeralsAreReal = true;
     break;
 
   // we don't support bit vectors
-  case LO_BV:
-  case LO_QF_ABV:
-  case LO_QF_AUFBV:
-  case LO_QF_BV:
-  case LO_QF_UFBV:
-  case LO_UFBV:
+  case SMT_BV:
+  case SMT_QF_ABV:
+  case SMT_QF_AUFBV:
+  case SMT_QF_BV:
+  case SMT_QF_UFBV:
+  case SMT_UFBV:
     USER_ERROR("unsupported logic "+logicStr);
   default:
     USER_ERROR("unrecognized logic "+logicStr);
