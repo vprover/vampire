@@ -256,6 +256,7 @@ void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
     _skipped++;
     if(_skipped == _delay){
       delete _startupSelector;
+      _startupSelector=0;
     }
     return;
   }

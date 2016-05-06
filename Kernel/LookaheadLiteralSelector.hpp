@@ -24,7 +24,7 @@ public:
   {
     _delay = options.lookaheadDelay();
     _skipped = 0;
-    _startupSelector = (_delay==0) ? 0 : LiteralSelector::getSelector(ordering, options, completeSelection ? 10 : 1011);
+    _startupSelector = (_delay==0) ? 0 : LiteralSelector::getSelector(ordering, options, completeSelection ? 10 : 1010);
   }
 
   bool isBGComplete() const override { return _completeSelection; }
