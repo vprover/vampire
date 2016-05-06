@@ -1654,7 +1654,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
         _dsaEnumerator->learnNogood(nogood,weight);
 
         if (!_dsaEnumerator->increaseModelSizes(_distinctSortSizes,_distinctSortMaxs)) {
-          if (_dsaEnumerator->isFmbComplete()) {
+          if (_dsaEnumerator->isFmbComplete(_distinctSortSizes.size())) {
             Clause* empty = new(0) Clause(0,Unit::AXIOM,
                 new Inference(Inference::MODEL_NOT_FOUND));
             return MainLoopResult(Statistics::REFUTATION,empty);
