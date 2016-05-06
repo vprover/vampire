@@ -249,6 +249,17 @@ void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
   CALL("LookaheadLiteralSelector::doSelection");
 
+  if(_startupSelector){
+   
+    _startupSelector->select(c,eligible);
+
+    _skipped++;
+    if(_skipped == _delay){
+      delete _startupSelector;
+    }
+    return;
+  }
+
   LiteralList* maximals=0;
   Literal* singleSel=0;
 
