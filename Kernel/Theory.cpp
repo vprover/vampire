@@ -1131,10 +1131,10 @@ unsigned Theory::getTupleProjectionFunctor(unsigned proj, unsigned tupleSort) {
     unsigned projSort = sortInfo->argument(proj);
     if (projSort == Sorts::SRT_BOOL) {
       projFunctor = env.signature->addFreshPredicate(1, "proj");
-      env.signature->getPredicate(projFunctor)->setType(new PredicateType(tupleSort));
+      env.signature->getPredicate(projFunctor)->setType(new PredicateType({tupleSort}));
     } else {
       projFunctor = env.signature->addFreshFunction(1, "proj");
-      env.signature->getFunction(projFunctor)->setType(new FunctionType(tupleSort, projSort));
+      env.signature->getFunction(projFunctor)->setType(new FunctionType({tupleSort}, projSort));
     }
     _tupleProjections.set(p, projFunctor);
     _tupleProjectionFunctors.set(projFunctor, proj);
